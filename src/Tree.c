@@ -58,7 +58,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/TreeP.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "XawXcbCompat.h"
 
 #define IsHorizontal(tw) ((tw)->tree.gravity == WestGravity || \
 			  (tw)->tree.gravity == EastGravity)

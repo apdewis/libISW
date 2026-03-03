@@ -79,9 +79,7 @@ xaw3dinclude_HEADERS = \
 	X11/Xaw3d/Viewport.h \
 	X11/Xaw3d/ViewportP.h \
 	X11/Xaw3d/Xaw3dP.h \
-	X11/Xaw3d/XawContext.h \
 	X11/Xaw3d/XawInit.h \
-	X11/Xaw3d/XawXftCompat.h \
 	$(I18N_HDRS)
 
 EXTRA_DIST = \

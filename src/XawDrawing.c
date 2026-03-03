@@ -15,8 +15,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "XawUtils.h"
-#include "XawXcbCompat.h"
 
 /* 
  * FIXME: These helper functions need proper implementation as part of the

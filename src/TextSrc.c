@@ -45,7 +45,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xproto.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/TextSrcP.h>
-#include "XawUtils.h"
 #ifdef XAW_INTERNATIONALIZATION
 #include "XawI18n.h"
 #endif

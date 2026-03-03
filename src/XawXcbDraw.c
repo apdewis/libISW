@@ -340,3 +340,72 @@ XawXcbDrawString(xcb_connection_t *conn, xcb_drawable_t d,
     
     xcb_flush(conn);
 }
+
+/*
+ * =================================================================
+ * XCB CORE FONT HELPERS (Phase 2: Non-Xft implementations)
+ * =================================================================
+ */
+
+/*
+ * XawXcbTextWidth - Calculate text width
+ *
+ * This is an alias/wrapper for XawFontTextWidth for consistency
+ * with the function naming in the header.
+ */
+int
+XawXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
+                const char *text, int len)
+{
+    return XawFontTextWidth(conn, font, text, len);
+}
+
+/*
+ * XawXcbQueryFontMetrics - Query font ascent, descent, and max width
+ *
+ * Replacement for accessing XFontStruct->max_bounds directly.
+ */
+void
+XawXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
+                       XawFontMetrics *metrics)
+{
+    xcb_query_font_cookie_t cookie;
+    xcb_query_font_reply_t *reply;
+    
+    if (!conn || !metrics)
+        return;
+    
+    /* Set fallback values in case query fails */
+    metrics->ascent = 10;
+    metrics->descent = 2;
+    metrics->max_char_width = 8;
+    
+    /* Query the font from server */
+    cookie = xcb_query_font(conn, font);
+    reply = xcb_query_font_reply(conn, cookie, NULL);
+    
+    if (reply) {
+        metrics->ascent = reply->font_ascent;
+        metrics->descent = reply->font_descent;
+        metrics->max_char_width = reply->max_bounds.character_width;
+        free(reply);
+    }
+}
+
+/*
+ * XawXcbDrawText - Draw text using xcb_image_text_8
+ *
+ * Replacement for XDrawString. Draws text with background fill.
+ */
+void
+XawXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
+               xcb_gcontext_t gc, int16_t x, int16_t y,
+               const char *text, uint8_t len)
+{
+    if (!conn || !text || len == 0)
+        return;
+    
+    /* XCB image_text_8 draws text with background */
+    xcb_image_text_8(conn, len, d, gc, x, y, text);
+    xcb_flush(conn);
+}

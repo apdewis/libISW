@@ -46,10 +46,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xfixes.h>
-#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/ListP.h>
-#include "XawXftCompat.h"
 
 /* These added so widget knows whether its height, width are user selected.
 I also added the freedoms member of the list widget part. */

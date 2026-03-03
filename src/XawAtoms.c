@@ -11,8 +11,6 @@
 #include <config.h>
 #endif
 
-#include "XawUtils.h"
-#include "XawXcbTypes.h"
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <stdlib.h>

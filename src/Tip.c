@@ -39,10 +39,8 @@
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xos.h>
-#include "XawUtils.h"
 #include <X11/Xaw3d/TipP.h>
 #include <X11/Xaw3d/XawInit.h>
-#include "XawXftCompat.h"
 
 #include <stdlib.h>
 

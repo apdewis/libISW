@@ -68,10 +68,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/MultiSrcP.h>
 #include <X11/Xaw3d/XawImP.h>
-#include "XawUtils.h"
-#include "XawUtils.h"
 #include "XawI18n.h"
-#include "XawUtils.h"
 #include <X11/Xos.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -67,7 +67,6 @@ SOFTWARE.
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/ScrollbarP.h>
 
-#include "XawUtils.h"
 
 #include <stdint.h>
 #include <xcb/xcb.h>

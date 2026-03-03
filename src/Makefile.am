@@ -68,20 +68,10 @@ libXaw3d_la_SOURCES = \
 	Xaw3dP.c \
 	XawAtoms.c \
 	XawContext.c \
-	XawConverters.c \
 	XawDrawing.c \
 	XawInit.c \
-	XawUtils.c \
-	XawUtils.h \
-	XawXcbCompat.c \
-	XawXcbCompat.h \
-	XawXcbTypes.h \
-	XawRegion.c \
-	XawRegion.h \
 	XawXcbDraw.c \
 	XawXcbDraw.h \
-	XawXftCompat.c \
-	XawXftCompat.h \
 	laygram.y \
 	laylex.l \
 	$(I18N_SRCS)

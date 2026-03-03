@@ -69,8 +69,6 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 #include <X11/ShellP.h>
 #include <X11/VendorP.h>
-#include "XawUtils.h"
-#include "XawUtils.h"
 #ifdef XAW_INTERNATIONALIZATION
 /* Editres support - see XawUtils.h */
 #endif

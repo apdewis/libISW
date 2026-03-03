@@ -59,7 +59,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/Command.h>
 #include <X11/Xaw3d/Form.h>
 #include <X11/Xaw3d/Toggle.h>
-#include "XawUtils.h"
 #ifdef XAW_INTERNATIONALIZATION
 #include "XawI18n.h"
 #endif

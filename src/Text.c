@@ -63,15 +63,10 @@ SOFTWARE.
 #include <stdlib.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "XawUtils.h"
-#include "XawUtils.h"
-#include "XawUtils.h"
-#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/Cardinals.h>
 #include <X11/Xaw3d/Scrollbar.h>
 #include <X11/Xaw3d/TextP.h>
-#include "XawUtils.h"
 #ifdef XAW_INTERNATIONALIZATION
 #include <X11/Xaw3d/MultiSinkP.h>
 #include <X11/Xaw3d/XawImP.h>

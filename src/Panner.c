@@ -30,12 +30,9 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>		/* for XtN and XtC defines */
-#include "XawUtils.h"		/* for XawCompareISOLatin1() */
 #include <X11/Xaw3d/XawInit.h>		/* for XawInitializeWidgetSet */
 #include <X11/Xaw3d/PannerP.h>		/* us */
 #include <X11/Xos.h>
-#include "XawUtils.h"		/* for Min */
-#include "XawUtils.h"
 #include <ctype.h>			/* for isascii() etc. */
 #include <stdlib.h>			/* for atof() */
 #include <xcb/xcb.h>

@@ -14,7 +14,6 @@
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <X11/Intrinsic.h>
-#include "XawXcbTypes.h"
 
 /*
  * =================================================================
@@ -271,5 +270,66 @@ void XawXcbDrawImageString(xcb_connection_t *conn, xcb_drawable_t d,
 void XawXcbDrawString(xcb_connection_t *conn, xcb_drawable_t d,
                       xcb_gcontext_t gc, int x, int y,
                       const char *text, int len);
+
+/*
+ * =================================================================
+ * XCB CORE FONT HELPERS (Phase 2: Non-Xft text rendering)
+ * =================================================================
+ */
+
+/*
+ * XawXcbTextWidth - Calculate text width using xcb_query_text_extents
+ *
+ * Replacement for XTextWidth - queries server for text extent
+ *
+ * Parameters:
+ *   conn - XCB connection
+ *   font - XCB font ID (from XFontStruct->fid)
+ *   text - Text string
+ *   len  - Length of text in bytes
+ *
+ * Returns: Width in pixels
+ */
+int XawXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
+                    const char *text, int len);
+
+/*
+ * XawFontMetrics - Font metrics structure
+ */
+typedef struct {
+    int ascent;
+    int descent;
+    int max_char_width;
+} XawFontMetrics;
+
+/*
+ * XawXcbQueryFontMetrics - Query font metrics using xcb_query_font
+ *
+ * Replacement for accessing XFontStruct->max_bounds
+ *
+ * Parameters:
+ *   conn    - XCB connection
+ *   font    - XCB font ID
+ *   metrics - Output metrics structure
+ */
+void XawXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
+                            XawFontMetrics *metrics);
+
+/*
+ * XawXcbDrawText - Draw text using xcb_image_text_8
+ *
+ * Replacement for XDrawString (draws text with background)
+ *
+ * Parameters:
+ *   conn - XCB connection
+ *   d    - Drawable (window or pixmap)
+ *   gc   - Graphics context (must have font set)
+ *   x, y - Text position (baseline)
+ *   text - Text string
+ *   len  - Length of text (max 255)
+ */
+void XawXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
+                    xcb_gcontext_t gc, int16_t x, int16_t y,
+                    const char *text, uint8_t len);
 
 #endif /* _XawXcbDraw_h */

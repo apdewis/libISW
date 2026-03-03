@@ -30,7 +30,6 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/Xaw3d/AllWidgets.h>
-#include "XawUtils.h"
 
 #include <X11/Composite.h>
 #include <X11/Constraint.h>

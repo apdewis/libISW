@@ -49,7 +49,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/Cardinals.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "XawXcbCompat.h"
 
 #define offset(field) XtOffsetOf(SmeLineRec, sme_line.field)
 static XtResource resources[] = {

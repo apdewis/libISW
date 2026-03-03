@@ -51,11 +51,8 @@ SOFTWARE.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/FormP.h>
-#include "XawUtils.h"
-#include "XawXcbCompat.h"
 
 /* Private Definitions */
 

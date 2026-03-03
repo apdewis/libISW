@@ -39,8 +39,6 @@ SOFTWARE.
 #include <X11/Xosdefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "XawUtils.h"
-#include "XawXcbCompat.h"
 
 /* Initialization of defaults */
 

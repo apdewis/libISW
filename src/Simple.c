@@ -55,8 +55,6 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/SimpleP.h>
-#include "XawUtils.h"
-#include "XawXcbCompat.h"
 
 #define offset(field) XtOffsetOf(SimpleRec, simple.field)
 

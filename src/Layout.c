@@ -27,8 +27,6 @@
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 
-#include "XawUtils.h"
-#include "XawUtils.h"
 
 #ifdef MOTIF
 # include <Xm/XmP.h>

@@ -66,10 +66,7 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/shape.h>
-#include "XawXcbCompat.h"   /* For XCB-compatible type definitions */
-#include "XawUtils.h"       /* For Min/Max macros and XawReshapeWidget */
 #include "XawXcbDraw.h"     /* For XCB GC helpers */
-#include "XawRegion.h"      /* For XCB region helpers */
 
 #define DEFAULT_HIGHLIGHT_THICKNESS 2
 #define DEFAULT_SHAPE_HIGHLIGHT 32767

@@ -81,7 +81,6 @@ SOFTWARE.
 #include <X11/Xaw3d/MultiSrcP.h>
 #include <X11/Xaw3d/TextP.h>
 #include "XawI18n.h"
-#include "XawXftCompat.h"  /* Phase 3.5: XFontSet → XawFontSet */
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>

@@ -65,12 +65,10 @@ SOFTWARE.
 #include <X11/IntrinsicP.h>
 #include <X11/cursorfont.h>
 #include <X11/StringDefs.h>
-#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/Grip.h>
 #include <X11/Xaw3d/PanedP.h>
 #include <ctype.h>
-#include "XawUtils.h"
 #include <xcb/xcb.h>
 #include <xcb/xfixes.h>
 

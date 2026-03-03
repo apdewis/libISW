@@ -45,13 +45,11 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xos.h>
-#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/ThreeDP.h>
 #include <X11/Xaw3d/SimpleMenP.h>
 #include <X11/Xaw3d/SmeBSBP.h>
 #include <X11/Xaw3d/Cardinals.h>
-#include "XawXftCompat.h"
 #include <stdio.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>

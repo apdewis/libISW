@@ -1,0 +1,1311 @@
+make  all-recursive
+make[1]: Entering directory '/home/adam/Xaw3d'
+Making all in include
+make[2]: Entering directory '/home/adam/Xaw3d/include'
+make[2]: Nothing to be done for 'all'.
+make[2]: Leaving directory '/home/adam/Xaw3d/include'
+Making all in src
+make[2]: Entering directory '/home/adam/Xaw3d/src'
+make  all-am
+make[3]: Entering directory '/home/adam/Xaw3d/src'
+  CC       AllWidgets.lo
+  CC       AsciiSink.lo
+In file included from /home/adam/libxt/include/X11/IntrinsicP.h:51,
+                 from AsciiSink.c:55:
+/home/adam/libxt/include/X11/Intrinsic.h:1691:33: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1691 | #define XtDefaultFont           "XtDefaultFont"
+      |                                 ^~~~~~~~~~~~~~~
+AsciiSink.c:95:34: note: in expansion of macro ‘XtDefaultFont’
+   95 |         offset(font), XtRString, XtDefaultFont},
+      |                                  ^~~~~~~~~~~~~
+In file included from ../include/X11/Xaw3d/Text.h:275,
+                 from ../include/X11/Xaw3d/TextSink.h:53,
+                 from ../include/X11/Xaw3d/TextSinkP.h:70,
+                 from ../include/X11/Xaw3d/AsciiSinkP.h:63,
+                 from AsciiSink.c:58:
+../include/X11/Xaw3d/AsciiSink.h:72:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   72 | #define XtNecho "echo"
+      |                 ^~~~~~
+AsciiSink.c:96:6: note: in expansion of macro ‘XtNecho’
+   96 |     {XtNecho, XtCOutput, XtRBoolean, sizeof(Boolean),
+      |      ^~~~~~~
+../include/X11/Xaw3d/AsciiSink.h:69:19: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   69 | #define XtCOutput "Output"
+      |                   ^~~~~~~~
+AsciiSink.c:96:15: note: in expansion of macro ‘XtCOutput’
+   96 |     {XtNecho, XtCOutput, XtRBoolean, sizeof(Boolean),
+      |               ^~~~~~~~~
+../include/X11/Xaw3d/AsciiSink.h:71:31: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   71 | #define XtNdisplayNonprinting "displayNonprinting"
+      |                               ^~~~~~~~~~~~~~~~~~~~
+AsciiSink.c:98:6: note: in expansion of macro ‘XtNdisplayNonprinting’
+   98 |     {XtNdisplayNonprinting, XtCOutput, XtRBoolean, sizeof(Boolean),
+      |      ^~~~~~~~~~~~~~~~~~~~~
+../include/X11/Xaw3d/AsciiSink.h:69:19: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   69 | #define XtCOutput "Output"
+      |                   ^~~~~~~~
+AsciiSink.c:98:29: note: in expansion of macro ‘XtCOutput’
+   98 |     {XtNdisplayNonprinting, XtCOutput, XtRBoolean, sizeof(Boolean),
+      |                             ^~~~~~~~~
+AsciiSink.c:108:41: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  108 |     /* class_name               */      "AsciiSink",
+      |                                         ^~~~~~~~~~~
+AsciiSink.c: In function ‘PaintText’:
+AsciiSink.c:253:20: warning: declaration of ‘conn’ shadows a previous local [-Wshadow]
+  253 |  xcb_connection_t *conn = XtDisplay((Widget) ctx);
+      |                    ^~~~
+AsciiSink.c:238:23: note: shadowed declaration is here
+  238 |     xcb_connection_t *conn = XtDisplay((Widget) ctx);
+      |                       ^~~~
+  CC       AsciiSrc.lo
+In file included from ../include/X11/Xaw3d/MultiSrcP.h:103,
+                 from AsciiSrc.c:53:
+../include/X11/Xaw3d/MultiSrc.h:103:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  103 | #define XtNtype "type"
+      |                 ^~~~~~
+AsciiSrc.c:77:6: note: in expansion of macro ‘XtNtype’
+   77 |     {XtNtype, XtCType, XtRAsciiType, sizeof (XawAsciiType),
+      |      ^~~~~~~
+../include/X11/Xaw3d/MultiSrc.h:98:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   98 | #define XtCType "Type"
+      |                 ^~~~~~
+AsciiSrc.c:77:15: note: in expansion of macro ‘XtCType’
+   77 |     {XtNtype, XtCType, XtRAsciiType, sizeof (XawAsciiType),
+      |               ^~~~~~~
+In file included from ../include/X11/Xaw3d/Text.h:274,
+                 from ../include/X11/Xaw3d/TextSrc.h:58,
+                 from ../include/X11/Xaw3d/TextSrcP.h:64,
+                 from ../include/X11/Xaw3d/AsciiSrcP.h:71,
+                 from AsciiSrc.c:48:
+../include/X11/Xaw3d/AsciiSrc.h:91:22: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   91 | #define XtRAsciiType "AsciiType"
+      |                      ^~~~~~~~~~~
+AsciiSrc.c:77:24: note: in expansion of macro ‘XtRAsciiType’
+   77 |     {XtNtype, XtCType, XtRAsciiType, sizeof (XawAsciiType),
+      |                        ^~~~~~~~~~~~
+../include/X11/Xaw3d/MultiSrc.h:101:28: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  101 | #define XtNdataCompression "dataCompression"
+      |                            ^~~~~~~~~~~~~~~~~
+AsciiSrc.c:79:6: note: in expansion of macro ‘XtNdataCompression’
+   79 |     {XtNdataCompression, XtCDataCompression, XtRBoolean, sizeof (Boolean),
+      |      ^~~~~~~~~~~~~~~~~~
+../include/X11/Xaw3d/MultiSrc.h:96:28: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   96 | #define XtCDataCompression "DataCompression"
+      |                            ^~~~~~~~~~~~~~~~~
+AsciiSrc.c:79:26: note: in expansion of macro ‘XtCDataCompression’
+   79 |     {XtNdataCompression, XtCDataCompression, XtRBoolean, sizeof (Boolean),
+      |                          ^~~~~~~~~~~~~~~~~~
+../include/X11/Xaw3d/MultiSrc.h:102:22: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  102 | #define XtNpieceSize "pieceSize"
+      |                      ^~~~~~~~~~~
+AsciiSrc.c:81:6: note: in expansion of macro ‘XtNpieceSize’
+   81 |     {XtNpieceSize, XtCPieceSize, XtRInt, sizeof (XawTextPosition),
+      |      ^~~~~~~~~~~~
+../include/X11/Xaw3d/MultiSrc.h:97:22: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   97 | #define XtCPieceSize "PieceSize"
+      |                      ^~~~~~~~~~~
+AsciiSrc.c:81:20: note: in expansion of macro ‘XtCPieceSize’
+   81 |     {XtNpieceSize, XtCPieceSize, XtRInt, sizeof (XawTextPosition),
+      |                    ^~~~~~~~~~~~
+../include/X11/Xaw3d/MultiSrc.h:104:29: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  104 | #define XtNuseStringInPlace "useStringInPlace"
+      |                             ^~~~~~~~~~~~~~~~~~
+AsciiSrc.c:85:6: note: in expansion of macro ‘XtNuseStringInPlace’
+   85 |     {XtNuseStringInPlace, XtCUseStringInPlace, XtRBoolean, sizeof (Boolean),
+      |      ^~~~~~~~~~~~~~~~~~~
+../include/X11/Xaw3d/MultiSrc.h:99:29: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   99 | #define XtCUseStringInPlace "UseStringInPlace"
+      |                             ^~~~~~~~~~~~~~~~~~
+AsciiSrc.c:85:27: note: in expansion of macro ‘XtCUseStringInPlace’
+   85 |     {XtNuseStringInPlace, XtCUseStringInPlace, XtRBoolean, sizeof (Boolean),
+      |                           ^~~~~~~~~~~~~~~~~~~
+AsciiSrc.c:137:41: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  137 |     /* class_name               */      "AsciiSrc",
+      |                                         ^~~~~~~~~~
+AsciiSrc.c: In function ‘ClassInitialize’:
+../include/X11/Xaw3d/AsciiSrc.h:91:22: warning: passing argument 2 of ‘XtAddConverter’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   91 | #define XtRAsciiType "AsciiType"
+      |                      ^~~~~~~~~~~
+AsciiSrc.c:202:30: note: in expansion of macro ‘XtRAsciiType’
+  202 |   XtAddConverter( XtRString, XtRAsciiType, CvtStringToAsciiType,
+      |                              ^~~~~~~~~~~~
+In file included from /home/adam/libxt/include/X11/IntrinsicP.h:51,
+                 from ../include/X11/Xaw3d/Xaw3dP.h:33,
+                 from AsciiSrc.c:36:
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:663:13: note: in expansion of macro ‘_XtString’
+  663 |     _Xconst _XtString   /* to_type */,
+      |             ^~~~~~~~~
+AsciiSrc.c: In function ‘SetValues’:
+AsciiSrc.c:643:12: warning: passing argument 2 of ‘XtAppWarning’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  643 |            "AsciiSrc: The XtNuseStringInPlace resource may not be changed.");
+      |            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1823:13: note: in expansion of macro ‘_XtString’
+ 1823 |     _Xconst _XtString   /* message */
+      |             ^~~~~~~~~
+AsciiSrc.c: In function ‘XawAsciiSourceFreeString’:
+AsciiSrc.c:748:18: warning: passing argument 1 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  748 |       XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                  ^~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1767:13: note: in expansion of macro ‘_XtString’
+ 1767 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiSrc.c:748:34: warning: passing argument 2 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  748 |       XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                                  ^~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1768:13: note: in expansion of macro ‘_XtString’
+ 1768 |     _Xconst _XtString   /* type */,
+      |             ^~~~~~~~~
+AsciiSrc.c:748:49: warning: passing argument 3 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  748 |       XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                                                 ^~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1769:13: note: in expansion of macro ‘_XtString’
+ 1769 |     _Xconst _XtString   /* class */,
+      |             ^~~~~~~~~
+AsciiSrc.c:750:13: warning: passing argument 4 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  750 |             "XawAsciiSourceFreeString's parameter must be an asciiSrc or multiSrc.",
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1770:13: note: in expansion of macro ‘_XtString’
+ 1770 |     _Xconst _XtString   /* default */,
+      |             ^~~~~~~~~
+AsciiSrc.c: In function ‘XawAsciiSave’:
+AsciiSrc.c:783:20: warning: passing argument 1 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  783 |         XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                    ^~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1767:13: note: in expansion of macro ‘_XtString’
+ 1767 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiSrc.c:783:36: warning: passing argument 2 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  783 |         XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                                    ^~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1768:13: note: in expansion of macro ‘_XtString’
+ 1768 |     _Xconst _XtString   /* type */,
+      |             ^~~~~~~~~
+AsciiSrc.c:783:51: warning: passing argument 3 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  783 |         XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                                                   ^~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1769:13: note: in expansion of macro ‘_XtString’
+ 1769 |     _Xconst _XtString   /* class */,
+      |             ^~~~~~~~~
+AsciiSrc.c:785:17: warning: passing argument 4 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  785 |                 "XawAsciiSave's parameter must be an asciiSrc or multiSrc.",
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1770:13: note: in expansion of macro ‘_XtString’
+ 1770 |     _Xconst _XtString   /* default */,
+      |             ^~~~~~~~~
+AsciiSrc.c: In function ‘XawAsciiSaveAsFile’:
+AsciiSrc.c:848:20: warning: passing argument 1 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  848 |         XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                    ^~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1767:13: note: in expansion of macro ‘_XtString’
+ 1767 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiSrc.c:848:36: warning: passing argument 2 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  848 |         XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                                    ^~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1768:13: note: in expansion of macro ‘_XtString’
+ 1768 |     _Xconst _XtString   /* type */,
+      |             ^~~~~~~~~
+AsciiSrc.c:848:51: warning: passing argument 3 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  848 |         XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                                                   ^~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1769:13: note: in expansion of macro ‘_XtString’
+ 1769 |     _Xconst _XtString   /* class */,
+      |             ^~~~~~~~~
+AsciiSrc.c:850:17: warning: passing argument 4 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  850 |                 "XawAsciiSaveAsFile's 1st parameter must be an asciiSrc or multiSrc.",
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1770:13: note: in expansion of macro ‘_XtString’
+ 1770 |     _Xconst _XtString   /* default */,
+      |             ^~~~~~~~~
+AsciiSrc.c: In function ‘XawAsciiSourceChanged’:
+AsciiSrc.c:881:14: warning: passing argument 1 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  881 |   XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |              ^~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1767:13: note: in expansion of macro ‘_XtString’
+ 1767 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiSrc.c:881:30: warning: passing argument 2 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  881 |   XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                              ^~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1768:13: note: in expansion of macro ‘_XtString’
+ 1768 |     _Xconst _XtString   /* type */,
+      |             ^~~~~~~~~
+AsciiSrc.c:881:45: warning: passing argument 3 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  881 |   XtErrorMsg("bad argument", "asciiSource", "XawError",
+      |                                             ^~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1769:13: note: in expansion of macro ‘_XtString’
+ 1769 |     _Xconst _XtString   /* class */,
+      |             ^~~~~~~~~
+AsciiSrc.c:883:17: warning: passing argument 4 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  883 |                 "XawAsciiSourceChanged parameter must be an asciiSrc or multiSrc.",
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1770:13: note: in expansion of macro ‘_XtString’
+ 1770 |     _Xconst _XtString   /* default */,
+      |             ^~~~~~~~~
+AsciiSrc.c: In function ‘InitStringOrFile’:
+AsciiSrc.c:1015:24: warning: passing argument 1 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1015 |             XtErrorMsg("NoFile", "asciiSourceCreate", "XawError",
+      |                        ^~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1767:13: note: in expansion of macro ‘_XtString’
+ 1767 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1015:34: warning: passing argument 2 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1015 |             XtErrorMsg("NoFile", "asciiSourceCreate", "XawError",
+      |                                  ^~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1768:13: note: in expansion of macro ‘_XtString’
+ 1768 |     _Xconst _XtString   /* type */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1015:55: warning: passing argument 3 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1015 |             XtErrorMsg("NoFile", "asciiSourceCreate", "XawError",
+      |                                                       ^~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1769:13: note: in expansion of macro ‘_XtString’
+ 1769 |     _Xconst _XtString   /* class */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1016:22: warning: passing argument 4 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1016 |                      "Creating a read only disk widget and no file specified.",
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1770:13: note: in expansion of macro ‘_XtString’
+ 1770 |     _Xconst _XtString   /* default */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1018:19: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1018 |         open_mode = "r";
+      |                   ^
+AsciiSrc.c:1026:23: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1026 |             open_mode = "w";
+      |                       ^
+AsciiSrc.c:1028:23: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1028 |             open_mode = "r+";
+      |                       ^
+AsciiSrc.c:1031:20: warning: passing argument 1 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1031 |         XtErrorMsg("badMode", "asciiSourceCreate", "XawError",
+      |                    ^~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1767:13: note: in expansion of macro ‘_XtString’
+ 1767 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1031:31: warning: passing argument 2 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1031 |         XtErrorMsg("badMode", "asciiSourceCreate", "XawError",
+      |                               ^~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1768:13: note: in expansion of macro ‘_XtString’
+ 1768 |     _Xconst _XtString   /* type */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1031:52: warning: passing argument 3 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1031 |         XtErrorMsg("badMode", "asciiSourceCreate", "XawError",
+      |                                                    ^~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1769:13: note: in expansion of macro ‘_XtString’
+ 1769 |     _Xconst _XtString   /* class */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1032:17: warning: passing argument 4 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1032 |                 "Bad editMode for ascii source; must be Read, Append or Edit.",
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1770:13: note: in expansion of macro ‘_XtString’
+ 1770 |     _Xconst _XtString   /* default */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1058:29: warning: passing argument 2 of ‘XtAppWarningMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1058 |                             "openError", "asciiSourceCreate", "XawWarning",
+      |                             ^~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1777:13: note: in expansion of macro ‘_XtString’
+ 1777 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1058:42: warning: passing argument 3 of ‘XtAppWarningMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1058 |                             "openError", "asciiSourceCreate", "XawWarning",
+      |                                          ^~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1778:13: note: in expansion of macro ‘_XtString’
+ 1778 |     _Xconst _XtString   /* type */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1058:63: warning: passing argument 4 of ‘XtAppWarningMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1058 |                             "openError", "asciiSourceCreate", "XawWarning",
+      |                                                               ^~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1779:13: note: in expansion of macro ‘_XtString’
+ 1779 |     _Xconst _XtString   /* class */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1059:29: warning: passing argument 5 of ‘XtAppWarningMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1059 |                             "Cannot open file %s; %s", params, &num_params);
+      |                             ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1780:13: note: in expansion of macro ‘_XtString’
+ 1780 |     _Xconst _XtString   /* default */,
+      |             ^~~~~~~~~
+AsciiSrc.c: In function ‘LoadPieces’:
+AsciiSrc.c:1082:22: warning: passing argument 1 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1082 |           XtErrorMsg("readError", "asciiSourceCreate", "XawError",
+      |                      ^~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1767:13: note: in expansion of macro ‘_XtString’
+ 1767 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1082:35: warning: passing argument 2 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1082 |           XtErrorMsg("readError", "asciiSourceCreate", "XawError",
+      |                                   ^~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1768:13: note: in expansion of macro ‘_XtString’
+ 1768 |     _Xconst _XtString   /* type */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1082:56: warning: passing argument 3 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1082 |           XtErrorMsg("readError", "asciiSourceCreate", "XawError",
+      |                                                        ^~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1769:13: note: in expansion of macro ‘_XtString’
+ 1769 |     _Xconst _XtString   /* class */,
+      |             ^~~~~~~~~
+AsciiSrc.c:1083:22: warning: passing argument 4 of ‘XtErrorMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1083 |                      "fread returned error.", NULL, NULL);
+      |                      ^~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1770:13: note: in expansion of macro ‘_XtString’
+ 1770 |     _Xconst _XtString   /* default */,
+      |             ^~~~~~~~~
+AsciiSrc.c: In function ‘CvtStringToAsciiType’:
+../include/X11/Xaw3d/MultiSrc.h:108:19: warning: passing argument 1 of ‘XrmPermStringToQuark’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  108 | #define XtEstring "string"
+      |                   ^~~~~~~~
+AsciiSrc.c:1275:39: note: in expansion of macro ‘XtEstring’
+ 1275 |     XtQEstring = XrmPermStringToQuark(XtEstring);
+      |                                       ^~~~~~~~~
+In file included from /home/adam/libxt/include/X11/Intrinsic.h:179:
+/home/adam/libxt/include/X11/XtQuark.h:156:45: note: expected ‘char *’ but argument is of type ‘const char *’
+  156 | extern XtQuark XrmPermStringToQuark(_Xconst char *);
+      |                                             ^~~~~~
+../include/X11/Xaw3d/MultiSrc.h:109:17: warning: passing argument 1 of ‘XrmPermStringToQuark’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  109 | #define XtEfile "file"
+      |                 ^~~~~~
+AsciiSrc.c:1276:39: note: in expansion of macro ‘XtEfile’
+ 1276 |     XtQEfile   = XrmPermStringToQuark(XtEfile);
+      |                                       ^~~~~~~
+/home/adam/libxt/include/X11/XtQuark.h:156:45: note: expected ‘char *’ but argument is of type ‘const char *’
+  156 | extern XtQuark XrmPermStringToQuark(_Xconst char *);
+      |                                             ^~~~~~
+  CC       AsciiText.lo
+AsciiText.c:94:33: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   94 |     /* class_name       */      "Text",
+      |                                 ^~~~~~
+AsciiText.c: In function ‘Initialize’:
+AsciiText.c:161:40: warning: passing argument 1 of ‘XtCreateWidget’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  161 |       w->text.source = XtCreateWidget( "textSource", multiSrcObjectClass,
+      |                                        ^~~~~~~~~~~~
+In file included from /home/adam/libxt/include/X11/IntrinsicP.h:51,
+                 from ../include/X11/Xaw3d/Xaw3dP.h:33,
+                 from AsciiText.c:71:
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1397:13: note: in expansion of macro ‘_XtString’
+ 1397 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiText.c:163:38: warning: passing argument 1 of ‘XtCreateWidget’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  163 |       w->text.sink = XtCreateWidget( "textSink", multiSinkObjectClass,
+      |                                      ^~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1397:13: note: in expansion of macro ‘_XtString’
+ 1397 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiText.c:170:40: warning: passing argument 1 of ‘XtCreateWidget’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  170 |       w->text.source = XtCreateWidget( "textSource", asciiSrcObjectClass,
+      |                                        ^~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1397:13: note: in expansion of macro ‘_XtString’
+ 1397 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+AsciiText.c:172:38: warning: passing argument 1 of ‘XtCreateWidget’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  172 |       w->text.sink = XtCreateWidget( "textSink", asciiSinkObjectClass,
+      |                                      ^~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1397:13: note: in expansion of macro ‘_XtString’
+ 1397 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+  CC       Box.lo
+Box.c:101:33: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  101 |     /* class_name         */    "Box",
+      |                                 ^~~~~
+In file included from /home/adam/libxt/include/X11/IntrinsicP.h:51,
+                 from Box.c:58:
+Box.c: In function ‘DoLayout’:
+/home/adam/libxt/include/X11/Intrinsic.h:1262:33: warning: macro expands to multiple statements [-Wmultistatement-macros]
+ 1262 | #define XtMapWidget(widget)     xcb_map_window(XtDisplay(widget), XtWindow(widget)); xcb_flush(XtDisplay(widget)); //XMapWindow(XtDisplay(widget), XtWindow(widget))
+      |                                 ^~~~~~~~~~~~~~
+Box.c:275:21: note: in expansion of macro ‘XtMapWidget’
+  275 |                     XtMapWidget(*childP);
+      |                     ^~~~~~~~~~~
+Box.c:273:17: note: some parts of macro expansion are not guarded by this ‘if’ clause
+  273 |                 if (XtIsRealized(*childP) && XtIsManaged(*childP) &&
+      |                 ^~
+  CC       Command.lo
+In file included from ../include/X11/Xaw3d/CommandP.h:57,
+                 from Command.c:64:
+../include/X11/Xaw3d/Command.h:98:31: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   98 | #define XtNhighlightThickness "highlightThickness"
+      |                               ^~~~~~~~~~~~~~~~~~~~
+Command.c:95:5: note: in expansion of macro ‘XtNhighlightThickness’
+   95 |    {XtNhighlightThickness, XtCThickness, XtRDimension, sizeof(Dimension),
+      |     ^~~~~~~~~~~~~~~~~~~~~
+../include/X11/Xaw3d/Command.h:100:23: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  100 | #define XtNshapeStyle "shapeStyle"
+      |                       ^~~~~~~~~~~~
+Command.c:98:5: note: in expansion of macro ‘XtNshapeStyle’
+   98 |    {XtNshapeStyle, XtCShapeStyle, XtRShapeStyle, sizeof(int),
+      |     ^~~~~~~~~~~~~
+../include/X11/Xaw3d/Command.h:101:23: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  101 | #define XtCShapeStyle "ShapeStyle"
+      |                       ^~~~~~~~~~~~
+Command.c:98:20: note: in expansion of macro ‘XtCShapeStyle’
+   98 |    {XtNshapeStyle, XtCShapeStyle, XtRShapeStyle, sizeof(int),
+      |                    ^~~~~~~~~~~~~
+../include/X11/Xaw3d/Command.h:102:23: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  102 | #define XtRShapeStyle "ShapeStyle"
+      |                       ^~~~~~~~~~~~
+Command.c:98:35: note: in expansion of macro ‘XtRShapeStyle’
+   98 |    {XtNshapeStyle, XtCShapeStyle, XtRShapeStyle, sizeof(int),
+      |                                   ^~~~~~~~~~~~~
+../include/X11/Xaw3d/Command.h:103:31: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  103 | #define XtNcornerRoundPercent "cornerRoundPercent"
+      |                               ^~~~~~~~~~~~~~~~~~~~
+Command.c:100:5: note: in expansion of macro ‘XtNcornerRoundPercent’
+  100 |    {XtNcornerRoundPercent, XtCCornerRoundPercent, XtRDimension,
+      |     ^~~~~~~~~~~~~~~~~~~~~
+../include/X11/Xaw3d/Command.h:104:31: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  104 | #define XtCCornerRoundPercent "CornerRoundPercent"
+      |                               ^~~~~~~~~~~~~~~~~~~~
+Command.c:100:28: note: in expansion of macro ‘XtCCornerRoundPercent’
+  100 |    {XtNcornerRoundPercent, XtCCornerRoundPercent, XtRDimension,
+      |                            ^~~~~~~~~~~~~~~~~~~~~
+In file included from ../include/X11/Xaw3d/ThreeDP.h:29,
+                 from ../include/X11/Xaw3d/LabelP.h:65,
+                 from ../include/X11/Xaw3d/CommandP.h:58:
+../include/X11/Xaw3d/ThreeD.h:51:24: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   51 | #define XtNshadowWidth "shadowWidth"
+      |                        ^~~~~~~~~~~~~
+Command.c:103:5: note: in expansion of macro ‘XtNshadowWidth’
+  103 |    {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
+      |     ^~~~~~~~~~~~~~
+../include/X11/Xaw3d/ThreeD.h:52:24: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   52 | #define XtCShadowWidth "ShadowWidth"
+      |                        ^~~~~~~~~~~~~
+Command.c:103:21: note: in expansion of macro ‘XtCShadowWidth’
+  103 |    {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
+      |                     ^~~~~~~~~~~~~~
+Command.c:128:4: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  128 |   {"set",               Set},
+      |    ^~~~~
+Command.c:129:4: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  129 |   {"notify",            Notify},
+      |    ^~~~~~~~
+Command.c:130:4: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  130 |   {"highlight",         Highlight},
+      |    ^~~~~~~~~~~
+Command.c:131:4: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  131 |   {"reset",             Reset},
+      |    ^~~~~~~
+Command.c:132:4: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  132 |   {"unset",             Unset},
+      |    ^~~~~~~
+Command.c:133:4: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  133 |   {"unhighlight",       Unhighlight}
+      |    ^~~~~~~~~~~~~
+Command.c:141:5: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  141 |     "Command",                          /* class_name             */
+      |     ^~~~~~~~~
+Command.c: In function ‘Highlight’:
+Command.c:358:17: warning: passing argument 1 of ‘XtWarning’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  358 |       XtWarning("Too many parameters passed to highlight action table.");
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /home/adam/libxt/include/X11/IntrinsicP.h:51,
+                 from ../include/X11/Xaw3d/Xaw3dP.h:33,
+                 from Command.c:56:
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1827:13: note: in expansion of macro ‘_XtString’
+ 1827 |     _Xconst _XtString   /* message */
+      |             ^~~~~~~~~
+Command.c: In function ‘CvtStringToShapeStyle’:
+../include/X11/Xaw3d/Command.h:102:23: warning: passing argument 3 of ‘XtDisplayStringConversionWarning’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  102 | #define XtRShapeStyle "ShapeStyle"
+      |                       ^~~~~~~~~~~~
+Command.c:592:53: note: in expansion of macro ‘XtRShapeStyle’
+  592 |         XtDisplayStringConversionWarning(conn, str, XtRShapeStyle);
+      |                                                     ^~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:646:13: note: in expansion of macro ‘_XtString’
+  646 |     _Xconst _XtString   /* to_type */
+      |             ^~~~~~~~~
+Command.c: In function ‘ClassInitialize’:
+../include/X11/Xaw3d/Command.h:102:23: warning: passing argument 2 of ‘XtSetTypeConverter’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  102 | #define XtRShapeStyle "ShapeStyle"
+      |                       ^~~~~~~~~~~~
+Command.c:613:36: note: in expansion of macro ‘XtRShapeStyle’
+  613 |     XtSetTypeConverter( XtRString, XtRShapeStyle, CvtStringToShapeStyle,
+      |                                    ^~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:671:13: note: in expansion of macro ‘_XtString’
+  671 |     _Xconst _XtString   /* to_type */,
+      |             ^~~~~~~~~
+  CC       Dialog.lo
+In file included from ../include/X11/Xaw3d/DialogP.h:54,
+                 from Dialog.c:63:
+../include/X11/Xaw3d/Dialog.h:81:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   81 | #define XtNicon "icon"
+      |                 ^~~~~~
+Dialog.c:81:4: note: in expansion of macro ‘XtNicon’
+   81 |   {XtNicon, XtCIcon, XtRBitmap, sizeof(Pixmap),
+      |    ^~~~~~~
+../include/X11/Xaw3d/Dialog.h:80:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   80 | #define XtCIcon "Icon"
+      |                 ^~~~~~
+Dialog.c:81:13: note: in expansion of macro ‘XtCIcon’
+   81 |   {XtNicon, XtCIcon, XtRBitmap, sizeof(Pixmap),
+      |             ^~~~~~~
+Dialog.c:94:33: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   94 |     /* class_name         */    "Dialog",
+      |                                 ^~~~~~~~
+In file included from /home/adam/libxt/include/X11/IntrinsicP.h:51,
+                 from Dialog.c:54:
+Dialog.c: In function ‘Initialize’:
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:161:5: note: in expansion of macro ‘XtSetArg’
+  161 |     XtSetArg(arglist[arg_cnt], XtNleft, XtChainLeft); arg_cnt++;
+      |     ^~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:165:9: note: in expansion of macro ‘XtSetArg’
+  165 |         XtSetArg(arglist[arg_cnt], XtNright, XtChainLeft); arg_cnt++;
+      |         ^~~~~~~~
+Dialog.c:167:36: warning: passing argument 1 of ‘XtCreateManagedWidget’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  167 |             XtCreateManagedWidget( "icon", labelWidgetClass,
+      |                                    ^~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1405:13: note: in expansion of macro ‘_XtString’
+ 1405 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:170:9: note: in expansion of macro ‘XtSetArg’
+  170 |         XtSetArg(arglist[arg_cnt], XtNfromHoriz, dw->dialog.iconW);arg_cnt++;
+      |         ^~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:174:5: note: in expansion of macro ‘XtSetArg’
+  174 |     XtSetArg(arglist[arg_cnt], XtNright, XtChainRight); arg_cnt++;
+      |     ^~~~~~~~
+Dialog.c:176:48: warning: passing argument 1 of ‘XtCreateManagedWidget’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  176 |     dw->dialog.labelW = XtCreateManagedWidget( "label", labelWidgetClass,
+      |                                                ^~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1405:13: note: in expansion of macro ‘_XtString’
+ 1405 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+Dialog.c: In function ‘SetValues’:
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:254:17: note: in expansion of macro ‘XtSetArg’
+  254 |                 XtSetArg( args[2], XtNleft, XtChainLeft);
+      |                 ^~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:255:17: note: in expansion of macro ‘XtSetArg’
+  255 |                 XtSetArg( args[3], XtNright, XtChainLeft);
+      |                 ^~~~~~~~
+Dialog.c:257:37: warning: passing argument 1 of ‘XtCreateWidget’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  257 |                     XtCreateWidget( "icon", labelWidgetClass,
+      |                                     ^~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1397:13: note: in expansion of macro ‘_XtString’
+ 1397 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+Dialog.c:305:17: warning: declaration of ‘args’ shadows a previous local [-Wshadow]
+  305 |             Arg args[1];
+      |                 ^~~~
+Dialog.c:232:9: note: shadowed declaration is here
+  232 |     Arg args[5];
+      |         ^~~~
+Dialog.c: In function ‘CreateDialogValueWidget’:
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:360:5: note: in expansion of macro ‘XtSetArg’
+  360 |     XtSetArg(arglist[num_args], XtNresizable, True);              num_args++;
+      |     ^~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:363:5: note: in expansion of macro ‘XtSetArg’
+  363 |     XtSetArg(arglist[num_args], XtNfromVert, dw->dialog.labelW);  num_args++;
+      |     ^~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:364:5: note: in expansion of macro ‘XtSetArg’
+  364 |     XtSetArg(arglist[num_args], XtNleft, XtChainLeft);            num_args++;
+      |     ^~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1186:25: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1186 |     ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+      |                         ^
+Dialog.c:365:5: note: in expansion of macro ‘XtSetArg’
+  365 |     XtSetArg(arglist[num_args], XtNright, XtChainRight);          num_args++;
+      |     ^~~~~~~~
+Dialog.c:367:40: warning: passing argument 1 of ‘XtCreateWidget’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  367 |     dw->dialog.valueW = XtCreateWidget("value", asciiTextWidgetClass,
+      |                                        ^~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1397:13: note: in expansion of macro ‘_XtString’
+ 1397 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+  CC       Form.lo
+In file included from ../include/X11/Xaw3d/FormP.h:54,
+                 from Form.c:56:
+../include/X11/Xaw3d/Form.h:100:28: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  100 | #define XtNdefaultDistance "defaultDistance"
+      |                            ^~~~~~~~~~~~~~~~~
+Form.c:66:6: note: in expansion of macro ‘XtNdefaultDistance’
+   66 |     {XtNdefaultDistance, XtCThickness, XtRInt, sizeof(int),
+      |      ^~~~~~~~~~~~~~~~~~
+../include/X11/Xaw3d/Form.h:110:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  110 | #define XtCEdge "Edge"
+      |                 ^~~~~~
+Form.c:75:14: note: in expansion of macro ‘XtCEdge’
+   75 |     {XtNtop, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |              ^~~~~~~
+../include/X11/Xaw3d/FormP.h:56:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   56 | #define XtREdgeType "EdgeType"
+      |                     ^~~~~~~~~~
+Form.c:75:23: note: in expansion of macro ‘XtREdgeType’
+   75 |     {XtNtop, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |                       ^~~~~~~~~~~
+../include/X11/Xaw3d/FormP.h:56:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   56 | #define XtREdgeType "EdgeType"
+      |                     ^~~~~~~~~~
+Form.c:76:22: note: in expansion of macro ‘XtREdgeType’
+   76 |         Offset(top), XtREdgeType, (XtPointer)&defEdge},
+      |                      ^~~~~~~~~~~
+../include/X11/Xaw3d/Form.h:101:19: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  101 | #define XtNbottom "bottom"
+      |                   ^~~~~~~~
+Form.c:77:6: note: in expansion of macro ‘XtNbottom’
+   77 |     {XtNbottom, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |      ^~~~~~~~~
+../include/X11/Xaw3d/Form.h:110:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  110 | #define XtCEdge "Edge"
+      |                 ^~~~~~
+Form.c:77:17: note: in expansion of macro ‘XtCEdge’
+   77 |     {XtNbottom, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |                 ^~~~~~~
+../include/X11/Xaw3d/FormP.h:56:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   56 | #define XtREdgeType "EdgeType"
+      |                     ^~~~~~~~~~
+Form.c:77:26: note: in expansion of macro ‘XtREdgeType’
+   77 |     {XtNbottom, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |                          ^~~~~~~~~~~
+../include/X11/Xaw3d/FormP.h:56:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   56 | #define XtREdgeType "EdgeType"
+      |                     ^~~~~~~~~~
+Form.c:78:25: note: in expansion of macro ‘XtREdgeType’
+   78 |         Offset(bottom), XtREdgeType, (XtPointer)&defEdge},
+      |                         ^~~~~~~~~~~
+../include/X11/Xaw3d/Form.h:102:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  102 | #define XtNleft "left"
+      |                 ^~~~~~
+Form.c:79:6: note: in expansion of macro ‘XtNleft’
+   79 |     {XtNleft, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |      ^~~~~~~
+../include/X11/Xaw3d/Form.h:110:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  110 | #define XtCEdge "Edge"
+      |                 ^~~~~~
+Form.c:79:15: note: in expansion of macro ‘XtCEdge’
+   79 |     {XtNleft, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |               ^~~~~~~
+../include/X11/Xaw3d/FormP.h:56:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   56 | #define XtREdgeType "EdgeType"
+      |                     ^~~~~~~~~~
+Form.c:79:24: note: in expansion of macro ‘XtREdgeType’
+   79 |     {XtNleft, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |                        ^~~~~~~~~~~
+../include/X11/Xaw3d/FormP.h:56:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   56 | #define XtREdgeType "EdgeType"
+      |                     ^~~~~~~~~~
+Form.c:80:23: note: in expansion of macro ‘XtREdgeType’
+   80 |         Offset(left), XtREdgeType, (XtPointer)&defEdge},
+      |                       ^~~~~~~~~~~
+../include/X11/Xaw3d/Form.h:103:18: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  103 | #define XtNright "right"
+      |                  ^~~~~~~
+Form.c:81:6: note: in expansion of macro ‘XtNright’
+   81 |     {XtNright, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |      ^~~~~~~~
+../include/X11/Xaw3d/Form.h:110:17: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  110 | #define XtCEdge "Edge"
+      |                 ^~~~~~
+Form.c:81:16: note: in expansion of macro ‘XtCEdge’
+   81 |     {XtNright, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |                ^~~~~~~
+../include/X11/Xaw3d/FormP.h:56:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   56 | #define XtREdgeType "EdgeType"
+      |                     ^~~~~~~~~~
+Form.c:81:25: note: in expansion of macro ‘XtREdgeType’
+   81 |     {XtNright, XtCEdge, XtREdgeType, sizeof(XtEdgeType),
+      |                         ^~~~~~~~~~~
+../include/X11/Xaw3d/FormP.h:56:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   56 | #define XtREdgeType "EdgeType"
+      |                     ^~~~~~~~~~
+Form.c:82:24: note: in expansion of macro ‘XtREdgeType’
+   82 |         Offset(right), XtREdgeType, (XtPointer)&defEdge},
+      |                        ^~~~~~~~~~~
+../include/X11/Xaw3d/Form.h:106:26: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  106 | #define XtNhorizDistance "horizDistance"
+      |                          ^~~~~~~~~~~~~~~
+Form.c:83:6: note: in expansion of macro ‘XtNhorizDistance’
+   83 |     {XtNhorizDistance, XtCThickness, XtRInt, sizeof(int),
+      |      ^~~~~~~~~~~~~~~~
+../include/X11/Xaw3d/Form.h:104:22: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  104 | #define XtNfromHoriz "fromHoriz"
+      |                      ^~~~~~~~~~~
+Form.c:85:6: note: in expansion of macro ‘XtNfromHoriz’
+   85 |     {XtNfromHoriz, XtCWidget, XtRWidget, sizeof(Widget),
+      |      ^~~~~~~~~~~~
+../include/X11/Xaw3d/Form.h:111:19: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  111 | #define XtCWidget "Widget"
+      |                   ^~~~~~~~
+Form.c:85:20: note: in expansion of macro ‘XtCWidget’
+   85 |     {XtNfromHoriz, XtCWidget, XtRWidget, sizeof(Widget),
+      |                    ^~~~~~~~~
+../include/X11/Xaw3d/Form.h:107:25: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  107 | #define XtNvertDistance "vertDistance"
+      |                         ^~~~~~~~~~~~~~
+Form.c:87:6: note: in expansion of macro ‘XtNvertDistance’
+   87 |     {XtNvertDistance, XtCThickness, XtRInt, sizeof(int),
+      |      ^~~~~~~~~~~~~~~
+../include/X11/Xaw3d/Form.h:105:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  105 | #define XtNfromVert "fromVert"
+      |                     ^~~~~~~~~~
+Form.c:89:6: note: in expansion of macro ‘XtNfromVert’
+   89 |     {XtNfromVert, XtCWidget, XtRWidget, sizeof(Widget),
+      |      ^~~~~~~~~~~
+../include/X11/Xaw3d/Form.h:111:19: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  111 | #define XtCWidget "Widget"
+      |                   ^~~~~~~~
+Form.c:89:19: note: in expansion of macro ‘XtCWidget’
+   89 |     {XtNfromVert, XtCWidget, XtRWidget, sizeof(Widget),
+      |                   ^~~~~~~~~
+../include/X11/Xaw3d/Form.h:108:22: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  108 | #define XtNresizable "resizable"
+      |                      ^~~~~~~~~~~
+Form.c:91:6: note: in expansion of macro ‘XtNresizable’
+   91 |     {XtNresizable, XtCBoolean, XtRBoolean, sizeof(Boolean),
+      |      ^~~~~~~~~~~~
+Form.c:113:33: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  113 |     /* class_name         */    "Form",
+      |                                 ^~~~~~
+Form.c: In function ‘ClassInitialize’:
+Form.c:216:43: warning: passing argument 1 of ‘XrmPermStringToQuark’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  216 |     XtQChainLeft   = XrmPermStringToQuark("chainleft");
+      |                                           ^~~~~~~~~~~
+In file included from /home/adam/libxt/include/X11/Intrinsic.h:179,
+                 from /home/adam/libxt/include/X11/IntrinsicP.h:51,
+                 from Form.c:52:
+/home/adam/libxt/include/X11/XtQuark.h:156:45: note: expected ‘char *’ but argument is of type ‘const char *’
+  156 | extern XtQuark XrmPermStringToQuark(_Xconst char *);
+      |                                             ^~~~~~
+Form.c:217:43: warning: passing argument 1 of ‘XrmPermStringToQuark’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  217 |     XtQChainRight  = XrmPermStringToQuark("chainright");
+      |                                           ^~~~~~~~~~~~
+/home/adam/libxt/include/X11/XtQuark.h:156:45: note: expected ‘char *’ but argument is of type ‘const char *’
+  156 | extern XtQuark XrmPermStringToQuark(_Xconst char *);
+      |                                             ^~~~~~
+Form.c:218:43: warning: passing argument 1 of ‘XrmPermStringToQuark’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  218 |     XtQChainTop    = XrmPermStringToQuark("chaintop");
+      |                                           ^~~~~~~~~~
+/home/adam/libxt/include/X11/XtQuark.h:156:45: note: expected ‘char *’ but argument is of type ‘const char *’
+  156 | extern XtQuark XrmPermStringToQuark(_Xconst char *);
+      |                                             ^~~~~~
+Form.c:219:43: warning: passing argument 1 of ‘XrmPermStringToQuark’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  219 |     XtQChainBottom = XrmPermStringToQuark("chainbottom");
+      |                                           ^~~~~~~~~~~~~
+/home/adam/libxt/include/X11/XtQuark.h:156:45: note: expected ‘char *’ but argument is of type ‘const char *’
+  156 | extern XtQuark XrmPermStringToQuark(_Xconst char *);
+      |                                             ^~~~~~
+Form.c:220:43: warning: passing argument 1 of ‘XrmPermStringToQuark’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  220 |     XtQRubber      = XrmPermStringToQuark("rubber");
+      |                                           ^~~~~~~~
+/home/adam/libxt/include/X11/XtQuark.h:156:45: note: expected ‘char *’ but argument is of type ‘const char *’
+  156 | extern XtQuark XrmPermStringToQuark(_Xconst char *);
+      |                                             ^~~~~~
+../include/X11/Xaw3d/FormP.h:56:21: warning: passing argument 2 of ‘XtAddConverter’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   56 | #define XtREdgeType "EdgeType"
+      |                     ^~~~~~~~~~
+Form.c:222:32: note: in expansion of macro ‘XtREdgeType’
+  222 |     XtAddConverter( XtRString, XtREdgeType, _CvtStringToEdgeType,
+      |                                ^~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:663:13: note: in expansion of macro ‘_XtString’
+  663 |     _Xconst _XtString   /* to_type */,
+      |             ^~~~~~~~~
+Form.c: In function ‘LayoutChild’:
+Form.c:449:25: warning: passing argument 2 of ‘XtAppWarningMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  449 |                         "constraintLoop","xawFormLayout","XawToolkitError",
+      |                         ^~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1777:13: note: in expansion of macro ‘_XtString’
+ 1777 |     _Xconst _XtString   /* name */,
+      |             ^~~~~~~~~
+Form.c:449:42: warning: passing argument 3 of ‘XtAppWarningMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  449 |                         "constraintLoop","xawFormLayout","XawToolkitError",
+      |                                          ^~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1778:13: note: in expansion of macro ‘_XtString’
+ 1778 |     _Xconst _XtString   /* type */,
+      |             ^~~~~~~~~
+Form.c:449:58: warning: passing argument 4 of ‘XtAppWarningMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  449 |                         "constraintLoop","xawFormLayout","XawToolkitError",
+      |                                                          ^~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1779:13: note: in expansion of macro ‘_XtString’
+ 1779 |     _Xconst _XtString   /* class */,
+      |             ^~~~~~~~~
+Form.c:450:4: warning: passing argument 5 of ‘XtAppWarningMsg’ discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  450 |    "constraint loop detected while laying out child '%s' in FormWidget '%s'",
+      |    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:83:19: note: expected ‘char *’ but argument is of type ‘const char *’
+   83 | #define _XtString char*
+      |                   ^~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1780:13: note: in expansion of macro ‘_XtString’
+ 1780 |     _Xconst _XtString   /* default */,
+      |             ^~~~~~~~~
+  CC       Grip.lo
+In file included from /home/adam/libxt/include/X11/IntrinsicP.h:51,
+                 from Grip.c:56:
+/home/adam/libxt/include/X11/Intrinsic.h:1689:33: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1689 | #define XtDefaultForeground     "XtDefaultForeground"
+      |                                 ^~~~~~~~~~~~~~~~~~~~~
+Grip.c:70:7: note: in expansion of macro ‘XtDefaultForeground’
+   70 |       XtDefaultForeground},
+      |       ^~~~~~~~~~~~~~~~~~~
+Grip.c:81:4: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   81 |   {"GripAction",      GripAction},
+      |    ^~~~~~~~~~~~
+Grip.c:90:32: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   90 |     /* class name         */   "Grip",
+      |                                ^~~~~~
+  CC       Label2.lo
+In file included from /home/adam/libxt/include/X11/IntrinsicP.h:51,
+                 from ../include/X11/Xaw3d/Xaw3dP.h:33,
+                 from Label2.c:57:
+/home/adam/libxt/include/X11/Intrinsic.h:1689:33: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1689 | #define XtDefaultForeground     "XtDefaultForeground"
+      |                                 ^~~~~~~~~~~~~~~~~~~~~
+Label2.c:96:46: note: in expansion of macro ‘XtDefaultForeground’
+   96 |         offset(label.foreground), XtRString, XtDefaultForeground},
+      |                                              ^~~~~~~~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1691:33: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1691 | #define XtDefaultFont           "XtDefaultFont"
+      |                                 ^~~~~~~~~~~~~~~
+Label2.c:98:39: note: in expansion of macro ‘XtDefaultFont’
+   98 |         offset(label.font),XtRString, XtDefaultFont},
+      |                                       ^~~~~~~~~~~~~
+/home/adam/libxt/include/X11/Intrinsic.h:1692:33: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+ 1692 | #define XtDefaultFontSet        "XtDefaultFontSet"
+      |                                 ^~~~~~~~~~~~~~~~~~
+Label2.c:101:42: note: in expansion of macro ‘XtDefaultFontSet’
+  101 |         offset(label.fontset),XtRString, XtDefaultFontSet},
+      |                                          ^~~~~~~~~~~~~~~~
+In file included from ../include/X11/Xaw3d/Command.h:52,
+                 from Label2.c:62:
+../include/X11/Xaw3d/Label.h:98:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   98 | #define XtNencoding "encoding"
+      |                     ^~~~~~~~~~
+Label2.c:105:6: note: in expansion of macro ‘XtNencoding’
+  105 |     {XtNencoding, XtCEncoding, XtRUnsignedChar, sizeof(unsigned char),
+      |      ^~~~~~~~~~~
+../include/X11/Xaw3d/Label.h:99:21: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   99 | #define XtCEncoding "Encoding"
+      |                     ^~~~~~~~~~
+Label2.c:105:19: note: in expansion of macro ‘XtCEncoding’
+  105 |     {XtNencoding, XtCEncoding, XtRUnsignedChar, sizeof(unsigned char),
+      |                   ^~~~~~~~~~~
+../include/X11/Xaw3d/Label.h:96:23: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   96 | #define XtNleftBitmap "leftBitmap"
+      |                       ^~~~~~~~~~~~
+Label2.c:113:6: note: in expansion of macro ‘XtNleftBitmap’
+  113 |     {XtNleftBitmap, XtCLeftBitmap, XtRBitmap, sizeof(Pixmap),
+      |      ^~~~~~~~~~~~~
+../include/X11/Xaw3d/Label.h:97:23: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   97 | #define XtCLeftBitmap "LeftBitmap"
+      |                       ^~~~~~~~~~~~
+Label2.c:113:21: note: in expansion of macro ‘XtCLeftBitmap’
+  113 |     {XtNleftBitmap, XtCLeftBitmap, XtRBitmap, sizeof(Pixmap),
+      |                     ^~~~~~~~~~~~~
+In file included from ../include/X11/Xaw3d/ThreeDP.h:29,
+                 from ../include/X11/Xaw3d/LabelP.h:65,
+                 from Label2.c:63:
+../include/X11/Xaw3d/ThreeD.h:51:24: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   51 | #define XtNshadowWidth "shadowWidth"
+      |                        ^~~~~~~~~~~~~
+Label2.c:119:6: note: in expansion of macro ‘XtNshadowWidth’
+  119 |     {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
+      |      ^~~~~~~~~~~~~~
+../include/X11/Xaw3d/ThreeD.h:52:24: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+   52 | #define XtCShadowWidth "ShadowWidth"
+      |                        ^~~~~~~~~~~~~
+Label2.c:119:22: note: in expansion of macro ‘XtCShadowWidth’
+  119 |     {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
+      |                      ^~~~~~~~~~~~~~
+Label2.c:139:41: warning: initialization discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+  139 |     /* class_name               */      "Label",
+      |                                         ^~~~~~~
+Label2.c: In function ‘SetTextWidthAndHeight’:
+Label2.c:263:9: error: unknown type name ‘Window’; did you mean ‘XtWindow’?
+  263 |         Window root;
+      |         ^~~~~~
+      |         XtWindow
+Label2.c:267:13: error: implicit declaration of function ‘XGetGeometry’; did you mean ‘XtRGeometry’? [-Wimplicit-function-declaration]
+  267 |         if (XGetGeometry(XtDisplay(lw), lw->label.pixmap, &root, &x, &y,
+      |             ^~~~~~~~~~~~
+      |             XtRGeometry
+Label2.c:267:13: warning: nested extern declaration of ‘XGetGeometry’ [-Wnested-externs]
+Label2.c:278:7: error: unknown type name ‘XFontSetExtents’
+  278 |       XFontSetExtents *ext = XExtentsOfFontSet(fset); /* libxt/Xlib dependency: Returns the maximum extents structure for the specified font set, used for determining text dimensions. */
+      |       ^~~~~~~~~~~~~~~
+Label2.c:278:30: error: implicit declaration of function ‘XExtentsOfFontSet’ [-Wimplicit-function-declaration]
+  278 |       XFontSetExtents *ext = XExtentsOfFontSet(fset); /* libxt/Xlib dependency: Returns the maximum extents structure for the specified font set, used for determining text dimensions. */
+      |                              ^~~~~~~~~~~~~~~~~
+Label2.c:278:30: warning: nested extern declaration of ‘XExtentsOfFontSet’ [-Wnested-externs]
+Label2.c:278:30: error: initialization of ‘int *’ from ‘int’ makes pointer from integer without a cast [-Wint-conversion]
+Label2.c:280:35: error: request for member ‘max_ink_extent’ in something not a structure or union
+  280 |       lw->label.label_height = ext->max_ink_extent.height;
+      |                                   ^~
+Label2.c:290:27: error: implicit declaration of function ‘XmbTextEscapement’ [-Wimplicit-function-declaration]
+  290 |               int width = XmbTextEscapement(fset, label, (int)(nl - label)); /* libxt/Xlib dependency: Calculates the escapement (width) of multibyte text in pixels using a font set. */
+      |                           ^~~~~~~~~~~~~~~~~
+Label2.c:290:27: warning: nested extern declaration of ‘XmbTextEscapement’ [-Wnested-externs]
+Label2.c:297:26: error: request for member ‘max_ink_extent’ in something not a structure or union
+  297 |                       ext->max_ink_extent.height;
+      |                          ^~
+Label2.c:314:36: error: ‘XFontStruct’ {aka ‘struct _XtFontStruct’} has no member named ‘max_bounds’
+  314 |         lw->label.label_height = fs->max_bounds.ascent + fs->max_bounds.descent;
+      |                                    ^~
+Label2.c:314:60: error: ‘XFontStruct’ {aka ‘struct _XtFontStruct’} has no member named ‘max_bounds’
+  314 |         lw->label.label_height = fs->max_bounds.ascent + fs->max_bounds.descent;
+      |                                                            ^~
+Label2.c:327:29: error: implicit declaration of function ‘XTextWidth16’ [-Wimplicit-function-declaration]
+  327 |                     width = XTextWidth16(fs, (TXT16*)label, (int)(nl - label)/2); /* libxt/Xlib dependency: Computes the pixel width of a 16-bit character string using the specified font structure. */
+      |                             ^~~~~~~~~~~~
+Label2.c:327:29: warning: nested extern declaration of ‘XTextWidth16’ [-Wnested-externs]
+Label2.c:203:15: error: ‘XChar2b’ undeclared (first use in this function)
+  203 | #define TXT16 XChar2b
+      |               ^~~~~~~
+Label2.c:327:47: note: in expansion of macro ‘TXT16’
+  327 |                     width = XTextWidth16(fs, (TXT16*)label, (int)(nl - label)/2); /* libxt/Xlib dependency: Computes the pixel width of a 16-bit character string using the specified font structure. */
+      |                                               ^~~~~
+Label2.c:203:15: note: each undeclared identifier is reported only once for each function it appears in
+  203 | #define TXT16 XChar2b
+      |               ^~~~~~~
+Label2.c:327:47: note: in expansion of macro ‘TXT16’
+  327 |                     width = XTextWidth16(fs, (TXT16*)label, (int)(nl - label)/2); /* libxt/Xlib dependency: Computes the pixel width of a 16-bit character string using the specified font structure. */
+      |                                               ^~~~~
+Label2.c:327:53: error: expected expression before ‘)’ token
+  327 |                     width = XTextWidth16(fs, (TXT16*)label, (int)(nl - label)/2); /* libxt/Xlib dependency: Computes the pixel width of a 16-bit character string using the specified font structure. */
+      |                                                     ^
+Label2.c:329:29: error: implicit declaration of function ‘XTextWidth’; did you mean ‘XtWidth’? [-Wimplicit-function-declaration]
+  329 |                     width = XTextWidth(fs, label, (int)(nl - label)); /* libxt/Xlib dependency: Computes the pixel width of an 8-bit character string using the specified font structure. */
+      |                             ^~~~~~~~~~
+      |                             XtWidth
+Label2.c:329:29: warning: nested extern declaration of ‘XTextWidth’ [-Wnested-externs]
+Label2.c:335:27: error: ‘XFontStruct’ {aka ‘struct _XtFontStruct’} has no member named ‘max_bounds’
+  335 |                         fs->max_bounds.ascent + fs->max_bounds.descent;
+      |                           ^~
+Label2.c:335:51: error: ‘XFontStruct’ {aka ‘struct _XtFontStruct’} has no member named ‘max_bounds’
+  335 |                         fs->max_bounds.ascent + fs->max_bounds.descent;
+      |                                                   ^~
+Label2.c:341:53: error: expected expression before ‘)’ token
+  341 |                     width = XTextWidth16(fs, (TXT16*)label, (int)strlen(label)/2); /* libxt/Xlib dependency: Computes the pixel width of a 16-bit character string using the specified font structure. */
+      |                                                     ^
+Label2.c:351:45: error: expected expression before ‘)’ token
+  351 |                     XTextWidth16(fs, (TXT16*)lw->label.label,
+      |                                             ^
+Label2.c: In function ‘GetnormalGC’:
+Label2.c:364:5: error: unknown type name ‘XGCValues’; did you mean ‘XtCValue’?
+  364 |     XGCValues   values;
+      |     ^~~~~~~~~
+      |     XtCValue
+Label2.c:366:11: error: request for member ‘foreground’ in something not a structure or union
+  366 |     values.foreground   = lw->label.foreground;
+      |           ^
+Label2.c:367:11: error: request for member ‘background’ in something not a structure or union
+  367 |     values.background   = lw->core.background_pixel;
+      |           ^
+Label2.c:368:11: error: request for member ‘font’ in something not a structure or union
+  368 |     values.font         = lw->label.font->fid;
+      |           ^
+Label2.c:369:11: error: request for member ‘graphics_exposures’ in something not a structure or union
+  369 |     values.graphics_exposures = False;
+      |           ^
+Label2.c:377:9: error: passing argument 4 of ‘XtAllocateGC’ from incompatible pointer type [-Wincompatible-pointer-types]
+  377 |         &values, GCFont, 0 ); /* libxt/Xlib dependency: Allocates a graphics context with specified attributes for internationalized text rendering. */
+      |         ^~~~~~~
+      |         |
+      |         int *
+/home/adam/libxt/include/X11/Intrinsic.h:1994:5: note: expected ‘xcb_create_gc_value_list_t *’ but argument is of type ‘int *’
+ 1994 |     xcb_create_gc_value_list_t*                 /* values */,
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+Label2.c:383:9: error: passing argument 3 of ‘XtGetGC’ from incompatible pointer type [-Wincompatible-pointer-types]
+  383 |         &values); /* libxt/Xlib dependency: Obtains a cached graphics context with specified attributes for drawing operations. */
+      |         ^~~~~~~
+      |         |
+      |         int *
+/home/adam/libxt/include/X11/Intrinsic.h:1987:5: note: expected ‘xcb_create_gc_value_list_t *’ but argument is of type ‘int *’
+ 1987 |     xcb_create_gc_value_list_t*                 /* values */
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+Label2.c: In function ‘GetgrayGC’:
+Label2.c:389:5: error: unknown type name ‘XGCValues’; did you mean ‘XtCValue’?
+  389 |     XGCValues   values;
+      |     ^~~~~~~~~
+      |     XtCValue
+Label2.c:391:11: error: request for member ‘foreground’ in something not a structure or union
+  391 |     values.foreground = lw->label.foreground;
+      |           ^
+Label2.c:392:11: error: request for member ‘background’ in something not a structure or union
+  392 |     values.background = lw->core.background_pixel;
+      |           ^
+Label2.c:393:11: error: request for member ‘font’ in something not a structure or union
+  393 |     values.font       = lw->label.font->fid;
+      |           ^
+Label2.c:394:11: error: request for member ‘fill_style’ in something not a structure or union
+  394 |     values.fill_style = FillTiled;
+      |           ^
+Label2.c:395:11: error: request for member ‘tile’ in something not a structure or union
+  395 |     values.tile       = XawCreateStippledPixmap(XtScreen((Widget)lw),
+      |           ^
+Label2.c:399:11: error: request for member ‘graphics_exposures’ in something not a structure or union
+  399 |     values.graphics_exposures = False;
+      |           ^
+Label2.c:401:31: error: request for member ‘tile’ in something not a structure or union
+  401 |     lw->label.stipple = values.tile;
+      |                               ^
+Label2.c:409:33: error: passing argument 4 of ‘XtAllocateGC’ from incompatible pointer type [-Wincompatible-pointer-types]
+  409 |                                 &values, GCFont, 0); /* libxt/Xlib dependency: Allocates a graphics context with stipple pattern for internationalized grayed text rendering. */
+      |                                 ^~~~~~~
+      |                                 |
+      |                                 int *
+/home/adam/libxt/include/X11/Intrinsic.h:1994:5: note: expected ‘xcb_create_gc_value_list_t *’ but argument is of type ‘int *’
+ 1994 |     xcb_create_gc_value_list_t*                 /* values */,
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+Label2.c:416:33: error: passing argument 3 of ‘XtGetGC’ from incompatible pointer type [-Wincompatible-pointer-types]
+  416 |                                 &values); /* libxt/Xlib dependency: Obtains a cached graphics context with stipple pattern for grayed text rendering. */
+      |                                 ^~~~~~~
+      |                                 |
+      |                                 int *
+/home/adam/libxt/include/X11/Intrinsic.h:1987:5: note: expected ‘xcb_create_gc_value_list_t *’ but argument is of type ‘int *’
+ 1987 |     xcb_create_gc_value_list_t*                 /* values */
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+Label2.c: In function ‘set_bitmap_info’:
+Label2.c:431:5: error: unknown type name ‘Window’; did you mean ‘XtWindow’?
+  431 |     Window root;
+      |     ^~~~~~
+      |     XtWindow
+Label2.c: At top level:
+Label2.c:491:1: error: conflicting types for ‘Redisplay’; have ‘void(struct _WidgetRec *, xcb_generic_event_t *, struct _XawRegion *)’
+  491 | Redisplay(Widget gw, xcb_generic_event_t *event, Region region) /* Phase 4: Using XawRegion */
+      | ^~~~~~~~~
+Label2.c:129:13: note: previous declaration of ‘Redisplay’ with type ‘void(struct _WidgetRec *, xcb_generic_event_t *, xcb_xfixes_region_t)’ {aka ‘void(struct _WidgetRec *, xcb_generic_event_t *, unsigned int)’}
+  129 | static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+      |             ^~~~~~~~~
+Label2.c: In function ‘Redisplay’:
+Label2.c:506:57: error: passing argument 3 of ‘lwclass->threeD_class.shadowdraw’ makes integer from pointer without a cast [-Wint-conversion]
+  506 |         (*lwclass->threeD_class.shadowdraw) (gw, event, region, /* Phase 4: Using XawRegion */
+      |                                                         ^~~~~~
+      |                                                         |
+      |                                                         Region {aka struct _XawRegion *}
+Label2.c:506:57: note: expected ‘xcb_xfixes_region_t’ {aka ‘unsigned int’} but argument is of type ‘Region’ {aka ‘struct _XawRegion *’}
+Label2.c:520:13: error: implicit declaration of function ‘XRectInRegion’; did you mean ‘XawRectInRegion’? [-Wimplicit-function-declaration]
+  520 |         if (XRectInRegion(region, x, w->label.label_y,
+      |             ^~~~~~~~~~~~~
+      |             XawRectInRegion
+Label2.c:520:13: warning: nested extern declaration of ‘XRectInRegion’ [-Wnested-externs]
+Label2.c:537:54: error: ‘XFontStruct’ {aka ‘struct _XtFontStruct’} has no member named ‘max_bounds’
+  537 |         Position y = w->label.label_y + w->label.font->max_bounds.ascent;
+      |                                                      ^~
+Label2.c:578:13: error: unknown type name ‘XFontSetExtents’
+  578 |             XFontSetExtents *ext = XExtentsOfFontSet(w->label.fontset);
+      |             ^~~~~~~~~~~~~~~
+Label2.c:578:36: error: initialization of ‘int *’ from ‘int’ makes pointer from integer without a cast [-Wint-conversion]
+  578 |             XFontSetExtents *ext = XExtentsOfFontSet(w->label.fontset);
+      |                                    ^~~~~~~~~~~~~~~~~
+Label2.c:580:27: error: request for member ‘max_ink_extent’ in something not a structure or union
+  580 |             ksy += abs(ext->max_ink_extent.y);
+      |                           ^~
+Label2.c:586:21: error: implicit declaration of function ‘XmbDrawString’; did you mean ‘XtNewString’? [-Wimplicit-function-declaration]
+  586 |                     XmbDrawString(XtDisplay(w), XtWindow(w), w->label.fontset, gc,
+      |                     ^~~~~~~~~~~~~
+      |                     XtNewString
+Label2.c:586:21: warning: nested extern declaration of ‘XmbDrawString’ [-Wnested-externs]
+Label2.c:588:31: error: request for member ‘max_ink_extent’ in something not a structure or union
+  588 |                     ksy += ext->max_ink_extent.height;
+      |                               ^~
+Label2.c:607:25: error: implicit declaration of function ‘XDrawString16’; did you mean ‘XtNewString’? [-Wimplicit-function-declaration]
+  607 |                         XDrawString16(XtDisplay(gw), XtWindow(gw), gc,
+      |                         ^~~~~~~~~~~~~
+      |                         XtNewString
+Label2.c:607:25: warning: nested extern declaration of ‘XDrawString16’ [-Wnested-externs]
+Label2.c:203:15: error: ‘XChar2b’ undeclared (first use in this function)
+  203 | #define TXT16 XChar2b
+      |               ^~~~~~~
+Label2.c:609:50: note: in expansion of macro ‘TXT16’
+  609 |                                                 (TXT16*)label, (int)(nl - label)/2);
+      |                                                  ^~~~~
+Label2.c:609:56: error: expected expression before ‘)’ token
+  609 |                                                 (TXT16*)label, (int)(nl - label)/2);
+      |                                                        ^
+Label2.c:612:25: error: implicit declaration of function ‘XDrawString’; did you mean ‘XtNewString’? [-Wimplicit-function-declaration]
+  612 |                         XDrawString(XtDisplay(gw), XtWindow(gw), gc,
+      |                         ^~~~~~~~~~~
+      |                         XtNewString
+Label2.c:612:25: warning: nested extern declaration of ‘XDrawString’ [-Wnested-externs]
+Label2.c:614:39: error: ‘XFontStruct’ {aka ‘struct _XtFontStruct’} has no member named ‘max_bounds’
+  614 |                     y += w->label.font->max_bounds.ascent +
+      |                                       ^~
+Label2.c:615:54: error: ‘XFontStruct’ {aka ‘struct _XtFontStruct’} has no member named ‘max_bounds’
+  615 |                                         w->label.font->max_bounds.descent;
+      |                                                      ^~
+Label2.c:624:58: error: expected expression before ‘)’ token
+  624 |                              w->label.label_x, y, (TXT16*)label, len/2);
+      |                                                          ^
+Label2.c: At top level:
+Label2.c:129:13: warning: ‘Redisplay’ used but never defined
+  129 | static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+      |             ^~~~~~~~~
+Label2.c:491:1: warning: ‘Redisplay’ defined but not used [-Wunused-function]
+  491 | Redisplay(Widget gw, xcb_generic_event_t *event, Region region) /* Phase 4: Using XawRegion */
+      | ^~~~~~~~~
+make[3]: *** [Makefile:686: Label2.lo] Error 1
+make[3]: Leaving directory '/home/adam/Xaw3d/src'
+make[2]: *** [Makefile:531: all] Error 2
+make[2]: Leaving directory '/home/adam/Xaw3d/src'
+make[1]: *** [Makefile:492: all-recursive] Error 1
+make[1]: Leaving directory '/home/adam/Xaw3d'
+make: *** [Makefile:401: all] Error 2

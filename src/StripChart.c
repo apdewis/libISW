@@ -57,7 +57,6 @@ SOFTWARE.
 #include <X11/Xfuncs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "XawXcbCompat.h"
 
 #define MS_PER_SEC 1000
 

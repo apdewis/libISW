@@ -140,11 +140,9 @@ am__libXaw3d_la_SOURCES_DIST = AllWidgets.c AsciiSink.c AsciiSrc.c \
 	SmeBSB.c Sme.c SmeLine.c SmeThreeD.c StripChart.c TextAction.c \
 	Text.c TextPop.c TextSink.c TextSrc.c TextTr.c ThreeD.c Tip.c \
 	Toggle.c Tree.c Vendor.c Viewport.c Xaw3dP.c XawAtoms.c \
-	XawContext.c XawConverters.c XawDrawing.c XawInit.c XawUtils.c \
-	XawUtils.h XawXcbCompat.c XawXcbCompat.h XawXcbTypes.h \
-	XawRegion.c XawRegion.h XawXcbDraw.c XawXcbDraw.h \
-	XawXftCompat.c XawXftCompat.h laygram.y laylex.l MultiSrc.c \
-	MultiSink.c XawIm.c XawI18n.c XawI18n.h
+	XawContext.c XawDrawing.c XawInit.c XawXcbDraw.c XawXcbDraw.h \
+	laygram.y laylex.l MultiSrc.c MultiSink.c XawIm.c XawI18n.c \
+	XawI18n.h
 @XAW_INTERNATIONALIZATION_TRUE@am__objects_1 = MultiSrc.lo \
 @XAW_INTERNATIONALIZATION_TRUE@	MultiSink.lo XawIm.lo \
 @XAW_INTERNATIONALIZATION_TRUE@	XawI18n.lo
@@ -155,10 +153,8 @@ am_libXaw3d_la_OBJECTS = AllWidgets.lo AsciiSink.lo AsciiSrc.lo \
 	SmeBSB.lo Sme.lo SmeLine.lo SmeThreeD.lo StripChart.lo \
 	TextAction.lo Text.lo TextPop.lo TextSink.lo TextSrc.lo \
 	TextTr.lo ThreeD.lo Tip.lo Toggle.lo Tree.lo Vendor.lo \
-	Viewport.lo Xaw3dP.lo XawAtoms.lo XawContext.lo \
-	XawConverters.lo XawDrawing.lo XawInit.lo XawUtils.lo \
-	XawXcbCompat.lo XawRegion.lo XawXcbDraw.lo XawXftCompat.lo \
-	laygram.lo laylex.lo $(am__objects_1)
+	Viewport.lo Xaw3dP.lo XawAtoms.lo XawContext.lo XawDrawing.lo \
+	XawInit.lo XawXcbDraw.lo laygram.lo laylex.lo $(am__objects_1)
 libXaw3d_la_OBJECTS = $(am_libXaw3d_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -203,13 +199,10 @@ am__depfiles_remade = ./$(DEPDIR)/AllWidgets.Plo \
 	./$(DEPDIR)/Toggle.Plo ./$(DEPDIR)/Tree.Plo \
 	./$(DEPDIR)/Vendor.Plo ./$(DEPDIR)/Viewport.Plo \
 	./$(DEPDIR)/Xaw3dP.Plo ./$(DEPDIR)/XawAtoms.Plo \
-	./$(DEPDIR)/XawContext.Plo ./$(DEPDIR)/XawConverters.Plo \
-	./$(DEPDIR)/XawDrawing.Plo ./$(DEPDIR)/XawI18n.Plo \
-	./$(DEPDIR)/XawIm.Plo ./$(DEPDIR)/XawInit.Plo \
-	./$(DEPDIR)/XawRegion.Plo ./$(DEPDIR)/XawUtils.Plo \
-	./$(DEPDIR)/XawXcbCompat.Plo ./$(DEPDIR)/XawXcbDraw.Plo \
-	./$(DEPDIR)/XawXftCompat.Plo ./$(DEPDIR)/laygram.Plo \
-	./$(DEPDIR)/laylex.Plo
+	./$(DEPDIR)/XawContext.Plo ./$(DEPDIR)/XawDrawing.Plo \
+	./$(DEPDIR)/XawI18n.Plo ./$(DEPDIR)/XawIm.Plo \
+	./$(DEPDIR)/XawInit.Plo ./$(DEPDIR)/XawXcbDraw.Plo \
+	./$(DEPDIR)/laygram.Plo ./$(DEPDIR)/laylex.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -501,20 +494,10 @@ libXaw3d_la_SOURCES = \
 	Xaw3dP.c \
 	XawAtoms.c \
 	XawContext.c \
-	XawConverters.c \
 	XawDrawing.c \
 	XawInit.c \
-	XawUtils.c \
-	XawUtils.h \
-	XawXcbCompat.c \
-	XawXcbCompat.h \
-	XawXcbTypes.h \
-	XawRegion.c \
-	XawRegion.h \
 	XawXcbDraw.c \
 	XawXcbDraw.h \
-	XawXftCompat.c \
-	XawXftCompat.h \
 	laygram.y \
 	laylex.l \
 	$(I18N_SRCS)
@@ -649,16 +632,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Xaw3dP.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawAtoms.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawContext.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawConverters.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawDrawing.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawI18n.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawIm.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawInit.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawRegion.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawUtils.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawXcbCompat.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawXcbDraw.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/XawXftCompat.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/laygram.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/laylex.Plo@am__quote@ # am--include-marker
 
@@ -899,16 +877,11 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/Xaw3dP.Plo
 	-rm -f ./$(DEPDIR)/XawAtoms.Plo
 	-rm -f ./$(DEPDIR)/XawContext.Plo
-	-rm -f ./$(DEPDIR)/XawConverters.Plo
 	-rm -f ./$(DEPDIR)/XawDrawing.Plo
 	-rm -f ./$(DEPDIR)/XawI18n.Plo
 	-rm -f ./$(DEPDIR)/XawIm.Plo
 	-rm -f ./$(DEPDIR)/XawInit.Plo
-	-rm -f ./$(DEPDIR)/XawRegion.Plo
-	-rm -f ./$(DEPDIR)/XawUtils.Plo
-	-rm -f ./$(DEPDIR)/XawXcbCompat.Plo
 	-rm -f ./$(DEPDIR)/XawXcbDraw.Plo
-	-rm -f ./$(DEPDIR)/XawXftCompat.Plo
 	-rm -f ./$(DEPDIR)/laygram.Plo
 	-rm -f ./$(DEPDIR)/laylex.Plo
 	-rm -f Makefile
@@ -998,16 +971,11 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/Xaw3dP.Plo
 	-rm -f ./$(DEPDIR)/XawAtoms.Plo
 	-rm -f ./$(DEPDIR)/XawContext.Plo
-	-rm -f ./$(DEPDIR)/XawConverters.Plo
 	-rm -f ./$(DEPDIR)/XawDrawing.Plo
 	-rm -f ./$(DEPDIR)/XawI18n.Plo
 	-rm -f ./$(DEPDIR)/XawIm.Plo
 	-rm -f ./$(DEPDIR)/XawInit.Plo
-	-rm -f ./$(DEPDIR)/XawRegion.Plo
-	-rm -f ./$(DEPDIR)/XawUtils.Plo
-	-rm -f ./$(DEPDIR)/XawXcbCompat.Plo
 	-rm -f ./$(DEPDIR)/XawXcbDraw.Plo
-	-rm -f ./$(DEPDIR)/XawXftCompat.Plo
 	-rm -f ./$(DEPDIR)/laygram.Plo
 	-rm -f ./$(DEPDIR)/laylex.Plo
 	-rm -f Makefile

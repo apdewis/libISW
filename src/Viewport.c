@@ -53,8 +53,6 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 
 #include <X11/Xaw3d/XawInit.h>
-#include "XawUtils.h"
-#include "XawXcbTypes.h"
 #include <X11/Xaw3d/Scrollbar.h>
 #include <X11/Xaw3d/ViewportP.h>
 
