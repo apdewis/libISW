@@ -569,7 +569,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      */
     if (tw->core.visible) {
 	int i, j;
-	Display *dpy = XtDisplay (tw);
+	xcb_connection_t *dpy = XtDisplay (tw);
 	Window w = XtWindow (tw);
 
 	for (i = 0; i < tw->composite.num_children; i++) {

@@ -1157,7 +1157,7 @@ PositionMenu(Widget w, XPoint * location)
     XPoint t_point;
 
     if (location == NULL) {
-	Window junk1, junk2;
+	XtWindow junk1, junk2;
 	int root_x, root_y, junkX, junkY;
 	unsigned int junkM;
 

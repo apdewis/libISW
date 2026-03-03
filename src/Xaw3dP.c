@@ -39,7 +39,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifdef XAW_GRAY_BLKWHT_STIPPLES
 /* ARGSUSED */
 unsigned long
-grayPixel(unsigned long p, Display *dpy, Screen *scn)
+grayPixel(unsigned long p, xcb_connection_t *dpy, Screen *scn)
 {
     static XColor Gray =
     {
@@ -70,7 +70,7 @@ Pixmap
 stipplePixmap(Widget w, Pixmap pm, Colormap cm, Pixel bg, unsigned int d)
 {
     static Pixmap pixmap;
-    Display *dpy;
+    xcb_connection_t *dpy;
     XpmImage image;
     XpmAttributes attr;
     XpmColor *src_table, *dst_table;

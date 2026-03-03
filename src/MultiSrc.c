@@ -603,7 +603,7 @@ Search(Widget w, XawTextPosition position, XawTextScanDirection dir, XawTextBloc
   wchar_t * ptr;
   wchar_t* wtarget;
   int wtarget_len;
-  Display * d = XtDisplay(XtParent(w));
+  xcb_connection_t *d = XtDisplay(XtParent(w));
   MultiPiece * piece;
   wchar_t* buf;
   XawTextPosition first;
@@ -1048,7 +1048,7 @@ InitStringOrFile(MultiSrcObject src, Boolean newString)
     char * open_mode = NULL;
     FILE * file;
     char fileName[TMPSIZ];
-    Display *d = XtDisplayOfObject((Widget)src);
+    xcb_connection_t *d = XtDisplayOfObject((Widget)src);
 
     if (src->multi_src.type == XawAsciiString) {
 
@@ -1161,7 +1161,7 @@ the length of the parameter string if string is non-NULL.		*/
 static void
 LoadPieces(MultiSrcObject src, FILE *file, char *string)
 {
-  Display *d = XtDisplayOfObject((Widget)src);
+  xcb_connection_t *d = XtDisplayOfObject((Widget)src);
   wchar_t* local_str, *ptr;
   MultiPiece* piece = NULL;
   XawTextPosition left;

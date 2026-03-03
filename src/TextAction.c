@@ -239,7 +239,7 @@ we are, and convert it.  I also warn the user that the other client is evil. */
 #ifdef XAW_INTERNATIONALIZATION
   if (_XawTextFormat(ctx) == XawFmtWide) {
       XTextProperty textprop;
-      Display *d = XtDisplay((Widget)ctx);
+      xcb_connection_t *d = XtDisplay((Widget)ctx);
       wchar_t **wlist;
       int count;
       int try_CT = 1;

@@ -655,11 +655,11 @@ UnrealizeScrollbars(Widget widget, XtPointer client, XtPointer call)
 /* Utility routines for support of Text */
 
 static void
-_CreateCutBuffers(Display *d)
+_CreateCutBuffers(xcb_connection_t *d)
 {
   static struct _DisplayRec {
     struct _DisplayRec *next;
-    Display *dpy;
+    xcb_connection_t *dpy;
   } *dpy_list = NULL;
   struct _DisplayRec *dpy_ptr;
 
@@ -2490,7 +2490,7 @@ Atom*
 _XawTextSelectionList(TextWidget ctx, String *list, Cardinal nelems)
 {
   Atom * sel = ctx->text.s.selections;
-  Display *dpy = XtDisplay((Widget) ctx);
+  xcb_connection_t *dpy = XtDisplay((Widget) ctx);
   int n;
 
   if (nelems > ctx->text.s.array_size) {

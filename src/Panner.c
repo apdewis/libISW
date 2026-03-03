@@ -597,8 +597,8 @@ static void
 Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     PannerWidget pw = (PannerWidget) gw;
-    Display *dpy = XtDisplay(gw);
-    Window w = XtWindow(gw);
+    xcb_connection_t *dpy = gw->display;
+    XtWindow w = XtWindow(gw);
     int pad = pw->panner.internal_border;
     Dimension lw = pw->panner.line_width;
     Dimension extra = pw->panner.shadow_thickness + lw * 2;
@@ -761,7 +761,7 @@ ActionStart (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     int x, y;
 
     if (!get_event_xy (pw, event, &x, &y)) {
- xcb_connection_t *conn = XtDisplay(gw);
+ xcb_connection_t *conn = gw->display;
  xcb_bell(conn, 0);
  xcb_flush(conn);
  return;
@@ -822,7 +822,7 @@ ActionMove (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     if (!pw->panner.tmp.doing) return;
 
     if (!get_event_xy (pw, event, &x, &y)) {
-	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_connection_t *conn = gw->display;
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -853,7 +853,7 @@ ActionPage (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     int pad = pw->panner.internal_border * 2;
 
     if (*num_params != 2) {
-	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_connection_t *conn = gw->display;
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -940,7 +940,7 @@ ActionSet (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
     if (*num_params < 2 ||
 	XawCompareISOLatin1 (params[0], "rubberband") != 0) {
-	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_connection_t *conn = gw->display;
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -953,7 +953,7 @@ ActionSet (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     } else if (XawCompareISOLatin1 (params[1], "toggle") == 0) {
 	rb = !pw->panner.rubber_band;
     } else {
-	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_connection_t *conn = gw->display;
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;

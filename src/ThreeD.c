@@ -317,7 +317,7 @@ Xaw3dComputeTopShadowRGB (Widget new, XColor *xcol_out)
 	ThreeDWidget tdw = (ThreeDWidget) new;
 	XColor get_c;
 	double contrast;
-	Display *dpy = XtDisplay (new);
+	xcb_connection_t *dpy = XtDisplay (new);
 	Screen *scn = XtScreen (new);
 	Colormap cmap = new->core.colormap;
 
@@ -347,7 +347,7 @@ AllocTopShadowPixel (Widget new)
 {
     XColor set_c;
     ThreeDWidget tdw = (ThreeDWidget) new;
-    Display *dpy = XtDisplay (new);
+    xcb_connection_t *dpy = XtDisplay (new);
     Colormap cmap = new->core.colormap;
 
     Xaw3dComputeTopShadowRGB (new, &set_c);
@@ -363,7 +363,7 @@ Xaw3dComputeBottomShadowRGB (Widget new, XColor *xcol_out)
 	ThreeDWidget tdw = (ThreeDWidget) new;
 	XColor get_c;
 	double contrast;
-	Display *dpy = XtDisplay (new);
+	xcb_connection_t *dpy = XtDisplay (new);
 	Screen *scn = XtScreen (new);
 	Colormap cmap = new->core.colormap;
 
@@ -391,7 +391,7 @@ AllocBotShadowPixel (Widget new)
 {
     XColor set_c;
     ThreeDWidget tdw = (ThreeDWidget) new;
-    Display *dpy = XtDisplay (new);
+    xcb_connection_t *dpy = XtDisplay (new);
     Colormap cmap = new->core.colormap;
 
     Xaw3dComputeBottomShadowRGB (new, &set_c);
@@ -633,8 +633,8 @@ _Xaw3dDrawShadows (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t re
 	Dimension	w = tdw->core.width;
 	Dimension	hms = h - s;
 	Dimension	wms = w - s;
-	Display		*dpy = XtDisplay (gw);
-	Window		win = XtWindow (gw);
+	xcb_connection_t *dpy = gw->connection;
+	XtWindow	win = XtWindow (gw);
 	GC		realtop = tdw->threeD.top_shadow_GC;
 	GC		realbot = tdw->threeD.bot_shadow_GC;
 	GC		top, bot;
@@ -772,8 +772,8 @@ _ShadowSurroundedBox(Widget gw, ThreeDWidget tdw, Position x0, Position y0,
 	Dimension sm = (s > 1 ? s / 2 : 1);
 	Dimension wmsm = w - sm;
 	Dimension hmsm = h - sm;
-	Display *dpy = XtDisplay(gw);
-	Window win = XtWindow(gw);
+	xcb_connection_t *dpy = gw->display;
+	XtWindow win = XtWindow(gw);
 	GC top, bot;
 
 	if (out)

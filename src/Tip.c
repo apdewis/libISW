@@ -188,7 +188,7 @@ static TimeoutInfo TimeoutData;
 
 /*ARGSUSED*/
 static Boolean
-XawCvtBackingStoreToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
+XawCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
                            XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
 {
   static String buffer;
@@ -472,7 +472,7 @@ TipLayout(XawTipInfo *info)
 static void
 TipPosition(XawTipInfo *info)
 {
-    Window r, c;
+    XtWindow r, c;
     int rx, ry, wx, wy;
     unsigned mask;
     Position x, y;

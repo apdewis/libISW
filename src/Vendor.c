@@ -306,7 +306,7 @@ externaldef(xawvendorshellwidgetclass) WidgetClass
 
 /*ARGSUSED*/
 static Boolean
-XawCvtCompoundTextToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
+XawCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
                            XrmValue *fromVal, XrmValue *toVal, XtPointer *cvt_data)
 {
     XTextProperty prop;
@@ -341,7 +341,7 @@ XawCvtCompoundTextToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
 
 /* ARGSUSED */
 static Boolean
-_XawCvtStringToPixmap(Display *dpy, XrmValuePtr args, Cardinal *nargs,
+_XawCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
                       XrmValuePtr from, XrmValuePtr to, XtPointer *data)
 {
     static Pixmap pixmap;

@@ -373,7 +373,7 @@ repaint_window(Widget gw, int left, int width)
       SetPoints(gw);
 
       if (XtIsRealized (gw)) {
- xcb_connection_t *clear_conn2 = XtDisplay(gw);
+ xcb_connection_t *clear_conn2 = gw->display;
  xcb_clear_area(clear_conn2, 0, XtWindow(gw), 0, 0, 0, 0);
  xcb_flush(clear_conn2);
  (*swclass->threeD_class.shadowdraw) (gw, NULL, 0, w->threeD.relief, FALSE);
@@ -382,7 +382,7 @@ repaint_window(Widget gw, int left, int width)
     }
 
     if (XtIsRealized(gw)) {
- xcb_connection_t *conn = XtDisplay(gw);
+ xcb_connection_t *conn = gw->display;
  xcb_window_t win = XtWindow(gw);
 
  width += left - 1;

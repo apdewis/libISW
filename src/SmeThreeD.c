@@ -318,7 +318,7 @@ XawSme3dComputeTopShadowRGB (Widget new, XColor *xcol_out)
 	Widget w = XtParent (new);
 	XColor get_c;
 	double contrast;
-	Display *dpy = XtDisplayOfObject (new);
+	xcb_connection_t *dpy = XtDisplayOfObject (new);
 	Screen *scn = XtScreenOfObject (new);
 	Colormap cmap = w->core.colormap;
 
@@ -349,7 +349,7 @@ AllocTopShadowPixel (Widget new)
     XColor set_c;
     SmeThreeDObject tdo = (SmeThreeDObject) new;
     Widget w = XtParent (new);
-    Display *dpy = XtDisplayOfObject (new);
+    xcb_connection_t *dpy = XtDisplayOfObject (new);
     Colormap cmap = w->core.colormap;
 
     XawSme3dComputeTopShadowRGB (new, &set_c);
@@ -367,7 +367,7 @@ XawSme3dComputeBottomShadowRGB (Widget new, XColor *xcol_out)
 	Widget w = XtParent (new);
 	XColor get_c;
 	double contrast;
-	Display *dpy = XtDisplayOfObject (new);
+	xcb_connection_t *dpy = XtDisplayOfObject (new);
 	Screen *scn = XtScreenOfObject (new);
 	Colormap cmap = w->core.colormap;
 
@@ -396,7 +396,7 @@ AllocBotShadowPixel (Widget new)
     XColor set_c;
     SmeThreeDObject tdo = (SmeThreeDObject) new;
     Widget w = XtParent (new);
-    Display *dpy = XtDisplayOfObject (new);
+    xcb_connection_t *dpy = XtDisplayOfObject (new);
     Colormap cmap = w->core.colormap;
 
     XawSme3dComputeBottomShadowRGB (new, &set_c);

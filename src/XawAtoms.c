@@ -113,7 +113,7 @@ static AtomTableEntry predefined_atoms[] = {
  * Returns: The Atom value, or None if the atom doesn't exist and only_if_exists is True
  */
 Atom
-XawInternAtom(Display *dpy, const char *name, Bool only_if_exists)
+XawInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists)
 {
     xcb_connection_t *conn = (xcb_connection_t *)dpy;
     xcb_intern_atom_cookie_t cookie;
@@ -153,7 +153,7 @@ XawInternAtom(Display *dpy, const char *name, Bool only_if_exists)
  * A more efficient implementation could pipeline the requests.
  */
 void
-XawInternStrings(Display *dpy, String *names, Cardinal count, Atom *atoms_return)
+XawInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, Atom *atoms_return)
 {
     Cardinal i;
     
@@ -179,7 +179,7 @@ XawInternStrings(Display *dpy, String *names, Cardinal count, Atom *atoms_return
  *          or NULL on error
  */
 char*
-XawNameOfAtom(Display *dpy, Atom atom)
+XawNameOfAtom(xcb_connection_t *dpy, Atom atom)
 {
     xcb_connection_t *conn = (xcb_connection_t *)dpy;
     xcb_get_atom_name_cookie_t cookie;

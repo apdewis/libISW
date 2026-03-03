@@ -527,7 +527,7 @@ Redisplay(Widget gw, XEvent *event, Region region)
     LabelWidgetClass lwclass = (LabelWidgetClass) XtClass (gw);
     xcb_pixmap_t pm;
     xcb_gcontext_t gc;
-    xcb_connection_t *conn = XtDisplay(gw);
+    xcb_connection_t *conn = gw->display;
     
     /* Note: event and region use Xlib types for widget class compatibility,
      * but we convert to XCB for actual operations */
@@ -565,7 +565,7 @@ Redisplay(Widget gw, XEvent *event, Region region)
     gc = XtIsSensitive(gw) ? w->label.normal_GC : w->label.gray_GC;
 #ifdef notdef
     if (region != NULL)
-	XSetRegion(XtDisplay(gw), gc, region);
+	XSetRegion(gw->display, gc, region);
 #endif /*notdef*/
 
     if (w->label.pixmap == None) {

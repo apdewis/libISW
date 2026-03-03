@@ -379,7 +379,7 @@ PaintArrows (ScrollbarWidget sbw)
     Dimension t2  = t / 2;
     Dimension sa30 = (Dimension)(1.732 * s );  /* cotangent of 30 deg */
     Display   *dpy = XtDisplay (sbw);
-    Window    win = XtWindow (sbw);
+    XtWindow   win = XtWindow (sbw);
     GC        top = sbw->threeD.top_shadow_GC;
     GC        bot = sbw->threeD.bot_shadow_GC;
 
@@ -715,7 +715,7 @@ struct EventData {
 };
 
 static Bool
-PeekNotifyEvent(Display *dpy, XEvent *event, char *args)
+PeekNotifyEvent(xcb_connection_t *dpy, XEvent *event, char *args)
 {
     struct EventData *eventData = (struct EventData*)args;
 

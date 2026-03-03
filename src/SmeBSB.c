@@ -708,7 +708,7 @@ static void
 GetBitmapInfo(Widget w, Boolean is_left)
 {
     SmeBSBObject entry = (SmeBSBObject) w;
-    Window root;
+    XtWindow root;
     int x, y;
     unsigned int width, height, bw;
     char buf[BUFSIZ];

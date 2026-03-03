@@ -107,7 +107,7 @@ context_key_equal(XawContextKey *key1, XawContextKey *key2)
  *   0 on success, non-zero on failure
  */
 int
-XawSaveContext(Display *dpy _X_UNUSED,
+XawSaveContext(xcb_connection_t *dpy _X_UNUSED,
                XID id,
                XContext context,
                XPointer data)
@@ -155,7 +155,7 @@ XawSaveContext(Display *dpy _X_UNUSED,
  *   0 if found, non-zero if not found
  */
 int
-XawFindContext(Display *dpy _X_UNUSED,
+XawFindContext(xcb_connection_t *dpy _X_UNUSED,
                XID id,
                XContext context,
                XPointer *data_return)
@@ -189,7 +189,7 @@ XawFindContext(Display *dpy _X_UNUSED,
  *   0 if deleted, non-zero if not found
  */
 int
-XawDeleteContext(Display *dpy _X_UNUSED,
+XawDeleteContext(xcb_connection_t *dpy _X_UNUSED,
                  XID id,
                  XContext context)
 {
