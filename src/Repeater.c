@@ -34,6 +34,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/StringDefs.h>		/* for XtN and XtC defines */
 #include <X11/Xaw3d/XawInit.h>		/* for XawInitializeWidgetSet() */
 #include <X11/Xaw3d/RepeaterP.h>		/* us */
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 
 static void tic(XtPointer, XtIntervalId *);	/* clock timeout */
 
@@ -174,14 +176,17 @@ tic (XtPointer client_data, XtIntervalId *id)
 
     rw->repeater.timer = 0;		/* timer is removed */
     if (rw->repeater.flash) {
-	XtExposeProc expose;
-	expose = repeaterWidgetClass->core_class.superclass->core_class.expose;
-	XClearWindow (XtDisplay((Widget) rw), XtWindow((Widget) rw));
-	rw->command.set = FALSE;
-	(*expose) ((Widget) rw, (XEvent *) NULL, (Region) NULL);
-	XClearWindow (XtDisplay((Widget) rw), XtWindow((Widget) rw));
-	rw->command.set = TRUE;
-	(*expose) ((Widget) rw, (XEvent *) NULL, (Region) NULL);
+ XtExposeProc expose;
+ xcb_connection_t *conn = XtDisplay((Widget) rw);
+ expose = repeaterWidgetClass->core_class.superclass->core_class.expose;
+ xcb_clear_area(conn, 0, XtWindow((Widget) rw), 0, 0, 0, 0);
+ xcb_flush(conn);
+ rw->command.set = FALSE;
+ (*expose) ((Widget) rw, (XEvent *) NULL, (Region) NULL);
+ xcb_clear_area(conn, 0, XtWindow((Widget) rw), 0, 0, 0, 0);
+ xcb_flush(conn);
+ rw->command.set = TRUE;
+ (*expose) ((Widget) rw, (XEvent *) NULL, (Region) NULL);
     }
     DO_CALLBACK (rw);
 

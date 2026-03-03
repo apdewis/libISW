@@ -68,11 +68,13 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/MultiSrcP.h>
 #include <X11/Xaw3d/XawImP.h>
-#include <X11/Xmu/Misc.h>
-#include <X11/Xmu/CharSet.h>
+#include "XawUtils.h"
+#include "XawUtils.h"
 #include "XawI18n.h"
+#include "XawUtils.h"
 #include <X11/Xos.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
 
@@ -150,8 +152,8 @@ extern int errno;
 #define Size_t size_t
 #endif
 
-extern wchar_t* _XawTextMBToWC(Display *, char *, int *);
-extern char *_XawTextWCToMB(Display *, wchar_t *, int *);
+extern wchar_t* _XawTextMBToWC(xcb_connection_t *, char *, int *);
+extern char *_XawTextWCToMB(xcb_connection_t *, wchar_t *, int *);
 
 #define superclass		(&textSrcClassRec)
 MultiSrcClassRec multiSrcClassRec = {
@@ -415,7 +417,7 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos, XawTextB
 	start_piece = FindPiece(src, startPos, &start_first);
       }
 
-      fill = Min((int)(src->multi_src.piece_size - start_piece->used), length);
+      fill = XawMin((int)(src->multi_src.piece_size - start_piece->used), length);
 
       ptr = start_piece->text + (startPos - start_first);
       MyWStrncpy(ptr + fill, ptr,
@@ -1233,7 +1235,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
 
   if (src->multi_src.use_string_in_place) {
       piece = AllocNewPiece(src, piece);
-      piece->used = Min(src->multi_src.length, src->multi_src.piece_size);
+      piece->used = XawMin(src->multi_src.length, src->multi_src.piece_size);
       piece->text = (wchar_t*)src->multi_src.string;
       return;
   }
@@ -1245,7 +1247,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
       piece = AllocNewPiece(src, piece);
 
       piece->text = (wchar_t*)XtMalloc(src->multi_src.piece_size * bytes);
-      piece->used = Min(left, src->multi_src.piece_size);
+      piece->used = XawMin(left, src->multi_src.piece_size);
       if (piece->used != 0)
           (void) wcsncpy(piece->text, ptr, piece->used);
 
@@ -1394,7 +1396,7 @@ CvtStringToMultiType(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XmuCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
+    XawCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if (q == XtQEstring)     type = XawAsciiString;

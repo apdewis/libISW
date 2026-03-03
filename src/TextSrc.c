@@ -41,11 +41,11 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/Xaw3dP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xutil.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/TextSrcP.h>
-#include <X11/Xmu/Atoms.h>
-#include <X11/Xmu/CharSet.h>
+#include "XawUtils.h"
 #ifdef XAW_INTERNATIONALIZATION
 #include "XawI18n.h"
 #endif
@@ -305,7 +305,7 @@ CvtStringToEditMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal, X
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XmuCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
+    XawCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if      (q == QRead)   editType = XawtextRead;
@@ -526,7 +526,7 @@ _XawTextFormat(TextWidget tw)
 
 
 char *
-_XawTextWCToMB(Display *d, wchar_t *wstr, int *len_in_out)
+_XawTextWCToMB(xcb_connection_t *conn, wchar_t *wstr, int *len_in_out)
 {
     XTextProperty textprop;
     if (XwcTextListToTextProperty(d, (wchar_t**)&wstr, 1,
@@ -552,7 +552,7 @@ _XawTextWCToMB(Display *d, wchar_t *wstr, int *len_in_out)
  */
 
 wchar_t *
-_XawTextMBToWC(Display *d, char *str, int *len_in_out)
+_XawTextMBToWC(xcb_connection_t *conn, char *str, int *len_in_out)
 {
   if (*len_in_out == 0) {
     return(NULL);

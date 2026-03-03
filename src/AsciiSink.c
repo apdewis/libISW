@@ -58,6 +58,12 @@ SOFTWARE.
 #include <X11/Xaw3d/AsciiSinkP.h>
 #include <X11/Xaw3d/AsciiSrcP.h>	/* For source function defs. */
 #include <X11/Xaw3d/TextP.h>	/* I also reach into the text widget. */
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include "XawXcbDraw.h"
+
+/* XCB-based XFontStruct lacks per_char metrics */
+#define XFONTSTRUCT_HAS_NO_PER_CHAR 1
 
 #ifdef GETLASTPOS
 #undef GETLASTPOS		/* We will use our own GETLASTPOS. */
@@ -80,7 +86,7 @@ static void FindPosition(Widget, XawTextPosition, int, int, Boolean,
 static void FindDistance(Widget, XawTextPosition, int, XawTextPosition, int *,
                          XawTextPosition *, int *);
 static void Resolve(Widget, XawTextPosition, int, int, XawTextPosition *);
-static void GetCursorBounds(Widget, XRectangle *);
+static void GetCursorBounds(Widget, xcb_rectangle_t *);
 
 #define offset(field) XtOffsetOf(AsciiSinkRec, ascii_sink.field)
 
@@ -190,11 +196,21 @@ CharWidth (Widget w, int x, unsigned char c)
 	}
     }
 
+#ifdef XFONTSTRUCT_HAS_NO_PER_CHAR
+    /* XCB-based fonts don't have per_char metrics - query server */
+    {
+        xcb_connection_t *conn = XtDisplay(w);
+        width = XawFontCharWidth(conn, font->fid, c);
+        if (width == 0)
+            width = 8;  /* Fallback if query fails */
+    }
+#else
     if (font->per_char &&
 	    (c >= font->min_char_or_byte2 && c <= font->max_char_or_byte2))
 	width = font->per_char[c - font->min_char_or_byte2].width;
     else
 	width = font->min_bounds.width;
+#endif
 
     if (nonPrinting)
 	width += CharWidth(w, x, (unsigned char) '^');
@@ -219,26 +235,31 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
     TextWidget ctx = (TextWidget) XtParent(w);
+    xcb_connection_t *conn = XtDisplay((Widget) ctx);
 
     Position max_x;
-    Dimension width = XTextWidth(sink->ascii_sink.font, (char *) buf, len);
+    Dimension width = XawFontTextWidth(conn, sink->ascii_sink.font->fid,
+                                       (char *) buf, len);
     max_x = (Position) ctx->core.width;
 
     if ( ((int) width) <= -x)	           /* Don't draw if we can't see it. */
       return(width);
 
-    XDrawImageString(XtDisplay(ctx), XtWindow(ctx), gc,
+    XawXcbDrawImageString(conn, XtWindow(ctx), gc,
 		     (int) x, (int) y, (char *) buf, len);
     if ( (((Position) width + x) > max_x) && (ctx->text.margin.right != 0) ) {
-	x = ctx->core.width - ctx->text.margin.right;
-	width = ctx->text.margin.right;
-	XFillRectangle(XtDisplay((Widget) ctx), XtWindow( (Widget) ctx),
-		       sink->ascii_sink.normgc, (int) x,
-		       (int) y - sink->ascii_sink.font->ascent,
-		       (unsigned int) width,
-		       (unsigned int) (sink->ascii_sink.font->ascent +
-				       sink->ascii_sink.font->descent));
-	return(0);
+ x = ctx->core.width - ctx->text.margin.right;
+ width = ctx->text.margin.right;
+ xcb_connection_t *conn = XtDisplay((Widget) ctx);
+ xcb_rectangle_t rect = {(int) x,
+         (int) y - sink->ascii_sink.font->ascent,
+         (unsigned int) width,
+         (unsigned int) (sink->ascii_sink.font->ascent +
+           sink->ascii_sink.font->descent)};
+ xcb_poly_fill_rectangle(conn, XtWindow((Widget) ctx),
+         sink->ascii_sink.normgc, 1, &rect);
+ xcb_flush(conn);
+ return(0);
     }
     return(width);
 }
@@ -284,14 +305,17 @@ DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
 		  return;
 
 	        x += temp;
-		width = CharWidth(w, x, (unsigned char) '\t');
-		XFillRectangle(XtDisplayOfObject(w), XtWindowOfObject(w),
-			       invgc, (int) x,
-			       (int) y - sink->ascii_sink.font->ascent,
-			       (unsigned int) width,
-			       (unsigned int) (sink->ascii_sink.font->ascent +
-					       sink->ascii_sink.font->descent));
-		x += width;
+	 width = CharWidth(w, x, (unsigned char) '\t');
+	 xcb_connection_t *conn = XtDisplayOfObject(w);
+	 xcb_rectangle_t rect = {(int) x,
+	         (int) y - sink->ascii_sink.font->ascent,
+	         (unsigned int) width,
+	         (unsigned int) (sink->ascii_sink.font->ascent +
+	           sink->ascii_sink.font->descent)};
+	 xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
+	         invgc, 1, &rect);
+	 xcb_flush(conn);
+	 x += width;
 		j = -1;
 	    }
 	    else if ( buf[j] < (unsigned char) ' ' ) {
@@ -315,10 +339,13 @@ DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
 static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
 
 static Pixmap
-CreateInsertCursor(Screen *s)
+CreateInsertCursor(Widget w)
 {
-    return (XCreateBitmapFromData (DisplayOfScreen(s), RootWindowOfScreen(s),
-		  insertCursor_bits, insertCursor_width, insertCursor_height));
+    xcb_connection_t *conn = XtDisplay(w);
+    Screen *s = XtScreenOfObject(w);
+    xcb_drawable_t root = RootWindowOfScreen(s);
+    return XawCreateBitmapFromData(conn, root,
+		  insertCursor_bits, insertCursor_width, insertCursor_height);
 }
 
 /*	Function Name: GetCursorBounds
@@ -329,14 +356,14 @@ CreateInsertCursor(Screen *s)
  */
 
 static void
-GetCursorBounds(Widget w, XRectangle * rect)
+GetCursorBounds(Widget w, xcb_rectangle_t * rect)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
 
-    rect->width = (unsigned short) insertCursor_width;
-    rect->height = (unsigned short) insertCursor_height;
-    rect->x = sink->ascii_sink.cursor_x - (short) (rect->width / 2);
-    rect->y = sink->ascii_sink.cursor_y - (short) rect->height;
+    rect->width = (uint16_t) insertCursor_width;
+    rect->height = (uint16_t) insertCursor_height;
+    rect->x = sink->ascii_sink.cursor_x - (int16_t) (rect->width / 2);
+    rect->y = sink->ascii_sink.cursor_y - (int16_t) rect->height;
 }
 
 /*
@@ -348,18 +375,21 @@ InsertCursor (Widget w, Position x, Position y, XawTextInsertState state)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
     Widget text_widget = XtParent(w);
-    XRectangle rect;
+    xcb_rectangle_t rect;
 
     sink->ascii_sink.cursor_x = x;
     sink->ascii_sink.cursor_y = y;
 
     GetCursorBounds(w, &rect);
-    if (state != sink->ascii_sink.laststate && XtIsRealized(text_widget))
-        XCopyPlane(XtDisplay(text_widget),
-		   sink->ascii_sink.insertCursorOn,
-		   XtWindow(text_widget), sink->ascii_sink.xorgc,
-		   0, 0, (unsigned int) rect.width, (unsigned int) rect.height,
-		   (int) rect.x, (int) rect.y, 1);
+    if (state != sink->ascii_sink.laststate && XtIsRealized(text_widget)) {
+        xcb_connection_t *conn = XtDisplay(text_widget);
+        xcb_copy_plane(conn,
+     sink->ascii_sink.insertCursorOn,
+     XtWindow(text_widget), sink->ascii_sink.xorgc,
+     0, 0, (int) rect.x, (int) rect.y,
+     (unsigned int) rect.width, (unsigned int) rect.height, 1);
+        xcb_flush(conn);
+    }
     sink->ascii_sink.laststate = state;
 }
 
@@ -472,12 +502,13 @@ Resolve (Widget w, XawTextPosition pos, int fromx, int width, XawTextPosition *r
 static void
 GetGC(AsciiSinkObject sink)
 {
-    XtGCMask valuemask = (GCFont |
-			  GCGraphicsExposures | GCForeground | GCBackground );
-    XGCValues values;
+    XtGCMask valuemask = (XCB_GC_FONT |
+			  XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND);
+    xcb_create_gc_value_list_t values;
 
+    XawInitGCValues(&values);
     values.font = sink->ascii_sink.font->fid;
-    values.graphics_exposures = (Bool) FALSE;
+    values.graphics_exposures = 0;
 
     values.foreground = sink->text_sink.foreground;
     values.background = sink->text_sink.background;
@@ -491,7 +522,7 @@ GetGC(AsciiSinkObject sink)
     values.background = (unsigned long) 0L;	/* (pix ^ 0) = pix */
     values.foreground = (sink->text_sink.background ^
 			 sink->text_sink.foreground);
-    valuemask = GCGraphicsExposures | GCFunction | GCForeground | GCBackground;
+    valuemask = XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FUNCTION | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
 
     sink->ascii_sink.xorgc = XtGetGC((Widget)sink, valuemask, &values);
 }
@@ -515,7 +546,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     GetGC(sink);
 
-    sink->ascii_sink.insertCursorOn= CreateInsertCursor(XtScreenOfObject(new));
+    sink->ascii_sink.insertCursorOn= CreateInsertCursor(new);
     sink->ascii_sink.laststate = XawisOff;
     sink->ascii_sink.cursor_x = sink->ascii_sink.cursor_y = 0;
 }
@@ -535,7 +566,7 @@ Destroy(Widget w)
    XtReleaseGC(w, sink->ascii_sink.normgc);
    XtReleaseGC(w, sink->ascii_sink.invgc);
    XtReleaseGC(w, sink->ascii_sink.xorgc);
-   XFreePixmap(XtDisplayOfObject(w), sink->ascii_sink.insertCursorOn);
+   XawFreePixmap(XtDisplayOfObject(w), sink->ascii_sink.insertCursorOn);
 }
 
 /*	Function Name: SetValues
@@ -624,20 +655,28 @@ SetTabs(Widget w, int tab_count, short *tabs)
   Atom XA_FIGURE_WIDTH;
   unsigned long figure_width = 0;
   XFontStruct *font = sink->ascii_sink.font;
+  xcb_connection_t *conn = XtDisplayOfObject(w);
 
 /*
  * Find the figure width of the current font.
  */
 
-  XA_FIGURE_WIDTH = XInternAtom(XtDisplayOfObject(w), "FIGURE_WIDTH", FALSE);
+  XA_FIGURE_WIDTH = XawXcbInternAtom(conn, "FIGURE_WIDTH", FALSE);
   if ( (XA_FIGURE_WIDTH != None) &&
-       ( (!XGetFontProperty(font, XA_FIGURE_WIDTH, &figure_width)) ||
+       ( (!XawGetFontProperty(conn, font, XA_FIGURE_WIDTH, &figure_width)) ||
 	 (figure_width == 0)) ) {
+#ifdef XFONTSTRUCT_HAS_NO_PER_CHAR
+    /* XCB-based fonts don't have per_char metrics - query for '$' width */
+    figure_width = XawFontCharWidth(conn, font->fid, '$');
+    if (figure_width == 0)
+        figure_width = 8;  /* Default figure width */
+#else
     if (font->per_char && font->min_char_or_byte2 <= '$' &&
 	font->max_char_or_byte2 >= '$')
       figure_width = font->per_char['$' - font->min_char_or_byte2].width;
     else
       figure_width = font->max_bounds.width;
+#endif
   }
 
   if (tab_count > sink->text_sink.tab_count) {

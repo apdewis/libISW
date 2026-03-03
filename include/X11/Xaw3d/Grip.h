@@ -87,7 +87,7 @@ SOFTWARE.
 #define XtNgripTranslations "gripTranslations"
 
 typedef struct _XawGripCallData {
-  XEvent *event;		/* the event causing the GripAction */
+  XtPointer event;		/* the event causing the GripAction (opaque pointer) */
   String *params;		/* the TranslationTable params */
   Cardinal num_params;		/* count of params */
 } XawGripCallDataRec, *XawGripCallData,

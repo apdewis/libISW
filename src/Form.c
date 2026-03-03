@@ -51,10 +51,11 @@ SOFTWARE.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xmu/Converters.h>
-#include <X11/Xmu/CharSet.h>
+#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/FormP.h>
+#include "XawUtils.h"
+#include "XawXcbCompat.h"
 
 /* Private Definitions */
 
@@ -184,7 +185,7 @@ _CvtStringToEdgeType(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   char lowerName[40];
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XmuCopyISOLatin1Lowered (lowerName, (char*)fromVal->addr);
+    XawCopyISOLatin1Lowered (lowerName, (char*)fromVal->addr);
     q = XrmStringToQuark(lowerName);
     if (q == XtQChainLeft)        edgeType = XtChainLeft;
     else if (q == XtQChainRight)  edgeType = XtChainRight;
@@ -220,7 +221,7 @@ ClassInitialize(void)
 
     XtAddConverter( XtRString, XtREdgeType, _CvtStringToEdgeType,
 		    (XtConvertArgList)NULL, 0 );
-    XtSetTypeConverter (XtRString, XtRWidget, XmuNewCvtStringToWidget,
+    XtSetTypeConverter (XtRString, XtRWidget, XawCvtStringToWidget,
 			parentCvtArgs, XtNumber(parentCvtArgs), XtCacheNone,
 			(XtDestructor)NULL);
 }

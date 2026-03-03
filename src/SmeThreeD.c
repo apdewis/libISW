@@ -27,7 +27,6 @@ SOFTWARE.
 #include "config.h"
 #endif
 #include <X11/Xaw3d/Xaw3dP.h>
-#include <X11/Xlib.h>
 #include <X11/StringDefs.h>
 #include <X11/IntrinsicP.h>
 #include <X11/Xaw3d/XawInit.h>
@@ -35,6 +34,9 @@ SOFTWARE.
 #include <X11/Xaw3d/SimpleMenP.h>
 #include <X11/Xaw3d/SmeThreeDP.h>
 #include <X11/Xosdefs.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include "XawXcbCompat.h"
 
 /* Initialization of defaults */
 
@@ -575,7 +577,7 @@ _XawSme3dDrawShadows(Widget gw)
 	pt[3].x = w - s;	pt[3].y = y + s;
 	pt[4].x = ps + s;       pt[4].y = y + s;
 	pt[5].x = ps + s;       pt[5].y = y + h - s;
-	XFillPolygon(dpy, win, top, pt, 6, Complex, CoordModeOrigin);
+	xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 
 	/* bottom-right shadow */
 /*	pt[0].x = x;		pt[0].y = y + h;	*/
@@ -584,7 +586,7 @@ _XawSme3dDrawShadows(Widget gw)
 /*	pt[3].x = w - s;	pt[3].y = y + s;	*/
 	pt[4].x = w - s;	pt[4].y = y + h - s;
 /*	pt[5].x = ps + s;	pt[5].y = y + h - s;	*/
-	XFillPolygon(dpy, win, bot, pt, 6, Complex, CoordModeOrigin);
+	xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
     }
 }
 

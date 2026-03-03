@@ -53,11 +53,13 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 
 #include <X11/Xaw3d/XawInit.h>
-#include <X11/Xmu/Misc.h>
+#include "XawUtils.h"
+#include "XawXcbTypes.h"
 #include <X11/Xaw3d/Scrollbar.h>
 #include <X11/Xaw3d/ViewportP.h>
 
 #include <stdint.h>
+#include <xcb/xcb.h>
 
 static void ScrollUpDownProc(Widget, XtPointer, XtPointer);
 static void ThumbProc(Widget, XtPointer, XtPointer);
@@ -83,7 +85,7 @@ static XtResource resources[] = {
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(Widget, XtValueMask *, XSetWindowAttributes *);
+static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
 static void ChangeManaged(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -310,7 +312,7 @@ ConstraintInitialize(Widget request, Widget new, ArgList args, Cardinal *num_arg
 }
 
 static void
-Realize(Widget widget, XtValueMask *value_mask, XSetWindowAttributes *attributes)
+Realize(xcb_connection_t *conn, Widget widget, XtValueMask *value_mask, uint32_t *values)
 {
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
@@ -318,8 +320,8 @@ Realize(Widget widget, XtValueMask *value_mask, XSetWindowAttributes *attributes
     Widget threeD = (Widget)w->viewport.threeD;
 
     *value_mask |= CWBitGravity;
-    attributes->bit_gravity = NorthWestGravity;
-    (*superclass->core_class.realize)(widget, value_mask, attributes);
+    values[__builtin_popcount(*value_mask & (CWBitGravity - 1))] = XCB_GRAVITY_NORTH_WEST;
+    (*superclass->core_class.realize)(conn, widget, value_mask, values);
 
     (*w->core.widget_class->core_class.resize)(widget);	/* turn on bars */
 
@@ -328,9 +330,14 @@ Realize(Widget widget, XtValueMask *value_mask, XSetWindowAttributes *attributes
 	XtRealizeWidget( clip );
 	XtRealizeWidget( child );
 	XtRealizeWidget( threeD );
-	XLowerWindow( XtDisplay(threeD), XtWindow(threeD) );
-	XReparentWindow( XtDisplay(w), XtWindow(child), XtWindow(clip),
-			 (Position)0, (Position)0 );
+	
+	/* Lower threeD window */
+	uint32_t lower_values[] = { XCB_STACK_MODE_BELOW };
+	xcb_configure_window(conn, XtWindow(threeD), XCB_CONFIG_WINDOW_STACK_MODE, lower_values);
+	
+	/* Reparent child to clip */
+	xcb_reparent_window(conn, XtWindow(child), XtWindow(clip), 0, 0);
+	
 	XtMapWidget( child );
     }
 }
@@ -390,9 +397,9 @@ ChangeManaged(Widget widget)
 #ifdef notdef
 		    /* this is dirty, but it saves the following code: */
 		    XtRealizeWidget( child );
-		    XReparentWindow( XtDisplay(w), XtWindow(child),
-				     XtWindow(w->viewport.clip),
-				     (Position)0, (Position)0 );
+		    xcb_connection_t *conn = XtGetXCBConnection(XtDisplay(w));
+		    xcb_reparent_window(conn, XtWindow(child),
+				     XtWindow(w->viewport.clip), 0, 0);
 		    if (child->core.mapped_when_managed)
 			XtMapWidget( child );
 #else
@@ -403,9 +410,9 @@ ChangeManaged(Widget widget)
 		    constraints->viewport.reparented = True;
 		}
 		else if (!constraints->viewport.reparented) {
-		    XReparentWindow( XtDisplay(w), XtWindow(child),
-				     XtWindow(w->viewport.clip),
-				     (Position)0, (Position)0 );
+		    xcb_connection_t *conn = XtGetXCBConnection(XtDisplay(w));
+		    xcb_reparent_window(conn, XtWindow(child),
+				     XtWindow(w->viewport.clip), 0, 0);
 		    constraints->viewport.reparented = True;
 		    if (child->core.mapped_when_managed)
 			XtMapWidget( child );

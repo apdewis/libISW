@@ -32,13 +32,15 @@ SOFTWARE.
 #include "config.h"
 #endif
 #include <X11/Xaw3d/Xaw3dP.h>
-#include <X11/Xlib.h>
 #include <X11/StringDefs.h>
 #include <X11/IntrinsicP.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/ThreeDP.h>
 #include <X11/Xosdefs.h>
-#include <X11/Xmu/CharSet.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include "XawUtils.h"
+#include "XawXcbCompat.h"
 
 /* Initialization of defaults */
 
@@ -83,9 +85,9 @@ static void ClassInitialize(void);
 static void ClassPartInitialize(WidgetClass);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Realize(Widget, XtValueMask *, XSetWindowAttributes *);
-static void _Xaw3dDrawShadows(Widget, XEvent *, Region, XtRelief, Boolean);
+static void _Xaw3dDrawShadows(Widget, xcb_generic_event_t *, xcb_xfixes_region_t, XtRelief, Boolean);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 ThreeDClassRec threeDClassRec = {
@@ -415,7 +417,7 @@ _CvtStringToRelief(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal, Xr
     XrmQuark q;
     char lowerName[1000];
 
-    XmuCopyISOLatin1Lowered (lowerName, (char*)fromVal->addr);
+    XawCopyISOLatin1Lowered (lowerName, (char*)fromVal->addr);
     q = XrmStringToQuark(lowerName);
     if (q == XtQReliefNone) {
        relief = XtReliefNone;
@@ -523,7 +525,7 @@ Destroy (Widget w)
 
 /* ARGSUSED */
 static void
-Redisplay (Widget w, XEvent *event, Region region)
+Redisplay (Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ThreeDWidget tdw = (ThreeDWidget) w;
 
@@ -614,7 +616,7 @@ SetValues (Widget gcurrent, Widget grequest, Widget gnew, ArgList args, Cardinal
 
 /* ARGSUSED */
 static void
-_Xaw3dDrawShadows (Widget gw, XEvent *event, Region region, XtRelief relief, Boolean out)
+_Xaw3dDrawShadows (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region, XtRelief relief, Boolean out)
 {
     XPoint	pt[6];
     ThreeDWidget tdw = (ThreeDWidget) gw;
@@ -656,9 +658,9 @@ _Xaw3dDrawShadows (Widget gw, XEvent *event, Region region, XtRelief relief, Boo
 		pt[3].x = wms;	pt[3].y = s;
 		pt[4].x =	pt[4].y = s;
 		pt[5].x = s;	pt[5].y = hms;
-		XFillPolygon (dpy, win,
+		xcb_fill_poly(dpy, win,
 			(relief == XtReliefRaised) ? top : bot,
-			pt, 6, Complex, CoordModeOrigin);
+			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	    }
 
 	    /* bottom-right shadow */
@@ -671,9 +673,9 @@ _Xaw3dDrawShadows (Widget gw, XEvent *event, Region region, XtRelief relief, Boo
 		pt[3].x = wms;	pt[3].y = s;
 		pt[4].x = wms;	pt[4].y = hms;
 		pt[5].x = s;	pt[5].y = hms;
-		XFillPolygon (dpy, win,
+		xcb_fill_poly(dpy, win,
 			(relief == XtReliefRaised) ? bot : top,
-			pt, 6, Complex, CoordModeOrigin);
+			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	    }
 	} else if (relief == XtReliefRidge || relief == XtReliefGroove) {
 	    /* split the shadow width */
@@ -689,9 +691,9 @@ _Xaw3dDrawShadows (Widget gw, XEvent *event, Region region, XtRelief relief, Boo
 		pt[3].x = wms;	pt[3].y = s;
 		pt[4].x =	pt[4].y = s;
 		pt[5].x = s;	pt[5].y = hms;
-		XFillPolygon (dpy, win,
+		xcb_fill_poly(dpy, win,
 			(relief == XtReliefRidge) ? realtop : realbot,
-			pt, 6, Complex, CoordModeOrigin);
+			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	    }
 
 	    /* outer bottom-right shadow */
@@ -704,9 +706,9 @@ _Xaw3dDrawShadows (Widget gw, XEvent *event, Region region, XtRelief relief, Boo
 		pt[3].x = wms;	pt[3].y = s;
 		pt[4].x = wms;	pt[4].y = hms;
 		pt[5].x = s;	pt[5].y = hms;
-		XFillPolygon (dpy, win,
+		xcb_fill_poly(dpy, win,
 			(relief == XtReliefRidge) ? realbot : realtop,
-			pt, 6, Complex, CoordModeOrigin);
+			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	    }
 
 	    /* inner top-left shadow */
@@ -719,9 +721,9 @@ _Xaw3dDrawShadows (Widget gw, XEvent *event, Region region, XtRelief relief, Boo
 		pt[3].x = wms;		pt[3].y = s * 2;
 		pt[4].x =		pt[4].y = s * 2;
 		pt[5].x = s * 2;	pt[5].y = hms;
-		XFillPolygon (dpy, win,
+		xcb_fill_poly(dpy, win,
 			(relief == XtReliefRidge) ? bot: top,
-			pt, 6, Complex, CoordModeOrigin);
+			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	    }
 
 	    /* inner bottom-right shadow */
@@ -734,9 +736,9 @@ _Xaw3dDrawShadows (Widget gw, XEvent *event, Region region, XtRelief relief, Boo
 		pt[3].x = wms - s;	pt[3].y = s * 2;
 		pt[4].x = wms - s;	pt[4].y = hms - s;
 		pt[5].x = s * 2;	pt[5].y = hms - s;
-		XFillPolygon (dpy, win,
+		xcb_fill_poly(dpy, win,
 			(relief == XtReliefRidge) ? top : bot,
-			pt, 6, Complex, CoordModeOrigin);
+			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	    }
 	}
     }
@@ -792,13 +794,13 @@ _ShadowSurroundedBox(Widget gw, ThreeDWidget tdw, Position x0, Position y0,
 	pt[3].x = x0 + wmsm;	pt[3].y = y0 + sm - 1;
 	pt[4].x = x0 + sm;	pt[4].y = y0 + sm;
 	pt[5].x = x0 + sm - 1;	pt[5].y = y0 + hmsm;
-	XFillPolygon(dpy, win, top, pt, 6, Complex, CoordModeOrigin);
+	xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	if (s > 1)
 	{
 	    pt[0].x = x0 + s - 1;	pt[0].y = y0 + hms;
 	    pt[1].x = x0 + s;		pt[1].y = y0 + s;
 	    pt[2].x = x0 + wms;		pt[2].y = y0 + s - 1;
-	    XFillPolygon(dpy, win, top, pt, 6, Complex, CoordModeOrigin);
+	    xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	}
 
 	/* bottom-right shadow */
@@ -808,13 +810,13 @@ _ShadowSurroundedBox(Widget gw, ThreeDWidget tdw, Position x0, Position y0,
 	pt[3].x = x0 + wmsm;	pt[3].y = y0 + sm - 1;
 	pt[4].x = x0 + wmsm;	pt[4].y = y0 + hmsm;
 	pt[5].x = x0 + sm - 1;	pt[5].y = y0 + hmsm;
-	XFillPolygon(dpy, win, bot, pt, 6, Complex, CoordModeOrigin);
+	xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	if (s > 1)
 	{
 	    pt[0].x = x0 + s - 1;	pt[0].y = y0 + hms;
 	    pt[1].x = x0 + wms;		pt[1].y = y0 + hms;
 	    pt[2].x = x0 + wms;		pt[2].y = y0 + s - 1;
-	    XFillPolygon(dpy, win, bot, pt, 6, Complex, CoordModeOrigin);
+	    xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	}
     }
 }

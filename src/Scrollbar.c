@@ -67,9 +67,11 @@ SOFTWARE.
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/ScrollbarP.h>
 
-#include <X11/Xmu/Drawing.h>
+#include "XawUtils.h"
 
 #include <stdint.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 
 /* Private definitions. */
 
@@ -148,9 +150,9 @@ static XtResource resources[] = {
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Realize(Widget, Mask *, XSetWindowAttributes *);
+static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 #ifdef XAW_ARROW_SCROLLBARS
@@ -236,8 +238,8 @@ static void
 ClassInitialize(void)
 {
     XawInitializeWidgetSet();
-    XtAddConverter( XtRString, XtROrientation, XmuCvtStringToOrientation,
-		    (XtConvertArgList)NULL, (Cardinal)0 );
+    XtSetTypeConverter( XtRString, XtROrientation, XawCvtStringToOrientation,
+		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
 
 #ifdef XAW_ARROW_SCROLLBARS
@@ -281,14 +283,16 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
 	lh = ((bottom > floor) ? floor - top : tlen);
     }
     if (lh <= 0 || lw <= 0) return;
+    xcb_connection_t *conn = XtDisplay((Widget) sbw);
     if (fill) {
-	XFillRectangle(XtDisplay((Widget) sbw), XtWindow((Widget) sbw),
-			sbw->scrollbar.gc,
-			lx, ly, (unsigned int) lw, (unsigned int) lh);
+ xcb_rectangle_t rect = {lx, ly, (unsigned int) lw, (unsigned int) lh};
+ xcb_poly_fill_rectangle(conn, XtWindow((Widget) sbw),
+   sbw->scrollbar.gc, 1, &rect);
+ xcb_flush(conn);
     } else {
-	XClearArea (XtDisplay((Widget) sbw), XtWindow((Widget) sbw),
-			lx, ly, (unsigned int) lw, (unsigned int) lh,
-			FALSE);
+ xcb_clear_area(conn, FALSE, XtWindow((Widget) sbw),
+   lx, ly, (unsigned int) lw, (unsigned int) lh);
+ xcb_flush(conn);
     }
 }
 
@@ -420,10 +424,10 @@ PaintArrows (ScrollbarWidget sbw)
 		    pt[n].y = swap;
 		}
 	    }
-	    XFillPolygon (dpy, win, top, pt, 4, Complex, CoordModeOrigin);
-	    XFillPolygon (dpy, win, bot, pt + 4, 6, Complex, CoordModeOrigin);
-	    XFillPolygon (dpy, win, top, pt + 10, 6, Complex, CoordModeOrigin);
-	    XFillPolygon (dpy, win, bot, pt + 16, 4, Complex, CoordModeOrigin);
+	    xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 4, (xcb_point_t *)pt);
+	    xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)(pt + 4));
+	    xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)(pt + 10));
+	    xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 4, (xcb_point_t *)(pt + 16));
 
 	} else {
 	    pt[0].x = 0;      pt[0].y = tm1;
@@ -445,13 +449,13 @@ PaintArrows (ScrollbarWidget sbw)
 		}
 	    }
 	    /* draw the up/left arrow */
-	    XFillPolygon (dpy, win, sbw->scrollbar.gc,
-			  pt, 3,
-			  Convex, CoordModeOrigin);
+	    xcb_fill_poly(dpy, win, sbw->scrollbar.gc,
+	    XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN,
+	    3, (xcb_point_t *)pt);
 	    /* draw the down/right arrow */
-	    XFillPolygon (dpy, win, sbw->scrollbar.gc,
-			  pt+3, 3,
-			  Convex, CoordModeOrigin);
+	    xcb_fill_poly(dpy, win, sbw->scrollbar.gc,
+	    XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN,
+	    3, (xcb_point_t *)(pt+3));
 	}
     }
 }
@@ -483,19 +487,21 @@ static void
 CreateGC (Widget w)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
-    XGCValues gcValues;
+    xcb_create_gc_value_list_t gcValues;
     XtGCMask mask;
     unsigned int depth = 1;
 
     if (sbw->scrollbar.thumb == XtUnspecifiedPixmap) {
-        sbw->scrollbar.thumb = XmuCreateStippledPixmap (XtScreen(w),
-					(Pixel) 1, (Pixel) 0, depth);
+        sbw->scrollbar.thumb = XawCreateStippledPixmap (XtScreen(w),
+    	(Pixel) 1, (Pixel) 0, depth);
     } else if (sbw->scrollbar.thumb != None) {
-	Window root;
-	int x, y;
-	unsigned int width, height, bw;
-	if (XGetGeometry (XtDisplay(w), sbw->scrollbar.thumb, &root, &x, &y,
-			 &width, &height, &bw, &depth) == 0) {
+	xcb_connection_t *conn = XtDisplay(w);
+	xcb_get_geometry_cookie_t cookie = xcb_get_geometry(conn, sbw->scrollbar.thumb);
+	xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(conn, cookie, NULL);
+	if (reply) {
+	    depth = reply->depth;
+	    free(reply);
+	} else {
 	    XtAppError (XtWidgetToApplicationContext (w),
 	       "Scrollbar Widget: Could not get geometry of thumb pixmap.");
 	}
@@ -507,19 +513,19 @@ CreateGC (Widget w)
 
     if (sbw->scrollbar.thumb != None) {
 	if (depth == 1) {
-	    gcValues.fill_style = FillOpaqueStippled;
+	    gcValues.fill_style = XCB_FILL_STYLE_OPAQUE_STIPPLED;
 	    gcValues.stipple = sbw->scrollbar.thumb;
 	    mask |= GCFillStyle | GCStipple;
 	}
 	else {
-	    gcValues.fill_style = FillTiled;
+	    gcValues.fill_style = XCB_FILL_STYLE_TILED;
 	    gcValues.tile = sbw->scrollbar.thumb;
 	    mask |= GCFillStyle | GCTile;
 	}
     }
     /* the creation should be non-caching, because */
     /* we now set and clear clip masks on the gc returned */
-    sbw->scrollbar.gc = XtGetGC (w, mask, &gcValues);
+    sbw->scrollbar.gc = XtGetGC (w, mask, (XGCValues*)&gcValues);
 }
 
 static void
@@ -562,7 +568,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(Widget w, Mask *valueMask, XSetWindowAttributes *attributes)
+Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
 #ifdef XAW_ARROW_SCROLLBARS
@@ -583,7 +589,7 @@ Realize(Widget w, Mask *valueMask, XSetWindowAttributes *attributes)
      */
 
     (*scrollbarWidgetClass->core_class.superclass->core_class.realize)
-	(w, valueMask, attributes);
+	(dpy, w, valueMask, attributes);
 }
 
 /* ARGSUSED */
@@ -628,13 +634,13 @@ Resize (Widget w)
     /* ForgetGravity has taken care of background, but thumb may
      * have to move as a result of the new size. */
     SetDimensions ((ScrollbarWidget) w);
-    Redisplay (w, (XEvent*) NULL, (Region)NULL);
+    Redisplay (w, NULL, 0);
 }
 
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, XEvent *event, Region region)
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     ScrollbarWidgetClass swclass = (ScrollbarWidgetClass) XtClass (w);
@@ -843,7 +849,7 @@ StartScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
 	return; /* invalid invocation */
     }
     XtVaSetValues (w, XtNcursor, cursor, NULL);
-    XFlush (XtDisplay (w));
+    xcb_flush(XtDisplay(w));
 }
 #endif /* XAW_ARROW_SCROLLBARS */
 
@@ -978,7 +984,7 @@ EndScroll(Widget w, XEvent *event, String *params, Cardinal *num_params)
     /* but be sure to remove timeout in destroy proc */
 #else
     XtVaSetValues (w, XtNcursor, sbw->scrollbar.inactiveCursor, NULL);
-    XFlush (XtDisplay (w));
+    xcb_flush(XtDisplay(w));
     sbw->scrollbar.direction = 0;
 #endif
 }
@@ -1045,7 +1051,7 @@ MoveThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
     sbw->scrollbar.scroll_mode = 2; /* indicate continuous scroll */
 #endif
     PaintThumb (sbw, event);
-    XFlush (XtDisplay (w));	/* re-draw it before Notifying */
+    xcb_flush(XtDisplay(w));	/* re-draw it before Notifying */
 }
 
 

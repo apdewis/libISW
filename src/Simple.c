@@ -55,7 +55,8 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/SimpleP.h>
-#include <X11/Xmu/Drawing.h>
+#include "XawUtils.h"
+#include "XawXcbCompat.h"
 
 #define offset(field) XtOffsetOf(SimpleRec, simple.field)
 
@@ -79,7 +80,7 @@ static XtResource resources[] = {
 
 static void ClassPartInitialize(WidgetClass);
 static void ClassInitialize(void);
-static void Realize(Widget, Mask *, XSetWindowAttributes *);
+static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void ConvertCursor(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ChangeSensitive(Widget);
@@ -167,33 +168,37 @@ ClassPartInitialize(WidgetClass class)
 }
 
 static void
-Realize(Widget w, Mask *valueMask, XSetWindowAttributes *attributes)
+Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
     Pixmap border_pixmap = 0;
+    
     if (!XtIsSensitive(w)) {
 	/* change border to gray; have to remember the old one,
 	 * so XtDestroyWidget deletes the proper one */
 	if (((SimpleWidget)w)->simple.insensitive_border == None)
 	    ((SimpleWidget)w)->simple.insensitive_border =
-		XmuCreateStippledPixmap(XtScreen(w),
+		XawCreateStippledPixmap(XtScreen(w),
 					w->core.border_pixel,
 					w->core.background_pixel,
 					w->core.depth);
         border_pixmap = w->core.border_pixmap;
-	attributes->border_pixmap =
-	  w->core.border_pixmap = ((SimpleWidget)w)->simple.insensitive_border;
+	w->core.border_pixmap = ((SimpleWidget)w)->simple.insensitive_border;
 
 	*valueMask |= CWBorderPixmap;
 	*valueMask &= ~CWBorderPixel;
+	attributes[__builtin_popcount(*valueMask & (CWBorderPixmap - 1))] = w->core.border_pixmap;
     }
 
     ConvertCursor(w);
 
-    if ((attributes->cursor = ((SimpleWidget)w)->simple.cursor) != None)
+    if (((SimpleWidget)w)->simple.cursor != None) {
 	*valueMask |= CWCursor;
+	attributes[__builtin_popcount(*valueMask & (CWCursor - 1))] = ((SimpleWidget)w)->simple.cursor;
+    }
 
-    XtCreateWindow( w, (unsigned int)InputOutput, (Visual *)CopyFromParent,
-		    *valueMask, attributes );
+    /* attributes parameter is already in XCB uint32_t format */
+    XtCreateWindow(XtDisplay(w), w, (unsigned int)InputOutput,
+                   (Visual *)CopyFromParent, *valueMask, attributes);
 
     if (!XtIsSensitive(w))
 	w->core.border_pixmap = border_pixmap;
@@ -286,11 +291,11 @@ ChangeSensitive(Widget w)
 				  w->core.border_pixel );
 	else {
 	    if (((SimpleWidget)w)->simple.insensitive_border == None)
-		((SimpleWidget)w)->simple.insensitive_border =
-		    XmuCreateStippledPixmap(XtScreen(w),
-					    w->core.border_pixel,
-					    w->core.background_pixel,
-					    w->core.depth);
+	 ((SimpleWidget)w)->simple.insensitive_border =
+	     XawCreateStippledPixmap(XtScreen(w),
+	        w->core.border_pixel,
+	        w->core.background_pixel,
+	        w->core.depth);
 	    XSetWindowBorderPixmap( XtDisplay(w), XtWindow(w),
 				    ((SimpleWidget)w)->
 				        simple.insensitive_border );

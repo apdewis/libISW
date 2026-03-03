@@ -49,6 +49,7 @@ SOFTWARE.
 #ifndef _XawTextSink_h
 #define _XawTextSink_h
 
+#include <xcb/xcb.h>
 #include <X11/Xaw3d/Text.h>
 
 /***********************************************************************
@@ -279,13 +280,13 @@ extern void XawTextSinkSetTabs(
 /*	Function Name: XawTextSinkGetCursorBounds
  *	Description: Finds the bounding box for the insert curor (caret).
  *	Arguments: w - the TextSinkObject.
- *                 rect - an X rectance containing the cursor bounds.
+ *                 rect - an XCB rectangle containing the cursor bounds.
  *	Returns: none (fills in rect).
  */
 
 extern void XawTextSinkGetCursorBounds(
     Widget		/* w */,
-    XRectangle*		/* rect_return */
+    xcb_rectangle_t*	/* rect_return */
 );
 
 _XFUNCPROTOEND

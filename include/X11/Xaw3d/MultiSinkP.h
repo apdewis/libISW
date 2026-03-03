@@ -87,6 +87,7 @@ SOFTWARE.
 
 #include <X11/Xaw3d/TextSinkP.h>
 #include <X11/Xaw3d/MultiSink.h>
+#include <X11/Xaw3d/XawXftCompat.h>  /* For XawFontSet typedef */
 
 /************************************************************
  *
@@ -119,7 +120,7 @@ typedef struct {
     Pixmap insertCursorOn;
     XawTextInsertState laststate;
     short cursor_x, cursor_y;	/* Cursor Location. */
-    XFontSet fontset; /* font set to draw */
+    XawFontSet *fontset; /* Phase 3.5: font set to draw */
 } MultiSinkPart;
 
 /****************************************************************

@@ -1,21 +1,22 @@
-/* A Bison parser, made by GNU Bison 2.7.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
-   
-      Copyright (C) 1984, 1989-1990, 2000-2012 Free Software Foundation, Inc.
-   
+
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
+   Inc.
+
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation, either version 3 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -26,13 +27,17 @@
    special exception, which will cause the skeleton and the resulting
    Bison output files to be licensed under the GNU General Public
    License without this special exception.
-   
+
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_LAYYY_LAYGRAM_H_INCLUDED
-# define YY_LAYYY_LAYGRAM_H_INCLUDED
-/* Enabling traces.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
+
+#ifndef YY_LAYYY_Y_TAB_H_INCLUDED
+# define YY_LAYYY_Y_TAB_H_INCLUDED
+/* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
 #endif
@@ -40,38 +45,46 @@
 extern int LayYYdebug;
 #endif
 
-/* Tokens.  */
+/* Token kinds.  */
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
-   /* Put the tokens into the symbol table, so that GDB and other debuggers
-      know about them.  */
-   enum yytokentype {
-     OC = 258,
-     CC = 259,
-     OA = 260,
-     CA = 261,
-     OP = 262,
-     CP = 263,
-     NAME = 264,
-     NUMBER = 265,
-     INFINITY = 266,
-     VERTICAL = 267,
-     HORIZONTAL = 268,
-     EQUAL = 269,
-     DOLLAR = 270,
-     MINUS = 271,
-     PLUS = 272,
-     PERCENTOF = 273,
-     DIVIDE = 274,
-     TIMES = 275,
-     PERCENT = 276,
-     HEIGHT = 277,
-     WIDTH = 278,
-     UPLUS = 279,
-     UMINUS = 280
-   };
+  enum yytokentype
+  {
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    OC = 258,                      /* OC  */
+    CC = 259,                      /* CC  */
+    OA = 260,                      /* OA  */
+    CA = 261,                      /* CA  */
+    OP = 262,                      /* OP  */
+    CP = 263,                      /* CP  */
+    NAME = 264,                    /* NAME  */
+    NUMBER = 265,                  /* NUMBER  */
+    INFINITY = 266,                /* INFINITY  */
+    VERTICAL = 267,                /* VERTICAL  */
+    HORIZONTAL = 268,              /* HORIZONTAL  */
+    EQUAL = 269,                   /* EQUAL  */
+    DOLLAR = 270,                  /* DOLLAR  */
+    PLUS = 271,                    /* PLUS  */
+    MINUS = 272,                   /* MINUS  */
+    TIMES = 273,                   /* TIMES  */
+    DIVIDE = 274,                  /* DIVIDE  */
+    PERCENTOF = 275,               /* PERCENTOF  */
+    PERCENT = 276,                 /* PERCENT  */
+    WIDTH = 277,                   /* WIDTH  */
+    HEIGHT = 278,                  /* HEIGHT  */
+    UMINUS = 279,                  /* UMINUS  */
+    UPLUS = 280                    /* UPLUS  */
+  };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
-/* Tokens.  */
+/* Token kinds.  */
+#define YYEMPTY -2
+#define YYEOF 0
+#define YYerror 256
+#define YYUNDEF 257
 #define OC 258
 #define CC 259
 #define OA 260
@@ -85,24 +98,22 @@ extern int LayYYdebug;
 #define HORIZONTAL 268
 #define EQUAL 269
 #define DOLLAR 270
-#define MINUS 271
-#define PLUS 272
-#define PERCENTOF 273
+#define PLUS 271
+#define MINUS 272
+#define TIMES 273
 #define DIVIDE 274
-#define TIMES 275
+#define PERCENTOF 275
 #define PERCENT 276
-#define HEIGHT 277
-#define WIDTH 278
-#define UPLUS 279
-#define UMINUS 280
+#define WIDTH 277
+#define HEIGHT 278
+#define UMINUS 279
+#define UPLUS 280
 
-
-
+/* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE
+union YYSTYPE
 {
-/* Line 2058 of yacc.c  */
-#line 22 "laygram.y"
+#line 20 "laygram.y"
 
     int		    ival;
     XrmQuark	    qval;
@@ -113,29 +124,19 @@ typedef union YYSTYPE
     ExprPtr	    eval;
     Operator	    oval;
 
+#line 128 "y.tab.h"
 
-/* Line 2058 of yacc.c  */
-#line 119 "laygram.h"
-} YYSTYPE;
+};
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
+
 extern YYSTYPE LayYYlval;
 
-#ifdef YYPARSE_PARAM
-#if defined __STDC__ || defined __cplusplus
-int LayYYparse (void *YYPARSE_PARAM);
-#else
-int LayYYparse ();
-#endif
-#else /* ! YYPARSE_PARAM */
-#if defined __STDC__ || defined __cplusplus
-int LayYYparse (void);
-#else
-int LayYYparse ();
-#endif
-#endif /* ! YYPARSE_PARAM */
 
-#endif /* !YY_LAYYY_LAYGRAM_H_INCLUDED  */
+int LayYYparse (void);
+
+
+#endif /* !YY_LAYYY_Y_TAB_H_INCLUDED  */

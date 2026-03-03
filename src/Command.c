@@ -57,11 +57,19 @@ SOFTWARE.
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xmu/Misc.h>
+/* XCB Migration: Removed Xmu includes - not compatible with XCB */
+/* #include <X11/Xmu/Misc.h> */
+/* #include <X11/Xmu/Converters.h> */
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/CommandP.h>
-#include <X11/Xmu/Converters.h>
-#include <X11/extensions/shape.h>
+/* XCB Migration: Use XCB shape extension instead of Xlib */
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include <xcb/shape.h>
+#include "XawXcbCompat.h"   /* For XCB-compatible type definitions */
+#include "XawUtils.h"       /* For Min/Max macros and XawReshapeWidget */
+#include "XawXcbDraw.h"     /* For XCB GC helpers */
+#include "XawRegion.h"      /* For XCB region helpers */
 
 #define DEFAULT_HIGHLIGHT_THICKNESS 2
 #define DEFAULT_SHAPE_HIGHLIGHT 32767
@@ -102,7 +110,7 @@ static XtResource resources[] = {
 
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Set(Widget, XEvent *, String *, Cardinal *);
 static void Reset(Widget, XEvent *, String *, Cardinal *);
 static void Notify(Widget, XEvent *, String *, Cardinal *);
@@ -113,7 +121,7 @@ static void Destroy(Widget);
 static void PaintCommandWidget(Widget, XEvent *, Region, Boolean);
 static void ClassInitialize(void);
 static Boolean ShapeButton(CommandWidget, Boolean);
-static void Realize(Widget, Mask *, XSetWindowAttributes *);
+static void Realize(xcb_connection_t *, Widget, Mask *, uint32_t *);
 static void Resize(Widget);
 
 static XtActionsRec actionsList[] = {
@@ -188,12 +196,13 @@ WidgetClass commandWidgetClass = (WidgetClass) &commandClassRec;
 static GC
 Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
 {
-  XGCValues	values;
+  xcb_create_gc_value_list_t values;
 
+  XawInitGCValues(&values);
   values.foreground   = fg;
   values.background	= bg;
   values.font		= cbw->label.font->fid;
-  values.cap_style = CapProjecting;
+  values.cap_style = XCB_CAP_STYLE_PROJECTING;
 
   if (cbw->command.highlight_thickness > 1 )
     values.line_width   = cbw->command.highlight_thickness;
@@ -203,12 +212,12 @@ Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
 #ifdef XAW_INTERNATIONALIZATION
   if ( cbw->simple.international == True )
       return XtAllocateGC((Widget)cbw, 0,
-		 (GCForeground|GCBackground|GCLineWidth|GCCapStyle),
-		 &values, GCFont, 0 );
+		 (XCB_GC_FOREGROUND|XCB_GC_BACKGROUND|XCB_GC_LINE_WIDTH|XCB_GC_CAP_STYLE),
+		 &values, XCB_GC_FONT, 0 );
   else
 #endif
       return XtGetGC((Widget)cbw,
-		 (GCForeground|GCBackground|GCFont|GCLineWidth|GCCapStyle),
+		 (XCB_GC_FOREGROUND|XCB_GC_BACKGROUND|XCB_GC_FONT|XCB_GC_LINE_WIDTH|XCB_GC_CAP_STYLE),
 		 &values);
 }
 
@@ -218,12 +227,18 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
   CommandWidget cbw = (CommandWidget) new;
-  int shape_event_base, shape_error_base;
 
-  if (cbw->command.shape_style != XawShapeRectangle
-      && !XShapeQueryExtension(XtDisplay(new), &shape_event_base,
-			       &shape_error_base))
-      cbw->command.shape_style = XawShapeRectangle;
+  /* XCB Migration: Query shape extension using XCB */
+  if (cbw->command.shape_style != XawShapeRectangle) {
+      xcb_connection_t *conn = XtDisplay(new);
+      xcb_shape_query_version_cookie_t cookie = xcb_shape_query_version(conn);
+      xcb_shape_query_version_reply_t *reply = xcb_shape_query_version_reply(conn, cookie, NULL);
+      if (!reply) {
+          cbw->command.shape_style = XawShapeRectangle;
+      } else {
+          free(reply);
+      }
+  }
   if (cbw->command.highlight_thickness == DEFAULT_SHAPE_HIGHLIGHT) {
       if (cbw->command.shape_style != XawShapeRectangle)
 	  cbw->command.highlight_thickness = 0;
@@ -262,20 +277,20 @@ HighlightRegion(CommandWidget cbw)
 
   if (outerRegion == NULL) {
     /* save time by allocating scratch regions only once. */
-    outerRegion = XCreateRegion();
-    innerRegion = XCreateRegion();
-    emptyRegion = XCreateRegion();
+    outerRegion = XawCreateRegion();
+    innerRegion = XawCreateRegion();
+    emptyRegion = XawCreateRegion();
   }
 
   rect.x = rect.y = s;
   rect.width = cbw->core.width - 2 * s;
   rect.height = cbw->core.height - 2 * s;
-  XUnionRectWithRegion( &rect, emptyRegion, outerRegion );
+  XawUnionRectWithRegion( &rect, emptyRegion, outerRegion );
   rect.x = rect.y += cbw->command.highlight_thickness;
   rect.width -= cbw->command.highlight_thickness * 2;
   rect.height -= cbw->command.highlight_thickness * 2;
-  XUnionRectWithRegion( &rect, emptyRegion, innerRegion );
-  XSubtractRegion( outerRegion, innerRegion, outerRegion );
+  XawUnionRectWithRegion( &rect, emptyRegion, innerRegion );
+  XawSubtractRegion( outerRegion, innerRegion, outerRegion );
   return outerRegion;
 }
 
@@ -310,7 +325,9 @@ Unset(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
   cbw->command.set = FALSE;
   if (XtIsRealized(w)) {
-    XClearWindow(XtDisplay(w), XtWindow(w));
+    xcb_connection_t *conn = XtDisplay(w);
+    xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+    xcb_flush(conn);
     PaintCommandWidget(w, event, (Region) NULL, TRUE);
   }
 }
@@ -391,9 +408,9 @@ Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, XEvent *event, Region region)
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-  PaintCommandWidget(w, event, region, FALSE);
+  PaintCommandWidget(w, event, 0 /* FIXME: XCB region */, FALSE);
 }
 
 /*	Function Name: PaintCommandWidget
@@ -405,7 +422,7 @@ Redisplay(Widget w, XEvent *event, Region region)
  */
 
 static void
-PaintCommandWidget(Widget w, XEvent *event, Region region, Boolean change)
+PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean change)
 {
   CommandWidget cbw = (CommandWidget) w;
   CommandWidgetClass cwclass = (CommandWidgetClass) XtClass (w);
@@ -418,8 +435,10 @@ PaintCommandWidget(Widget w, XEvent *event, Region region, Boolean change)
 
   if (cbw->command.set) {
     cbw->label.normal_GC = cbw->command.inverse_GC;
-    XFillRectangle(XtDisplay(w), XtWindow(w), cbw->command.normal_GC,
-		   s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s);
+    xcb_connection_t *conn = XtDisplay(w);
+    xcb_rectangle_t rect = {s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s};
+    xcb_poly_fill_rectangle(conn, XtWindow(w), cbw->command.normal_GC, 1, &rect);
+    xcb_flush(conn);
     region = NULL;		/* Force label to repaint text. */
   }
   else
@@ -427,8 +446,8 @@ PaintCommandWidget(Widget w, XEvent *event, Region region, Boolean change)
 
   if (cbw->command.highlight_thickness <= 0)
   {
-    (*SuperClass->core_class.expose) (w, event, region);
-    (*cwclass->threeD_class.shadowdraw) (w, event, region, cbw->threeD.relief, !cbw->command.set);
+    (*SuperClass->core_class.expose) (w, event, 0 /* FIXME: XCB region */);
+    (*cwclass->threeD_class.shadowdraw) (w, event, 0 /* FIXME: XCB region */, cbw->threeD.relief, !cbw->command.set);
     return;
   }
 
@@ -450,19 +469,24 @@ PaintCommandWidget(Widget w, XEvent *event, Region region, Boolean change)
 	   (cbw->command.set))) ) {
     if (very_thick) {
       cbw->label.normal_GC = norm_gc; /* Give the label the right GC. */
-      XFillRectangle(XtDisplay(w),XtWindow(w), rev_gc,
-		     s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s);
+      xcb_connection_t *conn = XtDisplay(w);
+      xcb_rectangle_t rect = {s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s};
+      xcb_poly_fill_rectangle(conn, XtWindow(w), rev_gc, 1, &rect);
+      xcb_flush(conn);
     }
     else {
       /* wide lines are centered on the path, so indent it */
       int offset = cbw->command.highlight_thickness/2;
-      XDrawRectangle(XtDisplay(w),XtWindow(w), rev_gc, s + offset, s + offset,
-		     cbw->core.width - cbw->command.highlight_thickness - 2 * s,
-		     cbw->core.height - cbw->command.highlight_thickness - 2 * s);
+      xcb_connection_t *conn = XtDisplay(w);
+      xcb_rectangle_t rect = {s + offset, s + offset,
+       cbw->core.width - cbw->command.highlight_thickness - 2 * s,
+       cbw->core.height - cbw->command.highlight_thickness - 2 * s};
+      xcb_poly_rectangle(conn, XtWindow(w), rev_gc, 1, &rect);
+      xcb_flush(conn);
     }
   }
-  (*SuperClass->core_class.expose) (w, event, region);
-  (*cwclass->threeD_class.shadowdraw) (w, event, region, cbw->threeD.relief, !cbw->command.set);
+  (*SuperClass->core_class.expose) (w, event, 0 /* FIXME: XCB region */);
+  (*cwclass->threeD_class.shadowdraw) (w, event, 0 /* FIXME: XCB region */, cbw->threeD.relief, !cbw->command.set);
 }
 
 static void
@@ -548,11 +572,45 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
   return (redisplay);
 }
 
+/* XCB Migration: Simple ShapeStyle converter to replace XmuCvtStringToShapeStyle */
+static Boolean
+CvtStringToShapeStyle(xcb_connection_t *conn, XrmValue *args, Cardinal *num_args,
+                      XrmValue *fromVal, XrmValue *toVal, XtPointer *closure_ret)
+{
+    String str = (String)fromVal->addr;
+    static int result;
+    
+    if (strcmp(str, "Rectangle") == 0 || strcmp(str, "rectangle") == 0) {
+        result = XawShapeRectangle;
+    } else if (strcmp(str, "Oval") == 0 || strcmp(str, "oval") == 0) {
+        result = XawShapeOval;
+    } else if (strcmp(str, "Ellipse") == 0 || strcmp(str, "ellipse") == 0) {
+        result = XawShapeEllipse;
+    } else if (strcmp(str, "RoundedRectangle") == 0 || strcmp(str, "roundedRectangle") == 0) {
+        result = XawShapeRoundedRectangle;
+    } else {
+        XtDisplayStringConversionWarning(conn, str, XtRShapeStyle);
+        return False;
+    }
+    
+    if (toVal->addr != NULL) {
+        if (toVal->size < sizeof(int)) {
+            toVal->size = sizeof(int);
+            return False;
+        }
+        *(int *)toVal->addr = result;
+    } else {
+        toVal->addr = (XPointer)&result;
+    }
+    toVal->size = sizeof(int);
+    return True;
+}
+
 static void
 ClassInitialize(void)
 {
     XawInitializeWidgetSet();
-    XtSetTypeConverter( XtRString, XtRShapeStyle, XmuCvtStringToShapeStyle,
+    XtSetTypeConverter( XtRString, XtRShapeStyle, CvtStringToShapeStyle,
 		        (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
 
@@ -569,20 +627,21 @@ ShapeButton(CommandWidget cbw, Boolean checkRectangular)
     }
 
     if (checkRectangular || cbw->command.shape_style != XawShapeRectangle) {
-	if (!XmuReshapeWidget((Widget) cbw, cbw->command.shape_style,
-			      corner_size, corner_size)) {
-	    cbw->command.shape_style = XawShapeRectangle;
-	    return(False);
-	}
+ if (!XawReshapeWidget((Widget) cbw, cbw->command.shape_style,
+         corner_size, corner_size)) {
+     cbw->command.shape_style = XawShapeRectangle;
+     return(False);
+ }
     }
     return(TRUE);
 }
 
 static void
-Realize(Widget w, Mask *valueMask, XSetWindowAttributes *attributes)
+Realize(xcb_connection_t *conn, Widget w, Mask *valueMask, uint32_t *attributes)
 {
+    /* XCB Migration: superclass realize now takes conn as first parameter */
     (*commandWidgetClass->core_class.superclass->core_class.realize)
-	(w, valueMask, attributes);
+	(conn, w, valueMask, attributes);
 
     ShapeButton( (CommandWidget) w, FALSE);
 }

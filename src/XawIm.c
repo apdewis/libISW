@@ -58,6 +58,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xos.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 #include <X11/Xfuncs.h>
 #include <X11/ShellP.h>
 #include <X11/Xaw3d/TextP.h>
@@ -65,6 +67,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/MultiSinkP.h>
 #include <X11/Xaw3d/XawImP.h>
 #include <X11/Xaw3d/VendorEP.h>
+#include <X11/Xaw3d/XawContext.h>
 #include <X11/ResourceI.h>
 #include <X11/VarargsI.h>
 #include "XawI18n.h"
@@ -73,14 +76,15 @@ in this Software without prior written authorization from the X Consortium.
 # include <stdarg.h>
 # define Va_start(a,b) va_start(a,b)
 
-#define maxAscentOfFontSet(fontset)     \
-        ( - (XExtentsOfFontSet((fontset)))->max_logical_extent.y)
+#ifdef XAW_HAS_XIM
+/* XIM support enabled - full implementation */
 
-#define maxHeightOfFontSet(fontset) \
-        ((XExtentsOfFontSet((fontset)))->max_logical_extent.height)
+/* Phase 3.5: Use XawFontSet fields directly */
+#define maxAscentOfFontSet(fontset)     ((fontset)->ascent)
 
-#define maxDescentOfFontSet(fontset) \
-        (maxHeightOfFontSet(fontset) - maxAscentOfFontSet(fontset))
+#define maxHeightOfFontSet(fontset)     ((fontset)->height)
+
+#define maxDescentOfFontSet(fontset)    ((fontset)->descent)
 
 #define Offset(field) (XtOffsetOf(XawIcTablePart, field))
 
@@ -104,7 +108,7 @@ static void DestroyIC(
 static XtResource resources[] =
 {
     {
-	XtNfontSet, XtCFontSet, XtRFontSet, sizeof(XFontSet),
+	XtNfontSet, XtCFontSet, XtRFontSet, sizeof(XawFontSet*),  /* Phase 3.5 */
 	Offset (font_set), XtRString, XtDefaultFontSet
     },
     {
@@ -224,7 +228,7 @@ ConfigureCB(Widget w, XtPointer closure, XEvent *event)
     XawVendorShellExtPart	*ve;
     VendorShellWidget		vw;
     XVaNestedList		pe_attr;
-    XRectangle			pe_area;
+    xcb_rectangle_t		pe_area;
     XawTextMargin		*margin;
 
     if (event->type != ConfigureNotify) return;
@@ -631,10 +635,10 @@ IsCreatedIC(Widget w, XawVendorShellExtPart *ve)
 static void
 SizeNegotiation(XawIcTableList p, Dimension width, Dimension height)
 {
-    XRectangle		pe_area, st_area;
+    xcb_rectangle_t	pe_area, st_area;
     XVaNestedList	pe_attr = NULL, st_attr = NULL;
     int			ic_cnt = 0, pe_cnt = 0, st_cnt = 0;
-    XRectangle		*pe_area_needed = NULL, *st_area_needed = NULL;
+    xcb_rectangle_t	*pe_area_needed = NULL, *st_area_needed = NULL;
     XPointer		ic_a[5];
 
     if (p->input_style & XIMPreeditArea) {
@@ -704,8 +708,8 @@ static void
 CreateIC(Widget w, XawVendorShellExtPart *ve)
 {
     XawIcTableList	p;
-    XPoint		position;
-    XRectangle		pe_area, st_area;
+    xcb_point_t		position;
+    xcb_rectangle_t	pe_area, st_area;
     XVaNestedList	pe_attr = NULL, st_attr = NULL;
     XPointer		ic_a[20], pe_a[20], st_a[20];
     Dimension		height = 0;
@@ -719,7 +723,7 @@ CreateIC(Widget w, XawVendorShellExtPart *ve)
     p->input_style = GetInputStyleOfIC(ve);
 
     if (IsSharedIC(ve)) SetICValuesShared(w, ve, p, FALSE);
-    XFlush(XtDisplay(w));
+    xcb_flush(XtDisplay(w));
 
     if (p->input_style & (XIMPreeditArea|XIMPreeditPosition|XIMStatusArea)) {
 	if (p->flg & CIFontSet) {
@@ -851,8 +855,8 @@ static void
 SetICValues(Widget w, XawVendorShellExtPart *ve, Boolean focus)
 {
     XawIcTableList	p;
-    XPoint		position;
-    XRectangle		pe_area;
+    xcb_point_t		position;
+    xcb_rectangle_t	pe_area;
     XVaNestedList	pe_attr = NULL, st_attr = NULL;
     XPointer		ic_a[20], pe_a[20], st_a[20];
     int			ic_cnt = 0, pe_cnt = 0, st_cnt = 0;
@@ -863,7 +867,7 @@ SetICValues(Widget w, XawVendorShellExtPart *ve, Boolean focus)
 	(p->xic == NULL)) return;
 
     if (IsSharedIC(ve)) SetICValuesShared(w, ve, p, TRUE);
-    XFlush(XtDisplay(w));
+    xcb_flush(XtDisplay(w));
     if (focus == FALSE &&
 	!(p->flg & (CIFontSet | CIFg | CIBg |
 		    CIBgPixmap | CICursorP | CILineS))) return;
@@ -1571,3 +1575,133 @@ _XawImDestroy(
     if ((ve = GetExtPart( (VendorShellWidget) w )))
         Destroy( w, ve );
 }
+
+#else /* !XAW_HAS_XIM */
+
+/*
+ * XIM STUB IMPLEMENTATIONS
+ *
+ * XIM (X Input Method) is not available with XCB-based libXt.
+ * These stub functions provide no-op implementations to maintain API
+ * compatibility. CJK (Chinese/Japanese/Korean) input will not work.
+ */
+
+void
+_XawImResizeVendorShell(Widget w _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+Dimension
+_XawImGetShellHeight(Widget w)
+{
+    /* Stub: Return full widget height since no IM area */
+    return w->core.height;
+}
+
+void
+_XawImRealize(Widget w _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImInitialize(Widget w _X_UNUSED, Widget ext _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImReconnect(Widget inwidg _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImRegister(Widget inwidg _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImUnregister(Widget inwidg _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImSetValues(Widget inwidg _X_UNUSED, ArgList args _X_UNUSED, Cardinal num_args _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImVASetValues(Widget inwidg _X_UNUSED, ...)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImSetFocusValues(Widget inwidg _X_UNUSED, ArgList args _X_UNUSED, Cardinal num_args _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImVASetFocusValues(Widget inwidg _X_UNUSED, ...)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImUnsetFocus(Widget inwidg _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+int
+_XawImWcLookupString(
+    Widget inwidg _X_UNUSED,
+    XKeyPressedEvent *event,
+    wchar_t* buffer_return,
+    int bytes_buffer,
+    KeySym *keysym_return,
+    Status *status_return)
+{
+    /* Stub: Fall back to basic XLookupString */
+    char tmp_buf[64];
+    char *tmp_p;
+    wchar_t *buf_p;
+    int i, ret;
+    
+    ret = XLookupString(event, tmp_buf, 64, keysym_return,
+                        (XComposeStatus*) status_return);
+    
+    /* Convert to wide characters */
+    for (i = 0, tmp_p = tmp_buf, buf_p = buffer_return;
+         i < ret && i < bytes_buffer; i++) {
+        *buf_p++ = _Xaw_atowc(*tmp_p++);
+    }
+    return ret;
+}
+
+int
+_XawImGetImAreaHeight(Widget w _X_UNUSED)
+{
+    /* Stub: No IM area since no XIM support */
+    return 0;
+}
+
+void
+_XawImCallVendorShellExtResize(Widget w _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+void
+_XawImDestroy(Widget w _X_UNUSED, Widget ext _X_UNUSED)
+{
+    /* Stub: No XIM support */
+}
+
+#endif /* XAW_HAS_XIM */

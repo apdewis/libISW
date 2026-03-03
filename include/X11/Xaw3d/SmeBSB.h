@@ -40,7 +40,6 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef _SmeBSB_h
 #define _SmeBSB_h
 
-#include <X11/Xmu/Converters.h>
 
 #include "Xaw3dP.h"
 #include <X11/Xaw3d/Sme.h>

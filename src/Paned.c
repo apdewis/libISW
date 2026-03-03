@@ -65,17 +65,20 @@ SOFTWARE.
 #include <X11/IntrinsicP.h>
 #include <X11/cursorfont.h>
 #include <X11/StringDefs.h>
-#include <X11/Xmu/Misc.h>
-#include <X11/Xmu/Converters.h>
+#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/Grip.h>
 #include <X11/Xaw3d/PanedP.h>
 #include <ctype.h>
+#include "XawUtils.h"
+#include <xcb/xcb.h>
+#include <xcb/xfixes.h>
 
 /* I don't know why Paned.c calls _XawImCallVendorShellExtResize, but... */
-#ifdef XAW_INTERNATIONALIZATION
+/* FIXME: XawImP.h uses Xlib-specific types (XIM, XIC) that don't exist in XCB */
+/* #ifdef XAW_INTERNATIONALIZATION
 #include <X11/Xaw3d/XawImP.h>
-#endif
+#endif */
 
 typedef enum {UpLeftPane = 'U', LowRightPane = 'L',
 	      ThisBorderOnly = 'T', AnyPane = 'A' } Direction;
@@ -188,9 +191,9 @@ static XtResource subresources[] = {
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(Widget, Mask *, XSetWindowAttributes *);
+static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void GetGCs(Widget);
 static void ReleaseGCs(Widget);
 static void RefigureLocationsAndCommit(Widget);
@@ -299,7 +302,7 @@ AdjustPanedSize(PanedWidget pw, Dimension off_size, XtGeometryResult * result_re
     request.request_mode = CWWidth | CWHeight;
 
     ForAllPanes(pw, childP) {
-        int size = Max(PaneInfo(*childP)->size, (int)PaneInfo(*childP)->min);
+        int size = XawMax(PaneInfo(*childP)->size, (int)PaneInfo(*childP)->min);
 	AssignMin(size, (int) PaneInfo(*childP)->max);
         newsize += size + pw->paned.internal_bw;
     }
@@ -735,12 +738,23 @@ static void
 _DrawRect(PanedWidget pw, GC gc, int on_loc, int off_loc,
           unsigned int on_size, unsigned int off_size)
 {
-  if (IsVert(pw))
-    XFillRectangle(XtDisplay(pw), XtWindow(pw), gc,
-		   off_loc, on_loc, off_size, on_size);
-  else
-    XFillRectangle(XtDisplay(pw), XtWindow(pw), gc,
-		   on_loc, off_loc, on_size, off_size);
+  xcb_connection_t *conn = XtDisplay(pw);
+  xcb_rectangle_t rect;
+  
+  if (IsVert(pw)) {
+    rect.x = off_loc;
+    rect.y = on_loc;
+    rect.width = off_size;
+    rect.height = on_size;
+  } else {
+    rect.x = on_loc;
+    rect.y = off_loc;
+    rect.width = on_size;
+    rect.height = off_size;
+  }
+  
+  xcb_poly_fill_rectangle(conn, XtWindow(pw), gc, 1, &rect);
+  xcb_flush(conn);
 }
 
 /*	Function Name: _DrawInternalBorders
@@ -1178,7 +1192,7 @@ GetGCs(Widget w)
 {
     PanedWidget pw = (PanedWidget) w;
     XtGCMask valuemask;
-    XGCValues values;
+    xcb_create_gc_value_list_t values;
 
 /*
  * Draw pane borders in internal border color.
@@ -1375,8 +1389,8 @@ static void
 ClassInitialize(void)
 {
     XawInitializeWidgetSet();
-    XtAddConverter( XtRString, XtROrientation, XmuCvtStringToOrientation,
-		    (XtConvertArgList)NULL, (Cardinal)0 );
+    XtSetTypeConverter( XtRString, XtROrientation, XawCvtStringToOrientation,
+		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
 
 /* The Geometry Manager only allows changes after Realize if
@@ -1512,15 +1526,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(Widget w, Mask *valueMask, XSetWindowAttributes *attributes)
+Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
     PanedWidget pw = (PanedWidget) w;
     Widget * childP;
 
-    if ((attributes->cursor = (pw)->paned.cursor) != None)
-	*valueMask |= CWCursor;
+    /* FIXME: XCB cursor handling - attributes is now uint32_t array, not XSetWindowAttributes struct */
+    /* if ((attributes->cursor = (pw)->paned.cursor) != None)
+	*valueMask |= CWCursor; */
 
-    (*SuperClass->core_class.realize) (w, valueMask, attributes);
+    (*SuperClass->core_class.realize) (dpy, w, valueMask, attributes);
 
 /*
  * Before we commit the new locations we need to realize all the panes and
@@ -1659,8 +1674,9 @@ Resize(Widget w)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, XEvent * event, Region region)
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
+    (void)event; (void)region; /* unused parameters */
     DrawInternalBorders( (PanedWidget) w);
 }
 
@@ -1672,8 +1688,13 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
     PanedWidget new_pw = (PanedWidget) new;
     Boolean redisplay = FALSE;
 
-    if ( (old_pw->paned.cursor != new_pw->paned.cursor) && XtIsRealized(new))
-        XDefineCursor(XtDisplay(new), XtWindow(new), new_pw->paned.cursor);
+    if ( (old_pw->paned.cursor != new_pw->paned.cursor) && XtIsRealized(new)) {
+        xcb_connection_t *conn = XtDisplay(new);
+        uint32_t values[1];
+        values[0] = new_pw->paned.cursor;
+        xcb_change_window_attributes(conn, XtWindow(new), XCB_CW_CURSOR, values);
+        xcb_flush(conn);
+    }
 
     if ( (old_pw->paned.internal_bp != new_pw->paned.internal_bp) ||
 	 (old_pw->core.background_pixel != new_pw->core.background_pixel) ) {

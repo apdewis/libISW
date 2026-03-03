@@ -33,9 +33,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/StringDefs.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
-#include <X11/Xmu/Misc.h>
-#include <X11/Xmu/StdSel.h>		/* for XmuConvertStandardSelection */
-#include <X11/Xmu/Atoms.h>		/* for XA_COMPOUND_TEXT */
+#include "XawUtils.h"
+#include "XawUtils.h"		/* for XawConvertStandardSelection */
+#include "XawUtils.h"			/* for atom caching functions */
 #include <X11/Xaw3d/TextP.h>
 #ifdef XAW_INTERNATIONALIZATION
 #include <X11/Xaw3d/MultiSrcP.h>
@@ -580,7 +580,7 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
     if ( SrcCvtSel(src, selection, target, type, value, length, format) )
 	return True;
 
-    XmuConvertStandardSelection(w, ctx->text.time, selection,
+    XawConvertStandardSelection(w, ctx->text.time, selection,
 				target, type, (XPointer*)&std_targets,
 				&std_length, format);
 
@@ -730,7 +730,7 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
     return True;
   }
 
-  if (XmuConvertStandardSelection(w, ctx->text.time, selection, target, type,
+  if (XawConvertStandardSelection(w, ctx->text.time, selection, target, type,
 				  (XPointer *)value, length, format))
     return True;
 

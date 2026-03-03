@@ -46,7 +46,6 @@ in this Software without prior written authorization from the X Consortium.
 #define _SimpleMenu_h
 
 #include <X11/Shell.h>
-#include <X11/Xmu/Converters.h>
 
 /****************************************************************
  *

@@ -51,6 +51,7 @@ SOFTWARE.
 
 #include <X11/Xaw3d/StripChart.h>
 #include <X11/Xaw3d/ThreeDP.h>
+#include <xcb/xproto.h>
 
 #define NO_GCS 0
 #define FOREGROUND 1 << 0
@@ -71,7 +72,7 @@ typedef struct {
     int	scale;		/* scale factor */
     int	min_scale;	/* smallest scale factor */
     int	interval;	/* data point interval */
-    XPoint * points ;	/* Poly point for repairing graph lines. */
+    xcb_point_t * points ;	/* Poly point for repairing graph lines. */
     double max_value;	/* Max Value in window */
     double valuedata[2048];/* record of data points */
     XtIntervalId interval_id;

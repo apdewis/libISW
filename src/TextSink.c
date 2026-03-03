@@ -46,6 +46,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/TextSinkP.h>
 #include <X11/Xaw3d/TextP.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 
 /****************************************************************
  *
@@ -70,7 +72,7 @@ static void FindDistance(Widget, XawTextPosition, int, XawTextPosition,
                          int *, XawTextPosition *, int *);
 static void Resolve(Widget, XawTextPosition, int, int, XawTextPosition *);
 static void SetTabs(Widget, int, short *);
-static void GetCursorBounds(Widget, XRectangle *);
+static void GetCursorBounds(Widget, xcb_rectangle_t *);
 
 #define offset(field) XtOffsetOf(TextSinkRec, text_sink.field)
 static XtResource resources[] = {
@@ -304,8 +306,9 @@ ClearToBackground(Widget w, Position x, Position y, Dimension width, Dimension h
  */
 
     if ( (height == 0) || (width == 0) ) return;
-    XClearArea(XtDisplayOfObject(w), XtWindowOfObject(w),
-	       x, y, width, height, False);
+    xcb_connection_t *conn = XtDisplayOfObject(w);
+    xcb_clear_area(conn, 0, XtWindowOfObject(w), x, y, width, height);
+    xcb_flush(conn);
 }
 
 /*	Function Name: FindPosition
@@ -428,7 +431,7 @@ SetTabs(Widget w, int tab_count, short *tabs)
 
 /* ARGSUSED */
 static void
-GetCursorBounds(Widget w, XRectangle * rect)
+GetCursorBounds(Widget w, xcb_rectangle_t * rect)
 {
   rect->x = rect->y = rect->width = rect->height = 0;
 }
@@ -671,7 +674,7 @@ XawTextSinkSetTabs(Widget w, int tab_count, int *tabs)
 
 /* ARGSUSED */
 void
-XawTextSinkGetCursorBounds(Widget w, XRectangle *rect)
+XawTextSinkGetCursorBounds(Widget w, xcb_rectangle_t *rect)
 {
   TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
 

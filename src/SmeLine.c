@@ -47,6 +47,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/SimpleMenP.h>
 #include <X11/Xaw3d/SmeLineP.h>
 #include <X11/Xaw3d/Cardinals.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include "XawXcbCompat.h"
 
 #define offset(field) XtOffsetOf(SmeLineRec, sme_line.field)
 static XtResource resources[] = {
@@ -63,7 +66,7 @@ static XtResource resources[] = {
  * Function definitions.
  */
 
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void DestroyGC(Widget);
 static void CreateGC(Widget);
@@ -161,24 +164,34 @@ static void
 CreateGC(Widget w)
 {
     SmeLineObject entry = (SmeLineObject) w;
-    XGCValues values;
-    XtGCMask mask = GCForeground | GCGraphicsExposures | GCLineWidth ;
+    xcb_connection_t *conn = XtDisplayOfObject(w);
+    xcb_create_gc_value_list_t values;
+    uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_LINE_WIDTH;
 
     values.foreground = entry->sme_line.foreground;
-    values.graphics_exposures = FALSE;
+    values.graphics_exposures = 0;
     values.line_width = entry->sme_line.line_width;
 
     if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
 	values.stipple = entry->sme_line.stipple;
-	values.fill_style = FillStippled;
-	mask |= GCStipple | GCFillStyle;
+	values.fill_style = XCB_FILL_STYLE_STIPPLED;
+	mask |= XCB_GC_STIPPLE | XCB_GC_FILL_STYLE;
 
-	entry->sme_line.gc = XCreateGC(XtDisplayOfObject(w),
-				      RootWindowOfScreen(XtScreenOfObject(w)),
-				      mask, &values);
+	entry->sme_line.gc = xcb_generate_id(conn);
+	xcb_create_gc_aux(conn, entry->sme_line.gc,
+			  RootWindowOfScreen(XtScreenOfObject(w)),
+			  mask, &values);
+	xcb_flush(conn);
     }
-    else
-	entry->sme_line.gc = XtGetGC(w, mask, &values);
+    else {
+	/* For shared GC, still use XtGetGC with compatibility wrapper */
+	XGCValues xvalues;
+	XtGCMask xmask = GCForeground | GCGraphicsExposures | GCLineWidth;
+	xvalues.foreground = entry->sme_line.foreground;
+	xvalues.graphics_exposures = FALSE;
+	xvalues.line_width = entry->sme_line.line_width;
+	entry->sme_line.gc = XtGetGC(w, xmask, &xvalues);
+    }
 }
 
 /*	Function Name: DestroyGC
@@ -191,9 +204,12 @@ static void
 DestroyGC(Widget w)
 {
     SmeLineObject entry = (SmeLineObject) w;
+    xcb_connection_t *conn = XtDisplayOfObject(w);
 
-    if (entry->sme_line.stipple != XtUnspecifiedPixmap)
-	XFreeGC(XtDisplayOfObject(w), entry->sme_line.gc);
+    if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
+	xcb_free_gc(conn, entry->sme_line.gc);
+	xcb_flush(conn);
+    }
     else
 	XtReleaseGC(w, entry->sme_line.gc);
 }
@@ -207,7 +223,7 @@ DestroyGC(Widget w)
 
 /*ARGSUSED*/
 static void
-Redisplay(Widget w, XEvent *event, Region region)
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     SmeLineObject entry = (SmeLineObject) w;
     SimpleMenuWidget smw = (SimpleMenuWidget) XtParent (w);
@@ -216,13 +232,19 @@ Redisplay(Widget w, XEvent *event, Region region)
     int y = entry->rectangle.y +
 	    (int)(entry->rectangle.height - entry->sme_line.line_width) / 2;
 
-    if (entry->sme_line.stipple != XtUnspecifiedPixmap)
-	XSetTSOrigin(XtDisplayOfObject(w), entry->sme_line.gc, 0, y);
+    xcb_connection_t *conn = XtDisplayOfObject(w);
+    if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
+ /* XSetTSOrigin needs XCB equivalent - xcb_change_gc with tile/stipple origin */
+ uint32_t values[2] = {0, y};
+ xcb_change_gc(conn, entry->sme_line.gc,
+        XCB_GC_TILE_STIPPLE_ORIGIN_X | XCB_GC_TILE_STIPPLE_ORIGIN_Y, values);
+    }
 
-    XFillRectangle(XtDisplayOfObject(w), XtWindowOfObject(w),
-		   entry->sme_line.gc,
-		   s, y, (unsigned int) entry->rectangle.width - 2 * s,
-		   (unsigned int) entry->sme_line.line_width );
+    xcb_rectangle_t rect = {s, y, (unsigned int) entry->rectangle.width - 2 * s,
+     (unsigned int) entry->sme_line.line_width};
+    xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
+     entry->sme_line.gc, 1, &rect);
+    xcb_flush(conn);
 }
 
 /*      Function Name: SetValues

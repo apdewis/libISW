@@ -28,8 +28,11 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <X11/Xaw3d/Xaw3dP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 #include <X11/Xaw3d/TemplateP.h>
 
 static XtResource resources[] = {
@@ -40,7 +43,7 @@ static XtResource resources[] = {
 #undef offset
 };
 
-static void TemplateAction(/* Widget, XEvent*, String*, Cardinal* */);
+static void TemplateAction(Widget w, XEvent *event, String *params, Cardinal *num_params);
 
 static XtActionsRec actions[] =
 {
@@ -93,3 +96,10 @@ TemplateClassRec templateClassRec = {
 };
 
 WidgetClass templateWidgetClass = (WidgetClass)&templateClassRec;
+
+/* ARGSUSED */
+static void
+TemplateAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    /* Template action - to be filled in by user */
+}

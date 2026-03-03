@@ -49,8 +49,10 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/Cardinals.h>
 #include <X11/Xaw3d/ThreeDP.h>
 
-#include <X11/Xmu/Initer.h>
-#include <X11/Xmu/CharSet.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+
+#include "XawUtils.h"
 
 #define streq(a, b)        ( strcmp((a), (b)) == 0 )
 
@@ -113,8 +115,8 @@ static char defaultTranslations[] =
  * Semi Public function definitions.
  */
 
-static void Redisplay(Widget, XEvent *, Region);
-static void Realize(Widget, XtValueMask *, XSetWindowAttributes *);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
 static void ChangeManaged(Widget);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
@@ -251,7 +253,7 @@ ClassInitialize(void)
   XawInitializeWidgetSet();
   XtAddConverter( XtRString, XtRBackingStore, XmuCvtStringToBackingStore,
 		 (XtConvertArgList)NULL, (Cardinal)0 );
-  XmuAddInitializer( AddPositionAction, NULL);
+  XawAddInitializer( AddPositionAction, NULL);
 }
 
 /*      Function Name: ClassInitialize
@@ -289,7 +291,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
   SimpleMenuWidget smw = (SimpleMenuWidget) new;
 
-  XmuCallInitializers(XtWidgetToApplicationContext(new));
+  XawCallInitializers(XtWidgetToApplicationContext(new));
 
   smw->simple_menu.label = NULL;
   smw->simple_menu.entry_set = NULL;
@@ -343,7 +345,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, XEvent * event, Region region)
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
     SmeObject *entry;
@@ -354,8 +356,11 @@ Redisplay(Widget w, XEvent * event, Region region)
     Boolean can_paint;
     XPoint point[3];
 
-    if (region == NULL)
-	XClearWindow(XtDisplay(w), XtWindow(w));
+    if (region == NULL) {
+ xcb_connection_t *conn = XtDisplay(w);
+ xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+ xcb_flush(conn);
+    }
 
     if (XtIsRealized((Widget)smw))
 	_ShadowSurroundedBox((Widget)smw, tdw,
@@ -395,9 +400,9 @@ Redisplay(Widget w, XEvent * event, Region region)
 		    point[1].y = s + SMW_ARROW_SIZE;
 		    point[2].x = (*entry)->rectangle.width / 2 + SMW_ARROW_SIZE / 2;
 		    point[2].y = s + SMW_ARROW_SIZE;
-		    XFillPolygon(XtDisplay(w), smw->core.window,
-			    tdw->threeD.bot_shadow_GC, point, 3, Convex,
-			    CoordModeOrigin);
+		    xcb_fill_poly(XtDisplay(w), smw->core.window,
+		     tdw->threeD.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
+		     XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
 
 		    new_y -= SMW_ARROW_SIZE;
 		    dy = SMW_ARROW_SIZE;
@@ -421,9 +426,9 @@ Redisplay(Widget w, XEvent * event, Region region)
 		point[1].y = max_y - SMW_ARROW_SIZE;
 		point[2].x = (*entry)->rectangle.width / 2 + SMW_ARROW_SIZE / 2;
 		point[2].y = max_y - SMW_ARROW_SIZE;
-		XFillPolygon(XtDisplay(w), smw->core.window,
-			tdw->threeD.bot_shadow_GC, point, 3, Convex,
-			CoordModeOrigin);
+		xcb_fill_poly(XtDisplay(w), smw->core.window,
+			tdw->threeD.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
+			XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
 
 		smw->simple_menu.didnt_fit = True;
 		(*entry)->rectangle = old_pos;
@@ -466,17 +471,18 @@ Redisplay(Widget w, XEvent * event, Region region)
  */
 
 static void
-Realize(Widget w, XtValueMask * mask, XSetWindowAttributes * attrs)
+Realize(xcb_connection_t *conn, Widget w, XtValueMask * mask, uint32_t * values)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
+    int value_index = 0;
 
-    attrs->cursor = smw->simple_menu.cursor;
+    values[value_index++] = smw->simple_menu.cursor;  /* cursor */
     *mask |= CWCursor;
     if ((smw->simple_menu.backing_store == Always) ||
 	(smw->simple_menu.backing_store == NotUseful) ||
 	(smw->simple_menu.backing_store == WhenMapped) ) {
 	*mask |= CWBackingStore;
-	attrs->backing_store = smw->simple_menu.backing_store;
+	values[value_index++] = smw->simple_menu.backing_store;  /* backing_store */
     }
     else
 	*mask &= ~CWBackingStore;
@@ -487,7 +493,7 @@ Realize(Widget w, XtValueMask * mask, XSetWindowAttributes * attrs)
          smw->core.height = HeightOfScreen(XtScreen(w));
      }
 
-    (*superclass->core_class.realize) (w, mask, attrs);
+    (*superclass->core_class.realize) (conn, w, mask, values);
 }
 
 /*      Function Name: Resize
@@ -917,7 +923,7 @@ void
 XawSimpleMenuAddGlobalActions(XtAppContext app_con)
 {
     XtInitializeWidgetClass(simpleMenuWidgetClass);
-    XmuCallInitializers( app_con );
+    XawCallInitializers( app_con );
 }
 
 
@@ -1275,7 +1281,7 @@ MakeSetValuesRequest(Widget w, Dimension width, Dimension height)
 	    XtSetValues(w, arglist, TWO);
 	}
 	else if (XtIsRealized( (Widget) smw))
-	    Redisplay((Widget) smw, (XEvent *) NULL, (Region) NULL);
+	    Redisplay((Widget) smw, NULL, 0);
     }
     smw->simple_menu.recursive_set_values = FALSE;
 }
@@ -1421,8 +1427,8 @@ GetEventEntry(Widget w, XEvent * event)
     Position x_loc = 0, y_loc = 0;
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
     SmeObject *entry;
-    static XPoint last_pos;
-    XPoint pos;
+    static xcb_point_t last_pos;
+    xcb_point_t pos;
     int s = ((ThreeDWidget)smw->simple_menu.threeD)->threeD.shadow_width;
 
     switch (event->type) {
@@ -1458,7 +1464,7 @@ GetEventEntry(Widget w, XEvent * event)
 		return NULL;
 	    }
 	    smw->simple_menu.current_first += smw->simple_menu.jump_val;
-	    Redisplay(w, (XEvent *)NULL, (Region)NULL);
+	    Redisplay(w, NULL, 0);
 	    last_pos.y = pos.y;
 	    return NULL;
 	} else if (pos.y <= s + SMW_ARROW_SIZE &&
@@ -1469,7 +1475,7 @@ GetEventEntry(Widget w, XEvent * event)
 		return NULL;
 	    }
 	    smw->simple_menu.current_first -= smw->simple_menu.jump_val;
-	    Redisplay(w, (XEvent *)NULL, (Region)NULL);
+	    Redisplay(w, NULL, 0);
 	    last_pos.y = pos.y;
 	    return NULL;
 	}

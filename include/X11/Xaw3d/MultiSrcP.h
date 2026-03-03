@@ -101,6 +101,7 @@ SOFTWARE.
 
 #include <X11/Xaw3d/TextSrcP.h>
 #include <X11/Xaw3d/MultiSrc.h>
+#include <X11/Xaw3d/XawImP.h>  /* For XIC stub typedef */
 
 /************************************************************
  *

@@ -45,13 +45,16 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xos.h>
-#include <X11/Xmu/Drawing.h>
+#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/ThreeDP.h>
 #include <X11/Xaw3d/SimpleMenP.h>
 #include <X11/Xaw3d/SmeBSBP.h>
 #include <X11/Xaw3d/Cardinals.h>
+#include "XawXftCompat.h"
 #include <stdio.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 
 /* needed for abs() */
 #ifndef X_NOT_STDC_ENV
@@ -82,7 +85,7 @@ static XtResource resources[] = {
   {XtNfont,  XtCFont, XtRFontStruct, sizeof(XFontStruct *),
      offset(font), XtRString, XtDefaultFont},
 #ifdef XAW_INTERNATIONALIZATION
-  {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(XFontSet ),
+  {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(XawFontSet *),
      offset(fontset),XtRString, XtDefaultFontSet},
 #endif
   {XtNmenuName, XtCMenuName, XtRString, sizeof(String),
@@ -96,7 +99,7 @@ static XtResource resources[] = {
  * Semi Public function definitions.
  */
 
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Destroy(Widget);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Highlight(Widget);
@@ -184,8 +187,8 @@ static void
 ClassInitialize(void)
 {
     XawInitializeWidgetSet();
-    XtAddConverter( XtRString, XtRJustify, XmuCvtStringToJustify,
-		    (XtConvertArgList)NULL, (Cardinal)0 );
+    XtSetTypeConverter( XtRString, XtRJustify, XawCvtStringToJustify,
+		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
 
 /*      Function Name: Initialize
@@ -249,7 +252,7 @@ Destroy(Widget w)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, XEvent * event, Region region)
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     GC gc;
     SmeBSBObject entry = (SmeBSBObject) w;
@@ -257,14 +260,13 @@ Redisplay(Widget w, XEvent * event, Region region)
     int	font_ascent = 0, font_descent = 0, y_loc;
 #ifdef XAW_INTERNATIONALIZATION
     int	fontset_ascent = 0, fontset_descent = 0;
-    XFontSetExtents *ext = XExtentsOfFontSet(entry->sme_bsb.fontset);
 #endif
 
     entry->sme_bsb.set_values_area_cleared = FALSE;
 #ifdef XAW_INTERNATIONALIZATION
     if ( entry->sme.international == True ) {
-        fontset_ascent = abs(ext->max_ink_extent.y);
-        fontset_descent = ext->max_ink_extent.height - fontset_ascent;
+        fontset_ascent = entry->sme_bsb.fontset->ascent;
+        fontset_descent = entry->sme_bsb.fontset->descent;
     }
     else
 #endif
@@ -275,18 +277,21 @@ Redisplay(Widget w, XEvent * event, Region region)
     y_loc = entry->rectangle.y;
 
     if (XtIsSensitive(w) && XtIsSensitive( XtParent(w) ) ) {
-	if ( w == XawSimpleMenuGetActiveEntry(XtParent(w)) ) {
-	    XFillRectangle(XtDisplayOfObject(w), XtWindowOfObject(w),
-			   entry->sme_bsb.norm_gc, s, y_loc + s,
-			   (unsigned int) entry->rectangle.width - 2 * s,
-			   (unsigned int) entry->rectangle.height - 2 * s);
-	    gc = entry->sme_bsb.rev_gc;
-	}
-	else
-	    gc = entry->sme_bsb.norm_gc;
+ if ( w == XawSimpleMenuGetActiveEntry(XtParent(w)) ) {
+     xcb_connection_t *conn = XtDisplayOfObject(w);
+     xcb_rectangle_t rect = {s, y_loc + s,
+      (unsigned int) entry->rectangle.width - 2 * s,
+      (unsigned int) entry->rectangle.height - 2 * s};
+     xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
+      entry->sme_bsb.norm_gc, 1, &rect);
+     xcb_flush(conn);
+     gc = entry->sme_bsb.rev_gc;
+ }
+ else
+     gc = entry->sme_bsb.norm_gc;
     }
     else
-	gc = entry->sme_bsb.norm_gray_gc;
+ gc = entry->sme_bsb.norm_gray_gc;
 
     if (entry->sme_bsb.label != NULL) {
 	int x_loc = entry->sme_bsb.left_margin;
@@ -298,7 +303,7 @@ Redisplay(Widget w, XEvent * event, Region region)
 	    case XtJustifyCenter:
 #ifdef XAW_INTERNATIONALIZATION
 		if ( entry->sme.international == True )
-		    t_width = XmbTextEscapement(entry->sme_bsb.fontset,label,len);
+		    t_width = XawTextWidth(entry->sme_bsb.fontset,label,len);
 		else
 #endif
 		    t_width = XTextWidth(entry->sme_bsb.font, label, len);
@@ -311,7 +316,7 @@ Redisplay(Widget w, XEvent * event, Region region)
 	    case XtJustifyRight:
 #ifdef XAW_INTERNATIONALIZATION
 		if ( entry->sme.international == True )
-		    t_width = XmbTextEscapement(entry->sme_bsb.fontset,label,len);
+		    t_width = XawTextWidth(entry->sme_bsb.fontset,label,len);
 		else
 #endif
 		    t_width = XTextWidth(entry->sme_bsb.font, label, len);
@@ -331,7 +336,7 @@ Redisplay(Widget w, XEvent * event, Region region)
             y_loc += ((int)entry->rectangle.height -
 		  (fontset_ascent + fontset_descent)) / 2 + fontset_ascent;
 
-            XmbDrawString(XtDisplayOfObject(w), XtWindowOfObject(w),
+            XawDrawString(XtDisplayOfObject(w), XtWindowOfObject(w),
                 entry->sme_bsb.fontset, gc, x_loc + s, y_loc, label, len);
         }
         else
@@ -350,10 +355,15 @@ Redisplay(Widget w, XEvent * event, Region region)
 	    int ul_wid;
 
 	    if (ul != 0)
-		ul_x1_loc += XTextWidth(entry->sme_bsb.font, label, ul);
+	 ul_x1_loc += XTextWidth(entry->sme_bsb.font, label, ul);
 	    ul_wid = XTextWidth(entry->sme_bsb.font, &label[ul], 1) - 2;
-	    XDrawLine(XtDisplayOfObject(w), XtWindowOfObject(w), gc,
-		      ul_x1_loc, y_loc + 1, ul_x1_loc + ul_wid, y_loc + 1);
+	    xcb_connection_t *conn = XtDisplayOfObject(w);
+	    xcb_point_t points[2] = {
+	 {ul_x1_loc, y_loc + 1},
+	 {ul_x1_loc + ul_wid, y_loc + 1}
+	    };
+	    xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, XtWindowOfObject(w), gc, 2, points);
+	    xcb_flush(conn);
 	}
     }
 
@@ -554,15 +564,13 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( entry->sme.international == True ) {
-        XFontSetExtents *ext = XExtentsOfFontSet(entry->sme_bsb.fontset);
-
         if (entry->sme_bsb.label == NULL)
 	    *width = 0;
         else
-	    *width = XmbTextEscapement(entry->sme_bsb.fontset, entry->sme_bsb.label,
+	    *width = XawTextWidth(entry->sme_bsb.fontset, entry->sme_bsb.label,
 			    strlen(entry->sme_bsb.label));
 
-        *height = ext->max_ink_extent.height;
+        *height = entry->sme_bsb.fontset->height;
     }
     else
 #endif
@@ -633,16 +641,18 @@ DrawBitmaps(Widget w, GC gc)
     }
 #endif
 
+    xcb_connection_t *conn = XtDisplayOfObject(w);
     if (entry->sme_bsb.left_depth == 1)
-	XCopyPlane(XtDisplayOfObject(w), pm,
-		XtWindowOfObject(w), gc, 0, 0,
-		entry->sme_bsb.left_bitmap_width,
-		entry->sme_bsb.left_bitmap_height, x_loc, y_loc, 1);
+ xcb_copy_plane(conn, pm, XtWindowOfObject(w), gc, 0, 0,
+  x_loc, y_loc,
+  entry->sme_bsb.left_bitmap_width,
+  entry->sme_bsb.left_bitmap_height, 1);
     else
-	XCopyArea (XtDisplayOfObject(w), pm,
-		XtWindowOfObject(w), gc, 0, 0,
-		entry->sme_bsb.left_bitmap_width,
-		entry->sme_bsb.left_bitmap_height, x_loc, y_loc);
+ xcb_copy_area(conn, pm, XtWindowOfObject(w), gc, 0, 0,
+  x_loc, y_loc,
+  entry->sme_bsb.left_bitmap_width,
+  entry->sme_bsb.left_bitmap_height);
+    xcb_flush(conn);
   }
 
 /*
@@ -671,16 +681,18 @@ DrawBitmaps(Widget w, GC gc)
     }
 #endif
 
+    xcb_connection_t *conn = XtDisplayOfObject(w);
     if (entry->sme_bsb.right_depth == 1)
-	XCopyPlane(XtDisplayOfObject(w), pm,
-		XtWindowOfObject(w), gc, 0, 0,
-		entry->sme_bsb.right_bitmap_width,
-		entry->sme_bsb.right_bitmap_height, x_loc, y_loc, 1);
+ xcb_copy_plane(conn, pm, XtWindowOfObject(w), gc, 0, 0,
+  x_loc, y_loc,
+  entry->sme_bsb.right_bitmap_width,
+  entry->sme_bsb.right_bitmap_height, 1);
     else
-	XCopyArea (XtDisplayOfObject(w), pm,
-		XtWindowOfObject(w), gc, 0, 0,
-		entry->sme_bsb.right_bitmap_width,
-		entry->sme_bsb.right_bitmap_height, x_loc, y_loc);
+ xcb_copy_area(conn, pm, XtWindowOfObject(w), gc, 0, 0,
+  x_loc, y_loc,
+  entry->sme_bsb.right_bitmap_width,
+  entry->sme_bsb.right_bitmap_height);
+    xcb_flush(conn);
   }
 }
 
@@ -793,10 +805,10 @@ CreateGCs(Widget w)
         entry->sme_bsb.norm_gc = XtGetGC(w, mask, &values);
 
     values.fill_style = FillTiled;
-    values.tile   = XmuCreateStippledPixmap(XtScreenOfObject(w),
-					    entry->sme_bsb.foreground,
-					    XtParent(w)->core.background_pixel,
-					    XtParent(w)->core.depth);
+    values.tile   = XawCreateStippledPixmap(XtScreenOfObject(w),
+    	    entry->sme_bsb.foreground,
+    	    XtParent(w)->core.background_pixel,
+    	    XtParent(w)->core.depth);
     values.graphics_exposures = FALSE;
     mask |= GCTile | GCFillStyle;
 #ifdef XAW_INTERNATIONALIZATION
@@ -851,12 +863,15 @@ FlipColors(Widget w)
     }
 
     if (entry->sme_threeD.shadow_width > 0) {
-	(*oclass->sme_threeD_class.shadowdraw) (w);
-    } else
-		XFillRectangle(XtDisplayOfObject(w), XtWindowOfObject(w),
-		   entry->sme_bsb.invert_gc,
-		   s, (int) entry->rectangle.y,
-		   (unsigned int) entry->rectangle.width - 2 * s,
-		   (unsigned int) entry->rectangle.height);
+ (*oclass->sme_threeD_class.shadowdraw) (w);
+    } else {
+ xcb_connection_t *conn = XtDisplayOfObject(w);
+ xcb_rectangle_t rect = {s, (int) entry->rectangle.y,
+     (unsigned int) entry->rectangle.width - 2 * s,
+     (unsigned int) entry->rectangle.height};
+ xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
+     entry->sme_bsb.invert_gc, 1, &rect);
+ xcb_flush(conn);
+    }
 }
 

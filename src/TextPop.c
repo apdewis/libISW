@@ -59,7 +59,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/Command.h>
 #include <X11/Xaw3d/Form.h>
 #include <X11/Xaw3d/Toggle.h>
-#include <X11/Xmu/CharSet.h>
+#include "XawUtils.h"
 #ifdef XAW_INTERNATIONALIZATION
 #include "XawI18n.h"
 #endif
@@ -1301,7 +1301,7 @@ InParams(String str, String *p, Cardinal n)
 {
     int i;
     for (i=0; i < n; p++, i++)
-	if (! XmuCompareISOLatin1(*p, str)) return True;
+	if (! XawCompareISOLatin1(*p, str)) return True;
     return False;
 }
 

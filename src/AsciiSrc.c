@@ -46,8 +46,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xfuncs.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/AsciiSrcP.h>
-#include <X11/Xmu/Misc.h>
-#include <X11/Xmu/CharSet.h>
+#include "XawUtils.h"
+#include "XawUtils.h"
+#include "XawUtils.h"
 #ifdef XAW_INTERNATIONALIZATION
 #include <X11/Xaw3d/MultiSrcP.h>
 #endif
@@ -375,7 +376,7 @@ ReplaceText (Widget w, XawTextPosition startPos, XawTextPosition endPos,
 	start_piece = FindPiece(src, startPos, &start_first);
       }
 
-      fill = Min((int)(src->ascii_src.piece_size - start_piece->used), length);
+      fill = XawMin((int)(src->ascii_src.piece_size - start_piece->used), length);
 
       ptr = start_piece->text + (startPos - start_first);
       MyStrncpy(ptr + fill, ptr,
@@ -1091,7 +1092,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
 
   if (src->ascii_src.use_string_in_place) {
     piece = AllocNewPiece(src, piece);
-    piece->used = Min(src->ascii_src.length, src->ascii_src.piece_size);
+    piece->used = XawMin(src->ascii_src.length, src->ascii_src.piece_size);
     piece->text = src->ascii_src.string;
     return;
   }
@@ -1104,7 +1105,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
 
     piece->text = XtMalloc((unsigned)src->ascii_src.piece_size
 			   * sizeof(unsigned char));
-    piece->used = Min(left, src->ascii_src.piece_size);
+    piece->used = XawMin(left, src->ascii_src.piece_size);
     if (piece->used != 0)
       strncpy(piece->text, ptr, piece->used);
 
@@ -1276,7 +1277,7 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
   }
 
   if (strlen ((char*)fromVal->addr) < sizeof lowerName) {
-    XmuCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
+    XawCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if (q == XtQEstring)     type = XawAsciiString;

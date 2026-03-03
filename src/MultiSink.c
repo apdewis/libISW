@@ -81,9 +81,12 @@ SOFTWARE.
 #include <X11/Xaw3d/MultiSrcP.h>
 #include <X11/Xaw3d/TextP.h>
 #include "XawI18n.h"
+#include "XawXftCompat.h"  /* Phase 3.5: XFontSet → XawFontSet */
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 
 #ifdef GETLASTPOS
 #undef GETLASTPOS		/* We will use our own GETLASTPOS. */
@@ -111,7 +114,7 @@ static void GetCursorBounds(Widget, XRectangle *);
 #define offset(field) XtOffsetOf(MultiSinkRec, multi_sink.field)
 
 static XtResource resources[] = {
-    {XtNfontSet, XtCFontSet, XtRFontSet, sizeof (XFontSet),
+    {XtNfontSet, XtCFontSet, XtRFontSet, sizeof (XawFontSet*),  /* Phase 3.5 */
 	offset(fontset), XtRString, XtDefaultFontSet},
     {XtNecho, XtCOutput, XtRBoolean, sizeof(Boolean),
 	offset(echo), XtRImmediate, (XtPointer) True},
@@ -185,7 +188,6 @@ CharWidth (
 {
     int    i, width;
     MultiSinkObject sink = (MultiSinkObject) w;
-    XFontSet fontset = sink->multi_sink.fontset;
     Position *tab;
 
     if ( c == _Xaw_atowc(XawLF) ) return(0);
@@ -207,13 +209,17 @@ CharWidth (
 	return 0;
     }
 
-    if (XwcTextEscapement (fontset, &c, 1) == 0) {
+    /* Phase 3.5: WC→UTF8 conversion for width measurement */
+    int utf8_len;
+    char *utf8_text = XawWcToUtf8(&c, 1, &utf8_len);
+    if (utf8_text && XawTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len) == 0) {
 	if (sink->multi_sink.display_nonprinting)
 	    c = _Xaw_atowc('@');
 	else {
 	    c = _Xaw_atowc(XawSP);
 	}
     }
+    if (utf8_text) free(utf8_text);
 
     /*
      * if more efficiency(suppose one column is one ASCII char)
@@ -226,7 +232,13 @@ CharWidth (
      * Li Yuhong.
      */
 
-    width = XwcTextEscapement(fontset, &c, 1);
+    /* Phase 3.5: WC→UTF8 conversion for width calculation */
+    utf8_text = XawWcToUtf8(&c, 1, &utf8_len);
+    width = 0;
+    if (utf8_text) {
+        width = XawTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
+        free(utf8_text);
+    }
 
     return width;
 }
@@ -249,26 +261,38 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
     MultiSinkObject sink = (MultiSinkObject) w;
     TextWidget ctx = (TextWidget) XtParent(w);
 
-    XFontSet fontset = sink->multi_sink.fontset;
     Position max_x;
-    Dimension width = XwcTextEscapement(fontset, buf, len);
-    XFontSetExtents *ext = XExtentsOfFontSet(fontset);
+    Dimension width;
+    
+    /* Phase 3.5: WC→UTF8 conversion for rendering */
+    int utf8_len;
+    char *utf8_text = XawWcToUtf8(buf, len, &utf8_len);
+    if (!utf8_text) return 0;
+    
+    width = XawTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
     max_x = (Position) ctx->core.width;
 
-    if ( ((int) width) <= -x)	           /* Don't draw if we can't see it. */
+    if ( ((int) width) <= -x) {	           /* Don't draw if we can't see it. */
+      free(utf8_text);
       return(width);
+    }
 
-    XwcDrawImageString(XtDisplay(ctx), XtWindow(ctx), fontset, gc,
-                     (int) x, (int) y, buf, len);
+    XawDrawImageString(XtDisplay(ctx), XtWindow(ctx), sink->multi_sink.fontset, gc,
+                     (int) x, (int) y, utf8_text, utf8_len);
+    free(utf8_text);
+    
     if ( (((Position) width + x) > max_x) && (ctx->text.margin.right != 0) ) {
-	x = ctx->core.width - ctx->text.margin.right;
-	width = ctx->text.margin.right;
-	XFillRectangle(XtDisplay((Widget) ctx), XtWindow( (Widget) ctx),
-		       sink->multi_sink.normgc, (int) x,
-                       (int) y - abs(ext->max_logical_extent.y),
+ x = ctx->core.width - ctx->text.margin.right;
+ width = ctx->text.margin.right;
+ xcb_connection_t *conn = XtDisplay((Widget) ctx);
+ xcb_rectangle_t rect = {(int) x,
+                       (int) y - sink->multi_sink.fontset->ascent,
                        (unsigned int) width,
-                       (unsigned int) ext->max_logical_extent.height);
-	return(0);
+                       (unsigned int) sink->multi_sink.fontset->height};
+ xcb_poly_fill_rectangle(conn, XtWindow((Widget) ctx),
+         sink->multi_sink.normgc, 1, &rect);
+ xcb_flush(conn);
+ return(0);
     }
     return(width);
 }
@@ -286,7 +310,7 @@ DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
     MultiSinkObject sink = (MultiSinkObject) w;
     Widget source = XawTextGetSource(XtParent(w));
     wchar_t buf[BUFSIZ];
-    XFontSetExtents *ext = XExtentsOfFontSet(sink->multi_sink.fontset);
+    /* Phase 3.5: Use XawFontSet fields directly */
 
     int j, k;
     XawTextBlock blk;
@@ -295,7 +319,7 @@ DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
 
     if (!sink->multi_sink.echo) return;
 
-    y += abs(ext->max_logical_extent.y);
+    y += sink->multi_sink.fontset->ascent;
     for ( j = 0 ; pos1 < pos2 ; ) {
 	pos1 = XawTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
 	for (k = 0; k < blk.length; k++) {
@@ -315,20 +339,29 @@ DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
 		  return;
 
 	        x += temp;
-                width = CharWidth(w, x, _Xaw_atowc(XawTAB));
-		XFillRectangle(XtDisplayOfObject(w), XtWindowOfObject(w),
-			       invgc, (int) x,
-                               (int) y - abs(ext->max_logical_extent.y),
-                               (unsigned int)width,
-                               (unsigned int)ext->max_logical_extent.height);
-                x += width;
+	               width = CharWidth(w, x, _Xaw_atowc(XawTAB));
+	 xcb_connection_t *conn = XtDisplayOfObject(w);
+	 xcb_rectangle_t rect = {(int) x,
+	                              (int) y - sink->multi_sink.fontset->ascent,
+	                              (unsigned int)width,
+	                              (unsigned int)sink->multi_sink.fontset->height};
+	 xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
+	         invgc, 1, &rect);
+	 xcb_flush(conn);
+	               x += width;
                 j = -1;
             }
-            else if (XwcTextEscapement (sink->multi_sink.fontset, &buf[j], 1) == 0) {
-                if (sink->multi_sink.display_nonprinting)
-                    buf[j] = _Xaw_atowc('@');
-                else
-                    buf[j] = _Xaw_atowc(' ');
+            else {
+                /* Phase 3.5: WC→UTF8 check for zero-width chars */
+                int utf8_len;
+                char *utf8_text = XawWcToUtf8(&buf[j], 1, &utf8_len);
+                if (utf8_text && XawTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len) == 0) {
+                    if (sink->multi_sink.display_nonprinting)
+                        buf[j] = _Xaw_atowc('@');
+                    else
+                        buf[j] = _Xaw_atowc(' ');
+                }
+                if (utf8_text) free(utf8_text);
             }
 	    j++;
 	}
@@ -381,12 +414,15 @@ InsertCursor (Widget w, Position x, Position y, XawTextInsertState state)
     sink->multi_sink.cursor_y = y;
 
     GetCursorBounds(w, &rect);
-    if (state != sink->multi_sink.laststate && XtIsRealized(text_widget))
-        XCopyPlane(XtDisplay(text_widget),
-		   sink->multi_sink.insertCursorOn,
-		   XtWindow(text_widget), sink->multi_sink.xorgc,
-		   0, 0, (unsigned int) rect.width, (unsigned int) rect.height,
-		   (int) rect.x, (int) rect.y, 1);
+    if (state != sink->multi_sink.laststate && XtIsRealized(text_widget)) {
+        xcb_connection_t *conn = XtDisplay(text_widget);
+        xcb_copy_plane(conn,
+     sink->multi_sink.insertCursorOn,
+     XtWindow(text_widget), sink->multi_sink.xorgc,
+     0, 0, (int) rect.x, (int) rect.y,
+     (unsigned int) rect.width, (unsigned int) rect.height, 1);
+        xcb_flush(conn);
+    }
     sink->multi_sink.laststate = state;
 }
 
@@ -403,7 +439,6 @@ FindDistance (Widget w, XawTextPosition fromPos, int fromx, XawTextPosition toPo
 
     XawTextPosition index, lastPos;
     wchar_t c;
-    XFontSetExtents *ext = XExtentsOfFontSet(sink->multi_sink.fontset);
     XawTextBlock blk;
 
     /* we may not need this */
@@ -421,7 +456,7 @@ FindDistance (Widget w, XawTextPosition fromPos, int fromx, XawTextPosition toPo
 	}
     }
     *resPos = index;
-    *resHeight = ext->max_logical_extent.height;
+    *resHeight = sink->multi_sink.fontset->height;  /* Phase 3.5 */
 }
 
 
@@ -437,7 +472,6 @@ FindPosition(Widget w, XawTextPosition fromPos, int fromx, int width,
     int     lastWidth = 0, whiteSpaceWidth = 0;
     Boolean whiteSpaceSeen;
     wchar_t c;
-    XFontSetExtents *ext = XExtentsOfFontSet(sink->multi_sink.fontset);
     XawTextBlock blk;
 
     lastPos = GETLASTPOS;
@@ -474,7 +508,7 @@ FindPosition(Widget w, XawTextPosition fromPos, int fromx, int width,
     }
     if (index == lastPos && c != _Xaw_atowc(XawLF)) index = lastPos + 1;
     *resPos = index;
-    *resHeight = ext->max_logical_extent.height;
+    *resHeight = sink->multi_sink.fontset->height;  /* Phase 3.5 */
 }
 
 static void
@@ -615,9 +649,9 @@ MaxLines(Widget w, Dimension height)
 {
   MultiSinkObject sink = (MultiSinkObject) w;
   int font_height;
-  XFontSetExtents *ext = XExtentsOfFontSet(sink->multi_sink.fontset);
 
-  font_height = ext->max_logical_extent.height;
+  /* Phase 3.5: Use XawFontSet fields directly */
+  font_height = sink->multi_sink.fontset->height;
   return( ((int) height) / font_height );
 }
 
@@ -636,9 +670,9 @@ MaxHeight(
     int lines )
 {
   MultiSinkObject sink = (MultiSinkObject) w;
-  XFontSetExtents *ext = XExtentsOfFontSet(sink->multi_sink.fontset);
 
-  return(lines * ext->max_logical_extent.height);
+  /* Phase 3.5: Use XawFontSet fields directly */
+  return(lines * sink->multi_sink.fontset->height);
 }
 
 /*	Function Name: SetTabs
@@ -718,8 +752,8 @@ _XawMultiSinkPosToXY(
     Position *y )
 {
     MultiSinkObject sink = (MultiSinkObject) ((TextWidget)w)->text.sink;
-    XFontSetExtents *ext = XExtentsOfFontSet( sink->multi_sink.fontset );
 
+    /* Phase 3.5: Use XawFontSet fields directly */
     _XawTextPosToXY( w, pos, x, y );
-    *y += abs( ext->max_logical_extent.y );
+    *y += sink->multi_sink.fontset->ascent;
 }

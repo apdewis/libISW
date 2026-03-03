@@ -87,7 +87,7 @@ SOFTWARE.
  ----		     -----		-------		-------------
  echo                Output             Boolean         True
  displayNonprinting  Output             Boolean         True
- fontSet             FontSet            XFontSet        XtDefaultFontSet
+ fontSet             FontSet            XawFontSet*     XtDefaultFontSet
 
 */
 

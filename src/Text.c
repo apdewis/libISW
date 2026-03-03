@@ -61,15 +61,17 @@ SOFTWARE.
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <X11/Xmu/Atoms.h>
-#include <X11/Xmu/CharSet.h>
-#include <X11/Xmu/Converters.h>
-#include <X11/Xmu/StdSel.h>
-#include <X11/Xmu/Misc.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include "XawUtils.h"
+#include "XawUtils.h"
+#include "XawUtils.h"
+#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/Cardinals.h>
 #include <X11/Xaw3d/Scrollbar.h>
 #include <X11/Xaw3d/TextP.h>
+#include "XawUtils.h"
 #ifdef XAW_INTERNATIONALIZATION
 #include <X11/Xaw3d/MultiSinkP.h>
 #include <X11/Xaw3d/XawImP.h>
@@ -235,7 +237,7 @@ CvtStringToScrollMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XmuCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
+    XawCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if      (q == QScrollNever)          scrollMode = XawtextScrollNever;
@@ -273,7 +275,7 @@ CvtStringToWrapMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XmuCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
+    XawCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if      (q == QWrapNever)     wrapMode = XawtextWrapNever;
@@ -312,7 +314,7 @@ CvtStringToResizeMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XmuCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
+    XawCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if      (q == QResizeNever)          resizeMode = XawtextResizeNever;
@@ -737,8 +739,8 @@ _XawTextNeedsUpdating(TextWidget ctx, XawTextPosition left, XawTextPosition righ
   if (left < right) {
     for (i = 0; i < ctx->text.numranges; i++) {
       if (left <= ctx->text.updateTo[i] && right >= ctx->text.updateFrom[i]) {
-	ctx->text.updateFrom[i] = Min(left, ctx->text.updateFrom[i]);
-	ctx->text.updateTo[i] = Max(right, ctx->text.updateTo[i]);
+	ctx->text.updateFrom[i] = XawMin(left, ctx->text.updateFrom[i]);
+	ctx->text.updateTo[i] = XawMax(right, ctx->text.updateTo[i]);
 	return;
       }
     }
@@ -815,7 +817,13 @@ _XawTextGetSTRING(TextWidget ctx, XawTextPosition left, XawTextPosition right)
      n = wcslen(ws);
      for (j = 0, i = 0; j < n; j++) {
          wc = ws[j];
-         if (XwcTextEscapement (sink->multi_sink.fontset, &wc, 1) ||
+         /* Phase 3.5: WC→UTF8 conversion for width check */
+         int utf8_len;
+         char *utf8_text = XawWcToUtf8(&wc, 1, &utf8_len);
+         int has_width = utf8_text && XawTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len) != 0;
+         if (utf8_text) free(utf8_text);
+         
+         if (has_width ||
             (wc == _Xaw_atowc(XawTAB)) || (wc == _Xaw_atowc(XawLF)) || (wc == _Xaw_atowc(XawESC)))
             ws[i++] = wc;
      }
@@ -981,7 +989,7 @@ _BuildLineTable(TextWidget ctx, XawTextPosition position,
        (ctx->text.wrap == XawtextWrapNever) )
     width = BIGNUM;
   else
-    width = Max(0, ((int)ctx->core.width - (int)HMargins(ctx)));
+    width = XawMax(0, ((int)ctx->core.width - (int)HMargins(ctx)));
 
   y = ( (line == 0) ? ctx->text.margin.top : lt->y );
 
@@ -1193,7 +1201,7 @@ _XawTextVScroll(TextWidget ctx, int n)
 
   if (n > 0) {
     if ( IsValidLine(ctx, n) )
-      top = Min(lt->info[n].position, ctx->text.lastPos);
+      top = XawMin(lt->info[n].position, ctx->text.lastPos);
     else
       top = ctx->text.lastPos;
 
@@ -1202,9 +1210,11 @@ _XawTextVScroll(TextWidget ctx, int n)
     if (top >= ctx->text.lastPos)
       DisplayTextWindow( (Widget) ctx);
     else {
-      XCopyArea(XtDisplay(ctx), XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
-		s, y, (int)ctx->core.width - 2 * s, (int)ctx->core.height - y - s,
-		s, ctx->text.margin.top);
+      xcb_connection_t *conn = XtDisplay(ctx);
+      xcb_copy_area(conn, XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
+  s, y, s, ctx->text.margin.top,
+  (int)ctx->core.width - 2 * s, (int)ctx->core.height - y - s);
+      xcb_flush(conn);
 
       PushCopyQueue(ctx, 0, (int) -y);
       SinkClearToBG(ctx->text.sink,
@@ -1243,9 +1253,11 @@ _XawTextVScroll(TextWidget ctx, int n)
       clear_height = 0;
 
     if ( updateTo == target ) {
-      XCopyArea(XtDisplay(ctx), XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
-		s, ctx->text.margin.top, (int) ctx->core.width - 2 * s,
-		height, s, y);
+      xcb_connection_t *conn = XtDisplay(ctx);
+      xcb_copy_area(conn, XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
+  s, ctx->text.margin.top, s, y,
+  (int) ctx->core.width - 2 * s, height);
+      xcb_flush(conn);
       PushCopyQueue(ctx, 0, (int) y);
       SinkClearToBG(ctx->text.sink, (Position) s, ctx->text.margin.top,
 		   (Dimension) ctx->core.width - 2 * s, (Dimension) clear_height);
@@ -1291,10 +1303,12 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
     rect.y = (short) ctx->text.margin.top;
     rect.height = (unsigned short) ctx->core.height - rect.y - 2 * s;
 
-    XCopyArea(XtDisplay(tw), XtWindow(tw), XtWindow(tw), ctx->text.gc,
-	      pixels + s, (int) rect.y,
-	      (unsigned int) rect.x, (unsigned int) ctx->core.height - 2 * s,
-	      s, (int) rect.y);
+    xcb_connection_t *conn = XtDisplay(tw);
+    xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
+       pixels + s, (int) rect.y,
+       s, (int) rect.y,
+       (unsigned int) rect.x, (unsigned int) ctx->core.height - 2 * s);
+    xcb_flush(conn);
 
     PushCopyQueue(ctx, (int) -pixels, 0);
   }
@@ -1309,11 +1323,13 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
     rect.y = ctx->text.margin.top;
     rect.height = ctx->core.height - rect.y - 2 * s;
 
-    XCopyArea(XtDisplay(tw), XtWindow(tw), XtWindow(tw), ctx->text.gc,
-	      (int) rect.x, (int) rect.y,
-	      (unsigned int) ctx->core.width - rect.width - 2 * s,
-	      (unsigned int) rect.height,
-	      (int) rect.x + rect.width, (int) rect.y);
+    xcb_connection_t *conn = XtDisplay(tw);
+    xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
+       (int) rect.x, (int) rect.y,
+       (int) rect.x + rect.width, (int) rect.y,
+       (unsigned int) ctx->core.width - rect.width - 2 * s,
+       (unsigned int) rect.height);
+    xcb_flush(conn);
 
     PushCopyQueue(ctx, (int) rect.width, 0);
 
@@ -1529,7 +1545,7 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
     if ( SrcCvtSel(src, selection, target, type, value, length, format) )
 	return True;
 
-    XmuConvertStandardSelection(w, ctx->text.time, selection,
+    XawConvertStandardSelection(w, ctx->text.time, selection,
 				target, type, (XPointer*)&std_targets,
 				&std_length, format);
 
@@ -1683,7 +1699,7 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
     return True;
   }
 
-  if (XmuConvertStandardSelection(w, ctx->text.time, selection, target, type,
+  if (XawConvertStandardSelection(w, ctx->text.time, selection, target, type,
 				  (XPointer *)value, length, format))
     return True;
 
@@ -1859,19 +1875,19 @@ _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
   XawTextPosition pos;
 
   if (left < ctx->text.s.left) {
-    pos = Min(right, ctx->text.s.left);
+    pos = XawMin(right, ctx->text.s.left);
     _XawTextNeedsUpdating(ctx, left, pos);
   }
   if (left > ctx->text.s.left) {
-    pos = Min(left, ctx->text.s.right);
+    pos = XawMin(left, ctx->text.s.right);
     _XawTextNeedsUpdating(ctx, ctx->text.s.left, pos);
   }
   if (right < ctx->text.s.right) {
-    pos = Max(right, ctx->text.s.left);
+    pos = XawMax(right, ctx->text.s.left);
     _XawTextNeedsUpdating(ctx, pos, ctx->text.s.right);
   }
   if (right > ctx->text.s.right) {
-    pos = Max(left, ctx->text.s.right);
+    pos = XawMax(left, ctx->text.s.right);
     _XawTextNeedsUpdating(ctx, pos, right);
   }
 
@@ -1979,7 +1995,7 @@ _XawTextReplace (TextWidget ctx, XawTextPosition pos1, XawTextPosition pos2,
   }
 
   updateFrom = SrcScan(src, pos1, XawstWhiteSpace, XawsdLeft, 1, FALSE);
-  updateFrom = Max(updateFrom, ctx->text.lt.top);
+  updateFrom = XawMax(updateFrom, ctx->text.lt.top);
 
   line1 = LineForPosition(ctx, updateFrom);
   if ( (error = SrcReplace(src, pos1, pos2, text)) != 0) {
@@ -2098,8 +2114,8 @@ DisplayText(Widget w, XawTextPosition pos1, XawTextPosition pos2)
 	XawTextSinkDisplayText(ctx->text.sink, x, y, startPos, endPos, TRUE);
       else {
 	DisplayText(w, startPos, ctx->text.s.left);
-	DisplayText(w, Max(startPos, ctx->text.s.left),
-		    Min(endPos, ctx->text.s.right));
+	DisplayText(w, XawMax(startPos, ctx->text.s.left),
+		    XawMin(endPos, ctx->text.s.right));
 	DisplayText(w, ctx->text.s.right, endPos);
       }
     }
@@ -2132,7 +2148,7 @@ DisplayText(Widget w, XawTextPosition pos1, XawTextPosition pos2)
 	    SinkClearToBG(ctx->text.sink,
 			  (Position) ctx->text.margin.left, (Position) y,
 			  w->core.width - ctx->text.margin.left/* - 2 * s*/,
-			  (Dimension) Min(height, ctx->core.height - 2 * s - y));
+			  (Dimension) XawMin(height, ctx->core.height - 2 * s - y));
 	    _ShadowSurroundedBox((Widget)ctx, (ThreeDWidget)ctx->text.threeD,
 				 0, 0, ctx->core.width, ctx->core.height,
 				 ((ThreeDWidget)ctx->text.threeD)->threeD.relief,
@@ -2335,9 +2351,9 @@ ExtendSelection (TextWidget ctx, XawTextPosition pos, Boolean motion)
       left_pos =SrcScan(ctx->text.source, left_pos, stype, XawsdRight,1,FALSE);
 
       if (dir == XawsdLeft)
-	pos = Min(left_pos, right_pos);
+	pos = XawMin(left_pos, right_pos);
       else /* dir == XawsdRight */
-	pos = Max(left_pos, right_pos);
+	pos = XawMax(left_pos, right_pos);
     }
     break;
   case XawselectLine:

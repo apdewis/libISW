@@ -69,15 +69,14 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 #include <X11/ShellP.h>
 #include <X11/VendorP.h>
-#include <X11/Xmu/Converters.h>
-#include <X11/Xmu/Atoms.h>
-#include <X11/Xmu/Editres.h>
+#include "XawUtils.h"
+#include "XawUtils.h"
 #ifdef XAW_INTERNATIONALIZATION
-#include <X11/Xmu/ExtAgent.h>
+/* Editres support - see XawUtils.h */
 #endif
 #ifdef XAW_MULTIPLANE_PIXMAPS
 #include <X11/xpm.h>
-#include <X11/Xmu/Drawing.h>
+/* Drawing utilities - see XawUtils.h */
 #endif
 
 /* The following two headers are for the input method. */
@@ -102,7 +101,7 @@ static XtResource resources[] = {
 static void XawVendorShellClassInitialize(void);
 static void XawVendorShellInitialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean XawVendorShellSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void Realize(Widget, Mask *, XSetWindowAttributes *);
+static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void ChangeManaged(Widget);
 static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 #ifdef XAW_INTERNATIONALIZATION
@@ -385,7 +384,7 @@ _XawCvtStringToPixmap(Display *dpy, XrmValuePtr args, Cardinal *nargs,
     if (XpmReadFileToPixmap(dpy, win, (String) from->addr,
 			    &pixmap, NULL, &attr) != XpmSuccess)
     {
-	if ((pixmap = XmuLocateBitmapFile(*((Screen **) args[0].addr),
+	if ((pixmap = XawLocateBitmapFile(*((Screen **) args[0].addr),
 	      (char *)from->addr, NULL, 0, NULL, NULL, NULL, NULL)) == None)
 	{
 	    XtDisplayStringConversionWarning(dpy, (String) from->addr,
@@ -432,7 +431,7 @@ XawVendorShellClassInitialize(void)
     };
 #endif
 
-    XtAddConverter(XtRString, XtRCursor, XmuCvtStringToCursor,
+    XtSetTypeConverter(XtRString, XtRCursor, XawCvtStringToCursor,
 		   screenConvertArg, XtNumber(screenConvertArg));
 
 #ifdef XAW_MULTIPLANE_PIXMAPS
@@ -494,7 +493,7 @@ XawVendorShellInitialize(Widget req, Widget new, ArgList args, Cardinal *num_arg
 {
     XtAddEventHandler(new, (EventMask) 0, TRUE, _XEditResCheckMessages, NULL);
 #ifdef XAW_INTERNATIONALIZATION
-    XtAddEventHandler(new, (EventMask) 0, TRUE, XmuRegisterExternalAgent, NULL);
+    XtAddEventHandler(new, (EventMask) 0, TRUE, XawRegisterExternalAgent, NULL);
     XtCreateWidget("shellext", xawvendorShellExtWidgetClass,
 		   new, args, *num_args);
 #endif
@@ -508,13 +507,13 @@ XawVendorShellSetValues(Widget old, Widget ref, Widget new, ArgList args, Cardin
 }
 
 static void
-Realize(Widget wid, Mask *vmask, XSetWindowAttributes *attr)
+Realize(xcb_connection_t *dpy, Widget wid, XtValueMask *vmask, uint32_t *attr)
 {
 	WidgetClass super = wmShellWidgetClass;
 
 	/* Make my superclass do all the dirty work */
 
-	(*super->core_class.realize) (wid, vmask, attr);
+	(*super->core_class.realize) (dpy, wid, vmask, attr);
 #ifdef XAW_INTERNATIONALIZATION
 	_XawImRealize(wid);
 #endif

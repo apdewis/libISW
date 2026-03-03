@@ -24,7 +24,7 @@
  * dealings in this Software without prior written authorization from the
  * XFree86 Project.
  *
- * Author: Paulo César Pereira de Andrade
+ * Author: Paulo Cï¿½sar Pereira de Andrade
  */
 
 /*
@@ -39,9 +39,10 @@
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xos.h>
-#include <X11/Xmu/Converters.h>
+#include "XawUtils.h"
 #include <X11/Xaw3d/TipP.h>
 #include <X11/Xaw3d/XawInit.h>
+#include "XawXftCompat.h"
 
 #include <stdlib.h>
 
@@ -110,7 +111,7 @@ static XtResource resources[] = {
   {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct*),
     offset(font), XtRString, XtDefaultFont},
 #ifdef XAW_INTERNATIONALIZATION
-  {XtNfontSet, XtCFontSet, XtRFontSet, sizeof(XFontSet),
+  {XtNfontSet, XtCFontSet, XtRFontSet, sizeof(XawFontSet*),
     offset(fontset), XtRString, XtDefaultFontSet},
 #endif
   {XtNlabel, XtCLabel, XtRString, sizeof(String),
@@ -333,20 +334,19 @@ XawTipExpose(Widget w, XEvent *event, Region region)
 #ifdef XAW_INTERNATIONALIZATION
     if (tip->tip.international == True) {
 	Position ksy = tip->tip.internal_height;
-	XFontSetExtents *ext = XExtentsOfFontSet(tip->tip.fontset);
 
-	ksy += abs(ext->max_ink_extent.y);
+	ksy += tip->tip.fontset->ascent;
 
 	while ((nl = index(label, '\n')) != NULL) {
-	    XmbDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset,
+	    XawDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset,
 			  gc, tip->tip.internal_width, ksy, label,
 			  (int)(nl - label));
-	    ksy += ext->max_ink_extent.height;
+	    ksy += tip->tip.fontset->height;
 	    label = nl + 1;
 	}
 	len = strlen(label);
 	if (len)
-	    XmbDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset, gc,
+	    XawDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset, gc,
 			  tip->tip.internal_width, ksy, label, len);
     }
     else
@@ -413,14 +413,13 @@ TipLayout(XawTipInfo *info)
 
 #ifdef XAW_INTERNATIONALIZATION
     if (info->tip->tip.international == True) {
-	XFontSet fset = info->tip->tip.fontset;
-	XFontSetExtents *ext = XExtentsOfFontSet(fset);
+	XawFontSet *fset = info->tip->tip.fontset;
 
-	height = ext->max_ink_extent.height;
+	height = fset->height;
 	if ((nl = index(label, '\n')) != NULL) {
 	    /*CONSTCOND*/
 	    while (True) {
-		int w = XmbTextEscapement(fset, label, (int)(nl - label));
+		int w = XawTextWidth(fset, label, (int)(nl - label));
 
 		if (w > width)
 		    width = w;
@@ -428,13 +427,13 @@ TipLayout(XawTipInfo *info)
 		    break;
 		label = nl + 1;
 		if (*label)
-		    height += ext->max_ink_extent.height;
+		    height += fset->height;
 		if ((nl = index(label, '\n')) == NULL)
 		    nl = index(label, '\0');
 	    }
 	}
 	else
-	    width = XmbTextEscapement(fset, label, strlen(label));
+	    width = XawTextWidth(fset, label, strlen(label));
     }
     else
 #endif

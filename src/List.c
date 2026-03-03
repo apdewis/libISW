@@ -43,9 +43,13 @@ in this Software without prior written authorization from the X Consortium.
 #include <ctype.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xmu/Drawing.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include <xcb/xfixes.h>
+#include "XawUtils.h"
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/ListP.h>
+#include "XawXftCompat.h"
 
 /* These added so widget knows whether its height, width are user selected.
 I also added the freedoms member of the list widget part. */
@@ -84,7 +88,7 @@ static XtResource resources[] = {
     {XtNfont,  XtCFont, XtRFontStruct, sizeof(XFontStruct *),
 	offset(list.font),XtRString, XtDefaultFont},
 #ifdef XAW_INTERNATIONALIZATION
-    {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(XFontSet ),
+    {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(XawFontSet *),
 	offset(list.fontset),XtRString, XtDefaultFontSet},
 #endif
     {XtNlist, XtCList, XtRPointer, sizeof(char **),
@@ -116,7 +120,7 @@ static XtResource resources[] = {
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void ChangeSize(Widget, Dimension, Dimension);
 static void Resize(Widget);
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Destroy(Widget);
 static Boolean Layout(Widget, Boolean, Boolean, Dimension *, Dimension *);
 static XtGeometryResult PreferredGeom(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
@@ -186,7 +190,7 @@ WidgetClass listWidgetClass = (WidgetClass)&listClassRec;
 static void
 GetGCs(Widget w)
 {
-    XGCValues	values;
+    xcb_create_gc_value_list_t	values;
     ListWidget lw = (ListWidget) w;
 
     values.foreground	= lw->list.foreground;
@@ -195,37 +199,37 @@ GetGCs(Widget w)
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         lw->list.normgc = XtAllocateGC( w, 0, (unsigned) GCForeground,
-				 &values, GCFont, 0 );
+				 (XGCValues*)&values, GCFont, 0 );
     else
 #endif
         lw->list.normgc = XtGetGC( w, (unsigned) GCForeground | GCFont,
-				 &values);
+				 (XGCValues*)&values);
 
     values.foreground	= lw->core.background_pixel;
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         lw->list.revgc = XtAllocateGC( w, 0, (unsigned) GCForeground,
-				 &values, GCFont, 0 );
+				 (XGCValues*)&values, GCFont, 0 );
     else
 #endif
         lw->list.revgc = XtGetGC( w, (unsigned) GCForeground | GCFont,
-				 &values);
+				 (XGCValues*)&values);
 
-    values.tile       = XmuCreateStippledPixmap(XtScreen(w),
-						lw->list.foreground,
-						lw->core.background_pixel,
-						lw->core.depth);
-    values.fill_style = FillTiled;
+    values.tile       = XawCreateStippledPixmap(XtScreen(w),
+    		lw->list.foreground,
+    		lw->core.background_pixel,
+    		lw->core.depth);
+    values.fill_style = XCB_FILL_STYLE_TILED;
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         lw->list.graygc = XtAllocateGC( w, 0, (unsigned) GCTile | GCFillStyle,
-			      &values, GCFont, 0 );
+			      (XGCValues*)&values, GCFont, 0 );
     else
 #endif
         lw->list.graygc = XtGetGC( w, (unsigned) GCFont | GCTile | GCFillStyle,
-			      &values);
+			      (XGCValues*)&values);
 }
 
 
@@ -267,7 +271,7 @@ CalculatedValues(Widget w)
         for ( i = 0 ; i < lw->list.nitems; i++)  {
 #ifdef XAW_INTERNATIONALIZATION
             if ( lw->simple.international == True )
-	        len = XmbTextEscapement(lw->list.fontset, lw->list.list[i],
+	        len = XawTextWidth(lw->list.fontset, lw->list.list[i],
 			 			    strlen(lw->list.list[i]));
             else
 #endif
@@ -377,8 +381,7 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
 
 #ifdef XAW_INTERNATIONALIZATION
     if (lw->simple.international == True )
-        lw->list.row_height =
-                     XExtentsOfFontSet(lw->list.fontset)->max_ink_extent.height
+        lw->list.row_height = lw->list.fontset->height
                         + lw->list.row_space;
     else
 #endif
@@ -525,8 +528,10 @@ HighlightBackground(Widget w, int x, int y, GC gc)
         height = height - ( lw->list.internal_height - x );
         y = lw->list.internal_height;
     }
-    XFillRectangle( XtDisplay( w ), XtWindow( w ), gc, x, y,
-		    width, height );
+    xcb_connection_t *conn = XtDisplay(w);
+    xcb_rectangle_t rect = {x, y, width, height};
+    xcb_poly_fill_rectangle(conn, XtWindow(w), gc, 1, &rect);
+    xcb_flush(conn);
 }
 
 
@@ -542,7 +547,7 @@ HighlightBackground(Widget w, int x, int y, GC gc)
 static void
 ClipToShadowInteriorAndLongest(ListWidget lw, GC *gc_p, Dimension x)
 {
-    XRectangle rect;
+    xcb_rectangle_t rect;
 
     rect.x = x;
     rect.y = lw->list.internal_height;
@@ -551,7 +556,9 @@ ClipToShadowInteriorAndLongest(ListWidget lw, GC *gc_p, Dimension x)
     if ( rect.width > lw->list.longest )
         rect.width = lw->list.longest;
 
-    XSetClipRectangles( XtDisplay((Widget)lw),*gc_p,0,0,&rect,1,YXBanded );
+    xcb_connection_t *conn = XtDisplay((Widget)lw);
+    xcb_set_clip_rectangles(conn, XCB_CLIP_ORDERING_YX_BANDED, *gc_p, 0, 0, 1, &rect);
+    xcb_flush(conn);
 }
 
 
@@ -570,9 +577,6 @@ PaintItemName(Widget w, int item)
     GC gc;
     int x, y, str_y;
     ListWidget lw = (ListWidget) w;
-#ifdef XAW_INTERNATIONALIZATION
-    XFontSetExtents *ext  = XExtentsOfFontSet(lw->list.fontset);
-#endif
 
     if (!XtIsRealized(w)) return; /* Just in case... */
 
@@ -591,7 +595,7 @@ PaintItemName(Widget w, int item)
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
-        str_y = y + abs(ext->max_ink_extent.y);
+        str_y = y + lw->list.fontset->ascent;
     else
 #endif
         str_y = y + lw->list.font->max_bounds.ascent;
@@ -638,14 +642,19 @@ PaintItemName(Widget w, int item)
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
-        XmbDrawString( XtDisplay( w ), XtWindow( w ), lw->list.fontset,
+        XawDrawString( XtDisplay( w ), XtWindow( w ), lw->list.fontset,
 		  gc, x, str_y, str, strlen( str ) );
     else
 #endif
-        XDrawString( XtDisplay( w ), XtWindow( w ),
-		  gc, x, str_y, str, strlen( str ) );
+    {
+        xcb_connection_t *conn = XtDisplay( w );
+        xcb_image_text_8(conn, strlen(str), XtWindow(w), gc, x, str_y, str);
+        xcb_flush(conn);
+    }
 
-    XSetClipMask( XtDisplay( w ), gc, None );
+    xcb_connection_t *conn = XtDisplay( w );
+    xcb_set_clip_rectangles(conn, XCB_CLIP_ORDERING_UNSORTED, gc, 0, 0, 0, NULL);
+    xcb_flush(conn);
 }
 
 
@@ -658,19 +667,24 @@ PaintItemName(Widget w, int item)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, XEvent *event, Region junk)
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     int item;			/* an item to work with. */
     int ul_item, lr_item;       /* corners of items we need to paint. */
     ListWidget lw = (ListWidget) w;
+    (void)region;
 
     if (event == NULL) {	/* repaint all. */
         ul_item = 0;
-	lr_item = lw->list.nrows * lw->list.ncols - 1;
-	XClearWindow(XtDisplay(w), XtWindow(w));
+ lr_item = lw->list.nrows * lw->list.ncols - 1;
+ {
+     xcb_connection_t *conn = XtDisplay(w);
+     xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+     xcb_flush(conn);
+ }
     }
     else
-        FindCornerItems(w, event, &ul_item, &lr_item);
+        FindCornerItems(w, (XEvent*)event, &ul_item, &lr_item);
 
     for (item = ul_item; (item <= lr_item && item < lw->list.nitems) ; item++)
       if (ItemInRectangle(w, ul_item, lr_item, item))
@@ -870,8 +884,13 @@ Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
     item_len = strlen(lw->list.list[item]);
 
-    if ( lw->list.paste )	/* if XtNpasteBuffer set then paste it. */
-        XStoreBytes(XtDisplay(w), lw->list.list[item], item_len);
+    if ( lw->list.paste ) {	/* if XtNpasteBuffer set then paste it. */
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_change_property(conn, XCB_PROP_MODE_REPLACE,
+                           XCB_COPY_FROM_PARENT, XCB_ATOM_CUT_BUFFER0,
+                           XCB_ATOM_STRING, 8, item_len, lw->list.list[item]);
+        xcb_flush(conn);
+    }
 
 /*
  * Call Callback function.
@@ -925,9 +944,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     ListWidget rl = (ListWidget) request;
     ListWidget nl = (ListWidget) new;
     Boolean redraw = FALSE;
-#ifdef XAW_INTERNATIONALIZATION
-    XFontSetExtents *ext = XExtentsOfFontSet(nl->list.fontset);
-#endif
 
     /* If the request height/width is different, lock it.  Unless its 0. If */
     /* neither new nor 0, leave it as it was.  Not in R5. */
@@ -949,14 +965,12 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     /* _DONT_ check for fontset here - it's not in GC.*/
 
     if (  (cl->list.foreground       != nl->list.foreground)       ||
-	  (cl->core.background_pixel != nl->core.background_pixel) ||
-	  (cl->list.font             != nl->list.font)                ) {
-	XGCValues values;
-	XGetGCValues(XtDisplay(current), cl->list.graygc, GCTile, &values);
-	XmuReleaseStippledPixmap(XtScreen(current), values.tile);
-	XtReleaseGC(current, cl->list.graygc);
-	XtReleaseGC(current, cl->list.revgc);
-	XtReleaseGC(current, cl->list.normgc);
+   (cl->core.background_pixel != nl->core.background_pixel) ||
+   (cl->list.font             != nl->list.font)                ) {
+ /* XCB: Skip XGetGCValues - tile tracking would need separate mechanism */
+ XtReleaseGC(current, cl->list.graygc);
+ XtReleaseGC(current, cl->list.revgc);
+ XtReleaseGC(current, cl->list.normgc);
         GetGCs(new);
         redraw = TRUE;
     }
@@ -972,7 +986,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 #ifdef XAW_INTERNATIONALIZATION
     else if ( ( cl->list.fontset != nl->list.fontset ) &&
 				( cl->simple.international == True ) )
-        nl->list.row_height = ext->max_ink_extent.height + nl->list.row_space;
+        nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
 
     /* ...If the above two font(set) change checkers above both failed, check
     if row_space was altered.  If one of the above passed, row_height will
@@ -983,7 +997,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if ( cl->list.row_space != nl->list.row_space ) {
 #ifdef XAW_INTERNATIONALIZATION
         if (cl->simple.international == True )
-            nl->list.row_height = ext->max_ink_extent.height + nl->list.row_space;
+            nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
         else
 #endif
             nl->list.row_height = nl->list.font->max_bounds.ascent
@@ -1036,10 +1050,8 @@ static void
 Destroy(Widget w)
 {
     ListWidget lw = (ListWidget) w;
-    XGCValues values;
 
-    XGetGCValues(XtDisplay(w), lw->list.graygc, GCTile, &values);
-    XmuReleaseStippledPixmap(XtScreen(w), values.tile);
+    /* XCB: Skip XGetGCValues - tile tracking would need separate mechanism */
     XtReleaseGC(w, lw->list.graygc);
     XtReleaseGC(w, lw->list.revgc);
     XtReleaseGC(w, lw->list.normgc);
@@ -1099,7 +1111,7 @@ XawListChange(Widget w, char ** list, int nitems, int longest,
 
     lw->list.is_highlighted = lw->list.highlight = NO_HIGHLIGHT;
     if ( XtIsRealized( w ) )
-      Redisplay( w, (XEvent *)NULL, (Region)NULL );
+      Redisplay( w, NULL, 0 );
 }
 
 /*	Function Name: XawListUnhighlight

@@ -103,10 +103,11 @@ SOFTWARE.
 #define XtNcornerRoundPercent "cornerRoundPercent"
 #define XtCCornerRoundPercent "CornerRoundPercent"
 
-#define XawShapeRectangle XmuShapeRectangle
-#define XawShapeOval XmuShapeOval
-#define XawShapeEllipse XmuShapeEllipse
-#define XawShapeRoundedRectangle XmuShapeRoundedRectangle
+/* Shape style constants */
+#define XawShapeRectangle 1
+#define XawShapeOval 2
+#define XawShapeEllipse 3
+#define XawShapeRoundedRectangle 4
 
 extern WidgetClass     commandWidgetClass;
 

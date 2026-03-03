@@ -30,15 +30,16 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>		/* for XtN and XtC defines */
-#include <X11/Xmu/CharSet.h>		/* for XmuCompareISOLatin1() */
+#include "XawUtils.h"		/* for XawCompareISOLatin1() */
 #include <X11/Xaw3d/XawInit.h>		/* for XawInitializeWidgetSet */
 #include <X11/Xaw3d/PannerP.h>		/* us */
 #include <X11/Xos.h>
-#include <X11/Xmu/Misc.h>		/* for Min */
-#include <X11/Xmu/Drawing.h>
-#include <X11/Xmu/StdCmap.h>		/* for XmuDistinguishablePixels() */
+#include "XawUtils.h"		/* for Min */
+#include "XawUtils.h"
 #include <ctype.h>			/* for isascii() etc. */
 #include <stdlib.h>			/* for atof() */
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 
 #if defined(ISC) && __STDC__ && !defined(ISC30)
 extern double atof(char *);
@@ -150,10 +151,10 @@ static XtResource resources[] = {
  * widget class methods used below
  */
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(Widget, XtValueMask *, XSetWindowAttributes *);
+static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Destroy(Widget);
 static void Resize(Widget);
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void SetValuesAlmost(Widget, Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
@@ -214,7 +215,7 @@ static void
 reset_shadow_gc (PannerWidget pw)	/* used when resources change */
 {
     XtGCMask valuemask = GCForeground;
-    XGCValues values;
+    xcb_create_gc_value_list_t values;
     unsigned long   pixels[3];
 
     if (pw->panner.shadow_gc) XtReleaseGC ((Widget) pw, pw->panner.shadow_gc);
@@ -223,23 +224,23 @@ reset_shadow_gc (PannerWidget pw)	/* used when resources change */
     pixels[1] = pw->core.background_pixel;
     pixels[2] = pw->panner.shadow_color;
     if (!pw->panner.stipple_name &&
-	!XmuDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
-				    pixels, 3) &&
-	XmuDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
-				    pixels, 2))
+ !XawDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
+        pixels, 3) &&
+ XawDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
+        pixels, 2))
     {
-	valuemask = GCTile | GCFillStyle;
-	values.fill_style = FillTiled;
-	values.tile = XmuCreateStippledPixmap(XtScreen((Widget)pw),
-					      pw->panner.foreground,
-					      pw->core.background_pixel,
-					      pw->core.depth);
+ valuemask = GCTile | GCFillStyle;
+ values.fill_style = XCB_FILL_STYLE_TILED;
+ values.tile = XawCreateStippledPixmap(XtScreen((Widget)pw),
+    	      pw->panner.foreground,
+    	      pw->core.background_pixel,
+    	      pw->core.depth);
     }
     else
     {
-	if (!pw->panner.line_width &&
-	    !XmuDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
-				       pixels, 2))
+ if (!pw->panner.line_width &&
+     !XawDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
+           pixels, 2))
 	    pw->panner.line_width = 1;
 	valuemask = GCForeground;
 	values.foreground = pw->panner.shadow_color;
@@ -249,20 +250,20 @@ reset_shadow_gc (PannerWidget pw)	/* used when resources change */
 	valuemask |= GCLineWidth;
     }
 
-    pw->panner.shadow_gc = XtGetGC ((Widget) pw, valuemask, &values);
+    pw->panner.shadow_gc = XtGetGC ((Widget) pw, valuemask, (XGCValues*)&values);
 }
 
 static void
 reset_slider_gc (PannerWidget pw)	/* used when resources change */
 {
     XtGCMask valuemask = GCForeground;
-    XGCValues values;
+    xcb_create_gc_value_list_t values;
 
     if (pw->panner.slider_gc) XtReleaseGC ((Widget) pw, pw->panner.slider_gc);
 
     values.foreground = pw->panner.foreground;
 
-    pw->panner.slider_gc = XtGetGC ((Widget) pw, valuemask, &values);
+    pw->panner.slider_gc = XtGetGC ((Widget) pw, valuemask, (XGCValues*)&values);
 }
 
 static void
@@ -272,18 +273,18 @@ reset_xor_gc (PannerWidget pw)		/* used when resources change */
 
     if (pw->panner.rubber_band) {
 	XtGCMask valuemask = (GCForeground | GCFunction);
-	XGCValues values;
+	xcb_create_gc_value_list_t values;
 	Pixel tmp;
 
 	tmp = ((pw->panner.foreground == pw->core.background_pixel) ?
 	       pw->panner.shadow_color : pw->panner.foreground);
 	values.foreground = tmp ^ pw->core.background_pixel;
-	values.function = GXxor;
+	values.function = XCB_GX_XOR;
 	if (pw->panner.line_width > 0) {
 	    valuemask |= GCLineWidth;
 	    values.line_width = pw->panner.line_width;
 	}
-	pw->panner.xor_gc = XtGetGC ((Widget) pw, valuemask, &values);
+	pw->panner.xor_gc = XtGetGC ((Widget) pw, valuemask, (XGCValues*)&values);
     } else {
 	pw->panner.xor_gc = NULL;
     }
@@ -329,15 +330,15 @@ move_shadow (PannerWidget pw)
 	int pad = pw->panner.internal_border;
 
 	if ((int)pw->panner.knob_height > lw && (int)pw->panner.knob_width > lw) {
-	    XRectangle *r = pw->panner.shadow_rects;
-	    r->x = (short) (pw->panner.knob_x + pad + pw->panner.knob_width);
-	    r->y = (short) (pw->panner.knob_y + pad + lw);
+	    xcb_rectangle_t *r = pw->panner.shadow_rects;
+	    r->x = (int16_t) (pw->panner.knob_x + pad + pw->panner.knob_width);
+	    r->y = (int16_t) (pw->panner.knob_y + pad + lw);
 	    r->width = pw->panner.shadow_thickness;
-	    r->height = (unsigned short) (pw->panner.knob_height - lw);
+	    r->height = (uint16_t) (pw->panner.knob_height - lw);
 	    r++;
-	    r->x = (short) (pw->panner.knob_x + pad + lw);
-	    r->y = (short) (pw->panner.knob_y + pad + pw->panner.knob_height);
-	    r->width = (unsigned short) (pw->panner.knob_width - lw +
+	    r->x = (int16_t) (pw->panner.knob_x + pad + lw);
+	    r->y = (int16_t) (pw->panner.knob_y + pad + pw->panner.knob_height);
+	    r->width = (uint16_t) (pw->panner.knob_width - lw +
 					 pw->panner.shadow_thickness);
 	    r->height = pw->panner.shadow_thickness;
 	    pw->panner.shadow_valid = TRUE;
@@ -484,12 +485,15 @@ parse_page_string (char *s, int pagesize, int canvassize, Boolean *relative)
 
 #define DRAW_TMP(pw) \
 { \
-    XDrawRectangle (XtDisplay(pw), XtWindow(pw), \
-		    pw->panner.xor_gc, \
-		    (int) (pw->panner.tmp.x + pw->panner.internal_border), \
-		    (int) (pw->panner.tmp.y + pw->panner.internal_border), \
-		    (unsigned int) (pw->panner.knob_width - 1), \
-		    (unsigned int) (pw->panner.knob_height - 1)); \
+    xcb_connection_t *conn = XtDisplay(pw); \
+    xcb_rectangle_t rect = { \
+        (int) (pw->panner.tmp.x + pw->panner.internal_border), \
+        (int) (pw->panner.tmp.y + pw->panner.internal_border), \
+        (unsigned int) (pw->panner.knob_width - 1), \
+        (unsigned int) (pw->panner.knob_height - 1) \
+    }; \
+    xcb_poly_rectangle(conn, XtWindow(pw), pw->panner.xor_gc, 1, &rect); \
+    xcb_flush(conn); \
     pw->panner.tmp.showing = !pw->panner.tmp.showing; \
 }
 
@@ -499,7 +503,7 @@ parse_page_string (char *s, int pagesize, int canvassize, Boolean *relative)
 }
 
 #define BACKGROUND_STIPPLE(pw) \
-  XmuLocatePixmapFile (pw->core.screen, pw->panner.stipple_name, \
+  XawLocatePixmapFile (pw->core.screen, pw->panner.stipple_name, \
 		       pw->panner.shadow_color, pw->core.background_pixel, \
 		       pw->core.depth, NULL, 0, NULL, NULL, NULL, NULL)
 
@@ -544,7 +548,7 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
 
 
 static void
-Realize (Widget gw, XtValueMask *valuemaskp, XSetWindowAttributes *attr)
+Realize (xcb_connection_t *conn, Widget gw, XtValueMask *valuemaskp, uint32_t *values)
 {
     PannerWidget pw = (PannerWidget) gw;
     Pixmap pm = XtUnspecifiedPixmap;
@@ -554,16 +558,19 @@ Realize (Widget gw, XtValueMask *valuemaskp, XSetWindowAttributes *attr)
 	if (pw->panner.stipple_name) pm = BACKGROUND_STIPPLE (pw);
 
 	if (PIXMAP_OKAY(pm)) {
-	    attr->background_pixmap = pm;
+	    values[0] = pm;  /* background_pixmap */
 	    *valuemaskp |= CWBackPixmap;
 	    *valuemaskp &= ~CWBackPixel;
 	    gotpm = TRUE;
 	}
     }
     (*pannerWidgetClass->core_class.superclass->core_class.realize)
-      (gw, valuemaskp, attr);
+      (conn, gw, valuemaskp, values);
 
-    if (gotpm) XFreePixmap (XtDisplay(gw), pm);
+    if (gotpm) {
+        xcb_free_pixmap(conn, pm);
+        xcb_flush(conn);
+    }
 }
 
 
@@ -587,7 +594,7 @@ Resize (Widget gw)
 
 /* ARGSUSED */
 static void
-Redisplay (Widget gw, XEvent *event, Region region)
+Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     PannerWidget pw = (PannerWidget) gw;
     Display *dpy = XtDisplay(gw);
@@ -598,29 +605,32 @@ Redisplay (Widget gw, XEvent *event, Region region)
     int kx = pw->panner.knob_x + pad, ky = pw->panner.knob_y + pad;
 
     pw->panner.tmp.showing = FALSE;
-    XClearArea (XtDisplay(pw), XtWindow(pw),
-		(int) pw->panner.last_x - ((int) lw) + pad,
-		(int) pw->panner.last_y - ((int) lw) + pad,
-		(unsigned int) (pw->panner.knob_width + extra),
-		(unsigned int) (pw->panner.knob_height + extra),
-		False);
+    {
+        xcb_connection_t *clear_conn = XtDisplay(pw);
+        xcb_clear_area(clear_conn, 0, XtWindow(pw),
+                       (int) pw->panner.last_x - ((int) lw) + pad,
+                       (int) pw->panner.last_y - ((int) lw) + pad,
+                       (unsigned int) (pw->panner.knob_width + extra),
+                       (unsigned int) (pw->panner.knob_height + extra));
+        xcb_flush(clear_conn);
+    }
     pw->panner.last_x = pw->panner.knob_x;
     pw->panner.last_y = pw->panner.knob_y;
 
-    XFillRectangle (dpy, w, pw->panner.slider_gc, kx, ky,
-		    pw->panner.knob_width - 1, pw->panner.knob_height - 1);
+    xcb_connection_t *conn = dpy;
+    xcb_rectangle_t rect = {kx, ky, pw->panner.knob_width - 1, pw->panner.knob_height - 1};
+    xcb_poly_fill_rectangle(conn, w, pw->panner.slider_gc, 1, &rect);
 
     if (lw)
     {
-    	XDrawRectangle (dpy, w, pw->panner.shadow_gc, kx, ky,
-		    	(unsigned int) (pw->panner.knob_width - 1),
-		    	(unsigned int) (pw->panner.knob_height - 1));
+    	xcb_poly_rectangle(conn, w, pw->panner.shadow_gc, 1, &rect);
     }
 
     if (pw->panner.shadow_valid) {
-	XFillRectangles (dpy, w, pw->panner.shadow_gc,
-			 pw->panner.shadow_rects, 2);
+ xcb_poly_fill_rectangle(conn, w, pw->panner.shadow_gc,
+    2, pw->panner.shadow_rects);
     }
+    xcb_flush(conn);
     if (pw->panner.tmp.doing && pw->panner.rubber_band) DRAW_TMP (pw);
 }
 
@@ -659,20 +669,25 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
     }
 
     if ((cur->panner.stipple_name != new->panner.stipple_name ||
-	 cur->panner.shadow_color != new->panner.shadow_color ||
-	 cur->core.background_pixel != new->core.background_pixel) &&
-	XtIsRealized(gnew)) {
-	Pixmap pm = (new->panner.stipple_name ? BACKGROUND_STIPPLE (new)
-		     : XtUnspecifiedPixmap);
+  cur->panner.shadow_color != new->panner.shadow_color ||
+  cur->core.background_pixel != new->core.background_pixel) &&
+ XtIsRealized(gnew)) {
+ Pixmap pm = (new->panner.stipple_name ? BACKGROUND_STIPPLE (new)
+       : XtUnspecifiedPixmap);
 
-	if (PIXMAP_OKAY(pm)) {
-	    XSetWindowBackgroundPixmap (XtDisplay (new), XtWindow(new), pm);
-	    XFreePixmap (XtDisplay (new), pm);
-	} else {
-	    XSetWindowBackground (XtDisplay (new), XtWindow(new),
-				  new->core.background_pixel);
-	}
-	redisplay = TRUE;
+ if (PIXMAP_OKAY(pm)) {
+     xcb_connection_t *conn = XtDisplay(new);
+     uint32_t pixmap_val = pm;
+     xcb_change_window_attributes(conn, XtWindow(new), XCB_CW_BACK_PIXMAP, &pixmap_val);
+     xcb_free_pixmap(conn, pm);
+     xcb_flush(conn);
+ } else {
+     xcb_connection_t *conn = XtDisplay(new);
+     uint32_t pixel_val = new->core.background_pixel;
+     xcb_change_window_attributes(conn, XtWindow(new), XCB_CW_BACK_PIXEL, &pixel_val);
+     xcb_flush(conn);
+ }
+ redisplay = TRUE;
     }
 
     if (new->panner.resize_to_pref &&
@@ -746,8 +761,10 @@ ActionStart (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     int x, y;
 
     if (!get_event_xy (pw, event, &x, &y)) {
-	XBell (XtDisplay(gw), 0);	/* should do error message */
-	return;
+ xcb_connection_t *conn = XtDisplay(gw);
+ xcb_bell(conn, 0);
+ xcb_flush(conn);
+ return;
     }
 
     pw->panner.tmp.doing = TRUE;
@@ -805,7 +822,9 @@ ActionMove (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     if (!pw->panner.tmp.doing) return;
 
     if (!get_event_xy (pw, event, &x, &y)) {
-	XBell (XtDisplay(gw), 0);	/* should do error message */
+	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_bell(conn, 0);
+	xcb_flush(conn);
 	return;
     }
 
@@ -834,7 +853,9 @@ ActionPage (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     int pad = pw->panner.internal_border * 2;
 
     if (*num_params != 2) {
-	XBell (XtDisplay(gw), 0);
+	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_bell(conn, 0);
+	xcb_flush(conn);
 	return;
     }
 
@@ -898,7 +919,7 @@ ActionNotify (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 	pw->panner.last_y != pw->panner.knob_y) {
 	XawPannerReport rep;
 
-	Redisplay (gw, (XEvent*) NULL, (Region) NULL);
+	Redisplay (gw, NULL, 0);
 	rep.changed = (XawPRSliderX | XawPRSliderY);
 	rep.slider_x = pw->panner.slider_x;
 	rep.slider_y = pw->panner.slider_y;
@@ -918,19 +939,23 @@ ActionSet (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     Boolean rb;
 
     if (*num_params < 2 ||
-	XmuCompareISOLatin1 (params[0], "rubberband") != 0) {
-	XBell (XtDisplay(gw), 0);
+	XawCompareISOLatin1 (params[0], "rubberband") != 0) {
+	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_bell(conn, 0);
+	xcb_flush(conn);
 	return;
     }
 
-    if (XmuCompareISOLatin1 (params[1], "on") == 0) {
+    if (XawCompareISOLatin1 (params[1], "on") == 0) {
 	rb = TRUE;
-    } else if (XmuCompareISOLatin1 (params[1], "off") == 0) {
+    } else if (XawCompareISOLatin1 (params[1], "off") == 0) {
 	rb = FALSE;
-    } else if (XmuCompareISOLatin1 (params[1], "toggle") == 0) {
+    } else if (XawCompareISOLatin1 (params[1], "toggle") == 0) {
 	rb = !pw->panner.rubber_band;
     } else {
-	XBell (XtDisplay(gw), 0);
+	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_bell(conn, 0);
+	xcb_flush(conn);
 	return;
     }
 

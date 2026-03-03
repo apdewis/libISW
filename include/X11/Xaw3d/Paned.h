@@ -62,7 +62,6 @@ SOFTWARE.
 #define _XawPaned_h
 
 #include <X11/Constraint.h>
-#include <X11/Xmu/Converters.h>
 
 /****************************************************************
  *

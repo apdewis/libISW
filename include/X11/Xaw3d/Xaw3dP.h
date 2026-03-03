@@ -31,6 +31,29 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define _Xaw3dP_h
 
 #include <X11/IntrinsicP.h>
+#include <xcb/xcb.h>
+#include <xcb/xfixes.h>
+
+/* Forward declare Region type - full definition in src/XawRegion.h */
+/* We define it here to avoid include path issues */
+#ifndef Region
+typedef struct _XawRegion* Region;
+#endif
+
+/* XCB type compatibility */
+#ifndef GC
+typedef xcb_gcontext_t GC;
+#endif
+
+#ifndef XEvent
+typedef xcb_generic_event_t XEvent;
+#endif
+
+/* Region is defined in XawRegion.h as a pointer to XawRegion struct */
+
+#ifndef Screen
+typedef xcb_screen_t Screen;
+#endif
 
 /* These are set during the build to reflect capability and options. */
 /* I18n support */
@@ -58,7 +81,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 extern unsigned long
 grayPixel(
     unsigned long,
-    Display *,
+    xcb_connection_t *,  /* XCB connection (was Display*) */
     Screen *
 );
 #else

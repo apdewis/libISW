@@ -60,6 +60,7 @@ SOFTWARE.
  *
  ***********************************************************************/
 
+#include <xcb/xcb.h>
 #include <X11/Xaw3d/TextSrc.h>
 #include <X11/Xaw3d/TextP.h>	/* This source works with the Text widget. */
 
@@ -141,13 +142,13 @@ typedef struct _TextSrcRec {
  ******************************************************************/
 
 char* _XawTextWCToMB(
-    Display* /* d */,
+    xcb_connection_t* /* d */,
     wchar_t* /* wstr */,
     int*     /* len_in_out */
 );
 
 wchar_t* _XawTextMBToWC(
-    Display*  /* d */,
+    xcb_connection_t*  /* d */,
     char*     /* str */,
     int*      /* len_in_out */
 );

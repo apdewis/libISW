@@ -5,9 +5,12 @@ AM_YFLAGS = -d -p LayYY
 AM_CFLAGS =		\
 	$(CWARNFLAGS)	\
 	$(X11_CFLAGS)	\
+	$(XFT_CFLAGS)	\
 	$(XPM_CFLAGS)
 
+# CRITICAL: Custom libXt MUST come FIRST to override system headers
 AM_CPPFLAGS = \
+	$(CUSTOM_XT_CPPFLAGS) \
 	-I${top_srcdir}/include	\
 	$(XAW3D_CPPFLAGS)
 
@@ -63,15 +66,31 @@ libXaw3d_la_SOURCES = \
 	Vendor.c \
 	Viewport.c \
 	Xaw3dP.c \
+	XawAtoms.c \
+	XawContext.c \
+	XawConverters.c \
+	XawDrawing.c \
 	XawInit.c \
+	XawUtils.c \
+	XawUtils.h \
+	XawXcbCompat.c \
+	XawXcbCompat.h \
+	XawXcbTypes.h \
+	XawRegion.c \
+	XawRegion.h \
+	XawXcbDraw.c \
+	XawXcbDraw.h \
+	XawXftCompat.c \
+	XawXftCompat.h \
 	laygram.y \
 	laylex.l \
 	$(I18N_SRCS)
 
 libXaw3d_la_LIBADD = \
-	$(X11_LIBS) $(XPM_LIBS)
+	$(CUSTOM_XT_LDFLAGS) -lXt \
+	$(X11_LIBS) $(XFT_LIBS) $(XPM_LIBS)
 
-libXaw3d_la_LDFLAGS = -version-info 8:0:0 -no-undefined
+libXaw3d_la_LDFLAGS = -version-info 8:0:0 -no-undefined $(CUSTOM_XT_LDFLAGS)
 
 BUILT_SOURCES = laygram.h
 

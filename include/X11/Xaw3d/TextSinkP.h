@@ -60,6 +60,13 @@ SOFTWARE.
  *
  ***********************************************************************/
 
+#include <xcb/xcb.h>
+
+/* XCB type compatibility - GC is xcb_gcontext_t */
+#ifndef GC
+typedef xcb_gcontext_t GC;
+#endif
+
 #include <X11/Xaw3d/TextSink.h>
 #include <X11/Xaw3d/TextP.h>	/* This source works with the Text widget. */
 #include <X11/Xaw3d/TextSrcP.h>	/* This source works with the Text Source. */
@@ -98,7 +105,7 @@ typedef void (*_XawSinkSetTabsProc)
      (Widget, int, short*);
 
 typedef void (*_XawSinkGetCursorBoundsProc)
-     (Widget, XRectangle*);
+     (Widget, xcb_rectangle_t*);
 
 typedef struct _TextSinkClassPart {
     _XawSinkDisplayTextProc DisplayText;

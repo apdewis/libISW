@@ -55,6 +55,9 @@ SOFTWARE.
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/StripCharP.h>
 #include <X11/Xfuncs.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include "XawXcbCompat.h"
 
 #define MS_PER_SEC 1000
 
@@ -85,7 +88,7 @@ static XtResource resources[] = {
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void MoveChart(StripChartWidget, Boolean);
 static void SetPoints(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -228,7 +231,7 @@ Destroy (Widget gw)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget gw, XEvent *event, Region region)
+Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
 
     StripChartWidget w = (StripChartWidget)gw;
@@ -237,12 +240,23 @@ Redisplay(Widget gw, XEvent *event, Region region)
 
     (*swclass->threeD_class.shadowdraw) (gw, event, region, w->threeD.relief, FALSE);
 
-    if (event->type == GraphicsExpose) {
-	x = event->xgraphicsexpose.x;
-	width = event->xgraphicsexpose.width;
+    if (event != NULL) {
+ uint8_t response_type = event->response_type & ~0x80;
+ if (response_type == XCB_GRAPHICS_EXPOSURE) {
+     xcb_graphics_exposure_event_t *ge = (xcb_graphics_exposure_event_t *)event;
+     x = ge->x;
+     width = ge->width;
+ } else if (response_type == XCB_EXPOSE) {
+     xcb_expose_event_t *ee = (xcb_expose_event_t *)event;
+     x = ee->x;
+     width = ee->width;
+ } else {
+     x = s;
+     width = w->core.width - 2 * s;
+ }
     } else {
-	x = event->xexpose.x;
-	width = event->xexpose.width;
+ x = s;
+ width = w->core.width - 2 * s;
     }
     if (x > s) x -= s; /* respect shadow width, but don't become negative */
     else x = 0;
@@ -285,36 +299,39 @@ draw_it(XtPointer client_data, XtIntervalId *id)
    if (value > w->strip_chart.max_value) {
        w->strip_chart.max_value = value;
        if (XtIsRealized((Widget)w) &&
-	   w->strip_chart.max_value > w->strip_chart.scale) {
-	   XClearWindow(XtDisplay ((Widget) w), XtWindow ((Widget) w));
-	   w->strip_chart.interval = repaint_window((Widget)w, 0, (int) w->core.width - 2 * s);
-	   (*swclass->threeD_class.shadowdraw) ((Widget) w,
-						(XEvent *)0, (Region)0,
-						w->threeD.relief, FALSE);
+    w->strip_chart.max_value > w->strip_chart.scale) {
+    xcb_connection_t *clear_conn = XtDisplay((Widget)w);
+    xcb_clear_area(clear_conn, 0, XtWindow((Widget)w), 0, 0, 0, 0);
+    xcb_flush(clear_conn);
+    w->strip_chart.interval = repaint_window((Widget)w, 0, (int) w->core.width - 2 * s);
+    (*swclass->threeD_class.shadowdraw) ((Widget) w,
+      NULL, 0,
+      w->threeD.relief, FALSE);
        }
    }
 
    w->strip_chart.valuedata[w->strip_chart.interval] = value;
    if (XtIsRealized((Widget)w)) {
        int y = (int) (( w->core.height - 2 * s)
-		      - (int)(( w->core.height - 2 * s) * value) / w->strip_chart.scale);
+        - (int)(( w->core.height - 2 * s) * value) / w->strip_chart.scale);
 
-	XFillRectangle(XtDisplay((Widget) w), XtWindow((Widget) w), w->strip_chart.fgGC,
-		       w->strip_chart.interval + s,
-		       y + s, (unsigned int) 1,
-		       (w->core.height - 2 * s) - y);
+ xcb_connection_t *conn = XtDisplay((Widget) w);
+ xcb_rectangle_t rect = {w->strip_chart.interval + s, y + s,
+         (unsigned int) 1, (w->core.height - 2 * s) - y};
+ xcb_poly_fill_rectangle(conn, XtWindow((Widget) w), w->strip_chart.fgGC, 1, &rect);
+ xcb_flush(conn);
        /*
 	* Fill in the graph lines we just painted over.
 	*/
 
        if (w->strip_chart.points != NULL) {
-	   w->strip_chart.points[0].x = w->strip_chart.interval + s;
-	   XDrawPoints(XtDisplay(w), XtWindow(w), w->strip_chart.hiGC,
-		       w->strip_chart.points, w->strip_chart.scale,
-		       CoordModePrevious);
+    w->strip_chart.points[0].x = w->strip_chart.interval + s;
+    xcb_poly_point(XtDisplay(w), XCB_COORD_MODE_PREVIOUS,
+     XtWindow(w), w->strip_chart.hiGC,
+     w->strip_chart.scale, (xcb_point_t *)w->strip_chart.points);
        }
 
-       XFlush(XtDisplay(w));		    /* Flush output buffers */
+       xcb_flush(XtDisplay(w));		    /* Flush output buffers */
    }
    w->strip_chart.interval++;		    /* Next point */
 } /* draw_it */
@@ -356,38 +373,41 @@ repaint_window(Widget gw, int left, int width)
       SetPoints(gw);
 
       if (XtIsRealized (gw)) {
-	XClearWindow (XtDisplay (gw), XtWindow (gw));
-	(*swclass->threeD_class.shadowdraw) (gw, (XEvent *)0, (Region)0, w->threeD.relief, FALSE);
+ xcb_connection_t *clear_conn2 = XtDisplay(gw);
+ xcb_clear_area(clear_conn2, 0, XtWindow(gw), 0, 0, 0, 0);
+ xcb_flush(clear_conn2);
+ (*swclass->threeD_class.shadowdraw) (gw, NULL, 0, w->threeD.relief, FALSE);
       }
 
     }
 
     if (XtIsRealized(gw)) {
-	Display *dpy = XtDisplay(gw);
-	Window win = XtWindow(gw);
+ xcb_connection_t *conn = XtDisplay(gw);
+ xcb_window_t win = XtWindow(gw);
 
-	width += left - 1;
-	if (!scalewidth) scalewidth = width;
+ width += left - 1;
+ if (!scalewidth) scalewidth = width;
 
-	if (next < (++width - s)) width = next + s;
+ if (next < (++width - s)) width = next + s;
 
-	/* Draw data point lines. */
-	for (i = left; i < width; i++) {
+ /* Draw data point lines. */
+ for (i = left; i < width; i++) {
 	    int y = (int) (( w->core.height - 2 * s) -
 			   (int)(( w->core.height - 2 * s) * w->strip_chart.valuedata[i]) /
 			   w->strip_chart.scale);
 
-	    XFillRectangle(dpy, win, w->strip_chart.fgGC,
-			   i + s, y + s, (unsigned int) 1,
-			   (unsigned int) (w->core.height - 2 * s - y ));
+	    xcb_rectangle_t rect = {i + s, y + s, (unsigned int) 1,
+			   (unsigned int) (w->core.height - 2 * s - y )};
+	    xcb_poly_fill_rectangle(conn, win, w->strip_chart.fgGC, 1, &rect);
 	}
 
 	/* Draw graph reference lines */
 	for (i = 1; i < w->strip_chart.scale; i++) {
-            j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
-	    XDrawLine(dpy, win, w->strip_chart.hiGC,
-		left + s, j + s, scalewidth + s, j + s);
+	           j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
+	    xcb_point_t points[2] = {{left + s, j + s}, {scalewidth + s, j + s}};
+	    xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, win, w->strip_chart.hiGC, 2, points);
 	}
+	xcb_flush(conn);
     }
     return(next);
 }
@@ -437,33 +457,36 @@ MoveChart(StripChartWidget w, Boolean blit)
     if (!blit) return;		/* we are done... */
 
     if ( ((int) old_max) != ( (int) w->strip_chart.max_value) ) {
-      XClearWindow(XtDisplay(w), XtWindow(w));
+      xcb_connection_t *clear_conn3 = XtDisplay(w);
+      xcb_clear_area(clear_conn3, 0, XtWindow(w), 0, 0, 0, 0);
+      xcb_flush(clear_conn3);
       repaint_window((Widget)w, 0, w->core.width - 2 * s);
       return;
     }
 
-    XCopyArea(XtDisplay((Widget)w), XtWindow((Widget)w), XtWindow((Widget)w),
-	      w->strip_chart.hiGC,
-	      (int) ((w->strip_chart.jump_val == DEFAULT_JUMP) ?
-		     (j + s) : (w->strip_chart.jump_val + s)), s,
-	      (unsigned int) j, (unsigned int) ( w->core.height - 2 * s),
-	      s, s);
+    xcb_connection_t *conn = XtDisplay((Widget)w);
+    xcb_copy_area(conn, XtWindow((Widget)w), XtWindow((Widget)w),
+       w->strip_chart.hiGC,
+       (int) ((w->strip_chart.jump_val == DEFAULT_JUMP) ?
+       (j + s) : (w->strip_chart.jump_val + s)), s,
+       s, s,
+       (unsigned int) j, (unsigned int) ( w->core.height - 2 * s));
 
-    XClearArea(XtDisplay((Widget)w), XtWindow((Widget)w),
-	       (int) j + s, s,
-	       (unsigned int) ((w->strip_chart.jump_val == DEFAULT_JUMP) ?
-			       j : w->strip_chart.jump_val),
-               (unsigned int) ( w->core.height - 2 * s),
-	       FALSE);
+    xcb_clear_area(conn, FALSE, XtWindow((Widget)w),
+        (int) j + s, s,
+        (unsigned int) ((w->strip_chart.jump_val == DEFAULT_JUMP) ?
+          j : w->strip_chart.jump_val),
+               (unsigned int) ( w->core.height - 2 * s));
 
     /* Draw graph reference lines */
     left = j;
     for (i = 1; i < w->strip_chart.scale; i++) {
-	j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
-	XDrawLine(XtDisplay((Widget) w), XtWindow( (Widget) w),
-	    w->strip_chart.hiGC,
-	    left, j + s, ((int)w->core.width - s - 1), j + s);
+ j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
+ xcb_point_t points[2] = {{left, j + s}, {((int)w->core.width - s - 1), j + s}};
+ xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, XtWindow((Widget) w),
+     w->strip_chart.hiGC, 2, points);
     }
+    xcb_flush(conn);
     return;
 }
 
@@ -519,7 +542,7 @@ SetPoints(Widget widget)
 {
     StripChartWidget w = (StripChartWidget) widget;
     Dimension s = w->threeD.shadow_width;
-    XPoint * points;
+    xcb_point_t * points;
     Cardinal size;
     int i;
 
@@ -529,16 +552,16 @@ SetPoints(Widget widget)
 	return;
     }
 
-    size = sizeof(XPoint) * (w->strip_chart.scale - 1);
+    size = sizeof(xcb_point_t) * (w->strip_chart.scale - 1);
 
-    points = (XPoint *) XtRealloc( (XtPointer) w->strip_chart.points, size);
+    points = (xcb_point_t *) XtRealloc( (XtPointer) w->strip_chart.points, size);
     w->strip_chart.points = points;
 
     /* Draw graph reference lines into clip mask */
 
     for (i = 1; i < w->strip_chart.scale; i++) {
 	points[i - 1].x = 0;
-	points[i - 1].y = ( short)(((double)w->core.height - 2.0 * (double) s) / (double) w->strip_chart.scale );
+	points[i - 1].y = ( int16_t)(((double)w->core.height - 2.0 * (double) s) / (double) w->strip_chart.scale );
     }
-    points[0].y += (short)s;
+    points[0].y += (int16_t)s;
 }

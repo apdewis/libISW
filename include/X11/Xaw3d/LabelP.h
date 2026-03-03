@@ -63,6 +63,17 @@ SOFTWARE.
 #include "Xaw3dP.h"
 #include <X11/Xaw3d/Label.h>
 #include <X11/Xaw3d/ThreeDP.h>
+#include <X11/Xaw3d/XawXftCompat.h>  /* XawFontSet typedef only */
+
+/* XtJustify is defined in Xmu/Converters.h or standard Xt headers */
+/* Only define if not already defined */
+#ifndef _XMU_STRCONVERT_H_
+typedef enum {
+    XtJustifyLeft,
+    XtJustifyCenter,
+    XtJustifyRight
+} XtJustify;
+#endif
 
 /* New fields for the Label widget class record */
 
@@ -84,7 +95,7 @@ typedef struct {
     Pixel	foreground;
     XFontStruct	*font;
 #ifdef XAW_INTERNATIONALIZATION
-    XFontSet	fontset;
+    XawFontSet	*fontset;  /* Phase 3.2: Changed from XFontSet to XawFontSet* */
 #endif
     char	*label;
     XtJustify	justify;

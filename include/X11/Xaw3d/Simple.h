@@ -50,7 +50,6 @@ SOFTWARE.
 #define _Simple_h
 
 #include "Xaw3dP.h"
-#include <X11/Xmu/Converters.h>
 
 /****************************************************************
  *

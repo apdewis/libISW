@@ -30,6 +30,7 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <X11/Xaw3d/Panner.h>
 #include <X11/Xaw3d/SimpleP.h>		/* parent */
+#include <xcb/xproto.h>
 
 typedef struct {			/* new fields in widget class */
     int dummy;
@@ -75,7 +76,7 @@ typedef struct {			/* new fields in widget */
     Position knob_x, knob_y;		/* real upper left of knob in canvas */
     Dimension knob_width, knob_height;	/* real size of knob in canvas */
     Boolean shadow_valid;		/* true if rects are valid */
-    XRectangle shadow_rects[2];		/* location of shadows */
+    xcb_rectangle_t shadow_rects[2];		/* location of shadows */
     Position last_x, last_y;		/* previous location of knob */
 } PannerPart;
 

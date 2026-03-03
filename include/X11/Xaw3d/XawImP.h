@@ -64,6 +64,34 @@ in this Software without prior written authorization from the X Consortium.
 #define XtCSharedIc		"SharedIc"
 
 #include <X11/Xaw3d/Text.h>
+#include <X11/Xaw3d/XawXftCompat.h>  /* For XawFontSet typedef */
+
+/* XCB Migration: XIM requires Xlib and is not available with XCB */
+#ifdef XAW_HAS_XIM
+#include <X11/Xlib.h>  /* For XIM, XIC, XIMStyle, XKeyPressedEvent, Status */
+#else
+/* Stub types when XIM is disabled for XCB compatibility */
+typedef void* XIM;
+typedef void* XIC;
+typedef unsigned long XIMStyle;
+typedef struct _XKeyEvent {
+    int type;
+    unsigned long serial;
+    int send_event;
+    void *display;
+    unsigned long window;
+    unsigned long root;
+    unsigned long subwindow;
+    unsigned long time;
+    int x, y;
+    int x_root, y_root;
+    unsigned int state;
+    unsigned int keycode;
+    int same_screen;
+} XKeyPressedEvent;
+/* KeySym already defined by libXt as xcb_keysym_t */
+typedef int Status;
+#endif
 
 #define	CIICFocus	(1 << 0)
 #define	CIFontSet	(1 << 1)
@@ -93,7 +121,7 @@ typedef struct _XawIcTablePart
     unsigned long	flg;
     unsigned long	prev_flg;
     Boolean		ic_focused;
-    XFontSet		font_set;
+    XawFontSet		*font_set;  /* Phase 3.5: XIM migration */
     Pixel		foreground;
     Pixel		background;
     Pixmap		bg_pixmap;

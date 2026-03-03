@@ -6,8 +6,6 @@
 #include    <X11/cursorfont.h>
 #include    <X11/StringDefs.h>
 
-#include    <X11/Xmu/Misc.h>
-#include    <X11/Xmu/Converters.h>
 #include    <X11/Xaw3d/LayoutP.h>
 
 #include    "LayYY.h"

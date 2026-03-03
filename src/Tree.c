@@ -56,6 +56,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/Cardinals.h>
 #include <X11/Xaw3d/TreeP.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include "XawXcbCompat.h"
 
 #define IsHorizontal(tw) ((tw)->tree.gravity == WestGravity || \
 			  (tw)->tree.gravity == EastGravity)
@@ -71,7 +74,7 @@ static void Destroy(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 static void ChangeManaged(Widget);
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static XtGeometryResult	QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 
 					/* utility routines */
@@ -557,7 +560,7 @@ Destroy (Widget gw)
 
 /* ARGSUSED */
 static void
-Redisplay (Widget gw, XEvent *event, Region region)
+Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     TreeWidget tw = (TreeWidget) gw;
 
@@ -599,52 +602,63 @@ Redisplay (Widget gw, XEvent *event, Region region)
 		for (j = 0; j < tc->tree.n_children; j++) {
 		    Widget k = tc->tree.children[j];
 		    GC gc = (tc->tree.gc ? tc->tree.gc : tw->tree.gc);
+		    xcb_connection_t *conn = dpy;
+		    xcb_point_t points[2];
 
 		    switch (tw->tree.gravity) {
 		      case WestGravity:
-			/*
-			 * right center to left center
-			 */
-			XDrawLine (dpy, w, gc, srcx, srcy,
-				   (int) k->core.x,
-				   (k->core.y + ((int) k->core.border_width) +
-				    ((int) k->core.height) / 2));
-			break;
+		 /*
+		  * right center to left center
+		  */
+		 points[0].x = srcx;
+		 points[0].y = srcy;
+		 points[1].x = (int) k->core.x;
+		 points[1].y = (k->core.y + ((int) k->core.border_width) +
+		      ((int) k->core.height) / 2);
+		 xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
+		 break;
 
 		      case NorthGravity:
-			/*
-			 * bottom center to top center
-			 */
-			XDrawLine (dpy, w, gc, srcx, srcy,
-				   (k->core.x + ((int) k->core.border_width) +
-				    ((int) k->core.width) / 2),
-				   (int) k->core.y);
-			break;
+		 /*
+		  * bottom center to top center
+		  */
+		 points[0].x = srcx;
+		 points[0].y = srcy;
+		 points[1].x = (k->core.x + ((int) k->core.border_width) +
+		      ((int) k->core.width) / 2);
+		 points[1].y = (int) k->core.y;
+		 xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
+		 break;
 
 		      case EastGravity:
-			/*
-			 * left center to right center
-			 */
-			XDrawLine (dpy, w, gc, srcx, srcy,
-				   (k->core.x +
-				    (((int) k->core.border_width) << 1) +
-				    (int) k->core.width),
-				   (k->core.y + ((int) k->core.border_width) +
-				    ((int) k->core.height) / 2));
-			break;
+		 /*
+		  * left center to right center
+		  */
+		 points[0].x = srcx;
+		 points[0].y = srcy;
+		 points[1].x = (k->core.x +
+		      (((int) k->core.border_width) << 1) +
+		      (int) k->core.width);
+		 points[1].y = (k->core.y + ((int) k->core.border_width) +
+		      ((int) k->core.height) / 2);
+		 xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
+		 break;
 
 		      case SouthGravity:
-			/*
-			 * top center to bottom center
-			 */
-			XDrawLine (dpy, w, gc, srcx, srcy,
-				   (k->core.x + ((int) k->core.border_width) +
-				    ((int) k->core.width) / 2),
-				   (k->core.y +
-				    (((int) k->core.border_width) << 1) +
-				    (int) k->core.height));
-			break;
+		 /*
+		  * top center to bottom center
+		  */
+		 points[0].x = srcx;
+		 points[0].y = srcy;
+		 points[1].x = (k->core.x + ((int) k->core.border_width) +
+		      ((int) k->core.width) / 2);
+		 points[1].y = (k->core.y +
+		      (((int) k->core.border_width) << 1) +
+		      (int) k->core.height);
+		 xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
+		 break;
 		    }
+		    xcb_flush(conn);
 		}
 	    }
 	}
@@ -959,7 +973,9 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
      * And redisplay.
      */
     if (XtIsRealized ((Widget) tw)) {
-	XClearArea (XtDisplay(tw), XtWindow((Widget)tw), 0, 0, 0, 0, True);
+ xcb_connection_t *conn = XtDisplay(tw);
+ xcb_clear_area(conn, 1, XtWindow((Widget)tw), 0, 0, 0, 0);
+ xcb_flush(conn);
     }
 }
 

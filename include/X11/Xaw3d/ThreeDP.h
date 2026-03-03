@@ -28,6 +28,8 @@ SOFTWARE.
 
 #include <X11/Xaw3d/ThreeD.h>
 #include <X11/Xaw3d/SimpleP.h>
+#include <xcb/xcb.h>
+#include <xcb/xfixes.h>
 
 #define XtRRelief "Relief"
 
@@ -54,11 +56,11 @@ typedef struct _ThreeDRec {
   } ThreeDRec;
 
 typedef struct {
-    void (*shadowdraw)(Widget, XEvent *, Region, XtRelief, Boolean);
+    void (*shadowdraw)(Widget, xcb_generic_event_t *, xcb_xfixes_region_t, XtRelief, Boolean);
   } ThreeDClassPart;
 
 #define XtInheritXaw3dShadowDraw \
-((void (*)(Widget, XEvent *, Region, XtRelief, Boolean))_XtInherit)
+((void (*)(Widget, xcb_generic_event_t *, xcb_xfixes_region_t, XtRelief, Boolean))_XtInherit)
 
 /* Full class record declaration. */
 typedef struct _ThreeDClassRec {

@@ -30,12 +30,19 @@ fi
 AC_PROG_LEX
 
 # Checks for header files.
-PKG_CHECK_MODULES(X11, [x11 xt xmu xext])
+# Use custom XCB-based libXt instead of system libXt
+PKG_CHECK_MODULES(X11, [x11 xext xcb xcb-xfixes xcb-render xcb-shape])
+PKG_CHECK_MODULES(XFT, [xft])
+
+# Custom libXt paths - MUST come before system headers
+CUSTOM_XT_CPPFLAGS="-I/home/adam/libxt/include"
+CUSTOM_XT_LDFLAGS="-L/home/adam/libxt/src/.libs"
+
 AC_CHECK_HEADERS([wctype.h wchar.h widec.h])
 AC_CHECK_FUNCS([iswspace])
 AC_TYPE_INTPTR_T
 
-XAW3D_CPPFLAGS=
+XAW3D_CPPFLAGS="${CUSTOM_XT_CPPFLAGS}"
 
 AC_ARG_ENABLE([internationalization],
     AS_HELP_STRING([--enable-internationalization], dnl
@@ -45,6 +52,14 @@ if test "x$XAW_I18N" = xyes; then
     XAW3D_CPPFLAGS="${XAW3D_CPPFLAGS} -DXAW_INTERNATIONALIZATION"
 fi
 AM_CONDITIONAL(XAW_INTERNATIONALIZATION, [test "x$XAW_I18N" = xyes])
+
+AC_ARG_ENABLE([xim],
+    AS_HELP_STRING([--enable-xim], dnl
+    [enable X Input Method support for CJK input (default: no, requires Xlib XIM APIs not available in XCB)]),
+    [XAW_XIM=$enableval], [XAW_XIM=no])
+if test "x$XAW_XIM" = xyes; then
+    XAW3D_CPPFLAGS="${XAW3D_CPPFLAGS} -DXAW_HAS_XIM"
+fi
 
 AC_ARG_ENABLE([multiplane-bitmaps],
     [AS_HELP_STRING([--enable-multiplane-bitmaps], dnl
@@ -61,6 +76,8 @@ AC_ARG_ENABLE([arrow-scrollbars],
      [enable arrow scrollbars])], [XAW3D_CPPFLAGS="${XAW3D_CPPFLAGS} -DXAW_ARROW_SCROLLBARS"])
 
 AC_SUBST(XAW3D_CPPFLAGS)
+AC_SUBST(CUSTOM_XT_CPPFLAGS)
+AC_SUBST(CUSTOM_XT_LDFLAGS)
 
 AC_CONFIG_FILES([Makefile
 		include/Makefile

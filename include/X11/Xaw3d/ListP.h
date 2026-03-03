@@ -47,6 +47,7 @@ in this Software without prior written authorization from the X Consortium.
 #include "Xaw3dP.h"
 #include <X11/Xaw3d/SimpleP.h>
 #include <X11/Xaw3d/List.h>
+#include <X11/Xaw3d/XawXftCompat.h>  /* XawFontSet typedef */
 
 #define NO_HIGHLIGHT            XAW_LIST_NONE
 #define OUT_OF_RANGE            -1
@@ -81,7 +82,7 @@ typedef struct {
     int         nitems;		/* number of items in the list. */
     XFontStruct	*font;
 #ifdef XAW_INTERNATIONALIZATION
-    XFontSet 	fontset;	/* Sheeran, Omron KK, 93/03/05 */
+    XawFontSet 	*fontset;	/* Sheeran, Omron KK, 93/03/05 */
 #endif
     String *    list;		/* for i18n, always in multibyte format */
     XtCallbackList callback;

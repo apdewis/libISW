@@ -60,8 +60,17 @@ SOFTWARE.
  *
  ***********************************************************************/
 
+/* Include XCB type compatibility layer before Xmu headers */
+#include <X11/Xaw3d/Xaw3dP.h>
+
 #include <X11/Xaw3d/Box.h>
-#include <X11/Xmu/Converters.h>
+
+/* XtOrientation is defined in standard Xt headers, but if not available, use fallback */
+#ifndef XtOrientation
+typedef unsigned char XtOrientation;
+#define XtorientHorizontal 0
+#define XtorientVertical 1
+#endif
 
 /* New fields for the Box widget class record */
 typedef struct {int empty;} BoxClassPart;

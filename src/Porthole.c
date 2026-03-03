@@ -35,7 +35,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/StringDefs.h>		/* get XtN and XtC defines */
 #include <X11/Xaw3d/XawInit.h>		/* get Xaw initialize stuff */
 #include <X11/Xaw3d/PortholeP.h>		/* get porthole structs */
-#include <X11/Xmu/Misc.h>		/* for MAX */
+#include "XawUtils.h"		/* for MAX */
 
 
 /*
@@ -52,7 +52,7 @@ static XtResource resources[] = {
 /*
  * widget class methods used below
  */
-static void Realize(Widget, Mask *, XSetWindowAttributes *);
+static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
 static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 static void ChangeManaged(Widget);
@@ -201,15 +201,15 @@ layout_child (PortholeWidget pw, Widget child, XtWidgetGeometry *geomp,
 
 
 static void
-Realize (Widget gw, Mask *valueMask, XSetWindowAttributes *attributes)
+Realize (xcb_connection_t *dpy, Widget gw, XtValueMask *valueMask, uint32_t *attributes)
 {
-    attributes->bit_gravity = NorthWestGravity;
     *valueMask |= CWBitGravity;
+    attributes[__builtin_popcount(*valueMask & (CWBitGravity - 1))] = XCB_GRAVITY_NORTH_WEST;
 
     if (gw->core.width < 1) gw->core.width = 1;
     if (gw->core.height < 1) gw->core.height = 1;
     (*portholeWidgetClass->core_class.superclass->core_class.realize)
-	(gw, valueMask, attributes);
+	(dpy, gw, valueMask, attributes);
 }
 
 

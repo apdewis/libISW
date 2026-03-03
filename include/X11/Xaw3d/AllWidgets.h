@@ -26,12 +26,21 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef _XawAllWidgets_h
 #define _XawAllWidgets_h
 
-#include <X11/Xmu/WidgetNode.h>
+#include <X11/Intrinsic.h>
+
+/*
+ * Widget node structure for widget array tables
+ * Used in library initialization and widget lookup
+ */
+typedef struct _XawWidgetNode {
+    const char *label;         /* Widget class name */
+    WidgetClass *widget_class; /* Pointer to widget class */
+} XawWidgetNode;
 
 /*
  * This file matches the generated AllWidgets.c
  */
-extern XmuWidgetNode XawWidgetArray[];
+extern XawWidgetNode XawWidgetArray[];
 extern int           XawWidgetCount;
 
 #endif /* _XawAllWidgets_h */

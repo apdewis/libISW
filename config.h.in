@@ -3,20 +3,20 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
-/* Define to 1 if the system has the type `intptr_t'. */
+/* Define to 1 if the system has the type 'intptr_t'. */
 #undef HAVE_INTPTR_T
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `iswspace' function. */
+/* Define to 1 if you have the 'iswspace' function. */
 #undef HAVE_ISWSPACE
-
-/* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
@@ -45,8 +45,7 @@
 /* Define to 1 if you have the <widec.h> header file. */
 #undef HAVE_WIDEC_H
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Name of package */
@@ -79,14 +78,16 @@
 /* Patch version of this package */
 #undef PACKAGE_VERSION_PATCHLEVEL
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C89 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #undef STDC_HEADERS
 
 /* Version number of package */
 #undef VERSION
 
-/* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
-   `char[]'. */
+/* Define to 1 if 'lex' declares 'yytext' as a 'char *' by default, not a
+   'char[]'. */
 #undef YYTEXT_POINTER
 
 /* Define to the type of a signed integer type wide enough to hold a pointer,

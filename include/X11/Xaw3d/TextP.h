@@ -49,6 +49,7 @@ SOFTWARE.
 #ifndef _XawTextP_h
 #define _XawTextP_h
 
+#include <xcb/xcb.h>
 #include <X11/Xaw3d/Text.h>
 #include <X11/Xaw3d/SimpleP.h>
 
@@ -190,8 +191,8 @@ typedef struct _TextPart {
     XawTextLineTable	lt;
     XawTextScanDirection extendDir;
     XawTextSelection	origSel;    /* the selection being modified */
-    Time	    lasttime;	    /* timestamp of last processed action */
-    Time	    time;	    /* time of last key or button action */
+    xcb_timestamp_t lasttime;	    /* timestamp of last processed action */
+    xcb_timestamp_t time;	    /* time of last key or button action */
     Position	    ev_x, ev_y;	    /* x, y coords for key or button action */
     Widget	    vbar, hbar;	    /* The scroll bars (none = NULL). */
     struct SearchAndReplace * search;/* Search and replace structure. */
@@ -201,7 +202,7 @@ typedef struct _TextPart {
     int		    numranges;	    /* How many update ranges there are. */
     int		    maxranges;	    /* How many ranges we have space for */
     XawTextPosition  lastPos;	    /* Last position of source. */
-    GC              gc;
+    xcb_gcontext_t  gc;
     Boolean	    showposition;   /* True if we need to show the position. */
     Boolean         hasfocus;       /* TRUE if we currently have input focus.*/
     Boolean	    update_disabled; /* TRUE if display updating turned off */
