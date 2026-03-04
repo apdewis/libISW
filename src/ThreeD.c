@@ -39,6 +39,7 @@ SOFTWARE.
 #include <X11/Xosdefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#include "XawXcbDraw.h"
 
 /* Initialization of defaults */
 

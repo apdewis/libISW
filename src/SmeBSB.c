@@ -54,6 +54,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
+#include "XawXcbDraw.h"
+
 /* needed for abs() */
 #ifndef X_NOT_STDC_ENV
 #include <stdlib.h>
@@ -269,8 +271,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     else
 #endif
     { /*else, compute size from font like R5*/
-        font_ascent = entry->sme_bsb.font->max_bounds.ascent;
-        font_descent = entry->sme_bsb.font->max_bounds.descent;
+        font_ascent = entry->sme_bsb.font->ascent;
+        font_descent = entry->sme_bsb.font->descent;
     }
     y_loc = entry->rectangle.y;
 
@@ -341,10 +343,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 #endif
         {
             y_loc += ((int)entry->rectangle.height -
-		  (font_ascent + font_descent)) / 2 + font_ascent;
+    (font_ascent + font_descent)) / 2 + font_ascent;
 
-            XDrawString(XtDisplayOfObject(w), XtWindowOfObject(w), gc,
-		    x_loc + s, y_loc, label, len);
+            XawXcbDrawText(XtDisplayOfObject(w), XtWindowOfObject(w), gc,
+      x_loc + s, y_loc, label, len);
         }
 
 	if (entry->sme_bsb.underline >= 0 && entry->sme_bsb.underline < len) {
@@ -579,8 +581,8 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
 	    *width = XTextWidth(entry->sme_bsb.font, entry->sme_bsb.label,
 			    strlen(entry->sme_bsb.label));
 
-        *height = (entry->sme_bsb.font->max_bounds.ascent +
-	       entry->sme_bsb.font->max_bounds.descent);
+        *height = (entry->sme_bsb.font->ascent +
+	       entry->sme_bsb.font->descent);
     }
 
     *width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;
@@ -706,7 +708,7 @@ static void
 GetBitmapInfo(Widget w, Boolean is_left)
 {
     SmeBSBObject entry = (SmeBSBObject) w;
-    XtWindow root;
+    xcb_window_t root;
     int x, y;
     unsigned int width, height, bw;
     char buf[BUFSIZ];
@@ -715,46 +717,58 @@ GetBitmapInfo(Widget w, Boolean is_left)
 	width = height = 0;
 
 	if (entry->sme_bsb.left_bitmap != None) {
-	    if (!XGetGeometry(XtDisplayOfObject(w),
-			    entry->sme_bsb.left_bitmap, &root, &x, &y,
-			    &width, &height, &bw, &entry->sme_bsb.left_depth)) {
-		(void) sprintf(buf, "Xaw SmeBSB Object: %s %s \"%s\".",
-			"Could not get Left Bitmap",
-			"geometry information for menu entry",
-			XtName(w));
-		XtAppError(XtWidgetToApplicationContext(w), buf);
+	    xcb_connection_t *conn = XtDisplayOfObject(w);
+	    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(conn, entry->sme_bsb.left_bitmap);
+	    xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn, cookie, NULL);
+	    if (geom == NULL) {
+	 (void) sprintf(buf, "Xaw SmeBSB Object: %s %s \"%s\".",
+	  "Could not get Left Bitmap",
+	  "geometry information for menu entry",
+	  XtName(w));
+	 XtAppError(XtWidgetToApplicationContext(w), buf);
+	    } else {
+	 width = geom->width;
+	 height = geom->height;
+	 entry->sme_bsb.left_depth = geom->depth;
+	 free(geom);
 	    }
 #ifdef NEVER
 	    if (entry->sme_bsb.left_depth != 1) {
-		(void) sprintf(buf, "Xaw SmeBSB Object: %s \"%s\" %s.",
-			"Left Bitmap of entry",  XtName(w),
-			"is not one bit deep");
-		XtAppError(XtWidgetToApplicationContext(w), buf);
+	 (void) sprintf(buf, "Xaw SmeBSB Object: %s \"%s\" %s.",
+	  "Left Bitmap of entry",  XtName(w),
+	  "is not one bit deep");
+	 XtAppError(XtWidgetToApplicationContext(w), buf);
 	    }
 #endif
 	}
 
 	entry->sme_bsb.left_bitmap_width = (Dimension) width;
 	entry->sme_bsb.left_bitmap_height = (Dimension) height;
-    } else {
+	   } else {
 	width = height = 0;
 
 	if (entry->sme_bsb.right_bitmap != None) {
-	    if (!XGetGeometry(XtDisplayOfObject(w),
-			    entry->sme_bsb.right_bitmap, &root, &x, &y,
-			    &width, &height, &bw, &entry->sme_bsb.right_depth)) {
-		(void) sprintf(buf, "Xaw SmeBSB Object: %s %s \"%s\".",
-			"Could not get Right Bitmap",
-			"geometry information for menu entry",
-			XtName(w));
-		XtAppError(XtWidgetToApplicationContext(w), buf);
+	    xcb_connection_t *conn = XtDisplayOfObject(w);
+	    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(conn, entry->sme_bsb.right_bitmap);
+	    xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn, cookie, NULL);
+	    if (geom == NULL) {
+	 (void) sprintf(buf, "Xaw SmeBSB Object: %s %s \"%s\".",
+	  "Could not get Right Bitmap",
+	  "geometry information for menu entry",
+	  XtName(w));
+	 XtAppError(XtWidgetToApplicationContext(w), buf);
+	    } else {
+	 width = geom->width;
+	 height = geom->height;
+	 entry->sme_bsb.right_depth = geom->depth;
+	 free(geom);
 	    }
 #ifdef NEVER
 	    if (entry->sme_bsb.right_depth != 1) {
-		(void) sprintf(buf, "Xaw SmeBSB Object: %s \"%s\" %s.",
-			"Right Bitmap of entry", XtName(w),
-			"is not one bit deep");
-		XtAppError(XtWidgetToApplicationContext(w), buf);
+	 (void) sprintf(buf, "Xaw SmeBSB Object: %s \"%s\" %s.",
+	  "Right Bitmap of entry", XtName(w),
+	  "is not one bit deep");
+	 XtAppError(XtWidgetToApplicationContext(w), buf);
 	    }
 #endif
 	}
@@ -774,53 +788,54 @@ static void
 CreateGCs(Widget w)
 {
     SmeBSBObject entry = (SmeBSBObject) w;
-    XGCValues values;
+    xcb_create_gc_value_list_t values;
     XtGCMask mask;
 #ifdef XAW_INTERNATIONALIZATION
     XtGCMask mask_i18n;
 #endif
 
+    memset(&values, 0, sizeof(values));
     values.foreground = XtParent(w)->core.background_pixel;
     values.background = entry->sme_bsb.foreground;
     values.font = entry->sme_bsb.font->fid;
-    values.graphics_exposures = FALSE;
-    mask      = GCForeground | GCBackground | GCGraphicsExposures | GCFont;
+    values.graphics_exposures = 0;
+    mask      = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FONT;
 #ifdef XAW_INTERNATIONALIZATION
-    mask_i18n = GCForeground | GCBackground | GCGraphicsExposures;
+    mask_i18n = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
     if ( entry->sme.international == True )
-        entry->sme_bsb.rev_gc = XtAllocateGC(w, 0, mask_i18n, &values, GCFont, 0 );
+        entry->sme_bsb.rev_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
     else
 #endif
-        entry->sme_bsb.rev_gc = XtGetGC(w, mask, &values);
+        entry->sme_bsb.rev_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
 
     values.foreground = entry->sme_bsb.foreground;
     values.background = XtParent(w)->core.background_pixel;
 #ifdef XAW_INTERNATIONALIZATION
     if ( entry->sme.international == True )
-        entry->sme_bsb.norm_gc = XtAllocateGC(w, 0, mask_i18n, &values, GCFont, 0 );
+        entry->sme_bsb.norm_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
     else
 #endif
-        entry->sme_bsb.norm_gc = XtGetGC(w, mask, &values);
+        entry->sme_bsb.norm_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
 
-    values.fill_style = FillTiled;
-    values.tile   = XawCreateStippledPixmap(XtScreenOfObject(w),
+    values.fill_style = XCB_FILL_STYLE_TILED;
+    values.tile = XawCreateStippledPixmap(XtDisplayOfObject(w), XtWindowOfObject(XtParent(w)),
     	    entry->sme_bsb.foreground,
     	    XtParent(w)->core.background_pixel,
     	    XtParent(w)->core.depth);
-    values.graphics_exposures = FALSE;
-    mask |= GCTile | GCFillStyle;
+    values.graphics_exposures = 0;
+    mask |= XCB_GC_TILE | XCB_GC_FILL_STYLE;
 #ifdef XAW_INTERNATIONALIZATION
     if ( entry->sme.international == True )
-        entry->sme_bsb.norm_gray_gc = XtAllocateGC(w, 0, mask_i18n, &values, GCFont, 0 );
+        entry->sme_bsb.norm_gray_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
     else
 #endif
-        entry->sme_bsb.norm_gray_gc = XtGetGC(w, mask, &values);
+        entry->sme_bsb.norm_gray_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
 
     values.foreground ^= values.background;
     values.background = 0;
-    values.function = GXxor;
-    mask = GCForeground | GCBackground | GCGraphicsExposures | GCFunction;
-    entry->sme_bsb.invert_gc = XtGetGC(w, mask, &values);
+    values.function = XCB_GX_XOR;
+    mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FUNCTION;
+    entry->sme_bsb.invert_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
 }
 
 /*      Function Name: DestroyGCs

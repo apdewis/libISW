@@ -104,6 +104,95 @@ XawFreePixmap(xcb_connection_t *conn, xcb_pixmap_t pixmap)
 }
 
 /*
+ * XawCreateStippledPixmap - Create a stippled pixmap for grayed-out effects
+ *
+ * Creates a 2x2 checkerboard pattern pixmap for use as a tile in GCs.
+ */
+xcb_pixmap_t
+XawCreateStippledPixmap(xcb_connection_t *conn, xcb_drawable_t d,
+                        unsigned long fg, unsigned long bg,
+                        unsigned int depth)
+{
+    xcb_pixmap_t pixmap;
+    xcb_gcontext_t gc;
+    xcb_rectangle_t rects[2];
+    
+    if (!conn)
+        return 0;
+    
+    /* Create a 2x2 pixmap */
+    pixmap = xcb_generate_id(conn);
+    xcb_create_pixmap(conn, depth, pixmap, d, 2, 2);
+    
+    /* Create a temporary GC */
+    gc = xcb_generate_id(conn);
+    {
+        uint32_t values[1];
+        values[0] = bg;
+        xcb_create_gc(conn, gc, pixmap, XCB_GC_FOREGROUND, values);
+    }
+    
+    /* Fill with background */
+    rects[0].x = 0; rects[0].y = 0; rects[0].width = 2; rects[0].height = 2;
+    xcb_poly_fill_rectangle(conn, pixmap, gc, 1, rects);
+    
+    /* Draw foreground pixels in checkerboard pattern */
+    {
+        uint32_t values[1];
+        values[0] = fg;
+        xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, values);
+    }
+    
+    /* Draw two points for checkerboard: (0,0) and (1,1) */
+    {
+        xcb_point_t points[2];
+        points[0].x = 0; points[0].y = 0;
+        points[1].x = 1; points[1].y = 1;
+        xcb_poly_point(conn, XCB_COORD_MODE_ORIGIN, pixmap, gc, 2, points);
+    }
+    
+    xcb_free_gc(conn, gc);
+    xcb_flush(conn);
+    
+    return pixmap;
+}
+
+/*
+ * XawFontStructTextWidth - Convenience wrapper that works with XFontStruct
+ *
+ * This function is provided for backward compatibility with code that
+ * used XTextWidth. It requires a connection context, so it gets it from
+ * a global or per-widget state.
+ */
+int
+XawFontStructTextWidth(XFontStruct *font, const char *text, int len)
+{
+    /* Note: This is a stub - in actual use, the widget should call
+     * XawXcbTextWidth directly with the connection.
+     * For now, return an estimate based on character count.
+     */
+    if (!font || !text || len <= 0)
+        return 0;
+    /* Rough estimate - should use actual font metrics */
+    return len * 8;  /* Assume 8 pixels per character as fallback */
+}
+
+/*
+ * XawFontSetTextWidth - Text width for XFontSet (internationalized text)
+ *
+ * This is a stub for internationalized text support.
+ */
+int
+XawFontSetTextWidth(void *fontset, const char *text, int len)
+{
+    (void)fontset;
+    if (!text || len <= 0)
+        return 0;
+    /* Rough estimate for internationalized text */
+    return len * 10;  /* Assume 10 pixels per character as fallback */
+}
+
+/*
  * =================================================================
  * GC VALUE HELPERS
  * =================================================================
@@ -408,4 +497,591 @@ XawXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
     /* XCB image_text_8 draws text with background */
     xcb_image_text_8(conn, len, d, gc, x, y, text);
     xcb_flush(conn);
+}
+
+/*
+ * =================================================================
+ * STRING UTILITIES (libXmu replacements)
+ * =================================================================
+ */
+
+/*
+ * XawCopyISOLatin1Lowered - Copy string converting to lowercase
+ *
+ * This is a replacement for XmuCopyISOLatin1Lowered from libXmu.
+ * Copies source to dest, converting ISO Latin-1 characters to lowercase.
+ * The ISO Latin-1 character set has uppercase letters at:
+ *   0x41-0x5A (A-Z) -> 0x61-0x7A (a-z)
+ *   0xC0-0xDE (uppercase accented) -> 0xE0-0xFE (lowercase accented)
+ *   Exception: 0xD7 (multiplication sign) has no lowercase
+ */
+void
+XawCopyISOLatin1Lowered(char *dst, const char *src)
+{
+    unsigned char c;
+    
+    if (!dst || !src)
+        return;
+    
+    while ((c = (unsigned char)*src++) != '\0') {
+        /* ASCII uppercase A-Z */
+        if (c >= 0x41 && c <= 0x5A) {
+            c += 0x20;  /* Convert to lowercase */
+        }
+        /* ISO Latin-1 uppercase accented (except multiplication sign at 0xD7) */
+        else if (c >= 0xC0 && c <= 0xDE && c != 0xD7) {
+            c += 0x20;  /* Convert to lowercase */
+        }
+        *dst++ = (char)c;
+    }
+    *dst = '\0';
+}
+
+/*
+ * =================================================================
+ * TYPE CONVERTERS (libXmu replacements)
+ * =================================================================
+ */
+
+/*
+ * XawCvtStringToOrientation - Convert string to XtOrientation
+ *
+ * Converts "horizontal" or "vertical" (case-insensitive) to XtOrientation.
+ */
+Boolean
+XawCvtStringToOrientation(
+    xcb_connection_t *display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    XtPointer *converter_data)
+{
+    static XtOrientation orientation;
+    char lowerName[64];
+    const char *str = (const char *)from->addr;
+    
+    (void)display;     /* unused */
+    (void)args;        /* unused */
+    (void)num_args;    /* unused */
+    (void)converter_data;  /* unused */
+    
+    if (str == NULL || strlen(str) >= sizeof(lowerName))
+        return False;
+    
+    XawCopyISOLatin1Lowered(lowerName, str);
+    
+    if (strcmp(lowerName, "horizontal") == 0) {
+        orientation = XtorientHorizontal;
+    } else if (strcmp(lowerName, "vertical") == 0) {
+        orientation = XtorientVertical;
+    } else {
+        return False;
+    }
+    
+    if (to->addr == NULL) {
+        to->addr = (XPointer)&orientation;
+    } else if (to->size < sizeof(XtOrientation)) {
+        to->size = sizeof(XtOrientation);
+        return False;
+    } else {
+        *(XtOrientation *)to->addr = orientation;
+    }
+    to->size = sizeof(XtOrientation);
+    
+    return True;
+}
+
+/*
+ * XawCvtStringToJustify - Convert string to XtJustify
+ *
+ * Converts "left", "center", or "right" (case-insensitive) to XtJustify.
+ */
+Boolean
+XawCvtStringToJustify(
+    xcb_connection_t *display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    XtPointer *converter_data)
+{
+    static XtJustify justify;
+    char lowerName[64];
+    const char *str = (const char *)from->addr;
+    
+    (void)display;     /* unused */
+    (void)args;        /* unused */
+    (void)num_args;    /* unused */
+    (void)converter_data;  /* unused */
+    
+    if (str == NULL || strlen(str) >= sizeof(lowerName))
+        return False;
+    
+    XawCopyISOLatin1Lowered(lowerName, str);
+    
+    if (strcmp(lowerName, "left") == 0) {
+        justify = XtJustifyLeft;
+    } else if (strcmp(lowerName, "center") == 0) {
+        justify = XtJustifyCenter;
+    } else if (strcmp(lowerName, "right") == 0) {
+        justify = XtJustifyRight;
+    } else {
+        return False;
+    }
+    
+    if (to->addr == NULL) {
+        to->addr = (XPointer)&justify;
+    } else if (to->size < sizeof(XtJustify)) {
+        to->size = sizeof(XtJustify);
+        return False;
+    } else {
+        *(XtJustify *)to->addr = justify;
+    }
+    to->size = sizeof(XtJustify);
+    
+    return True;
+}
+
+/*
+ * XawCvtStringToEdgeType - Convert string to XtEdgeType
+ *
+ * Converts "ChainTop", "ChainBottom", "ChainLeft", "ChainRight", "Rubber"
+ * (case-insensitive) to XtEdgeType values for Form widget constraints.
+ */
+Boolean
+XawCvtStringToEdgeType(
+    xcb_connection_t *display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    XtPointer *converter_data)
+{
+    static XtEdgeType edge;
+    char lowerName[64];
+    const char *str = (const char *)from->addr;
+    
+    (void)display;     /* unused */
+    (void)args;        /* unused */
+    (void)num_args;    /* unused */
+    (void)converter_data;  /* unused */
+    
+    if (str == NULL || strlen(str) >= sizeof(lowerName))
+        return False;
+    
+    XawCopyISOLatin1Lowered(lowerName, str);
+    
+    if (strcmp(lowerName, "chaintop") == 0) {
+        edge = XtChainTop;
+    } else if (strcmp(lowerName, "chainbottom") == 0) {
+        edge = XtChainBottom;
+    } else if (strcmp(lowerName, "chainleft") == 0) {
+        edge = XtChainLeft;
+    } else if (strcmp(lowerName, "chainright") == 0) {
+        edge = XtChainRight;
+    } else if (strcmp(lowerName, "rubber") == 0) {
+        edge = XtRubber;
+    } else {
+        return False;
+    }
+    
+    if (to->addr == NULL) {
+        to->addr = (XPointer)&edge;
+    } else if (to->size < sizeof(XtEdgeType)) {
+        to->size = sizeof(XtEdgeType);
+        return False;
+    } else {
+        *(XtEdgeType *)to->addr = edge;
+    }
+    to->size = sizeof(XtEdgeType);
+    
+    return True;
+}
+
+/*
+ * XawCvtStringToWidget - Convert string to Widget
+ *
+ * Replacement for XmuCvtStringToWidget from libXmu.
+ * Converts a widget name string to a Widget reference by searching
+ * the widget tree starting from the parent widget (provided via args).
+ */
+Boolean
+XawCvtStringToWidget(
+    xcb_connection_t *display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    XtPointer *converter_data)
+{
+    static Widget widget;
+    Widget parent;
+    const char *name;
+    
+    (void)display;         /* unused */
+    (void)converter_data;  /* unused */
+    
+    /* Need exactly one argument: the parent widget */
+    if (*num_args != 1) {
+        XtAppWarningMsg(
+            XtWidgetToApplicationContext(*((Widget *)args[0].addr)),
+            "wrongParameters", "cvtStringToWidget", "XtToolkitError",
+            "String to Widget conversion requires parent argument",
+            (String *)NULL, (Cardinal *)NULL);
+        return False;
+    }
+    
+    parent = *((Widget *)args[0].addr);
+    name = (const char *)from->addr;
+    
+    if (name == NULL || *name == '\0') {
+        return False;
+    }
+    
+    /* Look up widget by name from the parent */
+    widget = XtNameToWidget(parent, (String)name);
+    
+    if (widget == (Widget)NULL) {
+        /* Widget not found - not an error, may be created later */
+        return False;
+    }
+    
+    if (to->addr == NULL) {
+        to->addr = (XPointer)&widget;
+    } else if (to->size < sizeof(Widget)) {
+        to->size = sizeof(Widget);
+        return False;
+    } else {
+        *(Widget *)to->addr = widget;
+    }
+    to->size = sizeof(Widget);
+    
+    return True;
+}
+
+/*
+ * =================================================================
+ * REGION OPERATIONS
+ * =================================================================
+ */
+
+/* Maximum number of rectangles in a region (can be expanded if needed) */
+#define XAWREGION_MAXRECTS 64
+
+/* Internal region structure */
+typedef struct _XawRegion {
+    int numRects;
+    xcb_rectangle_t rects[XAWREGION_MAXRECTS];
+    xcb_rectangle_t extents;  /* Bounding box */
+} XawRegion;
+
+/*
+ * XawCreateRegion - Create an empty region
+ */
+XawRegionPtr
+XawCreateRegion(void)
+{
+    XawRegionPtr region = (XawRegionPtr)calloc(1, sizeof(XawRegion));
+    return region;
+}
+
+/*
+ * XawDestroyRegion - Free a region
+ */
+void
+XawDestroyRegion(XawRegionPtr region)
+{
+    if (region)
+        free(region);
+}
+
+/* Helper to update region extents */
+static void
+UpdateRegionExtents(XawRegionPtr region)
+{
+    int i;
+    int16_t minx, miny, maxx, maxy;
+    
+    if (region->numRects == 0) {
+        region->extents.x = 0;
+        region->extents.y = 0;
+        region->extents.width = 0;
+        region->extents.height = 0;
+        return;
+    }
+    
+    minx = region->rects[0].x;
+    miny = region->rects[0].y;
+    maxx = region->rects[0].x + region->rects[0].width;
+    maxy = region->rects[0].y + region->rects[0].height;
+    
+    for (i = 1; i < region->numRects; i++) {
+        if (region->rects[i].x < minx)
+            minx = region->rects[i].x;
+        if (region->rects[i].y < miny)
+            miny = region->rects[i].y;
+        if (region->rects[i].x + region->rects[i].width > maxx)
+            maxx = region->rects[i].x + region->rects[i].width;
+        if (region->rects[i].y + region->rects[i].height > maxy)
+            maxy = region->rects[i].y + region->rects[i].height;
+    }
+    
+    region->extents.x = minx;
+    region->extents.y = miny;
+    region->extents.width = maxx - minx;
+    region->extents.height = maxy - miny;
+}
+
+/*
+ * XawUnionRectWithRegion - Add a rectangle to a region
+ *
+ * Simplified implementation: just adds the rectangle to the list.
+ * A full implementation would merge overlapping rectangles.
+ */
+void
+XawUnionRectWithRegion(xcb_rectangle_t *rect, XawRegionPtr source, XawRegionPtr dest)
+{
+    int i;
+    
+    if (!rect || !source || !dest)
+        return;
+    
+    /* Copy source to dest if different */
+    if (source != dest) {
+        dest->numRects = source->numRects;
+        for (i = 0; i < source->numRects; i++)
+            dest->rects[i] = source->rects[i];
+    }
+    
+    /* Add the new rectangle if there's room */
+    if (dest->numRects < XAWREGION_MAXRECTS) {
+        dest->rects[dest->numRects] = *rect;
+        dest->numRects++;
+    }
+    
+    UpdateRegionExtents(dest);
+}
+
+/*
+ * XawSubtractRegion - Subtract one region from another
+ *
+ * Simplified implementation: for the specific use case in Command.c,
+ * this creates a "frame" region (outer - inner).
+ * A full implementation would handle complex polygon subtraction.
+ */
+void
+XawSubtractRegion(XawRegionPtr regM, XawRegionPtr regS, XawRegionPtr regD)
+{
+    /* 
+     * Simplified subtraction for frame regions:
+     * If regM has 1 rect (outer) and regS has 1 rect (inner),
+     * create 4 rectangles for the frame.
+     */
+    if (!regM || !regS || !regD)
+        return;
+    
+    if (regM->numRects == 1 && regS->numRects == 1) {
+        xcb_rectangle_t *outer = &regM->rects[0];
+        xcb_rectangle_t *inner = &regS->rects[0];
+        
+        regD->numRects = 0;
+        
+        /* Top rectangle */
+        if (inner->y > outer->y) {
+            regD->rects[regD->numRects].x = outer->x;
+            regD->rects[regD->numRects].y = outer->y;
+            regD->rects[regD->numRects].width = outer->width;
+            regD->rects[regD->numRects].height = inner->y - outer->y;
+            regD->numRects++;
+        }
+        
+        /* Bottom rectangle */
+        if ((inner->y + inner->height) < (outer->y + outer->height)) {
+            regD->rects[regD->numRects].x = outer->x;
+            regD->rects[regD->numRects].y = inner->y + inner->height;
+            regD->rects[regD->numRects].width = outer->width;
+            regD->rects[regD->numRects].height = (outer->y + outer->height) - (inner->y + inner->height);
+            regD->numRects++;
+        }
+        
+        /* Left rectangle */
+        if (inner->x > outer->x) {
+            regD->rects[regD->numRects].x = outer->x;
+            regD->rects[regD->numRects].y = inner->y;
+            regD->rects[regD->numRects].width = inner->x - outer->x;
+            regD->rects[regD->numRects].height = inner->height;
+            regD->numRects++;
+        }
+        
+        /* Right rectangle */
+        if ((inner->x + inner->width) < (outer->x + outer->width)) {
+            regD->rects[regD->numRects].x = inner->x + inner->width;
+            regD->rects[regD->numRects].y = inner->y;
+            regD->rects[regD->numRects].width = (outer->x + outer->width) - (inner->x + inner->width);
+            regD->rects[regD->numRects].height = inner->height;
+            regD->numRects++;
+        }
+        
+        UpdateRegionExtents(regD);
+    } else {
+        /* For complex cases, just copy regM */
+        int i;
+        regD->numRects = regM->numRects;
+        for (i = 0; i < regM->numRects; i++)
+            regD->rects[i] = regM->rects[i];
+        regD->extents = regM->extents;
+    }
+}
+
+/*
+ * XawReshapeWidget - Shape a widget using the X Shape extension
+ *
+ * This is a stub implementation. Full shape support requires:
+ * - xcb-shape library
+ * - Proper shape pixmap creation
+ * - For now, just returns True (rectangular shape)
+ */
+Boolean
+XawReshapeWidget(Widget w, int shape_style, int corner_width, int corner_height)
+{
+    (void)w;
+    (void)shape_style;
+    (void)corner_width;
+    (void)corner_height;
+    
+    /*
+     * TODO: Implement proper shape extension support using xcb-shape.
+     * For now, return True indicating rectangular (default) shape.
+     * This allows the code to compile and run, but shaped buttons
+     * will appear rectangular.
+     */
+    return True;
+}
+
+/*
+ * =================================================================
+ * COLOR UTILITIES
+ * =================================================================
+ */
+
+/*
+ * XawDistinguishablePixels - Check if pixels are visually distinguishable
+ *
+ * Simplified implementation for XCB. A full implementation would use
+ * xcb_query_colors to get the RGB values and compare them with a threshold.
+ * For now, we use a simple comparison - if pixels are identical, they're
+ * not distinguishable; otherwise assume they are.
+ */
+Boolean
+XawDistinguishablePixels(
+    xcb_connection_t *conn,
+    xcb_colormap_t colormap,
+    unsigned long *pixels,
+    int count)
+{
+    int i, j;
+    
+    (void)conn;       /* Unused for simplified version */
+    (void)colormap;   /* Unused for simplified version */
+    
+    /* Check if all pixels are different from each other */
+    for (i = 0; i < count - 1; i++) {
+        for (j = i + 1; j < count; j++) {
+            if (pixels[i] == pixels[j]) {
+                /* Two pixels are identical - not distinguishable */
+                return False;
+            }
+        }
+    }
+    
+    /*
+     * All pixels have different values, so assume they're distinguishable.
+     *
+     * TODO: Full implementation should use xcb_query_colors to get actual
+     * RGB values and compare with a perceptual threshold, like:
+     *
+     * xcb_query_colors_cookie_t cookie;
+     * xcb_query_colors_reply_t *reply;
+     * cookie = xcb_query_colors(conn, colormap, count, pixels);
+     * reply = xcb_query_colors_reply(conn, cookie, NULL);
+     * if (reply) {
+     *     xcb_rgb_iterator_t iter = xcb_query_colors_colors_iterator(reply);
+     *     // Compare RGB values with threshold
+     *     free(reply);
+     * }
+     */
+    return True;
+}
+
+/*
+ * XawCompareISOLatin1 - Case-insensitive string comparison for ISO Latin-1
+ */
+int XawCompareISOLatin1(const char *first, const char *second)
+{
+    const unsigned char *p1 = (const unsigned char *)first;
+    const unsigned char *p2 = (const unsigned char *)second;
+    unsigned char c1, c2;
+    
+    while (*p1 && *p2) {
+        c1 = *p1;
+        c2 = *p2;
+        
+        /* Convert to lowercase if uppercase */
+        if (c1 >= 'A' && c1 <= 'Z')
+            c1 += 'a' - 'A';
+        if (c2 >= 'A' && c2 <= 'Z')
+            c2 += 'a' - 'A';
+            
+        if (c1 != c2)
+            return c1 - c2;
+            
+        p1++;
+        p2++;
+    }
+    
+    return *p1 - *p2;
+}
+
+/*
+ * XawLocatePixmapFile - Stub implementation
+ *
+ * This is a stub that always returns None. Full implementation would require
+ * XPM library support or other image format handling.
+ */
+Pixmap XawLocatePixmapFile(
+    xcb_screen_t *screen,
+    const char *name,
+    unsigned long fore,
+    unsigned long back,
+    unsigned int depth,
+    char *srcname,
+    size_t srcnamelen,
+    int *widthp,
+    int *heightp,
+    int *xhotp,
+    int *yhotp)
+{
+    /* Suppress unused parameter warnings */
+    (void)screen;
+    (void)name;
+    (void)fore;
+    (void)back;
+    (void)depth;
+    (void)srcname;
+    (void)srcnamelen;
+    (void)widthp;
+    (void)heightp;
+    (void)xhotp;
+    (void)yhotp;
+    
+    /* TODO: Implement pixmap file loading
+     * This would require:
+     * - XPM library integration for XPM files
+     * - XBM parsing for bitmap files
+     * - File path resolution
+     * - Pixmap creation from file data
+     */
+    
+    return None;
 }

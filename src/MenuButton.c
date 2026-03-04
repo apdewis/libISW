@@ -53,6 +53,7 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/MenuButtoP.h>
+#include "XawXcbDraw.h"
 
 static void ClassInitialize(void);
 static void PopupMenu(Widget, XEvent *, String *, Cardinal *);

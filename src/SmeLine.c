@@ -183,13 +183,14 @@ CreateGC(Widget w)
 	xcb_flush(conn);
     }
     else {
-	/* For shared GC, still use XtGetGC with compatibility wrapper */
-	XGCValues xvalues;
-	XtGCMask xmask = GCForeground | GCGraphicsExposures | GCLineWidth;
-	xvalues.foreground = entry->sme_line.foreground;
-	xvalues.graphics_exposures = FALSE;
-	xvalues.line_width = entry->sme_line.line_width;
-	entry->sme_line.gc = XtGetGC(w, xmask, &xvalues);
+ /* For shared GC, still use XtGetGC with compatibility wrapper */
+ xcb_create_gc_value_list_t xvalues;
+ XtGCMask xmask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_LINE_WIDTH;
+ memset(&xvalues, 0, sizeof(xvalues));
+ xvalues.foreground = entry->sme_line.foreground;
+ xvalues.graphics_exposures = 0;
+ xvalues.line_width = entry->sme_line.line_width;
+ entry->sme_line.gc = XtGetGC(w, xmask, (xcb_create_gc_value_list_t*)&xvalues);
     }
 }
 

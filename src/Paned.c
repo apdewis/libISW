@@ -71,6 +71,7 @@ SOFTWARE.
 #include <ctype.h>
 #include <xcb/xcb.h>
 #include <xcb/xfixes.h>
+#include "XawXcbDraw.h"
 
 /* I don't know why Paned.c calls _XawImCallVendorShellExtResize, but... */
 /* FIXME: XawImP.h uses Xlib-specific types (XIM, XIC) that don't exist in XCB */
@@ -321,12 +322,13 @@ AdjustPanedSize(PanedWidget pw, Dimension off_size, XtGeometryResult * result_re
       request.request_mode |= XtCWQueryOnly;
 
       *result_ret = XtMakeGeometryRequest( (Widget) pw, &request, &reply );
-#ifdef XAW_INTERNATIONALIZATION
+      /* XIM support not available in XCB-based libXt - stub out */
+      /* #ifdef XAW_INTERNATIONALIZATION
       _XawImCallVendorShellExtResize( (Widget) pw );
-#endif
+      #endif */
 
       if ( (newsize == old_size) || (*result_ret == XtGeometryNo) ) {
-	  *on_size_ret = old_size;
+   *on_size_ret = old_size;
 	  *off_size_ret = off_size;
 	  return;
       }
@@ -645,9 +647,7 @@ static void
 CommitNewLocations(PanedWidget pw)
 {
     Widget *childP;
-    XWindowChanges changes;
-
-    changes.stack_mode = Above;
+    int16_t grip_x, grip_y;
 
     ForAllPanes(pw, childP) {
 	Pane pane = PaneInfo(*childP);
@@ -659,9 +659,9 @@ CommitNewLocations(PanedWidget pw)
 			   (Dimension) 0);
 
 	    if (HasGrip(*childP)) {	    /* Move and Display the Grip */
-	        changes.x = pw->core.width - pw->paned.grip_indent -
+	        grip_x = pw->core.width - pw->paned.grip_indent -
 		            grip->core.width - grip->core.border_width*2;
-		changes.y = (*childP)->core.y + (*childP)->core.height -
+		grip_y = (*childP)->core.y + (*childP)->core.height -
 		            grip->core.height/2 - grip->core.border_width +
 			    pw->paned.internal_bw/2;
 	    }
@@ -673,10 +673,10 @@ CommitNewLocations(PanedWidget pw)
 
 
 	    if (HasGrip(*childP)) {	    /* Move and Display the Grip */
-	        changes.x = (*childP)->core.x + (*childP)->core.width -
+	        grip_x = (*childP)->core.x + (*childP)->core.width -
 	                    grip->core.width/2 - grip->core.border_width +
 			    pw->paned.internal_bw/2;
-		changes.y = pw->core.height - pw->paned.grip_indent -
+		grip_y = pw->core.height - pw->paned.grip_indent -
 	                    grip->core.height - grip->core.border_width*2;
 	    }
 	}
@@ -687,12 +687,19 @@ CommitNewLocations(PanedWidget pw)
  */
 
 	if (HasGrip(*childP)) {
-	    grip->core.x = changes.x;
-	    grip->core.y = changes.y;
+	    grip->core.x = grip_x;
+	    grip->core.y = grip_y;
 
-	    if (XtIsRealized(pane->grip))
-	        XConfigureWindow( XtDisplay(pane->grip), XtWindow(pane->grip),
-				  CWX | CWY | CWStackMode, &changes );
+	    if (XtIsRealized(pane->grip)) {
+	        /* XCB: Use xcb_configure_window with values array */
+	        uint32_t values[3];
+	        values[0] = grip_x;  /* x */
+	        values[1] = grip_y;  /* y */
+	        values[2] = XCB_STACK_MODE_ABOVE;  /* stack_mode */
+	        xcb_configure_window(XtDisplay(pane->grip), XtWindow(pane->grip),
+				     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+				     XCB_CONFIG_WINDOW_STACK_MODE, values);
+	    }
 	}
     }
     ClearPaneStack(pw);
@@ -856,21 +863,28 @@ GetEventLocation(PanedWidget pw, XEvent *event)
 {
     int x, y;
 
-    switch (event->xany.type) {
-        case ButtonPress:
-	case ButtonRelease:
-            x = event->xbutton.x_root;
-	    y = event->xbutton.y_root;
+    /* XCB: Cast generic event to specific event types */
+    switch (event->response_type & ~0x80) {
+        case XCB_BUTTON_PRESS:
+	case XCB_BUTTON_RELEASE: {
+	    xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+            x = bev->root_x;
+	    y = bev->root_y;
 	    break;
-	case KeyPress:
-	case KeyRelease:
-	    x = event->xkey.x_root;
-	    y = event->xkey.y_root;
+	}
+	case XCB_KEY_PRESS:
+	case XCB_KEY_RELEASE: {
+	    xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+	    x = kev->root_x;
+	    y = kev->root_y;
 	    break;
-        case MotionNotify:
-	    x = event->xmotion.x_root;
-	    y = event->xmotion.y_root;
+	}
+        case XCB_MOTION_NOTIFY: {
+	    xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
+	    x = mev->root_x;
+	    y = mev->root_y;
 	    break;
+	}
 	default:
 	    x = pw->paned.start_loc;
 	    y = pw->paned.start_loc;
@@ -907,31 +921,34 @@ StartGripAdjustment(PanedWidget pw, Widget grip, Direction dir)
 
     if (XtIsRealized(grip)) {
         if ( IsVert(pw) ) {
-	    if (dir == UpLeftPane)
-	        cursor = pw->paned.adjust_upper_cursor;
-	    else if (dir == LowRightPane)
-  	        cursor = pw->paned.adjust_lower_cursor;
-	    else {
-	        if ( pw->paned.adjust_this_cursor == None)
-		    cursor = pw->paned.v_adjust_this_cursor;
-		else
-		    cursor = pw->paned.adjust_this_cursor;
-	    }
-	}
-	else {
-	    if (dir == UpLeftPane)
-	        cursor = pw->paned.adjust_left_cursor;
-	    else if (dir == LowRightPane)
-  	        cursor = pw->paned.adjust_right_cursor;
-	    else {
-	        if (pw->paned.adjust_this_cursor == None)
-		    cursor = pw->paned.h_adjust_this_cursor;
-		else
-		    cursor = pw->paned.adjust_this_cursor;
-	    }
-	}
+     if (dir == UpLeftPane)
+         cursor = pw->paned.adjust_upper_cursor;
+     else if (dir == LowRightPane)
+           cursor = pw->paned.adjust_lower_cursor;
+     else {
+         if ( pw->paned.adjust_this_cursor == None)
+      cursor = pw->paned.v_adjust_this_cursor;
+  else
+      cursor = pw->paned.adjust_this_cursor;
+     }
+ }
+ else {
+     if (dir == UpLeftPane)
+         cursor = pw->paned.adjust_left_cursor;
+     else if (dir == LowRightPane)
+           cursor = pw->paned.adjust_right_cursor;
+     else {
+         if (pw->paned.adjust_this_cursor == None)
+      cursor = pw->paned.h_adjust_this_cursor;
+  else
+      cursor = pw->paned.adjust_this_cursor;
+     }
+ }
 
-	XDefineCursor(XtDisplay(grip), XtWindow(grip), cursor);
+ /* XCB: Use xcb_change_window_attributes to set cursor */
+ uint32_t value = cursor;
+ xcb_change_window_attributes(XtDisplay(grip), XtWindow(grip),
+          XCB_CW_CURSOR, &value);
     }
 
     EraseInternalBorders(pw);
@@ -1060,12 +1077,16 @@ HandleGrip(Widget grip, XtPointer junk, XtPointer callData)
 	    MoveGripAdjustment(pw, grip, direction, loc);
 	    break;
 
-	case 'C':
+	case 'C': {
 	    XtSetArg(arglist[0], XtNcursor, &cursor);
 	    XtGetValues(grip, arglist, (Cardinal) 1);
-	    XDefineCursor(XtDisplay(grip), XtWindow(grip), cursor);
+	    /* XCB: Use xcb_change_window_attributes to set cursor */
+	    uint32_t value = cursor;
+	    xcb_change_window_attributes(XtDisplay(grip), XtWindow(grip),
+					  XCB_CW_CURSOR, &value);
 	    CommitGripAdjustment(pw);
 	    break;
+	}
 
 	default:
 	    XtError( "Paned GripAction(); 1st parameter invalid" );

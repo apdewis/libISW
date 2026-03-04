@@ -73,6 +73,7 @@ SOFTWARE.
 #endif
 #include <X11/Xaw3d/ThreeDP.h>
 #include <X11/Xfuncs.h>
+#include "XawXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
 
 #ifndef MAX_LEN_CT

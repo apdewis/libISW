@@ -59,6 +59,7 @@ SOFTWARE.
 #include	<X11/StringDefs.h>
 #include	<X11/Xaw3d/XawInit.h>
 #include	<X11/Xaw3d/BoxP.h>
+#include	"XawXcbDraw.h"
 
 /****************************************************************
  *

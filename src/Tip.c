@@ -326,7 +326,7 @@ XawTipExpose(Widget w, XEvent *event, Region region)
     TipWidget tip = (TipWidget)w;
     GC gc = tip->tip.gc;
     char *nl, *label = tip->tip.label;
-    Position y = tip->tip.internal_height + tip->tip.font->max_bounds.ascent;
+    Position y = tip->tip.internal_height + tip->tip.font->ascent;
     int len;
 
 #ifdef XAW_INTERNATIONALIZATION
@@ -359,8 +359,8 @@ XawTipExpose(Widget w, XEvent *event, Region region)
 		XDrawString(XtDisplay(w), XtWindow(w), gc,
 			    tip->tip.internal_width, y,
 			    label, (int)(nl - label));
-	    y += tip->tip.font->max_bounds.ascent +
-		 tip->tip.font->max_bounds.descent;
+	    y += tip->tip.font->ascent +
+		 tip->tip.font->descent;
 	    label = nl + 1;
 	}
 	len = strlen(label);
@@ -436,7 +436,7 @@ TipLayout(XawTipInfo *info)
     else
 #endif
     {
-	height = fs->max_bounds.ascent + fs->max_bounds.descent;
+	height = fs->ascent + fs->descent;
 	if ((nl = index(label, '\n')) != NULL) {
 	    /*CONSTCOND*/
 	    while (True) {
@@ -451,7 +451,7 @@ TipLayout(XawTipInfo *info)
 		    break;
 		label = nl + 1;
 		if (*label)
-		    height += fs->max_bounds.ascent + fs->max_bounds.descent;
+		    height += fs->ascent + fs->descent;
 		if ((nl = index(label, '\n')) == NULL)
 		    nl = index(label, '\0');
 	    }

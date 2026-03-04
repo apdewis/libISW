@@ -182,11 +182,11 @@ tic (XtPointer client_data, XtIntervalId *id)
  xcb_clear_area(conn, 0, XtWindow((Widget) rw), 0, 0, 0, 0);
  xcb_flush(conn);
  rw->command.set = FALSE;
- (*expose) ((Widget) rw, (XEvent *) NULL, (Region) NULL);
+ (*expose) ((Widget) rw, (xcb_generic_event_t *) NULL, XCB_NONE);
  xcb_clear_area(conn, 0, XtWindow((Widget) rw), 0, 0, 0, 0);
  xcb_flush(conn);
  rw->command.set = TRUE;
- (*expose) ((Widget) rw, (XEvent *) NULL, (Region) NULL);
+ (*expose) ((Widget) rw, (xcb_generic_event_t *) NULL, XCB_NONE);
     }
     DO_CALLBACK (rw);
 

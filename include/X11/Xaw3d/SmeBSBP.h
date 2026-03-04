@@ -44,6 +44,16 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/SmeBSB.h>
 #include <X11/Xaw3d/XawXftCompat.h>  /* XawFontSet typedef */
 
+/* XtJustify is missing from XCB-based libXt, define it here */
+#ifndef _XawXtJustify_defined
+#define _XawXtJustify_defined
+typedef enum {
+    XtJustifyLeft,
+    XtJustifyCenter,
+    XtJustifyRight
+} XtJustify;
+#endif
+
 /************************************************************
  *
  * New fields for the Sme Object class record.

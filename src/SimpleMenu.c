@@ -52,6 +52,10 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
+#include "XawXcbDraw.h"
+
+/* XPoint typedef for XCB */
+typedef xcb_point_t XPoint;
 
 #define streq(a, b)        ( strcmp((a), (b)) == 0 )
 
@@ -96,9 +100,10 @@ static XtResource resources[] = {
       offset(menu_on_screen), XtRImmediate, (XtPointer) TRUE},
   {XtNpopupOnEntry,  XtCPopupOnEntry, XtRWidget, sizeof(Widget),
       offset(popup_entry), XtRWidget, NULL},
-  {XtNbackingStore, XtCBackingStore, XtRBackingStore, sizeof (int),
+  /* Backing store not supported in XCB */
+  /*{XtNbackingStore, XtCBackingStore, XtRBackingStore, sizeof (int),
       offset(backing_store),
-      XtRImmediate, (XtPointer) (Always + WhenMapped + NotUseful)},
+      XtRImmediate, (XtPointer) (Always + WhenMapped + NotUseful)},*/
   {XtNjumpScroll,  XtCJumpScroll, XtRInt, sizeof(int),
       offset(jump_val), XtRImmediate, (XtPointer)1},
 };
@@ -240,6 +245,17 @@ WidgetClass simpleMenuWidgetClass = (WidgetClass)&simpleMenuClassRec;
  *
  ************************************************************/
 
+/* Stubs for XawAddInitializer/XawCallInitializers - not in XCB libXt */
+static void XawAddInitializer(void (*proc)(XtAppContext, XtPointer), XtPointer closure) {
+    (void)proc; (void)closure;
+    /* Stub - initializers not supported */
+}
+
+static void XawCallInitializers(XtAppContext app) {
+    (void)app;
+    /* Stub - initializers not supported */
+}
+
 /*      Function Name: ClassInitialize
  *      Description: Class Initialize routine, called only once.
  *      Arguments: none.
@@ -250,9 +266,10 @@ static void
 ClassInitialize(void)
 {
   XawInitializeWidgetSet();
-  XtAddConverter( XtRString, XtRBackingStore, XmuCvtStringToBackingStore,
-		 (XtConvertArgList)NULL, (Cardinal)0 );
-  XawAddInitializer( AddPositionAction, NULL);
+  /* Backing store converter not supported in XCB */
+  /*XtAddConverter( XtRString, XtRBackingStore, XmuCvtStringToBackingStore,
+		 (XtConvertArgList)NULL, (Cardinal)0 );*/
+  XawAddInitializer((void (*)(XtAppContext, XtPointer))AddPositionAction, NULL);
 }
 
 /*      Function Name: ClassInitialize
@@ -453,7 +470,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	class = (SmeObjectClass)(*entry)->object.widget_class;
 
 	if (class->rect_class.expose != NULL)
-	    (class->rect_class.expose)((Widget)*entry, NULL, NULL);
+	    (class->rect_class.expose)((Widget)*entry, NULL, XCB_NONE);
 
 	if (smw->simple_menu.too_tall) (*entry)->rectangle = old_pos;
 
@@ -549,9 +566,11 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	}
     }
 
-    if (smw_old->simple_menu.cursor != smw_new->simple_menu.cursor)
-	XDefineCursor(XtDisplay(new),
-		      XtWindow(new), smw_new->simple_menu.cursor);
+    if (smw_old->simple_menu.cursor != smw_new->simple_menu.cursor) {
+ xcb_connection_t *conn = XtDisplay(new);
+ uint32_t value = smw_new->simple_menu.cursor;
+ xcb_change_window_attributes(conn, XtWindow(new), XCB_CW_CURSOR, &value);
+    }
 
     if (smw_old->simple_menu.label_string !=smw_new->simple_menu.label_string) {
 	if (smw_new->simple_menu.label_string == NULL)         /* Destroy. */
@@ -760,24 +779,31 @@ PositionMenuAction(Widget w, XEvent * event, String * params, Cardinal * num_par
     return;
   }
 
-  switch (event->type) {
-  case ButtonPress:
-  case ButtonRelease:
-    loc.x = event->xbutton.x_root;
-    loc.y = event->xbutton.y_root;
+  uint8_t type = event->response_type & ~0x80;
+  switch (type) {
+  case XCB_BUTTON_PRESS:
+  case XCB_BUTTON_RELEASE: {
+    xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+    loc.x = bev->root_x;
+    loc.y = bev->root_y;
     PositionMenu(menu, &loc);
     break;
-  case EnterNotify:
-  case LeaveNotify:
-    loc.x = event->xcrossing.x_root;
-    loc.y = event->xcrossing.y_root;
+  }
+  case XCB_ENTER_NOTIFY:
+  case XCB_LEAVE_NOTIFY: {
+    xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
+    loc.x = cev->root_x;
+    loc.y = cev->root_y;
     PositionMenu(menu, &loc);
     break;
-  case MotionNotify:
-    loc.x = event->xmotion.x_root;
-    loc.y = event->xmotion.y_root;
+  }
+  case XCB_MOTION_NOTIFY: {
+    xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
+    loc.x = mev->root_x;
+    loc.y = mev->root_y;
     PositionMenu(menu, &loc);
     break;
+  }
   default:
     PositionMenu(menu, (XPoint *)NULL);
     break;
@@ -814,12 +840,13 @@ Unhighlight(Widget w, XEvent * event, String * params, Cardinal * num_params)
 	return;
     }
 
-    if (event->xcrossing.y < 0 || event->xcrossing.y >= (int)smw->core.height)
+    xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
+    if (cev->event_y < 0 || cev->event_y >= (int)smw->core.height)
 	PopdownSubMenu(smw);
     else if (sub &&
-		((event->xcrossing.x < 0 &&
+		((cev->event_x < 0 &&
 			!(sub->simple_menu.state & SMW_POPLEFT)) ||
-		(event->xcrossing.x >= (int)smw->core.width &&
+		(cev->event_x >= (int)smw->core.width &&
 			(sub->simple_menu.state & SMW_POPLEFT))))
 	PopdownSubMenu(smw);
 
@@ -1156,22 +1183,24 @@ PositionMenu(Widget w, XPoint * location)
     XPoint t_point;
 
     if (location == NULL) {
-	XtWindow junk1, junk2;
-	int root_x, root_y, junkX, junkY;
-	unsigned int junkM;
+ xcb_connection_t *conn = XtDisplay(w);
+ xcb_query_pointer_cookie_t cookie;
+ xcb_query_pointer_reply_t *reply;
 
-	location = &t_point;
-	if (XQueryPointer(XtDisplay(w), XtWindow(w), &junk1, &junk2,
-			  &root_x, &root_y, &junkX, &junkY, &junkM) == FALSE) {
-	    char error_buf[BUFSIZ];
-	    (void) sprintf(error_buf, "%s %s", "Xaw Simple Menu Widget:",
-		    "Could not find location of mouse pointer");
-	    XtAppWarning(XtWidgetToApplicationContext(w), error_buf);
-	    return;
-	}
-	location->x = (short) root_x;
-	location->y = (short) root_y;
-    }
+ location = &t_point;
+ cookie = xcb_query_pointer(conn, XtWindow(w));
+ reply = xcb_query_pointer_reply(conn, cookie, NULL);
+ if (reply == NULL) {
+     char error_buf[BUFSIZ];
+     (void) sprintf(error_buf, "%s %s", "Xaw Simple Menu Widget:",
+      "Could not find location of mouse pointer");
+      XtAppWarning(XtWidgetToApplicationContext(w), error_buf);
+      return;
+  }
+  location->x = (short) reply->root_x;
+  location->y = (short) reply->root_y;
+  free(reply);
+     }
 
     /*
      * The width will not be correct unless it is realized.
@@ -1252,9 +1281,10 @@ ChangeCursorOnGrab(Widget w, XtPointer junk, XtPointer garbage)
      * of the toolkit (CDP 5/26/89).
      */
 
-    XChangeActivePointerGrab(XtDisplay(w), ButtonPressMask|ButtonReleaseMask,
-			     smw->simple_menu.cursor,
-			     XtLastTimestampProcessed(XtDisplay(w)));
+    xcb_change_active_pointer_grab(XtDisplay(w),
+       smw->simple_menu.cursor,
+       XtLastTimestampProcessed(XtDisplay(w)),
+       XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE);
 }
 
 /*      Function Name: MakeSetValuesRequest
@@ -1430,24 +1460,31 @@ GetEventEntry(Widget w, XEvent * event)
     xcb_point_t pos;
     int s = ((ThreeDWidget)smw->simple_menu.threeD)->threeD.shadow_width;
 
-    switch (event->type) {
-	case MotionNotify:
-	    x_loc = event->xmotion.x;
-	    y_loc = event->xmotion.y;
-	    pos.y = event->xmotion.y_root;
-	    break;
-	case EnterNotify:
-	case LeaveNotify:
-	    x_loc = event->xcrossing.x;
-	    y_loc = event->xcrossing.y;
-	    pos.y = event->xcrossing.y_root;
-	    break;
-	case ButtonPress:
-	case ButtonRelease:
-	    x_loc = event->xbutton.x;
-	    y_loc = event->xbutton.y;
-	    pos.y = event->xbutton.y_root;
-	    break;
+    uint8_t type = event->response_type & ~0x80;
+    switch (type) {
+ case XCB_MOTION_NOTIFY: {
+     xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
+     x_loc = mev->event_x;
+     y_loc = mev->event_y;
+     pos.y = mev->root_y;
+     break;
+ }
+ case XCB_ENTER_NOTIFY:
+ case XCB_LEAVE_NOTIFY: {
+     xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
+     x_loc = cev->event_x;
+     y_loc = cev->event_y;
+     pos.y = cev->root_y;
+     break;
+ }
+ case XCB_BUTTON_PRESS:
+ case XCB_BUTTON_RELEASE: {
+     xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+     x_loc = bev->event_x;
+     y_loc = bev->event_y;
+     pos.y = bev->root_y;
+     break;
+ }
 	default:
 	    XtAppError(XtWidgetToApplicationContext(w),
 		       "Unknown event type in GetEventEntry().");

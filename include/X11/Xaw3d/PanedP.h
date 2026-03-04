@@ -63,6 +63,15 @@ SOFTWARE.
 
 #include <X11/Xaw3d/Paned.h>
 
+/* XCB-based libXt doesn't define XtOrientation - define it here */
+#ifndef _XawXtOrientation_defined
+#define _XawXtOrientation_defined
+typedef enum {
+    XtorientHorizontal = 0,
+    XtorientVertical = 1
+} XtOrientation;
+#endif
+
 /*********************************************************************
  *
  * Paned Widget Private Data

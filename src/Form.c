@@ -53,6 +53,7 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/FormP.h>
+#include "XawXcbDraw.h"
 
 /* Private Definitions */
 
@@ -813,9 +814,19 @@ XawFormDoLayout(Widget _fw,
 	     * my changes.
 	     */
 
-	    XMoveResizeWindow(XtDisplay(w), XtWindow(w),
-			      w->core.x, w->core.y,
-			      w->core.width, w->core.height);
+	    {
+		/* XCB Migration: Replace XMoveResizeWindow with xcb_configure_window */
+		uint32_t values[4];
+		values[0] = w->core.x;
+		values[1] = w->core.y;
+		values[2] = w->core.width;
+		values[3] = w->core.height;
+		xcb_configure_window(XtDisplay(w), XtWindow(w),
+		    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+		    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
+		    values);
+		xcb_flush(XtDisplay(w));
+	    }
 
 	    if (form->form.deferred_resize &&
 		XtClass(w)->core_class.resize != (XtWidgetProc) NULL) {

@@ -61,6 +61,29 @@ typedef xcb_screen_t Screen;
 /* gray stipples */
 /* arrow scrollbars */
 
+/* Min/Max utility macros */
+#ifndef XawMin
+#define XawMin(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef XawMax
+#define XawMax(a, b) ((a) > (b) ? (a) : (b))
+#endif
+/* Also provide lowercase versions for compatibility */
+#ifndef Min
+#define Min(a, b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef Max
+#define Max(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
+/* Assign-and-clamp macros */
+#ifndef AssignMax
+#define AssignMax(x, y) do { if ((y) > (x)) (x) = (y); } while (0)
+#endif
+#ifndef AssignMin
+#define AssignMin(x, y) do { if ((y) < (x)) (x) = (y); } while (0)
+#endif
+
 #ifndef XtX
 #define XtX(w)			(((RectObj)w)->rectangle.x)
 #endif

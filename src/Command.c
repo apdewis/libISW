@@ -260,12 +260,12 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   cbw->command.highlighted = HighlightNone;
 }
 
-static Region
+static XawRegionPtr
 HighlightRegion(CommandWidget cbw)
 {
-  static Region outerRegion = NULL, innerRegion, emptyRegion;
+  static XawRegionPtr outerRegion = NULL, innerRegion, emptyRegion;
   Dimension s = cbw->threeD.shadow_width;
-  XRectangle rect;
+  xcb_rectangle_t rect;
 
   if (cbw->command.highlight_thickness == 0 ||
       cbw->command.highlight_thickness >

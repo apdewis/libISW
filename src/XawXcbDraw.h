@@ -17,6 +17,39 @@
 
 /*
  * =================================================================
+ * SCREEN DIMENSION MACROS (Xlib compatibility)
+ * =================================================================
+ *
+ * These macros provide Xlib-compatible screen dimension access.
+ * In XCB, xcb_screen_t has width_in_pixels and height_in_pixels.
+ */
+#ifndef WidthOfScreen
+#define WidthOfScreen(s)  ((s)->width_in_pixels)
+#endif
+
+#ifndef HeightOfScreen
+#define HeightOfScreen(s) ((s)->height_in_pixels)
+#endif
+
+/*
+ * =================================================================
+ * WIDGET ORIENTATION TYPE (Missing from modified libXt)
+ * =================================================================
+ *
+ * The XCB-based libXt doesn't define XtOrientation type, only the
+ * string constants XtCOrientation, XtEvertical, XtEhorizontal.
+ * We need to define the enumeration type for widget structures.
+ */
+#ifndef _XawXtOrientation_defined
+#define _XawXtOrientation_defined
+typedef enum {
+    XtorientHorizontal = 0,
+    XtorientVertical = 1
+} XtOrientation;
+#endif
+
+/*
+ * =================================================================
  * BITMAP AND PIXMAP CREATION
  * =================================================================
  */
@@ -54,6 +87,72 @@ xcb_pixmap_t XawCreateBitmapFromData(xcb_connection_t *conn,
  *   pixmap - Pixmap to free
  */
 void XawFreePixmap(xcb_connection_t *conn, xcb_pixmap_t pixmap);
+
+/*
+ * XawCreateStippledPixmap - Create a stippled pixmap for grayed-out effects
+ *
+ * Replacement for XmuCreateStippledPixmap from libXmu.
+ * Creates a 2x2 checkerboard pattern pixmap.
+ *
+ * Parameters:
+ *   conn  - XCB connection
+ *   d     - Drawable for depth reference
+ *   fg    - Foreground pixel value
+ *   bg    - Background pixel value
+ *   depth - Depth of pixmap to create
+ *
+ * Returns: xcb_pixmap_t (0 on failure)
+ */
+xcb_pixmap_t XawCreateStippledPixmap(xcb_connection_t *conn,
+                                     xcb_drawable_t d,
+                                     unsigned long fg,
+                                     unsigned long bg,
+                                     unsigned int depth);
+
+/*
+ * XawFontStructTextWidth - Calculate text width using XFontStruct
+ *
+ * Replacement for XTextWidth when using XFontStruct (legacy fonts).
+ *
+ * Parameters:
+ *   font - XFontStruct pointer
+ *   text - Text string
+ *   len  - Length of text
+ *
+ * Returns: Width in pixels
+ */
+int XawFontStructTextWidth(XFontStruct *font, const char *text, int len);
+
+/*
+ * XawFontSetTextWidth - Calculate text width using XFontSet (void*)
+ *
+ * For internationalized text - currently a stub that returns an estimate.
+ *
+ * Parameters:
+ *   fontset - XFontSet (void*) pointer
+ *   text    - Text string
+ *   len     - Length of text
+ *
+ * Returns: Width in pixels (estimated)
+ */
+int XawFontSetTextWidth(void *fontset, const char *text, int len);
+
+/* Generic XTextWidth that handles both types via _Generic in C11 or macro */
+#ifdef __STDC_VERSION__
+#if __STDC_VERSION__ >= 201112L
+/* C11 _Generic selection */
+#define XTextWidth(font, text, len) _Generic((font), \
+    XFontStruct*: XawFontStructTextWidth, \
+    default: XawFontSetTextWidth \
+)((font), (text), (len))
+#else
+/* Pre-C11: use XFontStruct version by default */
+#define XTextWidth(font, text, len) XawFontStructTextWidth((XFontStruct*)(font), (text), (len))
+#endif
+#else
+/* Pre-C11: use XFontStruct version by default */
+#define XTextWidth(font, text, len) XawFontStructTextWidth((XFontStruct*)(font), (text), (len))
+#endif
 
 /*
  * =================================================================
@@ -331,5 +430,247 @@ void XawXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
 void XawXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
                     xcb_gcontext_t gc, int16_t x, int16_t y,
                     const char *text, uint8_t len);
+
+/*
+ * =================================================================
+ * REGION OPERATIONS
+ * =================================================================
+ *
+ * These functions replace Xlib region operations.
+ * Region in this implementation is a pointer to an XawRegion structure
+ * containing an array of rectangles.
+ */
+
+/* Forward declare Region type - opaque pointer */
+#ifndef _XAWREGION_DEFINED
+#define _XAWREGION_DEFINED
+typedef struct _XawRegion *XawRegionPtr;
+/* Use the Region type from Xaw3dP.h if available */
+#endif
+
+/*
+ * XawCreateRegion - Create an empty region
+ *
+ * Returns: Newly allocated region (caller must free with XawDestroyRegion)
+ */
+XawRegionPtr XawCreateRegion(void);
+
+/*
+ * XawDestroyRegion - Free a region
+ *
+ * Parameters:
+ *   region - Region to destroy
+ */
+void XawDestroyRegion(XawRegionPtr region);
+
+/*
+ * XawUnionRectWithRegion - Add a rectangle to a region
+ *
+ * Parameters:
+ *   rect   - Rectangle to add (xcb_rectangle_t*)
+ *   source - Source region
+ *   dest   - Destination region (may be same as source)
+ */
+void XawUnionRectWithRegion(xcb_rectangle_t *rect, XawRegionPtr source, XawRegionPtr dest);
+
+/*
+ * XawSubtractRegion - Subtract one region from another
+ *
+ * Parameters:
+ *   regM   - Region to subtract from
+ *   regS   - Region to subtract
+ *   regD   - Destination region for result
+ */
+void XawSubtractRegion(XawRegionPtr regM, XawRegionPtr regS, XawRegionPtr regD);
+
+/*
+ * XawReshapeWidget - Shape a widget using the X Shape extension
+ *
+ * Parameters:
+ *   w           - Widget to reshape
+ *   shape_style - Shape style (XawShapeRectangle, XawShapeOval, XawShapeEllipse, XawShapeRoundedRectangle)
+ *   corner_width  - Corner width for rounded shapes
+ *   corner_height - Corner height for rounded shapes
+ *
+ * Returns: True if successful, False otherwise
+ */
+Boolean XawReshapeWidget(Widget w, int shape_style, int corner_width, int corner_height);
+
+/*
+ * =================================================================
+ * STRING UTILITIES (libXmu replacements)
+ * =================================================================
+ */
+
+/*
+ * XawCopyISOLatin1Lowered - Copy string converting to lowercase
+ *
+ * Replacement for XmuCopyISOLatin1Lowered from libXmu
+ * Copies source to dest, converting ISO Latin-1 characters to lowercase.
+ *
+ * Parameters:
+ *   dst - Destination buffer (must be large enough)
+ *   src - Source string
+ */
+void XawCopyISOLatin1Lowered(char *dst, const char *src);
+
+/*
+ * =================================================================
+ * TYPE CONVERTERS (libXmu replacements)
+ * =================================================================
+ */
+
+/*
+ * XawCvtStringToOrientation - Convert string to XtOrientation
+ *
+ * Replacement for the converter that was in libXmu/Converters.c
+ * Converts "horizontal" or "vertical" to XtOrientation values.
+ *
+ * This is an XtTypeConverter for use with XtSetTypeConverter().
+ * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
+ */
+Boolean XawCvtStringToOrientation(
+    xcb_connection_t *display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    XtPointer *converter_data
+);
+
+/*
+ * XawCvtStringToJustify - Convert string to XtJustify
+ *
+ * Replacement for the converter that was in libXmu/Converters.c
+ * Converts "left", "center", or "right" to XtJustify values.
+ *
+ * This is an XtTypeConverter for use with XtSetTypeConverter().
+ * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
+ */
+Boolean XawCvtStringToJustify(
+    xcb_connection_t *display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    XtPointer *converter_data
+);
+
+/*
+ * XawCvtStringToEdgeType - Convert string to XtEdgeType
+ *
+ * Converts "ChainTop", "ChainBottom", "ChainLeft", "ChainRight", "Rubber"
+ * to XtEdgeType values for Form widget constraints.
+ *
+ * This is an XtTypeConverter for use with XtSetTypeConverter().
+ * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
+ */
+Boolean XawCvtStringToEdgeType(
+    xcb_connection_t *display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    XtPointer *converter_data
+);
+
+/*
+ * XawCvtStringToWidget - Convert string to Widget
+ *
+ * Replacement for XmuCvtStringToWidget from libXmu.
+ * Converts a widget name string to a Widget reference by searching
+ * the widget tree starting from the parent widget.
+ *
+ * This is an XtTypeConverter for use with XtSetTypeConverter().
+ * Requires parentCvtArgs to provide the parent widget.
+ * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
+ */
+Boolean XawCvtStringToWidget(
+    xcb_connection_t *display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    XtPointer *converter_data
+);
+
+/*
+ * =================================================================
+ * COLOR UTILITIES
+ * =================================================================
+ */
+
+/*
+ * XawDistinguishablePixels - Check if pixels are visually distinguishable
+ *
+ * XCB replacement for color comparison utility.
+ * Queries the RGB values of each pixel and determines if they are
+ * sufficiently different to be visually distinguishable.
+ *
+ * Parameters:
+ *   conn      - XCB connection (Display* in Xlib)
+ *   colormap  - Colormap to query
+ *   pixels    - Array of pixel values to compare
+ *   count     - Number of pixels in array
+ *
+ * Returns:
+ *   True if all pixels are distinguishable from each other
+ *   False if any two pixels are too similar
+ */
+Boolean XawDistinguishablePixels(
+    xcb_connection_t *conn,
+    xcb_colormap_t colormap,
+    unsigned long *pixels,
+    int count
+);
+
+/*
+ * XawCompareISOLatin1 - Case-insensitive string comparison for ISO Latin-1
+ *
+ * Parameters:
+ *   first  - First string
+ *   second - Second string
+ *
+ * Returns:
+ *   0 if strings match (case-insensitive)
+ *   non-zero if strings differ
+ */
+int XawCompareISOLatin1(const char *first, const char *second);
+
+/*
+ * XawLocatePixmapFile - Locate and load a pixmap file
+ *
+ * This is a stub implementation that always returns None.
+ * Full implementation would require XPM or other image format support.
+ *
+ * Parameters:
+ *   screen     - Screen to create pixmap on
+ *   name       - Name of pixmap file
+ *   fore       - Foreground pixel
+ *   back       - Background pixel
+ *   depth      - Depth of pixmap
+ *   srcname    - Return source name (if non-NULL)
+ *   srcnamelen - Length of srcname buffer
+ *   widthp     - Return width (if non-NULL)
+ *   heightp    - Return height (if non-NULL)
+ *   xhotp      - Return X hotspot (if non-NULL)
+ *   yhotp      - Return Y hotspot (if non-NULL)
+ *
+ * Returns:
+ *   Pixmap (currently always returns None)
+ */
+Pixmap XawLocatePixmapFile(
+    xcb_screen_t *screen,
+    const char *name,
+    unsigned long fore,
+    unsigned long back,
+    unsigned int depth,
+    char *srcname,
+    size_t srcnamelen,
+    int *widthp,
+    int *heightp,
+    int *xhotp,
+    int *yhotp
+);
 
 #endif /* _XawXcbDraw_h */

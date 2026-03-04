@@ -40,6 +40,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xaw3d/Xaw3dP.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
@@ -48,6 +49,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xfixes.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/ListP.h>
+#include "XawXcbDraw.h"
 
 /* These added so widget knows whether its height, width are user selected.
 I also added the freedoms member of the list widget part. */
@@ -191,30 +193,31 @@ GetGCs(Widget w)
     xcb_create_gc_value_list_t	values;
     ListWidget lw = (ListWidget) w;
 
+    memset(&values, 0, sizeof(values));
     values.foreground	= lw->list.foreground;
     values.font		= lw->list.font->fid;
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         lw->list.normgc = XtAllocateGC( w, 0, (unsigned) GCForeground,
-				 (XGCValues*)&values, GCFont, 0 );
+				 &values, GCFont, 0 );
     else
 #endif
         lw->list.normgc = XtGetGC( w, (unsigned) GCForeground | GCFont,
-				 (XGCValues*)&values);
+				 &values);
 
     values.foreground	= lw->core.background_pixel;
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         lw->list.revgc = XtAllocateGC( w, 0, (unsigned) GCForeground,
-				 (XGCValues*)&values, GCFont, 0 );
+				 &values, GCFont, 0 );
     else
 #endif
         lw->list.revgc = XtGetGC( w, (unsigned) GCForeground | GCFont,
-				 (XGCValues*)&values);
+				 &values);
 
-    values.tile       = XawCreateStippledPixmap(XtScreen(w),
+    values.tile       = XawCreateStippledPixmap(XtDisplay(w), XtWindow(w),
     		lw->list.foreground,
     		lw->core.background_pixel,
     		lw->core.depth);
@@ -223,11 +226,11 @@ GetGCs(Widget w)
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         lw->list.graygc = XtAllocateGC( w, 0, (unsigned) GCTile | GCFillStyle,
-			      (XGCValues*)&values, GCFont, 0 );
+			      &values, GCFont, 0 );
     else
 #endif
         lw->list.graygc = XtGetGC( w, (unsigned) GCFont | GCTile | GCFillStyle,
-			      (XGCValues*)&values);
+			      &values);
 }
 
 
@@ -269,7 +272,7 @@ CalculatedValues(Widget w)
         for ( i = 0 ; i < lw->list.nitems; i++)  {
 #ifdef XAW_INTERNATIONALIZATION
             if ( lw->simple.international == True )
-	        len = XawTextWidth(lw->list.fontset, lw->list.list[i],
+	        len = XTextWidth(lw->list.fontset, lw->list.list[i],
 			 			    strlen(lw->list.list[i]));
             else
 #endif
@@ -383,8 +386,8 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
                         + lw->list.row_space;
     else
 #endif
-        lw->list.row_height = lw->list.font->max_bounds.ascent
-			+ lw->list.font->max_bounds.descent
+        lw->list.row_height = lw->list.font->ascent
+			+ lw->list.font->descent
 			+ lw->list.row_space;
 
     ResetList( new, WidthFree( lw ), HeightFree( lw ) );
@@ -450,12 +453,14 @@ static void
 FindCornerItems(Widget w, XEvent *event, int *ul_ret, int *lr_ret)
 {
     int xloc, yloc;
+    /* XCB: Cast to xcb_expose_event_t */
+    xcb_expose_event_t *expose = (xcb_expose_event_t *)event;
 
-    xloc = event->xexpose.x;
-    yloc = event->xexpose.y;
+    xloc = expose->x;
+    yloc = expose->y;
     CvtToItem(w, xloc, yloc, ul_ret);
-    xloc += event->xexpose.width;
-    yloc += event->xexpose.height;
+    xloc += expose->width;
+    yloc += expose->height;
     CvtToItem(w, xloc, yloc, lr_ret);
 }
 
@@ -596,7 +601,7 @@ PaintItemName(Widget w, int item)
         str_y = y + lw->list.fontset->ascent;
     else
 #endif
-        str_y = y + lw->list.font->max_bounds.ascent;
+        str_y = y + lw->list.font->ascent;
 
     if (item == lw->list.is_highlighted) {
         if (item == lw->list.highlight) {
@@ -866,6 +871,8 @@ Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
     ListWidget lw = ( ListWidget ) w;
     int item, item_len;
     XawListReturnStruct ret_value;
+    /* XCB: Cast to xcb_button_press_event_t */
+    xcb_button_press_event_t *be = (xcb_button_press_event_t *)event;
 
 /*
  * Find item and if out of range then unhighlight and return.
@@ -874,7 +881,7 @@ Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
  * notify, so unhighlight and return.
  */
 
-    if ( ((CvtToItem(w, event->xbutton.x, event->xbutton.y, &item))
+    if ( ((CvtToItem(w, be->event_x, be->event_y, &item))
 	  == OUT_OF_RANGE) || (lw->list.highlight != item) ) {
         XawListUnhighlight(w);
         return;
@@ -923,8 +930,10 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
   int item;
   ListWidget lw = (ListWidget) w;
+  /* XCB: Cast to xcb_button_press_event_t */
+  xcb_button_press_event_t *be = (xcb_button_press_event_t *)event;
 
-  if ( (CvtToItem(w, event->xbutton.x, event->xbutton.y, &item))
+  if ( (CvtToItem(w, be->event_x, be->event_y, &item))
       == OUT_OF_RANGE)
     XawListUnhighlight(w);		        /* Unhighlight current item. */
   else if ( lw->list.is_highlighted != item )   /* If this item is not */
@@ -977,8 +986,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 #ifdef XAW_INTERNATIONALIZATION
         if ( cl->simple.international == False )
 #endif
-            nl->list.row_height = nl->list.font->max_bounds.ascent
-			        + nl->list.font->max_bounds.descent
+            nl->list.row_height = nl->list.font->ascent
+			        + nl->list.font->descent
 			        + nl->list.row_space;
     }
 #ifdef XAW_INTERNATIONALIZATION
@@ -998,8 +1007,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
             nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
         else
 #endif
-            nl->list.row_height = nl->list.font->max_bounds.ascent
-			        + nl->list.font->max_bounds.descent
+            nl->list.row_height = nl->list.font->ascent
+			        + nl->list.font->descent
 			        + nl->list.row_space;
     }
 

@@ -67,12 +67,15 @@ SOFTWARE.
 /* NO XFT - using pure XCB rendering */
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xfixes.h>
+#include "XawXcbDraw.h"
 
 /* Forward declarations for Xmu functions that need XCB replacements */
-extern Boolean XmuCvtStringToJustify(xcb_connection_t*, XrmValue*, Cardinal*, XrmValue*, XrmValue*, void**);
+/* XmuCvtStringToJustify signature must match XtConverter */
+extern void XmuCvtStringToJustify(XrmValue*, Cardinal*, XrmValue*, XrmValue*);
 extern xcb_pixmap_t XmuCreateStippledPixmap(Screen*, Pixel, Pixel, unsigned int);
 extern void XmuReleaseStippledPixmap(Screen*, xcb_pixmap_t);
 
@@ -135,7 +138,7 @@ static XtResource resources[] = {
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
-static void Redisplay(Widget, XEvent *, Region);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void ClassInitialize(void);
 static void Destroy(Widget);
@@ -207,57 +210,12 @@ ClassInitialize(void)
 		    (XtConvertArgList)NULL, 0 );
 }
 
-#ifndef WORD64
-
-#define TXT16 XChar2b
-
-#else
-
-#define TXT16 char
-
-static XChar2b *buf2b;
-static int buf2blen = 0;
-
-static int
-_XawLabelWidth16(XFontStruct *fs, char *str, int n)
-{
-    int i;
-    XChar2b *ptr;
-
-    if (n > buf2blen) {
-	buf2b = (XChar2b *)XtRealloc((char *)buf2b, n * sizeof(XChar2b));
-	buf2blen = n;
-    }
-    for (ptr = buf2b, i = n; --i >= 0; ptr++) {
-	ptr->byte1 = *str++;
-	ptr->byte2 = *str++;
-    }
-    return XTextWidth16(fs, buf2b, n);
-}
-
-static int
-_XawLabelDraw16(xcb_connection_t *conn, xcb_drawable_t d, xcb_gcontext_t gc, int x, int y, char *str, int n)
-{
-    int i;
-    XChar2b *ptr;
-
-    if (n > buf2blen) {
-	buf2b = (XChar2b *)XtRealloc((char *)buf2b, n * sizeof(XChar2b));
-	buf2blen = n;
-    }
-    for (ptr = buf2b, i = n; --i >= 0; ptr++) {
-	ptr->byte1 = *str++;
-	ptr->byte2 = *str++;
-    }
-    /* FIXME: XCB - Text rendering needs Xft migration, placeholder for now */
-    /* XDrawString16(conn, d, gc, x, y, buf2b, n); */
-    (void)conn; (void)d; (void)gc; (void)x; (void)y; /* suppress warnings */
-}
-
-#define XTextWidth16 _XawLabelWidth16
-#define XDrawString16 _XawLabelDraw16
-
-#endif /* WORD64 */
+/*
+ * 16-bit text support (XChar2b/XTextWidth16) is disabled for XCB migration.
+ * The encoding resource should not be set to anything other than 8-bit.
+ * Future: Re-implement using Xft/FreeType for proper Unicode support.
+ */
+#undef WORD64  /* Disable WORD64 16-bit text handling */
 
 /*
  * Calculate width and height of displayed text in pixels
@@ -271,7 +229,7 @@ SetTextWidthAndHeight(LabelWidget lw)
     char *nl;
 
     if (lw->label.pixmap != None) {
- xcb_connection_t *conn = XtDisplay(lw);
+ xcb_connection_t *conn = ((Widget)lw)->core.display;
  xcb_get_geometry_cookie_t cookie;
  xcb_get_geometry_reply_t *reply;
  xcb_generic_error_t *error = NULL;
@@ -327,7 +285,13 @@ SetTextWidthAndHeight(LabelWidget lw)
     } else
 #endif
     {
-        lw->label.label_height = fs->max_bounds.ascent + fs->max_bounds.descent;
+	/* Get font metrics using XCB query instead of fs->max_bounds */
+ xcb_connection_t *conn = ((Widget)lw)->core.display;
+	XawFontMetrics metrics;
+	XawXcbQueryFontMetrics(conn, fs->fid, &metrics);
+	int line_height = metrics.ascent + metrics.descent;
+
+        lw->label.label_height = line_height;
         if (lw->label.label == NULL) {
             lw->label.label_len = 0;
             lw->label.label_width = 0;
@@ -338,37 +302,25 @@ SetTextWidthAndHeight(LabelWidget lw)
             lw->label.label_width = 0;
             for (label = lw->label.label; nl != NULL; nl = index(label, '\n')) {
 	        int width;
-
-	        if (lw->label.encoding)
-		    width = XTextWidth16(fs, (TXT16*)label, (int)(nl - label)/2);
-	        else
-		    width = XTextWidth(fs, label, (int)(nl - label));
+		/* 16-bit encoding disabled for XCB migration - use 8-bit only */
+		(void)lw->label.encoding;  /* suppress unused warning */
+		width = XawXcbTextWidth(conn, fs->fid, label, (int)(nl - label));
 	        if (width > (int)lw->label.label_width)
 		    lw->label.label_width = width;
 	        label = nl + 1;
 	        if (*label)
-		    lw->label.label_height +=
-		        fs->max_bounds.ascent + fs->max_bounds.descent;
+		    lw->label.label_height += line_height;
 	    }
 	    if (*label) {
-	        int width = XTextWidth(fs, label, strlen(label));
-
-	        if (lw->label.encoding)
-		    width = XTextWidth16(fs, (TXT16*)label, (int)strlen(label)/2);
-	        else
-		    width = XTextWidth(fs, label, strlen(label));
+	        int width = XawXcbTextWidth(conn, fs->fid, label, strlen(label));
 	        if (width > (int) lw->label.label_width)
 		    lw->label.label_width = width;
 	    }
         } else {
 	    lw->label.label_len = strlen(lw->label.label);
-	    if (lw->label.encoding)
-	        lw->label.label_width =
-		    XTextWidth16(fs, (TXT16*)lw->label.label,
-			         (int) lw->label.label_len/2);
-	    else
-	        lw->label.label_width =
-		    XTextWidth(fs, lw->label.label, (int) lw->label.label_len);
+	    /* 16-bit encoding disabled for XCB migration - use 8-bit only */
+	    lw->label.label_width =
+		XawXcbTextWidth(conn, fs->fid, lw->label.label, (int) lw->label.label_len);
         }
 
     }
@@ -377,58 +329,60 @@ SetTextWidthAndHeight(LabelWidget lw)
 static void
 GetnormalGC(LabelWidget lw)
 {
-    XGCValues	values;
+    xcb_create_gc_value_list_t values;
+    memset(&values, 0, sizeof(values));
 
-    values.foreground	= lw->label.foreground;
-    values.background	= lw->core.background_pixel;
-    values.font		= lw->label.font->fid;
-    values.graphics_exposures = False;
+    values.foreground = lw->label.foreground;
+    values.background = lw->core.background_pixel;
+    values.font = lw->label.font->fid;
+    values.graphics_exposures = 0;  /* False */
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         /* Since Xmb/wcDrawString eats the font, I must use XtAllocateGC. */
         lw->label.normal_GC = XtAllocateGC(
                 (Widget)lw, 0,
-	(unsigned) GCForeground | GCBackground | GCGraphicsExposures,
-	&values, GCFont, 0 );
+	(unsigned) XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES,
+	&values, XCB_GC_FONT, 0 );
     else
 #endif
         lw->label.normal_GC = XtGetGC(
 	(Widget)lw,
-	(unsigned) GCForeground | GCBackground | GCFont | GCGraphicsExposures,
+	(unsigned) XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT | XCB_GC_GRAPHICS_EXPOSURES,
 	&values);
 }
 
 static void
 GetgrayGC(LabelWidget lw)
 {
-    XGCValues	values;
+    xcb_create_gc_value_list_t values;
+    memset(&values, 0, sizeof(values));
 
     values.foreground = lw->label.foreground;
     values.background = lw->core.background_pixel;
-    values.font	      = lw->label.font->fid;
-    values.fill_style = FillTiled;
-    values.tile       = XmuCreateStippledPixmap(XtScreen((Widget)lw),
-						lw->label.foreground,
-						lw->core.background_pixel,
-						lw->core.depth);
-    values.graphics_exposures = False;
+    values.font = lw->label.font->fid;
+    values.fill_style = XCB_FILL_STYLE_TILED;
+    values.tile = XmuCreateStippledPixmap(XtScreen((Widget)lw),
+					  lw->label.foreground,
+					  lw->core.background_pixel,
+					  lw->core.depth);
+    values.graphics_exposures = 0;  /* False */
 
     lw->label.stipple = values.tile;
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         /* Since Xmb/wcDrawString eats the font, I must use XtAllocateGC. */
         lw->label.gray_GC = XtAllocateGC((Widget)lw,  0,
-				(unsigned) GCForeground | GCBackground |
-					   GCTile | GCFillStyle |
-					   GCGraphicsExposures,
-				&values, GCFont, 0);
+				(unsigned) XCB_GC_FOREGROUND | XCB_GC_BACKGROUND |
+					   XCB_GC_TILE | XCB_GC_FILL_STYLE |
+					   XCB_GC_GRAPHICS_EXPOSURES,
+				&values, XCB_GC_FONT, 0);
     else
 #endif
         lw->label.gray_GC = XtGetGC((Widget)lw,
-				(unsigned) GCForeground | GCBackground |
-					   GCFont | GCTile | GCFillStyle |
-					   GCGraphicsExposures,
+				(unsigned) XCB_GC_FOREGROUND | XCB_GC_BACKGROUND |
+					   XCB_GC_FONT | XCB_GC_TILE | XCB_GC_FILL_STYLE |
+					   XCB_GC_GRAPHICS_EXPOSURES,
 				&values);
 }
 
@@ -453,7 +407,7 @@ set_bitmap_info (LabelWidget lw)
     if (lw->label.pixmap || !lw->label.left_bitmap) {
 	lw->label.lbm_width = lw->label.lbm_height = 0;
     } else {
-	conn = XtDisplay(lw);
+	conn = ((Widget)lw)->core.display;
 	cookie = xcb_get_geometry(conn, lw->label.left_bitmap);
 	reply = xcb_get_geometry_reply(conn, cookie, &error);
 	
@@ -521,17 +475,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget gw, XEvent *event, Region region)
+Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     LabelWidget w = (LabelWidget) gw;
     LabelWidgetClass lwclass = (LabelWidgetClass) XtClass (gw);
     xcb_pixmap_t pm;
     xcb_gcontext_t gc;
-    xcb_connection_t *conn = gw->display;
+    xcb_connection_t *conn = gw->core.display;
     
-    /* Note: event and region use Xlib types for widget class compatibility,
-     * but we convert to XCB for actual operations */
-    (void)event; /* XCB doesn't use XEvent in the same way */
+    /* Note: event and region use XCB types per the migration plan */
+    (void)event; /* May be used in future for expose event handling */
 
     /*
      * Don't draw shadows if Command is going to redraw them.
@@ -546,20 +499,17 @@ Redisplay(Widget gw, XEvent *event, Region region)
     /*
      * now we'll see if we need to draw the rest of the label
      */
-    /* FIXME: XCB - region handling needs XCB XFixes extension */
-    if (region != NULL) {
- int x = w->label.label_x;
- unsigned int width = w->label.label_width;
- if (w->label.lbm_width) {
-     if (w->label.label_x > (x = w->label.internal_width))
-  width += w->label.label_x - x;
- }
- /* FIXME: XCB - XRectInRegion needs xcb_xfixes_region equivalent */
- /* if (XRectInRegion(region, x, w->label.label_y,
-    width, w->label.label_height) == RectangleOut){
-     return;
- } */
- (void)x; (void)width; (void)region; /* suppress warnings */
+    /* Region handling: xcb_xfixes_region_t is a scalar (0 = no region) */
+    if (region != 0) {
+	int x = w->label.label_x;
+	unsigned int width = w->label.label_width;
+	if (w->label.lbm_width) {
+	    if (w->label.label_x > (x = w->label.internal_width))
+		width += w->label.label_x - x;
+	}
+	/* XRectInRegion not available in XCB - would need xcb_xfixes_fetch_region
+	 * For now, always redraw (no early return optimization) */
+	(void)x; (void)width; (void)region; /* suppress warnings */
     }
 
     gc = XtIsSensitive(gw) ? w->label.normal_GC : w->label.gray_GC;
@@ -571,7 +521,11 @@ Redisplay(Widget gw, XEvent *event, Region region)
     if (w->label.pixmap == None) {
 	int len = w->label.label_len;
 	char *label = w->label.label;
-	Position y = w->label.label_y + w->label.font->max_bounds.ascent;
+	/* Get font metrics using XCB query instead of fs->max_bounds */
+	XawFontMetrics metrics;
+	XawXcbQueryFontMetrics(conn, w->label.font->fid, &metrics);
+	Position y = w->label.label_y + metrics.ascent;
+	int line_height = metrics.ascent + metrics.descent;
 #ifdef XAW_INTERNATIONALIZATION
         Position ksy = w->label.label_y;
 #endif
@@ -611,7 +565,7 @@ Redisplay(Widget gw, XEvent *event, Region region)
             if (len == MULTI_LINE_LABEL) {
 	        char *nl;
 	        while ((nl = index(label, '\n')) != NULL) {
-	            XawDrawString(XtDisplay(w), XtWindow(w), w->label.fontset, gc,
+	            XawDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
 	  		        w->label.label_x, ksy, label, (int)(nl - label));
 	            ksy += w->label.fontset->height;
 	            label = nl + 1;
@@ -619,29 +573,31 @@ Redisplay(Widget gw, XEvent *event, Region region)
 	        len = strlen(label);
             }
             if (len)
-	        XawDrawString(XtDisplay(w), XtWindow(w), w->label.fontset, gc,
+	        XawDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
 			      w->label.label_x, ksy, label, len);
 
         } else
 #endif
-        { /* international false, so use R5 routine */
+        { /* international false, so use XCB core font rendering */
 
 	    if (len == MULTI_LINE_LABEL) {
 	        char *nl;
 	        while ((nl = index(label, '\n')) != NULL) {
-	     /* FIXME: XCB - Text rendering needs proper implementation */
-	     /* XCB has no direct text rendering - use Xft or cairo */
-	     (void)gc; (void)y; (void)label; (void)nl; (void)w; /* suppress warnings */
-	     y += w->label.font->max_bounds.ascent +
-	                         w->label.font->max_bounds.descent;
-	     label = nl + 1;
+		    int segment_len = (int)(nl - label);
+		    if (segment_len > 0 && segment_len <= 255) {
+			XawXcbDrawText(conn, XtWindow(gw), gc,
+				       w->label.label_x, y,
+				       label, (uint8_t)segment_len);
+		    }
+		    y += line_height;
+		    label = nl + 1;
 	        }
 	        len = strlen(label);
 	    }
-	    if (len) {
-	        /* FIXME: XCB - Text rendering needs proper implementation */
-	        /* XCB has no direct text rendering - use Xft or cairo */
-	        (void)gc; (void)y; (void)label; (void)len; /* suppress warnings */
+	    if (len && len <= 255) {
+		XawXcbDrawText(conn, XtWindow(gw), gc,
+			       w->label.label_x, y,
+			       label, (uint8_t)len);
 	    }
 
         } /* endif international */
@@ -835,7 +791,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     {
 	newlw->label.stippled = None;
 	if (curlw->label.stippled != None) {
-	    xcb_connection_t *conn = XtDisplay(current);
+	    xcb_connection_t *conn = current->core.display;
 	    xcb_free_pixmap(conn, curlw->label.stippled);
 	    xcb_flush(conn);
 	}
@@ -844,7 +800,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     {
 	newlw->label.left_stippled = None;
 	if (curlw->label.left_stippled != None) {
-	    xcb_connection_t *conn = XtDisplay(current);
+	    xcb_connection_t *conn = current->core.display;
 	    xcb_free_pixmap(conn, curlw->label.left_stippled);
 	    xcb_flush(conn);
 	}
@@ -866,20 +822,22 @@ static void
 Destroy(Widget w)
 {
     LabelWidget lw = (LabelWidget)w;
-    xcb_connection_t *conn = XtDisplay(w);
 
     if ( lw->label.label != lw->core.name )
 	XtFree( lw->label.label );
     XtReleaseGC( w, lw->label.normal_GC );
     XtReleaseGC( w, lw->label.gray_GC);
 #ifdef XAW_MULTIPLANE_PIXMAPS
-    if (lw->label.stippled != None) {
-	xcb_free_pixmap(conn, lw->label.stippled);
+    {
+	xcb_connection_t *conn = w->core.display;
+	if (lw->label.stippled != None) {
+	    xcb_free_pixmap(conn, lw->label.stippled);
+	}
+	if (lw->label.left_stippled != None) {
+	    xcb_free_pixmap(conn, lw->label.left_stippled);
+	}
+	xcb_flush(conn);
     }
-    if (lw->label.left_stippled != None) {
-	xcb_free_pixmap(conn, lw->label.left_stippled);
-    }
-    xcb_flush(conn);
 #endif
     XmuReleaseStippledPixmap( XtScreen(w), lw->label.stipple );
 }

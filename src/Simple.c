@@ -55,6 +55,7 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/SimpleP.h>
+#include "XawXcbDraw.h"
 
 #define offset(field) XtOffsetOf(SimpleRec, simple.field)
 
@@ -63,10 +64,12 @@ static XtResource resources[] = {
      offset(cursor), XtRImmediate, (XtPointer) None},
   {XtNinsensitiveBorder, XtCInsensitive, XtRPixmap, sizeof(Pixmap),
      offset(insensitive_border), XtRImmediate, (XtPointer) NULL},
+  /* Color cursor resources removed - not available in XCB
   {XtNpointerColor, XtCForeground, XtRPixel, sizeof(Pixel),
      offset(pointer_fg), XtRString, XtDefaultForeground},
   {XtNpointerColorBackground, XtCBackground, XtRPixel, sizeof(Pixel),
      offset(pointer_bg), XtRString, XtDefaultBackground},
+  */
   {XtNcursorName, XtCCursor, XtRString, sizeof(String),
      offset(cursor_name), XtRString, NULL},
 #ifdef XAW_INTERNATIONALIZATION
@@ -130,18 +133,22 @@ ClassInitialize(void)
 {
     static XtConvertArgRec convertArg[] = {
         {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.screen),
-	     sizeof(Screen *)},
+      sizeof(Screen *)},
+        /* Color resources removed for XCB compatibility
         {XtResourceString, (XtPointer) XtNpointerColor, sizeof(Pixel)},
         {XtResourceString, (XtPointer) XtNpointerColorBackground,
-	     sizeof(Pixel)},
+      sizeof(Pixel)},
+        */
         {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.colormap),
-	     sizeof(Colormap)}
+      sizeof(Colormap)}
     };
 
     XawInitializeWidgetSet();
+    /* Color cursor converter removed - not available in XCB
     XtSetTypeConverter( XtRString, XtRColorCursor, XmuCvtStringToColorCursor,
-		       convertArg, XtNumber(convertArg),
-		       XtCacheByDisplay, (XtDestructor)NULL);
+         convertArg, XtNumber(convertArg),
+         XtCacheByDisplay, (XtDestructor)NULL);
+    */
 }
 
 static void
@@ -175,7 +182,7 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
 	 * so XtDestroyWidget deletes the proper one */
 	if (((SimpleWidget)w)->simple.insensitive_border == None)
 	    ((SimpleWidget)w)->simple.insensitive_border =
-		XawCreateStippledPixmap(XtScreen(w),
+		XawCreateStippledPixmap(XtDisplay(w), XtWindow(w),
 					w->core.border_pixel,
 					w->core.background_pixel,
 					w->core.depth);
@@ -224,15 +231,16 @@ ConvertCursor(Widget w)
     to.size = sizeof(Cursor);
     to.addr = (XPointer) &cursor;
 
-    if (XtConvertAndStore(w, XtRString, &from, XtRColorCursor, &to)) {
-	if ( cursor !=  None)
-	    simple->simple.cursor = cursor;
+    /* Changed XtRColorCursor to XtRCursor for XCB compatibility */
+    if (XtConvertAndStore(w, XtRString, &from, XtRCursor, &to)) {
+ if ( cursor !=  None)
+     simple->simple.cursor = cursor;
     }
     else {
-	XtAppErrorMsg(XtWidgetToApplicationContext(w),
-		      "convertFailed","ConvertCursor","XawError",
-		      "Simple: ConvertCursor failed.",
-		      (String *)NULL, (Cardinal *)NULL);
+ XtAppErrorMsg(XtWidgetToApplicationContext(w),
+        "convertFailed","ConvertCursor","XawError",
+        "Simple: ConvertCursor failed.",
+        (String *)NULL, (Cardinal *)NULL);
     }
 }
 
@@ -269,8 +277,12 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	new_cursor = TRUE;
     }
 
-    if (new_cursor && XtIsRealized(new))
-        XDefineCursor(XtDisplay(new), XtWindow(new), s_new->simple.cursor);
+    if (new_cursor && XtIsRealized(new)) {
+        /* XDefineCursor → xcb_change_window_attributes */
+        uint32_t value = s_new->simple.cursor;
+        xcb_change_window_attributes(XtDisplay(new), XtWindow(new),
+                                     XCB_CW_CURSOR, &value);
+    }
 
     return False;
 }
@@ -280,24 +292,30 @@ static Boolean
 ChangeSensitive(Widget w)
 {
     if (XtIsRealized(w)) {
-	if (XtIsSensitive(w))
-	    if (w->core.border_pixmap != XtUnspecifiedPixmap)
-		XSetWindowBorderPixmap( XtDisplay(w), XtWindow(w),
-				        w->core.border_pixmap );
-	    else
-		XSetWindowBorder( XtDisplay(w), XtWindow(w),
-				  w->core.border_pixel );
-	else {
-	    if (((SimpleWidget)w)->simple.insensitive_border == None)
-	 ((SimpleWidget)w)->simple.insensitive_border =
-	     XawCreateStippledPixmap(XtScreen(w),
-	        w->core.border_pixel,
-	        w->core.background_pixel,
-	        w->core.depth);
-	    XSetWindowBorderPixmap( XtDisplay(w), XtWindow(w),
-				    ((SimpleWidget)w)->
-				        simple.insensitive_border );
-	}
+ if (XtIsSensitive(w)) {
+     if (w->core.border_pixmap != XtUnspecifiedPixmap) {
+  /* XSetWindowBorderPixmap → xcb_change_window_attributes */
+  uint32_t value = w->core.border_pixmap;
+  xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+    	     XCB_CW_BORDER_PIXMAP, &value);
+     } else {
+  /* XSetWindowBorder → xcb_change_window_attributes */
+  uint32_t value = w->core.border_pixel;
+  xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+    	     XCB_CW_BORDER_PIXEL, &value);
+     }
+ } else {
+     if (((SimpleWidget)w)->simple.insensitive_border == None)
+  ((SimpleWidget)w)->simple.insensitive_border =
+      XawCreateStippledPixmap(XtDisplay(w), XtWindow(w),
+         w->core.border_pixel,
+         w->core.background_pixel,
+        w->core.depth);
+    /* XSetWindowBorderPixmap → xcb_change_window_attributes */
+    uint32_t value = ((SimpleWidget)w)->simple.insensitive_border;
+    xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+     XCB_CW_BORDER_PIXMAP, &value);
+}
     }
     return False;
 }

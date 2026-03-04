@@ -71,6 +71,7 @@ SOFTWARE.
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#include "XawXcbDraw.h"
 
 /* Private definitions. */
 
@@ -491,7 +492,7 @@ CreateGC (Widget w)
     unsigned int depth = 1;
 
     if (sbw->scrollbar.thumb == XtUnspecifiedPixmap) {
-        sbw->scrollbar.thumb = XawCreateStippledPixmap (XtScreen(w),
+        sbw->scrollbar.thumb = XawCreateStippledPixmap (XtDisplay(w), XtWindow(w),
     	(Pixel) 1, (Pixel) 0, depth);
     } else if (sbw->scrollbar.thumb != None) {
 	xcb_connection_t *conn = XtDisplay(w);
@@ -524,7 +525,7 @@ CreateGC (Widget w)
     }
     /* the creation should be non-caching, because */
     /* we now set and clear clip masks on the gc returned */
-    sbw->scrollbar.gc = XtGetGC (w, mask, (XGCValues*)&gcValues);
+    sbw->scrollbar.gc = XtGetGC (w, mask, (xcb_create_gc_value_list_t*)&gcValues);
 }
 
 static void
@@ -659,11 +660,13 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	width = sbw->core.width - 2;
 	height = sbw->scrollbar.shownLength;
     }
-    if (region == NULL ||
-	XRectInRegion (region, x, y, width, height) != RectangleOut) {
-	/* Forces entire thumb to be painted. */
-	sbw->scrollbar.topLoc = -(sbw->scrollbar.length + 1);
-	PaintThumb (sbw, event);
+    /* TODO: Implement region intersection test for XCB
+     * For now, always paint if region is None or paint unconditionally
+     */
+    if (region == XCB_NONE || region != XCB_NONE) {
+ /* Forces entire thumb to be painted. */
+ sbw->scrollbar.topLoc = -(sbw->scrollbar.length + 1);
+ PaintThumb (sbw, event);
     }
 #ifdef XAW_ARROW_SCROLLBARS
     /* we'd like to be region aware here!!!! */
@@ -676,38 +679,54 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 static Boolean
 CompareEvents(XEvent *oldEvent, XEvent *newEvent)
 {
-#define Check(field) if (newEvent->field != oldEvent->field) return False;
+    uint8_t oldType = oldEvent->response_type & ~0x80;
+    uint8_t newType = newEvent->response_type & ~0x80;
+    
+    if (newType != oldType)
+	return False;
 
-    Check(xany.display);
-    Check(xany.type);
-    Check(xany.window);
-
-    switch (newEvent->type) {
-    case MotionNotify:
-	Check(xmotion.state);
-	break;
-    case ButtonPress:
-    case ButtonRelease:
-	Check(xbutton.state);
-	Check(xbutton.button);
-	break;
-    case KeyPress:
-    case KeyRelease:
-	Check(xkey.state);
-	Check(xkey.keycode);
-	break;
-    case EnterNotify:
-    case LeaveNotify:
-	Check(xcrossing.mode);
-	Check(xcrossing.detail);
-	Check(xcrossing.state);
+    switch (newType) {
+    case XCB_MOTION_NOTIFY: {
+	xcb_motion_notify_event_t *newMotion = (xcb_motion_notify_event_t*)newEvent;
+	xcb_motion_notify_event_t *oldMotion = (xcb_motion_notify_event_t*)oldEvent;
+	if (newMotion->state != oldMotion->state) return False;
+	if (newMotion->event != oldMotion->event) return False;
 	break;
     }
-#undef Check
+    case XCB_BUTTON_PRESS:
+    case XCB_BUTTON_RELEASE: {
+	xcb_button_press_event_t *newButton = (xcb_button_press_event_t*)newEvent;
+	xcb_button_press_event_t *oldButton = (xcb_button_press_event_t*)oldEvent;
+	if (newButton->state != oldButton->state) return False;
+	if (newButton->detail != oldButton->detail) return False;
+	if (newButton->event != oldButton->event) return False;
+	break;
+    }
+    case XCB_KEY_PRESS:
+    case XCB_KEY_RELEASE: {
+	xcb_key_press_event_t *newKey = (xcb_key_press_event_t*)newEvent;
+	xcb_key_press_event_t *oldKey = (xcb_key_press_event_t*)oldEvent;
+	if (newKey->state != oldKey->state) return False;
+	if (newKey->detail != oldKey->detail) return False;
+	if (newKey->event != oldKey->event) return False;
+	break;
+    }
+    case XCB_ENTER_NOTIFY:
+    case XCB_LEAVE_NOTIFY: {
+	xcb_enter_notify_event_t *newCross = (xcb_enter_notify_event_t*)newEvent;
+	xcb_enter_notify_event_t *oldCross = (xcb_enter_notify_event_t*)oldEvent;
+	if (newCross->mode != oldCross->mode) return False;
+	if (newCross->detail != oldCross->detail) return False;
+	if (newCross->state != oldCross->state) return False;
+	if (newCross->event != oldCross->event) return False;
+	break;
+    }
+    }
 
     return True;
 }
 
+/* Unused - LookAhead is stubbed out for XCB compatibility
 struct EventData {
     XEvent *oldEvent;
     int count;
@@ -718,51 +737,63 @@ PeekNotifyEvent(xcb_connection_t *dpy, XEvent *event, char *args)
 {
     struct EventData *eventData = (struct EventData*)args;
 
-    return ((++eventData->count == QLength(dpy)) /* since PeekIf blocks */
+    return ((++eventData->count == QLength(dpy))
 	    || CompareEvents(event, eventData->oldEvent));
 }
-
+*/
 
 static Boolean
 LookAhead (Widget w, XEvent *event)
 {
-    XEvent newEvent;
-    struct EventData eventData;
-
-    if (QLength (XtDisplay (w)) == 0) return False;
-
-    eventData.count = 0;
-    eventData.oldEvent = event;
-
-    XPeekIfEvent (XtDisplay (w), &newEvent, PeekNotifyEvent, (char*)&eventData);
-
-    return CompareEvents (event, &newEvent);
+    /* TODO: XCB doesn't have direct QLength/XPeekIfEvent equivalents
+     * This function was used to look ahead in the event queue and skip
+     * redundant motion events. For now, stub it to always return False
+     * (don't skip). This is conservative and correct, just potentially
+     * less efficient.
+     *
+     * Full implementation would require:
+     * - Maintaining our own event queue or using xcb_poll_for_event
+     * - Implementing event comparison and filtering
+     */
+    (void)w;
+    (void)event;
+    return False;
 }
 
 
 static void
 ExtractPosition(XEvent *event, Position *x, Position *y)
 {
-    switch( event->type ) {
-    case MotionNotify:
-	*x = event->xmotion.x;
-	*y = event->xmotion.y;
+    uint8_t type = event->response_type & ~0x80;
+    
+    switch(type) {
+    case XCB_MOTION_NOTIFY: {
+	xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
+	*x = mev->event_x;
+	*y = mev->event_y;
 	break;
-    case ButtonPress:
-    case ButtonRelease:
-	*x = event->xbutton.x;
-	*y = event->xbutton.y;
+    }
+    case XCB_BUTTON_PRESS:
+    case XCB_BUTTON_RELEASE: {
+	xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+	*x = bev->event_x;
+	*y = bev->event_y;
 	break;
-    case KeyPress:
-    case KeyRelease:
-	*x = event->xkey.x;
-	*y = event->xkey.y;
+    }
+    case XCB_KEY_PRESS:
+    case XCB_KEY_RELEASE: {
+	xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+	*x = kev->event_x;
+	*y = kev->event_y;
 	break;
-    case EnterNotify:
-    case LeaveNotify:
-	*x = event->xcrossing.x;
-	*y = event->xcrossing.y;
+    }
+    case XCB_ENTER_NOTIFY:
+    case XCB_LEAVE_NOTIFY: {
+	xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
+	*x = cev->event_x;
+	*y = cev->event_y;
 	break;
+    }
     default:
 	*x = 0; *y = 0;
     }
@@ -1021,7 +1052,11 @@ MoveThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
 
     if (LookAhead (w, event)) return;
 
-    if (!event->xmotion.same_screen) return;
+    /* Check if event is on same screen - XCB motion events have same_screen field */
+    if (event) {
+ xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
+ if (!mev->same_screen) return;
+    }
 
     ExtractPosition (event, &x, &y);
     loc = FractionLoc (sbw, x, y);

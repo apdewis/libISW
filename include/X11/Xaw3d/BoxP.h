@@ -66,10 +66,12 @@ SOFTWARE.
 #include <X11/Xaw3d/Box.h>
 
 /* XtOrientation is defined in standard Xt headers, but if not available, use fallback */
-#ifndef XtOrientation
-typedef unsigned char XtOrientation;
-#define XtorientHorizontal 0
-#define XtorientVertical 1
+#ifndef _XawXtOrientation_defined
+#define _XawXtOrientation_defined
+typedef enum {
+    XtorientHorizontal = 0,
+    XtorientVertical = 1
+} XtOrientation;
 #endif
 
 /* New fields for the Box widget class record */

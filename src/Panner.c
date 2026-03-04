@@ -37,6 +37,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <stdlib.h>			/* for atof() */
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#include "XawXcbDraw.h"
 
 #if defined(ISC) && __STDC__ && !defined(ISC30)
 extern double atof(char *);
@@ -228,10 +229,12 @@ reset_shadow_gc (PannerWidget pw)	/* used when resources change */
     {
  valuemask = GCTile | GCFillStyle;
  values.fill_style = XCB_FILL_STYLE_TILED;
- values.tile = XawCreateStippledPixmap(XtScreen((Widget)pw),
-    	      pw->panner.foreground,
-    	      pw->core.background_pixel,
-    	      pw->core.depth);
+ /* XCB: Use connection and window instead of Screen* */
+ values.tile = XawCreateStippledPixmap(XtDisplay((Widget)pw),
+                                         XtWindow((Widget)pw),
+           pw->panner.foreground,
+           pw->core.background_pixel,
+           pw->core.depth);
     }
     else
     {
@@ -243,11 +246,12 @@ reset_shadow_gc (PannerWidget pw)	/* used when resources change */
 	values.foreground = pw->panner.shadow_color;
     }
     if (pw->panner.line_width > 0) {
-	values.line_width = pw->panner.line_width;
-	valuemask |= GCLineWidth;
+ values.line_width = pw->panner.line_width;
+ valuemask |= GCLineWidth;
     }
 
-    pw->panner.shadow_gc = XtGetGC ((Widget) pw, valuemask, (XGCValues*)&values);
+    /* XCB: Use xcb_create_gc_value_list_t* cast */
+    pw->panner.shadow_gc = XtGetGC ((Widget) pw, valuemask, (xcb_create_gc_value_list_t*)&values);
 }
 
 static void
@@ -260,7 +264,8 @@ reset_slider_gc (PannerWidget pw)	/* used when resources change */
 
     values.foreground = pw->panner.foreground;
 
-    pw->panner.slider_gc = XtGetGC ((Widget) pw, valuemask, (XGCValues*)&values);
+    /* XCB: Use xcb_create_gc_value_list_t* cast */
+    pw->panner.slider_gc = XtGetGC ((Widget) pw, valuemask, (xcb_create_gc_value_list_t*)&values);
 }
 
 static void
@@ -269,21 +274,22 @@ reset_xor_gc (PannerWidget pw)		/* used when resources change */
     if (pw->panner.xor_gc) XtReleaseGC ((Widget) pw, pw->panner.xor_gc);
 
     if (pw->panner.rubber_band) {
-	XtGCMask valuemask = (GCForeground | GCFunction);
-	xcb_create_gc_value_list_t values;
-	Pixel tmp;
+ XtGCMask valuemask = (GCForeground | GCFunction);
+ xcb_create_gc_value_list_t values;
+ Pixel tmp;
 
-	tmp = ((pw->panner.foreground == pw->core.background_pixel) ?
-	       pw->panner.shadow_color : pw->panner.foreground);
-	values.foreground = tmp ^ pw->core.background_pixel;
-	values.function = XCB_GX_XOR;
-	if (pw->panner.line_width > 0) {
-	    valuemask |= GCLineWidth;
-	    values.line_width = pw->panner.line_width;
-	}
-	pw->panner.xor_gc = XtGetGC ((Widget) pw, valuemask, (XGCValues*)&values);
+ tmp = ((pw->panner.foreground == pw->core.background_pixel) ?
+        pw->panner.shadow_color : pw->panner.foreground);
+ values.foreground = tmp ^ pw->core.background_pixel;
+ values.function = XCB_GX_XOR;
+ if (pw->panner.line_width > 0) {
+     valuemask |= GCLineWidth;
+     values.line_width = pw->panner.line_width;
+ }
+ /* XCB: Use xcb_create_gc_value_list_t* cast */
+ pw->panner.xor_gc = XtGetGC ((Widget) pw, valuemask, (xcb_create_gc_value_list_t*)&values);
     } else {
-	pw->panner.xor_gc = NULL;
+ pw->panner.xor_gc = XCB_NONE;
     }
 }
 
@@ -406,29 +412,38 @@ get_event_xy (PannerWidget pw, XEvent *event, int *x, int *y)
 {
     int pad = pw->panner.internal_border;
 
-    switch (event->type) {
-      case ButtonPress:
-      case ButtonRelease:
-	*x = event->xbutton.x - pad;
-	*y = event->xbutton.y - pad;
+    /* XCB: Use response_type & ~0x80 to get event type, cast to specific types */
+    switch (event->response_type & ~0x80) {
+      case XCB_BUTTON_PRESS:
+      case XCB_BUTTON_RELEASE: {
+	xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+	*x = bev->event_x - pad;
+	*y = bev->event_y - pad;
 	return TRUE;
+      }
 
-      case KeyPress:
-      case KeyRelease:
-	*x = event->xkey.x - pad;
-	*y = event->xkey.y - pad;
+      case XCB_KEY_PRESS:
+      case XCB_KEY_RELEASE: {
+	xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+	*x = kev->event_x - pad;
+	*y = kev->event_y - pad;
 	return TRUE;
+      }
 
-      case EnterNotify:
-      case LeaveNotify:
-	*x = event->xcrossing.x - pad;
-	*y = event->xcrossing.y - pad;
+      case XCB_ENTER_NOTIFY:
+      case XCB_LEAVE_NOTIFY: {
+	xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
+	*x = cev->event_x - pad;
+	*y = cev->event_y - pad;
 	return TRUE;
+      }
 
-      case MotionNotify:
-	*x = event->xmotion.x - pad;
-	*y = event->xmotion.y - pad;
+      case XCB_MOTION_NOTIFY: {
+	xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
+	*x = mev->event_x - pad;
+	*y = mev->event_y - pad;
 	return TRUE;
+      }
     }
 
     return FALSE;
@@ -530,11 +545,11 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
     if (req->core.width < 1) new->core.width = defwidth;
     if (req->core.height < 1) new->core.height = defheight;
 
-    new->panner.shadow_gc = NULL;
+    new->panner.shadow_gc = XCB_NONE;
     reset_shadow_gc (new);		/* shadowColor */
-    new->panner.slider_gc = NULL;
+    new->panner.slider_gc = XCB_NONE;
     reset_slider_gc (new);		/* foreground */
-    new->panner.xor_gc = NULL;
+    new->panner.xor_gc = XCB_NONE;
     reset_xor_gc (new);			/* foreground ^ background */
 
     rescale (new);			/* does a position check */
@@ -594,8 +609,8 @@ static void
 Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     PannerWidget pw = (PannerWidget) gw;
-    xcb_connection_t *dpy = gw->display;
-    XtWindow w = XtWindow(gw);
+    xcb_connection_t *dpy = XtDisplay(gw);
+    xcb_window_t w = XtWindow(gw);
     int pad = pw->panner.internal_border;
     Dimension lw = pw->panner.line_width;
     Dimension extra = pw->panner.shadow_thickness + lw * 2;
@@ -758,7 +773,7 @@ ActionStart (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     int x, y;
 
     if (!get_event_xy (pw, event, &x, &y)) {
- xcb_connection_t *conn = gw->display;
+ xcb_connection_t *conn = XtDisplay(gw);
  xcb_bell(conn, 0);
  xcb_flush(conn);
  return;
@@ -819,7 +834,7 @@ ActionMove (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     if (!pw->panner.tmp.doing) return;
 
     if (!get_event_xy (pw, event, &x, &y)) {
-	xcb_connection_t *conn = gw->display;
+	xcb_connection_t *conn = XtDisplay(gw);
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -850,7 +865,7 @@ ActionPage (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     int pad = pw->panner.internal_border * 2;
 
     if (*num_params != 2) {
-	xcb_connection_t *conn = gw->display;
+	xcb_connection_t *conn = XtDisplay(gw);
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -865,11 +880,12 @@ ActionPage (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     if (rely) y += pw->panner.knob_y;
 
     if (isin) {				/* if in, then use move */
-	XEvent ev;
-	ev.xbutton.type = ButtonPress;
-	ev.xbutton.x = x;
-	ev.xbutton.y = y;
-	ActionMove (gw, &ev, (String *) NULL, &zero);
+ xcb_button_press_event_t ev;
+ memset(&ev, 0, sizeof(ev));
+ ev.response_type = XCB_BUTTON_PRESS;
+ ev.event_x = x;
+ ev.event_y = y;
+ ActionMove (gw, (xcb_generic_event_t*)&ev, (String *) NULL, &zero);
     } else {				/* else just do it */
 	pw->panner.tmp.doing = TRUE;
 	pw->panner.tmp.x = x;
@@ -937,7 +953,7 @@ ActionSet (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
     if (*num_params < 2 ||
 	XawCompareISOLatin1 (params[0], "rubberband") != 0) {
-	xcb_connection_t *conn = gw->display;
+	xcb_connection_t *conn = XtDisplay(gw);
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -950,7 +966,7 @@ ActionSet (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     } else if (XawCompareISOLatin1 (params[1], "toggle") == 0) {
 	rb = !pw->panner.rubber_band;
     } else {
-	xcb_connection_t *conn = gw->display;
+	xcb_connection_t *conn = XtDisplay(gw);
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;

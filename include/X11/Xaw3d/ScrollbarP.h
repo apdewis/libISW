@@ -58,6 +58,15 @@ SOFTWARE.
 #include <X11/Xaw3d/Scrollbar.h>
 #include <X11/Xaw3d/ThreeDP.h>
 
+/* XtOrientation is missing from XCB-based libXt, define it here */
+#ifndef _XawXtOrientation_defined
+#define _XawXtOrientation_defined
+typedef enum {
+    XtorientHorizontal,
+    XtorientVertical
+} XtOrientation;
+#endif
+
 typedef struct {
      /* public */
     Pixel	  foreground;	/* thumb foreground color */
