@@ -105,7 +105,7 @@ extern unsigned long
 grayPixel(
     unsigned long,
     xcb_connection_t *,  /* XCB connection (was Display*) */
-    Screen *
+    xcb_screen_t *
 );
 #else
 #define grayPixel(p, dpy, scn)	(p)

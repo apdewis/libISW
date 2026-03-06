@@ -94,10 +94,10 @@ typedef XawTextPosition (*_XawSrcSearchProc)
      (Widget, XawTextPosition, XawTextScanDirection, XawTextBlock*);
 
 typedef void (*_XawSrcSetSelectionProc)
-     (Widget, XawTextPosition, XawTextPosition, Atom);
+     (Widget, XawTextPosition, XawTextPosition, xcb_atom_t);
 
 typedef Boolean (*_XawSrcConvertSelectionProc)
-     (Widget, Atom*, Atom*, Atom*, XtPointer*, unsigned long*, int*);
+     (Widget, xcb_atom_t*, xcb_atom_t*, xcb_atom_t*, XtPointer*, unsigned long*, int*);
 
 typedef struct _TextSrcClassPart {
     _XawSrcReadProc Read;

@@ -49,7 +49,7 @@ in this Software without prior written authorization from the X Consortium.
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
  radioGroup          RadioGroup         Widget          NULL              +
- radioData           RadioData          Pointer         (XPointer) Widget  ++
+ radioData           RadioData          Pointer         (XtPointer) Widget  ++
  state               State              Boolean         Off
 
  background	     Background		Pixel		XtDefaultBackground

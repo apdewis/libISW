@@ -91,7 +91,7 @@ typedef struct {
 typedef struct {
     XawTextPosition   left, right;
     XawTextSelectType type;
-    Atom*	     selections;
+    xcb_atom_t*	     selections;
     int		     atom_count;
     int		     array_size;
 } XawTextSelection;
@@ -260,7 +260,7 @@ extern char* _XawTextGetSTRING(
 
 extern void _XawTextSaltAwaySelection(
     TextWidget /*ctx*/,
-    Atom* /*selections*/,
+    xcb_atom_t* /*selections*/,
     int /*num_atoms*/
 );
 

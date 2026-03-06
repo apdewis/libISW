@@ -192,9 +192,9 @@ extern XawTextPosition XawTextSourceSearch(
 
 extern Boolean XawTextSourceConvertSelection(
     Widget		/* w */,
-    Atom*		/* selection */,
-    Atom*		/* target */,
-    Atom*		/* type */,
+    xcb_atom_t*		/* selection */,
+    xcb_atom_t*		/* target */,
+    xcb_atom_t*		/* type */,
     XtPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
@@ -212,7 +212,7 @@ extern void XawTextSourceSetSelection(
     Widget		/* w */,
     XawTextPosition	/* start */,
     XawTextPosition	/* end */,
-    Atom		/* selection */
+    xcb_atom_t		/* selection */
 );
 
 _XFUNCPROTOEND
