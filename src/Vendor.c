@@ -314,7 +314,7 @@ XawCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
     int len;
 
     prop.value = (unsigned char *)fromVal->addr;
-    prop.encoding = XA_COMPOUND_TEXT(dpy);
+    prop.encoding = XCB_ATOM_COMPOUND_TEXT(dpy);
     prop.format = 8;
     prop.nitems = fromVal->size;
 
@@ -335,7 +335,7 @@ XawCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 
 #ifdef XAW_MULTIPLANE_PIXMAPS
 #define DONE(type, address) \
-	{to->size = sizeof(type); to->addr = (XPointer)address;}
+	{to->size = sizeof(type); to->addr = (XtPointer)address;}
 
 /* ARGSUSED */
 static Boolean
@@ -366,7 +366,7 @@ _XawCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
 	return (True);
     }
 
-    win = RootWindowOfScreen(*((Screen **) args[0].addr));
+    win = RootWindowOfScreen(*((xcb_screen_t **) args[0].addr));
 
     attr.colormap = *((Colormap *) args[1].addr);
     attr.closeness = 32768;	/* might help on 8-bpp displays? */
@@ -382,7 +382,7 @@ _XawCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     if (XpmReadFileToPixmap(dpy, win, (String) from->addr,
 			    &pixmap, NULL, &attr) != XpmSuccess)
     {
-	if ((pixmap = XawLocateBitmapFile(*((Screen **) args[0].addr),
+	if ((pixmap = XawLocateBitmapFile(*((xcb_screen_t **) args[0].addr),
 	      (char *)from->addr, NULL, 0, NULL, NULL, NULL, NULL)) == None)
 	{
 	    XtDisplayStringConversionWarning(dpy, (String) from->addr,
@@ -415,12 +415,12 @@ XawVendorShellClassInitialize(void)
 {
     static XtConvertArgRec screenConvertArg[] = {
         {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.screen),
-	     sizeof(Screen *)}
+	     sizeof(xcb_screen_t *)}
     };
 #ifdef XAW_MULTIPLANE_PIXMAPS
     static XtConvertArgRec _XawCvtStrToPix[] = {
 	{XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.screen),
-	     sizeof(Screen *)},
+	     sizeof(xcb_screen_t *)},
 	{XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.colormap),
 	     sizeof(Colormap)},
 	{XtWidgetBaseOffset,

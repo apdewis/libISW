@@ -33,7 +33,7 @@ static xcb_window_t GetRootFromScreen(xcb_screen_t *screen);
 Pixmap
 XawCreateStippledPixmap(xcb_screen_t *screen, Pixel fg, Pixel bg, unsigned int depth)
 {
-    xcb_displ *dpy;
+    xcb_connection_t *dpy;
     xcb_pixmap_t pixmap;
     xcb_gcontext_t gc;
     xcb_window_t root;

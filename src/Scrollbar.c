@@ -378,7 +378,7 @@ PaintArrows (ScrollbarWidget sbw)
     Dimension sm1 = s - 1;
     Dimension t2  = t / 2;
     Dimension sa30 = (Dimension)(1.732 * s );  /* cotangent of 30 deg */
-    Display   *dpy = XtDisplay (sbw);
+    xcb_connection_t   *dpy = XtDisplay (sbw);
     XtWindow   win = XtWindow (sbw);
     GC        top = sbw->threeD.top_shadow_GC;
     GC        bot = sbw->threeD.bot_shadow_GC;

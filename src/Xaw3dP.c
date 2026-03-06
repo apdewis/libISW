@@ -39,7 +39,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifdef XAW_GRAY_BLKWHT_STIPPLES
 /* ARGSUSED */
 unsigned long
-grayPixel(unsigned long p, xcb_connection_t *dpy, Screen *scn)
+grayPixel(unsigned long p, xcb_connection_t *dpy, xcb_screen_t *scn)
 {
     static XColor Gray =
     {

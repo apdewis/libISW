@@ -68,9 +68,9 @@ static XtResource resources[] = {
 
 static void ClassInitialize(void);
 static void ClassPartInitialize(WidgetClass);
-static void SetSelection(Widget, XawTextPosition, XawTextPosition, Atom);
+static void SetSelection(Widget, XawTextPosition, XawTextPosition, xcb_atom_t);
 static void CvtStringToEditMode(XrmValuePtr, Cardinal *, XrmValuePtr, XrmValuePtr);
-static Boolean ConvertSelection(Widget, Atom *, Atom *, Atom *, XtPointer *,
+static Boolean ConvertSelection(Widget, xcb_atom_t *, xcb_atom_t *, xcb_atom_t *, XtPointer *,
                                 unsigned long *, int *);
 static XawTextPosition Search(Widget, XawTextPosition, XawTextScanDirection,
                        XawTextBlock *);
@@ -265,7 +265,7 @@ Search(Widget w, XawTextPosition position, XawTextScanDirection dir, XawTextBloc
 
 /* ARGSUSED */
 static Boolean
-ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
+ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
                  XtPointer *value, unsigned long *length, int *format)
 {
   return(FALSE);
@@ -281,7 +281,7 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
 
 /* ARGSUSED */
 static void
-SetSelection(Widget w, XawTextPosition left, XawTextPosition right, Atom selection)
+SetSelection(Widget w, XawTextPosition left, XawTextPosition right, xcb_atom_t selection)
 {
   /* This space intentionally left blank. */
 }
@@ -317,7 +317,7 @@ CvtStringToEditMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal, X
       return;
     }
     toVal->size = sizeof editType;
-    toVal->addr = (XPointer) &editType;
+    toVal->addr = (XtPointer) &editType;
     return;
   }
   toVal->size = 0;
@@ -458,8 +458,8 @@ XawTextSourceSearch(Widget w, XawTextPosition position,
  */
 
 Boolean
-XawTextSourceConvertSelection(Widget w, Atom *selection, Atom *target,
-			      Atom *type, XtPointer *value,
+XawTextSourceConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
+			      xcb_atom_t *type, XtPointer *value,
 			      unsigned long *length, int *format)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
@@ -483,7 +483,7 @@ XawTextSourceConvertSelection(Widget w, Atom *selection, Atom *target,
 
 void
 XawTextSourceSetSelection(Widget w, XawTextPosition left,
-			  XawTextPosition right, Atom selection)
+			  XawTextPosition right, xcb_atom_t selection)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 

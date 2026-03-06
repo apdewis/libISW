@@ -196,7 +196,7 @@ _CvtStringToEdgeType(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
       return;
     }
     toVal->size = sizeof edgeType;
-    toVal->addr = (XPointer) &edgeType;
+    toVal->addr = (XtPointer) &edgeType;
     return;
   }
   toVal->addr = NULL;

@@ -304,7 +304,7 @@ int XawFontCharWidth(xcb_connection_t *conn, xcb_font_t font, unsigned char c);
  * Returns: True if property found, False otherwise
  */
 Bool XawGetFontProperty(xcb_connection_t *conn, XFontStruct *font,
-                        Atom atom, unsigned long *value);
+                        xcb_atom_t atom, unsigned long *value);
 
 /*
  * =================================================================

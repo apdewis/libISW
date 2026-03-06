@@ -150,7 +150,7 @@ static void Popdown(Widget, XEvent *, String *, Cardinal *);
 static void MakeSetValuesRequest(Widget, Dimension, Dimension);
 static void CreateLabel(Widget);
 static void Layout(Widget, Dimension *, Dimension *);
-static void AddPositionAction(XtAppContext, XPointer);
+static void AddPositionAction(XtAppContext, XtPointer);
 static void PositionMenu(Widget, XPoint *);
 static void ChangeCursorOnGrab(Widget, XtPointer, XtPointer);
 static void SetMarginWidths(Widget);
@@ -1141,7 +1141,7 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 
 /* ARGSUSED */
 static void
-AddPositionAction(XtAppContext app_con, XPointer data)
+AddPositionAction(XtAppContext app_con, XtPointer data)
 {
     static XtActionsRec pos_action[] = {
         { "XawPositionSimpleMenu", PositionMenuAction },

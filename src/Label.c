@@ -76,7 +76,7 @@ SOFTWARE.
 /* Forward declarations for Xmu functions that need XCB replacements */
 /* XmuCvtStringToJustify signature must match XtConverter */
 extern void XmuCvtStringToJustify(XrmValue*, Cardinal*, XrmValue*, XrmValue*);
-extern xcb_pixmap_t XmuCreateStippledPixmap(Screen*, Pixel, Pixel, unsigned int);
+extern xcb_pixmap_t XmuCreateStippledPixmap(xcb_screen_t*, Pixel, Pixel, unsigned int);
 extern void XmuReleaseStippledPixmap(Screen*, xcb_pixmap_t);
 
 /* needed for abs() */

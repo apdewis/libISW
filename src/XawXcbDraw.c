@@ -305,7 +305,7 @@ XawFontCharWidth(xcb_connection_t *conn, xcb_font_t font, unsigned char c)
  */
 Bool
 XawGetFontProperty(xcb_connection_t *conn, XFontStruct *font,
-                   Atom atom, unsigned long *value)
+                   xcb_atom_t atom, unsigned long *value)
 {
     xcb_query_font_cookie_t cookie;
     xcb_query_font_reply_t *reply;
@@ -580,7 +580,7 @@ XawCvtStringToOrientation(
     }
     
     if (to->addr == NULL) {
-        to->addr = (XPointer)&orientation;
+        to->addr = (XtPointer)&orientation;
     } else if (to->size < sizeof(XtOrientation)) {
         to->size = sizeof(XtOrientation);
         return False;
@@ -631,7 +631,7 @@ XawCvtStringToJustify(
     }
     
     if (to->addr == NULL) {
-        to->addr = (XPointer)&justify;
+        to->addr = (XtPointer)&justify;
     } else if (to->size < sizeof(XtJustify)) {
         to->size = sizeof(XtJustify);
         return False;
@@ -687,7 +687,7 @@ XawCvtStringToEdgeType(
     }
     
     if (to->addr == NULL) {
-        to->addr = (XPointer)&edge;
+        to->addr = (XtPointer)&edge;
     } else if (to->size < sizeof(XtEdgeType)) {
         to->size = sizeof(XtEdgeType);
         return False;
@@ -748,7 +748,7 @@ XawCvtStringToWidget(
     }
     
     if (to->addr == NULL) {
-        to->addr = (XPointer)&widget;
+        to->addr = (XtPointer)&widget;
     } else if (to->size < sizeof(Widget)) {
         to->size = sizeof(Widget);
         return False;

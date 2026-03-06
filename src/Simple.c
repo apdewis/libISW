@@ -133,7 +133,7 @@ ClassInitialize(void)
 {
     static XtConvertArgRec convertArg[] = {
         {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.screen),
-      sizeof(Screen *)},
+      sizeof(xcb_screen_t *)},
         /* Color resources removed for XCB compatibility
         {XtResourceString, (XtPointer) XtNpointerColor, sizeof(Pixel)},
         {XtResourceString, (XtPointer) XtNpointerColorBackground,
@@ -225,11 +225,11 @@ ConvertCursor(Widget w)
     if (simple->simple.cursor_name == NULL)
 	return;
 
-    from.addr = (XPointer) simple->simple.cursor_name;
+    from.addr = (XtPointer) simple->simple.cursor_name;
     from.size = strlen((char *) from.addr) + 1;
 
     to.size = sizeof(Cursor);
-    to.addr = (XPointer) &cursor;
+    to.addr = (XtPointer) &cursor;
 
     /* Changed XtRColorCursor to XtRCursor for XCB compatibility */
     if (XtConvertAndStore(w, XtRString, &from, XtRCursor, &to)) {

@@ -316,20 +316,20 @@ draw_it(XtPointer client_data, XtIntervalId *id)
        int y = (int) (( w->core.height - 2 * s)
         - (int)(( w->core.height - 2 * s) * value) / w->strip_chart.scale);
 
- xcb_connection_t *conn = XtDisplay((Widget) w);
- xcb_rectangle_t rect = {w->strip_chart.interval + s, y + s,
+    xcb_connection_t *conn = XtDisplay((Widget) w);
+    xcb_rectangle_t rect = {w->strip_chart.interval + s, y + s,
          (unsigned int) 1, (w->core.height - 2 * s) - y};
- xcb_poly_fill_rectangle(conn, XtWindow((Widget) w), w->strip_chart.fgGC, 1, &rect);
- xcb_flush(conn);
+    xcb_poly_fill_rectangle(conn, XtWindow((Widget) w), w->strip_chart.fgGC, 1, &rect);
+    xcb_flush(conn);
        /*
 	* Fill in the graph lines we just painted over.
 	*/
 
-       if (w->strip_chart.points != NULL) {
-    w->strip_chart.points[0].x = w->strip_chart.interval + s;
-    xcb_poly_point(XtDisplay(w), XCB_COORD_MODE_PREVIOUS,
-     XtWindow(w), w->strip_chart.hiGC,
-     w->strip_chart.scale, (xcb_point_t *)w->strip_chart.points);
+    if (w->strip_chart.points != NULL) {
+        w->strip_chart.points[0].x = w->strip_chart.interval + s;
+            xcb_poly_point(XtDisplay(w), XCB_COORD_MODE_PREVIOUS,
+            XtWindow(w), w->strip_chart.hiGC,
+            w->strip_chart.scale, (xcb_point_t *)w->strip_chart.points);
        }
 
        xcb_flush(XtDisplay(w));		    /* Flush output buffers */

@@ -374,7 +374,7 @@ DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
 static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
 
 static Pixmap
-CreateInsertCursor(Screen *s)
+CreateInsertCursor(xcb_screen_t *s)
 {
     return (XCreateBitmapFromData (DisplayOfScreen(s), RootWindowOfScreen(s),
 		  insertCursor_bits, insertCursor_width, insertCursor_height));
@@ -690,7 +690,7 @@ SetTabs(
 {
   MultiSinkObject sink = (MultiSinkObject) w;
   int i;
-  Atom XA_FIGURE_WIDTH;
+  xcb_atom_t XCB_ATOM_FIGURE_WIDTH;
   unsigned long figure_width = 0;
   XFontStruct *font;
 
@@ -711,9 +711,9 @@ SetTabs(
  * Find the figure width of the current font.
  */
 
-  XA_FIGURE_WIDTH = XInternAtom(XtDisplayOfObject(w), "FIGURE_WIDTH", FALSE);
-  if ( (XA_FIGURE_WIDTH != None) &&
-       ( (!XGetFontProperty(font, XA_FIGURE_WIDTH, &figure_width)) ||
+  XCB_ATOM_FIGURE_WIDTH = XInternAtom(XtDisplayOfObject(w), "FIGURE_WIDTH", FALSE);
+  if ( (XCB_ATOM_FIGURE_WIDTH != None) &&
+       ( (!XGetFontProperty(font, XCB_ATOM_FIGURE_WIDTH, &figure_width)) ||
 	 (figure_width == 0)) ) {
     if (font->per_char && font->min_char_or_byte2 <= '$' &&
 	font->max_char_or_byte2 >= '$')

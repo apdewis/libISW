@@ -1286,7 +1286,7 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
       return;
     }
     toVal->size = sizeof type;
-    toVal->addr = (XPointer) &type;
+    toVal->addr = (XtPointer) &type;
     return;
   }
   toVal->size = 0;

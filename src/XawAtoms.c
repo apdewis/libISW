@@ -22,79 +22,79 @@
  */
 typedef struct {
     const char *name;
-    Atom atom;
+    xcb_atom_t atom;
 } AtomTableEntry;
 
 static AtomTableEntry predefined_atoms[] = {
     /* Predefined atoms from X11/Xatom.h */
-    { "PRIMARY", XA_PRIMARY },
-    { "SECONDARY", XA_SECONDARY },
-    { "ARC", XA_ARC },
-    { "ATOM", XA_ATOM },
-    { "BITMAP", XA_BITMAP },
-    { "CARDINAL", XA_CARDINAL },
-    { "COLORMAP", XA_COLORMAP },
-    { "CURSOR", XA_CURSOR },
-    { "CUT_BUFFER0", XA_CUT_BUFFER0 },
-    { "CUT_BUFFER1", XA_CUT_BUFFER1 },
-    { "CUT_BUFFER2", XA_CUT_BUFFER2 },
-    { "CUT_BUFFER3", XA_CUT_BUFFER3 },
-    { "CUT_BUFFER4", XA_CUT_BUFFER4 },
-    { "CUT_BUFFER5", XA_CUT_BUFFER5 },
-    { "CUT_BUFFER6", XA_CUT_BUFFER6 },
-    { "CUT_BUFFER7", XA_CUT_BUFFER7 },
-    { "DRAWABLE", XA_DRAWABLE },
-    { "FONT", XA_FONT },
-    { "INTEGER", XA_INTEGER },
-    { "PIXMAP", XA_PIXMAP },
-    { "POINT", XA_POINT },
-    { "RECTANGLE", XA_RECTANGLE },
-    { "RESOURCE_MANAGER", XA_RESOURCE_MANAGER },
-    { "RGB_COLOR_MAP", XA_RGB_COLOR_MAP },
-    { "RGB_BEST_MAP", XA_RGB_BEST_MAP },
-    { "RGB_BLUE_MAP", XA_RGB_BLUE_MAP },
-    { "RGB_DEFAULT_MAP", XA_RGB_DEFAULT_MAP },
-    { "RGB_GRAY_MAP", XA_RGB_GRAY_MAP },
-    { "RGB_GREEN_MAP", XA_RGB_GREEN_MAP },
-    { "RGB_RED_MAP", XA_RGB_RED_MAP },
-    { "STRING", XA_STRING },
-    { "VISUALID", XA_VISUALID },
-    { "WINDOW", XA_WINDOW },
-    { "WM_COMMAND", XA_WM_COMMAND },
-    { "WM_HINTS", XA_WM_HINTS },
-    { "WM_CLIENT_MACHINE", XA_WM_CLIENT_MACHINE },
-    { "WM_ICON_NAME", XA_WM_ICON_NAME },
-    { "WM_ICON_SIZE", XA_WM_ICON_SIZE },
-    { "WM_NAME", XA_WM_NAME },
-    { "WM_NORMAL_HINTS", XA_WM_NORMAL_HINTS },
-    { "WM_SIZE_HINTS", XA_WM_SIZE_HINTS },
-    { "WM_ZOOM_HINTS", XA_WM_ZOOM_HINTS },
-    { "MIN_SPACE", XA_MIN_SPACE },
-    { "NORM_SPACE", XA_NORM_SPACE },
-    { "MAX_SPACE", XA_MAX_SPACE },
-    { "END_SPACE", XA_END_SPACE },
-    { "SUPERSCRIPT_X", XA_SUPERSCRIPT_X },
-    { "SUPERSCRIPT_Y", XA_SUPERSCRIPT_Y },
-    { "SUBSCRIPT_X", XA_SUBSCRIPT_X },
-    { "SUBSCRIPT_Y", XA_SUBSCRIPT_Y },
-    { "UNDERLINE_POSITION", XA_UNDERLINE_POSITION },
-    { "UNDERLINE_THICKNESS", XA_UNDERLINE_THICKNESS },
-    { "STRIKEOUT_ASCENT", XA_STRIKEOUT_ASCENT },
-    { "STRIKEOUT_DESCENT", XA_STRIKEOUT_DESCENT },
-    { "ITALIC_ANGLE", XA_ITALIC_ANGLE },
-    { "X_HEIGHT", XA_X_HEIGHT },
-    { "QUAD_WIDTH", XA_QUAD_WIDTH },
-    { "WEIGHT", XA_WEIGHT },
-    { "POINT_SIZE", XA_POINT_SIZE },
-    { "RESOLUTION", XA_RESOLUTION },
-    { "COPYRIGHT", XA_COPYRIGHT },
-    { "NOTICE", XA_NOTICE },
-    { "FONT_NAME", XA_FONT_NAME },
-    { "FAMILY_NAME", XA_FAMILY_NAME },
-    { "FULL_NAME", XA_FULL_NAME },
-    { "CAP_HEIGHT", XA_CAP_HEIGHT },
-    { "WM_CLASS", XA_WM_CLASS },
-    { "WM_TRANSIENT_FOR", XA_WM_TRANSIENT_FOR },
+    { "PRIMARY", XCB_ATOM_PRIMARY },
+    { "SECONDARY", XCB_ATOM_SECONDARY },
+    { "ARC", XCB_ATOM_ARC },
+    { "ATOM", XCB_ATOM_ATOM },
+    { "BITMAP", XCB_ATOM_BITMAP },
+    { "CARDINAL", XCB_ATOM_CARDINAL },
+    { "COLORMAP", XCB_ATOM_COLORMAP },
+    { "CURSOR", XCB_ATOM_CURSOR },
+    { "CUT_BUFFER0", XCB_ATOM_CUT_BUFFER0 },
+    { "CUT_BUFFER1", XCB_ATOM_CUT_BUFFER1 },
+    { "CUT_BUFFER2", XCB_ATOM_CUT_BUFFER2 },
+    { "CUT_BUFFER3", XCB_ATOM_CUT_BUFFER3 },
+    { "CUT_BUFFER4", XCB_ATOM_CUT_BUFFER4 },
+    { "CUT_BUFFER5", XCB_ATOM_CUT_BUFFER5 },
+    { "CUT_BUFFER6", XCB_ATOM_CUT_BUFFER6 },
+    { "CUT_BUFFER7", XCB_ATOM_CUT_BUFFER7 },
+    { "DRAWABLE", XCB_ATOM_DRAWABLE },
+    { "FONT", XCB_ATOM_FONT },
+    { "INTEGER", XCB_ATOM_INTEGER },
+    { "PIXMAP", XCB_ATOM_PIXMAP },
+    { "POINT", XCB_ATOM_POINT },
+    { "RECTANGLE", XCB_ATOM_RECTANGLE },
+    { "RESOURCE_MANAGER", XCB_ATOM_RESOURCE_MANAGER },
+    { "RGB_COLOR_MAP", XCB_ATOM_RGB_COLOR_MAP },
+    { "RGB_BEST_MAP", XCB_ATOM_RGB_BEST_MAP },
+    { "RGB_BLUE_MAP", XCB_ATOM_RGB_BLUE_MAP },
+    { "RGB_DEFAULT_MAP", XCB_ATOM_RGB_DEFAULT_MAP },
+    { "RGB_GRAY_MAP", XCB_ATOM_RGB_GRAY_MAP },
+    { "RGB_GREEN_MAP", XCB_ATOM_RGB_GREEN_MAP },
+    { "RGB_RED_MAP", XCB_ATOM_RGB_RED_MAP },
+    { "STRING", XCB_ATOM_STRING },
+    { "VISUALID", XCB_ATOM_VISUALID },
+    { "WINDOW", XCB_ATOM_WINDOW },
+    { "WM_COMMAND", XCB_ATOM_WM_COMMAND },
+    { "WM_HINTS", XCB_ATOM_WM_HINTS },
+    { "WM_CLIENT_MACHINE", XCB_ATOM_WM_CLIENT_MACHINE },
+    { "WM_ICON_NAME", XCB_ATOM_WM_ICON_NAME },
+    { "WM_ICON_SIZE", XCB_ATOM_WM_ICON_SIZE },
+    { "WM_NAME", XCB_ATOM_WM_NAME },
+    { "WM_NORMAL_HINTS", XCB_ATOM_WM_NORMAL_HINTS },
+    { "WM_SIZE_HINTS", XCB_ATOM_WM_SIZE_HINTS },
+    { "WM_ZOOM_HINTS", XCB_ATOM_WM_ZOOM_HINTS },
+    { "MIN_SPACE", XCB_ATOM_MIN_SPACE },
+    { "NORM_SPACE", XCB_ATOM_NORM_SPACE },
+    { "MAX_SPACE", XCB_ATOM_MAX_SPACE },
+    { "END_SPACE", XCB_ATOM_END_SPACE },
+    { "SUPERSCRIPT_X", XCB_ATOM_SUPERSCRIPT_X },
+    { "SUPERSCRIPT_Y", XCB_ATOM_SUPERSCRIPT_Y },
+    { "SUBSCRIPT_X", XCB_ATOM_SUBSCRIPT_X },
+    { "SUBSCRIPT_Y", XCB_ATOM_SUBSCRIPT_Y },
+    { "UNDERLINE_POSITION", XCB_ATOM_UNDERLINE_POSITION },
+    { "UNDERLINE_THICKNESS", XCB_ATOM_UNDERLINE_THICKNESS },
+    { "STRIKEOUT_ASCENT", XCB_ATOM_STRIKEOUT_ASCENT },
+    { "STRIKEOUT_DESCENT", XCB_ATOM_STRIKEOUT_DESCENT },
+    { "ITALIC_ANGLE", XCB_ATOM_ITALIC_ANGLE },
+    { "X_HEIGHT", XCB_ATOM_X_HEIGHT },
+    { "QUAD_WIDTH", XCB_ATOM_QUAD_WIDTH },
+    { "WEIGHT", XCB_ATOM_WEIGHT },
+    { "POINT_SIZE", XCB_ATOM_POINT_SIZE },
+    { "RESOLUTION", XCB_ATOM_RESOLUTION },
+    { "COPYRIGHT", XCB_ATOM_COPYRIGHT },
+    { "NOTICE", XCB_ATOM_NOTICE },
+    { "FONT_NAME", XCB_ATOM_FONT_NAME },
+    { "FAMILY_NAME", XCB_ATOM_FAMILY_NAME },
+    { "FULL_NAME", XCB_ATOM_FULL_NAME },
+    { "CAP_HEIGHT", XCB_ATOM_CAP_HEIGHT },
+    { "WM_CLASS", XCB_ATOM_WM_CLASS },
+    { "WM_TRANSIENT_FOR", XCB_ATOM_WM_TRANSIENT_FOR },
     { NULL, 0 }
 };
 
@@ -110,13 +110,13 @@ static AtomTableEntry predefined_atoms[] = {
  * 
  * Returns: The Atom value, or None if the atom doesn't exist and only_if_exists is True
  */
-Atom
+xcb_atom_t
 XawInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists)
 {
     xcb_connection_t *conn = (xcb_connection_t *)dpy;
     xcb_intern_atom_cookie_t cookie;
     xcb_intern_atom_reply_t *reply;
-    Atom atom = None;
+    xcb_atom_t atom = None;
     
     if (!conn || !name)
         return None;
@@ -151,7 +151,7 @@ XawInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists)
  * A more efficient implementation could pipeline the requests.
  */
 void
-XawInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, Atom *atoms_return)
+XawInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, xcb_atom_t *atoms_return)
 {
     Cardinal i;
     
@@ -177,7 +177,7 @@ XawInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, Atom *ato
  *          or NULL on error
  */
 char*
-XawNameOfAtom(xcb_connection_t *dpy, Atom atom)
+XawNameOfAtom(xcb_connection_t *dpy, xcb_atom_t atom)
 {
     xcb_connection_t *conn = (xcb_connection_t *)dpy;
     xcb_get_atom_name_cookie_t cookie;
@@ -224,7 +224,7 @@ XawNameOfAtom(xcb_connection_t *dpy, Atom atom)
  * Note: This function only works for predefined X atoms (those in X11/Xatom.h).
  * For custom or extension atoms, use XawInternAtom() instead.
  */
-Atom
+xcb_atom_t
 XawMakeAtom(const char *name)
 {
     AtomTableEntry *entry;

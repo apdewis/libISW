@@ -144,7 +144,7 @@ void _XawTextClearAndCenterDisplay(TextWidget);
 void _XawTextExecuteUpdate(TextWidget);
 char *_XawTextGetText(TextWidget, XawTextPosition, XawTextPosition);
 void _XawTextNeedsUpdating(TextWidget, XawTextPosition, XawTextPosition);
-Atom * _XawTextSelectionList(TextWidget, String *, Cardinal);
+xcb_atom_t * _XawTextSelectionList(TextWidget, String *, Cardinal);
 void _XawTextSetScrollBars(TextWidget);
 void _XawTextSetSelection(TextWidget, XawTextPosition, XawTextPosition,
                           String *, Cardinal);
@@ -164,7 +164,7 @@ static XawTextSelectType defaultSelectTypes[] = {
   XawselectAll,      XawselectNull,
 };
 
-static XPointer defaultSelectTypesPtr = (XPointer)defaultSelectTypes;
+static XtPointer defaultSelectTypesPtr = (XtPointer)defaultSelectTypes;
 extern char *_XawDefaultTextTranslations1, *_XawDefaultTextTranslations2,
   *_XawDefaultTextTranslations3, *_XawDefaultTextTranslations4;
 static Dimension defWidth = 100;
@@ -245,7 +245,7 @@ CvtStringToScrollMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
       return;
     }
     toVal->size = sizeof scrollMode;
-    toVal->addr = (XPointer) &scrollMode;
+    toVal->addr = (XtPointer) &scrollMode;
     return;
   }
   toVal->size = 0;
@@ -283,7 +283,7 @@ CvtStringToWrapMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
       return;
     }
     toVal->size = sizeof wrapMode;
-    toVal->addr = (XPointer) &wrapMode;
+    toVal->addr = (XtPointer) &wrapMode;
     return;
   }
   toVal->size = 0;
@@ -323,7 +323,7 @@ CvtStringToResizeMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
       return;
     }
     toVal->size = sizeof resizeMode;
-    toVal->addr = (XPointer) &resizeMode;
+    toVal->addr = (XtPointer) &resizeMode;
     return;
   }
   toVal->size = 0;
@@ -668,17 +668,17 @@ _CreateCutBuffers(xcb_connection_t *d)
   dpy_list = dpy_ptr;
 
 #define Create(buffer) \
-    XChangeProperty(d, RootWindow(d, 0), buffer, XA_STRING, 8, \
+    XChangeProperty(d, RootWindow(d, 0), buffer, XCB_ATOM_STRING, 8, \
 		    PropModeAppend, NULL, 0 );
 
-    Create( XA_CUT_BUFFER0 );
-    Create( XA_CUT_BUFFER1 );
-    Create( XA_CUT_BUFFER2 );
-    Create( XA_CUT_BUFFER3 );
-    Create( XA_CUT_BUFFER4 );
-    Create( XA_CUT_BUFFER5 );
-    Create( XA_CUT_BUFFER6 );
-    Create( XA_CUT_BUFFER7 );
+    Create( XCB_ATOM_CUT_BUFFER0 );
+    Create( XCB_ATOM_CUT_BUFFER1 );
+    Create( XCB_ATOM_CUT_BUFFER2 );
+    Create( XCB_ATOM_CUT_BUFFER3 );
+    Create( XCB_ATOM_CUT_BUFFER4 );
+    Create( XCB_ATOM_CUT_BUFFER5 );
+    Create( XCB_ATOM_CUT_BUFFER6 );
+    Create( XCB_ATOM_CUT_BUFFER7 );
 
 #undef Create
 }
@@ -1510,9 +1510,9 @@ VJump(Widget w, XtPointer closure, XtPointer callData)
 }
 
 static Boolean
-MatchSelection(Atom selection, XawTextSelection *s)
+MatchSelection(xcb_atom_t selection, XawTextSelection *s)
 {
-    Atom    *match;
+    xcb_atom_t    *match;
     int	    count;
 
     for (count = 0, match = s->selections; count < s->atom_count; match++, count++)
@@ -1522,10 +1522,10 @@ MatchSelection(Atom selection, XawTextSelection *s)
 }
 
 static Boolean
-ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
+ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
                  XtPointer *value, unsigned long *length, int *format)
 {
-  Display* d = XtDisplay(w);
+  xcb_connection_t* d = XtDisplay(w);
   TextWidget ctx = (TextWidget)w;
   Widget src = ctx->text.source;
   XawTextEditType edit_mode;
@@ -1534,37 +1534,37 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
   XawTextSelectionSalt	*salt = NULL;
   XawTextSelection	*s;
 
-  if (*target == XA_TARGETS(d)) {
-    Atom* targetP, * std_targets;
+  if (*target == XCB_ATOM_TARGETS(d)) {
+    xcb_atom_t* targetP, * std_targets;
     unsigned long std_length;
 
     if ( SrcCvtSel(src, selection, target, type, value, length, format) )
 	return True;
 
     XawConvertStandardSelection(w, ctx->text.time, selection,
-				target, type, (XPointer*)&std_targets,
+				target, type, (XtPointer*)&std_targets,
 				&std_length, format);
 
-    *value = XtMalloc((unsigned) sizeof(Atom)*(std_length + 7));
-    targetP = *(Atom**)value;
+    *value = XtMalloc((unsigned) sizeof(xcb_atom_t)*(std_length + 7));
+    targetP = *(xcb_atom_t**)value;
     *length = std_length + 6;
-    *targetP++ = XA_STRING;
-    *targetP++ = XA_TEXT(d);
-    *targetP++ = XA_COMPOUND_TEXT(d);
-    *targetP++ = XA_LENGTH(d);
-    *targetP++ = XA_LIST_LENGTH(d);
-    *targetP++ = XA_CHARACTER_POSITION(d);
+    *targetP++ = XCB_ATOM_STRING;
+    *targetP++ = XCB_ATOM_TEXT(d);
+    *targetP++ = XCB_ATOM_COMPOUND_TEXT(d);
+    *targetP++ = XCB_ATOM_LENGTH(d);
+    *targetP++ = XCB_ATOM_LIST_LENGTH(d);
+    *targetP++ = XCB_ATOM_CHARACTER_POSITION(d);
 
     XtSetArg(args[0], XtNeditType,&edit_mode);
     XtGetValues(src, args, ONE);
 
     if (edit_mode == XawtextEdit) {
-      *targetP++ = XA_DELETE(d);
+      *targetP++ = XCB_ATOM_DELETE(d);
       (*length)++;
     }
-    (void) memmove((char*)targetP, (char*)std_targets, sizeof(Atom)*std_length);
+    (void) memmove((char*)targetP, (char*)std_targets, sizeof(xcb_atom_t)*std_length);
     XtFree((char*)std_targets);
-    *type = XA_ATOM;
+    *type = XCB_ATOM_ATOM;
     *format = 32;
     return True;
   }
@@ -1583,16 +1583,16 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
 	return False;
     s = &salt->s;
   }
-  if (*target == XA_STRING ||
-      *target == XA_TEXT(d) ||
-      *target == XA_COMPOUND_TEXT(d)) {
-	if (*target == XA_TEXT(d)) {
+  if (*target == XCB_ATOM_STRING ||
+      *target == XCB_ATOM_TEXT(d) ||
+      *target == XCB_ATOM_COMPOUND_TEXT(d)) {
+	if (*target == XCB_ATOM_TEXT(d)) {
 #ifdef XAW_INTERNATIONALIZATION
 	    if (_XawTextFormat(ctx) == XawFmtWide)
-		*type = XA_COMPOUND_TEXT(d);
+		*type = XCB_ATOM_COMPOUND_TEXT(d);
 	    else
 #endif
-		*type = XA_STRING;
+		*type = XCB_ATOM_STRING;
 	} else {
 	    *type = *target;
 	}
@@ -1628,11 +1628,11 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
 	    *length = salt->length;
 	}
 #ifdef XAW_INTERNATIONALIZATION
-	if (_XawTextFormat(ctx) == XawFmtWide && *type == XA_STRING) {
+	if (_XawTextFormat(ctx) == XawFmtWide && *type == XCB_ATOM_STRING) {
 	    XTextProperty textprop;
 	    wchar_t **wlist;
 	    int count;
-	    textprop.encoding = XA_COMPOUND_TEXT(d);
+	    textprop.encoding = XCB_ATOM_COMPOUND_TEXT(d);
 	    textprop.value = (unsigned char *)*value;
 	    textprop.nitems = strlen(*value);
 	    textprop.format = 8;
@@ -1656,47 +1656,47 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
 	return True;
   }
 
-  if ( (*target == XA_LIST_LENGTH(d)) || (*target == XA_LENGTH(d)) ) {
+  if ( (*target == XCB_ATOM_LIST_LENGTH(d)) || (*target == XCB_ATOM_LENGTH(d)) ) {
     long * temp;
 
     temp = (long *) XtMalloc( (unsigned) sizeof(long) );
-    if (*target == XA_LIST_LENGTH(d))
+    if (*target == XCB_ATOM_LIST_LENGTH(d))
       *temp = 1L;
-    else			/* *target == XA_LENGTH(d) */
+    else			/* *target == XCB_ATOM_LENGTH(d) */
       *temp = (long) (s->right - s->left);
 
-    *value = (XPointer) temp;
-    *type = XA_INTEGER;
+    *value = (XtPointer) temp;
+    *type = XCB_ATOM_INTEGER;
     *length = 1L;
     *format = 32;
     return True;
   }
 
-  if (*target == XA_CHARACTER_POSITION(d)) {
+  if (*target == XCB_ATOM_CHARACTER_POSITION(d)) {
     long * temp;
 
     temp = (long *) XtMalloc( (unsigned)( 2 * sizeof(long) ) );
     temp[0] = (long) (s->left + 1);
     temp[1] = s->right;
-    *value = (XPointer) temp;
-    *type = XA_SPAN(d);
+    *value = (XtPointer) temp;
+    *type = XCB_ATOM_SPAN(d);
     *length = 2L;
     *format = 32;
     return True;
   }
 
-  if (*target == XA_DELETE(d)) {
+  if (*target == XCB_ATOM_DELETE(d)) {
     if (!salt)
 	_XawTextZapSelection( ctx, (XEvent *) NULL, TRUE);
     *value = NULL;
-    *type = XA_NULL(d);
+    *type = XCB_ATOM_NULL(d);
     *length = 0;
     *format = 32;
     return True;
   }
 
   if (XawConvertStandardSelection(w, ctx->text.time, selection, target, type,
-				  (XPointer *)value, length, format))
+				  (XtPointer *)value, length, format))
     return True;
 
   /* else */
@@ -1713,24 +1713,24 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
 #define NOT_A_CUT_BUFFER -1
 
 static int
-GetCutBufferNumber(Atom atom)
+GetCutBufferNumber(xcb_atom_t atom)
 {
-  if (atom == XA_CUT_BUFFER0) return(0);
-  if (atom == XA_CUT_BUFFER1) return(1);
-  if (atom == XA_CUT_BUFFER2) return(2);
-  if (atom == XA_CUT_BUFFER3) return(3);
-  if (atom == XA_CUT_BUFFER4) return(4);
-  if (atom == XA_CUT_BUFFER5) return(5);
-  if (atom == XA_CUT_BUFFER6) return(6);
-  if (atom == XA_CUT_BUFFER7) return(7);
+  if (atom == XCB_ATOM_CUT_BUFFER0) return(0);
+  if (atom == XCB_ATOM_CUT_BUFFER1) return(1);
+  if (atom == XCB_ATOM_CUT_BUFFER2) return(2);
+  if (atom == XCB_ATOM_CUT_BUFFER3) return(3);
+  if (atom == XCB_ATOM_CUT_BUFFER4) return(4);
+  if (atom == XCB_ATOM_CUT_BUFFER5) return(5);
+  if (atom == XCB_ATOM_CUT_BUFFER6) return(6);
+  if (atom == XCB_ATOM_CUT_BUFFER7) return(7);
   return(NOT_A_CUT_BUFFER);
 }
 
 static void
-LoseSelection(Widget w, Atom *selection)
+LoseSelection(Widget w, xcb_atom_t *selection)
 {
   TextWidget ctx = (TextWidget) w;
-  Atom* atomP;
+  xcb_atom_t* atomP;
   int i;
   XawTextSelectionSalt	*salt, *prevSalt, *nextSalt;
 
@@ -1740,7 +1740,7 @@ LoseSelection(Widget w, Atom *selection)
   for (i = 0 ; i < ctx->text.s.atom_count; i++, atomP++)
     if ( (*selection == *atomP) ||
 	(GetCutBufferNumber(*atomP) != NOT_A_CUT_BUFFER) )/* is a cut buffer */
-      *atomP = (Atom)0;
+      *atomP = (xcb_atom_t)0;
 
   while (ctx->text.s.atom_count &&
 	 ctx->text.s.selections[ctx->text.s.atom_count-1] == 0)
@@ -1752,7 +1752,7 @@ LoseSelection(Widget w, Atom *selection)
 
   atomP = ctx->text.s.selections;
   for (i = 0 ; i < ctx->text.s.atom_count; i++, atomP++)
-    if (*atomP == (Atom)0) {
+    if (*atomP == (xcb_atom_t)0) {
       *atomP = ctx->text.s.selections[--ctx->text.s.atom_count];
       while (ctx->text.s.atom_count &&
 	     ctx->text.s.selections[ctx->text.s.atom_count-1] == 0)
@@ -1772,7 +1772,7 @@ LoseSelection(Widget w, Atom *selection)
 	nextSalt = salt->next;
     	for (i = 0 ; i < salt->s.atom_count; i++, atomP++)
 	    if (*selection == *atomP)
-		*atomP = (Atom)0;
+		*atomP = (xcb_atom_t)0;
 
     	while (salt->s.atom_count &&
 	       salt->s.selections[salt->s.atom_count-1] == 0)
@@ -1786,7 +1786,7 @@ LoseSelection(Widget w, Atom *selection)
 
     	atomP = salt->s.selections;
     	for (i = 0 ; i < salt->s.atom_count; i++, atomP++)
-    	    if (*atomP == (Atom)0)
+    	    if (*atomP == (xcb_atom_t)0)
  	    {
       	      *atomP = salt->s.selections[--salt->s.atom_count];
       	      while (salt->s.atom_count &&
@@ -1809,7 +1809,7 @@ LoseSelection(Widget w, Atom *selection)
 }
 
 void
-_XawTextSaltAwaySelection(TextWidget ctx, Atom *selections, int num_atoms)
+_XawTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
 {
     XawTextSelectionSalt    *salt;
     int			    i, j;
@@ -1822,8 +1822,8 @@ _XawTextSaltAwaySelection(TextWidget ctx, Atom *selections, int num_atoms)
 		XtMalloc( (unsigned) sizeof(XawTextSelectionSalt) );
     if (!salt)
 	return;
-    salt->s.selections = (Atom *)
-	 XtMalloc( (unsigned) ( num_atoms * sizeof (Atom) ) );
+    salt->s.selections = (xcb_atom_t *)
+	 XtMalloc( (unsigned) ( num_atoms * sizeof (xcb_atom_t) ) );
     if (!salt->s.selections)
     {
 	XtFree ((char *) salt);
@@ -1866,7 +1866,7 @@ _XawTextSaltAwaySelection(TextWidget ctx, Atom *selections, int num_atoms)
 
 static void
 _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
-              Atom *selections, Cardinal count)
+              xcb_atom_t *selections, Cardinal count)
 {
   XawTextPosition pos;
 
@@ -1898,7 +1898,7 @@ _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
     int buffer;
 
     while (count) {
-      Atom selection = selections[--count];
+      xcb_atom_t selection = selections[--count];
 
       if ((buffer = GetCutBufferNumber(selection)) != NOT_A_CUT_BUFFER) {
 
@@ -1911,7 +1911,7 @@ _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
 #ifdef XAW_INTERNATIONALIZATION
 	if (_XawTextFormat(ctx) == XawFmtWide) {
 	   /*
-	    * Only XA_STRING(Latin 1) is allowed in CUT_BUFFER,
+	    * Only XCB_ATOM_STRING(Latin 1) is allowed in CUT_BUFFER,
 	    * so we get it from wchar string, then free the wchar string.
 	    */
 	    XTextProperty textprop;
@@ -1930,14 +1930,14 @@ _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
 	}
 	amount = Min ( (len = strlen((char *)ptr)), max_len);
 	XChangeProperty(XtDisplay(w), RootWindow(XtDisplay(w), 0), selection,
-			XA_STRING, 8, PropModeReplace, ptr, amount);
+			XCB_ATOM_STRING, 8, PropModeReplace, ptr, amount);
 
 	while (len > max_len) {
 	    len -= max_len;
 	    tptr += max_len;
 	    amount = Min (len, max_len);
 	    XChangeProperty(XtDisplay(w), RootWindow(XtDisplay(w), 0),
-			    selection, XA_STRING, 8, PropModeAppend,
+			    selection, XCB_ATOM_STRING, 8, PropModeAppend,
 			    tptr, amount);
 	}
 	XtFree ((char *)ptr);
@@ -2482,15 +2482,15 @@ _XawTextCheckResize(TextWidget ctx)
  * list in the TextWidget instance.
  */
 
-Atom*
+xcb_atom_t*
 _XawTextSelectionList(TextWidget ctx, String *list, Cardinal nelems)
 {
-  Atom * sel = ctx->text.s.selections;
+  xcb_atom_t * sel = ctx->text.s.selections;
   xcb_connection_t *dpy = XtDisplay((Widget) ctx);
   int n;
 
   if (nelems > ctx->text.s.array_size) {
-    sel = (Atom *) XtRealloc((char *) sel, sizeof(Atom) * nelems);
+    sel = (xcb_atom_t *) XtRealloc((char *) sel, sizeof(xcb_atom_t) * nelems);
     ctx->text.s.array_size = nelems;
     ctx->text.s.selections = sel;
   }
@@ -2543,7 +2543,7 @@ ModifySelection(TextWidget ctx, XawTextPosition left, XawTextPosition right)
 {
   if (left == right)
     ctx->text.insertPos = left;
-  _SetSelection( ctx, left, right, (Atom*) NULL, ZERO );
+  _SetSelection( ctx, left, right, (xcb_atom_t*) NULL, ZERO );
 }
 
 /*
@@ -3251,8 +3251,8 @@ XawTextUnsetSelection(Widget w)
   TextWidget ctx = (TextWidget)w;
 
   while (ctx->text.s.atom_count != 0) {
-    Atom sel = ctx->text.s.selections[ctx->text.s.atom_count - 1];
-    if ( sel != (Atom) 0 ) {
+    xcb_atom_t sel = ctx->text.s.selections[ctx->text.s.atom_count - 1];
+    if ( sel != (xcb_atom_t) 0 ) {
 /*
  * As selections are lost the atom_count will decrement.
  */

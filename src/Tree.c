@@ -972,9 +972,9 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
      * And redisplay.
      */
     if (XtIsRealized ((Widget) tw)) {
- xcb_connection_t *conn = XtDisplay(tw);
- xcb_clear_area(conn, 1, XtWindow((Widget)tw), 0, 0, 0, 0);
- xcb_flush(conn);
+        xcb_connection_t *conn = XtDisplay(tw);
+        xcb_clear_area(conn, 1, XtWindow((Widget)tw), 0, 0, 0, 0);
+        xcb_flush(conn);
     }
 }
 

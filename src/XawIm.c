@@ -132,7 +132,7 @@ static XtResource resources[] =
 
 
 static void
-SetVaArg(XPointer *arg, XPointer value)
+SetVaArg(XtPointer *arg, XtPointer value)
 {
     *arg = value;
 }
@@ -170,7 +170,7 @@ GetExtPart(VendorShellWidget w)
     XawVendorShellExtWidget vew;
 
     if (XFindContext(XtDisplay(w), (Window)w, extContext,
-		      (XPointer*)&contextData)) {
+		      (XtPointer*)&contextData)) {
 	return(NULL);
     }
     vew = (XawVendorShellExtWidget)contextData->ve;
@@ -325,7 +325,7 @@ DestroyAllIM(XawVendorShellExtPart *ve)
      * Close Input Method
      */
     if (!XFindContext(XDisplayOfIM(ve->im.xim), (Window)ve->im.xim, errContext,
-		      (XPointer*)&contextErrData)) {
+		      (XtPointer*)&contextErrData)) {
 	if (contextErrData) XtFree((char *)contextErrData);
     }
     XDeleteContext(XDisplayOfIM(ve->im.xim), (Window)ve->im.xim, errContext);
@@ -349,7 +349,7 @@ FreeAllDataOfVendorShell(XawVendorShellExtPart *ve, VendorShellWidget vw)
     contextErrDataRec *contextErrData;
 
     if (!XFindContext(XtDisplay(vw), (Window)vw, extContext,
-		      (XPointer*)&contextErrData)) {
+		      (XtPointer*)&contextErrData)) {
 	if (contextErrData) XtFree((char *)contextErrData);
     }
     XDeleteContext(XtDisplay(vw), (Window)vw, extContext);
@@ -639,19 +639,19 @@ SizeNegotiation(XawIcTableList p, Dimension width, Dimension height)
     XVaNestedList	pe_attr = NULL, st_attr = NULL;
     int			ic_cnt = 0, pe_cnt = 0, st_cnt = 0;
     xcb_rectangle_t	*pe_area_needed = NULL, *st_area_needed = NULL;
-    XPointer		ic_a[5];
+    XtPointer		ic_a[5];
 
     if (p->input_style & XIMPreeditArea) {
 	pe_attr = XVaCreateNestedList(0, XNAreaNeeded, &pe_area_needed, NULL);
-	SetVaArg( &ic_a[ic_cnt], (XPointer) XNPreeditAttributes); ic_cnt++;
-	SetVaArg( &ic_a[ic_cnt], (XPointer) pe_attr); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) XNPreeditAttributes); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) pe_attr); ic_cnt++;
     }
     if (p->input_style & XIMStatusArea) {
 	st_attr = XVaCreateNestedList(0, XNAreaNeeded, &st_area_needed, NULL);
-	SetVaArg( &ic_a[ic_cnt], (XPointer) XNStatusAttributes); ic_cnt++;
-	SetVaArg( &ic_a[ic_cnt], (XPointer) st_attr); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) XNStatusAttributes); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) st_attr); ic_cnt++;
     }
-    SetVaArg( &ic_a[ic_cnt], (XPointer) NULL);
+    SetVaArg( &ic_a[ic_cnt], (XtPointer) NULL);
 
     if (ic_cnt > 0) {
 	XGetICValues(p->xic, ic_a[0], ic_a[1], ic_a[2], ic_a[3], ic_a[4], NULL);
@@ -675,8 +675,8 @@ SizeNegotiation(XawIcTableList p, Dimension width, Dimension height)
 
 	    XFree(st_area_needed);
 	    st_attr = XVaCreateNestedList(0, XNArea, &st_area, NULL);
-	    SetVaArg( &ic_a[ic_cnt], (XPointer) XNStatusAttributes); ic_cnt++;
-	    SetVaArg( &ic_a[ic_cnt], (XPointer) st_attr); ic_cnt++;
+	    SetVaArg( &ic_a[ic_cnt], (XtPointer) XNStatusAttributes); ic_cnt++;
+	    SetVaArg( &ic_a[ic_cnt], (XtPointer) st_attr); ic_cnt++;
 	}
 	if (p->input_style & XIMPreeditArea) {
 	    if (p->input_style & XIMStatusArea) {
@@ -690,10 +690,10 @@ SizeNegotiation(XawIcTableList p, Dimension width, Dimension height)
 	    XFree(pe_area_needed);
 	    pe_area.y = height - pe_area.height;
 	    pe_attr = XVaCreateNestedList(0, XNArea, &pe_area, NULL);
-	    SetVaArg( &ic_a[ic_cnt], (XPointer) XNPreeditAttributes); ic_cnt++;
-	    SetVaArg( &ic_a[ic_cnt], (XPointer) pe_attr); ic_cnt++;
+	    SetVaArg( &ic_a[ic_cnt], (XtPointer) XNPreeditAttributes); ic_cnt++;
+	    SetVaArg( &ic_a[ic_cnt], (XtPointer) pe_attr); ic_cnt++;
 	}
-	SetVaArg( &ic_a[ic_cnt], (XPointer) NULL);
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) NULL);
 	XSetICValues(p->xic, ic_a[0], ic_a[1], ic_a[2], ic_a[3], ic_a[4], NULL);
 	if (pe_attr) XFree(pe_attr);
 	if (st_attr) XFree(st_attr);
@@ -711,7 +711,7 @@ CreateIC(Widget w, XawVendorShellExtPart *ve)
     xcb_point_t		position;
     xcb_rectangle_t	pe_area, st_area;
     XVaNestedList	pe_attr = NULL, st_attr = NULL;
-    XPointer		ic_a[20], pe_a[20], st_a[20];
+    XtPointer		ic_a[20], pe_a[20], st_a[20];
     Dimension		height = 0;
     int			ic_cnt = 0, pe_cnt = 0, st_cnt = 0;
     XawTextMargin	*margin;
@@ -727,37 +727,37 @@ CreateIC(Widget w, XawVendorShellExtPart *ve)
 
     if (p->input_style & (XIMPreeditArea|XIMPreeditPosition|XIMStatusArea)) {
 	if (p->flg & CIFontSet) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNFontSet); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->font_set); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNFontSet); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->font_set); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNFontSet); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->font_set); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNFontSet); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->font_set); st_cnt++;
 	    height = maxAscentOfFontSet(p->font_set)
 		   + maxDescentOfFontSet(p->font_set);
 	    height = SetVendorShellHeight(ve, height);
 	}
 	if (p->flg & CIFg) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNForeground); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->foreground); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNForeground); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->foreground); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNForeground); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->foreground); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNForeground); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->foreground); st_cnt++;
 	}
 	if (p->flg & CIBg) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNBackground); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->background); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNBackground); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->background); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNBackground); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->background); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNBackground); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->background); st_cnt++;
 	}
 	if (p->flg & CIBgPixmap) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNBackgroundPixmap); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->bg_pixmap); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNBackgroundPixmap); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->bg_pixmap); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNBackgroundPixmap); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->bg_pixmap); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNBackgroundPixmap); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->bg_pixmap); st_cnt++;
 	}
 	if (p->flg & CILineS) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNLineSpace); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->line_spacing); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNLineSpace); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->line_spacing); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNLineSpace); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->line_spacing); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNLineSpace); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->line_spacing); st_cnt++;
 	}
     }
     if (p->input_style & XIMPreeditArea) {
@@ -765,8 +765,8 @@ CreateIC(Widget w, XawVendorShellExtPart *ve)
 	pe_area.y = ve->parent->core.height - height;
 	pe_area.width = ve->parent->core.width;
 	pe_area.height = height;
-	SetVaArg( &pe_a[pe_cnt], (XPointer) XNArea); pe_cnt++;
-	SetVaArg( &pe_a[pe_cnt], (XPointer) &pe_area); pe_cnt++;
+	SetVaArg( &pe_a[pe_cnt], (XtPointer) XNArea); pe_cnt++;
+	SetVaArg( &pe_a[pe_cnt], (XtPointer) &pe_area); pe_cnt++;
     }
     if (p->input_style & XIMPreeditPosition) {
 	pe_area.x = 0;
@@ -778,54 +778,54 @@ CreateIC(Widget w, XawVendorShellExtPart *ve)
 	pe_area.y += margin->top;
 	pe_area.width -= (margin->left + margin->right - 1);
 	pe_area.height -= (margin->top + margin->bottom - 1);
-	SetVaArg( &pe_a[pe_cnt], (XPointer) XNArea); pe_cnt++;
-	SetVaArg( &pe_a[pe_cnt], (XPointer) &pe_area); pe_cnt++;
+	SetVaArg( &pe_a[pe_cnt], (XtPointer) XNArea); pe_cnt++;
+	SetVaArg( &pe_a[pe_cnt], (XtPointer) &pe_area); pe_cnt++;
 	if (p->flg & CICursorP) {
 	    _XawMultiSinkPosToXY(w, p->cursor_position, &position.x, &position.y);
 	} else {
 	    position.x = position.y = 0;
 	}
-	SetVaArg( &pe_a[pe_cnt], (XPointer) XNSpotLocation); pe_cnt++;
-	SetVaArg( &pe_a[pe_cnt], (XPointer) &position); pe_cnt++;
+	SetVaArg( &pe_a[pe_cnt], (XtPointer) XNSpotLocation); pe_cnt++;
+	SetVaArg( &pe_a[pe_cnt], (XtPointer) &position); pe_cnt++;
     }
     if (p->input_style & XIMStatusArea) {
 	st_area.x = 0;
 	st_area.y = ve->parent->core.height - height;
 	st_area.width = ve->parent->core.width;
 	st_area.height = height;
-	SetVaArg( &st_a[st_cnt], (XPointer) XNArea); st_cnt++;
-	SetVaArg( &st_a[st_cnt], (XPointer) &st_area); st_cnt++;
+	SetVaArg( &st_a[st_cnt], (XtPointer) XNArea); st_cnt++;
+	SetVaArg( &st_a[st_cnt], (XtPointer) &st_area); st_cnt++;
     }
 
-    SetVaArg( &ic_a[ic_cnt], (XPointer) XNInputStyle); ic_cnt++;
-    SetVaArg( &ic_a[ic_cnt], (XPointer) p->input_style); ic_cnt++;
-    SetVaArg( &ic_a[ic_cnt], (XPointer) XNClientWindow); ic_cnt++;
-    SetVaArg( &ic_a[ic_cnt], (XPointer) XtWindow(ve->parent)); ic_cnt++;
-    SetVaArg( &ic_a[ic_cnt], (XPointer) XNFocusWindow); ic_cnt++;
-    SetVaArg( &ic_a[ic_cnt], (XPointer) XtWindow(w)); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (XtPointer) XNInputStyle); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (XtPointer) p->input_style); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (XtPointer) XNClientWindow); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (XtPointer) XtWindow(ve->parent)); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (XtPointer) XNFocusWindow); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (XtPointer) XtWindow(w)); ic_cnt++;
 
     if (pe_cnt > 0) {
-	SetVaArg( &pe_a[pe_cnt], (XPointer) NULL);
+	SetVaArg( &pe_a[pe_cnt], (XtPointer) NULL);
 	pe_attr = XVaCreateNestedList(0, pe_a[0], pe_a[1], pe_a[2], pe_a[3],
 				   pe_a[4], pe_a[5], pe_a[6], pe_a[7], pe_a[8],
 				   pe_a[9], pe_a[10], pe_a[11], pe_a[12],
 				   pe_a[13], pe_a[14], pe_a[15], pe_a[16],
 				   pe_a[17], pe_a[18],  pe_a[19], NULL);
-	SetVaArg( &ic_a[ic_cnt], (XPointer) XNPreeditAttributes); ic_cnt++;
-	SetVaArg( &ic_a[ic_cnt], (XPointer) pe_attr); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) XNPreeditAttributes); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) pe_attr); ic_cnt++;
     }
 
     if (st_cnt > 0) {
-	SetVaArg( &st_a[st_cnt], (XPointer) NULL);
+	SetVaArg( &st_a[st_cnt], (XtPointer) NULL);
 	st_attr = XVaCreateNestedList(0, st_a[0], st_a[1], st_a[2], st_a[3],
 				   st_a[4], st_a[5], st_a[6], st_a[7], st_a[8],
 				   st_a[9], st_a[10], st_a[11], st_a[12],
 				   st_a[13], st_a[14], st_a[15], st_a[16],
 				   st_a[17], st_a[18],  st_a[19], NULL);
-	SetVaArg( &ic_a[ic_cnt], (XPointer) XNStatusAttributes); ic_cnt++;
-	SetVaArg( &ic_a[ic_cnt], (XPointer) st_attr); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) XNStatusAttributes); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) st_attr); ic_cnt++;
     }
-    SetVaArg( &ic_a[ic_cnt], (XPointer) NULL);
+    SetVaArg( &ic_a[ic_cnt], (XtPointer) NULL);
 
     p->xic = XCreateIC(ve->im.xim, ic_a[0], ic_a[1], ic_a[2], ic_a[3],
 		       ic_a[4], ic_a[5], ic_a[6], ic_a[7], ic_a[8], ic_a[9],
@@ -858,7 +858,7 @@ SetICValues(Widget w, XawVendorShellExtPart *ve, Boolean focus)
     xcb_point_t		position;
     xcb_rectangle_t	pe_area;
     XVaNestedList	pe_attr = NULL, st_attr = NULL;
-    XPointer		ic_a[20], pe_a[20], st_a[20];
+    XtPointer		ic_a[20], pe_a[20], st_a[20];
     int			ic_cnt = 0, pe_cnt = 0, st_cnt = 0;
     XawTextMargin	*margin;
     int			height;
@@ -884,44 +884,44 @@ SetICValues(Widget w, XawVendorShellExtPart *ve, Boolean focus)
 
     if (p->input_style & (XIMPreeditArea|XIMPreeditPosition|XIMStatusArea)) {
 	if (p->flg & CIFontSet) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNFontSet); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->font_set); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNFontSet); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->font_set); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNFontSet); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->font_set); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNFontSet); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->font_set); st_cnt++;
 	    height = maxAscentOfFontSet(p->font_set)
 		   + maxDescentOfFontSet(p->font_set);
 	    height = SetVendorShellHeight(ve, height);
 	}
 	if (p->flg & CIFg) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNForeground); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->foreground); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNForeground); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->foreground); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNForeground); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->foreground); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNForeground); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->foreground); st_cnt++;
 	}
 	if (p->flg & CIBg) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNBackground); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->background); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNBackground); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->background); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNBackground); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->background); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNBackground); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->background); st_cnt++;
 	}
 	if (p->flg & CIBgPixmap) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNBackgroundPixmap); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->bg_pixmap); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNBackgroundPixmap); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->bg_pixmap); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNBackgroundPixmap); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->bg_pixmap); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNBackgroundPixmap); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->bg_pixmap); st_cnt++;
 	}
 	if (p->flg & CILineS) {
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNLineSpace); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) p->line_spacing); pe_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) XNLineSpace); st_cnt++;
-	    SetVaArg( &st_a[st_cnt], (XPointer) p->line_spacing); st_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNLineSpace); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) p->line_spacing); pe_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) XNLineSpace); st_cnt++;
+	    SetVaArg( &st_a[st_cnt], (XtPointer) p->line_spacing); st_cnt++;
 	}
     }
     if (p->input_style & XIMPreeditPosition) {
 	if (p->flg & CICursorP) {
 	    _XawMultiSinkPosToXY(w, p->cursor_position, &position.x, &position.y);
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNSpotLocation); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) &position); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNSpotLocation); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) &position); pe_cnt++;
 	}
     }
     if (IsSharedIC(ve)) {
@@ -935,37 +935,37 @@ SetICValues(Widget w, XawVendorShellExtPart *ve, Boolean focus)
 	    pe_area.y += margin->top;
 	    pe_area.width -= (margin->left + margin->right - 1);
 	    pe_area.height -= (margin->top + margin->bottom - 1);
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) XNArea); pe_cnt++;
-	    SetVaArg( &pe_a[pe_cnt], (XPointer) &pe_area); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) XNArea); pe_cnt++;
+	    SetVaArg( &pe_a[pe_cnt], (XtPointer) &pe_area); pe_cnt++;
 	}
     }
 
     if (pe_cnt > 0) {
-	SetVaArg( &pe_a[pe_cnt], (XPointer) NULL);
+	SetVaArg( &pe_a[pe_cnt], (XtPointer) NULL);
 	pe_attr = XVaCreateNestedList(0, pe_a[0], pe_a[1], pe_a[2], pe_a[3],
 				      pe_a[4], pe_a[5], pe_a[6], pe_a[7],
 				      pe_a[8], pe_a[9], pe_a[10], pe_a[11],
 				      pe_a[12], pe_a[13], pe_a[14], pe_a[15],
 				      pe_a[16], pe_a[17], pe_a[18],  pe_a[19], NULL);
-	SetVaArg( &ic_a[ic_cnt], (XPointer) XNPreeditAttributes); ic_cnt++;
-	SetVaArg( &ic_a[ic_cnt], (XPointer) pe_attr); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) XNPreeditAttributes); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) pe_attr); ic_cnt++;
     }
     if (st_cnt > 0) {
-	SetVaArg( &st_a[st_cnt], (XPointer) NULL);
+	SetVaArg( &st_a[st_cnt], (XtPointer) NULL);
 	st_attr = XVaCreateNestedList(0, st_a[0], st_a[1], st_a[2], st_a[3],
 				      st_a[4], st_a[5], st_a[6], st_a[7],
 				      st_a[8], st_a[9], st_a[10], st_a[11],
 				      st_a[12], st_a[13], st_a[14], st_a[15],
 				      st_a[16], st_a[17], st_a[18],  st_a[19], NULL);
-	SetVaArg( &ic_a[ic_cnt], (XPointer) XNStatusAttributes); ic_cnt++;
-	SetVaArg( &ic_a[ic_cnt], (XPointer) st_attr); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) XNStatusAttributes); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) st_attr); ic_cnt++;
     }
     if (focus == TRUE) {
-	SetVaArg( &ic_a[ic_cnt], (XPointer) XNFocusWindow); ic_cnt++;
-	SetVaArg( &ic_a[ic_cnt], (XPointer) XtWindow(w)); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) XNFocusWindow); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) XtWindow(w)); ic_cnt++;
     }
     if (ic_cnt > 0) {
-	SetVaArg( &ic_a[ic_cnt], (XPointer) NULL);
+	SetVaArg( &ic_a[ic_cnt], (XtPointer) NULL);
 	XSetICValues(p->xic, ic_a[0], ic_a[1], ic_a[2], ic_a[3], ic_a[4],
 		     ic_a[5], ic_a[6], ic_a[7], ic_a[8], ic_a[9], ic_a[10],
 		     ic_a[11], ic_a[12], ic_a[13], ic_a[14], ic_a[15],
@@ -1327,12 +1327,12 @@ Destroy(Widget w, XawVendorShellExtPart *ve)
 
     if (extContext != (XContext)0 &&
 	!XFindContext (XtDisplay (w), (Window)w,
-		       extContext, (XPointer*)&contextData))
+		       extContext, (XtPointer*)&contextData))
         XtFree( (char*) contextData );
 
     if (errContext != (XContext)0 &&
 	!XFindContext (XDisplayOfIM( ve->im.xim ), (Window) ve->im.xim,
-		       errContext, (XPointer*) &contextErrData))
+		       errContext, (XtPointer*) &contextErrData))
         XtFree( (char*) contextErrData );
 }
 

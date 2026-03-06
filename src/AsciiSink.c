@@ -342,7 +342,7 @@ static Pixmap
 CreateInsertCursor(Widget w)
 {
     xcb_connection_t *conn = XtDisplay(w);
-    Screen *s = XtScreenOfObject(w);
+    xcb_screen_t *s = XtScreenOfObject(w);
     xcb_drawable_t root = RootWindowOfScreen(s);
     return XawCreateBitmapFromData(conn, root,
 		  insertCursor_bits, insertCursor_width, insertCursor_height);
@@ -652,7 +652,7 @@ SetTabs(Widget w, int tab_count, short *tabs)
 {
   AsciiSinkObject sink = (AsciiSinkObject) w;
   int i;
-  Atom XA_FIGURE_WIDTH;
+  xcb_atom_t XCB_ATOM_FIGURE_WIDTH;
   unsigned long figure_width = 0;
   XFontStruct *font = sink->ascii_sink.font;
   xcb_connection_t *conn = XtDisplayOfObject(w);
@@ -661,9 +661,9 @@ SetTabs(Widget w, int tab_count, short *tabs)
  * Find the figure width of the current font.
  */
 
-  XA_FIGURE_WIDTH = XawXcbInternAtom(conn, "FIGURE_WIDTH", FALSE);
-  if ( (XA_FIGURE_WIDTH != None) &&
-       ( (!XawGetFontProperty(conn, font, XA_FIGURE_WIDTH, &figure_width)) ||
+  XCB_ATOM_FIGURE_WIDTH = XawXcbInternAtom(conn, "FIGURE_WIDTH", FALSE);
+  if ( (XCB_ATOM_FIGURE_WIDTH != None) &&
+       ( (!XawGetFontProperty(conn, font, XCB_ATOM_FIGURE_WIDTH, &figure_width)) ||
 	 (figure_width == 0)) ) {
 #ifdef XFONTSTRUCT_HAS_NO_PER_CHAR
     /* XCB-based fonts don't have per_char metrics - query for '$' width */

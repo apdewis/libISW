@@ -63,7 +63,7 @@ typedef struct _WidgetInfo {
 } WidgetInfo;
 
 typedef struct _XawTipInfo {
-    Screen *screen;
+    xcb_screen_t *screen;
     TipWidget tip;
     Bool mapped;
     WidgetInfo *widgets;
@@ -224,7 +224,7 @@ XawCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
       strcpy((char *)toVal->addr, buffer);
   }
   else
-    toVal->addr = (XPointer)buffer;
+    toVal->addr = (XtPointer)buffer;
   toVal->size = sizeof(String);
 
   return (True);
@@ -554,7 +554,7 @@ static XawTipInfo *
 FindTipInfo(Widget w)
 {
     XawTipInfo *info, *list = TipInfoList;
-    Screen *screen;
+    xcb_screen_t *screen;
 
     if (list == NULL)
 	return (TipInfoList = CreateTipInfo(w));

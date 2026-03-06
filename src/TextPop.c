@@ -85,7 +85,7 @@ extern int errno;
 
 extern char *_XawTextGetText(TextWidget, XawTextPosition, XawTextPosition);
 
-static void CenterWidgetOnPoint(Widget, XEvent *);
+static void CenterWidgetOnPoint(Widget, xcb_generic_event_t *);
 static void PopdownSearch(Widget, XtPointer, XtPointer);
 static void DoInsert(Widget, XtPointer, XtPointer);
 static void _SetField(Widget, Widget);
@@ -107,13 +107,13 @@ static void AddInsertFileChildren(Widget, char *, Widget);
 static Boolean InsertFileNamed(Widget, char *);
 static void AddSearchChildren(Widget, char *, Widget);
 
-void _XawTextDoReplaceAction(Widget, XEvent *, String *, Cardinal *);
-void _XawTextDoSearchAction(Widget, XEvent *, String *, Cardinal *);
-void _XawTextInsertFile(Widget, XEvent *, String *, Cardinal *);
-void _XawTextInsertFileAction(Widget, XEvent *, String *, Cardinal *);
-void _XawTextPopdownSearchAction(Widget, XEvent *, String *, Cardinal *);
-void _XawTextSearch(Widget, XEvent *, String *, Cardinal *);
-void _XawTextSetField(Widget, XEvent *, String *, Cardinal *);
+void _XawTextDoReplaceAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+void _XawTextDoSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+void _XawTextInsertFile(Widget, xcb_generic_event_t *, String *, Cardinal *);
+void _XawTextInsertFileAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+void _XawTextPopdownSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+void _XawTextSearch(Widget, xcb_generic_event_t *, String *, Cardinal *);
+void _XawTextSetField(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 
 static char radio_trans_string[] =
@@ -152,7 +152,7 @@ static char rep_text_trans[] =
 
 /* ARGSUSED */
 void
-_XawTextInsertFileAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+_XawTextInsertFileAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   DoInsert(w, (XtPointer) XtParent(XtParent(XtParent(w))), (XtPointer)NULL);
 }
@@ -174,7 +174,7 @@ _XawTextInsertFileAction(Widget w, XEvent *event, String *params, Cardinal *num_
  */
 
 void
-_XawTextInsertFile(Widget w, XEvent *event, String *params, Cardinal *num_params)
+_XawTextInsertFile(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget)w;
   char * ptr;
@@ -408,7 +408,7 @@ AddInsertFileChildren(Widget form, char *ptr, Widget tw)
 
 /* ARGSUSED */
 void
-_XawTextDoSearchAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+_XawTextDoSearchAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget tw = (TextWidget) XtParent(XtParent(XtParent(w)));
   Boolean popdown = FALSE;
@@ -430,7 +430,7 @@ _XawTextDoSearchAction(Widget w, XEvent *event, String *params, Cardinal *num_pa
 
 /* ARGSUSED */
 void
-_XawTextPopdownSearchAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+_XawTextPopdownSearchAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget tw = (TextWidget) XtParent(XtParent(XtParent(w)));
 
@@ -493,7 +493,7 @@ SearchButton(Widget w, XtPointer closure, XtPointer call_data)
 #define SEARCH_HEADER ("Text Widget - Search():")
 
 void
-_XawTextSearch(Widget w, XEvent *event, String *params, Cardinal *num_params)
+_XawTextSearch(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget)w;
   XawTextScanDirection dir;
@@ -640,7 +640,7 @@ AddSearchChildren(Widget form, char *ptr, Widget tw)
   XtSetArg(args[num_args], XtNfromVert, search->label2); num_args++;
   XtSetArg(args[num_args], XtNleft, XtChainLeft); num_args++;
   XtSetArg(args[num_args], XtNright, XtChainLeft); num_args++;
-  XtSetArg(args[num_args], XtNradioData, (XPointer) XawsdLeft + R_OFFSET);
+  XtSetArg(args[num_args], XtNradioData, (XtPointer) XawsdLeft + R_OFFSET);
   num_args++;
   search->left_toggle = XtCreateManagedWidget("backwards", toggleWidgetClass,
 					      form, args, num_args);
@@ -652,7 +652,7 @@ AddSearchChildren(Widget form, char *ptr, Widget tw)
   XtSetArg(args[num_args], XtNleft, XtChainLeft); num_args++;
   XtSetArg(args[num_args], XtNright, XtChainLeft); num_args++;
   XtSetArg(args[num_args], XtNradioGroup, search->left_toggle); num_args++;
-  XtSetArg(args[num_args], XtNradioData, (XPointer) XawsdRight + R_OFFSET);
+  XtSetArg(args[num_args], XtNradioData, (XtPointer) XawsdRight + R_OFFSET);
   num_args++;
   search->right_toggle = XtCreateManagedWidget("forwards", toggleWidgetClass,
 					       form, args, num_args);
@@ -805,7 +805,7 @@ DoSearch(struct SearchAndReplace * search)
       text.length = strlen(text.ptr);
   text.firstPos = 0;
 
-  dir = (XawTextScanDirection)(intptr_t) ((XPointer)XawToggleGetCurrent(search->left_toggle) -
+  dir = (XawTextScanDirection)(intptr_t) ((XtPointer)XawToggleGetCurrent(search->left_toggle) -
 				R_OFFSET);
 
   pos = XawTextSearch( tw, dir, &text);
@@ -849,7 +849,7 @@ DoSearch(struct SearchAndReplace * search)
 
 /* ARGSUSED */
 void
-_XawTextDoReplaceAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+_XawTextDoReplaceAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) XtParent(XtParent(XtParent(w)));
   Boolean popdown = FALSE;
@@ -939,7 +939,7 @@ Replace(struct SearchAndReplace *search, Boolean once_only, Boolean show_current
 #endif
       replace.length = strlen(replace.ptr);
 
-  dir = (XawTextScanDirection)(intptr_t) ((XPointer)XawToggleGetCurrent(search->left_toggle) -
+  dir = (XawTextScanDirection)(intptr_t) ((XtPointer)XawToggleGetCurrent(search->left_toggle) -
 				R_OFFSET);
   /* CONSTCOND */
   while (TRUE) {
@@ -1042,7 +1042,7 @@ SetSearchLabels(struct SearchAndReplace *search, String msg1, String msg2, Boole
 
 /* ARGSUSED */
 void
-_XawTextSetField(Widget w, XEvent *event, String *params, Cardinal *num_params)
+_XawTextSetField(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   struct SearchAndReplace * search;
   Widget new, old;
@@ -1190,7 +1190,7 @@ GetStringRaw(Widget tw)
  */
 
 static void
-CenterWidgetOnPoint(Widget w, XEvent *event)
+CenterWidgetOnPoint(Widget w, xcb_generic_event_t *event)
 {
   Arg args[3];
   Cardinal num_args;
@@ -1307,10 +1307,10 @@ InParams(String str, String *p, Cardinal n)
 static char *WM_DELETE_WINDOW = "WM_DELETE_WINDOW";
 
 static void
-WMProtocols(Widget w, XEvent *event, String *params, Cardinal *num_params)
+WMProtocols(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
-    Atom wm_delete_window;
-    Atom wm_protocols;
+    xcb_atom_t wm_delete_window;
+    xcb_atom_t wm_protocols;
 
     wm_delete_window = XInternAtom(XtDisplay(w), WM_DELETE_WINDOW, True);
     wm_protocols = XInternAtom(XtDisplay(w), "WM_PROTOCOLS", True);
@@ -1344,7 +1344,7 @@ SetWMProtocolTranslations(Widget w)
 {
     int i;
     XtAppContext app_context;
-    Atom wm_delete_window;
+    xcb_atom_t wm_delete_window;
     static XtTranslations compiled_table;	/* initially 0 */
     static XtAppContext *app_context_list;	/* initially 0 */
     static Cardinal list_size;			/* initially 0 */
@@ -1370,6 +1370,6 @@ SetWMProtocolTranslations(Widget w)
 
     /* establish communication between the window manager and each shell */
     XtAugmentTranslations(w, compiled_table);
-    wm_delete_window = XInternAtom(XtDisplay(w), WM_DELETE_WINDOW, False);
+    wm_delete_window = XawXcbInternAtom(XtDisplay(w), WM_DELETE_WINDOW, False);
     (void) XSetWMProtocols(XtDisplay(w), XtWindow(w), &wm_delete_window, 1);
 }

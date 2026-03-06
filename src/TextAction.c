@@ -25,6 +25,9 @@ in this Software without prior written authorization from the X Consortium.
 
 */
 
+#include "XawXcbDraw.h"
+#include <X11/Intrinsic.h>
+#include <xcb/xproto.h>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -32,7 +35,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xutil.h>
-#include <X11/Xatom.h>
+#include <xcb/xcb.h>
 #include <X11/Xaw3d/TextP.h>
 #ifdef XAW_INTERNATIONALIZATION
 #include <X11/Xaw3d/MultiSrcP.h>
@@ -56,14 +59,14 @@ in this Software without prior written authorization from the X Consortium.
  * These are defined in TextPop.c
  */
 
-extern void _XawTextInsertFileAction(Widget, XEvent *, String *, Cardinal *);
-extern void _XawTextInsertFile(Widget, XEvent *, String *, Cardinal *);
-extern void _XawTextSearch(Widget, XEvent *, String *, Cardinal *);
-extern void _XawTextSearch(Widget, XEvent *, String *, Cardinal *);
-extern void _XawTextDoSearchAction(Widget, XEvent *, String *, Cardinal *);
-extern void _XawTextDoReplaceAction(Widget, XEvent *, String *, Cardinal *);
-extern void _XawTextSetField(Widget, XEvent *, String *, Cardinal *);
-extern void _XawTextPopdownSearchAction(Widget, XEvent *, String *, Cardinal *);
+extern void _XawTextInsertFileAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+extern void _XawTextInsertFile(Widget, xcb_generic_event_t *, String *, Cardinal *);
+extern void _XawTextSearch(Widget, xcb_generic_event_t *, String *, Cardinal *);
+extern void _XawTextSearch(Widget, xcb_generic_event_t *, String *, Cardinal *);
+extern void _XawTextDoSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+extern void _XawTextDoReplaceAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+extern void _XawTextSetField(Widget, xcb_generic_event_t *, String *, Cardinal *);
+extern void _XawTextPopdownSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 /*
  * These are defined in Text.c
@@ -79,7 +82,7 @@ extern void _XawTextCheckResize(TextWidget);
 extern void _XawTextExecuteUpdate(TextWidget);
 extern void _XawTextSetScrollBars(TextWidget);
 extern void _XawTextClearAndCenterDisplay(TextWidget);
-extern Atom * _XawTextSelectionList(TextWidget, String *, Cardinal);
+extern xcb_atom_t * _XawTextSelectionList(TextWidget, String *, Cardinal);
 extern void _XawTextPrepareToUpdate(TextWidget);
 extern int _XawTextReplace(TextWidget, XawTextPosition, XawTextPosition, XawTextBlock *);
 
@@ -88,7 +91,7 @@ extern int _XawTextReplace(TextWidget, XawTextPosition, XawTextPosition, XawText
  */
 
 static void GetSelection(Widget, Time, String *, Cardinal);
-void _XawTextZapSelection(TextWidget, XEvent *, Boolean);
+void _XawTextZapSelection(TextWidget, xcb_generic_event_t *, Boolean);
 
 #ifdef XAW_INTERNATIONALIZATION
 static void
@@ -103,12 +106,13 @@ ParameterError(Widget w, String param)
 	"parameterError", "textAction", "XawError",
 	"Widget: %s Parameter: %s",
 	params, &num_params);
-    XBell( XtDisplay( w ), 50 );
+    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(XtDisplay(ctx));
 }
 #endif
 
 static void
-StartAction(TextWidget ctx, XEvent *event)
+StartAction(TextWidget ctx, xcb_generic_event_t *event)
 {
   _XawTextPrepareToUpdate(ctx);
   if (event != NULL) {
@@ -132,7 +136,7 @@ StartAction(TextWidget ctx, XEvent *event)
 }
 
 static void
-NotePosition(TextWidget ctx, XEvent* event)
+NotePosition(TextWidget ctx, xcb_generic_event_t* event)
 {
   switch (event->type) {
   case ButtonPress:
@@ -173,8 +177,8 @@ struct _SelectionList {
     String* params;
     Cardinal count;
     Time time;
-    Boolean CT_asked;	/* flag if asked XA_COMPOUND_TEXT */
-    Atom selection;	/* selection atom when asking XA_COMPOUND_TEXT */
+    Boolean CT_asked;	/* flag if asked XCB_ATOM_COMPOUND_TEXT */
+    xcb_atom_t selection;	/* selection atom when asking XCB_ATOM_COMPOUND_TEXT */
 };
 
 #ifdef XAW_INTERNATIONALIZATION
@@ -201,7 +205,7 @@ ProbablyMB(char *s)
 
 /* ARGSUSED */
 static void
-_SelectionReceived(Widget w, XtPointer client_data, Atom *selection, Atom *type,
+_SelectionReceived(Widget w, XtPointer client_data, xcb_atom_t *selection, xcb_atom_t *type,
                    XtPointer value, unsigned long *length, int* format)
 {
   TextWidget ctx = (TextWidget)w;
@@ -212,11 +216,11 @@ _SelectionReceived(Widget w, XtPointer client_data, Atom *selection, Atom *type,
     if (list != NULL) {
       if (list->CT_asked) {
 
-	/* If we just asked for a XA_COMPOUND_TEXT and got a null
-	response, we'll ask again, this time for an XA_STRING. */
+	/* If we just asked for a XCB_ATOM_COMPOUND_TEXT and got a null
+	response, we'll ask again, this time for an XCB_ATOM_STRING. */
 
 	list->CT_asked = False;
-        XtGetSelectionValue(w, list->selection, XA_STRING, _SelectionReceived,
+        XtGetSelectionValue(w, list->selection, XCB_ATOM_STRING, _SelectionReceived,
                             (XtPointer)list, list->time);
       } else {
 	GetSelection(w, list->time, list->params, list->count);
@@ -232,7 +236,7 @@ string is a legal multibyte string in our locale using a spooky heuristic :O
 and if it is we can only assume the sending client is using the same locale as
 we are, and convert it.  I also warn the user that the other client is evil. */
 
-  StartAction( ctx, (XEvent*) NULL );
+  StartAction( ctx, (xcb_generic_event_t*) NULL );
 #ifdef XAW_INTERNATIONALIZATION
   if (_XawTextFormat(ctx) == XawFmtWide) {
       XTextProperty textprop;
@@ -254,7 +258,7 @@ we are, and convert it.  I also warn the user that the other client is evil. */
       /* OR IN COMPOUND TEXT FORMAT? */
 
       if ( try_CT ) {
-          textprop.encoding = XA_COMPOUND_TEXT(d);
+          textprop.encoding = XCB_ATOM_COMPOUND_TEXT(d);
           textprop.value = (unsigned char *)value;
           textprop.nitems = strlen(value);
           textprop.format = 8;
@@ -274,7 +278,7 @@ we are, and convert it.  I also warn the user that the other client is evil. */
       }
 
       XFree(value);
-      value = (XPointer)wlist[0];
+      value = (XtPointer)wlist[0];
 
       *length = wcslen(wlist[0]);
       XtFree((XtPointer)wlist);
@@ -286,7 +290,8 @@ we are, and convert it.  I also warn the user that the other client is evil. */
   text.firstPos = 0;
   text.length = *length;
   if (_XawTextReplace(ctx, ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    XBell(XtDisplay(ctx), 0);
+    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(XtDisplay(ctx));
     return;
   }
   ctx->text.insertPos = SrcScan(ctx->text.source, ctx->text.insertPos,
@@ -298,33 +303,57 @@ we are, and convert it.  I also warn the user that the other client is evil. */
   XFree(value);		/* the selection value should be freed with XFree */
 }
 
+
+//#TODO replace usage of cut buffers with modern selection mechanism
 static void
 GetSelection(Widget w, Time time, String *params, Cardinal num_params)
 {
-    Atom selection;
+    xcb_atom_t selection;
     int buffer;
 
-    selection = XInternAtom(XtDisplay(w), *params, False);
+    selection = XawXcbInternAtom(XtDisplay(w), *params, False);
 
     switch (selection) {
-      case XA_CUT_BUFFER0: buffer = 0; break;
-      case XA_CUT_BUFFER1: buffer = 1; break;
-      case XA_CUT_BUFFER2: buffer = 2; break;
-      case XA_CUT_BUFFER3: buffer = 3; break;
-      case XA_CUT_BUFFER4: buffer = 4; break;
-      case XA_CUT_BUFFER5: buffer = 5; break;
-      case XA_CUT_BUFFER6: buffer = 6; break;
-      case XA_CUT_BUFFER7: buffer = 7; break;
+      case XCB_ATOM_CUT_BUFFER0: buffer = 0; break;
+      case XCB_ATOM_CUT_BUFFER1: buffer = 1; break;
+      case XCB_ATOM_CUT_BUFFER2: buffer = 2; break;
+      case XCB_ATOM_CUT_BUFFER3: buffer = 3; break;
+      case XCB_ATOM_CUT_BUFFER4: buffer = 4; break;
+      case XCB_ATOM_CUT_BUFFER5: buffer = 5; break;
+      case XCB_ATOM_CUT_BUFFER6: buffer = 6; break;
+      case XCB_ATOM_CUT_BUFFER7: buffer = 7; break;
       default:	       buffer = -1;
     }
     if (buffer >= 0) {
 	int nbytes;
 	unsigned long length;
 	int fmt8 = 8;
-	Atom type = XA_STRING;
-	char *line = XFetchBuffer(XtDisplay(w), &nbytes, buffer);
+	//xcb_atom_t type = XCB_ATOM_STRING;
+
+  xcb_get_property_cookie_t cookie = xcb_get_property(
+      XtDisplay(w),
+      0,                          // delete: false
+      screen->root,               // window
+      selection,       // property
+      XCB_ATOM_STRING,            // type
+      0,                          // long_offset
+      4096                        // long_length (amount of data to fetch)
+  );
+  xcb_get_property_reply_t *reply = xcb_get_property_reply(connection, cookie, NULL);
+  if (reply) {
+    nbytes = xcb_get_property_value_length(reply);
+    if (nbytes > 0) {
+        // Allocate space and copy the value
+        line = XtMalloc(nbytes + 1);
+        memcpy(line, xcb_get_property_value(reply), nbytes);
+        line[nbytes] = '\0'; // Ensure null-termination
+    }
+    free(reply); // You must free the reply structure itself
+  }
+ 
+
 	if ((length = nbytes))
-	    _SelectionReceived(w, (XtPointer) NULL, &selection, &type, (XPointer)line,
+	    _SelectionReceived(w, (XtPointer) NULL, &selection, &type, (XtPointer)line,
 			       &length, &fmt8);
 	else if (num_params > 1)
 	    GetSelection(w, time, params+1, num_params-1);
@@ -338,13 +367,13 @@ GetSelection(Widget w, Time time, String *params, Cardinal num_params)
 	    list->CT_asked = True;
 	    list->selection = selection;
 	} else list = NULL;
-	XtGetSelectionValue(w, selection, XA_COMPOUND_TEXT(XtDisplay(w)),
+	XtGetSelectionValue(w, selection, XCB_ATOM_COMPOUND_TEXT(XtDisplay(w)),
 			    _SelectionReceived, (XtPointer)list, time);
     }
 }
 
 static void
-InsertSelection(Widget w, XEvent *event, String *params, Cardinal *num_params)
+InsertSelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   StartAction((TextWidget)w, event); /* Get Time. */
   GetSelection(w, ((TextWidget)w)->text.time, params, *num_params);
@@ -358,7 +387,7 @@ InsertSelection(Widget w, XEvent *event, String *params, Cardinal *num_params)
  ************************************************************/
 
 static void
-Move(TextWidget ctx, XEvent *event, XawTextScanDirection dir,
+Move(TextWidget ctx, xcb_generic_event_t *event, XawTextScanDirection dir,
      XawTextScanType type, Boolean include)
 {
   StartAction(ctx, event);
@@ -369,63 +398,63 @@ Move(TextWidget ctx, XEvent *event, XawTextScanDirection dir,
 
 /*ARGSUSED*/
 static void
-MoveForwardChar(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveForwardChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
    Move((TextWidget) w, event, XawsdRight, XawstPositions, TRUE);
 }
 
 /*ARGSUSED*/
 static void
-MoveBackwardChar(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveBackwardChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Move((TextWidget) w, event, XawsdLeft, XawstPositions, TRUE);
 }
 
 /*ARGSUSED*/
 static void
-MoveForwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveForwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Move((TextWidget) w, event, XawsdRight, XawstWhiteSpace, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveBackwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveBackwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Move((TextWidget) w, event, XawsdLeft, XawstWhiteSpace, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveForwardParagraph(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveForwardParagraph(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Move((TextWidget) w, event, XawsdRight, XawstParagraph, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveBackwardParagraph(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveBackwardParagraph(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Move((TextWidget) w, event, XawsdLeft, XawstParagraph, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveToLineEnd(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveToLineEnd(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Move((TextWidget) w, event, XawsdRight, XawstEOL, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveToLineStart(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveToLineStart(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Move((TextWidget) w, event, XawsdLeft, XawstEOL, FALSE);
 }
 
 
 static void
-MoveLine(TextWidget ctx, XEvent *event, XawTextScanDirection dir)
+MoveLine(TextWidget ctx, xcb_generic_event_t *event, XawTextScanDirection dir)
 {
   XawTextPosition new, next_line, junk;
   int from_left, garbage;
@@ -457,34 +486,34 @@ MoveLine(TextWidget ctx, XEvent *event, XawTextScanDirection dir)
 
 /*ARGSUSED*/
 static void
-MoveNextLine(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveNextLine(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   MoveLine( (TextWidget) w, event, XawsdRight);
 }
 
 /*ARGSUSED*/
 static void
-MovePreviousLine(Widget w, XEvent *event, String *p, Cardinal *n)
+MovePreviousLine(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   MoveLine( (TextWidget) w, event, XawsdLeft);
 }
 
 /*ARGSUSED*/
 static void
-MoveBeginningOfFile(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveBeginningOfFile(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Move((TextWidget) w, event, XawsdLeft, XawstAll, TRUE);
 }
 
 /*ARGSUSED*/
 static void
-MoveEndOfFile(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveEndOfFile(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Move((TextWidget) w, event, XawsdRight, XawstAll, TRUE);
 }
 
 static void
-Scroll(TextWidget ctx, XEvent *event, XawTextScanDirection dir)
+Scroll(TextWidget ctx, xcb_generic_event_t *event, XawTextScanDirection dir)
 {
   StartAction(ctx, event);
 
@@ -498,20 +527,20 @@ Scroll(TextWidget ctx, XEvent *event, XawTextScanDirection dir)
 
 /*ARGSUSED*/
 static void
-ScrollOneLineUp(Widget w, XEvent *event, String *p, Cardinal *n)
+ScrollOneLineUp(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Scroll( (TextWidget) w, event, XawsdLeft);
 }
 
 /*ARGSUSED*/
 static void
-ScrollOneLineDown(Widget w, XEvent *event, String *p, Cardinal *n)
+ScrollOneLineDown(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   Scroll( (TextWidget) w, event, XawsdRight);
 }
 
 static void
-MovePage(TextWidget ctx, XEvent *event, XawTextScanDirection dir)
+MovePage(TextWidget ctx, xcb_generic_event_t *event, XawTextScanDirection dir)
 {
   int scroll_val = Max(1, ctx->text.lt.lines - 2);
 
@@ -526,14 +555,14 @@ MovePage(TextWidget ctx, XEvent *event, XawTextScanDirection dir)
 
 /*ARGSUSED*/
 static void
-MoveNextPage(Widget w, XEvent *event, String *p, Cardinal *n)
+MoveNextPage(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   MovePage((TextWidget) w, event, XawsdRight);
 }
 
 /*ARGSUSED*/
 static void
-MovePreviousPage(Widget w, XEvent *event, String *p, Cardinal *n)
+MovePreviousPage(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   MovePage((TextWidget) w, event, XawsdLeft);
 }
@@ -545,24 +574,24 @@ MovePreviousPage(Widget w, XEvent *event, String *p, Cardinal *n)
  ************************************************************/
 
 static Boolean
-MatchSelection(Atom selection, XawTextSelection *s)
+MatchSelection(xcb_atom_t selection, XawTextSelection *s)
 {
-    Atom    *match;
+    xcb_atom_t    *match;
     int	    count;
 
     for (count = 0, match = s->selections; count < s->atom_count; match++, count++)
-	if (*match == selection)
-	    return True;
+	  if (*match == selection)
+	      return True;
     return False;
 }
 
 #define SrcCvtSel	XawTextSourceConvertSelection
 
 static Boolean
-ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
+ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
                  XtPointer* value, unsigned long *length, int *format)
 {
-  Display* d = XtDisplay(w);
+  xcb_connection_t* d = XtDisplay(w);
   TextWidget ctx = (TextWidget)w;
   Widget src = ctx->text.source;
   XawTextEditType edit_mode;
@@ -570,38 +599,38 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
   XawTextSelectionSalt	*salt = NULL;
   XawTextSelection  *s;
 
-  if (*target == XA_TARGETS(d)) {
-    Atom* targetP, * std_targets;
+  if (*target == XCB_ATOM_TARGETS(d)) {
+    xcb_atom_t* targetP, * std_targets;
     unsigned long std_length;
 
     if ( SrcCvtSel(src, selection, target, type, value, length, format) )
 	return True;
 
     XawConvertStandardSelection(w, ctx->text.time, selection,
-				target, type, (XPointer*)&std_targets,
+				target, type, (XtPointer*)&std_targets,
 				&std_length, format);
 
-    *value = XtMalloc((unsigned) sizeof(Atom)*(std_length + 7));
-    targetP = *(Atom**)value;
+    *value = XtMalloc((unsigned) sizeof(xcb_atom_t)*(std_length + 7));
+    targetP = *(xcb_atom_t**)value;
 
     *length = std_length + 6;
-    *targetP++ = XA_STRING;
-    *targetP++ = XA_TEXT(d);
-    *targetP++ = XA_COMPOUND_TEXT(d);
-    *targetP++ = XA_LENGTH(d);
-    *targetP++ = XA_LIST_LENGTH(d);
-    *targetP++ = XA_CHARACTER_POSITION(d);
+    *targetP++ = XCB_ATOM_STRING;
+    *targetP++ = XCB_ATOM_TEXT(d);
+    *targetP++ = XCB_ATOM_COMPOUND_TEXT(d);
+    *targetP++ = XCB_ATOM_LENGTH(d);
+    *targetP++ = XCB_ATOM_LIST_LENGTH(d);
+    *targetP++ = XCB_ATOM_CHARACTER_POSITION(d);
 
     XtSetArg(args[0], XtNeditType,&edit_mode);
     XtGetValues(src, args, 1);
 
     if (edit_mode == XawtextEdit) {
-      *targetP++ = XA_DELETE(d);
+      *targetP++ = XCB_ATOM_DELETE(d);
       (*length)++;
     }
-    memcpy((char*)targetP, (char*)std_targets, sizeof(Atom)*std_length);
+    memcpy((char*)targetP, (char*)std_targets, sizeof(xcb_atom_t)*std_length);
     XtFree((char*)std_targets);
-    *type = XA_ATOM;
+    *type = XCB_ATOM_ATOM;
     *format = 32;
     return True;
   }
@@ -615,16 +644,16 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
   if (!salt)
     return False;
   s = &salt->s;
-  if (*target == XA_STRING ||
-      *target == XA_TEXT(d) ||
-      *target == XA_COMPOUND_TEXT(d)) {
-	if (*target == XA_TEXT(d)) {
+  if (*target == XCB_ATOM_STRING ||
+      *target == XCB_ATOM_TEXT(d) ||
+      *target == XCB_ATOM_COMPOUND_TEXT(d)) {
+	if (*target == XCB_ATOM_TEXT(d)) {
 #ifdef XAW_INTERNATIONALIZATION
 	    if (_XawTextFormat(ctx) == XawFmtWide)
-		*type = XA_COMPOUND_TEXT(d);
+		*type = XCB_ATOM_COMPOUND_TEXT(d);
 	    else
 #endif
-		*type = XA_STRING;
+		*type = XCB_ATOM_STRING;
 	} else {
 	    *type = *target;
 	}
@@ -660,11 +689,11 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
 	    *length = salt->length;
 	}
 #ifdef XAW_INTERNATIONALIZATION
-	if (_XawTextFormat(ctx) == XawFmtWide && *type == XA_STRING) {
+	if (_XawTextFormat(ctx) == XawFmtWide && *type == XCB_ATOM_STRING) {
 	    XTextProperty textprop;
 	    wchar_t** wlist;
 	    int count;
-	    textprop.encoding = XA_COMPOUND_TEXT(d);
+	    textprop.encoding = XCB_ATOM_COMPOUND_TEXT(d);
 	    textprop.value = (unsigned char *)*value;
 	    textprop.nitems = strlen(*value);
 	    textprop.format = 8;
@@ -688,47 +717,54 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
 	return True;
   }
 
-  if ( (*target == XA_LIST_LENGTH(d)) || (*target == XA_LENGTH(d)) ) {
+  if ( (*target == XCB_ATOM_LIST_LENGTH(d)) || (*target == XCB_ATOM_LENGTH(d)) ) {
     long * temp;
 
     temp = (long *) XtMalloc(sizeof(long));
-    if (*target == XA_LIST_LENGTH(d))
+    if (*target == XCB_ATOM_LIST_LENGTH(d))
       *temp = 1L;
-    else			/* *target == XA_LENGTH(d) */
+    else			/* *target == XCB_ATOM_LENGTH(d) */
       *temp = (long) (s->right - s->left);
 
-    *value = (XPointer) temp;
-    *type = XA_INTEGER;
+    *value = (XtPointer) temp;
+    *type = XCB_ATOM_INTEGER;
     *length = 1L;
     *format = 32;
     return True;
   }
 
-  if (*target == XA_CHARACTER_POSITION(d)) {
+  if (*target == XCB_ATOM_CHARACTER_POSITION(d)) {
     long * temp;
 
     temp = (long *) XtMalloc(2 * sizeof(long));
     temp[0] = (long) (s->left + 1);
     temp[1] = s->right;
-    *value = (XPointer) temp;
-    *type = XA_SPAN(d);
+    *value = (XtPointer) temp;
+    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(d, 0, 5, "SPAN");
+    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(d, cookie, NULL);
+    if(reply) {
+      *type = reply->atom;
+      free(reply);
+    } else {
+      *type = XCB_ATOM_NONE;
+    }
     *length = 2L;
     *format = 32;
     return True;
   }
 
-  if (*target == XA_DELETE(d)) {
+  if (*target == XCB_ATOM_DELETE(d)) {
     if (!salt)
-	_XawTextZapSelection( ctx, (XEvent *) NULL, TRUE);
+	_XawTextZapSelection( ctx, (xcb_generic_event_t *) NULL, TRUE);
     *value = NULL;
-    *type = XA_NULL(d);
+    *type = XCB_ATOM_NONE;
     *length = 0;
     *format = 32;
     return True;
   }
 
   if (XawConvertStandardSelection(w, ctx->text.time, selection, target, type,
-				  (XPointer *)value, length, format))
+				  (XtPointer *)value, length, format))
     return True;
 
   /* else */
@@ -736,10 +772,10 @@ ConvertSelection(Widget w, Atom *selection, Atom *target, Atom *type,
 }
 
 static void
-LoseSelection(Widget w, Atom *selection)
+LoseSelection(Widget w, xcb_atom_t *selection)
 {
   TextWidget ctx = (TextWidget) w;
-  Atom* atomP;
+  xcb_atom_t* atomP;
   int i;
   XawTextSelectionSalt	*salt, *prevSalt, *nextSalt;
 
@@ -750,7 +786,7 @@ LoseSelection(Widget w, Atom *selection)
 	nextSalt = salt->next;
     	for (i = 0 ; i < salt->s.atom_count; i++, atomP++)
 	    if (*selection == *atomP)
-		*atomP = (Atom)0;
+		*atomP = (xcb_atom_t)0;
 
     	while (salt->s.atom_count &&
 	       salt->s.selections[salt->s.atom_count-1] == 0)
@@ -764,7 +800,7 @@ LoseSelection(Widget w, Atom *selection)
 
     	atomP = salt->s.selections;
     	for (i = 0 ; i < salt->s.atom_count; i++, atomP++)
-    	    if (*atomP == (Atom)0)
+    	    if (*atomP == (xcb_atom_t)0)
  	    {
       	      *atomP = salt->s.selections[--salt->s.atom_count];
       	      while (salt->s.atom_count &&
@@ -796,13 +832,13 @@ _DeleteOrKill(TextWidget ctx, XawTextPosition from, XawTextPosition to, Boolean	
 
   if (kill && from < to) {
     XawTextSelectionSalt    *salt;
-    Atom selection = XInternAtom(XtDisplay(ctx), "SECONDARY", False);
+    xcb_atom_t selection = XawXcbInternAtom(XtDisplay(ctx), "SECONDARY", False);
 
     LoseSelection ((Widget) ctx, &selection);
     salt = (XawTextSelectionSalt *) XtMalloc (sizeof (XawTextSelectionSalt));
     if (!salt)
 	return;
-    salt->s.selections = (Atom *) XtMalloc (sizeof (Atom));
+    salt->s.selections = (xcb_atom_t *) XtMalloc (sizeof (xcb_atom_t));
     if (!salt->s.selections)
     {
 	XtFree ((char *) salt);
@@ -845,7 +881,8 @@ _DeleteOrKill(TextWidget ctx, XawTextPosition from, XawTextPosition to, Boolean	
   text.ptr = "";	/* These two lines needed to make legal TextBlock */
 
   if (_XawTextReplace(ctx, from, to, &text)) {
-    XBell(XtDisplay(ctx), 50);
+    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(XtDisplay(ctx));
     return;
   }
   ctx->text.insertPos = from;
@@ -853,7 +890,7 @@ _DeleteOrKill(TextWidget ctx, XawTextPosition from, XawTextPosition to, Boolean	
 }
 
 static void
-DeleteOrKill(TextWidget ctx, XEvent *event, XawTextScanDirection dir,
+DeleteOrKill(TextWidget ctx, xcb_generic_event_t *event, XawTextScanDirection dir,
              XawTextScanType type, Boolean include, Boolean kill)
 {
   XawTextPosition from, to;
@@ -886,21 +923,21 @@ DeleteOrKill(TextWidget ctx, XEvent *event, XawTextScanDirection dir,
 
 /*ARGSUSED*/
 static void
-DeleteForwardChar(Widget w, XEvent *event, String *p, Cardinal *n)
+DeleteForwardChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   DeleteOrKill((TextWidget) w, event, XawsdRight, XawstPositions, TRUE, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-DeleteBackwardChar(Widget w, XEvent *event, String *p, Cardinal *n)
+DeleteBackwardChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   DeleteOrKill((TextWidget) w, event, XawsdLeft, XawstPositions, TRUE, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-DeleteForwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
+DeleteForwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   DeleteOrKill((TextWidget) w, event,
 	       XawsdRight, XawstWhiteSpace, FALSE, FALSE);
@@ -908,7 +945,7 @@ DeleteForwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
 
 /*ARGSUSED*/
 static void
-DeleteBackwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
+DeleteBackwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   DeleteOrKill((TextWidget) w, event,
 	       XawsdLeft, XawstWhiteSpace, FALSE, FALSE);
@@ -916,7 +953,7 @@ DeleteBackwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
 
 /*ARGSUSED*/
 static void
-KillForwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
+KillForwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   DeleteOrKill((TextWidget) w, event,
 	       XawsdRight, XawstWhiteSpace, FALSE, TRUE);
@@ -924,7 +961,7 @@ KillForwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
 
 /*ARGSUSED*/
 static void
-KillBackwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
+KillBackwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   DeleteOrKill((TextWidget) w, event,
 	       XawsdLeft, XawstWhiteSpace, FALSE, TRUE);
@@ -932,7 +969,7 @@ KillBackwardWord(Widget w, XEvent *event, String *p, Cardinal *n)
 
 /*ARGSUSED*/
 static void
-KillToEndOfLine(Widget w, XEvent *event, String *p, Cardinal *n)
+KillToEndOfLine(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
   XawTextPosition end_of_line;
@@ -951,13 +988,13 @@ KillToEndOfLine(Widget w, XEvent *event, String *p, Cardinal *n)
 
 /*ARGSUSED*/
 static void
-KillToEndOfParagraph(Widget w, XEvent *event, String *p, Cardinal *n)
+KillToEndOfParagraph(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   DeleteOrKill((TextWidget) w, event, XawsdRight, XawstParagraph, FALSE, TRUE);
 }
 
 void
-_XawTextZapSelection(TextWidget ctx, XEvent *event, Boolean kill)
+_XawTextZapSelection(TextWidget ctx, xcb_generic_event_t *event, Boolean kill)
 {
    StartAction(ctx, event);
    _DeleteOrKill(ctx, ctx->text.s.left, ctx->text.s.right, kill);
@@ -967,14 +1004,14 @@ _XawTextZapSelection(TextWidget ctx, XEvent *event, Boolean kill)
 
 /*ARGSUSED*/
 static void
-KillCurrentSelection(Widget w, XEvent *event, String *p, Cardinal *n)
+KillCurrentSelection(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   _XawTextZapSelection( (TextWidget) w, event, TRUE);
 }
 
 /*ARGSUSED*/
 static void
-DeleteCurrentSelection(Widget w, XEvent *event, String *p, Cardinal *n)
+DeleteCurrentSelection(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   _XawTextZapSelection( (TextWidget) w, event, FALSE);
 }
@@ -1012,7 +1049,8 @@ InsertNewLineAndBackupInternal(TextWidget ctx)
   }
 
   if (_XawTextReplace(ctx, ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    XBell( XtDisplay(ctx), 50);
+    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(XtDisplay(ctx));
     error = XawEditError;
   }
   else
@@ -1024,7 +1062,7 @@ InsertNewLineAndBackupInternal(TextWidget ctx)
 
 /*ARGSUSED*/
 static void
-InsertNewLineAndBackup(Widget w, XEvent *event, String *p, Cardinal *n)
+InsertNewLineAndBackup(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   StartAction( (TextWidget) w, event );
   (void) InsertNewLineAndBackupInternal( (TextWidget) w );
@@ -1033,7 +1071,7 @@ InsertNewLineAndBackup(Widget w, XEvent *event, String *p, Cardinal *n)
 }
 
 static int
-LocalInsertNewLine(TextWidget ctx, XEvent *event)
+LocalInsertNewLine(TextWidget ctx, xcb_generic_event_t *event)
 {
   StartAction(ctx, event);
   if (InsertNewLineAndBackupInternal(ctx) == XawEditError)
@@ -1047,14 +1085,14 @@ LocalInsertNewLine(TextWidget ctx, XEvent *event)
 
 /*ARGSUSED*/
 static void
-InsertNewLine(Widget w, XEvent *event, String *p, Cardinal *n)
+InsertNewLine(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   (void) LocalInsertNewLine( (TextWidget) w, event);
 }
 
 /*ARGSUSED*/
 static void
-InsertNewLineAndIndent(Widget w, XEvent *event, String *p, Cardinal *n)
+InsertNewLineAndIndent(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   XawTextBlock text;
   XawTextPosition pos1;
@@ -1114,7 +1152,8 @@ InsertNewLineAndIndent(Widget w, XEvent *event, String *p, Cardinal *n)
   XtFree( line_to_ip );
 
   if (_XawTextReplace(ctx,ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    XBell(XtDisplay(ctx), 50);
+    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(XtDisplay(ctx));
     XtFree(text.ptr);
     EndAction(ctx);
     return;
@@ -1133,7 +1172,7 @@ InsertNewLineAndIndent(Widget w, XEvent *event, String *p, Cardinal *n)
  *************************************************************/
 
 static void
-SelectWord(Widget w, XEvent *event, String *params, Cardinal *num_params)
+SelectWord(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   XawTextPosition l, r;
@@ -1147,7 +1186,7 @@ SelectWord(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-SelectAll(Widget w, XEvent *event, String *params, Cardinal *num_params)
+SelectAll(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
 
@@ -1157,7 +1196,7 @@ SelectAll(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-ModifySelection(TextWidget ctx, XEvent *event, XawTextSelectionMode mode,
+ModifySelection(TextWidget ctx, xcb_generic_event_t *event, XawTextSelectionMode mode,
                 XawTextSelectionAction action, String *params, Cardinal *num_params)
 {
   StartAction(ctx, event);
@@ -1168,7 +1207,7 @@ ModifySelection(TextWidget ctx, XEvent *event, XawTextSelectionMode mode,
 
 /* ARGSUSED */
 static void
-SelectStart(Widget w, XEvent *event, String *params, Cardinal *num_params)
+SelectStart(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   ModifySelection((TextWidget) w, event,
 		  XawsmTextSelect, XawactionStart, params, num_params);
@@ -1176,14 +1215,14 @@ SelectStart(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-SelectAdjust(Widget w, XEvent *event, String *params, Cardinal *num_params)
+SelectAdjust(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   ModifySelection((TextWidget) w, event,
 		  XawsmTextSelect, XawactionAdjust, params, num_params);
 }
 
 static void
-SelectEnd(Widget w, XEvent *event, String *params, Cardinal *num_params)
+SelectEnd(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   ModifySelection((TextWidget) w, event,
 		  XawsmTextSelect, XawactionEnd, params, num_params);
@@ -1191,7 +1230,7 @@ SelectEnd(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-ExtendStart(Widget w, XEvent *event, String *params, Cardinal *num_params)
+ExtendStart(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   ModifySelection((TextWidget) w, event,
 		  XawsmTextExtend, XawactionStart, params, num_params);
@@ -1199,33 +1238,32 @@ ExtendStart(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-ExtendAdjust(Widget w, XEvent *event, String *params, Cardinal *num_params)
+ExtendAdjust(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   ModifySelection((TextWidget) w, event,
 		  XawsmTextExtend, XawactionAdjust, params, num_params);
 }
 
 static void
-ExtendEnd(Widget w, XEvent *event, String *params, Cardinal *num_params)
+ExtendEnd(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   ModifySelection((TextWidget) w, event,
 		  XawsmTextExtend, XawactionEnd, params, num_params);
 }
 
 static void
-SelectSave(Widget w, XEvent *event, String *params, Cardinal *num_params)
+SelectSave(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     int	    num_atoms;
-    Atom*   sel;
-    Display* dpy = XtDisplay(w);
-    Atom    selections[256];
+    xcb_atom_t*   sel;
+    xcb_connection_t* dpy = XtDisplay(w);
+    xcb_atom_t    selections[256];
 
     StartAction(  (TextWidget) w, event );
     num_atoms = *num_params;
-    if (num_atoms > 256)
-	num_atoms = 256;
+    if (num_atoms > 256) num_atoms = 256;
     for (sel=selections; --num_atoms >= 0; sel++, params++)
-	*sel = XInternAtom(dpy, *params, False);
+	    *sel = XawXcbInternAtom(dpy, *params, False);// XInternAtom(dpy, *params, False);
     num_atoms = *num_params;
     _XawTextSaltAwaySelection( (TextWidget) w, selections, num_atoms );
     EndAction(  (TextWidget) w );
@@ -1239,7 +1277,7 @@ SelectSave(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-RedrawDisplay(Widget w, XEvent *event, String *p, Cardinal *n)
+RedrawDisplay(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   StartAction( (TextWidget) w, event);
   _XawTextClearAndCenterDisplay((TextWidget) w);
@@ -1248,36 +1286,50 @@ RedrawDisplay(Widget w, XEvent *event, String *p, Cardinal *n)
 
 /*ARGSUSED*/
 static void
-TextFocusIn (Widget w, XEvent *event, String *p, Cardinal *n)
+TextFocusIn (Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
+
+  if ((event->response_type & ~0x80) != XCB_FOCUS_IN) {
+    return;
+  }
+  xcb_focus_in_event_t *fev = (xcb_focus_in_event_t *)event;
 
   /* Let the input method know focus has arrived. */
 #ifdef XAW_INTERNATIONALIZATION
   _XawImSetFocusValues (w, NULL, 0);
 #endif
-  if ( event->xfocus.detail == NotifyPointer ) return;
+  if (fev->detail == XCB_NOTIFY_DETAIL_POINTER) {
+      return;
+  }
 
   ctx->text.hasfocus = TRUE;
 }
 
 /*ARGSUSED*/
 static void
-TextFocusOut(Widget w, XEvent *event, String *p, Cardinal *n)
+TextFocusOut(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
+
+  if ((event->response_type & ~0x80) != XCB_FOCUS_IN) {
+    return;
+  }
+  xcb_focus_in_event_t *fev = (xcb_focus_in_event_t *)event;
 
   /* Let the input method know focus has left.*/
 #ifdef XAW_INTERNATIONALIZATION
   _XawImUnsetFocus(w);
 #endif
-  if ( event->xfocus.detail == NotifyPointer ) return;
+  if (fev->detail == XCB_NOTIFY_DETAIL_POINTER) {
+      return;
+  }
   ctx->text.hasfocus = FALSE;
 }
 
 /*ARGSUSED*/
 static void
-TextEnterWindow(Widget w, XEvent *event, String *params, Cardinal *num_params)
+TextEnterWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
 #ifdef XAW_INTERNATIONALIZATION
   TextWidget ctx = (TextWidget) w;
@@ -1291,7 +1343,7 @@ TextEnterWindow(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /*ARGSUSED*/
 static void
-TextLeaveWindow(Widget w, XEvent *event, String *params, Cardinal *num_params)
+TextLeaveWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
 #ifdef XAW_INTERNATIONALIZATION
   TextWidget ctx = (TextWidget) w;
@@ -1349,13 +1401,15 @@ AutoFill(TextWidget ctx)
   text.length = 1;
   text.firstPos = 0;
 
-  if (_XawTextReplace(ctx, ret_pos - 1, ret_pos, &text))
-    XBell(XtDisplay((Widget) ctx), 0);	/* Unable to edit, complain. */
+  if (_XawTextReplace(ctx, ret_pos - 1, ret_pos, &text)) {
+      xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+      xcb_flush(XtDisplay(ctx));
+  }
 }
 
 /*ARGSUSED*/
 static void
-InsertChar(Widget w, XEvent *event, String *p, Cardinal *n)
+InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
   char *ptr, strbuf[BUFSIZ];
@@ -1405,8 +1459,10 @@ InsertChar(Widget w, XEvent *event, String *p, Cardinal *n)
 	      XawstPositions, XawsdRight, text.length, TRUE);
       AutoFill(ctx);
   }
-  else
-      XBell(XtDisplay(ctx), 50);
+  else {
+      xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+      xcb_flush(XtDisplay(ctx));
+  }
 
   XtFree(text.ptr);
   _XawTextSetScrollBars(ctx);
@@ -1507,7 +1563,7 @@ IfHexConvertHexElseReturnParam(char *param, int *len_return)
 
 /*ARGSUSED*/
 static void
-InsertString(Widget w, XEvent *event, String *params, Cardinal *num_params)
+InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
 #ifdef XAW_INTERNATIONALIZATION
@@ -1558,7 +1614,8 @@ InsertString(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
       if ( _XawTextReplace( ctx, ctx->text.insertPos,
 			    ctx->text.insertPos, &text ) ) {
-          XBell( XtDisplay( ctx ), 50 );
+          xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+          xcb_flush(XtDisplay(ctx));
           EndAction( ctx );
           return;
       }
@@ -1583,14 +1640,15 @@ InsertString(Widget w, XEvent *event, String *params, Cardinal *num_params)
  * is only affected if the focus member of the event is true.	*/
 
 static void
-DisplayCaret(Widget w, XEvent *event, String *params, Cardinal *num_params)
+DisplayCaret(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget)w;
   Boolean display_caret = True;
+  uint32_t eventType = event->response_type & ~0x80;
 
-  if  ( ( event->type == EnterNotify || event->type == LeaveNotify ) &&
+  if  ( ( eventType == XCB_ENTER_NOTIFY || eventType == XCB_LEAVE_NOTIFY ) &&
         ( ( *num_params >= 2 ) && ( strcmp( params[1], "always" ) == 0 ) ) &&
-        ( !event->xcrossing.focus ) )
+        ( ((xcb_enter_notify_event_t *)event)->same_screen_focus) )
       return;
 
   if (*num_params > 0) {	/* default arg is "True" */
@@ -1621,7 +1679,7 @@ DisplayCaret(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Multiply(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Multiply(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   int mult;
@@ -1629,12 +1687,14 @@ Multiply(Widget w, XEvent *event, String *params, Cardinal *num_params)
   if (*num_params != 1) {
       XtAppError( XtWidgetToApplicationContext( w ),
 	       "Xaw Text Widget: multiply() takes exactly one argument.");
-      XBell( XtDisplay( w ), 0 );
+      xcb_bell(XtDisplay(w), 0); // 0 = default volume
+      xcb_flush(XtDisplay(w));
       return;
   }
 
   if ( ( params[0][0] == 'r' ) || ( params[0][0] == 'R' ) ) {
-      XBell( XtDisplay( w ), 0 );
+      xcb_bell(XtDisplay(w), 0); // 0 = default volume
+      xcb_flush(XtDisplay(w));
       ctx->text.mult = 1;
       return;
   }
@@ -1644,7 +1704,8 @@ Multiply(Widget w, XEvent *event, String *params, Cardinal *num_params)
       sprintf(buf, "%s %s", "Xaw Text Widget: multiply() argument",
 	    "must be a number greater than zero, or 'Reset'." );
       XtAppError( XtWidgetToApplicationContext( w ), buf );
-      XBell( XtDisplay( w ), 50 );
+      xcb_bell(XtDisplay(w), 0); // 0 = default volume
+      xcb_flush(XtDisplay(w));
       return;
   }
 
@@ -1854,7 +1915,7 @@ FormRegion(TextWidget ctx, XawTextPosition from, XawTextPosition to)
 
 /* ARGSUSED */
 static void
-FormParagraph(Widget w, XEvent *event, String *params, Cardinal *num_params)
+FormParagraph(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   XawTextPosition from, to;
@@ -1866,8 +1927,10 @@ FormParagraph(Widget w, XEvent *event, String *params, Cardinal *num_params)
   to  =  SrcScan( ctx->text.source, from,
 		 XawstParagraph, XawsdRight, 1, FALSE );
 
-  if ( FormRegion( ctx, from, to ) == XawReplaceError )
-      XBell( XtDisplay( w ), 0 );
+  if ( FormRegion( ctx, from, to ) == XawReplaceError ) {
+      xcb_bell(XtDisplay(w), 0); // 0 = default volume
+      xcb_flush(XtDisplay(w));
+  }
   _XawTextSetScrollBars( ctx );
   EndAction( ctx );
 }
@@ -1880,7 +1943,7 @@ FormParagraph(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-TransposeCharacters(Widget w, XEvent *event, String *params, Cardinal *num_params)
+TransposeCharacters(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   XawTextPosition start, end;
@@ -1900,7 +1963,8 @@ TransposeCharacters(Widget w, XEvent *event, String *params, Cardinal *num_param
   /* Make sure we aren't at the very beginning or end of the buffer. */
 
   if ( ( start == ctx->text.insertPos ) || ( end == ctx->text.insertPos ) ) {
-      XBell( XtDisplay( w ), 0 );	/* complain. */
+      xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+      xcb_flush(XtDisplay(ctx));
       EndAction( ctx );
       return;
   }
@@ -1941,8 +2005,11 @@ TransposeCharacters(Widget w, XEvent *event, String *params, Cardinal *num_param
 
   /* Store new text in source. */
 
-  if (_XawTextReplace (ctx, start, end, &text))	/* Unable to edit, complain. */
-      XBell(XtDisplay(w), 0);
+  if (_XawTextReplace (ctx, start, end, &text))	{/* Unable to edit, complain. */
+    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(XtDisplay(ctx));
+  }
+
   XtFree((char *) buf);
   EndAction(ctx);
 }
@@ -1958,7 +2025,7 @@ TransposeCharacters(Widget w, XEvent *event, String *params, Cardinal *num_param
 
 /*ARGSUSED*/
 static void
-NoOp(Widget w, XEvent *event, String *params, Cardinal *num_params)
+NoOp(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     if (*num_params != 1)
 	return;
@@ -1966,7 +2033,8 @@ NoOp(Widget w, XEvent *event, String *params, Cardinal *num_params)
     switch(params[0][0]) {
     case 'R':
     case 'r':
-	XBell(XtDisplay(w), 0);
+	xcb_bell(XtDisplay(w), 0); // 0 = default volume
+  xcb_flush(XtDisplay(w));
     default:			/* Fall Through */
 	break;
     }
@@ -1981,7 +2049,7 @@ NoOp(Widget w, XEvent *event, String *params, Cardinal *num_params)
 #ifdef XAW_INTERNATIONALIZATION
 /*ARGSUSED*/
 static void
-Reconnect(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Reconnect(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     _XawImReconnect( w );
 }

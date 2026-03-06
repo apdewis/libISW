@@ -597,7 +597,7 @@ CvtStringToShapeStyle(xcb_connection_t *conn, XrmValue *args, Cardinal *num_args
         }
         *(int *)toVal->addr = result;
     } else {
-        toVal->addr = (XPointer)&result;
+        toVal->addr = (XtPointer)&result;
     }
     toVal->size = sizeof(int);
     return True;

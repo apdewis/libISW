@@ -47,7 +47,7 @@ typedef struct _XawContextKey {
 
 typedef struct _XawContextEntry {
     XawContextKey  key;      /* composite key (must be first for HASH_FIND) */
-    XPointer       data;     /* associated data */
+    XtPointer       data;     /* associated data */
     UT_hash_handle hh;       /* uthash handle */
 } XawContextEntry;
 
@@ -110,7 +110,7 @@ int
 XawSaveContext(xcb_connection_t *dpy _X_UNUSED,
                XID id,
                XContext context,
-               XPointer data)
+               XtPointer data)
 {
     XawContextEntry *entry;
     XawContextKey key;
@@ -158,7 +158,7 @@ int
 XawFindContext(xcb_connection_t *dpy _X_UNUSED,
                XID id,
                XContext context,
-               XPointer *data_return)
+               XtPointer *data_return)
 {
     XawContextEntry *entry;
     XawContextKey key;

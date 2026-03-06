@@ -154,7 +154,7 @@ static void
 AllocTopShadowGC (Widget w)
 {
     ThreeDWidget	tdw = (ThreeDWidget) w;
-    Screen		*scn = XtScreen (w);
+    xcb_screen_t		*scn = XtScreen (w);
     XtGCMask		valuemask;
     XGCValues		myXGCV;
 
@@ -174,7 +174,7 @@ static void
 AllocBotShadowGC (Widget w)
 {
     ThreeDWidget	tdw = (ThreeDWidget) w;
-    Screen		*scn = XtScreen (w);
+    xcb_screen_t		*scn = XtScreen (w);
     XtGCMask		valuemask;
     XGCValues		myXGCV;
 
@@ -194,8 +194,8 @@ static void
 AllocTopShadowPixmap (Widget new)
 {
     ThreeDWidget	tdw = (ThreeDWidget) new;
-    Display		*dpy = XtDisplay (new);
-    Screen		*scn = XtScreen (new);
+    xcb_connection_t *dpy = XtDisplay (new);
+    xcb_screen_t		*scn = XtScreen (new);
     unsigned long	top_fg_pixel = 0, top_bg_pixel = 0;
     char		*pm_data = NULL;
     Boolean		create_pixmap = FALSE;
@@ -257,8 +257,8 @@ static void
 AllocBotShadowPixmap (Widget new)
 {
     ThreeDWidget	tdw = (ThreeDWidget) new;
-    Display		*dpy = XtDisplay (new);
-    Screen		*scn = XtScreen (new);
+    xcb_connection_t		*dpy = XtDisplay (new);
+    xcb_screen_t		*scn = XtScreen (new);
     unsigned long	bot_fg_pixel = 0, bot_bg_pixel = 0;
     char		*pm_data = NULL;
     Boolean		create_pixmap = FALSE;
@@ -317,7 +317,7 @@ Xaw3dComputeTopShadowRGB (Widget new, XColor *xcol_out)
 	XColor get_c;
 	double contrast;
 	xcb_connection_t *dpy = XtDisplay (new);
-	Screen *scn = XtScreen (new);
+	xcb_screen_t *scn = XtScreen (new);
 	Colormap cmap = new->core.colormap;
 
 	get_c.pixel = tdw->core.background_pixel;
@@ -363,7 +363,7 @@ Xaw3dComputeBottomShadowRGB (Widget new, XColor *xcol_out)
 	XColor get_c;
 	double contrast;
 	xcb_connection_t *dpy = XtDisplay (new);
-	Screen *scn = XtScreen (new);
+	xcb_screen_t *scn = XtScreen (new);
 	Colormap cmap = new->core.colormap;
 
 	get_c.pixel = tdw->core.background_pixel;
@@ -404,7 +404,7 @@ static XrmQuark	XtQReliefNone, XtQReliefRaised, XtQReliefSunken,
 
 #define	done(address, type) { \
 	  toVal->size = sizeof(type); \
-	  toVal->addr = (XPointer) address; \
+	  toVal->addr = (XtPointer) address; \
 	  return; \
 	}
 
@@ -476,7 +476,7 @@ static void
 Initialize (Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ThreeDWidget 	tdw = (ThreeDWidget) new;
-    Screen		*scr = XtScreen (new);
+    xcb_screen_t		*scr = XtScreen (new);
 
     if (tdw->threeD.be_nice_to_cmap || DefaultDepthOfScreen (scr) == 1) {
 	AllocTopShadowPixmap (new);
