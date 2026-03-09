@@ -15,6 +15,19 @@
 #include <xcb/xproto.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+
+/* Type definitions for Xlib compatibility - XCB native types */
+typedef uint8_t Bool;
+typedef char *String;
+typedef unsigned int Cardinal;
+
+#ifndef False
+#define False 0
+#endif
+#ifndef True
+#define True 1
+#endif
 
 /*
  * Static atom table for common X atoms
@@ -108,7 +121,7 @@ static AtomTableEntry predefined_atoms[] = {
  * @name: Atom name string to intern
  * @only_if_exists: If True, only return atom if it already exists
  * 
- * Returns: The Atom value, or None if the atom doesn't exist and only_if_exists is True
+ * Returns: The Atom value, or XCB_NONE if the atom doesn't exist and only_if_exists is True
  */
 xcb_atom_t
 XawInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists)
@@ -116,10 +129,10 @@ XawInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists)
     xcb_connection_t *conn = (xcb_connection_t *)dpy;
     xcb_intern_atom_cookie_t cookie;
     xcb_intern_atom_reply_t *reply;
-    xcb_atom_t atom = None;
+    xcb_atom_t atom = XCB_NONE;
     
     if (!conn || !name)
-        return None;
+        return XCB_NONE;
     
     /* Send intern atom request */
     cookie = xcb_intern_atom(conn, only_if_exists ? 1 : 0, 
@@ -185,7 +198,7 @@ XawNameOfAtom(xcb_connection_t *dpy, xcb_atom_t atom)
     char *name = NULL;
     int name_len;
     
-    if (!conn || atom == None)
+    if (!conn || atom == XCB_NONE)
         return NULL;
     
     /* Send get atom name request */
@@ -219,7 +232,7 @@ XawNameOfAtom(xcb_connection_t *dpy, xcb_atom_t atom)
  * 
  * @name: Atom name (must be a well-known X atom)
  * 
- * Returns: The atom value from the static table, or None if not found
+ * Returns: The atom value from the static table, or XCB_NONE if not found
  * 
  * Note: This function only works for predefined X atoms (those in X11/Xatom.h).
  * For custom or extension atoms, use XawInternAtom() instead.
@@ -230,7 +243,7 @@ XawMakeAtom(const char *name)
     AtomTableEntry *entry;
     
     if (!name)
-        return None;
+        return XCB_NONE;
     
     /* Search the predefined atom table */
     for (entry = predefined_atoms; entry->name != NULL; entry++) {
@@ -239,5 +252,5 @@ XawMakeAtom(const char *name)
     }
     
     /* Not found in static table */
-    return None;
+    return XCB_NONE;
 }

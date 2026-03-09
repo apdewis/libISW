@@ -8,8 +8,40 @@
  */
 
 #include "XawXcbDraw.h"
+#include "../include/X11/Xaw3d/Form.h"  /* For XawEdgeType definition */
 #include <stdlib.h>
 #include <string.h>
+
+/*
+ * =================================================================
+ * WINDOW MANAGEMENT HELPERS
+ * =================================================================
+ */
+
+/*
+ * XawQueryPointer - XCB wrapper for querying pointer position
+ */
+int
+XawQueryPointer(xcb_connection_t *dpy, xcb_window_t win,
+                xcb_window_t *root_ret, xcb_window_t *child_ret,
+                int *root_x, int *root_y, int *win_x, int *win_y,
+                unsigned *mask)
+{
+    xcb_query_pointer_cookie_t cookie = xcb_query_pointer(dpy, win);
+    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(dpy, cookie, NULL);
+    if (reply) {
+        if (root_ret) *root_ret = reply->root;
+        if (child_ret) *child_ret = reply->child;
+        if (root_x) *root_x = reply->root_x;
+        if (root_y) *root_y = reply->root_y;
+        if (win_x) *win_x = reply->win_x;
+        if (win_y) *win_y = reply->win_y;
+        if (mask) *mask = reply->mask;
+        free(reply);
+        return 1;
+    }
+    return 0;
+}
 
 /*
  * =================================================================
@@ -101,6 +133,118 @@ XawFreePixmap(xcb_connection_t *conn, xcb_pixmap_t pixmap)
 {
     if (conn && pixmap)
         xcb_free_pixmap(conn, pixmap);
+}
+
+/*
+ * XawCreatePixmapFromBitmapData - Create a colored pixmap from bitmap data
+ *
+ * This is the XCB replacement for XCreatePixmapFromBitmapData.
+ * Creates a pixmap at the specified depth and renders the bitmap data
+ * using the provided foreground and background colors.
+ */
+xcb_pixmap_t
+XawCreatePixmapFromBitmapData(xcb_connection_t *conn,
+                              xcb_drawable_t drawable,
+                              const char *data,
+                              unsigned int width,
+                              unsigned int height,
+                              unsigned long fg,
+                              unsigned long bg,
+                              unsigned int depth)
+{
+    xcb_pixmap_t pixmap, bitmap;
+    xcb_gcontext_t gc;
+    
+    if (!conn || !data || width == 0 || height == 0 || depth == 0)
+        return 0;
+    
+    /* First create the depth-1 bitmap from the data */
+    bitmap = XawCreateBitmapFromData(conn, drawable, data, width, height);
+    if (bitmap == 0)
+        return 0;
+    
+    /* Create the output pixmap at the specified depth */
+    pixmap = xcb_generate_id(conn);
+    xcb_create_pixmap(conn, depth, pixmap, drawable, width, height);
+    
+    /* Create a GC with foreground and background colors */
+    gc = xcb_generate_id(conn);
+    {
+        uint32_t values[2];
+        uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
+        values[0] = fg;
+        values[1] = bg;
+        xcb_create_gc(conn, gc, pixmap, mask, values);
+    }
+    
+    /* Copy the bitmap to the pixmap with color conversion */
+    xcb_copy_plane(conn, bitmap, pixmap, gc, 0, 0, 0, 0, width, height, 1);
+    
+    /* Clean up */
+    xcb_free_gc(conn, gc);
+    XawFreePixmap(conn, bitmap);
+    xcb_flush(conn);
+    
+    return pixmap;
+}
+
+/*
+ * XawQueryColor - Query RGB values for a pixel
+ */
+int
+XawQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color)
+{
+    xcb_query_colors_cookie_t cookie;
+    xcb_query_colors_reply_t *reply;
+    xcb_rgb_t *rgb;
+    uint32_t pixel;
+    
+    if (!conn || !color)
+        return 0;
+    
+    pixel = color->pixel;
+    cookie = xcb_query_colors(conn, cmap, 1, &pixel);
+    reply = xcb_query_colors_reply(conn, cookie, NULL);
+    
+    if (!reply)
+        return 0;
+    
+    rgb = xcb_query_colors_colors(reply);
+    if (rgb) {
+        color->red = rgb->red;
+        color->green = rgb->green;
+        color->blue = rgb->blue;
+    }
+    
+    free(reply);
+    return 1;
+}
+
+/*
+ * XawAllocColor - Allocate a read-only color cell
+ */
+int
+XawAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color)
+{
+    xcb_alloc_color_cookie_t cookie;
+    xcb_alloc_color_reply_t *reply;
+    
+    if (!conn || !color)
+        return 0;
+    
+    cookie = xcb_alloc_color(conn, cmap, color->red, color->green, color->blue);
+    reply = xcb_alloc_color_reply(conn, cookie, NULL);
+    
+    if (!reply)
+        return 0;
+    
+    color->pixel = reply->pixel;
+    color->red = reply->red;
+    color->green = reply->green;
+    color->blue = reply->blue;
+    
+    free(reply);
+    return 1;
 }
 
 /*
@@ -658,7 +802,7 @@ XawCvtStringToEdgeType(
     XrmValuePtr to,
     XtPointer *converter_data)
 {
-    static XtEdgeType edge;
+    static XawEdgeType edge;  /* Use XawEdgeType from Form.h */
     char lowerName[64];
     const char *str = (const char *)from->addr;
     
@@ -672,29 +816,30 @@ XawCvtStringToEdgeType(
     
     XawCopyISOLatin1Lowered(lowerName, str);
     
+    /* Use XawChain* values from Form.h (Form.h maps XtChain* to XawChain* via defines) */
     if (strcmp(lowerName, "chaintop") == 0) {
-        edge = XtChainTop;
+        edge = XawChainTop;
     } else if (strcmp(lowerName, "chainbottom") == 0) {
-        edge = XtChainBottom;
+        edge = XawChainBottom;
     } else if (strcmp(lowerName, "chainleft") == 0) {
-        edge = XtChainLeft;
+        edge = XawChainLeft;
     } else if (strcmp(lowerName, "chainright") == 0) {
-        edge = XtChainRight;
+        edge = XawChainRight;
     } else if (strcmp(lowerName, "rubber") == 0) {
-        edge = XtRubber;
+        edge = XawRubber;
     } else {
         return False;
     }
     
     if (to->addr == NULL) {
         to->addr = (XtPointer)&edge;
-    } else if (to->size < sizeof(XtEdgeType)) {
-        to->size = sizeof(XtEdgeType);
+    } else if (to->size < sizeof(XawEdgeType)) {
+        to->size = sizeof(XawEdgeType);
         return False;
     } else {
-        *(XtEdgeType *)to->addr = edge;
+        *(XawEdgeType *)to->addr = edge;
     }
-    to->size = sizeof(XtEdgeType);
+    to->size = sizeof(XawEdgeType);
     
     return True;
 }

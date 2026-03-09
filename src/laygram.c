@@ -76,8 +76,7 @@
 /* First part of user prologue.  */
 #line 1 "laygram.y"
 
-#include    <X11/Xlib.h>
-#include    <X11/Xresource.h>
+/* System Xlib headers removed - XrmQuark/XrmStringToQuark available via X11/IntrinsicP.h from custom libXt */
 #include    <stdio.h>
 #include    <X11/IntrinsicP.h>
 #include    <X11/cursorfont.h>
@@ -93,7 +92,7 @@
 static LayoutPtr    *dest;
 
 
-#line 97 "y.tab.c"
+#line 96 "laygram.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -118,8 +117,8 @@ static LayoutPtr    *dest;
 
 /* Use api.header.include to #include this header
    instead of duplicating it here.  */
-#ifndef YY_LAYYY_Y_TAB_H_INCLUDED
-# define YY_LAYYY_Y_TAB_H_INCLUDED
+#ifndef YY_LAYYY_LAYGRAM_H_INCLUDED
+# define YY_LAYYY_LAYGRAM_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -196,7 +195,7 @@ extern int LayYYdebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 20 "laygram.y"
+#line 19 "laygram.y"
 
     int		    ival;
     XrmQuark	    qval;
@@ -207,7 +206,7 @@ union YYSTYPE
     ExprPtr	    eval;
     Operator	    oval;
 
-#line 211 "y.tab.c"
+#line 210 "laygram.c"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -222,7 +221,7 @@ extern YYSTYPE LayYYlval;
 int LayYYparse (void);
 
 
-#endif /* !YY_LAYYY_Y_TAB_H_INCLUDED  */
+#endif /* !YY_LAYYY_LAYGRAM_H_INCLUDED  */
 /* Symbol kind.  */
 enum yysymbol_kind_t
 {
@@ -655,10 +654,10 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    52,    52,    55,    65,    75,    84,    89,   115,   120,
-     123,   134,   144,   155,   165,   168,   170,   173,   175,   177,
-     179,   182,   189,   191,   193,   198,   203,   205,   212,   217,
-     223,   231,   233,   235,   237,   239,   246,   248,   250,   252
+       0,    51,    51,    54,    64,    74,    83,    88,   114,   119,
+     122,   133,   143,   154,   164,   167,   169,   172,   174,   176,
+     178,   181,   188,   190,   192,   197,   202,   204,   211,   216,
+     222,   230,   232,   234,   236,   238,   245,   247,   249,   251
 };
 #endif
 
@@ -1261,13 +1260,13 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* layout: compositebox  */
-#line 53 "laygram.y"
+#line 52 "laygram.y"
                     { *dest = (yyvsp[0].bval); }
-#line 1267 "y.tab.c"
+#line 1266 "laygram.c"
     break;
 
   case 3: /* box: NAME bothparams  */
-#line 56 "laygram.y"
+#line 55 "laygram.y"
                     {
 			BoxPtr	box = New(LBoxRec);
 			box->nextSibling = 0;
@@ -1277,11 +1276,11 @@ yyreduce:
 			box->u.widget.quark = (yyvsp[-1].qval);
 			(yyval.bval) = box;
 		    }
-#line 1281 "y.tab.c"
+#line 1280 "laygram.c"
     break;
 
   case 4: /* box: signedExpr oneparams  */
-#line 66 "laygram.y"
+#line 65 "laygram.y"
                     {
 			BoxPtr	box = New(LBoxRec);
 			box->nextSibling = 0;
@@ -1291,11 +1290,11 @@ yyreduce:
 			box->u.glue.expr = (yyvsp[-1].eval);
 			(yyval.bval) = box;
 		    }
-#line 1295 "y.tab.c"
+#line 1294 "laygram.c"
     break;
 
   case 5: /* box: NAME EQUAL signedExpr  */
-#line 76 "laygram.y"
+#line 75 "laygram.y"
                     {
 			BoxPtr	box = New(LBoxRec);
 			box->nextSibling = 0;
@@ -1304,19 +1303,19 @@ yyreduce:
 			box->u.variable.expr = (yyvsp[0].eval);
 			(yyval.bval) = box;
 		    }
-#line 1308 "y.tab.c"
+#line 1307 "laygram.c"
     break;
 
   case 6: /* box: compositebox  */
-#line 85 "laygram.y"
+#line 84 "laygram.y"
                     {
 			(yyval.bval) = (yyvsp[0].bval);
 		    }
-#line 1316 "y.tab.c"
+#line 1315 "laygram.c"
     break;
 
   case 7: /* compositebox: orientation OC boxes CC  */
-#line 90 "laygram.y"
+#line 89 "laygram.y"
                     {
 			BoxPtr	box = New(LBoxRec);
 			BoxPtr	child;
@@ -1341,26 +1340,26 @@ yyreduce:
 			}
 			(yyval.bval) = box;
 		    }
-#line 1345 "y.tab.c"
+#line 1344 "laygram.c"
     break;
 
   case 8: /* boxes: box boxes  */
-#line 116 "laygram.y"
+#line 115 "laygram.y"
                     {
 			(yyvsp[-1].bval)->nextSibling = (yyvsp[0].bval);
 			(yyval.bval) = (yyvsp[-1].bval);
 		    }
-#line 1354 "y.tab.c"
+#line 1353 "laygram.c"
     break;
 
   case 9: /* boxes: box  */
-#line 121 "laygram.y"
+#line 120 "laygram.y"
                     {	(yyval.bval) = (yyvsp[0].bval); }
-#line 1360 "y.tab.c"
+#line 1359 "laygram.c"
     break;
 
   case 10: /* bothparams: OA opStretch opShrink TIMES opStretch opShrink CA  */
-#line 124 "laygram.y"
+#line 123 "laygram.y"
                     {
 			BoxParamsPtr	p = New(BoxParamsRec);
 
@@ -1370,11 +1369,11 @@ yyreduce:
 			p->shrink[LayoutVertical] = (yyvsp[-1].gval);
 			(yyval.pval) = p;
 		    }
-#line 1374 "y.tab.c"
+#line 1373 "laygram.c"
     break;
 
   case 11: /* bothparams: %empty  */
-#line 134 "laygram.y"
+#line 133 "laygram.y"
                     {
 			BoxParamsPtr	p = New(BoxParamsRec);
 
@@ -1384,11 +1383,11 @@ yyreduce:
 			ZeroGlue (p->shrink[LayoutVertical]);
 			(yyval.pval) = p;
 		    }
-#line 1388 "y.tab.c"
+#line 1387 "laygram.c"
     break;
 
   case 12: /* oneparams: OA opStretch opShrink CA  */
-#line 145 "laygram.y"
+#line 144 "laygram.y"
                     {
 			BoxParamsPtr	p = New(BoxParamsRec);
 
@@ -1398,11 +1397,11 @@ yyreduce:
 			p->shrink[LayoutVertical] = (yyvsp[-1].gval);
 			(yyval.pval) = p;
 		    }
-#line 1402 "y.tab.c"
+#line 1401 "laygram.c"
     break;
 
   case 13: /* oneparams: %empty  */
-#line 155 "laygram.y"
+#line 154 "laygram.y"
                     {
 			BoxParamsPtr	p = New(BoxParamsRec);
 
@@ -1412,123 +1411,123 @@ yyreduce:
 			ZeroGlue (p->shrink[LayoutVertical]);
 			(yyval.pval) = p;
 		    }
-#line 1416 "y.tab.c"
+#line 1415 "laygram.c"
     break;
 
   case 14: /* opStretch: PLUS glue  */
-#line 166 "laygram.y"
+#line 165 "laygram.y"
                     { (yyval.gval) = (yyvsp[0].gval); }
-#line 1422 "y.tab.c"
+#line 1421 "laygram.c"
     break;
 
   case 15: /* opStretch: %empty  */
-#line 168 "laygram.y"
+#line 167 "laygram.y"
                     { ZeroGlue ((yyval.gval)); }
-#line 1428 "y.tab.c"
+#line 1427 "laygram.c"
     break;
 
   case 16: /* opShrink: MINUS glue  */
-#line 171 "laygram.y"
+#line 170 "laygram.y"
                     { (yyval.gval) = (yyvsp[0].gval); }
-#line 1434 "y.tab.c"
+#line 1433 "laygram.c"
     break;
 
   case 17: /* opShrink: %empty  */
-#line 173 "laygram.y"
+#line 172 "laygram.y"
                     { ZeroGlue ((yyval.gval)); }
-#line 1440 "y.tab.c"
+#line 1439 "laygram.c"
     break;
 
   case 18: /* glue: simpleExpr INFINITY  */
-#line 176 "laygram.y"
+#line 175 "laygram.y"
                     { (yyval.gval).order = (yyvsp[0].ival); (yyval.gval).expr = (yyvsp[-1].eval); }
-#line 1446 "y.tab.c"
+#line 1445 "laygram.c"
     break;
 
   case 19: /* glue: simpleExpr  */
-#line 178 "laygram.y"
+#line 177 "laygram.y"
                     { (yyval.gval).order = 0; (yyval.gval).expr = (yyvsp[0].eval); }
-#line 1452 "y.tab.c"
+#line 1451 "laygram.c"
     break;
 
   case 20: /* glue: INFINITY  */
-#line 180 "laygram.y"
+#line 179 "laygram.y"
                     { (yyval.gval).order = (yyvsp[0].ival); (yyval.gval).expr = 0; (yyval.gval).value = 1; }
-#line 1458 "y.tab.c"
+#line 1457 "laygram.c"
     break;
 
   case 21: /* signedExpr: MINUS simpleExpr  */
-#line 183 "laygram.y"
+#line 182 "laygram.y"
                     {
 			(yyval.eval) = New(ExprRec);
 			(yyval.eval)->type = Unary;
 			(yyval.eval)->u.unary.op = (yyvsp[-1].oval);
 			(yyval.eval)->u.unary.down = (yyvsp[0].eval);
 		    }
-#line 1469 "y.tab.c"
+#line 1468 "laygram.c"
     break;
 
   case 22: /* signedExpr: PLUS simpleExpr  */
-#line 190 "laygram.y"
+#line 189 "laygram.y"
                     { (yyval.eval) = (yyvsp[0].eval); }
-#line 1475 "y.tab.c"
+#line 1474 "laygram.c"
     break;
 
   case 24: /* simpleExpr: WIDTH NAME  */
-#line 194 "laygram.y"
+#line 193 "laygram.y"
                     {	(yyval.eval) = New(ExprRec);
 			(yyval.eval)->type = Width;
 			(yyval.eval)->u.width = (yyvsp[0].qval);
 		    }
-#line 1484 "y.tab.c"
+#line 1483 "laygram.c"
     break;
 
   case 25: /* simpleExpr: HEIGHT NAME  */
-#line 199 "laygram.y"
+#line 198 "laygram.y"
                     {	(yyval.eval) = New(ExprRec);
 			(yyval.eval)->type = Height;
 			(yyval.eval)->u.height = (yyvsp[0].qval);
 		    }
-#line 1493 "y.tab.c"
+#line 1492 "laygram.c"
     break;
 
   case 26: /* simpleExpr: OP expr CP  */
-#line 204 "laygram.y"
+#line 203 "laygram.y"
                     { (yyval.eval) = (yyvsp[-1].eval); }
-#line 1499 "y.tab.c"
+#line 1498 "laygram.c"
     break;
 
   case 27: /* simpleExpr: simpleExpr PERCENT  */
-#line 206 "laygram.y"
+#line 205 "laygram.y"
                     {
 			(yyval.eval) = New(ExprRec);
 			(yyval.eval)->type = Unary;
 			(yyval.eval)->u.unary.op = (yyvsp[0].oval);
 			(yyval.eval)->u.unary.down = (yyvsp[-1].eval);
 		    }
-#line 1510 "y.tab.c"
+#line 1509 "laygram.c"
     break;
 
   case 28: /* simpleExpr: NUMBER  */
-#line 213 "laygram.y"
+#line 212 "laygram.y"
                     {	(yyval.eval) = New(ExprRec);
 			(yyval.eval)->type = Constant;
 			(yyval.eval)->u.constant = (yyvsp[0].ival);
 		    }
-#line 1519 "y.tab.c"
+#line 1518 "laygram.c"
     break;
 
   case 29: /* simpleExpr: DOLLAR NAME  */
-#line 218 "laygram.y"
+#line 217 "laygram.y"
                     {	(yyval.eval) = New(ExprRec);
 			(yyval.eval)->type = Variable;
 			(yyval.eval)->u.variable = (yyvsp[0].qval);
 		    }
-#line 1528 "y.tab.c"
+#line 1527 "laygram.c"
     break;
 
   case 30: /* expr: expr PLUS expr  */
-#line 224 "laygram.y"
+#line 223 "laygram.y"
                     { binary: ;
 			(yyval.eval) = New(ExprRec);
 			(yyval.eval)->type = Binary;
@@ -1536,64 +1535,64 @@ yyreduce:
 			(yyval.eval)->u.binary.left = (yyvsp[-2].eval);
 			(yyval.eval)->u.binary.right = (yyvsp[0].eval);
 		    }
-#line 1540 "y.tab.c"
+#line 1539 "laygram.c"
     break;
 
   case 31: /* expr: expr MINUS expr  */
-#line 232 "laygram.y"
+#line 231 "laygram.y"
                     { goto binary; }
-#line 1546 "y.tab.c"
+#line 1545 "laygram.c"
     break;
 
   case 32: /* expr: expr TIMES expr  */
-#line 234 "laygram.y"
+#line 233 "laygram.y"
                     { goto binary; }
-#line 1552 "y.tab.c"
+#line 1551 "laygram.c"
     break;
 
   case 33: /* expr: expr DIVIDE expr  */
-#line 236 "laygram.y"
+#line 235 "laygram.y"
                     { goto binary; }
-#line 1558 "y.tab.c"
+#line 1557 "laygram.c"
     break;
 
   case 34: /* expr: expr PERCENTOF expr  */
-#line 238 "laygram.y"
+#line 237 "laygram.y"
                     { goto binary; }
-#line 1564 "y.tab.c"
+#line 1563 "laygram.c"
     break;
 
   case 35: /* expr: MINUS expr  */
-#line 240 "laygram.y"
+#line 239 "laygram.y"
                     {
 			(yyval.eval) = New(ExprRec);
 			(yyval.eval)->type = Unary;
 			(yyval.eval)->u.unary.op = (yyvsp[-1].oval);
 			(yyval.eval)->u.unary.down = (yyvsp[0].eval);
 		    }
-#line 1575 "y.tab.c"
+#line 1574 "laygram.c"
     break;
 
   case 36: /* expr: PLUS expr  */
-#line 247 "laygram.y"
+#line 246 "laygram.y"
                     { (yyval.eval) = (yyvsp[0].eval); }
-#line 1581 "y.tab.c"
+#line 1580 "laygram.c"
     break;
 
   case 38: /* orientation: VERTICAL  */
-#line 251 "laygram.y"
+#line 250 "laygram.y"
                 {   (yyval.lval) = LayoutVertical; }
-#line 1587 "y.tab.c"
+#line 1586 "laygram.c"
     break;
 
   case 39: /* orientation: HORIZONTAL  */
-#line 253 "laygram.y"
+#line 252 "laygram.y"
                 {   (yyval.lval) = LayoutHorizontal; }
-#line 1593 "y.tab.c"
+#line 1592 "laygram.c"
     break;
 
 
-#line 1597 "y.tab.c"
+#line 1596 "laygram.c"
 
       default: break;
     }
@@ -1786,7 +1785,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 255 "laygram.y"
+#line 254 "laygram.y"
 
 
 int yywrap (void)

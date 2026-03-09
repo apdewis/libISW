@@ -53,8 +53,9 @@ SOFTWARE.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Shell.h>
-#include <X11/Xatom.h>
-#include <X11/Xutil.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include "XawXcbDraw.h"
 #ifdef XAW_INTERNATIONALIZATION
 #include "XawI18n.h"
 #endif
@@ -103,7 +104,8 @@ unsigned long XawFmtWide = 0L;
  * time.  The 64 allows for the overhead of the Change Property request.
  */
 
-#define MAX_CUT_LEN(dpy)  (XMaxRequestSize(dpy) - 64)
+/* XCB equivalent of XMaxRequestSize - returns max request length in 4-byte units */
+#define MAX_CUT_LEN(dpy)  (xcb_get_maximum_request_length(dpy) - 64)
 
 #define IsValidLine(ctx, num) ( ((num) == 0) || \
 			        ((ctx)->text.lt.info[(num)].position != 0) )
@@ -111,7 +113,7 @@ unsigned long XawFmtWide = 0L;
 /*
  * Defined in TextAction.c
  */
-extern void _XawTextZapSelection(TextWidget, XEvent *, Boolean);
+extern void _XawTextZapSelection(TextWidget, xcb_generic_event_t *, Boolean);
 
 
 /*
@@ -127,12 +129,12 @@ static void DisplayTextWindow(Widget);
 static void ModifySelection(TextWidget, XawTextPosition, XawTextPosition);
 static void PushCopyQueue(TextWidget, int, int);
 static void UpdateTextInLine(TextWidget, int, Position, Position);
-static void UpdateTextInRectangle(TextWidget, XRectangle *);
+static void UpdateTextInRectangle(TextWidget, xcb_rectangle_t *);
 static void PopCopyQueue(TextWidget);
 static void FlushUpdate(TextWidget);
 static Boolean LineAndXYForPosition(TextWidget, XawTextPosition, int *,
                                     Position *, Position *);
-static Boolean TranslateExposeRegion(TextWidget, XRectangle *);
+static Boolean TranslateExposeRegion(TextWidget, xcb_rectangle_t *);
 static XawTextPosition FindGoodPosition(TextWidget, XawTextPosition);
 static XawTextPosition _BuildLineTable(TextWidget, XawTextPosition,
                                        XawTextPosition, int);
@@ -563,7 +565,19 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.updateFrom = (XawTextPosition *) XtMalloc((unsigned) ONE);
   ctx->text.updateTo = (XawTextPosition *) XtMalloc((unsigned) ONE);
   ctx->text.numranges = ctx->text.maxranges = 0;
-  ctx->text.gc = DefaultGCOfScreen(XtScreen(ctx));
+  
+  /* Create GC - XCB doesn't have default GC */
+  {
+    xcb_connection_t *conn = XtDisplay((Widget)ctx);
+    xcb_screen_t *screen = XtScreen((Widget)ctx);
+    xcb_create_gc_value_list_t values;
+    memset(&values, 0, sizeof(values));
+    values.foreground = BlackPixelOfScreen(screen);
+    values.background = WhitePixelOfScreen(screen);
+    ctx->text.gc = xcb_generate_id(conn);
+    xcb_create_gc(conn, ctx->text.gc, XtWindow((Widget)ctx),
+                  XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, &values);
+  }
   ctx->text.hasfocus = FALSE;
   ctx->text.margin = ctx->text.r_margin; /* Strucure copy. */
   ctx->text.update_disabled = FALSE;
@@ -614,12 +628,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(Widget w, Mask *valueMask, XSetWindowAttributes *attributes)
+Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
   TextWidget ctx = (TextWidget)w;
 
+  /* XCB-based libXt realize function requires 4 arguments */
   (*textClassRec.core_class.superclass->core_class.realize)
-    (w, valueMask, attributes);
+    (conn, w, valueMask, attributes);
 
   if (ctx->text.hbar != NULL) {	        /* Put up Hbar -- Must be first. */
     XtRealizeWidget(ctx->text.hbar);
@@ -668,8 +683,9 @@ _CreateCutBuffers(xcb_connection_t *d)
   dpy_list = dpy_ptr;
 
 #define Create(buffer) \
-    XChangeProperty(d, RootWindow(d, 0), buffer, XCB_ATOM_STRING, 8, \
-		    PropModeAppend, NULL, 0 );
+    { xcb_screen_t *__screen = xcb_setup_roots_iterator(xcb_get_setup(d)).data; \
+      xcb_change_property(d, XCB_PROP_MODE_APPEND, __screen->root, buffer, \
+                         XCB_ATOM_STRING, 8, 0, NULL); }
 
     Create( XCB_ATOM_CUT_BUFFER0 );
     Create( XCB_ATOM_CUT_BUFFER1 );
@@ -1281,7 +1297,7 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
   TextWidget ctx = (TextWidget) closure;
   Widget tw = (Widget) ctx;
   Position old_left, pixels = (Position)(intptr_t) callData;
-  XRectangle rect, t_rect;
+  xcb_rectangle_t rect, t_rect;
   int s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
 
   _XawTextPrepareToUpdate(ctx);
@@ -1509,6 +1525,21 @@ VJump(Widget w, XtPointer closure, XtPointer callData)
   _XawTextExecuteUpdate(ctx);
 }
 
+/* Stub for XawConvertStandardSelection - simplified for XCB port */
+static Boolean
+XawConvertStandardSelection(Widget w, xcb_timestamp_t time, xcb_atom_t *selection,
+                           xcb_atom_t *target, xcb_atom_t *type, XtPointer *value,
+                           unsigned long *length, int *format)
+{
+    /* Minimal stub - returns empty targets list */
+    *value = NULL;
+    *length = 0;
+    *format = 32;
+    if (type)
+        *type = XCB_ATOM_ATOM;
+    return False;  /* Indicate no conversion performed */
+}
+
 static Boolean
 MatchSelection(xcb_atom_t selection, XawTextSelection *s)
 {
@@ -1687,7 +1718,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 
   if (*target == XCB_ATOM_DELETE(d)) {
     if (!salt)
-	_XawTextZapSelection( ctx, (XEvent *) NULL, TRUE);
+	_XawTextZapSelection( ctx, (xcb_generic_event_t *) NULL, TRUE);
     *value = NULL;
     *type = XCB_ATOM_NULL(d);
     *length = 0;
@@ -1926,19 +1957,25 @@ _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
 #endif
 	if (buffer == 0) {
 	  _CreateCutBuffers(XtDisplay(w));
-	  XRotateBuffers(XtDisplay(w), 1);
+	  /* XRotateBuffers - legacy cut buffer rotation, skipped for XCB port */
 	}
 	amount = Min ( (len = strlen((char *)ptr)), max_len);
-	XChangeProperty(XtDisplay(w), RootWindow(XtDisplay(w), 0), selection,
-			XCB_ATOM_STRING, 8, PropModeReplace, ptr, amount);
+	/* XCB equivalent of XChangeProperty + RootWindow */
+	{
+	    xcb_connection_t *conn = XtDisplay(w);
+	    xcb_screen_t *screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
+	    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, screen->root, selection,
+			        XCB_ATOM_STRING, 8, amount, ptr);
+	}
 
 	while (len > max_len) {
+	    xcb_connection_t *conn = XtDisplay(w);
+	    xcb_screen_t *screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
 	    len -= max_len;
 	    tptr += max_len;
 	    amount = Min (len, max_len);
-	    XChangeProperty(XtDisplay(w), RootWindow(XtDisplay(w), 0),
-			    selection, XCB_ATOM_STRING, 8, PropModeAppend,
-			    tptr, amount);
+	    xcb_change_property(conn, XCB_PROP_MODE_APPEND, screen->root,
+			        selection, XCB_ATOM_STRING, 8, amount, tptr);
 	}
 	XtFree ((char *)ptr);
       }
@@ -2174,7 +2211,7 @@ DisplayText(Widget w, XawTextPosition pos1, XawTextPosition pos2)
  */
 
 static void
-DoSelection (TextWidget ctx, XawTextPosition pos, Time time, Boolean motion)
+DoSelection (TextWidget ctx, XawTextPosition pos, xcb_timestamp_t time, Boolean motion)
 {
   XawTextPosition newLeft, newRight;
   XawTextSelectType newType, *sarray;
@@ -2495,7 +2532,7 @@ _XawTextSelectionList(TextWidget ctx, String *list, Cardinal nelems)
     ctx->text.s.selections = sel;
   }
   for (n=nelems; --n >= 0; sel++, list++)
-    *sel = XInternAtom(dpy, *list, False);
+    *sel = XawXcbInternAtom(dpy, *list, False);
 
   ctx->text.s.atom_count = nelems;
   return ctx->text.s.selections;
@@ -2587,7 +2624,7 @@ _XawTextAlterSelection (TextWidget ctx, XawTextSelectionMode mode,
  */
 
 static Boolean
-RectanglesOverlap(XRectangle *rect1, XRectangle *rect2)
+RectanglesOverlap(xcb_rectangle_t *rect1, xcb_rectangle_t *rect2)
 {
   return ( (rect1->x < rect2->x + (short) rect2->width) &&
 	   (rect2->x < rect1->x + (short) rect1->width) &&
@@ -2603,7 +2640,7 @@ RectanglesOverlap(XRectangle *rect1, XRectangle *rect2)
  */
 
 static void
-UpdateTextInRectangle(TextWidget ctx, XRectangle * rect)
+UpdateTextInRectangle(TextWidget ctx, xcb_rectangle_t * rect)
 {
   XawTextLineTableEntry *info = ctx->text.lt.info;
   int line, x = rect->x, y = rect->y;
@@ -2623,23 +2660,26 @@ UpdateTextInRectangle(TextWidget ctx, XRectangle * rect)
 
 /* ARGSUSED */
 static void
-ProcessExposeRegion(Widget w, XEvent *event, Region region)
+ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
 {
     TextWidget ctx = (TextWidget) w;
-    XRectangle expose, cursor;
+    xcb_rectangle_t expose, cursor;
     Boolean need_to_draw;
+    uint8_t type = event->response_type & ~0x80;
 
-    if (event->type == Expose) {
-	expose.x = event->xexpose.x;
-	expose.y = event->xexpose.y;
-	expose.width = event->xexpose.width;
-	expose.height = event->xexpose.height;
+    if (type == XCB_EXPOSE) {
+	xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
+	expose.x = ev->x;
+	expose.y = ev->y;
+	expose.width = ev->width;
+	expose.height = ev->height;
     }
-    else if (event->type == GraphicsExpose) {
-	expose.x = event->xgraphicsexpose.x;
-	expose.y = event->xgraphicsexpose.y;
-	expose.width = event->xgraphicsexpose.width;
-	expose.height = event->xgraphicsexpose.height;
+    else if (type == XCB_GRAPHICS_EXPOSURE) {
+	xcb_graphics_exposure_event_t *gev = (xcb_graphics_exposure_event_t *)event;
+	expose.x = gev->x;
+	expose.y = gev->y;
+	expose.width = gev->width;
+	expose.height = gev->height;
     }
     else { /* No Expose */
 	PopCopyQueue(ctx);
@@ -2647,8 +2687,11 @@ ProcessExposeRegion(Widget w, XEvent *event, Region region)
     }
 
     need_to_draw = TranslateExposeRegion(ctx, &expose);
-    if ((event->type == GraphicsExpose) && (event->xgraphicsexpose.count == 0))
-	PopCopyQueue(ctx);
+    if (type == XCB_GRAPHICS_EXPOSURE) {
+	xcb_graphics_exposure_event_t *gev = (xcb_graphics_exposure_event_t *)event;
+	if (gev->count == 0)
+	    PopCopyQueue(ctx);
+    }
 
     if (!need_to_draw)
 	return;			/* don't draw if we don't need to. */
@@ -3059,7 +3102,7 @@ PopCopyQueue(TextWidget ctx)
  */
 
 static Boolean
-TranslateExposeRegion(TextWidget ctx, XRectangle *expose)
+TranslateExposeRegion(TextWidget ctx, xcb_rectangle_t *expose)
 {
     struct text_move * offsets = ctx->text.copy_area_offsets;
     int value;
@@ -3397,7 +3440,7 @@ TextClassRec textClassRec = {
     /* visible_interest */      FALSE,
     /* destroy          */      TextDestroy,
     /* resize           */      Resize,
-    /* expose           */      ProcessExposeRegion,
+    /* expose           */      (void (*)(Widget, xcb_generic_event_t *, xcb_xfixes_region_t))ProcessExposeRegion,
     /* set_values       */      SetValues,
     /* set_values_hook  */	NULL,
     /* set_values_almost*/	XtInheritSetValuesAlmost,

@@ -35,8 +35,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_LAYYY_Y_TAB_H_INCLUDED
-# define YY_LAYYY_Y_TAB_H_INCLUDED
+#ifndef YY_LAYYY_LAYGRAM_H_INCLUDED
+# define YY_LAYYY_LAYGRAM_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -113,7 +113,7 @@ extern int LayYYdebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 20 "laygram.y"
+#line 19 "laygram.y"
 
     int		    ival;
     XrmQuark	    qval;
@@ -124,7 +124,7 @@ union YYSTYPE
     ExprPtr	    eval;
     Operator	    oval;
 
-#line 128 "y.tab.h"
+#line 128 "laygram.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
@@ -139,4 +139,4 @@ extern YYSTYPE LayYYlval;
 int LayYYparse (void);
 
 
-#endif /* !YY_LAYYY_Y_TAB_H_INCLUDED  */
+#endif /* !YY_LAYYY_LAYGRAM_H_INCLUDED  */

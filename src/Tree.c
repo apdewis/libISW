@@ -53,6 +53,7 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
+#include <X11/Xaw3d/Xaw3dP.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/Cardinals.h>
 #include <X11/Xaw3d/TreeP.h>
@@ -80,6 +81,7 @@ static XtGeometryResult	QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeomet
 static void insert_node(Widget, Widget);
 static void delete_node(Widget, Widget);
 static void layout_tree(TreeWidget, Boolean);
+static void check_gravity(TreeWidget, XtGravity);
 
 
 /*
@@ -213,7 +215,7 @@ static GC
 get_tree_gc (TreeWidget w)
 {
     XtGCMask valuemask = GCBackground | GCForeground;
-    XGCValues values;
+    xcb_create_gc_value_list_t values = {0};
 
     values.background = w->core.background_pixel;
     values.foreground = w->tree.foreground;
@@ -314,12 +316,49 @@ check_gravity (TreeWidget tw, XtGravity grav)
  *                                                                           *
  *****************************************************************************/
 
+/*
+ * XmuCvtStringToGravity - stub gravity converter
+ */
+/*ARGSUSED*/
+static Boolean
+XmuCvtStringToGravity(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+                      XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
+{
+    static XtGravity gravity;
+    char *str = (char*)fromVal->addr;
+    
+    /* Simple string matching for gravity values */
+    if (strcmp(str, "west") == 0 || strcmp(str, "West") == 0)
+        gravity = WestGravity;
+    else if (strcmp(str, "north") == 0 || strcmp(str, "North") == 0)
+        gravity = NorthGravity;
+    else if (strcmp(str, "east") == 0 || strcmp(str, "East") == 0)
+        gravity = EastGravity;
+    else if (strcmp(str, "south") == 0 || strcmp(str, "South") == 0)
+        gravity = SouthGravity;
+    else
+        gravity = WestGravity; /* default */
+    
+    if (toVal->addr != NULL) {
+        if (toVal->size < sizeof(XtGravity)) {
+            toVal->size = sizeof(XtGravity);
+            return False;
+        }
+        *(XtGravity*)(toVal->addr) = gravity;
+    } else {
+        toVal->addr = (XtPointer)&gravity;
+    }
+    
+    toVal->size = sizeof(XtGravity);
+    return True;
+}
+
 static void
 ClassInitialize (void)
 {
     XawInitializeWidgetSet();
-    XtAddConverter (XtRString, XtRGravity, XmuCvtStringToGravity,
-		    (XtConvertArgList) NULL, (Cardinal) 0);
+    XtSetTypeConverter (XtRString, XtRGravity, XmuCvtStringToGravity,
+ 	        (XtConvertArgList) NULL, (Cardinal) 0, XtCacheNone, NULL);
 }
 
 
@@ -569,7 +608,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (tw->core.visible) {
 	int i, j;
 	xcb_connection_t *dpy = XtDisplay (tw);
-	Window w = XtWindow (tw);
+	xcb_window_t w = XtWindow (tw);
 
 	for (i = 0; i < tw->composite.num_children; i++) {
 	    Widget child = tw->composite.children[i];
@@ -600,7 +639,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 		for (j = 0; j < tc->tree.n_children; j++) {
 		    Widget k = tc->tree.children[j];
-		    GC gc = (tc->tree.gc ? tc->tree.gc : tw->tree.gc);
+		    xcb_gcontext_t gc = (tc->tree.gc ? tc->tree.gc : tw->tree.gc);
 		    xcb_connection_t *conn = dpy;
 		    xcb_point_t points[2];
 

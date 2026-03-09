@@ -8,8 +8,7 @@
 #undef unput
 #endif
 
-#include    <X11/Xlib.h>
-#include    <X11/Xresource.h>
+/* System Xlib headers removed - XrmQuark/XrmStringToQuark available via X11/IntrinsicP.h from custom libXt */
 #include    <X11/IntrinsicP.h>
 #include    <X11/StringDefs.h>
 

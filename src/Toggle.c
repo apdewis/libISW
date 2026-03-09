@@ -166,6 +166,60 @@ WidgetClass toggleWidgetClass = (WidgetClass) &toggleClassRec;
  *
  ****************************************************************/
 
+/*
+ * XawCvtStringToWidget - Convert string widget name to Widget
+ * Used for radioGroup resource conversion
+ */
+/*ARGSUSED*/
+static Boolean
+XawCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+                     XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
+{
+    Widget widget;
+    Widget parent;
+    
+    if (*num_args != 1) {
+        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+                       "wrongParameters", "cvtStringToWidget", "XawError",
+                       "String to Widget conversion needs parent argument",
+                       (String *)NULL, (Cardinal *)NULL);
+        return False;
+    }
+    
+    parent = *(Widget*)args[0].addr;
+    if (parent == NULL) {
+        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+                       "missingParent", "cvtStringToWidget", "XawError",
+                       "String to Widget conversion: parent is NULL",
+                       (String *)NULL, (Cardinal *)NULL);
+        return False;
+    }
+    
+    widget = XtNameToWidget(parent, (char*)fromVal->addr);
+    if (widget == NULL) {
+        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+                       "noWidget", "cvtStringToWidget", "XawError",
+                       "Cannot find widget '%s'",
+                       (String *)&fromVal->addr, (Cardinal *)NULL);
+        return False;
+    }
+    
+    if (toVal->addr != NULL) {
+        if (toVal->size < sizeof(Widget)) {
+            toVal->size = sizeof(Widget);
+            return False;
+        }
+        *(Widget*)(toVal->addr) = widget;
+    } else {
+        static Widget widget_ret;
+        widget_ret = widget;
+        toVal->addr = (XtPointer)&widget_ret;
+    }
+    
+    toVal->size = sizeof(Widget);
+    return True;
+}
+
 static void
 ClassInit(void)
 {

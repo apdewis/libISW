@@ -65,15 +65,8 @@ SOFTWARE.
 #include <X11/Xaw3d/ThreeDP.h>
 #include <X11/Xaw3d/XawXftCompat.h>  /* XawFontSet typedef only */
 
-/* XtJustify is defined in Xmu/Converters.h or standard Xt headers */
-/* Only define if not already defined */
-#ifndef _XMU_STRCONVERT_H_
-typedef enum {
-    XtJustifyLeft,
-    XtJustifyCenter,
-    XtJustifyRight
-} XtJustify;
-#endif
+/* XtJustify type is now centrally defined in Xaw3dP.h and XawXcbDraw.h */
+/* with proper include guards to prevent redefinition */
 
 /* New fields for the Label widget class record */
 

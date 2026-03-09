@@ -58,6 +58,7 @@ SOFTWARE.
 
 #include <stdint.h>
 #include <xcb/xcb.h>
+#include "XawXcbDraw.h"
 
 static void ScrollUpDownProc(Widget, XtPointer, XtPointer);
 static void ThumbProc(Widget, XtPointer, XtPointer);
@@ -172,7 +173,7 @@ CreateScrollbar(ViewportWidget w, Boolean horizontal)
     Widget bar;
 
     XtSetArg(barArgs[0], XtNorientation,
-	      horizontal ? XtorientHorizontal : XtorientVertical );
+       horizontal ? XtEhorizontal : XtEvertical );
     XtSetArg(barArgs[1], XtNlength,
 	     horizontal ? clip->core.width : clip->core.height);
     XtSetArg(barArgs[2], XtNleft,
@@ -390,12 +391,12 @@ ChangeManaged(Widget widget)
 		ViewportConstraints constraints =
 		    (ViewportConstraints)child->core.constraints;
 		if (!XtIsRealized(child)) {
-		    Window window = XtWindow(w);
+		    xcb_window_t window = XtWindow(w);
 		    XtMoveWidget( child, (Position)0, (Position)0 );
 #ifdef notdef
 		    /* this is dirty, but it saves the following code: */
 		    XtRealizeWidget( child );
-		    xcb_connection_t *conn = XtGetXCBConnection(XtDisplay(w));
+		    xcb_connection_t *conn = XtDisplay(w);
 		    xcb_reparent_window(conn, XtWindow(child),
 				     XtWindow(w->viewport.clip), 0, 0);
 		    if (child->core.mapped_when_managed)
@@ -408,7 +409,7 @@ ChangeManaged(Widget widget)
 		    constraints->viewport.reparented = True;
 		}
 		else if (!constraints->viewport.reparented) {
-		    xcb_connection_t *conn = XtGetXCBConnection(XtDisplay(w));
+		    xcb_connection_t *conn = XtDisplay(w);
 		    xcb_reparent_window(conn, XtWindow(child),
 				     XtWindow(w->viewport.clip), 0, 0);
 		    constraints->viewport.reparented = True;

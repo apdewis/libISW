@@ -24,9 +24,12 @@
 static xcb_connection_t* GetDisplayFromScreen(xcb_screen_t *screen);
 static xcb_window_t GetRootFromScreen(xcb_screen_t *screen);
 
+/* XawCreateStippledPixmap - DUPLICATE - Commented out to avoid linker conflict
+ * This function is now implemented in XawXcbDraw.c */
+#if 0
 /*
- * XawCreateStippledxcb_bitmap_t- Create a 50% gray stippled pixmap
- * 
+ * XawCreateStippledPixmap - Create a 50% gray stippled pixmap
+ *
  * Creates a 2x2 pixmap with a checkerboard pattern (50% gray stipple).
  * The pattern alternates between foreground and background pixels.
  */
@@ -116,14 +119,15 @@ XawCreateStippledPixmap(xcb_screen_t *screen, Pixel fg, Pixel bg, unsigned int d
     
     return (Pixmap)pixmap;
 }
+#endif /* 0 - XawCreateStippledPixmap */
 
 /*
- * XawReleaseStippledxcb_bitmap_t- Free a stippled pixmap
+ * XawReleaseStippledPixmap - Free a stippled pixmap
  * 
  * Releases the server resources for a pixmap created by XawCreateStippledPixmap.
  */
 void
-XawReleaseStippledPixmap(xcb_screen_t *screen, xcb_bitmap_tpixmap)
+XawReleaseStippledPixmap(xcb_screen_t *screen, xcb_pixmap_t pixmap)
 {
     xcb_connection_t *dpy;
     
@@ -141,17 +145,20 @@ XawReleaseStippledPixmap(xcb_screen_t *screen, xcb_bitmap_tpixmap)
     xcb_flush(dpy);
 }
 
+/* XawDistinguishablePixels - DUPLICATE - Commented out to avoid linker conflict
+ * This function is now implemented in XawXcbDraw.c */
+#if 0
 /*
  * XawDistinguishablePixels - Determine if pixels are visually distinct
- * 
+ *
  * Queries the RGB values for the given pixels and determines if they
  * have sufficient color difference to be distinguishable.
- * 
+ *
  * The threshold for distinguishability is set to 10000 per color component
  * difference (on a 0-65535 scale), which provides reasonable visual distinction.
  */
 Bool
-XawDistinguishablePixels(xcb_connection_t *dpy, Colormap cmap, 
+XawDistinguishablePixels(xcb_connection_t *dpy, Colormap cmap,
                         unsigned long *pixels, int count)
 {
     xcb_query_colors_cookie_t cookie;
@@ -215,17 +222,22 @@ XawDistinguishablePixels(xcb_connection_t *dpy, Colormap cmap,
     
     return distinguishable;
 }
+#endif /* 0 - XawDistinguishablePixels */
 
+/* XmuCreateStippledPixmap - DUPLICATE - Commented out to avoid linker conflict
+ * This function is now implemented in XawXcbDraw.c */
+#if 0
 /*
  * XmuCreateStippledPixmap - Compatibility alias for XawCreateStippledPixmap
  *
  * Provides backward compatibility with code using XmuCreateStippledPixmap.
  */
-xcb_bitmap_t
+Pixmap
 XmuCreateStippledPixmap(xcb_screen_t*screen, Pixel fg, Pixel bg, unsigned int depth)
 {
     return XawCreateStippledPixmap(screen, fg, bg, depth);
 }
+#endif /* 0 - XmuCreateStippledPixmap */
 
 /*
  * Helper function stubs - to be properly implemented as part of XCB port

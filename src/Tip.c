@@ -41,8 +41,32 @@
 #include <X11/Xos.h>
 #include <X11/Xaw3d/TipP.h>
 #include <X11/Xaw3d/XawInit.h>
+#include "XawXcbDraw.h"
 
 #include <stdlib.h>
+
+/* BackingStore resource definitions (stub - limited XCB support) */
+#ifndef XtNbackingStore
+#define XtNbackingStore "backingStore"
+#endif
+#ifndef XtCBackingStore
+#define XtCBackingStore "BackingStore"
+#endif
+#ifndef XtRBackingStore
+#define XtRBackingStore "BackingStore"
+#endif
+#ifndef XtEnotUseful
+#define XtEnotUseful "notUseful"
+#endif
+#ifndef XtEwhenMapped
+#define XtEwhenMapped "whenMapped"
+#endif
+#ifndef XtEalways
+#define XtEalways "always"
+#endif
+#ifndef XtEdefault
+#define XtEdefault "default"
+#endif
 
 #define	TIP_EVENT_MASK (ButtonPressMask	  |	\
 			ButtonReleaseMask |	\
@@ -81,8 +105,8 @@ typedef struct {
 static void XawTipClassInitialize(void);
 static void XawTipInitialize(Widget, Widget, ArgList, Cardinal *);
 static void XawTipDestroy(Widget);
-static void XawTipExpose(Widget, XEvent *, Region);
-static void XawTipRealize(Widget, Mask *, XSetWindowAttributes *);
+static void XawTipExpose(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void XawTipRealize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static Boolean XawTipSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 /*
@@ -180,6 +204,34 @@ static TimeoutInfo TimeoutData;
  */
 
 /*
+ * XmuCvtStringToBackingStore() stub - XCB has limited BackingStore support
+ * Always returns NotUseful since XCB backing store is not well supported
+ */
+/*ARGSUSED*/
+static Boolean
+XmuCvtStringToBackingStore(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+                           XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
+{
+  static int backingStore = NotUseful;
+  
+  /* Stub: Always return NotUseful - XCB has limited backing store support */
+  if (toVal->addr != NULL)
+  {
+    if (toVal->size < sizeof(int))
+    {
+      toVal->size = sizeof(int);
+      return False;
+    }
+    *(int *)(toVal->addr) = NotUseful;
+  }
+  else
+    toVal->addr = (XtPointer)&backingStore;
+  
+  toVal->size = sizeof(int);
+  return True;
+}
+
+/*
  * XmuCvtBackingStoreToString() from XFree86's distribution, because
  * X.Org's distribution doesn't have it.
  */
@@ -234,8 +286,9 @@ static void
 XawTipClassInitialize(void)
 {
     XawInitializeWidgetSet();
-    XtAddConverter(XtRString, XtRBackingStore, XmuCvtStringToBackingStore,
-		   NULL, 0);
+    /* BackingStore converters - XCB has limited BackingStore support, but keep for compatibility */
+    XtSetTypeConverter(XtRString, XtRBackingStore, XmuCvtStringToBackingStore,
+		       NULL, 0, XtCacheNone, NULL);
     XtSetTypeConverter(XtRBackingStore, XtRString, XawCvtBackingStoreToString,
 		       NULL, 0, XtCacheNone, NULL);
 }
@@ -245,14 +298,14 @@ static void
 XawTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
 {
     TipWidget tip = (TipWidget)w;
-    XGCValues values;
+    xcb_create_gc_value_list_t values;
 
     tip->tip.timer = 0;
 
     values.foreground = tip->tip.foreground;
     values.background = tip->core.background_pixel;
     values.font = tip->tip.font->fid;
-    values.graphics_exposures = False;
+    values.graphics_exposures = 0;
 
     tip->tip.gc = XtAllocateGC(w, 0, GCForeground | GCBackground | GCFont |
 			       GCGraphicsExposures, &values, GCFont, 0);
@@ -295,36 +348,48 @@ XawTipDestroy(Widget w)
 }
 
 static void
-XawTipRealize(Widget w, Mask *mask, XSetWindowAttributes *attr)
+XawTipRealize(xcb_connection_t *conn, Widget w, XtValueMask *mask, uint32_t *values)
 {
     TipWidget tip = (TipWidget)w;
+    xcb_screen_t *screen = XtScreen(w);
+    xcb_window_t window;
+    uint32_t value_mask = 0;
+    uint32_t value_list[32];
+    int value_idx = 0;
 
-    if (tip->tip.backing_store == Always ||
-		tip->tip.backing_store == NotUseful ||
-		tip->tip.backing_store == WhenMapped) {
-	*mask |= CWBackingStore;
-	attr->backing_store = tip->tip.backing_store;
-    }
-    else
-	*mask &= ~CWBackingStore;
-    *mask |= CWOverrideRedirect;
-    attr->override_redirect = True;
+    /* BackingStore is X11 feature with limited XCB support - stub it out for now */
+    /* Modern compositors typically don't use BackingStore anyway */
 
-    XtWindow(w) = XCreateWindow(DisplayOfScreen(XtScreen(w)),
-				RootWindowOfScreen(XtScreen(w)),
-				XtX(w), XtY(w),
-				XtWidth(w) ? XtWidth(w) : 1,
-				XtHeight(w) ? XtHeight(w) : 1,
-				XtBorderWidth(w),
-				DefaultDepthOfScreen(XtScreen(w)),
-				InputOutput, CopyFromParent, *mask, attr);
+    /* Override redirect (required for tooltips to bypass window manager) */
+    value_mask |= XCB_CW_OVERRIDE_REDIRECT;
+    value_list[value_idx++] = 1;  /* True */
+
+    /* Create window using XCB */
+    window = xcb_generate_id(conn);
+    
+    xcb_create_window(
+        conn,
+        screen->root_depth,                 /* depth */
+        window,                             /* window ID */
+        screen->root,                       /* parent */
+        XtX(w), XtY(w),                    /* x, y */
+        XtWidth(w) ? XtWidth(w) : 1,       /* width */
+        XtHeight(w) ? XtHeight(w) : 1,     /* height */
+        XtBorderWidth(w),                  /* border_width */
+        XCB_WINDOW_CLASS_INPUT_OUTPUT,     /* class */
+        screen->root_visual,               /* visual */
+        value_mask,                        /* value_mask */
+        value_list                         /* value_list */
+    );
+    
+    XtWindow(w) = window;
 }
 
 static void
-XawTipExpose(Widget w, XEvent *event, Region region)
+XawTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     TipWidget tip = (TipWidget)w;
-    GC gc = tip->tip.gc;
+    xcb_gcontext_t gc = tip->tip.gc;
     char *nl, *label = tip->tip.label;
     Position y = tip->tip.internal_height + tip->tip.font->ascent;
     int len;
@@ -354,22 +419,22 @@ XawTipExpose(Widget w, XEvent *event, Region region)
 	    if (tip->tip.encoding)
 		XDrawString16(XtDisplay(w), XtWindow(w), gc,
 			      tip->tip.internal_width, y,
-			      (XChar2b*)label, (int)(nl - label) >> 1);
-	    else
+			      (const xcb_char2b_t*)label, (int)(nl - label) >> 1);
+		   else
 		XDrawString(XtDisplay(w), XtWindow(w), gc,
 			    tip->tip.internal_width, y,
 			    label, (int)(nl - label));
-	    y += tip->tip.font->ascent +
+		   y += tip->tip.font->ascent +
 		 tip->tip.font->descent;
-	    label = nl + 1;
+		   label = nl + 1;
 	}
 	len = strlen(label);
 	if (len) {
-	    if (tip->tip.encoding)
+		   if (tip->tip.encoding)
 		XDrawString16(XtDisplay(w), XtWindow(w), gc,
 			      tip->tip.internal_width, y,
-			      (XChar2b*)label, len >> 1);
-	    else
+			      (const xcb_char2b_t*)label, len >> 1);
+		   else
 		XDrawString(XtDisplay(w), XtWindow(w), gc,
 			    tip->tip.internal_width, y, label, len);
 	}
@@ -386,12 +451,12 @@ XawTipSetValues(Widget current, Widget request, Widget cnew, ArgList args, Cardi
 
     if (curtip->tip.font->fid != newtip->tip.font->fid ||
 		curtip->tip.foreground != newtip->tip.foreground) {
-	XGCValues values;
+	xcb_create_gc_value_list_t values;
 
 	values.foreground = newtip->tip.foreground;
 	values.background = newtip->core.background_pixel;
 	values.font = newtip->tip.font->fid;
-	values.graphics_exposures = False;
+	values.graphics_exposures = 0;
 	XtReleaseGC(cnew, curtip->tip.gc);
 	newtip->tip.gc = XtAllocateGC(cnew, 0, GCForeground | GCBackground |
 				      GCFont | GCGraphicsExposures, &values,
@@ -440,26 +505,26 @@ TipLayout(XawTipInfo *info)
 	if ((nl = index(label, '\n')) != NULL) {
 	    /*CONSTCOND*/
 	    while (True) {
-		int w = info->tip->tip.encoding ?
-			XTextWidth16(fs, (XChar2b*)label,
-				     (int)(nl - label) >> 1) :
-			XTextWidth(fs, label, (int)(nl - label));
+	 int w = info->tip->tip.encoding ?
+	  XTextWidth16(fs, (const xcb_char2b_t*)label,
+	        (int)(nl - label) >> 1) :
+	  XTextWidth(fs, label, (int)(nl - label));
 
-		if (w > width)
-		    width = w;
-		if (*nl == '\0')
-		    break;
-		label = nl + 1;
-		if (*label)
-		    height += fs->ascent + fs->descent;
-		if ((nl = index(label, '\n')) == NULL)
-		    nl = index(label, '\0');
+	 if (w > width)
+	     width = w;
+	 if (*nl == '\0')
+	     break;
+	 label = nl + 1;
+	 if (*label)
+	     height += fs->ascent + fs->descent;
+	 if ((nl = index(label, '\n')) == NULL)
+	     nl = index(label, '\0');
 	    }
 	}
 	else
 	    width = info->tip->tip.encoding ?
-		    XTextWidth16(fs, (XChar2b*)label, strlen(label) >> 1) :
-		    XTextWidth(fs, label, strlen(label));
+	     XTextWidth16(fs, (const xcb_char2b_t*)label, strlen(label) >> 1) :
+	     XTextWidth(fs, label, strlen(label));
     }
     XtWidth(info->tip) = width + info->tip->tip.internal_width * 2;
     XtHeight(info->tip) = height + info->tip->tip.internal_height * 2;
@@ -470,7 +535,7 @@ TipLayout(XawTipInfo *info)
 static void
 TipPosition(XawTipInfo *info)
 {
-    XtWindow r, c;
+    xcb_window_t r, c;
     int rx, ry, wx, wy;
     unsigned mask;
     Position x, y;
@@ -631,19 +696,19 @@ TipEventHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *continu
     XawTipInfo *info = FindTipInfo(w);
     Boolean add_timeout;
 
-    switch (event->type) {
-	case EnterNotify:
-	    add_timeout = True;
-	    break;
-	case MotionNotify:
-	    /* If any button is pressed, timer is 0 */
-	    if (info->mapped)
-		return;
-	    add_timeout = info->tip->tip.timer != 0;
-	    break;
-	default:
-	    add_timeout = False;
-	    break;
+    switch (event->response_type & ~0x80) {
+ case XCB_ENTER_NOTIFY:
+     add_timeout = True;
+     break;
+ case XCB_MOTION_NOTIFY:
+     /* If any button is pressed, timer is 0 */
+     if (info->mapped)
+  return;
+     add_timeout = info->tip->tip.timer != 0;
+     break;
+ default:
+     add_timeout = False;
+     break;
     }
     ResetTip(info, FindWidgetInfo(info, w), add_timeout);
 }

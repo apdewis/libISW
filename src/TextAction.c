@@ -27,27 +27,25 @@ in this Software without prior written authorization from the X Consortium.
 
 #include "XawXcbDraw.h"
 #include <X11/Intrinsic.h>
-#include <xcb/xproto.h>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 #include <X11/Xaw3d/Xaw3dP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xutil.h>
 #include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include "XawXcbDraw.h"
 #include <X11/Xaw3d/TextP.h>
 #ifdef XAW_INTERNATIONALIZATION
 #include <X11/Xaw3d/MultiSrcP.h>
 #include <X11/Xaw3d/XawImP.h>
-#endif
-#include <X11/Xfuncs.h>
-#ifdef XAW_INTERNATIONALIZATION
 #include "XawI18n.h"
 #endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 
 #define SrcScan                XawTextSourceScan
 #define FindDist               XawTextSinkFindDistance
@@ -90,7 +88,7 @@ extern int _XawTextReplace(TextWidget, XawTextPosition, XawTextPosition, XawText
  * These are defined here
  */
 
-static void GetSelection(Widget, Time, String *, Cardinal);
+static void GetSelection(Widget, xcb_timestamp_t, String *, Cardinal);
 void _XawTextZapSelection(TextWidget, xcb_generic_event_t *, Boolean);
 
 #ifdef XAW_INTERNATIONALIZATION
@@ -116,21 +114,35 @@ StartAction(TextWidget ctx, xcb_generic_event_t *event)
 {
   _XawTextPrepareToUpdate(ctx);
   if (event != NULL) {
-    switch (event->type) {
-    case ButtonPress:
-    case ButtonRelease:
-      ctx->text.time = event->xbutton.time;
+    uint8_t type = event->response_type & ~0x80;
+    switch (type) {
+    case XCB_BUTTON_PRESS:
+    case XCB_BUTTON_RELEASE:
+      {
+        xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+        ctx->text.time = bev->time;
+      }
       break;
-    case KeyPress:
-    case KeyRelease:
-      ctx->text.time = event->xkey.time;
+    case XCB_KEY_PRESS:
+    case XCB_KEY_RELEASE:
+      {
+        xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+        ctx->text.time = kev->time;
+      }
       break;
-    case MotionNotify:
-      ctx->text.time = event->xmotion.time;
+    case XCB_MOTION_NOTIFY:
+      {
+        xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
+        ctx->text.time = mev->time;
+      }
       break;
-    case EnterNotify:
-    case LeaveNotify:
-      ctx->text.time = event->xcrossing.time;
+    case XCB_ENTER_NOTIFY:
+    case XCB_LEAVE_NOTIFY:
+      {
+        xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
+        ctx->text.time = cev->time;
+      }
+      break;
     }
   }
 }
@@ -138,29 +150,40 @@ StartAction(TextWidget ctx, xcb_generic_event_t *event)
 static void
 NotePosition(TextWidget ctx, xcb_generic_event_t* event)
 {
-  switch (event->type) {
-  case ButtonPress:
-  case ButtonRelease:
-    ctx->text.ev_x = event->xbutton.x;
-    ctx->text.ev_y = event->xbutton.y;
-    break;
-  case KeyPress:
-  case KeyRelease:
+  uint8_t type = event->response_type & ~0x80;
+  switch (type) {
+  case XCB_BUTTON_PRESS:
+  case XCB_BUTTON_RELEASE:
     {
-      XRectangle cursor;
-      XawTextSinkGetCursorBounds(ctx->text.sink, &cursor);
-      ctx->text.ev_x = cursor.x + cursor.width / 2;;
-      ctx->text.ev_y = cursor.y + cursor.height / 2;;
+      xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+      ctx->text.ev_x = bev->event_x;
+      ctx->text.ev_y = bev->event_y;
     }
     break;
-  case MotionNotify:
-    ctx->text.ev_x = event->xmotion.x;
-    ctx->text.ev_y = event->xmotion.y;
+  case XCB_KEY_PRESS:
+  case XCB_KEY_RELEASE:
+    {
+      xcb_rectangle_t cursor;
+      XawTextSinkGetCursorBounds(ctx->text.sink, &cursor);
+      ctx->text.ev_x = cursor.x + cursor.width / 2;
+      ctx->text.ev_y = cursor.y + cursor.height / 2;
+    }
     break;
-  case EnterNotify:
-  case LeaveNotify:
-    ctx->text.ev_x = event->xcrossing.x;
-    ctx->text.ev_y = event->xcrossing.y;
+  case XCB_MOTION_NOTIFY:
+    {
+      xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
+      ctx->text.ev_x = mev->event_x;
+      ctx->text.ev_y = mev->event_y;
+    }
+    break;
+  case XCB_ENTER_NOTIFY:
+  case XCB_LEAVE_NOTIFY:
+    {
+      xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
+      ctx->text.ev_x = cev->event_x;
+      ctx->text.ev_y = cev->event_y;
+    }
+    break;
   }
 }
 
@@ -176,7 +199,7 @@ EndAction(TextWidget ctx)
 struct _SelectionList {
     String* params;
     Cardinal count;
-    Time time;
+    xcb_timestamp_t time;
     Boolean CT_asked;	/* flag if asked XCB_ATOM_COMPOUND_TEXT */
     xcb_atom_t selection;	/* selection atom when asking XCB_ATOM_COMPOUND_TEXT */
 };
@@ -306,7 +329,7 @@ we are, and convert it.  I also warn the user that the other client is evil. */
 
 //#TODO replace usage of cut buffers with modern selection mechanism
 static void
-GetSelection(Widget w, Time time, String *params, Cardinal num_params)
+GetSelection(Widget w, xcb_timestamp_t time, String *params, Cardinal num_params)
 {
     xcb_atom_t selection;
     int buffer;
@@ -328,10 +351,13 @@ GetSelection(Widget w, Time time, String *params, Cardinal num_params)
 	int nbytes;
 	unsigned long length;
 	int fmt8 = 8;
-	//xcb_atom_t type = XCB_ATOM_STRING;
+	xcb_atom_t type = XCB_ATOM_STRING;
+	xcb_connection_t *connection = XtDisplay(w);
+	xcb_screen_t *screen = XtScreen(w);
+	char *line = NULL;
 
   xcb_get_property_cookie_t cookie = xcb_get_property(
-      XtDisplay(w),
+      connection,
       0,                          // delete: false
       screen->root,               // window
       selection,       // property
@@ -586,6 +612,27 @@ MatchSelection(xcb_atom_t selection, XawTextSelection *s)
 }
 
 #define SrcCvtSel	XawTextSourceConvertSelection
+
+/*
+ * XawConvertStandardSelection - Stub for standard widget selection conversion
+ *
+ * In a full implementation, this would handle standard Xt selection targets like
+ * TIMESTAMP, HOSTNAME, etc. For now, we return an empty list and let the text
+ * widget provide its own targets.
+ */
+static Boolean
+XawConvertStandardSelection(Widget w, xcb_timestamp_t time, xcb_atom_t *selection,
+                           xcb_atom_t *target, xcb_atom_t *type,
+                           XtPointer *value, unsigned long *length, int *format)
+{
+    (void)w; (void)time; (void)selection; (void)target; (void)format;
+    
+    /* Return empty list - the caller will add text-specific targets */
+    *value = (XtPointer)XtMalloc(0);
+    *length = 0;
+    *type = XCB_ATOM_ATOM;
+    return True;
+}
 
 static Boolean
 ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
@@ -1355,7 +1402,7 @@ TextLeaveWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *
 #endif
 }
 
-static XComposeStatus compose_status = {NULL, 0};
+/* XComposeStatus removed - not available in XCB */
 
 /*	Function Name: AutoFill
  *	Description: Breaks the line at the previous word boundry when
@@ -1418,12 +1465,19 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   XawTextBlock text;
 
 #ifdef XAW_INTERNATIONALIZATION
-  if (XtIsSubclass (ctx->text.source, (WidgetClass) multiSrcObjectClass))
-    text.length = _XawImWcLookupString (w, &event->xkey,
-		(wchar_t*) strbuf, BUFSIZ, &keysym, (Status*) &compose_status);
-  else
+  if (XtIsSubclass (ctx->text.source, (WidgetClass) multiSrcObjectClass)) {
+    Status status;
+    xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+    text.length = _XawImWcLookupString (w, (XKeyPressedEvent*)kev,
+		(wchar_t*) strbuf, BUFSIZ, &keysym, &status);
+  } else
 #endif
-    text.length = XLookupString ((XKeyEvent*)event, strbuf, BUFSIZ, &keysym, &compose_status);
+  {
+    /* Simplified key handling for non-I18N path - just return 0 for now
+     * Full implementation would need xkbcommon or XCB keysyms extension */
+    text.length = 0;
+    keysym = 0;
+  }
 
   if (text.length == 0)
       return;
@@ -1653,11 +1707,13 @@ DisplayCaret(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
 
   if (*num_params > 0) {	/* default arg is "True" */
       XrmValue from, to;
+      Boolean converted_value;
       from.size = strlen(from.addr = params[0]);
-      XtConvert( w, XtRString, &from, XtRBoolean, &to );
-
-      if ( to.addr != NULL )
-          display_caret = *(Boolean*)to.addr;
+      to.size = sizeof(Boolean);
+      to.addr = (XPointer)&converted_value;
+      
+      if ( XtConvertAndStore( w, XtRString, &from, XtRBoolean, &to ) )
+          display_caret = converted_value;
       if ( ctx->text.display_caret == display_caret )
           return;
   }

@@ -66,6 +66,10 @@ in this Software without prior written authorization from the X Consortium.
 #include <stdio.h>
 #include <X11/Xos.h>		/* for O_RDONLY */
 #include <errno.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+#include <xcb/xcb_icccm.h>
+#include "XawXcbDraw.h"
 
 #ifdef X_NOT_STDC_ENV
 extern int errno;
@@ -185,7 +189,8 @@ _XawTextInsertFile(Widget w, xcb_generic_event_t *event, String *params, Cardina
   XtGetValues(ctx->text.source, args, ONE);
 
   if (edit_mode != XawtextEdit) {
-    XBell(XtDisplay(w), 0);
+    /* XCB equivalent of XBell */
+    xcb_bell(XtDisplay(w), 0);
     return;
   }
 
@@ -257,7 +262,8 @@ DoInsert(Widget w, XtPointer closure, XtPointer call_data)
 
   (void)SetResourceByName(ctx->text.file_insert,
 			  LABEL_NAME, XtNlabel, (XtArgVal) msg);
-  XBell(XtDisplay(w), 0);
+  /* XCB equivalent of XBell */
+  xcb_bell(XtDisplay(w), 0);
 }
 
 /*	Function Name: InsertFileNamed
@@ -503,7 +509,7 @@ _XawTextSearch(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
 
 #ifdef notdef
   if (ctx->text.source->Search == NULL) {
-      XBell(XtDisplay(w), 0);
+      xcb_bell(XtDisplay(w), 0);
       return;
   }
 #endif
@@ -1022,7 +1028,7 @@ SetSearchLabels(struct SearchAndReplace *search, String msg1, String msg2, Boole
   (void) SetResource( search->label1, XtNlabel, (XtArgVal) msg1);
   (void) SetResource( search->label2, XtNlabel, (XtArgVal) msg2);
   if (bell)
-    XBell(XtDisplay(search->search_popup), 0);
+    xcb_bell(XtDisplay(search->search_popup), 0);
 }
 
 /************************************************************
@@ -1086,7 +1092,7 @@ _SetField(Widget new, Widget old)
   Pixel new_border, old_border, old_bg;
 
   if (!XtIsSensitive(new)) {
-    XBell(XtDisplay(old), 0);	/* Don't set field to an inactive Widget. */
+    xcb_bell(XtDisplay(old), 0);	/* Don't set field to an inactive Widget. */
     return;
   }
 
@@ -1198,16 +1204,23 @@ CenterWidgetOnPoint(Widget w, xcb_generic_event_t *event)
   Position x = 0, y = 0, max_x, max_y;
 
   if (event != NULL) {
-    switch (event->type) {
-    case ButtonPress:
-    case ButtonRelease:
-      x = event->xbutton.x_root;
-      y = event->xbutton.y_root;
+    uint8_t type = event->response_type & ~0x80;
+    switch (type) {
+    case XCB_BUTTON_PRESS:
+    case XCB_BUTTON_RELEASE:
+      {
+        xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+        x = bev->root_x;
+        y = bev->root_y;
+      }
       break;
-    case KeyPress:
-    case KeyRelease:
-      x = event->xkey.x_root;
-      y = event->xkey.y_root;
+    case XCB_KEY_PRESS:
+    case XCB_KEY_RELEASE:
+      {
+        xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+        x = kev->root_x;
+        y = kev->root_y;
+      }
       break;
     default:
       return;
@@ -1225,11 +1238,11 @@ CenterWidgetOnPoint(Widget w, xcb_generic_event_t *event)
 
   x -= ( (Position) width/2 );
   if (x < 0) x = 0;
-  if ( x > (max_x = (Position) (XtScreen(w)->width - width)) ) x = max_x;
+  if ( x > (max_x = (Position) (XtScreen(w)->width_in_pixels - width)) ) x = max_x;
 
   y -= ( (Position) height/2 );
   if (y < 0) y = 0;
-  if ( y > (max_y = (Position) (XtScreen(w)->height - height)) ) y = max_y;
+  if ( y > (max_y = (Position) (XtScreen(w)->height_in_pixels - height)) ) y = max_y;
 
   num_args = 0;
   XtSetArg(args[num_args], XtNx, x); num_args++;
@@ -1312,8 +1325,8 @@ WMProtocols(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_
     xcb_atom_t wm_delete_window;
     xcb_atom_t wm_protocols;
 
-    wm_delete_window = XInternAtom(XtDisplay(w), WM_DELETE_WINDOW, True);
-    wm_protocols = XInternAtom(XtDisplay(w), "WM_PROTOCOLS", True);
+    wm_delete_window = XawXcbInternAtom(XtDisplay(w), WM_DELETE_WINDOW, True);
+    wm_protocols = XawXcbInternAtom(XtDisplay(w), "WM_PROTOCOLS", True);
 
     /* Respond to a recognized WM protocol request iff
      * event type is ClientMessage and no parameters are passed, or
@@ -1322,12 +1335,24 @@ WMProtocols(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_
      */
 #define DO_DELETE_WINDOW InParams(WM_DELETE_WINDOW, params, *num_params)
 
-    if ((event->type == ClientMessage &&
-	 event->xclient.message_type == wm_protocols &&
-	 event->xclient.data.l[0] == wm_delete_window &&
+    /* XCB event handling */
+    uint8_t type = event->response_type & ~0x80;
+    Boolean is_client_message = (type == XCB_CLIENT_MESSAGE);
+    xcb_atom_t message_type = 0;
+    xcb_atom_t data0 = 0;
+    
+    if (is_client_message) {
+        xcb_client_message_event_t *cm = (xcb_client_message_event_t *)event;
+        message_type = cm->type;
+        data0 = cm->data.data32[0];
+    }
+
+    if ((is_client_message &&
+	 message_type == wm_protocols &&
+	 data0 == wm_delete_window &&
 	 (*num_params == 0 || DO_DELETE_WINDOW))
 	||
-	(event->type != ClientMessage && DO_DELETE_WINDOW)) {
+	(!is_client_message && DO_DELETE_WINDOW)) {
 
 #undef DO_DELETE_WINDOW
 
@@ -1371,5 +1396,8 @@ SetWMProtocolTranslations(Widget w)
     /* establish communication between the window manager and each shell */
     XtAugmentTranslations(w, compiled_table);
     wm_delete_window = XawXcbInternAtom(XtDisplay(w), WM_DELETE_WINDOW, False);
-    (void) XSetWMProtocols(XtDisplay(w), XtWindow(w), &wm_delete_window, 1);
+    /* XCB equivalent of XSetWMProtocols */
+    xcb_icccm_set_wm_protocols(XtDisplay(w), XtWindow(w), 
+                               XawXcbInternAtom(XtDisplay(w), "WM_PROTOCOLS", False),
+                               1, &wm_delete_window);
 }

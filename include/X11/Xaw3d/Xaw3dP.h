@@ -100,6 +100,25 @@ typedef xcb_screen_t Screen;
 #define XtBorderWidth(w)	(((RectObj)w)->rectangle.border_width)
 #endif
 
+/* Text justification types (missing from XCB-based libXt) */
+#ifndef _XawXtJustify_defined
+#define _XawXtJustify_defined
+typedef enum {
+    XtJustifyLeft,
+    XtJustifyCenter,
+    XtJustifyRight
+} XtJustify;
+#endif
+
+/* Widget edge types for Form layout are defined in Form.h (XawEdgeType) */
+/* XawXcbDraw.h provides XtEdgeType for converters */
+
+/* Widget gravity type for Tree layout (missing from XCB-based libXt) */
+#ifndef _XawXtGravity_defined
+#define _XawXtGravity_defined
+typedef unsigned int XtGravity;
+#endif
+
 #ifdef XAW_GRAY_BLKWHT_STIPPLES
 extern unsigned long
 grayPixel(

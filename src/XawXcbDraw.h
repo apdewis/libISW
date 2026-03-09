@@ -50,6 +50,46 @@ typedef enum {
 
 /*
  * =================================================================
+ * TEXT JUSTIFICATION TYPE (Missing from modified libXt)
+ * =================================================================
+ *
+ * The XCB-based libXt doesn't define XtJustify type.
+ * Used by Label, SmeBSB, and other text widgets.
+ */
+#ifndef _XawXtJustify_defined
+#define _XawXtJustify_defined
+typedef enum {
+    XtJustifyLeft,
+    XtJustifyCenter,
+    XtJustifyRight
+} XtJustify;
+#endif
+
+/*
+ * =================================================================
+ * WIDGET EDGE TYPE  
+ * =================================================================
+ *
+ * XawEdgeType is defined in Form.h with XawChain* values.
+ * Form.h also provides XtEdgeType as an alias via #define.
+ * The converter uses XawEdgeType directly.
+ */
+
+/*
+ * =================================================================
+ * WIDGET GRAVITY TYPE (Missing from modified libXt)
+ * =================================================================
+ *
+ * The XCB-based libXt doesn't define XtGravity type.
+ * Used by Tree widget and other layout widgets.
+ */
+#ifndef _XawXtGravity_defined
+#define _XawXtGravity_defined
+typedef unsigned int XtGravity;
+#endif
+
+/*
+ * =================================================================
  * BITMAP AND PIXMAP CREATION
  * =================================================================
  */
@@ -87,6 +127,65 @@ xcb_pixmap_t XawCreateBitmapFromData(xcb_connection_t *conn,
  *   pixmap - Pixmap to free
  */
 void XawFreePixmap(xcb_connection_t *conn, xcb_pixmap_t pixmap);
+
+/*
+ * XawCreatePixmapFromBitmapData - Create a colored pixmap from bitmap data
+ *
+ * XCB replacement for XCreatePixmapFromBitmapData
+ *
+ * Parameters:
+ *   conn     - XCB connection
+ *   drawable - Drawable to use for screen reference  
+ *   data     - Pointer to bitmap data (LSBFirst bit order)
+ *   width    - Width of bitmap
+ *   height   - Height of bitmap
+ *   fg       - Foreground pixel value
+ *   bg       - Background pixel value
+ *   depth    - Depth of pixmap to create
+ *
+ * Returns: xcb_pixmap_t (0 on failure)
+ *
+ * Note: Creates a pixmap at the specified depth with bitmap data
+ * rendered using foreground and background colors.
+ */
+xcb_pixmap_t XawCreatePixmapFromBitmapData(xcb_connection_t *conn,
+                                           xcb_drawable_t drawable,
+                                           const char *data,
+                                           unsigned int width,
+                                           unsigned int height,
+                                           unsigned long fg,
+                                           unsigned long bg,
+                                           unsigned int depth);
+
+/*
+ * XawQueryColor - Query RGB values for a pixel
+ *
+ * XCB replacement for XQueryColor. Fills in the RGB values
+ * for the pixel value in color->pixel.
+ *
+ * Parameters:
+ *   conn  - XCB connection
+ *   cmap  - Colormap to query
+ *   color - XColor structure with pixel set, RGB values filled in
+ *
+ * Returns: 1 on success, 0 on failure
+ */
+int XawQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color);
+
+/*
+ * XawAllocColor - Allocate a color cell
+ *
+ * XCB replacement for XAllocColor. Allocates a read-only color cell
+ * with the closest available RGB values.
+ *
+ * Parameters:
+ *   conn  - XCB connection
+ *   cmap  - Colormap to allocate from
+ *   color - XColor structure with RGB values, pixel filled in on success
+ *
+ * Returns: 1 on success, 0 on failure
+ */
+int XawAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color);
 
 /*
  * XawCreateStippledPixmap - Create a stippled pixmap for grayed-out effects
@@ -153,6 +252,10 @@ int XawFontSetTextWidth(void *fontset, const char *text, int len);
 /* Pre-C11: use XFontStruct version by default */
 #define XTextWidth(font, text, len) XawFontStructTextWidth((XFontStruct*)(font), (text), (len))
 #endif
+
+/* XTextWidth16 stub - XCB doesn't support 16-bit text well, returns estimated width */
+#define XTextWidth16(font, text, len) \
+    (XTextWidth((font), (const char*)(text), (len) * 2))
 
 /*
  * =================================================================
@@ -326,6 +429,22 @@ Bool XawGetFontProperty(xcb_connection_t *conn, XFontStruct *font,
  */
 xcb_atom_t XawXcbInternAtom(xcb_connection_t *conn, const char *name,
                             Bool only_if_exists);
+
+/*
+ * Standard X Selection Atoms - Runtime interning macros
+ *
+ * In Xlib, these were predefined constants (XA_STRING, XA_TEXT, etc.).
+ * In XCB, we must intern them at runtime.
+ */
+#define XCB_ATOM_TARGETS(d)             XawXcbInternAtom((d), "TARGETS", False)
+#define XCB_ATOM_TEXT(d)                XawXcbInternAtom((d), "TEXT", False)
+#define XCB_ATOM_COMPOUND_TEXT(d)       XawXcbInternAtom((d), "COMPOUND_TEXT", False)
+#define XCB_ATOM_LENGTH(d)              XawXcbInternAtom((d), "LENGTH", False)
+#define XCB_ATOM_LIST_LENGTH(d)         XawXcbInternAtom((d), "LIST_LENGTH", False)
+#define XCB_ATOM_CHARACTER_POSITION(d)  XawXcbInternAtom((d), "CHARACTER_POSITION", False)
+#define XCB_ATOM_DELETE(d)              XawXcbInternAtom((d), "DELETE", False)
+#define XCB_ATOM_SPAN(d)                XawXcbInternAtom((d), "SPAN", False)
+#define XCB_ATOM_NULL(d)                XawXcbInternAtom((d), "NULL", False)
 
 /*
  * =================================================================
@@ -672,5 +791,80 @@ Pixmap XawLocatePixmapFile(
     int *xhotp,
     int *yhotp
 );
+
+/*
+ * =================================================================
+ * XLIB COMPATIBILITY MACROS FOR TEXT DRAWING
+ * =================================================================
+ */
+
+/* Map XDrawString to XCB version - simple text drawing */
+#ifndef XDrawString
+#define XDrawString(dpy, win, gc, x, y, str, len) \
+    xcb_image_text_8((dpy), (len), (win), (gc), (x), (y), (str))
+#endif
+
+/* Map XDrawString16 to XCB version - 16-bit text drawing */
+#ifndef XDrawString16
+#define XDrawString16(dpy, win, gc, x, y, str, len) \
+    xcb_image_text_16((dpy), (len), (win), (gc), (x), (y), (const xcb_char2b_t*)(str))
+#endif
+
+/*
+ * =================================================================
+ * XLIB COMPATIBILITY MACROS FOR WINDOW MANIPULATION
+ * =================================================================
+ */
+
+/* Map XUnmapWindow to XCB version */
+#ifndef XUnmapWindow
+#define XUnmapWindow(dpy, win) xcb_unmap_window((dpy), (win))
+#endif
+
+/* Map XMapRaised to XCB version - just use xcb_map_window (XCB doesn't have direct MapRaised) */
+#ifndef XMapRaised
+#define XMapRaised(dpy, win) xcb_map_window((dpy), (win))
+#endif
+
+/* XMoveResizeWindow - use xcb_configure_window */
+#ifndef XMoveResizeWindow
+#define XMoveResizeWindow(dpy, win, x, y, w, h) \
+    do { \
+        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | \
+                        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT; \
+        uint32_t values[] = { (uint32_t)(x), (uint32_t)(y), (uint32_t)(w), (uint32_t)(h) }; \
+        xcb_configure_window((dpy), (win), mask, values); \
+    } while(0)
+#endif
+
+/* XLowerWindow - use xcb_configure_window with stack mode */
+#ifndef XLowerWindow
+#define XLowerWindow(dpy, win) \
+    do { \
+        uint16_t mask = XCB_CONFIG_WINDOW_STACK_MODE; \
+        uint32_t values[] = { XCB_STACK_MODE_BELOW }; \
+        xcb_configure_window((dpy), (win), mask, values); \
+    } while(0)
+#endif
+
+/* XRaiseWindow - use xcb_configure_window with stack mode */
+#ifndef XRaiseWindow
+#define XRaiseWindow(dpy, win) \
+    do { \
+        uint16_t mask = XCB_CONFIG_WINDOW_STACK_MODE; \
+        uint32_t values[] = { XCB_STACK_MODE_ABOVE }; \
+        xcb_configure_window((dpy), (win), mask, values); \
+    } while(0)
+#endif
+
+/* XQueryPointer - simple wrapper function declared once */
+int XawQueryPointer(xcb_connection_t *dpy, xcb_window_t win,
+                    xcb_window_t *root_ret, xcb_window_t *child_ret,
+                    int *root_x, int *root_y, int *win_x, int *win_y,
+                    unsigned *mask);
+
+#ifndef XQueryPointer
+#define XQueryPointer XawQueryPointer
+#endif
 
 #endif /* _XawXcbDraw_h */

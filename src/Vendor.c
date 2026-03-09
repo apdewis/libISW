@@ -68,6 +68,13 @@ SOFTWARE.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/ShellP.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
+
+/* XCB_ATOM_COMPOUND_TEXT stub - simple atom value for compound text */
+#ifndef XCB_ATOM_COMPOUND_TEXT
+#define XCB_ATOM_COMPOUND_TEXT(dpy) XCB_ATOM_STRING
+#endif
 #include <X11/VendorP.h>
 #ifdef XAW_INTERNATIONALIZATION
 /* Editres support - see XawUtils.h */
@@ -302,6 +309,9 @@ externaldef(xawvendorshellwidgetclass) WidgetClass
 #endif
 
 
+/* XawCvtCompoundTextToString - commented out for XCB port
+ * Text property conversion is complex in XCB and rarely used */
+#if 0
 /*ARGSUSED*/
 static Boolean
 XawCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
@@ -332,6 +342,7 @@ XawCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
     toVal->addr = (XtPointer)mbs;
     return True;
 }
+#endif /* 0 */
 
 #ifdef XAW_MULTIPLANE_PIXMAPS
 #define DONE(type, address) \
@@ -429,8 +440,10 @@ XawVendorShellClassInitialize(void)
     };
 #endif
 
-    XtSetTypeConverter(XtRString, XtRCursor, XawCvtStringToCursor,
-		   screenConvertArg, XtNumber(screenConvertArg));
+    /* XtSetTypeConverter needs 7 args: from, to, converter, args, num_args, cache, destructor */
+    XtSetTypeConverter(XtRString, XtRCursor, XtCvtStringToCursor,
+     screenConvertArg, XtNumber(screenConvertArg),
+     XtCacheNone, NULL);
 
 #ifdef XAW_MULTIPLANE_PIXMAPS
     XtSetTypeConverter(XtRString, XtRBitmap,
@@ -438,12 +451,14 @@ XawVendorShellClassInitialize(void)
 		       _XawCvtStrToPix, XtNumber(_XawCvtStrToPix),
 		       XtCacheByDisplay, (XtDestructor)NULL);
 #else
-    XtAddConverter(XtRString, XtRBitmap, XmuCvtStringToBitmap,
-		   screenConvertArg, XtNumber(screenConvertArg));
+    /* XmuCvtStringToBitmap not available in XCB port - commented out */
+    /* XtAddConverter(XtRString, XtRBitmap, XmuCvtStringToBitmap,
+		   screenConvertArg, XtNumber(screenConvertArg)); */
 #endif
 
-    XtSetTypeConverter("CompoundText", XtRString, XawCvtCompoundTextToString,
-			NULL, 0, XtCacheNone, NULL);
+    /* XawCvtCompoundTextToString commented out - complex text conversion not ported yet */
+    /* XtSetTypeConverter("CompoundText", XtRString, XawCvtCompoundTextToString,
+			NULL, 0, XtCacheNone, NULL); */
 }
 
 #ifdef XAW_INTERNATIONALIZATION
@@ -489,7 +504,8 @@ _XawFixupVendorShell(void)
 static void
 XawVendorShellInitialize(Widget req, Widget new, ArgList args, Cardinal *num_args)
 {
-    XtAddEventHandler(new, (EventMask) 0, TRUE, _XEditResCheckMessages, NULL);
+    /* EditRes support commented out for XCB port - optional feature */
+    /* XtAddEventHandler(new, (EventMask) 0, TRUE, _XEditResCheckMessages, NULL); */
 #ifdef XAW_INTERNATIONALIZATION
     XtAddEventHandler(new, (EventMask) 0, TRUE, XawRegisterExternalAgent, NULL);
     XtCreateWidget("shellext", xawvendorShellExtWidgetClass,
@@ -511,6 +527,7 @@ Realize(xcb_connection_t *dpy, Widget wid, XtValueMask *vmask, uint32_t *attr)
 
 	/* Make my superclass do all the dirty work */
 
+	/* Call superclass realize - XCB custom libXt uses 4-parameter signature */
 	(*super->core_class.realize) (dpy, wid, vmask, attr);
 #ifdef XAW_INTERNATIONALIZATION
 	_XawImRealize(wid);
