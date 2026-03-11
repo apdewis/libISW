@@ -47,6 +47,11 @@ in this Software without prior written authorization from the X Consortium.
 #include <ctype.h>
 #include <string.h>
 
+/* XCB doesn't have these Xlib constants */
+#ifndef Success
+#define Success 0
+#endif
+
 #define SrcScan                XawTextSourceScan
 #define FindDist               XawTextSinkFindDistance
 #define FindPos                XawTextSinkFindPosition
@@ -59,7 +64,6 @@ in this Software without prior written authorization from the X Consortium.
 
 extern void _XawTextInsertFileAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 extern void _XawTextInsertFile(Widget, xcb_generic_event_t *, String *, Cardinal *);
-extern void _XawTextSearch(Widget, xcb_generic_event_t *, String *, Cardinal *);
 extern void _XawTextSearch(Widget, xcb_generic_event_t *, String *, Cardinal *);
 extern void _XawTextDoSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 extern void _XawTextDoReplaceAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
@@ -101,11 +105,11 @@ ParameterError(Widget w, String param)
     params[1] = param;
 
     XtAppWarningMsg( XtWidgetToApplicationContext(w),
-	"parameterError", "textAction", "XawError",
-	"Widget: %s Parameter: %s",
-	params, &num_params);
-    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(XtDisplay(ctx));
+ "parameterError", "textAction", "XawError",
+ "Widget: %s Parameter: %s",
+ params, &num_params);
+    xcb_bell(XtDisplay(w), 0); // 0 = default volume
+    xcb_flush(XtDisplay(w));
 }
 #endif
 
@@ -262,6 +266,7 @@ we are, and convert it.  I also warn the user that the other client is evil. */
   StartAction( ctx, (xcb_generic_event_t*) NULL );
 #ifdef XAW_INTERNATIONALIZATION
   if (_XawTextFormat(ctx) == XawFmtWide) {
+#ifdef XAW_HAS_XIM
       XTextProperty textprop;
       xcb_connection_t *d = XtDisplay((Widget)ctx);
       wchar_t **wlist;
@@ -306,6 +311,13 @@ we are, and convert it.  I also warn the user that the other client is evil. */
       *length = wcslen(wlist[0]);
       XtFree((XtPointer)wlist);
       text.format = XawFmtWide;
+#else
+      /* XCB: TextProperty I18N functions not available */
+      /* Fall through to simple ASCII handling */
+      fprintf(stderr, "Xaw3d: Wide char selection not supported in XCB mode\n");
+      /* Fall through to 8-bit handling below */
+      text.format = XawFmt8Bit;
+#endif
   } else
 #endif
       text.format = XawFmt8Bit;
@@ -715,6 +727,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	    *value = (char *)_XawTextGetSTRING(ctx, s->left, s->right);
 #ifdef XAW_INTERNATIONALIZATION
 	    if (_XawTextFormat(ctx) == XawFmtWide) {
+#ifdef XAW_HAS_XIM
 		XTextProperty textprop;
 		if (XwcTextListToTextProperty(d, (wchar_t**)value, 1,
 					      XCompoundTextStyle, &textprop)
@@ -725,6 +738,13 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 		XtFree(*value);
 		*value = (XtPointer)textprop.value;
 		*length = textprop.nitems;
+#else
+		/* XCB: TextProperty I18N functions not available */
+		/* For now, return the raw wide char data as-is */
+		fprintf(stderr, "Xaw3d: Wide char selection conversion not supported in XCB mode\n");
+		/* Fall through to length calculation below */
+		*length = wcslen((wchar_t*)*value);
+#endif
 	    } else
 #endif
 	    {
@@ -737,6 +757,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	}
 #ifdef XAW_INTERNATIONALIZATION
 	if (_XawTextFormat(ctx) == XawFmtWide && *type == XCB_ATOM_STRING) {
+#ifdef XAW_HAS_XIM
 	    XTextProperty textprop;
 	    wchar_t** wlist;
 	    int count;
@@ -758,6 +779,11 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	    *value = (XtPointer)textprop.value;
 	    *length = textprop.nitems;
 	    XwcFreeStringList( (wchar_t**) wlist );
+#else
+	    /* XCB: TextProperty I18N functions not available */
+	    fprintf(stderr, "Xaw3d: Wide char selection conversion not supported in XCB mode\n");
+	    /* Leave value and length as-is */
+#endif
 	}
 #endif
 	*format = 8;
@@ -896,6 +922,7 @@ _DeleteOrKill(TextWidget ctx, XawTextPosition from, XawTextPosition to, Boolean	
     salt->contents = (char *)_XawTextGetSTRING(ctx, from, to);
 #ifdef XAW_INTERNATIONALIZATION
     if (_XawTextFormat(ctx) == XawFmtWide) {
+#ifdef XAW_HAS_XIM
 	XTextProperty textprop;
 	if (XwcTextListToTextProperty(XtDisplay((Widget)ctx),
 			(wchar_t**)(&(salt->contents)), 1, XCompoundTextStyle,
@@ -907,6 +934,11 @@ _DeleteOrKill(TextWidget ctx, XawTextPosition from, XawTextPosition to, Boolean	
 	XtFree(salt->contents);
 	salt->contents = (char *)textprop.value;
 	salt->length = textprop.nitems;
+#else
+	/* XCB: TextProperty I18N functions not available */
+	fprintf(stderr, "Xaw3d: Wide char selection conversion not supported in XCB mode\n");
+	salt->length = wcslen((wchar_t*)salt->contents);
+#endif
     } else
 #endif
        salt->length = strlen (salt->contents);
@@ -1380,8 +1412,9 @@ TextEnterWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *
 {
 #ifdef XAW_INTERNATIONALIZATION
   TextWidget ctx = (TextWidget) w;
+  xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
-  if ((event->xcrossing.detail != NotifyInferior) && event->xcrossing.focus &&
+  if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && (cev->same_screen_focus & 1) &&
       !ctx->text.hasfocus) {
 	_XawImSetFocusValues(w, NULL, 0);
   }
@@ -1394,8 +1427,9 @@ TextLeaveWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *
 {
 #ifdef XAW_INTERNATIONALIZATION
   TextWidget ctx = (TextWidget) w;
+  xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
-  if ((event->xcrossing.detail != NotifyInferior) && event->xcrossing.focus &&
+  if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && (cev->same_screen_focus & 1) &&
       !ctx->text.hasfocus) {
 	_XawImUnsetFocus(w);
   }

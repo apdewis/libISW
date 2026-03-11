@@ -21,6 +21,7 @@
  * this will be extended to support Xft/FreeType fonts.
  */
 typedef struct _XawFontSet {
+    xcb_connection_t *conn;   /* XCB connection (for text width queries) */
     xcb_font_t font_id;       /* Primary XCB font ID */
     int ascent;               /* Font ascent */
     int descent;              /* Font descent */

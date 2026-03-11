@@ -113,6 +113,15 @@ typedef enum {
 /* Widget edge types for Form layout are defined in Form.h (XawEdgeType) */
 /* XawXcbDraw.h provides XtEdgeType for converters */
 
+/* Orientation type for Box, Paned, Scrollbar (missing from XCB-based libXt) */
+#ifndef _XawXtOrientation_defined
+#define _XawXtOrientation_defined
+typedef enum {
+    XtorientHorizontal = 0,
+    XtorientVertical = 1
+} XtOrientation;
+#endif
+
 /* Widget gravity type for Tree layout (missing from XCB-based libXt) */
 #ifndef _XawXtGravity_defined
 #define _XawXtGravity_defined

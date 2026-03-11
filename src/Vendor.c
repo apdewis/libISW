@@ -507,7 +507,8 @@ XawVendorShellInitialize(Widget req, Widget new, ArgList args, Cardinal *num_arg
     /* EditRes support commented out for XCB port - optional feature */
     /* XtAddEventHandler(new, (EventMask) 0, TRUE, _XEditResCheckMessages, NULL); */
 #ifdef XAW_INTERNATIONALIZATION
-    XtAddEventHandler(new, (EventMask) 0, TRUE, XawRegisterExternalAgent, NULL);
+    /* XawRegisterExternalAgent stub - XCB does not support XIM */
+    /* XtAddEventHandler(new, (EventMask) 0, TRUE, XawRegisterExternalAgent, NULL); */
     XtCreateWidget("shellext", xawvendorShellExtWidgetClass,
 		   new, args, *num_args);
 #endif

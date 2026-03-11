@@ -73,9 +73,25 @@ SOFTWARE.
 #include <X11/Xaw3d/XawImP.h>
 #endif
 #include <X11/Xaw3d/ThreeDP.h>
-#include <X11/Xfuncs.h>
 #include "XawXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
+
+/* XCB: Missing Xlib constants for text property conversions */
+#ifndef Success
+#define Success 0
+#endif
+
+#ifndef XCompoundTextStyle
+#define XCompoundTextStyle 1
+#endif
+
+#ifndef XStringStyle
+#define XStringStyle 0
+#endif
+
+#ifndef XTextStyle
+#define XTextStyle XStringStyle
+#endif
 
 #ifndef MAX_LEN_CT
 #define MAX_LEN_CT 6		/* for sequence: ESC $ ( A \xx \xx */
@@ -154,6 +170,27 @@ void _XawTextShowPosition(TextWidget);
 void _XawTextPrepareToUpdate(TextWidget);
 int _XawTextReplace(TextWidget, XawTextPosition, XawTextPosition, XawTextBlock *);
 void _XawTextVScroll(TextWidget, int);
+
+#ifdef XAW_INTERNATIONALIZATION
+/* XawWcToUtf8: Convert wide-char string to UTF-8
+ * Returns malloced UTF-8 string or NULL on failure
+ * Caller must free returned string with XtFree()
+ */
+static char *
+XawWcToUtf8(const wchar_t *wcs, int wc_len, int *utf8_len_out)
+{
+#ifdef XAW_HAS_XIM
+    /* Would use Xlib XwcTextListToTextProperty here */
+    return NULL;
+#else
+    /* XCB: UTF-8 conversion not fully supported without iconv */
+    /* Fallback: return NULL to indicate conversion not available */
+    fprintf(stderr, "Xaw3d: Wide-char UTF-8 conversion not supported in XCB mode\n");
+    if (utf8_len_out) *utf8_len_out = 0;
+    return NULL;
+#endif
+}
+#endif /* XAW_INTERNATIONALIZATION */
 
 /****************************************************************
  *
@@ -1638,6 +1675,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	    *value = _XawTextGetSTRING(ctx, s->left, s->right);
 #ifdef XAW_INTERNATIONALIZATION
 	    if (_XawTextFormat(ctx) == XawFmtWide) {
+#ifdef XAW_HAS_XIM
 		XTextProperty textprop;
 		if (XwcTextListToTextProperty(d, (wchar_t **)value, 1,
 					      XCompoundTextStyle, &textprop)
@@ -1648,6 +1686,12 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 		XtFree(*value);
 		*value = (XtPointer)textprop.value;
 		*length = textprop.nitems;
+#else
+		/* XCB: TextProperty I18N not available, use 8-bit fallback */
+		fprintf(stderr, "Xaw3d: Wide-char selection not fully supported in XCB mode\n");
+		/* Fall through to 8-bit path */
+		*length = strlen(*value);
+#endif
 	    } else
 #endif
 	    {
@@ -1660,6 +1704,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	}
 #ifdef XAW_INTERNATIONALIZATION
 	if (_XawTextFormat(ctx) == XawFmtWide && *type == XCB_ATOM_STRING) {
+#ifdef XAW_HAS_XIM
 	    XTextProperty textprop;
 	    wchar_t **wlist;
 	    int count;
@@ -1681,6 +1726,11 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	    *value = (XtPointer) textprop.value;
 	    *length = textprop.nitems;
 	    XwcFreeStringList( (wchar_t**) wlist );
+#else
+	    /* XCB: TextProperty conversion not available */
+	    fprintf(stderr, "Xaw3d: Wide-char string conversion not supported in XCB mode\n");
+	    /* Keep existing value/length */
+#endif
 	}
 #endif
 	*format = 8;
@@ -1866,6 +1916,7 @@ _XawTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
     salt->contents = _XawTextGetSTRING(ctx, ctx->text.s.left, ctx->text.s.right);
 #ifdef XAW_INTERNATIONALIZATION
     if (_XawTextFormat(ctx) == XawFmtWide) {
+#ifdef XAW_HAS_XIM
 	XTextProperty textprop;
 	if (XwcTextListToTextProperty(XtDisplay((Widget)ctx),
 			(wchar_t**)(&(salt->contents)), 1, XCompoundTextStyle,
@@ -1877,6 +1928,11 @@ _XawTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
 	XtFree(salt->contents);
 	salt->contents = (char *)textprop.value;
 	salt->length = textprop.nitems;
+#else
+	/* XCB: Wide-char salt storage not supported */
+	fprintf(stderr, "Xaw3d: Wide-char salt storage not supported in XCB mode\n");
+	salt->length = strlen(salt->contents);
+#endif
     } else
 #endif
        salt->length = strlen (salt->contents);
@@ -1941,6 +1997,7 @@ _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
 						       ctx->text.s.right);
 #ifdef XAW_INTERNATIONALIZATION
 	if (_XawTextFormat(ctx) == XawFmtWide) {
+#ifdef XAW_HAS_XIM
 	   /*
 	    * Only XCB_ATOM_STRING(Latin 1) is allowed in CUT_BUFFER,
 	    * so we get it from wchar string, then free the wchar string.
@@ -1953,6 +2010,12 @@ _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
 	    }
 	    XtFree((char *)ptr);
 	    tptr = ptr = textprop.value;
+#else
+	    /* XCB: Wide-char cut buffer not supported */
+	    fprintf(stderr, "Xaw3d: Wide-char cut buffer not supported in XCB mode\n");
+	    XtFree((char *)ptr);
+	    return;
+#endif
         }
 #endif
 	if (buffer == 0) {

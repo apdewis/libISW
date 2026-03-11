@@ -90,7 +90,9 @@ typedef struct _XKeyEvent {
     int same_screen;
 } XKeyPressedEvent;
 /* KeySym already defined by libXt as xcb_keysym_t */
+#ifndef Status
 typedef int Status;
+#endif
 #endif
 
 #define	CIICFocus	(1 << 0)

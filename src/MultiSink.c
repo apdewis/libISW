@@ -81,6 +81,7 @@ SOFTWARE.
 #include <X11/Xaw3d/MultiSrcP.h>
 #include <X11/Xaw3d/TextP.h>
 #include "XawI18n.h"
+#include "XawXcbDraw.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -92,6 +93,26 @@ SOFTWARE.
 #endif
 
 #define GETLASTPOS XawTextSourceScan(source, (XawTextPosition) 0, XawstAll, XawsdRight, 1, TRUE)
+
+#ifdef XAW_INTERNATIONALIZATION
+/* XawWcToUtf8: Convert wide-char string to UTF-8
+ * Returns malloced UTF-8 string or NULL on failure
+ * Caller must free returned string with free()
+ */
+static char *
+XawWcToUtf8(const wchar_t *wcs, int wc_len, int *utf8_len_out)
+{
+#ifdef XAW_HAS_XIM
+    /* Would use Xlib XwcTextListToTextProperty here */
+    return NULL;
+#else
+    /* XCB: UTF-8 conversion not fully supported without iconv */
+    /* Fallback: return NULL to indicate conversion not available */
+    if (utf8_len_out) *utf8_len_out = 0;
+    return NULL;
+#endif
+}
+#endif /* XAW_INTERNATIONALIZATION */
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
@@ -108,7 +129,7 @@ static void FindPosition(Widget, XawTextPosition, int, int, Boolean,
 static void FindDistance(Widget, XawTextPosition, int, XawTextPosition,
                          int *, XawTextPosition *, int *);
 static void Resolve(Widget, XawTextPosition, int, int, XawTextPosition *);
-static void GetCursorBounds(Widget, XRectangle *);
+static void GetCursorBounds(Widget, xcb_rectangle_t *);
 
 #define offset(field) XtOffsetOf(MultiSinkRec, multi_sink.field)
 
@@ -276,8 +297,8 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
       return(width);
     }
 
-    XawDrawImageString(XtDisplay(ctx), XtWindow(ctx), sink->multi_sink.fontset, gc,
-                     (int) x, (int) y, utf8_text, utf8_len);
+    XawDrawString(XtDisplay(ctx), XtWindow(ctx), sink->multi_sink.fontset, gc,
+                  (int) x, (int) y, utf8_text, utf8_len);
     free(utf8_text);
     
     if ( (((Position) width + x) > max_x) && (ctx->text.margin.right != 0) ) {
@@ -374,10 +395,13 @@ DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
 static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
 
 static Pixmap
-CreateInsertCursor(xcb_screen_t *s)
+CreateInsertCursor(Widget w)
 {
-    return (XCreateBitmapFromData (DisplayOfScreen(s), RootWindowOfScreen(s),
-		  insertCursor_bits, insertCursor_width, insertCursor_height));
+    xcb_connection_t *conn = XtDisplay(w);
+    xcb_screen_t *s = XtScreenOfObject(w);
+    xcb_drawable_t root = RootWindowOfScreen(s);
+    return XawCreateBitmapFromData(conn, root,
+		  insertCursor_bits, insertCursor_width, insertCursor_height);
 }
 
 /*	Function Name: GetCursorBounds
@@ -388,14 +412,14 @@ CreateInsertCursor(xcb_screen_t *s)
  */
 
 static void
-GetCursorBounds(Widget w, XRectangle * rect)
+GetCursorBounds(Widget w, xcb_rectangle_t * rect)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
 
-    rect->width = (unsigned short) insertCursor_width;
-    rect->height = (unsigned short) insertCursor_height;
-    rect->x = sink->multi_sink.cursor_x - (short) (rect->width / 2);
-    rect->y = sink->multi_sink.cursor_y - (short) rect->height;
+    rect->width = (uint16_t) insertCursor_width;
+    rect->height = (uint16_t) insertCursor_height;
+    rect->x = sink->multi_sink.cursor_x - (int16_t) (rect->width / 2);
+    rect->y = sink->multi_sink.cursor_y - (int16_t) rect->height;
 }
 
 /*
@@ -407,7 +431,7 @@ InsertCursor (Widget w, Position x, Position y, XawTextInsertState state)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
     Widget text_widget = XtParent(w);
-    XRectangle rect;
+    xcb_rectangle_t rect;
 
     sink->multi_sink.cursor_x = x;
     sink->multi_sink.cursor_y = y;
@@ -525,28 +549,28 @@ Resolve (Widget w, XawTextPosition pos, int fromx, int width,
 static void
 GetGC(MultiSinkObject sink)
 {
-    XtGCMask valuemask = (GCGraphicsExposures | GCForeground | GCBackground );
-    XGCValues values;
+    XtGCMask valuemask = (XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND );
+    xcb_create_gc_value_list_t values;
 
-    values.graphics_exposures = (Bool) FALSE;
+    XawInitGCValues(&values);
+    values.graphics_exposures = 0;
 
     values.foreground = sink->text_sink.foreground;
     values.background = sink->text_sink.background;
 
-    sink->multi_sink.normgc = XtAllocateGC( (Widget)sink, 0, valuemask, &values, GCFont, 0 );
+    sink->multi_sink.normgc = XtGetGC( (Widget)sink, valuemask, &values);
 
     values.foreground = sink->text_sink.background;
     values.background = sink->text_sink.foreground;
-    sink->multi_sink.invgc = XtAllocateGC( (Widget)sink, 0, valuemask, &values, GCFont, 0 );
+    sink->multi_sink.invgc = XtGetGC( (Widget)sink, valuemask, &values);
 
     values.function = GXxor;
     values.background = (unsigned long) 0L;	/* (pix ^ 0) = pix */
     values.foreground = (sink->text_sink.background ^
 			 sink->text_sink.foreground);
-    valuemask = GCGraphicsExposures | GCFunction | GCForeground | GCBackground;
+    valuemask = XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FUNCTION | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
 
-    /* if this GC is not used for fontset rendering then AllocateGC aint needed. Dont hurt tho.*/
-    sink->multi_sink.xorgc = XtAllocateGC( (Widget)sink, 0, valuemask, &values, GCFont, 0 );
+    sink->multi_sink.xorgc = XtGetGC( (Widget)sink, valuemask, &values);
 }
 
 
@@ -568,7 +592,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     GetGC(sink);
 
-    sink->multi_sink.insertCursorOn= CreateInsertCursor(XtScreenOfObject(new));
+    sink->multi_sink.insertCursorOn= CreateInsertCursor(new);
     sink->multi_sink.laststate = XawisOff;
     sink->multi_sink.cursor_x = sink->multi_sink.cursor_y = 0;
 }
@@ -589,7 +613,7 @@ Destroy(Widget w)
    XtReleaseGC(w, sink->multi_sink.invgc);
    XtReleaseGC(w, sink->multi_sink.xorgc);
 
-   XFreePixmap(XtDisplayOfObject(w), sink->multi_sink.insertCursorOn);
+  XawFreePixmap(XtDisplayOfObject(w), sink->multi_sink.insertCursorOn);
 }
 
 /*	Function Name: SetValues
@@ -610,9 +634,9 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     /* Font set is not in the GC! Do not make a new GC when font set changes! */
 
     if ( w->multi_sink.fontset != old_w->multi_sink.fontset ) {
-	((TextWidget)XtParent(new))->text.redisplay_needed = True;
+ ((TextWidget)XtParent(new))->text.redisplay_needed = True;
 #ifndef NO_TAB_FIX
-	SetTabs( w, w->text_sink.tab_count, w->text_sink.char_tabs );
+ SetTabs( (Widget)w, w->text_sink.tab_count, w->text_sink.char_tabs );
 #endif
     }
 
@@ -692,34 +716,34 @@ SetTabs(
   int i;
   xcb_atom_t XCB_ATOM_FIGURE_WIDTH;
   unsigned long figure_width = 0;
-  XFontStruct *font;
-
-  /*
-   * Bug:
-   *   Suppose the first font of fontset stores the unit of column.
-   *
-   * By Li Yuhong, Mar. 14, 1991
-   */
-  { XFontStruct **f_list;
-    char	**f_name;
-
-    (void) XFontsOfFontSet(sink->multi_sink.fontset, &f_list, &f_name);
-    font = f_list[0];
-  }
+  
+  /* XCB Note: XFontSet is not available in XCB. Using XawFontSet's font_id instead.
+   * Create a minimal XFontStruct to work with existing code. */
+  XFontStruct font_struct;
+  XFontStruct *font = &font_struct;
+  font->fid = sink->multi_sink.fontset->font_id;
+  font->min_char_or_byte2 = 0;
+  font->max_char_or_byte2 = 255;
 
 /*
  * Find the figure width of the current font.
  */
 
-  XCB_ATOM_FIGURE_WIDTH = XInternAtom(XtDisplayOfObject(w), "FIGURE_WIDTH", FALSE);
+  xcb_connection_t *conn = XtDisplayOfObject(w);
+  XCB_ATOM_FIGURE_WIDTH = XawXcbInternAtom(conn, "FIGURE_WIDTH", FALSE);
   if ( (XCB_ATOM_FIGURE_WIDTH != None) &&
-       ( (!XGetFontProperty(font, XCB_ATOM_FIGURE_WIDTH, &figure_width)) ||
-	 (figure_width == 0)) ) {
-    if (font->per_char && font->min_char_or_byte2 <= '$' &&
-	font->max_char_or_byte2 >= '$')
-      figure_width = font->per_char['$' - font->min_char_or_byte2].width;
-    else
-      figure_width = font->max_bounds.width;
+       ( (!XawGetFontProperty(conn, font, XCB_ATOM_FIGURE_WIDTH, &figure_width)) ||
+  (figure_width == 0)) ) {
+    /* In XCB, we don't have direct access to per_char metrics
+     * Use XawFontCharWidth to get character width */
+    if (font->min_char_or_byte2 <= '$' && font->max_char_or_byte2 >= '$')
+      figure_width = XawFontCharWidth(conn, font->fid, '$');
+    else {
+      /* Query font metrics for max width */
+      XawFontMetrics metrics;
+      XawXcbQueryFontMetrics(conn, font->fid, &metrics);
+      figure_width = metrics.max_char_width;
+    }
   }
 
   if (tab_count > sink->text_sink.tab_count) {

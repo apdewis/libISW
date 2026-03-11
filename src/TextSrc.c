@@ -52,6 +52,23 @@ in this Software without prior written authorization from the X Consortium.
 #include <stdio.h>
 #include <ctype.h>
 
+/* XCB: Missing Xlib constants for text property conversions */
+#ifndef Success
+#define Success 0
+#endif
+
+#ifndef XCompoundTextStyle
+#define XCompoundTextStyle 1
+#endif
+
+#ifndef XStringStyle
+#define XStringStyle 0
+#endif
+
+#ifndef XTextStyle
+#define XTextStyle XStringStyle
+#endif
+
 /****************************************************************
  *
  * Full class record constant
@@ -528,16 +545,35 @@ _XawTextFormat(TextWidget tw)
 char *
 _XawTextWCToMB(xcb_connection_t *conn, wchar_t *wstr, int *len_in_out)
 {
+#ifdef XAW_HAS_XIM
     XTextProperty textprop;
-    if (XwcTextListToTextProperty(d, (wchar_t**)&wstr, 1,
+    if (XwcTextListToTextProperty(conn, (wchar_t**)&wstr, 1,
       XTextStyle, &textprop) < Success) {
       XtWarningMsg("convertError", "textSource", "XawError",
                  "Non-character code(s) in buffer.", NULL, NULL);
       *len_in_out = 0;
-      return( NULL );
+      return NULL;
     }
     *len_in_out = textprop.nitems;
-    return((char *)textprop.value);
+    return (char *)textprop.value;
+#else
+    /* XCB: WC→MB conversion not available, use wcstombs */
+    size_t mb_len = wcstombs(NULL, wstr, 0);
+    if (mb_len == (size_t)-1) {
+        XtWarningMsg("convertError", "textSource", "XawError",
+                     "Non-character code(s) in buffer.", NULL, NULL);
+        *len_in_out = 0;
+        return NULL;
+    }
+    char *mb_str = XtMalloc(mb_len + 1);
+    if (!mb_str) {
+        *len_in_out = 0;
+        return NULL;
+    }
+    wcstombs(mb_str, wstr, mb_len + 1);
+    *len_in_out = mb_len;
+    return mb_str;
+#endif
 }
 
 
@@ -554,43 +590,61 @@ _XawTextWCToMB(xcb_connection_t *conn, wchar_t *wstr, int *len_in_out)
 wchar_t *
 _XawTextMBToWC(xcb_connection_t *conn, char *str, int *len_in_out)
 {
-  if (*len_in_out == 0) {
-    return(NULL);
-  } else {
+    if (*len_in_out == 0) {
+        return NULL;
+    }
+#ifdef XAW_HAS_XIM
     XTextProperty textprop;
     char *buf;
     wchar_t **wlist, *wstr;
     int count;
     buf = XtMalloc(*len_in_out + 1);
     if (!buf) {
-	XtErrorMsg("convertError", "multiSourceCreate", "XawError",
-		 "No Memory", NULL, NULL);
-	*len_in_out = 0;
-	return (NULL);   /* The above function doesn't really return. */
+        XtErrorMsg("convertError", "multiSourceCreate", "XawError",
+                   "No Memory", NULL, NULL);
+        *len_in_out = 0;
+        return NULL;
     }
     strncpy(buf, str, *len_in_out);
     *(buf + *len_in_out) = '\0';
-    if (XmbTextListToTextProperty(d, &buf, 1, XTextStyle, &textprop)
-			!= Success) {
-	XtWarningMsg("convertError", "textSource", "XawError",
-		 "No Memory, or Locale not supported.", NULL, NULL);
-	XtFree(buf);
-	*len_in_out = 0;
-	return (NULL);
+    if (XmbTextListToTextProperty(conn, &buf, 1, XTextStyle, &textprop) != Success) {
+        XtWarningMsg("convertError", "textSource", "XawError",
+                     "No Memory, or Locale not supported.", NULL, NULL);
+        XtFree(buf);
+        *len_in_out = 0;
+        return NULL;
     }
     XtFree(buf);
-    if (XwcTextPropertyToTextList(d, &textprop,
-			(wchar_t***)&wlist, &count) != Success) {
-	XtWarningMsg("convertError", "multiSourceCreate", "XawError",
-		 "Non-character code(s) in source.", NULL, NULL);
-	*len_in_out = 0;
-	return (NULL);
+    if (XwcTextPropertyToTextList(conn, &textprop, (wchar_t***)&wlist, &count) != Success) {
+        XtWarningMsg("convertError", "multiSourceCreate", "XawError",
+                     "Non-character code(s) in source.", NULL, NULL);
+        *len_in_out = 0;
+        return NULL;
     }
     wstr = wlist[0];
     *len_in_out = wcslen(wstr);
-    XFree((char**)wlist); /* this is evil */
-    return(wstr);
-  }
+    XFree((char**)wlist);
+    return wstr;
+#else
+    /* XCB: MB→WC conversion not available, use mbstowcs */
+    size_t wc_len = mbstowcs(NULL, str, 0);
+    if (wc_len == (size_t)-1) {
+        XtWarningMsg("convertError", "textSource", "XawError",
+                     "Non-character code(s) in source.", NULL, NULL);
+        *len_in_out = 0;
+        return NULL;
+    }
+    wchar_t *wstr = (wchar_t *)XtMalloc((wc_len + 1) * sizeof(wchar_t));
+    if (!wstr) {
+        XtErrorMsg("convertError", "multiSourceCreate", "XawError",
+                   "No Memory", NULL, NULL);
+        *len_in_out = 0;
+        return NULL;
+    }
+    mbstowcs(wstr, str, wc_len + 1);
+    *len_in_out = wc_len;
+    return wstr;
+#endif
 }
 #endif
 

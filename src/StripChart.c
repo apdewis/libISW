@@ -54,7 +54,6 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/StripCharP.h>
-#include <X11/Xfuncs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 

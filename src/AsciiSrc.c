@@ -43,7 +43,6 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef X_NOT_STDC_ENV
 #include <stdlib.h>
 #endif
-#include <X11/Xfuncs.h>
 #include <X11/Xaw3d/XawInit.h>
 #include <X11/Xaw3d/AsciiSrcP.h>
 #include "XawXcbDraw.h"

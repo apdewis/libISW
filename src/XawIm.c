@@ -60,7 +60,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xos.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <X11/Xfuncs.h>
 #include <X11/ShellP.h>
 #include <X11/Xaw3d/TextP.h>
 #include <X11/Xaw3d/MultiSrc.h>
@@ -1662,27 +1661,24 @@ _XawImUnsetFocus(Widget inwidg _X_UNUSED)
 int
 _XawImWcLookupString(
     Widget inwidg _X_UNUSED,
-    XKeyPressedEvent *event,
-    wchar_t* buffer_return,
-    int bytes_buffer,
+    XKeyPressedEvent *event _X_UNUSED,
+    wchar_t* buffer_return _X_UNUSED,
+    int bytes_buffer _X_UNUSED,
     KeySym *keysym_return,
     Status *status_return)
 {
-    /* Stub: Fall back to basic XLookupString */
-    char tmp_buf[64];
-    char *tmp_p;
-    wchar_t *buf_p;
-    int i, ret;
+    /* Stub: No XIM support - minimal fallback without XLookupString
+     * XLookupString is an Xlib function not available in XCB mode.
+     * Without XIM, we cannot perform proper keyboard input translation.
+     * This stub returns no characters and a null keysym. */
     
-    ret = XLookupString(event, tmp_buf, 64, keysym_return,
-                        (XComposeStatus*) status_return);
+    if (keysym_return)
+        *keysym_return = 0;  /* No keysym */
     
-    /* Convert to wide characters */
-    for (i = 0, tmp_p = tmp_buf, buf_p = buffer_return;
-         i < ret && i < bytes_buffer; i++) {
-        *buf_p++ = _Xaw_atowc(*tmp_p++);
-    }
-    return ret;
+    if (status_return)
+        *status_return = 0;  /* No special status */
+    
+    return 0;  /* No characters generated */
 }
 
 int

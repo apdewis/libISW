@@ -8,6 +8,7 @@
  */
 
 #include "XawXcbDraw.h"
+#include "../include/X11/Xaw3d/XawXftCompat.h"  /* For XawFontSet definition */
 #include "../include/X11/Xaw3d/Form.h"  /* For XawEdgeType definition */
 #include <stdlib.h>
 #include <string.h>
@@ -567,6 +568,60 @@ XawXcbDrawString(xcb_connection_t *conn, xcb_drawable_t d,
          * GC fill style appropriately for transparent effect.
          * A full implementation would use poly_text_8 with proper items. */
         xcb_image_text_8(conn, chunk, d, gc, x, y, text);
+        text += chunk;
+        len -= chunk;
+    }
+    
+    xcb_flush(conn);
+}
+
+/*
+ * =================================================================
+ * XAWFONTSET TEXT RENDERING (XawXftCompat.h implementations)
+ * =================================================================
+ */
+
+/*
+ * XawTextWidth - Calculate text width using XawFontSet
+ *
+ * Wrapper around XawFontTextWidth that uses the connection stored in fontset.
+ * This provides a simplified API for widgets that have a fontset pointer.
+ */
+int
+XawTextWidth(XawFontSet *fontset, const char *text, int len)
+{
+    if (!fontset || !fontset->conn || !text || len <= 0)
+        return 0;
+    
+    /* Use the fontset's connection and font_id to query text width */
+    return XawFontTextWidth(fontset->conn, fontset->font_id, text, len);
+}
+
+/*
+ * XawDrawString - Draw text using XawFontSet
+ *
+ * Draws text string using the font specified in fontset.
+ * Uses xcb_image_text_8 which draws with background fill.
+ */
+void
+XawDrawString(xcb_connection_t *conn, xcb_drawable_t d,
+              XawFontSet *fontset, xcb_gcontext_t gc,
+              int x, int y, const char *text, int len)
+{
+    if (!conn || !fontset || !text || len <= 0)
+        return;
+    
+    /* Draw text in chunks (XCB limits to 255 chars per request) */
+    while (len > 0) {
+        int chunk = (len > 255) ? 255 : len;
+        xcb_image_text_8(conn, chunk, d, gc, x, y, text);
+        
+        /* For multi-chunk text, advance x position */
+        if (len > 255 && fontset->conn) {
+            int chunk_width = XawFontTextWidth(fontset->conn, fontset->font_id, text, chunk);
+            x += chunk_width;
+        }
+        
         text += chunk;
         len -= chunk;
     }
