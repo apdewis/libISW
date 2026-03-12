@@ -209,6 +209,17 @@ xcb_pixmap_t XawCreateStippledPixmap(xcb_connection_t *conn,
                                      unsigned int depth);
 
 /*
+ * XawReleaseStippledPixmap - Free a stippled pixmap
+ *
+ * Releases the server resources for a pixmap created by XawCreateStippledPixmap.
+ *
+ * Parameters:
+ *   screen - XCB screen pointer
+ *   pixmap - Pixmap to free
+ */
+void XawReleaseStippledPixmap(xcb_screen_t *screen, xcb_pixmap_t pixmap);
+
+/*
  * XawFontStructTextWidth - Calculate text width using XFontStruct
  *
  * Replacement for XTextWidth when using XFontStruct (legacy fonts).
