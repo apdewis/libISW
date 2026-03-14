@@ -300,15 +300,40 @@ XawTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
     TipWidget tip = (TipWidget)w;
     xcb_create_gc_value_list_t values;
 
+    /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
+     * If font is NULL but fontset is available, create a minimal XFontStruct
+     * using the fontset's font_id (similar to Label.c approach). */
+    if (tip->tip.font == NULL) {
+#ifdef XAW_INTERNATIONALIZATION
+	if (tip->tip.fontset != NULL) {
+	    /* Allocate and initialize a minimal XFontStruct from fontset */
+	    tip->tip.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
+	    memset(tip->tip.font, 0, sizeof(XFontStruct));
+	    tip->tip.font->fid = tip->tip.fontset->font_id;
+	    tip->tip.font->min_char_or_byte2 = 0;
+	    tip->tip.font->max_char_or_byte2 = 255;
+	} else
+#endif
+	{
+	    XtAppWarning(XtWidgetToApplicationContext(w),
+			 "Tip widget: font and fontset are both NULL - text rendering will fail");
+	}
+    }
+
     tip->tip.timer = 0;
 
     values.foreground = tip->tip.foreground;
     values.background = tip->core.background_pixel;
-    values.font = tip->tip.font->fid;
     values.graphics_exposures = 0;
 
-    tip->tip.gc = XtAllocateGC(w, 0, GCForeground | GCBackground | GCFont |
-			       GCGraphicsExposures, &values, GCFont, 0);
+    /* XCB Fix: Add NULL check for font before accessing fid */
+    XtGCMask gc_mask = GCForeground | GCBackground | GCGraphicsExposures;
+    if (tip->tip.font != NULL) {
+	values.font = tip->tip.font->fid;
+	gc_mask |= GCFont;
+    }
+
+    tip->tip.gc = XtAllocateGC(w, 0, gc_mask & ~GCFont, &values, GCFont, 0);
 }
 
 static void
@@ -391,7 +416,8 @@ XawTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     TipWidget tip = (TipWidget)w;
     xcb_gcontext_t gc = tip->tip.gc;
     char *nl, *label = tip->tip.label;
-    Position y = tip->tip.internal_height + tip->tip.font->ascent;
+    /* XCB Fix: Add NULL check for font before accessing ascent */
+    Position y = tip->tip.internal_height + (tip->tip.font ? tip->tip.font->ascent : 11);
     int len;
 
 #ifdef XAW_INTERNATIONALIZATION
@@ -424,9 +450,13 @@ XawTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		XDrawString(XtDisplay(w), XtWindow(w), gc,
 			    tip->tip.internal_width, y,
 			    label, (int)(nl - label));
-		   y += tip->tip.font->ascent +
-		 tip->tip.font->descent;
-		   label = nl + 1;
+	    /* XCB Fix: Add NULL check for font before accessing fields */
+	    if (tip->tip.font != NULL) {
+		y += tip->tip.font->ascent + tip->tip.font->descent;
+	    } else {
+		y += 14;  /* Default line height */
+	    }
+	    label = nl + 1;
 	}
 	len = strlen(label);
 	if (len) {
@@ -449,17 +479,31 @@ XawTipSetValues(Widget current, Widget request, Widget cnew, ArgList args, Cardi
     TipWidget newtip = (TipWidget)cnew;
     Boolean redisplay = False;
 
-    if (curtip->tip.font->fid != newtip->tip.font->fid ||
-		curtip->tip.foreground != newtip->tip.foreground) {
+    /* XCB Fix: Add NULL checks before comparing font->fid */
+    Bool font_changed = False;
+    if (curtip->tip.font != NULL && newtip->tip.font != NULL) {
+	font_changed = (curtip->tip.font->fid != newtip->tip.font->fid);
+    } else if (curtip->tip.font != newtip->tip.font) {
+	/* One is NULL and the other isn't */
+	font_changed = True;
+    }
+
+    if (font_changed || curtip->tip.foreground != newtip->tip.foreground) {
 	xcb_create_gc_value_list_t values;
 
 	values.foreground = newtip->tip.foreground;
 	values.background = newtip->core.background_pixel;
-	values.font = newtip->tip.font->fid;
 	values.graphics_exposures = 0;
+
+	/* XCB Fix: Add NULL check for font before accessing fid */
+	XtGCMask gc_mask = GCForeground | GCBackground | GCGraphicsExposures;
+	if (newtip->tip.font != NULL) {
+	    values.font = newtip->tip.font->fid;
+	    gc_mask |= GCFont;
+	}
+
 	XtReleaseGC(cnew, curtip->tip.gc);
-	newtip->tip.gc = XtAllocateGC(cnew, 0, GCForeground | GCBackground |
-				      GCFont | GCGraphicsExposures, &values,
+	newtip->tip.gc = XtAllocateGC(cnew, 0, gc_mask & ~GCFont, &values,
 				      GCFont, 0);
 	redisplay = True;
     }
@@ -501,31 +545,38 @@ TipLayout(XawTipInfo *info)
     else
 #endif
     {
-	height = fs->ascent + fs->descent;
-	if ((nl = index(label, '\n')) != NULL) {
-	    /*CONSTCOND*/
-	    while (True) {
-	 int w = info->tip->tip.encoding ?
-	  XTextWidth16(fs, (const xcb_char2b_t*)label,
-	        (int)(nl - label) >> 1) :
-	  XTextWidth(fs, label, (int)(nl - label));
+ /* XCB Fix: Add NULL check for font before accessing fields */
+ if (fs != NULL) {
+     height = fs->ascent + fs->descent;
+     if ((nl = index(label, '\n')) != NULL) {
+  /*CONSTCOND*/
+  while (True) {
+      int w = info->tip->tip.encoding ?
+   XTextWidth16(fs, (const xcb_char2b_t*)label,
+    (int)(nl - label) >> 1) :
+   XTextWidth(fs, label, (int)(nl - label));
 
-	 if (w > width)
-	     width = w;
-	 if (*nl == '\0')
-	     break;
-	 label = nl + 1;
-	 if (*label)
-	     height += fs->ascent + fs->descent;
+      if (w > width)
+   width = w;
+      if (*nl == '\0')
+   break;
+      label = nl + 1;
+      if (*label)
+   height += fs->ascent + fs->descent;
 	 if ((nl = index(label, '\n')) == NULL)
 	     nl = index(label, '\0');
 	    }
 	}
 	else
 	    width = info->tip->tip.encoding ?
-	     XTextWidth16(fs, (const xcb_char2b_t*)label, strlen(label) >> 1) :
-	     XTextWidth(fs, label, strlen(label));
-    }
+	 XTextWidth16(fs, (const xcb_char2b_t*)label, strlen(label) >> 1) :
+	 XTextWidth(fs, label, strlen(label));
+	} else {
+	    /* No font available - use defaults */
+	    height = 14;  /* Default height */
+	    width = label ? strlen(label) * 8 : 0;  /* Default width */
+	}
+	   }
     XtWidth(info->tip) = width + info->tip->tip.internal_width * 2;
     XtHeight(info->tip) = height + info->tip->tip.internal_height * 2;
 }

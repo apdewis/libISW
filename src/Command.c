@@ -198,7 +198,19 @@ Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
   XawInitGCValues(&values);
   values.foreground   = fg;
   values.background	= bg;
+  
+  fprintf(stderr, "DEBUG Command.c Get_GC: widget=%s, cbw->label.font=%p\n",
+          XtName((Widget)cbw), (void*)cbw->label.font);
+  
+  if (cbw->label.font == NULL) {
+      fprintf(stderr, "FATAL Command.c Get_GC: font is NULL for widget '%s'!\n",
+              XtName((Widget)cbw));
+      fprintf(stderr, "  This will cause a segfault. Aborting.\n");
+      abort();
+  }
+  
   values.font		= cbw->label.font->fid;
+  fprintf(stderr, "DEBUG Command.c Get_GC: font fid=%lu\n", (unsigned long)values.font);
   values.cap_style = XCB_CAP_STYLE_PROJECTING;
 
   if (cbw->command.highlight_thickness > 1 )

@@ -196,21 +196,26 @@ CharWidth (Widget w, int x, unsigned char c)
 	}
     }
 
+    /* XCB Fix: Add NULL check for font before accessing fid */
+    if (font == NULL) {
+	width = 8;  /* Default width if no font */
+    } else {
 #ifdef XFONTSTRUCT_HAS_NO_PER_CHAR
-    /* XCB-based fonts don't have per_char metrics - query server */
-    {
-        xcb_connection_t *conn = XtDisplay(w);
-        width = XawFontCharWidth(conn, font->fid, c);
-        if (width == 0)
-            width = 8;  /* Fallback if query fails */
-    }
+	/* XCB-based fonts don't have per_char metrics - query server */
+	{
+	    xcb_connection_t *conn = XtDisplay(w);
+	    width = XawFontCharWidth(conn, font->fid, c);
+	    if (width == 0)
+		width = 8;  /* Fallback if query fails */
+	}
 #else
-    if (font->per_char &&
-	    (c >= font->min_char_or_byte2 && c <= font->max_char_or_byte2))
-	width = font->per_char[c - font->min_char_or_byte2].width;
-    else
-	width = font->min_bounds.width;
+	if (font->per_char &&
+		(c >= font->min_char_or_byte2 && c <= font->max_char_or_byte2))
+	    width = font->per_char[c - font->min_char_or_byte2].width;
+	else
+	    width = font->min_bounds.width;
 #endif
+    }
 
     if (nonPrinting)
 	width += CharWidth(w, x, (unsigned char) '^');
@@ -238,26 +243,30 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
     xcb_connection_t *conn = XtDisplay((Widget) ctx);
 
     Position max_x;
-    Dimension width = XawFontTextWidth(conn, sink->ascii_sink.font->fid,
-                                       (char *) buf, len);
+    /* XCB Fix: Add NULL check for font before accessing fid */
+    Dimension width = (sink->ascii_sink.font != NULL) ?
+ XawFontTextWidth(conn, sink->ascii_sink.font->fid, (char *) buf, len) :
+ len * 8;  /* Default width if no font */
     max_x = (Position) ctx->core.width;
 
     if ( ((int) width) <= -x)	           /* Don't draw if we can't see it. */
       return(width);
 
     XawXcbDrawImageString(conn, XtWindow(ctx), gc,
-		     (int) x, (int) y, (char *) buf, len);
+       (int) x, (int) y, (char *) buf, len);
     if ( (((Position) width + x) > max_x) && (ctx->text.margin.right != 0) ) {
  x = ctx->core.width - ctx->text.margin.right;
  width = ctx->text.margin.right;
  xcb_connection_t *conn = XtDisplay((Widget) ctx);
+ /* XCB Fix: Add NULL check for font before accessing fields */
+ int ascent = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
+ int descent = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
  xcb_rectangle_t rect = {(int) x,
-         (int) y - sink->ascii_sink.font->ascent,
-         (unsigned int) width,
-         (unsigned int) (sink->ascii_sink.font->ascent +
-           sink->ascii_sink.font->descent)};
+  (int) y - ascent,
+  (unsigned int) width,
+  (unsigned int) (ascent + descent)};
  xcb_poly_fill_rectangle(conn, XtWindow((Widget) ctx),
-         sink->ascii_sink.normgc, 1, &rect);
+  sink->ascii_sink.normgc, 1, &rect);
  xcb_flush(conn);
  return(0);
     }
@@ -285,7 +294,8 @@ DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
 
     if (!sink->ascii_sink.echo) return;
 
-    y += sink->ascii_sink.font->ascent;
+    /* XCB Fix: Add NULL check for font before accessing ascent */
+    y += sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
     for ( j = 0 ; pos1 < pos2 ; ) {
 	pos1 = XawTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
 	for (k = 0; k < blk.length; k++) {
@@ -304,16 +314,18 @@ DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
 	        if ((j != 0) && ((temp = PaintText(w, gc, x, y, buf, j)) == 0))
 		  return;
 
-	        x += temp;
+	 x += temp;
 	 width = CharWidth(w, x, (unsigned char) '\t');
 	 xcb_connection_t *conn = XtDisplayOfObject(w);
+	 /* XCB Fix: Add NULL check for font before accessing fields */
+	 int ascent = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
+	 int descent = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
 	 xcb_rectangle_t rect = {(int) x,
-	         (int) y - sink->ascii_sink.font->ascent,
-	         (unsigned int) width,
-	         (unsigned int) (sink->ascii_sink.font->ascent +
-	           sink->ascii_sink.font->descent)};
+	  (int) y - ascent,
+	  (unsigned int) width,
+	  (unsigned int) (ascent + descent)};
 	 xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
-	         invgc, 1, &rect);
+	  invgc, 1, &rect);
 	 xcb_flush(conn);
 	 x += width;
 		j = -1;
@@ -428,7 +440,9 @@ FindDistance (Widget w,
 	}
     }
     *resPos = index;
-    *resHeight = sink->ascii_sink.font->ascent +sink->ascii_sink.font->descent;
+    /* XCB Fix: Add NULL check for font before accessing fields */
+    *resHeight = sink->ascii_sink.font ?
+ (sink->ascii_sink.font->ascent + sink->ascii_sink.font->descent) : 14;
 }
 
 
@@ -502,13 +516,17 @@ Resolve (Widget w, XawTextPosition pos, int fromx, int width, XawTextPosition *r
 static void
 GetGC(AsciiSinkObject sink)
 {
-    XtGCMask valuemask = (XCB_GC_FONT |
-			  XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND);
     xcb_create_gc_value_list_t values;
 
     XawInitGCValues(&values);
-    values.font = sink->ascii_sink.font->fid;
     values.graphics_exposures = 0;
+
+    /* XCB Fix: Add NULL check for font before accessing fid */
+    XtGCMask valuemask = XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
+    if (sink->ascii_sink.font != NULL) {
+	values.font = sink->ascii_sink.font->fid;
+	valuemask |= XCB_GC_FONT;
+    }
 
     values.foreground = sink->text_sink.foreground;
     values.background = sink->text_sink.background;
@@ -543,6 +561,13 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     AsciiSinkObject sink = (AsciiSinkObject) new;
+
+    /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
+     * AsciiSink doesn't have fontset support, so just issue a warning. */
+    if (sink->ascii_sink.font == NULL) {
+	XtAppWarning(XtWidgetToApplicationContext(new),
+		     "AsciiSink widget: font is NULL - text rendering will fail");
+    }
 
     GetGC(sink);
 
@@ -584,9 +609,18 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     AsciiSinkObject w = (AsciiSinkObject) new;
     AsciiSinkObject old_w = (AsciiSinkObject) current;
 
-    if (w->ascii_sink.font != old_w->ascii_sink.font
-	|| w->text_sink.background != old_w->text_sink.background
-	|| w->text_sink.foreground != old_w->text_sink.foreground) {
+    /* XCB Fix: Add NULL checks before comparing font->fid */
+    Bool font_changed = False;
+    if (w->ascii_sink.font != NULL && old_w->ascii_sink.font != NULL) {
+	font_changed = (w->ascii_sink.font->fid != old_w->ascii_sink.font->fid);
+    } else if (w->ascii_sink.font != old_w->ascii_sink.font) {
+	/* One is NULL and the other isn't */
+	font_changed = True;
+    }
+
+    if (font_changed ||
+	w->text_sink.background != old_w->text_sink.background ||
+	w->text_sink.foreground != old_w->text_sink.foreground) {
 	XtReleaseGC((Widget)w, w->ascii_sink.normgc);
 	XtReleaseGC((Widget)w, w->ascii_sink.invgc);
 	XtReleaseGC((Widget)w, w->ascii_sink.xorgc);
@@ -617,7 +651,9 @@ MaxLines(Widget w, Dimension height)
   AsciiSinkObject sink = (AsciiSinkObject) w;
   int font_height;
 
-  font_height = sink->ascii_sink.font->ascent + sink->ascii_sink.font->descent;
+  /* XCB Fix: Add NULL check for font before accessing fields */
+  font_height = sink->ascii_sink.font ?
+      (sink->ascii_sink.font->ascent + sink->ascii_sink.font->descent) : 14;
   return( ((int) height) / font_height );
 }
 
@@ -635,8 +671,10 @@ MaxHeight(Widget w, int lines)
 {
   AsciiSinkObject sink = (AsciiSinkObject) w;
 
-  return(lines * (sink->ascii_sink.font->ascent +
-		  sink->ascii_sink.font->descent));
+  /* XCB Fix: Add NULL check for font before accessing fields */
+  int line_height = sink->ascii_sink.font ?
+      (sink->ascii_sink.font->ascent + sink->ascii_sink.font->descent) : 14;
+  return(lines * line_height);
 }
 
 /*	Function Name: SetTabs

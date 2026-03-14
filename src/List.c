@@ -195,27 +195,31 @@ GetGCs(Widget w)
 
     memset(&values, 0, sizeof(values));
     values.foreground	= lw->list.foreground;
-    values.font		= lw->list.font->fid;
+
+    /* XCB Fix: Add NULL check for font before accessing fid */
+    XtGCMask gc_mask = (unsigned) GCForeground;
+    if (lw->list.font != NULL) {
+        values.font = lw->list.font->fid;
+        gc_mask |= GCFont;
+    }
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
-        lw->list.normgc = XtAllocateGC( w, 0, (unsigned) GCForeground,
+        lw->list.normgc = XtAllocateGC( w, 0, gc_mask & ~GCFont,
 				 &values, GCFont, 0 );
     else
 #endif
-        lw->list.normgc = XtGetGC( w, (unsigned) GCForeground | GCFont,
-				 &values);
+        lw->list.normgc = XtGetGC( w, gc_mask, &values);
 
     values.foreground	= lw->core.background_pixel;
 
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
-        lw->list.revgc = XtAllocateGC( w, 0, (unsigned) GCForeground,
+        lw->list.revgc = XtAllocateGC( w, 0, gc_mask & ~GCFont,
 				 &values, GCFont, 0 );
     else
 #endif
-        lw->list.revgc = XtGetGC( w, (unsigned) GCForeground | GCFont,
-				 &values);
+        lw->list.revgc = XtGetGC( w, gc_mask, &values);
 
     values.tile       = XawCreateStippledPixmap(XtDisplay(w), XtWindow(w),
     		lw->list.foreground,
@@ -223,14 +227,19 @@ GetGCs(Widget w)
     		lw->core.depth);
     values.fill_style = XCB_FILL_STYLE_TILED;
 
+    /* XCB Fix: Add NULL check for font before accessing fid */
+    XtGCMask gray_gc_mask = (unsigned) (GCTile | GCFillStyle);
+    if (lw->list.font != NULL) {
+        gray_gc_mask |= GCFont;
+    }
+
 #ifdef XAW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
-        lw->list.graygc = XtAllocateGC( w, 0, (unsigned) GCTile | GCFillStyle,
+        lw->list.graygc = XtAllocateGC( w, 0, gray_gc_mask & ~GCFont,
 			      &values, GCFont, 0 );
     else
 #endif
-        lw->list.graygc = XtGetGC( w, (unsigned) GCFont | GCTile | GCFillStyle,
-			      &values);
+        lw->list.graygc = XtGetGC( w, gray_gc_mask, &values);
 }
 
 
@@ -371,6 +380,26 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
  * Initialize all private resources.
  */
 
+    /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
+     * If font is NULL but fontset is available, create a minimal XFontStruct
+     * using the fontset's font_id (similar to Label.c approach). */
+    if (lw->list.font == NULL) {
+#ifdef XAW_INTERNATIONALIZATION
+	if (lw->list.fontset != NULL) {
+	    /* Allocate and initialize a minimal XFontStruct from fontset */
+	    lw->list.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
+	    memset(lw->list.font, 0, sizeof(XFontStruct));
+	    lw->list.font->fid = lw->list.fontset->font_id;
+	    lw->list.font->min_char_or_byte2 = 0;
+	    lw->list.font->max_char_or_byte2 = 255;
+	} else
+#endif
+	{
+	    XtAppWarning(XtWidgetToApplicationContext(new),
+			 "List widget: font and fontset are both NULL - text rendering will fail");
+	}
+    }
+
     /* record for posterity if we are free */
     lw->list.freedoms = (lw->core.width != 0) * WidthLock +
                         (lw->core.height != 0) * HeightLock +
@@ -386,9 +415,16 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
                         + lw->list.row_space;
     else
 #endif
-        lw->list.row_height = lw->list.font->ascent
-			+ lw->list.font->descent
-			+ lw->list.row_space;
+    {
+	/* XCB Fix: Add NULL check for font before accessing fields */
+	if (lw->list.font != NULL) {
+	    lw->list.row_height = lw->list.font->ascent
+				+ lw->list.font->descent
+				+ lw->list.row_space;
+	} else {
+	    lw->list.row_height = 14 + lw->list.row_space;  /* Default height */
+	}
+    }
 
     ResetList( new, WidthFree( lw ), HeightFree( lw ) );
 
@@ -601,7 +637,14 @@ PaintItemName(Widget w, int item)
         str_y = y + lw->list.fontset->ascent;
     else
 #endif
-        str_y = y + lw->list.font->ascent;
+    {
+	/* XCB Fix: Add NULL check for font before accessing ascent */
+	if (lw->list.font != NULL) {
+	    str_y = y + lw->list.font->ascent;
+	} else {
+	    str_y = y + 11;  /* Default ascent */
+	}
+    }
 
     if (item == lw->list.is_highlighted) {
         if (item == lw->list.highlight) {
@@ -971,9 +1014,18 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     /* _DONT_ check for fontset here - it's not in GC.*/
 
+    /* XCB Fix: Add NULL checks before comparing font->fid */
+    Bool font_changed = False;
+    if (cl->list.font != NULL && nl->list.font != NULL) {
+ font_changed = (cl->list.font->fid != nl->list.font->fid);
+    } else if (cl->list.font != nl->list.font) {
+ /* One is NULL and the other isn't */
+ font_changed = True;
+    }
+
     if (  (cl->list.foreground       != nl->list.foreground)       ||
    (cl->core.background_pixel != nl->core.background_pixel) ||
-   (cl->list.font             != nl->list.font)                ) {
+   font_changed ) {
  /* XCB: Skip XGetGCValues - tile tracking would need separate mechanism */
  XtReleaseGC(current, cl->list.graygc);
  XtReleaseGC(current, cl->list.revgc);
@@ -982,34 +1034,46 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
         redraw = TRUE;
     }
 
-    if ( cl->list.font != nl->list.font ) {
+    if ( font_changed ) {
 #ifdef XAW_INTERNATIONALIZATION
-        if ( cl->simple.international == False )
+ if ( cl->simple.international == False )
 #endif
-            nl->list.row_height = nl->list.font->ascent
-			        + nl->list.font->descent
-			        + nl->list.row_space;
-    }
+ {
+     /* XCB Fix: Add NULL check for font before accessing fields */
+     if (nl->list.font != NULL) {
+  nl->list.row_height = nl->list.font->ascent
+        + nl->list.font->descent
+        + nl->list.row_space;
+     }
+ }
 #ifdef XAW_INTERNATIONALIZATION
-    else if ( ( cl->list.fontset != nl->list.fontset ) &&
-				( cl->simple.international == True ) )
-        nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
+ else if ( ( cl->list.fontset != nl->list.fontset ) &&
+    ( cl->simple.international == True ) )
+     nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
+#endif
+    }
 
     /* ...If the above two font(set) change checkers above both failed, check
     if row_space was altered.  If one of the above passed, row_height will
     already have been re-calculated. */
 
+#ifdef XAW_INTERNATIONALIZATION
     else
 #endif
     if ( cl->list.row_space != nl->list.row_space ) {
 #ifdef XAW_INTERNATIONALIZATION
-        if (cl->simple.international == True )
-            nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
-        else
+ if (cl->simple.international == True )
+     nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
+ else
 #endif
-            nl->list.row_height = nl->list.font->ascent
-			        + nl->list.font->descent
-			        + nl->list.row_space;
+ {
+     /* XCB Fix: Add NULL check for font before accessing fields */
+     if (nl->list.font != NULL) {
+  nl->list.row_height = nl->list.font->ascent
+        + nl->list.font->descent
+        + nl->list.row_space;
+     }
+ }
     }
 
     if ((cl->core.width           != nl->core.width)           ||

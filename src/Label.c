@@ -458,21 +458,32 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
      * If font is NULL but fontset is available, create a minimal XFontStruct
      * using the fontset's font_id (similar to MultiSink.c approach). */
+    fprintf(stderr, "DEBUG Label.c Initialize: widget=%s, font=%p, fontset=%p\n",
+            XtName(new), (void*)lw->label.font, (void*)lw->label.fontset);
     if (lw->label.font == NULL) {
 #ifdef XAW_INTERNATIONALIZATION
-	if (lw->label.fontset != NULL) {
-	    /* Allocate and initialize a minimal XFontStruct from fontset */
-	    lw->label.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
-	    memset(lw->label.font, 0, sizeof(XFontStruct));
-	    lw->label.font->fid = lw->label.fontset->font_id;
-	    lw->label.font->min_char_or_byte2 = 0;
-	    lw->label.font->max_char_or_byte2 = 255;
-	} else
+ if (lw->label.fontset != NULL) {
+     fprintf(stderr, "DEBUG Label.c: Creating font from fontset, font_id=%lu\n",
+             (unsigned long)lw->label.fontset->font_id);
+     /* Allocate and initialize a minimal XFontStruct from fontset */
+     lw->label.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
+     memset(lw->label.font, 0, sizeof(XFontStruct));
+     lw->label.font->fid = lw->label.fontset->font_id;
+     lw->label.font->min_char_or_byte2 = 0;
+     lw->label.font->max_char_or_byte2 = 255;
+     fprintf(stderr, "DEBUG Label.c: Font created successfully with fid=%lu\n",
+             (unsigned long)lw->label.font->fid);
+ } else
 #endif
-	{
-	    XtAppWarning(XtWidgetToApplicationContext(new),
-			 "Label widget: font and fontset are both NULL - text rendering will fail");
-	}
+ {
+     fprintf(stderr, "ERROR Label.c: Both font and fontset are NULL for widget '%s'\n",
+             XtName(new));
+     XtAppWarning(XtWidgetToApplicationContext(new),
+    "Label widget: font and fontset are both NULL - text rendering will fail");
+ }
+    } else {
+        fprintf(stderr, "DEBUG Label.c: Font is valid, fid=%lu\n",
+                (unsigned long)lw->label.font->fid);
     }
 
     GetnormalGC(lw);

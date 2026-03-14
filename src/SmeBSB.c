@@ -205,6 +205,26 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     SmeBSBObject entry = (SmeBSBObject) new;
 
+    /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
+     * If font is NULL but fontset is available, create a minimal XFontStruct
+     * using the fontset's font_id (similar to Label.c approach). */
+    if (entry->sme_bsb.font == NULL) {
+#ifdef XAW_INTERNATIONALIZATION
+	if (entry->sme_bsb.fontset != NULL) {
+	    /* Allocate and initialize a minimal XFontStruct from fontset */
+	    entry->sme_bsb.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
+	    memset(entry->sme_bsb.font, 0, sizeof(XFontStruct));
+	    entry->sme_bsb.font->fid = entry->sme_bsb.fontset->font_id;
+	    entry->sme_bsb.font->min_char_or_byte2 = 0;
+	    entry->sme_bsb.font->max_char_or_byte2 = 255;
+	} else
+#endif
+	{
+	    XtAppWarning(XtWidgetToApplicationContext(new),
+			 "SmeBSB widget: font and fontset are both NULL - text rendering will fail");
+	}
+    }
+
     if (entry->sme_bsb.label == NULL)
 	entry->sme_bsb.label = XtName(new);
     else
@@ -271,8 +291,14 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     else
 #endif
     { /*else, compute size from font like R5*/
-        font_ascent = entry->sme_bsb.font->ascent;
-        font_descent = entry->sme_bsb.font->descent;
+ /* XCB Fix: Add NULL check for font before accessing fields */
+ if (entry->sme_bsb.font != NULL) {
+     font_ascent = entry->sme_bsb.font->ascent;
+     font_descent = entry->sme_bsb.font->descent;
+ } else {
+     font_ascent = 11;   /* Default ascent */
+     font_descent = 3;   /* Default descent */
+ }
     }
     y_loc = entry->rectangle.y;
 
@@ -404,14 +430,23 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (entry->rectangle.sensitive != old_entry->rectangle.sensitive)
 	ret_val = TRUE;
 
+    /* XCB Fix: Add NULL checks before comparing font->fid */
+    Bool font_changed = False;
 #ifdef XAW_INTERNATIONALIZATION
-    if (  (	(old_entry->sme_bsb.font != entry->sme_bsb.font) &&
-	(old_entry->sme.international == False )	          ) ||
-	(old_entry->sme_bsb.foreground != entry->sme_bsb.foreground) ) {
-#else
-    if (  (old_entry->sme_bsb.font != entry->sme_bsb.font) ||
-	(old_entry->sme_bsb.foreground != entry->sme_bsb.foreground) ) {
+    if (old_entry->sme.international == False) {
 #endif
+	if (old_entry->sme_bsb.font != NULL && entry->sme_bsb.font != NULL) {
+	    font_changed = (old_entry->sme_bsb.font->fid != entry->sme_bsb.font->fid);
+	} else if (old_entry->sme_bsb.font != entry->sme_bsb.font) {
+	    /* One is NULL and the other isn't */
+	    font_changed = True;
+	}
+#ifdef XAW_INTERNATIONALIZATION
+    }
+#endif
+
+    if ( font_changed ||
+	(old_entry->sme_bsb.foreground != entry->sme_bsb.foreground) ) {
 	DestroyGCs(current);
 	CreateGCs(new);
 
@@ -575,14 +610,24 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
     else
 #endif
     {
-        if (entry->sme_bsb.label == NULL)
-	    *width = 0;
-        else
-	    *width = XTextWidth(entry->sme_bsb.font, entry->sme_bsb.label,
-			    strlen(entry->sme_bsb.label));
+ /* XCB Fix: Add NULL check for font before accessing fields */
+ if (entry->sme_bsb.font != NULL) {
+     if (entry->sme_bsb.label == NULL)
+  *width = 0;
+     else
+  *width = XTextWidth(entry->sme_bsb.font, entry->sme_bsb.label,
+    strlen(entry->sme_bsb.label));
 
-        *height = (entry->sme_bsb.font->ascent +
-	       entry->sme_bsb.font->descent);
+     *height = (entry->sme_bsb.font->ascent +
+     entry->sme_bsb.font->descent);
+ } else {
+     /* No font available - use defaults */
+     if (entry->sme_bsb.label == NULL)
+  *width = 0;
+     else
+  *width = strlen(entry->sme_bsb.label) * 8;  /* Default width */
+     *height = 14;  /* Default height */
+ }
     }
 
     *width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;
@@ -797,9 +842,15 @@ CreateGCs(Widget w)
     memset(&values, 0, sizeof(values));
     values.foreground = XtParent(w)->core.background_pixel;
     values.background = entry->sme_bsb.foreground;
-    values.font = entry->sme_bsb.font->fid;
     values.graphics_exposures = 0;
-    mask      = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FONT;
+
+    /* XCB Fix: Add NULL check for font before accessing fid */
+    mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
+    if (entry->sme_bsb.font != NULL) {
+        values.font = entry->sme_bsb.font->fid;
+        mask |= XCB_GC_FONT;
+    }
+
 #ifdef XAW_INTERNATIONALIZATION
     mask_i18n = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
     if ( entry->sme.international == True )
@@ -823,13 +874,19 @@ CreateGCs(Widget w)
     	    XtParent(w)->core.background_pixel,
     	    XtParent(w)->core.depth);
     values.graphics_exposures = 0;
-    mask |= XCB_GC_TILE | XCB_GC_FILL_STYLE;
+
+    /* XCB Fix: Add NULL check for font before accessing fid */
+    XtGCMask gray_mask = XCB_GC_TILE | XCB_GC_FILL_STYLE | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
+    if (entry->sme_bsb.font != NULL) {
+        gray_mask |= XCB_GC_FONT;
+    }
+
 #ifdef XAW_INTERNATIONALIZATION
     if ( entry->sme.international == True )
         entry->sme_bsb.norm_gray_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
     else
 #endif
-        entry->sme_bsb.norm_gray_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
+        entry->sme_bsb.norm_gray_gc = XtGetGC(w, gray_mask, (xcb_create_gc_value_list_t*)&values);
 
     values.foreground ^= values.background;
     values.background = 0;
