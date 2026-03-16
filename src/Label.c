@@ -476,10 +476,22 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  } else
 #endif
  {
-     fprintf(stderr, "ERROR Label.c: Both font and fontset are NULL for widget '%s'\n",
+     /* Both font and fontset are NULL - load fallback font */
+     fprintf(stderr, "WARNING Label.c: Both font and fontset are NULL for widget '%s'\n",
              XtName(new));
-     XtAppWarning(XtWidgetToApplicationContext(new),
-    "Label widget: font and fontset are both NULL - text rendering will fail");
+     fprintf(stderr, "         Attempting to load fallback font...\n");
+     
+     lw->label.font = XawLoadFallbackFont(XtDisplay(new));
+     
+     if (lw->label.font == NULL) {
+         fprintf(stderr, "FATAL Label.c: Fallback font loading failed for widget '%s'\n",
+                 XtName(new));
+         XtAppError(XtWidgetToApplicationContext(new),
+                    "Label widget: Both font resource converters failed AND fallback font loading failed");
+     } else {
+         fprintf(stderr, "SUCCESS Label.c: Fallback font loaded with fid=%lu\n",
+                 (unsigned long)lw->label.font->fid);
+     }
  }
     } else {
         fprintf(stderr, "DEBUG Label.c: Font is valid, fid=%lu\n",

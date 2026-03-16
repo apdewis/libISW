@@ -12,6 +12,7 @@
 #include "../include/X11/Xaw3d/Form.h"  /* For XawEdgeType definition */
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 /*
  * =================================================================
@@ -1284,4 +1285,86 @@ Pixmap XawLocatePixmapFile(
      */
     
     return None;
+}
+
+/*
+ * =================================================================
+ * FONT FALLBACK HANDLING
+ * =================================================================
+ */
+
+/*
+ * XawLoadFallbackFont - Load a fallback font when resource converters fail
+ *
+ * This function loads a hardcoded default font using XCB when the
+ * XtRFontStruct and XtRFontSet resource converters fail in the custom libXt.
+ *
+ * Returns: A minimal XFontStruct with a valid font ID, or NULL on failure
+ */
+XFontStruct *
+XawLoadFallbackFont(xcb_connection_t *conn)
+{
+    XFontStruct *font;
+    xcb_font_t fid;
+    const char *fallback_names[] = {
+        "fixed",
+        "6x13",
+        "cursor",
+        NULL
+    };
+    int i;
+    
+    if (!conn) {
+        fprintf(stderr, "XawLoadFallbackFont: NULL connection\n");
+        return NULL;
+    }
+    
+    /* Try each fallback font name in order */
+    for (i = 0; fallback_names[i] != NULL; i++) {
+        fid = xcb_generate_id(conn);
+        xcb_void_cookie_t cookie = xcb_open_font_checked(
+            conn, fid, strlen(fallback_names[i]), fallback_names[i]);
+        
+        xcb_generic_error_t *error = xcb_request_check(conn, cookie);
+        if (!error) {
+            /* Font loaded successfully */
+            fprintf(stderr, "XawLoadFallbackFont: Loaded font '%s' with fid=%lu\n",
+                    fallback_names[i], (unsigned long)fid);
+            
+            /* Create minimal XFontStruct */
+            font = (XFontStruct *)calloc(1, sizeof(XFontStruct));
+            if (!font) {
+                xcb_close_font(conn, fid);
+                return NULL;
+            }
+            
+            font->fid = fid;
+            font->min_char_or_byte2 = 0;
+            font->max_char_or_byte2 = 255;
+            
+            /* Note: We don't query font properties here to avoid additional
+             * round-trips. The widgets will use reasonable defaults. */
+            
+            return font;
+        }
+        free(error);
+        /* Try next fallback */
+    }
+    
+    fprintf(stderr, "XawLoadFallbackFont: All fallback fonts failed\n");
+    return NULL;
+}
+
+/*
+ * XawFreeFallbackFont - Free a fallback font created by XawLoadFallbackFont
+ */
+void
+XawFreeFallbackFont(xcb_connection_t *conn, XFontStruct *font)
+{
+    if (font) {
+        if (conn && font->fid) {
+            xcb_close_font(conn, font->fid);
+        }
+        free(font);
+    }
 }

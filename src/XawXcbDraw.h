@@ -878,4 +878,16 @@ int XawQueryPointer(xcb_connection_t *dpy, xcb_window_t win,
 #define XQueryPointer XawQueryPointer
 #endif
 
+/*
+ * =================================================================
+ * FONT FALLBACK HANDLING
+ * =================================================================
+ */
+
+/* Load a fallback font when resource converters fail */
+XFontStruct *XawLoadFallbackFont(xcb_connection_t *conn);
+
+/* Free a fallback font created by XawLoadFallbackFont */
+void XawFreeFallbackFont(xcb_connection_t *conn, XFontStruct *font);
+
 #endif /* _XawXcbDraw_h */

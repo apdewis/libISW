@@ -266,6 +266,9 @@ PanedClassRec panedClassRec = {
     /* destroy            */   NULL,
     /* set_values         */   PaneSetValues,
     /* extension          */   NULL
+   }, {
+/* paned class fields */
+    /* empty              */   0
    }
 };
 
