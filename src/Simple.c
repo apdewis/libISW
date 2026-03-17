@@ -196,7 +196,9 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
 
     ConvertCursor(w);
 
-    if (((SimpleWidget)w)->simple.cursor != None) {
+    if (((SimpleWidget)w)->simple.cursor != None &&
+        ((SimpleWidget)w)->simple.cursor != (Cursor)0xffffffff) {
+	/* Only add cursor if it's a valid non-zero cursor ID */
 	*valueMask |= CWCursor;
 	attributes[__builtin_popcount(*valueMask & (CWCursor - 1))] = ((SimpleWidget)w)->simple.cursor;
     }

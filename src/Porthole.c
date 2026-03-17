@@ -203,8 +203,29 @@ layout_child (PortholeWidget pw, Widget child, XtWidgetGeometry *geomp,
 static void
 Realize (xcb_connection_t *dpy, Widget gw, XtValueMask *valueMask, uint32_t *attributes)
 {
-    *valueMask |= CWBitGravity;
-    attributes[__builtin_popcount(*valueMask & (CWBitGravity - 1))] = XCB_GRAVITY_NORTH_WEST;
+    if (!(*valueMask & XCB_CW_BIT_GRAVITY)) {
+        int insert_idx = 0;
+        int total_values = 0;
+        int i;
+        uint32_t bit;
+
+        /* Count values for bits below XCB_CW_BIT_GRAVITY (bits 0-3) */
+        for (bit = 1; bit < XCB_CW_BIT_GRAVITY; bit <<= 1) {
+            if (*valueMask & bit)
+                insert_idx++;
+        }
+        /* Count total values in current attributes array */
+        for (bit = 1; bit <= XCB_CW_CURSOR; bit <<= 1) {
+            if (*valueMask & bit)
+                total_values++;
+        }
+        /* Shift values from insert_idx onward to make room */
+        for (i = total_values; i > insert_idx; i--)
+            attributes[i] = attributes[i - 1];
+
+        attributes[insert_idx] = XCB_GRAVITY_NORTH_WEST;
+        *valueMask |= XCB_CW_BIT_GRAVITY;
+    }
 
     if (gw->core.width < 1) gw->core.width = 1;
     if (gw->core.height < 1) gw->core.height = 1;

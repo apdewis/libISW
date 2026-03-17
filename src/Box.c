@@ -602,13 +602,37 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 static void
 Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
-    /* XCB Migration: attributes is now uint32_t array in mask bit order */
-    /* For CWBitGravity, we need to add it to the value mask and append the value */
-    /* Note: This simplified version assumes the attributes array has space.
-     * A complete implementation would need to reconstruct the attributes array. */
-    *valueMask |= CWBitGravity;
-    /* Attributes array must be in mask bit order - CWBitGravity is typically at a specific index */
-    /* For now, let the XtCreateWindow handle the attributes setup */
+    /* XCB Migration: attributes is a uint32_t array in ascending mask bit order.
+     * We need to INSERT the CWBitGravity value at the correct position,
+     * shifting subsequent values to make room. CWBitGravity = XCB_CW_BIT_GRAVITY
+     * is bit 4. We count how many values exist for bits 0-3 (BACK_PIXMAP,
+     * BACK_PIXEL, BORDER_PIXMAP, BORDER_PIXEL) to find the insertion index. */
+    if (!(*valueMask & XCB_CW_BIT_GRAVITY)) {
+        int insert_idx = 0;
+        int total_values = 0;
+        int i;
+        uint32_t bit;
+
+        /* Count values for bits below XCB_CW_BIT_GRAVITY (bits 0-3) */
+        for (bit = 1; bit < XCB_CW_BIT_GRAVITY; bit <<= 1) {
+            if (*valueMask & bit)
+                insert_idx++;
+        }
+
+        /* Count total values in current attributes array */
+        for (bit = 1; bit <= XCB_CW_CURSOR; bit <<= 1) {
+            if (*valueMask & bit)
+                total_values++;
+        }
+
+        /* Shift values from insert_idx onward to make room */
+        for (i = total_values; i > insert_idx; i--)
+            attributes[i] = attributes[i - 1];
+
+        /* Insert NorthWestGravity at the correct position */
+        attributes[insert_idx] = XCB_GRAVITY_NORTH_WEST;
+        *valueMask |= XCB_CW_BIT_GRAVITY;
+    }
     
     XtCreateWindow(conn, w, (unsigned)InputOutput,
                    (Visual *)CopyFromParent, *valueMask, attributes);

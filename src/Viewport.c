@@ -318,8 +318,29 @@ Realize(xcb_connection_t *conn, Widget widget, XtValueMask *value_mask, uint32_t
     Widget clip = w->viewport.clip;
     Widget threeD = (Widget)w->viewport.threeD;
 
-    *value_mask |= CWBitGravity;
-    values[__builtin_popcount(*value_mask & (CWBitGravity - 1))] = XCB_GRAVITY_NORTH_WEST;
+    if (!(*value_mask & XCB_CW_BIT_GRAVITY)) {
+        int insert_idx = 0;
+        int total_values = 0;
+        int i;
+        uint32_t bit;
+
+        /* Count values for bits below XCB_CW_BIT_GRAVITY (bits 0-3) */
+        for (bit = 1; bit < XCB_CW_BIT_GRAVITY; bit <<= 1) {
+            if (*value_mask & bit)
+                insert_idx++;
+        }
+        /* Count total values in current attributes array */
+        for (bit = 1; bit <= XCB_CW_CURSOR; bit <<= 1) {
+            if (*value_mask & bit)
+                total_values++;
+        }
+        /* Shift values from insert_idx onward to make room */
+        for (i = total_values; i > insert_idx; i--)
+            values[i] = values[i - 1];
+
+        values[insert_idx] = XCB_GRAVITY_NORTH_WEST;
+        *value_mask |= XCB_CW_BIT_GRAVITY;
+    }
     (*superclass->core_class.realize)(conn, widget, value_mask, values);
 
     (*w->core.widget_class->core_class.resize)(widget);	/* turn on bars */

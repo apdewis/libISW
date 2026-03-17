@@ -397,7 +397,7 @@ static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
 static Pixmap
 CreateInsertCursor(Widget w)
 {
-    xcb_connection_t *conn = XtDisplay(w);
+    xcb_connection_t *conn = XtDisplayOfObject(w);
     xcb_screen_t *s = XtScreenOfObject(w);
     xcb_drawable_t root = RootWindowOfScreen(s);
     return XawCreateBitmapFromData(conn, root,

@@ -621,6 +621,7 @@ _Xaw3dDrawShadows (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t re
     ThreeDWidget tdw = (ThreeDWidget) gw;
     Dimension	s = tdw->threeD.shadow_width;
 
+
     /*
      * Draw the shadows using the core part width and height,
      * and the threeD part relief and shadow_width.
