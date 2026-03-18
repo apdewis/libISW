@@ -35,6 +35,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/StringDefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#include <xcb/xcb_keysyms.h>
 #include "XawXcbDraw.h"
 #include <X11/Xaw3d/TextP.h>
 #ifdef XAW_INTERNATIONALIZATION
@@ -1507,10 +1508,46 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   } else
 #endif
   {
-    /* Simplified key handling for non-I18N path - just return 0 for now
-     * Full implementation would need xkbcommon or XCB keysyms extension */
-    text.length = 0;
-    keysym = 0;
+    /* Non-I18N path: convert XCB key event to character using XCB keysyms */
+    xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+    xcb_connection_t *conn = XtDisplay(w);
+    static xcb_key_symbols_t *keysyms = NULL;
+    
+    /* Initialize key symbols context if needed */
+    if (keysyms == NULL) {
+      keysyms = xcb_key_symbols_alloc(conn);
+    }
+    
+    if (keysyms != NULL) {
+      /* Get keysym from keycode */
+      xcb_keysym_t sym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 0);
+      keysym = sym;
+      
+      /* Convert keysym to character */
+      if (sym >= 0x20 && sym <= 0x7E) {
+        /* Printable ASCII */
+        strbuf[0] = (char)sym;
+        text.length = 1;
+      } else if (sym >= 0xA0 && sym <= 0xFF) {
+        /* Latin-1 supplement */
+        strbuf[0] = (char)sym;
+        text.length = 1;
+      } else if (sym == 0xFF0D || sym == 0xFF8D) {
+        /* Return/Enter key */
+        strbuf[0] = '\r';
+        text.length = 1;
+      } else if (sym == 0xFF09) {
+        /* Tab key */
+        strbuf[0] = '\t';
+        text.length = 1;
+      } else {
+        /* Non-printable or special key */
+        text.length = 0;
+      }
+    } else {
+      text.length = 0;
+      keysym = 0;
+    }
   }
 
   if (text.length == 0)
