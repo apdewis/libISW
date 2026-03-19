@@ -367,7 +367,7 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
 static void
 PaintArrows (ScrollbarWidget sbw)
 {
-    XPoint    pt[20];
+    xcb_point_t    pt[20];
     Dimension s   = sbw->threeD.shadow_width;
     Dimension t   = sbw->scrollbar.thickness;
     Dimension l   = sbw->scrollbar.length;
@@ -379,7 +379,7 @@ PaintArrows (ScrollbarWidget sbw)
     Dimension t2  = t / 2;
     Dimension sa30 = (Dimension)(1.732 * s );  /* cotangent of 30 deg */
     xcb_connection_t   *dpy = XtDisplay (sbw);
-    XtWindow   win = XtWindow (sbw);
+    xcb_window_t   win = XtWindow (sbw);
     GC        top = sbw->threeD.top_shadow_GC;
     GC        bot = sbw->threeD.bot_shadow_GC;
 
