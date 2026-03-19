@@ -453,10 +453,13 @@ PositionVScrollBar(TextWidget ctx)
   Dimension bw;
   int s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
 
-  if (vbar == NULL) return;
+  if (vbar == NULL)
+    return;
+  
   bw = vbar->core.border_width;
 
   XtResizeWidget( vbar, vbar->core.width, ctx->core.height - s, bw);
+  
   pos = s / 2 - (Position)bw;
   if (pos < 0) pos = 0;
 
@@ -468,16 +471,18 @@ CreateVScrollBar(TextWidget ctx)
 {
   Widget vbar;
 
-  if (ctx->text.vbar != NULL) return;
+  if (ctx->text.vbar != NULL)
+    return;
 
   ctx->text.vbar = vbar =
     XtCreateWidget("vScrollbar", scrollbarWidgetClass, (Widget)ctx,
-		(ArgList) NULL, ZERO);
+  (ArgList) NULL, ZERO);
+  
   XtAddCallback( vbar, XtNscrollProc, VScroll, (XtPointer)ctx );
   XtAddCallback( vbar, XtNjumpProc, VJump, (XtPointer)ctx );
   if (ctx->text.hbar == NULL)
       XtAddCallback((Widget) ctx, XtNunrealizeCallback, UnrealizeScrollbars,
-		    (XtPointer) NULL);
+      (XtPointer) NULL);
 
   ctx->text.r_margin.left += vbar->core.width + vbar->core.border_width;
   ctx->text.margin.left = ctx->text.r_margin.left;
@@ -488,6 +493,7 @@ CreateVScrollBar(TextWidget ctx)
   if (XtIsRealized((Widget)ctx)) {
     XtRealizeWidget(vbar);
     XtMapWidget(vbar);
+    xcb_flush(XtDisplay((Widget)ctx));
   }
 }
 
@@ -681,6 +687,7 @@ Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attr
   if (ctx->text.vbar != NULL) {	        /* Put up Vbar. */
     XtRealizeWidget(ctx->text.vbar);
     XtMapWidget(ctx->text.vbar);
+    xcb_flush(conn);
   }
 
   _XawTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
@@ -1132,13 +1139,35 @@ CheckVBarScrolling(TextWidget ctx)
   if (ctx->text.scroll_vert == XawtextScrollNever) return;
 
   if ( (ctx->text.lastPos > 0) && (ctx->text.lt.lines > 0)) {
+    XawTextPosition visible_end, raw_pos;
+    int i;
+    
+    fprintf(stderr, "CheckVBarScrolling: lt.top=%ld, lastPos=%ld, lines=%d\n",
+            ctx->text.lt.top, ctx->text.lastPos, ctx->text.lt.lines);
+    
+    /* Debug: show all line positions */
+    for (i = 0; i <= ctx->text.lt.lines && i < 10; i++) {
+      fprintf(stderr, "  info[%d].position=%ld\n", i, ctx->text.lt.info[i].position);
+    }
+    
     first = ctx->text.lt.top;
     first /= (float) ctx->text.lastPos;
-    last = ctx->text.lt.info[ctx->text.lt.lines].position;
-    if ( ctx->text.lt.info[ctx->text.lt.lines].position < ctx->text.lastPos )
-      last /= (float) ctx->text.lastPos;
-    else
-      last = 1.0;
+    
+    /* Get the visible end position, but clamp to lastPos
+     * (line table uses sentinel values > lastPos) */
+    raw_pos = ctx->text.lt.info[ctx->text.lt.lines].position;
+    visible_end = raw_pos;
+    fprintf(stderr, "  info[%d].position (raw)=%ld", ctx->text.lt.lines, raw_pos);
+    if (visible_end > ctx->text.lastPos) {
+      visible_end = ctx->text.lastPos;
+      fprintf(stderr, " CLAMPED to %ld", visible_end);
+    }
+    fprintf(stderr, "\n");
+    
+    last = visible_end;
+    last /= (float) ctx->text.lastPos;
+    
+    fprintf(stderr, "  Thumb: first=%.3f, last=%.3f, shown=%.3f\n", first, last, last - first);
 
     if (ctx->text.scroll_vert == XawtextScrollWhenNeeded) {
       int line;
@@ -1249,6 +1278,7 @@ _XawTextVScroll(TextWidget ctx, int n)
   if (n == 0) return;
 
   if (n > 0) {
+    XawTextPosition scroll_from_pos;
     if ( IsValidLine(ctx, n) )
       top = XawMin(lt->info[n].position, ctx->text.lastPos);
     else
@@ -1267,14 +1297,17 @@ _XawTextVScroll(TextWidget ctx, int n)
 
       PushCopyQueue(ctx, 0, (int) -y);
       SinkClearToBG(ctx->text.sink,
-		    (Position) s,
-		    (Position) (ctx->text.margin.top + ctx->core.height - y - s),
-		   (Dimension) ctx->core.width - 2 * s,
-		   (Dimension) ctx->core.height - 2 * s);
+      (Position) s,
+      (Position) (ctx->text.margin.top + ctx->core.height - y - s),
+     (Dimension) ctx->core.width - 2 * s,
+     (Dimension) ctx->core.height - 2 * s);
 
       if (n < lt->lines) n++; /* update descenders at bottom */
-      _XawTextNeedsUpdating(ctx, lt->info[lt->lines - n].position,
-			    ctx->text.lastPos);
+      /* Clamp position to lastPos to avoid sentinel values */
+      scroll_from_pos = lt->info[lt->lines - n].position;
+      if (scroll_from_pos > ctx->text.lastPos)
+        scroll_from_pos = ctx->text.lastPos;
+      _XawTextNeedsUpdating(ctx, scroll_from_pos, ctx->text.lastPos);
       _XawTextSetScrollBars(ctx);
     }
   }
@@ -1285,11 +1318,12 @@ _XawTextVScroll(TextWidget ctx, int n)
     n = -n;
     target = lt->top;
     top = SrcScan(ctx->text.source, target, XawstEOL,
-		  XawsdLeft, n+1, FALSE);
+    XawsdLeft, n+1, FALSE);
 
     _XawTextBuildLineTable(ctx, top, FALSE);
     y = IsValidLine(ctx, n) ? lt->info[n].y : ctx->core.height - 2 * s;
-    updateTo = IsValidLine(ctx, n) ? lt->info[n].position : ctx->text.lastPos;
+    /* Clamp position to lastPos to avoid sentinel values */
+    updateTo = IsValidLine(ctx, n) ? XawMin(lt->info[n].position, ctx->text.lastPos) : ctx->text.lastPos;
     if (IsValidLine(ctx, lt->lines - n))
       height = lt->info[lt->lines-n].y - ctx->text.margin.top;
     else if (ctx->core.height - HMargins(ctx))
@@ -1301,21 +1335,11 @@ _XawTextVScroll(TextWidget ctx, int n)
     else
       clear_height = 0;
 
-    if ( updateTo == target ) {
-      xcb_connection_t *conn = XtDisplay(ctx);
-      xcb_copy_area(conn, XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
-  s, ctx->text.margin.top, s, y,
-  (int) ctx->core.width - 2 * s, height);
-      xcb_flush(conn);
-      PushCopyQueue(ctx, 0, (int) y);
-      SinkClearToBG(ctx->text.sink, (Position) s, ctx->text.margin.top,
-		   (Dimension) ctx->core.width - 2 * s, (Dimension) clear_height);
-
-      _XawTextNeedsUpdating(ctx, lt->info[0].position, updateTo);
-      _XawTextSetScrollBars(ctx);
-    }
-    else if (lt->top != target)
-      DisplayTextWindow((Widget)ctx);
+    /* XCB's xcb_copy_area has issues with overlapping regions for backward
+     * scrolling, so we do a full redraw instead. This is simpler and more
+     * reliable than trying to copy overlapping regions. */
+    DisplayTextWindow((Widget)ctx);
+    _XawTextSetScrollBars(ctx);
   }
   XtSetArg (list[0], XtNinsertPosition, ctx->text.lt.top+ctx->text.lt.lines);
 #ifdef XAW_INTERNATIONALIZATION
@@ -1496,6 +1520,8 @@ VScroll(Widget w, XtPointer closure, XtPointer callData)
   TextWidget ctx = (TextWidget)closure;
   int height, nlines, lines = (intptr_t) callData;
 
+  fprintf(stderr, "VScroll callback: lines=%d\n", lines);
+
   height = ctx->core.height - VMargins(ctx);
   if (height < 1)
     height = 1;
@@ -1504,6 +1530,8 @@ VScroll(Widget w, XtPointer closure, XtPointer callData)
   if (nlines == 0 && lines != 0)
     nlines = lines > 0 ? 1 : -1;
 #endif
+  fprintf(stderr, "  height=%d, ctx->text.lt.lines=%d, nlines=%d\n",
+          height, ctx->text.lt.lines, nlines);
   _XawTextPrepareToUpdate(ctx);
   _XawTextVScroll(ctx, nlines);
   _XawTextExecuteUpdate(ctx);

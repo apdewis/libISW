@@ -573,6 +573,12 @@ XawVendorShellExtResize(Widget w)
 
 	_XawImResizeVendorShell( w );
 	core_height = _XawImGetShellHeight( w );
+	
+	/* Check if children array is allocated before accessing it */
+	if (sw->composite.children == NULL) {
+		return;
+	}
+	
 	for( i = 0; i < sw->composite.num_children; i++ ) {
 	    if( XtIsManaged( sw->composite.children[ i ] ) ) {
 		childwid = sw->composite.children[ i ];

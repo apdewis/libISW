@@ -922,8 +922,8 @@ NotifyScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
     ExtractPosition (event, &x, &y);
 
     if (PICKLENGTH (sbw,x,y) < sbw->scrollbar.thickness) {
-	/* handle first arrow zone */
-	call_data = -MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
+ /* handle first arrow zone */
+ call_data = -MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
 	XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
 	/* establish autoscroll */
 	sbw->scrollbar.timer_id =
@@ -931,22 +931,22 @@ NotifyScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
 				(unsigned long) 300, RepeatNotify, (XtPointer)w);
 	sbw->scrollbar.scroll_mode = 1;
     } else if (PICKLENGTH (sbw,x,y) > sbw->scrollbar.length - sbw->scrollbar.thickness) {
-	/* handle last arrow zone */
-	call_data = MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
-	XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
+ /* handle last arrow zone */
+ call_data = MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
+ XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
 	/* establish autoscroll */
 	sbw->scrollbar.timer_id =
 	    XtAppAddTimeOut (XtWidgetToApplicationContext (w),
 				(unsigned long) 300, RepeatNotify, (XtPointer)w);
 	sbw->scrollbar.scroll_mode = 3;
     } else if (PICKLENGTH (sbw, x, y) < sbw->scrollbar.topLoc) {
-	/* handle zone "above" the thumb */
-	call_data = - sbw->scrollbar.length;
-	XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
+ /* handle zone "above" the thumb */
+ call_data = - sbw->scrollbar.length;
+ XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
     } else if (PICKLENGTH (sbw, x, y) > sbw->scrollbar.topLoc + sbw->scrollbar.shownLength) {
-	/* handle zone "below" the thumb */
-	call_data = sbw->scrollbar.length;
-	XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
+ /* handle zone "below" the thumb */
+ call_data = sbw->scrollbar.length;
+ XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
     } else
 	{
 	/* handle the thumb in the motion notify action */
@@ -965,32 +965,32 @@ NotifyScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
     if (sbw->scrollbar.direction == 0) return; /* if no StartScroll */
     if (LookAhead (w, event)) return;
     if (*num_params > 0)
-	style = *params[0];
+ style = *params[0];
     else
-	style = 'P';
+ style = 'P';
 
     switch (style) {
     case 'P':    /* Proportional */
     case 'p':
-	ExtractPosition (event, &x, &y);
-	call_data =
-	    InRange (PICKLENGTH (sbw, x, y), 0, (int) sbw->scrollbar.length);
-	break;
+ ExtractPosition (event, &x, &y);
+ call_data =
+     InRange (PICKLENGTH (sbw, x, y), 0, (int) sbw->scrollbar.length);
+ break;
 
     case 'F':    /* FullLength */
     case 'f':
-	call_data = sbw->scrollbar.length;
-	break;
+ call_data = sbw->scrollbar.length;
+ break;
     }
     switch (sbw->scrollbar.direction) {
     case 'B':
     case 'b':
-	call_data = -call_data;
-	/* fall through */
+ call_data = -call_data;
+ /* fall through */
 
     case 'F':
     case 'f':
-	XtCallCallbacks (w, XtNscrollProc, (XtPointer)call_data);
+ XtCallCallbacks (w, XtNscrollProc, (XtPointer)call_data);
 	break;
 
     case 'C':
