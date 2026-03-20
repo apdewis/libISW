@@ -1,10 +1,10 @@
 #!/bin/bash
-# Xaw3d to ISW Include Statement Updates
+# Isw3d to ISW Include Statement Updates
 # Part 3: Update all #include statements
 
 set -e
 
-echo "=== Xaw3d to ISW Include Statement Updates ==="
+echo "=== Isw3d to ISW Include Statement Updates ==="
 echo
 
 # Function to update includes
@@ -34,23 +34,23 @@ done
 # Phase 2: Update #include statements
 echo
 echo "Phase 2: Updating #include statements..."
-update_includes "X11/Xaw3d includes" "<X11/Xaw3d/\\([^>]*\\)>" "<ISW/\\1>"
-update_includes "Quoted X11/Xaw3d includes" "\"X11/Xaw3d/\\([^\"]*\\)\"" "\"ISW/\\1\""
+update_includes "X11/Isw3d includes" "<X11/Isw3d/\\([^>]*\\)>" "<ISW/\\1>"
+update_includes "Quoted X11/Isw3d includes" "\"X11/Isw3d/\\([^\"]*\\)\"" "\"ISW/\\1\""
 
 # Phase 3: Update internal header includes
 echo
 echo "Phase 3: Updating internal header includes..."
-update_includes "XawXcbDraw.h" "\"XawXcbDraw\\.h\"" "\"ISWXcbDraw.h\""
-update_includes "XawI18n.h" "\"XawI18n\\.h\"" "\"ISWI18n.h\""
-update_includes "Xaw3dP.h" "\"Xaw3dP\\.h\"" "\"ISWP.h\""
-update_includes "<Xaw3dP.h>" "<Xaw3dP\\.h>" "<ISWP.h>"
+update_includes "IswXcbDraw.h" "\"IswXcbDraw\\.h\"" "\"ISWXcbDraw.h\""
+update_includes "IswI18n.h" "\"IswI18n\\.h\"" "\"ISWI18n.h\""
+update_includes "Isw3dP.h" "\"Isw3dP\\.h\"" "\"ISWP.h\""
+update_includes "<Isw3dP.h>" "<Isw3dP\\.h>" "<ISWP.h>"
 
-# Phase 4: Update specific Xaw header references
+# Phase 4: Update specific Isw header references
 echo
-echo "Phase 4: Updating Xaw-prefixed header references..."
+echo "Phase 4: Updating Isw-prefixed header references..."
 for header in Init Context Atoms Drawing Im; do
-    update_includes "Xaw${header}.h" "\"Xaw${header}\\.h\"" "\"ISW${header}.h\""
-    update_includes "<Xaw${header}.h>" "<Xaw${header}\\.h>" "<ISW${header}.h>"
+    update_includes "Isw${header}.h" "\"Isw${header}\\.h\"" "\"ISW${header}.h\""
+    update_includes "<Isw${header}.h>" "<Isw${header}\\.h>" "<ISW${header}.h>"
 done
 
 echo

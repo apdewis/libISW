@@ -98,7 +98,7 @@ ViewportClassRec viewportClassRec = {
     /* superclass	  */	(WidgetClass) superclass,
     /* class_name	  */	"Viewport",
     /* widget_size	  */	sizeof(ViewportRec),
-    /* class_initialize	  */	XawInitializeWidgetSet,
+    /* class_initialize	  */	IswInitializeWidgetSet,
     /* class_part_init    */    NULL,
     /* class_inited	  */	FALSE,
     /* initialize	  */	Initialize,
@@ -478,7 +478,7 @@ RedrawThumbs(ViewportWidget w)
 static void
 SendReport (ViewportWidget w, unsigned int changed)
 {
-    XawPannerReport rep;
+    IswPannerReport rep;
 
     if (w->viewport.report_callbacks) {
 	Widget child = w->viewport.child;
@@ -515,7 +515,7 @@ MoveChild(ViewportWidget w, Position x, Position y)
     if (y >= 0) y = 0;
 
     XtMoveWidget(child, x, y);
-    SendReport (w, (XawPRSliderX | XawPRSliderY));
+    SendReport (w, (IswPRSliderX | IswPRSliderY));
 
     RedrawThumbs(w);
 }
@@ -778,7 +778,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		  needsvert ? child->core.y : 0);
     }
 
-    SendReport (w, XawPRAll);
+    SendReport (w, IswPRAll);
 }
 
 /*      Function Name: ComputeWithForceBars
@@ -1141,7 +1141,7 @@ PreferredGeometry(Widget w, XtWidgetGeometry *constraints, XtWidgetGeometry *rep
 
 
 void
-XawViewportSetLocation (Widget gw,
+IswViewportSetLocation (Widget gw,
 #if NeedWidePrototypes
 			double xoff, double yoff)
 #else
@@ -1170,7 +1170,7 @@ XawViewportSetLocation (Widget gw,
 }
 
 void
-XawViewportSetCoordinates (Widget gw,
+IswViewportSetCoordinates (Widget gw,
 #if NeedWidePrototypes
 			   int x, int y)
 #else

@@ -51,8 +51,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _ISW_XawCommandP_h
-#define _ISW_XawCommandP_h
+#ifndef _ISW_IswCommandP_h
+#define _ISW_IswCommandP_h
 
 #include <ISW/Command.h>
 #include <ISW/LabelP.h>
@@ -133,6 +133,6 @@ typedef struct _CommandRec {
     CommandPart      command;
 } CommandRec;
 
-#endif /* _ISW_XawCommandP_h */
+#endif /* _ISW_IswCommandP_h */
 
 

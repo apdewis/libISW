@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawText_h
-#define _ISW_XawText_h
+#ifndef _ISW_IswText_h
+#define _ISW_IswText_h
 
 #include <ISW/Simple.h>
 
@@ -67,41 +67,41 @@ SOFTWARE.
  displayPosition    TextPosition     ISWTextPosition	0
  insertPosition	    TextPosition     ISWTextPosition	0
  leftMargin	    Margin	     Position		2
- resize		    Resize	     XawTextResizeMode	XawTextResizeNever
+ resize		    Resize	     IswTextResizeMode	IswTextResizeNever
  rightMargin	    Margin	     Position		4
- scrollHorizontal   Scroll	     XawTextScrollMode	XawtextScrollNever
- scrollVertical     Scroll	     XawTextScrollMode  XawtextScrollNever
+ scrollHorizontal   Scroll	     IswTextScrollMode	IswtextScrollNever
+ scrollVertical     Scroll	     IswTextScrollMode  IswtextScrollNever
  selectTypes        SelectTypes      Pointer            see documentation
  textSink	    TextSink	     Widget		NULL
  textSource	    TextSource	     Widget		NULL
  topMargin	    Margin	     Position		2
  unrealizeCallback  Callback	     Callback		NULL
- wrap		    Wrap	     XawTextWrapMode	XawTextWrapNever
+ wrap		    Wrap	     IswTextWrapMode	IswTextWrapNever
 
 */
 
 typedef long ISWTextPosition;
 
-typedef enum { XawtextScrollNever,
-	       XawtextScrollWhenNeeded, XawtextScrollAlways} XawTextScrollMode;
+typedef enum { IswtextScrollNever,
+	       IswtextScrollWhenNeeded, IswtextScrollAlways} IswTextScrollMode;
 
-typedef enum { XawtextWrapNever,
-	       XawtextWrapLine, XawtextWrapWord} XawTextWrapMode;
+typedef enum { IswtextWrapNever,
+	       IswtextWrapLine, IswtextWrapWord} IswTextWrapMode;
 
-typedef enum { XawtextResizeNever, XawtextResizeWidth,
-	       XawtextResizeHeight, XawtextResizeBoth} XawTextResizeMode;
+typedef enum { IswtextResizeNever, IswtextResizeWidth,
+	       IswtextResizeHeight, IswtextResizeBoth} IswTextResizeMode;
 
-typedef enum {XawsdLeft, XawsdRight} XawTextScanDirection;
-typedef enum {XawtextRead, XawtextAppend, XawtextEdit} XawTextEditType;
-typedef enum {XawselectNull, XawselectPosition, XawselectChar, XawselectWord,
-    XawselectLine, XawselectParagraph, XawselectAll} XawTextSelectType;
+typedef enum {IswsdLeft, IswsdRight} IswTextScanDirection;
+typedef enum {IswtextRead, IswtextAppend, IswtextEdit} IswTextEditType;
+typedef enum {IswselectNull, IswselectPosition, IswselectChar, IswselectWord,
+    IswselectLine, IswselectParagraph, IswselectAll} IswTextSelectType;
 
 typedef struct {
     int  firstPos;
     int  length;
     char *ptr;
     unsigned long format;
-    } ISWTextBlock, *XawTextBlockPtr;
+    } ISWTextBlock, *IswTextBlockPtr;
 
 #include <ISW/TextSink.h>
 #include <ISW/TextSrc.h>
@@ -145,20 +145,20 @@ typedef struct {
 #define XtCResize "Resize"
 #endif
 
-/* Return Error code for XawTextSearch */
+/* Return Error code for IswTextSearch */
 
-#define XawTextSearchError      (-12345L)
+#define IswTextSearchError      (-12345L)
 
-/* Return codes from XawTextReplace */
+/* Return codes from IswTextReplace */
 
-#define XawReplaceError	       -1
-#define XawEditDone		0
-#define XawEditError		1
-#define XawPositionError	2
+#define IswReplaceError	       -1
+#define IswEditDone		0
+#define IswEditError		1
+#define IswPositionError	2
 
 extern unsigned long FMT8BIT;
-extern unsigned long XawFmt8Bit;
-extern unsigned long XawFmtWide;
+extern unsigned long IswFmt8Bit;
+extern unsigned long IswFmtWide;
 
 /* Class record constants */
 
@@ -169,94 +169,94 @@ typedef struct _TextRec      *TextWidget;
 
 _XFUNCPROTOBEGIN
 
-extern XrmQuark _XawTextFormat(
+extern XrmQuark _IswTextFormat(
     TextWidget		/* tw */
 );
 
-extern void XawTextDisplay(
+extern void IswTextDisplay(
     Widget		/* w */
 );
 
-extern void XawTextEnableRedisplay(
+extern void IswTextEnableRedisplay(
     Widget		/* w */
 );
 
-extern void XawTextDisableRedisplay(
+extern void IswTextDisableRedisplay(
     Widget		/* w */
 );
 
-extern void XawTextSetSelectionArray(
+extern void IswTextSetSelectionArray(
     Widget		/* w */,
-    XawTextSelectType*	/* sarray */
+    IswTextSelectType*	/* sarray */
 );
 
-extern void XawTextGetSelectionPos(
+extern void IswTextGetSelectionPos(
     Widget		/* w */,
     ISWTextPosition*	/* begin_return */,
     ISWTextPosition*	/* end_return */
 );
 
-extern void XawTextSetSource(
+extern void IswTextSetSource(
     Widget		/* w */,
     Widget		/* source */,
     ISWTextPosition	/* position */
 );
 
-extern int XawTextReplace(
+extern int IswTextReplace(
     Widget		/* w */,
     ISWTextPosition	/* start */,
     ISWTextPosition	/* end */,
     ISWTextBlock*	/* text */
 );
 
-extern ISWTextPosition XawTextTopPosition(
+extern ISWTextPosition IswTextTopPosition(
     Widget		/* w */
 );
 
-extern void XawTextSetInsertionPoint(
+extern void IswTextSetInsertionPoint(
     Widget		/* w */,
     ISWTextPosition	/* position */
 );
 
-extern ISWTextPosition XawTextGetInsertionPoint(
+extern ISWTextPosition IswTextGetInsertionPoint(
     Widget		/* w */
 );
 
-extern void XawTextUnsetSelection(
+extern void IswTextUnsetSelection(
     Widget		/* w */
 );
 
-extern void XawTextSetSelection(
+extern void IswTextSetSelection(
     Widget		/* w */,
     ISWTextPosition	/* left */,
     ISWTextPosition	/* right */
 );
 
-extern void XawTextInvalidate(
+extern void IswTextInvalidate(
     Widget		/* w */,
     ISWTextPosition	/* from */,
     ISWTextPosition	/* to */
 );
 
-extern Widget XawTextGetSource(
+extern Widget IswTextGetSource(
     Widget		/* w */
 );
 
-extern Widget XawTextGetSink(
+extern Widget IswTextGetSink(
     Widget		/* w */
 );
 
-extern ISWTextPosition XawTextSearch(
+extern ISWTextPosition IswTextSearch(
     Widget			/* w */,
 #if NeedWidePrototypes
-    /* XawTextScanDirection */ int /* dir */,
+    /* IswTextScanDirection */ int /* dir */,
 #else
-    XawTextScanDirection	/* dir */,
+    IswTextScanDirection	/* dir */,
 #endif
     ISWTextBlock*		/* text */
 );
 
-extern void XawTextDisplayCaret(
+extern void IswTextDisplayCaret(
     Widget		/* w */,
 #if NeedWidePrototypes
     /* Boolean */ int	/* visible */
@@ -274,5 +274,5 @@ _XFUNCPROTOEND
 #include <ISW/AsciiSrc.h>
 #include <ISW/AsciiSink.h>
 
-#endif /* _ISW_XawText_h */
+#endif /* _ISW_IswText_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

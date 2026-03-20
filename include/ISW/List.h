@@ -33,8 +33,8 @@ in this Software without prior written authorization from the X Consortium.
  *                      MIT X Consortium
  */
 
-#ifndef _ISW_XawList_h
-#define _ISW_XawList_h
+#ifndef _ISW_IswList_h
+#define _ISW_IswList_h
 
 /***********************************************************************
  *
@@ -105,7 +105,7 @@ in this Software without prior written authorization from the X Consortium.
        have a given number of columns.
 
  **6 - This returns the name and index of the item selected in an
-       XawListReturnStruct that is pointed to by the client_data
+       IswListReturnStruct that is pointed to by the client_data
        in the CallbackProc.
 
 */
@@ -152,10 +152,10 @@ typedef struct _ListRec      *ListWidget;
 
 /* The list return structure. */
 
-typedef struct _XawListReturnStruct {
+typedef struct _IswListReturnStruct {
   String string;
   int list_index;
-} XawListReturnStruct;
+} IswListReturnStruct;
 
 /******************************************************************
  *
@@ -165,7 +165,7 @@ typedef struct _XawListReturnStruct {
 
 _XFUNCPROTOBEGIN
 
-/*	Function Name: XawListChange.
+/*	Function Name: IswListChange.
  *	Description: Changes the list being used and shown.
  *	Arguments: w - the list widget.
  *                 list - the new list.
@@ -179,7 +179,7 @@ _XFUNCPROTOBEGIN
  *                 If nitems is <= 0 then the list needs to be NULL terminated.
  */
 
-extern void XawListChange(
+extern void IswListChange(
     Widget		/* w */,
     String*		/* list */,
     int			/* nitems */,
@@ -191,39 +191,39 @@ extern void XawListChange(
 #endif
 );
 
-/*	Function Name: XawListUnhighlight
+/*	Function Name: IswListUnhighlight
  *	Description: unlights the current highlighted element.
  *	Arguments: w - the widget.
  *	Returns: none.
  */
 
-extern void XawListUnhighlight(
+extern void IswListUnhighlight(
     Widget		/* w */
 );
 
-/*	Function Name: XawListHighlight
+/*	Function Name: IswListHighlight
  *	Description: Highlights the given item.
  *	Arguments: w - the list widget.
  *                 item - the item to highlight.
  *	Returns: none.
  */
 
-extern void XawListHighlight(
+extern void IswListHighlight(
     Widget		/* w */,
     int			/* item */
 );
 
 
-/*	Function Name: XawListShowCurrent
+/*	Function Name: IswListShowCurrent
  *	Description: returns the currently highlighted object.
  *	Arguments: w - the list widget.
  *	Returns: the info about the currently highlighted object.
  */
 
-extern XawListReturnStruct * XawListShowCurrent(
+extern IswListReturnStruct * IswListShowCurrent(
     Widget		/* w */
 );
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawList_h */
+#endif /* _ISW_IswList_h */

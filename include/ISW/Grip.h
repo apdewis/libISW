@@ -51,8 +51,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _ISW_XawGrip_h
-#define _ISW_XawGrip_h
+#ifndef _ISW_IswGrip_h
+#define _ISW_IswGrip_h
 
 #include <ISW/Simple.h>
 
@@ -86,11 +86,11 @@ SOFTWARE.
 
 #define XtNgripTranslations "gripTranslations"
 
-typedef struct _XawGripCallData {
+typedef struct _IswGripCallData {
   XtPointer event;		/* the event causing the GripAction (opaque pointer) */
   String *params;		/* the TranslationTable params */
   Cardinal num_params;		/* count of params */
-} XawGripCallDataRec, *XawGripCallData,
+} IswGripCallDataRec, *IswGripCallData,
     GripCallDataRec, *GripCallData; /* supported for R4 compatibility */
 
 /* Class Record Constant */
@@ -100,4 +100,4 @@ extern WidgetClass gripWidgetClass;
 typedef struct _GripClassRec *GripWidgetClass;
 typedef struct _GripRec      *GripWidget;
 
-#endif /* _ISW_XawGrip_h */
+#endif /* _ISW_IswGrip_h */

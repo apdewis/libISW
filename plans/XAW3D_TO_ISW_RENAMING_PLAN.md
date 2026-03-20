@@ -1,28 +1,28 @@
-# Xaw3d to ISW Renaming Plan
+# Isw3d to ISW Renaming Plan
 
 ## Executive Summary
 
-This document outlines the comprehensive plan to rename the Xaw3d library to ISW (Isometric Software Widgets). This is a substantial fork that requires renaming throughout the codebase while maintaining build stability.
+This document outlines the comprehensive plan to rename the Isw3d library to ISW (Isometric Software Widgets). This is a substantial fork that requires renaming throughout the codebase while maintaining build stability.
 
 ## Naming Analysis
 
 ### Current Naming Patterns
 
 ####  Library Names
-- **Library:** `libXaw3d.so` / `libXaw3d.la`
+- **Library:** `libIsw3d.so` / `libIsw3d.la`
 - **Package Config:** `xaw3d.pc`
-- **Project Name:** `libXaw3d`
+- **Project Name:** `libIsw3d`
 
 #### Include Paths
-- **Headers Location:** `include/X11/Xaw3d/`
-- **Install Path:** `${includedir}/X11/Xaw3d/`
-- **Include Pattern:** `#include <X11/Xaw3d/Widget.h>`
+- **Headers Location:** `include/X11/Isw3d/`
+- **Install Path:** `${includedir}/X11/Isw3d/`
+- **Include Pattern:** `#include <X11/Isw3d/Widget.h>`
 
 #### Function Prefixes
-- **Public API:** `Xaw*` (e.g., `ISWQueryPointer`, `ISWCreateRegion`)
-- **Internal:** `_Xaw*` (e.g., `_ISW_iswspace`)
-- **XCB-specific:** `XawXcb*` (e.g., `ISWXcbDrawString`)
-- **Utility:** `XawInit*`, `XawSet*`, `XawGet*`
+- **Public API:** `Isw*` (e.g., `ISWQueryPointer`, `ISWCreateRegion`)
+- **Internal:** `_Isw*` (e.g., `_ISW_iswspace`)
+- **XCB-specific:** `IswXcb*` (e.g., `ISWXcbDrawString`)
+- **Utility:** `IswInit*`, `IswSet*`, `IswGet*`
 
 #### Widget Class Names
 - **Prefix:** None (e.g., `Box`, `Command`, `Scrollbar`)
@@ -36,7 +36,7 @@ This document outlines the comprehensive plan to rename the Xaw3d library to ISW
 
 ### 1. Library Names
 ```
-OLD: libXaw3d.so.8.0.0
+OLD: libIsw3d.so.8.0.0
 NEW: libISW.so.1.0.0
 
 OLD: xaw3d.pc
@@ -45,10 +45,10 @@ NEW: isw.pc
 
 ### 2. Include Paths
 ```
-OLD: #include <X11/Xaw3d/Scrollbar.h>
+OLD: #include <X11/Isw3d/Scrollbar.h>
 NEW: #include <ISW/Scrollbar.h>
 
-OLD: ${includedir}/X11/Xaw3d/
+OLD: ${includedir}/X11/Isw3d/
 NEW: ${includedir}/ISW/
 ```
 
@@ -84,10 +84,10 @@ NEW: _ISW_Scrollbar_h
 
 ### 7. Internal Symbols
 ```
-OLD: Xaw3dP.h / Xaw3dP.c
+OLD: Isw3dP.h / Isw3dP.c
 NEW: ISWP.h / ISWP.c
 
-OLD: XawInit.h / XawInit.c
+OLD: IswInit.h / IswInit.c
 NEW: ISWInit.h / ISWInit.c
 ```
 
@@ -116,17 +116,17 @@ NEW: ISWInit.h / ISWInit.c
 **Changes:**
 ```makefile
 # configure.ac
-OLD: AC_INIT([libXaw3d], [1.6.2], ...)
+OLD: AC_INIT([libIsw3d], [1.6.2], ...)
 NEW: AC_INIT([libISW], [1.0.0], ...)
 
 OLD: ISW_CPPFLAGS
 NEW: ISW_CPPFLAGS
 
 # src/Makefile.am
-OLD: lib_LTLIBRARIES = libXaw3d.la
+OLD: lib_LTLIBRARIES = libIsw3d.la
 NEW: lib_LTLIBRARIES = libISW.la
 
-OLD: libXaw3d_la_SOURCES =
+OLD: libIsw3d_la_SOURCES =
 NEW: libISW_la_SOURCES =
 ```
 
@@ -135,7 +135,7 @@ NEW: libISW_la_SOURCES =
 
 **Directory Structure Change:**
 ```
-OLD: include/X11/Xaw3d/*.h
+OLD: include/X11/Isw3d/*.h
 NEW: include/ISW/*.h
 ```
 
@@ -150,10 +150,10 @@ NEW: #ifndef _ISW_Scrollbar_h
 
 **Internal Headers:**
 ```
-include/X11/Xaw3d/Xaw3dP.h    → include/ISW/ISWP.h
-include/X11/Xaw3d/XawInit.h   → include/ISW/ISWInit.h
-include/X11/Xaw3d/XawImP.h    → include/ISW/ISWImP.h
-include/X11/Xaw3d/XawContext.h → include/ISW/ISWContext.h
+include/X11/Isw3d/Isw3dP.h    → include/ISW/ISWP.h
+include/X11/Isw3d/IswInit.h   → include/ISW/ISWInit.h
+include/X11/Isw3d/IswImP.h    → include/ISW/ISWImP.h
+include/X11/Isw3d/IswContext.h → include/ISW/ISWContext.h
 ```
 
 ### Phase 4: Source File Function Renaming
@@ -178,18 +178,18 @@ _ISWTextMBToWC()       → _ISWTextMBToWC()
 ```
 
 **Files Requiring Updates:**
-- `src/XawXcbDraw.c` → `src/ISWXcbDraw.c` (rename file + all functions)
-- `src/XawXcbDraw.h` → `src/ISWXcbDraw.h` (rename file + all declarations)
-- `src/XawInit.c` → `src/ISWInit.c`
-- `src/XawContext.c` → `src/ISWContext.c`
-- `src/XawAtoms.c` → `src/ISWAtoms.c`
-- `src/XawDrawing.c` → `src/ISWDrawing.c`
-- `src/XawIm.c` → `src/ISWIm.c`
-- `src/XawI18n.c` → `src/ISWI18n.c`
-- `src/Xaw3dP.c` → `src/ISWP.c`
+- `src/IswXcbDraw.c` → `src/ISWXcbDraw.c` (rename file + all functions)
+- `src/IswXcbDraw.h` → `src/ISWXcbDraw.h` (rename file + all declarations)
+- `src/IswInit.c` → `src/ISWInit.c`
+- `src/IswContext.c` → `src/ISWContext.c`
+- `src/IswAtoms.c` → `src/ISWAtoms.c`
+- `src/IswDrawing.c` → `src/ISWDrawing.c`
+- `src/IswIm.c` → `src/ISWIm.c`
+- `src/IswI18n.c` → `src/ISWI18n.c`
+- `src/Isw3dP.c` → `src/ISWP.c`
 
 **All Widget Source Files:**
-Every widget source file that calls `Xaw*` functions must be updated to call `ISW*` functions.
+Every widget source file that calls `Isw*` functions must be updated to call `ISW*` functions.
 
 ### Phase 5: Preprocessor Define Updates
 **Estimated Occurrences:** 50+ locations
@@ -224,13 +224,13 @@ NEW: ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_ARROW_SCROLLBARS"
 
 **Pattern Replacement:**
 ```c
-OLD: #include <X11/Xaw3d/Scrollbar.h>
+OLD: #include <X11/Isw3d/Scrollbar.h>
 NEW: #include <ISW/Scrollbar.h>
 
-OLD: #include "XawXcbDraw.h"
+OLD: #include "IswXcbDraw.h"
 NEW: #include "ISWXcbDraw.h"
 
-OLD: #include "../include/X11/Xaw3d/ThreeD.h"
+OLD: #include "../include/X11/Isw3d/ThreeD.h"
 NEW: #include "../include/ISW/ThreeD.h"
 ```
 
@@ -242,14 +242,14 @@ NEW: #include "../include/ISW/ThreeD.h"
 - `BUILD_INSTRUCTIONS.md` - Build references
 - `plans/*.md` - All planning documents
 - `examples/README.md` - Demo documentation
-- Source code comments referencing "Xaw3d"
+- Source code comments referencing "Isw3d"
 
 **Example Changes:**
 ```markdown
-OLD: # Xaw3d XCB Migration Build Instructions
+OLD: # Isw3d XCB Migration Build Instructions
 NEW: # ISW (Isometric Software Widgets) Build Instructions
 
-OLD: ldd src/.libs/libXaw3d.so
+OLD: ldd src/.libs/libIsw3d.so
 NEW: ldd src/.libs/libISW.so
 ```
 
@@ -259,7 +259,7 @@ NEW: ldd src/.libs/libISW.so
 **Changes Required:**
 ```c
 // Include statements
-OLD: #include <X11/Xaw3d/Scrollbar.h>
+OLD: #include <X11/Isw3d/Scrollbar.h>
 NEW: #include <ISW/Scrollbar.h>
 
 // Demo file names
@@ -274,15 +274,15 @@ xaw3d_demo_3d  → isw_demo_3d
 ## Backward Compatibility Strategy
 
 ### Option A: No Compatibility (Recommended for Clean Fork)
-- Complete break from Xaw3d
+- Complete break from Isw3d
 - Simplest approach
 - Clear distinction as a separate project
 
 ### Option B: Compatibility Headers (If Needed Later)
 Create compatibility shim headers:
 ```c
-// X11/Xaw3d/Scrollbar.h (compatibility)
-#warning "X11/Xaw3d headers are deprecated, use <ISW/Scrollbar.h>"
+// X11/Isw3d/Scrollbar.h (compatibility)
+#warning "X11/Isw3d headers are deprecated, use <ISW/Scrollbar.h>"
 #include <ISW/Scrollbar.h>
 
 // Function aliases
@@ -309,20 +309,20 @@ Create compatibility shim headers:
 - [ ] Test: `./autogen.sh && ./configure` works
 
 ### Phase 2: Directory Restructure (Day 1-2)
-- [ ] Move `include/X11/Xaw3d/` to `include/ISW/`
+- [ ] Move `include/X11/Isw3d/` to `include/ISW/`
 - [ ] Update all #include statements in source files
 - [ ] Update include guards in all headers
 - [ ] Test: Headers can be found
 
 ### Phase 3: File Renaming (Day 2)
-- [ ] Rename Xaw*.h files to ISW*.h
-- [ ] Rename Xaw*.c files to ISW*.c
+- [ ] Rename Isw*.h files to ISW*.h
+- [ ] Rename Isw*.c files to ISW*.c
 - [ ] Update Makefile.am with new filenames
 - [ ] Test: `make` compiles (with errors expected)
 
 ### Phase 4: Symbol Renaming (Day 2-3)
-- [ ] Rename all `Xaw*` functions to `ISW*`
-- [ ] Rename all `_Xaw*` internals to `_ISW*`
+- [ ] Rename all `Isw*` functions to `ISW*`
+- [ ] Rename all `_Isw*` internals to `_ISW*`
 - [ ] Update all function calls throughout codebase
 - [ ] Test: `make` compiles without errors
 
@@ -347,7 +347,7 @@ Create compatibility shim headers:
 - [ ] Full clean build: `make distclean && ./autogen.sh && ./configure && make`
 - [ ] Run all demos
 - [ ] Check library dependencies: `ldd src/.libs/libISW.so`
-- [ ] Verify no Xaw3d references remain (except comments)
+- [ ] Verify no Isw3d references remain (except comments)
 - [ ] Test installation: `make install`
 
 ## Automated Renaming Scripts
@@ -358,16 +358,16 @@ Create compatibility shim headers:
 # rename_files.sh
 
 # Rename source files
-for file in src/Xaw*.c src/Xaw*.h; do
+for file in src/Isw*.c src/Isw*.h; do
     if [ -f "$file" ]; then
-        newname=$(echo "$file" | sed 's/Xaw/ISW/g')
+        newname=$(echo "$file" | sed 's/Isw/ISW/g')
         git mv "$file" "$newname"
     fi
 done
 
 # Rename headers
-find include/X11/Xaw3d -name "*.h" | while read file; do
-    newname=$(echo "$file" | sed 's/Xaw3d/ISW/g' | sed 's/X11\/Xaw3d/ISW/g')
+find include/X11/Isw3d -name "*.h" | while read file; do
+    newname=$(echo "$file" | sed 's/Isw3d/ISW/g' | sed 's/X11\/Isw3d/ISW/g')
     mkdir -p "$(dirname "$newname")"
     git mv "$file" "$newname"
 done
@@ -380,10 +380,10 @@ done
 
 # Function names
 find . -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i \
-    -e 's/\bXawQueryPointer\b/ISWQueryPointer/g' \
-    -e 's/\bXawCreateRegion\b/ISWCreateRegion/g' \
-    -e 's/\bXawXcbDraw/ISWXcbDraw/g' \
-    -e 's/\b_Xaw_/_ISW_/g' \
+    -e 's/\bIswQueryPointer\b/ISWQueryPointer/g' \
+    -e 's/\bIswCreateRegion\b/ISWCreateRegion/g' \
+    -e 's/\bIswXcbDraw/ISWXcbDraw/g' \
+    -e 's/\b_Isw_/_ISW_/g' \
     {} \;
 
 # Preprocessor defines
@@ -406,9 +406,9 @@ find include/ISW -name "*.h" -exec sed -i \
 # update_includes.sh
 
 find . -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i \
-    -e 's|<X11/Xaw3d/\(.*\)>|<ISW/\1>|g' \
-    -e 's|"X11/Xaw3d/\(.*\)"|"ISW/\1"|g' \
-    -e 's|"XawXcbDraw\.h"|"ISWXcbDraw.h"|g' \
+    -e 's|<X11/Isw3d/\(.*\)>|<ISW/\1>|g' \
+    -e 's|"X11/Isw3d/\(.*\)"|"ISW/\1"|g' \
+    -e 's|"IswXcbDraw\.h"|"ISWXcbDraw.h"|g' \
     {} \;
 ```
 
@@ -417,13 +417,13 @@ find . -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i \
 ### High Risk Areas
 1. **Widget Class Registration** - Widget class names used by X Toolkit
 2. **Resource Converter Registration** - Resource type strings
-3. **External Dependencies** - Custom libXt may have hard-coded Xaw3d references
+3. **External Dependencies** - Custom libXt may have hard-coded Isw3d references
 
 ### Mitigation Strategies
 1. **Incremental Testing** - Test after each phase
 2. **Git Branches** - Easy rollback if issues arise
 3. **Compiler Warnings** - Fix all warnings before proceeding
-4. **Dependency Audit** - Check custom libXt for Xaw3d dependencies
+4. **Dependency Audit** - Check custom libXt for Isw3d dependencies
 
 ## Timeline Estimate
 
@@ -440,7 +440,7 @@ find . -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i \
 
 - [ ] Library builds successfully as `libISW.so`
 - [ ] All header files are in `include/ISW/`
-- [ ] No references to "Xaw3d" in source code (except comments/history)
+- [ ] No references to "Isw3d" in source code (except comments/history)
 - [ ] Demo applications compile and run
 - [ ] `pkg-config isw --cflags` works
 - [ ] No Xlib dependencies (only XCB)
@@ -451,7 +451,7 @@ find . -type f \( -name "*.c" -o -name "*.h" \) -exec sed -i \
 - Widget class names (Box, Command, Scrollbar) remain unchanged as they're X Toolkit standards
 - Resource names (XtN*, XtC*) remain unchanged as they're X Toolkit standards
 - Version number resets to 1.0.0 as this is a new fork
-- Install path changes from `/usr/include/X11/Xaw3d` to `/usr/include/ISW`
+- Install path changes from `/usr/include/X11/Isw3d` to `/usr/include/ISW`
 
 ---
 

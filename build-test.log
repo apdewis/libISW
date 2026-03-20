@@ -1,9 +1,9 @@
 make  all-recursive
-make[1]: Entering directory '/home/adam/Xaw3d'
+make[1]: Entering directory '/home/adam/Isw3d'
 Making all in include
-make[2]: Entering directory '/home/adam/Xaw3d/include'
-make[2]: *** No rule to make target 'X11/Xaw3d/XawContext.h', needed by 'all-am'.  Stop.
-make[2]: Leaving directory '/home/adam/Xaw3d/include'
+make[2]: Entering directory '/home/adam/Isw3d/include'
+make[2]: *** No rule to make target 'X11/Isw3d/IswContext.h', needed by 'all-am'.  Stop.
+make[2]: Leaving directory '/home/adam/Isw3d/include'
 make[1]: *** [Makefile:493: all-recursive] Error 1
-make[1]: Leaving directory '/home/adam/Xaw3d'
+make[1]: Leaving directory '/home/adam/Isw3d'
 make: *** [Makefile:402: all] Error 2

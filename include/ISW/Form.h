@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawForm_h
-#define _ISW_XawForm_h
+#ifndef _ISW_IswForm_h
+#define _ISW_IswForm_h
 
 #include <X11/Constraint.h>
 
@@ -110,21 +110,21 @@ SOFTWARE.
 #define XtCEdge "Edge"
 #define XtCWidget "Widget"
 
-#ifndef _XawEdgeType_e
-#define _XawEdgeType_e
+#ifndef _IswEdgeType_e
+#define _IswEdgeType_e
 typedef enum {
-    XawChainTop,		/* Keep this edge a constant distance from
+    IswChainTop,		/* Keep this edge a constant distance from
 				   the top of the form */
-    XawChainBottom,		/* Keep this edge a constant distance from
+    IswChainBottom,		/* Keep this edge a constant distance from
 				   the bottom of the form */
-    XawChainLeft,		/* Keep this edge a constant distance from
+    IswChainLeft,		/* Keep this edge a constant distance from
 				   the left of the form */
-    XawChainRight,		/* Keep this edge a constant distance from
+    IswChainRight,		/* Keep this edge a constant distance from
 				   the right of the form */
-    XawRubber			/* Keep this edge a proportional distance
+    IswRubber			/* Keep this edge a proportional distance
 				   from the edges of the form*/
-} XawEdgeType;
-#endif /* _XawEdgeType_e */
+} IswEdgeType;
+#endif /* _IswEdgeType_e */
 
 /*
  * Unfortunatly I missed this definition for R4, so I cannot
@@ -134,13 +134,13 @@ typedef enum {
  * Chris D. Peterson - 3/23/90.
  */
 
-#define XtEdgeType XawEdgeType
+#define XtEdgeType IswEdgeType
 
-#define XtChainTop XawChainTop
-#define XtChainBottom XawChainBottom
-#define XtChainLeft XawChainLeft
-#define XtChainRight XawChainRight
-#define XtRubber XawRubber
+#define XtChainTop IswChainTop
+#define XtChainBottom IswChainBottom
+#define XtChainLeft IswChainLeft
+#define XtChainRight IswChainRight
+#define XtRubber IswRubber
 
 typedef struct _FormClassRec	*FormWidgetClass;
 typedef struct _FormRec		*FormWidget;
@@ -149,7 +149,7 @@ extern WidgetClass formWidgetClass;
 
 _XFUNCPROTOBEGIN
 
-extern void XawFormDoLayout(
+extern void IswFormDoLayout(
     Widget		/* w */,
 #if NeedWidePrototypes
     /* Boolean */ int	/* do_layout */
@@ -160,4 +160,4 @@ extern void XawFormDoLayout(
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawForm_h */
+#endif /* _ISW_IswForm_h */

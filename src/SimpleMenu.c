@@ -245,13 +245,13 @@ WidgetClass simpleMenuWidgetClass = (WidgetClass)&simpleMenuClassRec;
  *
  ************************************************************/
 
-/* Stubs for XawAddInitializer/XawCallInitializers - not in XCB libXt */
-static void XawAddInitializer(void (*proc)(XtAppContext, XtPointer), XtPointer closure) {
+/* Stubs for IswAddInitializer/IswCallInitializers - not in XCB libXt */
+static void IswAddInitializer(void (*proc)(XtAppContext, XtPointer), XtPointer closure) {
     (void)proc; (void)closure;
     /* Stub - initializers not supported */
 }
 
-static void XawCallInitializers(XtAppContext app) {
+static void IswCallInitializers(XtAppContext app) {
     (void)app;
     /* Stub - initializers not supported */
 }
@@ -265,11 +265,11 @@ static void XawCallInitializers(XtAppContext app) {
 static void
 ClassInitialize(void)
 {
-  XawInitializeWidgetSet();
+  IswInitializeWidgetSet();
   /* Backing store converter not supported in XCB */
   /*XtAddConverter( XtRString, XtRBackingStore, XmuCvtStringToBackingStore,
 		 (XtConvertArgList)NULL, (Cardinal)0 );*/
-  XawAddInitializer((void (*)(XtAppContext, XtPointer))AddPositionAction, NULL);
+  IswAddInitializer((void (*)(XtAppContext, XtPointer))AddPositionAction, NULL);
 }
 
 /*      Function Name: ClassInitialize
@@ -307,7 +307,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
   SimpleMenuWidget smw = (SimpleMenuWidget) new;
 
-  XawCallInitializers(XtWidgetToApplicationContext(new));
+  IswCallInitializers(XtWidgetToApplicationContext(new));
 
   smw->simple_menu.label = NULL;
   smw->simple_menu.entry_set = NULL;
@@ -765,7 +765,7 @@ PositionMenuAction(Widget w, XEvent * event, String * params, Cardinal * num_par
   if (*num_params != 1) {
     char error_buf[BUFSIZ];
     (void) sprintf(error_buf, "%s %s",
-	    "Xaw - SimpleMenuWidget: position menu action expects only one",
+	    "Isw - SimpleMenuWidget: position menu action expects only one",
 	    "parameter which is the name of the menu.");
     XtAppWarning(XtWidgetToApplicationContext(w), error_buf);
     return;
@@ -774,7 +774,7 @@ PositionMenuAction(Widget w, XEvent * event, String * params, Cardinal * num_par
   if ( (menu = FindMenu(w, params[0])) == NULL) {
     char error_buf[BUFSIZ];
     (void) sprintf(error_buf, "%s '%s'",
-	    "Xaw - SimpleMenuWidget: could not find menu named: ", params[0]);
+	    "Isw - SimpleMenuWidget: could not find menu named: ", params[0]);
     XtAppWarning(XtWidgetToApplicationContext(w), error_buf);
     return;
   }
@@ -939,42 +939,42 @@ Notify(Widget w, XEvent * event, String * params, Cardinal * num_params)
  *
  ************************************************************/
 
-/*	Function Name: XawSimpleMenuAddGlobalActions
+/*	Function Name: IswSimpleMenuAddGlobalActions
  *	Description: adds the global actions to the simple menu widget.
  *	Arguments: app_con - the appcontext.
  *	Returns: none.
  */
 
 void
-XawSimpleMenuAddGlobalActions(XtAppContext app_con)
+IswSimpleMenuAddGlobalActions(XtAppContext app_con)
 {
     XtInitializeWidgetClass(simpleMenuWidgetClass);
-    XawCallInitializers( app_con );
+    IswCallInitializers( app_con );
 }
 
 
-/*	Function Name: XawSimpleMenuGetActiveEntry
+/*	Function Name: IswSimpleMenuGetActiveEntry
  *	Description: Gets the currently active (set) entry.
  *	Arguments: w - the smw widget.
  *	Returns: the currently set entry or NULL if none is set.
  */
 
 Widget
-XawSimpleMenuGetActiveEntry(Widget w)
+IswSimpleMenuGetActiveEntry(Widget w)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
 
     return( (Widget) smw->simple_menu.entry_set);
 }
 
-/*	Function Name: XawSimpleMenuClearActiveEntry
+/*	Function Name: IswSimpleMenuClearActiveEntry
  *	Description: Unsets the currently active (set) entry.
  *	Arguments: w - the smw widget.
  *	Returns: none.
  */
 
 void
-XawSimpleMenuClearActiveEntry(Widget w)
+IswSimpleMenuClearActiveEntry(Widget w)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
 
@@ -1008,7 +1008,7 @@ CreateLabel(Widget w)
 	 (smw->simple_menu.label != NULL) ) {
 	char error_buf[BUFSIZ];
 
-	(void) sprintf(error_buf, "Xaw Simple Menu Widget: %s or %s, %s",
+	(void) sprintf(error_buf, "Isw Simple Menu Widget: %s or %s, %s",
 		"label string is NULL", "label already exists",
 		"no label is being created.");
 	XtAppWarning(XtWidgetToApplicationContext(w), error_buf);
@@ -1132,7 +1132,7 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 }
 
 /*	Function Name: AddPositionAction
- *	Description: Adds the XawPositionSimpleMenu action to the global
+ *	Description: Adds the IswPositionSimpleMenu action to the global
  *                   action list for this appcon.
  *	Arguments: app_con - the application context for this app.
  *                 data - NOT USED.
@@ -1144,7 +1144,7 @@ static void
 AddPositionAction(XtAppContext app_con, XtPointer data)
 {
     static XtActionsRec pos_action[] = {
-        { "XawPositionSimpleMenu", PositionMenuAction },
+        { "IswPositionSimpleMenu", PositionMenuAction },
     };
 
     XtAppAddActions(app_con, pos_action, XtNumber(pos_action));
@@ -1192,7 +1192,7 @@ PositionMenu(Widget w, XPoint * location)
  reply = xcb_query_pointer_reply(conn, cookie, NULL);
  if (reply == NULL) {
      char error_buf[BUFSIZ];
-     (void) sprintf(error_buf, "%s %s", "Xaw Simple Menu Widget:",
+     (void) sprintf(error_buf, "%s %s", "Isw Simple Menu Widget:",
       "Could not find location of mouse pointer");
       XtAppWarning(XtWidgetToApplicationContext(w), error_buf);
       return;

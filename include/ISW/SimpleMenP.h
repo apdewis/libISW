@@ -72,7 +72,7 @@ typedef struct _SimpleMenuPart {
 
   Cursor       cursor;		/* The menu's cursor. */
   SmeObject popup_entry;	/* The entry to position the cursor on for
-				   when using XawPositionSimpleMenu. */
+				   when using IswPositionSimpleMenu. */
   Boolean      menu_on_screen;	/* Force the menus to be fully on the screen.*/
   int          backing_store;	/* What type of backing store to use. */
 

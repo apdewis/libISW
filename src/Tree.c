@@ -356,7 +356,7 @@ XmuCvtStringToGravity(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_arg
 static void
 ClassInitialize (void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     XtSetTypeConverter (XtRString, XtRGravity, XmuCvtStringToGravity,
  	        (XtConvertArgList) NULL, (Cardinal) 0, XtCacheNone, NULL);
 }
@@ -1026,7 +1026,7 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
  *****************************************************************************/
 
 void
-XawTreeForceLayout (Widget tree)
+IswTreeForceLayout (Widget tree)
 {
     layout_tree ((TreeWidget) tree, FALSE);
 }

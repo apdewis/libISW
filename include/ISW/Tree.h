@@ -49,8 +49,8 @@ in this Software without prior written authorization from the X Consortium.
  */
 
 
-#ifndef _ISW_XawTree_h
-#define _ISW_XawTree_h
+#ifndef _ISW_IswTree_h
+#define _ISW_IswTree_h
 
 
 /******************************************************************************
@@ -111,10 +111,10 @@ typedef struct _TreeRec      *TreeWidget;
 
 _XFUNCPROTOBEGIN
 
-extern void XawTreeForceLayout (
+extern void IswTreeForceLayout (
     Widget /* tree */
 );
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawTree_h */
+#endif /* _ISW_IswTree_h */

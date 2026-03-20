@@ -242,7 +242,7 @@ AllocTopShadowPixmap (Widget new)
     }
 
     if (create_pixmap)
-	tdw->threeD.top_shadow_pxmap = XawCreatePixmapFromBitmapData(dpy,
+	tdw->threeD.top_shadow_pxmap = IswCreatePixmapFromBitmapData(dpy,
 			scn->root,
 			pm_data,
 			pm_size,
@@ -298,7 +298,7 @@ AllocBotShadowPixmap (Widget new)
     }
 
     if (create_pixmap)
-	tdw->threeD.bot_shadow_pxmap = XawCreatePixmapFromBitmapData(dpy,
+	tdw->threeD.bot_shadow_pxmap = IswCreatePixmapFromBitmapData(dpy,
 			scn->root,
 			pm_data,
 			pm_size,
@@ -310,7 +310,7 @@ AllocBotShadowPixmap (Widget new)
 
 /* ARGSUSED */
 void
-Xaw3dComputeTopShadowRGB (Widget new, XColor *xcol_out)
+Isw3dComputeTopShadowRGB (Widget new, XColor *xcol_out)
 {
     if (XtIsSubclass (new, threeDWidgetClass)) {
 	ThreeDWidget tdw = (ThreeDWidget) new;
@@ -349,14 +349,14 @@ AllocTopShadowPixel (Widget new)
     xcb_connection_t *dpy = XtDisplay (new);
     Colormap cmap = new->core.colormap;
 
-    Xaw3dComputeTopShadowRGB (new, &set_c);
+    Isw3dComputeTopShadowRGB (new, &set_c);
     (void) ISWAllocColor(dpy, cmap, &set_c);
     tdw->threeD.top_shadow_pixel = set_c.pixel;
 }
 
 /* ARGSUSED */
 void
-Xaw3dComputeBottomShadowRGB (Widget new, XColor *xcol_out)
+Isw3dComputeBottomShadowRGB (Widget new, XColor *xcol_out)
 {
     if (XtIsSubclass (new, threeDWidgetClass)) {
 	ThreeDWidget tdw = (ThreeDWidget) new;
@@ -393,7 +393,7 @@ AllocBotShadowPixel (Widget new)
     xcb_connection_t *dpy = XtDisplay (new);
     Colormap cmap = new->core.colormap;
 
-    Xaw3dComputeBottomShadowRGB (new, &set_c);
+    Isw3dComputeBottomShadowRGB (new, &set_c);
     (void) ISWAllocColor(dpy, cmap, &set_c);
     tdw->threeD.bot_shadow_pixel = set_c.pixel;
 }
@@ -446,7 +446,7 @@ _CvtStringToRelief(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal, Xr
 static void
 ClassInitialize(void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     XtQReliefNone   = XrmPermStringToQuark("none");
     XtQReliefRaised = XrmPermStringToQuark("raised");
     XtQReliefSunken = XrmPermStringToQuark("sunken");
@@ -466,7 +466,7 @@ ClassPartInitialize (WidgetClass wc)
     ThreeDClassRec *tdwc = (ThreeDClassRec*) wc;
     ThreeDClassRec *super = (ThreeDClassRec*) tdwc->core_class.superclass;
 
-    if (tdwc->threeD_class.shadowdraw == XtInheritXaw3dShadowDraw)
+    if (tdwc->threeD_class.shadowdraw == XtInheritIsw3dShadowDraw)
 	tdwc->threeD_class.shadowdraw = super->threeD_class.shadowdraw;
 }
 

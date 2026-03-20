@@ -80,7 +80,7 @@ SmeLineClassRec smeLineClassRec = {
     /* superclass         */    (WidgetClass) SUPERCLASS,
     /* class_name         */    "SmeLine",
     /* size               */    sizeof(SmeLineRec),
-    /* class_initialize   */	XawInitializeWidgetSet,
+    /* class_initialize   */	IswInitializeWidgetSet,
     /* class_part_initialize*/	NULL,
     /* Class init'ed      */	FALSE,
     /* initialize         */    Initialize,

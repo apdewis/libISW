@@ -49,8 +49,8 @@ in this Software without prior written authorization from the X Consortium.
  */
 
 
-#ifndef _ISW_XawTreeP_h
-#define _ISW_XawTreeP_h
+#ifndef _ISW_IswTreeP_h
+#define _ISW_IswTreeP_h
 
 #include <ISW/Tree.h>
 
@@ -124,7 +124,7 @@ typedef struct _TreeConstraintsRec {
 #define TREE_HORIZONTAL_DEFAULT_SPACING 20
 #define TREE_VERTICAL_DEFAULT_SPACING 6
 
-#endif /* _ISW_XawTreeP_h */
+#endif /* _ISW_IswTreeP_h */
 
 
 

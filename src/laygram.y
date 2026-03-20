@@ -5,7 +5,7 @@
 #include    <X11/cursorfont.h>
 #include    <X11/StringDefs.h>
 
-#include    <X11/Xaw3d/LayoutP.h>
+#include    <X11/Isw3d/LayoutP.h>
 
 #include    "LayYY.h"
 

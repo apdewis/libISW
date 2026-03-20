@@ -1,5 +1,5 @@
 /*
- * Xaw3dP.h
+ * Isw3dP.h
  *
  * Global definitions and declarations. Not for public consumption.
  */
@@ -27,17 +27,17 @@ CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 *********************************************************************/
 
-#ifndef _ISW_Xaw3dP_h
-#define _ISW_Xaw3dP_h
+#ifndef _ISW_Isw3dP_h
+#define _ISW_Isw3dP_h
 
 #include <X11/IntrinsicP.h>
 #include <xcb/xcb.h>
 #include <xcb/xfixes.h>
 
-/* Forward declare Region type - full definition in src/XawRegion.h */
+/* Forward declare Region type - full definition in src/IswRegion.h */
 /* We define it here to avoid include path issues */
 #ifndef Region
-typedef struct _XawRegion* Region;
+typedef struct _IswRegion* Region;
 #endif
 
 /* XCB type compatibility */
@@ -49,7 +49,7 @@ typedef xcb_gcontext_t GC;
 typedef xcb_generic_event_t XEvent;
 #endif
 
-/* Region is defined in XawRegion.h as a pointer to XawRegion struct */
+/* Region is defined in IswRegion.h as a pointer to IswRegion struct */
 
 #ifndef Screen
 typedef xcb_screen_t Screen;
@@ -62,11 +62,11 @@ typedef xcb_screen_t Screen;
 /* arrow scrollbars */
 
 /* Min/Max utility macros */
-#ifndef XawMin
-#define XawMin(a, b) ((a) < (b) ? (a) : (b))
+#ifndef IswMin
+#define IswMin(a, b) ((a) < (b) ? (a) : (b))
 #endif
-#ifndef XawMax
-#define XawMax(a, b) ((a) > (b) ? (a) : (b))
+#ifndef IswMax
+#define IswMax(a, b) ((a) > (b) ? (a) : (b))
 #endif
 /* Also provide lowercase versions for compatibility */
 #ifndef Min
@@ -101,8 +101,8 @@ typedef xcb_screen_t Screen;
 #endif
 
 /* Text justification types (missing from XCB-based libXt) */
-#ifndef _XawXtJustify_defined
-#define _XawXtJustify_defined
+#ifndef _IswXtJustify_defined
+#define _IswXtJustify_defined
 typedef enum {
     XtJustifyLeft,
     XtJustifyCenter,
@@ -110,12 +110,12 @@ typedef enum {
 } XtJustify;
 #endif
 
-/* Widget edge types for Form layout are defined in Form.h (XawEdgeType) */
-/* XawXcbDraw.h provides XtEdgeType for converters */
+/* Widget edge types for Form layout are defined in Form.h (IswEdgeType) */
+/* IswXcbDraw.h provides XtEdgeType for converters */
 
 /* Orientation type for Box, Paned, Scrollbar (missing from XCB-based libXt) */
-#ifndef _XawXtOrientation_defined
-#define _XawXtOrientation_defined
+#ifndef _IswXtOrientation_defined
+#define _IswXtOrientation_defined
 typedef enum {
     XtorientHorizontal = 0,
     XtorientVertical = 1
@@ -123,8 +123,8 @@ typedef enum {
 #endif
 
 /* Widget gravity type for Tree layout (missing from XCB-based libXt) */
-#ifndef _XawXtGravity_defined
-#define _XawXtGravity_defined
+#ifndef _IswXtGravity_defined
+#define _IswXtGravity_defined
 typedef unsigned int XtGravity;
 #endif
 
@@ -150,4 +150,4 @@ stipplePixmap(
 );
 #endif
 
-#endif /* _ISW_Xaw3dP_h */
+#endif /* _ISW_Isw3dP_h */

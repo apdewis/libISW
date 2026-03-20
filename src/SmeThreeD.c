@@ -80,7 +80,7 @@ static XtResource resources[] = {
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void ClassPartInitialize(WidgetClass);
-static void _XawSme3dDrawShadows(Widget);
+static void _IswSme3dDrawShadows(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 SmeThreeDClassRec smeThreeDClassRec = {
@@ -125,7 +125,7 @@ SmeThreeDClassRec smeThreeDClassRec = {
     /* extension                */      NULL
     },
     { /* threeD fields */
-    /* shadow draw              */      _XawSme3dDrawShadows
+    /* shadow draw              */      _IswSme3dDrawShadows
     }
 };
 
@@ -252,7 +252,7 @@ AllocTopShadowPixmap (Widget new)
     }
 
     if (create_pixmap)
-	tdo->sme_threeD.top_shadow_pxmap = XawCreateStippledPixmap(dpy,
+	tdo->sme_threeD.top_shadow_pxmap = IswCreateStippledPixmap(dpy,
 			scn->root,
 			top_fg_pixel,
 			top_bg_pixel,
@@ -299,7 +299,7 @@ AllocBotShadowPixmap (Widget new)
     }
 
     if (create_pixmap)
-	tdo->sme_threeD.bot_shadow_pxmap = XawCreateStippledPixmap(dpy,
+	tdo->sme_threeD.bot_shadow_pxmap = IswCreateStippledPixmap(dpy,
 			scn->root,
 			bot_fg_pixel,
 			bot_bg_pixel,
@@ -308,7 +308,7 @@ AllocBotShadowPixmap (Widget new)
 
 /* ARGSUSED */
 void
-XawSme3dComputeTopShadowRGB (Widget new, XColor *xcol_out)
+IswSme3dComputeTopShadowRGB (Widget new, XColor *xcol_out)
 {
     if (XtIsSubclass (new, smeThreeDObjectClass)) {
 	SmeThreeDObject tdo = (SmeThreeDObject) new;
@@ -354,7 +354,7 @@ AllocTopShadowPixel (Widget new)
     xcb_connection_t *dpy = XtDisplayOfObject (new);
     Colormap cmap = w->core.colormap;
 
-    XawSme3dComputeTopShadowRGB (new, &set_c);
+    IswSme3dComputeTopShadowRGB (new, &set_c);
     xcb_alloc_color_cookie_t cookie = xcb_alloc_color(dpy, cmap, set_c.red, set_c.green, set_c.blue);
     xcb_alloc_color_reply_t *reply = xcb_alloc_color_reply(dpy, cookie, NULL);
     if (reply) {
@@ -368,7 +368,7 @@ AllocTopShadowPixel (Widget new)
 
 /* ARGSUSED */
 void
-XawSme3dComputeBottomShadowRGB (Widget new, XColor *xcol_out)
+IswSme3dComputeBottomShadowRGB (Widget new, XColor *xcol_out)
 {
     if (XtIsSubclass (new, smeThreeDObjectClass)) {
 	SmeThreeDObject tdo = (SmeThreeDObject) new;
@@ -412,7 +412,7 @@ AllocBotShadowPixel (Widget new)
     xcb_connection_t *dpy = XtDisplayOfObject (new);
     Colormap cmap = w->core.colormap;
 
-    XawSme3dComputeBottomShadowRGB (new, &set_c);
+    IswSme3dComputeBottomShadowRGB (new, &set_c);
     xcb_alloc_color_cookie_t cookie = xcb_alloc_color(dpy, cmap, set_c.red, set_c.green, set_c.blue);
     xcb_alloc_color_reply_t *reply = xcb_alloc_color_reply(dpy, cookie, NULL);
     if (reply) {
@@ -432,7 +432,7 @@ ClassPartInitialize (WidgetClass wc)
     SmeThreeDClassRec *super =
 	(SmeThreeDClassRec *) tdwc->rect_class.superclass;
 
-    if (tdwc->sme_threeD_class.shadowdraw == XtInheritXawSme3dShadowDraw)
+    if (tdwc->sme_threeD_class.shadowdraw == XtInheritIswSme3dShadowDraw)
 	tdwc->sme_threeD_class.shadowdraw = super->sme_threeD_class.shadowdraw;
 }
 
@@ -557,7 +557,7 @@ SetValues (Widget gcurrent, Widget grequest, Widget gnew, ArgList args, Cardinal
 
 /* ARGSUSED */
 static void
-_XawSme3dDrawShadows(Widget gw)
+_IswSme3dDrawShadows(Widget gw)
 {
     SmeThreeDObject tdo = (SmeThreeDObject) gw;
     SimpleMenuWidget smw = (SimpleMenuWidget) XtParent(gw);

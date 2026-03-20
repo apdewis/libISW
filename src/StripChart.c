@@ -97,7 +97,7 @@ StripChartClassRec stripChartClassRec = {
     /* superclass		*/	(WidgetClass) &threeDClassRec,
     /* class_name		*/	"StripChart",
     /* size			*/	sizeof(StripChartRec),
-    /* class_initialize		*/	XawInitializeWidgetSet,
+    /* class_initialize		*/	IswInitializeWidgetSet,
     /* class_part_initialize	*/	NULL,
     /* class_inited		*/	FALSE,
     /* initialize		*/	Initialize,
@@ -132,7 +132,7 @@ StripChartClassRec stripChartClassRec = {
     /* change_sensitive		*/	XtInheritChangeSensitive
     },
     { /* ThreeD fields */
-    /* shadowdraw		*/	XtInheritXaw3dShadowDraw
+    /* shadowdraw		*/	XtInheritIsw3dShadowDraw
     },
     { /* Stripchart fields */
     /* ignore			*/	0

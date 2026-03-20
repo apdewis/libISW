@@ -143,7 +143,7 @@ ClassInitialize(void)
       sizeof(Colormap)}
     };
 
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     /* Color cursor converter removed - not available in XCB
     XtSetTypeConverter( XtRString, XtRColorCursor, XmuCvtStringToColorCursor,
          convertArg, XtNumber(convertArg),
@@ -182,7 +182,7 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
 	 * so XtDestroyWidget deletes the proper one */
 	if (((SimpleWidget)w)->simple.insensitive_border == None)
 	    ((SimpleWidget)w)->simple.insensitive_border =
-		XawCreateStippledPixmap(XtDisplay(w), XtWindow(w),
+		IswCreateStippledPixmap(XtDisplay(w), XtWindow(w),
 					w->core.border_pixel,
 					w->core.background_pixel,
 					w->core.depth);
@@ -240,7 +240,7 @@ ConvertCursor(Widget w)
     }
     else {
  XtAppErrorMsg(XtWidgetToApplicationContext(w),
-        "convertFailed","ConvertCursor","XawError",
+        "convertFailed","ConvertCursor","IswError",
         "Simple: ConvertCursor failed.",
         (String *)NULL, (Cardinal *)NULL);
     }
@@ -309,7 +309,7 @@ ChangeSensitive(Widget w)
  } else {
      if (((SimpleWidget)w)->simple.insensitive_border == None)
   ((SimpleWidget)w)->simple.insensitive_border =
-      XawCreateStippledPixmap(XtDisplay(w), XtWindow(w),
+      IswCreateStippledPixmap(XtDisplay(w), XtWindow(w),
          w->core.border_pixel,
          w->core.background_pixel,
         w->core.depth);

@@ -1,4 +1,4 @@
-# Xaw3d XCB Migration - Revised Implementation Plan
+# Isw3d XCB Migration - Revised Implementation Plan
 
 **Date:** 2026-03-03  
 **Based on User Decisions:**
@@ -15,36 +15,36 @@
 
 **File:** [`src/Makefile.am`](../src/Makefile.am)
 
-**Remove these lines from `libXaw3d_la_SOURCES`:**
+**Remove these lines from `libIsw3d_la_SOURCES`:**
 ```makefile
-XawXcbCompat.c \
-XawXcbCompat.h \
-XawXcbTypes.h \
-XawRegion.c \
-XawRegion.h \
-XawXftCompat.c \
-XawXftCompat.h \
-XawUtils.c \
-XawUtils.h \
-XawConverters.c
+IswXcbCompat.c \
+IswXcbCompat.h \
+IswXcbTypes.h \
+IswRegion.c \
+IswRegion.h \
+IswXftCompat.c \
+IswXftCompat.h \
+IswUtils.c \
+IswUtils.h \
+IswConverters.c
 ```
 
 **Keep only:**
 ```makefile
-XawXcbDraw.c \
-XawXcbDraw.h \
+IswXcbDraw.c \
+IswXcbDraw.h \
 ```
 
 ### Step 1.2: Remove Include Directives from Source Files
 
 **Search and remove from ALL .c files:**
 ```c
-#include "XawUtils.h"
-#include "XawXcbCompat.h"
-#include "XawXcbTypes.h"
-#include "XawXftCompat.h"
-#include "XawRegion.h"
-#include "XawConverters.h"
+#include "IswUtils.h"
+#include "IswXcbCompat.h"
+#include "IswXcbTypes.h"
+#include "IswXftCompat.h"
+#include "IswRegion.h"
+#include "IswConverters.h"
 ```
 
 **Affected files (from analysis):**
@@ -74,8 +74,8 @@ XawXcbDraw.h \
 - src/Toggle.c
 - src/Vendor.c
 - src/Viewport.c
-- src/XawAtoms.c
-- src/XawDrawing.c
+- src/IswAtoms.c
+- src/IswDrawing.c
 
 **Action:** Use sed or manual search/replace to remove all these includes.
 
@@ -83,7 +83,7 @@ XawXcbDraw.h \
 
 **Investigate generated Makefile:**
 ```bash
-cd /home/adam/Xaw3d/src
+cd /home/adam/Isw3d/src
 grep -n "Label2" Makefile
 ```
 
@@ -101,7 +101,7 @@ grep -n "Label2" Makefile
 
 ### Step 2.1: Update Widget Class Structures
 
-**File:** [`include/X11/Xaw3d/ThreeDP.h`](../include/X11/Xaw3d/ThreeDP.h)
+**File:** [`include/X11/Isw3d/ThreeDP.h`](../include/X11/Isw3d/ThreeDP.h)
 
 **Verify shadowdraw signature is:**
 ```c
@@ -269,7 +269,7 @@ free(chars);
 
 **Optimization:** Create helper function to avoid code duplication:
 ```c
-/* Add to src/XawXcbDraw.c */
+/* Add to src/IswXcbDraw.c */
 int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
                     const char *text, int len)
 {
@@ -298,7 +298,7 @@ int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
 }
 ```
 
-**Add declaration to [`src/XawXcbDraw.h`](../src/XawXcbDraw.h):**
+**Add declaration to [`src/IswXcbDraw.h`](../src/IswXcbDraw.h):**
 ```c
 int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
                     const char *text, int len);
@@ -306,7 +306,7 @@ int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
 
 **Then use in widgets:**
 ```c
-#include "XawXcbDraw.h"
+#include "IswXcbDraw.h"
 
 int width = ISWXcbTextWidth(XtDisplay(widget), widget->label.font->fid,
                              text, len);
@@ -386,7 +386,7 @@ if (widget->simple.international == True) {
 **Long-term solution (document for Xft migration):**
 - Create ISWFontSet wrapper structure
 - Wrap Xft fonts in ISWFontSet
-- Implement XawTextWidth(), XawDrawString() that use Xft internally
+- Implement IswTextWidth(), IswDrawString() that use Xft internally
 - See Phase 7 for migration guide
 
 ---
@@ -431,17 +431,17 @@ xcb_gcontext_t gc = XtGetGC(widget, mask, &values);
 Both should accept `xcb_create_gc_value_list_t*` in custom libXt.
 If XtAllocateGC signature is different, check custom libXt headers.
 
-### Step 4.2: XawCreateStippledPixmap Call
+### Step 4.2: IswCreateStippledPixmap Call
 
 **Find pattern:**
 ```c
-values.tile = XawCreateStippledPixmap(XtScreen((Widget)lw),
+values.tile = IswCreateStippledPixmap(XtScreen((Widget)lw),
                                       lw->label.foreground,
                                       lw->core.background_pixel,
                                       lw->core.depth);
 ```
 
-**Issue:** XawCreateStippledPixmap might not exist or might return wrong type.
+**Issue:** IswCreateStippledPixmap might not exist or might return wrong type.
 
 **Check if it's defined in:** Xmu library or custom implementation needed.
 
@@ -516,11 +516,11 @@ if (reply != NULL) {
 
 ---
 
-## Phase 6: Update src/XawXcbDraw.c/h
+## Phase 6: Update src/IswXcbDraw.c/h
 
 ### Step 6.1: Add Helper Functions
 
-**Add to [`src/XawXcbDraw.h`](../src/XawXcbDraw.h):**
+**Add to [`src/IswXcbDraw.h`](../src/IswXcbDraw.h):**
 ```c
 /*
  * XCB Core Font Helpers (non-Xft)
@@ -546,7 +546,7 @@ void ISWXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
                     const char *text, uint8_t len);
 ```
 
-**Implement in [`src/XawXcbDraw.c`](../src/XawXcbDraw.c):**
+**Implement in [`src/IswXcbDraw.c`](../src/IswXcbDraw.c):**
 ```c
 int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
                     const char *text, int len)
@@ -635,8 +635,8 @@ Migration from XCB core fonts to Xft involves:
 ### ISWFontSet Structure
 
 ```c
-/* To be added to a new XawXftCompat.h */
-typedef struct _XawFontSet {
+/* To be added to a new IswXftCompat.h */
+typedef struct _IswFontSet {
     XftFont *xft_font;        /* Xft font handle */
     int ascent;               /* Cached metrics */
     int descent;
@@ -654,10 +654,10 @@ XFontStruct *font = XLoadQueryFont(dpy, fontname);
 
 **Future (Xft):**
 ```c
-ISWFontSet *fontset = XawLoadFontSet(dpy, screen, fontname);
+ISWFontSet *fontset = IswLoadFontSet(dpy, screen, fontname);
 
 /* Implementation: */
-ISWFontSet *XawLoadFontSet(Display *dpy, Screen *screen, const char *name)
+ISWFontSet *IswLoadFontSet(Display *dpy, Screen *screen, const char *name)
 {
     ISWFontSet *fs = malloc(sizeof(ISWFontSet));
     fs->xft_font = XftFontOpenName(dpy, screen->screen_num, name);
@@ -680,10 +680,10 @@ int width = ISWXcbTextWidth(conn, font, text, len);
 
 **Future (Xft):**
 ```c
-int width = XawTextWidth(fontset, text, len);
+int width = IswTextWidth(fontset, text, len);
 
 /* Implementation: */
-int XawTextWidth(ISWFontSet *fs, const char *text, int len)
+int IswTextWidth(ISWFontSet *fs, const char *text, int len)
 {
     XGlyphInfo extents;
     XftTextExtentsUtf8(dpy, fs->xft_font, (FcChar8*)text, len, &extents);
@@ -700,10 +700,10 @@ ISWXcbDrawText(conn, win, gc, x, y, text, len);
 
 **Future (Xft):**
 ```c
-XawDrawString(widget, fontset, color, x, y, text, len);
+IswDrawString(widget, fontset, color, x, y, text, len);
 
 /* Implementation: */
-void XawDrawString(Widget w, ISWFontSet *fs, Pixel pixel,
+void IswDrawString(Widget w, ISWFontSet *fs, Pixel pixel,
                    int x, int y, const char *text, int len)
 {
     xcb_connection_t *conn = XtDisplay(w);
@@ -792,9 +792,9 @@ make src/Label.lo 2>&1 | grep -i "XGetGeometry"
 ```bash
 make 2>&1 | tee build.log
 # Check for remaining errors
-ldd src/.libs/libXaw3d.so | grep -i xlib
+ldd src/.libs/libIsw3d.so | grep -i xlib
 # Should be empty (no Xlib dependency)
-ldd src/.libs/libXaw3d.so | grep xcb
+ldd src/.libs/libIsw3d.so | grep xcb
 # Should show xcb libraries
 ```
 
@@ -805,7 +805,7 @@ ldd src/.libs/libXaw3d.so | grep xcb
 ### Priority 1 (Build must complete):
 1. Phase 1 - Remove non-existent files
 2. Phase 2 - Fix region types
-3. Phase 6 - Add XawXcbDraw helpers
+3. Phase 6 - Add IswXcbDraw helpers
 4. Phase 3 - Fix font operations in Label.c
 
 ### Priority 2 (Get one widget working):
@@ -833,7 +833,7 @@ ldd src/.libs/libXaw3d.so | grep xcb
 - [x] No XGCValues structure errors
 - [x] Label.c compiles successfully
 - [ ] All widget .c files compile
-- [ ] libXaw3d.so links successfully
+- [ ] libIsw3d.so links successfully
 - [ ] No libX11 dependency (only libxcb)
 - [ ] Simple test program runs
 

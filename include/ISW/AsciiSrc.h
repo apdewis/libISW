@@ -41,8 +41,8 @@ in this Software without prior written authorization from the X Consortium.
  */
 
 
-#ifndef _ISW_XawAsciiSrc_h
-#define _ISW_XawAsciiSrc_h
+#ifndef _ISWAsciiSrc_h
+#define _ISWAsciiSrc_h
 
 #include <ISW/TextSrc.h>
 
@@ -55,7 +55,7 @@ in this Software without prior written authorization from the X Consortium.
  length		     Length		int		(internal)
  pieceSize	     PieceSize		int		BUFSIZ
  string		     String		String		NULL
- type		     Type		XawAsciiType	XawAsciiString
+ type		     Type		IsqAsciiType	IswAsciiString
  useStringInPlace    UseStringInPlace	Boolean		False
 
 */
@@ -93,7 +93,7 @@ typedef struct _AsciiSrcRec      *AsciiSrcObject;
 #define XtEstring "string"
 #define XtEfile "file"
 
-typedef enum {XawAsciiFile, XawAsciiString} XawAsciiType;
+typedef enum {IswAsciiFile, IswAsciiString} IswAsciiType;
 
 /************************************************************
  *
@@ -103,50 +103,50 @@ typedef enum {XawAsciiFile, XawAsciiString} XawAsciiType;
 
 _XFUNCPROTOBEGIN
 
-/*	Function Name: XawAsciiSourceFreeString
+/*	Function Name: IswAsciiSourceFreeString
  *	Description: Frees the string returned by a get values call
  *                   on the string when the source is of type string.
  *	Arguments: w - the AsciiSrc object.
  *	Returns: none.
  */
 
-extern void XawAsciiSourceFreeString(
+extern void IswAsciiSourceFreeString(
     Widget		/* w */
 );
 
-/*	Function Name: XawAsciiSave
+/*	Function Name: IswAsciiSave
  *	Description: Saves all the pieces into a file or string as required.
  *	Arguments: w - the asciiSrc Object.
  *	Returns: TRUE if the save was successful.
  */
 
-extern Boolean XawAsciiSave(
+extern Boolean IswAsciiSave(
     Widget		/* w */
 );
 
-/*	Function Name: XawAsciiSaveAsFile
+/*	Function Name: IswAsciiSaveAsFile
  *	Description: Save the current buffer as a file.
  *	Arguments: w - the asciiSrc object.
  *                 name - name of the file to save this file into.
  *	Returns: True if the save was successful.
  */
 
-extern Boolean XawAsciiSaveAsFile(
+extern Boolean IswAsciiSaveAsFile(
     Widget		/* w */,
     _Xconst char*	/* name */
 );
 
-/*	Function Name: XawAsciiSourceChanged
+/*	Function Name: IswAsciiSourceChanged
  *	Description: Returns true if the source has changed since last saved.
  *	Arguments: w - the asciiSource object.
  *	Returns: a Boolean (see description).
  */
 
-extern Boolean XawAsciiSourceChanged(
+extern Boolean IswAsciiSourceChanged(
     Widget		/* w */
 );
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawAsciiSrc_h */
+#endif /* _ISW_IswAsciiSrc_h */
 

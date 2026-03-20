@@ -65,7 +65,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Tree.h>
 #include <ISW/Viewport.h>
 
-XawWidgetNode XawWidgetArray[] = {
+IswWidgetNode IswWidgetArray[] = {
 { "applicationShell", &applicationShellWidgetClass },
 { "asciiSink", &asciiSinkObjectClass },
 { "asciiSrc", &asciiSrcObjectClass },
@@ -113,5 +113,5 @@ XawWidgetNode XawWidgetArray[] = {
 { "wmShell", &wmShellWidgetClass },
 };
 
-int XawWidgetCount = XtNumber(XawWidgetArray);
+int IswWidgetCount = XtNumber(IswWidgetArray);
 

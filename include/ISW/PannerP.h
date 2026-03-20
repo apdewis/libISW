@@ -25,8 +25,8 @@ in this Software without prior written authorization from the X Consortium.
  * Author:  Jim Fulton, MIT X Consortium
  */
 
-#ifndef _ISW_XawPannerP_h
-#define _ISW_XawPannerP_h
+#ifndef _ISW_IswPannerP_h
+#define _ISW_IswPannerP_h
 
 #include <ISW/Panner.h>
 #include <ISW/SimpleP.h>		/* parent */
@@ -100,4 +100,4 @@ typedef struct _PannerRec {
  */
 extern PannerClassRec pannerClassRec;
 
-#endif /* _ISW_XawPannerP_h */
+#endif /* _ISW_IswPannerP_h */

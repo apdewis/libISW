@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawBox_h
-#define _ISW_XawBox_h
+#ifndef _ISW_IswBox_h
+#define _ISW_IswBox_h
 
 /***********************************************************************
  *
@@ -88,4 +88,4 @@ extern WidgetClass boxWidgetClass;
 typedef struct _BoxClassRec *BoxWidgetClass;
 typedef struct _BoxRec      *BoxWidget;
 
-#endif /* _ISW_XawBox_h */
+#endif /* _ISW_IswBox_h */

@@ -115,7 +115,7 @@ static XtResource resources[] = {
     {XtNlabel,  XtCLabel, XtRString, sizeof(String),
 	offset(label.label), XtRString, NULL},
     {XtNencoding, XtCEncoding, XtRUnsignedChar, sizeof(unsigned char),
-	offset(label.encoding), XtRImmediate, (XtPointer)XawTextEncoding8bit},
+	offset(label.encoding), XtRImmediate, (XtPointer)IswTextEncoding8bit},
     {XtNjustify, XtCJustify, XtRJustify, sizeof(XtJustify),
 	offset(label.justify), XtRImmediate, (XtPointer)XtJustifyCenter},
     {XtNinternalWidth, XtCWidth, XtRDimension,  sizeof(Dimension),
@@ -186,7 +186,7 @@ LabelClassRec labelClassRec = {
   },
 /* ThreeD class fields initialization */
   {
-    /* shadowdraw 		*/	XtInheritXaw3dShadowDraw
+    /* shadowdraw 		*/	XtInheritIsw3dShadowDraw
   },
 /* Label class fields initialization */
   {
@@ -205,7 +205,7 @@ WidgetClass labelWidgetClass = (WidgetClass)&labelClassRec;
 static void
 ClassInitialize(void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     //XtAddConverter( XtRString, XtRJustify, ISWCvtStringToJustify,
 	//	    (XtConvertArgList)NULL, 0 );
 }
@@ -262,7 +262,7 @@ SetTextWidthAndHeight(LabelWidget lw)
 	  lw->label.label_len = MULTI_LINE_LABEL;
 	  lw->label.label_width = 0;
 	  for (label = lw->label.label; nl != NULL; nl = index(label, '\n')) {
-	      int width = XawTextWidth(fset, label, (int)(nl - label));
+	      int width = IswTextWidth(fset, label, (int)(nl - label));
 
 	      if (width > (int)lw->label.label_width)
 		  lw->label.label_width = width;
@@ -271,7 +271,7 @@ SetTextWidthAndHeight(LabelWidget lw)
 		  lw->label.label_height += fset->height;
 	  }
 	  if (*label) {
-	      int width = XawTextWidth(fset, label, strlen(label));
+	      int width = IswTextWidth(fset, label, strlen(label));
 
 	      if (width > (int) lw->label.label_width)
 		  lw->label.label_width = width;
@@ -279,7 +279,7 @@ SetTextWidthAndHeight(LabelWidget lw)
       } else {
 	  lw->label.label_len = strlen(lw->label.label);
 	  lw->label.label_width =
-	      XawTextWidth(fset, lw->label.label, (int) lw->label.label_len);
+	      IswTextWidth(fset, lw->label.label, (int) lw->label.label_len);
       }
 
     } else
@@ -371,7 +371,7 @@ GetgrayGC(LabelWidget lw)
     values.foreground = lw->label.foreground;
     values.background = lw->core.background_pixel;
     values.fill_style = XCB_FILL_STYLE_TILED;
-    values.tile = XawCreateStippledPixmap(XtDisplay((Widget)lw),
+    values.tile = IswCreateStippledPixmap(XtDisplay((Widget)lw),
     	  XtWindow((Widget)lw),
     	  lw->label.foreground,
     	  lw->core.background_pixel,
@@ -632,7 +632,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             if (len == MULTI_LINE_LABEL) {
 	        char *nl;
 	        while ((nl = index(label, '\n')) != NULL) {
-	            XawDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
+	            IswDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
 	  		        w->label.label_x, ksy, label, (int)(nl - label));
 	            ksy += w->label.fontset->height;
 	            label = nl + 1;
@@ -640,7 +640,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	        len = strlen(label);
             }
             if (len)
-	        XawDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
+	        IswDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
 			      w->label.label_x, ksy, label, len);
 
         } else

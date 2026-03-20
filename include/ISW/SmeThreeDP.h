@@ -23,8 +23,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawSmeThreeDP_h
-#define _ISW_XawSmeThreeDP_h
+#ifndef _ISW_IswSmeThreeDP_h
+#define _ISW_IswSmeThreeDP_h
 
 #include <ISW/SmeThreeD.h>
 #include <ISW/SmeP.h>
@@ -53,12 +53,12 @@ typedef struct _SmeThreeDRec {
     SmeThreeDPart   sme_threeD;
   } SmeThreeDRec;
 
-typedef void (*XawSme3dShadowDrawProc)(
+typedef void (*IswSme3dShadowDrawProc)(
     Widget
 );
 
 typedef struct {
-    XawSme3dShadowDrawProc	shadowdraw;
+    IswSme3dShadowDrawProc	shadowdraw;
   } SmeThreeDClassPart;
 
 /* Full class record declaration. */
@@ -71,6 +71,6 @@ typedef struct _SmeThreeDClassRec {
 /* Class pointer. */
 extern SmeThreeDClassRec smeThreeDClassRec;
 
-#define XtInheritXawSme3dShadowDraw ((XawSme3dShadowDrawProc) _XtInherit)
+#define XtInheritIswSme3dShadowDraw ((IswSme3dShadowDrawProc) _XtInherit)
 
-#endif /* _ISW_XawSmeThreeDP_h */
+#endif /* _ISW_IswSmeThreeDP_h */

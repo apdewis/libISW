@@ -35,8 +35,8 @@ in this Software without prior written authorization from the X Consortium.
  *                      MIT - Project Athena
  */
 
-#ifndef _ISW_XawListP_h
-#define _ISW_XawListP_h
+#ifndef _ISW_IswListP_h
+#define _ISW_IswListP_h
 
 /***********************************************************************
  *
@@ -115,4 +115,4 @@ typedef struct _ListRec {
     ListPart	list;
 } ListRec;
 
-#endif /* _ISW_XawListP_h */
+#endif /* _ISW_IswListP_h */

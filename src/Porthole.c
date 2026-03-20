@@ -33,7 +33,7 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>		/* get XtN and XtC defines */
-#include <ISW/ISWInit.h>		/* get Xaw initialize stuff */
+#include <ISW/ISWInit.h>		/* get Isw initialize stuff */
 #include <ISW/PortholeP.h>		/* get porthole structs */
 #include <ISW/ISWP.h>		/* get utility macros */
 
@@ -63,7 +63,7 @@ PortholeClassRec portholeClassRec = {
     /* superclass		*/	(WidgetClass) &compositeClassRec,
     /* class_name		*/	"Porthole",
     /* widget_size		*/	sizeof(PortholeRec),
-    /* class_initialize		*/	XawInitializeWidgetSet,
+    /* class_initialize		*/	IswInitializeWidgetSet,
     /* class_part_initialize	*/	NULL,
     /* class_inited		*/	FALSE,
     /* initialize		*/	NULL,
@@ -138,7 +138,7 @@ SendReport (PortholeWidget pw, unsigned int changed)
     Widget child = find_child (pw);
 
     if (pw->porthole.report_callbacks && child) {
-	XawPannerReport prep;
+	IswPannerReport prep;
 
 	prep.changed = changed;
 	prep.slider_x = -child->core.x;	/* porthole is "inner" */
@@ -253,7 +253,7 @@ Resize (Widget gw)
 	XtConfigureWidget (child, x, y, width, height, (Dimension) 0);
     }
 
-    SendReport (pw, (unsigned int) (XawPRCanvasWidth | XawPRCanvasHeight));
+    SendReport (pw, (unsigned int) (IswPRCanvasWidth | IswPRCanvasHeight));
 }
 
 
@@ -325,19 +325,19 @@ GeometryManager (Widget w, XtWidgetGeometry *req, XtWidgetGeometry *reply)
 	unsigned int changed = 0;
 
 	if (child->core.x != reply->x) {
-	    changed |= XawPRSliderX;
+	    changed |= IswPRSliderX;
 	    child->core.x = reply->x;
 	}
 	if (child->core.y != reply->y) {
-	    changed |= XawPRSliderY;
+	    changed |= IswPRSliderY;
 	    child->core.y = reply->y;
 	}
 	if (child->core.width != reply->width) {
-	    changed |= XawPRSliderWidth;
+	    changed |= IswPRSliderWidth;
 	    child->core.width = reply->width;
 	}
 	if (child->core.height != reply->height) {
-	    changed |= XawPRSliderHeight;
+	    changed |= IswPRSliderHeight;
 	    child->core.height = reply->height;
 	}
 	if (changed) SendReport (pw, changed);
@@ -375,6 +375,6 @@ ChangeManaged (Widget gw)
 	XtResizeWidget (child, Max (child->core.width, pw->core.width),
 			Max (child->core.height, pw->core.height), 0);
 
-	SendReport (pw, (unsigned int) XawPRAll);
+	SendReport (pw, (unsigned int) IswPRAll);
     }
 }

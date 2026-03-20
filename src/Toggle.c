@@ -142,7 +142,7 @@ ToggleClassRec toggleClassRec = {
     XtInheritChangeSensitive		/* change_sensitive	  */
   },  /* SimpleClass fields initialization */
   {
-    XtInheritXaw3dShadowDraw            /* shadowdraw          */
+    XtInheritIsw3dShadowDraw            /* shadowdraw          */
   },  /* ThreeDClass fields initialization */
   {
     0                                     /* field not used    */
@@ -180,7 +180,7 @@ ISWCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args
     
     if (*num_args != 1) {
         XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                       "wrongParameters", "cvtStringToWidget", "XawError",
+                       "wrongParameters", "cvtStringToWidget", "IswError",
                        "String to Widget conversion needs parent argument",
                        (String *)NULL, (Cardinal *)NULL);
         return False;
@@ -189,7 +189,7 @@ ISWCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args
     parent = *(Widget*)args[0].addr;
     if (parent == NULL) {
         XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                       "missingParent", "cvtStringToWidget", "XawError",
+                       "missingParent", "cvtStringToWidget", "IswError",
                        "String to Widget conversion: parent is NULL",
                        (String *)NULL, (Cardinal *)NULL);
         return False;
@@ -198,7 +198,7 @@ ISWCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args
     widget = XtNameToWidget(parent, (char*)fromVal->addr);
     if (widget == NULL) {
         XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                       "noWidget", "cvtStringToWidget", "XawError",
+                       "noWidget", "cvtStringToWidget", "IswError",
                        "Cannot find widget '%s'",
                        (String *)&fromVal->addr, (Cardinal *)NULL);
         return False;
@@ -232,7 +232,7 @@ ClassInit(void)
 	   sizeof(Widget)}
   };
 
-  XawInitializeWidgetSet();
+  IswInitializeWidgetSet();
   XtSetTypeConverter(XtRString, XtRWidget, ISWCvtStringToWidget,
 		     parentCvtArgs, XtNumber(parentCvtArgs), XtCacheNone,
 		     (XtDestructor)NULL);
@@ -347,7 +347,7 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
     ToggleWidget rtw = (ToggleWidget) request;
 
     if (oldtw->toggle.widget != tw->toggle.widget)
-      XawToggleChangeRadioGroup(new, tw->toggle.widget);
+      IswToggleChangeRadioGroup(new, tw->toggle.widget);
 
     if (!tw->core.sensitive && oldtw->core.sensitive && rtw->command.set)
 	tw->command.set = True;
@@ -505,7 +505,7 @@ RemoveFromRadioGroup(Widget w)
  *
  ************************************************************/
 
-/*	Function Name: XawToggleChangeRadioGroup
+/*	Function Name: IswToggleChangeRadioGroup
  *	Description: Allows a toggle widget to change radio groups.
  *	Arguments: w - The toggle widget to change groups.
  *                 radio_group - any widget in the new group.
@@ -513,7 +513,7 @@ RemoveFromRadioGroup(Widget w)
  */
 
 void
-XawToggleChangeRadioGroup(Widget w, Widget radio_group)
+IswToggleChangeRadioGroup(Widget w, Widget radio_group)
 {
   ToggleWidget tw = (ToggleWidget) w;
   RadioGroup * group;
@@ -526,7 +526,7 @@ XawToggleChangeRadioGroup(Widget w, Widget radio_group)
  */
 
   if ( tw->command.set && radio_group != NULL )
-    XawToggleUnsetCurrent(radio_group);
+    IswToggleUnsetCurrent(radio_group);
 
   if (radio_group != NULL) {
       if ((group = GetRadioGroup(radio_group)) == NULL)
@@ -535,7 +535,7 @@ XawToggleChangeRadioGroup(Widget w, Widget radio_group)
   }
 }
 
-/*	Function Name: XawToggleGetCurrent
+/*	Function Name: IswToggleGetCurrent
  *	Description: Returns the RadioData associated with the toggle
  *                   widget that is currently active in a toggle group.
  *	Arguments: w - any toggle widget in the toggle group.
@@ -543,7 +543,7 @@ XawToggleChangeRadioGroup(Widget w, Widget radio_group)
  */
 
 XtPointer
-XawToggleGetCurrent(Widget w)
+IswToggleGetCurrent(Widget w)
 {
   RadioGroup * group;
 
@@ -559,7 +559,7 @@ XawToggleGetCurrent(Widget w)
   return(NULL);
 }
 
-/*	Function Name: XawToggleSetCurrent
+/*	Function Name: IswToggleSetCurrent
  *	Description: Sets the Toggle widget associated with the
  *                   radio_data specified.
  *	Arguments: radio_group - any toggle widget in the toggle group.
@@ -568,7 +568,7 @@ XawToggleGetCurrent(Widget w)
  */
 
 void
-XawToggleSetCurrent(Widget radio_group, XtPointer radio_data)
+IswToggleSetCurrent(Widget radio_group, XtPointer radio_data)
 {
   RadioGroup * group;
   ToggleWidget local_tog;
@@ -608,14 +608,14 @@ XawToggleSetCurrent(Widget radio_group, XtPointer radio_data)
   }
 }
 
-/*	Function Name: XawToggleUnsetCurrent
+/*	Function Name: IswToggleUnsetCurrent
  *	Description: Unsets all Toggles in the radio_group specified.
  *	Arguments: radio_group - any toggle widget in the toggle group.
  *	Returns: none.
  */
 
 void
-XawToggleUnsetCurrent(Widget radio_group)
+IswToggleUnsetCurrent(Widget radio_group)
 {
   ToggleWidgetClass class;
   ToggleWidget local_tog = (ToggleWidget) radio_group;

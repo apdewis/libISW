@@ -55,8 +55,8 @@ in this Software without prior written authorization from the X Consortium.
  * By Li Yuhong, Sept. 18, 1990
  */
 
-#ifndef _ISW_XawMultiSrc_h
-#define _ISW_XawMultiSrc_h
+#ifndef _ISW_IswMultiSrc_h
+#define _ISW_IswMultiSrc_h
 
 #include <ISW/TextSrc.h>
 /*Xfuncproto.h included by Intrinsic.h*/
@@ -70,7 +70,7 @@ in this Software without prior written authorization from the X Consortium.
  length		     Length		int		(internal)
  pieceSize	     PieceSize		int		BUFSIZ
  string		     String		String		NULL
- type		     Type		XawAsciiType	XawAsciiString
+ type		     Type		IswAsciiType	IswAsciiString
  useStringInPlace    UseStringInPlace	Boolean		False
 
 */
@@ -114,7 +114,7 @@ typedef struct _MultiSrcRec      *MultiSrcObject;
  *
  * the AsciiSrc API which currently forwards requests here.
  *
- * future versions (like theres going to be an R7 Xaw!) may
+ * future versions (like theres going to be an R7 Isw!) may
  *
  * eliminate this file or at least these functions entirely.
  *
@@ -123,7 +123,7 @@ typedef struct _MultiSrcRec      *MultiSrcObject;
 _XFUNCPROTOBEGIN
 
 
-extern void XawMultiSourceFreeString(
+extern void IswMultiSourceFreeString(
     Widget		/* w */
 );
 
@@ -139,6 +139,6 @@ extern Boolean _ISWMultiSaveAsFile(
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawMultiSrc_h */
+#endif /* _ISW_IswMultiSrc_h */
 /* Don't add anything after this line. */
 

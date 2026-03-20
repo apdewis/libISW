@@ -36,8 +36,8 @@ in this Software without prior written authorization from the X Consortium.
  *
  */
 
-#ifndef _ISW_XawToggleP_h
-#define _ISW_XawToggleP_h
+#ifndef _ISW_IswToggleP_h
+#define _ISW_IswToggleP_h
 
 #include <ISW/Toggle.h>
 #include <ISW/CommandP.h>
@@ -106,6 +106,6 @@ typedef struct _ToggleRec {
     TogglePart       toggle;
 } ToggleRec;
 
-#endif /* _ISW_XawToggleP_h */
+#endif /* _ISW_IswToggleP_h */
 
 

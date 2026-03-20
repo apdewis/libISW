@@ -1,14 +1,14 @@
 /*
- * XawXftCompat.h - XCB/Xft compatibility layer for Xaw3d
+ * IswXftCompat.h - XCB/Xft compatibility layer for Isw3d
  *
  * This header provides ISWFontSet typedef and font-related definitions
  * for the XCB migration. Full Xft support to be added in Phase 3.
  *
- * Copyright (c) 2026 Xaw3d Project
+ * Copyright (c) 2026 Isw3d Project
  */
 
-#ifndef _ISW_XawXftCompat_h
-#define _ISW_XawXftCompat_h
+#ifndef _ISW_IswXftCompat_h
+#define _ISW_IswXftCompat_h
 
 #include <xcb/xcb.h>
 #include <X11/Intrinsic.h>
@@ -20,7 +20,7 @@
  * interface for internationalized text rendering. In the future,
  * this will be extended to support Xft/FreeType fonts.
  */
-typedef struct _XawFontSet {
+typedef struct _IswFontSet {
     xcb_connection_t *conn;   /* XCB connection (for text width queries) */
     xcb_font_t font_id;       /* Primary XCB font ID */
     int ascent;               /* Font ascent */
@@ -30,7 +30,7 @@ typedef struct _XawFontSet {
 } ISWFontSet;
 
 /*
- * XawTextWidth - Calculate text width using ISWFontSet
+ * IswTextWidth - Calculate text width using ISWFontSet
  *
  * Parameters:
  *   fontset - ISWFontSet pointer
@@ -39,12 +39,12 @@ typedef struct _XawFontSet {
  *
  * Returns: Width in pixels
  *
- * Note: This is a function declaration. Implementation in XawXcbDraw.c
+ * Note: This is a function declaration. Implementation in IswXcbDraw.c
  */
-int XawTextWidth(ISWFontSet *fontset, const char *text, int len);
+int IswTextWidth(ISWFontSet *fontset, const char *text, int len);
 
 /*
- * XawDrawString - Draw text using ISWFontSet
+ * IswDrawString - Draw text using ISWFontSet
  *
  * Parameters:
  *   conn    - XCB connection
@@ -55,10 +55,10 @@ int XawTextWidth(ISWFontSet *fontset, const char *text, int len);
  *   text    - Text string
  *   len     - Length of text
  *
- * Note: This is a function declaration. Implementation in XawXcbDraw.c
+ * Note: This is a function declaration. Implementation in IswXcbDraw.c
  */
-void XawDrawString(xcb_connection_t *conn, xcb_drawable_t d,
+void IswDrawString(xcb_connection_t *conn, xcb_drawable_t d,
                    ISWFontSet *fontset, xcb_gcontext_t gc,
                    int x, int y, const char *text, int len);
 
-#endif /* _ISW_XawXftCompat_h */
+#endif /* _ISW_IswXftCompat_h */

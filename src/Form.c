@@ -210,7 +210,7 @@ ClassInitialize(void)
 	{XtBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.parent),
 	     sizeof(Widget)}
     };
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     XtQChainLeft   = XrmPermStringToQuark("chainleft");
     XtQChainRight  = XrmPermStringToQuark("chainright");
     XtQChainTop    = XrmPermStringToQuark("chaintop");
@@ -444,7 +444,7 @@ LayoutChild(Widget w)
 	subs[0] = w->core.name;
 	subs[1] = w->core.parent->core.name;
 	XtAppWarningMsg(XtWidgetToApplicationContext(w),
-			"constraintLoop","xawFormLayout","XawToolkitError",
+			"constraintLoop","xawFormLayout","IswToolkitError",
    "constraint loop detected while laying out child '%s' in FormWidget '%s'",
 			subs, &num_subs);
 	return;
@@ -789,7 +789,7 @@ PreferredGeometry(Widget widget, XtWidgetGeometry *request, XtWidgetGeometry *re
  */
 
 void
-XawFormDoLayout(Widget _fw,
+IswFormDoLayout(Widget _fw,
 #if NeedWidePrototypes
 		int doit)
 #else

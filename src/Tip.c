@@ -86,28 +86,28 @@ typedef struct _WidgetInfo {
     struct _WidgetInfo *next;
 } WidgetInfo;
 
-typedef struct _XawTipInfo {
+typedef struct _IswTipInfo {
     xcb_screen_t *screen;
     TipWidget tip;
     Bool mapped;
     WidgetInfo *widgets;
-    struct _XawTipInfo *next;
-} XawTipInfo;
+    struct _IswTipInfo *next;
+} IswTipInfo;
 
 typedef struct {
-    XawTipInfo *info;
+    IswTipInfo *info;
     WidgetInfo *winfo;
 } TimeoutInfo;
 
 /*
  * Class Methods
  */
-static void XawTipClassInitialize(void);
-static void XawTipInitialize(Widget, Widget, ArgList, Cardinal *);
-static void XawTipDestroy(Widget);
-static void XawTipExpose(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
-static void XawTipRealize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
-static Boolean XawTipSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
+static void IswTipClassInitialize(void);
+static void IswTipInitialize(Widget, Widget, ArgList, Cardinal *);
+static void IswTipDestroy(Widget);
+static void IswTipExpose(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void IswTipRealize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static Boolean IswTipSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 /*
  * Prototypes
@@ -115,13 +115,13 @@ static Boolean XawTipSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void TipEventHandler(Widget, XtPointer, XEvent *, Boolean *);
 static void TipShellEventHandler(Widget, XtPointer, XEvent *, Boolean *);
 static WidgetInfo *CreateWidgetInfo(Widget);
-static WidgetInfo *FindWidgetInfo(XawTipInfo *, Widget);
-static XawTipInfo *CreateTipInfo(Widget);
-static XawTipInfo *FindTipInfo(Widget);
-static void ResetTip(XawTipInfo *, WidgetInfo *, Bool);
+static WidgetInfo *FindWidgetInfo(IswTipInfo *, Widget);
+static IswTipInfo *CreateTipInfo(Widget);
+static IswTipInfo *FindTipInfo(Widget);
+static void ResetTip(IswTipInfo *, WidgetInfo *, Bool);
 static void TipTimeoutCallback(XtPointer, XtIntervalId *);
-static void TipLayout(XawTipInfo *);
-static void TipPosition(XawTipInfo *);
+static void TipLayout(IswTipInfo *);
+static void TipPosition(IswTipInfo *);
 
 /*
  * Initialization
@@ -139,7 +139,7 @@ static XtResource resources[] = {
   {XtNlabel, XtCLabel, XtRString, sizeof(String),
     offset(label), XtRString, NULL},
   {XtNencoding, XtCEncoding, XtRUnsignedChar, sizeof(unsigned char),
-    offset(encoding), XtRImmediate, (XtPointer)XawTextEncoding8bit},
+    offset(encoding), XtRImmediate, (XtPointer)IswTextEncoding8bit},
   {XtNinternalHeight, XtCHeight, XtRDimension, sizeof(Dimension),
     offset(internal_height), XtRImmediate, (XtPointer)2},
   {XtNinternalWidth, XtCWidth, XtRDimension, sizeof(Dimension),
@@ -158,12 +158,12 @@ TipClassRec tipClassRec = {
     (WidgetClass)&widgetClassRec,	/* superclass */
     "Tip",				/* class_name */
     sizeof(TipRec),			/* widget_size */
-    XawTipClassInitialize,		/* class_initialize */
+    IswTipClassInitialize,		/* class_initialize */
     NULL,				/* class_part_initialize */
     False,				/* class_inited */
-    XawTipInitialize,			/* initialize */
+    IswTipInitialize,			/* initialize */
     NULL,				/* initialize_hook */
-    XawTipRealize,			/* realize */
+    IswTipRealize,			/* realize */
     NULL,				/* actions */
     0,					/* num_actions */
     resources,				/* resources */
@@ -173,10 +173,10 @@ TipClassRec tipClassRec = {
     True,				/* compress_exposure */
     True,				/* compress_enterleave */
     False,				/* visible_interest */
-    XawTipDestroy,			/* destroy */
+    IswTipDestroy,			/* destroy */
     NULL,				/* resize */
-    XawTipExpose,			/* expose */
-    XawTipSetValues,			/* set_values */
+    IswTipExpose,			/* expose */
+    IswTipSetValues,			/* set_values */
     NULL,				/* set_values_hook */
     XtInheritSetValuesAlmost,		/* set_values_almost */
     NULL,				/* get_values_hook */
@@ -196,7 +196,7 @@ TipClassRec tipClassRec = {
 
 WidgetClass tipWidgetClass = (WidgetClass)&tipClassRec;
 
-static XawTipInfo *TipInfoList = NULL;
+static IswTipInfo *TipInfoList = NULL;
 static TimeoutInfo TimeoutData;
 
 /*
@@ -238,7 +238,7 @@ XmuCvtStringToBackingStore(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 
 /*ARGSUSED*/
 static Boolean
-XawCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+IswCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
                            XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
 {
   static String buffer;
@@ -283,19 +283,19 @@ XawCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 }
 
 static void
-XawTipClassInitialize(void)
+IswTipClassInitialize(void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     /* BackingStore converters - XCB has limited BackingStore support, but keep for compatibility */
     XtSetTypeConverter(XtRString, XtRBackingStore, XmuCvtStringToBackingStore,
 		       NULL, 0, XtCacheNone, NULL);
-    XtSetTypeConverter(XtRBackingStore, XtRString, XawCvtBackingStoreToString,
+    XtSetTypeConverter(XtRBackingStore, XtRString, IswCvtBackingStoreToString,
 		       NULL, 0, XtCacheNone, NULL);
 }
 
 /*ARGSUSED*/
 static void
-XawTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
+IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
 {
     TipWidget tip = (TipWidget)w;
     xcb_create_gc_value_list_t values;
@@ -337,9 +337,9 @@ XawTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
 }
 
 static void
-XawTipDestroy(Widget w)
+IswTipDestroy(Widget w)
 {
-    XawTipInfo *info = FindTipInfo(w);
+    IswTipInfo *info = FindTipInfo(w);
     WidgetInfo *winfo;
     TipWidget tip = (TipWidget)w;
 
@@ -361,7 +361,7 @@ XawTipDestroy(Widget w)
     if (info == TipInfoList)
 	TipInfoList = TipInfoList->next;
     else {
-	XawTipInfo *p = TipInfoList;
+	IswTipInfo *p = TipInfoList;
 
 	while (p && p->next != info)
 	    p = p->next;
@@ -373,7 +373,7 @@ XawTipDestroy(Widget w)
 }
 
 static void
-XawTipRealize(xcb_connection_t *conn, Widget w, XtValueMask *mask, uint32_t *values)
+IswTipRealize(xcb_connection_t *conn, Widget w, XtValueMask *mask, uint32_t *values)
 {
     TipWidget tip = (TipWidget)w;
     xcb_screen_t *screen = XtScreen(w);
@@ -411,7 +411,7 @@ XawTipRealize(xcb_connection_t *conn, Widget w, XtValueMask *mask, uint32_t *val
 }
 
 static void
-XawTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+IswTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     TipWidget tip = (TipWidget)w;
     xcb_gcontext_t gc = tip->tip.gc;
@@ -427,7 +427,7 @@ XawTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	ksy += tip->tip.fontset->ascent;
 
 	while ((nl = index(label, '\n')) != NULL) {
-	    XawDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset,
+	    IswDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset,
 			  gc, tip->tip.internal_width, ksy, label,
 			  (int)(nl - label));
 	    ksy += tip->tip.fontset->height;
@@ -435,7 +435,7 @@ XawTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	}
 	len = strlen(label);
 	if (len)
-	    XawDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset, gc,
+	    IswDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset, gc,
 			  tip->tip.internal_width, ksy, label, len);
     }
     else
@@ -473,7 +473,7 @@ XawTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 /*ARGSUSED*/
 static Boolean
-XawTipSetValues(Widget current, Widget request, Widget cnew, ArgList args, Cardinal *num_args)
+IswTipSetValues(Widget current, Widget request, Widget cnew, ArgList args, Cardinal *num_args)
 {
     TipWidget curtip = (TipWidget)current;
     TipWidget newtip = (TipWidget)cnew;
@@ -512,7 +512,7 @@ XawTipSetValues(Widget current, Widget request, Widget cnew, ArgList args, Cardi
 }
 
 static void
-TipLayout(XawTipInfo *info)
+TipLayout(IswTipInfo *info)
 {
     XFontStruct	*fs = info->tip->tip.font;
     int width = 0, height;
@@ -526,7 +526,7 @@ TipLayout(XawTipInfo *info)
 	if ((nl = index(label, '\n')) != NULL) {
 	    /*CONSTCOND*/
 	    while (True) {
-		int w = XawTextWidth(fset, label, (int)(nl - label));
+		int w = IswTextWidth(fset, label, (int)(nl - label));
 
 		if (w > width)
 		    width = w;
@@ -540,7 +540,7 @@ TipLayout(XawTipInfo *info)
 	    }
 	}
 	else
-	    width = XawTextWidth(fset, label, strlen(label));
+	    width = IswTextWidth(fset, label, strlen(label));
     }
     else
 #endif
@@ -584,7 +584,7 @@ TipLayout(XawTipInfo *info)
 #define	DEFAULT_TIP_OFFSET	12
 
 static void
-TipPosition(XawTipInfo *info)
+TipPosition(IswTipInfo *info)
 {
     xcb_window_t r, c;
     int rx, ry, wx, wy;
@@ -630,7 +630,7 @@ CreateWidgetInfo(Widget w)
 }
 
 static WidgetInfo *
-FindWidgetInfo(XawTipInfo *info, Widget w)
+FindWidgetInfo(IswTipInfo *info, Widget w)
 {
     WidgetInfo *winfo, *wlist = info->widgets;
 
@@ -644,10 +644,10 @@ FindWidgetInfo(XawTipInfo *info, Widget w)
     return (winfo->next = CreateWidgetInfo(w));
 }
 
-static XawTipInfo *
+static IswTipInfo *
 CreateTipInfo(Widget w)
 {
-    XawTipInfo *info = XtNew(XawTipInfo);
+    IswTipInfo *info = XtNew(IswTipInfo);
     Widget shell = w;
 
     while (XtParent(shell))
@@ -666,10 +666,10 @@ CreateTipInfo(Widget w)
     return (info);
 }
 
-static XawTipInfo *
+static IswTipInfo *
 FindTipInfo(Widget w)
 {
-    XawTipInfo *info, *list = TipInfoList;
+    IswTipInfo *info, *list = TipInfoList;
     xcb_screen_t *screen;
 
     if (list == NULL)
@@ -684,7 +684,7 @@ FindTipInfo(Widget w)
 }
 
 static void
-ResetTip(XawTipInfo *info, WidgetInfo *winfo, Bool add_timeout)
+ResetTip(IswTipInfo *info, WidgetInfo *winfo, Bool add_timeout)
 {
     if (info->tip->tip.timer) {
 	XtRemoveTimeOut(info->tip->tip.timer);
@@ -709,7 +709,7 @@ static void
 TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
 {
     TimeoutInfo *cinfo = (TimeoutInfo *)closure;
-    XawTipInfo *info = cinfo->info;
+    IswTipInfo *info = cinfo->info;
     WidgetInfo *winfo = cinfo->winfo;
     Arg args[2];
 
@@ -735,7 +735,7 @@ TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
 static void
 TipShellEventHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *continue_to_dispatch)
 {
-    XawTipInfo *info = FindTipInfo(w);
+    IswTipInfo *info = FindTipInfo(w);
 
     ResetTip(info, FindWidgetInfo(info, w), False);
 }
@@ -744,7 +744,7 @@ TipShellEventHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *co
 static void
 TipEventHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *continue_to_dispatch)
 {
-    XawTipInfo *info = FindTipInfo(w);
+    IswTipInfo *info = FindTipInfo(w);
     Boolean add_timeout;
 
     switch (event->response_type & ~0x80) {
@@ -768,10 +768,10 @@ TipEventHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *continu
  * Public routines
  */
 void
-XawTipEnable(Widget w, String label)
+IswTipEnable(Widget w, String label)
 {
     if (XtIsWidget(w) && label && *label) {
-	XawTipInfo *info = FindTipInfo(w);
+	IswTipInfo *info = FindTipInfo(w);
 	WidgetInfo *winfo = FindWidgetInfo(info, w);
 
 	if (winfo->label)
@@ -784,10 +784,10 @@ XawTipEnable(Widget w, String label)
 }
 
 void
-XawTipDisable(Widget w)
+IswTipDisable(Widget w)
 {
     if (XtIsWidget(w)) {
-	XawTipInfo *info = FindTipInfo(w);
+	IswTipInfo *info = FindTipInfo(w);
 
 	XtRemoveEventHandler(w, TIP_EVENT_MASK, False, TipEventHandler,
 			     (XtPointer)NULL);

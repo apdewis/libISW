@@ -36,8 +36,8 @@ in this Software without prior written authorization from the X Consortium.
  *          kit@expo.lcs.mit.edu
  */
 
-#ifndef _ISW_XawSmeP_h
-#define _ISW_XawSmeP_h
+#ifndef _ISW_IswSmeP_h
+#define _ISW_IswSmeP_h
 
 /***********************************************************************
  *
@@ -96,10 +96,10 @@ typedef struct _SmeRec {
  *
  ************************************************************/
 
-typedef void (*_XawEntryVoidFunc)(Widget);
+typedef void (*_IswEntryVoidFunc)(Widget);
 
-#define XtInheritHighlight   ((_XawEntryVoidFunc) _XtInherit)
+#define XtInheritHighlight   ((_IswEntryVoidFunc) _XtInherit)
 #define XtInheritUnhighlight XtInheritHighlight
 #define XtInheritNotify      XtInheritHighlight
 
-#endif /* _ISW_XawSmeP_h */
+#endif /* _ISW_IswSmeP_h */

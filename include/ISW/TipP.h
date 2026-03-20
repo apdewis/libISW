@@ -27,8 +27,8 @@
  * Author: Paulo C�sar Pereira de Andrade
  */
 
-#ifndef _ISW_XawTipP_h
-#define _ISW_XawTipP_h
+#ifndef _ISW_IswTipP_h
+#define _ISW_IswTipP_h
 
 #include "ISWP.h"
 #include <ISW/Tip.h>
@@ -72,4 +72,4 @@ typedef struct _TipRec {
     TipPart tip;
 } TipRec;
 
-#endif /* _ISW_XawTipP_h */
+#endif /* _ISW_IswTipP_h */

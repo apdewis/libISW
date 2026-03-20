@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawTextSrc_h
-#define _ISW_XawTextSrc_h
+#ifndef _ISW_IswTextSrc_h
+#define _ISW_IswTextSrc_h
 
 /***********************************************************************
  *
@@ -61,7 +61,7 @@ SOFTWARE.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- editType	     EditType		XawTextEditType	XawtextRead
+ editType	     EditType		IswTextEditType	IswtextRead
 
 */
 
@@ -72,19 +72,19 @@ extern WidgetClass textSrcObjectClass;
 typedef struct _TextSrcClassRec *TextSrcObjectClass;
 typedef struct _TextSrcRec      *TextSrcObject;
 
-typedef enum {XawstPositions, XawstWhiteSpace, XawstEOL, XawstParagraph,
-              XawstAll} XawTextScanType;
+typedef enum {IswstPositions, IswstWhiteSpace, IswstEOL, IswstParagraph,
+              IswstAll} IswTextScanType;
 typedef enum {Normal, Selected }highlightType;
-typedef enum {XawsmTextSelect, XawsmTextExtend} XawTextSelectionMode;
-typedef enum {XawactionStart, XawactionAdjust, XawactionEnd}
-    XawTextSelectionAction;
+typedef enum {IswsmTextSelect, IswsmTextExtend} IswTextSelectionMode;
+typedef enum {IswactionStart, IswactionAdjust, IswactionEnd}
+    IswTextSelectionAction;
 
 /*
  * Error Conditions:
  */
 
-#define XawTextReadError -1
-#define XawTextScanError -1
+#define IswTextReadError -1
+#define IswTextScanError -1
 
 /************************************************************
  *
@@ -94,7 +94,7 @@ typedef enum {XawactionStart, XawactionAdjust, XawactionEnd}
 
 _XFUNCPROTOBEGIN
 
-/*	Function Name: XawTextSourceRead
+/*	Function Name: IswTextSourceRead
  *	Description: This function reads the source.
  *	Arguments: w - the TextSrc Object.
  *                 pos - position of the text to retreive.
@@ -103,29 +103,29 @@ _XFUNCPROTOBEGIN
  *	Returns: The number of characters read into the buffer.
  */
 
-extern ISWTextPosition XawTextSourceRead(
+extern ISWTextPosition IswTextSourceRead(
     Widget		/* w */,
     ISWTextPosition	/* pos */,
     ISWTextBlock*	/* text_return */,
     int			/* length */
 );
 
-/*	Function Name: XawTextSourceReplace.
+/*	Function Name: IswTextSourceReplace.
  *	Description: Replaces a block of text with new text.
  *	Arguments: src - the Text Source Object.
  *                 startPos, endPos - ends of text that will be removed.
  *                 text - new text to be inserted into buffer at startPos.
- *	Returns: XawEditError or XawEditDone.
+ *	Returns: IswEditError or IswEditDone.
  */
 
-extern int XawTextSourceReplace (
+extern int IswTextSourceReplace (
     Widget		/* w */,
     ISWTextPosition	/* start */,
     ISWTextPosition	/* end */,
     ISWTextBlock*	/* text */
 );
 
-/*	Function Name: XawTextSourceScan
+/*	Function Name: IswTextSourceScan
  *	Description: Scans the text source for the number and type
  *                   of item specified.
  *	Arguments: w - the TextSrc Object.
@@ -139,15 +139,15 @@ extern int XawTextSourceReplace (
  *
  */
 
-extern ISWTextPosition XawTextSourceScan(
+extern ISWTextPosition IswTextSourceScan(
     Widget		/* w */,
     ISWTextPosition	/* position */,
 #if NeedWidePrototypes
-    /* XawTextScanType */ int		/* type */,
-    /* XawTextScanDirection */ int	/* dir */,
+    /* IswTextScanType */ int		/* type */,
+    /* IswTextScanDirection */ int	/* dir */,
 #else
-    XawTextScanType	/* type */,
-    XawTextScanDirection /* dir */,
+    IswTextScanType	/* type */,
+    IswTextScanDirection /* dir */,
 #endif
     int			/* count */,
 #if NeedWidePrototypes
@@ -157,28 +157,28 @@ extern ISWTextPosition XawTextSourceScan(
 #endif
 );
 
-/*	Function Name: XawTextSourceSearch
+/*	Function Name: IswTextSourceSearch
  *	Description: Searchs the text source for the text block passed
  *	Arguments: w - the TextSource Object.
  *                 position - the position to start scanning.
  *                 dir - direction to scan.
  *                 text - the text block to search for.
  *	Returns: The position of the text we are searching for or
- *               XawTextSearchError.
+ *               IswTextSearchError.
  */
 
-extern ISWTextPosition XawTextSourceSearch(
+extern ISWTextPosition IswTextSourceSearch(
     Widget		/* w */,
     ISWTextPosition	/* position */,
 #if NeedWidePrototypes
-    /* XawTextScanDirection */ int	/* dir */,
+    /* IswTextScanDirection */ int	/* dir */,
 #else
-    XawTextScanDirection /* dir */,
+    IswTextScanDirection /* dir */,
 #endif
     ISWTextBlock*	/* text */
 );
 
-/*	Function Name: XawTextSourceConvertSelection
+/*	Function Name: IswTextSourceConvertSelection
  *	Description: Dummy selection converter.
  *	Arguments: w - the TextSrc object.
  *                 selection - the current selection atom.
@@ -190,7 +190,7 @@ extern ISWTextPosition XawTextSourceSearch(
  *
  */
 
-extern Boolean XawTextSourceConvertSelection(
+extern Boolean IswTextSourceConvertSelection(
     Widget		/* w */,
     xcb_atom_t*		/* selection */,
     xcb_atom_t*		/* target */,
@@ -200,7 +200,7 @@ extern Boolean XawTextSourceConvertSelection(
     int*		/* format_return */
 );
 
-/*	Function Name: XawTextSourceSetSelection
+/*	Function Name: IswTextSourceSetSelection
  *	Description: allows special setting of the selection.
  *	Arguments: w - the TextSrc object.
  *                 left, right - bounds of the selection.
@@ -208,7 +208,7 @@ extern Boolean XawTextSourceConvertSelection(
  *	Returns: none
  */
 
-extern void XawTextSourceSetSelection(
+extern void IswTextSourceSetSelection(
     Widget		/* w */,
     ISWTextPosition	/* start */,
     ISWTextPosition	/* end */,
@@ -217,5 +217,5 @@ extern void XawTextSourceSetSelection(
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawTextSrc_h */
+#endif /* _ISW_IswTextSrc_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

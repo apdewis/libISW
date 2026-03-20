@@ -30,8 +30,8 @@ in this Software without prior written authorization from the X Consortium.
  *
  */
 
-#ifndef _ISW_XawSmeLineP_h
-#define _ISW_XawSmeLineP_h
+#ifndef _ISW_IswSmeLineP_h
+#define _ISW_IswSmeLineP_h
 
 /***********************************************************************
  *
@@ -92,4 +92,4 @@ typedef struct _SmeLineRec {
  *
  ************************************************************/
 
-#endif /* _ISW_XawSmeLineP_h */
+#endif /* _ISW_IswSmeLineP_h */

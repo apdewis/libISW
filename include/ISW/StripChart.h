@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawStripChart_h
-#define _ISW_XawStripChart_h
+#ifndef _ISW_IswStripChart_h
+#define _ISW_IswStripChart_h
 
 /***********************************************************************
  *
@@ -112,5 +112,5 @@ typedef struct _StripChartClassRec *StripChartWidgetClass;
 
 extern WidgetClass stripChartWidgetClass;
 
-#endif /* _ISW_XawStripChart_h */
+#endif /* _ISW_IswStripChart_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

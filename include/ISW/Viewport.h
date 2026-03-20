@@ -46,8 +46,8 @@ SOFTWARE.
 
 ********************************************************/
 
-#ifndef _ISW_XawViewport_h
-#define _ISW_XawViewport_h
+#ifndef _ISW_IswViewport_h
+#define _ISW_IswViewport_h
 
 #include <ISW/Form.h>
 #include <ISW/Reports.h>
@@ -91,7 +91,7 @@ typedef struct _ViewportRec  *ViewportWidget;
 
 _XFUNCPROTOBEGIN
 
-extern void XawViewportSetLocation (
+extern void IswViewportSetLocation (
     Widget		/* gw */,
 #if NeedWidePrototypes
     /* float */ double	/* xoff */,
@@ -102,7 +102,7 @@ extern void XawViewportSetLocation (
 #endif
 );
 
-extern void XawViewportSetCoordinates (
+extern void IswViewportSetCoordinates (
     Widget		/* gw */,
 #if NeedWidePrototypes
     /* Position */ int	/* x */,
@@ -115,4 +115,4 @@ extern void XawViewportSetCoordinates (
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawViewport_h */
+#endif /* _ISW_IswViewport_h */

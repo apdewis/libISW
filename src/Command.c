@@ -93,7 +93,7 @@ static XtResource resources[] = {
       offset(command.highlight_thickness), XtRImmediate,
       (XtPointer) DEFAULT_SHAPE_HIGHLIGHT},
    {XtNshapeStyle, XtCShapeStyle, XtRShapeStyle, sizeof(int),
-      offset(command.shape_style), XtRImmediate, (XtPointer)XawShapeRectangle},
+      offset(command.shape_style), XtRImmediate, (XtPointer)IswShapeRectangle},
    {XtNcornerRoundPercent, XtCCornerRoundPercent, XtRDimension,
         sizeof(Dimension), offset(command.corner_round), XtRImmediate,
 	(XtPointer) 25},
@@ -171,7 +171,7 @@ CommandClassRec commandClassRec = {
     XtInheritChangeSensitive		/* change_sensitive	*/
   },  /* SimpleClass fields initialization */
   {
-    XtInheritXaw3dShadowDraw,           /* shadowdraw           */
+    XtInheritIsw3dShadowDraw,           /* shadowdraw           */
   },  /* ThreeD Class fields initialization */
   {
     0,                                     /* field not used    */
@@ -235,24 +235,24 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   CommandWidget cbw = (CommandWidget) new;
 
   /* XCB Migration: Query shape extension using XCB */
-  if (cbw->command.shape_style != XawShapeRectangle) {
+  if (cbw->command.shape_style != IswShapeRectangle) {
       xcb_connection_t *conn = XtDisplay(new);
       xcb_shape_query_version_cookie_t cookie = xcb_shape_query_version(conn);
       xcb_shape_query_version_reply_t *reply = xcb_shape_query_version_reply(conn, cookie, NULL);
       if (!reply) {
-          cbw->command.shape_style = XawShapeRectangle;
+          cbw->command.shape_style = IswShapeRectangle;
       } else {
           free(reply);
       }
   }
   if (cbw->command.highlight_thickness == DEFAULT_SHAPE_HIGHLIGHT) {
-      if (cbw->command.shape_style != XawShapeRectangle)
+      if (cbw->command.shape_style != IswShapeRectangle)
 	  cbw->command.highlight_thickness = 0;
       else
 	  cbw->command.highlight_thickness = DEFAULT_HIGHLIGHT_THICKNESS;
   }
 
-  if (cbw->command.shape_style != XawShapeRectangle) {
+  if (cbw->command.shape_style != IswShapeRectangle) {
     cbw->threeD.shadow_width = 0;
     cbw->core.border_width = 1;
   }
@@ -564,12 +564,12 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
       cbw->command.shape_style = oldcbw->command.shape_style;
   }
 
-  if (cbw->command.shape_style != XawShapeRectangle) {
+  if (cbw->command.shape_style != IswShapeRectangle) {
       cbw->threeD.shadow_width = 0;
       ShapeButton(cbw, FALSE);
       redisplay = True;
   }
-  if (cbw->command.shape_style == XawShapeRectangle) {
+  if (cbw->command.shape_style == IswShapeRectangle) {
       cbw->threeD.shadow_width =
 		(cbw->command.shadow_width) ? cbw->command.shadow_width : 2;
       redisplay = True;
@@ -587,13 +587,13 @@ CvtStringToShapeStyle(xcb_connection_t *conn, XrmValue *args, Cardinal *num_args
     static int result;
     
     if (strcmp(str, "Rectangle") == 0 || strcmp(str, "rectangle") == 0) {
-        result = XawShapeRectangle;
+        result = IswShapeRectangle;
     } else if (strcmp(str, "Oval") == 0 || strcmp(str, "oval") == 0) {
-        result = XawShapeOval;
+        result = IswShapeOval;
     } else if (strcmp(str, "Ellipse") == 0 || strcmp(str, "ellipse") == 0) {
-        result = XawShapeEllipse;
+        result = IswShapeEllipse;
     } else if (strcmp(str, "RoundedRectangle") == 0 || strcmp(str, "roundedRectangle") == 0) {
-        result = XawShapeRoundedRectangle;
+        result = IswShapeRoundedRectangle;
     } else {
         XtDisplayStringConversionWarning(conn, str, XtRShapeStyle);
         return False;
@@ -615,7 +615,7 @@ CvtStringToShapeStyle(xcb_connection_t *conn, XrmValue *args, Cardinal *num_args
 static void
 ClassInitialize(void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     XtSetTypeConverter( XtRString, XtRShapeStyle, CvtStringToShapeStyle,
 		        (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
@@ -626,16 +626,16 @@ ShapeButton(CommandWidget cbw, Boolean checkRectangular)
 {
     Dimension corner_size = 0;
 
-    if (cbw->command.shape_style == XawShapeRoundedRectangle) {
+    if (cbw->command.shape_style == IswShapeRoundedRectangle) {
 	corner_size = (cbw->core.width < cbw->core.height) ? cbw->core.width
 	                                                   : cbw->core.height;
 	corner_size = (int) (corner_size * cbw->command.corner_round) / 100;
     }
 
-    if (checkRectangular || cbw->command.shape_style != XawShapeRectangle) {
+    if (checkRectangular || cbw->command.shape_style != IswShapeRectangle) {
  if (!ISWReshapeWidget((Widget) cbw, cbw->command.shape_style,
          corner_size, corner_size)) {
-     cbw->command.shape_style = XawShapeRectangle;
+     cbw->command.shape_style = IswShapeRectangle;
      return(False);
  }
     }

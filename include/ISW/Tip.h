@@ -24,11 +24,11 @@
  * dealings in this Software without prior written authorization from the
  * XFree86 Project.
  *
- * Author: Paulo César Pereira de Andrade
+ * Author: Paulo Cï¿½sar Pereira de Andrade
  */
 
-#ifndef _ISW_XawTip_h
-#define _ISW_XawTip_h
+#ifndef _ISW_IswTip_h
+#define _ISW_IswTip_h
 
 /*
  * Tip Widget
@@ -64,8 +64,8 @@ typedef struct _TipRec *TipWidget;
 
 extern WidgetClass tipWidgetClass;
 
-#define XawTextEncoding8bit	0
-#define XawTextEncodingChar2b	1
+#define IswTextEncoding8bit	0
+#define IswTextEncodingChar2b	1
 
 #define XtNencoding "encoding"
 #define XtNtimeout "timeout"
@@ -98,7 +98,7 @@ extern WidgetClass tipWidgetClass;
 
 /*
  * Function:
- *	XawTipEnable
+ *	IswTipEnable
  *
  * Parameters:
  *	Widget - widget for tooltip
@@ -107,14 +107,14 @@ extern WidgetClass tipWidgetClass;
  * Description:
  *	Enables the tip event handler for this widget.
  */
-void XawTipEnable(
+void IswTipEnable(
  Widget,
  String
 );
 
 /*
  * Function:
- *	XawTipDisable
+ *	IswTipDisable
  *
  * Parameters:
  *	Widget - widget for tooltip
@@ -122,8 +122,8 @@ void XawTipEnable(
  * Description:
  *	Disables the tip event handler for this widget.
  */
-void XawTipDisable(
+void IswTipDisable(
  Widget
 );
 
-#endif /* _ISW_XawTip_h */
+#endif /* _ISW_IswTip_h */

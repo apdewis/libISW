@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawStripChartP_h
-#define _ISW_XawStripChartP_h
+#ifndef _ISW_IswStripChartP_h
+#define _ISW_IswStripChartP_h
 
 #include <ISW/StripChart.h>
 #include <ISW/ThreeDP.h>
@@ -102,4 +102,4 @@ typedef struct _StripChartClassRec {
 /* Class pointer. */
 extern StripChartClassRec stripChartClassRec;
 
-#endif /* _ISW_XawStripChartP_h */
+#endif /* _ISW_IswStripChartP_h */

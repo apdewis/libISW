@@ -51,8 +51,8 @@ in this Software without prior written authorization from the X Consortium.
 
 */
 
-#ifndef _ISW_XawImP_h
-#define _ISW_XawImP_h
+#ifndef _ISW_IswImP_h
+#define _ISW_IswImP_h
 
 #define XtNinputMethod		"inputMethod"
 #define XtCInputMethod		"InputMethod"
@@ -103,7 +103,7 @@ typedef int Status;
 #define	CICursorP	(1 << 5)
 #define	CILineS		(1 << 6)
 
-typedef	struct _XawImPart
+typedef	struct _IswImPart
 {
     XIM			xim;
     XrmResourceList	resources;
@@ -113,9 +113,9 @@ typedef	struct _XawImPart
     Dimension		area_height;
     String		input_method;
     String		preedit_type;
-} XawImPart;
+} IswImPart;
 
-typedef struct _XawIcTablePart
+typedef struct _IswIcTablePart
 {
     Widget		widget;
     XIC			xic;
@@ -130,17 +130,17 @@ typedef struct _XawIcTablePart
     ISWTextPosition	cursor_position;
     unsigned long	line_spacing;
     Boolean		openic_error;
-    struct _XawIcTablePart *next;
-} XawIcTablePart, *XawIcTableList;
+    struct _IswIcTablePart *next;
+} IswIcTablePart, *IswIcTableList;
 
-typedef	struct _XawIcPart
+typedef	struct _IswIcPart
 {
     XIMStyle		input_style;
     Boolean		shared_ic;
-    XawIcTableList	shared_ic_table;
-    XawIcTableList	current_ic_table;
-    XawIcTableList	ic_table;
-} XawIcPart;
+    IswIcTableList	shared_ic_table;
+    IswIcTableList	current_ic_table;
+    IswIcTableList	ic_table;
+} IswIcPart;
 
 typedef	struct _contextDataRec
 {
@@ -154,64 +154,64 @@ typedef	struct _contextErrDataRec
     XIM			xim;
 } contextErrDataRec;
 
-void _XawImResizeVendorShell(
+void _IswImResizeVendorShell(
     Widget /* w */
 );
 
-Dimension _XawImGetShellHeight(
+Dimension _IswImGetShellHeight(
     Widget /* w */
 );
 
-void _XawImRealize(
+void _IswImRealize(
     Widget /* w */
 );
 
-void _XawImInitialize(
+void _IswImInitialize(
     Widget, /* w */
     Widget  /* ext */
 );
 
-void _XawImReconnect(
+void _IswImReconnect(
     Widget  /* w */
 );
 
-void _XawImRegister(
+void _IswImRegister(
     Widget  /* w */
 );
 
-void _XawImUnregister(
+void _IswImUnregister(
     Widget  /* w */
 );
 
-void _XawImSetValues(
+void _IswImSetValues(
     Widget,  /* w */
     ArgList, /* args */
     Cardinal /* num_args */
 );
 
 /* DON'T USE THIS FUNCTION -- it's going away in the next release */
-void _XawImVASetValues(
+void _IswImVASetValues(
     Widget,  /* w */
     ...
 );
 
-void _XawImSetFocusValues(
+void _IswImSetFocusValues(
     Widget,  /* w */
     ArgList, /* args */
     Cardinal /* num_args */
 );
 
 /* DON'T USE THIS FUNCTION -- it's going away in the next release */
-void _XawImVASetFocusValues(
+void _IswImVASetFocusValues(
     Widget,  /* w */
     ...
 );
 
-void _XawImUnsetFocus(
+void _IswImUnsetFocus(
     Widget  /* w */
 );
 
-int  _XawImWcLookupString(
+int  _IswImWcLookupString(
     Widget,   /* w */
     XKeyPressedEvent*, /* event */
     wchar_t*, /* buffer_return */
@@ -220,17 +220,17 @@ int  _XawImWcLookupString(
     Status*   /* status return */
 );
 
-int  _XawImGetImAreaHeight(
+int  _IswImGetImAreaHeight(
     Widget  /* w */
 );
 
-void _XawImCallVendorShellExtResize(
+void _IswImCallVendorShellExtResize(
     Widget  /* w */
 );
 
-void _XawImDestroy(
+void _IswImDestroy(
     Widget,  /* w */
     Widget   /* ext */
 );
 
-#endif /* _ISW_XawImP_h */
+#endif /* _ISW_IswImP_h */

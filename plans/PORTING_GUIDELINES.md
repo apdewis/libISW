@@ -1,4 +1,4 @@
-# Xaw3d XCB Porting Guidelines
+# Isw3d XCB Porting Guidelines
 
 **Purpose:** Systematic replacement of Xlib types with XCB equivalents  
 **Strategy:** Complete type replacement, not compatibility layer  
@@ -8,7 +8,7 @@
 
 ## Core Principle: Complete Type Replacement
 
-**The Goal:** Replace ALL Xlib types and function calls with XCB equivalents throughout the Xaw3d codebase.
+**The Goal:** Replace ALL Xlib types and function calls with XCB equivalents throughout the Isw3d codebase.
 
 **NOT a compatibility layer:** We are not wrapping XCB in Xlib-style functions. We are directly replacing Xlib with XCB.
 
@@ -464,7 +464,7 @@ void DrawLine(Widget w, int x1, int y1, int x2, int y2)
 // WRONG!
 /* FIXME: XCB - XIM types don't exist */
 /* #ifdef ISW_INTERNATIONALIZATION
-#include <X11/Xaw3d/XawImP.h>
+#include <X11/Isw3d/IswImP.h>
 #endif */
 ```
 
@@ -474,7 +474,7 @@ void DrawLine(Widget w, int x1, int y1, int x2, int y2)
 ```c
 // RIGHT!
 #ifdef ISW_INTERNATIONALIZATION
-#include <X11/Xaw3d/XawImP.h>  // XIM stubbed out when ISW_HAS_XIM undefined
+#include <X11/Isw3d/IswImP.h>  // XIM stubbed out when ISW_HAS_XIM undefined
 #endif
 ```
 
@@ -552,7 +552,7 @@ For each event handler:
 ### Step 5: Test Compilation
 
 ```bash
-cd /home/adam/Xaw3d
+cd /home/adam/Isw3d
 make 2>&1 | grep -E "error|warning" | head -50
 ```
 

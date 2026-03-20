@@ -58,22 +58,22 @@ in this Software without prior written authorization from the X Consortium.
 
 typedef struct {
     XtPointer	extension;
-} XawVendorShellExtClassPart;
+} IswVendorShellExtClassPart;
 
 typedef	struct _VendorShellExtClassRec {
     ObjectClassPart	object_class;
-    XawVendorShellExtClassPart	vendor_shell_ext_class;
-} XawVendorShellExtClassRec;
+    IswVendorShellExtClassPart	vendor_shell_ext_class;
+} IswVendorShellExtClassRec;
 
 typedef struct {
     Widget	parent;
-    XawImPart	im;
-    XawIcPart	ic;
-} XawVendorShellExtPart;
+    IswImPart	im;
+    IswIcPart	ic;
+} IswVendorShellExtPart;
 
-typedef	struct XawVendorShellExtRec {
+typedef	struct IswVendorShellExtRec {
     ObjectPart	object;
-    XawVendorShellExtPart	vendor_ext;
-} XawVendorShellExtRec, *XawVendorShellExtWidget;
+    IswVendorShellExtPart	vendor_ext;
+} IswVendorShellExtRec, *IswVendorShellExtWidget;
 
 #endif /* _ISW_VendorEP_h */

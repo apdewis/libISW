@@ -51,8 +51,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _ISW_XawBoxP_h
-#define _ISW_XawBoxP_h
+#ifndef _ISW_IswBoxP_h
+#define _ISW_IswBoxP_h
 
 /***********************************************************************
  *
@@ -66,8 +66,8 @@ SOFTWARE.
 #include <ISW/Box.h>
 
 /* XtOrientation is defined in standard Xt headers, but if not available, use fallback */
-#ifndef _XawXtOrientation_defined
-#define _XawXtOrientation_defined
+#ifndef _IswXtOrientation_defined
+#define _IswXtOrientation_defined
 typedef enum {
     XtorientHorizontal = 0,
     XtorientVertical = 1
@@ -111,4 +111,4 @@ typedef struct _BoxRec {
     BoxPart 	    box;
 } BoxRec;
 
-#endif /* _ISW_XawBoxP_h */
+#endif /* _ISW_IswBoxP_h */

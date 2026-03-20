@@ -1,7 +1,7 @@
 /*
  * xaw3d_demo_3d.c - 3D Widget Variant Demonstration
  *
- * This program demonstrates the 3D visual capabilities of Xaw3d widgets,
+ * This program demonstrates the 3D visual capabilities of Isw3d widgets,
  * showcasing various shadow depths, colors, and 3D effects.
  *
  * Compile: See Makefile
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
     Cardinal n;
     
     /* Initialize X Toolkit */
-    toplevel = XtAppInitialize(&app_context, "Xaw3dDemo3D",
+    toplevel = XtAppInitialize(&app_context, "Isw3dDemo3D",
                                NULL, 0,
                                &argc, argv,
                                NULL, NULL, 0);
@@ -82,13 +82,13 @@ int main(int argc, char *argv[]) {
     n = 0;
     XtSetArg(args[n], XtNwidth, 900); n++;
     XtSetArg(args[n], XtNheight, 800); n++;
-    XtSetArg(args[n], XtNtitle, "Xaw3d 3D Widget Demonstration"); n++;
+    XtSetArg(args[n], XtNtitle, "Isw3d 3D Widget Demonstration"); n++;
     XtSetValues(toplevel, args, n);
     
     /* Create main widget structure */
     main_widget = create_main_window(toplevel);
     
-    printf("Xaw3d 3D Widget Demo starting...\n");
+    printf("Isw3d 3D Widget Demo starting...\n");
     printf("This demo showcases 3D visual effects\n");
     printf("---------------------------------------\n\n");
     
@@ -145,7 +145,7 @@ Widget create_title_section(Widget parent) {
     
     /* Main title with heavy 3D effect */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "=== Xaw3d 3D Widget Demonstration ==="); n++;
+    XtSetArg(args[n], XtNlabel, "=== Isw3d 3D Widget Demonstration ==="); n++;
     XtSetArg(args[n], XtNjustify, XtJustifyCenter); n++;
     XtSetArg(args[n], XtNwidth, 880); n++;
     XtSetArg(args[n], XtNheight, 40); n++;
@@ -498,11 +498,11 @@ Widget create_3d_text_section(Widget parent) {
     
     /* Text widget with prominent 3D effect */
     n = 0;
-    XtSetArg(args[n], XtNeditType, XawtextEdit); n++;
+    XtSetArg(args[n], XtNeditType, IswtextEdit); n++;
     XtSetArg(args[n], XtNwidth, 850); n++;
     XtSetArg(args[n], XtNheight, 100); n++;
     XtSetArg(args[n], XtNshadowWidth, 4); n++;
-    XtSetArg(args[n], XtNscrollVertical, XawtextScrollAlways); n++;
+    XtSetArg(args[n], XtNscrollVertical, IswtextScrollAlways); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNstring,
              "This text widget demonstrates the 3D shadow effect.\n"

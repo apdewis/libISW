@@ -23,8 +23,8 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from the X Consortium.
  */
 
-#ifndef _ISW_XawAllWidgets_h
-#define _ISW_XawAllWidgets_h
+#ifndef _ISWAllWidgets_h
+#define _ISWAllWidgets_h
 
 #include <X11/Intrinsic.h>
 
@@ -32,15 +32,15 @@ in this Software without prior written authorization from the X Consortium.
  * Widget node structure for widget array tables
  * Used in library initialization and widget lookup
  */
-typedef struct _XawWidgetNode {
+typedef struct _IswWidgetNode {
     const char *label;         /* Widget class name */
     WidgetClass *widget_class; /* Pointer to widget class */
-} XawWidgetNode;
+} IswWidgetNode;
 
 /*
  * This file matches the generated AllWidgets.c
  */
-extern XawWidgetNode XawWidgetArray[];
-extern int           XawWidgetCount;
+extern IswWidgetNode IswWidgetArray[];
+extern int           IswWidgetCount;
 
-#endif /* _ISW_XawAllWidgets_h */
+#endif /* _ISWAllWidgets_h */

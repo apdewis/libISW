@@ -25,8 +25,8 @@ in this Software without prior written authorization from the X Consortium.
  * Author:  Jim Fulton, MIT X Consortium
  */
 
-#ifndef _ISW_XawPorthole_h
-#define _ISW_XawPorthole_h
+#ifndef _ISW_IswPorthole_h
+#define _ISW_IswPorthole_h
 
 #include <ISW/Reports.h>
 
@@ -59,4 +59,4 @@ extern WidgetClass portholeWidgetClass;
 typedef struct _PortholeClassRec *PortholeWidgetClass;
 typedef struct _PortholeRec      *PortholeWidget;
 
-#endif /* _ISW_XawPorthole_h */
+#endif /* _ISW_IswPorthole_h */

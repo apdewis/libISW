@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawAsciiSink_h
-#define _ISW_XawAsciiSink_h
+#ifndef _ISWAsciiSink_h
+#define _ISWAsciiSink_h
 
 /***********************************************************************
  *
@@ -84,4 +84,4 @@ typedef struct _AsciiSinkRec      *AsciiSinkObject;
  *
  ************************************************************/
 
-#endif /* _ISW_XawAsciiSrc_h */
+#endif /* _ISWAsciiSrc_h */

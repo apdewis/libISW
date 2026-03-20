@@ -125,7 +125,7 @@ MenuButtonClassRec menuButtonClassRec = {
     XtInheritChangeSensitive		/* change_sensitive	  */
   },  /* SimpleClass fields initialization */
   {
-    XtInheritXaw3dShadowDraw,           /* shadowdraw           */
+    XtInheritIsw3dShadowDraw,           /* shadowdraw           */
   },  /* ThreeDClass fields initialization */
   {
     0,                                     /* field not used    */
@@ -150,7 +150,7 @@ WidgetClass menuButtonWidgetClass = (WidgetClass) &menuButtonClassRec;
 static void
 ClassInitialize(void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     XtRegisterGrabAction(PopupMenu, True,
 			 (unsigned int)(ButtonPressMask | ButtonReleaseMask),
 			 GrabModeAsync, GrabModeAsync);

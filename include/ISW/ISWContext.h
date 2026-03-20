@@ -1,14 +1,14 @@
 /*
- * XawContext.h - Context management for XCB-based Xaw3d
+ * IswContext.h - Context management for XCB-based Isw3d
  * 
  * Provides XContext functionality for XCB, replacing Xlib's XSaveContext/
  * XFindContext/XDeleteContext which are not available in XCB.
  *
- * Copyright (c) 2026 Xaw3d Project
+ * Copyright (c) 2026 Isw3d Project
  */
 
-#ifndef _ISW_XawContext_h
-#define _ISW_XawContext_h
+#ifndef _ISW_IswContext_h
+#define _ISW_IswContext_h
 
 #include <X11/Intrinsic.h>
 #include <xcb/xcb.h>
@@ -23,12 +23,12 @@ _XFUNCPROTOBEGIN
  */
 
 /* Generate a unique context identifier */
-extern XContext XawUniqueContext(
+extern XContext IswUniqueContext(
     void
 );
 
 /* Save data associated with a window/ID and context */
-extern int XawSaveContext(
+extern int IswSaveContext(
     xcb_connection_t*     /* display (unused, for API compatibility) */,
     XID       /* window or resource ID */,
     XContext     /* context identifier */,
@@ -36,7 +36,7 @@ extern int XawSaveContext(
 );
 
 /* Retrieve data associated with a window/ID and context */
-extern int XawFindContext(
+extern int IswFindContext(
     xcb_connection_t*     /* display (unused, for API compatibility) */,
     XID       /* window or resource ID */,
     XContext     /* context identifier */,
@@ -44,7 +44,7 @@ extern int XawFindContext(
 );
 
 /* Delete context association */
-extern int XawDeleteContext(
+extern int IswDeleteContext(
     xcb_connection_t*     /* display (unused, for API compatibility) */,
     XID       /* window or resource ID */,
     XContext     /* context identifier */
@@ -52,4 +52,4 @@ extern int XawDeleteContext(
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawContext_h */
+#endif /* _ISW_IswContext_h */

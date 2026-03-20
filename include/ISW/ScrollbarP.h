@@ -59,8 +59,8 @@ SOFTWARE.
 #include <ISW/ThreeDP.h>
 
 /* XtOrientation is missing from XCB-based libXt, define it here */
-#ifndef _XawXtOrientation_defined
-#define _XawXtOrientation_defined
+#ifndef _IswXtOrientation_defined
+#define _IswXtOrientation_defined
 typedef enum {
     XtorientHorizontal,
     XtorientVertical

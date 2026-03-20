@@ -67,7 +67,7 @@ Widget callback signatures use these XCB types, NOT Xlib types.
 
 **Current Status**: Xft dependency has been removed. Font rendering uses:
 
-- ISWFontSet wrapper structure (defined in `src/XawXftCompat.h`)
+- ISWFontSet wrapper structure (defined in `src/IswXftCompat.h`)
 - XCB rendering primitives
 - NO Xlib font functions
 
@@ -159,7 +159,7 @@ As of last update:
 - ✅ All widgets compile with XCB types
 - ✅ Arrow scrollbars enabled (ISW_ARROW_SCROLLBARS)
 - ✅ Internationalization enabled (ISW_INTERNATIONALIZATION)
-- ✅ Successfully renamed from Xaw3d to ISW
+- ✅ Successfully renamed from Isw3d to ISW
 
 ### 14. Build and Test
 

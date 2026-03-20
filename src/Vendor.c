@@ -77,11 +77,11 @@ SOFTWARE.
 #endif
 #include <X11/VendorP.h>
 #ifdef ISW_INTERNATIONALIZATION
-/* Editres support - see XawUtils.h */
+/* Editres support - see IswUtils.h */
 #endif
 #ifdef ISW_MULTIPLANE_PIXMAPS
 #include <X11/xpm.h>
-/* Drawing utilities - see XawUtils.h */
+/* Drawing utilities - see IswUtils.h */
 #endif
 
 /* The following two headers are for the input method. */
@@ -103,22 +103,22 @@ static XtResource resources[] = {
  *
  ***************************************************************************/
 
-static void XawVendorShellClassInitialize(void);
-static void XawVendorShellInitialize(Widget, Widget, ArgList, Cardinal *);
-static Boolean XawVendorShellSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
+static void IswVendorShellClassInitialize(void);
+static void IswVendorShellInitialize(Widget, Widget, ArgList, Cardinal *);
+static Boolean IswVendorShellSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void ChangeManaged(Widget);
 static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 #ifdef ISW_INTERNATIONALIZATION
-static void XawVendorShellClassPartInit(WidgetClass);
-void XawVendorShellExtResize(Widget);
+static void IswVendorShellClassPartInit(WidgetClass);
+void IswVendorShellExtResize(Widget);
 #endif
 
 #if defined(__UNIXOS2__) || defined(__CYGWIN__) || defined(__MINGW32__)
 /* to fix the EditRes problem because of wrong linker semantics */
 extern WidgetClass vendorShellWidgetClass; /* from Xt/Vendor.c */
-extern VendorShellClassRec _XawVendorShellClassRec;
-void _XawFixupVendorShell(void);
+extern VendorShellClassRec _IswVendorShellClassRec;
+void _IswFixupVendorShell(void);
 
 #if defined(__UNIXOS2__)
 unsigned long _DLL_InitTerm(unsigned long mod,unsigned long flag)
@@ -126,8 +126,8 @@ unsigned long _DLL_InitTerm(unsigned long mod,unsigned long flag)
         switch (flag) {
         case 0: /*called on init*/
                 _CRT_init();
-                vendorShellWidgetClass = (WidgetClass)(&_XawVendorShellClassRec$
-                _XawFixupVendorShell();
+                vendorShellWidgetClass = (WidgetClass)(&_IswVendorShellClassRec$
+                _IswFixupVendorShell();
                 return 1;
         case 1: /*called on exit*/
                 return 1;
@@ -146,8 +146,8 @@ DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
   switch (flag)
     {
     case 1: /* DLL_PROCESS_ATTACH - process attach */
-      vendorShellWidgetClass = (WidgetClass)(&_XawVendorShellClassRec);
-      _XawFixupVendorShell();
+      vendorShellWidgetClass = (WidgetClass)(&_IswVendorShellClassRec);
+      _IswFixupVendorShell();
       break;
     case 0: /* DLL_PROCESS_DETACH - process detach */
       break;
@@ -156,7 +156,7 @@ DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
 }
 #endif
 
-#define vendorShellClassRec _XawVendorShellClassRec
+#define vendorShellClassRec _IswVendorShellClassRec
 
 #endif
 
@@ -177,14 +177,14 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
     /* superclass	  */	(WidgetClass)SuperClass,
     /* class_name	  */	"VendorShell",
     /* size		  */	sizeof(VendorShellRec),
-    /* class_initialize	  */	XawVendorShellClassInitialize,
+    /* class_initialize	  */	IswVendorShellClassInitialize,
 #ifdef ISW_INTERNATIONALIZATION
-    /* class_part_init	  */	XawVendorShellClassPartInit,
+    /* class_part_init	  */	IswVendorShellClassPartInit,
 #else
     /* class_part_init	  */	NULL,
 #endif
     /* Class init'ed ?	  */	FALSE,
-    /* initialize         */	XawVendorShellInitialize,
+    /* initialize         */	IswVendorShellInitialize,
     /* initialize_hook	  */	NULL,
     /* realize		  */	Realize,
     /* actions		  */	NULL,
@@ -198,12 +198,12 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
     /* visible_interest	  */	FALSE,
     /* destroy		  */	NULL,
 #ifdef ISW_INTERNATIONALIZATION
-    /* resize		  */	XawVendorShellExtResize,
+    /* resize		  */	IswVendorShellExtResize,
 #else
     /* resize		  */	XtInheritResize,
 #endif
     /* expose		  */	NULL,
-    /* set_values	  */	XawVendorShellSetValues,
+    /* set_values	  */	IswVendorShellSetValues,
     /* set_values_hook	  */	NULL,
     /* set_values_almost  */	XtInheritSetValuesAlmost,
     /* get_values_hook	  */	NULL,
@@ -246,34 +246,34 @@ externaldef(vendorshellwidgetclass) WidgetClass vendorShellWidgetClass =
 
 static XtResource ext_resources[] = {
   {XtNinputMethod, XtCInputMethod, XtRString, sizeof(String),
-		XtOffsetOf(XawVendorShellExtRec, vendor_ext.im.input_method),
+		XtOffsetOf(IswVendorShellExtRec, vendor_ext.im.input_method),
 		XtRString, (XtPointer)NULL},
   {XtNpreeditType, XtCPreeditType, XtRString, sizeof(String),
-		XtOffsetOf(XawVendorShellExtRec, vendor_ext.im.preedit_type),
+		XtOffsetOf(IswVendorShellExtRec, vendor_ext.im.preedit_type),
 		XtRString, (XtPointer)"OverTheSpot,OffTheSpot,Root"},
   {XtNopenIm, XtCOpenIm, XtRBoolean, sizeof(Boolean),
-		XtOffsetOf(XawVendorShellExtRec, vendor_ext.im.open_im),
+		XtOffsetOf(IswVendorShellExtRec, vendor_ext.im.open_im),
 		XtRImmediate, (XtPointer)TRUE},
   {XtNsharedIc, XtCSharedIc, XtRBoolean, sizeof(Boolean),
-		XtOffsetOf(XawVendorShellExtRec, vendor_ext.ic.shared_ic),
+		XtOffsetOf(IswVendorShellExtRec, vendor_ext.ic.shared_ic),
 		XtRImmediate, (XtPointer)FALSE}
 };
 
-static void XawVendorShellExtClassInitialize(void);
-static void XawVendorShellExtInitialize(Widget, Widget, ArgList, Cardinal *);
-static void XawVendorShellExtDestroy(Widget);
-static Boolean XawVendorShellExtSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
+static void IswVendorShellExtClassInitialize(void);
+static void IswVendorShellExtInitialize(Widget, Widget, ArgList, Cardinal *);
+static void IswVendorShellExtDestroy(Widget);
+static Boolean IswVendorShellExtSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
-externaldef(vendorshellextclassrec) XawVendorShellExtClassRec
+externaldef(vendorshellextclassrec) IswVendorShellExtClassRec
        xawvendorShellExtClassRec = {
   {
     /* superclass	  */	(WidgetClass)&objectClassRec,
     /* class_name	  */	"VendorShellExt",
-    /* size		  */	sizeof(XawVendorShellExtRec),
-    /* class_initialize	  */	XawVendorShellExtClassInitialize,
+    /* size		  */	sizeof(IswVendorShellExtRec),
+    /* class_initialize	  */	IswVendorShellExtClassInitialize,
     /* class_part_initialize*/	NULL,
     /* Class init'ed ?	  */	FALSE,
-    /* initialize	  */	XawVendorShellExtInitialize,
+    /* initialize	  */	IswVendorShellExtInitialize,
     /* initialize_hook	  */	NULL,
     /* pad		  */	NULL,
     /* pad		  */	NULL,
@@ -285,10 +285,10 @@ externaldef(vendorshellextclassrec) XawVendorShellExtClassRec
     /* pad		  */	FALSE,
     /* pad		  */	FALSE,
     /* pad		  */	FALSE,
-    /* destroy		  */	XawVendorShellExtDestroy,
+    /* destroy		  */	IswVendorShellExtDestroy,
     /* pad		  */	NULL,
     /* pad		  */	NULL,
-    /* set_values	  */	XawVendorShellExtSetValues,
+    /* set_values	  */	IswVendorShellExtSetValues,
     /* set_values_hook	  */	NULL,
     /* pad		  */	NULL,
     /* get_values_hook	  */	NULL,
@@ -309,12 +309,12 @@ externaldef(xawvendorshellwidgetclass) WidgetClass
 #endif
 
 
-/* XawCvtCompoundTextToString - commented out for XCB port
+/* IswCvtCompoundTextToString - commented out for XCB port
  * Text property conversion is complex in XCB and rarely used */
 #if 0
 /*ARGSUSED*/
 static Boolean
-XawCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+IswCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
                            XrmValue *fromVal, XrmValue *toVal, XtPointer *cvt_data)
 {
     XTextProperty prop;
@@ -330,7 +330,7 @@ XawCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 
     if(XmbTextPropertyToTextList(dpy, &prop, &list, &count) < Success) {
 	XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-	"converter", "XmbTextPropertyToTextList", "XawError",
+	"converter", "XmbTextPropertyToTextList", "IswError",
 	"conversion from CT to MB failed.", NULL, 0);
 	return False;
     }
@@ -350,7 +350,7 @@ XawCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 
 /* ARGSUSED */
 static Boolean
-_XawCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
+_IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
                       XrmValuePtr from, XrmValuePtr to, XtPointer *data)
 {
     static Pixmap pixmap;
@@ -360,8 +360,8 @@ _XawCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
 
     if (*nargs != 3)
 	XtAppErrorMsg(XtDisplayToApplicationContext(dpy),
-		"_XawCvtStringToPixmap", "wrongParameters", "XtToolkitError",
-	"_XawCvtStringToPixmap needs screen, colormap, and background_pixel",
+		"_IswCvtStringToPixmap", "wrongParameters", "XtToolkitError",
+	"_IswCvtStringToPixmap needs screen, colormap, and background_pixel",
 		      (String *) NULL, (Cardinal *) NULL);
 
     if (strcmp(from->addr, "None") == 0)
@@ -393,7 +393,7 @@ _XawCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     if (XpmReadFileToPixmap(dpy, win, (String) from->addr,
 			    &pixmap, NULL, &attr) != XpmSuccess)
     {
-	if ((pixmap = XawLocateBitmapFile(*((xcb_screen_t **) args[0].addr),
+	if ((pixmap = IswLocateBitmapFile(*((xcb_screen_t **) args[0].addr),
 	      (char *)from->addr, NULL, 0, NULL, NULL, NULL, NULL)) == None)
 	{
 	    XtDisplayStringConversionWarning(dpy, (String) from->addr,
@@ -422,14 +422,14 @@ _XawCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
 #endif
 
 static void
-XawVendorShellClassInitialize(void)
+IswVendorShellClassInitialize(void)
 {
     static XtConvertArgRec screenConvertArg[] = {
         {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.screen),
 	     sizeof(xcb_screen_t *)}
     };
 #ifdef ISW_MULTIPLANE_PIXMAPS
-    static XtConvertArgRec _XawCvtStrToPix[] = {
+    static XtConvertArgRec _IswCvtStrToPix[] = {
 	{XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.screen),
 	     sizeof(xcb_screen_t *)},
 	{XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.colormap),
@@ -447,8 +447,8 @@ XawVendorShellClassInitialize(void)
 
 #ifdef ISW_MULTIPLANE_PIXMAPS
     XtSetTypeConverter(XtRString, XtRBitmap,
-		       (XtTypeConverter)_XawCvtStringToPixmap,
-		       _XawCvtStrToPix, XtNumber(_XawCvtStrToPix),
+		       (XtTypeConverter)_IswCvtStringToPixmap,
+		       _IswCvtStrToPix, XtNumber(_IswCvtStrToPix),
 		       XtCacheByDisplay, (XtDestructor)NULL);
 #else
     /* XmuCvtStringToBitmap not available in XCB port - commented out */
@@ -456,14 +456,14 @@ XawVendorShellClassInitialize(void)
 		   screenConvertArg, XtNumber(screenConvertArg)); */
 #endif
 
-    /* XawCvtCompoundTextToString commented out - complex text conversion not ported yet */
-    /* XtSetTypeConverter("CompoundText", XtRString, XawCvtCompoundTextToString,
+    /* IswCvtCompoundTextToString commented out - complex text conversion not ported yet */
+    /* XtSetTypeConverter("CompoundText", XtRString, IswCvtCompoundTextToString,
 			NULL, 0, XtCacheNone, NULL); */
 }
 
 #ifdef ISW_INTERNATIONALIZATION
 static void
-XawVendorShellClassPartInit(WidgetClass class)
+IswVendorShellClassPartInit(WidgetClass class)
 {
     CompositeClassExtension ext;
     VendorShellWidgetClass vsclass = (VendorShellWidgetClass) class;
@@ -491,7 +491,7 @@ XawVendorShellClassPartInit(WidgetClass class)
 /* stupid OSF/1 shared libraries have the wrong semantics */
 /* symbols do not get resolved external to the shared library */
 void
-_XawFixupVendorShell(void)
+_IswFixupVendorShell(void)
 {
     transientShellWidgetClass->core_class.superclass =
         (WidgetClass) &vendorShellClassRec;
@@ -502,13 +502,13 @@ _XawFixupVendorShell(void)
 
 /* ARGSUSED */
 static void
-XawVendorShellInitialize(Widget req, Widget new, ArgList args, Cardinal *num_args)
+IswVendorShellInitialize(Widget req, Widget new, ArgList args, Cardinal *num_args)
 {
     /* EditRes support commented out for XCB port - optional feature */
     /* XtAddEventHandler(new, (EventMask) 0, TRUE, _XEditResCheckMessages, NULL); */
 #ifdef ISW_INTERNATIONALIZATION
-    /* XawRegisterExternalAgent stub - XCB does not support XIM */
-    /* XtAddEventHandler(new, (EventMask) 0, TRUE, XawRegisterExternalAgent, NULL); */
+    /* IswRegisterExternalAgent stub - XCB does not support XIM */
+    /* XtAddEventHandler(new, (EventMask) 0, TRUE, IswRegisterExternalAgent, NULL); */
     XtCreateWidget("shellext", xawvendorShellExtWidgetClass,
 		   new, args, *num_args);
 #endif
@@ -516,7 +516,7 @@ XawVendorShellInitialize(Widget req, Widget new, ArgList args, Cardinal *num_arg
 
 /* ARGSUSED */
 static Boolean
-XawVendorShellSetValues(Widget old, Widget ref, Widget new, ArgList args, Cardinal *num_args)
+IswVendorShellSetValues(Widget old, Widget ref, Widget new, ArgList args, Cardinal *num_args)
 {
 	return FALSE;
 }
@@ -531,48 +531,48 @@ Realize(xcb_connection_t *dpy, Widget wid, XtValueMask *vmask, uint32_t *attr)
 	/* Call superclass realize - XCB custom libXt uses 4-parameter signature */
 	(*super->core_class.realize) (dpy, wid, vmask, attr);
 #ifdef ISW_INTERNATIONALIZATION
-	_XawImRealize(wid);
+	_IswImRealize(wid);
 #endif
 }
 
 
 #ifdef ISW_INTERNATIONALIZATION
 static void
-XawVendorShellExtClassInitialize(void)
+IswVendorShellExtClassInitialize(void)
 {
 }
 
 /* ARGSUSED */
 static void
-XawVendorShellExtInitialize(Widget req, Widget new, ArgList args, Cardinal *num_args)
+IswVendorShellExtInitialize(Widget req, Widget new, ArgList args, Cardinal *num_args)
 {
-    _XawImInitialize(new->core.parent, new);
+    _IswImInitialize(new->core.parent, new);
 }
 
 /* ARGSUSED */
 static void
-XawVendorShellExtDestroy(Widget w)
+IswVendorShellExtDestroy(Widget w)
 {
-    _XawImDestroy( w->core.parent, w );
+    _IswImDestroy( w->core.parent, w );
 }
 
 /* ARGSUSED */
 static Boolean
-XawVendorShellExtSetValues(Widget old, Widget ref, Widget new, ArgList args, Cardinal *num_args)
+IswVendorShellExtSetValues(Widget old, Widget ref, Widget new, ArgList args, Cardinal *num_args)
 {
 	return FALSE;
 }
 
 void
-XawVendorShellExtResize(Widget w)
+IswVendorShellExtResize(Widget w)
 {
 	ShellWidget sw = (ShellWidget) w;
 	Widget childwid;
 	int i;
 	int core_height;
 
-	_XawImResizeVendorShell( w );
-	core_height = _XawImGetShellHeight( w );
+	_IswImResizeVendorShell( w );
+	core_height = _IswImGetShellHeight( w );
 	
 	/* Check if children array is allocated before accessing it */
 	if (sw->composite.children == NULL) {
@@ -611,7 +611,7 @@ GeometryManager(Widget wid, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 	if (request->request_mode & CWHeight) {
 	    my_request.height = request->height
 #ifdef ISW_INTERNATIONALIZATION
-			      + _XawImGetImAreaHeight( wid )
+			      + _IswImGetImAreaHeight( wid )
 #endif
 			      ;
 	    my_request.request_mode |= CWHeight;
@@ -637,7 +637,7 @@ GeometryManager(Widget wid, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 		wid->core.x = wid->core.y = -request->border_width;
 	    }
 #ifdef ISW_INTERNATIONALIZATION
-	    _XawImCallVendorShellExtResize(wid);
+	    _IswImCallVendorShellExtResize(wid);
 #endif
 	    return XtGeometryYes;
 	} else return XtGeometryNo;

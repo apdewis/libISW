@@ -73,7 +73,7 @@ SmeClassRec smeClassRec = {
     /* superclass         */    (WidgetClass) SUPERCLASS,
     /* class_name         */    "Sme",
     /* size               */    sizeof(SmeRec),
-    /* class_initialize   */	XawInitializeWidgetSet,
+    /* class_initialize   */	IswInitializeWidgetSet,
     /* class_part_initialize*/	ClassPartInitialize,
     /* Class init'ed      */	FALSE,
     /* initialize         */    Initialize,

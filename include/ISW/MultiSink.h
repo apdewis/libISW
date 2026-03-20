@@ -70,8 +70,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawMultiSink_h
-#define _ISW_XawMultiSink_h
+#ifndef _ISW_IswMultiSink_h
+#define _ISW_IswMultiSink_h
 
 /***********************************************************************
  *
@@ -112,5 +112,5 @@ typedef struct _MultiSinkClassRec *MultiSinkObjectClass;
 typedef struct _MultiSinkRec      *MultiSinkObject;
 
 
-#endif /* _ISW_XawMultiSrc_h */
+#endif /* _ISW_IswMultiSrc_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

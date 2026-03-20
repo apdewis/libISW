@@ -76,8 +76,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _ISW_XawMultiSinkP_h
-#define _ISW_XawMultiSinkP_h
+#ifndef _ISW_IswMultiSinkP_h
+#define _ISW_IswMultiSinkP_h
 
 /***********************************************************************
  *
@@ -118,7 +118,7 @@ typedef struct {
     /* private state */
     GC normgc, invgc, xorgc;
     Pixmap insertCursorOn;
-    XawTextInsertState laststate;
+    IswTextInsertState laststate;
     short cursor_x, cursor_y;	/* Cursor Location. */
     ISWFontSet *fontset; /* Phase 3.5: font set to draw */
 } MultiSinkPart;
@@ -139,7 +139,7 @@ typedef struct _MultiSinkRec {
 /********************************************
  *
  * Semi-private functions
- * for use by other Xaw modules only
+ * for use by other Isw modules only
  *
  *******************************************/
 
@@ -150,5 +150,5 @@ extern void _ISWMultiSinkPosToXY(
     Position *			/*y */
 );
 
-#endif /* _ISW_XawMultiSinkP_h */
+#endif /* _ISW_IswMultiSinkP_h */
 

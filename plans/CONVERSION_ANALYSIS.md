@@ -1,11 +1,11 @@
-# Xaw3d XCB Conversion - Current State Analysis
+# Isw3d XCB Conversion - Current State Analysis
 
 **Date:** 2026-03-03  
 **Analyst:** Kilo Code (Architect Mode)
 
 ## Executive Summary
 
-The Xaw3d library is in a **partially completed** XCB migration state. A previous conversion attempt was made but encountered significant issues. The codebase contains:
+The Isw3d library is in a **partially completed** XCB migration state. A previous conversion attempt was made but encountered significant issues. The codebase contains:
 
 1. **Missing critical compatibility files** required by the build system
 2. **Type confusion** between Xlib and XCB types (especially Region handling)
@@ -48,20 +48,20 @@ The [`src/Makefile.am`](../src/Makefile.am) references files that **DO NOT EXIST
 
 | File | Status | Purpose |
 |------|--------|---------|
-| `XawXcbTypes.h` | ❌ MISSING | XCB type definitions and typedefs |
-| `XawXcbCompat.h` | ❌ MISSING | XCB compatibility macros and functions |
-| `XawXcbCompat.c` | ❌ MISSING | XCB compatibility function implementations |
-| `XawRegion.h` | ❌ MISSING | Region handling compatibility layer |
-| `XawRegion.c` | ❌ MISSING | Region function implementations |
-| `XawXftCompat.h` | ❌ MISSING | Xft font rendering compatibility layer |
-| `XawXftCompat.c` | ❌ MISSING | Xft font rendering implementations |
-| `XawUtils.h` | ❌ MISSING | Utility macros and helper functions |
-| `XawUtils.c` | ❌ MISSING | Utility function implementations |
-| `XawConverters.c` | ❌ MISSING | Resource converters (was removed) |
+| `IswXcbTypes.h` | ❌ MISSING | XCB type definitions and typedefs |
+| `IswXcbCompat.h` | ❌ MISSING | XCB compatibility macros and functions |
+| `IswXcbCompat.c` | ❌ MISSING | XCB compatibility function implementations |
+| `IswRegion.h` | ❌ MISSING | Region handling compatibility layer |
+| `IswRegion.c` | ❌ MISSING | Region function implementations |
+| `IswXftCompat.h` | ❌ MISSING | Xft font rendering compatibility layer |
+| `IswXftCompat.c` | ❌ MISSING | Xft font rendering implementations |
+| `IswUtils.h` | ❌ MISSING | Utility macros and helper functions |
+| `IswUtils.c` | ❌ MISSING | Utility function implementations |
+| `IswConverters.c` | ❌ MISSING | Resource converters (was removed) |
 
 **Files that DO exist:**
-- ✅ [`src/XawXcbDraw.h`](../src/XawXcbDraw.h) - XCB drawing functions (partial)
-- ✅ [`src/XawXcbDraw.c`](../src/XawXcbDraw.c) - XCB drawing implementations (partial)
+- ✅ [`src/IswXcbDraw.h`](../src/IswXcbDraw.h) - XCB drawing functions (partial)
+- ✅ [`src/IswXcbDraw.c`](../src/IswXcbDraw.c) - XCB drawing implementations (partial)
 
 **Impact:** Build fails immediately due to missing includes.
 
@@ -78,12 +78,12 @@ There are **TWO incompatible approaches** to Region handling in the codebase:
 - **Example:** `void Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)`
 
 **Found in:**
-- [`include/X11/Xaw3d/ThreeDP.h`](../include/X11/Xaw3d/ThreeDP.h):58 - `shadowdraw` callback signature
+- [`include/X11/Isw3d/ThreeDP.h`](../include/X11/Isw3d/ThreeDP.h):58 - `shadowdraw` callback signature
 - [`plans/PORTING_GUIDELINES.md`](PORTING_GUIDELINES.md):92 - Recommended approach
 - Label2.c:129 (build log) - Forward declaration
 
-#### Approach B: XawRegion (Pointer to Structure)
-- **Type:** `Region` = `struct _XawRegion *` (pointer)
+#### Approach B: IswRegion (Pointer to Structure)
+- **Type:** `Region` = `struct _IswRegion *` (pointer)
 - **From:** Custom compatibility layer (doesn't exist yet)
 - **Usage:** Pass by reference, NULL = no region
 - **Example:** `void Redisplay(Widget w, xcb_generic_event_t *event, Region region)`
@@ -102,7 +102,7 @@ static void Redisplay(Widget gw, xcb_generic_event_t *event, Region region)
 {
     // ERROR: Type mismatch!
     (*lwclass->threeD_class.shadowdraw)(gw, event, region, ...);
-    // Expected xcb_xfixes_region_t but got struct _XawRegion *
+    // Expected xcb_xfixes_region_t but got struct _IswRegion *
 }
 ```
 
@@ -111,7 +111,7 @@ static void Redisplay(Widget gw, xcb_generic_event_t *event, Region region)
 **Recommendation:** Use **xcb_xfixes_region_t** (scalar) per porting guidelines, but this requires:
 - Updating all widget class structures
 - Changing all Redisplay/Expose function signatures
-- Removing any `XawRegion` pointer-based code
+- Removing any `IswRegion` pointer-based code
 - Or implementing region conversion functions
 
 ---
@@ -140,12 +140,12 @@ XmbDrawString(dpy, win, fset, gc, x, y, text, len);       // ❌ ERROR
 
 #### C. ISWFontSet Wrapper (Planned, not implemented)
 ```c
-// Supposed to exist in XawXftCompat.h (missing file)
+// Supposed to exist in IswXftCompat.h (missing file)
 ISWFontSet *fset = lw->label.fontset;
-int width = XawTextWidth(fset, text, len);                // Should work
-XawDrawString(dpy, win, fset, gc, x, y, text, len);       // Should work
+int width = IswTextWidth(fset, text, len);                // Should work
+IswDrawString(dpy, win, fset, gc, x, y, text, len);       // Should work
 ```
-**Problem:** `XawXftCompat.h` doesn't exist yet.
+**Problem:** `IswXftCompat.h` doesn't exist yet.
 
 **Impact:** All text rendering code fails to compile.
 
@@ -171,7 +171,7 @@ GC gc = XtGetGC(widget,
 #### New Code (XCB - REQUIRED):
 ```c
 xcb_create_gc_value_list_t values;
-ISWInitGCValues(&values);  // From XawXcbDraw.h
+ISWInitGCValues(&values);  // From IswXcbDraw.h
 ISWSetGCForeground(&values, pixel);
 ISWSetGCBackground(&values, bg_pixel);
 ISWSetGCFont(&values, font->fid);
@@ -237,12 +237,12 @@ The custom libXt provides XCB-backed types, but:
 
 #### ✅ Type Replacements in Headers
 Some header files have been updated:
-- [`ThreeDP.h`](../include/X11/Xaw3d/ThreeDP.h):58 - `shadowdraw` uses `xcb_generic_event_t*` and `xcb_xfixes_region_t`
+- [`ThreeDP.h`](../include/X11/Isw3d/ThreeDP.h):58 - `shadowdraw` uses `xcb_generic_event_t*` and `xcb_xfixes_region_t`
 - Various widget headers reference XCB types
 
 #### ✅ XCB Drawing Infrastructure Created
-- [`XawXcbDraw.h`](../src/XawXcbDraw.h) - Defines GC helpers, font queries, drawing functions
-- [`XawXcbDraw.c`](../src/XawXcbDraw.c) - Implements some XCB drawing operations
+- [`IswXcbDraw.h`](../src/IswXcbDraw.h) - Defines GC helpers, font queries, drawing functions
+- [`IswXcbDraw.c`](../src/IswXcbDraw.c) - Implements some XCB drawing operations
 
 #### ✅ Some Widget Files Converted
 Files that compile successfully (from build log):
@@ -260,7 +260,7 @@ Files that compile successfully (from build log):
 ### What's NOT Done (Breaks Build)
 
 #### ❌ Font Rendering Migration
-- No XawXftCompat.h/c implementation
+- No IswXftCompat.h/c implementation
 - XFontSet → ISWFontSet conversion incomplete
 - Text width/height calculations using Xlib functions
 
@@ -279,7 +279,7 @@ Files that compile successfully (from build log):
 
 #### ❌ Region Operations
 - Type confusion (pointer vs scalar)
-- No XawRegion.h implementation
+- No IswRegion.h implementation
 - Region operation functions missing
 
 ---
@@ -288,19 +288,19 @@ Files that compile successfully (from build log):
 
 Based on `#include` analysis, these files need the missing headers:
 
-### Files needing XawUtils.h (33 files):
-AllWidgets.c, AsciiSrc.c, Box.c, Command.c, Dialog.c, Form.c, Layout.c, List.c, MultiSink.c, MultiSrc.c, Paned.c, Panner.c, Porthole.c, Scrollbar.c, Simple.c, SimpleMenu.c, SmeBSB.c, Text.c, TextAction.c, TextPop.c, TextSrc.c, ThreeD.c, Tip.c, Toggle.c, Vendor.c, Viewport.c, XawAtoms.c, XawDrawing.c
+### Files needing IswUtils.h (33 files):
+AllWidgets.c, AsciiSrc.c, Box.c, Command.c, Dialog.c, Form.c, Layout.c, List.c, MultiSink.c, MultiSrc.c, Paned.c, Panner.c, Porthole.c, Scrollbar.c, Simple.c, SimpleMenu.c, SmeBSB.c, Text.c, TextAction.c, TextPop.c, TextSrc.c, ThreeD.c, Tip.c, Toggle.c, Vendor.c, Viewport.c, IswAtoms.c, IswDrawing.c
 
-### Files needing XawXcbCompat.h (5 files):
-Command.c, Form.c, Simple.c, ThreeD.c, XawDrawing.c
+### Files needing IswXcbCompat.h (5 files):
+Command.c, Form.c, Simple.c, ThreeD.c, IswDrawing.c
 
-### Files needing XawXcbTypes.h (2 files):
-Viewport.c, XawAtoms.c
+### Files needing IswXcbTypes.h (2 files):
+Viewport.c, IswAtoms.c
 
-### Files needing XawXftCompat.h (4 files):
+### Files needing IswXftCompat.h (4 files):
 List.c, MultiSink.c, SmeBSB.c, Tip.c
 
-### Files needing XawRegion.h (1 file):
+### Files needing IswRegion.h (1 file):
 Command.c
 
 **Conclusion:** Build cannot proceed until these files are created.
@@ -313,33 +313,33 @@ Command.c
 
 **Priority: URGENT** - Without these, nothing compiles.
 
-1. **Create XawXcbTypes.h**
+1. **Create IswXcbTypes.h**
    - Define basic type aliases if needed
    - Include necessary XCB headers
    - Provide any missing type definitions
 
-2. **Create XawUtils.h & XawUtils.c**
+2. **Create IswUtils.h & IswUtils.c**
    - Port utility macros (Min, Max, etc.)
    - Implement helper functions referenced by widgets
    - Provide XCB-compatible utility functions
 
-3. **Create XawXcbCompat.h & XawXcbCompat.c**
+3. **Create IswXcbCompat.h & IswXcbCompat.c**
    - Provide XCB compatibility wrappers for common operations
    - Implement geometry query functions
    - Implement window manipulation functions
 
-4. **Create XawRegion.h & XawRegion.c**
-   - **DECIDE:** Use xcb_xfixes_region_t directly, or create XawRegion wrapper?
+4. **Create IswRegion.h & IswRegion.c**
+   - **DECIDE:** Use xcb_xfixes_region_t directly, or create IswRegion wrapper?
    - Implement region operation functions if wrapper approach chosen
    - Provide compatibility macros
 
-5. **Create XawXftCompat.h & XawXftCompat.c**
+5. **Create IswXftCompat.h & IswXftCompat.c**
    - Define ISWFontSet structure
    - Implement text width calculation
    - Implement text drawing functions
    - Provide font metrics functions
 
-6. **Create XawConverters.c**
+6. **Create IswConverters.c**
    - Port Xmu converter functions to XCB
    - Implement string-to-type converters
 
@@ -354,18 +354,18 @@ Command.c
 2. **Update GC Operations**
    - Replace `XGCValues` with `xcb_create_gc_value_list_t`
    - Update GetnormalGC/GetgrayGC functions in all widgets
-   - Use XawSetGC* helpers from XawXcbDraw.h
+   - Use IswSetGC* helpers from IswXcbDraw.h
 
 3. **Fix Font Structure Access**
    - Replace `fs->max_bounds.*` with font metric queries
    - Use ISWFontTextWidth() instead of XTextWidth()
-   - Use XawGetFontProperty() for font properties
+   - Use IswGetFontProperty() for font properties
 
 ### Phase 3: Migrate Widget Drawing Code (MEDIUM PRIORITY)
 
 1. **Update Label Widget**
    - Fix SetTextWidthAndHeight() to use XCB/Xft
-   - Replace XDrawString with XawDrawString
+   - Replace XDrawString with IswDrawString
    - Fix 16-bit text handling
 
 2. **Update Other Failing Widgets**
@@ -397,7 +397,7 @@ Command.c
 - ❌ Requires updating ALL widget callbacks
 - ❌ Significant code changes across entire project
 
-**Option B: Create XawRegion wrapper (pointer)**
+**Option B: Create IswRegion wrapper (pointer)**
 - ✅ Smaller changes to existing code
 - ✅ Can provide compatibility layer
 - ❌ Requires implementing region wrapper functions
@@ -442,7 +442,7 @@ Command.c
 - ❌ Requires conversion function
 - ❌ Potential performance overhead
 
-**Recommendation:** **Option A** - Use XCB types directly with XawXcbDraw.h helpers.
+**Recommendation:** **Option A** - Use XCB types directly with IswXcbDraw.h helpers.
 
 ---
 
@@ -473,12 +473,12 @@ Command.c
 ## Estimated Scope
 
 ### Files to Create (8 files)
-- XawXcbTypes.h
-- XawUtils.h + XawUtils.c
-- XawXcbCompat.h + XawXcbCompat.c
-- XawRegion.h + XawRegion.c
-- XawXftCompat.h + XawXftCompat.c
-- XawConverters.c
+- IswXcbTypes.h
+- IswUtils.h + IswUtils.c
+- IswXcbCompat.h + IswXcbCompat.c
+- IswRegion.h + IswRegion.c
+- IswXftCompat.h + IswXftCompat.c
+- IswConverters.c
 
 ### Files to Modify (Major changes: ~15 files)
 - Label.c - Font and GC operations
@@ -494,7 +494,7 @@ Command.c
 - Plus any other widgets with similar issues
 
 ### Files to Modify (Minor changes: ~20+ files)
-- Any file including XawUtils.h (just includes)
+- Any file including IswUtils.h (just includes)
 - Any file with GC creation (GC value list updates)
 - Any file with region handling (type updates)
 
@@ -509,10 +509,10 @@ Command.c
 1. ✅ All source files compile without errors
 2. ✅ No warnings about undefined types
 3. ✅ No warnings about conflicting types
-4. ✅ Library links successfully: `libXaw3d.so`
-5. ✅ No dependencies on system Xlib: `ldd libXaw3d.so | grep -v libX11 | grep -v libxcb`
-6. ✅ All XCB dependencies present: `ldd libXaw3d.so | grep xcb`
-7. ✅ Uses custom libXt: `ldd libXaw3d.so | grep /home/adam/libXt`
+4. ✅ Library links successfully: `libIsw3d.so`
+5. ✅ No dependencies on system Xlib: `ldd libIsw3d.so | grep -v libX11 | grep -v libxcb`
+6. ✅ All XCB dependencies present: `ldd libIsw3d.so | grep xcb`
+7. ✅ Uses custom libXt: `ldd libIsw3d.so | grep /home/adam/libXt`
 
 ---
 
@@ -541,7 +541,7 @@ Command.c
 When switching to code mode to implement fixes:
 
 1. **Start with infrastructure files** - Nothing else can compile without them
-2. **Use XawXcbDraw.h helpers** - Don't duplicate functionality
+2. **Use IswXcbDraw.h helpers** - Don't duplicate functionality
 3. **Follow porting guidelines exactly** - No shortcuts or compatibility layers
 4. **Test each file individually** - `make src/Label.lo` before full build
 5. **Update this document** as new issues are discovered

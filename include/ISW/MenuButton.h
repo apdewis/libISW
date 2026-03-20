@@ -42,8 +42,8 @@ in this Software without prior written authorization from the X Consortium.
  *          kit@expo.lcs.mit.edu
  */
 
-#ifndef _ISW_XawMenuButton_h
-#define _ISW_XawMenuButton_h
+#ifndef _ISW_IswMenuButton_h
+#define _ISW_IswMenuButton_h
 
 #include <ISW/Command.h>
 
@@ -85,4 +85,4 @@ extern WidgetClass     menuButtonWidgetClass;
 typedef struct _MenuButtonClassRec   *MenuButtonWidgetClass;
 typedef struct _MenuButtonRec        *MenuButtonWidget;
 
-#endif /* _ISW_XawMenuButton_h */
+#endif /* _ISW_IswMenuButton_h */

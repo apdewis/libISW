@@ -115,33 +115,33 @@ extern WidgetClass simpleMenuWidgetClass;
 
 _XFUNCPROTOBEGIN
 
-/*	Function Name: XawSimpleMenuAddGlobalActions
+/*	Function Name: IswSimpleMenuAddGlobalActions
  *	Description: adds the global actions to the simple menu widget.
  *	Arguments: app_con - the appcontext.
  *	Returns: none.
  */
 
-extern void XawSimpleMenuAddGlobalActions(
+extern void IswSimpleMenuAddGlobalActions(
     XtAppContext	/* app_con */
 );
 
-/*	Function Name: XawSimpleMenuGetActiveEntry
+/*	Function Name: IswSimpleMenuGetActiveEntry
  *	Description: Gets the currently active (set) entry.
  *	Arguments: w - the smw widget.
  *	Returns: the currently set entry or NULL if none is set.
  */
 
-extern Widget XawSimpleMenuGetActiveEntry(
+extern Widget IswSimpleMenuGetActiveEntry(
     Widget		/* w */
 );
 
-/*	Function Name: XawSimpleMenuClearActiveEntry
+/*	Function Name: IswSimpleMenuClearActiveEntry
  *	Description: Unsets the currently active (set) entry.
  *	Arguments: w - the smw widget.
  *	Returns: none.
  */
 
-extern void XawSimpleMenuClearActiveEntry(
+extern void IswSimpleMenuClearActiveEntry(
     Widget		/* w */
 );
 

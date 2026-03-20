@@ -48,8 +48,8 @@ SOFTWARE.
 
 /* Form widget private definitions */
 
-#ifndef _ISW_XawFormP_h
-#define _ISW_XawFormP_h
+#ifndef _ISW_IswFormP_h
+#define _ISW_IswFormP_h
 
 #include <ISW/Form.h>
 
@@ -139,4 +139,4 @@ typedef struct _FormConstraintsRec {
     FormConstraintsPart	form;
 } FormConstraintsRec, *FormConstraints;
 
-#endif /* _ISW_XawFormP_h */
+#endif /* _ISW_IswFormP_h */

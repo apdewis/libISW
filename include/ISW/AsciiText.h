@@ -94,7 +94,7 @@ SOFTWARE.
  destroyCallback     Callback		Pointer		  NULL
  displayCaret	     Output		Boolean		  True
  displayPosition     TextPosition	int		  0
- editType	     EditType		XawTextEditType	  XawtextRead
+ editType	     EditType		IswTextEditType	  IswtextRead
  font		     Font		XFontStruct*	  Fixed
  foreground	     Foreground		Pixel		  Black
  height		     Height		Dimension	  font height
@@ -102,10 +102,10 @@ SOFTWARE.
  international	     International		Boolean		false
  leftMargin	     Margin		Position	  2
  mappedWhenManaged   MappedWhenManaged	Boolean		  True
- resize		     Resize		XawTextResizeMode XawtextResizeNever
+ resize		     Resize		IswTextResizeMode IswtextResizeNever
  rightMargin	     Margin		Position	  4
- scrollHorizontal    Scroll		XawTextScrollMode XawtextScrollNever
- scrollVertical	     Scroll		XawTextScrollMode XawtextScrollNever
+ scrollHorizontal    Scroll		IswTextScrollMode IswtextScrollNever
+ scrollVertical	     Scroll		IswTextScrollMode IswtextScrollNever
  selectTypes	     SelectTypes	Pointer		  pos/word/line/par/all
  selection	     Selection		Pointer		  (empty selection)
  sensitive	     Sensitive		Boolean		  True
@@ -114,7 +114,7 @@ SOFTWARE.
  string		     String		String		  NULL
  topMargin	     Margin		Position	  2
  width		     Width		Dimension	  100
- wrap		     Wrap		XawTextWrapMode	  XawtextWrapNever
+ wrap		     Wrap		IswTextWrapMode	  IswtextWrapNever
  x		     Position		Position	  0
  y		     Position		Position	  0
 

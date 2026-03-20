@@ -51,8 +51,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _ISW_XawLabelP_h
-#define _ISW_XawLabelP_h
+#ifndef _ISW_IswLabelP_h
+#define _ISW_IswLabelP_h
 
 /***********************************************************************
  *
@@ -65,7 +65,7 @@ SOFTWARE.
 #include <ISW/ThreeDP.h>
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef only */
 
-/* XtJustify type is now centrally defined in Xaw3dP.h and XawXcbDraw.h */
+/* XtJustify type is now centrally defined in Isw3dP.h and IswXcbDraw.h */
 /* with proper include guards to prevent redefinition */
 
 /* New fields for the Label widget class record */
@@ -133,4 +133,4 @@ typedef struct _LabelRec {
 			 ? (lw)->label.lbm_width + (lw)->label.internal_width \
 			 : 0)
 
-#endif /* _ISW_XawLabelP_h */
+#endif /* _ISW_IswLabelP_h */

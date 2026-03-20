@@ -32,7 +32,7 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>		/* for XtN and XtC defines */
-#include <ISW/ISWInit.h>		/* for XawInitializeWidgetSet() */
+#include <ISW/ISWInit.h>		/* for IswInitializeWidgetSet() */
 #include <ISW/RepeaterP.h>		/* us */
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -112,7 +112,7 @@ RepeaterClassRec repeaterClassRec = {
     /* superclass		*/	(WidgetClass) &commandClassRec,
     /* class_name		*/	"Repeater",
     /* widget_size		*/	sizeof(RepeaterRec),
-    /* class_initialize		*/	XawInitializeWidgetSet,
+    /* class_initialize		*/	IswInitializeWidgetSet,
     /* class_part_initialize	*/	NULL,
     /* class_inited		*/	FALSE,
     /* initialize		*/	Initialize,
@@ -146,7 +146,7 @@ RepeaterClassRec repeaterClassRec = {
     /* change_sensitive		*/	XtInheritChangeSensitive
   },
   { /* threeD fields */
-    /* shadowdraw		*/	XtInheritXaw3dShadowDraw
+    /* shadowdraw		*/	XtInheritIsw3dShadowDraw
   },
   { /* label fields */
     /* ignore			*/	0

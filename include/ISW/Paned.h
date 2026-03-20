@@ -58,8 +58,8 @@ SOFTWARE.
  *          kit@expo.lcs.mit.edu
  */
 
-#ifndef _ISW_XawPaned_h
-#define _ISW_XawPaned_h
+#ifndef _ISW_IswPaned_h
+#define _ISW_IswPaned_h
 
 #include <X11/Constraint.h>
 
@@ -166,33 +166,33 @@ typedef struct _PanedRec	*PanedWidget;
 
 _XFUNCPROTOBEGIN
 
-/*	Function Name: XawPanedSetMinMax
+/*	Function Name: IswPanedSetMinMax
  *	Description: Sets the min and max size for a pane.
  *	Arguments: widget - the widget that is a child of the Paned widget.
  *                 min, max - the new min and max size for the pane.
  *	Returns: none.
  */
 
-extern void XawPanedSetMinMax(
+extern void IswPanedSetMinMax(
     Widget		/* w */,
     int			/* min */,
     int			/* max */
 );
 
-/*	Function Name: XawPanedGetMinMax
+/*	Function Name: IswPanedGetMinMax
  *	Description: Gets the min and max size for a pane.
  *	Arguments: widget - the widget that is a child of the Paned widget.
  ** RETURNED **    min, max - the current min and max size for the pane.
  *	Returns: none.
  */
 
-extern void XawPanedGetMinMax(
+extern void IswPanedGetMinMax(
     Widget		/* w */,
     int *		/* min_return */,
     int *		/* max_return */
 );
 
-/*	Function Name: XawPanedSetRefigureMode
+/*	Function Name: IswPanedSetRefigureMode
  *	Description: Allows a flag to be set the will inhibit
  *                   the paned widgets relayout routine.
  *	Arguments: w - the paned widget.
@@ -200,7 +200,7 @@ extern void XawPanedGetMinMax(
  *	Returns: none.
  */
 
-extern void XawPanedSetRefigureMode(
+extern void IswPanedSetRefigureMode(
     Widget		/* w */,
 #if NeedWidePrototypes
     /* Boolean */ int	/* mode */
@@ -209,24 +209,24 @@ extern void XawPanedSetRefigureMode(
 #endif
 );
 
-/*	Function Name: XawPanedGetNumSub
+/*	Function Name: IswPanedGetNumSub
  *	Description: Returns the number of panes in the paned widget.
  *	Arguments: w - the paned widget.
  *	Returns: the number of panes in the paned widget.
  */
 
-extern int XawPanedGetNumSub(
+extern int IswPanedGetNumSub(
     Widget		/* w */
 );
 
-/*	Function Name: XawPanedAllowResize
+/*	Function Name: IswPanedAllowResize
  *	Description: Allows a flag to be set that determines if the paned
  *                   widget will allow geometry requests from this child
  *	Arguments: widget - a child of the paned widget.
  *	Returns: none.
  */
 
-extern void XawPanedAllowResize(
+extern void IswPanedAllowResize(
     Widget		/* w */,
 #if NeedWidePrototypes
     /* Boolean */ int	/* allow_resize */
@@ -237,4 +237,4 @@ extern void XawPanedAllowResize(
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawPaned_h */
+#endif /* _ISW_IswPaned_h */

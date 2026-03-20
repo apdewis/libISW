@@ -92,15 +92,15 @@ SOFTWARE.
 #undef GETLASTPOS		/* We will use our own GETLASTPOS. */
 #endif
 
-#define GETLASTPOS XawTextSourceScan(source, (ISWTextPosition) 0, XawstAll, XawsdRight, 1, TRUE)
+#define GETLASTPOS IswTextSourceScan(source, (ISWTextPosition) 0, IswstAll, IswsdRight, 1, TRUE)
 
 #ifdef ISW_INTERNATIONALIZATION
-/* XawWcToUtf8: Convert wide-char string to UTF-8
+/* IswWcToUtf8: Convert wide-char string to UTF-8
  * Returns malloced UTF-8 string or NULL on failure
  * Caller must free returned string with free()
  */
 static char *
-XawWcToUtf8(const wchar_t *wcs, int wc_len, int *utf8_len_out)
+IswWcToUtf8(const wchar_t *wcs, int wc_len, int *utf8_len_out)
 {
 #ifdef ISW_HAS_XIM
     /* Would use Xlib XwcTextListToTextProperty here */
@@ -123,7 +123,7 @@ static void SetTabs(Widget, int, short *);
 
 static void DisplayText(Widget, Position, Position, ISWTextPosition,
                         ISWTextPosition, Boolean);
-static void InsertCursor(Widget, Position, Position, XawTextInsertState);
+static void InsertCursor(Widget, Position, Position, IswTextInsertState);
 static void FindPosition(Widget, ISWTextPosition, int, int, Boolean,
                          ISWTextPosition *, int *, int *);
 static void FindDistance(Widget, ISWTextPosition, int, ISWTextPosition,
@@ -149,7 +149,7 @@ MultiSinkClassRec multiSinkClassRec = {
     /* superclass	  	*/	(WidgetClass) SuperClass,
     /* class_name	  	*/	"MultiSink",
     /* widget_size	  	*/	sizeof(MultiSinkRec),
-    /* class_initialize   	*/	XawInitializeWidgetSet,
+    /* class_initialize   	*/	IswInitializeWidgetSet,
     /* class_part_initialize	*/	NULL,
     /* class_inited       	*/	FALSE,
     /* initialize	  	*/	Initialize,
@@ -210,9 +210,9 @@ CharWidth (
     MultiSinkObject sink = (MultiSinkObject) w;
     Position *tab;
 
-    if ( c == _Xaw_atowc(XawLF) ) return(0);
+    if ( c == _Isw_atowc(IswLF) ) return(0);
 
-    if (c == _Xaw_atowc(XawTAB)) {
+    if (c == _Isw_atowc(IswTAB)) {
 	/* Adjust for Left Margin. */
 	x -= ((TextWidget) XtParent(w))->text.margin.left;
 
@@ -231,12 +231,12 @@ CharWidth (
 
     /* Phase 3.5: WC→UTF8 conversion for width measurement */
     int utf8_len;
-    char *utf8_text = XawWcToUtf8(&c, 1, &utf8_len);
-    if (utf8_text && XawTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len) == 0) {
+    char *utf8_text = IswWcToUtf8(&c, 1, &utf8_len);
+    if (utf8_text && IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len) == 0) {
 	if (sink->multi_sink.display_nonprinting)
-	    c = _Xaw_atowc('@');
+	    c = _Isw_atowc('@');
 	else {
-	    c = _Xaw_atowc(XawSP);
+	    c = _Isw_atowc(IswSP);
 	}
     }
     if (utf8_text) free(utf8_text);
@@ -253,10 +253,10 @@ CharWidth (
      */
 
     /* Phase 3.5: WC→UTF8 conversion for width calculation */
-    utf8_text = XawWcToUtf8(&c, 1, &utf8_len);
+    utf8_text = IswWcToUtf8(&c, 1, &utf8_len);
     width = 0;
     if (utf8_text) {
-        width = XawTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
+        width = IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
         free(utf8_text);
     }
 
@@ -286,10 +286,10 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
     
     /* Phase 3.5: WC→UTF8 conversion for rendering */
     int utf8_len;
-    char *utf8_text = XawWcToUtf8(buf, len, &utf8_len);
+    char *utf8_text = IswWcToUtf8(buf, len, &utf8_len);
     if (!utf8_text) return 0;
     
-    width = XawTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
+    width = IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
     max_x = (Position) ctx->core.width;
 
     if ( ((int) width) <= -x) {	           /* Don't draw if we can't see it. */
@@ -297,7 +297,7 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
       return(width);
     }
 
-    XawDrawString(XtDisplay(ctx), XtWindow(ctx), sink->multi_sink.fontset, gc,
+    IswDrawString(XtDisplay(ctx), XtWindow(ctx), sink->multi_sink.fontset, gc,
                   (int) x, (int) y, utf8_text, utf8_len);
     free(utf8_text);
     
@@ -328,7 +328,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
             ISWTextPosition pos2, Boolean highlight)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
-    Widget source = XawTextGetSource(XtParent(w));
+    Widget source = IswTextGetSource(XtParent(w));
     wchar_t buf[BUFSIZ];
     /* Phase 3.5: Use ISWFontSet fields directly */
 
@@ -341,17 +341,17 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 
     y += sink->multi_sink.fontset->ascent;
     for ( j = 0 ; pos1 < pos2 ; ) {
-	pos1 = XawTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
+	pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
 	for (k = 0; k < blk.length; k++) {
 	    if (j >= BUFSIZ) {	/* buffer full, dump the text. */
 	        x += PaintText(w, gc, x, y, buf, j);
 		j = 0;
 	    }
 	    buf[j] = ((wchar_t *)blk.ptr)[k];
-	    if (buf[j] == _Xaw_atowc(XawLF))
+	    if (buf[j] == _Isw_atowc(IswLF))
 	        continue;
 
-	    else if (buf[j] == _Xaw_atowc(XawTAB)) {
+	    else if (buf[j] == _Isw_atowc(IswTAB)) {
 	        Position temp = 0;
 		Dimension width;
 
@@ -359,7 +359,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 		  return;
 
 	        x += temp;
-	               width = CharWidth(w, x, _Xaw_atowc(XawTAB));
+	               width = CharWidth(w, x, _Isw_atowc(IswTAB));
 	 xcb_connection_t *conn = XtDisplayOfObject(w);
 	 xcb_rectangle_t rect = {(int) x,
 	                              (int) y - sink->multi_sink.fontset->ascent,
@@ -374,12 +374,12 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
             else {
                 /* Phase 3.5: WC→UTF8 check for zero-width chars */
                 int utf8_len;
-                char *utf8_text = XawWcToUtf8(&buf[j], 1, &utf8_len);
-                if (utf8_text && XawTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len) == 0) {
+                char *utf8_text = IswWcToUtf8(&buf[j], 1, &utf8_len);
+                if (utf8_text && IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len) == 0) {
                     if (sink->multi_sink.display_nonprinting)
-                        buf[j] = _Xaw_atowc('@');
+                        buf[j] = _Isw_atowc('@');
                     else
-                        buf[j] = _Xaw_atowc(' ');
+                        buf[j] = _Isw_atowc(' ');
                 }
                 if (utf8_text) free(utf8_text);
             }
@@ -400,7 +400,7 @@ CreateInsertCursor(Widget w)
     xcb_connection_t *conn = XtDisplayOfObject(w);
     xcb_screen_t *s = XtScreenOfObject(w);
     xcb_drawable_t root = RootWindowOfScreen(s);
-    return XawCreateBitmapFromData(conn, root,
+    return IswCreateBitmapFromData(conn, root,
 		  insertCursor_bits, insertCursor_width, insertCursor_height);
 }
 
@@ -427,7 +427,7 @@ GetCursorBounds(Widget w, xcb_rectangle_t * rect)
  */
 
 static void
-InsertCursor (Widget w, Position x, Position y, XawTextInsertState state)
+InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
     Widget text_widget = XtParent(w);
@@ -458,7 +458,7 @@ FindDistance (Widget w, ISWTextPosition fromPos, int fromx, ISWTextPosition toPo
               int *resWidth, ISWTextPosition *resPos, int *resHeight)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
-    Widget source = XawTextGetSource(XtParent(w));
+    Widget source = IswTextGetSource(XtParent(w));
 
     ISWTextPosition index, lastPos;
     wchar_t c;
@@ -466,14 +466,14 @@ FindDistance (Widget w, ISWTextPosition fromPos, int fromx, ISWTextPosition toPo
 
     /* we may not need this */
     lastPos = GETLASTPOS;
-    XawTextSourceRead(source, fromPos, &blk, (int) toPos - fromPos);
+    IswTextSourceRead(source, fromPos, &blk, (int) toPos - fromPos);
     *resWidth = 0;
     for (index = fromPos; index != toPos && index < lastPos; index++) {
 	if (index - blk.firstPos >= blk.length)
-	    XawTextSourceRead(source, index, &blk, (int) toPos - fromPos);
+	    IswTextSourceRead(source, index, &blk, (int) toPos - fromPos);
         c = ((wchar_t *)blk.ptr)[index - blk.firstPos];
 	*resWidth += CharWidth(w, fromx + *resWidth, c);
-	if (c == _Xaw_atowc(XawLF)) {
+	if (c == _Isw_atowc(IswLF)) {
 	    index++;
 	    break;
 	}
@@ -489,7 +489,7 @@ FindPosition(Widget w, ISWTextPosition fromPos, int fromx, int width,
              int *resHeight)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
-    Widget source = XawTextGetSource(XtParent(w));
+    Widget source = IswTextGetSource(XtParent(w));
 
     ISWTextPosition lastPos, index, whiteSpacePosition = 0;
     int     lastWidth = 0, whiteSpaceWidth = 0;
@@ -499,24 +499,24 @@ FindPosition(Widget w, ISWTextPosition fromPos, int fromx, int width,
 
     lastPos = GETLASTPOS;
 
-    XawTextSourceRead(source, fromPos, &blk, BUFSIZ);
+    IswTextSourceRead(source, fromPos, &blk, BUFSIZ);
     *resWidth = 0;
     whiteSpaceSeen = FALSE;
     c = 0;
     for (index = fromPos; *resWidth <= width && index < lastPos; index++) {
 	lastWidth = *resWidth;
 	if (index - blk.firstPos >= blk.length)
-	    XawTextSourceRead(source, index, &blk, BUFSIZ);
+	    IswTextSourceRead(source, index, &blk, BUFSIZ);
         c = ((wchar_t *)blk.ptr)[index - blk.firstPos];
         *resWidth += CharWidth(w, fromx + *resWidth, c);
 
-        if ((c == _Xaw_atowc(XawSP) || c == _Xaw_atowc(XawTAB)) &&
+        if ((c == _Isw_atowc(IswSP) || c == _Isw_atowc(IswTAB)) &&
 	    *resWidth <= width) {
 	    whiteSpaceSeen = TRUE;
 	    whiteSpacePosition = index;
 	    whiteSpaceWidth = *resWidth;
 	}
-	if (c == _Xaw_atowc(XawLF)) {
+	if (c == _Isw_atowc(IswLF)) {
 	    index++;
 	    break;
 	}
@@ -529,7 +529,7 @@ FindPosition(Widget w, ISWTextPosition fromPos, int fromx, int width,
 	    *resWidth = whiteSpaceWidth;
 	}
     }
-    if (index == lastPos && c != _Xaw_atowc(XawLF)) index = lastPos + 1;
+    if (index == lastPos && c != _Isw_atowc(IswLF)) index = lastPos + 1;
     *resPos = index;
     *resHeight = sink->multi_sink.fontset->height;  /* Phase 3.5 */
 }
@@ -539,7 +539,7 @@ Resolve (Widget w, ISWTextPosition pos, int fromx, int width,
          ISWTextPosition *resPos)
 {
     int resWidth, resHeight;
-    Widget source = XawTextGetSource(XtParent(w));
+    Widget source = IswTextGetSource(XtParent(w));
 
     FindPosition(w, pos, fromx, width, FALSE, resPos, &resWidth, &resHeight);
     if (*resPos > GETLASTPOS)
@@ -593,7 +593,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     GetGC(sink);
 
     sink->multi_sink.insertCursorOn= CreateInsertCursor(new);
-    sink->multi_sink.laststate = XawisOff;
+    sink->multi_sink.laststate = IswisOff;
     sink->multi_sink.cursor_x = sink->multi_sink.cursor_y = 0;
 }
 
@@ -730,9 +730,9 @@ SetTabs(
  */
 
   xcb_connection_t *conn = XtDisplayOfObject(w);
-  XCB_ATOM_FIGURE_WIDTH = XawXcbInternAtom(conn, "FIGURE_WIDTH", FALSE);
+  XCB_ATOM_FIGURE_WIDTH = IswXcbInternAtom(conn, "FIGURE_WIDTH", FALSE);
   if ( (XCB_ATOM_FIGURE_WIDTH != None) &&
-       ( (!XawGetFontProperty(conn, font, XCB_ATOM_FIGURE_WIDTH, &figure_width)) ||
+       ( (!IswGetFontProperty(conn, font, XCB_ATOM_FIGURE_WIDTH, &figure_width)) ||
   (figure_width == 0)) ) {
     /* In XCB, we don't have direct access to per_char metrics
      * Use ISWFontCharWidth to get character width */
@@ -777,6 +777,6 @@ _ISWMultiSinkPosToXY(
     MultiSinkObject sink = (MultiSinkObject) ((TextWidget)w)->text.sink;
 
     /* Phase 3.5: Use ISWFontSet fields directly */
-    _XawTextPosToXY( w, pos, x, y );
+    _IswTextPosToXY( w, pos, x, y );
     *y += sink->multi_sink.fontset->ascent;
 }

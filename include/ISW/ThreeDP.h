@@ -59,7 +59,7 @@ typedef struct {
     void (*shadowdraw)(Widget, xcb_generic_event_t *, xcb_xfixes_region_t, XtRelief, Boolean);
   } ThreeDClassPart;
 
-#define XtInheritXaw3dShadowDraw \
+#define XtInheritIsw3dShadowDraw \
 ((void (*)(Widget, xcb_generic_event_t *, xcb_xfixes_region_t, XtRelief, Boolean))_XtInherit)
 
 /* Full class record declaration. */

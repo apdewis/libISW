@@ -30,7 +30,7 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>		/* for XtN and XtC defines */
-#include <ISW/ISWInit.h>		/* for XawInitializeWidgetSet */
+#include <ISW/ISWInit.h>		/* for IswInitializeWidgetSet */
 #include <ISW/PannerP.h>		/* us */
 #include <X11/Xos.h>
 #include <ctype.h>			/* for isascii() etc. */
@@ -162,7 +162,7 @@ PannerClassRec pannerClassRec = {
     /* superclass		*/	(WidgetClass) &simpleClassRec,
     /* class_name		*/	"Panner",
     /* widget_size		*/	sizeof(PannerRec),
-    /* class_initialize		*/	XawInitializeWidgetSet,
+    /* class_initialize		*/	IswInitializeWidgetSet,
     /* class_part_initialize	*/	NULL,
     /* class_inited		*/	FALSE,
     /* initialize		*/	Initialize,
@@ -230,7 +230,7 @@ reset_shadow_gc (PannerWidget pw)	/* used when resources change */
  valuemask = GCTile | GCFillStyle;
  values.fill_style = XCB_FILL_STYLE_TILED;
  /* XCB: Use connection and window instead of Screen* */
- values.tile = XawCreateStippledPixmap(XtDisplay((Widget)pw),
+ values.tile = IswCreateStippledPixmap(XtDisplay((Widget)pw),
                                          XtWindow((Widget)pw),
            pw->panner.foreground,
            pw->core.background_pixel,
@@ -515,7 +515,7 @@ parse_page_string (char *s, int pagesize, int canvassize, Boolean *relative)
 }
 
 #define BACKGROUND_STIPPLE(pw) \
-  XawLocatePixmapFile (pw->core.screen, pw->panner.stipple_name, \
+  IswLocatePixmapFile (pw->core.screen, pw->panner.stipple_name, \
 		       pw->panner.shadow_color, pw->core.background_pixel, \
 		       pw->core.depth, NULL, 0, NULL, NULL, NULL, NULL)
 
@@ -930,10 +930,10 @@ ActionNotify (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
     if (pw->panner.last_x != pw->panner.knob_x ||
 	pw->panner.last_y != pw->panner.knob_y) {
-	XawPannerReport rep;
+	IswPannerReport rep;
 
 	Redisplay (gw, NULL, 0);
-	rep.changed = (XawPRSliderX | XawPRSliderY);
+	rep.changed = (IswPRSliderX | IswPRSliderY);
 	rep.slider_x = pw->panner.slider_x;
 	rep.slider_y = pw->panner.slider_y;
 	rep.slider_width = pw->panner.slider_width;

@@ -92,7 +92,7 @@ DialogClassRec dialogClassRec = {
     /* superclass         */    (WidgetClass) &formClassRec,
     /* class_name         */    "Dialog",
     /* widget_size        */    sizeof(DialogRec),
-    /* class_initialize   */    XawInitializeWidgetSet,
+    /* class_initialize   */    IswInitializeWidgetSet,
     /* class_part init    */    NULL,
     /* class_inited       */    FALSE,
     /* initialize         */    Initialize,
@@ -357,8 +357,8 @@ CreateDialogValueWidget(Widget w)
 #endif /*notdef*/
     XtSetArg(arglist[num_args], XtNstring, dw->dialog.value);     num_args++;
     XtSetArg(arglist[num_args], XtNresizable, True);              num_args++;
-    XtSetArg(arglist[num_args], XtNresize, XawtextResizeBoth);    num_args++;
-    XtSetArg(arglist[num_args], XtNeditType, XawtextEdit);        num_args++;
+    XtSetArg(arglist[num_args], XtNresize, IswtextResizeBoth);    num_args++;
+    XtSetArg(arglist[num_args], XtNeditType, IswtextEdit);        num_args++;
     XtSetArg(arglist[num_args], XtNfromVert, dw->dialog.labelW);  num_args++;
     XtSetArg(arglist[num_args], XtNleft, XtChainLeft);            num_args++;
     XtSetArg(arglist[num_args], XtNright, XtChainRight);          num_args++;
@@ -395,7 +395,7 @@ CreateDialogValueWidget(Widget w)
 
 
 void
-XawDialogAddButton(Widget dialog, _Xconst char* name, XtCallbackProc function,
+IswDialogAddButton(Widget dialog, _Xconst char* name, XtCallbackProc function,
 		   XtPointer param)
 {
 /*
@@ -412,7 +412,7 @@ XawDialogAddButton(Widget dialog, _Xconst char* name, XtCallbackProc function,
 
 
 char *
-XawDialogGetValueString(Widget w)
+IswDialogGetValueString(Widget w)
 {
     Arg args[1];
     char * value;

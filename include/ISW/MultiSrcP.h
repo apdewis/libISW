@@ -96,8 +96,8 @@ SOFTWARE.
  * By Li Yuhong, Sept. 18, 1990
  */
 
-#ifndef _ISW_XawMultiSrcP_h
-#define _ISW_XawMultiSrcP_h
+#ifndef _ISW_IswMultiSrcP_h
+#define _ISW_IswMultiSrcP_h
 
 #include <ISW/TextSrcP.h>
 #include <ISW/MultiSrc.h>
@@ -153,7 +153,7 @@ typedef struct _MultiSrcPart {
   XIC ic;			/* for X Input Method. */
   XtPointer string;		/* either the string, or the file name, depend-
                                  ing upon the `type'.  ALWAYS IN MB FORMAT. */
-  XawAsciiType type;		/* either string or disk. */
+  IswAsciiType type;		/* either string or disk. */
   ISWTextPosition piece_size;	/* Size of text buffer for each piece. */
   Boolean data_compression;	/* compress to minimum memory automatically
 				   on save? */
@@ -186,4 +186,4 @@ typedef struct _MultiSrcRec {
 
 extern void _ISWMultiSourceFreeString( Widget );
 
-#endif /* _ISW_XawMultiSrcP_h */  --- Don't add anything after this line. */
+#endif /* _ISW_IswMultiSrcP_h */  --- Don't add anything after this line. */

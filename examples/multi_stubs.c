@@ -2,7 +2,7 @@
  * multi_stubs.c - Stub implementations for Multi* widget classes
  *
  * This file provides stub implementations for multiSinkObjectClass and
- * multiSrcObjectClass which are referenced by libXaw3d.so but not yet
+ * multiSrcObjectClass which are referenced by libIsw3d.so but not yet
  * fully ported to XCB.
  *
  * These stubs allow the demo to link and run, demonstrating the widgets
@@ -126,6 +126,6 @@ static struct _MultiSrcClassRec multiSrcClassRec = {
     }
 };
 
-/* Export the class pointers that libXaw3d.so expects */
+/* Export the class pointers that libIsw3d.so expects */
 WidgetClass multiSinkObjectClass = (WidgetClass) &multiSinkClassRec;
 WidgetClass multiSrcObjectClass = (WidgetClass) &multiSrcClassRec;

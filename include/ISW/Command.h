@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawCommand_h
-#define _ISW_XawCommand_h
+#ifndef _ISW_IswCommand_h
+#define _ISW_IswCommand_h
 
 #include <ISW/Label.h>
 
@@ -70,7 +70,7 @@ SOFTWARE.
  cursorName	     Cursor		String		NULL
  depth		     Depth		int		parent's depth
  destroyCallback     Callback		XtCallbackList	NULL
- encoding	     Encoding		UnsignedChar	XawTextEncoding8bit
+ encoding	     Encoding		UnsignedChar	IswTextEncoding8bit
  font		     Font		XFontStruct*	XtDefaultFont
  foreground	     Foreground		Pixel		XtDefaultForeground
  height		     Height		Dimension	text height
@@ -104,14 +104,14 @@ SOFTWARE.
 #define XtCCornerRoundPercent "CornerRoundPercent"
 
 /* Shape style constants */
-#define XawShapeRectangle 1
-#define XawShapeOval 2
-#define XawShapeEllipse 3
-#define XawShapeRoundedRectangle 4
+#define IswShapeRectangle 1
+#define IswShapeOval 2
+#define IswShapeEllipse 3
+#define IswShapeRoundedRectangle 4
 
 extern WidgetClass     commandWidgetClass;
 
 typedef struct _CommandClassRec   *CommandWidgetClass;
 typedef struct _CommandRec        *CommandWidget;
 
-#endif /* _ISW_XawCommand_h */
+#endif /* _ISW_IswCommand_h */

@@ -73,8 +73,8 @@ SOFTWARE.
 #include <xcb/xfixes.h>
 #include "ISWXcbDraw.h"
 
-/* I don't know why Paned.c calls _XawImCallVendorShellExtResize, but... */
-/* FIXME: XawImP.h uses Xlib-specific types (XIM, XIC) that don't exist in XCB */
+/* I don't know why Paned.c calls _IswImCallVendorShellExtResize, but... */
+/* FIXME: IswImP.h uses Xlib-specific types (XIM, XIC) that don't exist in XCB */
 /* #ifdef ISW_INTERNATIONALIZATION
 #include <ISW/ISWImP.h>
 #endif */
@@ -304,7 +304,7 @@ AdjustPanedSize(PanedWidget pw, Dimension off_size, XtGeometryResult * result_re
     request.request_mode = CWWidth | CWHeight;
 
     ForAllPanes(pw, childP) {
-        int size = XawMax(PaneInfo(*childP)->size, (int)PaneInfo(*childP)->min);
+        int size = IswMax(PaneInfo(*childP)->size, (int)PaneInfo(*childP)->min);
 	AssignMin(size, (int) PaneInfo(*childP)->max);
         newsize += size + pw->paned.internal_bw;
     }
@@ -327,7 +327,7 @@ AdjustPanedSize(PanedWidget pw, Dimension off_size, XtGeometryResult * result_re
       *result_ret = XtMakeGeometryRequest( (Widget) pw, &request, &reply );
       /* XIM support not available in XCB-based libXt - stub out */
       /* #ifdef ISW_INTERNATIONALIZATION
-      _XawImCallVendorShellExtResize( (Widget) pw );
+      _IswImCallVendorShellExtResize( (Widget) pw );
       #endif */
 
       if ( (newsize == old_size) || (*result_ret == XtGeometryNo) ) {
@@ -1048,7 +1048,7 @@ CommitGripAdjustment(PanedWidget pw)
 static void
 HandleGrip(Widget grip, XtPointer junk, XtPointer callData)
 {
-    XawGripCallData call_data = (XawGripCallData)callData;
+    IswGripCallData call_data = (IswGripCallData)callData;
     PanedWidget pw = (PanedWidget) XtParent(grip);
     int loc;
     char action_type;
@@ -1410,7 +1410,7 @@ ClearPaneStack(PanedWidget pw)
 static void
 ClassInitialize(void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     XtSetTypeConverter( XtRString, XtROrientation, ISWCvtStringToOrientation,
 		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
@@ -1778,7 +1778,7 @@ PaneSetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *nu
     /* Check for new min and max. */
 
     if (old_pane->min != new_pane->min || old_pane->max != new_pane->max)
-	XawPanedSetMinMax(new, (int)new_pane->min, (int)new_pane->max);
+	IswPanedSetMinMax(new, (int)new_pane->min, (int)new_pane->max);
 
     /* Check for change in XtNshowGrip. */
 
@@ -1811,7 +1811,7 @@ PaneSetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *nu
  *
  ************************************************************/
 
-/*	Function Name: XawPanedSetMinMax
+/*	Function Name: IswPanedSetMinMax
  *	Description: Sets the min and max size for a pane.
  *	Arguments: widget - the widget that is a child of the Paned widget.
  *                 min, max - the new min and max size for the pane.
@@ -1819,7 +1819,7 @@ PaneSetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *nu
  */
 
 void
-XawPanedSetMinMax(Widget widget, int min, int max)
+IswPanedSetMinMax(Widget widget, int min, int max)
 {
     Pane pane = PaneInfo(widget);
 
@@ -1828,7 +1828,7 @@ XawPanedSetMinMax(Widget widget, int min, int max)
     RefigureLocationsAndCommit( widget->core.parent );
 }
 
-/*	Function Name: XawPanedGetMinMax
+/*	Function Name: IswPanedGetMinMax
  *	Description: Gets the min and max size for a pane.
  *	Arguments: widget - the widget that is a child of the Paned widget.
  ** RETURNED **    min, max - the current min and max size for the pane.
@@ -1836,7 +1836,7 @@ XawPanedSetMinMax(Widget widget, int min, int max)
  */
 
 void
-XawPanedGetMinMax(Widget widget, int *min, int *max)
+IswPanedGetMinMax(Widget widget, int *min, int *max)
 {
     Pane pane = PaneInfo(widget);
 
@@ -1844,7 +1844,7 @@ XawPanedGetMinMax(Widget widget, int *min, int *max)
     *max = pane->max;
 }
 
-/*	Function Name: XawPanedSetRefigureMode
+/*	Function Name: IswPanedSetRefigureMode
  *	Description: Allows a flag to be set the will inhibit
  *                   the paned widgets relayout routine.
  *	Arguments: w - the paned widget.
@@ -1853,7 +1853,7 @@ XawPanedGetMinMax(Widget widget, int *min, int *max)
  */
 
 void
-XawPanedSetRefigureMode(Widget w,
+IswPanedSetRefigureMode(Widget w,
 #if NeedWidePrototypes
 			int mode)
 #else
@@ -1864,19 +1864,19 @@ XawPanedSetRefigureMode(Widget w,
     RefigureLocationsAndCommit( w );
 }
 
-/*	Function Name: XawPanedGetNumSub
+/*	Function Name: IswPanedGetNumSub
  *	Description: Returns the number of panes in the paned widget.
  *	Arguments: w - the paned widget.
  *	Returns: the number of panes in the paned widget.
  */
 
 int
-XawPanedGetNumSub(Widget w)
+IswPanedGetNumSub(Widget w)
 {
     return ((PanedWidget)w)->paned.num_panes;
 }
 
-/*	Function Name: XawPanedAllowResize
+/*	Function Name: IswPanedAllowResize
  *	Description: Allows a flag to be set that determines if the paned
  *                   widget will allow geometry requests from this child
  *	Arguments: widget - a child of the paned widget.
@@ -1884,7 +1884,7 @@ XawPanedGetNumSub(Widget w)
  */
 
 void
-XawPanedAllowResize(Widget widget,
+IswPanedAllowResize(Widget widget,
 #if NeedWidePrototypes
 		    int allow_resize)
 #else

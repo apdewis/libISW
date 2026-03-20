@@ -71,8 +71,8 @@ static int magic_value = MAGIC_VALUE;
 static XtResource resources[] = {
     {XtNstring, XtCString, XtRString, sizeof (char *),
        offset(string), XtRString, NULL},
-    {XtNtype, XtCType, XtRAsciiType, sizeof (XawAsciiType),
-       offset(type), XtRImmediate, (XtPointer)XawAsciiString},
+    {XtNtype, XtCType, XtRAsciiType, sizeof (IswAsciiType),
+       offset(type), XtRImmediate, (XtPointer)IswAsciiString},
     {XtNdataCompression, XtCDataCompression, XtRBoolean, sizeof (Boolean),
        offset(data_compression), XtRImmediate, (XtPointer) TRUE},
     {XtNpieceSize, XtCPieceSize, XtRInt, sizeof (ISWTextPosition),
@@ -91,9 +91,9 @@ static XtResource resources[] = {
 };
 #undef offset
 
-static ISWTextPosition Scan(Widget, ISWTextPosition, XawTextScanType,
-                            XawTextScanDirection, int, Boolean);
-static ISWTextPosition Search(Widget, ISWTextPosition, XawTextScanDirection,
+static ISWTextPosition Scan(Widget, ISWTextPosition, IswTextScanType,
+                            IswTextScanDirection, int, Boolean);
+static ISWTextPosition Search(Widget, ISWTextPosition, IswTextScanDirection,
                               ISWTextBlock *);
 static ISWTextPosition ReadText(Widget, ISWTextPosition, ISWTextBlock *, int);
 static int ReplaceText(Widget, ISWTextPosition, ISWTextPosition, ISWTextBlock *);
@@ -195,7 +195,7 @@ WidgetClass asciiSrcObjectClass = (WidgetClass)&asciiSrcClassRec;
 static void
 ClassInitialize(void)
 {
-  XawInitializeWidgetSet();
+  IswInitializeWidgetSet();
   XtAddConverter( XtRString, XtRAsciiType, CvtStringToAsciiType,
 		 NULL, (Cardinal) 0);
 }
@@ -219,11 +219,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  * Set correct flags (override resources) depending upon widget class.
  */
 
-  src->text_src.text_format = XawFmt8Bit;	/* data format. */
+  src->text_src.text_format = IswFmt8Bit;	/* data format. */
 
 #ifdef ASCII_DISK
   if (XtIsSubclass(XtParent(new), asciiDiskWidgetClass)) {
-    src->ascii_src.type = XawAsciiFile;
+    src->ascii_src.type = IswAsciiFile;
     src->ascii_src.string = src->ascii_src.filename;
   }
 #endif
@@ -231,14 +231,14 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 #ifdef ASCII_STRING
   if (XtIsSubclass(XtParent(new), asciiStringWidgetClass)) {
     src->ascii_src.use_string_in_place = TRUE;
-    src->ascii_src.type = XawAsciiString;
+    src->ascii_src.type = IswAsciiString;
   }
 #endif
 
   src->ascii_src.changes = FALSE;
   src->ascii_src.allocated_string = FALSE;
 
-  file = InitStringOrFile(src, src->ascii_src.type == XawAsciiFile);
+  file = InitStringOrFile(src, src->ascii_src.type == IswAsciiFile);
   LoadPieces(src, file, NULL);
 
   if (file != NULL) fclose(file);
@@ -272,7 +272,7 @@ ReadText(Widget w, ISWTextPosition pos, ISWTextBlock *text, int length)
  *	Arguments: w - the AsciiSource widget.
  *                 startPos, endPos - ends of text that will be removed.
  *                 text - new text to be inserted into buffer at startPos.
- *	Returns: XawEditError or XawEditDone.
+ *	Returns: IswEditError or IswEditDone.
  */
 
 /*ARGSUSED*/
@@ -289,8 +289,8 @@ ReplaceText (Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
  * Editing a read only source is not allowed.
  */
 
-  if (src->text_src.edit_mode == XawtextRead)
-    return(XawEditError);
+  if (src->text_src.edit_mode == IswtextRead)
+    return(IswEditError);
 
   start_piece = FindPiece(src, startPos, &start_first);
   end_piece = FindPiece(src, endPos, &end_first);
@@ -363,7 +363,7 @@ ReplaceText (Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
 	  start_piece->used = src->ascii_src.length =
 	                                         src->ascii_src.piece_size - 1;
 	  start_piece->text[src->ascii_src.length] = '\0';
-	  return(XawEditError);
+	  return(IswEditError);
 	}
       }
 
@@ -373,7 +373,7 @@ ReplaceText (Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
 	start_piece = FindPiece(src, startPos, &start_first);
       }
 
-      fill = XawMin((int)(src->ascii_src.piece_size - start_piece->used), length);
+      fill = IswMin((int)(src->ascii_src.piece_size - start_piece->used), length);
 
       ptr = start_piece->text + (startPos - start_first);
       MyStrncpy(ptr + fill, ptr,
@@ -393,7 +393,7 @@ ReplaceText (Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
   XtCallCallbacks(w, XtNcallback, NULL); /* Call callbacks, we have changed
 					    the buffer. */
 
-  return(XawEditDone);
+  return(IswEditDone);
 }
 
 /*	Function Name: Scan
@@ -415,8 +415,8 @@ ReplaceText (Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
 
 static
 ISWTextPosition
-Scan (Widget w, ISWTextPosition position, XawTextScanType type,
-      XawTextScanDirection dir, int count, Boolean include)
+Scan (Widget w, ISWTextPosition position, IswTextScanType type,
+      IswTextScanDirection dir, int count, Boolean include)
 {
   AsciiSrcObject src = (AsciiSrcObject) w;
   int inc;
@@ -424,8 +424,8 @@ Scan (Widget w, ISWTextPosition position, XawTextScanType type,
   ISWTextPosition first, first_eol_position = 0;
   char* ptr;
 
-  if (type == XawstAll) {	/* Optomize this common case. */
-    if (dir == XawsdRight)
+  if (type == IswstAll) {	/* Optomize this common case. */
+    if (dir == IswsdRight)
       return(src->ascii_src.length);
     return(0);			/* else. */
   }
@@ -433,7 +433,7 @@ Scan (Widget w, ISWTextPosition position, XawTextScanType type,
   if (position > src->ascii_src.length)
     position = src->ascii_src.length;
 
-  if ( dir == XawsdRight ) {
+  if ( dir == IswsdRight ) {
     if (position == src->ascii_src.length)
 /*
  * Scanning right from src->ascii_src.length???
@@ -459,9 +459,9 @@ Scan (Widget w, ISWTextPosition position, XawTextScanType type,
   ptr = (position - first) + piece->text;
 
   switch (type) {
-  case XawstEOL:
-  case XawstParagraph:
-  case XawstWhiteSpace:
+  case IswstEOL:
+  case IswstParagraph:
+  case IswstWhiteSpace:
     for ( ; count > 0 ; count-- ) {
       Boolean non_space = FALSE, first_eol = TRUE;
       /* CONSTCOND */
@@ -471,7 +471,7 @@ Scan (Widget w, ISWTextPosition position, XawTextScanType type,
 	ptr += inc;
 	position += inc;
 
-	if (type == XawstWhiteSpace) {
+	if (type == IswstWhiteSpace) {
 	  if (isspace(c)) {
 	    if (non_space)
 	      break;
@@ -479,10 +479,10 @@ Scan (Widget w, ISWTextPosition position, XawTextScanType type,
 	  else
 	    non_space = TRUE;
 	}
-	else if (type == XawstEOL) {
+	else if (type == IswstEOL) {
 	  if (c == '\n') break;
 	}
-	else { /* XawstParagraph */
+	else { /* IswstParagraph */
 	  if (first_eol) {
 	    if (c == '\n') {
 	      first_eol_position = position;
@@ -512,20 +512,20 @@ Scan (Widget w, ISWTextPosition position, XawTextScanType type,
       }
     }
     if (!include) {
-      if ( type == XawstParagraph)
+      if ( type == IswstParagraph)
 	position = first_eol_position;
       position -= inc;
     }
     break;
-  case XawstPositions:
+  case IswstPositions:
     position += count * inc;
     break;
-  case XawstAll:		/* handled in special code above */
+  case IswstAll:		/* handled in special code above */
   default:
     break;
   }
 
-  if ( dir == XawsdLeft )
+  if ( dir == IswsdLeft )
     position++;
 
   if (position >= src->ascii_src.length)
@@ -546,7 +546,7 @@ Scan (Widget w, ISWTextPosition position, XawTextScanType type,
  */
 
 static ISWTextPosition
-Search(Widget w, ISWTextPosition position, XawTextScanDirection dir,
+Search(Widget w, ISWTextPosition position, IswTextScanDirection dir,
        ISWTextBlock *text)
 {
   AsciiSrcObject src = (AsciiSrcObject) w;
@@ -556,12 +556,12 @@ Search(Widget w, ISWTextPosition position, XawTextScanDirection dir,
   char * buf;
   ISWTextPosition first;
 
-  if ( dir == XawsdRight )
+  if ( dir == IswsdRight )
     inc = 1;
   else {
     inc = -1;
     if (position == 0)
-      return(XawTextSearchError);	/* scanning left from 0??? */
+      return(IswTextSearchError);	/* scanning left from 0??? */
     position--;
   }
 
@@ -572,7 +572,7 @@ Search(Widget w, ISWTextPosition position, XawTextScanDirection dir,
 
   /* CONSTCOND */
   while (TRUE) {
-    if (*ptr == ((dir == XawsdRight) ? *(buf + count)
+    if (*ptr == ((dir == IswsdRight) ? *(buf + count)
 		                     : *(buf + text->length - count - 1)) ) {
       if (count == (text->length - 1))
 	break;
@@ -594,7 +594,7 @@ Search(Widget w, ISWTextPosition position, XawTextScanDirection dir,
       piece = piece->prev;
       if (piece == NULL) {	/* Begining of text. */
 	XtFree(buf);
-	return(XawTextSearchError);
+	return(IswTextSearchError);
       }
       ptr = piece->text + piece->used - 1;
     }
@@ -603,14 +603,14 @@ Search(Widget w, ISWTextPosition position, XawTextScanDirection dir,
       piece = piece->next;
       if (piece == NULL) {	/* End of text. */
 	XtFree(buf);
-	return(XawTextSearchError);
+	return(IswTextSearchError);
       }
       ptr = piece->text;
     }
   }
 
   XtFree(buf);
-  if (dir == XawsdLeft)
+  if (dir == IswsdLeft)
     return(position);
   return(position - (text->length - 1));
 }
@@ -653,7 +653,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args,
     file = InitStringOrFile(src, string_set);	/* Init new info. */
     LoadPieces(src, file, NULL);    /* load new info into internal buffers. */
     if (file != NULL) fclose(file);
-    XawTextSetSource( XtParent(new), new, 0);   /* Tell text widget
+    IswTextSetSource( XtParent(new), new, 0);   /* Tell text widget
 						   what happened. */
     total_reset = TRUE;
   }
@@ -687,14 +687,14 @@ GetValuesHook(Widget w, ArgList args, Cardinal * num_args)
   AsciiSrcObject src = (AsciiSrcObject) w;
   int i;
 
-  if (src->ascii_src.type == XawAsciiString) {
+  if (src->ascii_src.type == IswAsciiString) {
     for (i = 0; i < *num_args ; i++ )
       if (streq(args[i].name, XtNstring)) {
 	  if (src->ascii_src.use_string_in_place) {
 	      *((char **) args[i].value) = src->ascii_src.first_piece->text;
 	  }
 	  else {
-	      if (XawAsciiSave(w))	/* If save sucessful. */
+	      if (IswAsciiSave(w))	/* If save sucessful. */
 		  *((char **) args[i].value) = src->ascii_src.string;
 	  }
 	break;
@@ -720,7 +720,7 @@ Destroy (Widget w)
  *
  ************************************************************/
 
-/*	Function Name: XawAsciiSourceFreeString
+/*	Function Name: IswAsciiSourceFreeString
  *	Description: Frees the string returned by a get values call
  *                   on the string when the source is of type string.
  *	Arguments: w - the AsciiSrc widget.
@@ -728,7 +728,7 @@ Destroy (Widget w)
  */
 
 void
-XawAsciiSourceFreeString(Widget w)
+IswAsciiSourceFreeString(Widget w)
 {
   AsciiSrcObject src = (AsciiSrcObject) w;
 
@@ -742,30 +742,30 @@ XawAsciiSourceFreeString(Widget w)
   else
 #endif
   if ( !XtIsSubclass( w, asciiSrcObjectClass ) ) {
-      XtErrorMsg("bad argument", "asciiSource", "XawError",
+      XtErrorMsg("bad argument", "asciiSource", "IswError",
 #ifdef ISW_INTERNATIONALIZATION
-            "XawAsciiSourceFreeString's parameter must be an asciiSrc or multiSrc.",
+            "IswAsciiSourceFreeString's parameter must be an asciiSrc or multiSrc.",
 #else
-            "XawAsciiSourceFreeString's parameter must be an asciiSrc.",
+            "IswAsciiSourceFreeString's parameter must be an asciiSrc.",
 #endif
 	     NULL, NULL);
   }
 
-  if (src->ascii_src.allocated_string && src->ascii_src.type != XawAsciiFile) {
+  if (src->ascii_src.allocated_string && src->ascii_src.type != IswAsciiFile) {
     src->ascii_src.allocated_string = FALSE;
     XtFree(src->ascii_src.string);
     src->ascii_src.string = NULL;
   }
 }
 
-/*	Function Name: XawAsciiSave
+/*	Function Name: IswAsciiSave
  *	Description: Saves all the pieces into a file or string as required.
  *	Arguments: w - the asciiSrc Widget.
  *	Returns: TRUE if the save was successful.
  */
 
 Boolean
-XawAsciiSave(Widget w)
+IswAsciiSave(Widget w)
 {
   AsciiSrcObject src = (AsciiSrcObject) w;
 
@@ -777,11 +777,11 @@ XawAsciiSave(Widget w)
   else
 #endif
   if ( !XtIsSubclass( w, asciiSrcObjectClass ) ) {
-      	XtErrorMsg("bad argument", "asciiSource", "XawError",
+      	XtErrorMsg("bad argument", "asciiSource", "IswError",
 #ifdef ISW_INTERNATIONALIZATION
-		"XawAsciiSave's parameter must be an asciiSrc or multiSrc.",
+		"IswAsciiSave's parameter must be an asciiSrc or multiSrc.",
 #else
-		"XawAsciiSave's parameter must be an asciiSrc.",
+		"IswAsciiSave's parameter must be an asciiSrc.",
 #endif
 		   NULL, NULL);
   }
@@ -794,7 +794,7 @@ XawAsciiSave(Widget w)
   if (src->ascii_src.use_string_in_place)
     return(TRUE);
 
-  if (src->ascii_src.type == XawAsciiFile) {
+  if (src->ascii_src.type == IswAsciiFile) {
     char * string;
 
     if (!src->ascii_src.changes) 		/* No changes to save. */
@@ -820,7 +820,7 @@ XawAsciiSave(Widget w)
   return(TRUE);
 }
 
-/*	Function Name: XawAsciiSaveAsFile
+/*	Function Name: IswAsciiSaveAsFile
  *	Description: Save the current buffer as a file.
  *	Arguments: w - the AsciiSrc widget.
  *                 name - name of the file to save this file into.
@@ -828,7 +828,7 @@ XawAsciiSave(Widget w)
  */
 
 Boolean
-XawAsciiSaveAsFile(Widget w, _Xconst char* name)
+IswAsciiSaveAsFile(Widget w, _Xconst char* name)
 {
   AsciiSrcObject src = (AsciiSrcObject) w;
   String string;
@@ -842,11 +842,11 @@ XawAsciiSaveAsFile(Widget w, _Xconst char* name)
   else
 #endif
   if ( !XtIsSubclass( w, asciiSrcObjectClass ) ) {
-      	XtErrorMsg("bad argument", "asciiSource", "XawError",
+      	XtErrorMsg("bad argument", "asciiSource", "IswError",
 #ifdef ISW_INTERNATIONALIZATION
-		"XawAsciiSaveAsFile's 1st parameter must be an asciiSrc or multiSrc.",
+		"IswAsciiSaveAsFile's 1st parameter must be an asciiSrc or multiSrc.",
 #else
-		"XawAsciiSaveAsFile's 1st parameter must be an asciiSrc.",
+		"IswAsciiSaveAsFile's 1st parameter must be an asciiSrc.",
 #endif
 		   NULL, NULL);
   }
@@ -858,14 +858,14 @@ XawAsciiSaveAsFile(Widget w, _Xconst char* name)
   return(ret);
 }
 
-/*	Function Name: XawAsciiSourceChanged
+/*	Function Name: IswAsciiSourceChanged
  *	Description: Returns true if the source has changed since last saved.
  *	Arguments: w - the ascii source widget.
  *	Returns: a Boolean (see description).
  */
 
 Boolean
-XawAsciiSourceChanged(Widget w)
+IswAsciiSourceChanged(Widget w)
 {
 #ifdef ISW_INTERNATIONALIZATION
   if ( XtIsSubclass( w, multiSrcObjectClass ) )
@@ -875,11 +875,11 @@ XawAsciiSourceChanged(Widget w)
   if ( XtIsSubclass( w, asciiSrcObjectClass ) )
       return( ( (AsciiSrcObject) w)->ascii_src.changes );
 
-  XtErrorMsg("bad argument", "asciiSource", "XawError",
+  XtErrorMsg("bad argument", "asciiSource", "IswError",
 #ifdef ISW_INTERNATIONALIZATION
-		"XawAsciiSourceChanged parameter must be an asciiSrc or multiSrc.",
+		"IswAsciiSourceChanged parameter must be an asciiSrc or multiSrc.",
 #else
-		"XawAsciiSourceChanged parameter must be an asciiSrc.",
+		"IswAsciiSourceChanged parameter must be an asciiSrc.",
 #endif
 		   NULL, NULL);
 
@@ -974,7 +974,7 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
     FILE * file;
     char fileName[TMPSIZ];
 
-    if (src->ascii_src.type == XawAsciiString) {
+    if (src->ascii_src.type == IswAsciiString) {
 
 	if (src->ascii_src.string == NULL)
 	    src->ascii_src.length = 0;
@@ -1001,21 +1001,21 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
     }
 
 /*
- * type is XawAsciiFile.
+ * type is IswAsciiFile.
  */
 
     src->ascii_src.is_tempfile = FALSE;
 
     switch (src->text_src.edit_mode) {
-    case XawtextRead:
+    case IswtextRead:
 	if (src->ascii_src.string == NULL)
-	    XtErrorMsg("NoFile", "asciiSourceCreate", "XawError",
+	    XtErrorMsg("NoFile", "asciiSourceCreate", "IswError",
 		     "Creating a read only disk widget and no file specified.",
 		       NULL, 0);
 	open_mode = "r";
 	break;
-    case XawtextAppend:
-    case XawtextEdit:
+    case IswtextAppend:
+    case IswtextEdit:
 	if (src->ascii_src.string == NULL) {
 	    src->ascii_src.string = fileName;
 	    (void) tmpnam(src->ascii_src.string);
@@ -1025,7 +1025,7 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
 	    open_mode = "r+";
 	break;
     default:
-	XtErrorMsg("badMode", "asciiSourceCreate", "XawError",
+	XtErrorMsg("badMode", "asciiSourceCreate", "IswError",
 		"Bad editMode for ascii source; must be Read, Append or Edit.",
 		   NULL, NULL);
     }
@@ -1052,7 +1052,7 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
 	    params[0] = src->ascii_src.string;
 	    params[1] = strerror(errno);
 	    XtAppWarningMsg(XtWidgetToApplicationContext((Widget)src),
-			    "openError", "asciiSourceCreate", "XawWarning",
+			    "openError", "asciiSourceCreate", "IswWarning",
 			    "Cannot open file %s; %s", params, &num_params);
 	}
     }
@@ -1068,7 +1068,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
   ISWTextPosition left;
 
   if (string == NULL) {
-    if (src->ascii_src.type == XawAsciiFile) {
+    if (src->ascii_src.type == IswAsciiFile) {
       local_str = XtMalloc((unsigned) (src->ascii_src.length + 1)
 			   * sizeof(unsigned char));
       if (src->ascii_src.length != 0) {
@@ -1076,7 +1076,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
 	src->ascii_src.length = fread(local_str, (Size_t)sizeof(unsigned char),
 				      (Size_t)src->ascii_src.length, file);
 	if (src->ascii_src.length <= 0)
-	  XtErrorMsg("readError", "asciiSourceCreate", "XawError",
+	  XtErrorMsg("readError", "asciiSourceCreate", "IswError",
 		     "fread returned error.", NULL, NULL);
       }
       local_str[src->ascii_src.length] = '\0';
@@ -1089,7 +1089,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
 
   if (src->ascii_src.use_string_in_place) {
     piece = AllocNewPiece(src, piece);
-    piece->used = XawMin(src->ascii_src.length, src->ascii_src.piece_size);
+    piece->used = IswMin(src->ascii_src.length, src->ascii_src.piece_size);
     piece->text = src->ascii_src.string;
     return;
   }
@@ -1102,7 +1102,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
 
     piece->text = XtMalloc((unsigned)src->ascii_src.piece_size
 			   * sizeof(unsigned char));
-    piece->used = XawMin(left, src->ascii_src.piece_size);
+    piece->used = IswMin(left, src->ascii_src.piece_size);
     if (piece->used != 0)
       strncpy(piece->text, ptr, piece->used);
 
@@ -1110,7 +1110,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
     ptr += piece->used;
   } while (left > 0);
 
-  if ( (src->ascii_src.type == XawAsciiFile) && (string == NULL) )
+  if ( (src->ascii_src.type == IswAsciiFile) && (string == NULL) )
     XtFree(local_str);
 }
 
@@ -1154,7 +1154,7 @@ FreeAllPieces(AsciiSrcObject src)
   Piece * next, * first = src->ascii_src.first_piece;
 
   if (first->prev != NULL)
-    (void) printf("Xaw AsciiSrc Object: possible memory leak in FreeAllPieces().\n");
+    (void) printf("Isw AsciiSrc Object: possible memory leak in FreeAllPieces().\n");
 
   for ( ; first != NULL ; first = next ) {
     next = first->next;
@@ -1262,7 +1262,7 @@ static void
 CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
                      XrmValuePtr toVal)
 {
-  static XawAsciiType type;
+  static IswAsciiType type;
   static XrmQuark  XtQEstring = NULLQUARK;
   static XrmQuark  XtQEfile;
   XrmQuark q;
@@ -1277,8 +1277,8 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
     ISWCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
-    if (q == XtQEstring)     type = XawAsciiString;
-    else if (q == XtQEfile)  type = XawAsciiFile;
+    if (q == XtQEstring)     type = IswAsciiString;
+    else if (q == XtQEfile)  type = IswAsciiFile;
     else {
       toVal->size = 0;
       toVal->addr = NULL;
@@ -1311,13 +1311,13 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
  */
 
 Widget
-XawStringSourceCreate(Widget parent, ArgList args, Cardinal num_args)
+IswStringSourceCreate(Widget parent, ArgList args, Cardinal num_args)
 {
-  XawTextSource src;
+  IswTextSource src;
   ArgList ascii_args;
   Arg temp[2];
 
-  XtSetArg(temp[0], XtNtype, XawAsciiString);
+  XtSetArg(temp[0], XtNtype, IswAsciiString);
   XtSetArg(temp[1], XtNuseStringInPlace, TRUE);
   ascii_args = XtMergeArgLists(temp, TWO, args, num_args);
 
@@ -1335,9 +1335,9 @@ XawStringSourceCreate(Widget parent, ArgList args, Cardinal num_args)
  */
 
 void
-XawTextSetLastPos (Widget w, ISWTextPosition lastPos)
+IswTextSetLastPos (Widget w, ISWTextPosition lastPos)
 {
-  AsciiSrcObject src = (AsciiSrcObject) XawTextGetSource(w);
+  AsciiSrcObject src = (AsciiSrcObject) IswTextGetSource(w);
 
   src->ascii_src.piece_size = lastPos;
 }
@@ -1352,14 +1352,14 @@ XawTextSetLastPos (Widget w, ISWTextPosition lastPos)
  */
 
 Widget
-XawDiskSourceCreate(Widget parent, ArgList args, Cardinal num_args)
+IswDiskSourceCreate(Widget parent, ArgList args, Cardinal num_args)
 {
-  XawTextSource src;
+  IswTextSource src;
   ArgList ascii_args;
   Arg temp[1];
   int i;
 
-  XtSetArg(temp[0], XtNtype, XawAsciiFile);
+  XtSetArg(temp[0], XtNtype, IswAsciiFile);
   ascii_args = XtMergeArgLists(temp, ONE, args, num_args);
   num_args++;
 

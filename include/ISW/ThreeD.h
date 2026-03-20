@@ -23,8 +23,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawThreeD_h
-#define _ISW_XawThreeD_h
+#ifndef _ISW_IswThreeD_h
+#define _ISW_IswThreeD_h
 
 /***********************************************************************
  *
@@ -82,12 +82,12 @@ extern WidgetClass threeDWidgetClass;
 
 _XFUNCPROTOBEGIN
 
-extern void Xaw3dComputeTopShadowRGB (
+extern void Isw3dComputeTopShadowRGB (
     Widget 		/* new */,
     XColor*		/* xcol_out */
 );
 
-extern void Xaw3dComputeBottomShadowRGB (
+extern void Isw3dComputeBottomShadowRGB (
     Widget		/* new */,
     XColor*		/* xcol_out */
 );
@@ -105,4 +105,4 @@ extern void _ShadowSurroundedBox (
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawThreeD_h */
+#endif /* _ISW_IswThreeD_h */

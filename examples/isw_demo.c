@@ -1,7 +1,7 @@
 /*
- * xaw3d_demo.c - Comprehensive Xaw3d Widget Demonstration
+ * xaw3d_demo.c - Comprehensive Isw3d Widget Demonstration
  *
- * This program demonstrates all major Xaw3d widgets working with
+ * This program demonstrates all major Isw3d widgets working with
  * the XCB-ported library and modified libXt.
  *
  * Compile: See Makefile
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
     srand((unsigned int)time(NULL));
     
     /* Initialize X Toolkit with XCB backend */
-    toplevel = XtAppInitialize(&app_context, "Xaw3dDemo",
+    toplevel = XtAppInitialize(&app_context, "Isw3dDemo",
                                NULL, 0,
                                &argc, argv,
                                NULL, NULL, 0);
@@ -123,13 +123,13 @@ int main(int argc, char *argv[]) {
     n = 0;
     XtSetArg(args[n], XtNwidth, 850); n++;
     XtSetArg(args[n], XtNheight, 700); n++;
-    XtSetArg(args[n], XtNtitle, "Xaw3d Widget Demonstration"); n++;
+    XtSetArg(args[n], XtNtitle, "Isw3d Widget Demonstration"); n++;
     XtSetValues(toplevel, args, n);
     
     /* Create main widget structure */
     main_widget = create_main_window(toplevel);
     
-    printf("Xaw3d Widget Demo starting...\n");
+    printf("Isw3d Widget Demo starting...\n");
     printf("This demo showcases widgets with XCB backend\n");
     printf("---------------------------------------------\n\n");
     
@@ -175,7 +175,7 @@ Widget create_title_label(Widget parent) {
     Cardinal n;
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "=== Xaw3d Widget Demonstration (XCB Backend) ==="); n++;
+    XtSetArg(args[n], XtNlabel, "=== Isw3d Widget Demonstration (XCB Backend) ==="); n++;
     XtSetArg(args[n], XtNjustify, XtJustifyCenter); n++;
     XtSetArg(args[n], XtNwidth, 830); n++;
     XtSetArg(args[n], XtNheight, 35); n++;
@@ -707,10 +707,10 @@ Widget create_text_demo(Widget parent) {
     
     /* Editable text widget with scrollbars */
     n = 0;
-    XtSetArg(args[n], XtNeditType, XawtextEdit); n++;
+    XtSetArg(args[n], XtNeditType, IswtextEdit); n++;
     XtSetArg(args[n], XtNwidth, 450); n++;
     XtSetArg(args[n], XtNheight, 120); n++;
-    XtSetArg(args[n], XtNscrollVertical, XawtextScrollAlways); n++;
+    XtSetArg(args[n], XtNscrollVertical, IswtextScrollAlways); n++;
     XtSetArg(args[n], XtNstring,
              "This is an editable text widget with scrollbars.\n"
              "Line 2: You can type, edit, and select text here.\n"
@@ -869,8 +869,8 @@ Widget create_dialog_demo(Widget parent) {
     dialog = XtCreateManagedWidget("dialog", dialogWidgetClass, box, args, n);
     
     /* Add buttons */
-    XawDialogAddButton(dialog, "OK", dialog_ok_callback, (XtPointer)dialog);
-    XawDialogAddButton(dialog, "Cancel", NULL, NULL);
+    IswDialogAddButton(dialog, "OK", dialog_ok_callback, (XtPointer)dialog);
+    IswDialogAddButton(dialog, "Cancel", NULL, NULL);
     
     return box;
 }
@@ -901,7 +901,7 @@ void menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 }
 
 void list_callback(Widget w, XtPointer client_data, XtPointer call_data) {
-    XawListReturnStruct *item = (XawListReturnStruct *)call_data;
+    IswListReturnStruct *item = (IswListReturnStruct *)call_data;
     printf("List item selected: %s (index %d)\n", 
            item->string, item->list_index);
 }
@@ -940,7 +940,7 @@ void update_stripchart(XtPointer client_data, XtIntervalId *id) {
     if (chart_value > 100.0) chart_value = 100.0;
     
     /* Update chart */
-    /* Note: XawStripChartSetValue may not be available in all versions,
+    /* Note: IswStripChartSetValue may not be available in all versions,
      * so this is a placeholder for the update mechanism */
     
     /* Re-schedule for next update */

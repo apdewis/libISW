@@ -65,8 +65,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _ISW_XawAsciiSrcP_h
-#define _ISW_XawAsciiSrcP_h
+#ifndef _ISW_IswAsciiSrcP_h
+#define _ISW_IswAsciiSrcP_h
 
 #include <ISW/TextSrcP.h>
 #include <ISW/AsciiSrc.h>
@@ -120,7 +120,7 @@ typedef struct _AsciiSrcPart {
 
   char       *string;		/* either the string, or the
 				   file name, depending upon the type. */
-  XawAsciiType type;		/* either string or disk. */
+  IswAsciiType type;		/* either string or disk. */
   ISWTextPosition piece_size;	/* Size of text buffer for each piece. */
   Boolean data_compression;	/* compress to minimum memory automatically
 				   on save? */
@@ -155,4 +155,4 @@ typedef struct _AsciiSrcRec {
   AsciiSrcPart	ascii_src;
 } AsciiSrcRec;
 
-#endif /* _ISW_XawAsciiSrcP_h */
+#endif /* _ISW_IswAsciiSrcP_h */

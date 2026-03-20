@@ -217,8 +217,8 @@ ScrollbarClassRec scrollbarClassRec = {
     /* change_sensitive	*/	XtInheritChangeSensitive
   },
   { /* threeD fields */
-    /* shadowdraw	*/	XtInheritXaw3dShadowDraw /*,*/
-    /* shadowboxdraw	*/	/*XtInheritXaw3dShadowBoxDraw*/
+    /* shadowdraw	*/	XtInheritIsw3dShadowDraw /*,*/
+    /* shadowboxdraw	*/	/*XtInheritIsw3dShadowBoxDraw*/
   },
   { /* scrollbar fields */
     /* ignore		*/	0
@@ -237,7 +237,7 @@ WidgetClass scrollbarWidgetClass = (WidgetClass)&scrollbarClassRec;
 static void
 ClassInitialize(void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     XtSetTypeConverter( XtRString, XtROrientation, ISWCvtStringToOrientation,
 		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
@@ -250,7 +250,7 @@ ClassInitialize(void)
 #endif
 
 /*
- The original Xaw Scrollbar's FillArea *really* relied on the fact that the
+ The original Isw Scrollbar's FillArea *really* relied on the fact that the
  server was going to clip at the window boundaries; so the logic was really
  rather sloppy.  To avoid drawing over the shadows and the arrows requires
  some extra care...  Hope I didn't make any mistakes.
@@ -492,7 +492,7 @@ CreateGC (Widget w)
     unsigned int depth = 1;
 
     if (sbw->scrollbar.thumb == XtUnspecifiedPixmap) {
-        sbw->scrollbar.thumb = XawCreateStippledPixmap (XtDisplay(w), XtWindow(w),
+        sbw->scrollbar.thumb = IswCreateStippledPixmap (XtDisplay(w), XtWindow(w),
     	(Pixel) 1, (Pixel) 0, depth);
     } else if (sbw->scrollbar.thumb != None) {
 	xcb_connection_t *conn = XtDisplay(w);

@@ -8,8 +8,8 @@
  */
 
 #include "ISWXcbDraw.h"
-#include "../include/ISW/ISWXftCompat.h"  /* For ISWFontSet definition */
-#include "../include/ISW/Form.h"  /* For IswEdgeType definition */
+#include "../include/X11/Isw3d/IswXftCompat.h"  /* For ISWFontSet definition */
+#include "../include/X11/Isw3d/Form.h"  /* For IswEdgeType definition */
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

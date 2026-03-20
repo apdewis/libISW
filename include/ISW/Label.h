@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawLabel_h
-#define _ISW_XawLabel_h
+#ifndef _ISW_IswLabel_h
+#define _ISW_IswLabel_h
 
 /***********************************************************************
  *
@@ -69,7 +69,7 @@ SOFTWARE.
  cursor		     Cursor		Cursor		None
  cursorName	     Cursor		String		NULL
  destroyCallback     Callback		XtCallbackList	NULL
- encoding	     Encoding		unsigned char	XawTextEncoding8bit
+ encoding	     Encoding		unsigned char	IswTextEncoding8bit
  font		     Font		XFontStruct*	XtDefaultFont
  foreground	     Foreground		Pixel		XtDefaultForeground
  height		     Height		Dimension	text height
@@ -90,8 +90,8 @@ SOFTWARE.
 
 */
 
-#define XawTextEncoding8bit	0
-#define XawTextEncodingChar2b	1
+#define IswTextEncoding8bit	0
+#define IswTextEncodingChar2b	1
 
 #define XtNleftBitmap "leftBitmap"
 #define XtCLeftBitmap "LeftBitmap"
@@ -126,4 +126,4 @@ extern WidgetClass labelWidgetClass;
 typedef struct _LabelClassRec *LabelWidgetClass;
 typedef struct _LabelRec      *LabelWidget;
 
-#endif /* _ISW_XawLabel_h */
+#endif /* _ISW_IswLabel_h */

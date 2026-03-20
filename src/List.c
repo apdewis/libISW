@@ -141,7 +141,7 @@ ListClassRec listClassRec = {
     /* superclass	  	*/	(WidgetClass) &simpleClassRec,
     /* class_name	  	*/	"List",
     /* widget_size	  	*/	sizeof(ListRec),
-    /* class_initialize   	*/	XawInitializeWidgetSet,
+    /* class_initialize   	*/	IswInitializeWidgetSet,
     /* class_part_initialize	*/	NULL,
     /* class_inited       	*/	FALSE,
     /* initialize	  	*/	Initialize,
@@ -221,7 +221,7 @@ GetGCs(Widget w)
 #endif
         lw->list.revgc = XtGetGC( w, gc_mask, &values);
 
-    values.tile       = XawCreateStippledPixmap(XtDisplay(w), XtWindow(w),
+    values.tile       = IswCreateStippledPixmap(XtDisplay(w), XtWindow(w),
     		lw->list.foreground,
     		lw->core.background_pixel,
     		lw->core.depth);
@@ -688,7 +688,7 @@ PaintItemName(Widget w, int item)
 
 #ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
-        XawDrawString( XtDisplay( w ), XtWindow( w ), lw->list.fontset,
+        IswDrawString( XtDisplay( w ), XtWindow( w ), lw->list.fontset,
 		  gc, x, str_y, str, strlen( str ) );
     else
 #endif
@@ -913,7 +913,7 @@ Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
     ListWidget lw = ( ListWidget ) w;
     int item, item_len;
-    XawListReturnStruct ret_value;
+    IswListReturnStruct ret_value;
     /* XCB: Cast to xcb_button_press_event_t */
     xcb_button_press_event_t *be = (xcb_button_press_event_t *)event;
 
@@ -926,7 +926,7 @@ Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
     if ( ((CvtToItem(w, be->event_x, be->event_y, &item))
 	  == OUT_OF_RANGE) || (lw->list.highlight != item) ) {
-        XawListUnhighlight(w);
+        IswListUnhighlight(w);
         return;
     }
 
@@ -959,7 +959,7 @@ Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
 static void
 Unset(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
-  XawListUnhighlight(w);
+  IswListUnhighlight(w);
 }
 
 
@@ -978,9 +978,9 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
   if ( (CvtToItem(w, be->event_x, be->event_y, &item))
       == OUT_OF_RANGE)
-    XawListUnhighlight(w);		        /* Unhighlight current item. */
+    IswListUnhighlight(w);		        /* Unhighlight current item. */
   else if ( lw->list.is_highlighted != item )   /* If this item is not */
-    XawListHighlight(w, item);	                /* highlighted then do it. */
+    IswListHighlight(w, item);	                /* highlighted then do it. */
 }
 
 /*
@@ -1130,7 +1130,7 @@ Destroy(Widget w)
 
 /* Exported Functions */
 
-/*	Function Name: XawListChange.
+/*	Function Name: IswListChange.
  *	Description: Changes the list being used and shown.
  *	Arguments: w - the list widget.
  *                 list - the new list.
@@ -1145,7 +1145,7 @@ Destroy(Widget w)
  */
 
 void
-XawListChange(Widget w, char ** list, int nitems, int longest,
+IswListChange(Widget w, char ** list, int nitems, int longest,
 #if NeedWidePrototypes
 	      int resize_it)
 #else
@@ -1185,14 +1185,14 @@ XawListChange(Widget w, char ** list, int nitems, int longest,
       Redisplay( w, NULL, 0 );
 }
 
-/*	Function Name: XawListUnhighlight
+/*	Function Name: IswListUnhighlight
  *	Description: unlights the current highlighted element.
  *	Arguments: w - the widget.
  *	Returns: none.
  */
 
 void
-XawListUnhighlight(Widget w)
+IswListUnhighlight(Widget w)
 {
     ListWidget lw = ( ListWidget ) w;
 
@@ -1201,7 +1201,7 @@ XawListUnhighlight(Widget w)
         PaintItemName(w, lw->list.is_highlighted); /* unhighlight this one. */
 }
 
-/*	Function Name: XawListHighlight
+/*	Function Name: IswListHighlight
  *	Description: Highlights the given item.
  *	Arguments: w - the list widget.
  *                 item - the item to hightlight.
@@ -1209,7 +1209,7 @@ XawListUnhighlight(Widget w)
  */
 
 void
-XawListHighlight(Widget w, int item)
+IswListHighlight(Widget w, int item)
 {
     ListWidget lw = ( ListWidget ) w;
 
@@ -1221,20 +1221,20 @@ XawListHighlight(Widget w, int item)
     }
 }
 
-/*	Function Name: XawListShowCurrent
+/*	Function Name: IswListShowCurrent
  *	Description: returns the currently highlighted object.
  *	Arguments: w - the list widget.
  *	Returns: the info about the currently highlighted object.
  */
 
-XawListReturnStruct *
-XawListShowCurrent(Widget w)
+IswListReturnStruct *
+IswListShowCurrent(Widget w)
 {
     ListWidget lw = ( ListWidget ) w;
-    XawListReturnStruct * ret_val;
+    IswListReturnStruct * ret_val;
 
-    ret_val = (XawListReturnStruct *)
-	          XtMalloc (sizeof (XawListReturnStruct));/* SPARE MALLOC OK */
+    ret_val = (IswListReturnStruct *)
+	          XtMalloc (sizeof (IswListReturnStruct));/* SPARE MALLOC OK */
 
     ret_val->list_index = lw->list.highlight;
     if (ret_val->list_index == XAW_LIST_NONE)

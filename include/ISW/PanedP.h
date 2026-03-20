@@ -58,14 +58,14 @@ SOFTWARE.
  *          kit@expo.lcs.mit.edu
  */
 
-#ifndef _ISW_XawPanedP_h
-#define _ISW_XawPanedP_h
+#ifndef _ISW_IswPanedP_h
+#define _ISW_IswPanedP_h
 
 #include <ISW/Paned.h>
 
 /* XCB-based libXt doesn't define XtOrientation - define it here */
-#ifndef _XawXtOrientation_defined
-#define _XawXtOrientation_defined
+#ifndef _IswXtOrientation_defined
+#define _IswXtOrientation_defined
 typedef enum {
     XtorientHorizontal = 0,
     XtorientVertical = 1
@@ -195,5 +195,5 @@ typedef struct _PanedRec {
     PanedPart     paned;
 } PanedRec;
 
-#endif /* _ISW_XawPanedP_h */
+#endif /* _ISW_IswPanedP_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

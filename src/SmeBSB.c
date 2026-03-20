@@ -162,7 +162,7 @@ SmeBSBClassRec smeBSBClassRec = {
     /* extension	  */	NULL
   }, {
     /* ThreeDClass Fields */
-    /* shadowdraw         */    XtInheritXawSme3dShadowDraw
+    /* shadowdraw         */    XtInheritIswSme3dShadowDraw
   }, {
     /* BSBClass Fields */
     /* extension	  */    NULL
@@ -186,7 +186,7 @@ WidgetClass smeBSBObjectClass = (WidgetClass) &smeBSBClassRec;
 static void
 ClassInitialize(void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     XtSetTypeConverter( XtRString, XtRJustify, ISWCvtStringToJustify,
 		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
@@ -303,7 +303,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     y_loc = entry->rectangle.y;
 
     if (XtIsSensitive(w) && XtIsSensitive( XtParent(w) ) ) {
- if ( w == XawSimpleMenuGetActiveEntry(XtParent(w)) ) {
+ if ( w == IswSimpleMenuGetActiveEntry(XtParent(w)) ) {
      xcb_connection_t *conn = XtDisplayOfObject(w);
      xcb_rectangle_t rect = {s, y_loc + s,
       (unsigned int) entry->rectangle.width - 2 * s,
@@ -329,7 +329,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	    case XtJustifyCenter:
 #ifdef ISW_INTERNATIONALIZATION
 		if ( entry->sme.international == True )
-		    t_width = XawTextWidth(entry->sme_bsb.fontset,label,len);
+		    t_width = IswTextWidth(entry->sme_bsb.fontset,label,len);
 		else
 #endif
 		    t_width = XTextWidth(entry->sme_bsb.font, label, len);
@@ -342,7 +342,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	    case XtJustifyRight:
 #ifdef ISW_INTERNATIONALIZATION
 		if ( entry->sme.international == True )
-		    t_width = XawTextWidth(entry->sme_bsb.fontset,label,len);
+		    t_width = IswTextWidth(entry->sme_bsb.fontset,label,len);
 		else
 #endif
 		    t_width = XTextWidth(entry->sme_bsb.font, label, len);
@@ -362,7 +362,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             y_loc += ((int)entry->rectangle.height -
 		  (fontset_ascent + fontset_descent)) / 2 + fontset_ascent;
 
-            XawDrawString(XtDisplayOfObject(w), XtWindowOfObject(w),
+            IswDrawString(XtDisplayOfObject(w), XtWindowOfObject(w),
                 entry->sme_bsb.fontset, gc, x_loc + s, y_loc, label, len);
         }
         else
@@ -602,7 +602,7 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
         if (entry->sme_bsb.label == NULL)
 	    *width = 0;
         else
-	    *width = XawTextWidth(entry->sme_bsb.fontset, entry->sme_bsb.label,
+	    *width = IswTextWidth(entry->sme_bsb.fontset, entry->sme_bsb.label,
 			    strlen(entry->sme_bsb.label));
 
         *height = entry->sme_bsb.fontset->height;
@@ -766,7 +766,7 @@ GetBitmapInfo(Widget w, Boolean is_left)
 	    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(conn, entry->sme_bsb.left_bitmap);
 	    xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn, cookie, NULL);
 	    if (geom == NULL) {
-	 (void) sprintf(buf, "Xaw SmeBSB Object: %s %s \"%s\".",
+	 (void) sprintf(buf, "Isw SmeBSB Object: %s %s \"%s\".",
 	  "Could not get Left Bitmap",
 	  "geometry information for menu entry",
 	  XtName(w));
@@ -779,7 +779,7 @@ GetBitmapInfo(Widget w, Boolean is_left)
 	    }
 #ifdef NEVER
 	    if (entry->sme_bsb.left_depth != 1) {
-	 (void) sprintf(buf, "Xaw SmeBSB Object: %s \"%s\" %s.",
+	 (void) sprintf(buf, "Isw SmeBSB Object: %s \"%s\" %s.",
 	  "Left Bitmap of entry",  XtName(w),
 	  "is not one bit deep");
 	 XtAppError(XtWidgetToApplicationContext(w), buf);
@@ -797,7 +797,7 @@ GetBitmapInfo(Widget w, Boolean is_left)
 	    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(conn, entry->sme_bsb.right_bitmap);
 	    xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn, cookie, NULL);
 	    if (geom == NULL) {
-	 (void) sprintf(buf, "Xaw SmeBSB Object: %s %s \"%s\".",
+	 (void) sprintf(buf, "Isw SmeBSB Object: %s %s \"%s\".",
 	  "Could not get Right Bitmap",
 	  "geometry information for menu entry",
 	  XtName(w));
@@ -810,7 +810,7 @@ GetBitmapInfo(Widget w, Boolean is_left)
 	    }
 #ifdef NEVER
 	    if (entry->sme_bsb.right_depth != 1) {
-	 (void) sprintf(buf, "Xaw SmeBSB Object: %s \"%s\" %s.",
+	 (void) sprintf(buf, "Isw SmeBSB Object: %s \"%s\" %s.",
 	  "Right Bitmap of entry", XtName(w),
 	  "is not one bit deep");
 	 XtAppError(XtWidgetToApplicationContext(w), buf);
@@ -869,7 +869,7 @@ CreateGCs(Widget w)
         entry->sme_bsb.norm_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
 
     values.fill_style = XCB_FILL_STYLE_TILED;
-    values.tile = XawCreateStippledPixmap(XtDisplayOfObject(w), XtWindowOfObject(XtParent(w)),
+    values.tile = IswCreateStippledPixmap(XtDisplayOfObject(w), XtWindowOfObject(XtParent(w)),
     	    entry->sme_bsb.foreground,
     	    XtParent(w)->core.background_pixel,
     	    XtParent(w)->core.depth);

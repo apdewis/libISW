@@ -51,8 +51,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _ISW_XawTextSrcP_h
-#define _ISW_XawTextSrcP_h
+#ifndef _ISW_IswTextSrcP_h
+#define _ISW_IswTextSrcP_h
 
 /***********************************************************************
  *
@@ -80,32 +80,32 @@ typedef struct {
 } TextSrcExtRec, *TextSrcExt;
 #endif
 
-typedef ISWTextPosition (*_XawSrcReadProc)
+typedef ISWTextPosition (*_IswSrcReadProc)
      (Widget, ISWTextPosition, ISWTextBlock*, int);
 
-typedef int (*_XawSrcReplaceProc)
+typedef int (*_IswSrcReplaceProc)
      (Widget, ISWTextPosition, ISWTextPosition, ISWTextBlock*);
 
-typedef ISWTextPosition (*_XawSrcScanProc)
-     (Widget, ISWTextPosition, XawTextScanType, XawTextScanDirection,
+typedef ISWTextPosition (*_IswSrcScanProc)
+     (Widget, ISWTextPosition, IswTextScanType, IswTextScanDirection,
       int, Boolean);
 
-typedef ISWTextPosition (*_XawSrcSearchProc)
-     (Widget, ISWTextPosition, XawTextScanDirection, ISWTextBlock*);
+typedef ISWTextPosition (*_IswSrcSearchProc)
+     (Widget, ISWTextPosition, IswTextScanDirection, ISWTextBlock*);
 
-typedef void (*_XawSrcSetSelectionProc)
+typedef void (*_IswSrcSetSelectionProc)
      (Widget, ISWTextPosition, ISWTextPosition, xcb_atom_t);
 
-typedef Boolean (*_XawSrcConvertSelectionProc)
+typedef Boolean (*_IswSrcConvertSelectionProc)
      (Widget, xcb_atom_t*, xcb_atom_t*, xcb_atom_t*, XtPointer*, unsigned long*, int*);
 
 typedef struct _TextSrcClassPart {
-    _XawSrcReadProc Read;
-    _XawSrcReplaceProc Replace;
-    _XawSrcScanProc Scan;
-    _XawSrcSearchProc Search;
-    _XawSrcSetSelectionProc SetSelection;
-    _XawSrcConvertSelectionProc ConvertSelection;
+    _IswSrcReadProc Read;
+    _IswSrcReplaceProc Replace;
+    _IswSrcScanProc Scan;
+    _IswSrcSearchProc Search;
+    _IswSrcSetSelectionProc SetSelection;
+    _IswSrcConvertSelectionProc ConvertSelection;
 } TextSrcClassPart;
 
 /* Full class record declaration */
@@ -119,7 +119,7 @@ extern TextSrcClassRec textSrcClassRec;
 /* New fields for the TextSrc object record */
 typedef struct {
     /* resources */
-  XawTextEditType	edit_mode;
+  IswTextEditType	edit_mode;
   XrmQuark		text_format;	/* 2 formats: FMT8BIT for Ascii */
 					/*            FMTWIDE for ISO 10646 */
 } TextSrcPart;
@@ -160,17 +160,17 @@ wchar_t* _ISWTextMBToWC(
  ************************************************************/
 
 #if 0	/* no longer used */
-typedef ISWTextPosition (*_XawTextPositionFunc)();
+typedef ISWTextPosition (*_IswTextPositionFunc)();
 #endif
 
-#define XtInheritInput                ((_XawTextPositionFunc) _XtInherit)
-#define XtInheritRead                 ((_XawSrcReadProc) _XtInherit)
-#define XtInheritReplace              ((_XawSrcReplaceProc) _XtInherit)
-#define XtInheritScan                 ((_XawSrcScanProc) _XtInherit)
-#define XtInheritSearch               ((_XawSrcSearchProc) _XtInherit)
-#define XtInheritSetSelection         ((_XawSrcSetSelectionProc) _XtInherit)
-#define XtInheritConvertSelection     ((_XawSrcConvertSelectionProc) _XtInherit)
+#define XtInheritInput                ((_IswTextPositionFunc) _XtInherit)
+#define XtInheritRead                 ((_IswSrcReadProc) _XtInherit)
+#define XtInheritReplace              ((_IswSrcReplaceProc) _XtInherit)
+#define XtInheritScan                 ((_IswSrcScanProc) _XtInherit)
+#define XtInheritSearch               ((_IswSrcSearchProc) _XtInherit)
+#define XtInheritSetSelection         ((_IswSrcSetSelectionProc) _XtInherit)
+#define XtInheritConvertSelection     ((_IswSrcConvertSelectionProc) _XtInherit)
 #define XtTextSrcExtVersion	      1
 #define XtTextSrcExtTypeString        "XT_TEXTSRC_EXT"
 
-#endif /* _ISW_XawTextSrcP_h */
+#endif /* _ISW_IswTextSrcP_h */

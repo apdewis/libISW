@@ -21,8 +21,8 @@
  * Author:  Keith Packard, MIT X Consortium
  */
 
-#ifndef _ISW_XawLayoutP_h
-#define _ISW_XawLayoutP_h
+#ifndef _ISW_IswLayoutP_h
+#define _ISW_IswLayoutP_h
 
 #if defined(LAYOUT)
 # include "Layout.h"

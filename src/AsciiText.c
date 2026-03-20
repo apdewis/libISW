@@ -93,7 +93,7 @@ AsciiTextClassRec asciiTextClassRec = {
     /* superclass       */      (WidgetClass) &textClassRec,
     /* class_name       */      "Text",
     /* widget_size      */      sizeof(AsciiRec),
-    /* class_initialize */      XawInitializeWidgetSet,
+    /* class_initialize */      IswInitializeWidgetSet,
     /* class_part_init  */	NULL,
     /* class_inited     */      FALSE,
     /* initialize       */      Initialize,
@@ -174,15 +174,15 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   }
 
   if (w->core.height == DEFAULT_TEXT_HEIGHT)
-    w->core.height = VMargins(w) + XawTextSinkMaxHeight(w->text.sink, 1);
+    w->core.height = VMargins(w) + IswTextSinkMaxHeight(w->text.sink, 1);
 
   for (i=0, tab=0 ; i < TAB_COUNT ; i++)
     tabs[i] = (tab += 8);
 
-  XawTextSinkSetTabs(w->text.sink, TAB_COUNT, tabs);
+  IswTextSinkSetTabs(w->text.sink, TAB_COUNT, tabs);
 
-  XawTextDisableRedisplay(new);
-  XawTextEnableRedisplay(new);
+  IswTextDisableRedisplay(new);
+  IswTextEnableRedisplay(new);
 
 
   /* If we are using a MultiSink we need to tell the input method stuff. */
@@ -193,12 +193,12 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     Cardinal ac = 0;
 
     sink = (MultiSinkObject)w->text.sink;
-    _XawImRegister( new );
+    _IswImRegister( new );
     XtSetArg (list[ac], XtNfontSet, sink->multi_sink.fontset); ac++;
     XtSetArg (list[ac], XtNinsertPosition, w->text.insertPos); ac++;
     XtSetArg (list[ac], XtNforeground, sink->text_sink.foreground); ac++;
     XtSetArg (list[ac], XtNbackground, sink->text_sink.background); ac++;
-    _XawImSetValues(new, list, ac);
+    _IswImSetValues(new, list, ac);
   }
 #endif
 }
@@ -210,7 +210,7 @@ Destroy(Widget w)
 
 #ifdef ISW_INTERNATIONALIZATION
     if ( ((AsciiWidget)w)->simple.international == True )
-        _XawImUnregister( w );
+        _IswImUnregister( w );
 #endif
 
     if (w == XtParent(((AsciiWidget)w)->text.source))

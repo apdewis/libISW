@@ -51,8 +51,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _ISW_XawAsciiSinkP_h
-#define _ISW_XawAsciiSinkP_h
+#ifndef _ISWAsciiSinkP_h
+#define _ISWAsciiSinkP_h
 
 /***********************************************************************
  *
@@ -93,7 +93,7 @@ typedef struct {
     /* private state */
     GC normgc, invgc, xorgc;
     Pixmap insertCursorOn;
-    XawTextInsertState laststate;
+    IswTextInsertState laststate;
     short cursor_x, cursor_y;	/* Cursor Location. */
 } AsciiSinkPart;
 
@@ -104,10 +104,10 @@ typedef struct {
  ****************************************************************/
 
 typedef struct _AsciiSinkRec {
-    ObjectPart          object;
+    ObjectPart      object;
     TextSinkPart	text_sink;
     AsciiSinkPart	ascii_sink;
 } AsciiSinkRec;
 
-#endif /* _ISW_XawAsciiSinkP_h */
+#endif /* _ISWAsciiSinkP_h */
 

@@ -25,8 +25,8 @@ in this Software without prior written authorization from the X Consortium.
  * Author:  Jim Fulton, MIT X Consortium
  */
 
-#ifndef _ISW_XawRepeaterP_h
-#define _ISW_XawRepeaterP_h
+#ifndef _ISW_IswRepeaterP_h
+#define _ISW_IswRepeaterP_h
 
 #include <ISW/CommandP.h>
 #include <ISW/Repeater.h>
@@ -77,4 +77,4 @@ typedef struct _RepeaterRec {
  */
 extern RepeaterClassRec repeaterClassRec;
 
-#endif /* _ISW_XawRepeaterP_h */
+#endif /* _ISW_IswRepeaterP_h */

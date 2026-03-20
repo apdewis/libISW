@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawTextP_h
-#define _ISW_XawTextP_h
+#ifndef _ISW_IswTextP_h
+#define _ISW_IswTextP_h
 
 #include <xcb/xcb.h>
 #include <ISW/Text.h>
@@ -60,22 +60,22 @@ SOFTWARE.
  ****************************************************************/
 #define MAXCUT	30000	/* Maximum number of characters that can be cut. */
 
-#define GETLASTPOS  XawTextSourceScan(ctx->text.source, 0, \
-				      XawstAll, XawsdRight, 1, TRUE)
+#define GETLASTPOS  IswTextSourceScan(ctx->text.source, 0, \
+				      IswstAll, IswsdRight, 1, TRUE)
 
 #define zeroPosition ((ISWTextPosition) 0)
 
-extern XtActionsRec _XawTextActionsTable[];
-extern Cardinal _XawTextActionsTableCount;
+extern XtActionsRec _IswTextActionsTable[];
+extern Cardinal _IswTextActionsTableCount;
 
-#define XawLF	0x0a
-#define XawCR	0x0d
-#define XawTAB	0x09
-#define XawBS	0x08
-#define XawSP	0x20
-#define XawDEL	0x7f
-#define XawESC  0x1b
-#define XawBSLASH '\\'
+#define IswLF	0x0a
+#define IswCR	0x0d
+#define IswTAB	0x09
+#define IswBS	0x08
+#define IswSP	0x20
+#define IswDEL	0x7f
+#define IswESC  0x1b
+#define IswBSLASH '\\'
 
 /* constants that subclasses may want to know */
 #define DEFAULT_TEXT_HEIGHT ((Dimension)~0)
@@ -86,38 +86,38 @@ typedef struct {
   ISWTextPosition position;
   Position y;
   Dimension textWidth;
-} XawTextLineTableEntry, *XawTextLineTableEntryPtr;
+} IswTextLineTableEntry, *IswTextLineTableEntryPtr;
 
 typedef struct {
     ISWTextPosition   left, right;
-    XawTextSelectType type;
+    IswTextSelectType type;
     xcb_atom_t*	     selections;
     int		     atom_count;
     int		     array_size;
-} XawTextSelection;
+} IswTextSelection;
 
-typedef struct _XawTextSelectionSalt {
-    struct _XawTextSelectionSalt    *next;
-    XawTextSelection	s;
+typedef struct _IswTextSelectionSalt {
+    struct _IswTextSelectionSalt    *next;
+    IswTextSelection	s;
     /*
      * The element "contents" stores the CT string which is gotten in the
-     * function _XawTextSaltAwaySelection().
+     * function _IswTextSaltAwaySelection().
     */
     char		*contents;
     int			length;
-} XawTextSelectionSalt;
+} IswTextSelectionSalt;
 
 /* Line Tables are n+1 long - last position displayed is in last lt entry */
 typedef struct {
   ISWTextPosition	 top;	/* Top of the displayed text.		*/
   int			 lines;	/* How many lines in this table.	*/
-  XawTextLineTableEntry *info;  /* A dynamic array, one entry per line  */
-} XawTextLineTable, *XawTextLineTablePtr;
+  IswTextLineTableEntry *info;  /* A dynamic array, one entry per line  */
+} IswTextLineTable, *IswTextLineTablePtr;
 
 
-typedef struct _XawTextMargin {
+typedef struct _IswTextMargin {
   Position left, right, top, bottom;
-} XawTextMargin;
+} IswTextMargin;
 
 #define VMargins(ctx) ( (ctx)->text.margin.top + (ctx)->text.margin.bottom )
 #define HMargins(ctx) ( (ctx)->text.margin.left + (ctx)->text.margin.right )
@@ -171,26 +171,26 @@ typedef struct _TextPart {
 
     Widget              source, sink;
     ISWTextPosition	insertPos;
-    XawTextSelection	s;
-    XawTextSelectType	*sarray;	   /* Array to cycle for selections. */
-    XawTextSelectionSalt    *salt;	     /* salted away selections */
+    IswTextSelection	s;
+    IswTextSelectType	*sarray;	   /* Array to cycle for selections. */
+    IswTextSelectionSalt    *salt;	     /* salted away selections */
     int			options;	     /* wordbreak, scroll, etc. */
     int			dialog_horiz_offset; /* position for popup dialog */
     int			dialog_vert_offset;  /* position for popup dialog */
     Boolean		display_caret;	     /* insertion pt visible iff T */
     Boolean             auto_fill;           /* Auto fill mode? */
-    XawTextScrollMode   scroll_vert, scroll_horiz; /*what type of scrollbars.*/
-    XawTextWrapMode     wrap;            /* The type of wrapping. */
-    XawTextResizeMode   resize;	             /* what to resize */
-    XawTextMargin       r_margin;            /* The real margins. */
+    IswTextScrollMode   scroll_vert, scroll_horiz; /*what type of scrollbars.*/
+    IswTextWrapMode     wrap;            /* The type of wrapping. */
+    IswTextResizeMode   resize;	             /* what to resize */
+    IswTextMargin       r_margin;            /* The real margins. */
     XtCallbackList	unrealize_callbacks; /* used for scrollbars */
 
     /* private state */
 
-    XawTextMargin       margin;            /* The current margins. */
-    XawTextLineTable	lt;
-    XawTextScanDirection extendDir;
-    XawTextSelection	origSel;    /* the selection being modified */
+    IswTextMargin       margin;            /* The current margins. */
+    IswTextLineTable	lt;
+    IswTextScanDirection extendDir;
+    IswTextSelection	origSel;    /* the selection being modified */
     xcb_timestamp_t lasttime;	    /* timestamp of last processed action */
     xcb_timestamp_t time;	    /* time of last key or button action */
     Position	    ev_x, ev_y;	    /* x, y coords for key or button action */
@@ -214,7 +214,7 @@ typedef struct _TextPart {
 
     /* private state, shared w/Source and Sink */
     Boolean	    redisplay_needed; /* in SetValues */
-    XawTextSelectionSalt    *salt2;	     /* salted away selections */
+    IswTextSelectionSalt    *salt2;	     /* salted away selections */
 } TextPart;
 
 /*************************************************************
@@ -242,35 +242,35 @@ typedef struct _TextRec {
 /********************************************
  *
  * Semi-private functions
- * for use by other Xaw modules only
+ * for use by other Isw modules only
  *
  *******************************************/
 
-extern void _XawTextBuildLineTable (
+extern void _IswTextBuildLineTable (
     TextWidget /*ctx*/,
     ISWTextPosition /*top pos*/,
     _XtBoolean /* force_rebuild */
 );
 
-extern char* _XawTextGetSTRING(
+extern char* _IswTextGetSTRING(
     TextWidget /*ctx*/,
     ISWTextPosition /*left*/,
     ISWTextPosition /*right*/
 );
 
-extern void _XawTextSaltAwaySelection(
+extern void _IswTextSaltAwaySelection(
     TextWidget /*ctx*/,
     xcb_atom_t* /*selections*/,
     int /*num_atoms*/
 );
 
-extern void _XawTextPosToXY(
+extern void _IswTextPosToXY(
     Widget			/* w */,
     ISWTextPosition		/* pos */,
     Position *			/* x */,
     Position *			/*y */
 );
 
-#endif /* _ISW_XawTextP_h */
+#endif /* _ISW_IswTextP_h */
 
 

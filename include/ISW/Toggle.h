@@ -33,8 +33,8 @@ in this Software without prior written authorization from the X Consortium.
  * Date:   January 12, 1989
  */
 
-#ifndef _ISW_XawToggle_h
-#define _ISW_XawToggle_h
+#ifndef _ISW_IswToggle_h
+#define _ISW_IswToggle_h
 
 /***********************************************************************
  *
@@ -116,30 +116,30 @@ typedef struct _ToggleRec        *ToggleWidget;
 
 _XFUNCPROTOBEGIN
 
-/*	Function Name: XawToggleChangeRadioGroup
+/*	Function Name: IswToggleChangeRadioGroup
  *	Description: Allows a toggle widget to change radio lists.
  *	Arguments: w - The toggle widget to change lists.
  *                 radio_group - any widget in the new list.
  *	Returns: none.
  */
 
-extern void XawToggleChangeRadioGroup(
+extern void IswToggleChangeRadioGroup(
     Widget		/* w */,
     Widget		/* radio_group */
 );
 
-/*	Function Name: XawToggleGetCurrent
+/*	Function Name: IswToggleGetCurrent
  *	Description: Returns the RadioData associated with the toggle
  *                   widget that is currently active in a toggle list.
  *	Arguments: radio_group - any toggle widget in the toggle list.
  *	Returns: The XtNradioData associated with the toggle widget.
  */
 
-extern XtPointer XawToggleGetCurrent(
+extern XtPointer IswToggleGetCurrent(
     Widget		/* radio_group */
 );
 
-/*	Function Name: XawToggleSetCurrent
+/*	Function Name: IswToggleSetCurrent
  *	Description: Sets the Toggle widget associated with the
  *                   radio_data specified.
  *	Arguments: radio_group - any toggle widget in the toggle list.
@@ -147,21 +147,21 @@ extern XtPointer XawToggleGetCurrent(
  *	Returns: none.
  */
 
-extern void XawToggleSetCurrent(
+extern void IswToggleSetCurrent(
     Widget		/* radio_group */,
     XtPointer		/* radio_data */
 );
 
-/*	Function Name: XawToggleUnsetCurrent
+/*	Function Name: IswToggleUnsetCurrent
  *	Description: Unsets all Toggles in the radio_group specified.
  *	Arguments: radio_group - any toggle widget in the toggle list.
  *	Returns: none.
  */
 
-extern void XawToggleUnsetCurrent(
+extern void IswToggleUnsetCurrent(
     Widget		/* radio_group */
 );
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawToggle_h */
+#endif /* _ISW_IswToggle_h */

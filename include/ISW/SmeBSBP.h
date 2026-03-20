@@ -30,8 +30,8 @@ in this Software without prior written authorization from the X Consortium.
  *
  */
 
-#ifndef _ISW_XawSmeBSBP_h
-#define _ISW_XawSmeBSBP_h
+#ifndef _ISW_IswSmeBSBP_h
+#define _ISW_IswSmeBSBP_h
 
 /***********************************************************************
  *
@@ -45,8 +45,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
 
 /* XtJustify is missing from XCB-based libXt, define it here */
-#ifndef _XawXtJustify_defined
-#define _XawXtJustify_defined
+#ifndef _IswXtJustify_defined
+#define _IswXtJustify_defined
 typedef enum {
     XtJustifyLeft,
     XtJustifyCenter,
@@ -126,4 +126,4 @@ typedef struct _SmeBSBRec {
  *
  ************************************************************/
 
-#endif /* _ISW_XawSmeBSBP_h */
+#endif /* _ISW_IswSmeBSBP_h */

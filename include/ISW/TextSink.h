@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawTextSink_h
-#define _ISW_XawTextSink_h
+#ifndef _ISW_IswTextSink_h
+#define _ISW_IswTextSink_h
 
 #include <xcb/xcb.h>
 #include <ISW/Text.h>
@@ -74,7 +74,7 @@ extern WidgetClass textSinkObjectClass;
 typedef struct _TextSinkClassRec *TextSinkObjectClass;
 typedef struct _TextSinkRec      *TextSinkObject;
 
-typedef enum {XawisOn, XawisOff} XawTextInsertState;
+typedef enum {IswisOn, IswisOff} IswTextInsertState;
 
 /************************************************************
  *
@@ -84,7 +84,7 @@ typedef enum {XawisOn, XawisOff} XawTextInsertState;
 
 _XFUNCPROTOBEGIN
 
-/*	Function Name: XawTextSinkDisplayText
+/*	Function Name: IswTextSinkDisplayText
  *	Description: Stub function that in subclasses will display text.
  *	Arguments: w - the TextSink Object.
  *                 x, y - location to start drawing text.
@@ -97,7 +97,7 @@ _XFUNCPROTOBEGIN
  * holder.
  */
 
-extern void XawTextSinkDisplayText(
+extern void IswTextSinkDisplayText(
     Widget		/* w */,
 #if NeedWidePrototypes
     /* Position */ int	/* x */,
@@ -115,7 +115,7 @@ extern void XawTextSinkDisplayText(
 #endif
 );
 
-/*	Function Name: XawTextSinkInsertCursor
+/*	Function Name: IswTextSinkInsertCursor
  *	Description: Places the InsertCursor.
  *	Arguments: w - the TextSink Object.
  *                 x, y - location for the cursor.
@@ -126,20 +126,20 @@ extern void XawTextSinkDisplayText(
  * holder.
  */
 
-extern void XawTextSinkInsertCursor(
+extern void IswTextSinkInsertCursor(
     Widget		/* w */,
 #if NeedWidePrototypes
     /* Position */ int	/* x */,
     /* Position	*/ int	/* y */,
-    /* XawTextInsertState */ int /* state */
+    /* IswTextInsertState */ int /* state */
 #else
     Position		/* x */,
     Position		/* y */,
-    XawTextInsertState	/* state */
+    IswTextInsertState	/* state */
 #endif
 );
 
-/*	Function Name: XawTextSinkClearToBackground
+/*	Function Name: IswTextSinkClearToBackground
  *	Description: Clears a region of the sink to the background color.
  *	Arguments: w - the TextSink Object.
  *                 x, y  - location of area to clear.
@@ -150,7 +150,7 @@ extern void XawTextSinkInsertCursor(
  * holder.
  */
 
-extern void XawTextSinkClearToBackground(
+extern void IswTextSinkClearToBackground(
     Widget		/* w */,
 #if NeedWidePrototypes
     /* Position */ int	/* x */,
@@ -165,7 +165,7 @@ extern void XawTextSinkClearToBackground(
 #endif
 );
 
-/*	Function Name: XawTextSinkFindPosition
+/*	Function Name: IswTextSinkFindPosition
  *	Description: Finds a position in the text.
  *	Arguments: w - the TextSink Object.
  *                 fromPos - reference position.
@@ -178,7 +178,7 @@ extern void XawTextSinkClearToBackground(
  *	Returns: none (see above).
  */
 
-extern void XawTextSinkFindPosition(
+extern void IswTextSinkFindPosition(
     Widget		/* w */,
     ISWTextPosition	/* fromPos */,
     int			/* fromX */,
@@ -193,7 +193,7 @@ extern void XawTextSinkFindPosition(
     int*		/* height_return */
 );
 
-/*	Function Name: XawTextSinkFindDistance
+/*	Function Name: IswTextSinkFindDistance
  *	Description: Find the Pixel Distance between two text Positions.
  *	Arguments: w - the TextSink Object.
  *                 fromPos - starting Position.
@@ -205,7 +205,7 @@ extern void XawTextSinkFindPosition(
  *	Returns: none.
  */
 
-extern void XawTextSinkFindDistance (
+extern void IswTextSinkFindDistance (
     Widget		/* w */,
     ISWTextPosition	/* fromPos */,
     int			/* fromX */,
@@ -215,7 +215,7 @@ extern void XawTextSinkFindDistance (
     int*		/* height_return */
 );
 
-/*	Function Name: XawTextSinkResolve
+/*	Function Name: IswTextSinkResolve
  *	Description: Resloves a location to a position.
  *	Arguments: w - the TextSink Object.
  *                 pos - a reference Position.
@@ -225,7 +225,7 @@ extern void XawTextSinkFindDistance (
  *	Returns: none
  */
 
-extern void XawTextSinkResolve(
+extern void IswTextSinkResolve(
     Widget		/* w */,
     ISWTextPosition	/* fromPos */,
     int			/* fromX */,
@@ -233,7 +233,7 @@ extern void XawTextSinkResolve(
     ISWTextPosition*	/* pos_return */
 );
 
-/*	Function Name: XawTextSinkMaxLines
+/*	Function Name: IswTextSinkMaxLines
  *	Description: Finds the Maximum number of lines that will fit in
  *                   a given height.
  *	Arguments: w - the TextSink Object.
@@ -241,7 +241,7 @@ extern void XawTextSinkResolve(
  *	Returns: the number of lines that will fit.
  */
 
-extern int XawTextSinkMaxLines(
+extern int IswTextSinkMaxLines(
     Widget		/* w */,
 #if NeedWidePrototypes
     /* Dimension */ int	/* height */
@@ -250,7 +250,7 @@ extern int XawTextSinkMaxLines(
 #endif
 );
 
-/*	Function Name: XawTextSinkMaxHeight
+/*	Function Name: IswTextSinkMaxHeight
  *	Description: Finds the Minium height that will contain a given number
  *                   lines.
  *	Arguments: w - the TextSink Object.
@@ -258,12 +258,12 @@ extern int XawTextSinkMaxLines(
  *	Returns: the height.
  */
 
-extern int XawTextSinkMaxHeight(
+extern int IswTextSinkMaxHeight(
     Widget		/* w */,
     int			/* lines */
 );
 
-/*	Function Name: XawTextSinkSetTabs
+/*	Function Name: IswTextSinkSetTabs
  *	Description: Sets the Tab stops.
  *	Arguments: w - the TextSink Object.
  *                 tab_count - the number of tabs in the list.
@@ -271,24 +271,24 @@ extern int XawTextSinkMaxHeight(
  *	Returns: none
  */
 
-extern void XawTextSinkSetTabs(
+extern void IswTextSinkSetTabs(
     Widget		/* w */,
     int			/* tab_count */,
     int*		/* tabs */
 );
 
-/*	Function Name: XawTextSinkGetCursorBounds
+/*	Function Name: IswTextSinkGetCursorBounds
  *	Description: Finds the bounding box for the insert curor (caret).
  *	Arguments: w - the TextSinkObject.
  *                 rect - an XCB rectangle containing the cursor bounds.
  *	Returns: none (fills in rect).
  */
 
-extern void XawTextSinkGetCursorBounds(
+extern void IswTextSinkGetCursorBounds(
     Widget		/* w */,
     xcb_rectangle_t*	/* rect_return */
 );
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawTextSrc_h */
+#endif /* _ISW_IswTextSrc_h */

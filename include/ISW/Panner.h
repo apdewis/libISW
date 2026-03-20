@@ -25,8 +25,8 @@ in this Software without prior written authorization from the X Consortium.
  * Author:  Jim Fulton, MIT X Consortium
  */
 
-#ifndef _ISW_XawPanner_h
-#define _ISW_XawPanner_h
+#ifndef _ISW_IswPanner_h
+#define _ISW_IswPanner_h
 
 #include <ISW/Reports.h>
 
@@ -103,4 +103,4 @@ extern WidgetClass pannerWidgetClass;
 typedef struct _PannerClassRec *PannerWidgetClass;
 typedef struct _PannerRec      *PannerWidget;
 
-#endif /* _ISW_XawPanner_h */
+#endif /* _ISW_IswPanner_h */

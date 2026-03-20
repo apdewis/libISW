@@ -282,8 +282,8 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
         h += lh + bbw->box.v_space;
     }
 
-    *reply_width = XawMax(w, 1);
-    *reply_height = XawMax(h, 1);
+    *reply_width = IswMax(w, 1);
+    *reply_height = IswMax(h, 1);
 }
 
 /*
@@ -575,7 +575,7 @@ ChangeManaged(Widget w)
 static void
 ClassInitialize(void)
 {
-    XawInitializeWidgetSet();
+    IswInitializeWidgetSet();
     XtSetTypeConverter( XtRString, XtROrientation, ISWCvtStringToOrientation,
 		        (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
@@ -588,8 +588,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     newbbw->box.last_query_mode = CWWidth | CWHeight;
     newbbw->box.last_query_width = newbbw->box.last_query_height = 0;
-    newbbw->box.preferred_width = XawMax(newbbw->box.h_space, 1);
-    newbbw->box.preferred_height = XawMax(newbbw->box.v_space, 1);
+    newbbw->box.preferred_width = IswMax(newbbw->box.h_space, 1);
+    newbbw->box.preferred_height = IswMax(newbbw->box.v_space, 1);
 
     if (newbbw->core.width == 0)
         newbbw->core.width = newbbw->box.preferred_width;

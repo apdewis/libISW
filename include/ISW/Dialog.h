@@ -46,8 +46,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawDialog_h
-#define _ISW_XawDialog_h
+#ifndef _ISW_IswDialog_h
+#define _ISW_IswDialog_h
 
 #include <ISW/Form.h>
 
@@ -87,17 +87,17 @@ extern WidgetClass dialogWidgetClass;
 
 _XFUNCPROTOBEGIN
 
-extern void XawDialogAddButton(
+extern void IswDialogAddButton(
     Widget		/* dialog */,
     _Xconst char*	/* name */,
     XtCallbackProc	/* function */,
     XtPointer		/* client_data */
 );
 
-extern char *XawDialogGetValueString(
+extern char *IswDialogGetValueString(
     Widget		/* w */
 );
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawDialog_h */
+#endif /* _ISW_IswDialog_h */

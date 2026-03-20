@@ -23,8 +23,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _ISW_XawSmeThreeD_h
-#define _ISW_XawSmeThreeD_h
+#ifndef _ISW_IswSmeThreeD_h
+#define _ISW_IswSmeThreeD_h
 
 /***********************************************************************
  *
@@ -72,16 +72,16 @@ extern WidgetClass smeThreeDObjectClass;
 
 _XFUNCPROTOBEGIN
 
-extern void XawSme3dComputeTopShadowRGB (
+extern void IswSme3dComputeTopShadowRGB (
     Widget	 	/* new */,
     XColor*		/* xcol_out */
 );
 
-extern void XawSme3dComputeBottomShadowRGB (
+extern void IswSme3dComputeBottomShadowRGB (
     Widget		/* new */,
     XColor*		/* xcol_out */
 );
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_XawSmeThreeD_h */
+#endif /* _ISW_IswSmeThreeD_h */

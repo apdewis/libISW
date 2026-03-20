@@ -22,8 +22,8 @@
  */
 
 
-#ifndef _ISW_XawLayout_h
-#define _ISW_XawLayout_h
+#ifndef _ISW_IswLayout_h
+#define _ISW_IswLayout_h
 
 #include <X11/Constraint.h>
 #include <X11/Xfuncproto.h>

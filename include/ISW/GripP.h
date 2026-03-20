@@ -51,8 +51,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _ISW_XawGripP_h
-#define _ISW_XawGripP_h
+#ifndef _ISW_IswGripP_h
+#define _ISW_IswGripP_h
 
 #include <ISW/Grip.h>
 #include <ISW/ThreeDP.h>
@@ -96,5 +96,5 @@ typedef struct _GripRec {
    GripPart    grip;
 } GripRec;
 
-#endif /* _ISW_XawGripP_h */
+#endif /* _ISW_IswGripP_h */
 

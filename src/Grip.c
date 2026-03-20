@@ -89,7 +89,7 @@ GripClassRec gripClassRec = {
     /* superclass         */   (WidgetClass) SuperClass,
     /* class name         */   "Grip",
     /* size               */   sizeof(GripRec),
-    /* class initialize   */   XawInitializeWidgetSet,
+    /* class initialize   */   IswInitializeWidgetSet,
     /* class_part_init    */   NULL,
     /* class_inited       */   FALSE,
     /* initialize         */   NULL,
@@ -138,7 +138,7 @@ WidgetClass gripWidgetClass = (WidgetClass) &gripClassRec;
 static void
 GripAction(Widget widget, XEvent *event, String *params, Cardinal *num_params)
 {
-    XawGripCallDataRec call_data;
+    IswGripCallDataRec call_data;
 
     call_data.event = event;
     call_data.params = params;
