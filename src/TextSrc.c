@@ -38,16 +38,16 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/TextSrcP.h>
-#include "XawXcbDraw.h"
-#ifdef XAW_INTERNATIONALIZATION
-#include "XawI18n.h"
+#include <ISW/ISWInit.h>
+#include <ISW/TextSrcP.h>
+#include "ISWXcbDraw.h"
+#ifdef ISW_INTERNATIONALIZATION
+#include "ISWI18n.h"
 #endif
 #include <stdio.h>
 #include <ctype.h>
@@ -85,16 +85,16 @@ static XtResource resources[] = {
 
 static void ClassInitialize(void);
 static void ClassPartInitialize(WidgetClass);
-static void SetSelection(Widget, XawTextPosition, XawTextPosition, xcb_atom_t);
+static void SetSelection(Widget, ISWTextPosition, ISWTextPosition, xcb_atom_t);
 static void CvtStringToEditMode(XrmValuePtr, Cardinal *, XrmValuePtr, XrmValuePtr);
 static Boolean ConvertSelection(Widget, xcb_atom_t *, xcb_atom_t *, xcb_atom_t *, XtPointer *,
                                 unsigned long *, int *);
-static XawTextPosition Search(Widget, XawTextPosition, XawTextScanDirection,
-                       XawTextBlock *);
-static XawTextPosition Scan(Widget, XawTextPosition, XawTextScanType,
+static ISWTextPosition Search(Widget, ISWTextPosition, XawTextScanDirection,
+                       ISWTextBlock *);
+static ISWTextPosition Scan(Widget, ISWTextPosition, XawTextScanType,
                             XawTextScanDirection, int, Boolean);
-static XawTextPosition Read(Widget, XawTextPosition, XawTextBlock *, int);
-static int Replace(Widget, XawTextPosition, XawTextPosition, XawTextBlock *);
+static ISWTextPosition Read(Widget, ISWTextPosition, ISWTextBlock *, int);
+static int Replace(Widget, ISWTextPosition, ISWTextPosition, ISWTextBlock *);
 
 #define SuperClass		(&objectClassRec)
 TextSrcClassRec textSrcClassRec = {
@@ -202,13 +202,13 @@ ClassPartInitialize(WidgetClass wc)
  */
 
 /* ARGSUSED */
-static XawTextPosition
-Read(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
+static ISWTextPosition
+Read(Widget w, ISWTextPosition pos, ISWTextBlock *text, int length)
 {
   XtAppError(XtWidgetToApplicationContext(w),
 	     "TextSrc Object: No read function is defined.");
 
-  return( (XawTextPosition) 0 ); /* for gcc -Wall and lint */
+  return( (ISWTextPosition) 0 ); /* for gcc -Wall and lint */
 }
 
 /*	Function Name: Replace.
@@ -221,7 +221,7 @@ Read(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
 
 /*ARGSUSED*/
 static int
-Replace (Widget w, XawTextPosition startPos, XawTextPosition endPos, XawTextBlock *text)
+Replace (Widget w, ISWTextPosition startPos, ISWTextPosition endPos, ISWTextBlock *text)
 {
   return(XawEditError);
 }
@@ -242,14 +242,14 @@ Replace (Widget w, XawTextPosition startPos, XawTextPosition endPos, XawTextBloc
 
 /* ARGSUSED */
 static
-XawTextPosition
-Scan(Widget w, XawTextPosition position, XawTextScanType type,
+ISWTextPosition
+Scan(Widget w, ISWTextPosition position, XawTextScanType type,
      XawTextScanDirection dir, int count, Boolean include)
 {
   XtAppError(XtWidgetToApplicationContext(w),
 	     "TextSrc Object: No SCAN function is defined.");
 
-  return( (XawTextPosition) 0 ); /* for gcc -Wall and lint */
+  return( (ISWTextPosition) 0 ); /* for gcc -Wall and lint */
 }
 
 /*	Function Name: Search
@@ -262,8 +262,8 @@ Scan(Widget w, XawTextPosition position, XawTextScanType type,
  */
 
 /* ARGSUSED */
-static XawTextPosition
-Search(Widget w, XawTextPosition position, XawTextScanDirection dir, XawTextBlock *text)
+static ISWTextPosition
+Search(Widget w, ISWTextPosition position, XawTextScanDirection dir, ISWTextBlock *text)
 {
   return(XawTextSearchError);
 }
@@ -298,7 +298,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 
 /* ARGSUSED */
 static void
-SetSelection(Widget w, XawTextPosition left, XawTextPosition right, xcb_atom_t selection)
+SetSelection(Widget w, ISWTextPosition left, ISWTextPosition right, xcb_atom_t selection)
 {
   /* This space intentionally left blank. */
 }
@@ -322,7 +322,7 @@ CvtStringToEditMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal, X
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XawCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
+    ISWCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if      (q == QRead)   editType = XawtextRead;
@@ -358,8 +358,8 @@ CvtStringToEditMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal, X
  *	Returns: The number of characters read into the buffer.
  */
 
-XawTextPosition
-XawTextSourceRead(Widget w, XawTextPosition pos, XawTextBlock *text,
+ISWTextPosition
+XawTextSourceRead(Widget w, ISWTextPosition pos, ISWTextBlock *text,
 		  int length)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
@@ -382,8 +382,8 @@ XawTextSourceRead(Widget w, XawTextPosition pos, XawTextBlock *text,
 
 /*ARGSUSED*/
 int
-XawTextSourceReplace (Widget w, XawTextPosition startPos,
-		      XawTextPosition endPos, XawTextBlock *text)
+XawTextSourceReplace (Widget w, ISWTextPosition startPos,
+		      ISWTextPosition endPos, ISWTextBlock *text)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
@@ -409,8 +409,8 @@ XawTextSourceReplace (Widget w, XawTextPosition startPos,
  *
  */
 
-XawTextPosition
-XawTextSourceScan(Widget w, XawTextPosition position,
+ISWTextPosition
+XawTextSourceScan(Widget w, ISWTextPosition position,
 #if NeedWidePrototypes
 		  int type, int dir,
 #else
@@ -443,14 +443,14 @@ XawTextSourceScan(Widget w, XawTextPosition position,
  *               XawTextSearchError.
  */
 
-XawTextPosition
-XawTextSourceSearch(Widget w, XawTextPosition position,
+ISWTextPosition
+XawTextSourceSearch(Widget w, ISWTextPosition position,
 #if NeedWidePrototypes
 		    int dir,
 #else
 		    XawTextScanDirection dir,
 #endif
-		    XawTextBlock *text)
+		    ISWTextBlock *text)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
@@ -499,8 +499,8 @@ XawTextSourceConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *targe
  */
 
 void
-XawTextSourceSetSelection(Widget w, XawTextPosition left,
-			  XawTextPosition right, xcb_atom_t selection)
+XawTextSourceSetSelection(Widget w, ISWTextPosition left,
+			  ISWTextPosition right, xcb_atom_t selection)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
@@ -530,8 +530,8 @@ _XawTextFormat(TextWidget tw)
 }
 
 
-#ifdef XAW_INTERNATIONALIZATION
-/* _XawTextWCToMB():
+#ifdef ISW_INTERNATIONALIZATION
+/* _ISWTextWCToMB():
  *   convert the wchar string to external encoding.
  *   The caller is responsible for freeing both the source and ret string.
  *
@@ -543,9 +543,9 @@ _XawTextFormat(TextWidget tw)
 
 
 char *
-_XawTextWCToMB(xcb_connection_t *conn, wchar_t *wstr, int *len_in_out)
+_ISWTextWCToMB(xcb_connection_t *conn, wchar_t *wstr, int *len_in_out)
 {
-#ifdef XAW_HAS_XIM
+#ifdef ISW_HAS_XIM
     XTextProperty textprop;
     if (XwcTextListToTextProperty(conn, (wchar_t**)&wstr, 1,
       XTextStyle, &textprop) < Success) {
@@ -577,7 +577,7 @@ _XawTextWCToMB(xcb_connection_t *conn, wchar_t *wstr, int *len_in_out)
 }
 
 
-/* _XawTextMBToWC():
+/* _ISWTextMBToWC():
  *   convert the string to internal processing codeset WC.
  *   The caller is responsible for freeing both the source and ret string.
  *
@@ -588,12 +588,12 @@ _XawTextWCToMB(xcb_connection_t *conn, wchar_t *wstr, int *len_in_out)
  */
 
 wchar_t *
-_XawTextMBToWC(xcb_connection_t *conn, char *str, int *len_in_out)
+_ISWTextMBToWC(xcb_connection_t *conn, char *str, int *len_in_out)
 {
     if (*len_in_out == 0) {
         return NULL;
     }
-#ifdef XAW_HAS_XIM
+#ifdef ISW_HAS_XIM
     XTextProperty textprop;
     char *buf;
     wchar_t **wlist, *wstr;

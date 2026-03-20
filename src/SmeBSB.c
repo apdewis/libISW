@@ -41,20 +41,20 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xos.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/ThreeDP.h>
-#include <X11/Xaw3d/SimpleMenP.h>
-#include <X11/Xaw3d/SmeBSBP.h>
-#include <X11/Xaw3d/Cardinals.h>
+#include <ISW/ISWInit.h>
+#include <ISW/ThreeDP.h>
+#include <ISW/SimpleMenP.h>
+#include <ISW/SmeBSBP.h>
+#include <ISW/Cardinals.h>
 #include <stdio.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
-#include "XawXcbDraw.h"
+#include "ISWXcbDraw.h"
 
 /* needed for abs() */
 #ifndef X_NOT_STDC_ENV
@@ -84,8 +84,8 @@ static XtResource resources[] = {
      offset(foreground), XtRString, XtDefaultForeground},
   {XtNfont,  XtCFont, XtRFontStruct, sizeof(XFontStruct *),
      offset(font), XtRString, XtDefaultFont},
-#ifdef XAW_INTERNATIONALIZATION
-  {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(XawFontSet *),
+#ifdef ISW_INTERNATIONALIZATION
+  {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(ISWFontSet *),
      offset(fontset),XtRString, XtDefaultFontSet},
 #endif
   {XtNmenuName, XtCMenuName, XtRString, sizeof(String),
@@ -187,7 +187,7 @@ static void
 ClassInitialize(void)
 {
     XawInitializeWidgetSet();
-    XtSetTypeConverter( XtRString, XtRJustify, XawCvtStringToJustify,
+    XtSetTypeConverter( XtRString, XtRJustify, ISWCvtStringToJustify,
 		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
 
@@ -209,7 +209,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      * If font is NULL but fontset is available, create a minimal XFontStruct
      * using the fontset's font_id (similar to Label.c approach). */
     if (entry->sme_bsb.font == NULL) {
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 	if (entry->sme_bsb.fontset != NULL) {
 	    /* Allocate and initialize a minimal XFontStruct from fontset */
 	    entry->sme_bsb.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
@@ -252,7 +252,7 @@ Destroy(Widget w)
     SmeBSBObject entry = (SmeBSBObject) w;
 
     DestroyGCs(w);
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
     if (entry->sme_bsb.left_stippled != None)
 	XFreePixmap(XtDisplayOfObject(w), entry->sme_bsb.left_stippled);
     if (entry->sme_bsb.right_stippled != None)
@@ -278,12 +278,12 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     SmeBSBObject entry = (SmeBSBObject) w;
     Dimension s = entry->sme_threeD.shadow_width;
     int	font_ascent = 0, font_descent = 0, y_loc;
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     int	fontset_ascent = 0, fontset_descent = 0;
 #endif
 
     entry->sme_bsb.set_values_area_cleared = FALSE;
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( entry->sme.international == True ) {
         fontset_ascent = entry->sme_bsb.fontset->ascent;
         fontset_descent = entry->sme_bsb.fontset->descent;
@@ -327,7 +327,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 	switch(entry->sme_bsb.justify) {
 	    case XtJustifyCenter:
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 		if ( entry->sme.international == True )
 		    t_width = XawTextWidth(entry->sme_bsb.fontset,label,len);
 		else
@@ -340,7 +340,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		x_loc += (width - t_width)/2;
 		break;
 	    case XtJustifyRight:
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 		if ( entry->sme.international == True )
 		    t_width = XawTextWidth(entry->sme_bsb.fontset,label,len);
 		else
@@ -357,7 +357,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 	/* this will center the text in the gadget top-to-bottom */
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
         if ( entry->sme.international==True ) {
             y_loc += ((int)entry->rectangle.height -
 		  (fontset_ascent + fontset_descent)) / 2 + fontset_ascent;
@@ -371,7 +371,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             y_loc += ((int)entry->rectangle.height -
     (font_ascent + font_descent)) / 2 + font_ascent;
 
-            XawXcbDrawText(XtDisplayOfObject(w), XtWindowOfObject(w), gc,
+            ISWXcbDrawText(XtDisplayOfObject(w), XtWindowOfObject(w), gc,
       x_loc + s, y_loc, label, len);
         }
 
@@ -432,7 +432,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     /* XCB Fix: Add NULL checks before comparing font->fid */
     Bool font_changed = False;
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if (old_entry->sme.international == False) {
 #endif
 	if (old_entry->sme_bsb.font != NULL && entry->sme_bsb.font != NULL) {
@@ -441,7 +441,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	    /* One is NULL and the other isn't */
 	    font_changed = True;
 	}
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     }
 #endif
 
@@ -457,7 +457,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     {
 	GetBitmapInfo(new, TRUE);
 
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
 	entry->sme_bsb.left_stippled = None;
 	if (old_entry->sme_bsb.left_stippled != None)
 	    XFreePixmap(XtDisplayOfObject(current),
@@ -474,7 +474,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     {
 	GetBitmapInfo(new, FALSE);
 
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
 	entry->sme_bsb.right_stippled = None;
 	if (old_entry->sme_bsb.right_stippled != None)
 	    XFreePixmap(XtDisplayOfObject(current),
@@ -487,7 +487,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (entry->sme_bsb.right_margin != old_entry->sme_bsb.right_margin)
 	ret_val = TRUE;
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( ( old_entry->sme_bsb.fontset != entry->sme_bsb.fontset) &&
 				(old_entry->sme.international == True ) )
         /* don't change the GCs - the fontset is not in them */
@@ -597,7 +597,7 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
     SmeBSBObject entry = (SmeBSBObject) w;
     Dimension h;
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( entry->sme.international == True ) {
         if (entry->sme_bsb.label == NULL)
 	    *width = 0;
@@ -650,7 +650,7 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
 static void
 DrawBitmaps(Widget w, GC gc)
 {
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
     Widget parent = XtParent(w);
 #endif
     int x_loc, y_loc;
@@ -673,7 +673,7 @@ DrawBitmaps(Widget w, GC gc)
 		      entry->sme_bsb.left_bitmap_height) / 2;
 
     pm = entry->sme_bsb.left_bitmap;
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
     if (!XtIsSensitive(w)) {
 	if (entry->sme_bsb.left_stippled == None)
 	    entry->sme_bsb.left_stippled = stipplePixmap(w,
@@ -713,7 +713,7 @@ DrawBitmaps(Widget w, GC gc)
 		      entry->sme_bsb.right_bitmap_height) / 2;
 
      pm = entry->sme_bsb.right_bitmap;
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
     if (!XtIsSensitive(w)) {
 	if (entry->sme_bsb.right_stippled == None)
 	    entry->sme_bsb.right_stippled = stipplePixmap(w,
@@ -835,7 +835,7 @@ CreateGCs(Widget w)
     SmeBSBObject entry = (SmeBSBObject) w;
     xcb_create_gc_value_list_t values;
     XtGCMask mask;
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     XtGCMask mask_i18n;
 #endif
 
@@ -851,7 +851,7 @@ CreateGCs(Widget w)
         mask |= XCB_GC_FONT;
     }
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     mask_i18n = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
     if ( entry->sme.international == True )
         entry->sme_bsb.rev_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
@@ -861,7 +861,7 @@ CreateGCs(Widget w)
 
     values.foreground = entry->sme_bsb.foreground;
     values.background = XtParent(w)->core.background_pixel;
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( entry->sme.international == True )
         entry->sme_bsb.norm_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
     else
@@ -881,7 +881,7 @@ CreateGCs(Widget w)
         gray_mask |= XCB_GC_FONT;
     }
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( entry->sme.international == True )
         entry->sme_bsb.norm_gray_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
     else

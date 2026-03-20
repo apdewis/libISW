@@ -132,7 +132,7 @@ static void Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t 
 - src/SmeBSB.c - Redisplay()
 - src/List.c - Redisplay()
 - src/Text.c - ProcessExposeRegion()
-- src/ThreeD.c - _Xaw3dDrawShadows()
+- src/ThreeD.c - _ISWDrawShadows()
 - Any other widgets with Redisplay/Expose methods
 
 **Also update forward declarations:**
@@ -270,7 +270,7 @@ free(chars);
 **Optimization:** Create helper function to avoid code duplication:
 ```c
 /* Add to src/XawXcbDraw.c */
-int XawXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
+int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
                     const char *text, int len)
 {
     xcb_query_text_extents_cookie_t cookie;
@@ -300,7 +300,7 @@ int XawXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
 
 **Add declaration to [`src/XawXcbDraw.h`](../src/XawXcbDraw.h):**
 ```c
-int XawXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
+int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
                     const char *text, int len);
 ```
 
@@ -308,7 +308,7 @@ int XawXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
 ```c
 #include "XawXcbDraw.h"
 
-int width = XawXcbTextWidth(XtDisplay(widget), widget->label.font->fid,
+int width = ISWXcbTextWidth(XtDisplay(widget), widget->label.font->fid,
                              text, len);
 ```
 
@@ -347,7 +347,7 @@ if (widget->label.encoding) {
 #else
 {
     // Force 8-bit text
-    width = XawXcbTextWidth(conn, font, label, len);
+    width = ISWXcbTextWidth(conn, font, label, len);
     xcb_image_text_8(conn, len, win, gc, x, y, label);
     xcb_flush(conn);
 }
@@ -364,7 +364,7 @@ if (widget->label.encoding) {
 
 **Short-term solution:** Stub out internationalization:
 ```c
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 if (widget->simple.international == True) {
     // TEMPORARY: Disable XFontSet rendering
     // Fall back to single-byte font
@@ -375,7 +375,7 @@ if (widget->simple.international == True) {
     XmbDrawString(dpy, win, fset, gc, x, y, label, len);
     #else
     // Use single-byte font instead
-    int width = XawXcbTextWidth(conn, widget->label.font->fid, label, len);
+    int width = ISWXcbTextWidth(conn, widget->label.font->fid, label, len);
     xcb_image_text_8(conn, len, win, gc, x, y, label);
     xcb_flush(conn);
     #endif
@@ -384,8 +384,8 @@ if (widget->simple.international == True) {
 ```
 
 **Long-term solution (document for Xft migration):**
-- Create XawFontSet wrapper structure
-- Wrap Xft fonts in XawFontSet
+- Create ISWFontSet wrapper structure
+- Wrap Xft fonts in ISWFontSet
 - Implement XawTextWidth(), XawDrawString() that use Xft internally
 - See Phase 7 for migration guide
 
@@ -527,7 +527,7 @@ if (reply != NULL) {
  */
 
 /* Text width calculation using xcb_query_text_extents */
-int XawXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
+int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
                     const char *text, int len);
 
 /* Font metrics query using xcb_query_font */
@@ -535,20 +535,20 @@ typedef struct {
     int ascent;
     int descent;
     int max_char_width;
-} XawFontMetrics;
+} ISWFontMetrics;
 
-void XawXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
-                            XawFontMetrics *metrics);
+void ISWXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
+                            ISWFontMetrics *metrics);
 
 /* Text drawing using xcb_image_text_8 */
-void XawXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
+void ISWXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
                     xcb_gcontext_t gc, int16_t x, int16_t y,
                     const char *text, uint8_t len);
 ```
 
 **Implement in [`src/XawXcbDraw.c`](../src/XawXcbDraw.c):**
 ```c
-int XawXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
+int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
                     const char *text, int len)
 {
     xcb_query_text_extents_cookie_t cookie;
@@ -581,8 +581,8 @@ int XawXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
     return width;
 }
 
-void XawXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
-                            XawFontMetrics *metrics)
+void ISWXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
+                            ISWFontMetrics *metrics)
 {
     xcb_query_font_cookie_t cookie;
     xcb_query_font_reply_t *font_info;
@@ -603,7 +603,7 @@ void XawXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
     }
 }
 
-void XawXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
+void ISWXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
                     xcb_gcontext_t gc, int16_t x, int16_t y,
                     const char *text, uint8_t len)
 {
@@ -627,12 +627,12 @@ Create file: [`plans/XFT_MIGRATION_GUIDE.md`](XFT_MIGRATION_GUIDE.md)
 Xft provides high-quality anti-aliased text rendering with full Unicode support.
 Migration from XCB core fonts to Xft involves:
 
-1. Wrapping Xft fonts in XawFontSet structure
-2. Replacing XawXcbTextWidth with XftTextExtentsUtf8
-3. Replacing XawXcbDrawText with XftDrawStringUtf8
+1. Wrapping Xft fonts in ISWFontSet structure
+2. Replacing ISWXcbTextWidth with XftTextExtentsUtf8
+3. Replacing ISWXcbDrawText with XftDrawStringUtf8
 4. Creating XftDraw contexts for widgets
 
-### XawFontSet Structure
+### ISWFontSet Structure
 
 ```c
 /* To be added to a new XawXftCompat.h */
@@ -642,7 +642,7 @@ typedef struct _XawFontSet {
     int descent;
     int height;
     int max_char_width;
-} XawFontSet;
+} ISWFontSet;
 ```
 
 ### Font Loading
@@ -654,12 +654,12 @@ XFontStruct *font = XLoadQueryFont(dpy, fontname);
 
 **Future (Xft):**
 ```c
-XawFontSet *fontset = XawLoadFontSet(dpy, screen, fontname);
+ISWFontSet *fontset = XawLoadFontSet(dpy, screen, fontname);
 
 /* Implementation: */
-XawFontSet *XawLoadFontSet(Display *dpy, Screen *screen, const char *name)
+ISWFontSet *XawLoadFontSet(Display *dpy, Screen *screen, const char *name)
 {
-    XawFontSet *fs = malloc(sizeof(XawFontSet));
+    ISWFontSet *fs = malloc(sizeof(ISWFontSet));
     fs->xft_font = XftFontOpenName(dpy, screen->screen_num, name);
     if (fs->xft_font) {
         fs->ascent = fs->xft_font->ascent;
@@ -675,7 +675,7 @@ XawFontSet *XawLoadFontSet(Display *dpy, Screen *screen, const char *name)
 
 **Current (XCB):**
 ```c
-int width = XawXcbTextWidth(conn, font, text, len);
+int width = ISWXcbTextWidth(conn, font, text, len);
 ```
 
 **Future (Xft):**
@@ -683,7 +683,7 @@ int width = XawXcbTextWidth(conn, font, text, len);
 int width = XawTextWidth(fontset, text, len);
 
 /* Implementation: */
-int XawTextWidth(XawFontSet *fs, const char *text, int len)
+int XawTextWidth(ISWFontSet *fs, const char *text, int len)
 {
     XGlyphInfo extents;
     XftTextExtentsUtf8(dpy, fs->xft_font, (FcChar8*)text, len, &extents);
@@ -695,7 +695,7 @@ int XawTextWidth(XawFontSet *fs, const char *text, int len)
 
 **Current (XCB):**
 ```c
-XawXcbDrawText(conn, win, gc, x, y, text, len);
+ISWXcbDrawText(conn, win, gc, x, y, text, len);
 ```
 
 **Future (Xft):**
@@ -703,7 +703,7 @@ XawXcbDrawText(conn, win, gc, x, y, text, len);
 XawDrawString(widget, fontset, color, x, y, text, len);
 
 /* Implementation: */
-void XawDrawString(Widget w, XawFontSet *fs, Pixel pixel,
+void XawDrawString(Widget w, ISWFontSet *fs, Pixel pixel,
                    int x, int y, const char *text, int len)
 {
     xcb_connection_t *conn = XtDisplay(w);
@@ -729,8 +729,8 @@ void XawDrawString(Widget w, XawFontSet *fs, Pixel pixel,
 /* In LabelP.h and similar: */
 typedef struct {
     /* ... */
-#ifdef XAW_USE_XFT
-    XawFontSet *fontset;
+#ifdef ISW_USE_XFT
+    ISWFontSet *fontset;
 #else
     XFontStruct *font;
 #endif
@@ -743,10 +743,10 @@ typedef struct {
 # In configure.ac:
 AC_ARG_ENABLE([xft],
     AS_HELP_STRING([--enable-xft], [Use Xft for text rendering (default: no)]),
-    [XAW_USE_XFT=$enableval], [XAW_USE_XFT=no])
-if test "x$XAW_USE_XFT" = xyes; then
+    [ISW_USE_XFT=$enableval], [ISW_USE_XFT=no])
+if test "x$ISW_USE_XFT" = xyes; then
     PKG_CHECK_MODULES(XFT, xft)
-    AC_DEFINE(XAW_USE_XFT, 1, [Use Xft for rendering])
+    AC_DEFINE(ISW_USE_XFT, 1, [Use Xft for rendering])
 fi
 ```
 

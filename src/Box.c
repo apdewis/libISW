@@ -57,9 +57,9 @@ SOFTWARE.
 
 #include	<X11/IntrinsicP.h>
 #include	<X11/StringDefs.h>
-#include	<X11/Xaw3d/XawInit.h>
-#include	<X11/Xaw3d/BoxP.h>
-#include	"XawXcbDraw.h"
+#include	<ISW/ISWInit.h>
+#include	<ISW/BoxP.h>
+#include	"ISWXcbDraw.h"
 
 /****************************************************************
  *
@@ -576,7 +576,7 @@ static void
 ClassInitialize(void)
 {
     XawInitializeWidgetSet();
-    XtSetTypeConverter( XtRString, XtROrientation, XawCvtStringToOrientation,
+    XtSetTypeConverter( XtRString, XtROrientation, ISWCvtStringToOrientation,
 		        (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
 

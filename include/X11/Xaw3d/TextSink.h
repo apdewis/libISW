@@ -50,7 +50,7 @@ SOFTWARE.
 #define _XawTextSink_h
 
 #include <xcb/xcb.h>
-#include <X11/Xaw3d/Text.h>
+#include <ISW/Text.h>
 
 /***********************************************************************
  *
@@ -106,8 +106,8 @@ extern void XawTextSinkDisplayText(
     Position		/* x */,
     Position		/* y */,
 #endif
-    XawTextPosition	/* pos1 */,
-    XawTextPosition	/* pos2 */,
+    ISWTextPosition	/* pos1 */,
+    ISWTextPosition	/* pos2 */,
 #if NeedWidePrototypes
     /* Boolean */ int	/* highlight */
 #else
@@ -180,7 +180,7 @@ extern void XawTextSinkClearToBackground(
 
 extern void XawTextSinkFindPosition(
     Widget		/* w */,
-    XawTextPosition	/* fromPos */,
+    ISWTextPosition	/* fromPos */,
     int			/* fromX */,
     int			/* width */,
 #if NeedWidePrototypes
@@ -188,7 +188,7 @@ extern void XawTextSinkFindPosition(
 #else
     Boolean		/* stopAtWordBreak */,
 #endif
-    XawTextPosition*	/* pos_return */,
+    ISWTextPosition*	/* pos_return */,
     int*		/* width_return */,
     int*		/* height_return */
 );
@@ -207,11 +207,11 @@ extern void XawTextSinkFindPosition(
 
 extern void XawTextSinkFindDistance (
     Widget		/* w */,
-    XawTextPosition	/* fromPos */,
+    ISWTextPosition	/* fromPos */,
     int			/* fromX */,
-    XawTextPosition     /* toPos */,
+    ISWTextPosition     /* toPos */,
     int*		/* width_return */,
-    XawTextPosition*	/* pos_return */,
+    ISWTextPosition*	/* pos_return */,
     int*		/* height_return */
 );
 
@@ -227,10 +227,10 @@ extern void XawTextSinkFindDistance (
 
 extern void XawTextSinkResolve(
     Widget		/* w */,
-    XawTextPosition	/* fromPos */,
+    ISWTextPosition	/* fromPos */,
     int			/* fromX */,
     int			/* width */,
-    XawTextPosition*	/* pos_return */
+    ISWTextPosition*	/* pos_return */
 );
 
 /*	Function Name: XawTextSinkMaxLines

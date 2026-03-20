@@ -36,19 +36,19 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/SmeP.h>
-#include <X11/Xaw3d/Cardinals.h>
+#include <ISW/ISWInit.h>
+#include <ISW/SmeP.h>
+#include <ISW/Cardinals.h>
 
 #define offset(field) XtOffsetOf(SmeRec, sme.field)
 static XtResource resources[] = {
   {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
      offset(callbacks), XtRCallback, (XtPointer)NULL},
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   {XtNinternational, XtCInternational, XtRBoolean, sizeof(Boolean),
      offset(international), XtRImmediate, (XtPointer) FALSE},
 #endif

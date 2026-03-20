@@ -30,9 +30,9 @@
 #ifndef _XawTipP_h
 #define _XawTipP_h
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/Tip.h>
-#include <X11/Xaw3d/XawXftCompat.h>  /* XawFontSet typedef */
+#include "ISWP.h"
+#include <ISW/Tip.h>
+#include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
 
 typedef struct {
     XtPointer extension;
@@ -49,8 +49,8 @@ typedef struct _TipPart {
     /* resources */
     Pixel foreground;
     XFontStruct	*font;
-#ifdef XAW_INTERNATIONALIZATION
-    XawFontSet *fontset;
+#ifdef ISW_INTERNATIONALIZATION
+    ISWFontSet *fontset;
 #endif
     Dimension internal_width;
     Dimension internal_height;
@@ -61,7 +61,7 @@ typedef struct _TipPart {
     /* private */
     GC gc;
     XtIntervalId timer;
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     Boolean international;
 #endif
     unsigned char encoding;

@@ -52,13 +52,13 @@ SOFTWARE.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/Scrollbar.h>
-#include <X11/Xaw3d/ViewportP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/Scrollbar.h>
+#include <ISW/ViewportP.h>
 
 #include <stdint.h>
 #include <xcb/xcb.h>
-#include "XawXcbDraw.h"
+#include "ISWXcbDraw.h"
 
 static void ScrollUpDownProc(Widget, XtPointer, XtPointer);
 static void ThumbProc(Widget, XtPointer, XtPointer);
@@ -454,7 +454,7 @@ ChangeManaged(Widget widget)
 static void
 SetBar(Widget w, Position top, Dimension length, Dimension total)
 {
-    XawScrollbarSetThumb(w, (float)top/(float)total,
+    ISWScrollbarSetThumb(w, (float)top/(float)total,
 			 (float)length/(float)total);
 }
 

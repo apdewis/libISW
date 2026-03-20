@@ -50,8 +50,8 @@ SOFTWARE.
 #define _XawTextP_h
 
 #include <xcb/xcb.h>
-#include <X11/Xaw3d/Text.h>
-#include <X11/Xaw3d/SimpleP.h>
+#include <ISW/Text.h>
+#include <ISW/SimpleP.h>
 
 /****************************************************************
  *
@@ -63,7 +63,7 @@ SOFTWARE.
 #define GETLASTPOS  XawTextSourceScan(ctx->text.source, 0, \
 				      XawstAll, XawsdRight, 1, TRUE)
 
-#define zeroPosition ((XawTextPosition) 0)
+#define zeroPosition ((ISWTextPosition) 0)
 
 extern XtActionsRec _XawTextActionsTable[];
 extern Cardinal _XawTextActionsTableCount;
@@ -83,13 +83,13 @@ extern Cardinal _XawTextActionsTableCount;
 /* displayable text management data structures */
 
 typedef struct {
-  XawTextPosition position;
+  ISWTextPosition position;
   Position y;
   Dimension textWidth;
 } XawTextLineTableEntry, *XawTextLineTableEntryPtr;
 
 typedef struct {
-    XawTextPosition   left, right;
+    ISWTextPosition   left, right;
     XawTextSelectType type;
     xcb_atom_t*	     selections;
     int		     atom_count;
@@ -109,7 +109,7 @@ typedef struct _XawTextSelectionSalt {
 
 /* Line Tables are n+1 long - last position displayed is in last lt entry */
 typedef struct {
-  XawTextPosition	 top;	/* Top of the displayed text.		*/
+  ISWTextPosition	 top;	/* Top of the displayed text.		*/
   int			 lines;	/* How many lines in this table.	*/
   XawTextLineTableEntry *info;  /* A dynamic array, one entry per line  */
 } XawTextLineTable, *XawTextLineTablePtr;
@@ -170,7 +170,7 @@ typedef struct _TextPart {
     /* resources */
 
     Widget              source, sink;
-    XawTextPosition	insertPos;
+    ISWTextPosition	insertPos;
     XawTextSelection	s;
     XawTextSelectType	*sarray;	   /* Array to cycle for selections. */
     XawTextSelectionSalt    *salt;	     /* salted away selections */
@@ -197,17 +197,17 @@ typedef struct _TextPart {
     Widget	    vbar, hbar;	    /* The scroll bars (none = NULL). */
     struct SearchAndReplace * search;/* Search and replace structure. */
     Widget          file_insert;    /* The file insert popup widget. */
-    XawTextPosition  *updateFrom;   /* Array of start positions for update. */
-    XawTextPosition  *updateTo;	    /* Array of end positions for update. */
+    ISWTextPosition  *updateFrom;   /* Array of start positions for update. */
+    ISWTextPosition  *updateTo;	    /* Array of end positions for update. */
     int		    numranges;	    /* How many update ranges there are. */
     int		    maxranges;	    /* How many ranges we have space for */
-    XawTextPosition  lastPos;	    /* Last position of source. */
+    ISWTextPosition  lastPos;	    /* Last position of source. */
     xcb_gcontext_t  gc;
     Boolean	    showposition;   /* True if we need to show the position. */
     Boolean         hasfocus;       /* TRUE if we currently have input focus.*/
     Boolean	    update_disabled; /* TRUE if display updating turned off */
     Boolean         single_char;    /* Single character replaced. */
-    XawTextPosition  old_insert;    /* Last insertPos for batched updates */
+    ISWTextPosition  old_insert;    /* Last insertPos for batched updates */
     short           mult;	    /* Multiplier. */
     struct text_move * copy_area_offsets; /* Text offset area (linked list) */
     Widget          threeD;	    /* shadow drawing */
@@ -248,14 +248,14 @@ typedef struct _TextRec {
 
 extern void _XawTextBuildLineTable (
     TextWidget /*ctx*/,
-    XawTextPosition /*top pos*/,
+    ISWTextPosition /*top pos*/,
     _XtBoolean /* force_rebuild */
 );
 
 extern char* _XawTextGetSTRING(
     TextWidget /*ctx*/,
-    XawTextPosition /*left*/,
-    XawTextPosition /*right*/
+    ISWTextPosition /*left*/,
+    ISWTextPosition /*right*/
 );
 
 extern void _XawTextSaltAwaySelection(
@@ -266,7 +266,7 @@ extern void _XawTextSaltAwaySelection(
 
 extern void _XawTextPosToXY(
     Widget			/* w */,
-    XawTextPosition		/* pos */,
+    ISWTextPosition		/* pos */,
     Position *			/* x */,
     Position *			/*y */
 );

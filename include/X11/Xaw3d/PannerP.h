@@ -28,8 +28,8 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef _XawPannerP_h
 #define _XawPannerP_h
 
-#include <X11/Xaw3d/Panner.h>
-#include <X11/Xaw3d/SimpleP.h>		/* parent */
+#include <ISW/Panner.h>
+#include <ISW/SimpleP.h>		/* parent */
 #include <xcb/xproto.h>
 
 typedef struct {			/* new fields in widget class */

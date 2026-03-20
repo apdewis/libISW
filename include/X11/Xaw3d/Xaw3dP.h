@@ -27,8 +27,8 @@ CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 *********************************************************************/
 
-#ifndef _Xaw3dP_h
-#define _Xaw3dP_h
+#ifndef _ISWP_h
+#define _ISWP_h
 
 #include <X11/IntrinsicP.h>
 #include <xcb/xcb.h>
@@ -128,7 +128,7 @@ typedef enum {
 typedef unsigned int XtGravity;
 #endif
 
-#ifdef XAW_GRAY_BLKWHT_STIPPLES
+#ifdef ISW_GRAY_BLKWHT_STIPPLES
 extern unsigned long
 grayPixel(
     unsigned long,
@@ -139,7 +139,7 @@ grayPixel(
 #define grayPixel(p, dpy, scn)	(p)
 #endif
 
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
 extern Pixmap
 stipplePixmap(
     Widget,
@@ -150,4 +150,4 @@ stipplePixmap(
 );
 #endif
 
-#endif	/* _Xaw3dP_h */
+#endif	/* _ISWP_h */

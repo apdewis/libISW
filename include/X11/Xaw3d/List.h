@@ -42,8 +42,8 @@ in this Software without prior written authorization from the X Consortium.
  *
  ***********************************************************************/
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/Simple.h>
+#include "ISWP.h"
+#include <ISW/Simple.h>
 
 /* Resources:
 
@@ -134,7 +134,7 @@ in this Software without prior written authorization from the X Consortium.
 #define XtNrowSpacing "rowSpacing"
 #define XtNverticalList "verticalList"
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 #ifndef XtNfontSet
 #define XtNfontSet "fontSet"
 #endif

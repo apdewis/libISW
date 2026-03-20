@@ -125,7 +125,7 @@ extern WidgetClass scrollbarWidgetClass;
 
 _XFUNCPROTOBEGIN
 
-extern void XawScrollbarSetThumb(
+extern void ISWScrollbarSetThumb(
     Widget		/* scrollbar */,
 #if NeedWidePrototypes
     /* float */ double	/* top */,

@@ -74,11 +74,11 @@ SOFTWARE.
  *
  ****************************************************************/
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/Text.h>		/* AsciiText is a subclass of Text */
-#include <X11/Xaw3d/AsciiSrc.h>
-#ifdef XAW_INTERNATIONALIZATION
-#include <X11/Xaw3d/MultiSrc.h>
+#include "ISWP.h"
+#include <ISW/Text.h>		/* AsciiText is a subclass of Text */
+#include <ISW/AsciiSrc.h>
+#ifdef ISW_INTERNATIONALIZATION
+#include <ISW/MultiSrc.h>
 #endif
 
 /* Resources:

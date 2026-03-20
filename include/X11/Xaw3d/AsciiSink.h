@@ -55,7 +55,7 @@ SOFTWARE.
  *
  ***********************************************************************/
 
-#include <X11/Xaw3d/TextSink.h>
+#include <ISW/TextSink.h>
 
 /* Resources:
 

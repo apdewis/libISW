@@ -68,19 +68,19 @@ SOFTWARE.
  *          kit@expo.lcs.mit.edu
  */
 
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/Cardinals.h>
-#include <X11/Xaw3d/AsciiTextP.h>
-#include <X11/Xaw3d/AsciiSrc.h>
-#include <X11/Xaw3d/AsciiSink.h>
-#ifdef XAW_INTERNATIONALIZATION
-#include <X11/Xaw3d/MultiSrc.h>
-#include <X11/Xaw3d/MultiSinkP.h>
-#include <X11/Xaw3d/XawImP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/Cardinals.h>
+#include <ISW/AsciiTextP.h>
+#include <ISW/AsciiSrc.h>
+#include <ISW/AsciiSink.h>
+#ifdef ISW_INTERNATIONALIZATION
+#include <ISW/MultiSrc.h>
+#include <ISW/MultiSinkP.h>
+#include <ISW/ISWImP.h>
 #endif
 
 #define TAB_COUNT 32
@@ -142,7 +142,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   int i;
   int tabs[TAB_COUNT], tab;
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   MultiSinkObject sink;
 #endif
 
@@ -155,7 +155,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   /* This is the main change for internationalization.  */
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if ( w->simple.international == True ) { /* The multi* are international. */
 
       w->text.source = XtCreateWidget( "textSource", multiSrcObjectClass,
@@ -187,7 +187,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   /* If we are using a MultiSink we need to tell the input method stuff. */
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if ( w->simple.international == True ) {
     Arg list[4];
     Cardinal ac = 0;
@@ -208,7 +208,7 @@ Destroy(Widget w)
 {
     /* Disconnect input method */
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( ((AsciiWidget)w)->simple.international == True )
         _XawImUnregister( w );
 #endif

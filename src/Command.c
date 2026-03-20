@@ -53,20 +53,20 @@ SOFTWARE.
  * Command.c - Command button widget
  */
 
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 /* XCB Migration: Removed Xmu includes - not compatible with XCB */
 /* #include <X11/Xmu/Misc.h> */
 /* #include <X11/Xmu/Converters.h> */
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/CommandP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/CommandP.h>
 /* XCB Migration: Use XCB shape extension instead of Xlib */
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/shape.h>
-#include "XawXcbDraw.h"     /* For XCB GC helpers */
+#include "ISWXcbDraw.h"     /* For XCB GC helpers */
 
 #define DEFAULT_HIGHLIGHT_THICKNESS 2
 #define DEFAULT_SHAPE_HIGHLIGHT 32767
@@ -195,7 +195,7 @@ Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
 {
   xcb_create_gc_value_list_t values;
 
-  XawInitGCValues(&values);
+  ISWInitGCValues(&values);
   values.foreground   = fg;
   values.background	= bg;
   
@@ -215,7 +215,7 @@ Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
   else
     values.line_width   = 0;
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if ( cbw->simple.international == True )
       return XtAllocateGC((Widget)cbw, 0,
 		 (XCB_GC_FOREGROUND|XCB_GC_BACKGROUND|XCB_GC_LINE_WIDTH|XCB_GC_CAP_STYLE),
@@ -269,10 +269,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   cbw->command.highlighted = HighlightNone;
 }
 
-static XawRegionPtr
+static ISWRegionPtr
 HighlightRegion(CommandWidget cbw)
 {
-  static XawRegionPtr outerRegion = NULL, innerRegion, emptyRegion;
+  static ISWRegionPtr outerRegion = NULL, innerRegion, emptyRegion;
   Dimension s = cbw->threeD.shadow_width;
   xcb_rectangle_t rect;
 
@@ -283,20 +283,20 @@ HighlightRegion(CommandWidget cbw)
 
   if (outerRegion == NULL) {
     /* save time by allocating scratch regions only once. */
-    outerRegion = XawCreateRegion();
-    innerRegion = XawCreateRegion();
-    emptyRegion = XawCreateRegion();
+    outerRegion = ISWCreateRegion();
+    innerRegion = ISWCreateRegion();
+    emptyRegion = ISWCreateRegion();
   }
 
   rect.x = rect.y = s;
   rect.width = cbw->core.width - 2 * s;
   rect.height = cbw->core.height - 2 * s;
-  XawUnionRectWithRegion( &rect, emptyRegion, outerRegion );
+  ISWUnionRectWithRegion( &rect, emptyRegion, outerRegion );
   rect.x = rect.y += cbw->command.highlight_thickness;
   rect.width -= cbw->command.highlight_thickness * 2;
   rect.height -= cbw->command.highlight_thickness * 2;
-  XawUnionRectWithRegion( &rect, emptyRegion, innerRegion );
-  XawSubtractRegion( outerRegion, innerRegion, outerRegion );
+  ISWUnionRectWithRegion( &rect, emptyRegion, innerRegion );
+  ISWSubtractRegion( outerRegion, innerRegion, outerRegion );
   return outerRegion;
 }
 
@@ -633,7 +633,7 @@ ShapeButton(CommandWidget cbw, Boolean checkRectangular)
     }
 
     if (checkRectangular || cbw->command.shape_style != XawShapeRectangle) {
- if (!XawReshapeWidget((Widget) cbw, cbw->command.shape_style,
+ if (!ISWReshapeWidget((Widget) cbw, cbw->command.shape_style,
          corner_size, corner_size)) {
      cbw->command.shape_style = XawShapeRectangle;
      return(False);

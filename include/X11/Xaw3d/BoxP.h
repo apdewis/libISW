@@ -61,9 +61,9 @@ SOFTWARE.
  ***********************************************************************/
 
 /* Include XCB type compatibility layer before Xmu headers */
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 
-#include <X11/Xaw3d/Box.h>
+#include <ISW/Box.h>
 
 /* XtOrientation is defined in standard Xt headers, but if not available, use fallback */
 #ifndef _XawXtOrientation_defined

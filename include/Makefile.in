@@ -95,7 +95,7 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(am__xaw3dinclude_HEADERS_DIST) \
+DIST_COMMON = $(srcdir)/Makefile.am $(am__iswinclude_HEADERS_DIST) \
 	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
@@ -120,35 +120,25 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-am__xaw3dinclude_HEADERS_DIST = X11/Xaw3d/AllWidgets.h \
-	X11/Xaw3d/AsciiSink.h X11/Xaw3d/AsciiSinkP.h \
-	X11/Xaw3d/AsciiSrc.h X11/Xaw3d/AsciiSrcP.h \
-	X11/Xaw3d/AsciiText.h X11/Xaw3d/AsciiTextP.h X11/Xaw3d/Box.h \
-	X11/Xaw3d/BoxP.h X11/Xaw3d/Cardinals.h X11/Xaw3d/Command.h \
-	X11/Xaw3d/CommandP.h X11/Xaw3d/Dialog.h X11/Xaw3d/DialogP.h \
-	X11/Xaw3d/Form.h X11/Xaw3d/FormP.h X11/Xaw3d/Grip.h \
-	X11/Xaw3d/GripP.h X11/Xaw3d/Label.h X11/Xaw3d/LabelP.h \
-	X11/Xaw3d/Layout.h X11/Xaw3d/LayoutP.h X11/Xaw3d/List.h \
-	X11/Xaw3d/ListP.h X11/Xaw3d/MenuButton.h \
-	X11/Xaw3d/MenuButtoP.h X11/Xaw3d/Paned.h X11/Xaw3d/PanedP.h \
-	X11/Xaw3d/Panner.h X11/Xaw3d/PannerP.h X11/Xaw3d/Porthole.h \
-	X11/Xaw3d/PortholeP.h X11/Xaw3d/Repeater.h \
-	X11/Xaw3d/RepeaterP.h X11/Xaw3d/Reports.h \
-	X11/Xaw3d/Scrollbar.h X11/Xaw3d/ScrollbarP.h \
-	X11/Xaw3d/Simple.h X11/Xaw3d/SimpleMenP.h \
-	X11/Xaw3d/SimpleMenu.h X11/Xaw3d/SimpleP.h X11/Xaw3d/SmeBSB.h \
-	X11/Xaw3d/SmeBSBP.h X11/Xaw3d/Sme.h X11/Xaw3d/SmeLine.h \
-	X11/Xaw3d/SmeLineP.h X11/Xaw3d/SmeP.h X11/Xaw3d/SmeThreeD.h \
-	X11/Xaw3d/SmeThreeDP.h X11/Xaw3d/StripCharP.h \
-	X11/Xaw3d/StripChart.h X11/Xaw3d/Text.h X11/Xaw3d/TextP.h \
-	X11/Xaw3d/TextSink.h X11/Xaw3d/TextSinkP.h X11/Xaw3d/TextSrc.h \
-	X11/Xaw3d/TextSrcP.h X11/Xaw3d/ThreeD.h X11/Xaw3d/ThreeDP.h \
-	X11/Xaw3d/Tip.h X11/Xaw3d/TipP.h X11/Xaw3d/Toggle.h \
-	X11/Xaw3d/ToggleP.h X11/Xaw3d/Tree.h X11/Xaw3d/TreeP.h \
-	X11/Xaw3d/Viewport.h X11/Xaw3d/ViewportP.h X11/Xaw3d/Xaw3dP.h \
-	X11/Xaw3d/XawInit.h X11/Xaw3d/MultiSrc.h X11/Xaw3d/MultiSrcP.h \
-	X11/Xaw3d/MultiSink.h X11/Xaw3d/MultiSinkP.h \
-	X11/Xaw3d/VendorEP.h X11/Xaw3d/XawImP.h
+am__iswinclude_HEADERS_DIST = ISW/AllWidgets.h ISW/AsciiSink.h \
+	ISW/AsciiSinkP.h ISW/AsciiSrc.h ISW/AsciiSrcP.h \
+	ISW/AsciiText.h ISW/AsciiTextP.h ISW/Box.h ISW/BoxP.h \
+	ISW/Cardinals.h ISW/Command.h ISW/CommandP.h ISW/Dialog.h \
+	ISW/DialogP.h ISW/Form.h ISW/FormP.h ISW/Grip.h ISW/GripP.h \
+	ISW/Label.h ISW/LabelP.h ISW/Layout.h ISW/LayoutP.h ISW/List.h \
+	ISW/ListP.h ISW/MenuButton.h ISW/MenuButtoP.h ISW/Paned.h \
+	ISW/PanedP.h ISW/Panner.h ISW/PannerP.h ISW/Porthole.h \
+	ISW/PortholeP.h ISW/Repeater.h ISW/RepeaterP.h ISW/Reports.h \
+	ISW/Scrollbar.h ISW/ScrollbarP.h ISW/Simple.h ISW/SimpleMenP.h \
+	ISW/SimpleMenu.h ISW/SimpleP.h ISW/SmeBSB.h ISW/SmeBSBP.h \
+	ISW/Sme.h ISW/SmeLine.h ISW/SmeLineP.h ISW/SmeP.h \
+	ISW/SmeThreeD.h ISW/SmeThreeDP.h ISW/StripCharP.h \
+	ISW/StripChart.h ISW/Text.h ISW/TextP.h ISW/TextSink.h \
+	ISW/TextSinkP.h ISW/TextSrc.h ISW/TextSrcP.h ISW/ThreeD.h \
+	ISW/ThreeDP.h ISW/Tip.h ISW/TipP.h ISW/Toggle.h ISW/ToggleP.h \
+	ISW/Tree.h ISW/TreeP.h ISW/Viewport.h ISW/ViewportP.h \
+	ISW/ISWP.h ISW/ISWInit.h ISW/MultiSrc.h ISW/MultiSrcP.h \
+	ISW/MultiSink.h ISW/MultiSinkP.h ISW/VendorEP.h ISW/ISWImP.h
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -175,8 +165,8 @@ am__uninstall_files_from_dir = { \
   || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
-am__installdirs = "$(DESTDIR)$(xaw3dincludedir)"
-HEADERS = $(xaw3dinclude_HEADERS)
+am__installdirs = "$(DESTDIR)$(iswincludedir)"
+HEADERS = $(iswinclude_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -244,6 +234,7 @@ INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+ISW_CPPFLAGS = @ISW_CPPFLAGS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LEX = @LEX@
@@ -291,7 +282,6 @@ STRIP = @STRIP@
 VERSION = @VERSION@
 X11_CFLAGS = @X11_CFLAGS@
 X11_LIBS = @X11_LIBS@
-XAW3D_CPPFLAGS = @XAW3D_CPPFLAGS@
 XFT_CFLAGS = @XFT_CFLAGS@
 XFT_LIBS = @XFT_LIBS@
 XORG_MAN_PAGE = @XORG_MAN_PAGE@
@@ -355,90 +345,90 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-xaw3dincludedir = ${includedir}/X11/Xaw3d
-@XAW_INTERNATIONALIZATION_TRUE@I18N_HDRS = \
-@XAW_INTERNATIONALIZATION_TRUE@       X11/Xaw3d/MultiSrc.h \
-@XAW_INTERNATIONALIZATION_TRUE@       X11/Xaw3d/MultiSrcP.h \
-@XAW_INTERNATIONALIZATION_TRUE@       X11/Xaw3d/MultiSink.h \
-@XAW_INTERNATIONALIZATION_TRUE@       X11/Xaw3d/MultiSinkP.h \
-@XAW_INTERNATIONALIZATION_TRUE@       X11/Xaw3d/VendorEP.h \
-@XAW_INTERNATIONALIZATION_TRUE@       X11/Xaw3d/XawImP.h
+iswincludedir = ${includedir}/ISW
+@ISW_INTERNATIONALIZATION_TRUE@I18N_HDRS = \
+@ISW_INTERNATIONALIZATION_TRUE@       ISW/MultiSrc.h \
+@ISW_INTERNATIONALIZATION_TRUE@       ISW/MultiSrcP.h \
+@ISW_INTERNATIONALIZATION_TRUE@       ISW/MultiSink.h \
+@ISW_INTERNATIONALIZATION_TRUE@       ISW/MultiSinkP.h \
+@ISW_INTERNATIONALIZATION_TRUE@       ISW/VendorEP.h \
+@ISW_INTERNATIONALIZATION_TRUE@       ISW/ISWImP.h
 
-xaw3dinclude_HEADERS = \
-	X11/Xaw3d/AllWidgets.h \
-	X11/Xaw3d/AsciiSink.h \
-	X11/Xaw3d/AsciiSinkP.h \
-	X11/Xaw3d/AsciiSrc.h \
-	X11/Xaw3d/AsciiSrcP.h \
-	X11/Xaw3d/AsciiText.h \
-	X11/Xaw3d/AsciiTextP.h \
-	X11/Xaw3d/Box.h \
-	X11/Xaw3d/BoxP.h \
-	X11/Xaw3d/Cardinals.h \
-	X11/Xaw3d/Command.h \
-	X11/Xaw3d/CommandP.h \
-	X11/Xaw3d/Dialog.h \
-	X11/Xaw3d/DialogP.h \
-	X11/Xaw3d/Form.h \
-	X11/Xaw3d/FormP.h \
-	X11/Xaw3d/Grip.h \
-	X11/Xaw3d/GripP.h \
-	X11/Xaw3d/Label.h \
-	X11/Xaw3d/LabelP.h \
-	X11/Xaw3d/Layout.h \
-	X11/Xaw3d/LayoutP.h \
-	X11/Xaw3d/List.h \
-	X11/Xaw3d/ListP.h \
-	X11/Xaw3d/MenuButton.h \
-	X11/Xaw3d/MenuButtoP.h \
-	X11/Xaw3d/Paned.h \
-	X11/Xaw3d/PanedP.h \
-	X11/Xaw3d/Panner.h \
-	X11/Xaw3d/PannerP.h \
-	X11/Xaw3d/Porthole.h \
-	X11/Xaw3d/PortholeP.h \
-	X11/Xaw3d/Repeater.h \
-	X11/Xaw3d/RepeaterP.h \
-	X11/Xaw3d/Reports.h \
-	X11/Xaw3d/Scrollbar.h \
-	X11/Xaw3d/ScrollbarP.h \
-	X11/Xaw3d/Simple.h \
-	X11/Xaw3d/SimpleMenP.h \
-	X11/Xaw3d/SimpleMenu.h \
-	X11/Xaw3d/SimpleP.h \
-	X11/Xaw3d/SmeBSB.h \
-	X11/Xaw3d/SmeBSBP.h \
-	X11/Xaw3d/Sme.h \
-	X11/Xaw3d/SmeLine.h \
-	X11/Xaw3d/SmeLineP.h \
-	X11/Xaw3d/SmeP.h \
-	X11/Xaw3d/SmeThreeD.h \
-	X11/Xaw3d/SmeThreeDP.h \
-	X11/Xaw3d/StripCharP.h \
-	X11/Xaw3d/StripChart.h \
-	X11/Xaw3d/Text.h \
-	X11/Xaw3d/TextP.h \
-	X11/Xaw3d/TextSink.h \
-	X11/Xaw3d/TextSinkP.h \
-	X11/Xaw3d/TextSrc.h \
-	X11/Xaw3d/TextSrcP.h \
-	X11/Xaw3d/ThreeD.h \
-	X11/Xaw3d/ThreeDP.h \
-	X11/Xaw3d/Tip.h \
-	X11/Xaw3d/TipP.h \
-	X11/Xaw3d/Toggle.h \
-	X11/Xaw3d/ToggleP.h \
-	X11/Xaw3d/Tree.h \
-	X11/Xaw3d/TreeP.h \
-	X11/Xaw3d/Viewport.h \
-	X11/Xaw3d/ViewportP.h \
-	X11/Xaw3d/Xaw3dP.h \
-	X11/Xaw3d/XawInit.h \
+iswinclude_HEADERS = \
+	ISW/AllWidgets.h \
+	ISW/AsciiSink.h \
+	ISW/AsciiSinkP.h \
+	ISW/AsciiSrc.h \
+	ISW/AsciiSrcP.h \
+	ISW/AsciiText.h \
+	ISW/AsciiTextP.h \
+	ISW/Box.h \
+	ISW/BoxP.h \
+	ISW/Cardinals.h \
+	ISW/Command.h \
+	ISW/CommandP.h \
+	ISW/Dialog.h \
+	ISW/DialogP.h \
+	ISW/Form.h \
+	ISW/FormP.h \
+	ISW/Grip.h \
+	ISW/GripP.h \
+	ISW/Label.h \
+	ISW/LabelP.h \
+	ISW/Layout.h \
+	ISW/LayoutP.h \
+	ISW/List.h \
+	ISW/ListP.h \
+	ISW/MenuButton.h \
+	ISW/MenuButtoP.h \
+	ISW/Paned.h \
+	ISW/PanedP.h \
+	ISW/Panner.h \
+	ISW/PannerP.h \
+	ISW/Porthole.h \
+	ISW/PortholeP.h \
+	ISW/Repeater.h \
+	ISW/RepeaterP.h \
+	ISW/Reports.h \
+	ISW/Scrollbar.h \
+	ISW/ScrollbarP.h \
+	ISW/Simple.h \
+	ISW/SimpleMenP.h \
+	ISW/SimpleMenu.h \
+	ISW/SimpleP.h \
+	ISW/SmeBSB.h \
+	ISW/SmeBSBP.h \
+	ISW/Sme.h \
+	ISW/SmeLine.h \
+	ISW/SmeLineP.h \
+	ISW/SmeP.h \
+	ISW/SmeThreeD.h \
+	ISW/SmeThreeDP.h \
+	ISW/StripCharP.h \
+	ISW/StripChart.h \
+	ISW/Text.h \
+	ISW/TextP.h \
+	ISW/TextSink.h \
+	ISW/TextSinkP.h \
+	ISW/TextSrc.h \
+	ISW/TextSrcP.h \
+	ISW/ThreeD.h \
+	ISW/ThreeDP.h \
+	ISW/Tip.h \
+	ISW/TipP.h \
+	ISW/Toggle.h \
+	ISW/ToggleP.h \
+	ISW/Tree.h \
+	ISW/TreeP.h \
+	ISW/Viewport.h \
+	ISW/ViewportP.h \
+	ISW/ISWP.h \
+	ISW/ISWInit.h \
 	$(I18N_HDRS)
 
 EXTRA_DIST = \
-	X11/Xaw3d/Template.h \
-	X11/Xaw3d/TemplateP.h
+	ISW/Template.h \
+	ISW/TemplateP.h
 
 all: all-am
 
@@ -478,27 +468,27 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-xaw3dincludeHEADERS: $(xaw3dinclude_HEADERS)
+install-iswincludeHEADERS: $(iswinclude_HEADERS)
 	@$(NORMAL_INSTALL)
-	@list='$(xaw3dinclude_HEADERS)'; test -n "$(xaw3dincludedir)" || list=; \
+	@list='$(iswinclude_HEADERS)'; test -n "$(iswincludedir)" || list=; \
 	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(xaw3dincludedir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(xaw3dincludedir)" || exit 1; \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(iswincludedir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(iswincludedir)" || exit 1; \
 	fi; \
 	for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  echo "$$d$$p"; \
 	done | $(am__base_list) | \
 	while read files; do \
-	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(xaw3dincludedir)'"; \
-	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(xaw3dincludedir)" || exit $$?; \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(iswincludedir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(iswincludedir)" || exit $$?; \
 	done
 
-uninstall-xaw3dincludeHEADERS:
+uninstall-iswincludeHEADERS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(xaw3dinclude_HEADERS)'; test -n "$(xaw3dincludedir)" || list=; \
+	@list='$(iswinclude_HEADERS)'; test -n "$(iswincludedir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(xaw3dincludedir)'; $(am__uninstall_files_from_dir)
+	dir='$(DESTDIR)$(iswincludedir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -589,7 +579,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(HEADERS)
 installdirs:
-	for dir in "$(DESTDIR)$(xaw3dincludedir)"; do \
+	for dir in "$(DESTDIR)$(iswincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -642,7 +632,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-xaw3dincludeHEADERS
+install-data-am: install-iswincludeHEADERS
 
 install-dvi: install-dvi-am
 
@@ -686,7 +676,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-xaw3dincludeHEADERS
+uninstall-am: uninstall-iswincludeHEADERS
 
 .MAKE: install-am install-strip
 
@@ -696,13 +686,13 @@ uninstall-am: uninstall-xaw3dincludeHEADERS
 	dvi-am html html-am info info-am install install-am \
 	install-data install-data-am install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	install-xaw3dincludeHEADERS installcheck installcheck-am \
+	install-info install-info-am install-iswincludeHEADERS \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
 	installdirs maintainer-clean maintainer-clean-generic \
 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
 	ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-xaw3dincludeHEADERS
+	uninstall-iswincludeHEADERS
 
 .PRECIOUS: Makefile
 

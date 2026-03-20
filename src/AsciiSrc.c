@@ -33,7 +33,7 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -43,16 +43,16 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef X_NOT_STDC_ENV
 #include <stdlib.h>
 #endif
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/AsciiSrcP.h>
-#include "XawXcbDraw.h"
-#ifdef XAW_INTERNATIONALIZATION
-#include <X11/Xaw3d/MultiSrcP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/AsciiSrcP.h>
+#include "ISWXcbDraw.h"
+#ifdef ISW_INTERNATIONALIZATION
+#include <ISW/MultiSrcP.h>
 #endif
 
 
 #if (defined(ASCII_STRING) || defined(ASCII_DISK))
-#  include <X11/Xaw3d/AsciiText.h> /* for Widget Classes. */
+#  include <ISW/AsciiText.h> /* for Widget Classes. */
 #endif
 
 
@@ -75,7 +75,7 @@ static XtResource resources[] = {
        offset(type), XtRImmediate, (XtPointer)XawAsciiString},
     {XtNdataCompression, XtCDataCompression, XtRBoolean, sizeof (Boolean),
        offset(data_compression), XtRImmediate, (XtPointer) TRUE},
-    {XtNpieceSize, XtCPieceSize, XtRInt, sizeof (XawTextPosition),
+    {XtNpieceSize, XtCPieceSize, XtRInt, sizeof (ISWTextPosition),
        offset(piece_size), XtRImmediate, (XtPointer) BUFSIZ},
     {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
        offset(callback), XtRCallback, (XtPointer)NULL},
@@ -91,13 +91,13 @@ static XtResource resources[] = {
 };
 #undef offset
 
-static XawTextPosition Scan(Widget, XawTextPosition, XawTextScanType,
+static ISWTextPosition Scan(Widget, ISWTextPosition, XawTextScanType,
                             XawTextScanDirection, int, Boolean);
-static XawTextPosition Search(Widget, XawTextPosition, XawTextScanDirection,
-                              XawTextBlock *);
-static XawTextPosition ReadText(Widget, XawTextPosition, XawTextBlock *, int);
-static int ReplaceText(Widget, XawTextPosition, XawTextPosition, XawTextBlock *);
-static Piece * FindPiece(AsciiSrcObject, XawTextPosition, XawTextPosition *);
+static ISWTextPosition Search(Widget, ISWTextPosition, XawTextScanDirection,
+                              ISWTextBlock *);
+static ISWTextPosition ReadText(Widget, ISWTextPosition, ISWTextBlock *, int);
+static int ReplaceText(Widget, ISWTextPosition, ISWTextPosition, ISWTextBlock *);
+static Piece * FindPiece(AsciiSrcObject, ISWTextPosition, ISWTextPosition *);
 static Piece * AllocNewPiece(AsciiSrcObject, Piece *);
 static FILE * InitStringOrFile(AsciiSrcObject, Boolean);
 static void FreeAllPieces(AsciiSrcObject);
@@ -253,11 +253,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  *	Returns: The number of characters read into the buffer.
  */
 
-static XawTextPosition
-ReadText(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
+static ISWTextPosition
+ReadText(Widget w, ISWTextPosition pos, ISWTextBlock *text, int length)
 {
   AsciiSrcObject src = (AsciiSrcObject) w;
-  XawTextPosition count, start;
+  ISWTextPosition count, start;
   Piece * piece = FindPiece(src, pos, &start);
 
   text->firstPos = pos;
@@ -277,12 +277,12 @@ ReadText(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
 
 /*ARGSUSED*/
 static int
-ReplaceText (Widget w, XawTextPosition startPos, XawTextPosition endPos,
-             XawTextBlock *text)
+ReplaceText (Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
+             ISWTextBlock *text)
 {
   AsciiSrcObject src = (AsciiSrcObject) w;
   Piece *start_piece, *end_piece, *temp_piece;
-  XawTextPosition start_first, end_first;
+  ISWTextPosition start_first, end_first;
   int length, firstPos;
 
 /*
@@ -414,14 +414,14 @@ ReplaceText (Widget w, XawTextPosition startPos, XawTextPosition endPos,
  */
 
 static
-XawTextPosition
-Scan (Widget w, XawTextPosition position, XawTextScanType type,
+ISWTextPosition
+Scan (Widget w, ISWTextPosition position, XawTextScanType type,
       XawTextScanDirection dir, int count, Boolean include)
 {
   AsciiSrcObject src = (AsciiSrcObject) w;
   int inc;
   Piece* piece;
-  XawTextPosition first, first_eol_position = 0;
+  ISWTextPosition first, first_eol_position = 0;
   char* ptr;
 
   if (type == XawstAll) {	/* Optomize this common case. */
@@ -545,16 +545,16 @@ Scan (Widget w, XawTextPosition position, XawTextScanType type,
  *	Returns: the position of the item found.
  */
 
-static XawTextPosition
-Search(Widget w, XawTextPosition position, XawTextScanDirection dir,
-       XawTextBlock *text)
+static ISWTextPosition
+Search(Widget w, ISWTextPosition position, XawTextScanDirection dir,
+       ISWTextBlock *text)
 {
   AsciiSrcObject src = (AsciiSrcObject) w;
   int inc, count = 0;
   char * ptr;
   Piece * piece;
   char * buf;
-  XawTextPosition first;
+  ISWTextPosition first;
 
   if ( dir == XawsdRight )
     inc = 1;
@@ -734,16 +734,16 @@ XawAsciiSourceFreeString(Widget w)
 
   /* If the src is really a multi, call the multi routine.*/
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if ( XtIsSubclass( w, multiSrcObjectClass ) ) {
-      _XawMultiSourceFreeString( w );
+      _ISWMultiSourceFreeString( w );
       return;
   }
   else
 #endif
   if ( !XtIsSubclass( w, asciiSrcObjectClass ) ) {
       XtErrorMsg("bad argument", "asciiSource", "XawError",
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
             "XawAsciiSourceFreeString's parameter must be an asciiSrc or multiSrc.",
 #else
             "XawAsciiSourceFreeString's parameter must be an asciiSrc.",
@@ -771,14 +771,14 @@ XawAsciiSave(Widget w)
 
   /* If the src is really a multi, call the multi save. */
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if ( XtIsSubclass( w, multiSrcObjectClass ) )
-      return( _XawMultiSave( w ) );
+      return( _ISWMultiSave( w ) );
   else
 #endif
   if ( !XtIsSubclass( w, asciiSrcObjectClass ) ) {
       	XtErrorMsg("bad argument", "asciiSource", "XawError",
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 		"XawAsciiSave's parameter must be an asciiSrc or multiSrc.",
 #else
 		"XawAsciiSave's parameter must be an asciiSrc.",
@@ -836,14 +836,14 @@ XawAsciiSaveAsFile(Widget w, _Xconst char* name)
 
   /* If the src is really a multi, call the multi save. - */
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if ( XtIsSubclass( w, multiSrcObjectClass ) )
-      return( _XawMultiSaveAsFile( w, name ) );
+      return( _ISWMultiSaveAsFile( w, name ) );
   else
 #endif
   if ( !XtIsSubclass( w, asciiSrcObjectClass ) ) {
       	XtErrorMsg("bad argument", "asciiSource", "XawError",
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 		"XawAsciiSaveAsFile's 1st parameter must be an asciiSrc or multiSrc.",
 #else
 		"XawAsciiSaveAsFile's 1st parameter must be an asciiSrc.",
@@ -867,7 +867,7 @@ XawAsciiSaveAsFile(Widget w, _Xconst char* name)
 Boolean
 XawAsciiSourceChanged(Widget w)
 {
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if ( XtIsSubclass( w, multiSrcObjectClass ) )
       return( ( (MultiSrcObject) w )->multi_src.changes );
 #endif
@@ -876,7 +876,7 @@ XawAsciiSourceChanged(Widget w)
       return( ( (AsciiSrcObject) w)->ascii_src.changes );
 
   XtErrorMsg("bad argument", "asciiSource", "XawError",
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 		"XawAsciiSourceChanged parameter must be an asciiSrc or multiSrc.",
 #else
 		"XawAsciiSourceChanged parameter must be an asciiSrc.",
@@ -937,7 +937,7 @@ static String
 StorePiecesInString(AsciiSrcObject src)
 {
   String string;
-  XawTextPosition first;
+  ISWTextPosition first;
   Piece * piece;
 
   string = XtMalloc((unsigned) sizeof(unsigned char) *
@@ -1043,7 +1043,7 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
     if (!src->ascii_src.is_tempfile) {
 	if ((file = fopen(src->ascii_src.string, open_mode)) != 0) {
 	    (void) fseek(file, (Off_t)0, 2);
-	    src->ascii_src.length = (XawTextPosition) ftell(file);
+	    src->ascii_src.length = (ISWTextPosition) ftell(file);
 	    return file;
 	} else {
 	    String params[2];
@@ -1065,7 +1065,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
 {
   char *local_str, *ptr;
   Piece * piece = NULL;
-  XawTextPosition left;
+  ISWTextPosition left;
 
   if (string == NULL) {
     if (src->ascii_src.type == XawAsciiFile) {
@@ -1195,10 +1195,10 @@ RemovePiece(AsciiSrcObject src, Piece * piece)
  */
 
 static Piece *
-FindPiece(AsciiSrcObject src, XawTextPosition position, XawTextPosition * first)
+FindPiece(AsciiSrcObject src, ISWTextPosition position, ISWTextPosition * first)
 {
   Piece * old_piece = NULL, * piece = src->ascii_src.first_piece;
-  XawTextPosition temp;
+  ISWTextPosition temp;
 
   for ( temp = 0 ; piece != NULL ; temp += piece->used, piece = piece->next ) {
     *first = temp;
@@ -1274,7 +1274,7 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
   }
 
   if (strlen ((char*)fromVal->addr) < sizeof lowerName) {
-    XawCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
+    ISWCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if (q == XtQEstring)     type = XawAsciiString;
@@ -1293,7 +1293,7 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
 }
 
 #if (defined(ASCII_STRING) || defined(ASCII_DISK))
-#  include <X11/Xaw3d/Cardinals.h>
+#  include <ISW/Cardinals.h>
 #endif
 
 #ifdef ASCII_STRING
@@ -1335,7 +1335,7 @@ XawStringSourceCreate(Widget parent, ArgList args, Cardinal num_args)
  */
 
 void
-XawTextSetLastPos (Widget w, XawTextPosition lastPos)
+XawTextSetLastPos (Widget w, ISWTextPosition lastPos)
 {
   AsciiSrcObject src = (AsciiSrcObject) XawTextGetSource(w);
 

@@ -55,7 +55,7 @@ SOFTWARE.
  *
  ***********************************************************************/
 
-#include <X11/Xaw3d/Text.h>
+#include <ISW/Text.h>
 
 /* Resources:
 
@@ -103,10 +103,10 @@ _XFUNCPROTOBEGIN
  *	Returns: The number of characters read into the buffer.
  */
 
-extern XawTextPosition XawTextSourceRead(
+extern ISWTextPosition XawTextSourceRead(
     Widget		/* w */,
-    XawTextPosition	/* pos */,
-    XawTextBlock*	/* text_return */,
+    ISWTextPosition	/* pos */,
+    ISWTextBlock*	/* text_return */,
     int			/* length */
 );
 
@@ -120,9 +120,9 @@ extern XawTextPosition XawTextSourceRead(
 
 extern int XawTextSourceReplace (
     Widget		/* w */,
-    XawTextPosition	/* start */,
-    XawTextPosition	/* end */,
-    XawTextBlock*	/* text */
+    ISWTextPosition	/* start */,
+    ISWTextPosition	/* end */,
+    ISWTextBlock*	/* text */
 );
 
 /*	Function Name: XawTextSourceScan
@@ -139,9 +139,9 @@ extern int XawTextSourceReplace (
  *
  */
 
-extern XawTextPosition XawTextSourceScan(
+extern ISWTextPosition XawTextSourceScan(
     Widget		/* w */,
-    XawTextPosition	/* position */,
+    ISWTextPosition	/* position */,
 #if NeedWidePrototypes
     /* XawTextScanType */ int		/* type */,
     /* XawTextScanDirection */ int	/* dir */,
@@ -167,15 +167,15 @@ extern XawTextPosition XawTextSourceScan(
  *               XawTextSearchError.
  */
 
-extern XawTextPosition XawTextSourceSearch(
+extern ISWTextPosition XawTextSourceSearch(
     Widget		/* w */,
-    XawTextPosition	/* position */,
+    ISWTextPosition	/* position */,
 #if NeedWidePrototypes
     /* XawTextScanDirection */ int	/* dir */,
 #else
     XawTextScanDirection /* dir */,
 #endif
-    XawTextBlock*	/* text */
+    ISWTextBlock*	/* text */
 );
 
 /*	Function Name: XawTextSourceConvertSelection
@@ -210,8 +210,8 @@ extern Boolean XawTextSourceConvertSelection(
 
 extern void XawTextSourceSetSelection(
     Widget		/* w */,
-    XawTextPosition	/* start */,
-    XawTextPosition	/* end */,
+    ISWTextPosition	/* start */,
+    ISWTextPosition	/* end */,
     xcb_atom_t		/* selection */
 );
 

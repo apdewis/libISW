@@ -35,13 +35,13 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xos.h>
-#include <X11/Xaw3d/TipP.h>
-#include <X11/Xaw3d/XawInit.h>
-#include "XawXcbDraw.h"
+#include <ISW/TipP.h>
+#include <ISW/ISWInit.h>
+#include "ISWXcbDraw.h"
 
 #include <stdlib.h>
 
@@ -132,8 +132,8 @@ static XtResource resources[] = {
     offset(foreground), XtRString, XtDefaultForeground},
   {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct*),
     offset(font), XtRString, XtDefaultFont},
-#ifdef XAW_INTERNATIONALIZATION
-  {XtNfontSet, XtCFontSet, XtRFontSet, sizeof(XawFontSet*),
+#ifdef ISW_INTERNATIONALIZATION
+  {XtNfontSet, XtCFontSet, XtRFontSet, sizeof(ISWFontSet*),
     offset(fontset), XtRString, XtDefaultFontSet},
 #endif
   {XtNlabel, XtCLabel, XtRString, sizeof(String),
@@ -304,7 +304,7 @@ XawTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
      * If font is NULL but fontset is available, create a minimal XFontStruct
      * using the fontset's font_id (similar to Label.c approach). */
     if (tip->tip.font == NULL) {
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 	if (tip->tip.fontset != NULL) {
 	    /* Allocate and initialize a minimal XFontStruct from fontset */
 	    tip->tip.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
@@ -420,7 +420,7 @@ XawTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     Position y = tip->tip.internal_height + (tip->tip.font ? tip->tip.font->ascent : 11);
     int len;
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if (tip->tip.international == True) {
 	Position ksy = tip->tip.internal_height;
 
@@ -518,9 +518,9 @@ TipLayout(XawTipInfo *info)
     int width = 0, height;
     char *nl, *label = info->tip->tip.label;
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if (info->tip->tip.international == True) {
-	XawFontSet *fset = info->tip->tip.fontset;
+	ISWFontSet *fset = info->tip->tip.fontset;
 
 	height = fset->height;
 	if ((nl = index(label, '\n')) != NULL) {
@@ -716,7 +716,7 @@ TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
     info->tip->tip.label = winfo->label;
     info->tip->tip.encoding = 0;
     XtSetArg(args[0], XtNencoding, &info->tip->tip.encoding);
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     info->tip->tip.international = False;
     XtSetArg(args[1], XtNinternational, &info->tip->tip.international);
     XtGetValues(winfo->widget, args, 2);

@@ -49,18 +49,18 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Shell.h>
-#include <X11/Xaw3d/TextP.h>
-#include <X11/Xaw3d/AsciiText.h>
-#include <X11/Xaw3d/Cardinals.h>
-#include <X11/Xaw3d/Command.h>
-#include <X11/Xaw3d/Form.h>
-#include <X11/Xaw3d/Toggle.h>
-#ifdef XAW_INTERNATIONALIZATION
-#include "XawI18n.h"
+#include <ISW/TextP.h>
+#include <ISW/AsciiText.h>
+#include <ISW/Cardinals.h>
+#include <ISW/Command.h>
+#include <ISW/Form.h>
+#include <ISW/Toggle.h>
+#ifdef ISW_INTERNATIONALIZATION
+#include "ISWI18n.h"
 #endif
 #include <stdint.h>
 #include <stdio.h>
@@ -69,7 +69,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_icccm.h>
-#include "XawXcbDraw.h"
+#include "ISWXcbDraw.h"
 
 #ifdef X_NOT_STDC_ENV
 extern int errno;
@@ -87,7 +87,7 @@ extern int errno;
 
 #define R_OFFSET      1
 
-extern char *_XawTextGetText(TextWidget, XawTextPosition, XawTextPosition);
+extern char *_XawTextGetText(TextWidget, ISWTextPosition, ISWTextPosition);
 
 static void CenterWidgetOnPoint(Widget, xcb_generic_event_t *);
 static void PopdownSearch(Widget, XtPointer, XtPointer);
@@ -278,8 +278,8 @@ static Boolean
 InsertFileNamed(Widget tw, char *str)
 {
   FILE *file;
-  XawTextBlock text;
-  XawTextPosition pos;
+  ISWTextBlock text;
+  ISWTextPosition pos;
 
   if ( (str == NULL) || (strlen(str) == 0) ||
        ((file = fopen(str, "r")) == NULL))
@@ -301,9 +301,9 @@ InsertFileNamed(Widget tw, char *str)
                  "fread returned error.", NULL, NULL);
 
  /* DELETE if (text.format == XawFmtWide) {
-     wchar_t* _XawTextMBToWC();
+     wchar_t* _ISWTextMBToWC();
      wchar_t* wstr;
-     wstr = _XawTextMBToWC(XtDisplay(tw), text.ptr, &(text.length));
+     wstr = _ISWTextMBToWC(XtDisplay(tw), text.ptr, &(text.length));
      wstr[text.length] = NULL;
      XtFree(text.ptr);
      text.ptr = (char *)wstr;
@@ -525,7 +525,7 @@ _XawTextSearch(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
   if (*num_params == 2 )
       ptr = params[1];
   else
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
       if (_XawTextFormat(ctx) == XawFmtWide) {
           /*This just does the equivalent of ptr = ""L, a waste because params[1] isnt W aligned.*/
           ptr = (char *)XtMalloc(sizeof(wchar_t));
@@ -795,15 +795,15 @@ DoSearch(struct SearchAndReplace * search)
 {
   char msg[BUFSIZ];
   Widget tw = XtParent(search->search_popup);
-  XawTextPosition pos;
+  ISWTextPosition pos;
   XawTextScanDirection dir;
-  XawTextBlock text;
+  ISWTextBlock text;
 
   TextWidget ctx = (TextWidget)tw;
 
   text.ptr = GetStringRaw(search->search_text);
   text.format = _XawTextFormat(ctx);
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if (text.format == XawFmtWide)
       text.length = wcslen((wchar_t*)text.ptr);
   else
@@ -917,9 +917,9 @@ DoReplaceAll(Widget w, XtPointer closure, XtPointer call_data)
 static Boolean
 Replace(struct SearchAndReplace *search, Boolean once_only, Boolean show_current)
 {
-  XawTextPosition pos, new_pos, end_pos;
+  ISWTextPosition pos, new_pos, end_pos;
   XawTextScanDirection dir;
-  XawTextBlock find, replace;
+  ISWTextBlock find, replace;
   Widget tw = XtParent(search->search_popup);
   int count = 0;
 
@@ -927,7 +927,7 @@ Replace(struct SearchAndReplace *search, Boolean once_only, Boolean show_current
 
   find.ptr = GetStringRaw( search->search_text);
   find.format = _XawTextFormat(ctx);
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if (find.format == XawFmtWide)
       find.length = wcslen((wchar_t*)find.ptr);
   else
@@ -938,7 +938,7 @@ Replace(struct SearchAndReplace *search, Boolean once_only, Boolean show_current
   replace.ptr = GetStringRaw(search->rep_text);
   replace.firstPos = 0;
   replace.format = _XawTextFormat(ctx);
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if (replace.format == XawFmtWide)
       replace.length = wcslen((wchar_t*)replace.ptr);
   else
@@ -1178,7 +1178,7 @@ static String
 GetStringRaw(Widget tw)
 {
   TextWidget ctx = (TextWidget)tw;
-  XawTextPosition last;
+  ISWTextPosition last;
 
   last = XawTextSourceScan(ctx->text.source, 0, XawstAll, XawsdRight,
 			     ctx->text.mult, TRUE);
@@ -1313,7 +1313,7 @@ InParams(String str, String *p, Cardinal n)
 {
     int i;
     for (i=0; i < n; p++, i++)
-	if (! XawCompareISOLatin1(*p, str)) return True;
+	if (! ISWCompareISOLatin1(*p, str)) return True;
     return False;
 }
 

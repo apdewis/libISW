@@ -70,8 +70,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XawMultiSink_h
-#define _XawMultiSink_h
+#ifndef _ISWMultiSink_h
+#define _ISWMultiSink_h
 
 /***********************************************************************
  *
@@ -79,7 +79,7 @@ SOFTWARE.
  *
  ***********************************************************************/
 
-#include <X11/Xaw3d/TextSink.h>
+#include <ISW/TextSink.h>
 
 /* Resources:
 
@@ -87,7 +87,7 @@ SOFTWARE.
  ----		     -----		-------		-------------
  echo                Output             Boolean         True
  displayNonprinting  Output             Boolean         True
- fontSet             FontSet            XawFontSet*     XtDefaultFontSet
+ fontSet             FontSet            ISWFontSet*     XtDefaultFontSet
 
 */
 
@@ -112,5 +112,5 @@ typedef struct _MultiSinkClassRec *MultiSinkObjectClass;
 typedef struct _MultiSinkRec      *MultiSinkObject;
 
 
-#endif /* _XawMultiSrc_h */
+#endif /* _ISWMultiSrc_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

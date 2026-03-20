@@ -43,9 +43,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <ctype.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/TextSinkP.h>
-#include <X11/Xaw3d/TextP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/TextSinkP.h>
+#include <ISW/TextP.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
@@ -62,15 +62,15 @@ static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 static int MaxHeight(Widget, int);
 static int MaxLines(Widget, Dimension);
-static void DisplayText(Widget, Position, Position, XawTextPosition,
-                        XawTextPosition, Boolean);
+static void DisplayText(Widget, Position, Position, ISWTextPosition,
+                        ISWTextPosition, Boolean);
 static void InsertCursor(Widget, Position, Position, XawTextInsertState);
 static void ClearToBackground(Widget, Position, Position, Dimension, Dimension);
-static void FindPosition(Widget, XawTextPosition, int, int, Boolean,
-                         XawTextPosition *, int *, int *);
-static void FindDistance(Widget, XawTextPosition, int, XawTextPosition,
-                         int *, XawTextPosition *, int *);
-static void Resolve(Widget, XawTextPosition, int, int, XawTextPosition *);
+static void FindPosition(Widget, ISWTextPosition, int, int, Boolean,
+                         ISWTextPosition *, int *, int *);
+static void FindDistance(Widget, ISWTextPosition, int, ISWTextPosition,
+                         int *, ISWTextPosition *, int *);
+static void Resolve(Widget, ISWTextPosition, int, int, ISWTextPosition *);
 static void SetTabs(Widget, int, short *);
 static void GetCursorBounds(Widget, xcb_rectangle_t *);
 
@@ -263,8 +263,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
 /* ARGSUSED */
 static void
-DisplayText(Widget w, Position x, Position y, XawTextPosition pos1,
-            XawTextPosition pos2, Boolean highlight)
+DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
+            ISWTextPosition pos2, Boolean highlight)
 {
   return;
 }
@@ -326,8 +326,8 @@ ClearToBackground(Widget w, Position x, Position y, Dimension width, Dimension h
 
 /* ARGSUSED */
 static void
-FindPosition(Widget w, XawTextPosition fromPos, int fromx, int width, Boolean stopAtWordBreak,
-             XawTextPosition *resPos, int *resWidth, int *resHeight)
+FindPosition(Widget w, ISWTextPosition fromPos, int fromx, int width, Boolean stopAtWordBreak,
+             ISWTextPosition *resPos, int *resWidth, int *resHeight)
 {
   *resPos = fromPos;
   *resHeight = *resWidth = 0;
@@ -347,8 +347,8 @@ FindPosition(Widget w, XawTextPosition fromPos, int fromx, int width, Boolean st
 
 /* ARGSUSED */
 static void
-FindDistance(Widget w, XawTextPosition fromPos, int fromx, XawTextPosition toPos,
-             int *resWidth, XawTextPosition *resPos, int *resHeight)
+FindDistance(Widget w, ISWTextPosition fromPos, int fromx, ISWTextPosition toPos,
+             int *resWidth, ISWTextPosition *resPos, int *resHeight)
 {
   *resWidth = *resHeight = 0;
   *resPos = fromPos;
@@ -366,7 +366,7 @@ FindDistance(Widget w, XawTextPosition fromPos, int fromx, XawTextPosition toPos
 
 /* ARGSUSED */
 static void
-Resolve(Widget w, XawTextPosition pos, int fromx, int width, XawTextPosition *resPos)
+Resolve(Widget w, ISWTextPosition pos, int fromx, int width, ISWTextPosition *resPos)
 {
   *resPos = pos;
 }
@@ -463,7 +463,7 @@ XawTextSinkDisplayText(Widget w,
 #else
 		       Position x, Position y,
 #endif
-		       XawTextPosition pos1, XawTextPosition pos2,
+		       ISWTextPosition pos1, ISWTextPosition pos2,
 #if NeedWidePrototypes
 		       /* Boolean */ int highlight)
 #else
@@ -542,14 +542,14 @@ XawTextSinkClearToBackground (Widget w,
 
 /* ARGSUSED */
 void
-XawTextSinkFindPosition(Widget w, XawTextPosition fromPos, int fromx,
+XawTextSinkFindPosition(Widget w, ISWTextPosition fromPos, int fromx,
 			int width,
 #if NeedWidePrototypes
 			/* Boolean */ int stopAtWordBreak,
 #else
 			Boolean stopAtWordBreak,
 #endif
-			XawTextPosition *resPos, int *resWidth, int *resHeight)
+			ISWTextPosition *resPos, int *resWidth, int *resHeight)
 {
   TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
 
@@ -572,9 +572,9 @@ XawTextSinkFindPosition(Widget w, XawTextPosition fromPos, int fromx,
 
 /* ARGSUSED */
 void
-XawTextSinkFindDistance (Widget w, XawTextPosition fromPos, int fromx,
-			 XawTextPosition toPos, int *resWidth,
-			 XawTextPosition *resPos, int *resHeight)
+XawTextSinkFindDistance (Widget w, ISWTextPosition fromPos, int fromx,
+			 ISWTextPosition toPos, int *resWidth,
+			 ISWTextPosition *resPos, int *resHeight)
 {
   TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
 
@@ -594,8 +594,8 @@ XawTextSinkFindDistance (Widget w, XawTextPosition fromPos, int fromx,
 
 /* ARGSUSED */
 void
-XawTextSinkResolve(Widget w, XawTextPosition pos, int fromx, int width,
-		   XawTextPosition *resPos)
+XawTextSinkResolve(Widget w, ISWTextPosition pos, int fromx, int width,
+		   ISWTextPosition *resPos)
 {
   TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
 

@@ -34,8 +34,8 @@
  * Tip Widget
  */
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/Simple.h>
+#include "ISWP.h"
+#include <ISW/Simple.h>
 
 /* Resources:
 
@@ -71,7 +71,7 @@ extern WidgetClass tipWidgetClass;
 #define XtNtimeout "timeout"
 #define XtNtip "tip"
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 #ifndef XtNfontSet
 #define XtNfontSet "fontSet"
 #endif

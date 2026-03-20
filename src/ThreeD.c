@@ -31,15 +31,15 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/StringDefs.h>
 #include <X11/IntrinsicP.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/ThreeDP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/ThreeDP.h>
 #include <X11/Xosdefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "XawXcbDraw.h"
+#include "ISWXcbDraw.h"
 
 /* Initialization of defaults */
 
@@ -86,7 +86,7 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
-static void _Xaw3dDrawShadows(Widget, xcb_generic_event_t *, xcb_xfixes_region_t, XtRelief, Boolean);
+static void _ISWDrawShadows(Widget, xcb_generic_event_t *, xcb_xfixes_region_t, XtRelief, Boolean);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 ThreeDClassRec threeDClassRec = {
@@ -128,7 +128,7 @@ ThreeDClassRec threeDClassRec = {
     /* change_sensitive         */      XtInheritChangeSensitive
     },
     { /* threeD fields */
-    /* shadow draw              */      _Xaw3dDrawShadows
+    /* shadow draw              */      _ISWDrawShadows
     }
 };
 
@@ -224,7 +224,7 @@ AllocTopShadowPixmap (Widget new)
 	    top_fg_pixel = tdw->core.background_pixel;
 	    top_bg_pixel = scn->white_pixel;
 	}
-#ifndef XAW_GRAY_BLKWHT_STIPPLES
+#ifndef ISW_GRAY_BLKWHT_STIPPLES
 	if (tdw->core.background_pixel == scn->white_pixel ||
 	    tdw->core.background_pixel == scn->black_pixel) {
 	    pm_data = mtshadowpm_bits;
@@ -281,7 +281,7 @@ AllocBotShadowPixmap (Widget new)
 	    bot_fg_pixel = tdw->core.background_pixel;
 	    bot_bg_pixel = scn->black_pixel;
 	}
-#ifndef XAW_GRAY_BLKWHT_STIPPLES
+#ifndef ISW_GRAY_BLKWHT_STIPPLES
 	if (tdw->core.background_pixel == scn->white_pixel ||
 	    tdw->core.background_pixel == scn->black_pixel) {
 	    pm_data = mbshadowpm_bits;
@@ -329,7 +329,7 @@ Xaw3dComputeTopShadowRGB (Widget new, XColor *xcol_out)
 	    xcol_out->blue  = contrast * 65535.0;
 	} else {
 	    contrast = 1.0 + tdw->threeD.top_shadow_contrast / 100.0;
-	    XawQueryColor(dpy, cmap, &get_c);
+	    ISWQueryColor(dpy, cmap, &get_c);
 #define MIN(x,y) (unsigned short) (x < y) ? x : y
 	    xcol_out->red   = MIN (65535, (int) (contrast * (double) get_c.red));
 	    xcol_out->green = MIN (65535, (int) (contrast * (double) get_c.green));
@@ -350,7 +350,7 @@ AllocTopShadowPixel (Widget new)
     Colormap cmap = new->core.colormap;
 
     Xaw3dComputeTopShadowRGB (new, &set_c);
-    (void) XawAllocColor(dpy, cmap, &set_c);
+    (void) ISWAllocColor(dpy, cmap, &set_c);
     tdw->threeD.top_shadow_pixel = set_c.pixel;
 }
 
@@ -374,7 +374,7 @@ Xaw3dComputeBottomShadowRGB (Widget new, XColor *xcol_out)
 	    xcol_out->green = contrast * 65535.0;
 	    xcol_out->blue  = contrast * 65535.0;
 	} else {
-	    XawQueryColor(dpy, cmap, &get_c);
+	    ISWQueryColor(dpy, cmap, &get_c);
 	    contrast = (100 - tdw->threeD.bot_shadow_contrast) / 100.0;
 	    xcol_out->red   = contrast * get_c.red;
 	    xcol_out->green = contrast * get_c.green;
@@ -394,7 +394,7 @@ AllocBotShadowPixel (Widget new)
     Colormap cmap = new->core.colormap;
 
     Xaw3dComputeBottomShadowRGB (new, &set_c);
-    (void) XawAllocColor(dpy, cmap, &set_c);
+    (void) ISWAllocColor(dpy, cmap, &set_c);
     tdw->threeD.bot_shadow_pixel = set_c.pixel;
 }
 
@@ -416,7 +416,7 @@ _CvtStringToRelief(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal, Xr
     XrmQuark q;
     char lowerName[1000];
 
-    XawCopyISOLatin1Lowered (lowerName, (char*)fromVal->addr);
+    ISWCopyISOLatin1Lowered (lowerName, (char*)fromVal->addr);
     q = XrmStringToQuark(lowerName);
     if (q == XtQReliefNone) {
        relief = XtReliefNone;
@@ -517,9 +517,9 @@ Destroy (Widget w)
     XtReleaseGC (w, tdw->threeD.top_shadow_GC);
     XtReleaseGC (w, tdw->threeD.bot_shadow_GC);
     if (tdw->threeD.top_shadow_pxmap)
-	XawFreePixmap (XtDisplay (w), tdw->threeD.top_shadow_pxmap);
+	ISWFreePixmap (XtDisplay (w), tdw->threeD.top_shadow_pxmap);
 	   if (tdw->threeD.bot_shadow_pxmap)
-	XawFreePixmap (XtDisplay (w), tdw->threeD.bot_shadow_pxmap);
+	ISWFreePixmap (XtDisplay (w), tdw->threeD.bot_shadow_pxmap);
 }
 
 /* ARGSUSED */
@@ -528,7 +528,7 @@ Redisplay (Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ThreeDWidget tdw = (ThreeDWidget) w;
 
-    _Xaw3dDrawShadows (w, event, region, tdw->threeD.relief, True);
+    _ISWDrawShadows (w, event, region, tdw->threeD.relief, True);
 }
 
 /* ARGSUSED */
@@ -593,7 +593,7 @@ SetValues (Widget gcurrent, Widget grequest, Widget gnew, ArgList args, Cardinal
     } else {
 	if (alloc_top_pixel) {
 	    if (new->threeD.top_shadow_pxmap) {
-		XawFreePixmap (XtDisplay (gnew), new->threeD.top_shadow_pxmap);
+		ISWFreePixmap (XtDisplay (gnew), new->threeD.top_shadow_pxmap);
 		new->threeD.top_shadow_pxmap = XCB_NONE;
 	    }
 	    XtReleaseGC (gcurrent, current->threeD.top_shadow_GC);
@@ -602,7 +602,7 @@ SetValues (Widget gcurrent, Widget grequest, Widget gnew, ArgList args, Cardinal
 	}
 	if (alloc_bot_pixel) {
 	    if (new->threeD.bot_shadow_pxmap) {
-		XawFreePixmap (XtDisplay (gnew), new->threeD.bot_shadow_pxmap);
+		ISWFreePixmap (XtDisplay (gnew), new->threeD.bot_shadow_pxmap);
 		new->threeD.bot_shadow_pxmap = XCB_NONE;
 	    }
 	    XtReleaseGC (gcurrent, current->threeD.bot_shadow_GC);
@@ -615,7 +615,7 @@ SetValues (Widget gcurrent, Widget grequest, Widget gnew, ArgList args, Cardinal
 
 /* ARGSUSED */
 static void
-_Xaw3dDrawShadows (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region, XtRelief relief, Boolean out)
+_ISWDrawShadows (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region, XtRelief relief, Boolean out)
 {
     xcb_point_t	pt[6];
     ThreeDWidget tdw = (ThreeDWidget) gw;
@@ -723,7 +723,7 @@ _Xaw3dDrawShadows (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t re
 }
 
 /*
- * _ShadowSurroundedBox() is somewhat redundant with _Xaw3dDrawShadows(),
+ * _ShadowSurroundedBox() is somewhat redundant with _ISWDrawShadows(),
  * but has a more explicit interface, and ignores threeD part relief.
  */
 

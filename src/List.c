@@ -37,7 +37,7 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,9 +47,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xfixes.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/ListP.h>
-#include "XawXcbDraw.h"
+#include <ISW/ISWInit.h>
+#include <ISW/ListP.h>
+#include "ISWXcbDraw.h"
 
 /* These added so widget knows whether its height, width are user selected.
 I also added the freedoms member of the list widget part. */
@@ -87,8 +87,8 @@ static XtResource resources[] = {
        offset(simple.cursor), XtRString, "left_ptr"},
     {XtNfont,  XtCFont, XtRFontStruct, sizeof(XFontStruct *),
 	offset(list.font),XtRString, XtDefaultFont},
-#ifdef XAW_INTERNATIONALIZATION
-    {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(XawFontSet *),
+#ifdef ISW_INTERNATIONALIZATION
+    {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(ISWFontSet *),
 	offset(list.fontset),XtRString, XtDefaultFontSet},
 #endif
     {XtNlist, XtCList, XtRPointer, sizeof(char **),
@@ -203,7 +203,7 @@ GetGCs(Widget w)
         gc_mask |= GCFont;
     }
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         lw->list.normgc = XtAllocateGC( w, 0, gc_mask & ~GCFont,
 				 &values, GCFont, 0 );
@@ -213,7 +213,7 @@ GetGCs(Widget w)
 
     values.foreground	= lw->core.background_pixel;
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         lw->list.revgc = XtAllocateGC( w, 0, gc_mask & ~GCFont,
 				 &values, GCFont, 0 );
@@ -233,7 +233,7 @@ GetGCs(Widget w)
         gray_gc_mask |= GCFont;
     }
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         lw->list.graygc = XtAllocateGC( w, 0, gray_gc_mask & ~GCFont,
 			      &values, GCFont, 0 );
@@ -279,7 +279,7 @@ CalculatedValues(Widget w)
         lw->list.longest = 0; /* so it will accumulate real longest below */
 
         for ( i = 0 ; i < lw->list.nitems; i++)  {
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
             if ( lw->simple.international == True )
 	        len = XTextWidth(lw->list.fontset, lw->list.list[i],
 			 			    strlen(lw->list.list[i]));
@@ -384,7 +384,7 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
      * If font is NULL but fontset is available, create a minimal XFontStruct
      * using the fontset's font_id (similar to Label.c approach). */
     if (lw->list.font == NULL) {
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 	if (lw->list.fontset != NULL) {
 	    /* Allocate and initialize a minimal XFontStruct from fontset */
 	    lw->list.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
@@ -409,7 +409,7 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
 
     /* Set row height. based on font or fontset */
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if (lw->simple.international == True )
         lw->list.row_height = lw->list.fontset->height
                         + lw->list.row_space;
@@ -632,7 +632,7 @@ PaintItemName(Widget w, int item)
 	  + lw->list.internal_height;
     }
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         str_y = y + lw->list.fontset->ascent;
     else
@@ -686,7 +686,7 @@ PaintItemName(Widget w, int item)
 
     ClipToShadowInteriorAndLongest( lw, &gc, x );
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         XawDrawString( XtDisplay( w ), XtWindow( w ), lw->list.fontset,
 		  gc, x, str_y, str, strlen( str ) );
@@ -1035,7 +1035,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     }
 
     if ( font_changed ) {
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
  if ( cl->simple.international == False )
 #endif
  {
@@ -1046,7 +1046,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
         + nl->list.row_space;
      }
  }
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
  else if ( ( cl->list.fontset != nl->list.fontset ) &&
     ( cl->simple.international == True ) )
      nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
@@ -1057,11 +1057,11 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if row_space was altered.  If one of the above passed, row_height will
     already have been re-calculated. */
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     else
 #endif
     if ( cl->list.row_space != nl->list.row_space ) {
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
  if (cl->simple.international == True )
      nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
  else
@@ -1091,7 +1091,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	(cl->list.font            != nl->list.font)            ||
    /* Equiv. fontsets might have different values, but the same fonts, so the
    next comparison is sloppy but not dangerous.  */
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 	(cl->list.fontset         != nl->list.fontset)         ||
 #endif
 	(cl->list.list            != nl->list.list)          )   {

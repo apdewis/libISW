@@ -44,10 +44,10 @@ in this Software without prior written authorization from the X Consortium.
  *
  ***********************************************************************/
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/SimpleP.h>
-#include <X11/Xaw3d/List.h>
-#include <X11/Xaw3d/XawXftCompat.h>  /* XawFontSet typedef */
+#include "ISWP.h"
+#include <ISW/SimpleP.h>
+#include <ISW/List.h>
+#include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
 
 #define NO_HIGHLIGHT            XAW_LIST_NONE
 #define OUT_OF_RANGE            -1
@@ -81,8 +81,8 @@ typedef struct {
     int         longest;	/* in pixels */
     int         nitems;		/* number of items in the list. */
     XFontStruct	*font;
-#ifdef XAW_INTERNATIONALIZATION
-    XawFontSet 	*fontset;	/* Sheeran, Omron KK, 93/03/05 */
+#ifdef ISW_INTERNATIONALIZATION
+    ISWFontSet 	*fontset;	/* Sheeran, Omron KK, 93/03/05 */
 #endif
     String *    list;		/* for i18n, always in multibyte format */
     XtCallbackList callback;

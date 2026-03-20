@@ -1,7 +1,7 @@
 /*
  * XawXftCompat.h - XCB/Xft compatibility layer for Xaw3d
  *
- * This header provides XawFontSet typedef and font-related definitions
+ * This header provides ISWFontSet typedef and font-related definitions
  * for the XCB migration. Full Xft support to be added in Phase 3.
  *
  * Copyright (c) 2026 Xaw3d Project
@@ -14,7 +14,7 @@
 #include <X11/Intrinsic.h>
 
 /*
- * XawFontSet - Font set wrapper for XCB-based text rendering
+ * ISWFontSet - Font set wrapper for XCB-based text rendering
  *
  * This structure wraps XCB font information to provide a simple
  * interface for internationalized text rendering. In the future,
@@ -27,13 +27,13 @@ typedef struct _XawFontSet {
     int descent;              /* Font descent */
     int height;               /* Total line height (ascent + descent) */
     /* Future: Xft font support fields */
-} XawFontSet;
+} ISWFontSet;
 
 /*
- * XawTextWidth - Calculate text width using XawFontSet
+ * XawTextWidth - Calculate text width using ISWFontSet
  *
  * Parameters:
- *   fontset - XawFontSet pointer
+ *   fontset - ISWFontSet pointer
  *   text    - Text string
  *   len     - Length of text
  *
@@ -41,15 +41,15 @@ typedef struct _XawFontSet {
  *
  * Note: This is a function declaration. Implementation in XawXcbDraw.c
  */
-int XawTextWidth(XawFontSet *fontset, const char *text, int len);
+int XawTextWidth(ISWFontSet *fontset, const char *text, int len);
 
 /*
- * XawDrawString - Draw text using XawFontSet
+ * XawDrawString - Draw text using ISWFontSet
  *
  * Parameters:
  *   conn    - XCB connection
  *   d       - Drawable (window or pixmap)
- *   fontset - XawFontSet pointer
+ *   fontset - ISWFontSet pointer
  *   gc      - Graphics context
  *   x, y    - Text position (baseline)
  *   text    - Text string
@@ -58,7 +58,7 @@ int XawTextWidth(XawFontSet *fontset, const char *text, int len);
  * Note: This is a function declaration. Implementation in XawXcbDraw.c
  */
 void XawDrawString(xcb_connection_t *conn, xcb_drawable_t d,
-                   XawFontSet *fontset, xcb_gcontext_t gc,
+                   ISWFontSet *fontset, xcb_gcontext_t gc,
                    int x, int y, const char *text, int len);
 
 #endif /* _XawXftCompat_h */

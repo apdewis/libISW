@@ -49,7 +49,7 @@ SOFTWARE.
 #ifndef _XawText_h
 #define _XawText_h
 
-#include <X11/Xaw3d/Simple.h>
+#include <ISW/Simple.h>
 
 /*
  Text widget
@@ -64,8 +64,8 @@ SOFTWARE.
  ----		     -----	     -------		-------------
  autoFill	    AutoFill	     Boolean		False
  bottomMargin	    Margin	     Position		2
- displayPosition    TextPosition     XawTextPosition	0
- insertPosition	    TextPosition     XawTextPosition	0
+ displayPosition    TextPosition     ISWTextPosition	0
+ insertPosition	    TextPosition     ISWTextPosition	0
  leftMargin	    Margin	     Position		2
  resize		    Resize	     XawTextResizeMode	XawTextResizeNever
  rightMargin	    Margin	     Position		4
@@ -80,7 +80,7 @@ SOFTWARE.
 
 */
 
-typedef long XawTextPosition;
+typedef long ISWTextPosition;
 
 typedef enum { XawtextScrollNever,
 	       XawtextScrollWhenNeeded, XawtextScrollAlways} XawTextScrollMode;
@@ -101,10 +101,10 @@ typedef struct {
     int  length;
     char *ptr;
     unsigned long format;
-    } XawTextBlock, *XawTextBlockPtr;
+    } ISWTextBlock, *XawTextBlockPtr;
 
-#include <X11/Xaw3d/TextSink.h>
-#include <X11/Xaw3d/TextSrc.h>
+#include <ISW/TextSink.h>
+#include <ISW/TextSrc.h>
 
 #define XtEtextScrollNever "never"
 #define XtEtextScrollWhenNeeded "whenneeded"
@@ -192,33 +192,33 @@ extern void XawTextSetSelectionArray(
 
 extern void XawTextGetSelectionPos(
     Widget		/* w */,
-    XawTextPosition*	/* begin_return */,
-    XawTextPosition*	/* end_return */
+    ISWTextPosition*	/* begin_return */,
+    ISWTextPosition*	/* end_return */
 );
 
 extern void XawTextSetSource(
     Widget		/* w */,
     Widget		/* source */,
-    XawTextPosition	/* position */
+    ISWTextPosition	/* position */
 );
 
 extern int XawTextReplace(
     Widget		/* w */,
-    XawTextPosition	/* start */,
-    XawTextPosition	/* end */,
-    XawTextBlock*	/* text */
+    ISWTextPosition	/* start */,
+    ISWTextPosition	/* end */,
+    ISWTextBlock*	/* text */
 );
 
-extern XawTextPosition XawTextTopPosition(
+extern ISWTextPosition XawTextTopPosition(
     Widget		/* w */
 );
 
 extern void XawTextSetInsertionPoint(
     Widget		/* w */,
-    XawTextPosition	/* position */
+    ISWTextPosition	/* position */
 );
 
-extern XawTextPosition XawTextGetInsertionPoint(
+extern ISWTextPosition XawTextGetInsertionPoint(
     Widget		/* w */
 );
 
@@ -228,14 +228,14 @@ extern void XawTextUnsetSelection(
 
 extern void XawTextSetSelection(
     Widget		/* w */,
-    XawTextPosition	/* left */,
-    XawTextPosition	/* right */
+    ISWTextPosition	/* left */,
+    ISWTextPosition	/* right */
 );
 
 extern void XawTextInvalidate(
     Widget		/* w */,
-    XawTextPosition	/* from */,
-    XawTextPosition	/* to */
+    ISWTextPosition	/* from */,
+    ISWTextPosition	/* to */
 );
 
 extern Widget XawTextGetSource(
@@ -246,14 +246,14 @@ extern Widget XawTextGetSink(
     Widget		/* w */
 );
 
-extern XawTextPosition XawTextSearch(
+extern ISWTextPosition XawTextSearch(
     Widget			/* w */,
 #if NeedWidePrototypes
     /* XawTextScanDirection */ int /* dir */,
 #else
     XawTextScanDirection	/* dir */,
 #endif
-    XawTextBlock*		/* text */
+    ISWTextBlock*		/* text */
 );
 
 extern void XawTextDisplayCaret(
@@ -271,8 +271,8 @@ _XFUNCPROTOEND
  * For R3 compatability only.
  */
 
-#include <X11/Xaw3d/AsciiSrc.h>
-#include <X11/Xaw3d/AsciiSink.h>
+#include <ISW/AsciiSrc.h>
+#include <ISW/AsciiSink.h>
 
 #endif /* _XawText_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

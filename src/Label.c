@@ -54,16 +54,16 @@ SOFTWARE.
  *
  */
 
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Xos.h>
 /* REMOVED: Xmu headers include Xlib.h which conflicts with XCB-only approach */
 /* #include <X11/Xmu/Converters.h> */
 /* #include <X11/Xmu/Drawing.h> */
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/Command.h>
-#include <X11/Xaw3d/LabelP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/Command.h>
+#include <ISW/LabelP.h>
 /* NO XFT - using pure XCB rendering */
 #include <stdio.h>
 #include <ctype.h>
@@ -71,7 +71,7 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xfixes.h>
-#include "XawXcbDraw.h"
+#include "ISWXcbDraw.h"
 
 /* Forward declarations for Xmu functions that need XCB replacements */
 /* XmuCvtStringToJustify signature must match XtConverter */
@@ -108,7 +108,7 @@ static XtResource resources[] = {
 	offset(label.foreground), XtRString, XtDefaultForeground},
     {XtNfont,  XtCFont, XtRFontStruct, sizeof(XFontStruct *),
 	offset(label.font),XtRString, XtDefaultFont},
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(XFontSet ),
         offset(label.fontset),XtRString, XtDefaultFontSet},
 #endif
@@ -206,7 +206,7 @@ static void
 ClassInitialize(void)
 {
     XawInitializeWidgetSet();
-    //XtAddConverter( XtRString, XtRJustify, XawCvtStringToJustify,
+    //XtAddConverter( XtRString, XtRJustify, ISWCvtStringToJustify,
 	//	    (XtConvertArgList)NULL, 0 );
 }
 
@@ -248,9 +248,9 @@ SetTextWidthAndHeight(LabelWidget lw)
      free(error);
  }
     }
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True ) {
-      XawFontSet *fset = lw->label.fontset;
+      ISWFontSet *fset = lw->label.fontset;
 
       lw->label.label_height = fset->height;
       if (lw->label.label == NULL) {
@@ -294,8 +294,8 @@ SetTextWidthAndHeight(LabelWidget lw)
 	} else {
 	    /* Get font metrics using XCB query instead of fs->max_bounds */
 	    xcb_connection_t *conn = ((Widget)lw)->core.display;
-	    XawFontMetrics metrics;
-	    XawXcbQueryFontMetrics(conn, fs->fid, &metrics);
+	    ISWFontMetrics metrics;
+	    ISWXcbQueryFontMetrics(conn, fs->fid, &metrics);
 	    int line_height = metrics.ascent + metrics.descent;
 
 	    lw->label.label_height = line_height;
@@ -311,7 +311,7 @@ SetTextWidthAndHeight(LabelWidget lw)
 		    int width;
 		    /* 16-bit encoding disabled for XCB migration - use 8-bit only */
 		    (void)lw->label.encoding;  /* suppress unused warning */
-		    width = XawXcbTextWidth(conn, fs->fid, label, (int)(nl - label));
+		    width = ISWXcbTextWidth(conn, fs->fid, label, (int)(nl - label));
 		    if (width > (int)lw->label.label_width)
 			lw->label.label_width = width;
 		    label = nl + 1;
@@ -319,7 +319,7 @@ SetTextWidthAndHeight(LabelWidget lw)
 			lw->label.label_height += line_height;
 		}
 		if (*label) {
-		    int width = XawXcbTextWidth(conn, fs->fid, label, strlen(label));
+		    int width = ISWXcbTextWidth(conn, fs->fid, label, strlen(label));
 		    if (width > (int) lw->label.label_width)
 			lw->label.label_width = width;
 		}
@@ -327,7 +327,7 @@ SetTextWidthAndHeight(LabelWidget lw)
 		lw->label.label_len = strlen(lw->label.label);
 		/* 16-bit encoding disabled for XCB migration - use 8-bit only */
 		lw->label.label_width =
-		    XawXcbTextWidth(conn, fs->fid, lw->label.label, (int) lw->label.label_len);
+		    ISWXcbTextWidth(conn, fs->fid, lw->label.label, (int) lw->label.label_len);
 	    }
 	}
     }
@@ -350,7 +350,7 @@ GetnormalGC(LabelWidget lw)
 	gc_mask |= XCB_GC_FONT;
     }
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         /* Since Xmb/wcDrawString eats the font, I must use XtAllocateGC. */
         lw->label.normal_GC = XtAllocateGC(
@@ -387,7 +387,7 @@ GetgrayGC(LabelWidget lw)
     }
 
     lw->label.stipple = values.tile;
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
         /* Since Xmb/wcDrawString eats the font, I must use XtAllocateGC. */
         lw->label.gray_GC = XtAllocateGC((Widget)lw,  0,
@@ -459,7 +459,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      * If font is NULL but fontset is available, create a minimal XFontStruct
      * using the fontset's font_id (similar to MultiSink.c approach). */
     if (lw->label.font == NULL) {
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
  if (lw->label.fontset != NULL) {
      /* Allocate and initialize a minimal XFontStruct from fontset */
      lw->label.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
@@ -475,7 +475,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
              XtName(new));
      fprintf(stderr, "         Attempting to load fallback font...\n");
      
-     lw->label.font = XawLoadFallbackFont(XtDisplay(new));
+     lw->label.font = ISWLoadFallbackFont(XtDisplay(new));
      
      if (lw->label.font == NULL) {
          fprintf(stderr, "FATAL Label.c: Fallback font loading failed for widget '%s'\n",
@@ -573,7 +573,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
  int line_height = 14;  /* default */
  
  /* XCB Fix: Add NULL check for font before accessing fid */
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
  if (w->simple.international == True) {
      /* Use fontset for internationalized text */
      y += w->label.fontset->ascent;
@@ -582,8 +582,8 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 #endif
  if (w->label.font != NULL) {
      /* Get font metrics using XCB query instead of fs->max_bounds */
-     XawFontMetrics metrics;
-     XawXcbQueryFontMetrics(conn, w->label.font->fid, &metrics);
+     ISWFontMetrics metrics;
+     ISWXcbQueryFontMetrics(conn, w->label.font->fid, &metrics);
      y += metrics.ascent;
      line_height = metrics.ascent + metrics.descent;
  } else {
@@ -591,7 +591,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      return;
  }
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
         Position ksy = w->label.label_y;
  if (w->simple.international == True)
      ksy += w->label.fontset->ascent;
@@ -600,7 +600,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	/* display left bitmap */
 	if (w->label.left_bitmap && w->label.lbm_width != 0) {
 	    pm = w->label.left_bitmap;
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
 	    if (!XtIsSensitive(gw)) {
 		if (w->label.left_stippled == None)
 		    w->label.left_stippled = stipplePixmap(gw,
@@ -624,7 +624,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	    		  w->label.lbm_width, w->label.lbm_height);
 	}
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
         if ( w->simple.international == True ) {
 
 	    ksy += w->label.fontset->ascent;
@@ -652,7 +652,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	        while ((nl = index(label, '\n')) != NULL) {
 		    int segment_len = (int)(nl - label);
 		    if (segment_len > 0 && segment_len <= 255) {
-			XawXcbDrawText(conn, XtWindow(gw), gc,
+			ISWXcbDrawText(conn, XtWindow(gw), gc,
 				       w->label.label_x, y,
 				       label, (uint8_t)segment_len);
 		    }
@@ -662,7 +662,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	        len = strlen(label);
 	    }
 	    if (len && len <= 255) {
-		XawXcbDrawText(conn, XtWindow(gw), gc,
+		ISWXcbDrawText(conn, XtWindow(gw), gc,
 			       w->label.label_x, y,
 			       label, (uint8_t)len);
 	    }
@@ -671,7 +671,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     } else {
 	pm = w->label.pixmap;
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
 	if (!XtIsSensitive(gw)) {
 	    if (w->label.stippled == None)
 		w->label.stippled = stipplePixmap(gw,
@@ -789,7 +789,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     if (was_resized || checks[PIXMAP] ||
 		curlw->label.font != newlw->label.font ||
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 		(curlw->simple.international &&
 			curlw->label.fontset != newlw->label.fontset) ||
 #endif
@@ -856,13 +856,13 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
         /* the fontset is not in the GC - no new GC if fontset changes */
  XtReleaseGC(new, curlw->label.normal_GC);
  XtReleaseGC(new, curlw->label.gray_GC);
- XawReleaseStippledPixmap( XtScreen(current), curlw->label.stipple );
+ ISWReleaseStippledPixmap( XtScreen(current), curlw->label.stipple );
  GetnormalGC(newlw);
  GetgrayGC(newlw);
  redisplay = True;
     }
 
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
     if (curlw->label.pixmap != newlw->label.pixmap)
     {
 	newlw->label.stippled = None;
@@ -903,7 +903,7 @@ Destroy(Widget w)
 	XtFree( lw->label.label );
     XtReleaseGC( w, lw->label.normal_GC );
     XtReleaseGC( w, lw->label.gray_GC);
-#ifdef XAW_MULTIPLANE_PIXMAPS
+#ifdef ISW_MULTIPLANE_PIXMAPS
     {
 	xcb_connection_t *conn = w->core.display;
 	if (lw->label.stippled != None) {
@@ -915,7 +915,7 @@ Destroy(Widget w)
 	xcb_flush(conn);
     }
 #endif
-    XawReleaseStippledPixmap( XtScreen(w), lw->label.stipple );
+    ISWReleaseStippledPixmap( XtScreen(w), lw->label.stipple );
 }
 
 

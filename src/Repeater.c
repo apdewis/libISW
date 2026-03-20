@@ -32,8 +32,8 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>		/* for XtN and XtC defines */
-#include <X11/Xaw3d/XawInit.h>		/* for XawInitializeWidgetSet() */
-#include <X11/Xaw3d/RepeaterP.h>		/* us */
+#include <ISW/ISWInit.h>		/* for XawInitializeWidgetSet() */
+#include <ISW/RepeaterP.h>		/* us */
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 

@@ -60,10 +60,10 @@ SOFTWARE.
  *
  ***********************************************************************/
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/Label.h>
-#include <X11/Xaw3d/ThreeDP.h>
-#include <X11/Xaw3d/XawXftCompat.h>  /* XawFontSet typedef only */
+#include "ISWP.h"
+#include <ISW/Label.h>
+#include <ISW/ThreeDP.h>
+#include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef only */
 
 /* XtJustify type is now centrally defined in Xaw3dP.h and XawXcbDraw.h */
 /* with proper include guards to prevent redefinition */
@@ -87,8 +87,8 @@ typedef struct {
     /* resources */
     Pixel	foreground;
     XFontStruct	*font;
-#ifdef XAW_INTERNATIONALIZATION
-    XawFontSet	*fontset;  /* Phase 3.2: Changed from XFontSet to XawFontSet* */
+#ifdef ISW_INTERNATIONALIZATION
+    ISWFontSet	*fontset;  /* Phase 3.2: Changed from XFontSet to ISWFontSet* */
 #endif
     char	*label;
     XtJustify	justify;

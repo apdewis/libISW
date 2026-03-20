@@ -41,18 +41,18 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 
-#include <X11/Xaw3d/Xaw3dP.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/SimpleMenP.h>
-#include <X11/Xaw3d/SmeBSBP.h>
-#include <X11/Xaw3d/SmeLine.h>
-#include <X11/Xaw3d/Cardinals.h>
-#include <X11/Xaw3d/ThreeDP.h>
+#include <ISW/ISWP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/SimpleMenP.h>
+#include <ISW/SmeBSBP.h>
+#include <ISW/SmeLine.h>
+#include <ISW/Cardinals.h>
+#include <ISW/ThreeDP.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
-#include "XawXcbDraw.h"
+#include "ISWXcbDraw.h"
 
 /* XPoint typedef for XCB */
 typedef xcb_point_t XPoint;

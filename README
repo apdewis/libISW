@@ -1,26 +1,41 @@
-Xaw3d is the X 3D Athena Widget Set.
-Xaw3d is a widget set based on the X Toolkit Intrinsics (Xt) Library.
+ISW (Infi Systems Widgets) - XCB-based 3D Widget Library
+==========================================================
 
-All questions regarding this software should be directed at the
-Xorg mailing list:
+ISW is a modern fork of the X 3D Athena Widget Set (Xaw3d), featuring:
+- Native XCB (X protocol C-language Binding) rendering support
+- Enhanced 3D visual effects with shadow and lighting
+- Arrow scrollbars for improved usability
+- Full internationalization support
+- Xft font rendering with anti-aliasing
 
-        http://lists.freedesktop.org/mailman/listinfo/xorg
+This library is based on the X Toolkit Intrinsics (Xt) Library and provides
+a comprehensive set of widgets for building X11 graphical user interfaces.
 
-Please submit bug reports to the Xorg bugzilla:
+FEATURES
+--------
+- Modern XCB rendering backend for better performance
+- 3D-styled widgets with configurable shadows and bevels
+- Arrow controls on scrollbars (configurable)
+- Multi-language text support with XIM integration
+- Anti-aliased text rendering via Xft
+- Compatible with existing Xt-based applications
 
-        https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
+BUILDING
+--------
+See BUILD_INSTRUCTIONS.md for detailed build instructions.
 
-The master development code repository can be found at:
+Quick start:
+    ./autogen.sh
+    ./configure --enable-arrow-scrollbars --enable-internationalization
+    make
+    sudo make install
 
-        git://anongit.freedesktop.org/git/xorg/lib/libXaw3d
+FORKED FROM
+-----------
+This project is a modernized fork of Xaw3d (X 3D Athena Widget Set).
+Original Xaw3d repository:
+    git://anongit.freedesktop.org/git/xorg/lib/libXaw3d
 
-        http://cgit.freedesktop.org/xorg/lib/libXaw3d
-
-For patch submission instructions, see:
-
-	http://www.x.org/wiki/Development/Documentation/SubmittingPatches
-
-For more information on the git code manager, see:
-
-        http://wiki.x.org/wiki/GitPage
-
+LICENSE
+-------
+See COPYING file for license information.

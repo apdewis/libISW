@@ -68,12 +68,12 @@ SOFTWARE.
 #ifndef _AsciiTextP_h
 #define _AsciiTextP_h
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/TextP.h>
-#include <X11/Xaw3d/AsciiText.h>
-#include <X11/Xaw3d/AsciiSrc.h>
-#ifdef XAW_INTERNATIONALIZATION
-#include <X11/Xaw3d/MultiSrc.h>
+#include "ISWP.h"
+#include <ISW/TextP.h>
+#include <ISW/AsciiText.h>
+#include <ISW/AsciiSrc.h>
+#ifdef ISW_INTERNATIONALIZATION
+#include <ISW/MultiSrc.h>
 #endif
 
 typedef struct {int empty;} AsciiClassPart;

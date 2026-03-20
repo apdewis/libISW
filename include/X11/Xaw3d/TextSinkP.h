@@ -67,9 +67,9 @@ SOFTWARE.
 typedef xcb_gcontext_t GC;
 #endif
 
-#include <X11/Xaw3d/TextSink.h>
-#include <X11/Xaw3d/TextP.h>	/* This source works with the Text widget. */
-#include <X11/Xaw3d/TextSrcP.h>	/* This source works with the Text Source. */
+#include <ISW/TextSink.h>
+#include <ISW/TextP.h>	/* This source works with the Text widget. */
+#include <ISW/TextSrcP.h>	/* This source works with the Text Source. */
 
 /************************************************************
  *
@@ -78,7 +78,7 @@ typedef xcb_gcontext_t GC;
  ************************************************************/
 
 typedef void (*_XawSinkDisplayTextProc)
-     (Widget, Position, Position, XawTextPosition, XawTextPosition, Boolean);
+     (Widget, Position, Position, ISWTextPosition, ISWTextPosition, Boolean);
 
 typedef void (*_XawSinkInsertCursorProc)
      (Widget, Position, Position, XawTextInsertState);
@@ -87,13 +87,13 @@ typedef void (*_XawSinkClearToBackgroundProc)
      (Widget, Position, Position, Dimension, Dimension);
 
 typedef void (*_XawSinkFindPositionProc)
-     (Widget, XawTextPosition, int, int, Boolean, XawTextPosition*, int*, int*);
+     (Widget, ISWTextPosition, int, int, Boolean, ISWTextPosition*, int*, int*);
 
 typedef void (*_XawSinkFindDistanceProc)
-     (Widget, XawTextPosition, int, XawTextPosition, int*, XawTextPosition*, int*);
+     (Widget, ISWTextPosition, int, ISWTextPosition, int*, ISWTextPosition*, int*);
 
 typedef void (*_XawSinkResolveProc)
-     (Widget, XawTextPosition, int, int, XawTextPosition*);
+     (Widget, ISWTextPosition, int, int, ISWTextPosition*);
 
 typedef int  (*_XawSinkMaxLinesProc)
      (Widget, Dimension);

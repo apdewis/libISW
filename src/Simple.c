@@ -49,13 +49,13 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/SimpleP.h>
-#include "XawXcbDraw.h"
+#include <ISW/ISWInit.h>
+#include <ISW/SimpleP.h>
+#include "ISWXcbDraw.h"
 
 #define offset(field) XtOffsetOf(SimpleRec, simple.field)
 
@@ -72,7 +72,7 @@ static XtResource resources[] = {
   */
   {XtNcursorName, XtCCursor, XtRString, sizeof(String),
      offset(cursor_name), XtRString, NULL},
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   {XtNinternational, XtCInternational, XtRBoolean, sizeof(Boolean),
      offset(international), XtRImmediate, (XtPointer) FALSE},
 #endif
@@ -256,7 +256,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     Boolean new_cursor = FALSE;
 
     /* this disables user changes after creation*/
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     s_new->simple.international = s_old->simple.international;
 #endif
 

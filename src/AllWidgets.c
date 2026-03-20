@@ -29,7 +29,7 @@ in this Software without prior written authorization from the X Consortium.
 #include "config.h"
 #endif
 #include <X11/IntrinsicP.h>
-#include <X11/Xaw3d/AllWidgets.h>
+#include <ISW/AllWidgets.h>
 
 #include <X11/Composite.h>
 #include <X11/Constraint.h>
@@ -38,32 +38,32 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/RectObj.h>
 #include <X11/Shell.h>
 #include <X11/Vendor.h>
-#include <X11/Xaw3d/AsciiSink.h>
-#include <X11/Xaw3d/AsciiText.h>
-#include <X11/Xaw3d/Box.h>
-#include <X11/Xaw3d/Dialog.h>
-#include <X11/Xaw3d/Form.h>
-#include <X11/Xaw3d/Grip.h>
-#include <X11/Xaw3d/Layout.h>
-#include <X11/Xaw3d/List.h>
-#include <X11/Xaw3d/MenuButton.h>
-#include <X11/Xaw3d/MultiSink.h>
-#include <X11/Xaw3d/MultiSrc.h>
-#include <X11/Xaw3d/Paned.h>
-#include <X11/Xaw3d/Panner.h>
-#include <X11/Xaw3d/Porthole.h>
-#include <X11/Xaw3d/Repeater.h>
-#include <X11/Xaw3d/Scrollbar.h>
-#include <X11/Xaw3d/SimpleMenu.h>
-#include <X11/Xaw3d/Sme.h>
-#include <X11/Xaw3d/SmeBSB.h>
-#include <X11/Xaw3d/SmeLine.h>
-#include <X11/Xaw3d/SmeThreeD.h>
-#include <X11/Xaw3d/StripChart.h>
-#include <X11/Xaw3d/ThreeD.h>
-#include <X11/Xaw3d/Toggle.h>
-#include <X11/Xaw3d/Tree.h>
-#include <X11/Xaw3d/Viewport.h>
+#include <ISW/AsciiSink.h>
+#include <ISW/AsciiText.h>
+#include <ISW/Box.h>
+#include <ISW/Dialog.h>
+#include <ISW/Form.h>
+#include <ISW/Grip.h>
+#include <ISW/Layout.h>
+#include <ISW/List.h>
+#include <ISW/MenuButton.h>
+#include <ISW/MultiSink.h>
+#include <ISW/MultiSrc.h>
+#include <ISW/Paned.h>
+#include <ISW/Panner.h>
+#include <ISW/Porthole.h>
+#include <ISW/Repeater.h>
+#include <ISW/Scrollbar.h>
+#include <ISW/SimpleMenu.h>
+#include <ISW/Sme.h>
+#include <ISW/SmeBSB.h>
+#include <ISW/SmeLine.h>
+#include <ISW/SmeThreeD.h>
+#include <ISW/StripChart.h>
+#include <ISW/ThreeD.h>
+#include <ISW/Toggle.h>
+#include <ISW/Tree.h>
+#include <ISW/Viewport.h>
 
 XawWidgetNode XawWidgetArray[] = {
 { "applicationShell", &applicationShellWidgetClass },

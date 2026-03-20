@@ -1,8 +1,8 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXaw3d], [1.6.2],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXaw3d])
+AC_INIT([libISW], [1.0.0],
+        [https://github.com/InfiSystems/libISW], [libISW])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 
@@ -42,46 +42,46 @@ AC_CHECK_HEADERS([wctype.h wchar.h widec.h])
 AC_CHECK_FUNCS([iswspace])
 AC_TYPE_INTPTR_T
 
-XAW3D_CPPFLAGS="${CUSTOM_XT_CPPFLAGS}"
+ISW_CPPFLAGS="${CUSTOM_XT_CPPFLAGS}"
 
 AC_ARG_ENABLE([internationalization],
     AS_HELP_STRING([--enable-internationalization], dnl
     [enable utf8 strings (default: yes)]),
-    [XAW_I18N=$enableval], [XAW_I18N=yes])
-if test "x$XAW_I18N" = xyes; then
-    XAW3D_CPPFLAGS="${XAW3D_CPPFLAGS} -DXAW_INTERNATIONALIZATION"
+    [ISW_I18N=$enableval], [ISW_I18N=yes])
+if test "x$ISW_I18N" = xyes; then
+    ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_INTERNATIONALIZATION"
 fi
-AM_CONDITIONAL(XAW_INTERNATIONALIZATION, [test "x$XAW_I18N" = xyes])
+AM_CONDITIONAL(ISW_INTERNATIONALIZATION, [test "x$ISW_I18N" = xyes])
 
 AC_ARG_ENABLE([xim],
     AS_HELP_STRING([--enable-xim], dnl
     [enable X Input Method support for CJK input (default: no, requires Xlib XIM APIs not available in XCB)]),
-    [XAW_XIM=$enableval], [XAW_XIM=no])
-if test "x$XAW_XIM" = xyes; then
-    XAW3D_CPPFLAGS="${XAW3D_CPPFLAGS} -DXAW_HAS_XIM"
+    [ISW_XIM=$enableval], [ISW_XIM=no])
+if test "x$ISW_XIM" = xyes; then
+    ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_HAS_XIM"
 fi
 
 AC_ARG_ENABLE([multiplane-bitmaps],
     [AS_HELP_STRING([--enable-multiplane-bitmaps], dnl
      [enable XPM support])],
-     [XAW3D_CPPFLAGS="${XAW3D_CPPFLAGS} -DXAW_MULTIPLANE_PIXMAPS" dnl
+     [ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_MULTIPLANE_PIXMAPS" dnl
       PKG_CHECK_MODULES(XPM, xpm)])
 
 AC_ARG_ENABLE([gray-stipples],
     [AS_HELP_STRING([--enable-gray-stipples], dnl
-     [enable gray stipples])], [XAW3D_CPPFLAGS="${XAW3D_CPPFLAGS} -DXAW_GRAY_BLKWHT_STIPPLES"])
+     [enable gray stipples])], [ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_GRAY_BLKWHT_STIPPLES"])
 
 AC_ARG_ENABLE([arrow-scrollbars],
     [AS_HELP_STRING([--enable-arrow-scrollbars], dnl
-     [enable arrow scrollbars])], [XAW3D_CPPFLAGS="${XAW3D_CPPFLAGS} -DXAW_ARROW_SCROLLBARS"])
+     [enable arrow scrollbars])], [ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_ARROW_SCROLLBARS"])
 
-AC_SUBST(XAW3D_CPPFLAGS)
+AC_SUBST(ISW_CPPFLAGS)
 AC_SUBST(CUSTOM_XT_CPPFLAGS)
 AC_SUBST(CUSTOM_XT_LDFLAGS)
 
 AC_CONFIG_FILES([Makefile
 		include/Makefile
 		src/Makefile
-		xaw3d.pc])
+		isw.pc])
 
 AC_OUTPUT

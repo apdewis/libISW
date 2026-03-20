@@ -49,7 +49,7 @@ SOFTWARE.
 #ifndef _Simple_h
 #define _Simple_h
 
-#include "Xaw3dP.h"
+#include "ISWP.h"
 
 /****************************************************************
  *
@@ -85,7 +85,7 @@ SOFTWARE.
 
 #define XtCInsensitive "Insensitive"
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 #ifndef XtCInternational
 #define XtCInternational "International"
 #endif

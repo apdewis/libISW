@@ -63,11 +63,11 @@ in this Software without prior written authorization from the X Consortium.
 #define XtNsharedIc		"sharedIc"
 #define XtCSharedIc		"SharedIc"
 
-#include <X11/Xaw3d/Text.h>
-#include <X11/Xaw3d/XawXftCompat.h>  /* For XawFontSet typedef */
+#include <ISW/Text.h>
+#include <ISW/ISWXftCompat.h>  /* For ISWFontSet typedef */
 
 /* XCB Migration: XIM requires Xlib and is not available with XCB */
-#ifdef XAW_HAS_XIM
+#ifdef ISW_HAS_XIM
 #include <X11/Xlib.h>  /* For XIM, XIC, XIMStyle, XKeyPressedEvent, Status */
 #else
 /* Stub types when XIM is disabled for XCB compatibility */
@@ -123,11 +123,11 @@ typedef struct _XawIcTablePart
     unsigned long	flg;
     unsigned long	prev_flg;
     Boolean		ic_focused;
-    XawFontSet		*font_set;  /* Phase 3.5: XIM migration */
+    ISWFontSet		*font_set;  /* Phase 3.5: XIM migration */
     Pixel		foreground;
     Pixel		background;
     Pixmap		bg_pixmap;
-    XawTextPosition	cursor_position;
+    ISWTextPosition	cursor_position;
     unsigned long	line_spacing;
     Boolean		openic_error;
     struct _XawIcTablePart *next;

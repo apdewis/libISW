@@ -76,8 +76,8 @@ SOFTWARE.
  *
  */
 
-#ifndef _XawMultiSinkP_h
-#define _XawMultiSinkP_h
+#ifndef _ISWMultiSinkP_h
+#define _ISWMultiSinkP_h
 
 /***********************************************************************
  *
@@ -85,9 +85,9 @@ SOFTWARE.
  *
  ***********************************************************************/
 
-#include <X11/Xaw3d/TextSinkP.h>
-#include <X11/Xaw3d/MultiSink.h>
-#include <X11/Xaw3d/XawXftCompat.h>  /* For XawFontSet typedef */
+#include <ISW/TextSinkP.h>
+#include <ISW/MultiSink.h>
+#include <ISW/ISWXftCompat.h>  /* For ISWFontSet typedef */
 
 /************************************************************
  *
@@ -120,7 +120,7 @@ typedef struct {
     Pixmap insertCursorOn;
     XawTextInsertState laststate;
     short cursor_x, cursor_y;	/* Cursor Location. */
-    XawFontSet *fontset; /* Phase 3.5: font set to draw */
+    ISWFontSet *fontset; /* Phase 3.5: font set to draw */
 } MultiSinkPart;
 
 /****************************************************************
@@ -143,12 +143,12 @@ typedef struct _MultiSinkRec {
  *
  *******************************************/
 
-extern void _XawMultiSinkPosToXY(
+extern void _ISWMultiSinkPosToXY(
     Widget			/* w */,
-    XawTextPosition		/* pos */,
+    ISWTextPosition		/* pos */,
     Position *			/* x */,
     Position *			/*y */
 );
 
-#endif /* _XawMultiSinkP_h */
+#endif /* _ISWMultiSinkP_h */
 

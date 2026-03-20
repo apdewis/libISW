@@ -43,8 +43,8 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/ToggleP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/ToggleP.h>
 
 /****************************************************************
  *
@@ -167,12 +167,12 @@ WidgetClass toggleWidgetClass = (WidgetClass) &toggleClassRec;
  ****************************************************************/
 
 /*
- * XawCvtStringToWidget - Convert string widget name to Widget
+ * ISWCvtStringToWidget - Convert string widget name to Widget
  * Used for radioGroup resource conversion
  */
 /*ARGSUSED*/
 static Boolean
-XawCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+ISWCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
                      XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
 {
     Widget widget;
@@ -233,7 +233,7 @@ ClassInit(void)
   };
 
   XawInitializeWidgetSet();
-  XtSetTypeConverter(XtRString, XtRWidget, XawCvtStringToWidget,
+  XtSetTypeConverter(XtRString, XtRWidget, ISWCvtStringToWidget,
 		     parentCvtArgs, XtNumber(parentCvtArgs), XtCacheNone,
 		     (XtDestructor)NULL);
 /*

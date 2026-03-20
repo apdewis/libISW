@@ -379,7 +379,7 @@ xcb_gcontext_t CreateGC(Widget w, unsigned long foreground, unsigned long backgr
 **See:** [`plans/IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) Phase 2 for XIM stubbing plan
 
 **Summary:**
-- Wrap XIM code in `#ifdef XAW_HAS_XIM` (undefined by default)
+- Wrap XIM code in `#ifdef ISW_HAS_XIM` (undefined by default)
 - Provide stub typedefs: `typedef void *XIM; typedef void *XIC;`
 - Stub out IM functions to no-ops
 - Document that CJK input requires external input framework
@@ -463,7 +463,7 @@ void DrawLine(Widget w, int x1, int y1, int x2, int y2)
 ```c
 // WRONG!
 /* FIXME: XCB - XIM types don't exist */
-/* #ifdef XAW_INTERNATIONALIZATION
+/* #ifdef ISW_INTERNATIONALIZATION
 #include <X11/Xaw3d/XawImP.h>
 #endif */
 ```
@@ -473,8 +473,8 @@ void DrawLine(Widget w, int x1, int y1, int x2, int y2)
 **Correct:**
 ```c
 // RIGHT!
-#ifdef XAW_INTERNATIONALIZATION
-#include <X11/Xaw3d/XawImP.h>  // XIM stubbed out when XAW_HAS_XIM undefined
+#ifdef ISW_INTERNATIONALIZATION
+#include <X11/Xaw3d/XawImP.h>  // XIM stubbed out when ISW_HAS_XIM undefined
 #endif
 ```
 

@@ -68,8 +68,8 @@ SOFTWARE.
 #ifndef _XawAsciiSrcP_h
 #define _XawAsciiSrcP_h
 
-#include <X11/Xaw3d/TextSrcP.h>
-#include <X11/Xaw3d/AsciiSrc.h>
+#include <ISW/TextSrcP.h>
+#include <ISW/AsciiSrc.h>
 
 /************************************************************
  *
@@ -83,14 +83,14 @@ SOFTWARE.
 #define TMPSIZ 32		/* bytes to allocate for tmpnam */
 #endif
 
-#define MAGIC_VALUE ((XawTextPosition) -1) /* Magic value. */
+#define MAGIC_VALUE ((ISWTextPosition) -1) /* Magic value. */
 
 #define streq(a, b)        ( strcmp((a), (b)) == 0 )
 
 typedef struct _Piece {		/* Piece of the text file of BUFSIZ allocated
 				   characters. */
   char * text;			/* The text in this buffer. */
-  XawTextPosition used;		/* The number of characters of this buffer
+  ISWTextPosition used;		/* The number of characters of this buffer
 				   that have been used. */
   struct _Piece *prev, *next;	/* linked list pointers. */
 } Piece;
@@ -121,7 +121,7 @@ typedef struct _AsciiSrcPart {
   char       *string;		/* either the string, or the
 				   file name, depending upon the type. */
   XawAsciiType type;		/* either string or disk. */
-  XawTextPosition piece_size;	/* Size of text buffer for each piece. */
+  ISWTextPosition piece_size;	/* Size of text buffer for each piece. */
   Boolean data_compression;	/* compress to minimum memory automatically
 				   on save? */
   XtCallbackList callback;	/* A callback list to call when the source is
@@ -139,7 +139,7 @@ typedef struct _AsciiSrcPart {
   Boolean       changes;	  /* Has this file been edited? */
   Boolean       allocated_string; /* Have I allocated the
 				     string in ascii_src->string? */
-  XawTextPosition length; 	/* length of file */
+  ISWTextPosition length; 	/* length of file */
   Piece * first_piece;		/* first piece of the text. */
 } AsciiSrcPart;
 

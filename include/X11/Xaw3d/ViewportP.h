@@ -53,9 +53,9 @@ SOFTWARE.
 #ifndef _ViewportP_h
 #define _ViewportP_h
 
-#include <X11/Xaw3d/Viewport.h>
-#include <X11/Xaw3d/FormP.h>
-#include <X11/Xaw3d/ThreeDP.h>
+#include <ISW/Viewport.h>
+#include <ISW/FormP.h>
+#include <ISW/ThreeDP.h>
 
 typedef struct {int empty;} ViewportClassPart;
 

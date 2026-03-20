@@ -26,17 +26,17 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/StringDefs.h>
 #include <X11/IntrinsicP.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/ThreeDP.h>
-#include <X11/Xaw3d/SimpleMenP.h>
-#include <X11/Xaw3d/SmeThreeDP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/ThreeDP.h>
+#include <ISW/SimpleMenP.h>
+#include <ISW/SmeThreeDP.h>
 #include <X11/Xosdefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "XawXcbDraw.h"
+#include "ISWXcbDraw.h"
 
 /* Initialization of defaults */
 
@@ -240,7 +240,7 @@ AllocTopShadowPixmap (Widget new)
 	    top_fg_pixel = parent->core.background_pixel;
 	    top_bg_pixel = scn->white_pixel;
 	}
-#ifndef XAW_GRAY_BLKWHT_STIPPLES
+#ifndef ISW_GRAY_BLKWHT_STIPPLES
 	if (parent->core.background_pixel == scn->white_pixel ||
 	    parent->core.background_pixel == scn->black_pixel) {
 	    pm_data = mtshadowpm_bits;
@@ -287,7 +287,7 @@ AllocBotShadowPixmap (Widget new)
 	    bot_fg_pixel = parent->core.background_pixel;
 	    bot_bg_pixel = scn->black_pixel;
 	}
-#ifndef XAW_GRAY_BLKWHT_STIPPLES
+#ifndef ISW_GRAY_BLKWHT_STIPPLES
 	if (parent->core.background_pixel == scn->white_pixel ||
 	    parent->core.background_pixel == scn->black_pixel) {
 	    pm_data = mbshadowpm_bits;

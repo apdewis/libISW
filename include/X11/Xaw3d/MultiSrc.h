@@ -55,10 +55,10 @@ in this Software without prior written authorization from the X Consortium.
  * By Li Yuhong, Sept. 18, 1990
  */
 
-#ifndef _XawMultiSrc_h
-#define _XawMultiSrc_h
+#ifndef _ISWMultiSrc_h
+#define _ISWMultiSrc_h
 
-#include <X11/Xaw3d/TextSrc.h>
+#include <ISW/TextSrc.h>
 /*Xfuncproto.h included by Intrinsic.h*/
 
 /* Resources:
@@ -127,11 +127,11 @@ extern void XawMultiSourceFreeString(
     Widget		/* w */
 );
 
-extern Boolean _XawMultiSave(
+extern Boolean _ISWMultiSave(
     Widget		/* w */
 );
 
-extern Boolean _XawMultiSaveAsFile(
+extern Boolean _ISWMultiSaveAsFile(
     Widget		/* w */,
     _Xconst char*	/* name */
 );
@@ -139,5 +139,5 @@ extern Boolean _XawMultiSaveAsFile(
 
 _XFUNCPROTOEND
 
-#endif /* _XawMultiSrc_h  - Don't add anything after this line. */
+#endif /* _ISWMultiSrc_h  - Don't add anything after this line. */
 

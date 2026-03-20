@@ -41,8 +41,8 @@ in this Software without prior written authorization from the X Consortium.
 #define _SmeBSB_h
 
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/Sme.h>
+#include "ISWP.h"
+#include <ISW/Sme.h>
 
 /****************************************************************
  *
@@ -89,7 +89,7 @@ extern WidgetClass smeBSBObjectClass;
 #define XtNmenuName "menuName"
 #define XtNunderline "underline"
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 #ifndef XtNfontSet
 #define XtNfontSet		"fontSet"
 #endif

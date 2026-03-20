@@ -27,7 +27,7 @@
 #if defined(LAYOUT)
 # include "Layout.h"
 #else
-# include <X11/Xaw3d/Layout.h>
+# include <ISW/Layout.h>
 #endif
 
 #include <X11/ConstrainP.h>

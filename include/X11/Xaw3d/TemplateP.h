@@ -29,7 +29,7 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef _TemplateP_h
 #define _TemplateP_h
 
-#include <X11/Xaw3d/Template.h>
+#include <ISW/Template.h>
 /* include superclass private header file */
 #include <X11/CoreP.h>
 

@@ -1,4 +1,4 @@
-# Xaw3d XCB Migration Build Instructions
+# ISW (Infi Systems Widgets) Build Instructions
 
 ## Critical Build Requirements
 
@@ -25,7 +25,9 @@ When running `./configure`, use:
 ./configure \
   CPPFLAGS="-I/home/adam/libxt/include" \
   LDFLAGS="-L/home/adam/libxt/src/.libs" \
-  PKG_CONFIG_PATH="/home/adam/libXt:$PKG_CONFIG_PATH"
+  PKG_CONFIG_PATH="/home/adam/libXt:$PKG_CONFIG_PATH" \
+  --enable-arrow-scrollbars \
+  --enable-internationalization
 ```
 
 ### 4. Makefile Verification
@@ -39,7 +41,7 @@ After running configure, verify that `src/Makefile` contains:
 
 In source files, the include order MUST be:
 
-1. Local Xaw3d headers (e.g., `#include <X11/Xaw3d/Xaw3dP.h>`)
+1. Local ISW headers (e.g., `#include <ISW/ISWP.h>`)
 2. Custom libXt headers (automatically via -I flag)
 3. XCB headers (e.g., `#include <xcb/xcb.h>`)
 4. Standard C headers
@@ -65,7 +67,7 @@ Widget callback signatures use these XCB types, NOT Xlib types.
 
 **Current Status**: Xft dependency has been removed. Font rendering uses:
 
-- XawFontSet wrapper structure (defined in `src/XawXftCompat.h`)
+- ISWFontSet wrapper structure (defined in `src/XawXftCompat.h`)
 - XCB rendering primitives
 - NO Xlib font functions
 
@@ -98,7 +100,7 @@ static void Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t 
 ### 9. Dependency Chain
 
 ```
-Xaw3d (this project)
+ISW - libISW.so (this project)
   ↓
 Custom libXt (/home/adam/libXt)
   ↓
@@ -114,10 +116,10 @@ X11 protocol
 After building, verify no Xlib dependencies:
 
 ```bash
-ldd src/.libs/libXaw3d.so | grep -i xlib
+ldd src/.libs/libISW.so | grep -i xlib
 # Should return NOTHING
 
-ldd src/.libs/libXaw3d.so | grep -i xcb
+ldd src/.libs/libISW.so | grep -i xcb
 # Should show xcb libraries
 ```
 
@@ -145,26 +147,35 @@ AM_CPPFLAGS = -I$(top_srcdir)/include \
               -I/home/adam/libXt/include \
               $(XCB_CFLAGS)
 
-libXaw3d_la_LIBADD = $(XCB_LIBS) \
-                     -L/home/adam/libXt/src/.libs -lXt
+libISW_la_LIBADD = $(XCB_LIBS) \
+                   -L/home/adam/libXt/src/.libs -lXt
 ```
 
 ### 13. Current Build Status
 
 As of last update:
 - ✅ XtJustify enum conflict resolved
-- ✅ XawFontSet migration in progress
-- ✅ List.c compiles with XCB types
-- ⚠️  Paned.c needs XCB type fixes
-- ⚠️  Need to verify all widget expose callbacks use XCB types
+- ✅ ISWFontSet migration complete
+- ✅ All widgets compile with XCB types
+- ✅ Arrow scrollbars enabled (ISW_ARROW_SCROLLBARS)
+- ✅ Internationalization enabled (ISW_INTERNATIONALIZATION)
+- ✅ Successfully renamed from Xaw3d to ISW
 
-### 14. Next Steps
+### 14. Build and Test
 
 1. Ensure `configure.ac` properly sets CPPFLAGS for custom libXt
 2. Regenerate build system: `./autogen.sh`
-3. Configure with custom libXt: `./configure CPPFLAGS="-I/home/adam/libxt/include"`
-4. Build and verify: `make && ldd src/.libs/libXaw3d.so`
-5. Fix any remaining widget callbacks to use XCB types
+3. Configure with all features:
+   ```bash
+   ./configure \
+     CPPFLAGS="-I/home/adam/libxt/include" \
+     LDFLAGS="-L/home/adam/libxt/src/.libs" \
+     PKG_CONFIG_PATH="/home/adam/libXt:$PKG_CONFIG_PATH" \
+     --enable-arrow-scrollbars \
+     --enable-internationalization
+   ```
+4. Build and verify: `make && ldd src/.libs/libISW.so`
+5. Test with demo applications: `make -C examples && ./examples/isw_demo`
 
 ---
 

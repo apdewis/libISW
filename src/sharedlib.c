@@ -27,44 +27,44 @@ in this Software without prior written authorization from the X Consortium.
 
 #if defined(SUNSHLIB) && !defined(SHAREDCODE)
 
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
-#include <X11/Xaw3d/AsciiSinkP.h>
-#include <X11/Xaw3d/AsciiSrcP.h>
-#include <X11/Xaw3d/AsciiTextP.h>
-#ifdef XAW_INTERNATIONALIZATION
-#include <X11/Xaw3d/MultiSinkP.h>
-#include <X11/Xaw3d/MultiSrcP.h>
+#include <ISW/AsciiSinkP.h>
+#include <ISW/AsciiSrcP.h>
+#include <ISW/AsciiTextP.h>
+#ifdef ISW_INTERNATIONALIZATION
+#include <ISW/MultiSinkP.h>
+#include <ISW/MultiSrcP.h>
 #endif
-#include <X11/Xaw3d/BoxP.h>
-#include <X11/Xaw3d/CommandP.h>
-#include <X11/Xaw3d/DialogP.h>
-#include <X11/Xaw3d/FormP.h>
-#include <X11/Xaw3d/GripP.h>
-#include <X11/Xaw3d/LabelP.h>
-#include <X11/Xaw3d/ListP.h>
-#include <X11/Xaw3d/MenuButtoP.h>
-#include <X11/Xaw3d/PanedP.h>
-#include <X11/Xaw3d/PannerP.h>
-#include <X11/Xaw3d/PortholeP.h>
-#include <X11/Xaw3d/RepeaterP.h>
-#include <X11/Xaw3d/ScrollbarP.h>
-#include <X11/Xaw3d/SimpleP.h>
-#include <X11/Xaw3d/SimpleMenP.h>
-#include <X11/Xaw3d/SmeP.h>
-#include <X11/Xaw3d/SmeThreeDP.h>
-#include <X11/Xaw3d/SmeBSBP.h>
-#include <X11/Xaw3d/SmeLineP.h>
-#include <X11/Xaw3d/StripCharP.h>
-#include <X11/Xaw3d/TextP.h>
-#include <X11/Xaw3d/TextSinkP.h>
-#include <X11/Xaw3d/TextSrcP.h>
-#include <X11/Xaw3d/ThreeDP.h>
-#include <X11/Xaw3d/TipP.h>
-#include <X11/Xaw3d/ToggleP.h>
-#include <X11/Xaw3d/TreeP.h>
+#include <ISW/BoxP.h>
+#include <ISW/CommandP.h>
+#include <ISW/DialogP.h>
+#include <ISW/FormP.h>
+#include <ISW/GripP.h>
+#include <ISW/LabelP.h>
+#include <ISW/ListP.h>
+#include <ISW/MenuButtoP.h>
+#include <ISW/PanedP.h>
+#include <ISW/PannerP.h>
+#include <ISW/PortholeP.h>
+#include <ISW/RepeaterP.h>
+#include <ISW/ScrollbarP.h>
+#include <ISW/SimpleP.h>
+#include <ISW/SimpleMenP.h>
+#include <ISW/SmeP.h>
+#include <ISW/SmeThreeDP.h>
+#include <ISW/SmeBSBP.h>
+#include <ISW/SmeLineP.h>
+#include <ISW/StripCharP.h>
+#include <ISW/TextP.h>
+#include <ISW/TextSinkP.h>
+#include <ISW/TextSrcP.h>
+#include <ISW/ThreeDP.h>
+#include <ISW/TipP.h>
+#include <ISW/ToggleP.h>
+#include <ISW/TreeP.h>
 #include <X11/VendorP.h>
-#include <X11/Xaw3d/ViewportP.h>
+#include <ISW/ViewportP.h>
 
 extern AsciiSinkClassRec asciiSinkClassRec;
 WidgetClass asciiSinkObjectClass = (WidgetClass)&asciiSinkClassRec;
@@ -85,12 +85,12 @@ extern AsciiDiskClassRec asciiDiskClassRec;
 WidgetClass asciiDiskWidgetClass = (WidgetClass)&asciiDiskClassRec;
 #endif
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 extern MultiSinkClassRec multiSinkClassRec;
 WidgetClass multiSinkObjectClass = (WidgetClass)&multiSinkClassRec;
 #endif
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 extern MultiSrcClassRec multiSrcClassRec;
 WidgetClass multiSrcObjectClass = (WidgetClass)&multiSrcClassRec;
 #endif
@@ -160,7 +160,7 @@ WidgetClass textWidgetClass = (WidgetClass)&textClassRec;
 
 unsigned long FMT8BIT = 0L;
 unsigned long XawFmt8Bit = 0L;
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 unsigned long XawFmtWide = 0L;
 #endif
 

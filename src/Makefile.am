@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libXaw3d.la
+lib_LTLIBRARIES = libISW.la
 
 AM_YFLAGS = -d -p LayYY
 
@@ -12,7 +12,7 @@ AM_CFLAGS =		\
 AM_CPPFLAGS = \
 	$(CUSTOM_XT_CPPFLAGS) \
 	-I${top_srcdir}/include	\
-	$(XAW3D_CPPFLAGS)
+	$(ISW_CPPFLAGS)
 
 #
 # This doesn't appear to be used on any
@@ -22,11 +22,11 @@ AM_CPPFLAGS = \
 #
 # SHAREDLIB_SOURCES = sharedlib.c
 
-if XAW_INTERNATIONALIZATION
-I18N_SRCS = MultiSrc.c MultiSink.c XawIm.c XawI18n.c XawI18n.h
+if ISW_INTERNATIONALIZATION
+I18N_SRCS = MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h
 endif
 
-libXaw3d_la_SOURCES = \
+libISW_la_SOURCES = \
 	AllWidgets.c \
 	AsciiSink.c \
 	AsciiSrc.c \
@@ -65,25 +65,25 @@ libXaw3d_la_SOURCES = \
 	Tree.c \
 	Vendor.c \
 	Viewport.c \
-	Xaw3dP.c \
-	XawAtoms.c \
-	XawContext.c \
-	XawDrawing.c \
-	XawInit.c \
-	XawXcbDraw.c \
-	XawXcbDraw.h \
+	ISWP.c \
+	ISWAtoms.c \
+	ISWContext.c \
+	ISWDrawing.c \
+	ISWInit.c \
+	ISWXcbDraw.c \
+	ISWXcbDraw.h \
 	laygram.y \
 	laylex.l \
 	$(I18N_SRCS)
 
-libXaw3d_la_LIBADD = \
+libISW_la_LIBADD = \
 	$(CUSTOM_XT_LDFLAGS) -lXt \
 	$(X11_LIBS) $(XFT_LIBS) $(XPM_LIBS)
 
-libXaw3d_la_LDFLAGS = -version-info 8:0:0 -no-undefined $(CUSTOM_XT_LDFLAGS)
+libISW_la_LDFLAGS = -version-info 1:0:0 -no-undefined $(CUSTOM_XT_LDFLAGS)
 
 BUILT_SOURCES = laygram.h
 
-dist_doc_DATA = README.XAW3D
+dist_doc_DATA = README.ISW
 
 EXTRA_DIST = sharedlib.c Template.c

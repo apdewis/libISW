@@ -61,22 +61,22 @@ SOFTWARE.
  *          kit@expo.lcs.mit.edu
  */
 
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/cursorfont.h>
 #include <X11/StringDefs.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/Grip.h>
-#include <X11/Xaw3d/PanedP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/Grip.h>
+#include <ISW/PanedP.h>
 #include <ctype.h>
 #include <xcb/xcb.h>
 #include <xcb/xfixes.h>
-#include "XawXcbDraw.h"
+#include "ISWXcbDraw.h"
 
 /* I don't know why Paned.c calls _XawImCallVendorShellExtResize, but... */
 /* FIXME: XawImP.h uses Xlib-specific types (XIM, XIC) that don't exist in XCB */
-/* #ifdef XAW_INTERNATIONALIZATION
-#include <X11/Xaw3d/XawImP.h>
+/* #ifdef ISW_INTERNATIONALIZATION
+#include <ISW/ISWImP.h>
 #endif */
 
 typedef enum {UpLeftPane = 'U', LowRightPane = 'L',
@@ -326,7 +326,7 @@ AdjustPanedSize(PanedWidget pw, Dimension off_size, XtGeometryResult * result_re
 
       *result_ret = XtMakeGeometryRequest( (Widget) pw, &request, &reply );
       /* XIM support not available in XCB-based libXt - stub out */
-      /* #ifdef XAW_INTERNATIONALIZATION
+      /* #ifdef ISW_INTERNATIONALIZATION
       _XawImCallVendorShellExtResize( (Widget) pw );
       #endif */
 
@@ -1411,7 +1411,7 @@ static void
 ClassInitialize(void)
 {
     XawInitializeWidgetSet();
-    XtSetTypeConverter( XtRString, XtROrientation, XawCvtStringToOrientation,
+    XtSetTypeConverter( XtRString, XtROrientation, ISWCvtStringToOrientation,
 		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
 

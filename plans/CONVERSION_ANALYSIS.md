@@ -138,10 +138,10 @@ XmbDrawString(dpy, win, fset, gc, x, y, text, len);       // ❌ ERROR
 ```
 **Problem:** These Xlib functions don't exist in XCB-based libXt.
 
-#### C. XawFontSet Wrapper (Planned, not implemented)
+#### C. ISWFontSet Wrapper (Planned, not implemented)
 ```c
 // Supposed to exist in XawXftCompat.h (missing file)
-XawFontSet *fset = lw->label.fontset;
+ISWFontSet *fset = lw->label.fontset;
 int width = XawTextWidth(fset, text, len);                // Should work
 XawDrawString(dpy, win, fset, gc, x, y, text, len);       // Should work
 ```
@@ -171,11 +171,11 @@ GC gc = XtGetGC(widget,
 #### New Code (XCB - REQUIRED):
 ```c
 xcb_create_gc_value_list_t values;
-XawInitGCValues(&values);  // From XawXcbDraw.h
-XawSetGCForeground(&values, pixel);
-XawSetGCBackground(&values, bg_pixel);
-XawSetGCFont(&values, font->fid);
-XawSetGCGraphicsExposures(&values, False);
+ISWInitGCValues(&values);  // From XawXcbDraw.h
+ISWSetGCForeground(&values, pixel);
+ISWSetGCBackground(&values, bg_pixel);
+ISWSetGCFont(&values, font->fid);
+ISWSetGCGraphicsExposures(&values, False);
 
 xcb_gcontext_t gc = XtGetGC(widget,
     XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT | XCB_GC_GRAPHICS_EXPOSURES,
@@ -261,7 +261,7 @@ Files that compile successfully (from build log):
 
 #### ❌ Font Rendering Migration
 - No XawXftCompat.h/c implementation
-- XFontSet → XawFontSet conversion incomplete
+- XFontSet → ISWFontSet conversion incomplete
 - Text width/height calculations using Xlib functions
 
 #### ❌ GC Value Structure Migration
@@ -334,7 +334,7 @@ Command.c
    - Provide compatibility macros
 
 5. **Create XawXftCompat.h & XawXftCompat.c**
-   - Define XawFontSet structure
+   - Define ISWFontSet structure
    - Implement text width calculation
    - Implement text drawing functions
    - Provide font metrics functions
@@ -358,7 +358,7 @@ Command.c
 
 3. **Fix Font Structure Access**
    - Replace `fs->max_bounds.*` with font metric queries
-   - Use XawFontTextWidth() instead of XTextWidth()
+   - Use ISWFontTextWidth() instead of XTextWidth()
    - Use XawGetFontProperty() for font properties
 
 ### Phase 3: Migrate Widget Drawing Code (MEDIUM PRIORITY)
@@ -423,12 +423,12 @@ Command.c
 - ❌ Very limited font support
 
 **Option C: Hybrid approach**
-- ✅ XawFontSet wrapper can abstract backend
+- ✅ ISWFontSet wrapper can abstract backend
 - ✅ Can switch between Xft and XCB as needed
 - ❌ More complex implementation
 - ❌ Two code paths to maintain
 
-**Recommendation:** **Option C** - XawFontSet wrapper with Xft backend for internationalization, simple XCB fallback for non-i18n builds.
+**Recommendation:** **Option C** - ISWFontSet wrapper with Xft backend for internationalization, simple XCB fallback for non-i18n builds.
 
 ### Decision 3: XGCValues Compatibility
 

@@ -61,8 +61,8 @@ SOFTWARE.
  ***********************************************************************/
 
 #include <xcb/xcb.h>
-#include <X11/Xaw3d/TextSrc.h>
-#include <X11/Xaw3d/TextP.h>	/* This source works with the Text widget. */
+#include <ISW/TextSrc.h>
+#include <ISW/TextP.h>	/* This source works with the Text widget. */
 
 /************************************************************
  *
@@ -80,21 +80,21 @@ typedef struct {
 } TextSrcExtRec, *TextSrcExt;
 #endif
 
-typedef XawTextPosition (*_XawSrcReadProc)
-     (Widget, XawTextPosition, XawTextBlock*, int);
+typedef ISWTextPosition (*_XawSrcReadProc)
+     (Widget, ISWTextPosition, ISWTextBlock*, int);
 
 typedef int (*_XawSrcReplaceProc)
-     (Widget, XawTextPosition, XawTextPosition, XawTextBlock*);
+     (Widget, ISWTextPosition, ISWTextPosition, ISWTextBlock*);
 
-typedef XawTextPosition (*_XawSrcScanProc)
-     (Widget, XawTextPosition, XawTextScanType, XawTextScanDirection,
+typedef ISWTextPosition (*_XawSrcScanProc)
+     (Widget, ISWTextPosition, XawTextScanType, XawTextScanDirection,
       int, Boolean);
 
-typedef XawTextPosition (*_XawSrcSearchProc)
-     (Widget, XawTextPosition, XawTextScanDirection, XawTextBlock*);
+typedef ISWTextPosition (*_XawSrcSearchProc)
+     (Widget, ISWTextPosition, XawTextScanDirection, ISWTextBlock*);
 
 typedef void (*_XawSrcSetSelectionProc)
-     (Widget, XawTextPosition, XawTextPosition, xcb_atom_t);
+     (Widget, ISWTextPosition, ISWTextPosition, xcb_atom_t);
 
 typedef Boolean (*_XawSrcConvertSelectionProc)
      (Widget, xcb_atom_t*, xcb_atom_t*, xcb_atom_t*, XtPointer*, unsigned long*, int*);
@@ -141,13 +141,13 @@ typedef struct _TextSrcRec {
  *
  ******************************************************************/
 
-char* _XawTextWCToMB(
+char* _ISWTextWCToMB(
     xcb_connection_t* /* d */,
     wchar_t* /* wstr */,
     int*     /* len_in_out */
 );
 
-wchar_t* _XawTextMBToWC(
+wchar_t* _ISWTextMBToWC(
     xcb_connection_t*  /* d */,
     char*     /* str */,
     int*      /* len_in_out */
@@ -160,7 +160,7 @@ wchar_t* _XawTextMBToWC(
  ************************************************************/
 
 #if 0	/* no longer used */
-typedef XawTextPosition (*_XawTextPositionFunc)();
+typedef ISWTextPosition (*_XawTextPositionFunc)();
 #endif
 
 #define XtInheritInput                ((_XawTextPositionFunc) _XtInherit)

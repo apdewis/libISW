@@ -30,14 +30,14 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>		/* for XtN and XtC defines */
-#include <X11/Xaw3d/XawInit.h>		/* for XawInitializeWidgetSet */
-#include <X11/Xaw3d/PannerP.h>		/* us */
+#include <ISW/ISWInit.h>		/* for XawInitializeWidgetSet */
+#include <ISW/PannerP.h>		/* us */
 #include <X11/Xos.h>
 #include <ctype.h>			/* for isascii() etc. */
 #include <stdlib.h>			/* for atof() */
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "XawXcbDraw.h"
+#include "ISWXcbDraw.h"
 
 #if defined(ISC) && __STDC__ && !defined(ISC30)
 extern double atof(char *);
@@ -222,9 +222,9 @@ reset_shadow_gc (PannerWidget pw)	/* used when resources change */
     pixels[1] = pw->core.background_pixel;
     pixels[2] = pw->panner.shadow_color;
     if (!pw->panner.stipple_name &&
- !XawDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
+ !ISWDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
         pixels, 3) &&
- XawDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
+ ISWDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
         pixels, 2))
     {
  valuemask = GCTile | GCFillStyle;
@@ -239,7 +239,7 @@ reset_shadow_gc (PannerWidget pw)	/* used when resources change */
     else
     {
  if (!pw->panner.line_width &&
-     !XawDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
+     !ISWDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
            pixels, 2))
 	    pw->panner.line_width = 1;
 	valuemask = GCForeground;
@@ -952,18 +952,18 @@ ActionSet (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     Boolean rb;
 
     if (*num_params < 2 ||
-	XawCompareISOLatin1 (params[0], "rubberband") != 0) {
+	ISWCompareISOLatin1 (params[0], "rubberband") != 0) {
 	xcb_connection_t *conn = XtDisplay(gw);
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
     }
 
-    if (XawCompareISOLatin1 (params[1], "on") == 0) {
+    if (ISWCompareISOLatin1 (params[1], "on") == 0) {
 	rb = TRUE;
-    } else if (XawCompareISOLatin1 (params[1], "off") == 0) {
+    } else if (ISWCompareISOLatin1 (params[1], "off") == 0) {
 	rb = FALSE;
-    } else if (XawCompareISOLatin1 (params[1], "toggle") == 0) {
+    } else if (ISWCompareISOLatin1 (params[1], "toggle") == 0) {
 	rb = !pw->panner.rubber_band;
     } else {
 	xcb_connection_t *conn = XtDisplay(gw);

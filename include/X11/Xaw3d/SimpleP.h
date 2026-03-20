@@ -49,8 +49,8 @@ SOFTWARE.
 #ifndef _SimpleP_h
 #define _SimpleP_h
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/Simple.h>
+#include "ISWP.h"
+#include <ISW/Simple.h>
 
 typedef struct {
     Boolean	(*change_sensitive)(Widget);
@@ -72,7 +72,7 @@ typedef struct {
     String      cursor_name;	/* cursor specified by name. */
 
     Pixel       pointer_fg, pointer_bg;	/* Pointer colors. */
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     Boolean     international;
 #endif
     /* private state */

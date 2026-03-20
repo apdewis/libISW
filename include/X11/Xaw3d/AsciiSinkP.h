@@ -60,8 +60,8 @@ SOFTWARE.
  *
  ***********************************************************************/
 
-#include <X11/Xaw3d/TextSinkP.h>
-#include <X11/Xaw3d/AsciiSink.h>
+#include <ISW/TextSinkP.h>
+#include <ISW/AsciiSink.h>
 
 /************************************************************
  *

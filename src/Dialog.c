@@ -55,12 +55,12 @@ SOFTWARE.
 #include <X11/Xos.h>
 #include <X11/StringDefs.h>
 
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/AsciiText.h>
-#include <X11/Xaw3d/Command.h>
-#include <X11/Xaw3d/Label.h>
-#include <X11/Xaw3d/DialogP.h>
-#include <X11/Xaw3d/Cardinals.h>
+#include <ISW/ISWInit.h>
+#include <ISW/AsciiText.h>
+#include <ISW/Command.h>
+#include <ISW/Label.h>
+#include <ISW/DialogP.h>
+#include <ISW/Cardinals.h>
 
 /*
  * After we have set the string in the value widget we set the

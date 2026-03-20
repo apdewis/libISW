@@ -45,8 +45,8 @@ in this Software without prior written authorization from the X Consortium.
  *
  ***********************************************************************/
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/Sme.h>
+#include "ISWP.h"
+#include <ISW/Sme.h>
 
 /************************************************************
  *
@@ -73,7 +73,7 @@ extern SmeClassRec smeClassRec;
 typedef struct {
     /* resources */
     XtCallbackList callbacks;	/* The callback list */
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     Boolean     international;
 #endif
 } SmePart;

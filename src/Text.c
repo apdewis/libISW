@@ -49,31 +49,31 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Xaw3d/Xaw3dP.h>
+#include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/Shell.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "XawXcbDraw.h"
-#ifdef XAW_INTERNATIONALIZATION
-#include "XawI18n.h"
+#include "ISWXcbDraw.h"
+#ifdef ISW_INTERNATIONALIZATION
+#include "ISWI18n.h"
 #endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/Cardinals.h>
-#include <X11/Xaw3d/Scrollbar.h>
-#include <X11/Xaw3d/TextP.h>
-#ifdef XAW_INTERNATIONALIZATION
-#include <X11/Xaw3d/MultiSinkP.h>
-#include <X11/Xaw3d/XawImP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/Cardinals.h>
+#include <ISW/Scrollbar.h>
+#include <ISW/TextP.h>
+#ifdef ISW_INTERNATIONALIZATION
+#include <ISW/MultiSinkP.h>
+#include <ISW/ISWImP.h>
 #endif
-#include <X11/Xaw3d/ThreeDP.h>
-#include "XawXcbDraw.h"
+#include <ISW/ThreeDP.h>
+#include "ISWXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
 
 /* XCB: Missing Xlib constants for text property conversions */
@@ -99,7 +99,7 @@ SOFTWARE.
 
 unsigned long FMT8BIT = 0L;
 unsigned long XawFmt8Bit = 0L;
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 unsigned long XawFmtWide = 0L;
 #endif
 
@@ -142,36 +142,36 @@ static void HScroll(Widget, XtPointer, XtPointer);
 static void HJump(Widget, XtPointer, XtPointer);
 static void ClearWindow(Widget);
 static void DisplayTextWindow(Widget);
-static void ModifySelection(TextWidget, XawTextPosition, XawTextPosition);
+static void ModifySelection(TextWidget, ISWTextPosition, ISWTextPosition);
 static void PushCopyQueue(TextWidget, int, int);
 static void UpdateTextInLine(TextWidget, int, Position, Position);
 static void UpdateTextInRectangle(TextWidget, xcb_rectangle_t *);
 static void PopCopyQueue(TextWidget);
 static void FlushUpdate(TextWidget);
-static Boolean LineAndXYForPosition(TextWidget, XawTextPosition, int *,
+static Boolean LineAndXYForPosition(TextWidget, ISWTextPosition, int *,
                                     Position *, Position *);
 static Boolean TranslateExposeRegion(TextWidget, xcb_rectangle_t *);
-static XawTextPosition FindGoodPosition(TextWidget, XawTextPosition);
-static XawTextPosition _BuildLineTable(TextWidget, XawTextPosition,
-                                       XawTextPosition, int);
+static ISWTextPosition FindGoodPosition(TextWidget, ISWTextPosition);
+static ISWTextPosition _BuildLineTable(TextWidget, ISWTextPosition,
+                                       ISWTextPosition, int);
 
 void _XawTextAlterSelection(TextWidget, XawTextSelectionMode,
                             XawTextSelectionAction, String *, Cardinal *);
 void _XawTextCheckResize(TextWidget);
 void _XawTextClearAndCenterDisplay(TextWidget);
 void _XawTextExecuteUpdate(TextWidget);
-char *_XawTextGetText(TextWidget, XawTextPosition, XawTextPosition);
-void _XawTextNeedsUpdating(TextWidget, XawTextPosition, XawTextPosition);
+char *_XawTextGetText(TextWidget, ISWTextPosition, ISWTextPosition);
+void _XawTextNeedsUpdating(TextWidget, ISWTextPosition, ISWTextPosition);
 xcb_atom_t * _XawTextSelectionList(TextWidget, String *, Cardinal);
 void _XawTextSetScrollBars(TextWidget);
-void _XawTextSetSelection(TextWidget, XawTextPosition, XawTextPosition,
+void _XawTextSetSelection(TextWidget, ISWTextPosition, ISWTextPosition,
                           String *, Cardinal);
 void _XawTextShowPosition(TextWidget);
 void _XawTextPrepareToUpdate(TextWidget);
-int _XawTextReplace(TextWidget, XawTextPosition, XawTextPosition, XawTextBlock *);
+int _XawTextReplace(TextWidget, ISWTextPosition, ISWTextPosition, ISWTextBlock *);
 void _XawTextVScroll(TextWidget, int);
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 /* XawWcToUtf8: Convert wide-char string to UTF-8
  * Returns malloced UTF-8 string or NULL on failure
  * Caller must free returned string with XtFree()
@@ -179,7 +179,7 @@ void _XawTextVScroll(TextWidget, int);
 static char *
 XawWcToUtf8(const wchar_t *wcs, int wc_len, int *utf8_len_out)
 {
-#ifdef XAW_HAS_XIM
+#ifdef ISW_HAS_XIM
     /* Would use Xlib XwcTextListToTextProperty here */
     return NULL;
 #else
@@ -190,7 +190,7 @@ XawWcToUtf8(const wchar_t *wcs, int wc_len, int *utf8_len_out)
     return NULL;
 #endif
 }
-#endif /* XAW_INTERNATIONALIZATION */
+#endif /* ISW_INTERNATIONALIZATION */
 
 /****************************************************************
  *
@@ -217,9 +217,9 @@ static XtResource resources[] = {
      offset(simple.cursor), XtRString, "xterm"},
   {XtNheight, XtCHeight, XtRDimension, sizeof(Dimension),
      offset(core.height), XtRDimension, (XtPointer)&defHeight},
-  {XtNdisplayPosition, XtCTextPosition, XtRInt, sizeof(XawTextPosition),
+  {XtNdisplayPosition, XtCTextPosition, XtRInt, sizeof(ISWTextPosition),
      offset(text.lt.top), XtRImmediate, (XtPointer)0},
-  {XtNinsertPosition, XtCTextPosition, XtRInt, sizeof(XawTextPosition),
+  {XtNinsertPosition, XtCTextPosition, XtRInt, sizeof(ISWTextPosition),
      offset(text.insertPos), XtRImmediate,(XtPointer)0},
   {XtNleftMargin, XtCMargin, XtRPosition, sizeof (Position),
      offset(text.r_margin.left), XtRImmediate, (XtPointer)2},
@@ -272,7 +272,7 @@ CvtStringToScrollMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XawCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
+    ISWCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if      (q == QScrollNever)          scrollMode = XawtextScrollNever;
@@ -310,7 +310,7 @@ CvtStringToWrapMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XawCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
+    ISWCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if      (q == QWrapNever)     wrapMode = XawtextWrapNever;
@@ -349,7 +349,7 @@ CvtStringToResizeMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
-    XawCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
+    ISWCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
     if      (q == QResizeNever)          resizeMode = XawtextResizeNever;
@@ -381,7 +381,7 @@ ClassInitialize(void)
 
   if (!XawFmt8Bit)
     FMT8BIT = XawFmt8Bit = XrmPermStringToQuark("FMT8BIT");
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if (!XawFmtWide)
     XawFmtWide = XrmPermStringToQuark("FMTWIDE");
 #endif
@@ -605,8 +605,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.lastPos = (ctx->text.source != NULL) ? GETLASTPOS : 0;
   ctx->text.file_insert = NULL;
   ctx->text.search = NULL;
-  ctx->text.updateFrom = (XawTextPosition *) XtMalloc((unsigned) ONE);
-  ctx->text.updateTo = (XawTextPosition *) XtMalloc((unsigned) ONE);
+  ctx->text.updateFrom = (ISWTextPosition *) XtMalloc((unsigned) ONE);
+  ctx->text.updateTo = (ISWTextPosition *) XtMalloc((unsigned) ONE);
   ctx->text.numranges = ctx->text.maxranges = 0;
   
   /* Create GC - XCB doesn't have default GC */
@@ -772,7 +772,7 @@ InsertCursor (Widget w, XawTextInsertState state)
 
   /* Keep Input Method up to speed  */
 
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if ( ctx->simple.international ) {
     Arg list[1];
 
@@ -789,7 +789,7 @@ InsertCursor (Widget w, XawTextInsertState state)
 */
 
 void
-_XawTextNeedsUpdating(TextWidget ctx, XawTextPosition left, XawTextPosition right)
+_XawTextNeedsUpdating(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
 {
   int i;
   if (left < right) {
@@ -803,10 +803,10 @@ _XawTextNeedsUpdating(TextWidget ctx, XawTextPosition left, XawTextPosition righ
     ctx->text.numranges++;
     if (ctx->text.numranges > ctx->text.maxranges) {
       ctx->text.maxranges = ctx->text.numranges;
-      i = ctx->text.maxranges * sizeof(XawTextPosition);
-      ctx->text.updateFrom = (XawTextPosition *)
+      i = ctx->text.maxranges * sizeof(ISWTextPosition);
+      ctx->text.updateFrom = (ISWTextPosition *)
 	XtRealloc((char *)ctx->text.updateFrom, (unsigned) i);
-      ctx->text.updateTo = (XawTextPosition *)
+      ctx->text.updateTo = (ISWTextPosition *)
 	XtRealloc((char *)ctx->text.updateTo, (unsigned) i);
     }
     ctx->text.updateFrom[ctx->text.numranges - 1] = left;
@@ -821,15 +821,15 @@ _XawTextNeedsUpdating(TextWidget ctx, XawTextPosition left, XawTextPosition righ
  */
 
 char *
-_XawTextGetText(TextWidget ctx, XawTextPosition left, XawTextPosition right)
+_XawTextGetText(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
 {
   char *result, *tempResult;
-  XawTextBlock text;
+  ISWTextBlock text;
   int bytes;
 
   if (_XawTextFormat(ctx) == XawFmt8Bit)
       bytes = sizeof(unsigned char);
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   else if (_XawTextFormat(ctx) == XawFmtWide)
       bytes = sizeof(wchar_t);
 #endif
@@ -858,14 +858,14 @@ routine is currently used to put just the ASCII chars in the selection into a
 cut buffer. */
 
 char *
-_XawTextGetSTRING(TextWidget ctx, XawTextPosition left, XawTextPosition right)
+_XawTextGetSTRING(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
 {
   unsigned char *s;
   unsigned char c;
   long i, j, n;
 
   /* allow ESC in accordance with ICCCM */
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   if (_XawTextFormat(ctx) == XawFmtWide) {
      MultiSinkObject sink = (MultiSinkObject) ctx->text.sink;
      wchar_t *ws, wc;
@@ -916,11 +916,11 @@ _XawTextGetSTRING(TextWidget ctx, XawTextPosition left, XawTextPosition right)
 
 /*** figure out what line it is on ***/
 
-static XawTextPosition
+static ISWTextPosition
 PositionForXY (TextWidget ctx, Position x, Position y)
 {
   int fromx, line, width, height;
-  XawTextPosition position;
+  ISWTextPosition position;
 
   if (ctx->text.lt.lines == 0) return 0;
 
@@ -949,7 +949,7 @@ PositionForXY (TextWidget ctx, Position x, Position y)
  */
 
 static int
-LineForPosition (TextWidget ctx, XawTextPosition position)
+LineForPosition (TextWidget ctx, ISWTextPosition position)
 {
   int line;
 
@@ -967,10 +967,10 @@ LineForPosition (TextWidget ctx, XawTextPosition position)
  */
 
 static Boolean
-LineAndXYForPosition(TextWidget ctx, XawTextPosition pos, int *line,
+LineAndXYForPosition(TextWidget ctx, ISWTextPosition pos, int *line,
                      Position *x, Position *y)
 {
-  XawTextPosition linePos, endPos;
+  ISWTextPosition linePos, endPos;
   Boolean visible;
   int realW, realH;
 
@@ -1000,7 +1000,7 @@ LineAndXYForPosition(TextWidget ctx, XawTextPosition pos, int *line,
 void
 _XawTextBuildLineTable (
     TextWidget ctx,
-    XawTextPosition position,
+    ISWTextPosition position,
     _XtBoolean force_rebuild)
 {
   Dimension height = 0;
@@ -1030,12 +1030,12 @@ _XawTextBuildLineTable (
  * This assumes that the line table does not change size.
  */
 
-static XawTextPosition
-_BuildLineTable(TextWidget ctx, XawTextPosition position,
-                XawTextPosition min_pos, int line)
+static ISWTextPosition
+_BuildLineTable(TextWidget ctx, ISWTextPosition position,
+                ISWTextPosition min_pos, int line)
 {
   XawTextLineTableEntry * lt = ctx->text.lt.info + line;
-  XawTextPosition endPos;
+  ISWTextPosition endPos;
   Position y;
   int count, width, realW, realH;
   Widget src = ctx->text.source;
@@ -1139,7 +1139,7 @@ CheckVBarScrolling(TextWidget ctx)
   if (ctx->text.scroll_vert == XawtextScrollNever) return;
 
   if ( (ctx->text.lastPos > 0) && (ctx->text.lt.lines > 0)) {
-    XawTextPosition visible_end, raw_pos;
+    ISWTextPosition visible_end, raw_pos;
     int i;
     
     fprintf(stderr, "CheckVBarScrolling: lt.top=%ld, lastPos=%ld, lines=%d\n",
@@ -1171,7 +1171,7 @@ CheckVBarScrolling(TextWidget ctx)
 
     if (ctx->text.scroll_vert == XawtextScrollWhenNeeded) {
       int line;
-      XawTextPosition last_pos;
+      ISWTextPosition last_pos;
       Position y = ctx->core.height - ctx->text.margin.bottom;
 
       if (ctx->text.hbar != NULL)
@@ -1188,7 +1188,7 @@ CheckVBarScrolling(TextWidget ctx)
     }
 
     if (ctx->text.vbar != NULL)
-      XawScrollbarSetThumb(ctx->text.vbar, first, last - first);
+      ISWScrollbarSetThumb(ctx->text.vbar, first, last - first);
 
     if ( (ctx->text.vbar == NULL) != temp) {
       _XawTextNeedsUpdating(ctx, zeroPosition, ctx->text.lastPos);
@@ -1200,7 +1200,7 @@ CheckVBarScrolling(TextWidget ctx)
     if (ctx->text.scroll_vert == XawtextScrollWhenNeeded)
       DestroyVScrollBar(ctx);
     else if (ctx->text.scroll_vert == XawtextScrollAlways)
-      XawScrollbarSetThumb(ctx->text.vbar, 0.0, 1.0);
+      ISWScrollbarSetThumb(ctx->text.vbar, 0.0, 1.0);
   }
 }
 
@@ -1244,7 +1244,7 @@ _XawTextSetScrollBars(TextWidget ctx)
   if (ctx->text.hbar != NULL) {
     first = ctx->text.r_margin.left - ctx->text.margin.left;
     first /= last;
-    XawScrollbarSetThumb(ctx->text.hbar, first, widest);
+    ISWScrollbarSetThumb(ctx->text.hbar, first, widest);
   }
 
   if (((ctx->text.hbar == NULL) && (ctx->text.margin.left !=
@@ -1266,7 +1266,7 @@ _XawTextSetScrollBars(TextWidget ctx)
 void
 _XawTextVScroll(TextWidget ctx, int n)
 {
-  XawTextPosition top, target;
+  ISWTextPosition top, target;
   int y;
   Arg list[1];
   XawTextLineTable * lt = &(ctx->text.lt);
@@ -1278,7 +1278,7 @@ _XawTextVScroll(TextWidget ctx, int n)
   if (n == 0) return;
 
   if (n > 0) {
-    XawTextPosition scroll_from_pos;
+    ISWTextPosition scroll_from_pos;
     if ( IsValidLine(ctx, n) )
       top = XawMin(lt->info[n].position, ctx->text.lastPos);
     else
@@ -1312,7 +1312,7 @@ _XawTextVScroll(TextWidget ctx, int n)
     }
   }
   else {
-    XawTextPosition updateTo;
+    ISWTextPosition updateTo;
     unsigned int height, clear_height;
 
     n = -n;
@@ -1342,7 +1342,7 @@ _XawTextVScroll(TextWidget ctx, int n)
     _XawTextSetScrollBars(ctx);
   }
   XtSetArg (list[0], XtNinsertPosition, ctx->text.lt.top+ctx->text.lt.lines);
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
   _XawImSetValues ((Widget) ctx, list, 1);
 #endif
 
@@ -1471,7 +1471,7 @@ HJump(Widget w, XtPointer closure, XtPointer callData)
 static void
 UpdateTextInLine(TextWidget ctx, int line, Position left, Position right)
 {
-  XawTextPosition pos1, pos2;
+  ISWTextPosition pos1, pos2;
   int width, height, local_left, local_width;
   XawTextLineTableEntry * lt = ctx->text.lt.info + line;
 
@@ -1492,7 +1492,7 @@ UpdateTextInLine(TextWidget ctx, int line, Position left, Position right)
     else
       pos2 = GETLASTPOS;
   else {
-    XawTextPosition t_pos;
+    ISWTextPosition t_pos;
 
     local_left = ctx->text.margin.left + width;
     local_width = right  - local_left;
@@ -1526,7 +1526,7 @@ VScroll(Widget w, XtPointer closure, XtPointer callData)
   if (height < 1)
     height = 1;
   nlines = (int) (lines * (int) ctx->text.lt.lines) / height;
-#ifdef XAW_ARROW_SCROLLBARS
+#ifdef ISW_ARROW_SCROLLBARS
   if (nlines == 0 && lines != 0)
     nlines = lines > 0 ? 1 : -1;
 #endif
@@ -1555,7 +1555,7 @@ VJump(Widget w, XtPointer closure, XtPointer callData)
 {
   float * percent = (float *) callData;
   TextWidget ctx = (TextWidget)closure;
-  XawTextPosition position, old_top, old_bot;
+  ISWTextPosition position, old_top, old_bot;
   XawTextLineTable * lt = &(ctx->text.lt);
 
   _XawTextPrepareToUpdate(ctx);
@@ -1573,7 +1573,7 @@ VJump(Widget w, XtPointer closure, XtPointer callData)
     _XawTextVScroll(ctx, line);
   }
   else {
-    XawTextPosition new_bot;
+    ISWTextPosition new_bot;
     _XawTextBuildLineTable(ctx, position, FALSE);
     new_bot = IsValidLine(ctx, lt->lines-1) ? lt->info[lt->lines-1].position
                                             : ctx->text.lastPos;
@@ -1683,7 +1683,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
       *target == XCB_ATOM_TEXT(d) ||
       *target == XCB_ATOM_COMPOUND_TEXT(d)) {
 	if (*target == XCB_ATOM_TEXT(d)) {
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 	    if (_XawTextFormat(ctx) == XawFmtWide)
 		*type = XCB_ATOM_COMPOUND_TEXT(d);
 	    else
@@ -1701,9 +1701,9 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	 */
 	if (!salt) {
 	    *value = _XawTextGetSTRING(ctx, s->left, s->right);
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 	    if (_XawTextFormat(ctx) == XawFmtWide) {
-#ifdef XAW_HAS_XIM
+#ifdef ISW_HAS_XIM
 		XTextProperty textprop;
 		if (XwcTextListToTextProperty(d, (wchar_t **)value, 1,
 					      XCompoundTextStyle, &textprop)
@@ -1730,9 +1730,9 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	    strcpy (*value, salt->contents);
 	    *length = salt->length;
 	}
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 	if (_XawTextFormat(ctx) == XawFmtWide && *type == XCB_ATOM_STRING) {
-#ifdef XAW_HAS_XIM
+#ifdef ISW_HAS_XIM
 	    XTextProperty textprop;
 	    wchar_t **wlist;
 	    int count;
@@ -1942,9 +1942,9 @@ _XawTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
     salt->s.right = ctx->text.s.right;
     salt->s.type = ctx->text.s.type;
     salt->contents = _XawTextGetSTRING(ctx, ctx->text.s.left, ctx->text.s.right);
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
     if (_XawTextFormat(ctx) == XawFmtWide) {
-#ifdef XAW_HAS_XIM
+#ifdef ISW_HAS_XIM
 	XTextProperty textprop;
 	if (XwcTextListToTextProperty(XtDisplay((Widget)ctx),
 			(wchar_t**)(&(salt->contents)), 1, XCompoundTextStyle,
@@ -1980,10 +1980,10 @@ _XawTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
 }
 
 static void
-_SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
+_SetSelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right,
               xcb_atom_t *selections, Cardinal count)
 {
-  XawTextPosition pos;
+  ISWTextPosition pos;
 
   if (left < ctx->text.s.left) {
     pos = XawMin(right, ctx->text.s.left);
@@ -2023,9 +2023,9 @@ _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
 
 	tptr= ptr= (unsigned char *) _XawTextGetSTRING(ctx, ctx->text.s.left,
 						       ctx->text.s.right);
-#ifdef XAW_INTERNATIONALIZATION
+#ifdef ISW_INTERNATIONALIZATION
 	if (_XawTextFormat(ctx) == XawFmtWide) {
-#ifdef XAW_HAS_XIM
+#ifdef ISW_HAS_XIM
 	   /*
 	    * Only XCB_ATOM_STRING(Latin 1) is allowed in CUT_BUFFER,
 	    * so we get it from wchar string, then free the wchar string.
@@ -2088,11 +2088,11 @@ _SetSelection(TextWidget ctx, XawTextPosition left, XawTextPosition right,
  */
 
 int
-_XawTextReplace (TextWidget ctx, XawTextPosition pos1, XawTextPosition pos2,
-                 XawTextBlock *text)
+_XawTextReplace (TextWidget ctx, ISWTextPosition pos1, ISWTextPosition pos2,
+                 ISWTextBlock *text)
 {
   int i, line1, delta, error;
-  XawTextPosition updateFrom, updateTo;
+  ISWTextPosition updateFrom, updateTo;
   Widget src = ctx->text.source;
   XawTextEditType edit_mode;
   Arg args[1];
@@ -2188,12 +2188,12 @@ _XawTextReplace (TextWidget ctx, XawTextPosition pos1, XawTextPosition pos2,
  */
 
 static void
-DisplayText(Widget w, XawTextPosition pos1, XawTextPosition pos2)
+DisplayText(Widget w, ISWTextPosition pos1, ISWTextPosition pos2)
 {
   TextWidget ctx = (TextWidget)w;
   Position x, y;
   int height, line, i, lastPos = ctx->text.lastPos;
-  XawTextPosition startPos, endPos;
+  ISWTextPosition startPos, endPos;
   Boolean clear_eol, done_painting;
   Dimension s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
 
@@ -2302,9 +2302,9 @@ DisplayText(Widget w, XawTextPosition pos1, XawTextPosition pos2)
  */
 
 static void
-DoSelection (TextWidget ctx, XawTextPosition pos, xcb_timestamp_t time, Boolean motion)
+DoSelection (TextWidget ctx, ISWTextPosition pos, xcb_timestamp_t time, Boolean motion)
 {
-  XawTextPosition newLeft, newRight;
+  ISWTextPosition newLeft, newRight;
   XawTextSelectType newType, *sarray;
   Widget src = ctx->text.source;
 
@@ -2366,7 +2366,7 @@ DoSelection (TextWidget ctx, XawTextPosition pos, xcb_timestamp_t time, Boolean 
       newLeft =SrcScan(ctx->text.source, newLeft, stype, XawsdRight,1,FALSE);
 
       if (newLeft > newRight) {
-	  XawTextPosition temp = newLeft;
+	  ISWTextPosition temp = newLeft;
 	  newLeft = newRight;
 	  newRight = temp;
       }
@@ -2416,7 +2416,7 @@ DoSelection (TextWidget ctx, XawTextPosition pos, xcb_timestamp_t time, Boolean 
  */
 
 static void
-ExtendSelection (TextWidget ctx, XawTextPosition pos, Boolean motion)
+ExtendSelection (TextWidget ctx, ISWTextPosition pos, Boolean motion)
 {
   XawTextScanDirection dir;
 
@@ -2448,7 +2448,7 @@ ExtendSelection (TextWidget ctx, XawTextPosition pos, Boolean motion)
   case XawselectWord:
   case XawselectParagraph:
     {
-      XawTextPosition left_pos, right_pos;
+      ISWTextPosition left_pos, right_pos;
       XawTextScanType stype;
 
       if (ctx->text.s.type == XawselectWord)
@@ -2642,7 +2642,7 @@ _XawTextSelectionList(TextWidget ctx, String *list, Cardinal nelems)
  */
 
 void
-_XawTextSetSelection(TextWidget ctx, XawTextPosition l, XawTextPosition r,
+_XawTextSetSelection(TextWidget ctx, ISWTextPosition l, ISWTextPosition r,
                      String *list, Cardinal nelems)
 {
   if (nelems == 1 && !strcmp (list[0], "none"))
@@ -2667,7 +2667,7 @@ _XawTextSetSelection(TextWidget ctx, XawTextPosition l, XawTextPosition r,
  */
 
 static void
-ModifySelection(TextWidget ctx, XawTextPosition left, XawTextPosition right)
+ModifySelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
 {
   if (left == right)
     ctx->text.insertPos = left;
@@ -2684,7 +2684,7 @@ void
 _XawTextAlterSelection (TextWidget ctx, XawTextSelectionMode mode,
                         XawTextSelectionAction action, String *params, Cardinal *num_params)
 {
-  XawTextPosition position;
+  ISWTextPosition position;
   Boolean flag;
 
 /*
@@ -2827,7 +2827,7 @@ static
 void FlushUpdate(TextWidget ctx)
 {
   int i, w;
-  XawTextPosition updateFrom, updateTo;
+  ISWTextPosition updateFrom, updateTo;
   if (!XtIsRealized((Widget)ctx)) {
     ctx->text.numranges = 0;
     return;
@@ -2870,7 +2870,7 @@ _XawTextShowPosition(TextWidget ctx)
 {
   int x, y, lines, number;
   Boolean no_scroll;
-  XawTextPosition max_pos, top, first;
+  ISWTextPosition max_pos, top, first;
 
   if ( (!XtIsRealized((Widget)ctx)) || (ctx->text.lt.lines <= 0) )
     return;
@@ -3123,8 +3123,8 @@ GetValuesHook(Widget w, ArgList args, Cardinal * num_args)
  *	Returns: a position between (0 and lastPos);
  */
 
-static XawTextPosition
-FindGoodPosition(TextWidget ctx, XawTextPosition pos)
+static ISWTextPosition
+FindGoodPosition(TextWidget ctx, ISWTextPosition pos)
 {
   if (pos < 0) return(0);
   return ( ((pos > ctx->text.lastPos) ? ctx->text.lastPos : pos) );
@@ -3261,7 +3261,7 @@ TranslateExposeRegion(TextWidget ctx, xcb_rectangle_t *expose)
 void
 _XawTextPosToXY(
     Widget w,
-    XawTextPosition pos,
+    ISWTextPosition pos,
     Position* x,
     Position* y )
 {
@@ -3296,7 +3296,7 @@ XawTextSetSelectionArray(Widget w, XawTextSelectType *sarray)
 }
 
 void
-XawTextGetSelectionPos(Widget w, XawTextPosition *left, XawTextPosition *right)
+XawTextGetSelectionPos(Widget w, ISWTextPosition *left, ISWTextPosition *right)
 {
   *left = ((TextWidget) w)->text.s.left;
   *right = ((TextWidget) w)->text.s.right;
@@ -3304,7 +3304,7 @@ XawTextGetSelectionPos(Widget w, XawTextPosition *left, XawTextPosition *right)
 
 
 void
-XawTextSetSource(Widget w, Widget source, XawTextPosition startPos)
+XawTextSetSource(Widget w, Widget source, ISWTextPosition startPos)
 {
   TextWidget ctx = (TextWidget) w;
 
@@ -3326,8 +3326,8 @@ XawTextSetSource(Widget w, Widget source, XawTextPosition startPos)
  */
 
 int
-XawTextReplace(Widget w, XawTextPosition startPos, XawTextPosition endPos,
-               XawTextBlock *text)
+XawTextReplace(Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
+               ISWTextBlock *text)
 {
   TextWidget ctx = (TextWidget) w;
   int result;
@@ -3351,14 +3351,14 @@ XawTextReplace(Widget w, XawTextPosition startPos, XawTextPosition endPos,
   return result;
 }
 
-XawTextPosition
+ISWTextPosition
 XawTextTopPosition(Widget w)
 {
   return( ((TextWidget) w)->text.lt.top );
 }
 
 void
-XawTextSetInsertionPoint(Widget w, XawTextPosition position)
+XawTextSetInsertionPoint(Widget w, ISWTextPosition position)
 {
   TextWidget ctx = (TextWidget) w;
 
@@ -3369,7 +3369,7 @@ XawTextSetInsertionPoint(Widget w, XawTextPosition position)
   _XawTextExecuteUpdate(ctx);
 }
 
-XawTextPosition
+ISWTextPosition
 XawTextGetInsertionPoint(Widget w)
 {
   return( ((TextWidget) w)->text.insertPos);
@@ -3399,7 +3399,7 @@ XawTextUnsetSelection(Widget w)
 }
 
 void
-XawTextSetSelection (Widget w, XawTextPosition left, XawTextPosition right)
+XawTextSetSelection (Widget w, ISWTextPosition left, ISWTextPosition right)
 {
   TextWidget ctx = (TextWidget) w;
 
@@ -3410,7 +3410,7 @@ XawTextSetSelection (Widget w, XawTextPosition left, XawTextPosition right)
 }
 
 void
-XawTextInvalidate(Widget w, XawTextPosition from, XawTextPosition to)
+XawTextInvalidate(Widget w, ISWTextPosition from, ISWTextPosition to)
 {
   TextWidget ctx = (TextWidget) w;
 
@@ -3435,7 +3435,7 @@ void
 XawTextEnableRedisplay(Widget w)
 {
   TextWidget ctx = (TextWidget)w;
-  XawTextPosition lastPos;
+  ISWTextPosition lastPos;
 
   if (!ctx->text.update_disabled) return;
 
@@ -3495,14 +3495,14 @@ XawTextDisplayCaret (Widget w,
  *               an error.
  */
 
-XawTextPosition
+ISWTextPosition
 XawTextSearch(Widget w,
 #if NeedWidePrototypes
 	    /* XawTextScanDirection */ int dir,
 #else
 	    XawTextScanDirection dir,
 #endif
-	    XawTextBlock *text)
+	    ISWTextBlock *text)
 {
   TextWidget ctx = (TextWidget) w;
 

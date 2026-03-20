@@ -1,7 +1,7 @@
 SUBDIRS = include src
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = xaw3d.pc
+pkgconfig_DATA = isw.pc
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 

@@ -39,10 +39,10 @@ in this Software without prior written authorization from the X Consortium.
  *
  ***********************************************************************/
 
-#include "Xaw3dP.h"
-#include <X11/Xaw3d/SmeThreeDP.h>
-#include <X11/Xaw3d/SmeBSB.h>
-#include <X11/Xaw3d/XawXftCompat.h>  /* XawFontSet typedef */
+#include "ISWP.h"
+#include <ISW/SmeThreeDP.h>
+#include <ISW/SmeBSB.h>
+#include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
 
 /* XtJustify is missing from XCB-based libXt, define it here */
 #ifndef _XawXtJustify_defined
@@ -84,8 +84,8 @@ typedef struct {
     Dimension left_margin, right_margin; /* left and right margins. */
     Pixel foreground;		/* foreground color. */
     XFontStruct * font;		/* The font to show label in. */
-#ifdef XAW_INTERNATIONALIZATION
-    XawFontSet *fontset;		/* or fontset */
+#ifdef ISW_INTERNATIONALIZATION
+    ISWFontSet *fontset;		/* or fontset */
 #endif
     XtJustify justify;		/* Justification for the label. */
     int underline;		/* index of letter to underline in label. */

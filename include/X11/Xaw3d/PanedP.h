@@ -61,7 +61,7 @@ SOFTWARE.
 #ifndef _XawPanedP_h
 #define _XawPanedP_h
 
-#include <X11/Xaw3d/Paned.h>
+#include <ISW/Paned.h>
 
 /* XCB-based libXt doesn't define XtOrientation - define it here */
 #ifndef _XawXtOrientation_defined

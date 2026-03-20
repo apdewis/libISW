@@ -52,8 +52,8 @@ SOFTWARE.
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
-#include <X11/Xaw3d/XawInit.h>
-#include <X11/Xaw3d/StripCharP.h>
+#include <ISW/ISWInit.h>
+#include <ISW/StripCharP.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 

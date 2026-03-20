@@ -757,7 +757,7 @@ char *yytext;
 #include    <X11/IntrinsicP.h>
 #include    <X11/StringDefs.h>
 
-#include    <X11/Xaw3d/LayoutP.h>
+#include    <ISW/LayoutP.h>
 #include    "laygram.h"
 #include    "LayYY.h"
 

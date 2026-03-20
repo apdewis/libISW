@@ -49,8 +49,8 @@ SOFTWARE.
 #ifndef _XawStripChartP_h
 #define _XawStripChartP_h
 
-#include <X11/Xaw3d/StripChart.h>
-#include <X11/Xaw3d/ThreeDP.h>
+#include <ISW/StripChart.h>
+#include <ISW/ThreeDP.h>
 #include <xcb/xproto.h>
 
 #define NO_GCS 0

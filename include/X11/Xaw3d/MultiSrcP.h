@@ -96,12 +96,12 @@ SOFTWARE.
  * By Li Yuhong, Sept. 18, 1990
  */
 
-#ifndef _XawMultiSrcP_h
-#define _XawMultiSrcP_h
+#ifndef _ISWMultiSrcP_h
+#define _ISWMultiSrcP_h
 
-#include <X11/Xaw3d/TextSrcP.h>
-#include <X11/Xaw3d/MultiSrc.h>
-#include <X11/Xaw3d/XawImP.h>  /* For XIC stub typedef */
+#include <ISW/TextSrcP.h>
+#include <ISW/MultiSrc.h>
+#include <ISW/ISWImP.h>  /* For XIC stub typedef */
 
 /************************************************************
  *
@@ -115,14 +115,14 @@ SOFTWARE.
 #define TMPSIZ 32		/* bytes to allocate for tmpnam */
 #endif
 
-#define MAGIC_VALUE ((XawTextPosition) -1) /* Magic value. */
+#define MAGIC_VALUE ((ISWTextPosition) -1) /* Magic value. */
 
 #define streq(a, b)        ( strcmp((a), (b)) == 0 )
 
 typedef struct _MultiPiece {	/* Piece of the text file of BUFSIZ allocated
 				   characters. */
   wchar_t* text;		/* The text in this buffer. */
-  XawTextPosition used;		/* The number of characters of this buffer
+  ISWTextPosition used;		/* The number of characters of this buffer
 				   that have been used. */
   struct _MultiPiece *prev, *next;	/* linked list pointers. */
 } MultiPiece;
@@ -154,7 +154,7 @@ typedef struct _MultiSrcPart {
   XtPointer string;		/* either the string, or the file name, depend-
                                  ing upon the `type'.  ALWAYS IN MB FORMAT. */
   XawAsciiType type;		/* either string or disk. */
-  XawTextPosition piece_size;	/* Size of text buffer for each piece. */
+  ISWTextPosition piece_size;	/* Size of text buffer for each piece. */
   Boolean data_compression;	/* compress to minimum memory automatically
 				   on save? */
   XtCallbackList callback;	/* A callback list to call when the source is
@@ -168,7 +168,7 @@ typedef struct _MultiSrcPart {
   Boolean       changes;	  /* Has this file been edited? */
   Boolean       allocated_string; /* Have I allocated the
 				     string in multi_src->string? */
-  XawTextPosition length; 	/* length of file - IN CHARACTERS, NOT BYTES. */
+  ISWTextPosition length; 	/* length of file - IN CHARACTERS, NOT BYTES. */
   MultiPiece * first_piece;	/* first piece of the text. */
 } MultiSrcPart;
 
@@ -184,6 +184,6 @@ typedef struct _MultiSrcRec {
   MultiSrcPart	multi_src;
 } MultiSrcRec;
 
-extern void _XawMultiSourceFreeString( Widget );
+extern void _ISWMultiSourceFreeString( Widget );
 
-#endif /* _XawMultiSrcP_h  --- Don't add anything after this line. */
+#endif /* _ISWMultiSrcP_h  --- Don't add anything after this line. */
