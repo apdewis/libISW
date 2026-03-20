@@ -93,7 +93,10 @@ build_triplet = @build@
 host_triplet = @host@
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(dist_doc_DATA) \
@@ -132,30 +135,55 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(docdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libISW_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
-am__libISW_la_SOURCES_DIST = AllWidgets.c AsciiSink.c AsciiSrc.c \
-	AsciiText.c Box.c Command.c Dialog.c Form.c Grip.c Label.c \
-	Layout.c LayYY.h List.c MenuButton.c Paned.c Panner.c \
-	Porthole.c Repeater.c Scrollbar.c Simple.c SimpleMenu.c \
-	SmeBSB.c Sme.c SmeLine.c SmeThreeD.c StripChart.c TextAction.c \
-	Text.c TextPop.c TextSink.c TextSrc.c TextTr.c ThreeD.c Tip.c \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
+am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
+	ClickTime.c Composite.c Constraint.c Context.c Convert.c \
+	Converters.c Core.c Create.c Destroy.c Display.c Error.c \
+	Event.c EventUtil.c Functions.c GCManager.c Geometry.c \
+	GetActKey.c GetResList.c GetValues.c HookObj.c Hooks.c \
+	Initialize.c Intrinsic.c Keyboard.c Manage.c NextEvent.c \
+	Object.c PassivGrab.c Pointer.c Popup.c PopupCB.c Quark.c \
+	RectObj.c ResConfig.c Resources.c Selection.c SetSens.c \
+	SetValues.c SetWMCW.c Shell.c Threads.c TMaction.c TMgrab.c \
+	TMkey.c TMparse.c TMprint.c TMstate.c VarCreate.c VarGet.c \
+	Varargs.c AllWidgets.c AsciiSink.c AsciiSrc.c AsciiText.c \
+	Box.c Command.c Dialog.c Form.c Grip.c Label.c Layout.c \
+	LayYY.h List.c MenuButton.c Paned.c Panner.c Porthole.c \
+	Repeater.c Scrollbar.c Simple.c SimpleMenu.c SmeBSB.c Sme.c \
+	SmeLine.c SmeThreeD.c StripChart.c TextAction.c Text.c \
+	TextPop.c TextSink.c TextSrc.c TextTr.c ThreeD.c Tip.c \
 	Toggle.c Tree.c Vendor.c Viewport.c ISWP.c ISWAtoms.c \
 	ISWContext.c ISWDrawing.c ISWInit.c ISWXcbDraw.c ISWXcbDraw.h \
 	laygram.y laylex.l MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c \
 	ISWI18n.h
-@ISW_INTERNATIONALIZATION_TRUE@am__objects_1 = MultiSrc.lo \
+am__objects_1 = ActionHook.lo Alloc.lo ArgList.lo Callback.lo \
+	ClickTime.lo Composite.lo Constraint.lo Context.lo Convert.lo \
+	Converters.lo Core.lo Create.lo Destroy.lo Display.lo Error.lo \
+	Event.lo EventUtil.lo Functions.lo GCManager.lo Geometry.lo \
+	GetActKey.lo GetResList.lo GetValues.lo HookObj.lo Hooks.lo \
+	Initialize.lo Intrinsic.lo Keyboard.lo Manage.lo NextEvent.lo \
+	Object.lo PassivGrab.lo Pointer.lo Popup.lo PopupCB.lo \
+	Quark.lo RectObj.lo ResConfig.lo Resources.lo Selection.lo \
+	SetSens.lo SetValues.lo SetWMCW.lo Shell.lo Threads.lo \
+	TMaction.lo TMgrab.lo TMkey.lo TMparse.lo TMprint.lo \
+	TMstate.lo VarCreate.lo VarGet.lo Varargs.lo
+@ISW_INTERNATIONALIZATION_TRUE@am__objects_2 = MultiSrc.lo \
 @ISW_INTERNATIONALIZATION_TRUE@	MultiSink.lo ISWIm.lo \
 @ISW_INTERNATIONALIZATION_TRUE@	ISWI18n.lo
-am_libISW_la_OBJECTS = AllWidgets.lo AsciiSink.lo AsciiSrc.lo \
-	AsciiText.lo Box.lo Command.lo Dialog.lo Form.lo Grip.lo \
-	Label.lo Layout.lo List.lo MenuButton.lo Paned.lo Panner.lo \
-	Porthole.lo Repeater.lo Scrollbar.lo Simple.lo SimpleMenu.lo \
-	SmeBSB.lo Sme.lo SmeLine.lo SmeThreeD.lo StripChart.lo \
-	TextAction.lo Text.lo TextPop.lo TextSink.lo TextSrc.lo \
-	TextTr.lo ThreeD.lo Tip.lo Toggle.lo Tree.lo Vendor.lo \
-	Viewport.lo ISWP.lo ISWAtoms.lo ISWContext.lo ISWDrawing.lo \
-	ISWInit.lo ISWXcbDraw.lo laygram.lo laylex.lo $(am__objects_1)
-libISW_la_OBJECTS = $(am_libISW_la_OBJECTS)
+am__objects_3 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
+	Box.lo Command.lo Dialog.lo Form.lo Grip.lo Label.lo Layout.lo \
+	List.lo MenuButton.lo Paned.lo Panner.lo Porthole.lo \
+	Repeater.lo Scrollbar.lo Simple.lo SimpleMenu.lo SmeBSB.lo \
+	Sme.lo SmeLine.lo SmeThreeD.lo StripChart.lo TextAction.lo \
+	Text.lo TextPop.lo TextSink.lo TextSrc.lo TextTr.lo ThreeD.lo \
+	Tip.lo Toggle.lo Tree.lo Vendor.lo Viewport.lo ISWP.lo \
+	ISWAtoms.lo ISWContext.lo ISWDrawing.lo ISWInit.lo \
+	ISWXcbDraw.lo laygram.lo laylex.lo $(am__objects_2)
+am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_3)
+nodist_libISW_la_OBJECTS = StringDefs.lo
+libISW_la_OBJECTS = $(am_libISW_la_OBJECTS) \
+	$(nodist_libISW_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -178,31 +206,59 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/AllWidgets.Plo \
-	./$(DEPDIR)/AsciiSink.Plo ./$(DEPDIR)/AsciiSrc.Plo \
-	./$(DEPDIR)/AsciiText.Plo ./$(DEPDIR)/Box.Plo \
-	./$(DEPDIR)/Command.Plo ./$(DEPDIR)/Dialog.Plo \
-	./$(DEPDIR)/Form.Plo ./$(DEPDIR)/Grip.Plo \
-	./$(DEPDIR)/ISWAtoms.Plo ./$(DEPDIR)/ISWContext.Plo \
-	./$(DEPDIR)/ISWDrawing.Plo ./$(DEPDIR)/ISWI18n.Plo \
-	./$(DEPDIR)/ISWIm.Plo ./$(DEPDIR)/ISWInit.Plo \
-	./$(DEPDIR)/ISWP.Plo ./$(DEPDIR)/ISWXcbDraw.Plo \
+am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
+	./$(DEPDIR)/AllWidgets.Plo ./$(DEPDIR)/Alloc.Plo \
+	./$(DEPDIR)/ArgList.Plo ./$(DEPDIR)/AsciiSink.Plo \
+	./$(DEPDIR)/AsciiSrc.Plo ./$(DEPDIR)/AsciiText.Plo \
+	./$(DEPDIR)/Box.Plo ./$(DEPDIR)/Callback.Plo \
+	./$(DEPDIR)/ClickTime.Plo ./$(DEPDIR)/Command.Plo \
+	./$(DEPDIR)/Composite.Plo ./$(DEPDIR)/Constraint.Plo \
+	./$(DEPDIR)/Context.Plo ./$(DEPDIR)/Convert.Plo \
+	./$(DEPDIR)/Converters.Plo ./$(DEPDIR)/Core.Plo \
+	./$(DEPDIR)/Create.Plo ./$(DEPDIR)/Destroy.Plo \
+	./$(DEPDIR)/Dialog.Plo ./$(DEPDIR)/Display.Plo \
+	./$(DEPDIR)/Error.Plo ./$(DEPDIR)/Event.Plo \
+	./$(DEPDIR)/EventUtil.Plo ./$(DEPDIR)/Form.Plo \
+	./$(DEPDIR)/Functions.Plo ./$(DEPDIR)/GCManager.Plo \
+	./$(DEPDIR)/Geometry.Plo ./$(DEPDIR)/GetActKey.Plo \
+	./$(DEPDIR)/GetResList.Plo ./$(DEPDIR)/GetValues.Plo \
+	./$(DEPDIR)/Grip.Plo ./$(DEPDIR)/HookObj.Plo \
+	./$(DEPDIR)/Hooks.Plo ./$(DEPDIR)/ISWAtoms.Plo \
+	./$(DEPDIR)/ISWContext.Plo ./$(DEPDIR)/ISWDrawing.Plo \
+	./$(DEPDIR)/ISWI18n.Plo ./$(DEPDIR)/ISWIm.Plo \
+	./$(DEPDIR)/ISWInit.Plo ./$(DEPDIR)/ISWP.Plo \
+	./$(DEPDIR)/ISWXcbDraw.Plo ./$(DEPDIR)/Initialize.Plo \
+	./$(DEPDIR)/Intrinsic.Plo ./$(DEPDIR)/Keyboard.Plo \
 	./$(DEPDIR)/Label.Plo ./$(DEPDIR)/Layout.Plo \
-	./$(DEPDIR)/List.Plo ./$(DEPDIR)/MenuButton.Plo \
-	./$(DEPDIR)/MultiSink.Plo ./$(DEPDIR)/MultiSrc.Plo \
-	./$(DEPDIR)/Paned.Plo ./$(DEPDIR)/Panner.Plo \
-	./$(DEPDIR)/Porthole.Plo ./$(DEPDIR)/Repeater.Plo \
-	./$(DEPDIR)/Scrollbar.Plo ./$(DEPDIR)/Simple.Plo \
+	./$(DEPDIR)/List.Plo ./$(DEPDIR)/Manage.Plo \
+	./$(DEPDIR)/MenuButton.Plo ./$(DEPDIR)/MultiSink.Plo \
+	./$(DEPDIR)/MultiSrc.Plo ./$(DEPDIR)/NextEvent.Plo \
+	./$(DEPDIR)/Object.Plo ./$(DEPDIR)/Paned.Plo \
+	./$(DEPDIR)/Panner.Plo ./$(DEPDIR)/PassivGrab.Plo \
+	./$(DEPDIR)/Pointer.Plo ./$(DEPDIR)/Popup.Plo \
+	./$(DEPDIR)/PopupCB.Plo ./$(DEPDIR)/Porthole.Plo \
+	./$(DEPDIR)/Quark.Plo ./$(DEPDIR)/RectObj.Plo \
+	./$(DEPDIR)/Repeater.Plo ./$(DEPDIR)/ResConfig.Plo \
+	./$(DEPDIR)/Resources.Plo ./$(DEPDIR)/Scrollbar.Plo \
+	./$(DEPDIR)/Selection.Plo ./$(DEPDIR)/SetSens.Plo \
+	./$(DEPDIR)/SetValues.Plo ./$(DEPDIR)/SetWMCW.Plo \
+	./$(DEPDIR)/Shell.Plo ./$(DEPDIR)/Simple.Plo \
 	./$(DEPDIR)/SimpleMenu.Plo ./$(DEPDIR)/Sme.Plo \
 	./$(DEPDIR)/SmeBSB.Plo ./$(DEPDIR)/SmeLine.Plo \
-	./$(DEPDIR)/SmeThreeD.Plo ./$(DEPDIR)/StripChart.Plo \
-	./$(DEPDIR)/Text.Plo ./$(DEPDIR)/TextAction.Plo \
-	./$(DEPDIR)/TextPop.Plo ./$(DEPDIR)/TextSink.Plo \
-	./$(DEPDIR)/TextSrc.Plo ./$(DEPDIR)/TextTr.Plo \
+	./$(DEPDIR)/SmeThreeD.Plo ./$(DEPDIR)/StringDefs.Plo \
+	./$(DEPDIR)/StripChart.Plo ./$(DEPDIR)/TMaction.Plo \
+	./$(DEPDIR)/TMgrab.Plo ./$(DEPDIR)/TMkey.Plo \
+	./$(DEPDIR)/TMparse.Plo ./$(DEPDIR)/TMprint.Plo \
+	./$(DEPDIR)/TMstate.Plo ./$(DEPDIR)/Text.Plo \
+	./$(DEPDIR)/TextAction.Plo ./$(DEPDIR)/TextPop.Plo \
+	./$(DEPDIR)/TextSink.Plo ./$(DEPDIR)/TextSrc.Plo \
+	./$(DEPDIR)/TextTr.Plo ./$(DEPDIR)/Threads.Plo \
 	./$(DEPDIR)/ThreeD.Plo ./$(DEPDIR)/Tip.Plo \
 	./$(DEPDIR)/Toggle.Plo ./$(DEPDIR)/Tree.Plo \
-	./$(DEPDIR)/Vendor.Plo ./$(DEPDIR)/Viewport.Plo \
-	./$(DEPDIR)/laygram.Plo ./$(DEPDIR)/laylex.Plo
+	./$(DEPDIR)/VarCreate.Plo ./$(DEPDIR)/VarGet.Plo \
+	./$(DEPDIR)/Varargs.Plo ./$(DEPDIR)/Vendor.Plo \
+	./$(DEPDIR)/Viewport.Plo ./$(DEPDIR)/laygram.Plo \
+	./$(DEPDIR)/laylex.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -241,7 +297,7 @@ AM_V_YACC = $(am__v_YACC_@AM_V@)
 am__v_YACC_ = $(am__v_YACC_@AM_DEFAULT_V@)
 am__v_YACC_0 = @echo "  YACC    " $@;
 am__v_YACC_1 = 
-SOURCES = $(libISW_la_SOURCES)
+SOURCES = $(libISW_la_SOURCES) $(nodist_libISW_la_SOURCES)
 DIST_SOURCES = $(am__libISW_la_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
@@ -289,8 +345,6 @@ CHANGELOG_CMD = @CHANGELOG_CMD@
 CPPFLAGS = @CPPFLAGS@
 CSCOPE = @CSCOPE@
 CTAGS = @CTAGS@
-CUSTOM_XT_CPPFLAGS = @CUSTOM_XT_CPPFLAGS@
-CUSTOM_XT_LDFLAGS = @CUSTOM_XT_LDFLAGS@
 CWARNFLAGS = @CWARNFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
@@ -304,6 +358,7 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ERRORDB_DEFINES = @ERRORDB_DEFINES@
 ETAGS = @ETAGS@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
@@ -318,6 +373,8 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 ISW_CPPFLAGS = @ISW_CPPFLAGS@
+ISW_DEPS_CFLAGS = @ISW_DEPS_CFLAGS@
+ISW_DEPS_LIBS = @ISW_DEPS_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LEX = @LEX@
@@ -360,16 +417,20 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SRCH_DEFINES = @SRCH_DEFINES@
 STRICT_CFLAGS = @STRICT_CFLAGS@
+STRINGSABIOPTIONS = @STRINGSABIOPTIONS@
 STRIP = @STRIP@
 VERSION = @VERSION@
-X11_CFLAGS = @X11_CFLAGS@
-X11_LIBS = @X11_LIBS@
 XFT_CFLAGS = @XFT_CFLAGS@
 XFT_LIBS = @XFT_LIBS@
+XKBCOMMON_CFLAGS = @XKBCOMMON_CFLAGS@
+XKBCOMMON_LIBS = @XKBCOMMON_LIBS@
 XORG_MAN_PAGE = @XORG_MAN_PAGE@
 XPM_CFLAGS = @XPM_CFLAGS@
 XPM_LIBS = @XPM_LIBS@
+XT_DEPS_CFLAGS = @XT_DEPS_CFLAGS@
+XT_DEPS_LIBS = @XT_DEPS_LIBS@
 YACC = @YACC@
 YACC_INST = @YACC_INST@
 YFLAGS = @YFLAGS@
@@ -431,28 +492,88 @@ top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libISW.la
 AM_YFLAGS = -d -p LayYY
 AM_CFLAGS = \
-	$(CWARNFLAGS)	\
-	$(X11_CFLAGS)	\
-	$(XFT_CFLAGS)	\
-	$(XPM_CFLAGS)
+	$(CWARNFLAGS) \
+	$(XT_DEPS_CFLAGS) \
+	$(ISW_DEPS_CFLAGS) \
+	$(XFT_CFLAGS) \
+	$(XPM_CFLAGS) \
+	$(XKBCOMMON_CFLAGS) \
+	$(SRCH_DEFINES) \
+	$(ERRORDB_DEFINES)
 
 
-# CRITICAL: Custom libXt MUST come FIRST to override system headers
+# Header include order: local includes first, then generated
 AM_CPPFLAGS = \
-	$(CUSTOM_XT_CPPFLAGS) \
-	-I${top_srcdir}/include	\
-	$(ISW_CPPFLAGS)
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/include/X11 \
+	-I$(top_builddir)/include/X11 \
+	$(ISW_CPPFLAGS) \
+	-DLIBXT_COMPILATION
 
 
-#
-# This doesn't appear to be used on any
-# current systems -- it requires SUNSHLIB and !SHAREDCODE,
-# but only sunLib.rules defines SUNSHLIB and that file also
-# always defines SHAREDCODE. Go figure
-#
-# SHAREDLIB_SOURCES = sharedlib.c
+# LibXt source files (from X Toolkit Intrinsics)
+LIBXT_SOURCES = \
+	ActionHook.c \
+	Alloc.c \
+	ArgList.c \
+	Callback.c \
+	ClickTime.c \
+	Composite.c \
+	Constraint.c \
+	Context.c \
+	Convert.c \
+	Converters.c \
+	Core.c \
+	Create.c \
+	Destroy.c \
+	Display.c \
+	Error.c \
+	Event.c \
+	EventUtil.c \
+	Functions.c \
+	GCManager.c \
+	Geometry.c \
+	GetActKey.c \
+	GetResList.c \
+	GetValues.c \
+	HookObj.c \
+	Hooks.c \
+	Initialize.c \
+	Intrinsic.c \
+	Keyboard.c \
+	Manage.c \
+	NextEvent.c \
+	Object.c \
+	PassivGrab.c \
+	Pointer.c \
+	Popup.c \
+	PopupCB.c \
+	Quark.c \
+	RectObj.c \
+	ResConfig.c \
+	Resources.c \
+	Selection.c \
+	SetSens.c \
+	SetValues.c \
+	SetWMCW.c \
+	Shell.c \
+	Threads.c \
+	TMaction.c \
+	TMgrab.c \
+	TMkey.c \
+	TMparse.c \
+	TMprint.c \
+	TMstate.c \
+	VarCreate.c \
+	VarGet.c \
+	Varargs.c
+
+
+# Keep ISW_INTERNATIONALIZATION conditional as-is
 @ISW_INTERNATIONALIZATION_TRUE@I18N_SRCS = MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h
-libISW_la_SOURCES = \
+
+# ISW widget source files
+ISW_SOURCES = \
 	AllWidgets.c \
 	AsciiSink.c \
 	AsciiSrc.c \
@@ -502,12 +623,26 @@ libISW_la_SOURCES = \
 	laylex.l \
 	$(I18N_SRCS)
 
-libISW_la_LIBADD = \
-	$(CUSTOM_XT_LDFLAGS) -lXt \
-	$(X11_LIBS) $(XFT_LIBS) $(XPM_LIBS)
 
-libISW_la_LDFLAGS = -version-info 1:0:0 -no-undefined $(CUSTOM_XT_LDFLAGS)
-BUILT_SOURCES = laygram.h
+# Generated source files
+nodist_libISW_la_SOURCES = StringDefs.c
+
+# All sources together
+libISW_la_SOURCES = \
+	$(LIBXT_SOURCES) \
+	$(ISW_SOURCES)
+
+libISW_la_LIBADD = \
+	$(XT_DEPS_LIBS) \
+	$(ISW_DEPS_LIBS) \
+	$(XFT_LIBS) \
+	$(XPM_LIBS) \
+	$(XKBCOMMON_LIBS)
+
+libISW_la_LDFLAGS = -version-info 1:0:0 -no-undefined
+BUILT_SOURCES = StringDefs.c laygram.h
+CLEANFILES = $(BUILT_SOURCES) StringDefs.h Shell.h
+STRING_LIST = $(top_srcdir)/util/string.list
 dist_doc_DATA = README.ISW
 EXTRA_DIST = sharedlib.c Template.c
 all: $(BUILT_SOURCES)
@@ -590,15 +725,40 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ActionHook.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AllWidgets.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Alloc.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ArgList.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AsciiSink.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AsciiSrc.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/AsciiText.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Box.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Callback.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ClickTime.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Command.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Composite.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Constraint.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Context.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Convert.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Converters.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Core.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Create.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Destroy.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Dialog.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Display.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Error.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Event.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EventUtil.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Form.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Functions.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GCManager.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Geometry.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GetActKey.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GetResList.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GetValues.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Grip.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/HookObj.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Hooks.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWAtoms.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWContext.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWDrawing.Plo@am__quote@ # am--include-marker
@@ -607,34 +767,64 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWInit.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWP.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWXcbDraw.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Initialize.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Intrinsic.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Keyboard.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Label.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Layout.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/List.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Manage.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MenuButton.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MultiSink.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MultiSrc.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/NextEvent.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Object.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Paned.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Panner.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/PassivGrab.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Pointer.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Popup.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/PopupCB.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Porthole.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Quark.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RectObj.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Repeater.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ResConfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Resources.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Scrollbar.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Selection.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SetSens.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SetValues.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SetWMCW.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Shell.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Simple.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SimpleMenu.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Sme.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SmeBSB.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SmeLine.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SmeThreeD.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/StringDefs.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/StripChart.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TMaction.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TMgrab.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TMkey.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TMparse.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TMprint.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TMstate.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Text.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TextAction.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TextPop.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TextSink.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TextSrc.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TextTr.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Threads.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ThreeD.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Tip.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Toggle.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Tree.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/VarCreate.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/VarGet.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Varargs.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Vendor.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Viewport.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/laygram.Plo@am__quote@ # am--include-marker
@@ -817,6 +1007,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-$(am__rm_f) $(CLEANFILES)
 
 distclean-generic:
 	-$(am__rm_f) $(CONFIG_CLEAN_FILES)
@@ -835,15 +1026,40 @@ clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
+	-rm -f ./$(DEPDIR)/ActionHook.Plo
 	-rm -f ./$(DEPDIR)/AllWidgets.Plo
+	-rm -f ./$(DEPDIR)/Alloc.Plo
+	-rm -f ./$(DEPDIR)/ArgList.Plo
 	-rm -f ./$(DEPDIR)/AsciiSink.Plo
 	-rm -f ./$(DEPDIR)/AsciiSrc.Plo
 	-rm -f ./$(DEPDIR)/AsciiText.Plo
 	-rm -f ./$(DEPDIR)/Box.Plo
+	-rm -f ./$(DEPDIR)/Callback.Plo
+	-rm -f ./$(DEPDIR)/ClickTime.Plo
 	-rm -f ./$(DEPDIR)/Command.Plo
+	-rm -f ./$(DEPDIR)/Composite.Plo
+	-rm -f ./$(DEPDIR)/Constraint.Plo
+	-rm -f ./$(DEPDIR)/Context.Plo
+	-rm -f ./$(DEPDIR)/Convert.Plo
+	-rm -f ./$(DEPDIR)/Converters.Plo
+	-rm -f ./$(DEPDIR)/Core.Plo
+	-rm -f ./$(DEPDIR)/Create.Plo
+	-rm -f ./$(DEPDIR)/Destroy.Plo
 	-rm -f ./$(DEPDIR)/Dialog.Plo
+	-rm -f ./$(DEPDIR)/Display.Plo
+	-rm -f ./$(DEPDIR)/Error.Plo
+	-rm -f ./$(DEPDIR)/Event.Plo
+	-rm -f ./$(DEPDIR)/EventUtil.Plo
 	-rm -f ./$(DEPDIR)/Form.Plo
+	-rm -f ./$(DEPDIR)/Functions.Plo
+	-rm -f ./$(DEPDIR)/GCManager.Plo
+	-rm -f ./$(DEPDIR)/Geometry.Plo
+	-rm -f ./$(DEPDIR)/GetActKey.Plo
+	-rm -f ./$(DEPDIR)/GetResList.Plo
+	-rm -f ./$(DEPDIR)/GetValues.Plo
 	-rm -f ./$(DEPDIR)/Grip.Plo
+	-rm -f ./$(DEPDIR)/HookObj.Plo
+	-rm -f ./$(DEPDIR)/Hooks.Plo
 	-rm -f ./$(DEPDIR)/ISWAtoms.Plo
 	-rm -f ./$(DEPDIR)/ISWContext.Plo
 	-rm -f ./$(DEPDIR)/ISWDrawing.Plo
@@ -852,34 +1068,64 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/ISWInit.Plo
 	-rm -f ./$(DEPDIR)/ISWP.Plo
 	-rm -f ./$(DEPDIR)/ISWXcbDraw.Plo
+	-rm -f ./$(DEPDIR)/Initialize.Plo
+	-rm -f ./$(DEPDIR)/Intrinsic.Plo
+	-rm -f ./$(DEPDIR)/Keyboard.Plo
 	-rm -f ./$(DEPDIR)/Label.Plo
 	-rm -f ./$(DEPDIR)/Layout.Plo
 	-rm -f ./$(DEPDIR)/List.Plo
+	-rm -f ./$(DEPDIR)/Manage.Plo
 	-rm -f ./$(DEPDIR)/MenuButton.Plo
 	-rm -f ./$(DEPDIR)/MultiSink.Plo
 	-rm -f ./$(DEPDIR)/MultiSrc.Plo
+	-rm -f ./$(DEPDIR)/NextEvent.Plo
+	-rm -f ./$(DEPDIR)/Object.Plo
 	-rm -f ./$(DEPDIR)/Paned.Plo
 	-rm -f ./$(DEPDIR)/Panner.Plo
+	-rm -f ./$(DEPDIR)/PassivGrab.Plo
+	-rm -f ./$(DEPDIR)/Pointer.Plo
+	-rm -f ./$(DEPDIR)/Popup.Plo
+	-rm -f ./$(DEPDIR)/PopupCB.Plo
 	-rm -f ./$(DEPDIR)/Porthole.Plo
+	-rm -f ./$(DEPDIR)/Quark.Plo
+	-rm -f ./$(DEPDIR)/RectObj.Plo
 	-rm -f ./$(DEPDIR)/Repeater.Plo
+	-rm -f ./$(DEPDIR)/ResConfig.Plo
+	-rm -f ./$(DEPDIR)/Resources.Plo
 	-rm -f ./$(DEPDIR)/Scrollbar.Plo
+	-rm -f ./$(DEPDIR)/Selection.Plo
+	-rm -f ./$(DEPDIR)/SetSens.Plo
+	-rm -f ./$(DEPDIR)/SetValues.Plo
+	-rm -f ./$(DEPDIR)/SetWMCW.Plo
+	-rm -f ./$(DEPDIR)/Shell.Plo
 	-rm -f ./$(DEPDIR)/Simple.Plo
 	-rm -f ./$(DEPDIR)/SimpleMenu.Plo
 	-rm -f ./$(DEPDIR)/Sme.Plo
 	-rm -f ./$(DEPDIR)/SmeBSB.Plo
 	-rm -f ./$(DEPDIR)/SmeLine.Plo
 	-rm -f ./$(DEPDIR)/SmeThreeD.Plo
+	-rm -f ./$(DEPDIR)/StringDefs.Plo
 	-rm -f ./$(DEPDIR)/StripChart.Plo
+	-rm -f ./$(DEPDIR)/TMaction.Plo
+	-rm -f ./$(DEPDIR)/TMgrab.Plo
+	-rm -f ./$(DEPDIR)/TMkey.Plo
+	-rm -f ./$(DEPDIR)/TMparse.Plo
+	-rm -f ./$(DEPDIR)/TMprint.Plo
+	-rm -f ./$(DEPDIR)/TMstate.Plo
 	-rm -f ./$(DEPDIR)/Text.Plo
 	-rm -f ./$(DEPDIR)/TextAction.Plo
 	-rm -f ./$(DEPDIR)/TextPop.Plo
 	-rm -f ./$(DEPDIR)/TextSink.Plo
 	-rm -f ./$(DEPDIR)/TextSrc.Plo
 	-rm -f ./$(DEPDIR)/TextTr.Plo
+	-rm -f ./$(DEPDIR)/Threads.Plo
 	-rm -f ./$(DEPDIR)/ThreeD.Plo
 	-rm -f ./$(DEPDIR)/Tip.Plo
 	-rm -f ./$(DEPDIR)/Toggle.Plo
 	-rm -f ./$(DEPDIR)/Tree.Plo
+	-rm -f ./$(DEPDIR)/VarCreate.Plo
+	-rm -f ./$(DEPDIR)/VarGet.Plo
+	-rm -f ./$(DEPDIR)/Varargs.Plo
 	-rm -f ./$(DEPDIR)/Vendor.Plo
 	-rm -f ./$(DEPDIR)/Viewport.Plo
 	-rm -f ./$(DEPDIR)/laygram.Plo
@@ -929,15 +1175,40 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
+	-rm -f ./$(DEPDIR)/ActionHook.Plo
 	-rm -f ./$(DEPDIR)/AllWidgets.Plo
+	-rm -f ./$(DEPDIR)/Alloc.Plo
+	-rm -f ./$(DEPDIR)/ArgList.Plo
 	-rm -f ./$(DEPDIR)/AsciiSink.Plo
 	-rm -f ./$(DEPDIR)/AsciiSrc.Plo
 	-rm -f ./$(DEPDIR)/AsciiText.Plo
 	-rm -f ./$(DEPDIR)/Box.Plo
+	-rm -f ./$(DEPDIR)/Callback.Plo
+	-rm -f ./$(DEPDIR)/ClickTime.Plo
 	-rm -f ./$(DEPDIR)/Command.Plo
+	-rm -f ./$(DEPDIR)/Composite.Plo
+	-rm -f ./$(DEPDIR)/Constraint.Plo
+	-rm -f ./$(DEPDIR)/Context.Plo
+	-rm -f ./$(DEPDIR)/Convert.Plo
+	-rm -f ./$(DEPDIR)/Converters.Plo
+	-rm -f ./$(DEPDIR)/Core.Plo
+	-rm -f ./$(DEPDIR)/Create.Plo
+	-rm -f ./$(DEPDIR)/Destroy.Plo
 	-rm -f ./$(DEPDIR)/Dialog.Plo
+	-rm -f ./$(DEPDIR)/Display.Plo
+	-rm -f ./$(DEPDIR)/Error.Plo
+	-rm -f ./$(DEPDIR)/Event.Plo
+	-rm -f ./$(DEPDIR)/EventUtil.Plo
 	-rm -f ./$(DEPDIR)/Form.Plo
+	-rm -f ./$(DEPDIR)/Functions.Plo
+	-rm -f ./$(DEPDIR)/GCManager.Plo
+	-rm -f ./$(DEPDIR)/Geometry.Plo
+	-rm -f ./$(DEPDIR)/GetActKey.Plo
+	-rm -f ./$(DEPDIR)/GetResList.Plo
+	-rm -f ./$(DEPDIR)/GetValues.Plo
 	-rm -f ./$(DEPDIR)/Grip.Plo
+	-rm -f ./$(DEPDIR)/HookObj.Plo
+	-rm -f ./$(DEPDIR)/Hooks.Plo
 	-rm -f ./$(DEPDIR)/ISWAtoms.Plo
 	-rm -f ./$(DEPDIR)/ISWContext.Plo
 	-rm -f ./$(DEPDIR)/ISWDrawing.Plo
@@ -946,34 +1217,64 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/ISWInit.Plo
 	-rm -f ./$(DEPDIR)/ISWP.Plo
 	-rm -f ./$(DEPDIR)/ISWXcbDraw.Plo
+	-rm -f ./$(DEPDIR)/Initialize.Plo
+	-rm -f ./$(DEPDIR)/Intrinsic.Plo
+	-rm -f ./$(DEPDIR)/Keyboard.Plo
 	-rm -f ./$(DEPDIR)/Label.Plo
 	-rm -f ./$(DEPDIR)/Layout.Plo
 	-rm -f ./$(DEPDIR)/List.Plo
+	-rm -f ./$(DEPDIR)/Manage.Plo
 	-rm -f ./$(DEPDIR)/MenuButton.Plo
 	-rm -f ./$(DEPDIR)/MultiSink.Plo
 	-rm -f ./$(DEPDIR)/MultiSrc.Plo
+	-rm -f ./$(DEPDIR)/NextEvent.Plo
+	-rm -f ./$(DEPDIR)/Object.Plo
 	-rm -f ./$(DEPDIR)/Paned.Plo
 	-rm -f ./$(DEPDIR)/Panner.Plo
+	-rm -f ./$(DEPDIR)/PassivGrab.Plo
+	-rm -f ./$(DEPDIR)/Pointer.Plo
+	-rm -f ./$(DEPDIR)/Popup.Plo
+	-rm -f ./$(DEPDIR)/PopupCB.Plo
 	-rm -f ./$(DEPDIR)/Porthole.Plo
+	-rm -f ./$(DEPDIR)/Quark.Plo
+	-rm -f ./$(DEPDIR)/RectObj.Plo
 	-rm -f ./$(DEPDIR)/Repeater.Plo
+	-rm -f ./$(DEPDIR)/ResConfig.Plo
+	-rm -f ./$(DEPDIR)/Resources.Plo
 	-rm -f ./$(DEPDIR)/Scrollbar.Plo
+	-rm -f ./$(DEPDIR)/Selection.Plo
+	-rm -f ./$(DEPDIR)/SetSens.Plo
+	-rm -f ./$(DEPDIR)/SetValues.Plo
+	-rm -f ./$(DEPDIR)/SetWMCW.Plo
+	-rm -f ./$(DEPDIR)/Shell.Plo
 	-rm -f ./$(DEPDIR)/Simple.Plo
 	-rm -f ./$(DEPDIR)/SimpleMenu.Plo
 	-rm -f ./$(DEPDIR)/Sme.Plo
 	-rm -f ./$(DEPDIR)/SmeBSB.Plo
 	-rm -f ./$(DEPDIR)/SmeLine.Plo
 	-rm -f ./$(DEPDIR)/SmeThreeD.Plo
+	-rm -f ./$(DEPDIR)/StringDefs.Plo
 	-rm -f ./$(DEPDIR)/StripChart.Plo
+	-rm -f ./$(DEPDIR)/TMaction.Plo
+	-rm -f ./$(DEPDIR)/TMgrab.Plo
+	-rm -f ./$(DEPDIR)/TMkey.Plo
+	-rm -f ./$(DEPDIR)/TMparse.Plo
+	-rm -f ./$(DEPDIR)/TMprint.Plo
+	-rm -f ./$(DEPDIR)/TMstate.Plo
 	-rm -f ./$(DEPDIR)/Text.Plo
 	-rm -f ./$(DEPDIR)/TextAction.Plo
 	-rm -f ./$(DEPDIR)/TextPop.Plo
 	-rm -f ./$(DEPDIR)/TextSink.Plo
 	-rm -f ./$(DEPDIR)/TextSrc.Plo
 	-rm -f ./$(DEPDIR)/TextTr.Plo
+	-rm -f ./$(DEPDIR)/Threads.Plo
 	-rm -f ./$(DEPDIR)/ThreeD.Plo
 	-rm -f ./$(DEPDIR)/Tip.Plo
 	-rm -f ./$(DEPDIR)/Toggle.Plo
 	-rm -f ./$(DEPDIR)/Tree.Plo
+	-rm -f ./$(DEPDIR)/VarCreate.Plo
+	-rm -f ./$(DEPDIR)/VarGet.Plo
+	-rm -f ./$(DEPDIR)/Varargs.Plo
 	-rm -f ./$(DEPDIR)/Vendor.Plo
 	-rm -f ./$(DEPDIR)/Viewport.Plo
 	-rm -f ./$(DEPDIR)/laygram.Plo
@@ -1016,6 +1317,17 @@ uninstall-am: uninstall-dist_docDATA uninstall-libLTLIBRARIES
 
 .PRECIOUS: Makefile
 
+
+# Generate StringDefs.c and headers
+StringDefs.c: $(top_builddir)/util/makestrs$(EXEEXT) $(STRING_LIST)
+	$(AM_V_GEN)$(top_builddir)/util/makestrs -i $(top_srcdir) $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
+	$(AM_V_at)$(MKDIR_P) $(top_builddir)/include/X11
+	$(AM_V_at)cp StringDefs.h $(top_builddir)/include/X11/StringDefs.h
+	$(AM_V_at)cp Shell.h $(top_builddir)/include/X11/Shell.h
+	$(AM_V_at)rm -f StringDefs.h Shell.h
+
+$(top_builddir)/util/makestrs$(EXEEXT):
+	$(AM_V_at)cd $(top_builddir)/util && $(MAKE) $(AM_MAKEFLAGS) makestrs$(EXEEXT)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

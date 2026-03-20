@@ -1,24 +1,38 @@
 ISW (Infi Systems Widgets) - XCB-based 3D Widget Library
 ==========================================================
 
-ISW is a modern fork of the X 3D Athena Widget Set (Isw3d), featuring:
+ISW is a modern fork of the X 3D Athena Widget Set (Xaw3d), featuring:
 - Native XCB (X protocol C-language Binding) rendering support
+- Embedded XCB-based X Toolkit Intrinsics (libXt) implementation
 - Enhanced 3D visual effects with shadow and lighting
 - Arrow scrollbars for improved usability
 - Full internationalization support
 - Xft font rendering with anti-aliasing
 
-This library is based on the X Toolkit Intrinsics (Xt) Library and provides
-a comprehensive set of widgets for building X11 graphical user interfaces.
+This library provides a comprehensive set of widgets for building X11 graphical
+user interfaces, with a complete XCB-based implementation that eliminates all
+Xlib dependencies.
 
 FEATURES
 --------
-- Modern XCB rendering backend for better performance
+- Modern XCB rendering backend for better performance and smaller footprint
+- Complete X Toolkit Intrinsics (libXt) implementation using XCB
 - 3D-styled widgets with configurable shadows and bevels
 - Arrow controls on scrollbars (configurable)
 - Multi-language text support with XIM integration
 - Anti-aliased text rendering via Xft
-- Compatible with existing Xt-based applications
+- Single unified library (libISW.so) includes both widgets and toolkit
+- No Xlib dependencies - pure XCB implementation
+
+ARCHITECTURE
+------------
+ISW is a self-contained widget toolkit that includes:
+  - ISW Widgets: Full set of 3D Athena widgets (Box, Button, List, Text, etc.)
+  - X Toolkit Intrinsics: XCB-based reimplementation of the Xt library
+  - XCB Integration: Direct X11 protocol communication via XCB
+
+All components are built into a single libISW.so library with no external
+dependencies on traditional Xlib or libXt.
 
 BUILDING
 --------
@@ -30,12 +44,55 @@ Quick start:
     make
     sudo make install
 
+DEPENDENCIES
+------------
+Required build dependencies:
+  - libxcb and XCB extension libraries (xfixes, render, shape, xrm, keysyms)
+  - libxft (Freetype-based font rendering)
+  - libsm, libice (X Session Management)
+  - bison, flex (for parser generation)
+  - Standard build tools (gcc, autoconf, automake, libtool, pkg-config)
+
+USAGE
+-----
+Programs using ISW can link against it using pkg-config:
+
+    gcc myapp.c -o myapp $(pkg-config --cflags --libs isw)
+
+Example code:
+    #include <X11/Intrinsic.h>
+    #include <X11/StringDefs.h>
+    #include <ISW/Box.h>
+    #include <ISW/Command.h>
+
+    int main(int argc, char **argv)
+    {
+        Widget toplevel, box, button;
+        
+        toplevel = XtInitialize(argv[0], "MyApp", NULL, 0, &argc, argv);
+        box = XtCreateManagedWidget("box", boxWidgetClass, toplevel, NULL, 0);
+        button = XtCreateManagedWidget("quit", commandWidgetClass, box, NULL, 0);
+        
+        XtRealizeWidget(toplevel);
+        XtMainLoop();
+        
+        return 0;
+    }
+
 FORKED FROM
 -----------
-This project is a modernized fork of Isw3d (X 3D Athena Widget Set).
-Original Isw3d repository:
-    git://anongit.freedesktop.org/git/xorg/lib/libIsw3d
+This project is a modernized fork of Xaw3d (X 3D Athena Widget Set).
+The XCB port and libXt integration represent significant enhancements over
+the original Xlib-based implementation.
+
+Original Xaw3d repository:
+    git://anongit.freedesktop.org/git/xorg/lib/libXaw3d
 
 LICENSE
 -------
 See COPYING file for license information.
+
+HOMEPAGE
+--------
+For more information, bug reports, and contributions:
+    https://github.com/yourusername/ISW  (update with actual URL)

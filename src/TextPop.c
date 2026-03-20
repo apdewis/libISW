@@ -107,9 +107,9 @@ static Boolean SetResourceByName(Widget, char *, char *, XtArgVal);
 static Boolean Replace(struct SearchAndReplace *, Boolean, Boolean);
 static String GetString(Widget);
 static String GetStringRaw(Widget);
-static void AddInsertFileChildren(Widget, char *, Widget);
+static void AddInsertFileChildren(Widget, String, Widget);
 static Boolean InsertFileNamed(Widget, char *);
-static void AddSearchChildren(Widget, char *, Widget);
+static void AddSearchChildren(Widget, String, Widget);
 
 void _IswTextDoReplaceAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 void _IswTextDoSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
@@ -333,7 +333,7 @@ InsertFileNamed(Widget tw, char *str)
  */
 
 static void
-AddInsertFileChildren(Widget form, char *ptr, Widget tw)
+AddInsertFileChildren(Widget form, String ptr, Widget tw)
 {
   Arg args[10];
   Cardinal num_args;
@@ -611,7 +611,7 @@ InitializeSearchWidget(struct SearchAndReplace *search, IswTextScanDirection dir
  */
 
 static void
-AddSearchChildren(Widget form, char *ptr, Widget tw)
+AddSearchChildren(Widget form, String ptr, Widget tw)
 {
   Arg args[10];
   Cardinal num_args;

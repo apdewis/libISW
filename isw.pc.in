@@ -4,9 +4,9 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: ISW
-Description: Infi Systems Widgets - XCB-based 3D widget library
+Description: Infi Systems Widgets - XCB-based 3D Widget Library (includes embedded X Toolkit Intrinsics)
 Version: @PACKAGE_VERSION@
-Requires: xproto xmu xt
-Requires.private: x11 xext xcb xcb-xfixes xcb-render xcb-shape xft
-Cflags: -I${includedir} @ISW_CPPFLAGS@
+Requires: sm ice x11 xcb xcb-xrm xcb-keysyms xext xcb-xfixes xcb-render xcb-shape xft
+Requires.private: xkbcommon
+Cflags: -I${includedir}
 Libs: -L${libdir} -lISW

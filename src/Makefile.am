@@ -2,31 +2,88 @@ lib_LTLIBRARIES = libISW.la
 
 AM_YFLAGS = -d -p LayYY
 
-AM_CFLAGS =		\
-	$(CWARNFLAGS)	\
-	$(X11_CFLAGS)	\
-	$(XFT_CFLAGS)	\
-	$(XPM_CFLAGS)
+AM_CFLAGS = \
+	$(CWARNFLAGS) \
+	$(XT_DEPS_CFLAGS) \
+	$(ISW_DEPS_CFLAGS) \
+	$(XFT_CFLAGS) \
+	$(XPM_CFLAGS) \
+	$(XKBCOMMON_CFLAGS) \
+	$(SRCH_DEFINES) \
+	$(ERRORDB_DEFINES)
 
-# CRITICAL: Custom libXt MUST come FIRST to override system headers
+# Header include order: local includes first, then generated
 AM_CPPFLAGS = \
-	$(CUSTOM_XT_CPPFLAGS) \
-	-I${top_srcdir}/include	\
-	$(ISW_CPPFLAGS)
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/include/X11 \
+	-I$(top_builddir)/include/X11 \
+	$(ISW_CPPFLAGS) \
+	-DLIBXT_COMPILATION
 
-#
-# This doesn't appear to be used on any
-# current systems -- it requires SUNSHLIB and !SHAREDCODE,
-# but only sunLib.rules defines SUNSHLIB and that file also
-# always defines SHAREDCODE. Go figure
-#
-# SHAREDLIB_SOURCES = sharedlib.c
+# LibXt source files (from X Toolkit Intrinsics)
+LIBXT_SOURCES = \
+	ActionHook.c \
+	Alloc.c \
+	ArgList.c \
+	Callback.c \
+	ClickTime.c \
+	Composite.c \
+	Constraint.c \
+	Context.c \
+	Convert.c \
+	Converters.c \
+	Core.c \
+	Create.c \
+	Destroy.c \
+	Display.c \
+	Error.c \
+	Event.c \
+	EventUtil.c \
+	Functions.c \
+	GCManager.c \
+	Geometry.c \
+	GetActKey.c \
+	GetResList.c \
+	GetValues.c \
+	HookObj.c \
+	Hooks.c \
+	Initialize.c \
+	Intrinsic.c \
+	Keyboard.c \
+	Manage.c \
+	NextEvent.c \
+	Object.c \
+	PassivGrab.c \
+	Pointer.c \
+	Popup.c \
+	PopupCB.c \
+	Quark.c \
+	RectObj.c \
+	ResConfig.c \
+	Resources.c \
+	Selection.c \
+	SetSens.c \
+	SetValues.c \
+	SetWMCW.c \
+	Shell.c \
+	Threads.c \
+	TMaction.c \
+	TMgrab.c \
+	TMkey.c \
+	TMparse.c \
+	TMprint.c \
+	TMstate.c \
+	VarCreate.c \
+	VarGet.c \
+	Varargs.c
 
+# Keep ISW_INTERNATIONALIZATION conditional as-is
 if ISW_INTERNATIONALIZATION
 I18N_SRCS = MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h
 endif
 
-libISW_la_SOURCES = \
+# ISW widget source files
+ISW_SOURCES = \
 	AllWidgets.c \
 	AsciiSink.c \
 	AsciiSrc.c \
@@ -76,13 +133,38 @@ libISW_la_SOURCES = \
 	laylex.l \
 	$(I18N_SRCS)
 
+# Generated source files
+nodist_libISW_la_SOURCES = StringDefs.c
+
+# All sources together
+libISW_la_SOURCES = \
+	$(LIBXT_SOURCES) \
+	$(ISW_SOURCES)
+
 libISW_la_LIBADD = \
-	$(CUSTOM_XT_LDFLAGS) -lXt \
-	$(X11_LIBS) $(XFT_LIBS) $(XPM_LIBS)
+	$(XT_DEPS_LIBS) \
+	$(ISW_DEPS_LIBS) \
+	$(XFT_LIBS) \
+	$(XPM_LIBS) \
+	$(XKBCOMMON_LIBS)
 
-libISW_la_LDFLAGS = -version-info 1:0:0 -no-undefined $(CUSTOM_XT_LDFLAGS)
+libISW_la_LDFLAGS = -version-info 1:0:0 -no-undefined
 
-BUILT_SOURCES = laygram.h
+BUILT_SOURCES = StringDefs.c laygram.h
+CLEANFILES = $(BUILT_SOURCES) StringDefs.h Shell.h
+
+STRING_LIST = $(top_srcdir)/util/string.list
+
+# Generate StringDefs.c and headers
+StringDefs.c: $(top_builddir)/util/makestrs$(EXEEXT) $(STRING_LIST)
+	$(AM_V_GEN)$(top_builddir)/util/makestrs -i $(top_srcdir) $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
+	$(AM_V_at)$(MKDIR_P) $(top_builddir)/include/X11
+	$(AM_V_at)cp StringDefs.h $(top_builddir)/include/X11/StringDefs.h
+	$(AM_V_at)cp Shell.h $(top_builddir)/include/X11/Shell.h
+	$(AM_V_at)rm -f StringDefs.h Shell.h
+
+$(top_builddir)/util/makestrs$(EXEEXT):
+	$(AM_V_at)cd $(top_builddir)/util && $(MAKE) $(AM_MAKEFLAGS) makestrs$(EXEEXT)
 
 dist_doc_DATA = README.ISW
 

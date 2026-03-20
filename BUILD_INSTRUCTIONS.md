@@ -1,182 +1,354 @@
 # ISW (Infi Systems Widgets) Build Instructions
 
-## Critical Build Requirements
+## Overview
 
-### 1. Use Custom XCB-Based libXt
+ISW is a modern fork of Xaw3d (X 3D Athena Widget Set) that uses XCB (X C-language Binding) instead of Xlib for X11 communication. The project includes an embedded XCB-based X Toolkit Intrinsics (libXt) implementation, eliminating the need for external Xlib dependencies.
 
-**MANDATORY**: This project MUST use the custom XCB-based libXt located at `/home/adam/libXt`.
+## Architecture
 
-**DO NOT** use system-installed Xt headers from `/usr/include/X11/`.
-
-### 2. Compiler Flags Required
-
-The following compiler flags MUST be set to ensure the custom libXt is used:
-
-```bash
-CPPFLAGS="-I/home/adam/libxt/include"
-LDFLAGS="-L/home/adam/libxt/src/.libs"
+```
+ISW - libISW.so (single unified library)
+  |
+  ├─ ISW Widgets (Box, Button, List, Text, etc.)
+  ├─ X Toolkit Intrinsics (XCB-based libXt)
+  └─ XCB Libraries (libxcb, libxcb-xfixes, libxcb-render, etc.)
+       └─ X11 protocol
 ```
 
-### 3. Configure Command
+**NO Xlib in this chain!** The entire stack uses XCB for X11 communication.
 
-When running `./configure`, use:
+## Build Dependencies
+
+### Required Packages
+
+The build system will check for these dependencies:
+
+- **X Toolkit Intrinsics dependencies** (embedded in libISW):
+  - libsm (Session Management)
+  - libice (Inter-Client Exchange)
+  - libx11 (X11 client library)
+  - xproto (X11 protocol headers)
+  - libxcb (X C-language Binding core)
+  - libxcb-xrm (XCB X Resource Manager)
+  - libxcb-keysyms (XCB keyboard symbols)
+
+- **ISW widget dependencies**:
+  - libxext (X11 extensions)
+  - libxcb-xfixes (XCB fixes extension)
+  - libxcb-render (XCB render extension)
+  - libxcb-shape (XCB shape extension)
+  - libxft (Freetype-based font rendering)
+
+- **Optional dependencies**:
+  - libxkbcommon (keyboard handling, recommended)
+
+### Installation Commands
+
+**Debian/Ubuntu**:
+```bash
+sudo apt-get install \
+  libsm-dev libice-dev libx11-dev xproto-dev \
+  libxcb1-dev libxcb-xrm-dev libxcb-keysyms1-dev \
+  libxext-dev libxcb-xfixes0-dev libxcb-render0-dev \
+  libxcb-shape0-dev libxft-dev libxkbcommon-dev \
+  build-essential autoconf automake libtool pkg-config \
+  bison flex
+```
+
+**Fedora/RHEL**:
+```bash
+sudo dnf install \
+  libSM-devel libICE-devel libX11-devel xorg-x11-proto-devel \
+  libxcb-devel xcb-util-xrm-devel xcb-util-keysyms-devel \
+  libXext-devel libxcb-devel libXft-devel libxkbcommon-devel \
+  gcc autoconf automake libtool pkgconfig \
+  bison flex
+```
+
+**Arch Linux**:
+```bash
+sudo pacman -S \
+  libsm libice libx11 xorgproto \
+  libxcb xcb-util-xrm xcb-util-keysyms \
+  libxext libxft libxkbcommon \
+  base-devel autoconf automake libtool pkg-config \
+  bison flex
+```
+
+## Building from Source
+
+### 1. Generate Build System
 
 ```bash
-./configure \
-  CPPFLAGS="-I/home/adam/libxt/include" \
-  LDFLAGS="-L/home/adam/libxt/src/.libs" \
-  PKG_CONFIG_PATH="/home/adam/libXt:$PKG_CONFIG_PATH" \
+./autogen.sh
+```
+
+This will:
+- Run autoconf/automake to generate configure script
+- Set up libtool
+- Create Makefiles from templates
+
+### 2. Configure
+
+Basic configuration:
+```bash
+./configure --enable-arrow-scrollbars --enable-internationalization
+```
+
+Optional prefix (default is `/usr/local`):
+```bash
+./configure --prefix=/usr \
   --enable-arrow-scrollbars \
   --enable-internationalization
 ```
 
-### 4. Makefile Verification
+Configuration options:
+- `--enable-arrow-scrollbars`: Enable arrow buttons on scrollbars (recommended)
+- `--enable-internationalization`: Enable I18N/multibyte support (recommended)
+- `--prefix=PATH`: Installation prefix (default: /usr/local)
 
-After running configure, verify that `src/Makefile` contains:
+### 3. Build
 
-- `-I/home/adam/libxt/include` in CPPFLAGS or AM_CPPFLAGS
-- `-L/home/adam/libxt/src/.libs` in LDFLAGS or AM_LDFLAGS
+```bash
+make -j$(nproc)
+```
 
-### 5. Header Include Order
+This will:
+1. Build `util/makestrs` utility
+2. Generate `StringDefs.c` and `StringDefs.h` from `util/string.list`
+3. Compile all libXt sources (X Toolkit Intrinsics)
+4. Compile all ISW widget sources
+5. Link everything into `libISW.so`
 
-In source files, the include order MUST be:
+### 4. Install
 
-1. Local ISW headers (e.g., `#include <ISW/ISWP.h>`)
-2. Custom libXt headers (automatically via -I flag)
-3. XCB headers (e.g., `#include <xcb/xcb.h>`)
-4. Standard C headers
+```bash
+sudo make install
+```
 
-**NEVER** include system Xlib headers like:
-- `#include <X11/Xlib.h>` (use XCB instead)
-- System `/usr/include/X11/Intrinsic.h` (use custom libXt)
+This installs:
+- `libISW.so.1.0.0` → `/usr/local/lib/` (or your --prefix)
+- Headers → `/usr/local/include/ISW/` and `/usr/local/include/X11/`
+- pkg-config file → `/usr/local/lib/pkgconfig/isw.pc`
 
-### 6. Type Compatibility
+### 5. Update Library Cache
 
-The custom libXt provides XCB-compatible types:
+```bash
+sudo ldconfig
+```
 
-- `Display` → XCB-backed Display structure
-- `Window` → `xcb_window_t`
-- `Pixmap` → `xcb_pixmap_t`
-- `GC` → `xcb_gcontext_t`
-- `XEvent` → XCB event structures
-- `Region` → `xcb_xfixes_region_t`
+## Build Verification
+
+After building, verify the library has no Xlib dependencies:
+
+```bash
+# Should show NO libX11
+ldd src/.libs/libISW.so | grep libX11
+
+# Should show XCB libraries
+ldd src/.libs/libISW.so | grep xcb
+```
+
+Expected XCB dependencies:
+```
+libxcb-xrm.so.0
+libxcb-keysyms.so.1
+libxcb-xfixes.so.0
+libxcb-render.so.0
+libxcb-shape.so.0
+libxcb.so.1
+libxcb-util.so.1
+```
+
+Check library size (should be ~3MB):
+```bash
+ls -lh src/.libs/libISW.so.1.0.0
+```
+
+## Type Compatibility
+
+The embedded XCB-based libXt provides these type mappings:
+
+| Traditional Xlib | XCB Equivalent | Notes |
+|-----------------|----------------|-------|
+| `Display*` | `xcb_connection_t*` | XCB connection |
+| `Window` | `xcb_window_t` | Window ID |
+| `Pixmap` | `xcb_pixmap_t` | Pixmap ID |
+| `GC` | `xcb_gcontext_t` | Graphics context |
+| `XEvent` | `xcb_generic_event_t*` | Event structures |
+| `Region` | `xcb_xfixes_region_t` | Region ID |
 
 Widget callback signatures use these XCB types, NOT Xlib types.
 
-### 7. Xft/Font Rendering
-
-**Current Status**: Xft dependency has been removed. Font rendering uses:
-
-- ISWFontSet wrapper structure (defined in `src/IswXftCompat.h`)
-- XCB rendering primitives
-- NO Xlib font functions
-
-### 8. Common Pitfalls to Avoid
-
-#### ❌ WRONG:
-```c
-#include <X11/Xlib.h>
-#include <X11/Intrinsic.h>  // System header
-```
-
-#### ✅ CORRECT:
-```c
-#include <X11/Intrinsic.h>  // From /home/adam/libXt/include
-#include <xcb/xcb.h>
-```
-
-#### ❌ WRONG:
-```c
-static void Redisplay(Widget w, XEvent *event, Region region)
-// Using Xlib types
-```
-
-#### ✅ CORRECT:
-```c
-static void Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
-// Using XCB types from custom libXt
-```
-
-### 9. Dependency Chain
+## Header Organization
 
 ```
-ISW - libISW.so (this project)
-  ↓
-Custom libXt (/home/adam/libXt)
-  ↓
-XCB (libxcb, libxcb-xfixes, libxcb-render, etc.)
-  ↓
-X11 protocol
+include/
+├── ISW/              # ISW widget public headers
+│   ├── Box.h
+│   ├── Command.h
+│   ├── List.h
+│   ├── Text.h
+│   └── ...
+└── X11/              # X Toolkit Intrinsics headers
+    ├── Intrinsic.h   # Core Xt API
+    ├── StringDefs.h  # String constants (generated)
+    ├── Shell.h       # Shell widgets (generated)
+    ├── XtQuark.h     # String interning
+    ├── XtValue.h     # Value conversions
+    └── ...
 ```
 
-**NO Xlib in this chain!**
+## Using ISW in Your Application
 
-### 10. Build Verification
-
-After building, verify no Xlib dependencies:
+### pkg-config
 
 ```bash
-ldd src/.libs/libISW.so | grep -i xlib
-# Should return NOTHING
-
-ldd src/.libs/libISW.so | grep -i xcb
-# Should show xcb libraries
+gcc myapp.c -o myapp $(pkg-config --cflags --libs isw)
 ```
 
-### 11. Troubleshooting
-
-If you see errors like:
-- "conflicting types for 'XExtCodes'"
-- "conflicting types for 'Visual'"
-- "unknown type name 'xcb_xfixes_region_t'"
-
-**Root Cause**: System Xlib headers are being included instead of custom libXt.
-
-**Solution**:
-1. Check compiler command for `-I/usr/include` (should NOT be there)
-2. Verify `-I/home/adam/libXt/include` comes FIRST in include path
-3. Check source files for explicit `#include <X11/Xlib.h>`
-4. Ensure `configure.ac` sets proper CPPFLAGS
-
-### 12. Makefile.am Configuration
-
-The `src/Makefile.am` should include:
+### Makefile Example
 
 ```makefile
-AM_CPPFLAGS = -I$(top_srcdir)/include \
-              -I/home/adam/libXt/include \
-              $(XCB_CFLAGS)
+CFLAGS = $(shell pkg-config --cflags isw)
+LIBS = $(shell pkg-config --libs isw)
 
-libISW_la_LIBADD = $(XCB_LIBS) \
-                   -L/home/adam/libXt/src/.libs -lXt
+myapp: myapp.c
+	$(CC) $(CFLAGS) -o myapp myapp.c $(LIBS)
 ```
 
-### 13. Current Build Status
+### CMake Example
 
-As of last update:
-- ✅ XtJustify enum conflict resolved
-- ✅ ISWFontSet migration complete
-- ✅ All widgets compile with XCB types
+```cmake
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ISW REQUIRED isw)
+
+add_executable(myapp myapp.c)
+target_include_directories(myapp PRIVATE ${ISW_INCLUDE_DIRS})
+target_link_libraries(myapp ${ISW_LIBRARIES})
+```
+
+### Source Code
+
+```c
+#include <X11/Intrinsic.h>
+#include <X11/StringDefs.h>
+#include <ISW/Box.h>
+#include <ISW/Command.h>
+
+int main(int argc, char **argv)
+{
+    Widget toplevel, box, button;
+    xcb_connection_t *dpy;
+    
+    toplevel = XtInitialize(argv[0], "MyApp", NULL, 0, &argc, argv);
+    
+    box = XtCreateManagedWidget("box", boxWidgetClass, toplevel, NULL, 0);
+    button = XtCreateManagedWidget("quit", commandWidgetClass, box, NULL, 0);
+    
+    XtRealizeWidget(toplevel);
+    XtMainLoop();
+    
+    return 0;
+}
+```
+
+## Current Build Status
+
+- ✅ LibXt (X Toolkit Intrinsics) fully integrated
+- ✅ XCB-based implementation (no Xlib)
+- ✅ All ISW widgets compile and link
+- ✅ String generation system working
 - ✅ Arrow scrollbars enabled (ISW_ARROW_SCROLLBARS)
 - ✅ Internationalization enabled (ISW_INTERNATIONALIZATION)
-- ✅ Successfully renamed from Isw3d to ISW
+- ✅ Complete Xaw3d → ISW renaming
 
-### 14. Build and Test
+## Troubleshooting
 
-1. Ensure `configure.ac` properly sets CPPFLAGS for custom libXt
-2. Regenerate build system: `./autogen.sh`
-3. Configure with all features:
-   ```bash
-   ./configure \
-     CPPFLAGS="-I/home/adam/libxt/include" \
-     LDFLAGS="-L/home/adam/libxt/src/.libs" \
-     PKG_CONFIG_PATH="/home/adam/libXt:$PKG_CONFIG_PATH" \
-     --enable-arrow-scrollbars \
-     --enable-internationalization
-   ```
-4. Build and verify: `make && ldd src/.libs/libISW.so`
-5. Test with demo applications: `make -C examples && ./examples/isw_demo`
+### Configure fails with "Package X not found"
+
+**Solution**: Install missing dependencies. The configure output will tell you which package is missing.
+
+### Build fails with "X11/StringDefs.h: No such file"
+
+**Solution**: The string generation failed. Check that:
+1. `util/makestrs` built successfully
+2. `util/string.list` exists
+3. Re-run `make clean && make`
+
+### Runtime error: "cannot open shared object file"
+
+**Solution**: Update the library cache:
+```bash
+sudo ldconfig
+```
+
+Or add to `LD_LIBRARY_PATH`:
+```bash
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+```
+
+### Application crashes with XCB errors
+
+**Solution**: Verify you're using XCB types, not Xlib types. Check that:
+1. Your code includes `<X11/Intrinsic.h>` from ISW
+2. You're using `xcb_connection_t*` not `Display*`
+3. Event handlers use `xcb_generic_event_t*` not `XEvent*`
+
+## Development
+
+### Directory Structure
+
+```
+.
+├── configure.ac          # Autoconf configuration
+├── Makefile.am          # Top-level automake file
+├── isw.pc.in            # pkg-config template
+├── src/
+│   ├── Makefile.am      # Source build configuration
+│   ├── ActionHook.c     # LibXt sources (X Toolkit Intrinsics)
+│   ├── Alloc.c
+│   ├── ...
+│   ├── AllWidgets.c     # ISW widget sources
+│   ├── Box.c
+│   ├── Command.c
+│   └── ...
+├── include/
+│   ├── Makefile.am
+│   ├── ISW/             # ISW widget headers
+│   │   ├── Box.h
+│   │   └── ...
+│   └── X11/             # X Toolkit Intrinsics headers
+│       ├── Intrinsic.h
+│       └── ...
+├── util/
+│   ├── Makefile.am
+│   ├── makestrs.c       # String generation utility
+│   └── string.list      # String definitions
+└── examples/
+    ├── isw_demo.c       # Demo applications
+    └── ...
+```
+
+### Adding New Features
+
+1. Modify source files in `src/`
+2. Update headers in `include/ISW/` or `include/X11/`
+3. If adding new files, update appropriate `Makefile.am`
+4. Rebuild: `make clean && make`
+
+### Debugging Build Issues
+
+Enable verbose output:
+```bash
+make V=1
+```
+
+Check preprocessor output:
+```bash
+gcc -E src/MyFile.c $(pkg-config --cflags isw) | less
+```
 
 ---
 
-**REMEMBER**: The goal is complete Xlib elimination. Every Xlib reference must be replaced with XCB equivalents from the custom libXt.
+**REMEMBER**: ISW is a complete XCB-based widget toolkit with embedded X Toolkit Intrinsics. No external libXt or Xlib dependencies are required.

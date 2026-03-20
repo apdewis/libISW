@@ -92,7 +92,10 @@ build_triplet = @build@
 host_triplet = @host@
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
@@ -187,8 +190,7 @@ am__define_uniq_tagged_files = \
 DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(srcdir)/isw.pc.in COPYING ChangeLog INSTALL README compile \
-	config.guess config.sub depcomp install-sh ltmain.sh missing \
-	ylwrap
+	config.guess config.sub install-sh ltmain.sh missing ylwrap
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -255,8 +257,6 @@ CHANGELOG_CMD = @CHANGELOG_CMD@
 CPPFLAGS = @CPPFLAGS@
 CSCOPE = @CSCOPE@
 CTAGS = @CTAGS@
-CUSTOM_XT_CPPFLAGS = @CUSTOM_XT_CPPFLAGS@
-CUSTOM_XT_LDFLAGS = @CUSTOM_XT_LDFLAGS@
 CWARNFLAGS = @CWARNFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
@@ -270,6 +270,7 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ERRORDB_DEFINES = @ERRORDB_DEFINES@
 ETAGS = @ETAGS@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
@@ -284,6 +285,8 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 ISW_CPPFLAGS = @ISW_CPPFLAGS@
+ISW_DEPS_CFLAGS = @ISW_DEPS_CFLAGS@
+ISW_DEPS_LIBS = @ISW_DEPS_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LEX = @LEX@
@@ -326,16 +329,20 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SRCH_DEFINES = @SRCH_DEFINES@
 STRICT_CFLAGS = @STRICT_CFLAGS@
+STRINGSABIOPTIONS = @STRINGSABIOPTIONS@
 STRIP = @STRIP@
 VERSION = @VERSION@
-X11_CFLAGS = @X11_CFLAGS@
-X11_LIBS = @X11_LIBS@
 XFT_CFLAGS = @XFT_CFLAGS@
 XFT_LIBS = @XFT_LIBS@
+XKBCOMMON_CFLAGS = @XKBCOMMON_CFLAGS@
+XKBCOMMON_LIBS = @XKBCOMMON_LIBS@
 XORG_MAN_PAGE = @XORG_MAN_PAGE@
 XPM_CFLAGS = @XPM_CFLAGS@
 XPM_LIBS = @XPM_LIBS@
+XT_DEPS_CFLAGS = @XT_DEPS_CFLAGS@
+XT_DEPS_LIBS = @XT_DEPS_LIBS@
 YACC = @YACC@
 YACC_INST = @YACC_INST@
 YFLAGS = @YFLAGS@
@@ -394,7 +401,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = include src
+SUBDIRS = util include src
+ACLOCAL_AMFLAGS = -I m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = isw.pc
 MAINTAINERCLEANFILES = ChangeLog INSTALL

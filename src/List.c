@@ -1145,7 +1145,7 @@ Destroy(Widget w)
  */
 
 void
-IswListChange(Widget w, char ** list, int nitems, int longest,
+IswListChange(Widget w, String* list, int nitems, int longest,
 #if NeedWidePrototypes
 	      int resize_it)
 #else

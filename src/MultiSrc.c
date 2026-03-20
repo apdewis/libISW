@@ -136,7 +136,7 @@ static Boolean WriteToFile(String, String);
 static void (MyWStrncpy)();
 #endif
 
-extern char *tmpnam(String);
+/* tmpnam() from stdio.h */
 #ifdef X_NOT_STDC_ENV
 extern int errno;
 #endif

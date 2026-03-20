@@ -656,17 +656,22 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-CUSTOM_XT_LDFLAGS
-CUSTOM_XT_CPPFLAGS
+STRINGSABIOPTIONS
+ERRORDB_DEFINES
+SRCH_DEFINES
 ISW_CPPFLAGS
 XPM_LIBS
 XPM_CFLAGS
 ISW_INTERNATIONALIZATION_FALSE
 ISW_INTERNATIONALIZATION_TRUE
+XKBCOMMON_LIBS
+XKBCOMMON_CFLAGS
 XFT_LIBS
 XFT_CFLAGS
-X11_LIBS
-X11_CFLAGS
+ISW_DEPS_LIBS
+ISW_DEPS_CFLAGS
+XT_DEPS_LIBS
+XT_DEPS_CFLAGS
 LEXLIB
 LEX_OUTPUT_ROOT
 LEX
@@ -856,10 +861,14 @@ PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
 YACC
 YFLAGS
-X11_CFLAGS
-X11_LIBS
+XT_DEPS_CFLAGS
+XT_DEPS_LIBS
+ISW_DEPS_CFLAGS
+ISW_DEPS_LIBS
 XFT_CFLAGS
 XFT_LIBS
+XKBCOMMON_CFLAGS
+XKBCOMMON_LIBS
 XPM_CFLAGS
 XPM_LIBS'
 
@@ -1557,10 +1566,20 @@ Some influential environment variables:
   YFLAGS      The list of arguments that will be passed by default to $YACC.
               This script will default YFLAGS to the empty string to avoid a
               default value of '-d' given by some make applications.
-  X11_CFLAGS  C compiler flags for X11, overriding pkg-config
-  X11_LIBS    linker flags for X11, overriding pkg-config
+  XT_DEPS_CFLAGS
+              C compiler flags for XT_DEPS, overriding pkg-config
+  XT_DEPS_LIBS
+              linker flags for XT_DEPS, overriding pkg-config
+  ISW_DEPS_CFLAGS
+              C compiler flags for ISW_DEPS, overriding pkg-config
+  ISW_DEPS_LIBS
+              linker flags for ISW_DEPS, overriding pkg-config
   XFT_CFLAGS  C compiler flags for XFT, overriding pkg-config
   XFT_LIBS    linker flags for XFT, overriding pkg-config
+  XKBCOMMON_CFLAGS
+              C compiler flags for XKBCOMMON, overriding pkg-config
+  XKBCOMMON_LIBS
+              linker flags for XKBCOMMON, overriding pkg-config
   XPM_CFLAGS  C compiler flags for XPM, overriding pkg-config
   XPM_LIBS    linker flags for XPM, overriding pkg-config
 
@@ -9522,6 +9541,10 @@ _lt_linker_boilerplate=`cat conftest.err`
 $RM -r conftest*
 
 
+## CAVEAT EMPTOR:
+## There is no encapsulation within the following macros, do not change
+## the running order or otherwise move them around unless you know exactly
+## what you are doing...
 if test -n "$compiler"; then
 
 lt_prog_compiler_no_builtin_flag=
@@ -21100,22 +21123,22 @@ rm -f conftest.l $LEX_OUTPUT_ROOT.c
 fi
 
 # Checks for header files.
-# Use custom XCB-based libXt instead of system libXt
+# LibXt dependencies (now built internally)
 
 pkg_failed=no
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for x11 xext xcb xcb-xfixes xcb-render xcb-shape" >&5
-printf %s "checking for x11 xext xcb xcb-xfixes xcb-render xcb-shape... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for sm ice x11 xproto xcb xcb-xrm xcb-keysyms" >&5
+printf %s "checking for sm ice x11 xproto xcb xcb-xrm xcb-keysyms... " >&6; }
 
-if test -n "$X11_CFLAGS"; then
-    pkg_cv_X11_CFLAGS="$X11_CFLAGS"
+if test -n "$XT_DEPS_CFLAGS"; then
+    pkg_cv_XT_DEPS_CFLAGS="$XT_DEPS_CFLAGS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"x11 xext xcb xcb-xfixes xcb-render xcb-shape\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "x11 xext xcb xcb-xfixes xcb-render xcb-shape") 2>&5
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"sm ice x11 xproto xcb xcb-xrm xcb-keysyms\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "sm ice x11 xproto xcb xcb-xrm xcb-keysyms") 2>&5
   ac_status=$?
   printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_X11_CFLAGS=`$PKG_CONFIG --cflags "x11 xext xcb xcb-xfixes xcb-render xcb-shape" 2>/dev/null`
+  pkg_cv_XT_DEPS_CFLAGS=`$PKG_CONFIG --cflags "sm ice x11 xproto xcb xcb-xrm xcb-keysyms" 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
 else
   pkg_failed=yes
@@ -21123,16 +21146,16 @@ fi
  else
     pkg_failed=untried
 fi
-if test -n "$X11_LIBS"; then
-    pkg_cv_X11_LIBS="$X11_LIBS"
+if test -n "$XT_DEPS_LIBS"; then
+    pkg_cv_XT_DEPS_LIBS="$XT_DEPS_LIBS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"x11 xext xcb xcb-xfixes xcb-render xcb-shape\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "x11 xext xcb xcb-xfixes xcb-render xcb-shape") 2>&5
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"sm ice x11 xproto xcb xcb-xrm xcb-keysyms\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "sm ice x11 xproto xcb xcb-xrm xcb-keysyms") 2>&5
   ac_status=$?
   printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_X11_LIBS=`$PKG_CONFIG --libs "x11 xext xcb xcb-xfixes xcb-render xcb-shape" 2>/dev/null`
+  pkg_cv_XT_DEPS_LIBS=`$PKG_CONFIG --libs "sm ice x11 xproto xcb xcb-xrm xcb-keysyms" 2>/dev/null`
 		      test "x$?" != "x0" && pkg_failed=yes
 else
   pkg_failed=yes
@@ -21153,22 +21176,22 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-                X11_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "x11 xext xcb xcb-xfixes xcb-render xcb-shape" 2>&1`
+                XT_DEPS_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "sm ice x11 xproto xcb xcb-xrm xcb-keysyms" 2>&1`
         else
-                X11_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "x11 xext xcb xcb-xfixes xcb-render xcb-shape" 2>&1`
+                XT_DEPS_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "sm ice x11 xproto xcb xcb-xrm xcb-keysyms" 2>&1`
         fi
         # Put the nasty error message in config.log where it belongs
-        echo "$X11_PKG_ERRORS" >&5
+        echo "$XT_DEPS_PKG_ERRORS" >&5
 
-        as_fn_error $? "Package requirements (x11 xext xcb xcb-xfixes xcb-render xcb-shape) were not met:
+        as_fn_error $? "Package requirements (sm ice x11 xproto xcb xcb-xrm xcb-keysyms) were not met:
 
-$X11_PKG_ERRORS
+$XT_DEPS_PKG_ERRORS
 
 Consider adjusting the PKG_CONFIG_PATH environment variable if you
 installed software in a non-standard prefix.
 
-Alternatively, you may set the environment variables X11_CFLAGS
-and X11_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables XT_DEPS_CFLAGS
+and XT_DEPS_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details." "$LINENO" 5
 elif test $pkg_failed = untried; then
         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
@@ -21179,15 +21202,106 @@ as_fn_error $? "The pkg-config script could not be found or is too old.  Make su
 is in your PATH or set the PKG_CONFIG environment variable to the full
 path to pkg-config.
 
-Alternatively, you may set the environment variables X11_CFLAGS
-and X11_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables XT_DEPS_CFLAGS
+and XT_DEPS_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
 To get pkg-config, see <http://pkg-config.freedesktop.org/>.
 See 'config.log' for more details" "$LINENO" 5; }
 else
-        X11_CFLAGS=$pkg_cv_X11_CFLAGS
-        X11_LIBS=$pkg_cv_X11_LIBS
+        XT_DEPS_CFLAGS=$pkg_cv_XT_DEPS_CFLAGS
+        XT_DEPS_LIBS=$pkg_cv_XT_DEPS_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+
+fi
+
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for xext xcb xcb-xfixes xcb-render xcb-shape" >&5
+printf %s "checking for xext xcb xcb-xfixes xcb-render xcb-shape... " >&6; }
+
+if test -n "$ISW_DEPS_CFLAGS"; then
+    pkg_cv_ISW_DEPS_CFLAGS="$ISW_DEPS_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"xext xcb xcb-xfixes xcb-render xcb-shape\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "xext xcb xcb-xfixes xcb-render xcb-shape") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_ISW_DEPS_CFLAGS=`$PKG_CONFIG --cflags "xext xcb xcb-xfixes xcb-render xcb-shape" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$ISW_DEPS_LIBS"; then
+    pkg_cv_ISW_DEPS_LIBS="$ISW_DEPS_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"xext xcb xcb-xfixes xcb-render xcb-shape\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "xext xcb xcb-xfixes xcb-render xcb-shape") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_ISW_DEPS_LIBS=`$PKG_CONFIG --libs "xext xcb xcb-xfixes xcb-render xcb-shape" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                ISW_DEPS_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "xext xcb xcb-xfixes xcb-render xcb-shape" 2>&1`
+        else
+                ISW_DEPS_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "xext xcb xcb-xfixes xcb-render xcb-shape" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$ISW_DEPS_PKG_ERRORS" >&5
+
+        as_fn_error $? "Package requirements (xext xcb xcb-xfixes xcb-render xcb-shape) were not met:
+
+$ISW_DEPS_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables ISW_DEPS_CFLAGS
+and ISW_DEPS_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details." "$LINENO" 5
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in '$ac_pwd':" >&5
+printf "%s\n" "$as_me: error: in '$ac_pwd':" >&2;}
+as_fn_error $? "The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables ISW_DEPS_CFLAGS
+and ISW_DEPS_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+See 'config.log' for more details" "$LINENO" 5; }
+else
+        ISW_DEPS_CFLAGS=$pkg_cv_ISW_DEPS_CFLAGS
+        ISW_DEPS_LIBS=$pkg_cv_ISW_DEPS_LIBS
         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
 
@@ -21284,9 +21398,82 @@ printf "%s\n" "yes" >&6; }
 
 fi
 
-# Custom libXt paths - MUST come before system headers
-CUSTOM_XT_CPPFLAGS="-I/home/adam/libxt/include"
-CUSTOM_XT_LDFLAGS="-L/home/adam/libxt/src/.libs"
+# xkbcommon (optional, for keysym name functions)
+
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for xkbcommon" >&5
+printf %s "checking for xkbcommon... " >&6; }
+
+if test -n "$XKBCOMMON_CFLAGS"; then
+    pkg_cv_XKBCOMMON_CFLAGS="$XKBCOMMON_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"xkbcommon\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "xkbcommon") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_XKBCOMMON_CFLAGS=`$PKG_CONFIG --cflags "xkbcommon" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$XKBCOMMON_LIBS"; then
+    pkg_cv_XKBCOMMON_LIBS="$XKBCOMMON_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"xkbcommon\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "xkbcommon") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_XKBCOMMON_LIBS=`$PKG_CONFIG --libs "xkbcommon" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                XKBCOMMON_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "xkbcommon" 2>&1`
+        else
+                XKBCOMMON_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "xkbcommon" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$XKBCOMMON_PKG_ERRORS" >&5
+
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: libxkbcommon not found; keysym name functions will be stubs" >&5
+printf "%s\n" "$as_me: WARNING: libxkbcommon not found; keysym name functions will be stubs" >&2;}
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: libxkbcommon not found; keysym name functions will be stubs" >&5
+printf "%s\n" "$as_me: WARNING: libxkbcommon not found; keysym name functions will be stubs" >&2;}
+else
+        XKBCOMMON_CFLAGS=$pkg_cv_XKBCOMMON_CFLAGS
+        XKBCOMMON_LIBS=$pkg_cv_XKBCOMMON_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+
+printf "%s\n" "#define HAVE_XKBCOMMON 1" >>confdefs.h
+
+fi
 
 ac_fn_c_check_header_compile "$LINENO" "wctype.h" "ac_cv_header_wctype_h" "$ac_includes_default"
 if test "x$ac_cv_header_wctype_h" = xyes
@@ -21352,7 +21539,30 @@ fi
 
 
 
-ISW_CPPFLAGS="${CUSTOM_XT_CPPFLAGS}"
+# Enable const support for X Toolkit (_Xconst macro)
+
+printf "%s\n" "#define _CONST_X_STRING 1" >>confdefs.h
+
+
+# LibXt build configuration (now internal)
+SRCH_DEFINES="-DXFILESEARCHPATHDEFAULT=\\\"${datadir}/X11/%L/%T/%N%C%S:${datadir}/X11/%T/%N%C%S\\\""
+ERRORDB_DEFINES="-DERRORDB=\\\"${datadir}/X11/XtErrorDB\\\""
+
+# String generation options (for makestrs utility)
+STRINGSABIOPTIONS=""
+case $host_os in
+    solaris*)
+        STRINGSABIOPTIONS="-intelabi -solarisabinames"
+        ;;
+    sco* | svr4*)
+        case $host_cpu in
+            i*86) STRINGSABIOPTIONS="-intelabi" ;;
+               *) STRINGSABIOPTIONS="" ;;
+        esac
+        ;;
+esac
+
+ISW_CPPFLAGS=""
 
 # Check whether --enable-internationalization was given.
 if test ${enable_internationalization+y}
@@ -21503,7 +21713,8 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile include/Makefile src/Makefile isw.pc"
+
+ac_config_files="$ac_config_files Makefile util/Makefile include/Makefile src/Makefile isw.pc"
 
 
 cat >confcache <<\_ACEOF
@@ -22542,6 +22753,7 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "util/Makefile") CONFIG_FILES="$CONFIG_FILES util/Makefile" ;;
     "include/Makefile") CONFIG_FILES="$CONFIG_FILES include/Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "isw.pc") CONFIG_FILES="$CONFIG_FILES isw.pc" ;;

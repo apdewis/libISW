@@ -30,19 +30,42 @@ fi
 AC_PROG_LEX
 
 # Checks for header files.
-# Use custom XCB-based libXt instead of system libXt
-PKG_CHECK_MODULES(X11, [x11 xext xcb xcb-xfixes xcb-render xcb-shape])
+# LibXt dependencies (now built internally)
+PKG_CHECK_MODULES(XT_DEPS, [sm ice x11 xproto xcb xcb-xrm xcb-keysyms])
+PKG_CHECK_MODULES(ISW_DEPS, [xext xcb xcb-xfixes xcb-render xcb-shape])
 PKG_CHECK_MODULES(XFT, [xft])
 
-# Custom libXt paths - MUST come before system headers
-CUSTOM_XT_CPPFLAGS="-I/home/adam/libxt/include"
-CUSTOM_XT_LDFLAGS="-L/home/adam/libxt/src/.libs"
+# xkbcommon (optional, for keysym name functions)
+PKG_CHECK_MODULES([XKBCOMMON], [xkbcommon],
+    [AC_DEFINE([HAVE_XKBCOMMON], [1], [Have libxkbcommon])],
+    [AC_MSG_WARN([libxkbcommon not found; keysym name functions will be stubs])])
 
 AC_CHECK_HEADERS([wctype.h wchar.h widec.h])
 AC_CHECK_FUNCS([iswspace])
 AC_TYPE_INTPTR_T
 
-ISW_CPPFLAGS="${CUSTOM_XT_CPPFLAGS}"
+# Enable const support for X Toolkit (_Xconst macro)
+AC_DEFINE(_CONST_X_STRING, 1, [Define to 1 to use standard C const feature.])
+
+# LibXt build configuration (now internal)
+SRCH_DEFINES="-DXFILESEARCHPATHDEFAULT=\\\"${datadir}/X11/%L/%T/%N%C%S:${datadir}/X11/%T/%N%C%S\\\""
+ERRORDB_DEFINES="-DERRORDB=\\\"${datadir}/X11/XtErrorDB\\\""
+
+# String generation options (for makestrs utility)
+STRINGSABIOPTIONS=""
+case $host_os in
+    solaris*)
+        STRINGSABIOPTIONS="-intelabi -solarisabinames"
+        ;;
+    sco* | svr4*)
+        case $host_cpu in
+            i*86) STRINGSABIOPTIONS="-intelabi" ;;
+               *) STRINGSABIOPTIONS="" ;;
+        esac
+        ;;
+esac
+
+ISW_CPPFLAGS=""
 
 AC_ARG_ENABLE([internationalization],
     AS_HELP_STRING([--enable-internationalization], dnl
@@ -76,10 +99,12 @@ AC_ARG_ENABLE([arrow-scrollbars],
      [enable arrow scrollbars])], [ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_ARROW_SCROLLBARS"])
 
 AC_SUBST(ISW_CPPFLAGS)
-AC_SUBST(CUSTOM_XT_CPPFLAGS)
-AC_SUBST(CUSTOM_XT_LDFLAGS)
+AC_SUBST(SRCH_DEFINES)
+AC_SUBST(ERRORDB_DEFINES)
+AC_SUBST(STRINGSABIOPTIONS)
 
 AC_CONFIG_FILES([Makefile
+		util/Makefile
 		include/Makefile
 		src/Makefile
 		isw.pc])

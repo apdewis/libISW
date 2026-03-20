@@ -92,10 +92,14 @@ build_triplet = @build@
 host_triplet = @host@
 subdir = include
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__iswinclude_HEADERS_DIST) \
+	$(nobase_include_HEADERS) $(xtinclude_HEADERS) \
 	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
@@ -165,8 +169,11 @@ am__uninstall_files_from_dir = { \
   || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
        $(am__cd) "$$dir" && echo $$files | $(am__xargs_n) 40 $(am__rm_f); }; \
   }
-am__installdirs = "$(DESTDIR)$(iswincludedir)"
-HEADERS = $(iswinclude_HEADERS)
+am__installdirs = "$(DESTDIR)$(iswincludedir)" \
+	"$(DESTDIR)$(includedir)" "$(DESTDIR)$(xtincludedir)" \
+	"$(DESTDIR)$(xtincludedir)"
+HEADERS = $(iswinclude_HEADERS) $(nobase_include_HEADERS) \
+	$(nodist_xtinclude_HEADERS) $(xtinclude_HEADERS)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -206,8 +213,6 @@ CHANGELOG_CMD = @CHANGELOG_CMD@
 CPPFLAGS = @CPPFLAGS@
 CSCOPE = @CSCOPE@
 CTAGS = @CTAGS@
-CUSTOM_XT_CPPFLAGS = @CUSTOM_XT_CPPFLAGS@
-CUSTOM_XT_LDFLAGS = @CUSTOM_XT_LDFLAGS@
 CWARNFLAGS = @CWARNFLAGS@
 CYGPATH_W = @CYGPATH_W@
 DEFS = @DEFS@
@@ -221,6 +226,7 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ERRORDB_DEFINES = @ERRORDB_DEFINES@
 ETAGS = @ETAGS@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
@@ -235,6 +241,8 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 ISW_CPPFLAGS = @ISW_CPPFLAGS@
+ISW_DEPS_CFLAGS = @ISW_DEPS_CFLAGS@
+ISW_DEPS_LIBS = @ISW_DEPS_LIBS@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LEX = @LEX@
@@ -277,16 +285,20 @@ RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
+SRCH_DEFINES = @SRCH_DEFINES@
 STRICT_CFLAGS = @STRICT_CFLAGS@
+STRINGSABIOPTIONS = @STRINGSABIOPTIONS@
 STRIP = @STRIP@
 VERSION = @VERSION@
-X11_CFLAGS = @X11_CFLAGS@
-X11_LIBS = @X11_LIBS@
 XFT_CFLAGS = @XFT_CFLAGS@
 XFT_LIBS = @XFT_LIBS@
+XKBCOMMON_CFLAGS = @XKBCOMMON_CFLAGS@
+XKBCOMMON_LIBS = @XKBCOMMON_LIBS@
 XORG_MAN_PAGE = @XORG_MAN_PAGE@
 XPM_CFLAGS = @XPM_CFLAGS@
 XPM_LIBS = @XPM_LIBS@
+XT_DEPS_CFLAGS = @XT_DEPS_CFLAGS@
+XT_DEPS_LIBS = @XT_DEPS_LIBS@
 YACC = @YACC@
 YACC_INST = @YACC_INST@
 YFLAGS = @YFLAGS@
@@ -426,6 +438,63 @@ iswinclude_HEADERS = \
 	ISW/ISWInit.h \
 	$(I18N_HDRS)
 
+
+# X Toolkit Intrinsics headers (libXt)
+xtincludedir = $(includedir)/X11
+xtinclude_HEADERS = \
+	X11/CallbackI.h \
+	X11/Composite.h \
+	X11/CompositeP.h \
+	X11/ConstrainP.h \
+	X11/Constraint.h \
+	X11/ContextI.h \
+	X11/ConvertI.h \
+	X11/Core.h \
+	X11/CoreP.h \
+	X11/CreateI.h \
+	X11/EventI.h \
+	X11/HookObjI.h \
+	X11/InitialI.h \
+	X11/Intrinsic.h \
+	X11/IntrinsicI.h \
+	X11/IntrinsicP.h \
+	X11/Object.h \
+	X11/ObjectP.h \
+	X11/PassivGraI.h \
+	X11/RectObj.h \
+	X11/RectObjP.h \
+	X11/ResConfigP.h \
+	X11/ResourceI.h \
+	X11/SelectionI.h \
+	X11/ShellI.h \
+	X11/ShellP.h \
+	X11/ThreadsI.h \
+	X11/TranslateI.h \
+	X11/VarargsI.h \
+	X11/Vendor.h \
+	X11/VendorP.h \
+	X11/XtDatabase.h \
+	X11/XtFuncproto.h \
+	X11/XtOptions.h \
+	X11/Xtos.h \
+	X11/XtQuark.h \
+	X11/XtTypes.h \
+	X11/XtValue.h \
+	X11/utlist.h
+
+
+# Generated headers (created during build)
+nodist_xtinclude_HEADERS = \
+	X11/StringDefs.h \
+	X11/Shell.h
+
+DISTCLEANFILES = \
+	X11/StringDefs.h \
+	X11/Shell.h
+
+
+# Top-level utility headers
+nobase_include_HEADERS = uthash.h
 EXTRA_DIST = \
 	ISW/Template.h \
 	ISW/TemplateP.h
@@ -489,6 +558,72 @@ uninstall-iswincludeHEADERS:
 	@list='$(iswinclude_HEADERS)'; test -n "$(iswincludedir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(iswincludedir)'; $(am__uninstall_files_from_dir)
+install-nobase_includeHEADERS: $(nobase_include_HEADERS)
+	@$(NORMAL_INSTALL)
+	@list='$(nobase_include_HEADERS)'; test -n "$(includedir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(includedir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(includedir)" || exit 1; \
+	fi; \
+	$(am__nobase_list) | while read dir files; do \
+	  xfiles=; for file in $$files; do \
+	    if test -f "$$file"; then xfiles="$$xfiles $$file"; \
+	    else xfiles="$$xfiles $(srcdir)/$$file"; fi; done; \
+	  test -z "$$xfiles" || { \
+	    test "x$$dir" = x. || { \
+	      echo " $(MKDIR_P) '$(DESTDIR)$(includedir)/$$dir'"; \
+	      $(MKDIR_P) "$(DESTDIR)$(includedir)/$$dir"; }; \
+	    echo " $(INSTALL_HEADER) $$xfiles '$(DESTDIR)$(includedir)/$$dir'"; \
+	    $(INSTALL_HEADER) $$xfiles "$(DESTDIR)$(includedir)/$$dir" || exit $$?; }; \
+	done
+
+uninstall-nobase_includeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(nobase_include_HEADERS)'; test -n "$(includedir)" || list=; \
+	$(am__nobase_strip_setup); files=`$(am__nobase_strip)`; \
+	dir='$(DESTDIR)$(includedir)'; $(am__uninstall_files_from_dir)
+install-nodist_xtincludeHEADERS: $(nodist_xtinclude_HEADERS)
+	@$(NORMAL_INSTALL)
+	@list='$(nodist_xtinclude_HEADERS)'; test -n "$(xtincludedir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(xtincludedir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(xtincludedir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(xtincludedir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(xtincludedir)" || exit $$?; \
+	done
+
+uninstall-nodist_xtincludeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(nodist_xtinclude_HEADERS)'; test -n "$(xtincludedir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(xtincludedir)'; $(am__uninstall_files_from_dir)
+install-xtincludeHEADERS: $(xtinclude_HEADERS)
+	@$(NORMAL_INSTALL)
+	@list='$(xtinclude_HEADERS)'; test -n "$(xtincludedir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(xtincludedir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(xtincludedir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(xtincludedir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(xtincludedir)" || exit $$?; \
+	done
+
+uninstall-xtincludeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(xtinclude_HEADERS)'; test -n "$(xtincludedir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(xtincludedir)'; $(am__uninstall_files_from_dir)
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
@@ -579,7 +714,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(HEADERS)
 installdirs:
-	for dir in "$(DESTDIR)$(iswincludedir)"; do \
+	for dir in "$(DESTDIR)$(iswincludedir)" "$(DESTDIR)$(includedir)" "$(DESTDIR)$(xtincludedir)" "$(DESTDIR)$(xtincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -608,6 +743,7 @@ clean-generic:
 distclean-generic:
 	-$(am__rm_f) $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || $(am__rm_f) $(CONFIG_CLEAN_VPATH_FILES)
+	-$(am__rm_f) $(DISTCLEANFILES)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -632,7 +768,9 @@ info: info-am
 
 info-am:
 
-install-data-am: install-iswincludeHEADERS
+install-data-am: install-iswincludeHEADERS \
+	install-nobase_includeHEADERS install-nodist_xtincludeHEADERS \
+	install-xtincludeHEADERS
 
 install-dvi: install-dvi-am
 
@@ -676,7 +814,9 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-iswincludeHEADERS
+uninstall-am: uninstall-iswincludeHEADERS \
+	uninstall-nobase_includeHEADERS \
+	uninstall-nodist_xtincludeHEADERS uninstall-xtincludeHEADERS
 
 .MAKE: install-am install-strip
 
@@ -687,12 +827,15 @@ uninstall-am: uninstall-iswincludeHEADERS
 	install-data install-data-am install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-iswincludeHEADERS \
-	install-man install-pdf install-pdf-am install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
+	install-man install-nobase_includeHEADERS \
+	install-nodist_xtincludeHEADERS install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip \
+	install-xtincludeHEADERS installcheck installcheck-am \
 	installdirs maintainer-clean maintainer-clean-generic \
 	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
 	ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-iswincludeHEADERS
+	uninstall-iswincludeHEADERS uninstall-nobase_includeHEADERS \
+	uninstall-nodist_xtincludeHEADERS uninstall-xtincludeHEADERS
 
 .PRECIOUS: Makefile
 
