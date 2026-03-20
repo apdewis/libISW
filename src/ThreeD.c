@@ -649,87 +649,77 @@ _Xaw3dDrawShadows (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t re
 
 	if (relief == XtReliefRaised || relief == XtReliefSunken) {
 	    /* top-left shadow */
-	    if (region == XCB_NONE) {
-		pt[0].x = 0;	pt[0].y = h;
-		pt[1].x =	pt[1].y = 0;
-		pt[2].x = w;	pt[2].y = 0;
-		pt[3].x = wms;	pt[3].y = s;
-		pt[4].x =	pt[4].y = s;
-		pt[5].x = s;	pt[5].y = hms;
-		xcb_fill_poly(dpy, win,
-			(relief == XtReliefRaised) ? top : bot,
-			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
-	    }
+	    /* NOTE: region handling not fully ported to XCB yet, so draw unconditionally */
+	    pt[0].x = 0;	pt[0].y = h;
+	    pt[1].x =	pt[1].y = 0;
+	    pt[2].x = w;	pt[2].y = 0;
+	    pt[3].x = wms;	pt[3].y = s;
+	    pt[4].x =	pt[4].y = s;
+	    pt[5].x = s;	pt[5].y = hms;
+	    xcb_fill_poly(dpy, win,
+		    (relief == XtReliefRaised) ? top : bot,
+		    XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 
 	    /* bottom-right shadow */
-	    if (region == XCB_NONE) {
-		pt[0].x = 0;	pt[0].y = h;
-		pt[1].x = w;	pt[1].y = h;
-		pt[2].x = w;	pt[2].y = 0;
-		pt[3].x = wms;	pt[3].y = s;
-		pt[4].x = wms;	pt[4].y = hms;
-		pt[5].x = s;	pt[5].y = hms;
-		xcb_fill_poly(dpy, win,
-			(relief == XtReliefRaised) ? bot : top,
-			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
-	    }
+	    pt[0].x = 0;	pt[0].y = h;
+	    pt[1].x = w;	pt[1].y = h;
+	    pt[2].x = w;	pt[2].y = 0;
+	    pt[3].x = wms;	pt[3].y = s;
+	    pt[4].x = wms;	pt[4].y = hms;
+	    pt[5].x = s;	pt[5].y = hms;
+	    xcb_fill_poly(dpy, win,
+		    (relief == XtReliefRaised) ? bot : top,
+		    XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	} else if (relief == XtReliefRidge || relief == XtReliefGroove) {
 	    /* split the shadow width */
 	    s /= 2;	hms = h - s;	wms = w - s;
 
 	    /* outer top-left shadow */
-	    if (region == XCB_NONE) {
-		pt[0].x = 0;	pt[0].y = h;
-		pt[1].x =	pt[1].y = 0;
-		pt[2].x = w;	pt[2].y = 0;
-		pt[3].x = wms;	pt[3].y = s;
-		pt[4].x =	pt[4].y = s;
-		pt[5].x = s;	pt[5].y = hms;
-		xcb_fill_poly(dpy, win,
-			(relief == XtReliefRidge) ? realtop : realbot,
-			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
-	    }
+	    /* NOTE: region handling not fully ported to XCB yet, so draw unconditionally */
+	    pt[0].x = 0;	pt[0].y = h;
+	    pt[1].x =	pt[1].y = 0;
+	    pt[2].x = w;	pt[2].y = 0;
+	    pt[3].x = wms;	pt[3].y = s;
+	    pt[4].x =	pt[4].y = s;
+	    pt[5].x = s;	pt[5].y = hms;
+	    xcb_fill_poly(dpy, win,
+		    (relief == XtReliefRidge) ? realtop : realbot,
+		    XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 
 	    /* outer bottom-right shadow */
-	    if (region == XCB_NONE) {
-		pt[0].x = 0;	pt[0].y = h;
-		pt[1].x = w;	pt[1].y = h;
-		pt[2].x = w;	pt[2].y = 0;
-		pt[3].x = wms;	pt[3].y = s;
-		pt[4].x = wms;	pt[4].y = hms;
-		pt[5].x = s;	pt[5].y = hms;
-		xcb_fill_poly(dpy, win,
-			(relief == XtReliefRidge) ? realbot : realtop,
-			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
-	    }
+	    pt[0].x = 0;	pt[0].y = h;
+	    pt[1].x = w;	pt[1].y = h;
+	    pt[2].x = w;	pt[2].y = 0;
+	    pt[3].x = wms;	pt[3].y = s;
+	    pt[4].x = wms;	pt[4].y = hms;
+	    pt[5].x = s;	pt[5].y = hms;
+	    xcb_fill_poly(dpy, win,
+		    (relief == XtReliefRidge) ? realbot : realtop,
+		    XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 
 	    /* inner top-left shadow */
-	    if (region == XCB_NONE) {
-		pt[0].x = s;		pt[0].y = h;
-		pt[1].x =		pt[1].y = s;
-		pt[2].x = w;		pt[2].y = s;
-		pt[3].x = wms;		pt[3].y = s * 2;
-		pt[4].x =		pt[4].y = s * 2;
-		pt[5].x = s * 2;	pt[5].y = hms;
-		xcb_fill_poly(dpy, win,
-			(relief == XtReliefRidge) ? bot: top,
-			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
-	    }
+	    pt[0].x = s;		pt[0].y = h;
+	    pt[1].x =		pt[1].y = s;
+	    pt[2].x = w;		pt[2].y = s;
+	    pt[3].x = wms;		pt[3].y = s * 2;
+	    pt[4].x =		pt[4].y = s * 2;
+	    pt[5].x = s * 2;	pt[5].y = hms;
+	    xcb_fill_poly(dpy, win,
+		    (relief == XtReliefRidge) ? bot: top,
+		    XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 
 	    /* inner bottom-right shadow */
-	    if (region == XCB_NONE) {
-		pt[0].x = s;		pt[0].y = hms;
-		pt[1].x = wms;		pt[1].y = hms;
-		pt[2].x = wms;		pt[2].y = s;
-		pt[3].x = wms - s;	pt[3].y = s * 2;
-		pt[4].x = wms - s;	pt[4].y = hms - s;
-		pt[5].x = s * 2;	pt[5].y = hms - s;
-		xcb_fill_poly(dpy, win,
-			(relief == XtReliefRidge) ? top : bot,
-			XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
-	    }
+	    pt[0].x = s;		pt[0].y = hms;
+	    pt[1].x = wms;		pt[1].y = hms;
+	    pt[2].x = wms;		pt[2].y = s;
+	    pt[3].x = wms - s;	pt[3].y = s * 2;
+	    pt[4].x = wms - s;	pt[4].y = hms - s;
+	    pt[5].x = s * 2;	pt[5].y = hms - s;
+	    xcb_fill_poly(dpy, win,
+	     (relief == XtReliefRidge) ? top : bot,
+	     XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)pt);
 	}
-    }
+	   }
 }
 
 /*
