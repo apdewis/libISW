@@ -440,14 +440,19 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   very_thick = cbw->command.highlight_thickness >
                (Dimension)((Dimension) Min(cbw->core.width, cbw->core.height)/2);
 
+  /* Save original foreground for later restoration */
+  Pixel saved_foreground = cbw->label.foreground;
+  
   if (cbw->command.set) {
     cbw->label.normal_GC = cbw->command.inverse_GC;
+    /* Temporarily swap foreground to match inverse_GC for Cairo text rendering */
+    cbw->label.foreground = cbw->core.background_pixel;
     
     /* Use Cairo rendering if available */
     if (ctx) {
       ISWRenderBegin(ctx);
-      /* Use core background as fill color (inverse of normal foreground) */
-      ISWRenderSetColor(ctx, cbw->core.background_pixel);
+      /* Use label foreground as fill color (matching normal_GC behavior) */
+      ISWRenderSetColor(ctx, saved_foreground);
       ISWRenderFillRectangle(ctx, s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s);
       ISWRenderEnd(ctx);
     } else {
@@ -490,8 +495,11 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
       
       /* Use Cairo rendering if available */
       if (ctx) {
+        /* Extract the foreground color from rev_gc to match XCB behavior */
+        Pixel fill_color = (rev_gc == cbw->command.normal_GC) ? cbw->label.foreground : cbw->core.background_pixel;
+        
         ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, cbw->core.background_pixel);
+        ISWRenderSetColor(ctx, fill_color);
         ISWRenderFillRectangle(ctx, s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s);
         ISWRenderEnd(ctx);
       } else {
@@ -507,8 +515,11 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
       
       /* Use Cairo rendering if available */
       if (ctx) {
+        /* Extract the foreground color from rev_gc to match XCB behavior */
+        Pixel stroke_color = (rev_gc == cbw->command.normal_GC) ? cbw->label.foreground : cbw->core.background_pixel;
+        
         ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, cbw->core.background_pixel);
+        ISWRenderSetColor(ctx, stroke_color);
         ISWRenderStrokeRectangle(ctx, s + offset, s + offset,
            cbw->core.width - cbw->command.highlight_thickness - 2 * s,
            cbw->core.height - cbw->command.highlight_thickness - 2 * s);
@@ -524,6 +535,10 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
     }
   }
   (*SuperClass->core_class.expose) (w, event, 0 /* FIXME: XCB region */);
+  
+  /* Restore original foreground after Label rendering */
+  cbw->label.foreground = saved_foreground;
+  
   (*cwclass->threeD_class.shadowdraw) (w, event, 0 /* FIXME: XCB region */, cbw->threeD.relief, !cbw->command.set);
 }
 
