@@ -9,6 +9,9 @@ AM_CFLAGS = \
 	$(XFT_CFLAGS) \
 	$(XPM_CFLAGS) \
 	$(XKBCOMMON_CFLAGS) \
+	$(CAIRO_CFLAGS) \
+	$(EGL_CFLAGS) \
+	$(CAIRO_GL_CFLAGS) \
 	$(SRCH_DEFINES) \
 	$(ERRORDB_DEFINES)
 
@@ -82,6 +85,25 @@ if ISW_INTERNATIONALIZATION
 I18N_SRCS = MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h
 endif
 
+# Cairo rendering backend sources (conditional)
+# Core rendering abstraction (always included)
+RENDER_CORE_SRCS = \
+	ISWRender.c \
+	ISWRenderPrivate.h \
+	ISWRenderXCB.c
+
+# Cairo-XCB backend (when Cairo is available)
+if HAVE_CAIRO
+RENDER_CAIRO_SRCS = ISWRenderCairoXCB.c
+endif
+
+# Cairo-EGL backend (when EGL and Cairo-GL are available)
+if HAVE_CAIRO_EGL
+RENDER_EGL_SRCS = ISWRenderEGL.c
+endif
+
+RENDER_SRCS = $(RENDER_CORE_SRCS) $(RENDER_CAIRO_SRCS) $(RENDER_EGL_SRCS)
+
 # ISW widget source files
 ISW_SOURCES = \
 	AllWidgets.c \
@@ -131,7 +153,8 @@ ISW_SOURCES = \
 	ISWXcbDraw.h \
 	laygram.y \
 	laylex.l \
-	$(I18N_SRCS)
+	$(I18N_SRCS) \
+	$(RENDER_SRCS)
 
 # Generated source files
 nodist_libISW_la_SOURCES = StringDefs.c
@@ -146,7 +169,10 @@ libISW_la_LIBADD = \
 	$(ISW_DEPS_LIBS) \
 	$(XFT_LIBS) \
 	$(XPM_LIBS) \
-	$(XKBCOMMON_LIBS)
+	$(XKBCOMMON_LIBS) \
+	$(CAIRO_LIBS) \
+	$(EGL_LIBS) \
+	$(CAIRO_GL_LIBS)
 
 libISW_la_LDFLAGS = -version-info 1:0:0 -no-undefined
 

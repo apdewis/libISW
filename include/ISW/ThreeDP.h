@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <ISW/ThreeD.h>
 #include <ISW/SimpleP.h>
+#include <ISW/ISWRender.h>
 #include <xcb/xcb.h>
 #include <xcb/xfixes.h>
 
@@ -46,6 +47,7 @@ typedef struct {
     XtPointer	user_data;
     Boolean	be_nice_to_cmap;
     XtRelief	relief;
+    ISWRenderContext *render_ctx;   /* Cairo rendering context */
   } ThreeDPart;
 
 /* Full instance record declaration */

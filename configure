@@ -666,6 +666,16 @@ ISW_INTERNATIONALIZATION_FALSE
 ISW_INTERNATIONALIZATION_TRUE
 XKBCOMMON_LIBS
 XKBCOMMON_CFLAGS
+HAVE_CAIRO_EGL_FALSE
+HAVE_CAIRO_EGL_TRUE
+CAIRO_GL_LIBS
+CAIRO_GL_CFLAGS
+EGL_LIBS
+EGL_CFLAGS
+HAVE_CAIRO_FALSE
+HAVE_CAIRO_TRUE
+CAIRO_LIBS
+CAIRO_CFLAGS
 XFT_LIBS
 XFT_CFLAGS
 ISW_DEPS_LIBS
@@ -867,6 +877,12 @@ ISW_DEPS_CFLAGS
 ISW_DEPS_LIBS
 XFT_CFLAGS
 XFT_LIBS
+CAIRO_CFLAGS
+CAIRO_LIBS
+EGL_CFLAGS
+EGL_LIBS
+CAIRO_GL_CFLAGS
+CAIRO_GL_LIBS
 XKBCOMMON_CFLAGS
 XKBCOMMON_LIBS
 XPM_CFLAGS
@@ -1576,6 +1592,15 @@ Some influential environment variables:
               linker flags for ISW_DEPS, overriding pkg-config
   XFT_CFLAGS  C compiler flags for XFT, overriding pkg-config
   XFT_LIBS    linker flags for XFT, overriding pkg-config
+  CAIRO_CFLAGS
+              C compiler flags for CAIRO, overriding pkg-config
+  CAIRO_LIBS  linker flags for CAIRO, overriding pkg-config
+  EGL_CFLAGS  C compiler flags for EGL, overriding pkg-config
+  EGL_LIBS    linker flags for EGL, overriding pkg-config
+  CAIRO_GL_CFLAGS
+              C compiler flags for CAIRO_GL, overriding pkg-config
+  CAIRO_GL_LIBS
+              linker flags for CAIRO_GL, overriding pkg-config
   XKBCOMMON_CFLAGS
               C compiler flags for XKBCOMMON, overriding pkg-config
   XKBCOMMON_LIBS
@@ -21398,6 +21423,263 @@ printf "%s\n" "yes" >&6; }
 
 fi
 
+# Cairo rendering backends (optional but recommended)
+
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for cairo >= 1.12.0 cairo-xcb >= 1.12.0" >&5
+printf %s "checking for cairo >= 1.12.0 cairo-xcb >= 1.12.0... " >&6; }
+
+if test -n "$CAIRO_CFLAGS"; then
+    pkg_cv_CAIRO_CFLAGS="$CAIRO_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"cairo >= 1.12.0 cairo-xcb >= 1.12.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "cairo >= 1.12.0 cairo-xcb >= 1.12.0") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_CAIRO_CFLAGS=`$PKG_CONFIG --cflags "cairo >= 1.12.0 cairo-xcb >= 1.12.0" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$CAIRO_LIBS"; then
+    pkg_cv_CAIRO_LIBS="$CAIRO_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"cairo >= 1.12.0 cairo-xcb >= 1.12.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "cairo >= 1.12.0 cairo-xcb >= 1.12.0") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_CAIRO_LIBS=`$PKG_CONFIG --libs "cairo >= 1.12.0 cairo-xcb >= 1.12.0" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                CAIRO_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "cairo >= 1.12.0 cairo-xcb >= 1.12.0" 2>&1`
+        else
+                CAIRO_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "cairo >= 1.12.0 cairo-xcb >= 1.12.0" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$CAIRO_PKG_ERRORS" >&5
+
+        HAVE_CAIRO=no
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Cairo not found; only basic XCB rendering will be available" >&5
+printf "%s\n" "$as_me: WARNING: Cairo not found; only basic XCB rendering will be available" >&2;}
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        HAVE_CAIRO=no
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: Cairo not found; only basic XCB rendering will be available" >&5
+printf "%s\n" "$as_me: WARNING: Cairo not found; only basic XCB rendering will be available" >&2;}
+else
+        CAIRO_CFLAGS=$pkg_cv_CAIRO_CFLAGS
+        CAIRO_LIBS=$pkg_cv_CAIRO_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        HAVE_CAIRO=yes
+
+printf "%s\n" "#define HAVE_CAIRO 1" >>confdefs.h
+
+
+printf "%s\n" "#define HAVE_CAIRO_XCB 1" >>confdefs.h
+
+fi
+ if test "x$HAVE_CAIRO" = "xyes"; then
+  HAVE_CAIRO_TRUE=
+  HAVE_CAIRO_FALSE='#'
+else
+  HAVE_CAIRO_TRUE='#'
+  HAVE_CAIRO_FALSE=
+fi
+
+
+# Cairo-EGL backend (optional, for hardware accelerated rendering)
+if test "x$HAVE_CAIRO" = "xyes"; then
+
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for egl >= 1.4" >&5
+printf %s "checking for egl >= 1.4... " >&6; }
+
+if test -n "$EGL_CFLAGS"; then
+    pkg_cv_EGL_CFLAGS="$EGL_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"egl >= 1.4\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "egl >= 1.4") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_EGL_CFLAGS=`$PKG_CONFIG --cflags "egl >= 1.4" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$EGL_LIBS"; then
+    pkg_cv_EGL_LIBS="$EGL_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"egl >= 1.4\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "egl >= 1.4") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_EGL_LIBS=`$PKG_CONFIG --libs "egl >= 1.4" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                EGL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "egl >= 1.4" 2>&1`
+        else
+                EGL_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "egl >= 1.4" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$EGL_PKG_ERRORS" >&5
+
+        HAVE_CAIRO_EGL=no
+         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: EGL not found; hardware accelerated rendering not available" >&5
+printf "%s\n" "$as_me: WARNING: EGL not found; hardware accelerated rendering not available" >&2;}
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        HAVE_CAIRO_EGL=no
+         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: EGL not found; hardware accelerated rendering not available" >&5
+printf "%s\n" "$as_me: WARNING: EGL not found; hardware accelerated rendering not available" >&2;}
+else
+        EGL_CFLAGS=$pkg_cv_EGL_CFLAGS
+        EGL_LIBS=$pkg_cv_EGL_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for cairo-gl >= 1.12.0" >&5
+printf %s "checking for cairo-gl >= 1.12.0... " >&6; }
+
+if test -n "$CAIRO_GL_CFLAGS"; then
+    pkg_cv_CAIRO_GL_CFLAGS="$CAIRO_GL_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"cairo-gl >= 1.12.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "cairo-gl >= 1.12.0") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_CAIRO_GL_CFLAGS=`$PKG_CONFIG --cflags "cairo-gl >= 1.12.0" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$CAIRO_GL_LIBS"; then
+    pkg_cv_CAIRO_GL_LIBS="$CAIRO_GL_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"cairo-gl >= 1.12.0\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "cairo-gl >= 1.12.0") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_CAIRO_GL_LIBS=`$PKG_CONFIG --libs "cairo-gl >= 1.12.0" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                CAIRO_GL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "cairo-gl >= 1.12.0" 2>&1`
+        else
+                CAIRO_GL_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "cairo-gl >= 1.12.0" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$CAIRO_GL_PKG_ERRORS" >&5
+
+        HAVE_CAIRO_EGL=no
+             { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: cairo-gl not found; hardware accelerated rendering not available" >&5
+printf "%s\n" "$as_me: WARNING: cairo-gl not found; hardware accelerated rendering not available" >&2;}
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        HAVE_CAIRO_EGL=no
+             { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: cairo-gl not found; hardware accelerated rendering not available" >&5
+printf "%s\n" "$as_me: WARNING: cairo-gl not found; hardware accelerated rendering not available" >&2;}
+else
+        CAIRO_GL_CFLAGS=$pkg_cv_CAIRO_GL_CFLAGS
+        CAIRO_GL_LIBS=$pkg_cv_CAIRO_GL_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        HAVE_CAIRO_EGL=yes
+
+printf "%s\n" "#define HAVE_CAIRO_EGL 1" >>confdefs.h
+
+fi
+fi
+else
+    HAVE_CAIRO_EGL=no
+fi
+ if test "x$HAVE_CAIRO_EGL" = "xyes"; then
+  HAVE_CAIRO_EGL_TRUE=
+  HAVE_CAIRO_EGL_FALSE='#'
+else
+  HAVE_CAIRO_EGL_TRUE='#'
+  HAVE_CAIRO_EGL_FALSE=
+fi
+
+
 # xkbcommon (optional, for keysym name functions)
 
 pkg_failed=no
@@ -21864,6 +22146,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_CAIRO_TRUE}" && test -z "${HAVE_CAIRO_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_CAIRO\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_CAIRO_EGL_TRUE}" && test -z "${HAVE_CAIRO_EGL_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_CAIRO_EGL\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${ISW_INTERNATIONALIZATION_TRUE}" && test -z "${ISW_INTERNATIONALIZATION_FALSE}"; then
@@ -24044,4 +24334,28 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
 printf "%s\n" "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
+
+# Configuration summary
+echo ""
+echo "=========================================="
+echo "libISW Configuration Summary"
+echo "=========================================="
+echo "Internationalization:    $ISW_I18N"
+echo "XIM support:             $ISW_XIM"
+echo ""
+echo "Rendering Backends:"
+echo "  XCB (basic):           yes (always available)"
+if test "x$HAVE_CAIRO" = "xyes"; then
+    echo "  Cairo-XCB:             yes (recommended)"
+else
+    echo "  Cairo-XCB:             no"
+fi
+if test "x$HAVE_CAIRO_EGL" = "xyes"; then
+    echo "  Cairo-EGL:             yes (hardware accelerated)"
+else
+    echo "  Cairo-EGL:             no"
+fi
+echo ""
+echo "=========================================="
+echo ""
 

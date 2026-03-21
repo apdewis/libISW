@@ -67,6 +67,8 @@ SOFTWARE.
 #define XtNrelief "relief"
 #define XtCRelief "Relief"
 
+#ifndef _XtRelief_defined
+#define _XtRelief_defined
 typedef enum {
     XtReliefNone,
     XtReliefRaised,
@@ -74,6 +76,7 @@ typedef enum {
     XtReliefRidge,
     XtReliefGroove
 } XtRelief;
+#endif
 
 typedef struct _ThreeDRec *ThreeDWidget;
 typedef struct _ThreeDClassRec *ThreeDWidgetClass;

@@ -529,6 +529,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     xcb_pixmap_t pm;
     xcb_gcontext_t gc;
     xcb_connection_t *conn = gw->core.display;
+    ISWRenderContext *ctx = w->threeD.render_ctx;  /* Cairo rendering context */
     
     
     /* Note: event and region use XCB types per the migration plan */
@@ -629,43 +630,93 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 	    ksy += w->label.fontset->ascent;
 
-            if (len == MULTI_LINE_LABEL) {
-	        char *nl;
-	        while ((nl = index(label, '\n')) != NULL) {
-	            IswDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
-	  		        w->label.label_x, ksy, label, (int)(nl - label));
-	            ksy += w->label.fontset->height;
-	            label = nl + 1;
-	        }
-	        len = strlen(label);
+            /* Use Cairo rendering if available */
+            if (ctx) {
+                ISWRenderBegin(ctx);
+                ISWRenderSetColor(ctx, w->label.foreground);
+                
+                if (len == MULTI_LINE_LABEL) {
+                    char *nl;
+                    while ((nl = index(label, '\n')) != NULL) {
+                        ISWRenderDrawString(ctx, label, (int)(nl - label),
+                                          w->label.label_x, ksy);
+                        ksy += w->label.fontset->height;
+                        label = nl + 1;
+                    }
+                    len = strlen(label);
+                }
+                if (len)
+                    ISWRenderDrawString(ctx, label, len,
+                                      w->label.label_x, ksy);
+                
+                ISWRenderEnd(ctx);
+            } else {
+                /* Fallback to XCB rendering */
+                if (len == MULTI_LINE_LABEL) {
+                    char *nl;
+                    while ((nl = index(label, '\n')) != NULL) {
+                        IswDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
+                                    w->label.label_x, ksy, label, (int)(nl - label));
+                        ksy += w->label.fontset->height;
+                        label = nl + 1;
+                    }
+                    len = strlen(label);
+                }
+                if (len)
+                    IswDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
+                                w->label.label_x, ksy, label, len);
             }
-            if (len)
-	        IswDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
-			      w->label.label_x, ksy, label, len);
 
         } else
 #endif
         { /* international false, so use XCB core font rendering */
 
-	    if (len == MULTI_LINE_LABEL) {
-	        char *nl;
-	        while ((nl = index(label, '\n')) != NULL) {
-		    int segment_len = (int)(nl - label);
-		    if (segment_len > 0 && segment_len <= 255) {
-			ISWXcbDrawText(conn, XtWindow(gw), gc,
-				       w->label.label_x, y,
-				       label, (uint8_t)segment_len);
-		    }
-		    y += line_height;
-		    label = nl + 1;
-	        }
-	        len = strlen(label);
-	    }
-	    if (len && len <= 255) {
-		ISWXcbDrawText(conn, XtWindow(gw), gc,
-			       w->label.label_x, y,
-			       label, (uint8_t)len);
-	    }
+            /* Use Cairo rendering if available */
+            if (ctx) {
+                ISWRenderBegin(ctx);
+                ISWRenderSetColor(ctx, w->label.foreground);
+                
+                if (len == MULTI_LINE_LABEL) {
+                    char *nl;
+                    while ((nl = index(label, '\n')) != NULL) {
+                        int segment_len = (int)(nl - label);
+                        if (segment_len > 0) {
+                            ISWRenderDrawString(ctx, label, segment_len,
+                                              w->label.label_x, y);
+                        }
+                        y += line_height;
+                        label = nl + 1;
+                    }
+                    len = strlen(label);
+                }
+                if (len) {
+                    ISWRenderDrawString(ctx, label, len,
+                                      w->label.label_x, y);
+                }
+                
+                ISWRenderEnd(ctx);
+            } else {
+                /* Fallback to XCB rendering */
+                if (len == MULTI_LINE_LABEL) {
+                    char *nl;
+                    while ((nl = index(label, '\n')) != NULL) {
+                        int segment_len = (int)(nl - label);
+                        if (segment_len > 0 && segment_len <= 255) {
+                            ISWXcbDrawText(conn, XtWindow(gw), gc,
+                                         w->label.label_x, y,
+                                         label, (uint8_t)segment_len);
+                        }
+                        y += line_height;
+                        label = nl + 1;
+                    }
+                    len = strlen(label);
+                }
+                if (len && len <= 255) {
+                    ISWXcbDrawText(conn, XtWindow(gw), gc,
+                                 w->label.label_x, y,
+                                 label, (uint8_t)len);
+                }
+            }
 
         } /* endif international */
 

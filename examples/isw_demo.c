@@ -29,6 +29,9 @@
 #include <ISW/SmeBSB.h>
 #include <ISW/SmeLine.h>
 
+/* Rendering backend info */
+#include <ISW/ISWRender.h>
+
 /* Selection widgets */
 #include <ISW/List.h>
 #include <ISW/Tree.h>
@@ -131,7 +134,11 @@ int main(int argc, char *argv[]) {
     
     printf("Isw3d Widget Demo starting...\n");
     printf("This demo showcases widgets with XCB backend\n");
-    printf("---------------------------------------------\n\n");
+    printf("---------------------------------------------\n");
+    
+    /* Print rendering backend information */
+    ISWRenderPrintBackendInfo();
+    printf("\n");
     
     /* Realize all widgets */
     XtRealizeWidget(toplevel);

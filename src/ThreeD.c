@@ -496,18 +496,33 @@ Initialize (Widget request, Widget new, ArgList args, Cardinal *num_args)
     }
     AllocTopShadowGC (new);
     AllocBotShadowGC (new);
+    
+    /* Initialize render context to NULL - will be created when realized */
+    tdw->threeD.render_ctx = NULL;
 }
 
 static void
 Realize (xcb_connection_t *conn, Widget gw, XtValueMask *valueMask, uint32_t *attrs)
 {
+    ThreeDWidget tdw = (ThreeDWidget) gw;
+    
  /*
   * This is necessary because Simple doesn't have a realize method
   * XtInheritRealize in the ThreeD class record doesn't work.  This
   * daisychains through Simple to the Core class realize method
   */
     (*threeDWidgetClass->core_class.superclass->core_class.realize)
-	 (conn, gw, valueMask, attrs);
+  (conn, gw, valueMask, attrs);
+  
+    /* Create Cairo rendering context now that window exists
+     * Only if dimensions are valid - otherwise defer to first draw */
+    if (gw->core.width > 0 && gw->core.height > 0 &&
+        gw->core.width < 32767 && gw->core.height < 32767) {
+        tdw->threeD.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
+    } else {
+        /* Defer to first draw when dimensions are valid */
+        tdw->threeD.render_ctx = NULL;
+    }
 }
 
 static void
@@ -520,6 +535,12 @@ Destroy (Widget w)
 	ISWFreePixmap (XtDisplay (w), tdw->threeD.top_shadow_pxmap);
 	   if (tdw->threeD.bot_shadow_pxmap)
 	ISWFreePixmap (XtDisplay (w), tdw->threeD.bot_shadow_pxmap);
+	
+    /* Free Cairo rendering context */
+    if (tdw->threeD.render_ctx) {
+        ISWRenderDestroy(tdw->threeD.render_ctx);
+        tdw->threeD.render_ctx = NULL;
+    }
 }
 
 /* ARGSUSED */
@@ -621,8 +642,29 @@ _ISWDrawShadows (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t regi
     ThreeDWidget tdw = (ThreeDWidget) gw;
     Dimension	s = tdw->threeD.shadow_width;
 
+    /* Try to create Cairo rendering context if not yet created */
+    if (!tdw->threeD.render_ctx && XtIsRealized(gw) && (s > 0)) {
+        tdw->threeD.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
+    }
+    
+    /* Use Cairo rendering if available */
+    if (tdw->threeD.render_ctx && (s > 0) && XtIsRealized(gw)) {
+        ISWRenderBegin(tdw->threeD.render_ctx);
+        ISWRenderDrawShadow(
+            tdw->threeD.render_ctx,
+            0, 0,
+            tdw->core.width, tdw->core.height,
+            s,
+            out ? relief : (relief == XtReliefRaised ? XtReliefSunken : XtReliefRaised),
+            tdw->threeD.top_shadow_pixel,
+            tdw->threeD.bot_shadow_pixel
+        );
+        ISWRenderEnd(tdw->threeD.render_ctx);
+        return;  /* Done with Cairo rendering */
+    }
 
     /*
+     * Fallback to old XCB rendering if Cairo not available.
      * Draw the shadows using the core part width and height,
      * and the threeD part relief and shadow_width.
      * No point to do anything if the shadow_width is 0 or the

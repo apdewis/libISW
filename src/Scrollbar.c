@@ -283,16 +283,27 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
 	lh = ((bottom > floor) ? floor - top : tlen);
     }
     if (lh <= 0 || lw <= 0) return;
+    
+    ISWRenderContext *ctx = sbw->threeD.render_ctx;
     xcb_connection_t *conn = XtDisplay((Widget) sbw);
+    
     if (fill) {
- xcb_rectangle_t rect = {lx, ly, (unsigned int) lw, (unsigned int) lh};
- xcb_poly_fill_rectangle(conn, XtWindow((Widget) sbw),
-   sbw->scrollbar.gc, 1, &rect);
- xcb_flush(conn);
+        if (ctx) {
+            ISWRenderBegin(ctx);
+            ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
+            ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
+            ISWRenderEnd(ctx);
+        } else {
+            xcb_rectangle_t rect = {lx, ly, (unsigned int) lw, (unsigned int) lh};
+            xcb_poly_fill_rectangle(conn, XtWindow((Widget) sbw),
+              sbw->scrollbar.gc, 1, &rect);
+            xcb_flush(conn);
+        }
     } else {
- xcb_clear_area(conn, FALSE, XtWindow((Widget) sbw),
-   lx, ly, (unsigned int) lw, (unsigned int) lh);
- xcb_flush(conn);
+        /* Clear/erase area - use XCB clear (no Cairo equivalent needed) */
+        xcb_clear_area(conn, FALSE, XtWindow((Widget) sbw),
+          lx, ly, (unsigned int) lw, (unsigned int) lh);
+        xcb_flush(conn);
     }
 }
 
@@ -424,10 +435,27 @@ PaintArrows (ScrollbarWidget sbw)
 		    pt[n].y = swap;
 		}
 	    }
-	    xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 4, (xcb_point_t *)pt);
-	    xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)(pt + 4));
-	    xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)(pt + 10));
-	    xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 4, (xcb_point_t *)(pt + 16));
+	           ISWRenderContext *ctx = sbw->threeD.render_ctx;
+	           
+	           if (ctx) {
+	               /* Use Cairo for polygon rendering */
+	               ISWRenderBegin(ctx);
+	               ISWRenderSetColor(ctx, sbw->threeD.top_shadow_pixel);
+	               ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 4);
+	               ISWRenderSetColor(ctx, sbw->threeD.bot_shadow_pixel);
+	               ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 4), 6);
+	               ISWRenderSetColor(ctx, sbw->threeD.top_shadow_pixel);
+	               ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 10), 6);
+	               ISWRenderSetColor(ctx, sbw->threeD.bot_shadow_pixel);
+	               ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 16), 4);
+	               ISWRenderEnd(ctx);
+	           } else {
+	               /* XCB fallback */
+	               xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 4, (xcb_point_t *)pt);
+	               xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)(pt + 4));
+	               xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)(pt + 10));
+	               xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 4, (xcb_point_t *)(pt + 16));
+	           }
 
 	} else {
 	    pt[0].x = 0;      pt[0].y = tm1;

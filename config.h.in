@@ -1,5 +1,14 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Have Cairo rendering support */
+#undef HAVE_CAIRO
+
+/* Have Cairo-EGL backend for hardware acceleration */
+#undef HAVE_CAIRO_EGL
+
+/* Have Cairo-XCB backend */
+#undef HAVE_CAIRO_XCB
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 

@@ -390,24 +390,47 @@ repaint_window(Widget gw, int left, int width)
 
  if (next < (++width - s)) width = next + s;
 
+ ISWRenderContext *ctx = w->threeD.render_ctx;
+ 
  /* Draw data point lines. */
- for (i = left; i < width; i++) {
-	    int y = (int) (( w->core.height - 2 * s) -
-			   (int)(( w->core.height - 2 * s) * w->strip_chart.valuedata[i]) /
-			   w->strip_chart.scale);
+ if (ctx) {
+     ISWRenderBegin(ctx);
+     ISWRenderSetColor(ctx, w->strip_chart.fgpixel);
+     for (i = left; i < width; i++) {
+         int y = (int) (( w->core.height - 2 * s) -
+                        (int)(( w->core.height - 2 * s) * w->strip_chart.valuedata[i]) /
+                        w->strip_chart.scale);
+         ISWRenderFillRectangle(ctx, i + s, y + s, 1, w->core.height - 2 * s - y);
+     }
+     ISWRenderEnd(ctx);
+ } else {
+     for (i = left; i < width; i++) {
+         int y = (int) (( w->core.height - 2 * s) -
+                        (int)(( w->core.height - 2 * s) * w->strip_chart.valuedata[i]) /
+                        w->strip_chart.scale);
+         xcb_rectangle_t rect = {i + s, y + s, (unsigned int) 1,
+                        (unsigned int) (w->core.height - 2 * s - y )};
+         xcb_poly_fill_rectangle(conn, win, w->strip_chart.fgGC, 1, &rect);
+     }
+ }
 
-	    xcb_rectangle_t rect = {i + s, y + s, (unsigned int) 1,
-			   (unsigned int) (w->core.height - 2 * s - y )};
-	    xcb_poly_fill_rectangle(conn, win, w->strip_chart.fgGC, 1, &rect);
-	}
-
-	/* Draw graph reference lines */
-	for (i = 1; i < w->strip_chart.scale; i++) {
-	           j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
-	    xcb_point_t points[2] = {{left + s, j + s}, {scalewidth + s, j + s}};
-	    xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, win, w->strip_chart.hiGC, 2, points);
-	}
-	xcb_flush(conn);
+ /* Draw graph reference lines */
+ if (ctx) {
+     ISWRenderBegin(ctx);
+     ISWRenderSetColor(ctx, w->strip_chart.hipixel);
+     for (i = 1; i < w->strip_chart.scale; i++) {
+         j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
+         ISWRenderDrawLine(ctx, left + s, j + s, scalewidth + s, j + s);
+     }
+     ISWRenderEnd(ctx);
+ } else {
+     for (i = 1; i < w->strip_chart.scale; i++) {
+         j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
+         xcb_point_t points[2] = {{left + s, j + s}, {scalewidth + s, j + s}};
+         xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, win, w->strip_chart.hiGC, 2, points);
+     }
+     xcb_flush(conn);
+ }
     }
     return(next);
 }
@@ -480,13 +503,25 @@ MoveChart(StripChartWidget w, Boolean blit)
 
     /* Draw graph reference lines */
     left = j;
-    for (i = 1; i < w->strip_chart.scale; i++) {
- j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
- xcb_point_t points[2] = {{left, j + s}, {((int)w->core.width - s - 1), j + s}};
- xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, XtWindow((Widget) w),
-     w->strip_chart.hiGC, 2, points);
+    ISWRenderContext *ctx = w->threeD.render_ctx;
+    
+    if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, w->strip_chart.hipixel);
+        for (i = 1; i < w->strip_chart.scale; i++) {
+            j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
+            ISWRenderDrawLine(ctx, left, j + s, ((int)w->core.width - s - 1), j + s);
+        }
+        ISWRenderEnd(ctx);
+    } else {
+        for (i = 1; i < w->strip_chart.scale; i++) {
+            j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
+            xcb_point_t points[2] = {{left, j + s}, {((int)w->core.width - s - 1), j + s}};
+            xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, XtWindow((Widget) w),
+                w->strip_chart.hiGC, 2, points);
+        }
+        xcb_flush(conn);
     }
-    xcb_flush(conn);
     return;
 }
 

@@ -190,7 +190,8 @@ am__define_uniq_tagged_files = \
 DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(srcdir)/isw.pc.in COPYING ChangeLog INSTALL README compile \
-	config.guess config.sub install-sh ltmain.sh missing ylwrap
+	config.guess config.sub depcomp install-sh ltmain.sh missing \
+	ylwrap
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -250,6 +251,10 @@ AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 BASE_CFLAGS = @BASE_CFLAGS@
+CAIRO_CFLAGS = @CAIRO_CFLAGS@
+CAIRO_GL_CFLAGS = @CAIRO_GL_CFLAGS@
+CAIRO_GL_LIBS = @CAIRO_GL_LIBS@
+CAIRO_LIBS = @CAIRO_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -269,6 +274,8 @@ DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+EGL_CFLAGS = @EGL_CFLAGS@
+EGL_LIBS = @EGL_LIBS@
 EGREP = @EGREP@
 ERRORDB_DEFINES = @ERRORDB_DEFINES@
 ETAGS = @ETAGS@

@@ -435,16 +435,28 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   Boolean very_thick;
   GC norm_gc, rev_gc;
   Dimension	s = cbw->threeD.shadow_width;
+  ISWRenderContext *ctx = cbw->threeD.render_ctx;
 
   very_thick = cbw->command.highlight_thickness >
                (Dimension)((Dimension) Min(cbw->core.width, cbw->core.height)/2);
 
   if (cbw->command.set) {
     cbw->label.normal_GC = cbw->command.inverse_GC;
-    xcb_connection_t *conn = XtDisplay(w);
-    xcb_rectangle_t rect = {s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s};
-    xcb_poly_fill_rectangle(conn, XtWindow(w), cbw->command.normal_GC, 1, &rect);
-    xcb_flush(conn);
+    
+    /* Use Cairo rendering if available */
+    if (ctx) {
+      ISWRenderBegin(ctx);
+      /* Use core background as fill color (inverse of normal foreground) */
+      ISWRenderSetColor(ctx, cbw->core.background_pixel);
+      ISWRenderFillRectangle(ctx, s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s);
+      ISWRenderEnd(ctx);
+    } else {
+      /* Fallback to XCB */
+      xcb_connection_t *conn = XtDisplay(w);
+      xcb_rectangle_t rect = {s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s};
+      xcb_poly_fill_rectangle(conn, XtWindow(w), cbw->command.normal_GC, 1, &rect);
+      xcb_flush(conn);
+    }
     region = NULL;		/* Force label to repaint text. */
   }
   else
@@ -471,24 +483,44 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   }
 
   if ( !( (!change && (cbw->command.highlighted == HighlightNone)) ||
-	  ((cbw->command.highlighted == HighlightWhenUnset) &&
-	   (cbw->command.set))) ) {
+   ((cbw->command.highlighted == HighlightWhenUnset) &&
+    (cbw->command.set))) ) {
     if (very_thick) {
       cbw->label.normal_GC = norm_gc; /* Give the label the right GC. */
-      xcb_connection_t *conn = XtDisplay(w);
-      xcb_rectangle_t rect = {s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s};
-      xcb_poly_fill_rectangle(conn, XtWindow(w), rev_gc, 1, &rect);
-      xcb_flush(conn);
+      
+      /* Use Cairo rendering if available */
+      if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, cbw->core.background_pixel);
+        ISWRenderFillRectangle(ctx, s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s);
+        ISWRenderEnd(ctx);
+      } else {
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_rectangle_t rect = {s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s};
+        xcb_poly_fill_rectangle(conn, XtWindow(w), rev_gc, 1, &rect);
+        xcb_flush(conn);
+      }
     }
     else {
       /* wide lines are centered on the path, so indent it */
       int offset = cbw->command.highlight_thickness/2;
-      xcb_connection_t *conn = XtDisplay(w);
-      xcb_rectangle_t rect = {s + offset, s + offset,
-       cbw->core.width - cbw->command.highlight_thickness - 2 * s,
-       cbw->core.height - cbw->command.highlight_thickness - 2 * s};
-      xcb_poly_rectangle(conn, XtWindow(w), rev_gc, 1, &rect);
-      xcb_flush(conn);
+      
+      /* Use Cairo rendering if available */
+      if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, cbw->core.background_pixel);
+        ISWRenderStrokeRectangle(ctx, s + offset, s + offset,
+           cbw->core.width - cbw->command.highlight_thickness - 2 * s,
+           cbw->core.height - cbw->command.highlight_thickness - 2 * s);
+        ISWRenderEnd(ctx);
+      } else {
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_rectangle_t rect = {s + offset, s + offset,
+         cbw->core.width - cbw->command.highlight_thickness - 2 * s,
+         cbw->core.height - cbw->command.highlight_thickness - 2 * s};
+        xcb_poly_rectangle(conn, XtWindow(w), rev_gc, 1, &rect);
+        xcb_flush(conn);
+      }
     }
   }
   (*SuperClass->core_class.expose) (w, event, 0 /* FIXME: XCB region */);

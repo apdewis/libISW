@@ -136,7 +136,8 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libISW_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	ClickTime.c Composite.c Constraint.c Context.c Convert.c \
 	Converters.c Core.c Create.c Destroy.c Display.c Error.c \
@@ -156,7 +157,8 @@ am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	Toggle.c Tree.c Vendor.c Viewport.c ISWP.c ISWAtoms.c \
 	ISWContext.c ISWDrawing.c ISWInit.c ISWXcbDraw.c ISWXcbDraw.h \
 	laygram.y laylex.l MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c \
-	ISWI18n.h
+	ISWI18n.h ISWRender.c ISWRenderPrivate.h ISWRenderXCB.c \
+	ISWRenderCairoXCB.c ISWRenderEGL.c
 am__objects_1 = ActionHook.lo Alloc.lo ArgList.lo Callback.lo \
 	ClickTime.lo Composite.lo Constraint.lo Context.lo Convert.lo \
 	Converters.lo Core.lo Create.lo Destroy.lo Display.lo Error.lo \
@@ -171,7 +173,11 @@ am__objects_1 = ActionHook.lo Alloc.lo ArgList.lo Callback.lo \
 @ISW_INTERNATIONALIZATION_TRUE@am__objects_2 = MultiSrc.lo \
 @ISW_INTERNATIONALIZATION_TRUE@	MultiSink.lo ISWIm.lo \
 @ISW_INTERNATIONALIZATION_TRUE@	ISWI18n.lo
-am__objects_3 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
+am__objects_3 = ISWRender.lo ISWRenderXCB.lo
+@HAVE_CAIRO_TRUE@am__objects_4 = ISWRenderCairoXCB.lo
+@HAVE_CAIRO_EGL_TRUE@am__objects_5 = ISWRenderEGL.lo
+am__objects_6 = $(am__objects_3) $(am__objects_4) $(am__objects_5)
+am__objects_7 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	Box.lo Command.lo Dialog.lo Form.lo Grip.lo Label.lo Layout.lo \
 	List.lo MenuButton.lo Paned.lo Panner.lo Porthole.lo \
 	Repeater.lo Scrollbar.lo Simple.lo SimpleMenu.lo SmeBSB.lo \
@@ -179,8 +185,9 @@ am__objects_3 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	Text.lo TextPop.lo TextSink.lo TextSrc.lo TextTr.lo ThreeD.lo \
 	Tip.lo Toggle.lo Tree.lo Vendor.lo Viewport.lo ISWP.lo \
 	ISWAtoms.lo ISWContext.lo ISWDrawing.lo ISWInit.lo \
-	ISWXcbDraw.lo laygram.lo laylex.lo $(am__objects_2)
-am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_3)
+	ISWXcbDraw.lo laygram.lo laylex.lo $(am__objects_2) \
+	$(am__objects_6)
+am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_7)
 nodist_libISW_la_OBJECTS = StringDefs.lo
 libISW_la_OBJECTS = $(am_libISW_la_OBJECTS) \
 	$(nodist_libISW_la_OBJECTS)
@@ -227,6 +234,8 @@ am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
 	./$(DEPDIR)/ISWContext.Plo ./$(DEPDIR)/ISWDrawing.Plo \
 	./$(DEPDIR)/ISWI18n.Plo ./$(DEPDIR)/ISWIm.Plo \
 	./$(DEPDIR)/ISWInit.Plo ./$(DEPDIR)/ISWP.Plo \
+	./$(DEPDIR)/ISWRender.Plo ./$(DEPDIR)/ISWRenderCairoXCB.Plo \
+	./$(DEPDIR)/ISWRenderEGL.Plo ./$(DEPDIR)/ISWRenderXCB.Plo \
 	./$(DEPDIR)/ISWXcbDraw.Plo ./$(DEPDIR)/Initialize.Plo \
 	./$(DEPDIR)/Intrinsic.Plo ./$(DEPDIR)/Keyboard.Plo \
 	./$(DEPDIR)/Label.Plo ./$(DEPDIR)/Layout.Plo \
@@ -338,6 +347,10 @@ AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 BASE_CFLAGS = @BASE_CFLAGS@
+CAIRO_CFLAGS = @CAIRO_CFLAGS@
+CAIRO_GL_CFLAGS = @CAIRO_GL_CFLAGS@
+CAIRO_GL_LIBS = @CAIRO_GL_LIBS@
+CAIRO_LIBS = @CAIRO_LIBS@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -357,6 +370,8 @@ DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
+EGL_CFLAGS = @EGL_CFLAGS@
+EGL_LIBS = @EGL_LIBS@
 EGREP = @EGREP@
 ERRORDB_DEFINES = @ERRORDB_DEFINES@
 ETAGS = @ETAGS@
@@ -498,6 +513,9 @@ AM_CFLAGS = \
 	$(XFT_CFLAGS) \
 	$(XPM_CFLAGS) \
 	$(XKBCOMMON_CFLAGS) \
+	$(CAIRO_CFLAGS) \
+	$(EGL_CFLAGS) \
+	$(CAIRO_GL_CFLAGS) \
 	$(SRCH_DEFINES) \
 	$(ERRORDB_DEFINES)
 
@@ -572,6 +590,21 @@ LIBXT_SOURCES = \
 # Keep ISW_INTERNATIONALIZATION conditional as-is
 @ISW_INTERNATIONALIZATION_TRUE@I18N_SRCS = MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h
 
+# Cairo rendering backend sources (conditional)
+# Core rendering abstraction (always included)
+RENDER_CORE_SRCS = \
+	ISWRender.c \
+	ISWRenderPrivate.h \
+	ISWRenderXCB.c
+
+
+# Cairo-XCB backend (when Cairo is available)
+@HAVE_CAIRO_TRUE@RENDER_CAIRO_SRCS = ISWRenderCairoXCB.c
+
+# Cairo-EGL backend (when EGL and Cairo-GL are available)
+@HAVE_CAIRO_EGL_TRUE@RENDER_EGL_SRCS = ISWRenderEGL.c
+RENDER_SRCS = $(RENDER_CORE_SRCS) $(RENDER_CAIRO_SRCS) $(RENDER_EGL_SRCS)
+
 # ISW widget source files
 ISW_SOURCES = \
 	AllWidgets.c \
@@ -621,7 +654,8 @@ ISW_SOURCES = \
 	ISWXcbDraw.h \
 	laygram.y \
 	laylex.l \
-	$(I18N_SRCS)
+	$(I18N_SRCS) \
+	$(RENDER_SRCS)
 
 
 # Generated source files
@@ -637,7 +671,10 @@ libISW_la_LIBADD = \
 	$(ISW_DEPS_LIBS) \
 	$(XFT_LIBS) \
 	$(XPM_LIBS) \
-	$(XKBCOMMON_LIBS)
+	$(XKBCOMMON_LIBS) \
+	$(CAIRO_LIBS) \
+	$(EGL_LIBS) \
+	$(CAIRO_GL_LIBS)
 
 libISW_la_LDFLAGS = -version-info 1:0:0 -no-undefined
 BUILT_SOURCES = StringDefs.c laygram.h
@@ -766,6 +803,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWIm.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWInit.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWP.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRender.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRenderCairoXCB.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRenderEGL.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRenderXCB.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWXcbDraw.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Initialize.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Intrinsic.Plo@am__quote@ # am--include-marker
@@ -1067,6 +1108,10 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/ISWIm.Plo
 	-rm -f ./$(DEPDIR)/ISWInit.Plo
 	-rm -f ./$(DEPDIR)/ISWP.Plo
+	-rm -f ./$(DEPDIR)/ISWRender.Plo
+	-rm -f ./$(DEPDIR)/ISWRenderCairoXCB.Plo
+	-rm -f ./$(DEPDIR)/ISWRenderEGL.Plo
+	-rm -f ./$(DEPDIR)/ISWRenderXCB.Plo
 	-rm -f ./$(DEPDIR)/ISWXcbDraw.Plo
 	-rm -f ./$(DEPDIR)/Initialize.Plo
 	-rm -f ./$(DEPDIR)/Intrinsic.Plo
@@ -1216,6 +1261,10 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/ISWIm.Plo
 	-rm -f ./$(DEPDIR)/ISWInit.Plo
 	-rm -f ./$(DEPDIR)/ISWP.Plo
+	-rm -f ./$(DEPDIR)/ISWRender.Plo
+	-rm -f ./$(DEPDIR)/ISWRenderCairoXCB.Plo
+	-rm -f ./$(DEPDIR)/ISWRenderEGL.Plo
+	-rm -f ./$(DEPDIR)/ISWRenderXCB.Plo
 	-rm -f ./$(DEPDIR)/ISWXcbDraw.Plo
 	-rm -f ./$(DEPDIR)/Initialize.Plo
 	-rm -f ./$(DEPDIR)/Intrinsic.Plo
