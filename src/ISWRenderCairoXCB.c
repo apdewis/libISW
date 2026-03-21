@@ -122,6 +122,7 @@ ISWRenderCairoXCBInit(ISWRenderContext *ctx)
     /* Set default rendering quality */
     cairo_set_antialias(data->cairo_ctx, CAIRO_ANTIALIAS_GOOD);
     cairo_set_line_width(data->cairo_ctx, 1.0);
+    cairo_set_operator(data->cairo_ctx, CAIRO_OPERATOR_OVER);
     
     return True;
 }
@@ -499,17 +500,6 @@ cairo_xcb_draw_string(ISWRenderContext *ctx, const char *text, int len,
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
     char *null_term;
-    cairo_font_extents_t font_extents;
-    double clip_x1, clip_y1, clip_x2, clip_y2;
-    
-    /* DIAGNOSTIC: Log text rendering details */
-    cairo_font_extents(data->cairo_ctx, &font_extents);
-    cairo_clip_extents(data->cairo_ctx, &clip_x1, &clip_y1, &clip_x2, &clip_y2);
-    fprintf(stderr, "[CAIRO_TEXT_DEBUG] Drawing '%.*s' at (%d,%d), font: ascent=%.1f descent=%.1f, clip: (%.0f,%.0f)-(%.0f,%.0f), baseline_in_clip=%s\n",
-            len > 20 ? 20 : len, text, x, y,
-            font_extents.ascent, font_extents.descent,
-            clip_x1, clip_y1, clip_x2, clip_y2,
-            (y >= clip_y1 && y <= clip_y2) ? "YES" : "NO");
     
     /* Cairo expects null-terminated string */
     null_term = (char*)malloc(len + 1);

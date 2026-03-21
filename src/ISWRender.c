@@ -15,6 +15,7 @@
 #endif
 
 #include "ISWRenderPrivate.h"
+#include "ISWXcbDraw.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -136,6 +137,9 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
     ctx->connection = (xcb_connection_t*)XtDisplay(widget);
     ctx->window = XtWindow(widget);
     ctx->screen = (xcb_screen_t*)XtScreen(widget);
+    
+    /* Get colormap from screen - we'll use the screen's default colormap */
+    ctx->colormap = ctx->screen ? ctx->screen->default_colormap : 0;
     
     /* Detect and select backend */
     ctx->backend = ISWRenderDetectBackend(preferred);
@@ -628,18 +632,20 @@ ISWRenderPixelToRGB(ISWRenderContext *ctx, Pixel pixel,
         return;
     }
     
-    /* Query color from X server */
+    /* Query color from X server using the context's colormap */
     color.pixel = pixel;
     
-    /* Use ISWQueryColor from ISWXcbraw if available */
-    /* For now, provide a simple fallback */
-    /* This will be properly implemented when we link against ISWXcbDraw */
-    
-    /* Temporary: extract RGB from pixel assuming standard colormap */
-    /* This is a simplification - proper implementation will query server */
-    *r = ((pixel >> 16) & 0xFF) / 255.0;
-    *g = ((pixel >> 8) & 0xFF) / 255.0;
-    *b = (pixel & 0xFF) / 255.0;
+    if (ctx->colormap && ISWQueryColor(ctx->connection, ctx->colormap, &color)) {
+        /* Convert from 16-bit to 0.0-1.0 range */
+        *r = color.red / 65535.0;
+        *g = color.green / 65535.0;
+        *b = color.blue / 65535.0;
+    } else {
+        /* Fallback: extract RGB from pixel assuming TrueColor format */
+        *r = ((pixel >> 16) & 0xFF) / 255.0;
+        *g = ((pixel >> 8) & 0xFF) / 255.0;
+        *b = (pixel & 0xFF) / 255.0;
+    }
 }
 
 xcb_visualtype_t*

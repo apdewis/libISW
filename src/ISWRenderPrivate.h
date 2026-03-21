@@ -114,6 +114,7 @@ typedef struct _ISWRenderContext {
     xcb_connection_t *connection;  /* Pure XCB connection, NOT Display* */
     xcb_window_t window;
     xcb_screen_t *screen;
+    xcb_colormap_t colormap;
     
     /* Backend information */
     ISWRenderBackend backend;

@@ -196,9 +196,10 @@ GetGCs(Widget w)
 
     memset(&values, 0, sizeof(values));
     values.foreground	= lw->list.foreground;
+    values.background	= lw->core.background_pixel;  /* CRITICAL: Set background for text rendering */
 
     /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gc_mask = (unsigned) GCForeground;
+    XtGCMask gc_mask = (unsigned) (GCForeground | GCBackground);  /* Include background */
     if (lw->list.font != NULL) {
         values.font = lw->list.font->fid;
         gc_mask |= GCFont;
@@ -213,6 +214,7 @@ GetGCs(Widget w)
         lw->list.normgc = XtGetGC( w, gc_mask, &values);
 
     values.foreground	= lw->core.background_pixel;
+    values.background	= lw->list.foreground;  /* Swap colors for reverse GC */
 
 #ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
@@ -576,6 +578,7 @@ HighlightBackground(Widget w, int x, int y, GC gc)
     if (lw->list.render_ctx) {
         /* Determine color based on which GC is being used */
         Pixel color;
+        const char *gc_name;
         if (gc == lw->list.normgc) {
             color = lw->list.foreground;
         } else if (gc == lw->list.revgc) {
@@ -590,6 +593,11 @@ HighlightBackground(Widget w, int x, int y, GC gc)
     } else {
         xcb_connection_t *conn = XtDisplay(w);
         xcb_rectangle_t rect = {x, y, width, height};
+        
+        /* XCB path - extract foreground from GC */
+        fprintf(stderr, "HighlightBG XCB: using GC at (%d,%d) %dx%d\n",
+                x, y, width, height);
+        
         xcb_poly_fill_rectangle(conn, XtWindow(w), gc, 1, &rect);
         xcb_flush(conn);
     }
@@ -671,29 +679,30 @@ PaintItemName(Widget w, int item)
     if (item == lw->list.is_highlighted) {
         if (item == lw->list.highlight) {
             gc = lw->list.revgc;
-	    HighlightBackground(w, x, y, lw->list.normgc);
-	}
+     HighlightBackground(w, x, y, lw->list.normgc);
+ }
         else {
-	    if (XtIsSensitive(w))
-	        gc = lw->list.normgc;
-	    else
-	        gc = lw->list.graygc;
-	    HighlightBackground(w, x, y, lw->list.revgc);
-	    lw->list.is_highlighted = NO_HIGHLIGHT;
+     if (XtIsSensitive(w))
+         gc = lw->list.normgc;
+     else
+         gc = lw->list.graygc;
+     HighlightBackground(w, x, y, lw->list.revgc);
+     lw->list.is_highlighted = NO_HIGHLIGHT;
         }
     }
     else {
         if (item == lw->list.highlight) {
             gc = lw->list.revgc;
-	    HighlightBackground(w, x, y, lw->list.normgc);
-	    lw->list.is_highlighted = item;
-	}
-	else {
-	    if (XtIsSensitive(w))
-	        gc = lw->list.normgc;
-	    else
-	        gc = lw->list.graygc;
-	}
+     HighlightBackground(w, x, y, lw->list.normgc);
+     lw->list.is_highlighted = item;
+ }
+ else {
+     if (XtIsSensitive(w))
+         gc = lw->list.normgc;
+     else
+         gc = lw->list.graygc;
+     HighlightBackground(w, x, y, lw->list.revgc);
+ }
     }
 
     /* List's overall width contains the same number of inter-column
