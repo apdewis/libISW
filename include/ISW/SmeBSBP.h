@@ -40,7 +40,7 @@ in this Software without prior written authorization from the X Consortium.
  ***********************************************************************/
 
 #include "ISWP.h"
-#include <ISW/SmeThreeDP.h>
+#include <ISW/SmeP.h>
 #include <ISW/SmeBSB.h>
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
 #include <ISW/ISWRender.h>
@@ -69,7 +69,6 @@ typedef struct _SmeBSBClassPart {
 typedef struct _SmeBSBClassRec {
     RectObjClassPart	rect_class;
     SmeClassPart	sme_class;
-    SmeThreeDClassPart	sme_threeD_class;
     SmeBSBClassPart	sme_bsb_class;
 } SmeBSBClassRec;
 
@@ -105,6 +104,16 @@ typedef struct {
     unsigned int left_depth;
     unsigned int right_depth;
     String menu_name;		/* name of nested sub-menu or NULL */
+    
+    /* Shadow fields (formerly from SmeThreeD) */
+    Dimension shadow_width;
+    Pixel top_shadow_pixel;
+    Pixel bot_shadow_pixel;
+    GC top_shadow_GC;
+    GC bot_shadow_GC;
+    GC erase_GC;
+    Boolean shadowed;
+    
     ISWRenderContext *render_ctx;  /* Cairo rendering context */
 } SmeBSBPart;
 
@@ -118,7 +127,6 @@ typedef struct _SmeBSBRec {
     ObjectPart		object;
     RectObjPart		rectangle;
     SmePart		sme;
-    SmeThreeDPart	sme_threeD;
     SmeBSBPart		sme_bsb;
 } SmeBSBRec;
 

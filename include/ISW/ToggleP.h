@@ -69,14 +69,13 @@ typedef struct _ToggleClass  {
 } ToggleClassPart;
 
    /* Full class record declaration */
-typedef struct _ToggleClassRec {
-    CoreClassPart	core_class;
-    SimpleClassPart	simple_class;
-    ThreeDClassPart	threeD_class;
-    LabelClassPart	label_class;
-    CommandClassPart	command_class;
-    ToggleClassPart     toggle_class;
-} ToggleClassRec;
+   typedef struct _ToggleClassRec {
+       CoreClassPart	core_class;
+       SimpleClassPart	simple_class;
+       LabelClassPart	label_class;
+       CommandClassPart	command_class;
+       ToggleClassPart     toggle_class;
+   } ToggleClassRec;
 
 extern ToggleClassRec toggleClassRec;
 
@@ -98,9 +97,8 @@ typedef struct {
 
    /* Full widget declaration */
 typedef struct _ToggleRec {
-    CorePart         core;
+    CorePart	     core;
     SimplePart	     simple;
-    ThreeDPart       threeD;
     LabelPart	     label;
     CommandPart	     command;
     TogglePart       toggle;

@@ -38,7 +38,6 @@ typedef struct {			/* new fields in widget class */
 typedef struct _RepeaterClassRec {	/* Repeater widget class */
     CoreClassPart core_class;
     SimpleClassPart simple_class;
-    ThreeDClassPart threeD_class;
     LabelClassPart label_class;
     CommandClassPart command_class;
     RepeaterClassPart repeater_class;
@@ -61,7 +60,6 @@ typedef struct {			/* new fields in widget */
 typedef struct _RepeaterRec {
     CorePart core;
     SimplePart simple;
-    ThreeDPart threeD;
     LabelPart label;
     CommandPart command;
     RepeaterPart repeater;

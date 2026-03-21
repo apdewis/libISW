@@ -130,7 +130,6 @@ ISW_SOURCES = \
 	SmeBSB.c \
 	Sme.c \
 	SmeLine.c \
-	SmeThreeD.c \
 	StripChart.c \
 	TextAction.c \
 	Text.c \
@@ -138,7 +137,6 @@ ISW_SOURCES = \
 	TextSink.c \
 	TextSrc.c \
 	TextTr.c \
-	ThreeD.c \
 	Tip.c \
 	Toggle.c \
 	Tree.c \

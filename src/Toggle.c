@@ -152,9 +152,6 @@ ToggleClassRec toggleClassRec = {
     XtInheritChangeSensitive		/* change_sensitive	  */
   },  /* SimpleClass fields initialization */
   {
-    XtInheritIsw3dShadowDraw            /* shadowdraw          */
-  },  /* ThreeDClass fields initialization */
-  {
     0                                     /* field not used    */
   },  /* LabelClass fields initialization */
   {
@@ -301,8 +298,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      * Remove 3D button appearance - radio buttons and checkboxes should look
      * like plain text with indicators, not like pressed buttons.
      */
-    tw->threeD.shadow_width = 0;
-    tw->threeD.relief = XtReliefNone;
+    tw->label.shadow_width = 0;
+    tw->label.relief = XtReliefNone;
     tw->command.highlight_thickness = 0;
 
 /*
@@ -687,7 +684,7 @@ static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ToggleWidget tw = (ToggleWidget) w;
-    ISWRenderContext *ctx = tw->threeD.render_ctx;
+    ISWRenderContext *ctx = tw->label.render_ctx;
     
     /* Call Label's Redisplay to draw just the text (not Command's button appearance) */
     /* labelWidgetClass is Command's superclass, so we skip the 3D button drawing */

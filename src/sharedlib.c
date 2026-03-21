@@ -52,14 +52,12 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SimpleP.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeP.h>
-#include <ISW/SmeThreeDP.h>
 #include <ISW/SmeBSBP.h>
 #include <ISW/SmeLineP.h>
 #include <ISW/StripCharP.h>
 #include <ISW/TextP.h>
 #include <ISW/TextSinkP.h>
 #include <ISW/TextSrcP.h>
-#include <ISW/ThreeDP.h>
 #include <ISW/TipP.h>
 #include <ISW/ToggleP.h>
 #include <ISW/TreeP.h>
@@ -144,9 +142,6 @@ WidgetClass simpleMenuWidgetClass = (WidgetClass)&simpleMenuClassRec;
 extern SmeClassRec smeClassRec;
 WidgetClass smeObjectClass = (WidgetClass) &smeClassRec;
 
-extern smeThreeDClassRec smeThreeDClassRec;
-WidgetClass smeThreeDObjectClass = (WidgetClass) &smeThreeDClassRec;
-
 WidgetClass smeBSBObjectClass = (WidgetClass) &smeBSBClassRec;
 
 extern SmeLineClassRec smeLineClassRec;
@@ -169,9 +164,6 @@ WidgetClass textSinkObjectClass = (WidgetClass)&textSinkClassRec;
 
 extern TextSrcClassRec textSrcClassRec;
 WidgetClass textSrcObjectClass = (WidgetClass)&textSrcClassRec;
-
-extern ThreeDClassRec threeDClassRec;
-WidgetClass threeDClass = (WidgetClass)&threeDClassRec;
 
 extern TipClassRec tipClassRec;
 WidgetClass tipWidgetClass = (WidgetClass)&tipClassRec;

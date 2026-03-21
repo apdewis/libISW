@@ -58,9 +58,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Sme.h>
 #include <ISW/SmeBSB.h>
 #include <ISW/SmeLine.h>
-#include <ISW/SmeThreeD.h>
 #include <ISW/StripChart.h>
-#include <ISW/ThreeD.h>
 #include <ISW/Toggle.h>
 #include <ISW/Tree.h>
 #include <ISW/Viewport.h>
@@ -97,13 +95,11 @@ IswWidgetNode IswWidgetArray[] = {
 { "simple", &simpleWidgetClass },
 { "smeBSB", &smeBSBObjectClass },
 { "smeLine", &smeLineObjectClass },
-{ "smeThreeD", &smeThreeDObjectClass },
 { "sme", &smeObjectClass },
 { "stripChart", &stripChartWidgetClass },
 { "textSink", &textSinkObjectClass },
 { "textSrc", &textSrcObjectClass },
 { "text", &textWidgetClass },
-{ "threeD", &threeDWidgetClass },
 { "toggle", &toggleWidgetClass },
 { "topLevelShell", &topLevelShellWidgetClass },
 { "transientShell", &transientShellWidgetClass },

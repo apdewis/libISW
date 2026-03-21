@@ -81,7 +81,7 @@ static XtActionsRec actionsList[] =
   {"GripAction",      GripAction},
 };
 
-#define SuperClass (&threeDClassRec)
+#define SuperClass (&simpleClassRec)
 
 GripClassRec gripClassRec = {
    {
@@ -122,10 +122,6 @@ GripClassRec gripClassRec = {
 /* Simple class fields initialization */
    {
     /* change_sensitive   */   XtInheritChangeSensitive
-   },
-/* ThreeD class fields initialization */
-   {
-    /* shadowdraw	  */   0    /* inherited expose method knows how */
    },
 /* Grip class fields initialization */
    {

@@ -73,6 +73,21 @@ SOFTWARE.
 #include <xcb/xfixes.h>
 #include "ISWXcbDraw.h"
 
+/* Shadow resource name definitions (previously from ThreeD.h) */
+#define XtNshadowWidth "shadowWidth"
+#define XtCShadowWidth "ShadowWidth"
+#define XtNtopShadowPixel "topShadowPixel"
+#define XtCTopShadowPixel "TopShadowPixel"
+#define XtNbottomShadowPixel "bottomShadowPixel"
+#define XtCBottomShadowPixel "BottomShadowPixel"
+#define XtNtopShadowContrast "topShadowContrast"
+#define XtCTopShadowContrast "TopShadowContrast"
+#define XtNbottomShadowContrast "bottomShadowContrast"
+#define XtCBottomShadowContrast "BottomShadowContrast"
+#define XtNrelief "relief"
+#define XtCRelief "Relief"
+#define XtRRelief "Relief"
+
 /* Forward declarations for Xmu functions that need XCB replacements */
 /* XmuCvtStringToJustify signature must match XtConverter */
 //extern void XmuCvtStringToJustify(XrmValue*, Cardinal*, XrmValue*, XrmValue*);
@@ -129,7 +144,13 @@ static XtResource resources[] = {
     {XtNresize, XtCResize, XtRBoolean, sizeof(Boolean),
 	offset(label.resize), XtRImmediate, (XtPointer)True},
     {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-	offset(threeD.shadow_width), XtRImmediate, (XtPointer) 0},
+	offset(label.shadow_width), XtRImmediate, (XtPointer) 0},
+    {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
+	offset(label.top_shadow_pixel), XtRString, XtDefaultForeground},
+    {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
+	offset(label.bot_shadow_pixel), XtRString, XtDefaultForeground},
+    {XtNrelief, XtCRelief, XtRRelief, sizeof(XtRelief),
+	offset(label.relief), XtRImmediate, (XtPointer) XtReliefRaised},
     {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
          XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
          (XtPointer)1}
@@ -147,7 +168,7 @@ static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeomet
 LabelClassRec labelClassRec = {
   {
 /* core_class fields */
-    /* superclass	  	*/	(WidgetClass) &threeDClassRec,
+    /* superclass	  	*/	(WidgetClass) &simpleClassRec,
     /* class_name	  	*/	"Label",
     /* widget_size	  	*/	sizeof(LabelRec),
     /* class_initialize   	*/	ClassInitialize,
@@ -183,10 +204,6 @@ LabelClassRec labelClassRec = {
 /* Simple class fields initialization */
   {
     /* change_sensitive		*/	XtInheritChangeSensitive
-  },
-/* ThreeD class fields initialization */
-  {
-    /* shadowdraw 		*/	XtInheritIsw3dShadowDraw
   },
 /* Label class fields initialization */
   {
@@ -448,7 +465,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* disable shadows if we're not a subclass of Command */
     if (!XtIsSubclass(new, commandWidgetClass))
-	lw->threeD.shadow_width = 0;
+	lw->label.shadow_width = 0;
 
     if (lw->label.label == NULL)
         lw->label.label = XtNewString(lw->core.name);
@@ -493,6 +510,27 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     GetnormalGC(lw);
     GetgrayGC(lw);
 
+    /* Allocate shadow GCs for 3D appearance (if shadow_width > 0) */
+    if (lw->label.shadow_width > 0) {
+	xcb_create_gc_value_list_t gcv;
+	XtGCMask valuemask;
+	
+	/* Top shadow GC */
+	valuemask = GCForeground;
+	gcv.foreground = lw->label.top_shadow_pixel;
+	lw->label.top_shadow_GC = XtGetGC((Widget)lw, valuemask, &gcv);
+	
+	/* Bottom shadow GC */
+	gcv.foreground = lw->label.bot_shadow_pixel;
+	lw->label.bot_shadow_GC = XtGetGC((Widget)lw, valuemask, &gcv);
+    } else {
+	lw->label.top_shadow_GC = None;
+	lw->label.bot_shadow_GC = None;
+    }
+
+    /* Initialize render context to NULL (will be created on first use) */
+    lw->label.render_ctx = NULL;
+
     SetTextWidthAndHeight(lw);  /* label.label or label.pixmap */
 
     if (lw->core.height == 0)
@@ -529,7 +567,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     xcb_pixmap_t pm;
     xcb_gcontext_t gc;
     xcb_connection_t *conn = gw->core.display;
-    ISWRenderContext *ctx = w->threeD.render_ctx;  /* Cairo rendering context */
+    ISWRenderContext *ctx = w->label.render_ctx;  /* Cairo rendering context */
     
     
     /* Note: event and region use XCB types per the migration plan */
@@ -540,10 +578,9 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      * The shadow draw method is region aware, but since 99% of
      * all labels don't have shadows, we'll check for a shadow
      * before we incur the function call overhead.
+     *
+     * Shadow drawing removed - ThreeD eliminated.
      */
-    if (!XtIsSubclass (gw, commandWidgetClass) && w->threeD.shadow_width > 0)
-	(*lwclass->threeD_class.shadowdraw) (gw, event, region,
-					     w->threeD.relief, True);
 
     /*
      * now we'll see if we need to draw the rest of the label
@@ -954,6 +991,18 @@ Destroy(Widget w)
 	XtFree( lw->label.label );
     XtReleaseGC( w, lw->label.normal_GC );
     XtReleaseGC( w, lw->label.gray_GC);
+    
+    /* Release shadow GCs */
+    if (lw->label.top_shadow_GC != None)
+	XtReleaseGC( w, lw->label.top_shadow_GC );
+    if (lw->label.bot_shadow_GC != None)
+	XtReleaseGC( w, lw->label.bot_shadow_GC );
+    
+    /* Free Cairo render context if allocated */
+    if (lw->label.render_ctx != NULL) {
+	ISWRenderDestroy(lw->label.render_ctx);
+	lw->label.render_ctx = NULL;
+    }
 #ifdef ISW_MULTIPLANE_PIXMAPS
     {
 	xcb_connection_t *conn = w->core.display;

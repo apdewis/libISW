@@ -62,8 +62,9 @@ SOFTWARE.
 
 #include "ISWP.h"
 #include <ISW/Label.h>
-#include <ISW/ThreeDP.h>
+#include <ISW/SimpleP.h>
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef only */
+#include <ISW/ISWRender.h>     /* For ISWRenderContext */
 
 /* XtJustify type is now centrally defined in Isw3dP.h and IswXcbDraw.h */
 /* with proper include guards to prevent redefinition */
@@ -76,7 +77,6 @@ typedef struct {int foo;} LabelClassPart;
 typedef struct _LabelClassRec {
     CoreClassPart	core_class;
     SimpleClassPart	simple_class;
-    ThreeDClassPart     threeD_class;
     LabelClassPart	label_class;
 } LabelClassRec;
 
@@ -99,6 +99,12 @@ typedef struct {
     unsigned char encoding;
     Pixmap	left_bitmap;
 
+    /* shadow resources (moved from ThreeDPart) */
+    Dimension	shadow_width;
+    Pixel	top_shadow_pixel;
+    Pixel	bot_shadow_pixel;
+    XtRelief	relief;
+
     /* private state */
     GC		normal_GC;
     GC          gray_GC;
@@ -113,6 +119,13 @@ typedef struct {
     int		lbm_y;			/* where in label */
     unsigned int lbm_width, lbm_height;	/* size of pixmap */
     unsigned int depth;			/* depth of pixmaps */
+
+    /* shadow GCs (moved from ThreeDPart) */
+    GC		top_shadow_GC;
+    GC		bot_shadow_GC;
+
+    /* Cairo rendering context */
+    ISWRenderContext *render_ctx;
 } LabelPart;
 
 
@@ -125,7 +138,6 @@ typedef struct {
 typedef struct _LabelRec {
     CorePart	core;
     SimplePart	simple;
-    ThreeDPart  threeD;
     LabelPart	label;
 } LabelRec;
 

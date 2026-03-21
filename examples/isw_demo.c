@@ -36,12 +36,18 @@
 #include <ISW/List.h>
 #include <ISW/Tree.h>
 
+/* Layout widgets */
+#include <ISW/Layout.h>
+#include <ISW/Panner.h>
+#include <ISW/Porthole.h>
+
 /* Text widgets */
 #include <ISW/AsciiText.h>
 #include <ISW/Text.h>
 
 /* Specialized widgets */
 #include <ISW/StripChart.h>
+#include <ISW/Tip.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/Dialog.h>
 #include <ISW/Repeater.h>
@@ -63,6 +69,7 @@
 
 /* Main window creation */
 Widget create_main_window(Widget parent);
+Widget create_menubar(Widget parent);
 Widget create_title_label(Widget parent);
 
 /* Section creation functions */
@@ -70,11 +77,14 @@ Widget create_containers_section(Widget parent);
 Widget create_basic_widgets_section(Widget parent);
 Widget create_selection_section(Widget parent);
 Widget create_specialized_section(Widget parent);
+Widget create_navigation_section(Widget parent);
 
 /* Widget demo functions */
 Widget create_box_demo(Widget parent);
 Widget create_form_demo(Widget parent);
 Widget create_viewport_demo(Widget parent);
+Widget create_layout_demo(Widget parent);
+Widget create_paned_grip_demo(Widget parent);
 
 Widget create_command_demo(Widget parent);
 Widget create_toggle_demo(Widget parent);
@@ -83,7 +93,9 @@ Widget create_repeater_demo(Widget parent);
 
 Widget create_list_demo(Widget parent);
 Widget create_text_demo(Widget parent);
+Widget create_tree_demo(Widget parent);
 
+Widget create_panner_demo(Widget parent);
 Widget create_stripchart_demo(Widget parent);
 Widget create_scrollbar_demo(Widget parent);
 Widget create_dialog_demo(Widget parent);
@@ -97,8 +109,16 @@ void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void quit_callback(Widget w, XtPointer client_data, XtPointer call_data);
 
+/* Menu bar callbacks */
+void file_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void edit_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void about_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
+
 /* Timer callbacks */
 void update_stripchart(XtPointer client_data, XtIntervalId *id);
+
+/* Tooltip helper */
+void attach_tooltip(Widget widget, const char *tip_text);
 
 /* Global for stripchart */
 static double chart_value = 50.0;
@@ -122,11 +142,12 @@ int main(int argc, char *argv[]) {
                                &argc, argv,
                                NULL, NULL, 0);
     
-    /* Set main window size */
+    /* Set main window size and allow resizing */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 850); n++;
-    XtSetArg(args[n], XtNheight, 700); n++;
-    XtSetArg(args[n], XtNtitle, "Isw3d Widget Demonstration"); n++;
+    XtSetArg(args[n], XtNwidth, 1200); n++;
+    XtSetArg(args[n], XtNheight, 900); n++;
+    XtSetArg(args[n], XtNtitle, "Isw3d Widget Demonstration - Comprehensive Widget Showcase"); n++;
+    XtSetArg(args[n], XtNallowShellResize, True); n++;
     XtSetValues(toplevel, args, n);
     
     /* Create main widget structure */
@@ -154,7 +175,7 @@ int main(int argc, char *argv[]) {
  * ============================================================ */
 
 Widget create_main_window(Widget parent) {
-    Widget paned, title;
+    Widget paned, menubar, title;
     Arg args[10];
     Cardinal n;
     
@@ -164,6 +185,9 @@ Widget create_main_window(Widget parent) {
     paned = XtCreateManagedWidget("mainPane", panedWidgetClass,
                                   parent, args, n);
     
+    /* Menu bar at top */
+    menubar = create_menubar(paned);
+    
     /* Title section */
     title = create_title_label(paned);
     
@@ -171,9 +195,167 @@ Widget create_main_window(Widget parent) {
     create_containers_section(paned);
     create_basic_widgets_section(paned);
     create_selection_section(paned);
+    
+    /* Advanced widgets in a horizontal box */
+    Widget advanced_box;
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    advanced_box = XtCreateManagedWidget("advancedBox", boxWidgetClass, paned, args, n);
+    
+    create_tree_demo(advanced_box);
+    create_layout_demo(advanced_box);
+    create_paned_grip_demo(advanced_box);
+    
+    /* Panner demo in its own section */
+    create_navigation_section(paned);
+    
     create_specialized_section(paned);
     
     return paned;
+}
+
+Widget create_menubar(Widget parent) {
+    Widget menubar, file_button, edit_button, about_button;
+    Widget file_menu, edit_menu, about_menu;
+    Widget entry;
+    Arg args[10];
+    Cardinal n;
+    
+    /* Create horizontal Box for menu bar */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    XtSetArg(args[n], XtNskipAdjust, True); n++;
+    menubar = XtCreateManagedWidget("menubar", boxWidgetClass, parent, args, n);
+    
+    /* === FILE MENU === */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "File"); n++;
+    XtSetArg(args[n], XtNmenuName, "fileMenu"); n++;
+    file_button = XtCreateManagedWidget("fileButton", menuButtonWidgetClass, menubar, args, n);
+    
+    n = 0;
+    file_menu = XtCreatePopupShell("fileMenu", simpleMenuWidgetClass, file_button, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "New"); n++;
+    entry = XtCreateManagedWidget("menuNew", smeBSBObjectClass, file_menu, args, n);
+    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"New");
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Open..."); n++;
+    entry = XtCreateManagedWidget("menuOpen", smeBSBObjectClass, file_menu, args, n);
+    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"Open");
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Save"); n++;
+    entry = XtCreateManagedWidget("menuSave", smeBSBObjectClass, file_menu, args, n);
+    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"Save");
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Save As..."); n++;
+    entry = XtCreateManagedWidget("menuSaveAs", smeBSBObjectClass, file_menu, args, n);
+    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"Save As");
+    
+    /* 3D separator */
+    n = 0;
+    XtCreateManagedWidget("sep1", smeLineObjectClass, file_menu, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Export"); n++;
+    entry = XtCreateManagedWidget("menuExport", smeBSBObjectClass, file_menu, args, n);
+    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"Export");
+    
+    n = 0;
+    XtCreateManagedWidget("sep2", smeLineObjectClass, file_menu, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Quit"); n++;
+    entry = XtCreateManagedWidget("menuQuit", smeBSBObjectClass, file_menu, args, n);
+    XtAddCallback(entry, XtNcallback, quit_callback, NULL);
+    
+    /* === EDIT MENU === */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Edit"); n++;
+    XtSetArg(args[n], XtNmenuName, "editMenu"); n++;
+    edit_button = XtCreateManagedWidget("editButton", menuButtonWidgetClass, menubar, args, n);
+    
+    n = 0;
+    edit_menu = XtCreatePopupShell("editMenu", simpleMenuWidgetClass, edit_button, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Undo"); n++;
+    entry = XtCreateManagedWidget("menuUndo", smeBSBObjectClass, edit_menu, args, n);
+    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Undo");
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Redo"); n++;
+    entry = XtCreateManagedWidget("menuRedo", smeBSBObjectClass, edit_menu, args, n);
+    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Redo");
+    
+    n = 0;
+    XtCreateManagedWidget("sep3", smeLineObjectClass, edit_menu, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Cut"); n++;
+    entry = XtCreateManagedWidget("menuCut", smeBSBObjectClass, edit_menu, args, n);
+    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Cut");
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Copy"); n++;
+    entry = XtCreateManagedWidget("menuCopy", smeBSBObjectClass, edit_menu, args, n);
+    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Copy");
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Paste"); n++;
+    entry = XtCreateManagedWidget("menuPaste", smeBSBObjectClass, edit_menu, args, n);
+    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Paste");
+    
+    n = 0;
+    XtCreateManagedWidget("sep4", smeLineObjectClass, edit_menu, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Preferences..."); n++;
+    entry = XtCreateManagedWidget("menuPrefs", smeBSBObjectClass, edit_menu, args, n);
+    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Preferences");
+    
+    /* === ABOUT MENU === */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "About"); n++;
+    XtSetArg(args[n], XtNmenuName, "aboutMenu"); n++;
+    about_button = XtCreateManagedWidget("aboutButton", menuButtonWidgetClass, menubar, args, n);
+    
+    n = 0;
+    about_menu = XtCreatePopupShell("aboutMenu", simpleMenuWidgetClass, about_button, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "About ISW Demo"); n++;
+    entry = XtCreateManagedWidget("menuAbout", smeBSBObjectClass, about_menu, args, n);
+    XtAddCallback(entry, XtNcallback, about_menu_callback, (XtPointer)"About");
+    
+    n = 0;
+    XtCreateManagedWidget("sep5", smeLineObjectClass, about_menu, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "ISW Documentation"); n++;
+    entry = XtCreateManagedWidget("menuDocs", smeBSBObjectClass, about_menu, args, n);
+    XtAddCallback(entry, XtNcallback, about_menu_callback, (XtPointer)"Documentation");
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Report Bug"); n++;
+    entry = XtCreateManagedWidget("menuBug", smeBSBObjectClass, about_menu, args, n);
+    XtAddCallback(entry, XtNcallback, about_menu_callback, (XtPointer)"Bug");
+    
+    n = 0;
+    XtCreateManagedWidget("sep6", smeLineObjectClass, about_menu, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "License"); n++;
+    entry = XtCreateManagedWidget("menuLicense", smeBSBObjectClass, about_menu, args, n);
+    XtAddCallback(entry, XtNcallback, about_menu_callback, (XtPointer)"License");
+    
+    return menubar;
 }
 
 Widget create_title_label(Widget parent) {
@@ -474,18 +656,21 @@ Widget create_command_demo(Widget parent) {
     XtSetArg(args[n], XtNwidth, 100); n++;
     button1 = XtCreateManagedWidget("cmdBtn1", commandWidgetClass, box, args, n);
     XtAddCallback(button1, XtNcallback, button_callback, (XtPointer)"Button 1");
+    attach_tooltip(button1, "This is a clickable command button");
     
     n = 0;
     XtSetArg(args[n], XtNlabel, "Or Me!"); n++;
     XtSetArg(args[n], XtNwidth, 100); n++;
     button2 = XtCreateManagedWidget("cmdBtn2", commandWidgetClass, box, args, n);
     XtAddCallback(button2, XtNcallback, button_callback, (XtPointer)"Button 2");
+    attach_tooltip(button2, "Another command button with tooltip");
     
     n = 0;
     XtSetArg(args[n], XtNlabel, "Quit"); n++;
     XtSetArg(args[n], XtNwidth, 100); n++;
     quit_button = XtCreateManagedWidget("quitBtn", commandWidgetClass, box, args, n);
     XtAddCallback(quit_button, XtNcallback, quit_callback, NULL);
+    attach_tooltip(quit_button, "Click to exit the application");
     
     return box;
 }
@@ -740,6 +925,251 @@ Widget create_text_demo(Widget parent) {
 }
 
 /* ============================================================
+ * NAVIGATION WIDGETS SECTION
+ * ============================================================ */
+
+Widget create_navigation_section(Widget parent) {
+    Widget form, section_label;
+    Widget panner_demo;
+    Arg args[10];
+    Cardinal n;
+    
+    /* Section container */
+    n = 0;
+    XtSetArg(args[n], XtNborderWidth, 2); n++;
+    XtSetArg(args[n], XtNdefaultDistance, 5); n++;
+    form = XtCreateManagedWidget("navigationForm", formWidgetClass,
+                                 parent, args, n);
+    
+    /* Section label */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Navigation Widgets: Panner/Porthole"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    XtSetArg(args[n], XtNtop, XtChainTop); n++;
+    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    section_label = XtCreateManagedWidget("navigationLabel", labelWidgetClass,
+                                          form, args, n);
+    
+    /* Create demos */
+    panner_demo = create_panner_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromVert, section_label); n++;
+    XtSetArg(args[n], XtNtop, XtChainTop); n++;
+    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    XtSetValues(panner_demo, args, n);
+    
+    return form;
+}
+
+Widget create_panner_demo(Widget parent) {
+    Widget box, title, panner, porthole, large_widget;
+    Arg args[10];
+    Cardinal n;
+    
+    /* Container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("pannerBox", boxWidgetClass, parent, args, n);
+    
+    /* Title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Panner/Porthole"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("pannerTitle", labelWidgetClass, box, args, n);
+    
+    /* Panner widget (miniature navigator) - must set canvas dimensions */
+    n = 0;
+    XtSetArg(args[n], XtNwidth, 150); n++;
+    XtSetArg(args[n], XtNheight, 150); n++;
+    XtSetArg(args[n], XtNcanvasWidth, 400); n++;  /* Size of content */
+    XtSetArg(args[n], XtNcanvasHeight, 300); n++;  /* Size of content */
+    panner = XtCreateManagedWidget("panner", pannerWidgetClass, box, args, n);
+    
+    /* Porthole (viewing area) */
+    n = 0;
+    XtSetArg(args[n], XtNwidth, 200); n++;
+    XtSetArg(args[n], XtNheight, 150); n++;
+    porthole = XtCreateManagedWidget("porthole", portholeWidgetClass, box, args, n);
+    
+    /* Large widget inside porthole */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Large Content Area\n\n"\
+             "This area is larger than the\n"\
+             "visible porthole window.\n\n"\
+             "Use the panner above to\n"\
+             "navigate around this content."); n++;
+    XtSetArg(args[n], XtNwidth, 400); n++;
+    XtSetArg(args[n], XtNheight, 300); n++;
+    large_widget = XtCreateManagedWidget("pannerContent", labelWidgetClass,
+                                         porthole, args, n);
+    
+    return box;
+}
+
+/* ============================================================
+ * TREE DEMO SECTION
+ * ============================================================ */
+
+Widget create_tree_demo(Widget parent) {
+    Widget box, title, tree;
+    Widget node1, node2, node3, node4, node5;
+    Arg args[10];
+    Cardinal n;
+    
+    /* Container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("treeBox", boxWidgetClass, parent, args, n);
+    
+    /* Title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Tree Widget (Hierarchical Structure)"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("treeTitle", labelWidgetClass, box, args, n);
+    
+    /* Tree widget */
+    n = 0;
+    XtSetArg(args[n], XtNwidth, 300); n++;
+    XtSetArg(args[n], XtNheight, 200); n++;
+    XtSetArg(args[n], XtNautoReconfigure, True); n++;
+    XtSetArg(args[n], XtNhSpace, 20); n++;
+    XtSetArg(args[n], XtNvSpace, 10); n++;
+    tree = XtCreateManagedWidget("tree", treeWidgetClass, box, args, n);
+    
+    /* Root node */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Root"); n++;
+    node1 = XtCreateManagedWidget("node1", commandWidgetClass, tree, args, n);
+    
+    /* Child nodes of root */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Child 1"); n++;
+    XtSetArg(args[n], XtNtreeParent, node1); n++;
+    node2 = XtCreateManagedWidget("node2", commandWidgetClass, tree, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Child 2"); n++;
+    XtSetArg(args[n], XtNtreeParent, node1); n++;
+    node3 = XtCreateManagedWidget("node3", commandWidgetClass, tree, args, n);
+    
+    /* Grandchild nodes */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Grandchild 1"); n++;
+    XtSetArg(args[n], XtNtreeParent, node2); n++;
+    node4 = XtCreateManagedWidget("node4", commandWidgetClass, tree, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Grandchild 2"); n++;
+    XtSetArg(args[n], XtNtreeParent, node3); n++;
+    node5 = XtCreateManagedWidget("node5", commandWidgetClass, tree, args, n);
+    
+    return box;
+}
+
+/* ============================================================
+ * LAYOUT DEMO SECTION
+ * ============================================================ */
+
+Widget create_layout_demo(Widget parent) {
+    Widget box, title, layout, button1, button2, button3;
+    Arg args[10];
+    Cardinal n;
+    
+    /* Container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("layoutBox", boxWidgetClass, parent, args, n);
+    
+    /* Title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Layout Widget (Constraint-based)"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("layoutTitle", labelWidgetClass, box, args, n);
+    
+    /* Layout widget */
+    n = 0;
+    XtSetArg(args[n], XtNwidth, 250); n++;
+    XtSetArg(args[n], XtNheight, 150); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    layout = XtCreateManagedWidget("layout", layoutWidgetClass, box, args, n);
+    
+    /* Button with layout constraints */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Top Left"); n++;
+    button1 = XtCreateManagedWidget("layoutBtn1", commandWidgetClass, layout, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Top Right"); n++;
+    button2 = XtCreateManagedWidget("layoutBtn2", commandWidgetClass, layout, args, n);
+    
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Bottom Center"); n++;
+    button3 = XtCreateManagedWidget("layoutBtn3", commandWidgetClass, layout, args, n);
+    
+    return box;
+}
+
+/* ============================================================
+ * GRIP DEMO SECTION (Enhanced Paned)
+ * ============================================================ */
+
+Widget create_paned_grip_demo(Widget parent) {
+    Widget box, title, paned, grip1, grip2;
+    Widget section1, section2, section3;
+    Arg args[10];
+    Cardinal n;
+    
+    /* Container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("gripBox", boxWidgetClass, parent, args, n);
+    
+    /* Title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Grip Widget (Pane Resizing)"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("gripTitle", labelWidgetClass, box, args, n);
+    
+    /* Paned widget with visible grips */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNwidth, 200); n++;
+    XtSetArg(args[n], XtNheight, 200); n++;
+    paned = XtCreateManagedWidget("gripPaned", panedWidgetClass, box, args, n);
+    
+    /* First section */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Section 1\n(Drag grip to resize)"); n++;
+    XtSetArg(args[n], XtNmin, 30); n++;
+    XtSetArg(args[n], XtNmax, 150); n++;
+    XtSetArg(args[n], XtNshowGrip, True); n++;
+    section1 = XtCreateManagedWidget("section1", labelWidgetClass, paned, args, n);
+    
+    /* Grip is automatically created between panes */
+    
+    /* Second section */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Section 2"); n++;
+    XtSetArg(args[n], XtNmin, 30); n++;
+    XtSetArg(args[n], XtNmax, 150); n++;
+    XtSetArg(args[n], XtNshowGrip, True); n++;
+    section2 = XtCreateManagedWidget("section2", labelWidgetClass, paned, args, n);
+    
+    /* Third section */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Section 3"); n++;
+    XtSetArg(args[n], XtNmin, 30); n++;
+    XtSetArg(args[n], XtNskipAdjust, True); n++;
+    section3 = XtCreateManagedWidget("section3", labelWidgetClass, paned, args, n);
+    
+    return box;
+}
+
+/* ============================================================
  * SPECIALIZED WIDGETS SECTION
  * ============================================================ */
 
@@ -935,6 +1365,39 @@ void quit_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 }
 
 /* ============================================================
+ * MENU BAR CALLBACKS
+ * ============================================================ */
+
+void file_menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    char *item = (char *)client_data;
+    printf("File menu item selected: %s\n", item);
+    
+    if (strcmp(item, "Quit") == 0) {
+        quit_callback(w, NULL, NULL);
+    }
+}
+
+void edit_menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    char *item = (char *)client_data;
+    printf("Edit menu item selected: %s\n", item);
+}
+
+void about_menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    char *item = (char *)client_data;
+    
+    if (strcmp(item, "About") == 0) {
+        printf("ISW3D Widget Demo\n");
+        printf("Version: 1.0\n");
+        printf("Backend: Cairo-XCB\n");
+        printf("Demonstrating comprehensive ISW widget library\n");
+    } else if (strcmp(item, "License") == 0) {
+        printf("License: MIT/X Consortium License\n");
+    } else {
+        printf("About menu item selected: %s\n", item);
+    }
+}
+
+/* ============================================================
  * TIMER CALLBACKS
  * ============================================================ */
 
@@ -953,4 +1416,19 @@ void update_stripchart(XtPointer client_data, XtIntervalId *id) {
     /* Re-schedule for next update */
     XtAppAddTimeOut(XtWidgetToApplicationContext(chart),
                     1000, update_stripchart, client_data);
+}
+
+/* ============================================================
+ * TIP (TOOLTIP) HELPER FUNCTIONS
+ * ============================================================ */
+
+void attach_tooltip(Widget widget, const char *tip_text) {
+    Widget tip;
+    Arg args[5];
+    Cardinal n;
+    
+    /* Create Tip widget as popup child */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, tip_text); n++;
+    tip = XtCreatePopupShell("tip", tipWidgetClass, widget, args, n);
 }

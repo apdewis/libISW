@@ -37,6 +37,18 @@ in this Software without prior written authorization from the X Consortium.
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+
+/* Shadow resource name definitions (previously from ThreeD.h) */
+#define XtNshadowWidth "shadowWidth"
+#define XtCShadowWidth "ShadowWidth"
+#define XtNtopShadowPixel "topShadowPixel"
+#define XtCTopShadowPixel "TopShadowPixel"
+#define XtNbottomShadowPixel "bottomShadowPixel"
+#define XtCBottomShadowPixel "BottomShadowPixel"
+#define XtNrelief "relief"
+#define XtCRelief "Relief"
+#define XtRRelief "Relief"
+
 #endif
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
@@ -44,7 +56,6 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
-#include <ISW/ThreeDP.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeLineP.h>
 #include <ISW/Cardinals.h>
@@ -237,8 +248,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     SmeLineObject entry = (SmeLineObject) w;
     SimpleMenuWidget smw = (SimpleMenuWidget) XtParent (w);
-    ThreeDWidget tdw = (ThreeDWidget) smw->simple_menu.threeD;
-    Dimension s = tdw->threeD.shadow_width;
+    Dimension s = smw->simple_menu.shadow_width;
     int y = entry->rectangle.y +
 	    (int)(entry->rectangle.height - entry->sme_line.line_width) / 2;
 

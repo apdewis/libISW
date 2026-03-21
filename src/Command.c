@@ -68,6 +68,10 @@ SOFTWARE.
 #include <xcb/shape.h>
 #include "ISWXcbDraw.h"     /* For XCB GC helpers */
 
+/* Shadow resource name definitions (previously from ThreeD.h) */
+#define XtNshadowWidth "shadowWidth"
+#define XtCShadowWidth "ShadowWidth"
+
 #define DEFAULT_HIGHLIGHT_THICKNESS 2
 #define DEFAULT_SHAPE_HIGHLIGHT 32767
 
@@ -98,7 +102,7 @@ static XtResource resources[] = {
         sizeof(Dimension), offset(command.corner_round), XtRImmediate,
 	(XtPointer) 25},
    {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-	offset(threeD.shadow_width), XtRImmediate, (XtPointer) 2},
+	offset(label.shadow_width), XtRImmediate, (XtPointer) 2},
    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
       XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
       (XtPointer) 0}
@@ -170,9 +174,6 @@ CommandClassRec commandClassRec = {
   {
     XtInheritChangeSensitive		/* change_sensitive	*/
   },  /* SimpleClass fields initialization */
-  {
-    XtInheritIsw3dShadowDraw,           /* shadowdraw           */
-  },  /* ThreeD Class fields initialization */
   {
     0,                                     /* field not used    */
   },  /* LabelClass fields initialization */
@@ -253,10 +254,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   }
 
   if (cbw->command.shape_style != IswShapeRectangle) {
-    cbw->threeD.shadow_width = 0;
+    cbw->label.shadow_width = 0;
     cbw->core.border_width = 1;
   }
-  cbw->command.shadow_width = cbw->threeD.shadow_width;
+  cbw->command.shadow_width = cbw->label.shadow_width;
 
   cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground,
 				  cbw->core.background_pixel);
@@ -273,7 +274,7 @@ static ISWRegionPtr
 HighlightRegion(CommandWidget cbw)
 {
   static ISWRegionPtr outerRegion = NULL, innerRegion, emptyRegion;
-  Dimension s = cbw->threeD.shadow_width;
+  Dimension s = cbw->label.shadow_width;
   xcb_rectangle_t rect;
 
   if (cbw->command.highlight_thickness == 0 ||
@@ -434,8 +435,8 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   CommandWidgetClass cwclass = (CommandWidgetClass) XtClass (w);
   Boolean very_thick;
   GC norm_gc, rev_gc;
-  Dimension	s = cbw->threeD.shadow_width;
-  ISWRenderContext *ctx = cbw->threeD.render_ctx;
+  Dimension	s = cbw->label.shadow_width;
+  ISWRenderContext *ctx = cbw->label.render_ctx;
 
   very_thick = cbw->command.highlight_thickness >
                (Dimension)((Dimension) Min(cbw->core.width, cbw->core.height)/2);
@@ -470,7 +471,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   if (cbw->command.highlight_thickness <= 0)
   {
     (*SuperClass->core_class.expose) (w, event, 0 /* FIXME: XCB region */);
-    (*cwclass->threeD_class.shadowdraw) (w, event, 0 /* FIXME: XCB region */, cbw->threeD.relief, !cbw->command.set);
+    /* Shadow drawing removed - ThreeD eliminated */
     return;
   }
 
@@ -539,7 +540,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   /* Restore original foreground after Label rendering */
   cbw->label.foreground = saved_foreground;
   
-  (*cwclass->threeD_class.shadowdraw) (w, event, 0 /* FIXME: XCB region */, cbw->threeD.relief, !cbw->command.set);
+  /* Shadow drawing removed - ThreeD eliminated */
 }
 
 static void
@@ -597,8 +598,8 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
     redisplay = True;
   }
 
-  if (cbw->threeD.shadow_width != oldcbw->threeD.shadow_width) {
-      cbw->command.shadow_width = cbw->threeD.shadow_width;
+  if (cbw->label.shadow_width != oldcbw->label.shadow_width) {
+      cbw->command.shadow_width = cbw->label.shadow_width;
       redisplay = True;
   }
   if (cbw->core.border_width != oldcbw->core.border_width)
@@ -612,12 +613,12 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
   }
 
   if (cbw->command.shape_style != IswShapeRectangle) {
-      cbw->threeD.shadow_width = 0;
+      cbw->label.shadow_width = 0;
       ShapeButton(cbw, FALSE);
       redisplay = True;
   }
   if (cbw->command.shape_style == IswShapeRectangle) {
-      cbw->threeD.shadow_width =
+      cbw->label.shadow_width =
 		(cbw->command.shadow_width) ? cbw->command.shadow_width : 2;
       redisplay = True;
   }

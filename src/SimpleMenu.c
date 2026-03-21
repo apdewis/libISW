@@ -35,6 +35,18 @@ in this Software without prior written authorization from the X Consortium.
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+
+/* Shadow resource name definitions (previously from ThreeD.h) */
+#define XtNshadowWidth "shadowWidth"
+#define XtCShadowWidth "ShadowWidth"
+#define XtNtopShadowPixel "topShadowPixel"
+#define XtCTopShadowPixel "TopShadowPixel"
+#define XtNbottomShadowPixel "bottomShadowPixel"
+#define XtCBottomShadowPixel "BottomShadowPixel"
+#define XtNrelief "relief"
+#define XtCRelief "Relief"
+#define XtRRelief "Relief"
+
 #endif
 #include <stdio.h>
 #include <limits.h>
@@ -48,7 +60,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeBSBP.h>
 #include <ISW/SmeLine.h>
 #include <ISW/Cardinals.h>
-#include <ISW/ThreeDP.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -61,6 +72,8 @@ typedef xcb_point_t XPoint;
 #define streq(a, b)        ( strcmp((a), (b)) == 0 )
 
 #define offset(field) XtOffsetOf(SimpleMenuRec, simple_menu.field)
+
+static char defaultRelief[] = "Raised";
 
 static XtResource resources[] = {
 
@@ -107,6 +120,19 @@ static XtResource resources[] = {
       XtRImmediate, (XtPointer) (Always + WhenMapped + NotUseful)},*/
   {XtNjumpScroll,  XtCJumpScroll, XtRInt, sizeof(int),
       offset(jump_val), XtRImmediate, (XtPointer)1},
+
+/*
+ * Shadow Resources (formerly from internal ThreeD widget).
+ */
+
+  {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
+      offset(shadow_width), XtRImmediate, (XtPointer) 2},
+  {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
+      offset(top_shadow_pixel), XtRString, XtDefaultForeground},
+  {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
+      offset(bot_shadow_pixel), XtRString, XtDefaultForeground},
+  {XtNrelief, XtCRelief, XtRRelief, sizeof(XtRelief),
+      offset(relief), XtRString, (XtPointer) defaultRelief},
 };
 #undef offset
 
@@ -332,11 +358,21 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   if (smw->simple_menu.label_string != NULL)
       CreateLabel(new);
 
-  /* GetMenuHeight() needs this */
-  smw->simple_menu.threeD = XtVaCreateWidget("threeD", threeDWidgetClass,
-      new,
-      XtNx, 0, XtNy, 0, XtNwidth, /* dummy */ 10, XtNheight, /* dummy */ 10,
-      NULL);
+  /* Allocate shadow GCs */
+  {
+      xcb_screen_t *scn = XtScreen(new);
+      XtGCMask valuemask;
+      xcb_create_gc_value_list_t myXGCV;
+
+      /* Allocate top shadow GC */
+      valuemask = GCForeground;
+      myXGCV.foreground = smw->simple_menu.top_shadow_pixel;
+      smw->simple_menu.top_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
+
+      /* Allocate bottom shadow GC */
+      myXGCV.foreground = smw->simple_menu.bot_shadow_pixel;
+      smw->simple_menu.bot_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
+  }
 
   smw->simple_menu.menu_width = TRUE;
 
@@ -367,6 +403,10 @@ Destroy(Widget w)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     
+    /* Release shadow GCs */
+    XtReleaseGC(w, smw->simple_menu.top_shadow_GC);
+    XtReleaseGC(w, smw->simple_menu.bot_shadow_GC);
+    
     /* Free Cairo rendering context */
     if (smw->simple_menu.render_ctx) {
         ISWRenderDestroy(smw->simple_menu.render_ctx);
@@ -389,9 +429,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
     SmeObject *entry;
     SmeObjectClass class;
-    ThreeDWidget tdw = (ThreeDWidget)smw->simple_menu.threeD;
     RectObjPart old_pos;
-    int y, max_y, new_y, dy, s = tdw->threeD.shadow_width;
+    int y, max_y, new_y, dy, s = smw->simple_menu.shadow_width;
     Boolean can_paint;
     XPoint point[3];
 
@@ -409,10 +448,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
  xcb_flush(conn);
     }
 
-    if (XtIsRealized((Widget)smw))
- _ShadowSurroundedBox((Widget)smw, tdw,
-   0, 0, smw->core.width, smw->core.height,
-   tdw->threeD.relief, True);
+    /* Shadow drawing removed - ThreeD eliminated */
 
     smw->simple_menu.didnt_fit = False;
     y = 0;
@@ -451,13 +487,13 @@ point[2].y = s + SMW_ARROW_SIZE;
 /* Use Cairo rendering for up arrow if available */
 if (smw->simple_menu.render_ctx) {
 		 ISWRenderBegin(smw->simple_menu.render_ctx);
-		 ISWRenderSetColor(smw->simple_menu.render_ctx, tdw->threeD.bot_shadow_pixel);
+		 ISWRenderSetColor(smw->simple_menu.render_ctx, smw->simple_menu.bot_shadow_pixel);
 		 ISWRenderFillPolygon(smw->simple_menu.render_ctx, (xcb_point_t *)point, 3);
 		 ISWRenderEnd(smw->simple_menu.render_ctx);
 } else {
 		 /* Fallback to XCB rendering */
 		 xcb_fill_poly(XtDisplay(w), smw->core.window,
-		   tdw->threeD.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
+		   smw->simple_menu.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
 		   XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
 }
 
@@ -487,13 +523,13 @@ dy = SMW_ARROW_SIZE;
 	 /* Use Cairo rendering for down arrow if available */
 	 if (smw->simple_menu.render_ctx) {
 	     ISWRenderBegin(smw->simple_menu.render_ctx);
-	     ISWRenderSetColor(smw->simple_menu.render_ctx, tdw->threeD.bot_shadow_pixel);
+	     ISWRenderSetColor(smw->simple_menu.render_ctx, smw->simple_menu.bot_shadow_pixel);
 	     ISWRenderFillPolygon(smw->simple_menu.render_ctx, (xcb_point_t *)point, 3);
 	     ISWRenderEnd(smw->simple_menu.render_ctx);
 	 } else {
 	     /* Fallback to XCB rendering */
 	     xcb_fill_poly(XtDisplay(w), smw->core.window,
-	      tdw->threeD.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
+	      smw->simple_menu.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
 	      XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
 	 }
 
@@ -1105,7 +1141,6 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 {
     SmeObject current_entry, *entry;
     SimpleMenuWidget smw;
-    ThreeDWidget tdw;
     Dimension width, height;
     Boolean do_layout = (height_ret == NULL || width_ret == NULL);
     Boolean allow_change_size;
@@ -1121,7 +1156,6 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 	smw = (SimpleMenuWidget)XtParent(w);
 	current_entry = (SmeObject)w;
     }
-    tdw = (ThreeDWidget)smw->simple_menu.threeD;
 
     do_layout |= (current_entry != NULL);
     allow_change_size =
@@ -1131,7 +1165,7 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 	height = smw->core.height;
     else if (do_layout)
     {
-	height = smw->simple_menu.top_margin + tdw->threeD.shadow_width;
+	height = smw->simple_menu.top_margin + smw->simple_menu.shadow_width;
 
 	ForAllChildren(smw, entry)
 	{
@@ -1146,13 +1180,13 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 	    height += (*entry)->rectangle.height;
 	}
 
-	height += smw->simple_menu.bottom_margin + tdw->threeD.shadow_width;
+	height += smw->simple_menu.bottom_margin + smw->simple_menu.shadow_width;
     }
     else if (smw->simple_menu.row_height != 0 &&
 		current_entry != smw->simple_menu.label)
     {
 	height = smw->simple_menu.row_height * smw->composite.num_children;
-	height += tdw->threeD.shadow_width * 2;
+	height += smw->simple_menu.shadow_width * 2;
     }
 
     if (smw->simple_menu.menu_width)
@@ -1474,7 +1508,6 @@ static Dimension
 GetMenuHeight(Widget w)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
-    ThreeDWidget tdw = (ThreeDWidget) smw->simple_menu.threeD;
     SmeObject * entry;
     Dimension height;
 
@@ -1482,7 +1515,7 @@ GetMenuHeight(Widget w)
 	return(smw->core.height);
 
     height = smw->simple_menu.top_margin + smw->simple_menu.bottom_margin;
-    height += tdw->threeD.shadow_width * 2;
+    height += smw->simple_menu.shadow_width * 2;
 
     if (smw->simple_menu.row_height == 0) {
 	ForAllChildren(smw, entry)
@@ -1509,7 +1542,7 @@ GetEventEntry(Widget w, XEvent * event)
     SmeObject *entry;
     static xcb_point_t last_pos;
     xcb_point_t pos;
-    int s = ((ThreeDWidget)smw->simple_menu.threeD)->threeD.shadow_width;
+    int s = smw->simple_menu.shadow_width;
 
     uint8_t type = event->response_type & ~0x80;
     switch (type) {
@@ -1640,14 +1673,13 @@ PopupSubMenu(SimpleMenuWidget smw)
     }
 
     if (menu_y >= 0) {
-	ThreeDWidget tdw =
-		(ThreeDWidget)((SimpleMenuWidget)menu)->simple_menu.threeD;
+	SimpleMenuWidget smenu = (SimpleMenuWidget)menu;
 	int scr_height = HeightOfScreen(XtScreen(menu));
 
 	if (menu_y + XtHeight(menu) > scr_height)
 	    menu_y = scr_height - XtHeight(menu) - XtBorderWidth(menu);
 
-	menu_y -= tdw->threeD.shadow_width;
+	menu_y -= smenu->simple_menu.shadow_width;
     }
     if (menu_y < 0)
 	menu_y = 0;

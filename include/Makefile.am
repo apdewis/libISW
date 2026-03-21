@@ -58,8 +58,6 @@ iswinclude_HEADERS = \
 	ISW/SmeLine.h \
 	ISW/SmeLineP.h \
 	ISW/SmeP.h \
-	ISW/SmeThreeD.h \
-	ISW/SmeThreeDP.h \
 	ISW/StripCharP.h \
 	ISW/StripChart.h \
 	ISW/Text.h \
@@ -68,8 +66,6 @@ iswinclude_HEADERS = \
 	ISW/TextSinkP.h \
 	ISW/TextSrc.h \
 	ISW/TextSrcP.h \
-	ISW/ThreeD.h \
-	ISW/ThreeDP.h \
 	ISW/Tip.h \
 	ISW/TipP.h \
 	ISW/Toggle.h \

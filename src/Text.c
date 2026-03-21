@@ -48,6 +48,18 @@ SOFTWARE.
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+
+/* Shadow resource name definitions (previously from ThreeD.h) */
+#define XtNshadowWidth "shadowWidth"
+#define XtCShadowWidth "ShadowWidth"
+#define XtNtopShadowPixel "topShadowPixel"
+#define XtCTopShadowPixel "TopShadowPixel"
+#define XtNbottomShadowPixel "bottomShadowPixel"
+#define XtCBottomShadowPixel "BottomShadowPixel"
+#define XtNrelief "relief"
+#define XtCRelief "Relief"
+#define XtRRelief "Relief"
+
 #endif
 #include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
@@ -72,7 +84,6 @@ SOFTWARE.
 #include <ISW/MultiSinkP.h>
 #include <ISW/ISWImP.h>
 #endif
-#include <ISW/ThreeDP.h>
 #include "ISWXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
 
@@ -171,6 +182,13 @@ void _IswTextPrepareToUpdate(TextWidget);
 int _IswTextReplace(TextWidget, ISWTextPosition, ISWTextPosition, ISWTextBlock *);
 void _IswTextVScroll(TextWidget, int);
 
+/* Shadow drawing removed - ThreeD eliminated */
+static void
+_TextDrawShadows(TextWidget ctx, Position x0, Position y0, Position x1, Position y1, Boolean out)
+{
+    /* No-op: shadow drawing functionality removed */
+}
+
 #ifdef ISW_INTERNATIONALIZATION
 /* IswWcToUtf8: Convert wide-char string to UTF-8
  * Returns malloced UTF-8 string or NULL on failure
@@ -249,7 +267,15 @@ static XtResource resources[] = {
   {XtNautoFill, XtCAutoFill, XtRBoolean, sizeof(Boolean),
      offset(text.auto_fill), XtRImmediate, (XtPointer) FALSE},
   {XtNunrealizeCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-     offset(text.unrealize_callbacks), XtRCallback, (XtPointer) NULL}
+     offset(text.unrealize_callbacks), XtRCallback, (XtPointer) NULL},
+  {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
+     offset(text.shadow_width), XtRImmediate, (XtPointer) 2},
+  {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
+     offset(text.top_shadow_pixel), XtRString, XtDefaultForeground},
+  {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
+     offset(text.bot_shadow_pixel), XtRString, XtDefaultForeground},
+  {XtNrelief, XtCRelief, XtRRelief, sizeof(XtRelief),
+     offset(text.relief), XtRImmediate, (XtPointer) XtReliefRaised}
 };
 #undef offset
 
@@ -419,7 +445,7 @@ PositionHScrollBar(TextWidget ctx)
 {
   Widget vbar = ctx->text.vbar, hbar = ctx->text.hbar;
   Position top, left = 0;
-  int s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
+  int s = ctx->text.shadow_width;
 
   if (ctx->text.hbar == NULL) return;
 
@@ -451,7 +477,7 @@ PositionVScrollBar(TextWidget ctx)
   Widget vbar = ctx->text.vbar;
   Position pos;
   Dimension bw;
-  int s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
+  int s = ctx->text.shadow_width;
 
   if (vbar == NULL)
     return;
@@ -579,13 +605,18 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   TextWidget ctx = (TextWidget) new;
   char error_buf[BUFSIZ];
   int s;
+  XtGCMask valuemask;
+  xcb_create_gc_value_list_t myXGCV;
 
-  ctx->text.threeD = XtVaCreateWidget("threeD", threeDWidgetClass, new,
-                                 XtNx, 0, XtNy, 0,
-                                 XtNwidth, 10, XtNheight, 10, /* dummy */
-                                 NULL);
+  /* Allocate shadow GCs */
+  valuemask = GCForeground;
+  myXGCV.foreground = ctx->text.top_shadow_pixel;
+  ctx->text.top_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
 
-  s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
+  myXGCV.foreground = ctx->text.bot_shadow_pixel;
+  ctx->text.bot_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
+
+  s = ctx->text.shadow_width;
 
   ctx->text.r_margin.left += s;
   ctx->text.r_margin.right += s;
@@ -1093,7 +1124,7 @@ _BuildLineTable(TextWidget ctx, ISWTextPosition position,
   for ( count = 0; count < 2 ; count++)
     if (line++ < ctx->text.lt.lines) { /* make sure not to run of the end. */
       (++lt)->y = (count == 0) ? y : ctx->core.height
-	  - 2 * ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
+	  - 2 * ctx->text.shadow_width;
       lt->textWidth = 0;
       lt->position = ctx->text.lastPos + 100;
     }
@@ -1216,7 +1247,7 @@ _IswTextSetScrollBars(TextWidget ctx)
   float first, last, widest;
   Boolean temp = (ctx->text.hbar == NULL);
   Boolean vtemp = (ctx->text.vbar == NULL);
-  int s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
+  int s = ctx->text.shadow_width;
 
   CheckVBarScrolling(ctx);
 
@@ -1270,7 +1301,7 @@ _IswTextVScroll(TextWidget ctx, int n)
   int y;
   Arg list[1];
   IswTextLineTable * lt = &(ctx->text.lt);
-  int s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
+  int s = ctx->text.shadow_width;
 
   if (abs(n) > ctx->text.lt.lines)
     n = (n > 0) ? ctx->text.lt.lines : -ctx->text.lt.lines;
@@ -1346,9 +1377,7 @@ _IswTextVScroll(TextWidget ctx, int n)
   _IswImSetValues ((Widget) ctx, list, 1);
 #endif
 
-  _ShadowSurroundedBox((Widget)ctx, (ThreeDWidget)ctx->text.threeD,
-		0, 0, ctx->core.width, ctx->core.height,
-		((ThreeDWidget)ctx->text.threeD)->threeD.relief, False);
+    _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
 }
 
 /*ARGSUSED*/
@@ -1359,7 +1388,7 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
   Widget tw = (Widget) ctx;
   Position old_left, pixels = (Position)(intptr_t) callData;
   xcb_rectangle_t rect, t_rect;
-  int s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
+  int s = ctx->text.shadow_width;
 
   _IswTextPrepareToUpdate(ctx);
 
@@ -2195,7 +2224,7 @@ DisplayText(Widget w, ISWTextPosition pos1, ISWTextPosition pos2)
   int height, line, i, lastPos = ctx->text.lastPos;
   ISWTextPosition startPos, endPos;
   Boolean clear_eol, done_painting;
-  Dimension s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
+  Dimension s = ctx->text.shadow_width;
 
   pos1 = (pos1 < ctx->text.lt.top) ? ctx->text.lt.top : pos1;
   pos2 = FindGoodPosition(ctx, pos2);
@@ -2219,17 +2248,12 @@ DisplayText(Widget w, ISWTextPosition pos1, ISWTextPosition pos2)
 
     if ( (endPos > startPos) ) {
 
-      /* note to self: _ShadowSurroundedBox() hacks are in here */
-
       if ( (x == (Position) ctx->text.margin.left) && (x > 0) )
       {
 	 SinkClearToBG (ctx->text.sink,
 			(Position) s, y,
 			(Dimension) ctx->text.margin.left, (Dimension)height);
-	 _ShadowSurroundedBox((Widget)ctx, (ThreeDWidget)ctx->text.threeD,
-			      0, 0, ctx->core.width, ctx->core.height,
-			      ((ThreeDWidget)ctx->text.threeD)->threeD.relief,
-			      False);
+	   _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
       }
 
       if ( (startPos >= ctx->text.s.right) || (endPos <= ctx->text.s.left) )
@@ -2251,10 +2275,7 @@ DisplayText(Widget w, ISWTextPosition pos1, ISWTextPosition pos2)
 		      (Position) myx,
 		      (Position) y, w->core.width - myx/* - 2 * s*/,
 		      (Dimension) height);
-	_ShadowSurroundedBox((Widget)ctx, (ThreeDWidget)ctx->text.threeD,
-			     0, 0, ctx->core.width, ctx->core.height,
-			     ((ThreeDWidget)ctx->text.threeD)->threeD.relief,
-			     False);
+	  _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
 
 	/*
 	 * We only get here if single character is true, and we need
@@ -2273,10 +2294,7 @@ DisplayText(Widget w, ISWTextPosition pos1, ISWTextPosition pos2)
 			  (Position) ctx->text.margin.left, (Position) y,
 			  w->core.width - ctx->text.margin.left/* - 2 * s*/,
 			  (Dimension) IswMin(height, ctx->core.height - 2 * s - y));
-	    _ShadowSurroundedBox((Widget)ctx, (ThreeDWidget)ctx->text.threeD,
-				 0, 0, ctx->core.width, ctx->core.height,
-				 ((ThreeDWidget)ctx->text.threeD)->threeD.relief,
-				 False);
+	      _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
 
 	    break;		/* set single_char to FALSE and return. */
 	}
@@ -2506,14 +2524,13 @@ static void
 ClearWindow (Widget w)
 {
   TextWidget ctx = (TextWidget) w;
-  int s = ((ThreeDWidget)ctx->text.threeD)->threeD.shadow_width;
+  int s = ctx->text.shadow_width;
 
   if (XtIsRealized(w))
   {
     SinkClearToBG(ctx->text.sink,
-		  (Position) s, (Position) s,
-		  w->core.width - 2 * s, w->core.height - 2 * s);
-    /* note to self: _ShadowSurroundedBox() hack might be needed here */
+    (Position) s, (Position) s,
+    w->core.width - 2 * s, w->core.height - 2 * s);
   }
 }
 
@@ -2797,9 +2814,7 @@ ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
     }
     _IswTextExecuteUpdate(ctx);
 
-    _ShadowSurroundedBox((Widget)ctx, (ThreeDWidget)ctx->text.threeD,
-		  0, 0, ctx->core.width, ctx->core.height,
-		  ((ThreeDWidget)ctx->text.threeD)->threeD.relief, False);
+      _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
 }
 
 /*
@@ -2978,6 +2993,12 @@ TextDestroy(Widget w)
 
   DestroyHScrollBar(ctx);
   DestroyVScrollBar(ctx);
+
+  /* Release shadow GCs */
+  if (ctx->text.top_shadow_GC)
+    XtReleaseGC(w, ctx->text.top_shadow_GC);
+  if (ctx->text.bot_shadow_GC)
+    XtReleaseGC(w, ctx->text.bot_shadow_GC);
 
   XtFree((char *)ctx->text.s.selections);
   XtFree((char *)ctx->text.lt.info);

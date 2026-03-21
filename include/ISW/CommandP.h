@@ -89,7 +89,6 @@ typedef struct _CommandClass
 typedef struct _CommandClassRec {
     CoreClassPart	core_class;
     SimpleClassPart	simple_class;
-    ThreeDClassPart	threeD_class;
     LabelClassPart	label_class;
     CommandClassPart    command_class;
 } CommandClassRec;
@@ -128,7 +127,6 @@ typedef struct {
 typedef struct _CommandRec {
     CorePart         core;
     SimplePart	     simple;
-    ThreeDPart       threeD;
     LabelPart	     label;
     CommandPart      command;
 } CommandRec;

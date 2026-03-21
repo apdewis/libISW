@@ -55,7 +55,6 @@ SOFTWARE.
 
 #include <ISW/Viewport.h>
 #include <ISW/FormP.h>
-#include <ISW/ThreeDP.h>
 
 typedef struct {int empty;} ViewportClassPart;
 
@@ -81,7 +80,7 @@ typedef struct _ViewportPart {
     /* private state */
     Widget clip, child;		/* The clipping and (scrolled) child widgets */
     Widget  horiz_bar, vert_bar;/* What scrollbars we currently have. */
-    ThreeDWidget threeD;
+    /* ThreeDWidget threeD; -- ThreeD widget removed */
 } ViewportPart;
 
 typedef struct _ViewportRec {

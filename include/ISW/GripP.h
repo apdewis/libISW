@@ -55,7 +55,7 @@ SOFTWARE.
 #define _ISW_IswGripP_h
 
 #include <ISW/Grip.h>
-#include <ISW/ThreeDP.h>
+#include <ISW/SimpleP.h>
 
 /*****************************************************************************
  *
@@ -72,7 +72,6 @@ typedef struct {int empty;} GripClassPart;
 typedef struct _GripClassRec {
     CoreClassPart    core_class;
     SimpleClassPart  simple_class;
-    ThreeDClassPart  threeD_class;
     GripClassPart    grip_class;
 } GripClassRec;
 
@@ -92,7 +91,6 @@ typedef struct {
 typedef struct _GripRec {
    CorePart    core;
    SimplePart  simple;
-   ThreeDPart  threeD;
    GripPart    grip;
 } GripRec;
 

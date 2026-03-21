@@ -56,7 +56,8 @@ SOFTWARE.
 
 #include "ISWP.h"
 #include <ISW/Scrollbar.h>
-#include <ISW/ThreeDP.h>
+#include <ISW/SimpleP.h>
+#include <ISW/ISWRender.h>
 
 /* XtOrientation is missing from XCB-based libXt, define it here */
 #ifndef _IswXtOrientation_defined
@@ -104,12 +105,20 @@ typedef struct {
     Dimension	  shownLength;	/* Num pixels corresponding to shown */
     Boolean       pick_top;     /* pick thumb at top or anywhere*/
 
+    /* Shadow fields (formerly in ThreeDPart) */
+    Dimension	  shadow_width;
+    Pixel	  top_shadow_pixel;
+    Pixel	  bot_shadow_pixel;
+    GC		  top_shadow_GC;
+    GC		  bot_shadow_GC;
+    XtRelief	  relief;
+    ISWRenderContext *render_ctx;   /* Cairo rendering context */
+
 } ScrollbarPart;
 
 typedef struct _ScrollbarRec {
     CorePart		core;
     SimplePart		simple;
-    ThreeDPart		threeD;
     ScrollbarPart	scrollbar;
 } ScrollbarRec;
 
@@ -118,7 +127,6 @@ typedef struct {int empty;} ScrollbarClassPart;
 typedef struct _ScrollbarClassRec {
     CoreClassPart		core_class;
     SimpleClassPart		simple_class;
-    ThreeDClassPart		threeD_class;
     ScrollbarClassPart		scrollbar_class;
 } ScrollbarClassRec;
 

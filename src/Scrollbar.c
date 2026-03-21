@@ -67,6 +67,16 @@ SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/ScrollbarP.h>
 
+/* Shadow resource name definitions (previously from ThreeD.h) */
+#define XtNshadowWidth "shadowWidth"
+#define XtCShadowWidth "ShadowWidth"
+#define XtNtopShadowPixel "topShadowPixel"
+#define XtCTopShadowPixel "TopShadowPixel"
+#define XtNbottomShadowPixel "bottomShadowPixel"
+#define XtCBottomShadowPixel "BottomShadowPixel"
+#define XtNrelief "relief"
+#define XtCRelief "Relief"
+#define XtRRelief "Relief"
 
 #include <stdint.h>
 #include <xcb/xcb.h>
@@ -143,7 +153,16 @@ static XtResource resources[] = {
   {XtNpickTop, XtCPickTop, XtRBoolean, sizeof(Boolean),
        Offset(scrollbar.pick_top), XtRBoolean, (XtPointer) False},
   {XtNminimumThumb, XtCMinimumThumb, XtRDimension, sizeof(Dimension),
-       Offset(scrollbar.min_thumb), XtRImmediate, (XtPointer) 7}
+       Offset(scrollbar.min_thumb), XtRImmediate, (XtPointer) 7},
+  /* Shadow resources (previously inherited from ThreeD) */
+  {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
+       Offset(scrollbar.shadow_width), XtRImmediate, (XtPointer) 2},
+  {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
+       Offset(scrollbar.top_shadow_pixel), XtRString, XtDefaultForeground},
+  {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
+       Offset(scrollbar.bot_shadow_pixel), XtRString, XtDefaultForeground},
+  {XtNrelief, XtCRelief, XtRRelief, sizeof(XtRelief),
+       Offset(scrollbar.relief), XtRImmediate, (XtPointer) XtReliefRaised}
 };
 #undef Offset
 
@@ -180,7 +199,7 @@ static XtActionsRec actions[] = {
 
 ScrollbarClassRec scrollbarClassRec = {
   { /* core fields */
-    /* superclass       */	(WidgetClass) &threeDClassRec,
+    /* superclass       */	(WidgetClass) &simpleClassRec,
     /* class_name       */	"Scrollbar",
     /* size             */	sizeof(ScrollbarRec),
     /* class_initialize	*/	ClassInitialize,
@@ -216,10 +235,6 @@ ScrollbarClassRec scrollbarClassRec = {
   { /* simple fields */
     /* change_sensitive	*/	XtInheritChangeSensitive
   },
-  { /* threeD fields */
-    /* shadowdraw	*/	XtInheritIsw3dShadowDraw /*,*/
-    /* shadowboxdraw	*/	/*XtInheritIsw3dShadowBoxDraw*/
-  },
   { /* scrollbar fields */
     /* ignore		*/	0
   }
@@ -243,10 +258,10 @@ ClassInitialize(void)
 }
 
 #ifdef ISW_ARROW_SCROLLBARS
-/* CHECKIT #define MARGIN(sbw) (sbw)->scrollbar.thickness + (sbw)->threeD.shadow_width */
+/* CHECKIT #define MARGIN(sbw) (sbw)->scrollbar.thickness + (sbw)->scrollbar.shadow_width */
 #define MARGIN(sbw) (sbw)->scrollbar.thickness
 #else
-#define MARGIN(sbw) (sbw)->threeD.shadow_width
+#define MARGIN(sbw) (sbw)->scrollbar.shadow_width
 #endif
 
 /*
@@ -264,7 +279,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
 
     if (bottom <= 0 || bottom <= top)
 	return;
-    if ((sw = sbw->threeD.shadow_width) < 0)
+    if ((sw = sbw->scrollbar.shadow_width) < 0)
 	sw = 0;
     margin = MARGIN (sbw);
     floor = sbw->scrollbar.length - margin;
@@ -284,7 +299,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     }
     if (lh <= 0 || lw <= 0) return;
     
-    ISWRenderContext *ctx = sbw->threeD.render_ctx;
+    ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
     xcb_connection_t *conn = XtDisplay((Widget) sbw);
     
     if (fill) {
@@ -314,7 +329,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
 static void
 PaintThumb (ScrollbarWidget sbw, XEvent *event)
 {
-    Dimension s                   = sbw->threeD.shadow_width;
+    Dimension s                   = sbw->scrollbar.shadow_width;
     Position  oldtop              = sbw->scrollbar.topLoc;
     Position  oldbot              = oldtop + sbw->scrollbar.shownLength;
     Dimension margin              = MARGIN (sbw);
@@ -326,9 +341,9 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
     newbot = newtop + (int)(tzl * sbw->scrollbar.shown);
     if (sbw->scrollbar.shown < 1.) newbot++;
     if (newbot < newtop + (int)sbw->scrollbar.min_thumb +
-                        2 * (int)sbw->threeD.shadow_width)
+                        2 * (int)sbw->scrollbar.shadow_width)
       newbot = newtop + sbw->scrollbar.min_thumb +
-                        2 * sbw->threeD.shadow_width;
+                        2 * sbw->scrollbar.shadow_width;
     if ( newbot >= floor ) {
 	newtop = floor-(newbot-newtop)+1;
 	newbot = floor;
@@ -346,18 +361,7 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
           if (newbot < oldbot) FillArea(sbw, MAX(newbot, oldtop), oldbot, 0);
           if (newbot > oldbot) FillArea(sbw, oldbot - s, oldbot, 0);
 
-          if (sbw->scrollbar.orientation == XtorientHorizontal)
-	      {
-	      _ShadowSurroundedBox((Widget)sbw, (ThreeDWidget)sbw,
-		  newtop, s, newbot, sbw->core.height - s,
-		  sbw->threeD.relief, TRUE);
-	      }
-	  else
-	      {
-	      _ShadowSurroundedBox((Widget)sbw, (ThreeDWidget)sbw,
-		  s, newtop, sbw->core.width - s, newbot,
-		  sbw->threeD.relief, TRUE);
-	      }
+          /* Shadow drawing removed - ThreeD eliminated */
 	  }
       else
 	  {
@@ -379,7 +383,7 @@ static void
 PaintArrows (ScrollbarWidget sbw)
 {
     xcb_point_t    pt[20];
-    Dimension s   = sbw->threeD.shadow_width;
+    Dimension s                   = sbw->scrollbar.shadow_width;
     Dimension t   = sbw->scrollbar.thickness;
     Dimension l   = sbw->scrollbar.length;
     Dimension tms = t - s, lms = l - s;
@@ -391,8 +395,8 @@ PaintArrows (ScrollbarWidget sbw)
     Dimension sa30 = (Dimension)(1.732 * s );  /* cotangent of 30 deg */
     xcb_connection_t   *dpy = XtDisplay (sbw);
     xcb_window_t   win = XtWindow (sbw);
-    GC        top = sbw->threeD.top_shadow_GC;
-    GC        bot = sbw->threeD.bot_shadow_GC;
+    GC        top = sbw->scrollbar.top_shadow_GC;
+    GC        bot = sbw->scrollbar.bot_shadow_GC;
 
 
     if (XtIsRealized ((Widget) sbw)) {
@@ -435,18 +439,18 @@ PaintArrows (ScrollbarWidget sbw)
 		    pt[n].y = swap;
 		}
 	    }
-	           ISWRenderContext *ctx = sbw->threeD.render_ctx;
+	           ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
 	           
 	           if (ctx) {
 	               /* Use Cairo for polygon rendering */
 	               ISWRenderBegin(ctx);
-	               ISWRenderSetColor(ctx, sbw->threeD.top_shadow_pixel);
+	               ISWRenderSetColor(ctx, sbw->scrollbar.top_shadow_pixel);
 	               ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 4);
-	               ISWRenderSetColor(ctx, sbw->threeD.bot_shadow_pixel);
+	               ISWRenderSetColor(ctx, sbw->scrollbar.bot_shadow_pixel);
 	               ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 4), 6);
-	               ISWRenderSetColor(ctx, sbw->threeD.top_shadow_pixel);
+	               ISWRenderSetColor(ctx, sbw->scrollbar.top_shadow_pixel);
 	               ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 10), 6);
-	               ISWRenderSetColor(ctx, sbw->threeD.bot_shadow_pixel);
+	               ISWRenderSetColor(ctx, sbw->scrollbar.bot_shadow_pixel);
 	               ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 16), 4);
 	               ISWRenderEnd(ctx);
 	           } else {
@@ -503,6 +507,16 @@ Destroy (Widget w)
 	XtRemoveTimeOut (sbw->scrollbar.timer_id);
 #endif
     XtReleaseGC (w, sbw->scrollbar.gc);
+
+    /* Release shadow GCs */
+    if (sbw->scrollbar.top_shadow_GC)
+        XtReleaseGC(w, sbw->scrollbar.top_shadow_GC);
+    if (sbw->scrollbar.bot_shadow_GC)
+        XtReleaseGC(w, sbw->scrollbar.bot_shadow_GC);
+
+    /* Destroy Cairo rendering context */
+    if (sbw->scrollbar.render_ctx)
+        ISWRenderDestroy(sbw->scrollbar.render_ctx);
 }
 
 /*	Function Name: CreateGC
@@ -573,6 +587,7 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) new;
+    xcb_create_gc_value_list_t myXGCV;
 
     CreateGC (new);
 
@@ -593,6 +608,18 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 #endif
     sbw->scrollbar.topLoc = 0;
     sbw->scrollbar.shownLength = sbw->scrollbar.min_thumb;
+
+    /* Allocate shadow GCs */
+    memset(&myXGCV, 0, sizeof(myXGCV));
+    myXGCV.foreground = sbw->scrollbar.top_shadow_pixel;
+    sbw->scrollbar.top_shadow_GC = XtGetGC(new, XCB_GC_FOREGROUND, &myXGCV);
+
+    memset(&myXGCV, 0, sizeof(myXGCV));
+    myXGCV.foreground = sbw->scrollbar.bot_shadow_pixel;
+    sbw->scrollbar.bot_shadow_GC = XtGetGC(new, XCB_GC_FOREGROUND, &myXGCV);
+
+    /* Initialize Cairo rendering context */
+    sbw->scrollbar.render_ctx = ISWRenderCreate((Widget)sbw, ISW_RENDER_BACKEND_AUTO);
 }
 
 static void
@@ -671,11 +698,10 @@ static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
-    ScrollbarWidgetClass swclass = (ScrollbarWidgetClass) XtClass (w);
     int x, y;
     unsigned int width, height;
 
-    (*swclass->threeD_class.shadowdraw) (w, event, region, sbw->threeD.relief, FALSE);
+    /* Shadow drawing removed - ThreeD eliminated */
 
     if (sbw->scrollbar.orientation == XtorientHorizontal) {
 	x = sbw->scrollbar.topLoc;

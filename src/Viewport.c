@@ -48,6 +48,11 @@ SOFTWARE.
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+
+/* Shadow resource name definitions (previously from ThreeD.h) */
+#define XtNshadowWidth "shadowWidth"
+#define XtCShadowWidth "ShadowWidth"
+
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
@@ -55,6 +60,9 @@ SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/ViewportP.h>
+
+/* Utility macro */
+#define AssignMax(x, y) ((x) = ((x) > (y) ? (x) : (y)))
 
 #include <stdint.h>
 #include <xcb/xcb.h>
@@ -211,7 +219,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ViewportWidget w = (ViewportWidget)new;
     static Arg clip_args[8];
-    static Arg threeD_args[8];
+    /* static Arg threeD_args[8]; */
     Cardinal arg_cnt;
     Widget h_bar, v_bar;
     Dimension clip_height, clip_width;
@@ -227,30 +235,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     w->viewport.child = (Widget) NULL;
     w->viewport.horiz_bar = w->viewport.vert_bar = (Widget)NULL;
 
-/*
- * Create 3D Widget.
+/*3D Widget creation removed - ThreeD eliminated.
+ * Viewport will function without 3D border effects.
  */
-
-    arg_cnt = 0;
-    XtSetArg(threeD_args[arg_cnt], XtNleft, XtChainLeft); arg_cnt++;
-    XtSetArg(threeD_args[arg_cnt], XtNright, XtChainRight); arg_cnt++;
-    XtSetArg(threeD_args[arg_cnt], XtNtop, XtChainTop); arg_cnt++;
-    XtSetArg(threeD_args[arg_cnt], XtNbottom, XtChainBottom); arg_cnt++;
-    XtSetArg(threeD_args[arg_cnt], XtNwidth, w->core.width); arg_cnt++;
-    XtSetArg(threeD_args[arg_cnt], XtNheight, w->core.height); arg_cnt++;
-    XtSetArg(threeD_args[arg_cnt], XtNrelief, XtReliefSunken); arg_cnt++;
-    w->viewport.threeD =
-      (ThreeDWidget)XtCreateManagedWidget("threeD", threeDWidgetClass, new,
-					  threeD_args, arg_cnt);
-    XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
-    if (sw)
-    {
-	pad = 2;
-
-	arg_cnt = 0;
-	XtSetArg(threeD_args[arg_cnt], XtNborderWidth, 0); arg_cnt++;
-	XtSetValues((Widget)w, threeD_args, arg_cnt);
-    }
+    /* w->viewport.threeD = NULL; -- ThreeD removed */
 
 /*
  * Create Clip Widget.
@@ -316,7 +304,7 @@ Realize(xcb_connection_t *conn, Widget widget, XtValueMask *value_mask, uint32_t
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
     Widget clip = w->viewport.clip;
-    Widget threeD = (Widget)w->viewport.threeD;
+    Widget threeD = NULL; /* (Widget)w->viewport.threeD; */
 
     if (!(*value_mask & XCB_CW_BIT_GRAVITY)) {
         int insert_idx = 0;
@@ -349,11 +337,11 @@ Realize(xcb_connection_t *conn, Widget widget, XtValueMask *value_mask, uint32_t
 	XtMoveWidget( child, (Position)0, (Position)0 );
 	XtRealizeWidget( clip );
 	XtRealizeWidget( child );
-	XtRealizeWidget( threeD );
+	/* XtRealizeWidget( threeD ); */
 	
 	/* Lower threeD window */
 	uint32_t lower_values[] = { XCB_STACK_MODE_BELOW };
-	xcb_configure_window(conn, XtWindow(threeD), XCB_CONFIG_WINDOW_STACK_MODE, lower_values);
+	/* xcb_configure_window(conn, XtWindow(threeD), XCB_CONFIG_WINDOW_STACK_MODE, lower_values);
 	
 	/* Reparent child to clip */
 	xcb_reparent_window(conn, XtWindow(child), XtWindow(clip), 0, 0);
@@ -396,7 +384,7 @@ ChangeManaged(Widget widget)
 	    && *childP != w->viewport.clip
 	    && *childP != w->viewport.horiz_bar
 	    && *childP != w->viewport.vert_bar
-	    && *childP != (Widget)w->viewport.threeD)
+	    /* 	    && *childP != (Widget)w->viewport.threeD)	    && *childP != (Widget)w->viewport.threeD) *childP != (Widget)w->viewport.threeD */ )
 	{
 	    child = *childP;
 	    break;
@@ -527,7 +515,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
     Widget clip = w->viewport.clip;
-    Widget threeD = (Widget)w->viewport.threeD;
+    Widget threeD = NULL; /* (Widget)w->viewport.threeD; */
     ViewportConstraints constraints
 	= (ViewportConstraints)clip->core.constraints;
     Boolean needshoriz, needsvert;
@@ -548,8 +536,8 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 
     if (child == (Widget) NULL) return;
 
-    XtVaGetValues(threeD, XtNshadowWidth, &sw, NULL);
-    if (sw) pad = 2;
+    /* XtVaGetValues(threeD, XtNshadowWidth, &sw, NULL);
+       if (sw) pad = 2; */ sw = 0; pad = 0;
 
     clip_width = w->core.width - 2 * sw;
     clip_height = w->core.height - 2 * sw;
@@ -698,16 +686,16 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	bar_height = w->viewport.horiz_bar->core.height +
 		     w->viewport.horiz_bar->core.border_width + pad;
 
-    if (XtIsRealized(threeD))
-	XLowerWindow( XtDisplay(threeD), XtWindow(threeD) );
+    if (0 /* XtIsRealized(threeD) */ )
+	/* XLowerWindow( XtDisplay(threeD), XtWindow(threeD) ); */
 
-    XtMoveWidget( threeD,
+    /* XtMoveWidget( threeD,
 		  (Position)(!needsvert ? 0 :
 			     (w->viewport.useright ? 0 : bar_width)),
 		  (Position)(!needshoriz ? 0 :
-			     (w->viewport.usebottom ? 0 : bar_height)) );
-    XtResizeWidget( threeD, (Dimension)(w->core.width - bar_width),
-		    (Dimension)(w->core.height - bar_height), (Dimension)0 );
+			     (w->viewport.usebottom ? 0 : bar_height)) ); */
+    /* XtResizeWidget( threeD, (Dimension)(w->core.width - bar_width),
+		    (Dimension)(w->core.height - bar_height), (Dimension)0 ); */
 
     if (XtIsRealized(clip))
 	XRaiseWindow( XtDisplay(clip), XtWindow(clip) );
@@ -806,8 +794,8 @@ ComputeWithForceBars(Widget widget, Boolean query, XtWidgetGeometry *intended,
  * Thus if needsvert is set it MUST have a scrollbar.
  */
 
-    XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
-    if (sw) pad = 2;
+    /* XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
+       if (sw) pad = 2; */ sw = 0; pad = 0;
 
     if (w->viewport.allowvert) {
 	if (w->viewport.vert_bar == NULL)
@@ -952,8 +940,8 @@ GeometryRequestPlusScrollbar(ViewportWidget w, Boolean horizontal,
   XtWidgetGeometry plusScrollbars;
   Dimension pad = 0, sw = 0;
 
-  XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
-  if (sw) pad = 2;
+  /* XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
+     if (sw) pad = 2; */ sw = 0; pad = 0;
 
   plusScrollbars = *request;
   if ((bar = w->viewport.horiz_bar) == (Widget)NULL)
@@ -1023,8 +1011,8 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 	    && request->border_width > 0))
 	return XtGeometryNo;
 
-    XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
-    if (sw) pad = 2;
+    /* XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
+       if (sw) pad = 2; */ sw = 0; pad = 0;
 
     allowed = *request;
 

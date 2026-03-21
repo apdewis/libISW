@@ -145,9 +145,6 @@ RepeaterClassRec repeaterClassRec = {
   { /* simple fields */
     /* change_sensitive		*/	XtInheritChangeSensitive
   },
-  { /* threeD fields */
-    /* shadowdraw		*/	XtInheritIsw3dShadowDraw
-  },
   { /* label fields */
     /* ignore			*/	0
   },

@@ -65,7 +65,6 @@ typedef struct _MenuButtonClass
 typedef struct _MenuButtonClassRec {
   CoreClassPart	    core_class;
   SimpleClassPart	    simple_class;
-  ThreeDClassPart           threeD_class;
   LabelClassPart	    label_class;
   CommandClassPart	    command_class;
   MenuButtonClassPart     menuButton_class;
@@ -90,7 +89,6 @@ typedef struct {
 typedef struct _MenuButtonRec {
     CorePart         core;
     SimplePart	     simple;
-    ThreeDPart       threeD;
     LabelPart	     label;
     CommandPart	     command;
     MenuButtonPart   menu_button;

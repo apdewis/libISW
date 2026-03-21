@@ -125,9 +125,6 @@ MenuButtonClassRec menuButtonClassRec = {
     XtInheritChangeSensitive		/* change_sensitive	  */
   },  /* SimpleClass fields initialization */
   {
-    XtInheritIsw3dShadowDraw,           /* shadowdraw           */
-  },  /* ThreeDClass fields initialization */
-  {
     0,                                     /* field not used    */
   },  /* LabelClass fields initialization */
   {
