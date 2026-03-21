@@ -156,7 +156,7 @@ static XtResource resources[] = {
        Offset(scrollbar.min_thumb), XtRImmediate, (XtPointer) 7},
   /* Shadow resources (previously inherited from ThreeD) */
   {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-       Offset(scrollbar.shadow_width), XtRImmediate, (XtPointer) 2},
+       Offset(scrollbar.shadow_width), XtRImmediate, (XtPointer) 1},
   {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
        Offset(scrollbar.top_shadow_pixel), XtRString, XtDefaultForeground},
   {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
@@ -355,26 +355,98 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
       /*  3D thumb wanted ?
        */
       if (s)
-	  {
+   {
+          /* Clear old thumb areas that are not part of new thumb */
           if (newtop < oldtop) FillArea(sbw, oldtop, oldtop + s, 0);
           if (newtop > oldtop) FillArea(sbw, oldtop, MIN(newtop, oldbot), 0);
           if (newbot < oldbot) FillArea(sbw, MAX(newbot, oldtop), oldbot, 0);
           if (newbot > oldbot) FillArea(sbw, oldbot - s, oldbot, 0);
 
-          /* Shadow drawing removed - ThreeD eliminated */
-	  }
+          /* Fill the new thumb position */
+          FillArea(sbw, newtop, newbot, 1);
+          
+          /* Draw simple border around thumb */
+          {
+              xcb_connection_t *conn = XtDisplay((Widget) sbw);
+              int lx, ly, lw, lh;
+              
+              if (sbw->scrollbar.orientation == XtorientHorizontal) {
+                  lx = newtop;
+                  ly = s;
+                  lw = newbot - newtop;
+                  lh = sbw->core.height - 2 * s;
+              } else {
+                  lx = s;
+                  ly = newtop;
+                  lw = sbw->core.width - 2 * s;
+                  lh = newbot - newtop;
+              }
+              
+              /* Use XCB directly for border drawing */
+              {
+                  xcb_gcontext_t border_gc = xcb_generate_id(conn);
+                  uint32_t values[3];
+                  values[0] = sbw->scrollbar.foreground;
+                  values[1] = 2; /* line width */
+                  values[2] = 0; /* no graphics exposures */
+                  xcb_create_gc(conn, border_gc, XtWindow((Widget) sbw),
+                              XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH | XCB_GC_GRAPHICS_EXPOSURES,
+                              values);
+                  
+                  xcb_rectangle_t rect = {lx, ly, lw, lh};
+                  xcb_poly_rectangle(conn, XtWindow((Widget) sbw), border_gc, 1, &rect);
+                  xcb_free_gc(conn, border_gc);
+                  xcb_flush(conn);
+              }
+          }
+   }
       else
-	  {
-	  /*
-	    Note to Mitch: FillArea is (now) correctly implemented to
-	    not draw over shadows or the arrows. Therefore setting clipmasks
-	    doesn't seem to be necessary.  Correct me if I'm wrong!
-	  */
+   {
+   /*
+     Note to Mitch: FillArea is (now) correctly implemented to
+     not draw over shadows or the arrows. Therefore setting clipmasks
+     doesn't seem to be necessary.  Correct me if I'm wrong!
+   */
           if (newtop < oldtop) FillArea(sbw, newtop, MIN(newbot, oldtop), 1);
           if (newtop > oldtop) FillArea(sbw, oldtop, MIN(newtop, oldbot), 0);
           if (newbot < oldbot) FillArea(sbw, MAX(newbot, oldtop), oldbot, 0);
           if (newbot > oldbot) FillArea(sbw, MAX(newtop, oldbot), newbot, 1);
-	  }
+          
+          /* Draw simple border around thumb */
+          {
+              xcb_connection_t *conn = XtDisplay((Widget) sbw);
+              int lx, ly, lw, lh;
+              
+              if (sbw->scrollbar.orientation == XtorientHorizontal) {
+                  lx = newtop;
+                  ly = 0;
+                  lw = newbot - newtop;
+                  lh = sbw->core.height;
+              } else {
+                  lx = 0;
+                  ly = newtop;
+                  lw = sbw->core.width;
+                  lh = newbot - newtop;
+              }
+              
+              /* Use XCB directly for border drawing */
+              {
+                  xcb_gcontext_t border_gc = xcb_generate_id(conn);
+                  uint32_t values[3];
+                  values[0] = sbw->scrollbar.foreground;
+                  values[1] = 2; /* line width */
+                  values[2] = 0; /* no graphics exposures */
+                  xcb_create_gc(conn, border_gc, XtWindow((Widget) sbw),
+                              XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH | XCB_GC_GRAPHICS_EXPOSURES,
+                              values);
+                  
+                  xcb_rectangle_t rect = {lx, ly, lw, lh};
+                  xcb_poly_rectangle(conn, XtWindow((Widget) sbw), border_gc, 1, &rect);
+                  xcb_free_gc(conn, border_gc);
+                  xcb_flush(conn);
+              }
+          }
+   }
     }
 }
 
@@ -588,6 +660,15 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) new;
     xcb_create_gc_value_list_t myXGCV;
+
+    /* If foreground wasn't set or failed to convert, use a visible gray color */
+    if (sbw->scrollbar.foreground == 0 || sbw->scrollbar.foreground == 0xffffff) {
+        xcb_connection_t *conn = XtDisplay(new);
+        xcb_screen_t *screen = XtScreen(new);
+        
+        /* Use a mid-gray that's visible on both light and dark backgrounds */
+        sbw->scrollbar.foreground = grayPixel(128, conn, screen);
+    }
 
     CreateGC (new);
 

@@ -277,7 +277,27 @@ cairo_xcb_stroke_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
     
-    cairo_rectangle(data->cairo_ctx, x, y, w, h);
+    /* Draw four individual lines to form the rectangle.
+     * Using separate stroke calls to ensure rendering.
+     */
+    /* Top */
+    cairo_move_to(data->cairo_ctx, x, y);
+    cairo_line_to(data->cairo_ctx, x + w, y);
+    cairo_stroke(data->cairo_ctx);
+    
+    /* Right */
+    cairo_move_to(data->cairo_ctx, x + w, y);
+    cairo_line_to(data->cairo_ctx, x + w, y + h);
+    cairo_stroke(data->cairo_ctx);
+    
+    /* Bottom */
+    cairo_move_to(data->cairo_ctx, x + w, y + h);
+    cairo_line_to(data->cairo_ctx, x, y + h);
+    cairo_stroke(data->cairo_ctx);
+    
+    /* Left */
+    cairo_move_to(data->cairo_ctx, x, y + h);
+    cairo_line_to(data->cairo_ctx, x, y);
     cairo_stroke(data->cairo_ctx);
 }
 
