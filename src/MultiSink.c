@@ -361,6 +361,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 {
     MultiSinkObject sink = (MultiSinkObject) w;
     Widget source = IswTextGetSource(XtParent(w));
+    TextWidget ctx = (TextWidget) XtParent(w);
     wchar_t buf[BUFSIZ];
     /* Phase 3.5: Use ISWFontSet fields directly */
 
@@ -374,6 +375,15 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     /* Begin Cairo rendering */
     if (sink->multi_sink.render_ctx) {
         ISWRenderBegin(sink->multi_sink.render_ctx);
+        
+        /* Set clip rectangle ONCE for the entire text block to prevent rendering
+         * outside widget bounds. This fixes the text disappearing issue where clip
+         * state was being corrupted between lines. */
+        ISWRenderSetClipRectangle(sink->multi_sink.render_ctx,
+                                  0, 0,
+                                  (int)ctx->core.width,
+                                  (int)ctx->core.height);
+        
         /* Set foreground color based on highlight state */
         ISWRenderSetColor(sink->multi_sink.render_ctx,
                          highlight ? sink->text_sink.background : sink->text_sink.foreground);

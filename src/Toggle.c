@@ -40,11 +40,15 @@ in this Software without prior written authorization from the X Consortium.
 #include "config.h"
 #endif
 #include <stdio.h>
+#include <math.h>
 
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
+#include <ISW/Label.h>
 #include <ISW/ToggleP.h>
+#include <xcb/xcb.h>
 
 /****************************************************************
  *
@@ -60,9 +64,7 @@ in this Software without prior written authorization from the X Consortium.
  */
 
 static char defaultTranslations[] =
-    "<EnterWindow>:	    highlight(Always)	\n\
-     <LeaveWindow>:	    unhighlight()	\n\
-     <Btn1Down>,<Btn1Up>:   toggle() notify()";
+    "<Btn1Down>,<Btn1Up>:   toggle() notify()";
 
 #define offset(field) XtOffsetOf(ToggleRec, field)
 
@@ -94,14 +96,22 @@ static void AddToRadioGroup(RadioGroup *, Widget);
 static void TurnOffRadioSiblings(Widget);
 static void RemoveFromRadioGroup(Widget);
 
+/* Forward declarations for custom Set/Unset that don't clear the widget */
+static void ToggleSetAction(Widget, XEvent *, String *, Cardinal *);
+static void ToggleUnsetAction(Widget, XEvent *, String *, Cardinal *);
+
 static XtActionsRec actionsList[] =
 {
   {"toggle",	        Toggle},
   {"notify",	        Notify},
-  {"set",	        ToggleSet},
+  {"set",	        ToggleSetAction},
+  {"unset",             ToggleUnsetAction},
 };
 
 #define SuperClass ((CommandWidgetClass)&commandClassRec)
+
+/* Forward declaration for Redisplay */
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 
 ToggleClassRec toggleClassRec = {
   {
@@ -125,7 +135,7 @@ ToggleClassRec toggleClassRec = {
     FALSE,				/* visible_interest	  */
     NULL,         			/* destroy		  */
     XtInheritResize,			/* resize		  */
-    XtInheritExpose,			/* expose		  */
+    Redisplay,				/* expose		  */
     SetValues,				/* set_values		  */
     NULL,				/* set_values_hook	  */
     XtInheritSetValuesAlmost,		/* set_values_almost	  */
@@ -279,6 +289,22 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     }
     XtAddCallback(new, XtNdestroyCallback, ToggleDestroy, (XtPointer)NULL);
 
+    /*
+     * Reserve space on the left for the radio button or checkbox indicator.
+     * We increase the internal_width (left padding) to make room.
+     */
+    if (tw->label.internal_width < 20) {
+        tw->label.internal_width = 20;  /* Space for indicator + gap */
+    }
+    
+    /*
+     * Remove 3D button appearance - radio buttons and checkboxes should look
+     * like plain text with indicators, not like pressed buttons.
+     */
+    tw->threeD.shadow_width = 0;
+    tw->threeD.relief = XtReliefNone;
+    tw->command.highlight_thickness = 0;
+
 /*
  * Command widget assumes that the widget is unset, so we only
  * have to handle the case where it needs to be set.
@@ -301,13 +327,61 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  ************************************************************/
 
 /* ARGSUSED */
+/*	Function Name: ToggleSetAction
+ *	Description: Custom Set action that redraws everything properly
+ *	Arguments: standard action arguments
+ *	Returns: none.
+ */
+
+static void
+ToggleSetAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    ToggleWidget cbw = (ToggleWidget)w;
+
+    if (cbw->command.set)
+        return;
+
+    cbw->command.set = TRUE;
+    if (XtIsRealized(w)) {
+        /* Clear background and completely redraw */
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_clear_area(conn, 0, XtWindow(w), 0, 0,
+                      cbw->core.width, cbw->core.height);
+        xcb_flush(conn);
+        Redisplay(w, NULL, 0);
+    }
+}
+
+/*	Function Name: ToggleUnsetAction
+ *	Description: Custom Unset action that redraws everything properly
+ *	Arguments: standard action arguments
+ *	Returns: none.
+ */
+
+static void
+ToggleUnsetAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    ToggleWidget cbw = (ToggleWidget)w;
+
+    if (!cbw->command.set)
+        return;
+
+    cbw->command.set = FALSE;
+    if (XtIsRealized(w)) {
+        /* Clear background and completely redraw */
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_clear_area(conn, 0, XtWindow(w), 0, 0,
+                      cbw->core.width, cbw->core.height);
+        xcb_flush(conn);
+        Redisplay(w, NULL, 0);
+    }
+}
+
 static void
 ToggleSet(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
-    ToggleWidgetClass class = (ToggleWidgetClass) w->core.widget_class;
-
     TurnOffRadioSiblings(w);
-    class->toggle_class.Set(w, event, NULL, 0);
+    ToggleSetAction(w, event, NULL, 0);
 }
 
 /* ARGSUSED */
@@ -473,7 +547,8 @@ TurnOffRadioSiblings(Widget w)
   while ( group != NULL ) {
     ToggleWidget local_tog = (ToggleWidget) group->widget;
     if ( local_tog->command.set ) {
-      class->toggle_class.Unset(group->widget, NULL, NULL, 0);
+      /* Use our custom unset action that doesn't clear the widget */
+      ToggleUnsetAction(group->widget, NULL, NULL, 0);
       Notify( group->widget, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
     }
     group = group->next;
@@ -497,6 +572,170 @@ RemoveFromRadioGroup(Widget w)
       (group->next)->prev = group->prev;
     XtFree((char *) group);
   }
+}
+
+/************************************************************
+ *
+ * Toggle State Indicator Drawing Helpers
+ *
+ ************************************************************/
+
+/*	Function Name: CreateCirclePolygon
+ *	Description: Creates a circle approximation as a polygon
+ *	Arguments: center_x, center_y - center of the circle
+ *                 radius - radius of the circle
+ *                 points - output array for points (must have space for num_points)
+ *                 num_points - number of points to use for approximation
+ *	Returns: none.
+ */
+
+static void
+CreateCirclePolygon(int center_x, int center_y, int radius,
+                    xcb_point_t *points, int num_points)
+{
+    int i;
+    for (i = 0; i < num_points; i++) {
+        double angle = 2.0 * M_PI * i / num_points;
+        points[i].x = center_x + (int)(radius * cos(angle));
+        points[i].y = center_y + (int)(radius * sin(angle));
+    }
+}
+
+/*	Function Name: DrawCheckbox
+ *	Description: Draws a checkbox indicator (square outline with optional checkmark)
+ *	Arguments: ctx - rendering context
+ *                 x, y - position to draw checkbox (top-left)
+ *                 size - size of the checkbox
+ *                 checked - whether to draw the checkmark
+ *	Returns: none.
+ */
+
+static void
+DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked)
+{
+    /* Draw square outline (always visible) */
+    ISWRenderSetLineWidth(ctx, 1.5);
+    ISWRenderStrokeRectangle(ctx, x, y, size, size);
+    
+    /* Draw checkmark if checked */
+    if (checked) {
+        int x1 = x + 2;
+        int y1 = y + size / 2;
+        int x2 = x + size / 3;
+        int y2 = y + size - 2;
+        int x3 = x + size - 2;
+        int y3 = y + 2;
+        
+        ISWRenderSetLineWidth(ctx, 2.0);
+        
+        /* First segment: bottom-left to middle */
+        ISWRenderDrawLine(ctx, x1, y1, x2, y2);
+        
+        /* Second segment: middle to top-right */
+        ISWRenderDrawLine(ctx, x2, y2, x3, y3);
+    }
+}
+
+/*	Function Name: DrawRadioButton
+ *	Description: Draws a radio button indicator (circle outline with optional filled center)
+ *	Arguments: ctx - rendering context
+ *                 x, y - position to draw radio button (top-left of bounding box)
+ *                 size - size of the radio button
+ *                 selected - whether to draw the filled center
+ *	Returns: none.
+ */
+
+static void
+DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected)
+{
+    int center_x = x + size / 2;
+    int center_y = y + size / 2;
+    int radius = size / 2;
+    xcb_point_t circle_points[32]; /* Use 32 points for smooth circle */
+    
+    /* Draw circle outline (always visible) using polygon stroke */
+    CreateCirclePolygon(center_x, center_y, radius, circle_points, 32);
+    ISWRenderSetLineWidth(ctx, 1.5);
+    ISWRenderStrokePolygon(ctx, circle_points, 32);
+    
+    /* Draw filled center circle if selected */
+    if (selected) {
+        int inner_radius = radius / 2;
+        xcb_point_t inner_circle[24]; /* 24 points for filled center */
+        
+        CreateCirclePolygon(center_x, center_y, inner_radius,
+                          inner_circle, 24);
+        ISWRenderFillPolygon(ctx, inner_circle, 24);
+    }
+}
+
+/************************************************************
+ *
+ * Redisplay Function
+ *
+ ************************************************************/
+
+/*	Function Name: Redisplay
+ *	Description: Redisplays the toggle widget, including state indicator.
+ *	Arguments: w - the toggle widget.
+ *                 event - the exposure event.
+ *                 region - the region to redisplay.
+ *	Returns: none.
+ */
+
+static void
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+{
+    ToggleWidget tw = (ToggleWidget) w;
+    ISWRenderContext *ctx = tw->threeD.render_ctx;
+    
+    /* Call Label's Redisplay to draw just the text (not Command's button appearance) */
+    /* labelWidgetClass is Command's superclass, so we skip the 3D button drawing */
+    (*labelWidgetClass->core_class.expose)(w, event, region);
+    
+    /* If no rendering context, we can't draw indicators */
+    if (ctx == NULL) {
+        return;
+    }
+    
+    /* Calculate position and size for the indicator */
+    /* Place indicator on the left side with minimal padding */
+    int padding = 2;
+    int indicator_size = 13;  /* Base size of the indicator */
+    
+    /* Ensure indicator fits within widget bounds */
+    if (indicator_size > (int)(tw->core.height - 2 * padding)) {
+        indicator_size = tw->core.height - 2 * padding;
+    }
+    
+    /* Minimum size to be visible */
+    if (indicator_size < 8) {
+        indicator_size = 8;
+    }
+    
+    /* Position: left edge + padding, vertically centered */
+    int x = padding;
+    int y = (tw->core.height - indicator_size) / 2;
+    
+    /* Begin rendering */
+    ISWRenderBegin(ctx);
+    
+    /* Set color for the indicator - use foreground color */
+    ISWRenderSetColor(ctx, tw->label.foreground);
+    
+    /* Determine if this is a radio button or checkbox */
+    /* Radio button: has a radio_group (part of a group) */
+    /* Checkbox: standalone toggle */
+    if (tw->toggle.radio_group != NULL) {
+        /* Radio button - draw circle outline with optional filled center */
+        DrawRadioButton(ctx, x, y, indicator_size, tw->command.set);
+    } else {
+        /* Checkbox - draw square outline with optional checkmark */
+        DrawCheckbox(ctx, x, y, indicator_size, tw->command.set);
+    }
+    
+    /* End rendering */
+    ISWRenderEnd(ctx);
 }
 
 /************************************************************

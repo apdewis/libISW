@@ -318,6 +318,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
     Widget source = IswTextGetSource(XtParent(w));
+    TextWidget ctx = (TextWidget) XtParent(w);
     unsigned char buf[BUFSIZ];
 
     int j, k;
@@ -326,17 +327,33 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     GC invgc = highlight ? sink->ascii_sink.normgc : sink->ascii_sink.invgc;
     Pixel fg_color = highlight ? sink->text_sink.background : sink->text_sink.foreground;
     Pixel bg_color = highlight ? sink->text_sink.foreground : sink->text_sink.background;
+    Position orig_y = y;
 
     if (!sink->ascii_sink.echo) return;
 
     /* Begin Cairo rendering if context exists */
     if (sink->ascii_sink.render_ctx) {
         ISWRenderBegin(sink->ascii_sink.render_ctx);
+        
+        /* Set clip rectangle ONCE for the entire text block to prevent rendering
+         * outside widget bounds. This fixes the text disappearing issue where clip
+         * state was being corrupted between lines. */
+        ISWRenderSetClipRectangle(sink->ascii_sink.render_ctx,
+                                  0, 0,
+                                  (int)ctx->core.width,
+                                  (int)ctx->core.height);
+        
         ISWRenderSetColor(sink->ascii_sink.render_ctx, fg_color);
     }
 
     /* XCB Fix: Add NULL check for font before accessing ascent */
     y += sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
+    
+    /* DIAGNOSTIC: Log DisplayText coordinate transformation */
+    fprintf(stderr, "[ASCIISINK_DEBUG] DisplayText: original_y=%d, baseline_y=%d, ascent=%d, pos1=%ld, pos2=%ld\n",
+            orig_y, y, 
+            sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11,
+            (long)pos1, (long)pos2);
     for ( j = 0 ; pos1 < pos2 ; ) {
 	pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
 	for (k = 0; k < blk.length; k++) {
