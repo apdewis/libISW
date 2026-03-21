@@ -48,6 +48,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SimpleP.h>
 #include <ISW/List.h>
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
+#include <ISW/ISWRender.h>
 
 #define NO_HIGHLIGHT            XAW_LIST_NONE
 #define OUT_OF_RANGE            -1
@@ -99,6 +100,8 @@ typedef struct {
                 graygc;		/* used when inactive. */
 
     int         freedoms;       /* flags for resizing height and width */
+
+    ISWRenderContext *render_ctx;  /* Cairo rendering context */
 
 } ListPart;
 

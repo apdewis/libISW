@@ -62,6 +62,7 @@ SOFTWARE.
 
 #include <ISW/TextSinkP.h>
 #include <ISW/AsciiSink.h>
+#include <ISW/ISWRender.h>
 
 /************************************************************
  *
@@ -95,6 +96,7 @@ typedef struct {
     Pixmap insertCursorOn;
     IswTextInsertState laststate;
     short cursor_x, cursor_y;	/* Cursor Location. */
+    ISWRenderContext *render_ctx;  /* Cairo rendering context */
 } AsciiSinkPart;
 
 /****************************************************************

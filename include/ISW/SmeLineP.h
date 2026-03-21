@@ -41,6 +41,7 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <ISW/SmeP.h>
 #include <ISW/SmeLine.h>
+#include <ISW/ISWRender.h>
 
 /************************************************************
  *
@@ -71,6 +72,7 @@ typedef struct {
     /* private data.  */
 
     GC gc;			/* Graphics context for drawing line. */
+    ISWRenderContext *render_ctx;   /* Cairo rendering context */
 } SmeLinePart;
 
 /****************************************************************

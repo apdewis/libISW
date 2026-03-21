@@ -62,6 +62,7 @@ SOFTWARE.
 #define _ISW_IswPanedP_h
 
 #include <ISW/Paned.h>
+#include <ISW/ISWRender.h>
 
 /* XCB-based libXt doesn't define XtOrientation - define it here */
 #ifndef _IswXtOrientation_defined
@@ -169,17 +170,18 @@ typedef struct {
     /* private */
     Boolean	recursively_called;        /* for ChangeManaged */
     Boolean	resize_children_to_pref;   /* override constrain resources
-					      and resize all children to
-					      preferred size. */
+    	      and resize all children to
+    	      preferred size. */
     int         start_loc;	           /* mouse origin when adjusting */
     Widget      whichadd;                  /* Which pane to add changes to */
     Widget      whichsub;                  /* Which pane to sub changes from */
     GC          normgc;                    /* GC to use when drawing borders */
     GC          invgc;                     /* GC to use when erasing borders */
     GC          flipgc;                    /* GC to use when animating
-					      borders */
+    	      borders */
     int		num_panes;                 /* count of managed panes */
     PaneStack * stack;		           /* The pane stack for this widget.*/
+    ISWRenderContext *render_ctx;          /* Cairo rendering context */
 } PanedPart;
 
 /**************************************************************************

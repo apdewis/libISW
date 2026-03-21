@@ -43,6 +43,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeThreeDP.h>
 #include <ISW/SmeBSB.h>
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
+#include <ISW/ISWRender.h>
 
 /* XtJustify is missing from XCB-based libXt, define it here */
 #ifndef _IswXtJustify_defined
@@ -104,6 +105,7 @@ typedef struct {
     unsigned int left_depth;
     unsigned int right_depth;
     String menu_name;		/* name of nested sub-menu or NULL */
+    ISWRenderContext *render_ctx;  /* Cairo rendering context */
 } SmeBSBPart;
 
 /****************************************************************

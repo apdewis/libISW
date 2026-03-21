@@ -32,6 +32,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/StringDefs.h>		/* for XtN and XtC defines */
 #include <ISW/ISWInit.h>		/* for IswInitializeWidgetSet */
 #include <ISW/PannerP.h>		/* us */
+#include <ISW/ISWRender.h>		/* Cairo rendering */
 #include <X11/Xos.h>
 #include <ctype.h>			/* for isascii() etc. */
 #include <stdlib.h>			/* for atof() */
@@ -556,6 +557,8 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
     new->panner.shadow_valid = FALSE;
     new->panner.tmp.doing = FALSE;
     new->panner.tmp.showing = FALSE;
+    
+    new->panner.render_ctx = NULL;	/* Initialized lazily in Redisplay */
 }
 
 
@@ -591,6 +594,11 @@ Destroy (Widget gw)
 {
     PannerWidget pw = (PannerWidget) gw;
 
+    if (pw->panner.render_ctx) {
+        ISWRenderDestroy(pw->panner.render_ctx);
+        pw->panner.render_ctx = NULL;
+    }
+
     XtReleaseGC (gw, pw->panner.shadow_gc);
     XtReleaseGC (gw, pw->panner.slider_gc);
     XtReleaseGC (gw, pw->panner.xor_gc);
@@ -600,7 +608,16 @@ Destroy (Widget gw)
 static void
 Resize (Widget gw)
 {
-    rescale ((PannerWidget) gw);
+    PannerWidget pw = (PannerWidget) gw;
+    
+    /* Destroy and recreate context on resize - Cairo contexts need to match window size */
+    if (pw->panner.render_ctx) {
+        ISWRenderDestroy(pw->panner.render_ctx);
+        pw->panner.render_ctx = NULL;
+        /* Context will be recreated lazily in next Redisplay */
+    }
+    
+    rescale (pw);
 }
 
 
@@ -617,6 +634,8 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     int kx = pw->panner.knob_x + pad, ky = pw->panner.knob_y + pad;
 
     pw->panner.tmp.showing = FALSE;
+    
+    /* Clear old knob position - use XCB for now */
     {
         xcb_connection_t *clear_conn = XtDisplay(pw);
         xcb_clear_area(clear_conn, 0, XtWindow(pw),
@@ -629,20 +648,63 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     pw->panner.last_x = pw->panner.knob_x;
     pw->panner.last_y = pw->panner.knob_y;
 
-    xcb_connection_t *conn = dpy;
-    xcb_rectangle_t rect = {kx, ky, pw->panner.knob_width - 1, pw->panner.knob_height - 1};
-    xcb_poly_fill_rectangle(conn, w, pw->panner.slider_gc, 1, &rect);
-
-    if (lw)
-    {
-    	xcb_poly_rectangle(conn, w, pw->panner.shadow_gc, 1, &rect);
+    /* Lazy initialization of Cairo render context */
+    if (!pw->panner.render_ctx) {
+        pw->panner.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
+        if (!pw->panner.render_ctx) {
+            /* Fallback to XCB if Cairo context creation fails */
+            xcb_connection_t *conn = dpy;
+            xcb_rectangle_t rect = {kx, ky, pw->panner.knob_width - 1, pw->panner.knob_height - 1};
+            xcb_poly_fill_rectangle(conn, w, pw->panner.slider_gc, 1, &rect);
+            if (lw) {
+                xcb_poly_rectangle(conn, w, pw->panner.shadow_gc, 1, &rect);
+            }
+            if (pw->panner.shadow_valid) {
+                xcb_poly_fill_rectangle(conn, w, pw->panner.shadow_gc,
+                    2, pw->panner.shadow_rects);
+            }
+            xcb_flush(conn);
+            if (pw->panner.tmp.doing && pw->panner.rubber_band) DRAW_TMP (pw);
+            return;
+        }
     }
 
+    /* Use Cairo rendering for normal operations */
+    ISWRenderBegin(pw->panner.render_ctx);
+    
+    /* Draw the slider/knob fill */
+    ISWRenderSetColor(pw->panner.render_ctx, pw->panner.foreground);
+    ISWRenderFillRectangle(pw->panner.render_ctx,
+                          kx, ky, 
+                          pw->panner.knob_width - 1, 
+                          pw->panner.knob_height - 1);
+
+    /* Draw the slider/knob outline if line_width > 0 */
+    if (lw) {
+        ISWRenderSetColor(pw->panner.render_ctx, pw->panner.shadow_color);
+        ISWRenderSetLineWidth(pw->panner.render_ctx, (double)lw);
+        ISWRenderStrokeRectangle(pw->panner.render_ctx,
+                              kx, ky,
+                              pw->panner.knob_width - 1,
+                              pw->panner.knob_height - 1);
+    }
+
+    /* Draw shadow rectangles if valid */
     if (pw->panner.shadow_valid) {
- xcb_poly_fill_rectangle(conn, w, pw->panner.shadow_gc,
-    2, pw->panner.shadow_rects);
+        int i;
+        ISWRenderSetColor(pw->panner.render_ctx, pw->panner.shadow_color);
+        for (i = 0; i < 2; i++) {
+            ISWRenderFillRectangle(pw->panner.render_ctx,
+                                  pw->panner.shadow_rects[i].x,
+                                  pw->panner.shadow_rects[i].y,
+                                  pw->panner.shadow_rects[i].width,
+                                  pw->panner.shadow_rects[i].height);
+        }
     }
-    xcb_flush(conn);
+
+    ISWRenderEnd(pw->panner.render_ctx);
+    
+    /* XOR rubber-band drawing stays in XCB */
     if (pw->panner.tmp.doing && pw->panner.rubber_band) DRAW_TMP (pw);
 }
 

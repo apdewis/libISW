@@ -80,6 +80,7 @@ SOFTWARE.
 #include <ISW/MultiSinkP.h>
 #include <ISW/MultiSrcP.h>
 #include <ISW/TextP.h>
+#include <ISW/ISWRender.h>
 #include "ISWI18n.h"
 #include "ISWXcbDraw.h"
 #include <stdio.h>
@@ -280,16 +281,30 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
     TextWidget ctx = (TextWidget) XtParent(w);
+    xcb_connection_t *conn = XtDisplay((Widget) ctx);
 
     Position max_x;
     Dimension width;
+    
+    /* Lazy render context creation with dimension validation */
+    if (!sink->multi_sink.render_ctx && XtIsRealized((Widget)ctx) &&
+        ctx->core.width > 0 && ctx->core.height > 0) {
+        sink->multi_sink.render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
+        /* Note: ISWRenderContext uses fontset internally, no need to set font explicitly */
+    }
     
     /* Phase 3.5: WC→UTF8 conversion for rendering */
     int utf8_len;
     char *utf8_text = IswWcToUtf8(buf, len, &utf8_len);
     if (!utf8_text) return 0;
     
-    width = IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
+    /* Calculate text width using Cairo or XCB fallback */
+    if (sink->multi_sink.render_ctx) {
+        width = ISWRenderTextWidth(sink->multi_sink.render_ctx, utf8_text, utf8_len);
+    } else {
+        /* XCB fallback */
+        width = IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
+    }
     max_x = (Position) ctx->core.width;
 
     if ( ((int) width) <= -x) {	           /* Don't draw if we can't see it. */
@@ -297,22 +312,39 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
       return(width);
     }
 
-    IswDrawString(XtDisplay(ctx), XtWindow(ctx), sink->multi_sink.fontset, gc,
-                  (int) x, (int) y, utf8_text, utf8_len);
+    /* Draw text using Cairo or XCB fallback */
+    if (sink->multi_sink.render_ctx) {
+        ISWRenderDrawString(sink->multi_sink.render_ctx, utf8_text, utf8_len,
+                          (int)x, (int)y);
+    } else {
+        /* XCB fallback */
+        IswDrawString(conn, XtWindow(ctx), sink->multi_sink.fontset, gc,
+                     (int) x, (int) y, utf8_text, utf8_len);
+    }
     free(utf8_text);
     
     if ( (((Position) width + x) > max_x) && (ctx->text.margin.right != 0) ) {
- x = ctx->core.width - ctx->text.margin.right;
- width = ctx->text.margin.right;
- xcb_connection_t *conn = XtDisplay((Widget) ctx);
- xcb_rectangle_t rect = {(int) x,
-                       (int) y - sink->multi_sink.fontset->ascent,
-                       (unsigned int) width,
-                       (unsigned int) sink->multi_sink.fontset->height};
- xcb_poly_fill_rectangle(conn, XtWindow((Widget) ctx),
-         sink->multi_sink.normgc, 1, &rect);
- xcb_flush(conn);
- return(0);
+        x = ctx->core.width - ctx->text.margin.right;
+        width = ctx->text.margin.right;
+        int ascent = sink->multi_sink.fontset->ascent;
+        int height = sink->multi_sink.fontset->height;
+        
+        /* Draw margin background using Cairo or XCB fallback */
+        if (sink->multi_sink.render_ctx) {
+            ISWRenderFillRectangle(sink->multi_sink.render_ctx,
+                                 (int)x, (int)y - ascent,
+                                 (int)width, (int)height);
+        } else {
+            /* XCB fallback */
+            xcb_rectangle_t rect = {(int) x,
+                (int) y - ascent,
+                (unsigned int) width,
+                (unsigned int) height};
+            xcb_poly_fill_rectangle(conn, XtWindow((Widget) ctx),
+                    sink->multi_sink.normgc, 1, &rect);
+            xcb_flush(conn);
+        }
+        return(0);
     }
     return(width);
 }
@@ -339,6 +371,14 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 
     if (!sink->multi_sink.echo) return;
 
+    /* Begin Cairo rendering */
+    if (sink->multi_sink.render_ctx) {
+        ISWRenderBegin(sink->multi_sink.render_ctx);
+        /* Set foreground color based on highlight state */
+        ISWRenderSetColor(sink->multi_sink.render_ctx,
+                         highlight ? sink->text_sink.background : sink->text_sink.foreground);
+    }
+
     y += sink->multi_sink.fontset->ascent;
     for ( j = 0 ; pos1 < pos2 ; ) {
 	pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
@@ -359,16 +399,31 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 		  return;
 
 	        x += temp;
-	               width = CharWidth(w, x, _Isw_atowc(IswTAB));
-	 xcb_connection_t *conn = XtDisplayOfObject(w);
-	 xcb_rectangle_t rect = {(int) x,
-	                              (int) y - sink->multi_sink.fontset->ascent,
-	                              (unsigned int)width,
-	                              (unsigned int)sink->multi_sink.fontset->height};
-	 xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
-	         invgc, 1, &rect);
-	 xcb_flush(conn);
-	               x += width;
+	        width = CharWidth(w, x, _Isw_atowc(IswTAB));
+	        int ascent = sink->multi_sink.fontset->ascent;
+	        int height = sink->multi_sink.fontset->height;
+	        
+	        /* Draw tab background using Cairo or XCB fallback */
+	        if (sink->multi_sink.render_ctx) {
+	            ISWRenderSave(sink->multi_sink.render_ctx);
+	            ISWRenderSetColor(sink->multi_sink.render_ctx,
+	                            highlight ? sink->text_sink.foreground : sink->text_sink.background);
+	            ISWRenderFillRectangle(sink->multi_sink.render_ctx,
+	                                 (int)x, (int)y - ascent,
+	                                 (int)width, (int)height);
+	            ISWRenderRestore(sink->multi_sink.render_ctx);
+	        } else {
+	            /* XCB fallback */
+	            xcb_connection_t *conn = XtDisplayOfObject(w);
+	            xcb_rectangle_t rect = {(int) x,
+	                (int) y - ascent,
+	                (unsigned int) width,
+	                (unsigned int) height};
+	            xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
+	                    invgc, 1, &rect);
+	            xcb_flush(conn);
+	        }
+	        x += width;
                 j = -1;
             }
             else {
@@ -388,6 +443,11 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     }
     if (j > 0)
         (void) PaintText(w, gc, x, y, buf, j);
+    
+    /* End Cairo rendering */
+    if (sink->multi_sink.render_ctx) {
+        ISWRenderEnd(sink->multi_sink.render_ctx);
+    }
 }
 
 #define insertCursor_width 6
@@ -595,6 +655,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     sink->multi_sink.insertCursorOn= CreateInsertCursor(new);
     sink->multi_sink.laststate = IswisOff;
     sink->multi_sink.cursor_x = sink->multi_sink.cursor_y = 0;
+    sink->multi_sink.render_ctx = NULL;
 }
 
 /*	Function Name: Destroy
@@ -608,6 +669,11 @@ static void
 Destroy(Widget w)
 {
    MultiSinkObject sink = (MultiSinkObject) w;
+
+   if (sink->multi_sink.render_ctx) {
+       ISWRenderDestroy(sink->multi_sink.render_ctx);
+       sink->multi_sink.render_ctx = NULL;
+   }
 
    XtReleaseGC(w, sink->multi_sink.normgc);
    XtReleaseGC(w, sink->multi_sink.invgc);

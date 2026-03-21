@@ -68,6 +68,7 @@ SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/Grip.h>
 #include <ISW/PanedP.h>
+#include <ISW/ISWRender.h>
 #include <ctype.h>
 #include <xcb/xcb.h>
 #include <xcb/xfixes.h>
@@ -747,20 +748,56 @@ _DrawRect(PanedWidget pw, GC gc, int on_loc, int off_loc,
           unsigned int on_size, unsigned int off_size)
 {
   xcb_connection_t *conn = XtDisplay(pw);
-  xcb_rectangle_t rect;
+  int x, y;
+  unsigned int width, height;
+  Pixel pixel;
   
   if (IsVert(pw)) {
-    rect.x = off_loc;
-    rect.y = on_loc;
-    rect.width = off_size;
-    rect.height = on_size;
+    x = off_loc;
+    y = on_loc;
+    width = off_size;
+    height = on_size;
   } else {
-    rect.x = on_loc;
-    rect.y = off_loc;
-    rect.width = on_size;
-    rect.height = off_size;
+    x = on_loc;
+    y = off_loc;
+    width = on_size;
+    height = off_size;
   }
   
+  /* Determine pixel value from GC */
+  if (gc == pw->paned.normgc) {
+    pixel = pw->paned.internal_bp;
+  } else if (gc == pw->paned.invgc) {
+    pixel = pw->core.background_pixel;
+  } else {
+    /* flipgc uses XOR mode - fall back to XCB for complex operations */
+    pixel = 0; /* Will use XCB fallback */
+  }
+  
+  /* Try Cairo rendering (except for XOR operations) */
+  if (pixel != 0 || gc != pw->paned.flipgc) {
+    /* Lazy create render context if needed */
+    if (!pw->paned.render_ctx && XtIsRealized((Widget)pw)) {
+      if (pw->core.width > 0 && pw->core.height > 0) {
+        pw->paned.render_ctx = ISWRenderCreate((Widget)pw, ISW_RENDER_BACKEND_AUTO);
+      }
+    }
+    
+    if (pw->paned.render_ctx) {
+      ISWRenderBegin(pw->paned.render_ctx);
+      ISWRenderSetColor(pw->paned.render_ctx, pixel);
+      ISWRenderFillRectangle(pw->paned.render_ctx, x, y, width, height);
+      ISWRenderEnd(pw->paned.render_ctx);
+      return;
+    }
+  }
+  
+  /* Fallback to XCB (also used for flipgc XOR operations) */
+  xcb_rectangle_t rect;
+  rect.x = x;
+  rect.y = y;
+  rect.width = width;
+  rect.height = height;
   xcb_poly_fill_rectangle(conn, XtWindow(pw), gc, 1, &rect);
   xcb_flush(conn);
 }
@@ -1545,6 +1582,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     pw->paned.stack = NULL;
     pw->paned.resize_children_to_pref = TRUE;
     pw->paned.num_panes = 0;
+    pw->paned.render_ctx = NULL;
 }
 
 static void
@@ -1578,6 +1616,11 @@ static void
 ReleaseGCs(Widget w)
 {
     PanedWidget pw = (PanedWidget)w;
+
+    if (pw->paned.render_ctx) {
+        ISWRenderDestroy(pw->paned.render_ctx);
+        pw->paned.render_ctx = NULL;
+    }
 
     XtReleaseGC( w, pw->paned.normgc );
     XtReleaseGC( w, pw->paned.invgc );

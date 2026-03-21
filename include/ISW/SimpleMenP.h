@@ -40,6 +40,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SimpleMenu.h>
 #include <ISW/SmeP.h>
 #include <X11/ShellP.h>
+#include <ISW/ISWRender.h>
 
 typedef struct {
     XtPointer extension;		/* For future needs. */
@@ -98,6 +99,7 @@ typedef struct _SimpleMenuPart {
   Boolean didnt_fit;            /* if some entry didn't fit in the menu */
   Widget sub_menu;              /* submenu of active SmeBSB object */
   unsigned char state;
+  ISWRenderContext *render_ctx; /* Cairo rendering context */
 } SimpleMenuPart;
 
 typedef struct _SimpleMenuRec {

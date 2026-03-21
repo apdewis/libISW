@@ -57,6 +57,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWInit.h>
 #include <ISW/Cardinals.h>
 #include <ISW/TreeP.h>
+#include <ISW/ISWRender.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
@@ -395,6 +396,11 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
     new->tree.gc = get_tree_gc (new);
 
     /*
+     * Initialize the Cairo rendering context
+     */
+    new->tree.render_ctx = NULL;
+
+    /*
      * Create the hidden root widget.
      */
     new->tree.tree_root = (Widget) NULL;
@@ -591,6 +597,11 @@ Destroy (Widget gw)
 {
     TreeWidget w = (TreeWidget) gw;
 
+    if (w->tree.render_ctx) {
+        ISWRenderDestroy(w->tree.render_ctx);
+        w->tree.render_ctx = NULL;
+    }
+
     XtReleaseGC (gw, w->tree.gc);
     if (w->tree.largest) XtFree ((char *) w->tree.largest);
 }
@@ -641,65 +652,82 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		    Widget k = tc->tree.children[j];
 		    xcb_gcontext_t gc = (tc->tree.gc ? tc->tree.gc : tw->tree.gc);
 		    xcb_connection_t *conn = dpy;
-		    xcb_point_t points[2];
+		    int x1, y1, x2, y2;
 
 		    switch (tw->tree.gravity) {
 		      case WestGravity:
 		 /*
 		  * right center to left center
 		  */
-		 points[0].x = srcx;
-		 points[0].y = srcy;
-		 points[1].x = (int) k->core.x;
-		 points[1].y = (k->core.y + ((int) k->core.border_width) +
+		 x1 = srcx;
+		 y1 = srcy;
+		 x2 = (int) k->core.x;
+		 y2 = (k->core.y + ((int) k->core.border_width) +
 		      ((int) k->core.height) / 2);
-		 xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
 		 break;
 
 		      case NorthGravity:
 		 /*
 		  * bottom center to top center
 		  */
-		 points[0].x = srcx;
-		 points[0].y = srcy;
-		 points[1].x = (k->core.x + ((int) k->core.border_width) +
+		 x1 = srcx;
+		 y1 = srcy;
+		 x2 = (k->core.x + ((int) k->core.border_width) +
 		      ((int) k->core.width) / 2);
-		 points[1].y = (int) k->core.y;
-		 xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
+		 y2 = (int) k->core.y;
 		 break;
 
 		      case EastGravity:
 		 /*
 		  * left center to right center
 		  */
-		 points[0].x = srcx;
-		 points[0].y = srcy;
-		 points[1].x = (k->core.x +
+		 x1 = srcx;
+		 y1 = srcy;
+		 x2 = (k->core.x +
 		      (((int) k->core.border_width) << 1) +
 		      (int) k->core.width);
-		 points[1].y = (k->core.y + ((int) k->core.border_width) +
+		 y2 = (k->core.y + ((int) k->core.border_width) +
 		      ((int) k->core.height) / 2);
-		 xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
 		 break;
 
 		      case SouthGravity:
 		 /*
 		  * top center to bottom center
 		  */
-		 points[0].x = srcx;
-		 points[0].y = srcy;
-		 points[1].x = (k->core.x + ((int) k->core.border_width) +
+		 x1 = srcx;
+		 y1 = srcy;
+		 x2 = (k->core.x + ((int) k->core.border_width) +
 		      ((int) k->core.width) / 2);
-		 points[1].y = (k->core.y +
+		 y2 = (k->core.y +
 		      (((int) k->core.border_width) << 1) +
 		      (int) k->core.height);
-		 xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
 		 break;
 		    }
-		    xcb_flush(conn);
+
+		    /* Create render context lazily with dimension validation */
+		    if (!tw->tree.render_ctx && tw->core.width > 0 && tw->core.height > 0) {
+			tw->tree.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
+		    }
+
+		    /* Use Cairo rendering if available, otherwise fall back to XCB */
+		    if (tw->tree.render_ctx) {
+			ISWRenderSetColor(tw->tree.render_ctx, tw->tree.foreground);
+			ISWRenderDrawLine(tw->tree.render_ctx, x1, y1, x2, y2);
+		    } else {
+			/* Fallback to XCB rendering */
+			xcb_point_t points[2];
+			points[0].x = x1;
+			points[0].y = y1;
+			points[1].x = x2;
+			points[1].y = y2;
+			xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
+		    }
 		}
 	    }
 	}
+	
+	/* Flush connection after all drawing */
+	xcb_flush(dpy);
     }
 }
 

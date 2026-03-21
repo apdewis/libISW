@@ -50,6 +50,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSBP.h>
 #include <ISW/Cardinals.h>
+#include <ISW/ISWRender.h>
 #include <stdio.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -205,6 +206,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     SmeBSBObject entry = (SmeBSBObject) new;
 
+    /* Initialize Cairo rendering context */
+    entry->sme_bsb.render_ctx = NULL;
+
     /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
      * If font is NULL but fontset is available, create a minimal XFontStruct
      * using the fontset's font_id (similar to Label.c approach). */
@@ -250,6 +254,12 @@ static void
 Destroy(Widget w)
 {
     SmeBSBObject entry = (SmeBSBObject) w;
+
+    /* Destroy Cairo rendering context */
+    if (entry->sme_bsb.render_ctx) {
+        ISWRenderDestroy(entry->sme_bsb.render_ctx);
+        entry->sme_bsb.render_ctx = NULL;
+    }
 
     DestroyGCs(w);
 #ifdef ISW_MULTIPLANE_PIXMAPS
@@ -304,13 +314,30 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     if (XtIsSensitive(w) && XtIsSensitive( XtParent(w) ) ) {
  if ( w == IswSimpleMenuGetActiveEntry(XtParent(w)) ) {
-     xcb_connection_t *conn = XtDisplayOfObject(w);
-     xcb_rectangle_t rect = {s, y_loc + s,
-      (unsigned int) entry->rectangle.width - 2 * s,
-      (unsigned int) entry->rectangle.height - 2 * s};
-     xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
-      entry->sme_bsb.norm_gc, 1, &rect);
-     xcb_flush(conn);
+     /* Draw highlight background using Cairo or XCB */
+     if (entry->sme_bsb.render_ctx == NULL) {
+         entry->sme_bsb.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+     }
+     
+     if (entry->sme_bsb.render_ctx) {
+         ISWRenderBegin(entry->sme_bsb.render_ctx);
+         /* norm_gc has parent background as foreground for highlight */
+         ISWRenderSetColor(entry->sme_bsb.render_ctx, XtParent(w)->core.background_pixel);
+         ISWRenderFillRectangle(entry->sme_bsb.render_ctx,
+                                s, y_loc + s,
+                                entry->rectangle.width - 2 * s,
+                                entry->rectangle.height - 2 * s);
+         ISWRenderEnd(entry->sme_bsb.render_ctx);
+     } else {
+         /* XCB fallback */
+         xcb_connection_t *conn = XtDisplayOfObject(w);
+         xcb_rectangle_t rect = {s, y_loc + s,
+          (unsigned int) entry->rectangle.width - 2 * s,
+          (unsigned int) entry->rectangle.height - 2 * s};
+         xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
+          entry->sme_bsb.norm_gc, 1, &rect);
+         xcb_flush(conn);
+     }
      gc = entry->sme_bsb.rev_gc;
  }
  else
@@ -379,17 +406,37 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	    int ul = entry->sme_bsb.underline;
 	    int ul_x1_loc = x_loc + s;
 	    int ul_wid;
+	    Pixel underline_color;
 
 	    if (ul != 0)
 	 ul_x1_loc += XTextWidth(entry->sme_bsb.font, label, ul);
 	    ul_wid = XTextWidth(entry->sme_bsb.font, &label[ul], 1) - 2;
-	    xcb_connection_t *conn = XtDisplayOfObject(w);
-	    xcb_point_t points[2] = {
-	 {ul_x1_loc, y_loc + 1},
-	 {ul_x1_loc + ul_wid, y_loc + 1}
-	    };
-	    xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, XtWindowOfObject(w), gc, 2, points);
-	    xcb_flush(conn);
+	    
+	    /* Determine underline color based on which GC is being used */
+	    if (gc == entry->sme_bsb.rev_gc) {
+	        underline_color = entry->sme_bsb.foreground;
+	    } else {
+	        underline_color = XtParent(w)->core.background_pixel;
+	    }
+	    
+	    /* Draw underline using Cairo or XCB */
+	    if (entry->sme_bsb.render_ctx) {
+	        ISWRenderBegin(entry->sme_bsb.render_ctx);
+	        ISWRenderSetColor(entry->sme_bsb.render_ctx, underline_color);
+	        ISWRenderDrawLine(entry->sme_bsb.render_ctx,
+	                          ul_x1_loc, y_loc + 1,
+	                          ul_x1_loc + ul_wid, y_loc + 1);
+	        ISWRenderEnd(entry->sme_bsb.render_ctx);
+	    } else {
+	        /* XCB fallback */
+	        xcb_connection_t *conn = XtDisplayOfObject(w);
+	        xcb_point_t points[2] = {
+	     {ul_x1_loc, y_loc + 1},
+	     {ul_x1_loc + ul_wid, y_loc + 1}
+	        };
+	        xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, XtWindowOfObject(w), gc, 2, points);
+	        xcb_flush(conn);
+	    }
 	}
     }
 
@@ -935,6 +982,10 @@ FlipColors(Widget w)
     if (entry->sme_threeD.shadow_width > 0) {
  (*oclass->sme_threeD_class.shadowdraw) (w);
     } else {
+ /*
+  * invert_gc uses XOR function which Cairo doesn't support directly.
+  * Keep XCB fallback for this rare case (shadow_width == 0).
+  */
  xcb_connection_t *conn = XtDisplayOfObject(w);
  xcb_rectangle_t rect = {s, (int) entry->rectangle.y,
      (unsigned int) entry->rectangle.width - 2 * s,

@@ -53,6 +53,7 @@ in this Software without prior written authorization from the X Consortium.
 #define _ISW_IswTreeP_h
 
 #include <ISW/Tree.h>
+#include <ISW/ISWRender.h>
 
 typedef struct _TreeClassPart {
     int ignore;
@@ -81,6 +82,7 @@ typedef struct {
     Dimension *largest;			/* list of largest per depth */
     int n_largest;			/* number of elements in largest */
     Dimension maxwidth, maxheight;	/* for shrink wrapping */
+    ISWRenderContext *render_ctx;	/* Cairo rendering context */
 } TreePart;
 
 

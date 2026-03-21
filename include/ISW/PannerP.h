@@ -30,6 +30,7 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <ISW/Panner.h>
 #include <ISW/SimpleP.h>		/* parent */
+#include <ISW/ISWRender.h>		/* Cairo rendering context */
 #include <xcb/xproto.h>
 
 typedef struct {			/* new fields in widget class */
@@ -78,6 +79,7 @@ typedef struct {			/* new fields in widget */
     Boolean shadow_valid;		/* true if rects are valid */
     xcb_rectangle_t shadow_rects[2];		/* location of shadows */
     Position last_x, last_y;		/* previous location of knob */
+    ISWRenderContext *render_ctx;	/* Cairo rendering context */
 } PannerPart;
 
 typedef struct _PannerRec {

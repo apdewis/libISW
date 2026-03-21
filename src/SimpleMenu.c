@@ -43,6 +43,7 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <ISW/ISWP.h>
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSBP.h>
 #include <ISW/SmeLine.h>
@@ -124,6 +125,7 @@ static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
 static void ChangeManaged(Widget);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
+static void Destroy(Widget);
 static void ClassInitialize(void);
 static void ClassPartInitialize(WidgetClass);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -198,7 +200,7 @@ SimpleMenuClassRec simpleMenuClassRec = {
     /* compress_exposure  */    TRUE,
     /* compress_enterleave*/ 	TRUE,
     /* visible_interest   */    FALSE,
-    /* destroy            */    NULL,
+    /* destroy            */    Destroy,
     /* resize             */    Resize,
     /* expose             */    Redisplay,
     /* set_values         */    SetValues,
@@ -318,6 +320,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   smw->simple_menu.too_tall = FALSE;
   smw->simple_menu.sub_menu = NULL;
   smw->simple_menu.state = 0;
+  
+  /* Initialize Cairo rendering context to NULL - will be created when first drawn */
+  smw->simple_menu.render_ctx = NULL;
 
   XtAddCallback(new, XtNpopupCallback, PopupCB, NULL);
 
@@ -351,6 +356,24 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   XtAddCallback(new, XtNpopupCallback, ChangeCursorOnGrab, (XtPointer)NULL);
 }
 
+/*      Function Name: Destroy
+ *      Description: Cleans up when the widget is destroyed.
+ *      Arguments: w - the simple menu widget.
+ *      Returns: none.
+ */
+
+static void
+Destroy(Widget w)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) w;
+    
+    /* Free Cairo rendering context */
+    if (smw->simple_menu.render_ctx) {
+        ISWRenderDestroy(smw->simple_menu.render_ctx);
+        smw->simple_menu.render_ctx = NULL;
+    }
+}
+
 /*      Function Name: Redisplay
  *      Description: Redisplays the contents of the widget.
  *      Arguments: w - the simple menu widget.
@@ -372,6 +395,14 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     Boolean can_paint;
     XPoint point[3];
 
+    /* Try to create Cairo rendering context if not yet created */
+    if (!smw->simple_menu.render_ctx && XtIsRealized(w)) {
+        if (smw->core.width > 0 && smw->core.height > 0 &&
+            smw->core.width < 32767 && smw->core.height < 32767) {
+            smw->simple_menu.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+        }
+    }
+
     if (region == NULL) {
  xcb_connection_t *conn = XtDisplay(w);
  xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
@@ -379,9 +410,9 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
 
     if (XtIsRealized((Widget)smw))
-	_ShadowSurroundedBox((Widget)smw, tdw,
-			0, 0, smw->core.width, smw->core.height,
-			tdw->threeD.relief, True);
+ _ShadowSurroundedBox((Widget)smw, tdw,
+   0, 0, smw->core.width, smw->core.height,
+   tdw->threeD.relief, True);
 
     smw->simple_menu.didnt_fit = False;
     y = 0;
@@ -410,18 +441,28 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 		if (smw->simple_menu.current_first != smw->simple_menu.first_entry)
 		{
-		    point[0].x = (*entry)->rectangle.width / 2;
-		    point[0].y = s + 1;
-		    point[1].x = (*entry)->rectangle.width / 2 - SMW_ARROW_SIZE / 2;
-		    point[1].y = s + SMW_ARROW_SIZE;
-		    point[2].x = (*entry)->rectangle.width / 2 + SMW_ARROW_SIZE / 2;
-		    point[2].y = s + SMW_ARROW_SIZE;
-		    xcb_fill_poly(XtDisplay(w), smw->core.window,
-		     tdw->threeD.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
-		     XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
+point[0].x = (*entry)->rectangle.width / 2;
+point[0].y = s + 1;
+point[1].x = (*entry)->rectangle.width / 2 - SMW_ARROW_SIZE / 2;
+point[1].y = s + SMW_ARROW_SIZE;
+point[2].x = (*entry)->rectangle.width / 2 + SMW_ARROW_SIZE / 2;
+point[2].y = s + SMW_ARROW_SIZE;
 
-		    new_y -= SMW_ARROW_SIZE;
-		    dy = SMW_ARROW_SIZE;
+/* Use Cairo rendering for up arrow if available */
+if (smw->simple_menu.render_ctx) {
+		 ISWRenderBegin(smw->simple_menu.render_ctx);
+		 ISWRenderSetColor(smw->simple_menu.render_ctx, tdw->threeD.bot_shadow_pixel);
+		 ISWRenderFillPolygon(smw->simple_menu.render_ctx, (xcb_point_t *)point, 3);
+		 ISWRenderEnd(smw->simple_menu.render_ctx);
+} else {
+		 /* Fallback to XCB rendering */
+		 xcb_fill_poly(XtDisplay(w), smw->core.window,
+		   tdw->threeD.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
+		   XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
+}
+
+new_y -= SMW_ARROW_SIZE;
+dy = SMW_ARROW_SIZE;
 		}
 
 		smw->simple_menu.first_y = new_y;
@@ -435,20 +476,30 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 	    if ((*entry)->rectangle.y + (*entry)->rectangle.height + dy > max_y)
 	    {
-		smw->simple_menu.last_y = (*entry)->rectangle.y;
-		point[0].x = (*entry)->rectangle.width / 2;
-		point[0].y = max_y - 1;
-		point[1].x = (*entry)->rectangle.width / 2 - SMW_ARROW_SIZE / 2;
-		point[1].y = max_y - SMW_ARROW_SIZE;
-		point[2].x = (*entry)->rectangle.width / 2 + SMW_ARROW_SIZE / 2;
-		point[2].y = max_y - SMW_ARROW_SIZE;
-		xcb_fill_poly(XtDisplay(w), smw->core.window,
-			tdw->threeD.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
-			XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
+	 smw->simple_menu.last_y = (*entry)->rectangle.y;
+	 point[0].x = (*entry)->rectangle.width / 2;
+	 point[0].y = max_y - 1;
+	 point[1].x = (*entry)->rectangle.width / 2 - SMW_ARROW_SIZE / 2;
+	 point[1].y = max_y - SMW_ARROW_SIZE;
+	 point[2].x = (*entry)->rectangle.width / 2 + SMW_ARROW_SIZE / 2;
+	 point[2].y = max_y - SMW_ARROW_SIZE;
+	 
+	 /* Use Cairo rendering for down arrow if available */
+	 if (smw->simple_menu.render_ctx) {
+	     ISWRenderBegin(smw->simple_menu.render_ctx);
+	     ISWRenderSetColor(smw->simple_menu.render_ctx, tdw->threeD.bot_shadow_pixel);
+	     ISWRenderFillPolygon(smw->simple_menu.render_ctx, (xcb_point_t *)point, 3);
+	     ISWRenderEnd(smw->simple_menu.render_ctx);
+	 } else {
+	     /* Fallback to XCB rendering */
+	     xcb_fill_poly(XtDisplay(w), smw->core.window,
+	      tdw->threeD.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
+	      XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
+	 }
 
-		smw->simple_menu.didnt_fit = True;
-		(*entry)->rectangle = old_pos;
-		break;
+	 smw->simple_menu.didnt_fit = True;
+	 (*entry)->rectangle = old_pos;
+	 break;
 	    }
 	}
 

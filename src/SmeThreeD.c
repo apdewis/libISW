@@ -33,6 +33,7 @@ SOFTWARE.
 #include <ISW/ThreeDP.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeThreeDP.h>
+#include <ISW/ISWRender.h>
 #include <X11/Xosdefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -443,6 +444,9 @@ Initialize (Widget request, Widget new, ArgList args, Cardinal *num_args)
     SmeThreeDObject 	w = (SmeThreeDObject) new;
     xcb_screen_t		*scr = XtScreenOfObject (new);
 
+    /* Initialize Cairo rendering context */
+    w->sme_threeD.render_ctx = NULL;
+
     if (w->sme_threeD.be_nice_to_cmap || scr->root_depth == 1) {
 	AllocTopShadowPixmap (new);
 	AllocBotShadowPixmap (new);
@@ -463,6 +467,13 @@ Destroy (Widget gw)
 {
     SmeThreeDObject w = (SmeThreeDObject) gw;
     xcb_connection_t *dpy = XtDisplayOfObject (gw);
+
+    /* Clean up Cairo rendering context */
+    if (w->sme_threeD.render_ctx) {
+	ISWRenderDestroy(w->sme_threeD.render_ctx);
+	w->sme_threeD.render_ctx = NULL;
+    }
+
     XtReleaseGC (gw, w->sme_threeD.top_shadow_GC);
     XtReleaseGC (gw, w->sme_threeD.bot_shadow_GC);
     XtReleaseGC (gw, w->sme_threeD.erase_GC);
@@ -583,6 +594,12 @@ _IswSme3dDrawShadows(Widget gw)
 	xcb_window_t	win = XtWindowOfObject(gw);
 	xcb_gcontext_t		top, bot;
 
+	/* Try to create Cairo rendering context if not yet created */
+	if (!tdo->sme_threeD.render_ctx && w > 0 && h > 0 &&
+	    w < 32767 && h < 32767) {
+	    tdo->sme_threeD.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
+	}
+
 	if (tdo->sme_threeD.shadowed)
 	{
 	    top = tdo->sme_threeD.top_shadow_GC;
@@ -591,6 +608,43 @@ _IswSme3dDrawShadows(Widget gw)
 	else
 	    top = bot = tdo->sme_threeD.erase_GC;
 
+	/* Use Cairo rendering if available */
+	if (tdo->sme_threeD.render_ctx) {
+	    Pixel top_pixel, bot_pixel;
+	    Widget parent = XtParent(gw);
+	    
+	    /* Determine which pixels to use based on shadowed flag */
+	    if (tdo->sme_threeD.shadowed) {
+		top_pixel = tdo->sme_threeD.top_shadow_pixel;
+		bot_pixel = tdo->sme_threeD.bot_shadow_pixel;
+	    } else {
+		/* Use parent background for both when not shadowed */
+		top_pixel = bot_pixel = parent->core.background_pixel;
+	    }
+	    
+	    ISWRenderBegin(tdo->sme_threeD.render_ctx);
+	    
+	    /* top-left shadow */
+	    pt[0].x = x;		pt[0].y = y + h;
+	    pt[1].x = x;		pt[1].y = y;
+	    pt[2].x = w;		pt[2].y = y;
+	    pt[3].x = w - s;	pt[3].y = y + s;
+	    pt[4].x = ps + s;       pt[4].y = y + s;
+	    pt[5].x = ps + s;       pt[5].y = y + h - s;
+	    ISWRenderSetColor(tdo->sme_threeD.render_ctx, top_pixel);
+	    ISWRenderFillPolygon(tdo->sme_threeD.render_ctx, pt, 6);
+
+	    /* bottom-right shadow */
+	    pt[1].x = w;		pt[1].y = y + h;
+	    pt[4].x = w - s;	pt[4].y = y + h - s;
+	    ISWRenderSetColor(tdo->sme_threeD.render_ctx, bot_pixel);
+	    ISWRenderFillPolygon(tdo->sme_threeD.render_ctx, pt, 6);
+
+	    ISWRenderEnd(tdo->sme_threeD.render_ctx);
+	    return;  /* Done with Cairo rendering */
+	}
+
+	/* XCB fallback rendering path */
 	/* top-left shadow */
 	pt[0].x = x;		pt[0].y = y + h;
 	pt[1].x = x;		pt[1].y = y;
@@ -601,12 +655,8 @@ _IswSme3dDrawShadows(Widget gw)
 	xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, pt);
 
 	/* bottom-right shadow */
-/*	pt[0].x = x;		pt[0].y = y + h;	*/
 	pt[1].x = w;		pt[1].y = y + h;
-/*	pt[2].x = w;		pt[2].y = y;		*/
-/*	pt[3].x = w - s;	pt[3].y = y + s;	*/
 	pt[4].x = w - s;	pt[4].y = y + h - s;
-/*	pt[5].x = ps + s;	pt[5].y = y + h - s;	*/
 	xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, pt);
     }
 }

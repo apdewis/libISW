@@ -88,6 +88,7 @@ SOFTWARE.
 #include <ISW/TextSinkP.h>
 #include <ISW/MultiSink.h>
 #include <ISW/ISWXftCompat.h>  /* For ISWFontSet typedef */
+#include <ISW/ISWRender.h>
 
 /************************************************************
  *
@@ -121,6 +122,7 @@ typedef struct {
     IswTextInsertState laststate;
     short cursor_x, cursor_y;	/* Cursor Location. */
     ISWFontSet *fontset; /* Phase 3.5: font set to draw */
+    ISWRenderContext *render_ctx;  /* Cairo rendering context */
 } MultiSinkPart;
 
 /****************************************************************

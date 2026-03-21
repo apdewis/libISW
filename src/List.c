@@ -49,6 +49,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xfixes.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ListP.h>
+#include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 
 /* These added so widget knows whether its height, width are user selected.
@@ -430,6 +431,9 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
 
     lw->list.highlight = lw->list.is_highlighted = NO_HIGHLIGHT;
 
+    /* Initialize Cairo rendering context */
+    lw->list.render_ctx = NULL;
+
 } /* Initialize */
 
 /*	Function Name: CvtToItem
@@ -567,10 +571,28 @@ HighlightBackground(Widget w, int x, int y, GC gc)
         height = height - ( lw->list.internal_height - x );
         y = lw->list.internal_height;
     }
-    xcb_connection_t *conn = XtDisplay(w);
-    xcb_rectangle_t rect = {x, y, width, height};
-    xcb_poly_fill_rectangle(conn, XtWindow(w), gc, 1, &rect);
-    xcb_flush(conn);
+
+    /* Use Cairo rendering if available, otherwise fall back to XCB */
+    if (lw->list.render_ctx) {
+        /* Determine color based on which GC is being used */
+        Pixel color;
+        if (gc == lw->list.normgc) {
+            color = lw->list.foreground;
+        } else if (gc == lw->list.revgc) {
+            color = lw->core.background_pixel;
+        } else {
+            /* graygc - use foreground for now, stippling handled by XCB path */
+            color = lw->list.foreground;
+        }
+        
+        ISWRenderSetColor(lw->list.render_ctx, color);
+        ISWRenderFillRectangle(lw->list.render_ctx, x, y, width, height);
+    } else {
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_rectangle_t rect = {x, y, width, height};
+        xcb_poly_fill_rectangle(conn, XtWindow(w), gc, 1, &rect);
+        xcb_flush(conn);
+    }
 }
 
 
@@ -720,14 +742,26 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     ListWidget lw = (ListWidget) w;
     (void)region;
 
+    /* Create render context if needed (lazy initialization) */
+    if (!lw->list.render_ctx && XtIsRealized(w)) {
+        if (w->core.width > 0 && w->core.height > 0) {
+            lw->list.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+        }
+    }
+
+    /* Begin Cairo rendering if available */
+    if (lw->list.render_ctx) {
+        ISWRenderBegin(lw->list.render_ctx);
+    }
+
     if (event == NULL) {	/* repaint all. */
         ul_item = 0;
- lr_item = lw->list.nrows * lw->list.ncols - 1;
- {
-     xcb_connection_t *conn = XtDisplay(w);
-     xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
-     xcb_flush(conn);
- }
+        lr_item = lw->list.nrows * lw->list.ncols - 1;
+        {
+            xcb_connection_t *conn = XtDisplay(w);
+            xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+            xcb_flush(conn);
+        }
     }
     else
         FindCornerItems(w, (XEvent*)event, &ul_item, &lr_item);
@@ -735,6 +769,11 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     for (item = ul_item; (item <= lr_item && item < lw->list.nitems) ; item++)
       if (ItemInRectangle(w, ul_item, lr_item, item))
 	PaintItemName(w, item);
+
+    /* End Cairo rendering if available */
+    if (lw->list.render_ctx) {
+        ISWRenderEnd(lw->list.render_ctx);
+    }
 }
 
 
@@ -795,13 +834,20 @@ static void
 Resize(Widget w)
 {
     Dimension width, height;
+    ListWidget lw = (ListWidget) w;
 
     width = w->core.width;
     height = w->core.height;
 
     if (Layout(w, FALSE, FALSE, &width, &height))
-	XtAppWarning(XtWidgetToApplicationContext(w),
-	   "List Widget: Size changed when it shouldn't have when resising.");
+ XtAppWarning(XtWidgetToApplicationContext(w),
+    "List Widget: Size changed when it shouldn't have when resising.");
+
+    /* On resize, destroy and recreate the render context on next redisplay */
+    if (lw->list.render_ctx) {
+        ISWRenderDestroy(lw->list.render_ctx);
+        lw->list.render_ctx = NULL;
+    }
 }
 
 
@@ -1121,6 +1167,12 @@ static void
 Destroy(Widget w)
 {
     ListWidget lw = (ListWidget) w;
+
+    /* Cleanup Cairo render context */
+    if (lw->list.render_ctx) {
+        ISWRenderDestroy(lw->list.render_ctx);
+        lw->list.render_ctx = NULL;
+    }
 
     /* XCB: Skip XGetGCValues - tile tracking would need separate mechanism */
     XtReleaseGC(w, lw->list.graygc);

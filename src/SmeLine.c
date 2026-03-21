@@ -43,6 +43,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/StringDefs.h>
 
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include <ISW/ThreeDP.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeLineP.h>
@@ -147,6 +148,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     if (entry->rectangle.height == 0)
 	entry->rectangle.height = entry->sme_line.line_width;
 
+    /* Initialize render context to NULL - will be created when first drawn */
+    entry->sme_line.render_ctx = NULL;
+
     CreateGC(new);
 }
 
@@ -206,6 +210,12 @@ DestroyGC(Widget w)
     SmeLineObject entry = (SmeLineObject) w;
     xcb_connection_t *conn = XtDisplayOfObject(w);
 
+    /* Free Cairo rendering context */
+    if (entry->sme_line.render_ctx) {
+        ISWRenderDestroy(entry->sme_line.render_ctx);
+        entry->sme_line.render_ctx = NULL;
+    }
+
     if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
 	xcb_free_gc(conn, entry->sme_line.gc);
 	xcb_flush(conn);
@@ -232,6 +242,29 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     int y = entry->rectangle.y +
 	    (int)(entry->rectangle.height - entry->sme_line.line_width) / 2;
 
+    /* Try to create Cairo rendering context if not yet created */
+    if (!entry->sme_line.render_ctx && XtIsRealized(w)) {
+        if (entry->rectangle.width > 0 && entry->rectangle.height > 0 &&
+            entry->rectangle.width < 32767 && entry->rectangle.height < 32767) {
+            entry->sme_line.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+        }
+    }
+
+    /* Use Cairo rendering if available */
+    if (entry->sme_line.render_ctx && XtIsRealized(w)) {
+        ISWRenderBegin(entry->sme_line.render_ctx);
+        ISWRenderSetColor(entry->sme_line.render_ctx, entry->sme_line.foreground);
+        ISWRenderFillRectangle(entry->sme_line.render_ctx,
+                              s, y,
+                              entry->rectangle.width - 2 * s,
+                              entry->sme_line.line_width);
+        ISWRenderEnd(entry->sme_line.render_ctx);
+        return;  /* Done with Cairo rendering */
+    }
+
+    /*
+     * Fallback to XCB rendering if Cairo not available.
+     */
     xcb_connection_t *conn = XtDisplayOfObject(w);
     if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
  /* XSetTSOrigin needs XCB equivalent - xcb_change_gc with tile/stipple origin */

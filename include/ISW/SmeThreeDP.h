@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <ISW/SmeThreeD.h>
 #include <ISW/SmeP.h>
+#include <ISW/ISWRender.h>
 
 typedef struct {
     Dimension	    shadow_width;
@@ -43,6 +44,7 @@ typedef struct {
     XtPointer	    user_data;
     Boolean	    be_nice_to_cmap;
     Boolean	    shadowed;
+    ISWRenderContext *render_ctx;
   } SmeThreeDPart;
 
 /* Full instance record declaration */
