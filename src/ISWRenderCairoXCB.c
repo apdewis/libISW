@@ -313,6 +313,7 @@ cairo_xcb_stroke_polygon(ISWRenderContext *ctx, xcb_point_t *points, int num)
     for (i = 1; i < num; i++) {
         cairo_line_to(data->cairo_ctx, points[i].x, points[i].y);
     }
+    cairo_close_path(data->cairo_ctx);  /* Close the polygon back to start */
     cairo_stroke(data->cairo_ctx);
 }
 

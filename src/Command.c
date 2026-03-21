@@ -374,8 +374,13 @@ Highlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
     }
   }
 
-  if (XtIsRealized(w))
+  if (XtIsRealized(w)) {
+    /* Clear and repaint to avoid double-border artifacts */
+    xcb_connection_t *conn = XtDisplay(w);
+    xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+    xcb_flush(conn);
     PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
+  }
 }
 
 /* ARGSUSED */
@@ -385,8 +390,13 @@ Unhighlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
   CommandWidget cbw = (CommandWidget)w;
 
   cbw->command.highlighted = HighlightNone;
-  if (XtIsRealized(w))
+  if (XtIsRealized(w)) {
+    /* Clear and repaint to avoid double-border artifacts */
+    xcb_connection_t *conn = XtDisplay(w);
+    xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+    xcb_flush(conn);
     PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
+  }
 }
 
 /* ARGSUSED */
@@ -476,22 +486,23 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   }
 
 /*
- * If we are set then use the same colors as if we are not highlighted.
+ * Always draw the highlight rectangle border when highlightThickness > 0.
+ * Always use normal_GC (foreground color) for border visibility.
  */
 
+  /* Original GC selection for label text rendering */
   if (cbw->command.set == (cbw->command.highlighted == HighlightNone)) {
     norm_gc = cbw->command.inverse_GC;
+    /* Use normal_GC for border to ensure it's always visible */
     rev_gc = cbw->command.normal_GC;
   }
   else {
     norm_gc = cbw->command.normal_GC;
-    rev_gc = cbw->command.inverse_GC;
+    /* Use normal_GC for border to ensure it's always visible */
+    rev_gc = cbw->command.normal_GC;
   }
 
-  if ( !( (!change && (cbw->command.highlighted == HighlightNone)) ||
-   ((cbw->command.highlighted == HighlightWhenUnset) &&
-    (cbw->command.set))) ) {
-    if (very_thick) {
+  if (very_thick) {
       cbw->label.normal_GC = norm_gc; /* Give the label the right GC. */
       
       /* Use Cairo rendering if available */
@@ -534,13 +545,16 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
         xcb_flush(conn);
       }
     }
-  }
   (*SuperClass->core_class.expose) (w, event, 0 /* FIXME: XCB region */);
   
   /* Restore original foreground after Label rendering */
   cbw->label.foreground = saved_foreground;
   
-  /* Shadow drawing removed - ThreeD eliminated */
+  /*
+   * Shadow border drawing disabled - the highlight rectangle (always visible)
+   * serves as the button border. Drawing both creates a double-border artifact.
+   * The 3D shadow effect can be re-enabled if needed for specific themes.
+   */
 }
 
 static void

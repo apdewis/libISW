@@ -684,11 +684,14 @@ static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ToggleWidget tw = (ToggleWidget) w;
-    ISWRenderContext *ctx = tw->label.render_ctx;
+    ISWRenderContext *ctx;
     
     /* Call Label's Redisplay to draw just the text (not Command's button appearance) */
     /* labelWidgetClass is Command's superclass, so we skip the 3D button drawing */
     (*labelWidgetClass->core_class.expose)(w, event, region);
+    
+    /* Get rendering context (created by Label's Redisplay if needed) */
+    ctx = tw->label.render_ctx;
     
     /* If no rendering context, we can't draw indicators */
     if (ctx == NULL) {

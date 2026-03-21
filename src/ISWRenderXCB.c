@@ -234,13 +234,32 @@ static void
 xcb_stroke_polygon(ISWRenderContext *ctx, xcb_point_t *points, int num)
 {
     ISWRenderXCBData *data = (ISWRenderXCBData*)ctx->backend_data;
+    xcb_point_t *closed_points;
+    int i;
     
     if (num < 2) {
         return;
     }
     
+    /* Allocate array with one extra point to close the polygon */
+    closed_points = (xcb_point_t*)malloc(sizeof(xcb_point_t) * (num + 1));
+    if (!closed_points) {
+        return;
+    }
+    
+    /* Copy all points */
+    for (i = 0; i < num; i++) {
+        closed_points[i] = points[i];
+    }
+    
+    /* Add closing point (back to start) */
+    closed_points[num] = points[0];
+    
+    /* Draw the closed polygon */
     xcb_poly_line(ctx->connection, XCB_COORD_MODE_ORIGIN,
-                  ctx->window, data->gc, num, points);
+                  ctx->window, data->gc, num + 1, closed_points);
+    
+    free(closed_points);
 }
 
 static void

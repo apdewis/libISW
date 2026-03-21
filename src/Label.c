@@ -569,6 +569,10 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     xcb_connection_t *conn = gw->core.display;
     ISWRenderContext *ctx = w->label.render_ctx;  /* Cairo rendering context */
     
+    /* Create render context on first use (lazy initialization) */
+    if (!ctx && gw->core.width > 0 && gw->core.height > 0) {
+        ctx = w->label.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
+    }
     
     /* Note: event and region use XCB types per the migration plan */
     (void)event; /* May be used in future for expose event handling */

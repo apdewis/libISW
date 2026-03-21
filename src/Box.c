@@ -89,6 +89,7 @@ static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 static void ChangeManaged(Widget);
@@ -117,7 +118,7 @@ BoxClassRec boxClassRec = {
     /* visible_interest   */    FALSE,
     /* destroy            */    NULL,
     /* resize             */    Resize,
-    /* expose             */    NULL,
+    /* expose             */    Redisplay,
     /* set_values         */    SetValues,
     /* set_values_hook    */	NULL,
     /* set_values_almost  */    XtInheritSetValuesAlmost,
@@ -570,6 +571,43 @@ ChangeManaged(Widget w)
     /* Reconfigure the box */
     (void) TryNewLayout((BoxWidget)w);
     Resize(w);
+}
+
+static void
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+{
+    xcb_connection_t *conn;
+    xcb_window_t win;
+    xcb_gcontext_t gc;
+    
+    /* Only draw border if border_width is set */
+    if (w->core.border_width == 0 || !XtIsRealized(w))
+        return;
+    
+    conn = XtDisplay(w);
+    win = (xcb_window_t) XtWindow(w);
+    
+    /* Create temporary GC for border drawing */
+    gc = xcb_generate_id(conn);
+    uint32_t values[2];
+    values[0] = w->core.background_pixel;
+    values[1] = w->core.border_width;
+    
+    xcb_create_gc(conn, gc, win,
+                  XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH, values);
+    
+    /* Draw border rectangle */
+    xcb_rectangle_t rect;
+    rect.x = 0;
+    rect.y = 0;
+    rect.width = w->core.width;
+    rect.height = w->core.height;
+    
+    xcb_poly_rectangle(conn, win, gc, 1, &rect);
+    
+    /* Clean up */
+    xcb_free_gc(conn, gc);
+    xcb_flush(conn);
 }
 
 static void
