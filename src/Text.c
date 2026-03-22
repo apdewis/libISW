@@ -77,7 +77,6 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <ISW/ISWInit.h>
-#include <ISW/ISWRender.h>
 #include <ISW/Cardinals.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/TextP.h>
@@ -1321,22 +1320,13 @@ _IswTextVScroll(TextWidget ctx, int n)
     if (top >= ctx->text.lastPos)
       DisplayTextWindow( (Widget) ctx);
     else {
-      ISWRenderContext *render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
-      if (render_ctx) {
-	  ISWRenderBegin(render_ctx);
-	  ISWRenderCopyArea(render_ctx,
-			    s, y, s, ctx->text.margin.top,
-			    (unsigned int)(ctx->core.width - 2 * s),
-			    (unsigned int)(ctx->core.height - y - s));
-	  ISWRenderEnd(render_ctx);
-	  ISWRenderDestroy(render_ctx);
-      } else {
-	  xcb_connection_t *conn = XtDisplay(ctx);
-	  xcb_copy_area(conn, XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
-			s, y, s, ctx->text.margin.top,
-			(int)ctx->core.width - 2 * s, (int)ctx->core.height - y - s);
-	  xcb_flush(conn);
-      }
+      /* Use xcb_copy_area directly — the AsciiSink/MultiSink already owns
+       * a Cairo surface for this window, creating a second would corrupt it. */
+      xcb_connection_t *conn = XtDisplay(ctx);
+      xcb_copy_area(conn, XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
+		    s, y, s, ctx->text.margin.top,
+		    (int)ctx->core.width - 2 * s, (int)ctx->core.height - y - s);
+      xcb_flush(conn);
 
       PushCopyQueue(ctx, 0, (int) -y);
       SinkClearToBG(ctx->text.sink,
@@ -1417,24 +1407,12 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
     rect.y = (short) ctx->text.margin.top;
     rect.height = (unsigned short) ctx->core.height - rect.y - 2 * s;
 
-    ISWRenderContext *render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
-    if (render_ctx) {
-	ISWRenderBegin(render_ctx);
-	ISWRenderCopyArea(render_ctx,
-			  pixels + s, (int) rect.y,
-			  s, (int) rect.y,
-			  (unsigned int) rect.x,
-			  (unsigned int)(ctx->core.height - 2 * s));
-	ISWRenderEnd(render_ctx);
-	ISWRenderDestroy(render_ctx);
-    } else {
-	xcb_connection_t *conn = XtDisplay(tw);
-	xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
-		      pixels + s, (int) rect.y,
-		      s, (int) rect.y,
-		      (unsigned int) rect.x, (unsigned int) ctx->core.height - 2 * s);
-	xcb_flush(conn);
-    }
+    xcb_connection_t *conn = XtDisplay(tw);
+    xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
+		  pixels + s, (int) rect.y,
+		  s, (int) rect.y,
+		  (unsigned int) rect.x, (unsigned int) ctx->core.height - 2 * s);
+    xcb_flush(conn);
 
     PushCopyQueue(ctx, (int) -pixels, 0);
   }
@@ -1449,25 +1427,13 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
     rect.y = ctx->text.margin.top;
     rect.height = ctx->core.height - rect.y - 2 * s;
 
-    ISWRenderContext *render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
-    if (render_ctx) {
-	ISWRenderBegin(render_ctx);
-	ISWRenderCopyArea(render_ctx,
-			  (int) rect.x, (int) rect.y,
-			  (int) rect.x + rect.width, (int) rect.y,
-			  (unsigned int)(ctx->core.width - rect.width - 2 * s),
-			  (unsigned int) rect.height);
-	ISWRenderEnd(render_ctx);
-	ISWRenderDestroy(render_ctx);
-    } else {
-	xcb_connection_t *conn = XtDisplay(tw);
-	xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
-		      (int) rect.x, (int) rect.y,
-		      (int) rect.x + rect.width, (int) rect.y,
-		      (unsigned int) ctx->core.width - rect.width - 2 * s,
-		      (unsigned int) rect.height);
-	xcb_flush(conn);
-    }
+    xcb_connection_t *conn = XtDisplay(tw);
+    xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
+		  (int) rect.x, (int) rect.y,
+		  (int) rect.x + rect.width, (int) rect.y,
+		  (unsigned int) ctx->core.width - rect.width - 2 * s,
+		  (unsigned int) rect.height);
+    xcb_flush(conn);
 
     PushCopyQueue(ctx, (int) rect.width, 0);
 
@@ -2875,34 +2841,19 @@ _IswTextPrepareToUpdate(TextWidget ctx)
 static
 void FlushUpdate(TextWidget ctx)
 {
-  int i, w;
-  ISWTextPosition updateFrom, updateTo;
   if (!XtIsRealized((Widget)ctx)) {
     ctx->text.numranges = 0;
     return;
   }
-  while (ctx->text.numranges > 0) {
-    updateFrom = ctx->text.updateFrom[0];
-    w = 0;
-    for (i = 1 ; i < ctx->text.numranges ; i++) {
-      if (ctx->text.updateFrom[i] < updateFrom) {
-	updateFrom = ctx->text.updateFrom[i];
-	w = i;
-      }
-    }
-    updateTo = ctx->text.updateTo[w];
-    ctx->text.numranges--;
-    ctx->text.updateFrom[w] = ctx->text.updateFrom[ctx->text.numranges];
-    ctx->text.updateTo[w] = ctx->text.updateTo[ctx->text.numranges];
-    for (i = ctx->text.numranges - 1 ; i >= 0 ; i--) {
-      while (ctx->text.updateFrom[i] <= updateTo && i < ctx->text.numranges) {
-	updateTo = ctx->text.updateTo[i];
-	ctx->text.numranges--;
-	ctx->text.updateFrom[i] = ctx->text.updateFrom[ctx->text.numranges];
-	ctx->text.updateTo[i] = ctx->text.updateTo[ctx->text.numranges];
-      }
-    }
-    DisplayText((Widget)ctx, updateFrom, updateTo);
+  if (ctx->text.numranges > 0) {
+    ctx->text.numranges = 0;
+    /* Full redraw: clear entire text area and repaint all visible lines.
+     * Cairo text rendering requires explicit background clearing (unlike
+     * XDrawImageString which fills behind glyphs), so incremental updates
+     * cause artifacts. A full redraw is simple and reliable. */
+    ClearWindow((Widget)ctx);
+    _IswTextBuildLineTable(ctx, ctx->text.lt.top, FALSE);
+    DisplayText((Widget)ctx, zeroPosition, ctx->text.lastPos);
   }
 }
 

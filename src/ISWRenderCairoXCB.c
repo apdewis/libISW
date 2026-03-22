@@ -178,7 +178,7 @@ static void
 cairo_xcb_begin(ISWRenderContext *ctx)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
-    
+
     /* Save initial state */
     cairo_save(data->cairo_ctx);
 }
@@ -556,10 +556,13 @@ cairo_xcb_text_width(ISWRenderContext *ctx, const char *text, int len)
     null_term[len] = '\0';
     
     cairo_text_extents(data->cairo_ctx, null_term, &extents);
-    width = (int)extents.width;
-    
+    /* Use x_advance (pen advance), not width (ink bounding box).
+     * width can be smaller than x_advance due to side bearings,
+     * causing cumulative positioning drift in multi-chunk text. */
+    width = (int)ceil(extents.x_advance);
+
     free(null_term);
-    
+
     return width;
 }
 

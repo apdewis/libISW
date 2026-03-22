@@ -86,6 +86,8 @@ static void SetTabs(Widget, int, short *);
 static void DisplayText(Widget, Position, Position, ISWTextPosition,
                         ISWTextPosition, Boolean);
 static void InsertCursor(Widget, Position, Position, IswTextInsertState);
+static void AsciiSinkClearToBackground(Widget, Position, Position,
+                                       Dimension, Dimension);
 static void FindPosition(Widget, ISWTextPosition, int, int, Boolean,
             ISWTextPosition *, int *, int *);
 static void FindDistance(Widget, ISWTextPosition, int, ISWTextPosition, int *,
@@ -146,7 +148,7 @@ AsciiSinkClassRec asciiSinkClassRec = {
   {
     /* DisplayText              */      DisplayText,
     /* InsertCursor             */      InsertCursor,
-    /* ClearToBackground        */      XtInheritClearToBackground,
+    /* ClearToBackground        */      AsciiSinkClearToBackground,
     /* FindPosition             */      FindPosition,
     /* FindDistance             */      FindDistance,
     /* Resolve                  */      Resolve,
@@ -199,6 +201,19 @@ CharWidth (Widget w, int x, unsigned char c)
 	    c = IswSP;
 	    nonPrinting = False;
 	}
+    }
+
+    /* Use Cairo metrics when available so that positioning matches rendering.
+     * XCB font metrics can differ from Cairo's, causing cumulative drift. */
+    if (sink->ascii_sink.render_ctx) {
+	char ch_buf[2];
+	if (nonPrinting) {
+	    ch_buf[0] = '^';
+	    ch_buf[1] = (char)c;
+	    return ISWRenderTextWidth(sink->ascii_sink.render_ctx, ch_buf, 2);
+	}
+	ch_buf[0] = (char)c;
+	return ISWRenderTextWidth(sink->ascii_sink.render_ctx, ch_buf, 1);
     }
 
     /* XCB Fix: Add NULL check for font before accessing fid */
@@ -275,6 +290,20 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
 
     /* Draw text using Cairo or XCB fallback */
     if (sink->ascii_sink.render_ctx) {
+        /* Cairo only draws foreground glyphs (unlike XDrawImageString which
+         * fills the background too). Fill the text background first.
+         * Use ascent + descent + 1 to match line table height and cover
+         * descenders fully. */
+        int asc = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
+        int desc = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
+        Pixel bg = (gc == sink->ascii_sink.invgc) ?
+            sink->text_sink.foreground : sink->text_sink.background;
+        ISWRenderSave(sink->ascii_sink.render_ctx);
+        ISWRenderSetColor(sink->ascii_sink.render_ctx, bg);
+        ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
+                              (int)x, (int)y - asc,
+                              (int)width, (int)(asc + desc + 1));
+        ISWRenderRestore(sink->ascii_sink.render_ctx);
         ISWRenderDrawString(sink->ascii_sink.render_ctx, (char *)buf, len,
                           (int)x, (int)y);
     } else {
@@ -331,33 +360,34 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     GC invgc = highlight ? sink->ascii_sink.normgc : sink->ascii_sink.invgc;
     Pixel fg_color = highlight ? sink->text_sink.background : sink->text_sink.foreground;
     Pixel bg_color = highlight ? sink->text_sink.foreground : sink->text_sink.background;
-    Position orig_y = y;
 
     if (!sink->ascii_sink.echo) return;
+
+    /* Lazy render context creation — must happen BEFORE ISWRenderBegin so that
+     * the Begin/End calls are always balanced on the same render_ctx. */
+    if (!sink->ascii_sink.render_ctx && XtIsRealized((Widget)ctx) &&
+        ctx->core.width > 0 && ctx->core.height > 0) {
+        sink->ascii_sink.render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
+        if (sink->ascii_sink.render_ctx && sink->ascii_sink.font) {
+            ISWRenderSetFont(sink->ascii_sink.render_ctx, sink->ascii_sink.font);
+        }
+    }
 
     /* Begin Cairo rendering if context exists */
     if (sink->ascii_sink.render_ctx) {
         ISWRenderBegin(sink->ascii_sink.render_ctx);
-        
-        /* Set clip rectangle ONCE for the entire text block to prevent rendering
-         * outside widget bounds. This fixes the text disappearing issue where clip
-         * state was being corrupted between lines. */
+
         ISWRenderSetClipRectangle(sink->ascii_sink.render_ctx,
                                   0, 0,
                                   (int)ctx->core.width,
                                   (int)ctx->core.height);
-        
+
         ISWRenderSetColor(sink->ascii_sink.render_ctx, fg_color);
     }
 
     /* XCB Fix: Add NULL check for font before accessing ascent */
     y += sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
     
-    /* DIAGNOSTIC: Log DisplayText coordinate transformation */
-    fprintf(stderr, "[ASCIISINK_DEBUG] DisplayText: original_y=%d, baseline_y=%d, ascent=%d, pos1=%ld, pos2=%ld\n",
-            orig_y, y, 
-            sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11,
-            (long)pos1, (long)pos2);
     for ( j = 0 ; pos1 < pos2 ; ) {
 	pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
 	for (k = 0; k < blk.length; k++) {
@@ -425,6 +455,34 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     }
 }
 
+/*
+ * ClearToBackground override: use Cairo when render_ctx exists.
+ * Must not mix xcb_clear_area with Cairo — they conflict on the same surface.
+ */
+static void
+AsciiSinkClearToBackground(Widget w, Position x, Position y,
+                           Dimension width, Dimension height)
+{
+    if (height == 0 || width == 0) return;
+
+    AsciiSinkObject sink = (AsciiSinkObject) w;
+
+    if (sink->ascii_sink.render_ctx) {
+        ISWRenderBegin(sink->ascii_sink.render_ctx);
+        ISWRenderSetColor(sink->ascii_sink.render_ctx,
+                          sink->text_sink.background);
+        ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
+                               (int)x, (int)y,
+                               (int)width, (int)height);
+        ISWRenderEnd(sink->ascii_sink.render_ctx);
+        return;
+    }
+
+    xcb_connection_t *conn = XtDisplayOfObject(w);
+    xcb_clear_area(conn, 0, XtWindowOfObject(w), x, y, width, height);
+    xcb_flush(conn);
+}
+
 #define insertCursor_width 6
 #define insertCursor_height 3
 static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
@@ -473,38 +531,31 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
 
     GetCursorBounds(w, &rect);
     if (state != sink->ascii_sink.laststate && XtIsRealized(text_widget)) {
-        ISWRenderContext *ctx = sink->ascii_sink.render_ctx;
+        /* Flush Cairo surface before XCB XOR operation, then mark dirty after.
+         * Using XCB copy_plane with XOR GC is simpler and more reliable than
+         * CAIRO_OPERATOR_DIFFERENCE for cursor toggle. */
 #ifdef HAVE_CAIRO
-        void *cr_ptr = ctx ? ISWRenderGetCairoContext(ctx) : NULL;
+        ISWRenderContext *render = sink->ascii_sink.render_ctx;
+        void *cr_ptr = render ? ISWRenderGetCairoContext(render) : NULL;
         if (cr_ptr) {
             cairo_t *cr = (cairo_t *)cr_ptr;
-            xcb_connection_t *conn = XtDisplay(text_widget);
-            xcb_screen_t *screen = (xcb_screen_t *)XtScreen(text_widget);
-            cairo_surface_t *cursor_surf = cairo_xcb_surface_create_for_bitmap(
-                conn, screen, sink->ascii_sink.insertCursorOn,
-                (unsigned int)rect.width, (unsigned int)rect.height);
-            if (cairo_surface_status(cursor_surf) == CAIRO_STATUS_SUCCESS) {
-                ISWRenderBegin(ctx);
-                cairo_save(cr);
-                cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
-                cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-                cairo_mask_surface(cr, cursor_surf,
-                                   (double)rect.x, (double)rect.y);
-                cairo_restore(cr);
-                ISWRenderEnd(ctx);
-            }
-            cairo_surface_destroy(cursor_surf);
-        } else
-#endif
-        {
-            xcb_connection_t *conn = XtDisplay(text_widget);
-            xcb_copy_plane(conn,
-                sink->ascii_sink.insertCursorOn,
-                XtWindow(text_widget), sink->ascii_sink.xorgc,
-                0, 0, (int) rect.x, (int) rect.y,
-                (unsigned int) rect.width, (unsigned int) rect.height, 1);
-            xcb_flush(conn);
+            cairo_surface_t *surf = cairo_get_target(cr);
+            cairo_surface_flush(surf);
         }
+#endif
+        xcb_connection_t *conn = XtDisplay(text_widget);
+        xcb_copy_plane(conn,
+            sink->ascii_sink.insertCursorOn,
+            XtWindow(text_widget), sink->ascii_sink.xorgc,
+            0, 0, (int) rect.x, (int) rect.y,
+            (unsigned int) rect.width, (unsigned int) rect.height, 1);
+        xcb_flush(conn);
+#ifdef HAVE_CAIRO
+        if (cr_ptr) {
+            cairo_t *cr = (cairo_t *)cr_ptr;
+            cairo_surface_mark_dirty(cairo_get_target(cr));
+        }
+#endif
     }
     sink->ascii_sink.laststate = state;
 }
