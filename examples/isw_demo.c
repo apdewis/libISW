@@ -149,12 +149,12 @@ int main(int argc, char *argv[]) {
     /* Set HiDPI scale for demo dimensions */
     demo_scale = ISWScaleFactor(toplevel);
 
-    /* Set main window size and allow resizing (HiDPI-scaled) */
+    /* Set main window size — not scaled, so it fits the screen at any DPI */
     n = 0;
-    XtSetArg(args[n], XtNwidth, S(1200)); n++;
-    XtSetArg(args[n], XtNheight, S(900)); n++;
+    XtSetArg(args[n], XtNwidth, 1200); n++;
+    XtSetArg(args[n], XtNheight, 900); n++;
     XtSetArg(args[n], XtNtitle, "Isw3d Widget Demonstration - Comprehensive Widget Showcase"); n++;
-    XtSetArg(args[n], XtNallowShellResize, True); n++;
+    XtSetArg(args[n], XtNallowShellResize, False); n++;
     XtSetValues(toplevel, args, n);
     
     /* Create main widget structure */
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
     
     /* Realize all widgets */
     XtRealizeWidget(toplevel);
-    
+
     /* Enter event loop */
     XtAppMainLoop(app_context);
     
@@ -182,44 +182,56 @@ int main(int argc, char *argv[]) {
  * ============================================================ */
 
 Widget create_main_window(Widget parent) {
-    Widget paned, menubar, title;
+    Widget viewport, content_box, menubar, title;
     Arg args[10];
     Cardinal n;
-    
-    /* Create main Paned container for resizable sections */
+
+    /* Viewport as direct shell child — explicit size prevents pre-realize
+       expansion via GetGeometry passing child dimensions to the shell */
+    n = 0;
+    XtSetArg(args[n], XtNwidth, 1200); n++;
+    XtSetArg(args[n], XtNheight, 900); n++;
+    XtSetArg(args[n], XtNallowVert, True); n++;
+    XtSetArg(args[n], XtNuseRight, True); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    viewport = XtCreateManagedWidget("viewport", viewportWidgetClass,
+                                      parent, args, n);
+
+    /* Content box inside viewport — holds all demo sections */
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    paned = XtCreateManagedWidget("mainPane", panedWidgetClass,
-                                  parent, args, n);
-    
-    /* Menu bar at top */
-    menubar = create_menubar(paned);
-    
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    content_box = XtCreateManagedWidget("contentBox", boxWidgetClass,
+                                         viewport, args, n);
+
+    /* Menu bar scrolls with content */
+    menubar = create_menubar(content_box);
+
     /* Title section */
-    title = create_title_label(paned);
-    
+    title = create_title_label(content_box);
+
     /* Widget demonstration sections */
-    create_containers_section(paned);
-    create_basic_widgets_section(paned);
-    create_selection_section(paned);
-    
+    create_containers_section(content_box);
+    create_basic_widgets_section(content_box);
+    create_selection_section(content_box);
+
     /* Advanced widgets in a horizontal box */
     Widget advanced_box;
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
-    advanced_box = XtCreateManagedWidget("advancedBox", boxWidgetClass, paned, args, n);
-    
+    advanced_box = XtCreateManagedWidget("advancedBox", boxWidgetClass, content_box, args, n);
+
     create_tree_demo(advanced_box);
     create_layout_demo(advanced_box);
     create_paned_grip_demo(advanced_box);
-    
+
     /* Panner demo in its own section */
-    create_navigation_section(paned);
-    
-    create_specialized_section(paned);
-    
-    return paned;
+    create_navigation_section(content_box);
+
+    create_specialized_section(content_box);
+
+    return viewport;
 }
 
 Widget create_menubar(Widget parent) {
