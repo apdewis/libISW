@@ -349,9 +349,17 @@ draw_it(XtPointer client_data, XtIntervalId *id)
        w->strip_chart.max_value = value;
        if (XtIsRealized((Widget)w) &&
     w->strip_chart.max_value > w->strip_chart.scale) {
-    xcb_connection_t *clear_conn = XtDisplay((Widget)w);
-    xcb_clear_area(clear_conn, 0, XtWindow((Widget)w), 0, 0, 0, 0);
-    xcb_flush(clear_conn);
+    ISWRenderContext *ctx = w->strip_chart.render_ctx;
+    if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, w->core.background_pixel);
+        ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+        ISWRenderEnd(ctx);
+    } else {
+        xcb_connection_t *clear_conn = XtDisplay((Widget)w);
+        xcb_clear_area(clear_conn, 0, XtWindow((Widget)w), 0, 0, 0, 0);
+        xcb_flush(clear_conn);
+    }
     w->strip_chart.interval = repaint_window((Widget)w, 0, (int) w->core.width - 2 * s);
     /* Shadow drawing removed - ThreeD eliminated */
        }
@@ -362,23 +370,39 @@ draw_it(XtPointer client_data, XtIntervalId *id)
        int y = (int) (( w->core.height - 2 * s)
         - (int)(( w->core.height - 2 * s) * value) / w->strip_chart.scale);
 
-    xcb_connection_t *conn = XtDisplay((Widget) w);
-    xcb_rectangle_t rect = {w->strip_chart.interval + s, y + s,
-         (unsigned int) 1, (w->core.height - 2 * s) - y};
-    xcb_poly_fill_rectangle(conn, XtWindow((Widget) w), w->strip_chart.fgGC, 1, &rect);
-    xcb_flush(conn);
-       /*
-	* Fill in the graph lines we just painted over.
-	*/
+    ISWRenderContext *ctx = w->strip_chart.render_ctx;
+    if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, w->strip_chart.fgpixel);
+        ISWRenderFillRectangle(ctx, w->strip_chart.interval + s, y + s,
+                               1, (w->core.height - 2 * s) - y);
 
-    if (w->strip_chart.points != NULL) {
-        w->strip_chart.points[0].x = w->strip_chart.interval + s;
+        /* Fill in the graph lines we just painted over */
+        if (w->strip_chart.points != NULL) {
+            int i, j;
+            ISWRenderSetColor(ctx, w->strip_chart.hipixel);
+            for (i = 1; i < w->strip_chart.scale; i++) {
+                j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
+                ISWRenderDrawLine(ctx, w->strip_chart.interval + s, j + s,
+                                  w->strip_chart.interval + s + 1, j + s);
+            }
+        }
+        ISWRenderEnd(ctx);
+    } else {
+        xcb_connection_t *conn = XtDisplay((Widget) w);
+        xcb_rectangle_t rect = {w->strip_chart.interval + s, y + s,
+             (unsigned int) 1, (w->core.height - 2 * s) - y};
+        xcb_poly_fill_rectangle(conn, XtWindow((Widget) w), w->strip_chart.fgGC, 1, &rect);
+
+        /* Fill in the graph lines we just painted over */
+        if (w->strip_chart.points != NULL) {
+            w->strip_chart.points[0].x = w->strip_chart.interval + s;
             xcb_poly_point(XtDisplay(w), XCB_COORD_MODE_PREVIOUS,
-            XtWindow(w), w->strip_chart.hiGC,
-            w->strip_chart.scale, (xcb_point_t *)w->strip_chart.points);
-       }
-
-       xcb_flush(XtDisplay(w));		    /* Flush output buffers */
+                XtWindow(w), w->strip_chart.hiGC,
+                w->strip_chart.scale, (xcb_point_t *)w->strip_chart.points);
+        }
+        xcb_flush(conn);
+    }
    }
    w->strip_chart.interval++;		    /* Next point */
 } /* draw_it */
@@ -419,9 +443,17 @@ repaint_window(Widget gw, int left, int width)
       SetPoints(gw);
 
       if (XtIsRealized (gw)) {
- xcb_connection_t *clear_conn2 = XtDisplayOfObject(gw);
- xcb_clear_area(clear_conn2, 0, XtWindow(gw), 0, 0, 0, 0);
- xcb_flush(clear_conn2);
+ ISWRenderContext *ctx = w->strip_chart.render_ctx;
+ if (ctx) {
+     ISWRenderBegin(ctx);
+     ISWRenderSetColor(ctx, gw->core.background_pixel);
+     ISWRenderFillRectangle(ctx, 0, 0, gw->core.width, gw->core.height);
+     ISWRenderEnd(ctx);
+ } else {
+     xcb_connection_t *clear_conn2 = XtDisplayOfObject(gw);
+     xcb_clear_area(clear_conn2, 0, XtWindow(gw), 0, 0, 0, 0);
+     xcb_flush(clear_conn2);
+ }
  /* Shadow drawing removed - ThreeD eliminated */
       }
 
@@ -526,26 +558,45 @@ MoveChart(StripChartWidget w, Boolean blit)
     if (!blit) return;		/* we are done... */
 
     if ( ((int) old_max) != ( (int) w->strip_chart.max_value) ) {
-      xcb_connection_t *clear_conn3 = XtDisplay(w);
-      xcb_clear_area(clear_conn3, 0, XtWindow(w), 0, 0, 0, 0);
-      xcb_flush(clear_conn3);
+      ISWRenderContext *ctx = w->strip_chart.render_ctx;
+      if (ctx) {
+          ISWRenderBegin(ctx);
+          ISWRenderSetColor(ctx, w->core.background_pixel);
+          ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+          ISWRenderEnd(ctx);
+      } else {
+          xcb_connection_t *clear_conn3 = XtDisplay(w);
+          xcb_clear_area(clear_conn3, 0, XtWindow(w), 0, 0, 0, 0);
+          xcb_flush(clear_conn3);
+      }
       repaint_window((Widget)w, 0, w->core.width - 2 * s);
       return;
     }
 
-    xcb_connection_t *conn = XtDisplay((Widget)w);
-    xcb_copy_area(conn, XtWindow((Widget)w), XtWindow((Widget)w),
-       w->strip_chart.hiGC,
-       (int) ((w->strip_chart.jump_val == DEFAULT_JUMP) ?
-       (j + s) : (w->strip_chart.jump_val + s)), s,
-       s, s,
-       (unsigned int) j, (unsigned int) ( w->core.height - 2 * s));
-
-    xcb_clear_area(conn, FALSE, XtWindow((Widget)w),
-        (int) j + s, s,
-        (unsigned int) ((w->strip_chart.jump_val == DEFAULT_JUMP) ?
-          j : w->strip_chart.jump_val),
-               (unsigned int) ( w->core.height - 2 * s));
+    {
+    ISWRenderContext *scroll_ctx = w->strip_chart.render_ctx;
+    int src_x = (int) ((w->strip_chart.jump_val == DEFAULT_JUMP) ?
+		       (j + s) : (w->strip_chart.jump_val + s));
+    unsigned int copy_h = (unsigned int)(w->core.height - 2 * s);
+    unsigned int clear_w = (unsigned int)((w->strip_chart.jump_val == DEFAULT_JUMP) ?
+					  j : w->strip_chart.jump_val);
+    if (scroll_ctx) {
+	ISWRenderBegin(scroll_ctx);
+	ISWRenderCopyArea(scroll_ctx, src_x, s, s, s,
+			  (unsigned int) j, copy_h);
+	ISWRenderSetColor(scroll_ctx, w->core.background_pixel);
+	ISWRenderFillRectangle(scroll_ctx, (int) j + s, s,
+			       clear_w, copy_h);
+	ISWRenderEnd(scroll_ctx);
+    } else {
+	xcb_connection_t *conn = XtDisplay((Widget)w);
+	xcb_copy_area(conn, XtWindow((Widget)w), XtWindow((Widget)w),
+		      w->strip_chart.hiGC, src_x, s, s, s,
+		      (unsigned int) j, copy_h);
+	xcb_clear_area(conn, FALSE, XtWindow((Widget)w),
+		       (int) j + s, s, clear_w, copy_h);
+    }
+    }
 
     /* Draw graph reference lines */
     left = j;
@@ -560,13 +611,14 @@ MoveChart(StripChartWidget w, Boolean blit)
         }
         ISWRenderEnd(ctx);
     } else {
+        xcb_connection_t *ref_conn = XtDisplay((Widget)w);
         for (i = 1; i < w->strip_chart.scale; i++) {
             j = i * ((w->core.height - 2 * s) / w->strip_chart.scale);
             xcb_point_t points[2] = {{left, j + s}, {((int)w->core.width - s - 1), j + s}};
-            xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, XtWindow((Widget) w),
+            xcb_poly_line(ref_conn, XCB_COORD_MODE_ORIGIN, XtWindow((Widget) w),
                 w->strip_chart.hiGC, 2, points);
         }
-        xcb_flush(conn);
+        xcb_flush(ref_conn);
     }
     return;
 }

@@ -591,6 +591,41 @@ ISWRenderClearClip(ISWRenderContext *ctx)
 
 /*
  * =================================================================
+ * Pixmap/Bitmap Rendering
+ * =================================================================
+ */
+
+void
+ISWRenderCopyArea(ISWRenderContext *ctx,
+                  int src_x, int src_y,
+                  int dst_x, int dst_y,
+                  unsigned int width, unsigned int height)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->copy_area) {
+        return;
+    }
+
+    ctx->ops->copy_area(ctx, src_x, src_y, dst_x, dst_y, width, height);
+}
+
+void
+ISWRenderDrawPixmap(ISWRenderContext *ctx,
+                    xcb_pixmap_t pixmap,
+                    int src_x, int src_y,
+                    int dst_x, int dst_y,
+                    unsigned int width, unsigned int height,
+                    unsigned int depth)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->draw_pixmap || !pixmap) {
+        return;
+    }
+
+    ctx->ops->draw_pixmap(ctx, pixmap, src_x, src_y, dst_x, dst_y,
+                          width, height, depth);
+}
+
+/*
+ * =================================================================
  * Advanced Features (Cairo-only)
  * =================================================================
  */

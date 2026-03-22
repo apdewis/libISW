@@ -715,23 +715,53 @@ PaintItemName(Widget w, int item)
 
     str =  lw->list.list[item];	/* draw it */
 
-    ClipToShadowInteriorAndLongest( lw, &gc, x );
+    /* Use Cairo rendering for text if available */
+    if (lw->list.render_ctx) {
+        /* Set clip for Cairo */
+        xcb_rectangle_t clip_rect;
+        clip_rect.x = x;
+        clip_rect.y = lw->list.internal_height;
+        clip_rect.height = lw->core.height - lw->list.internal_height * 2;
+        clip_rect.width = lw->core.width - lw->list.internal_width - x;
+        if (clip_rect.width > lw->list.longest)
+            clip_rect.width = lw->list.longest;
+
+        ISWRenderSetClipRectangle(lw->list.render_ctx,
+                                  clip_rect.x, clip_rect.y,
+                                  clip_rect.width, clip_rect.height);
+
+        /* Determine text color */
+        Pixel text_color;
+        if (gc == lw->list.revgc)
+            text_color = lw->core.background_pixel;
+        else
+            text_color = lw->list.foreground;
+
+        ISWRenderSetColor(lw->list.render_ctx, text_color);
+        if (lw->list.font)
+            ISWRenderSetFont(lw->list.render_ctx, lw->list.font);
+        ISWRenderDrawString(lw->list.render_ctx, str, strlen(str), x, str_y);
+
+        ISWRenderClearClip(lw->list.render_ctx);
+    } else {
+        ClipToShadowInteriorAndLongest( lw, &gc, x );
 
 #ifdef ISW_INTERNATIONALIZATION
-    if ( lw->simple.international == True )
-        IswDrawString( XtDisplay( w ), XtWindow( w ), lw->list.fontset,
-		  gc, x, str_y, str, strlen( str ) );
-    else
+        if ( lw->simple.international == True )
+            IswDrawString( XtDisplay( w ), XtWindow( w ), lw->list.fontset,
+                      gc, x, str_y, str, strlen( str ) );
+        else
 #endif
-    {
+        {
+            xcb_connection_t *conn = XtDisplay( w );
+            xcb_image_text_8(conn, strlen(str), XtWindow(w), gc, x, str_y, str);
+            xcb_flush(conn);
+        }
+
         xcb_connection_t *conn = XtDisplay( w );
-        xcb_image_text_8(conn, strlen(str), XtWindow(w), gc, x, str_y, str);
+        xcb_set_clip_rectangles(conn, XCB_CLIP_ORDERING_UNSORTED, gc, 0, 0, 0, NULL);
         xcb_flush(conn);
     }
-
-    xcb_connection_t *conn = XtDisplay( w );
-    xcb_set_clip_rectangles(conn, XCB_CLIP_ORDERING_UNSORTED, gc, 0, 0, 0, NULL);
-    xcb_flush(conn);
 }
 
 
@@ -766,7 +796,11 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (event == NULL) {	/* repaint all. */
         ul_item = 0;
         lr_item = lw->list.nrows * lw->list.ncols - 1;
-        {
+        if (lw->list.render_ctx) {
+            ISWRenderSetColor(lw->list.render_ctx, w->core.background_pixel);
+            ISWRenderFillRectangle(lw->list.render_ctx, 0, 0,
+                                   w->core.width, w->core.height);
+        } else {
             xcb_connection_t *conn = XtDisplay(w);
             xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
             xcb_flush(conn);

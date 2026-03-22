@@ -573,6 +573,43 @@ xcb_clear_clip(ISWRenderContext *ctx)
 
 /*
  * =================================================================
+ * Pixmap/Bitmap Rendering
+ * =================================================================
+ */
+
+static void
+xcb_copy_area_op(ISWRenderContext *ctx,
+                 int src_x, int src_y,
+                 int dst_x, int dst_y,
+                 unsigned int width, unsigned int height)
+{
+    ISWRenderXCBData *data = (ISWRenderXCBData*)ctx->backend_data;
+
+    xcb_copy_area(ctx->connection, ctx->window, ctx->window,
+                  data->gc, src_x, src_y, dst_x, dst_y, width, height);
+}
+
+static void
+xcb_draw_pixmap(ISWRenderContext *ctx,
+                xcb_pixmap_t pixmap,
+                int src_x, int src_y,
+                int dst_x, int dst_y,
+                unsigned int width, unsigned int height,
+                unsigned int depth)
+{
+    ISWRenderXCBData *data = (ISWRenderXCBData*)ctx->backend_data;
+
+    if (depth == 1) {
+        xcb_copy_plane(ctx->connection, pixmap, ctx->window, data->gc,
+                       src_x, src_y, dst_x, dst_y, width, height, 1);
+    } else {
+        xcb_copy_area(ctx->connection, pixmap, ctx->window, data->gc,
+                      src_x, src_y, dst_x, dst_y, width, height);
+    }
+}
+
+/*
+ * =================================================================
  * Advanced Features (Not Supported)
  * =================================================================
  */
@@ -626,6 +663,8 @@ const ISWRenderOps isw_render_xcb_ops = {
     .draw_bevel = xcb_draw_bevel,
     .set_clip_rectangle = xcb_set_clip_rectangle,
     .clear_clip = xcb_clear_clip,
+    .copy_area = xcb_copy_area_op,
+    .draw_pixmap = xcb_draw_pixmap,
     .set_gradient = xcb_set_gradient,
     .get_cairo_context = xcb_get_cairo_context
 };

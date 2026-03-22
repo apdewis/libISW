@@ -332,9 +332,17 @@ Unset(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
   cbw->command.set = FALSE;
   if (XtIsRealized(w)) {
-    xcb_connection_t *conn = XtDisplay(w);
-    xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
-    xcb_flush(conn);
+    ISWRenderContext *ctx = cbw->label.render_ctx;
+    if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, w->core.background_pixel);
+        ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+        ISWRenderEnd(ctx);
+    } else {
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+        xcb_flush(conn);
+    }
     PaintCommandWidget(w, event, (Region) NULL, TRUE);
   }
 }
@@ -376,9 +384,17 @@ Highlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
   if (XtIsRealized(w)) {
     /* Clear and repaint to avoid double-border artifacts */
-    xcb_connection_t *conn = XtDisplay(w);
-    xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
-    xcb_flush(conn);
+    ISWRenderContext *ctx = cbw->label.render_ctx;
+    if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, w->core.background_pixel);
+        ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+        ISWRenderEnd(ctx);
+    } else {
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+        xcb_flush(conn);
+    }
     PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
   }
 }
@@ -392,9 +408,17 @@ Unhighlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
   cbw->command.highlighted = HighlightNone;
   if (XtIsRealized(w)) {
     /* Clear and repaint to avoid double-border artifacts */
-    xcb_connection_t *conn = XtDisplay(w);
-    xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
-    xcb_flush(conn);
+    ISWRenderContext *ctx = cbw->label.render_ctx;
+    if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, w->core.background_pixel);
+        ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+        ISWRenderEnd(ctx);
+    } else {
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+        xcb_flush(conn);
+    }
     PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
   }
 }

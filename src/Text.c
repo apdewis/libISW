@@ -77,6 +77,7 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include <ISW/Cardinals.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/TextP.h>
@@ -1320,11 +1321,22 @@ _IswTextVScroll(TextWidget ctx, int n)
     if (top >= ctx->text.lastPos)
       DisplayTextWindow( (Widget) ctx);
     else {
-      xcb_connection_t *conn = XtDisplay(ctx);
-      xcb_copy_area(conn, XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
-  s, y, s, ctx->text.margin.top,
-  (int)ctx->core.width - 2 * s, (int)ctx->core.height - y - s);
-      xcb_flush(conn);
+      ISWRenderContext *render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
+      if (render_ctx) {
+	  ISWRenderBegin(render_ctx);
+	  ISWRenderCopyArea(render_ctx,
+			    s, y, s, ctx->text.margin.top,
+			    (unsigned int)(ctx->core.width - 2 * s),
+			    (unsigned int)(ctx->core.height - y - s));
+	  ISWRenderEnd(render_ctx);
+	  ISWRenderDestroy(render_ctx);
+      } else {
+	  xcb_connection_t *conn = XtDisplay(ctx);
+	  xcb_copy_area(conn, XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
+			s, y, s, ctx->text.margin.top,
+			(int)ctx->core.width - 2 * s, (int)ctx->core.height - y - s);
+	  xcb_flush(conn);
+      }
 
       PushCopyQueue(ctx, 0, (int) -y);
       SinkClearToBG(ctx->text.sink,
@@ -1405,12 +1417,24 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
     rect.y = (short) ctx->text.margin.top;
     rect.height = (unsigned short) ctx->core.height - rect.y - 2 * s;
 
-    xcb_connection_t *conn = XtDisplay(tw);
-    xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
-       pixels + s, (int) rect.y,
-       s, (int) rect.y,
-       (unsigned int) rect.x, (unsigned int) ctx->core.height - 2 * s);
-    xcb_flush(conn);
+    ISWRenderContext *render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
+    if (render_ctx) {
+	ISWRenderBegin(render_ctx);
+	ISWRenderCopyArea(render_ctx,
+			  pixels + s, (int) rect.y,
+			  s, (int) rect.y,
+			  (unsigned int) rect.x,
+			  (unsigned int)(ctx->core.height - 2 * s));
+	ISWRenderEnd(render_ctx);
+	ISWRenderDestroy(render_ctx);
+    } else {
+	xcb_connection_t *conn = XtDisplay(tw);
+	xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
+		      pixels + s, (int) rect.y,
+		      s, (int) rect.y,
+		      (unsigned int) rect.x, (unsigned int) ctx->core.height - 2 * s);
+	xcb_flush(conn);
+    }
 
     PushCopyQueue(ctx, (int) -pixels, 0);
   }
@@ -1425,13 +1449,25 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
     rect.y = ctx->text.margin.top;
     rect.height = ctx->core.height - rect.y - 2 * s;
 
-    xcb_connection_t *conn = XtDisplay(tw);
-    xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
-       (int) rect.x, (int) rect.y,
-       (int) rect.x + rect.width, (int) rect.y,
-       (unsigned int) ctx->core.width - rect.width - 2 * s,
-       (unsigned int) rect.height);
-    xcb_flush(conn);
+    ISWRenderContext *render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
+    if (render_ctx) {
+	ISWRenderBegin(render_ctx);
+	ISWRenderCopyArea(render_ctx,
+			  (int) rect.x, (int) rect.y,
+			  (int) rect.x + rect.width, (int) rect.y,
+			  (unsigned int)(ctx->core.width - rect.width - 2 * s),
+			  (unsigned int) rect.height);
+	ISWRenderEnd(render_ctx);
+	ISWRenderDestroy(render_ctx);
+    } else {
+	xcb_connection_t *conn = XtDisplay(tw);
+	xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
+		      (int) rect.x, (int) rect.y,
+		      (int) rect.x + rect.width, (int) rect.y,
+		      (unsigned int) ctx->core.width - rect.width - 2 * s,
+		      (unsigned int) rect.height);
+	xcb_flush(conn);
+    }
 
     PushCopyQueue(ctx, (int) rect.width, 0);
 

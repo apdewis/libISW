@@ -653,17 +653,28 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	    }
 #endif
 
-	    if (w->label.depth == 1)
-	    	xcb_copy_plane(conn, pm, XtWindow(gw), gc, 0, 0,
-	    		   (int) w->label.internal_width,
-	    		   (int) w->label.lbm_y,
-	    		   w->label.lbm_width, w->label.lbm_height,
-	    		   1L);
-	        else
-	    	xcb_copy_area(conn, pm, XtWindow(gw), gc, 0, 0,
-	    		  (int) w->label.internal_width,
-	    		  (int) w->label.lbm_y,
-	    		  w->label.lbm_width, w->label.lbm_height);
+	    if (ctx) {
+		ISWRenderBegin(ctx);
+		ISWRenderSetColor(ctx, w->label.foreground);
+		ISWRenderDrawPixmap(ctx, pm, 0, 0,
+				    (int) w->label.internal_width,
+				    (int) w->label.lbm_y,
+				    w->label.lbm_width, w->label.lbm_height,
+				    w->label.depth);
+		ISWRenderEnd(ctx);
+	    } else {
+		if (w->label.depth == 1)
+		    xcb_copy_plane(conn, pm, XtWindow(gw), gc, 0, 0,
+				   (int) w->label.internal_width,
+				   (int) w->label.lbm_y,
+				   w->label.lbm_width, w->label.lbm_height,
+				   1L);
+		else
+		    xcb_copy_area(conn, pm, XtWindow(gw), gc, 0, 0,
+				  (int) w->label.internal_width,
+				  (int) w->label.lbm_y,
+				  w->label.lbm_width, w->label.lbm_height);
+	    }
 	}
 
 #ifdef ISW_INTERNATIONALIZATION
@@ -774,15 +785,25 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	}
 #endif
 
-	if (w->label.depth == 1)
-	    xcb_copy_plane(conn, pm, XtWindow(gw), gc, 0, 0,
-		       w->label.label_x, w->label.label_y,
-		       w->label.label_width, w->label.label_height,
-		       1L);
-	else
-	    xcb_copy_area(conn, pm, XtWindow(gw), gc, 0, 0,
-		      w->label.label_x, w->label.label_y,
-		      w->label.label_width, w->label.label_height);
+	if (ctx) {
+	    ISWRenderBegin(ctx);
+	    ISWRenderSetColor(ctx, w->label.foreground);
+	    ISWRenderDrawPixmap(ctx, pm, 0, 0,
+				w->label.label_x, w->label.label_y,
+				w->label.label_width, w->label.label_height,
+				w->label.depth);
+	    ISWRenderEnd(ctx);
+	} else {
+	    if (w->label.depth == 1)
+		xcb_copy_plane(conn, pm, XtWindow(gw), gc, 0, 0,
+			       w->label.label_x, w->label.label_y,
+			       w->label.label_width, w->label.label_height,
+			       1L);
+	    else
+		xcb_copy_area(conn, pm, XtWindow(gw), gc, 0, 0,
+			      w->label.label_x, w->label.label_y,
+			      w->label.label_width, w->label.label_height);
+	}
     }
 
 #ifdef notdef

@@ -419,8 +419,23 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             y_loc += ((int)entry->rectangle.height -
     (font_ascent + font_descent)) / 2 + font_ascent;
 
-            ISWXcbDrawText(XtDisplayOfObject(w), XtWindowOfObject(w), gc,
-      x_loc + s, y_loc, label, len);
+            if (entry->sme_bsb.render_ctx) {
+                Pixel text_color;
+                if (gc == entry->sme_bsb.rev_gc)
+                    text_color = entry->sme_bsb.foreground;
+                else
+                    text_color = XtParent(w)->core.background_pixel;
+                ISWRenderBegin(entry->sme_bsb.render_ctx);
+                ISWRenderSetColor(entry->sme_bsb.render_ctx, text_color);
+                if (entry->sme_bsb.font)
+                    ISWRenderSetFont(entry->sme_bsb.render_ctx, entry->sme_bsb.font);
+                ISWRenderDrawString(entry->sme_bsb.render_ctx, label, len,
+                                    x_loc + s, y_loc);
+                ISWRenderEnd(entry->sme_bsb.render_ctx);
+            } else {
+                ISWXcbDrawText(XtDisplayOfObject(w), XtWindowOfObject(w), gc,
+                    x_loc + s, y_loc, label, len);
+            }
         }
 
 	if (entry->sme_bsb.underline >= 0 && entry->sme_bsb.underline < len) {
@@ -754,18 +769,31 @@ DrawBitmaps(Widget w, GC gc)
     }
 #endif
 
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-    if (entry->sme_bsb.left_depth == 1)
- xcb_copy_plane(conn, pm, XtWindowOfObject(w), gc, 0, 0,
-  x_loc, y_loc,
-  entry->sme_bsb.left_bitmap_width,
-  entry->sme_bsb.left_bitmap_height, 1);
-    else
- xcb_copy_area(conn, pm, XtWindowOfObject(w), gc, 0, 0,
-  x_loc, y_loc,
-  entry->sme_bsb.left_bitmap_width,
-  entry->sme_bsb.left_bitmap_height);
-    xcb_flush(conn);
+    if (entry->sme_bsb.render_ctx) {
+	Pixel fg = (gc == entry->sme_bsb.rev_gc) ?
+	    XtParent(w)->core.background_pixel : entry->sme_bsb.foreground;
+	ISWRenderBegin(entry->sme_bsb.render_ctx);
+	ISWRenderSetColor(entry->sme_bsb.render_ctx, fg);
+	ISWRenderDrawPixmap(entry->sme_bsb.render_ctx, pm, 0, 0,
+			    x_loc, y_loc,
+			    entry->sme_bsb.left_bitmap_width,
+			    entry->sme_bsb.left_bitmap_height,
+			    entry->sme_bsb.left_depth);
+	ISWRenderEnd(entry->sme_bsb.render_ctx);
+    } else {
+	xcb_connection_t *conn = XtDisplayOfObject(w);
+	if (entry->sme_bsb.left_depth == 1)
+	    xcb_copy_plane(conn, pm, XtWindowOfObject(w), gc, 0, 0,
+			   x_loc, y_loc,
+			   entry->sme_bsb.left_bitmap_width,
+			   entry->sme_bsb.left_bitmap_height, 1);
+	else
+	    xcb_copy_area(conn, pm, XtWindowOfObject(w), gc, 0, 0,
+			  x_loc, y_loc,
+			  entry->sme_bsb.left_bitmap_width,
+			  entry->sme_bsb.left_bitmap_height);
+	xcb_flush(conn);
+    }
   }
 
 /*
@@ -794,18 +822,31 @@ DrawBitmaps(Widget w, GC gc)
     }
 #endif
 
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-    if (entry->sme_bsb.right_depth == 1)
- xcb_copy_plane(conn, pm, XtWindowOfObject(w), gc, 0, 0,
-  x_loc, y_loc,
-  entry->sme_bsb.right_bitmap_width,
-  entry->sme_bsb.right_bitmap_height, 1);
-    else
- xcb_copy_area(conn, pm, XtWindowOfObject(w), gc, 0, 0,
-  x_loc, y_loc,
-  entry->sme_bsb.right_bitmap_width,
-  entry->sme_bsb.right_bitmap_height);
-    xcb_flush(conn);
+    if (entry->sme_bsb.render_ctx) {
+	Pixel fg = (gc == entry->sme_bsb.rev_gc) ?
+	    XtParent(w)->core.background_pixel : entry->sme_bsb.foreground;
+	ISWRenderBegin(entry->sme_bsb.render_ctx);
+	ISWRenderSetColor(entry->sme_bsb.render_ctx, fg);
+	ISWRenderDrawPixmap(entry->sme_bsb.render_ctx, pm, 0, 0,
+			    x_loc, y_loc,
+			    entry->sme_bsb.right_bitmap_width,
+			    entry->sme_bsb.right_bitmap_height,
+			    entry->sme_bsb.right_depth);
+	ISWRenderEnd(entry->sme_bsb.render_ctx);
+    } else {
+	xcb_connection_t *conn = XtDisplayOfObject(w);
+	if (entry->sme_bsb.right_depth == 1)
+	    xcb_copy_plane(conn, pm, XtWindowOfObject(w), gc, 0, 0,
+			   x_loc, y_loc,
+			   entry->sme_bsb.right_bitmap_width,
+			   entry->sme_bsb.right_bitmap_height, 1);
+	else
+	    xcb_copy_area(conn, pm, XtWindowOfObject(w), gc, 0, 0,
+			  x_loc, y_loc,
+			  entry->sme_bsb.right_bitmap_width,
+			  entry->sme_bsb.right_bitmap_height);
+	xcb_flush(conn);
+    }
   }
 }
 

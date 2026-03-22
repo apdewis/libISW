@@ -59,6 +59,7 @@ SOFTWARE.
 #include	<X11/StringDefs.h>
 #include	<ISW/ISWInit.h>
 #include	<ISW/BoxP.h>
+#include	<ISW/ISWRender.h>
 #include	"ISWXcbDraw.h"
 
 /****************************************************************
@@ -576,38 +577,32 @@ ChangeManaged(Widget w)
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-    xcb_connection_t *conn;
-    xcb_window_t win;
-    xcb_gcontext_t gc;
-    
     /* Only draw border if border_width is set */
     if (w->core.border_width == 0 || !XtIsRealized(w))
         return;
-    
-    conn = XtDisplay(w);
-    win = (xcb_window_t) XtWindow(w);
-    
-    /* Create temporary GC for border drawing */
-    gc = xcb_generate_id(conn);
-    uint32_t values[2];
-    values[0] = w->core.background_pixel;
-    values[1] = w->core.border_width;
-    
-    xcb_create_gc(conn, gc, win,
-                  XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH, values);
-    
-    /* Draw border rectangle */
-    xcb_rectangle_t rect;
-    rect.x = 0;
-    rect.y = 0;
-    rect.width = w->core.width;
-    rect.height = w->core.height;
-    
-    xcb_poly_rectangle(conn, win, gc, 1, &rect);
-    
-    /* Clean up */
-    xcb_free_gc(conn, gc);
-    xcb_flush(conn);
+
+    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, w->core.background_pixel);
+        ISWRenderSetLineWidth(ctx, (double)w->core.border_width);
+        ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);
+        ISWRenderEnd(ctx);
+        ISWRenderDestroy(ctx);
+    } else {
+        xcb_connection_t *conn = XtDisplay(w);
+        xcb_window_t win = (xcb_window_t) XtWindow(w);
+        xcb_gcontext_t gc = xcb_generate_id(conn);
+        uint32_t values[2];
+        values[0] = w->core.background_pixel;
+        values[1] = w->core.border_width;
+        xcb_create_gc(conn, gc, win,
+                      XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH, values);
+        xcb_rectangle_t rect = {0, 0, w->core.width, w->core.height};
+        xcb_poly_rectangle(conn, win, gc, 1, &rect);
+        xcb_free_gc(conn, gc);
+        xcb_flush(conn);
+    }
 }
 
 static void

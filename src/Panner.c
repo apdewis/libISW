@@ -38,6 +38,10 @@ in this Software without prior written authorization from the X Consortium.
 #include <stdlib.h>			/* for atof() */
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#ifdef HAVE_CAIRO
+#include <cairo.h>
+#include <cairo-xcb.h>
+#endif
 #include "ISWXcbDraw.h"
 
 #if defined(ISC) && __STDC__ && !defined(ISC30)
@@ -496,19 +500,42 @@ parse_page_string (char *s, int pagesize, int canvassize, Boolean *relative)
 }
 
 
-#define DRAW_TMP(pw) \
-{ \
-    xcb_connection_t *conn = XtDisplay(pw); \
-    xcb_rectangle_t rect = { \
-        (int) (pw->panner.tmp.x + pw->panner.internal_border), \
-        (int) (pw->panner.tmp.y + pw->panner.internal_border), \
-        (unsigned int) (pw->panner.knob_width - 1), \
-        (unsigned int) (pw->panner.knob_height - 1) \
-    }; \
-    xcb_poly_rectangle(conn, XtWindow(pw), pw->panner.xor_gc, 1, &rect); \
-    xcb_flush(conn); \
-    pw->panner.tmp.showing = !pw->panner.tmp.showing; \
+static void
+draw_tmp_rubber_band(PannerWidget pw)
+{
+    int rx = (int)(pw->panner.tmp.x + pw->panner.internal_border);
+    int ry = (int)(pw->panner.tmp.y + pw->panner.internal_border);
+    unsigned int rw = (unsigned int)(pw->panner.knob_width - 1);
+    unsigned int rh = (unsigned int)(pw->panner.knob_height - 1);
+
+#ifdef HAVE_CAIRO
+    ISWRenderContext *ctx = pw->panner.render_ctx;
+    void *cr_ptr = ctx ? ISWRenderGetCairoContext(ctx) : NULL;
+    if (cr_ptr) {
+        cairo_t *cr = (cairo_t *)cr_ptr;
+        double lw = (pw->panner.line_width > 0) ?
+                     (double)pw->panner.line_width : 1.0;
+        ISWRenderBegin(ctx);
+        cairo_save(cr);
+        cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
+        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        cairo_set_line_width(cr, lw);
+        cairo_rectangle(cr, rx + 0.5, ry + 0.5, rw, rh);
+        cairo_stroke(cr);
+        cairo_restore(cr);
+        ISWRenderEnd(ctx);
+    } else
+#endif
+    {
+        xcb_connection_t *conn = XtDisplay(pw);
+        xcb_rectangle_t rect = { rx, ry, rw, rh };
+        xcb_poly_rectangle(conn, XtWindow(pw), pw->panner.xor_gc, 1, &rect);
+        xcb_flush(conn);
+    }
+    pw->panner.tmp.showing = !pw->panner.tmp.showing;
 }
+
+#define DRAW_TMP(pw) draw_tmp_rubber_band(pw)
 
 #define UNDRAW_TMP(pw) \
 { \
@@ -635,8 +662,17 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     pw->panner.tmp.showing = FALSE;
     
-    /* Clear old knob position - use XCB for now */
-    {
+    /* Clear old knob position */
+    if (pw->panner.render_ctx) {
+        ISWRenderBegin(pw->panner.render_ctx);
+        ISWRenderSetColor(pw->panner.render_ctx, pw->core.background_pixel);
+        ISWRenderFillRectangle(pw->panner.render_ctx,
+                       (int) pw->panner.last_x - ((int) lw) + pad,
+                       (int) pw->panner.last_y - ((int) lw) + pad,
+                       (int) (pw->panner.knob_width + extra),
+                       (int) (pw->panner.knob_height + extra));
+        ISWRenderEnd(pw->panner.render_ctx);
+    } else {
         xcb_connection_t *clear_conn = XtDisplay(pw);
         xcb_clear_area(clear_conn, 0, XtWindow(pw),
                        (int) pw->panner.last_x - ((int) lw) + pad,

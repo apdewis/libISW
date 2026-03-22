@@ -91,12 +91,24 @@ typedef struct _ISWRenderOps {
                               int x, int y, int w, int h);
     void (*clear_clip)(struct _ISWRenderContext *ctx);
     
+    /* Pixmap/Bitmap rendering */
+    void (*copy_area)(struct _ISWRenderContext *ctx,
+                      int src_x, int src_y,
+                      int dst_x, int dst_y,
+                      unsigned int width, unsigned int height);
+    void (*draw_pixmap)(struct _ISWRenderContext *ctx,
+                        xcb_pixmap_t pixmap,
+                        int src_x, int src_y,
+                        int dst_x, int dst_y,
+                        unsigned int width, unsigned int height,
+                        unsigned int depth);
+
     /* Advanced (Cairo only) */
     Boolean (*set_gradient)(struct _ISWRenderContext *ctx,
                            double x1, double y1, double x2, double y2,
                            Pixel c1, Pixel c2);
     void* (*get_cairo_context)(struct _ISWRenderContext *ctx);
-    
+
 } ISWRenderOps;
 
 /*

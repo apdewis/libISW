@@ -622,6 +622,123 @@ cairo_xcb_clear_clip(ISWRenderContext *ctx)
 
 /*
  * =================================================================
+ * Pixmap/Bitmap Rendering
+ * =================================================================
+ */
+
+static void
+cairo_xcb_copy_area(ISWRenderContext *ctx,
+                    int src_x, int src_y,
+                    int dst_x, int dst_y,
+                    unsigned int width, unsigned int height)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+
+    /*
+     * For within-window scrolling, flush the Cairo surface so all pending
+     * drawing is committed to the X window, then use XCB copy_area for the
+     * server-side pixel copy, then mark the surface dirty so Cairo re-reads.
+     */
+    cairo_surface_flush(data->surface);
+    xcb_flush(ctx->connection);
+
+    /* Create a temporary GC for the copy */
+    xcb_gcontext_t gc = xcb_generate_id(ctx->connection);
+    uint32_t gc_mask = XCB_GC_GRAPHICS_EXPOSURES;
+    uint32_t gc_vals[] = { 0 };
+    xcb_create_gc(ctx->connection, gc, ctx->window, gc_mask, gc_vals);
+
+    xcb_copy_area(ctx->connection, ctx->window, ctx->window,
+                  gc, src_x, src_y, dst_x, dst_y, width, height);
+    xcb_flush(ctx->connection);
+
+    xcb_free_gc(ctx->connection, gc);
+
+    /* Tell Cairo the surface contents changed underneath it */
+    cairo_surface_mark_dirty(data->surface);
+}
+
+static void
+cairo_xcb_draw_pixmap(ISWRenderContext *ctx,
+                      xcb_pixmap_t pixmap,
+                      int src_x, int src_y,
+                      int dst_x, int dst_y,
+                      unsigned int width, unsigned int height,
+                      unsigned int depth)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+
+    if (depth == 1) {
+        /*
+         * 1-bit bitmap: create a Cairo surface for the bitmap and use it
+         * as a mask with the current source color (foreground).
+         */
+        cairo_surface_t *bitmap_surface;
+
+        bitmap_surface = cairo_xcb_surface_create_for_bitmap(
+            ctx->connection, ctx->screen, pixmap, width, height);
+
+        if (cairo_surface_status(bitmap_surface) != CAIRO_STATUS_SUCCESS) {
+            cairo_surface_destroy(bitmap_surface);
+            /* Fallback to XCB */
+            cairo_surface_flush(data->surface);
+            xcb_gcontext_t gc = xcb_generate_id(ctx->connection);
+            uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES;
+            uint32_t vals[] = { (uint32_t)ctx->current_color, 0 };
+            xcb_create_gc(ctx->connection, gc, ctx->window, mask, vals);
+            xcb_copy_plane(ctx->connection, pixmap, ctx->window, gc,
+                           src_x, src_y, dst_x, dst_y, width, height, 1);
+            xcb_free_gc(ctx->connection, gc);
+            xcb_flush(ctx->connection);
+            cairo_surface_mark_dirty(data->surface);
+            return;
+        }
+
+        /* The current source color is already set — use bitmap as mask */
+        cairo_mask_surface(data->cairo_ctx, bitmap_surface,
+                           dst_x - src_x, dst_y - src_y);
+
+        cairo_surface_destroy(bitmap_surface);
+    } else {
+        /*
+         * Multi-plane pixmap: create a Cairo surface and paint it
+         * onto the window surface.
+         */
+        cairo_surface_t *pixmap_surface;
+
+        pixmap_surface = cairo_xcb_surface_create(
+            ctx->connection, pixmap, data->visual, width, height);
+
+        if (cairo_surface_status(pixmap_surface) != CAIRO_STATUS_SUCCESS) {
+            cairo_surface_destroy(pixmap_surface);
+            /* Fallback to XCB */
+            cairo_surface_flush(data->surface);
+            xcb_gcontext_t gc = xcb_generate_id(ctx->connection);
+            uint32_t mask = XCB_GC_GRAPHICS_EXPOSURES;
+            uint32_t vals[] = { 0 };
+            xcb_create_gc(ctx->connection, gc, ctx->window, mask, vals);
+            xcb_copy_area(ctx->connection, pixmap, ctx->window, gc,
+                          src_x, src_y, dst_x, dst_y, width, height);
+            xcb_free_gc(ctx->connection, gc);
+            xcb_flush(ctx->connection);
+            cairo_surface_mark_dirty(data->surface);
+            return;
+        }
+
+        cairo_set_source_surface(data->cairo_ctx, pixmap_surface,
+                                 dst_x - src_x, dst_y - src_y);
+        cairo_rectangle(data->cairo_ctx, dst_x, dst_y, width, height);
+        cairo_fill(data->cairo_ctx);
+
+        cairo_surface_destroy(pixmap_surface);
+
+        /* Restore the previous source color */
+        cairo_xcb_set_color(ctx, ctx->current_color);
+    }
+}
+
+/*
+ * =================================================================
  * Advanced Features
  * =================================================================
  */
@@ -693,6 +810,8 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .draw_bevel = cairo_xcb_draw_bevel,
     .set_clip_rectangle = cairo_xcb_set_clip_rectangle,
     .clear_clip = cairo_xcb_clear_clip,
+    .copy_area = cairo_xcb_copy_area,
+    .draw_pixmap = cairo_xcb_draw_pixmap,
     .set_gradient = cairo_xcb_set_gradient,
     .get_cairo_context = cairo_xcb_get_cairo_context
 };

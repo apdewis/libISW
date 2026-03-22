@@ -1039,6 +1039,15 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
      * And redisplay.
      */
     if (XtIsRealized ((Widget) tw)) {
+        if (tw->tree.render_ctx) {
+            ISWRenderBegin(tw->tree.render_ctx);
+            ISWRenderSetColor(tw->tree.render_ctx, tw->core.background_pixel);
+            ISWRenderFillRectangle(tw->tree.render_ctx, 0, 0,
+                                   tw->core.width, tw->core.height);
+            ISWRenderEnd(tw->tree.render_ctx);
+        }
+        /* Also clear via X server to generate expose events (clear_area with
+           exposures=True triggers repainting of child widgets) */
         xcb_connection_t *conn = XtDisplay(tw);
         xcb_clear_area(conn, 1, XtWindow((Widget)tw), 0, 0, 0, 0);
         xcb_flush(conn);

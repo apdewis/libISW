@@ -44,6 +44,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include <ISW/TextSinkP.h>
 #include <ISW/TextP.h>
 #include <xcb/xcb.h>
@@ -306,9 +307,20 @@ ClearToBackground(Widget w, Position x, Position y, Dimension width, Dimension h
  */
 
     if ( (height == 0) || (width == 0) ) return;
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-    xcb_clear_area(conn, 0, XtWindowOfObject(w), x, y, width, height);
-    xcb_flush(conn);
+
+    Widget parent = XtParent(w);
+    ISWRenderContext *ctx = ISWRenderCreate(parent, ISW_RENDER_BACKEND_AUTO);
+    if (ctx) {
+	ISWRenderBegin(ctx);
+	ISWRenderSetColor(ctx, parent->core.background_pixel);
+	ISWRenderFillRectangle(ctx, x, y, width, height);
+	ISWRenderEnd(ctx);
+	ISWRenderDestroy(ctx);
+    } else {
+	xcb_connection_t *conn = XtDisplayOfObject(w);
+	xcb_clear_area(conn, 0, XtWindowOfObject(w), x, y, width, height);
+	xcb_flush(conn);
+    }
 }
 
 /*	Function Name: FindPosition

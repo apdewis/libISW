@@ -443,9 +443,17 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
 
     if (region == NULL) {
- xcb_connection_t *conn = XtDisplay(w);
- xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
- xcb_flush(conn);
+        if (smw->simple_menu.render_ctx) {
+            ISWRenderBegin(smw->simple_menu.render_ctx);
+            ISWRenderSetColor(smw->simple_menu.render_ctx, w->core.background_pixel);
+            ISWRenderFillRectangle(smw->simple_menu.render_ctx, 0, 0,
+                                   w->core.width, w->core.height);
+            ISWRenderEnd(smw->simple_menu.render_ctx);
+        } else {
+            xcb_connection_t *conn = XtDisplay(w);
+            xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
+            xcb_flush(conn);
+        }
     }
 
     /* Shadow drawing removed - ThreeD eliminated */

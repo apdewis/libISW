@@ -274,10 +274,17 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
             xcb_flush(conn);
         }
     } else {
-        /* Clear/erase area - use XCB clear (no Cairo equivalent needed) */
-        xcb_clear_area(conn, FALSE, XtWindow((Widget) sbw),
-          lx, ly, (unsigned int) lw, (unsigned int) lh);
-        xcb_flush(conn);
+        /* Clear/erase area - fill with background color */
+        if (ctx) {
+            ISWRenderBegin(ctx);
+            ISWRenderSetColor(ctx, sbw->core.background_pixel);
+            ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
+            ISWRenderEnd(ctx);
+        } else {
+            xcb_clear_area(conn, FALSE, XtWindow((Widget) sbw),
+              lx, ly, (unsigned int) lw, (unsigned int) lh);
+            xcb_flush(conn);
+        }
     }
 }
 
@@ -326,9 +333,8 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
           
           /* Draw simple border around thumb */
           {
-              xcb_connection_t *conn = XtDisplay((Widget) sbw);
               int lx, ly, lw, lh;
-              
+
               if (sbw->scrollbar.orientation == XtorientHorizontal) {
                   lx = newtop;
                   ly = s;
@@ -340,18 +346,24 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
                   lw = sbw->core.width - 2 * s;
                   lh = newbot - newtop;
               }
-              
-              /* Use XCB directly for border drawing */
-              {
+
+              ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
+              if (ctx) {
+                  ISWRenderBegin(ctx);
+                  ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
+                  ISWRenderSetLineWidth(ctx, 2.0);
+                  ISWRenderStrokeRectangle(ctx, lx, ly, lw, lh);
+                  ISWRenderEnd(ctx);
+              } else {
+                  xcb_connection_t *conn = XtDisplay((Widget) sbw);
                   xcb_gcontext_t border_gc = xcb_generate_id(conn);
                   uint32_t values[3];
                   values[0] = sbw->scrollbar.foreground;
-                  values[1] = 2; /* line width */
-                  values[2] = 0; /* no graphics exposures */
+                  values[1] = 2;
+                  values[2] = 0;
                   xcb_create_gc(conn, border_gc, XtWindow((Widget) sbw),
                               XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH | XCB_GC_GRAPHICS_EXPOSURES,
                               values);
-                  
                   xcb_rectangle_t rect = {lx, ly, lw, lh};
                   xcb_poly_rectangle(conn, XtWindow((Widget) sbw), border_gc, 1, &rect);
                   xcb_free_gc(conn, border_gc);
@@ -370,12 +382,11 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
           if (newtop > oldtop) FillArea(sbw, oldtop, MIN(newtop, oldbot), 0);
           if (newbot < oldbot) FillArea(sbw, MAX(newbot, oldtop), oldbot, 0);
           if (newbot > oldbot) FillArea(sbw, MAX(newtop, oldbot), newbot, 1);
-          
+
           /* Draw simple border around thumb */
           {
-              xcb_connection_t *conn = XtDisplay((Widget) sbw);
               int lx, ly, lw, lh;
-              
+
               if (sbw->scrollbar.orientation == XtorientHorizontal) {
                   lx = newtop;
                   ly = 0;
@@ -387,18 +398,24 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
                   lw = sbw->core.width;
                   lh = newbot - newtop;
               }
-              
-              /* Use XCB directly for border drawing */
-              {
+
+              ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
+              if (ctx) {
+                  ISWRenderBegin(ctx);
+                  ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
+                  ISWRenderSetLineWidth(ctx, 2.0);
+                  ISWRenderStrokeRectangle(ctx, lx, ly, lw, lh);
+                  ISWRenderEnd(ctx);
+              } else {
+                  xcb_connection_t *conn = XtDisplay((Widget) sbw);
                   xcb_gcontext_t border_gc = xcb_generate_id(conn);
                   uint32_t values[3];
                   values[0] = sbw->scrollbar.foreground;
-                  values[1] = 2; /* line width */
-                  values[2] = 0; /* no graphics exposures */
+                  values[1] = 2;
+                  values[2] = 0;
                   xcb_create_gc(conn, border_gc, XtWindow((Widget) sbw),
                               XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH | XCB_GC_GRAPHICS_EXPOSURES,
                               values);
-                  
                   xcb_rectangle_t rect = {lx, ly, lw, lh};
                   xcb_poly_rectangle(conn, XtWindow((Widget) sbw), border_gc, 1, &rect);
                   xcb_free_gc(conn, border_gc);
@@ -510,14 +527,21 @@ PaintArrows (ScrollbarWidget sbw)
 		    pt[n].y = swap;
 		}
 	    }
-	    /* draw the up/left arrow */
-	    xcb_fill_poly(dpy, win, sbw->scrollbar.gc,
-	    XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN,
-	    3, (xcb_point_t *)pt);
-	    /* draw the down/right arrow */
-	    xcb_fill_poly(dpy, win, sbw->scrollbar.gc,
-	    XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN,
-	    3, (xcb_point_t *)(pt+3));
+	    ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
+	    if (ctx) {
+	        ISWRenderBegin(ctx);
+	        ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
+	        ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 3);
+	        ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt+3), 3);
+	        ISWRenderEnd(ctx);
+	    } else {
+	        xcb_fill_poly(dpy, win, sbw->scrollbar.gc,
+	            XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN,
+	            3, (xcb_point_t *)pt);
+	        xcb_fill_poly(dpy, win, sbw->scrollbar.gc,
+	            XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN,
+	            3, (xcb_point_t *)(pt+3));
+	    }
 	}
     }
 }

@@ -81,6 +81,10 @@ SOFTWARE.
 #include <ISW/MultiSrcP.h>
 #include <ISW/TextP.h>
 #include <ISW/ISWRender.h>
+#ifdef HAVE_CAIRO
+#include <cairo.h>
+#include <cairo-xcb.h>
+#endif
 #include "ISWI18n.h"
 #include "ISWXcbDraw.h"
 #include <stdio.h>
@@ -508,13 +512,38 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
 
     GetCursorBounds(w, &rect);
     if (state != sink->multi_sink.laststate && XtIsRealized(text_widget)) {
-        xcb_connection_t *conn = XtDisplay(text_widget);
-        xcb_copy_plane(conn,
-     sink->multi_sink.insertCursorOn,
-     XtWindow(text_widget), sink->multi_sink.xorgc,
-     0, 0, (int) rect.x, (int) rect.y,
-     (unsigned int) rect.width, (unsigned int) rect.height, 1);
-        xcb_flush(conn);
+        ISWRenderContext *ctx = sink->multi_sink.render_ctx;
+#ifdef HAVE_CAIRO
+        void *cr_ptr = ctx ? ISWRenderGetCairoContext(ctx) : NULL;
+        if (cr_ptr) {
+            cairo_t *cr = (cairo_t *)cr_ptr;
+            xcb_connection_t *conn = XtDisplay(text_widget);
+            xcb_screen_t *screen = (xcb_screen_t *)XtScreen(text_widget);
+            cairo_surface_t *cursor_surf = cairo_xcb_surface_create_for_bitmap(
+                conn, screen, sink->multi_sink.insertCursorOn,
+                (unsigned int)rect.width, (unsigned int)rect.height);
+            if (cairo_surface_status(cursor_surf) == CAIRO_STATUS_SUCCESS) {
+                ISWRenderBegin(ctx);
+                cairo_save(cr);
+                cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
+                cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+                cairo_mask_surface(cr, cursor_surf,
+                                   (double)rect.x, (double)rect.y);
+                cairo_restore(cr);
+                ISWRenderEnd(ctx);
+            }
+            cairo_surface_destroy(cursor_surf);
+        } else
+#endif
+        {
+            xcb_connection_t *conn = XtDisplay(text_widget);
+            xcb_copy_plane(conn,
+                sink->multi_sink.insertCursorOn,
+                XtWindow(text_widget), sink->multi_sink.xorgc,
+                0, 0, (int) rect.x, (int) rect.y,
+                (unsigned int) rect.width, (unsigned int) rect.height, 1);
+            xcb_flush(conn);
+        }
     }
     sink->multi_sink.laststate = state;
 }
