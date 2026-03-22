@@ -37,6 +37,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/MenuBarP.h>
 #include <ISW/MenuButtoP.h>
 #include <ISW/SimpleMenP.h>
+#include <ISW/SmeBSBP.h>
 #include <xcb/xcb.h>
 #include "ISWXcbDraw.h"
 
@@ -364,12 +365,13 @@ OpenMenu(MenuBarWidget mbw, Widget button)
 
     /* Remove 3D shadows from menu and its entries */
     {
-        Arg flat[1];
+        Arg flat[2];
         Cardinal i;
         SimpleMenuWidget smw = (SimpleMenuWidget) menu;
 
         XtSetArg(flat[0], XtNshadowWidth, 0);
-        XtSetValues(menu, flat, 1);
+        XtSetArg(flat[1], XtNborderWidth, 0);
+        XtSetValues(menu, flat, 2);
 
         for (i = 0; i < smw->composite.num_children; i++) {
             XtSetArg(flat[0], XtNshadowWidth, 0);

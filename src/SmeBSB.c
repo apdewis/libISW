@@ -328,11 +328,12 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     { /*else, compute size from font like R5*/
  /* XCB Fix: Add NULL check for font before accessing fields */
  if (entry->sme_bsb.font != NULL) {
-     font_ascent = entry->sme_bsb.font->ascent;
-     font_descent = entry->sme_bsb.font->descent;
+     font_ascent = ISWScaledFontAscent(XtParent(w), entry->sme_bsb.font);
+     font_descent = ISWScaledFontHeight(XtParent(w), entry->sme_bsb.font)
+                    - font_ascent;
  } else {
-     font_ascent = 11;   /* Default ascent */
-     font_descent = 3;   /* Default descent */
+     font_ascent = ISWScaleDim(w, 11);
+     font_descent = ISWScaleDim(w, 3);
  }
     }
     y_loc = entry->rectangle.y;
@@ -371,6 +372,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     else
  gc = entry->sme_bsb.norm_gray_gc;
 
+    /* Ensure render context exists for HiDPI text rendering */
+    if (entry->sme_bsb.render_ctx == NULL && XtIsRealized(XtParent(w)))
+        entry->sme_bsb.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
+
     if (entry->sme_bsb.label != NULL) {
 	int x_loc = entry->sme_bsb.left_margin;
 	int len = strlen(entry->sme_bsb.label);
@@ -384,7 +389,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		    t_width = IswTextWidth(entry->sme_bsb.fontset,label,len);
 		else
 #endif
-		    t_width = XTextWidth(entry->sme_bsb.font, label, len);
+		    t_width = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, label, len);
 
 		width = entry->rectangle.width -
 				(entry->sme_bsb.left_margin +
@@ -397,7 +402,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		    t_width = IswTextWidth(entry->sme_bsb.fontset,label,len);
 		else
 #endif
-		    t_width = XTextWidth(entry->sme_bsb.font, label, len);
+		    t_width = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, label, len);
 
 		x_loc = entry->rectangle.width -
 				(entry->sme_bsb.right_margin + t_width);
@@ -426,9 +431,9 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             if (entry->sme_bsb.render_ctx) {
                 Pixel text_color;
                 if (gc == entry->sme_bsb.rev_gc)
-                    text_color = entry->sme_bsb.foreground;
-                else
                     text_color = XtParent(w)->core.background_pixel;
+                else
+                    text_color = entry->sme_bsb.foreground;
                 ISWRenderBegin(entry->sme_bsb.render_ctx);
                 ISWRenderSetColor(entry->sme_bsb.render_ctx, text_color);
                 if (entry->sme_bsb.font)
@@ -449,8 +454,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	    Pixel underline_color;
 
 	    if (ul != 0)
-	 ul_x1_loc += XTextWidth(entry->sme_bsb.font, label, ul);
-	    ul_wid = XTextWidth(entry->sme_bsb.font, &label[ul], 1) - 2;
+	 ul_x1_loc += ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, label, ul);
+	    ul_wid = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, &label[ul], 1) - 2;
 	    
 	    /* Determine underline color based on which GC is being used */
 	    if (gc == entry->sme_bsb.rev_gc) {
@@ -702,18 +707,17 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
      if (entry->sme_bsb.label == NULL)
   *width = 0;
      else
-  *width = XTextWidth(entry->sme_bsb.font, entry->sme_bsb.label,
-    strlen(entry->sme_bsb.label));
+  *width = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font,
+    entry->sme_bsb.label, strlen(entry->sme_bsb.label));
 
-     *height = (entry->sme_bsb.font->ascent +
-     entry->sme_bsb.font->descent);
+     *height = ISWScaledFontHeight(XtParent(w), entry->sme_bsb.font);
  } else {
      /* No font available - use defaults */
      if (entry->sme_bsb.label == NULL)
   *width = 0;
      else
-  *width = strlen(entry->sme_bsb.label) * 8;  /* Default width */
-     *height = 14;  /* Default height */
+  *width = ISWScaleDim(w, strlen(entry->sme_bsb.label) * 8);
+     *height = ISWScaleDim(w, 14);
  }
     }
 

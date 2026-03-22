@@ -574,6 +574,27 @@ dy = SMW_ARROW_SIZE;
 
 	y += (*entry)->rectangle.height;
     }
+
+    /* Draw 1px border around the menu */
+    if (smw->simple_menu.render_ctx) {
+        ISWRenderBegin(smw->simple_menu.render_ctx);
+        ISWRenderSetColor(smw->simple_menu.render_ctx,
+                          smw->simple_menu.bot_shadow_pixel);
+        ISWRenderStrokeRectangle(smw->simple_menu.render_ctx,
+                                 0, 0,
+                                 w->core.width - 1,
+                                 w->core.height - 1);
+        ISWRenderEnd(smw->simple_menu.render_ctx);
+    } else {
+        xcb_rectangle_t rect;
+        rect.x = 0;
+        rect.y = 0;
+        rect.width = w->core.width - 1;
+        rect.height = w->core.height - 1;
+        xcb_poly_rectangle(XtDisplay(w), XtWindow(w),
+                           smw->simple_menu.bot_shadow_GC,
+                           1, &rect);
+    }
 }
 
 /*      Function Name: Realize

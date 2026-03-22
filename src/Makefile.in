@@ -150,15 +150,15 @@ am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	TMkey.c TMparse.c TMprint.c TMstate.c VarCreate.c VarGet.c \
 	Varargs.c AllWidgets.c AsciiSink.c AsciiSrc.c AsciiText.c \
 	Box.c Command.c Dialog.c Form.c Grip.c Label.c Layout.c \
-	LayYY.h List.c MenuButton.c Paned.c Panner.c Porthole.c \
-	Repeater.c Scrollbar.c Simple.c SimpleMenu.c SmeBSB.c Sme.c \
-	SmeLine.c StripChart.c TextAction.c Text.c TextPop.c \
-	TextSink.c TextSrc.c TextTr.c Tip.c Toggle.c Tree.c Vendor.c \
-	Viewport.c ISWP.c ISWAtoms.c ISWContext.c ISWDrawing.c \
-	ISWInit.c ISWXcbDraw.c ISWXcbDraw.h laygram.y laylex.l \
-	MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h ISWRender.c \
-	ISWRenderPrivate.h ISWRenderXCB.c ISWRenderCairoXCB.c \
-	ISWRenderEGL.c
+	LayYY.h List.c MenuBar.c MenuButton.c Paned.c Panner.c \
+	Porthole.c Repeater.c Scrollbar.c Simple.c SimpleMenu.c \
+	SmeBSB.c Sme.c SmeLine.c StripChart.c TextAction.c Text.c \
+	TextPop.c TextSink.c TextSrc.c TextTr.c Tip.c Toggle.c Tree.c \
+	Vendor.c Viewport.c ISWP.c ISWAtoms.c ISWContext.c \
+	ISWDrawing.c ISWInit.c ISWXcbDraw.c ISWXcbDraw.h laygram.y \
+	laylex.l MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h \
+	ISWRender.c ISWRenderPrivate.h ISWRenderXCB.c \
+	ISWRenderCairoXCB.c ISWRenderEGL.c
 am__objects_1 = ActionHook.lo Alloc.lo ArgList.lo Callback.lo \
 	ClickTime.lo Composite.lo Constraint.lo Context.lo Convert.lo \
 	Converters.lo Core.lo Create.lo Destroy.lo Display.lo Error.lo \
@@ -179,11 +179,11 @@ am__objects_3 = ISWRender.lo ISWRenderXCB.lo
 am__objects_6 = $(am__objects_3) $(am__objects_4) $(am__objects_5)
 am__objects_7 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	Box.lo Command.lo Dialog.lo Form.lo Grip.lo Label.lo Layout.lo \
-	List.lo MenuButton.lo Paned.lo Panner.lo Porthole.lo \
-	Repeater.lo Scrollbar.lo Simple.lo SimpleMenu.lo SmeBSB.lo \
-	Sme.lo SmeLine.lo StripChart.lo TextAction.lo Text.lo \
-	TextPop.lo TextSink.lo TextSrc.lo TextTr.lo Tip.lo Toggle.lo \
-	Tree.lo Vendor.lo Viewport.lo ISWP.lo ISWAtoms.lo \
+	List.lo MenuBar.lo MenuButton.lo Paned.lo Panner.lo \
+	Porthole.lo Repeater.lo Scrollbar.lo Simple.lo SimpleMenu.lo \
+	SmeBSB.lo Sme.lo SmeLine.lo StripChart.lo TextAction.lo \
+	Text.lo TextPop.lo TextSink.lo TextSrc.lo TextTr.lo Tip.lo \
+	Toggle.lo Tree.lo Vendor.lo Viewport.lo ISWP.lo ISWAtoms.lo \
 	ISWContext.lo ISWDrawing.lo ISWInit.lo ISWXcbDraw.lo \
 	laygram.lo laylex.lo $(am__objects_2) $(am__objects_6)
 am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_7)
@@ -239,33 +239,33 @@ am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
 	./$(DEPDIR)/Intrinsic.Plo ./$(DEPDIR)/Keyboard.Plo \
 	./$(DEPDIR)/Label.Plo ./$(DEPDIR)/Layout.Plo \
 	./$(DEPDIR)/List.Plo ./$(DEPDIR)/Manage.Plo \
-	./$(DEPDIR)/MenuButton.Plo ./$(DEPDIR)/MultiSink.Plo \
-	./$(DEPDIR)/MultiSrc.Plo ./$(DEPDIR)/NextEvent.Plo \
-	./$(DEPDIR)/Object.Plo ./$(DEPDIR)/Paned.Plo \
-	./$(DEPDIR)/Panner.Plo ./$(DEPDIR)/PassivGrab.Plo \
-	./$(DEPDIR)/Pointer.Plo ./$(DEPDIR)/Popup.Plo \
-	./$(DEPDIR)/PopupCB.Plo ./$(DEPDIR)/Porthole.Plo \
-	./$(DEPDIR)/Quark.Plo ./$(DEPDIR)/RectObj.Plo \
-	./$(DEPDIR)/Repeater.Plo ./$(DEPDIR)/ResConfig.Plo \
-	./$(DEPDIR)/Resources.Plo ./$(DEPDIR)/Scrollbar.Plo \
-	./$(DEPDIR)/Selection.Plo ./$(DEPDIR)/SetSens.Plo \
-	./$(DEPDIR)/SetValues.Plo ./$(DEPDIR)/SetWMCW.Plo \
-	./$(DEPDIR)/Shell.Plo ./$(DEPDIR)/Simple.Plo \
-	./$(DEPDIR)/SimpleMenu.Plo ./$(DEPDIR)/Sme.Plo \
-	./$(DEPDIR)/SmeBSB.Plo ./$(DEPDIR)/SmeLine.Plo \
-	./$(DEPDIR)/StringDefs.Plo ./$(DEPDIR)/StripChart.Plo \
-	./$(DEPDIR)/TMaction.Plo ./$(DEPDIR)/TMgrab.Plo \
-	./$(DEPDIR)/TMkey.Plo ./$(DEPDIR)/TMparse.Plo \
-	./$(DEPDIR)/TMprint.Plo ./$(DEPDIR)/TMstate.Plo \
-	./$(DEPDIR)/Text.Plo ./$(DEPDIR)/TextAction.Plo \
-	./$(DEPDIR)/TextPop.Plo ./$(DEPDIR)/TextSink.Plo \
-	./$(DEPDIR)/TextSrc.Plo ./$(DEPDIR)/TextTr.Plo \
-	./$(DEPDIR)/Threads.Plo ./$(DEPDIR)/Tip.Plo \
-	./$(DEPDIR)/Toggle.Plo ./$(DEPDIR)/Tree.Plo \
-	./$(DEPDIR)/VarCreate.Plo ./$(DEPDIR)/VarGet.Plo \
-	./$(DEPDIR)/Varargs.Plo ./$(DEPDIR)/Vendor.Plo \
-	./$(DEPDIR)/Viewport.Plo ./$(DEPDIR)/laygram.Plo \
-	./$(DEPDIR)/laylex.Plo
+	./$(DEPDIR)/MenuBar.Plo ./$(DEPDIR)/MenuButton.Plo \
+	./$(DEPDIR)/MultiSink.Plo ./$(DEPDIR)/MultiSrc.Plo \
+	./$(DEPDIR)/NextEvent.Plo ./$(DEPDIR)/Object.Plo \
+	./$(DEPDIR)/Paned.Plo ./$(DEPDIR)/Panner.Plo \
+	./$(DEPDIR)/PassivGrab.Plo ./$(DEPDIR)/Pointer.Plo \
+	./$(DEPDIR)/Popup.Plo ./$(DEPDIR)/PopupCB.Plo \
+	./$(DEPDIR)/Porthole.Plo ./$(DEPDIR)/Quark.Plo \
+	./$(DEPDIR)/RectObj.Plo ./$(DEPDIR)/Repeater.Plo \
+	./$(DEPDIR)/ResConfig.Plo ./$(DEPDIR)/Resources.Plo \
+	./$(DEPDIR)/Scrollbar.Plo ./$(DEPDIR)/Selection.Plo \
+	./$(DEPDIR)/SetSens.Plo ./$(DEPDIR)/SetValues.Plo \
+	./$(DEPDIR)/SetWMCW.Plo ./$(DEPDIR)/Shell.Plo \
+	./$(DEPDIR)/Simple.Plo ./$(DEPDIR)/SimpleMenu.Plo \
+	./$(DEPDIR)/Sme.Plo ./$(DEPDIR)/SmeBSB.Plo \
+	./$(DEPDIR)/SmeLine.Plo ./$(DEPDIR)/StringDefs.Plo \
+	./$(DEPDIR)/StripChart.Plo ./$(DEPDIR)/TMaction.Plo \
+	./$(DEPDIR)/TMgrab.Plo ./$(DEPDIR)/TMkey.Plo \
+	./$(DEPDIR)/TMparse.Plo ./$(DEPDIR)/TMprint.Plo \
+	./$(DEPDIR)/TMstate.Plo ./$(DEPDIR)/Text.Plo \
+	./$(DEPDIR)/TextAction.Plo ./$(DEPDIR)/TextPop.Plo \
+	./$(DEPDIR)/TextSink.Plo ./$(DEPDIR)/TextSrc.Plo \
+	./$(DEPDIR)/TextTr.Plo ./$(DEPDIR)/Threads.Plo \
+	./$(DEPDIR)/Tip.Plo ./$(DEPDIR)/Toggle.Plo \
+	./$(DEPDIR)/Tree.Plo ./$(DEPDIR)/VarCreate.Plo \
+	./$(DEPDIR)/VarGet.Plo ./$(DEPDIR)/Varargs.Plo \
+	./$(DEPDIR)/Vendor.Plo ./$(DEPDIR)/Viewport.Plo \
+	./$(DEPDIR)/laygram.Plo ./$(DEPDIR)/laylex.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -618,6 +618,7 @@ ISW_SOURCES = \
 	Layout.c \
 	LayYY.h \
 	List.c \
+	MenuBar.c \
 	MenuButton.c \
 	Paned.c \
 	Panner.c \
@@ -811,6 +812,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Layout.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/List.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Manage.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MenuBar.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MenuButton.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MultiSink.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MultiSrc.Plo@am__quote@ # am--include-marker
@@ -1114,6 +1116,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/Layout.Plo
 	-rm -f ./$(DEPDIR)/List.Plo
 	-rm -f ./$(DEPDIR)/Manage.Plo
+	-rm -f ./$(DEPDIR)/MenuBar.Plo
 	-rm -f ./$(DEPDIR)/MenuButton.Plo
 	-rm -f ./$(DEPDIR)/MultiSink.Plo
 	-rm -f ./$(DEPDIR)/MultiSrc.Plo
@@ -1265,6 +1268,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/Layout.Plo
 	-rm -f ./$(DEPDIR)/List.Plo
 	-rm -f ./$(DEPDIR)/Manage.Plo
+	-rm -f ./$(DEPDIR)/MenuBar.Plo
 	-rm -f ./$(DEPDIR)/MenuButton.Plo
 	-rm -f ./$(DEPDIR)/MultiSink.Plo
 	-rm -f ./$(DEPDIR)/MultiSrc.Plo
