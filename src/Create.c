@@ -388,11 +388,10 @@ xtCreate(String name,
     if (XtIsApplicationShell(widget)) {
         ApplicationShellWidget a = (ApplicationShellWidget) widget;
 
-        //if (class != NULL)
-        //    a->application.xrm_class = StringToClass(class);
-        //else
-        //    a->application.xrm_class = widget_class->core_class.xrm_class;
-        //a->application.class = XrmQuarkToString(a->application.xrm_class);
+        if (class != NULL)
+            a->application.class = class;
+        else
+            a->application.class = widget_class->core_class.class_name;
     }
     UNLOCK_PROCESS;
 
@@ -724,8 +723,10 @@ _XtAppCreateShell(String name,
                       "XtAppCreateShell requires non-NULL widget class",
                       NULL, NULL);
     }
-    if (name == NULL)
-        name = "main";
+    if (name == NULL) {
+        XtPerDisplay pd = _XtGetPerDisplay(display);
+        name = pd ? pd->name : "main";
+    }
     
     /* NOTE: Do NOT use DefaultScreenOfDisplay(display) here.
      * DefaultScreenOfDisplay is an Xlib macro that reads

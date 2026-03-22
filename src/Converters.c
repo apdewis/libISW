@@ -517,6 +517,60 @@ XtCvtStringToPixel(xcb_connection_t *dpy,
         }
     }
 
+    /* Handle #RGB, #RRGGBB, #RRRRGGGGBBBB hex color specifications */
+    if (str[0] == '#') {
+        size_t len = strlen(str + 1);
+        unsigned int r = 0, g = 0, b = 0;
+        uint16_t red, green, blue;
+
+        if (len == 3 &&
+            sscanf(str + 1, "%1x%1x%1x", &r, &g, &b) == 3) {
+            red   = (uint16_t)(r * 0x1111);
+            green = (uint16_t)(g * 0x1111);
+            blue  = (uint16_t)(b * 0x1111);
+        } else if (len == 6 &&
+                   sscanf(str + 1, "%2x%2x%2x", &r, &g, &b) == 3) {
+            red   = (uint16_t)(r << 8 | r);
+            green = (uint16_t)(g << 8 | g);
+            blue  = (uint16_t)(b << 8 | b);
+        } else if (len == 12 &&
+                   sscanf(str + 1, "%4x%4x%4x", &r, &g, &b) == 3) {
+            red   = (uint16_t)r;
+            green = (uint16_t)g;
+            blue  = (uint16_t)b;
+        } else {
+            String params[1];
+            params[0] = str;
+            XtAppWarningMsg(pd->appContext, "badValue", "cvtStringToPixel",
+                            XtCXtToolkitError,
+                            "Color name \"%s\" is not defined",
+                            params, &num_params);
+            *closure_ret = NULL;
+            return False;
+        }
+
+        xcb_alloc_color_cookie_t ac_cookie =
+            xcb_alloc_color(dpy, colormap, red, green, blue);
+        xcb_alloc_color_reply_t *ac_reply =
+            xcb_alloc_color_reply(dpy, ac_cookie, NULL);
+
+        if (ac_reply != NULL) {
+            *closure_ret = (char *) True;
+            Pixel result_pixel = ac_reply->pixel;
+            free(ac_reply);
+            done_string(Pixel, result_pixel, XtRPixel);
+        }
+
+        String params[1];
+        params[0] = str;
+        XtAppWarningMsg(pd->appContext, "noColormap", "cvtStringToPixel",
+                        XtCXtToolkitError,
+                        "Cannot allocate colormap entry for \"%s\"",
+                        params, &num_params);
+        *closure_ret = NULL;
+        return False;
+    }
+
     {
         size_t name_len = strlen(str);
         xcb_alloc_named_color_cookie_t anc_cookie =

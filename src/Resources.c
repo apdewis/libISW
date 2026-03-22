@@ -105,6 +105,23 @@ void
 _XtCopyFromParent(Widget widget, int offset, XrmValue *value)
 {
     if (widget->core.parent == NULL) {
+        /* Toplevel shell — no parent to copy from.
+         * Supply screen defaults for depth and colormap. */
+        static int default_depth;
+        static xcb_colormap_t default_colormap;
+        int colormap_offset = (int) XtOffsetOf(CoreRec, core.colormap);
+        int depth_offset = (int) XtOffsetOf(CoreRec, core.depth);
+
+        if (offset == colormap_offset && widget->core.screen != NULL) {
+            default_colormap = widget->core.screen->default_colormap;
+            value->addr = (XPointer) &default_colormap;
+            return;
+        }
+        if (offset == depth_offset && widget->core.screen != NULL) {
+            default_depth = (int) widget->core.screen->root_depth;
+            value->addr = (XPointer) &default_depth;
+            return;
+        }
         XtAppWarningMsg(XtWidgetToApplicationContext(widget),
                         "invalidParent", "xtCopyFromParent", XtCXtToolkitError,
                         "CopyFromParent must have non-NULL parent", NULL, NULL);
@@ -387,7 +404,7 @@ _XtCompileResourceList(register XtResourceList resources,
 
     for (count = 0; count < num_resources; resources++, count++) {
         xrmres->xrm_name = PSToQ(resources->resource_name);
-        //xrmres->xrm_class = PSToQ(resources->resource_class);
+        xrmres->xrm_class = PSToQ(resources->resource_class);
         xrmres->xrm_type = PSToQ(resources->resource_type);
         xrmres->xrm_offset = (int)
             (-(int) resources->resource_offset - 1);

@@ -710,6 +710,21 @@ _MergeOptionTables(const XrmOptionDescRec *src1,
  * _XtParseCommand - Parse command line options into a resource database.
  * Replacement for XrmParseCommand using xcb-util-xrm.
  */
+/* Helper: put a resource into the database, using put_resource_line for
+ * entries with wildcards (* or ?) so xcb-util-xrm parses them correctly. */
+static void
+_XtDbPutResource(xcb_xrm_database_t **db, const char *resource, const char *value)
+{
+    char line_buf[1024];
+
+    if (strchr(resource, '*') || strchr(resource, '?')) {
+        snprintf(line_buf, sizeof(line_buf), "%s: %s", resource, value);
+        xcb_xrm_database_put_resource_line(db, line_buf);
+    } else {
+        xcb_xrm_database_put_resource(db, resource, value);
+    }
+}
+
 static void
 _XtParseCommand(xcb_xrm_database_t **db,
                 XrmOptionDescRec *options,
@@ -753,8 +768,8 @@ _XtParseCommand(xcb_xrm_database_t **db,
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
                         *db = xcb_xrm_database_from_string("");
-                    xcb_xrm_database_put_resource(db, resource_buf,
-                                                   (char *) options[i].value);
+                    _XtDbPutResource(db, resource_buf,
+                                     (char *) options[i].value);
                 }
                 src++;
                 remaining--;
@@ -766,7 +781,7 @@ _XtParseCommand(xcb_xrm_database_t **db,
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
                         *db = xcb_xrm_database_from_string("");
-                    xcb_xrm_database_put_resource(db, resource_buf, *src);
+                    _XtDbPutResource(db, resource_buf, *src);
                 }
                 src++;
                 remaining--;
@@ -778,8 +793,7 @@ _XtParseCommand(xcb_xrm_database_t **db,
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
                         *db = xcb_xrm_database_from_string("");
-                    xcb_xrm_database_put_resource(db, resource_buf,
-                                                   *src + optlen);
+                    _XtDbPutResource(db, resource_buf, *src + optlen);
                 }
                 src++;
                 remaining--;
@@ -793,7 +807,7 @@ _XtParseCommand(xcb_xrm_database_t **db,
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
                         *db = xcb_xrm_database_from_string("");
-                    xcb_xrm_database_put_resource(db, resource_buf, *src);
+                    _XtDbPutResource(db, resource_buf, *src);
                     src++;
                     remaining--;
                 }
