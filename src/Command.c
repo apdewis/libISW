@@ -509,6 +509,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   if (cbw->command.highlight_thickness <= 0)
   {
     (*SuperClass->core_class.expose) (w, event, 0 /* FIXME: XCB region */);
+    cbw->label.foreground = saved_foreground;
     /* Shadow drawing removed - ThreeD eliminated */
     return;
   }

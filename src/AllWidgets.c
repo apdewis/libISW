@@ -46,6 +46,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Grip.h>
 #include <ISW/Layout.h>
 #include <ISW/List.h>
+#include <ISW/MenuBar.h>
 #include <ISW/MenuButton.h>
 #include <ISW/MultiSink.h>
 #include <ISW/MultiSrc.h>
@@ -79,6 +80,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "label", &labelWidgetClass },
 { "layout", &layoutWidgetClass },
 { "list", &listWidgetClass },
+{ "menuBar", &menuBarWidgetClass },
 { "menuButton", &menuButtonWidgetClass },
 { "multiSink", &multiSinkObjectClass },
 { "multiSrc", &multiSrcObjectClass },
