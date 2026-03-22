@@ -1555,10 +1555,8 @@ VScroll(Widget w, XtPointer closure, XtPointer callData)
   if (height < 1)
     height = 1;
   nlines = (int) (lines * (int) ctx->text.lt.lines) / height;
-#ifdef ISW_ARROW_SCROLLBARS
   if (nlines == 0 && lines != 0)
     nlines = lines > 0 ? 1 : -1;
-#endif
   fprintf(stderr, "  height=%d, ctx->text.lt.lines=%d, nlines=%d\n",
           height, ctx->text.lt.lines, nlines);
   _IswTextPrepareToUpdate(ctx);

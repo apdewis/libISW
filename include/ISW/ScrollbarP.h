@@ -76,14 +76,6 @@ typedef struct {
     XtCallbackList thumbProc;	/* jump (to position) scroll */
     XtCallbackList jumpProc;	/* same as thumbProc but pass data by ref */
     Pixmap	  thumb;	/* thumb color */
-#ifndef ISW_ARROW_SCROLLBARS
-    Cursor        upCursor;	/* scroll up cursor */
-    Cursor        downCursor;	/* scroll down cursor */
-    Cursor        leftCursor;	/* scroll left cursor */
-    Cursor        rightCursor;	/* scroll right cursor */
-    Cursor        verCursor;	/* scroll vertical cursor */
-    Cursor        horCursor;	/* scroll horizontal cursor */
-#endif
     float	  top;		/* What percent is above the win's top */
     float	  shown;	/* What percent is shown in the win */
     Dimension	  length;	/* either height or width */
@@ -93,13 +85,8 @@ typedef struct {
 				 * when scrolling starts */
 
      /* private */
-#ifdef ISW_ARROW_SCROLLBARS
     XtIntervalId  timer_id;     /* autorepeat timer; remove on destruction */
     char	  scroll_mode;	/* 0:none 1:up/back 2:track 3:down/forward */
-#else
-    Cursor        inactiveCursor; /* the normal cursor for scrollbar */
-    char          direction;	/* a scroll has started; which direction */
-#endif
     GC		  gc;		/* a (shared) gc */
     Position	  topLoc;	/* Pixel that corresponds to top */
     Dimension	  shownLength;	/* Num pixels corresponding to shown */

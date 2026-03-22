@@ -118,9 +118,8 @@ AC_ARG_ENABLE([gray-stipples],
     [AS_HELP_STRING([--enable-gray-stipples], dnl
      [enable gray stipples])], [ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_GRAY_BLKWHT_STIPPLES"])
 
-AC_ARG_ENABLE([arrow-scrollbars],
-    [AS_HELP_STRING([--enable-arrow-scrollbars], dnl
-     [enable arrow scrollbars])], [ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_ARROW_SCROLLBARS"])
+dnl Arrow scrollbars are always enabled
+ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_ARROW_SCROLLBARS"
 
 AC_SUBST(ISW_CPPFLAGS)
 AC_SUBST(SRCH_DEFINES)

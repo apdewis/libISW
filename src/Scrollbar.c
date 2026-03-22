@@ -85,7 +85,6 @@ SOFTWARE.
 
 /* Private definitions. */
 
-#ifdef ISW_ARROW_SCROLLBARS
 static char defaultTranslations[] =
     "<Btn1Down>:   NotifyScroll()\n\
      <Btn2Down>:   MoveThumb() NotifyThumb() \n\
@@ -94,42 +93,14 @@ static char defaultTranslations[] =
      <Btn3Motion>: HandleThumb() \n\
      <Btn2Motion>: MoveThumb() NotifyThumb() \n\
      <BtnUp>:      EndScroll()";
-#else
-static char defaultTranslations[] =
-    "<Btn1Down>:   StartScroll(Forward) \n\
-     <Btn2Down>:   StartScroll(Continuous) MoveThumb() NotifyThumb() \n\
-     <Btn3Down>:   StartScroll(Backward) \n\
-     <Btn2Motion>: MoveThumb() NotifyThumb() \n\
-     <BtnUp>:      NotifyScroll(Proportional) EndScroll()";
-#ifdef bogusScrollKeys
-    /* examples */
-    "<KeyPress>f:  StartScroll(Forward) NotifyScroll(FullLength) EndScroll()"
-    "<KeyPress>b:  StartScroll(Backward) NotifyScroll(FullLength) EndScroll()"
-#endif
-#endif
 
 static float floatZero = 0.0;
 
 #define Offset(field) XtOffsetOf(ScrollbarRec, field)
 
 static XtResource resources[] = {
-#ifdef ISW_ARROW_SCROLLBARS
 /*  {XtNscrollCursor, XtCCursor, XtRCursor, sizeof(Cursor),
        Offset(scrollbar.cursor), XtRString, "crosshair"},*/
-#else
-  {XtNscrollVCursor, XtCCursor, XtRCursor, sizeof(Cursor),
-       Offset(scrollbar.verCursor), XtRString, "sb_v_double_arrow"},
-  {XtNscrollHCursor, XtCCursor, XtRCursor, sizeof(Cursor),
-       Offset(scrollbar.horCursor), XtRString, "sb_h_double_arrow"},
-  {XtNscrollUCursor, XtCCursor, XtRCursor, sizeof(Cursor),
-       Offset(scrollbar.upCursor), XtRString, "sb_up_arrow"},
-  {XtNscrollDCursor, XtCCursor, XtRCursor, sizeof(Cursor),
-       Offset(scrollbar.downCursor), XtRString, "sb_down_arrow"},
-  {XtNscrollLCursor, XtCCursor, XtRCursor, sizeof(Cursor),
-       Offset(scrollbar.leftCursor), XtRString, "sb_left_arrow"},
-  {XtNscrollRCursor, XtCCursor, XtRCursor, sizeof(Cursor),
-       Offset(scrollbar.rightCursor), XtRString, "sb_right_arrow"},
-#endif
   {XtNlength, XtCLength, XtRDimension, sizeof(Dimension),
        Offset(scrollbar.length), XtRImmediate, (XtPointer) 1},
   {XtNthickness, XtCThickness, XtRDimension, sizeof(Dimension),
@@ -174,22 +145,14 @@ static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
-#ifdef ISW_ARROW_SCROLLBARS
 static void HandleThumb(Widget, XEvent *, String *, Cardinal *);
-#else
-static void StartScroll(Widget, XEvent *, String *, Cardinal *);
-#endif
 static void MoveThumb(Widget, XEvent *, String *, Cardinal *);
 static void NotifyThumb(Widget, XEvent *, String *, Cardinal *);
 static void NotifyScroll(Widget, XEvent *, String *, Cardinal *);
 static void EndScroll(Widget, XEvent *, String *, Cardinal *);
 
 static XtActionsRec actions[] = {
-#ifdef ISW_ARROW_SCROLLBARS
     {"HandleThumb",	HandleThumb},
-#else
-    {"StartScroll",     StartScroll},
-#endif
     {"MoveThumb",	MoveThumb},
     {"NotifyThumb",	NotifyThumb},
     {"NotifyScroll",	NotifyScroll},
@@ -257,12 +220,8 @@ ClassInitialize(void)
 		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
 
-#ifdef ISW_ARROW_SCROLLBARS
 /* CHECKIT #define MARGIN(sbw) (sbw)->scrollbar.thickness + (sbw)->scrollbar.shadow_width */
 #define MARGIN(sbw) (sbw)->scrollbar.thickness
-#else
-#define MARGIN(sbw) (sbw)->scrollbar.shadow_width
-#endif
 
 /*
  The original Isw Scrollbar's FillArea *really* relied on the fact that the
@@ -450,7 +409,6 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
     }
 }
 
-#ifdef ISW_ARROW_SCROLLBARS
 static void
 PaintArrows (ScrollbarWidget sbw)
 {
@@ -563,7 +521,6 @@ PaintArrows (ScrollbarWidget sbw)
 	}
     }
 }
-#endif
 
 /*	Function Name: Destroy
  *	Description: Called as the scrollbar is going away...
@@ -574,10 +531,8 @@ static void
 Destroy (Widget w)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
-#ifdef ISW_ARROW_SCROLLBARS
     if(sbw->scrollbar.timer_id != (XtIntervalId) 0)
 	XtRemoveTimeOut (sbw->scrollbar.timer_id);
-#endif
     XtReleaseGC (w, sbw->scrollbar.gc);
 
     /* Release shadow GCs */
@@ -681,12 +636,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 	    ? sbw->scrollbar.thickness : sbw->scrollbar.length;
 
     SetDimensions (sbw);
-#ifdef ISW_ARROW_SCROLLBARS
     sbw->scrollbar.scroll_mode = 0;
     sbw->scrollbar.timer_id = (XtIntervalId)0;
-#else
-    sbw->scrollbar.direction = 0;
-#endif
     sbw->scrollbar.topLoc = 0;
     sbw->scrollbar.shownLength = sbw->scrollbar.min_thumb;
 
@@ -707,19 +658,10 @@ static void
 Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
-#ifdef ISW_ARROW_SCROLLBARS
     if(sbw->simple.cursor_name == NULL)
 	XtVaSetValues(w, XtNcursorName, "crosshair", NULL);
     /* dont set the cursor of the window to anything */
     *valueMask &= ~CWCursor;
-#else
-    sbw->scrollbar.inactiveCursor =
-      (sbw->scrollbar.orientation == XtorientVertical)
-	? sbw->scrollbar.verCursor
-	: sbw->scrollbar.horCursor;
-
-    XtVaSetValues (w, XtNcursor, sbw->scrollbar.inactiveCursor, NULL);
-#endif
     /*
      * The Simple widget actually stuffs the value in the valuemask.
      */
@@ -803,10 +745,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
  sbw->scrollbar.topLoc = -(sbw->scrollbar.length + 1);
  PaintThumb (sbw, event);
     }
-#ifdef ISW_ARROW_SCROLLBARS
     /* we'd like to be region aware here!!!! */
     PaintArrows (sbw);
-#endif
 
 }
 
@@ -934,7 +874,6 @@ ExtractPosition(XEvent *event, Position *x, Position *y)
     }
 }
 
-#ifdef ISW_ARROW_SCROLLBARS
 /* ARGSUSED */
 static void
 HandleThumb(Widget w, XEvent *event, String *params, Cardinal *num_params)
@@ -974,62 +913,10 @@ RepeatNotify(XtPointer client_data, XtIntervalId *idp)
 		    client_data);
 }
 
-#else /* ISW_ARROW_SCROLLBARS */
-/* ARGSUSED */
-static void
-StartScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
-{
-    ScrollbarWidget sbw = (ScrollbarWidget) w;
-    Cursor cursor;
-    char direction;
-
-    if (sbw->scrollbar.direction != 0) return; /* if we're already scrolling */
-    if (*num_params > 0)
-	direction = *params[0];
-    else
-	direction = 'C';
-
-    sbw->scrollbar.direction = direction;
-
-    switch (direction) {
-    case 'B':
-    case 'b':
-	cursor = (sbw->scrollbar.orientation == XtorientVertical)
-			? sbw->scrollbar.downCursor
-			: sbw->scrollbar.rightCursor;
-	break;
-    case 'F':
-    case 'f':
-	cursor = (sbw->scrollbar.orientation == XtorientVertical)
-			? sbw->scrollbar.upCursor
-			: sbw->scrollbar.leftCursor;
-	break;
-    case 'C':
-    case 'c':
-	cursor = (sbw->scrollbar.orientation == XtorientVertical)
-			? sbw->scrollbar.rightCursor
-			: sbw->scrollbar.upCursor;
-	break;
-    default:
-	return; /* invalid invocation */
-    }
-    XtVaSetValues (w, XtNcursor, cursor, NULL);
-    xcb_flush(XtDisplay(w));
-}
-#endif /* ISW_ARROW_SCROLLBARS */
-
 /*
  * Make sure the first number is within the range specified by the other
  * two numbers.
  */
-
-#ifndef ISW_ARROW_SCROLLBARS
-static int
-InRange(int num, int small, int big)
-{
-    return (num < small) ? small : ((num > big) ? big : num);
-}
-#endif
 
 /*
  * Same as above, but for floating numbers.
@@ -1042,7 +929,6 @@ FloatInRange(float num, float small, float big)
 }
 
 
-#ifdef ISW_ARROW_SCROLLBARS
 static void
 NotifyScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
@@ -1088,53 +974,6 @@ NotifyScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
 	}
     return;
 }
-#else /* ISW_ARROW_SCROLLBARS */
-static void
-NotifyScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
-{
-    ScrollbarWidget sbw = (ScrollbarWidget) w;
-    intptr_t call_data = 0;
-    char style;
-    Position x, y;
-
-    if (sbw->scrollbar.direction == 0) return; /* if no StartScroll */
-    if (LookAhead (w, event)) return;
-    if (*num_params > 0)
- style = *params[0];
-    else
- style = 'P';
-
-    switch (style) {
-    case 'P':    /* Proportional */
-    case 'p':
- ExtractPosition (event, &x, &y);
- call_data =
-     InRange (PICKLENGTH (sbw, x, y), 0, (int) sbw->scrollbar.length);
- break;
-
-    case 'F':    /* FullLength */
-    case 'f':
- call_data = sbw->scrollbar.length;
- break;
-    }
-    switch (sbw->scrollbar.direction) {
-    case 'B':
-    case 'b':
- call_data = -call_data;
- /* fall through */
-
-    case 'F':
-    case 'f':
- XtCallCallbacks (w, XtNscrollProc, (XtPointer)call_data);
-	break;
-
-    case 'C':
-    case 'c':
-	/* NotifyThumb has already called the thumbProc(s) */
-	break;
-    }
-}
-#endif /* ISW_ARROW_SCROLLBARS */
 
 /* ARGSUSED */
 static void
@@ -1142,16 +981,10 @@ EndScroll(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
 
-#ifdef ISW_ARROW_SCROLLBARS
     sbw->scrollbar.scroll_mode = 0;
     /* no need to remove any autoscroll timeout; it will no-op */
     /* because the scroll_mode is 0 */
     /* but be sure to remove timeout in destroy proc */
-#else
-    XtVaSetValues (w, XtNcursor, sbw->scrollbar.inactiveCursor, NULL);
-    xcb_flush(XtDisplay(w));
-    sbw->scrollbar.direction = 0;
-#endif
 }
 
 static float
@@ -1177,13 +1010,7 @@ MoveThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     Position x, y;
     float loc, s;
-#ifdef ISW_ARROW_SCROLLBARS
     float t;
-#endif
-
-#ifndef ISW_ARROW_SCROLLBARS
-    if (sbw->scrollbar.direction == 0) return; /* if no StartScroll */
-#endif
 
     if (LookAhead (w, event)) return;
 
@@ -1196,14 +1023,10 @@ MoveThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
     ExtractPosition (event, &x, &y);
     loc = FractionLoc (sbw, x, y);
     s = sbw->scrollbar.shown;
-#ifdef ISW_ARROW_SCROLLBARS
     t = sbw->scrollbar.top;
     if (sbw->scrollbar.scroll_mode != 2 )
       /* initialize picked position */
       sbw->scrollbar.picked = (FloatInRange( loc, t, t + s ) - t);
-#else
-    sbw->scrollbar.picked = 0.5 * s;
-#endif
     if (sbw->scrollbar.pick_top)
       sbw->scrollbar.top = loc;
     else {
@@ -1216,9 +1039,7 @@ MoveThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
     if (sbw->scrollbar.top + sbw->scrollbar.shown > 1.0)
       sbw->scrollbar.top = 1.0 - sbw->scrollbar.shown;
 #endif
-#ifdef ISW_ARROW_SCROLLBARS
     sbw->scrollbar.scroll_mode = 2; /* indicate continuous scroll */
-#endif
     PaintThumb (sbw, event);
     xcb_flush(XtDisplay(w));	/* re-draw it before Notifying */
 }
@@ -1233,10 +1054,6 @@ NotifyThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
         XtPointer xtp;
         float xtf;
     } xtpf;
-
-#ifndef ISW_ARROW_SCROLLBARS
-    if (sbw->scrollbar.direction == 0) return; /* if no StartScroll */
-#endif
 
     if (LookAhead (w, event)) return;
 
@@ -1294,11 +1111,7 @@ void ISWScrollbarSetThumb (Widget w,
 	    w,top,shown);
 #endif
 
-#ifdef ISW_ARROW_SCROLLBARS
     if (sbw->scrollbar.scroll_mode == (char) 2) return; /* if still thumbing */
-#else
-    if (sbw->scrollbar.direction == 'c') return; /* if still thumbing */
-#endif
 
     sbw->scrollbar.top = (top > 1.0) ? 1.0 :
 				(top >= 0.0) ? top : sbw->scrollbar.top;

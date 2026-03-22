@@ -92,20 +92,20 @@ This will:
 
 Basic configuration:
 ```bash
-./configure --enable-arrow-scrollbars --enable-internationalization
+./configure --enable-internationalization
 ```
 
 Optional prefix (default is `/usr/local`):
 ```bash
 ./configure --prefix=/usr \
-  --enable-arrow-scrollbars \
   --enable-internationalization
 ```
 
 Configuration options:
-- `--enable-arrow-scrollbars`: Enable arrow buttons on scrollbars (recommended)
 - `--enable-internationalization`: Enable I18N/multibyte support (recommended)
 - `--prefix=PATH`: Installation prefix (default: /usr/local)
+
+Note: Arrow scrollbars are always enabled.
 
 ### 3. Build
 
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 - ✅ XCB-based implementation (no Xlib)
 - ✅ All ISW widgets compile and link
 - ✅ String generation system working
-- ✅ Arrow scrollbars enabled (ISW_ARROW_SCROLLBARS)
+- ✅ Arrow scrollbars always enabled (ISW_ARROW_SCROLLBARS)
 - ✅ Internationalization enabled (ISW_INTERNATIONALIZATION)
 - ✅ Complete Xaw3d → ISW renaming
 
