@@ -254,11 +254,12 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     int y = entry->rectangle.y +
 	    (int)(entry->rectangle.height - entry->sme_line.line_width) / 2;
 
-    /* Try to create Cairo rendering context if not yet created */
-    if (!entry->sme_line.render_ctx && XtIsRealized(w)) {
+    /* Try to create Cairo rendering context if not yet created.
+       SmeLine is a RectObj (no window), so use the parent SimpleMenu widget. */
+    if (!entry->sme_line.render_ctx && XtIsRealized(XtParent(w))) {
         if (entry->rectangle.width > 0 && entry->rectangle.height > 0 &&
             entry->rectangle.width < 32767 && entry->rectangle.height < 32767) {
-            entry->sme_line.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+            entry->sme_line.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
         }
     }
 

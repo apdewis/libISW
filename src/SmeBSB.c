@@ -341,7 +341,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
  if ( w == IswSimpleMenuGetActiveEntry(XtParent(w)) ) {
      /* Draw highlight background using Cairo or XCB */
      if (entry->sme_bsb.render_ctx == NULL) {
-         entry->sme_bsb.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+         entry->sme_bsb.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
      }
      
      if (entry->sme_bsb.render_ctx) {
@@ -1111,7 +1111,7 @@ DrawShadows(Widget w)
  /* Try to create Cairo rendering context if not yet created */
  if (!entry->sme_bsb.render_ctx && w_dim > 0 && h > 0 &&
      w_dim < 32767 && h < 32767) {
-     entry->sme_bsb.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+     entry->sme_bsb.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
  }
 
  if (entry->sme_bsb.shadowed)

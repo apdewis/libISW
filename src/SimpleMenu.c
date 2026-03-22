@@ -1380,7 +1380,9 @@ ChangeCursorOnGrab(Widget w, XtPointer junk, XtPointer garbage)
     xcb_change_active_pointer_grab(XtDisplay(w),
        smw->simple_menu.cursor,
        XtLastTimestampProcessed(XtDisplay(w)),
-       XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE);
+       XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
+       XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
+       XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW);
 }
 
 /*      Function Name: MakeSetValuesRequest

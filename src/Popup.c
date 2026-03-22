@@ -79,14 +79,15 @@ _XtPopup(Widget widget, XtGrabKind grab_kind, _XtBoolean spring_loaded)
             XtAddGrab(widget, FALSE, spring_loaded);
         }
         XtRealizeWidget(widget);
-        //XMapRaised(XtDisplay(widget), XtWindow(widget));
         xcb_map_window(XtDisplay(widget), XtWindow(widget));
         xcb_configure_window(XtDisplay(widget), XtWindow(widget), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
+        xcb_flush(XtDisplay(widget));
 
     }
-    else { 
+    else {
         //XRaiseWindow(XtDisplay(widget), XtWindow(widget));
         xcb_configure_window(XtDisplay(widget), XtWindow(widget), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
+        xcb_flush(XtDisplay(widget));
     }
 
 }                               /* _XtPopup */
@@ -167,6 +168,7 @@ XtPopdown(Widget widget)
 
     grab_kind = shell_widget->shell.grab_kind;
     xcb_unmap_window(XtDisplay(widget), XtWindow(widget));
+    xcb_flush(XtDisplay(widget));
     //XWithdrawWindow(XtDisplay(widget), XtWindow(widget),
     //                XScreenNumberOfScreen(XtScreen(widget)));
     if (grab_kind != XtGrabNone)

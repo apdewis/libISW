@@ -1454,7 +1454,8 @@ static uint32_t const masks[] = {
     XCB_EVENT_MASK_KEY_RELEASE,             /* 3 - KeyRelease               */
     XCB_EVENT_MASK_BUTTON_PRESS,            /* 4 - ButtonPress              */
     XCB_EVENT_MASK_BUTTON_RELEASE,          /* 5 - ButtonRelease            */
-    XCB_EVENT_MASK_POINTER_MOTION,          /* 6 - MotionNotify             */
+    XCB_EVENT_MASK_POINTER_MOTION |
+        XCB_EVENT_MASK_BUTTON_MOTION,       /* 6 - MotionNotify             */
     XCB_EVENT_MASK_ENTER_WINDOW,            /* 7 - EnterNotify              */
     XCB_EVENT_MASK_LEAVE_WINDOW,            /* 8 - LeaveNotify              */
     XCB_EVENT_MASK_FOCUS_CHANGE,            /* 9 - FocusIn                  */

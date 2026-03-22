@@ -1244,14 +1244,11 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
         }
     }
 
-    if (w->shell.save_under) {
+    if (w->shell.save_under)
         mask |= CWSaveUnder;
-        //attr->save_under = TRUE;
-    }
-    if (w->shell.override_redirect) {
+    if (w->shell.override_redirect)
         mask |= CWOverrideRedirect;
-        //attr->override_redirect = TRUE;
-    }
+
     if (wid->core.width == 0 || wid->core.height == 0) {
         Cardinal count = 1;
 
@@ -1259,32 +1256,87 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
                    "Shell widget %s has zero width and/or height",
                    &wid->core.name, &count);
     }
-    //wid->core.window = XCreateWindow(XtDisplay(wid),
-    //                                 wid->core.screen->root, (int) wid->core.x,
-    //                                 (int) wid->core.y,
-    //                                 (unsigned int) wid->core.width,
-    //                                 (unsigned int) wid->core.height,
-    //                                 (unsigned int) wid->core.border_width,
-    //                                 (int) wid->core.depth,
-    //                                 (unsigned int) InputOutput,
-    //                                 w->shell.visual, mask, attr);
 
-    wid->core.window = xcb_generate_id(XtDisplay(wid));
-    xcb_create_window(
-        XtDisplay(wid),
-        wid->core.depth,
-        wid->core.window,  // new window id
-        wid->core.screen->root,  // parent window
-        wid->core.x,
-        wid->core.y,
-        wid->core.width,
-        wid->core.height,
-        wid->core.border_width,
-        XCB_WINDOW_CLASS_INPUT_OUTPUT,
-        w->shell.visual,
-        mask,
-        attr
-    );
+    /* Rebuild the XCB value list from scratch.  Subclass Realize methods
+       (e.g. SimpleMenu) may have corrupted the packed array inherited from
+       ComputeWindowAttributes, because the original Xlib code used an
+       XSetWindowAttributes struct with named fields, while XCB requires
+       values packed in ascending bit order.  Rebuilding here is the only
+       safe approach. */
+    {
+        uint32_t vals[16];
+        int vi = 0;
+
+        /* CW_BACK_PIXMAP (bit 0) */
+        if (mask & XCB_CW_BACK_PIXMAP)
+            vals[vi++] = wid->core.background_pixmap;
+        /* CW_BACK_PIXEL (bit 1) */
+        if (mask & XCB_CW_BACK_PIXEL)
+            vals[vi++] = wid->core.background_pixel;
+        /* CW_BORDER_PIXMAP (bit 2) */
+        if (mask & XCB_CW_BORDER_PIXMAP)
+            vals[vi++] = wid->core.border_pixmap;
+        /* CW_BORDER_PIXEL (bit 3) */
+        if (mask & XCB_CW_BORDER_PIXEL)
+            vals[vi++] = wid->core.border_pixel;
+        /* CW_BIT_GRAVITY (bit 4) */
+        if (mask & XCB_CW_BIT_GRAVITY)
+            vals[vi++] = XCB_GRAVITY_NORTH_WEST;
+        /* CW_WIN_GRAVITY (bit 5) */
+        if (mask & XCB_CW_WIN_GRAVITY)
+            vals[vi++] = XCB_GRAVITY_NORTH_WEST;
+        /* Bits 6-10 and 14 (backing_store, override_redirect, save_under,
+           cursor) are applied via xcb_change_window_attributes after
+           creation — strip them from the create mask to keep things simple. */
+        Mask create_mask = mask & ~(XCB_CW_BACKING_STORE | XCB_CW_OVERRIDE_REDIRECT
+                                    | XCB_CW_SAVE_UNDER | XCB_CW_CURSOR);
+        /* CW_EVENT_MASK (bit 11) */
+        if (create_mask & XCB_CW_EVENT_MASK)
+            vals[vi++] = XtBuildEventMask(wid);
+        /* CW_DONT_PROPAGATE (bit 12) — not used */
+        /* CW_COLORMAP (bit 13) */
+        if (create_mask & XCB_CW_COLORMAP)
+            vals[vi++] = wid->core.colormap;
+
+        wid->core.window = xcb_generate_id(XtDisplay(wid));
+        xcb_create_window(
+            XtDisplay(wid),
+            wid->core.depth,
+            wid->core.window,
+            wid->core.screen->root,
+            wid->core.x,
+            wid->core.y,
+            wid->core.width,
+            wid->core.height,
+            wid->core.border_width,
+            XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            w->shell.visual,
+            create_mask,
+            vals
+        );
+
+        /* Apply shell attributes that were stripped from the create mask */
+        {
+            uint32_t post_mask = 0;
+            uint32_t post_vals[2];
+            int pi = 0;
+            if (w->shell.override_redirect) {
+                post_mask |= XCB_CW_OVERRIDE_REDIRECT;
+                post_vals[pi++] = 1;
+            }
+            if (w->shell.save_under) {
+                post_mask |= XCB_CW_SAVE_UNDER;
+                post_vals[pi++] = 1;
+            }
+            if (post_mask)
+                xcb_change_window_attributes(XtDisplay(wid), wid->core.window,
+                                             post_mask, post_vals);
+        }
+        /* Note: CW_CURSOR and CW_BACKING_STORE are also stripped from
+           create_mask.  Cursor is handled by subclass callbacks (e.g.
+           SimpleMenu's ChangeCursorOnGrab).  Backing store defaults to
+           NotUseful which is the server default. */
+    }
     xcb_flush(XtDisplay(wid));
 
     _popup_set_prop(w);
