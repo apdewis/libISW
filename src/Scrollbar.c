@@ -263,9 +263,10 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     xcb_connection_t *conn = XtDisplay((Widget) sbw);
 
     if (fill) {
+        /* Draw thumb in foreground color */
         if (ctx) {
             ISWRenderBegin(ctx);
-            ISWRenderSetColor(ctx, sbw->core.background_pixel);
+            ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
             ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
             ISWRenderEnd(ctx);
         } else {
@@ -275,7 +276,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
             xcb_flush(conn);
         }
     } else {
-        /* Clear/erase area - fill with background color */
+        /* Erase thumb area by restoring trough (background) color */
         if (ctx) {
             ISWRenderBegin(ctx);
             ISWRenderSetColor(ctx, sbw->core.background_pixel);
@@ -323,55 +324,11 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
        */
       if (s)
    {
-          /* Clear old thumb areas that are not part of new thumb */
-          if (newtop < oldtop) FillArea(sbw, oldtop, oldtop + s, 0);
-          if (newtop > oldtop) FillArea(sbw, oldtop, MIN(newtop, oldbot), 0);
-          if (newbot < oldbot) FillArea(sbw, MAX(newbot, oldtop), oldbot, 0);
-          if (newbot > oldbot) FillArea(sbw, oldbot - s, oldbot, 0);
-
-          /* Fill the new thumb position */
+          /* Clear entire old thumb area then draw new one.
+           * Differential clearing leaves border remnants. */
+          if (oldtop != oldbot)
+              FillArea(sbw, oldtop, oldbot, 0);
           FillArea(sbw, newtop, newbot, 1);
-          
-          /* Draw border around thumb (inset to match narrower thumb) */
-          {
-              int lx, ly, lw, lh;
-              int inset = 3;
-
-              if (sbw->scrollbar.orientation == XtorientHorizontal) {
-                  lx = newtop;
-                  ly = s + inset;
-                  lw = newbot - newtop;
-                  lh = sbw->core.height - 2 * s - 2 * inset;
-              } else {
-                  lx = s + inset;
-                  ly = newtop;
-                  lw = sbw->core.width - 2 * s - 2 * inset;
-                  lh = newbot - newtop;
-              }
-
-              ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
-              if (ctx) {
-                  ISWRenderBegin(ctx);
-                  ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-                  ISWRenderSetLineWidth(ctx, 1.0);
-                  ISWRenderStrokeRectangle(ctx, lx, ly, lw, lh);
-                  ISWRenderEnd(ctx);
-              } else {
-                  xcb_connection_t *conn = XtDisplay((Widget) sbw);
-                  xcb_gcontext_t border_gc = xcb_generate_id(conn);
-                  uint32_t values[3];
-                  values[0] = sbw->scrollbar.foreground;
-                  values[1] = 1;
-                  values[2] = 0;
-                  xcb_create_gc(conn, border_gc, XtWindow((Widget) sbw),
-                              XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH | XCB_GC_GRAPHICS_EXPOSURES,
-                              values);
-                  xcb_rectangle_t rect = {lx, ly, lw, lh};
-                  xcb_poly_rectangle(conn, XtWindow((Widget) sbw), border_gc, 1, &rect);
-                  xcb_free_gc(conn, border_gc);
-                  xcb_flush(conn);
-              }
-          }
    }
       else
    {
@@ -380,51 +337,10 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
      not draw over shadows or the arrows. Therefore setting clipmasks
      doesn't seem to be necessary.  Correct me if I'm wrong!
    */
-          if (newtop < oldtop) FillArea(sbw, newtop, MIN(newbot, oldtop), 1);
-          if (newtop > oldtop) FillArea(sbw, oldtop, MIN(newtop, oldbot), 0);
-          if (newbot < oldbot) FillArea(sbw, MAX(newbot, oldtop), oldbot, 0);
-          if (newbot > oldbot) FillArea(sbw, MAX(newtop, oldbot), newbot, 1);
-
-          /* Draw border around thumb (inset to match narrower thumb) */
-          {
-              int lx, ly, lw, lh;
-              int inset = 3;
-
-              if (sbw->scrollbar.orientation == XtorientHorizontal) {
-                  lx = newtop;
-                  ly = inset;
-                  lw = newbot - newtop;
-                  lh = sbw->core.height - 2 * inset;
-              } else {
-                  lx = inset;
-                  ly = newtop;
-                  lw = sbw->core.width - 2 * inset;
-                  lh = newbot - newtop;
-              }
-
-              ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
-              if (ctx) {
-                  ISWRenderBegin(ctx);
-                  ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-                  ISWRenderSetLineWidth(ctx, 1.0);
-                  ISWRenderStrokeRectangle(ctx, lx, ly, lw, lh);
-                  ISWRenderEnd(ctx);
-              } else {
-                  xcb_connection_t *conn = XtDisplay((Widget) sbw);
-                  xcb_gcontext_t border_gc = xcb_generate_id(conn);
-                  uint32_t values[3];
-                  values[0] = sbw->scrollbar.foreground;
-                  values[1] = 1;
-                  values[2] = 0;
-                  xcb_create_gc(conn, border_gc, XtWindow((Widget) sbw),
-                              XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH | XCB_GC_GRAPHICS_EXPOSURES,
-                              values);
-                  xcb_rectangle_t rect = {lx, ly, lw, lh};
-                  xcb_poly_rectangle(conn, XtWindow((Widget) sbw), border_gc, 1, &rect);
-                  xcb_free_gc(conn, border_gc);
-                  xcb_flush(conn);
-              }
-          }
+          /* Clear entire old thumb area then draw new one. */
+          if (oldtop != oldbot)
+              FillArea(sbw, oldtop, oldbot, 0);
+          FillArea(sbw, newtop, newbot, 1);
    }
     }
 }
@@ -643,15 +559,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     ScrollbarWidget sbw = (ScrollbarWidget) new;
     xcb_create_gc_value_list_t myXGCV;
 
-    /* If foreground wasn't set or failed to convert, use a visible gray color */
-    if (sbw->scrollbar.foreground == 0 || sbw->scrollbar.foreground == 0xffffff) {
-        xcb_connection_t *conn = XtDisplay(new);
-        xcb_screen_t *screen = XtScreen(new);
-        
-        /* Use a mid-gray that's visible on both light and dark backgrounds */
-        sbw->scrollbar.foreground = grayPixel(128, conn, screen);
-    }
-
     CreateGC (new);
 
     if (sbw->core.width == 0)
@@ -754,28 +661,42 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     int x, y;
     unsigned int width, height;
 
-    /* Shadow drawing removed - ThreeD eliminated */
+    /* Draw the trough (channel) in foreground color so the
+     * background-colored thumb is visible against it. */
+    {
+        Dimension s = sbw->scrollbar.shadow_width;
+        Dimension margin = MARGIN(sbw);
+        int tx, ty, tw, th;
 
-    if (sbw->scrollbar.orientation == XtorientHorizontal) {
-	x = sbw->scrollbar.topLoc;
-	y = 1;
-	width = sbw->scrollbar.shownLength;
-	height = sbw->core.height - 2;
-    } else {
-	x = 1;
-	y = sbw->scrollbar.topLoc;
-	width = sbw->core.width - 2;
-	height = sbw->scrollbar.shownLength;
+        if (sbw->scrollbar.orientation == XtorientHorizontal) {
+            tx = margin;
+            ty = s;
+            tw = sbw->scrollbar.length - 2 * margin;
+            th = sbw->core.height - 2 * s;
+        } else {
+            tx = s;
+            ty = margin;
+            tw = sbw->core.width - 2 * s;
+            th = sbw->scrollbar.length - 2 * margin;
+        }
+
+        ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
+        if (ctx) {
+            ISWRenderBegin(ctx);
+            ISWRenderSetColor(ctx, sbw->core.background_pixel);
+            ISWRenderFillRectangle(ctx, tx, ty, tw, th);
+            ISWRenderEnd(ctx);
+        } else {
+            xcb_connection_t *conn = XtDisplay(w);
+            xcb_clear_area(conn, FALSE, XtWindow(w),
+                           tx, ty, tw, th);
+            xcb_flush(conn);
+        }
     }
-    /* TODO: Implement region intersection test for XCB
-     * For now, always paint if region is None or paint unconditionally
-     */
-    if (region == XCB_NONE || region != XCB_NONE) {
- /* Forces entire thumb to be painted. */
- sbw->scrollbar.topLoc = -(sbw->scrollbar.length + 1);
- PaintThumb (sbw, event);
-    }
-    /* we'd like to be region aware here!!!! */
+
+    /* Forces entire thumb to be painted. */
+    sbw->scrollbar.topLoc = -(sbw->scrollbar.length + 1);
+    PaintThumb (sbw, event);
     PaintArrows (sbw);
 
 }

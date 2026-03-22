@@ -533,26 +533,27 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
     if (state != sink->ascii_sink.laststate && XtIsRealized(text_widget)) {
         if (sink->ascii_sink.render_ctx && state == IswisOn) {
             /* Draw cursor as a filled bar using Cairo.
-             * When turning off, the full redraw will erase it. */
+             * y is the bottom of the line; cursor extends upward. */
             int asc = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
             int desc = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
+            int h = asc + desc;
             ISWRenderBegin(sink->ascii_sink.render_ctx);
             ISWRenderSetColor(sink->ascii_sink.render_ctx,
                               sink->text_sink.foreground);
             ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
-                                   (int)x - 1, (int)y - asc,
-                                   2, asc + desc);
+                                   (int)x - 1, (int)y - h,
+                                   2, h);
             ISWRenderEnd(sink->ascii_sink.render_ctx);
         } else if (sink->ascii_sink.render_ctx && state == IswisOff) {
-            /* Erase cursor by redrawing background, text will be redrawn */
             int asc = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
             int desc = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
+            int h = asc + desc;
             ISWRenderBegin(sink->ascii_sink.render_ctx);
             ISWRenderSetColor(sink->ascii_sink.render_ctx,
                               sink->text_sink.background);
             ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
-                                   (int)x - 1, (int)y - asc,
-                                   2, asc + desc);
+                                   (int)x - 1, (int)y - h,
+                                   2, h);
             ISWRenderEnd(sink->ascii_sink.render_ctx);
         } else {
             /* XCB fallback: use original XOR method */

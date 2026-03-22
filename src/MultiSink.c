@@ -568,22 +568,24 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
         if (sink->multi_sink.render_ctx && state == IswisOn) {
             int asc = sink->multi_sink.fontset ? sink->multi_sink.fontset->ascent : 11;
             int desc = sink->multi_sink.fontset ? sink->multi_sink.fontset->descent : 3;
+            int h = asc + desc;
             ISWRenderBegin(sink->multi_sink.render_ctx);
             ISWRenderSetColor(sink->multi_sink.render_ctx,
                               sink->text_sink.foreground);
             ISWRenderFillRectangle(sink->multi_sink.render_ctx,
-                                   (int)x - 1, (int)y - asc,
-                                   2, asc + desc);
+                                   (int)x - 1, (int)y - h,
+                                   2, h);
             ISWRenderEnd(sink->multi_sink.render_ctx);
         } else if (sink->multi_sink.render_ctx && state == IswisOff) {
             int asc = sink->multi_sink.fontset ? sink->multi_sink.fontset->ascent : 11;
             int desc = sink->multi_sink.fontset ? sink->multi_sink.fontset->descent : 3;
+            int h = asc + desc;
             ISWRenderBegin(sink->multi_sink.render_ctx);
             ISWRenderSetColor(sink->multi_sink.render_ctx,
                               sink->text_sink.background);
             ISWRenderFillRectangle(sink->multi_sink.render_ctx,
-                                   (int)x - 1, (int)y - asc,
-                                   2, asc + desc);
+                                   (int)x - 1, (int)y - h,
+                                   2, h);
             ISWRenderEnd(sink->multi_sink.render_ctx);
         } else {
             xcb_connection_t *conn = XtDisplay(text_widget);
