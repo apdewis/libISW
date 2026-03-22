@@ -290,10 +290,18 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      * Reserve space on the left for the radio button or checkbox indicator.
      * We increase the internal_width (left padding) to make room.
      */
-    if (tw->label.internal_width < 20) {
-        tw->label.internal_width = 20;  /* Space for indicator + gap */
+    {
+        Dimension min_iw = ISWScaleDim(new, 20);  /* Space for indicator + gap */
+        if (tw->label.internal_width < min_iw) {
+            Dimension old_iw = tw->label.internal_width;
+            tw->label.internal_width = min_iw;
+            /* Label's Initialize already computed core.width using the old
+             * internal_width.  Widen the widget to account for the difference. */
+            if (tw->core.width > 0)
+                tw->core.width += 2 * (min_iw - old_iw);
+        }
     }
-    
+
     /*
      * Remove 3D button appearance - radio buttons and checkboxes should look
      * like plain text with indicators, not like pressed buttons.
@@ -312,6 +320,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  * I want to set the toggle if the user set the state to "On" in
  * the resource group, reguardless of what my ancestors did.
  */
+
+    /* Re-run Resize to recalculate label_x with the updated internal_width */
+    (*XtClass(new)->core_class.resize)(new);
 
     if (tw_req->command.set)
       ToggleSet(new, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
@@ -624,26 +635,28 @@ CreateCirclePolygon(int center_x, int center_y, int radius,
  */
 
 static void
-DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked)
+DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
+             double scale)
 {
     /* Draw square outline (always visible) */
-    ISWRenderSetLineWidth(ctx, 1.5);
+    ISWRenderSetLineWidth(ctx, 1.5 * scale);
     ISWRenderStrokeRectangle(ctx, x, y, size, size);
-    
+
     /* Draw checkmark if checked */
     if (checked) {
-        int x1 = x + 2;
+        int inset = (int)(2 * scale + 0.5);
+        int x1 = x + inset;
         int y1 = y + size / 2;
         int x2 = x + size / 3;
-        int y2 = y + size - 2;
-        int x3 = x + size - 2;
-        int y3 = y + 2;
-        
-        ISWRenderSetLineWidth(ctx, 2.0);
-        
+        int y2 = y + size - inset;
+        int x3 = x + size - inset;
+        int y3 = y + inset;
+
+        ISWRenderSetLineWidth(ctx, 2.0 * scale);
+
         /* First segment: bottom-left to middle */
         ISWRenderDrawLine(ctx, x1, y1, x2, y2);
-        
+
         /* Second segment: middle to top-right */
         ISWRenderDrawLine(ctx, x2, y2, x3, y3);
     }
@@ -659,16 +672,17 @@ DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked)
  */
 
 static void
-DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected)
+DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
+                double scale)
 {
     int center_x = x + size / 2;
     int center_y = y + size / 2;
     int radius = size / 2;
     xcb_point_t circle_points[32]; /* Use 32 points for smooth circle */
-    
+
     /* Draw circle outline (always visible) using polygon stroke */
     CreateCirclePolygon(center_x, center_y, radius, circle_points, 32);
-    ISWRenderSetLineWidth(ctx, 1.5);
+    ISWRenderSetLineWidth(ctx, 1.5 * scale);
     ISWRenderStrokePolygon(ctx, circle_points, 32);
     
     /* Draw filled center circle if selected */
@@ -714,21 +728,22 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         return;
     }
     
-    /* Calculate position and size for the indicator */
-    /* Place indicator on the left side with minimal padding */
-    int padding = 2;
-    int indicator_size = 13;  /* Base size of the indicator */
-    
+    /* Calculate position and size for the indicator, scaled for HiDPI */
+    double scale = ISWScaleFactor(w);
+    int padding = (int)(2 * scale + 0.5);
+    int indicator_size = (int)(13 * scale + 0.5);
+
     /* Ensure indicator fits within widget bounds */
     if (indicator_size > (int)(tw->core.height - 2 * padding)) {
         indicator_size = tw->core.height - 2 * padding;
     }
-    
+
     /* Minimum size to be visible */
-    if (indicator_size < 8) {
-        indicator_size = 8;
+    int min_size = (int)(8 * scale + 0.5);
+    if (indicator_size < min_size) {
+        indicator_size = min_size;
     }
-    
+
     /* Position: left edge + padding, vertically centered */
     int x = padding;
     int y = (tw->core.height - indicator_size) / 2;
@@ -744,10 +759,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     /* Checkbox: standalone toggle */
     if (tw->toggle.radio_group != NULL) {
         /* Radio button - draw circle outline with optional filled center */
-        DrawRadioButton(ctx, x, y, indicator_size, tw->command.set);
+        DrawRadioButton(ctx, x, y, indicator_size, tw->command.set, scale);
     } else {
         /* Checkbox - draw square outline with optional checkmark */
-        DrawCheckbox(ctx, x, y, indicator_size, tw->command.set);
+        DrawCheckbox(ctx, x, y, indicator_size, tw->command.set, scale);
     }
     
     /* End rendering */

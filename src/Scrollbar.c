@@ -65,6 +65,7 @@ SOFTWARE.
 #include <X11/StringDefs.h>
 
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include <ISW/ScrollbarP.h>
 
 /* Shadow resource name definitions (previously from ThreeD.h) */
@@ -558,6 +559,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) new;
     xcb_create_gc_value_list_t myXGCV;
+
+    /* HiDPI: scale dimension resources */
+    sbw->scrollbar.thickness = ISWScaleDim(new, sbw->scrollbar.thickness);
+    sbw->scrollbar.length = ISWScaleDim(new, sbw->scrollbar.length);
+    sbw->scrollbar.min_thumb = ISWScaleDim(new, sbw->scrollbar.min_thumb);
+    if (sbw->scrollbar.shadow_width > 0)
+        sbw->scrollbar.shadow_width = ISWScaleDim(new, sbw->scrollbar.shadow_width);
 
     CreateGC (new);
 

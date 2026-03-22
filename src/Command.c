@@ -61,6 +61,7 @@ SOFTWARE.
 /* #include <X11/Xmu/Misc.h> */
 /* #include <X11/Xmu/Converters.h> */
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include <ISW/CommandP.h>
 /* XCB Migration: Use XCB shape extension instead of Xlib */
 #include <xcb/xcb.h>
@@ -258,6 +259,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     cbw->core.border_width = 1;
   }
   cbw->command.shadow_width = cbw->label.shadow_width;
+
+  /* HiDPI: scale dimension resources (after shape logic resolves values) */
+  cbw->command.highlight_thickness = ISWScaleDim(new, cbw->command.highlight_thickness);
 
   cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground,
 				  cbw->core.background_pixel);

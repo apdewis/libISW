@@ -20,6 +20,9 @@
 #include <string.h>
 #include <stdio.h>
 
+/* Defined in Initialize.c — avoids pulling in InitialI.h */
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
 /*
  * =================================================================
  * Backend Availability Checks
@@ -709,3 +712,159 @@ ISWRenderFindVisual(xcb_screen_t *screen, uint8_t depth)
     
     return NULL;
 }
+
+/*
+ * =================================================================
+ * HiDPI Scaling
+ * =================================================================
+ */
+
+double
+ISWScaleFactor(Widget widget)
+{
+    if (!widget)
+        return 1.0;
+    return _XtGetScaleFactor(XtDisplayOfObject(widget));
+}
+
+Dimension
+ISWScaleDim(Widget widget, int value)
+{
+    double scale = ISWScaleFactor(widget);
+    int result = (int)(value * scale + 0.5);
+    return (Dimension)(result > 0 ? result : 1);
+}
+
+#ifdef HAVE_CAIRO
+#include <cairo.h>
+#include <math.h>
+
+/*
+ * Measure text using a temporary Cairo context with the same font face
+ * and size that the render path uses. This ensures layout matches rendering.
+ */
+int
+ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
+{
+    cairo_surface_t *surf;
+    cairo_t *cr;
+    cairo_text_extents_t extents;
+    char *null_term;
+    double scale, size;
+    int width;
+
+    if (!text || len <= 0)
+        return 0;
+
+    scale = ISWScaleFactor(widget);
+    if (font)
+        size = (font->ascent + font->descent) * scale;
+    else
+        size = 12.0 * scale;
+
+    /* Create a minimal image surface just for text measurement */
+    surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
+    cr = cairo_create(surf);
+
+    cairo_select_font_face(cr, "Sans",
+                           CAIRO_FONT_SLANT_NORMAL,
+                           CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, size);
+
+    null_term = (char *)malloc(len + 1);
+    if (!null_term) {
+        cairo_destroy(cr);
+        cairo_surface_destroy(surf);
+        return len * 8;
+    }
+    memcpy(null_term, text, len);
+    null_term[len] = '\0';
+
+    cairo_text_extents(cr, null_term, &extents);
+    width = (int)ceil(extents.x_advance);
+
+    free(null_term);
+    cairo_destroy(cr);
+    cairo_surface_destroy(surf);
+
+    return width;
+}
+
+/* Helper: get Cairo font extents for the scaled font */
+static void
+_ISWGetCairoFontExtents(Widget widget, XFontStruct *font, cairo_font_extents_t *extents)
+{
+    cairo_surface_t *surf;
+    cairo_t *cr;
+    double scale, size;
+
+    scale = ISWScaleFactor(widget);
+    if (font)
+        size = (font->ascent + font->descent) * scale;
+    else
+        size = 12.0 * scale;
+
+    surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
+    cr = cairo_create(surf);
+
+    cairo_select_font_face(cr, "Sans",
+                           CAIRO_FONT_SLANT_NORMAL,
+                           CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, size);
+
+    cairo_font_extents(cr, extents);
+
+    cairo_destroy(cr);
+    cairo_surface_destroy(surf);
+}
+
+int
+ISWScaledFontHeight(Widget widget, XFontStruct *font)
+{
+    cairo_font_extents_t extents;
+    _ISWGetCairoFontExtents(widget, font, &extents);
+    return (int)ceil(extents.ascent + extents.descent);
+}
+
+int
+ISWScaledFontAscent(Widget widget, XFontStruct *font)
+{
+    cairo_font_extents_t extents;
+    _ISWGetCairoFontExtents(widget, font, &extents);
+    return (int)ceil(extents.ascent);
+}
+
+#else /* !HAVE_CAIRO */
+
+int
+ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
+{
+    double scale = ISWScaleFactor(widget);
+    /* Without Cairo, approximate by scaling bitmap font width */
+    if (font && widget) {
+        xcb_connection_t *conn = (xcb_connection_t *)XtDisplayOfObject(widget);
+        int w = ISWFontTextWidth(conn, font->fid, text, len);
+        return (int)(w * scale + 0.5);
+    }
+    return (int)(len * 8 * scale);
+}
+
+int
+ISWScaledFontHeight(Widget widget, XFontStruct *font)
+{
+    double scale = ISWScaleFactor(widget);
+    if (font)
+        return (int)((font->ascent + font->descent) * scale + 0.5);
+    return (int)(14 * scale);
+}
+
+int
+ISWScaledFontAscent(Widget widget, XFontStruct *font)
+{
+    double scale = ISWScaleFactor(widget);
+    if (font)
+        return (int)(font->ascent * scale + 0.5);
+    return (int)(11 * scale);
+}
+
+#endif /* HAVE_CAIRO */

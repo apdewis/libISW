@@ -619,6 +619,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     BoxWidget newbbw = (BoxWidget)new;
 
+    /* HiDPI: scale dimension resources */
+    newbbw->box.h_space = ISWScaleDim(new, newbbw->box.h_space);
+    newbbw->box.v_space = ISWScaleDim(new, newbbw->box.v_space);
+
     newbbw->box.last_query_mode = CWWidth | CWHeight;
     newbbw->box.last_query_width = newbbw->box.last_query_height = 0;
     newbbw->box.preferred_width = IswMax(newbbw->box.h_space, 1);

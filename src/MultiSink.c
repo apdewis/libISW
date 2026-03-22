@@ -93,6 +93,29 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
+/* HiDPI helpers: return Cairo-matched scaled font metrics.
+ * MultiSink uses fontset, but the font_id is copied into an XFontStruct
+ * in the parent's Label.font during initialization. We construct a temporary
+ * XFontStruct from fontset metrics for the scaling API. */
+static int MultiScaledAscent(MultiSinkObject sink) {
+    XFontStruct fs;
+    if (!sink->multi_sink.fontset) return 11;
+    memset(&fs, 0, sizeof(fs));
+    fs.ascent = sink->multi_sink.fontset->ascent;
+    fs.descent = sink->multi_sink.fontset->descent;
+    fs.fid = sink->multi_sink.fontset->font_id;
+    return ISWScaledFontAscent(XtParent((Widget)sink), &fs);
+}
+static int MultiScaledHeight(MultiSinkObject sink) {
+    XFontStruct fs;
+    if (!sink->multi_sink.fontset) return 14;
+    memset(&fs, 0, sizeof(fs));
+    fs.ascent = sink->multi_sink.fontset->ascent;
+    fs.descent = sink->multi_sink.fontset->descent;
+    fs.fid = sink->multi_sink.fontset->font_id;
+    return ISWScaledFontHeight(XtParent((Widget)sink), &fs);
+}
+
 #ifdef GETLASTPOS
 #undef GETLASTPOS		/* We will use our own GETLASTPOS. */
 #endif
@@ -331,8 +354,8 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
 
     /* Draw text using Cairo or XCB fallback */
     if (sink->multi_sink.render_ctx) {
-        int m_asc = sink->multi_sink.fontset->ascent;
-        int m_h = sink->multi_sink.fontset->height;
+        int m_asc = MultiScaledAscent(sink);
+        int m_h = MultiScaledHeight(sink);
         Pixel m_bg = (gc == sink->multi_sink.invgc) ?
             sink->text_sink.foreground : sink->text_sink.background;
         ISWRenderSave(sink->multi_sink.render_ctx);
@@ -341,6 +364,7 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
                               (int)x, (int)y - m_asc,
                               (int)width, (int)(m_h + 1));
         ISWRenderRestore(sink->multi_sink.render_ctx);
+        ISWRenderSetFont(sink->multi_sink.render_ctx, NULL);
         ISWRenderDrawString(sink->multi_sink.render_ctx, utf8_text, utf8_len,
                           (int)x, (int)y);
     } else {
@@ -353,9 +377,9 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
     if ( (((Position) width + x) > max_x) && (ctx->text.margin.right != 0) ) {
         x = ctx->core.width - ctx->text.margin.right;
         width = ctx->text.margin.right;
-        int ascent = sink->multi_sink.fontset->ascent;
-        int height = sink->multi_sink.fontset->height;
-        
+        int ascent = MultiScaledAscent(sink);
+        int height = MultiScaledHeight(sink);
+
         /* Draw margin background using Cairo or XCB fallback */
         if (sink->multi_sink.render_ctx) {
             ISWRenderFillRectangle(sink->multi_sink.render_ctx,
@@ -419,7 +443,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
                          highlight ? sink->text_sink.background : sink->text_sink.foreground);
     }
 
-    y += sink->multi_sink.fontset->ascent;
+    y += MultiScaledAscent(sink);
     for ( j = 0 ; pos1 < pos2 ; ) {
 	pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
 	for (k = 0; k < blk.length; k++) {
@@ -440,8 +464,8 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 
 	        x += temp;
 	        width = CharWidth(w, x, _Isw_atowc(IswTAB));
-	        int ascent = sink->multi_sink.fontset->ascent;
-	        int height = sink->multi_sink.fontset->height;
+	        int ascent = MultiScaledAscent(sink);
+	        int height = MultiScaledHeight(sink);
 	        
 	        /* Draw tab background using Cairo or XCB fallback */
 	        if (sink->multi_sink.render_ctx) {
@@ -566,9 +590,7 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
     GetCursorBounds(w, &rect);
     if (state != sink->multi_sink.laststate && XtIsRealized(text_widget)) {
         if (sink->multi_sink.render_ctx && state == IswisOn) {
-            int asc = sink->multi_sink.fontset ? sink->multi_sink.fontset->ascent : 11;
-            int desc = sink->multi_sink.fontset ? sink->multi_sink.fontset->descent : 3;
-            int h = asc + desc;
+            int h = MultiScaledHeight(sink);
             ISWRenderBegin(sink->multi_sink.render_ctx);
             ISWRenderSetColor(sink->multi_sink.render_ctx,
                               sink->text_sink.foreground);
@@ -577,9 +599,7 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
                                    2, h);
             ISWRenderEnd(sink->multi_sink.render_ctx);
         } else if (sink->multi_sink.render_ctx && state == IswisOff) {
-            int asc = sink->multi_sink.fontset ? sink->multi_sink.fontset->ascent : 11;
-            int desc = sink->multi_sink.fontset ? sink->multi_sink.fontset->descent : 3;
-            int h = asc + desc;
+            int h = MultiScaledHeight(sink);
             ISWRenderBegin(sink->multi_sink.render_ctx);
             ISWRenderSetColor(sink->multi_sink.render_ctx,
                               sink->text_sink.background);
@@ -630,7 +650,7 @@ FindDistance (Widget w, ISWTextPosition fromPos, int fromx, ISWTextPosition toPo
 	}
     }
     *resPos = index;
-    *resHeight = sink->multi_sink.fontset->height;  /* Phase 3.5 */
+    *resHeight = MultiScaledHeight(sink);
 }
 
 
@@ -682,7 +702,7 @@ FindPosition(Widget w, ISWTextPosition fromPos, int fromx, int width,
     }
     if (index == lastPos && c != _Isw_atowc(IswLF)) index = lastPos + 1;
     *resPos = index;
-    *resHeight = sink->multi_sink.fontset->height;  /* Phase 3.5 */
+    *resHeight = MultiScaledHeight(sink);
 }
 
 static void
@@ -831,7 +851,7 @@ MaxLines(Widget w, Dimension height)
   int font_height;
 
   /* Phase 3.5: Use ISWFontSet fields directly */
-  font_height = sink->multi_sink.fontset->height;
+  font_height = MultiScaledHeight(sink);
   return( ((int) height) / font_height );
 }
 
@@ -852,7 +872,7 @@ MaxHeight(
   MultiSinkObject sink = (MultiSinkObject) w;
 
   /* Phase 3.5: Use ISWFontSet fields directly */
-  return(lines * sink->multi_sink.fontset->height);
+  return(lines * MultiScaledHeight(sink));
 }
 
 /*	Function Name: SetTabs
@@ -935,5 +955,5 @@ _ISWMultiSinkPosToXY(
 
     /* Phase 3.5: Use ISWFontSet fields directly */
     _IswTextPosToXY( w, pos, x, y );
-    *y += sink->multi_sink.fontset->ascent;
+    *y += MultiScaledAscent(sink);
 }

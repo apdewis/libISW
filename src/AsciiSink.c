@@ -70,6 +70,17 @@ SOFTWARE.
 /* XCB-based XFontStruct lacks per_char metrics */
 #define XFONTSTRUCT_HAS_NO_PER_CHAR 1
 
+/* HiDPI helpers: return Cairo-matched scaled font metrics */
+static int ScaledAscent(AsciiSinkObject sink) {
+    return ISWScaledFontAscent(XtParent((Widget)sink), sink->ascii_sink.font);
+}
+static int ScaledFontHeight(AsciiSinkObject sink) {
+    return ISWScaledFontHeight(XtParent((Widget)sink), sink->ascii_sink.font);
+}
+static int ScaledDescent(AsciiSinkObject sink) {
+    return ScaledFontHeight(sink) - ScaledAscent(sink);
+}
+
 #ifdef GETLASTPOS
 #undef GETLASTPOS		/* We will use our own GETLASTPOS. */
 #endif
@@ -294,8 +305,8 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
          * fills the background too). Fill the text background first.
          * Use ascent + descent + 1 to match line table height and cover
          * descenders fully. */
-        int asc = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
-        int desc = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
+        int asc = ScaledAscent(sink);
+        int desc = ScaledDescent(sink);
         Pixel bg = (gc == sink->ascii_sink.invgc) ?
             sink->text_sink.foreground : sink->text_sink.background;
         ISWRenderSave(sink->ascii_sink.render_ctx);
@@ -316,9 +327,9 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
         x = ctx->core.width - ctx->text.margin.right;
         width = ctx->text.margin.right;
         /* XCB Fix: Add NULL check for font before accessing fields */
-        int ascent = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
-        int descent = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
-        
+        int ascent = ScaledAscent(sink);
+        int descent = ScaledDescent(sink);
+
         /* Draw margin background using Cairo or XCB fallback */
         if (sink->ascii_sink.render_ctx) {
             ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
@@ -385,8 +396,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
         ISWRenderSetColor(sink->ascii_sink.render_ctx, fg_color);
     }
 
-    /* XCB Fix: Add NULL check for font before accessing ascent */
-    y += sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
+    y += ScaledAscent(sink);
     
     for ( j = 0 ; pos1 < pos2 ; ) {
 	pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
@@ -408,10 +418,9 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 
 	 x += temp;
 	 width = CharWidth(w, x, (unsigned char) '\t');
-	 /* XCB Fix: Add NULL check for font before accessing fields */
-	 int ascent = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
-	 int descent = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
-	 
+	 int ascent = ScaledAscent(sink);
+	 int descent = ScaledDescent(sink);
+
 	 /* Draw tab background using Cairo or XCB fallback */
 	 if (sink->ascii_sink.render_ctx) {
 	     ISWRenderSave(sink->ascii_sink.render_ctx);
@@ -534,9 +543,7 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
         if (sink->ascii_sink.render_ctx && state == IswisOn) {
             /* Draw cursor as a filled bar using Cairo.
              * y is the bottom of the line; cursor extends upward. */
-            int asc = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
-            int desc = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
-            int h = asc + desc;
+            int h = ScaledFontHeight(sink);
             ISWRenderBegin(sink->ascii_sink.render_ctx);
             ISWRenderSetColor(sink->ascii_sink.render_ctx,
                               sink->text_sink.foreground);
@@ -545,9 +552,7 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
                                    2, h);
             ISWRenderEnd(sink->ascii_sink.render_ctx);
         } else if (sink->ascii_sink.render_ctx && state == IswisOff) {
-            int asc = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
-            int desc = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
-            int h = asc + desc;
+            int h = ScaledFontHeight(sink);
             ISWRenderBegin(sink->ascii_sink.render_ctx);
             ISWRenderSetColor(sink->ascii_sink.render_ctx,
                               sink->text_sink.background);
@@ -604,9 +609,7 @@ FindDistance (Widget w,
 	}
     }
     *resPos = index;
-    /* XCB Fix: Add NULL check for font before accessing fields */
-    *resHeight = sink->ascii_sink.font ?
- (sink->ascii_sink.font->ascent + sink->ascii_sink.font->descent) : 14;
+    *resHeight = ScaledFontHeight(sink);
 }
 
 
@@ -663,7 +666,7 @@ FindPosition(Widget w,
     }
     if (index == lastPos && c != IswLF) index = lastPos + 1;
     *resPos = index;
-    *resHeight = sink->ascii_sink.font->ascent +sink->ascii_sink.font->descent;
+    *resHeight = ScaledFontHeight(sink);
 }
 
 static void
@@ -821,9 +824,7 @@ MaxLines(Widget w, Dimension height)
   AsciiSinkObject sink = (AsciiSinkObject) w;
   int font_height;
 
-  /* XCB Fix: Add NULL check for font before accessing fields */
-  font_height = sink->ascii_sink.font ?
-      (sink->ascii_sink.font->ascent + sink->ascii_sink.font->descent) : 14;
+  font_height = ScaledFontHeight(sink);
   return( ((int) height) / font_height );
 }
 
@@ -841,9 +842,7 @@ MaxHeight(Widget w, int lines)
 {
   AsciiSinkObject sink = (AsciiSinkObject) w;
 
-  /* XCB Fix: Add NULL check for font before accessing fields */
-  int line_height = sink->ascii_sink.font ?
-      (sink->ascii_sink.font->ascent + sink->ascii_sink.font->descent) : 14;
+  int line_height = ScaledFontHeight(sink);
   return(lines * line_height);
 }
 

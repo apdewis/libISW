@@ -123,6 +123,10 @@ void attach_tooltip(Widget widget, const char *tip_text);
 /* Global for stripchart */
 static double chart_value = 50.0;
 
+/* HiDPI scaling for hardcoded dimensions */
+static double demo_scale = 1.0;
+#define S(x) ((int)((x) * demo_scale))
+
 /* ============================================================
  * MAIN FUNCTION
  * ============================================================ */
@@ -142,10 +146,13 @@ int main(int argc, char *argv[]) {
                                &argc, argv,
                                NULL, NULL, 0);
     
-    /* Set main window size and allow resizing */
+    /* Set HiDPI scale for demo dimensions */
+    demo_scale = ISWScaleFactor(toplevel);
+
+    /* Set main window size and allow resizing (HiDPI-scaled) */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 1200); n++;
-    XtSetArg(args[n], XtNheight, 900); n++;
+    XtSetArg(args[n], XtNwidth, S(1200)); n++;
+    XtSetArg(args[n], XtNheight, S(900)); n++;
     XtSetArg(args[n], XtNtitle, "Isw3d Widget Demonstration - Comprehensive Widget Showcase"); n++;
     XtSetArg(args[n], XtNallowShellResize, True); n++;
     XtSetValues(toplevel, args, n);
@@ -366,8 +373,8 @@ Widget create_title_label(Widget parent) {
     n = 0;
     XtSetArg(args[n], XtNlabel, "=== Isw3d Widget Demonstration (XCB Backend) ==="); n++;
     XtSetArg(args[n], XtNjustify, XtJustifyCenter); n++;
-    XtSetArg(args[n], XtNwidth, 830); n++;
-    XtSetArg(args[n], XtNheight, 35); n++;
+    XtSetArg(args[n], XtNwidth, S(830)); n++;
+    XtSetArg(args[n], XtNheight, S(35)); n++;
     XtSetArg(args[n], XtNborderWidth, 2); n++;
     title = XtCreateManagedWidget("titleLabel", labelWidgetClass,
                                   parent, args, n);
@@ -456,17 +463,14 @@ Widget create_box_demo(Widget parent) {
     /* Add three labels to box */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Item 1"); n++;
-    XtSetArg(args[n], XtNwidth, 60); n++;
     label1 = XtCreateManagedWidget("boxItem1", labelWidgetClass, box, args, n);
-    
+
     n = 0;
     XtSetArg(args[n], XtNlabel, "Item 2"); n++;
-    XtSetArg(args[n], XtNwidth, 60); n++;
     label2 = XtCreateManagedWidget("boxItem2", labelWidgetClass, box, args, n);
-    
+
     n = 0;
     XtSetArg(args[n], XtNlabel, "Item 3"); n++;
-    XtSetArg(args[n], XtNwidth, 60); n++;
     label3 = XtCreateManagedWidget("boxItem3", labelWidgetClass, box, args, n);
     
     return box_container;
@@ -480,8 +484,8 @@ Widget create_form_demo(Widget parent) {
     /* Form container */
     n = 0;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNwidth, 350); n++;
-    XtSetArg(args[n], XtNheight, 80); n++;
+    XtSetArg(args[n], XtNwidth, S(350)); n++;
+    XtSetArg(args[n], XtNheight, S(80)); n++;
     form = XtCreateManagedWidget("demoForm", formWidgetClass, parent, args, n);
     
     /* Title label - top, spans width */
@@ -545,8 +549,8 @@ Widget create_viewport_demo(Widget parent) {
     
     /* Viewport with scrollbars */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 250); n++;
-    XtSetArg(args[n], XtNheight, 80); n++;
+    XtSetArg(args[n], XtNwidth, S(250)); n++;
+    XtSetArg(args[n], XtNheight, S(80)); n++;
     XtSetArg(args[n], XtNallowHoriz, True); n++;
     XtSetArg(args[n], XtNallowVert, True); n++;
     XtSetArg(args[n], XtNuseBottom, True); n++;
@@ -568,8 +572,8 @@ Widget create_viewport_demo(Widget parent) {
              "appear automatically.\n"
             ); n++;
     XtSetArg(args[n], XtNjustify, XtJustifyLeft); n++;
-    XtSetArg(args[n], XtNwidth, 400); n++;
-    XtSetArg(args[n], XtNheight, 150); n++;
+    XtSetArg(args[n], XtNwidth, S(400)); n++;
+    XtSetArg(args[n], XtNheight, S(150)); n++;
     large_label = XtCreateManagedWidget("viewportContent", labelWidgetClass,
                                         viewport, args, n);
     
@@ -653,21 +657,18 @@ Widget create_command_demo(Widget parent) {
     /* Buttons */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Click Me!"); n++;
-    XtSetArg(args[n], XtNwidth, 100); n++;
     button1 = XtCreateManagedWidget("cmdBtn1", commandWidgetClass, box, args, n);
     XtAddCallback(button1, XtNcallback, button_callback, (XtPointer)"Button 1");
     attach_tooltip(button1, "This is a clickable command button");
-    
+
     n = 0;
     XtSetArg(args[n], XtNlabel, "Or Me!"); n++;
-    XtSetArg(args[n], XtNwidth, 100); n++;
     button2 = XtCreateManagedWidget("cmdBtn2", commandWidgetClass, box, args, n);
     XtAddCallback(button2, XtNcallback, button_callback, (XtPointer)"Button 2");
     attach_tooltip(button2, "Another command button with tooltip");
-    
+
     n = 0;
     XtSetArg(args[n], XtNlabel, "Quit"); n++;
-    XtSetArg(args[n], XtNwidth, 100); n++;
     quit_button = XtCreateManagedWidget("quitBtn", commandWidgetClass, box, args, n);
     XtAddCallback(quit_button, XtNcallback, quit_callback, NULL);
     attach_tooltip(quit_button, "Click to exit the application");
@@ -697,22 +698,19 @@ Widget create_toggle_demo(Widget parent) {
     n = 0;
     XtSetArg(args[n], XtNlabel, "Option A"); n++;
     XtSetArg(args[n], XtNstate, True); n++;
-    XtSetArg(args[n], XtNwidth, 100); n++;
     toggle1 = XtCreateManagedWidget("toggleA", toggleWidgetClass, box, args, n);
     XtAddCallback(toggle1, XtNcallback, toggle_callback, (XtPointer)"Option A");
     radio_group = toggle1;
-    
+
     n = 0;
     XtSetArg(args[n], XtNlabel, "Option B"); n++;
     XtSetArg(args[n], XtNradioGroup, radio_group); n++;
-    XtSetArg(args[n], XtNwidth, 100); n++;
     toggle2 = XtCreateManagedWidget("toggleB", toggleWidgetClass, box, args, n);
     XtAddCallback(toggle2, XtNcallback, toggle_callback, (XtPointer)"Option B");
-    
+
     n = 0;
     XtSetArg(args[n], XtNlabel, "Option C"); n++;
     XtSetArg(args[n], XtNradioGroup, radio_group); n++;
-    XtSetArg(args[n], XtNwidth, 100); n++;
     toggle3 = XtCreateManagedWidget("toggleC", toggleWidgetClass, box, args, n);
     XtAddCallback(toggle3, XtNcallback, toggle_callback, (XtPointer)"Option C");
     
@@ -740,7 +738,6 @@ Widget create_menu_demo(Widget parent) {
     /* MenuButton */
     n = 0;
     XtSetArg(args[n], XtNlabel, "File Menu"); n++;
-    XtSetArg(args[n], XtNwidth, 100); n++;
     menu_button = XtCreateManagedWidget("menuButton", menuButtonWidgetClass,
                                         box, args, n);
     
@@ -792,7 +789,6 @@ Widget create_repeater_demo(Widget parent) {
     /* Repeater button - auto-repeats while held */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Hold Me"); n++;
-    XtSetArg(args[n], XtNwidth, 100); n++;
     XtSetArg(args[n], XtNrepeatDelay, 500); n++;
     repeater = XtCreateManagedWidget("repeater", repeaterWidgetClass, box, args, n);
     XtAddCallback(repeater, XtNcallback, repeater_callback, NULL);
@@ -871,8 +867,8 @@ Widget create_list_demo(Widget parent) {
     XtSetArg(args[n], XtNnumberStrings, XtNumber(items)); n++;
     XtSetArg(args[n], XtNdefaultColumns, 1); n++;
     XtSetArg(args[n], XtNforceColumns, True); n++;
-    XtSetArg(args[n], XtNwidth, 150); n++;
-    XtSetArg(args[n], XtNheight, 120); n++;
+    XtSetArg(args[n], XtNwidth, S(150)); n++;
+    XtSetArg(args[n], XtNheight, S(120)); n++;
     list = XtCreateManagedWidget("list", listWidgetClass, box, args, n);
     
     XtAddCallback(list, XtNcallback, list_callback, NULL);
@@ -900,8 +896,8 @@ Widget create_text_demo(Widget parent) {
     /* Editable text widget with scrollbars */
     n = 0;
     XtSetArg(args[n], XtNeditType, IswtextEdit); n++;
-    XtSetArg(args[n], XtNwidth, 450); n++;
-    XtSetArg(args[n], XtNheight, 120); n++;
+    XtSetArg(args[n], XtNwidth, S(450)); n++;
+    XtSetArg(args[n], XtNheight, S(120)); n++;
     XtSetArg(args[n], XtNscrollVertical, IswtextScrollAlways); n++;
     XtSetArg(args[n], XtNstring,
              "This is an editable text widget with scrollbars.\n"
@@ -980,16 +976,16 @@ Widget create_panner_demo(Widget parent) {
     
     /* Panner widget (miniature navigator) - must set canvas dimensions */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 150); n++;
-    XtSetArg(args[n], XtNheight, 150); n++;
+    XtSetArg(args[n], XtNwidth, S(150)); n++;
+    XtSetArg(args[n], XtNheight, S(150)); n++;
     XtSetArg(args[n], XtNcanvasWidth, 400); n++;  /* Size of content */
     XtSetArg(args[n], XtNcanvasHeight, 300); n++;  /* Size of content */
     panner = XtCreateManagedWidget("panner", pannerWidgetClass, box, args, n);
     
     /* Porthole (viewing area) */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 200); n++;
-    XtSetArg(args[n], XtNheight, 150); n++;
+    XtSetArg(args[n], XtNwidth, S(200)); n++;
+    XtSetArg(args[n], XtNheight, S(150)); n++;
     porthole = XtCreateManagedWidget("porthole", portholeWidgetClass, box, args, n);
     
     /* Large widget inside porthole */
@@ -999,8 +995,8 @@ Widget create_panner_demo(Widget parent) {
              "visible porthole window.\n\n"\
              "Use the panner above to\n"\
              "navigate around this content."); n++;
-    XtSetArg(args[n], XtNwidth, 400); n++;
-    XtSetArg(args[n], XtNheight, 300); n++;
+    XtSetArg(args[n], XtNwidth, S(400)); n++;
+    XtSetArg(args[n], XtNheight, S(300)); n++;
     large_widget = XtCreateManagedWidget("pannerContent", labelWidgetClass,
                                          porthole, args, n);
     
@@ -1031,8 +1027,8 @@ Widget create_tree_demo(Widget parent) {
     
     /* Tree widget */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 300); n++;
-    XtSetArg(args[n], XtNheight, 200); n++;
+    XtSetArg(args[n], XtNwidth, S(300)); n++;
+    XtSetArg(args[n], XtNheight, S(200)); n++;
     XtSetArg(args[n], XtNautoReconfigure, True); n++;
     XtSetArg(args[n], XtNhSpace, 20); n++;
     XtSetArg(args[n], XtNvSpace, 10); n++;
@@ -1091,8 +1087,8 @@ Widget create_layout_demo(Widget parent) {
     
     /* Layout widget */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 250); n++;
-    XtSetArg(args[n], XtNheight, 150); n++;
+    XtSetArg(args[n], XtNwidth, S(250)); n++;
+    XtSetArg(args[n], XtNheight, S(150)); n++;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
     layout = XtCreateManagedWidget("layout", layoutWidgetClass, box, args, n);
     
@@ -1137,8 +1133,8 @@ Widget create_paned_grip_demo(Widget parent) {
     /* Paned widget with visible grips */
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNwidth, 200); n++;
-    XtSetArg(args[n], XtNheight, 200); n++;
+    XtSetArg(args[n], XtNwidth, S(200)); n++;
+    XtSetArg(args[n], XtNheight, S(200)); n++;
     paned = XtCreateManagedWidget("gripPaned", panedWidgetClass, box, args, n);
     
     /* First section */
@@ -1239,8 +1235,8 @@ Widget create_stripchart_demo(Widget parent) {
     
     /* StripChart widget */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 220); n++;
-    XtSetArg(args[n], XtNheight, 100); n++;
+    XtSetArg(args[n], XtNwidth, S(220)); n++;
+    XtSetArg(args[n], XtNheight, S(100)); n++;
     XtSetArg(args[n], XtNupdate, 1); n++;
     XtSetArg(args[n], XtNminScale, 10); n++;
     chart = XtCreateManagedWidget("stripChart", stripChartWidgetClass,
@@ -1273,8 +1269,8 @@ Widget create_scrollbar_demo(Widget parent) {
     /* Vertical scrollbar */
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNwidth, 20); n++;
-    XtSetArg(args[n], XtNheight, 100); n++;
+    XtSetArg(args[n], XtNwidth, S(20)); n++;
+    XtSetArg(args[n], XtNheight, S(100)); n++;
     XtSetArg(args[n], XtNshown, 30); n++;
     scrollbar = XtCreateManagedWidget("scrollbar", scrollbarWidgetClass,
                                       box, args, n);

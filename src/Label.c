@@ -62,6 +62,7 @@ SOFTWARE.
 /* #include <X11/Xmu/Converters.h> */
 /* #include <X11/Xmu/Drawing.h> */
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include <ISW/Command.h>
 #include <ISW/LabelP.h>
 /* NO XFT - using pure XCB rendering */
@@ -265,87 +266,38 @@ SetTextWidthAndHeight(LabelWidget lw)
      free(error);
  }
     }
-#ifdef ISW_INTERNATIONALIZATION
-    if ( lw->simple.international == True ) {
-      ISWFontSet *fset = lw->label.fontset;
-
-      lw->label.label_height = fset->height;
-      if (lw->label.label == NULL) {
-	  lw->label.label_len = 0;
-	  lw->label.label_width = 0;
-      }
-      else if ((nl = index(lw->label.label, '\n')) != NULL) {
-	  char *label;
-	  lw->label.label_len = MULTI_LINE_LABEL;
-	  lw->label.label_width = 0;
-	  for (label = lw->label.label; nl != NULL; nl = index(label, '\n')) {
-	      int width = IswTextWidth(fset, label, (int)(nl - label));
-
-	      if (width > (int)lw->label.label_width)
-		  lw->label.label_width = width;
-	      label = nl + 1;
-	      if (*label)
-		  lw->label.label_height += fset->height;
-	  }
-	  if (*label) {
-	      int width = IswTextWidth(fset, label, strlen(label));
-
-	      if (width > (int) lw->label.label_width)
-		  lw->label.label_width = width;
-	  }
-      } else {
-	  lw->label.label_len = strlen(lw->label.label);
-	  lw->label.label_width =
-	      IswTextWidth(fset, lw->label.label, (int) lw->label.label_len);
-      }
-
-    } else
-#endif
+    /*
+     * Use ISWScaledTextWidth/ISWScaledFontHeight to measure text the way
+     * Cairo will actually render it, so layout matches rendering on HiDPI.
+     */
     {
-	/* XCB Fix: Add NULL check for font before accessing fid */
-	if (fs == NULL) {
-	    /* No font available - set default dimensions */
-	    lw->label.label_height = 14;  /* Default line height */
-	    lw->label.label_width = lw->label.label ? strlen(lw->label.label) * 8 : 0;
-	    lw->label.label_len = lw->label.label ? strlen(lw->label.label) : 0;
+	int line_height = ISWScaledFontHeight((Widget)lw, fs);
+	lw->label.label_height = line_height;
+	if (lw->label.label == NULL) {
+	    lw->label.label_len = 0;
+	    lw->label.label_width = 0;
+	}
+	else if ((nl = index(lw->label.label, '\n')) != NULL) {
+	    char *label;
+	    lw->label.label_len = MULTI_LINE_LABEL;
+	    lw->label.label_width = 0;
+	    for (label = lw->label.label; nl != NULL; nl = index(label, '\n')) {
+		int width = ISWScaledTextWidth((Widget)lw, fs, label, (int)(nl - label));
+		if (width > (int)lw->label.label_width)
+		    lw->label.label_width = width;
+		label = nl + 1;
+		if (*label)
+		    lw->label.label_height += line_height;
+	    }
+	    if (*label) {
+		int width = ISWScaledTextWidth((Widget)lw, fs, label, strlen(label));
+		if (width > (int)lw->label.label_width)
+		    lw->label.label_width = width;
+	    }
 	} else {
-	    /* Get font metrics using XCB query instead of fs->max_bounds */
-	    xcb_connection_t *conn = ((Widget)lw)->core.display;
-	    ISWFontMetrics metrics;
-	    ISWXcbQueryFontMetrics(conn, fs->fid, &metrics);
-	    int line_height = metrics.ascent + metrics.descent;
-
-	    lw->label.label_height = line_height;
-	    if (lw->label.label == NULL) {
-		lw->label.label_len = 0;
-		lw->label.label_width = 0;
-	    }
-	    else if ((nl = index(lw->label.label, '\n')) != NULL) {
-		char *label;
-		lw->label.label_len = MULTI_LINE_LABEL;
-		lw->label.label_width = 0;
-		for (label = lw->label.label; nl != NULL; nl = index(label, '\n')) {
-		    int width;
-		    /* 16-bit encoding disabled for XCB migration - use 8-bit only */
-		    (void)lw->label.encoding;  /* suppress unused warning */
-		    width = ISWXcbTextWidth(conn, fs->fid, label, (int)(nl - label));
-		    if (width > (int)lw->label.label_width)
-			lw->label.label_width = width;
-		    label = nl + 1;
-		    if (*label)
-			lw->label.label_height += line_height;
-		}
-		if (*label) {
-		    int width = ISWXcbTextWidth(conn, fs->fid, label, strlen(label));
-		    if (width > (int) lw->label.label_width)
-			lw->label.label_width = width;
-		}
-	    } else {
-		lw->label.label_len = strlen(lw->label.label);
-		/* 16-bit encoding disabled for XCB migration - use 8-bit only */
-		lw->label.label_width =
-		    ISWXcbTextWidth(conn, fs->fid, lw->label.label, (int) lw->label.label_len);
-	    }
+	    lw->label.label_len = strlen(lw->label.label);
+	    lw->label.label_width =
+		ISWScaledTextWidth((Widget)lw, fs, lw->label.label, (int)lw->label.label_len);
 	}
     }
 }
@@ -462,6 +414,12 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     LabelWidget lw = (LabelWidget) new;
+
+    /* HiDPI: scale dimension resources */
+    lw->label.internal_width = ISWScaleDim(new, lw->label.internal_width);
+    lw->label.internal_height = ISWScaleDim(new, lw->label.internal_height);
+    if (lw->label.shadow_width > 0)
+        lw->label.shadow_width = ISWScaleDim(new, lw->label.shadow_width);
 
     /* disable shadows if we're not a subclass of Command */
     if (!XtIsSubclass(new, commandWidgetClass))
@@ -612,31 +570,21 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
  int len = w->label.label_len;
  char *label = w->label.label;
  Position y = w->label.label_y;
- int line_height = 14;  /* default */
- 
- /* XCB Fix: Add NULL check for font before accessing fid */
-#ifdef ISW_INTERNATIONALIZATION
- if (w->simple.international == True) {
-     /* Use fontset for internationalized text */
-     y += w->label.fontset->ascent;
-     line_height = w->label.fontset->height;
- } else
-#endif
- if (w->label.font != NULL) {
-     /* Get font metrics using XCB query instead of fs->max_bounds */
-     ISWFontMetrics metrics;
-     ISWXcbQueryFontMetrics(conn, w->label.font->fid, &metrics);
-     y += metrics.ascent;
-     line_height = metrics.ascent + metrics.descent;
- } else {
+ XFontStruct *fs = w->label.font;
+
+ if (fs == NULL) {
      /* No font available - skip text rendering */
      return;
  }
 
+ /* Use Cairo's actual font metrics for baseline and line height */
+ int line_height = ISWScaledFontHeight((Widget)w, fs);
+ y += (Position)ISWScaledFontAscent((Widget)w, fs);
+
 #ifdef ISW_INTERNATIONALIZATION
-        Position ksy = w->label.label_y;
+ Position ksy = w->label.label_y;
  if (w->simple.international == True)
-     ksy += w->label.fontset->ascent;
+     ksy += (Position)ISWScaledFontAscent((Widget)w, fs);
 #endif
 
 	/* display left bitmap */
@@ -685,14 +633,15 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             /* Use Cairo rendering if available */
             if (ctx) {
                 ISWRenderBegin(ctx);
+                ISWRenderSetFont(ctx, w->label.font);
                 ISWRenderSetColor(ctx, w->label.foreground);
-                
+
                 if (len == MULTI_LINE_LABEL) {
                     char *nl;
                     while ((nl = index(label, '\n')) != NULL) {
                         ISWRenderDrawString(ctx, label, (int)(nl - label),
                                           w->label.label_x, ksy);
-                        ksy += w->label.fontset->height;
+                        ksy += line_height;
                         label = nl + 1;
                     }
                     len = strlen(label);
@@ -700,7 +649,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                 if (len)
                     ISWRenderDrawString(ctx, label, len,
                                       w->label.label_x, ksy);
-                
+
                 ISWRenderEnd(ctx);
             } else {
                 /* Fallback to XCB rendering */
@@ -709,7 +658,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                     while ((nl = index(label, '\n')) != NULL) {
                         IswDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
                                     w->label.label_x, ksy, label, (int)(nl - label));
-                        ksy += w->label.fontset->height;
+                        ksy += line_height;
                         label = nl + 1;
                     }
                     len = strlen(label);
@@ -726,8 +675,9 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             /* Use Cairo rendering if available */
             if (ctx) {
                 ISWRenderBegin(ctx);
+                ISWRenderSetFont(ctx, w->label.font);
                 ISWRenderSetColor(ctx, w->label.foreground);
-                
+
                 if (len == MULTI_LINE_LABEL) {
                     char *nl;
                     while ((nl = index(label, '\n')) != NULL) {

@@ -1576,6 +1576,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     PanedWidget pw = (PanedWidget)new;
 
+    /* HiDPI: scale dimension resources */
+    pw->paned.internal_bw = ISWScaleDim(new, pw->paned.internal_bw);
+
     GetGCs( (Widget) pw);
 
     pw->paned.recursively_called = False;

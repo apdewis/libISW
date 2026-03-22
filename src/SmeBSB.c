@@ -227,6 +227,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     SmeBSBObject entry = (SmeBSBObject) new;
 
+    /* HiDPI: scale dimension resources */
+    entry->sme_bsb.left_margin = ISWScaleDim(new, entry->sme_bsb.left_margin);
+    entry->sme_bsb.right_margin = ISWScaleDim(new, entry->sme_bsb.right_margin);
+
     /* Initialize Cairo rendering context */
     entry->sme_bsb.render_ctx = NULL;
 

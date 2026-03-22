@@ -65,6 +65,7 @@ SOFTWARE.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include <ISW/StripCharP.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -219,6 +220,10 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
     StripChartWidget w = (StripChartWidget)gnew;
     xcb_create_gc_value_list_t myXGCV;
     xcb_connection_t *dpy = XtDisplay(gnew);
+
+    /* HiDPI: scale dimension resources */
+    if (w->strip_chart.shadow_width > 0)
+        w->strip_chart.shadow_width = ISWScaleDim(gnew, w->strip_chart.shadow_width);
     xcb_window_t root = XCB_NONE;
     xcb_screen_t *screen = XtScreen(gnew);
     

@@ -41,6 +41,7 @@
 #include <X11/Xos.h>
 #include <ISW/TipP.h>
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 
 #include <stdlib.h>
@@ -299,6 +300,10 @@ IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
 {
     TipWidget tip = (TipWidget)w;
     xcb_create_gc_value_list_t values;
+
+    /* HiDPI: scale dimension resources */
+    tip->tip.internal_width = ISWScaleDim(w, tip->tip.internal_width);
+    tip->tip.internal_height = ISWScaleDim(w, tip->tip.internal_height);
 
     /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
      * If font is NULL but fontset is available, create a minimal XFontStruct

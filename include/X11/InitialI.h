@@ -363,6 +363,7 @@ typedef struct _XtPerDisplayStruct {
     int ext_select_count;
     Widget hook_object;
     XtPerWidgetInput PerWidgetContext;
+    double scale_factor;	       /* HiDPI scale factor (1.0 = 96 DPI) */
 //#ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
 //    xcb_atom_t rcm_init;			/* ResConfig - initialize */
 //    xcb_atom_t rcm_data;			/* ResConfig - data xcb_atom_t */

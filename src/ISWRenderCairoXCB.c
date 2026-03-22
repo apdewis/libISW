@@ -22,6 +22,9 @@
 #include <string.h>
 #include <math.h>
 
+/* Defined in Initialize.c */
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
 /*
  * Cairo-XCB Backend Data
  */
@@ -590,12 +593,15 @@ cairo_xcb_set_font(ISWRenderContext *ctx, XFontStruct *font)
                           CAIRO_FONT_SLANT_NORMAL,
                           CAIRO_FONT_WEIGHT_NORMAL);
     
-    /* Use font size from XFontStruct if available */
-    if (font) {
-        double size = font->ascent + font->descent;
-        cairo_set_font_size(data->cairo_ctx, size);
-    } else {
-        cairo_set_font_size(data->cairo_ctx, 12.0);
+    /* Use font size from XFontStruct if available, scaled for HiDPI */
+    {
+        double scale = _XtGetScaleFactor(ctx->connection);
+        if (font) {
+            double size = (font->ascent + font->descent) * scale;
+            cairo_set_font_size(data->cairo_ctx, size);
+        } else {
+            cairo_set_font_size(data->cairo_ctx, 12.0 * scale);
+        }
     }
 }
 

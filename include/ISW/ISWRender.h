@@ -541,4 +541,56 @@ Boolean ISWRenderSetGradient(ISWRenderContext *ctx,
  */
 void* ISWRenderGetCairoContext(ISWRenderContext *ctx);
 
+/*
+ * =================================================================
+ * HiDPI Scaling
+ * =================================================================
+ */
+
+/*
+ * ISWScaleFactor - Get HiDPI scale factor for a widget's display
+ *
+ * Parameters:
+ *   widget - Widget to query
+ *
+ * Returns: Scale factor (1.0 = 96 DPI, 1.75 = 168 DPI, etc.)
+ */
+double ISWScaleFactor(Widget widget);
+
+/*
+ * ISWScaleDim - Scale a dimension value by the display's scale factor
+ *
+ * Parameters:
+ *   widget - Widget to query
+ *   value  - Dimension value to scale
+ *
+ * Returns: Scaled dimension (rounded up), minimum 1
+ */
+Dimension ISWScaleDim(Widget widget, int value);
+
+/*
+ * ISWScaledTextWidth - Measure text width using Cairo at the scaled font size.
+ * Returns the width Cairo will actually use to render this text, ensuring
+ * layout matches rendering on HiDPI displays.
+ *
+ * Parameters:
+ *   widget - Widget for display/scale context
+ *   font   - XFontStruct for base font metrics (may be NULL for default)
+ *   text   - Text string to measure
+ *   len    - Length of text
+ *
+ * Returns: Text width in pixels as Cairo would render it
+ */
+int ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len);
+
+/*
+ * ISWScaledFontHeight - Get the font line height as Cairo would render it.
+ */
+int ISWScaledFontHeight(Widget widget, XFontStruct *font);
+
+/*
+ * ISWScaledFontAscent - Get the font ascent as Cairo would render it.
+ */
+int ISWScaledFontAscent(Widget widget, XFontStruct *font);
+
 #endif /* _ISWRender_h */

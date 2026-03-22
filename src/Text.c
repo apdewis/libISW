@@ -67,6 +67,7 @@ SOFTWARE.
 #include <X11/Shell.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 #ifdef ISW_INTERNATIONALIZATION
 #include "ISWI18n.h"
@@ -615,6 +616,14 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   myXGCV.foreground = ctx->text.bot_shadow_pixel;
   ctx->text.bot_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
+
+  /* HiDPI: scale dimension resources */
+  if (ctx->text.shadow_width > 0)
+      ctx->text.shadow_width = ISWScaleDim(new, ctx->text.shadow_width);
+  ctx->text.r_margin.left = (Position)ISWScaleDim(new, ctx->text.r_margin.left);
+  ctx->text.r_margin.right = (Position)ISWScaleDim(new, ctx->text.r_margin.right);
+  ctx->text.r_margin.top = (Position)ISWScaleDim(new, ctx->text.r_margin.top);
+  ctx->text.r_margin.bottom = (Position)ISWScaleDim(new, ctx->text.r_margin.bottom);
 
   s = ctx->text.shadow_width;
 

@@ -1014,6 +1014,26 @@ GetLanguage(xcb_connection_t *dpy, XtPerDisplay pd)
 //    }
 //}
 
+double
+_XtGetScaleFactor(xcb_connection_t *dpy)
+{
+    PerDisplayTablePtr pdt;
+
+    if (!dpy)
+        return 1.0;
+
+    /* Walk the list directly instead of _XtGetPerDisplay to avoid
+     * fatal error if display not yet registered (early converter calls) */
+    for (pdt = _XtperDisplayList; pdt != NULL; pdt = pdt->next) {
+        if (pdt->dpy == dpy) {
+            if (pdt->perDpy.scale_factor > 0.0)
+                return pdt->perDpy.scale_factor;
+            return 1.0;
+        }
+    }
+    return 1.0;
+}
+
 void
 _XtDisplayInitialize(xcb_connection_t *dpy,
                      XtPerDisplay pd,
@@ -1102,6 +1122,36 @@ _XtDisplayInitialize(xcb_connection_t *dpy,
 
     //XtFree((XtPointer) options);
     //DEALLOCATE_LOCAL(search_list);
+
+    /* Detect HiDPI scale factor */
+    {
+        const char *env = getenv("ISW_SCALE_FACTOR");
+        double scale = 0.0;
+
+        if (env) {
+            scale = atof(env);
+        }
+
+        if (scale <= 0.0 && pd->server_db) {
+            char *value = NULL;
+            if (xcb_xrm_resource_get_string(pd->server_db,
+                                             "Xft.dpi", "Xft.Dpi",
+                                             &value) >= 0 && value) {
+                double dpi = atof(value);
+                if (dpi > 0.0)
+                    scale = dpi / 96.0;
+                free(value);
+            }
+        }
+
+        if (scale < 1.0)
+            scale = 1.0;
+
+        pd->scale_factor = scale;
+
+        if (scale != 1.0)
+            fprintf(stderr, "ISW: HiDPI scale factor: %.2f\n", scale);
+    }
 }
 
 /*      Function Name: XtAppSetFallbackResources
