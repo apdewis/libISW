@@ -291,7 +291,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      * We increase the internal_width (left padding) to make room.
      */
     {
-        Dimension min_iw = ISWScaleDim(new, 20);  /* Space for indicator + gap */
+        /* Reserve space for the indicator: font height + gap, derived from
+         * actual Cairo font metrics so it adapts to any DPI/font. */
+        int font_h = ISWScaledFontHeight(new, tw->label.font);
+        int gap = (int)(4 * ISWScaleFactor(new) + 0.5);
+        Dimension min_iw = (Dimension)(font_h + gap);
         if (tw->label.internal_width < min_iw) {
             Dimension old_iw = tw->label.internal_width;
             tw->label.internal_width = min_iw;
@@ -728,10 +732,15 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         return;
     }
     
-    /* Calculate position and size for the indicator, scaled for HiDPI */
+    /*
+     * Derive indicator size from the actual font metrics rather than
+     * hardcoded pixel values.  This ensures correct sizing at any DPI
+     * and adapts automatically if the font changes.
+     */
+    int font_height = ISWScaledFontHeight((Widget)tw, tw->label.font);
     double scale = ISWScaleFactor(w);
     int padding = (int)(2 * scale + 0.5);
-    int indicator_size = (int)(13 * scale + 0.5);
+    int indicator_size = font_height;
 
     /* Ensure indicator fits within widget bounds */
     if (indicator_size > (int)(tw->core.height - 2 * padding)) {

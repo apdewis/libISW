@@ -382,13 +382,21 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
      */
     if (request->tree.hpad == 0 && request->tree.vpad == 0) {
 	if (IsHorizontal (request)) {
-	    new->tree.hpad = TREE_HORIZONTAL_DEFAULT_SPACING;
-	    new->tree.vpad = TREE_VERTICAL_DEFAULT_SPACING;
+	    new->tree.hpad = ISWScaleDim(gnew, TREE_HORIZONTAL_DEFAULT_SPACING);
+	    new->tree.vpad = ISWScaleDim(gnew, TREE_VERTICAL_DEFAULT_SPACING);
 	} else {
-	    new->tree.hpad = TREE_VERTICAL_DEFAULT_SPACING;
-	    new->tree.vpad = TREE_HORIZONTAL_DEFAULT_SPACING;
+	    new->tree.hpad = ISWScaleDim(gnew, TREE_VERTICAL_DEFAULT_SPACING);
+	    new->tree.vpad = ISWScaleDim(gnew, TREE_HORIZONTAL_DEFAULT_SPACING);
 	}
+    } else {
+	if (new->tree.hpad != 0)
+	    new->tree.hpad = ISWScaleDim(gnew, new->tree.hpad);
+	if (new->tree.vpad != 0)
+	    new->tree.vpad = ISWScaleDim(gnew, new->tree.vpad);
     }
+
+    if (new->tree.line_width > 0)
+	new->tree.line_width = ISWScaleDim(gnew, new->tree.line_width);
 
     /*
      * Create a graphics context for the connecting lines.

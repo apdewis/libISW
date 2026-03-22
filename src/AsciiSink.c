@@ -214,8 +214,11 @@ CharWidth (Widget w, int x, unsigned char c)
 	}
     }
 
-    /* Use Cairo metrics when available so that positioning matches rendering.
-     * XCB font metrics can differ from Cairo's, causing cumulative drift. */
+    /* Use Cairo metrics so that positioning matches rendering at any DPI.
+     * If a render context exists, use it; otherwise fall back to
+     * ISWScaledTextWidth which creates a temporary Cairo surface.
+     * This ensures the initial line table build (before realize) uses
+     * the same metrics as subsequent rendering. */
     if (sink->ascii_sink.render_ctx) {
 	char ch_buf[2];
 	if (nonPrinting) {
@@ -227,31 +230,18 @@ CharWidth (Widget w, int x, unsigned char c)
 	return ISWRenderTextWidth(sink->ascii_sink.render_ctx, ch_buf, 1);
     }
 
-    /* XCB Fix: Add NULL check for font before accessing fid */
-    if (font == NULL) {
-	width = 8;  /* Default width if no font */
-    } else {
-#ifdef XFONTSTRUCT_HAS_NO_PER_CHAR
-	/* XCB-based fonts don't have per_char metrics - query server */
-	{
-	    xcb_connection_t *conn = XtDisplayOfObject(w);
-	    width = ISWFontCharWidth(conn, font->fid, c);
-	    if (width == 0)
-		width = 8;  /* Fallback if query fails */
+    /* No render context yet (pre-realize) — use ISWScaledTextWidth
+     * which measures with Cairo using the same font face and size. */
+    {
+	char ch_buf[2];
+	if (nonPrinting) {
+	    ch_buf[0] = '^';
+	    ch_buf[1] = (char)c;
+	    return ISWScaledTextWidth(XtParent(w), font, ch_buf, 2);
 	}
-#else
-	if (font->per_char &&
-		(c >= font->min_char_or_byte2 && c <= font->max_char_or_byte2))
-	    width = font->per_char[c - font->min_char_or_byte2].width;
-	else
-	    width = font->min_bounds.width;
-#endif
+	ch_buf[0] = (char)c;
+	return ISWScaledTextWidth(XtParent(w), font, ch_buf, 1);
     }
-
-    if (nonPrinting)
-	width += CharWidth(w, x, (unsigned char) '^');
-
-    return width;
 }
 
 /*	Function Name: PaintText
@@ -868,23 +858,10 @@ SetTabs(Widget w, int tab_count, short *tabs)
  * Find the figure width of the current font.
  */
 
-  XCB_ATOM_FIGURE_WIDTH = IswXcbInternAtom(conn, "FIGURE_WIDTH", FALSE);
-  if ( (XCB_ATOM_FIGURE_WIDTH != None) &&
-       ( (!IswGetFontProperty(conn, font, XCB_ATOM_FIGURE_WIDTH, &figure_width)) ||
-	 (figure_width == 0)) ) {
-#ifdef XFONTSTRUCT_HAS_NO_PER_CHAR
-    /* XCB-based fonts don't have per_char metrics - query for '$' width */
-    figure_width = ISWFontCharWidth(conn, font->fid, '$');
-    if (figure_width == 0)
-        figure_width = 8;  /* Default figure width */
-#else
-    if (font->per_char && font->min_char_or_byte2 <= '$' &&
-	font->max_char_or_byte2 >= '$')
-      figure_width = font->per_char['$' - font->min_char_or_byte2].width;
-    else
-      figure_width = font->max_bounds.width;
-#endif
-  }
+  /* Use Cairo-matched figure width so tab stops align with rendered text */
+  figure_width = ISWScaledTextWidth(XtParent(w), font, "$", 1);
+  if (figure_width == 0)
+      figure_width = 8;
 
   if (tab_count > sink->text_sink.tab_count) {
     sink->text_sink.tabs = (Position *)

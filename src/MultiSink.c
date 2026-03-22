@@ -282,7 +282,9 @@ CharWidth (
      * Li Yuhong.
      */
 
-    /* Use Cairo metrics when available so positioning matches rendering */
+    /* Use Cairo metrics so positioning matches rendering at any DPI.
+     * If render context exists, use it; otherwise fall back to
+     * ISWScaledTextWidth with a temporary Cairo surface. */
     if (sink->multi_sink.render_ctx) {
         utf8_text = IswWcToUtf8(&c, 1, &utf8_len);
         width = 0;
@@ -293,15 +295,25 @@ CharWidth (
         return width;
     }
 
-    /* Phase 3.5: WC→UTF8 conversion for width calculation */
-    utf8_text = IswWcToUtf8(&c, 1, &utf8_len);
-    width = 0;
-    if (utf8_text) {
-        width = IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
-        free(utf8_text);
+    /* No render context yet — use ISWScaledTextWidth for consistent metrics */
+    {
+        XFontStruct fs;
+        memset(&fs, 0, sizeof(fs));
+        if (sink->multi_sink.fontset) {
+            fs.ascent = sink->multi_sink.fontset->ascent;
+            fs.descent = sink->multi_sink.fontset->descent;
+            fs.fid = sink->multi_sink.fontset->font_id;
+        }
+        utf8_text = IswWcToUtf8(&c, 1, &utf8_len);
+        width = 0;
+        if (utf8_text) {
+            width = ISWScaledTextWidth(XtParent(w),
+                        sink->multi_sink.fontset ? &fs : NULL,
+                        utf8_text, utf8_len);
+            free(utf8_text);
+        }
+        return width;
     }
-
-    return width;
 }
 
 /*	Function Name: PaintText
@@ -894,33 +906,19 @@ SetTabs(
   xcb_atom_t XCB_ATOM_FIGURE_WIDTH;
   unsigned long figure_width = 0;
   
-  /* XCB Note: XFontSet is not available in XCB. Using ISWFontSet's font_id instead.
-   * Create a minimal XFontStruct to work with existing code. */
-  XFontStruct font_struct;
-  XFontStruct *font = &font_struct;
-  font->fid = sink->multi_sink.fontset->font_id;
-  font->min_char_or_byte2 = 0;
-  font->max_char_or_byte2 = 255;
-
-/*
- * Find the figure width of the current font.
- */
-
-  xcb_connection_t *conn = XtDisplayOfObject(w);
-  XCB_ATOM_FIGURE_WIDTH = IswXcbInternAtom(conn, "FIGURE_WIDTH", FALSE);
-  if ( (XCB_ATOM_FIGURE_WIDTH != None) &&
-       ( (!IswGetFontProperty(conn, font, XCB_ATOM_FIGURE_WIDTH, &figure_width)) ||
-  (figure_width == 0)) ) {
-    /* In XCB, we don't have direct access to per_char metrics
-     * Use ISWFontCharWidth to get character width */
-    if (font->min_char_or_byte2 <= '$' && font->max_char_or_byte2 >= '$')
-      figure_width = ISWFontCharWidth(conn, font->fid, '$');
-    else {
-      /* Query font metrics for max width */
-      ISWFontMetrics metrics;
-      ISWXcbQueryFontMetrics(conn, font->fid, &metrics);
-      figure_width = metrics.max_char_width;
+  /* Use Cairo-matched figure width so tab stops align with rendered text */
+  {
+    XFontStruct fs;
+    memset(&fs, 0, sizeof(fs));
+    if (sink->multi_sink.fontset) {
+        fs.ascent = sink->multi_sink.fontset->ascent;
+        fs.descent = sink->multi_sink.fontset->descent;
+        fs.fid = sink->multi_sink.fontset->font_id;
     }
+    figure_width = ISWScaledTextWidth(XtParent(w),
+                        sink->multi_sink.fontset ? &fs : NULL, "$", 1);
+    if (figure_width == 0)
+        figure_width = 8;
   }
 
   if (tab_count > sink->text_sink.tab_count) {

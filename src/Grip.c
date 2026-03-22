@@ -56,6 +56,7 @@ SOFTWARE.
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <ISW/ISWInit.h>
+#include <ISW/ISWRender.h>
 #include <ISW/GripP.h>
 
 static XtResource resources[] = {
@@ -75,6 +76,7 @@ static XtResource resources[] = {
 };
 
 static void GripAction(Widget, XEvent *, String *, Cardinal *);
+static void Initialize(Widget, Widget, ArgList, Cardinal *);
 
 static XtActionsRec actionsList[] =
 {
@@ -92,7 +94,7 @@ GripClassRec gripClassRec = {
     /* class initialize   */   IswInitializeWidgetSet,
     /* class_part_init    */   NULL,
     /* class_inited       */   FALSE,
-    /* initialize         */   NULL,
+    /* initialize         */   Initialize,
     /* initialize_hook    */   NULL,
     /* realize            */   XtInheritRealize,
     /* actions            */   actionsList,
@@ -130,6 +132,14 @@ GripClassRec gripClassRec = {
 };
 
 WidgetClass gripWidgetClass = (WidgetClass) &gripClassRec;
+
+/* ARGSUSED */
+static void
+Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
+{
+    new->core.width = ISWScaleDim(new, new->core.width);
+    new->core.height = ISWScaleDim(new, new->core.height);
+}
 
 static void
 GripAction(Widget widget, XEvent *event, String *params, Cardinal *num_params)

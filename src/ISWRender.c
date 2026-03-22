@@ -740,43 +740,86 @@ ISWScaleDim(Widget widget, int value)
 #include <math.h>
 
 /*
- * Measure text using a temporary Cairo context with the same font face
+ * Persistent measurement context — avoids creating/destroying a Cairo
+ * surface + context on every text measurement or font extents query.
+ * Lazily created on first use, lives for the process lifetime.
+ */
+static cairo_surface_t *_measure_surf = NULL;
+static cairo_t *_measure_cr = NULL;
+
+/* Cached font extents — re-queried only when font size changes. */
+static double _cached_font_size = -1.0;
+static cairo_font_extents_t _cached_font_extents;
+
+static cairo_t *
+_ISWGetMeasureCR(void)
+{
+    if (!_measure_cr) {
+        _measure_surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
+        _measure_cr = cairo_create(_measure_surf);
+        cairo_select_font_face(_measure_cr, "Sans",
+                               CAIRO_FONT_SLANT_NORMAL,
+                               CAIRO_FONT_WEIGHT_NORMAL);
+    }
+    return _measure_cr;
+}
+
+/* Compute the scaled font size from a font + widget scale factor */
+static double
+_ISWComputeFontSize(Widget widget, XFontStruct *font)
+{
+    double scale = ISWScaleFactor(widget);
+    if (font)
+        return (font->ascent + font->descent) * scale;
+    return 12.0 * scale;
+}
+
+/*
+ * Get cached Cairo font extents. Only re-queries Cairo when the
+ * effective font size changes (different font or different scale).
+ */
+static void
+_ISWGetCairoFontExtents(Widget widget, XFontStruct *font, cairo_font_extents_t *extents)
+{
+    double size = _ISWComputeFontSize(widget, font);
+    cairo_t *cr = _ISWGetMeasureCR();
+
+    if (size != _cached_font_size) {
+        cairo_set_font_size(cr, size);
+        cairo_font_extents(cr, &_cached_font_extents);
+        _cached_font_size = size;
+    }
+    *extents = _cached_font_extents;
+}
+
+/*
+ * Measure text using the persistent Cairo context with the same font face
  * and size that the render path uses. This ensures layout matches rendering.
  */
 int
 ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
 {
-    cairo_surface_t *surf;
-    cairo_t *cr;
     cairo_text_extents_t extents;
     char *null_term;
-    double scale, size;
+    double size;
     int width;
+    cairo_t *cr;
 
     if (!text || len <= 0)
         return 0;
 
-    scale = ISWScaleFactor(widget);
-    if (font)
-        size = (font->ascent + font->descent) * scale;
-    else
-        size = 12.0 * scale;
+    size = _ISWComputeFontSize(widget, font);
+    cr = _ISWGetMeasureCR();
 
-    /* Create a minimal image surface just for text measurement */
-    surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
-    cr = cairo_create(surf);
-
-    cairo_select_font_face(cr, "Sans",
-                           CAIRO_FONT_SLANT_NORMAL,
-                           CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(cr, size);
+    if (size != _cached_font_size) {
+        cairo_set_font_size(cr, size);
+        cairo_font_extents(cr, &_cached_font_extents);
+        _cached_font_size = size;
+    }
 
     null_term = (char *)malloc(len + 1);
-    if (!null_term) {
-        cairo_destroy(cr);
-        cairo_surface_destroy(surf);
+    if (!null_term)
         return len * 8;
-    }
     memcpy(null_term, text, len);
     null_term[len] = '\0';
 
@@ -784,38 +827,7 @@ ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
     width = (int)ceil(extents.x_advance);
 
     free(null_term);
-    cairo_destroy(cr);
-    cairo_surface_destroy(surf);
-
     return width;
-}
-
-/* Helper: get Cairo font extents for the scaled font */
-static void
-_ISWGetCairoFontExtents(Widget widget, XFontStruct *font, cairo_font_extents_t *extents)
-{
-    cairo_surface_t *surf;
-    cairo_t *cr;
-    double scale, size;
-
-    scale = ISWScaleFactor(widget);
-    if (font)
-        size = (font->ascent + font->descent) * scale;
-    else
-        size = 12.0 * scale;
-
-    surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
-    cr = cairo_create(surf);
-
-    cairo_select_font_face(cr, "Sans",
-                           CAIRO_FONT_SLANT_NORMAL,
-                           CAIRO_FONT_WEIGHT_NORMAL);
-    cairo_set_font_size(cr, size);
-
-    cairo_font_extents(cr, extents);
-
-    cairo_destroy(cr);
-    cairo_surface_destroy(surf);
 }
 
 int

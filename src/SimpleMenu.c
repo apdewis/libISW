@@ -374,6 +374,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       smw->simple_menu.bot_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
   }
 
+  if (smw->simple_menu.shadow_width > 0)
+      smw->simple_menu.shadow_width = ISWScaleDim(new, smw->simple_menu.shadow_width);
+
   smw->simple_menu.menu_width = TRUE;
 
   if (smw->core.width == 0) {

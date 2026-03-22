@@ -282,14 +282,9 @@ CalculatedValues(Widget w)
         lw->list.longest = 0; /* so it will accumulate real longest below */
 
         for ( i = 0 ; i < lw->list.nitems; i++)  {
-#ifdef ISW_INTERNATIONALIZATION
-            if ( lw->simple.international == True )
-	        len = XTextWidth(lw->list.fontset, lw->list.list[i],
-			 			    strlen(lw->list.list[i]));
-            else
-#endif
-                len = XTextWidth(lw->list.font, lw->list.list[i],
-			 			    strlen(lw->list.list[i]));
+            len = ISWScaledTextWidth((Widget)lw, lw->list.font,
+                                    lw->list.list[i],
+                                    strlen(lw->list.list[i]));
             if (len > lw->list.longest)
                 lw->list.longest = len;
         }
@@ -416,24 +411,9 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
 
     GetGCs(new);
 
-    /* Set row height. based on font or fontset */
-
-#ifdef ISW_INTERNATIONALIZATION
-    if (lw->simple.international == True )
-        lw->list.row_height = lw->list.fontset->height
-                        + lw->list.row_space;
-    else
-#endif
-    {
-	/* XCB Fix: Add NULL check for font before accessing fields */
-	if (lw->list.font != NULL) {
-	    lw->list.row_height = lw->list.font->ascent
-				+ lw->list.font->descent
-				+ lw->list.row_space;
-	} else {
-	    lw->list.row_height = 14 + lw->list.row_space;  /* Default height */
-	}
-    }
+    /* Set row height using Cairo-matched metrics for correct HiDPI sizing */
+    lw->list.row_height = ISWScaledFontHeight(new, lw->list.font)
+                          + lw->list.row_space;
 
     ResetList( new, WidthFree( lw ), HeightFree( lw ) );
 
@@ -668,19 +648,7 @@ PaintItemName(Widget w, int item)
 	  + lw->list.internal_height;
     }
 
-#ifdef ISW_INTERNATIONALIZATION
-    if ( lw->simple.international == True )
-        str_y = y + lw->list.fontset->ascent;
-    else
-#endif
-    {
-	/* XCB Fix: Add NULL check for font before accessing ascent */
-	if (lw->list.font != NULL) {
-	    str_y = y + lw->list.font->ascent;
-	} else {
-	    str_y = y + 11;  /* Default ascent */
-	}
-    }
+    str_y = y + ISWScaledFontAscent(w, lw->list.font);
 
     if (item == lw->list.is_highlighted) {
         if (item == lw->list.highlight) {
@@ -1130,45 +1098,12 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     }
 
     if ( font_changed ) {
-#ifdef ISW_INTERNATIONALIZATION
- if ( cl->simple.international == False )
-#endif
- {
-     /* XCB Fix: Add NULL check for font before accessing fields */
-     if (nl->list.font != NULL) {
-  nl->list.row_height = nl->list.font->ascent
-        + nl->list.font->descent
-        + nl->list.row_space;
-     }
- }
-#ifdef ISW_INTERNATIONALIZATION
- else if ( ( cl->list.fontset != nl->list.fontset ) &&
-    ( cl->simple.international == True ) )
-     nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
-#endif
+	nl->list.row_height = ISWScaledFontHeight(new, nl->list.font)
+	                      + nl->list.row_space;
     }
-
-    /* ...If the above two font(set) change checkers above both failed, check
-    if row_space was altered.  If one of the above passed, row_height will
-    already have been re-calculated. */
-
-#ifdef ISW_INTERNATIONALIZATION
-    else
-#endif
-    if ( cl->list.row_space != nl->list.row_space ) {
-#ifdef ISW_INTERNATIONALIZATION
- if (cl->simple.international == True )
-     nl->list.row_height = nl->list.fontset->height + nl->list.row_space;
- else
-#endif
- {
-     /* XCB Fix: Add NULL check for font before accessing fields */
-     if (nl->list.font != NULL) {
-  nl->list.row_height = nl->list.font->ascent
-        + nl->list.font->descent
-        + nl->list.row_space;
-     }
- }
+    else if ( cl->list.row_space != nl->list.row_space ) {
+	nl->list.row_height = ISWScaledFontHeight(new, nl->list.font)
+	                      + nl->list.row_space;
     }
 
     if ((cl->core.width           != nl->core.width)           ||

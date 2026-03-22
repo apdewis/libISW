@@ -156,6 +156,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     SmeLineObject entry = (SmeLineObject) new;
 
+    entry->sme_line.line_width = ISWScaleDim(new, entry->sme_line.line_width);
+
     if (entry->rectangle.height == 0)
 	entry->rectangle.height = entry->sme_line.line_width;
 

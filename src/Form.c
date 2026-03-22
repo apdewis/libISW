@@ -280,6 +280,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     fw->form.needs_relayout = False;
     fw->form.resize_in_layout = True;
     fw->form.resize_is_no_op = False;
+
+    if (fw->form.default_spacing > 0) {
+        double scale = ISWScaleFactor(new);
+        fw->form.default_spacing = (int)(fw->form.default_spacing * scale + 0.5);
+    }
 }
 
 /*	Function Name: ChangeFormGeometry
