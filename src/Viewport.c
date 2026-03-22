@@ -181,7 +181,7 @@ CreateScrollbar(ViewportWidget w, Boolean horizontal)
     Widget bar;
 
     XtSetArg(barArgs[0], XtNorientation,
-       horizontal ? XtEhorizontal : XtEvertical );
+       horizontal ? XtorientHorizontal : XtorientVertical );
     XtSetArg(barArgs[1], XtNlength,
 	     horizontal ? clip->core.width : clip->core.height);
     XtSetArg(barArgs[2], XtNleft,
@@ -860,7 +860,17 @@ ComputeWithForceBars(Widget widget, Boolean query, XtWidgetGeometry *intended,
 static void
 Resize(Widget widget)
 {
+    ViewportWidget vw = (ViewportWidget)widget;
+    Widget child = vw->viewport.child;
+    Widget clip = vw->viewport.clip;
+    fprintf(stderr, "VP::Resize %dx%d realized=%d\n",
+            widget->core.width, widget->core.height, XtIsRealized(widget));
     ComputeLayout( widget, /*query=*/True, /*destroy=*/True );
+    if (child && clip)
+        fprintf(stderr, "  clip=%dx%d child=%dx%d bar=%p\n",
+                clip->core.width, clip->core.height,
+                child->core.width, child->core.height,
+                (void*)vw->viewport.vert_bar);
 }
 
 
@@ -1120,6 +1130,22 @@ GetGeometry(Widget w, Dimension width, Dimension height)
 static XtGeometryResult
 PreferredGeometry(Widget w, XtWidgetGeometry *constraints, XtWidgetGeometry *reply)
 {
+    /* If the viewport has been given an explicit size, report that as
+       preferred rather than delegating to the child.  Delegating to the
+       child causes the parent to expand the viewport to fit all content,
+       which defeats the purpose of having a scrollable viewport. */
+    if (w->core.width != 0 && w->core.height != 0) {
+	reply->request_mode = CWWidth | CWHeight;
+	reply->width = w->core.width;
+	reply->height = w->core.height;
+	if (constraints != NULL &&
+	    (constraints->request_mode & CWWidth) &&
+	    constraints->width == w->core.width &&
+	    (constraints->request_mode & CWHeight) &&
+	    constraints->height == w->core.height)
+	    return XtGeometryYes;
+	return XtGeometryAlmost;
+    }
     if (((ViewportWidget)w)->viewport.child != NULL)
 	return XtQueryGeometry( ((ViewportWidget)w)->viewport.child,
 			       constraints, reply );
