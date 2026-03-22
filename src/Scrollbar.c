@@ -985,11 +985,8 @@ MoveThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
       if (sbw->scrollbar.top < 0.0) sbw->scrollbar.top = 0.0;
     }
 
-#if 0
-    /* this breaks many text-line scrolls */
     if (sbw->scrollbar.top + sbw->scrollbar.shown > 1.0)
       sbw->scrollbar.top = 1.0 - sbw->scrollbar.shown;
-#endif
     sbw->scrollbar.scroll_mode = 2; /* indicate continuous scroll */
     PaintThumb (sbw, event);
     xcb_flush(XtDisplay(w));	/* re-draw it before Notifying */

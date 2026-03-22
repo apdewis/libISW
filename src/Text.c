@@ -1308,6 +1308,12 @@ _IswTextVScroll(TextWidget ctx, int n)
 
   if (n == 0) return;
 
+  /* Don't scroll past top or bottom */
+  if (n > 0 && lt->info[lt->lines].position >= ctx->text.lastPos)
+    return;
+  if (n < 0 && lt->top == 0)
+    return;
+
   if (n > 0) {
     ISWTextPosition scroll_from_pos;
     if ( IsValidLine(ctx, n) )
