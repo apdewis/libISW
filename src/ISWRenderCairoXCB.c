@@ -182,6 +182,13 @@ cairo_xcb_begin(ISWRenderContext *ctx)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
 
+    /* Update surface size if the widget was resized since last render */
+    if (ctx->widget) {
+	Dimension w = ctx->widget->core.width;
+	Dimension h = ctx->widget->core.height;
+	cairo_xcb_surface_set_size(data->surface, w, h);
+    }
+
     /* Save initial state */
     cairo_save(data->cairo_ctx);
 }

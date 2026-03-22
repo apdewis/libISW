@@ -1465,16 +1465,16 @@ static uint32_t const masks[] = {
     XCB_EVENT_MASK_EXPOSURE,                  /* 14 - NoExpose, in GC          */
     XCB_EVENT_MASK_VISIBILITY_CHANGE,       /* 15 - VisibilityNotify         */
     XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 16 - CreateNotify             */
-    XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 17 - DestroyNotify            */
-    XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 18 - UnmapNotify              */
-    XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 19 - MapNotify                */
+    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 17 - DestroyNotify            */
+    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 18 - UnmapNotify              */
+    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 19 - MapNotify                */
     XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,   /* 20 - MapRequest               */
-    XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 21 - ReparentNotify           */
-    XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 22 - ConfigureNotify          */
+    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 21 - ReparentNotify           */
+    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 22 - ConfigureNotify          */
     XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,   /* 23 - ConfigureRequest         */
-    XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 24 - GravityNotify            */
+    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 24 - GravityNotify            */
     XCB_EVENT_MASK_RESIZE_REDIRECT,         /* 25 - ResizeRequest            */
-    XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 26 - CirculateNotify          */
+    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 26 - CirculateNotify          */
     XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,   /* 27 - CirculateRequest         */
     XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 28 - PropertyNotify           */
     XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 29 - SelectionClear           */

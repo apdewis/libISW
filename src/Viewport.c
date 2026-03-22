@@ -860,17 +860,7 @@ ComputeWithForceBars(Widget widget, Boolean query, XtWidgetGeometry *intended,
 static void
 Resize(Widget widget)
 {
-    ViewportWidget vw = (ViewportWidget)widget;
-    Widget child = vw->viewport.child;
-    Widget clip = vw->viewport.clip;
-    fprintf(stderr, "VP::Resize %dx%d realized=%d\n",
-            widget->core.width, widget->core.height, XtIsRealized(widget));
     ComputeLayout( widget, /*query=*/True, /*destroy=*/True );
-    if (child && clip)
-        fprintf(stderr, "  clip=%dx%d child=%dx%d bar=%p\n",
-                clip->core.width, clip->core.height,
-                child->core.width, child->core.height,
-                (void*)vw->viewport.vert_bar);
 }
 
 
@@ -1107,10 +1097,10 @@ GetGeometry(Widget w, Dimension width, Dimension height)
     geometry.height = height;
 
     if (XtIsRealized(w)) {
-	if (((ViewportWidget)w)->viewport.allowhoriz && width > w->core.width)
-	    geometry.width = w->core.width;
-	if (((ViewportWidget)w)->viewport.allowvert && height > w->core.height)
-	    geometry.height = w->core.height;
+	/* Post-realize, the viewport should not request resizes from its
+	   parent.  Its size is determined by its parent; it scrolls to
+	   accommodate content that doesn't fit. */
+	return False;
     } else {
 	/* This is the Realize call; we'll inherit a w&h iff none currently */
 	if (w->core.width != 0) {
