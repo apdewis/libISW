@@ -243,28 +243,29 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     margin = MARGIN (sbw);
     floor = sbw->scrollbar.length - margin;
 
+    /* Inset the thumb so it's narrower than the channel */
+    int inset = fill ? 3 : 0;
+
     if (sbw->scrollbar.orientation == XtorientHorizontal) {
 	lx = ((top < margin) ? margin : top);
-	ly = sw;
+	ly = sw + inset;
 	lw = ((bottom > floor) ? floor - top : tlen);
-/* CHECKIT	lw = (((top + tlen) > floor) ? floor - top : tlen); */
-	lh = sbw->core.height - 2 * sw;
+	lh = sbw->core.height - 2 * sw - 2 * inset;
     } else {
-	lx = sw;
+	lx = sw + inset;
 	ly = ((top < margin) ? margin : top);
-	lw = sbw->core.width - 2 * sw;
-/* CHECKIT	lh = (((top + tlen) > floor) ? floor - top : tlen); */
+	lw = sbw->core.width - 2 * sw - 2 * inset;
 	lh = ((bottom > floor) ? floor - top : tlen);
     }
     if (lh <= 0 || lw <= 0) return;
-    
+
     ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
     xcb_connection_t *conn = XtDisplay((Widget) sbw);
-    
+
     if (fill) {
         if (ctx) {
             ISWRenderBegin(ctx);
-            ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
+            ISWRenderSetColor(ctx, sbw->core.background_pixel);
             ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
             ISWRenderEnd(ctx);
         } else {
@@ -331,19 +332,20 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
           /* Fill the new thumb position */
           FillArea(sbw, newtop, newbot, 1);
           
-          /* Draw simple border around thumb */
+          /* Draw border around thumb (inset to match narrower thumb) */
           {
               int lx, ly, lw, lh;
+              int inset = 3;
 
               if (sbw->scrollbar.orientation == XtorientHorizontal) {
                   lx = newtop;
-                  ly = s;
+                  ly = s + inset;
                   lw = newbot - newtop;
-                  lh = sbw->core.height - 2 * s;
+                  lh = sbw->core.height - 2 * s - 2 * inset;
               } else {
-                  lx = s;
+                  lx = s + inset;
                   ly = newtop;
-                  lw = sbw->core.width - 2 * s;
+                  lw = sbw->core.width - 2 * s - 2 * inset;
                   lh = newbot - newtop;
               }
 
@@ -351,7 +353,7 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
               if (ctx) {
                   ISWRenderBegin(ctx);
                   ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-                  ISWRenderSetLineWidth(ctx, 2.0);
+                  ISWRenderSetLineWidth(ctx, 1.0);
                   ISWRenderStrokeRectangle(ctx, lx, ly, lw, lh);
                   ISWRenderEnd(ctx);
               } else {
@@ -359,7 +361,7 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
                   xcb_gcontext_t border_gc = xcb_generate_id(conn);
                   uint32_t values[3];
                   values[0] = sbw->scrollbar.foreground;
-                  values[1] = 2;
+                  values[1] = 1;
                   values[2] = 0;
                   xcb_create_gc(conn, border_gc, XtWindow((Widget) sbw),
                               XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH | XCB_GC_GRAPHICS_EXPOSURES,
@@ -383,19 +385,20 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
           if (newbot < oldbot) FillArea(sbw, MAX(newbot, oldtop), oldbot, 0);
           if (newbot > oldbot) FillArea(sbw, MAX(newtop, oldbot), newbot, 1);
 
-          /* Draw simple border around thumb */
+          /* Draw border around thumb (inset to match narrower thumb) */
           {
               int lx, ly, lw, lh;
+              int inset = 3;
 
               if (sbw->scrollbar.orientation == XtorientHorizontal) {
                   lx = newtop;
-                  ly = 0;
+                  ly = inset;
                   lw = newbot - newtop;
-                  lh = sbw->core.height;
+                  lh = sbw->core.height - 2 * inset;
               } else {
-                  lx = 0;
+                  lx = inset;
                   ly = newtop;
-                  lw = sbw->core.width;
+                  lw = sbw->core.width - 2 * inset;
                   lh = newbot - newtop;
               }
 
@@ -403,7 +406,7 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
               if (ctx) {
                   ISWRenderBegin(ctx);
                   ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-                  ISWRenderSetLineWidth(ctx, 2.0);
+                  ISWRenderSetLineWidth(ctx, 1.0);
                   ISWRenderStrokeRectangle(ctx, lx, ly, lw, lh);
                   ISWRenderEnd(ctx);
               } else {
@@ -411,7 +414,7 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
                   xcb_gcontext_t border_gc = xcb_generate_id(conn);
                   uint32_t values[3];
                   values[0] = sbw->scrollbar.foreground;
-                  values[1] = 2;
+                  values[1] = 1;
                   values[2] = 0;
                   xcb_create_gc(conn, border_gc, XtWindow((Widget) sbw),
                               XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH | XCB_GC_GRAPHICS_EXPOSURES,
@@ -674,8 +677,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     myXGCV.foreground = sbw->scrollbar.bot_shadow_pixel;
     sbw->scrollbar.bot_shadow_GC = XtGetGC(new, XCB_GC_FOREGROUND, &myXGCV);
 
-    /* Initialize Cairo rendering context */
-    sbw->scrollbar.render_ctx = ISWRenderCreate((Widget)sbw, ISW_RENDER_BACKEND_AUTO);
+    /* Defer render_ctx creation to Realize — Cairo needs a window */
+    sbw->scrollbar.render_ctx = NULL;
 }
 
 static void
@@ -692,6 +695,9 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
 
     (*scrollbarWidgetClass->core_class.superclass->core_class.realize)
 	(dpy, w, valueMask, attributes);
+
+    /* Create Cairo rendering context now that we have a window */
+    sbw->scrollbar.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
 }
 
 /* ARGSUSED */

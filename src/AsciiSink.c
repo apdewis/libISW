@@ -531,31 +531,39 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
 
     GetCursorBounds(w, &rect);
     if (state != sink->ascii_sink.laststate && XtIsRealized(text_widget)) {
-        /* Flush Cairo surface before XCB XOR operation, then mark dirty after.
-         * Using XCB copy_plane with XOR GC is simpler and more reliable than
-         * CAIRO_OPERATOR_DIFFERENCE for cursor toggle. */
-#ifdef HAVE_CAIRO
-        ISWRenderContext *render = sink->ascii_sink.render_ctx;
-        void *cr_ptr = render ? ISWRenderGetCairoContext(render) : NULL;
-        if (cr_ptr) {
-            cairo_t *cr = (cairo_t *)cr_ptr;
-            cairo_surface_t *surf = cairo_get_target(cr);
-            cairo_surface_flush(surf);
+        if (sink->ascii_sink.render_ctx && state == IswisOn) {
+            /* Draw cursor as a filled bar using Cairo.
+             * When turning off, the full redraw will erase it. */
+            int asc = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
+            int desc = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
+            ISWRenderBegin(sink->ascii_sink.render_ctx);
+            ISWRenderSetColor(sink->ascii_sink.render_ctx,
+                              sink->text_sink.foreground);
+            ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
+                                   (int)x - 1, (int)y - asc,
+                                   2, asc + desc);
+            ISWRenderEnd(sink->ascii_sink.render_ctx);
+        } else if (sink->ascii_sink.render_ctx && state == IswisOff) {
+            /* Erase cursor by redrawing background, text will be redrawn */
+            int asc = sink->ascii_sink.font ? sink->ascii_sink.font->ascent : 11;
+            int desc = sink->ascii_sink.font ? sink->ascii_sink.font->descent : 3;
+            ISWRenderBegin(sink->ascii_sink.render_ctx);
+            ISWRenderSetColor(sink->ascii_sink.render_ctx,
+                              sink->text_sink.background);
+            ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
+                                   (int)x - 1, (int)y - asc,
+                                   2, asc + desc);
+            ISWRenderEnd(sink->ascii_sink.render_ctx);
+        } else {
+            /* XCB fallback: use original XOR method */
+            xcb_connection_t *conn = XtDisplay(text_widget);
+            xcb_copy_plane(conn,
+                sink->ascii_sink.insertCursorOn,
+                XtWindow(text_widget), sink->ascii_sink.xorgc,
+                0, 0, (int) rect.x, (int) rect.y,
+                (unsigned int) rect.width, (unsigned int) rect.height, 1);
+            xcb_flush(conn);
         }
-#endif
-        xcb_connection_t *conn = XtDisplay(text_widget);
-        xcb_copy_plane(conn,
-            sink->ascii_sink.insertCursorOn,
-            XtWindow(text_widget), sink->ascii_sink.xorgc,
-            0, 0, (int) rect.x, (int) rect.y,
-            (unsigned int) rect.width, (unsigned int) rect.height, 1);
-        xcb_flush(conn);
-#ifdef HAVE_CAIRO
-        if (cr_ptr) {
-            cairo_t *cr = (cairo_t *)cr_ptr;
-            cairo_surface_mark_dirty(cairo_get_target(cr));
-        }
-#endif
     }
     sink->ascii_sink.laststate = state;
 }

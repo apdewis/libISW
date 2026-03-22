@@ -565,29 +565,35 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
 
     GetCursorBounds(w, &rect);
     if (state != sink->multi_sink.laststate && XtIsRealized(text_widget)) {
-        /* Flush Cairo surface before XCB XOR operation, then mark dirty after. */
-#ifdef HAVE_CAIRO
-        ISWRenderContext *render = sink->multi_sink.render_ctx;
-        void *cr_ptr = render ? ISWRenderGetCairoContext(render) : NULL;
-        if (cr_ptr) {
-            cairo_t *cr = (cairo_t *)cr_ptr;
-            cairo_surface_t *surf = cairo_get_target(cr);
-            cairo_surface_flush(surf);
+        if (sink->multi_sink.render_ctx && state == IswisOn) {
+            int asc = sink->multi_sink.fontset ? sink->multi_sink.fontset->ascent : 11;
+            int desc = sink->multi_sink.fontset ? sink->multi_sink.fontset->descent : 3;
+            ISWRenderBegin(sink->multi_sink.render_ctx);
+            ISWRenderSetColor(sink->multi_sink.render_ctx,
+                              sink->text_sink.foreground);
+            ISWRenderFillRectangle(sink->multi_sink.render_ctx,
+                                   (int)x - 1, (int)y - asc,
+                                   2, asc + desc);
+            ISWRenderEnd(sink->multi_sink.render_ctx);
+        } else if (sink->multi_sink.render_ctx && state == IswisOff) {
+            int asc = sink->multi_sink.fontset ? sink->multi_sink.fontset->ascent : 11;
+            int desc = sink->multi_sink.fontset ? sink->multi_sink.fontset->descent : 3;
+            ISWRenderBegin(sink->multi_sink.render_ctx);
+            ISWRenderSetColor(sink->multi_sink.render_ctx,
+                              sink->text_sink.background);
+            ISWRenderFillRectangle(sink->multi_sink.render_ctx,
+                                   (int)x - 1, (int)y - asc,
+                                   2, asc + desc);
+            ISWRenderEnd(sink->multi_sink.render_ctx);
+        } else {
+            xcb_connection_t *conn = XtDisplay(text_widget);
+            xcb_copy_plane(conn,
+                sink->multi_sink.insertCursorOn,
+                XtWindow(text_widget), sink->multi_sink.xorgc,
+                0, 0, (int) rect.x, (int) rect.y,
+                (unsigned int) rect.width, (unsigned int) rect.height, 1);
+            xcb_flush(conn);
         }
-#endif
-        xcb_connection_t *conn = XtDisplay(text_widget);
-        xcb_copy_plane(conn,
-            sink->multi_sink.insertCursorOn,
-            XtWindow(text_widget), sink->multi_sink.xorgc,
-            0, 0, (int) rect.x, (int) rect.y,
-            (unsigned int) rect.width, (unsigned int) rect.height, 1);
-        xcb_flush(conn);
-#ifdef HAVE_CAIRO
-        if (cr_ptr) {
-            cairo_t *cr = (cairo_t *)cr_ptr;
-            cairo_surface_mark_dirty(cairo_get_target(cr));
-        }
-#endif
     }
     sink->multi_sink.laststate = state;
 }
