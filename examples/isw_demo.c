@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
     XtSetArg(args[n], XtNwidth, 1200); n++;
     XtSetArg(args[n], XtNheight, 900); n++;
     XtSetArg(args[n], XtNtitle, "Isw3d Widget Demonstration - Comprehensive Widget Showcase"); n++;
-    XtSetArg(args[n], XtNallowShellResize, False); n++;
+    XtSetArg(args[n], XtNallowShellResize, True); n++;
     XtSetValues(toplevel, args, n);
     
     /* Create main widget structure */
