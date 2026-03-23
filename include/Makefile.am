@@ -43,6 +43,8 @@ iswinclude_HEADERS = \
 	ISW/PannerP.h \
 	ISW/Porthole.h \
 	ISW/PortholeP.h \
+	ISW/ProgressBar.h \
+	ISW/ProgressBarP.h \
 	ISW/Repeater.h \
 	ISW/RepeaterP.h \
 	ISW/Reports.h \

@@ -54,6 +54,7 @@
 #include <ISW/Dialog.h>
 #include <ISW/Repeater.h>
 #include <ISW/Grip.h>
+#include <ISW/ProgressBar.h>
 
 /* Optional tooltip support */
 #ifdef HAVE_TIP
@@ -101,6 +102,7 @@ Widget create_tree_demo(Widget parent);
 Widget create_panner_demo(Widget parent);
 Widget create_stripchart_demo(Widget parent);
 Widget create_scrollbar_demo(Widget parent);
+Widget create_progressbar_demo(Widget parent);
 Widget create_dialog_demo(Widget parent);
 
 /* Callback functions */
@@ -1292,26 +1294,26 @@ Widget create_paned_grip_demo(Widget parent) {
 
 Widget create_specialized_section(Widget parent) {
     Widget form, section_label;
-    Widget stripchart_demo, scrollbar_demo, dialog_demo;
+    Widget stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo;
     Arg args[10];
     Cardinal n;
-    
+
     /* Section container */
     n = 0;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
     XtSetArg(args[n], XtNdefaultDistance, 5); n++;
     form = XtCreateManagedWidget("specializedForm", formWidgetClass,
                                  parent, args, n);
-    
+
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Specialized Widgets: StripChart, Scrollbar, Dialog"); n++;
+    XtSetArg(args[n], XtNlabel, "Specialized Widgets: StripChart, Scrollbar, ProgressBar, Dialog"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     section_label = XtCreateManagedWidget("specializedLabel", labelWidgetClass,
                                           form, args, n);
-    
+
     /* Create demos */
     stripchart_demo = create_stripchart_demo(form);
     n = 0;
@@ -1319,22 +1321,74 @@ Widget create_specialized_section(Widget parent) {
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(stripchart_demo, args, n);
-    
+
     scrollbar_demo = create_scrollbar_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromHoriz, stripchart_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(scrollbar_demo, args, n);
-    
-    dialog_demo = create_dialog_demo(form);
+
+    progressbar_demo = create_progressbar_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromHoriz, scrollbar_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
+    XtSetValues(progressbar_demo, args, n);
+
+    dialog_demo = create_dialog_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromHoriz, progressbar_demo); n++;
+    XtSetArg(args[n], XtNfromVert, section_label); n++;
+    XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(dialog_demo, args, n);
-    
+
     return form;
+}
+
+Widget create_progressbar_demo(Widget parent) {
+    Widget box, title, pb_h1, pb_h2, pb_v;
+    Arg args[10];
+    Cardinal n;
+
+    /* Container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("progressBox", boxWidgetClass, parent, args, n);
+
+    /* Title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "ProgressBar Widget"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("progressTitle", labelWidgetClass, box, args, n);
+
+    /* Horizontal progress bar at 75% with text */
+    n = 0;
+    XtSetArg(args[n], XtNvalue, 75); n++;
+    XtSetArg(args[n], XtNwidth, S(180)); n++;
+    XtSetArg(args[n], XtNheight, S(24)); n++;
+    XtSetArg(args[n], XtNshowValue, True); n++;
+    pb_h1 = XtCreateManagedWidget("progressH1", progressBarWidgetClass, box, args, n);
+
+    /* Horizontal progress bar at 30% without text */
+    n = 0;
+    XtSetArg(args[n], XtNvalue, 30); n++;
+    XtSetArg(args[n], XtNwidth, S(180)); n++;
+    XtSetArg(args[n], XtNheight, S(18)); n++;
+    XtSetArg(args[n], XtNshowValue, False); n++;
+    pb_h2 = XtCreateManagedWidget("progressH2", progressBarWidgetClass, box, args, n);
+
+    /* Vertical progress bar at 60% with text */
+    n = 0;
+    XtSetArg(args[n], XtNvalue, 60); n++;
+    XtSetArg(args[n], XtNwidth, S(30)); n++;
+    XtSetArg(args[n], XtNheight, S(100)); n++;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNshowValue, True); n++;
+    pb_v = XtCreateManagedWidget("progressV", progressBarWidgetClass, box, args, n);
+
+    return box;
 }
 
 Widget create_stripchart_demo(Widget parent) {

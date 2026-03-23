@@ -19,9 +19,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <cairo/cairo-ft.h>
 
 /* Defined in Initialize.c */
 extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
+/* Defined in ISWRender.c — TTF font resolution via fontconfig/FreeType/cairo-ft */
+extern void _ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double scale);
 
 /*
  * Cairo-XCB Backend Data
@@ -650,24 +654,9 @@ cairo_xcb_set_font(ISWRenderContext *ctx, XFontStruct *font)
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
 
     if (!data->cairo_ctx) return;
-    /* For now, use Cairo's toy font API */
-    /* TODO: Convert XFontStruct to Cairo font for better matching */
-    
-    /* Set a reasonable default font */
-    cairo_select_font_face(data->cairo_ctx, "Sans",
-                          CAIRO_FONT_SLANT_NORMAL,
-                          CAIRO_FONT_WEIGHT_NORMAL);
-    
-    /* Use font size from XFontStruct if available, scaled for HiDPI */
-    {
-        double scale = _XtGetScaleFactor(ctx->connection);
-        if (font) {
-            double size = (font->ascent + font->descent) * scale;
-            cairo_set_font_size(data->cairo_ctx, size);
-        } else {
-            cairo_set_font_size(data->cairo_ctx, 12.0 * scale);
-        }
-    }
+
+    double scale = _XtGetScaleFactor(ctx->connection);
+    _ISWSetCairoFontFromXFont(data->cairo_ctx, font, scale);
 }
 
 /*

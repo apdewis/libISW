@@ -35,6 +35,10 @@ PKG_CHECK_MODULES(XT_DEPS, [sm ice x11 xproto xcb xcb-xrm xcb-keysyms])
 PKG_CHECK_MODULES(ISW_DEPS, [xext xcb xcb-xfixes xcb-render xcb-shape])
 PKG_CHECK_MODULES(XFT, [xft])
 
+# Font rendering (mandatory - fontconfig + freetype for TTF support via cairo-ft)
+PKG_CHECK_MODULES([FONTCONFIG], [fontconfig])
+PKG_CHECK_MODULES([FREETYPE], [freetype2])
+
 # Cairo rendering (mandatory)
 PKG_CHECK_MODULES([CAIRO], [cairo >= 1.12.0 cairo-xcb >= 1.12.0],
     [AC_DEFINE([HAVE_CAIRO], [1], [Have Cairo rendering support])

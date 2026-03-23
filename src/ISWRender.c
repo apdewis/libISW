@@ -19,6 +19,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
+#include <cairo/cairo-ft.h>
+#include <fontconfig/fontconfig.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 /* Defined in Initialize.c — avoids pulling in InitialI.h */
 extern double _XtGetScaleFactor(xcb_connection_t *dpy);
@@ -692,6 +697,138 @@ ISWScaleDim(Widget widget, int value)
 #include <math.h>
 
 /*
+ * =================================================================
+ * FreeType / Fontconfig Font Resolution
+ *
+ * Provides TTF/OTF font support via fontconfig (font discovery) +
+ * FreeType (font loading) + cairo-ft (Cairo integration).
+ * No Xlib dependencies in this path.
+ * =================================================================
+ */
+
+static FT_Library _ft_library = NULL;
+
+/* Cache for resolved font faces — avoids repeated fontconfig lookups */
+typedef struct _ISWFontCacheEntry {
+    struct _ISWFontCacheEntry *next;
+    char *pattern_key;          /* "family:size:weight:slant" */
+    cairo_font_face_t *cr_face;
+    FT_Face ft_face;
+} _ISWFontCacheEntry;
+
+static _ISWFontCacheEntry *_font_cache = NULL;
+
+static void
+_ISWInitFreeType(void)
+{
+    if (!_ft_library) {
+        FT_Init_FreeType(&_ft_library);
+    }
+}
+
+/*
+ * _ISWResolveFontFace - Resolve a font description to a Cairo font face.
+ *
+ * Uses fontconfig to find a matching font file, FreeType to load it,
+ * and cairo-ft to create a Cairo font face. Results are cached.
+ *
+ * Parameters:
+ *   family - font family name (e.g., "Sans", "Monospace", "Serif")
+ *   weight - FC_WEIGHT_NORMAL, FC_WEIGHT_BOLD, etc.
+ *   slant  - FC_SLANT_ROMAN, FC_SLANT_ITALIC, etc.
+ *
+ * Returns a cairo_font_face_t* (cached, do NOT destroy).
+ */
+cairo_font_face_t *
+_ISWResolveFontFace(const char *family, int weight, int slant)
+{
+    char key[256];
+    _ISWFontCacheEntry *entry;
+    FcPattern *pattern = NULL, *match = NULL;
+    FcResult result;
+    FcChar8 *font_file = NULL;
+    FT_Face ft_face = NULL;
+
+    snprintf(key, sizeof(key), "%s:%d:%d", family ? family : "Sans",
+             weight, slant);
+
+    /* Check cache */
+    for (entry = _font_cache; entry; entry = entry->next) {
+        if (strcmp(entry->pattern_key, key) == 0)
+            return entry->cr_face;
+    }
+
+    _ISWInitFreeType();
+
+    /* Use fontconfig to find a matching font file */
+    pattern = FcPatternCreate();
+    FcPatternAddString(pattern, FC_FAMILY,
+                       (const FcChar8 *)(family ? family : "Sans"));
+    FcPatternAddInteger(pattern, FC_WEIGHT, weight);
+    FcPatternAddInteger(pattern, FC_SLANT, slant);
+    FcConfigSubstitute(NULL, pattern, FcMatchPattern);
+    FcDefaultSubstitute(pattern);
+
+    match = FcFontMatch(NULL, pattern, &result);
+    if (!match) {
+        FcPatternDestroy(pattern);
+        return NULL;
+    }
+
+    if (FcPatternGetString(match, FC_FILE, 0, &font_file) != FcResultMatch) {
+        FcPatternDestroy(match);
+        FcPatternDestroy(pattern);
+        return NULL;
+    }
+
+    /* Load with FreeType */
+    if (FT_New_Face(_ft_library, (const char *)font_file, 0, &ft_face) != 0) {
+        FcPatternDestroy(match);
+        FcPatternDestroy(pattern);
+        return NULL;
+    }
+
+    /* Create Cairo font face */
+    cairo_font_face_t *cr_face =
+        cairo_ft_font_face_create_for_ft_face(ft_face, 0);
+
+    /* Cache it */
+    entry = (_ISWFontCacheEntry *)malloc(sizeof(_ISWFontCacheEntry));
+    entry->pattern_key = strdup(key);
+    entry->cr_face = cr_face;
+    entry->ft_face = ft_face;  /* kept alive — Cairo references it */
+    entry->next = _font_cache;
+    _font_cache = entry;
+
+    FcPatternDestroy(match);
+    FcPatternDestroy(pattern);
+
+    return cr_face;
+}
+
+/*
+ * _ISWSetCairoFontFromXFont - Configure a Cairo context with a proper
+ * TTF font face resolved via fontconfig, sized from XFontStruct metrics.
+ */
+void
+_ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double scale)
+{
+    cairo_font_face_t *face;
+    double size;
+
+    face = _ISWResolveFontFace("Sans", FC_WEIGHT_NORMAL, FC_SLANT_ROMAN);
+    if (face)
+        cairo_set_font_face(cr, face);
+
+    if (font)
+        size = (font->ascent + font->descent) * scale;
+    else
+        size = 12.0 * scale;
+
+    cairo_set_font_size(cr, size);
+}
+
+/*
  * Persistent measurement context — avoids creating/destroying a Cairo
  * surface + context on every text measurement or font extents query.
  * Lazily created on first use, lives for the process lifetime.
@@ -707,11 +844,18 @@ static cairo_t *
 _ISWGetMeasureCR(void)
 {
     if (!_measure_cr) {
+        cairo_font_face_t *face;
+
         _measure_surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
         _measure_cr = cairo_create(_measure_surf);
-        cairo_select_font_face(_measure_cr, "Sans",
-                               CAIRO_FONT_SLANT_NORMAL,
-                               CAIRO_FONT_WEIGHT_NORMAL);
+
+        face = _ISWResolveFontFace("Sans", FC_WEIGHT_NORMAL, FC_SLANT_ROMAN);
+        if (face)
+            cairo_set_font_face(_measure_cr, face);
+        else
+            cairo_select_font_face(_measure_cr, "Sans",
+                                   CAIRO_FONT_SLANT_NORMAL,
+                                   CAIRO_FONT_WEIGHT_NORMAL);
     }
     return _measure_cr;
 }
