@@ -596,28 +596,45 @@ static void
 DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
              double scale)
 {
-    /* Draw square outline (always visible) */
-    ISWRenderSetLineWidth(ctx, 1.5 * scale);
-    ISWRenderStrokeRectangle(ctx, x, y, size, size);
+    cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
+    if (!cr) return;
 
-    /* Draw checkmark if checked */
+    double r = 2.0 * scale;
+    double bx = x;
+    double by = y;
+    double bs = size;
+
+    cairo_save(cr);
+
+    /* Rounded rect outline (always visible) */
+    cairo_new_path(cr);
+    cairo_arc(cr, bx + bs - r, by + r, r, -M_PI/2, 0);
+    cairo_arc(cr, bx + bs - r, by + bs - r, r, 0, M_PI/2);
+    cairo_arc(cr, bx + r, by + bs - r, r, M_PI/2, M_PI);
+    cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
+    cairo_close_path(cr);
+    cairo_set_line_width(cr, 1.5 * scale);
+    cairo_stroke(cr);
+
+    /* Solid pip if checked */
     if (checked) {
-        int inset = (int)(2 * scale + 0.5);
-        int x1 = x + inset;
-        int y1 = y + size / 2;
-        int x2 = x + size / 3;
-        int y2 = y + size - inset;
-        int x3 = x + size - inset;
-        int y3 = y + inset;
+        double inset = 2.5 * scale;
+        double ix = bx + inset;
+        double iy = by + inset;
+        double is = bs - 2 * inset;
+        double ir = r * 0.5;
 
-        ISWRenderSetLineWidth(ctx, 2.0 * scale);
-
-        /* First segment: bottom-left to middle */
-        ISWRenderDrawLine(ctx, x1, y1, x2, y2);
-
-        /* Second segment: middle to top-right */
-        ISWRenderDrawLine(ctx, x2, y2, x3, y3);
+        cairo_new_path(cr);
+        cairo_arc(cr, ix + is - ir, iy + ir, ir, -M_PI/2, 0);
+        cairo_arc(cr, ix + is - ir, iy + is - ir, ir, 0, M_PI/2);
+        cairo_arc(cr, ix + ir, iy + is - ir, ir, M_PI/2, M_PI);
+        cairo_arc(cr, ix + ir, iy + ir, ir, M_PI, 3*M_PI/2);
+        cairo_close_path(cr);
+        cairo_fill(cr);
     }
+
+    cairo_new_path(cr);
+    cairo_restore(cr);
 }
 
 /*	Function Name: DrawRadioButton
