@@ -121,6 +121,19 @@ Defined in `configure.ac`, used throughout:
 
 Applications link with `pkg-config --cflags --libs isw`.
 
+## Application Developer Guide
+
+`docs/CLAUDE_APP_GUIDE.md` is a Claude Code instruction file for downstream consumers of the ISW library. When any of the following change, update the guide to match:
+
+- Widget public API (new widgets, renamed/removed resources, changed headers)
+- Widget class symbols or header paths
+- Callback `call_data` types
+- Build integration (`pkg-config` name, required headers)
+- HiDPI / scaling API
+- Menu construction patterns
+
+The guide is the contract between this library and application-level Claude Code sessions. Keep it accurate.
+
 ## Communication Style
 
 When corrected, just fix the problem. No "you're right" or other glad-handling — be direct. Don't agree with corrections that are actually wrong either; push back when warranted.
