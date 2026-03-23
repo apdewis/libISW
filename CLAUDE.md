@@ -120,3 +120,7 @@ Defined in `configure.ac`, used throughout:
 - `include/X11/` — libXt headers (`Intrinsic.h`, `Core.h`, etc.) and generated files
 
 Applications link with `pkg-config --cflags --libs isw`.
+
+## Communication Style
+
+When corrected, just fix the problem. No "you're right" or other glad-handling — be direct. Don't agree with corrections that are actually wrong either; push back when warranted.
