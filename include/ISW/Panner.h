@@ -53,8 +53,6 @@ in this Software without prior written authorization from the X Consortium.
  *  reportCallback	ReportCallback	XtCallbackList	NULL
  *  resize		Resize		Boolean		TRUE
  *  rubberBand		RubberBand	Boolean		FALSE
- *  shadowColor		ShadowColor	Pixel		XtDefaultForeground
- *  shadowThickness	ShadowThickness	Dimension	2
  *  sliderX		SliderX		Position	0
  *  sliderY		SliderY		Position	0
  *  sliderWidth		SliderWidth	Dimension	0
@@ -84,10 +82,6 @@ in this Software without prior written authorization from the X Consortium.
 #define XtCLineWidth "LineWidth"
 #define XtNrubberBand "rubberBand"
 #define XtCRubberBand "RubberBand"
-#define XtNshadowThickness "shadowThickness"
-#define XtCShadowThickness "ShadowThickness"
-#define XtNshadowColor "shadowColor"
-#define XtCShadowColor "ShadowColor"
 #define XtNsliderX "sliderX"
 #define XtCSliderX "SliderX"
 #define XtNsliderY "sliderY"

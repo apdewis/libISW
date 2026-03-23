@@ -49,8 +49,6 @@ typedef struct {			/* new fields in widget */
     Boolean allow_off;			/* allowOff/AllowOff */
     Boolean resize_to_pref;		/* resizeToPreferred/Boolean */
     Pixel foreground;			/* foreground/Foreground */
-    Pixel shadow_color;			/* shadowColor/ShadowColor */
-    Dimension shadow_thickness;		/* shadowThickness/ShadowThickness */
     Dimension default_scale;		/* defaultScale/DefaultScale */
     Dimension line_width;		/* lineWidth/LineWidth */
     Dimension canvas_width;		/* canvasWidth/CanvasWidth */
@@ -63,7 +61,6 @@ typedef struct {			/* new fields in widget */
     String stipple_name;		/* backgroundStipple/BackgroundStipple */
     /* private data... */
     GC slider_gc;			/* background of slider */
-    GC shadow_gc;			/* edge of slider and shadow */
     GC xor_gc;				/* for doing XOR tmp graphics */
     double haspect, vaspect;		/* aspect ratio of core to canvas */
     Boolean rubber_band;		/* true = rubber band, false = move */
@@ -76,8 +73,6 @@ typedef struct {			/* new fields in widget */
     } tmp;
     Position knob_x, knob_y;		/* real upper left of knob in canvas */
     Dimension knob_width, knob_height;	/* real size of knob in canvas */
-    Boolean shadow_valid;		/* true if rects are valid */
-    xcb_rectangle_t shadow_rects[2];		/* location of shadows */
     Position last_x, last_y;		/* previous location of knob */
     ISWRenderContext *render_ctx;	/* Cairo rendering context */
 } PannerPart;
