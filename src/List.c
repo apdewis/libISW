@@ -1082,6 +1082,7 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
     /* Create SimpleMenu popup — same widget class as menubar submenus */
     n = 0;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
+    XtSetArg(args[n], XtNwidth, w->core.width); n++;
     lw->list.popup_shell = XtCreatePopupShell("dropdownPopup",
         simpleMenuWidgetClass, w, args, n);
 
