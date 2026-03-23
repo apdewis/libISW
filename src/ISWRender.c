@@ -798,4 +798,21 @@ ISWScaledFontAscent(Widget widget, XFontStruct *font)
     return (int)ceil(extents.ascent);
 }
 
+int
+ISWScaledFontCapHeight(Widget widget, XFontStruct *font)
+{
+    double size = _ISWComputeFontSize(widget, font);
+    cairo_t *cr = _ISWGetMeasureCR();
+    cairo_text_extents_t text_ext;
+
+    if (size != _cached_font_size) {
+        cairo_set_font_size(cr, size);
+        cairo_font_extents(cr, &_cached_font_extents);
+        _cached_font_size = size;
+    }
+
+    cairo_text_extents(cr, "X", &text_ext);
+    return (int)ceil(-text_ext.y_bearing);
+}
+
 /* Cairo is now a mandatory dependency — no non-Cairo fallback needed */

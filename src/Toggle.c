@@ -49,6 +49,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Label.h>
 #include <ISW/ToggleP.h>
 #include <xcb/xcb.h>
+#include <cairo/cairo.h>
 
 /****************************************************************
  *
@@ -275,11 +276,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      * We increase the internal_width (left padding) to make room.
      */
     {
-        /* Reserve space for the indicator: font height + gap, derived from
+        /* Reserve space for the indicator: cap height + gap, derived from
          * actual Cairo font metrics so it adapts to any DPI/font. */
-        int font_h = ISWScaledFontHeight(new, tw->label.font);
+        int cap_h = ISWScaledFontCapHeight(new, tw->label.font);
         int gap = (int)(4 * ISWScaleFactor(new) + 0.5);
-        Dimension min_iw = (Dimension)(font_h + gap);
+        Dimension min_iw = (Dimension)(cap_h + gap);
         if (tw->label.internal_width < min_iw) {
             Dimension old_iw = tw->label.internal_width;
             tw->label.internal_width = min_iw;
@@ -582,27 +583,6 @@ RemoveFromRadioGroup(Widget w)
  *
  ************************************************************/
 
-/*	Function Name: CreateCirclePolygon
- *	Description: Creates a circle approximation as a polygon
- *	Arguments: center_x, center_y - center of the circle
- *                 radius - radius of the circle
- *                 points - output array for points (must have space for num_points)
- *                 num_points - number of points to use for approximation
- *	Returns: none.
- */
-
-static void
-CreateCirclePolygon(int center_x, int center_y, int radius,
-                    xcb_point_t *points, int num_points)
-{
-    int i;
-    for (i = 0; i < num_points; i++) {
-        double angle = 2.0 * M_PI * i / num_points;
-        points[i].x = center_x + (int)(radius * cos(angle));
-        points[i].y = center_y + (int)(radius * sin(angle));
-    }
-}
-
 /*	Function Name: DrawCheckbox
  *	Description: Draws a checkbox indicator (square outline with optional checkmark)
  *	Arguments: ctx - rendering context
@@ -653,25 +633,29 @@ static void
 DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
                 double scale)
 {
-    int center_x = x + size / 2;
-    int center_y = y + size / 2;
-    int radius = size / 2;
-    xcb_point_t circle_points[32]; /* Use 32 points for smooth circle */
+    /* Use the Cairo context directly for true circles */
+    cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
+    if (!cr) return;
 
-    /* Draw circle outline (always visible) using polygon stroke */
-    CreateCirclePolygon(center_x, center_y, radius, circle_points, 32);
-    ISWRenderSetLineWidth(ctx, 1.5 * scale);
-    ISWRenderStrokePolygon(ctx, circle_points, 32);
-    
+    cairo_save(cr);
+
+    double cx = x + size / 2.0;
+    double cy = y + size / 2.0;
+    double radius = size / 2.0;
+
+    /* Draw circle outline (always visible) */
+    cairo_set_line_width(cr, 1.5 * scale);
+    cairo_new_sub_path(cr);
+    cairo_arc(cr, cx, cy, radius, 0, 2.0 * M_PI);
+    cairo_stroke(cr);
+
     /* Draw filled center circle if selected */
     if (selected) {
-        int inner_radius = radius / 2;
-        xcb_point_t inner_circle[24]; /* 24 points for filled center */
-        
-        CreateCirclePolygon(center_x, center_y, inner_radius,
-                          inner_circle, 24);
-        ISWRenderFillPolygon(ctx, inner_circle, 24);
+        cairo_new_sub_path(cr);
+        cairo_arc(cr, cx, cy, radius * 0.45, 0, 2.0 * M_PI);
+        cairo_fill(cr);
     }
+    cairo_restore(cr);
 }
 
 /************************************************************
@@ -711,10 +695,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      * hardcoded pixel values.  This ensures correct sizing at any DPI
      * and adapts automatically if the font changes.
      */
-    int font_height = ISWScaledFontHeight((Widget)tw, tw->label.font);
+    int cap_height = ISWScaledFontCapHeight((Widget)tw, tw->label.font);
     double scale = ISWScaleFactor(w);
     int padding = (int)(2 * scale + 0.5);
-    int indicator_size = font_height;
+    int indicator_size = cap_height;
 
     /* Ensure indicator fits within widget bounds */
     if (indicator_size > (int)(tw->core.height - 2 * padding)) {
