@@ -261,33 +261,19 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     if (lh <= 0 || lw <= 0) return;
 
     ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
-    xcb_connection_t *conn = XtDisplay((Widget) sbw);
 
     if (fill) {
         /* Draw thumb in foreground color */
-        if (ctx) {
-            ISWRenderBegin(ctx);
-            ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-            ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
-            ISWRenderEnd(ctx);
-        } else {
-            xcb_rectangle_t rect = {lx, ly, (unsigned int) lw, (unsigned int) lh};
-            xcb_poly_fill_rectangle(conn, XtWindow((Widget) sbw),
-              sbw->scrollbar.gc, 1, &rect);
-            xcb_flush(conn);
-        }
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
+        ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
+        ISWRenderEnd(ctx);
     } else {
         /* Erase thumb area by restoring trough (background) color */
-        if (ctx) {
-            ISWRenderBegin(ctx);
-            ISWRenderSetColor(ctx, sbw->core.background_pixel);
-            ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
-            ISWRenderEnd(ctx);
-        } else {
-            xcb_clear_area(conn, FALSE, XtWindow((Widget) sbw),
-              lx, ly, (unsigned int) lw, (unsigned int) lh);
-            xcb_flush(conn);
-        }
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, sbw->core.background_pixel);
+        ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
+        ISWRenderEnd(ctx);
     }
 }
 
@@ -360,10 +346,6 @@ PaintArrows (ScrollbarWidget sbw)
     Dimension sm1 = s - 1;
     Dimension t2  = t / 2;
     Dimension sa30 = (Dimension)(1.732 * s );  /* cotangent of 30 deg */
-    xcb_connection_t   *dpy = XtDisplay (sbw);
-    xcb_window_t   win = XtWindow (sbw);
-    GC        top = sbw->scrollbar.top_shadow_GC;
-    GC        bot = sbw->scrollbar.bot_shadow_GC;
 
 
     if (XtIsRealized ((Widget) sbw)) {
@@ -408,25 +390,17 @@ PaintArrows (ScrollbarWidget sbw)
 	    }
 	           ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
 	           
-	           if (ctx) {
-	               /* Use Cairo for polygon rendering */
-	               ISWRenderBegin(ctx);
-	               ISWRenderSetColor(ctx, sbw->scrollbar.top_shadow_pixel);
-	               ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 4);
-	               ISWRenderSetColor(ctx, sbw->scrollbar.bot_shadow_pixel);
-	               ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 4), 6);
-	               ISWRenderSetColor(ctx, sbw->scrollbar.top_shadow_pixel);
-	               ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 10), 6);
-	               ISWRenderSetColor(ctx, sbw->scrollbar.bot_shadow_pixel);
-	               ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 16), 4);
-	               ISWRenderEnd(ctx);
-	           } else {
-	               /* XCB fallback */
-	               xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 4, (xcb_point_t *)pt);
-	               xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)(pt + 4));
-	               xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 6, (xcb_point_t *)(pt + 10));
-	               xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX, XCB_COORD_MODE_ORIGIN, 4, (xcb_point_t *)(pt + 16));
-	           }
+	           /* Use Cairo for polygon rendering */
+	           ISWRenderBegin(ctx);
+	           ISWRenderSetColor(ctx, sbw->scrollbar.top_shadow_pixel);
+	           ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 4);
+	           ISWRenderSetColor(ctx, sbw->scrollbar.bot_shadow_pixel);
+	           ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 4), 6);
+	           ISWRenderSetColor(ctx, sbw->scrollbar.top_shadow_pixel);
+	           ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 10), 6);
+	           ISWRenderSetColor(ctx, sbw->scrollbar.bot_shadow_pixel);
+	           ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 16), 4);
+	           ISWRenderEnd(ctx);
 
 	} else {
 	    pt[0].x = 0;      pt[0].y = tm1;
@@ -448,20 +422,11 @@ PaintArrows (ScrollbarWidget sbw)
 		}
 	    }
 	    ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
-	    if (ctx) {
-	        ISWRenderBegin(ctx);
-	        ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-	        ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 3);
-	        ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt+3), 3);
-	        ISWRenderEnd(ctx);
-	    } else {
-	        xcb_fill_poly(dpy, win, sbw->scrollbar.gc,
-	            XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN,
-	            3, (xcb_point_t *)pt);
-	        xcb_fill_poly(dpy, win, sbw->scrollbar.gc,
-	            XCB_POLY_SHAPE_CONVEX, XCB_COORD_MODE_ORIGIN,
-	            3, (xcb_point_t *)(pt+3));
-	    }
+	    ISWRenderBegin(ctx);
+	    ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
+	    ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 3);
+	    ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt+3), 3);
+	    ISWRenderEnd(ctx);
 	}
     }
 }
@@ -666,8 +631,6 @@ static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
-    int x, y;
-    unsigned int width, height;
 
     /* Draw the trough (channel) in foreground color so the
      * background-colored thumb is visible against it. */
@@ -689,17 +652,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         }
 
         ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
-        if (ctx) {
-            ISWRenderBegin(ctx);
-            ISWRenderSetColor(ctx, sbw->core.background_pixel);
-            ISWRenderFillRectangle(ctx, tx, ty, tw, th);
-            ISWRenderEnd(ctx);
-        } else {
-            xcb_connection_t *conn = XtDisplay(w);
-            xcb_clear_area(conn, FALSE, XtWindow(w),
-                           tx, ty, tw, th);
-            xcb_flush(conn);
-        }
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, sbw->core.background_pixel);
+        ISWRenderFillRectangle(ctx, tx, ty, tw, th);
+        ISWRenderEnd(ctx);
     }
 
     /* Forces entire thumb to be painted. */

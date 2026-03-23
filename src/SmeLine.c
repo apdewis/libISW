@@ -272,25 +272,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                               entry->rectangle.width - 2 * s,
                               entry->sme_line.line_width);
         ISWRenderEnd(entry->sme_line.render_ctx);
-        return;  /* Done with Cairo rendering */
     }
-
-    /*
-     * Fallback to XCB rendering if Cairo not available.
-     */
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-    if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
- /* XSetTSOrigin needs XCB equivalent - xcb_change_gc with tile/stipple origin */
- uint32_t values[2] = {0, y};
- xcb_change_gc(conn, entry->sme_line.gc,
-        XCB_GC_TILE_STIPPLE_ORIGIN_X | XCB_GC_TILE_STIPPLE_ORIGIN_Y, values);
-    }
-
-    xcb_rectangle_t rect = {s, y, (unsigned int) entry->rectangle.width - 2 * s,
-     (unsigned int) entry->sme_line.line_width};
-    xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
-     entry->sme_line.gc, 1, &rect);
-    xcb_flush(conn);
 }
 
 /*      Function Name: SetValues

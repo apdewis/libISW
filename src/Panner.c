@@ -657,57 +657,32 @@ static void
 Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     PannerWidget pw = (PannerWidget) gw;
-    xcb_connection_t *dpy = XtDisplay(gw);
-    xcb_window_t w = XtWindow(gw);
     int pad = pw->panner.internal_border;
     Dimension lw = pw->panner.line_width;
     Dimension extra = pw->panner.shadow_thickness + lw * 2;
     int kx = pw->panner.knob_x + pad, ky = pw->panner.knob_y + pad;
 
     pw->panner.tmp.showing = FALSE;
-    
-    /* Clear old knob position */
-    if (pw->panner.render_ctx) {
-        ISWRenderBegin(pw->panner.render_ctx);
-        ISWRenderSetColor(pw->panner.render_ctx, pw->core.background_pixel);
-        ISWRenderFillRectangle(pw->panner.render_ctx,
-                       (int) pw->panner.last_x - ((int) lw) + pad,
-                       (int) pw->panner.last_y - ((int) lw) + pad,
-                       (int) (pw->panner.knob_width + extra),
-                       (int) (pw->panner.knob_height + extra));
-        ISWRenderEnd(pw->panner.render_ctx);
-    } else {
-        xcb_connection_t *clear_conn = XtDisplay(pw);
-        xcb_clear_area(clear_conn, 0, XtWindow(pw),
-                       (int) pw->panner.last_x - ((int) lw) + pad,
-                       (int) pw->panner.last_y - ((int) lw) + pad,
-                       (unsigned int) (pw->panner.knob_width + extra),
-                       (unsigned int) (pw->panner.knob_height + extra));
-        xcb_flush(clear_conn);
-    }
-    pw->panner.last_x = pw->panner.knob_x;
-    pw->panner.last_y = pw->panner.knob_y;
 
     /* Lazy initialization of Cairo render context */
     if (!pw->panner.render_ctx) {
         pw->panner.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
         if (!pw->panner.render_ctx) {
-            /* Fallback to XCB if Cairo context creation fails */
-            xcb_connection_t *conn = dpy;
-            xcb_rectangle_t rect = {kx, ky, pw->panner.knob_width - 1, pw->panner.knob_height - 1};
-            xcb_poly_fill_rectangle(conn, w, pw->panner.slider_gc, 1, &rect);
-            if (lw) {
-                xcb_poly_rectangle(conn, w, pw->panner.shadow_gc, 1, &rect);
-            }
-            if (pw->panner.shadow_valid) {
-                xcb_poly_fill_rectangle(conn, w, pw->panner.shadow_gc,
-                    2, pw->panner.shadow_rects);
-            }
-            xcb_flush(conn);
-            if (pw->panner.tmp.doing && pw->panner.rubber_band) DRAW_TMP (pw);
             return;
         }
     }
+
+    /* Clear old knob position */
+    ISWRenderBegin(pw->panner.render_ctx);
+    ISWRenderSetColor(pw->panner.render_ctx, pw->core.background_pixel);
+    ISWRenderFillRectangle(pw->panner.render_ctx,
+                   (int) pw->panner.last_x - ((int) lw) + pad,
+                   (int) pw->panner.last_y - ((int) lw) + pad,
+                   (int) (pw->panner.knob_width + extra),
+                   (int) (pw->panner.knob_height + extra));
+    ISWRenderEnd(pw->panner.render_ctx);
+    pw->panner.last_x = pw->panner.knob_x;
+    pw->panner.last_y = pw->panner.knob_y;
 
     /* Use Cairo rendering for normal operations */
     ISWRenderBegin(pw->panner.render_ctx);

@@ -62,6 +62,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeBSBP.h>
 #include <ISW/Cardinals.h>
 #include <ISW/ISWRender.h>
+#include <cairo.h>
 #include <stdio.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -354,15 +355,6 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                                 entry->rectangle.width - 2 * s,
                                 entry->rectangle.height - 2 * s);
          ISWRenderEnd(entry->sme_bsb.render_ctx);
-     } else {
-         /* XCB fallback */
-         xcb_connection_t *conn = XtDisplayOfObject(w);
-         xcb_rectangle_t rect = {s, y_loc + s,
-          (unsigned int) entry->rectangle.width - 2 * s,
-          (unsigned int) entry->rectangle.height - 2 * s};
-         xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
-          entry->sme_bsb.norm_gc, 1, &rect);
-         xcb_flush(conn);
      }
      gc = entry->sme_bsb.rev_gc;
  }
@@ -441,9 +433,6 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                 ISWRenderDrawString(entry->sme_bsb.render_ctx, label, len,
                                     x_loc + s, y_loc);
                 ISWRenderEnd(entry->sme_bsb.render_ctx);
-            } else {
-                ISWXcbDrawText(XtDisplayOfObject(w), XtWindowOfObject(w), gc,
-                    x_loc + s, y_loc, label, len);
             }
         }
 
@@ -472,15 +461,6 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	                          ul_x1_loc, y_loc + 1,
 	                          ul_x1_loc + ul_wid, y_loc + 1);
 	        ISWRenderEnd(entry->sme_bsb.render_ctx);
-	    } else {
-	        /* XCB fallback */
-	        xcb_connection_t *conn = XtDisplayOfObject(w);
-	        xcb_point_t points[2] = {
-	     {ul_x1_loc, y_loc + 1},
-	     {ul_x1_loc + ul_wid, y_loc + 1}
-	        };
-	        xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, XtWindowOfObject(w), gc, 2, points);
-	        xcb_flush(conn);
 	    }
 	}
     }
@@ -788,19 +768,6 @@ DrawBitmaps(Widget w, GC gc)
 			    entry->sme_bsb.left_bitmap_height,
 			    entry->sme_bsb.left_depth);
 	ISWRenderEnd(entry->sme_bsb.render_ctx);
-    } else {
-	xcb_connection_t *conn = XtDisplayOfObject(w);
-	if (entry->sme_bsb.left_depth == 1)
-	    xcb_copy_plane(conn, pm, XtWindowOfObject(w), gc, 0, 0,
-			   x_loc, y_loc,
-			   entry->sme_bsb.left_bitmap_width,
-			   entry->sme_bsb.left_bitmap_height, 1);
-	else
-	    xcb_copy_area(conn, pm, XtWindowOfObject(w), gc, 0, 0,
-			  x_loc, y_loc,
-			  entry->sme_bsb.left_bitmap_width,
-			  entry->sme_bsb.left_bitmap_height);
-	xcb_flush(conn);
     }
   }
 
@@ -841,19 +808,6 @@ DrawBitmaps(Widget w, GC gc)
 			    entry->sme_bsb.right_bitmap_height,
 			    entry->sme_bsb.right_depth);
 	ISWRenderEnd(entry->sme_bsb.render_ctx);
-    } else {
-	xcb_connection_t *conn = XtDisplayOfObject(w);
-	if (entry->sme_bsb.right_depth == 1)
-	    xcb_copy_plane(conn, pm, XtWindowOfObject(w), gc, 0, 0,
-			   x_loc, y_loc,
-			   entry->sme_bsb.right_bitmap_width,
-			   entry->sme_bsb.right_bitmap_height, 1);
-	else
-	    xcb_copy_area(conn, pm, XtWindowOfObject(w), gc, 0, 0,
-			  x_loc, y_loc,
-			  entry->sme_bsb.right_bitmap_width,
-			  entry->sme_bsb.right_bitmap_height);
-	xcb_flush(conn);
     }
   }
 }
@@ -1065,19 +1019,25 @@ FlipColors(Widget w)
     }
 
     if (entry->sme_bsb.shadow_width > 0) {
- DrawShadows(w);
-    } else {
- /*
-  * invert_gc uses XOR function which Cairo doesn't support directly.
-  * Keep XCB fallback for this rare case (shadow_width == 0).
-  */
- xcb_connection_t *conn = XtDisplayOfObject(w);
- xcb_rectangle_t rect = {s, (int) entry->rectangle.y,
-     (unsigned int) entry->rectangle.width - 2 * s,
-     (unsigned int) entry->rectangle.height};
- xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
-     entry->sme_bsb.invert_gc, 1, &rect);
- xcb_flush(conn);
+	DrawShadows(w);
+    } else if (entry->sme_bsb.render_ctx) {
+	/*
+	 * Invert the entry using Cairo's DIFFERENCE operator,
+	 * which gives the same visual result as the old XOR GC approach.
+	 */
+	cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(entry->sme_bsb.render_ctx);
+	if (cr) {
+	    ISWRenderBegin(entry->sme_bsb.render_ctx);
+	    cairo_save(cr);
+	    cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
+	    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	    cairo_rectangle(cr, s, (int) entry->rectangle.y,
+		(int) entry->rectangle.width - 2 * s,
+		(int) entry->rectangle.height);
+	    cairo_fill(cr);
+	    cairo_restore(cr);
+	    ISWRenderEnd(entry->sme_bsb.render_ctx);
+	}
     }
 }
 

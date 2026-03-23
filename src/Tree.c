@@ -717,18 +717,9 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 			tw->tree.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
 		    }
 
-		    /* Use Cairo rendering if available, otherwise fall back to XCB */
 		    if (tw->tree.render_ctx) {
 			ISWRenderSetColor(tw->tree.render_ctx, tw->tree.foreground);
 			ISWRenderDrawLine(tw->tree.render_ctx, x1, y1, x2, y2);
-		    } else {
-			/* Fallback to XCB rendering */
-			xcb_point_t points[2];
-			points[0].x = x1;
-			points[0].y = y1;
-			points[1].x = x2;
-			points[1].y = y2;
-			xcb_poly_line(conn, XCB_COORD_MODE_ORIGIN, w, gc, 2, points);
 		    }
 		}
 	    }

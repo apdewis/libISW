@@ -333,7 +333,6 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
     TextWidget ctx = (TextWidget) XtParent(w);
-    xcb_connection_t *conn = XtDisplay((Widget) ctx);
 
     Position max_x;
     Dimension width;
@@ -350,13 +349,8 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
     char *utf8_text = IswWcToUtf8(buf, len, &utf8_len);
     if (!utf8_text) return 0;
     
-    /* Calculate text width using Cairo or XCB fallback */
-    if (sink->multi_sink.render_ctx) {
-        width = ISWRenderTextWidth(sink->multi_sink.render_ctx, utf8_text, utf8_len);
-    } else {
-        /* XCB fallback */
-        width = IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len);
-    }
+    /* Calculate text width */
+    width = ISWRenderTextWidth(sink->multi_sink.render_ctx, utf8_text, utf8_len);
     max_x = (Position) ctx->core.width;
 
     if ( ((int) width) <= -x) {	           /* Don't draw if we can't see it. */
@@ -364,8 +358,8 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
       return(width);
     }
 
-    /* Draw text using Cairo or XCB fallback */
-    if (sink->multi_sink.render_ctx) {
+    /* Draw text: fill background then render glyphs */
+    {
         int m_asc = MultiScaledAscent(sink);
         int m_h = MultiScaledHeight(sink);
         Pixel m_bg = (gc == sink->multi_sink.invgc) ?
@@ -379,10 +373,6 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
         ISWRenderSetFont(sink->multi_sink.render_ctx, NULL);
         ISWRenderDrawString(sink->multi_sink.render_ctx, utf8_text, utf8_len,
                           (int)x, (int)y);
-    } else {
-        /* XCB fallback */
-        IswDrawString(conn, XtWindow(ctx), sink->multi_sink.fontset, gc,
-                     (int) x, (int) y, utf8_text, utf8_len);
     }
     free(utf8_text);
     
@@ -392,21 +382,10 @@ PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
         int ascent = MultiScaledAscent(sink);
         int height = MultiScaledHeight(sink);
 
-        /* Draw margin background using Cairo or XCB fallback */
-        if (sink->multi_sink.render_ctx) {
-            ISWRenderFillRectangle(sink->multi_sink.render_ctx,
-                                 (int)x, (int)y - ascent,
-                                 (int)width, (int)height);
-        } else {
-            /* XCB fallback */
-            xcb_rectangle_t rect = {(int) x,
-                (int) y - ascent,
-                (unsigned int) width,
-                (unsigned int) height};
-            xcb_poly_fill_rectangle(conn, XtWindow((Widget) ctx),
-                    sink->multi_sink.normgc, 1, &rect);
-            xcb_flush(conn);
-        }
+        /* Draw margin background */
+        ISWRenderFillRectangle(sink->multi_sink.render_ctx,
+                             (int)x, (int)y - ascent,
+                             (int)width, (int)height);
         return(0);
     }
     return(width);
@@ -431,7 +410,6 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     int j, k;
     ISWTextBlock blk;
     GC gc = highlight ? sink->multi_sink.invgc : sink->multi_sink.normgc;
-    GC invgc = highlight ? sink->multi_sink.normgc : sink->multi_sink.invgc;
 
     if (!sink->multi_sink.echo) return;
 
@@ -479,26 +457,14 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 	        int ascent = MultiScaledAscent(sink);
 	        int height = MultiScaledHeight(sink);
 	        
-	        /* Draw tab background using Cairo or XCB fallback */
-	        if (sink->multi_sink.render_ctx) {
-	            ISWRenderSave(sink->multi_sink.render_ctx);
-	            ISWRenderSetColor(sink->multi_sink.render_ctx,
-	                            highlight ? sink->text_sink.foreground : sink->text_sink.background);
-	            ISWRenderFillRectangle(sink->multi_sink.render_ctx,
-	                                 (int)x, (int)y - ascent,
-	                                 (int)width, (int)height);
-	            ISWRenderRestore(sink->multi_sink.render_ctx);
-	        } else {
-	            /* XCB fallback */
-	            xcb_connection_t *conn = XtDisplayOfObject(w);
-	            xcb_rectangle_t rect = {(int) x,
-	                (int) y - ascent,
-	                (unsigned int) width,
-	                (unsigned int) height};
-	            xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
-	                    invgc, 1, &rect);
-	            xcb_flush(conn);
-	        }
+	        /* Draw tab background */
+	        ISWRenderSave(sink->multi_sink.render_ctx);
+	        ISWRenderSetColor(sink->multi_sink.render_ctx,
+	                        highlight ? sink->text_sink.foreground : sink->text_sink.background);
+	        ISWRenderFillRectangle(sink->multi_sink.render_ctx,
+	                             (int)x, (int)y - ascent,
+	                             (int)width, (int)height);
+	        ISWRenderRestore(sink->multi_sink.render_ctx);
 	        x += width;
                 j = -1;
             }
@@ -545,12 +511,7 @@ MultiSinkClearToBackground(Widget w, Position x, Position y,
                                (int)x, (int)y,
                                (int)width, (int)height);
         ISWRenderEnd(sink->multi_sink.render_ctx);
-        return;
     }
-
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-    xcb_clear_area(conn, 0, XtWindowOfObject(w), x, y, width, height);
-    xcb_flush(conn);
 }
 
 #define insertCursor_width 6
@@ -601,7 +562,7 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
 
     GetCursorBounds(w, &rect);
     if (state != sink->multi_sink.laststate && XtIsRealized(text_widget)) {
-        if (sink->multi_sink.render_ctx && state == IswisOn) {
+        if (state == IswisOn) {
             int h = MultiScaledHeight(sink);
             ISWRenderBegin(sink->multi_sink.render_ctx);
             ISWRenderSetColor(sink->multi_sink.render_ctx,
@@ -610,7 +571,7 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
                                    (int)x - 1, (int)y - h,
                                    2, h);
             ISWRenderEnd(sink->multi_sink.render_ctx);
-        } else if (sink->multi_sink.render_ctx && state == IswisOff) {
+        } else if (state == IswisOff) {
             int h = MultiScaledHeight(sink);
             ISWRenderBegin(sink->multi_sink.render_ctx);
             ISWRenderSetColor(sink->multi_sink.render_ctx,
@@ -619,14 +580,6 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
                                    (int)x - 1, (int)y - h,
                                    2, h);
             ISWRenderEnd(sink->multi_sink.render_ctx);
-        } else {
-            xcb_connection_t *conn = XtDisplay(text_widget);
-            xcb_copy_plane(conn,
-                sink->multi_sink.insertCursorOn,
-                XtWindow(text_widget), sink->multi_sink.xorgc,
-                0, 0, (int) rect.x, (int) rect.y,
-                (unsigned int) rect.width, (unsigned int) rect.height, 1);
-            xcb_flush(conn);
         }
     }
     sink->multi_sink.laststate = state;

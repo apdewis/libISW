@@ -5,10 +5,10 @@
  *
  * This file provides a backend-agnostic rendering API for ISW widgets.
  * Supports multiple rendering backends:
- *   - XCB: Direct XCB rendering (fallback, always available)
  *   - Cairo-XCB: Cairo with XCB surface (software rendering with anti-aliasing)
  *   - Cairo-EGL: Cairo with EGL/OpenGL (hardware accelerated)
  *
+ * Cairo is a mandatory dependency.
  * CRITICAL: All backends use pure XCB - NO XLIB DEPENDENCIES.
  */
 
@@ -42,7 +42,6 @@ typedef struct _ISWRenderContext ISWRenderContext;
  */
 typedef enum {
     ISW_RENDER_BACKEND_AUTO = 0,      /* Auto-detect best available */
-    ISW_RENDER_BACKEND_XCB,           /* Pure XCB (fallback) */
     ISW_RENDER_BACKEND_CAIRO_XCB,     /* Cairo with XCB surface */
     ISW_RENDER_BACKEND_CAIRO_EGL      /* Cairo with EGL (NOT GLX!) */
 } ISWRenderBackend;
@@ -77,7 +76,6 @@ typedef enum {
  *
  * Notes:
  *   - If preferred backend is unavailable, falls back to best available
- *   - XCB backend is always available as final fallback
  *   - Context must be destroyed with ISWRenderDestroy()
  */
 ISWRenderContext* ISWRenderCreate(
@@ -123,7 +121,7 @@ ISWRenderCaps ISWRenderGetCapabilities(ISWRenderContext *ctx);
  * Parameters:
  *   ctx - Rendering context
  *
- * Returns: Backend name string (e.g., "Cairo-XCB", "XCB Fallback", "Cairo-EGL")
+ * Returns: Backend name string (e.g., "Cairo-XCB", "Cairo-EGL")
  *          Returns "Unknown" if context is NULL
  */
 const char* ISWRenderGetBackendName(ISWRenderContext *ctx);
@@ -214,8 +212,7 @@ void ISWRenderSetColor(ISWRenderContext *ctx, Pixel pixel);
  *   a   - Alpha component (0.0-1.0)
  *
  * Notes:
- *   - Only works with Cairo backends
- *   - XCB backend ignores alpha
+ *   - Works with all Cairo backends
  */
 void ISWRenderSetColorRGBA(ISWRenderContext *ctx,
                           double r, double g, double b, double a);
@@ -416,8 +413,7 @@ int ISWRenderTextHeight(ISWRenderContext *ctx);
  *   font - XFontStruct pointer
  *
  * Notes:
- *   - XCB backend uses X core fonts
- *   - Cairo backends may convert to Cairo font
+ *   - Converts XFontStruct metrics to Cairo font sizing
  */
 void ISWRenderSetFont(ISWRenderContext *ctx, XFontStruct *font);
 
@@ -515,11 +511,7 @@ void ISWRenderDrawPixmap(ISWRenderContext *ctx,
  *   color1        - Start color
  *   color2        - End color
  *
- * Returns: True if gradient supported, False otherwise
- *
- * Notes:
- *   - Only works with Cairo backends
- *   - XCB backend returns False
+ * Returns: True on success
  */
 Boolean ISWRenderSetGradient(ISWRenderContext *ctx,
                              double x1, double y1,
@@ -532,12 +524,10 @@ Boolean ISWRenderSetGradient(ISWRenderContext *ctx,
  * Parameters:
  *   ctx - Rendering context
  *
- * Returns: cairo_t* if Cairo backend, NULL otherwise
+ * Returns: cairo_t* (cast from void*)
  *
  * Notes:
- *   - For advanced Cairo operations
- *   - Returns NULL for XCB backend
- *   - Cast return value to (cairo_t*)
+ *   - For advanced Cairo operations beyond the ISWRender API
  */
 void* ISWRenderGetCairoContext(ISWRenderContext *ctx);
 

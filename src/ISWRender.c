@@ -33,30 +33,19 @@ Boolean
 ISWRenderBackendAvailable(ISWRenderBackend backend)
 {
     switch (backend) {
-        case ISW_RENDER_BACKEND_XCB:
-            /* XCB backend always available */
-            return True;
-            
-#ifdef HAVE_CAIRO
         case ISW_RENDER_BACKEND_CAIRO_XCB:
-            /* Cairo-XCB available if Cairo compiled in */
             return True;
-#endif
-            
+
 #ifdef HAVE_CAIRO_EGL
         case ISW_RENDER_BACKEND_CAIRO_EGL:
-            /* EGL backend available if Cairo-GL and EGL compiled in */
             return ISWRenderEGLAvailable();
 #endif
-            
+
         case ISW_RENDER_BACKEND_AUTO:
-            /* Auto is not a real backend */
-            return False;
-            
         default:
             return False;
     }
-    
+
     return False;
 }
 
@@ -76,7 +65,7 @@ ISWRenderDetectBackend(ISWRenderBackend preferred)
         }
         /* Fall through to auto-detection if unavailable */
     }
-    
+
     /* Check environment variable */
     const char *env = getenv("ISW_RENDER_BACKEND");
     if (env) {
@@ -87,28 +76,18 @@ ISWRenderDetectBackend(ISWRenderBackend preferred)
             }
 #endif
         } else if (strcmp(env, "cairo") == 0) {
-#ifdef HAVE_CAIRO
             return ISW_RENDER_BACKEND_CAIRO_XCB;
-#endif
-        } else if (strcmp(env, "xcb") == 0) {
-            return ISW_RENDER_BACKEND_XCB;
         }
     }
-    
+
     /* Auto-detect: prefer best available */
 #ifdef HAVE_CAIRO_EGL
     if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_CAIRO_EGL)) {
         return ISW_RENDER_BACKEND_CAIRO_EGL;
     }
 #endif
-    
-#ifdef HAVE_CAIRO
-    /* Cairo-XCB is recommended default if available */
+
     return ISW_RENDER_BACKEND_CAIRO_XCB;
-#endif
-    
-    /* Fallback to pure XCB */
-    return ISW_RENDER_BACKEND_XCB;
 }
 
 /*
@@ -149,47 +128,27 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
     
     /* Initialize backend */
     switch (ctx->backend) {
-        case ISW_RENDER_BACKEND_XCB:
-            ctx->ops = &isw_render_xcb_ops;
-            break;
-            
-#ifdef HAVE_CAIRO
         case ISW_RENDER_BACKEND_CAIRO_XCB:
             ctx->ops = &isw_render_cairo_xcb_ops;
             break;
-#endif
-            
+
 #ifdef HAVE_CAIRO_EGL
         case ISW_RENDER_BACKEND_CAIRO_EGL:
             ctx->ops = &isw_render_cairo_egl_ops;
             break;
 #endif
-            
+
         default:
             fprintf(stderr, "ISWRender: Unknown backend %d\n", ctx->backend);
             free(ctx);
             return NULL;
     }
-    
+
     /* Call backend init */
     if (!ctx->ops->init(ctx)) {
-        /* Backend initialization failed - try fallback to XCB */
-        if (ctx->backend != ISW_RENDER_BACKEND_XCB) {
-            fprintf(stderr, "ISWRender: Backend %d init failed, falling back to XCB\n",
-                   ctx->backend);
-            ctx->backend = ISW_RENDER_BACKEND_XCB;
-            ctx->ops = &isw_render_xcb_ops;
-            
-            if (!ctx->ops->init(ctx)) {
-                fprintf(stderr, "ISWRender: XCB backend init failed\n");
-                free(ctx);
-                return NULL;
-            }
-        } else {
-            fprintf(stderr, "ISWRender: XCB backend init failed\n");
-            free(ctx);
-            return NULL;
-        }
+        fprintf(stderr, "ISWRender: Backend %d init failed\n", ctx->backend);
+        free(ctx);
+        return NULL;
     }
     
     /* Initialize state */
@@ -240,9 +199,9 @@ ISWRenderBackend
 ISWRenderGetBackend(ISWRenderContext *ctx)
 {
     if (!ctx) {
-        return ISW_RENDER_BACKEND_XCB;  /* Safe default */
+        return ISW_RENDER_BACKEND_CAIRO_XCB;  /* Safe default */
     }
-    
+
     return ctx->backend;
 }
 
@@ -264,8 +223,6 @@ ISWRenderGetBackendName(ISWRenderContext *ctx)
     }
     
     switch (ctx->backend) {
-        case ISW_RENDER_BACKEND_XCB:
-            return "XCB Fallback";
         case ISW_RENDER_BACKEND_CAIRO_XCB:
             return "Cairo-XCB";
         case ISW_RENDER_BACKEND_CAIRO_EGL:
@@ -286,10 +243,6 @@ ISWRenderPrintBackendInfo(void)
     
     /* Get backend name */
     switch (backend) {
-        case ISW_RENDER_BACKEND_XCB:
-            backend_name = "XCB Fallback";
-            caps = ISW_RENDER_CAP_BASIC;
-            break;
         case ISW_RENDER_BACKEND_CAIRO_XCB:
             backend_name = "Cairo-XCB";
             caps = ISW_RENDER_CAP_BASIC | ISW_RENDER_CAP_ANTIALIASING |
@@ -735,7 +688,6 @@ ISWScaleDim(Widget widget, int value)
     return (Dimension)(result > 0 ? result : 1);
 }
 
-#ifdef HAVE_CAIRO
 #include <cairo.h>
 #include <math.h>
 
@@ -846,37 +798,4 @@ ISWScaledFontAscent(Widget widget, XFontStruct *font)
     return (int)ceil(extents.ascent);
 }
 
-#else /* !HAVE_CAIRO */
-
-int
-ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
-{
-    double scale = ISWScaleFactor(widget);
-    /* Without Cairo, approximate by scaling bitmap font width */
-    if (font && widget) {
-        xcb_connection_t *conn = (xcb_connection_t *)XtDisplayOfObject(widget);
-        int w = ISWFontTextWidth(conn, font->fid, text, len);
-        return (int)(w * scale + 0.5);
-    }
-    return (int)(len * 8 * scale);
-}
-
-int
-ISWScaledFontHeight(Widget widget, XFontStruct *font)
-{
-    double scale = ISWScaleFactor(widget);
-    if (font)
-        return (int)((font->ascent + font->descent) * scale + 0.5);
-    return (int)(14 * scale);
-}
-
-int
-ISWScaledFontAscent(Widget widget, XFontStruct *font)
-{
-    double scale = ISWScaleFactor(widget);
-    if (font)
-        return (int)(font->ascent * scale + 0.5);
-    return (int)(11 * scale);
-}
-
-#endif /* HAVE_CAIRO */
+/* Cairo is now a mandatory dependency — no non-Cairo fallback needed */

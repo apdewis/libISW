@@ -35,28 +35,22 @@ PKG_CHECK_MODULES(XT_DEPS, [sm ice x11 xproto xcb xcb-xrm xcb-keysyms])
 PKG_CHECK_MODULES(ISW_DEPS, [xext xcb xcb-xfixes xcb-render xcb-shape])
 PKG_CHECK_MODULES(XFT, [xft])
 
-# Cairo rendering backends (optional but recommended)
+# Cairo rendering (mandatory)
 PKG_CHECK_MODULES([CAIRO], [cairo >= 1.12.0 cairo-xcb >= 1.12.0],
-    [HAVE_CAIRO=yes
-     AC_DEFINE([HAVE_CAIRO], [1], [Have Cairo rendering support])
+    [AC_DEFINE([HAVE_CAIRO], [1], [Have Cairo rendering support])
      AC_DEFINE([HAVE_CAIRO_XCB], [1], [Have Cairo-XCB backend])],
-    [HAVE_CAIRO=no
-     AC_MSG_WARN([Cairo not found; only basic XCB rendering will be available])])
-AM_CONDITIONAL([HAVE_CAIRO], [test "x$HAVE_CAIRO" = "xyes"])
+    [AC_MSG_ERROR([Cairo >= 1.12.0 and cairo-xcb are required for ISW rendering])])
+HAVE_CAIRO=yes
 
 # Cairo-EGL backend (optional, for hardware accelerated rendering)
-if test "x$HAVE_CAIRO" = "xyes"; then
-    PKG_CHECK_MODULES([EGL], [egl >= 1.4],
-        [PKG_CHECK_MODULES([CAIRO_GL], [cairo-gl >= 1.12.0],
-            [HAVE_CAIRO_EGL=yes
-             AC_DEFINE([HAVE_CAIRO_EGL], [1], [Have Cairo-EGL backend for hardware acceleration])],
-            [HAVE_CAIRO_EGL=no
-             AC_MSG_WARN([cairo-gl not found; hardware accelerated rendering not available])])],
+PKG_CHECK_MODULES([EGL], [egl >= 1.4],
+    [PKG_CHECK_MODULES([CAIRO_GL], [cairo-gl >= 1.12.0],
+        [HAVE_CAIRO_EGL=yes
+         AC_DEFINE([HAVE_CAIRO_EGL], [1], [Have Cairo-EGL backend for hardware acceleration])],
         [HAVE_CAIRO_EGL=no
-         AC_MSG_WARN([EGL not found; hardware accelerated rendering not available])])
-else
-    HAVE_CAIRO_EGL=no
-fi
+         AC_MSG_WARN([cairo-gl not found; hardware accelerated rendering not available])])],
+    [HAVE_CAIRO_EGL=no
+     AC_MSG_WARN([EGL not found; hardware accelerated rendering not available])])
 AM_CONDITIONAL([HAVE_CAIRO_EGL], [test "x$HAVE_CAIRO_EGL" = "xyes"])
 
 # xkbcommon (optional, for keysym name functions)
@@ -143,12 +137,7 @@ echo "Internationalization:    $ISW_I18N"
 echo "XIM support:             $ISW_XIM"
 echo ""
 echo "Rendering Backends:"
-echo "  XCB (basic):           yes (always available)"
-if test "x$HAVE_CAIRO" = "xyes"; then
-    echo "  Cairo-XCB:             yes (recommended)"
-else
-    echo "  Cairo-XCB:             no"
-fi
+echo "  Cairo-XCB:             yes"
 if test "x$HAVE_CAIRO_EGL" = "xyes"; then
     echo "  Cairo-EGL:             yes (hardware accelerated)"
 else

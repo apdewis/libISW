@@ -261,7 +261,6 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
     TextWidget ctx = (TextWidget) XtParent(w);
-    xcb_connection_t *conn = XtDisplay((Widget) ctx);
 
     Position max_x;
     Dimension width;
@@ -276,25 +275,18 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
     }
     
     /* Calculate text width */
-    if (sink->ascii_sink.render_ctx) {
-        width = ISWRenderTextWidth(sink->ascii_sink.render_ctx, (char *)buf, len);
-    } else {
-        /* XCB fallback: Add NULL check for font before accessing fid */
-        width = (sink->ascii_sink.font != NULL) ?
-            ISWFontTextWidth(conn, sink->ascii_sink.font->fid, (char *) buf, len) :
-            len * 8;  /* Default width if no font */
-    }
+    width = ISWRenderTextWidth(sink->ascii_sink.render_ctx, (char *)buf, len);
     max_x = (Position) ctx->core.width;
 
     if ( ((int) width) <= -x)	           /* Don't draw if we can't see it. */
       return(width);
 
-    /* Draw text using Cairo or XCB fallback */
-    if (sink->ascii_sink.render_ctx) {
-        /* Cairo only draws foreground glyphs (unlike XDrawImageString which
-         * fills the background too). Fill the text background first.
-         * Use ascent + descent + 1 to match line table height and cover
-         * descenders fully. */
+    /* Draw text: fill background then render glyphs.
+     * Cairo only draws foreground glyphs (unlike XDrawImageString which
+     * fills the background too). Fill the text background first.
+     * Use ascent + descent + 1 to match line table height and cover
+     * descenders fully. */
+    {
         int asc = ScaledAscent(sink);
         int desc = ScaledDescent(sink);
         Pixel bg = (gc == sink->ascii_sink.invgc) ?
@@ -307,10 +299,6 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
         ISWRenderRestore(sink->ascii_sink.render_ctx);
         ISWRenderDrawString(sink->ascii_sink.render_ctx, (char *)buf, len,
                           (int)x, (int)y);
-    } else {
-        /* XCB fallback */
-        ISWXcbDrawImageString(conn, XtWindow(ctx), gc,
-           (int) x, (int) y, (char *) buf, len);
     }
     
     if ( (((Position) width + x) > max_x) && (ctx->text.margin.right != 0) ) {
@@ -320,21 +308,10 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
         int ascent = ScaledAscent(sink);
         int descent = ScaledDescent(sink);
 
-        /* Draw margin background using Cairo or XCB fallback */
-        if (sink->ascii_sink.render_ctx) {
-            ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
-                                 (int)x, (int)y - ascent,
-                                 (int)width, (int)(ascent + descent));
-        } else {
-            /* XCB fallback */
-            xcb_rectangle_t rect = {(int) x,
-                (int) y - ascent,
-                (unsigned int) width,
-                (unsigned int) (ascent + descent)};
-            xcb_poly_fill_rectangle(conn, XtWindow((Widget) ctx),
-                sink->ascii_sink.normgc, 1, &rect);
-            xcb_flush(conn);
-        }
+        /* Draw margin background */
+        ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
+                             (int)x, (int)y - ascent,
+                             (int)width, (int)(ascent + descent));
         return(0);
     }
     return(width);
@@ -358,7 +335,6 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     int j, k;
     ISWTextBlock blk;
     GC gc = highlight ? sink->ascii_sink.invgc : sink->ascii_sink.normgc;
-    GC invgc = highlight ? sink->ascii_sink.normgc : sink->ascii_sink.invgc;
     Pixel fg_color = highlight ? sink->text_sink.background : sink->text_sink.foreground;
     Pixel bg_color = highlight ? sink->text_sink.foreground : sink->text_sink.background;
 
@@ -411,25 +387,13 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 	 int ascent = ScaledAscent(sink);
 	 int descent = ScaledDescent(sink);
 
-	 /* Draw tab background using Cairo or XCB fallback */
-	 if (sink->ascii_sink.render_ctx) {
-	     ISWRenderSave(sink->ascii_sink.render_ctx);
-	     ISWRenderSetColor(sink->ascii_sink.render_ctx, bg_color);
-	     ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
-	                          (int)x, (int)y - ascent,
-	                          (int)width, (int)(ascent + descent));
-	     ISWRenderRestore(sink->ascii_sink.render_ctx);
-	 } else {
-	     /* XCB fallback */
-	     xcb_connection_t *conn = XtDisplayOfObject(w);
-	     xcb_rectangle_t rect = {(int) x,
-	      (int) y - ascent,
-	      (unsigned int) width,
-	      (unsigned int) (ascent + descent)};
-	     xcb_poly_fill_rectangle(conn, XtWindowOfObject(w),
-	      invgc, 1, &rect);
-	     xcb_flush(conn);
-	 }
+	 /* Draw tab background */
+	 ISWRenderSave(sink->ascii_sink.render_ctx);
+	 ISWRenderSetColor(sink->ascii_sink.render_ctx, bg_color);
+	 ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
+	                      (int)x, (int)y - ascent,
+	                      (int)width, (int)(ascent + descent));
+	 ISWRenderRestore(sink->ascii_sink.render_ctx);
 	 x += width;
 		j = -1;
 	    }
@@ -474,12 +438,7 @@ AsciiSinkClearToBackground(Widget w, Position x, Position y,
                                (int)x, (int)y,
                                (int)width, (int)height);
         ISWRenderEnd(sink->ascii_sink.render_ctx);
-        return;
     }
-
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-    xcb_clear_area(conn, 0, XtWindowOfObject(w), x, y, width, height);
-    xcb_flush(conn);
 }
 
 #define insertCursor_width 6
@@ -530,8 +489,8 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
 
     GetCursorBounds(w, &rect);
     if (state != sink->ascii_sink.laststate && XtIsRealized(text_widget)) {
-        if (sink->ascii_sink.render_ctx && state == IswisOn) {
-            /* Draw cursor as a filled bar using Cairo.
+        if (state == IswisOn) {
+            /* Draw cursor as a filled bar.
              * y is the bottom of the line; cursor extends upward. */
             int h = ScaledFontHeight(sink);
             ISWRenderBegin(sink->ascii_sink.render_ctx);
@@ -541,7 +500,7 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
                                    (int)x - 1, (int)y - h,
                                    2, h);
             ISWRenderEnd(sink->ascii_sink.render_ctx);
-        } else if (sink->ascii_sink.render_ctx && state == IswisOff) {
+        } else if (state == IswisOff) {
             int h = ScaledFontHeight(sink);
             ISWRenderBegin(sink->ascii_sink.render_ctx);
             ISWRenderSetColor(sink->ascii_sink.render_ctx,
@@ -550,15 +509,6 @@ InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
                                    (int)x - 1, (int)y - h,
                                    2, h);
             ISWRenderEnd(sink->ascii_sink.render_ctx);
-        } else {
-            /* XCB fallback: use original XOR method */
-            xcb_connection_t *conn = XtDisplay(text_widget);
-            xcb_copy_plane(conn,
-                sink->ascii_sink.insertCursorOn,
-                XtWindow(text_widget), sink->ascii_sink.xorgc,
-                0, 0, (int) rect.x, (int) rect.y,
-                (unsigned int) rect.width, (unsigned int) rect.height, 1);
-            xcb_flush(conn);
         }
     }
     sink->ascii_sink.laststate = state;

@@ -610,18 +610,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 				    w->label.lbm_width, w->label.lbm_height,
 				    w->label.depth);
 		ISWRenderEnd(ctx);
-	    } else {
-		if (w->label.depth == 1)
-		    xcb_copy_plane(conn, pm, XtWindow(gw), gc, 0, 0,
-				   (int) w->label.internal_width,
-				   (int) w->label.lbm_y,
-				   w->label.lbm_width, w->label.lbm_height,
-				   1L);
-		else
-		    xcb_copy_area(conn, pm, XtWindow(gw), gc, 0, 0,
-				  (int) w->label.internal_width,
-				  (int) w->label.lbm_y,
-				  w->label.lbm_width, w->label.lbm_height);
 	    }
 	}
 
@@ -651,21 +639,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                                       w->label.label_x, ksy);
 
                 ISWRenderEnd(ctx);
-            } else {
-                /* Fallback to XCB rendering */
-                if (len == MULTI_LINE_LABEL) {
-                    char *nl;
-                    while ((nl = index(label, '\n')) != NULL) {
-                        IswDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
-                                    w->label.label_x, ksy, label, (int)(nl - label));
-                        ksy += line_height;
-                        label = nl + 1;
-                    }
-                    len = strlen(label);
-                }
-                if (len)
-                    IswDrawString(((Widget)w)->core.display, XtWindow(w), w->label.fontset, gc,
-                                w->label.label_x, ksy, label, len);
             }
 
         } else
@@ -695,29 +668,8 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                     ISWRenderDrawString(ctx, label, len,
                                       w->label.label_x, y);
                 }
-                
+
                 ISWRenderEnd(ctx);
-            } else {
-                /* Fallback to XCB rendering */
-                if (len == MULTI_LINE_LABEL) {
-                    char *nl;
-                    while ((nl = index(label, '\n')) != NULL) {
-                        int segment_len = (int)(nl - label);
-                        if (segment_len > 0 && segment_len <= 255) {
-                            ISWXcbDrawText(conn, XtWindow(gw), gc,
-                                         w->label.label_x, y,
-                                         label, (uint8_t)segment_len);
-                        }
-                        y += line_height;
-                        label = nl + 1;
-                    }
-                    len = strlen(label);
-                }
-                if (len && len <= 255) {
-                    ISWXcbDrawText(conn, XtWindow(gw), gc,
-                                 w->label.label_x, y,
-                                 label, (uint8_t)len);
-                }
             }
 
         } /* endif international */
@@ -743,16 +695,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 				w->label.label_width, w->label.label_height,
 				w->label.depth);
 	    ISWRenderEnd(ctx);
-	} else {
-	    if (w->label.depth == 1)
-		xcb_copy_plane(conn, pm, XtWindow(gw), gc, 0, 0,
-			       w->label.label_x, w->label.label_y,
-			       w->label.label_width, w->label.label_height,
-			       1L);
-	    else
-		xcb_copy_area(conn, pm, XtWindow(gw), gc, 0, 0,
-			      w->label.label_x, w->label.label_y,
-			      w->label.label_width, w->label.label_height);
 	}
     }
 

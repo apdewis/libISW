@@ -452,10 +452,6 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             ISWRenderFillRectangle(smw->simple_menu.render_ctx, 0, 0,
                                    w->core.width, w->core.height);
             ISWRenderEnd(smw->simple_menu.render_ctx);
-        } else {
-            xcb_connection_t *conn = XtDisplay(w);
-            xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
-            xcb_flush(conn);
         }
     }
 
@@ -501,11 +497,6 @@ if (smw->simple_menu.render_ctx) {
 		 ISWRenderSetColor(smw->simple_menu.render_ctx, smw->simple_menu.bot_shadow_pixel);
 		 ISWRenderFillPolygon(smw->simple_menu.render_ctx, (xcb_point_t *)point, 3);
 		 ISWRenderEnd(smw->simple_menu.render_ctx);
-} else {
-		 /* Fallback to XCB rendering */
-		 xcb_fill_poly(XtDisplay(w), smw->core.window,
-		   smw->simple_menu.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
-		   XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
 }
 
 new_y -= SMW_ARROW_SIZE;
@@ -537,11 +528,6 @@ dy = SMW_ARROW_SIZE;
 	     ISWRenderSetColor(smw->simple_menu.render_ctx, smw->simple_menu.bot_shadow_pixel);
 	     ISWRenderFillPolygon(smw->simple_menu.render_ctx, (xcb_point_t *)point, 3);
 	     ISWRenderEnd(smw->simple_menu.render_ctx);
-	 } else {
-	     /* Fallback to XCB rendering */
-	     xcb_fill_poly(XtDisplay(w), smw->core.window,
-	      smw->simple_menu.bot_shadow_GC, XCB_POLY_SHAPE_CONVEX,
-	      XCB_COORD_MODE_ORIGIN, 3, (xcb_point_t *)point);
 	 }
 
 	 smw->simple_menu.didnt_fit = True;
@@ -585,15 +571,6 @@ dy = SMW_ARROW_SIZE;
                                  w->core.width - 1,
                                  w->core.height - 1);
         ISWRenderEnd(smw->simple_menu.render_ctx);
-    } else {
-        xcb_rectangle_t rect;
-        rect.x = 0;
-        rect.y = 0;
-        rect.width = w->core.width - 1;
-        rect.height = w->core.height - 1;
-        xcb_poly_rectangle(XtDisplay(w), XtWindow(w),
-                           smw->simple_menu.bot_shadow_GC,
-                           1, &rect);
     }
 }
 

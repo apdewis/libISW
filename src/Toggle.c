@@ -362,11 +362,6 @@ ToggleSetAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
             ISWRenderSetColor(ctx, w->core.background_pixel);
             ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
             ISWRenderEnd(ctx);
-        } else {
-            xcb_connection_t *conn = XtDisplay(w);
-            xcb_clear_area(conn, 0, XtWindow(w), 0, 0,
-                          cbw->core.width, cbw->core.height);
-            xcb_flush(conn);
         }
         Redisplay(w, NULL, 0);
     }
@@ -395,11 +390,6 @@ ToggleUnsetAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
             ISWRenderSetColor(ctx, w->core.background_pixel);
             ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
             ISWRenderEnd(ctx);
-        } else {
-            xcb_connection_t *conn = XtDisplay(w);
-            xcb_clear_area(conn, 0, XtWindow(w), 0, 0,
-                          cbw->core.width, cbw->core.height);
-            xcb_flush(conn);
         }
         Redisplay(w, NULL, 0);
     }

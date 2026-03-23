@@ -182,10 +182,6 @@ tic (XtPointer client_data, XtIntervalId *id)
      ISWRenderSetColor(ctx, rw->core.background_pixel);
      ISWRenderFillRectangle(ctx, 0, 0, rw->core.width, rw->core.height);
      ISWRenderEnd(ctx);
- } else {
-     xcb_connection_t *conn = XtDisplay((Widget) rw);
-     xcb_clear_area(conn, 0, XtWindow((Widget) rw), 0, 0, 0, 0);
-     xcb_flush(conn);
  }
  rw->command.set = FALSE;
  (*expose) ((Widget) rw, (xcb_generic_event_t *) NULL, XCB_NONE);
@@ -194,10 +190,6 @@ tic (XtPointer client_data, XtIntervalId *id)
      ISWRenderSetColor(ctx, rw->core.background_pixel);
      ISWRenderFillRectangle(ctx, 0, 0, rw->core.width, rw->core.height);
      ISWRenderEnd(ctx);
- } else {
-     xcb_connection_t *conn = XtDisplay((Widget) rw);
-     xcb_clear_area(conn, 0, XtWindow((Widget) rw), 0, 0, 0, 0);
-     xcb_flush(conn);
  }
  rw->command.set = TRUE;
  (*expose) ((Widget) rw, (xcb_generic_event_t *) NULL, XCB_NONE);

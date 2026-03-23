@@ -15,11 +15,9 @@
 #include "../include/ISW/ISWRender.h"
 #include <xcb/xcb.h>
 
-/* Conditional backend support */
-#ifdef HAVE_CAIRO
+/* Cairo is a mandatory dependency */
 #include <cairo.h>
 #include <cairo-xcb.h>
-#endif
 
 #ifdef HAVE_CAIRO_EGL
 #include <cairo-gl.h>
@@ -173,19 +171,6 @@ xcb_visualtype_t* ISWRenderFindVisual(xcb_screen_t *screen, uint8_t depth);
 
 /*
  * =================================================================
- * XCB Backend
- * =================================================================
- *
- * Pure XCB implementation - always available as fallback.
- */
-
-extern const ISWRenderOps isw_render_xcb_ops;
-
-Boolean ISWRenderXCBInit(ISWRenderContext *ctx);
-void ISWRenderXCBDestroy(ISWRenderContext *ctx);
-
-/*
- * =================================================================
  * Cairo-XCB Backend
  * =================================================================
  *
@@ -193,7 +178,6 @@ void ISWRenderXCBDestroy(ISWRenderContext *ctx);
  * Provides anti-aliasing, gradients, alpha blending.
  */
 
-#ifdef HAVE_CAIRO
 extern const ISWRenderOps isw_render_cairo_xcb_ops;
 
 Boolean ISWRenderCairoXCBInit(ISWRenderContext *ctx);
@@ -201,7 +185,6 @@ void ISWRenderCairoXCBDestroy(ISWRenderContext *ctx);
 
 /* Resize handler for window size changes */
 void ISWRenderCairoXCBResize(ISWRenderContext *ctx, int width, int height);
-#endif
 
 /*
  * =================================================================

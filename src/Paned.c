@@ -747,7 +747,6 @@ static void
 _DrawRect(PanedWidget pw, GC gc, int on_loc, int off_loc,
           unsigned int on_size, unsigned int off_size)
 {
-  xcb_connection_t *conn = XtDisplay(pw);
   int x, y;
   unsigned int width, height;
   Pixel pixel;
@@ -774,32 +773,19 @@ _DrawRect(PanedWidget pw, GC gc, int on_loc, int off_loc,
     pixel = 0; /* Will use XCB fallback */
   }
   
-  /* Try Cairo rendering (except for XOR operations) */
-  if (pixel != 0 || gc != pw->paned.flipgc) {
-    /* Lazy create render context if needed */
-    if (!pw->paned.render_ctx && XtIsRealized((Widget)pw)) {
-      if (pw->core.width > 0 && pw->core.height > 0) {
-        pw->paned.render_ctx = ISWRenderCreate((Widget)pw, ISW_RENDER_BACKEND_AUTO);
-      }
-    }
-    
-    if (pw->paned.render_ctx) {
-      ISWRenderBegin(pw->paned.render_ctx);
-      ISWRenderSetColor(pw->paned.render_ctx, pixel);
-      ISWRenderFillRectangle(pw->paned.render_ctx, x, y, width, height);
-      ISWRenderEnd(pw->paned.render_ctx);
-      return;
+  /* Lazy create render context if needed */
+  if (!pw->paned.render_ctx && XtIsRealized((Widget)pw)) {
+    if (pw->core.width > 0 && pw->core.height > 0) {
+      pw->paned.render_ctx = ISWRenderCreate((Widget)pw, ISW_RENDER_BACKEND_AUTO);
     }
   }
-  
-  /* Fallback to XCB (also used for flipgc XOR operations) */
-  xcb_rectangle_t rect;
-  rect.x = x;
-  rect.y = y;
-  rect.width = width;
-  rect.height = height;
-  xcb_poly_fill_rectangle(conn, XtWindow(pw), gc, 1, &rect);
-  xcb_flush(conn);
+
+  if (pw->paned.render_ctx) {
+    ISWRenderBegin(pw->paned.render_ctx);
+    ISWRenderSetColor(pw->paned.render_ctx, pixel);
+    ISWRenderFillRectangle(pw->paned.render_ctx, x, y, width, height);
+    ISWRenderEnd(pw->paned.render_ctx);
+  }
 }
 
 /*	Function Name: _DrawInternalBorders

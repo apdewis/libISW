@@ -560,33 +560,19 @@ HighlightBackground(Widget w, int x, int y, GC gc)
         y = lw->list.internal_height;
     }
 
-    /* Use Cairo rendering if available, otherwise fall back to XCB */
-    if (lw->list.render_ctx) {
-        /* Determine color based on which GC is being used */
-        Pixel color;
-        const char *gc_name;
-        if (gc == lw->list.normgc) {
-            color = lw->list.foreground;
-        } else if (gc == lw->list.revgc) {
-            color = lw->core.background_pixel;
-        } else {
-            /* graygc - use foreground for now, stippling handled by XCB path */
-            color = lw->list.foreground;
-        }
-        
-        ISWRenderSetColor(lw->list.render_ctx, color);
-        ISWRenderFillRectangle(lw->list.render_ctx, x, y, width, height);
+    /* Determine color based on which GC is being used */
+    Pixel color;
+    if (gc == lw->list.normgc) {
+        color = lw->list.foreground;
+    } else if (gc == lw->list.revgc) {
+        color = lw->core.background_pixel;
     } else {
-        xcb_connection_t *conn = XtDisplay(w);
-        xcb_rectangle_t rect = {x, y, width, height};
-        
-        /* XCB path - extract foreground from GC */
-        fprintf(stderr, "HighlightBG XCB: using GC at (%d,%d) %dx%d\n",
-                x, y, width, height);
-        
-        xcb_poly_fill_rectangle(conn, XtWindow(w), gc, 1, &rect);
-        xcb_flush(conn);
+        /* graygc - use foreground for now */
+        color = lw->list.foreground;
     }
+
+    ISWRenderSetColor(lw->list.render_ctx, color);
+    ISWRenderFillRectangle(lw->list.render_ctx, x, y, width, height);
 }
 
 
@@ -717,24 +703,6 @@ PaintItemName(Widget w, int item)
         ISWRenderDrawString(lw->list.render_ctx, str, strlen(str), x, str_y);
 
         ISWRenderClearClip(lw->list.render_ctx);
-    } else {
-        ClipToShadowInteriorAndLongest( lw, &gc, x );
-
-#ifdef ISW_INTERNATIONALIZATION
-        if ( lw->simple.international == True )
-            IswDrawString( XtDisplay( w ), XtWindow( w ), lw->list.fontset,
-                      gc, x, str_y, str, strlen( str ) );
-        else
-#endif
-        {
-            xcb_connection_t *conn = XtDisplay( w );
-            xcb_image_text_8(conn, strlen(str), XtWindow(w), gc, x, str_y, str);
-            xcb_flush(conn);
-        }
-
-        xcb_connection_t *conn = XtDisplay( w );
-        xcb_set_clip_rectangles(conn, XCB_CLIP_ORDERING_UNSORTED, gc, 0, 0, 0, NULL);
-        xcb_flush(conn);
     }
 }
 
@@ -774,10 +742,6 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             ISWRenderSetColor(lw->list.render_ctx, w->core.background_pixel);
             ISWRenderFillRectangle(lw->list.render_ctx, 0, 0,
                                    w->core.width, w->core.height);
-        } else {
-            xcb_connection_t *conn = XtDisplay(w);
-            xcb_clear_area(conn, 0, XtWindow(w), 0, 0, 0, 0);
-            xcb_flush(conn);
         }
     }
     else

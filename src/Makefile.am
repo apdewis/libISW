@@ -85,24 +85,19 @@ if ISW_INTERNATIONALIZATION
 I18N_SRCS = MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h
 endif
 
-# Cairo rendering backend sources (conditional)
-# Core rendering abstraction (always included)
+# Cairo rendering backend sources
+# Cairo-XCB is the mandatory default backend
 RENDER_CORE_SRCS = \
 	ISWRender.c \
 	ISWRenderPrivate.h \
-	ISWRenderXCB.c
-
-# Cairo-XCB backend (when Cairo is available)
-if HAVE_CAIRO
-RENDER_CAIRO_SRCS = ISWRenderCairoXCB.c
-endif
+	ISWRenderCairoXCB.c
 
 # Cairo-EGL backend (when EGL and Cairo-GL are available)
 if HAVE_CAIRO_EGL
 RENDER_EGL_SRCS = ISWRenderEGL.c
 endif
 
-RENDER_SRCS = $(RENDER_CORE_SRCS) $(RENDER_CAIRO_SRCS) $(RENDER_EGL_SRCS)
+RENDER_SRCS = $(RENDER_CORE_SRCS) $(RENDER_EGL_SRCS)
 
 # ISW widget source files
 ISW_SOURCES = \
