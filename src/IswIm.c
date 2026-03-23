@@ -60,6 +60,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xos.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#include <xcb/xcb_keysyms.h>
 #include <X11/ShellP.h>
 #include <ISW/TextP.h>
 #include <ISW/MultiSrc.h>
@@ -1660,25 +1661,75 @@ _IswImUnsetFocus(Widget inwidg _X_UNUSED)
 
 int
 _IswImWcLookupString(
-    Widget inwidg _X_UNUSED,
-    XKeyPressedEvent *event _X_UNUSED,
-    wchar_t* buffer_return _X_UNUSED,
-    int bytes_buffer _X_UNUSED,
+    Widget inwidg,
+    XKeyPressedEvent *event,
+    wchar_t* buffer_return,
+    int bytes_buffer,
     KeySym *keysym_return,
     Status *status_return)
 {
-    /* Stub: No XIM support - minimal fallback without XLookupString
-     * XLookupString is an Xlib function not available in XCB mode.
-     * Without XIM, we cannot perform proper keyboard input translation.
-     * This stub returns no characters and a null keysym. */
-    
-    if (keysym_return)
-        *keysym_return = 0;  /* No keysym */
-    
-    if (status_return)
-        *status_return = 0;  /* No special status */
-    
-    return 0;  /* No characters generated */
+    /* XCB fallback: translate keycode+modifiers to keysym and character
+     * using xcb_key_symbols, since XLookupString is not available. */
+    xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+    xcb_connection_t *conn = XtDisplay(inwidg);
+    static xcb_key_symbols_t *syms = NULL;
+    xcb_keysym_t sym;
+    int col;
+
+    if (syms == NULL)
+        syms = xcb_key_symbols_alloc(conn);
+
+    if (syms == NULL) {
+        if (keysym_return) *keysym_return = 0;
+        if (status_return) *status_return = 0;
+        return 0;
+    }
+
+    col = (kev->state & ShiftMask) ? 1 : 0;
+    sym = xcb_key_symbols_get_keysym(syms, kev->detail, col);
+    if (sym == XCB_NO_SYMBOL && col == 1)
+        sym = xcb_key_symbols_get_keysym(syms, kev->detail, 0);
+
+    /* CapsLock handling */
+    if ((kev->state & LockMask) && !(kev->state & ShiftMask)) {
+        if (sym >= 'a' && sym <= 'z') {
+            xcb_keysym_t usym = xcb_key_symbols_get_keysym(syms, kev->detail, 1);
+            if (usym != XCB_NO_SYMBOL) sym = usym;
+        }
+    } else if ((kev->state & LockMask) && (kev->state & ShiftMask)) {
+        if (sym >= 'A' && sym <= 'Z') {
+            xcb_keysym_t lsym = xcb_key_symbols_get_keysym(syms, kev->detail, 0);
+            if (lsym != XCB_NO_SYMBOL) sym = lsym;
+        }
+    }
+
+    if (keysym_return) *keysym_return = sym;
+    if (status_return) *status_return = 0;
+
+    /* Convert keysym to wide character */
+    if (sym >= 0x20 && sym <= 0x7E) {
+        if (bytes_buffer >= (int)sizeof(wchar_t)) {
+            buffer_return[0] = (wchar_t)sym;
+            return 1;
+        }
+    } else if (sym >= 0xA0 && sym <= 0xFF) {
+        if (bytes_buffer >= (int)sizeof(wchar_t)) {
+            buffer_return[0] = (wchar_t)sym;
+            return 1;
+        }
+    } else if (sym == 0xFF0D || sym == 0xFF8D) {
+        if (bytes_buffer >= (int)sizeof(wchar_t)) {
+            buffer_return[0] = (wchar_t)'\r';
+            return 1;
+        }
+    } else if (sym == 0xFF09) {
+        if (bytes_buffer >= (int)sizeof(wchar_t)) {
+            buffer_return[0] = (wchar_t)'\t';
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 int

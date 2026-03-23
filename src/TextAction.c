@@ -1519,10 +1519,37 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
     }
     
     if (keysyms != NULL) {
-      /* Get keysym from keycode */
-      xcb_keysym_t sym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 0);
+      /* Determine shift state from modifier mask */
+      int col = 0;
+      if (kev->state & ShiftMask)
+        col = 1;
+
+      /* Get keysym from keycode, using shift column */
+      xcb_keysym_t sym = xcb_key_symbols_get_keysym(keysyms, kev->detail, col);
+
+      /* Fall back to unshifted if shifted column has no symbol */
+      if (sym == XCB_NO_SYMBOL && col == 1)
+        sym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 0);
+
+      /* Handle CapsLock: toggle case for alphabetic keys */
+      if ((kev->state & LockMask) && !(kev->state & ShiftMask)) {
+        /* CapsLock without Shift: get shifted (uppercase) for letters */
+        if (sym >= 'a' && sym <= 'z') {
+          xcb_keysym_t usym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 1);
+          if (usym != XCB_NO_SYMBOL)
+            sym = usym;
+        }
+      } else if ((kev->state & LockMask) && (kev->state & ShiftMask)) {
+        /* CapsLock with Shift: get unshifted (lowercase) for letters */
+        if (sym >= 'A' && sym <= 'Z') {
+          xcb_keysym_t lsym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 0);
+          if (lsym != XCB_NO_SYMBOL)
+            sym = lsym;
+        }
+      }
+
       keysym = sym;
-      
+
       /* Convert keysym to character */
       if (sym >= 0x20 && sym <= 0x7E) {
         /* Printable ASCII */
