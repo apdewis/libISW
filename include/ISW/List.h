@@ -133,6 +133,8 @@ in this Software without prior written authorization from the X Consortium.
 #define XtNpasteBuffer "pasteBuffer"
 #define XtNrowSpacing "rowSpacing"
 #define XtNverticalList "verticalList"
+#define XtNdropdownMode "dropdownMode"
+#define XtCDropdownMode "DropdownMode"
 
 #ifdef ISW_INTERNATIONALIZATION
 #ifndef XtNfontSet

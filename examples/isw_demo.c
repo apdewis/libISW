@@ -129,6 +129,7 @@ void attach_tooltip(Widget widget, const char *tip_text);
 /* Global for stripchart */
 static double chart_value = 50.0;
 
+
 /* HiDPI scaling for hardcoded dimensions */
 static double demo_scale = 1.0;
 #define S(x) ((int)((x) * demo_scale))
@@ -910,31 +911,31 @@ Widget create_list_demo(Widget parent) {
         "Elderberry", "Fig", "Grape", "Honeydew",
         "Kiwi", "Lemon", "Mango"
     };
-    
+
     /* Container */
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
     box = XtCreateManagedWidget("listBox", boxWidgetClass, parent, args, n);
-    
+
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "List Widget"); n++;
+    XtSetArg(args[n], XtNlabel, "Dropdown Selection"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     title = XtCreateManagedWidget("listTitle", labelWidgetClass, box, args, n);
-    
-    /* List widget */
+
+    /* List widget in dropdown mode */
     n = 0;
     XtSetArg(args[n], XtNlist, items); n++;
     XtSetArg(args[n], XtNnumberStrings, XtNumber(items)); n++;
     XtSetArg(args[n], XtNdefaultColumns, 1); n++;
     XtSetArg(args[n], XtNforceColumns, True); n++;
     XtSetArg(args[n], XtNwidth, S(150)); n++;
-    XtSetArg(args[n], XtNheight, S(120)); n++;
+    XtSetArg(args[n], XtNdropdownMode, True); n++;
     list = XtCreateManagedWidget("list", listWidgetClass, box, args, n);
-    
+
     XtAddCallback(list, XtNcallback, list_callback, NULL);
-    
+
     return box;
 }
 
@@ -1516,9 +1517,10 @@ void menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 
 void list_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     IswListReturnStruct *item = (IswListReturnStruct *)call_data;
-    printf("List item selected: %s (index %d)\n", 
+    printf("List item selected: %s (index %d)\n",
            item->string, item->list_index);
 }
+
 
 void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     static int count = 0;

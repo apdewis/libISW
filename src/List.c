@@ -50,6 +50,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWInit.h>
 #include <ISW/ListP.h>
 #include <ISW/ISWRender.h>
+#include <ISW/Viewport.h>
+#include <X11/Shell.h>
 #include "ISWXcbDraw.h"
 
 /* These added so widget knows whether its height, width are user selected.
@@ -116,6 +118,8 @@ static XtResource resources[] = {
 	offset(list.row_space), XtRImmediate, (XtPointer)2},
     {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
         offset(list.callback), XtRCallback, NULL},
+    {XtNdropdownMode, XtCDropdownMode, XtRBoolean, sizeof(Boolean),
+	offset(list.dropdown), XtRImmediate, (XtPointer) False},
 };
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
@@ -129,6 +133,11 @@ static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Notify(Widget, XEvent *, String *, Cardinal *);
 static void Set(Widget, XEvent *, String *, Cardinal *);
 static void Unset(Widget, XEvent *, String *, Cardinal *);
+static void DropdownPopupSelect(Widget, XtPointer, XtPointer);
+static void DropdownPopdown(Widget, XtPointer, XtPointer);
+static void DropdownFocusHandler(Widget, XtPointer, XEvent *, Boolean *);
+static void DropdownGrabHandler(Widget, XtPointer, XEvent *, Boolean *);
+static void DropdownDismiss(ListWidget);
 
 static XtActionsRec actions[] = {
       {"Notify",         Notify},
@@ -421,6 +430,21 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
 
     /* Initialize Cairo rendering context */
     lw->list.render_ctx = NULL;
+
+    /* Dropdown mode initialization */
+    lw->list.selected_item = 0;
+    lw->list.collapsed_height = 0;
+    lw->list.popup_shell = NULL;
+    lw->list.popup_list = NULL;
+    lw->list.toplevel_shell = NULL;
+
+    if (lw->list.dropdown && lw->list.nitems > 0) {
+        /* Save collapsed height: one row + borders */
+        lw->list.collapsed_height = lw->list.row_height
+            + 2 * lw->list.internal_height;
+        /* Collapse to single row */
+        lw->core.height = lw->list.collapsed_height;
+    }
 
 } /* Initialize */
 
@@ -747,9 +771,45 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     else
         FindCornerItems(w, (XEvent*)event, &ul_item, &lr_item);
 
-    for (item = ul_item; (item <= lr_item && item < lw->list.nitems) ; item++)
-      if (ItemInRectangle(w, ul_item, lr_item, item))
-	PaintItemName(w, item);
+    /* Dropdown collapsed: only paint the selected item */
+    if (lw->list.dropdown) {
+        if (lw->list.selected_item >= 0 &&
+            lw->list.selected_item < lw->list.nitems) {
+            /* Draw selected item at row 0 position */
+            int sel = lw->list.selected_item;
+            int str_y;
+            int x = lw->list.internal_width;
+            int y = lw->list.internal_height;
+            String str = lw->list.list[sel];
+
+            str_y = y + ISWScaledFontAscent(w, lw->list.font);
+            x += lw->list.column_space / 2;
+            str_y += lw->list.row_space / 2;
+
+            if (lw->list.render_ctx) {
+                ISWRenderSetColor(lw->list.render_ctx, lw->list.foreground);
+                if (lw->list.font)
+                    ISWRenderSetFont(lw->list.render_ctx, lw->list.font);
+                ISWRenderDrawString(lw->list.render_ctx, str, strlen(str),
+                                    x, str_y);
+
+                /* Draw dropdown arrow indicator on the right */
+                int arrow_size = lw->list.row_height / 3;
+                int ax = w->core.width - lw->list.internal_width - arrow_size * 2;
+                int ay = (w->core.height - arrow_size) / 2;
+                ISWRenderSetColor(lw->list.render_ctx, lw->list.foreground);
+                ISWRenderDrawLine(lw->list.render_ctx,
+                                  ax, ay, ax + arrow_size, ay + arrow_size);
+                ISWRenderDrawLine(lw->list.render_ctx,
+                                  ax + arrow_size, ay + arrow_size,
+                                  ax + arrow_size * 2, ay);
+            }
+        }
+    } else {
+        for (item = ul_item; (item <= lr_item && item < lw->list.nitems) ; item++)
+          if (ItemInRectangle(w, ul_item, lr_item, item))
+            PaintItemName(w, item);
+    }
 
     /* End Cairo rendering if available */
     if (lw->list.render_ctx) {
@@ -1003,6 +1063,155 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
   /* XCB: Cast to xcb_button_press_event_t */
   xcb_button_press_event_t *be = (xcb_button_press_event_t *)event;
 
+  /* Dropdown mode: clicking the collapsed widget opens a popup list */
+  if (lw->list.dropdown) {
+    Position abs_x, abs_y;
+    Arg args[10];
+    Cardinal n;
+
+    /* Destroy previous popup so it's rebuilt with correct sizing */
+    if (lw->list.popup_shell) {
+        XtDestroyWidget(lw->list.popup_shell);
+        lw->list.popup_shell = NULL;
+        lw->list.popup_list = NULL;
+    }
+
+    /* Compute available screen space above and below */
+    XtTranslateCoords(w, 0, 0, &abs_x, &abs_y);
+    {
+        int scr_height = HeightOfScreen(XtScreen(w));
+        Position below_y = abs_y + (Position)w->core.height;
+        int space_below = scr_height - below_y;
+        int space_above = abs_y;
+
+        /* Natural height of the full list */
+        int natural_h = lw->list.nrows * lw->list.row_height
+            + 2 * lw->list.internal_height;
+
+        /* Pick direction and compute max height */
+        Position popup_y;
+        int max_h;
+        if (natural_h <= space_below) {
+            popup_y = below_y;
+            max_h = natural_h;
+        } else if (natural_h <= space_above) {
+            popup_y = abs_y - natural_h;
+            max_h = natural_h;
+        } else if (space_below >= space_above) {
+            popup_y = below_y;
+            max_h = space_below;
+        } else {
+            max_h = space_above;
+            popup_y = abs_y - max_h;
+        }
+
+        /* Clamp to at least one row */
+        if (max_h < lw->list.row_height)
+            max_h = lw->list.row_height;
+
+        Boolean needs_scroll = (natural_h > max_h);
+
+        /* Create popup shell */
+        n = 0;
+        XtSetArg(args[n], XtNoverrideRedirect, True); n++;
+        XtSetArg(args[n], XtNborderWidth, 1); n++;
+        XtSetArg(args[n], XtNx, abs_x); n++;
+        XtSetArg(args[n], XtNy, popup_y); n++;
+        lw->list.popup_shell = XtCreatePopupShell("dropdownPopup",
+            overrideShellWidgetClass, w, args, n);
+
+        if (needs_scroll) {
+            /* Wrap list in a Viewport for scrolling */
+            Widget viewport;
+            n = 0;
+            XtSetArg(args[n], XtNwidth, w->core.width); n++;
+            XtSetArg(args[n], XtNheight, (Dimension)max_h); n++;
+            XtSetArg(args[n], XtNallowVert, True); n++;
+            XtSetArg(args[n], XtNallowHoriz, False); n++;
+            XtSetArg(args[n], XtNforceBars, True); n++;
+            XtSetArg(args[n], XtNborderWidth, 0); n++;
+            viewport = XtCreateManagedWidget("dropdownViewport",
+                viewportWidgetClass, lw->list.popup_shell, args, n);
+
+            n = 0;
+            XtSetArg(args[n], XtNlist, lw->list.list); n++;
+            XtSetArg(args[n], XtNnumberStrings, lw->list.nitems); n++;
+            XtSetArg(args[n], XtNdefaultColumns, 1); n++;
+            XtSetArg(args[n], XtNforceColumns, True); n++;
+            XtSetArg(args[n], XtNfont, lw->list.font); n++;
+            XtSetArg(args[n], XtNforeground, lw->list.foreground); n++;
+            XtSetArg(args[n], XtNborderWidth, 0); n++;
+            lw->list.popup_list = XtCreateManagedWidget("dropdownList",
+                listWidgetClass, viewport, args, n);
+        } else {
+            /* No scrolling needed — list directly in shell */
+            n = 0;
+            XtSetArg(args[n], XtNlist, lw->list.list); n++;
+            XtSetArg(args[n], XtNnumberStrings, lw->list.nitems); n++;
+            XtSetArg(args[n], XtNdefaultColumns, 1); n++;
+            XtSetArg(args[n], XtNforceColumns, True); n++;
+            XtSetArg(args[n], XtNwidth, w->core.width); n++;
+            XtSetArg(args[n], XtNfont, lw->list.font); n++;
+            XtSetArg(args[n], XtNforeground, lw->list.foreground); n++;
+            XtSetArg(args[n], XtNborderWidth, 0); n++;
+            lw->list.popup_list = XtCreateManagedWidget("dropdownList",
+                listWidgetClass, lw->list.popup_shell, args, n);
+        }
+
+        XtAddCallback(lw->list.popup_list, XtNcallback,
+                      DropdownPopupSelect, (XtPointer)lw);
+
+        /* Override translations so pointer motion highlights items */
+        {
+            static char popupTranslations[] =
+                "<Motion>:  Set()\n\
+                 <Btn1Up>:  Notify()\n\
+                 <Btn1Down>: Set()";
+            XtOverrideTranslations(lw->list.popup_list,
+                XtParseTranslationTable(popupTranslations));
+        }
+    }
+
+    /* Monitor the toplevel shell for focus loss (alt-tab, minimize) */
+    {
+        Widget shell = w;
+        while (shell && !XtIsShell(shell))
+            shell = XtParent(shell);
+        if (shell) {
+            lw->list.toplevel_shell = shell;
+            XtAddEventHandler(shell,
+                              FocusChangeMask | StructureNotifyMask | VisibilityChangeMask,
+                              False, DropdownFocusHandler, (XtPointer)lw);
+        }
+    }
+
+    /* Highlight current selection in popup */
+    if (lw->list.selected_item >= 0)
+        IswListHighlight(lw->list.popup_list, lw->list.selected_item);
+
+    XtPopup(lw->list.popup_shell, XtGrabNonexclusive);
+
+    /* Grab the pointer so clicks anywhere (including outside) are delivered
+     * to the popup shell. The grab-notify handler will popdown on outside clicks. */
+    if (XtIsRealized(lw->list.popup_shell)) {
+        xcb_connection_t *conn = XtDisplay((Widget)lw);
+        xcb_window_t popup_win = XtWindow(lw->list.popup_shell);
+        xcb_grab_pointer(conn, True, popup_win,
+            XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
+            XCB_EVENT_MASK_POINTER_MOTION,
+            XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+            XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
+        xcb_flush(conn);
+
+        /* Add handler to catch button presses on the popup shell window.
+         * Clicks outside child widgets land here and dismiss the popup. */
+        XtAddEventHandler(lw->list.popup_shell,
+                          ButtonPressMask, False,
+                          DropdownGrabHandler, (XtPointer)lw);
+    }
+    return;
+  }
+
   if ( (CvtToItem(w, be->event_x, be->event_y, &item))
       == OUT_OF_RANGE)
     IswListUnhighlight(w);		        /* Unhighlight current item. */
@@ -1120,6 +1329,13 @@ Destroy(Widget w)
     if (lw->list.render_ctx) {
         ISWRenderDestroy(lw->list.render_ctx);
         lw->list.render_ctx = NULL;
+    }
+
+    /* Clean up dropdown popup */
+    if (lw->list.popup_shell) {
+        XtDestroyWidget(lw->list.popup_shell);
+        lw->list.popup_shell = NULL;
+        lw->list.popup_list = NULL;
     }
 
     /* XCB: Skip XGetGCValues - tile tracking would need separate mechanism */
@@ -1243,5 +1459,103 @@ IswListShowCurrent(Widget w)
       ret_val->string = lw->list.list[ ret_val->list_index ];
 
     return(ret_val);
+}
+
+
+/*
+ * Dropdown popup callbacks
+ */
+
+/*
+ * DropdownDismiss - shared helper to ungrab pointer and popdown the dropdown.
+ */
+static void
+DropdownDismiss(ListWidget lw)
+{
+    if (!lw->list.popup_shell)
+        return;
+
+    /* Remove focus handler from toplevel shell */
+    if (lw->list.toplevel_shell) {
+        XtRemoveEventHandler(lw->list.toplevel_shell,
+                             FocusChangeMask | StructureNotifyMask | VisibilityChangeMask,
+                             False, DropdownFocusHandler, (XtPointer)lw);
+        lw->list.toplevel_shell = NULL;
+    }
+
+    xcb_connection_t *conn = XtDisplay((Widget)lw);
+    xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
+    xcb_flush(conn);
+    XtPopdown(lw->list.popup_shell);
+}
+
+static void
+DropdownPopupSelect(Widget w, XtPointer client_data, XtPointer call_data)
+{
+    ListWidget lw = (ListWidget) client_data;
+    IswListReturnStruct *ret = (IswListReturnStruct *)call_data;
+    IswListReturnStruct parent_ret;
+
+    /* Update the parent widget's selection */
+    lw->list.selected_item = ret->list_index;
+
+    /* Dismiss the popup */
+    DropdownDismiss(lw);
+
+    /* Redraw the collapsed widget to show new selection */
+    if (lw->list.render_ctx) {
+        ISWRenderDestroy(lw->list.render_ctx);
+        lw->list.render_ctx = NULL;
+    }
+    Redisplay((Widget)lw, NULL, 0);
+
+    /* Fire the parent widget's callbacks */
+    parent_ret.string = lw->list.list[ret->list_index];
+    parent_ret.list_index = ret->list_index;
+    XtCallCallbacks((Widget)lw, XtNcallback, (XtPointer)&parent_ret);
+}
+
+/* ARGSUSED */
+static void
+DropdownPopdown(Widget w, XtPointer client_data, XtPointer call_data)
+{
+    (void)w; (void)call_data;
+    DropdownDismiss((ListWidget) client_data);
+}
+
+static void
+DropdownFocusHandler(Widget w, XtPointer client_data, XEvent *event,
+                     Boolean *continue_to_dispatch)
+{
+    (void)w;
+    *continue_to_dispatch = True;
+
+    uint8_t type = ((xcb_generic_event_t *)event)->response_type & 0x7f;
+
+    if (type == XCB_FOCUS_OUT || type == XCB_UNMAP_NOTIFY ||
+        type == XCB_VISIBILITY_NOTIFY)
+        DropdownDismiss((ListWidget) client_data);
+}
+
+/*
+ * DropdownGrabHandler - catches button presses delivered via the pointer grab.
+ * If the press is outside the popup, dismiss it.
+ */
+static void
+DropdownGrabHandler(Widget w, XtPointer client_data, XEvent *event,
+                    Boolean *continue_to_dispatch)
+{
+    ListWidget lw = (ListWidget) client_data;
+    xcb_button_press_event_t *be = (xcb_button_press_event_t *)event;
+    *continue_to_dispatch = True;
+
+    /* The grab delivers events relative to the grab window (popup shell).
+     * If the click is outside the popup's bounds, dismiss. */
+    if (be->event_x < 0 || be->event_y < 0 ||
+        be->event_x >= (int16_t)w->core.width ||
+        be->event_y >= (int16_t)w->core.height) {
+        DropdownDismiss(lw);
+        *continue_to_dispatch = False;
+    }
 }
 

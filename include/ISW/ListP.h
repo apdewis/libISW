@@ -103,6 +103,14 @@ typedef struct {
 
     ISWRenderContext *render_ctx;  /* Cairo rendering context */
 
+    /* dropdown mode */
+    Boolean     dropdown;       /* if True, behaves as dropdown selector */
+    int         selected_item;  /* private: currently selected item index */
+    Dimension   collapsed_height; /* private: height when collapsed */
+    Widget      popup_shell;    /* private: override shell for dropdown popup */
+    Widget      popup_list;     /* private: list widget inside popup */
+    Widget      toplevel_shell; /* private: toplevel shell for focus tracking */
+
 } ListPart;
 
 
