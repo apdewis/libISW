@@ -117,6 +117,8 @@ SOFTWARE.
 #define XtNminimumThumb "minimumThumb"
 #define XtNtopOfThumb "topOfThumb"
 #define XtNpickTop "pickTop"
+#define XtNscrollWheelIncrement "scrollWheelIncrement"
+#define XtCScrollWheelIncrement "ScrollWheelIncrement"
 
 typedef struct _ScrollbarRec	  *ScrollbarWidget;
 typedef struct _ScrollbarClassRec *ScrollbarWidgetClass;

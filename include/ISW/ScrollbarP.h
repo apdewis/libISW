@@ -56,6 +56,7 @@ SOFTWARE.
 
 #include "ISWP.h"
 #include <ISW/Scrollbar.h>
+#include <ISW/ScrollWheel.h>
 #include <ISW/SimpleP.h>
 #include <ISW/ISWRender.h>
 
@@ -81,6 +82,7 @@ typedef struct {
     Dimension	  length;	/* either height or width */
     Dimension	  thickness;	/* either width or height */
     Dimension	  min_thumb;	/* minium size for the thumb. */
+    Dimension	  scroll_wheel_increment; /* pixels per scroll wheel notch */
     float         picked;       /* How much of the thumb is picked *
 				 * when scrolling starts */
 

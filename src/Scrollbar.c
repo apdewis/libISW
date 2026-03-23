@@ -67,6 +67,7 @@ SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ScrollbarP.h>
+#include <ISW/ScrollWheel.h>
 
 /* Shadow resource name definitions (previously from ThreeD.h) */
 #define XtNshadowWidth "shadowWidth"
@@ -126,6 +127,9 @@ static XtResource resources[] = {
        Offset(scrollbar.pick_top), XtRBoolean, (XtPointer) False},
   {XtNminimumThumb, XtCMinimumThumb, XtRDimension, sizeof(Dimension),
        Offset(scrollbar.min_thumb), XtRImmediate, (XtPointer) 7},
+  {XtNscrollWheelIncrement, XtCScrollWheelIncrement, XtRDimension, sizeof(Dimension),
+       Offset(scrollbar.scroll_wheel_increment), XtRImmediate,
+       (XtPointer) ISW_SCROLL_WHEEL_DEFAULT_INCREMENT},
   /* Shadow resources (previously inherited from ThreeD) */
   {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
        Offset(scrollbar.shadow_width), XtRImmediate, (XtPointer) 1},
@@ -525,10 +529,14 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     ScrollbarWidget sbw = (ScrollbarWidget) new;
     xcb_create_gc_value_list_t myXGCV;
 
+    /* Install scroll wheel event dispatcher (once per connection) */
+    ISWScrollWheelInit(XtDisplay(new));
+
     /* HiDPI: scale dimension resources */
     sbw->scrollbar.thickness = ISWScaleDim(new, sbw->scrollbar.thickness);
     sbw->scrollbar.length = ISWScaleDim(new, sbw->scrollbar.length);
     sbw->scrollbar.min_thumb = ISWScaleDim(new, sbw->scrollbar.min_thumb);
+    sbw->scrollbar.scroll_wheel_increment = ISWScaleDim(new, sbw->scrollbar.scroll_wheel_increment);
     if (sbw->scrollbar.shadow_width > 0)
         sbw->scrollbar.shadow_width = ISWScaleDim(new, sbw->scrollbar.shadow_width);
 

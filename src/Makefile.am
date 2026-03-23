@@ -124,6 +124,7 @@ ISW_SOURCES = \
 	ProgressBar.c \
 	Repeater.c \
 	Scrollbar.c \
+	ScrollWheel.c \
 	Simple.c \
 	SimpleMenu.c \
 	SmeBSB.c \

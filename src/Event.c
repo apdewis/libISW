@@ -1708,7 +1708,11 @@ XtDispatchEvent(xcb_generic_event_t *event, xcb_connection_t *dpy)
     pd->last_event = *event;
 
     if (pd->dispatcher_list) {
-        dispatch = pd->dispatcher_list[event->response_type];
+        /* Mask off the "sent" bit (0x80) to stay within the 128-entry
+           dispatcher_list.  Bit 7 indicates SendEvent origin and must
+           not be used as an array index. */
+        int dispatch_type = event->response_type & 0x7f;
+        dispatch = pd->dispatcher_list[dispatch_type];
         if (dispatch == NULL)
             dispatch = _XtDefaultDispatcher;
     }

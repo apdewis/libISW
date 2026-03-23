@@ -70,6 +70,7 @@ SOFTWARE.
 
 static void ScrollUpDownProc(Widget, XtPointer, XtPointer);
 static void ThumbProc(Widget, XtPointer, XtPointer);
+static void ScrollWheelSink(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
 static Boolean GetGeometry(Widget, Dimension, Dimension);
 static void ComputeWithForceBars(Widget, Boolean, XtWidgetGeometry *, int *, int *);
 
@@ -256,6 +257,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     w->viewport.clip = XtCreateManagedWidget("clip", widgetClass, new,
 					     clip_args, arg_cnt);
+
+    /*
+     * Select ButtonPressMask on the clip widget so that scroll wheel events
+     * (buttons 4-7) propagate from non-interactive children (Labels, Boxes)
+     * to the clip window instead of being discarded by the X server.
+     * The actual scroll handling is done by the ScrollWheel event dispatcher.
+     */
+    XtAddEventHandler(w->viewport.clip,
+                      ButtonPressMask | ButtonReleaseMask,
+                      False, ScrollWheelSink, NULL);
 
     if (!w->viewport.forcebars)
         return;		 /* If we are not forcing the bars then we are done. */
@@ -874,6 +885,21 @@ Layout(FormWidget w, Dimension width, Dimension height, Boolean junk)
     return False;
 }
 
+
+/*
+ * No-op event handler registered on the clip widget to ensure
+ * ButtonPressMask is set on the clip window.  This causes X11 to
+ * propagate button events (including scroll wheel) from children
+ * that don't select ButtonPressMask.  The actual scroll wheel
+ * handling is done by the ScrollWheel event dispatcher.
+ */
+/* ARGSUSED */
+static void
+ScrollWheelSink(Widget w, XtPointer closure, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
+{
+    /* Intentionally empty — the ScrollWheel event dispatcher handles
+       scroll wheel events before they reach this handler. */
+}
 
 static void
 ScrollUpDownProc(Widget widget, XtPointer closure, XtPointer call_data)
