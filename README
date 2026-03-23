@@ -1,13 +1,16 @@
 ISW (Infi Systems Widgets) - XCB-based 3D Widget Library
 ==========================================================
 
-ISW is a modern fork of the X 3D Athena Widget Set (Xaw3d), featuring:
-- Native XCB (X protocol C-language Binding) rendering support
-- Embedded XCB-based X Toolkit Intrinsics (libXt) implementation
-- Enhanced 3D visual effects with shadow and lighting
-- Arrow scrollbars for improved usability
-- Full internationalization support
-- Xft font rendering with anti-aliasing
+ISW is a modern fork of the X 3D Athena Widget Set (Xaw3d).
+
+##WARNING
+It was majority done by claude code after the initial work on libXt to support XCB.
+
+HERE BE (COPIOUS AMOUNTS) OF DRAGONS.
+
+If anyone is willing to do manual review of the LLM output that would be very appreciated
+
+##ENDWARNING
 
 This library provides a comprehensive set of widgets for building X11 graphical
 user interfaces, with a complete XCB-based implementation that eliminates all
@@ -17,10 +20,6 @@ FEATURES
 --------
 - Modern XCB rendering backend for better performance and smaller footprint
 - Complete X Toolkit Intrinsics (libXt) implementation using XCB
-- 3D-styled widgets with configurable shadows and bevels
-- Arrow controls on scrollbars (configurable)
-- Multi-language text support with XIM integration
-- Anti-aliased text rendering via Xft
 - Single unified library (libISW.so) includes both widgets and toolkit
 - No Xlib dependencies - pure XCB implementation
 
@@ -81,9 +80,8 @@ Example code:
 
 FORKED FROM
 -----------
-This project is a modernized fork of Xaw3d (X 3D Athena Widget Set).
-The XCB port and libXt integration represent significant enhancements over
-the original Xlib-based implementation.
+This project is an attempt at a modern fork of Xaw3d (X 3D Athena Widget Set).
+
 
 Original Xaw3d repository:
     git://anongit.freedesktop.org/git/xorg/lib/libXaw3d
@@ -92,7 +90,9 @@ LICENSE
 -------
 See COPYING file for license information.
 
-HOMEPAGE
---------
-For more information, bug reports, and contributions:
-    https://github.com/yourusername/ISW  (update with actual URL)
+TODO
+-------
+- UTF-8 support
+- return i18n support
+- Icon support
+
