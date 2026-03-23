@@ -119,6 +119,7 @@ ISW_SOURCES = \
 	Paned.c \
 	Panner.c \
 	Porthole.c \
+	ProgressBar.c \
 	Repeater.c \
 	Scrollbar.c \
 	Simple.c \

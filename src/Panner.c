@@ -140,10 +140,6 @@ static XtResource resources[] = {
 	poff(slider_width), XtRImmediate, (XtPointer) 0 },
     { XtNsliderHeight, XtCSliderHeight, XtRDimension, sizeof(Dimension),
 	poff(slider_height), XtRImmediate, (XtPointer) 0 },
-    { XtNshadowColor, XtCShadowColor, XtRPixel, sizeof(Pixel),
-	poff(shadow_color), XtRString, (XtPointer) XtDefaultForeground },
-    { XtNshadowThickness, XtCShadowThickness, XtRDimension, sizeof(Dimension),
-	poff(shadow_thickness), XtRImmediate, (XtPointer) 2 },
     { XtNbackgroundStipple, XtCBackgroundStipple, XtRString, sizeof(String),
 	poff(stipple_name), XtRImmediate, (XtPointer) NULL },
 #undef poff
@@ -215,51 +211,6 @@ WidgetClass pannerWidgetClass = (WidgetClass) &pannerClassRec;
  *****************************************************************************/
 
 static void
-reset_shadow_gc (PannerWidget pw)	/* used when resources change */
-{
-    XtGCMask valuemask = GCForeground;
-    xcb_create_gc_value_list_t values;
-    unsigned long   pixels[3];
-
-    if (pw->panner.shadow_gc) XtReleaseGC ((Widget) pw, pw->panner.shadow_gc);
-
-    pixels[0] = pw->panner.foreground;
-    pixels[1] = pw->core.background_pixel;
-    pixels[2] = pw->panner.shadow_color;
-    if (!pw->panner.stipple_name &&
- !ISWDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
-        pixels, 3) &&
- ISWDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
-        pixels, 2))
-    {
- valuemask = GCTile | GCFillStyle;
- values.fill_style = XCB_FILL_STYLE_TILED;
- /* XCB: Use connection and window instead of Screen* */
- values.tile = IswCreateStippledPixmap(XtDisplay((Widget)pw),
-                                         XtWindow((Widget)pw),
-           pw->panner.foreground,
-           pw->core.background_pixel,
-           pw->core.depth);
-    }
-    else
-    {
- if (!pw->panner.line_width &&
-     !ISWDistinguishablePixels (XtDisplay (pw), pw->core.colormap,
-           pixels, 2))
-	    pw->panner.line_width = 1;
-	valuemask = GCForeground;
-	values.foreground = pw->panner.shadow_color;
-    }
-    if (pw->panner.line_width > 0) {
- values.line_width = pw->panner.line_width;
- valuemask |= GCLineWidth;
-    }
-
-    /* XCB: Use xcb_create_gc_value_list_t* cast */
-    pw->panner.shadow_gc = XtGetGC ((Widget) pw, valuemask, (xcb_create_gc_value_list_t*)&values);
-}
-
-static void
 reset_slider_gc (PannerWidget pw)	/* used when resources change */
 {
     XtGCMask valuemask = GCForeground;
@@ -283,8 +234,7 @@ reset_xor_gc (PannerWidget pw)		/* used when resources change */
  xcb_create_gc_value_list_t values;
  Pixel tmp;
 
- tmp = ((pw->panner.foreground == pw->core.background_pixel) ?
-        pw->panner.shadow_color : pw->panner.foreground);
+ tmp = pw->panner.foreground;
  values.foreground = tmp ^ pw->core.background_pixel;
  values.function = XCB_GX_XOR;
  if (pw->panner.line_width > 0) {
@@ -331,32 +281,6 @@ check_knob (PannerWidget pw, Boolean knob)
 
 
 static void
-move_shadow (PannerWidget pw)
-{
-    if (pw->panner.shadow_thickness > 0) {
-	int lw = pw->panner.shadow_thickness + pw->panner.line_width * 2;
-	int pad = pw->panner.internal_border;
-
-	if ((int)pw->panner.knob_height > lw && (int)pw->panner.knob_width > lw) {
-	    xcb_rectangle_t *r = pw->panner.shadow_rects;
-	    r->x = (int16_t) (pw->panner.knob_x + pad + pw->panner.knob_width);
-	    r->y = (int16_t) (pw->panner.knob_y + pad + lw);
-	    r->width = pw->panner.shadow_thickness;
-	    r->height = (uint16_t) (pw->panner.knob_height - lw);
-	    r++;
-	    r->x = (int16_t) (pw->panner.knob_x + pad + lw);
-	    r->y = (int16_t) (pw->panner.knob_y + pad + pw->panner.knob_height);
-	    r->width = (uint16_t) (pw->panner.knob_width - lw +
-					 pw->panner.shadow_thickness);
-	    r->height = pw->panner.shadow_thickness;
-	    pw->panner.shadow_valid = TRUE;
-	    return;
-	}
-    }
-    pw->panner.shadow_valid = FALSE;
-}
-
-static void
 scale_knob (PannerWidget pw, Boolean location, Boolean size)  /* set knob size and/or loc */
 {
     if (location) {
@@ -379,7 +303,6 @@ scale_knob (PannerWidget pw, Boolean location, Boolean size)  /* set knob size a
 	pw->panner.knob_height = (Dimension) PANNER_VSCALE (pw, height);
     }
     if (!pw->panner.allow_off) check_knob (pw, TRUE);
-    move_shadow (pw);
 }
 
 static void
@@ -544,7 +467,7 @@ draw_tmp_rubber_band(PannerWidget pw)
 
 #define BACKGROUND_STIPPLE(pw) \
   IswLocatePixmapFile (pw->core.screen, pw->panner.stipple_name, \
-		       pw->panner.shadow_color, pw->core.background_pixel, \
+		       pw->panner.foreground, pw->core.background_pixel, \
 		       pw->core.depth, NULL, 0, NULL, NULL, NULL, NULL)
 
 #define PIXMAP_OKAY(pm) ((pm) != None && (pm) != XtUnspecifiedPixmap)
@@ -566,8 +489,6 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
 
     /* HiDPI: scale dimension resources */
     new->panner.internal_border = ISWScaleDim(gnew, new->panner.internal_border);
-    new->panner.shadow_thickness = ISWScaleDim(gnew, new->panner.shadow_thickness);
-
     if (req->panner.canvas_width < 1) new->panner.canvas_width = 1;
     if (req->panner.canvas_height < 1) new->panner.canvas_height = 1;
     if (req->panner.default_scale < 1)
@@ -577,15 +498,12 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
     if (req->core.width < 1) new->core.width = defwidth;
     if (req->core.height < 1) new->core.height = defheight;
 
-    new->panner.shadow_gc = XCB_NONE;
-    reset_shadow_gc (new);		/* shadowColor */
     new->panner.slider_gc = XCB_NONE;
     reset_slider_gc (new);		/* foreground */
     new->panner.xor_gc = XCB_NONE;
     reset_xor_gc (new);			/* foreground ^ background */
 
     rescale (new);			/* does a position check */
-    new->panner.shadow_valid = FALSE;
     new->panner.tmp.doing = FALSE;
     new->panner.tmp.showing = FALSE;
     
@@ -630,7 +548,6 @@ Destroy (Widget gw)
         pw->panner.render_ctx = NULL;
     }
 
-    XtReleaseGC (gw, pw->panner.shadow_gc);
     XtReleaseGC (gw, pw->panner.slider_gc);
     XtReleaseGC (gw, pw->panner.xor_gc);
 }
@@ -659,7 +576,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     PannerWidget pw = (PannerWidget) gw;
     int pad = pw->panner.internal_border;
     Dimension lw = pw->panner.line_width;
-    Dimension extra = pw->panner.shadow_thickness + lw * 2;
+    Dimension extra = lw * 2;
     int kx = pw->panner.knob_x + pad, ky = pw->panner.knob_y + pad;
 
     pw->panner.tmp.showing = FALSE;
@@ -696,25 +613,11 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     /* Draw the slider/knob outline if line_width > 0 */
     if (lw) {
-        ISWRenderSetColor(pw->panner.render_ctx, pw->panner.shadow_color);
         ISWRenderSetLineWidth(pw->panner.render_ctx, (double)lw);
         ISWRenderStrokeRectangle(pw->panner.render_ctx,
                               kx, ky,
                               pw->panner.knob_width - 1,
                               pw->panner.knob_height - 1);
-    }
-
-    /* Draw shadow rectangles if valid */
-    if (pw->panner.shadow_valid) {
-        int i;
-        ISWRenderSetColor(pw->panner.render_ctx, pw->panner.shadow_color);
-        for (i = 0; i < 2; i++) {
-            ISWRenderFillRectangle(pw->panner.render_ctx,
-                                  pw->panner.shadow_rects[i].x,
-                                  pw->panner.shadow_rects[i].y,
-                                  pw->panner.shadow_rects[i].width,
-                                  pw->panner.shadow_rects[i].height);
-        }
     }
 
     ISWRenderEnd(pw->panner.render_ctx);
@@ -742,23 +645,12 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 	reset_xor_gc (new);
 	redisplay = TRUE;
     }
-    if (cur->panner.shadow_color != new->panner.shadow_color) {
-	reset_shadow_gc (new);
-	if (cur->panner.foreground == cur->core.background_pixel)
-	  reset_xor_gc (new);
-	redisplay = TRUE;
-    }
-    if (cur->panner.shadow_thickness != new->panner.shadow_thickness) {
-	move_shadow (new);
-	redisplay = TRUE;
-    }
     if (cur->panner.rubber_band != new->panner.rubber_band) {
 	reset_xor_gc (new);
 	if (new->panner.tmp.doing) redisplay = TRUE;
     }
 
     if ((cur->panner.stipple_name != new->panner.stipple_name ||
-  cur->panner.shadow_color != new->panner.shadow_color ||
   cur->core.background_pixel != new->core.background_pixel) &&
  XtIsRealized(gnew)) {
  Pixmap pm = (new->panner.stipple_name ? BACKGROUND_STIPPLE (new)
@@ -984,7 +876,6 @@ ActionNotify (Widget gw, XEvent *event, String *params, Cardinal *num_params)
     if (!pw->panner.allow_off) check_knob (pw, FALSE);
     pw->panner.knob_x = pw->panner.tmp.x;
     pw->panner.knob_y = pw->panner.tmp.y;
-    move_shadow (pw);
 
     pw->panner.slider_x = (Position) (((double) pw->panner.knob_x) /
 				      pw->panner.haspect + 0.5);

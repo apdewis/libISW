@@ -53,6 +53,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Paned.h>
 #include <ISW/Panner.h>
 #include <ISW/Porthole.h>
+#include <ISW/ProgressBar.h>
 #include <ISW/Repeater.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/SimpleMenu.h>
@@ -89,6 +90,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "paned", &panedWidgetClass },
 { "panner", &pannerWidgetClass },
 { "porthole", &portholeWidgetClass },
+{ "progressBar", &progressBarWidgetClass },
 { "rect", &rectObjClass },
 { "repeater", &repeaterWidgetClass },
 { "scrollbar", &scrollbarWidgetClass },
