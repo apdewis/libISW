@@ -30,6 +30,11 @@ make -j$(nproc) && ./examples/isw_demo
 
 There is no formal test suite — manual testing is done via `examples/isw_demo` which exercises all major widgets.
 
+```bash
+# Verbose build (shows actual compiler commands)
+make V=1
+```
+
 ## Verification
 
 ```bash
@@ -98,10 +103,14 @@ Defined in `configure.ac`, used throughout:
 
 | Flag | Meaning |
 |---|---|
-| `ISW_INTERNATIONALIZATION` | UTF-8 multibyte support (on by default) |
+| `ISW_INTERNATIONALIZATION` | UTF-8 multibyte support (`--enable-internationalization`, default yes) |
 | `ISW_ARROW_SCROLLBARS` | Arrow buttons on scrollbars (always on) |
-| `HAVE_CAIRO` / `HAVE_CAIRO_XCB` | Cairo rendering available |
-| `HAVE_XKBCOMMON` | keysym name functions |
+| `HAVE_CAIRO` / `HAVE_CAIRO_XCB` | Cairo rendering (mandatory since cairo-xcb is required) |
+| `HAVE_CAIRO_EGL` | Cairo-EGL hardware-accelerated backend (optional, needs `egl` + `cairo-gl`) |
+| `ISW_HAS_XIM` | X Input Method for CJK (`--enable-xim`, default no, requires Xlib XIM APIs) |
+| `ISW_MULTIPLANE_PIXMAPS` | XPM support (`--enable-multiplane-bitmaps`) |
+| `ISW_GRAY_BLKWHT_STIPPLES` | Gray stipple patterns (`--enable-gray-stipples`) |
+| `HAVE_XKBCOMMON` | keysym name functions (optional) |
 | `LIBXT_COMPILATION` | Marks libXt internal compilation unit |
 
 ## XCB Type Equivalents (Xlib → XCB)
