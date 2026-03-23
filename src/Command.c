@@ -67,6 +67,8 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/shape.h>
+#include <cairo/cairo.h>
+#include <math.h>
 #include "ISWXcbDraw.h"     /* For XCB GC helpers */
 
 /* Shadow resource name definitions (previously from ThreeD.h) */
@@ -85,9 +87,7 @@ SOFTWARE.
 /* Private Data */
 
 static char defaultTranslations[] =
-    "<EnterWindow>:	highlight()		\n\
-     <LeaveWindow>:	reset()			\n\
-     <Btn1Down>:	set()			\n\
+    "<Btn1Down>:	set()			\n\
      <Btn1Up>:		notify() unset()	";
 
 #define offset(field) XtOffsetOf(CommandRec, field)
@@ -106,7 +106,11 @@ static XtResource resources[] = {
 	offset(label.shadow_width), XtRImmediate, (XtPointer) 2},
    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
       XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
-      (XtPointer) 0}
+      (XtPointer) 0},
+   {XtNinternalWidth, XtCWidth, XtRDimension, sizeof(Dimension),
+      offset(label.internal_width), XtRImmediate, (XtPointer) 8},
+   {XtNinternalHeight, XtCHeight, XtRDimension, sizeof(Dimension),
+      offset(label.internal_height), XtRImmediate, (XtPointer) 4},
 };
 #undef offset
 
@@ -335,14 +339,8 @@ Unset(Widget w, XEvent *event, String *params, Cardinal *num_params)
     return;
 
   cbw->command.set = FALSE;
-  if (XtIsRealized(w)) {
-    ISWRenderContext *ctx = cbw->label.render_ctx;
-    ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.background_pixel);
-        ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
-        ISWRenderEnd(ctx);
+  if (XtIsRealized(w))
     PaintCommandWidget(w, event, (Region) NULL, TRUE);
-  }
 }
 
 /* ARGSUSED */
@@ -380,15 +378,8 @@ Highlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
     }
   }
 
-  if (XtIsRealized(w)) {
-    /* Clear and repaint to avoid double-border artifacts */
-    ISWRenderContext *ctx = cbw->label.render_ctx;
-    ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.background_pixel);
-        ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
-        ISWRenderEnd(ctx);
+  if (XtIsRealized(w))
     PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
-  }
 }
 
 /* ARGSUSED */
@@ -398,15 +389,8 @@ Unhighlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
   CommandWidget cbw = (CommandWidget)w;
 
   cbw->command.highlighted = HighlightNone;
-  if (XtIsRealized(w)) {
-    /* Clear and repaint to avoid double-border artifacts */
-    ISWRenderContext *ctx = cbw->label.render_ctx;
-    ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.background_pixel);
-        ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
-        ISWRenderEnd(ctx);
+  if (XtIsRealized(w))
     PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
-  }
 }
 
 /* ARGSUSED */
@@ -452,9 +436,7 @@ static void
 PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean change)
 {
   CommandWidget cbw = (CommandWidget) w;
-  CommandWidgetClass cwclass = (CommandWidgetClass) XtClass (w);
   Boolean very_thick;
-  GC norm_gc, rev_gc;
   Dimension	s = cbw->label.shadow_width;
   ISWRenderContext *ctx = cbw->label.render_ctx;
 
@@ -468,85 +450,69 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
 
   /* Save original foreground for later restoration */
   Pixel saved_foreground = cbw->label.foreground;
-  
-  if (cbw->command.set) {
-    cbw->label.normal_GC = cbw->command.inverse_GC;
-    /* Temporarily swap foreground to match inverse_GC for Cairo text rendering */
-    cbw->label.foreground = cbw->core.background_pixel;
-    
-    /* Use Cairo rendering if available */
-    ISWRenderBegin(ctx);
-      /* Use label foreground as fill color (matching normal_GC behavior) */
-      ISWRenderSetColor(ctx, saved_foreground);
-      ISWRenderFillRectangle(ctx, s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s);
-      ISWRenderEnd(ctx);
-    region = NULL;		/* Force label to repaint text. */
-  }
-  else
-    cbw->label.normal_GC = cbw->command.normal_GC;
 
-  if (cbw->command.highlight_thickness <= 0)
-  {
-    (*SuperClass->core_class.expose) (w, event, 0 /* FIXME: XCB region */);
-    cbw->label.foreground = saved_foreground;
-    /* Shadow drawing removed - ThreeD eliminated */
-    return;
-  }
-
-/*
- * Always draw the highlight rectangle border when highlightThickness > 0.
- * Always use normal_GC (foreground color) for border visibility.
- */
-
-  /* Original GC selection for label text rendering */
-  if (cbw->command.set == (cbw->command.highlighted == HighlightNone)) {
-    norm_gc = cbw->command.inverse_GC;
-    /* Use normal_GC for border to ensure it's always visible */
-    rev_gc = cbw->command.normal_GC;
-  }
-  else {
-    norm_gc = cbw->command.normal_GC;
-    /* Use normal_GC for border to ensure it's always visible */
-    rev_gc = cbw->command.normal_GC;
-  }
-
-  if (very_thick) {
-      cbw->label.normal_GC = norm_gc; /* Give the label the right GC. */
-      
-      /* Use Cairo rendering if available */
-      /* Extract the foreground color from rev_gc to match XCB behavior */
-        Pixel fill_color = (rev_gc == cbw->command.normal_GC) ? cbw->label.foreground : cbw->core.background_pixel;
-
-        ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, fill_color);
-        ISWRenderFillRectangle(ctx, s, s, cbw->core.width - 2 * s, cbw->core.height - 2 * s);
-        ISWRenderEnd(ctx);
-    }
-    else {
-      /* wide lines are centered on the path, so indent it */
-      int offset = cbw->command.highlight_thickness/2;
-      
-      /* Use Cairo rendering if available */
-      /* Extract the foreground color from rev_gc to match XCB behavior */
-        Pixel stroke_color = (rev_gc == cbw->command.normal_GC) ? cbw->label.foreground : cbw->core.background_pixel;
-
-        ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, stroke_color);
-        ISWRenderStrokeRectangle(ctx, s + offset, s + offset,
-           cbw->core.width - cbw->command.highlight_thickness - 2 * s,
-           cbw->core.height - cbw->command.highlight_thickness - 2 * s);
-        ISWRenderEnd(ctx);
-    }
-  (*SuperClass->core_class.expose) (w, event, 0 /* FIXME: XCB region */);
-  
-  /* Restore original foreground after Label rendering */
-  cbw->label.foreground = saved_foreground;
-  
   /*
-   * Shadow border drawing disabled - the highlight rectangle (always visible)
-   * serves as the button border. Drawing both creates a double-border artifact.
-   * The 3D shadow effect can be re-enabled if needed for specific themes.
+   * Single-pass repaint: clear background, draw border, then label text.
+   * Everything is done in one Begin/End to avoid inter-frame flicker.
    */
+  ISWRenderBegin(ctx);
+
+  /* Clear to background */
+  ISWRenderSetColor(ctx, w->core.background_pixel);
+  ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+
+  {
+    cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
+    if (cr) {
+      double lw = cbw->command.highlight_thickness;
+      double off = lw / 2.0;
+      double bx = s + off;
+      double by = s + off;
+      double bw = cbw->core.width - lw - 2 * s;
+      double bh = cbw->core.height - lw - 2 * s;
+      double r = 2.0 * ISWScaleFactor(w);
+
+      cairo_save(cr);
+
+      /* Build rounded rect path */
+      cairo_new_path(cr);
+      cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
+      cairo_arc(cr, bx + bw - r, by + bh - r, r, 0, M_PI/2);
+      cairo_arc(cr, bx + r, by + bh - r, r, M_PI/2, M_PI);
+      cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
+      cairo_close_path(cr);
+
+      if (cbw->command.set) {
+        cbw->label.normal_GC = cbw->command.inverse_GC;
+        cbw->label.foreground = cbw->core.background_pixel;
+        /* Fill with foreground color for inverted (pressed) look */
+        ISWRenderSetColor(ctx, saved_foreground);
+        cairo_fill_preserve(cr);
+        region = NULL;  /* Force label to repaint text */
+      } else {
+        cbw->label.normal_GC = cbw->command.normal_GC;
+      }
+
+      /* Stroke the border */
+      if (lw > 0 && !very_thick) {
+        ISWRenderSetColor(ctx, saved_foreground);
+        cairo_set_line_width(cr, lw);
+        cairo_stroke(cr);
+      } else {
+        cairo_new_path(cr);
+      }
+
+      cairo_new_path(cr);
+      cairo_restore(cr);
+    }
+  }
+
+  ISWRenderEnd(ctx);
+
+  /* Draw label text — always uses normal foreground */
+  (*SuperClass->core_class.expose)(w, event, 0);
+
+  cbw->label.foreground = saved_foreground;
 }
 
 static void

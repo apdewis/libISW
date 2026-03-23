@@ -583,4 +583,10 @@ int ISWScaledFontHeight(Widget widget, XFontStruct *font);
  */
 int ISWScaledFontAscent(Widget widget, XFontStruct *font);
 
+/*
+ * ISWScaledFontCapHeight - Get the cap height (height of a capital letter)
+ * as Cairo would render it.
+ */
+int ISWScaledFontCapHeight(Widget widget, XFontStruct *font);
+
 #endif /* _ISWRender_h */
