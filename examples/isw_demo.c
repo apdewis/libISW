@@ -24,6 +24,7 @@
 #include <ISW/Toggle.h>
 
 /* Menu widgets */
+#include <ISW/MenuBar.h>
 #include <ISW/MenuButton.h>
 #include <ISW/SimpleMenu.h>
 #include <ISW/SmeBSB.h>
@@ -40,6 +41,7 @@
 #include <ISW/Layout.h>
 #include <ISW/Panner.h>
 #include <ISW/Porthole.h>
+#include <ISW/Reports.h>
 
 /* Text widgets */
 #include <ISW/AsciiText.h>
@@ -88,6 +90,7 @@ Widget create_paned_grip_demo(Widget parent);
 
 Widget create_command_demo(Widget parent);
 Widget create_toggle_demo(Widget parent);
+Widget create_checkbox_demo(Widget parent);
 Widget create_menu_demo(Widget parent);
 Widget create_repeater_demo(Widget parent);
 
@@ -103,6 +106,7 @@ Widget create_dialog_demo(Widget parent);
 /* Callback functions */
 void button_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void toggle_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void checkbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void list_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data);
@@ -246,7 +250,7 @@ Widget create_menubar(Widget parent) {
     XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNskipAdjust, True); n++;
-    menubar = XtCreateManagedWidget("menubar", boxWidgetClass, parent, args, n);
+    menubar = XtCreateManagedWidget("menubar", menuBarWidgetClass, parent, args, n);
     
     /* === FILE MENU === */
     n = 0;
@@ -387,7 +391,7 @@ Widget create_title_label(Widget parent) {
     XtSetArg(args[n], XtNjustify, XtJustifyCenter); n++;
     XtSetArg(args[n], XtNwidth, S(830)); n++;
     XtSetArg(args[n], XtNheight, S(35)); n++;
-    XtSetArg(args[n], XtNborderWidth, 2); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
     title = XtCreateManagedWidget("titleLabel", labelWidgetClass,
                                   parent, args, n);
     
@@ -406,7 +410,7 @@ Widget create_containers_section(Widget parent) {
     
     /* Create Form to hold container demos */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 2); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
     XtSetArg(args[n], XtNdefaultDistance, 5); n++;
     form = XtCreateManagedWidget("containersForm", formWidgetClass,
                                  parent, args, n);
@@ -598,25 +602,25 @@ Widget create_viewport_demo(Widget parent) {
 
 Widget create_basic_widgets_section(Widget parent) {
     Widget form, section_label;
-    Widget command_demo, toggle_demo, menu_demo, repeater_demo;
+    Widget command_demo, toggle_demo, checkbox_demo, menu_demo, repeater_demo;
     Arg args[10];
     Cardinal n;
-    
+
     /* Section container */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 2); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
     XtSetArg(args[n], XtNdefaultDistance, 5); n++;
     form = XtCreateManagedWidget("basicForm", formWidgetClass, parent, args, n);
-    
+
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Basic Interactive Widgets: Command, Toggle, Menu, Repeater"); n++;
+    XtSetArg(args[n], XtNlabel, "Basic Interactive Widgets: Command, Toggle, Checkbox, Menu, Repeater"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     section_label = XtCreateManagedWidget("basicLabel", labelWidgetClass,
                                           form, args, n);
-    
+
     /* Create widget demos */
     command_demo = create_command_demo(form);
     n = 0;
@@ -624,28 +628,35 @@ Widget create_basic_widgets_section(Widget parent) {
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(command_demo, args, n);
-    
+
     toggle_demo = create_toggle_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromHoriz, command_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(toggle_demo, args, n);
-    
-    menu_demo = create_menu_demo(form);
+
+    checkbox_demo = create_checkbox_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromHoriz, toggle_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
+    XtSetValues(checkbox_demo, args, n);
+
+    menu_demo = create_menu_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromHoriz, checkbox_demo); n++;
+    XtSetArg(args[n], XtNfromVert, section_label); n++;
+    XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(menu_demo, args, n);
-    
+
     repeater_demo = create_repeater_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromHoriz, menu_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(repeater_demo, args, n);
-    
+
     return form;
 }
 
@@ -726,6 +737,43 @@ Widget create_toggle_demo(Widget parent) {
     toggle3 = XtCreateManagedWidget("toggleC", toggleWidgetClass, box, args, n);
     XtAddCallback(toggle3, XtNcallback, toggle_callback, (XtPointer)"Option C");
     
+    return box;
+}
+
+Widget create_checkbox_demo(Widget parent) {
+    Widget box, title, cb1, cb2, cb3;
+    Arg args[10];
+    Cardinal n;
+
+    /* Container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("checkboxBox", boxWidgetClass, parent, args, n);
+
+    /* Title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Toggle (Checkbox) Buttons"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("checkboxTitle", labelWidgetClass, box, args, n);
+
+    /* Standalone toggles (no radioGroup) render as checkboxes */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Enable notifications"); n++;
+    XtSetArg(args[n], XtNstate, True); n++;
+    cb1 = XtCreateManagedWidget("cb1", toggleWidgetClass, box, args, n);
+    XtAddCallback(cb1, XtNcallback, checkbox_callback, (XtPointer)"Enable notifications");
+
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Dark mode"); n++;
+    cb2 = XtCreateManagedWidget("cb2", toggleWidgetClass, box, args, n);
+    XtAddCallback(cb2, XtNcallback, checkbox_callback, (XtPointer)"Dark mode");
+
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Auto-save"); n++;
+    cb3 = XtCreateManagedWidget("cb3", toggleWidgetClass, box, args, n);
+    XtAddCallback(cb3, XtNcallback, checkbox_callback, (XtPointer)"Auto-save");
+
     return box;
 }
 
@@ -819,7 +867,7 @@ Widget create_selection_section(Widget parent) {
     
     /* Section container */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 2); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
     XtSetArg(args[n], XtNdefaultDistance, 5); n++;
     form = XtCreateManagedWidget("selectionForm", formWidgetClass, parent, args, n);
     
@@ -944,7 +992,7 @@ Widget create_navigation_section(Widget parent) {
     
     /* Section container */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 2); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
     XtSetArg(args[n], XtNdefaultDistance, 5); n++;
     form = XtCreateManagedWidget("navigationForm", formWidgetClass,
                                  parent, args, n);
@@ -969,37 +1017,68 @@ Widget create_navigation_section(Widget parent) {
     return form;
 }
 
+/* Panner report callback: user dragged the panner slider, move porthole content */
+void panner_report_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswPannerReport *report = (IswPannerReport *)call_data;
+    Widget content = (Widget)client_data;
+    Arg args[2];
+    Cardinal n = 0;
+
+    if (report->changed & IswPRSliderX) {
+        XtSetArg(args[n], XtNx, -report->slider_x); n++;
+    }
+    if (report->changed & IswPRSliderY) {
+        XtSetArg(args[n], XtNy, -report->slider_y); n++;
+    }
+    if (n > 0)
+        XtSetValues(content, args, n);
+}
+
+/* Porthole report callback: porthole moved its child, update panner slider */
+void porthole_report_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswPannerReport *report = (IswPannerReport *)call_data;
+    Widget panner = (Widget)client_data;
+    Arg args[6];
+    Cardinal n = 0;
+
+    XtSetArg(args[n], XtNsliderX, report->slider_x); n++;
+    XtSetArg(args[n], XtNsliderY, report->slider_y); n++;
+    XtSetArg(args[n], XtNsliderWidth, report->slider_width); n++;
+    XtSetArg(args[n], XtNsliderHeight, report->slider_height); n++;
+    XtSetArg(args[n], XtNcanvasWidth, report->canvas_width); n++;
+    XtSetArg(args[n], XtNcanvasHeight, report->canvas_height); n++;
+    XtSetValues(panner, args, n);
+}
+
 Widget create_panner_demo(Widget parent) {
     Widget box, title, panner, porthole, large_widget;
     Arg args[10];
     Cardinal n;
-    
+
     /* Container */
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
     box = XtCreateManagedWidget("pannerBox", boxWidgetClass, parent, args, n);
-    
+
     /* Title */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Panner/Porthole"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     title = XtCreateManagedWidget("pannerTitle", labelWidgetClass, box, args, n);
-    
-    /* Panner widget (miniature navigator) - must set canvas dimensions */
+
+    /* Panner widget (miniature navigator) */
     n = 0;
-    XtSetArg(args[n], XtNwidth, S(150)); n++;
+    XtSetArg(args[n], XtNwidth, S(200)); n++;
     XtSetArg(args[n], XtNheight, S(150)); n++;
-    XtSetArg(args[n], XtNcanvasWidth, 400); n++;  /* Size of content */
-    XtSetArg(args[n], XtNcanvasHeight, 300); n++;  /* Size of content */
     panner = XtCreateManagedWidget("panner", pannerWidgetClass, box, args, n);
-    
+
     /* Porthole (viewing area) */
     n = 0;
     XtSetArg(args[n], XtNwidth, S(200)); n++;
     XtSetArg(args[n], XtNheight, S(150)); n++;
     porthole = XtCreateManagedWidget("porthole", portholeWidgetClass, box, args, n);
-    
+
     /* Large widget inside porthole */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Large Content Area\n\n"\
@@ -1011,7 +1090,13 @@ Widget create_panner_demo(Widget parent) {
     XtSetArg(args[n], XtNheight, S(300)); n++;
     large_widget = XtCreateManagedWidget("pannerContent", labelWidgetClass,
                                          porthole, args, n);
-    
+
+    /* Wire panner and porthole together */
+    XtAddCallback(panner, XtNreportCallback, panner_report_callback,
+                  (XtPointer)large_widget);
+    XtAddCallback(porthole, XtNreportCallback, porthole_report_callback,
+                  (XtPointer)panner);
+
     return box;
 }
 
@@ -1097,24 +1182,48 @@ Widget create_layout_demo(Widget parent) {
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     title = XtCreateManagedWidget("layoutTitle", labelWidgetClass, box, args, n);
     
-    /* Layout widget */
+    /* Use Form widget to demonstrate constraint-based layout.
+     * Form positions children by fromHoriz/fromVert and distances;
+     * chain constraints control how they move on resize. We place a
+     * hidden spacer to push "Top Right" to the right edge, and
+     * compute an offset for "Bottom Center". */
+
     n = 0;
-    XtSetArg(args[n], XtNwidth, S(250)); n++;
-    XtSetArg(args[n], XtNheight, S(150)); n++;
+    XtSetArg(args[n], XtNwidth, S(300)); n++;
+    XtSetArg(args[n], XtNheight, S(120)); n++;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
-    layout = XtCreateManagedWidget("layout", layoutWidgetClass, box, args, n);
-    
-    /* Button with layout constraints */
+    XtSetArg(args[n], XtNdefaultDistance, S(8)); n++;
+    layout = XtCreateManagedWidget("layout", formWidgetClass, box, args, n);
+
+    /* Top Left: pinned to top-left */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Top Left"); n++;
+    XtSetArg(args[n], XtNtop, XtChainTop); n++;
+    XtSetArg(args[n], XtNbottom, XtChainTop); n++;
+    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    XtSetArg(args[n], XtNright, XtChainLeft); n++;
     button1 = XtCreateManagedWidget("layoutBtn1", commandWidgetClass, layout, args, n);
-    
+
+    /* Top Right: pushed to right side via horizDistance */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Top Right"); n++;
+    XtSetArg(args[n], XtNfromHoriz, button1); n++;
+    XtSetArg(args[n], XtNhorizDistance, S(100)); n++;
+    XtSetArg(args[n], XtNtop, XtChainTop); n++;
+    XtSetArg(args[n], XtNbottom, XtChainTop); n++;
+    XtSetArg(args[n], XtNleft, XtChainRight); n++;
+    XtSetArg(args[n], XtNright, XtChainRight); n++;
     button2 = XtCreateManagedWidget("layoutBtn2", commandWidgetClass, layout, args, n);
-    
+
+    /* Bottom Center: below button1, centered via horizDistance */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Bottom Center"); n++;
+    XtSetArg(args[n], XtNfromVert, button1); n++;
+    XtSetArg(args[n], XtNhorizDistance, S(80)); n++;
+    XtSetArg(args[n], XtNtop, XtChainBottom); n++;
+    XtSetArg(args[n], XtNbottom, XtChainBottom); n++;
+    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    XtSetArg(args[n], XtNright, XtChainLeft); n++;
     button3 = XtCreateManagedWidget("layoutBtn3", commandWidgetClass, layout, args, n);
     
     return box;
@@ -1189,7 +1298,7 @@ Widget create_specialized_section(Widget parent) {
     
     /* Section container */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 2); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
     XtSetArg(args[n], XtNdefaultDistance, 5); n++;
     form = XtCreateManagedWidget("specializedForm", formWidgetClass,
                                  parent, args, n);
@@ -1333,6 +1442,12 @@ void toggle_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     char *toggle_name = (char *)client_data;
     Boolean state = (Boolean)(intptr_t)call_data;
     printf("Toggle %s: %s\n", toggle_name, state ? "ON" : "OFF");
+}
+
+void checkbox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    char *label = (char *)client_data;
+    Boolean state = (Boolean)(intptr_t)call_data;
+    printf("Checkbox '%s': %s\n", label, state ? "checked" : "unchecked");
 }
 
 void menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
