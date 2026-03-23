@@ -1270,6 +1270,7 @@ _XtInstallTranslations(Widget widget)
     if (xlations->eventMask & ButtonReleaseMask)
         xlations->eventMask |= ButtonPressMask;
 
+
     if (mappingNotifyInterest) {
         XtPerDisplay pd = _XtGetPerDisplay(XtDisplay(widget));
 

@@ -1041,6 +1041,7 @@ XtDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
         (mask & widget->core.tm.translations->eventMask))
         call_tm = True;
 
+
     cont_to_disp = True;
     p = widget->core.event_table;
     if (p) {
@@ -1455,6 +1456,12 @@ static uint32_t const masks[] = {
     XCB_EVENT_MASK_BUTTON_PRESS,            /* 4 - ButtonPress              */
     XCB_EVENT_MASK_BUTTON_RELEASE,          /* 5 - ButtonRelease            */
     XCB_EVENT_MASK_POINTER_MOTION |
+        XCB_EVENT_MASK_POINTER_MOTION_HINT |
+        XCB_EVENT_MASK_BUTTON_1_MOTION |
+        XCB_EVENT_MASK_BUTTON_2_MOTION |
+        XCB_EVENT_MASK_BUTTON_3_MOTION |
+        XCB_EVENT_MASK_BUTTON_4_MOTION |
+        XCB_EVENT_MASK_BUTTON_5_MOTION |
         XCB_EVENT_MASK_BUTTON_MOTION,       /* 6 - MotionNotify             */
     XCB_EVENT_MASK_ENTER_WINDOW,            /* 7 - EnterNotify              */
     XCB_EVENT_MASK_LEAVE_WINDOW,            /* 8 - LeaveNotify              */

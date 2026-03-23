@@ -123,7 +123,7 @@ static XtResource resources[] = {
     { XtNrubberBand, XtCRubberBand, XtRBoolean, sizeof(Boolean),
 	poff(rubber_band), XtRImmediate, (XtPointer) FALSE },
     { XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-	poff(foreground), XtRString, (XtPointer) XtDefaultBackground },
+	poff(foreground), XtRString, (XtPointer) XtDefaultForeground },
     { XtNinternalSpace, XtCInternalSpace, XtRDimension, sizeof(Dimension),
 	poff(internal_border), XtRImmediate, (XtPointer) 4 },
     { XtNlineWidth, XtCLineWidth, XtRDimension, sizeof(Dimension),
