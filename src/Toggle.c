@@ -230,9 +230,6 @@ ISWCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args
 static void
 ClassInit(void)
 {
-  XtActionList actions;
-  Cardinal num_actions;
-  Cardinal i;
   ToggleWidgetClass class = (ToggleWidgetClass) toggleWidgetClass;
   static XtConvertArgRec parentCvtArgs[] = {
       {XtBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.parent),
@@ -244,26 +241,13 @@ ClassInit(void)
 		     parentCvtArgs, XtNumber(parentCvtArgs), XtCacheNone,
 		     (XtDestructor)NULL);
 /*
- * Find the set and unset actions in the command widget's action table.
+ * Use Toggle's own Set/Unset actions so that state changes redraw
+ * through Toggle's Redisplay (which draws checkbox/radio indicators)
+ * rather than Command's PaintCommandWidget.
  */
 
-  XtGetActionList(commandWidgetClass, &actions, &num_actions);
-
-  for (i = 0 ; i < num_actions ; i++) {
-    if (streq(actions[i].string, "set"))
-	class->toggle_class.Set = actions[i].proc;
-    if (streq(actions[i].string, "unset"))
-	class->toggle_class.Unset = actions[i].proc;
-
-    if ( (class->toggle_class.Set != NULL) &&
-	 (class->toggle_class.Unset != NULL) ) {
-	XtFree((char *) actions);
-	return;
-    }
-  }
-
-/* We should never get here. */
-  XtError("Aborting, due to errors resolving bindings in the Toggle widget.");
+  class->toggle_class.Set = ToggleSetAction;
+  class->toggle_class.Unset = ToggleUnsetAction;
 }
 
 /*ARGSUSED*/
