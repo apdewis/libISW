@@ -129,25 +129,25 @@ am__iswinclude_HEADERS_DIST = ISW/AllWidgets.h ISW/AsciiSink.h \
 	ISW/AsciiText.h ISW/AsciiTextP.h ISW/Box.h ISW/BoxP.h \
 	ISW/Cardinals.h ISW/ComboBox.h ISW/ComboBoxP.h ISW/Command.h \
 	ISW/CommandP.h ISW/Dialog.h ISW/DialogP.h ISW/Form.h \
-	ISW/FormP.h ISW/Grip.h ISW/GripP.h ISW/Label.h ISW/LabelP.h \
-	ISW/Layout.h ISW/LayoutP.h ISW/List.h ISW/ListP.h \
-	ISW/MainWindow.h ISW/MainWindowP.h ISW/MenuBar.h \
-	ISW/MenuBarP.h ISW/MenuButton.h ISW/MenuButtoP.h ISW/Paned.h \
-	ISW/PanedP.h ISW/Panner.h ISW/PannerP.h ISW/Porthole.h \
-	ISW/PortholeP.h ISW/ProgressBar.h ISW/ProgressBarP.h \
-	ISW/Repeater.h ISW/RepeaterP.h ISW/Reports.h ISW/Scale.h \
-	ISW/ScaleP.h ISW/Scrollbar.h ISW/ScrollbarP.h ISW/SpinBox.h \
-	ISW/SpinBoxP.h ISW/StatusBar.h ISW/StatusBarP.h ISW/Simple.h \
-	ISW/SimpleMenP.h ISW/SimpleMenu.h ISW/SimpleP.h ISW/SmeBSB.h \
-	ISW/SmeBSBP.h ISW/Sme.h ISW/SmeLine.h ISW/SmeLineP.h \
-	ISW/SmeP.h ISW/StripCharP.h ISW/StripChart.h ISW/Tabs.h \
-	ISW/TabsP.h ISW/Text.h ISW/TextP.h ISW/TextSink.h \
-	ISW/TextSinkP.h ISW/TextSrc.h ISW/TextSrcP.h ISW/Tip.h \
-	ISW/TipP.h ISW/Toolbar.h ISW/ToolbarP.h ISW/Toggle.h \
-	ISW/ToggleP.h ISW/Tree.h ISW/TreeP.h ISW/Viewport.h \
-	ISW/ViewportP.h ISW/ISWP.h ISW/ISWInit.h ISW/MultiSrc.h \
-	ISW/MultiSrcP.h ISW/MultiSink.h ISW/MultiSinkP.h \
-	ISW/VendorEP.h ISW/ISWImP.h
+	ISW/FormP.h ISW/Grip.h ISW/GripP.h ISW/IconView.h \
+	ISW/IconViewP.h ISW/Label.h ISW/LabelP.h ISW/Layout.h \
+	ISW/LayoutP.h ISW/List.h ISW/ListP.h ISW/MainWindow.h \
+	ISW/MainWindowP.h ISW/MenuBar.h ISW/MenuBarP.h \
+	ISW/MenuButton.h ISW/MenuButtoP.h ISW/Paned.h ISW/PanedP.h \
+	ISW/Panner.h ISW/PannerP.h ISW/Porthole.h ISW/PortholeP.h \
+	ISW/ProgressBar.h ISW/ProgressBarP.h ISW/Repeater.h \
+	ISW/RepeaterP.h ISW/Reports.h ISW/Scale.h ISW/ScaleP.h \
+	ISW/Scrollbar.h ISW/ScrollbarP.h ISW/SpinBox.h ISW/SpinBoxP.h \
+	ISW/StatusBar.h ISW/StatusBarP.h ISW/Simple.h ISW/SimpleMenP.h \
+	ISW/SimpleMenu.h ISW/SimpleP.h ISW/SmeBSB.h ISW/SmeBSBP.h \
+	ISW/Sme.h ISW/SmeLine.h ISW/SmeLineP.h ISW/SmeP.h \
+	ISW/StripCharP.h ISW/StripChart.h ISW/Tabs.h ISW/TabsP.h \
+	ISW/Text.h ISW/TextP.h ISW/TextSink.h ISW/TextSinkP.h \
+	ISW/TextSrc.h ISW/TextSrcP.h ISW/Tip.h ISW/TipP.h \
+	ISW/Toolbar.h ISW/ToolbarP.h ISW/Toggle.h ISW/ToggleP.h \
+	ISW/Tree.h ISW/TreeP.h ISW/Viewport.h ISW/ViewportP.h \
+	ISW/ISWP.h ISW/ISWInit.h ISW/MultiSrc.h ISW/MultiSrcP.h \
+	ISW/MultiSink.h ISW/MultiSinkP.h ISW/VendorEP.h ISW/ISWImP.h
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -400,6 +400,8 @@ iswinclude_HEADERS = \
 	ISW/FormP.h \
 	ISW/Grip.h \
 	ISW/GripP.h \
+	ISW/IconView.h \
+	ISW/IconViewP.h \
 	ISW/Label.h \
 	ISW/LabelP.h \
 	ISW/Layout.h \

@@ -46,6 +46,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Grip.h>
 #include <ISW/Layout.h>
 #include <ISW/ComboBox.h>
+#include <ISW/IconView.h>
 #include <ISW/List.h>
 #include <ISW/MenuBar.h>
 #include <ISW/MenuButton.h>
@@ -85,6 +86,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "dialog", &dialogWidgetClass },
 { "form", &formWidgetClass },
 { "grip", &gripWidgetClass },
+{ "iconView", &iconViewWidgetClass },
 { "label", &labelWidgetClass },
 { "layout", &layoutWidgetClass },
 { "list", &listWidgetClass },

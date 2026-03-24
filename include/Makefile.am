@@ -31,6 +31,8 @@ iswinclude_HEADERS = \
 	ISW/FormP.h \
 	ISW/Grip.h \
 	ISW/GripP.h \
+	ISW/IconView.h \
+	ISW/IconViewP.h \
 	ISW/Label.h \
 	ISW/LabelP.h \
 	ISW/Layout.h \

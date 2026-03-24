@@ -119,6 +119,7 @@ ISW_SOURCES = \
 	Dialog.c \
 	Form.c \
 	Grip.c \
+	IconView.c \
 	Label.c \
 	Layout.c \
 	LayYY.h \

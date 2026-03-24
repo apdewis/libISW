@@ -39,6 +39,7 @@
 #include <ISW/ISWRender.h>
 
 /* Selection widgets */
+#include <ISW/IconView.h>
 #include <ISW/List.h>
 #include <ISW/ComboBox.h>
 #include <ISW/Tree.h>
@@ -105,6 +106,7 @@ Widget create_checkbox_demo(Widget parent);
 Widget create_menu_demo(Widget parent);
 Widget create_repeater_demo(Widget parent);
 
+Widget create_iconview_demo(Widget parent);
 Widget create_list_demo(Widget parent);
 Widget create_combobox_demo(Widget parent);
 Widget create_text_demo(Widget parent);
@@ -127,6 +129,7 @@ void checkbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void list_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void iconview_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void scale_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
@@ -1019,7 +1022,7 @@ Widget create_repeater_demo(Widget parent) {
  * ============================================================ */
 
 Widget create_selection_section(Widget parent) {
-    Widget form, section_label, list_demo, combobox_demo, text_demo;
+    Widget form, section_label, iconview_demo, list_demo, combobox_demo, text_demo;
     Arg args[10];
     Cardinal n;
 
@@ -1031,19 +1034,27 @@ Widget create_selection_section(Widget parent) {
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Selection & Text Widgets: List, ComboBox, AsciiText"); n++;
+    XtSetArg(args[n], XtNlabel, "Selection Widgets: IconView, List, ComboBox, AsciiText"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     section_label = XtCreateManagedWidget("selectionLabel", labelWidgetClass,
                                           form, args, n);
 
-    /* List demo (classic multi-item list) */
-    list_demo = create_list_demo(form);
+    /* IconView demo */
+    iconview_demo = create_iconview_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    XtSetValues(iconview_demo, args, n);
+
+    /* List demo (classic multi-item list) */
+    list_demo = create_list_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromHoriz, iconview_demo); n++;
+    XtSetArg(args[n], XtNfromVert, section_label); n++;
+    XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(list_demo, args, n);
 
     /* ComboBox demo (dropdown selector) */
@@ -1063,6 +1074,54 @@ Widget create_selection_section(Widget parent) {
     XtSetValues(text_demo, args, n);
 
     return form;
+}
+
+Widget create_iconview_demo(Widget parent) {
+    Widget viewport, iconview;
+    Arg args[10];
+    Cardinal n;
+
+    static String iv_labels[] = {
+        "New", "Open", "Save", "Cut", "Copy", "Paste",
+        "Undo", "Redo", "Find", "Print", "Help", "Exit"
+    };
+    static String iv_icons[] = {
+        /* Reuse toolbar SVGs and add a few more */
+        "<svg viewBox='0 0 16 16'><rect x='3' y='1' width='10' height='14' fill='none' stroke='black' stroke-width='1.5'/><line x1='5' y1='5' x2='11' y2='5' stroke='black'/><line x1='5' y1='8' x2='11' y2='8' stroke='black'/></svg>",
+        "<svg viewBox='0 0 16 16'><path d='M2 4 L2 14 L14 14 L14 6 L8 6 L7 4 Z' fill='none' stroke='black' stroke-width='1.5'/></svg>",
+        "<svg viewBox='0 0 16 16'><rect x='2' y='2' width='12' height='12' fill='none' stroke='black' stroke-width='1.5' rx='1'/><rect x='5' y='2' width='6' height='5' fill='none' stroke='black'/></svg>",
+        "<svg viewBox='0 0 16 16'><circle cx='5' cy='12' r='2.5' fill='none' stroke='black' stroke-width='1.2'/><circle cx='11' cy='12' r='2.5' fill='none' stroke='black' stroke-width='1.2'/><line x1='5' y1='10' x2='11' y2='3' stroke='black' stroke-width='1.5'/><line x1='11' y1='10' x2='5' y2='3' stroke='black' stroke-width='1.5'/></svg>",
+        "<svg viewBox='0 0 16 16'><rect x='5' y='4' width='8' height='10' fill='none' stroke='black' stroke-width='1.2' rx='1'/><rect x='3' y='2' width='8' height='10' fill='none' stroke='black' stroke-width='1.2' rx='1'/></svg>",
+        "<svg viewBox='0 0 16 16'><rect x='3' y='3' width='10' height='11' fill='none' stroke='black' stroke-width='1.2' rx='1'/><rect x='5' y='1' width='6' height='3' fill='none' stroke='black' stroke-width='1.2' rx='1'/></svg>",
+        "<svg viewBox='0 0 16 16'><path d='M3 10 A5 5 0 0 1 8 5' fill='none' stroke='black' stroke-width='1.5'/><path d='M3 10 L5 8 M3 10 L5 12' fill='none' stroke='black' stroke-width='1.2'/></svg>",
+        "<svg viewBox='0 0 16 16'><path d='M13 10 A5 5 0 0 0 8 5' fill='none' stroke='black' stroke-width='1.5'/><path d='M13 10 L11 8 M13 10 L11 12' fill='none' stroke='black' stroke-width='1.2'/></svg>",
+        "<svg viewBox='0 0 16 16'><circle cx='7' cy='7' r='5' fill='none' stroke='black' stroke-width='1.5'/><line x1='11' y1='11' x2='14' y2='14' stroke='black' stroke-width='1.5'/></svg>",
+        "<svg viewBox='0 0 16 16'><rect x='3' y='2' width='10' height='12' fill='none' stroke='black' stroke-width='1.2' rx='1'/><line x1='5' y1='5' x2='11' y2='5' stroke='black'/><line x1='5' y1='8' x2='11' y2='8' stroke='black'/><line x1='5' y1='11' x2='8' y2='11' stroke='black'/></svg>",
+        "<svg viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='none' stroke='black' stroke-width='1.5'/><line x1='8' y1='5' x2='8' y2='9' stroke='black' stroke-width='1.5'/><circle cx='8' cy='11.5' r='0.8' fill='black'/></svg>",
+        "<svg viewBox='0 0 16 16'><path d='M4 4 L8 2 L12 4 L12 9 L8 14 L4 9 Z' fill='none' stroke='black' stroke-width='1.2'/></svg>",
+    };
+
+    /* Viewport for scrolling */
+    n = 0;
+    XtSetArg(args[n], XtNallowVert, True); n++;
+    XtSetArg(args[n], XtNwidth, S(200)); n++;
+    XtSetArg(args[n], XtNheight, S(180)); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    viewport = XtCreateManagedWidget("iconViewport", viewportWidgetClass,
+                                      parent, args, n);
+
+    /* IconView inside viewport */
+    n = 0;
+    XtSetArg(args[n], XtNiconLabels, iv_labels); n++;
+    XtSetArg(args[n], XtNiconData, iv_icons); n++;
+    XtSetArg(args[n], XtNnumIcons, XtNumber(iv_labels)); n++;
+    XtSetArg(args[n], XtNiconSize, 32); n++;
+    XtSetArg(args[n], XtNwidth, S(200)); n++;
+    iconview = XtCreateManagedWidget("iconView", iconViewWidgetClass,
+                                      viewport, args, n);
+    XtAddCallback(iconview, XtNselectCallback, iconview_callback, NULL);
+
+    return viewport;
 }
 
 Widget create_list_demo(Widget parent) {
@@ -1824,6 +1883,12 @@ void scale_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     IswSpinBoxCallbackData *data = (IswSpinBoxCallbackData *)call_data;
     printf("SpinBox (%s) value: %d\n", (char *)client_data, data->value);
+}
+
+void iconview_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswIconViewCallbackData *data = (IswIconViewCallbackData *)call_data;
+    printf("IconView selected: %s (index %d)\n",
+           data->label ? data->label : "(null)", data->index);
 }
 
 void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
