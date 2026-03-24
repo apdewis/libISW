@@ -1026,11 +1026,6 @@ void ISWScrollbarSetThumb (Widget w,
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
 
-#ifdef WIERD
-    fprintf(stderr,"< ISWScrollbarSetThumb w=%p, top=%f, shown=%f\n",
-	    w,top,shown);
-#endif
-
     if (sbw->scrollbar.scroll_mode == (char) 2) return; /* if still thumbing */
 
     sbw->scrollbar.top = (top > 1.0) ? 1.0 :

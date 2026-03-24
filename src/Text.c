@@ -1180,34 +1180,19 @@ CheckVBarScrolling(TextWidget ctx)
 
   if ( (ctx->text.lastPos > 0) && (ctx->text.lt.lines > 0)) {
     ISWTextPosition visible_end, raw_pos;
-    int i;
-    
-    fprintf(stderr, "CheckVBarScrolling: lt.top=%ld, lastPos=%ld, lines=%d\n",
-            ctx->text.lt.top, ctx->text.lastPos, ctx->text.lt.lines);
-    
-    /* Debug: show all line positions */
-    for (i = 0; i <= ctx->text.lt.lines && i < 10; i++) {
-      fprintf(stderr, "  info[%d].position=%ld\n", i, ctx->text.lt.info[i].position);
-    }
-    
+
     first = ctx->text.lt.top;
     first /= (float) ctx->text.lastPos;
-    
+
     /* Get the visible end position, but clamp to lastPos
      * (line table uses sentinel values > lastPos) */
     raw_pos = ctx->text.lt.info[ctx->text.lt.lines].position;
     visible_end = raw_pos;
-    fprintf(stderr, "  info[%d].position (raw)=%ld", ctx->text.lt.lines, raw_pos);
-    if (visible_end > ctx->text.lastPos) {
+    if (visible_end > ctx->text.lastPos)
       visible_end = ctx->text.lastPos;
-      fprintf(stderr, " CLAMPED to %ld", visible_end);
-    }
-    fprintf(stderr, "\n");
-    
+
     last = visible_end;
     last /= (float) ctx->text.lastPos;
-    
-    fprintf(stderr, "  Thumb: first=%.3f, last=%.3f, shown=%.3f\n", first, last, last - first);
 
     if (ctx->text.scroll_vert == IswtextScrollWhenNeeded) {
       int line;
@@ -1566,16 +1551,12 @@ VScroll(Widget w, XtPointer closure, XtPointer callData)
   TextWidget ctx = (TextWidget)closure;
   int height, nlines, lines = (intptr_t) callData;
 
-  fprintf(stderr, "VScroll callback: lines=%d\n", lines);
-
   height = ctx->core.height - VMargins(ctx);
   if (height < 1)
     height = 1;
   nlines = (int) (lines * (int) ctx->text.lt.lines) / height;
   if (nlines == 0 && lines != 0)
     nlines = lines > 0 ? 1 : -1;
-  fprintf(stderr, "  height=%d, ctx->text.lt.lines=%d, nlines=%d\n",
-          height, ctx->text.lt.lines, nlines);
   _IswTextPrepareToUpdate(ctx);
   _IswTextVScroll(ctx, nlines);
   _IswTextExecuteUpdate(ctx);
