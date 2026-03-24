@@ -154,7 +154,7 @@ am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	LayYY.h List.c MainWindow.c MenuBar.c MenuButton.c Paned.c \
 	Panner.c Porthole.c ProgressBar.c Repeater.c Scrollbar.c \
 	ScrollWheel.c Simple.c SimpleMenu.c SmeBSB.c Sme.c SmeLine.c \
-	StripChart.c TextAction.c Text.c TextPop.c TextSink.c \
+	StripChart.c Tabs.c TextAction.c Text.c TextPop.c TextSink.c \
 	TextSrc.c TextTr.c Tip.c Toggle.c Tree.c Vendor.c Viewport.c \
 	ISWP.c ISWAtoms.c ISWContext.c ISWDrawing.c ISWInit.c \
 	ISWXcbDraw.c ISWXcbDraw.h laygram.y laylex.l MultiSrc.c \
@@ -182,11 +182,11 @@ am__objects_6 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	List.lo MainWindow.lo MenuBar.lo MenuButton.lo Paned.lo \
 	Panner.lo Porthole.lo ProgressBar.lo Repeater.lo Scrollbar.lo \
 	ScrollWheel.lo Simple.lo SimpleMenu.lo SmeBSB.lo Sme.lo \
-	SmeLine.lo StripChart.lo TextAction.lo Text.lo TextPop.lo \
-	TextSink.lo TextSrc.lo TextTr.lo Tip.lo Toggle.lo Tree.lo \
-	Vendor.lo Viewport.lo ISWP.lo ISWAtoms.lo ISWContext.lo \
-	ISWDrawing.lo ISWInit.lo ISWXcbDraw.lo laygram.lo laylex.lo \
-	$(am__objects_2) $(am__objects_5)
+	SmeLine.lo StripChart.lo Tabs.lo TextAction.lo Text.lo \
+	TextPop.lo TextSink.lo TextSrc.lo TextTr.lo Tip.lo Toggle.lo \
+	Tree.lo Vendor.lo Viewport.lo ISWP.lo ISWAtoms.lo \
+	ISWContext.lo ISWDrawing.lo ISWInit.lo ISWXcbDraw.lo \
+	laygram.lo laylex.lo $(am__objects_2) $(am__objects_5)
 am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_6)
 nodist_libISW_la_OBJECTS = StringDefs.lo
 libISW_la_OBJECTS = $(am_libISW_la_OBJECTS) \
@@ -259,15 +259,16 @@ am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
 	./$(DEPDIR)/StripChart.Plo ./$(DEPDIR)/TMaction.Plo \
 	./$(DEPDIR)/TMgrab.Plo ./$(DEPDIR)/TMkey.Plo \
 	./$(DEPDIR)/TMparse.Plo ./$(DEPDIR)/TMprint.Plo \
-	./$(DEPDIR)/TMstate.Plo ./$(DEPDIR)/Text.Plo \
-	./$(DEPDIR)/TextAction.Plo ./$(DEPDIR)/TextPop.Plo \
-	./$(DEPDIR)/TextSink.Plo ./$(DEPDIR)/TextSrc.Plo \
-	./$(DEPDIR)/TextTr.Plo ./$(DEPDIR)/Threads.Plo \
-	./$(DEPDIR)/Tip.Plo ./$(DEPDIR)/Toggle.Plo \
-	./$(DEPDIR)/Tree.Plo ./$(DEPDIR)/VarCreate.Plo \
-	./$(DEPDIR)/VarGet.Plo ./$(DEPDIR)/Varargs.Plo \
-	./$(DEPDIR)/Vendor.Plo ./$(DEPDIR)/Viewport.Plo \
-	./$(DEPDIR)/laygram.Plo ./$(DEPDIR)/laylex.Plo
+	./$(DEPDIR)/TMstate.Plo ./$(DEPDIR)/Tabs.Plo \
+	./$(DEPDIR)/Text.Plo ./$(DEPDIR)/TextAction.Plo \
+	./$(DEPDIR)/TextPop.Plo ./$(DEPDIR)/TextSink.Plo \
+	./$(DEPDIR)/TextSrc.Plo ./$(DEPDIR)/TextTr.Plo \
+	./$(DEPDIR)/Threads.Plo ./$(DEPDIR)/Tip.Plo \
+	./$(DEPDIR)/Toggle.Plo ./$(DEPDIR)/Tree.Plo \
+	./$(DEPDIR)/VarCreate.Plo ./$(DEPDIR)/VarGet.Plo \
+	./$(DEPDIR)/Varargs.Plo ./$(DEPDIR)/Vendor.Plo \
+	./$(DEPDIR)/Viewport.Plo ./$(DEPDIR)/laygram.Plo \
+	./$(DEPDIR)/laylex.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -639,6 +640,7 @@ ISW_SOURCES = \
 	Sme.c \
 	SmeLine.c \
 	StripChart.c \
+	Tabs.c \
 	TextAction.c \
 	Text.c \
 	TextPop.c \
@@ -861,6 +863,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TMparse.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TMprint.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TMstate.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Tabs.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Text.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TextAction.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TextPop.Plo@am__quote@ # am--include-marker
@@ -1167,6 +1170,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/TMparse.Plo
 	-rm -f ./$(DEPDIR)/TMprint.Plo
 	-rm -f ./$(DEPDIR)/TMstate.Plo
+	-rm -f ./$(DEPDIR)/Tabs.Plo
 	-rm -f ./$(DEPDIR)/Text.Plo
 	-rm -f ./$(DEPDIR)/TextAction.Plo
 	-rm -f ./$(DEPDIR)/TextPop.Plo
@@ -1321,6 +1325,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/TMparse.Plo
 	-rm -f ./$(DEPDIR)/TMprint.Plo
 	-rm -f ./$(DEPDIR)/TMstate.Plo
+	-rm -f ./$(DEPDIR)/Tabs.Plo
 	-rm -f ./$(DEPDIR)/Text.Plo
 	-rm -f ./$(DEPDIR)/TextAction.Plo
 	-rm -f ./$(DEPDIR)/TextPop.Plo

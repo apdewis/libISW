@@ -56,6 +56,7 @@
 #include <ISW/Repeater.h>
 #include <ISW/Grip.h>
 #include <ISW/ProgressBar.h>
+#include <ISW/Tabs.h>
 
 /* Optional tooltip support */
 #ifdef HAVE_TIP
@@ -105,6 +106,8 @@ Widget create_stripchart_demo(Widget parent);
 Widget create_scrollbar_demo(Widget parent);
 Widget create_progressbar_demo(Widget parent);
 Widget create_dialog_demo(Widget parent);
+Widget create_tabs_demo(Widget parent);
+void tabs_callback(Widget w, XtPointer client_data, XtPointer call_data);
 
 /* Callback functions */
 void button_callback(Widget w, XtPointer client_data, XtPointer call_data);
@@ -242,6 +245,8 @@ Widget create_main_window(Widget parent) {
     create_navigation_section(content_box);
 
     create_specialized_section(content_box);
+
+    create_tabs_demo(content_box);
 
     return main_win;
 }
@@ -1607,4 +1612,75 @@ void attach_tooltip(Widget widget, const char *tip_text) {
     n = 0;
     XtSetArg(args[n], XtNlabel, tip_text); n++;
     tip = XtCreatePopupShell("tip", tipWidgetClass, widget, args, n);
+}
+
+/* ============================================================
+ * TABS WIDGET DEMO
+ * ============================================================ */
+
+void tabs_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    TabsCallbackStruct *cbs = (TabsCallbackStruct *)call_data;
+    printf("Tab switched to index %d (widget: %s)\n",
+           cbs->tab_index, XtName(cbs->child));
+}
+
+Widget create_tabs_demo(Widget parent) {
+    Widget section_box, title, tabs_widget;
+    Widget tab1_content, tab2_content;
+    Arg args[10];
+    Cardinal n;
+
+    /* Section container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    section_box = XtCreateManagedWidget("tabsSection", boxWidgetClass,
+                                         parent, args, n);
+
+    /* Section title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Tabs Widget"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("tabsTitle", labelWidgetClass,
+                                   section_box, args, n);
+
+    /* The Tabs widget */
+    n = 0;
+    XtSetArg(args[n], XtNwidth, S(400)); n++;
+    XtSetArg(args[n], XtNheight, S(180)); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    tabs_widget = XtCreateManagedWidget("tabs", tabsWidgetClass,
+                                         section_box, args, n);
+    XtAddCallback(tabs_widget, XtNtabCallback, tabs_callback, NULL);
+
+    /* Tab 1: a label */
+    n = 0;
+    XtSetArg(args[n], XtNtabLabel, "General"); n++;
+    XtSetArg(args[n], XtNlabel, "This is the General tab.\n\n"
+             "The Tabs widget is a Constraint\n"
+             "container that shows one child at\n"
+             "a time, with a clickable tab bar."); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    tab1_content = XtCreateManagedWidget("tab1", labelWidgetClass,
+                                          tabs_widget, args, n);
+
+    /* Tab 2: a box with buttons */
+    n = 0;
+    XtSetArg(args[n], XtNtabLabel, "Controls"); n++;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    tab2_content = XtCreateManagedWidget("tab2", boxWidgetClass,
+                                          tabs_widget, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Button A"); n++;
+    XtCreateManagedWidget("tab2BtnA", commandWidgetClass,
+                           tab2_content, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Button B"); n++;
+    XtCreateManagedWidget("tab2BtnB", commandWidgetClass,
+                           tab2_content, args, n);
+
+    return section_box;
 }

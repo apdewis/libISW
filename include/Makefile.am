@@ -66,6 +66,8 @@ iswinclude_HEADERS = \
 	ISW/SmeP.h \
 	ISW/StripCharP.h \
 	ISW/StripChart.h \
+	ISW/Tabs.h \
+	ISW/TabsP.h \
 	ISW/Text.h \
 	ISW/TextP.h \
 	ISW/TextSink.h \
