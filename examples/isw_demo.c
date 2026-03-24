@@ -50,6 +50,7 @@
 #include <ISW/Text.h>
 
 /* Specialized widgets */
+#include <ISW/Scale.h>
 #include <ISW/StripChart.h>
 #include <ISW/Tip.h>
 #include <ISW/Scrollbar.h>
@@ -105,6 +106,7 @@ Widget create_tree_demo(Widget parent);
 
 Widget create_panner_demo(Widget parent);
 Widget create_stripchart_demo(Widget parent);
+Widget create_scale_demo(Widget parent);
 Widget create_scrollbar_demo(Widget parent);
 Widget create_progressbar_demo(Widget parent);
 Widget create_dialog_demo(Widget parent);
@@ -119,6 +121,7 @@ void menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void list_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void scale_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void quit_callback(Widget w, XtPointer client_data, XtPointer call_data);
 
@@ -1348,7 +1351,7 @@ Widget create_paned_grip_demo(Widget parent) {
 
 Widget create_specialized_section(Widget parent) {
     Widget form, section_label;
-    Widget stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo;
+    Widget scale_demo, stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo;
     Arg args[10];
     Cardinal n;
 
@@ -1361,7 +1364,7 @@ Widget create_specialized_section(Widget parent) {
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Specialized Widgets: StripChart, Scrollbar, ProgressBar, Dialog"); n++;
+    XtSetArg(args[n], XtNlabel, "Specialized Widgets: Scale, StripChart, Scrollbar, ProgressBar, Dialog"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
@@ -1369,11 +1372,18 @@ Widget create_specialized_section(Widget parent) {
                                           form, args, n);
 
     /* Create demos */
-    stripchart_demo = create_stripchart_demo(form);
+    scale_demo = create_scale_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    XtSetValues(scale_demo, args, n);
+
+    stripchart_demo = create_stripchart_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromHoriz, scale_demo); n++;
+    XtSetArg(args[n], XtNfromVert, section_label); n++;
+    XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(stripchart_demo, args, n);
 
     scrollbar_demo = create_scrollbar_demo(form);
@@ -1441,6 +1451,51 @@ Widget create_progressbar_demo(Widget parent) {
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
     XtSetArg(args[n], XtNshowValue, True); n++;
     pb_v = XtCreateManagedWidget("progressV", progressBarWidgetClass, box, args, n);
+
+    return box;
+}
+
+Widget create_scale_demo(Widget parent) {
+    Widget box, title, scale_h, scale_v;
+    Arg args[12];
+    Cardinal n;
+
+    /* Container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("scaleBox", boxWidgetClass, parent, args, n);
+
+    /* Title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Scale"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("scaleTitle", labelWidgetClass, box, args, n);
+
+    /* Horizontal scale with ticks */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
+    XtSetArg(args[n], XtNminimumValue, 0); n++;
+    XtSetArg(args[n], XtNmaximumValue, 100); n++;
+    XtSetArg(args[n], XtNscaleValue, 50); n++;
+    XtSetArg(args[n], XtNtickInterval, 25); n++;
+    XtSetArg(args[n], XtNshowValue, True); n++;
+    XtSetArg(args[n], XtNwidth, S(200)); n++;
+    XtSetArg(args[n], XtNheight, S(50)); n++;
+    scale_h = XtCreateManagedWidget("scaleH", scaleWidgetClass, box, args, n);
+    XtAddCallback(scale_h, XtNvalueChanged, scale_callback, (XtPointer)"Horizontal");
+
+    /* Vertical scale */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNminimumValue, 0); n++;
+    XtSetArg(args[n], XtNmaximumValue, 255); n++;
+    XtSetArg(args[n], XtNscaleValue, 128); n++;
+    XtSetArg(args[n], XtNshowValue, True); n++;
+    XtSetArg(args[n], XtNwidth, S(70)); n++;
+    XtSetArg(args[n], XtNheight, S(120)); n++;
+    scale_v = XtCreateManagedWidget("scaleV", scaleWidgetClass, box, args, n);
+    XtAddCallback(scale_v, XtNvalueChanged, scale_callback, (XtPointer)"Vertical");
 
     return box;
 }
@@ -1572,6 +1627,11 @@ void list_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     IswListReturnStruct *item = (IswListReturnStruct *)call_data;
     printf("List item selected: %s (index %d)\n",
            item->string, item->list_index);
+}
+
+void scale_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswScaleCallbackData *data = (IswScaleCallbackData *)call_data;
+    printf("Scale (%s) value: %d\n", (char *)client_data, data->value);
 }
 
 void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data) {

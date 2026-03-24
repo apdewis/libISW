@@ -152,7 +152,7 @@ am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	Varargs.c AllWidgets.c AsciiSink.c AsciiSrc.c AsciiText.c \
 	Box.c ComboBox.c Command.c Dialog.c Form.c Grip.c Label.c \
 	Layout.c LayYY.h List.c MainWindow.c MenuBar.c MenuButton.c \
-	Paned.c Panner.c Porthole.c ProgressBar.c Repeater.c \
+	Paned.c Panner.c Porthole.c ProgressBar.c Repeater.c Scale.c \
 	Scrollbar.c ScrollWheel.c Simple.c SimpleMenu.c SmeBSB.c Sme.c \
 	SmeLine.c StripChart.c Tabs.c TextAction.c Text.c TextPop.c \
 	TextSink.c TextSrc.c TextTr.c Tip.c Toggle.c Tree.c Vendor.c \
@@ -183,7 +183,7 @@ am__objects_7 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	Box.lo ComboBox.lo Command.lo Dialog.lo Form.lo Grip.lo \
 	Label.lo Layout.lo List.lo MainWindow.lo MenuBar.lo \
 	MenuButton.lo Paned.lo Panner.lo Porthole.lo ProgressBar.lo \
-	Repeater.lo Scrollbar.lo ScrollWheel.lo Simple.lo \
+	Repeater.lo Scale.lo Scrollbar.lo ScrollWheel.lo Simple.lo \
 	SimpleMenu.lo SmeBSB.lo Sme.lo SmeLine.lo StripChart.lo \
 	Tabs.lo TextAction.lo Text.lo TextPop.lo TextSink.lo \
 	TextSrc.lo TextTr.lo Tip.lo Toggle.lo Tree.lo Vendor.lo \
@@ -254,26 +254,26 @@ am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
 	./$(DEPDIR)/ProgressBar.Plo ./$(DEPDIR)/Quark.Plo \
 	./$(DEPDIR)/RectObj.Plo ./$(DEPDIR)/Repeater.Plo \
 	./$(DEPDIR)/ResConfig.Plo ./$(DEPDIR)/Resources.Plo \
-	./$(DEPDIR)/ScrollWheel.Plo ./$(DEPDIR)/Scrollbar.Plo \
-	./$(DEPDIR)/Selection.Plo ./$(DEPDIR)/SetSens.Plo \
-	./$(DEPDIR)/SetValues.Plo ./$(DEPDIR)/SetWMCW.Plo \
-	./$(DEPDIR)/Shell.Plo ./$(DEPDIR)/Simple.Plo \
-	./$(DEPDIR)/SimpleMenu.Plo ./$(DEPDIR)/Sme.Plo \
-	./$(DEPDIR)/SmeBSB.Plo ./$(DEPDIR)/SmeLine.Plo \
-	./$(DEPDIR)/StringDefs.Plo ./$(DEPDIR)/StripChart.Plo \
-	./$(DEPDIR)/TMaction.Plo ./$(DEPDIR)/TMgrab.Plo \
-	./$(DEPDIR)/TMkey.Plo ./$(DEPDIR)/TMparse.Plo \
-	./$(DEPDIR)/TMprint.Plo ./$(DEPDIR)/TMstate.Plo \
-	./$(DEPDIR)/Tabs.Plo ./$(DEPDIR)/Text.Plo \
-	./$(DEPDIR)/TextAction.Plo ./$(DEPDIR)/TextPop.Plo \
-	./$(DEPDIR)/TextSink.Plo ./$(DEPDIR)/TextSrc.Plo \
-	./$(DEPDIR)/TextTr.Plo ./$(DEPDIR)/Threads.Plo \
-	./$(DEPDIR)/Tip.Plo ./$(DEPDIR)/Toggle.Plo \
-	./$(DEPDIR)/Tree.Plo ./$(DEPDIR)/VarCreate.Plo \
-	./$(DEPDIR)/VarGet.Plo ./$(DEPDIR)/Varargs.Plo \
-	./$(DEPDIR)/Vendor.Plo ./$(DEPDIR)/Viewport.Plo \
-	./$(DEPDIR)/laygram.Plo ./$(DEPDIR)/laylex.Plo \
-	./$(DEPDIR)/nanosvg_impl.Plo
+	./$(DEPDIR)/Scale.Plo ./$(DEPDIR)/ScrollWheel.Plo \
+	./$(DEPDIR)/Scrollbar.Plo ./$(DEPDIR)/Selection.Plo \
+	./$(DEPDIR)/SetSens.Plo ./$(DEPDIR)/SetValues.Plo \
+	./$(DEPDIR)/SetWMCW.Plo ./$(DEPDIR)/Shell.Plo \
+	./$(DEPDIR)/Simple.Plo ./$(DEPDIR)/SimpleMenu.Plo \
+	./$(DEPDIR)/Sme.Plo ./$(DEPDIR)/SmeBSB.Plo \
+	./$(DEPDIR)/SmeLine.Plo ./$(DEPDIR)/StringDefs.Plo \
+	./$(DEPDIR)/StripChart.Plo ./$(DEPDIR)/TMaction.Plo \
+	./$(DEPDIR)/TMgrab.Plo ./$(DEPDIR)/TMkey.Plo \
+	./$(DEPDIR)/TMparse.Plo ./$(DEPDIR)/TMprint.Plo \
+	./$(DEPDIR)/TMstate.Plo ./$(DEPDIR)/Tabs.Plo \
+	./$(DEPDIR)/Text.Plo ./$(DEPDIR)/TextAction.Plo \
+	./$(DEPDIR)/TextPop.Plo ./$(DEPDIR)/TextSink.Plo \
+	./$(DEPDIR)/TextSrc.Plo ./$(DEPDIR)/TextTr.Plo \
+	./$(DEPDIR)/Threads.Plo ./$(DEPDIR)/Tip.Plo \
+	./$(DEPDIR)/Toggle.Plo ./$(DEPDIR)/Tree.Plo \
+	./$(DEPDIR)/VarCreate.Plo ./$(DEPDIR)/VarGet.Plo \
+	./$(DEPDIR)/Varargs.Plo ./$(DEPDIR)/Vendor.Plo \
+	./$(DEPDIR)/Viewport.Plo ./$(DEPDIR)/laygram.Plo \
+	./$(DEPDIR)/laylex.Plo ./$(DEPDIR)/nanosvg_impl.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -643,6 +643,7 @@ ISW_SOURCES = \
 	Porthole.c \
 	ProgressBar.c \
 	Repeater.c \
+	Scale.c \
 	Scrollbar.c \
 	ScrollWheel.c \
 	Simple.c \
@@ -859,6 +860,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Repeater.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ResConfig.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Resources.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Scale.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ScrollWheel.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Scrollbar.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Selection.Plo@am__quote@ # am--include-marker
@@ -1170,6 +1172,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/Repeater.Plo
 	-rm -f ./$(DEPDIR)/ResConfig.Plo
 	-rm -f ./$(DEPDIR)/Resources.Plo
+	-rm -f ./$(DEPDIR)/Scale.Plo
 	-rm -f ./$(DEPDIR)/ScrollWheel.Plo
 	-rm -f ./$(DEPDIR)/Scrollbar.Plo
 	-rm -f ./$(DEPDIR)/Selection.Plo
@@ -1329,6 +1332,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/Repeater.Plo
 	-rm -f ./$(DEPDIR)/ResConfig.Plo
 	-rm -f ./$(DEPDIR)/Resources.Plo
+	-rm -f ./$(DEPDIR)/Scale.Plo
 	-rm -f ./$(DEPDIR)/ScrollWheel.Plo
 	-rm -f ./$(DEPDIR)/Scrollbar.Plo
 	-rm -f ./$(DEPDIR)/Selection.Plo

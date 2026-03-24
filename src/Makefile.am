@@ -131,6 +131,7 @@ ISW_SOURCES = \
 	Porthole.c \
 	ProgressBar.c \
 	Repeater.c \
+	Scale.c \
 	Scrollbar.c \
 	ScrollWheel.c \
 	Simple.c \

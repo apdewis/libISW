@@ -54,6 +54,8 @@ iswinclude_HEADERS = \
 	ISW/Repeater.h \
 	ISW/RepeaterP.h \
 	ISW/Reports.h \
+	ISW/Scale.h \
+	ISW/ScaleP.h \
 	ISW/Scrollbar.h \
 	ISW/ScrollbarP.h \
 	ISW/Simple.h \
