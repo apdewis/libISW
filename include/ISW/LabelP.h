@@ -100,12 +100,6 @@ typedef struct {
     unsigned char encoding;
     Pixmap	left_bitmap;
 
-    /* shadow resources (moved from ThreeDPart) */
-    Dimension	shadow_width;
-    Pixel	top_shadow_pixel;
-    Pixel	bot_shadow_pixel;
-    XtRelief	relief;
-
     /* private state */
     GC		normal_GC;
     GC          gray_GC;
@@ -120,10 +114,6 @@ typedef struct {
     int		lbm_y;			/* where in label */
     unsigned int lbm_width, lbm_height;	/* size of pixmap */
     unsigned int depth;			/* depth of pixmaps */
-
-    /* shadow GCs (moved from ThreeDPart) */
-    GC		top_shadow_GC;
-    GC		bot_shadow_GC;
 
     /* Cairo rendering context */
     ISWRenderContext *render_ctx;

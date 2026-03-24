@@ -49,17 +49,6 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 
-/* Shadow resource name definitions (previously from ThreeD.h) */
-#define XtNshadowWidth "shadowWidth"
-#define XtCShadowWidth "ShadowWidth"
-#define XtNtopShadowPixel "topShadowPixel"
-#define XtCTopShadowPixel "TopShadowPixel"
-#define XtNbottomShadowPixel "bottomShadowPixel"
-#define XtCBottomShadowPixel "BottomShadowPixel"
-#define XtNrelief "relief"
-#define XtCRelief "Relief"
-#define XtRRelief "Relief"
-
 #endif
 #include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
@@ -262,14 +251,6 @@ static XtResource resources[] = {
      offset(text.auto_fill), XtRImmediate, (XtPointer) FALSE},
   {XtNunrealizeCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
      offset(text.unrealize_callbacks), XtRCallback, (XtPointer) NULL},
-  {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-     offset(text.shadow_width), XtRImmediate, (XtPointer) 2},
-  {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
-     offset(text.top_shadow_pixel), XtRString, XtDefaultForeground},
-  {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
-     offset(text.bot_shadow_pixel), XtRString, XtDefaultForeground},
-  {XtNrelief, XtCRelief, XtRRelief, sizeof(XtRelief),
-     offset(text.relief), XtRImmediate, (XtPointer) XtReliefRaised}
 };
 #undef offset
 
@@ -439,7 +420,7 @@ PositionHScrollBar(TextWidget ctx)
 {
   Widget vbar = ctx->text.vbar, hbar = ctx->text.hbar;
   Position top, left = 0;
-  int s = ctx->text.shadow_width;
+  int s = 0;
 
   if (ctx->text.hbar == NULL) return;
 
@@ -471,7 +452,7 @@ PositionVScrollBar(TextWidget ctx)
   Widget vbar = ctx->text.vbar;
   Position pos;
   Dimension bw;
-  int s = ctx->text.shadow_width;
+  int s = 0;
 
   if (vbar == NULL)
     return;
@@ -599,26 +580,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   TextWidget ctx = (TextWidget) new;
   char error_buf[BUFSIZ];
   int s;
-  XtGCMask valuemask;
-  xcb_create_gc_value_list_t myXGCV;
 
-  /* Allocate shadow GCs */
-  valuemask = GCForeground;
-  myXGCV.foreground = ctx->text.top_shadow_pixel;
-  ctx->text.top_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
-
-  myXGCV.foreground = ctx->text.bot_shadow_pixel;
-  ctx->text.bot_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
-
-  /* HiDPI: scale dimension resources */
-  if (ctx->text.shadow_width > 0)
-      ctx->text.shadow_width = ISWScaleDim(new, ctx->text.shadow_width);
-  ctx->text.r_margin.left = (Position)ISWScaleDim(new, ctx->text.r_margin.left);
+  /* HiDPI: scale dimension resources */  ctx->text.r_margin.left = (Position)ISWScaleDim(new, ctx->text.r_margin.left);
   ctx->text.r_margin.right = (Position)ISWScaleDim(new, ctx->text.r_margin.right);
   ctx->text.r_margin.top = (Position)ISWScaleDim(new, ctx->text.r_margin.top);
   ctx->text.r_margin.bottom = (Position)ISWScaleDim(new, ctx->text.r_margin.bottom);
 
-  s = ctx->text.shadow_width;
+  s = 0;
 
   ctx->text.r_margin.left += s;
   ctx->text.r_margin.right += s;
@@ -1092,8 +1060,7 @@ _BuildLineTable(TextWidget ctx, ISWTextPosition position,
 
   for ( count = 0; count < 2 ; count++)
     if (line++ < ctx->text.lt.lines) { /* make sure not to run of the end. */
-      (++lt)->y = (count == 0) ? y : ctx->core.height
-	  - 2 * ctx->text.shadow_width;
+      (++lt)->y = (count == 0) ? y : ctx->core.height;
       lt->textWidth = 0;
       lt->position = ctx->text.lastPos + 100;
     }
@@ -1201,7 +1168,7 @@ _IswTextSetScrollBars(TextWidget ctx)
   float first, last, widest;
   Boolean temp = (ctx->text.hbar == NULL);
   Boolean vtemp = (ctx->text.vbar == NULL);
-  int s = ctx->text.shadow_width;
+  int s = 0;
 
   CheckVBarScrolling(ctx);
 
@@ -1255,7 +1222,7 @@ _IswTextVScroll(TextWidget ctx, int n)
   int y;
   Arg list[1];
   IswTextLineTable * lt = &(ctx->text.lt);
-  int s = ctx->text.shadow_width;
+  int s = 0;
 
   if (abs(n) > ctx->text.lt.lines)
     n = (n > 0) ? ctx->text.lt.lines : -ctx->text.lt.lines;
@@ -1350,7 +1317,7 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
   Widget tw = (Widget) ctx;
   Position old_left, pixels = (Position)(intptr_t) callData;
   xcb_rectangle_t rect, t_rect;
-  int s = ctx->text.shadow_width;
+  int s = 0;
 
   _IswTextPrepareToUpdate(ctx);
 
@@ -2095,7 +2062,7 @@ DisplayText(Widget w, ISWTextPosition pos1, ISWTextPosition pos2)
   int height, line, i, lastPos = ctx->text.lastPos;
   ISWTextPosition startPos, endPos;
   Boolean clear_eol, done_painting;
-  Dimension s = ctx->text.shadow_width;
+  Dimension s = 0;
 
   pos1 = (pos1 < ctx->text.lt.top) ? ctx->text.lt.top : pos1;
   pos2 = FindGoodPosition(ctx, pos2);
@@ -2395,7 +2362,7 @@ static void
 ClearWindow (Widget w)
 {
   TextWidget ctx = (TextWidget) w;
-  int s = ctx->text.shadow_width;
+  int s = 0;
 
   if (XtIsRealized(w))
   {
@@ -2849,12 +2816,6 @@ TextDestroy(Widget w)
 
   DestroyHScrollBar(ctx);
   DestroyVScrollBar(ctx);
-
-  /* Release shadow GCs */
-  if (ctx->text.top_shadow_GC)
-    XtReleaseGC(w, ctx->text.top_shadow_GC);
-  if (ctx->text.bot_shadow_GC)
-    XtReleaseGC(w, ctx->text.bot_shadow_GC);
 
   XtFree((char *)ctx->text.s.selections);
   XtFree((char *)ctx->text.lt.info);

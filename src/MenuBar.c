@@ -42,7 +42,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 
-#define XtNshadowWidth "shadowWidth"
 #define XtNhighlightThickness "highlightThickness"
 
 #define superclass (&boxClassRec)
@@ -242,7 +241,6 @@ InsertChild(Widget child)
         XtSetArg(args[n], XtNborderWidth, 0); n++;
         XtSetArg(args[n], XtNinternalWidth, 6); n++;
         XtSetArg(args[n], XtNinternalHeight, 2); n++;
-        XtSetArg(args[n], XtNshadowWidth, 0); n++;
         XtSetArg(args[n], XtNhighlightThickness, 0); n++;
         XtSetValues(child, args, n);
 
@@ -391,20 +389,11 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     if (menu == NULL)
         return;
 
-    /* Remove 3D shadows from menu and its entries */
+    /* Remove border from menu */
     {
-        Arg flat[2];
-        Cardinal i;
-        SimpleMenuWidget smw = (SimpleMenuWidget) menu;
-
-        XtSetArg(flat[0], XtNshadowWidth, 0);
-        XtSetArg(flat[1], XtNborderWidth, 0);
-        XtSetValues(menu, flat, 2);
-
-        for (i = 0; i < smw->composite.num_children; i++) {
-            XtSetArg(flat[0], XtNshadowWidth, 0);
-            XtSetValues(smw->composite.children[i], flat, 1);
-        }
+        Arg flat[1];
+        XtSetArg(flat[0], XtNborderWidth, 0);
+        XtSetValues(menu, flat, 1);
     }
 
     if (!XtIsRealized(menu))

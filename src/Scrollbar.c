@@ -69,17 +69,6 @@ SOFTWARE.
 #include <ISW/ScrollbarP.h>
 #include <ISW/ScrollWheel.h>
 
-/* Shadow resource name definitions (previously from ThreeD.h) */
-#define XtNshadowWidth "shadowWidth"
-#define XtCShadowWidth "ShadowWidth"
-#define XtNtopShadowPixel "topShadowPixel"
-#define XtCTopShadowPixel "TopShadowPixel"
-#define XtNbottomShadowPixel "bottomShadowPixel"
-#define XtCBottomShadowPixel "BottomShadowPixel"
-#define XtNrelief "relief"
-#define XtCRelief "Relief"
-#define XtRRelief "Relief"
-
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -130,15 +119,6 @@ static XtResource resources[] = {
   {XtNscrollWheelIncrement, XtCScrollWheelIncrement, XtRDimension, sizeof(Dimension),
        Offset(scrollbar.scroll_wheel_increment), XtRImmediate,
        (XtPointer) ISW_SCROLL_WHEEL_DEFAULT_INCREMENT},
-  /* Shadow resources (previously inherited from ThreeD) */
-  {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-       Offset(scrollbar.shadow_width), XtRImmediate, (XtPointer) 1},
-  {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
-       Offset(scrollbar.top_shadow_pixel), XtRString, XtDefaultForeground},
-  {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
-       Offset(scrollbar.bot_shadow_pixel), XtRString, XtDefaultForeground},
-  {XtNrelief, XtCRelief, XtRRelief, sizeof(XtRelief),
-       Offset(scrollbar.relief), XtRImmediate, (XtPointer) XtReliefRaised}
 };
 #undef Offset
 
@@ -225,7 +205,7 @@ ClassInitialize(void)
 		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
 }
 
-/* CHECKIT #define MARGIN(sbw) (sbw)->scrollbar.thickness + (sbw)->scrollbar.shadow_width */
+/* CHECKIT #define MARGIN(sbw) (sbw)->scrollbar.thickness */
 #define MARGIN(sbw) (sbw)->scrollbar.thickness
 
 /*
@@ -243,8 +223,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
 
     if (bottom <= 0 || bottom <= top)
 	return;
-    if ((sw = sbw->scrollbar.shadow_width) < 0)
-	sw = 0;
+    sw = 0;
     margin = MARGIN (sbw);
     floor = sbw->scrollbar.length - margin;
 
@@ -288,7 +267,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
 static void
 PaintThumb (ScrollbarWidget sbw, XEvent *event)
 {
-    Dimension s                   = sbw->scrollbar.shadow_width;
+    Dimension s                   = 0;
     Position  oldtop              = sbw->scrollbar.topLoc;
     Position  oldbot              = oldtop + sbw->scrollbar.shownLength;
     Dimension margin              = MARGIN (sbw);
@@ -300,9 +279,9 @@ PaintThumb (ScrollbarWidget sbw, XEvent *event)
     newbot = newtop + (int)(tzl * sbw->scrollbar.shown);
     if (sbw->scrollbar.shown < 1.) newbot++;
     if (newbot < newtop + (int)sbw->scrollbar.min_thumb +
-                        2 * (int)sbw->scrollbar.shadow_width)
+                        2 * (int)0)
       newbot = newtop + sbw->scrollbar.min_thumb +
-                        2 * sbw->scrollbar.shadow_width;
+                        2 * 0;
     if ( newbot >= floor ) {
 	newtop = floor-(newbot-newtop)+1;
 	newbot = floor;
@@ -340,7 +319,7 @@ static void
 PaintArrows (ScrollbarWidget sbw)
 {
     xcb_point_t    pt[20];
-    Dimension s                   = sbw->scrollbar.shadow_width;
+    Dimension s                   = 0;
     Dimension t   = sbw->scrollbar.thickness;
     Dimension l   = sbw->scrollbar.length;
     Dimension tms = t - s, lms = l - s;
@@ -396,13 +375,10 @@ PaintArrows (ScrollbarWidget sbw)
 	           
 	           /* Use Cairo for polygon rendering */
 	           ISWRenderBegin(ctx);
-	           ISWRenderSetColor(ctx, sbw->scrollbar.top_shadow_pixel);
+	           ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
 	           ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 4);
-	           ISWRenderSetColor(ctx, sbw->scrollbar.bot_shadow_pixel);
 	           ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 4), 6);
-	           ISWRenderSetColor(ctx, sbw->scrollbar.top_shadow_pixel);
 	           ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 10), 6);
-	           ISWRenderSetColor(ctx, sbw->scrollbar.bot_shadow_pixel);
 	           ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 16), 4);
 	           ISWRenderEnd(ctx);
 
@@ -447,12 +423,6 @@ Destroy (Widget w)
     if(sbw->scrollbar.timer_id != (XtIntervalId) 0)
 	XtRemoveTimeOut (sbw->scrollbar.timer_id);
     XtReleaseGC (w, sbw->scrollbar.gc);
-
-    /* Release shadow GCs */
-    if (sbw->scrollbar.top_shadow_GC)
-        XtReleaseGC(w, sbw->scrollbar.top_shadow_GC);
-    if (sbw->scrollbar.bot_shadow_GC)
-        XtReleaseGC(w, sbw->scrollbar.bot_shadow_GC);
 
     /* Destroy Cairo rendering context */
     if (sbw->scrollbar.render_ctx)
@@ -527,8 +497,6 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) new;
-    xcb_create_gc_value_list_t myXGCV;
-
     /* Install scroll wheel event dispatcher (once per connection) */
     ISWScrollWheelInit(XtDisplay(new));
 
@@ -537,9 +505,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     sbw->scrollbar.length = ISWScaleDim(new, sbw->scrollbar.length);
     sbw->scrollbar.min_thumb = ISWScaleDim(new, sbw->scrollbar.min_thumb);
     sbw->scrollbar.scroll_wheel_increment = ISWScaleDim(new, sbw->scrollbar.scroll_wheel_increment);
-    if (sbw->scrollbar.shadow_width > 0)
-        sbw->scrollbar.shadow_width = ISWScaleDim(new, sbw->scrollbar.shadow_width);
-
     CreateGC (new);
 
     if (sbw->core.width == 0)
@@ -555,15 +520,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     sbw->scrollbar.timer_id = (XtIntervalId)0;
     sbw->scrollbar.topLoc = 0;
     sbw->scrollbar.shownLength = sbw->scrollbar.min_thumb;
-
-    /* Allocate shadow GCs */
-    memset(&myXGCV, 0, sizeof(myXGCV));
-    myXGCV.foreground = sbw->scrollbar.top_shadow_pixel;
-    sbw->scrollbar.top_shadow_GC = XtGetGC(new, XCB_GC_FOREGROUND, &myXGCV);
-
-    memset(&myXGCV, 0, sizeof(myXGCV));
-    myXGCV.foreground = sbw->scrollbar.bot_shadow_pixel;
-    sbw->scrollbar.bot_shadow_GC = XtGetGC(new, XCB_GC_FOREGROUND, &myXGCV);
 
     /* Defer render_ctx creation to Realize — Cairo needs a window */
     sbw->scrollbar.render_ctx = NULL;
@@ -643,7 +599,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     /* Draw the trough (channel) in foreground color so the
      * background-colored thumb is visible against it. */
     {
-        Dimension s = sbw->scrollbar.shadow_width;
+        Dimension s = 0;
         Dimension margin = MARGIN(sbw);
         int tx, ty, tw, th;
 

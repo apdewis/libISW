@@ -49,10 +49,6 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 
-/* Shadow resource name definitions (previously from ThreeD.h) */
-#define XtNshadowWidth "shadowWidth"
-#define XtCShadowWidth "ShadowWidth"
-
 #endif
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>

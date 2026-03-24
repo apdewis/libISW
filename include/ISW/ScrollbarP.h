@@ -94,13 +94,6 @@ typedef struct {
     Dimension	  shownLength;	/* Num pixels corresponding to shown */
     Boolean       pick_top;     /* pick thumb at top or anywhere*/
 
-    /* Shadow fields (formerly in ThreeDPart) */
-    Dimension	  shadow_width;
-    Pixel	  top_shadow_pixel;
-    Pixel	  bot_shadow_pixel;
-    GC		  top_shadow_GC;
-    GC		  bot_shadow_GC;
-    XtRelief	  relief;
     ISWRenderContext *render_ctx;   /* Cairo rendering context */
 
 } ScrollbarPart;

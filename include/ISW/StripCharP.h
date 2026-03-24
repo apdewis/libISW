@@ -80,13 +80,6 @@ typedef struct {
     XtCallbackList get_value; /* proc to call to fetch load pt */
     int jump_val;		/* Amount to jump on each scroll. */
 
-    /* Shadow fields (previously inherited from ThreeD) */
-    Dimension	shadow_width;
-    Pixel	top_shadow_pixel;
-    Pixel	bot_shadow_pixel;
-    GC		top_shadow_GC;
-    GC		bot_shadow_GC;
-    XtRelief	relief;
     ISWRenderContext *render_ctx;   /* Cairo rendering context */
 } StripChartPart;
 

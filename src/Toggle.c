@@ -292,11 +292,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     }
 
     /*
-     * Remove 3D button appearance - radio buttons and checkboxes should look
+     * Remove button chrome - radio buttons and checkboxes should look
      * like plain text with indicators, not like pressed buttons.
      */
-    tw->label.shadow_width = 0;
-    tw->label.relief = XtReliefNone;
     tw->command.highlight_thickness = 0;
 
 /*

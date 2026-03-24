@@ -71,10 +71,6 @@ SOFTWARE.
 #include <math.h>
 #include "ISWXcbDraw.h"     /* For XCB GC helpers */
 
-/* Shadow resource name definitions (previously from ThreeD.h) */
-#define XtNshadowWidth "shadowWidth"
-#define XtCShadowWidth "ShadowWidth"
-
 #define DEFAULT_HIGHLIGHT_THICKNESS 2
 #define DEFAULT_SHAPE_HIGHLIGHT 32767
 
@@ -102,8 +98,6 @@ static XtResource resources[] = {
    {XtNcornerRoundPercent, XtCCornerRoundPercent, XtRDimension,
         sizeof(Dimension), offset(command.corner_round), XtRImmediate,
 	(XtPointer) 25},
-   {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-	offset(label.shadow_width), XtRImmediate, (XtPointer) 2},
    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
       XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
       (XtPointer) 0},
@@ -259,10 +253,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   }
 
   if (cbw->command.shape_style != IswShapeRectangle) {
-    cbw->label.shadow_width = 0;
     cbw->core.border_width = 1;
   }
-  cbw->command.shadow_width = cbw->label.shadow_width;
 
   /* HiDPI: scale dimension resources (after shape logic resolves values) */
   cbw->command.highlight_thickness = ISWScaleDim(new, cbw->command.highlight_thickness);
@@ -282,7 +274,6 @@ static ISWRegionPtr
 HighlightRegion(CommandWidget cbw)
 {
   static ISWRegionPtr outerRegion = NULL, innerRegion, emptyRegion;
-  Dimension s = cbw->label.shadow_width;
   xcb_rectangle_t rect;
 
   if (cbw->command.highlight_thickness == 0 ||
@@ -297,9 +288,9 @@ HighlightRegion(CommandWidget cbw)
     emptyRegion = ISWCreateRegion();
   }
 
-  rect.x = rect.y = s;
-  rect.width = cbw->core.width - 2 * s;
-  rect.height = cbw->core.height - 2 * s;
+  rect.x = rect.y = 0;
+  rect.width = cbw->core.width;
+  rect.height = cbw->core.height;
   ISWUnionRectWithRegion( &rect, emptyRegion, outerRegion );
   rect.x = rect.y += cbw->command.highlight_thickness;
   rect.width -= cbw->command.highlight_thickness * 2;
@@ -437,7 +428,6 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
 {
   CommandWidget cbw = (CommandWidget) w;
   Boolean very_thick;
-  Dimension	s = cbw->label.shadow_width;
   ISWRenderContext *ctx = cbw->label.render_ctx;
 
   /* Create render context on first use (Command bypasses Label.Redisplay) */
@@ -466,10 +456,10 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
     if (cr) {
       double lw = cbw->command.highlight_thickness;
       double off = lw / 2.0;
-      double bx = s + off;
-      double by = s + off;
-      double bw = cbw->core.width - lw - 2 * s;
-      double bh = cbw->core.height - lw - 2 * s;
+      double bx = off;
+      double by = off;
+      double bw = cbw->core.width - lw;
+      double bh = cbw->core.height - lw;
       double r = 2.0 * ISWScaleFactor(w);
 
       cairo_save(cr);
@@ -570,10 +560,6 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
     redisplay = True;
   }
 
-  if (cbw->label.shadow_width != oldcbw->label.shadow_width) {
-      cbw->command.shadow_width = cbw->label.shadow_width;
-      redisplay = True;
-  }
   if (cbw->core.border_width != oldcbw->core.border_width)
       redisplay = True;
 
@@ -585,13 +571,7 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
   }
 
   if (cbw->command.shape_style != IswShapeRectangle) {
-      cbw->label.shadow_width = 0;
       ShapeButton(cbw, FALSE);
-      redisplay = True;
-  }
-  if (cbw->command.shape_style == IswShapeRectangle) {
-      cbw->label.shadow_width =
-		(cbw->command.shadow_width) ? cbw->command.shadow_width : 2;
       redisplay = True;
   }
 

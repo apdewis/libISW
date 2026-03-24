@@ -88,14 +88,6 @@ typedef struct _SimpleMenuPart {
   SmeObject entry_set;		/* The entry that is currently set or
 				   highlighted. */
 
-  /* Shadow properties (formerly from internal ThreeD widget) */
-  Dimension shadow_width;
-  Pixel top_shadow_pixel;
-  Pixel bot_shadow_pixel;
-  GC top_shadow_GC;
-  GC bot_shadow_GC;
-  XtRelief relief;
-
   SmeObject *first_entry;       /* the first entry */
   SmeObject *current_first;     /* the first entry displayed */
   Dimension last_y;

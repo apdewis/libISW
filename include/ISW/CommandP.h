@@ -113,7 +113,6 @@ typedef struct {
     GC          	inverse_GC;
     Boolean     	set;
     XtCommandHighlight	highlighted;
-    Dimension		shadow_width;
     /* more resources */
     int			shape_style;
     Dimension		corner_round;

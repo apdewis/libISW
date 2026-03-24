@@ -38,17 +38,6 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 
-/* Shadow resource name definitions (previously from ThreeD.h) */
-#define XtNshadowWidth "shadowWidth"
-#define XtCShadowWidth "ShadowWidth"
-#define XtNtopShadowPixel "topShadowPixel"
-#define XtCTopShadowPixel "TopShadowPixel"
-#define XtNbottomShadowPixel "bottomShadowPixel"
-#define XtCBottomShadowPixel "BottomShadowPixel"
-#define XtNrelief "relief"
-#define XtCRelief "Relief"
-#define XtRRelief "Relief"
-
 #endif
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
@@ -250,7 +239,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     SmeLineObject entry = (SmeLineObject) w;
     SimpleMenuWidget smw = (SimpleMenuWidget) XtParent (w);
-    Dimension s = smw->simple_menu.shadow_width;
+    Dimension s = 0;
     int y = entry->rectangle.y +
 	    (int)(entry->rectangle.height - entry->sme_line.line_width) / 2;
 

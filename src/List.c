@@ -60,8 +60,6 @@ in this Software without prior written authorization from the X Consortium.
 /* These added so widget knows whether its height, width are user selected.
 I also added the freedoms member of the list widget part. */
 
-#define XtNshadowWidth "shadowWidth"
-
 #define HeightLock  1
 #define WidthLock   2
 #define LongestLock 4
@@ -1135,7 +1133,6 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
         Widget entry;
         n = 0;
         XtSetArg(args[n], XtNlabel, lw->list.list[i]); n++;
-        XtSetArg(args[n], XtNshadowWidth, 0); n++;
         if (lw->list.font) {
             XtSetArg(args[n], XtNfont, lw->list.font); n++;
         }

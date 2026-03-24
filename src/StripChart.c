@@ -49,17 +49,6 @@ SOFTWARE.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 
-/* Shadow resource name definitions (previously from ThreeD.h) */
-#define XtNshadowWidth "shadowWidth"
-#define XtCShadowWidth "ShadowWidth"
-#define XtNtopShadowPixel "topShadowPixel"
-#define XtCTopShadowPixel "TopShadowPixel"
-#define XtNbottomShadowPixel "bottomShadowPixel"
-#define XtCBottomShadowPixel "BottomShadowPixel"
-#define XtNrelief "relief"
-#define XtCRelief "Relief"
-#define XtRRelief "Relief"
-
 #endif
 #include <stdio.h>
 #include <X11/IntrinsicP.h>
@@ -76,8 +65,6 @@ SOFTWARE.
 /* Private Data */
 
 #define offset(field) XtOffsetOf(StripChartRec, field)
-
-static char defaultRelief[] = "Raised";
 
 static XtResource resources[] = {
     {XtNwidth, XtCWidth, XtRDimension, sizeof(Dimension),
@@ -96,15 +83,6 @@ static XtResource resources[] = {
         offset(strip_chart.get_value), XtRImmediate, (XtPointer) NULL},
     {XtNjumpScroll, XtCJumpScroll, XtRInt, sizeof(int),
         offset(strip_chart.jump_val), XtRImmediate, (XtPointer) DEFAULT_JUMP},
-    /* Shadow resources (previously inherited from ThreeD) */
-    {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-        offset(strip_chart.shadow_width), XtRImmediate, (XtPointer) 2},
-    {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
-        offset(strip_chart.top_shadow_pixel), XtRString, XtDefaultForeground},
-    {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
-        offset(strip_chart.bot_shadow_pixel), XtRString, XtDefaultForeground},
-    {XtNrelief, XtCRelief, XtRRelief, sizeof(XtRelief),
-        offset(strip_chart.relief), XtRString, (XtPointer) defaultRelief},
 };
 
 #undef offset
@@ -218,18 +196,6 @@ static void
 Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
 {
     StripChartWidget w = (StripChartWidget)gnew;
-    xcb_create_gc_value_list_t myXGCV;
-    xcb_connection_t *dpy = XtDisplay(gnew);
-
-    /* HiDPI: scale dimension resources */
-    if (w->strip_chart.shadow_width > 0)
-        w->strip_chart.shadow_width = ISWScaleDim(gnew, w->strip_chart.shadow_width);
-    xcb_window_t root = XCB_NONE;
-    xcb_screen_t *screen = XtScreen(gnew);
-    
-    if (screen) {
-        root = screen->root;
-    }
 
     if (w->strip_chart.update > 0)
         w->strip_chart.interval_id =
@@ -237,15 +203,6 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
 			     (unsigned long) w->strip_chart.update * MS_PER_SEC,
 			     draw_it, (XtPointer) gnew);
     CreateGC(w, (unsigned int) ALL_GCS);
-
-    /* Allocate shadow GCs */
-    memset(&myXGCV, 0, sizeof(myXGCV));
-    myXGCV.foreground = w->strip_chart.top_shadow_pixel;
-    w->strip_chart.top_shadow_GC = XtGetGC(gnew, XCB_GC_FOREGROUND, &myXGCV);
-
-    memset(&myXGCV, 0, sizeof(myXGCV));
-    myXGCV.foreground = w->strip_chart.bot_shadow_pixel;
-    w->strip_chart.bot_shadow_GC = XtGetGC(gnew, XCB_GC_FOREGROUND, &myXGCV);
 
     /* Initialize Cairo rendering context */
     w->strip_chart.render_ctx = ISWRenderCreate((Widget)w, ISW_RENDER_BACKEND_AUTO);
@@ -268,12 +225,6 @@ Destroy (Widget gw)
 	 XtFree((char *) w->strip_chart.points);
      DestroyGC(w, (unsigned int) ALL_GCS);
 
-     /* Release shadow GCs */
-     if (w->strip_chart.top_shadow_GC)
-         XtReleaseGC(gw, w->strip_chart.top_shadow_GC);
-     if (w->strip_chart.bot_shadow_GC)
-         XtReleaseGC(gw, w->strip_chart.bot_shadow_GC);
-
      /* Destroy Cairo rendering context */
      if (w->strip_chart.render_ctx)
          ISWRenderDestroy(w->strip_chart.render_ctx);
@@ -291,7 +242,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
 
     StripChartWidget w = (StripChartWidget)gw;
-    Dimension x, width, s = w->strip_chart.shadow_width;
+    Dimension x, width, s = 0;
 
     /* Shadow drawing removed - ThreeD eliminated */
 
@@ -326,7 +277,7 @@ static void
 draw_it(XtPointer client_data, XtIntervalId *id)
 {
    StripChartWidget w = (StripChartWidget)client_data;
-   Dimension s = w->strip_chart.shadow_width;
+   Dimension s = 0;
    double value;
 
    if (w->strip_chart.update > 0)
@@ -404,7 +355,7 @@ static int
 repaint_window(Widget gw, int left, int width)
 {
     StripChartWidget w = (StripChartWidget) gw;
-    Dimension s = w->strip_chart.shadow_width;
+    Dimension s = 0;
     int i, j;
     int next = w->strip_chart.interval;
     int scale = w->strip_chart.scale;
@@ -477,7 +428,7 @@ repaint_window(Widget gw, int left, int width)
 static void
 MoveChart(StripChartWidget w, Boolean blit)
 {
-    Dimension s = w->strip_chart.shadow_width;
+    Dimension s = 0;
     double old_max;
     int left, i, j;
     int next = w->strip_chart.interval;
@@ -602,7 +553,7 @@ static void
 SetPoints(Widget widget)
 {
     StripChartWidget w = (StripChartWidget) widget;
-    Dimension s = w->strip_chart.shadow_width;
+    Dimension s = 0;
     xcb_point_t * points;
     Cardinal size;
     int i;

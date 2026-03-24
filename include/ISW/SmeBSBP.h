@@ -105,15 +105,8 @@ typedef struct {
     unsigned int right_depth;
     String menu_name;		/* name of nested sub-menu or NULL */
     
-    /* Shadow fields (formerly from SmeThreeD) */
-    Dimension shadow_width;
-    Pixel top_shadow_pixel;
-    Pixel bot_shadow_pixel;
-    GC top_shadow_GC;
-    GC bot_shadow_GC;
     GC erase_GC;
-    Boolean shadowed;
-    
+
     ISWRenderContext *render_ctx;  /* Cairo rendering context */
 } SmeBSBPart;
 

@@ -212,14 +212,6 @@ typedef struct _TextPart {
     short           mult;	    /* Multiplier. */
     struct text_move * copy_area_offsets; /* Text offset area (linked list) */
 
-    /* Shadow fields (formerly from ThreeD widget) */
-    Dimension       shadow_width;
-    Pixel           top_shadow_pixel;
-    Pixel           bot_shadow_pixel;
-    GC              top_shadow_GC;
-    GC              bot_shadow_GC;
-    XtRelief        relief;
-
     /* private state, shared w/Source and Sink */
     Boolean	    redisplay_needed; /* in SetValues */
     IswTextSelectionSalt    *salt2;	     /* salted away selections */

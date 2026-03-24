@@ -41,17 +41,6 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 
-/* Shadow resource name definitions (previously from ThreeD.h) */
-#define XtNshadowWidth "shadowWidth"
-#define XtCShadowWidth "ShadowWidth"
-#define XtNtopShadowPixel "topShadowPixel"
-#define XtCTopShadowPixel "TopShadowPixel"
-#define XtNbottomShadowPixel "bottomShadowPixel"
-#define XtCBottomShadowPixel "BottomShadowPixel"
-#define XtNrelief "relief"
-#define XtCRelief "Relief"
-#define XtRRelief "Relief"
-
 #endif
 #include <ISW/ISWP.h>
 #include <X11/IntrinsicP.h>
@@ -75,9 +64,6 @@ in this Software without prior written authorization from the X Consortium.
 #else
 extern int abs();
 #endif
-
-#define XtNshadowed "shadowed"
-#define XtCShadowed "Shadowed"
 
 #define offset(field) XtOffsetOf(SmeBSBRec, sme_bsb.field)
 
@@ -108,15 +94,6 @@ static XtResource resources[] = {
      offset(menu_name), XtRImmediate, (XtPointer) NULL},
   {XtNunderline,  XtCIndex, XtRInt, sizeof(int),
      offset(underline), XtRImmediate, (XtPointer) -1},
-  /* Shadow resources (formerly from SmeThreeD) */
-  {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-     offset(shadow_width), XtRImmediate, (XtPointer) 2},
-  {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
-     offset(top_shadow_pixel), XtRString, XtDefaultForeground},
-  {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
-     offset(bot_shadow_pixel), XtRString, XtDefaultForeground},
-  {XtNshadowed, XtCShadowed, XtRBoolean, sizeof(Boolean),
-     offset(shadowed), XtRImmediate, (XtPointer) False},
 };
 #undef offset
 
@@ -143,8 +120,6 @@ static void GetBitmapInfo(Widget, Boolean);
 static void CreateGCs(Widget);
 static void DestroyGCs(Widget);
 static void FlipColors(Widget);
-static void DrawShadows(Widget);
-
 #define superclass (&smeClassRec)
 SmeBSBClassRec smeBSBClassRec = {
   {
@@ -312,7 +287,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     GC gc;
     SmeBSBObject entry = (SmeBSBObject) w;
-    Dimension s = entry->sme_bsb.shadow_width;
+    Dimension s = 0;
     int	font_ascent = 0, font_descent = 0, y_loc;
 #ifdef ISW_INTERNATIONALIZATION
     int	fontset_ascent = 0, fontset_descent = 0;
@@ -634,18 +609,12 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val
 static void
 Highlight(Widget w)
 {
-    SmeBSBObject entry = (SmeBSBObject) w;
-
-    entry->sme_bsb.shadowed = True;
     FlipColors(w);
 }
 
 static void
 Unhighlight(Widget w)
 {
-    SmeBSBObject entry = (SmeBSBObject) w;
-
-    entry->sme_bsb.shadowed = False;
     FlipColors(w);
 }
 
@@ -702,13 +671,11 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
     }
 
     *width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;
-    *width += (2 * entry->sme_bsb.shadow_width);
 
     h = (entry->sme_bsb.left_bitmap_height > entry->sme_bsb.right_bitmap_height)
 	    ? entry->sme_bsb.left_bitmap_height : entry->sme_bsb.right_bitmap_height;
     if (h > *height) *height = h;
     *height = ((int)*height * (100 + entry->sme_bsb.vert_space)) / 100;
-    *height += (2 * entry->sme_bsb.shadow_width);
 }
 
 /*      Function Name: DrawBitmaps
@@ -736,7 +703,7 @@ DrawBitmaps(Widget w, GC gc)
  */
 
   if (entry->sme_bsb.left_bitmap != None) {
-    x_loc = entry->sme_bsb.shadow_width +
+    x_loc = 0 +
   (int)(entry->sme_bsb.left_margin -
 		entry->sme_bsb.left_bitmap_width) / 2;
 
@@ -776,7 +743,7 @@ DrawBitmaps(Widget w, GC gc)
  */
 
   if (entry->sme_bsb.right_bitmap != None) {
-    x_loc = entry->rectangle.width - entry->sme_bsb.shadow_width -
+    x_loc = entry->rectangle.width - 0 -
   (int)(entry->sme_bsb.right_margin +
 		entry->sme_bsb.right_bitmap_width) / 2;
 
@@ -965,18 +932,6 @@ CreateGCs(Widget w)
     mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FUNCTION;
     entry->sme_bsb.invert_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
 
-    /* Create shadow GCs */
-    values.foreground = entry->sme_bsb.top_shadow_pixel;
-    values.background = XtParent(w)->core.background_pixel;
-    values.graphics_exposures = 0;
-    mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-    entry->sme_bsb.top_shadow_GC = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
-
-    values.foreground = entry->sme_bsb.bot_shadow_pixel;
-    entry->sme_bsb.bot_shadow_GC = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
-
-    values.foreground = XtParent(w)->core.background_pixel;
-    entry->sme_bsb.erase_GC = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
 }
 
 /*      Function Name: DestroyGCs
@@ -994,9 +949,6 @@ DestroyGCs(Widget w)
     XtReleaseGC(w, entry->sme_bsb.norm_gray_gc);
     XtReleaseGC(w, entry->sme_bsb.rev_gc);
     XtReleaseGC(w, entry->sme_bsb.invert_gc);
-    XtReleaseGC(w, entry->sme_bsb.top_shadow_GC);
-    XtReleaseGC(w, entry->sme_bsb.bot_shadow_GC);
-    XtReleaseGC(w, entry->sme_bsb.erase_GC);
 }
 
 /*      Function Name: FlipColors
@@ -1009,18 +961,11 @@ static void
 FlipColors(Widget w)
 {
     SmeBSBObject entry = (SmeBSBObject) w;
-    SmeBSBObjectClass oclass = (SmeBSBObjectClass) XtClass (w);
-    SimpleMenuWidget smw = (SimpleMenuWidget) XtParent (w);
-    Dimension s = smw->simple_menu.shadow_width;
 
-    if (entry->sme_bsb.set_values_area_cleared) {
- entry->sme_bsb.shadowed = False;
+    if (entry->sme_bsb.set_values_area_cleared)
  return;
-    }
 
-    if (entry->sme_bsb.shadow_width > 0) {
-	DrawShadows(w);
-    } else if (entry->sme_bsb.render_ctx) {
+    if (entry->sme_bsb.render_ctx) {
 	/*
 	 * Invert the entry using Cairo's DIFFERENCE operator,
 	 * which gives the same visual result as the old XOR GC approach.
@@ -1031,8 +976,8 @@ FlipColors(Widget w)
 	    cairo_save(cr);
 	    cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
 	    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-	    cairo_rectangle(cr, s, (int) entry->rectangle.y,
-		(int) entry->rectangle.width - 2 * s,
+	    cairo_rectangle(cr, 0, (int) entry->rectangle.y,
+		(int) entry->rectangle.width,
 		(int) entry->rectangle.height);
 	    cairo_fill(cr);
 	    cairo_restore(cr);
@@ -1041,104 +986,3 @@ FlipColors(Widget w)
     }
 }
 
-/*	Function Name: DrawShadows
- *	Description: Draws the 3D shadows for the menu entry.
- *	Arguments: w - the menu entry widget.
- *	Returns: none.
- */
-static void
-DrawShadows(Widget w)
-{
-    SmeBSBObject entry = (SmeBSBObject) w;
-    SimpleMenuWidget smw = (SimpleMenuWidget) XtParent(w);
-    Dimension s = entry->sme_bsb.shadow_width;
-    Dimension ps = smw->simple_menu.shadow_width;
-    xcb_point_t pt[6];
-
-    /*
-     * Draw the shadows using the core part width and height,
-     * and the shadow_width.
-     *
-     * No point to do anything if the shadow_width is 0 or the
-     * widget has not been realized.
-     */
-    if (s > 0 && XtIsRealized(w))
-    {
- Dimension h = entry->rectangle.height;
- Dimension w_dim = entry->rectangle.width - ps;
- Dimension x = entry->rectangle.x + ps;
- Dimension y = entry->rectangle.y;
- xcb_connection_t *dpy = XtDisplayOfObject(w);
- xcb_window_t win = XtWindowOfObject(w);
- xcb_gcontext_t top, bot;
-
- /* Try to create Cairo rendering context if not yet created */
- if (!entry->sme_bsb.render_ctx && w_dim > 0 && h > 0 &&
-     w_dim < 32767 && h < 32767) {
-     entry->sme_bsb.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
- }
-
- if (entry->sme_bsb.shadowed)
- {
-     top = entry->sme_bsb.top_shadow_GC;
-     bot = entry->sme_bsb.bot_shadow_GC;
- }
- else
-     top = bot = entry->sme_bsb.erase_GC;
-
- /* Use Cairo rendering if available */
- if (entry->sme_bsb.render_ctx) {
-     Pixel top_pixel, bot_pixel;
-     Widget parent = XtParent(w);
-     
-     /* Determine which pixels to use based on shadowed flag */
-     if (entry->sme_bsb.shadowed) {
-  top_pixel = entry->sme_bsb.top_shadow_pixel;
-  bot_pixel = entry->sme_bsb.bot_shadow_pixel;
-     } else {
-  /* Use parent background for both when not shadowed */
-  top_pixel = bot_pixel = parent->core.background_pixel;
-     }
-     
-     ISWRenderBegin(entry->sme_bsb.render_ctx);
-     
-     /* top-left shadow */
-     pt[0].x = x;		pt[0].y = y + h;
-     pt[1].x = x;		pt[1].y = y;
-     pt[2].x = w_dim;		pt[2].y = y;
-     pt[3].x = w_dim - s;	pt[3].y = y + s;
-     pt[4].x = ps + s;		pt[4].y = y + s;
-     pt[5].x = ps + s;		pt[5].y = y + h - s;
-     ISWRenderSetColor(entry->sme_bsb.render_ctx, top_pixel);
-     ISWRenderFillPolygon(entry->sme_bsb.render_ctx, pt, 6);
-
-     /* bottom-right shadow */
-     pt[1].x = w_dim;	pt[1].y = y + h;
-     pt[4].x = w_dim - s;	pt[4].y = y + h - s;
-     ISWRenderSetColor(entry->sme_bsb.render_ctx, bot_pixel);
-     ISWRenderFillPolygon(entry->sme_bsb.render_ctx, pt, 6);
-
-     ISWRenderEnd(entry->sme_bsb.render_ctx);
-     return;  /* Done with Cairo rendering */
- }
-
- /* XCB fallback rendering path */
- /* top-left shadow */
- pt[0].x = x;		pt[0].y = y + h;
- pt[1].x = x;		pt[1].y = y;
- pt[2].x = w_dim;	pt[2].y = y;
- pt[3].x = w_dim - s;	pt[3].y = y + s;
- pt[4].x = ps + s;	pt[4].y = y + s;
- pt[5].x = ps + s;	pt[5].y = y + h - s;
- xcb_fill_poly(dpy, win, top, XCB_POLY_SHAPE_COMPLEX,
-        XCB_COORD_MODE_ORIGIN, 6, pt);
-
- /* bottom-right shadow */
- pt[1].x = w_dim;	pt[1].y = y + h;
- pt[4].x = w_dim - s;	pt[4].y = y + h - s;
- xcb_fill_poly(dpy, win, bot, XCB_POLY_SHAPE_COMPLEX,
-        XCB_COORD_MODE_ORIGIN, 6, pt);
- 
- xcb_flush(dpy);
-    }
-}

@@ -75,20 +75,6 @@ SOFTWARE.
 #include <xcb/xfixes.h>
 #include "ISWXcbDraw.h"
 
-/* Shadow resource name definitions (previously from ThreeD.h) */
-#define XtNshadowWidth "shadowWidth"
-#define XtCShadowWidth "ShadowWidth"
-#define XtNtopShadowPixel "topShadowPixel"
-#define XtCTopShadowPixel "TopShadowPixel"
-#define XtNbottomShadowPixel "bottomShadowPixel"
-#define XtCBottomShadowPixel "BottomShadowPixel"
-#define XtNtopShadowContrast "topShadowContrast"
-#define XtCTopShadowContrast "TopShadowContrast"
-#define XtNbottomShadowContrast "bottomShadowContrast"
-#define XtCBottomShadowContrast "BottomShadowContrast"
-#define XtNrelief "relief"
-#define XtCRelief "Relief"
-#define XtRRelief "Relief"
 
 /* Forward declarations for Xmu functions that need XCB replacements */
 /* XmuCvtStringToJustify signature must match XtConverter */
@@ -145,14 +131,6 @@ static XtResource resources[] = {
 	offset(label.pixmap), XtRImmediate, (XtPointer)None},
     {XtNresize, XtCResize, XtRBoolean, sizeof(Boolean),
 	offset(label.resize), XtRImmediate, (XtPointer)True},
-    {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-	offset(label.shadow_width), XtRImmediate, (XtPointer) 0},
-    {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
-	offset(label.top_shadow_pixel), XtRString, XtDefaultForeground},
-    {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
-	offset(label.bot_shadow_pixel), XtRString, XtDefaultForeground},
-    {XtNrelief, XtCRelief, XtRRelief, sizeof(XtRelief),
-	offset(label.relief), XtRImmediate, (XtPointer) XtReliefRaised},
     {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
          XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
          (XtPointer)1},
@@ -494,12 +472,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* HiDPI: scale dimension resources */
     lw->label.internal_width = ISWScaleDim(new, lw->label.internal_width);
     lw->label.internal_height = ISWScaleDim(new, lw->label.internal_height);
-    if (lw->label.shadow_width > 0)
-        lw->label.shadow_width = ISWScaleDim(new, lw->label.shadow_width);
-
-    /* disable shadows if we're not a subclass of Command */
-    if (!XtIsSubclass(new, commandWidgetClass))
-	lw->label.shadow_width = 0;
 
     if (lw->label.label == NULL)
         lw->label.label = XtNewString(lw->core.name);
@@ -554,24 +526,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     GetnormalGC(lw);
     GetgrayGC(lw);
-
-    /* Allocate shadow GCs for 3D appearance (if shadow_width > 0) */
-    if (lw->label.shadow_width > 0) {
-	xcb_create_gc_value_list_t gcv;
-	XtGCMask valuemask;
-	
-	/* Top shadow GC */
-	valuemask = GCForeground;
-	gcv.foreground = lw->label.top_shadow_pixel;
-	lw->label.top_shadow_GC = XtGetGC((Widget)lw, valuemask, &gcv);
-	
-	/* Bottom shadow GC */
-	gcv.foreground = lw->label.bot_shadow_pixel;
-	lw->label.bot_shadow_GC = XtGetGC((Widget)lw, valuemask, &gcv);
-    } else {
-	lw->label.top_shadow_GC = None;
-	lw->label.bot_shadow_GC = None;
-    }
 
     /* Initialize render context to NULL (will be created on first use) */
     lw->label.render_ctx = NULL;
@@ -1051,12 +1005,6 @@ Destroy(Widget w)
 	XtFree(lw->label.svg_file);
     XtReleaseGC( w, lw->label.normal_GC );
     XtReleaseGC( w, lw->label.gray_GC);
-    
-    /* Release shadow GCs */
-    if (lw->label.top_shadow_GC != None)
-	XtReleaseGC( w, lw->label.top_shadow_GC );
-    if (lw->label.bot_shadow_GC != None)
-	XtReleaseGC( w, lw->label.bot_shadow_GC );
     
     /* Free Cairo render context if allocated */
     if (lw->label.render_ctx != NULL) {

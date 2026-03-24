@@ -36,17 +36,6 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 
-/* Shadow resource name definitions (previously from ThreeD.h) */
-#define XtNshadowWidth "shadowWidth"
-#define XtCShadowWidth "ShadowWidth"
-#define XtNtopShadowPixel "topShadowPixel"
-#define XtCTopShadowPixel "TopShadowPixel"
-#define XtNbottomShadowPixel "bottomShadowPixel"
-#define XtCBottomShadowPixel "BottomShadowPixel"
-#define XtNrelief "relief"
-#define XtCRelief "Relief"
-#define XtRRelief "Relief"
-
 #endif
 #include <stdio.h>
 #include <limits.h>
@@ -72,8 +61,6 @@ typedef xcb_point_t XPoint;
 #define streq(a, b)        ( strcmp((a), (b)) == 0 )
 
 #define offset(field) XtOffsetOf(SimpleMenuRec, simple_menu.field)
-
-static char defaultRelief[] = "Raised";
 
 static XtResource resources[] = {
 
@@ -121,18 +108,6 @@ static XtResource resources[] = {
   {XtNjumpScroll,  XtCJumpScroll, XtRInt, sizeof(int),
       offset(jump_val), XtRImmediate, (XtPointer)1},
 
-/*
- * Shadow Resources (formerly from internal ThreeD widget).
- */
-
-  {XtNshadowWidth, XtCShadowWidth, XtRDimension, sizeof(Dimension),
-      offset(shadow_width), XtRImmediate, (XtPointer) 2},
-  {XtNtopShadowPixel, XtCTopShadowPixel, XtRPixel, sizeof(Pixel),
-      offset(top_shadow_pixel), XtRString, XtDefaultForeground},
-  {XtNbottomShadowPixel, XtCBottomShadowPixel, XtRPixel, sizeof(Pixel),
-      offset(bot_shadow_pixel), XtRString, XtDefaultForeground},
-  {XtNrelief, XtCRelief, XtRRelief, sizeof(XtRelief),
-      offset(relief), XtRString, (XtPointer) defaultRelief},
 };
 #undef offset
 
@@ -358,25 +333,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   if (smw->simple_menu.label_string != NULL)
       CreateLabel(new);
 
-  /* Allocate shadow GCs */
-  {
-      xcb_screen_t *scn = XtScreen(new);
-      XtGCMask valuemask;
-      xcb_create_gc_value_list_t myXGCV;
-
-      /* Allocate top shadow GC */
-      valuemask = GCForeground;
-      myXGCV.foreground = smw->simple_menu.top_shadow_pixel;
-      smw->simple_menu.top_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
-
-      /* Allocate bottom shadow GC */
-      myXGCV.foreground = smw->simple_menu.bot_shadow_pixel;
-      smw->simple_menu.bot_shadow_GC = XtGetGC(new, valuemask, &myXGCV);
-  }
-
-  if (smw->simple_menu.shadow_width > 0)
-      smw->simple_menu.shadow_width = ISWScaleDim(new, smw->simple_menu.shadow_width);
-
   smw->simple_menu.menu_width = TRUE;
 
   if (smw->core.width == 0) {
@@ -406,10 +362,6 @@ Destroy(Widget w)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     
-    /* Release shadow GCs */
-    XtReleaseGC(w, smw->simple_menu.top_shadow_GC);
-    XtReleaseGC(w, smw->simple_menu.bot_shadow_GC);
-    
     /* Free Cairo rendering context */
     if (smw->simple_menu.render_ctx) {
         ISWRenderDestroy(smw->simple_menu.render_ctx);
@@ -433,7 +385,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     SmeObject *entry;
     SmeObjectClass class;
     RectObjPart old_pos;
-    int y, max_y, new_y, dy, s = smw->simple_menu.shadow_width;
+    int y, max_y, new_y, dy, s = 0;
     Boolean can_paint;
     XPoint point[3];
 
@@ -494,7 +446,7 @@ point[2].y = s + SMW_ARROW_SIZE;
 /* Use Cairo rendering for up arrow if available */
 if (smw->simple_menu.render_ctx) {
 		 ISWRenderBegin(smw->simple_menu.render_ctx);
-		 ISWRenderSetColor(smw->simple_menu.render_ctx, smw->simple_menu.bot_shadow_pixel);
+		 ISWRenderSetColor(smw->simple_menu.render_ctx, smw->core.border_pixel);
 		 ISWRenderFillPolygon(smw->simple_menu.render_ctx, (xcb_point_t *)point, 3);
 		 ISWRenderEnd(smw->simple_menu.render_ctx);
 }
@@ -525,7 +477,7 @@ dy = SMW_ARROW_SIZE;
 	 /* Use Cairo rendering for down arrow if available */
 	 if (smw->simple_menu.render_ctx) {
 	     ISWRenderBegin(smw->simple_menu.render_ctx);
-	     ISWRenderSetColor(smw->simple_menu.render_ctx, smw->simple_menu.bot_shadow_pixel);
+	     ISWRenderSetColor(smw->simple_menu.render_ctx, smw->core.border_pixel);
 	     ISWRenderFillPolygon(smw->simple_menu.render_ctx, (xcb_point_t *)point, 3);
 	     ISWRenderEnd(smw->simple_menu.render_ctx);
 	 }
@@ -565,7 +517,7 @@ dy = SMW_ARROW_SIZE;
     if (smw->simple_menu.render_ctx) {
         ISWRenderBegin(smw->simple_menu.render_ctx);
         ISWRenderSetColor(smw->simple_menu.render_ctx,
-                          smw->simple_menu.bot_shadow_pixel);
+                          smw->core.border_pixel);
         ISWRenderStrokeRectangle(smw->simple_menu.render_ctx,
                                  0, 0,
                                  w->core.width - 1,
@@ -1174,7 +1126,7 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 	height = smw->core.height;
     else if (do_layout)
     {
-	height = smw->simple_menu.top_margin + smw->simple_menu.shadow_width;
+	height = smw->simple_menu.top_margin;
 
 	ForAllChildren(smw, entry)
 	{
@@ -1189,13 +1141,12 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 	    height += (*entry)->rectangle.height;
 	}
 
-	height += smw->simple_menu.bottom_margin + smw->simple_menu.shadow_width;
+	height += smw->simple_menu.bottom_margin;
     }
     else if (smw->simple_menu.row_height != 0 &&
 		current_entry != smw->simple_menu.label)
     {
 	height = smw->simple_menu.row_height * smw->composite.num_children;
-	height += smw->simple_menu.shadow_width * 2;
     }
 
     if (smw->simple_menu.menu_width)
@@ -1526,7 +1477,6 @@ GetMenuHeight(Widget w)
 	return(smw->core.height);
 
     height = smw->simple_menu.top_margin + smw->simple_menu.bottom_margin;
-    height += smw->simple_menu.shadow_width * 2;
 
     if (smw->simple_menu.row_height == 0) {
 	ForAllChildren(smw, entry)
@@ -1553,7 +1503,7 @@ GetEventEntry(Widget w, XEvent * event)
     SmeObject *entry;
     static xcb_point_t last_pos;
     xcb_point_t pos;
-    int s = smw->simple_menu.shadow_width;
+    int s = 0;
 
     uint8_t type = event->response_type & ~0x80;
     switch (type) {
@@ -1690,7 +1640,6 @@ PopupSubMenu(SimpleMenuWidget smw)
 	if (menu_y + XtHeight(menu) > scr_height)
 	    menu_y = scr_height - XtHeight(menu) - XtBorderWidth(menu);
 
-	menu_y -= smenu->simple_menu.shadow_width;
     }
     if (menu_y < 0)
 	menu_y = 0;
