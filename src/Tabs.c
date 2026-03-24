@@ -25,7 +25,7 @@
 #define TabInfo(w) ((TabsConstraints)(w)->core.constraints)
 
 #define TAB_H_PAD  10
-#define TAB_V_PAD  4
+#define TAB_V_PAD  1
 
 #define ForAllChildren(tw, childP) \
   for ((childP) = (tw)->composite.children; \
