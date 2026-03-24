@@ -42,6 +42,9 @@ _XFUNCPROTOBEGIN
 /* Return the built-in MenuBar child */
 extern Widget IswMainWindowGetMenuBar(Widget /* mainWindow */);
 
+/* Return the StatusBar child (NULL if none) */
+extern Widget IswMainWindowGetStatusBar(Widget /* mainWindow */);
+
 _XFUNCPROTOEND
 
 #endif /* _ISW_MainWindow_h */

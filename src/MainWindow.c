@@ -35,12 +35,14 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/MainWindowP.h>
 #include <ISW/MenuBarP.h>
+#include <ISW/StatusBar.h>
 
 #define superclass (&compositeClassRec)
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
+static void InsertChild(Widget);
 static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 static void ChangeManaged(Widget);
 static XtGeometryResult PreferredSize(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
@@ -83,7 +85,7 @@ MainWindowClassRec mainWindowClassRec = {
   { /* composite */
     GeometryManager,                    /* geometry_manager       */
     ChangeManaged,                      /* change_managed         */
-    XtInheritInsertChild,               /* insert_child           */
+    InsertChild,                        /* insert_child           */
     XtInheritDeleteChild,               /* delete_child           */
     NULL                                /* extension              */
   },
@@ -110,7 +112,9 @@ FindContentChild(MainWindowWidget mw)
 
     for (i = 0; i < mw->composite.num_children; i++) {
         Widget child = mw->composite.children[i];
-        if (child != mw->main_window.menubar && XtIsManaged(child))
+        if (child != mw->main_window.menubar &&
+            child != mw->main_window.statusbar &&
+            XtIsManaged(child))
             return child;
     }
     return NULL;
@@ -132,14 +136,28 @@ MenuBarHeight(MainWindowWidget mw)
                                           : mw->main_window.menubar->core.height;
 }
 
+static Dimension
+StatusBarHeight(MainWindowWidget mw)
+{
+    XtWidgetGeometry pref;
+
+    if (!mw->main_window.statusbar || !XtIsManaged(mw->main_window.statusbar))
+        return 0;
+
+    XtQueryGeometry(mw->main_window.statusbar, NULL, &pref);
+    return (pref.request_mode & CWHeight) ? pref.height
+                                          : mw->main_window.statusbar->core.height;
+}
+
 /*
- * Position the menubar at the top full-width, content child below
- * filling the remaining space.
+ * Position the menubar at the top, statusbar at the bottom (both full-width),
+ * content child fills the remaining space between them.
  */
 static void
 DoLayout(MainWindowWidget mw)
 {
     Dimension mb_h = MenuBarHeight(mw);
+    Dimension sb_h = StatusBarHeight(mw);
     Dimension w = mw->core.width;
     Dimension h = mw->core.height;
     Widget content;
@@ -149,10 +167,17 @@ DoLayout(MainWindowWidget mw)
         XtConfigureWidget(mw->main_window.menubar, 0, 0, w, mb_h, 0);
     }
 
-    /* Content child: below menubar, fills remaining space */
+    /* StatusBar: bottom, full width */
+    if (mw->main_window.statusbar && XtIsManaged(mw->main_window.statusbar)) {
+        Position sb_y = (h > sb_h) ? (Position)(h - sb_h) : 0;
+        XtConfigureWidget(mw->main_window.statusbar, 0, sb_y, w, sb_h, 0);
+    }
+
+    /* Content child: between menubar and statusbar */
     content = FindContentChild(mw);
     if (content) {
-        Dimension content_h = (h > mb_h) ? h - mb_h : 1;
+        Dimension chrome = mb_h + sb_h;
+        Dimension content_h = (h > chrome) ? h - chrome : 1;
         XtConfigureWidget(content, 0, (Position)mb_h, w, content_h, 0);
     }
 }
@@ -181,6 +206,21 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     XtSetArg(mbar_args[n], XtNborderWidth, 0); n++;
     mw->main_window.menubar = XtCreateManagedWidget(
         "menubar", menuBarWidgetClass, new, mbar_args, n);
+    mw->main_window.statusbar = NULL;
+}
+
+static void
+InsertChild(Widget child)
+{
+    /* Call Composite's insert_child */
+    (*compositeClassRec.composite_class.insert_child)(child);
+
+    /* If the child is a StatusBar, claim it */
+    if (XtIsSubclass(child, statusBarWidgetClass)) {
+        MainWindowWidget mw = (MainWindowWidget) XtParent(child);
+        if (mw->main_window.statusbar == NULL)
+            mw->main_window.statusbar = child;
+    }
 }
 
 static void
@@ -201,8 +241,8 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
         (request->request_mode & CWY && request->y != child->core.y))
         return XtGeometryNo;
 
-    /* For the menubar, allow height changes and relayout */
-    if (child == mw->main_window.menubar) {
+    /* For the menubar or statusbar, allow height changes and relayout */
+    if (child == mw->main_window.menubar || child == mw->main_window.statusbar) {
         if (request->request_mode & CWHeight) {
             child->core.height = request->height;
             DoLayout(mw);
@@ -213,7 +253,8 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
     /* For the content child, allow height changes by negotiating with parent */
     if (request->request_mode & CWHeight) {
         Dimension mb_h = MenuBarHeight(mw);
-        Dimension new_total = mb_h + request->height;
+        Dimension sb_h = StatusBarHeight(mw);
+        Dimension new_total = mb_h + sb_h + request->height;
         Dimension proposed_w = mw->core.width;
         Dimension proposed_h = new_total;
 
@@ -246,7 +287,7 @@ static XtGeometryResult
 PreferredSize(Widget w, XtWidgetGeometry *constraint, XtWidgetGeometry *preferred)
 {
     MainWindowWidget mw = (MainWindowWidget) w;
-    XtWidgetGeometry mb_pref, content_pref;
+    XtWidgetGeometry mb_pref, sb_pref, content_pref;
     Dimension pref_w = 0, pref_h = 0;
     Widget content;
 
@@ -259,6 +300,15 @@ PreferredSize(Widget w, XtWidgetGeometry *constraint, XtWidgetGeometry *preferre
             pref_w = mb_pref.width;
         if (mb_pref.request_mode & CWHeight)
             pref_h = mb_pref.height;
+    }
+
+    /* Query statusbar preferred size */
+    if (mw->main_window.statusbar && XtIsManaged(mw->main_window.statusbar)) {
+        XtQueryGeometry(mw->main_window.statusbar, NULL, &sb_pref);
+        if ((sb_pref.request_mode & CWWidth) && sb_pref.width > pref_w)
+            pref_w = sb_pref.width;
+        if (sb_pref.request_mode & CWHeight)
+            pref_h += sb_pref.height;
     }
 
     /* Query content child preferred size */
@@ -298,4 +348,12 @@ IswMainWindowGetMenuBar(Widget w)
     if (!XtIsSubclass(w, mainWindowWidgetClass))
         return NULL;
     return ((MainWindowWidget) w)->main_window.menubar;
+}
+
+Widget
+IswMainWindowGetStatusBar(Widget w)
+{
+    if (!XtIsSubclass(w, mainWindowWidgetClass))
+        return NULL;
+    return ((MainWindowWidget) w)->main_window.statusbar;
 }

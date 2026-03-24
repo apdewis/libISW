@@ -19,8 +19,9 @@
 #include <ISW/Viewport.h>
 #include <ISW/MainWindow.h>
 
-/* Toolbar */
+/* Toolbar / StatusBar */
 #include <ISW/Toolbar.h>
+#include <ISW/StatusBar.h>
 
 /* Basic display widgets */
 #include <ISW/Label.h>
@@ -219,6 +220,28 @@ Widget create_main_window(Widget parent) {
 
     /* Populate the built-in menubar */
     populate_menubar(IswMainWindowGetMenuBar(main_win));
+
+    /* Status bar at bottom — MainWindow auto-detects StatusBar children */
+    {
+        Widget statusbar, sb_label;
+        Arg sb_args[4];
+        Cardinal sn;
+
+        sn = 0;
+        statusbar = XtCreateManagedWidget("statusbar", statusBarWidgetClass,
+                                           main_win, sb_args, sn);
+
+        sn = 0;
+        XtSetArg(sb_args[sn], XtNlabel, "Ready"); sn++;
+        XtSetArg(sb_args[sn], XtNstatusStretch, True); sn++;
+        sb_label = XtCreateManagedWidget("statusText", labelWidgetClass,
+                                          statusbar, sb_args, sn);
+
+        sn = 0;
+        XtSetArg(sb_args[sn], XtNlabel, "Ln 1, Col 1"); sn++;
+        XtCreateManagedWidget("statusPos", labelWidgetClass,
+                               statusbar, sb_args, sn);
+    }
 
     /* Viewport as content child — scrolls independently of menubar */
     n = 0;

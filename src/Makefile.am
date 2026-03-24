@@ -135,6 +135,7 @@ ISW_SOURCES = \
 	Scrollbar.c \
 	ScrollWheel.c \
 	SpinBox.c \
+	StatusBar.c \
 	Simple.c \
 	SimpleMenu.c \
 	SmeBSB.c \

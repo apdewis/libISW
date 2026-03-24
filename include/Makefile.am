@@ -60,6 +60,8 @@ iswinclude_HEADERS = \
 	ISW/ScrollbarP.h \
 	ISW/SpinBox.h \
 	ISW/SpinBoxP.h \
+	ISW/StatusBar.h \
+	ISW/StatusBarP.h \
 	ISW/Simple.h \
 	ISW/SimpleMenP.h \
 	ISW/SimpleMenu.h \

@@ -63,6 +63,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Sme.h>
 #include <ISW/SmeBSB.h>
 #include <ISW/SmeLine.h>
+#include <ISW/StatusBar.h>
 #include <ISW/StripChart.h>
 #include <ISW/Tabs.h>
 #include <ISW/Toolbar.h>
@@ -108,6 +109,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "smeBSB", &smeBSBObjectClass },
 { "smeLine", &smeLineObjectClass },
 { "sme", &smeObjectClass },
+{ "statusBar", &statusBarWidgetClass },
 { "stripChart", &stripChartWidgetClass },
 { "tabs", &tabsWidgetClass },
 { "textSink", &textSinkObjectClass },

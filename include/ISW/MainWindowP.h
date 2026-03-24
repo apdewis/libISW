@@ -43,6 +43,7 @@ extern MainWindowClassRec mainWindowClassRec;
 typedef struct {
     /* private state */
     Widget     menubar;
+    Widget     statusbar;   /* optional, created by app as a StatusBar child */
 } MainWindowPart;
 
 /* Full instance record */
