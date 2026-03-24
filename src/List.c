@@ -1178,6 +1178,17 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
                               False, DropdownDismissHandler, (XtPointer)lw);
     }
 
+    /* Dismiss if any ancestor moves (e.g. viewport scrolled).
+     * Walk up to the shell, installing handlers on each ancestor. */
+    {
+        Widget ancestor = XtParent(w);
+        while (ancestor && !XtIsShell(ancestor)) {
+            XtAddEventHandler(ancestor, StructureNotifyMask, False,
+                              DropdownDismissHandler, (XtPointer)lw);
+            ancestor = XtParent(ancestor);
+        }
+    }
+
     XtAddCallback(lw->list.popup_shell, XtNpopdownCallback,
                   DropdownPopdownCB, (XtPointer)lw);
     return;
@@ -1501,6 +1512,16 @@ DropdownPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
                              FocusChangeMask | StructureNotifyMask |
                              VisibilityChangeMask,
                              False, DropdownDismissHandler, (XtPointer)lw);
+
+    /* Remove ancestor-move handlers */
+    {
+        Widget ancestor = XtParent((Widget)lw);
+        while (ancestor && !XtIsShell(ancestor)) {
+            XtRemoveEventHandler(ancestor, StructureNotifyMask, False,
+                                 DropdownDismissHandler, (XtPointer)lw);
+            ancestor = XtParent(ancestor);
+        }
+    }
 
     XtRemoveCallback(menu, XtNpopdownCallback, DropdownPopdownCB, client_data);
 }
