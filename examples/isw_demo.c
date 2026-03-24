@@ -36,6 +36,7 @@
 
 /* Selection widgets */
 #include <ISW/List.h>
+#include <ISW/ComboBox.h>
 #include <ISW/Tree.h>
 
 /* Layout widgets */
@@ -98,6 +99,7 @@ Widget create_menu_demo(Widget parent);
 Widget create_repeater_demo(Widget parent);
 
 Widget create_list_demo(Widget parent);
+Widget create_combobox_demo(Widget parent);
 Widget create_text_demo(Widget parent);
 Widget create_tree_demo(Widget parent);
 
@@ -115,6 +117,7 @@ void toggle_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void checkbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void list_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void quit_callback(Widget w, XtPointer client_data, XtPointer call_data);
@@ -874,41 +877,49 @@ Widget create_repeater_demo(Widget parent) {
  * ============================================================ */
 
 Widget create_selection_section(Widget parent) {
-    Widget form, section_label, list_demo, text_demo;
+    Widget form, section_label, list_demo, combobox_demo, text_demo;
     Arg args[10];
     Cardinal n;
-    
+
     /* Section container */
     n = 0;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
     XtSetArg(args[n], XtNdefaultDistance, 5); n++;
     form = XtCreateManagedWidget("selectionForm", formWidgetClass, parent, args, n);
-    
+
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Selection & Text Widgets: List, AsciiText"); n++;
+    XtSetArg(args[n], XtNlabel, "Selection & Text Widgets: List, ComboBox, AsciiText"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     section_label = XtCreateManagedWidget("selectionLabel", labelWidgetClass,
                                           form, args, n);
-    
-    /* List demo */
+
+    /* List demo (classic multi-item list) */
     list_demo = create_list_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(list_demo, args, n);
-    
-    /* Text demo */
-    text_demo = create_text_demo(form);
+
+    /* ComboBox demo (dropdown selector) */
+    combobox_demo = create_combobox_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromHoriz, list_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
+    XtSetValues(combobox_demo, args, n);
+
+    /* Text demo */
+    text_demo = create_text_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromHoriz, combobox_demo); n++;
+    XtSetArg(args[n], XtNfromVert, section_label); n++;
+    XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(text_demo, args, n);
-    
+
     return form;
 }
 
@@ -930,21 +941,53 @@ Widget create_list_demo(Widget parent) {
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Dropdown Selection"); n++;
+    XtSetArg(args[n], XtNlabel, "List"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     title = XtCreateManagedWidget("listTitle", labelWidgetClass, box, args, n);
 
-    /* List widget in dropdown mode */
+    /* Classic list widget — full multi-item display */
     n = 0;
     XtSetArg(args[n], XtNlist, items); n++;
     XtSetArg(args[n], XtNnumberStrings, XtNumber(items)); n++;
     XtSetArg(args[n], XtNdefaultColumns, 1); n++;
     XtSetArg(args[n], XtNforceColumns, True); n++;
     XtSetArg(args[n], XtNwidth, S(150)); n++;
-    XtSetArg(args[n], XtNdropdownMode, True); n++;
     list = XtCreateManagedWidget("list", listWidgetClass, box, args, n);
 
     XtAddCallback(list, XtNcallback, list_callback, NULL);
+
+    return box;
+}
+
+Widget create_combobox_demo(Widget parent) {
+    Widget box, title, combo;
+    Arg args[10];
+    Cardinal n;
+    static String items[] = {
+        "Red", "Orange", "Yellow", "Green",
+        "Blue", "Indigo", "Violet"
+    };
+
+    /* Container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("comboBoxBox", boxWidgetClass, parent, args, n);
+
+    /* Title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "ComboBox"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("comboBoxTitle", labelWidgetClass, box, args, n);
+
+    /* ComboBox — List subclass with dropdown default */
+    n = 0;
+    XtSetArg(args[n], XtNlist, items); n++;
+    XtSetArg(args[n], XtNnumberStrings, XtNumber(items)); n++;
+    XtSetArg(args[n], XtNwidth, S(150)); n++;
+    combo = XtCreateManagedWidget("comboBox", comboBoxWidgetClass, box, args, n);
+
+    XtAddCallback(combo, XtNcallback, combobox_callback, NULL);
 
     return box;
 }
@@ -1528,6 +1571,12 @@ void menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 void list_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     IswListReturnStruct *item = (IswListReturnStruct *)call_data;
     printf("List item selected: %s (index %d)\n",
+           item->string, item->list_index);
+}
+
+void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswListReturnStruct *item = (IswListReturnStruct *)call_data;
+    printf("ComboBox selected: %s (index %d)\n",
            item->string, item->list_index);
 }
 

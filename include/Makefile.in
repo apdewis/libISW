@@ -127,10 +127,11 @@ am__can_run_installinfo = \
 am__iswinclude_HEADERS_DIST = ISW/AllWidgets.h ISW/AsciiSink.h \
 	ISW/AsciiSinkP.h ISW/AsciiSrc.h ISW/AsciiSrcP.h \
 	ISW/AsciiText.h ISW/AsciiTextP.h ISW/Box.h ISW/BoxP.h \
-	ISW/Cardinals.h ISW/Command.h ISW/CommandP.h ISW/Dialog.h \
-	ISW/DialogP.h ISW/Form.h ISW/FormP.h ISW/Grip.h ISW/GripP.h \
-	ISW/Label.h ISW/LabelP.h ISW/Layout.h ISW/LayoutP.h ISW/List.h \
-	ISW/ListP.h ISW/MainWindow.h ISW/MainWindowP.h ISW/MenuBar.h \
+	ISW/Cardinals.h ISW/ComboBox.h ISW/ComboBoxP.h ISW/Command.h \
+	ISW/CommandP.h ISW/Dialog.h ISW/DialogP.h ISW/Form.h \
+	ISW/FormP.h ISW/Grip.h ISW/GripP.h ISW/Label.h ISW/LabelP.h \
+	ISW/Layout.h ISW/LayoutP.h ISW/List.h ISW/ListP.h \
+	ISW/MainWindow.h ISW/MainWindowP.h ISW/MenuBar.h \
 	ISW/MenuBarP.h ISW/MenuButton.h ISW/MenuButtoP.h ISW/Paned.h \
 	ISW/PanedP.h ISW/Panner.h ISW/PannerP.h ISW/Porthole.h \
 	ISW/PortholeP.h ISW/ProgressBar.h ISW/ProgressBarP.h \
@@ -387,6 +388,8 @@ iswinclude_HEADERS = \
 	ISW/Box.h \
 	ISW/BoxP.h \
 	ISW/Cardinals.h \
+	ISW/ComboBox.h \
+	ISW/ComboBoxP.h \
 	ISW/Command.h \
 	ISW/CommandP.h \
 	ISW/Dialog.h \

@@ -562,7 +562,9 @@ HighlightBackground(Widget w, int x, int y, GC gc)
 
     /* easy to clip the rectangle by hand and probably alot faster than Xlib */
 
-    Dimension width               = lw->list.col_width;
+    Dimension width               = (lw->list.ncols <= 1)
+                                    ? (w->core.width - x)
+                                    : lw->list.col_width;
     Dimension height              = lw->list.row_height;
     Dimension frame_limited_width = w->core.width - lw->list.internal_width - x;
     Dimension frame_limited_height= w->core.height- lw->list.internal_height- y;

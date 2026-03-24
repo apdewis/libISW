@@ -114,6 +114,7 @@ ISW_SOURCES = \
 	AsciiSrc.c \
 	AsciiText.c \
 	Box.c \
+	ComboBox.c \
 	Command.c \
 	Dialog.c \
 	Form.c \
