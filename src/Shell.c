@@ -84,6 +84,7 @@ in this Software without prior written authorization from The Open Group.
 #include "VendorP.h"
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
+#include <ISW/ISWXdnd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -1340,6 +1341,9 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
     xcb_flush(XtDisplay(wid));
 
     _popup_set_prop(w);
+
+    /* Enable XDND drop target on all shell windows */
+    ISWXdndEnable(wid);
 }
 
 static void

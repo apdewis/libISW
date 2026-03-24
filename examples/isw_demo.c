@@ -67,6 +67,7 @@
 #include <ISW/Grip.h>
 #include <ISW/ProgressBar.h>
 #include <ISW/Tabs.h>
+#include <ISW/ISWXdnd.h>
 
 /* Optional tooltip support */
 #ifdef HAVE_TIP
@@ -141,6 +142,7 @@ void colorpicker_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void fontchooser_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void quit_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void drop_callback(Widget w, XtPointer client_data, XtPointer call_data);
 
 /* Menu bar callbacks */
 void file_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
@@ -1627,10 +1629,24 @@ Widget create_specialized_section(Widget parent) {
 
     fontchooser_demo = create_fontchooser_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, spinbox_demo); n++;
+    XtSetArg(args[n], XtNfromVert, scale_demo); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(fontchooser_demo, args, n);
+
+    /* Drop target demo */
+    Widget drop_label;
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Drop files here"); n++;
+    XtSetArg(args[n], XtNwidth, 200); n++;
+    XtSetArg(args[n], XtNheight, 40); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    XtSetArg(args[n], XtNresize, False); n++;
+    XtSetArg(args[n], XtNfromVert, fontchooser_demo); n++;
+    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    drop_label = XtCreateManagedWidget("dropTarget", labelWidgetClass,
+                                        form, args, n);
+    XtAddCallback(drop_label, XtNdropCallback, drop_callback, NULL);
 
     return form;
 }
@@ -1972,6 +1988,21 @@ void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     IswListReturnStruct *item = (IswListReturnStruct *)call_data;
     printf("ComboBox selected: %s (index %d)\n",
            item->string, item->list_index);
+}
+
+void drop_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswDropCallbackData *data = (IswDropCallbackData *)call_data;
+    printf("Drop received: %d file(s) at (%d, %d)\n",
+           data->num_uris, data->x, data->y);
+    for (int i = 0; i < data->num_uris; i++)
+        printf("  [%d] %s\n", i, data->uris[i]);
+
+    /* Update the label to show the first dropped file */
+    if (data->num_uris > 0) {
+        Arg a[1];
+        XtSetArg(a[0], XtNlabel, data->uris[0]);
+        XtSetValues(w, a, 1);
+    }
 }
 
 

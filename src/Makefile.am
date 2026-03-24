@@ -165,6 +165,7 @@ ISW_SOURCES = \
 	ISWInit.c \
 	ISWXcbDraw.c \
 	ISWXcbDraw.h \
+	ISWXdnd.c \
 	Image.c \
 	laygram.y \
 	laylex.l \

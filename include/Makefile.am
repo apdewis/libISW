@@ -100,6 +100,7 @@ iswinclude_HEADERS = \
 	ISW/ViewportP.h \
 	ISW/ISWP.h \
 	ISW/ISWInit.h \
+	ISW/ISWXdnd.h \
 	$(I18N_HDRS)
 
 # X Toolkit Intrinsics headers (libXt)
