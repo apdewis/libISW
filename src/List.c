@@ -140,6 +140,7 @@ static void Set(Widget, XEvent *, String *, Cardinal *);
 static void Unset(Widget, XEvent *, String *, Cardinal *);
 static void DropdownMenuSelect(Widget, XtPointer, XtPointer);
 static void DropdownPopdownCB(Widget, XtPointer, XtPointer);
+static void DropdownDismissHandler(Widget, XtPointer, XEvent *, Boolean *);
 
 static XtActionsRec actions[] = {
       {"Notify",         Notify},
@@ -1164,6 +1165,19 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
         XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
         XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
     xcb_flush(XtDisplay(w));
+
+    /* Dismiss on focus loss, minimize, or visibility change */
+    {
+        Widget shell = w;
+        while (shell && !XtIsShell(shell))
+            shell = XtParent(shell);
+        if (shell)
+            XtAddEventHandler(shell,
+                              FocusChangeMask | StructureNotifyMask |
+                              VisibilityChangeMask,
+                              False, DropdownDismissHandler, (XtPointer)lw);
+    }
+
     XtAddCallback(lw->list.popup_shell, XtNpopdownCallback,
                   DropdownPopdownCB, (XtPointer)lw);
     return;
@@ -1452,12 +1466,42 @@ DropdownMenuSelect(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 static void
+DropdownDismissHandler(Widget w, XtPointer client_data, XEvent *event,
+                       Boolean *continue_to_dispatch)
+{
+    ListWidget lw = (ListWidget) client_data;
+    uint8_t type;
+    *continue_to_dispatch = True;
+
+    if (!lw->list.popup_shell)
+        return;
+
+    type = event->response_type & 0x7f;
+
+    if (type == XCB_FOCUS_OUT || type == XCB_UNMAP_NOTIFY ||
+        type == XCB_VISIBILITY_NOTIFY || type == XCB_CONFIGURE_NOTIFY) {
+        XtPopdown(lw->list.popup_shell);
+    }
+}
+
+static void
 DropdownPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
 {
     (void)call_data;
     ListWidget lw = (ListWidget) client_data;
+    Widget shell = (Widget)lw;
+
     xcb_ungrab_pointer(XtDisplay((Widget)lw), XCB_CURRENT_TIME);
     xcb_flush(XtDisplay((Widget)lw));
+
+    while (shell && !XtIsShell(shell))
+        shell = XtParent(shell);
+    if (shell)
+        XtRemoveEventHandler(shell,
+                             FocusChangeMask | StructureNotifyMask |
+                             VisibilityChangeMask,
+                             False, DropdownDismissHandler, (XtPointer)lw);
+
     XtRemoveCallback(menu, XtNpopdownCallback, DropdownPopdownCB, client_data);
 }
 
