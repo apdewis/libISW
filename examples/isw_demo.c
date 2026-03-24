@@ -50,6 +50,7 @@
 #include <ISW/Text.h>
 
 /* Specialized widgets */
+#include <ISW/SpinBox.h>
 #include <ISW/Scale.h>
 #include <ISW/StripChart.h>
 #include <ISW/Tip.h>
@@ -106,6 +107,7 @@ Widget create_tree_demo(Widget parent);
 
 Widget create_panner_demo(Widget parent);
 Widget create_stripchart_demo(Widget parent);
+Widget create_spinbox_demo(Widget parent);
 Widget create_scale_demo(Widget parent);
 Widget create_scrollbar_demo(Widget parent);
 Widget create_progressbar_demo(Widget parent);
@@ -122,6 +124,7 @@ void list_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void scale_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void quit_callback(Widget w, XtPointer client_data, XtPointer call_data);
 
@@ -1351,7 +1354,7 @@ Widget create_paned_grip_demo(Widget parent) {
 
 Widget create_specialized_section(Widget parent) {
     Widget form, section_label;
-    Widget scale_demo, stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo;
+    Widget spinbox_demo, scale_demo, stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo;
     Arg args[10];
     Cardinal n;
 
@@ -1364,7 +1367,7 @@ Widget create_specialized_section(Widget parent) {
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Specialized Widgets: Scale, StripChart, Scrollbar, ProgressBar, Dialog"); n++;
+    XtSetArg(args[n], XtNlabel, "Specialized Widgets: SpinBox, Scale, StripChart, Scrollbar, ProgressBar, Dialog"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
@@ -1372,11 +1375,18 @@ Widget create_specialized_section(Widget parent) {
                                           form, args, n);
 
     /* Create demos */
-    scale_demo = create_scale_demo(form);
+    spinbox_demo = create_spinbox_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    XtSetValues(spinbox_demo, args, n);
+
+    scale_demo = create_scale_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromHoriz, spinbox_demo); n++;
+    XtSetArg(args[n], XtNfromVert, section_label); n++;
+    XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(scale_demo, args, n);
 
     stripchart_demo = create_stripchart_demo(form);
@@ -1451,6 +1461,47 @@ Widget create_progressbar_demo(Widget parent) {
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
     XtSetArg(args[n], XtNshowValue, True); n++;
     pb_v = XtCreateManagedWidget("progressV", progressBarWidgetClass, box, args, n);
+
+    return box;
+}
+
+Widget create_spinbox_demo(Widget parent) {
+    Widget box, title, spin1, spin2;
+    Arg args[12];
+    Cardinal n;
+
+    /* Container */
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("spinBoxBox", boxWidgetClass, parent, args, n);
+
+    /* Title */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "SpinBox"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("spinBoxTitle", labelWidgetClass, box, args, n);
+
+    /* SpinBox: 0-100, increment 1 */
+    n = 0;
+    XtSetArg(args[n], XtNspinMinimum, 0); n++;
+    XtSetArg(args[n], XtNspinMaximum, 100); n++;
+    XtSetArg(args[n], XtNspinValue, 50); n++;
+    XtSetArg(args[n], XtNspinIncrement, 1); n++;
+    XtSetArg(args[n], XtNwidth, S(120)); n++;
+    spin1 = XtCreateManagedWidget("spin1", spinBoxWidgetClass, box, args, n);
+    XtAddCallback(spin1, XtNvalueChanged, spinbox_callback, (XtPointer)"Spin1");
+
+    /* SpinBox: wrapping, step 10 */
+    n = 0;
+    XtSetArg(args[n], XtNspinMinimum, 0); n++;
+    XtSetArg(args[n], XtNspinMaximum, 255); n++;
+    XtSetArg(args[n], XtNspinValue, 128); n++;
+    XtSetArg(args[n], XtNspinIncrement, 10); n++;
+    XtSetArg(args[n], XtNspinWrap, True); n++;
+    XtSetArg(args[n], XtNwidth, S(120)); n++;
+    spin2 = XtCreateManagedWidget("spin2", spinBoxWidgetClass, box, args, n);
+    XtAddCallback(spin2, XtNvalueChanged, spinbox_callback, (XtPointer)"Spin2");
 
     return box;
 }
@@ -1632,6 +1683,11 @@ void list_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 void scale_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     IswScaleCallbackData *data = (IswScaleCallbackData *)call_data;
     printf("Scale (%s) value: %d\n", (char *)client_data, data->value);
+}
+
+void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswSpinBoxCallbackData *data = (IswSpinBoxCallbackData *)call_data;
+    printf("SpinBox (%s) value: %d\n", (char *)client_data, data->value);
 }
 
 void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data) {

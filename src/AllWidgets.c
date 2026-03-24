@@ -58,6 +58,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Repeater.h>
 #include <ISW/Scale.h>
 #include <ISW/Scrollbar.h>
+#include <ISW/SpinBox.h>
 #include <ISW/SimpleMenu.h>
 #include <ISW/Sme.h>
 #include <ISW/SmeBSB.h>
@@ -101,6 +102,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "scrollbar", &scrollbarWidgetClass },
 { "shell", &shellWidgetClass },
 { "simpleMenu", &simpleMenuWidgetClass },
+{ "spinBox", &spinBoxWidgetClass },
 { "simple", &simpleWidgetClass },
 { "smeBSB", &smeBSBObjectClass },
 { "smeLine", &smeLineObjectClass },
