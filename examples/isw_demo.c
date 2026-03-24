@@ -56,6 +56,7 @@
 
 /* Specialized widgets */
 #include <ISW/ColorPicker.h>
+#include <ISW/FontChooser.h>
 #include <ISW/SpinBox.h>
 #include <ISW/Scale.h>
 #include <ISW/StripChart.h>
@@ -115,6 +116,7 @@ Widget create_tree_demo(Widget parent);
 
 Widget create_panner_demo(Widget parent);
 Widget create_stripchart_demo(Widget parent);
+Widget create_fontchooser_demo(Widget parent);
 Widget create_colorpicker_demo(Widget parent);
 Widget create_spinbox_demo(Widget parent);
 Widget create_scale_demo(Widget parent);
@@ -136,6 +138,7 @@ void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void scale_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void colorpicker_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void fontchooser_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void quit_callback(Widget w, XtPointer client_data, XtPointer call_data);
 
@@ -1552,7 +1555,7 @@ Widget create_paned_grip_demo(Widget parent) {
 
 Widget create_specialized_section(Widget parent) {
     Widget form, section_label;
-    Widget spinbox_demo, scale_demo, stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo, colorpicker_demo;
+    Widget spinbox_demo, scale_demo, stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo, colorpicker_demo, fontchooser_demo;
     Arg args[10];
     Cardinal n;
 
@@ -1622,6 +1625,13 @@ Widget create_specialized_section(Widget parent) {
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(colorpicker_demo, args, n);
 
+    fontchooser_demo = create_fontchooser_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromVert, spinbox_demo); n++;
+    XtSetArg(args[n], XtNtop, XtChainTop); n++;
+    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    XtSetValues(fontchooser_demo, args, n);
+
     return form;
 }
 
@@ -1666,6 +1676,28 @@ Widget create_progressbar_demo(Widget parent) {
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
     XtSetArg(args[n], XtNshowValue, True); n++;
     pb_v = XtCreateManagedWidget("progressV", progressBarWidgetClass, box, args, n);
+
+    return box;
+}
+
+Widget create_fontchooser_demo(Widget parent) {
+    Widget box, title, chooser;
+    Arg args[4];
+    Cardinal n;
+
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("fontChooserBox", boxWidgetClass, parent, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Font Chooser"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("fontChooserTitle", labelWidgetClass, box, args, n);
+
+    n = 0;
+    chooser = XtCreateManagedWidget("fontChooser", fontChooserWidgetClass, box, args, n);
+    XtAddCallback(chooser, XtNfontChanged, fontchooser_callback, NULL);
 
     return box;
 }
@@ -1913,6 +1945,11 @@ void list_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 void scale_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     IswScaleCallbackData *data = (IswScaleCallbackData *)call_data;
     printf("Scale (%s) value: %d\n", (char *)client_data, data->value);
+}
+
+void fontchooser_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswFontChooserCallbackData *data = (IswFontChooserCallbackData *)call_data;
+    printf("Font: %s %dpt\n", data->family ? data->family : "(null)", data->size);
 }
 
 void colorpicker_callback(Widget w, XtPointer client_data, XtPointer call_data) {

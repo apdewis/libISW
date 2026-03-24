@@ -836,7 +836,8 @@ _ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double scale)
     cairo_font_face_t *face;
     double size;
 
-    face = _ISWResolveFontFace("Sans", FC_WEIGHT_NORMAL, FC_SLANT_ROMAN);
+    const char *family = (font && font->font_family) ? font->font_family : "Sans";
+    face = _ISWResolveFontFace(family, FC_WEIGHT_NORMAL, FC_SLANT_ROMAN);
     if (face)
         cairo_set_font_face(cr, face);
 

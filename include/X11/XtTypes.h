@@ -829,6 +829,7 @@ typedef struct _XtFontStruct {
     unsigned        max_byte1;
     int             ascent;
     int             descent;
+    char           *font_family; /* fontconfig family name for Cairo rendering */
 } XtFontStruct;
 
 /* Backward compat alias */

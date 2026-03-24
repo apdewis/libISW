@@ -29,6 +29,8 @@ iswinclude_HEADERS = \
 	ISW/CommandP.h \
 	ISW/Dialog.h \
 	ISW/DialogP.h \
+	ISW/FontChooser.h \
+	ISW/FontChooserP.h \
 	ISW/Form.h \
 	ISW/FormP.h \
 	ISW/Grip.h \

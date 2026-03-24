@@ -752,6 +752,7 @@ _XtLoadQueryFont(xcb_connection_t *dpy, const char *name)
     fs->max_char_or_byte2 = qf_reply->max_char_or_byte2;
     fs->min_byte1 = qf_reply->min_byte1;
     fs->max_byte1 = qf_reply->max_byte1;
+    fs->font_family = NULL;
     free(qf_reply);
     return fs;
 }
@@ -774,6 +775,7 @@ _XtQueryFont(xcb_connection_t *dpy, Font fid)
     fs->max_char_or_byte2 = qf_reply->max_char_or_byte2;
     fs->min_byte1 = qf_reply->min_byte1;
     fs->max_byte1 = qf_reply->max_byte1;
+    fs->font_family = NULL;
     free(qf_reply);
     return fs;
 }

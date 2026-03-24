@@ -118,6 +118,7 @@ ISW_SOURCES = \
 	ComboBox.c \
 	Command.c \
 	Dialog.c \
+	FontChooser.c \
 	Form.c \
 	Grip.c \
 	IconView.c \

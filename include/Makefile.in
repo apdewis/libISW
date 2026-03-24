@@ -129,7 +129,8 @@ am__iswinclude_HEADERS_DIST = ISW/AllWidgets.h ISW/AsciiSink.h \
 	ISW/AsciiText.h ISW/AsciiTextP.h ISW/Box.h ISW/BoxP.h \
 	ISW/Cardinals.h ISW/ColorPicker.h ISW/ColorPickerP.h \
 	ISW/ComboBox.h ISW/ComboBoxP.h ISW/Command.h ISW/CommandP.h \
-	ISW/Dialog.h ISW/DialogP.h ISW/Form.h ISW/FormP.h ISW/Grip.h \
+	ISW/Dialog.h ISW/DialogP.h ISW/FontChooser.h \
+	ISW/FontChooserP.h ISW/Form.h ISW/FormP.h ISW/Grip.h \
 	ISW/GripP.h ISW/IconView.h ISW/IconViewP.h ISW/Label.h \
 	ISW/LabelP.h ISW/Layout.h ISW/LayoutP.h ISW/List.h ISW/ListP.h \
 	ISW/MainWindow.h ISW/MainWindowP.h ISW/MenuBar.h \
@@ -399,6 +400,8 @@ iswinclude_HEADERS = \
 	ISW/CommandP.h \
 	ISW/Dialog.h \
 	ISW/DialogP.h \
+	ISW/FontChooser.h \
+	ISW/FontChooserP.h \
 	ISW/Form.h \
 	ISW/FormP.h \
 	ISW/Grip.h \

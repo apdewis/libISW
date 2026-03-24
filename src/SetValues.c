@@ -442,7 +442,7 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
                                        "XtSetValues calls ClearArea on \"%s\".\n",
                                        XtName(w)));
                 xcb_clear_area(
-                        XtDisplay(w), 0, XtWindow(w), 0, 0, 0, 0
+                        XtDisplay(w), 1, XtWindow(w), 0, 0, 0, 0
                     );
                 xcb_flush(XtDisplay(w));
             }
@@ -460,8 +460,8 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
                                            XtName(w), XtName(pw)));
 
                     xcb_clear_area(
-                        XtDisplay(pw), 
-                        0,  // exposure flag (0 = no exposure)
+                        XtDisplay(pw),
+                        1,  /* generate Expose event */
                         XtWindow(pw),
                         r->rectangle.x, 
                         r->rectangle.y,
