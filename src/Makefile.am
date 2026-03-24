@@ -6,7 +6,6 @@ AM_CFLAGS = \
 	$(CWARNFLAGS) \
 	$(XT_DEPS_CFLAGS) \
 	$(ISW_DEPS_CFLAGS) \
-	$(XFT_CFLAGS) \
 	$(XPM_CFLAGS) \
 	$(XKBCOMMON_CFLAGS) \
 	$(CAIRO_CFLAGS) \
@@ -176,7 +175,6 @@ libISW_la_SOURCES = \
 libISW_la_LIBADD = \
 	$(XT_DEPS_LIBS) \
 	$(ISW_DEPS_LIBS) \
-	$(XFT_LIBS) \
 	$(XPM_LIBS) \
 	$(XKBCOMMON_LIBS) \
 	$(CAIRO_LIBS) \

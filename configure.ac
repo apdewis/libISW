@@ -31,9 +31,8 @@ AC_PROG_LEX
 
 # Checks for header files.
 # LibXt dependencies (now built internally)
-PKG_CHECK_MODULES(XT_DEPS, [sm ice x11 xproto xcb xcb-xrm xcb-keysyms])
-PKG_CHECK_MODULES(ISW_DEPS, [xext xcb xcb-xfixes xcb-render xcb-shape])
-PKG_CHECK_MODULES(XFT, [xft])
+PKG_CHECK_MODULES(XT_DEPS, [sm ice xproto xcb xcb-xrm xcb-keysyms])
+PKG_CHECK_MODULES(ISW_DEPS, [xcb xcb-xfixes xcb-shape])
 
 # Font rendering (mandatory - fontconfig + freetype for TTF support via cairo-ft)
 PKG_CHECK_MODULES([FONTCONFIG], [fontconfig])
