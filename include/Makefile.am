@@ -21,6 +21,8 @@ iswinclude_HEADERS = \
 	ISW/Box.h \
 	ISW/BoxP.h \
 	ISW/Cardinals.h \
+	ISW/ColorPicker.h \
+	ISW/ColorPickerP.h \
 	ISW/ComboBox.h \
 	ISW/ComboBoxP.h \
 	ISW/Command.h \

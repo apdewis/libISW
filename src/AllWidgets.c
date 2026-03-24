@@ -45,6 +45,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Form.h>
 #include <ISW/Grip.h>
 #include <ISW/Layout.h>
+#include <ISW/ColorPicker.h>
 #include <ISW/ComboBox.h>
 #include <ISW/IconView.h>
 #include <ISW/List.h>
@@ -78,6 +79,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "asciiSrc", &asciiSrcObjectClass },
 { "asciiText", &asciiTextWidgetClass },
 { "box", &boxWidgetClass },
+{ "colorPicker", &colorPickerWidgetClass },
 { "comboBox", &comboBoxWidgetClass },
 { "command", &commandWidgetClass },
 { "composite", &compositeWidgetClass },
