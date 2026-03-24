@@ -47,6 +47,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define superclass (&boxClassRec)
 
+/* Event mask for the toplevel shell dismiss handler */
+#define DISMISS_MASK (ButtonPressMask | FocusChangeMask | \
+                      StructureNotifyMask | VisibilityChangeMask)
+
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
@@ -468,7 +472,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     {
         Widget toplevel = FindToplevelShell((Widget)mbw);
         if (toplevel)
-            XtAddEventHandler(toplevel, ButtonPressMask, False,
+            XtAddEventHandler(toplevel, DISMISS_MASK, False,
                               OutsideClickHandler, (XtPointer)mbw);
     }
 
@@ -497,7 +501,7 @@ CloseMenu(MenuBarWidget mbw)
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);
     if (toplevel)
-        XtRemoveEventHandler(toplevel, ButtonPressMask, False,
+        XtRemoveEventHandler(toplevel, DISMISS_MASK, False,
                              OutsideClickHandler, (XtPointer)mbw);
 
     if (menu) {
@@ -532,7 +536,7 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
     /* Remove popdown callback and click-outside handler from old menu */
     toplevel = FindToplevelShell((Widget)mbw);
     if (toplevel)
-        XtRemoveEventHandler(toplevel, ButtonPressMask, False,
+        XtRemoveEventHandler(toplevel, DISMISS_MASK, False,
                              OutsideClickHandler, (XtPointer)mbw);
 
     if (old_menu) {
@@ -575,7 +579,7 @@ MenuPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);
     if (toplevel)
-        XtRemoveEventHandler(toplevel, ButtonPressMask, False,
+        XtRemoveEventHandler(toplevel, DISMISS_MASK, False,
                              OutsideClickHandler, (XtPointer)mbw);
 
     XtRemoveCallback(menu, XtNpopdownCallback, MenuPopdownCB, (XtPointer)mbw);
@@ -592,51 +596,62 @@ MenuPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
 }
 
 /*
- * Event handler on the toplevel shell to detect clicks outside the
- * menu and menubar, dismissing the menu.
+ * Event handler on the toplevel shell to dismiss the menu on outside
+ * clicks, focus loss, minimize, or visibility changes.
  */
 static void
 OutsideClickHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *cont)
 {
     MenuBarWidget mbw = (MenuBarWidget) client_data;
-    Widget target;
-    xcb_button_press_event_t *bev;
+    uint8_t type;
 
     if (!mbw->menu_bar.menu_is_open)
         return;
 
-    if (event->response_type != XCB_BUTTON_PRESS)
-        return;
+    type = event->response_type & 0x7f;
 
-    bev = (xcb_button_press_event_t *)event;
-
-    /* Check if the click is on the menubar itself or any of its children */
-    target = XtWindowToWidget(XtDisplay((Widget)mbw), bev->event);
-    if (target == NULL) {
+    /* Focus loss, minimize, or visibility change — always dismiss */
+    if (type == XCB_FOCUS_OUT || type == XCB_UNMAP_NOTIFY ||
+        type == XCB_VISIBILITY_NOTIFY || type == XCB_CONFIGURE_NOTIFY) {
         CloseMenu(mbw);
         return;
     }
 
-    /* If click is on a MenuButton child of this menubar, let MenuBarClick handle it */
-    if (XtParent(target) == (Widget)mbw && XtIsSubclass(target, menuButtonWidgetClass))
+    if (type != XCB_BUTTON_PRESS)
         return;
 
-    /* If click is on the menubar itself, ignore */
-    if (target == (Widget)mbw)
-        return;
+    {
+        xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+        Widget target;
 
-    /* If click is on the active menu or its children, let the menu handle it */
-    if (mbw->menu_bar.active_menu) {
-        Widget check = target;
-        while (check != NULL) {
-            if (check == mbw->menu_bar.active_menu)
-                return;
-            check = XtParent(check);
+        /* Check if the click is on the menubar itself or any of its children */
+        target = XtWindowToWidget(XtDisplay((Widget)mbw), bev->event);
+        if (target == NULL) {
+            CloseMenu(mbw);
+            return;
         }
-    }
 
-    /* Click is outside -- dismiss */
-    CloseMenu(mbw);
+        /* If click is on a MenuButton child of this menubar, let MenuBarClick handle it */
+        if (XtParent(target) == (Widget)mbw && XtIsSubclass(target, menuButtonWidgetClass))
+            return;
+
+        /* If click is on the menubar itself, ignore */
+        if (target == (Widget)mbw)
+            return;
+
+        /* If click is on the active menu or its children, let the menu handle it */
+        if (mbw->menu_bar.active_menu) {
+            Widget check = target;
+            while (check != NULL) {
+                if (check == mbw->menu_bar.active_menu)
+                    return;
+                check = XtParent(check);
+            }
+        }
+
+        /* Click is outside -- dismiss */
+        CloseMenu(mbw);
+    }
 }
 
 /*
