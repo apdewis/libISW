@@ -17,6 +17,7 @@
 #include <ISW/Box.h>
 #include <ISW/Form.h>
 #include <ISW/Viewport.h>
+#include <ISW/MainWindow.h>
 
 /* Basic display widgets */
 #include <ISW/Label.h>
@@ -72,7 +73,7 @@
 
 /* Main window creation */
 Widget create_main_window(Widget parent);
-Widget create_menubar(Widget parent);
+void populate_menubar(Widget menubar);
 Widget create_title_label(Widget parent);
 
 /* Section creation functions */
@@ -189,20 +190,27 @@ int main(int argc, char *argv[]) {
  * ============================================================ */
 
 Widget create_main_window(Widget parent) {
-    Widget viewport, content_box, menubar, title;
+    Widget main_win, viewport, content_box, title;
     Arg args[10];
     Cardinal n;
 
-    /* Viewport as direct shell child — explicit size prevents pre-realize
-       expansion via GetGeometry passing child dimensions to the shell */
+    /* MainWindow as direct shell child — menubar fixed at top */
     n = 0;
     XtSetArg(args[n], XtNwidth, 1200); n++;
     XtSetArg(args[n], XtNheight, 900); n++;
+    main_win = XtCreateManagedWidget("mainWindow", mainWindowWidgetClass,
+                                      parent, args, n);
+
+    /* Populate the built-in menubar */
+    populate_menubar(IswMainWindowGetMenuBar(main_win));
+
+    /* Viewport as content child — scrolls independently of menubar */
+    n = 0;
     XtSetArg(args[n], XtNallowVert, True); n++;
     XtSetArg(args[n], XtNuseRight, True); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     viewport = XtCreateManagedWidget("viewport", viewportWidgetClass,
-                                      parent, args, n);
+                                      main_win, args, n);
 
     /* Content box inside viewport — holds all demo sections */
     n = 0;
@@ -210,9 +218,6 @@ Widget create_main_window(Widget parent) {
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     content_box = XtCreateManagedWidget("contentBox", boxWidgetClass,
                                          viewport, args, n);
-
-    /* Menu bar scrolls with content */
-    menubar = create_menubar(content_box);
 
     /* Title section */
     title = create_title_label(content_box);
@@ -238,23 +243,16 @@ Widget create_main_window(Widget parent) {
 
     create_specialized_section(content_box);
 
-    return viewport;
+    return main_win;
 }
 
-Widget create_menubar(Widget parent) {
-    Widget menubar, file_button, edit_button, about_button;
+void populate_menubar(Widget menubar) {
+    Widget file_button, edit_button, about_button;
     Widget file_menu, edit_menu, about_menu;
     Widget entry;
     Arg args[10];
     Cardinal n;
-    
-    /* Create horizontal Box for menu bar */
-    n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtSetArg(args[n], XtNskipAdjust, True); n++;
-    menubar = XtCreateManagedWidget("menubar", menuBarWidgetClass, parent, args, n);
-    
+
     /* === FILE MENU === */
     n = 0;
     XtSetArg(args[n], XtNlabel, "File"); n++;
@@ -381,7 +379,6 @@ Widget create_menubar(Widget parent) {
     entry = XtCreateManagedWidget("menuLicense", smeBSBObjectClass, about_menu, args, n);
     XtAddCallback(entry, XtNcallback, about_menu_callback, (XtPointer)"License");
     
-    return menubar;
 }
 
 Widget create_title_label(Widget parent) {

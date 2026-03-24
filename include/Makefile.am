@@ -35,6 +35,10 @@ iswinclude_HEADERS = \
 	ISW/LayoutP.h \
 	ISW/List.h \
 	ISW/ListP.h \
+	ISW/MainWindow.h \
+	ISW/MainWindowP.h \
+	ISW/MenuBar.h \
+	ISW/MenuBarP.h \
 	ISW/MenuButton.h \
 	ISW/MenuButtoP.h \
 	ISW/Paned.h \

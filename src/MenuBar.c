@@ -39,6 +39,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSBP.h>
 #include <xcb/xcb.h>
+#include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 
 #define XtNshadowWidth "shadowWidth"
@@ -48,6 +49,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Destroy(Widget);
 static void InsertChild(Widget);
 
@@ -78,6 +80,8 @@ static char menuBarMenuTranslations[] =
      <LeaveWindow>:     unhighlight()           \n\
      <Motion>:          highlight()             \n\
      <BtnMotion>:       highlight()             \n\
+     <Btn4Down>:        unhighlight() popdown() \n\
+     <Btn5Down>:        unhighlight() popdown() \n\
      <BtnUp>:           highlight()             \n\
      <BtnDown>:         notify() unhighlight() popdown()";
 
@@ -123,7 +127,7 @@ MenuBarClassRec menuBarClassRec = {
     FALSE,                              /* visible_interest       */
     Destroy,                            /* destroy                */
     XtInheritResize,                    /* resize                 */
-    XtInheritExpose,                    /* expose                 */
+    Redisplay,                          /* expose                 */
     NULL,                               /* set_values             */
     NULL,                               /* set_values_hook        */
     XtInheritSetValuesAlmost,           /* set_values_almost      */
@@ -160,6 +164,25 @@ WidgetClass menuBarWidgetClass = (WidgetClass) &menuBarClassRec;
  ****************************************************************/
 
 static void
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+{
+    (void)event; (void)region;
+
+    if (!XtIsRealized(w) || w->core.width == 0 || w->core.height == 0)
+        return;
+
+    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    if (ctx) {
+        int y = (int)w->core.height - 1;
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, w->core.border_pixel);
+        ISWRenderDrawLine(ctx, 0, y, (int)w->core.width, y);
+        ISWRenderEnd(ctx);
+        ISWRenderDestroy(ctx);
+    }
+}
+
+static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
@@ -176,10 +199,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     mbw->menu_bar.active_menu = NULL;
     mbw->menu_bar.menu_is_open = FALSE;
 
-    /* Force horizontal orientation, tight spacing */
+    /* Force horizontal orientation, minimal horizontal spacing,
+     * vertical padding to keep items clear of the bottom border */
     mbw->box.orientation = XtorientHorizontal;
     mbw->box.h_space = 0;
-    mbw->box.v_space = 0;
+    mbw->box.v_space = 2;
 
     /* Register global actions once so MenuButton children can find them */
     if (!globalActionsRegistered) {
@@ -421,6 +445,18 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     /* Pop up without grab -- we handle dismissal ourselves */
     XtPopup(menu, XtGrabNone);
 
+    /* X server pointer grab — delivers all button events (scroll, outside
+     * clicks) to the menu window. Same technique as GTK/Motif popups. */
+    if (XtIsRealized(menu)) {
+        xcb_grab_pointer(XtDisplay(menu), True, XtWindow(menu),
+            XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
+            XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
+            XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
+            XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+            XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
+        xcb_flush(XtDisplay(menu));
+    }
+
     /* Visually activate the button (inverted/set state) */
     XtCallActionProc(button, "set", NULL, NULL, 0);
     XtCallActionProc(button, "highlight", NULL, (String[]){"Always"}, 1);
@@ -455,6 +491,9 @@ CloseMenu(MenuBarWidget mbw)
     menu = mbw->menu_bar.active_menu;
     button = mbw->menu_bar.active_button;
 
+    xcb_ungrab_pointer(XtDisplay((Widget)mbw), XCB_CURRENT_TIME);
+    xcb_flush(XtDisplay((Widget)mbw));
+
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);
     if (toplevel)
@@ -486,6 +525,9 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
     Widget old_button = mbw->menu_bar.active_button;
     Widget old_menu = mbw->menu_bar.active_menu;
     Widget toplevel;
+
+    xcb_ungrab_pointer(XtDisplay((Widget)mbw), XCB_CURRENT_TIME);
+    xcb_flush(XtDisplay((Widget)mbw));
 
     /* Remove popdown callback and click-outside handler from old menu */
     toplevel = FindToplevelShell((Widget)mbw);
@@ -526,6 +568,9 @@ MenuPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
         return;
 
     button = mbw->menu_bar.active_button;
+
+    xcb_ungrab_pointer(XtDisplay((Widget)mbw), XCB_CURRENT_TIME);
+    xcb_flush(XtDisplay((Widget)mbw));
 
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);

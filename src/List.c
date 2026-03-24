@@ -139,6 +139,7 @@ static void Notify(Widget, XEvent *, String *, Cardinal *);
 static void Set(Widget, XEvent *, String *, Cardinal *);
 static void Unset(Widget, XEvent *, String *, Cardinal *);
 static void DropdownMenuSelect(Widget, XtPointer, XtPointer);
+static void DropdownPopdownCB(Widget, XtPointer, XtPointer);
 
 static XtActionsRec actions[] = {
       {"Notify",         Notify},
@@ -1109,6 +1110,8 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
              <LeaveWindow>:     unhighlight()           \n\
              <Motion>:          highlight()             \n\
              <BtnMotion>:       highlight()             \n\
+             <Btn4Down>:        unhighlight() popdown() \n\
+             <Btn5Down>:        unhighlight() popdown() \n\
              <BtnUp>:           highlight()             \n\
              <BtnDown>:         notify() unhighlight() popdown()";
         XtOverrideTranslations(lw->list.popup_shell,
@@ -1150,7 +1153,19 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
         XtSetValues(lw->list.popup_shell, args, n);
     }
 
-    XtPopup(lw->list.popup_shell, XtGrabExclusive);
+    XtPopup(lw->list.popup_shell, XtGrabNone);
+
+    /* X server pointer grab — all button events (scroll, outside clicks)
+     * delivered to popup window. Same technique as GTK/Motif popups. */
+    xcb_grab_pointer(XtDisplay(w), False, XtWindow(lw->list.popup_shell),
+        XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
+        XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
+        XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
+        XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+        XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
+    xcb_flush(XtDisplay(w));
+    XtAddCallback(lw->list.popup_shell, XtNpopdownCallback,
+                  DropdownPopdownCB, (XtPointer)lw);
     return;
   }
 
@@ -1436,4 +1451,13 @@ DropdownMenuSelect(Widget w, XtPointer client_data, XtPointer call_data)
     XtCallCallbacks(list_w, XtNcallback, (XtPointer)&parent_ret);
 }
 
+static void
+DropdownPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
+{
+    (void)call_data;
+    ListWidget lw = (ListWidget) client_data;
+    xcb_ungrab_pointer(XtDisplay((Widget)lw), XCB_CURRENT_TIME);
+    xcb_flush(XtDisplay((Widget)lw));
+    XtRemoveCallback(menu, XtNpopdownCallback, DropdownPopdownCB, client_data);
+}
 

@@ -116,6 +116,7 @@ ISW_SOURCES = \
 	Layout.c \
 	LayYY.h \
 	List.c \
+	MainWindow.c \
 	MenuBar.c \
 	MenuButton.c \
 	Paned.c \
