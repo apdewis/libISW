@@ -29,6 +29,7 @@ typedef struct {
     int           value;
     int           tick_interval;   /* 0 = no ticks */
     Boolean       show_value;
+    IswScaleValuePosition value_pos;
     Dimension     length;
     Dimension     thickness;
     XtCallbackList value_changed;

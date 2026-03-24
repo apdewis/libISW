@@ -35,6 +35,8 @@
 #define Offset(field) XtOffsetOf(ScaleRec, field)
 
 static XtResource resources[] = {
+    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
+        Offset(core.border_width), XtRImmediate, (XtPointer) 0},
     {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
         Offset(scale.foreground), XtRString, XtDefaultForeground},
     {XtNorientation, XtCOrientation, XtROrientation, sizeof(XtOrientation),
@@ -49,6 +51,8 @@ static XtResource resources[] = {
         Offset(scale.tick_interval), XtRImmediate, (XtPointer) 0},
     {XtNshowValue, XtCShowValue, XtRBoolean, sizeof(Boolean),
         Offset(scale.show_value), XtRImmediate, (XtPointer) True},
+    {XtNvaluePosition, XtCValuePosition, XtRInt, sizeof(IswScaleValuePosition),
+        Offset(scale.value_pos), XtRImmediate, (XtPointer) IswScaleValueTop},
     {XtNlength, XtCLength, XtRDimension, sizeof(Dimension),
         Offset(scale.length), XtRImmediate, (XtPointer) 200},
     {XtNthickness, XtCThickness, XtRDimension, sizeof(Dimension),
@@ -158,15 +162,30 @@ TrackThick(ScaleWidget sw)
 }
 
 static int ValueZoneHeight(ScaleWidget sw);
+static int ValueZoneWidth(ScaleWidget sw);
 
-/* Pixel offset where the track zone begins */
+/*
+ * How many pixels the track zone is offset from the widget origin.
+ * For top/left value positions, the label zone pushes the track over/down.
+ */
 static int
-TrackZoneOffset(ScaleWidget sw)
+TrackZoneOffsetX(ScaleWidget sw)
 {
-    if (sw->scale.orientation == XtorientHorizontal)
-        return 0;  /* horizontal: value is at top but track uses full width */
-    /* vertical: value zone at top pushes track down */
-    return ValueZoneHeight(sw);
+    if (!sw->scale.show_value)
+        return 0;
+    if (sw->scale.value_pos == IswScaleValueLeft)
+        return ValueZoneWidth(sw);
+    return 0;
+}
+
+static int
+TrackZoneOffsetY(ScaleWidget sw)
+{
+    if (!sw->scale.show_value)
+        return 0;
+    if (sw->scale.value_pos == IswScaleValueTop)
+        return ValueZoneHeight(sw);
+    return 0;
 }
 
 /* The usable track length in pixels (thumb center can travel this range) */
@@ -175,19 +194,20 @@ TrackLength(ScaleWidget sw)
 {
     Dimension tw = ThumbW(sw);
     if (sw->scale.orientation == XtorientHorizontal)
-        return (int)sw->core.width - (int)tw;
+        return (int)sw->core.width - TrackZoneOffsetX(sw) - (int)tw;
     else
-        return (int)sw->core.height - TrackZoneOffset(sw) - (int)tw;
+        return (int)sw->core.height - TrackZoneOffsetY(sw) - (int)tw;
 }
 
-/* Convert a value to a pixel position (thumb center) */
+/* Convert a value to a pixel position (thumb center along the track axis) */
 static Position
 ValueToPixel(ScaleWidget sw, int value)
 {
     int range = sw->scale.maximum - sw->scale.minimum;
     int track = TrackLength(sw);
     Dimension half_thumb = ThumbW(sw) / 2;
-    int offset = TrackZoneOffset(sw);
+    int offset = (sw->scale.orientation == XtorientHorizontal)
+                 ? TrackZoneOffsetX(sw) : TrackZoneOffsetY(sw);
 
     if (range <= 0 || track <= 0)
         return (Position)(offset + (int)half_thumb);
@@ -212,7 +232,8 @@ PixelToValue(ScaleWidget sw, Position pixel)
     int range = sw->scale.maximum - sw->scale.minimum;
     int track = TrackLength(sw);
     Dimension half_thumb = ThumbW(sw) / 2;
-    int offset = TrackZoneOffset(sw);
+    int offset = (sw->scale.orientation == XtorientHorizontal)
+                 ? TrackZoneOffsetX(sw) : TrackZoneOffsetY(sw);
 
     if (range <= 0 || track <= 0)
         return sw->scale.minimum;
@@ -327,23 +348,85 @@ Resize(Widget w)
         Redisplay(w, NULL, 0);
 }
 
-/*
- * Layout zones (horizontal):
- *   Top zone:    value label (centered horizontally)
- *   Bottom zone: thumb + track + ticks
- *
- * Layout zones (vertical):
- *   Top zone:    value label (centered over track)
- *   Bottom zone: thumb + track + ticks
- */
-
 static int
 ValueZoneHeight(ScaleWidget sw)
 {
     if (!sw->scale.show_value || !sw->scale.font)
         return 0;
+    if (sw->scale.value_pos != IswScaleValueTop &&
+        sw->scale.value_pos != IswScaleValueBottom)
+        return 0;
     return ISWScaledFontHeight((Widget)sw, sw->scale.font)
          + (int)ISWScaleDim((Widget)sw, VALUE_MARGIN);
+}
+
+static int
+ValueZoneWidth(ScaleWidget sw)
+{
+    if (!sw->scale.show_value || !sw->scale.font)
+        return 0;
+    if (sw->scale.value_pos != IswScaleValueLeft &&
+        sw->scale.value_pos != IswScaleValueRight)
+        return 0;
+    /* Reserve space for widest possible value string */
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", sw->scale.maximum);
+    int w_max = ISWRenderTextWidth(sw->scale.render_ctx, buf, (int)strlen(buf));
+    snprintf(buf, sizeof(buf), "%d", sw->scale.minimum);
+    int w_min = ISWRenderTextWidth(sw->scale.render_ctx, buf, (int)strlen(buf));
+    int wid = (w_max > w_min) ? w_max : w_min;
+    return wid + (int)ISWScaleDim((Widget)sw, VALUE_MARGIN);
+}
+
+/*
+ * DrawValueLabel - draw the value text outside the slider area.
+ * area_x/y/w/h is the bounding box of the full slider zone (thumb extent),
+ * not just the thin track line.
+ */
+static void
+DrawValueLabel(Widget w, ScaleWidget sw, ISWRenderContext *ctx,
+               int area_x, int area_y, int area_w, int area_h)
+{
+    if (!sw->scale.show_value || !sw->scale.font)
+        return;
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", sw->scale.value);
+    int text_w = ISWRenderTextWidth(ctx, buf, (int)strlen(buf));
+    int font_asc = ISWScaledFontAscent(w, sw->scale.font);
+    int margin = (int)ISWScaleDim(w, VALUE_MARGIN);
+    int lx, ly;
+
+    switch (sw->scale.value_pos) {
+    case IswScaleValueTop:
+        lx = area_x;
+        ly = area_y - margin;  /* baseline sits above the slider area */
+        break;
+    case IswScaleValueBottom:
+        lx = area_x;
+        ly = area_y + area_h + margin + font_asc;
+        break;
+    case IswScaleValueLeft:
+        lx = area_x - margin - text_w;
+        ly = area_y + area_h / 2 + font_asc / 2;
+        break;
+    case IswScaleValueRight:
+        lx = area_x + area_w + margin;
+        ly = area_y + area_h / 2 + font_asc / 2;
+        break;
+    default:
+        return;
+    }
+
+    /* Clamp to widget bounds */
+    if (lx < 0) lx = 0;
+    if (ly < font_asc) ly = font_asc;
+    if (lx + text_w > (int)sw->core.width)
+        lx = (int)sw->core.width - text_w;
+    if (ly > (int)sw->core.height)
+        ly = (int)sw->core.height;
+
+    ISWRenderDrawString(ctx, buf, (int)strlen(buf), lx, ly);
 }
 
 static void
@@ -360,7 +443,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     Dimension thumb_h = ThumbH(sw);
     Dimension track_thick = TrackThick(sw);
     Dimension half_thumb = thumb_w / 2;
-    int val_h = ValueZoneHeight(sw);
+    int off_x = TrackZoneOffsetX(sw);
+    int off_y = TrackZoneOffsetY(sw);
 
     ISWRenderBegin(ctx);
 
@@ -374,15 +458,14 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     if (sw->scale.orientation == XtorientHorizontal) {
         /* --- Horizontal layout --- */
-        /* Track zone sits below the value zone */
-        int track_zone_top = val_h;
-        int track_zone_h = (int)sw->core.height - val_h;
-        int track_center_y = track_zone_top + track_zone_h / 2;
+        int track_zone_h = (int)sw->core.height - off_y;
+        int track_center_y = off_y + track_zone_h / 2;
 
         /* Track */
         int track_y = track_center_y - (int)track_thick / 2;
-        ISWRenderFillRectangle(ctx, half_thumb, track_y,
-                               sw->core.width - thumb_w, track_thick);
+        int track_x = off_x + (int)half_thumb;
+        int track_w = (int)sw->core.width - off_x - (int)thumb_w;
+        ISWRenderFillRectangle(ctx, track_x, track_y, track_w, track_thick);
 
         /* Tick marks (below track) */
         if (sw->scale.tick_interval > 0) {
@@ -400,30 +483,25 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             }
         }
 
-        /* Thumb (centered on track) */
+        /* Thumb */
         Position tx = sw->scale.thumb_pos - (Position)(thumb_w / 2);
         Position ty = track_center_y - (int)thumb_h / 2;
         ISWRenderFillRectangle(ctx, tx, ty, thumb_w, thumb_h);
 
-        /* Value label (top-left) */
-        if (sw->scale.show_value && sw->scale.font) {
-            char buf[32];
-            snprintf(buf, sizeof(buf), "%d", sw->scale.value);
-            int ly = ISWScaledFontAscent(w, sw->scale.font);
-            ISWRenderDrawString(ctx, buf, (int)strlen(buf),
-                                (int)half_thumb, ly);
-        }
+        /* Value label — area is the full thumb extent */
+        int area_y = track_center_y - (int)thumb_h / 2;
+        DrawValueLabel(w, sw, ctx, track_x, area_y, track_w, (int)thumb_h);
+
     } else {
         /* --- Vertical layout --- */
-        /* Value zone at top, track zone below */
-        int track_zone_top = val_h;
-        int track_center_x = (int)sw->core.width / 2;
+        int track_zone_w = (int)sw->core.width - off_x;
+        int track_center_x = off_x + track_zone_w / 2;
 
         /* Track */
         int track_x = track_center_x - (int)track_thick / 2;
-        ISWRenderFillRectangle(ctx, track_x, track_zone_top + (int)half_thumb,
-                               track_thick,
-                               sw->core.height - track_zone_top - thumb_w);
+        int track_top = off_y + (int)half_thumb;
+        int track_h = (int)sw->core.height - off_y - (int)thumb_w;
+        ISWRenderFillRectangle(ctx, track_x, track_top, track_thick, track_h);
 
         /* Tick marks (right of track) */
         if (sw->scale.tick_interval > 0) {
@@ -441,20 +519,14 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             }
         }
 
-        /* Thumb (centered on track) */
+        /* Thumb */
         Position tx = track_center_x - (int)thumb_w / 2;
         Position ty = sw->scale.thumb_pos - (Position)(thumb_h / 2);
         ISWRenderFillRectangle(ctx, tx, ty, thumb_w, thumb_h);
 
-        /* Value label (top, centered over track) */
-        if (sw->scale.show_value && sw->scale.font) {
-            char buf[32];
-            snprintf(buf, sizeof(buf), "%d", sw->scale.value);
-            int text_w = ISWRenderTextWidth(ctx, buf, (int)strlen(buf));
-            int lx = ((int)sw->core.width - text_w) / 2;
-            int ly = ISWScaledFontAscent(w, sw->scale.font);
-            ISWRenderDrawString(ctx, buf, (int)strlen(buf), lx, ly);
-        }
+        /* Value label — area is the full thumb extent */
+        int area_x = track_center_x - (int)thumb_w / 2;
+        DrawValueLabel(w, sw, ctx, area_x, track_top, (int)thumb_w, track_h);
     }
 
     ISWRenderEnd(ctx);
@@ -481,7 +553,8 @@ SetValues(Widget current, Widget request, Widget desired, ArgList args, Cardinal
         csw->core.background_pixel != dsw->core.background_pixel ||
         csw->scale.orientation != dsw->scale.orientation ||
         csw->scale.tick_interval != dsw->scale.tick_interval ||
-        csw->scale.show_value != dsw->scale.show_value) {
+        csw->scale.show_value != dsw->scale.show_value ||
+        csw->scale.value_pos != dsw->scale.value_pos) {
         UpdateThumbPos(dsw);
         redraw = TRUE;
     }

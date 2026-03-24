@@ -20,8 +20,18 @@
 #define XtNshowValue      "showValue"
 #define XtCShowValue      "ShowValue"
 #define XtNvalueChanged   "valueChanged"
+#define XtNvaluePosition  "valuePosition"
+#define XtCValuePosition  "ValuePosition"
 #define XtNtickInterval   "tickInterval"
 #define XtCTickInterval   "TickInterval"
+
+/* Value position enum */
+typedef enum {
+    IswScaleValueTop,
+    IswScaleValueBottom,
+    IswScaleValueLeft,
+    IswScaleValueRight
+} IswScaleValuePosition;
 
 extern WidgetClass scaleWidgetClass;
 
