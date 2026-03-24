@@ -45,7 +45,7 @@ char *_IswDefaultTextTranslations1 =
 "\
 Ctrl<Key>A:	beginning-of-line() \n\
 Ctrl<Key>B:	backward-character() \n\
-Ctrl<Key>C:	insert-selection(CUT_BUFFER0) \n\
+Ctrl<Key>C:	copy-selection(CLIPBOARD) \n\
 Ctrl<Key>D:	delete-next-character() \n\
 Ctrl<Key>E:	end-of-line() \n\
 Ctrl<Key>F:	forward-character() \n\
@@ -62,8 +62,9 @@ Ctrl<Key>R:	search(backward) \n\
 Ctrl<Key>S:	search(forward) \n\
 Ctrl<Key>T:     transpose-characters() \n\
 Ctrl<Key>U:	multiply(4) \n\
-Ctrl<Key>V:	next-page() \n\
+Ctrl<Key>V:	insert-selection(CLIPBOARD) \n\
 Ctrl<Key>W:	kill-selection() \n\
+Ctrl<Key>X:	kill-selection() \n\
 Ctrl<Key>Y:	insert-selection(SECONDARY) \n\
 Ctrl<Key>Z:	scroll-one-line-up() \n\
 ", *_IswDefaultTextTranslations2 = "\
@@ -73,7 +74,7 @@ Meta<Key>I:	insert-file() \n\
 Meta<Key>K:	kill-to-end-of-paragraph() \n\
 Meta<Key>Q:     form-paragraph() \n\
 Meta<Key>V:	previous-page() \n\
-Meta<Key>Y:	insert-selection(PRIMARY, CUT_BUFFER0) \n\
+Meta<Key>Y:	insert-selection(PRIMARY, CLIPBOARD) \n\
 Meta<Key>Z:	scroll-one-line-down() \n\
 :Meta<Key>d:	delete-next-word() \n\
 :Meta<Key>D:	kill-word() \n\
@@ -137,9 +138,9 @@ Ctrl<Key>backslash:	reconnect-im() \n\
 <FocusOut>:	focus-out() \n\
 <Btn1Down>:	select-start() \n\
 <Btn1Motion>:	extend-adjust() \n\
-<Btn1Up>:	extend-end(PRIMARY, CUT_BUFFER0) \n\
-<Btn2Down>:	insert-selection(PRIMARY, CUT_BUFFER0) \n\
+<Btn1Up>:	extend-end(PRIMARY, CLIPBOARD) \n\
+<Btn2Down>:	insert-selection(PRIMARY, CLIPBOARD) \n\
 <Btn3Down>:	extend-start() \n\
 <Btn3Motion>:	extend-adjust() \n\
-<Btn3Up>:	extend-end(PRIMARY, CUT_BUFFER0) \
+<Btn3Up>:	extend-end(PRIMARY, CLIPBOARD) \
 ";

@@ -273,13 +273,16 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
         TMKeyContext tm_context;
         int num_modbits;
         int i;
+        xcb_keysym_t lower, upper;
 
         pd = _XtGetPerDisplay(dpy);
         tm_context = pd->tm_context;
         TRANSLATE(tm_context, pd, dpy, (xcb_keycode_t) eventSeq->event.eventCode,
                   (unsigned) 0, modifiers_return, keysym_return);
 
-        if ((keysym_return & typeMatch->eventCodeMask) == typeMatch->eventCode) {
+        XtConvertCase(dpy, keysym_return, &lower, &upper);
+        if ((upper & typeMatch->eventCodeMask) == typeMatch->eventCode
+            || (lower & typeMatch->eventCodeMask) == typeMatch->eventCode) {
             tm_context->event = eventSeq->xev;
             tm_context->serial = eventSeq->xev->full_sequence;
             tm_context->keysym = keysym_return;
@@ -306,8 +309,11 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
             for (i = (int) useful_mods; i > 0; i--) {
                 TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
                           (Modifiers) i, modifiers_return, keysym_return);
-                if (keysym_return ==
-                    (typeMatch->eventCode & typeMatch->eventCodeMask)) {
+                XtConvertCase(dpy, keysym_return, &lower, &upper);
+                if ((upper & typeMatch->eventCodeMask) ==
+                        (typeMatch->eventCode & typeMatch->eventCodeMask)
+                    || (lower & typeMatch->eventCodeMask) ==
+                        (typeMatch->eventCode & typeMatch->eventCodeMask)) {
                     tm_context->event = eventSeq->xev;
                     tm_context->serial = eventSeq->xev->full_sequence;
                     tm_context->keysym = keysym_return;
@@ -336,8 +342,11 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
                         tmod |= mod_masks[i];
                 TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
                           tmod, modifiers_return, keysym_return);
-                if (keysym_return ==
-                    (typeMatch->eventCode & typeMatch->eventCodeMask)) {
+                XtConvertCase(dpy, keysym_return, &lower, &upper);
+                if ((upper & typeMatch->eventCodeMask) ==
+                        (typeMatch->eventCode & typeMatch->eventCodeMask)
+                    || (lower & typeMatch->eventCodeMask) ==
+                        (typeMatch->eventCode & typeMatch->eventCodeMask)) {
                     tm_context->event = eventSeq->xev;
                     tm_context->serial = eventSeq->xev->full_sequence;
                     tm_context->keysym = keysym_return;
@@ -420,8 +429,13 @@ _XtMatchUsingStandardMods(TMTypeMatch typeMatch,
                   translateModifiers, modifiers_return, keysym_return);
     }
 
-    if ((typeMatch->eventCode & typeMatch->eventCodeMask) ==
-        (keysym_return & typeMatch->eventCodeMask)) {
+    {
+        xcb_keysym_t lower, upper;
+        XtConvertCase(dpy, keysym_return, &lower, &upper);
+        if ((typeMatch->eventCode & typeMatch->eventCodeMask) ==
+                (upper & typeMatch->eventCodeMask)
+            || (typeMatch->eventCode & typeMatch->eventCodeMask) ==
+                (lower & typeMatch->eventCodeMask)) {
         Boolean resolved = TRUE;
 
         if (modMatch->lateModifiers != NULL)
@@ -440,6 +454,7 @@ _XtMatchUsingStandardMods(TMTypeMatch typeMatch,
             tm_context->modifiers = translateModifiers;
             return TRUE;
         }
+    }
     }
     return FALSE;
 }

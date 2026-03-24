@@ -127,13 +127,6 @@ unsigned long IswFmtWide = 0L;
 #define BIGNUM ((Dimension)32023)
 #define MULTI_CLICK_TIME 500L
 
-/*
- * Compute a the maximum length of a cut buffer that we can pass at any
- * time.  The 64 allows for the overhead of the Change Property request.
- */
-
-/* XCB equivalent of XMaxRequestSize - returns max request length in 4-byte units */
-#define MAX_CUT_LEN(dpy)  (xcb_get_maximum_request_length(dpy) - 64)
 
 #define IsValidLine(ctx, num) ( ((num) == 0) || \
 			        ((ctx)->text.lt.info[(num)].position != 0) )
@@ -749,39 +742,6 @@ UnrealizeScrollbars(Widget widget, XtPointer client, XtPointer call)
 
 /* Utility routines for support of Text */
 
-static void
-_CreateCutBuffers(xcb_connection_t *d)
-{
-  static struct _DisplayRec {
-    struct _DisplayRec *next;
-    xcb_connection_t *dpy;
-  } *dpy_list = NULL;
-  struct _DisplayRec *dpy_ptr;
-
-  for (dpy_ptr = dpy_list; dpy_ptr != NULL; dpy_ptr = dpy_ptr->next)
-    if (dpy_ptr->dpy == d) return;
-
-  dpy_ptr = XtNew(struct _DisplayRec);
-  dpy_ptr->next = dpy_list;
-  dpy_ptr->dpy = d;
-  dpy_list = dpy_ptr;
-
-#define Create(buffer) \
-    { xcb_screen_t *__screen = xcb_setup_roots_iterator(xcb_get_setup(d)).data; \
-      xcb_change_property(d, XCB_PROP_MODE_APPEND, __screen->root, buffer, \
-                         XCB_ATOM_STRING, 8, 0, NULL); }
-
-    Create( XCB_ATOM_CUT_BUFFER0 );
-    Create( XCB_ATOM_CUT_BUFFER1 );
-    Create( XCB_ATOM_CUT_BUFFER2 );
-    Create( XCB_ATOM_CUT_BUFFER3 );
-    Create( XCB_ATOM_CUT_BUFFER4 );
-    Create( XCB_ATOM_CUT_BUFFER5 );
-    Create( XCB_ATOM_CUT_BUFFER6 );
-    Create( XCB_ATOM_CUT_BUFFER7 );
-
-#undef Create
-}
 
 /*
  * Procedure to manage insert cursor visibility for editable text.  It uses
@@ -1837,28 +1797,6 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   return False;
 }
 
-/*	Function Name: GetCutBuffferNumber
- *	Description: Returns the number of the cut buffer.
- *	Arguments: atom - the atom to check.
- *	Returns: the number of the cut buffer representing this atom or
- *               NOT_A_CUT_BUFFER.
- */
-
-#define NOT_A_CUT_BUFFER -1
-
-static int
-GetCutBufferNumber(xcb_atom_t atom)
-{
-  if (atom == XCB_ATOM_CUT_BUFFER0) return(0);
-  if (atom == XCB_ATOM_CUT_BUFFER1) return(1);
-  if (atom == XCB_ATOM_CUT_BUFFER2) return(2);
-  if (atom == XCB_ATOM_CUT_BUFFER3) return(3);
-  if (atom == XCB_ATOM_CUT_BUFFER4) return(4);
-  if (atom == XCB_ATOM_CUT_BUFFER5) return(5);
-  if (atom == XCB_ATOM_CUT_BUFFER6) return(6);
-  if (atom == XCB_ATOM_CUT_BUFFER7) return(7);
-  return(NOT_A_CUT_BUFFER);
-}
 
 static void
 LoseSelection(Widget w, xcb_atom_t *selection)
@@ -1872,8 +1810,7 @@ LoseSelection(Widget w, xcb_atom_t *selection)
 
   atomP = ctx->text.s.selections;
   for (i = 0 ; i < ctx->text.s.atom_count; i++, atomP++)
-    if ( (*selection == *atomP) ||
-	(GetCutBufferNumber(*atomP) != NOT_A_CUT_BUFFER) )/* is a cut buffer */
+    if (*selection == *atomP)
       *atomP = (xcb_atom_t)0;
 
   while (ctx->text.s.atom_count &&
@@ -1991,17 +1928,13 @@ _IswTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
        salt->length = strlen (salt->contents);
     salt->next = ctx->text.salt;
     ctx->text.salt = salt;
-    j = 0;
     for (i = 0; i < num_atoms; i++)
     {
-	if (GetCutBufferNumber (selections[i]) == NOT_A_CUT_BUFFER)
-	{
-	    salt->s.selections[j++] = selections[i];
-	    XtOwnSelection ((Widget) ctx, selections[i], ctx->text.time,
-		    ConvertSelection, LoseSelection, (XtSelectionDoneProc)NULL);
-	}
+	salt->s.selections[i] = selections[i];
+	XtOwnSelection ((Widget) ctx, selections[i], ctx->text.time,
+		ConvertSelection, LoseSelection, (XtSelectionDoneProc)NULL);
     }
-    salt->s.atom_count = j;
+    salt->s.atom_count = num_atoms;
 }
 
 static void
@@ -2035,67 +1968,9 @@ _SetSelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right,
 
   if (left < right) {
     Widget w = (Widget) ctx;
-    int buffer;
 
     while (count) {
       xcb_atom_t selection = selections[--count];
-
-      if ((buffer = GetCutBufferNumber(selection)) != NOT_A_CUT_BUFFER) {
-
-	unsigned char *ptr, *tptr;
-	unsigned int amount, max_len = MAX_CUT_LEN(XtDisplay(w));
-	unsigned long len;
-
-	tptr= ptr= (unsigned char *) _IswTextGetSTRING(ctx, ctx->text.s.left,
-						       ctx->text.s.right);
-#ifdef ISW_INTERNATIONALIZATION
-	if (_IswTextFormat(ctx) == IswFmtWide) {
-#ifdef ISW_HAS_XIM
-	   /*
-	    * Only XCB_ATOM_STRING(Latin 1) is allowed in CUT_BUFFER,
-	    * so we get it from wchar string, then free the wchar string.
-	    */
-	    XTextProperty textprop;
-	    if (XwcTextListToTextProperty(XtDisplay(w), (wchar_t**)&ptr, 1,
-		    XStringStyle, &textprop) <  Success) {
-		XtFree((char *)ptr);
-		return;
-	    }
-	    XtFree((char *)ptr);
-	    tptr = ptr = textprop.value;
-#else
-	    /* XCB: Wide-char cut buffer not supported */
-	    fprintf(stderr, "Isw3d: Wide-char cut buffer not supported in XCB mode\n");
-	    XtFree((char *)ptr);
-	    return;
-#endif
-        }
-#endif
-	if (buffer == 0) {
-	  _CreateCutBuffers(XtDisplay(w));
-	  /* XRotateBuffers - legacy cut buffer rotation, skipped for XCB port */
-	}
-	amount = Min ( (len = strlen((char *)ptr)), max_len);
-	/* XCB equivalent of XChangeProperty + RootWindow */
-	{
-	    xcb_connection_t *conn = XtDisplay(w);
-	    xcb_screen_t *screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
-	    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, screen->root, selection,
-			        XCB_ATOM_STRING, 8, amount, ptr);
-	}
-
-	while (len > max_len) {
-	    xcb_connection_t *conn = XtDisplay(w);
-	    xcb_screen_t *screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
-	    len -= max_len;
-	    tptr += max_len;
-	    amount = Min (len, max_len);
-	    xcb_change_property(conn, XCB_PROP_MODE_APPEND, screen->root,
-			        selection, XCB_ATOM_STRING, 8, amount, tptr);
-	}
-	XtFree ((char *)ptr);
-      }
-      else			/* This is a real selection */
       XtOwnSelection(w, selection, ctx->text.time, ConvertSelection,
 		     LoseSelection, (XtSelectionDoneProc)NULL);
     }
@@ -3385,17 +3260,22 @@ void
 IswTextUnsetSelection(Widget w)
 {
   TextWidget ctx = (TextWidget)w;
+  xcb_atom_t clipboard = XCB_ATOM_CLIPBOARD(XtDisplay(w));
 
   while (ctx->text.s.atom_count != 0) {
     xcb_atom_t sel = ctx->text.s.selections[ctx->text.s.atom_count - 1];
     if ( sel != (xcb_atom_t) 0 ) {
 /*
  * As selections are lost the atom_count will decrement.
+ * Keep CLIPBOARD ownership — it persists beyond the visible highlight.
  */
-      if (GetCutBufferNumber(sel) == NOT_A_CUT_BUFFER)
-	XtDisownSelection(w, sel, ctx->text.time);
-      LoseSelection(w, &sel); /* In case this is a cut buffer, or
-				 XtDisownSelection failed to call us. */
+      if (sel == clipboard) {
+	ctx->text.s.selections[ctx->text.s.atom_count - 1] = (xcb_atom_t)0;
+	ctx->text.s.atom_count--;
+	continue;
+      }
+      XtDisownSelection(w, sel, ctx->text.time);
+      LoseSelection(w, &sel); /* In case XtDisownSelection failed to call us. */
     }
   }
 }

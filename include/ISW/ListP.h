@@ -103,6 +103,8 @@ typedef struct {
 
     ISWRenderContext *render_ctx;  /* Cairo rendering context */
 
+    char       *clip_contents;  /* owned CLIPBOARD selection contents */
+
     /* dropdown mode */
     Boolean     dropdown;       /* if True, behaves as dropdown selector */
     int         selected_item;  /* private: currently selected item index */

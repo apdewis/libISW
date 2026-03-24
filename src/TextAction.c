@@ -340,75 +340,24 @@ we are, and convert it.  I also warn the user that the other client is evil. */
 }
 
 
-//#TODO replace usage of cut buffers with modern selection mechanism
 static void
 GetSelection(Widget w, xcb_timestamp_t time, String *params, Cardinal num_params)
 {
     xcb_atom_t selection;
-    int buffer;
+    struct _SelectionList* list;
 
     selection = IswXcbInternAtom(XtDisplay(w), *params, False);
 
-    switch (selection) {
-      case XCB_ATOM_CUT_BUFFER0: buffer = 0; break;
-      case XCB_ATOM_CUT_BUFFER1: buffer = 1; break;
-      case XCB_ATOM_CUT_BUFFER2: buffer = 2; break;
-      case XCB_ATOM_CUT_BUFFER3: buffer = 3; break;
-      case XCB_ATOM_CUT_BUFFER4: buffer = 4; break;
-      case XCB_ATOM_CUT_BUFFER5: buffer = 5; break;
-      case XCB_ATOM_CUT_BUFFER6: buffer = 6; break;
-      case XCB_ATOM_CUT_BUFFER7: buffer = 7; break;
-      default:	       buffer = -1;
-    }
-    if (buffer >= 0) {
-	int nbytes;
-	unsigned long length;
-	int fmt8 = 8;
-	xcb_atom_t type = XCB_ATOM_STRING;
-	xcb_connection_t *connection = XtDisplay(w);
-	xcb_screen_t *screen = XtScreen(w);
-	char *line = NULL;
-
-  xcb_get_property_cookie_t cookie = xcb_get_property(
-      connection,
-      0,                          // delete: false
-      screen->root,               // window
-      selection,       // property
-      XCB_ATOM_STRING,            // type
-      0,                          // long_offset
-      4096                        // long_length (amount of data to fetch)
-  );
-  xcb_get_property_reply_t *reply = xcb_get_property_reply(connection, cookie, NULL);
-  if (reply) {
-    nbytes = xcb_get_property_value_length(reply);
-    if (nbytes > 0) {
-        // Allocate space and copy the value
-        line = XtMalloc(nbytes + 1);
-        memcpy(line, xcb_get_property_value(reply), nbytes);
-        line[nbytes] = '\0'; // Ensure null-termination
-    }
-    free(reply); // You must free the reply structure itself
-  }
- 
-
-	if ((length = nbytes))
-	    _SelectionReceived(w, (XtPointer) NULL, &selection, &type, (XtPointer)line,
-			       &length, &fmt8);
-	else if (num_params > 1)
-	    GetSelection(w, time, params+1, num_params-1);
-    } else {
-	struct _SelectionList* list;
-	if (--num_params) {
-	    list = XtNew(struct _SelectionList);
-	    list->params = params + 1;
-	    list->count = num_params;
-	    list->time = time;
-	    list->CT_asked = True;
-	    list->selection = selection;
-	} else list = NULL;
-	XtGetSelectionValue(w, selection, XCB_ATOM_COMPOUND_TEXT(XtDisplay(w)),
-			    _SelectionReceived, (XtPointer)list, time);
-    }
+    if (--num_params) {
+	list = XtNew(struct _SelectionList);
+	list->params = params + 1;
+	list->count = num_params;
+	list->time = time;
+	list->CT_asked = True;
+	list->selection = selection;
+    } else list = NULL;
+    XtGetSelectionValue(w, selection, XCB_ATOM_COMPOUND_TEXT(XtDisplay(w)),
+			_SelectionReceived, (XtPointer)list, time);
 }
 
 static void
@@ -1086,7 +1035,17 @@ _IswTextZapSelection(TextWidget ctx, xcb_generic_event_t *event, Boolean kill)
 static void
 KillCurrentSelection(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
-  _IswTextZapSelection( (TextWidget) w, event, TRUE);
+  TextWidget ctx = (TextWidget) w;
+
+  StartAction(ctx, event);
+  /* Snapshot selection to CLIPBOARD before deleting */
+  if (ctx->text.s.left < ctx->text.s.right) {
+    xcb_atom_t clip = XCB_ATOM_CLIPBOARD(XtDisplay(w));
+    _IswTextSaltAwaySelection(ctx, &clip, 1);
+  }
+  _DeleteOrKill(ctx, ctx->text.s.left, ctx->text.s.right, TRUE);
+  _IswTextSetScrollBars(ctx);
+  EndAction(ctx);
 }
 
 /*ARGSUSED*/
@@ -1347,6 +1306,27 @@ SelectSave(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
     num_atoms = *num_params;
     _IswTextSaltAwaySelection( (TextWidget) w, selections, num_atoms );
     EndAction(  (TextWidget) w );
+}
+
+static void
+CopySelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+{
+  TextWidget ctx = (TextWidget) w;
+  int num_atoms;
+  xcb_atom_t *sel;
+  xcb_connection_t *dpy = XtDisplay(w);
+  xcb_atom_t selections[256];
+
+  StartAction(ctx, event);
+  if (ctx->text.s.left < ctx->text.s.right) {
+    num_atoms = *num_params;
+    if (num_atoms > 256) num_atoms = 256;
+    for (sel = selections; --num_atoms >= 0; sel++, params++)
+      *sel = IswXcbInternAtom(dpy, *params, False);
+    num_atoms = *num_params;
+    _IswTextSaltAwaySelection(ctx, selections, num_atoms);
+  }
+  EndAction(ctx);
 }
 
 /************************************************************
@@ -2265,6 +2245,7 @@ XtActionsRec _IswTextActionsTable[] = {
   {"extend-adjust", 		ExtendAdjust},
   {"extend-end", 		ExtendEnd},
   {"insert-selection",		InsertSelection},
+  {"copy-selection",		CopySelection},
 
 /* Miscellaneous */
 

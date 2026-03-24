@@ -943,8 +943,7 @@ OwnSelection(Widget widget,
         xcb_window_t window = XtWindow(widget);
         //uint32_t serial = xcb_get_serial(ctx->dpy);
 
-        //XSetSelectionOwner(ctx->dpy, selection, window, time);
-        xcb_set_selection_owner(ctx->dpy, XCB_NONE, selection, time);
+        xcb_set_selection_owner(ctx->dpy, window, selection, time);
         xcb_get_selection_owner_cookie_t cookie = xcb_get_selection_owner(ctx->dpy, selection);
         xcb_get_selection_owner_reply_t *reply = xcb_get_selection_owner_reply(ctx->dpy, cookie, NULL);
         if(!reply) return FALSE;

@@ -456,6 +456,7 @@ xcb_atom_t IswXcbInternAtom(xcb_connection_t *conn, const char *name,
 #define XCB_ATOM_DELETE(d)              IswXcbInternAtom((d), "DELETE", False)
 #define XCB_ATOM_SPAN(d)                IswXcbInternAtom((d), "SPAN", False)
 #define XCB_ATOM_NULL(d)                IswXcbInternAtom((d), "NULL", False)
+#define XCB_ATOM_CLIPBOARD(d)           IswXcbInternAtom((d), "CLIPBOARD", False)
 
 /*
  * =================================================================

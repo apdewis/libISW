@@ -392,6 +392,8 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
     lw->list.row_space = ISWScaleDim(new, lw->list.row_space);
     lw->list.column_space = ISWScaleDim(new, lw->list.column_space);
 
+    lw->list.clip_contents = NULL;
+
 /*
  * Initialize all private resources.
  */
@@ -989,18 +991,59 @@ Layout(Widget w, Boolean xfree, Boolean yfree, Dimension *width, Dimension *heig
 }
 
 
+static Boolean
+ListConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
+		     xcb_atom_t *type, XtPointer *value,
+		     unsigned long *length, int *format)
+{
+    ListWidget lw = (ListWidget) w;
+
+    if (*target == XCB_ATOM_TARGETS(XtDisplay(w))) {
+	xcb_atom_t *targets = (xcb_atom_t *) XtMalloc(2 * sizeof(xcb_atom_t));
+	targets[0] = XCB_ATOM_TARGETS(XtDisplay(w));
+	targets[1] = XCB_ATOM_STRING;
+	*type = XCB_ATOM_ATOM;
+	*value = (XtPointer) targets;
+	*length = 2;
+	*format = 32;
+	return True;
+    }
+
+    if (*target == XCB_ATOM_STRING) {
+	if (lw->list.clip_contents == NULL)
+	    return False;
+	*type = XCB_ATOM_STRING;
+	*value = XtNewString(lw->list.clip_contents);
+	*length = strlen(lw->list.clip_contents);
+	*format = 8;
+	return True;
+    }
+
+    return False;
+}
+
+static void
+ListLoseSelection(Widget w, xcb_atom_t *selection)
+{
+    ListWidget lw = (ListWidget) w;
+    if (lw->list.clip_contents) {
+	XtFree(lw->list.clip_contents);
+	lw->list.clip_contents = NULL;
+    }
+}
+
 /* Notify() - ACTION
  *
  * Notifies the user that a button has been pressed, and
  * calls the callback; if the XtNpasteBuffer resource is true
- * then the name of the item is also put in CUT_BUFFER0.	*/
+ * then the name of the item is placed on the CLIPBOARD selection. */
 
 /* ARGSUSED */
 static void
 Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
     ListWidget lw = ( ListWidget ) w;
-    int item, item_len;
+    int item;
     IswListReturnStruct ret_value;
     /* XCB: Cast to xcb_button_press_event_t */
     xcb_button_press_event_t *be = (xcb_button_press_event_t *)event;
@@ -1018,14 +1061,13 @@ Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
         return;
     }
 
-    item_len = strlen(lw->list.list[item]);
-
-    if ( lw->list.paste ) {	/* if XtNpasteBuffer set then paste it. */
-        xcb_connection_t *conn = XtDisplay(w);
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE,
-                           XCB_COPY_FROM_PARENT, XCB_ATOM_CUT_BUFFER0,
-                           XCB_ATOM_STRING, 8, item_len, lw->list.list[item]);
-        xcb_flush(conn);
+    if ( lw->list.paste ) {
+	if (lw->list.clip_contents)
+	    XtFree(lw->list.clip_contents);
+	lw->list.clip_contents = XtNewString(lw->list.list[item]);
+	XtOwnSelection(w, XCB_ATOM_CLIPBOARD(XtDisplay(w)),
+			XtLastTimestampProcessed(XtDisplay(w)),
+			ListConvertSelection, ListLoseSelection, NULL);
     }
 
 /*
@@ -1317,6 +1359,11 @@ Destroy(Widget w)
     if (lw->list.popup_shell) {
         XtDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
+    }
+
+    if (lw->list.clip_contents) {
+	XtFree(lw->list.clip_contents);
+	lw->list.clip_contents = NULL;
     }
 
     /* XCB: Skip XGetGCValues - tile tracking would need separate mechanism */
