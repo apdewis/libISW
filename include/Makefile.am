@@ -82,6 +82,8 @@ iswinclude_HEADERS = \
 	ISW/TextSrcP.h \
 	ISW/Tip.h \
 	ISW/TipP.h \
+	ISW/Toolbar.h \
+	ISW/ToolbarP.h \
 	ISW/Toggle.h \
 	ISW/ToggleP.h \
 	ISW/Tree.h \

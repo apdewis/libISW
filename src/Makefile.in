@@ -155,12 +155,13 @@ am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	Paned.c Panner.c Porthole.c ProgressBar.c Repeater.c Scale.c \
 	Scrollbar.c ScrollWheel.c SpinBox.c Simple.c SimpleMenu.c \
 	SmeBSB.c Sme.c SmeLine.c StripChart.c Tabs.c TextAction.c \
-	Text.c TextPop.c TextSink.c TextSrc.c TextTr.c Tip.c Toggle.c \
-	Tree.c Vendor.c Viewport.c ISWP.c ISWAtoms.c ISWContext.c \
-	ISWDrawing.c ISWInit.c ISWXcbDraw.c ISWXcbDraw.h Image.c \
-	laygram.y laylex.l MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c \
-	ISWI18n.h ISWRender.c ISWRenderPrivate.h ISWRenderCairoXCB.c \
-	ISWRenderEGL.c nanosvg_impl.c nanosvg.h nanosvgrast.h ISWSVG.c
+	Text.c TextPop.c TextSink.c TextSrc.c TextTr.c Tip.c Toolbar.c \
+	Toggle.c Tree.c Vendor.c Viewport.c ISWP.c ISWAtoms.c \
+	ISWContext.c ISWDrawing.c ISWInit.c ISWXcbDraw.c ISWXcbDraw.h \
+	Image.c laygram.y laylex.l MultiSrc.c MultiSink.c ISWIm.c \
+	ISWI18n.c ISWI18n.h ISWRender.c ISWRenderPrivate.h \
+	ISWRenderCairoXCB.c ISWRenderEGL.c nanosvg_impl.c nanosvg.h \
+	nanosvgrast.h ISWSVG.c
 am__objects_1 = ActionHook.lo Alloc.lo ArgList.lo Callback.lo \
 	ClickTime.lo Composite.lo Constraint.lo Context.lo Convert.lo \
 	Converters.lo Core.lo Create.lo Destroy.lo Display.lo Error.lo \
@@ -186,10 +187,11 @@ am__objects_7 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	Repeater.lo Scale.lo Scrollbar.lo ScrollWheel.lo SpinBox.lo \
 	Simple.lo SimpleMenu.lo SmeBSB.lo Sme.lo SmeLine.lo \
 	StripChart.lo Tabs.lo TextAction.lo Text.lo TextPop.lo \
-	TextSink.lo TextSrc.lo TextTr.lo Tip.lo Toggle.lo Tree.lo \
-	Vendor.lo Viewport.lo ISWP.lo ISWAtoms.lo ISWContext.lo \
-	ISWDrawing.lo ISWInit.lo ISWXcbDraw.lo Image.lo laygram.lo \
-	laylex.lo $(am__objects_2) $(am__objects_5) $(am__objects_6)
+	TextSink.lo TextSrc.lo TextTr.lo Tip.lo Toolbar.lo Toggle.lo \
+	Tree.lo Vendor.lo Viewport.lo ISWP.lo ISWAtoms.lo \
+	ISWContext.lo ISWDrawing.lo ISWInit.lo ISWXcbDraw.lo Image.lo \
+	laygram.lo laylex.lo $(am__objects_2) $(am__objects_5) \
+	$(am__objects_6)
 am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_7)
 nodist_libISW_la_OBJECTS = StringDefs.lo
 libISW_la_OBJECTS = $(am_libISW_la_OBJECTS) \
@@ -270,11 +272,11 @@ am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
 	./$(DEPDIR)/TextSink.Plo ./$(DEPDIR)/TextSrc.Plo \
 	./$(DEPDIR)/TextTr.Plo ./$(DEPDIR)/Threads.Plo \
 	./$(DEPDIR)/Tip.Plo ./$(DEPDIR)/Toggle.Plo \
-	./$(DEPDIR)/Tree.Plo ./$(DEPDIR)/VarCreate.Plo \
-	./$(DEPDIR)/VarGet.Plo ./$(DEPDIR)/Varargs.Plo \
-	./$(DEPDIR)/Vendor.Plo ./$(DEPDIR)/Viewport.Plo \
-	./$(DEPDIR)/laygram.Plo ./$(DEPDIR)/laylex.Plo \
-	./$(DEPDIR)/nanosvg_impl.Plo
+	./$(DEPDIR)/Toolbar.Plo ./$(DEPDIR)/Tree.Plo \
+	./$(DEPDIR)/VarCreate.Plo ./$(DEPDIR)/VarGet.Plo \
+	./$(DEPDIR)/Varargs.Plo ./$(DEPDIR)/Vendor.Plo \
+	./$(DEPDIR)/Viewport.Plo ./$(DEPDIR)/laygram.Plo \
+	./$(DEPDIR)/laylex.Plo ./$(DEPDIR)/nanosvg_impl.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -662,6 +664,7 @@ ISW_SOURCES = \
 	TextSrc.c \
 	TextTr.c \
 	Tip.c \
+	Toolbar.c \
 	Toggle.c \
 	Tree.c \
 	Vendor.c \
@@ -894,6 +897,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Threads.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Tip.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Toggle.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Toolbar.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Tree.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/VarCreate.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/VarGet.Plo@am__quote@ # am--include-marker
@@ -1207,6 +1211,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/Threads.Plo
 	-rm -f ./$(DEPDIR)/Tip.Plo
 	-rm -f ./$(DEPDIR)/Toggle.Plo
+	-rm -f ./$(DEPDIR)/Toolbar.Plo
 	-rm -f ./$(DEPDIR)/Tree.Plo
 	-rm -f ./$(DEPDIR)/VarCreate.Plo
 	-rm -f ./$(DEPDIR)/VarGet.Plo
@@ -1368,6 +1373,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/Threads.Plo
 	-rm -f ./$(DEPDIR)/Tip.Plo
 	-rm -f ./$(DEPDIR)/Toggle.Plo
+	-rm -f ./$(DEPDIR)/Toolbar.Plo
 	-rm -f ./$(DEPDIR)/Tree.Plo
 	-rm -f ./$(DEPDIR)/VarCreate.Plo
 	-rm -f ./$(DEPDIR)/VarGet.Plo

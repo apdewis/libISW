@@ -65,6 +65,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeLine.h>
 #include <ISW/StripChart.h>
 #include <ISW/Tabs.h>
+#include <ISW/Toolbar.h>
 #include <ISW/Toggle.h>
 #include <ISW/Tree.h>
 #include <ISW/Viewport.h>
@@ -112,6 +113,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "textSink", &textSinkObjectClass },
 { "textSrc", &textSrcObjectClass },
 { "text", &textWidgetClass },
+{ "toolbar", &toolbarWidgetClass },
 { "toggle", &toggleWidgetClass },
 { "topLevelShell", &topLevelShellWidgetClass },
 { "transientShell", &transientShellWidgetClass },

@@ -19,6 +19,9 @@
 #include <ISW/Viewport.h>
 #include <ISW/MainWindow.h>
 
+/* Toolbar */
+#include <ISW/Toolbar.h>
+
 /* Basic display widgets */
 #include <ISW/Label.h>
 #include <ISW/Command.h>
@@ -93,6 +96,7 @@ Widget create_form_demo(Widget parent);
 Widget create_viewport_demo(Widget parent);
 Widget create_layout_demo(Widget parent);
 Widget create_paned_grip_demo(Widget parent);
+Widget create_toolbar_demo(Widget parent);
 
 Widget create_command_demo(Widget parent);
 Widget create_toggle_demo(Widget parent);
@@ -418,41 +422,49 @@ Widget create_title_label(Widget parent) {
 
 Widget create_containers_section(Widget parent) {
     Widget form, section_label;
-    Widget box_demo, form_demo, viewport_demo;
+    Widget toolbar_demo, box_demo, form_demo, viewport_demo;
     Arg args[10];
     Cardinal n;
-    
+
     /* Create Form to hold container demos */
     n = 0;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
     XtSetArg(args[n], XtNdefaultDistance, 5); n++;
     form = XtCreateManagedWidget("containersForm", formWidgetClass,
                                  parent, args, n);
-    
+
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Container Widgets: Box, Form, Viewport"); n++;
+    XtSetArg(args[n], XtNlabel, "Container Widgets: Toolbar, Box, Form, Viewport"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     section_label = XtCreateManagedWidget("containerLabel", labelWidgetClass,
                                           form, args, n);
-    
-    /* Create demos */
-    box_demo = create_box_demo(form);
+
+    /* Toolbar demo */
+    toolbar_demo = create_toolbar_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    XtSetValues(toolbar_demo, args, n);
+
+    /* Create demos */
+    box_demo = create_box_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromVert, toolbar_demo); n++;
+    XtSetArg(args[n], XtNtop, XtChainTop); n++;
+    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(box_demo, args, n);
-    
+
     form_demo = create_form_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromVert, box_demo); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(form_demo, args, n);
-    
+
     viewport_demo = create_viewport_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromHoriz, form_demo); n++;
@@ -460,8 +472,109 @@ Widget create_containers_section(Widget parent) {
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(viewport_demo, args, n);
-    
+
     return form;
+}
+
+/* Simple inline SVG icons for toolbar demo */
+static const char *svg_new =
+    "<svg viewBox='0 0 16 16'><rect x='3' y='1' width='10' height='14' "
+    "fill='none' stroke='black' stroke-width='1.5'/>"
+    "<line x1='5' y1='5' x2='11' y2='5' stroke='black' stroke-width='1'/>"
+    "<line x1='5' y1='8' x2='11' y2='8' stroke='black' stroke-width='1'/>"
+    "<line x1='5' y1='11' x2='9' y2='11' stroke='black' stroke-width='1'/></svg>";
+
+static const char *svg_open =
+    "<svg viewBox='0 0 16 16'><path d='M2 4 L2 14 L14 14 L14 6 L8 6 L7 4 Z' "
+    "fill='none' stroke='black' stroke-width='1.5'/></svg>";
+
+static const char *svg_save =
+    "<svg viewBox='0 0 16 16'><rect x='2' y='2' width='12' height='12' "
+    "fill='none' stroke='black' stroke-width='1.5' rx='1'/>"
+    "<rect x='5' y='2' width='6' height='5' fill='none' stroke='black' stroke-width='1'/>"
+    "<rect x='4' y='9' width='8' height='5' fill='none' stroke='black' stroke-width='1'/></svg>";
+
+static const char *svg_cut =
+    "<svg viewBox='0 0 16 16'>"
+    "<circle cx='5' cy='12' r='2.5' fill='none' stroke='black' stroke-width='1.2'/>"
+    "<circle cx='11' cy='12' r='2.5' fill='none' stroke='black' stroke-width='1.2'/>"
+    "<line x1='5' y1='10' x2='11' y2='3' stroke='black' stroke-width='1.5'/>"
+    "<line x1='11' y1='10' x2='5' y2='3' stroke='black' stroke-width='1.5'/></svg>";
+
+static const char *svg_copy =
+    "<svg viewBox='0 0 16 16'>"
+    "<rect x='5' y='4' width='8' height='10' fill='none' stroke='black' stroke-width='1.2' rx='1'/>"
+    "<rect x='3' y='2' width='8' height='10' fill='none' stroke='black' stroke-width='1.2' rx='1'/></svg>";
+
+static const char *svg_paste =
+    "<svg viewBox='0 0 16 16'>"
+    "<rect x='3' y='3' width='10' height='11' fill='none' stroke='black' stroke-width='1.2' rx='1'/>"
+    "<rect x='5' y='1' width='6' height='3' fill='none' stroke='black' stroke-width='1.2' rx='1'/>"
+    "<line x1='5' y1='8' x2='11' y2='8' stroke='black' stroke-width='1'/>"
+    "<line x1='5' y1='10' x2='11' y2='10' stroke='black' stroke-width='1'/></svg>";
+
+Widget create_toolbar_demo(Widget parent) {
+    Widget toolbar;
+    Arg args[6];
+    Cardinal n;
+    Dimension btn_size = S(24);
+
+    n = 0;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    toolbar = XtCreateManagedWidget("toolbar", toolbarWidgetClass, parent, args, n);
+
+    /* Icon buttons with uniform size */
+    n = 0;
+    XtSetArg(args[n], XtNsvgData, svg_new); n++;
+    XtSetArg(args[n], XtNlabel, ""); n++;
+    XtSetArg(args[n], XtNwidth, btn_size); n++;
+    XtSetArg(args[n], XtNheight, btn_size); n++;
+    XtCreateManagedWidget("tbNew", commandWidgetClass, toolbar, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNsvgData, svg_open); n++;
+    XtSetArg(args[n], XtNlabel, ""); n++;
+    XtSetArg(args[n], XtNwidth, btn_size); n++;
+    XtSetArg(args[n], XtNheight, btn_size); n++;
+    XtCreateManagedWidget("tbOpen", commandWidgetClass, toolbar, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNsvgData, svg_save); n++;
+    XtSetArg(args[n], XtNlabel, ""); n++;
+    XtSetArg(args[n], XtNwidth, btn_size); n++;
+    XtSetArg(args[n], XtNheight, btn_size); n++;
+    XtCreateManagedWidget("tbSave", commandWidgetClass, toolbar, args, n);
+
+    /* Separator */
+    n = 0;
+    XtSetArg(args[n], XtNlabel, ""); n++;
+    XtSetArg(args[n], XtNwidth, S(2)); n++;
+    XtSetArg(args[n], XtNheight, btn_size); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    XtCreateManagedWidget("tbSep", labelWidgetClass, toolbar, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNsvgData, svg_cut); n++;
+    XtSetArg(args[n], XtNlabel, ""); n++;
+    XtSetArg(args[n], XtNwidth, btn_size); n++;
+    XtSetArg(args[n], XtNheight, btn_size); n++;
+    XtCreateManagedWidget("tbCut", commandWidgetClass, toolbar, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNsvgData, svg_copy); n++;
+    XtSetArg(args[n], XtNlabel, ""); n++;
+    XtSetArg(args[n], XtNwidth, btn_size); n++;
+    XtSetArg(args[n], XtNheight, btn_size); n++;
+    XtCreateManagedWidget("tbCopy", commandWidgetClass, toolbar, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNsvgData, svg_paste); n++;
+    XtSetArg(args[n], XtNlabel, ""); n++;
+    XtSetArg(args[n], XtNwidth, btn_size); n++;
+    XtSetArg(args[n], XtNheight, btn_size); n++;
+    XtCreateManagedWidget("tbPaste", commandWidgetClass, toolbar, args, n);
+
+    return toolbar;
 }
 
 Widget create_box_demo(Widget parent) {

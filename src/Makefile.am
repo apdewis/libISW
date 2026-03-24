@@ -149,6 +149,7 @@ ISW_SOURCES = \
 	TextSrc.c \
 	TextTr.c \
 	Tip.c \
+	Toolbar.c \
 	Toggle.c \
 	Tree.c \
 	Vendor.c \
