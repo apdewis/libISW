@@ -157,9 +157,10 @@ am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	StripChart.c Tabs.c TextAction.c Text.c TextPop.c TextSink.c \
 	TextSrc.c TextTr.c Tip.c Toggle.c Tree.c Vendor.c Viewport.c \
 	ISWP.c ISWAtoms.c ISWContext.c ISWDrawing.c ISWInit.c \
-	ISWXcbDraw.c ISWXcbDraw.h laygram.y laylex.l MultiSrc.c \
-	MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h ISWRender.c \
-	ISWRenderPrivate.h ISWRenderCairoXCB.c ISWRenderEGL.c
+	ISWXcbDraw.c ISWXcbDraw.h Image.c laygram.y laylex.l \
+	MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c ISWI18n.h ISWRender.c \
+	ISWRenderPrivate.h ISWRenderCairoXCB.c ISWRenderEGL.c \
+	nanosvg_impl.c nanosvg.h nanosvgrast.h ISWSVG.c
 am__objects_1 = ActionHook.lo Alloc.lo ArgList.lo Callback.lo \
 	ClickTime.lo Composite.lo Constraint.lo Context.lo Convert.lo \
 	Converters.lo Core.lo Create.lo Destroy.lo Display.lo Error.lo \
@@ -177,7 +178,8 @@ am__objects_1 = ActionHook.lo Alloc.lo ArgList.lo Callback.lo \
 am__objects_3 = ISWRender.lo ISWRenderCairoXCB.lo
 @HAVE_CAIRO_EGL_TRUE@am__objects_4 = ISWRenderEGL.lo
 am__objects_5 = $(am__objects_3) $(am__objects_4)
-am__objects_6 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
+am__objects_6 = nanosvg_impl.lo ISWSVG.lo
+am__objects_7 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	Box.lo Command.lo Dialog.lo Form.lo Grip.lo Label.lo Layout.lo \
 	List.lo MainWindow.lo MenuBar.lo MenuButton.lo Paned.lo \
 	Panner.lo Porthole.lo ProgressBar.lo Repeater.lo Scrollbar.lo \
@@ -185,9 +187,10 @@ am__objects_6 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	SmeLine.lo StripChart.lo Tabs.lo TextAction.lo Text.lo \
 	TextPop.lo TextSink.lo TextSrc.lo TextTr.lo Tip.lo Toggle.lo \
 	Tree.lo Vendor.lo Viewport.lo ISWP.lo ISWAtoms.lo \
-	ISWContext.lo ISWDrawing.lo ISWInit.lo ISWXcbDraw.lo \
-	laygram.lo laylex.lo $(am__objects_2) $(am__objects_5)
-am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_6)
+	ISWContext.lo ISWDrawing.lo ISWInit.lo ISWXcbDraw.lo Image.lo \
+	laygram.lo laylex.lo $(am__objects_2) $(am__objects_5) \
+	$(am__objects_6)
+am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_7)
 nodist_libISW_la_OBJECTS = StringDefs.lo
 libISW_la_OBJECTS = $(am_libISW_la_OBJECTS) \
 	$(nodist_libISW_la_OBJECTS)
@@ -235,7 +238,8 @@ am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
 	./$(DEPDIR)/ISWI18n.Plo ./$(DEPDIR)/ISWIm.Plo \
 	./$(DEPDIR)/ISWInit.Plo ./$(DEPDIR)/ISWP.Plo \
 	./$(DEPDIR)/ISWRender.Plo ./$(DEPDIR)/ISWRenderCairoXCB.Plo \
-	./$(DEPDIR)/ISWRenderEGL.Plo ./$(DEPDIR)/ISWXcbDraw.Plo \
+	./$(DEPDIR)/ISWRenderEGL.Plo ./$(DEPDIR)/ISWSVG.Plo \
+	./$(DEPDIR)/ISWXcbDraw.Plo ./$(DEPDIR)/Image.Plo \
 	./$(DEPDIR)/Initialize.Plo ./$(DEPDIR)/Intrinsic.Plo \
 	./$(DEPDIR)/Keyboard.Plo ./$(DEPDIR)/Label.Plo \
 	./$(DEPDIR)/Layout.Plo ./$(DEPDIR)/List.Plo \
@@ -268,7 +272,7 @@ am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
 	./$(DEPDIR)/VarCreate.Plo ./$(DEPDIR)/VarGet.Plo \
 	./$(DEPDIR)/Varargs.Plo ./$(DEPDIR)/Vendor.Plo \
 	./$(DEPDIR)/Viewport.Plo ./$(DEPDIR)/laygram.Plo \
-	./$(DEPDIR)/laylex.Plo
+	./$(DEPDIR)/laylex.Plo ./$(DEPDIR)/nanosvg_impl.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -609,6 +613,14 @@ RENDER_CORE_SRCS = \
 @HAVE_CAIRO_EGL_TRUE@RENDER_EGL_SRCS = ISWRenderEGL.c
 RENDER_SRCS = $(RENDER_CORE_SRCS) $(RENDER_EGL_SRCS)
 
+# SVG support (nanosvg + ISW wrapper)
+SVG_SRCS = \
+	nanosvg_impl.c \
+	nanosvg.h \
+	nanosvgrast.h \
+	ISWSVG.c
+
+
 # ISW widget source files
 ISW_SOURCES = \
 	AllWidgets.c \
@@ -659,10 +671,12 @@ ISW_SOURCES = \
 	ISWInit.c \
 	ISWXcbDraw.c \
 	ISWXcbDraw.h \
+	Image.c \
 	laygram.y \
 	laylex.l \
 	$(I18N_SRCS) \
-	$(RENDER_SRCS)
+	$(RENDER_SRCS) \
+	$(SVG_SRCS)
 
 
 # Generated source files
@@ -683,7 +697,8 @@ libISW_la_LIBADD = \
 	$(FONTCONFIG_LIBS) \
 	$(FREETYPE_LIBS) \
 	$(EGL_LIBS) \
-	$(CAIRO_GL_LIBS)
+	$(CAIRO_GL_LIBS) \
+	-lm
 
 libISW_la_LDFLAGS = -version-info 1:0:0 -no-undefined
 BUILT_SOURCES = StringDefs.c laygram.h
@@ -815,7 +830,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRender.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRenderCairoXCB.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRenderEGL.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWSVG.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWXcbDraw.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Image.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Initialize.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Intrinsic.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Keyboard.Plo@am__quote@ # am--include-marker
@@ -881,6 +898,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Viewport.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/laygram.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/laylex.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nanosvg_impl.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -1122,7 +1140,9 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/ISWRender.Plo
 	-rm -f ./$(DEPDIR)/ISWRenderCairoXCB.Plo
 	-rm -f ./$(DEPDIR)/ISWRenderEGL.Plo
+	-rm -f ./$(DEPDIR)/ISWSVG.Plo
 	-rm -f ./$(DEPDIR)/ISWXcbDraw.Plo
+	-rm -f ./$(DEPDIR)/Image.Plo
 	-rm -f ./$(DEPDIR)/Initialize.Plo
 	-rm -f ./$(DEPDIR)/Intrinsic.Plo
 	-rm -f ./$(DEPDIR)/Keyboard.Plo
@@ -1188,6 +1208,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/Viewport.Plo
 	-rm -f ./$(DEPDIR)/laygram.Plo
 	-rm -f ./$(DEPDIR)/laylex.Plo
+	-rm -f ./$(DEPDIR)/nanosvg_impl.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1277,7 +1298,9 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/ISWRender.Plo
 	-rm -f ./$(DEPDIR)/ISWRenderCairoXCB.Plo
 	-rm -f ./$(DEPDIR)/ISWRenderEGL.Plo
+	-rm -f ./$(DEPDIR)/ISWSVG.Plo
 	-rm -f ./$(DEPDIR)/ISWXcbDraw.Plo
+	-rm -f ./$(DEPDIR)/Image.Plo
 	-rm -f ./$(DEPDIR)/Initialize.Plo
 	-rm -f ./$(DEPDIR)/Intrinsic.Plo
 	-rm -f ./$(DEPDIR)/Keyboard.Plo
@@ -1343,6 +1366,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/Viewport.Plo
 	-rm -f ./$(DEPDIR)/laygram.Plo
 	-rm -f ./$(DEPDIR)/laylex.Plo
+	-rm -f ./$(DEPDIR)/nanosvg_impl.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

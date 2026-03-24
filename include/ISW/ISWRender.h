@@ -497,6 +497,34 @@ void ISWRenderDrawPixmap(ISWRenderContext *ctx,
 
 /*
  * =================================================================
+ * RGBA Image Rendering
+ * =================================================================
+ */
+
+/*
+ * ISWRenderDrawImageRGBA - Draw an RGBA pixel buffer onto the surface
+ *
+ * Parameters:
+ *   ctx          - Rendering context
+ *   rgba         - RGBA pixel data (4 bytes per pixel: R, G, B, A)
+ *   img_width    - Width of the source image in pixels
+ *   img_height   - Height of the source image in pixels
+ *   dst_x, dst_y - Destination position on surface
+ *   dst_w, dst_h - Destination size (image will be scaled to fit)
+ *
+ * Notes:
+ *   - Used for rendering rasterized SVG images
+ *   - Alpha channel is respected (transparent areas show through)
+ *   - If dst_w/dst_h differ from img_width/img_height, the image is scaled
+ */
+void ISWRenderDrawImageRGBA(ISWRenderContext *ctx,
+                            const unsigned char *rgba,
+                            unsigned int img_width, unsigned int img_height,
+                            int dst_x, int dst_y,
+                            unsigned int dst_w, unsigned int dst_h);
+
+/*
+ * =================================================================
  * Advanced Features (Cairo-only)
  * =================================================================
  */

@@ -666,22 +666,22 @@ Widget create_basic_widgets_section(Widget parent) {
 }
 
 Widget create_command_demo(Widget parent) {
-    Widget box, title, button1, button2, quit_button;
+    Widget box, title, button1, button2, quit_button, svg_button;
     Arg args[10];
     Cardinal n;
-    
+
     /* Container */
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
     box = XtCreateManagedWidget("commandBox", boxWidgetClass, parent, args, n);
-    
+
     /* Title */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Command Buttons"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     title = XtCreateManagedWidget("commandTitle", labelWidgetClass, box, args, n);
-    
+
     /* Buttons */
     n = 0;
     XtSetArg(args[n], XtNlabel, "Click Me!"); n++;
@@ -695,12 +695,20 @@ Widget create_command_demo(Widget parent) {
     XtAddCallback(button2, XtNcallback, button_callback, (XtPointer)"Button 2");
     attach_tooltip(button2, "Another command button with tooltip");
 
+    /* SVG icon button */
+    n = 0;
+    XtSetArg(args[n], XtNsvgFile, "x11.svg"); n++;
+    XtSetArg(args[n], XtNlabel, ""); n++;
+    svg_button = XtCreateManagedWidget("svgBtn", commandWidgetClass, box, args, n);
+    XtAddCallback(svg_button, XtNcallback, button_callback, (XtPointer)"SVG Button");
+    attach_tooltip(svg_button, "Command button with SVG icon");
+
     n = 0;
     XtSetArg(args[n], XtNlabel, "Quit"); n++;
     quit_button = XtCreateManagedWidget("quitBtn", commandWidgetClass, box, args, n);
     XtAddCallback(quit_button, XtNcallback, quit_callback, NULL);
     attach_tooltip(quit_button, "Click to exit the application");
-    
+
     return box;
 }
 

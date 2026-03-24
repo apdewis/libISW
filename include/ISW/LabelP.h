@@ -65,6 +65,7 @@ SOFTWARE.
 #include <ISW/SimpleP.h>
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef only */
 #include <ISW/ISWRender.h>     /* For ISWRenderContext */
+#include <ISW/ISWSVG.h>        /* For ISWSVGImage */
 
 /* XtJustify type is now centrally defined in Isw3dP.h and IswXcbDraw.h */
 /* with proper include guards to prevent redefinition */
@@ -126,6 +127,14 @@ typedef struct {
 
     /* Cairo rendering context */
     ISWRenderContext *render_ctx;
+
+    /* SVG image support */
+    String	svg_data;		/* inline SVG XML string */
+    String	svg_file;		/* path to SVG file */
+    ISWSVGImage	*svg_image;		/* parsed SVG (private) */
+    unsigned char *svg_raster;		/* cached RGBA raster (private) */
+    unsigned int svg_raster_w;		/* cached raster width */
+    unsigned int svg_raster_h;		/* cached raster height */
 } LabelPart;
 
 

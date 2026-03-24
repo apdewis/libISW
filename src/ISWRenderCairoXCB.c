@@ -806,6 +806,90 @@ cairo_xcb_draw_pixmap(ISWRenderContext *ctx,
 
 /*
  * =================================================================
+ * RGBA Image Rendering
+ * =================================================================
+ */
+
+static void
+cairo_xcb_draw_image_rgba(ISWRenderContext *ctx,
+                          const unsigned char *rgba,
+                          unsigned int img_w, unsigned int img_h,
+                          int dst_x, int dst_y,
+                          unsigned int dst_w, unsigned int dst_h)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    cairo_surface_t *img_surface;
+    unsigned char *cairo_buf;
+    unsigned int stride, i;
+
+    if (!data->cairo_ctx || !rgba || img_w == 0 || img_h == 0)
+        return;
+
+    /*
+     * Cairo ARGB32 format is native-endian 32-bit: 0xAARRGGBB (premultiplied).
+     * nanosvg produces straight RGBA (R,G,B,A bytes). Convert in-place copy.
+     */
+    stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, (int)img_w);
+    cairo_buf = (unsigned char *)malloc(stride * img_h);
+    if (!cairo_buf)
+        return;
+
+    for (i = 0; i < img_w * img_h; i++) {
+        unsigned char r = rgba[i * 4 + 0];
+        unsigned char g = rgba[i * 4 + 1];
+        unsigned char b = rgba[i * 4 + 2];
+        unsigned char a = rgba[i * 4 + 3];
+        unsigned int row = i / img_w;
+        unsigned int col = i % img_w;
+        uint32_t *pixel = (uint32_t *)(cairo_buf + row * stride + col * 4);
+
+        /* Premultiply alpha */
+        if (a == 255) {
+            *pixel = (255u << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+        } else if (a == 0) {
+            *pixel = 0;
+        } else {
+            *pixel = ((uint32_t)a << 24) |
+                     ((uint32_t)((r * a + 127) / 255) << 16) |
+                     ((uint32_t)((g * a + 127) / 255) << 8) |
+                     (uint32_t)((b * a + 127) / 255);
+        }
+    }
+
+    img_surface = cairo_image_surface_create_for_data(
+        cairo_buf, CAIRO_FORMAT_ARGB32, (int)img_w, (int)img_h, (int)stride);
+
+    if (cairo_surface_status(img_surface) != CAIRO_STATUS_SUCCESS) {
+        cairo_surface_destroy(img_surface);
+        free(cairo_buf);
+        return;
+    }
+
+    cairo_save(data->cairo_ctx);
+
+    /* Scale if destination size differs from image size */
+    if (dst_w != img_w || dst_h != img_h) {
+        cairo_translate(data->cairo_ctx, dst_x, dst_y);
+        cairo_scale(data->cairo_ctx,
+                    (double)dst_w / (double)img_w,
+                    (double)dst_h / (double)img_h);
+        cairo_set_source_surface(data->cairo_ctx, img_surface, 0, 0);
+    } else {
+        cairo_set_source_surface(data->cairo_ctx, img_surface, dst_x, dst_y);
+    }
+
+    cairo_paint(data->cairo_ctx);
+    cairo_restore(data->cairo_ctx);
+
+    cairo_surface_destroy(img_surface);
+    free(cairo_buf);
+
+    /* Restore the previous source color */
+    cairo_xcb_set_color(ctx, ctx->current_color);
+}
+
+/*
+ * =================================================================
  * Advanced Features
  * =================================================================
  */
@@ -880,6 +964,7 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .clear_clip = cairo_xcb_clear_clip,
     .copy_area = cairo_xcb_copy_area,
     .draw_pixmap = cairo_xcb_draw_pixmap,
+    .draw_image_rgba = cairo_xcb_draw_image_rgba,
     .set_gradient = cairo_xcb_set_gradient,
     .get_cairo_context = cairo_xcb_get_cairo_context
 };

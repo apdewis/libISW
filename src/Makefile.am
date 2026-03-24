@@ -101,6 +101,13 @@ endif
 
 RENDER_SRCS = $(RENDER_CORE_SRCS) $(RENDER_EGL_SRCS)
 
+# SVG support (nanosvg + ISW wrapper)
+SVG_SRCS = \
+	nanosvg_impl.c \
+	nanosvg.h \
+	nanosvgrast.h \
+	ISWSVG.c
+
 # ISW widget source files
 ISW_SOURCES = \
 	AllWidgets.c \
@@ -151,10 +158,12 @@ ISW_SOURCES = \
 	ISWInit.c \
 	ISWXcbDraw.c \
 	ISWXcbDraw.h \
+	Image.c \
 	laygram.y \
 	laylex.l \
 	$(I18N_SRCS) \
-	$(RENDER_SRCS)
+	$(RENDER_SRCS) \
+	$(SVG_SRCS)
 
 # Generated source files
 nodist_libISW_la_SOURCES = StringDefs.c
@@ -174,7 +183,8 @@ libISW_la_LIBADD = \
 	$(FONTCONFIG_LIBS) \
 	$(FREETYPE_LIBS) \
 	$(EGL_LIBS) \
-	$(CAIRO_GL_LIBS)
+	$(CAIRO_GL_LIBS) \
+	-lm
 
 libISW_la_LDFLAGS = -version-info 1:0:0 -no-undefined
 

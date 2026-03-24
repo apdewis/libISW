@@ -587,6 +587,26 @@ ISWRenderDrawPixmap(ISWRenderContext *ctx,
 
 /*
  * =================================================================
+ * RGBA Image Rendering
+ * =================================================================
+ */
+
+void
+ISWRenderDrawImageRGBA(ISWRenderContext *ctx,
+                       const unsigned char *rgba,
+                       unsigned int img_width, unsigned int img_height,
+                       int dst_x, int dst_y,
+                       unsigned int dst_w, unsigned int dst_h)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->draw_image_rgba || !rgba)
+        return;
+
+    ctx->ops->draw_image_rgba(ctx, rgba, img_width, img_height,
+                              dst_x, dst_y, dst_w, dst_h);
+}
+
+/*
+ * =================================================================
  * Advanced Features (Cairo-only)
  * =================================================================
  */

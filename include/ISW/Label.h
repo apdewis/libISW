@@ -98,6 +98,11 @@ SOFTWARE.
 #define XtNencoding "encoding"
 #define XtCEncoding "Encoding"
 
+#define XtNsvgData "svgData"
+#define XtCSvgData "SvgData"
+#define XtNsvgFile "svgFile"
+#define XtCSvgFile "SvgFile"
+
 #ifdef ISW_INTERNATIONALIZATION
 #ifndef XtNfontSet
 #define XtNfontSet "fontSet"

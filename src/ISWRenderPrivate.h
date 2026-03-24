@@ -101,6 +101,13 @@ typedef struct _ISWRenderOps {
                         unsigned int width, unsigned int height,
                         unsigned int depth);
 
+    /* RGBA image rendering */
+    void (*draw_image_rgba)(struct _ISWRenderContext *ctx,
+                            const unsigned char *rgba,
+                            unsigned int img_w, unsigned int img_h,
+                            int dst_x, int dst_y,
+                            unsigned int dst_w, unsigned int dst_h);
+
     /* Advanced (Cairo only) */
     Boolean (*set_gradient)(struct _ISWRenderContext *ctx,
                            double x1, double y1, double x2, double y2,

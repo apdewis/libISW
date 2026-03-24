@@ -63,6 +63,7 @@ SOFTWARE.
 /* #include <X11/Xmu/Drawing.h> */
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
+#include <ISW/ISWSVG.h>
 #include <ISW/Command.h>
 #include <ISW/LabelP.h>
 /* NO XFT - using pure XCB rendering */
@@ -154,7 +155,11 @@ static XtResource resources[] = {
 	offset(label.relief), XtRImmediate, (XtPointer) XtReliefRaised},
     {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
          XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
-         (XtPointer)1}
+         (XtPointer)1},
+    {XtNsvgData, XtCSvgData, XtRString, sizeof(String),
+	offset(label.svg_data), XtRImmediate, (XtPointer)NULL},
+    {XtNsvgFile, XtCSvgFile, XtRString, sizeof(String),
+	offset(label.svg_file), XtRImmediate, (XtPointer)NULL},
 };
 #undef offset
 
@@ -236,6 +241,65 @@ ClassInitialize(void)
 #undef WORD64  /* Disable WORD64 16-bit text handling */
 
 /*
+ * Parse SVG from svgFile or svgData resources.
+ * Frees any previous SVG state first.
+ */
+static void
+_LabelParseSVG(LabelWidget lw)
+{
+    float dpi = (float)(96.0 * ISWScaleFactor((Widget)lw));
+
+    /* Free previous state */
+    if (lw->label.svg_raster) {
+	free(lw->label.svg_raster);
+	lw->label.svg_raster = NULL;
+	lw->label.svg_raster_w = 0;
+	lw->label.svg_raster_h = 0;
+    }
+    if (lw->label.svg_image) {
+	ISWSVGDestroy(lw->label.svg_image);
+	lw->label.svg_image = NULL;
+    }
+
+    /* Try file first, then inline data */
+    if (lw->label.svg_file && lw->label.svg_file[0]) {
+	lw->label.svg_image = ISWSVGLoadFile(lw->label.svg_file, "px", dpi);
+    } else if (lw->label.svg_data && lw->label.svg_data[0]) {
+	lw->label.svg_image = ISWSVGLoadData(lw->label.svg_data, "px", dpi);
+    }
+}
+
+/*
+ * Rasterize the parsed SVG at the label's current dimensions.
+ * Called after SetTextWidthAndHeight has set label_width/label_height.
+ */
+static void
+_LabelRasterizeSVG(LabelWidget lw)
+{
+    unsigned int w, h;
+
+    if (!lw->label.svg_image)
+	return;
+
+    w = lw->label.label_width;
+    h = lw->label.label_height;
+    if (w == 0 || h == 0)
+	return;
+
+    /* Skip if cache is still valid */
+    if (lw->label.svg_raster &&
+	lw->label.svg_raster_w == w && lw->label.svg_raster_h == h)
+	return;
+
+    if (lw->label.svg_raster)
+	free(lw->label.svg_raster);
+
+    lw->label.svg_raster = ISWSVGRasterize(lw->label.svg_image, w, h);
+    lw->label.svg_raster_w = w;
+    lw->label.svg_raster_h = h;
+}
+
+/*
  * Calculate width and height of displayed text in pixels
  */
 
@@ -245,6 +309,18 @@ SetTextWidthAndHeight(LabelWidget lw)
     XFontStruct	*fs = lw->label.font;
 
     char *nl;
+
+    /* SVG takes priority over pixmap and text */
+    if (lw->label.svg_image) {
+	float svg_w = ISWSVGGetWidth(lw->label.svg_image);
+	float svg_h = ISWSVGGetHeight(lw->label.svg_image);
+	double scale = ISWScaleFactor((Widget)lw);
+	lw->label.label_width = (Dimension)(svg_w * scale + 0.5);
+	lw->label.label_height = (Dimension)(svg_h * scale + 0.5);
+	lw->label.label_len = 0;
+	lw->label.depth = 32;
+	return;
+    }
 
     if (lw->label.pixmap != None) {
  xcb_connection_t *conn = ((Widget)lw)->core.display;
@@ -430,6 +506,17 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     else
         lw->label.label = XtNewString(lw->label.label);
 
+    /* Copy SVG resource strings and parse */
+    if (lw->label.svg_data)
+	lw->label.svg_data = XtNewString(lw->label.svg_data);
+    if (lw->label.svg_file)
+	lw->label.svg_file = XtNewString(lw->label.svg_file);
+    lw->label.svg_image = NULL;
+    lw->label.svg_raster = NULL;
+    lw->label.svg_raster_w = 0;
+    lw->label.svg_raster_h = 0;
+    _LabelParseSVG(lw);
+
     /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
      * If font is NULL but fontset is available, create a minimal XFontStruct
      * using the fontset's font_id (similar to MultiSink.c approach). */
@@ -565,6 +652,23 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (region != NULL)
 	XSetRegion(gw->display, gc, region);
 #endif /*notdef*/
+
+    /* SVG rendering path — takes priority over pixmap and text */
+    if (w->label.svg_image) {
+	_LabelRasterizeSVG(w);
+	if (w->label.svg_raster && ctx) {
+	    ISWRenderBegin(ctx);
+	    ISWRenderDrawImageRGBA(ctx, w->label.svg_raster,
+				   w->label.svg_raster_w,
+				   w->label.svg_raster_h,
+				   w->label.label_x, w->label.label_y,
+				   w->label.svg_raster_w,
+				   w->label.svg_raster_h);
+	    ISWRenderEnd(ctx);
+	}
+	xcb_flush(conn);
+	return;
+    }
 
     if (w->label.pixmap == None) {
  int len = w->label.label_len;
@@ -782,6 +886,33 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	    checks[HEIGHT] = TRUE;
     }
 
+    /* Handle SVG resource changes */
+    if (curlw->label.svg_data != newlw->label.svg_data) {
+	if (curlw->label.svg_data)
+	    XtFree(curlw->label.svg_data);
+	newlw->label.svg_data = newlw->label.svg_data ?
+	    XtNewString(newlw->label.svg_data) : NULL;
+	was_resized = True;
+    }
+    if (curlw->label.svg_file != newlw->label.svg_file) {
+	if (curlw->label.svg_file)
+	    XtFree(curlw->label.svg_file);
+	newlw->label.svg_file = newlw->label.svg_file ?
+	    XtNewString(newlw->label.svg_file) : NULL;
+	was_resized = True;
+    }
+    if (curlw->label.svg_data != newlw->label.svg_data ||
+	curlw->label.svg_file != newlw->label.svg_file) {
+	/* Invalidate cached raster */
+	if (newlw->label.svg_raster) {
+	    free(newlw->label.svg_raster);
+	    newlw->label.svg_raster = NULL;
+	    newlw->label.svg_raster_w = 0;
+	    newlw->label.svg_raster_h = 0;
+	}
+	_LabelParseSVG(newlw);
+    }
+
     if (newlw->label.label == NULL)
 	newlw->label.label = newlw->core.name;
     if (curlw->label.label != newlw->label.label) {
@@ -906,6 +1037,18 @@ Destroy(Widget w)
 
     if ( lw->label.label != lw->core.name )
 	XtFree( lw->label.label );
+    if (lw->label.svg_raster) {
+	free(lw->label.svg_raster);
+	lw->label.svg_raster = NULL;
+    }
+    if (lw->label.svg_image) {
+	ISWSVGDestroy(lw->label.svg_image);
+	lw->label.svg_image = NULL;
+    }
+    if (lw->label.svg_data)
+	XtFree(lw->label.svg_data);
+    if (lw->label.svg_file)
+	XtFree(lw->label.svg_file);
     XtReleaseGC( w, lw->label.normal_GC );
     XtReleaseGC( w, lw->label.gray_GC);
     
