@@ -18,11 +18,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build
 make -j$(nproc)
 
-# Install
-sudo make install && sudo ldconfig
+# Build and run the demo app (uses LD_LIBRARY_PATH, never install)
+make -j$(nproc) && LD_LIBRARY_PATH=src/.libs ./examples/isw_demo
 
-# Build and run the demo app
-make -j$(nproc) && ./examples/isw_demo
+# NEVER run `sudo make install` or `sudo ldconfig` — the library is used in-tree only
 
 # Re-run autogen only when configure.ac changes
 ./autogen.sh && ./configure --enable-internationalization && make -j$(nproc)
