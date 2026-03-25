@@ -35,8 +35,17 @@ ISW currently has no keyboard navigation beyond what the Text widget provides. T
 - Alt+key mnemonics to open menubar items (underlined character in label).
 - Arrow keys to navigate within open menus (up/down within a menu, left/right between menubar items).
 - Enter to activate, Escape to close.
-- Accelerator keys (e.g. Ctrl+S) dispatched from the Shell level.
 - `XtNmnemonic` resource on menu entries.
+
+### 4. Menu Accelerators (keyboard shortcuts)
+
+Currently `display_accelerator` is NULL on both SmeBSB and SimpleMenu, and no menu item resource exists for accelerator strings. Needs:
+
+- Add `XtNaccelerator` resource on SmeBSB — an Xt translation string (e.g. `"Ctrl<Key>s"`).
+- Add `XtNacceleratorText` resource on SmeBSB — display string shown right-aligned in the menu entry (e.g. `"Ctrl+S"`).
+- SmeBSB Redisplay draws the accelerator text right-aligned in the menu item, after the label.
+- SimpleMenu (or Shell) installs accelerators via `XtInstallAccelerators` so shortcuts work when the menu is closed.
+- The accelerator fires the same callback as clicking the menu item.
 
 ## Implementation Order
 
@@ -45,7 +54,8 @@ ISW currently has no keyboard navigation beyond what the Text widget provides. T
 3. **List/ComboBox keyboard nav** — high value, commonly needed.
 4. **IconView keyboard nav** — grid-aware arrow movement.
 5. **Scale/SpinBox keyboard adjustment** — straightforward.
-6. **Menu keyboard access** — most complex (mnemonics, accelerators, arrow navigation across menus).
+6. **Menu keyboard access** — mnemonics, arrow navigation across menus.
+7. **Menu accelerators** — shortcut keys on menu items, display text, install on Shell.
 
 ## Design Notes
 
