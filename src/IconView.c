@@ -49,6 +49,8 @@ static XtResource resources[] = {
 #endif
     {XtNselectCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
         Offset(iconView.select_callback), XtRCallback, NULL},
+    {XtNmultiSelect, XtCMultiSelect, XtRBoolean, sizeof(Boolean),
+        Offset(iconView.multi_select), XtRImmediate, (XtPointer) False},
     {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
         Offset(core.border_width), XtRImmediate, (XtPointer) 0},
 };
@@ -137,10 +139,16 @@ static void
 AllocCache(IconViewWidget iw)
 {
     FreeCache(iw);
+    if (iw->iconView.sel_flags) {
+        free(iw->iconView.sel_flags);
+        iw->iconView.sel_flags = NULL;
+    }
     if (iw->iconView.nitems <= 0)
         return;
     iw->iconView.cache = calloc((size_t)iw->iconView.nitems,
                                  sizeof(IconViewItemCache));
+    iw->iconView.sel_flags = calloc((size_t)iw->iconView.nitems,
+                                     sizeof(Boolean));
 }
 
 static void
@@ -221,7 +229,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IconViewWidget iw = (IconViewWidget) new;
     (void)request; (void)args; (void)num_args;
 
-    iw->iconView.selected = -1;
+    iw->iconView.sel_flags = NULL;
+    iw->iconView.anchor = -1;
     iw->iconView.render_ctx = NULL;
     iw->iconView.cache = NULL;
     iw->iconView.ncols = 1;
@@ -256,6 +265,8 @@ Destroy(Widget w)
 {
     IconViewWidget iw = (IconViewWidget) w;
     FreeCache(iw);
+    if (iw->iconView.sel_flags)
+        free(iw->iconView.sel_flags);
     if (iw->iconView.render_ctx)
         ISWRenderDestroy(iw->iconView.render_ctx);
 }
@@ -299,7 +310,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         int cy = row * (int)iw->iconView.cell_h + (int)half_sp;
 
         /* Selection highlight */
-        if (i == iw->iconView.selected) {
+        if (iw->iconView.sel_flags && iw->iconView.sel_flags[i]) {
             ISWRenderSetColor(ctx, iw->iconView.foreground);
             ISWRenderFillRectangle(ctx, cx, cy,
                                    iw->iconView.cell_w - spacing,
@@ -324,7 +335,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
             if (lx < cx) lx = cx;
 
-            if (i == iw->iconView.selected) {
+            if (iw->iconView.sel_flags && iw->iconView.sel_flags[i]) {
                 ISWRenderSetColor(ctx, w->core.background_pixel);
             } else {
                 ISWRenderSetColor(ctx, iw->iconView.foreground);
@@ -367,11 +378,62 @@ SetValues(Widget current, Widget request, Widget desired,
 /* --- Actions --- */
 
 static void
+ClearSelection(IconViewWidget iw)
+{
+    if (iw->iconView.sel_flags)
+        memset(iw->iconView.sel_flags, 0,
+               (size_t)iw->iconView.nitems * sizeof(Boolean));
+}
+
+static void
+FireCallback(IconViewWidget iw, int clicked)
+{
+    Widget w = (Widget)iw;
+    int *indices = NULL;
+    int count = 0;
+
+    /* Build array of selected indices */
+    if (iw->iconView.sel_flags) {
+        indices = (int *)XtMalloc((Cardinal)iw->iconView.nitems * sizeof(int));
+        for (int i = 0; i < iw->iconView.nitems; i++) {
+            if (iw->iconView.sel_flags[i])
+                indices[count++] = i;
+        }
+    }
+
+    IswIconViewCallbackData cb;
+    cb.index = clicked;
+    cb.label = (clicked >= 0 && iw->iconView.labels &&
+                iw->iconView.labels[clicked])
+               ? iw->iconView.labels[clicked] : NULL;
+    cb.selected = indices;
+    cb.num_selected = count;
+    XtCallCallbacks(w, XtNselectCallback, (XtPointer)&cb);
+
+    if (indices)
+        XtFree((char *)indices);
+}
+
+static int
+HitTest(IconViewWidget iw, Position x, Position y)
+{
+    int col = (int)x / (int)iw->iconView.cell_w;
+    int row = (int)y / (int)iw->iconView.cell_h;
+
+    if (col >= iw->iconView.ncols) col = iw->iconView.ncols - 1;
+    if (col < 0) col = 0;
+
+    int index = row * iw->iconView.ncols + col;
+    if (index < 0 || index >= iw->iconView.nitems)
+        return -1;
+    return index;
+}
+
+static void
 SelectItem(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     Position x, y;
-    (void)params; (void)num_params;
 
     uint8_t type = event->response_type & ~0x80;
     if (type == XCB_BUTTON_PRESS) {
@@ -382,27 +444,43 @@ SelectItem(Widget w, XEvent *event, String *params, Cardinal *num_params)
         return;
     }
 
-    int col = (int)x / (int)iw->iconView.cell_w;
-    int row = (int)y / (int)iw->iconView.cell_h;
+    int index = HitTest(iw, x, y);
 
-    if (col >= iw->iconView.ncols) col = iw->iconView.ncols - 1;
-    if (col < 0) col = 0;
+    /* Detect modifiers from event state */
+    uint16_t state = ((xcb_button_press_event_t *)event)->state;
+    Boolean toggle = (state & XCB_MOD_MASK_CONTROL) != 0;
+    Boolean extend = (state & XCB_MOD_MASK_SHIFT) != 0;
 
-    int index = row * iw->iconView.ncols + col;
-    if (index < 0 || index >= iw->iconView.nitems) {
-        iw->iconView.selected = -1;
-        Redisplay(w, NULL, 0);
+    if (!iw->iconView.sel_flags)
         return;
+
+    if (index < 0) {
+        /* Click on empty space — clear selection */
+        ClearSelection(iw);
+        iw->iconView.anchor = -1;
+    } else if (iw->iconView.multi_select && toggle) {
+        /* Ctrl+click: toggle individual item */
+        iw->iconView.sel_flags[index] = !iw->iconView.sel_flags[index];
+        iw->iconView.anchor = index;
+    } else if (iw->iconView.multi_select && extend &&
+               iw->iconView.anchor >= 0) {
+        /* Shift+click: range select from anchor to clicked */
+        ClearSelection(iw);
+        int lo = iw->iconView.anchor < index
+                 ? iw->iconView.anchor : index;
+        int hi = iw->iconView.anchor > index
+                 ? iw->iconView.anchor : index;
+        for (int i = lo; i <= hi; i++)
+            iw->iconView.sel_flags[i] = True;
+    } else {
+        /* Plain click: select only this item */
+        ClearSelection(iw);
+        iw->iconView.sel_flags[index] = True;
+        iw->iconView.anchor = index;
     }
 
-    iw->iconView.selected = index;
     Redisplay(w, NULL, 0);
-
-    IswIconViewCallbackData cb;
-    cb.index = index;
-    cb.label = (iw->iconView.labels && iw->iconView.labels[index])
-               ? iw->iconView.labels[index] : NULL;
-    XtCallCallbacks(w, XtNselectCallback, (XtPointer)&cb);
+    FireCallback(iw, index);
 }
 
 /* --- Public API --- */
@@ -420,5 +498,40 @@ IswIconViewSetItems(Widget w, String *labels, String *icon_data, int nitems)
 int
 IswIconViewGetSelected(Widget w)
 {
-    return ((IconViewWidget) w)->iconView.selected;
+    IconViewWidget iw = (IconViewWidget) w;
+    if (!iw->iconView.sel_flags)
+        return -1;
+    /* Return first selected index for backward compat */
+    for (int i = 0; i < iw->iconView.nitems; i++) {
+        if (iw->iconView.sel_flags[i])
+            return i;
+    }
+    return -1;
+}
+
+int
+IswIconViewGetSelectedItems(Widget w, int **indices_out)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    int count = 0;
+
+    if (!iw->iconView.sel_flags || !indices_out) {
+        if (indices_out) *indices_out = NULL;
+        return 0;
+    }
+
+    int *buf = (int *)XtMalloc((Cardinal)iw->iconView.nitems * sizeof(int));
+    for (int i = 0; i < iw->iconView.nitems; i++) {
+        if (iw->iconView.sel_flags[i])
+            buf[count++] = i;
+    }
+
+    if (count == 0) {
+        XtFree((char *)buf);
+        *indices_out = NULL;
+        return 0;
+    }
+
+    *indices_out = buf;
+    return count;
 }

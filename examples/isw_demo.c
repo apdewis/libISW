@@ -1125,6 +1125,7 @@ Widget create_iconview_demo(Widget parent) {
     XtSetArg(args[n], XtNnumIcons, XtNumber(iv_labels)); n++;
     XtSetArg(args[n], XtNiconSize, 32); n++;
     XtSetArg(args[n], XtNwidth, S(200)); n++;
+    XtSetArg(args[n], XtNmultiSelect, True); n++;
     iconview = XtCreateManagedWidget("iconView", iconViewWidgetClass,
                                       viewport, args, n);
     XtAddCallback(iconview, XtNselectCallback, iconview_callback, NULL);
@@ -1980,8 +1981,13 @@ void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 
 void iconview_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     IswIconViewCallbackData *data = (IswIconViewCallbackData *)call_data;
-    printf("IconView selected: %s (index %d)\n",
-           data->label ? data->label : "(null)", data->index);
+    (void)w; (void)client_data;
+    printf("IconView clicked: %s (index %d), %d selected:",
+           data->label ? data->label : "(null)", data->index,
+           data->num_selected);
+    for (int i = 0; i < data->num_selected; i++)
+        printf(" %d", data->selected[i]);
+    printf("\n");
 }
 
 void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data) {

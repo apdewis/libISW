@@ -32,9 +32,11 @@ typedef struct {
     ISWFontSet     *fontset;
 #endif
     XtCallbackList  select_callback;
+    Boolean         multi_select;
 
     /* private state */
-    int             selected;     /* selected item index, -1 = none */
+    Boolean        *sel_flags;    /* per-item selection flags */
+    int             anchor;       /* anchor index for shift-click range select */
     int             ncols;        /* computed columns */
     int             nrows;        /* computed rows */
     Dimension       cell_w;       /* computed cell width */

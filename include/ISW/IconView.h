@@ -22,6 +22,8 @@
 #define XtNitemSpacing    "itemSpacing"
 #define XtCItemSpacing    "ItemSpacing"
 #define XtNselectCallback "selectCallback"
+#define XtNmultiSelect    "multiSelect"
+#define XtCMultiSelect    "MultiSelect"
 
 extern WidgetClass iconViewWidgetClass;
 
@@ -30,14 +32,17 @@ typedef struct _IconViewRec      *IconViewWidget;
 
 /* Callback data */
 typedef struct {
-    int    index;
-    String label;
+    int    index;         /* last clicked index */
+    String label;         /* label of last clicked item */
+    int   *selected;      /* array of selected indices */
+    int    num_selected;  /* count of selected items */
 } IswIconViewCallbackData;
 
 _XFUNCPROTOBEGIN
 
 extern void IswIconViewSetItems(Widget w, String *labels, String *icon_data, int nitems);
 extern int  IswIconViewGetSelected(Widget w);
+extern int  IswIconViewGetSelectedItems(Widget w, int **indices_out);
 
 _XFUNCPROTOEND
 
