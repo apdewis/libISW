@@ -95,4 +95,6 @@ TODO
 - UTF-8 support
 - return i18n support
 - Icon support
+- Keyboard navigation (Tab traversal, per-widget key bindings, menu mnemonics) — see KEYBOARD_NAV_PLAN.md
+- Font type refactor (replace XFontStruct compat shim with native ISWFont) — see FONT_REFACTOR_PLAN.md
 
