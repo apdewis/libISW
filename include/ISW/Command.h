@@ -74,7 +74,7 @@ SOFTWARE.
  font		     Font		XFontStruct*	XtDefaultFont
  foreground	     Foreground		Pixel		XtDefaultForeground
  height		     Height		Dimension	text height
- highlightThickness  Thickness		Dimension	0 if shaped, else 2
+ borderStrokeWidth   Thickness		Dimension	0 if shaped, else 2
  insensitiveBorder   Insensitive	Pixmap		Gray
  internalHeight	     Height		Dimension	2
  internalWidth	     Width		Dimension	4
@@ -95,7 +95,10 @@ SOFTWARE.
 
 */
 
-#define XtNhighlightThickness "highlightThickness"
+#define XtNborderStrokeWidth "borderStrokeWidth"
+#define XtCBorderStrokeWidth "BorderStrokeWidth"
+/* Backward compatibility alias */
+#define XtNhighlightThickness XtNborderStrokeWidth
 
 #define XtNshapeStyle "shapeStyle"
 #define XtCShapeStyle "ShapeStyle"

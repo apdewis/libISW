@@ -90,8 +90,8 @@ static char defaultTranslations[] =
 static XtResource resources[] = {
    {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
       offset(command.callbacks), XtRCallback, (XtPointer)NULL},
-   {XtNhighlightThickness, XtCThickness, XtRDimension, sizeof(Dimension),
-      offset(command.highlight_thickness), XtRImmediate,
+   {XtNborderStrokeWidth, XtCBorderStrokeWidth, XtRDimension, sizeof(Dimension),
+      offset(command.border_stroke_width), XtRImmediate,
       (XtPointer) DEFAULT_SHAPE_HIGHLIGHT},
    {XtNshapeStyle, XtCShapeStyle, XtRShapeStyle, sizeof(int),
       offset(command.shape_style), XtRImmediate, (XtPointer)IswShapeRectangle},
@@ -210,8 +210,8 @@ Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
   values.font		= cbw->label.font->fid;
   values.cap_style = XCB_CAP_STYLE_PROJECTING;
 
-  if (cbw->command.highlight_thickness > 1 )
-    values.line_width   = cbw->command.highlight_thickness;
+  if (cbw->command.border_stroke_width > 1 )
+    values.line_width   = cbw->command.border_stroke_width;
   else
     values.line_width   = 0;
 
@@ -245,11 +245,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
           free(reply);
       }
   }
-  if (cbw->command.highlight_thickness == DEFAULT_SHAPE_HIGHLIGHT) {
+  if (cbw->command.border_stroke_width == DEFAULT_SHAPE_HIGHLIGHT) {
       if (cbw->command.shape_style != IswShapeRectangle)
-	  cbw->command.highlight_thickness = 0;
+	  cbw->command.border_stroke_width = 0;
       else
-	  cbw->command.highlight_thickness = DEFAULT_HIGHLIGHT_THICKNESS;
+	  cbw->command.border_stroke_width = DEFAULT_HIGHLIGHT_THICKNESS;
   }
 
   if (cbw->command.shape_style != IswShapeRectangle) {
@@ -257,7 +257,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   }
 
   /* HiDPI: scale dimension resources (after shape logic resolves values) */
-  cbw->command.highlight_thickness = ISWScaleDim(new, cbw->command.highlight_thickness);
+  cbw->command.border_stroke_width = ISWScaleDim(new, cbw->command.border_stroke_width);
 
   cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground,
 				  cbw->core.background_pixel);
@@ -276,8 +276,8 @@ HighlightRegion(CommandWidget cbw)
   static ISWRegionPtr outerRegion = NULL, innerRegion, emptyRegion;
   xcb_rectangle_t rect;
 
-  if (cbw->command.highlight_thickness == 0 ||
-      cbw->command.highlight_thickness >
+  if (cbw->command.border_stroke_width == 0 ||
+      cbw->command.border_stroke_width >
       (Dimension) ((Dimension) Min(cbw->core.width, cbw->core.height)/2))
     return(NULL);
 
@@ -292,9 +292,9 @@ HighlightRegion(CommandWidget cbw)
   rect.width = cbw->core.width;
   rect.height = cbw->core.height;
   ISWUnionRectWithRegion( &rect, emptyRegion, outerRegion );
-  rect.x = rect.y += cbw->command.highlight_thickness;
-  rect.width -= cbw->command.highlight_thickness * 2;
-  rect.height -= cbw->command.highlight_thickness * 2;
+  rect.x = rect.y += cbw->command.border_stroke_width;
+  rect.width -= cbw->command.border_stroke_width * 2;
+  rect.height -= cbw->command.border_stroke_width * 2;
   ISWUnionRectWithRegion( &rect, emptyRegion, innerRegion );
   ISWSubtractRegion( outerRegion, innerRegion, outerRegion );
   return outerRegion;
@@ -435,7 +435,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
     ctx = cbw->label.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
   }
 
-  very_thick = cbw->command.highlight_thickness >
+  very_thick = cbw->command.border_stroke_width >
                (Dimension)((Dimension) Min(cbw->core.width, cbw->core.height)/2);
 
   /* Save original foreground for later restoration */
@@ -454,7 +454,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   {
     cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
     if (cr) {
-      double lw = cbw->command.highlight_thickness;
+      double lw = cbw->command.border_stroke_width;
       double off = lw / 2.0;
       double bx = off;
       double by = off;
@@ -538,8 +538,8 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
 
   if ( (oldcbw->label.foreground != cbw->label.foreground)           ||
        (oldcbw->core.background_pixel != cbw->core.background_pixel) ||
-       (oldcbw->command.highlight_thickness !=
-                                   cbw->command.highlight_thickness) ||
+       (oldcbw->command.border_stroke_width !=
+                                   cbw->command.border_stroke_width) ||
        (oldcbw->label.font != cbw->label.font) )
   {
     if (oldcbw->label.normal_GC == oldcbw->command.normal_GC)

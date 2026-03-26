@@ -295,7 +295,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      * Remove button chrome - radio buttons and checkboxes should look
      * like plain text with indicators, not like pressed buttons.
      */
-    tw->command.highlight_thickness = 0;
+    tw->command.border_stroke_width = 0;
 
 /*
  * Command widget assumes that the widget is unset, so we only

@@ -62,7 +62,7 @@ in this Software without prior written authorization from the X Consortium.
  font		     Font		XFontStructx*	XtDefaultFont
  foreground	     Foreground		Pixel		XtDefaultForeground
  height		     Height		Dimension	text height
- highlightThickness  Thickness		Dimension	2
+ borderStrokeWidth   Thickness		Dimension	2
  insensitiveBorder   Insensitive	Pixmap		Gray
  internalHeight	     Height		Dimension	2
  internalWidth	     Width		Dimension	4

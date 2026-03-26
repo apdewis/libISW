@@ -42,7 +42,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 
-#define XtNhighlightThickness "highlightThickness"
+#include <ISW/Command.h>  /* for XtNborderStrokeWidth */
 
 #define superclass (&boxClassRec)
 
@@ -241,7 +241,7 @@ InsertChild(Widget child)
         XtSetArg(args[n], XtNborderWidth, 0); n++;
         XtSetArg(args[n], XtNinternalWidth, 6); n++;
         XtSetArg(args[n], XtNinternalHeight, 2); n++;
-        XtSetArg(args[n], XtNhighlightThickness, 0); n++;
+        XtSetArg(args[n], XtNborderStrokeWidth, 0); n++;
         XtSetValues(child, args, n);
 
         if (parsed == NULL)

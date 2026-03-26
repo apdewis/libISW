@@ -229,20 +229,20 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     n = 0;
     XtSetArg(arglist[n], XtNlabel, "+"); n++;
     XtSetArg(arglist[n], XtNborderWidth, 0); n++;
-    XtSetArg(arglist[n], XtNhighlightThickness, 0); n++;
+    XtSetArg(arglist[n], XtNborderStrokeWidth, 0); n++;
     sbw->spinBox.upW = XtCreateManagedWidget("up", repeaterWidgetClass,
                                               new, arglist, n);
-    ((CommandWidget)sbw->spinBox.upW)->command.highlight_thickness = 0;
+    ((CommandWidget)sbw->spinBox.upW)->command.border_stroke_width = 0;
     XtAddCallback(sbw->spinBox.upW, XtNcallback, UpCallback, (XtPointer)sbw);
 
     /* Down button */
     n = 0;
     XtSetArg(arglist[n], XtNlabel, "-"); n++;
     XtSetArg(arglist[n], XtNborderWidth, 0); n++;
-    XtSetArg(arglist[n], XtNhighlightThickness, 0); n++;
+    XtSetArg(arglist[n], XtNborderStrokeWidth, 0); n++;
     sbw->spinBox.downW = XtCreateManagedWidget("down", repeaterWidgetClass,
                                                 new, arglist, n);
-    ((CommandWidget)sbw->spinBox.downW)->command.highlight_thickness = 0;
+    ((CommandWidget)sbw->spinBox.downW)->command.border_stroke_width = 0;
     XtAddCallback(sbw->spinBox.downW, XtNcallback, DownCallback, (XtPointer)sbw);
 
     /* Set default size if not specified */

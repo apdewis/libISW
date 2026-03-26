@@ -112,11 +112,11 @@ InsertChild(Widget child)
         Cardinal n = 0;
 
         XtSetArg(args[n], XtNborderWidth, 0); n++;
-        XtSetArg(args[n], XtNhighlightThickness, 0); n++;
+        XtSetArg(args[n], XtNborderStrokeWidth, 0); n++;
         XtSetValues(child, args, n);
 
-        /* Force highlight_thickness to 0 (bypasses Command's Initialize) */
-        ((CommandWidget)child)->command.highlight_thickness = 0;
+        /* Force border_stroke_width to 0 (bypasses Command's Initialize default) */
+        ((CommandWidget)child)->command.border_stroke_width = 0;
     }
 }
 

@@ -709,6 +709,8 @@ Dimension
 ISWScaleDim(Widget widget, int value)
 {
     double scale = ISWScaleFactor(widget);
+    if (value == 0)
+        return 0;
     int result = (int)(value * scale + 0.5);
     return (Dimension)(result > 0 ? result : 1);
 }

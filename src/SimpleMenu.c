@@ -1653,7 +1653,7 @@ PopupSubMenu(SimpleMenuWidget smw)
     else
 	((SimpleMenuWidget)menu)->simple_menu.state &= ~SMW_POPLEFT;
 
-    XtPopup(menu, XtGrabNone);
+    XtPopup(menu, XtGrabNonexclusive);
 }
 
 static void
