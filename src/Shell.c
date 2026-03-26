@@ -85,6 +85,7 @@ in this Software without prior written authorization from The Open Group.
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <ISW/ISWXdnd.h>
+#include "ISWXcbDraw.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -1200,6 +1201,76 @@ Resize(Widget w)
 
 static void GetGeometry(Widget, Widget);
 
+/*
+ * Default WM_DELETE_WINDOW handler for toplevel shells.
+ * Destroys the shell widget, which triggers destroy callbacks and allows
+ * clean shutdown.  Apps can override with XtOverrideTranslations.
+ */
+/* ARGSUSED */
+static void
+ShellWMDeleteWindow(Widget w, xcb_generic_event_t *event, String *params,
+		    Cardinal *num_params)
+{
+    xcb_atom_t wm_protocols;
+    xcb_atom_t wm_delete_window;
+
+    if ((event->response_type & ~0x80) != XCB_CLIENT_MESSAGE)
+	return;
+
+    wm_protocols = IswXcbInternAtom(XtDisplay(w), "WM_PROTOCOLS", True);
+    wm_delete_window = IswXcbInternAtom(XtDisplay(w), "WM_DELETE_WINDOW", True);
+
+    if (wm_protocols == 0 || wm_delete_window == 0)
+	return;
+
+    {
+	xcb_client_message_event_t *cm = (xcb_client_message_event_t *)event;
+	if (cm->type == wm_protocols && cm->data.data32[0] == wm_delete_window) {
+	    XtDestroyWidget(w);
+	}
+    }
+}
+
+static void
+SetShellWMProtocolTranslations(Widget w)
+{
+    static XtTranslations compiled_table;	/* initially 0 */
+    static XtAppContext *app_context_list;	/* initially 0 */
+    static Cardinal list_size;			/* initially 0 */
+    XtAppContext app_context;
+    xcb_atom_t wm_delete_window;
+    int i;
+
+    app_context = XtWidgetToApplicationContext(w);
+
+    /* parse translation table once */
+    if (!compiled_table)
+	compiled_table = XtParseTranslationTable(
+	    "<Message>WM_PROTOCOLS: IswShellDeleteWindow()\n");
+
+    /* add actions once per application context */
+    for (i = 0; i < list_size && app_context_list[i] != app_context; i++) ;
+    if (i == list_size) {
+	XtActionsRec actions[1];
+	actions[0].string = "IswShellDeleteWindow";
+	actions[0].proc = ShellWMDeleteWindow;
+	list_size++;
+	app_context_list = (XtAppContext *) XtRealloc(
+	    (char *)app_context_list, list_size * sizeof(XtAppContext));
+	XtAppAddActions(app_context, actions, 1);
+	app_context_list[i] = app_context;
+    }
+
+    /* augment so apps can override with XtOverrideTranslations */
+    XtAugmentTranslations(w, compiled_table);
+
+    /* advertise WM_DELETE_WINDOW to the window manager */
+    wm_delete_window = IswXcbInternAtom(XtDisplay(w), "WM_DELETE_WINDOW", False);
+    xcb_icccm_set_wm_protocols(XtDisplay(w), XtWindow(w),
+			       IswXcbInternAtom(XtDisplay(w), "WM_PROTOCOLS", False),
+			       1, &wm_delete_window);
+}
+
 static void
 Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
 {
@@ -1344,6 +1415,10 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
 
     /* Enable XDND drop target on all shell windows */
     ISWXdndEnable(wid);
+
+    /* Set up default WM_DELETE_WINDOW handling for WM-managed shells */
+    if (!w->shell.override_redirect)
+	SetShellWMProtocolTranslations(wid);
 }
 
 static void
