@@ -1226,7 +1226,7 @@ ShellWMDeleteWindow(Widget w, xcb_generic_event_t *event, String *params,
     {
 	xcb_client_message_event_t *cm = (xcb_client_message_event_t *)event;
 	if (cm->type == wm_protocols && cm->data.data32[0] == wm_delete_window) {
-	    XtDestroyWidget(w);
+	    XtAppSetExitFlag(XtWidgetToApplicationContext(w));
 	}
     }
 }

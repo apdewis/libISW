@@ -1488,14 +1488,15 @@ static uint32_t const masks[] = {
     XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 29 - SelectionClear           */
     XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 30 - SelectionRequest         */
     XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 31 - SelectionNotify          */
-    XCB_EVENT_MASK_COLOR_MAP_CHANGE         /* 32 - ColormapNotify           */
-    //XCB_EVENT_MASK_CLIENT_MESSAGE,          /* 33 - ClientMessage            */
-    //XCB_EVENT_MASK_MAPPING_NOTIFY           /* 34 - MappingNotify            */
+    XCB_EVENT_MASK_COLOR_MAP_CHANGE,        /* 32 - ColormapNotify           */
+    NonMaskableMask,                        /* 33 - ClientMessage            */
+    NonMaskableMask                         /* 34 - MappingNotify            */
 };
 
 EventMask
 _XtConvertTypeToMask(int eventType)
 {
+    eventType &= ~0x80; /* strip SendEvent (synthetic) bit */
     if ((Cardinal) eventType < XtNumber(masks))
         return masks[eventType];
     else
@@ -1562,7 +1563,7 @@ _XtDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
     xcb_window_t win = get_event_window(event);
 
     /* the default dispatcher discards all extension events */
-    if (event->response_type >= LASTEvent) {
+    if (type >= LASTEvent) {
         return False;
     }
 
@@ -1849,18 +1850,18 @@ XtAppMainLoop(XtAppContext app)
     XtInputMask t;
 
     LOCK_APP(app);
-    do {
+    for (;;) {
+        if (app->exit_flag)
+            break;
         if (m == 0) {
             m = XtIMAll;
-            /* wait for any event, blocking */
             XtAppProcessEvent(app, m);
         }
         else if (((t = XtAppPending(app)) & m)) {
-            /* wait for certain events, stepping through choices */
             XtAppProcessEvent(app, t & m);
         }
         m >>= 1;
-    } while (app->exit_flag == FALSE);
+    }
     UNLOCK_APP(app);
 }
 

@@ -209,7 +209,7 @@ int main(int argc, char *argv[]) {
 
     /* Enter event loop */
     XtAppMainLoop(app_context);
-    
+
     return 0;
 }
 

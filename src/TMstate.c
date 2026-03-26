@@ -505,12 +505,12 @@ XEventToTMEvent(xcb_generic_event_t *event, TMEventPtr tmEvent)
     tmEvent->xev = event;
     tmEvent->event.eventCodeMask = 0;
     tmEvent->event.modifierMask = 0;
-    tmEvent->event.eventType = (TMLongCard) event->response_type;
+    tmEvent->event.eventType = (TMLongCard) (event->response_type & ~0x80);
     tmEvent->event.lateModifiers = NULL;
     tmEvent->event.matchEvent = NULL;
     tmEvent->event.standard = FALSE;
-    
-    switch (event->response_type) {
+
+    switch (event->response_type & ~0x80) {
     case XCB_KEY_PRESS:
     case XCB_KEY_RELEASE:
         {
