@@ -26,6 +26,71 @@ struct _ISWSVGImage {
 };
 
 /*
+ * Replace all occurrences of "currentColor" with a "#RRGGBB" hex string
+ * in a mutable buffer.  The replacement is shorter (7 vs 12 chars) so the
+ * buffer shrinks in place — no reallocation needed.
+ */
+static void
+_svg_substitute_current_color(char *buf, const char *hex_color)
+{
+    const char *needle = "currentColor";
+    const size_t needle_len = 12;
+    const size_t hex_len = 7;  /* "#RRGGBB" */
+    char *p;
+
+    if (!buf || !hex_color)
+        return;
+
+    p = buf;
+    while ((p = strstr(p, needle)) != NULL) {
+        memcpy(p, hex_color, hex_len);
+        memmove(p + hex_len, p + needle_len, strlen(p + needle_len) + 1);
+        p += hex_len;
+    }
+}
+
+/*
+ * Read a file into a malloc'd NUL-terminated buffer.
+ * Returns NULL on failure.
+ */
+static char *
+_svg_read_file(const char *path)
+{
+    FILE *fp;
+    long len;
+    char *buf;
+
+    fp = fopen(path, "rb");
+    if (!fp)
+        return NULL;
+
+    fseek(fp, 0, SEEK_END);
+    len = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    if (len <= 0) {
+        fclose(fp);
+        return NULL;
+    }
+
+    buf = (char *)malloc((size_t)len + 1);
+    if (!buf) {
+        fclose(fp);
+        return NULL;
+    }
+
+    if ((long)fread(buf, 1, (size_t)len, fp) != len) {
+        fclose(fp);
+        free(buf);
+        return NULL;
+    }
+
+    fclose(fp);
+    buf[len] = '\0';
+    return buf;
+}
+
+/*
  * Try a candidate path — returns True if the file exists and is readable.
  */
 static Boolean
@@ -126,7 +191,8 @@ ISWSVGResolvePath(const char *filename, char *resolved, unsigned int size)
 }
 
 ISWSVGImage*
-ISWSVGLoadFile(const char *filename, const char *units, float dpi)
+ISWSVGLoadFile(const char *filename, const char *units, float dpi,
+               const char *current_color)
 {
     ISWSVGImage *img;
     NSVGimage *nsvg;
@@ -142,7 +208,18 @@ ISWSVGLoadFile(const char *filename, const char *units, float dpi)
     else
         path = filename;  /* let nsvgParseFromFile report the failure */
 
-    nsvg = nsvgParseFromFile(path, units ? units : "px", dpi > 0 ? dpi : 96.0f);
+    if (current_color) {
+        /* Read file manually so we can substitute currentColor */
+        char *buf = _svg_read_file(path);
+        if (!buf)
+            return NULL;
+        _svg_substitute_current_color(buf, current_color);
+        nsvg = nsvgParse(buf, units ? units : "px", dpi > 0 ? dpi : 96.0f);
+        free(buf);
+    } else {
+        nsvg = nsvgParseFromFile(path, units ? units : "px", dpi > 0 ? dpi : 96.0f);
+    }
+
     if (!nsvg)
         return NULL;
 
@@ -157,7 +234,8 @@ ISWSVGLoadFile(const char *filename, const char *units, float dpi)
 }
 
 ISWSVGImage*
-ISWSVGLoadData(const char *data, const char *units, float dpi)
+ISWSVGLoadData(const char *data, const char *units, float dpi,
+               const char *current_color)
 {
     ISWSVGImage *img;
     NSVGimage *nsvg;
@@ -170,6 +248,9 @@ ISWSVGLoadData(const char *data, const char *units, float dpi)
     copy = strdup(data);
     if (!copy)
         return NULL;
+
+    if (current_color)
+        _svg_substitute_current_color(copy, current_color);
 
     nsvg = nsvgParse(copy, units ? units : "px", dpi > 0 ? dpi : 96.0f);
     free(copy);

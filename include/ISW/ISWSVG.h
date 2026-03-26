@@ -30,14 +30,18 @@ typedef struct _ISWSVGImage ISWSVGImage;
  *   5. Current working directory
  *
  * Parameters:
- *   filename - Path or basename of SVG file
- *   units    - Units for dimensions ("px", "pt", "mm", "in", etc.)
- *   dpi      - DPI for unit conversion (96.0 is typical)
+ *   filename      - Path or basename of SVG file
+ *   units         - Units for dimensions ("px", "pt", "mm", "in", etc.)
+ *   dpi           - DPI for unit conversion (96.0 is typical)
+ *   current_color - If non-NULL, a "#RRGGBB" hex string to substitute for
+ *                   all occurrences of "currentColor" in the SVG before parsing.
+ *                   Pass NULL to skip substitution.
  *
  * Returns: Parsed SVG image, or NULL on failure
  *          Must be freed with ISWSVGDestroy()
  */
-ISWSVGImage* ISWSVGLoadFile(const char *filename, const char *units, float dpi);
+ISWSVGImage* ISWSVGLoadFile(const char *filename, const char *units, float dpi,
+                            const char *current_color);
 
 /*
  * ISWSVGResolvePath - Resolve a filename using the SVG search path
@@ -59,14 +63,18 @@ Boolean ISWSVGResolvePath(const char *filename, char *resolved, unsigned int siz
  * ISWSVGLoadData - Parse SVG from an in-memory string
  *
  * Parameters:
- *   data  - SVG XML string (will be copied internally)
- *   units - Units for dimensions ("px", "pt", "mm", "in", etc.)
- *   dpi   - DPI for unit conversion
+ *   data          - SVG XML string (will be copied internally)
+ *   units         - Units for dimensions ("px", "pt", "mm", "in", etc.)
+ *   dpi           - DPI for unit conversion
+ *   current_color - If non-NULL, a "#RRGGBB" hex string to substitute for
+ *                   all occurrences of "currentColor" in the SVG before parsing.
+ *                   Pass NULL to skip substitution.
  *
  * Returns: Parsed SVG image, or NULL on failure
  *          Must be freed with ISWSVGDestroy()
  */
-ISWSVGImage* ISWSVGLoadData(const char *data, const char *units, float dpi);
+ISWSVGImage* ISWSVGLoadData(const char *data, const char *units, float dpi,
+                            const char *current_color);
 
 /*
  * ISWSVGDestroy - Free a parsed SVG image and any cached rasterization

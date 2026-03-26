@@ -203,7 +203,7 @@ GetItemRaster(IconViewWidget iw, int index)
         iw->iconView.icon_data[index]) {
         float dpi = 96.0f * ISWScaleFactor((Widget)iw);
         ic->svg_image = ISWSVGLoadData(iw->iconView.icon_data[index],
-                                        "px", dpi);
+                                        "px", dpi, NULL);
     }
 
     if (!ic->svg_image)

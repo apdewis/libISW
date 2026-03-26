@@ -219,13 +219,45 @@ ClassInitialize(void)
 #undef WORD64  /* Disable WORD64 16-bit text handling */
 
 /*
+ * Convert the widget's foreground pixel to a "#RRGGBB" hex string.
+ * Returns True on success, False if the color could not be queried.
+ */
+static Boolean
+_LabelForegroundHex(LabelWidget lw, char *hex, size_t hex_size)
+{
+    xcb_connection_t *conn = ((Widget)lw)->core.display;
+    xcb_colormap_t cmap = ((Widget)lw)->core.colormap;
+    uint32_t pixel = (uint32_t)lw->label.foreground;
+    xcb_query_colors_cookie_t cookie;
+    xcb_query_colors_reply_t *reply;
+
+    hex[0] = '\0';
+    cookie = xcb_query_colors(conn, cmap, 1, &pixel);
+    reply = xcb_query_colors_reply(conn, cookie, NULL);
+    if (reply) {
+	xcb_rgb_t *colors = xcb_query_colors_colors(reply);
+	if (xcb_query_colors_colors_length(reply) > 0) {
+	    snprintf(hex, hex_size, "#%02X%02X%02X",
+		     colors[0].red >> 8,
+		     colors[0].green >> 8,
+		     colors[0].blue >> 8);
+	}
+	free(reply);
+    }
+    return hex[0] != '\0';
+}
+
+/*
  * Parse SVG from svgFile or svgData resources.
  * Frees any previous SVG state first.
+ * Substitutes "currentColor" with the widget's foreground color.
  */
 static void
 _LabelParseSVG(LabelWidget lw)
 {
     float dpi = (float)(96.0 * ISWScaleFactor((Widget)lw));
+    char fg_hex[8];  /* "#RRGGBB\0" */
+    const char *color;
 
     /* Free previous state */
     if (lw->label.svg_raster) {
@@ -239,11 +271,16 @@ _LabelParseSVG(LabelWidget lw)
 	lw->label.svg_image = NULL;
     }
 
+    /* Resolve foreground for currentColor substitution */
+    color = _LabelForegroundHex(lw, fg_hex, sizeof(fg_hex)) ? fg_hex : NULL;
+
     /* Try file first, then inline data */
     if (lw->label.svg_file && lw->label.svg_file[0]) {
-	lw->label.svg_image = ISWSVGLoadFile(lw->label.svg_file, "px", dpi);
+	lw->label.svg_image = ISWSVGLoadFile(lw->label.svg_file, "px", dpi,
+					      color);
     } else if (lw->label.svg_data && lw->label.svg_data[0]) {
-	lw->label.svg_image = ISWSVGLoadData(lw->label.svg_data, "px", dpi);
+	lw->label.svg_image = ISWSVGLoadData(lw->label.svg_data, "px", dpi,
+					      color);
     }
 }
 
