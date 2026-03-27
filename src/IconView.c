@@ -290,7 +290,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (!ctx || !XtIsRealized(w))
         return;
 
-    Dimension icon_sz = iw->iconView.icon_size;
+    Dimension icon_sz = ISWScaleDim(w, iw->iconView.icon_size);
     Dimension spacing = iw->iconView.item_spacing;
     Dimension half_sp = spacing / 2;
 
