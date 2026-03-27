@@ -238,10 +238,13 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
     Boolean horiz = (fw->flexBox.orientation == XtorientHorizontal);
     Dimension spacing = ISWScaleDim((Widget)fw, (int)fw->flexBox.spacing);
 
-    /* Count managed children and gather base sizes */
+    /* Count managed children and compute fixed-size total.
+     * flexGrow=0 children claim their preferred/basis size.
+     * flexGrow>0 children only claim their flexBasis (0 if unset);
+     * their remaining allocation comes from the grow distribution. */
     int managed = 0;
     int total_grow = 0;
-    int total_base = 0;
+    int total_fixed = 0;
     Dimension max_cross = 1;
 
     for (int i = 0; i < n; i++) {
@@ -250,13 +253,24 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             continue;
 
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
-        Dimension base = ChildBasis(fw, child, horiz);
+        int bw2 = 2 * (int)child->core.border_width;
         Dimension cross = ChildCrossPreferred(child, horiz);
 
-        total_base += (int)base;
-        total_grow += fc->flexBox.flex_grow;
-        if (cross > max_cross)
-            max_cross = cross;
+        if (fc->flexBox.flex_grow > 0) {
+            /* Grow children: only flexBasis counts as fixed space */
+            if (fc->flexBox.flex_basis > 0)
+                total_fixed += (int)ISWScaleDim((Widget)fw,
+                               (int)fc->flexBox.flex_basis) + bw2;
+            else
+                total_fixed += bw2;
+            total_grow += fc->flexBox.flex_grow;
+        } else {
+            /* Non-grow children: full preferred/basis size */
+            total_fixed += (int)ChildBasis(fw, child, horiz) + bw2;
+        }
+
+        if ((int)cross + bw2 > (int)max_cross)
+            max_cross = (Dimension)((int)cross + bw2);
         managed++;
     }
 
@@ -267,20 +281,30 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
     }
 
     int total_spacing = (managed - 1) * (int)spacing;
-    int preferred_main = total_base + total_spacing;
-    Dimension preferred_cross = max_cross;
 
-    fw->flexBox.preferred_width  = horiz ? (Dimension)preferred_main : preferred_cross;
-    fw->flexBox.preferred_height = horiz ? preferred_cross : (Dimension)preferred_main;
-
-    if (!set_children)
+    /* Preferred size: for the preferred calculation, include all
+     * children's full preferred sizes (grow children want their
+     * natural size when unconstrained). */
+    if (!set_children) {
+        int preferred_base = 0;
+        for (int i = 0; i < n; i++) {
+            Widget child = children[i];
+            if (!XtIsManaged(child))
+                continue;
+            int bw2 = 2 * (int)child->core.border_width;
+            preferred_base += (int)ChildBasis(fw, child, horiz) + bw2;
+        }
+        int preferred_main = preferred_base + total_spacing;
+        fw->flexBox.preferred_width  = horiz ? (Dimension)preferred_main : max_cross;
+        fw->flexBox.preferred_height = horiz ? max_cross : (Dimension)preferred_main;
         return;
+    }
 
-    /* Distribute space */
+    /* Distribute space within the allocated container size */
     Dimension container_main  = horiz ? fw->core.width : fw->core.height;
     Dimension container_cross = horiz ? fw->core.height : fw->core.width;
 
-    int remaining = (int)container_main - total_base - total_spacing;
+    int remaining = (int)container_main - total_fixed - total_spacing;
     if (remaining < 0)
         remaining = 0;
 
@@ -292,12 +316,21 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             continue;
 
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
-        Dimension base = ChildBasis(fw, child, horiz);
+        int bw2 = 2 * (int)child->core.border_width;
 
-        /* Main-axis size: base + proportional share of remaining */
-        int main_sz = (int)base;
-        if (fc->flexBox.flex_grow > 0 && total_grow > 0)
-            main_sz += (remaining * fc->flexBox.flex_grow) / total_grow;
+        /* Main-axis size */
+        int main_sz;
+        if (fc->flexBox.flex_grow > 0 && total_grow > 0) {
+            /* Grow children: flexBasis + proportional share of remaining */
+            int basis = 0;
+            if (fc->flexBox.flex_basis > 0)
+                basis = (int)ISWScaleDim((Widget)fw,
+                        (int)fc->flexBox.flex_basis);
+            main_sz = basis + (remaining * fc->flexBox.flex_grow) / total_grow;
+        } else {
+            /* Non-grow children: preferred/basis size */
+            main_sz = (int)ChildBasis(fw, child, horiz);
+        }
         if (main_sz < 1)
             main_sz = 1;
 
@@ -311,16 +344,16 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             cross_pos = 0;
             break;
         case XtflexAlignEnd:
-            cross_pos = (int)container_cross - cross_sz;
+            cross_pos = (int)container_cross - cross_sz - bw2;
             if (cross_pos < 0) cross_pos = 0;
             break;
         case XtflexAlignCenter:
-            cross_pos = ((int)container_cross - cross_sz) / 2;
+            cross_pos = ((int)container_cross - cross_sz - bw2) / 2;
             if (cross_pos < 0) cross_pos = 0;
             break;
         case XtflexAlignStretch:
             cross_pos = 0;
-            cross_sz = (int)container_cross;
+            cross_sz = (int)container_cross - bw2;
             break;
         }
         if (cross_sz < 1)
@@ -342,7 +375,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 
         XtConfigureWidget(child, x, y, w, h, child->core.border_width);
 
-        pos += (Position)main_sz + (Position)spacing;
+        pos += (Position)(main_sz + bw2) + (Position)spacing;
     }
 }
 
