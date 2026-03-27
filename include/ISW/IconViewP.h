@@ -36,6 +36,7 @@ typedef struct {
 
     /* private state */
     Boolean        *sel_flags;    /* per-item selection flags */
+    Boolean        *band_saved;   /* selection state before rubber band started */
     int             anchor;       /* anchor index for shift-click range select */
     int             ncols;        /* computed columns */
     int             nrows;        /* computed rows */
@@ -43,6 +44,12 @@ typedef struct {
     Dimension       cell_h;       /* computed cell height */
     IconViewItemCache *cache;     /* per-item raster cache */
     ISWRenderContext  *render_ctx;
+
+    /* rubber band state */
+    Boolean         band_active;
+    Position        band_start_x, band_start_y;
+    Position        band_cur_x, band_cur_y;
+    double          fg_r, fg_g, fg_b; /* foreground RGB for band overlay */
 } IconViewPart;
 
 typedef struct _IconViewRec {

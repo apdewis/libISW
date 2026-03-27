@@ -65,12 +65,20 @@ static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void SelectItem(Widget, XEvent *, String *, Cardinal *);
+static void BandDrag(Widget, XEvent *, String *, Cardinal *);
+static void BandFinish(Widget, XEvent *, String *, Cardinal *);
+static void ResolveForegroundRGB(IconViewWidget);
+static void BandUpdateSelection(IconViewWidget);
 
 static char defaultTranslations[] =
-    "<Btn1Down>: SelectItem()";
+    "<Btn1Down>: SelectItem()\n"
+    "<Btn1Motion>: BandDrag()\n"
+    "<Btn1Up>: BandFinish()";
 
 static XtActionsRec actions[] = {
     {"SelectItem", SelectItem},
+    {"BandDrag",   BandDrag},
+    {"BandFinish", BandFinish},
 };
 
 IconViewClassRec iconViewClassRec = {
@@ -143,12 +151,18 @@ AllocCache(IconViewWidget iw)
         free(iw->iconView.sel_flags);
         iw->iconView.sel_flags = NULL;
     }
+    if (iw->iconView.band_saved) {
+        free(iw->iconView.band_saved);
+        iw->iconView.band_saved = NULL;
+    }
     if (iw->iconView.nitems <= 0)
         return;
     iw->iconView.cache = calloc((size_t)iw->iconView.nitems,
                                  sizeof(IconViewItemCache));
     iw->iconView.sel_flags = calloc((size_t)iw->iconView.nitems,
                                      sizeof(Boolean));
+    iw->iconView.band_saved = calloc((size_t)iw->iconView.nitems,
+                                      sizeof(Boolean));
 }
 
 static void
@@ -230,11 +244,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     (void)request; (void)args; (void)num_args;
 
     iw->iconView.sel_flags = NULL;
+    iw->iconView.band_saved = NULL;
     iw->iconView.anchor = -1;
     iw->iconView.render_ctx = NULL;
     iw->iconView.cache = NULL;
     iw->iconView.ncols = 1;
     iw->iconView.nrows = 0;
+    iw->iconView.band_active = False;
 
     iw->iconView.icon_size = ISWScaleDim(new, iw->iconView.icon_size);
     iw->iconView.item_spacing = ISWScaleDim(new, iw->iconView.item_spacing);
@@ -267,6 +283,8 @@ Destroy(Widget w)
     FreeCache(iw);
     if (iw->iconView.sel_flags)
         free(iw->iconView.sel_flags);
+    if (iw->iconView.band_saved)
+        free(iw->iconView.band_saved);
     if (iw->iconView.render_ctx)
         ISWRenderDestroy(iw->iconView.render_ctx);
 }
@@ -344,6 +362,31 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         }
     }
 
+    /* Rubber band overlay */
+    if (iw->iconView.band_active) {
+        int bx = iw->iconView.band_start_x < iw->iconView.band_cur_x
+               ? iw->iconView.band_start_x : iw->iconView.band_cur_x;
+        int by = iw->iconView.band_start_y < iw->iconView.band_cur_y
+               ? iw->iconView.band_start_y : iw->iconView.band_cur_y;
+        int bw = abs(iw->iconView.band_cur_x - iw->iconView.band_start_x);
+        int bh = abs(iw->iconView.band_cur_y - iw->iconView.band_start_y);
+
+        if (bw > 0 && bh > 0) {
+            /* Semi-transparent fill */
+            ISWRenderSetColorRGBA(ctx,
+                iw->iconView.fg_r, iw->iconView.fg_g, iw->iconView.fg_b,
+                0.15);
+            ISWRenderFillRectangle(ctx, bx, by, bw, bh);
+
+            /* 1px border at full opacity */
+            ISWRenderSetColorRGBA(ctx,
+                iw->iconView.fg_r, iw->iconView.fg_g, iw->iconView.fg_b,
+                1.0);
+            ISWRenderSetLineWidth(ctx, 1.0);
+            ISWRenderStrokeRectangle(ctx, bx, by, bw, bh);
+        }
+    }
+
     ISWRenderEnd(ctx);
 }
 
@@ -417,15 +460,28 @@ FireCallback(IconViewWidget iw, int clicked)
 static int
 HitTest(IconViewWidget iw, Position x, Position y)
 {
+    Dimension spacing = iw->iconView.item_spacing;
+    Dimension half_sp = spacing / 2;
     int col = (int)x / (int)iw->iconView.cell_w;
     int row = (int)y / (int)iw->iconView.cell_h;
 
-    if (col >= iw->iconView.ncols) col = iw->iconView.ncols - 1;
-    if (col < 0) col = 0;
+    if (col < 0 || col >= iw->iconView.ncols)
+        return -1;
 
     int index = row * iw->iconView.ncols + col;
     if (index < 0 || index >= iw->iconView.nitems)
         return -1;
+
+    /* Check if click is within the item's content rect, not just the cell */
+    int cx = col * (int)iw->iconView.cell_w + (int)half_sp;
+    int cy = row * (int)iw->iconView.cell_h + (int)half_sp;
+    int cw = (int)(iw->iconView.cell_w - spacing);
+    int ch = (int)(iw->iconView.cell_h - spacing);
+
+    if ((int)x < cx || (int)x >= cx + cw ||
+        (int)y < cy || (int)y >= cy + ch)
+        return -1;
+
     return index;
 }
 
@@ -454,8 +510,30 @@ SelectItem(Widget w, XEvent *event, String *params, Cardinal *num_params)
     if (!iw->iconView.sel_flags)
         return;
 
+    /* Cancel any stuck rubber band from a previous interaction */
+    if (iw->iconView.band_active)
+        iw->iconView.band_active = False;
+
     if (index < 0) {
-        /* Click on empty space — clear selection */
+        /* Click on empty space — start rubber band if multi-select */
+        if (iw->iconView.multi_select && XtIsRealized(w)) {
+            if (!toggle)
+                ClearSelection(iw);
+            /* Save current selection for additive (Ctrl) mode */
+            if (iw->iconView.band_saved && iw->iconView.sel_flags)
+                memcpy(iw->iconView.band_saved, iw->iconView.sel_flags,
+                       (size_t)iw->iconView.nitems * sizeof(Boolean));
+
+            iw->iconView.band_active = True;
+            iw->iconView.band_start_x = x;
+            iw->iconView.band_start_y = y;
+            iw->iconView.band_cur_x = x;
+            iw->iconView.band_cur_y = y;
+
+            ResolveForegroundRGB(iw);
+            Redisplay(w, NULL, 0);
+            return;
+        }
         ClearSelection(iw);
         iw->iconView.anchor = -1;
     } else if (iw->iconView.multi_select && toggle) {
@@ -481,6 +559,96 @@ SelectItem(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
     Redisplay(w, NULL, 0);
     FireCallback(iw, index);
+}
+
+static void
+ResolveForegroundRGB(IconViewWidget iw)
+{
+    xcb_connection_t *conn = ((Widget)iw)->core.display;
+    xcb_colormap_t cmap = ((Widget)iw)->core.colormap;
+    uint32_t pixel = (uint32_t)iw->iconView.foreground;
+    xcb_query_colors_cookie_t cookie = xcb_query_colors(conn, cmap, 1, &pixel);
+    xcb_query_colors_reply_t *reply = xcb_query_colors_reply(conn, cookie, NULL);
+    if (reply) {
+        xcb_rgb_t *rgb = xcb_query_colors_colors(reply);
+        if (xcb_query_colors_colors_length(reply) > 0) {
+            iw->iconView.fg_r = (double)(rgb[0].red >> 8) / 255.0;
+            iw->iconView.fg_g = (double)(rgb[0].green >> 8) / 255.0;
+            iw->iconView.fg_b = (double)(rgb[0].blue >> 8) / 255.0;
+        }
+        free(reply);
+    }
+}
+
+static void
+BandUpdateSelection(IconViewWidget iw)
+{
+    int bx1 = iw->iconView.band_start_x < iw->iconView.band_cur_x
+            ? iw->iconView.band_start_x : iw->iconView.band_cur_x;
+    int by1 = iw->iconView.band_start_y < iw->iconView.band_cur_y
+            ? iw->iconView.band_start_y : iw->iconView.band_cur_y;
+    int bx2 = iw->iconView.band_start_x > iw->iconView.band_cur_x
+            ? iw->iconView.band_start_x : iw->iconView.band_cur_x;
+    int by2 = iw->iconView.band_start_y > iw->iconView.band_cur_y
+            ? iw->iconView.band_start_y : iw->iconView.band_cur_y;
+
+    Dimension spacing = iw->iconView.item_spacing;
+    Dimension half_sp = spacing / 2;
+
+    for (int i = 0; i < iw->iconView.nitems; i++) {
+        int col = i % iw->iconView.ncols;
+        int row = i / iw->iconView.ncols;
+        int ix = col * (int)iw->iconView.cell_w + (int)half_sp;
+        int iy = row * (int)iw->iconView.cell_h + (int)half_sp;
+        int ix2 = ix + (int)(iw->iconView.cell_w - spacing);
+        int iy2 = iy + (int)(iw->iconView.cell_h - spacing);
+
+        Boolean intersects = !(ix2 < bx1 || ix > bx2 ||
+                               iy2 < by1 || iy > by2);
+
+        /* Additive (Ctrl): saved state OR band intersection.
+         * Normal: band intersection only. */
+        if (iw->iconView.band_saved)
+            iw->iconView.sel_flags[i] = iw->iconView.band_saved[i] || intersects;
+        else
+            iw->iconView.sel_flags[i] = intersects;
+    }
+}
+
+static void
+BandDrag(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    (void)params; (void)num_params;
+
+    if (!iw->iconView.band_active)
+        return;
+
+    uint8_t type = event->response_type & ~0x80;
+    if (type != XCB_MOTION_NOTIFY)
+        return;
+
+    xcb_motion_notify_event_t *ev = (xcb_motion_notify_event_t *)event;
+    iw->iconView.band_cur_x = ev->event_x;
+    iw->iconView.band_cur_y = ev->event_y;
+
+    BandUpdateSelection(iw);
+    Redisplay(w, NULL, 0);
+}
+
+static void
+BandFinish(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    (void)event; (void)params; (void)num_params;
+
+    if (!iw->iconView.band_active)
+        return;
+
+    iw->iconView.band_active = False;
+
+    Redisplay(w, NULL, 0);
+    FireCallback(iw, -1);
 }
 
 /* --- Public API --- */
