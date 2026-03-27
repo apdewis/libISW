@@ -24,6 +24,8 @@
 #define XtNselectCallback "selectCallback"
 #define XtNmultiSelect    "multiSelect"
 #define XtCMultiSelect    "MultiSelect"
+#define XtNcursorItem     "cursorItem"
+#define XtCCursorItem     "CursorItem"
 
 extern WidgetClass iconViewWidgetClass;
 

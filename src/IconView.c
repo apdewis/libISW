@@ -16,6 +16,7 @@
 #include <ISW/ISWRender.h>
 #include <ISW/ISWSVG.h>
 #include <ISW/IconViewP.h>
+#include <ISW/Viewport.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -51,6 +52,8 @@ static XtResource resources[] = {
         Offset(iconView.select_callback), XtRCallback, NULL},
     {XtNmultiSelect, XtCMultiSelect, XtRBoolean, sizeof(Boolean),
         Offset(iconView.multi_select), XtRImmediate, (XtPointer) False},
+    {XtNcursorItem, XtCCursorItem, XtRInt, sizeof(int),
+        Offset(iconView.cursor), XtRImmediate, (XtPointer) -1},
     {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
         Offset(core.border_width), XtRImmediate, (XtPointer) 0},
 };
@@ -67,18 +70,46 @@ static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void SelectItem(Widget, XEvent *, String *, Cardinal *);
 static void BandDrag(Widget, XEvent *, String *, Cardinal *);
 static void BandFinish(Widget, XEvent *, String *, Cardinal *);
+static void MoveCursor(Widget, XEvent *, String *, Cardinal *);
+static void ExtendSelection(Widget, XEvent *, String *, Cardinal *);
+static void ActivateCursor(Widget, XEvent *, String *, Cardinal *);
+static void ToggleCursor(Widget, XEvent *, String *, Cardinal *);
+static void SelectAll(Widget, XEvent *, String *, Cardinal *);
+static void HandleFocus(Widget, XEvent *, String *, Cardinal *);
 static void ResolveForegroundRGB(IconViewWidget);
 static void BandUpdateSelection(IconViewWidget);
+static void ScrollToCursor(IconViewWidget);
 
 static char defaultTranslations[] =
     "<Btn1Down>: SelectItem()\n"
     "<Btn1Motion>: BandDrag()\n"
-    "<Btn1Up>: BandFinish()";
+    "<Btn1Up>: BandFinish()\n"
+    "<Key>Left: MoveCursor(left)\n"
+    "<Key>Right: MoveCursor(right)\n"
+    "<Key>Up: MoveCursor(up)\n"
+    "<Key>Down: MoveCursor(down)\n"
+    "<Key>Home: MoveCursor(home)\n"
+    "<Key>End: MoveCursor(end)\n"
+    "<Key>Return: ActivateCursor()\n"
+    "<Key>space: ToggleCursor()\n"
+    "Shift<Key>Left: ExtendSelection(left)\n"
+    "Shift<Key>Right: ExtendSelection(right)\n"
+    "Shift<Key>Up: ExtendSelection(up)\n"
+    "Shift<Key>Down: ExtendSelection(down)\n"
+    "Ctrl<Key>a: SelectAll()\n"
+    "<FocusIn>: HandleFocus(in)\n"
+    "<FocusOut>: HandleFocus(out)";
 
 static XtActionsRec actions[] = {
-    {"SelectItem", SelectItem},
-    {"BandDrag",   BandDrag},
-    {"BandFinish", BandFinish},
+    {"SelectItem",      SelectItem},
+    {"BandDrag",        BandDrag},
+    {"BandFinish",      BandFinish},
+    {"MoveCursor",      MoveCursor},
+    {"ExtendSelection", ExtendSelection},
+    {"ActivateCursor",  ActivateCursor},
+    {"ToggleCursor",    ToggleCursor},
+    {"SelectAll",       SelectAll},
+    {"HandleFocus",     HandleFocus},
 };
 
 IconViewClassRec iconViewClassRec = {
@@ -246,6 +277,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     iw->iconView.sel_flags = NULL;
     iw->iconView.band_saved = NULL;
     iw->iconView.anchor = -1;
+    iw->iconView.cursor = -1;
+    iw->iconView.has_focus = False;
     iw->iconView.render_ctx = NULL;
     iw->iconView.cache = NULL;
     iw->iconView.ncols = 1;
@@ -359,6 +392,36 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                 ISWRenderSetColor(ctx, iw->iconView.foreground);
             }
             ISWRenderDrawString(ctx, label, (int)strlen(label), lx, ly);
+        }
+    }
+
+    /* Cursor focus indicator */
+    if (iw->iconView.has_focus && iw->iconView.cursor >= 0 &&
+        iw->iconView.cursor < iw->iconView.nitems) {
+        int ci = iw->iconView.cursor;
+        int col = ci % iw->iconView.ncols;
+        int row = ci / iw->iconView.ncols;
+        int fx = col * (int)iw->iconView.cell_w + (int)half_sp;
+        int fy = row * (int)iw->iconView.cell_h + (int)half_sp;
+        int fw = (int)(iw->iconView.cell_w - spacing);
+        int fh = (int)(iw->iconView.cell_h - spacing);
+
+        ISWRenderSetColor(ctx, iw->iconView.foreground);
+        ISWRenderSetLineWidth(ctx, 1.0);
+
+        /* Dashed outline: draw short segments along each edge */
+        int dash = 3, gap = 3, step = dash + gap;
+        /* Top and bottom edges */
+        for (int dx = 0; dx < fw; dx += step) {
+            int seg = (dx + dash > fw) ? fw - dx : dash;
+            ISWRenderDrawLine(ctx, fx + dx, fy, fx + dx + seg, fy);
+            ISWRenderDrawLine(ctx, fx + dx, fy + fh, fx + dx + seg, fy + fh);
+        }
+        /* Left and right edges */
+        for (int dy = 0; dy < fh; dy += step) {
+            int seg = (dy + dash > fh) ? fh - dy : dash;
+            ISWRenderDrawLine(ctx, fx, fy + dy, fx, fy + dy + seg);
+            ISWRenderDrawLine(ctx, fx + fw, fy + dy, fx + fw, fy + dy + seg);
         }
     }
 
@@ -557,6 +620,9 @@ SelectItem(Widget w, XEvent *event, String *params, Cardinal *num_params)
         iw->iconView.anchor = index;
     }
 
+    if (index >= 0)
+        iw->iconView.cursor = index;
+
     Redisplay(w, NULL, 0);
     FireCallback(iw, index);
 }
@@ -649,6 +715,202 @@ BandFinish(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
     Redisplay(w, NULL, 0);
     FireCallback(iw, -1);
+}
+
+/* --- Keyboard navigation helpers --- */
+
+static int
+ComputeNewCursor(IconViewWidget iw, const char *direction)
+{
+    int cur = iw->iconView.cursor;
+    int n = iw->iconView.nitems;
+    int ncols = iw->iconView.ncols;
+
+    if (n <= 0) return -1;
+
+    /* If no cursor yet, start at 0 */
+    if (cur < 0) return 0;
+
+    if (strcmp(direction, "left") == 0) {
+        return (cur > 0) ? cur - 1 : cur;
+    } else if (strcmp(direction, "right") == 0) {
+        return (cur < n - 1) ? cur + 1 : cur;
+    } else if (strcmp(direction, "up") == 0) {
+        return (cur >= ncols) ? cur - ncols : cur;
+    } else if (strcmp(direction, "down") == 0) {
+        return (cur + ncols < n) ? cur + ncols : cur;
+    } else if (strcmp(direction, "home") == 0) {
+        return 0;
+    } else if (strcmp(direction, "end") == 0) {
+        return n - 1;
+    }
+    return cur;
+}
+
+static void
+ScrollToCursor(IconViewWidget iw)
+{
+    Widget w = (Widget)iw;
+    Widget parent = XtParent(w);
+    int cur = iw->iconView.cursor;
+
+    if (cur < 0 || !parent || !XtIsRealized(w))
+        return;
+
+    /* Check if parent is a Viewport by seeing if it has a clip child.
+     * We use the parent's visible height to determine if scrolling is needed. */
+    Dimension visible_h = parent->core.height;
+    Position child_y = w->core.y;  /* Our position within the viewport clip */
+
+    int row = cur / iw->iconView.ncols;
+    int item_top = row * (int)iw->iconView.cell_h;
+    int item_bot = item_top + (int)iw->iconView.cell_h;
+
+    /* Convert to viewport-relative coordinates */
+    int vis_top = -(int)child_y;
+    int vis_bot = vis_top + (int)visible_h;
+
+    if (item_top < vis_top) {
+        /* Scroll up */
+        IswViewportSetCoordinates(parent, 0, (Position)item_top);
+    } else if (item_bot > vis_bot) {
+        /* Scroll down */
+        Position new_y = (Position)(item_bot - (int)visible_h);
+        if (new_y < 0) new_y = 0;
+        IswViewportSetCoordinates(parent, 0, new_y);
+    }
+}
+
+static void
+MoveCursor(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    (void)event;
+
+    if (!num_params || *num_params < 1 || iw->iconView.nitems <= 0)
+        return;
+
+    int new_cur = ComputeNewCursor(iw, params[0]);
+    if (new_cur == iw->iconView.cursor && iw->iconView.cursor >= 0)
+        return;
+
+    iw->iconView.cursor = new_cur;
+
+    /* Plain arrow: select only cursor item */
+    if (iw->iconView.sel_flags) {
+        ClearSelection(iw);
+        iw->iconView.sel_flags[new_cur] = True;
+    }
+    iw->iconView.anchor = new_cur;
+
+    ScrollToCursor(iw);
+    Redisplay(w, NULL, 0);
+}
+
+static void
+ExtendSelection(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    (void)event;
+
+    if (!num_params || *num_params < 1 || iw->iconView.nitems <= 0)
+        return;
+    if (!iw->iconView.multi_select || !iw->iconView.sel_flags)
+        return;
+
+    int new_cur = ComputeNewCursor(iw, params[0]);
+    iw->iconView.cursor = new_cur;
+
+    /* Set anchor if not yet established */
+    if (iw->iconView.anchor < 0)
+        iw->iconView.anchor = new_cur;
+
+    /* Select range from anchor to cursor */
+    ClearSelection(iw);
+    int lo = iw->iconView.anchor < new_cur ? iw->iconView.anchor : new_cur;
+    int hi = iw->iconView.anchor > new_cur ? iw->iconView.anchor : new_cur;
+    for (int i = lo; i <= hi; i++)
+        iw->iconView.sel_flags[i] = True;
+
+    ScrollToCursor(iw);
+    Redisplay(w, NULL, 0);
+}
+
+static void
+ActivateCursor(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    (void)event; (void)params; (void)num_params;
+
+    if (iw->iconView.cursor < 0 || iw->iconView.cursor >= iw->iconView.nitems)
+        return;
+
+    /* Ensure cursor item is selected */
+    if (iw->iconView.sel_flags) {
+        ClearSelection(iw);
+        iw->iconView.sel_flags[iw->iconView.cursor] = True;
+    }
+
+    Redisplay(w, NULL, 0);
+    FireCallback(iw, iw->iconView.cursor);
+}
+
+static void
+ToggleCursor(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    (void)event; (void)params; (void)num_params;
+
+    if (iw->iconView.cursor < 0 || iw->iconView.cursor >= iw->iconView.nitems)
+        return;
+    if (!iw->iconView.sel_flags)
+        return;
+
+    if (iw->iconView.multi_select) {
+        iw->iconView.sel_flags[iw->iconView.cursor] =
+            !iw->iconView.sel_flags[iw->iconView.cursor];
+    } else {
+        ClearSelection(iw);
+        iw->iconView.sel_flags[iw->iconView.cursor] = True;
+    }
+
+    Redisplay(w, NULL, 0);
+}
+
+static void
+SelectAll(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    (void)event; (void)params; (void)num_params;
+
+    if (!iw->iconView.multi_select || !iw->iconView.sel_flags)
+        return;
+
+    for (int i = 0; i < iw->iconView.nitems; i++)
+        iw->iconView.sel_flags[i] = True;
+
+    Redisplay(w, NULL, 0);
+}
+
+static void
+HandleFocus(Widget w, XEvent *event, String *params, Cardinal *num_params)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    (void)event;
+
+    if (!num_params || *num_params < 1)
+        return;
+
+    if (strcmp(params[0], "in") == 0) {
+        iw->iconView.has_focus = True;
+        if (iw->iconView.cursor < 0 && iw->iconView.nitems > 0)
+            iw->iconView.cursor = 0;
+    } else {
+        iw->iconView.has_focus = False;
+    }
+
+    if (XtIsRealized(w))
+        Redisplay(w, NULL, 0);
 }
 
 /* --- Public API --- */

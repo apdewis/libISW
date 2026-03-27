@@ -45,6 +45,10 @@ typedef struct {
     IconViewItemCache *cache;     /* per-item raster cache */
     ISWRenderContext  *render_ctx;
 
+    /* cursor / keyboard focus */
+    int             cursor;        /* focused item index, -1 = none */
+    Boolean         has_focus;     /* widget has keyboard focus */
+
     /* rubber band state */
     Boolean         band_active;
     Position        band_start_x, band_start_y;
