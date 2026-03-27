@@ -285,25 +285,22 @@ cairo_xcb_begin(ISWRenderContext *ctx)
     if (data->back_ctx) {
         /* Copy font state from window context to back buffer context */
         cairo_font_face_t *face = cairo_get_font_face(data->window_ctx);
-        double font_size;
-        cairo_matrix_t font_matrix, ctm;
-        cairo_font_options_t *font_opts = cairo_font_options_create();
+        cairo_matrix_t font_matrix;
         cairo_get_font_matrix(data->window_ctx, &font_matrix);
-        cairo_get_matrix(data->window_ctx, &ctm);
-        cairo_get_font_options(data->window_ctx, font_opts);
         cairo_set_font_face(data->back_ctx, face);
         cairo_set_font_matrix(data->back_ctx, &font_matrix);
-        cairo_font_options_destroy(font_opts);
+
+        /* Copy current window contents into back buffer so partial
+         * repaints (e.g. individual menu entries) preserve existing
+         * content instead of overwriting with undefined pixmap data */
+        cairo_surface_flush(data->surface);
+        cairo_set_source_surface(data->back_ctx, data->surface, 0, 0);
+        cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_SOURCE);
+        cairo_paint(data->back_ctx);
+        cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_OVER);
 
         data->cairo_ctx = data->back_ctx;
         cairo_save(data->cairo_ctx);
-
-        /* Fill back buffer with the widget's background_pixel */
-        double r, g, b;
-        ISWRenderPixelToRGB(ctx, ctx->widget->core.background_pixel,
-                            &r, &g, &b);
-        cairo_set_source_rgb(data->cairo_ctx, r, g, b);
-        cairo_paint(data->cairo_ctx);
     }
 }
 
@@ -328,9 +325,6 @@ cairo_xcb_end(ISWRenderContext *ctx)
 
     cairo_surface_flush(data->surface);
     xcb_flush(ctx->connection);
-
-    /* Swap cairo_ctx back to window context for outside-frame queries */
-    data->cairo_ctx = data->window_ctx;
 }
 
 /*
