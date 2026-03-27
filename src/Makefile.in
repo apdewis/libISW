@@ -150,7 +150,7 @@ am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	SetValues.c SetWMCW.c Shell.c Threads.c TMaction.c TMgrab.c \
 	TMkey.c TMparse.c TMprint.c TMstate.c VarCreate.c VarGet.c \
 	Varargs.c AllWidgets.c AsciiSink.c AsciiSrc.c AsciiText.c \
-	Box.c ColorPicker.c ComboBox.c Command.c Dialog.c \
+	Box.c ColorPicker.c ComboBox.c Command.c Dialog.c FlexBox.c \
 	FontChooser.c Form.c Grip.c IconView.c Label.c Layout.c \
 	LayYY.h List.c MainWindow.c MenuBar.c MenuButton.c Paned.c \
 	Panner.c Porthole.c ProgressBar.c Repeater.c Scale.c \
@@ -183,17 +183,17 @@ am__objects_5 = $(am__objects_3) $(am__objects_4)
 am__objects_6 = nanosvg_impl.lo ISWSVG.lo
 am__objects_7 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	Box.lo ColorPicker.lo ComboBox.lo Command.lo Dialog.lo \
-	FontChooser.lo Form.lo Grip.lo IconView.lo Label.lo Layout.lo \
-	List.lo MainWindow.lo MenuBar.lo MenuButton.lo Paned.lo \
-	Panner.lo Porthole.lo ProgressBar.lo Repeater.lo Scale.lo \
-	Scrollbar.lo ScrollWheel.lo SpinBox.lo StatusBar.lo Simple.lo \
-	SimpleMenu.lo SmeBSB.lo Sme.lo SmeLine.lo StripChart.lo \
-	Tabs.lo TextAction.lo Text.lo TextPop.lo TextSink.lo \
-	TextSrc.lo TextTr.lo Tip.lo Toolbar.lo Toggle.lo Tree.lo \
-	Vendor.lo Viewport.lo ISWP.lo ISWAtoms.lo ISWContext.lo \
-	ISWDrawing.lo ISWInit.lo ISWXcbDraw.lo ISWXdnd.lo Image.lo \
-	laygram.lo laylex.lo $(am__objects_2) $(am__objects_5) \
-	$(am__objects_6)
+	FlexBox.lo FontChooser.lo Form.lo Grip.lo IconView.lo Label.lo \
+	Layout.lo List.lo MainWindow.lo MenuBar.lo MenuButton.lo \
+	Paned.lo Panner.lo Porthole.lo ProgressBar.lo Repeater.lo \
+	Scale.lo Scrollbar.lo ScrollWheel.lo SpinBox.lo StatusBar.lo \
+	Simple.lo SimpleMenu.lo SmeBSB.lo Sme.lo SmeLine.lo \
+	StripChart.lo Tabs.lo TextAction.lo Text.lo TextPop.lo \
+	TextSink.lo TextSrc.lo TextTr.lo Tip.lo Toolbar.lo Toggle.lo \
+	Tree.lo Vendor.lo Viewport.lo ISWP.lo ISWAtoms.lo \
+	ISWContext.lo ISWDrawing.lo ISWInit.lo ISWXcbDraw.lo \
+	ISWXdnd.lo Image.lo laygram.lo laylex.lo $(am__objects_2) \
+	$(am__objects_5) $(am__objects_6)
 am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_7)
 nodist_libISW_la_OBJECTS = StringDefs.lo
 libISW_la_OBJECTS = $(am_libISW_la_OBJECTS) \
@@ -233,55 +233,55 @@ am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
 	./$(DEPDIR)/Create.Plo ./$(DEPDIR)/Destroy.Plo \
 	./$(DEPDIR)/Dialog.Plo ./$(DEPDIR)/Display.Plo \
 	./$(DEPDIR)/Error.Plo ./$(DEPDIR)/Event.Plo \
-	./$(DEPDIR)/EventUtil.Plo ./$(DEPDIR)/FontChooser.Plo \
-	./$(DEPDIR)/Form.Plo ./$(DEPDIR)/Functions.Plo \
-	./$(DEPDIR)/GCManager.Plo ./$(DEPDIR)/Geometry.Plo \
-	./$(DEPDIR)/GetActKey.Plo ./$(DEPDIR)/GetResList.Plo \
-	./$(DEPDIR)/GetValues.Plo ./$(DEPDIR)/Grip.Plo \
-	./$(DEPDIR)/HookObj.Plo ./$(DEPDIR)/Hooks.Plo \
-	./$(DEPDIR)/ISWAtoms.Plo ./$(DEPDIR)/ISWContext.Plo \
-	./$(DEPDIR)/ISWDrawing.Plo ./$(DEPDIR)/ISWI18n.Plo \
-	./$(DEPDIR)/ISWIm.Plo ./$(DEPDIR)/ISWInit.Plo \
-	./$(DEPDIR)/ISWP.Plo ./$(DEPDIR)/ISWRender.Plo \
-	./$(DEPDIR)/ISWRenderCairoXCB.Plo ./$(DEPDIR)/ISWRenderEGL.Plo \
-	./$(DEPDIR)/ISWSVG.Plo ./$(DEPDIR)/ISWXcbDraw.Plo \
-	./$(DEPDIR)/ISWXdnd.Plo ./$(DEPDIR)/IconView.Plo \
-	./$(DEPDIR)/Image.Plo ./$(DEPDIR)/Initialize.Plo \
-	./$(DEPDIR)/Intrinsic.Plo ./$(DEPDIR)/Keyboard.Plo \
-	./$(DEPDIR)/Label.Plo ./$(DEPDIR)/Layout.Plo \
-	./$(DEPDIR)/List.Plo ./$(DEPDIR)/MainWindow.Plo \
-	./$(DEPDIR)/Manage.Plo ./$(DEPDIR)/MenuBar.Plo \
-	./$(DEPDIR)/MenuButton.Plo ./$(DEPDIR)/MultiSink.Plo \
-	./$(DEPDIR)/MultiSrc.Plo ./$(DEPDIR)/NextEvent.Plo \
-	./$(DEPDIR)/Object.Plo ./$(DEPDIR)/Paned.Plo \
-	./$(DEPDIR)/Panner.Plo ./$(DEPDIR)/PassivGrab.Plo \
-	./$(DEPDIR)/Pointer.Plo ./$(DEPDIR)/Popup.Plo \
-	./$(DEPDIR)/PopupCB.Plo ./$(DEPDIR)/Porthole.Plo \
-	./$(DEPDIR)/ProgressBar.Plo ./$(DEPDIR)/Quark.Plo \
-	./$(DEPDIR)/RectObj.Plo ./$(DEPDIR)/Repeater.Plo \
-	./$(DEPDIR)/ResConfig.Plo ./$(DEPDIR)/Resources.Plo \
-	./$(DEPDIR)/Scale.Plo ./$(DEPDIR)/ScrollWheel.Plo \
-	./$(DEPDIR)/Scrollbar.Plo ./$(DEPDIR)/Selection.Plo \
-	./$(DEPDIR)/SetSens.Plo ./$(DEPDIR)/SetValues.Plo \
-	./$(DEPDIR)/SetWMCW.Plo ./$(DEPDIR)/Shell.Plo \
-	./$(DEPDIR)/Simple.Plo ./$(DEPDIR)/SimpleMenu.Plo \
-	./$(DEPDIR)/Sme.Plo ./$(DEPDIR)/SmeBSB.Plo \
-	./$(DEPDIR)/SmeLine.Plo ./$(DEPDIR)/SpinBox.Plo \
-	./$(DEPDIR)/StatusBar.Plo ./$(DEPDIR)/StringDefs.Plo \
-	./$(DEPDIR)/StripChart.Plo ./$(DEPDIR)/TMaction.Plo \
-	./$(DEPDIR)/TMgrab.Plo ./$(DEPDIR)/TMkey.Plo \
-	./$(DEPDIR)/TMparse.Plo ./$(DEPDIR)/TMprint.Plo \
-	./$(DEPDIR)/TMstate.Plo ./$(DEPDIR)/Tabs.Plo \
-	./$(DEPDIR)/Text.Plo ./$(DEPDIR)/TextAction.Plo \
-	./$(DEPDIR)/TextPop.Plo ./$(DEPDIR)/TextSink.Plo \
-	./$(DEPDIR)/TextSrc.Plo ./$(DEPDIR)/TextTr.Plo \
-	./$(DEPDIR)/Threads.Plo ./$(DEPDIR)/Tip.Plo \
-	./$(DEPDIR)/Toggle.Plo ./$(DEPDIR)/Toolbar.Plo \
-	./$(DEPDIR)/Tree.Plo ./$(DEPDIR)/VarCreate.Plo \
-	./$(DEPDIR)/VarGet.Plo ./$(DEPDIR)/Varargs.Plo \
-	./$(DEPDIR)/Vendor.Plo ./$(DEPDIR)/Viewport.Plo \
-	./$(DEPDIR)/laygram.Plo ./$(DEPDIR)/laylex.Plo \
-	./$(DEPDIR)/nanosvg_impl.Plo
+	./$(DEPDIR)/EventUtil.Plo ./$(DEPDIR)/FlexBox.Plo \
+	./$(DEPDIR)/FontChooser.Plo ./$(DEPDIR)/Form.Plo \
+	./$(DEPDIR)/Functions.Plo ./$(DEPDIR)/GCManager.Plo \
+	./$(DEPDIR)/Geometry.Plo ./$(DEPDIR)/GetActKey.Plo \
+	./$(DEPDIR)/GetResList.Plo ./$(DEPDIR)/GetValues.Plo \
+	./$(DEPDIR)/Grip.Plo ./$(DEPDIR)/HookObj.Plo \
+	./$(DEPDIR)/Hooks.Plo ./$(DEPDIR)/ISWAtoms.Plo \
+	./$(DEPDIR)/ISWContext.Plo ./$(DEPDIR)/ISWDrawing.Plo \
+	./$(DEPDIR)/ISWI18n.Plo ./$(DEPDIR)/ISWIm.Plo \
+	./$(DEPDIR)/ISWInit.Plo ./$(DEPDIR)/ISWP.Plo \
+	./$(DEPDIR)/ISWRender.Plo ./$(DEPDIR)/ISWRenderCairoXCB.Plo \
+	./$(DEPDIR)/ISWRenderEGL.Plo ./$(DEPDIR)/ISWSVG.Plo \
+	./$(DEPDIR)/ISWXcbDraw.Plo ./$(DEPDIR)/ISWXdnd.Plo \
+	./$(DEPDIR)/IconView.Plo ./$(DEPDIR)/Image.Plo \
+	./$(DEPDIR)/Initialize.Plo ./$(DEPDIR)/Intrinsic.Plo \
+	./$(DEPDIR)/Keyboard.Plo ./$(DEPDIR)/Label.Plo \
+	./$(DEPDIR)/Layout.Plo ./$(DEPDIR)/List.Plo \
+	./$(DEPDIR)/MainWindow.Plo ./$(DEPDIR)/Manage.Plo \
+	./$(DEPDIR)/MenuBar.Plo ./$(DEPDIR)/MenuButton.Plo \
+	./$(DEPDIR)/MultiSink.Plo ./$(DEPDIR)/MultiSrc.Plo \
+	./$(DEPDIR)/NextEvent.Plo ./$(DEPDIR)/Object.Plo \
+	./$(DEPDIR)/Paned.Plo ./$(DEPDIR)/Panner.Plo \
+	./$(DEPDIR)/PassivGrab.Plo ./$(DEPDIR)/Pointer.Plo \
+	./$(DEPDIR)/Popup.Plo ./$(DEPDIR)/PopupCB.Plo \
+	./$(DEPDIR)/Porthole.Plo ./$(DEPDIR)/ProgressBar.Plo \
+	./$(DEPDIR)/Quark.Plo ./$(DEPDIR)/RectObj.Plo \
+	./$(DEPDIR)/Repeater.Plo ./$(DEPDIR)/ResConfig.Plo \
+	./$(DEPDIR)/Resources.Plo ./$(DEPDIR)/Scale.Plo \
+	./$(DEPDIR)/ScrollWheel.Plo ./$(DEPDIR)/Scrollbar.Plo \
+	./$(DEPDIR)/Selection.Plo ./$(DEPDIR)/SetSens.Plo \
+	./$(DEPDIR)/SetValues.Plo ./$(DEPDIR)/SetWMCW.Plo \
+	./$(DEPDIR)/Shell.Plo ./$(DEPDIR)/Simple.Plo \
+	./$(DEPDIR)/SimpleMenu.Plo ./$(DEPDIR)/Sme.Plo \
+	./$(DEPDIR)/SmeBSB.Plo ./$(DEPDIR)/SmeLine.Plo \
+	./$(DEPDIR)/SpinBox.Plo ./$(DEPDIR)/StatusBar.Plo \
+	./$(DEPDIR)/StringDefs.Plo ./$(DEPDIR)/StripChart.Plo \
+	./$(DEPDIR)/TMaction.Plo ./$(DEPDIR)/TMgrab.Plo \
+	./$(DEPDIR)/TMkey.Plo ./$(DEPDIR)/TMparse.Plo \
+	./$(DEPDIR)/TMprint.Plo ./$(DEPDIR)/TMstate.Plo \
+	./$(DEPDIR)/Tabs.Plo ./$(DEPDIR)/Text.Plo \
+	./$(DEPDIR)/TextAction.Plo ./$(DEPDIR)/TextPop.Plo \
+	./$(DEPDIR)/TextSink.Plo ./$(DEPDIR)/TextSrc.Plo \
+	./$(DEPDIR)/TextTr.Plo ./$(DEPDIR)/Threads.Plo \
+	./$(DEPDIR)/Tip.Plo ./$(DEPDIR)/Toggle.Plo \
+	./$(DEPDIR)/Toolbar.Plo ./$(DEPDIR)/Tree.Plo \
+	./$(DEPDIR)/VarCreate.Plo ./$(DEPDIR)/VarGet.Plo \
+	./$(DEPDIR)/Varargs.Plo ./$(DEPDIR)/Vendor.Plo \
+	./$(DEPDIR)/Viewport.Plo ./$(DEPDIR)/laygram.Plo \
+	./$(DEPDIR)/laylex.Plo ./$(DEPDIR)/nanosvg_impl.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -638,6 +638,7 @@ ISW_SOURCES = \
 	ComboBox.c \
 	Command.c \
 	Dialog.c \
+	FlexBox.c \
 	FontChooser.c \
 	Form.c \
 	Grip.c \
@@ -826,6 +827,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Error.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Event.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/EventUtil.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/FlexBox.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/FontChooser.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Form.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Functions.Plo@am__quote@ # am--include-marker
@@ -1145,6 +1147,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/Error.Plo
 	-rm -f ./$(DEPDIR)/Event.Plo
 	-rm -f ./$(DEPDIR)/EventUtil.Plo
+	-rm -f ./$(DEPDIR)/FlexBox.Plo
 	-rm -f ./$(DEPDIR)/FontChooser.Plo
 	-rm -f ./$(DEPDIR)/Form.Plo
 	-rm -f ./$(DEPDIR)/Functions.Plo
@@ -1312,6 +1315,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/Error.Plo
 	-rm -f ./$(DEPDIR)/Event.Plo
 	-rm -f ./$(DEPDIR)/EventUtil.Plo
+	-rm -f ./$(DEPDIR)/FlexBox.Plo
 	-rm -f ./$(DEPDIR)/FontChooser.Plo
 	-rm -f ./$(DEPDIR)/Form.Plo
 	-rm -f ./$(DEPDIR)/Functions.Plo
