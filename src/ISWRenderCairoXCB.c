@@ -31,9 +31,16 @@ extern void _ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double sca
  * Cairo-XCB Backend Data
  */
 typedef struct {
-    cairo_surface_t *surface;
-    cairo_t *cairo_ctx;
+    cairo_surface_t *surface;      /* window surface (blit target) */
+    cairo_t *cairo_ctx;            /* active drawing context (swapped in begin/end) */
     xcb_visualtype_t *visual;
+
+    /* Double buffering */
+    xcb_pixmap_t back_pixmap;      /* server-side back buffer */
+    cairo_surface_t *back_surface; /* cairo surface on back_pixmap */
+    cairo_t *back_ctx;             /* persistent context on back buffer */
+    cairo_t *window_ctx;           /* context on window surface (for queries) */
+    Dimension back_w, back_h;      /* current back buffer dimensions */
 
     /* State for save/restore */
     int save_count;
@@ -50,8 +57,9 @@ typedef struct {
  */
 
 /*
- * _cairo_xcb_create_surface - Create Cairo surface and context.
- * Shared by init (immediate) and begin (deferred) paths.
+ * _cairo_xcb_create_surface - Create the window-target Cairo surface and
+ * a cairo context on it. The context is always available for queries
+ * (text measurement, etc.) even outside begin/end.
  * Returns True on success, False on failure.
  */
 static Boolean
@@ -64,7 +72,6 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
     if (w > 32767) w = 32767;
     if (h > 32767) h = 32767;
 
-    /* Create Cairo XCB surface - PURE XCB, NO XLIB */
     data->surface = cairo_xcb_surface_create(
         ctx->connection,
         ctx->window,
@@ -80,22 +87,21 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
         return False;
     }
 
-    /* Create Cairo context */
-    data->cairo_ctx = cairo_create(data->surface);
-    if (cairo_status(data->cairo_ctx) != CAIRO_STATUS_SUCCESS) {
-        fprintf(stderr, "ISWRenderCairoXCB: Failed to create Cairo context: %s\n",
-               cairo_status_to_string(cairo_status(data->cairo_ctx)));
-        cairo_destroy(data->cairo_ctx);
-        data->cairo_ctx = NULL;
+    /* Create context on window surface — always available for queries */
+    data->window_ctx = cairo_create(data->surface);
+    if (cairo_status(data->window_ctx) != CAIRO_STATUS_SUCCESS) {
+        cairo_destroy(data->window_ctx);
+        data->window_ctx = NULL;
         cairo_surface_destroy(data->surface);
         data->surface = NULL;
         return False;
     }
+    cairo_set_antialias(data->window_ctx, CAIRO_ANTIALIAS_GOOD);
+    cairo_set_line_width(data->window_ctx, 1.0);
+    cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_OVER);
 
-    /* Set default rendering quality */
-    cairo_set_antialias(data->cairo_ctx, CAIRO_ANTIALIAS_GOOD);
-    cairo_set_line_width(data->cairo_ctx, 1.0);
-    cairo_set_operator(data->cairo_ctx, CAIRO_OPERATOR_OVER);
+    /* cairo_ctx defaults to window context; begin() swaps to back buffer */
+    data->cairo_ctx = data->window_ctx;
 
     return True;
 }
@@ -169,17 +175,25 @@ ISWRenderCairoXCBDestroy(ISWRenderContext *ctx)
     
     data = (ISWRenderCairoXCBData*)ctx->backend_data;
     
-    /* Destroy Cairo context */
-    if (data->cairo_ctx) {
-        cairo_destroy(data->cairo_ctx);
+    /* Destroy back buffer */
+    if (data->back_ctx) {
+        cairo_destroy(data->back_ctx);
     }
-    
-    /* Destroy Cairo surface */
+    if (data->back_surface) {
+        cairo_surface_destroy(data->back_surface);
+    }
+    if (data->back_pixmap && ctx->connection) {
+        xcb_free_pixmap(ctx->connection, data->back_pixmap);
+    }
+
+    /* Destroy window context and surface */
+    if (data->window_ctx) {
+        cairo_destroy(data->window_ctx);
+    }
     if (data->surface) {
         cairo_surface_destroy(data->surface);
     }
-    
-    /* Free backend data */
+
     free(data);
     ctx->backend_data = NULL;
 }
@@ -227,16 +241,70 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         data->deferred = False;
     }
 
-    /* Update surface size if the widget was resized since last render */
+    /* Update window surface size */
     if (ctx->widget && data->surface) {
         Dimension w = ctx->widget->core.width;
         Dimension h = ctx->widget->core.height;
         cairo_xcb_surface_set_size(data->surface, w, h);
+
+        /* Ensure back buffer matches widget dimensions */
+        if (data->back_pixmap == 0 || data->back_w != w || data->back_h != h) {
+            /* Tear down old back buffer */
+            if (data->back_ctx) {
+                cairo_destroy(data->back_ctx);
+                data->back_ctx = NULL;
+            }
+            if (data->back_surface) {
+                cairo_surface_destroy(data->back_surface);
+                data->back_surface = NULL;
+            }
+            if (data->back_pixmap) {
+                xcb_free_pixmap(ctx->connection, data->back_pixmap);
+                data->back_pixmap = 0;
+            }
+
+            /* Create new back buffer */
+            uint8_t depth = (ctx->widget->core.depth != 0)
+                          ? ctx->widget->core.depth
+                          : ctx->screen->root_depth;
+            data->back_pixmap = xcb_generate_id(ctx->connection);
+            xcb_create_pixmap(ctx->connection, depth, data->back_pixmap,
+                              ctx->window, w, h);
+            data->back_surface = cairo_xcb_surface_create(
+                ctx->connection, data->back_pixmap, data->visual, w, h);
+            data->back_ctx = cairo_create(data->back_surface);
+            cairo_set_antialias(data->back_ctx, CAIRO_ANTIALIAS_GOOD);
+            cairo_set_line_width(data->back_ctx, 1.0);
+            cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_OVER);
+            data->back_w = w;
+            data->back_h = h;
+        }
     }
 
-    /* Save initial state */
-    if (data->cairo_ctx)
+    /* Swap cairo_ctx to target the back buffer for this frame */
+    if (data->back_ctx) {
+        /* Copy font state from window context to back buffer context */
+        cairo_font_face_t *face = cairo_get_font_face(data->window_ctx);
+        double font_size;
+        cairo_matrix_t font_matrix, ctm;
+        cairo_font_options_t *font_opts = cairo_font_options_create();
+        cairo_get_font_matrix(data->window_ctx, &font_matrix);
+        cairo_get_matrix(data->window_ctx, &ctm);
+        cairo_get_font_options(data->window_ctx, font_opts);
+        cairo_set_font_face(data->back_ctx, face);
+        cairo_set_font_matrix(data->back_ctx, &font_matrix);
+        cairo_font_options_destroy(font_opts);
+
+        data->cairo_ctx = data->back_ctx;
         cairo_save(data->cairo_ctx);
+
+        /* Fill back buffer with the widget's background_pixel */
+        double r, g, b;
+        ISWRenderPixelToRGB(ctx, ctx->widget->core.background_pixel,
+                            &r, &g, &b);
+        cairo_set_source_rgb(data->cairo_ctx, r, g, b);
+        cairo_paint(data->cairo_ctx);
+    }
 }
 
 static void
@@ -245,14 +313,24 @@ cairo_xcb_end(ISWRenderContext *ctx)
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
 
     if (!data->cairo_ctx)
-        return;  /* Deferred init not yet completed */
+        return;
 
-    /* Restore initial state */
     cairo_restore(data->cairo_ctx);
 
-    /* Flush to XCB */
+    /* Blit back buffer to window */
+    if (data->back_surface && data->window_ctx) {
+        cairo_surface_flush(data->back_surface);
+        cairo_set_source_surface(data->window_ctx, data->back_surface, 0, 0);
+        cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_SOURCE);
+        cairo_paint(data->window_ctx);
+        cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_OVER);
+    }
+
     cairo_surface_flush(data->surface);
     xcb_flush(ctx->connection);
+
+    /* Swap cairo_ctx back to window context for outside-frame queries */
+    data->cairo_ctx = data->window_ctx;
 }
 
 /*
@@ -657,6 +735,12 @@ cairo_xcb_set_font(ISWRenderContext *ctx, XFontStruct *font)
 
     double scale = _XtGetScaleFactor(ctx->connection);
     _ISWSetCairoFontFromXFont(data->cairo_ctx, font, scale);
+
+    /* Keep both contexts in sync so text queries work outside begin/end */
+    if (data->back_ctx && data->cairo_ctx != data->back_ctx)
+        _ISWSetCairoFontFromXFont(data->back_ctx, font, scale);
+    if (data->window_ctx && data->cairo_ctx != data->window_ctx)
+        _ISWSetCairoFontFromXFont(data->window_ctx, font, scale);
 }
 
 /*
