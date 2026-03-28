@@ -259,6 +259,21 @@ void ISWRenderFillRectangle(ISWRenderContext *ctx,
                            int width, int height);
 
 /*
+ * ISWRenderFillRoundedRectangle - Fill rectangle with rounded corners
+ *
+ * Parameters:
+ *   ctx    - Rendering context
+ *   x, y   - Top-left corner
+ *   width  - Rectangle width
+ *   height - Rectangle height
+ *   radius - Corner radius in pixels
+ */
+void ISWRenderFillRoundedRectangle(ISWRenderContext *ctx,
+                                   int x, int y,
+                                   int width, int height,
+                                   double radius);
+
+/*
  * ISWRenderStrokePolygon - Draw polygon outline
  *
  * Parameters:

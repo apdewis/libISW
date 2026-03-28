@@ -214,6 +214,11 @@ ClassInitialize(void)
  rather sloppy.  To avoid drawing over the shadows and the arrows requires
  some extra care...  Hope I didn't make any mistakes.
 */
+/* Padding between the scrollbar edges and the trough/thumb */
+#define SCROLLBAR_PAD 2
+/* Inset of the thumb relative to the trough */
+#define THUMB_INSET 3
+
 static void
 FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
 {
@@ -228,7 +233,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     floor = sbw->scrollbar.length - margin;
 
     /* Inset the thumb so it's narrower than the channel */
-    int inset = fill ? 3 : 0;
+    int inset = fill ? (SCROLLBAR_PAD + THUMB_INSET) : SCROLLBAR_PAD;
 
     if (sbw->scrollbar.orientation == XtorientHorizontal) {
 	lx = ((top < margin) ? margin : top);
@@ -246,10 +251,12 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
 
     if (fill) {
-        /* Draw thumb in foreground color */
+        /* Draw thumb with rounded corners in foreground color */
+        double radius = (sbw->scrollbar.orientation == XtorientHorizontal)
+                        ? lh / 2.0 : lw / 2.0;
         ISWRenderBegin(ctx);
         ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-        ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
+        ISWRenderFillRoundedRectangle(ctx, lx, ly, lw, lh, radius);
         ISWRenderEnd(ctx);
     } else {
         /* Erase thumb area by restoring trough (background) color */
@@ -383,13 +390,17 @@ PaintArrows (ScrollbarWidget sbw)
 	           ISWRenderEnd(ctx);
 
 	} else {
-	    pt[0].x = 0;      pt[0].y = tm1;
-	    pt[1].x = t;      pt[1].y = tm1;
-	    pt[2].x = t2;     pt[2].y = 0;
+	    /* Arrow base matches trough width; tips are inset along length */
+	    Dimension bp = SCROLLBAR_PAD + THUMB_INSET;  /* base matches thumb width */
+	    Dimension tp = t / 4;          /* tip inset along length axis */
 
-	    pt[3].x = 0;      pt[3].y = lp1;
-	    pt[4].x = t;      pt[4].y = lp1;
-	    pt[5].x = t2;     pt[5].y = l;
+	    pt[0].x = bp;          pt[0].y = tm1 - tp;
+	    pt[1].x = t - bp;      pt[1].y = tm1 - tp;
+	    pt[2].x = t2;          pt[2].y = tp;
+
+	    pt[3].x = bp;          pt[3].y = lp1 + tp;
+	    pt[4].x = t - bp;      pt[4].y = lp1 + tp;
+	    pt[5].x = t2;          pt[5].y = l - tp;
 
 	    /* horizontal arrows require that x and y coordinates be swapped */
 	    if (sbw->scrollbar.orientation == XtorientHorizontal) {
@@ -596,8 +607,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
 
-    /* Draw the trough (channel) in foreground color so the
-     * background-colored thumb is visible against it. */
+    /* Draw the trough (channel) in background color, padded from the edges */
     {
         Dimension s = 0;
         Dimension margin = MARGIN(sbw);
@@ -605,13 +615,13 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
         if (sbw->scrollbar.orientation == XtorientHorizontal) {
             tx = margin;
-            ty = s;
+            ty = s + SCROLLBAR_PAD;
             tw = sbw->scrollbar.length - 2 * margin;
-            th = sbw->core.height - 2 * s;
+            th = sbw->core.height - 2 * s - 2 * SCROLLBAR_PAD;
         } else {
-            tx = s;
+            tx = s + SCROLLBAR_PAD;
             ty = margin;
-            tw = sbw->core.width - 2 * s;
+            tw = sbw->core.width - 2 * s - 2 * SCROLLBAR_PAD;
             th = sbw->scrollbar.length - 2 * margin;
         }
 

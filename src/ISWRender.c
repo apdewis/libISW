@@ -396,6 +396,37 @@ ISWRenderFillRectangle(ISWRenderContext *ctx, int x, int y, int width, int heigh
 }
 
 void
+ISWRenderFillRoundedRectangle(ISWRenderContext *ctx,
+                              int x, int y, int width, int height,
+                              double radius)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->get_cairo_context) {
+        /* Fall back to plain rectangle */
+        ISWRenderFillRectangle(ctx, x, y, width, height);
+        return;
+    }
+
+    cairo_t *cr = (cairo_t *)ctx->ops->get_cairo_context(ctx);
+    if (!cr) {
+        ISWRenderFillRectangle(ctx, x, y, width, height);
+        return;
+    }
+
+    /* Clamp radius to half the smallest dimension */
+    double max_r = (width < height ? width : height) / 2.0;
+    if (radius > max_r) radius = max_r;
+
+    double x0 = x, y0 = y, w = width, h = height, r = radius;
+    cairo_new_sub_path(cr);
+    cairo_arc(cr, x0 + w - r, y0 + r,     r, -M_PI/2, 0);
+    cairo_arc(cr, x0 + w - r, y0 + h - r, r, 0,        M_PI/2);
+    cairo_arc(cr, x0 + r,     y0 + h - r, r, M_PI/2,   M_PI);
+    cairo_arc(cr, x0 + r,     y0 + r,     r, M_PI,      3*M_PI/2);
+    cairo_close_path(cr);
+    cairo_fill(cr);
+}
+
+void
 ISWRenderStrokePolygon(ISWRenderContext *ctx, xcb_point_t *points, int num_points)
 {
     if (!ctx || !ctx->ops || !ctx->ops->stroke_polygon) {
