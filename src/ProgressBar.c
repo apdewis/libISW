@@ -240,69 +240,109 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (pbw->progress_bar.show_value) {
 	char buf[8];
 	int len = snprintf(buf, sizeof(buf), "%d%%", pbw->progress_bar.value);
+
+	ISWRenderSetFont(ctx, pbw->progress_bar.font);
+
+	/* Measure at the current font size, then scale down to fit */
 	int text_w = ISWScaledTextWidth(w, pbw->progress_bar.font, buf, len);
 	int text_h = ISWScaledFontHeight(w, pbw->progress_bar.font);
 	int text_ascent = ISWScaledFontAscent(w, pbw->progress_bar.font);
 
-	ISWRenderSetFont(ctx, pbw->progress_bar.font);
+	int avail_w, avail_h;
+	if (pbw->progress_bar.orientation == XtorientHorizontal) {
+	    avail_w = (int)w->core.width - 4;
+	    avail_h = (int)w->core.height - 4;
+	} else {
+	    avail_w = (int)w->core.height - 4;
+	    avail_h = (int)w->core.width - 4;
+	}
+
+	float text_scale = 1.0f;
+	if (text_w > 0 && text_h > 0 && avail_w > 0 && avail_h > 0) {
+	    if (text_w > avail_w)
+		text_scale = (float)avail_w / text_w;
+	    if (text_h > avail_h) {
+		float sy = (float)avail_h / text_h;
+		if (sy < text_scale)
+		    text_scale = sy;
+	    }
+	}
+
+	/* Recompute metrics at the effective scale */
+	float eff_text_w = text_w * text_scale;
+	float eff_text_h = text_h * text_scale;
+	float eff_ascent = text_ascent * text_scale;
 
 	if (pbw->progress_bar.orientation == XtorientHorizontal) {
-	    if (text_w < (int)w->core.width - 4 &&
-		text_h < (int)w->core.height - 4) {
-		double tx = (w->core.width - text_w) / 2.0;
-		double ty = (w->core.height - text_h) / 2.0 + text_ascent;
+	    double tx = (w->core.width - eff_text_w) / 2.0;
+	    double ty = (w->core.height - eff_text_h) / 2.0 + eff_ascent;
 
-		/* Pass 1: foreground text clipped to unfilled region */
-		cairo_save(cr);
-		cairo_rectangle(cr, 0, 0, fill_x + fill_w, w->core.height);
-		cairo_rectangle(cr, 0, 0, w->core.width, w->core.height);
-		cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
-		cairo_clip(cr);
-		ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
-		cairo_move_to(cr, tx, ty);
-		cairo_show_text(cr, buf);
-		cairo_restore(cr);
-
-		/* Pass 2: background text clipped to filled region */
-		cairo_save(cr);
-		cairo_rectangle(cr, fill_x, fill_y, fill_w, fill_h);
-		cairo_clip(cr);
-		ISWRenderSetColor(ctx, w->core.background_pixel);
-		cairo_move_to(cr, tx, ty);
-		cairo_show_text(cr, buf);
-		cairo_restore(cr);
+	    /* Pass 1: foreground text clipped to unfilled region */
+	    cairo_save(cr);
+	    cairo_rectangle(cr, 0, 0, fill_x + fill_w, w->core.height);
+	    cairo_rectangle(cr, 0, 0, w->core.width, w->core.height);
+	    cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+	    cairo_clip(cr);
+	    if (text_scale < 1.0f) {
+		cairo_translate(cr, tx, ty);
+		cairo_scale(cr, text_scale, text_scale);
+		tx = 0;
+		ty = 0;
 	    }
+	    ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
+	    cairo_move_to(cr, tx, ty);
+	    cairo_show_text(cr, buf);
+	    cairo_restore(cr);
+
+	    /* Recalculate for pass 2 (restore resets transform) */
+	    tx = (w->core.width - eff_text_w) / 2.0;
+	    ty = (w->core.height - eff_text_h) / 2.0 + eff_ascent;
+
+	    /* Pass 2: background text clipped to filled region */
+	    cairo_save(cr);
+	    cairo_rectangle(cr, fill_x, fill_y, fill_w, fill_h);
+	    cairo_clip(cr);
+	    if (text_scale < 1.0f) {
+		cairo_translate(cr, tx, ty);
+		cairo_scale(cr, text_scale, text_scale);
+		tx = 0;
+		ty = 0;
+	    }
+	    ISWRenderSetColor(ctx, w->core.background_pixel);
+	    cairo_move_to(cr, tx, ty);
+	    cairo_show_text(cr, buf);
+	    cairo_restore(cr);
 	} else {
-	    if (text_w < (int)w->core.height - 4 &&
-		text_h < (int)w->core.width - 4) {
-		double tx = -text_w / 2.0;
-		double ty = text_ascent - text_h / 2.0;
+	    double tx = -eff_text_w / 2.0;
+	    double ty = eff_ascent - eff_text_h / 2.0;
 
-		/* Pass 1: foreground text clipped to unfilled region.
-		 * Set clip in widget coords, then rotate for text. */
-		cairo_save(cr);
-		cairo_rectangle(cr, fill_x, fill_y, fill_w, fill_h);
-		cairo_rectangle(cr, 0, 0, w->core.width, w->core.height);
-		cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
-		cairo_clip(cr);
-		cairo_translate(cr, w->core.width / 2.0, w->core.height / 2.0);
-		cairo_rotate(cr, -M_PI / 2.0);
-		ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
-		cairo_move_to(cr, tx, ty);
-		cairo_show_text(cr, buf);
-		cairo_restore(cr);
+	    /* Pass 1: foreground text clipped to unfilled region */
+	    cairo_save(cr);
+	    cairo_rectangle(cr, fill_x, fill_y, fill_w, fill_h);
+	    cairo_rectangle(cr, 0, 0, w->core.width, w->core.height);
+	    cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+	    cairo_clip(cr);
+	    cairo_translate(cr, w->core.width / 2.0, w->core.height / 2.0);
+	    cairo_rotate(cr, -M_PI / 2.0);
+	    if (text_scale < 1.0f)
+		cairo_scale(cr, text_scale, text_scale);
+	    ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
+	    cairo_move_to(cr, tx, ty);
+	    cairo_show_text(cr, buf);
+	    cairo_restore(cr);
 
-		/* Pass 2: background text clipped to filled region */
-		cairo_save(cr);
-		cairo_rectangle(cr, fill_x, fill_y, fill_w, fill_h);
-		cairo_clip(cr);
-		cairo_translate(cr, w->core.width / 2.0, w->core.height / 2.0);
-		cairo_rotate(cr, -M_PI / 2.0);
-		ISWRenderSetColor(ctx, w->core.background_pixel);
-		cairo_move_to(cr, tx, ty);
-		cairo_show_text(cr, buf);
-		cairo_restore(cr);
-	    }
+	    /* Pass 2: background text clipped to filled region */
+	    cairo_save(cr);
+	    cairo_rectangle(cr, fill_x, fill_y, fill_w, fill_h);
+	    cairo_clip(cr);
+	    cairo_translate(cr, w->core.width / 2.0, w->core.height / 2.0);
+	    cairo_rotate(cr, -M_PI / 2.0);
+	    if (text_scale < 1.0f)
+		cairo_scale(cr, text_scale, text_scale);
+	    ISWRenderSetColor(ctx, w->core.background_pixel);
+	    cairo_move_to(cr, tx, ty);
+	    cairo_show_text(cr, buf);
+	    cairo_restore(cr);
 	}
     }
 
