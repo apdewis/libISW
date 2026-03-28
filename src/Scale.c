@@ -28,6 +28,7 @@
 /* Thumb dimensions (before HiDPI scaling) */
 #define THUMB_WIDTH  12
 #define THUMB_HEIGHT 20
+#define THUMB_BAR_THICK 8   /* cross-track thickness of the knob */
 #define TRACK_THICKNESS 4
 #define TICK_LENGTH  6
 #define VALUE_MARGIN 4
@@ -298,13 +299,34 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     sw->scale.length = ISWScaleDim(new, sw->scale.length);
     sw->scale.thickness = ISWScaleDim(new, sw->scale.thickness);
 
+    /* Compute minimum cross-axis size from content:
+     * thumb + value label zone + tick marks */
+    Dimension thumb_cross = ISWScaleDim(new, THUMB_HEIGHT);
+    Dimension tick_zone = 0;
+    if (sw->scale.tick_interval > 0)
+        tick_zone = ISWScaleDim(new, TICK_LENGTH) + 2;
+    Dimension value_zone = 0;
+    if (sw->scale.show_value && sw->scale.font) {
+        value_zone = ISWScaledFontHeight(new, sw->scale.font)
+                   + ISWScaleDim(new, VALUE_MARGIN);
+    }
+    Dimension min_cross = thumb_cross + tick_zone + value_zone;
+
     /* Default geometry */
     if (sw->core.width == 0)
         sw->core.width = (sw->scale.orientation == XtorientHorizontal)
-            ? sw->scale.length : sw->scale.thickness;
+            ? sw->scale.length : min_cross;
     if (sw->core.height == 0)
         sw->core.height = (sw->scale.orientation == XtorientHorizontal)
-            ? sw->scale.thickness : sw->scale.length;
+            ? min_cross : sw->scale.length;
+    /* Enforce minimum so nothing gets clipped */
+    if (sw->scale.orientation == XtorientHorizontal) {
+        if (sw->core.height < min_cross)
+            sw->core.height = min_cross;
+    } else {
+        if (sw->core.width < min_cross)
+            sw->core.width = min_cross;
+    }
 
     /* Clamp value */
     if (sw->scale.value < sw->scale.minimum)
@@ -483,10 +505,14 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             }
         }
 
-        /* Thumb */
-        Position tx = sw->scale.thumb_pos - (Position)(thumb_w / 2);
-        Position ty = track_center_y - (int)thumb_h / 2;
-        ISWRenderFillRectangle(ctx, tx, ty, thumb_w, thumb_h);
+        /* Thumb — thin bar perpendicular to track, radiused on the ends */
+        {
+            Dimension bar_thick = ISWScaleDim(w, THUMB_BAR_THICK);
+            Position tx = sw->scale.thumb_pos - (Position)(bar_thick / 2);
+            Position ty = track_center_y - (int)thumb_h / 2;
+            ISWRenderFillRoundedRectangle(ctx, tx, ty, bar_thick, thumb_h,
+                                          bar_thick / 2.0);
+        }
 
         /* Value label — area is the full thumb extent */
         int area_y = track_center_y - (int)thumb_h / 2;
@@ -519,10 +545,14 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             }
         }
 
-        /* Thumb */
-        Position tx = track_center_x - (int)thumb_w / 2;
-        Position ty = sw->scale.thumb_pos - (Position)(thumb_h / 2);
-        ISWRenderFillRectangle(ctx, tx, ty, thumb_w, thumb_h);
+        /* Thumb — same shape as horizontal, rotated 90 degrees */
+        {
+            Dimension bar_thick = ISWScaleDim(w, THUMB_BAR_THICK);
+            Position tx = track_center_x - (int)thumb_h / 2;
+            Position ty = sw->scale.thumb_pos - (Position)(bar_thick / 2);
+            ISWRenderFillRoundedRectangle(ctx, tx, ty, thumb_h, bar_thick,
+                                          bar_thick / 2.0);
+        }
 
         /* Value label — area is the full thumb extent */
         int area_x = track_center_x - (int)thumb_w / 2;
