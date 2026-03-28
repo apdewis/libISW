@@ -273,7 +273,8 @@ PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
             ISWRenderSetFont(sink->ascii_sink.render_ctx, sink->ascii_sink.font);
         }
     }
-    
+
+
     /* Calculate text width */
     width = ISWRenderTextWidth(sink->ascii_sink.render_ctx, (char *)buf, len);
     max_x = (Position) ctx->core.width;
@@ -339,6 +340,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     Pixel bg_color = highlight ? sink->text_sink.foreground : sink->text_sink.background;
 
     if (!sink->ascii_sink.echo) return;
+
 
     /* Lazy render context creation — must happen BEFORE ISWRenderBegin so that
      * the Begin/End calls are always balanced on the same render_ctx. */
@@ -429,6 +431,16 @@ AsciiSinkClearToBackground(Widget w, Position x, Position y,
     if (height == 0 || width == 0) return;
 
     AsciiSinkObject sink = (AsciiSinkObject) w;
+    TextWidget ctx = (TextWidget) XtParent(w);
+
+
+    /* Ensure render context exists (same lazy init as PaintText/DisplayText) */
+    if (!sink->ascii_sink.render_ctx && XtIsRealized((Widget)ctx) &&
+        ctx->core.width > 0 && ctx->core.height > 0) {
+        sink->ascii_sink.render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
+        if (sink->ascii_sink.render_ctx && sink->ascii_sink.font)
+            ISWRenderSetFont(sink->ascii_sink.render_ctx, sink->ascii_sink.font);
+    }
 
     if (sink->ascii_sink.render_ctx) {
         ISWRenderBegin(sink->ascii_sink.render_ctx);

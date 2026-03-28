@@ -7,6 +7,7 @@
 
 #include <ISW/SpinBox.h>
 #include <ISW/FormP.h>
+#include <ISW/ISWRender.h>
 
 typedef struct {int empty;} SpinBoxClassPart;
 
@@ -33,6 +34,7 @@ typedef struct _SpinBoxPart {
     Widget        textW;       /* AsciiText child */
     Widget        upW;         /* up/increment Repeater */
     Widget        downW;       /* down/decrement Repeater */
+    ISWRenderContext *render_ctx;
 } SpinBoxPart;
 
 typedef struct _SpinBoxRec {

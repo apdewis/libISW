@@ -49,6 +49,8 @@ static XtResource resources[] = {
 
 /* Forward declarations */
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
+static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Destroy(Widget);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -70,7 +72,7 @@ SpinBoxClassRec spinBoxClassRec = {
     /* class_inited       */ FALSE,
     /* initialize         */ Initialize,
     /* initialize_hook    */ NULL,
-    /* realize            */ XtInheritRealize,
+    /* realize            */ Realize,
     /* actions            */ NULL,
     /* num_actions        */ 0,
     /* resources          */ resources,
@@ -80,7 +82,7 @@ SpinBoxClassRec spinBoxClassRec = {
     /* compress_exposure  */ TRUE,
     /* compress_enterleave*/ TRUE,
     /* visible_interest   */ FALSE,
-    /* destroy            */ NULL,
+    /* destroy            */ Destroy,
     /* resize             */ Resize,
     /* expose             */ Redisplay,
     /* set_values         */ SetValues,
@@ -248,10 +250,37 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* Set default size if not specified */
     if (sbw->core.width == 0)
         sbw->core.width = ISWScaleDim(new, 120);
-    if (sbw->core.height == 0)
-        sbw->core.height = ISWScaleDim(new, 26);
+    if (sbw->core.height == 0) {
+        /* Derive height from font metrics so the text line fits */
+        XFontStruct *font = NULL;
+        XtVaGetValues(sbw->spinBox.textW, XtNfont, &font, NULL);
+        int font_h = font ? ISWScaledFontHeight(new, font) : ISWScaleDim(new, 14);
+        int margin = 4;  /* Text widget default VMargins (top=2 + bottom=2) */
+        sbw->core.height = (Dimension)(font_h + margin + ISWScaleDim(new, 4));
+    }
 
+    sbw->spinBox.render_ctx = NULL;
     LayoutChildren(sbw);
+}
+
+static void
+Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+{
+    SpinBoxWidget sbw = (SpinBoxWidget) w;
+
+    /* Chain up to Form's realize */
+    (*spinBoxWidgetClass->core_class.superclass->core_class.realize)
+        (dpy, w, valueMask, attributes);
+
+    sbw->spinBox.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+}
+
+static void
+Destroy(Widget w)
+{
+    SpinBoxWidget sbw = (SpinBoxWidget) w;
+    if (sbw->spinBox.render_ctx)
+        ISWRenderDestroy(sbw->spinBox.render_ctx);
 }
 
 static void
@@ -298,39 +327,25 @@ static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     SpinBoxWidget sbw = (SpinBoxWidget) w;
+    ISWRenderContext *ctx = sbw->spinBox.render_ctx;
     (void)event; (void)region;
 
-    /* Let children redraw themselves first */
-    /* Draw divider lines between text/buttons and between the two buttons */
-    xcb_connection_t *conn = XtDisplay(w);
-    if (!conn || !XtIsRealized(w))
+    if (!ctx || !XtIsRealized(w))
         return;
 
-    /* Use the border pixel for divider lines */
-    xcb_gcontext_t gc = xcb_generate_id(conn);
-    uint32_t gc_vals[2];
-    gc_vals[0] = sbw->core.border_pixel;
-    gc_vals[1] = 1;
-    xcb_create_gc(conn, gc, XtWindow(w),
-                  XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH, gc_vals);
-
     Dimension btn_w = ISWScaleDim(w, 18);
-    /* text_w matches LayoutChildren: the 1px gap is at this x coordinate */
     int text_w = (int)sbw->core.width - (int)btn_w - 1;
-    int gap_x = text_w;  /* vertical divider in the 1px gap */
-    int gap_y = (int)sbw->core.height / 2;  /* horizontal divider */
+    int gap_x = text_w;
+    int gap_y = (int)sbw->core.height / 2;
 
-    xcb_segment_t segs[2];
+    ISWRenderBegin(ctx);
+    ISWRenderSetColor(ctx, sbw->core.border_pixel);
+    ISWRenderSetLineWidth(ctx, 1.0);
     /* Vertical divider between text and buttons */
-    segs[0].x1 = gap_x; segs[0].y1 = 0;
-    segs[0].x2 = gap_x; segs[0].y2 = (int16_t)sbw->core.height;
+    ISWRenderDrawLine(ctx, gap_x, 0, gap_x, (int)sbw->core.height);
     /* Horizontal divider between up and down buttons */
-    segs[1].x1 = gap_x; segs[1].y1 = gap_y;
-    segs[1].x2 = (int16_t)sbw->core.width; segs[1].y2 = gap_y;
-
-    xcb_poly_segment(conn, XtWindow(w), gc, 2, segs);
-    xcb_free_gc(conn, gc);
-    xcb_flush(conn);
+    ISWRenderDrawLine(ctx, gap_x, gap_y, (int)sbw->core.width, gap_y);
+    ISWRenderEnd(ctx);
 }
 
 static Boolean
