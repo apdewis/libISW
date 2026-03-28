@@ -140,11 +140,11 @@ static void PopdownSubMenu(SimpleMenuWidget);
  * Action Routine Definitions
  */
 
-static void Highlight(Widget, XEvent *, String *, Cardinal *);
-static void Unhighlight(Widget, XEvent *, String *, Cardinal *);
-static void Notify(Widget, XEvent *, String *, Cardinal *);
-static void PositionMenuAction(Widget, XEvent *, String *, Cardinal *);
-static void Popdown(Widget, XEvent *, String *, Cardinal *);
+static void Highlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Unhighlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void PositionMenuAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Popdown(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 /*
  * Private Function Definitions.
@@ -160,7 +160,7 @@ static void SetMarginWidths(Widget);
 static Dimension GetMenuWidth(Widget, Widget);
 static Dimension GetMenuHeight(Widget);
 static Widget FindMenu(Widget, String);
-static SmeObject GetEventEntry(Widget, XEvent *);
+static SmeObject GetEventEntry(Widget, xcb_generic_event_t *);
 static void MoveMenu(Widget, Position, Position);
 
 static XtActionsRec actionsList[] =
@@ -805,7 +805,7 @@ ChangeManaged(Widget w)
 
 /* ARGSUSED */
 static void
-PositionMenuAction(Widget w, XEvent * event, String * params, Cardinal * num_params)
+PositionMenuAction(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_params)
 {
   Widget menu;
   XPoint loc;
@@ -874,7 +874,7 @@ PositionMenuAction(Widget w, XEvent * event, String * params, Cardinal * num_par
 
 /* ARGSUSED */
 static void
-Unhighlight(Widget w, XEvent * event, String * params, Cardinal * num_params)
+Unhighlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_params)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SimpleMenuWidget sub = (SimpleMenuWidget) smw->simple_menu.sub_menu;
@@ -920,7 +920,7 @@ Unhighlight(Widget w, XEvent * event, String * params, Cardinal * num_params)
 
 /* ARGSUSED */
 static void
-Highlight(Widget w, XEvent * event, String * params, Cardinal * num_params)
+Highlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_params)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SmeObject entry;
@@ -969,7 +969,7 @@ Highlight(Widget w, XEvent * event, String * params, Cardinal * num_params)
 
 /* ARGSUSED */
 static void
-Notify(Widget w, XEvent * event, String * params, Cardinal * num_params)
+Notify(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_params)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SmeObject entry = smw->simple_menu.entry_set;
@@ -1496,7 +1496,7 @@ GetMenuHeight(Widget w)
  */
 
 static SmeObject
-GetEventEntry(Widget w, XEvent * event)
+GetEventEntry(Widget w, xcb_generic_event_t * event)
 {
     Position x_loc = 0, y_loc = 0;
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
@@ -1657,7 +1657,7 @@ PopupSubMenu(SimpleMenuWidget smw)
 }
 
 static void
-Popdown(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Popdown(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
 

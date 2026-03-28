@@ -648,7 +648,7 @@ cairo_xcb_copy_area(ISWRenderContext *ctx,
     cairo_surface_flush(data->surface);
     xcb_flush(ctx->connection);
 
-    /* Create a temporary GC for the copy */
+    /* Create a temporary xcb_gcontext_t for the copy */
     xcb_gcontext_t gc = xcb_generate_id(ctx->connection);
     uint32_t gc_mask = XCB_GC_GRAPHICS_EXPOSURES;
     uint32_t gc_vals[] = { 0 };

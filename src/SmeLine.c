@@ -157,11 +157,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 /*	Function Name: CreateGC
- *	Description: Creates the GC for the line entry widget.
+ *	Description: Creates the xcb_gcontext_t for the line entry widget.
  *	Arguments: w - the Line entry widget.
  *	Returns: none
  *
- *      We can only share the GC if there is no stipple, because
+ *      We can only share the xcb_gcontext_t if there is no stipple, because
  *      we need to change the stipple origin when drawing.
  */
 
@@ -189,7 +189,7 @@ CreateGC(Widget w)
 	xcb_flush(conn);
     }
     else {
- /* For shared GC, still use XtGetGC with compatibility wrapper */
+ /* For shared xcb_gcontext_t, still use XtGetGC with compatibility wrapper */
  xcb_create_gc_value_list_t xvalues;
  XtGCMask xmask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_LINE_WIDTH;
  memset(&xvalues, 0, sizeof(xvalues));
@@ -201,7 +201,7 @@ CreateGC(Widget w)
 }
 
 /*	Function Name: DestroyGC
- *	Description: Destroys the GC when we are done with it.
+ *	Description: Destroys the xcb_gcontext_t when we are done with it.
  *	Arguments: w - the Line entry widget.
  *	Returns: none
  */

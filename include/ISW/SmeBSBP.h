@@ -92,10 +92,10 @@ typedef struct {
 
     /* private resources. */
     Boolean set_values_area_cleared; /* Remember if we need to unhighlight. */
-    GC norm_gc;			/* noral color gc. */
-    GC rev_gc;			/* reverse color gc. */
-    GC norm_gray_gc;		/* Normal color (grayed out) gc. */
-    GC invert_gc;		/* gc for flipping colors. */
+    xcb_gcontext_t norm_gc;			/* noral color gc. */
+    xcb_gcontext_t rev_gc;			/* reverse color gc. */
+    xcb_gcontext_t norm_gray_gc;		/* Normal color (grayed out) gc. */
+    xcb_gcontext_t invert_gc;		/* gc for flipping colors. */
     Pixmap left_stippled, right_stippled; /* insensitive pixmaps */
     Dimension left_bitmap_width; /* size and depth of each pixmap. */
     Dimension left_bitmap_height;
@@ -105,7 +105,7 @@ typedef struct {
     unsigned int right_depth;
     String menu_name;		/* name of nested sub-menu or NULL */
     
-    GC erase_GC;
+    xcb_gcontext_t erase_GC;
 
     ISWRenderContext *render_ctx;  /* Cairo rendering context */
 } SmeBSBPart;

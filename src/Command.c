@@ -69,7 +69,7 @@ SOFTWARE.
 #include <xcb/shape.h>
 #include <cairo/cairo.h>
 #include <math.h>
-#include "ISWXcbDraw.h"     /* For XCB GC helpers */
+#include "ISWXcbDraw.h"     /* For XCB xcb_gcontext_t helpers */
 
 #define DEFAULT_HIGHLIGHT_THICKNESS 2
 #define DEFAULT_SHAPE_HIGHLIGHT 32767
@@ -110,14 +110,14 @@ static XtResource resources[] = {
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
-static void Set(Widget, XEvent *, String *, Cardinal *);
-static void Reset(Widget, XEvent *, String *, Cardinal *);
-static void Notify(Widget, XEvent *, String *, Cardinal *);
-static void Unset(Widget, XEvent *, String *, Cardinal *);
-static void Highlight(Widget, XEvent *, String *, Cardinal *);
-static void Unhighlight(Widget, XEvent *, String *, Cardinal *);
+static void Set(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Reset(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Unset(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Highlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Unhighlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Destroy(Widget);
-static void PaintCommandWidget(Widget, XEvent *, Region, Boolean);
+static void PaintCommandWidget(Widget, xcb_generic_event_t *, Region, Boolean);
 static void ClassInitialize(void);
 static Boolean ShapeButton(CommandWidget, Boolean);
 static void Realize(xcb_connection_t *, Widget, Mask *, uint32_t *);
@@ -189,7 +189,7 @@ WidgetClass commandWidgetClass = (WidgetClass) &commandClassRec;
  *
  ****************************************************************/
 
-static GC
+static xcb_gcontext_t
 Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
 {
   xcb_create_gc_value_list_t values;
@@ -308,7 +308,7 @@ HighlightRegion(CommandWidget cbw)
 
 /* ARGSUSED */
 static void
-Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
@@ -322,7 +322,7 @@ Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Unset(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Unset(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
@@ -336,7 +336,7 @@ Unset(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Reset(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Reset(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
@@ -349,7 +349,7 @@ Reset(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Highlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Highlight(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
@@ -375,7 +375,7 @@ Highlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Unhighlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Unhighlight(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
@@ -386,7 +386,7 @@ Unhighlight(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Notify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 

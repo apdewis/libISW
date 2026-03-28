@@ -105,7 +105,7 @@ WidgetClass colorPickerWidgetClass = (WidgetClass)&colorPickerClassRec;
 /* --- Swatch expose callback --- */
 
 static void
-SwatchExpose(Widget w, XtPointer client_data, XEvent *event, Boolean *cont)
+SwatchExpose(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boolean *cont)
 {
     ColorPickerWidget cpw = (ColorPickerWidget) client_data;
     (void)event; (void)cont;

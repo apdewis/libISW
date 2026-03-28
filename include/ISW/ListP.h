@@ -95,7 +95,7 @@ typedef struct {
                 row_height,	/* height of each row. */
                 nrows,		/* number of rows in the list. */
                 ncols;		/* number of columns in the list. */
-    GC		normgc,		/* a couple of GC's. */
+    xcb_gcontext_t		normgc,		/* a couple of xcb_gcontext_t's. */
                 revgc,
                 graygc;		/* used when inactive. */
 

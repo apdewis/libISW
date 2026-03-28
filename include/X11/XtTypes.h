@@ -630,7 +630,7 @@ typedef struct {
 #define AllPlanes ((unsigned long)~0L)
 #endif
 
-/* GC function constants */
+/* xcb_gcontext_t function constants */
 #ifndef GXclear
 #define GXclear        0x0
 #define GXand          0x1
@@ -650,7 +650,7 @@ typedef struct {
 #define GXset          0xf
 #endif
 
-/* GC value mask bits */
+/* xcb_gcontext_t value mask bits */
 #ifndef GCFunction
 #define GCFunction          (1L<<0)
 #define GCPlaneMask         (1L<<1)

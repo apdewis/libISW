@@ -62,11 +62,6 @@ SOFTWARE.
 
 #include <xcb/xcb.h>
 
-/* XCB type compatibility - GC is xcb_gcontext_t */
-#ifndef GC
-typedef xcb_gcontext_t GC;
-#endif
-
 #include <ISW/TextSink.h>
 #include <ISW/TextP.h>	/* This source works with the Text widget. */
 #include <ISW/TextSrcP.h>	/* This source works with the Text Source. */

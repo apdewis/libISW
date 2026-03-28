@@ -40,20 +40,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 typedef struct _IswRegion* Region;
 #endif
 
-/* XCB type compatibility */
-#ifndef GC
-typedef xcb_gcontext_t GC;
-#endif
-
-#ifndef XEvent
-typedef xcb_generic_event_t XEvent;
-#endif
-
 /* Region is defined in IswRegion.h as a pointer to IswRegion struct */
-
-#ifndef Screen
-typedef xcb_screen_t Screen;
-#endif
 
 /* These are set during the build to reflect capability and options. */
 /* I18n support */

@@ -101,8 +101,8 @@ typedef struct {
     Pixmap	left_bitmap;
 
     /* private state */
-    GC		normal_GC;
-    GC          gray_GC;
+    xcb_gcontext_t		normal_GC;
+    xcb_gcontext_t          gray_GC;
     Pixmap	stipple;
     Pixmap	stippled;		/* insensitive pixmap */
     Pixmap	left_stippled;		/* ditto */

@@ -150,9 +150,9 @@ WidgetClass stripChartWidgetClass = (WidgetClass) &stripChartClassRec;
 static void draw_it(XtPointer, XtIntervalId *);
 
 /*	Function Name: CreateGC
- *	Description: Creates the GC's
+ *	Description: Creates the xcb_gcontext_t's
  *	Arguments: w - the strip chart widget.
- *                 which - which GC's to create.
+ *                 which - which xcb_gcontext_t's to create.
  *	Returns: none
  */
 
@@ -175,9 +175,9 @@ CreateGC(StripChartWidget w, unsigned int which)
 }
 
 /*	Function Name: DestroyGC
- *	Description: Destroys the GC's
+ *	Description: Destroys the xcb_gcontext_t's
  *	Arguments: w - the strip chart widget.
- *                 which - which GC's to destroy.
+ *                 which - which xcb_gcontext_t's to destroy.
  *	Returns: none
  */
 

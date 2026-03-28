@@ -43,7 +43,7 @@ static XtResource resources[] = {
 #undef offset
 };
 
-static void TemplateAction(Widget w, XEvent *event, String *params, Cardinal *num_params);
+static void TemplateAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params);
 
 static XtActionsRec actions[] =
 {
@@ -99,7 +99,7 @@ WidgetClass templateWidgetClass = (WidgetClass)&templateClassRec;
 
 /* ARGSUSED */
 static void
-TemplateAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+TemplateAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     /* Template action - to be filled in by user */
 }

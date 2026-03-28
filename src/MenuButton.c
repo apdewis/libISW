@@ -56,7 +56,7 @@ in this Software without prior written authorization from the X Consortium.
 #include "ISWXcbDraw.h"
 
 static void ClassInitialize(void);
-static void PopupMenu(Widget, XEvent *, String *, Cardinal *);
+static void PopupMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 #define superclass ((CommandWidgetClass)&commandClassRec)
 
@@ -155,7 +155,7 @@ ClassInitialize(void)
 
 /* ARGSUSED */
 static void
-PopupMenu(Widget w, XEvent *event, String *params, Cardinal *num_params)
+PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   MenuButtonWidget mbw = (MenuButtonWidget) w;
   Widget menu = NULL, temp;

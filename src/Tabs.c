@@ -39,7 +39,7 @@
 static char defaultTranslations[] =
     "<Btn1Down>: TabSelect()";
 
-static void TabSelect(Widget, XEvent *, String *, Cardinal *);
+static void TabSelect(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 static XtActionsRec actionsList[] = {
     {"TabSelect", TabSelect},
@@ -483,7 +483,7 @@ ConstraintSetValues(Widget old, Widget request, Widget new,
 
 /* ARGSUSED */
 static void
-TabSelect(Widget w, XEvent *event, String *params, Cardinal *num_params)
+TabSelect(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     TabsWidget tw = (TabsWidget)w;
     xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;

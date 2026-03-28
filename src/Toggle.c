@@ -82,9 +82,9 @@ static XtResource resources[] = {
 
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Toggle(Widget, XEvent *, String *, Cardinal *);
-static void Notify(Widget, XEvent *, String *, Cardinal *);
-static void ToggleSet(Widget, XEvent *, String *, Cardinal *);
+static void Toggle(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ToggleSet(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void ToggleDestroy(Widget, XtPointer, XtPointer);
 static void ClassInit(void);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -98,8 +98,8 @@ static void TurnOffRadioSiblings(Widget);
 static void RemoveFromRadioGroup(Widget);
 
 /* Forward declarations for custom Set/Unset that don't clear the widget */
-static void ToggleSetAction(Widget, XEvent *, String *, Cardinal *);
-static void ToggleUnsetAction(Widget, XEvent *, String *, Cardinal *);
+static void ToggleSetAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ToggleUnsetAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 static XtActionsRec actionsList[] =
 {
@@ -312,7 +312,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     (*XtClass(new)->core_class.resize)(new);
 
     if (tw_req->command.set)
-      ToggleSet(new, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
+      ToggleSet(new, (xcb_generic_event_t *)NULL, (String *)NULL, (Cardinal *)0);
 }
 
 /************************************************************
@@ -329,7 +329,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  */
 
 static void
-ToggleSetAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+ToggleSetAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ToggleWidget cbw = (ToggleWidget)w;
 
@@ -357,7 +357,7 @@ ToggleSetAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
  */
 
 static void
-ToggleUnsetAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
+ToggleUnsetAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ToggleWidget cbw = (ToggleWidget)w;
 
@@ -379,7 +379,7 @@ ToggleUnsetAction(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-ToggleSet(Widget w, XEvent *event, String *params, Cardinal *num_params)
+ToggleSet(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     TurnOffRadioSiblings(w);
     ToggleSetAction(w, event, NULL, 0);
@@ -387,7 +387,7 @@ ToggleSet(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Toggle(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Toggle(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   ToggleWidget tw = (ToggleWidget)w;
   ToggleWidgetClass class = (ToggleWidgetClass) w->core.widget_class;
@@ -399,7 +399,7 @@ Toggle(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 /* ARGSUSED */
-static void Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
+static void Notify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   ToggleWidget tw = (ToggleWidget) w;
   long antilint = tw->command.set;
@@ -429,7 +429,7 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
 
     if (oldtw->command.set != tw->command.set) {
 	tw->command.set = oldtw->command.set;
-	Toggle(new, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
+	Toggle(new, (xcb_generic_event_t *)NULL, (String *)NULL, (Cardinal *)0);
     }
     return(FALSE);
 }
@@ -550,7 +550,7 @@ TurnOffRadioSiblings(Widget w)
     if ( local_tog->command.set ) {
       /* Use our custom unset action that doesn't clear the widget */
       ToggleUnsetAction(group->widget, NULL, NULL, 0);
-      Notify( group->widget, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
+      Notify( group->widget, (xcb_generic_event_t *)NULL, (String *)NULL, (Cardinal *)0);
     }
     group = group->next;
   }
@@ -831,8 +831,8 @@ IswToggleSetCurrent(Widget radio_group, XtPointer radio_data)
     local_tog = (ToggleWidget) radio_group;
     if (local_tog->toggle.radio_data == radio_data)
       if (!local_tog->command.set) {
-	ToggleSet((Widget) local_tog, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
-	Notify((Widget) local_tog, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
+	ToggleSet((Widget) local_tog, (xcb_generic_event_t *)NULL, (String *)NULL, (Cardinal *)0);
+	Notify((Widget) local_tog, (xcb_generic_event_t *)NULL, (String *)NULL, (Cardinal *)0);
       }
     return;
   }
@@ -851,8 +851,8 @@ IswToggleSetCurrent(Widget radio_group, XtPointer radio_data)
     local_tog = (ToggleWidget) group->widget;
     if (local_tog->toggle.radio_data == radio_data) {
       if (!local_tog->command.set) { /* if not already set. */
-	ToggleSet((Widget) local_tog, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
-	Notify((Widget) local_tog, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
+	ToggleSet((Widget) local_tog, (xcb_generic_event_t *)NULL, (String *)NULL, (Cardinal *)0);
+	Notify((Widget) local_tog, (xcb_generic_event_t *)NULL, (String *)NULL, (Cardinal *)0);
       }
       return;			/* found it, done */
     }
@@ -877,7 +877,7 @@ IswToggleUnsetCurrent(Widget radio_group)
   if (local_tog->command.set) {
     class = (ToggleWidgetClass) local_tog->core.widget_class;
     class->toggle_class.Unset(radio_group, NULL, NULL, 0);
-    Notify(radio_group, (XEvent *)NULL, (String *)NULL, (Cardinal *)0);
+    Notify(radio_group, (xcb_generic_event_t *)NULL, (String *)NULL, (Cardinal *)0);
   }
   if ( GetRadioGroup(radio_group) == NULL) return;
   TurnOffRadioSiblings(radio_group);

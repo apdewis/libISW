@@ -610,7 +610,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.updateTo = (ISWTextPosition *) XtMalloc((unsigned) ONE);
   ctx->text.numranges = ctx->text.maxranges = 0;
   
-  /* Create GC - XCB doesn't have default GC */
+  /* Create xcb_gcontext_t - XCB doesn't have default xcb_gcontext_t */
   {
     xcb_connection_t *conn = XtDisplay((Widget)ctx);
     xcb_screen_t *screen = XtScreen((Widget)ctx);

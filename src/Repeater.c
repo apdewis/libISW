@@ -68,8 +68,8 @@ static char defaultTranslations[] =
 /*
  * Actions added by this widget
  */
-static void ActionStart(Widget, XEvent *, String *, Cardinal *);
-static void ActionStop(Widget, XEvent *, String *, Cardinal *);
+static void ActionStart(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ActionStop(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 static XtActionsRec actions[] = {
     { "start", ActionStart },		/* trigger timers */
@@ -253,7 +253,7 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 
 /* ARGSUSED */
 static void
-ActionStart (Widget gw, XEvent *event, String *params, Cardinal *num_params)
+ActionStart (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     RepeaterWidget rw = (RepeaterWidget) gw;
 
@@ -269,7 +269,7 @@ ActionStart (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-ActionStop (Widget gw, XEvent *event, String *params, Cardinal *num_params)
+ActionStop (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     RepeaterWidget rw = (RepeaterWidget) gw;
 

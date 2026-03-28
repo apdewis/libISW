@@ -113,7 +113,7 @@ static XtResource resources[] = {
 static XtResource treeConstraintResources[] = {
     { XtNtreeParent, XtCTreeParent, XtRWidget, sizeof (Widget),
 	XtOffsetOf(TreeConstraintsRec, tree.parent), XtRImmediate, NULL },
-    { XtNtreeGC, XtCTreeGC, XtRGC, sizeof(GC),
+    { XtNtreeGC, XtCTreeGC, XtRGC, sizeof(xcb_gcontext_t),
 	XtOffsetOf(TreeConstraintsRec, tree.gc), XtRImmediate, NULL },
 };
 
@@ -212,7 +212,7 @@ initialize_dimensions (Dimension **listp, int *sizep, int n)
     return;
 }
 
-static GC
+static xcb_gcontext_t
 get_tree_gc (TreeWidget w)
 {
     XtGCMask valuemask = GCBackground | GCForeground;
@@ -470,7 +470,7 @@ SetValues (Widget gcurrent, Widget grequest, Widget gnew, ArgList args, Cardinal
     Boolean redraw = FALSE;
 
     /*
-     * If the foreground color has changed, redo the GC's
+     * If the foreground color has changed, redo the xcb_gcontext_t's
      * and indicate a redraw.
      */
     if (new->tree.foreground != current->tree.foreground ||

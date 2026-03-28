@@ -60,8 +60,8 @@ typedef struct {			/* new fields in widget */
     Dimension internal_border;		/* internalBorderWidth/BorderWidth */
     String stipple_name;		/* backgroundStipple/BackgroundStipple */
     /* private data... */
-    GC slider_gc;			/* background of slider */
-    GC xor_gc;				/* for doing XOR tmp graphics */
+    xcb_gcontext_t slider_gc;			/* background of slider */
+    xcb_gcontext_t xor_gc;				/* for doing XOR tmp graphics */
     double haspect, vaspect;		/* aspect ratio of core to canvas */
     Boolean rubber_band;		/* true = rubber band, false = move */
     struct {

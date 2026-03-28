@@ -115,7 +115,7 @@ static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeomet
  */
 
 static void GetDefaultSize(Widget, Dimension *, Dimension *);
-static void DrawBitmaps(Widget, GC);
+static void DrawBitmaps(Widget, xcb_gcontext_t);
 static void GetBitmapInfo(Widget, Boolean);
 static void CreateGCs(Widget);
 static void DestroyGCs(Widget);
@@ -284,7 +284,7 @@ Destroy(Widget w)
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-    GC gc;
+    xcb_gcontext_t gc;
     SmeBSBObject entry = (SmeBSBObject) w;
     Dimension s = 0;
     int	font_ascent = 0, font_descent = 0, y_loc;
@@ -424,7 +424,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	 ul_x1_loc += ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, label, ul);
 	    ul_wid = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, &label[ul], 1) - 2;
 	    
-	    /* Determine underline color based on which GC is being used */
+	    /* Determine underline color based on which xcb_gcontext_t is being used */
 	    if (gc == entry->sme_bsb.rev_gc) {
 	        underline_color = entry->sme_bsb.foreground;
 	    } else {
@@ -684,7 +684,7 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
  */
 
 static void
-DrawBitmaps(Widget w, GC gc)
+DrawBitmaps(Widget w, xcb_gcontext_t gc)
 {
 #ifdef ISW_MULTIPLANE_PIXMAPS
     Widget parent = XtParent(w);

@@ -111,7 +111,7 @@ IswCreateStippledPixmap(xcb_screen_t *screen, Pixel fg, Pixel bg, unsigned int d
         return None;
     }
     
-    /* Free the GC - we don't need it anymore */
+    /* Free the xcb_gcontext_t - we don't need it anymore */
     xcb_free_gc(dpy, gc);
     
     /* Flush to ensure pixmap is created */

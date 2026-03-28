@@ -130,11 +130,11 @@ static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
-static void HandleThumb(Widget, XEvent *, String *, Cardinal *);
-static void MoveThumb(Widget, XEvent *, String *, Cardinal *);
-static void NotifyThumb(Widget, XEvent *, String *, Cardinal *);
-static void NotifyScroll(Widget, XEvent *, String *, Cardinal *);
-static void EndScroll(Widget, XEvent *, String *, Cardinal *);
+static void HandleThumb(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void MoveThumb(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void NotifyThumb(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void NotifyScroll(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void EndScroll(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 static XtActionsRec actions[] = {
     {"HandleThumb",	HandleThumb},
@@ -272,7 +272,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
    erasing is done cleverly so that no flickering will occur. */
 
 static void
-PaintThumb (ScrollbarWidget sbw, XEvent *event)
+PaintThumb (ScrollbarWidget sbw, xcb_generic_event_t *event)
 {
     Dimension s                   = 0;
     Position  oldtop              = sbw->scrollbar.topLoc;
@@ -441,7 +441,7 @@ Destroy (Widget w)
 }
 
 /*	Function Name: CreateGC
- *	Description: Creates the GC.
+ *	Description: Creates the xcb_gcontext_t.
  *	Arguments: w - the scrollbar widget.
  *	Returns: none.
  */
@@ -641,7 +641,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 
 static Boolean
-CompareEvents(XEvent *oldEvent, XEvent *newEvent)
+CompareEvents(xcb_generic_event_t *oldEvent, xcb_generic_event_t *newEvent)
 {
     uint8_t oldType = oldEvent->response_type & ~0x80;
     uint8_t newType = newEvent->response_type & ~0x80;
@@ -692,12 +692,12 @@ CompareEvents(XEvent *oldEvent, XEvent *newEvent)
 
 /* Unused - LookAhead is stubbed out for XCB compatibility
 struct EventData {
-    XEvent *oldEvent;
+    xcb_generic_event_t *oldEvent;
     int count;
 };
 
 static Bool
-PeekNotifyEvent(xcb_connection_t *dpy, XEvent *event, char *args)
+PeekNotifyEvent(xcb_connection_t *dpy, xcb_generic_event_t *event, char *args)
 {
     struct EventData *eventData = (struct EventData*)args;
 
@@ -707,7 +707,7 @@ PeekNotifyEvent(xcb_connection_t *dpy, XEvent *event, char *args)
 */
 
 static Boolean
-LookAhead (Widget w, XEvent *event)
+LookAhead (Widget w, xcb_generic_event_t *event)
 {
     /* TODO: XCB doesn't have direct QLength/XPeekIfEvent equivalents
      * This function was used to look ahead in the event queue and skip
@@ -726,7 +726,7 @@ LookAhead (Widget w, XEvent *event)
 
 
 static void
-ExtractPosition(XEvent *event, Position *x, Position *y)
+ExtractPosition(xcb_generic_event_t *event, Position *x, Position *y)
 {
     uint8_t type = event->response_type & ~0x80;
     
@@ -765,7 +765,7 @@ ExtractPosition(XEvent *event, Position *x, Position *y)
 
 /* ARGSUSED */
 static void
-HandleThumb(Widget w, XEvent *event, String *params, Cardinal *num_params)
+HandleThumb(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     Position x,y;
     ScrollbarWidget sbw = (ScrollbarWidget) w;
@@ -819,7 +819,7 @@ FloatInRange(float num, float small, float big)
 
 
 static void
-NotifyScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
+NotifyScroll (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t call_data;
@@ -866,7 +866,7 @@ NotifyScroll (Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-EndScroll(Widget w, XEvent *event, String *params, Cardinal *num_params)
+EndScroll(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
 
@@ -894,7 +894,7 @@ FractionLoc (ScrollbarWidget sbw, int x, int y)
 
 
 static void
-MoveThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
+MoveThumb (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     Position x, y;
@@ -933,7 +933,7 @@ MoveThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-NotifyThumb (Widget w, XEvent *event, String *params, Cardinal *num_params)
+NotifyThumb (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     register ScrollbarWidget sbw = (ScrollbarWidget) w;
     union {

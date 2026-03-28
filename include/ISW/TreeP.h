@@ -77,7 +77,7 @@ typedef struct {
     XtGravity gravity;			/* gravity/Gravity */
     Boolean auto_reconfigure;		/* autoReconfigure/AutoReconfigure */
     /* private fields */
-    GC gc;				/* used to draw lines */
+    xcb_gcontext_t gc;				/* used to draw lines */
     Widget tree_root;			/* hidden root off all children */
     Dimension *largest;			/* list of largest per depth */
     int n_largest;			/* number of elements in largest */
@@ -100,7 +100,7 @@ typedef struct _TreeRec {
 typedef struct _TreeConstraintsPart {
     /* resources */
     Widget parent;			/* treeParent/TreeParent */
-    GC gc;				/* treeGC/TreeGC */
+    xcb_gcontext_t gc;				/* treeGC/TreeGC */
     /* private data */
     Widget *children;
     int n_children;

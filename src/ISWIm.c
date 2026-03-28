@@ -221,7 +221,7 @@ GetInputStyleOfIC(IswVendorShellExtPart *ve)
 }
 
 static void
-ConfigureCB(Widget w, XtPointer closure, XEvent *event)
+ConfigureCB(Widget w, XtPointer closure, xcb_generic_event_t *event)
 {
     IswIcTableList		p;
     IswVendorShellExtPart	*ve;

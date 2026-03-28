@@ -744,7 +744,7 @@ RefigureLocationsAndCommit(Widget w)
  */
 
 static void
-_DrawRect(PanedWidget pw, GC gc, int on_loc, int off_loc,
+_DrawRect(PanedWidget pw, xcb_gcontext_t gc, int on_loc, int off_loc,
           unsigned int on_size, unsigned int off_size)
 {
   int x, y;
@@ -763,7 +763,7 @@ _DrawRect(PanedWidget pw, GC gc, int on_loc, int off_loc,
     height = off_size;
   }
   
-  /* Determine pixel value from GC */
+  /* Determine pixel value from xcb_gcontext_t */
   if (gc == pw->paned.normgc) {
     pixel = pw->paned.internal_bp;
   } else if (gc == pw->paned.invgc) {
@@ -791,12 +791,12 @@ _DrawRect(PanedWidget pw, GC gc, int on_loc, int off_loc,
 /*	Function Name: _DrawInternalBorders
  *	Description: Draws the internal borders into the paned widget.
  *	Arguments: pw - the paned widget.
- *                 gc - the GC to use to draw the borders.
+ *                 gc - the xcb_gcontext_t to use to draw the borders.
  *	Returns: none.
  */
 
 static void
-_DrawInternalBorders(PanedWidget pw, GC gc)
+_DrawInternalBorders(PanedWidget pw, xcb_gcontext_t gc)
 {
     Widget *childP;
     int on_loc, off_loc;
@@ -885,7 +885,7 @@ _DrawTrackLines(PanedWidget pw, Boolean erase)
  */
 
 static int
-GetEventLocation(PanedWidget pw, XEvent *event)
+GetEventLocation(PanedWidget pw, xcb_generic_event_t *event)
 {
     int x, y;
 
@@ -1086,7 +1086,7 @@ HandleGrip(Widget grip, XtPointer junk, XtPointer callData)
 	(action_type != 'C' && call_data->num_params != 2))
       	XtError( "Paned GripAction has been passed incorrect parameters." );
 
-    loc = GetEventLocation(pw, (XEvent *) (call_data->event));
+    loc = GetEventLocation(pw, (xcb_generic_event_t *) (call_data->event));
 
     if (action_type != 'C') {
 	direction = (Direction) toupper(*call_data->params[1]);
@@ -1227,7 +1227,7 @@ CreateGrip(Widget child)
 }
 
 /*	Function Name: GetGCs
- *	Description: Gets new GC's.
+ *	Description: Gets new xcb_gcontext_t's.
  *	Arguments: w - the paned widget.
  *	Returns: none.
  */

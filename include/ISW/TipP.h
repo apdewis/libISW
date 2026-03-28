@@ -59,7 +59,7 @@ typedef struct _TipPart {
     int timeout;
 
     /* private */
-    GC gc;
+    xcb_gcontext_t gc;
     XtIntervalId timer;
 #ifdef ISW_INTERNATIONALIZATION
     Boolean international;

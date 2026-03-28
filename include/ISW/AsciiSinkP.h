@@ -92,7 +92,7 @@ typedef struct {
     Boolean display_nonprinting;
 
     /* private state */
-    GC normgc, invgc, xorgc;
+    xcb_gcontext_t normgc, invgc, xorgc;
     Pixmap insertCursorOn;
     IswTextInsertState laststate;
     short cursor_x, cursor_y;	/* Cursor Location. */

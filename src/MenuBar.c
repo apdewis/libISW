@@ -57,10 +57,10 @@ static void Destroy(Widget);
 static void InsertChild(Widget);
 
 /* Action procedures - registered globally so MenuButton children can use them */
-static void MenuBarEnter(Widget, XEvent *, String *, Cardinal *);
-static void MenuBarLeave(Widget, XEvent *, String *, Cardinal *);
-static void MenuBarClick(Widget, XEvent *, String *, Cardinal *);
-static void MenuBarDismiss(Widget, XEvent *, String *, Cardinal *);
+static void MenuBarEnter(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void MenuBarLeave(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void MenuBarClick(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void MenuBarDismiss(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 /* Private functions */
 static void OpenMenu(MenuBarWidget, Widget);
@@ -68,7 +68,7 @@ static void CloseMenu(MenuBarWidget);
 static void SwitchMenu(MenuBarWidget, Widget);
 static Widget FindMenuForButton(Widget);
 static void MenuPopdownCB(Widget, XtPointer, XtPointer);
-static void OutsideClickHandler(Widget, XtPointer, XEvent *, Boolean *);
+static void OutsideClickHandler(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
 static Widget FindToplevelShell(Widget);
 
 /* Override SimpleMenu translations for click-to-select behavior.
@@ -261,7 +261,7 @@ InsertChild(Widget child)
  * If a menu is already open and this is a different button, switch menus.
  */
 static void
-MenuBarEnter(Widget w, XEvent *event, String *params, Cardinal *num_params)
+MenuBarEnter(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     MenuBarWidget mbw;
 
@@ -284,7 +284,7 @@ MenuBarEnter(Widget w, XEvent *event, String *params, Cardinal *num_params)
  * Don't unhighlight the active button while its menu is open.
  */
 static void
-MenuBarLeave(Widget w, XEvent *event, String *params, Cardinal *num_params)
+MenuBarLeave(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     MenuBarWidget mbw;
 
@@ -306,7 +306,7 @@ MenuBarLeave(Widget w, XEvent *event, String *params, Cardinal *num_params)
  * Toggle: if this button's menu is open, close it; otherwise open it.
  */
 static void
-MenuBarClick(Widget w, XEvent *event, String *params, Cardinal *num_params)
+MenuBarClick(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     MenuBarWidget mbw;
 
@@ -334,7 +334,7 @@ MenuBarClick(Widget w, XEvent *event, String *params, Cardinal *num_params)
  * Called on Escape key to dismiss any open menu.
  */
 static void
-MenuBarDismiss(Widget w, XEvent *event, String *params, Cardinal *num_params)
+MenuBarDismiss(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     MenuBarWidget mbw = (MenuBarWidget) w;
 
@@ -589,7 +589,7 @@ MenuPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
  * clicks, focus loss, minimize, or visibility changes.
  */
 static void
-OutsideClickHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *cont)
+OutsideClickHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boolean *cont)
 {
     MenuBarWidget mbw = (MenuBarWidget) client_data;
     uint8_t type;

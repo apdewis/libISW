@@ -1,7 +1,7 @@
 /*
  * IswXcbDraw.c - XCB drawing compatibility implementation
  *
- * Provides XCB-native implementations of drawing, font, and GC operations
+ * Provides XCB-native implementations of drawing, font, and xcb_gcontext_t operations
  * that were previously handled by Xlib.
  *
  * Copyright (c) 2026 Isw3d Project
@@ -78,7 +78,7 @@ IswCreateBitmapFromData(xcb_connection_t *conn,
     bytes_per_row = (width + 7) / 8;
     data_len = bytes_per_row * height;
     
-    /* Generate IDs for pixmap and temporary GC */
+    /* Generate IDs for pixmap and temporary xcb_gcontext_t */
     pixmap = xcb_generate_id(conn);
     gc = xcb_generate_id(conn);
     
@@ -90,7 +90,7 @@ IswCreateBitmapFromData(xcb_connection_t *conn,
         return 0;
     }
     
-    /* Create a temporary GC for the pixmap */
+    /* Create a temporary xcb_gcontext_t for the pixmap */
     {
         uint32_t gc_values[2] = { 1, 0 };  /* foreground=1, background=0 */
         cookie = xcb_create_gc_checked(conn, gc, pixmap,
@@ -118,7 +118,7 @@ IswCreateBitmapFromData(xcb_connection_t *conn,
                   data_len,                     /* data_len */
                   (const uint8_t *)data);       /* data */
     
-    /* Free temporary GC */
+    /* Free temporary xcb_gcontext_t */
     xcb_free_gc(conn, gc);
     
     /* Flush to ensure pixmap is created */
@@ -169,7 +169,7 @@ IswCreatePixmapFromBitmapData(xcb_connection_t *conn,
     pixmap = xcb_generate_id(conn);
     xcb_create_pixmap(conn, depth, pixmap, drawable, width, height);
     
-    /* Create a GC with foreground and background colors */
+    /* Create a xcb_gcontext_t with foreground and background colors */
     gc = xcb_generate_id(conn);
     {
         uint32_t values[2];
@@ -270,7 +270,7 @@ IswCreateStippledPixmap(xcb_connection_t *conn, xcb_drawable_t d,
     pixmap = xcb_generate_id(conn);
     xcb_create_pixmap(conn, depth, pixmap, d, 2, 2);
     
-    /* Create a temporary GC */
+    /* Create a temporary xcb_gcontext_t */
     gc = xcb_generate_id(conn);
     {
         uint32_t values[1];
@@ -340,7 +340,7 @@ ISWFontSetTextWidth(void *fontset, const char *text, int len)
 
 /*
  * =================================================================
- * GC VALUE HELPERS
+ * xcb_gcontext_t VALUE HELPERS
  * =================================================================
  */
 
@@ -566,7 +566,7 @@ ISWXcbDrawString(xcb_connection_t *conn, xcb_drawable_t d,
         int chunk = (len > 254) ? 254 : len;  /* poly_text allows 254 chars max */
         
         /* For simplicity, use image_text but caller should set
-         * GC fill style appropriately for transparent effect.
+         * xcb_gcontext_t fill style appropriately for transparent effect.
          * A full implementation would use poly_text_8 with proper items. */
         xcb_image_text_8(conn, chunk, d, gc, x, y, text);
         text += chunk;

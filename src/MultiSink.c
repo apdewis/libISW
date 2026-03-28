@@ -329,7 +329,7 @@ CharWidth (
  */
 
 static Dimension
-PaintText(Widget w, GC gc, Position x, Position y, wchar_t* buf, int len)
+PaintText(Widget w, xcb_gcontext_t gc, Position x, Position y, wchar_t* buf, int len)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
     TextWidget ctx = (TextWidget) XtParent(w);
@@ -409,7 +409,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 
     int j, k;
     ISWTextBlock blk;
-    GC gc = highlight ? sink->multi_sink.invgc : sink->multi_sink.normgc;
+    xcb_gcontext_t gc = highlight ? sink->multi_sink.invgc : sink->multi_sink.normgc;
 
     if (!sink->multi_sink.echo) return;
 
@@ -773,7 +773,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     MultiSinkObject w = (MultiSinkObject) new;
     MultiSinkObject old_w = (MultiSinkObject) current;
 
-    /* Font set is not in the GC! Do not make a new GC when font set changes! */
+    /* Font set is not in the xcb_gcontext_t! Do not make a new xcb_gcontext_t when font set changes! */
 
     if ( w->multi_sink.fontset != old_w->multi_sink.fontset ) {
  ((TextWidget)XtParent(new))->text.redisplay_needed = True;

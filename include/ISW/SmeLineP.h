@@ -71,7 +71,7 @@ typedef struct {
 
     /* private data.  */
 
-    GC gc;			/* Graphics context for drawing line. */
+    xcb_gcontext_t gc;			/* Graphics context for drawing line. */
     ISWRenderContext *render_ctx;   /* Cairo rendering context */
 } SmeLinePart;
 

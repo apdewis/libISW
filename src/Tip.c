@@ -113,8 +113,8 @@ static Boolean IswTipSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 /*
  * Prototypes
  */
-static void TipEventHandler(Widget, XtPointer, XEvent *, Boolean *);
-static void TipShellEventHandler(Widget, XtPointer, XEvent *, Boolean *);
+static void TipEventHandler(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
+static void TipShellEventHandler(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
 static WidgetInfo *CreateWidgetInfo(Widget);
 static WidgetInfo *FindWidgetInfo(IswTipInfo *, Widget);
 static IswTipInfo *CreateTipInfo(Widget);
@@ -738,7 +738,7 @@ TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
 
 /*ARGSUSED*/
 static void
-TipShellEventHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *continue_to_dispatch)
+TipShellEventHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
 {
     IswTipInfo *info = FindTipInfo(w);
 
@@ -747,7 +747,7 @@ TipShellEventHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *co
 
 /*ARGSUSED*/
 static void
-TipEventHandler(Widget w, XtPointer client_data, XEvent *event, Boolean *continue_to_dispatch)
+TipEventHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
 {
     IswTipInfo *info = FindTipInfo(w);
     Boolean add_timeout;

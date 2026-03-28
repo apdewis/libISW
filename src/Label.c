@@ -980,7 +980,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (curlw->core.background_pixel != newlw->core.background_pixel ||
   curlw->label.foreground != newlw->label.foreground ||
   font_changed) {
-        /* the fontset is not in the GC - no new GC if fontset changes */
+        /* the fontset is not in the xcb_gcontext_t - no new xcb_gcontext_t if fontset changes */
  XtReleaseGC(new, curlw->label.normal_GC);
  XtReleaseGC(new, curlw->label.gray_GC);
  ISWReleaseStippledPixmap( XtScreen(current), curlw->label.stipple );

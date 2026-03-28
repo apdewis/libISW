@@ -257,7 +257,7 @@ CharWidth (Widget w, int x, unsigned char c)
  */
 
 static Dimension
-PaintText(Widget w, GC gc, Position x, Position y, unsigned char * buf, int len)
+PaintText(Widget w, xcb_gcontext_t gc, Position x, Position y, unsigned char * buf, int len)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
     TextWidget ctx = (TextWidget) XtParent(w);
@@ -335,7 +335,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 
     int j, k;
     ISWTextBlock blk;
-    GC gc = highlight ? sink->ascii_sink.invgc : sink->ascii_sink.normgc;
+    xcb_gcontext_t gc = highlight ? sink->ascii_sink.invgc : sink->ascii_sink.normgc;
     Pixel fg_color = highlight ? sink->text_sink.background : sink->text_sink.foreground;
     Pixel bg_color = highlight ? sink->text_sink.foreground : sink->text_sink.background;
 

@@ -1195,7 +1195,7 @@ static void AddExposureToRectangularRegion(xcb_connection_t *, xcb_generic_event
 //
 //    count = 0;
 //    while (TRUE) {
-//        XEvent event_return;
+//        xcb_generic_event_t event_return;
 //
 //        if (XCheckIfEvent(dpy, &event_return,
 //                          CheckExposureEvent, (char *) &info)) {
@@ -1469,8 +1469,8 @@ static uint32_t const masks[] = {
     XCB_EVENT_MASK_FOCUS_CHANGE,            /* 10 - FocusOut                 */
     XCB_EVENT_MASK_KEYMAP_STATE,            /* 11 - KeymapNotify             */
     XCB_EVENT_MASK_EXPOSURE,                  /* 12 - Expose                   */
-    XCB_EVENT_MASK_EXPOSURE,                  /* 13 - GraphicsExpose, in GC    */
-    XCB_EVENT_MASK_EXPOSURE,                  /* 14 - NoExpose, in GC          */
+    XCB_EVENT_MASK_EXPOSURE,                  /* 13 - GraphicsExpose, in xcb_gcontext_t    */
+    XCB_EVENT_MASK_EXPOSURE,                  /* 14 - NoExpose, in xcb_gcontext_t          */
     XCB_EVENT_MASK_VISIBILITY_CHANGE,       /* 15 - VisibilityNotify         */
     XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 16 - CreateNotify             */
     XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 17 - DestroyNotify            */

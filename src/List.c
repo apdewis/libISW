@@ -133,12 +133,12 @@ static void Destroy(Widget);
 static Boolean Layout(Widget, Boolean, Boolean, Dimension *, Dimension *);
 static XtGeometryResult PreferredGeom(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void Notify(Widget, XEvent *, String *, Cardinal *);
-static void Set(Widget, XEvent *, String *, Cardinal *);
-static void Unset(Widget, XEvent *, String *, Cardinal *);
+static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Set(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Unset(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void DropdownMenuSelect(Widget, XtPointer, XtPointer);
 static void DropdownPopdownCB(Widget, XtPointer, XtPointer);
-static void DropdownDismissHandler(Widget, XtPointer, XEvent *, Boolean *);
+static void DropdownDismissHandler(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
 
 static XtActionsRec actions[] = {
       {"Notify",         Notify},
@@ -224,7 +224,7 @@ GetGCs(Widget w)
         lw->list.normgc = XtGetGC( w, gc_mask, &values);
 
     values.foreground	= lw->core.background_pixel;
-    values.background	= lw->list.foreground;  /* Swap colors for reverse GC */
+    values.background	= lw->list.foreground;  /* Swap colors for reverse xcb_gcontext_t */
 
 #ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
@@ -503,7 +503,7 @@ CvtToItem(Widget w, int xloc, int yloc, int *item)
  */
 
 static void
-FindCornerItems(Widget w, XEvent *event, int *ul_ret, int *lr_ret)
+FindCornerItems(Widget w, xcb_generic_event_t *event, int *ul_ret, int *lr_ret)
 {
     int xloc, yloc;
     /* XCB: Cast to xcb_expose_event_t */
@@ -556,7 +556,7 @@ ItemInRectangle(Widget w, int ul, int lr, int item)
  *  gc - the gc to use to paint this rectangle */
 
 static void
-HighlightBackground(Widget w, int x, int y, GC gc)
+HighlightBackground(Widget w, int x, int y, xcb_gcontext_t gc)
 {
     ListWidget lw = (ListWidget) w;
 
@@ -587,7 +587,7 @@ HighlightBackground(Widget w, int x, int y, GC gc)
         y = lw->list.internal_height;
     }
 
-    /* Determine color based on which GC is being used */
+    /* Determine color based on which xcb_gcontext_t is being used */
     Pixel color;
     if (gc == lw->list.normgc) {
         color = lw->list.foreground;
@@ -605,7 +605,7 @@ HighlightBackground(Widget w, int x, int y, GC gc)
 
 /* ClipToShadowInteriorAndLongest()
  *
- * Converts the passed gc so that any drawing done with that GC will not
+ * Converts the passed gc so that any drawing done with that xcb_gcontext_t will not
  * write in the empty margin (specified by internal_width/height) (which also
  * prevents erasing the shadow.  It also clips against the value longest.
  * If the user doesn't set longest, this has no effect (as longest is the
@@ -613,7 +613,7 @@ HighlightBackground(Widget w, int x, int y, GC gc)
  * columns, though, this prevents items from overwriting other items. */
 
 static void
-ClipToShadowInteriorAndLongest(ListWidget lw, GC *gc_p, Dimension x)
+ClipToShadowInteriorAndLongest(ListWidget lw, xcb_gcontext_t *gc_p, Dimension x)
 {
     xcb_rectangle_t rect;
 
@@ -642,7 +642,7 @@ static void
 PaintItemName(Widget w, int item)
 {
     char * str;
-    GC gc;
+    xcb_gcontext_t gc;
     int x, y, str_y;
     ListWidget lw = (ListWidget) w;
 
@@ -772,7 +772,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         }
     }
     else
-        FindCornerItems(w, (XEvent*)event, &ul_item, &lr_item);
+        FindCornerItems(w, (xcb_generic_event_t*)event, &ul_item, &lr_item);
 
     /* Dropdown collapsed: only paint the selected item */
     if (lw->list.dropdown) {
@@ -1040,7 +1040,7 @@ ListLoseSelection(Widget w, xcb_atom_t *selection)
 
 /* ARGSUSED */
 static void
-Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Notify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ListWidget lw = ( ListWidget ) w;
     int item;
@@ -1087,7 +1087,7 @@ Notify(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Unset(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Unset(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   IswListUnhighlight(w);
 }
@@ -1099,7 +1099,7 @@ Unset(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Set(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   int item;
   ListWidget lw = (ListWidget) w;
@@ -1271,7 +1271,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if ( nl->list.longest == 0 )
         nl->list.freedoms &= ~LongestLock;
 
-    /* _DONT_ check for fontset here - it's not in GC.*/
+    /* _DONT_ check for fontset here - it's not in xcb_gcontext_t.*/
 
     /* XCB Fix: Add NULL checks before comparing font->fid */
     Bool font_changed = False;
@@ -1532,7 +1532,7 @@ DropdownMenuSelect(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 static void
-DropdownDismissHandler(Widget w, XtPointer client_data, XEvent *event,
+DropdownDismissHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event,
                        Boolean *continue_to_dispatch)
 {
     ListWidget lw = (ListWidget) client_data;

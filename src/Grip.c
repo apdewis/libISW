@@ -75,7 +75,7 @@ static XtResource resources[] = {
       XtOffsetOf(GripRec, grip.grip_action), XtRCallback, NULL},
 };
 
-static void GripAction(Widget, XEvent *, String *, Cardinal *);
+static void GripAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 
 static XtActionsRec actionsList[] =
@@ -142,7 +142,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-GripAction(Widget widget, XEvent *event, String *params, Cardinal *num_params)
+GripAction(Widget widget, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IswGripCallDataRec call_data;
 

@@ -79,10 +79,10 @@ static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
-static void StartDrag(Widget, XEvent *, String *, Cardinal *);
-static void Drag(Widget, XEvent *, String *, Cardinal *);
-static void EndDrag(Widget, XEvent *, String *, Cardinal *);
-static void JumpToPosition(Widget, XEvent *, String *, Cardinal *);
+static void StartDrag(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Drag(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void EndDrag(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void JumpToPosition(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 static char defaultTranslations[] =
     "<Btn1Down>:   StartDrag()\n\
@@ -259,7 +259,7 @@ UpdateThumbPos(ScaleWidget sw)
 /* --- Extract position from XCB events --- */
 
 static void
-ExtractPosition(XEvent *event, Position *x, Position *y)
+ExtractPosition(xcb_generic_event_t *event, Position *x, Position *y)
 {
     uint8_t type = event->response_type & ~0x80;
     switch (type) {
@@ -612,7 +612,7 @@ SetValueAndNotify(ScaleWidget sw, int new_value)
 }
 
 static void
-StartDrag(Widget w, XEvent *event, String *params, Cardinal *num_params)
+StartDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ScaleWidget sw = (ScaleWidget) w;
     Position x, y;
@@ -637,7 +637,7 @@ StartDrag(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-Drag(Widget w, XEvent *event, String *params, Cardinal *num_params)
+Drag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ScaleWidget sw = (ScaleWidget) w;
     Position x, y;
@@ -652,7 +652,7 @@ Drag(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-EndDrag(Widget w, XEvent *event, String *params, Cardinal *num_params)
+EndDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ScaleWidget sw = (ScaleWidget) w;
     (void)event; (void)params; (void)num_params;
@@ -660,7 +660,7 @@ EndDrag(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-JumpToPosition(Widget w, XEvent *event, String *params, Cardinal *num_params)
+JumpToPosition(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ScaleWidget sw = (ScaleWidget) w;
     Position x, y;

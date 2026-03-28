@@ -75,7 +75,7 @@ in this Software without prior written authorization from the X Consortium.
  *
  * Constraint Resources attached to children:
  *
- *  treeGC              TreeGC             GC              NULL
+ *  treeGC              TreeGC             xcb_gcontext_t              NULL
  *  treeParent          TreeParent         Widget          NULL
  *
  *

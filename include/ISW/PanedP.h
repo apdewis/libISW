@@ -175,9 +175,9 @@ typedef struct {
     int         start_loc;	           /* mouse origin when adjusting */
     Widget      whichadd;                  /* Which pane to add changes to */
     Widget      whichsub;                  /* Which pane to sub changes from */
-    GC          normgc;                    /* GC to use when drawing borders */
-    GC          invgc;                     /* GC to use when erasing borders */
-    GC          flipgc;                    /* GC to use when animating
+    xcb_gcontext_t          normgc;                    /* xcb_gcontext_t to use when drawing borders */
+    xcb_gcontext_t          invgc;                     /* xcb_gcontext_t to use when erasing borders */
+    xcb_gcontext_t          flipgc;                    /* xcb_gcontext_t to use when animating
     	      borders */
     int		num_panes;                 /* count of managed panes */
     PaneStack * stack;		           /* The pane stack for this widget.*/

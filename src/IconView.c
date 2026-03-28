@@ -67,15 +67,15 @@ static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void SelectItem(Widget, XEvent *, String *, Cardinal *);
-static void BandDrag(Widget, XEvent *, String *, Cardinal *);
-static void BandFinish(Widget, XEvent *, String *, Cardinal *);
-static void MoveCursor(Widget, XEvent *, String *, Cardinal *);
-static void ExtendSelection(Widget, XEvent *, String *, Cardinal *);
-static void ActivateCursor(Widget, XEvent *, String *, Cardinal *);
-static void ToggleCursor(Widget, XEvent *, String *, Cardinal *);
-static void SelectAll(Widget, XEvent *, String *, Cardinal *);
-static void HandleFocus(Widget, XEvent *, String *, Cardinal *);
+static void SelectItem(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void BandDrag(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void BandFinish(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void MoveCursor(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ExtendSelection(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ActivateCursor(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ToggleCursor(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void SelectAll(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void HandleFocus(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void ResolveForegroundRGB(IconViewWidget);
 static void BandUpdateSelection(IconViewWidget);
 static void ScrollToCursor(IconViewWidget);
@@ -549,7 +549,7 @@ HitTest(IconViewWidget iw, Position x, Position y)
 }
 
 static void
-SelectItem(Widget w, XEvent *event, String *params, Cardinal *num_params)
+SelectItem(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     Position x, y;
@@ -682,7 +682,7 @@ BandUpdateSelection(IconViewWidget iw)
 }
 
 static void
-BandDrag(Widget w, XEvent *event, String *params, Cardinal *num_params)
+BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)params; (void)num_params;
@@ -703,7 +703,7 @@ BandDrag(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-BandFinish(Widget w, XEvent *event, String *params, Cardinal *num_params)
+BandFinish(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)event; (void)params; (void)num_params;
@@ -782,7 +782,7 @@ ScrollToCursor(IconViewWidget iw)
 }
 
 static void
-MoveCursor(Widget w, XEvent *event, String *params, Cardinal *num_params)
+MoveCursor(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)event;
@@ -808,7 +808,7 @@ MoveCursor(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-ExtendSelection(Widget w, XEvent *event, String *params, Cardinal *num_params)
+ExtendSelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)event;
@@ -837,7 +837,7 @@ ExtendSelection(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-ActivateCursor(Widget w, XEvent *event, String *params, Cardinal *num_params)
+ActivateCursor(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)event; (void)params; (void)num_params;
@@ -856,7 +856,7 @@ ActivateCursor(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-ToggleCursor(Widget w, XEvent *event, String *params, Cardinal *num_params)
+ToggleCursor(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)event; (void)params; (void)num_params;
@@ -878,7 +878,7 @@ ToggleCursor(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-SelectAll(Widget w, XEvent *event, String *params, Cardinal *num_params)
+SelectAll(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)event; (void)params; (void)num_params;
@@ -893,7 +893,7 @@ SelectAll(Widget w, XEvent *event, String *params, Cardinal *num_params)
 }
 
 static void
-HandleFocus(Widget w, XEvent *event, String *params, Cardinal *num_params)
+HandleFocus(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)event;

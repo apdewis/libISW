@@ -94,7 +94,7 @@ static void InsertChild(Widget);
 static XtGeometryResult QueryGeometry (Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 static void GetDesiredSize (Widget);
 #ifdef MOTIF
-static void Redisplay (Widget, XEvent *, Region);
+static void Redisplay (Widget, xcb_generic_event_t *, Region);
 #endif
 
 static void LayoutLayout (LayoutWidget, Bool);
@@ -235,7 +235,7 @@ ClassInitialize(void)
 
 #ifdef MOTIF
 static void
-Redisplay (Widget gw, XEvent *event, Region region)
+Redisplay (Widget gw, xcb_generic_event_t *event, Region region)
 {
    /*
     * If the Layout widget is visible, redraw gadgets.

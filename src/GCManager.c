@@ -79,16 +79,16 @@ in this Software without prior written authorization from The Open Group.
 #include "utlist.h"
 
 typedef struct _GCrec {
-    xcb_screen_t *screen;       /* Screen for GC */
-    unsigned char depth;        /* Depth for GC */
+    xcb_screen_t *screen;       /* Screen for xcb_gcontext_t */
+    unsigned char depth;        /* Depth for xcb_gcontext_t */
     char dashes;                /* Dashes value */
     xcb_pixmap_t clip_mask;     /* Clip_mask value */
     Cardinal ref_count;         /* # of shareholders */
-    xcb_gcontext_t gc;          /* The GC itself. */
-    xcb_create_gc_value_list_t *values; /*Copy of values used to create the GC as XCB doesn't have a get equivalent*/
+    xcb_gcontext_t gc;          /* The xcb_gcontext_t itself. */
+    xcb_create_gc_value_list_t *values; /*Copy of values used to create the xcb_gcontext_t as XCB doesn't have a get equivalent*/
     XtGCMask dynamic_mask;      /* Writable values */
     XtGCMask unused_mask;       /* Unused values */
-    struct _GCrec *next;        /* Next GC for this widgetkind. */
+    struct _GCrec *next;        /* Next xcb_gcontext_t for this widgetkind. */
 } GCrec, *GCptr;
 
 #define GCVAL(bit,mask,val,default) ((bit&mask) ? val : default)
@@ -167,7 +167,7 @@ Matches(xcb_connection_t *dpy,
     return True;
 }  
 
-                   /* Called by CloseDisplay to free the per-display GC list */
+                   /* Called by CloseDisplay to free the per-display xcb_gcontext_t list */
 void
 _XtGClistFree(xcb_connection_t *dpy, register XtPerDisplay pd)
 {
@@ -195,7 +195,7 @@ _XtGClistFree(xcb_connection_t *dpy, register XtPerDisplay pd)
 }
 
 /*
- * Return a GC with the given values and characteristics.
+ * Return a xcb_gcontext_t with the given values and characteristics.
  */
 
 xcb_gcontext_t
@@ -231,14 +231,14 @@ XtAllocateGC(register Widget widget,
     unusedMask &= ~valueMask;
     readOnlyMask = ~(dynamicMask | unusedMask);
 
-    /* Search for existing GC that matches exactly */
-    //change this to just compare the request struct with one stored with the GC
+    /* Search for existing xcb_gcontext_t that matches exactly */
+    //change this to just compare the request struct with one stored with the xcb_gcontext_t
     for (prev = &pd->GClist; (cur = *prev); prev = &cur->next) {
         if (cur->depth == depth &&
             cur->screen == screen &&
             Matches(dpy, cur, valueMask, values, readOnlyMask, dynamicMask)) {
             cur->ref_count++;
-            /* Move this GC to front of list */
+            /* Move this xcb_gcontext_t to front of list */
             *prev = cur->next;
             cur->next = pd->GClist;
             pd->GClist = cur;
@@ -259,7 +259,7 @@ XtAllocateGC(register Widget widget,
     cur->dashes = GCVAL(GCDashList, valueMask, values->dashes, 4);
     cur->clip_mask = GCVAL(GCClipMask, valueMask, values->clip_mask, None);
     
-    /* FIX: Allocate and initialize cur->values to store the GC values */
+    /* FIX: Allocate and initialize cur->values to store the xcb_gcontext_t values */
     cur->values = XtNew(xcb_create_gc_value_list_t);
     memcpy(cur->values, values, sizeof(xcb_create_gc_value_list_t));
     drawable = 0;
@@ -318,7 +318,7 @@ XtAllocateGC(register Widget widget,
 }                               /* XtAllocateGC */
 
 /*
- * Return a read-only GC with the given values.
+ * Return a read-only xcb_gcontext_t with the given values.
  */
 
 xcb_gcontext_t
@@ -373,7 +373,7 @@ XtDestroyGC(register xcb_gcontext_t gc)
     LOCK_PROCESS;
     app = _XtGetProcessContext()->appContextList;
     /* This is awful; we have to search through all the lists
-       to find the GC. */
+       to find the xcb_gcontext_t. */
     for (; app; app = app->next) {
         int i;
 

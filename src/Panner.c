@@ -88,13 +88,13 @@ static char defaultTranslations[] =
 #endif
 
 
-static void ActionStart(Widget, XEvent *, String *, Cardinal *);
-static void ActionStop(Widget, XEvent *, String *, Cardinal *);
-static void ActionAbort(Widget, XEvent *, String *, Cardinal *);
-static void ActionMove(Widget, XEvent *, String *, Cardinal *);
-static void ActionPage(Widget, XEvent *, String *, Cardinal *);
-static void ActionNotify(Widget, XEvent *, String *, Cardinal *);
-static void ActionSet(Widget, XEvent *, String *, Cardinal *);
+static void ActionStart(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ActionStop(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ActionAbort(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ActionMove(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ActionPage(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ActionNotify(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ActionSet(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 static XtActionsRec actions[] = {
     { "start", ActionStart },		/* start tmp graphics */
@@ -336,7 +336,7 @@ get_default_size (PannerWidget pw, Dimension *wp, Dimension *hp)
 }
 
 static Boolean
-get_event_xy (PannerWidget pw, XEvent *event, int *x, int *y)
+get_event_xy (PannerWidget pw, xcb_generic_event_t *event, int *x, int *y)
 {
     int pad = pw->panner.internal_border;
 
@@ -736,7 +736,7 @@ QueryGeometry (Widget gw, XtWidgetGeometry *intended, XtWidgetGeometry *pref)
 
 /* ARGSUSED */
 static void
-ActionStart (Widget gw, XEvent *event, String *params, Cardinal *num_params)
+ActionStart (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     PannerWidget pw = (PannerWidget) gw;
     int x, y;
@@ -760,7 +760,7 @@ ActionStart (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-ActionStop (Widget gw, XEvent *event, String *params, Cardinal *num_params)
+ActionStop (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     PannerWidget pw = (PannerWidget) gw;
     int x, y;
@@ -776,7 +776,7 @@ ActionStop (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-ActionAbort (Widget gw, XEvent *event, String *params, Cardinal *num_params)
+ActionAbort (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     PannerWidget pw = (PannerWidget) gw;
 
@@ -795,7 +795,7 @@ ActionAbort (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-ActionMove (Widget gw, XEvent *event, String *params, Cardinal *num_params)
+ActionMove (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     PannerWidget pw = (PannerWidget) gw;
     int x, y;
@@ -824,7 +824,7 @@ ActionMove (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-ActionPage (Widget gw, XEvent *event, String *params, Cardinal *num_params)
+ActionPage (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     PannerWidget pw = (PannerWidget) gw;
     Cardinal zero = 0;
@@ -867,7 +867,7 @@ ActionPage (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-ActionNotify (Widget gw, XEvent *event, String *params, Cardinal *num_params)
+ActionNotify (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     PannerWidget pw = (PannerWidget) gw;
 
@@ -914,7 +914,7 @@ ActionNotify (Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-ActionSet (Widget gw, XEvent *event, String *params, Cardinal *num_params)
+ActionSet (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     PannerWidget pw = (PannerWidget) gw;
     Boolean rb;

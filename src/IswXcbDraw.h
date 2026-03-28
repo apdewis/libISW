@@ -1,7 +1,7 @@
 /*
  * IswXcbDraw.h - XCB drawing compatibility functions for Isw3d
  * 
- * Provides XCB-native implementations of drawing, font, and GC operations
+ * Provides XCB-native implementations of drawing, font, and xcb_gcontext_t operations
  * that were previously handled by Xlib. This is part of the complete
  * Xlib-to-XCB migration.
  *
@@ -270,15 +270,15 @@ int ISWFontSetTextWidth(void *fontset, const char *text, int len);
 
 /*
  * =================================================================
- * GC VALUE HELPERS
+ * xcb_gcontext_t VALUE HELPERS
  * =================================================================
  *
  * XCB uses xcb_create_gc_value_list_t instead of XGCValues.
- * These helpers make it easier to set up GC values.
+ * These helpers make it easier to set up xcb_gcontext_t values.
  */
 
 /*
- * IswGCValueMask - Mask values for GC creation
+ * IswGCValueMask - Mask values for xcb_gcontext_t creation
  * These map to XCB_GC_* constants
  */
 #define XAW_GC_FUNCTION           XCB_GC_FUNCTION
@@ -321,7 +321,7 @@ int ISWFontSetTextWidth(void *fontset, const char *text, int len);
 void ISWInitGCValues(xcb_create_gc_value_list_t *values);
 
 /*
- * ISWSetGCFont - Set font in GC value list
+ * ISWSetGCFont - Set font in xcb_gcontext_t value list
  *
  * Parameters:
  *   values - Pointer to value list
@@ -330,7 +330,7 @@ void ISWInitGCValues(xcb_create_gc_value_list_t *values);
 void ISWSetGCFont(xcb_create_gc_value_list_t *values, xcb_font_t font);
 
 /*
- * ISWSetGCForeground - Set foreground in GC value list
+ * ISWSetGCForeground - Set foreground in xcb_gcontext_t value list
  *
  * Parameters:
  *   values - Pointer to value list
@@ -339,7 +339,7 @@ void ISWSetGCFont(xcb_create_gc_value_list_t *values, xcb_font_t font);
 void ISWSetGCForeground(xcb_create_gc_value_list_t *values, uint32_t pixel);
 
 /*
- * ISWSetGCBackground - Set background in GC value list
+ * ISWSetGCBackground - Set background in xcb_gcontext_t value list
  *
  * Parameters:
  *   values - Pointer to value list
@@ -348,7 +348,7 @@ void ISWSetGCForeground(xcb_create_gc_value_list_t *values, uint32_t pixel);
 void ISWSetGCBackground(xcb_create_gc_value_list_t *values, uint32_t pixel);
 
 /*
- * ISWSetGCGraphicsExposures - Set graphics_exposures in GC value list
+ * ISWSetGCGraphicsExposures - Set graphics_exposures in xcb_gcontext_t value list
  *
  * Parameters:
  *   values   - Pointer to value list
@@ -357,11 +357,11 @@ void ISWSetGCBackground(xcb_create_gc_value_list_t *values, uint32_t pixel);
 void ISWSetGCGraphicsExposures(xcb_create_gc_value_list_t *values, int exposures);
 
 /*
- * ISWSetGCFunction - Set function in GC value list
+ * ISWSetGCFunction - Set function in xcb_gcontext_t value list
  *
  * Parameters:
  *   values   - Pointer to value list
- *   function - GC function (e.g., GXxor)
+ *   function - xcb_gcontext_t function (e.g., GXxor)
  */
 void ISWSetGCFunction(xcb_create_gc_value_list_t *values, uint32_t function);
 

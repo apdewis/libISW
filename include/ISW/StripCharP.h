@@ -64,8 +64,8 @@ SOFTWARE.
 typedef struct {
     Pixel	fgpixel;	/* color index for graph */
     Pixel	hipixel;	/* color index for lines */
-    GC	fgGC;		/* graphics context for fgpixel */
-    GC	hiGC;		/* graphics context for hipixel */
+    xcb_gcontext_t	fgGC;		/* graphics context for fgpixel */
+    xcb_gcontext_t	hiGC;		/* graphics context for hipixel */
 
     /* start of graph stuff */
 
