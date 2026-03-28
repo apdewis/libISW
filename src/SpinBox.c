@@ -226,22 +226,35 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     sbw->spinBox.textW = XtCreateManagedWidget("text", asciiTextWidgetClass,
                                                 new, arglist, n);
 
-    /* Up button — highlight forced to 0 after creation to bypass
-       Command's Initialize override of the sentinel default */
+    /* Up button with upward arrow SVG */
+    static const char up_arrow_svg[] =
+        "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'>"
+        "<path d='M1,5 L5,1 L9,5' stroke='black' stroke-width='1.5' "
+        "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
     n = 0;
-    XtSetArg(arglist[n], XtNlabel, "+"); n++;
+    XtSetArg(arglist[n], XtNlabel, ""); n++;
+    XtSetArg(arglist[n], XtNsvgData, up_arrow_svg); n++;
     XtSetArg(arglist[n], XtNborderWidth, 0); n++;
     XtSetArg(arglist[n], XtNborderStrokeWidth, 0); n++;
+    XtSetArg(arglist[n], XtNinternalWidth, 0); n++;
+    XtSetArg(arglist[n], XtNinternalHeight, 0); n++;
     sbw->spinBox.upW = XtCreateManagedWidget("up", repeaterWidgetClass,
                                               new, arglist, n);
     ((CommandWidget)sbw->spinBox.upW)->command.border_stroke_width = 0;
     XtAddCallback(sbw->spinBox.upW, XtNcallback, UpCallback, (XtPointer)sbw);
 
-    /* Down button */
+    /* Down button with downward arrow SVG */
+    static const char down_arrow_svg[] =
+        "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'>"
+        "<path d='M1,1 L5,5 L9,1' stroke='black' stroke-width='1.5' "
+        "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
     n = 0;
-    XtSetArg(arglist[n], XtNlabel, "-"); n++;
+    XtSetArg(arglist[n], XtNlabel, ""); n++;
+    XtSetArg(arglist[n], XtNsvgData, down_arrow_svg); n++;
     XtSetArg(arglist[n], XtNborderWidth, 0); n++;
     XtSetArg(arglist[n], XtNborderStrokeWidth, 0); n++;
+    XtSetArg(arglist[n], XtNinternalWidth, 0); n++;
+    XtSetArg(arglist[n], XtNinternalHeight, 0); n++;
     sbw->spinBox.downW = XtCreateManagedWidget("down", repeaterWidgetClass,
                                                 new, arglist, n);
     ((CommandWidget)sbw->spinBox.downW)->command.border_stroke_width = 0;
@@ -333,7 +346,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (!ctx || !XtIsRealized(w))
         return;
 
-    Dimension btn_w = ISWScaleDim(w, 18);
+    Dimension btn_w = ISWScaleDim(w, 27);
     int text_w = (int)sbw->core.width - (int)btn_w - 1;
     int gap_x = text_w;
     int gap_y = (int)sbw->core.height / 2;
@@ -341,6 +354,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     ISWRenderBegin(ctx);
     ISWRenderSetColor(ctx, sbw->core.border_pixel);
     ISWRenderSetLineWidth(ctx, 1.0);
+    /* Outer border */
+    ISWRenderStrokeRectangle(ctx, 0, 0, (int)sbw->core.width, (int)sbw->core.height);
     /* Vertical divider between text and buttons */
     ISWRenderDrawLine(ctx, gap_x, 0, gap_x, (int)sbw->core.height);
     /* Horizontal divider between up and down buttons */
