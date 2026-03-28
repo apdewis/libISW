@@ -98,6 +98,8 @@ static XtResource resources[] = {
    {XtNcornerRoundPercent, XtCCornerRoundPercent, XtRDimension,
         sizeof(Dimension), offset(command.corner_round), XtRImmediate,
 	(XtPointer) 25},
+   {XtNcornerRadius, XtCCornerRadius, XtRDimension, sizeof(Dimension),
+      offset(command.corner_radius), XtRImmediate, (XtPointer) 5},
    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
       XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
       (XtPointer) 0},
@@ -258,6 +260,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   /* HiDPI: scale dimension resources (after shape logic resolves values) */
   cbw->command.border_stroke_width = ISWScaleDim(new, cbw->command.border_stroke_width);
+  cbw->command.corner_radius = ISWScaleDim(new, cbw->command.corner_radius);
 
   cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground,
 				  cbw->core.background_pixel);
@@ -460,7 +463,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
       double by = off;
       double bw = cbw->core.width - lw;
       double bh = cbw->core.height - lw;
-      double r = 4.0 * ISWScaleFactor(w);
+      double r = cbw->command.corner_radius;
 
       cairo_save(cr);
 

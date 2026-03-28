@@ -105,6 +105,8 @@ SOFTWARE.
 #define XtRShapeStyle "ShapeStyle"
 #define XtNcornerRoundPercent "cornerRoundPercent"
 #define XtCCornerRoundPercent "CornerRoundPercent"
+#define XtNcornerRadius "cornerRadius"
+#define XtCCornerRadius "CornerRadius"
 
 /* Shape style constants */
 #define IswShapeRectangle 1
