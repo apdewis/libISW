@@ -119,7 +119,6 @@ static void DrawBitmaps(Widget, GC);
 static void GetBitmapInfo(Widget, Boolean);
 static void CreateGCs(Widget);
 static void DestroyGCs(Widget);
-static void FlipColors(Widget);
 #define superclass (&smeClassRec)
 SmeBSBClassRec smeBSBClassRec = {
   {
@@ -314,17 +313,15 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
     y_loc = entry->rectangle.y;
 
+    /* Ensure render context exists */
+    if (entry->sme_bsb.render_ctx == NULL && XtIsRealized(XtParent(w)))
+        entry->sme_bsb.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
+
     if (XtIsSensitive(w) && XtIsSensitive( XtParent(w) ) ) {
  if ( w == IswSimpleMenuGetActiveEntry(XtParent(w)) ) {
-     /* Draw highlight background using Cairo or XCB */
-     if (entry->sme_bsb.render_ctx == NULL) {
-         entry->sme_bsb.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
-     }
-     
      if (entry->sme_bsb.render_ctx) {
          ISWRenderBegin(entry->sme_bsb.render_ctx);
-         /* norm_gc has parent background as foreground for highlight */
-         ISWRenderSetColor(entry->sme_bsb.render_ctx, XtParent(w)->core.background_pixel);
+         ISWRenderSetColor(entry->sme_bsb.render_ctx, entry->sme_bsb.foreground);
          ISWRenderFillRectangle(entry->sme_bsb.render_ctx,
                                 s, y_loc + s,
                                 entry->rectangle.width - 2 * s,
@@ -333,15 +330,21 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      }
      gc = entry->sme_bsb.rev_gc;
  }
- else
+ else {
+     if (entry->sme_bsb.render_ctx) {
+         ISWRenderBegin(entry->sme_bsb.render_ctx);
+         ISWRenderSetColor(entry->sme_bsb.render_ctx, XtParent(w)->core.background_pixel);
+         ISWRenderFillRectangle(entry->sme_bsb.render_ctx,
+                                s, y_loc + s,
+                                entry->rectangle.width - 2 * s,
+                                entry->rectangle.height - 2 * s);
+         ISWRenderEnd(entry->sme_bsb.render_ctx);
+     }
      gc = entry->sme_bsb.norm_gc;
+ }
     }
     else
  gc = entry->sme_bsb.norm_gray_gc;
-
-    /* Ensure render context exists for HiDPI text rendering */
-    if (entry->sme_bsb.render_ctx == NULL && XtIsRealized(XtParent(w)))
-        entry->sme_bsb.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
 
     if (entry->sme_bsb.label != NULL) {
 	int x_loc = entry->sme_bsb.left_margin;
@@ -601,21 +604,16 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val
     return(ret_val);
 }
 
-/*
- * FlipColors() used to be called directly, but it's blind
- * state toggling caused re-unhighlighting problems.
- */
-
 static void
 Highlight(Widget w)
 {
-    FlipColors(w);
+    Redisplay(w, NULL, (xcb_xfixes_region_t)0);
 }
 
 static void
 Unhighlight(Widget w)
 {
-    FlipColors(w);
+    Redisplay(w, NULL, (xcb_xfixes_region_t)0);
 }
 
 /************************************************************
@@ -951,38 +949,4 @@ DestroyGCs(Widget w)
     XtReleaseGC(w, entry->sme_bsb.invert_gc);
 }
 
-/*      Function Name: FlipColors
- *      Description: Invert the colors of the current entry.
- *      Arguments: w - the bsb menu entry widget.
- *      Returns: none.
- */
-
-static void
-FlipColors(Widget w)
-{
-    SmeBSBObject entry = (SmeBSBObject) w;
-
-    if (entry->sme_bsb.set_values_area_cleared)
- return;
-
-    if (entry->sme_bsb.render_ctx) {
-	/*
-	 * Invert the entry using Cairo's DIFFERENCE operator,
-	 * which gives the same visual result as the old XOR GC approach.
-	 */
-	cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(entry->sme_bsb.render_ctx);
-	if (cr) {
-	    ISWRenderBegin(entry->sme_bsb.render_ctx);
-	    cairo_save(cr);
-	    cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
-	    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-	    cairo_rectangle(cr, 0, (int) entry->rectangle.y,
-		(int) entry->rectangle.width,
-		(int) entry->rectangle.height);
-	    cairo_fill(cr);
-	    cairo_restore(cr);
-	    ISWRenderEnd(entry->sme_bsb.render_ctx);
-	}
-    }
-}
 

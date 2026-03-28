@@ -1440,8 +1440,13 @@ IswListUnhighlight(Widget w)
     ListWidget lw = ( ListWidget ) w;
 
     lw->list.highlight = NO_HIGHLIGHT;
-    if (lw->list.is_highlighted != NO_HIGHLIGHT)
-        PaintItemName(w, lw->list.is_highlighted); /* unhighlight this one. */
+    if (lw->list.is_highlighted != NO_HIGHLIGHT) {
+        if (lw->list.render_ctx)
+            ISWRenderBegin(lw->list.render_ctx);
+        PaintItemName(w, lw->list.is_highlighted);
+        if (lw->list.render_ctx)
+            ISWRenderEnd(lw->list.render_ctx);
+    }
 }
 
 /*	Function Name: IswListHighlight
@@ -1458,9 +1463,13 @@ IswListHighlight(Widget w, int item)
 
     if (XtIsSensitive(w)) {
         lw->list.highlight = item;
+        if (lw->list.render_ctx)
+            ISWRenderBegin(lw->list.render_ctx);
         if (lw->list.is_highlighted != NO_HIGHLIGHT)
             PaintItemName(w, lw->list.is_highlighted);  /* Unhighlight. */
 	PaintItemName(w, item); /* HIGHLIGHT this one. */
+        if (lw->list.render_ctx)
+            ISWRenderEnd(lw->list.render_ctx);
     }
 }
 
