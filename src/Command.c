@@ -95,9 +95,6 @@ static XtResource resources[] = {
       (XtPointer) DEFAULT_SHAPE_HIGHLIGHT},
    {XtNshapeStyle, XtCShapeStyle, XtRShapeStyle, sizeof(int),
       offset(command.shape_style), XtRImmediate, (XtPointer)IswShapeRectangle},
-   {XtNcornerRoundPercent, XtCCornerRoundPercent, XtRDimension,
-        sizeof(Dimension), offset(command.corner_round), XtRImmediate,
-	(XtPointer) 25},
    {XtNcornerRadius, XtCCornerRadius, XtRDimension, sizeof(Dimension),
       offset(command.corner_radius), XtRImmediate, (XtPointer) 5},
    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
@@ -467,13 +464,17 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
 
       cairo_save(cr);
 
-      /* Build rounded rect path */
+      /* Build border path */
       cairo_new_path(cr);
-      cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
-      cairo_arc(cr, bx + bw - r, by + bh - r, r, 0, M_PI/2);
-      cairo_arc(cr, bx + r, by + bh - r, r, M_PI/2, M_PI);
-      cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
-      cairo_close_path(cr);
+      if (r > 0) {
+        cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
+        cairo_arc(cr, bx + bw - r, by + bh - r, r, 0, M_PI/2);
+        cairo_arc(cr, bx + r, by + bh - r, r, M_PI/2, M_PI);
+        cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
+        cairo_close_path(cr);
+      } else {
+        cairo_rectangle(cr, bx, by, bw, bh);
+      }
 
       if (cbw->command.set) {
         cbw->label.normal_GC = cbw->command.inverse_GC;
@@ -630,9 +631,7 @@ ShapeButton(CommandWidget cbw, Boolean checkRectangular)
     Dimension corner_size = 0;
 
     if (cbw->command.shape_style == IswShapeRoundedRectangle) {
-	corner_size = (cbw->core.width < cbw->core.height) ? cbw->core.width
-	                                                   : cbw->core.height;
-	corner_size = (int) (corner_size * cbw->command.corner_round) / 100;
+	corner_size = cbw->command.corner_radius;
     }
 
     if (checkRectangular || cbw->command.shape_style != IswShapeRectangle) {

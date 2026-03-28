@@ -65,7 +65,7 @@ SOFTWARE.
  borderWidth	     BorderWidth	Dimension	1
  callback	     Callback		XtCallbackList	NULL
  colormap	     Colormap		Colormap	parent's colormap
- cornerRoundPercent  CornerRoundPercent	Dimension	25
+ cornerRadius	     CornerRadius	Dimension	5
  cursor		     Cursor		Cursor		None
  cursorName	     Cursor		String		NULL
  depth		     Depth		int		parent's depth
@@ -103,8 +103,6 @@ SOFTWARE.
 #define XtNshapeStyle "shapeStyle"
 #define XtCShapeStyle "ShapeStyle"
 #define XtRShapeStyle "ShapeStyle"
-#define XtNcornerRoundPercent "cornerRoundPercent"
-#define XtCCornerRoundPercent "CornerRoundPercent"
 #define XtNcornerRadius "cornerRadius"
 #define XtCCornerRadius "CornerRadius"
 

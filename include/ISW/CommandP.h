@@ -115,7 +115,6 @@ typedef struct {
     XtCommandHighlight	highlighted;
     /* more resources */
     int			shape_style;
-    Dimension		corner_round;
     Dimension		corner_radius;
 } CommandPart;
 

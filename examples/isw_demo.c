@@ -847,6 +847,7 @@ Widget create_command_demo(Widget parent) {
 
     n = 0;
     XtSetArg(args[n], XtNlabel, "Or Me!"); n++;
+    XtSetArg(args[n], XtNcornerRadius, 0); n++;
     button2 = XtCreateManagedWidget("cmdBtn2", commandWidgetClass, box, args, n);
     XtAddCallback(button2, XtNcallback, button_callback, (XtPointer)"Button 2");
     attach_tooltip(button2, "Another command button with tooltip");
