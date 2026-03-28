@@ -313,7 +313,7 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 static void
 LayoutChildren(SpinBoxWidget sbw)
 {
-    Dimension btn_w = ISWScaleDim((Widget)sbw, 18);
+    Dimension btn_w = ISWScaleDim((Widget)sbw, 27);
     Dimension w = sbw->core.width;
     Dimension h = sbw->core.height;
     /* Leave 1px for vertical divider, 1px for horizontal divider */
