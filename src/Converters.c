@@ -81,6 +81,9 @@ in this Software without prior written authorization from The Open Group.
 #include        <X11/keysym.h>
 #include        <X11/Xlocale.h>
 #include        <errno.h>       /* for StringToDirectoryString */
+#include        <fontconfig/fontconfig.h>
+#include        <ft2build.h>
+#include        FT_FREETYPE_H
 
 #define IsNewline(str) ((str) == '\n')
 #define IsWhitespace(str) ((str)== ' ' || (str) == '\t')
@@ -701,6 +704,80 @@ _XtCreateFontCursor(xcb_connection_t *dpy, unsigned int shape)
 }
 
 /* -----------------------------------------------------------------------
+ * Resolve a fontconfig family name (optionally with "-size" suffix) into
+ * an XtFontStruct with font_family set for Cairo rendering.  fid is 0
+ * since rendering goes through Cairo, not core X11 fonts.
+ * ----------------------------------------------------------------------- */
+static XtFontStruct *
+_XtLoadFontconfigFont(const char *name)
+{
+    char family[256];
+    double pt_size = 10.0;
+    FcPattern *pattern = NULL, *match = NULL;
+    FcResult result;
+    FcChar8 *font_file = NULL;
+    FT_Library ft_lib = NULL;
+    FT_Face ft_face = NULL;
+    XtFontStruct *fs = NULL;
+
+    /* Parse "Family-Size" or just "Family" */
+    const char *last_dash = strrchr(name, '-');
+    if (last_dash && last_dash != name) {
+        char *endp;
+        double sz = strtod(last_dash + 1, &endp);
+        if (*endp == '\0' && sz > 0) {
+            size_t flen = (size_t)(last_dash - name);
+            if (flen >= sizeof(family)) flen = sizeof(family) - 1;
+            memcpy(family, name, flen);
+            family[flen] = '\0';
+            pt_size = sz;
+        } else {
+            snprintf(family, sizeof(family), "%s", name);
+        }
+    } else {
+        snprintf(family, sizeof(family), "%s", name);
+    }
+
+    /* Use fontconfig to validate the family and find a font file */
+    pattern = FcPatternCreate();
+    if (!pattern) return NULL;
+    FcPatternAddString(pattern, FC_FAMILY, (const FcChar8 *)family);
+    FcConfigSubstitute(NULL, pattern, FcMatchPattern);
+    FcDefaultSubstitute(pattern);
+
+    match = FcFontMatch(NULL, pattern, &result);
+    if (!match) goto cleanup;
+
+    if (FcPatternGetString(match, FC_FILE, 0, &font_file) != FcResultMatch)
+        goto cleanup;
+
+    /* Load with FreeType to get metrics at the requested size */
+    if (FT_Init_FreeType(&ft_lib) != 0) goto cleanup;
+    if (FT_New_Face(ft_lib, (const char *)font_file, 0, &ft_face) != 0)
+        goto cleanup;
+
+    /* Set character size: FreeType uses 1/64th of a point units */
+    FT_Set_Char_Size(ft_face, 0, (FT_F26Dot6)(pt_size * 64), 96, 96);
+
+    fs = XtNew(XtFontStruct);
+    fs->fid       = 0;
+    fs->ascent    = (int)(ft_face->size->metrics.ascender >> 6);
+    fs->descent   = (int)(-(ft_face->size->metrics.descender >> 6));
+    fs->min_char_or_byte2 = 0;
+    fs->max_char_or_byte2 = 0;
+    fs->min_byte1 = 0;
+    fs->max_byte1 = 0;
+    fs->font_family = XtNewString(family);
+
+cleanup:
+    if (ft_face) FT_Done_Face(ft_face);
+    if (ft_lib) FT_Done_FreeType(ft_lib);
+    if (match) FcPatternDestroy(match);
+    if (pattern) FcPatternDestroy(pattern);
+    return fs;
+}
+
+/* -----------------------------------------------------------------------
  * XCB replacement for XLoadFont(display, name)
  * ----------------------------------------------------------------------- */
 static Font
@@ -787,7 +864,10 @@ static void
 _XtFreeFont(xcb_connection_t *dpy, XtFontStruct *fs)
 {
     if (fs == NULL) return;
-    xcb_close_font(dpy, fs->fid);
+    if (fs->fid != 0)
+        xcb_close_font(dpy, fs->fid);
+    if (fs->font_family)
+        XtFree(fs->font_family);
     XtFree((char *) fs);
 }
 
@@ -1264,13 +1344,36 @@ XtCvtStringToFontStruct(xcb_connection_t *dpy,
 
     display = *(xcb_connection_t **) args[0].addr;
 
-    /* DEBUG: Log the requested font name */
-
     if (CompareISOLatin1((String) fromVal->addr, XtDefaultFont) != 0) {
-        f = _XtLoadQueryFont(display, (char *) fromVal->addr);
+        const char *name = (const char *) fromVal->addr;
 
+        /* Try fontconfig for non-XLFD names (don't start with '-') */
+        if (name[0] != '-') {
+            f = _XtLoadFontconfigFont(name);
+            if (f != NULL) {
+ Done:          done_string(XFontStruct *, f, XtRFontStruct);
+            }
+        }
+
+        /* Fall back to XLFD core font loading */
+        f = _XtLoadQueryFont(display, name);
         if (f != NULL) {
- Done:     done_string(XFontStruct *, f, XtRFontStruct);
+            /* Try to extract family from XLFD for Cairo rendering */
+            if (name[0] == '-') {
+                const char *p = name + 1;          /* skip leading '-' */
+                const char *dash = strchr(p, '-');  /* skip foundry */
+                if (dash) {
+                    p = dash + 1;
+                    dash = strchr(p, '-');
+                    if (dash && dash > p) {
+                        size_t len = (size_t)(dash - p);
+                        f->font_family = XtMalloc((Cardinal)(len + 1));
+                        memcpy(f->font_family, p, len);
+                        f->font_family[len] = '\0';
+                    }
+                }
+            }
+            goto Done;
         }
 
         XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
@@ -1293,8 +1396,12 @@ XtCvtStringToFontStruct(xcb_connection_t *dpy,
         if (XrmQGetResource(XtDatabase(display), xrm_name, xrm_class,
                             &rep_type, &value)) {
             if (rep_type == _XtQString) {
-                f = _XtLoadQueryFont(display, (char *) value.addr);
-
+                const char *dname = (const char *) value.addr;
+                if (dname[0] != '-') {
+                    f = _XtLoadFontconfigFont(dname);
+                    if (f != NULL) goto Done;
+                }
+                f = _XtLoadQueryFont(display, dname);
                 if (f != NULL) {
                     goto Done;
                 }
@@ -1314,15 +1421,18 @@ XtCvtStringToFontStruct(xcb_connection_t *dpy,
                 f = (XFontStruct *) value.addr;
                 goto Done;
             }
-        } else {
         }
     }
-    /* Should really do XListFonts, but most servers support this */
-    f = _XtLoadQueryFont(display, "-*-*-*-R-*-*-*-120-*-*-*-*-ISO8859-*");
 
-    if (f != NULL) {
+    /* Fontconfig default before XLFD wildcard fallback */
+    f = _XtLoadFontconfigFont("Sans-10");
+    if (f != NULL)
         goto Done;
-    }
+
+    /* Last resort: XLFD wildcard */
+    f = _XtLoadQueryFont(display, "-*-*-*-R-*-*-*-120-*-*-*-*-ISO8859-*");
+    if (f != NULL)
+        goto Done;
 
     XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
                     "noFont", "cvtStringToFontStruct", XtCXtToolkitError,
