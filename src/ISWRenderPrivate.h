@@ -76,14 +76,6 @@ typedef struct _ISWRenderOps {
     int (*text_height)(struct _ISWRenderContext *ctx);
     void (*set_font)(struct _ISWRenderContext *ctx, XFontStruct *font);
     
-    /* Widget-specific */
-    void (*draw_shadow)(struct _ISWRenderContext *ctx,
-                       int x, int y, int w, int h, int sw,
-                       XtRelief relief, Pixel tc, Pixel bc);
-    void (*draw_bevel)(struct _ISWRenderContext *ctx,
-                      int x, int y, int w, int h, int bw,
-                      Boolean raised);
-    
     /* Clipping */
     void (*set_clip_rectangle)(struct _ISWRenderContext *ctx,
                               int x, int y, int w, int h);

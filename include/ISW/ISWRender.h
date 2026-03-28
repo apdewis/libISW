@@ -325,57 +325,6 @@ void ISWRenderDrawArc(ISWRenderContext *ctx,
 
 /*
  * =================================================================
- * Widget-Specific Drawing Functions
- * =================================================================
- */
-
-/*
- * ISWRenderDrawShadow - Draw 3D shadow effect
- *
- * Parameters:
- *   ctx          - Rendering context
- *   x, y         - Top-left corner
- *   width        - Shadow box width
- *   height       - Shadow box height
- *   shadow_width - Width of shadow border
- *   relief       - Relief type (raised, sunken, ridge, groove)
- *   top_color    - Top/light shadow color
- *   bottom_color - Bottom/dark shadow color
- *
- * Notes:
- *   - Used by ThreeD widget for 3D appearance
- *   - Cairo backends use anti-aliasing for smoother shadows
- */
-void ISWRenderDrawShadow(ISWRenderContext *ctx,
-                        int x, int y,
-                        int width, int height,
-                        int shadow_width,
-                        XtRelief relief,
-                        Pixel top_color,
-                        Pixel bottom_color);
-
-/*
- * ISWRenderDrawBevel - Draw beveled border
- *
- * Parameters:
- *   ctx         - Rendering context
- *   x, y        - Top-left corner
- *   width       - Border box width
- *   height      - Border box height
- *   bevel_width - Width of bevel
- *   raised      - True for raised, False for sunken
- *
- * Notes:
- *   - Convenience function for button widgets
- */
-void ISWRenderDrawBevel(ISWRenderContext *ctx,
-                       int x, int y,
-                       int width, int height,
-                       int bevel_width,
-                       Boolean raised);
-
-/*
- * =================================================================
  * Text Rendering
  * =================================================================
  */

@@ -469,44 +469,6 @@ ISWRenderDrawArc(ISWRenderContext *ctx, int x, int y, int width, int height,
 
 /*
  * =================================================================
- * Widget-Specific Drawing
- * =================================================================
- */
-
-void
-ISWRenderDrawShadow(ISWRenderContext *ctx, int x, int y, int width, int height,
-                   int shadow_width, XtRelief relief,
-                   Pixel top_color, Pixel bottom_color)
-{
-    if (!ctx || !ctx->ops || !ctx->ops->draw_shadow) {
-        return;
-    }
-    
-    ctx->ops->draw_shadow(ctx, x, y, width, height, shadow_width,
-                         relief, top_color, bottom_color);
-}
-
-void
-ISWRenderDrawBevel(ISWRenderContext *ctx, int x, int y, int width, int height,
-                  int bevel_width, Boolean raised)
-{
-    if (!ctx || !ctx->ops || !ctx->ops->draw_bevel) {
-        /* Fallback: use shadow drawing */
-        if (ctx->ops && ctx->ops->draw_shadow) {
-            XtRelief relief = raised ? XtReliefRaised : XtReliefSunken;
-            /* Use widget's colors - this is a simplification */
-            ctx->ops->draw_shadow(ctx, x, y, width, height, bevel_width,
-                                relief, ctx->screen->white_pixel,
-                                ctx->screen->black_pixel);
-        }
-        return;
-    }
-    
-    ctx->ops->draw_bevel(ctx, x, y, width, height, bevel_width, raised);
-}
-
-/*
- * =================================================================
  * Text Rendering
  * =================================================================
  */
