@@ -460,7 +460,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
       double by = off;
       double bw = cbw->core.width - lw;
       double bh = cbw->core.height - lw;
-      double r = 2.0 * ISWScaleFactor(w);
+      double r = 4.0 * ISWScaleFactor(w);
 
       cairo_save(cr);
 

@@ -279,7 +279,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         /* Reserve space for the indicator: cap height + gap, derived from
          * actual Cairo font metrics so it adapts to any DPI/font. */
         int cap_h = ISWScaledFontCapHeight(new, tw->label.font);
-        int gap = (int)(4 * ISWScaleFactor(new) + 0.5);
+        int gap = cap_h;  /* ~1em spacing between indicator and label */
         Dimension min_iw = (Dimension)(cap_h + gap);
         if (tw->label.internal_width < min_iw) {
             Dimension old_iw = tw->label.internal_width;
