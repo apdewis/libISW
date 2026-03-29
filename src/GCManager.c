@@ -184,12 +184,10 @@ _XtGClistFree(xcb_connection_t *dpy, register XtPerDisplay pd)
         GClist = next;
     }
     if (pd->pixmap_tab) {
-        void delete_all() {
         XtScreenPixmapStructPtr current, tmp;
-            HASH_ITER(hh, pd->pixmap_tab, current, tmp) {
-              HASH_DEL(pd->pixmap_tab, current);
-              free(current);
-            }
+        HASH_ITER(hh, pd->pixmap_tab, current, tmp) {
+            HASH_DEL(pd->pixmap_tab, current);
+            free(current);
         }
     }
 }
