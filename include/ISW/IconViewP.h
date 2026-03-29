@@ -49,6 +49,10 @@ typedef struct {
     int             cursor;        /* focused item index, -1 = none */
     Boolean         has_focus;     /* widget has keyboard focus */
 
+    /* deferred deselect: press on selected item defers clear to release */
+    Boolean         deselect_pending;
+    int             deselect_index;
+
     /* rubber band state */
     Boolean         band_active;
     Position        band_start_x, band_start_y;

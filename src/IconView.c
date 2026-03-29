@@ -284,6 +284,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     iw->iconView.ncols = 1;
     iw->iconView.nrows = 0;
     iw->iconView.band_active = False;
+    iw->iconView.deselect_pending = False;
+    iw->iconView.deselect_index = -1;
 
     iw->iconView.icon_size = ISWScaleDim(new, iw->iconView.icon_size);
     iw->iconView.item_spacing = ISWScaleDim(new, iw->iconView.item_spacing);
@@ -613,6 +615,11 @@ SelectItem(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
                  ? iw->iconView.anchor : index;
         for (int i = lo; i <= hi; i++)
             iw->iconView.sel_flags[i] = True;
+    } else if (iw->iconView.multi_select && iw->iconView.sel_flags[index]) {
+        /* Click on already-selected item: defer deselect to ButtonRelease
+         * so that dragging a group of selected icons preserves the selection */
+        iw->iconView.deselect_pending = True;
+        iw->iconView.deselect_index = index;
     } else {
         /* Plain click: select only this item */
         ClearSelection(iw);
@@ -687,6 +694,10 @@ BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
     IconViewWidget iw = (IconViewWidget) w;
     (void)params; (void)num_params;
 
+    /* Motion after clicking a selected item — cancel deferred deselect
+     * so the multi-selection is preserved for drag-and-drop */
+    iw->iconView.deselect_pending = False;
+
     if (!iw->iconView.band_active)
         return;
 
@@ -707,6 +718,20 @@ BandFinish(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)event; (void)params; (void)num_params;
+
+    /* Resolve deferred deselect: user clicked a selected item and released
+     * without dragging, so narrow the selection to just that item */
+    if (iw->iconView.deselect_pending) {
+        iw->iconView.deselect_pending = False;
+        int idx = iw->iconView.deselect_index;
+        ClearSelection(iw);
+        if (idx >= 0 && idx < iw->iconView.nitems)
+            iw->iconView.sel_flags[idx] = True;
+        iw->iconView.anchor = idx;
+        Redisplay(w, NULL, 0);
+        FireCallback(iw, idx);
+        return;
+    }
 
     if (!iw->iconView.band_active)
         return;
