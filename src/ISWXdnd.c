@@ -24,6 +24,7 @@
 #include <X11/StringDefs.h>
 #include <ISW/ISWXdnd.h>
 #include <ISW/ISWContext.h>
+#include <ISW/IconView.h>
 #include "ISWXcbDraw.h"
 
 #include <string.h>
@@ -1119,6 +1120,11 @@ ISWXdndStartDrag(Widget source_widget,
 {
     XdndState *st = GetXdndStateForWidget(source_widget);
     if (!st || st->dragging)
+        return;
+
+    /* Don't start a drag if the source widget has an active rubber band */
+    if (XtIsSubclass(source_widget, iconViewWidgetClass) &&
+        IswIconViewBandActive(source_widget))
         return;
 
     xcb_connection_t *conn = XtDisplay(st->shell);

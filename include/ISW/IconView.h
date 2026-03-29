@@ -45,6 +45,7 @@ _XFUNCPROTOBEGIN
 extern void IswIconViewSetItems(Widget w, String *labels, String *icon_data, int nitems);
 extern int  IswIconViewGetSelected(Widget w);
 extern int  IswIconViewGetSelectedItems(Widget w, int **indices_out);
+extern Boolean IswIconViewBandActive(Widget w);
 
 _XFUNCPROTOEND
 

@@ -965,3 +965,10 @@ IswIconViewGetSelectedItems(Widget w, int **indices_out)
     *indices_out = buf;
     return count;
 }
+
+Boolean
+IswIconViewBandActive(Widget w)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    return iw->iconView.band_active;
+}
