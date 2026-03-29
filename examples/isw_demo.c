@@ -76,6 +76,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <stdint.h>
 
@@ -143,6 +144,9 @@ void fontchooser_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void quit_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void drop_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void drag_enter_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void drag_leave_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void drag_start_action(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params);
 
 /* Menu bar callbacks */
 void file_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
@@ -1636,7 +1640,7 @@ Widget create_specialized_section(Widget parent) {
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(fontchooser_demo, args, n);
 
-    /* Drop target demo */
+    /* Drop target demo — receives drops from any XDND app */
     Widget drop_label;
     n = 0;
     XtSetArg(args[n], XtNlabel, "Drop files here"); n++;
@@ -1649,6 +1653,33 @@ Widget create_specialized_section(Widget parent) {
     drop_label = XtCreateManagedWidget("dropTarget", labelWidgetClass,
                                         form, args, n);
     XtAddCallback(drop_label, XtNdropCallback, drop_callback, NULL);
+    XtAddCallback(drop_label, XtNdragEnterCallback, drag_enter_callback, NULL);
+    XtAddCallback(drop_label, XtNdragLeaveCallback, drag_leave_callback, NULL);
+    ISWXdndWidgetAcceptDrops(drop_label);
+
+    /* Drag source demo — drag text to any XDND app */
+    static XtActionsRec drag_actions[] = {
+        {"drag-start", drag_start_action}
+    };
+    XtAppAddActions(XtWidgetToApplicationContext(form),
+                    drag_actions, XtNumber(drag_actions));
+
+    Widget drag_label;
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "Drag me"); n++;
+    XtSetArg(args[n], XtNwidth, 100); n++;
+    XtSetArg(args[n], XtNheight, 40); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    XtSetArg(args[n], XtNfromVert, fontchooser_demo); n++;
+    XtSetArg(args[n], XtNfromHoriz, drop_label); n++;
+    XtSetArg(args[n], XtNhorizDistance, 10); n++;
+    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
+    drag_label = XtCreateManagedWidget("dragSource", labelWidgetClass,
+                                        form, args, n);
+
+    /* Override translations so button press starts a drag */
+    XtOverrideTranslations(drag_label,
+        XtParseTranslationTable("<BtnDown>: drag-start()"));
 
     return form;
 }
@@ -1999,17 +2030,121 @@ void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 
 void drop_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     IswDropCallbackData *data = (IswDropCallbackData *)call_data;
-    printf("Drop received: %d file(s) at (%d, %d)\n",
-           data->num_uris, data->x, data->y);
-    for (int i = 0; i < data->num_uris; i++)
-        printf("  [%d] %s\n", i, data->uris[i]);
+    (void) client_data;
 
-    /* Update the label to show the first dropped file */
     if (data->num_uris > 0) {
+        printf("Drop received: %d file(s) at (%d, %d)\n",
+               data->num_uris, data->x, data->y);
+        for (int i = 0; i < data->num_uris; i++)
+            printf("  [%d] %s\n", i, data->uris[i]);
+
+        /* Update the label to show the first dropped file */
         Arg a[1];
         XtSetArg(a[0], XtNlabel, data->uris[0]);
         XtSetValues(w, a, 1);
+    } else if (data->data && data->data_length > 0) {
+        /* Non-URI drop — show raw text data */
+        printf("Drop received: %lu bytes at (%d, %d)\n",
+               data->data_length, data->x, data->y);
+        char *text = XtMalloc(data->data_length + 1);
+        memcpy(text, data->data, data->data_length);
+        text[data->data_length] = '\0';
+        printf("  data: %s\n", text);
+
+        Arg a[1];
+        XtSetArg(a[0], XtNlabel, text);
+        XtSetValues(w, a, 1);
+        XtFree(text);
     }
+}
+
+void drag_enter_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    (void) client_data;
+    (void) call_data;
+    Arg a[1];
+    Pixel highlight;
+    /* Use a simple visual cue — swap border width */
+    XtSetArg(a[0], XtNborderWidth, 3);
+    XtSetValues(w, a, 1);
+    (void) highlight;
+}
+
+void drag_leave_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    (void) client_data;
+    (void) call_data;
+    Arg a[1];
+    XtSetArg(a[0], XtNborderWidth, 1);
+    XtSetValues(w, a, 1);
+}
+
+/* Drag source convert proc — provides text/plain data */
+static Boolean
+demo_drag_convert(Widget widget, xcb_atom_t target_type,
+                  XtPointer *data_return, unsigned long *length_return,
+                  int *format_return, XtPointer client_data)
+{
+    (void) widget;
+    (void) client_data;
+
+    /* Check if the target is text/plain */
+    xcb_atom_t text_plain = ISWXdndInternType(widget, "text/plain");
+    xcb_atom_t text_uri = ISWXdndInternType(widget, "text/uri-list");
+
+    if (target_type == text_plain) {
+        const char *msg = "Hello from ISW drag source!";
+        int len = strlen(msg);
+        char *copy = XtMalloc(len + 1);
+        memcpy(copy, msg, len + 1);
+        *data_return = copy;
+        *length_return = len;
+        *format_return = 8;
+        return True;
+    }
+
+    if (target_type == text_uri) {
+        const char *uri = "file:///tmp/isw-demo-drag\r\n";
+        int len = strlen(uri);
+        char *copy = XtMalloc(len + 1);
+        memcpy(copy, uri, len + 1);
+        *data_return = copy;
+        *length_return = len;
+        *format_return = 8;
+        return True;
+    }
+
+    return False;
+}
+
+static void
+demo_drag_finished(Widget widget, IswDndAction performed_action,
+                   Boolean accepted, XtPointer client_data)
+{
+    (void) widget;
+    (void) client_data;
+    printf("Drag finished: %s (action=%d)\n",
+           accepted ? "accepted" : "rejected", performed_action);
+}
+
+void drag_start_action(Widget w, xcb_generic_event_t *event,
+                       String *params, Cardinal *num_params)
+{
+    (void) params;
+    (void) num_params;
+
+    xcb_atom_t types[2];
+    types[0] = ISWXdndInternType(w, "text/plain");
+    types[1] = ISWXdndInternType(w, "text/uri-list");
+
+    IswDragSourceDesc desc;
+    memset(&desc, 0, sizeof(desc));
+    desc.types = types;
+    desc.num_types = 2;
+    desc.actions = ISW_DND_ACTION_COPY | ISW_DND_ACTION_MOVE;
+    desc.convert = demo_drag_convert;
+    desc.finished = demo_drag_finished;
+    desc.client_data = NULL;
+
+    ISWXdndStartDrag(w, (xcb_button_press_event_t *) event, &desc);
 }
 
 
