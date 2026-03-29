@@ -190,6 +190,20 @@ void ISWXdndSetAcceptedActions(
 );
 
 /*
+ * ISWXdndSetDropCallback - Set a direct drop callback on a widget.
+ *
+ * Use this instead of XtAddCallback(w, XtNdropCallback, ...) when
+ * the widget's class doesn't declare XtNdropCallback as a resource
+ * (i.e. any widget not inheriting from Simple).  The callback
+ * receives IswDropCallbackData* as call_data, same as XtNdropCallback.
+ */
+void ISWXdndSetDropCallback(
+    Widget          w,
+    XtCallbackProc  proc,
+    XtPointer       closure
+);
+
+/*
  * ISWXdndInternType - Convenience: intern a MIME type string as an atom.
  */
 xcb_atom_t ISWXdndInternType(Widget w, const char *mime_type);

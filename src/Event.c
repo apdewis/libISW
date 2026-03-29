@@ -1485,9 +1485,9 @@ static uint32_t const masks[] = {
     XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 26 - CirculateNotify          */
     XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,   /* 27 - CirculateRequest         */
     XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 28 - PropertyNotify           */
-    XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 29 - SelectionClear           */
-    XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 30 - SelectionRequest         */
-    XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 31 - SelectionNotify          */
+    NonMaskableMask,                        /* 29 - SelectionClear           */
+    NonMaskableMask,                        /* 30 - SelectionRequest         */
+    NonMaskableMask,                        /* 31 - SelectionNotify          */
     XCB_EVENT_MASK_COLOR_MAP_CHANGE,        /* 32 - ColormapNotify           */
     NonMaskableMask,                        /* 33 - ClientMessage            */
     NonMaskableMask                         /* 34 - MappingNotify            */
