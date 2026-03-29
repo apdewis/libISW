@@ -411,7 +411,34 @@ configure_file(
 # ===========================================================================
 
 install(TARGETS ISW
+    EXPORT ISWTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(EXPORT ISWTargets
+    FILE ISWTargets.cmake
+    NAMESPACE ISW::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ISW
+)
+
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+    ${CMAKE_SOURCE_DIR}/cmake/ISWConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ISWConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ISW
+)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/ISWConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/ISWConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/ISWConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ISW
 )
 
 # ISW widget headers
