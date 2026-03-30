@@ -137,8 +137,7 @@ am__DEPENDENCIES_1 =
 libISW_la_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	ClickTime.c Composite.c Constraint.c Context.c Convert.c \
 	Converters.c Core.c Create.c Destroy.c Display.c Error.c \
@@ -162,7 +161,8 @@ am__libISW_la_SOURCES_DIST = ActionHook.c Alloc.c ArgList.c Callback.c \
 	ISWInit.c ISWXcbDraw.c ISWXcbDraw.h ISWXdnd.c Image.c \
 	laygram.y laylex.l MultiSrc.c MultiSink.c ISWIm.c ISWI18n.c \
 	ISWI18n.h ISWRender.c ISWRenderPrivate.h ISWRenderCairoXCB.c \
-	ISWRenderEGL.c nanosvg_impl.c nanosvg.h nanosvgrast.h ISWSVG.c
+	ISWRenderEGL.c nanosvg_impl.c nanosvg.h nanosvgrast.h ISWSVG.c \
+	lodepng.c lodepng.h ISWPNG.c
 am__objects_1 = ActionHook.lo Alloc.lo ArgList.lo Callback.lo \
 	ClickTime.lo Composite.lo Constraint.lo Context.lo Convert.lo \
 	Converters.lo Core.lo Create.lo Destroy.lo Display.lo Error.lo \
@@ -181,7 +181,8 @@ am__objects_3 = ISWRender.lo ISWRenderCairoXCB.lo
 @HAVE_CAIRO_EGL_TRUE@am__objects_4 = ISWRenderEGL.lo
 am__objects_5 = $(am__objects_3) $(am__objects_4)
 am__objects_6 = nanosvg_impl.lo ISWSVG.lo
-am__objects_7 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
+am__objects_7 = lodepng.lo ISWPNG.lo
+am__objects_8 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	Box.lo ColorPicker.lo ComboBox.lo Command.lo Dialog.lo \
 	DrawingArea.lo FlexBox.lo FontChooser.lo Form.lo Grip.lo \
 	IconView.lo Label.lo Layout.lo List.lo MainWindow.lo \
@@ -193,8 +194,9 @@ am__objects_7 = AllWidgets.lo AsciiSink.lo AsciiSrc.lo AsciiText.lo \
 	TextTr.lo Tip.lo Toolbar.lo Toggle.lo Tree.lo Vendor.lo \
 	Viewport.lo ISWP.lo ISWAtoms.lo ISWContext.lo ISWDrawing.lo \
 	ISWInit.lo ISWXcbDraw.lo ISWXdnd.lo Image.lo laygram.lo \
-	laylex.lo $(am__objects_2) $(am__objects_5) $(am__objects_6)
-am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_7)
+	laylex.lo $(am__objects_2) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7)
+am_libISW_la_OBJECTS = $(am__objects_1) $(am__objects_8)
 nodist_libISW_la_OBJECTS = StringDefs.lo
 libISW_la_OBJECTS = $(am_libISW_la_OBJECTS) \
 	$(nodist_libISW_la_OBJECTS)
@@ -243,45 +245,46 @@ am__depfiles_remade = ./$(DEPDIR)/ActionHook.Plo \
 	./$(DEPDIR)/ISWAtoms.Plo ./$(DEPDIR)/ISWContext.Plo \
 	./$(DEPDIR)/ISWDrawing.Plo ./$(DEPDIR)/ISWI18n.Plo \
 	./$(DEPDIR)/ISWIm.Plo ./$(DEPDIR)/ISWInit.Plo \
-	./$(DEPDIR)/ISWP.Plo ./$(DEPDIR)/ISWRender.Plo \
-	./$(DEPDIR)/ISWRenderCairoXCB.Plo ./$(DEPDIR)/ISWRenderEGL.Plo \
-	./$(DEPDIR)/ISWSVG.Plo ./$(DEPDIR)/ISWXcbDraw.Plo \
-	./$(DEPDIR)/ISWXdnd.Plo ./$(DEPDIR)/IconView.Plo \
-	./$(DEPDIR)/Image.Plo ./$(DEPDIR)/Initialize.Plo \
-	./$(DEPDIR)/Intrinsic.Plo ./$(DEPDIR)/Keyboard.Plo \
-	./$(DEPDIR)/Label.Plo ./$(DEPDIR)/Layout.Plo \
-	./$(DEPDIR)/List.Plo ./$(DEPDIR)/MainWindow.Plo \
-	./$(DEPDIR)/Manage.Plo ./$(DEPDIR)/MenuBar.Plo \
-	./$(DEPDIR)/MenuButton.Plo ./$(DEPDIR)/MultiSink.Plo \
-	./$(DEPDIR)/MultiSrc.Plo ./$(DEPDIR)/NextEvent.Plo \
-	./$(DEPDIR)/Object.Plo ./$(DEPDIR)/Paned.Plo \
-	./$(DEPDIR)/Panner.Plo ./$(DEPDIR)/PassivGrab.Plo \
-	./$(DEPDIR)/Pointer.Plo ./$(DEPDIR)/Popup.Plo \
-	./$(DEPDIR)/PopupCB.Plo ./$(DEPDIR)/Porthole.Plo \
-	./$(DEPDIR)/ProgressBar.Plo ./$(DEPDIR)/Quark.Plo \
-	./$(DEPDIR)/RectObj.Plo ./$(DEPDIR)/Repeater.Plo \
-	./$(DEPDIR)/ResConfig.Plo ./$(DEPDIR)/Resources.Plo \
-	./$(DEPDIR)/Scale.Plo ./$(DEPDIR)/ScrollWheel.Plo \
-	./$(DEPDIR)/Scrollbar.Plo ./$(DEPDIR)/Selection.Plo \
-	./$(DEPDIR)/SetSens.Plo ./$(DEPDIR)/SetValues.Plo \
-	./$(DEPDIR)/SetWMCW.Plo ./$(DEPDIR)/Shell.Plo \
-	./$(DEPDIR)/Simple.Plo ./$(DEPDIR)/SimpleMenu.Plo \
-	./$(DEPDIR)/Sme.Plo ./$(DEPDIR)/SmeBSB.Plo \
-	./$(DEPDIR)/SmeLine.Plo ./$(DEPDIR)/SpinBox.Plo \
-	./$(DEPDIR)/StatusBar.Plo ./$(DEPDIR)/StringDefs.Plo \
-	./$(DEPDIR)/StripChart.Plo ./$(DEPDIR)/TMaction.Plo \
-	./$(DEPDIR)/TMgrab.Plo ./$(DEPDIR)/TMkey.Plo \
-	./$(DEPDIR)/TMparse.Plo ./$(DEPDIR)/TMprint.Plo \
-	./$(DEPDIR)/TMstate.Plo ./$(DEPDIR)/Tabs.Plo \
-	./$(DEPDIR)/Text.Plo ./$(DEPDIR)/TextAction.Plo \
-	./$(DEPDIR)/TextPop.Plo ./$(DEPDIR)/TextSink.Plo \
-	./$(DEPDIR)/TextSrc.Plo ./$(DEPDIR)/TextTr.Plo \
-	./$(DEPDIR)/Threads.Plo ./$(DEPDIR)/Tip.Plo \
-	./$(DEPDIR)/Toggle.Plo ./$(DEPDIR)/Toolbar.Plo \
-	./$(DEPDIR)/Tree.Plo ./$(DEPDIR)/VarCreate.Plo \
-	./$(DEPDIR)/VarGet.Plo ./$(DEPDIR)/Varargs.Plo \
-	./$(DEPDIR)/Vendor.Plo ./$(DEPDIR)/Viewport.Plo \
-	./$(DEPDIR)/laygram.Plo ./$(DEPDIR)/laylex.Plo \
+	./$(DEPDIR)/ISWP.Plo ./$(DEPDIR)/ISWPNG.Plo \
+	./$(DEPDIR)/ISWRender.Plo ./$(DEPDIR)/ISWRenderCairoXCB.Plo \
+	./$(DEPDIR)/ISWRenderEGL.Plo ./$(DEPDIR)/ISWSVG.Plo \
+	./$(DEPDIR)/ISWXcbDraw.Plo ./$(DEPDIR)/ISWXdnd.Plo \
+	./$(DEPDIR)/IconView.Plo ./$(DEPDIR)/Image.Plo \
+	./$(DEPDIR)/Initialize.Plo ./$(DEPDIR)/Intrinsic.Plo \
+	./$(DEPDIR)/Keyboard.Plo ./$(DEPDIR)/Label.Plo \
+	./$(DEPDIR)/Layout.Plo ./$(DEPDIR)/List.Plo \
+	./$(DEPDIR)/MainWindow.Plo ./$(DEPDIR)/Manage.Plo \
+	./$(DEPDIR)/MenuBar.Plo ./$(DEPDIR)/MenuButton.Plo \
+	./$(DEPDIR)/MultiSink.Plo ./$(DEPDIR)/MultiSrc.Plo \
+	./$(DEPDIR)/NextEvent.Plo ./$(DEPDIR)/Object.Plo \
+	./$(DEPDIR)/Paned.Plo ./$(DEPDIR)/Panner.Plo \
+	./$(DEPDIR)/PassivGrab.Plo ./$(DEPDIR)/Pointer.Plo \
+	./$(DEPDIR)/Popup.Plo ./$(DEPDIR)/PopupCB.Plo \
+	./$(DEPDIR)/Porthole.Plo ./$(DEPDIR)/ProgressBar.Plo \
+	./$(DEPDIR)/Quark.Plo ./$(DEPDIR)/RectObj.Plo \
+	./$(DEPDIR)/Repeater.Plo ./$(DEPDIR)/ResConfig.Plo \
+	./$(DEPDIR)/Resources.Plo ./$(DEPDIR)/Scale.Plo \
+	./$(DEPDIR)/ScrollWheel.Plo ./$(DEPDIR)/Scrollbar.Plo \
+	./$(DEPDIR)/Selection.Plo ./$(DEPDIR)/SetSens.Plo \
+	./$(DEPDIR)/SetValues.Plo ./$(DEPDIR)/SetWMCW.Plo \
+	./$(DEPDIR)/Shell.Plo ./$(DEPDIR)/Simple.Plo \
+	./$(DEPDIR)/SimpleMenu.Plo ./$(DEPDIR)/Sme.Plo \
+	./$(DEPDIR)/SmeBSB.Plo ./$(DEPDIR)/SmeLine.Plo \
+	./$(DEPDIR)/SpinBox.Plo ./$(DEPDIR)/StatusBar.Plo \
+	./$(DEPDIR)/StringDefs.Plo ./$(DEPDIR)/StripChart.Plo \
+	./$(DEPDIR)/TMaction.Plo ./$(DEPDIR)/TMgrab.Plo \
+	./$(DEPDIR)/TMkey.Plo ./$(DEPDIR)/TMparse.Plo \
+	./$(DEPDIR)/TMprint.Plo ./$(DEPDIR)/TMstate.Plo \
+	./$(DEPDIR)/Tabs.Plo ./$(DEPDIR)/Text.Plo \
+	./$(DEPDIR)/TextAction.Plo ./$(DEPDIR)/TextPop.Plo \
+	./$(DEPDIR)/TextSink.Plo ./$(DEPDIR)/TextSrc.Plo \
+	./$(DEPDIR)/TextTr.Plo ./$(DEPDIR)/Threads.Plo \
+	./$(DEPDIR)/Tip.Plo ./$(DEPDIR)/Toggle.Plo \
+	./$(DEPDIR)/Toolbar.Plo ./$(DEPDIR)/Tree.Plo \
+	./$(DEPDIR)/VarCreate.Plo ./$(DEPDIR)/VarGet.Plo \
+	./$(DEPDIR)/Varargs.Plo ./$(DEPDIR)/Vendor.Plo \
+	./$(DEPDIR)/Viewport.Plo ./$(DEPDIR)/laygram.Plo \
+	./$(DEPDIR)/laylex.Plo ./$(DEPDIR)/lodepng.Plo \
 	./$(DEPDIR)/nanosvg_impl.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -459,8 +462,6 @@ VERSION = @VERSION@
 XKBCOMMON_CFLAGS = @XKBCOMMON_CFLAGS@
 XKBCOMMON_LIBS = @XKBCOMMON_LIBS@
 XORG_MAN_PAGE = @XORG_MAN_PAGE@
-XPM_CFLAGS = @XPM_CFLAGS@
-XPM_LIBS = @XPM_LIBS@
 XT_DEPS_CFLAGS = @XT_DEPS_CFLAGS@
 XT_DEPS_LIBS = @XT_DEPS_LIBS@
 YACC = @YACC@
@@ -527,7 +528,6 @@ AM_CFLAGS = \
 	$(CWARNFLAGS) \
 	$(XT_DEPS_CFLAGS) \
 	$(ISW_DEPS_CFLAGS) \
-	$(XPM_CFLAGS) \
 	$(XKBCOMMON_CFLAGS) \
 	$(CAIRO_CFLAGS) \
 	$(FONTCONFIG_CFLAGS) \
@@ -628,6 +628,13 @@ SVG_SRCS = \
 	ISWSVG.c
 
 
+# PNG support (lodepng + ISW wrapper)
+PNG_SRCS = \
+	lodepng.c \
+	lodepng.h \
+	ISWPNG.c
+
+
 # ISW widget source files
 ISW_SOURCES = \
 	AllWidgets.c \
@@ -694,7 +701,8 @@ ISW_SOURCES = \
 	laylex.l \
 	$(I18N_SRCS) \
 	$(RENDER_SRCS) \
-	$(SVG_SRCS)
+	$(SVG_SRCS) \
+	$(PNG_SRCS)
 
 
 # Generated source files
@@ -708,7 +716,6 @@ libISW_la_SOURCES = \
 libISW_la_LIBADD = \
 	$(XT_DEPS_LIBS) \
 	$(ISW_DEPS_LIBS) \
-	$(XPM_LIBS) \
 	$(XKBCOMMON_LIBS) \
 	$(CAIRO_LIBS) \
 	$(FONTCONFIG_LIBS) \
@@ -849,6 +856,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWIm.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWInit.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWP.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWPNG.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRender.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRenderCairoXCB.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ISWRenderEGL.Plo@am__quote@ # am--include-marker
@@ -926,6 +934,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Viewport.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/laygram.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/laylex.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lodepng.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nanosvg_impl.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
@@ -1170,6 +1179,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/ISWIm.Plo
 	-rm -f ./$(DEPDIR)/ISWInit.Plo
 	-rm -f ./$(DEPDIR)/ISWP.Plo
+	-rm -f ./$(DEPDIR)/ISWPNG.Plo
 	-rm -f ./$(DEPDIR)/ISWRender.Plo
 	-rm -f ./$(DEPDIR)/ISWRenderCairoXCB.Plo
 	-rm -f ./$(DEPDIR)/ISWRenderEGL.Plo
@@ -1247,6 +1257,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/Viewport.Plo
 	-rm -f ./$(DEPDIR)/laygram.Plo
 	-rm -f ./$(DEPDIR)/laylex.Plo
+	-rm -f ./$(DEPDIR)/lodepng.Plo
 	-rm -f ./$(DEPDIR)/nanosvg_impl.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
@@ -1339,6 +1350,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/ISWIm.Plo
 	-rm -f ./$(DEPDIR)/ISWInit.Plo
 	-rm -f ./$(DEPDIR)/ISWP.Plo
+	-rm -f ./$(DEPDIR)/ISWPNG.Plo
 	-rm -f ./$(DEPDIR)/ISWRender.Plo
 	-rm -f ./$(DEPDIR)/ISWRenderCairoXCB.Plo
 	-rm -f ./$(DEPDIR)/ISWRenderEGL.Plo
@@ -1416,6 +1428,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/Viewport.Plo
 	-rm -f ./$(DEPDIR)/laygram.Plo
 	-rm -f ./$(DEPDIR)/laylex.Plo
+	-rm -f ./$(DEPDIR)/lodepng.Plo
 	-rm -f ./$(DEPDIR)/nanosvg_impl.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
