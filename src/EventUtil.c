@@ -115,12 +115,13 @@ _XtGetPerWidgetInput(Widget widget, _XtBoolean create)
     //if (!perWidgetInputContext)
     //    perWidgetInputContext = XUniqueContext();
 
-    HASH_FIND_INT(pd->PerWidgetContext, &widget, pwi);
+    xcb_window_t win = widget->core.window;
+    HASH_FIND_INT(pd->PerWidgetContext, &win, pwi);
     if (pwi == NULL && create) {
         pwi = (XtPerWidgetInput)
             __XtMalloc((unsigned) sizeof(XtPerWidgetInputRec));
 
-        pwi->id = widget->core.window;
+        pwi->id = win;
         pwi->focusKid = NULL;
         pwi->queryEventDescendant = NULL;
         pwi->focalPoint = XtUnrelated;
