@@ -169,6 +169,7 @@ set(ISW_WIDGET_SOURCES
     src/ColorPicker.c
     src/ComboBox.c
     src/Command.c
+    src/DrawingArea.c
     src/Dialog.c
     src/FlexBox.c
     src/FontChooser.c
