@@ -239,8 +239,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     GetBitmapInfo(new, TRUE);	/* Left Bitmap Info */
     GetBitmapInfo(new, FALSE);	/* Right Bitmap Info */
 
-    entry->sme_bsb.left_stippled = entry->sme_bsb.right_stippled = None;
-
     GetDefaultSize(new, &(entry->rectangle.width), &(entry->rectangle.height));
 }
 
@@ -262,12 +260,6 @@ Destroy(Widget w)
     }
 
     DestroyGCs(w);
-#ifdef ISW_MULTIPLANE_PIXMAPS
-    if (entry->sme_bsb.left_stippled != None)
-	XFreePixmap(XtDisplayOfObject(w), entry->sme_bsb.left_stippled);
-    if (entry->sme_bsb.right_stippled != None)
-	XFreePixmap(XtDisplayOfObject(w), entry->sme_bsb.right_stippled);
-#endif
     if (entry->sme_bsb.label != XtName(w))
 	XtFree(entry->sme_bsb.label);
 }
@@ -506,14 +498,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (entry->sme_bsb.left_bitmap != old_entry->sme_bsb.left_bitmap)
     {
 	GetBitmapInfo(new, TRUE);
-
-#ifdef ISW_MULTIPLANE_PIXMAPS
-	entry->sme_bsb.left_stippled = None;
-	if (old_entry->sme_bsb.left_stippled != None)
-	    XFreePixmap(XtDisplayOfObject(current),
-			old_entry->sme_bsb.left_stippled);
-#endif
-
 	ret_val = TRUE;
     }
 
@@ -523,14 +507,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (entry->sme_bsb.right_bitmap != old_entry->sme_bsb.right_bitmap)
     {
 	GetBitmapInfo(new, FALSE);
-
-#ifdef ISW_MULTIPLANE_PIXMAPS
-	entry->sme_bsb.right_stippled = None;
-	if (old_entry->sme_bsb.right_stippled != None)
-	    XFreePixmap(XtDisplayOfObject(current),
-			old_entry->sme_bsb.right_stippled);
-#endif
-
 	ret_val = TRUE;
     }
 
@@ -686,9 +662,6 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
 static void
 DrawBitmaps(Widget w, xcb_gcontext_t gc)
 {
-#ifdef ISW_MULTIPLANE_PIXMAPS
-    Widget parent = XtParent(w);
-#endif
     int x_loc, y_loc;
     SmeBSBObject entry = (SmeBSBObject) w;
     Pixmap pm;
@@ -709,18 +682,6 @@ DrawBitmaps(Widget w, xcb_gcontext_t gc)
 		      entry->sme_bsb.left_bitmap_height) / 2;
 
     pm = entry->sme_bsb.left_bitmap;
-#ifdef ISW_MULTIPLANE_PIXMAPS
-    if (!XtIsSensitive(w)) {
-	if (entry->sme_bsb.left_stippled == None)
-	    entry->sme_bsb.left_stippled = stipplePixmap(w,
-			entry->sme_bsb.left_bitmap,
-			parent->core.colormap,
-			parent->core.background_pixel,
-			entry->sme_bsb.left_depth);
-	if (entry->sme_bsb.left_stippled != None)
-	    pm = entry->sme_bsb.left_stippled;
-    }
-#endif
 
     if (entry->sme_bsb.render_ctx) {
 	Pixel fg = (gc == entry->sme_bsb.rev_gc) ?
@@ -749,18 +710,6 @@ DrawBitmaps(Widget w, xcb_gcontext_t gc)
 		      entry->sme_bsb.right_bitmap_height) / 2;
 
      pm = entry->sme_bsb.right_bitmap;
-#ifdef ISW_MULTIPLANE_PIXMAPS
-    if (!XtIsSensitive(w)) {
-	if (entry->sme_bsb.right_stippled == None)
-	    entry->sme_bsb.right_stippled = stipplePixmap(w,
-			entry->sme_bsb.right_bitmap,
-			parent->core.colormap,
-			parent->core.background_pixel,
-			entry->sme_bsb.right_depth);
-	if (entry->sme_bsb.right_stippled != None)
-	    pm = entry->sme_bsb.right_stippled;
-    }
-#endif
 
     if (entry->sme_bsb.render_ctx) {
 	Pixel fg = (gc == entry->sme_bsb.rev_gc) ?

@@ -105,11 +105,6 @@ if test "x$ISW_XIM" = xyes; then
     ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_HAS_XIM"
 fi
 
-AC_ARG_ENABLE([multiplane-bitmaps],
-    [AS_HELP_STRING([--enable-multiplane-bitmaps], dnl
-     [enable XPM support])],
-     [ISW_CPPFLAGS="${ISW_CPPFLAGS} -DISW_MULTIPLANE_PIXMAPS" dnl
-      PKG_CHECK_MODULES(XPM, xpm)])
 
 AC_ARG_ENABLE([gray-stipples],
     [AS_HELP_STRING([--enable-gray-stipples], dnl

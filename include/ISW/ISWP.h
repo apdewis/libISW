@@ -126,15 +126,5 @@ grayPixel(
 #define grayPixel(p, dpy, scn)	(p)
 #endif
 
-#ifdef ISW_MULTIPLANE_PIXMAPS
-extern Pixmap
-stipplePixmap(
-    Widget,
-    Pixmap,
-    Colormap,
-    Pixel,
-    unsigned int
-);
-#endif
 
 #endif /* _ISW_Isw3dP_h */

@@ -96,7 +96,6 @@ typedef struct {
     xcb_gcontext_t rev_gc;			/* reverse color gc. */
     xcb_gcontext_t norm_gray_gc;		/* Normal color (grayed out) gc. */
     xcb_gcontext_t invert_gc;		/* gc for flipping colors. */
-    Pixmap left_stippled, right_stippled; /* insensitive pixmaps */
     Dimension left_bitmap_width; /* size and depth of each pixmap. */
     Dimension left_bitmap_height;
     Dimension right_bitmap_width;

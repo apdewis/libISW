@@ -104,8 +104,6 @@ typedef struct {
     xcb_gcontext_t		normal_GC;
     xcb_gcontext_t          gray_GC;
     Pixmap	stipple;
-    Pixmap	stippled;		/* insensitive pixmap */
-    Pixmap	left_stippled;		/* ditto */
     Position	label_x;
     Position	label_y;
     Dimension	label_width;

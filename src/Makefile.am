@@ -6,7 +6,6 @@ AM_CFLAGS = \
 	$(CWARNFLAGS) \
 	$(XT_DEPS_CFLAGS) \
 	$(ISW_DEPS_CFLAGS) \
-	$(XPM_CFLAGS) \
 	$(XKBCOMMON_CFLAGS) \
 	$(CAIRO_CFLAGS) \
 	$(FONTCONFIG_CFLAGS) \
@@ -107,6 +106,12 @@ SVG_SRCS = \
 	nanosvgrast.h \
 	ISWSVG.c
 
+# PNG support (lodepng + ISW wrapper)
+PNG_SRCS = \
+	lodepng.c \
+	lodepng.h \
+	ISWPNG.c
+
 # ISW widget source files
 ISW_SOURCES = \
 	AllWidgets.c \
@@ -173,7 +178,8 @@ ISW_SOURCES = \
 	laylex.l \
 	$(I18N_SRCS) \
 	$(RENDER_SRCS) \
-	$(SVG_SRCS)
+	$(SVG_SRCS) \
+	$(PNG_SRCS)
 
 # Generated source files
 nodist_libISW_la_SOURCES = StringDefs.c
@@ -186,7 +192,6 @@ libISW_la_SOURCES = \
 libISW_la_LIBADD = \
 	$(XT_DEPS_LIBS) \
 	$(ISW_DEPS_LIBS) \
-	$(XPM_LIBS) \
 	$(XKBCOMMON_LIBS) \
 	$(CAIRO_LIBS) \
 	$(FONTCONFIG_LIBS) \

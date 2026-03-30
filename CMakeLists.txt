@@ -13,7 +13,7 @@ include(FindPkgConfig)
 
 option(ISW_INTERNATIONALIZATION "Enable UTF-8 multibyte support" ON)
 option(ISW_HAS_XIM "Enable X Input Method for CJK input (requires Xlib XIM APIs)" OFF)
-option(ISW_MULTIPLANE_PIXMAPS "Enable XPM support" OFF)
+
 option(ISW_GRAY_BLKWHT_STIPPLES "Enable gray stipple patterns" OFF)
 
 # ===========================================================================
@@ -46,10 +46,6 @@ endif()
 # Optional: xkbcommon
 pkg_check_modules(XKBCOMMON IMPORTED_TARGET xkbcommon)
 
-# Optional: xpm (when ISW_MULTIPLANE_PIXMAPS)
-if(ISW_MULTIPLANE_PIXMAPS)
-    pkg_check_modules(XPM REQUIRED IMPORTED_TARGET xpm)
-endif()
 
 # ===========================================================================
 # Header / function checks → config.h
@@ -233,6 +229,8 @@ endif()
 set(SVG_SOURCES
     src/nanosvg_impl.c
     src/ISWSVG.c
+    src/lodepng.c
+    src/ISWPNG.c
 )
 
 set(I18N_SOURCES)
@@ -302,9 +300,6 @@ if(ISW_HAS_XIM)
     target_compile_definitions(ISW PRIVATE ISW_HAS_XIM)
 endif()
 
-if(ISW_MULTIPLANE_PIXMAPS)
-    target_compile_definitions(ISW PRIVATE ISW_MULTIPLANE_PIXMAPS)
-endif()
 
 if(ISW_GRAY_BLKWHT_STIPPLES)
     target_compile_definitions(ISW PRIVATE ISW_GRAY_BLKWHT_STIPPLES)
@@ -367,9 +362,6 @@ if(XKBCOMMON_FOUND)
     target_link_libraries(ISW PRIVATE PkgConfig::XKBCOMMON)
 endif()
 
-if(ISW_MULTIPLANE_PIXMAPS)
-    target_link_libraries(ISW PRIVATE PkgConfig::XPM)
-endif()
 
 # ===========================================================================
 # Demo executable (not installed)
@@ -504,6 +496,6 @@ message(STATUS "  Cairo-EGL:             ${HAVE_CAIRO_EGL}")
 message(STATUS "")
 message(STATUS "Optional:")
 message(STATUS "  xkbcommon:             ${XKBCOMMON_FOUND}")
-message(STATUS "  XPM:                   ${ISW_MULTIPLANE_PIXMAPS}")
+
 message(STATUS "==========================================")
 message(STATUS "")

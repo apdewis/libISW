@@ -79,10 +79,8 @@ SOFTWARE.
 #ifdef ISW_INTERNATIONALIZATION
 /* Editres support - see IswUtils.h */
 #endif
-#ifdef ISW_MULTIPLANE_PIXMAPS
-#include <X11/xpm.h>
-/* Drawing utilities - see IswUtils.h */
-#endif
+#include <ISW/ISWPNG.h>
+#include "ISWRenderPrivate.h"
 
 /* The following two headers are for the input method. */
 #ifdef ISW_INTERNATIONALIZATION
@@ -344,7 +342,10 @@ IswCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 }
 #endif /* 0 */
 
-#ifdef ISW_MULTIPLANE_PIXMAPS
+#ifndef ParentRelative
+#define ParentRelative 1L
+#endif
+
 #define DONE(type, address) \
 	{to->size = sizeof(type); to->addr = (XtPointer)address;}
 
@@ -354,9 +355,10 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
                       XrmValuePtr from, XrmValuePtr to, XtPointer *data)
 {
     static Pixmap pixmap;
-    Window win;
-    XpmAttributes attr;
-    XpmColorSymbol colors[1];
+    ISWPNGImage *png;
+    xcb_screen_t *screen;
+    unsigned int w, h;
+    const unsigned char *rgba;
 
     if (*nargs != 3)
 	XtAppErrorMsg(XtDisplayToApplicationContext(dpy),
@@ -377,30 +379,61 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
 	return (True);
     }
 
-    win = RootWindowOfScreen(*((xcb_screen_t **) args[0].addr));
-
-    attr.colormap = *((Colormap *) args[1].addr);
-    attr.closeness = 32768;	/* might help on 8-bpp displays? */
-    attr.valuemask = XpmColormap | XpmCloseness;
-
-    colors[0].name = NULL;
-    colors[0].value = "none";
-    colors[0].pixel = *((Pixel *) args[2].addr);
-    attr.colorsymbols = colors;
-    attr.numsymbols = 1;
-    attr.valuemask |= XpmColorSymbols;
-
-    if (XpmReadFileToPixmap(dpy, win, (String) from->addr,
-			    &pixmap, NULL, &attr) != XpmSuccess)
-    {
-	if ((pixmap = IswLocateBitmapFile(*((xcb_screen_t **) args[0].addr),
-	      (char *)from->addr, NULL, 0, NULL, NULL, NULL, NULL)) == None)
-	{
-	    XtDisplayStringConversionWarning(dpy, (String) from->addr,
-					     XtRPixmap);
-	    return (False);
-	}
+    /* Load PNG via lodepng (with ISW path resolution) */
+    png = ISWPNGLoadFile((String) from->addr);
+    if (!png) {
+	XtDisplayStringConversionWarning(dpy, (String) from->addr, XtRPixmap);
+	return (False);
     }
+
+    w = ISWPNGGetWidth(png);
+    h = ISWPNGGetHeight(png);
+    rgba = ISWPNGGetRGBA(png);
+
+    screen = *((xcb_screen_t **) args[0].addr);
+
+    /* Create a server-side pixmap and paint the RGBA data onto it via Cairo */
+    pixmap = xcb_generate_id(dpy);
+    xcb_create_pixmap(dpy, screen->root_depth, pixmap,
+		      screen->root, w, h);
+    {
+	cairo_surface_t *target, *source;
+	cairo_t *cr;
+	int stride;
+
+	target = cairo_xcb_surface_create(dpy, pixmap,
+		    ISWRenderFindVisual(screen, screen->root_depth),
+		    w, h);
+	stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w);
+	source = cairo_image_surface_create_for_data(
+		    (unsigned char *)rgba, CAIRO_FORMAT_ARGB32, w, h, stride);
+	/* lodepng gives RGBA, but Cairo wants pre-multiplied ARGB in native
+	 * byte order.  Swizzle in-place before painting. */
+	{
+	    unsigned char *px = (unsigned char *)rgba;
+	    unsigned int i, npx = w * h;
+	    for (i = 0; i < npx; i++) {
+		unsigned char r = px[0], g = px[1], b = px[2], a = px[3];
+		float af = a / 255.0f;
+		/* Cairo native order is BGRA on little-endian (ARGB32) */
+		px[0] = (unsigned char)(b * af + 0.5f);
+		px[1] = (unsigned char)(g * af + 0.5f);
+		px[2] = (unsigned char)(r * af + 0.5f);
+		px[3] = a;
+		px += 4;
+	    }
+	}
+	cairo_surface_mark_dirty(source);
+	cr = cairo_create(target);
+	cairo_set_source_surface(cr, source, 0, 0);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+	cairo_surface_destroy(source);
+	cairo_surface_flush(target);
+	cairo_surface_destroy(target);
+    }
+
+    ISWPNGDestroy(png);
 
     if (to->addr == NULL)
 	to->addr = (XtPointer) & pixmap;
@@ -419,7 +452,6 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     to->size = sizeof(Pixmap);
     return (True);
 }
-#endif
 
 static void
 IswVendorShellClassInitialize(void)
@@ -428,7 +460,6 @@ IswVendorShellClassInitialize(void)
         {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.screen),
 	     sizeof(xcb_screen_t *)}
     };
-#ifdef ISW_MULTIPLANE_PIXMAPS
     static XtConvertArgRec _IswCvtStrToPix[] = {
 	{XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.screen),
 	     sizeof(xcb_screen_t *)},
@@ -438,23 +469,16 @@ IswVendorShellClassInitialize(void)
 	     (XtPointer)XtOffsetOf(WidgetRec, core.background_pixel),
 	     sizeof(Pixel)}
     };
-#endif
 
     /* XtSetTypeConverter needs 7 args: from, to, converter, args, num_args, cache, destructor */
     XtSetTypeConverter(XtRString, XtRCursor, XtCvtStringToCursor,
      screenConvertArg, XtNumber(screenConvertArg),
      XtCacheNone, NULL);
 
-#ifdef ISW_MULTIPLANE_PIXMAPS
     XtSetTypeConverter(XtRString, XtRBitmap,
 		       (XtTypeConverter)_IswCvtStringToPixmap,
 		       _IswCvtStrToPix, XtNumber(_IswCvtStrToPix),
 		       XtCacheByDisplay, (XtDestructor)NULL);
-#else
-    /* XmuCvtStringToBitmap not available in XCB port - commented out */
-    /* XtAddConverter(XtRString, XtRBitmap, XmuCvtStringToBitmap,
-		   screenConvertArg, XtNumber(screenConvertArg)); */
-#endif
 
     /* IswCvtCompoundTextToString commented out - complex text conversion not ported yet */
     /* XtSetTypeConverter("CompoundText", XtRString, IswCvtCompoundTextToString,

@@ -606,7 +606,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     lw->label.label_x = lw->label.label_y = 0;
     (*XtClass(new)->core_class.resize) ((Widget)lw);
 
-    lw->label.stippled = lw->label.left_stippled = None;
 } /* Initialize */
 
 /*
@@ -709,16 +708,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	/* display left bitmap */
 	if (w->label.left_bitmap && w->label.lbm_width != 0) {
 	    pm = w->label.left_bitmap;
-#ifdef ISW_MULTIPLANE_PIXMAPS
-	    if (!XtIsSensitive(gw)) {
-		if (w->label.left_stippled == None)
-		    w->label.left_stippled = stipplePixmap(gw,
-				w->label.left_bitmap, w->core.colormap,
-				w->core.background_pixel, w->label.depth);
-		if (w->label.left_stippled != None)
-		    pm = w->label.left_stippled;
-	    }
-#endif
 
 	    if (ctx) {
 		ISWRenderBegin(ctx);
@@ -795,16 +784,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     } else {
 	pm = w->label.pixmap;
-#ifdef ISW_MULTIPLANE_PIXMAPS
-	if (!XtIsSensitive(gw)) {
-	    if (w->label.stippled == None)
-		w->label.stippled = stipplePixmap(gw,
-				w->label.pixmap, w->core.colormap,
-				w->core.background_pixel, w->label.depth);
-	    if (w->label.stippled != None)
-		pm = w->label.stippled;
-	}
-#endif
 
 	if (ctx) {
 	    ISWRenderBegin(ctx);
@@ -1013,26 +992,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
  redisplay = True;
     }
 
-#ifdef ISW_MULTIPLANE_PIXMAPS
-    if (curlw->label.pixmap != newlw->label.pixmap)
-    {
-	newlw->label.stippled = None;
-	if (curlw->label.stippled != None) {
-	    xcb_connection_t *conn = current->core.display;
-	    xcb_free_pixmap(conn, curlw->label.stippled);
-	    xcb_flush(conn);
-	}
-    }
-    if (curlw->label.left_bitmap != newlw->label.left_bitmap)
-    {
-	newlw->label.left_stippled = None;
-	if (curlw->label.left_stippled != None) {
-	    xcb_connection_t *conn = current->core.display;
-	    xcb_free_pixmap(conn, curlw->label.left_stippled);
-	    xcb_flush(conn);
-	}
-    }
-#endif
 
     if (was_resized) {
 	Position dx, dy;
@@ -1072,18 +1031,6 @@ Destroy(Widget w)
 	ISWRenderDestroy(lw->label.render_ctx);
 	lw->label.render_ctx = NULL;
     }
-#ifdef ISW_MULTIPLANE_PIXMAPS
-    {
-	xcb_connection_t *conn = w->core.display;
-	if (lw->label.stippled != None) {
-	    xcb_free_pixmap(conn, lw->label.stippled);
-	}
-	if (lw->label.left_stippled != None) {
-	    xcb_free_pixmap(conn, lw->label.left_stippled);
-	}
-	xcb_flush(conn);
-    }
-#endif
     ISWReleaseStippledPixmap( XtScreen(w), lw->label.stipple );
 }
 
