@@ -66,6 +66,7 @@
 #include <ISW/Repeater.h>
 #include <ISW/Grip.h>
 #include <ISW/ProgressBar.h>
+#include <ISW/DrawingArea.h>
 #include <ISW/Tabs.h>
 #include <ISW/ISWXdnd.h>
 
@@ -125,6 +126,7 @@ Widget create_scale_demo(Widget parent);
 Widget create_scrollbar_demo(Widget parent);
 Widget create_progressbar_demo(Widget parent);
 Widget create_dialog_demo(Widget parent);
+Widget create_drawingarea_demo(Widget parent);
 Widget create_tabs_demo(Widget parent);
 void tabs_callback(Widget w, XtPointer client_data, XtPointer call_data);
 
@@ -142,6 +144,7 @@ void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void colorpicker_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void fontchooser_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void drawingarea_expose(Widget w, XtPointer client_data, XtPointer call_data);
 void quit_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void drop_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void drag_enter_callback(Widget w, XtPointer client_data, XtPointer call_data);
@@ -1563,7 +1566,7 @@ Widget create_paned_grip_demo(Widget parent) {
 
 Widget create_specialized_section(Widget parent) {
     Widget form, section_label;
-    Widget spinbox_demo, scale_demo, stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo, colorpicker_demo, fontchooser_demo;
+    Widget spinbox_demo, scale_demo, stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo, colorpicker_demo, fontchooser_demo, drawingarea_demo;
     Arg args[10];
     Cardinal n;
 
@@ -1639,6 +1642,13 @@ Widget create_specialized_section(Widget parent) {
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(fontchooser_demo, args, n);
+
+    drawingarea_demo = create_drawingarea_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromHoriz, fontchooser_demo); n++;
+    XtSetArg(args[n], XtNfromVert, scale_demo); n++;
+    XtSetArg(args[n], XtNhorizDistance, 10); n++;
+    XtSetValues(drawingarea_demo, args, n);
 
     /* Drop target demo — receives drops from any XDND app */
     Widget drop_label;
@@ -2246,6 +2256,64 @@ void tabs_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     TabsCallbackStruct *cbs = (TabsCallbackStruct *)call_data;
     printf("Tab switched to index %d (widget: %s)\n",
            cbs->tab_index, XtName(cbs->child));
+}
+
+/* ============================================================
+ * DRAWING AREA DEMO - Procedural checkerboard
+ * ============================================================ */
+
+void drawingarea_expose(Widget w, XtPointer client_data, XtPointer call_data) {
+    ISWDrawingCallbackData *cb = (ISWDrawingCallbackData *)call_data;
+    ISWRenderContext *ctx = cb->render_ctx;
+    Dimension width, height;
+    int cell_size = S(20);
+    int row, col;
+
+    XtVaGetValues(w, XtNwidth, &width, XtNheight, &height, NULL);
+
+    /* Clear to white */
+    ISWRenderSetColorRGBA(ctx, 1.0, 1.0, 1.0, 1.0);
+    ISWRenderFillRectangle(ctx, 0, 0, width, height);
+
+    /* Draw checkerboard */
+    for (row = 0; row * cell_size < (int)height; row++) {
+	for (col = 0; col * cell_size < (int)width; col++) {
+	    if ((row + col) % 2 == 0) {
+		ISWRenderSetColorRGBA(ctx, 0.2, 0.2, 0.6, 1.0);
+	    } else {
+		ISWRenderSetColorRGBA(ctx, 0.85, 0.85, 0.9, 1.0);
+	    }
+	    ISWRenderFillRectangle(ctx,
+				   col * cell_size, row * cell_size,
+				   cell_size, cell_size);
+	}
+    }
+}
+
+Widget create_drawingarea_demo(Widget parent) {
+    Widget box, title, canvas;
+    Arg args[10];
+    Cardinal n;
+
+    n = 0;
+    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    box = XtCreateManagedWidget("drawingAreaBox", boxWidgetClass, parent, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNlabel, "DrawingArea Widget"); n++;
+    XtSetArg(args[n], XtNborderWidth, 0); n++;
+    title = XtCreateManagedWidget("drawingAreaTitle", labelWidgetClass, box, args, n);
+
+    n = 0;
+    XtSetArg(args[n], XtNwidth, S(160)); n++;
+    XtSetArg(args[n], XtNheight, S(160)); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    canvas = XtCreateManagedWidget("canvas", drawingAreaWidgetClass, box, args, n);
+
+    XtAddCallback(canvas, XtNexposeCallback, drawingarea_expose, NULL);
+
+    return box;
 }
 
 Widget create_tabs_demo(Widget parent) {
