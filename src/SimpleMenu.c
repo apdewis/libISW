@@ -114,8 +114,8 @@ static XtResource resources[] = {
 static char defaultTranslations[] =
     "<EnterWindow>:     highlight()             \n\
      <LeaveWindow>:     unhighlight()           \n\
-     <BtnMotion>:       highlight()             \n\
-     <BtnUp>:           notify() unhighlight() popdown()";
+     <Motion>:          highlight()             \n\
+     <BtnDown>:         notify() unhighlight() popdown()";
 
 /*
  * Semi Public function definitions.
