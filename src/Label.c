@@ -301,6 +301,25 @@ _LabelRasterizeSVG(LabelWidget lw)
     if (w == 0 || h == 0)
 	return;
 
+    /* Clamp to available widget space, preserving aspect ratio */
+    unsigned int avail_w = 0, avail_h = 0;
+    if (lw->core.width > 2 * lw->label.internal_width)
+	avail_w = lw->core.width - 2 * lw->label.internal_width;
+    if (lw->core.height > 2 * lw->label.internal_height)
+	avail_h = lw->core.height - 2 * lw->label.internal_height;
+
+    if (avail_w > 0 && avail_h > 0 && (w > avail_w || h > avail_h)) {
+	float scale_w = (float)avail_w / w;
+	float scale_h = (float)avail_h / h;
+	float scale = scale_w < scale_h ? scale_w : scale_h;
+	w = (unsigned int)(w * scale + 0.5f);
+	h = (unsigned int)(h * scale + 0.5f);
+	if (w == 0) w = 1;
+	if (h == 0) h = 1;
+	lw->label.label_width = w;
+	lw->label.label_height = h;
+    }
+
     /* Skip if cache is still valid */
     if (lw->label.svg_raster &&
 	lw->label.svg_raster_w == w && lw->label.svg_raster_h == h)
@@ -648,11 +667,16 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (w->label.svg_image) {
 	_LabelRasterizeSVG(w);
 	if (w->label.svg_raster && ctx) {
+	    /* Center the (possibly clamped) raster in the widget */
+	    int draw_x = (int)(w->core.width - w->label.svg_raster_w) / 2;
+	    int draw_y = (int)(w->core.height - w->label.svg_raster_h) / 2;
+	    if (draw_x < 0) draw_x = 0;
+	    if (draw_y < 0) draw_y = 0;
 	    ISWRenderBegin(ctx);
 	    ISWRenderDrawImageRGBA(ctx, w->label.svg_raster,
 				   w->label.svg_raster_w,
 				   w->label.svg_raster_h,
-				   w->label.label_x, w->label.label_y,
+				   draw_x, draw_y,
 				   w->label.svg_raster_w,
 				   w->label.svg_raster_h);
 	    ISWRenderEnd(ctx);
