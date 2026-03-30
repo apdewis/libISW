@@ -574,8 +574,8 @@ DestroyAppContext(XtAppContext app)
     XtAppContext *prev_app;
 
     prev_app = &app->process->appContextList;
-    while (app->count-- > 0)
-        XtCloseDisplay(app->list[app->count]);
+    while (app->count > 0)
+        XtCloseDisplay(app->list[app->count - 1]);
     if (app->list != NULL)
         XtFree((char *) app->list);
     _XtFreeConverterTable(app->converterTable);
@@ -764,6 +764,12 @@ CloseDisplay(xcb_connection_t *dpy)
         }
         if (xtpd->mapping_callbacks != NULL)
             _XtRemoveAllCallbacks(&xtpd->mapping_callbacks);
+        /* Flush the converter cache and GC list before removing the
+         * display from the app context.  FreePixel (called from the
+         * cache flush) uses _XtConnectionOfScreen() which walks
+         * app->list[] — the display must still be in that list. */
+        _XtCacheFlushTag(xtpd->appContext, (XtPointer) &xtpd->heap);
+        _XtGClistFree(dpy, xtpd);
         XtDeleteFromAppContext(dpy, xtpd->appContext);
         //if (xtpd->keysyms)
         //    xcb_key_symbols_free(xtpd->keysyms); //causes linker error even with xcb-xkb linked
@@ -777,8 +783,6 @@ CloseDisplay(xcb_connection_t *dpy)
         xtpd->modsToKeysyms = NULL;
         //XDestroyRegion(xtpd->region);
         xcb_xfixes_destroy_region(dpy, xtpd->region);
-        _XtCacheFlushTag(xtpd->appContext, (XtPointer) &xtpd->heap);
-        _XtGClistFree(dpy, xtpd);
         XtFree((char *) xtpd->pdi.trace);
         _XtHeapFree(&xtpd->heap);
         _XtFreeWWTable(xtpd);

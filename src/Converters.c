@@ -637,8 +637,10 @@ FreePixel(XtAppContext app,
 
     if (closure) {
         xcb_connection_t *dpy = _XtConnectionOfScreen(screen);
-        uint32_t pixel = *(uint32_t *) toVal->addr;
-        xcb_free_colors(dpy, colormap, 0, 1, &pixel);
+        if (dpy != NULL && xcb_connection_has_error(dpy) == 0) {
+            uint32_t pixel = *(uint32_t *) toVal->addr;
+            xcb_free_colors(dpy, colormap, 0, 1, &pixel);
+        }
     }
 }
 
