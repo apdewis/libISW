@@ -550,7 +550,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             ? w->core.width - 2 * w->label.internal_width : 0;
         unsigned int avail_h = w->core.height > 2 * w->label.internal_height
             ? w->core.height - 2 * w->label.internal_height : 0;
-        if (avail_w > 0 && avail_h > 0 && (disp_w > avail_w || disp_h > avail_h)) {
+        if (avail_w > 0 && avail_h > 0 && (disp_w != avail_w || disp_h != avail_h)) {
             float sw = (float)avail_w / disp_w;
             float sh = (float)avail_h / disp_h;
             float s  = sw < sh ? sw : sh;
