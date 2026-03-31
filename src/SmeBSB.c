@@ -51,6 +51,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeBSBP.h>
 #include <ISW/Cardinals.h>
 #include <ISW/ISWRender.h>
+#include <ISW/ISWImage.h>
 #include <cairo.h>
 #include <stdio.h>
 #include <xcb/xcb.h>
@@ -72,12 +73,12 @@ static XtResource resources[] = {
      offset(label), XtRString, NULL},
   {XtNvertSpace,  XtCVertSpace, XtRInt, sizeof(int),
      offset(vert_space), XtRImmediate, (XtPointer) 25},
-  {XtNleftBitmap, XtCLeftBitmap, XtRBitmap, sizeof(Pixmap),
-     offset(left_bitmap), XtRImmediate, (XtPointer)None},
+  {XtNleftImage, XtCLeftImage, XtRString, sizeof(String),
+     offset(left_image_source), XtRImmediate, (XtPointer)NULL},
   {XtNjustify, XtCJustify, XtRJustify, sizeof(XtJustify),
      offset(justify), XtRImmediate, (XtPointer) XtJustifyLeft},
-  {XtNrightBitmap, XtCRightBitmap, XtRBitmap, sizeof(Pixmap),
-     offset(right_bitmap), XtRImmediate, (XtPointer)None},
+  {XtNrightImage, XtCRightImage, XtRString, sizeof(String),
+     offset(right_image_source), XtRImmediate, (XtPointer)NULL},
   {XtNleftMargin,  XtCHorizontalMargins, XtRDimension, sizeof(Dimension),
      offset(left_margin), XtRImmediate, (XtPointer) 4},
   {XtNrightMargin,  XtCHorizontalMargins, XtRDimension, sizeof(Dimension),
@@ -116,7 +117,7 @@ static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeomet
 
 static void GetDefaultSize(Widget, Dimension *, Dimension *);
 static void DrawBitmaps(Widget, xcb_gcontext_t);
-static void GetBitmapInfo(Widget, Boolean);
+static void GetImageInfo(Widget, Boolean);
 static void CreateGCs(Widget);
 static void DestroyGCs(Widget);
 #define superclass (&smeClassRec)
@@ -236,8 +237,25 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     CreateGCs(new);
 
-    GetBitmapInfo(new, TRUE);	/* Left Bitmap Info */
-    GetBitmapInfo(new, FALSE);	/* Right Bitmap Info */
+    /* Load images from string resources */
+    if (entry->sme_bsb.left_image_source) {
+        entry->sme_bsb.left_image_source = XtNewString(entry->sme_bsb.left_image_source);
+        entry->sme_bsb.left_image = ISWImageLoad(entry->sme_bsb.left_image_source,
+                                                  96.0, NULL);
+    }
+    if (entry->sme_bsb.right_image_source) {
+        entry->sme_bsb.right_image_source = XtNewString(entry->sme_bsb.right_image_source);
+        entry->sme_bsb.right_image = ISWImageLoad(entry->sme_bsb.right_image_source,
+                                                   96.0, NULL);
+    }
+    if (entry->sme_bsb.left_image) {
+        entry->sme_bsb.left_image_width  = (Dimension)ISWImageGetWidth(entry->sme_bsb.left_image);
+        entry->sme_bsb.left_image_height = (Dimension)ISWImageGetHeight(entry->sme_bsb.left_image);
+    }
+    if (entry->sme_bsb.right_image) {
+        entry->sme_bsb.right_image_width  = (Dimension)ISWImageGetWidth(entry->sme_bsb.right_image);
+        entry->sme_bsb.right_image_height = (Dimension)ISWImageGetHeight(entry->sme_bsb.right_image);
+    }
 
     GetDefaultSize(new, &(entry->rectangle.width), &(entry->rectangle.height));
 }
@@ -257,6 +275,19 @@ Destroy(Widget w)
     if (entry->sme_bsb.render_ctx) {
         ISWRenderDestroy(entry->sme_bsb.render_ctx);
         entry->sme_bsb.render_ctx = NULL;
+    }
+
+    if (entry->sme_bsb.left_image_source)
+        XtFree(entry->sme_bsb.left_image_source);
+    if (entry->sme_bsb.right_image_source)
+        XtFree(entry->sme_bsb.right_image_source);
+    if (entry->sme_bsb.left_image) {
+        ISWImageDestroy(entry->sme_bsb.left_image);
+        entry->sme_bsb.left_image = NULL;
+    }
+    if (entry->sme_bsb.right_image) {
+        ISWImageDestroy(entry->sme_bsb.right_image);
+        entry->sme_bsb.right_image = NULL;
     }
 
     DestroyGCs(w);
@@ -495,19 +526,33 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	ret_val = TRUE;
     }
 
-    if (entry->sme_bsb.left_bitmap != old_entry->sme_bsb.left_bitmap)
-    {
-	GetBitmapInfo(new, TRUE);
-	ret_val = TRUE;
+    if (entry->sme_bsb.left_image_source != old_entry->sme_bsb.left_image_source) {
+        if (old_entry->sme_bsb.left_image_source)
+            XtFree(old_entry->sme_bsb.left_image_source);
+        if (old_entry->sme_bsb.left_image)
+            ISWImageDestroy(old_entry->sme_bsb.left_image);
+        entry->sme_bsb.left_image_source = entry->sme_bsb.left_image_source
+            ? XtNewString(entry->sme_bsb.left_image_source) : NULL;
+        entry->sme_bsb.left_image = entry->sme_bsb.left_image_source
+            ? ISWImageLoad(entry->sme_bsb.left_image_source, 96.0, NULL) : NULL;
+        GetImageInfo(new, TRUE);
+        ret_val = TRUE;
     }
 
     if (entry->sme_bsb.left_margin != old_entry->sme_bsb.left_margin)
 	ret_val = TRUE;
 
-    if (entry->sme_bsb.right_bitmap != old_entry->sme_bsb.right_bitmap)
-    {
-	GetBitmapInfo(new, FALSE);
-	ret_val = TRUE;
+    if (entry->sme_bsb.right_image_source != old_entry->sme_bsb.right_image_source) {
+        if (old_entry->sme_bsb.right_image_source)
+            XtFree(old_entry->sme_bsb.right_image_source);
+        if (old_entry->sme_bsb.right_image)
+            ISWImageDestroy(old_entry->sme_bsb.right_image);
+        entry->sme_bsb.right_image_source = entry->sme_bsb.right_image_source
+            ? XtNewString(entry->sme_bsb.right_image_source) : NULL;
+        entry->sme_bsb.right_image = entry->sme_bsb.right_image_source
+            ? ISWImageLoad(entry->sme_bsb.right_image_source, 96.0, NULL) : NULL;
+        GetImageInfo(new, FALSE);
+        ret_val = TRUE;
     }
 
     if (entry->sme_bsb.right_margin != old_entry->sme_bsb.right_margin)
@@ -646,8 +691,8 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
 
     *width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;
 
-    h = (entry->sme_bsb.left_bitmap_height > entry->sme_bsb.right_bitmap_height)
-	    ? entry->sme_bsb.left_bitmap_height : entry->sme_bsb.right_bitmap_height;
+    h = (entry->sme_bsb.left_image_height > entry->sme_bsb.right_image_height)
+	    ? entry->sme_bsb.left_image_height : entry->sme_bsb.right_image_height;
     if (h > *height) *height = h;
     *height = ((int)*height * (100 + entry->sme_bsb.vert_space)) / 100;
 }
@@ -664,66 +709,54 @@ DrawBitmaps(Widget w, xcb_gcontext_t gc)
 {
     int x_loc, y_loc;
     SmeBSBObject entry = (SmeBSBObject) w;
-    Pixmap pm;
+    unsigned int rw, rh;
+    const unsigned char *pixels;
 
-    if ( (entry->sme_bsb.left_bitmap == None) &&
-	 (entry->sme_bsb.right_bitmap == None) ) return;
+    (void)gc;  /* gc no longer used — images are RGBA */
 
-/*
- * Draw Left Bitmap.
- */
+    if (!entry->sme_bsb.left_image && !entry->sme_bsb.right_image)
+        return;
 
-  if (entry->sme_bsb.left_bitmap != None) {
-    x_loc = 0 +
-  (int)(entry->sme_bsb.left_margin -
-		entry->sme_bsb.left_bitmap_width) / 2;
+    /* Draw left image */
+    if (entry->sme_bsb.left_image) {
+        x_loc = (int)(entry->sme_bsb.left_margin - entry->sme_bsb.left_image_width) / 2;
+        y_loc = entry->rectangle.y +
+                (int)(entry->rectangle.height - entry->sme_bsb.left_image_height) / 2;
 
-    y_loc = entry->rectangle.y + (int)(entry->rectangle.height -
-		      entry->sme_bsb.left_bitmap_height) / 2;
-
-    pm = entry->sme_bsb.left_bitmap;
-
-    if (entry->sme_bsb.render_ctx) {
-	Pixel fg = (gc == entry->sme_bsb.rev_gc) ?
-	    XtParent(w)->core.background_pixel : entry->sme_bsb.foreground;
-	ISWRenderBegin(entry->sme_bsb.render_ctx);
-	ISWRenderSetColor(entry->sme_bsb.render_ctx, fg);
-	ISWRenderDrawPixmap(entry->sme_bsb.render_ctx, pm, 0, 0,
-			    x_loc, y_loc,
-			    entry->sme_bsb.left_bitmap_width,
-			    entry->sme_bsb.left_bitmap_height,
-			    entry->sme_bsb.left_depth);
-	ISWRenderEnd(entry->sme_bsb.render_ctx);
+        pixels = ISWImageRasterize(entry->sme_bsb.left_image,
+                                   entry->sme_bsb.left_image_width,
+                                   entry->sme_bsb.left_image_height,
+                                   &rw, &rh);
+        if (pixels && entry->sme_bsb.render_ctx) {
+            ISWRenderBegin(entry->sme_bsb.render_ctx);
+            ISWRenderDrawImageRGBA(entry->sme_bsb.render_ctx, pixels, rw, rh,
+                                   x_loc, y_loc,
+                                   entry->sme_bsb.left_image_width,
+                                   entry->sme_bsb.left_image_height);
+            ISWRenderEnd(entry->sme_bsb.render_ctx);
+        }
     }
-  }
 
-/*
- * Draw Right Bitmap.
- */
+    /* Draw right image */
+    if (entry->sme_bsb.right_image) {
+        x_loc = entry->rectangle.width -
+                (int)(entry->sme_bsb.right_margin + entry->sme_bsb.right_image_width) / 2;
+        y_loc = entry->rectangle.y +
+                (int)(entry->rectangle.height - entry->sme_bsb.right_image_height) / 2;
 
-  if (entry->sme_bsb.right_bitmap != None) {
-    x_loc = entry->rectangle.width - 0 -
-  (int)(entry->sme_bsb.right_margin +
-		entry->sme_bsb.right_bitmap_width) / 2;
-
-    y_loc = entry->rectangle.y + (int)(entry->rectangle.height -
-		      entry->sme_bsb.right_bitmap_height) / 2;
-
-     pm = entry->sme_bsb.right_bitmap;
-
-    if (entry->sme_bsb.render_ctx) {
-	Pixel fg = (gc == entry->sme_bsb.rev_gc) ?
-	    XtParent(w)->core.background_pixel : entry->sme_bsb.foreground;
-	ISWRenderBegin(entry->sme_bsb.render_ctx);
-	ISWRenderSetColor(entry->sme_bsb.render_ctx, fg);
-	ISWRenderDrawPixmap(entry->sme_bsb.render_ctx, pm, 0, 0,
-			    x_loc, y_loc,
-			    entry->sme_bsb.right_bitmap_width,
-			    entry->sme_bsb.right_bitmap_height,
-			    entry->sme_bsb.right_depth);
-	ISWRenderEnd(entry->sme_bsb.render_ctx);
+        pixels = ISWImageRasterize(entry->sme_bsb.right_image,
+                                   entry->sme_bsb.right_image_width,
+                                   entry->sme_bsb.right_image_height,
+                                   &rw, &rh);
+        if (pixels && entry->sme_bsb.render_ctx) {
+            ISWRenderBegin(entry->sme_bsb.render_ctx);
+            ISWRenderDrawImageRGBA(entry->sme_bsb.render_ctx, pixels, rw, rh,
+                                   x_loc, y_loc,
+                                   entry->sme_bsb.right_image_width,
+                                   entry->sme_bsb.right_image_height);
+            ISWRenderEnd(entry->sme_bsb.render_ctx);
+        }
     }
-  }
 }
 
 /*      Function Name: GetBitmapInfo
@@ -735,76 +768,26 @@ DrawBitmaps(Widget w, xcb_gcontext_t gc)
  */
 
 static void
-GetBitmapInfo(Widget w, Boolean is_left)
+GetImageInfo(Widget w, Boolean is_left)
 {
     SmeBSBObject entry = (SmeBSBObject) w;
-    xcb_window_t root;
-    int x, y;
-    unsigned int width, height, bw;
-    char buf[BUFSIZ];
 
     if (is_left) {
-	width = height = 0;
-
-	if (entry->sme_bsb.left_bitmap != None) {
-	    xcb_connection_t *conn = XtDisplayOfObject(w);
-	    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(conn, entry->sme_bsb.left_bitmap);
-	    xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn, cookie, NULL);
-	    if (geom == NULL) {
-	 (void) sprintf(buf, "Isw SmeBSB Object: %s %s \"%s\".",
-	  "Could not get Left Bitmap",
-	  "geometry information for menu entry",
-	  XtName(w));
-	 XtAppError(XtWidgetToApplicationContext(w), buf);
-	    } else {
-	 width = geom->width;
-	 height = geom->height;
-	 entry->sme_bsb.left_depth = geom->depth;
-	 free(geom);
-	    }
-#ifdef NEVER
-	    if (entry->sme_bsb.left_depth != 1) {
-	 (void) sprintf(buf, "Isw SmeBSB Object: %s \"%s\" %s.",
-	  "Left Bitmap of entry",  XtName(w),
-	  "is not one bit deep");
-	 XtAppError(XtWidgetToApplicationContext(w), buf);
-	    }
-#endif
-	}
-
-	entry->sme_bsb.left_bitmap_width = (Dimension) width;
-	entry->sme_bsb.left_bitmap_height = (Dimension) height;
-	   } else {
-	width = height = 0;
-
-	if (entry->sme_bsb.right_bitmap != None) {
-	    xcb_connection_t *conn = XtDisplayOfObject(w);
-	    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(conn, entry->sme_bsb.right_bitmap);
-	    xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn, cookie, NULL);
-	    if (geom == NULL) {
-	 (void) sprintf(buf, "Isw SmeBSB Object: %s %s \"%s\".",
-	  "Could not get Right Bitmap",
-	  "geometry information for menu entry",
-	  XtName(w));
-	 XtAppError(XtWidgetToApplicationContext(w), buf);
-	    } else {
-	 width = geom->width;
-	 height = geom->height;
-	 entry->sme_bsb.right_depth = geom->depth;
-	 free(geom);
-	    }
-#ifdef NEVER
-	    if (entry->sme_bsb.right_depth != 1) {
-	 (void) sprintf(buf, "Isw SmeBSB Object: %s \"%s\" %s.",
-	  "Right Bitmap of entry", XtName(w),
-	  "is not one bit deep");
-	 XtAppError(XtWidgetToApplicationContext(w), buf);
-	    }
-#endif
-	}
-
-	entry->sme_bsb.right_bitmap_width = (Dimension) width;
-	entry->sme_bsb.right_bitmap_height = (Dimension) height;
+        if (entry->sme_bsb.left_image) {
+            entry->sme_bsb.left_image_width  = (Dimension)ISWImageGetWidth(entry->sme_bsb.left_image);
+            entry->sme_bsb.left_image_height = (Dimension)ISWImageGetHeight(entry->sme_bsb.left_image);
+        } else {
+            entry->sme_bsb.left_image_width  = 0;
+            entry->sme_bsb.left_image_height = 0;
+        }
+    } else {
+        if (entry->sme_bsb.right_image) {
+            entry->sme_bsb.right_image_width  = (Dimension)ISWImageGetWidth(entry->sme_bsb.right_image);
+            entry->sme_bsb.right_image_height = (Dimension)ISWImageGetHeight(entry->sme_bsb.right_image);
+        } else {
+            entry->sme_bsb.right_image_width  = 0;
+            entry->sme_bsb.right_image_height = 0;
+        }
     }
 }
 

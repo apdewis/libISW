@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 project(libISW VERSION 1.0.0 LANGUAGES C)
 
+# Default install prefix to /usr (overridable with -DCMAKE_INSTALL_PREFIX=...)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install prefix" FORCE)
+endif()
+
 include(GNUInstallDirs)
 include(CheckIncludeFile)
 include(CheckFunctionExists)
@@ -215,6 +220,7 @@ set(ISW_WIDGET_SOURCES
     src/ISWXcbDraw.c
     src/ISWXdnd.c
     src/Image.c
+    src/ISWImage.c
 )
 
 set(RENDER_SOURCES

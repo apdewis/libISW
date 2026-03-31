@@ -174,6 +174,7 @@ ISW_SOURCES = \
 	ISWXcbDraw.h \
 	ISWXdnd.c \
 	Image.c \
+	ISWImage.c \
 	laygram.y \
 	laylex.l \
 	$(I18N_SRCS) \

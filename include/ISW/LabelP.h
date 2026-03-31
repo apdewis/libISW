@@ -65,7 +65,7 @@ SOFTWARE.
 #include <ISW/SimpleP.h>
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef only */
 #include <ISW/ISWRender.h>     /* For ISWRenderContext */
-#include <ISW/ISWSVG.h>        /* For ISWSVGImage */
+#include <ISW/ISWImage.h>      /* For ISWImage */
 
 /* XtJustify type is now centrally defined in Isw3dP.h and IswXcbDraw.h */
 /* with proper include guards to prevent redefinition */
@@ -95,10 +95,14 @@ typedef struct {
     XtJustify	justify;
     Dimension	internal_width;
     Dimension	internal_height;
-    Pixmap	pixmap;
     Boolean	resize;
     unsigned char encoding;
-    Pixmap	left_bitmap;
+
+    /* Unified image resources */
+    String          image_source;
+    String          left_image_source;
+    ISWImage       *image;
+    ISWImage       *left_image;
 
     /* private state */
     xcb_gcontext_t		normal_GC;
@@ -110,19 +114,10 @@ typedef struct {
     Dimension	label_height;
     Dimension	label_len;
     int		lbm_y;			/* where in label */
-    unsigned int lbm_width, lbm_height;	/* size of pixmap */
-    unsigned int depth;			/* depth of pixmaps */
+    unsigned int lbm_width, lbm_height;	/* size of left image */
 
     /* Cairo rendering context */
     ISWRenderContext *render_ctx;
-
-    /* SVG image support */
-    String	svg_data;		/* inline SVG XML string */
-    String	svg_file;		/* path to SVG file */
-    ISWSVGImage	*svg_image;		/* parsed SVG (private) */
-    unsigned char *svg_raster;		/* cached RGBA raster (private) */
-    unsigned int svg_raster_w;		/* cached raster width */
-    unsigned int svg_raster_h;		/* cached raster height */
 } LabelPart;
 
 
@@ -138,7 +133,7 @@ typedef struct _LabelRec {
     LabelPart	label;
 } LabelRec;
 
-#define LEFT_OFFSET(lw) ((lw)->label.left_bitmap && (lw)->label.pixmap == None \
+#define LEFT_OFFSET(lw) ((lw)->label.left_image \
 			 ? (lw)->label.lbm_width + (lw)->label.internal_width \
 			 : 0)
 

@@ -63,7 +63,7 @@ SOFTWARE.
 /* #include <X11/Xmu/Drawing.h> */
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
-#include <ISW/ISWSVG.h>
+#include <ISW/ISWImage.h>
 #include <ISW/Command.h>
 #include <ISW/LabelP.h>
 /* NO XFT - using pure XCB rendering */
@@ -125,19 +125,15 @@ static XtResource resources[] = {
 	offset(label.internal_width), XtRImmediate, (XtPointer)4},
     {XtNinternalHeight, XtCHeight, XtRDimension, sizeof(Dimension),
 	offset(label.internal_height), XtRImmediate, (XtPointer)2},
-    {XtNleftBitmap, XtCLeftBitmap, XtRBitmap, sizeof(Pixmap),
-       offset(label.left_bitmap), XtRImmediate, (XtPointer) None},
-    {XtNbitmap, XtCPixmap, XtRBitmap, sizeof(Pixmap),
-	offset(label.pixmap), XtRImmediate, (XtPointer)None},
+    {XtNleftImage, XtCLeftImage, XtRString, sizeof(String),
+       offset(label.left_image_source), XtRImmediate, (XtPointer)NULL},
+    {XtNimage, XtCImage, XtRString, sizeof(String),
+	offset(label.image_source), XtRImmediate, (XtPointer)NULL},
     {XtNresize, XtCResize, XtRBoolean, sizeof(Boolean),
 	offset(label.resize), XtRImmediate, (XtPointer)True},
     {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
          XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
          (XtPointer)1},
-    {XtNsvgData, XtCSvgData, XtRString, sizeof(String),
-	offset(label.svg_data), XtRImmediate, (XtPointer)NULL},
-    {XtNsvgFile, XtCSvgFile, XtRString, sizeof(String),
-	offset(label.svg_file), XtRImmediate, (XtPointer)NULL},
 };
 #undef offset
 
@@ -248,89 +244,15 @@ _LabelForegroundHex(LabelWidget lw, char *hex, size_t hex_size)
 }
 
 /*
- * Parse SVG from svgFile or svgData resources.
- * Frees any previous SVG state first.
- * Substitutes "currentColor" with the widget's foreground color.
+ * Load an ISWImage from a source string using the widget's DPI and foreground.
  */
-static void
-_LabelParseSVG(LabelWidget lw)
+static ISWImage *
+_LabelLoadImage(LabelWidget lw, const char *source)
 {
     float dpi = (float)(96.0 * ISWScaleFactor((Widget)lw));
-    char fg_hex[8];  /* "#RRGGBB\0" */
-    const char *color;
-
-    /* Free previous state */
-    if (lw->label.svg_raster) {
-	free(lw->label.svg_raster);
-	lw->label.svg_raster = NULL;
-	lw->label.svg_raster_w = 0;
-	lw->label.svg_raster_h = 0;
-    }
-    if (lw->label.svg_image) {
-	ISWSVGDestroy(lw->label.svg_image);
-	lw->label.svg_image = NULL;
-    }
-
-    /* Resolve foreground for currentColor substitution */
-    color = _LabelForegroundHex(lw, fg_hex, sizeof(fg_hex)) ? fg_hex : NULL;
-
-    /* Try file first, then inline data */
-    if (lw->label.svg_file && lw->label.svg_file[0]) {
-	lw->label.svg_image = ISWSVGLoadFile(lw->label.svg_file, "px", dpi,
-					      color);
-    } else if (lw->label.svg_data && lw->label.svg_data[0]) {
-	lw->label.svg_image = ISWSVGLoadData(lw->label.svg_data, "px", dpi,
-					      color);
-    }
-}
-
-/*
- * Rasterize the parsed SVG at the label's current dimensions.
- * Called after SetTextWidthAndHeight has set label_width/label_height.
- */
-static void
-_LabelRasterizeSVG(LabelWidget lw)
-{
-    unsigned int w, h;
-
-    if (!lw->label.svg_image)
-	return;
-
-    w = lw->label.label_width;
-    h = lw->label.label_height;
-    if (w == 0 || h == 0)
-	return;
-
-    /* Clamp to available widget space, preserving aspect ratio */
-    unsigned int avail_w = 0, avail_h = 0;
-    if (lw->core.width > 2 * lw->label.internal_width)
-	avail_w = lw->core.width - 2 * lw->label.internal_width;
-    if (lw->core.height > 2 * lw->label.internal_height)
-	avail_h = lw->core.height - 2 * lw->label.internal_height;
-
-    if (avail_w > 0 && avail_h > 0 && (w > avail_w || h > avail_h)) {
-	float scale_w = (float)avail_w / w;
-	float scale_h = (float)avail_h / h;
-	float scale = scale_w < scale_h ? scale_w : scale_h;
-	w = (unsigned int)(w * scale + 0.5f);
-	h = (unsigned int)(h * scale + 0.5f);
-	if (w == 0) w = 1;
-	if (h == 0) h = 1;
-	lw->label.label_width = w;
-	lw->label.label_height = h;
-    }
-
-    /* Skip if cache is still valid */
-    if (lw->label.svg_raster &&
-	lw->label.svg_raster_w == w && lw->label.svg_raster_h == h)
-	return;
-
-    if (lw->label.svg_raster)
-	free(lw->label.svg_raster);
-
-    lw->label.svg_raster = ISWSVGRasterize(lw->label.svg_image, w, h);
-    lw->label.svg_raster_w = w;
-    lw->label.svg_raster_h = h;
+    char fg_hex[8];
+    const char *color = _LabelForegroundHex(lw, fg_hex, sizeof(fg_hex)) ? fg_hex : NULL;
+    return ISWImageLoad(source, (double)dpi, color);
 }
 
 /*
@@ -344,37 +266,14 @@ SetTextWidthAndHeight(LabelWidget lw)
 
     char *nl;
 
-    /* SVG takes priority over pixmap and text */
-    if (lw->label.svg_image) {
-	float svg_w = ISWSVGGetWidth(lw->label.svg_image);
-	float svg_h = ISWSVGGetHeight(lw->label.svg_image);
-	double scale = ISWScaleFactor((Widget)lw);
-	lw->label.label_width = (Dimension)(svg_w * scale + 0.5);
-	lw->label.label_height = (Dimension)(svg_h * scale + 0.5);
-	lw->label.label_len = 0;
-	lw->label.depth = 32;
-	return;
-    }
-
-    if (lw->label.pixmap != None) {
- xcb_connection_t *conn = ((Widget)lw)->core.display;
- xcb_get_geometry_cookie_t cookie;
- xcb_get_geometry_reply_t *reply;
- xcb_generic_error_t *error = NULL;
-
- cookie = xcb_get_geometry(conn, lw->label.pixmap);
- reply = xcb_get_geometry_reply(conn, cookie, &error);
- 
- if (reply != NULL) {
-     lw->label.label_height = reply->height;
-     lw->label.label_width = reply->width;
-     lw->label.depth = reply->depth;
-     free(reply);
-     return;
- }
- if (error) {
-     free(error);
- }
+    /* image resource takes priority over text */
+    if (lw->label.image) {
+        double scale = ISWImageIsVector(lw->label.image)
+                       ? ISWScaleFactor((Widget)lw) : 1.0;
+        lw->label.label_width  = (Dimension)(ISWImageGetWidth(lw->label.image)  * scale + 0.5);
+        lw->label.label_height = (Dimension)(ISWImageGetHeight(lw->label.image) * scale + 0.5);
+        lw->label.label_len = 0;
+        return;
     }
     /*
      * Use ISWScaledTextWidth/ISWScaledFontHeight to measure text the way
@@ -487,36 +386,17 @@ compute_bitmap_offsets (LabelWidget lw)
 }
 
 static void
-set_bitmap_info (LabelWidget lw)
+set_left_image_info(LabelWidget lw)
 {
-    xcb_connection_t *conn;
-    xcb_get_geometry_cookie_t cookie;
-    xcb_get_geometry_reply_t *reply;
-    xcb_generic_error_t *error = NULL;
-    int success = 0;
-
-    if (lw->label.pixmap || !lw->label.left_bitmap) {
-	lw->label.lbm_width = lw->label.lbm_height = 0;
+    if (lw->label.left_image) {
+        double scale = ISWImageIsVector(lw->label.left_image)
+                       ? ISWScaleFactor((Widget)lw) : 1.0;
+        lw->label.lbm_width  = (unsigned int)(ISWImageGetWidth(lw->label.left_image)  * scale + 0.5);
+        lw->label.lbm_height = (unsigned int)(ISWImageGetHeight(lw->label.left_image) * scale + 0.5);
     } else {
-	conn = ((Widget)lw)->core.display;
-	cookie = xcb_get_geometry(conn, lw->label.left_bitmap);
-	reply = xcb_get_geometry_reply(conn, cookie, &error);
-	
-	if (reply != NULL) {
-	    lw->label.lbm_width = reply->width;
-	    lw->label.lbm_height = reply->height;
-	    lw->label.depth = reply->depth;
-	    free(reply);
-	    success = 1;
-	}
-	if (error) {
-	    free(error);
-	}
-	if (!success) {
-	    lw->label.lbm_width = lw->label.lbm_height = 0;
-	}
+        lw->label.lbm_width = lw->label.lbm_height = 0;
     }
-    compute_bitmap_offsets (lw);
+    compute_bitmap_offsets(lw);
 }
 
 /* ARGSUSED */
@@ -534,16 +414,15 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     else
         lw->label.label = XtNewString(lw->label.label);
 
-    /* Copy SVG resource strings and parse */
-    if (lw->label.svg_data)
-	lw->label.svg_data = XtNewString(lw->label.svg_data);
-    if (lw->label.svg_file)
-	lw->label.svg_file = XtNewString(lw->label.svg_file);
-    lw->label.svg_image = NULL;
-    lw->label.svg_raster = NULL;
-    lw->label.svg_raster_w = 0;
-    lw->label.svg_raster_h = 0;
-    _LabelParseSVG(lw);
+    /* Load images from string resources */
+    lw->label.image_source = lw->label.image_source
+        ? XtNewString(lw->label.image_source) : NULL;
+    lw->label.left_image_source = lw->label.left_image_source
+        ? XtNewString(lw->label.left_image_source) : NULL;
+    lw->label.image = lw->label.image_source
+        ? _LabelLoadImage(lw, lw->label.image_source) : NULL;
+    lw->label.left_image = lw->label.left_image_source
+        ? _LabelLoadImage(lw, lw->label.left_image_source) : NULL;
 
     /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
      * If font is NULL but fontset is available, create a minimal XFontStruct
@@ -592,7 +471,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 	lw->core.height = lw->label.label_height +
 				2 * lw->label.internal_height;
 
-    set_bitmap_info(lw);  /* req's core.height, sets label.lbm_* */
+    set_left_image_info(lw);  /* req's core.height, sets label.lbm_* */
 
     if (lw->label.lbm_height > lw->label.label_height)
 	lw->core.height = lw->label.lbm_height +
@@ -618,7 +497,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     LabelWidget w = (LabelWidget) gw;
     LabelWidgetClass lwclass = (LabelWidgetClass) XtClass (gw);
-    xcb_pixmap_t pm;
     xcb_gcontext_t gc;
     xcb_connection_t *conn = gw->core.display;
     ISWRenderContext *ctx = w->label.render_ctx;  /* Cairo rendering context */
@@ -662,29 +540,44 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	XSetRegion(gw->display, gc, region);
 #endif /*notdef*/
 
-    /* SVG rendering path — takes priority over pixmap and text */
-    if (w->label.svg_image) {
-	_LabelRasterizeSVG(w);
-	if (w->label.svg_raster && ctx) {
-	    /* Center the (possibly clamped) raster in the widget */
-	    int draw_x = (int)(w->core.width - w->label.svg_raster_w) / 2;
-	    int draw_y = (int)(w->core.height - w->label.svg_raster_h) / 2;
-	    if (draw_x < 0) draw_x = 0;
-	    if (draw_y < 0) draw_y = 0;
-	    ISWRenderBegin(ctx);
-	    ISWRenderDrawImageRGBA(ctx, w->label.svg_raster,
-				   w->label.svg_raster_w,
-				   w->label.svg_raster_h,
-				   draw_x, draw_y,
-				   w->label.svg_raster_w,
-				   w->label.svg_raster_h);
-	    ISWRenderEnd(ctx);
-	}
-	xcb_flush(conn);
-	return;
+    /* Image rendering path (replaces text/pixmap) */
+    if (w->label.image) {
+        unsigned int disp_w = w->label.label_width;
+        unsigned int disp_h = w->label.label_height;
+
+        /* Clamp to available widget space */
+        unsigned int avail_w = w->core.width > 2 * w->label.internal_width
+            ? w->core.width - 2 * w->label.internal_width : 0;
+        unsigned int avail_h = w->core.height > 2 * w->label.internal_height
+            ? w->core.height - 2 * w->label.internal_height : 0;
+        if (avail_w > 0 && avail_h > 0 && (disp_w > avail_w || disp_h > avail_h)) {
+            float sw = (float)avail_w / disp_w;
+            float sh = (float)avail_h / disp_h;
+            float s  = sw < sh ? sw : sh;
+            disp_w = (unsigned int)(disp_w * s + 0.5f);
+            disp_h = (unsigned int)(disp_h * s + 0.5f);
+            if (disp_w == 0) disp_w = 1;
+            if (disp_h == 0) disp_h = 1;
+        }
+
+        unsigned int rw, rh;
+        const unsigned char *pixels = ISWImageRasterize(w->label.image,
+            disp_w, disp_h, &rw, &rh);
+        if (pixels && ctx) {
+            int draw_x = (int)(w->core.width  - disp_w) / 2;
+            int draw_y = (int)(w->core.height - disp_h) / 2;
+            if (draw_x < 0) draw_x = 0;
+            if (draw_y < 0) draw_y = 0;
+            ISWRenderBegin(ctx);
+            ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+                                   draw_x, draw_y, disp_w, disp_h);
+            ISWRenderEnd(ctx);
+        }
+        xcb_flush(conn);
+        return;
     }
 
-    if (w->label.pixmap == None) {
+    {
  int len = w->label.label_len;
  char *label = w->label.label;
  Position y = w->label.label_y;
@@ -705,18 +598,18 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      ksy += (Position)ISWScaledFontAscent((Widget)w, fs);
 #endif
 
-	/* display left bitmap */
-	if (w->label.left_bitmap && w->label.lbm_width != 0) {
-	    pm = w->label.left_bitmap;
-
-	    if (ctx) {
+	/* display left image */
+	if (w->label.left_image && w->label.lbm_width != 0) {
+	    unsigned int rw, rh;
+	    const unsigned char *pixels = ISWImageRasterize(w->label.left_image,
+	        w->label.lbm_width, w->label.lbm_height, &rw, &rh);
+	    if (pixels && ctx) {
 		ISWRenderBegin(ctx);
-		ISWRenderSetColor(ctx, w->label.foreground);
-		ISWRenderDrawPixmap(ctx, pm, 0, 0,
-				    (int) w->label.internal_width,
-				    (int) w->label.lbm_y,
-				    w->label.lbm_width, w->label.lbm_height,
-				    w->label.depth);
+		ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+				       (int)w->label.internal_width,
+				       (int)w->label.lbm_y,
+				       w->label.lbm_width,
+				       w->label.lbm_height);
 		ISWRenderEnd(ctx);
 	    }
 	}
@@ -782,18 +675,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
         } /* endif international */
 
-    } else {
-	pm = w->label.pixmap;
-
-	if (ctx) {
-	    ISWRenderBegin(ctx);
-	    ISWRenderSetColor(ctx, w->label.foreground);
-	    ISWRenderDrawPixmap(ctx, pm, 0, 0,
-				w->label.label_x, w->label.label_y,
-				w->label.label_width, w->label.label_height,
-				w->label.depth);
-	    ISWRenderEnd(ctx);
-	}
     }
 
 #ifdef notdef
@@ -855,10 +736,9 @@ Resize(Widget w)
  * Set specified arguments into widget
  */
 
-#define PIXMAP		0
-#define WIDTH		1
-#define HEIGHT		2
-#define NUM_CHECKS	3
+#define WIDTH		0
+#define HEIGHT		1
+#define NUM_CHECKS	2
 
 static Boolean
 SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *num_args)
@@ -872,39 +752,38 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     for (i = 0; i < NUM_CHECKS; i++)
 	checks[i] = FALSE;
     for (i = 0; i < *num_args; i++) {
-	if (streq(XtNbitmap, args[i].name))
-	    checks[PIXMAP] = TRUE;
 	if (streq(XtNwidth, args[i].name))
 	    checks[WIDTH] = TRUE;
 	if (streq(XtNheight, args[i].name))
 	    checks[HEIGHT] = TRUE;
     }
 
-    /* Handle SVG resource changes */
-    if (curlw->label.svg_data != newlw->label.svg_data) {
-	if (curlw->label.svg_data)
-	    XtFree(curlw->label.svg_data);
-	newlw->label.svg_data = newlw->label.svg_data ?
-	    XtNewString(newlw->label.svg_data) : NULL;
-	was_resized = True;
-    }
-    if (curlw->label.svg_file != newlw->label.svg_file) {
-	if (curlw->label.svg_file)
-	    XtFree(curlw->label.svg_file);
-	newlw->label.svg_file = newlw->label.svg_file ?
-	    XtNewString(newlw->label.svg_file) : NULL;
-	was_resized = True;
-    }
-    if (curlw->label.svg_data != newlw->label.svg_data ||
-	curlw->label.svg_file != newlw->label.svg_file) {
-	/* Invalidate cached raster */
-	if (newlw->label.svg_raster) {
-	    free(newlw->label.svg_raster);
-	    newlw->label.svg_raster = NULL;
-	    newlw->label.svg_raster_w = 0;
-	    newlw->label.svg_raster_h = 0;
+    /* Handle image resource changes */
+    if (curlw->label.image_source != newlw->label.image_source) {
+	if (curlw->label.image_source)
+	    XtFree(curlw->label.image_source);
+	newlw->label.image_source = newlw->label.image_source
+	    ? XtNewString(newlw->label.image_source) : NULL;
+	if (newlw->label.image) {
+	    ISWImageDestroy(newlw->label.image);
+	    newlw->label.image = NULL;
 	}
-	_LabelParseSVG(newlw);
+	if (newlw->label.image_source)
+	    newlw->label.image = _LabelLoadImage(newlw, newlw->label.image_source);
+	was_resized = True;
+    }
+    if (curlw->label.left_image_source != newlw->label.left_image_source) {
+	if (curlw->label.left_image_source)
+	    XtFree(curlw->label.left_image_source);
+	newlw->label.left_image_source = newlw->label.left_image_source
+	    ? XtNewString(newlw->label.left_image_source) : NULL;
+	if (newlw->label.left_image) {
+	    ISWImageDestroy(newlw->label.left_image);
+	    newlw->label.left_image = NULL;
+	}
+	if (newlw->label.left_image_source)
+	    newlw->label.left_image = _LabelLoadImage(newlw, newlw->label.left_image_source);
+	was_resized = True;
     }
 
     if (newlw->label.label == NULL)
@@ -917,7 +796,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	was_resized = True;
     }
 
-    if (was_resized || checks[PIXMAP] ||
+    if (was_resized ||
 		curlw->label.font != newlw->label.font ||
 #ifdef ISW_INTERNATIONALIZATION
 		(curlw->simple.international &&
@@ -925,11 +804,11 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 #endif
 		curlw->label.encoding != newlw->label.encoding ||
 		curlw->label.justify != newlw->label.justify) {
-	SetTextWidthAndHeight(newlw);   /* label.label or label.pixmap */
+	SetTextWidthAndHeight(newlw);
 	was_resized = True;
     }
 
-    if (curlw->label.left_bitmap != newlw->label.left_bitmap ||
+    if (curlw->label.left_image != newlw->label.left_image ||
 		curlw->label.internal_width != newlw->label.internal_width ||
 		curlw->label.internal_height != newlw->label.internal_height)
 	was_resized = True;
@@ -940,7 +819,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	    newlw->core.height = newlw->label.label_height +
 				2 * newlw->label.internal_height;
 
-	set_bitmap_info (newlw);  /* req's core.height, sets label.lbm_* */
+	set_left_image_info(newlw);  /* req's core.height, sets label.lbm_* */
 
 	if (newlw->label.lbm_height > newlw->label.label_height)
 	    newlw->core.height = newlw->label.lbm_height +
@@ -990,6 +869,16 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
  GetnormalGC(newlw);
  GetgrayGC(newlw);
  redisplay = True;
+ /* Recolor SVG images if foreground changed */
+ if (curlw->label.foreground != newlw->label.foreground) {
+     char fg_hex[8];
+     const char *color = _LabelForegroundHex(newlw, fg_hex, sizeof(fg_hex))
+                         ? fg_hex : NULL;
+     if (newlw->label.image)
+         ISWImageRecolor(newlw->label.image, color);
+     if (newlw->label.left_image)
+         ISWImageRecolor(newlw->label.left_image, color);
+ }
     }
 
 
@@ -1011,18 +900,18 @@ Destroy(Widget w)
 
     if ( lw->label.label != lw->core.name )
 	XtFree( lw->label.label );
-    if (lw->label.svg_raster) {
-	free(lw->label.svg_raster);
-	lw->label.svg_raster = NULL;
+    if (lw->label.image_source)
+	XtFree(lw->label.image_source);
+    if (lw->label.left_image_source)
+	XtFree(lw->label.left_image_source);
+    if (lw->label.image) {
+	ISWImageDestroy(lw->label.image);
+	lw->label.image = NULL;
     }
-    if (lw->label.svg_image) {
-	ISWSVGDestroy(lw->label.svg_image);
-	lw->label.svg_image = NULL;
+    if (lw->label.left_image) {
+	ISWImageDestroy(lw->label.left_image);
+	lw->label.left_image = NULL;
     }
-    if (lw->label.svg_data)
-	XtFree(lw->label.svg_data);
-    if (lw->label.svg_file)
-	XtFree(lw->label.svg_file);
     XtReleaseGC( w, lw->label.normal_GC );
     XtReleaseGC( w, lw->label.gray_GC);
     

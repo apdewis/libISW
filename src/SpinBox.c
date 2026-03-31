@@ -18,6 +18,7 @@
 #include <ISW/ISWRender.h>
 #include <ISW/AsciiText.h>
 #include <ISW/Repeater.h>
+#include <ISW/Label.h>
 #include <ISW/CommandP.h>
 
 #include <xcb/xcb.h>
@@ -233,7 +234,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
     n = 0;
     XtSetArg(arglist[n], XtNlabel, ""); n++;
-    XtSetArg(arglist[n], XtNsvgData, up_arrow_svg); n++;
+    XtSetArg(arglist[n], XtNimage, up_arrow_svg); n++;
     XtSetArg(arglist[n], XtNborderWidth, 0); n++;
     XtSetArg(arglist[n], XtNborderStrokeWidth, 0); n++;
     XtSetArg(arglist[n], XtNinternalWidth, 0); n++;
@@ -250,7 +251,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
     n = 0;
     XtSetArg(arglist[n], XtNlabel, ""); n++;
-    XtSetArg(arglist[n], XtNsvgData, down_arrow_svg); n++;
+    XtSetArg(arglist[n], XtNimage, down_arrow_svg); n++;
     XtSetArg(arglist[n], XtNborderWidth, 0); n++;
     XtSetArg(arglist[n], XtNborderStrokeWidth, 0); n++;
     XtSetArg(arglist[n], XtNinternalWidth, 0); n++;

@@ -1388,10 +1388,10 @@ SetMarginWidths(Widget w)
 		continue;
 
 	    bsb_entry = (SmeBSBObject)&((*entry)->object);
-	    if (bsb_entry->sme_bsb.left_bitmap_width > l_bmw)
-		l_bmw = bsb_entry->sme_bsb.left_bitmap_width;
-	    if (bsb_entry->sme_bsb.right_bitmap_width > r_bmw)
-		r_bmw = bsb_entry->sme_bsb.right_bitmap_width;
+	    if (bsb_entry->sme_bsb.left_image_width > l_bmw)
+		l_bmw = bsb_entry->sme_bsb.left_image_width;
+	    if (bsb_entry->sme_bsb.right_image_width > r_bmw)
+		r_bmw = bsb_entry->sme_bsb.right_image_width;
 	}
 
 	/* set the margin values */

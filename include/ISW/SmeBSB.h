@@ -79,10 +79,10 @@ typedef struct _SmeBSBRec         *SmeBSBObject;
 
 extern WidgetClass smeBSBObjectClass;
 
-#define XtNleftBitmap "leftBitmap"
+#define XtNleftImage "leftImage"
 #define XtNleftMargin "leftMargin"
 #define XtNleftWhitespace "leftWhitespace"
-#define XtNrightBitmap "rightBitmap"
+#define XtNrightImage "rightImage"
 #define XtNrightMargin "rightMargin"
 #define XtNrightWhitespace "rightWhitespace"
 #define XtNvertSpace "vertSpace"
@@ -98,8 +98,8 @@ extern WidgetClass smeBSBObjectClass;
 #endif
 #endif
 
-#define XtCLeftBitmap "LeftBitmap"
-#define XtCRightBitmap "RightBitmap"
+#define XtCLeftImage "LeftImage"
+#define XtCRightImage "RightImage"
 #define XtCHorizontalMargins "HorizontalMargins"
 #define XtCVertSpace "VertSpace"
 #define XtCMenuName "MenuName"

@@ -44,6 +44,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeBSB.h>
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
 #include <ISW/ISWRender.h>
+#include <ISW/ISWImage.h>
 
 /* XtJustify is missing from XCB-based libXt, define it here */
 #ifndef _IswXtJustify_defined
@@ -80,7 +81,10 @@ typedef struct {
     String label;		/* The entry label. */
     int vert_space;		/* extra vert space to leave, as a percentage
 				   of the font height of the label. */
-    Pixmap left_bitmap, right_bitmap; /* pixmaps to show. */
+    String left_image_source;   /* left icon: file path or inline SVG */
+    String right_image_source;  /* right icon: file path or inline SVG */
+    ISWImage *left_image;
+    ISWImage *right_image;
     Dimension left_margin, right_margin; /* left and right margins. */
     Pixel foreground;		/* foreground color. */
     XFontStruct * font;		/* The font to show label in. */
@@ -96,12 +100,10 @@ typedef struct {
     xcb_gcontext_t rev_gc;			/* reverse color gc. */
     xcb_gcontext_t norm_gray_gc;		/* Normal color (grayed out) gc. */
     xcb_gcontext_t invert_gc;		/* gc for flipping colors. */
-    Dimension left_bitmap_width; /* size and depth of each pixmap. */
-    Dimension left_bitmap_height;
-    Dimension right_bitmap_width;
-    Dimension right_bitmap_height;
-    unsigned int left_depth;
-    unsigned int right_depth;
+    Dimension left_image_width;
+    Dimension left_image_height;
+    Dimension right_image_width;
+    Dimension right_image_height;
     String menu_name;		/* name of nested sub-menu or NULL */
     
     xcb_gcontext_t erase_GC;

@@ -15,7 +15,7 @@
 #include <ISW/ISWP.h>
 #include <ISW/ImageP.h>
 #include <ISW/ISWRender.h>
-#include <ISW/ISWSVG.h>
+#include <ISW/ISWImage.h>
 #include <ISW/ISWInit.h>
 #include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
@@ -92,15 +92,7 @@ Resize(Widget w)
 {
     LabelWidget lw = (LabelWidget)w;
 
-    if (lw->label.svg_image) {
-	/* Invalidate raster cache — will be regenerated at new size */
-	if (lw->label.svg_raster) {
-	    free(lw->label.svg_raster);
-	    lw->label.svg_raster = NULL;
-	    lw->label.svg_raster_w = 0;
-	    lw->label.svg_raster_h = 0;
-	}
-
+    if (lw->label.image) {
 	/*
 	 * Recompute label dimensions to fill the available space,
 	 * respecting internal padding.

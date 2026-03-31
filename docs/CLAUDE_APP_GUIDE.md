@@ -89,8 +89,8 @@ void my_callback(Widget w, XtPointer client_data, XtPointer call_data)
 
 | Widget | Class Symbol | Header | Purpose |
 |---|---|---|---|
-| Label | `labelWidgetClass` | `<ISW/Label.h>` | Static text/bitmap/SVG display |
-| Image | `imageWidgetClass` | `<ISW/Image.h>` | Pixmap display |
+| Label | `labelWidgetClass` | `<ISW/Label.h>` | Static text or image display |
+| Image | `imageWidgetClass` | `<ISW/Image.h>` | Scalable image display |
 | StripChart | `stripChartWidgetClass` | `<ISW/StripChart.h>` | Real-time data graph |
 | ProgressBar | `progressBarWidgetClass` | `<ISW/ProgressBar.h>` | Progress indicator |
 | Tip | `tipWidgetClass` | `<ISW/Tip.h>` | Tooltip popup |
@@ -233,8 +233,8 @@ Widget menubar = IswMainWindowGetMenuBar(main_w);
 | `XtNlabel` | String | widget name | Entry text |
 | `XtNcallback` | Callback | NULL | Selection callback |
 | `XtNmenuName` | String | NULL | Submenu name (cascade) |
-| `XtNleftBitmap` | Pixmap | None | Left icon |
-| `XtNrightBitmap` | Pixmap | None | Right icon |
+| `XtNleftImage` | String | NULL | Left icon (file path or inline SVG) |
+| `XtNrightImage` | String | NULL | Right icon (file path or inline SVG) |
 | `XtNleftMargin` | Dimension | 4 | Left margin |
 | `XtNrightMargin` | Dimension | 4 | Right margin |
 | `XtNforeground` | Pixel | XtDefaultForeground | Text color |
@@ -247,15 +247,35 @@ Widget menubar = IswMainWindowGetMenuBar(main_w);
 
 SmeBSB `XtNcallback` provides `NULL` as `call_data`. Use `client_data` to identify which entry was selected.
 
-## SVG Icons
+## Images
 
-Label (and its subclasses Command, MenuButton, Toggle) support SVG via:
+Label (and its subclasses Command, MenuButton, Toggle) display images via the unified `XtNimage` and `XtNleftImage` resources. Format is auto-detected from the source string:
+
+- File path ending in `.svg` → SVG (vector, scales to any size)
+- File path ending in `.png` → PNG (raster, displayed at native resolution)
+- String starting with `<` → inline SVG XML data
 
 ```c
-XtSetArg(args[n], XtNsvgFile, "/path/to/icon.svg"); n++;
-/* or inline SVG data: */
-XtSetArg(args[n], XtNsvgData, svg_string); n++;
+/* SVG file */
+XtSetArg(args[n], XtNimage, "icon.svg"); n++;
+
+/* PNG file */
+XtSetArg(args[n], XtNimage, "photo.png"); n++;
+
+/* Inline SVG */
+XtSetArg(args[n], XtNimage, "<svg viewBox='0 0 24 24'>...</svg>"); n++;
+
+/* Icon beside text (does not replace the label) */
+XtSetArg(args[n], XtNleftImage, "bullet.png"); n++;
 ```
+
+`XtNimage` replaces the text label entirely. `XtNleftImage` draws an icon to the left of the text.
+
+For menu entries (`SmeBSB`), use `XtNleftImage` and `XtNrightImage` the same way.
+
+SVG images support `currentColor` — occurrences are automatically substituted with the widget's `XtNforeground` color and update when the foreground changes.
+
+File paths are resolved through ISW's search path: executable directory, `$ISW_DATA_PATH`, `$XDG_DATA_HOME/isw/`, system data dirs, then cwd.
 
 ## Drag and Drop (XDND)
 
@@ -359,5 +379,5 @@ void font_cb(Widget w, XtPointer cd, XtPointer call_data)
 - **Embedded libXt** — do not link a separate libXt. The Xt API (`XtCreateManagedWidget`, `XtAddCallback`, etc.) is provided by `libISW.so`.
 - **Cairo rendering** — anti-aliased text and drawing by default via Cairo-XCB backend. The `ISW_RENDER_BACKEND` environment variable overrides backend selection.
 - **HiDPI aware** — widgets auto-scale. Use `ISWScaleDim`/`ISWScaleFactor` for app-level dimensions.
-- **SVG support** — Label/Command/Toggle can display SVG via `XtNsvgFile`/`XtNsvgData`.
+- **Unified image loading** — Label/Command/Toggle display PNG or SVG via `XtNimage`/`XtNleftImage` (format auto-detected). SmeBSB uses `XtNleftImage`/`XtNrightImage`.
 - **New widgets** — MainWindow, MenuBar, Toolbar, StatusBar, Tabs, ComboBox, SpinBox, ProgressBar, IconView, ColorPicker, FontChooser, ScrollWheel.

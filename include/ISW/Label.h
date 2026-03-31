@@ -93,15 +93,13 @@ SOFTWARE.
 #define IswTextEncoding8bit	0
 #define IswTextEncodingChar2b	1
 
-#define XtNleftBitmap "leftBitmap"
-#define XtCLeftBitmap "LeftBitmap"
 #define XtNencoding "encoding"
 #define XtCEncoding "Encoding"
 
-#define XtNsvgData "svgData"
-#define XtCSvgData "SvgData"
-#define XtNsvgFile "svgFile"
-#define XtCSvgFile "SvgFile"
+#define XtNimage "image"
+#define XtCImage "Image"
+#define XtNleftImage "leftImage"
+#define XtCLeftImage "LeftImage"
 
 #ifdef ISW_INTERNATIONALIZATION
 #ifndef XtNfontSet
@@ -113,7 +111,6 @@ SOFTWARE.
 #endif
 
 #ifndef _XtStringDefs_h_
-#define XtNbitmap "bitmap"
 #define XtNforeground "foreground"
 #define XtNlabel "label"
 #define XtNfont "font"
@@ -121,7 +118,6 @@ SOFTWARE.
 #define XtNinternalHeight "internalHeight"
 #define XtNresize "resize"
 #define XtCResize "Resize"
-#define XtCBitmap "Bitmap"
 #endif
 
 /* Class record constants */
