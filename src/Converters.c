@@ -713,37 +713,20 @@ _XtCreateFontCursor(xcb_connection_t *dpy, unsigned int shape)
 static XtFontStruct *
 _XtLoadFontconfigFont(const char *name)
 {
-    char family[256];
     double pt_size = 10.0;
     FcPattern *pattern = NULL, *match = NULL;
     FcResult result;
     FcChar8 *font_file = NULL;
+    FcChar8 *matched_family = NULL;
+    int weight = FC_WEIGHT_NORMAL;
+    int slant = FC_SLANT_ROMAN;
     FT_Library ft_lib = NULL;
     FT_Face ft_face = NULL;
     XtFontStruct *fs = NULL;
 
-    /* Parse "Family-Size" or just "Family" */
-    const char *last_dash = strrchr(name, '-');
-    if (last_dash && last_dash != name) {
-        char *endp;
-        double sz = strtod(last_dash + 1, &endp);
-        if (*endp == '\0' && sz > 0) {
-            size_t flen = (size_t)(last_dash - name);
-            if (flen >= sizeof(family)) flen = sizeof(family) - 1;
-            memcpy(family, name, flen);
-            family[flen] = '\0';
-            pt_size = sz;
-        } else {
-            snprintf(family, sizeof(family), "%s", name);
-        }
-    } else {
-        snprintf(family, sizeof(family), "%s", name);
-    }
-
-    /* Use fontconfig to validate the family and find a font file */
-    pattern = FcPatternCreate();
+    /* Parse fontconfig name format: "Family-Size:weight=bold:slant=italic" */
+    pattern = FcNameParse((const FcChar8 *)name);
     if (!pattern) return NULL;
-    FcPatternAddString(pattern, FC_FAMILY, (const FcChar8 *)family);
     FcConfigSubstitute(NULL, pattern, FcMatchPattern);
     FcDefaultSubstitute(pattern);
 
@@ -752,6 +735,18 @@ _XtLoadFontconfigFont(const char *name)
 
     if (FcPatternGetString(match, FC_FILE, 0, &font_file) != FcResultMatch)
         goto cleanup;
+
+    /* Extract resolved properties from the matched pattern */
+    if (FcPatternGetString(match, FC_FAMILY, 0, &matched_family) != FcResultMatch)
+        matched_family = (FcChar8 *)"Sans";
+    if (FcPatternGetInteger(match, FC_WEIGHT, 0, &weight) != FcResultMatch)
+        weight = FC_WEIGHT_NORMAL;
+    if (FcPatternGetInteger(match, FC_SLANT, 0, &slant) != FcResultMatch)
+        slant = FC_SLANT_ROMAN;
+
+    /* Extract size from the parsed pattern (default 10pt) */
+    if (FcPatternGetDouble(match, FC_SIZE, 0, &pt_size) != FcResultMatch)
+        pt_size = 10.0;
 
     /* Load with FreeType to get metrics at the requested size */
     if (FT_Init_FreeType(&ft_lib) != 0) goto cleanup;
@@ -769,7 +764,9 @@ _XtLoadFontconfigFont(const char *name)
     fs->max_char_or_byte2 = 0;
     fs->min_byte1 = 0;
     fs->max_byte1 = 0;
-    fs->font_family = XtNewString(family);
+    fs->font_family = XtNewString((const char *)matched_family);
+    fs->font_weight = weight;
+    fs->font_slant  = slant;
 
 cleanup:
     if (ft_face) FT_Done_Face(ft_face);

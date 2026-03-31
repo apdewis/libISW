@@ -830,6 +830,8 @@ typedef struct _XtFontStruct {
     int             ascent;
     int             descent;
     char           *font_family; /* fontconfig family name for Cairo rendering */
+    int             font_weight; /* FC_WEIGHT_NORMAL, FC_WEIGHT_BOLD, etc. */
+    int             font_slant;  /* FC_SLANT_ROMAN, FC_SLANT_ITALIC, etc. */
 } XtFontStruct;
 
 /* Backward compat alias */

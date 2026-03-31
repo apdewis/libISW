@@ -217,6 +217,8 @@ NotifyChange(FontChooserWidget fcw)
         fs->ascent = fcw->fontChooser.size;
         fs->descent = fcw->fontChooser.size / 3;
         fs->font_family = XtNewString(fcw->fontChooser.family);
+        fs->font_weight = FC_WEIGHT_NORMAL;
+        fs->font_slant  = FC_SLANT_ROMAN;
 
         Arg a[2];
         XtSetArg(a[0], XtNlabel, buf);
