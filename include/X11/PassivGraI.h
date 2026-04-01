@@ -102,7 +102,7 @@ typedef struct _XtDeviceRec{
 typedef char XtGeneology; /* do not use an enum makes PerWidgetInput larger */
 
 typedef struct {
-    xcb_window_t      id;
+    Widget		id;		/* hash key: widget pointer (NOT window ID) */
     Widget		focusKid;
     XtServerGrabPtr	keyList, ptrList;
     Widget		queryEventDescendant;

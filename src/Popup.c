@@ -169,8 +169,6 @@ XtPopdown(Widget widget)
     grab_kind = shell_widget->shell.grab_kind;
     xcb_unmap_window(XtDisplay(widget), XtWindow(widget));
     xcb_flush(XtDisplay(widget));
-    //XWithdrawWindow(XtDisplay(widget), XtWindow(widget),
-    //                XScreenNumberOfScreen(XtScreen(widget)));
     if (grab_kind != XtGrabNone)
         XtRemoveGrab(widget);
     shell_widget->shell.popped_up = FALSE;

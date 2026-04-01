@@ -115,13 +115,16 @@ _XtGetPerWidgetInput(Widget widget, _XtBoolean create)
     //if (!perWidgetInputContext)
     //    perWidgetInputContext = XUniqueContext();
 
-    xcb_window_t win = widget->core.window;
-    HASH_FIND_INT(pd->PerWidgetContext, &win, pwi);
+    /* Key on widget pointer, matching the original XSaveContext(dpy,
+     * (Window)widget, ctx, data) semantics.  Using the X window ID
+     * fails because the window hasn't been created yet when
+     * XtSetKeyboardFocus is first called during ChangeManaged. */
+    HASH_FIND_PTR(pd->PerWidgetContext, &widget, pwi);
     if (pwi == NULL && create) {
         pwi = (XtPerWidgetInput)
             __XtMalloc((unsigned) sizeof(XtPerWidgetInputRec));
 
-        pwi->id = win;
+        pwi->id = widget;
         pwi->focusKid = NULL;
         pwi->queryEventDescendant = NULL;
         pwi->focalPoint = XtUnrelated;
@@ -134,8 +137,7 @@ _XtGetPerWidgetInput(Widget widget, _XtBoolean create)
         XtAddCallback(widget, XtNdestroyCallback,
                       _XtDestroyServerGrabs, (XtPointer) pwi);
 
-        HASH_ADD_INT(pd->PerWidgetContext, id, pwi);
-;
+        HASH_ADD_PTR(pd->PerWidgetContext, id, pwi);
     }
     UNLOCK_PROCESS;
     return pwi;

@@ -251,6 +251,7 @@ InitPerDisplay(xcb_connection_t *dpy,
     _XtAllocTMContext(pd);
     pd->mapping_callbacks = NULL;
 
+    pd->PerWidgetContext = NULL;    /* uthash head must be NULL before first use */
     pd->pdi.grabList = NULL;
     pd->pdi.trace = NULL;
     pd->pdi.traceDepth = 0;
