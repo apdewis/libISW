@@ -1,5 +1,142 @@
 # TODO
 
+## Replace Xlib-compat constants with XCB native enums
+
+XtTypes.h defines ~200 Xlib-named constants as hardcoded integers (e.g.
+`#define KeyPressMask (1L<<0)`, `#define GXcopy 0x3`, `#define XA_PRIMARY 1`).
+Nearly all of these have direct equivalents already defined in `xcb/xproto.h`
+and `xcb/xcb_icccm.h` (`XCB_EVENT_MASK_KEY_PRESS`, `XCB_GX_COPY`,
+`XCB_ATOM_PRIMARY`, etc.). The Xlib names should never have been recreated.
+
+### Approach
+
+1. Replace all bare-integer definitions in XtTypes.h with `#define XlibName
+   XCB_EQUIVALENT` shims (e.g. `#define KeyPressMask XCB_EVENT_MASK_KEY_PRESS`)
+2. Migrate call sites in `src/` to use the XCB names directly
+3. Once no internal code references the Xlib names, remove the shims from
+   XtTypes.h — downstream consumers (ISDE) get updated at the same time
+
+### Groups (all have XCB equivalents unless noted)
+
+- Event masks (25) → `XCB_EVENT_MASK_*`
+- Event types (33) → `XCB_KEY_PRESS`, `XCB_BUTTON_PRESS`, etc.
+  (`NoExpose` and `LASTEvent` have no XCB equivalent — define locally)
+- CW attribute masks (15) → `XCB_CW_*`
+- ConfigureWindow masks (7) → `XCB_CONFIG_WINDOW_*`
+- GC functions (16) → `XCB_GX_*` (die with GC removal)
+- GC value masks (23) → `XCB_GC_*` (die with GC removal)
+- Line/cap/join/fill styles (14) → `XCB_LINE_STYLE_*` etc. (die with GC removal)
+- Fill/subwindow/arc rules (8) → `XCB_FILL_RULE_*` etc. (die with GC removal)
+- Gravity (12) → `XCB_GRAVITY_*`
+- Grab modes/status (7) → `XCB_GRAB_MODE_*`, `XCB_GRAB_STATUS_*`
+- Prop modes (3) → `XCB_PROP_MODE_*`
+- Stack modes (5) → `XCB_STACK_MODE_*`
+- Window class (2) → `XCB_WINDOW_CLASS_*`
+- Map state (3) → `XCB_MAP_STATE_*`
+- Backing store (3) → `XCB_BACKING_STORE_*`
+- Predefined atoms (59) → `XCB_ATOM_*`
+- Modifier masks (8) → `XCB_MOD_MASK_*`
+- Button masks (5) → `XCB_BUTTON_MASK_*`
+- Button indices (5) → `XCB_BUTTON_INDEX_*`
+- Notify modes/detail (12) → XCB notify enums
+- Visibility/property/colormap state → `XCB_VISIBILITY_*` etc.
+- Visual classes (6) → `XCB_VISUAL_CLASS_*`
+- Image format (3) → `XCB_IMAGE_FORMAT_*`
+- Byte order (2) → `XCB_IMAGE_ORDER_*`
+- Circulation (2) → `XCB_PLACE_*`
+- Mapping request (3) → `XCB_MAPPING_*`
+- Focus revert (3) → `XCB_INPUT_FOCUS_*`
+
+Also remove: `DisplayOfScreen` (NULL stub, unused), `XYBitmap`/`XYPixmap`/
+`ZPixmap` (unused), `CoordModeOrigin`/`CoordModePrevious` (unused).
+
+Files: XtTypes.h, and every src/ file that references these constants.
+
+## Investigate animation hook architecture
+
+Optional animation support when EGL or other accelerated backends are available.
+Needs investigation before implementation to determine where hooks attach and how
+widgets opt in.
+
+### Candidate attachment points
+
+- **ISWRender Begin/End frame cycle**: Animation state updates between
+  `ISWRenderBegin()` and widget draw calls. The EGL backend would add vsync
+  synchronisation via `eglSwapBuffers`. Cairo-XCB already has a double-buffered
+  frame boundary in `cairo_xcb_begin()`/`cairo_xcb_end()`.
+- **Timer-driven frame clock**: A single app-wide `XtAppAddTimeOut` at ~16ms
+  driving all active animations. Scrollbar and Tip already use timers for
+  movement/delay — this generalises the pattern.
+- **SetValues intercept**: Property changes that currently trigger immediate
+  redisplay could instead start animated transitions interpolating between old
+  and new values.
+- **Capability gating**: `ISWRenderGetCapabilities()` with
+  `ISW_RENDER_CAP_HW_ACCEL` gates whether frame-driven animation is enabled or
+  falls back to instant state changes on software backends.
+
+### Open design questions
+
+- Where does animation state live? Per-widget (CorePart field or extension
+  record) vs external registry keyed by widget.
+- Who owns the frame clock? Single app-wide timer ticking all active animations
+  vs per-widget timers. Single clock avoids drift and redundant wakeups.
+- How do widgets opt in? Class method (`animate` proc), callback list, or
+  ISWRender-level API called during expose.
+- Relationship to ISWRender Begin/End — hooks inside the render cycle can
+  interpolate drawing parameters (opacity, position, color); hooks outside can
+  only update resources and trigger redraws.
+
+### Natural animation candidates
+
+Tip (fade in/out), Scrollbar (smooth thumb movement), ProgressBar (indeterminate
+animation), Command (hover/press feedback), menu popup transitions.
+
+## Fix Tip widget (non-functional)
+
+The Tip (tooltip) widget is broken — it will crash at runtime when a tooltip
+attempts to display. Needs a substantial rewrite.
+
+### Xlib calls never ported to XCB
+
+- `XDrawString()` / `XDrawString16()` — text rendering (Tip.c:451,455,469,473)
+- `XTextWidth()` / `XTextWidth16()` — text measurement (Tip.c:560,562,577)
+- `XQueryPointer()` — mouse position for tooltip placement (Tip.c:604)
+- `XMoveResizeWindow()` — tooltip positioning (Tip.c:619)
+- `XMapRaised()` / `XUnmapWindow()` — show/hide (Tip.c:700,734)
+
+All of these need XCB equivalents or ISWRender API calls.
+
+### NULL dereferences
+
+- `tip->tip.label` used without NULL check in IswTipExpose (Tip.c:423) and
+  TipLayout (Tip.c:524)
+- `tip->tip.font` dereferenced without check in TipLayout (Tip.c:522)
+
+### Drawing should use ISWRender
+
+Text rendering currently uses raw Xlib calls and GCs. Should be migrated to
+ISWRender text drawing API, which handles backend selection and font rendering
+through Cairo. This also removes the GC dependency (overlaps with the GC removal
+TODO).
+
+### Demo integration broken
+
+`attach_tooltip()` in isw_demo.c creates the Tip widget via
+`XtCreatePopupShell` but never calls `IswTipEnable()`, so no event handlers are
+installed and tooltips never display. Either the demo needs to call
+`IswTipEnable()`, or the widget needs to self-register event handlers on its
+parent at realize time.
+
+Files: src/Tip.c, include/ISW/Tip.h, include/ISW/TipP.h, examples/isw_demo.c.
+
+## Remove StripChart widget
+
+StripChart has never worked. Remove the widget entirely — source, headers, demo
+references, and build system entries.
+
+Files: src/StripChart.c, include/ISW/StripChart.h, include/ISW/StripChartP.h,
+src/Makefile.am, include/Makefile.am, examples/isw_demo.c (if referenced).
+
 ## Remove vestigial GC management
 
 Replace xcb_gcontext_t fields in widget private structs with direct color/state
@@ -45,6 +182,61 @@ Core: Resources.c, Converters.c, Convert.c, Initialize.c, Quark.c, Create.c,
 SetValues.c, GetValues.c, GetResList.c, VarCreate.c, VarGet.c (~6,200 lines).
 Public API: XtGetApplicationResources, XtSetValues, XtGetValues,
 XtSetTypeConverter remain unchanged — backends implement them.
+
+## Edge-specific borders
+
+Replace the single uniform `border_width` / `border_pixel` with per-edge values
+(top, right, bottom, left) so widgets can have asymmetric borders.
+
+### Core problem
+
+XCB `xcb_create_window` only supports a single uniform border width — the X
+server draws it. Per-edge borders require abandoning X server borders entirely
+and drawing all borders in software inside the widget window.
+
+### Required changes
+
+**CorePart / RectObjPart** — add four `Dimension` fields (`border_width_top`,
+`_right`, `_bottom`, `_left`) and corresponding per-edge `Pixel` fields. The
+existing `XtNborderWidth` / `XtNborderColor` become shorthand that sets all
+four edges.
+Files: CoreP.h, RectObjP.h, Core.c, RectObj.c.
+
+**Eliminate X server borders** — all widgets must create windows with
+`border_width=0` and incorporate border space into their own dimensions. This is
+the largest single change. `XtCreateWindow()` in Intrinsic.c currently passes
+`core.border_width` to `xcb_create_window`; this must become 0, with the
+widget's width/height expanded to include the border area.
+Files: Intrinsic.c, Core.c, Shell.c.
+
+**Software border drawing** — new ISWRender function(s) for per-edge borders,
+e.g. `ISWRenderStrokeBorder(ctx, widths[4], colors[4], w, h)`, or four
+`ISWRenderDrawLine()` calls. Form.c and Box.c already draw borders manually via
+`ISWRenderStrokeRectangle()` — these provide the pattern. Every widget's
+Expose/Redisplay method needs to draw its own borders.
+Files: ISWRender.h, ISWRender.c, ISWRenderXCB.c, ISWRenderCairoXCB.c,
+Form.c, Box.c, and all widget Expose methods.
+
+**Geometry management** — every `2 * border_width` calculation becomes
+`border_left + border_right` (horizontal) or `border_top + border_bottom`
+(vertical). The `XCB_CONFIG_WINDOW_BORDER_WIDTH` flag in geometry requests goes
+away; border changes become internal resize + redraw operations.
+Files: Geometry.c, Box.c, Form.c, Paned.c, Viewport.c.
+
+**SetValues** — Core.c currently updates `XCB_CW_BORDER_PIXEL` /
+`XCB_CW_BORDER_PIXMAP` on the X window. With software borders, these trigger a
+redraw instead of an X attribute change. Must also handle partial edge updates
+(e.g. only `border_top_width` changed).
+Files: Core.c.
+
+### Suggested order
+
+1. Add per-edge fields to CorePart/RectObjPart with backward-compat defaults
+2. Add ISWRender border drawing API
+3. Convert Form and Box (already do manual drawing) as proof of concept
+4. Move all widgets to `border_width=0` at the X level
+5. Update geometry managers
+6. Update SetValues and resource handling
 
 ## ISWPlatform vtable — abstract all X11/XCB platform dependencies
 
@@ -177,6 +369,35 @@ the abstract API.
 
 Files: ISWXdnd.c (~470 lines, rewrite), ISWXdnd.h (expand public API).
 Depends on: ISWPlatformEvent, ISWPlatformWindow, ISWPlatformSelection.
+
+### Remove X Session Management (XSMP/ICE) support
+
+SessionShell and associated API are dead code. The XSMP protocol (save/restore
+app state across logout/login via libSM/libICE) is unused by any downstream
+consumer — ISDE links libSM/libICE but calls zero SM/ICE functions, implementing
+its own session management instead. Modern desktops use D-Bus or .desktop
+autostart; Wayland doesn't use XSMP at all.
+
+**Remove from ISW:**
+
+- `SessionShell` widget class and `sessionShellWidgetClass` symbol
+- Session-related resources: `XtNsessionID`, `XtNrestartCommand`,
+  `XtNcloneCommand`, `XtNresignCommand`, `XtNshutdownCommand`,
+  `XtNsaveCallback`, `XtNsaveCompleteCallback`, `XtNdieCallback`,
+  `XtNerrorCallback`, `XtNcancelCallback`
+- `XtSessionGetToken()`, `XtSessionReturnToken()`
+- Any ICE transport integration in the event loop
+- `XtIsSessionShell()` predicate
+- Obsolete non-App-context functions that only exist for backward compat:
+  `XtInitialize`, `XtMainLoop`, `XtAddConverter`, `XtPeekEvent`,
+  `XtDestroyGC`, `XtAddInput`, `XtAddTimeOut`, `XtProcessEvent`,
+  `XtAddActions`, `XtCreateApplicationShell`, `XtSetErrorHandler`,
+  `XtSetWarningHandler`, `XtStringConversionWarning`
+
+Files: ShellP.h, Shell.h (generated from string.list), Intrinsic.h,
+util/string.list, and any Session-related source in src/.
+
+Do this before the API rename so the new Isw namespace starts clean.
 
 ### Full API rename — Xt → Isw
 
