@@ -1259,12 +1259,11 @@ extern Widget XtParent(
 
 #undef XtMapWidget
 extern void XtMapWidget(Widget /* w */);
-#define XtMapWidget(widget)	xcb_map_window(XtDisplay(widget), XtWindow(widget)); xcb_flush(XtDisplay(widget)); //XMapWindow(XtDisplay(widget), XtWindow(widget))
+#define XtMapWidget(widget)	do { xcb_map_window(XtDisplay(widget), XtWindow(widget)); xcb_flush(XtDisplay(widget)); } while(0)
 
 #undef XtUnmapWidget
 extern void XtUnmapWidget(Widget /* w */);
-#define XtUnmapWidget(widget)	\
-			xcb_unmap_window(XtDisplay(widget), XtWindow(widget)); xcb_flush(XtDisplay(widget));
+#define XtUnmapWidget(widget)	do { xcb_unmap_window(XtDisplay(widget), XtWindow(widget)); xcb_flush(XtDisplay(widget)); } while(0)
 
 extern void XtAddCallback(
     Widget 		/* widget */,

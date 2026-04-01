@@ -1917,27 +1917,19 @@ _XtSendFocusEvent(Widget child, int type)
         && XtIsRealized(child)
         && (XtBuildEventMask(child) & FocusChangeMask)) {
         
-        xcb_connection_t *dpy = XtDisplay(child);
         if(type == FocusIn) {
-            xcb_focus_out_event_t event;
+            xcb_focus_in_event_t event = {0};
+            event.response_type = XCB_FOCUS_IN;
             event.event = XtWindow(child);
             event.mode = NotifyNormal;
             event.detail = NotifyAncestor;
-            /* NOTE: XFilterEvent (Xlib input method filtering) has no direct
-             * XCB equivalent. Input method support would require integration
-             * with libxkbcommon-x11 or similar libraries. For now, events are
-             * dispatched directly without IM filtering. */
             XtDispatchEventToWidget(child, (xcb_generic_event_t *) &event);
-
         } else if (type == FocusOut) {
-            xcb_focus_in_event_t event;
+            xcb_focus_out_event_t event = {0};
+            event.response_type = XCB_FOCUS_OUT;
             event.event = XtWindow(child);
             event.mode = NotifyNormal;
             event.detail = NotifyAncestor;
-            /* NOTE: XFilterEvent (Xlib input method filtering) has no direct
-             * XCB equivalent. Input method support would require integration
-             * with libxkbcommon-x11 or similar libraries. For now, events are
-             * dispatched directly without IM filtering. */
             XtDispatchEventToWidget(child, (xcb_generic_event_t *) &event);
         } else {
             return;
