@@ -573,7 +573,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                                    draw_x, draw_y, disp_w, disp_h);
             ISWRenderEnd(ctx);
         }
-        xcb_flush(conn);
         return;
     }
 
@@ -683,9 +682,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	/* XSetClipMask(conn, gc, (xcb_pixmap_t)None); */
 	(void)gc; /* suppress warning */
 #endif /* notdef */
-    
-    /* Flush XCB commands to server */
-    xcb_flush(conn);
 }
 
 static void

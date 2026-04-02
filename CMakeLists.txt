@@ -29,7 +29,7 @@ pkg_check_modules(XT_DEPS REQUIRED IMPORTED_TARGET
     sm ice xproto xcb xcb-xrm xcb-keysyms)
 
 pkg_check_modules(ISW_DEPS REQUIRED IMPORTED_TARGET
-    xcb xcb-xfixes xcb-shape)
+    xcb xcb-xfixes xcb-shape xcb-present)
 
 pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig)
 pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)

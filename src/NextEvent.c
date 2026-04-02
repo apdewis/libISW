@@ -559,6 +559,42 @@ _XtFillEventQueue(XtAppContext app) {
          * XCB does not auto-flush like Xlib's XNextEvent did. */
         xcb_flush(app->list[dd]);
         while ((e = xcb_poll_for_event(app->list[dd])) != NULL) {
+            uint8_t type = e->response_type & ~0x80;
+
+            /* ConfigureNotify coalescing: during interactive resize the
+             * X server sends a ConfigureNotify per pixel of mouse
+             * movement.  Processing every one causes a full widget-tree
+             * resize+redraw cascade each time, which is the dominant
+             * source of resize lag.  When we see a ConfigureNotify and
+             * the queue already has one for the same window, replace the
+             * stale event with the latest dimensions. */
+            if (type == XCB_CONFIGURE_NOTIFY) {
+                xcb_configure_notify_event_t *cne =
+                    (xcb_configure_notify_event_t *)e;
+                XtEventQueue *prev = NULL;
+                XtEventQueue *scan = app->event_front;
+                XtEventQueue *found = NULL;
+                while (scan) {
+                    uint8_t st = scan->event->response_type & ~0x80;
+                    if (st == XCB_CONFIGURE_NOTIFY &&
+                        scan->display == app->list[dd]) {
+                        xcb_configure_notify_event_t *old =
+                            (xcb_configure_notify_event_t *)scan->event;
+                        if (old->window == cne->window) {
+                            found = scan;
+                            /* keep scanning — we want the last one */
+                        }
+                    }
+                    prev = scan;
+                    scan = scan->next;
+                }
+                if (found) {
+                    free(found->event);
+                    found->event = e;
+                    continue;  /* already queued — don't allocate a new node */
+                }
+            }
+
             XtEventQueue *q = XtNew(XtEventQueue);
             q->event = e;
             q->display = app->list[dd];

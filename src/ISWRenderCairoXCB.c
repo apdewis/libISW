@@ -20,6 +20,7 @@
 #include <string.h>
 #include <math.h>
 #include <cairo/cairo-ft.h>
+#include <xcb/present.h>
 
 /* Defined in Initialize.c */
 extern double _XtGetScaleFactor(xcb_connection_t *dpy);
@@ -41,9 +42,15 @@ typedef struct {
     cairo_t *back_ctx;             /* persistent context on back buffer */
     cairo_t *window_ctx;           /* context on window surface (for queries) */
     Dimension back_w, back_h;      /* current back buffer dimensions */
+    Dimension alloc_w, alloc_h;    /* allocated pixmap dimensions (>= back_w/h) */
 
     /* State for save/restore */
     int save_count;
+
+    /* Present extension for vsync'd blits */
+    Boolean present_ok;            /* Present extension usable for this window */
+    xcb_present_event_t present_eid; /* event context id */
+    uint32_t present_serial;       /* monotonic serial for present_pixmap */
 
     /* Deferred initialization: surface created on first begin() if widget
      * had zero dimensions at ISWRenderCreate time. */
@@ -102,6 +109,35 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
 
     /* cairo_ctx defaults to window context; begin() swaps to back buffer */
     data->cairo_ctx = data->window_ctx;
+
+    /* Probe the Present extension (once) and set up an event context
+     * for vsync'd blits.  Failure is non-fatal — we fall back to
+     * immediate cairo_paint. */
+    {
+        static int present_probed = 0;
+        static int present_available = 0;
+
+        if (!present_probed) {
+            present_probed = 1;
+            xcb_present_query_version_cookie_t vc =
+                xcb_present_query_version(ctx->connection, 1, 0);
+            xcb_present_query_version_reply_t *vr =
+                xcb_present_query_version_reply(ctx->connection, vc, NULL);
+            if (vr) {
+                present_available = 1;
+                free(vr);
+            }
+        }
+
+        if (present_available) {
+            data->present_eid = xcb_generate_id(ctx->connection);
+            xcb_present_select_input(ctx->connection,
+                                     data->present_eid, ctx->window,
+                                     XCB_PRESENT_EVENT_MASK_COMPLETE_NOTIFY);
+            data->present_ok = True;
+            data->present_serial = 0;
+        }
+    }
 
     return True;
 }
@@ -186,6 +222,13 @@ ISWRenderCairoXCBDestroy(ISWRenderContext *ctx)
         xcb_free_pixmap(ctx->connection, data->back_pixmap);
     }
 
+    /* Release Present event context */
+    if (data->present_ok && ctx->connection) {
+        xcb_present_select_input(ctx->connection,
+                                 data->present_eid, ctx->window,
+                                 XCB_PRESENT_EVENT_MASK_NO_EVENT);
+    }
+
     /* Destroy window context and surface */
     if (data->window_ctx) {
         cairo_destroy(data->window_ctx);
@@ -247,8 +290,15 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         Dimension h = ctx->widget->core.height;
         cairo_xcb_surface_set_size(data->surface, w, h);
 
-        /* Ensure back buffer matches widget dimensions */
-        if (data->back_pixmap == 0 || data->back_w != w || data->back_h != h) {
+        /* Ensure back buffer can hold widget dimensions.
+         *
+         * To avoid destroying and recreating the server-side pixmap on
+         * every ConfigureNotify during interactive resize, we over-
+         * allocate by 25% and only reallocate when the widget outgrows
+         * the allocation or shrinks below half of it. */
+        if (data->back_pixmap == 0 ||
+            w > data->alloc_w || h > data->alloc_h ||
+            w < data->alloc_w / 2 || h < data->alloc_h / 2) {
             /* Tear down old back buffer */
             if (data->back_ctx) {
                 cairo_destroy(data->back_ctx);
@@ -263,22 +313,35 @@ cairo_xcb_begin(ISWRenderContext *ctx)
                 data->back_pixmap = 0;
             }
 
+            /* Over-allocate by 25% to absorb subsequent small resizes */
+            Dimension aw = w + w / 4;
+            Dimension ah = h + h / 4;
+            if (aw < 1) aw = 1;
+            if (ah < 1) ah = 1;
+
             /* Create new back buffer */
             uint8_t depth = (ctx->widget->core.depth != 0)
                           ? ctx->widget->core.depth
                           : ctx->screen->root_depth;
             data->back_pixmap = xcb_generate_id(ctx->connection);
             xcb_create_pixmap(ctx->connection, depth, data->back_pixmap,
-                              ctx->window, w, h);
+                              ctx->window, aw, ah);
             data->back_surface = cairo_xcb_surface_create(
-                ctx->connection, data->back_pixmap, data->visual, w, h);
+                ctx->connection, data->back_pixmap, data->visual, aw, ah);
             data->back_ctx = cairo_create(data->back_surface);
             cairo_set_antialias(data->back_ctx, CAIRO_ANTIALIAS_GOOD);
             cairo_set_line_width(data->back_ctx, 1.0);
             cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_OVER);
-            data->back_w = w;
-            data->back_h = h;
+            data->alloc_w = aw;
+            data->alloc_h = ah;
+        } else if (data->back_surface &&
+                   (data->back_w != w || data->back_h != h)) {
+            /* Pixmap is large enough — just resize the Cairo surface
+             * view so drawing is clipped to the widget area. */
+            cairo_xcb_surface_set_size(data->back_surface, w, h);
         }
+        data->back_w = w;
+        data->back_h = h;
     }
 
     /* Swap cairo_ctx to target the back buffer for this frame */
@@ -315,15 +378,39 @@ cairo_xcb_end(ISWRenderContext *ctx)
     cairo_restore(data->cairo_ctx);
 
     /* Blit back buffer to window */
-    if (data->back_surface && data->window_ctx) {
+    if (data->back_surface) {
         cairo_surface_flush(data->back_surface);
-        cairo_set_source_surface(data->window_ctx, data->back_surface, 0, 0);
-        cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_SOURCE);
-        cairo_paint(data->window_ctx);
-        cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_OVER);
+
+        if (data->present_ok && data->back_pixmap) {
+            /* Vsync'd present: the X server will schedule the
+             * pixmap copy at the next vblank, eliminating tearing.
+             * target_msc=0 means "next vblank". */
+            xcb_present_pixmap(ctx->connection,
+                               ctx->window,
+                               data->back_pixmap,
+                               ++data->present_serial,
+                               XCB_NONE,       /* valid region (whole) */
+                               XCB_NONE,       /* update region (whole) */
+                               0, 0,           /* x/y offset */
+                               XCB_NONE,       /* target_crtc (auto) */
+                               XCB_NONE,       /* wait_fence */
+                               XCB_NONE,       /* idle_fence */
+                               XCB_PRESENT_OPTION_COPY, /* copy, don't flip */
+                               0,              /* target_msc: next vblank */
+                               1,              /* divisor */
+                               0,              /* remainder */
+                               0, NULL);       /* notifies */
+        } else if (data->window_ctx) {
+            /* Fallback: immediate cairo blit (no vsync) */
+            cairo_set_source_surface(data->window_ctx, data->back_surface, 0, 0);
+            cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_SOURCE);
+            cairo_paint(data->window_ctx);
+            cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_OVER);
+        }
     }
 
-    cairo_surface_flush(data->surface);
+    if (data->surface)
+        cairo_surface_flush(data->surface);
     xcb_flush(ctx->connection);
 }
 
