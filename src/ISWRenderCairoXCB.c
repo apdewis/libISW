@@ -332,6 +332,25 @@ cairo_xcb_begin(ISWRenderContext *ctx)
             cairo_set_antialias(data->back_ctx, CAIRO_ANTIALIAS_GOOD);
             cairo_set_line_width(data->back_ctx, 1.0);
             cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_OVER);
+
+            /* Fill the new pixmap with the widget's background color.
+             * The pixmap has undefined contents after creation.  The
+             * non-Present path copies from the window surface which
+             * the X server keeps filled with the background pixel, but
+             * the Present path uses the back buffer as authoritative,
+             * so we must initialize it ourselves. */
+            {
+                uint32_t bg = ctx->widget->core.background_pixel;
+                cairo_save(data->back_ctx);
+                cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_SOURCE);
+                cairo_set_source_rgb(data->back_ctx,
+                    ((bg >> 16) & 0xff) / 255.0,
+                    ((bg >>  8) & 0xff) / 255.0,
+                    ((bg      ) & 0xff) / 255.0);
+                cairo_paint(data->back_ctx);
+                cairo_restore(data->back_ctx);
+            }
+
             data->alloc_w = aw;
             data->alloc_h = ah;
         } else if (data->back_surface &&
@@ -353,14 +372,22 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         cairo_set_font_face(data->back_ctx, face);
         cairo_set_font_matrix(data->back_ctx, &font_matrix);
 
-        /* Copy current window contents into back buffer so partial
-         * repaints (e.g. individual menu entries) preserve existing
-         * content instead of overwriting with undefined pixmap data */
-        cairo_surface_flush(data->surface);
-        cairo_set_source_surface(data->back_ctx, data->surface, 0, 0);
-        cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_SOURCE);
-        cairo_paint(data->back_ctx);
-        cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_OVER);
+        /* Seed the back buffer so partial repaints preserve context.
+         *
+         * Without Present: copy the window surface (X server keeps it
+         * current via background fills and the previous cairo blit).
+         *
+         * With Present: the back buffer already holds the previous
+         * frame (Present copies from it, never into it).  Copying
+         * from the window surface would race with the async present.
+         * Skip the copy — the back buffer is already authoritative. */
+        if (!data->present_ok) {
+            cairo_surface_flush(data->surface);
+            cairo_set_source_surface(data->back_ctx, data->surface, 0, 0);
+            cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_SOURCE);
+            cairo_paint(data->back_ctx);
+            cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_OVER);
+        }
 
         data->cairo_ctx = data->back_ctx;
         cairo_save(data->cairo_ctx);
