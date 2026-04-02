@@ -566,21 +566,21 @@ Widget create_toolbar_demo(Widget parent) {
 
     /* Icon buttons with uniform size */
     n = 0;
-    XtSetArg(args[n], XtNsvgData, svg_new); n++;
+    XtSetArg(args[n], XtNimage, svg_new); n++;
     XtSetArg(args[n], XtNlabel, ""); n++;
     XtSetArg(args[n], XtNwidth, btn_size); n++;
     XtSetArg(args[n], XtNheight, btn_size); n++;
     XtCreateManagedWidget("tbNew", commandWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNsvgData, svg_open); n++;
+    XtSetArg(args[n], XtNimage, svg_open); n++;
     XtSetArg(args[n], XtNlabel, ""); n++;
     XtSetArg(args[n], XtNwidth, btn_size); n++;
     XtSetArg(args[n], XtNheight, btn_size); n++;
     XtCreateManagedWidget("tbOpen", commandWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNsvgData, svg_save); n++;
+    XtSetArg(args[n], XtNimage, svg_save); n++;
     XtSetArg(args[n], XtNlabel, ""); n++;
     XtSetArg(args[n], XtNwidth, btn_size); n++;
     XtSetArg(args[n], XtNheight, btn_size); n++;
@@ -595,21 +595,21 @@ Widget create_toolbar_demo(Widget parent) {
     XtCreateManagedWidget("tbSep", labelWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNsvgData, svg_cut); n++;
+    XtSetArg(args[n], XtNimage, svg_cut); n++;
     XtSetArg(args[n], XtNlabel, ""); n++;
     XtSetArg(args[n], XtNwidth, btn_size); n++;
     XtSetArg(args[n], XtNheight, btn_size); n++;
     XtCreateManagedWidget("tbCut", commandWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNsvgData, svg_copy); n++;
+    XtSetArg(args[n], XtNimage, svg_copy); n++;
     XtSetArg(args[n], XtNlabel, ""); n++;
     XtSetArg(args[n], XtNwidth, btn_size); n++;
     XtSetArg(args[n], XtNheight, btn_size); n++;
     XtCreateManagedWidget("tbCopy", commandWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNsvgData, svg_paste); n++;
+    XtSetArg(args[n], XtNimage, svg_paste); n++;
     XtSetArg(args[n], XtNlabel, ""); n++;
     XtSetArg(args[n], XtNwidth, btn_size); n++;
     XtSetArg(args[n], XtNheight, btn_size); n++;
@@ -861,7 +861,7 @@ Widget create_command_demo(Widget parent) {
 
     /* SVG icon button */
     n = 0;
-    XtSetArg(args[n], XtNsvgFile, "x11.svg"); n++;
+    XtSetArg(args[n], XtNimage, "x11.svg"); n++;
     XtSetArg(args[n], XtNlabel, ""); n++;
     svg_button = XtCreateManagedWidget("svgBtn", commandWidgetClass, box, args, n);
     XtAddCallback(svg_button, XtNcallback, button_callback, (XtPointer)"SVG Button");
