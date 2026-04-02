@@ -87,44 +87,6 @@ widgets opt in.
 Tip (fade in/out), Scrollbar (smooth thumb movement), ProgressBar (indeterminate
 animation), Command (hover/press feedback), menu popup transitions.
 
-## Fix Tip widget (non-functional)
-
-The Tip (tooltip) widget is broken — it will crash at runtime when a tooltip
-attempts to display. Needs a substantial rewrite.
-
-### Xlib calls never ported to XCB
-
-- `XDrawString()` / `XDrawString16()` — text rendering (Tip.c:451,455,469,473)
-- `XTextWidth()` / `XTextWidth16()` — text measurement (Tip.c:560,562,577)
-- `XQueryPointer()` — mouse position for tooltip placement (Tip.c:604)
-- `XMoveResizeWindow()` — tooltip positioning (Tip.c:619)
-- `XMapRaised()` / `XUnmapWindow()` — show/hide (Tip.c:700,734)
-
-All of these need XCB equivalents or ISWRender API calls.
-
-### NULL dereferences
-
-- `tip->tip.label` used without NULL check in IswTipExpose (Tip.c:423) and
-  TipLayout (Tip.c:524)
-- `tip->tip.font` dereferenced without check in TipLayout (Tip.c:522)
-
-### Drawing should use ISWRender
-
-Text rendering currently uses raw Xlib calls and GCs. Should be migrated to
-ISWRender text drawing API, which handles backend selection and font rendering
-through Cairo. This also removes the GC dependency (overlaps with the GC removal
-TODO).
-
-### Demo integration broken
-
-`attach_tooltip()` in isw_demo.c creates the Tip widget via
-`XtCreatePopupShell` but never calls `IswTipEnable()`, so no event handlers are
-installed and tooltips never display. Either the demo needs to call
-`IswTipEnable()`, or the widget needs to self-register event handlers on its
-parent at realize time.
-
-Files: src/Tip.c, include/ISW/Tip.h, include/ISW/TipP.h, examples/isw_demo.c.
-
 ## Remove vestigial GC management
 
 Replace xcb_gcontext_t fields in widget private structs with direct color/state

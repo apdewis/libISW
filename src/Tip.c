@@ -326,6 +326,7 @@ IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
     }
 
     tip->tip.timer = 0;
+    tip->tip.render_ctx = NULL;
 
     values.foreground = tip->tip.foreground;
     values.background = tip->core.background_pixel;
@@ -350,6 +351,11 @@ IswTipDestroy(Widget w)
 
     if (tip->tip.timer)
 	XtRemoveTimeOut(tip->tip.timer);
+
+    if (tip->tip.render_ctx) {
+	ISWRenderDestroy(tip->tip.render_ctx);
+	tip->tip.render_ctx = NULL;
+    }
 
     XtReleaseGC(w, tip->tip.gc);
 
@@ -380,36 +386,35 @@ IswTipDestroy(Widget w)
 static void
 IswTipRealize(xcb_connection_t *conn, Widget w, XtValueMask *mask, uint32_t *values)
 {
-    TipWidget tip = (TipWidget)w;
     xcb_screen_t *screen = XtScreen(w);
     xcb_window_t window;
     uint32_t value_mask = 0;
     uint32_t value_list[32];
     int value_idx = 0;
 
-    /* BackingStore is X11 feature with limited XCB support - stub it out for now */
-    /* Modern compositors typically don't use BackingStore anyway */
+    TipWidget tip = (TipWidget)w;
 
-    /* Override redirect (required for tooltips to bypass window manager) */
-    value_mask |= XCB_CW_OVERRIDE_REDIRECT;
-    value_list[value_idx++] = 1;  /* True */
+    /* CW values must be in enum order */
+    value_mask = XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT | XCB_CW_EVENT_MASK;
+    value_list[value_idx++] = tip->core.background_pixel;  /* back_pixel */
+    value_list[value_idx++] = 1;                           /* override_redirect */
+    value_list[value_idx++] = XCB_EVENT_MASK_EXPOSURE;     /* event_mask */
 
-    /* Create window using XCB */
     window = xcb_generate_id(conn);
-    
+
     xcb_create_window(
         conn,
-        screen->root_depth,                 /* depth */
-        window,                             /* window ID */
-        screen->root,                       /* parent */
-        XtX(w), XtY(w),                    /* x, y */
-        XtWidth(w) ? XtWidth(w) : 1,       /* width */
-        XtHeight(w) ? XtHeight(w) : 1,     /* height */
-        XtBorderWidth(w),                  /* border_width */
-        XCB_WINDOW_CLASS_INPUT_OUTPUT,     /* class */
-        screen->root_visual,               /* visual */
-        value_mask,                        /* value_mask */
-        value_list                         /* value_list */
+        screen->root_depth,
+        window,
+        screen->root,
+        XtX(w), XtY(w),
+        XtWidth(w) ? XtWidth(w) : 1,
+        XtHeight(w) ? XtHeight(w) : 1,
+        XtBorderWidth(w),
+        XCB_WINDOW_CLASS_INPUT_OUTPUT,
+        screen->root_visual,
+        value_mask,
+        value_list
     );
     
     XtWindow(w) = window;
@@ -419,61 +424,46 @@ static void
 IswTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     TipWidget tip = (TipWidget)w;
-    xcb_gcontext_t gc = tip->tip.gc;
     char *nl, *label = tip->tip.label;
-    /* XCB Fix: Add NULL check for font before accessing ascent */
-    Position y = tip->tip.internal_height + (tip->tip.font ? tip->tip.font->ascent : 11);
-    int len;
+    int len, line_height;
+    Position y;
+    ISWRenderContext *ctx;
 
-#ifdef ISW_INTERNATIONALIZATION
-    if (tip->tip.international == True) {
-	Position ksy = tip->tip.internal_height;
+    if (!label || !*label)
+	return;
 
-	ksy += tip->tip.fontset->ascent;
-
-	while ((nl = index(label, '\n')) != NULL) {
-	    IswDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset,
-			  gc, tip->tip.internal_width, ksy, label,
-			  (int)(nl - label));
-	    ksy += tip->tip.fontset->height;
-	    label = nl + 1;
-	}
-	len = strlen(label);
-	if (len)
-	    IswDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset, gc,
-			  tip->tip.internal_width, ksy, label, len);
+    ctx = tip->tip.render_ctx;
+    if (!ctx && w->core.width > 0 && w->core.height > 0) {
+	ctx = tip->tip.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
     }
-    else
-#endif
-    {
-	while ((nl = index(label, '\n')) != NULL) {
-	    if (tip->tip.encoding)
-		XDrawString16(XtDisplay(w), XtWindow(w), gc,
-			      tip->tip.internal_width, y,
-			      (const xcb_char2b_t*)label, (int)(nl - label) >> 1);
-		   else
-		XDrawString(XtDisplay(w), XtWindow(w), gc,
-			    tip->tip.internal_width, y,
-			    label, (int)(nl - label));
-	    /* XCB Fix: Add NULL check for font before accessing fields */
-	    if (tip->tip.font != NULL) {
-		y += tip->tip.font->ascent + tip->tip.font->descent;
-	    } else {
-		y += 14;  /* Default line height */
-	    }
-	    label = nl + 1;
-	}
-	len = strlen(label);
-	if (len) {
-		   if (tip->tip.encoding)
-		XDrawString16(XtDisplay(w), XtWindow(w), gc,
-			      tip->tip.internal_width, y,
-			      (const xcb_char2b_t*)label, len >> 1);
-		   else
-		XDrawString(XtDisplay(w), XtWindow(w), gc,
-			    tip->tip.internal_width, y, label, len);
-	}
+    if (!ctx)
+	return;
+
+    ISWRenderBegin(ctx);
+
+    /* Fill background */
+    ISWRenderSetColor(ctx, tip->core.background_pixel);
+    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+
+    /* Draw text */
+    ISWRenderSetFont(ctx, tip->tip.font);
+    ISWRenderSetColor(ctx, tip->tip.foreground);
+
+    line_height = ISWScaledFontHeight(w, tip->tip.font);
+    y = tip->tip.internal_height + ISWScaledFontAscent(w, tip->tip.font);
+
+    while ((nl = index(label, '\n')) != NULL) {
+	ISWRenderDrawString(ctx, label, (int)(nl - label),
+			    tip->tip.internal_width, y);
+	y += line_height;
+	label = nl + 1;
     }
+    len = strlen(label);
+    if (len)
+	ISWRenderDrawString(ctx, label, len,
+			    tip->tip.internal_width, y);
+
+    ISWRenderEnd(ctx);
 }
 
 /*ARGSUSED*/
@@ -520,68 +510,37 @@ static void
 TipLayout(IswTipInfo *info)
 {
     XFontStruct	*fs = info->tip->tip.font;
+    Widget w = (Widget)info->tip;
     int width = 0, height;
     char *nl, *label = info->tip->tip.label;
 
-#ifdef ISW_INTERNATIONALIZATION
-    if (info->tip->tip.international == True) {
-	ISWFontSet *fset = info->tip->tip.fontset;
+    if (!label || !*label) {
+	XtWidth(info->tip) = 1;
+	XtHeight(info->tip) = 1;
+	return;
+    }
 
-	height = fset->height;
-	if ((nl = index(label, '\n')) != NULL) {
-	    /*CONSTCOND*/
-	    while (True) {
-		int w = IswTextWidth(fset, label, (int)(nl - label));
+    height = ISWScaledFontHeight(w, fs);
 
-		if (w > width)
-		    width = w;
-		if (*nl == '\0')
-		    break;
-		label = nl + 1;
-		if (*label)
-		    height += fset->height;
-		if ((nl = index(label, '\n')) == NULL)
-		    nl = index(label, '\0');
-	    }
+    if ((nl = index(label, '\n')) != NULL) {
+	/*CONSTCOND*/
+	while (True) {
+	    int lw = ISWScaledTextWidth(w, fs, label, (int)(nl - label));
+
+	    if (lw > width)
+		width = lw;
+	    if (*nl == '\0')
+		break;
+	    label = nl + 1;
+	    if (*label)
+		height += ISWScaledFontHeight(w, fs);
+	    if ((nl = index(label, '\n')) == NULL)
+		nl = index(label, '\0');
 	}
-	else
-	    width = IswTextWidth(fset, label, strlen(label));
     }
     else
-#endif
-    {
- /* XCB Fix: Add NULL check for font before accessing fields */
- if (fs != NULL) {
-     height = fs->ascent + fs->descent;
-     if ((nl = index(label, '\n')) != NULL) {
-  /*CONSTCOND*/
-  while (True) {
-      int w = info->tip->tip.encoding ?
-   XTextWidth16(fs, (const xcb_char2b_t*)label,
-    (int)(nl - label) >> 1) :
-   XTextWidth(fs, label, (int)(nl - label));
+	width = ISWScaledTextWidth(w, fs, label, strlen(label));
 
-      if (w > width)
-   width = w;
-      if (*nl == '\0')
-   break;
-      label = nl + 1;
-      if (*label)
-   height += fs->ascent + fs->descent;
-	 if ((nl = index(label, '\n')) == NULL)
-	     nl = index(label, '\0');
-	    }
-	}
-	else
-	    width = info->tip->tip.encoding ?
-	 XTextWidth16(fs, (const xcb_char2b_t*)label, strlen(label) >> 1) :
-	 XTextWidth(fs, label, strlen(label));
-	} else {
-	    /* No font available - use defaults */
-	    height = 14;  /* Default height */
-	    width = label ? strlen(label) * 8 : 0;  /* Default width */
-	}
-	   }
     XtWidth(info->tip) = width + info->tip->tip.internal_width * 2;
     XtHeight(info->tip) = height + info->tip->tip.internal_height * 2;
 }
@@ -601,7 +560,8 @@ TipPosition(IswTipInfo *info)
     int win_width = XtWidth(info->tip) + bw2;
     int win_height = XtHeight(info->tip) + bw2;
 
-    XQueryPointer(XtDisplay((Widget)info->tip), XtWindow((Widget)info->tip),
+    XQueryPointer(XtDisplay((Widget)info->tip),
+		  XtScreen(info->tip)->root,
 		  &r, &c, &rx, &ry, &wx, &wy, &mask);
     x = rx + DEFAULT_TIP_OFFSET;
     y = ry + DEFAULT_TIP_OFFSET;
@@ -697,7 +657,8 @@ ResetTip(IswTipInfo *info, WidgetInfo *winfo, Bool add_timeout)
     }
     if (info->mapped) {
 	XtRemoveGrab(XtParent((Widget)info->tip));
-	XUnmapWindow(XtDisplay((Widget)info->tip), XtWindow((Widget)info->tip));
+	xcb_unmap_window(XtDisplay((Widget)info->tip), XtWindow((Widget)info->tip));
+	xcb_flush(XtDisplay((Widget)info->tip));
 	info->mapped = False;
     }
     if (add_timeout) {
@@ -731,7 +692,22 @@ TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
 
     TipLayout(info);
     TipPosition(info);
-    XMapRaised(XtDisplay((Widget)info->tip), XtWindow((Widget)info->tip));
+
+    /* Invalidate render context — tooltip size changes per label */
+    if (info->tip->tip.render_ctx) {
+	ISWRenderDestroy(info->tip->tip.render_ctx);
+	info->tip->tip.render_ctx = NULL;
+    }
+
+    {
+	xcb_connection_t *conn = XtDisplay((Widget)info->tip);
+	xcb_window_t win = XtWindow((Widget)info->tip);
+	uint32_t stack_above = XCB_STACK_MODE_ABOVE;
+
+	xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_STACK_MODE, &stack_above);
+	xcb_map_window(conn, win);
+	xcb_flush(conn);
+    }
     XtAddGrab(XtParent((Widget)info->tip), True, True);
     info->mapped = True;
 }

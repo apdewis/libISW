@@ -33,6 +33,7 @@
 #include "ISWP.h"
 #include <ISW/Tip.h>
 #include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
+#include <ISW/ISWRender.h>
 
 typedef struct {
     XtPointer extension;
@@ -59,6 +60,7 @@ typedef struct _TipPart {
     int timeout;
 
     /* private */
+    ISWRenderContext *render_ctx;
     xcb_gcontext_t gc;
     XtIntervalId timer;
 #ifdef ISW_INTERNATIONALIZATION

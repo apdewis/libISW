@@ -69,11 +69,6 @@
 #include <ISW/Tabs.h>
 #include <ISW/ISWXdnd.h>
 
-/* Optional tooltip support */
-#ifdef HAVE_TIP
-#include <ISW/Tip.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -2172,14 +2167,7 @@ void about_menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
  * ============================================================ */
 
 void attach_tooltip(Widget widget, const char *tip_text) {
-    Widget tip;
-    Arg args[5];
-    Cardinal n;
-    
-    /* Create Tip widget as popup child */
-    n = 0;
-    XtSetArg(args[n], XtNlabel, tip_text); n++;
-    tip = XtCreatePopupShell("tip", tipWidgetClass, widget, args, n);
+    IswTipEnable(widget, (String)tip_text);
 }
 
 /* ============================================================
