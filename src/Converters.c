@@ -152,7 +152,7 @@ _XtConvertInitialize(void)
             else {                                              \
                 static type static_val;                         \
                 static_val = typed_value;                       \
-                toVal->addr = (XPointer)&static_val;            \
+                toVal->addr = (XtPointer)&static_val;            \
             }                                                   \
             toVal->size = sizeof(type);                         \
             return True;                                        \
@@ -173,7 +173,7 @@ _XtConvertInitialize(void)
             else {                                              \
                 static type static_val;                         \
                 static_val = typed_value;                       \
-                toVal->addr = (XPointer)&static_val;            \
+                toVal->addr = (XtPointer)&static_val;            \
             }                                                   \
             toVal->size = sizeof(type);                         \
             return True;                                        \
@@ -213,7 +213,7 @@ XtDisplayStringConversionWarning(xcb_connection_t *dpy,
                 XrmValue toVal;
                 Boolean report = False;
 
-                toVal.addr = (XPointer) &report;
+                toVal.addr = (XtPointer) &report;
                 toVal.size = sizeof(Boolean);
                 if (XtCallConverter
                     (dpy, XtCvtStringToBoolean, (XrmValuePtr) NULL,
@@ -671,7 +671,7 @@ FetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED, XrmValue *value)
         }
         _fetch_dpy = XtDisplayOfObject(widget);
         value->size = sizeof(xcb_connection_t *);
-        value->addr = (XPointer) &_fetch_dpy;
+        value->addr = (XtPointer) &_fetch_dpy;
     }
 }
 
@@ -1249,7 +1249,7 @@ FetchLocaleArg(Widget widget _X_UNUSED,
     locale = XrmQuarkToString(XrmStringToQuark
                               (setlocale(LC_CTYPE, (char *) NULL)));
     value->size = sizeof(const char *);
-    value->addr = (XPointer) &locale;
+    value->addr = (XtPointer) &locale;
 }
 
 /* *INDENT-OFF* */

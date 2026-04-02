@@ -178,7 +178,7 @@ IswInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, xcb_atom_
  * @dpy: Display connection (actually xcb_connection_t*)
  * @atom: The atom to look up
  * 
- * Returns: Allocated string containing the atom name (caller must free with XFree())
+ * Returns: Allocated string containing the atom name (caller must free with XtFree())
  *          or NULL on error
  */
 char*

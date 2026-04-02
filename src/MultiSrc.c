@@ -434,7 +434,7 @@ ReplaceText(Widget w, ISWTextPosition startPos, ISWTextPosition endPos, ISWTextB
       /* In other words, text is not the u_text that the user handed me but
       one I made myself.  I only care, because I need to free the string. */
 
-      XFree( text.ptr );
+      XtFree( text.ptr );
 
   if (src->multi_src.use_string_in_place)
     start_piece->text[start_piece->used] = (wchar_t)0;

@@ -207,10 +207,10 @@ TypedArgToArg(Widget widget,
     from_val.size = (Cardinal) typed_arg->size;
     if ((strcmp(typed_arg->type, XtRString) == 0) ||
         ((unsigned) typed_arg->size > sizeof(XtArgVal))) {
-        from_val.addr = (XPointer) typed_arg->value;
+        from_val.addr = (XtPointer) typed_arg->value;
     }
     else {
-        from_val.addr = (XPointer) &typed_arg->value;
+        from_val.addr = (XtPointer) &typed_arg->value;
     }
 
     LOCK_PROCESS;

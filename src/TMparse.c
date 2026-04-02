@@ -2102,7 +2102,7 @@ XtCvtStringToAcceleratorTable(xcb_connection_t *dpy,
         staticStateTable =
             (XtAccelerators) ParseTranslationTable(str, TRUE, XtTableAugment,
                                                    &error);
-        to->addr = (XPointer) &staticStateTable;
+        to->addr = (XtPointer) &staticStateTable;
         to->size = sizeof(XtAccelerators);
     }
     if (error == TRUE)
@@ -2153,7 +2153,7 @@ XtCvtStringToTranslationTable(xcb_connection_t *dpy,
 
         staticStateTable =
             ParseTranslationTable(str, FALSE, XtTableReplace, &error);
-        to->addr = (XPointer) &staticStateTable;
+        to->addr = (XtPointer) &staticStateTable;
         to->size = sizeof(XtTranslations);
     }
     if (error == TRUE)

@@ -26,10 +26,6 @@ typedef int Bool;
 #define False 0
 #endif
 
-#ifndef XPointer
-typedef char *XPointer;
-#endif
-
 #ifndef XID
 typedef uint32_t XID;
 #endif
@@ -64,10 +60,6 @@ typedef int XContext;
 
 #ifndef RootWindowOfScreen
 #define RootWindowOfScreen(s) ((s)->root)
-#endif
-
-#ifndef XFree
-#define XFree(ptr) free(ptr)
 #endif
 
 #ifndef BlackPixelOfScreen

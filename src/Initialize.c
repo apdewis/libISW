@@ -1007,10 +1007,10 @@ GetLanguage(xcb_connection_t *dpy, XtPerDisplay pd)
 
 //static void
 //ConnectionWatch(xcb_connection_t *dpy,
-//                XPointer client_data,
+//                XtPointer client_data,
 //                int fd,
 //                Bool opening,
-//                XPointer *watch_data)
+//                XtPointer *watch_data)
 //{
 //    XtInputId *iptr;
 //    XtAppContext app = XtDisplayToApplicationContext(dpy);
@@ -1019,7 +1019,7 @@ GetLanguage(xcb_connection_t *dpy, XtPerDisplay pd)
 //        iptr = (XtInputId *) __XtMalloc(sizeof(XtInputId));
 //        *iptr = XtAppAddInput(app, fd, (XtPointer) XtInputReadMask,
 //                              ProcessInternalConnection, client_data);
-//        *watch_data = (XPointer) iptr;
+//        *watch_data = (XtPointer) iptr;
 //    }
 //    else {
 //        iptr = (XtInputId *) *watch_data;
@@ -1132,7 +1132,7 @@ _XtDisplayInitialize(xcb_connection_t *dpy,
     //                    "xtIdentifyWindows", "XtDebug", XtRBoolean, &value);
 #endif
 
-    //XAddConnectionWatch(dpy, ConnectionWatch, (XPointer) dpy);
+    //XAddConnectionWatch(dpy, ConnectionWatch, (XtPointer) dpy);
 
     //XtFree((XtPointer) options);
     //DEALLOCATE_LOCAL(search_list);

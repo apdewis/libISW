@@ -1661,7 +1661,7 @@ _XtCvtMergeTranslations(xcb_connection_t *dpy _X_UNUSED,
         static XtTranslations staticStateTable;
 
         staticStateTable = xlations;
-        to->addr = (XPointer) &staticStateTable;
+        to->addr = (XtPointer) &staticStateTable;
         to->size = sizeof(XtTranslations);
     }
 
@@ -1684,9 +1684,9 @@ MergeThem(Widget dest, XtTranslations first, XtTranslations second)
         to_type = XrmPermStringToQuark(XtRTranslationTable);
     }
     UNLOCK_PROCESS;
-    from.addr = (XPointer) &convert_rec;
+    from.addr = (XtPointer) &convert_rec;
     from.size = sizeof(TMConvertRec);
-    to.addr = (XPointer) &newTable;
+    to.addr = (XtPointer) &newTable;
     to.size = sizeof(XtTranslations);
     convert_rec.old = first;
     convert_rec.new = second;

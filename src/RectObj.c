@@ -140,7 +140,7 @@ XtCopyAncestorSensitive(Widget widget, int offset _X_UNUSED, XrmValue *value)
     } else {
         sensitive = (parent->core.ancestor_sensitive & parent->core.sensitive);
     }
-    value->addr = (XPointer) (&sensitive);
+    value->addr = (XtPointer) (&sensitive);
 }
 
 /*

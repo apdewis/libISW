@@ -465,7 +465,7 @@ OpenIM(IswVendorShellExtPart *ve)
 
 	s = ns + 1;
     }
-    XFree(xim_styles);
+    XtFree(xim_styles);
 
     if (!found) {
 	XCloseIM(xim);
@@ -485,7 +485,7 @@ ResizeVendorShell_Core(VendorShellWidget vw, IswVendorShellExtPart *ve, IswIcTab
     if (p->input_style & XIMStatusArea) {
 	st_attr = XVaCreateNestedList(0, XNArea, &get_st_area, NULL);
 	XGetICValues(p->xic, XNStatusAttributes, st_attr, NULL);
-	XFree(st_attr);
+	XtFree(st_attr);
 	if (p->xic == NULL) {
 	    return(FALSE);
 	}
@@ -493,10 +493,10 @@ ResizeVendorShell_Core(VendorShellWidget vw, IswVendorShellExtPart *ve, IswIcTab
 	st_area.y = vw->core.height - ve->im.area_height;
 	st_area.width = get_st_area->width;
 	st_area.height = get_st_area->height;
-	XFree(get_st_area);
+	XtFree(get_st_area);
 	st_attr = XVaCreateNestedList(0, XNArea, &st_area, NULL);
 	XSetICValues(p->xic, XNStatusAttributes, st_attr, NULL);
-	XFree(st_attr);
+	XtFree(st_attr);
 	if (p->xic == NULL) {
 	    return(FALSE);
 	}
@@ -504,7 +504,7 @@ ResizeVendorShell_Core(VendorShellWidget vw, IswVendorShellExtPart *ve, IswIcTab
     if (p->input_style & XIMPreeditArea) {
 	pe_attr = XVaCreateNestedList(0, XNArea, &get_pe_area, NULL);
 	XGetICValues(p->xic, XNPreeditAttributes, pe_attr, NULL);
-	XFree(pe_attr);
+	XtFree(pe_attr);
 	if (p->xic == NULL) {
 	    return(FALSE);
 	}
@@ -515,10 +515,10 @@ ResizeVendorShell_Core(VendorShellWidget vw, IswVendorShellExtPart *ve, IswIcTab
 	if (p->input_style & XIMStatusArea) {
 	    pe_area.width -= st_area.width;
 	}
-	XFree(get_pe_area);
+	XtFree(get_pe_area);
 	pe_attr = XVaCreateNestedList(0, XNArea, &pe_area, NULL);
 	XSetICValues(p->xic, XNPreeditAttributes, pe_attr, NULL);
-	XFree(pe_attr);
+	XtFree(pe_attr);
     }
     return(TRUE);
 }
@@ -654,8 +654,8 @@ SizeNegotiation(IswIcTableList p, Dimension width, Dimension height)
 
     if (ic_cnt > 0) {
 	XGetICValues(p->xic, ic_a[0], ic_a[1], ic_a[2], ic_a[3], ic_a[4], NULL);
-	if (pe_attr) XFree(pe_attr);
-	if (st_attr) XFree(st_attr);
+	if (pe_attr) XtFree(pe_attr);
+	if (st_attr) XtFree(st_attr);
 	if (p->xic == NULL) {
 	    p->openic_error = True;
 	    return;
@@ -672,7 +672,7 @@ SizeNegotiation(IswIcTableList p, Dimension width, Dimension height)
 		st_area.width = width;
 	    }
 
-	    XFree(st_area_needed);
+	    XtFree(st_area_needed);
 	    st_attr = XVaCreateNestedList(0, XNArea, &st_area, NULL);
 	    SetVaArg( &ic_a[ic_cnt], (XtPointer) XNStatusAttributes); ic_cnt++;
 	    SetVaArg( &ic_a[ic_cnt], (XtPointer) st_attr); ic_cnt++;
@@ -686,7 +686,7 @@ SizeNegotiation(IswIcTableList p, Dimension width, Dimension height)
 		pe_area.width = width;
 	    }
 	    pe_area.height = pe_area_needed->height;
-	    XFree(pe_area_needed);
+	    XtFree(pe_area_needed);
 	    pe_area.y = height - pe_area.height;
 	    pe_attr = XVaCreateNestedList(0, XNArea, &pe_area, NULL);
 	    SetVaArg( &ic_a[ic_cnt], (XtPointer) XNPreeditAttributes); ic_cnt++;
@@ -694,8 +694,8 @@ SizeNegotiation(IswIcTableList p, Dimension width, Dimension height)
 	}
 	SetVaArg( &ic_a[ic_cnt], (XtPointer) NULL);
 	XSetICValues(p->xic, ic_a[0], ic_a[1], ic_a[2], ic_a[3], ic_a[4], NULL);
-	if (pe_attr) XFree(pe_attr);
-	if (st_attr) XFree(st_attr);
+	if (pe_attr) XtFree(pe_attr);
+	if (st_attr) XtFree(st_attr);
 	if (p->xic == NULL) {
 	    p->openic_error = True;
 	    return;

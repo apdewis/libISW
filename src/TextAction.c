@@ -306,7 +306,7 @@ we are, and convert it.  I also warn the user that the other client is evil. */
 		!=  Success) return;
       }
 
-      XFree(value);
+      XtFree(value);
       value = (XtPointer)wlist[0];
 
       *length = wcslen(wlist[0]);
@@ -336,7 +336,7 @@ we are, and convert it.  I also warn the user that the other client is evil. */
   _IswTextSetScrollBars(ctx);
   EndAction(ctx);
   XtFree(client_data);
-  XFree(value);		/* the selection value should be freed with XFree */
+  XtFree(value);		/* the selection value should be freed with XtFree */
 }
 
 
@@ -1788,7 +1788,7 @@ DisplayCaret(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
       Boolean converted_value;
       from.size = strlen(from.addr = params[0]);
       to.size = sizeof(Boolean);
-      to.addr = (XPointer)&converted_value;
+      to.addr = (XtPointer)&converted_value;
       
       if ( XtConvertAndStore( w, XtRString, &from, XtRBoolean, &to ) )
           display_caret = converted_value;

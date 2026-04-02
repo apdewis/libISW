@@ -163,8 +163,8 @@ GetTypedArg(Widget widget,
     XtGetValues(widget, &arg, 1);
 
     from_val.size = from_size;
-    from_val.addr = (XPointer) value;
-    to_val.addr = (XPointer) typed_arg->value;
+    from_val.addr = (XtPointer) value;
+    to_val.addr = (XtPointer) typed_arg->value;
     to_val.size = (unsigned) typed_arg->size;
 
     if (!XtConvertAndStore(widget, from_type, &from_val,

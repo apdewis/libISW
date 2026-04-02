@@ -1681,11 +1681,11 @@ _popup_set_prop(ShellWidget w)
                 (XtIsTopLevelShell((Widget) w)) ? icon_name : NULL,
                 argv, argc, size_hints, &wmshell->wm.wm_hints, "", "");// classhint_class, classhint_name);
     if(size_hints) free(size_hints);
-    //XFree((char *) size_hints);
+    //XtFree((char *) size_hints);
     //if (copied_wname)
-    //    XFree((XPointer) window_name.value);
+    //    XtFree((XtPointer) window_name.value);
     //if (copied_iname)
-    //    XFree((XPointer) icon_name.value);
+    //    XtFree((XtPointer) icon_name.value);
 
     LOCK_PROCESS;
     if (XtWidgetToApplicationContext((Widget) w)->langProcRec.proc) {
@@ -2765,7 +2765,7 @@ WMSetValues(Widget old,
             free(atom_reply);
         }
         //if (copied)
-        //    XFree((XPointer) title.value);
+        //    XtFree((XtPointer) title.value);
     }
 
     EvaluateWMHints(nwmshell);
@@ -3018,7 +3018,7 @@ TopLevelSetValues(Widget oldW,
             }
 
             //if (copied)
-            //    XFree((XPointer) icon_name.value);
+            //    XtFree((XtPointer) icon_name.value);
         }
     }
     else if (new->topLevel.iconic != old->topLevel.iconic) {

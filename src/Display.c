@@ -774,7 +774,7 @@ CloseDisplay(xcb_connection_t *dpy)
         XtDeleteFromAppContext(dpy, xtpd->appContext);
         //if (xtpd->keysyms)
         //    xcb_key_symbols_free(xtpd->keysyms); //causes linker error even with xcb-xkb linked
-            //XFree((char *) xtpd->keysyms);
+            //XtFree((char *) xtpd->keysyms);
         XtFree((char *) xtpd->modKeysyms);
         XtFree((char *) xtpd->modsToKeysyms);
         xtpd->keysyms_per_keycode = 0;

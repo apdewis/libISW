@@ -1011,5 +1011,5 @@ _XtResourceConfigurationEH(Widget w,
 //        }
 //    }
 //
-//    XFree((char *) data);
+//    XtFree((char *) data);
 }

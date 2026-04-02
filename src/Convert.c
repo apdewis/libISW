@@ -403,7 +403,7 @@ CacheEnter(Heap *heap,
     }
     else {
         p->from_is_value = False;
-        p->from.addr = (XPointer) _XtHeapAlloc(heap, from->size);
+        p->from.addr = (XtPointer) _XtHeapAlloc(heap, from->size);
         (void) memcpy(p->from.addr, (char *) from->addr, from->size);
     }
     p->num_args = (unsigned short) num_args;
@@ -413,7 +413,7 @@ CacheEnter(Heap *heap,
 
         for (i = 0; i < num_args; i++) {
             pargs[i].size = args[i].size;
-            pargs[i].addr = (XPointer) _XtHeapAlloc(heap, args[i].size);
+            pargs[i].addr = (XtPointer) _XtHeapAlloc(heap, args[i].size);
             XtMemmove(pargs[i].addr, args[i].addr, args[i].size);
         }
     }
@@ -428,7 +428,7 @@ CacheEnter(Heap *heap,
     }
     else {
         p->to_is_value = False;
-        p->to.addr = (XPointer) _XtHeapAlloc(heap, to->size);
+        p->to.addr = (XtPointer) _XtHeapAlloc(heap, to->size);
         (void) memcpy(p->to.addr, (char *) to->addr, to->size);
     }
     UNLOCK_PROCESS;
@@ -449,7 +449,7 @@ FreeCacheRec(XtAppContext app, CachePtr p, CachePtr * prev)
                 args = CARGS(p);
             toc.size = p->to.size;
             if (p->to_is_value)
-                toc.addr = (XPointer) &p->to.addr;
+                toc.addr = (XtPointer) &p->to.addr;
             else
                 toc.addr = p->to.addr;
             (*CEXT(p)->destructor) (app, &toc, CEXT(p)->closure, args,
@@ -579,7 +579,7 @@ ComputeArgs(Widget widget,
 
         case XtBaseOffset:
             args[i].addr =
-                (XPointer) ((char *) widget +
+                (XtPointer) ((char *) widget +
                             (long) convert_args[i].address_id);
             break;
 
@@ -592,12 +592,12 @@ ComputeArgs(Widget widget,
             }
 
             args[i].addr =
-                (XPointer) ((char *) ancestor +
+                (XtPointer) ((char *) ancestor +
                             (long) convert_args[i].address_id);
             break;
 
         case XtImmediate:
-            args[i].addr = (XPointer) &(convert_args[i].address_id);
+            args[i].addr = (XtPointer) &(convert_args[i].address_id);
             break;
 
         case XtProcedureArg:
@@ -627,7 +627,7 @@ ComputeArgs(Widget widget,
                                 params, &num_params);
                 offset = 0;
             }
-            args[i].addr = (XPointer) ((char *) widget + offset);
+            args[i].addr = (XtPointer) ((char *) widget + offset);
             break;
         default:
             params[0] = XtName(widget);
@@ -685,7 +685,7 @@ XtDirectConvert(XtConverter converter,
                 /* Perfect match */
                 to->size = p->to.size;
                 if (p->to_is_value)
-                    to->addr = (XPointer) &p->to.addr;
+                    to->addr = (XtPointer) &p->to.addr;
                 else
                     to->addr = p->to.addr;
                 UNLOCK_PROCESS;
@@ -804,7 +804,7 @@ CallConverter(xcb_connection_t *dpy,
                         else {  /* old-style call */
                             to->size = p->to.size;
                             if (p->to_is_value)
-                                to->addr = (XPointer) &p->to.addr;
+                                to->addr = (XtPointer) &p->to.addr;
                             else
                                 to->addr = p->to.addr;
                         }

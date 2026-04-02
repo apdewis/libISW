@@ -114,12 +114,12 @@ _XtCopyFromParent(Widget widget, int offset, XrmValue *value)
 
         if (offset == colormap_offset && widget->core.screen != NULL) {
             default_colormap = widget->core.screen->default_colormap;
-            value->addr = (XPointer) &default_colormap;
+            value->addr = (XtPointer) &default_colormap;
             return;
         }
         if (offset == depth_offset && widget->core.screen != NULL) {
             default_depth = (int) widget->core.screen->root_depth;
-            value->addr = (XPointer) &default_depth;
+            value->addr = (XtPointer) &default_depth;
             return;
         }
         XtAppWarningMsg(XtWidgetToApplicationContext(widget),
@@ -128,7 +128,7 @@ _XtCopyFromParent(Widget widget, int offset, XrmValue *value)
         value->addr = NULL;
         return;
     }
-    value->addr = (XPointer) (((char *) widget->core.parent) + offset);
+    value->addr = (XtPointer) (((char *) widget->core.parent) + offset);
 }                               /* _XtCopyFromParent */
 
 void
@@ -715,11 +715,11 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                 from_val.size = (Cardinal) arg->size;
                 if ((from_type == QString) ||
                     ((unsigned) arg->size > sizeof(XtArgVal)))
-                    from_val.addr = (XPointer) arg->value;
+                    from_val.addr = (XtPointer) arg->value;
                 else
-                    from_val.addr = (XPointer) &arg->value;
+                    from_val.addr = (XtPointer) &arg->value;
                 to_val.size = sizeof(xcb_screen_t *);
-                to_val.addr = (XPointer) &widget->core.screen;
+                to_val.addr = (XtPointer) &widget->core.screen;
                 found[j] = _XtConvert(widget, from_type, &from_val,
                                       QScreen, &to_val, cache_base);
                 if (cache_base && *cache_base)
@@ -731,7 +731,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                     /* xcb-util-xrm returns strings; need conversion */
                     rawType = QString;
                     convValue.size = sizeof(xcb_screen_t *);
-                    convValue.addr = (XPointer) &widget->core.screen;
+                    convValue.addr = (XtPointer) &widget->core.screen;
                     (void) _XtConvert(widget, rawType, &value,
                                       QScreen, &convValue, cache_base);
                     if (cache_base && *cache_base)
@@ -769,7 +769,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                 /* xcb-util-xrm returns strings; convert to Boolean */
                 rawType = QString;
                 convValue.size = sizeof(Boolean);
-                convValue.addr = (XPointer) &persistent_resources;
+                convValue.addr = (XtPointer) &persistent_resources;
                 (void) _XtConvert(widget, rawType, &value, QBoolean,
                                   &convValue, NULL);
                 free(value.addr);
@@ -801,9 +801,9 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                 from_val.size = (Cardinal) arg->size;
                 if ((from_type == QString) ||
                     ((unsigned) arg->size > sizeof(XtArgVal)))
-                    from_val.addr = (XPointer) arg->value;
+                    from_val.addr = (XtPointer) arg->value;
                 else
-                    from_val.addr = (XPointer) &arg->value;
+                    from_val.addr = (XtPointer) &arg->value;
                 to_val.size = rx->xrm_size;
                 to_val.addr = base - rx->xrm_offset - 1;
                 converted = _XtConvert(widget, from_type, &from_val,
@@ -857,7 +857,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                     rawType = QString;
                     if (rawType != xrm_type) {
                         convValue.size = rx->xrm_size;
-                        convValue.addr = (XPointer) (base - rx->xrm_offset - 1);
+                        convValue.addr = (XtPointer) (base - rx->xrm_offset - 1);
                         /* Watchpoint: check if this resource write corrupts core.display */
                 {
                     int actual_offset = -(rx->xrm_offset) - 1;
@@ -895,26 +895,26 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                         }
                         else if (rx->xrm_size == sizeof(int)) {
                             int_val = (int) (long) rx->xrm_default_addr;
-                            value.addr = (XPointer) &int_val;
+                            value.addr = (XtPointer) &int_val;
                         }
                         else if (rx->xrm_size == sizeof(short)) {
                             short_val = (short) (long) rx->xrm_default_addr;
-                            value.addr = (XPointer) &short_val;
+                            value.addr = (XtPointer) &short_val;
                         }
                         else if (rx->xrm_size == sizeof(char)) {
                             char_val = (char) (long) rx->xrm_default_addr;
-                            value.addr = (XPointer) &char_val;
+                            value.addr = (XtPointer) &char_val;
                         }
                         else if (rx->xrm_size == sizeof(long)) {
                             long_val = (long) rx->xrm_default_addr;
-                            value.addr = (XPointer) &long_val;
+                            value.addr = (XtPointer) &long_val;
                         }
                         else if (rx->xrm_size == sizeof(char *)) {
                             char_ptr = (char *) rx->xrm_default_addr;
-                            value.addr = (XPointer) &char_ptr;
+                            value.addr = (XtPointer) &char_ptr;
                         }
                         else {
-                            value.addr = (XPointer) &(rx->xrm_default_addr);
+                            value.addr = (XtPointer) &(rx->xrm_default_addr);
                         }
                     }
                     else if (xrm_default_type == xrm_type) {
@@ -930,7 +930,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                             value.size = sizeof(XtPointer);
                         }
                         convValue.size = rx->xrm_size;
-                        convValue.addr = (XPointer) (base - rx->xrm_offset - 1);
+                        convValue.addr = (XtPointer) (base - rx->xrm_offset - 1);
                         already_copied =
                             _XtConvert(widget, xrm_default_type, &value,
                                        xrm_type, &convValue, cache_ptr);
@@ -985,7 +985,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
             /* xcb-util-xrm returns strings; need conversion to TranslationTable */
             rawType = QString;
             convValue.size = sizeof(XtTranslations);
-            convValue.addr = (XPointer) &widget->core.tm.current_state;
+            convValue.addr = (XtPointer) &widget->core.tm.current_state;
             (void) _XtConvert(widget, rawType, &value,
                               QTranslationTable, &convValue, cache_ptr);
             if (cache_ptr && *cache_ptr)

@@ -221,7 +221,7 @@ WidgetClass coreWidgetClass = &widgetClassRec;
 static void
 XtCopyScreen(Widget widget, int offset _X_UNUSED, XrmValue *value)
 {
-    value->addr = (XPointer) (&widget->core.screen);
+    value->addr = (XtPointer) (&widget->core.screen);
 }
 
 /*

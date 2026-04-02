@@ -623,7 +623,7 @@ _ISWTextMBToWC(xcb_connection_t *conn, char *str, int *len_in_out)
     }
     wstr = wlist[0];
     *len_in_out = wcslen(wstr);
-    XFree((char**)wlist);
+    XtFree((char**)wlist);
     return wstr;
 #else
     /* XCB: MB→WC conversion not available, use mbstowcs */

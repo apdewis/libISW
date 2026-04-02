@@ -897,7 +897,7 @@ HandleSelectionEvents(Widget widget,
                     xcb_change_property(ctx->dpy, XCB_PROP_MODE_REPLACE, ev.requestor,
                         sre->property, target,
                         format, length, value);
-                XFree((char *) value);
+                XtFree((char *) value);
             }
             else {              /* not multiple */
 
@@ -1381,7 +1381,7 @@ HandleNormal(xcb_connection_t *dpy,
     if (type == info->ctx->prop_list->incr_atom) {
         unsigned long size = IncrPropSize(widget, value, format, length);
 
-        XFree((char *) value);
+        XtFree((char *) value);
         if (info->property != property) {
             /* within MULTIPLE */
             CallBackInfo ninfo;
@@ -1404,7 +1404,7 @@ HandleNormal(xcb_connection_t *dpy,
         char *tmp = __XtMalloc((Cardinal) size);
 
         (void) memcpy(tmp, value, (size_t) size);
-        XFree(value);
+        XtFree(value);
         value = (unsigned char *) tmp;
     }
 #endif
@@ -1505,7 +1505,7 @@ HandleSelectionReplies(Widget widget,
                 }
             }
         }
-        XFree((char *) pairs);
+        XtFree((char *) pairs);
         FreeSelectionProperty(dpy, info->property);
         FreeInfo(info);
     }
@@ -2365,7 +2365,7 @@ XtGetSelectionParameters(Widget owner,
             char *tmp = __XtMalloc((Cardinal) size);
 
             (void) memcpy(tmp, *value_return, (size_t) size);
-            XFree(*value_return);
+            XtFree(*value_return);
             *value_return = tmp;
         }
 #endif
