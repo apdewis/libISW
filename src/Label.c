@@ -546,6 +546,11 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             /* Use Cairo rendering if available */
             if (ctx) {
                 ISWRenderBegin(ctx);
+                /* Clear the widget area before drawing so stale text
+                 * from a previous label value doesn't show through. */
+                ISWRenderSetColor(ctx, w->core.background_pixel);
+                ISWRenderFillRectangle(ctx, 0, 0,
+                                       w->core.width, w->core.height);
                 ISWRenderSetFont(ctx, w->label.font);
                 ISWRenderSetColor(ctx, w->label.foreground);
 
@@ -573,6 +578,11 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             /* Use Cairo rendering if available */
             if (ctx) {
                 ISWRenderBegin(ctx);
+                /* Clear the widget area before drawing so stale text
+                 * from a previous label value doesn't show through. */
+                ISWRenderSetColor(ctx, w->core.background_pixel);
+                ISWRenderFillRectangle(ctx, 0, 0,
+                                       w->core.width, w->core.height);
                 ISWRenderSetFont(ctx, w->label.font);
                 ISWRenderSetColor(ctx, w->label.foreground);
 

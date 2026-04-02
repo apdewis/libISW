@@ -296,7 +296,7 @@ PaintText(Widget w, Boolean highlight, Position x, Position y, unsigned char * b
         ISWRenderSetColor(sink->ascii_sink.render_ctx, bg);
         ISWRenderFillRectangle(sink->ascii_sink.render_ctx,
                               (int)x, (int)y - asc,
-                              (int)width, (int)(asc + desc + 1));
+                              (int)(max_x - x), (int)(asc + desc + 1));
         ISWRenderRestore(sink->ascii_sink.render_ctx);
         ISWRenderDrawString(sink->ascii_sink.render_ctx, (char *)buf, len,
                           (int)x, (int)y);

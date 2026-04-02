@@ -368,7 +368,7 @@ PaintText(Widget w, Boolean highlight, Position x, Position y, wchar_t* buf, int
         ISWRenderSetColor(sink->multi_sink.render_ctx, m_bg);
         ISWRenderFillRectangle(sink->multi_sink.render_ctx,
                               (int)x, (int)y - m_asc,
-                              (int)width, (int)(m_h + 1));
+                              (int)(max_x - x), (int)(m_h + 1));
         ISWRenderRestore(sink->multi_sink.render_ctx);
         ISWRenderSetFont(sink->multi_sink.render_ctx, NULL);
         ISWRenderDrawString(sink->multi_sink.render_ctx, utf8_text, utf8_len,
