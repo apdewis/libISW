@@ -55,7 +55,7 @@ ISWQueryPointer(xcb_connection_t *dpy, xcb_window_t win,
  * IswCreateBitmapFromData - Create a depth-1 pixmap from bitmap data
  *
  * This is the XCB replacement for XCreateBitmapFromData.
- * The data is expected to be in LSBFirst bit order (standard X bitmap format).
+ * The data is expected to be in XCB_IMAGE_ORDER_LSB_FIRST bit order (standard X bitmap format).
  */
 xcb_pixmap_t
 IswCreateBitmapFromData(xcb_connection_t *conn,
@@ -1250,7 +1250,7 @@ int ISWCompareISOLatin1(const char *first, const char *second)
  * This is a stub that always returns None. Full implementation would require
  * XPM library support or other image format handling.
  */
-Pixmap IswLocatePixmapFile(
+xcb_pixmap_t IswLocatePixmapFile(
     xcb_screen_t *screen,
     const char *name,
     unsigned long fore,

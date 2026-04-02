@@ -302,22 +302,22 @@ PreferredSize(Widget widget, XtWidgetGeometry *constraint, XtWidgetGeometry *pre
     Dimension preferred_width = w->box.preferred_width;
     Dimension preferred_height = w->box.preferred_height;
 
-    constraint->request_mode &= CWWidth | CWHeight;
+    constraint->request_mode &= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
 
     if (constraint->request_mode == 0)
 	/* parent isn't going to change w or h, so nothing to re-compute */
 	return XtGeometryYes;
 
     if (constraint->request_mode == w->box.last_query_mode &&
-	(!(constraint->request_mode & CWWidth) ||
+	(!(constraint->request_mode & XCB_CONFIG_WINDOW_WIDTH) ||
 	 constraint->width == w->box.last_query_width) &&
-	(!(constraint->request_mode & CWHeight) ||
+	(!(constraint->request_mode & XCB_CONFIG_WINDOW_HEIGHT) ||
 	 constraint->height == w->box.last_query_height)) {
 	/* same query; current preferences are still valid */
-	preferred->request_mode = CWWidth | CWHeight;
+	preferred->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
 	preferred->width = preferred_width;
 	preferred->height = preferred_height;
-	if (constraint->request_mode == (CWWidth | CWHeight) &&
+	if (constraint->request_mode == (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT) &&
 	    constraint->width == preferred_width &&
 	    constraint->height == preferred_height)
 	    return XtGeometryYes;
@@ -334,22 +334,22 @@ PreferredSize(Widget widget, XtWidgetGeometry *constraint, XtWidgetGeometry *pre
     w->box.last_query_width = constraint->width;
     w->box.last_query_height= constraint->height;
 
-    if (constraint->request_mode & CWWidth)
+    if (constraint->request_mode & XCB_CONFIG_WINDOW_WIDTH)
 	width = constraint->width;
-    else /* if (constraint->request_mode & CWHeight) */ {
+    else /* if (constraint->request_mode & XCB_CONFIG_WINDOW_HEIGHT) */ {
 	 /* let's see if I can become any narrower */
 	width = 0;
 	constraint->width = 65535;
     }
 
     /* height is currently ignored by DoLayout.
-       height = (constraint->request_mode & CWHeight) ? constraint->height
+       height = (constraint->request_mode & XCB_CONFIG_WINDOW_HEIGHT) ? constraint->height
 		       : *preferred_height;
      */
     DoLayout(w, width, (Dimension)0,
 	     &preferred_width, &preferred_height, FALSE);
 
-    if (constraint->request_mode & CWHeight &&
+    if (constraint->request_mode & XCB_CONFIG_WINDOW_HEIGHT &&
 	preferred_height > constraint->height) {
 	/* find minimum width for this height */
 	if (preferred_width > constraint->width) {
@@ -377,11 +377,11 @@ PreferredSize(Widget widget, XtWidgetGeometry *constraint, XtWidgetGeometry *pre
 	}
     }
 
-    preferred->request_mode = CWWidth | CWHeight;
+    preferred->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     preferred->width = w->box.preferred_width = preferred_width;
     preferred->height = w->box.preferred_height = preferred_height;
 
-    if (constraint->request_mode == (CWWidth|CWHeight)
+    if (constraint->request_mode == (XCB_CONFIG_WINDOW_WIDTH|XCB_CONFIG_WINDOW_HEIGHT)
 	&& constraint->width == preferred_width
 	&& constraint->height == preferred_height)
 	return XtGeometryYes;
@@ -480,7 +480,7 @@ TryNewLayout(BoxWidget bbw)
 		}
 		else { /* proposed_height != preferred_height */
 		    XtWidgetGeometry constraints, reply;
-		    constraints.request_mode = CWHeight;
+		    constraints.request_mode = XCB_CONFIG_WINDOW_HEIGHT;
 		    constraints.height = proposed_height;
 		    (void)PreferredSize((Widget)bbw, &constraints, &reply);
 		    proposed_width = preferred_width;
@@ -512,19 +512,19 @@ GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
     BoxWidget bbw;
 
     /* Position request always denied */
-    if ((request->request_mode & CWX && request->x != w->core.x) ||
-	(request->request_mode & CWY && request->y != w->core.y))
+    if ((request->request_mode & XCB_CONFIG_WINDOW_X && request->x != w->core.x) ||
+	(request->request_mode & XCB_CONFIG_WINDOW_Y && request->y != w->core.y))
         return (XtGeometryNo);
 
     /* Size changes must see if the new size can be accomodated */
-    if (request->request_mode & (CWWidth | CWHeight | CWBorderWidth)) {
+    if (request->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
 
 	/* Make all three fields in the request valid */
-	if ((request->request_mode & CWWidth) == 0)
+	if ((request->request_mode & XCB_CONFIG_WINDOW_WIDTH) == 0)
 	    request->width = w->core.width;
-	if ((request->request_mode & CWHeight) == 0)
+	if ((request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) == 0)
 	    request->height = w->core.height;
-        if ((request->request_mode & CWBorderWidth) == 0)
+        if ((request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) == 0)
 	    request->border_width = w->core.border_width;
 
 	/* Save current size and set to new size */
@@ -623,7 +623,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     newbbw->box.h_space = ISWScaleDim(new, newbbw->box.h_space);
     newbbw->box.v_space = ISWScaleDim(new, newbbw->box.v_space);
 
-    newbbw->box.last_query_mode = CWWidth | CWHeight;
+    newbbw->box.last_query_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     newbbw->box.last_query_width = newbbw->box.last_query_height = 0;
     newbbw->box.preferred_width = IswMax(newbbw->box.h_space, 1);
     newbbw->box.preferred_height = IswMax(newbbw->box.v_space, 1);
@@ -640,8 +640,8 @@ static void
 Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
     /* XCB Migration: attributes is a uint32_t array in ascending mask bit order.
-     * We need to INSERT the CWBitGravity value at the correct position,
-     * shifting subsequent values to make room. CWBitGravity = XCB_CW_BIT_GRAVITY
+     * We need to INSERT the XCB_CW_BIT_GRAVITY value at the correct position,
+     * shifting subsequent values to make room. XCB_CW_BIT_GRAVITY = XCB_CW_BIT_GRAVITY
      * is bit 4. We count how many values exist for bits 0-3 (BACK_PIXMAP,
      * BACK_PIXEL, BORDER_PIXMAP, BORDER_PIXEL) to find the insertion index. */
     if (!(*valueMask & XCB_CW_BIT_GRAVITY)) {
@@ -666,13 +666,13 @@ Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attr
         for (i = total_values; i > insert_idx; i--)
             attributes[i] = attributes[i - 1];
 
-        /* Insert NorthWestGravity at the correct position */
+        /* Insert XCB_GRAVITY_NORTH_WEST at the correct position */
         attributes[insert_idx] = XCB_GRAVITY_NORTH_WEST;
         *valueMask |= XCB_CW_BIT_GRAVITY;
     }
     
-    XtCreateWindow(conn, w, (unsigned)InputOutput,
-                   (Visual *)CopyFromParent, *valueMask, attributes);
+    XtCreateWindow(conn, w, (unsigned)XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                   (xcb_visualtype_t *)CopyFromParent, *valueMask, attributes);
 } /* Realize */
 
 /* ARGSUSED */

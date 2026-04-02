@@ -650,7 +650,7 @@ ISWRenderPixelToRGB(ISWRenderContext *ctx, Pixel pixel,
         *g = color.green / 65535.0;
         *b = color.blue / 65535.0;
     } else {
-        /* Fallback: extract RGB from pixel assuming TrueColor format */
+        /* Fallback: extract RGB from pixel assuming XCB_VISUAL_CLASS_TRUE_COLOR format */
         *r = ((pixel >> 16) & 0xFF) / 255.0;
         *g = ((pixel >> 8) & 0xFF) / 255.0;
         *b = (pixel & 0xFF) / 255.0;

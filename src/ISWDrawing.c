@@ -33,7 +33,7 @@ static xcb_window_t GetRootFromScreen(xcb_screen_t *screen);
  * Creates a 2x2 pixmap with a checkerboard pattern (50% gray stipple).
  * The pattern alternates between foreground and background pixels.
  */
-Pixmap
+xcb_pixmap_t
 IswCreateStippledPixmap(xcb_screen_t *screen, Pixel fg, Pixel bg, unsigned int depth)
 {
     xcb_connection_t *dpy;
@@ -117,7 +117,7 @@ IswCreateStippledPixmap(xcb_screen_t *screen, Pixel fg, Pixel bg, unsigned int d
     /* Flush to ensure pixmap is created */
     xcb_flush(dpy);
     
-    return (Pixmap)pixmap;
+    return (xcb_pixmap_t)pixmap;
 }
 #endif /* 0 - IswCreateStippledPixmap */
 
@@ -158,7 +158,7 @@ ISWReleaseStippledPixmap(xcb_screen_t *screen, xcb_pixmap_t pixmap)
  * difference (on a 0-65535 scale), which provides reasonable visual distinction.
  */
 Bool
-ISWDistinguishablePixels(xcb_connection_t *dpy, Colormap cmap,
+ISWDistinguishablePixels(xcb_connection_t *dpy, xcb_colormap_t cmap,
                         unsigned long *pixels, int count)
 {
     xcb_query_colors_cookie_t cookie;
@@ -232,7 +232,7 @@ ISWDistinguishablePixels(xcb_connection_t *dpy, Colormap cmap,
  *
  * Provides backward compatibility with code using XmuCreateStippledPixmap.
  */
-Pixmap
+xcb_pixmap_t
 XmuCreateStippledPixmap(xcb_screen_t*screen, Pixel fg, Pixel bg, unsigned int depth)
 {
     return IswCreateStippledPixmap(screen, fg, bg, depth);

@@ -354,7 +354,7 @@ static Boolean
 _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
                       XrmValuePtr from, XrmValuePtr to, XtPointer *data)
 {
-    static Pixmap pixmap;
+    static xcb_pixmap_t pixmap;
     ISWPNGImage *png;
     xcb_screen_t *screen;
     unsigned int w, h;
@@ -369,13 +369,13 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     if (strcmp(from->addr, "None") == 0)
     {
 	pixmap = None;
-	DONE(Pixmap, &pixmap);
+	DONE(xcb_pixmap_t, &pixmap);
 	return (True);
     }
     if (strcmp(from->addr, "ParentRelative") == 0)
     {
 	pixmap = ParentRelative;
-	DONE(Pixmap, &pixmap);
+	DONE(xcb_pixmap_t, &pixmap);
 	return (True);
     }
 
@@ -439,17 +439,17 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
 	to->addr = (XtPointer) & pixmap;
     else
     {
-	if (to->size < sizeof(Pixmap))
+	if (to->size < sizeof(xcb_pixmap_t))
 	{
-	    to->size = sizeof(Pixmap);
+	    to->size = sizeof(xcb_pixmap_t);
 	    XtDisplayStringConversionWarning(dpy, (String) from->addr,
 					     XtRPixmap);
 	    return (False);
 	}
 
-	*((Pixmap *) to->addr) = pixmap;
+	*((xcb_pixmap_t *) to->addr) = pixmap;
     }
-    to->size = sizeof(Pixmap);
+    to->size = sizeof(xcb_pixmap_t);
     return (True);
 }
 
@@ -464,7 +464,7 @@ IswVendorShellClassInitialize(void)
 	{XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.screen),
 	     sizeof(xcb_screen_t *)},
 	{XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.colormap),
-	     sizeof(Colormap)},
+	     sizeof(xcb_colormap_t)},
 	{XtWidgetBaseOffset,
 	     (XtPointer)XtOffsetOf(WidgetRec, core.background_pixel),
 	     sizeof(Pixel)}
@@ -623,32 +623,32 @@ GeometryManager(Widget wid, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 	if(shell->shell.allow_shell_resize == FALSE && XtIsRealized(wid))
 		return(XtGeometryNo);
 
-	if (request->request_mode & (CWX | CWY))
+	if (request->request_mode & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y))
 	    return(XtGeometryNo);
 
 	/* %%% worry about XtCWQueryOnly */
 	my_request.request_mode = 0;
-	if (request->request_mode & CWWidth) {
+	if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) {
 	    my_request.width = request->width;
-	    my_request.request_mode |= CWWidth;
+	    my_request.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 	}
-	if (request->request_mode & CWHeight) {
+	if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) {
 	    my_request.height = request->height
 #ifdef ISW_INTERNATIONALIZATION
 			      + _IswImGetImAreaHeight( wid )
 #endif
 			      ;
-	    my_request.request_mode |= CWHeight;
+	    my_request.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 	}
-	if (request->request_mode & CWBorderWidth) {
+	if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
 	    my_request.border_width = request->border_width;
-	    my_request.request_mode |= CWBorderWidth;
+	    my_request.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
 	}
 	if (XtMakeGeometryRequest((Widget)shell, &my_request, NULL)
 		== XtGeometryYes) {
-	    /* assert: if (request->request_mode & CWWidth) then
+	    /* assert: if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) then
 	     * 		  shell->core.width == request->width
-	     * assert: if (request->request_mode & CWHeight) then
+	     * assert: if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) then
 	     * 		  shell->core.height == request->height
 	     *
 	     * so, whatever the WM sized us to (if the Shell requested
@@ -657,7 +657,7 @@ GeometryManager(Widget wid, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 
 	    wid->core.width = shell->core.width;
 	    wid->core.height = shell->core.height;
-	    if (request->request_mode & CWBorderWidth) {
+	    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
 		wid->core.x = wid->core.y = -request->border_width;
 	    }
 #ifdef ISW_INTERNATIONALIZATION

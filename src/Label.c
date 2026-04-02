@@ -929,14 +929,14 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *preferred)
 {
     LabelWidget lw = (LabelWidget)w;
 
-    preferred->request_mode = CWWidth | CWHeight;
+    preferred->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     preferred->width = (lw->label.label_width +
 			    2 * lw->label.internal_width +
 			    LEFT_OFFSET(lw));
     preferred->height = lw->label.label_height +
 			    2 * lw->label.internal_height;
-    if (  ((intended->request_mode & (CWWidth | CWHeight))
-	   	== (CWWidth | CWHeight)) &&
+    if (  ((intended->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT))
+	   	== (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
 	  intended->width == preferred->width &&
 	  intended->height == preferred->height)
 	return XtGeometryYes;

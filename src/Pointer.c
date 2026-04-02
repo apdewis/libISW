@@ -54,7 +54,7 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include "PassivGraI.h"
 
-#define AllButtonsMask (Button1Mask | Button2Mask | Button3Mask | Button4Mask | Button5Mask)
+#define AllButtonsMask (XCB_BUTTON_MASK_1 | XCB_BUTTON_MASK_2 | XCB_BUTTON_MASK_3 | XCB_BUTTON_MASK_4 | XCB_BUTTON_MASK_5)
 
 Widget
 _XtProcessPointerEvent(xcb_button_press_event_t *event,
@@ -88,7 +88,7 @@ _XtProcessPointerEvent(xcb_button_press_event_t *event,
     case XCB_BUTTON_RELEASE:
     {
         if ((device->grabType == XtPassiveServerGrab) &&
-            !(event->state & (unsigned) (~(Button1Mask << (event->detail - 1)))
+            !(event->state & (unsigned) (~(XCB_BUTTON_MASK_1 << (event->detail - 1)))
               & AllButtonsMask))
             deactivateGrab = TRUE;
     }

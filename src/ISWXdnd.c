@@ -311,8 +311,8 @@ static IswDndAction
 ModifiersToAction(XdndState *st, unsigned int state)
 {
     /* Shift = Move, Ctrl = Copy, Ctrl+Shift = Link */
-    Boolean shift = (state & ShiftMask) != 0;
-    Boolean ctrl  = (state & ControlMask) != 0;
+    Boolean shift = (state & XCB_MOD_MASK_SHIFT) != 0;
+    Boolean ctrl  = (state & XCB_MOD_MASK_CONTROL) != 0;
 
     (void) st;
 
@@ -1226,8 +1226,8 @@ ISWXdndStartDrag(Widget source_widget,
 
     /* Install raw event handler for drag tracking */
     XtAddEventHandler(st->shell,
-                      ButtonReleaseMask | PointerMotionMask |
-                      ButtonMotionMask | KeyPressMask,
+                      XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
+                      XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS,
                       TRUE,  /* non-maskable too, for ClientMessage */
                       HandleDragEvent, (XtPointer) st);
 
@@ -1618,8 +1618,8 @@ DragDrop(XdndState *st)
     DestroyDragIcon(st);
 
     XtRemoveEventHandler(st->shell,
-                         ButtonReleaseMask | PointerMotionMask |
-                         ButtonMotionMask | KeyPressMask,
+                         XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
+                         XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS,
                          TRUE, HandleDragEvent, (XtPointer) st);
 
     xcb_flush(conn);
@@ -1649,8 +1649,8 @@ DragCleanup(XdndState *st)
 
     /* Remove drag event handler */
     XtRemoveEventHandler(st->shell,
-                         ButtonReleaseMask | PointerMotionMask |
-                         ButtonMotionMask | KeyPressMask,
+                         XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
+                         XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS,
                          TRUE, HandleDragEvent, (XtPointer) st);
 
     /* Disown selection */

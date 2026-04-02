@@ -487,10 +487,10 @@ Ignore(Widget widget, TMEventPtr event)
     xcb_connection_t *dpy;
     XtPerDisplay pd;
 
-    if (event->event.eventType == MotionNotify)
+    if (event->event.eventType == XCB_MOTION_NOTIFY)
         return TRUE;
-    if (!(event->event.eventType == KeyPress ||
-          event->event.eventType == KeyRelease))
+    if (!(event->event.eventType == XCB_KEY_PRESS ||
+          event->event.eventType == XCB_KEY_RELEASE))
         return FALSE;
     dpy = XtDisplay(widget);
 
@@ -530,7 +530,7 @@ XEventToTMEvent(xcb_generic_event_t *event, TMEventPtr tmEvent)
     case XCB_MOTION_NOTIFY:
         {
             xcb_motion_notify_event_t *motion_event = (xcb_motion_notify_event_t *)event;
-            tmEvent->event.eventCode = (TMLongCard) motion_event->detail; /* NotifyNormal or NotifyHint */
+            tmEvent->event.eventCode = (TMLongCard) motion_event->detail; /* XCB_NOTIFY_MODE_NORMAL or NotifyHint */
             tmEvent->event.modifiers = motion_event->state;
         }
         break;
@@ -1164,37 +1164,37 @@ EventToMask(TMTypeMatch typeMatch, TMModifierMatch modMatch)
     EventMask returnMask;
     unsigned long eventType = typeMatch->eventType;
 
-    if (eventType == MotionNotify) {
+    if (eventType == XCB_MOTION_NOTIFY) {
         Modifiers modifierMask = (Modifiers) modMatch->modifierMask;
         Modifiers tempMask;
 
         returnMask = 0;
         if (modifierMask == 0) {
             if (modMatch->modifiers == AnyButtonMask)
-                return ButtonMotionMask;
+                return XCB_EVENT_MASK_BUTTON_MOTION;
             else
-                return PointerMotionMask;
+                return XCB_EVENT_MASK_POINTER_MOTION;
         }
         tempMask = modifierMask &
-            (Button1Mask | Button2Mask | Button3Mask
-             | Button4Mask | Button5Mask);
+            (XCB_BUTTON_MASK_1 | XCB_BUTTON_MASK_2 | XCB_BUTTON_MASK_3
+             | XCB_BUTTON_MASK_4 | XCB_BUTTON_MASK_5);
         if (tempMask == 0)
-            return PointerMotionMask;
-        if (tempMask & Button1Mask)
-            returnMask |= Button1MotionMask;
-        if (tempMask & Button2Mask)
-            returnMask |= Button2MotionMask;
-        if (tempMask & Button3Mask)
-            returnMask |= Button3MotionMask;
-        if (tempMask & Button4Mask)
-            returnMask |= Button4MotionMask;
-        if (tempMask & Button5Mask)
-            returnMask |= Button5MotionMask;
+            return XCB_EVENT_MASK_POINTER_MOTION;
+        if (tempMask & XCB_BUTTON_MASK_1)
+            returnMask |= XCB_EVENT_MASK_BUTTON_1_MOTION;
+        if (tempMask & XCB_BUTTON_MASK_2)
+            returnMask |= XCB_EVENT_MASK_BUTTON_2_MOTION;
+        if (tempMask & XCB_BUTTON_MASK_3)
+            returnMask |= XCB_EVENT_MASK_BUTTON_3_MOTION;
+        if (tempMask & XCB_BUTTON_MASK_4)
+            returnMask |= XCB_EVENT_MASK_BUTTON_4_MOTION;
+        if (tempMask & XCB_BUTTON_MASK_5)
+            returnMask |= XCB_EVENT_MASK_BUTTON_5_MOTION;
         return returnMask;
     }
     returnMask = _XtConvertTypeToMask((int) eventType);
-    if (returnMask == (StructureNotifyMask | SubstructureNotifyMask))
-        returnMask = StructureNotifyMask;
+    if (returnMask == (XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY))
+        returnMask = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     return returnMask;
 }
 
@@ -1265,10 +1265,10 @@ _XtInstallTranslations(Widget widget)
     /* double click needs to make sure that you have selected on both
        button down and up. */
 
-    if (xlations->eventMask & ButtonPressMask)
-        xlations->eventMask |= ButtonReleaseMask;
-    if (xlations->eventMask & ButtonReleaseMask)
-        xlations->eventMask |= ButtonPressMask;
+    if (xlations->eventMask & XCB_EVENT_MASK_BUTTON_PRESS)
+        xlations->eventMask |= XCB_EVENT_MASK_BUTTON_RELEASE;
+    if (xlations->eventMask & XCB_EVENT_MASK_BUTTON_RELEASE)
+        xlations->eventMask |= XCB_EVENT_MASK_BUTTON_PRESS;
 
 
     if (mappingNotifyInterest) {
@@ -1550,7 +1550,7 @@ _XtAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
     if (!eventSeq->next &&
         eventSeq->actions &&
         !eventSeq->actions->next && !eventSeq->actions->num_params) {
-        if (eventSeq->event.eventType == MappingNotify)
+        if (eventSeq->event.eventType == XCB_MAPPING_NOTIFY)
             stateTree->mappingNotifyInterest = True;
         branchHead->hasActions = True;
         XtSetBits(branchHead->more, eventSeq->actions->idx, 13);
@@ -1569,7 +1569,7 @@ _XtAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
     for (;;) {
         *state = NewState(stateTree, typeIndex, modIndex);
 
-        if (eventSeq->event.eventType == MappingNotify)
+        if (eventSeq->event.eventType == XCB_MAPPING_NOTIFY)
             stateTree->mappingNotifyInterest = True;
 
         /* *state now points at state record matching event */

@@ -90,7 +90,7 @@ static float floatZero = 0.0;
 #define Offset(field) XtOffsetOf(ScrollbarRec, field)
 
 static XtResource resources[] = {
-/*  {XtNscrollCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+/*  {XtNscrollCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
        Offset(scrollbar.cursor), XtRString, "crosshair"},*/
   {XtNlength, XtCLength, XtRDimension, sizeof(Dimension),
        Offset(scrollbar.length), XtRImmediate, (XtPointer) 1},
@@ -104,7 +104,7 @@ static XtResource resources[] = {
        Offset(scrollbar.thumbProc), XtRCallback, NULL},
   {XtNjumpProc, XtCCallback, XtRCallback, sizeof(XtPointer),
        Offset(scrollbar.jumpProc), XtRCallback, NULL},
-  {XtNthumb, XtCThumb, XtRBitmap, sizeof(Pixmap),
+  {XtNthumb, XtCThumb, XtRBitmap, sizeof(xcb_pixmap_t),
        Offset(scrollbar.thumb), XtRImmediate, (XtPointer) XtUnspecifiedPixmap},
   {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
        Offset(scrollbar.foreground), XtRString, XtDefaultForeground},
@@ -472,18 +472,18 @@ CreateGC (Widget w)
 
     gcValues.foreground = sbw->scrollbar.foreground;
     gcValues.background = sbw->core.background_pixel;
-    mask = GCForeground | GCBackground;
+    mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
 
     if (sbw->scrollbar.thumb != None) {
 	if (depth == 1) {
 	    gcValues.fill_style = XCB_FILL_STYLE_OPAQUE_STIPPLED;
 	    gcValues.stipple = sbw->scrollbar.thumb;
-	    mask |= GCFillStyle | GCStipple;
+	    mask |= XCB_GC_FILL_STYLE | XCB_GC_STIPPLE;
 	}
 	else {
 	    gcValues.fill_style = XCB_FILL_STYLE_TILED;
 	    gcValues.tile = sbw->scrollbar.thumb;
-	    mask |= GCFillStyle | GCTile;
+	    mask |= XCB_GC_FILL_STYLE | XCB_GC_TILE;
 	}
     }
     /* the creation should be non-caching, because */
@@ -543,7 +543,7 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
     if(sbw->simple.cursor_name == NULL)
 	XtVaSetValues(w, XtNcursorName, "crosshair", NULL);
     /* dont set the cursor of the window to anything */
-    *valueMask &= ~CWCursor;
+    *valueMask &= ~XCB_CW_CURSOR;
     /*
      * The Simple widget actually stuffs the value in the valuemask.
      */
@@ -594,7 +594,7 @@ SetValues(Widget current, Widget request, Widget desired, ArgList args, Cardinal
 static void
 Resize (Widget w)
 {
-    /* ForgetGravity has taken care of background, but thumb may
+    /* XCB_GRAVITY_BIT_FORGET has taken care of background, but thumb may
      * have to move as a result of the new size. */
     SetDimensions ((ScrollbarWidget) w);
     Redisplay (w, NULL, 0);

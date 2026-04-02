@@ -959,10 +959,10 @@ _XtResourceConfigurationEH(Widget w,
 //    if (XGetWindowProperty(XtDisplay(w),
 //                           XtWindow(w),
 //                           pd->rcm_data, 0L, 8192L,
-//                           TRUE, XA_STRING,
+//                           TRUE, XCB_ATOM_STRING,
 //                           &actual_type, &actual_format, &nitems, &leftover,
 //                           (unsigned char **) &data) == Success &&
-//        actual_type == XA_STRING && actual_format == 8) {
+//        actual_type == XCB_ATOM_STRING && actual_format == 8) {
 //        /*
 //         *      data format is:
 //         *

@@ -255,13 +255,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 					     clip_args, arg_cnt);
 
     /*
-     * Select ButtonPressMask on the clip widget so that scroll wheel events
+     * Select XCB_EVENT_MASK_BUTTON_PRESS on the clip widget so that scroll wheel events
      * (buttons 4-7) propagate from non-interactive children (Labels, Boxes)
      * to the clip window instead of being discarded by the X server.
      * The actual scroll handling is done by the ScrollWheel event dispatcher.
      */
     XtAddEventHandler(w->viewport.clip,
-                      ButtonPressMask | ButtonReleaseMask,
+                      XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
                       False, ScrollWheelSink, NULL);
 
     if (!w->viewport.forcebars)
@@ -548,7 +548,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 
     clip_width = w->core.width - 2 * sw;
     clip_height = w->core.height - 2 * sw;
-    intended.request_mode = CWBorderWidth;
+    intended.request_mode = XCB_CONFIG_WINDOW_BORDER_WIDTH;
     intended.border_width = 0;
 
     if (w->viewport.forcebars) {
@@ -573,7 +573,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	 */
 
 	if (!w->viewport.allowhoriz)
-	    intended.request_mode |= CWWidth;
+	    intended.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 
 #ifdef PREP_CHILD_TO_CLIP
 	if ((int)child->core.width < clip_width)
@@ -583,7 +583,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	    intended.width = child->core.width;
 
 	if (!w->viewport.allowvert)
-	    intended.request_mode |= CWHeight;
+	    intended.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 
 #ifdef PREP_CHILD_TO_CLIP
 	if ((int)child->core.height < clip_height)
@@ -602,9 +602,9 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 #endif
 	    if (query) {
 	        (void) XtQueryGeometry( child, &intended, &preferred );
-		if ( !(preferred.request_mode & CWWidth) )
+		if ( !(preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH) )
 		    preferred.width = intended.width;
-		if ( !(preferred.request_mode & CWHeight) )
+		if ( !(preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT) )
 		    preferred.height = intended.height;
 	    }
 
@@ -655,19 +655,19 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	    if (!w->viewport.allowhoriz ||
 		    (int)preferred.width < clip_width) {
 	        intended.width = clip_width;
-		intended.request_mode |= CWWidth;
+		intended.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 	    }
 	    if (!w->viewport.allowvert ||
 		    (int)preferred.height < clip_height) {
 	        intended.height = clip_height;
-		intended.request_mode |= CWHeight;
+		intended.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 	    }
 #endif
 #ifdef NEED_LAYOUT_LOOP
 	} while ( intended.request_mode != prev_mode ||
-		  (intended.request_mode & CWWidth &&
+		  (intended.request_mode & XCB_CONFIG_WINDOW_WIDTH &&
 			intended.width != prev_width) ||
-		  (intended.request_mode & CWHeight &&
+		  (intended.request_mode & XCB_CONFIG_WINDOW_HEIGHT &&
 			intended.height != prev_height) );
 #endif
 
@@ -675,12 +675,12 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	if (!w->viewport.allowhoriz ||
 		(int)preferred.width < clip_width) {
 	    intended.width = clip_width;
-	    intended.request_mode |= CWWidth;
+	    intended.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 	}
 	if (!w->viewport.allowvert ||
 		(int)preferred.height < clip_height) {
 	    intended.height = clip_height;
-	    intended.request_mode |= CWHeight;
+	    intended.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 	}
 #endif
     }
@@ -825,26 +825,26 @@ ComputeWithForceBars(Widget widget, Boolean query, XtWidgetGeometry *intended,
 
     if (!w->viewport.allowvert) {
         intended->height = *clip_height;
-        intended->request_mode |= CWHeight;
+        intended->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
     }
     if (!w->viewport.allowhoriz) {
         intended->width = *clip_width;
-        intended->request_mode |= CWWidth;
+        intended->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
     }
 
     if ( query ) {
         if ( (w->viewport.allowvert || w->viewport.allowhoriz) ) {
 	    XtQueryGeometry( child, intended, &preferred );
 
-	    if ( !(intended->request_mode & CWWidth) ) {
-	        if ( preferred.request_mode & CWWidth )
+	    if ( !(intended->request_mode & XCB_CONFIG_WINDOW_WIDTH) ) {
+	        if ( preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH )
 		    intended->width = preferred.width;
 		else
 		    intended->width = child->core.width;
 	    }
 
-	    if ( !(intended->request_mode & CWHeight) ) {
-	        if ( preferred.request_mode & CWHeight )
+	    if ( !(intended->request_mode & XCB_CONFIG_WINDOW_HEIGHT) ) {
+	        if ( preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT )
 		    intended->height = preferred.height;
 		else
 		    intended->height = child->core.height;
@@ -884,9 +884,9 @@ Layout(FormWidget w, Dimension width, Dimension height, Boolean junk)
 
 /*
  * No-op event handler registered on the clip widget to ensure
- * ButtonPressMask is set on the clip window.  This causes X11 to
+ * XCB_EVENT_MASK_BUTTON_PRESS is set on the clip window.  This causes X11 to
  * propagate button events (including scroll wheel) from children
- * that don't select ButtonPressMask.  The actual scroll wheel
+ * that don't select XCB_EVENT_MASK_BUTTON_PRESS.  The actual scroll wheel
  * handling is done by the ScrollWheel event dispatcher.
  */
 /* ARGSUSED */
@@ -1014,8 +1014,8 @@ static XtGeometryResult
 GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 {
     ViewportWidget w = (ViewportWidget)child->core.parent;
-    Boolean rWidth = (Boolean)(request->request_mode & CWWidth);
-    Boolean rHeight = (Boolean)(request->request_mode & CWHeight);
+    Boolean rWidth = (Boolean)(request->request_mode & XCB_CONFIG_WINDOW_WIDTH);
+    Boolean rHeight = (Boolean)(request->request_mode & XCB_CONFIG_WINDOW_HEIGHT);
     XtWidgetGeometry allowed;
     XtGeometryResult result;
     Boolean reconfigured;
@@ -1027,9 +1027,9 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
       return QueryGeometry(w, request, reply);
 
     if (child != w->viewport.child
-        || request->request_mode & ~(CWWidth | CWHeight
-				     | CWBorderWidth)
-	|| ((request->request_mode & CWBorderWidth)
+        || request->request_mode & ~(XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
+				     | XCB_CONFIG_WINDOW_BORDER_WIDTH)
+	|| ((request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
 	    && request->border_width > 0))
 	return XtGeometryNo;
 
@@ -1070,7 +1070,7 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 		    bar = CreateScrollbar( w, False );
 		if (!rWidth) {
 		    allowed.width = w->core.width;
-		    allowed.request_mode |= CWWidth;
+		    allowed.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 		}
 		if ( (int)allowed.width >
 		     (int)(bar->core.width + bar->core.border_width + pad) )
@@ -1114,7 +1114,7 @@ GetGeometry(Widget w, Dimension width, Dimension height)
     if (width == w->core.width && height == w->core.height)
 	return False;
 
-    geometry.request_mode = CWWidth | CWHeight;
+    geometry.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     geometry.width = width;
     geometry.height = height;
 
@@ -1147,13 +1147,13 @@ PreferredGeometry(Widget w, XtWidgetGeometry *constraints, XtWidgetGeometry *rep
        child causes the parent to expand the viewport to fit all content,
        which defeats the purpose of having a scrollable viewport. */
     if (w->core.width != 0 && w->core.height != 0) {
-	reply->request_mode = CWWidth | CWHeight;
+	reply->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
 	reply->width = w->core.width;
 	reply->height = w->core.height;
 	if (constraints != NULL &&
-	    (constraints->request_mode & CWWidth) &&
+	    (constraints->request_mode & XCB_CONFIG_WINDOW_WIDTH) &&
 	    constraints->width == w->core.width &&
-	    (constraints->request_mode & CWHeight) &&
+	    (constraints->request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
 	    constraints->height == w->core.height)
 	    return XtGeometryYes;
 	return XtGeometryAlmost;

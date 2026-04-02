@@ -195,9 +195,9 @@ _XtFindRemapWidget(xcb_generic_event_t *event,
         pdi->focusWidget = NULL;        /* invalidate the focus
                                            cache */
     }
-    if (mask & (KeyPressMask | KeyReleaseMask))
+    if (mask & (XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE))
         dspWidget = _XtProcessKeyboardEvent((xcb_key_press_event_t *)event, widget, pdi);
-    else if (mask & (ButtonPressMask | ButtonReleaseMask))
+    else if (mask & (XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE))
         dspWidget = _XtProcessPointerEvent((xcb_button_press_event_t *)event, widget, pdi);
 
     return dspWidget;

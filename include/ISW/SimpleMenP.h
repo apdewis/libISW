@@ -71,7 +71,7 @@ typedef struct _SimpleMenuPart {
   Dimension    right_whitespace;
   Dimension    row_height;	/* height of each row (menu entry) */
 
-  Cursor       cursor;		/* The menu's cursor. */
+  xcb_cursor_t cursor;		/* The menu's cursor. */
   SmeObject popup_entry;	/* The entry to position the cursor on for
 				   when using IswPositionSimpleMenu. */
   Boolean      menu_on_screen;	/* Force the menus to be fully on the screen.*/

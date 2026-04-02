@@ -194,8 +194,8 @@ DoGrab(StatePtr state, XtPointer data)
     }
 
     switch (typeMatch->eventType) {
-    case ButtonPress:
-    case ButtonRelease:
+    case XCB_BUTTON_PRESS:
+    case XCB_BUTTON_RELEASE:
         if (modMatch->lateModifiers) {
             Boolean resolved = _XtComputeLateBindings(XtDisplay(widget),
                                                       modMatch->lateModifiers,
@@ -216,12 +216,12 @@ DoGrab(StatePtr state, XtPointer data)
                      None);
         break;
 
-    case KeyPress:
-    case KeyRelease:
+    case XCB_KEY_PRESS:
+    case XCB_KEY_RELEASE:
         GrabAllCorrectKeys(widget, typeMatch, modMatch, grabP);
         break;
 
-    case EnterNotify:
+    case XCB_ENTER_NOTIFY:
         break;
 
     default:
@@ -332,8 +332,8 @@ _XtGrabInitialize(XtAppContext app _X_UNUSED)
     LOCK_PROCESS;
     if (grabActionList == NULL)
         XtRegisterGrabAction(XtMenuPopupAction, True,
-                             (unsigned) (ButtonPressMask | ButtonReleaseMask),
-                             GrabModeAsync, GrabModeAsync);
+                             (unsigned) (XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE),
+                             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     UNLOCK_PROCESS;
 
 }

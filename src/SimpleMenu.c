@@ -95,7 +95,7 @@ static XtResource resources[] = {
   { XtNallowShellResize, XtCAllowShellResize, XtRBoolean, sizeof(Boolean),
       XtOffsetOf(SimpleMenuRec, shell.allow_shell_resize),
       XtRImmediate, (XtPointer) TRUE },
-  {XtNcursor, XtCCursor, XtRCursor, sizeof(Cursor),
+  {XtNcursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
       offset(cursor), XtRImmediate, (XtPointer) None},
   {XtNmenuOnScreen,  XtCMenuOnScreen, XtRBoolean, sizeof(Boolean),
       offset(menu_on_screen), XtRImmediate, (XtPointer) TRUE},
@@ -104,7 +104,7 @@ static XtResource resources[] = {
   /* Backing store not supported in XCB */
   /*{XtNbackingStore, XtCBackingStore, XtRBackingStore, sizeof (int),
       offset(backing_store),
-      XtRImmediate, (XtPointer) (Always + WhenMapped + NotUseful)},*/
+      XtRImmediate, (XtPointer) (XCB_BACKING_STORE_ALWAYS + XCB_BACKING_STORE_WHEN_MAPPED + XCB_BACKING_STORE_NOT_USEFUL)},*/
   {XtNjumpScroll,  XtCJumpScroll, XtRInt, sizeof(int),
       offset(jump_val), XtRImmediate, (XtPointer)1},
 
@@ -541,15 +541,15 @@ Realize(xcb_connection_t *conn, Widget w, XtValueMask * mask, uint32_t * values)
     int value_index = 0;
 
     values[value_index++] = smw->simple_menu.cursor;  /* cursor */
-    *mask |= CWCursor;
-    if ((smw->simple_menu.backing_store == Always) ||
-	(smw->simple_menu.backing_store == NotUseful) ||
-	(smw->simple_menu.backing_store == WhenMapped) ) {
-	*mask |= CWBackingStore;
+    *mask |= XCB_CW_CURSOR;
+    if ((smw->simple_menu.backing_store == XCB_BACKING_STORE_ALWAYS) ||
+	(smw->simple_menu.backing_store == XCB_BACKING_STORE_NOT_USEFUL) ||
+	(smw->simple_menu.backing_store == XCB_BACKING_STORE_WHEN_MAPPED) ) {
+	*mask |= XCB_CW_BACKING_STORE;
 	values[value_index++] = smw->simple_menu.backing_store;  /* backing_store */
     }
     else
-	*mask &= ~CWBackingStore;
+	*mask &= ~XCB_CW_BACKING_STORE;
 
      /* check if the menu is too big */
      if (smw->core.height >= HeightOfScreen(XtScreen(w))) {
@@ -719,7 +719,7 @@ GeometryManager(Widget w, XtWidgetGeometry * request, XtWidgetGeometry * reply)
     XtGeometryResult answer;
     Dimension old_height, old_width;
 
-    if ( !(mode & CWWidth) && !(mode & CWHeight) )
+    if ( !(mode & XCB_CONFIG_WINDOW_WIDTH) && !(mode & XCB_CONFIG_WINDOW_HEIGHT) )
 	return(XtGeometryNo);
 
     reply->width = request->width;
@@ -756,8 +756,8 @@ GeometryManager(Widget w, XtWidgetGeometry * request, XtWidgetGeometry * reply)
 	entry->rectangle.width = old_width;
 	entry->rectangle.height = old_height;
 
-	if ( ((reply->width == request->width) && !(mode & CWHeight)) ||
-	      ((reply->height == request->height) && !(mode & CWWidth)) ||
+	if ( ((reply->width == request->width) && !(mode & XCB_CONFIG_WINDOW_HEIGHT)) ||
+	      ((reply->height == request->height) && !(mode & XCB_CONFIG_WINDOW_WIDTH)) ||
 	      ((reply->width == request->width) &&
 	       (reply->height == request->height)) )
 	    answer = XtGeometryNo;
@@ -765,9 +765,9 @@ GeometryManager(Widget w, XtWidgetGeometry * request, XtWidgetGeometry * reply)
 	    answer = XtGeometryAlmost;
 	    reply->request_mode = 0;
 	    if (reply->width != request->width)
-		reply->request_mode |= CWWidth;
+		reply->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 	    if (reply->height != request->height)
-		reply->request_mode |= CWHeight;
+		reply->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 	}
     }
     return(answer);
@@ -1445,7 +1445,7 @@ GetMenuWidth(Widget w, Widget w_ent)
 	if (*entry != cur_entry) {
 	    XtQueryGeometry((Widget) *entry, (XtWidgetGeometry *)NULL, &preferred);
 
-	    if (preferred.request_mode & CWWidth)
+	    if (preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH)
 		width = preferred.width;
 	    else
 		width = (*entry)->rectangle.width;

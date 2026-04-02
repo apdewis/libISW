@@ -260,12 +260,12 @@ _XtMakeGeometryRequest(Widget widget,
                     widget->core.width, request->width));
         req.changeMask |= XCB_CONFIG_WINDOW_WIDTH ;
     }
-    if (request->request_mode & CWHeight
+    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT
         && widget->core.height != request->height) {
         CALLGEOTAT(_XtGeoTrace(widget,
                                "Asking for a change in height: from %d to %d.\n",
                                widget->core.height, request->height));
-        req.changeMask |= CWHeight;
+        req.changeMask |= XCB_CONFIG_WINDOW_HEIGHT;
     }
     if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH
         && widget->core.border_width != request->border_width) {
@@ -313,7 +313,7 @@ _XtMakeGeometryRequest(Widget widget,
                 widget->core.y = request->y;
             if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH )
                 widget->core.width = request->width;
-            if (request->request_mode & CWHeight)
+            if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
                 widget->core.height = request->height;
             if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
                 widget->core.border_width = request->border_width;

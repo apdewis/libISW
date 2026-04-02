@@ -93,7 +93,7 @@ typedef struct {
 
     /* private state */
     xcb_gcontext_t normgc, invgc, xorgc;
-    Pixmap insertCursorOn;
+    xcb_pixmap_t insertCursorOn;
     IswTextInsertState laststate;
     short cursor_x, cursor_y;	/* Cursor Location. */
     ISWRenderContext *render_ctx;  /* Cairo rendering context */

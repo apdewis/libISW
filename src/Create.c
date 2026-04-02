@@ -681,7 +681,7 @@ _XtCreatePopupShell(String name,
                       popupPostProc);
 
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-    XtAddEventHandler(widget, (EventMask) PropertyChangeMask, FALSE,
+    XtAddEventHandler(widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE, FALSE,
                       _XtResourceConfigurationEH, NULL);
 #endif
     return (widget);
@@ -742,7 +742,7 @@ _XtAppCreateShell(String name,
                      (ConstraintWidgetClass) NULL, _XtAddShellToHookObj);
 
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-    XtAddEventHandler(shell, (EventMask) PropertyChangeMask, FALSE,
+    XtAddEventHandler(shell, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE, FALSE,
                       _XtResourceConfigurationEH, NULL);
 #endif
 

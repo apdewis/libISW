@@ -141,7 +141,7 @@ DoLayout(StatusBarWidget sw)
         } else {
             XtWidgetGeometry pref;
             XtQueryGeometry(child, NULL, &pref);
-            Dimension cw = (pref.request_mode & CWWidth) ? pref.width
+            Dimension cw = (pref.request_mode & XCB_CONFIG_WINDOW_WIDTH) ? pref.width
                                                           : child->core.width;
             fixed_total += cw;
         }
@@ -165,7 +165,7 @@ DoLayout(StatusBarWidget sw)
         } else {
             XtWidgetGeometry pref;
             XtQueryGeometry(child, NULL, &pref);
-            cw = (pref.request_mode & CWWidth) ? pref.width
+            cw = (pref.request_mode & XCB_CONFIG_WINDOW_WIDTH) ? pref.width
                                                 : child->core.width;
         }
 

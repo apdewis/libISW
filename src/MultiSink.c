@@ -518,7 +518,7 @@ MultiSinkClearToBackground(Widget w, Position x, Position y,
 #define insertCursor_height 3
 static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
 
-static Pixmap
+static xcb_pixmap_t
 CreateInsertCursor(Widget w)
 {
     xcb_connection_t *conn = XtDisplayOfObject(w);
@@ -700,7 +700,7 @@ GetGC(MultiSinkObject sink)
     values.background = sink->text_sink.foreground;
     sink->multi_sink.invgc = XtGetGC( (Widget)sink, valuemask, &values);
 
-    values.function = GXxor;
+    values.function = XCB_GX_XOR;
     values.background = (unsigned long) 0L;	/* (pix ^ 0) = pix */
     values.foreground = (sink->text_sink.background ^
 			 sink->text_sink.foreground);
@@ -856,7 +856,6 @@ SetTabs(
 {
   MultiSinkObject sink = (MultiSinkObject) w;
   int i;
-  xcb_atom_t XCB_ATOM_FIGURE_WIDTH;
   unsigned long figure_width = 0;
   
   /* Use Cairo-matched figure width so tab stops align with rendered text */

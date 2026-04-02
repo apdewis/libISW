@@ -1344,7 +1344,7 @@ _XtRefreshMapping(xcb_connection_t *display, xcb_generic_event_t *event, _XtBool
     LOCK_PROCESS;
     pd = _XtGetPerDisplay(display);
 
-    if (mapping_event->request != MappingPointer &&
+    if (mapping_event->request != XCB_MAPPING_POINTER &&
         pd && pd->keysyms && (event->sequence >= pd->keysyms_serial))
         _XtBuildKeysymTables(display, pd);
 

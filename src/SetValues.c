@@ -302,27 +302,27 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
         if (oldw->core.x != w->core.x) {
             geoReq.x = w->core.x;
             w->core.x = oldw->core.x;
-            geoReq.request_mode |= CWX;
+            geoReq.request_mode |= XCB_CONFIG_WINDOW_X;
         }
         if (oldw->core.y != w->core.y) {
             geoReq.y = w->core.y;
             w->core.y = oldw->core.y;
-            geoReq.request_mode |= CWY;
+            geoReq.request_mode |= XCB_CONFIG_WINDOW_Y;
         }
         if (oldw->core.width != w->core.width) {
             geoReq.width = w->core.width;
             w->core.width = oldw->core.width;
-            geoReq.request_mode |= CWWidth;
+            geoReq.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
         }
         if (oldw->core.height != w->core.height) {
             geoReq.height = w->core.height;
             w->core.height = oldw->core.height;
-            geoReq.request_mode |= CWHeight;
+            geoReq.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
         }
         if (oldw->core.border_width != w->core.border_width) {
             geoReq.border_width = w->core.border_width;
             w->core.border_width = oldw->core.border_width;
-            geoReq.request_mode |= CWBorderWidth;
+            geoReq.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
         }
 
         if (geoReq.request_mode != 0) {
@@ -330,32 +330,32 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
 
             /* Pass on any requests for unchanged geometry values */
             if (geoReq.request_mode !=
-                (CWX | CWY | CWWidth | CWHeight | CWBorderWidth)) {
+                (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
                 for (; num_args != 0; num_args--, args++) {
-                    if (!(geoReq.request_mode & CWX) &&
+                    if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_X) &&
                         strcmp(XtNx, args->name) == 0) {
                         geoReq.x = w->core.x;
-                        geoReq.request_mode |= CWX;
+                        geoReq.request_mode |= XCB_CONFIG_WINDOW_X;
                     }
-                    else if (!(geoReq.request_mode & CWY) &&
+                    else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_Y) &&
                              strcmp(XtNy, args->name) == 0) {
                         geoReq.y = w->core.y;
-                        geoReq.request_mode |= CWY;
+                        geoReq.request_mode |= XCB_CONFIG_WINDOW_Y;
                     }
-                    else if (!(geoReq.request_mode & CWWidth) &&
+                    else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_WIDTH) &&
                              strcmp(XtNwidth, args->name) == 0) {
                         geoReq.width = w->core.width;
-                        geoReq.request_mode |= CWWidth;
+                        geoReq.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
                     }
-                    else if (!(geoReq.request_mode & CWHeight) &&
+                    else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
                              strcmp(XtNheight, args->name) == 0) {
                         geoReq.height = w->core.height;
-                        geoReq.request_mode |= CWHeight;
+                        geoReq.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
                     }
-                    else if (!(geoReq.request_mode & CWBorderWidth) &&
+                    else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) &&
                              strcmp(XtNborderWidth, args->name) == 0) {
                         geoReq.border_width = w->core.border_width;
-                        geoReq.request_mode |= CWBorderWidth;
+                        geoReq.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
                     }
                 }
             }

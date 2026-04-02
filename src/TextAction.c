@@ -1501,7 +1501,7 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
     if (keysyms != NULL) {
       /* Determine shift state from modifier mask */
       int col = 0;
-      if (kev->state & ShiftMask)
+      if (kev->state & XCB_MOD_MASK_SHIFT)
         col = 1;
 
       /* Get keysym from keycode, using shift column */
@@ -1512,14 +1512,14 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
         sym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 0);
 
       /* Handle CapsLock: toggle case for alphabetic keys */
-      if ((kev->state & LockMask) && !(kev->state & ShiftMask)) {
+      if ((kev->state & XCB_MOD_MASK_LOCK) && !(kev->state & XCB_MOD_MASK_SHIFT)) {
         /* CapsLock without Shift: get shifted (uppercase) for letters */
         if (sym >= 'a' && sym <= 'z') {
           xcb_keysym_t usym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 1);
           if (usym != XCB_NO_SYMBOL)
             sym = usym;
         }
-      } else if ((kev->state & LockMask) && (kev->state & ShiftMask)) {
+      } else if ((kev->state & XCB_MOD_MASK_LOCK) && (kev->state & XCB_MOD_MASK_SHIFT)) {
         /* CapsLock with Shift: get unshifted (lowercase) for letters */
         if (sym >= 'A' && sym <= 'Z') {
           xcb_keysym_t lsym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 0);

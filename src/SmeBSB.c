@@ -597,16 +597,16 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val
 
     GetDefaultSize(w, &width, &height );
 
-    if ( ((mode & CWWidth) && (intended->width != width)) ||
-	 !(mode & CWWidth) ) {
-	return_val->request_mode |= CWWidth;
+    if ( ((mode & XCB_CONFIG_WINDOW_WIDTH) && (intended->width != width)) ||
+	 !(mode & XCB_CONFIG_WINDOW_WIDTH) ) {
+	return_val->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 	return_val->width = width;
 	ret_val = XtGeometryAlmost;
     }
 
-    if ( ((mode & CWHeight) && (intended->height != height)) ||
-	 !(mode & CWHeight) ) {
-	return_val->request_mode |= CWHeight;
+    if ( ((mode & XCB_CONFIG_WINDOW_HEIGHT) && (intended->height != height)) ||
+	 !(mode & XCB_CONFIG_WINDOW_HEIGHT) ) {
+	return_val->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 	return_val->height = height;
 	ret_val = XtGeometryAlmost;
     }
@@ -614,8 +614,8 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val
     if (ret_val == XtGeometryAlmost) {
 	mode = return_val->request_mode;
 
-	if ( ((mode & CWWidth) && (width == entry->rectangle.width)) &&
-	     ((mode & CWHeight) && (height == entry->rectangle.height)) )
+	if ( ((mode & XCB_CONFIG_WINDOW_WIDTH) && (width == entry->rectangle.width)) &&
+	     ((mode & XCB_CONFIG_WINDOW_HEIGHT) && (height == entry->rectangle.height)) )
 	    return(XtGeometryNo);
     }
 

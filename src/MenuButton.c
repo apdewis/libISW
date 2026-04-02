@@ -149,8 +149,8 @@ ClassInitialize(void)
 {
     IswInitializeWidgetSet();
     XtRegisterGrabAction(PopupMenu, True,
-			 (unsigned int)(ButtonPressMask | ButtonReleaseMask),
-			 GrabModeAsync, GrabModeAsync);
+			 (unsigned int)(XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE),
+			 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 }
 
 /* ARGSUSED */

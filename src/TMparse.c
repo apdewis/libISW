@@ -144,14 +144,14 @@ static String CheckForPoundSign(String, _XtTranslateOp, _XtTranslateOp *);
 static xcb_keysym_t StringToKeySym(String, Boolean *);
 /* *INDENT-OFF* */
 static ModifierRec modifiers[] = {
-    {"Shift",   0,      ParseModImmed, ShiftMask},
-    {"Lock",    0,      ParseModImmed, LockMask},
-    {"Ctrl",    0,      ParseModImmed, ControlMask},
-    {"Mod1",    0,      ParseModImmed, Mod1Mask},
-    {"Mod2",    0,      ParseModImmed, Mod2Mask},
-    {"Mod3",    0,      ParseModImmed, Mod3Mask},
-    {"Mod4",    0,      ParseModImmed, Mod4Mask},
-    {"Mod5",    0,      ParseModImmed, Mod5Mask},
+    {"Shift",   0,      ParseModImmed, XCB_MOD_MASK_SHIFT},
+    {"Lock",    0,      ParseModImmed, XCB_MOD_MASK_LOCK},
+    {"Ctrl",    0,      ParseModImmed, XCB_MOD_MASK_CONTROL},
+    {"Mod1",    0,      ParseModImmed, XCB_MOD_MASK_1},
+    {"Mod2",    0,      ParseModImmed, XCB_MOD_MASK_2},
+    {"Mod3",    0,      ParseModImmed, XCB_MOD_MASK_3},
+    {"Mod4",    0,      ParseModImmed, XCB_MOD_MASK_4},
+    {"Mod5",    0,      ParseModImmed, XCB_MOD_MASK_5},
     {"Meta",    0,      ParseModSym,   XK_Meta_L},
     {"m",       0,      ParseModSym,   XK_Meta_L},
     {"h",       0,      ParseModSym,   XK_Hyper_L},
@@ -160,67 +160,67 @@ static ModifierRec modifiers[] = {
     {"Hyper",   0,      ParseModSym,   XK_Hyper_L},
     {"Super",   0,      ParseModSym,   XK_Super_L},
     {"Alt",     0,      ParseModSym,   XK_Alt_L},
-    {"Button1", 0,      ParseModImmed, Button1Mask},
-    {"Button2", 0,      ParseModImmed, Button2Mask},
-    {"Button3", 0,      ParseModImmed, Button3Mask},
-    {"Button4", 0,      ParseModImmed, Button4Mask},
-    {"Button5", 0,      ParseModImmed, Button5Mask},
-    {"c",       0,      ParseModImmed, ControlMask},
-    {"s",       0,      ParseModImmed, ShiftMask},
-    {"l",       0,      ParseModImmed, LockMask},
+    {"Button1", 0,      ParseModImmed, XCB_BUTTON_MASK_1},
+    {"Button2", 0,      ParseModImmed, XCB_BUTTON_MASK_2},
+    {"Button3", 0,      ParseModImmed, XCB_BUTTON_MASK_3},
+    {"Button4", 0,      ParseModImmed, XCB_BUTTON_MASK_4},
+    {"Button5", 0,      ParseModImmed, XCB_BUTTON_MASK_5},
+    {"c",       0,      ParseModImmed, XCB_MOD_MASK_CONTROL},
+    {"s",       0,      ParseModImmed, XCB_MOD_MASK_SHIFT},
+    {"l",       0,      ParseModImmed, XCB_MOD_MASK_LOCK},
 };
 
 static NameValueRec motionDetails[] = {
-    {"Normal",              0,         NotifyNormal},
+    {"Normal",              0,         XCB_NOTIFY_MODE_NORMAL},
     {"Hint",                0,         NotifyHint},
     {NULL,                  NULLQUARK, 0},
 };
 
 static NameValueRec notifyModes[] = {
-    {"Normal",              0,         NotifyNormal},
-    {"Grab",                0,         NotifyGrab},
-    {"Ungrab",              0,         NotifyUngrab},
-    {"WhileGrabbed",        0,         NotifyWhileGrabbed},
+    {"Normal",              0,         XCB_NOTIFY_MODE_NORMAL},
+    {"Grab",                0,         XCB_NOTIFY_MODE_GRAB},
+    {"Ungrab",              0,         XCB_NOTIFY_MODE_UNGRAB},
+    {"WhileGrabbed",        0,         XCB_NOTIFY_MODE_WHILE_GRABBED},
     {NULL,                  NULLQUARK, 0},
 };
 
 #if 0
 static NameValueRec notifyDetail[] = {
-    {"Ancestor",            0,         NotifyAncestor},
-    {"Virtual",             0,         NotifyVirtual},
-    {"Inferior",            0,         NotifyInferior},
-    {"Nonlinear",           0,         NotifyNonlinear},
-    {"NonlinearVirtual",    0,         NotifyNonlinearVirtual},
-    {"Pointer",             0,         NotifyPointer},
-    {"PointerRoot",         0,         NotifyPointerRoot},
-    {"DetailNone",          0,         NotifyDetailNone},
+    {"Ancestor",            0,         XCB_NOTIFY_DETAIL_ANCESTOR},
+    {"Virtual",             0,         XCB_NOTIFY_DETAIL_VIRTUAL},
+    {"Inferior",            0,         XCB_NOTIFY_DETAIL_INFERIOR},
+    {"Nonlinear",           0,         XCB_NOTIFY_DETAIL_NONLINEAR},
+    {"NonlinearVirtual",    0,         XCB_NOTIFY_DETAIL_NONLINEAR_VIRTUAL},
+    {"Pointer",             0,         XCB_NOTIFY_DETAIL_POINTER},
+    {"PointerRoot",         0,         XCB_NOTIFY_DETAIL_POINTER_ROOT},
+    {"DetailNone",          0,         XCB_NOTIFY_DETAIL_NONE},
     {NULL,                  NULLQUARK, 0},
 };
 
 static NameValueRec visibilityNotify[] = {
-    {"Unobscured",          0,         VisibilityUnobscured},
-    {"PartiallyObscured",   0,         VisibilityPartiallyObscured},
-    {"FullyObscured",       0,         VisibilityFullyObscured},
+    {"Unobscured",          0,         XCB_VISIBILITY_UNOBSCURED},
+    {"PartiallyObscured",   0,         XCB_VISIBILITY_PARTIALLY_OBSCURED},
+    {"FullyObscured",       0,         XCB_VISIBILITY_FULLY_OBSCURED},
     {NULL,                  NULLQUARK, 0},
 };
 
 static NameValueRec circulation[] = {
-    {"OnTop",               0,         PlaceOnTop},
-    {"OnBottom",            0,         PlaceOnBottom},
+    {"OnTop",               0,         XCB_PLACE_ON_TOP},
+    {"OnBottom",            0,         XCB_PLACE_ON_BOTTOM},
     {NULL,                  NULLQUARK, 0},
 };
 
 static NameValueRec propertyChanged[] = {
-    {"NewValue",            0,         PropertyNewValue},
-    {"Delete",              0,         PropertyDelete},
+    {"NewValue",            0,         XCB_PROPERTY_NEW_VALUE},
+    {"Delete",              0,         XCB_PROPERTY_DELETE},
     {NULL,                  NULLQUARK, 0},
 };
 #endif /*0*/
 
 static NameValueRec mappingNotify[] = {
-    {"Modifier",            0,         MappingModifier},
-    {"Keyboard",            0,         MappingKeyboard},
-    {"Pointer",             0,         MappingPointer},
+    {"Modifier",            0,         XCB_MAPPING_MODIFIER},
+    {"Keyboard",            0,         XCB_MAPPING_KEYBOARD},
+    {"Pointer",             0,         XCB_MAPPING_POINTER},
     {NULL,                  NULLQUARK, 0},
 };
 /* *INDENT-ON* */
@@ -239,134 +239,134 @@ static EventKey events[] = {
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"KeyPress",        NULLQUARK, KeyPress,        ParseKeySym,    NULL},
-{"Key",             NULLQUARK, KeyPress,        ParseKeySym,    NULL},
-{"KeyDown",         NULLQUARK, KeyPress,        ParseKeySym,    NULL},
-{"Ctrl",            NULLQUARK, KeyPress,        ParseKeyAndModifiers, (Opaque)ControlMask},
-{"Shift",           NULLQUARK, KeyPress,        ParseKeyAndModifiers, (Opaque)ShiftMask},
-{"Meta",            NULLQUARK, KeyPress,        ParseKeyAndModifiers, (Opaque)NULL},
-{"KeyUp",           NULLQUARK, KeyRelease,      ParseKeySym,    NULL},
-{"KeyRelease",      NULLQUARK, KeyRelease,      ParseKeySym,    NULL},
+{"KeyPress",        NULLQUARK, XCB_KEY_PRESS,        ParseKeySym,    NULL},
+{"Key",             NULLQUARK, XCB_KEY_PRESS,        ParseKeySym,    NULL},
+{"KeyDown",         NULLQUARK, XCB_KEY_PRESS,        ParseKeySym,    NULL},
+{"Ctrl",            NULLQUARK, XCB_KEY_PRESS,        ParseKeyAndModifiers, (Opaque)XCB_MOD_MASK_CONTROL},
+{"Shift",           NULLQUARK, XCB_KEY_PRESS,        ParseKeyAndModifiers, (Opaque)XCB_MOD_MASK_SHIFT},
+{"Meta",            NULLQUARK, XCB_KEY_PRESS,        ParseKeyAndModifiers, (Opaque)NULL},
+{"KeyUp",           NULLQUARK, XCB_KEY_RELEASE,      ParseKeySym,    NULL},
+{"KeyRelease",      NULLQUARK, XCB_KEY_RELEASE,      ParseKeySym,    NULL},
 
-{"ButtonPress",     NULLQUARK, ButtonPress,     ParseButton, NULL },
-{"BtnDown",         NULLQUARK, ButtonPress,     ParseButton, NULL },
-{"Btn1Down",        NULLQUARK, ButtonPress,     ParseImmed, (Opaque)Button1},
-{"Btn2Down",        NULLQUARK, ButtonPress,     ParseImmed, (Opaque)Button2},
-{"Btn3Down",        NULLQUARK, ButtonPress,     ParseImmed, (Opaque)Button3},
-{"Btn4Down",        NULLQUARK, ButtonPress,     ParseImmed, (Opaque)Button4},
-{"Btn5Down",        NULLQUARK, ButtonPress,     ParseImmed, (Opaque)Button5},
-
-/* Event Name,    Quark, Event Type,    Detail Parser, Closure */
-
-{"ButtonRelease",   NULLQUARK, ButtonRelease,   ParseButton, NULL },
-{"BtnUp",           NULLQUARK, ButtonRelease,   ParseButton, NULL },
-{"Btn1Up",          NULLQUARK, ButtonRelease,   ParseImmed, (Opaque)Button1},
-{"Btn2Up",          NULLQUARK, ButtonRelease,   ParseImmed, (Opaque)Button2},
-{"Btn3Up",          NULLQUARK, ButtonRelease,   ParseImmed, (Opaque)Button3},
-{"Btn4Up",          NULLQUARK, ButtonRelease,   ParseImmed, (Opaque)Button4},
-{"Btn5Up",          NULLQUARK, ButtonRelease,   ParseImmed, (Opaque)Button5},
-
-{"MotionNotify",    NULLQUARK, MotionNotify,    ParseTable, (Opaque)motionDetails},
-{"PtrMoved",        NULLQUARK, MotionNotify,    ParseTable, (Opaque)motionDetails},
-{"Motion",          NULLQUARK, MotionNotify,    ParseTable, (Opaque)motionDetails},
-{"MouseMoved",      NULLQUARK, MotionNotify,    ParseTable, (Opaque)motionDetails},
-{"BtnMotion",       NULLQUARK, MotionNotify,    ParseAddModifier, (Opaque)AnyButtonMask},
-{"Btn1Motion",      NULLQUARK, MotionNotify,    ParseAddModifier, (Opaque)Button1Mask},
-{"Btn2Motion",      NULLQUARK, MotionNotify,    ParseAddModifier, (Opaque)Button2Mask},
-{"Btn3Motion",      NULLQUARK, MotionNotify,    ParseAddModifier, (Opaque)Button3Mask},
-{"Btn4Motion",      NULLQUARK, MotionNotify,    ParseAddModifier, (Opaque)Button4Mask},
-{"Btn5Motion",      NULLQUARK, MotionNotify,    ParseAddModifier, (Opaque)Button5Mask},
-
-{"EnterNotify",     NULLQUARK, EnterNotify,     ParseTable, (Opaque)notifyModes},
-{"Enter",           NULLQUARK, EnterNotify,     ParseTable, (Opaque)notifyModes},
-{"EnterWindow",     NULLQUARK, EnterNotify,     ParseTable, (Opaque)notifyModes},
-
-{"LeaveNotify",     NULLQUARK, LeaveNotify,     ParseTable, (Opaque)notifyModes},
-{"LeaveWindow",     NULLQUARK, LeaveNotify,     ParseTable, (Opaque)notifyModes},
-{"Leave",           NULLQUARK, LeaveNotify,     ParseTable, (Opaque)notifyModes},
+{"ButtonPress",     NULLQUARK, XCB_BUTTON_PRESS,     ParseButton, NULL },
+{"BtnDown",         NULLQUARK, XCB_BUTTON_PRESS,     ParseButton, NULL },
+{"Btn1Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_1},
+{"Btn2Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_2},
+{"Btn3Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_3},
+{"Btn4Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_4},
+{"Btn5Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_5},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"FocusIn",         NULLQUARK, FocusIn,         ParseTable, (Opaque)notifyModes},
+{"ButtonRelease",   NULLQUARK, XCB_BUTTON_RELEASE,   ParseButton, NULL },
+{"BtnUp",           NULLQUARK, XCB_BUTTON_RELEASE,   ParseButton, NULL },
+{"Btn1Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_1},
+{"Btn2Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_2},
+{"Btn3Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_3},
+{"Btn4Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_4},
+{"Btn5Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_5},
 
-{"FocusOut",        NULLQUARK, FocusOut,        ParseTable, (Opaque)notifyModes},
+{"MotionNotify",    NULLQUARK, XCB_MOTION_NOTIFY,    ParseTable, (Opaque)motionDetails},
+{"PtrMoved",        NULLQUARK, XCB_MOTION_NOTIFY,    ParseTable, (Opaque)motionDetails},
+{"Motion",          NULLQUARK, XCB_MOTION_NOTIFY,    ParseTable, (Opaque)motionDetails},
+{"MouseMoved",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseTable, (Opaque)motionDetails},
+{"BtnMotion",       NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)AnyButtonMask},
+{"Btn1Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_1},
+{"Btn2Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_2},
+{"Btn3Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_3},
+{"Btn4Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_4},
+{"Btn5Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_5},
 
-{"KeymapNotify",    NULLQUARK, KeymapNotify,    ParseNone,      NULL},
-{"Keymap",          NULLQUARK, KeymapNotify,    ParseNone,      NULL},
+{"EnterNotify",     NULLQUARK, XCB_ENTER_NOTIFY,     ParseTable, (Opaque)notifyModes},
+{"Enter",           NULLQUARK, XCB_ENTER_NOTIFY,     ParseTable, (Opaque)notifyModes},
+{"EnterWindow",     NULLQUARK, XCB_ENTER_NOTIFY,     ParseTable, (Opaque)notifyModes},
 
-{"Expose",          NULLQUARK, Expose,          ParseNone,      NULL},
+{"LeaveNotify",     NULLQUARK, XCB_LEAVE_NOTIFY,     ParseTable, (Opaque)notifyModes},
+{"LeaveWindow",     NULLQUARK, XCB_LEAVE_NOTIFY,     ParseTable, (Opaque)notifyModes},
+{"Leave",           NULLQUARK, XCB_LEAVE_NOTIFY,     ParseTable, (Opaque)notifyModes},
 
-{"GraphicsExpose",  NULLQUARK, GraphicsExpose,  ParseNone,      NULL},
-{"GrExp",           NULLQUARK, GraphicsExpose,  ParseNone,      NULL},
+/* Event Name,    Quark, Event Type,    Detail Parser, Closure */
+
+{"FocusIn",         NULLQUARK, XCB_FOCUS_IN,         ParseTable, (Opaque)notifyModes},
+
+{"FocusOut",        NULLQUARK, XCB_FOCUS_OUT,        ParseTable, (Opaque)notifyModes},
+
+{"KeymapNotify",    NULLQUARK, XCB_KEYMAP_NOTIFY,    ParseNone,      NULL},
+{"Keymap",          NULLQUARK, XCB_KEYMAP_NOTIFY,    ParseNone,      NULL},
+
+{"Expose",          NULLQUARK, XCB_EXPOSE,          ParseNone,      NULL},
+
+{"GraphicsExpose",  NULLQUARK, XCB_GRAPHICS_EXPOSURE,  ParseNone,      NULL},
+{"GrExp",           NULLQUARK, XCB_GRAPHICS_EXPOSURE,  ParseNone,      NULL},
 
 {"NoExpose",        NULLQUARK, NoExpose,        ParseNone,      NULL},
 {"NoExp",           NULLQUARK, NoExpose,        ParseNone,      NULL},
 
-{"VisibilityNotify",NULLQUARK, VisibilityNotify,ParseNone,      NULL},
-{"Visible",         NULLQUARK, VisibilityNotify,ParseNone,      NULL},
+{"VisibilityNotify",NULLQUARK, XCB_VISIBILITY_NOTIFY,ParseNone,      NULL},
+{"Visible",         NULLQUARK, XCB_VISIBILITY_NOTIFY,ParseNone,      NULL},
 
-{"CreateNotify",    NULLQUARK, CreateNotify,    ParseNone,      NULL},
-{"Create",          NULLQUARK, CreateNotify,    ParseNone,      NULL},
-
-/* Event Name,    Quark, Event Type,    Detail Parser, Closure */
-
-{"DestroyNotify",   NULLQUARK, DestroyNotify,   ParseNone,      NULL},
-{"Destroy",         NULLQUARK, DestroyNotify,   ParseNone,      NULL},
-
-{"UnmapNotify",     NULLQUARK, UnmapNotify,     ParseNone,      NULL},
-{"Unmap",           NULLQUARK, UnmapNotify,     ParseNone,      NULL},
-
-{"MapNotify",       NULLQUARK, MapNotify,       ParseNone,      NULL},
-{"Map",             NULLQUARK, MapNotify,       ParseNone,      NULL},
-
-{"MapRequest",      NULLQUARK, MapRequest,      ParseNone,      NULL},
-{"MapReq",          NULLQUARK, MapRequest,      ParseNone,      NULL},
-
-{"ReparentNotify",  NULLQUARK, ReparentNotify,  ParseNone,      NULL},
-{"Reparent",        NULLQUARK, ReparentNotify,  ParseNone,      NULL},
-
-{"ConfigureNotify", NULLQUARK, ConfigureNotify, ParseNone,      NULL},
-{"Configure",       NULLQUARK, ConfigureNotify, ParseNone,      NULL},
-
-{"ConfigureRequest",NULLQUARK, ConfigureRequest,ParseNone,      NULL},
-{"ConfigureReq",    NULLQUARK, ConfigureRequest,ParseNone,      NULL},
+{"CreateNotify",    NULLQUARK, XCB_CREATE_NOTIFY,    ParseNone,      NULL},
+{"Create",          NULLQUARK, XCB_CREATE_NOTIFY,    ParseNone,      NULL},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"GravityNotify",   NULLQUARK, GravityNotify,   ParseNone,      NULL},
-{"Grav",            NULLQUARK, GravityNotify,   ParseNone,      NULL},
+{"DestroyNotify",   NULLQUARK, XCB_DESTROY_NOTIFY,   ParseNone,      NULL},
+{"Destroy",         NULLQUARK, XCB_DESTROY_NOTIFY,   ParseNone,      NULL},
 
-{"ResizeRequest",   NULLQUARK, ResizeRequest,   ParseNone,      NULL},
-{"ResReq",          NULLQUARK, ResizeRequest,   ParseNone,      NULL},
+{"UnmapNotify",     NULLQUARK, XCB_UNMAP_NOTIFY,     ParseNone,      NULL},
+{"Unmap",           NULLQUARK, XCB_UNMAP_NOTIFY,     ParseNone,      NULL},
 
-{"CirculateNotify", NULLQUARK, CirculateNotify, ParseNone,      NULL},
-{"Circ",            NULLQUARK, CirculateNotify, ParseNone,      NULL},
+{"MapNotify",       NULLQUARK, XCB_MAP_NOTIFY,       ParseNone,      NULL},
+{"Map",             NULLQUARK, XCB_MAP_NOTIFY,       ParseNone,      NULL},
 
-{"CirculateRequest",NULLQUARK, CirculateRequest,ParseNone,      NULL},
-{"CircReq",         NULLQUARK, CirculateRequest,ParseNone,      NULL},
+{"MapRequest",      NULLQUARK, XCB_MAP_REQUEST,      ParseNone,      NULL},
+{"MapReq",          NULLQUARK, XCB_MAP_REQUEST,      ParseNone,      NULL},
 
-{"PropertyNotify",  NULLQUARK, PropertyNotify,  ParseAtom,      NULL},
-{"Prop",            NULLQUARK, PropertyNotify,  ParseAtom,      NULL},
+{"ReparentNotify",  NULLQUARK, XCB_REPARENT_NOTIFY,  ParseNone,      NULL},
+{"Reparent",        NULLQUARK, XCB_REPARENT_NOTIFY,  ParseNone,      NULL},
 
-{"SelectionClear",  NULLQUARK, SelectionClear,  ParseAtom,      NULL},
-{"SelClr",          NULLQUARK, SelectionClear,  ParseAtom,      NULL},
+{"ConfigureNotify", NULLQUARK, XCB_CONFIGURE_NOTIFY, ParseNone,      NULL},
+{"Configure",       NULLQUARK, XCB_CONFIGURE_NOTIFY, ParseNone,      NULL},
 
-{"SelectionRequest",NULLQUARK, SelectionRequest,ParseAtom,      NULL},
-{"SelReq",          NULLQUARK, SelectionRequest,ParseAtom,      NULL},
+{"ConfigureRequest",NULLQUARK, XCB_CONFIGURE_REQUEST,ParseNone,      NULL},
+{"ConfigureReq",    NULLQUARK, XCB_CONFIGURE_REQUEST,ParseNone,      NULL},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"SelectionNotify", NULLQUARK, SelectionNotify, ParseAtom,      NULL},
-{"Select",          NULLQUARK, SelectionNotify, ParseAtom,      NULL},
+{"GravityNotify",   NULLQUARK, XCB_GRAVITY_NOTIFY,   ParseNone,      NULL},
+{"Grav",            NULLQUARK, XCB_GRAVITY_NOTIFY,   ParseNone,      NULL},
 
-{"ColormapNotify",  NULLQUARK, ColormapNotify,  ParseNone,      NULL},
-{"Clrmap",          NULLQUARK, ColormapNotify,  ParseNone,      NULL},
+{"ResizeRequest",   NULLQUARK, XCB_RESIZE_REQUEST,   ParseNone,      NULL},
+{"ResReq",          NULLQUARK, XCB_RESIZE_REQUEST,   ParseNone,      NULL},
 
-{"ClientMessage",   NULLQUARK, ClientMessage,   ParseAtom,      NULL},
-{"Message",         NULLQUARK, ClientMessage,   ParseAtom,      NULL},
+{"CirculateNotify", NULLQUARK, XCB_CIRCULATE_NOTIFY, ParseNone,      NULL},
+{"Circ",            NULLQUARK, XCB_CIRCULATE_NOTIFY, ParseNone,      NULL},
 
-{"MappingNotify",   NULLQUARK, MappingNotify,   ParseTable, (Opaque)mappingNotify},
-{"Mapping",         NULLQUARK, MappingNotify,   ParseTable, (Opaque)mappingNotify},
+{"CirculateRequest",NULLQUARK, XCB_CIRCULATE_REQUEST,ParseNone,      NULL},
+{"CircReq",         NULLQUARK, XCB_CIRCULATE_REQUEST,ParseNone,      NULL},
+
+{"PropertyNotify",  NULLQUARK, XCB_PROPERTY_NOTIFY,  ParseAtom,      NULL},
+{"Prop",            NULLQUARK, XCB_PROPERTY_NOTIFY,  ParseAtom,      NULL},
+
+{"SelectionClear",  NULLQUARK, XCB_SELECTION_CLEAR,  ParseAtom,      NULL},
+{"SelClr",          NULLQUARK, XCB_SELECTION_CLEAR,  ParseAtom,      NULL},
+
+{"SelectionRequest",NULLQUARK, XCB_SELECTION_REQUEST,ParseAtom,      NULL},
+{"SelReq",          NULLQUARK, XCB_SELECTION_REQUEST,ParseAtom,      NULL},
+
+/* Event Name,    Quark, Event Type,    Detail Parser, Closure */
+
+{"SelectionNotify", NULLQUARK, XCB_SELECTION_NOTIFY, ParseAtom,      NULL},
+{"Select",          NULLQUARK, XCB_SELECTION_NOTIFY, ParseAtom,      NULL},
+
+{"ColormapNotify",  NULLQUARK, XCB_COLORMAP_NOTIFY,  ParseNone,      NULL},
+{"Clrmap",          NULLQUARK, XCB_COLORMAP_NOTIFY,  ParseNone,      NULL},
+
+{"ClientMessage",   NULLQUARK, XCB_CLIENT_MESSAGE,   ParseAtom,      NULL},
+{"Message",         NULLQUARK, XCB_CLIENT_MESSAGE,   ParseAtom,      NULL},
+
+{"MappingNotify",   NULLQUARK, XCB_MAPPING_NOTIFY,   ParseTable, (Opaque)mappingNotify},
+{"Mapping",         NULLQUARK, XCB_MAPPING_NOTIFY,   ParseTable, (Opaque)mappingNotify},
 
 #ifdef DEBUG
 # ifdef notdef
@@ -704,7 +704,7 @@ ParseModifiers(register String str, EventPtr event, Boolean *error)
         }
         else if (Qmod == QAny) {        /*backward compatibility */
             event->event.modifierMask = 0;
-            event->event.modifiers = AnyModifier;
+            event->event.modifiers = XCB_MOD_MASK_ANY;
             ScanWhitespace(str);
             return str;
         }
@@ -1172,7 +1172,7 @@ ParseAtom(String str, Opaque closure _X_UNUSED, EventPtr event, Boolean *error)
 }
 
 static ModifierMask buttonModifierMasks[] = {
-    0, Button1Mask, Button2Mask, Button3Mask, Button4Mask, Button5Mask
+    0, XCB_BUTTON_MASK_1, XCB_BUTTON_MASK_2, XCB_BUTTON_MASK_3, XCB_BUTTON_MASK_4, XCB_BUTTON_MASK_5
 };
 
 static String ParseRepeat(String, int *, Boolean *, Boolean *);
@@ -1219,9 +1219,9 @@ ParseEvent(register String str,
 /* gross hack! ||| this kludge is related to the X11 protocol deficiency w.r.t.
  * modifiers in grabs.
  */
-    if ((event->event.eventType == ButtonRelease)
+    if ((event->event.eventType == XCB_BUTTON_RELEASE)
         && (event->event.modifiers | event->event.modifierMask) /* any */
-        &&(event->event.modifiers != AnyModifier)) {
+        &&(event->event.modifiers != XCB_MOD_MASK_ANY)) {
         event->event.modifiers = (event->event.modifiers
                                   | (TMLongCard) buttonModifierMasks[event->
                                                                      event.
@@ -1242,7 +1242,7 @@ ParseQuotedStringEvent(register String str,
 
     if (*str == '^') {
         str++;
-        event->event.modifiers = ControlMask;
+        event->event.modifiers = XCB_MOD_MASK_CONTROL;
     }
     else if (*str == '$') {
         str++;
@@ -1255,7 +1255,7 @@ ParseQuotedStringEvent(register String str,
     s[1] = '\0';
     if (*str != '\0' && !IsNewline(*str))
         str++;
-    event->event.eventType = KeyPress;
+    event->event.eventType = XCB_KEY_PRESS;
     event->event.eventCode = StringToKeySym(s, error);
     if (*error)
         return PanicModeRecovery(str);
@@ -1283,10 +1283,10 @@ RepeatDown(EventPtr *eventP, int reps, ActionPtr **actionsP)
 
     downEvent = event = *eventP;
     *upEvent = *downEvent;
-    upEvent->event.eventType = ((event->event.eventType == ButtonPress) ?
-                                ButtonRelease : KeyRelease);
-    if ((upEvent->event.eventType == ButtonRelease)
-        && (upEvent->event.modifiers != AnyModifier)
+    upEvent->event.eventType = ((event->event.eventType == XCB_BUTTON_PRESS) ?
+                                XCB_BUTTON_RELEASE : XCB_KEY_RELEASE);
+    if ((upEvent->event.eventType == XCB_BUTTON_RELEASE)
+        && (upEvent->event.modifiers != XCB_MOD_MASK_ANY)
         && (upEvent->event.modifiers | upEvent->event.modifierMask))
         upEvent->event.modifiers = (upEvent->event.modifiers
                                     | (TMLongCard) buttonModifierMasks[event->
@@ -1332,10 +1332,10 @@ RepeatDownPlus(EventPtr *eventP, int reps, ActionPtr **actionsP)
 
     downEvent = event = *eventP;
     *upEvent = *downEvent;
-    upEvent->event.eventType = ((event->event.eventType == ButtonPress) ?
-                                ButtonRelease : KeyRelease);
-    if ((upEvent->event.eventType == ButtonRelease)
-        && (upEvent->event.modifiers != AnyModifier)
+    upEvent->event.eventType = ((event->event.eventType == XCB_BUTTON_PRESS) ?
+                                XCB_BUTTON_RELEASE : XCB_KEY_RELEASE);
+    if ((upEvent->event.eventType == XCB_BUTTON_RELEASE)
+        && (upEvent->event.modifiers != XCB_MOD_MASK_ANY)
         && (upEvent->event.modifiers | upEvent->event.modifierMask))
         upEvent->event.modifiers = (upEvent->event.modifiers
                                     | (TMLongCard) buttonModifierMasks[event->
@@ -1388,10 +1388,10 @@ RepeatUp(EventPtr *eventP, int reps, ActionPtr **actionsP)
 
     downEvent = event = *eventP;
     *upEvent = *downEvent;
-    downEvent->event.eventType = ((event->event.eventType == ButtonRelease) ?
-                                  ButtonPress : KeyPress);
-    if ((downEvent->event.eventType == ButtonPress)
-        && (downEvent->event.modifiers != AnyModifier)
+    downEvent->event.eventType = ((event->event.eventType == XCB_BUTTON_RELEASE) ?
+                                  XCB_BUTTON_PRESS : XCB_KEY_PRESS);
+    if ((downEvent->event.eventType == XCB_BUTTON_PRESS)
+        && (downEvent->event.modifiers != XCB_MOD_MASK_ANY)
         && (downEvent->event.modifiers | downEvent->event.modifierMask))
         downEvent->event.modifiers = (downEvent->event.modifiers
                                       &
@@ -1446,10 +1446,10 @@ RepeatUpPlus(EventPtr *eventP, int reps, ActionPtr **actionsP)
 
     downEvent = event = *eventP;
     *upEvent = *downEvent;
-    downEvent->event.eventType = ((event->event.eventType == ButtonRelease) ?
-                                  ButtonPress : KeyPress);
-    if ((downEvent->event.eventType == ButtonPress)
-        && (downEvent->event.modifiers != AnyModifier)
+    downEvent->event.eventType = ((event->event.eventType == XCB_BUTTON_RELEASE) ?
+                                  XCB_BUTTON_PRESS : XCB_KEY_PRESS);
+    if ((downEvent->event.eventType == XCB_BUTTON_PRESS)
+        && (downEvent->event.modifiers != XCB_MOD_MASK_ANY)
         && (downEvent->event.modifiers | downEvent->event.modifierMask))
         downEvent->event.modifiers = (downEvent->event.modifiers
                                       &
@@ -1534,16 +1534,16 @@ RepeatEvent(EventPtr *eventP, int reps, Boolean plus, ActionPtr **actionsP)
 {
     switch ((*eventP)->event.eventType) {
 
-    case ButtonPress:
-    case KeyPress:
+    case XCB_BUTTON_PRESS:
+    case XCB_KEY_PRESS:
         if (plus)
             RepeatDownPlus(eventP, reps, actionsP);
         else
             RepeatDown(eventP, reps, actionsP);
         break;
 
-    case ButtonRelease:
-    case KeyRelease:
+    case XCB_BUTTON_RELEASE:
+    case XCB_KEY_RELEASE:
         if (plus)
             RepeatUpPlus(eventP, reps, actionsP);
         else

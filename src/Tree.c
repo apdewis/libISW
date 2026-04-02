@@ -61,8 +61,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
-#define IsHorizontal(tw) ((tw)->tree.gravity == WestGravity || \
-			  (tw)->tree.gravity == EastGravity)
+#define IsHorizontal(tw) ((tw)->tree.gravity == XCB_GRAVITY_WEST || \
+			  (tw)->tree.gravity == XCB_GRAVITY_EAST)
 
 
 					/* widget class method */
@@ -103,7 +103,7 @@ static XtResource resources[] = {
 	XtOffsetOf(TreeRec, tree.line_width), XtRImmediate, (XtPointer) 0 },
     { XtNgravity, XtCGravity, XtRGravity, sizeof (XtGravity),
 	XtOffsetOf(TreeRec, tree.gravity), XtRImmediate,
-	(XtPointer) WestGravity },
+	(XtPointer) XCB_GRAVITY_WEST },
 };
 
 
@@ -215,13 +215,13 @@ initialize_dimensions (Dimension **listp, int *sizep, int n)
 static xcb_gcontext_t
 get_tree_gc (TreeWidget w)
 {
-    XtGCMask valuemask = GCBackground | GCForeground;
+    XtGCMask valuemask = XCB_GC_BACKGROUND | XCB_GC_FOREGROUND;
     xcb_create_gc_value_list_t values = {0};
 
     values.background = w->core.background_pixel;
     values.foreground = w->tree.foreground;
     if (w->tree.line_width != 0) {
-	valuemask |= GCLineWidth;
+	valuemask |= XCB_GC_LINE_WIDTH;
 	values.line_width = w->tree.line_width;
     }
 
@@ -302,7 +302,7 @@ static void
 check_gravity (TreeWidget tw, XtGravity grav)
 {
     switch (tw->tree.gravity) {
-      case WestGravity: case NorthGravity: case EastGravity: case SouthGravity:
+      case XCB_GRAVITY_WEST: case XCB_GRAVITY_NORTH: case XCB_GRAVITY_EAST: case XCB_GRAVITY_SOUTH:
 	break;
       default:
 	tw->tree.gravity = grav;
@@ -330,15 +330,15 @@ XmuCvtStringToGravity(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_arg
     
     /* Simple string matching for gravity values */
     if (strcmp(str, "west") == 0 || strcmp(str, "West") == 0)
-        gravity = WestGravity;
+        gravity = XCB_GRAVITY_WEST;
     else if (strcmp(str, "north") == 0 || strcmp(str, "North") == 0)
-        gravity = NorthGravity;
+        gravity = XCB_GRAVITY_NORTH;
     else if (strcmp(str, "east") == 0 || strcmp(str, "East") == 0)
-        gravity = EastGravity;
+        gravity = XCB_GRAVITY_EAST;
     else if (strcmp(str, "south") == 0 || strcmp(str, "South") == 0)
-        gravity = SouthGravity;
+        gravity = XCB_GRAVITY_SOUTH;
     else
-        gravity = WestGravity; /* default */
+        gravity = XCB_GRAVITY_WEST; /* default */
     
     if (toVal->addr != NULL) {
         if (toVal->size < sizeof(XtGravity)) {
@@ -428,7 +428,7 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
     /*
      * make sure that our gravity is one of the acceptable values
      */
-    check_gravity (new, WestGravity);
+    check_gravity (new, XCB_GRAVITY_WEST);
 }
 
 
@@ -574,19 +574,19 @@ GeometryManager (Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
     /*
      * No position changes allowed!.
      */
-    if ((request->request_mode & CWX && request->x!=w->core.x)
-	||(request->request_mode & CWY && request->y!=w->core.y))
+    if ((request->request_mode & XCB_CONFIG_WINDOW_X && request->x!=w->core.x)
+	||(request->request_mode & XCB_CONFIG_WINDOW_Y && request->y!=w->core.y))
       return (XtGeometryNo);
 
     /*
      * Allow all resize requests.
      */
 
-    if (request->request_mode & CWWidth)
+    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
       w->core.width = request->width;
-    if (request->request_mode & CWHeight)
+    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
       w->core.height = request->height;
-    if (request->request_mode & CWBorderWidth)
+    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
       w->core.border_width = request->border_width;
 
     if (tw->tree.auto_reconfigure) layout_tree (tw, FALSE);
@@ -641,17 +641,17 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		int srcy = child->core.y + child->core.border_width;
 
 		switch (tw->tree.gravity) {
-		  case WestGravity:
+		  case XCB_GRAVITY_WEST:
 		    srcx += child->core.width + child->core.border_width;
 		    /* fall through */
-		  case EastGravity:
+		  case XCB_GRAVITY_EAST:
 		    srcy += child->core.height / 2;
 		    break;
 
-		  case NorthGravity:
+		  case XCB_GRAVITY_NORTH:
 		    srcy += child->core.height + child->core.border_width;
 		    /* fall through */
-		  case SouthGravity:
+		  case XCB_GRAVITY_SOUTH:
 		    srcx += child->core.width / 2;
 		    break;
 		}
@@ -663,7 +663,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		    int x1, y1, x2, y2;
 
 		    switch (tw->tree.gravity) {
-		      case WestGravity:
+		      case XCB_GRAVITY_WEST:
 		 /*
 		  * right center to left center
 		  */
@@ -674,7 +674,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		      ((int) k->core.height) / 2);
 		 break;
 
-		      case NorthGravity:
+		      case XCB_GRAVITY_NORTH:
 		 /*
 		  * bottom center to top center
 		  */
@@ -685,7 +685,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		 y2 = (int) k->core.y;
 		 break;
 
-		      case EastGravity:
+		      case XCB_GRAVITY_EAST:
 		 /*
 		  * left center to right center
 		  */
@@ -698,7 +698,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		      ((int) k->core.height) / 2);
 		 break;
 
-		      case SouthGravity:
+		      case XCB_GRAVITY_SOUTH:
 		 /*
 		  * top center to bottom center
 		  */
@@ -735,12 +735,12 @@ QueryGeometry (Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *preferred
 {
     TreeWidget tw = (TreeWidget) w;
 
-    preferred->request_mode = (CWWidth | CWHeight);
+    preferred->request_mode = (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT);
     preferred->width = tw->tree.maxwidth;
     preferred->height = tw->tree.maxheight;
 
-    if (((intended->request_mode & (CWWidth | CWHeight)) ==
-	 (CWWidth | CWHeight)) &&
+    if (((intended->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) ==
+	 (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
 	intended->width == preferred->width &&
 	intended->height == preferred->height)
       return XtGeometryYes;
@@ -847,12 +847,12 @@ set_positions (TreeWidget tw, Widget w, int level)
 	     * mirror if necessary
 	     */
 	    switch (tw->tree.gravity) {
-	      case EastGravity:
+	      case XCB_GRAVITY_EAST:
 		tc->tree.x = (((Position) tw->tree.maxwidth) -
 			      ((Position) w->core.width) - tc->tree.x);
 		break;
 
-	      case SouthGravity:
+	      case XCB_GRAVITY_SOUTH:
 		tc->tree.y = (((Position) tw->tree.maxheight) -
 			      ((Position) w->core.height) - tc->tree.y);
 		break;

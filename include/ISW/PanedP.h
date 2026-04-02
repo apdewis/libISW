@@ -151,21 +151,21 @@ typedef struct {
     Dimension   internal_bw;	           /* internal border width. */
     XtOrientation orientation;	           /* Orientation of paned widget. */
 
-    Cursor	cursor;		           /* Cursor for paned window */
-    Cursor	grip_cursor;               /* inactive grip cursor */
-    Cursor	v_grip_cursor;             /* inactive vert grip cursor */
-    Cursor	h_grip_cursor;             /* inactive horiz grip cursor */
-    Cursor	adjust_this_cursor;        /* active grip cursor: T */
-    Cursor	v_adjust_this_cursor;      /* active vert grip cursor: T */
-    Cursor	h_adjust_this_cursor;      /* active horiz grip cursor: T */
+    xcb_cursor_t	cursor;		           /* Cursor for paned window */
+    xcb_cursor_t	grip_cursor;               /* inactive grip cursor */
+    xcb_cursor_t	v_grip_cursor;             /* inactive vert grip cursor */
+    xcb_cursor_t	h_grip_cursor;             /* inactive horiz grip cursor */
+    xcb_cursor_t	adjust_this_cursor;        /* active grip cursor: T */
+    xcb_cursor_t	v_adjust_this_cursor;      /* active vert grip cursor: T */
+    xcb_cursor_t	h_adjust_this_cursor;      /* active horiz grip cursor: T */
 
 				          /* vertical. */
-    Cursor	adjust_upper_cursor;      /* active grip cursor: U */
-    Cursor	adjust_lower_cursor;      /* active grip cursor: D */
+    xcb_cursor_t	adjust_upper_cursor;      /* active grip cursor: U */
+    xcb_cursor_t	adjust_lower_cursor;      /* active grip cursor: D */
 
 				          /* horizontal. */
-    Cursor	adjust_left_cursor;       /* active grip cursor: U */
-    Cursor	adjust_right_cursor;      /* active grip cursor: D */
+    xcb_cursor_t	adjust_left_cursor;       /* active grip cursor: U */
+    xcb_cursor_t	adjust_right_cursor;      /* active grip cursor: D */
 
     /* private */
     Boolean	recursively_called;        /* for ChangeManaged */

@@ -364,7 +364,7 @@ RealizeWidget(Widget widget)
         cookie = xcb_intern_atom(display, 0, strlen("_MIT_OBJ_CLASS"), "_MIT_OBJ_CLASS");
         reply = xcb_intern_atom_reply(display, cookie, NULL);
         
-        /* Get XA_STRING atom (predefined as 31 in X11) */
+        /* Get XCB_ATOM_STRING atom (predefined as 31 in X11) */
         xa_string = 31;
         
         if (reply) {
@@ -514,7 +514,7 @@ void
 XtCreateWindow(xcb_connection_t *display,
                Widget widget,
                unsigned int window_class,
-               Visual *visual,
+               xcb_visualtype_t *visual,
                XtValueMask value_mask,
                uint32_t *attributes)
 {

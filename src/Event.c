@@ -294,9 +294,9 @@ XtBuildEventMask(Widget widget)
         }
         LOCK_PROCESS;
         if (widget->core.widget_class->core_class.expose != NULL)
-            mask |= ExposureMask;
+            mask |= XCB_EVENT_MASK_EXPOSURE;
         if (widget->core.widget_class->core_class.visible_interest)
-            mask |= VisibilityChangeMask;
+            mask |= XCB_EVENT_MASK_VISIBILITY_CHANGE;
         UNLOCK_PROCESS;
         if (widget->core.tm.translations)
             mask |= widget->core.tm.translations->eventMask;
@@ -711,7 +711,7 @@ static const WidgetRec WWfake;  /* placeholder for deletions */
 static void ExpandWWTable(WWTable);
 
 void
-XtRegisterDrawable(xcb_connection_t *display, Drawable drawable, Widget widget)
+XtRegisterDrawable(xcb_connection_t *display, xcb_drawable_t drawable, Widget widget)
 {
     WWTable tab;
     int idx;
@@ -758,7 +758,7 @@ XtRegisterDrawable(xcb_connection_t *display, Drawable drawable, Widget widget)
 }
 
 void
-XtUnregisterDrawable(xcb_connection_t *display, Drawable drawable)
+XtUnregisterDrawable(xcb_connection_t *display, xcb_drawable_t drawable)
 {
     WWTable tab;
     int idx;
@@ -966,8 +966,8 @@ CallEventHandlers(Widget widget,xcb_generic_event_t *event, EventMask mask)
 
 static void CompressExposures(xcb_generic_event_t *, Widget);
 
-#define KnownButtons (Button1MotionMask|Button2MotionMask|Button3MotionMask|\
-                      Button4MotionMask|Button5MotionMask)
+#define KnownButtons (XCB_EVENT_MASK_BUTTON_1_MOTION|XCB_EVENT_MASK_BUTTON_2_MOTION|XCB_EVENT_MASK_BUTTON_3_MOTION|\
+                      XCB_EVENT_MASK_BUTTON_4_MOTION|XCB_EVENT_MASK_BUTTON_5_MOTION)
 
 /* keep this SMALL to avoid blowing stack cache! */
 /* because some compilers allocate all local locals on procedure entry */
@@ -997,7 +997,7 @@ XtDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
             uint8_t event_type = event->response_type & ~0x80;
 
             /* For Expose events, check if this is the last in the series */
-            if (event_type == Expose) {
+            if (event_type == XCB_EXPOSE) {
                 xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
                 /* Only dispatch when count == 0 (last event in series) or
                  * when compression is disabled */
@@ -1230,7 +1230,7 @@ XtAddExposureToRegion(xcb_connection_t *dpy, xcb_generic_event_t *event, xcb_xfi
 
     /* These Expose and GraphicsExpose fields are at identical offsets */
 
-    if (event->response_type == Expose || event->response_type == GraphicsExpose) {
+    if (event->response_type == XCB_EXPOSE || event->response_type == XCB_GRAPHICS_EXPOSURE) {
         rect.x = (Position) ev->x;
         rect.y = (Position) ev->y;
         rect.width = (Dimension) ev->width;
@@ -1440,7 +1440,7 @@ CheckExposureEvent(xcb_connection_t *disp _X_UNUSED, xcb_generic_event_t *event,
     if ((info->type1 == event->response_type) || (info->type2 == event->response_type)) {
         if (!info->maximal && info->non_matching)
             return FALSE;
-        if (event->response_type == GraphicsExpose)
+        if (event->response_type == XCB_GRAPHICS_EXPOSURE)
             return (((xcb_graphics_exposure_event_t  *)event)->drawable == info->window);
         return (((xcb_expose_event_t *)event)->window == info->window);
     }
@@ -1500,7 +1500,7 @@ _XtConvertTypeToMask(int eventType)
     if ((Cardinal) eventType < XtNumber(masks))
         return masks[eventType];
     else
-        return NoEventMask;
+        return XCB_EVENT_MASK_NO_EVENT;
 }
 
 Boolean
@@ -1604,8 +1604,8 @@ _XtDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
         //    was_dispatched = (Boolean) XFilterEvent(event, None);
     }
     else if (grabType == pass) {
-        if (event->response_type == LeaveNotify ||
-            event->response_type == FocusIn || event->response_type == FocusOut) {
+        if (event->response_type == XCB_LEAVE_NOTIFY ||
+            event->response_type == XCB_FOCUS_IN || event->response_type == XCB_FOCUS_OUT) {
             if (XtIsSensitive(widget))
                 was_dispatched = XtDispatchEventToWidget(widget, event);
         }
@@ -1694,7 +1694,7 @@ XtDispatchEvent(xcb_generic_event_t *event, xcb_connection_t *dpy)
     case XCB_INPUT_PROPERTY:
         time = ((xcb_input_property_event_t *)event)->time;
         break;
-    case SelectionClear:
+    case XCB_SELECTION_CLEAR:
         time = ((xcb_selection_clear_event_t *)event)->time;
         break;
 
@@ -1915,21 +1915,21 @@ _XtSendFocusEvent(Widget child, int type)
     child = XtIsWidget(child) ? child : _XtWindowedAncestor(child);
     if (XtIsSensitive(child) && !child->core.being_destroyed
         && XtIsRealized(child)
-        && (XtBuildEventMask(child) & FocusChangeMask)) {
+        && (XtBuildEventMask(child) & XCB_EVENT_MASK_FOCUS_CHANGE)) {
         
-        if(type == FocusIn) {
+        if(type == XCB_FOCUS_IN) {
             xcb_focus_in_event_t event = {0};
             event.response_type = XCB_FOCUS_IN;
             event.event = XtWindow(child);
-            event.mode = NotifyNormal;
-            event.detail = NotifyAncestor;
+            event.mode = XCB_NOTIFY_MODE_NORMAL;
+            event.detail = XCB_NOTIFY_DETAIL_ANCESTOR;
             XtDispatchEventToWidget(child, (xcb_generic_event_t *) &event);
-        } else if (type == FocusOut) {
+        } else if (type == XCB_FOCUS_OUT) {
             xcb_focus_out_event_t event = {0};
             event.response_type = XCB_FOCUS_OUT;
             event.event = XtWindow(child);
-            event.mode = NotifyNormal;
-            event.detail = NotifyAncestor;
+            event.mode = XCB_NOTIFY_MODE_NORMAL;
+            event.detail = XCB_NOTIFY_DETAIL_ANCESTOR;
             XtDispatchEventToWidget(child, (xcb_generic_event_t *) &event);
         } else {
             return;

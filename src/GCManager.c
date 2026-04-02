@@ -97,14 +97,14 @@ typedef struct _GCrec {
     if ((checkMask & bit) && \
         (GCVAL(bit,valueMask,v->comp,default) != gcv->comp)) return False
 
-#define ALLGCVALS (GCFunction | GCPlaneMask | GCForeground | \
-                   GCBackground | GCLineWidth | GCLineStyle | \
-                   GCCapStyle | GCJoinStyle | GCFillStyle | \
-                   GCFillRule | GCTile | GCStipple | \
-                   GCTileStipXOrigin | GCTileStipYOrigin | \
-                   GCFont | GCSubwindowMode | GCGraphicsExposures | \
-                   GCClipXOrigin | GCClipYOrigin | GCDashOffset | \
-                   GCArcMode)
+#define ALLGCVALS (XCB_GC_FUNCTION | XCB_GC_PLANE_MASK | XCB_GC_FOREGROUND | \
+                   XCB_GC_BACKGROUND | XCB_GC_LINE_WIDTH | XCB_GC_LINE_STYLE | \
+                   XCB_GC_CAP_STYLE | XCB_GC_JOIN_STYLE | XCB_GC_FILL_STYLE | \
+                   XCB_GC_FILL_RULE | XCB_GC_TILE | XCB_GC_STIPPLE | \
+                   XCB_GC_TILE_STIPPLE_ORIGIN_X | XCB_GC_TILE_STIPPLE_ORIGIN_Y | \
+                   XCB_GC_FONT | XCB_GC_SUBWINDOW_MODE | XCB_GC_GRAPHICS_EXPOSURES | \
+                   XCB_GC_CLIP_ORIGIN_X | XCB_GC_CLIP_ORIGIN_Y | XCB_GC_DASH_OFFSET | \
+                   XCB_GC_ARC_MODE)
 
 static Bool
 Matches(xcb_connection_t *dpy,
@@ -127,39 +127,39 @@ Matches(xcb_connection_t *dpy,
         return False;
     }
     checkMask = readOnlyMask & ~ptr->unused_mask;
-    CHECK(GCForeground, foreground, 0);
-    CHECK(GCBackground, background, 1);
-    CHECK(GCFont, font, ~0UL);
-    CHECK(GCFillStyle, fill_style, FillSolid);
-    CHECK(GCLineWidth, line_width, 0);
-    CHECK(GCFunction, function, GXcopy);
-    CHECK(GCGraphicsExposures, graphics_exposures, True);
-    CHECK(GCTile, tile, ~0UL);
-    CHECK(GCSubwindowMode, subwindow_mode, ClipByChildren);
-    CHECK(GCPlaneMask, plane_mask, AllPlanes);
-    CHECK(GCLineStyle, line_style, LineSolid);
-    CHECK(GCCapStyle, cap_style, CapButt);
-    CHECK(GCJoinStyle, join_style, JoinMiter);
-    CHECK(GCFillRule, fill_rule, EvenOddRule);
-    CHECK(GCArcMode, arc_mode, ArcPieSlice);
-    CHECK(GCStipple, stipple, ~0UL);
-    //CHECK(GCTileStipXOrigin, ts_x_origin, 0);
-    //CHECK(GCTileStipYOrigin, ts_y_origin, 0);
-    CHECK(GCClipXOrigin, clip_x_origin, 0);
-    CHECK(GCClipYOrigin, clip_y_origin, 0);
-    CHECK(GCDashOffset, dash_offset, 0);
+    CHECK(XCB_GC_FOREGROUND, foreground, 0);
+    CHECK(XCB_GC_BACKGROUND, background, 1);
+    CHECK(XCB_GC_FONT, font, ~0UL);
+    CHECK(XCB_GC_FILL_STYLE, fill_style, XCB_FILL_STYLE_SOLID);
+    CHECK(XCB_GC_LINE_WIDTH, line_width, 0);
+    CHECK(XCB_GC_FUNCTION, function, XCB_GX_COPY);
+    CHECK(XCB_GC_GRAPHICS_EXPOSURES, graphics_exposures, True);
+    CHECK(XCB_GC_TILE, tile, ~0UL);
+    CHECK(XCB_GC_SUBWINDOW_MODE, subwindow_mode, XCB_SUBWINDOW_MODE_CLIP_BY_CHILDREN);
+    CHECK(XCB_GC_PLANE_MASK, plane_mask, AllPlanes);
+    CHECK(XCB_GC_LINE_STYLE, line_style, XCB_LINE_STYLE_SOLID);
+    CHECK(XCB_GC_CAP_STYLE, cap_style, XCB_CAP_STYLE_BUTT);
+    CHECK(XCB_GC_JOIN_STYLE, join_style, XCB_JOIN_STYLE_MITER);
+    CHECK(XCB_GC_FILL_RULE, fill_rule, XCB_FILL_RULE_EVEN_ODD);
+    CHECK(XCB_GC_ARC_MODE, arc_mode, XCB_ARC_MODE_PIE_SLICE);
+    CHECK(XCB_GC_STIPPLE, stipple, ~0UL);
+    //CHECK(XCB_GC_TILE_STIPPLE_ORIGIN_X, ts_x_origin, 0);
+    //CHECK(XCB_GC_TILE_STIPPLE_ORIGIN_Y, ts_y_origin, 0);
+    CHECK(XCB_GC_CLIP_ORIGIN_X, clip_x_origin, 0);
+    CHECK(XCB_GC_CLIP_ORIGIN_Y, clip_y_origin, 0);
+    CHECK(XCB_GC_DASH_OFFSET, dash_offset, 0);
     gcv->clip_mask = ptr->clip_mask;
-    CHECK(GCClipMask, clip_mask, None);
+    CHECK(XCB_GC_CLIP_MASK, clip_mask, None);
     gcv->dashes = ptr->dashes;
-    CHECK(GCDashList, dashes, 4);
+    CHECK(XCB_GC_DASH_LIST, dashes, 4);
     valueMask &= ptr->unused_mask | dynamicMask;
     if (valueMask) {
         /* xcb_change_gc_value_list_t and xcb_create_gc_value_list_t are
            identical structs — cast is safe */
         xcb_change_gc_aux(dpy, ptr->gc, valueMask, (const xcb_change_gc_value_list_t *) v);
-        if (valueMask & GCDashList)
+        if (valueMask & XCB_GC_DASH_LIST)
             ptr->dashes = v->dashes;
-        if (valueMask & GCClipMask)
+        if (valueMask & XCB_GC_CLIP_MASK)
             ptr->clip_mask = v->clip_mask;
     }
     ptr->unused_mask &= ~(dynamicMask | readOnlyMask);
@@ -254,8 +254,8 @@ XtAllocateGC(register Widget widget,
     cur->ref_count = 1;
     cur->dynamic_mask = dynamicMask;
     cur->unused_mask = (unusedMask & ~dynamicMask);
-    cur->dashes = GCVAL(GCDashList, valueMask, values->dashes, 4);
-    cur->clip_mask = GCVAL(GCClipMask, valueMask, values->clip_mask, None);
+    cur->dashes = GCVAL(XCB_GC_DASH_LIST, valueMask, values->dashes, 4);
+    cur->clip_mask = GCVAL(XCB_GC_CLIP_MASK, valueMask, values->clip_mask, None);
     
     /* FIX: Allocate and initialize cur->values to store the xcb_gcontext_t values */
     cur->values = XtNew(xcb_create_gc_value_list_t);

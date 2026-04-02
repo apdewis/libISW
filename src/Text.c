@@ -214,7 +214,7 @@ static Dimension defHeight = DEFAULT_TEXT_HEIGHT;
 static XtResource resources[] = {
   {XtNwidth, XtCWidth, XtRDimension, sizeof(Dimension),
      offset(core.width), XtRDimension, (XtPointer)&defWidth},
-  {XtNcursor, XtCCursor, XtRCursor, sizeof(Cursor),
+  {XtNcursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
      offset(simple.cursor), XtRString, "xterm"},
   {XtNheight, XtCHeight, XtRDimension, sizeof(Dimension),
      offset(core.height), XtRDimension, (XtPointer)&defHeight},
@@ -2430,7 +2430,7 @@ _IswTextCheckResize(TextWidget ctx)
 
     rbox.width += ctx->text.margin.right;
     if (rbox.width > ctx->core.width) { /* Only get wider. */
-      rbox.request_mode = CWWidth;
+      rbox.request_mode = XCB_CONFIG_WINDOW_WIDTH;
       if (XtMakeGeometryRequest(w, &rbox, &return_geom) == XtGeometryAlmost)
 	(void) XtMakeGeometryRequest(w, &return_geom, (XtWidgetGeometry*) NULL);
     }
@@ -2448,7 +2448,7 @@ _IswTextCheckResize(TextWidget ctx)
   if ( (line + 1) == ctx->text.lt.lines ) return;
 
   old_height = ctx->core.height;
-  rbox.request_mode = CWHeight;
+  rbox.request_mode = XCB_CONFIG_WINDOW_HEIGHT;
   rbox.height = IswTextSinkMaxHeight(ctx->text.sink, line + 1) + VMargins(ctx);
 
   if ((int)rbox.height < old_height) return; /* It will only get taller. */

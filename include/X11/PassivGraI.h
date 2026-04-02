@@ -83,7 +83,7 @@ typedef struct _XtGrabExtRec {
     Mask			*pKeyButMask;
     Mask			*pModifiersMask;
     xcb_window_t			confineTo;
-    Cursor			cursor;
+    xcb_cursor_t			cursor;
 } XtServerGrabExtRec, *XtServerGrabExtPtr;
 
 #define GRABEXT(p) ((XtServerGrabExtPtr)((p)+1))

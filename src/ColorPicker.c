@@ -264,7 +264,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.redScale); n++;
     cpw->colorPicker.swatchW = XtCreateManagedWidget(
         "swatch", simpleWidgetClass, new, a, n);
-    XtAddEventHandler(cpw->colorPicker.swatchW, ExposureMask, False,
+    XtAddEventHandler(cpw->colorPicker.swatchW, XCB_EVENT_MASK_EXPOSURE, False,
                       SwatchExpose, (XtPointer)cpw);
 }
 

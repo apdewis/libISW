@@ -108,7 +108,7 @@ typedef struct {
     XtCallbackList callbacks;
 
     /* private state */
-    Pixmap      	gray_pixmap;
+    xcb_pixmap_t      	gray_pixmap;
     xcb_gcontext_t          	normal_GC;
     xcb_gcontext_t          	inverse_GC;
     Boolean     	set;

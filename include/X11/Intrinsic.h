@@ -1680,7 +1680,7 @@ extern void XtGetConstraintResourceList(
     Cardinal*		/* num_resources_return */
 );
 
-#define XtUnspecifiedPixmap	((Pixmap)2)
+#define XtUnspecifiedPixmap	((xcb_pixmap_t)2)
 #define XtUnspecifiedShellInt	(-1)
 #define XtUnspecifiedWindow	((xcb_window_t)2)
 #define XtUnspecifiedWindowGroup ((xcb_window_t)3)
@@ -2207,7 +2207,7 @@ extern void XtGrabButton(
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
     xcb_window_t 		/* confine_to */,
-    Cursor 		/* cursor */
+    xcb_cursor_t 		/* cursor */
 );
 
 extern void XtUngrabButton(
@@ -2223,7 +2223,7 @@ extern int XtGrabPointer(
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
     xcb_window_t 		/* confine_to */,
-    Cursor 		/* cursor */,
+    xcb_cursor_t 		/* cursor */,
     xcb_timestamp_t 		/* time */
 );
 
@@ -2240,13 +2240,13 @@ extern void XtGetApplicationNameAndClass(
 
 extern void XtRegisterDrawable(
     xcb_connection_t *		/* dpy */,
-    Drawable		/* drawable */,
+    xcb_drawable_t		/* drawable */,
     Widget		/* widget */
 );
 
 extern void XtUnregisterDrawable(
     xcb_connection_t *		/* dpy */,
-    Drawable		/* drawable */
+    xcb_drawable_t		/* drawable */
 );
 
 extern Widget XtHooksOfDisplay(

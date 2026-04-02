@@ -132,7 +132,7 @@ MenuBarHeight(MainWindowWidget mw)
         return 0;
 
     XtQueryGeometry(mw->main_window.menubar, NULL, &pref);
-    return (pref.request_mode & CWHeight) ? pref.height
+    return (pref.request_mode & XCB_CONFIG_WINDOW_HEIGHT) ? pref.height
                                           : mw->main_window.menubar->core.height;
 }
 
@@ -145,7 +145,7 @@ StatusBarHeight(MainWindowWidget mw)
         return 0;
 
     XtQueryGeometry(mw->main_window.statusbar, NULL, &pref);
-    return (pref.request_mode & CWHeight) ? pref.height
+    return (pref.request_mode & XCB_CONFIG_WINDOW_HEIGHT) ? pref.height
                                           : mw->main_window.statusbar->core.height;
 }
 
@@ -237,13 +237,13 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
     (void)reply;
 
     /* Deny position requests */
-    if ((request->request_mode & CWX && request->x != child->core.x) ||
-        (request->request_mode & CWY && request->y != child->core.y))
+    if ((request->request_mode & XCB_CONFIG_WINDOW_X && request->x != child->core.x) ||
+        (request->request_mode & XCB_CONFIG_WINDOW_Y && request->y != child->core.y))
         return XtGeometryNo;
 
     /* For the menubar or statusbar, allow height changes and relayout */
     if (child == mw->main_window.menubar || child == mw->main_window.statusbar) {
-        if (request->request_mode & CWHeight) {
+        if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) {
             child->core.height = request->height;
             DoLayout(mw);
         }
@@ -251,7 +251,7 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
     }
 
     /* For the content child, allow height changes by negotiating with parent */
-    if (request->request_mode & CWHeight) {
+    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) {
         Dimension mb_h = MenuBarHeight(mw);
         Dimension sb_h = StatusBarHeight(mw);
         Dimension new_total = mb_h + sb_h + request->height;
@@ -296,18 +296,18 @@ PreferredSize(Widget w, XtWidgetGeometry *constraint, XtWidgetGeometry *preferre
     /* Query menubar preferred size */
     if (mw->main_window.menubar && XtIsManaged(mw->main_window.menubar)) {
         XtQueryGeometry(mw->main_window.menubar, NULL, &mb_pref);
-        if (mb_pref.request_mode & CWWidth)
+        if (mb_pref.request_mode & XCB_CONFIG_WINDOW_WIDTH)
             pref_w = mb_pref.width;
-        if (mb_pref.request_mode & CWHeight)
+        if (mb_pref.request_mode & XCB_CONFIG_WINDOW_HEIGHT)
             pref_h = mb_pref.height;
     }
 
     /* Query statusbar preferred size */
     if (mw->main_window.statusbar && XtIsManaged(mw->main_window.statusbar)) {
         XtQueryGeometry(mw->main_window.statusbar, NULL, &sb_pref);
-        if ((sb_pref.request_mode & CWWidth) && sb_pref.width > pref_w)
+        if ((sb_pref.request_mode & XCB_CONFIG_WINDOW_WIDTH) && sb_pref.width > pref_w)
             pref_w = sb_pref.width;
-        if (sb_pref.request_mode & CWHeight)
+        if (sb_pref.request_mode & XCB_CONFIG_WINDOW_HEIGHT)
             pref_h += sb_pref.height;
     }
 
@@ -315,21 +315,21 @@ PreferredSize(Widget w, XtWidgetGeometry *constraint, XtWidgetGeometry *preferre
     content = FindContentChild(mw);
     if (content) {
         XtQueryGeometry(content, NULL, &content_pref);
-        if ((content_pref.request_mode & CWWidth) &&
+        if ((content_pref.request_mode & XCB_CONFIG_WINDOW_WIDTH) &&
             content_pref.width > pref_w)
             pref_w = content_pref.width;
-        if (content_pref.request_mode & CWHeight)
+        if (content_pref.request_mode & XCB_CONFIG_WINDOW_HEIGHT)
             pref_h += content_pref.height;
     }
 
-    preferred->request_mode = CWWidth | CWHeight;
+    preferred->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     preferred->width = pref_w > 0 ? pref_w : mw->core.width;
     preferred->height = pref_h > 0 ? pref_h : mw->core.height;
 
     if (constraint &&
-        (constraint->request_mode & CWWidth) &&
+        (constraint->request_mode & XCB_CONFIG_WINDOW_WIDTH) &&
         constraint->width == preferred->width &&
-        (constraint->request_mode & CWHeight) &&
+        (constraint->request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
         constraint->height == preferred->height)
         return XtGeometryYes;
 

@@ -685,7 +685,7 @@ static XtConvertArgRec const displayConvertArg[] = {
  * XCB replacement for XCreateFontCursor(display, shape)
  * Opens the standard "cursor" font once (cached) and creates a glyph cursor.
  * ----------------------------------------------------------------------- */
-static Cursor
+static xcb_cursor_t
 _XtCreateFontCursor(xcb_connection_t *dpy, unsigned int shape)
 {
     static xcb_font_t cursor_font = XCB_NONE;
@@ -779,7 +779,7 @@ cleanup:
 /* -----------------------------------------------------------------------
  * XCB replacement for XLoadFont(display, name)
  * ----------------------------------------------------------------------- */
-static Font
+static xcb_font_t
 _XtLoadFont(xcb_connection_t *dpy, const char *name)
 {
     
@@ -791,7 +791,7 @@ _XtLoadFont(xcb_connection_t *dpy, const char *name)
         free(err);
         return 0; /* font not found */
     }
-    return (Font) fid;
+    return (xcb_font_t) fid;
 }
 
 /* -----------------------------------------------------------------------
@@ -949,9 +949,9 @@ XtCvtStringToCursor(xcb_connection_t *dpy,
     for (i = 0, nP = cursor_names; i < XtNumber(cursor_names); i++, nP++) {
         if (strcmp(name, nP->name) == 0) {
             xcb_connection_t *display = *(xcb_connection_t **) args[0].addr;
-            Cursor cursor = _XtCreateFontCursor(display, nP->shape);
+            xcb_cursor_t cursor = _XtCreateFontCursor(display, nP->shape);
 
-            done_string(Cursor, cursor, XtRCursor);
+            done_string(xcb_cursor_t, cursor, XtRCursor);
         }
     }
     XtDisplayStringConversionWarning(dpy, name, XtRCursor);
@@ -975,7 +975,7 @@ FreeCursor(XtAppContext app,
     }
 
     display = *(xcb_connection_t **) args[0].addr;
-    xcb_free_cursor(display, *(Cursor *) toVal->addr);
+    xcb_free_cursor(display, *(xcb_cursor_t *) toVal->addr);
 }
 
 Boolean
@@ -1103,7 +1103,7 @@ XtCvtStringToFont(xcb_connection_t *dpy,
                   XrmValuePtr toVal,
                   XtPointer *closure_ret _X_UNUSED)
 {
-    Font f;
+    xcb_font_t f;
     xcb_connection_t *display;
 
     if (*num_args != 1) {
@@ -1122,7 +1122,7 @@ XtCvtStringToFont(xcb_connection_t *dpy,
         f = _XtLoadFont(display, (char *) fromVal->addr);
 
         if (f != 0) {
- Done:     done_string(Font, f, XtRFont);
+ Done:     done_string(xcb_font_t, f, XtRFont);
         }
         XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRFont);
     } else {
@@ -1151,7 +1151,7 @@ XtCvtStringToFont(xcb_connection_t *dpy,
                                                      XtRFont);
             }
             else if (rep_type == XtQFont) {
-                f = *(Font *) value.addr;
+                f = *(xcb_font_t *) value.addr;
                 goto Done;
             }
             else if (rep_type == XtQFontStruct) {
@@ -1192,7 +1192,7 @@ FreeFont(XtAppContext app,
     }
 
     display = *(xcb_connection_t **) args[0].addr;
-    xcb_close_font(display, (xcb_font_t) *(Font *) toVal->addr);
+    xcb_close_font(display, (xcb_font_t) *(xcb_font_t *) toVal->addr);
 }
 
 Boolean
@@ -1208,7 +1208,7 @@ XtCvtIntToFont(xcb_connection_t *dpy,
                         XtNwrongParameters, "cvtIntToFont", XtCXtToolkitError,
                         "Integer to Font conversion needs no extra arguments",
                         NULL, NULL);
-    done(Font, *(int *) fromVal->addr);
+    done(xcb_font_t, *(int *) fromVal->addr);
 }
 
 Boolean
@@ -1510,7 +1510,7 @@ XtCvtIntToPixmap(xcb_connection_t *dpy,
                         XtNwrongParameters, "cvtIntToPixmap", XtCXtToolkitError,
                         "Integer to Pixmap conversion needs no extra arguments",
                         NULL, NULL);
-    done(Pixmap, *(int *) fromVal->addr);
+    done(xcb_pixmap_t, *(int *) fromVal->addr);
 }
 
 #ifdef MOTIFBC
@@ -1600,10 +1600,10 @@ XtCvtStringToInitialState(xcb_connection_t *dpy,
                         NULL, NULL);
 
     if (CompareISOLatin1(str, "NormalState") == 0)
-        done_string(int, NormalState, XtRInitialState);
+        done_string(int, XCB_ICCCM_WM_STATE_NORMAL, XtRInitialState);
 
     if (CompareISOLatin1(str, "IconicState") == 0)
-        done_string(int, IconicState, XtRInitialState);
+        done_string(int, XCB_ICCCM_WM_STATE_ICONIC, XtRInitialState);
 
     {
         int val;
@@ -1645,17 +1645,17 @@ XtCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, dept
     }
 
     if (CompareISOLatin1(str, "StaticGray") == 0)
-        vc = StaticGray;
+        vc = XCB_VISUAL_CLASS_STATIC_GRAY;
     else if (CompareISOLatin1(str, "StaticColor") == 0)
-        vc = StaticColor;
+        vc = XCB_VISUAL_CLASS_STATIC_COLOR;
     else if (CompareISOLatin1(str, "TrueColor") == 0)
-        vc = TrueColor;
+        vc = XCB_VISUAL_CLASS_TRUE_COLOR;
     else if (CompareISOLatin1(str, "GrayScale") == 0)
-        vc = GrayScale;
+        vc = XCB_VISUAL_CLASS_GRAY_SCALE;
     else if (CompareISOLatin1(str, "PseudoColor") == 0)
-        vc = PseudoColor;
+        vc = XCB_VISUAL_CLASS_PSEUDO_COLOR;
     else if (CompareISOLatin1(str, "DirectColor") == 0)
-        vc = DirectColor;
+        vc = XCB_VISUAL_CLASS_DIRECT_COLOR;
     else if (!IsInteger(str, &vc)) {
         XtDisplayStringConversionWarning(dpy, str, "Visual class name");
         return False;
@@ -1665,7 +1665,7 @@ XtCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, dept
         xcb_screen_t *screen = *(xcb_screen_t **) args[0].addr;
         if (_XtMatchVisualInfo(dpy, screen,
                                (int) *(int *) args[1].addr, vc, &vinfo)) {
-            done_string(Visual *, vinfo.visual, XtRVisual);
+            done_string(xcb_visualtype_t *, vinfo.visual, XtRVisual);
         }
         else {
             String params[2];
@@ -1925,30 +1925,30 @@ XtCvtStringToGravity(xcb_connection_t *dpy,
         const char *name;
         int gravity;
     } names[] = {
-        { NULLQUARK, "forget",          ForgetGravity },
-        { NULLQUARK, "northwest",       NorthWestGravity },
-        { NULLQUARK, "north",           NorthGravity },
-        { NULLQUARK, "northeast",       NorthEastGravity },
-        { NULLQUARK, "west",            WestGravity },
-        { NULLQUARK, "center",          CenterGravity },
-        { NULLQUARK, "east",            EastGravity },
-        { NULLQUARK, "southwest",       SouthWestGravity },
-        { NULLQUARK, "south",           SouthGravity },
-        { NULLQUARK, "southeast",       SouthEastGravity },
-        { NULLQUARK, "static",          StaticGravity },
-        { NULLQUARK, "unmap",           UnmapGravity },
-        { NULLQUARK, "0",               ForgetGravity },
-        { NULLQUARK, "1",               NorthWestGravity },
-        { NULLQUARK, "2",               NorthGravity },
-        { NULLQUARK, "3",               NorthEastGravity },
-        { NULLQUARK, "4",               WestGravity },
-        { NULLQUARK, "5",               CenterGravity },
-        { NULLQUARK, "6",               EastGravity },
-        { NULLQUARK, "7",               SouthWestGravity },
-        { NULLQUARK, "8",               SouthGravity },
-        { NULLQUARK, "9",               SouthEastGravity },
-        { NULLQUARK, "10",              StaticGravity },
-        { NULLQUARK, NULL,              ForgetGravity }
+        { NULLQUARK, "forget",          XCB_GRAVITY_BIT_FORGET },
+        { NULLQUARK, "northwest",       XCB_GRAVITY_NORTH_WEST },
+        { NULLQUARK, "north",           XCB_GRAVITY_NORTH },
+        { NULLQUARK, "northeast",       XCB_GRAVITY_NORTH_EAST },
+        { NULLQUARK, "west",            XCB_GRAVITY_WEST },
+        { NULLQUARK, "center",          XCB_GRAVITY_CENTER },
+        { NULLQUARK, "east",            XCB_GRAVITY_EAST },
+        { NULLQUARK, "southwest",       XCB_GRAVITY_SOUTH_WEST },
+        { NULLQUARK, "south",           XCB_GRAVITY_SOUTH },
+        { NULLQUARK, "southeast",       XCB_GRAVITY_SOUTH_EAST },
+        { NULLQUARK, "static",          XCB_GRAVITY_STATIC },
+        { NULLQUARK, "unmap",           XCB_GRAVITY_WIN_UNMAP },
+        { NULLQUARK, "0",               XCB_GRAVITY_BIT_FORGET },
+        { NULLQUARK, "1",               XCB_GRAVITY_NORTH_WEST },
+        { NULLQUARK, "2",               XCB_GRAVITY_NORTH },
+        { NULLQUARK, "3",               XCB_GRAVITY_NORTH_EAST },
+        { NULLQUARK, "4",               XCB_GRAVITY_WEST },
+        { NULLQUARK, "5",               XCB_GRAVITY_CENTER },
+        { NULLQUARK, "6",               XCB_GRAVITY_EAST },
+        { NULLQUARK, "7",               XCB_GRAVITY_SOUTH_WEST },
+        { NULLQUARK, "8",               XCB_GRAVITY_SOUTH },
+        { NULLQUARK, "9",               XCB_GRAVITY_SOUTH_EAST },
+        { NULLQUARK, "10",              XCB_GRAVITY_STATIC },
+        { NULLQUARK, NULL,              XCB_GRAVITY_BIT_FORGET }
     };
     /* *INDENT-ON* */
     static Boolean haveQuarks = FALSE;

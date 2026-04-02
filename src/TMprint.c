@@ -134,22 +134,22 @@ PrintModifiers(TMStringBuf sb, unsigned long mask, unsigned long mod)
         sb->current += strlen(sb->current);             \
     }
 
-    PRINTMOD(ShiftMask, "Shift");
-    PRINTMOD(ControlMask, "Ctrl");      /* name is not CtrlMask... */
-    PRINTMOD(LockMask, "Lock");
-    PRINTMOD(Mod1Mask, "Mod1");
+    PRINTMOD(XCB_MOD_MASK_SHIFT, "Shift");
+    PRINTMOD(XCB_MOD_MASK_CONTROL, "Ctrl");      /* name is not CtrlMask... */
+    PRINTMOD(XCB_MOD_MASK_LOCK, "Lock");
+    PRINTMOD(XCB_MOD_MASK_1, "Mod1");
     CHECK_STR_OVERFLOW(sb);
-    PRINTMOD(Mod2Mask, "Mod2");
-    PRINTMOD(Mod3Mask, "Mod3");
-    PRINTMOD(Mod4Mask, "Mod4");
-    PRINTMOD(Mod5Mask, "Mod5");
+    PRINTMOD(XCB_MOD_MASK_2, "Mod2");
+    PRINTMOD(XCB_MOD_MASK_3, "Mod3");
+    PRINTMOD(XCB_MOD_MASK_4, "Mod4");
+    PRINTMOD(XCB_MOD_MASK_5, "Mod5");
     CHECK_STR_OVERFLOW(sb);
-    PRINTMOD(Button1Mask, "Button1");
-    PRINTMOD(Button2Mask, "Button2");
-    PRINTMOD(Button3Mask, "Button3");
+    PRINTMOD(XCB_BUTTON_MASK_1, "Button1");
+    PRINTMOD(XCB_BUTTON_MASK_2, "Button2");
+    PRINTMOD(XCB_BUTTON_MASK_3, "Button3");
     CHECK_STR_OVERFLOW(sb);
-    PRINTMOD(Button4Mask, "Button4");
-    PRINTMOD(Button5Mask, "Button5");
+    PRINTMOD(XCB_BUTTON_MASK_4, "Button4");
+    PRINTMOD(XCB_BUTTON_MASK_5, "Button5");
     (void) notfirst;
 
 #undef PRINTMOD
@@ -161,38 +161,38 @@ PrintEventType(TMStringBuf sb, unsigned long event)
     CHECK_STR_OVERFLOW(sb);
     switch (event) {
 #define PRINTEVENT(event, name) case event: (void) strcpy(sb->current, name); break;
-        PRINTEVENT(KeyPress, "<KeyPress>")
-            PRINTEVENT(KeyRelease, "<KeyRelease>")
-            PRINTEVENT(ButtonPress, "<ButtonPress>")
-            PRINTEVENT(ButtonRelease, "<ButtonRelease>")
-            PRINTEVENT(MotionNotify, "<MotionNotify>")
-            PRINTEVENT(EnterNotify, "<EnterNotify>")
-            PRINTEVENT(LeaveNotify, "<LeaveNotify>")
-            PRINTEVENT(FocusIn, "<FocusIn>")
-            PRINTEVENT(FocusOut, "<FocusOut>")
-            PRINTEVENT(KeymapNotify, "<KeymapNotify>")
-            PRINTEVENT(Expose, "<Expose>")
-            PRINTEVENT(GraphicsExpose, "<GraphicsExpose>")
+        PRINTEVENT(XCB_KEY_PRESS, "<KeyPress>")
+            PRINTEVENT(XCB_KEY_RELEASE, "<KeyRelease>")
+            PRINTEVENT(XCB_BUTTON_PRESS, "<ButtonPress>")
+            PRINTEVENT(XCB_BUTTON_RELEASE, "<ButtonRelease>")
+            PRINTEVENT(XCB_MOTION_NOTIFY, "<MotionNotify>")
+            PRINTEVENT(XCB_ENTER_NOTIFY, "<EnterNotify>")
+            PRINTEVENT(XCB_LEAVE_NOTIFY, "<LeaveNotify>")
+            PRINTEVENT(XCB_FOCUS_IN, "<FocusIn>")
+            PRINTEVENT(XCB_FOCUS_OUT, "<FocusOut>")
+            PRINTEVENT(XCB_KEYMAP_NOTIFY, "<KeymapNotify>")
+            PRINTEVENT(XCB_EXPOSE, "<Expose>")
+            PRINTEVENT(XCB_GRAPHICS_EXPOSURE, "<GraphicsExpose>")
             PRINTEVENT(NoExpose, "<NoExpose>")
-            PRINTEVENT(VisibilityNotify, "<VisibilityNotify>")
-            PRINTEVENT(CreateNotify, "<CreateNotify>")
-            PRINTEVENT(DestroyNotify, "<DestroyNotify>")
-            PRINTEVENT(UnmapNotify, "<UnmapNotify>")
-            PRINTEVENT(MapNotify, "<MapNotify>")
-            PRINTEVENT(MapRequest, "<MapRequest>")
-            PRINTEVENT(ReparentNotify, "<ReparentNotify>")
-            PRINTEVENT(ConfigureNotify, "<ConfigureNotify>")
-            PRINTEVENT(ConfigureRequest, "<ConfigureRequest>")
-            PRINTEVENT(GravityNotify, "<GravityNotify>")
-            PRINTEVENT(ResizeRequest, "<ResizeRequest>")
-            PRINTEVENT(CirculateNotify, "<CirculateNotify>")
-            PRINTEVENT(CirculateRequest, "<CirculateRequest>")
-            PRINTEVENT(PropertyNotify, "<PropertyNotify>")
-            PRINTEVENT(SelectionClear, "<SelectionClear>")
-            PRINTEVENT(SelectionRequest, "<SelectionRequest>")
-            PRINTEVENT(SelectionNotify, "<SelectionNotify>")
-            PRINTEVENT(ColormapNotify, "<ColormapNotify>")
-            PRINTEVENT(ClientMessage, "<ClientMessage>")
+            PRINTEVENT(XCB_VISIBILITY_NOTIFY, "<VisibilityNotify>")
+            PRINTEVENT(XCB_CREATE_NOTIFY, "<CreateNotify>")
+            PRINTEVENT(XCB_DESTROY_NOTIFY, "<DestroyNotify>")
+            PRINTEVENT(XCB_UNMAP_NOTIFY, "<UnmapNotify>")
+            PRINTEVENT(XCB_MAP_NOTIFY, "<MapNotify>")
+            PRINTEVENT(XCB_MAP_REQUEST, "<MapRequest>")
+            PRINTEVENT(XCB_REPARENT_NOTIFY, "<ReparentNotify>")
+            PRINTEVENT(XCB_CONFIGURE_NOTIFY, "<ConfigureNotify>")
+            PRINTEVENT(XCB_CONFIGURE_REQUEST, "<ConfigureRequest>")
+            PRINTEVENT(XCB_GRAVITY_NOTIFY, "<GravityNotify>")
+            PRINTEVENT(XCB_RESIZE_REQUEST, "<ResizeRequest>")
+            PRINTEVENT(XCB_CIRCULATE_NOTIFY, "<CirculateNotify>")
+            PRINTEVENT(XCB_CIRCULATE_REQUEST, "<CirculateRequest>")
+            PRINTEVENT(XCB_PROPERTY_NOTIFY, "<PropertyNotify>")
+            PRINTEVENT(XCB_SELECTION_CLEAR, "<SelectionClear>")
+            PRINTEVENT(XCB_SELECTION_REQUEST, "<SelectionRequest>")
+            PRINTEVENT(XCB_SELECTION_NOTIFY, "<SelectionNotify>")
+            PRINTEVENT(XCB_COLORMAP_NOTIFY, "<ColormapNotify>")
+            PRINTEVENT(XCB_CLIENT_MESSAGE, "<ClientMessage>")
     case _XtEventTimerEventType:
         (void) strcpy(sb->current, "<EventTimer>");
         break;
@@ -333,16 +333,16 @@ PrintEvent(TMStringBuf sb,
         PrintLateModifiers(sb, modMatch->lateModifiers);
     PrintEventType(sb, typeMatch->eventType);
     switch (typeMatch->eventType) {
-    case KeyPress:
-    case KeyRelease:
+    case XCB_KEY_PRESS:
+    case XCB_KEY_RELEASE:
         PrintKeysym(sb, (xcb_keysym_t) typeMatch->eventCode);
         break;
 
-    case PropertyNotify:
-    case SelectionClear:
-    case SelectionRequest:
-    case SelectionNotify:
-    case ClientMessage:
+    case XCB_PROPERTY_NOTIFY:
+    case XCB_SELECTION_CLEAR:
+    case XCB_SELECTION_REQUEST:
+    case XCB_SELECTION_NOTIFY:
+    case XCB_CLIENT_MESSAGE:
         PrintAtom(sb, dpy, (Atom) typeMatch->eventCode);
         break;
 
@@ -447,10 +447,10 @@ LookAheadForCycleOrMulticlick(register StatePtr state,
             unsigned int type = (unsigned) sTypeMatch->eventType;
             unsigned int t = (unsigned) typeMatch->eventType;
 
-            if ((type == ButtonPress && t != ButtonRelease)
-                || (type == ButtonRelease && t != ButtonPress)
-                || (type == KeyPress && t != KeyRelease)
-                || (type == KeyRelease && t != KeyPress)
+            if ((type == XCB_BUTTON_PRESS && t != XCB_BUTTON_RELEASE)
+                || (type == XCB_BUTTON_RELEASE && t != XCB_BUTTON_PRESS)
+                || (type == XCB_KEY_PRESS && t != XCB_KEY_RELEASE)
+                || (type == XCB_KEY_RELEASE && t != XCB_KEY_PRESS)
                 || typeMatch->eventCode != sTypeMatch->eventCode
                 || modMatch->modifiers != sModMatch->modifiers
                 || modMatch->modifierMask != sModMatch->modifierMask

@@ -55,7 +55,7 @@ in this Software without prior written authorization from the X Consortium.
 static XtResource resources[] = {
   {XtNlineWidth, XtCLineWidth, XtRDimension, sizeof(Dimension),
      offset(line_width), XtRImmediate, (XtPointer) 1},
-  {XtNstipple, XtCStipple, XtRBitmap, sizeof(Pixmap),
+  {XtNstipple, XtCStipple, XtRBitmap, sizeof(xcb_pixmap_t),
      offset(stipple), XtRImmediate, (XtPointer) XtUnspecifiedPixmap},
   {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
      offset(foreground), XtRString, XtDefaultForeground},
@@ -309,13 +309,13 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val
 
     width = 1;			/* we can be really small. */
 
-    if ( ((mode & CWWidth) && (intended->width != width)) ||
-	 !(mode & CWWidth) ) {
-	return_val->request_mode |= CWWidth;
+    if ( ((mode & XCB_CONFIG_WINDOW_WIDTH) && (intended->width != width)) ||
+	 !(mode & XCB_CONFIG_WINDOW_WIDTH) ) {
+	return_val->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 	return_val->width = width;
 	mode = return_val->request_mode;
 
-	if ( (mode & CWWidth) && (width == entry->rectangle.width) )
+	if ( (mode & XCB_CONFIG_WINDOW_WIDTH) && (width == entry->rectangle.width) )
 	    return(XtGeometryNo);
 	return(XtGeometryAlmost);
     }

@@ -107,7 +107,7 @@ typedef struct {
     /* private state */
     xcb_gcontext_t		normal_GC;
     xcb_gcontext_t          gray_GC;
-    Pixmap	stipple;
+    xcb_pixmap_t	stipple;
     Position	label_x;
     Position	label_y;
     Dimension	label_width;

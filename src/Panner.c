@@ -213,7 +213,7 @@ WidgetClass pannerWidgetClass = (WidgetClass) &pannerClassRec;
 static void
 reset_slider_gc (PannerWidget pw)	/* used when resources change */
 {
-    XtGCMask valuemask = GCForeground;
+    XtGCMask valuemask = XCB_GC_FOREGROUND;
     xcb_create_gc_value_list_t values;
 
     if (pw->panner.slider_gc) XtReleaseGC ((Widget) pw, pw->panner.slider_gc);
@@ -230,7 +230,7 @@ reset_xor_gc (PannerWidget pw)		/* used when resources change */
     if (pw->panner.xor_gc) XtReleaseGC ((Widget) pw, pw->panner.xor_gc);
 
     if (pw->panner.rubber_band) {
- XtGCMask valuemask = (GCForeground | GCFunction);
+ XtGCMask valuemask = (XCB_GC_FOREGROUND | XCB_GC_FUNCTION);
  xcb_create_gc_value_list_t values;
  Pixel tmp;
 
@@ -238,7 +238,7 @@ reset_xor_gc (PannerWidget pw)		/* used when resources change */
  values.foreground = tmp ^ pw->core.background_pixel;
  values.function = XCB_GX_XOR;
  if (pw->panner.line_width > 0) {
-     valuemask |= GCLineWidth;
+     valuemask |= XCB_GC_LINE_WIDTH;
      values.line_width = pw->panner.line_width;
  }
  /* XCB: Use xcb_create_gc_value_list_t* cast */
@@ -515,7 +515,7 @@ static void
 Realize (xcb_connection_t *conn, Widget gw, XtValueMask *valuemaskp, uint32_t *values)
 {
     PannerWidget pw = (PannerWidget) gw;
-    Pixmap pm = XtUnspecifiedPixmap;
+    xcb_pixmap_t pm = XtUnspecifiedPixmap;
     Boolean gotpm = FALSE;
 
     if (pw->core.background_pixmap == XtUnspecifiedPixmap) {
@@ -523,8 +523,8 @@ Realize (xcb_connection_t *conn, Widget gw, XtValueMask *valuemaskp, uint32_t *v
 
 	if (PIXMAP_OKAY(pm)) {
 	    values[0] = pm;  /* background_pixmap */
-	    *valuemaskp |= CWBackPixmap;
-	    *valuemaskp &= ~CWBackPixel;
+	    *valuemaskp |= XCB_CW_BACK_PIXMAP;
+	    *valuemaskp &= ~XCB_CW_BACK_PIXEL;
 	    gotpm = TRUE;
 	}
     }
@@ -653,7 +653,7 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
     if ((cur->panner.stipple_name != new->panner.stipple_name ||
   cur->core.background_pixel != new->core.background_pixel) &&
  XtIsRealized(gnew)) {
- Pixmap pm = (new->panner.stipple_name ? BACKGROUND_STIPPLE (new)
+ xcb_pixmap_t pm = (new->panner.stipple_name ? BACKGROUND_STIPPLE (new)
        : XtUnspecifiedPixmap);
 
  if (PIXMAP_OKAY(pm)) {
@@ -713,11 +713,11 @@ QueryGeometry (Widget gw, XtWidgetGeometry *intended, XtWidgetGeometry *pref)
 {
     PannerWidget pw = (PannerWidget) gw;
 
-    pref->request_mode = (CWWidth | CWHeight);
+    pref->request_mode = (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT);
     get_default_size (pw, &pref->width, &pref->height);
 
-    if (((intended->request_mode & (CWWidth | CWHeight)) ==
-	 (CWWidth | CWHeight)) &&
+    if (((intended->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) ==
+	 (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
 	intended->width == pref->width &&
 	intended->height == pref->height)
       return XtGeometryYes;

@@ -126,7 +126,7 @@ typedef struct _IswIcTablePart
     ISWFontSet		*font_set;  /* Phase 3.5: XIM migration */
     Pixel		foreground;
     Pixel		background;
-    Pixmap		bg_pixmap;
+    xcb_pixmap_t		bg_pixmap;
     ISWTextPosition	cursor_position;
     unsigned long	line_spacing;
     Boolean		openic_error;

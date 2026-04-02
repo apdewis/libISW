@@ -119,7 +119,7 @@ static XtResource resources[] =
 	Offset (background), XtRString, (XtPointer)"XtDefaultBackground"
     },
     {
-	XtNbackgroundPixmap, XtCPixmap, XtRPixmap, sizeof(Pixmap),
+	XtNbackgroundPixmap, XtCPixmap, XtRPixmap, sizeof(xcb_pixmap_t),
 	Offset (bg_pixmap), XtRImmediate, (XtPointer) XtUnspecifiedPixmap
     },
     {
@@ -230,7 +230,7 @@ ConfigureCB(Widget w, XtPointer closure, xcb_generic_event_t *event)
     xcb_rectangle_t		pe_area;
     IswTextMargin		*margin;
 
-    if (event->type != ConfigureNotify) return;
+    if (event->type != XCB_CONFIGURE_NOTIFY) return;
 
     if ((vw = SearchVendorShell(w)) == NULL) return;
 
@@ -844,7 +844,7 @@ CreateIC(Widget w, IswVendorShellExtPart *ve)
 
     if (!IsSharedIC(ve)) {
 	if (p->input_style & XIMPreeditPosition) {
-	    XtAddEventHandler(w, (EventMask)StructureNotifyMask, FALSE,
+	    XtAddEventHandler(w, (EventMask)XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
 			      (XtEventHandler)ConfigureCB, (Opaque)NULL);
 	}
     }
@@ -1115,7 +1115,7 @@ DestroyIC(Widget w, IswVendorShellExtPart *ve)
     XDestroyIC(p->xic);
     if (!IsSharedIC(ve)) {
 	if (p->input_style & XIMPreeditPosition) {
-	    XtRemoveEventHandler(w, (EventMask)StructureNotifyMask, FALSE,
+	    XtRemoveEventHandler(w, (EventMask)XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
 				 (XtEventHandler)ConfigureCB, (Opaque)NULL);
 	}
     }
@@ -1375,7 +1375,7 @@ _IswImRealize(
 
     if ( !XtIsRealized( w ) || !XtIsVendorShell( w ) ) return;
     if ((ve = GetExtPart( (VendorShellWidget) w ))) {
-	XtAddEventHandler( w, (EventMask)StructureNotifyMask, FALSE,
+	XtAddEventHandler( w, (EventMask)XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
 			  IswVendorShellExtResize, (XtPointer)NULL );
 	AllCreateIC(ve);
     }

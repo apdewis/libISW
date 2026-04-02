@@ -70,7 +70,7 @@ typedef struct _DialogPart {
     /* resources */
     String	label;		/* description of the dialog	*/
     String	value;		/* for the user response	*/
-    Pixmap	icon;		/* icon bitmap			*/
+    xcb_pixmap_t	icon;		/* icon bitmap			*/
     /* private data */
     Widget	iconW;		/* widget to display the icon	*/
     Widget	labelW;		/* widget to display description*/

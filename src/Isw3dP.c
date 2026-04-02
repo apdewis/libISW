@@ -66,10 +66,10 @@ grayPixel(unsigned long p, xcb_connection_t *dpy, xcb_screen_t *scn)
 #define IS_ODD(x)	(((x) % 2) == 1)
 
 /* ARGSUSED */
-Pixmap
-stipplePixmap(Widget w, Pixmap pm, Colormap cm, Pixel bg, unsigned int d)
+xcb_pixmap_t
+stipplePixmap(Widget w, xcb_pixmap_t pm, xcb_colormap_t cm, Pixel bg, unsigned int d)
 {
-    static Pixmap pixmap;
+    static xcb_pixmap_t pixmap;
     xcb_connection_t *dpy;
     XpmImage image;
     XpmAttributes attr;

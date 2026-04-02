@@ -316,7 +316,7 @@ ChangeFormGeometry(Widget w, Boolean query_only, Dimension width, Dimension heig
 
     request.width = width;
     request.height = height;
-    request.request_mode = CWWidth | CWHeight;
+    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     if (query_only)
 	request.request_mode |= XtCWQueryOnly;
 
@@ -587,7 +587,7 @@ GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
     XtWidgetGeometry allowed;
     XtGeometryResult ret_val;
 
-    if ((request->request_mode & ~(XtCWQueryOnly | CWWidth | CWHeight)) ||
+    if ((request->request_mode & ~(XtCWQueryOnly | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) ||
 	!form->form.allow_resize) {
 
 	/* If GeometryManager is invoked during a SetValues call on a child
@@ -600,12 +600,12 @@ GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 	return(XtGeometryNo);
     }
 
-    if (request->request_mode & CWWidth)
+    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
 	allowed.width = request->width;
     else
 	allowed.width = w->core.width;
 
-    if (request->request_mode & CWHeight)
+    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
 	allowed.height = request->height;
     else
 	allowed.height = w->core.height;
@@ -803,9 +803,9 @@ PreferredGeometry(Widget widget, XtWidgetGeometry *request, XtWidgetGeometry *re
 
     reply->width = w->form.preferred_width;
     reply->height = w->form.preferred_height;
-    reply->request_mode = CWWidth | CWHeight;
-    if (  (request->request_mode & (CWWidth | CWHeight)) ==
-	    (CWWidth | CWHeight)
+    reply->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    if (  (request->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) ==
+	    (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)
 	  && request->width == reply->width
 	  && request->height == reply->height)
 	return XtGeometryYes;

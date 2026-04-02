@@ -47,8 +47,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define superclass (&boxClassRec)
 
 /* Event mask for the toplevel shell dismiss handler */
-#define DISMISS_MASK (ButtonPressMask | FocusChangeMask | \
-                      StructureNotifyMask | VisibilityChangeMask)
+#define DISMISS_MASK (XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_FOCUS_CHANGE | \
+                      XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_VISIBILITY_CHANGE)
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);

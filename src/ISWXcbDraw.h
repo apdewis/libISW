@@ -102,7 +102,7 @@ typedef unsigned int XtGravity;
  * Parameters:
  *   conn     - XCB connection
  *   drawable - Drawable to determine depth (root window usually)
- *   data     - Pointer to bitmap data (LSBFirst bit order)
+ *   data     - Pointer to bitmap data (XCB_IMAGE_ORDER_LSB_FIRST bit order)
  *   width    - Width of bitmap
  *   height   - Height of bitmap
  *
@@ -136,7 +136,7 @@ void ISWFreePixmap(xcb_connection_t *conn, xcb_pixmap_t pixmap);
  * Parameters:
  *   conn     - XCB connection
  *   drawable - Drawable to use for screen reference  
- *   data     - Pointer to bitmap data (LSBFirst bit order)
+ *   data     - Pointer to bitmap data (XCB_IMAGE_ORDER_LSB_FIRST bit order)
  *   width    - Width of bitmap
  *   height   - Height of bitmap
  *   fg       - Foreground pixel value
@@ -305,10 +305,7 @@ int ISWFontSetTextWidth(void *fontset, const char *text, int len);
 #define XAW_GC_DASH_LIST          XCB_GC_DASH_LIST
 #define XAW_GC_ARC_MODE           XCB_GC_ARC_MODE
 
-/* GXxor for function value */
-#ifndef GXxor
-#define GXxor XCB_GX_XOR
-#endif
+/* XCB_GX_XOR for function value (use XCB_GX_* constants directly) */
 
 /*
  * ISWInitGCValues - Initialize an xcb_create_gc_value_list_t structure
@@ -361,7 +358,7 @@ void ISWSetGCGraphicsExposures(xcb_create_gc_value_list_t *values, int exposures
  *
  * Parameters:
  *   values   - Pointer to value list
- *   function - xcb_gcontext_t function (e.g., GXxor)
+ *   function - xcb_gcontext_t function (e.g., XCB_GX_XOR)
  */
 void ISWSetGCFunction(xcb_create_gc_value_list_t *values, uint32_t function);
 
@@ -444,7 +441,7 @@ xcb_atom_t IswXcbInternAtom(xcb_connection_t *conn, const char *name,
 /*
  * Standard X Selection Atoms - Runtime interning macros
  *
- * In Xlib, these were predefined constants (XA_STRING, XA_TEXT, etc.).
+ * In Xlib, these were predefined constants (XCB_ATOM_STRING, XA_TEXT, etc.).
  * In XCB, we must intern them at runtime.
  */
 #define XCB_ATOM_TARGETS(d)             IswXcbInternAtom((d), "TARGETS", False)
@@ -790,7 +787,7 @@ int ISWCompareISOLatin1(const char *first, const char *second);
  * Returns:
  *   Pixmap (currently always returns None)
  */
-Pixmap IswLocatePixmapFile(
+xcb_pixmap_t IswLocatePixmapFile(
     xcb_screen_t *screen,
     const char *name,
     unsigned long fore,

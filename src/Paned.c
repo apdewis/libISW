@@ -137,29 +137,29 @@ static XtResource resources[] = {
 
     /* Cursors - both horiz and vertical have to work. */
 
-    {XtNcursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNcursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(cursor), XtRImmediate, None},
-    {XtNgripCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNgripCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(grip_cursor), XtRImmediate, None},
-    {XtNverticalGripCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNverticalGripCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(v_grip_cursor), XtRString, "sb_v_double_arrow"},
-    {XtNhorizontalGripCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNhorizontalGripCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(h_grip_cursor), XtRString, "sb_h_double_arrow"},
 
-    {XtNbetweenCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNbetweenCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(adjust_this_cursor), XtRString, None},
-    {XtNverticalBetweenCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNverticalBetweenCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(v_adjust_this_cursor), XtRString, "sb_left_arrow"},
-    {XtNhorizontalBetweenCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNhorizontalBetweenCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(h_adjust_this_cursor), XtRString, "sb_up_arrow"},
 
-    {XtNupperCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNupperCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(adjust_upper_cursor), XtRString, "sb_up_arrow"},
-    {XtNlowerCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNlowerCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(adjust_lower_cursor), XtRString, "sb_down_arrow"},
-    {XtNleftCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNleftCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(adjust_left_cursor), XtRString, "sb_left_arrow"},
-    {XtNrightCursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNrightCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
          offset(adjust_right_cursor), XtRString, "sb_right_arrow"},
 };
 
@@ -302,7 +302,7 @@ AdjustPanedSize(PanedWidget pw, Dimension off_size, XtGeometryResult * result_re
     Dimension newsize = 0;
     Widget * childP;
     XtWidgetGeometry request, reply;
-    request.request_mode = CWWidth | CWHeight;
+    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
 
     ForAllPanes(pw, childP) {
         int size = IswMax(PaneInfo(*childP)->size, (int)PaneInfo(*childP)->min);
@@ -932,7 +932,7 @@ static void
 StartGripAdjustment(PanedWidget pw, Widget grip, Direction dir)
 {
     Widget *childP;
-    Cursor cursor;
+    xcb_cursor_t cursor;
 
     pw->paned.whichadd = pw->paned.whichsub = (Widget) NULL;
 
@@ -1075,7 +1075,7 @@ HandleGrip(Widget grip, XtPointer junk, XtPointer callData)
     PanedWidget pw = (PanedWidget) XtParent(grip);
     int loc;
     char action_type;
-    Cursor cursor;
+    xcb_cursor_t cursor;
     Direction direction = 0;
     Arg arglist[1];
 
@@ -1206,7 +1206,7 @@ CreateGrip(Widget child)
     PanedWidget pw = (PanedWidget) XtParent(child);
     Arg arglist[2];
     Cardinal num_args = 0;
-    Cursor cursor;
+    xcb_cursor_t cursor;
 
     XtSetArg(arglist[num_args], XtNtranslations, pw->paned.grip_translations);
     num_args++;
@@ -1244,7 +1244,7 @@ GetGCs(Widget w)
  */
 
     values.foreground = pw->paned.internal_bp;
-    valuemask = GCForeground;
+    valuemask = XCB_GC_FOREGROUND;
     pw->paned.normgc = XtGetGC(w, valuemask, &values);
 
 /*
@@ -1252,17 +1252,17 @@ GetGCs(Widget w)
  */
 
     values.foreground = pw->core.background_pixel;
-    valuemask = GCForeground;
+    valuemask = XCB_GC_FOREGROUND;
     pw->paned.invgc = XtGetGC(w, valuemask, &values);
 
 /*
  * Draw Track lines (animate pane borders) in internal border color ^ bg color.
  */
 
-    values.function = GXinvert;
+    values.function = XCB_GX_INVERT;
     values.plane_mask = pw->paned.internal_bp ^ pw->core.background_pixel;
-    values.subwindow_mode = IncludeInferiors;
-    valuemask = GCPlaneMask | GCFunction | GCSubwindowMode;
+    values.subwindow_mode = XCB_SUBWINDOW_MODE_INCLUDE_INFERIORS;
+    valuemask = XCB_GC_PLANE_MASK | XCB_GC_FUNCTION | XCB_GC_SUBWINDOW_MODE;
     pw->paned.flipgc = XtGetGC(w, valuemask, &values);
 }
 
@@ -1288,17 +1288,17 @@ SetChildrenPrefSizes(PanedWidget pw, Dimension off_size)
 	        PaneInfo(*childP)->wp_size=PaneInfo(*childP)->preferred_size;
 	    else {
 	        if( vert ) {
-		    request.request_mode = CWWidth;
+		    request.request_mode = XCB_CONFIG_WINDOW_WIDTH;
 		    request.width = off_size;
 		}
 		else {
-		    request.request_mode = CWHeight;
+		    request.request_mode = XCB_CONFIG_WINDOW_HEIGHT;
 		    request.height = off_size;
 		}
 
 		if ((XtQueryGeometry( *childP, &request, &reply )
 	                                         == XtGeometryAlmost) &&
-		    (reply.request_mode = (vert ? CWHeight : CWWidth)))
+		    (reply.request_mode = (vert ? XCB_CONFIG_WINDOW_HEIGHT : XCB_CONFIG_WINDOW_WIDTH)))
 		    PaneInfo(*childP)->wp_size = GetRequestInfo(&reply, vert);
 		else
 		    PaneInfo(*childP)->wp_size = PaneSize(*childP, vert);
@@ -1321,7 +1321,7 @@ ChangeAllGripCursors(PanedWidget pw)
 
     ForAllPanes(pw, childP) {
 	Arg arglist[1];
-	Cursor cursor;
+	xcb_cursor_t cursor;
 
 	if ( (cursor = pw->paned.grip_cursor) == None ) {
 	    if ( IsVert(pw) )
@@ -1474,8 +1474,8 @@ GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
  */
 
     if ( (XtIsRealized((Widget)pw) && !pane->allow_resize)        ||
-	 !(mask & ((vert) ? CWHeight : CWWidth))                  ||
-         (mask & ~(CWWidth | CWHeight))                           ||
+	 !(mask & ((vert) ? XCB_CONFIG_WINDOW_HEIGHT : XCB_CONFIG_WINDOW_WIDTH))                  ||
+         (mask & ~(XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT))                           ||
          (GetRequestInfo(request, vert) ==  PaneSize(w, vert)) ) {
         return XtGeometryNo;
     }
@@ -1530,7 +1530,7 @@ GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
  * THEN: set almost
  */
 
-    if ( !((vert ? CWWidth : CWHeight) & mask)) {
+    if ( !((vert ? XCB_CONFIG_WINDOW_WIDTH : XCB_CONFIG_WINDOW_HEIGHT) & mask)) {
         if (vert)
 	    request->width = w->core.width;
 	else
@@ -1544,7 +1544,7 @@ GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 	pane->wp_size = old_wpsize;
 	pane->size = old_size;
 	RefigureLocations(pw, PaneIndex(w), AnyPane);
-	reply->request_mode = CWWidth | CWHeight;
+	reply->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
 	if (almost) return XtGeometryAlmost;
     }
     else {
@@ -1582,7 +1582,7 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
 
     /* FIXME: XCB cursor handling - attributes is now uint32_t array, not XSetWindowAttributes struct */
     /* if ((attributes->cursor = (pw)->paned.cursor) != None)
-	*valueMask |= CWCursor; */
+	*valueMask |= XCB_CW_CURSOR; */
 
     (*SuperClass->core_class.realize) (dpy, w, valueMask, attributes);
 

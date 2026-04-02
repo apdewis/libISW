@@ -10,11 +10,7 @@ and `xcb/xcb_icccm.h` (`XCB_EVENT_MASK_KEY_PRESS`, `XCB_GX_COPY`,
 
 ### Approach
 
-1. Replace all bare-integer definitions in XtTypes.h with `#define XlibName
-   XCB_EQUIVALENT` shims (e.g. `#define KeyPressMask XCB_EVENT_MASK_KEY_PRESS`)
-2. Migrate call sites in `src/` to use the XCB names directly
-3. Once no internal code references the Xlib names, remove the shims from
-   XtTypes.h — downstream consumers (ISDE) get updated at the same time
+1. Replace all bare-integer definitions in XtTypes.h with XCB_EQUIVALENT
 
 ### Groups (all have XCB equivalents unless noted)
 

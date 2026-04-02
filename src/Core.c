@@ -109,13 +109,13 @@ parameter is not passed through to the XtRCallProc routines */
     {XtNbackground, XtCBackground, XtRPixel, sizeof(Pixel),
      XtOffsetOf(CoreRec, core.background_pixel),
      XtRString, (XtPointer) "XtDefaultBackground"},
-    {XtNbackgroundPixmap, XtCPixmap, XtRPixmap, sizeof(Pixmap),
+    {XtNbackgroundPixmap, XtCPixmap, XtRPixmap, sizeof(xcb_pixmap_t),
      XtOffsetOf(CoreRec, core.background_pixmap),
      XtRImmediate, (XtPointer) XtUnspecifiedPixmap},
     {XtNborderColor, XtCBorderColor, XtRPixel, sizeof(Pixel),
      XtOffsetOf(CoreRec, core.border_pixel),
      XtRString, (XtPointer) "XtDefaultForeground"},
-    {XtNborderPixmap, XtCPixmap, XtRPixmap, sizeof(Pixmap),
+    {XtNborderPixmap, XtCPixmap, XtRPixmap, sizeof(xcb_pixmap_t),
      XtOffsetOf(CoreRec, core.border_pixmap),
      XtRImmediate, (XtPointer) XtUnspecifiedPixmap},
     {XtNmappedWhenManaged, XtCMappedWhenManaged, XtRBoolean, sizeof(Boolean),
@@ -307,8 +307,8 @@ CoreRealize(xcb_connection_t *display,
             XtValueMask *value_mask,
             uint32_t *attributes)
 {
-    XtCreateWindow(display, widget, (unsigned int) InputOutput,
-                   (Visual *) CopyFromParent, *value_mask, attributes);
+    XtCreateWindow(display, widget, (unsigned int) XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                   (xcb_visualtype_t *) CopyFromParent, *value_mask, attributes);
 }                               /* CoreRealize */
 
 static void

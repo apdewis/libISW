@@ -146,7 +146,7 @@ static XtResource shellResources[]=
     { XtNoverrideRedirect, XtCOverrideRedirect,
         XtRBoolean, sizeof(Boolean), Offset(shell.override_redirect),
         XtRImmediate, (XtPointer)False},
-    { XtNvisual, XtCVisual, XtRVisual, sizeof(Visual*),
+    { XtNvisual, XtCVisual, XtRVisual, sizeof(xcb_visualtype_t*),
         Offset(shell.visual), XtRImmediate, (XtPointer)CopyFromParent}
 };
 /* *INDENT-ON* */
@@ -362,8 +362,8 @@ static XtResource wmResources[] =
         Offset(wm.wm_hints.input), XtRImmediate, (XtPointer)False},
     { XtNinitialState, XtCInitialState, XtRInitialState, sizeof(int),
         Offset(wm.wm_hints.initial_state),
-        XtRImmediate, (XtPointer)NormalState},
-    { XtNiconPixmap, XtCIconPixmap, XtRBitmap, sizeof(Pixmap),
+        XtRImmediate, (XtPointer)XCB_ICCCM_WM_STATE_NORMAL},
+    { XtNiconPixmap, XtCIconPixmap, XtRBitmap, sizeof(xcb_pixmap_t),
         Offset(wm.wm_hints.icon_pixmap), XtRPixmap, NULL},
     { XtNiconWindow, XtCIconWindow, XtRWindow, sizeof(xcb_window_t),
         Offset(wm.wm_hints.icon_window), XtRWindow,   (XtPointer) NULL},
@@ -373,7 +373,7 @@ static XtResource wmResources[] =
     { XtNiconY, XtCIconY, XtRInt, sizeof(int),
         Offset(wm.wm_hints.icon_y),
         XtRInt, (XtPointer) &default_unspecified_shell_int},
-    { XtNiconMask, XtCIconMask, XtRBitmap, sizeof(Pixmap),
+    { XtNiconMask, XtCIconMask, XtRBitmap, sizeof(xcb_pixmap_t),
         Offset(wm.wm_hints.icon_mask), XtRPixmap, NULL},
     { XtNwindowGroup, XtCWindowGroup, XtRWindow, sizeof(xcb_window_t),
         Offset(wm.wm_hints.window_group),
@@ -1037,7 +1037,7 @@ Initialize(Widget req _X_UNUSED,
             w->shell.client_specified |= _XtShellPPositionOK;
     }
 
-    XtAddEventHandler(new, (EventMask) StructureNotifyMask,
+    XtAddEventHandler(new, (EventMask) XCB_EVENT_MASK_STRUCTURE_NOTIFY,
                       TRUE, EventHandler, (XtPointer) NULL);
 }
 
@@ -1085,7 +1085,7 @@ TopLevelInitialize(Widget req _X_UNUSED,
     }
 
     if (w->topLevel.iconic)
-        w->wm.wm_hints.initial_state = IconicState;
+        w->wm.wm_hints.initial_state = XCB_ICCCM_WM_STATE_ICONIC;
 }
 
 static _XtString *NewArgv(int, _XtString *);
@@ -1300,8 +1300,8 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
         for (i = (int) w->composite.num_children; i; i--, childP++) {
             if (XtIsWidget(*childP) && XtIsManaged(*childP)) {
                 if ((*childP)->core.background_pixmap != XtUnspecifiedPixmap) {
-                    mask &= (unsigned long) (~(CWBackPixel));
-                    mask |= CWBackPixmap;
+                    mask &= (unsigned long) (~(XCB_CW_BACK_PIXEL));
+                    mask |= XCB_CW_BACK_PIXMAP;
                     //attr->background_pixmap =
                     //    w->core.background_pixmap =
                     //    (*childP)->core.background_pixmap;
@@ -1317,9 +1317,9 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
     }
 
     if (w->shell.save_under)
-        mask |= CWSaveUnder;
+        mask |= XCB_CW_SAVE_UNDER;
     if (w->shell.override_redirect)
-        mask |= CWOverrideRedirect;
+        mask |= XCB_CW_OVERRIDE_REDIRECT;
 
     if (wid->core.width == 0 || wid->core.height == 0) {
         Cardinal count = 1;
@@ -1407,7 +1407,7 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
         /* Note: CW_CURSOR and CW_BACKING_STORE are also stripped from
            create_mask.  Cursor is handled by subclass callbacks (e.g.
            SimpleMenu's ChangeCursorOnGrab).  Backing store defaults to
-           NotUseful which is the server default. */
+           XCB_BACKING_STORE_NOT_USEFUL which is the server default. */
     }
     xcb_flush(XtDisplay(wid));
 
@@ -1442,7 +1442,7 @@ _SetTransientForHint(TransientShellWidget w, Boolean delete)
                 }
             }
                 //XDeleteProperty(XtDisplay((Widget) w),
-                //                XtWindow((Widget) w), XA_WM_TRANSIENT_FOR);
+                //                XtWindow((Widget) w), XCB_ATOM_WM_TRANSIENT_FOR);
             return;
         }
 
@@ -1493,24 +1493,24 @@ EvaluateWMHints(WMShellWidget w)
 {
     xcb_icccm_wm_hints_t *hintp = &w->wm.wm_hints;
 
-    hintp->flags = StateHint | InputHint;
+    hintp->flags = XCB_ICCCM_WM_HINT_STATE | XCB_ICCCM_WM_HINT_INPUT;
 
     if (hintp->icon_x == XtUnspecifiedShellInt)
         hintp->icon_x = -1;
     else
-        hintp->flags |= IconPositionHint;
+        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_POSITION;
 
     if (hintp->icon_y == XtUnspecifiedShellInt)
         hintp->icon_y = -1;
     else
-        hintp->flags |= IconPositionHint;
+        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_POSITION;
 
     if (hintp->icon_pixmap != None)
-        hintp->flags |= IconPixmapHint;
+        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_PIXMAP;
     if (hintp->icon_mask != None)
-        hintp->flags |= IconMaskHint;
+        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_MASK;
     if (hintp->icon_window != None)
-        hintp->flags |= IconWindowHint;
+        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_WINDOW;
 
     if (hintp->window_group == XtUnspecifiedWindow) {
         if (w->core.parent) {
@@ -1519,15 +1519,15 @@ EvaluateWMHints(WMShellWidget w)
             for (p = w->core.parent; p->core.parent; p = p->core.parent);
             if (XtIsRealized(p)) {
                 hintp->window_group = XtWindow(p);
-                hintp->flags |= WindowGroupHint;
+                hintp->flags |= XCB_ICCCM_WM_HINT_WINDOW_GROUP;
             }
         }
     }
     else if (hintp->window_group != XtUnspecifiedWindowGroup)
-        hintp->flags |= WindowGroupHint;
+        hintp->flags |= XCB_ICCCM_WM_HINT_WINDOW_GROUP;
 
     if (w->wm.urgency)
-        hintp->flags |= XUrgencyHint;
+        hintp->flags |= XCB_ICCCM_WM_HINT_X_URGENCY;
 }
 
 static void
@@ -1540,57 +1540,57 @@ EvaluateSizeHints(WMShellWidget w)
     sizep->width = w->core.width;
     sizep->height = w->core.height;
 
-    if (sizep->flags & USSize) {
-        if (sizep->flags & PSize)
-            sizep->flags &= ~PSize;
+    if (sizep->flags & XCB_ICCCM_SIZE_HINT_US_SIZE) {
+        if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_SIZE)
+            sizep->flags &= ~XCB_ICCCM_SIZE_HINT_P_SIZE;
     }
     else
-        sizep->flags |= PSize;
+        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_SIZE;
 
-    if (sizep->flags & USPosition) {
-        if (sizep->flags & PPosition)
-            sizep->flags &= ~PPosition;
+    if (sizep->flags & XCB_ICCCM_SIZE_HINT_US_POSITION) {
+        if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_POSITION)
+            sizep->flags &= ~XCB_ICCCM_SIZE_HINT_P_POSITION;
     }
     else if (w->shell.client_specified & _XtShellPPositionOK)
-        sizep->flags |= PPosition;
+        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_POSITION;
 
     if (sizep->min_aspect.x != XtUnspecifiedShellInt
         || sizep->min_aspect.y != XtUnspecifiedShellInt
         || sizep->max_aspect.x != XtUnspecifiedShellInt
         || sizep->max_aspect.y != XtUnspecifiedShellInt) {
-        sizep->flags |= PAspect;
+        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_ASPECT;
     }
-    if (sizep->flags & PBaseSize
+    if (sizep->flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE
         || w->wm.base_width != XtUnspecifiedShellInt
         || w->wm.base_height != XtUnspecifiedShellInt) {
-        sizep->flags |= PBaseSize;
+        sizep->flags |= XCB_ICCCM_SIZE_HINT_BASE_SIZE;
         if (w->wm.base_width == XtUnspecifiedShellInt)
             w->wm.base_width = 0;
         if (w->wm.base_height == XtUnspecifiedShellInt)
             w->wm.base_height = 0;
     }
-    if (sizep->flags & PResizeInc
+    if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC
         || sizep->width_inc != XtUnspecifiedShellInt
         || sizep->height_inc != XtUnspecifiedShellInt) {
         if (sizep->width_inc < 1)
             sizep->width_inc = 1;
         if (sizep->height_inc < 1)
             sizep->height_inc = 1;
-        sizep->flags |= PResizeInc;
+        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_RESIZE_INC;
     }
-    if (sizep->flags & PMaxSize
+    if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE
         || sizep->max_width != XtUnspecifiedShellInt
         || sizep->max_height != XtUnspecifiedShellInt) {
-        sizep->flags |= PMaxSize;
+        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_MAX_SIZE;
         if (sizep->max_width == XtUnspecifiedShellInt)
             sizep->max_width = BIGSIZE;
         if (sizep->max_height == XtUnspecifiedShellInt)
             sizep->max_height = BIGSIZE;
     }
-    if (sizep->flags & PMinSize
+    if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE
         || sizep->min_width != XtUnspecifiedShellInt
         || sizep->min_height != XtUnspecifiedShellInt) {
-        sizep->flags |= PMinSize;
+        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
         if (sizep->min_width == XtUnspecifiedShellInt)
             sizep->min_width = 1;
         if (sizep->min_height == XtUnspecifiedShellInt)
@@ -1704,7 +1704,7 @@ _popup_set_prop(ShellWidget w)
             //XChangeProperty(XtDisplay((Widget) w), XtWindow((Widget) w),
             //                XInternAtom(XtDisplay((Widget) w),
             //                            "WM_LOCALE_NAME", False),
-            //                XA_STRING, 8, PropModeReplace,
+            //                XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
             //                (unsigned char *) locale, (int) strlen(locale));
     }
     UNLOCK_PROCESS;
@@ -1723,7 +1723,7 @@ _popup_set_prop(ShellWidget w)
         //XChangeProperty(XtDisplay((Widget) w), XtWindow((Widget) w),
         //                XInternAtom(XtDisplay((Widget) w),
         //                            "WM_CLIENT_LEADER", False),
-        //                XA_WINDOW, 32, PropModeReplace,
+        //                XCB_ATOM_WINDOW, 32, XCB_PROP_MODE_REPLACE,
         //                (unsigned char *) (&(p->core.window)), 1);
         
 #ifndef XT_NO_SM
@@ -1736,7 +1736,7 @@ _popup_set_prop(ShellWidget w)
             //    XChangeProperty(XtDisplay((Widget) w), XtWindow((Widget) w),
             //                    XInternAtom(XtDisplay((Widget) w),
             //                                "SM_CLIENT_ID", False),
-            //                    XA_STRING, 8, PropModeReplace,
+            //                    XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
             //                    (unsigned char *) sm_client_id,
             //                    (int) strlen(sm_client_id));
             //}
@@ -1760,7 +1760,7 @@ _popup_set_prop(ShellWidget w)
         //XChangeProperty(XtDisplay((Widget) w), XtWindow((Widget) w),
         //                XInternAtom(XtDisplay((Widget) w),
         //                            "WM_WINDOW_ROLE", False),
-        //                XA_STRING, 8, PropModeReplace,
+        //                XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
         //                (unsigned char *) wmshell->wm.window_role,
         //                (int) strlen(wmshell->wm.window_role));
         // Get atom for WM_WINDOW_ROLE
@@ -2102,7 +2102,7 @@ GetGeometry(Widget W, Widget child)
     if (child != NULL) {
         /* we default to our child's size */
         if (is_wmshell && (w->core.width == 0 || w->core.height == 0))
-            ((WMShellWidget) W)->wm.size_hints.flags |= PSize;
+            ((WMShellWidget) W)->wm.size_hints.flags |= XCB_ICCCM_SIZE_HINT_P_SIZE;
         if (w->core.width == 0)
             w->core.width = child->core.width;
         if (w->core.height == 0)
@@ -2122,17 +2122,17 @@ GetGeometry(Widget W, Widget child)
             (void) memcpy(&hints, &wm->size_hints,
                           sizeof(struct _OldXSizeHints));
             hints.win_gravity = wm->win_gravity;
-            if (wm->size_hints.flags & PBaseSize) {
+            if (wm->size_hints.flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) {
                 width -= wm->base_width;
                 height -= wm->base_height;
                 hints.base_width = wm->base_width;
                 hints.base_height = wm->base_height;
             }
-            else if (wm->size_hints.flags & PMinSize) {
+            else if (wm->size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
                 width -= wm->size_hints.min_width;
                 height -= wm->size_hints.min_height;
             }
-            if (wm->size_hints.flags & PResizeInc) {
+            if (wm->size_hints.flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) {
                 width /= wm->size_hints.width_inc;
                 height /= wm->size_hints.height_inc;
             }
@@ -2178,13 +2178,13 @@ GetGeometry(Widget W, Widget child)
             if (win_gravity != -1)
                 wmshell->wm.win_gravity = win_gravity;
             else
-                wmshell->wm.win_gravity = NorthWestGravity;
+                wmshell->wm.win_gravity = XCB_GRAVITY_NORTH_WEST;
         }
-        wmshell->wm.size_hints.flags |= PWinGravity;
+        wmshell->wm.size_hints.flags |= XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY;
         if ((flag & (XValue | YValue)) == (XValue | YValue))
-            wmshell->wm.size_hints.flags |= USPosition;
+            wmshell->wm.size_hints.flags |= XCB_ICCCM_SIZE_HINT_US_POSITION;
         if ((flag & (WidthValue | HeightValue)) == (WidthValue | HeightValue))
-            wmshell->wm.size_hints.flags |= USSize;
+            wmshell->wm.size_hints.flags |= XCB_ICCCM_SIZE_HINT_US_SIZE;
     }
     w->shell.client_specified |= _XtShellGeometryParsed;
 }
@@ -2230,27 +2230,27 @@ GeometryManager(Widget wid,
     if (shell->shell.allow_shell_resize == FALSE && XtIsRealized(wid))
         return (XtGeometryNo);
 
-    if (request->request_mode & (CWX | CWY))
+    if (request->request_mode & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y))
         return (XtGeometryNo);
 
     my_request.request_mode = (request->request_mode & XtCWQueryOnly);
-    if (request->request_mode & CWWidth) {
+    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) {
         my_request.width = request->width;
-        my_request.request_mode |= CWWidth;
+        my_request.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
     }
-    if (request->request_mode & CWHeight) {
+    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) {
         my_request.height = request->height;
-        my_request.request_mode |= CWHeight;
+        my_request.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
     }
-    if (request->request_mode & CWBorderWidth) {
+    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
         my_request.border_width = request->border_width;
-        my_request.request_mode |= CWBorderWidth;
+        my_request.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
     }
     if (XtMakeGeometryRequest((Widget) shell, &my_request, NULL)
         == XtGeometryYes) {
-        /* assert: if (request->request_mode & CWWidth) then
+        /* assert: if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) then
          *            shell->core.width == request->width
-         * assert: if (request->request_mode & CWHeight) then
+         * assert: if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) then
          *            shell->core.height == request->height
          *
          * so, whatever the WM sized us to (if the Shell requested
@@ -2260,7 +2260,7 @@ GeometryManager(Widget wid,
         if (!(request->request_mode & XtCWQueryOnly)) {
             wid->core.width = shell->core.width;
             wid->core.height = shell->core.height;
-            if (request->request_mode & CWBorderWidth) {
+            if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
                 wid->core.x = wid->core.y = (Position) (-request->border_width);
             }
         }
@@ -2381,65 +2381,65 @@ RootGeometryManager(Widget gw,
           w->core.border_width = (Dimension) (oldborder_width); }
 
     memset(&values, 0, sizeof(values));
-    if (mask & CWX) {
+    if (mask & XCB_CONFIG_WINDOW_X) {
         if (w->core.x == request->x)
-            mask &= (unsigned int) (~CWX);
+            mask &= (unsigned int) (~XCB_CONFIG_WINDOW_X);
         else {
             w->core.x = (Position) (values.x = request->x);
             if (wm) {
-                hintp->flags &= ~USPosition;
-                hintp->flags |= PPosition;
+                hintp->flags &= ~XCB_ICCCM_SIZE_HINT_US_POSITION;
+                hintp->flags |= XCB_ICCCM_SIZE_HINT_P_POSITION;
                 hintp->x = values.x;
             }
         }
     }
-    if (mask & CWY) {
+    if (mask & XCB_CONFIG_WINDOW_Y) {
         if (w->core.y == request->y)
-            mask &= (unsigned int) (~CWY);
+            mask &= (unsigned int) (~XCB_CONFIG_WINDOW_Y);
         else {
             w->core.y = (Position) (values.y = request->y);
             if (wm) {
-                hintp->flags &= ~USPosition;
-                hintp->flags |= PPosition;
+                hintp->flags &= ~XCB_ICCCM_SIZE_HINT_US_POSITION;
+                hintp->flags |= XCB_ICCCM_SIZE_HINT_P_POSITION;
                 hintp->y = values.y;
             }
         }
     }
-    if (mask & CWBorderWidth) {
+    if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
         if (w->core.border_width == request->border_width) {
-            mask &= (unsigned int) (~CWBorderWidth);
+            mask &= (unsigned int) (~XCB_CONFIG_WINDOW_BORDER_WIDTH);
         }
         else
             w->core.border_width =
                 (Dimension) (values.border_width = request->border_width);
     }
-    if (mask & CWWidth) {
+    if (mask & XCB_CONFIG_WINDOW_WIDTH) {
         if (w->core.width == request->width)
-            mask &= (unsigned int) (~CWWidth);
+            mask &= (unsigned int) (~XCB_CONFIG_WINDOW_WIDTH);
         else {
             w->core.width = (Dimension) (values.width = request->width);
             if (wm) {
-                hintp->flags &= ~USSize;
-                hintp->flags |= PSize;
+                hintp->flags &= ~XCB_ICCCM_SIZE_HINT_US_SIZE;
+                hintp->flags |= XCB_ICCCM_SIZE_HINT_P_SIZE;
                 hintp->width = values.width;
             }
         }
     }
-    if (mask & CWHeight) {
+    if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
         if (w->core.height == request->height)
-            mask &= (unsigned int) (~CWHeight);
+            mask &= (unsigned int) (~XCB_CONFIG_WINDOW_HEIGHT);
         else {
             w->core.height = (Dimension) (values.height = request->height);
             if (wm) {
-                hintp->flags &= ~USSize;
-                hintp->flags |= PSize;
+                hintp->flags &= ~XCB_ICCCM_SIZE_HINT_US_SIZE;
+                hintp->flags |= XCB_ICCCM_SIZE_HINT_P_SIZE;
                 hintp->height = values.height;
             }
         }
     }
-    if (mask & CWStackMode) {
+    if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
         values.stack_mode = request->stack_mode;
-        if (mask & CWSibling)
+        if (mask & XCB_CONFIG_WINDOW_SIBLING)
             values.sibling = XtWindow(request->sibling);
     }
 
@@ -2456,19 +2456,19 @@ RootGeometryManager(Widget gw,
     CALLGEOTAT(_XtGeoTrace((Widget) w, "XConfiguring the Shell X window :\n"));
     CALLGEOTAT(_XtGeoTab(1));
 #ifdef XT_GEO_TATTLER
-    if (mask & CWX) {
+    if (mask & XCB_CONFIG_WINDOW_X) {
         CALLGEOTAT(_XtGeoTrace((Widget) w, "x = %d\n", values.x));
     }
-    if (mask & CWY) {
+    if (mask & XCB_CONFIG_WINDOW_Y) {
         CALLGEOTAT(_XtGeoTrace((Widget) w, "y = %d\n", values.y));
     }
-    if (mask & CWWidth) {
+    if (mask & XCB_CONFIG_WINDOW_WIDTH) {
         CALLGEOTAT(_XtGeoTrace((Widget) w, "width = %d\n", values.width));
     }
-    if (mask & CWHeight) {
+    if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
         CALLGEOTAT(_XtGeoTrace((Widget) w, "height = %d\n", values.height));
     }
-    if (mask & CWBorderWidth) {
+    if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
         CALLGEOTAT(_XtGeoTrace((Widget) w,
                                "border_width = %d\n", values.border_width));
     }
@@ -2480,7 +2480,7 @@ RootGeometryManager(Widget gw,
     xcb_configure_window(XtDisplay((Widget) w), XtWindow((Widget) w), mask, (const void *)&values);
 
     if (wm && !w->shell.override_redirect
-        && mask & (CWX | CWY | CWWidth | CWHeight | CWBorderWidth)) {
+        && mask & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
         _SetWMSizeHints((WMShellWidget) w);
     }
 
@@ -2496,7 +2496,7 @@ RootGeometryManager(Widget gw,
     /* If no non-stacking bits are set, there's no way to tell whether
        or not this worked, so assume it did */
 
-    if (!(mask & (unsigned) (~(CWStackMode | CWSibling))))
+    if (!(mask & (unsigned) (~(XCB_CONFIG_WINDOW_STACK_MODE | XCB_CONFIG_WINDOW_SIBLING))))
         return XtGeometryYes;
 
     if (wm && ((WMShellWidget) w)->wm.wait_for_wm == FALSE) {
@@ -2524,32 +2524,32 @@ RootGeometryManager(Widget gw,
             xcb_configure_notify_event_t * cne = (xcb_configure_notify_event_t *)event;
 
 #define NEQ(x, msk) ((mask & msk) && (values.x != cne->x))
-            if (NEQ(x, CWX) ||
-                NEQ(y, CWY) ||
-                NEQ(width, CWWidth) ||
-                NEQ(height, CWHeight) || NEQ(border_width, CWBorderWidth)) {
+            if (NEQ(x, XCB_CONFIG_WINDOW_X) ||
+                NEQ(y, XCB_CONFIG_WINDOW_Y) ||
+                NEQ(width, XCB_CONFIG_WINDOW_WIDTH) ||
+                NEQ(height, XCB_CONFIG_WINDOW_HEIGHT) || NEQ(border_width, XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
 #ifdef XT_GEO_TATTLER
-                if (NEQ(x, CWX)) {
+                if (NEQ(x, XCB_CONFIG_WINDOW_X)) {
                     CALLGEOTAT(_XtGeoTrace((Widget) w,
                                            "received Configure X %d\n",
                                            event.xconfigure.x));
                 }
-                if (NEQ(y, CWY)) {
+                if (NEQ(y, XCB_CONFIG_WINDOW_Y)) {
                     CALLGEOTAT(_XtGeoTrace((Widget) w,
                                            "received Configure Y %d\n",
                                            event.xconfigure.y));
                 }
-                if (NEQ(width, CWWidth)) {
+                if (NEQ(width, XCB_CONFIG_WINDOW_WIDTH)) {
                     CALLGEOTAT(_XtGeoTrace((Widget) w,
                                            "received Configure Width %d\n",
                                            event.xconfigure.width));
                 }
-                if (NEQ(height, CWHeight)) {
+                if (NEQ(height, XCB_CONFIG_WINDOW_HEIGHT)) {
                     CALLGEOTAT(_XtGeoTrace((Widget) w,
                                            "received Configure Height %d\n",
                                            event.xconfigure.height));
                 }
-                if (NEQ(border_width, CWBorderWidth)) {
+                if (NEQ(border_width, XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
                     CALLGEOTAT(_XtGeoTrace((Widget) w,
                                            "received Configure BorderWidth %d\n",
                                            event.xconfigure.border_width));
@@ -2631,19 +2631,19 @@ SetValues(Widget old,
         return False;
 
     if (ow->shell.save_under != nw->shell.save_under) {
-        mask = CWSaveUnder;
+        mask = XCB_CW_SAVE_UNDER;
         attr.save_under = nw->shell.save_under;
     }
 
     if (ow->shell.override_redirect != nw->shell.override_redirect) {
-        mask |= CWOverrideRedirect;
+        mask |= XCB_CW_OVERRIDE_REDIRECT;
         attr.override_redirect = nw->shell.override_redirect;
     }
 
     if (mask) {
         //XChangeWindowAttributes(XtDisplay(new), XtWindow(new), mask, &attr);
         xcb_change_window_attributes(XtDisplay(new), XtWindow(new), mask, &attr);
-        if ((mask & CWOverrideRedirect) && !nw->shell.override_redirect)
+        if ((mask & XCB_CW_OVERRIDE_REDIRECT) && !nw->shell.override_redirect)
             _popup_set_prop(nw);
     }
 
@@ -2717,7 +2717,7 @@ WMSetValues(Widget old,
         //else {
         //    title.value = (unsigned char *) nwmshell->wm.title;
         //    title.encoding = nwmshell->wm.title_encoding ?
-        //        nwmshell->wm.title_encoding : XA_STRING;
+        //        nwmshell->wm.title_encoding : XCB_ATOM_STRING;
         //    title.format = 8;
         //    title.nitems = strlen(nwmshell->wm.title);
         //}
@@ -2764,7 +2764,7 @@ WMSetValues(Widget old,
     //                                 nwmshell->wm.wm_hints.window_group);
     //    }
     //    else
-    //        XDeleteProperty(XtDisplay(new), XtWindow(new), XA_WM_TRANSIENT_FOR);
+    //        XDeleteProperty(XtDisplay(new), XtWindow(new), XCB_ATOM_WM_TRANSIENT_FOR);
     //}
 
     if (XtIsRealized(new) && nwmshell->wm.transient != owmshell->wm.transient) {
@@ -2813,7 +2813,7 @@ WMSetValues(Widget old,
             //XChangeProperty(XtDisplay(new), XtWindow(new),
             //                XInternAtom(XtDisplay(new),
             //                            "WM_CLIENT_LEADER", False),
-            //                XA_WINDOW, 32, PropModeReplace,
+            //                XCB_ATOM_WINDOW, 32, XCB_PROP_MODE_REPLACE,
             //                (unsigned char *) &(leader->core.window), 1);
     }//
 
@@ -2823,7 +2823,7 @@ WMSetValues(Widget old,
     //        XChangeProperty(XtDisplay(new), XtWindow(new),
     //                        XInternAtom(XtDisplay(new), "WM_WINDOW_ROLE",
     //                                    False),
-    //                        XA_STRING, 8, PropModeReplace,
+    //                        XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
     //                        (unsigned char *) nwmshell->wm.window_role,
     //                        (int) strlen(nwmshell->wm.window_role));
     //    }
@@ -2969,7 +2969,7 @@ TopLevelSetValues(Widget oldW,
             //else {
                 //icon_name.value = (unsigned char *) new->topLevel.icon_name;
                 //icon_name.encoding = new->topLevel.icon_name_encoding ?
-                //    new->topLevel.icon_name_encoding : XA_STRING;
+                //    new->topLevel.icon_name_encoding : XCB_ATOM_STRING;
                 //icon_name.format = 8;
                 //icon_name.nitems = strlen((char *) icon_name.value);
             //}
@@ -2990,7 +2990,7 @@ TopLevelSetValues(Widget oldW,
     }
     else if (new->topLevel.iconic != old->topLevel.iconic) {
         if (new->topLevel.iconic)
-            new->wm.wm_hints.initial_state = IconicState;
+            new->wm.wm_hints.initial_state = XCB_ICCCM_WM_STATE_ICONIC;
     }
     return False;
 }
@@ -3052,7 +3052,7 @@ ApplicationSetValues(Widget current,
         //        XSetCommand(XtDisplay(new), XtWindow(new),
         //                    nw->application.argv, nw->application.argc);
         //    else
-        //        XDeleteProperty(XtDisplay(new), XtWindow(new), XA_WM_COMMAND);
+        //        XDeleteProperty(XtDisplay(new), XtWindow(new), XCB_ATOM_WM_COMMAND);
         //}
         if (XtIsRealized(new) && !nw->shell.override_redirect) {
             if (nw->application.argc >= 0 && nw->application.argv) {
@@ -3228,7 +3228,7 @@ SessionSetValues(Widget current,
                 //XChangeProperty(XtDisplay(leader), XtWindow(leader),
                 //                XInternAtom(XtDisplay(leader), "SM_CLIENT_ID",
                 //                            False),
-                //                XA_STRING, 8, PropModeReplace,
+                //                XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
                 //                (unsigned char *) nw->session.session_id,
                 //                (int) strlen(nw->session.session_id));
                 // First, get the atom ID

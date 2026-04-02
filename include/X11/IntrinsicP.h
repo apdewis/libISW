@@ -291,7 +291,7 @@ extern void XtCreateWindow(
     xcb_connection_t *,
     Widget 		/* widget */,
     unsigned int 	/* window_class */,
-    Visual*		/* visual */,
+    xcb_visualtype_t*		/* visual */,
     XtValueMask		/* value_mask */,
     uint32_t* /* attributes */
 );

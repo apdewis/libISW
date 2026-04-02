@@ -69,14 +69,14 @@
 #define XtEdefault "default"
 #endif
 
-#define	TIP_EVENT_MASK (ButtonPressMask	  |	\
-			ButtonReleaseMask |	\
-			PointerMotionMask |	\
-			ButtonMotionMask  |	\
-			KeyPressMask	  |	\
-			KeyReleaseMask	  |	\
-			EnterWindowMask	  |	\
-			LeaveWindowMask)
+#define	TIP_EVENT_MASK (XCB_EVENT_MASK_BUTTON_PRESS	  |	\
+			XCB_EVENT_MASK_BUTTON_RELEASE |	\
+			XCB_EVENT_MASK_POINTER_MOTION |	\
+			XCB_EVENT_MASK_BUTTON_MOTION  |	\
+			XCB_EVENT_MASK_KEY_PRESS	  |	\
+			XCB_EVENT_MASK_KEY_RELEASE	  |	\
+			XCB_EVENT_MASK_ENTER_WINDOW	  |	\
+			XCB_EVENT_MASK_LEAVE_WINDOW)
 
 /*
  * Types
@@ -147,7 +147,7 @@ static XtResource resources[] = {
     offset(internal_width), XtRImmediate, (XtPointer)2},
   {XtNbackingStore, XtCBackingStore, XtRBackingStore, sizeof(int),
     offset(backing_store), XtRImmediate,
-    (XtPointer)(Always + WhenMapped + NotUseful)},
+    (XtPointer)(XCB_BACKING_STORE_ALWAYS + XCB_BACKING_STORE_WHEN_MAPPED + XCB_BACKING_STORE_NOT_USEFUL)},
   {XtNtimeout, XtCTimeout, XtRInt, sizeof(int),
     offset(timeout), XtRImmediate, (XtPointer)500},
 };
@@ -206,16 +206,16 @@ static TimeoutInfo TimeoutData;
 
 /*
  * XmuCvtStringToBackingStore() stub - XCB has limited BackingStore support
- * Always returns NotUseful since XCB backing store is not well supported
+ * Always returns XCB_BACKING_STORE_NOT_USEFUL since XCB backing store is not well supported
  */
 /*ARGSUSED*/
 static Boolean
 XmuCvtStringToBackingStore(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
                            XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
 {
-  static int backingStore = NotUseful;
+  static int backingStore = XCB_BACKING_STORE_NOT_USEFUL;
   
-  /* Stub: Always return NotUseful - XCB has limited backing store support */
+  /* Stub: Always return XCB_BACKING_STORE_NOT_USEFUL - XCB has limited backing store support */
   if (toVal->addr != NULL)
   {
     if (toVal->size < sizeof(int))
@@ -223,7 +223,7 @@ XmuCvtStringToBackingStore(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
       toVal->size = sizeof(int);
       return False;
     }
-    *(int *)(toVal->addr) = NotUseful;
+    *(int *)(toVal->addr) = XCB_BACKING_STORE_NOT_USEFUL;
   }
   else
     toVal->addr = (XtPointer)&backingStore;
@@ -247,16 +247,16 @@ IswCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 
   switch (*(int *)fromVal->addr)
   {
-    case NotUseful:
+    case XCB_BACKING_STORE_NOT_USEFUL:
       buffer = XtEnotUseful;
       break;
-    case WhenMapped:
+    case XCB_BACKING_STORE_WHEN_MAPPED:
       buffer = XtEwhenMapped;
       break;
-    case Always:
+    case XCB_BACKING_STORE_ALWAYS:
       buffer = XtEalways;
       break;
-    case (Always + WhenMapped + NotUseful):
+    case (XCB_BACKING_STORE_ALWAYS + XCB_BACKING_STORE_WHEN_MAPPED + XCB_BACKING_STORE_NOT_USEFUL):
       buffer = XtEdefault;
       break;
     default:
@@ -332,13 +332,13 @@ IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
     values.graphics_exposures = 0;
 
     /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gc_mask = GCForeground | GCBackground | GCGraphicsExposures;
+    XtGCMask gc_mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
     if (tip->tip.font != NULL) {
 	values.font = tip->tip.font->fid;
-	gc_mask |= GCFont;
+	gc_mask |= XCB_GC_FONT;
     }
 
-    tip->tip.gc = XtAllocateGC(w, 0, gc_mask & ~GCFont, &values, GCFont, 0);
+    tip->tip.gc = XtAllocateGC(w, 0, gc_mask & ~XCB_GC_FONT, &values, XCB_GC_FONT, 0);
 }
 
 static void
@@ -353,7 +353,7 @@ IswTipDestroy(Widget w)
 
     XtReleaseGC(w, tip->tip.gc);
 
-    XtRemoveEventHandler(XtParent(w), KeyPressMask, False,
+    XtRemoveEventHandler(XtParent(w), XCB_EVENT_MASK_KEY_PRESS, False,
 			 TipShellEventHandler, (XtPointer)NULL);
 
     while (info->widgets) {
@@ -501,15 +501,15 @@ IswTipSetValues(Widget current, Widget request, Widget cnew, ArgList args, Cardi
 	values.graphics_exposures = 0;
 
 	/* XCB Fix: Add NULL check for font before accessing fid */
-	XtGCMask gc_mask = GCForeground | GCBackground | GCGraphicsExposures;
+	XtGCMask gc_mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
 	if (newtip->tip.font != NULL) {
 	    values.font = newtip->tip.font->fid;
-	    gc_mask |= GCFont;
+	    gc_mask |= XCB_GC_FONT;
 	}
 
 	XtReleaseGC(cnew, curtip->tip.gc);
-	newtip->tip.gc = XtAllocateGC(cnew, 0, gc_mask & ~GCFont, &values,
-				      GCFont, 0);
+	newtip->tip.gc = XtAllocateGC(cnew, 0, gc_mask & ~XCB_GC_FONT, &values,
+				      XCB_GC_FONT, 0);
 	redisplay = True;
     }
 
@@ -665,7 +665,7 @@ CreateTipInfo(Widget w)
     info->mapped = False;
     info->widgets = NULL;
     info->next = NULL;
-    XtAddEventHandler(shell, KeyPressMask, False, TipShellEventHandler,
+    XtAddEventHandler(shell, XCB_EVENT_MASK_KEY_PRESS, False, TipShellEventHandler,
 		      (XtPointer)NULL);
 
     return (info);

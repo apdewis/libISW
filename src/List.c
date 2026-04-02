@@ -89,7 +89,7 @@ static char defaultTranslations[] =
 static XtResource resources[] = {
     {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
 	offset(list.foreground), XtRString, XtDefaultForeground},
-    {XtNcursor, XtCCursor, XtRCursor, sizeof(Cursor),
+    {XtNcursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
        offset(simple.cursor), XtRString, "left_ptr"},
     {XtNfont,  XtCFont, XtRFontStruct, sizeof(XFontStruct *),
 	offset(list.font),XtRString, XtDefaultFont},
@@ -209,16 +209,16 @@ GetGCs(Widget w)
     values.background	= lw->core.background_pixel;  /* CRITICAL: Set background for text rendering */
 
     /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gc_mask = (unsigned) (GCForeground | GCBackground);  /* Include background */
+    XtGCMask gc_mask = (unsigned) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND);  /* Include background */
     if (lw->list.font != NULL) {
         values.font = lw->list.font->fid;
-        gc_mask |= GCFont;
+        gc_mask |= XCB_GC_FONT;
     }
 
 #ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
-        lw->list.normgc = XtAllocateGC( w, 0, gc_mask & ~GCFont,
-				 &values, GCFont, 0 );
+        lw->list.normgc = XtAllocateGC( w, 0, gc_mask & ~XCB_GC_FONT,
+				 &values, XCB_GC_FONT, 0 );
     else
 #endif
         lw->list.normgc = XtGetGC( w, gc_mask, &values);
@@ -228,8 +228,8 @@ GetGCs(Widget w)
 
 #ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
-        lw->list.revgc = XtAllocateGC( w, 0, gc_mask & ~GCFont,
-				 &values, GCFont, 0 );
+        lw->list.revgc = XtAllocateGC( w, 0, gc_mask & ~XCB_GC_FONT,
+				 &values, XCB_GC_FONT, 0 );
     else
 #endif
         lw->list.revgc = XtGetGC( w, gc_mask, &values);
@@ -241,15 +241,15 @@ GetGCs(Widget w)
     values.fill_style = XCB_FILL_STYLE_TILED;
 
     /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gray_gc_mask = (unsigned) (GCTile | GCFillStyle);
+    XtGCMask gray_gc_mask = (unsigned) (XCB_GC_TILE | XCB_GC_FILL_STYLE);
     if (lw->list.font != NULL) {
-        gray_gc_mask |= GCFont;
+        gray_gc_mask |= XCB_GC_FONT;
     }
 
 #ifdef ISW_INTERNATIONALIZATION
     if ( lw->simple.international == True )
-        lw->list.graygc = XtAllocateGC( w, 0, gray_gc_mask & ~GCFont,
-			      &values, GCFont, 0 );
+        lw->list.graygc = XtAllocateGC( w, 0, gray_gc_mask & ~XCB_GC_FONT,
+			      &values, XCB_GC_FONT, 0 );
     else
 #endif
         lw->list.graygc = XtGetGC( w, gray_gc_mask, &values);
@@ -334,7 +334,7 @@ ChangeSize(Widget w, Dimension width, Dimension height)
 {
     XtWidgetGeometry request, reply;
 
-    request.request_mode = CWWidth | CWHeight;
+    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     request.width = width;
     request.height = height;
 
@@ -355,7 +355,7 @@ ChangeSize(Widget w, Dimension width, Dimension height)
 	case XtGeometryAlmost:
 	    request = reply;
 	    Layout(w, FALSE, FALSE, &(request.width), &(request.height));
-	    request.request_mode = CWWidth | CWHeight;
+	    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
 	    XtMakeGeometryRequest(w, &request, &reply);
 	    break;
 	default:
@@ -835,8 +835,8 @@ PreferredGeom(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *requested)
     Dimension new_width, new_height;
     Boolean change, width_req, height_req;
 
-    width_req = intended->request_mode & CWWidth;
-    height_req = intended->request_mode & CWHeight;
+    width_req = intended->request_mode & XCB_CONFIG_WINDOW_WIDTH;
+    height_req = intended->request_mode & XCB_CONFIG_WINDOW_HEIGHT;
 
     if (width_req)
       new_width = intended->width;
@@ -859,9 +859,9 @@ PreferredGeom(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *requested)
 
     change = Layout(w, !width_req, !height_req, &new_width, &new_height);
 
-    requested->request_mode |= CWWidth;
+    requested->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
     requested->width = new_width;
-    requested->request_mode |= CWHeight;
+    requested->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
     requested->height = new_height;
 
     if (change)
@@ -1214,8 +1214,8 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
             shell = XtParent(shell);
         if (shell)
             XtAddEventHandler(shell,
-                              FocusChangeMask | StructureNotifyMask |
-                              VisibilityChangeMask,
+                              XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                              XCB_EVENT_MASK_VISIBILITY_CHANGE,
                               False, DropdownDismissHandler, (XtPointer)lw);
     }
 
@@ -1224,7 +1224,7 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
     {
         Widget ancestor = XtParent(w);
         while (ancestor && !XtIsShell(ancestor)) {
-            XtAddEventHandler(ancestor, StructureNotifyMask, False,
+            XtAddEventHandler(ancestor, XCB_EVENT_MASK_STRUCTURE_NOTIFY, False,
                               DropdownDismissHandler, (XtPointer)lw);
             ancestor = XtParent(ancestor);
         }
@@ -1564,15 +1564,15 @@ DropdownPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
         shell = XtParent(shell);
     if (shell)
         XtRemoveEventHandler(shell,
-                             FocusChangeMask | StructureNotifyMask |
-                             VisibilityChangeMask,
+                             XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                             XCB_EVENT_MASK_VISIBILITY_CHANGE,
                              False, DropdownDismissHandler, (XtPointer)lw);
 
     /* Remove ancestor-move handlers */
     {
         Widget ancestor = XtParent((Widget)lw);
         while (ancestor && !XtIsShell(ancestor)) {
-            XtRemoveEventHandler(ancestor, StructureNotifyMask, False,
+            XtRemoveEventHandler(ancestor, XCB_EVENT_MASK_STRUCTURE_NOTIFY, False,
                                  DropdownDismissHandler, (XtPointer)lw);
             ancestor = XtParent(ancestor);
         }

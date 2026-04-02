@@ -60,9 +60,9 @@ SOFTWARE.
 #define offset(field) XtOffsetOf(SimpleRec, simple.field)
 
 static XtResource resources[] = {
-  {XtNcursor, XtCCursor, XtRCursor, sizeof(Cursor),
+  {XtNcursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
      offset(cursor), XtRImmediate, (XtPointer) None},
-  {XtNinsensitiveBorder, XtCInsensitive, XtRPixmap, sizeof(Pixmap),
+  {XtNinsensitiveBorder, XtCInsensitive, XtRPixmap, sizeof(xcb_pixmap_t),
      offset(insensitive_border), XtRImmediate, (XtPointer) NULL},
   /* Color cursor resources removed - not available in XCB
   {XtNpointerColor, XtCForeground, XtRPixel, sizeof(Pixel),
@@ -140,7 +140,7 @@ ClassInitialize(void)
       sizeof(Pixel)},
         */
         {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.colormap),
-      sizeof(Colormap)}
+      sizeof(xcb_colormap_t)}
     };
 
     IswInitializeWidgetSet();
@@ -175,7 +175,7 @@ ClassPartInitialize(WidgetClass class)
 static void
 Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
-    Pixmap border_pixmap = 0;
+    xcb_pixmap_t border_pixmap = 0;
     
     if (!XtIsSensitive(w)) {
 	/* change border to gray; have to remember the old one,
@@ -189,23 +189,23 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
         border_pixmap = w->core.border_pixmap;
 	w->core.border_pixmap = ((SimpleWidget)w)->simple.insensitive_border;
 
-	*valueMask |= CWBorderPixmap;
-	*valueMask &= ~CWBorderPixel;
-	attributes[__builtin_popcount(*valueMask & (CWBorderPixmap - 1))] = w->core.border_pixmap;
+	*valueMask |= XCB_CW_BORDER_PIXMAP;
+	*valueMask &= ~XCB_CW_BORDER_PIXEL;
+	attributes[__builtin_popcount(*valueMask & (XCB_CW_BORDER_PIXMAP - 1))] = w->core.border_pixmap;
     }
 
     ConvertCursor(w);
 
     if (((SimpleWidget)w)->simple.cursor != None &&
-        ((SimpleWidget)w)->simple.cursor != (Cursor)0xffffffff) {
+        ((SimpleWidget)w)->simple.cursor != (xcb_cursor_t)0xffffffff) {
 	/* Only add cursor if it's a valid non-zero cursor ID */
-	*valueMask |= CWCursor;
-	attributes[__builtin_popcount(*valueMask & (CWCursor - 1))] = ((SimpleWidget)w)->simple.cursor;
+	*valueMask |= XCB_CW_CURSOR;
+	attributes[__builtin_popcount(*valueMask & (XCB_CW_CURSOR - 1))] = ((SimpleWidget)w)->simple.cursor;
     }
 
     /* attributes parameter is already in XCB uint32_t format */
-    XtCreateWindow(XtDisplay(w), w, (unsigned int)InputOutput,
-                   (Visual *)CopyFromParent, *valueMask, attributes);
+    XtCreateWindow(XtDisplay(w), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                   (xcb_visualtype_t *)CopyFromParent, *valueMask, attributes);
 
     if (!XtIsSensitive(w))
 	w->core.border_pixmap = border_pixmap;
@@ -222,7 +222,7 @@ ConvertCursor(Widget w)
 {
     SimpleWidget simple = (SimpleWidget) w;
     XrmValue from, to;
-    Cursor cursor;
+    xcb_cursor_t cursor;
 
     if (simple->simple.cursor_name == NULL)
 	return;
@@ -230,7 +230,7 @@ ConvertCursor(Widget w)
     from.addr = (XtPointer) simple->simple.cursor_name;
     from.size = strlen((char *) from.addr) + 1;
 
-    to.size = sizeof(Cursor);
+    to.size = sizeof(xcb_cursor_t);
     to.addr = (XtPointer) &cursor;
 
     /* Changed XtRColorCursor to XtRCursor for XCB compatibility */

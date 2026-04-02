@@ -560,10 +560,10 @@ _XtHandleFocus(Widget widget,
 
         if (descendant) {
             if (add) {
-                _XtSendFocusEvent(descendant, FocusIn);
+                _XtSendFocusEvent(descendant, XCB_FOCUS_IN);
             }
             else {
-                _XtSendFocusEvent(descendant, FocusOut);
+                _XtSendFocusEvent(descendant, XCB_FOCUS_OUT);
             }
         }
     }
@@ -589,12 +589,12 @@ AddFocusHandler(Widget widget,
      */
     target = descendant ? _GetWindowedAncestor(descendant) : NULL;
     targetEventMask = XtBuildEventMask(target);
-    eventMask = targetEventMask & (KeyPressMask | KeyReleaseMask);
-    eventMask |= FocusChangeMask | EnterWindowMask | LeaveWindowMask;
+    eventMask = targetEventMask & (XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE);
+    eventMask |= XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW;
 
     if (oldEventMask) {
-        oldEventMask &= KeyPressMask | KeyReleaseMask;
-        oldEventMask |= FocusChangeMask | EnterWindowMask | LeaveWindowMask;
+        oldEventMask &= XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
+        oldEventMask |= XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW;
 
         if (oldEventMask != eventMask)
             XtRemoveEventHandler(widget, (oldEventMask & ~eventMask),
@@ -611,7 +611,7 @@ AddFocusHandler(Widget widget,
      * the next input event actually arrives.
      */
 
-    if (!(targetEventMask & FocusChangeMask)) {
+    if (!(targetEventMask & XCB_EVENT_MASK_FOCUS_CHANGE)) {
         pdi->focusWidget = NULL;
         return;
     }
@@ -659,7 +659,7 @@ AddFocusHandler(Widget widget,
     }
     if (pwi->haveFocus) {
         pdi->focusWidget = NULL;        /* invalidate the cache */
-        _XtSendFocusEvent(target, FocusIn);
+        _XtSendFocusEvent(target, XCB_FOCUS_IN);
     }
 }
 
@@ -745,7 +745,7 @@ XtSetKeyboardFocus(Widget widget, Widget descendant)
                     pwi->map_handler_added = FALSE;
                 }
                 if (pwi->haveFocus) {
-                    _XtSendFocusEvent(oldTarget, FocusOut);
+                    _XtSendFocusEvent(oldTarget, XCB_FOCUS_OUT);
                 }
             }
             else if (pwi->map_handler_added) {
@@ -783,12 +783,12 @@ XtSetKeyboardFocus(Widget widget, Widget descendant)
 
             if (widget != shell)
                 XtAddEventHandler(shell,
-                                  FocusChangeMask | EnterWindowMask |
-                                  LeaveWindowMask, False, _XtHandleFocus,
+                                  XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_ENTER_WINDOW |
+                                  XCB_EVENT_MASK_LEAVE_WINDOW, False, _XtHandleFocus,
                                   (XtPointer) psi);
 
             if (!XtIsRealized(target)) {
-                XtAddEventHandler(target, (EventMask) StructureNotifyMask,
+                XtAddEventHandler(target, (EventMask) XCB_EVENT_MASK_STRUCTURE_NOTIFY,
                                   False, QueryEventMask, (XtPointer) widget);
                 pwi->map_handler_added = TRUE;
                 pwi->queryEventDescendant = descendant;

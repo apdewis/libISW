@@ -332,7 +332,7 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
             Modifiers tmod, mod_masks[8];
             int j;
 
-            for (tmod = 1, i = 0; tmod <= (Mod5Mask << 1); tmod <<= 1)
+            for (tmod = 1, i = 0; tmod <= (XCB_MOD_MASK_5 << 1); tmod <<= 1)
                 if (tmod & useful_mods)
                     mod_masks[i++] = tmod;
             for (j = (int) pows[num_modbits]; j > 0; j--) {
@@ -549,25 +549,25 @@ XtTranslateKey(xcb_connection_t *dpy, _XtKeyCode keycode,
     }
 
     /* col 0 = unshifted, col 1 = shifted */
-    col = (modifiers & ShiftMask) ? 1 : 0;
+    col = (modifiers & XCB_MOD_MASK_SHIFT) ? 1 : 0;
     if (col == 1)
-        mods_consumed |= ShiftMask;
+        mods_consumed |= XCB_MOD_MASK_SHIFT;
     
     sym = xcb_key_symbols_get_keysym(pd->keysyms, keycode, col);
 
     /* CapsLock: for lowercase alphabetic keys, return uppercase */
-    if ((modifiers & LockMask) && col == 0 && sym >= XK_a && sym <= XK_z) {
+    if ((modifiers & XCB_MOD_MASK_LOCK) && col == 0 && sym >= XK_a && sym <= XK_z) {
         xcb_keysym_t usym = xcb_key_symbols_get_keysym(pd->keysyms, keycode, 1);
         if (usym != XCB_NO_SYMBOL) {
             sym = usym;
-            mods_consumed |= LockMask;
+            mods_consumed |= XCB_MOD_MASK_LOCK;
         }
     }
 
     /* Fall back to unshifted if the selected column has no symbol */
     if (sym == XCB_NO_SYMBOL) {
         sym = xcb_key_symbols_get_keysym(pd->keysyms, keycode, 0);
-        mods_consumed &= ~ShiftMask;  /* Shift wasn't actually used */
+        mods_consumed &= ~XCB_MOD_MASK_SHIFT;  /* Shift wasn't actually used */
     }
     if (sym == XCB_NO_SYMBOL)
         sym = XK_VoidSymbol;

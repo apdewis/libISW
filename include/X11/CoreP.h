@@ -87,17 +87,17 @@ typedef struct _CorePart {
     XtTMRec	    tm;                 /* translation management            */
     XtTranslations  accelerators;       /* accelerator translations          */
     Pixel	    border_pixel;	/* window border pixel		     */
-    Pixmap          border_pixmap;	/* window border pixmap or NULL      */
+    xcb_pixmap_t    border_pixmap;	/* window border pixmap or NULL      */
     WidgetList      popup_list;         /* list of popups                    */
     Cardinal        num_popups;         /* how many popups                   */
     String          name;		/* widget resource name		     */
     xcb_screen_t	*screen;		/* window's screen		     */
     xcb_connection_t *display;      /* window's display (XCB doesnt store a pointer in screen type like xlib does)*/
-    Colormap        colormap;           /* colormap                          */
+    xcb_colormap_t  colormap;           /* colormap                          */
     xcb_window_t	    window;		/* window ID			     */
     Cardinal        depth;		/* number of planes in window        */
     Pixel	    background_pixel;	/* window background pixel	     */
-    Pixmap          background_pixmap;	/* window background pixmap or NULL  */
+    xcb_pixmap_t    background_pixmap;	/* window background pixmap or NULL  */
     Boolean         visible;		/* is window mapped and not occluded?*/
     Boolean	    mapped_when_managed;/* map window if it's managed?       */
 } CorePart;

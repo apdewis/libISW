@@ -76,7 +76,7 @@ typedef struct {
     XtCallbackList scrollProc;	/* proportional scroll */
     XtCallbackList thumbProc;	/* jump (to position) scroll */
     XtCallbackList jumpProc;	/* same as thumbProc but pass data by ref */
-    Pixmap	  thumb;	/* thumb color */
+    xcb_pixmap_t	  thumb;	/* thumb color */
     float	  top;		/* What percent is above the win's top */
     float	  shown;	/* What percent is shown in the win */
     Dimension	  length;	/* either height or width */

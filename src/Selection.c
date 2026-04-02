@@ -580,7 +580,7 @@ OwnerTimedOut(XtPointer closure, XtIntervalId *id _X_UNUSED)
         }
     }
 
-    RemoveHandler(req, (EventMask) PropertyChangeMask,
+    RemoveHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                   HandlePropertyGone, closure);
     XtFree((char *) req);
     if (--ctx->ref_count == 0 && ctx->free_when_done)
@@ -650,7 +650,7 @@ HandlePropertyGone(Widget widget _X_UNUSED,
             else
                 (*ctx->notify) (ctx->widget, &ctx->selection, &req->target);
         }
-        RemoveHandler(req, (EventMask) PropertyChangeMask,
+        RemoveHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                       HandlePropertyGone, closure);
         XtFree((char *) req);
         if (--ctx->ref_count == 0 && ctx->free_when_done)
@@ -720,7 +720,7 @@ PrepareIncremental(Request req,
                                        (XtPointer) req);
     }
 #endif
-    AddHandler(req, (EventMask) PropertyChangeMask,
+    AddHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                HandlePropertyGone, (XtPointer) req);
 /* now send client INCR property */
     xcb_change_property(req->ctx->dpy, XCB_PROP_MODE_REPLACE, window, req->property,
@@ -749,7 +749,7 @@ GetConversion(Select ctx,       /* logical owner */
     if (timestamp_target) {
         value = __XtMalloc(sizeof(long));
         *(long *) value = (long) ctx->time;
-        targetType = XA_INTEGER;
+        targetType = XCB_ATOM_INTEGER;
         length = 1;
         format = 32;
     }
@@ -799,7 +799,7 @@ GetConversion(Select ctx,       /* logical owner */
                                         OwnerTimedOut, (XtPointer) req);
                 }
 #endif
-                AddHandler(req, (EventMask) PropertyChangeMask,
+                AddHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                            HandlePropertyGone, (XtPointer) req);
             }
             else
@@ -1135,7 +1135,7 @@ ReqCleanup(Widget widget,
                              ReqCleanup, (XtPointer) info);
         if (IsINCRtype(info, XtWindow(widget), ev->property)) {
             info->proc = HandleGetIncrement;
-            XtAddEventHandler(info->widget, (EventMask) PropertyChangeMask,
+            XtAddEventHandler(info->widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                               FALSE, ReqCleanup, (XtPointer) info);
         }
         else {
@@ -1148,7 +1148,7 @@ ReqCleanup(Widget widget,
     }
     else if ((event->response_type == XCB_SELECTION_NOTIFY)) {
         xcb_property_notify_event_t *ev = (xcb_property_notify_event_t *) event;
-        if ((ev->state == PropertyNewValue) &&
+        if ((ev->state == XCB_PROPERTY_NEW_VALUE) &&
              (ev->atom == info->property)) {
                 char *value = NULL;
                 xcb_get_property_cookie_t cookie = xcb_get_property(
@@ -1171,7 +1171,7 @@ ReqCleanup(Widget widget,
                 }
                 
             if (length == 0) {
-                XtRemoveEventHandler(widget, (EventMask) PropertyChangeMask,
+                XtRemoveEventHandler(widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                                      FALSE, ReqCleanup, (XtPointer) info);
                 FreeSelectionProperty(XtDisplay(widget), info->property);
                 XtFree(info->value);    /* requestor never got this, so free now */
@@ -1228,9 +1228,9 @@ ReqTimedOut(XtPointer closure, XtIntervalId *id _X_UNUSED)
                           ReqCleanup, (XtPointer) info);
     }
     else {
-        XtRemoveEventHandler(info->widget, (EventMask) PropertyChangeMask,
+        XtRemoveEventHandler(info->widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                              FALSE, info->proc, (XtPointer) info);
-        XtAddEventHandler(info->widget, (EventMask) PropertyChangeMask,
+        XtAddEventHandler(info->widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                           FALSE, ReqCleanup, (XtPointer) info);
     }
 
@@ -1249,7 +1249,7 @@ HandleGetIncrement(Widget widget,
     unsigned long length;
     int n = info->current;
 
-    if ((event->state != PropertyNewValue) || (event->atom != info->property))
+    if ((event->state != XCB_PROPERTY_NEW_VALUE) || (event->atom != info->property))
         return;
 
     xcb_get_property_cookie_t cookie = xcb_get_property(
@@ -1277,7 +1277,7 @@ HandleGetIncrement(Widget widget,
         /* assert ((info->offset != 0) == (info->incremental[n]) */
         if (info->offset != 0)
             XtFree(value);
-        XtRemoveEventHandler(widget, (EventMask) PropertyChangeMask, FALSE,
+        XtRemoveEventHandler(widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE, FALSE,
                              HandleGetIncrement, (XtPointer) info);
         FreeSelectionProperty(XtDisplay(widget), info->property);
 
@@ -1428,7 +1428,7 @@ HandleIncremental(xcb_connection_t *dpy,
                   CallBackInfo info,
                   unsigned long size)
 {
-    XtAddEventHandler(widget, (EventMask) PropertyChangeMask, FALSE,
+    XtAddEventHandler(widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE, FALSE,
                       HandleGetIncrement, (XtPointer) info);
 
     /* now start the transfer */
@@ -1468,7 +1468,7 @@ HandleSelectionReplies(Widget widget,
     int format;
     xcb_atom_t type;
 
-    if (event->response_type != SelectionNotify)
+    if (event->response_type != XCB_SELECTION_NOTIFY)
         return;
     if (!MATCH_SELECT(event, info))
         return;                 /* not really for us */
@@ -2294,7 +2294,7 @@ XtSetSelectionParameters(Widget requestor,
     }
 
     //XChangeProperty(dpy, window, property,
-    //                type, format, PropModeReplace,
+    //                type, format, XCB_PROP_MODE_REPLACE,
     //                (unsigned char *) value, (int) length);
     xcb_change_property(
         dpy, 
