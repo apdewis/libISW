@@ -107,8 +107,6 @@ typedef struct {
     String menu_name;		/* name of nested sub-menu or NULL */
     
     xcb_gcontext_t erase_GC;
-
-    ISWRenderContext *render_ctx;  /* Cairo rendering context */
 } SmeBSBPart;
 
 /****************************************************************

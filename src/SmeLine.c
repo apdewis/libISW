@@ -150,8 +150,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     if (entry->rectangle.height == 0)
 	entry->rectangle.height = entry->sme_line.line_width;
 
-    /* Initialize render context to NULL - will be created when first drawn */
-    entry->sme_line.render_ctx = NULL;
+    /* render_ctx lives on the parent SimpleMenu */
 
     CreateGC(new);
 }
@@ -212,11 +211,7 @@ DestroyGC(Widget w)
     SmeLineObject entry = (SmeLineObject) w;
     xcb_connection_t *conn = XtDisplayOfObject(w);
 
-    /* Free Cairo rendering context */
-    if (entry->sme_line.render_ctx) {
-        ISWRenderDestroy(entry->sme_line.render_ctx);
-        entry->sme_line.render_ctx = NULL;
-    }
+    /* render_ctx lives on the parent SimpleMenu — nothing to destroy here */
 
     if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
 	xcb_free_gc(conn, entry->sme_line.gc);
@@ -239,28 +234,20 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     SmeLineObject entry = (SmeLineObject) w;
     SimpleMenuWidget smw = (SimpleMenuWidget) XtParent (w);
-    Dimension s = 0;
+    Dimension s = 1;  /* inset from SimpleMenu's 1px drawn border */
     int y = entry->rectangle.y +
 	    (int)(entry->rectangle.height - entry->sme_line.line_width) / 2;
 
-    /* Try to create Cairo rendering context if not yet created.
-       SmeLine is a RectObj (no window), so use the parent SimpleMenu widget. */
-    if (!entry->sme_line.render_ctx && XtIsRealized(XtParent(w))) {
-        if (entry->rectangle.width > 0 && entry->rectangle.height > 0 &&
-            entry->rectangle.width < 32767 && entry->rectangle.height < 32767) {
-            entry->sme_line.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
-        }
-    }
+    /* Use the parent SimpleMenu's shared render context */
+    ISWRenderContext *ctx = smw->simple_menu.render_ctx;
 
-    /* Use Cairo rendering if available */
-    if (entry->sme_line.render_ctx && XtIsRealized(w)) {
-        ISWRenderBegin(entry->sme_line.render_ctx);
-        ISWRenderSetColor(entry->sme_line.render_ctx, entry->sme_line.foreground);
-        ISWRenderFillRectangle(entry->sme_line.render_ctx,
-                              s, y,
+    if (ctx && XtIsRealized(w)) {
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, entry->sme_line.foreground);
+        ISWRenderFillRectangle(ctx, s, y,
                               entry->rectangle.width - 2 * s,
                               entry->sme_line.line_width);
-        ISWRenderEnd(entry->sme_line.render_ctx);
+        ISWRenderEnd(ctx);
     }
 }
 

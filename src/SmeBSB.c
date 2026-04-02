@@ -207,9 +207,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     entry->sme_bsb.left_margin = ISWScaleDim(new, entry->sme_bsb.left_margin);
     entry->sme_bsb.right_margin = ISWScaleDim(new, entry->sme_bsb.right_margin);
 
-    /* Initialize Cairo rendering context */
-    entry->sme_bsb.render_ctx = NULL;
-
     /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
      * If font is NULL but fontset is available, create a minimal XFontStruct
      * using the fontset's font_id (similar to Label.c approach). */
@@ -271,11 +268,7 @@ Destroy(Widget w)
 {
     SmeBSBObject entry = (SmeBSBObject) w;
 
-    /* Destroy Cairo rendering context */
-    if (entry->sme_bsb.render_ctx) {
-        ISWRenderDestroy(entry->sme_bsb.render_ctx);
-        entry->sme_bsb.render_ctx = NULL;
-    }
+    /* render_ctx lives on the parent SimpleMenu — nothing to destroy here */
 
     if (entry->sme_bsb.left_image_source)
         XtFree(entry->sme_bsb.left_image_source);
@@ -309,7 +302,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     xcb_gcontext_t gc;
     SmeBSBObject entry = (SmeBSBObject) w;
-    Dimension s = 0;
+    Dimension s = 1;  /* inset from SimpleMenu's 1px drawn border */
     int	font_ascent = 0, font_descent = 0, y_loc;
 #ifdef ISW_INTERNATIONALIZATION
     int	fontset_ascent = 0, fontset_descent = 0;
@@ -336,32 +329,31 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
     y_loc = entry->rectangle.y;
 
-    /* Ensure render context exists */
-    if (entry->sme_bsb.render_ctx == NULL && XtIsRealized(XtParent(w)))
-        entry->sme_bsb.render_ctx = ISWRenderCreate(XtParent(w), ISW_RENDER_BACKEND_AUTO);
+    /* Use the parent SimpleMenu's shared render context */
+    ISWRenderContext *ctx = ((SimpleMenuWidget)XtParent(w))->simple_menu.render_ctx;
 
     if (XtIsSensitive(w) && XtIsSensitive( XtParent(w) ) ) {
  if ( w == IswSimpleMenuGetActiveEntry(XtParent(w)) ) {
-     if (entry->sme_bsb.render_ctx) {
-         ISWRenderBegin(entry->sme_bsb.render_ctx);
-         ISWRenderSetColor(entry->sme_bsb.render_ctx, entry->sme_bsb.foreground);
-         ISWRenderFillRectangle(entry->sme_bsb.render_ctx,
+     if (ctx) {
+         ISWRenderBegin(ctx);
+         ISWRenderSetColor(ctx, entry->sme_bsb.foreground);
+         ISWRenderFillRectangle(ctx,
                                 s, y_loc + s,
                                 entry->rectangle.width - 2 * s,
                                 entry->rectangle.height - 2 * s);
-         ISWRenderEnd(entry->sme_bsb.render_ctx);
+         ISWRenderEnd(ctx);
      }
      gc = entry->sme_bsb.rev_gc;
  }
  else {
-     if (entry->sme_bsb.render_ctx) {
-         ISWRenderBegin(entry->sme_bsb.render_ctx);
-         ISWRenderSetColor(entry->sme_bsb.render_ctx, XtParent(w)->core.background_pixel);
-         ISWRenderFillRectangle(entry->sme_bsb.render_ctx,
+     if (ctx) {
+         ISWRenderBegin(ctx);
+         ISWRenderSetColor(ctx, XtParent(w)->core.background_pixel);
+         ISWRenderFillRectangle(ctx,
                                 s, y_loc + s,
                                 entry->rectangle.width - 2 * s,
                                 entry->rectangle.height - 2 * s);
-         ISWRenderEnd(entry->sme_bsb.render_ctx);
+         ISWRenderEnd(ctx);
      }
      gc = entry->sme_bsb.norm_gc;
  }
@@ -421,19 +413,19 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             y_loc += ((int)entry->rectangle.height -
     (font_ascent + font_descent)) / 2 + font_ascent;
 
-            if (entry->sme_bsb.render_ctx) {
+            if (ctx) {
                 Pixel text_color;
                 if (gc == entry->sme_bsb.rev_gc)
                     text_color = XtParent(w)->core.background_pixel;
                 else
                     text_color = entry->sme_bsb.foreground;
-                ISWRenderBegin(entry->sme_bsb.render_ctx);
-                ISWRenderSetColor(entry->sme_bsb.render_ctx, text_color);
+                ISWRenderBegin(ctx);
+                ISWRenderSetColor(ctx, text_color);
                 if (entry->sme_bsb.font)
-                    ISWRenderSetFont(entry->sme_bsb.render_ctx, entry->sme_bsb.font);
-                ISWRenderDrawString(entry->sme_bsb.render_ctx, label, len,
+                    ISWRenderSetFont(ctx, entry->sme_bsb.font);
+                ISWRenderDrawString(ctx, label, len,
                                     x_loc + s, y_loc);
-                ISWRenderEnd(entry->sme_bsb.render_ctx);
+                ISWRenderEnd(ctx);
             }
         }
 
@@ -455,13 +447,13 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	    }
 	    
 	    /* Draw underline using Cairo or XCB */
-	    if (entry->sme_bsb.render_ctx) {
-	        ISWRenderBegin(entry->sme_bsb.render_ctx);
-	        ISWRenderSetColor(entry->sme_bsb.render_ctx, underline_color);
-	        ISWRenderDrawLine(entry->sme_bsb.render_ctx,
+	    if (ctx) {
+	        ISWRenderBegin(ctx);
+	        ISWRenderSetColor(ctx, underline_color);
+	        ISWRenderDrawLine(ctx,
 	                          ul_x1_loc, y_loc + 1,
 	                          ul_x1_loc + ul_wid, y_loc + 1);
-	        ISWRenderEnd(entry->sme_bsb.render_ctx);
+	        ISWRenderEnd(ctx);
 	    }
 	}
     }
@@ -711,6 +703,7 @@ DrawBitmaps(Widget w, xcb_gcontext_t gc)
     SmeBSBObject entry = (SmeBSBObject) w;
     unsigned int rw, rh;
     const unsigned char *pixels;
+    ISWRenderContext *ctx = ((SimpleMenuWidget)XtParent(w))->simple_menu.render_ctx;
 
     (void)gc;  /* gc no longer used — images are RGBA */
 
@@ -727,13 +720,13 @@ DrawBitmaps(Widget w, xcb_gcontext_t gc)
                                    entry->sme_bsb.left_image_width,
                                    entry->sme_bsb.left_image_height,
                                    &rw, &rh);
-        if (pixels && entry->sme_bsb.render_ctx) {
-            ISWRenderBegin(entry->sme_bsb.render_ctx);
-            ISWRenderDrawImageRGBA(entry->sme_bsb.render_ctx, pixels, rw, rh,
+        if (pixels && ctx) {
+            ISWRenderBegin(ctx);
+            ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
                                    x_loc, y_loc,
                                    entry->sme_bsb.left_image_width,
                                    entry->sme_bsb.left_image_height);
-            ISWRenderEnd(entry->sme_bsb.render_ctx);
+            ISWRenderEnd(ctx);
         }
     }
 
@@ -748,13 +741,13 @@ DrawBitmaps(Widget w, xcb_gcontext_t gc)
                                    entry->sme_bsb.right_image_width,
                                    entry->sme_bsb.right_image_height,
                                    &rw, &rh);
-        if (pixels && entry->sme_bsb.render_ctx) {
-            ISWRenderBegin(entry->sme_bsb.render_ctx);
-            ISWRenderDrawImageRGBA(entry->sme_bsb.render_ctx, pixels, rw, rh,
+        if (pixels && ctx) {
+            ISWRenderBegin(ctx);
+            ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
                                    x_loc, y_loc,
                                    entry->sme_bsb.right_image_width,
                                    entry->sme_bsb.right_image_height);
-            ISWRenderEnd(entry->sme_bsb.render_ctx);
+            ISWRenderEnd(ctx);
         }
     }
 }
