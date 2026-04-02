@@ -11,37 +11,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build Commands
 
 ```bash
-# First-time setup (run after cloning or after modifying configure.ac)
-./autogen.sh
-./configure --enable-internationalization
+# First-time setup
+cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
 
 # Build
-make -j$(nproc)
+cmake --build build -j$(nproc)
 
-# Build and run the demo app (uses LD_LIBRARY_PATH, never install)
-make -j$(nproc) && LD_LIBRARY_PATH=src/.libs ./examples/isw_demo
+# Build and run the demo app (never install)
+cmake --build build -j$(nproc) --target demo
 
-# NEVER run `sudo make install` or `sudo ldconfig` — the library is used in-tree only
-
-# Re-run autogen only when configure.ac changes
-./autogen.sh && ./configure --enable-internationalization && make -j$(nproc)
+# NEVER run `sudo cmake --install build` or `sudo ldconfig` — the library is used in-tree only
 ```
 
 There is no formal test suite — manual testing is done via `examples/isw_demo` which exercises all major widgets.
 
 ```bash
 # Verbose build (shows actual compiler commands)
-make V=1
+cmake --build build -j$(nproc) -- VERBOSE=1
 ```
 
 ## Verification
 
 ```bash
 # Confirm no Xlib dependency crept in (should be empty)
-ldd src/.libs/libISW.so | grep libX11
+ldd build/libISW.so | grep libX11
 
 # Check expected XCB dependencies
-ldd src/.libs/libISW.so | grep xcb
+ldd build/libISW.so | grep xcb
 ```
 
 ## Architecture
@@ -98,17 +94,16 @@ Expose methods call the ISWRender API. See `src/Command.c` (~300 lines) as a sim
 
 ## Key Conditional Compilation Flags
 
-Defined in `configure.ac`, used throughout:
+Defined in `CMakeLists.txt`, used throughout:
 
 | Flag | Meaning |
 |---|---|
-| `ISW_INTERNATIONALIZATION` | UTF-8 multibyte support (`--enable-internationalization`, default yes) |
+| `ISW_INTERNATIONALIZATION` | UTF-8 multibyte support (`-DISW_INTERNATIONALIZATION=ON`, default ON) |
 | `ISW_ARROW_SCROLLBARS` | Arrow buttons on scrollbars (always on) |
 | `HAVE_CAIRO` / `HAVE_CAIRO_XCB` | Cairo rendering (mandatory since cairo-xcb is required) |
 | `HAVE_CAIRO_EGL` | Cairo-EGL hardware-accelerated backend (optional, needs `egl` + `cairo-gl`) |
-| `ISW_HAS_XIM` | X Input Method for CJK (`--enable-xim`, default no, requires Xlib XIM APIs) |
-| `ISW_MULTIPLANE_PIXMAPS` | XPM support (`--enable-multiplane-bitmaps`) |
-| `ISW_GRAY_BLKWHT_STIPPLES` | Gray stipple patterns (`--enable-gray-stipples`) |
+| `ISW_HAS_XIM` | X Input Method for CJK (`-DISW_HAS_XIM=ON`, default OFF, requires Xlib XIM APIs) |
+| `ISW_GRAY_BLKWHT_STIPPLES` | Gray stipple patterns (`-DISW_GRAY_BLKWHT_STIPPLES=ON`) |
 | `HAVE_XKBCOMMON` | keysym name functions (optional) |
 | `LIBXT_COMPILATION` | Marks libXt internal compilation unit |
 

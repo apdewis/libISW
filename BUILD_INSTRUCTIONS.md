@@ -26,91 +26,76 @@ The build system will check for these dependencies:
 - **X Toolkit Intrinsics dependencies** (embedded in libISW):
   - libsm (Session Management)
   - libice (Inter-Client Exchange)
-  - libx11 (X11 client library)
   - xproto (X11 protocol headers)
   - libxcb (X C-language Binding core)
   - libxcb-xrm (XCB X Resource Manager)
   - libxcb-keysyms (XCB keyboard symbols)
 
 - **ISW widget dependencies**:
-  - libxext (X11 extensions)
   - libxcb-xfixes (XCB fixes extension)
-  - libxcb-render (XCB render extension)
   - libxcb-shape (XCB shape extension)
-  - libxft (Freetype-based font rendering)
+  - libxcb-present (XCB present extension)
+  - cairo / cairo-xcb (rendering backend)
+  - fontconfig
+  - freetype2
 
 - **Optional dependencies**:
   - libxkbcommon (keyboard handling, recommended)
+  - egl + cairo-gl (hardware-accelerated Cairo-EGL backend)
 
 ### Installation Commands
 
 **Debian/Ubuntu**:
 ```bash
 sudo apt-get install \
-  libsm-dev libice-dev libx11-dev xproto-dev \
+  libsm-dev libice-dev \
   libxcb1-dev libxcb-xrm-dev libxcb-keysyms1-dev \
-  libxext-dev libxcb-xfixes0-dev libxcb-render0-dev \
-  libxcb-shape0-dev libxft-dev libxkbcommon-dev \
-  build-essential autoconf automake libtool pkg-config \
+  libxcb-xfixes0-dev libxcb-shape0-dev libxcb-present-dev \
+  libcairo2-dev libfontconfig-dev libfreetype-dev \
+  libxkbcommon-dev \
+  cmake pkg-config gcc \
   bison flex
 ```
 
 **Fedora/RHEL**:
 ```bash
 sudo dnf install \
-  libSM-devel libICE-devel libX11-devel xorg-x11-proto-devel \
+  libSM-devel libICE-devel \
   libxcb-devel xcb-util-xrm-devel xcb-util-keysyms-devel \
-  libXext-devel libxcb-devel libXft-devel libxkbcommon-devel \
-  gcc autoconf automake libtool pkgconfig \
+  cairo-devel fontconfig-devel freetype-devel \
+  libxkbcommon-devel \
+  cmake gcc pkgconfig \
   bison flex
 ```
 
 **Arch Linux**:
 ```bash
 sudo pacman -S \
-  libsm libice libx11 xorgproto \
+  libsm libice \
   libxcb xcb-util-xrm xcb-util-keysyms \
-  libxext libxft libxkbcommon \
-  base-devel autoconf automake libtool pkg-config \
+  cairo fontconfig freetype2 \
+  libxkbcommon \
+  cmake base-devel pkg-config \
   bison flex
 ```
 
 ## Building from Source
 
-### 1. Generate Build System
+### 1. Configure
 
 ```bash
-./autogen.sh
-```
-
-This will:
-- Run autoconf/automake to generate configure script
-- Set up libtool
-- Create Makefiles from templates
-
-### 2. Configure
-
-Basic configuration:
-```bash
-./configure --enable-internationalization
-```
-
-Optional prefix (default is `/usr/local`):
-```bash
-./configure --prefix=/usr \
-  --enable-internationalization
+cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
 ```
 
 Configuration options:
-- `--enable-internationalization`: Enable I18N/multibyte support (recommended)
-- `--prefix=PATH`: Installation prefix (default: /usr/local)
+- `-DISW_INTERNATIONALIZATION=ON` (default): Enable I18N/multibyte support
+- `-DISW_HAS_XIM=ON`: Enable X Input Method for CJK input
+- `-DISW_GRAY_BLKWHT_STIPPLES=ON`: Enable gray stipple patterns
 
-Note: Arrow scrollbars are always enabled.
-
-### 3. Build
+### 2. Build
 
 ```bash
-make -j$(nproc)
+cmake --build build -j$(nproc)
 ```
 
 This will:
@@ -120,18 +105,19 @@ This will:
 4. Compile all ISW widget sources
 5. Link everything into `libISW.so`
 
-### 4. Install
+### 3. Install
 
 ```bash
-sudo make install
+sudo cmake --install build
 ```
 
 This installs:
-- `libISW.so.1.0.0` → `/usr/local/lib/` (or your --prefix)
-- Headers → `/usr/local/include/ISW/` and `/usr/local/include/X11/`
-- pkg-config file → `/usr/local/lib/pkgconfig/isw.pc`
+- `libISW.so.1.0.0` → `<prefix>/lib/`
+- Headers → `<prefix>/include/ISW/` and `<prefix>/include/X11/`
+- pkg-config file → `<prefix>/lib/pkgconfig/isw.pc`
+- CMake config → `<prefix>/lib/cmake/ISW/`
 
-### 5. Update Library Cache
+### 4. Update Library Cache
 
 ```bash
 sudo ldconfig
@@ -143,10 +129,10 @@ After building, verify the library has no Xlib dependencies:
 
 ```bash
 # Should show NO libX11
-ldd src/.libs/libISW.so | grep libX11
+ldd build/libISW.so | grep libX11
 
 # Should show XCB libraries
-ldd src/.libs/libISW.so | grep xcb
+ldd build/libISW.so | grep xcb
 ```
 
 Expected XCB dependencies:
@@ -158,11 +144,6 @@ libxcb-render.so.0
 libxcb-shape.so.0
 libxcb.so.1
 libxcb-util.so.1
-```
-
-Check library size (should be ~3MB):
-```bash
-ls -lh src/.libs/libISW.so.1.0.0
 ```
 
 ## Type Compatibility
@@ -220,6 +201,14 @@ myapp: myapp.c
 ### CMake Example
 
 ```cmake
+find_package(ISW REQUIRED)
+add_executable(myapp myapp.c)
+target_link_libraries(myapp ISW::ISW)
+```
+
+Or via pkg-config:
+
+```cmake
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(ISW REQUIRED isw)
 
@@ -240,41 +229,41 @@ int main(int argc, char **argv)
 {
     Widget toplevel, box, button;
     xcb_connection_t *dpy;
-    
+
     toplevel = XtInitialize(argv[0], "MyApp", NULL, 0, &argc, argv);
-    
+
     box = XtCreateManagedWidget("box", boxWidgetClass, toplevel, NULL, 0);
     button = XtCreateManagedWidget("quit", commandWidgetClass, box, NULL, 0);
-    
+
     XtRealizeWidget(toplevel);
     XtMainLoop();
-    
+
     return 0;
 }
 ```
 
 ## Current Build Status
 
-- ✅ LibXt (X Toolkit Intrinsics) fully integrated
-- ✅ XCB-based implementation (no Xlib)
-- ✅ All ISW widgets compile and link
-- ✅ String generation system working
-- ✅ Arrow scrollbars always enabled (ISW_ARROW_SCROLLBARS)
-- ✅ Internationalization enabled (ISW_INTERNATIONALIZATION)
-- ✅ Complete Xaw3d → ISW renaming
+- CMake build system (minimum version 3.20)
+- XCB-based implementation (no Xlib)
+- All ISW widgets compile and link
+- String generation system working
+- Arrow scrollbars always enabled (ISW_ARROW_SCROLLBARS)
+- Internationalization enabled by default (ISW_INTERNATIONALIZATION)
+- Complete Xaw3d → ISW renaming
 
 ## Troubleshooting
 
-### Configure fails with "Package X not found"
+### CMake configure fails with "Package X not found"
 
-**Solution**: Install missing dependencies. The configure output will tell you which package is missing.
+**Solution**: Install missing dependencies. The CMake output will tell you which package is missing.
 
 ### Build fails with "X11/StringDefs.h: No such file"
 
 **Solution**: The string generation failed. Check that:
 1. `util/makestrs` built successfully
 2. `util/string.list` exists
-3. Re-run `make clean && make`
+3. Re-run `cmake --build build --clean-first`
 
 ### Runtime error: "cannot open shared object file"
 
@@ -301,11 +290,12 @@ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 ```
 .
-├── configure.ac          # Autoconf configuration
-├── Makefile.am          # Top-level automake file
-├── isw.pc.in            # pkg-config template
+├── CMakeLists.txt        # Build configuration
+├── config.h.cmake.in     # config.h template
+├── isw.pc.cmake.in       # pkg-config template
+├── cmake/
+│   └── ISWConfig.cmake.in  # CMake package config template
 ├── src/
-│   ├── Makefile.am      # Source build configuration
 │   ├── ActionHook.c     # LibXt sources (X Toolkit Intrinsics)
 │   ├── Alloc.c
 │   ├── ...
@@ -314,7 +304,6 @@ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 │   ├── Command.c
 │   └── ...
 ├── include/
-│   ├── Makefile.am
 │   ├── ISW/             # ISW widget headers
 │   │   ├── Box.h
 │   │   └── ...
@@ -322,26 +311,25 @@ export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 │       ├── Intrinsic.h
 │       └── ...
 ├── util/
-│   ├── Makefile.am
 │   ├── makestrs.c       # String generation utility
 │   └── string.list      # String definitions
 └── examples/
-    ├── isw_demo.c       # Demo applications
+    ├── isw_demo.c       # Demo application
     └── ...
 ```
 
-### Adding New Features
+### Adding New Source Files
 
 1. Modify source files in `src/`
 2. Update headers in `include/ISW/` or `include/X11/`
-3. If adding new files, update appropriate `Makefile.am`
-4. Rebuild: `make clean && make`
+3. Add new source files to the appropriate list in `CMakeLists.txt`
+4. Rebuild: `cmake --build build -j$(nproc)`
 
 ### Debugging Build Issues
 
 Enable verbose output:
 ```bash
-make V=1
+cmake --build build -j$(nproc) -- VERBOSE=1
 ```
 
 Check preprocessor output:
