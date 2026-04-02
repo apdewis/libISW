@@ -242,7 +242,6 @@ InitPerDisplay(xcb_connection_t *dpy,
     pd->name = (String)name;
     pd->class = (String)classname;
     pd->being_destroyed = False;
-    pd->GClist = NULL;
     pd->pixmap_tab = NULL;
     pd->language = NULL;
     pd->rv = False;
@@ -770,7 +769,6 @@ CloseDisplay(xcb_connection_t *dpy)
          * cache flush) uses _XtConnectionOfScreen() which walks
          * app->list[] — the display must still be in that list. */
         _XtCacheFlushTag(xtpd->appContext, (XtPointer) &xtpd->heap);
-        _XtGClistFree(dpy, xtpd);
         XtDeleteFromAppContext(dpy, xtpd->appContext);
         //if (xtpd->keysyms)
         //    xcb_key_symbols_free(xtpd->keysyms); //causes linker error even with xcb-xkb linked

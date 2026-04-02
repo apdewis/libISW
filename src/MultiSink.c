@@ -317,9 +317,9 @@ CharWidth (
 }
 
 /*	Function Name: PaintText
- *	Description: Actually paints the text into the windoe.
+ *	Description: Actually paints the text into the window.
  *	Arguments: w - the text widget.
- *                 gc - gc to paint text with.
+ *                 highlight - if True, swap foreground/background.
  *                 x, y - location to paint the text.
  *                 buf, len - buffer and length of text to paint.
  *	Returns: the width of the text painted, or 0.
@@ -329,7 +329,7 @@ CharWidth (
  */
 
 static Dimension
-PaintText(Widget w, xcb_gcontext_t gc, Position x, Position y, wchar_t* buf, int len)
+PaintText(Widget w, Boolean highlight, Position x, Position y, wchar_t* buf, int len)
 {
     MultiSinkObject sink = (MultiSinkObject) w;
     TextWidget ctx = (TextWidget) XtParent(w);
@@ -362,7 +362,7 @@ PaintText(Widget w, xcb_gcontext_t gc, Position x, Position y, wchar_t* buf, int
     {
         int m_asc = MultiScaledAscent(sink);
         int m_h = MultiScaledHeight(sink);
-        Pixel m_bg = (gc == sink->multi_sink.invgc) ?
+        Pixel m_bg = highlight ?
             sink->text_sink.foreground : sink->text_sink.background;
         ISWRenderSave(sink->multi_sink.render_ctx);
         ISWRenderSetColor(sink->multi_sink.render_ctx, m_bg);
@@ -409,7 +409,6 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 
     int j, k;
     ISWTextBlock blk;
-    xcb_gcontext_t gc = highlight ? sink->multi_sink.invgc : sink->multi_sink.normgc;
 
     if (!sink->multi_sink.echo) return;
 
@@ -438,7 +437,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 	pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
 	for (k = 0; k < blk.length; k++) {
 	    if (j >= BUFSIZ) {	/* buffer full, dump the text. */
-	        x += PaintText(w, gc, x, y, buf, j);
+	        x += PaintText(w, highlight, x, y, buf, j);
 		j = 0;
 	    }
 	    buf[j] = ((wchar_t *)blk.ptr)[k];
@@ -449,7 +448,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 	        Position temp = 0;
 		Dimension width;
 
-	        if ((j != 0) && ((temp = PaintText(w, gc, x, y, buf, j)) == 0))
+	        if ((j != 0) && ((temp = PaintText(w, highlight, x, y, buf, j)) == 0))
 		  return;
 
 	        x += temp;
@@ -484,7 +483,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 	}
     }
     if (j > 0)
-        (void) PaintText(w, gc, x, y, buf, j);
+        (void) PaintText(w, highlight, x, y, buf, j);
     
     /* End Cairo rendering */
     if (sink->multi_sink.render_ctx) {
@@ -682,34 +681,6 @@ Resolve (Widget w, ISWTextPosition pos, int fromx, int width,
       *resPos = GETLASTPOS;
 }
 
-static void
-GetGC(MultiSinkObject sink)
-{
-    XtGCMask valuemask = (XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND );
-    xcb_create_gc_value_list_t values;
-
-    ISWInitGCValues(&values);
-    values.graphics_exposures = 0;
-
-    values.foreground = sink->text_sink.foreground;
-    values.background = sink->text_sink.background;
-
-    sink->multi_sink.normgc = XtGetGC( (Widget)sink, valuemask, &values);
-
-    values.foreground = sink->text_sink.background;
-    values.background = sink->text_sink.foreground;
-    sink->multi_sink.invgc = XtGetGC( (Widget)sink, valuemask, &values);
-
-    values.function = XCB_GX_XOR;
-    values.background = (unsigned long) 0L;	/* (pix ^ 0) = pix */
-    values.foreground = (sink->text_sink.background ^
-			 sink->text_sink.foreground);
-    valuemask = XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FUNCTION | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
-
-    sink->multi_sink.xorgc = XtGetGC( (Widget)sink, valuemask, &values);
-}
-
-
 /***** Public routines *****/
 
 /*	Function Name: Initialize
@@ -725,8 +696,6 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     MultiSinkObject sink = (MultiSinkObject) new;
-
-    GetGC(sink);
 
     sink->multi_sink.insertCursorOn= CreateInsertCursor(new);
     sink->multi_sink.laststate = IswisOff;
@@ -751,10 +720,6 @@ Destroy(Widget w)
        sink->multi_sink.render_ctx = NULL;
    }
 
-   XtReleaseGC(w, sink->multi_sink.normgc);
-   XtReleaseGC(w, sink->multi_sink.invgc);
-   XtReleaseGC(w, sink->multi_sink.xorgc);
-
   ISWFreePixmap(XtDisplayOfObject(w), sink->multi_sink.insertCursorOn);
 }
 
@@ -773,8 +738,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     MultiSinkObject w = (MultiSinkObject) new;
     MultiSinkObject old_w = (MultiSinkObject) current;
 
-    /* Font set is not in the xcb_gcontext_t! Do not make a new xcb_gcontext_t when font set changes! */
-
     if ( w->multi_sink.fontset != old_w->multi_sink.fontset ) {
  ((TextWidget)XtParent(new))->text.redisplay_needed = True;
 #ifndef NO_TAB_FIX
@@ -785,10 +748,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (   w->text_sink.background != old_w->text_sink.background ||
 	   w->text_sink.foreground != old_w->text_sink.foreground     ) {
 
-	XtReleaseGC((Widget)w, w->multi_sink.normgc);
-	XtReleaseGC((Widget)w, w->multi_sink.invgc);
-	XtReleaseGC((Widget)w, w->multi_sink.xorgc);
-	GetGC(w);
 	((TextWidget)XtParent(new))->text.redisplay_needed = True;
     } else {
 	if ( (w->multi_sink.echo != old_w->multi_sink.echo) ||

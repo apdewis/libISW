@@ -113,8 +113,8 @@ static XtResource resources[] = {
 static XtResource treeConstraintResources[] = {
     { XtNtreeParent, XtCTreeParent, XtRWidget, sizeof (Widget),
 	XtOffsetOf(TreeConstraintsRec, tree.parent), XtRImmediate, NULL },
-    { XtNtreeGC, XtCTreeGC, XtRGC, sizeof(xcb_gcontext_t),
-	XtOffsetOf(TreeConstraintsRec, tree.gc), XtRImmediate, NULL },
+    { XtNtreeForeground, XtCTreeForeground, XtRPixel, sizeof(Pixel),
+	XtOffsetOf(TreeConstraintsRec, tree.foreground), XtRImmediate, NULL },
 };
 
 
@@ -210,22 +210,6 @@ initialize_dimensions (Dimension **listp, int *sizep, int n)
 	*sizep = n;
     }
     return;
-}
-
-static xcb_gcontext_t
-get_tree_gc (TreeWidget w)
-{
-    XtGCMask valuemask = XCB_GC_BACKGROUND | XCB_GC_FOREGROUND;
-    xcb_create_gc_value_list_t values = {0};
-
-    values.background = w->core.background_pixel;
-    values.foreground = w->tree.foreground;
-    if (w->tree.line_width != 0) {
-	valuemask |= XCB_GC_LINE_WIDTH;
-	values.line_width = w->tree.line_width;
-    }
-
-    return XtGetGC ((Widget) w, valuemask, &values);
 }
 
 static void
@@ -399,11 +383,6 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
 	new->tree.line_width = ISWScaleDim(gnew, new->tree.line_width);
 
     /*
-     * Create a graphics context for the connecting lines.
-     */
-    new->tree.gc = get_tree_gc (new);
-
-    /*
      * Initialize the Cairo rendering context
      */
     new->tree.render_ctx = NULL;
@@ -470,14 +449,11 @@ SetValues (Widget gcurrent, Widget grequest, Widget gnew, ArgList args, Cardinal
     Boolean redraw = FALSE;
 
     /*
-     * If the foreground color has changed, redo the xcb_gcontext_t's
-     * and indicate a redraw.
+     * If the foreground color has changed, indicate a redraw.
      */
     if (new->tree.foreground != current->tree.foreground ||
 	new->core.background_pixel != current->core.background_pixel ||
 	new->tree.line_width != current->tree.line_width) {
-	XtReleaseGC (gnew, new->tree.gc);
-	new->tree.gc = get_tree_gc (new);
 	redraw = TRUE;
     }
 
@@ -610,7 +586,6 @@ Destroy (Widget gw)
         w->tree.render_ctx = NULL;
     }
 
-    XtReleaseGC (gw, w->tree.gc);
     if (w->tree.largest) XtFree ((char *) w->tree.largest);
 }
 
@@ -658,8 +633,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 		for (j = 0; j < tc->tree.n_children; j++) {
 		    Widget k = tc->tree.children[j];
-		    xcb_gcontext_t gc = (tc->tree.gc ? tc->tree.gc : tw->tree.gc);
-		    xcb_connection_t *conn = dpy;
+		    Pixel line_color = tc->tree.foreground ? tc->tree.foreground : tw->tree.foreground;
 		    int x1, y1, x2, y2;
 
 		    switch (tw->tree.gravity) {
@@ -718,7 +692,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		    }
 
 		    if (tw->tree.render_ctx) {
-			ISWRenderSetColor(tw->tree.render_ctx, tw->tree.foreground);
+			ISWRenderSetColor(tw->tree.render_ctx, line_color);
 			ISWRenderDrawLine(tw->tree.render_ctx, x1, y1, x2, y2);
 		    }
 		}

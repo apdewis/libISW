@@ -61,7 +61,6 @@ typedef struct _TipPart {
 
     /* private */
     ISWRenderContext *render_ctx;
-    xcb_gcontext_t gc;
     XtIntervalId timer;
 #ifdef ISW_INTERNATIONALIZATION
     Boolean international;

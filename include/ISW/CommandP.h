@@ -109,8 +109,6 @@ typedef struct {
 
     /* private state */
     xcb_pixmap_t      	gray_pixmap;
-    xcb_gcontext_t          	normal_GC;
-    xcb_gcontext_t          	inverse_GC;
     Boolean     	set;
     XtCommandHighlight	highlighted;
     /* more resources */

@@ -312,71 +312,6 @@ SetTextWidthAndHeight(LabelWidget lw)
 }
 
 static void
-GetnormalGC(LabelWidget lw)
-{
-    xcb_create_gc_value_list_t values;
-    memset(&values, 0, sizeof(values));
-
-    values.foreground = lw->label.foreground;
-    values.background = lw->core.background_pixel;
-    values.graphics_exposures = 0;  /* False */
-
-    /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gc_mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-    if (lw->label.font != NULL) {
-	values.font = lw->label.font->fid;
-	gc_mask |= XCB_GC_FONT;
-    }
-
-#ifdef ISW_INTERNATIONALIZATION
-    if ( lw->simple.international == True )
-        /* Since Xmb/wcDrawString eats the font, I must use XtAllocateGC. */
-        lw->label.normal_GC = XtAllocateGC(
-                (Widget)lw, 0,
-	gc_mask & ~XCB_GC_FONT,  /* Don't include font in mask for international mode */
-	&values, XCB_GC_FONT, 0 );
-    else
-#endif
-        lw->label.normal_GC = XtGetGC((Widget)lw, gc_mask, &values);
-}
-
-static void
-GetgrayGC(LabelWidget lw)
-{
-    xcb_create_gc_value_list_t values;
-    memset(&values, 0, sizeof(values));
-
-    values.foreground = lw->label.foreground;
-    values.background = lw->core.background_pixel;
-    values.fill_style = XCB_FILL_STYLE_TILED;
-    values.tile = IswCreateStippledPixmap(XtDisplay((Widget)lw),
-    	  XtWindow((Widget)lw),
-    	  lw->label.foreground,
-    	  lw->core.background_pixel,
-    	  lw->core.depth);
-    values.graphics_exposures = 0;  /* False */
-
-    /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gc_mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND |
-                       XCB_GC_TILE | XCB_GC_FILL_STYLE | XCB_GC_GRAPHICS_EXPOSURES;
-    if (lw->label.font != NULL) {
-	values.font = lw->label.font->fid;
-	gc_mask |= XCB_GC_FONT;
-    }
-
-    lw->label.stipple = values.tile;
-#ifdef ISW_INTERNATIONALIZATION
-    if ( lw->simple.international == True )
-        /* Since Xmb/wcDrawString eats the font, I must use XtAllocateGC. */
-        lw->label.gray_GC = XtAllocateGC((Widget)lw,  0,
-			gc_mask & ~XCB_GC_FONT,  /* Don't include font in mask for international mode */
-			&values, XCB_GC_FONT, 0);
-    else
-#endif
-        lw->label.gray_GC = XtGetGC((Widget)lw, gc_mask, &values);
-}
-
-static void
 compute_bitmap_offsets (LabelWidget lw)
 {
     if (lw->label.lbm_height != 0)
@@ -459,9 +394,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     } else {
     }
 
-    GetnormalGC(lw);
-    GetgrayGC(lw);
-
     /* Initialize render context to NULL (will be created on first use) */
     lw->label.render_ctx = NULL;
 
@@ -497,8 +429,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     LabelWidget w = (LabelWidget) gw;
     LabelWidgetClass lwclass = (LabelWidgetClass) XtClass (gw);
-    xcb_gcontext_t gc;
-    xcb_connection_t *conn = gw->core.display;
     ISWRenderContext *ctx = w->label.render_ctx;  /* Cairo rendering context */
     
     /* Create render context on first use (lazy initialization) */
@@ -534,11 +464,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	(void)x; (void)width; (void)region; /* suppress warnings */
     }
 
-    gc = XtIsSensitive(gw) ? w->label.normal_GC : w->label.gray_GC;
-#ifdef notdef
-    if (region != NULL)
-	XSetRegion(gw->display, gc, region);
-#endif /*notdef*/
 
     /* Image rendering path (replaces text/pixmap) */
     if (w->label.image) {
@@ -676,12 +601,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     }
 
-#ifdef notdef
-    if (region != 0)
-	/* FIXME: XCB - XSetClipMask needs xcb_change_gc with clip mask */
-	/* XSetClipMask(conn, gc, (xcb_pixmap_t)None); */
-	(void)gc; /* suppress warning */
-#endif /* notdef */
 }
 
 static void
@@ -858,12 +777,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (curlw->core.background_pixel != newlw->core.background_pixel ||
   curlw->label.foreground != newlw->label.foreground ||
   font_changed) {
-        /* the fontset is not in the xcb_gcontext_t - no new xcb_gcontext_t if fontset changes */
- XtReleaseGC(new, curlw->label.normal_GC);
- XtReleaseGC(new, curlw->label.gray_GC);
- ISWReleaseStippledPixmap( XtScreen(current), curlw->label.stipple );
- GetnormalGC(newlw);
- GetgrayGC(newlw);
  redisplay = True;
  /* Recolor SVG images if foreground changed */
  if (curlw->label.foreground != newlw->label.foreground) {
@@ -908,15 +821,11 @@ Destroy(Widget w)
 	ISWImageDestroy(lw->label.left_image);
 	lw->label.left_image = NULL;
     }
-    XtReleaseGC( w, lw->label.normal_GC );
-    XtReleaseGC( w, lw->label.gray_GC);
-    
     /* Free Cairo render context if allocated */
     if (lw->label.render_ctx != NULL) {
 	ISWRenderDestroy(lw->label.render_ctx);
 	lw->label.render_ctx = NULL;
     }
-    ISWReleaseStippledPixmap( XtScreen(w), lw->label.stipple );
 }
 
 

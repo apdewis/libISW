@@ -43,7 +43,6 @@ LIBXT_SOURCES = \
 	Event.c \
 	EventUtil.c \
 	Functions.c \
-	GCManager.c \
 	Geometry.c \
 	GetActKey.c \
 	GetResList.c \

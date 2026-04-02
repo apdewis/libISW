@@ -194,7 +194,6 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
-static void GetGCs(Widget);
 static void ReleaseGCs(Widget);
 static void RefigureLocationsAndCommit(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -737,20 +736,19 @@ RefigureLocationsAndCommit(Widget w)
 /*	Function Name: _DrawRect
  *	Description: Draws a rectangle in the proper orientation.
  *	Arguments: pw - the paned widget.
- *                 gc - gc to used for the draw.
- *                 on_olc, off_loc - location of upper left corner of rect.
+ *                 pixel - the color to use for the draw.
+ *                 on_loc, off_loc - location of upper left corner of rect.
  *                 on_size, off_size - size of rectangle.
  *	Returns: none
  */
 
 static void
-_DrawRect(PanedWidget pw, xcb_gcontext_t gc, int on_loc, int off_loc,
+_DrawRect(PanedWidget pw, Pixel pixel, int on_loc, int off_loc,
           unsigned int on_size, unsigned int off_size)
 {
   int x, y;
   unsigned int width, height;
-  Pixel pixel;
-  
+
   if (IsVert(pw)) {
     x = off_loc;
     y = on_loc;
@@ -762,17 +760,7 @@ _DrawRect(PanedWidget pw, xcb_gcontext_t gc, int on_loc, int off_loc,
     width = on_size;
     height = off_size;
   }
-  
-  /* Determine pixel value from xcb_gcontext_t */
-  if (gc == pw->paned.normgc) {
-    pixel = pw->paned.internal_bp;
-  } else if (gc == pw->paned.invgc) {
-    pixel = pw->core.background_pixel;
-  } else {
-    /* flipgc uses XOR mode - fall back to XCB for complex operations */
-    pixel = 0; /* Will use XCB fallback */
-  }
-  
+
   /* Lazy create render context if needed */
   if (!pw->paned.render_ctx && XtIsRealized((Widget)pw)) {
     if (pw->core.width > 0 && pw->core.height > 0) {
@@ -791,12 +779,12 @@ _DrawRect(PanedWidget pw, xcb_gcontext_t gc, int on_loc, int off_loc,
 /*	Function Name: _DrawInternalBorders
  *	Description: Draws the internal borders into the paned widget.
  *	Arguments: pw - the paned widget.
- *                 gc - the xcb_gcontext_t to use to draw the borders.
+ *                 pixel - the color to use to draw the borders.
  *	Returns: none.
  */
 
 static void
-_DrawInternalBorders(PanedWidget pw, xcb_gcontext_t gc)
+_DrawInternalBorders(PanedWidget pw, Pixel pixel)
 {
     Widget *childP;
     int on_loc, off_loc;
@@ -818,7 +806,7 @@ _DrawInternalBorders(PanedWidget pw, xcb_gcontext_t gc)
         on_loc = IsVert(pw) ? (*childP)->core.y : (*childP)->core.x;
 	on_loc -= (int) on_size;
 
-	_DrawRect( pw, gc, on_loc, off_loc, on_size, off_size);
+	_DrawRect( pw, pixel, on_loc, off_loc, on_size, off_size);
     }
 }
 
@@ -826,8 +814,8 @@ _DrawInternalBorders(PanedWidget pw, xcb_gcontext_t gc)
  * This allows good reuse of code, as well as descriptive function names.
  */
 
-#define DrawInternalBorders(pw) _DrawInternalBorders((pw), (pw)->paned.normgc);
-#define EraseInternalBorders(pw) _DrawInternalBorders((pw), (pw)->paned.invgc);
+#define DrawInternalBorders(pw) _DrawInternalBorders((pw), (pw)->paned.internal_bp);
+#define EraseInternalBorders(pw) _DrawInternalBorders((pw), (pw)->core.background_pixel);
 
 /*	Function Name: _DrawTrackLines
  *	Description: Draws the lines that animate the pane borders when the
@@ -856,13 +844,13 @@ _DrawTrackLines(PanedWidget pw, Boolean erase)
 	    if (!erase) {
 	        on_loc = PaneInfo(*childP)->olddelta - (int) on_size;
 
-		_DrawRect( pw, pw->paned.flipgc,
+		_DrawRect( pw, pw->paned.internal_bp ^ pw->core.background_pixel,
 			  on_loc, off_loc, on_size, off_size);
 	    }
 
 	    on_loc = PaneInfo(*childP)->delta - (int) on_size;
 
-	    _DrawRect(pw, pw->paned.flipgc,
+	    _DrawRect(pw, pw->paned.internal_bp ^ pw->core.background_pixel,
 		      on_loc, off_loc, on_size, off_size);
 
 	    pane->olddelta = pane->delta;
@@ -1226,46 +1214,6 @@ CreateGrip(Widget child)
 		  HandleGrip, (XtPointer) child);
 }
 
-/*	Function Name: GetGCs
- *	Description: Gets new xcb_gcontext_t's.
- *	Arguments: w - the paned widget.
- *	Returns: none.
- */
-
-static void
-GetGCs(Widget w)
-{
-    PanedWidget pw = (PanedWidget) w;
-    XtGCMask valuemask;
-    xcb_create_gc_value_list_t values;
-
-/*
- * Draw pane borders in internal border color.
- */
-
-    values.foreground = pw->paned.internal_bp;
-    valuemask = XCB_GC_FOREGROUND;
-    pw->paned.normgc = XtGetGC(w, valuemask, &values);
-
-/*
- * Erase pane borders with background color.
- */
-
-    values.foreground = pw->core.background_pixel;
-    valuemask = XCB_GC_FOREGROUND;
-    pw->paned.invgc = XtGetGC(w, valuemask, &values);
-
-/*
- * Draw Track lines (animate pane borders) in internal border color ^ bg color.
- */
-
-    values.function = XCB_GX_INVERT;
-    values.plane_mask = pw->paned.internal_bp ^ pw->core.background_pixel;
-    values.subwindow_mode = XCB_SUBWINDOW_MODE_INCLUDE_INFERIORS;
-    valuemask = XCB_GC_PLANE_MASK | XCB_GC_FUNCTION | XCB_GC_SUBWINDOW_MODE;
-    pw->paned.flipgc = XtGetGC(w, valuemask, &values);
-}
-
 /*	Function Name: SetChildrenPrefSizes.
  *	Description: Sets the preferred sizes of the children.
  *	Arguments: pw - the paned widget.
@@ -1565,8 +1513,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* HiDPI: scale dimension resources */
     pw->paned.internal_bw = ISWScaleDim(new, pw->paned.internal_bw);
 
-    GetGCs( (Widget) pw);
-
     pw->paned.recursively_called = False;
     pw->paned.stack = NULL;
     pw->paned.resize_children_to_pref = TRUE;
@@ -1610,10 +1556,6 @@ ReleaseGCs(Widget w)
         ISWRenderDestroy(pw->paned.render_ctx);
         pw->paned.render_ctx = NULL;
     }
-
-    XtReleaseGC( w, pw->paned.normgc );
-    XtReleaseGC( w, pw->paned.invgc );
-    XtReleaseGC( w, pw->paned.flipgc );
 }
 
 static void
@@ -1752,8 +1694,6 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
 
     if ( (old_pw->paned.internal_bp != new_pw->paned.internal_bp) ||
 	 (old_pw->core.background_pixel != new_pw->core.background_pixel) ) {
-        ReleaseGCs(old);
-	GetGCs(new);
 	redisplay = TRUE;
     }
 

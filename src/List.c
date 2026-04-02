@@ -198,64 +198,6 @@ WidgetClass listWidgetClass = (WidgetClass)&listClassRec;
  *
  ****************************************************************/
 
-static void
-GetGCs(Widget w)
-{
-    xcb_create_gc_value_list_t	values;
-    ListWidget lw = (ListWidget) w;
-
-    memset(&values, 0, sizeof(values));
-    values.foreground	= lw->list.foreground;
-    values.background	= lw->core.background_pixel;  /* CRITICAL: Set background for text rendering */
-
-    /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gc_mask = (unsigned) (XCB_GC_FOREGROUND | XCB_GC_BACKGROUND);  /* Include background */
-    if (lw->list.font != NULL) {
-        values.font = lw->list.font->fid;
-        gc_mask |= XCB_GC_FONT;
-    }
-
-#ifdef ISW_INTERNATIONALIZATION
-    if ( lw->simple.international == True )
-        lw->list.normgc = XtAllocateGC( w, 0, gc_mask & ~XCB_GC_FONT,
-				 &values, XCB_GC_FONT, 0 );
-    else
-#endif
-        lw->list.normgc = XtGetGC( w, gc_mask, &values);
-
-    values.foreground	= lw->core.background_pixel;
-    values.background	= lw->list.foreground;  /* Swap colors for reverse xcb_gcontext_t */
-
-#ifdef ISW_INTERNATIONALIZATION
-    if ( lw->simple.international == True )
-        lw->list.revgc = XtAllocateGC( w, 0, gc_mask & ~XCB_GC_FONT,
-				 &values, XCB_GC_FONT, 0 );
-    else
-#endif
-        lw->list.revgc = XtGetGC( w, gc_mask, &values);
-
-    values.tile       = IswCreateStippledPixmap(XtDisplay(w), XtWindow(w),
-    		lw->list.foreground,
-    		lw->core.background_pixel,
-    		lw->core.depth);
-    values.fill_style = XCB_FILL_STYLE_TILED;
-
-    /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gray_gc_mask = (unsigned) (XCB_GC_TILE | XCB_GC_FILL_STYLE);
-    if (lw->list.font != NULL) {
-        gray_gc_mask |= XCB_GC_FONT;
-    }
-
-#ifdef ISW_INTERNATIONALIZATION
-    if ( lw->simple.international == True )
-        lw->list.graygc = XtAllocateGC( w, 0, gray_gc_mask & ~XCB_GC_FONT,
-			      &values, XCB_GC_FONT, 0 );
-    else
-#endif
-        lw->list.graygc = XtGetGC( w, gray_gc_mask, &values);
-}
-
-
 /* CalculatedValues()
  *
  * does routine checks/computations that must be done after data changes
@@ -421,8 +363,6 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
                         (lw->core.height != 0) * HeightLock +
                         (lw->list.longest != 0) * LongestLock;
 
-    GetGCs(new);
-
     /* Set row height using Cairo-matched metrics for correct HiDPI sizing */
     lw->list.row_height = ISWScaledFontHeight(new, lw->list.font)
                           + lw->list.row_space;
@@ -553,10 +493,10 @@ ItemInRectangle(Widget w, int ul, int lr, int item)
  * simple calculation and probably much faster than using Xlib and a clip mask.
  *
  *  x, y - ul corner of the area item occupies.
- *  gc - the gc to use to paint this rectangle */
+ *  color - the pixel color to fill the background with */
 
 static void
-HighlightBackground(Widget w, int x, int y, xcb_gcontext_t gc)
+HighlightBackground(Widget w, int x, int y, Pixel color)
 {
     ListWidget lw = (ListWidget) w;
 
@@ -587,46 +527,8 @@ HighlightBackground(Widget w, int x, int y, xcb_gcontext_t gc)
         y = lw->list.internal_height;
     }
 
-    /* Determine color based on which xcb_gcontext_t is being used */
-    Pixel color;
-    if (gc == lw->list.normgc) {
-        color = lw->list.foreground;
-    } else if (gc == lw->list.revgc) {
-        color = lw->core.background_pixel;
-    } else {
-        /* graygc - use foreground for now */
-        color = lw->list.foreground;
-    }
-
     ISWRenderSetColor(lw->list.render_ctx, color);
     ISWRenderFillRectangle(lw->list.render_ctx, x, y, width, height);
-}
-
-
-/* ClipToShadowInteriorAndLongest()
- *
- * Converts the passed gc so that any drawing done with that xcb_gcontext_t will not
- * write in the empty margin (specified by internal_width/height) (which also
- * prevents erasing the shadow.  It also clips against the value longest.
- * If the user doesn't set longest, this has no effect (as longest is the
- * maximum of all item lengths).  If the user does specify, say, 80 pixel
- * columns, though, this prevents items from overwriting other items. */
-
-static void
-ClipToShadowInteriorAndLongest(ListWidget lw, xcb_gcontext_t *gc_p, Dimension x)
-{
-    xcb_rectangle_t rect;
-
-    rect.x = x;
-    rect.y = lw->list.internal_height;
-    rect.height = lw->core.height - lw->list.internal_height * 2;
-    rect.width = lw->core.width - lw->list.internal_width - x;
-    if ( rect.width > lw->list.longest )
-        rect.width = lw->list.longest;
-
-    xcb_connection_t *conn = XtDisplay((Widget)lw);
-    xcb_set_clip_rectangles(conn, XCB_CLIP_ORDERING_YX_BANDED, *gc_p, 0, 0, 1, &rect);
-    xcb_flush(conn);
 }
 
 
@@ -642,7 +544,7 @@ static void
 PaintItemName(Widget w, int item)
 {
     char * str;
-    xcb_gcontext_t gc;
+    Boolean is_highlighted;
     int x, y, str_y;
     ListWidget lw = (ListWidget) w;
 
@@ -665,31 +567,25 @@ PaintItemName(Widget w, int item)
 
     if (item == lw->list.is_highlighted) {
         if (item == lw->list.highlight) {
-            gc = lw->list.revgc;
-     HighlightBackground(w, x, y, lw->list.normgc);
- }
+            is_highlighted = True;
+            HighlightBackground(w, x, y, lw->list.foreground);
+        }
         else {
-     if (XtIsSensitive(w))
-         gc = lw->list.normgc;
-     else
-         gc = lw->list.graygc;
-     HighlightBackground(w, x, y, lw->list.revgc);
-     lw->list.is_highlighted = NO_HIGHLIGHT;
+            is_highlighted = False;
+            HighlightBackground(w, x, y, lw->core.background_pixel);
+            lw->list.is_highlighted = NO_HIGHLIGHT;
         }
     }
     else {
         if (item == lw->list.highlight) {
-            gc = lw->list.revgc;
-     HighlightBackground(w, x, y, lw->list.normgc);
-     lw->list.is_highlighted = item;
- }
- else {
-     if (XtIsSensitive(w))
-         gc = lw->list.normgc;
-     else
-         gc = lw->list.graygc;
-     HighlightBackground(w, x, y, lw->list.revgc);
- }
+            is_highlighted = True;
+            HighlightBackground(w, x, y, lw->list.foreground);
+            lw->list.is_highlighted = item;
+        }
+        else {
+            is_highlighted = False;
+            HighlightBackground(w, x, y, lw->core.background_pixel);
+        }
     }
 
     /* List's overall width contains the same number of inter-column
@@ -717,9 +613,9 @@ PaintItemName(Widget w, int item)
                                   clip_rect.x, clip_rect.y,
                                   clip_rect.width, clip_rect.height);
 
-        /* Determine text color */
+        /* Determine text color: highlighted items swap fg/bg */
         Pixel text_color;
-        if (gc == lw->list.revgc)
+        if (is_highlighted)
             text_color = lw->core.background_pixel;
         else
             text_color = lw->list.foreground;
@@ -1271,7 +1167,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if ( nl->list.longest == 0 )
         nl->list.freedoms &= ~LongestLock;
 
-    /* _DONT_ check for fontset here - it's not in xcb_gcontext_t.*/
+    /* _DONT_ check for fontset here - it doesn't affect color/layout.*/
 
     /* XCB Fix: Add NULL checks before comparing font->fid */
     Bool font_changed = False;
@@ -1285,11 +1181,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (  (cl->list.foreground       != nl->list.foreground)       ||
    (cl->core.background_pixel != nl->core.background_pixel) ||
    font_changed ) {
- /* XCB: Skip XGetGCValues - tile tracking would need separate mechanism */
- XtReleaseGC(current, cl->list.graygc);
- XtReleaseGC(current, cl->list.revgc);
- XtReleaseGC(current, cl->list.normgc);
-        GetGCs(new);
         redraw = TRUE;
     }
 
@@ -1364,11 +1255,6 @@ Destroy(Widget w)
 	XtFree(lw->list.clip_contents);
 	lw->list.clip_contents = NULL;
     }
-
-    /* XCB: Skip XGetGCValues - tile tracking would need separate mechanism */
-    XtReleaseGC(w, lw->list.graygc);
-    XtReleaseGC(w, lw->list.revgc);
-    XtReleaseGC(w, lw->list.normgc);
 }
 
 /* Exported Functions */

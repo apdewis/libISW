@@ -94,19 +94,13 @@ typedef struct {
     XtJustify justify;		/* Justification for the label. */
     int underline;		/* index of letter to underline in label. */
 
-    /* private resources. */
+    /* private state. */
     Boolean set_values_area_cleared; /* Remember if we need to unhighlight. */
-    xcb_gcontext_t norm_gc;			/* noral color gc. */
-    xcb_gcontext_t rev_gc;			/* reverse color gc. */
-    xcb_gcontext_t norm_gray_gc;		/* Normal color (grayed out) gc. */
-    xcb_gcontext_t invert_gc;		/* gc for flipping colors. */
     Dimension left_image_width;
     Dimension left_image_height;
     Dimension right_image_width;
     Dimension right_image_height;
     String menu_name;		/* name of nested sub-menu or NULL */
-    
-    xcb_gcontext_t erase_GC;
 } SmeBSBPart;
 
 /****************************************************************

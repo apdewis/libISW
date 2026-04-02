@@ -204,9 +204,6 @@ extern void _XtAddShellToHookObj(
     Widget      /* widget */
 );
 
-/* GCManager.c */
-extern void _XtGClistFree(xcb_connection_t *dpy, XtPerDisplay pd);
-
 /** GeoTattler stuff */
 
 #ifdef XT_GEO_TATTLER

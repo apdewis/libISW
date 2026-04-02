@@ -123,7 +123,6 @@ set(LIBXT_SOURCES
     src/Event.c
     src/EventUtil.c
     src/Functions.c
-    src/GCManager.c
     src/Geometry.c
     src/GetActKey.c
     src/GetResList.c

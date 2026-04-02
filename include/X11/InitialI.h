@@ -345,8 +345,7 @@ typedef struct _XtPerDisplayStruct {
     //XrmClass class;		       /* application class */
     String class;
     Heap heap;
-    struct _GCrec *GClist;	       /* support for XtGetGC */
-    XtScreenPixmapStructPtr pixmap_tab;   /* ditto for XtGetGC */
+    XtScreenPixmapStructPtr pixmap_tab;   /* pixmap cache */
     String language;		       /* XPG language string */
     xcb_generic_event_t last_event;		       /* last event dispatched */
     xcb_timestamp_t last_timestamp;	       /* from last event dispatched */

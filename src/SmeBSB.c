@@ -116,10 +116,8 @@ static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeomet
  */
 
 static void GetDefaultSize(Widget, Dimension *, Dimension *);
-static void DrawBitmaps(Widget, xcb_gcontext_t);
+static void DrawBitmaps(Widget, Boolean);
 static void GetImageInfo(Widget, Boolean);
-static void CreateGCs(Widget);
-static void DestroyGCs(Widget);
 #define superclass (&smeClassRec)
 SmeBSBClassRec smeBSBClassRec = {
   {
@@ -232,8 +230,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     else
 	entry->sme_bsb.label = XtNewString( entry->sme_bsb.label );
 
-    CreateGCs(new);
-
     /* Load images from string resources */
     if (entry->sme_bsb.left_image_source) {
         entry->sme_bsb.left_image_source = XtNewString(entry->sme_bsb.left_image_source);
@@ -283,7 +279,6 @@ Destroy(Widget w)
         entry->sme_bsb.right_image = NULL;
     }
 
-    DestroyGCs(w);
     if (entry->sme_bsb.label != XtName(w))
 	XtFree(entry->sme_bsb.label);
 }
@@ -300,7 +295,7 @@ Destroy(Widget w)
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-    xcb_gcontext_t gc;
+    Boolean highlighted_active = False;
     SmeBSBObject entry = (SmeBSBObject) w;
     Dimension s = 1;  /* inset from SimpleMenu's 1px drawn border */
     int	font_ascent = 0, font_descent = 0, y_loc;
@@ -343,7 +338,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                                 entry->rectangle.height - 2 * s);
          ISWRenderEnd(ctx);
      }
-     gc = entry->sme_bsb.rev_gc;
+     highlighted_active = True;
  }
  else {
      if (ctx) {
@@ -355,11 +350,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                                 entry->rectangle.height - 2 * s);
          ISWRenderEnd(ctx);
      }
-     gc = entry->sme_bsb.norm_gc;
  }
     }
-    else
- gc = entry->sme_bsb.norm_gray_gc;
 
     if (entry->sme_bsb.label != NULL) {
 	int x_loc = entry->sme_bsb.left_margin;
@@ -405,7 +397,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		  (fontset_ascent + fontset_descent)) / 2 + fontset_ascent;
 
             IswDrawString(XtDisplayOfObject(w), XtWindowOfObject(w),
-                entry->sme_bsb.fontset, gc, x_loc + s, y_loc, label, len);
+                entry->sme_bsb.fontset, XCB_NONE, x_loc + s, y_loc, label, len);
         }
         else
 #endif
@@ -414,11 +406,9 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     (font_ascent + font_descent)) / 2 + font_ascent;
 
             if (ctx) {
-                Pixel text_color;
-                if (gc == entry->sme_bsb.rev_gc)
-                    text_color = XtParent(w)->core.background_pixel;
-                else
-                    text_color = entry->sme_bsb.foreground;
+                Pixel text_color = highlighted_active
+                    ? XtParent(w)->core.background_pixel
+                    : entry->sme_bsb.foreground;
                 ISWRenderBegin(ctx);
                 ISWRenderSetColor(ctx, text_color);
                 if (entry->sme_bsb.font)
@@ -439,12 +429,9 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	 ul_x1_loc += ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, label, ul);
 	    ul_wid = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, &label[ul], 1) - 2;
 	    
-	    /* Determine underline color based on which xcb_gcontext_t is being used */
-	    if (gc == entry->sme_bsb.rev_gc) {
-	        underline_color = entry->sme_bsb.foreground;
-	    } else {
-	        underline_color = XtParent(w)->core.background_pixel;
-	    }
+	    underline_color = highlighted_active
+	        ? entry->sme_bsb.foreground
+	        : XtParent(w)->core.background_pixel;
 	    
 	    /* Draw underline using Cairo or XCB */
 	    if (ctx) {
@@ -458,7 +445,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	}
     }
 
-    DrawBitmaps(w, gc);
+    DrawBitmaps(w, highlighted_active);
 }
 
 
@@ -512,9 +499,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     if ( font_changed ||
 	(old_entry->sme_bsb.foreground != entry->sme_bsb.foreground) ) {
-	DestroyGCs(current);
-	CreateGCs(new);
-
 	ret_val = TRUE;
     }
 
@@ -692,12 +676,12 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
 /*      Function Name: DrawBitmaps
  *      Description: Draws left and right bitmaps.
  *      Arguments: w - the simple menu widget.
- *                 gc - graphics context to use for drawing.
+ *                 highlighted - TRUE if the entry is highlighted and active.
  *      Returns: none
  */
 
 static void
-DrawBitmaps(Widget w, xcb_gcontext_t gc)
+DrawBitmaps(Widget w, Boolean highlighted)
 {
     int x_loc, y_loc;
     SmeBSBObject entry = (SmeBSBObject) w;
@@ -705,7 +689,7 @@ DrawBitmaps(Widget w, xcb_gcontext_t gc)
     const unsigned char *pixels;
     ISWRenderContext *ctx = ((SimpleMenuWidget)XtParent(w))->simple_menu.render_ctx;
 
-    (void)gc;  /* gc no longer used — images are RGBA */
+    (void)highlighted;  /* reserved for future tinting */
 
     if (!entry->sme_bsb.left_image && !entry->sme_bsb.right_image)
         return;
@@ -782,96 +766,6 @@ GetImageInfo(Widget w, Boolean is_left)
             entry->sme_bsb.right_image_height = 0;
         }
     }
-}
-
-/*      Function Name: CreateGCs
- *      Description: Creates all gc's for the simple menu widget.
- *      Arguments: w - the simple menu widget.
- *      Returns: none.
- */
-
-static void
-CreateGCs(Widget w)
-{
-    SmeBSBObject entry = (SmeBSBObject) w;
-    xcb_create_gc_value_list_t values;
-    XtGCMask mask;
-#ifdef ISW_INTERNATIONALIZATION
-    XtGCMask mask_i18n;
-#endif
-
-    memset(&values, 0, sizeof(values));
-    values.foreground = XtParent(w)->core.background_pixel;
-    values.background = entry->sme_bsb.foreground;
-    values.graphics_exposures = 0;
-
-    /* XCB Fix: Add NULL check for font before accessing fid */
-    mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-    if (entry->sme_bsb.font != NULL) {
-        values.font = entry->sme_bsb.font->fid;
-        mask |= XCB_GC_FONT;
-    }
-
-#ifdef ISW_INTERNATIONALIZATION
-    mask_i18n = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-    if ( entry->sme.international == True )
-        entry->sme_bsb.rev_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
-    else
-#endif
-        entry->sme_bsb.rev_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
-
-    values.foreground = entry->sme_bsb.foreground;
-    values.background = XtParent(w)->core.background_pixel;
-#ifdef ISW_INTERNATIONALIZATION
-    if ( entry->sme.international == True )
-        entry->sme_bsb.norm_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
-    else
-#endif
-        entry->sme_bsb.norm_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
-
-    values.fill_style = XCB_FILL_STYLE_TILED;
-    values.tile = IswCreateStippledPixmap(XtDisplayOfObject(w), XtWindowOfObject(XtParent(w)),
-    	    entry->sme_bsb.foreground,
-    	    XtParent(w)->core.background_pixel,
-    	    XtParent(w)->core.depth);
-    values.graphics_exposures = 0;
-
-    /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gray_mask = XCB_GC_TILE | XCB_GC_FILL_STYLE | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-    if (entry->sme_bsb.font != NULL) {
-        gray_mask |= XCB_GC_FONT;
-    }
-
-#ifdef ISW_INTERNATIONALIZATION
-    if ( entry->sme.international == True )
-        entry->sme_bsb.norm_gray_gc = XtAllocateGC(w, 0, mask_i18n, (xcb_create_gc_value_list_t*)&values, XCB_GC_FONT, 0 );
-    else
-#endif
-        entry->sme_bsb.norm_gray_gc = XtGetGC(w, gray_mask, (xcb_create_gc_value_list_t*)&values);
-
-    values.foreground ^= values.background;
-    values.background = 0;
-    values.function = XCB_GX_XOR;
-    mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FUNCTION;
-    entry->sme_bsb.invert_gc = XtGetGC(w, mask, (xcb_create_gc_value_list_t*)&values);
-
-}
-
-/*      Function Name: DestroyGCs
- *      Description: Removes all gc's for the simple menu widget.
- *      Arguments: w - the simple menu widget.
- *      Returns: none.
- */
-
-static void
-DestroyGCs(Widget w)
-{
-    SmeBSBObject entry = (SmeBSBObject) w;
-
-    XtReleaseGC(w, entry->sme_bsb.norm_gc);
-    XtReleaseGC(w, entry->sme_bsb.norm_gray_gc);
-    XtReleaseGC(w, entry->sme_bsb.rev_gc);
-    XtReleaseGC(w, entry->sme_bsb.invert_gc);
 }
 
 

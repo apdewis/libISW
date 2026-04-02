@@ -211,45 +211,6 @@ WidgetClass pannerWidgetClass = (WidgetClass) &pannerClassRec;
  *****************************************************************************/
 
 static void
-reset_slider_gc (PannerWidget pw)	/* used when resources change */
-{
-    XtGCMask valuemask = XCB_GC_FOREGROUND;
-    xcb_create_gc_value_list_t values;
-
-    if (pw->panner.slider_gc) XtReleaseGC ((Widget) pw, pw->panner.slider_gc);
-
-    values.foreground = pw->panner.foreground;
-
-    /* XCB: Use xcb_create_gc_value_list_t* cast */
-    pw->panner.slider_gc = XtGetGC ((Widget) pw, valuemask, (xcb_create_gc_value_list_t*)&values);
-}
-
-static void
-reset_xor_gc (PannerWidget pw)		/* used when resources change */
-{
-    if (pw->panner.xor_gc) XtReleaseGC ((Widget) pw, pw->panner.xor_gc);
-
-    if (pw->panner.rubber_band) {
- XtGCMask valuemask = (XCB_GC_FOREGROUND | XCB_GC_FUNCTION);
- xcb_create_gc_value_list_t values;
- Pixel tmp;
-
- tmp = pw->panner.foreground;
- values.foreground = tmp ^ pw->core.background_pixel;
- values.function = XCB_GX_XOR;
- if (pw->panner.line_width > 0) {
-     valuemask |= XCB_GC_LINE_WIDTH;
-     values.line_width = pw->panner.line_width;
- }
- /* XCB: Use xcb_create_gc_value_list_t* cast */
- pw->panner.xor_gc = XtGetGC ((Widget) pw, valuemask, (xcb_create_gc_value_list_t*)&values);
-    } else {
- pw->panner.xor_gc = XCB_NONE;
-    }
-}
-
-
-static void
 check_knob (PannerWidget pw, Boolean knob)
 {
     Position pad = pw->panner.internal_border * 2;
@@ -431,7 +392,6 @@ draw_tmp_rubber_band(PannerWidget pw)
     unsigned int rw = (unsigned int)(pw->panner.knob_width - 1);
     unsigned int rh = (unsigned int)(pw->panner.knob_height - 1);
 
-#ifdef HAVE_CAIRO
     ISWRenderContext *ctx = pw->panner.render_ctx;
     void *cr_ptr = ctx ? ISWRenderGetCairoContext(ctx) : NULL;
     if (cr_ptr) {
@@ -447,13 +407,6 @@ draw_tmp_rubber_band(PannerWidget pw)
         cairo_stroke(cr);
         cairo_restore(cr);
         ISWRenderEnd(ctx);
-    } else
-#endif
-    {
-        xcb_connection_t *conn = XtDisplay(pw);
-        xcb_rectangle_t rect = { rx, ry, rw, rh };
-        xcb_poly_rectangle(conn, XtWindow(pw), pw->panner.xor_gc, 1, &rect);
-        xcb_flush(conn);
     }
     pw->panner.tmp.showing = !pw->panner.tmp.showing;
 }
@@ -497,11 +450,6 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
     get_default_size (req, &defwidth, &defheight);
     if (req->core.width < 1) new->core.width = defwidth;
     if (req->core.height < 1) new->core.height = defheight;
-
-    new->panner.slider_gc = XCB_NONE;
-    reset_slider_gc (new);		/* foreground */
-    new->panner.xor_gc = XCB_NONE;
-    reset_xor_gc (new);			/* foreground ^ background */
 
     rescale (new);			/* does a position check */
     new->panner.tmp.doing = FALSE;
@@ -548,8 +496,6 @@ Destroy (Widget gw)
         pw->panner.render_ctx = NULL;
     }
 
-    XtReleaseGC (gw, pw->panner.slider_gc);
-    XtReleaseGC (gw, pw->panner.xor_gc);
 }
 
 
@@ -635,18 +581,12 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
     PannerWidget new = (PannerWidget) gnew;
     Boolean redisplay = FALSE;
 
-    if (cur->panner.foreground != new->panner.foreground) {
-	reset_slider_gc (new);
-	if (cur->panner.foreground != cur->core.background_pixel)
-	  reset_xor_gc (new);
-	redisplay = TRUE;
-    } else if (cur->panner.line_width != new->panner.line_width ||
-	       cur->core.background_pixel != new->core.background_pixel) {
-	reset_xor_gc (new);
+    if (cur->panner.foreground != new->panner.foreground ||
+	cur->panner.line_width != new->panner.line_width ||
+	cur->core.background_pixel != new->core.background_pixel) {
 	redisplay = TRUE;
     }
     if (cur->panner.rubber_band != new->panner.rubber_band) {
-	reset_xor_gc (new);
 	if (new->panner.tmp.doing) redisplay = TRUE;
     }
 

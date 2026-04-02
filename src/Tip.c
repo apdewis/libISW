@@ -299,7 +299,6 @@ static void
 IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
 {
     TipWidget tip = (TipWidget)w;
-    xcb_create_gc_value_list_t values;
 
     /* HiDPI: scale dimension resources */
     tip->tip.internal_width = ISWScaleDim(w, tip->tip.internal_width);
@@ -327,19 +326,6 @@ IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
 
     tip->tip.timer = 0;
     tip->tip.render_ctx = NULL;
-
-    values.foreground = tip->tip.foreground;
-    values.background = tip->core.background_pixel;
-    values.graphics_exposures = 0;
-
-    /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask gc_mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-    if (tip->tip.font != NULL) {
-	values.font = tip->tip.font->fid;
-	gc_mask |= XCB_GC_FONT;
-    }
-
-    tip->tip.gc = XtAllocateGC(w, 0, gc_mask & ~XCB_GC_FONT, &values, XCB_GC_FONT, 0);
 }
 
 static void
@@ -356,8 +342,6 @@ IswTipDestroy(Widget w)
 	ISWRenderDestroy(tip->tip.render_ctx);
 	tip->tip.render_ctx = NULL;
     }
-
-    XtReleaseGC(w, tip->tip.gc);
 
     XtRemoveEventHandler(XtParent(w), XCB_EVENT_MASK_KEY_PRESS, False,
 			 TipShellEventHandler, (XtPointer)NULL);
@@ -483,25 +467,8 @@ IswTipSetValues(Widget current, Widget request, Widget cnew, ArgList args, Cardi
 	font_changed = True;
     }
 
-    if (font_changed || curtip->tip.foreground != newtip->tip.foreground) {
-	xcb_create_gc_value_list_t values;
-
-	values.foreground = newtip->tip.foreground;
-	values.background = newtip->core.background_pixel;
-	values.graphics_exposures = 0;
-
-	/* XCB Fix: Add NULL check for font before accessing fid */
-	XtGCMask gc_mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-	if (newtip->tip.font != NULL) {
-	    values.font = newtip->tip.font->fid;
-	    gc_mask |= XCB_GC_FONT;
-	}
-
-	XtReleaseGC(cnew, curtip->tip.gc);
-	newtip->tip.gc = XtAllocateGC(cnew, 0, gc_mask & ~XCB_GC_FONT, &values,
-				      XCB_GC_FONT, 0);
+    if (font_changed || curtip->tip.foreground != newtip->tip.foreground)
 	redisplay = True;
-    }
 
     return (redisplay);
 }

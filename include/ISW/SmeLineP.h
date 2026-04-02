@@ -69,9 +69,6 @@ typedef struct {
     xcb_pixmap_t stipple;		/* Line Stipple. */
     Dimension line_width;	/* Width of the line. */
 
-    /* private data.  */
-
-    xcb_gcontext_t gc;			/* Graphics context for drawing line. */
 } SmeLinePart;
 
 /****************************************************************

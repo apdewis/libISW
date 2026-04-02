@@ -189,44 +189,6 @@ WidgetClass commandWidgetClass = (WidgetClass) &commandClassRec;
  *
  ****************************************************************/
 
-static xcb_gcontext_t
-Get_GC(CommandWidget cbw, Pixel fg, Pixel bg)
-{
-  xcb_create_gc_value_list_t values;
-
-  ISWInitGCValues(&values);
-  values.foreground   = fg;
-  values.background	= bg;
-  
-  
-  if (cbw->label.font == NULL) {
-      fprintf(stderr, "FATAL Command.c Get_GC: font is NULL for widget '%s'!\n",
-              XtName((Widget)cbw));
-      fprintf(stderr, "  This will cause a segfault. Aborting.\n");
-      abort();
-  }
-  
-  values.font		= cbw->label.font->fid;
-  values.cap_style = XCB_CAP_STYLE_PROJECTING;
-
-  if (cbw->command.border_stroke_width > 1 )
-    values.line_width   = cbw->command.border_stroke_width;
-  else
-    values.line_width   = 0;
-
-#ifdef ISW_INTERNATIONALIZATION
-  if ( cbw->simple.international == True )
-      return XtAllocateGC((Widget)cbw, 0,
-		 (XCB_GC_FOREGROUND|XCB_GC_BACKGROUND|XCB_GC_LINE_WIDTH|XCB_GC_CAP_STYLE),
-		 &values, XCB_GC_FONT, 0 );
-  else
-#endif
-      return XtGetGC((Widget)cbw,
-		 (XCB_GC_FOREGROUND|XCB_GC_BACKGROUND|XCB_GC_FONT|XCB_GC_LINE_WIDTH|XCB_GC_CAP_STYLE),
-		 &values);
-}
-
-
 /* ARGSUSED */
 static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
@@ -258,13 +220,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   /* HiDPI: scale dimension resources (after shape logic resolves values) */
   cbw->command.border_stroke_width = ISWScaleDim(new, cbw->command.border_stroke_width);
   cbw->command.corner_radius = ISWScaleDim(new, cbw->command.corner_radius);
-
-  cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground,
-				  cbw->core.background_pixel);
-  cbw->command.inverse_GC = Get_GC(cbw, cbw->core.background_pixel,
-				   cbw->label.foreground);
-  XtReleaseGC(new, cbw->label.normal_GC);
-  cbw->label.normal_GC = cbw->command.normal_GC;
 
   cbw->command.set = FALSE;
   cbw->command.highlighted = HighlightNone;
@@ -477,14 +432,11 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
       }
 
       if (cbw->command.set) {
-        cbw->label.normal_GC = cbw->command.inverse_GC;
         cbw->label.foreground = cbw->core.background_pixel;
         /* Fill with foreground color for inverted (pressed) look */
         ISWRenderSetColor(ctx, saved_foreground);
         cairo_fill_preserve(cr);
         region = NULL;  /* Force label to repaint text */
-      } else {
-        cbw->label.normal_GC = cbw->command.normal_GC;
       }
 
       /* Stroke the border */
@@ -512,13 +464,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
 static void
 Destroy(Widget w)
 {
-  CommandWidget cbw = (CommandWidget) w;
-
-  /* so Label can release it */
-  if (cbw->label.normal_GC == cbw->command.normal_GC)
-    XtReleaseGC( w, cbw->command.inverse_GC );
-  else
-    XtReleaseGC( w, cbw->command.normal_GC );
+  (void) w;
 }
 
 /*
@@ -546,21 +492,6 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
                                    cbw->command.border_stroke_width) ||
        (oldcbw->label.font != cbw->label.font) )
   {
-    if (oldcbw->label.normal_GC == oldcbw->command.normal_GC)
-	/* Label has release one of these */
-      XtReleaseGC(new, cbw->command.inverse_GC);
-    else
-      XtReleaseGC(new, cbw->command.normal_GC);
-
-    cbw->command.normal_GC = Get_GC(cbw, cbw->label.foreground,
-				    cbw->core.background_pixel);
-    cbw->command.inverse_GC = Get_GC(cbw, cbw->core.background_pixel,
-				     cbw->label.foreground);
-    XtReleaseGC(new, cbw->label.normal_GC);
-    cbw->label.normal_GC = (cbw->command.set
-			    ? cbw->command.inverse_GC
-			    : cbw->command.normal_GC);
-
     redisplay = True;
   }
 

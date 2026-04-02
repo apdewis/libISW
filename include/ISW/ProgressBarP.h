@@ -30,7 +30,6 @@ typedef struct {
     XFontStruct    *font;
 
     /* private */
-    xcb_gcontext_t              foreground_GC;
     ISWRenderContext *render_ctx;
 } ProgressBarPart;
 

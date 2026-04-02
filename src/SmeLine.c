@@ -48,8 +48,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeLineP.h>
 #include <ISW/Cardinals.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 
 #define offset(field) XtOffsetOf(SmeLineRec, sme_line.field)
 static XtResource resources[] = {
@@ -68,8 +66,6 @@ static XtResource resources[] = {
 
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void DestroyGC(Widget);
-static void CreateGC(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 
@@ -96,7 +92,7 @@ SmeLineClassRec smeLineClassRec = {
     /* compress_exposure  */    FALSE,
     /* compress_enterleave*/ 	FALSE,
     /* visible_interest   */    FALSE,
-    /* destroy            */    DestroyGC,
+    /* destroy            */    NULL,
     /* resize             */    NULL,
     /* expose             */    Redisplay,
     /* set_values         */    SetValues,
@@ -150,75 +146,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     if (entry->rectangle.height == 0)
 	entry->rectangle.height = entry->sme_line.line_width;
 
-    /* render_ctx lives on the parent SimpleMenu */
-
-    CreateGC(new);
-}
-
-/*	Function Name: CreateGC
- *	Description: Creates the xcb_gcontext_t for the line entry widget.
- *	Arguments: w - the Line entry widget.
- *	Returns: none
- *
- *      We can only share the xcb_gcontext_t if there is no stipple, because
- *      we need to change the stipple origin when drawing.
- */
-
-static void
-CreateGC(Widget w)
-{
-    SmeLineObject entry = (SmeLineObject) w;
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-    xcb_create_gc_value_list_t values;
-    uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_LINE_WIDTH;
-
-    values.foreground = entry->sme_line.foreground;
-    values.graphics_exposures = 0;
-    values.line_width = entry->sme_line.line_width;
-
-    if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
-	values.stipple = entry->sme_line.stipple;
-	values.fill_style = XCB_FILL_STYLE_STIPPLED;
-	mask |= XCB_GC_STIPPLE | XCB_GC_FILL_STYLE;
-
-	entry->sme_line.gc = xcb_generate_id(conn);
-	xcb_create_gc_aux(conn, entry->sme_line.gc,
-			  RootWindowOfScreen(XtScreenOfObject(w)),
-			  mask, &values);
-	xcb_flush(conn);
-    }
-    else {
- /* For shared xcb_gcontext_t, still use XtGetGC with compatibility wrapper */
- xcb_create_gc_value_list_t xvalues;
- XtGCMask xmask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_LINE_WIDTH;
- memset(&xvalues, 0, sizeof(xvalues));
- xvalues.foreground = entry->sme_line.foreground;
- xvalues.graphics_exposures = 0;
- xvalues.line_width = entry->sme_line.line_width;
- entry->sme_line.gc = XtGetGC(w, xmask, (xcb_create_gc_value_list_t*)&xvalues);
-    }
-}
-
-/*	Function Name: DestroyGC
- *	Description: Destroys the xcb_gcontext_t when we are done with it.
- *	Arguments: w - the Line entry widget.
- *	Returns: none
- */
-
-static void
-DestroyGC(Widget w)
-{
-    SmeLineObject entry = (SmeLineObject) w;
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-
-    /* render_ctx lives on the parent SimpleMenu — nothing to destroy here */
-
-    if (entry->sme_line.stipple != XtUnspecifiedPixmap) {
-	xcb_free_gc(conn, entry->sme_line.gc);
-	xcb_flush(conn);
-    }
-    else
-	XtReleaseGC(w, entry->sme_line.gc);
 }
 
 /*	Function Name: Redisplay
@@ -266,12 +193,10 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     SmeLineObject entry = (SmeLineObject) new;
     SmeLineObject old_entry = (SmeLineObject) current;
 
-    if ( (entry->sme_line.line_width != old_entry->sme_line.line_width) &&
-	 (entry->sme_line.stipple != old_entry->sme_line.stipple) ) {
-	DestroyGC(current);
-	CreateGC(new);
+    if (entry->sme_line.line_width != old_entry->sme_line.line_width ||
+	entry->sme_line.foreground != old_entry->sme_line.foreground)
 	return(TRUE);
-    }
+
     return(FALSE);
 }
 

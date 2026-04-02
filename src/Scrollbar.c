@@ -433,63 +433,11 @@ Destroy (Widget w)
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     if(sbw->scrollbar.timer_id != (XtIntervalId) 0)
 	XtRemoveTimeOut (sbw->scrollbar.timer_id);
-    XtReleaseGC (w, sbw->scrollbar.gc);
-
     /* Destroy Cairo rendering context */
     if (sbw->scrollbar.render_ctx)
         ISWRenderDestroy(sbw->scrollbar.render_ctx);
 }
 
-/*	Function Name: CreateGC
- *	Description: Creates the xcb_gcontext_t.
- *	Arguments: w - the scrollbar widget.
- *	Returns: none.
- */
-
-static void
-CreateGC (Widget w)
-{
-    ScrollbarWidget sbw = (ScrollbarWidget) w;
-    xcb_create_gc_value_list_t gcValues;
-    XtGCMask mask;
-    unsigned int depth = 1;
-
-    if (sbw->scrollbar.thumb == XtUnspecifiedPixmap) {
-        sbw->scrollbar.thumb = IswCreateStippledPixmap (XtDisplay(w), XtWindow(w),
-    	(Pixel) 1, (Pixel) 0, depth);
-    } else if (sbw->scrollbar.thumb != None) {
-	xcb_connection_t *conn = XtDisplay(w);
-	xcb_get_geometry_cookie_t cookie = xcb_get_geometry(conn, sbw->scrollbar.thumb);
-	xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(conn, cookie, NULL);
-	if (reply) {
-	    depth = reply->depth;
-	    free(reply);
-	} else {
-	    XtAppError (XtWidgetToApplicationContext (w),
-	       "Scrollbar Widget: Could not get geometry of thumb pixmap.");
-	}
-    }
-
-    gcValues.foreground = sbw->scrollbar.foreground;
-    gcValues.background = sbw->core.background_pixel;
-    mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
-
-    if (sbw->scrollbar.thumb != None) {
-	if (depth == 1) {
-	    gcValues.fill_style = XCB_FILL_STYLE_OPAQUE_STIPPLED;
-	    gcValues.stipple = sbw->scrollbar.thumb;
-	    mask |= XCB_GC_FILL_STYLE | XCB_GC_STIPPLE;
-	}
-	else {
-	    gcValues.fill_style = XCB_FILL_STYLE_TILED;
-	    gcValues.tile = sbw->scrollbar.thumb;
-	    mask |= XCB_GC_FILL_STYLE | XCB_GC_TILE;
-	}
-    }
-    /* the creation should be non-caching, because */
-    /* we now set and clear clip masks on the gc returned */
-    sbw->scrollbar.gc = XtGetGC (w, mask, (xcb_create_gc_value_list_t*)&gcValues);
-}
 
 static void
 SetDimensions (ScrollbarWidget sbw)
@@ -516,7 +464,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     sbw->scrollbar.length = ISWScaleDim(new, sbw->scrollbar.length);
     sbw->scrollbar.min_thumb = ISWScaleDim(new, sbw->scrollbar.min_thumb);
     sbw->scrollbar.scroll_wheel_increment = ISWScaleDim(new, sbw->scrollbar.scroll_wheel_increment);
-    CreateGC (new);
 
     if (sbw->core.width == 0)
 	sbw->core.width = (sbw->scrollbar.orientation == XtorientVertical)
@@ -580,8 +527,6 @@ SetValues(Widget current, Widget request, Widget desired, ArgList args, Cardinal
 	if (sbw->scrollbar.foreground != dsbw->scrollbar.foreground ||
 	    sbw->core.background_pixel != dsbw->core.background_pixel ||
 	    sbw->scrollbar.thumb != dsbw->scrollbar.thumb) {
-	    XtReleaseGC (desired, sbw->scrollbar.gc);
-	    CreateGC (desired);
 	    redraw = TRUE;
 	}
 	if (sbw->scrollbar.top != dsbw->scrollbar.top ||

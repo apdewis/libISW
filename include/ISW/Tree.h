@@ -75,7 +75,7 @@ in this Software without prior written authorization from the X Consortium.
  *
  * Constraint Resources attached to children:
  *
- *  treeGC              TreeGC             xcb_gcontext_t              NULL
+ *  treeForeground      TreeForeground     Pixel               NULL
  *  treeParent          TreeParent         Widget          NULL
  *
  *
@@ -91,18 +91,18 @@ in this Software without prior written authorization from the X Consortium.
 
 #define XtNautoReconfigure "autoReconfigure"
 #define XtNlineWidth "lineWidth"
-#define XtNtreeGC "treeGC"
+#define XtNtreeForeground "treeForeground"
 #define XtNtreeParent "treeParent"
 #define XtNgravity "gravity"
 
                                         /* new class field names */
 #define XtCAutoReconfigure "AutoReconfigure"
 #define XtCLineWidth "LineWidth"
-#define XtCTreeGC "TreeGC"
+#define XtCTreeForeground "TreeForeground"
 #define XtCTreeParent "TreeParent"
 #define XtCGravity "Gravity"
 
-#define XtRGC "GC"
+#define XtRGC "GC"  /* vestigial, kept for compat */
                                         /* external declarations */
 extern WidgetClass treeWidgetClass;
 

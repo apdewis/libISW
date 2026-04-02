@@ -89,7 +89,6 @@ typedef struct {
      /* private */
     XtIntervalId  timer_id;     /* autorepeat timer; remove on destruction */
     char	  scroll_mode;	/* 0:none 1:up/back 2:track 3:down/forward */
-    xcb_gcontext_t		  gc;		/* a (shared) gc */
     Position	  topLoc;	/* Pixel that corresponds to top */
     Dimension	  shownLength;	/* Num pixels corresponding to shown */
     Boolean       pick_top;     /* pick thumb at top or anywhere*/

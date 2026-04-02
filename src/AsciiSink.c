@@ -245,9 +245,9 @@ CharWidth (Widget w, int x, unsigned char c)
 }
 
 /*	Function Name: PaintText
- *	Description: Actually paints the text into the windoe.
+ *	Description: Actually paints the text into the window.
  *	Arguments: w - the text widget.
- *                 gc - gc to paint text with.
+ *                 highlight - if True, swap foreground/background.
  *                 x, y - location to paint the text.
  *                 buf, len - buffer and length of text to paint.
  *	Returns: the width of the text painted, or 0.
@@ -257,7 +257,7 @@ CharWidth (Widget w, int x, unsigned char c)
  */
 
 static Dimension
-PaintText(Widget w, xcb_gcontext_t gc, Position x, Position y, unsigned char * buf, int len)
+PaintText(Widget w, Boolean highlight, Position x, Position y, unsigned char * buf, int len)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
     TextWidget ctx = (TextWidget) XtParent(w);
@@ -290,7 +290,7 @@ PaintText(Widget w, xcb_gcontext_t gc, Position x, Position y, unsigned char * b
     {
         int asc = ScaledAscent(sink);
         int desc = ScaledDescent(sink);
-        Pixel bg = (gc == sink->ascii_sink.invgc) ?
+        Pixel bg = highlight ?
             sink->text_sink.foreground : sink->text_sink.background;
         ISWRenderSave(sink->ascii_sink.render_ctx);
         ISWRenderSetColor(sink->ascii_sink.render_ctx, bg);
@@ -335,7 +335,6 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 
     int j, k;
     ISWTextBlock blk;
-    xcb_gcontext_t gc = highlight ? sink->ascii_sink.invgc : sink->ascii_sink.normgc;
     Pixel fg_color = highlight ? sink->text_sink.background : sink->text_sink.foreground;
     Pixel bg_color = highlight ? sink->text_sink.foreground : sink->text_sink.background;
 
@@ -370,7 +369,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 	pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
 	for (k = 0; k < blk.length; k++) {
 	    if (j >= BUFSIZ) {	/* buffer full, dump the text. */
-	        x += PaintText(w, gc, x, y, buf, j);
+	        x += PaintText(w, highlight, x, y, buf, j);
 		j = 0;
 	    }
 	    buf[j] = blk.ptr[k];
@@ -381,7 +380,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 	        Position temp = 0;
 		Dimension width;
 
-	        if ((j != 0) && ((temp = PaintText(w, gc, x, y, buf, j)) == 0))
+	        if ((j != 0) && ((temp = PaintText(w, highlight, x, y, buf, j)) == 0))
 		  return;
 
 	 x += temp;
@@ -412,7 +411,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 	}
     }
     if (j > 0)
-        (void) PaintText(w, gc, x, y, buf, j);
+        (void) PaintText(w, highlight, x, y, buf, j);
     
     /* End Cairo rendering */
     if (sink->ascii_sink.render_ctx) {
@@ -632,39 +631,6 @@ Resolve (Widget w, ISWTextPosition pos, int fromx, int width, ISWTextPosition *r
       *resPos = GETLASTPOS;
 }
 
-static void
-GetGC(AsciiSinkObject sink)
-{
-    xcb_create_gc_value_list_t values;
-
-    ISWInitGCValues(&values);
-    values.graphics_exposures = 0;
-
-    /* XCB Fix: Add NULL check for font before accessing fid */
-    XtGCMask valuemask = XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
-    if (sink->ascii_sink.font != NULL) {
-	values.font = sink->ascii_sink.font->fid;
-	valuemask |= XCB_GC_FONT;
-    }
-
-    values.foreground = sink->text_sink.foreground;
-    values.background = sink->text_sink.background;
-    sink->ascii_sink.normgc = XtGetGC((Widget)sink, valuemask, &values);
-
-    values.foreground = sink->text_sink.background;
-    values.background = sink->text_sink.foreground;
-    sink->ascii_sink.invgc = XtGetGC((Widget)sink, valuemask, &values);
-
-    values.function = XCB_GX_XOR;
-    values.background = (unsigned long) 0L;	/* (pix ^ 0) = pix */
-    values.foreground = (sink->text_sink.background ^
-			 sink->text_sink.foreground);
-    valuemask = XCB_GC_GRAPHICS_EXPOSURES | XCB_GC_FUNCTION | XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
-
-    sink->ascii_sink.xorgc = XtGetGC((Widget)sink, valuemask, &values);
-}
-
-
 /***** Public routines *****/
 
 /*	Function Name: Initialize
@@ -687,8 +653,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 	XtAppWarning(XtWidgetToApplicationContext(new),
 		     "AsciiSink widget: font is NULL - text rendering will fail");
     }
-
-    GetGC(sink);
 
     sink->ascii_sink.insertCursorOn= CreateInsertCursor(new);
     sink->ascii_sink.laststate = IswisOff;
@@ -713,9 +677,6 @@ Destroy(Widget w)
        sink->ascii_sink.render_ctx = NULL;
    }
 
-   XtReleaseGC(w, sink->ascii_sink.normgc);
-   XtReleaseGC(w, sink->ascii_sink.invgc);
-   XtReleaseGC(w, sink->ascii_sink.xorgc);
    ISWFreePixmap(XtDisplayOfObject(w), sink->ascii_sink.insertCursorOn);
 }
 
@@ -746,10 +707,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (font_changed ||
 	w->text_sink.background != old_w->text_sink.background ||
 	w->text_sink.foreground != old_w->text_sink.foreground) {
-	XtReleaseGC((Widget)w, w->ascii_sink.normgc);
-	XtReleaseGC((Widget)w, w->ascii_sink.invgc);
-	XtReleaseGC((Widget)w, w->ascii_sink.xorgc);
-	GetGC(w);
 	((TextWidget)XtParent(new))->text.redisplay_needed = True;
     } else {
 	if ( (w->ascii_sink.echo != old_w->ascii_sink.echo) ||

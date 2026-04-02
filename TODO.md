@@ -19,10 +19,10 @@ and `xcb/xcb_icccm.h` (`XCB_EVENT_MASK_KEY_PRESS`, `XCB_GX_COPY`,
   (`NoExpose` and `LASTEvent` have no XCB equivalent — define locally)
 - CW attribute masks (15) → `XCB_CW_*`
 - ConfigureWindow masks (7) → `XCB_CONFIG_WINDOW_*`
-- GC functions (16) → `XCB_GX_*` (die with GC removal)
-- GC value masks (23) → `XCB_GC_*` (die with GC removal)
-- Line/cap/join/fill styles (14) → `XCB_LINE_STYLE_*` etc. (die with GC removal)
-- Fill/subwindow/arc rules (8) → `XCB_FILL_RULE_*` etc. (die with GC removal)
+- GC functions (16) → removed (GC management deleted)
+- GC value masks (23) → removed (GC management deleted)
+- Line/cap/join/fill styles (14) → removed (GC management deleted)
+- Fill/subwindow/arc rules (8) → removed (GC management deleted)
 - Gravity (12) → `XCB_GRAVITY_*`
 - Grab modes/status (7) → `XCB_GRAB_MODE_*`, `XCB_GRAB_STATUS_*`
 - Prop modes (3) → `XCB_PROP_MODE_*`
@@ -86,17 +86,6 @@ widgets opt in.
 
 Tip (fade in/out), Scrollbar (smooth thumb movement), ProgressBar (indeterminate
 animation), Command (hover/press feedback), menu popup transitions.
-
-## Remove vestigial GC management
-
-Replace xcb_gcontext_t fields in widget private structs with direct color/state
-tracking. All drawing already goes through ISWRender (Cairo); the GC fields
-allocated via XtGetGC/XtReleaseGC are only used as identity comparisons to pick
-colors. Removing them eliminates GCManager.c and the XCB GC allocation overhead
-entirely.
-
-Affected widgets: Command, Label, List, SmeBSB, Scrollbar, Panner, ProgressBar,
-Tip, SmeLine, Tree, AsciiSink, MultiSink, Paned.
 
 ## Abstract resource system behind vtable
 

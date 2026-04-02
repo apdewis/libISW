@@ -1975,39 +1975,6 @@ extern void  XtRemoveWorkProc(
 );
 
 
-/****************************************************************
- *
- * Graphic Context Management
- *****************************************************************/
-
-extern xcb_gcontext_t XtGetGC(
-    Widget 		/* widget */,
-    XtGCMask 		/* valueMask */,
-    xcb_create_gc_value_list_t* 		/* values */
-);
-
-extern xcb_gcontext_t XtAllocateGC(
-    Widget 		/* widget */,
-    Cardinal		/* depth */,
-    XtGCMask 		/* valueMask */,
-    xcb_create_gc_value_list_t* 		/* values */,
-    XtGCMask		/* dynamicMask */,
-    XtGCMask		/* unusedMask */
-);
-
-/* This implementation of XtDestroyGC differs from the formal specification
- * for historic backwards compatibility reasons.  As other implementations
- * may conform to the spec, use of XtReleaseGC is strongly encouraged.
- */
-extern void XtDestroyGC( /* obsolete */
-    xcb_gcontext_t 			/* gc */
-);
-
-extern void XtReleaseGC(
-    Widget 		/* object */,
-    xcb_gcontext_t 			/* gc */
-);
-
 
 
 extern void XtAppReleaseCacheRefs(

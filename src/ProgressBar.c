@@ -119,7 +119,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 	    pbw->core.height = (Dimension)(200 * scale);
     }
 
-    pbw->progress_bar.foreground_GC = XCB_NONE;
     pbw->progress_bar.render_ctx = NULL;
 }
 
