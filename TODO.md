@@ -125,14 +125,6 @@ parent at realize time.
 
 Files: src/Tip.c, include/ISW/Tip.h, include/ISW/TipP.h, examples/isw_demo.c.
 
-## Remove StripChart widget
-
-StripChart has never worked. Remove the widget entirely — source, headers, demo
-references, and build system entries.
-
-Files: src/StripChart.c, include/ISW/StripChart.h, include/ISW/StripChartP.h,
-src/Makefile.am, include/Makefile.am, examples/isw_demo.c (if referenced).
-
 ## Remove vestigial GC management
 
 Replace xcb_gcontext_t fields in widget private structs with direct color/state
@@ -142,7 +134,7 @@ colors. Removing them eliminates GCManager.c and the XCB GC allocation overhead
 entirely.
 
 Affected widgets: Command, Label, List, SmeBSB, Scrollbar, Panner, ProgressBar,
-Tip, StripChart, SmeLine, Tree, AsciiSink, MultiSink, Paned.
+Tip, SmeLine, Tree, AsciiSink, MultiSink, Paned.
 
 ## Abstract resource system behind vtable
 

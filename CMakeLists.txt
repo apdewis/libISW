@@ -198,7 +198,6 @@ set(ISW_WIDGET_SOURCES
     src/SmeBSB.c
     src/Sme.c
     src/SmeLine.c
-    src/StripChart.c
     src/Tabs.c
     src/TextAction.c
     src/Text.c

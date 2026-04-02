@@ -147,9 +147,6 @@ WidgetClass smeBSBObjectClass = (WidgetClass) &smeBSBClassRec;
 extern SmeLineClassRec smeLineClassRec;
 WidgetClass smeLineObjectClass = (WidgetClass) &smeLineClassRec;
 
-extern StripChartClassRec stripChartClassRec;
-WidgetClass stripChartWidgetClass = (WidgetClass) &stripChartClassRec;
-
 extern TextClassRec textClassRec;
 WidgetClass textWidgetClass = (WidgetClass)&textClassRec;
 

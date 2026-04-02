@@ -91,7 +91,6 @@ void my_callback(Widget w, XtPointer client_data, XtPointer call_data)
 |---|---|---|---|
 | Label | `labelWidgetClass` | `<ISW/Label.h>` | Static text or image display |
 | Image | `imageWidgetClass` | `<ISW/Image.h>` | Scalable image display |
-| StripChart | `stripChartWidgetClass` | `<ISW/StripChart.h>` | Real-time data graph |
 | ProgressBar | `progressBarWidgetClass` | `<ISW/ProgressBar.h>` | Progress indicator |
 | Tip | `tipWidgetClass` | `<ISW/Tip.h>` | Tooltip popup |
 | StatusBar | `statusBarWidgetClass` | `<ISW/StatusBar.h>` | Status display area |

@@ -59,7 +59,6 @@
 #include <ISW/FontChooser.h>
 #include <ISW/SpinBox.h>
 #include <ISW/Scale.h>
-#include <ISW/StripChart.h>
 #include <ISW/Tip.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/Dialog.h>
@@ -78,7 +77,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <stdint.h>
 
 /* ============================================================
@@ -118,7 +116,7 @@ Widget create_text_demo(Widget parent);
 Widget create_tree_demo(Widget parent);
 
 Widget create_panner_demo(Widget parent);
-Widget create_stripchart_demo(Widget parent);
+
 Widget create_fontchooser_demo(Widget parent);
 Widget create_colorpicker_demo(Widget parent);
 Widget create_spinbox_demo(Widget parent);
@@ -157,13 +155,8 @@ void edit_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void about_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
 
 /* Timer callbacks */
-void update_stripchart(XtPointer client_data, XtIntervalId *id);
-
 /* Tooltip helper */
 void attach_tooltip(Widget widget, const char *tip_text);
-
-/* Global for stripchart */
-static double chart_value = 50.0;
 
 
 /* HiDPI scaling for hardcoded dimensions */
@@ -179,9 +172,6 @@ int main(int argc, char *argv[]) {
     Widget toplevel, main_widget;
     Arg args[10];
     Cardinal n;
-    
-    /* Seed random number generator for stripchart */
-    srand((unsigned int)time(NULL));
     
     /* Initialize X Toolkit with XCB backend */
     toplevel = XtAppInitialize(&app_context, "Isw3dDemo",
@@ -1566,7 +1556,7 @@ Widget create_paned_grip_demo(Widget parent) {
 
 Widget create_specialized_section(Widget parent) {
     Widget form, section_label;
-    Widget spinbox_demo, scale_demo, stripchart_demo, scrollbar_demo, progressbar_demo, dialog_demo, colorpicker_demo, fontchooser_demo, drawingarea_demo;
+    Widget spinbox_demo, scale_demo, scrollbar_demo, progressbar_demo, dialog_demo, colorpicker_demo, fontchooser_demo, drawingarea_demo;
     Arg args[10];
     Cardinal n;
 
@@ -1579,7 +1569,7 @@ Widget create_specialized_section(Widget parent) {
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Specialized Widgets: SpinBox, Scale, StripChart, Scrollbar, ProgressBar, Dialog"); n++;
+    XtSetArg(args[n], XtNlabel, "Specialized Widgets: SpinBox, Scale, Scrollbar, ProgressBar, Dialog"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
@@ -1601,16 +1591,9 @@ Widget create_specialized_section(Widget parent) {
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(scale_demo, args, n);
 
-    stripchart_demo = create_stripchart_demo(form);
-    n = 0;
-    XtSetArg(args[n], XtNfromHoriz, scale_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(stripchart_demo, args, n);
-
     scrollbar_demo = create_scrollbar_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, stripchart_demo); n++;
+    XtSetArg(args[n], XtNfromHoriz, scale_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(scrollbar_demo, args, n);
@@ -1869,39 +1852,6 @@ Widget create_scale_demo(Widget parent) {
     scale_v = XtCreateManagedWidget("scaleV", scaleWidgetClass, box, args, n);
     XtAddCallback(scale_v, XtNvalueChanged, scale_callback, (XtPointer)"Vertical");
 
-    return box;
-}
-
-Widget create_stripchart_demo(Widget parent) {
-    Widget box, title, chart;
-    Arg args[10];
-    Cardinal n;
-    
-    /* Container */
-    n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("stripchartBox", boxWidgetClass, parent, args, n);
-    
-    /* Title */
-    n = 0;
-    XtSetArg(args[n], XtNlabel, "StripChart (Live Update)"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("chartTitle", labelWidgetClass, box, args, n);
-    
-    /* StripChart widget */
-    n = 0;
-    XtSetArg(args[n], XtNwidth, S(220)); n++;
-    XtSetArg(args[n], XtNheight, S(100)); n++;
-    XtSetArg(args[n], XtNupdate, 1); n++;
-    XtSetArg(args[n], XtNminScale, 10); n++;
-    chart = XtCreateManagedWidget("stripChart", stripChartWidgetClass,
-                                  box, args, n);
-    
-    /* Start periodic updates */
-    XtAppAddTimeOut(XtWidgetToApplicationContext(chart),
-                    1000, update_stripchart, (XtPointer)chart);
-    
     return box;
 }
 
@@ -2216,22 +2166,6 @@ void about_menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
  * TIMER CALLBACKS
  * ============================================================ */
 
-void update_stripchart(XtPointer client_data, XtIntervalId *id) {
-    Widget chart = (Widget)client_data;
-    
-    /* Generate pseudo-random value (0-100) */
-    chart_value += ((double)(rand() % 21) - 10.0);
-    if (chart_value < 0.0) chart_value = 0.0;
-    if (chart_value > 100.0) chart_value = 100.0;
-    
-    /* Update chart */
-    /* Note: IswStripChartSetValue may not be available in all versions,
-     * so this is a placeholder for the update mechanism */
-    
-    /* Re-schedule for next update */
-    XtAppAddTimeOut(XtWidgetToApplicationContext(chart),
-                    1000, update_stripchart, client_data);
-}
 
 /* ============================================================
  * TIP (TOOLTIP) HELPER FUNCTIONS

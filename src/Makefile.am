@@ -151,7 +151,6 @@ ISW_SOURCES = \
 	SmeBSB.c \
 	Sme.c \
 	SmeLine.c \
-	StripChart.c \
 	Tabs.c \
 	TextAction.c \
 	Text.c \

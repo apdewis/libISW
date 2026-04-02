@@ -80,8 +80,6 @@ iswinclude_HEADERS = \
 	ISW/SmeLine.h \
 	ISW/SmeLineP.h \
 	ISW/SmeP.h \
-	ISW/StripCharP.h \
-	ISW/StripChart.h \
 	ISW/Tabs.h \
 	ISW/TabsP.h \
 	ISW/Text.h \
