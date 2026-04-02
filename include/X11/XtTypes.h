@@ -57,11 +57,6 @@ typedef int XContext;
 #define ConnectionNumber(dpy) xcb_get_file_descriptor(dpy)
 #endif
 
-/* Stub — XCB does not expose request sequence numbers directly. */
-#ifndef NextRequest
-#define NextRequest(dpy) 0UL
-#endif
-
 #ifndef DefaultRootWindow
 #define DefaultRootWindow(dpy) \
     (xcb_setup_roots_iterator(xcb_get_setup(dpy)).data->root)

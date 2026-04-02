@@ -89,6 +89,7 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 #ifdef WIN32
 #include <process.h>		/* for getpid() */
@@ -2314,28 +2315,61 @@ typedef struct {
 //}
 
 static Boolean
-_wait_for_response(ShellWidget w,xcb_generic_event_t *event, unsigned long request_num)
+_wait_for_response(ShellWidget w, xcb_generic_event_t **event_out,
+                   unsigned long request_num)
 {
-    XtAppContext app = XtWidgetToApplicationContext((Widget) w);
-    QueryStruct q;
+    xcb_connection_t *conn = XtDisplay(w);
+    xcb_window_t win = XtWindow(w);
     unsigned long timeout;
+    struct timespec start, now;
 
     if (XtIsWMShell((Widget) w))
         timeout = (unsigned long) ((WMShellWidget) w)->wm.wm_timeout;
     else
         timeout = DEFAULT_WM_TIMEOUT;
 
-    xcb_flush(XtDisplay(w));
-    q.w = (Widget) w;
-    q.request_num = request_num;
-    q.done = FALSE;
+    xcb_flush(conn);
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
-    while (timeout > 0) {
-        //need a blocking call that only returns when there's an event for the app shell
-        //implement similar behaviour to the isMine function, taking into account there is an event queue per app context now
-        //return true 
+    *event_out = NULL;
+
+    for (;;) {
+        xcb_generic_event_t *ev = xcb_poll_for_event(conn);
+        if (ev) {
+            uint8_t type = ev->response_type & ~0x80;
+            if (type == XCB_CONFIGURE_NOTIFY) {
+                xcb_configure_notify_event_t *cne =
+                    (xcb_configure_notify_event_t *) ev;
+                if (cne->window == win && ev->sequence >= request_num) {
+                    *event_out = ev;
+                    return TRUE;
+                }
+            }
+            /* Handle reparent events inline — track reparenting state */
+            if (type == XCB_REPARENT_NOTIFY) {
+                xcb_reparent_notify_event_t *rne =
+                    (xcb_reparent_notify_event_t *) ev;
+                if (rne->window == win) {
+                    if (rne->parent != RootWindowOfScreen(XtScreen(w)))
+                        w->shell.client_specified &= ~_XtShellNotReparented;
+                    else
+                        w->shell.client_specified |= _XtShellNotReparented;
+                }
+            }
+            free(ev);
+        }
+
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        unsigned long elapsed_ms =
+            (unsigned long)(now.tv_sec - start.tv_sec) * 1000 +
+            (unsigned long)(now.tv_nsec - start.tv_nsec) / 1000000;
+        if (elapsed_ms >= timeout)
+            return FALSE;
+
+        /* Brief sleep to avoid busy-spinning */
+        struct timespec sleep_ts = { 0, 1000000 }; /* 1ms */
+        nanosleep(&sleep_ts, NULL);
     }
-    return FALSE;
 }
 
 static XtGeometryResult
@@ -2346,7 +2380,7 @@ RootGeometryManager(Widget gw,
     register ShellWidget w = (ShellWidget) gw;
     xcb_configure_window_value_list_t values;
     unsigned int mask = request->request_mode;
-    xcb_generic_event_t * event;
+    xcb_generic_event_t *event = NULL;
     Boolean wm;
     register struct _OldXSizeHints *hintp = NULL;
     int oldx, oldy, oldwidth, oldheight, oldborder_width;
@@ -2451,8 +2485,6 @@ RootGeometryManager(Widget gw,
         return XtGeometryYes;
     }
 
-    request_num = NextRequest(XtDisplay(w));
-
     CALLGEOTAT(_XtGeoTrace((Widget) w, "XConfiguring the Shell X window :\n"));
     CALLGEOTAT(_XtGeoTab(1));
 #ifdef XT_GEO_TATTLER
@@ -2474,11 +2506,10 @@ RootGeometryManager(Widget gw,
     }
 #endif
     CALLGEOTAT(_XtGeoTab(-1));
-
-    //XConfigureWindow(XtDisplay((Widget) w), XtWindow((Widget) w), mask,
-    //                 &values);
-    xcb_configure_window(XtDisplay((Widget) w), XtWindow((Widget) w), mask, (const void *)&values);
-
+    xcb_void_cookie_t cookie = xcb_configure_window(XtDisplay((Widget) w),
+        XtWindow((Widget) w), mask, (const void *)&values);
+    request_num = cookie.sequence;
+    
     if (wm && !w->shell.override_redirect
         && mask & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
         _SetWMSizeHints((WMShellWidget) w);
@@ -2518,7 +2549,7 @@ RootGeometryManager(Widget gw,
 
 
     //#TODO this seems like it would be better served with a callback mechanism in XCB
-    if (_wait_for_response(w, event, request_num)) {
+    if (_wait_for_response(w, &event, request_num)) {
         /* got an event */
         if (event->response_type == XCB_CONFIGURE_NOTIFY) {
             xcb_configure_notify_event_t * cne = (xcb_configure_notify_event_t *)event;
@@ -2569,7 +2600,7 @@ RootGeometryManager(Widget gw,
                 CALLGEOTAT(_XtGeoTrace((Widget) w,
                                        "ConfigureNotify failed, return XtGeometryNo.\n"));
                 CALLGEOTAT(_XtGeoTab(-1));
-
+                free(event);
                 return XtGeometryNo;
             }
             else {
@@ -2588,6 +2619,7 @@ RootGeometryManager(Widget gw,
                 CALLGEOTAT(_XtGeoTrace((Widget) w,
                                        "ConfigureNotify succeed, return XtGeometryYes.\n"));
                 CALLGEOTAT(_XtGeoTab(-1));
+                free(event);
                 return XtGeometryYes;
             }
         }
@@ -2596,6 +2628,7 @@ RootGeometryManager(Widget gw,
             CALLGEOTAT(_XtGeoTrace((Widget) w,
                                    "Not wm, return XtGeometryNo.\n"));
             CALLGEOTAT(_XtGeoTab(-1));
+            free(event);
             return XtGeometryNo;
         }
         else
