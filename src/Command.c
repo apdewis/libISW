@@ -71,6 +71,7 @@ SOFTWARE.
 #include <math.h>
 #include "ISWXcbDraw.h"     /* For XCB xcb_gcontext_t helpers */
 
+#define MULTI_LINE_LABEL 32767
 #define DEFAULT_HIGHLIGHT_THICKNESS 2
 #define DEFAULT_SHAPE_HIGHLIGHT 32767
 
@@ -393,18 +394,25 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   very_thick = cbw->command.border_stroke_width >
                (Dimension)((Dimension) Min(cbw->core.width, cbw->core.height)/2);
 
-  /* Save original foreground for later restoration */
+  /* Save original colors for later restoration */
   Pixel saved_foreground = cbw->label.foreground;
+  Pixel saved_background = w->core.background_pixel;
 
   /*
-   * Single-pass repaint: clear background, draw border, then label text.
-   * Everything is done in one Begin/End to avoid inter-frame flicker.
+   * Repaint sequence: Label first (draws background + text), then
+   * Command overdraws border and pressed-state fill on top.
+   *
+   * Label.Redisplay fills the entire widget rectangle with
+   * background_pixel, so the border must come after.  The pressed
+   * fill is also done here with a clipped rounded-rect path so it
+   * respects corner_radius.
    */
-  ISWRenderBegin(ctx);
 
-  /* Clear to background */
-  ISWRenderSetColor(ctx, w->core.background_pixel);
-  ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+  /* Let Label draw normal background + text */
+  (*SuperClass->core_class.expose)(w, event, 0);
+
+  /* Now draw pressed fill (if set) and border on top */
+  ISWRenderBegin(ctx);
 
   {
     cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
@@ -419,7 +427,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
 
       cairo_save(cr);
 
-      /* Build border path */
+      /* Build rounded-rect border path */
       cairo_new_path(cr);
       if (r > 0) {
         cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
@@ -432,11 +440,53 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
       }
 
       if (cbw->command.set) {
-        cbw->label.foreground = cbw->core.background_pixel;
-        /* Fill with foreground color for inverted (pressed) look */
+        /* Pressed: fill the rounded rect with foreground, then
+         * redraw text in background color on top */
+        cairo_save(cr);
+        cairo_clip(cr);
         ISWRenderSetColor(ctx, saved_foreground);
-        cairo_fill_preserve(cr);
-        region = NULL;  /* Force label to repaint text */
+        cairo_paint(cr);
+
+        /* Redraw label text in inverted color, clipped to shape */
+        ISWRenderSetFont(ctx, cbw->label.font);
+        ISWRenderSetColor(ctx, saved_background);
+        if (cbw->label.label && cbw->label.font) {
+          int y = cbw->label.label_y
+                  + (int)ISWScaledFontAscent(w, cbw->label.font);
+          int lbl_len = cbw->label.label_len;
+          char *label = cbw->label.label;
+
+          if (lbl_len == MULTI_LINE_LABEL) {
+            int line_height = ISWScaledFontHeight(w, cbw->label.font);
+            char *nl;
+            while ((nl = index(label, '\n')) != NULL) {
+              int seg = (int)(nl - label);
+              if (seg > 0)
+                ISWRenderDrawString(ctx, label, seg,
+                                    cbw->label.label_x, y);
+              y += line_height;
+              label = nl + 1;
+            }
+            lbl_len = strlen(label);
+          }
+          if (lbl_len > 0)
+            ISWRenderDrawString(ctx, label, lbl_len,
+                                cbw->label.label_x, y);
+        }
+
+        cairo_restore(cr);
+
+        /* Rebuild path for the border stroke (clip consumed it) */
+        cairo_new_path(cr);
+        if (r > 0) {
+          cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
+          cairo_arc(cr, bx + bw - r, by + bh - r, r, 0, M_PI/2);
+          cairo_arc(cr, bx + r, by + bh - r, r, M_PI/2, M_PI);
+          cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
+          cairo_close_path(cr);
+        } else {
+          cairo_rectangle(cr, bx, by, bw, bh);
+        }
       }
 
       /* Stroke the border */
@@ -448,17 +498,11 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
         cairo_new_path(cr);
       }
 
-      cairo_new_path(cr);
       cairo_restore(cr);
     }
   }
 
   ISWRenderEnd(ctx);
-
-  /* Draw label text — always uses normal foreground */
-  (*SuperClass->core_class.expose)(w, event, 0);
-
-  cbw->label.foreground = saved_foreground;
 }
 
 static void
