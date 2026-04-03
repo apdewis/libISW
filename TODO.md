@@ -1,53 +1,5 @@
 # TODO
 
-## Replace Xlib-compat constants with XCB native enums
-
-XtTypes.h defines ~200 Xlib-named constants as hardcoded integers (e.g.
-`#define KeyPressMask (1L<<0)`, `#define GXcopy 0x3`, `#define XA_PRIMARY 1`).
-Nearly all of these have direct equivalents already defined in `xcb/xproto.h`
-and `xcb/xcb_icccm.h` (`XCB_EVENT_MASK_KEY_PRESS`, `XCB_GX_COPY`,
-`XCB_ATOM_PRIMARY`, etc.). The Xlib names should never have been recreated.
-
-### Approach
-
-1. Replace all bare-integer definitions in XtTypes.h with XCB_EQUIVALENT
-
-### Groups (all have XCB equivalents unless noted)
-
-- Event masks (25) → `XCB_EVENT_MASK_*`
-- Event types (33) → `XCB_KEY_PRESS`, `XCB_BUTTON_PRESS`, etc.
-  (`NoExpose` and `LASTEvent` have no XCB equivalent — define locally)
-- CW attribute masks (15) → `XCB_CW_*`
-- ConfigureWindow masks (7) → `XCB_CONFIG_WINDOW_*`
-- GC functions (16) → removed (GC management deleted)
-- GC value masks (23) → removed (GC management deleted)
-- Line/cap/join/fill styles (14) → removed (GC management deleted)
-- Fill/subwindow/arc rules (8) → removed (GC management deleted)
-- Gravity (12) → `XCB_GRAVITY_*`
-- Grab modes/status (7) → `XCB_GRAB_MODE_*`, `XCB_GRAB_STATUS_*`
-- Prop modes (3) → `XCB_PROP_MODE_*`
-- Stack modes (5) → `XCB_STACK_MODE_*`
-- Window class (2) → `XCB_WINDOW_CLASS_*`
-- Map state (3) → `XCB_MAP_STATE_*`
-- Backing store (3) → `XCB_BACKING_STORE_*`
-- Predefined atoms (59) → `XCB_ATOM_*`
-- Modifier masks (8) → `XCB_MOD_MASK_*`
-- Button masks (5) → `XCB_BUTTON_MASK_*`
-- Button indices (5) → `XCB_BUTTON_INDEX_*`
-- Notify modes/detail (12) → XCB notify enums
-- Visibility/property/colormap state → `XCB_VISIBILITY_*` etc.
-- Visual classes (6) → `XCB_VISUAL_CLASS_*`
-- Image format (3) → `XCB_IMAGE_FORMAT_*`
-- Byte order (2) → `XCB_IMAGE_ORDER_*`
-- Circulation (2) → `XCB_PLACE_*`
-- Mapping request (3) → `XCB_MAPPING_*`
-- Focus revert (3) → `XCB_INPUT_FOCUS_*`
-
-Also remove: `DisplayOfScreen` (NULL stub, unused), `XYBitmap`/`XYPixmap`/
-`ZPixmap` (unused), `CoordModeOrigin`/`CoordModePrevious` (unused).
-
-Files: XtTypes.h, and every src/ file that references these constants.
-
 ## Investigate animation hook architecture
 
 Optional animation support when EGL or other accelerated backends are available.
