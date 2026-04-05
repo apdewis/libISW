@@ -582,6 +582,21 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     PaintThumb (sbw, event);
     PaintArrows (sbw);
 
+    /* Draw per-edge borders */
+    if (w->core.border_width_top != 0 || w->core.border_width_right != 0 ||
+        w->core.border_width_bottom != 0 || w->core.border_width_left != 0) {
+        ISWRenderContext *bctx = sbw->scrollbar.render_ctx;
+        if (bctx) {
+            ISWRenderBegin(bctx);
+            ISWRenderDrawBorder(bctx,
+                w->core.border_width_top, w->core.border_width_right,
+                w->core.border_width_bottom, w->core.border_width_left,
+                w->core.border_pixel_top, w->core.border_pixel_right,
+                w->core.border_pixel_bottom, w->core.border_pixel_left,
+                w->core.width, w->core.height);
+            ISWRenderEnd(bctx);
+        }
+    }
 }
 
 

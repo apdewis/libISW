@@ -524,6 +524,19 @@ dy = SMW_ARROW_SIZE;
                                  w->core.height - 1);
         ISWRenderEnd(smw->simple_menu.render_ctx);
     }
+
+    if (smw->simple_menu.render_ctx &&
+        (w->core.border_width_top || w->core.border_width_right ||
+         w->core.border_width_bottom || w->core.border_width_left)) {
+        ISWRenderBegin(smw->simple_menu.render_ctx);
+        ISWRenderDrawBorder(smw->simple_menu.render_ctx,
+            w->core.border_width_top, w->core.border_width_right,
+            w->core.border_width_bottom, w->core.border_width_left,
+            w->core.border_pixel_top, w->core.border_pixel_right,
+            w->core.border_pixel_bottom, w->core.border_pixel_left,
+            w->core.width, w->core.height);
+        ISWRenderEnd(smw->simple_menu.render_ctx);
+    }
 }
 
 /*      Function Name: Realize
@@ -1281,8 +1294,8 @@ MoveMenu(Widget w, Position x, Position y)
     Arg arglist[2];
 
     if (smw->simple_menu.menu_on_screen) {
-	int width = w->core.width + 2 * w->core.border_width;
-	int height = w->core.height + 2 * w->core.border_width;
+	int width = w->core.width + ISW_BORDER_H(w);
+	int height = w->core.height + ISW_BORDER_V(w);
 
 	if (x >= 0) {
 	    int scr_width = WidthOfScreen(XtScreen(w));

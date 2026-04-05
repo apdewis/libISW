@@ -319,8 +319,8 @@ GetDesiredSize (Widget child)
     XtQueryGeometry (child, (XtWidgetGeometry *) NULL, &desired);
     p = SubInfo (child);
     p->naturalBw = desired.border_width;
-    p->naturalSize[LayoutHorizontal] = desired.width + desired.border_width * 2;
-    p->naturalSize[LayoutVertical] = desired.height + desired.border_width * 2;
+    p->naturalSize[LayoutHorizontal] = desired.width + ISW_BORDER_H(child);
+    p->naturalSize[LayoutVertical] = desired.height + ISW_BORDER_V(child);
 }
 
 static void

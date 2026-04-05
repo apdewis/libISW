@@ -714,6 +714,20 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (lw->list.render_ctx) {
         ISWRenderEnd(lw->list.render_ctx);
     }
+
+    /* Per-edge borders on top of content */
+    if (lw->list.render_ctx &&
+        (w->core.border_width_top || w->core.border_width_right ||
+         w->core.border_width_bottom || w->core.border_width_left)) {
+        ISWRenderBegin(lw->list.render_ctx);
+        ISWRenderDrawBorder(lw->list.render_ctx,
+            w->core.border_width_top, w->core.border_width_right,
+            w->core.border_width_bottom, w->core.border_width_left,
+            w->core.border_pixel_top, w->core.border_pixel_right,
+            w->core.border_pixel_bottom, w->core.border_pixel_left,
+            w->core.width, w->core.height);
+        ISWRenderEnd(lw->list.render_ctx);
+    }
 }
 
 

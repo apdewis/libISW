@@ -1672,8 +1672,26 @@ Resize(Widget w)
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
+    PanedWidget pw = (PanedWidget) w;
     (void)event; (void)region; /* unused parameters */
-    DrawInternalBorders( (PanedWidget) w);
+    DrawInternalBorders(pw);
+
+    if (w->core.border_width_top || w->core.border_width_right ||
+        w->core.border_width_bottom || w->core.border_width_left) {
+        ISWRenderContext *ctx = pw->paned.render_ctx;
+        if (!ctx && XtIsRealized(w) && w->core.width > 0 && w->core.height > 0)
+            ctx = pw->paned.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+        if (ctx) {
+            ISWRenderBegin(ctx);
+            ISWRenderDrawBorder(ctx,
+                w->core.border_width_top, w->core.border_width_right,
+                w->core.border_width_bottom, w->core.border_width_left,
+                w->core.border_pixel_top, w->core.border_pixel_right,
+                w->core.border_pixel_bottom, w->core.border_pixel_left,
+                w->core.width, w->core.height);
+            ISWRenderEnd(ctx);
+        }
+    }
 }
 
 /* ARGSUSED */

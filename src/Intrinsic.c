@@ -549,7 +549,7 @@ XtCreateWindow(xcb_connection_t *display,
                 parent_win,
                 widget->core.x, widget->core.y,
                 widget->core.width, widget->core.height,
-                widget->core.border_width,
+                0, /* borders drawn in software, not by X server */
                 window_class,
                 visual ? visual->visual_id : XCB_COPY_FROM_PARENT,
                 value_mask,

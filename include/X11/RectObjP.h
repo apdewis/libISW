@@ -66,6 +66,10 @@ typedef struct _RectObjPart {
     Boolean         managed;            /* is widget geometry managed?       */
     Boolean         sensitive;          /* is widget sensitive to user events*/
     Boolean         ancestor_sensitive; /* are all ancestors sensitive?      */
+    Dimension       border_width_top;  /* per-edge border widths           */
+    Dimension       border_width_right;
+    Dimension       border_width_bottom;
+    Dimension       border_width_left;
 }RectObjPart;
 
 typedef struct _RectObjRec {

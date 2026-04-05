@@ -183,9 +183,9 @@ PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
   if (!XtIsRealized(menu))
     XtRealizeWidget(menu);
 
-  menu_width = menu->core.width + 2 * menu->core.border_width;
-  button_height = w->core.height + 2 * w->core.border_width;
-  menu_height = menu->core.height + 2 * menu->core.border_width;
+  menu_width = menu->core.width + ISW_BORDER_H(menu);
+  button_height = w->core.height + ISW_BORDER_V(w);
+  menu_height = menu->core.height + ISW_BORDER_V(menu);
 
   XtTranslateCoords(w, 0, 0, &button_x, &button_y);
   menu_x = button_x;

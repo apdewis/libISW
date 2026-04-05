@@ -82,6 +82,8 @@ static XtResource resources[] = {
 static void ClassPartInitialize(WidgetClass);
 static void ClassInitialize(void);
 static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void SimpleRedisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void SimpleDestroy(Widget);
 static void ConvertCursor(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ChangeSensitive(Widget);
@@ -106,9 +108,9 @@ SimpleClassRec simpleClassRec = {
     /* compress_exposure	*/	TRUE,
     /* compress_enterleave	*/	TRUE,
     /* visible_interest		*/	FALSE,
-    /* destroy			*/	NULL,
+    /* destroy			*/	SimpleDestroy,
     /* resize			*/	NULL,
-    /* expose			*/	NULL,
+    /* expose			*/	SimpleRedisplay,
     /* set_values		*/	SetValues,
     /* set_values_hook		*/	NULL,
     /* set_values_almost	*/	XtInheritSetValuesAlmost,
@@ -209,6 +211,43 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
 
     if (!XtIsSensitive(w))
 	w->core.border_pixmap = border_pixmap;
+}
+
+static void
+SimpleRedisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+{
+    SimpleWidget sw = (SimpleWidget) w;
+
+    if (!XtIsRealized(w))
+        return;
+    if (w->core.border_width_top == 0 && w->core.border_width_right == 0 &&
+        w->core.border_width_bottom == 0 && w->core.border_width_left == 0)
+        return;
+
+    ISWRenderContext *ctx = sw->simple.render_ctx;
+    if (!ctx && w->core.width > 0 && w->core.height > 0) {
+        ctx = sw->simple.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    }
+    if (ctx) {
+        ISWRenderBegin(ctx);
+        ISWRenderDrawBorder(ctx,
+            w->core.border_width_top, w->core.border_width_right,
+            w->core.border_width_bottom, w->core.border_width_left,
+            w->core.border_pixel_top, w->core.border_pixel_right,
+            w->core.border_pixel_bottom, w->core.border_pixel_left,
+            w->core.width, w->core.height);
+        ISWRenderEnd(ctx);
+    }
+}
+
+static void
+SimpleDestroy(Widget w)
+{
+    SimpleWidget sw = (SimpleWidget) w;
+    if (sw->simple.render_ctx) {
+        ISWRenderDestroy(sw->simple.render_ctx);
+        sw->simple.render_ctx = NULL;
+    }
 }
 
 /*	Function Name: ConvertCursor

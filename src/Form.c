@@ -97,6 +97,7 @@ static void ClassPartInitialize(WidgetClass);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void FormDestroy(Widget);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -127,7 +128,7 @@ FormClassRec formClassRec = {
     /* compress_exposure  */    TRUE,
     /* compress_enterleave*/    TRUE,
     /* visible_interest   */    FALSE,
-    /* destroy            */    NULL,
+    /* destroy            */    FormDestroy,
     /* resize             */    Resize,
     /* expose             */    Redisplay,
     /* set_values         */    SetValues,
@@ -208,31 +209,37 @@ _CvtStringToEdgeType(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-    /* Only draw border if border_width is set */
-    if (w->core.border_width == 0 || !XtIsRealized(w))
+    FormWidget fw = (FormWidget) w;
+
+    if (!XtIsRealized(w))
+        return;
+    if (w->core.border_width_top == 0 && w->core.border_width_right == 0 &&
+        w->core.border_width_bottom == 0 && w->core.border_width_left == 0)
         return;
 
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    ISWRenderContext *ctx = fw->form.render_ctx;
+    if (!ctx && w->core.width > 0 && w->core.height > 0) {
+        ctx = fw->form.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    }
     if (ctx) {
         ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.background_pixel);
-        ISWRenderSetLineWidth(ctx, (double)w->core.border_width);
-        ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);
+        ISWRenderDrawBorder(ctx,
+            w->core.border_width_top, w->core.border_width_right,
+            w->core.border_width_bottom, w->core.border_width_left,
+            w->core.border_pixel_top, w->core.border_pixel_right,
+            w->core.border_pixel_bottom, w->core.border_pixel_left,
+            w->core.width, w->core.height);
         ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
-    } else {
-        xcb_connection_t *conn = XtDisplay(w);
-        xcb_window_t win = (xcb_window_t) XtWindow(w);
-        xcb_gcontext_t gc = xcb_generate_id(conn);
-        uint32_t values[2];
-        values[0] = w->core.background_pixel;
-        values[1] = w->core.border_width;
-        xcb_create_gc(conn, gc, win,
-                      XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH, values);
-        xcb_rectangle_t rect = {0, 0, w->core.width, w->core.height};
-        xcb_poly_rectangle(conn, win, gc, 1, &rect);
-        xcb_free_gc(conn, gc);
-        xcb_flush(conn);
+    }
+}
+
+static void
+FormDestroy(Widget w)
+{
+    FormWidget fw = (FormWidget) w;
+    if (fw->form.render_ctx) {
+        ISWRenderDestroy(fw->form.render_ctx);
+        fw->form.render_ctx = NULL;
     }
 }
 
@@ -547,18 +554,18 @@ Resize(Widget w)
 	    form->form.virtual_width =
 		TransformCoord((Position)((*childP)->core.x
 					  + form->form.virtual_width
-					  + 2 * (*childP)->core.border_width),
+					  + ISW_BORDER_H(*childP)),
 			       fw->form.old_width, fw->core.width,
 			       form->form.right )
-		    - (x + 2 * (*childP)->core.border_width);
+		    - (x + ISW_BORDER_H(*childP));
 
 	    form->form.virtual_height =
 		TransformCoord((Position)((*childP)->core.y
 					  + form->form.virtual_height
-					  + 2 * (*childP)->core.border_width),
+					  + ISW_BORDER_V(*childP)),
 			       fw->form.old_height, fw->core.height,
 			       form->form.bottom )
-		    - ( y + 2 * (*childP)->core.border_width);
+		    - ( y + ISW_BORDER_V(*childP));
 
 	    width = (Dimension)
 		(form->form.virtual_width < 1) ? 1 : form->form.virtual_width;

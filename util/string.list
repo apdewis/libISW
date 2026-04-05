@@ -26,6 +26,14 @@ NborderColor
 Nborder borderColor
 NborderPixmap
 NborderWidth
+NborderWidthTop
+NborderWidthRight
+NborderWidthBottom
+NborderWidthLeft
+NborderColorTop
+NborderColorRight
+NborderColorBottom
+NborderColorLeft
 Ncallback
 Nchildren
 Ncolormap
@@ -107,6 +115,14 @@ CBitmap
 CBoolean
 CBorderColor
 CBorderWidth
+CBorderWidthTop
+CBorderWidthRight
+CBorderWidthBottom
+CBorderWidthLeft
+CBorderColorTop
+CBorderColorRight
+CBorderColorBottom
+CBorderColorLeft
 CCallback
 CColormap
 CColor

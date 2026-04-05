@@ -51,6 +51,7 @@ SOFTWARE.
 
 #include "ISWP.h"
 #include <ISW/Simple.h>
+#include <ISW/ISWRender.h>
 
 typedef struct {
     Boolean	(*change_sensitive)(Widget);
@@ -76,6 +77,7 @@ typedef struct {
     Boolean     international;
 #endif
     /* private state */
+    ISWRenderContext *render_ctx;
 } SimplePart;
 
 typedef struct _SimpleRec {

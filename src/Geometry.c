@@ -474,12 +474,10 @@ _XtMakeGeometryRequest(Widget widget,
                 values[vi++] = req.changes_w;
             if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)
                 values[vi++] = req.changes_h;
-            if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
-                values[vi++] = req.changes_bw;
+            /* Borders are drawn in software — don't configure X server border */
+            req.changeMask &= ~XCB_CONFIG_WINDOW_BORDER_WIDTH;
             xcb_configure_window(XtDisplay(widget), XtWindow(widget), req.changeMask, values);
         }
-        //  XConfigureWindow(XtDisplay(widget), XtWindow(widget),
-        //                 req.changeMask, &req.changes);
     }
     else {                      /* RectObj child of realized Widget */
         *clear_rect_obj = TRUE;
@@ -616,12 +614,10 @@ XtResizeWindow(Widget w)
                 values[vi++] = req.changes_w;
             if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)
                 values[vi++] = req.changes_h;
-            if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
-                values[vi++] = req.changes_bw;
+            /* Borders are drawn in software — don't configure X server border */
+            req.changeMask &= ~XCB_CONFIG_WINDOW_BORDER_WIDTH;
             xcb_configure_window(XtDisplay(w), XtWindow(w), req.changeMask, values);
         }
-        //XConfigureWindow(XtDisplay(w), XtWindow(w),
-        //                 (unsigned) req.changeMask, &req.changes);
         hookobj = XtHooksOfDisplay(XtDisplayOfObject(w));
         if (XtHasCallbacks(hookobj, XtNconfigureHook) == XtCallbackHasSome) {
             req.type = XtHconfigure;
@@ -722,12 +718,10 @@ XtConfigureWidget(Widget w,
                         values[vi++] = req.changes_w;
                     if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)
                         values[vi++] = req.changes_h;
-                    if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
-                        values[vi++] = req.changes_bw;
+                    /* Borders are drawn in software — don't configure X server border */
+                    req.changeMask &= ~XCB_CONFIG_WINDOW_BORDER_WIDTH;
                     xcb_configure_window(dpy, XtWindow(w), req.changeMask, values);
                 }
-                //XConfigureWindow(XtDisplay(w), XtWindow(w), req.changeMask,
-                //                 &req.changes);
             }
             else {
                 CALLGEOTAT(_XtGeoTrace(w,

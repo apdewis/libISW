@@ -215,6 +215,7 @@ typedef struct _TextPart {
     /* private state, shared w/Source and Sink */
     Boolean	    redisplay_needed; /* in SetValues */
     IswTextSelectionSalt    *salt2;	     /* salted away selections */
+    ISWRenderContext *render_ctx;
 } TextPart;
 
 /*************************************************************

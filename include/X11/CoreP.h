@@ -100,6 +100,14 @@ typedef struct _CorePart {
     xcb_pixmap_t    background_pixmap;	/* window background pixmap or NULL  */
     Boolean         visible;		/* is window mapped and not occluded?*/
     Boolean	    mapped_when_managed;/* map window if it's managed?       */
+    Dimension       border_width_top;	/* per-edge border widths	     */
+    Dimension       border_width_right;
+    Dimension       border_width_bottom;
+    Dimension       border_width_left;
+    Pixel           border_pixel_top;	/* per-edge border pixels	     */
+    Pixel           border_pixel_right;
+    Pixel           border_pixel_bottom;
+    Pixel           border_pixel_left;
 } CorePart;
 
 typedef struct _WidgetRec {
@@ -166,6 +174,10 @@ externalref WidgetClassRec widgetClassRec;
 #define coreClassRec widgetClassRec
 
 _XFUNCPROTOEND
+
+/* Per-edge border dimension helpers */
+#define ISW_BORDER_H(w) ((w)->core.border_width_left + (w)->core.border_width_right)
+#define ISW_BORDER_V(w) ((w)->core.border_width_top + (w)->core.border_width_bottom)
 
 #endif /* _XtCoreP_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

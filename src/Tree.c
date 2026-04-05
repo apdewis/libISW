@@ -744,7 +744,7 @@ compute_bounding_box_subtree (TreeWidget tree, Widget w, int depth)
     int i;
     Bool horiz = IsHorizontal (tree);
     Dimension newwidth, newheight;
-    Dimension bw2 = w->core.border_width * 2;
+    Dimension bw_main  = horiz ? ISW_BORDER_H(w) : ISW_BORDER_V(w);
 
     /*
      * Set the max-size per level.
@@ -753,7 +753,7 @@ compute_bounding_box_subtree (TreeWidget tree, Widget w, int depth)
 	initialize_dimensions (&tree->tree.largest,
 			       &tree->tree.n_largest, depth + 1);
     }
-    newwidth = ((horiz ? w->core.width : w->core.height) + bw2);
+    newwidth = ((horiz ? w->core.width : w->core.height) + bw_main);
     if (tree->tree.largest[depth] < newwidth)
       tree->tree.largest[depth] = newwidth;
 
@@ -761,8 +761,8 @@ compute_bounding_box_subtree (TreeWidget tree, Widget w, int depth)
     /*
      * initialize
      */
-    tc->tree.bbwidth = w->core.width + bw2;
-    tc->tree.bbheight = w->core.height + bw2;
+    tc->tree.bbwidth = w->core.width + ISW_BORDER_H(w);
+    tc->tree.bbheight = w->core.height + ISW_BORDER_V(w);
 
     if (tc->tree.n_children == 0) return;
 
@@ -857,7 +857,8 @@ arrange_subtree (TreeWidget tree, Widget w, int depth, Position x, Position y)
     Bool horiz = IsHorizontal (tree);
     Widget child = NULL;
     Dimension tmp;
-    Dimension bw2 = w->core.border_width * 2;
+    Dimension bw_main  = horiz ? ISW_BORDER_H(w) : ISW_BORDER_V(w);
+    Dimension bw_cross = horiz ? ISW_BORDER_V(w) : ISW_BORDER_H(w);
     Bool relayout = True;
 
 
@@ -868,14 +869,14 @@ arrange_subtree (TreeWidget tree, Widget w, int depth, Position x, Position y)
     tc->tree.y = y;
 
     if (horiz) {
-	int myh = (w->core.height + bw2);
+	int myh = (w->core.height + bw_cross);
 
 	if (myh > (int)tc->tree.bbsubheight) {
 	    y += (myh - (int)tc->tree.bbsubheight) / 2;
 	    relayout = False;
 	}
     } else {
-	int myw = (w->core.width + bw2);
+	int myw = (w->core.width + bw_cross);
 
 	if (myw > (int)tc->tree.bbsubwidth) {
 	    x += (myw - (int)tc->tree.bbsubwidth) / 2;
@@ -935,16 +936,16 @@ arrange_subtree (TreeWidget tree, Widget w, int depth, Position x, Position y)
 	    tc->tree.x = x;
 	    adjusted = firstcc->tree.y +
 	      ((lastcc->tree.y + (Position) child->core.height +
-		(Position) child->core.border_width * 2 -
+		(Position) ISW_BORDER_V(child) -
 		firstcc->tree.y - (Position) w->core.height -
-		(Position) w->core.border_width * 2 + 1) / 2);
+		(Position) ISW_BORDER_V(w) + 1) / 2);
 	    if (adjusted > tc->tree.y) tc->tree.y = adjusted;
 	} else {
 	    adjusted = firstcc->tree.x +
 	      ((lastcc->tree.x + (Position) child->core.width +
-		(Position) child->core.border_width * 2 -
+		(Position) ISW_BORDER_H(child) -
 		firstcc->tree.x - (Position) w->core.width -
-		(Position) w->core.border_width * 2 + 1) / 2);
+		(Position) ISW_BORDER_H(w) + 1) / 2);
 	    if (adjusted > tc->tree.x) tc->tree.x = adjusted;
 	    tc->tree.y = y;
 	}

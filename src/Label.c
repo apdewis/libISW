@@ -611,6 +611,19 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     }
 
+    /* Draw per-edge borders (on top of content) */
+    if (ctx &&
+        (gw->core.border_width_top != 0 || gw->core.border_width_right != 0 ||
+         gw->core.border_width_bottom != 0 || gw->core.border_width_left != 0)) {
+        ISWRenderBegin(ctx);
+        ISWRenderDrawBorder(ctx,
+            gw->core.border_width_top, gw->core.border_width_right,
+            gw->core.border_width_bottom, gw->core.border_width_left,
+            gw->core.border_pixel_top, gw->core.border_pixel_right,
+            gw->core.border_pixel_bottom, gw->core.border_pixel_left,
+            gw->core.width, gw->core.height);
+        ISWRenderEnd(ctx);
+    }
 }
 
 static void

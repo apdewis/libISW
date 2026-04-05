@@ -1128,7 +1128,7 @@ CheckVBarScrolling(TextWidget ctx)
 
       if (ctx->text.hbar != NULL)
 	y -= (ctx->text.hbar->core.height +
-	      2 * ctx->text.hbar->core.border_width);
+	      ISW_BORDER_V(ctx->text.hbar));
 
       last_pos = PositionForXY(ctx, (Position) ctx->core.width, y);
       line = LineForPosition(ctx, last_pos);
@@ -1176,7 +1176,7 @@ _IswTextSetScrollBars(TextWidget ctx)
 
   if (ctx->text.vbar != NULL)
     widest = (int)(ctx->core.width - ctx->text.vbar->core.width -
-		   2 * s - ctx->text.vbar->core.border_width);
+		   2 * s - ISW_BORDER_H(ctx->text.vbar));
   else
     widest = ctx->core.width - 2 * s;
   widest /= (last = GetWidestLine(ctx));
@@ -2653,6 +2653,25 @@ ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
     _IswTextExecuteUpdate(ctx);
 
       _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
+
+    /* Draw per-edge borders */
+    if (w->core.border_width_top != 0 || w->core.border_width_right != 0 ||
+        w->core.border_width_bottom != 0 || w->core.border_width_left != 0) {
+        ISWRenderContext *bctx = ctx->text.render_ctx;
+        if (!bctx && w->core.width > 0 && w->core.height > 0) {
+            bctx = ctx->text.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+        }
+        if (bctx) {
+            ISWRenderBegin(bctx);
+            ISWRenderDrawBorder(bctx,
+                w->core.border_width_top, w->core.border_width_right,
+                w->core.border_width_bottom, w->core.border_width_left,
+                w->core.border_pixel_top, w->core.border_pixel_right,
+                w->core.border_pixel_bottom, w->core.border_pixel_left,
+                w->core.width, w->core.height);
+            ISWRenderEnd(bctx);
+        }
+    }
 }
 
 /*
@@ -2724,7 +2743,7 @@ _IswTextShowPosition(TextWidget ctx)
   x = ctx->core.width;
   y = ctx->core.height - ctx->text.margin.bottom;
   if (ctx->text.hbar != NULL)
-    y -= ctx->text.hbar->core.height + 2 * ctx->text.hbar->core.border_width;
+    y -= ctx->text.hbar->core.height + ISW_BORDER_V(ctx->text.hbar);
 
   max_pos = PositionForXY (ctx, x, y);
   lines = LineForPosition(ctx, max_pos) + 1; /* number of visable lines. */
@@ -2822,6 +2841,11 @@ TextDestroy(Widget w)
   XtFree((char *)ctx->text.search);
   XtFree((char *)ctx->text.updateFrom);
   XtFree((char *)ctx->text.updateTo);
+
+  if (ctx->text.render_ctx) {
+      ISWRenderDestroy(ctx->text.render_ctx);
+      ctx->text.render_ctx = NULL;
+  }
 }
 
 /*

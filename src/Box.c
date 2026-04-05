@@ -91,6 +91,7 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Destroy(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
 static void ChangeManaged(Widget);
@@ -117,7 +118,7 @@ BoxClassRec boxClassRec = {
     /* compress_exposure  */	TRUE,
     /* compress_enterleave*/	TRUE,
     /* visible_interest   */    FALSE,
-    /* destroy            */    NULL,
+    /* destroy            */    Destroy,
     /* resize             */    Resize,
     /* expose             */    Redisplay,
     /* set_values         */    SetValues,
@@ -577,31 +578,38 @@ ChangeManaged(Widget w)
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-    /* Only draw border if border_width is set */
-    if (w->core.border_width == 0 || !XtIsRealized(w))
+    BoxWidget bw = (BoxWidget) w;
+
+    if (!XtIsRealized(w))
+        return;
+    /* Only draw when per-edge border resources are explicitly set */
+    if (w->core.border_width_top == 0 && w->core.border_width_right == 0 &&
+        w->core.border_width_bottom == 0 && w->core.border_width_left == 0)
         return;
 
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    ISWRenderContext *ctx = bw->box.render_ctx;
+    if (!ctx && w->core.width > 0 && w->core.height > 0) {
+        ctx = bw->box.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    }
     if (ctx) {
         ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.background_pixel);
-        ISWRenderSetLineWidth(ctx, (double)w->core.border_width);
-        ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);
+        ISWRenderDrawBorder(ctx,
+            w->core.border_width_top, w->core.border_width_right,
+            w->core.border_width_bottom, w->core.border_width_left,
+            w->core.border_pixel_top, w->core.border_pixel_right,
+            w->core.border_pixel_bottom, w->core.border_pixel_left,
+            w->core.width, w->core.height);
         ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
-    } else {
-        xcb_connection_t *conn = XtDisplay(w);
-        xcb_window_t win = (xcb_window_t) XtWindow(w);
-        xcb_gcontext_t gc = xcb_generate_id(conn);
-        uint32_t values[2];
-        values[0] = w->core.background_pixel;
-        values[1] = w->core.border_width;
-        xcb_create_gc(conn, gc, win,
-                      XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH, values);
-        xcb_rectangle_t rect = {0, 0, w->core.width, w->core.height};
-        xcb_poly_rectangle(conn, win, gc, 1, &rect);
-        xcb_free_gc(conn, gc);
-        xcb_flush(conn);
+    }
+}
+
+static void
+Destroy(Widget w)
+{
+    BoxWidget bw = (BoxWidget) w;
+    if (bw->box.render_ctx) {
+        ISWRenderDestroy(bw->box.render_ctx);
+        bw->box.render_ctx = NULL;
     }
 }
 

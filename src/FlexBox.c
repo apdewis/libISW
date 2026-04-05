@@ -253,24 +253,25 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             continue;
 
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
-        int bw2 = 2 * (int)child->core.border_width;
+        int bw_main  = horiz ? (int)ISW_BORDER_H(child) : (int)ISW_BORDER_V(child);
+        int bw_cross = horiz ? (int)ISW_BORDER_V(child) : (int)ISW_BORDER_H(child);
         Dimension cross = ChildCrossPreferred(child, horiz);
 
         if (fc->flexBox.flex_grow > 0) {
             /* Grow children: only flexBasis counts as fixed space */
             if (fc->flexBox.flex_basis > 0)
                 total_fixed += (int)ISWScaleDim((Widget)fw,
-                               (int)fc->flexBox.flex_basis) + bw2;
+                               (int)fc->flexBox.flex_basis) + bw_main;
             else
-                total_fixed += bw2;
+                total_fixed += bw_main;
             total_grow += fc->flexBox.flex_grow;
         } else {
             /* Non-grow children: full preferred/basis size */
-            total_fixed += (int)ChildBasis(fw, child, horiz) + bw2;
+            total_fixed += (int)ChildBasis(fw, child, horiz) + bw_main;
         }
 
-        if ((int)cross + bw2 > (int)max_cross)
-            max_cross = (Dimension)((int)cross + bw2);
+        if ((int)cross + bw_cross > (int)max_cross)
+            max_cross = (Dimension)((int)cross + bw_cross);
         managed++;
     }
 
@@ -291,8 +292,8 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             Widget child = children[i];
             if (!XtIsManaged(child))
                 continue;
-            int bw2 = 2 * (int)child->core.border_width;
-            preferred_base += (int)ChildBasis(fw, child, horiz) + bw2;
+            int bw_main  = horiz ? (int)ISW_BORDER_H(child) : (int)ISW_BORDER_V(child);
+            preferred_base += (int)ChildBasis(fw, child, horiz) + bw_main;
         }
         int preferred_main = preferred_base + total_spacing;
         fw->flexBox.preferred_width  = horiz ? (Dimension)preferred_main : max_cross;
@@ -316,7 +317,8 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             continue;
 
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
-        int bw2 = 2 * (int)child->core.border_width;
+        int bw_main  = horiz ? (int)ISW_BORDER_H(child) : (int)ISW_BORDER_V(child);
+        int bw_cross = horiz ? (int)ISW_BORDER_V(child) : (int)ISW_BORDER_H(child);
 
         /* Main-axis size */
         int main_sz;
@@ -344,16 +346,16 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             cross_pos = 0;
             break;
         case XtflexAlignEnd:
-            cross_pos = (int)container_cross - cross_sz - bw2;
+            cross_pos = (int)container_cross - cross_sz - bw_cross;
             if (cross_pos < 0) cross_pos = 0;
             break;
         case XtflexAlignCenter:
-            cross_pos = ((int)container_cross - cross_sz - bw2) / 2;
+            cross_pos = ((int)container_cross - cross_sz - bw_cross) / 2;
             if (cross_pos < 0) cross_pos = 0;
             break;
         case XtflexAlignStretch:
             cross_pos = 0;
-            cross_sz = (int)container_cross - bw2;
+            cross_sz = (int)container_cross - bw_cross;
             break;
         }
         if (cross_sz < 1)
@@ -375,7 +377,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 
         XtConfigureWidget(child, x, y, w, h, child->core.border_width);
 
-        pos += (Position)(main_sz + bw2) + (Position)spacing;
+        pos += (Position)(main_sz + bw_main) + (Position)spacing;
     }
 }
 

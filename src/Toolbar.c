@@ -123,19 +123,35 @@ InsertChild(Widget child)
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
+    BoxWidget bw = (BoxWidget) w;
     (void)event; (void)region;
 
     if (!XtIsRealized(w) || w->core.width == 0 || w->core.height == 0)
         return;
 
-    /* Draw bottom separator line */
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-    if (ctx) {
-        int y = (int)w->core.height - 1;
-        ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.border_pixel);
-        ISWRenderDrawLine(ctx, 0, y, (int)w->core.width, y);
-        ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
+    ISWRenderContext *ctx = bw->box.render_ctx;
+    if (!ctx) {
+        ctx = bw->box.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
     }
+    if (!ctx) return;
+
+    ISWRenderBegin(ctx);
+
+    /* Draw bottom separator line */
+    ISWRenderSetColor(ctx, w->core.border_pixel);
+    ISWRenderDrawLine(ctx, 0, (int)w->core.height - 1,
+                      (int)w->core.width, (int)w->core.height - 1);
+
+    /* Draw per-edge borders */
+    if (w->core.border_width_top != 0 || w->core.border_width_right != 0 ||
+        w->core.border_width_bottom != 0 || w->core.border_width_left != 0) {
+        ISWRenderDrawBorder(ctx,
+            w->core.border_width_top, w->core.border_width_right,
+            w->core.border_width_bottom, w->core.border_width_left,
+            w->core.border_pixel_top, w->core.border_pixel_right,
+            w->core.border_pixel_bottom, w->core.border_pixel_left,
+            w->core.width, w->core.height);
+    }
+
+    ISWRenderEnd(ctx);
 }

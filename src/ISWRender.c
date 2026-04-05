@@ -977,4 +977,66 @@ ISWScaledFontCapHeight(Widget widget, XFontStruct *font)
     return (int)ceil(-text_ext.y_bearing);
 }
 
+/*
+ * ISWRenderDrawBorder - Draw per-edge borders as filled trapezoids
+ *
+ * Each edge is a filled quadrilateral from the outer rectangle inward,
+ * with 45-degree mitered corners where adjacent edges meet.
+ */
+void
+ISWRenderDrawBorder(ISWRenderContext *ctx,
+                    Dimension wt, Dimension wr,
+                    Dimension wb, Dimension wl,
+                    Pixel ct, Pixel cr_color,
+                    Pixel cb, Pixel cl,
+                    Dimension widget_width, Dimension widget_height)
+{
+    int W = (int)widget_width;
+    int H = (int)widget_height;
+    int t = (int)wt, r = (int)wr, b = (int)wb, l = (int)wl;
+
+    if (!ctx || (t == 0 && r == 0 && b == 0 && l == 0))
+        return;
+
+    /* Top edge: trapezoid from (0,0)-(W,0) outer to (l,t)-(W-r,t) inner */
+    if (t > 0) {
+        xcb_point_t pts[4] = {
+            {0, 0}, {(int16_t)W, 0},
+            {(int16_t)(W - r), (int16_t)t}, {(int16_t)l, (int16_t)t}
+        };
+        ISWRenderSetColor(ctx, ct);
+        ISWRenderFillPolygon(ctx, pts, 4);
+    }
+
+    /* Right edge: trapezoid from (W,0)-(W,H) outer to (W-r,t)-(W-r,H-b) inner */
+    if (r > 0) {
+        xcb_point_t pts[4] = {
+            {(int16_t)W, 0}, {(int16_t)W, (int16_t)H},
+            {(int16_t)(W - r), (int16_t)(H - b)}, {(int16_t)(W - r), (int16_t)t}
+        };
+        ISWRenderSetColor(ctx, cr_color);
+        ISWRenderFillPolygon(ctx, pts, 4);
+    }
+
+    /* Bottom edge: trapezoid from (0,H)-(W,H) outer to (l,H-b)-(W-r,H-b) inner */
+    if (b > 0) {
+        xcb_point_t pts[4] = {
+            {(int16_t)W, (int16_t)H}, {0, (int16_t)H},
+            {(int16_t)l, (int16_t)(H - b)}, {(int16_t)(W - r), (int16_t)(H - b)}
+        };
+        ISWRenderSetColor(ctx, cb);
+        ISWRenderFillPolygon(ctx, pts, 4);
+    }
+
+    /* Left edge: trapezoid from (0,H)-(0,0) outer to (l,H-b)-(l,t) inner */
+    if (l > 0) {
+        xcb_point_t pts[4] = {
+            {0, (int16_t)H}, {0, 0},
+            {(int16_t)l, (int16_t)t}, {(int16_t)l, (int16_t)(H - b)}
+        };
+        ISWRenderSetColor(ctx, cl);
+        ISWRenderFillPolygon(ctx, pts, 4);
+    }
+}
+
 /* Cairo is now a mandatory dependency — no non-Cairo fallback needed */

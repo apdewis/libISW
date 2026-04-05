@@ -348,6 +348,18 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     cairo_new_path(cr);
     cairo_restore(cr);
     ISWRenderEnd(ctx);
+
+    if (w->core.border_width_top || w->core.border_width_right ||
+        w->core.border_width_bottom || w->core.border_width_left) {
+        ISWRenderBegin(ctx);
+        ISWRenderDrawBorder(ctx,
+            w->core.border_width_top, w->core.border_width_right,
+            w->core.border_width_bottom, w->core.border_width_left,
+            w->core.border_pixel_top, w->core.border_pixel_right,
+            w->core.border_pixel_bottom, w->core.border_pixel_left,
+            w->core.width, w->core.height);
+        ISWRenderEnd(ctx);
+    }
 }
 
 /* ARGSUSED */

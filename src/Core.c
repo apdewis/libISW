@@ -118,6 +118,30 @@ parameter is not passed through to the XtRCallProc routines */
     {XtNborderPixmap, XtCPixmap, XtRPixmap, sizeof(xcb_pixmap_t),
      XtOffsetOf(CoreRec, core.border_pixmap),
      XtRImmediate, (XtPointer) XtUnspecifiedPixmap},
+    {XtNborderWidthTop, XtCBorderWidthTop, XtRDimension, sizeof(Dimension),
+     XtOffsetOf(CoreRec, core.border_width_top),
+     XtRImmediate, (XtPointer) 0},
+    {XtNborderWidthRight, XtCBorderWidthRight, XtRDimension, sizeof(Dimension),
+     XtOffsetOf(CoreRec, core.border_width_right),
+     XtRImmediate, (XtPointer) 0},
+    {XtNborderWidthBottom, XtCBorderWidthBottom, XtRDimension, sizeof(Dimension),
+     XtOffsetOf(CoreRec, core.border_width_bottom),
+     XtRImmediate, (XtPointer) 0},
+    {XtNborderWidthLeft, XtCBorderWidthLeft, XtRDimension, sizeof(Dimension),
+     XtOffsetOf(CoreRec, core.border_width_left),
+     XtRImmediate, (XtPointer) 0},
+    {XtNborderColorTop, XtCBorderColorTop, XtRPixel, sizeof(Pixel),
+     XtOffsetOf(CoreRec, core.border_pixel_top),
+     XtRString, (XtPointer) "XtDefaultForeground"},
+    {XtNborderColorRight, XtCBorderColorRight, XtRPixel, sizeof(Pixel),
+     XtOffsetOf(CoreRec, core.border_pixel_right),
+     XtRString, (XtPointer) "XtDefaultForeground"},
+    {XtNborderColorBottom, XtCBorderColorBottom, XtRPixel, sizeof(Pixel),
+     XtOffsetOf(CoreRec, core.border_pixel_bottom),
+     XtRString, (XtPointer) "XtDefaultForeground"},
+    {XtNborderColorLeft, XtCBorderColorLeft, XtRPixel, sizeof(Pixel),
+     XtOffsetOf(CoreRec, core.border_pixel_left),
+     XtRString, (XtPointer) "XtDefaultForeground"},
     {XtNmappedWhenManaged, XtCMappedWhenManaged, XtRBoolean, sizeof(Boolean),
      XtOffsetOf(CoreRec, core.mapped_when_managed),
      XtRImmediate, (XtPointer) True},
@@ -299,6 +323,18 @@ CoreInitialize(Widget requested_widget _X_UNUSED,
         _XtMergeTranslations(new_widget, save1, save1->operation);
     if (save2)
         _XtMergeTranslations(new_widget, save2, save2->operation);
+
+    /* Propagate uniform border_width to per-edge fields if not explicitly set */
+    if (new_widget->core.border_width_top == 0 &&
+        new_widget->core.border_width_right == 0 &&
+        new_widget->core.border_width_bottom == 0 &&
+        new_widget->core.border_width_left == 0 &&
+        new_widget->core.border_width != 0) {
+        new_widget->core.border_width_top = new_widget->core.border_width;
+        new_widget->core.border_width_right = new_widget->core.border_width;
+        new_widget->core.border_width_bottom = new_widget->core.border_width;
+        new_widget->core.border_width_left = new_widget->core.border_width;
+    }
 }
 
 static void
@@ -368,21 +404,33 @@ CoreSetValues(Widget old,
             }
             redisplay = TRUE;
         }
-        if (old->core.border_pixel != new->core.border_pixel
-            && new->core.border_pixmap == XtUnspecifiedPixmap) {
-            values[0] = new->core.border_pixel;
-            window_mask |= XCB_CW_BORDER_PIXEL;
+        /* Borders are drawn in software — propagate shorthand and redraw */
+        if (old->core.border_pixel != new->core.border_pixel) {
+            /* Shorthand: propagate to all per-edge pixels */
+            new->core.border_pixel_top = new->core.border_pixel;
+            new->core.border_pixel_right = new->core.border_pixel;
+            new->core.border_pixel_bottom = new->core.border_pixel;
+            new->core.border_pixel_left = new->core.border_pixel;
+            redisplay = TRUE;
         }
-        if (old->core.border_pixmap != new->core.border_pixmap) {
-            if (new->core.border_pixmap == XtUnspecifiedPixmap) {
-                values[0] = new->core.border_pixel;
-                window_mask |= XCB_CW_BORDER_PIXEL;
-            }
-            else {
-                values[0] = new->core.border_pixmap;
-                window_mask &= ~(XCB_CW_BORDER_PIXEL);
-                window_mask |= XCB_CW_BORDER_PIXMAP;
-            }
+        if (old->core.border_width != new->core.border_width) {
+            /* Shorthand: propagate to all per-edge widths */
+            new->core.border_width_top = new->core.border_width;
+            new->core.border_width_right = new->core.border_width;
+            new->core.border_width_bottom = new->core.border_width;
+            new->core.border_width_left = new->core.border_width;
+            redisplay = TRUE;
+        }
+        /* Per-edge changes trigger redisplay */
+        if (old->core.border_width_top != new->core.border_width_top ||
+            old->core.border_width_right != new->core.border_width_right ||
+            old->core.border_width_bottom != new->core.border_width_bottom ||
+            old->core.border_width_left != new->core.border_width_left ||
+            old->core.border_pixel_top != new->core.border_pixel_top ||
+            old->core.border_pixel_right != new->core.border_pixel_right ||
+            old->core.border_pixel_bottom != new->core.border_pixel_bottom ||
+            old->core.border_pixel_left != new->core.border_pixel_left) {
+            redisplay = TRUE;
         }
         if (old->core.depth != new->core.depth) {
             XtAppWarningMsg(XtWidgetToApplicationContext(old),

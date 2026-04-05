@@ -64,6 +64,7 @@ SOFTWARE.
 #include <ISW/ISWP.h>
 
 #include <ISW/Box.h>
+#include <ISW/ISWRender.h>
 
 /* XtOrientation is defined in standard Xt headers, but if not available, use fallback */
 #ifndef _IswXtOrientation_defined
@@ -96,6 +97,7 @@ typedef struct {
     Dimension	preferred_width, preferred_height;
     Dimension	last_query_width, last_query_height;
     XtGeometryMask last_query_mode;
+    ISWRenderContext *render_ctx;
 } BoxPart;
 
 

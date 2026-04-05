@@ -46,6 +46,7 @@ static XtResource constraintResources[] = {
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void StatusBarDestroy(Widget);
 static void InsertChild(Widget);
 static void ChangeManaged(Widget);
 static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
@@ -74,7 +75,7 @@ StatusBarClassRec statusBarClassRec = {
     TRUE,                               /* compress_exposure      */
     TRUE,                               /* compress_enterleave    */
     FALSE,                              /* visible_interest       */
-    NULL,                               /* destroy                */
+    StatusBarDestroy,                   /* destroy                */
     Resize,                             /* resize                 */
     Redisplay,                          /* expose                 */
     NULL,                               /* set_values             */
@@ -228,18 +229,44 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
+    StatusBarWidget sbw = (StatusBarWidget) w;
     (void)event; (void)region;
 
     if (!XtIsRealized(w) || w->core.width == 0 || w->core.height == 0)
         return;
 
+    ISWRenderContext *ctx = sbw->statusBar.render_ctx;
+    if (!ctx) {
+        ctx = sbw->statusBar.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    }
+    if (!ctx) return;
+
+    ISWRenderBegin(ctx);
+
     /* Draw top separator line */
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-    if (ctx) {
-        ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.border_pixel);
-        ISWRenderDrawLine(ctx, 0, 0, (int)w->core.width, 0);
-        ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
+    ISWRenderSetColor(ctx, w->core.border_pixel);
+    ISWRenderDrawLine(ctx, 0, 0, (int)w->core.width, 0);
+
+    /* Draw per-edge borders */
+    if (w->core.border_width_top != 0 || w->core.border_width_right != 0 ||
+        w->core.border_width_bottom != 0 || w->core.border_width_left != 0) {
+        ISWRenderDrawBorder(ctx,
+            w->core.border_width_top, w->core.border_width_right,
+            w->core.border_width_bottom, w->core.border_width_left,
+            w->core.border_pixel_top, w->core.border_pixel_right,
+            w->core.border_pixel_bottom, w->core.border_pixel_left,
+            w->core.width, w->core.height);
+    }
+
+    ISWRenderEnd(ctx);
+}
+
+static void
+StatusBarDestroy(Widget w)
+{
+    StatusBarWidget sbw = (StatusBarWidget) w;
+    if (sbw->statusBar.render_ctx) {
+        ISWRenderDestroy(sbw->statusBar.render_ctx);
+        sbw->statusBar.render_ctx = NULL;
     }
 }

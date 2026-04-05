@@ -567,7 +567,19 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
 
     ISWRenderEnd(pw->panner.render_ctx);
-    
+
+    if (gw->core.border_width_top || gw->core.border_width_right ||
+        gw->core.border_width_bottom || gw->core.border_width_left) {
+        ISWRenderBegin(pw->panner.render_ctx);
+        ISWRenderDrawBorder(pw->panner.render_ctx,
+            gw->core.border_width_top, gw->core.border_width_right,
+            gw->core.border_width_bottom, gw->core.border_width_left,
+            gw->core.border_pixel_top, gw->core.border_pixel_right,
+            gw->core.border_pixel_bottom, gw->core.border_pixel_left,
+            gw->core.width, gw->core.height);
+        ISWRenderEnd(pw->panner.render_ctx);
+    }
+
     /* XOR rubber-band drawing stays in XCB */
     if (pw->panner.tmp.doing && pw->panner.rubber_band) DRAW_TMP (pw);
 }

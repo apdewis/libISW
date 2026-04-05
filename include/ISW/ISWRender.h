@@ -581,4 +581,34 @@ int ISWScaledFontAscent(Widget widget, XFontStruct *font);
  */
 int ISWScaledFontCapHeight(Widget widget, XFontStruct *font);
 
+/*
+ * ISWRenderDrawBorder - Draw per-edge widget borders
+ *
+ * Draws up to four filled trapezoids (mitered at 45-degree corners)
+ * for the top, right, bottom, and left edges of a widget. Edges with
+ * width 0 are skipped. Each edge can have its own color.
+ *
+ * The border is drawn inside the widget's area, from the outer edge
+ * inward. Caller must bracket with ISWRenderBegin/ISWRenderEnd.
+ *
+ * Parameters:
+ *   ctx          - Rendering context (must be in a begin/end frame)
+ *   width_top    - Top edge border width (0 to skip)
+ *   width_right  - Right edge border width
+ *   width_bottom - Bottom edge border width
+ *   width_left   - Left edge border width
+ *   color_top    - Top edge pixel color
+ *   color_right  - Right edge pixel color
+ *   color_bottom - Bottom edge pixel color
+ *   color_left   - Left edge pixel color
+ *   widget_width - Widget width in pixels
+ *   widget_height - Widget height in pixels
+ */
+void ISWRenderDrawBorder(ISWRenderContext *ctx,
+                         Dimension width_top, Dimension width_right,
+                         Dimension width_bottom, Dimension width_left,
+                         Pixel color_top, Pixel color_right,
+                         Pixel color_bottom, Pixel color_left,
+                         Dimension widget_width, Dimension widget_height);
+
 #endif /* _ISWRender_h */
