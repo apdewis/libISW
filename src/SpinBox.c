@@ -314,20 +314,38 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 static void
 LayoutChildren(SpinBoxWidget sbw)
 {
-    Dimension btn_w = ISWScaleDim((Widget)sbw, 27);
-    Dimension w = sbw->core.width;
-    Dimension h = sbw->core.height;
+    Widget w = (Widget)sbw;
+    int bt = (int)w->core.border_width_top;
+    int br = (int)w->core.border_width_right;
+    int bb = (int)w->core.border_width_bottom;
+    int bl = (int)w->core.border_width_left;
+
+    /* Interior area after per-edge borders */
+    int inner_w = (int)sbw->core.width - bl - br;
+    int inner_h = (int)sbw->core.height - bt - bb;
+    if (inner_w < 2) inner_w = 2;
+    if (inner_h < 2) inner_h = 2;
+
+    Dimension btn_w = ISWScaleDim(w, 27);
     /* Leave 1px for vertical divider, 1px for horizontal divider */
-    Dimension text_w = (w > btn_w + 1) ? (w - btn_w - 1) : 1;
-    Position btn_x = (Position)(text_w + 1);  /* 1px gap for vertical divider */
-    Dimension up_h = h / 2;
-    Position down_y = (Position)(up_h + 1);   /* 1px gap for horizontal divider */
-    Dimension down_h = (h > (Dimension)down_y) ? (h - (Dimension)down_y) : 1;
+    int text_w = inner_w - (int)btn_w - 1;
+    if (text_w < 1) text_w = 1;
+    int btn_x = bl + text_w + 1;  /* 1px gap for vertical divider */
+    int up_h = inner_h / 2;
+    int down_y = bt + up_h + 1;   /* 1px gap for horizontal divider */
+    int down_h = inner_h - up_h - 1;
+    if (down_h < 1) down_h = 1;
 
     /* All children borderless — SpinBox draws divider lines in the gaps */
-    XtConfigureWidget(sbw->spinBox.textW, 0, 0, text_w, h, 0);
-    XtConfigureWidget(sbw->spinBox.upW, btn_x, 0, btn_w, up_h, 0);
-    XtConfigureWidget(sbw->spinBox.downW, btn_x, down_y, btn_w, down_h, 0);
+    XtConfigureWidget(sbw->spinBox.textW,
+                      (Position)bl, (Position)bt,
+                      (Dimension)text_w, (Dimension)inner_h, 0);
+    XtConfigureWidget(sbw->spinBox.upW,
+                      (Position)btn_x, (Position)bt,
+                      btn_w, (Dimension)up_h, 0);
+    XtConfigureWidget(sbw->spinBox.downW,
+                      (Position)btn_x, (Position)down_y,
+                      btn_w, (Dimension)down_h, 0);
 }
 
 static void
@@ -347,24 +365,36 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (!ctx || !XtIsRealized(w))
         return;
 
+    int bt = (int)w->core.border_width_top;
+    int br = (int)w->core.border_width_right;
+    int bb = (int)w->core.border_width_bottom;
+    int bl = (int)w->core.border_width_left;
+    int W = (int)sbw->core.width;
+    int H = (int)sbw->core.height;
+    int inner_w = W - bl - br;
+    int inner_h = H - bt - bb;
+    if (inner_w < 2) inner_w = 2;
+    if (inner_h < 2) inner_h = 2;
+
     Dimension btn_w = ISWScaleDim(w, 27);
-    int text_w = (int)sbw->core.width - (int)btn_w - 1;
-    int gap_x = text_w;
-    int gap_y = (int)sbw->core.height / 2;
+    int text_w = inner_w - (int)btn_w - 1;
+    if (text_w < 1) text_w = 1;
+    int gap_x = bl + text_w;
+    int gap_y = bt + inner_h / 2;
 
     ISWRenderBegin(ctx);
     ISWRenderSetColor(ctx, sbw->core.border_pixel);
     ISWRenderSetLineWidth(ctx, 1.0);
-    /* Outer border */
-    ISWRenderStrokeRectangle(ctx, 0, 0, (int)sbw->core.width, (int)sbw->core.height);
+    /* Outer border (inside per-edge borders if any, otherwise at edge) */
+    ISWRenderStrokeRectangle(ctx, bl, bt, inner_w, inner_h);
     /* Vertical divider between text and buttons */
-    ISWRenderDrawLine(ctx, gap_x, 0, gap_x, (int)sbw->core.height);
+    ISWRenderDrawLine(ctx, gap_x, bt, gap_x, H - bb);
     /* Horizontal divider between up and down buttons */
-    ISWRenderDrawLine(ctx, gap_x, gap_y, (int)sbw->core.width, gap_y);
+    ISWRenderDrawLine(ctx, gap_x, gap_y, W - br, gap_y);
     ISWRenderEnd(ctx);
 
-    if (w->core.border_width_top || w->core.border_width_right ||
-        w->core.border_width_bottom || w->core.border_width_left) {
+    /* Per-edge borders drawn on top of everything */
+    if (bt || br || bb || bl) {
         ISWRenderBegin(ctx);
         ISWRenderDrawBorder(ctx,
             w->core.border_width_top, w->core.border_width_right,
