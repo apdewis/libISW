@@ -494,6 +494,8 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             if (draw_x < 0) draw_x = 0;
             if (draw_y < 0) draw_y = 0;
             ISWRenderBegin(ctx);
+            ISWRenderSetColor(ctx, w->core.background_pixel);
+            ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
             ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
                                    draw_x, draw_y, disp_w, disp_h);
             ISWRenderEnd(ctx);
