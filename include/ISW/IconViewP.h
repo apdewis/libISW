@@ -58,6 +58,8 @@ typedef struct {
     Position        band_start_x, band_start_y;
     Position        band_cur_x, band_cur_y;
     double          fg_r, fg_g, fg_b; /* foreground RGB for band overlay */
+    Boolean         redraw_pending;    /* coalesce band drag redraws */
+    XtWorkProcId    work_proc_id;
 } IconViewPart;
 
 typedef struct _IconViewRec {

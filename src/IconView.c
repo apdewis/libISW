@@ -284,6 +284,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     iw->iconView.ncols = 1;
     iw->iconView.nrows = 0;
     iw->iconView.band_active = False;
+    iw->iconView.redraw_pending = False;
+    iw->iconView.work_proc_id = 0;
     iw->iconView.deselect_pending = False;
     iw->iconView.deselect_index = -1;
 
@@ -315,6 +317,8 @@ static void
 Destroy(Widget w)
 {
     IconViewWidget iw = (IconViewWidget) w;
+    if (iw->iconView.work_proc_id)
+        XtRemoveWorkProc(iw->iconView.work_proc_id);
     FreeCache(iw);
     if (iw->iconView.sel_flags)
         free(iw->iconView.sel_flags);
@@ -688,6 +692,21 @@ BandUpdateSelection(IconViewWidget iw)
     }
 }
 
+static Boolean
+BandRedrawWorkProc(XtPointer closure)
+{
+    Widget w = (Widget) closure;
+    IconViewWidget iw = (IconViewWidget) w;
+
+    iw->iconView.work_proc_id = 0;
+    if (iw->iconView.redraw_pending) {
+        iw->iconView.redraw_pending = False;
+        BandUpdateSelection(iw);
+        Redisplay(w, NULL, 0);
+    }
+    return True;  /* remove work proc */
+}
+
 static void
 BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
@@ -706,11 +725,23 @@ BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
         return;
 
     xcb_motion_notify_event_t *ev = (xcb_motion_notify_event_t *)event;
-    iw->iconView.band_cur_x = ev->event_x;
-    iw->iconView.band_cur_y = ev->event_y;
+    Position new_x = ev->event_x;
+    Position new_y = ev->event_y;
 
-    BandUpdateSelection(iw);
-    Redisplay(w, NULL, 0);
+    /* Skip if position unchanged */
+    if (new_x == iw->iconView.band_cur_x && new_y == iw->iconView.band_cur_y)
+        return;
+
+    iw->iconView.band_cur_x = new_x;
+    iw->iconView.band_cur_y = new_y;
+
+    /* Coalesce: defer redraw to a work proc so multiple motion events
+     * arriving in the same event-loop pass produce only one repaint */
+    iw->iconView.redraw_pending = True;
+    if (!iw->iconView.work_proc_id) {
+        iw->iconView.work_proc_id = XtAppAddWorkProc(
+            XtWidgetToApplicationContext(w), BandRedrawWorkProc, (XtPointer)w);
+    }
 }
 
 static void
@@ -737,6 +768,13 @@ BandFinish(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
         return;
 
     iw->iconView.band_active = False;
+
+    /* Cancel any pending coalesced redraw */
+    if (iw->iconView.work_proc_id) {
+        XtRemoveWorkProc(iw->iconView.work_proc_id);
+        iw->iconView.work_proc_id = 0;
+    }
+    iw->iconView.redraw_pending = False;
 
     Redisplay(w, NULL, 0);
     FireCallback(iw, -1);

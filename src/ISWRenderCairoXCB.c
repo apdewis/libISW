@@ -134,7 +134,12 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
             xcb_present_select_input(ctx->connection,
                                      data->present_eid, ctx->window,
                                      XCB_PRESENT_EVENT_MASK_COMPLETE_NOTIFY);
-            data->present_ok = True;
+
+            /* Present blits are deferred and race with the next frame's
+             * begin() overwriting the back buffer.  Disable until we have
+             * proper completion synchronization — the immediate cairo
+             * blit path is flicker-free with our double buffer. */
+            data->present_ok = False;
             data->present_serial = 0;
         }
     }
@@ -423,8 +428,8 @@ cairo_xcb_end(ISWRenderContext *ctx)
                                XCB_NONE,       /* wait_fence */
                                XCB_NONE,       /* idle_fence */
                                XCB_PRESENT_OPTION_COPY, /* copy, don't flip */
-                               0,              /* target_msc: next vblank */
-                               1,              /* divisor */
+                               0,              /* target_msc (immediate) */
+                               0,              /* divisor */
                                0,              /* remainder */
                                0, NULL);       /* notifies */
         } else if (data->window_ctx) {
