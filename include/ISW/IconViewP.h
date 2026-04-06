@@ -26,6 +26,7 @@ typedef struct {
     int             nitems;
     Dimension       icon_size;    /* square icon dimension */
     Dimension       item_spacing;
+    int             label_lines;  /* max label lines (0 or 1 = single line) */
     Pixel           foreground;
     XFontStruct    *font;
 #ifdef ISW_INTERNATIONALIZATION
@@ -41,7 +42,8 @@ typedef struct {
     int             ncols;        /* computed columns */
     int             nrows;        /* computed rows */
     Dimension       cell_w;       /* computed cell width */
-    Dimension       cell_h;       /* computed cell height */
+    Dimension      *row_h;        /* per-row cell heights */
+    int            *row_y;        /* cumulative Y offset per row */
     IconViewItemCache *cache;     /* per-item raster cache */
     ISWRenderContext  *render_ctx;
 

@@ -40,6 +40,8 @@ static XtResource resources[] = {
         Offset(iconView.icon_size), XtRImmediate, (XtPointer) 48},
     {XtNitemSpacing, XtCItemSpacing, XtRDimension, sizeof(Dimension),
         Offset(iconView.item_spacing), XtRImmediate, (XtPointer) 8},
+    {XtNlabelLines, XtCLabelLines, XtRInt, sizeof(int),
+        Offset(iconView.label_lines), XtRImmediate, (XtPointer) 1},
     {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
         Offset(iconView.foreground), XtRString, XtDefaultForeground},
     {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct *),
@@ -61,6 +63,7 @@ static XtResource resources[] = {
 #undef Offset
 
 /* Forward declarations */
+static int CountLabelLines(ISWRenderContext *, const char *, int);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
@@ -199,15 +202,17 @@ AllocCache(IconViewWidget iw)
 static void
 ComputeLayout(IconViewWidget iw)
 {
-    Dimension icon_sz = ISWScaleDim((Widget)iw, iw->iconView.icon_size);
-    Dimension spacing = ISWScaleDim((Widget)iw, iw->iconView.item_spacing);
-    Dimension label_h = iw->iconView.font
-        ? (Dimension)ISWScaledFontHeight((Widget)iw, iw->iconView.font)
-        : ISWScaleDim((Widget)iw, 14);
-    Dimension margin = ISWScaleDim((Widget)iw, LABEL_MARGIN);
+    Widget w = (Widget)iw;
+    Dimension icon_sz = ISWScaleDim(w, iw->iconView.icon_size);
+    Dimension spacing = ISWScaleDim(w, iw->iconView.item_spacing);
+    Dimension font_h = iw->iconView.font
+        ? (Dimension)ISWScaledFontHeight(w, iw->iconView.font)
+        : ISWScaleDim(w, 14);
+    Dimension margin = ISWScaleDim(w, LABEL_MARGIN);
+    int max_lines = iw->iconView.label_lines;
+    if (max_lines < 1) max_lines = 1;
 
     iw->iconView.cell_w = icon_sz + spacing;
-    iw->iconView.cell_h = icon_sz + label_h + margin + spacing;
 
     if (iw->core.width > 0 && iw->iconView.cell_w > 0)
         iw->iconView.ncols = (int)iw->core.width / (int)iw->iconView.cell_w;
@@ -219,13 +224,49 @@ ComputeLayout(IconViewWidget iw)
     iw->iconView.nrows = (iw->iconView.nitems + iw->iconView.ncols - 1)
                           / iw->iconView.ncols;
 
+    /* (Re)allocate per-row arrays */
+    free(iw->iconView.row_h);
+    free(iw->iconView.row_y);
+    iw->iconView.row_h = calloc((size_t)iw->iconView.nrows, sizeof(Dimension));
+    iw->iconView.row_y = calloc((size_t)iw->iconView.nrows, sizeof(int));
+
+    /* Measure labels to determine per-row heights */
+    int label_w = (int)(iw->iconView.cell_w - spacing);
+    ISWRenderContext *ctx = iw->iconView.render_ctx;
+    if (ctx && iw->iconView.font)
+        ISWRenderSetFont(ctx, iw->iconView.font);
+
+    for (int r = 0; r < iw->iconView.nrows; r++) {
+        int row_lines = 1;
+        if (ctx && iw->iconView.labels) {
+            int first = r * iw->iconView.ncols;
+            int last = first + iw->iconView.ncols;
+            if (last > iw->iconView.nitems)
+                last = iw->iconView.nitems;
+            for (int i = first; i < last; i++) {
+                if (!iw->iconView.labels[i]) continue;
+                int n = CountLabelLines(ctx, iw->iconView.labels[i], label_w);
+                if (n > max_lines) n = max_lines;
+                if (n > row_lines) row_lines = n;
+            }
+        }
+        iw->iconView.row_h[r] = icon_sz + (Dimension)(font_h * (Dimension)row_lines)
+                                 + margin + spacing;
+    }
+
+    /* Compute cumulative Y offsets */
+    int y = 0;
+    for (int r = 0; r < iw->iconView.nrows; r++) {
+        iw->iconView.row_y[r] = y;
+        y += (int)iw->iconView.row_h[r];
+    }
+
     /* Set preferred height to fit all rows (Viewport uses this) */
-    Dimension pref_h = (Dimension)(iw->iconView.nrows * (int)iw->iconView.cell_h);
-    if (pref_h < 1) pref_h = 1;
+    Dimension pref_h = (y > 0) ? (Dimension)y : 1;
 
     if (pref_h != iw->core.height) {
         Dimension actual_w, actual_h;
-        XtMakeResizeRequest((Widget)iw, iw->core.width, pref_h,
+        XtMakeResizeRequest(w, iw->core.width, pref_h,
                             &actual_w, &actual_h);
     }
 }
@@ -324,6 +365,8 @@ Destroy(Widget w)
         free(iw->iconView.sel_flags);
     if (iw->iconView.band_saved)
         free(iw->iconView.band_saved);
+    free(iw->iconView.row_h);
+    free(iw->iconView.row_y);
     if (iw->iconView.render_ctx)
         ISWRenderDestroy(iw->iconView.render_ctx);
 }
@@ -338,17 +381,58 @@ Resize(Widget w)
 }
 
 /*
- * Draw label text wrapped into as many lines as fit in max_h.
+ * Count how many wrapped lines a label needs at the given width.
+ * Uses the same word-break logic as DrawWrappedLabel.
+ */
+static int
+CountLabelLines(ISWRenderContext *ctx, const char *label, int max_w)
+{
+    int len = (int)strlen(label);
+    if (len == 0 || max_w <= 0) return 1;
+
+    if (ISWRenderTextWidth(ctx, label, len) <= max_w)
+        return 1;
+
+    const char *pos = label;
+    int remaining = len;
+    int lines = 0;
+
+    while (remaining > 0) {
+        if (lines > 0) {
+            while (remaining > 0 && *pos == ' ') { pos++; remaining--; }
+            if (remaining == 0) break;
+        }
+        lines++;
+        if (ISWRenderTextWidth(ctx, pos, remaining) <= max_w)
+            break;
+        int brk = 0, last_space = -1;
+        for (int i = 0; i < remaining; i++) {
+            if (pos[i] == ' ' || pos[i] == '-' || pos[i] == '_'
+                || pos[i] == '.')
+                last_space = i + 1;
+            if (ISWRenderTextWidth(ctx, pos, i + 1) > max_w) {
+                brk = (last_space > 0) ? last_space : i;
+                break;
+            }
+        }
+        if (brk == 0) break;
+        pos += brk;
+        remaining -= brk;
+    }
+    return lines < 1 ? 1 : lines;
+}
+
+/*
+ * Draw label text wrapped into up to max_lines lines, centered.
  * The last visible line is truncated with "..." if text remains.
  */
 static void
 DrawWrappedLabel(ISWRenderContext *ctx, const char *label, int max_w,
-                 int max_h, int cx, int baseline_y, int line_h)
+                 int max_lines, int cx, int baseline_y, int line_h)
 {
     int len = (int)strlen(label);
     if (len == 0 || line_h <= 0 || max_w <= 0) return;
 
-    int max_lines = max_h / line_h;
     if (max_lines < 1) max_lines = 1;
 
     /* Fast path: entire label fits on one line */
@@ -460,15 +544,16 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     for (int i = 0; i < iw->iconView.nitems; i++) {
         int col = i % iw->iconView.ncols;
         int row = i / iw->iconView.ncols;
+        Dimension rh = iw->iconView.row_h[row];
         int cx = col * (int)iw->iconView.cell_w + (int)half_sp;
-        int cy = row * (int)iw->iconView.cell_h + (int)half_sp;
+        int cy = iw->iconView.row_y[row] + (int)half_sp;
 
         /* Selection highlight */
         if (iw->iconView.sel_flags && iw->iconView.sel_flags[i]) {
             ISWRenderSetColor(ctx, iw->iconView.foreground);
             ISWRenderFillRectangle(ctx, cx, cy,
                                    iw->iconView.cell_w - spacing,
-                                   iw->iconView.cell_h - spacing);
+                                   rh - spacing);
         }
 
         /* Icon */
@@ -488,10 +573,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             int line_h = iw->iconView.font
                 ? ISWScaledFontHeight(w, iw->iconView.font)
                 : (int)ISWScaleDim(w, 14);
-            /* Available height: from top of label area to bottom of cell */
             int label_top = cy + (int)icon_sz + margin;
-            int cell_bottom = cy + (int)(iw->iconView.cell_h - spacing);
-            int max_h = cell_bottom - label_top;
+            int cell_bottom = cy + (int)(rh - spacing);
+            int max_lines = (cell_bottom - label_top) / line_h;
+            if (max_lines < 1) max_lines = 1;
 
             if (iw->iconView.sel_flags && iw->iconView.sel_flags[i]) {
                 ISWRenderSetColor(ctx, w->core.background_pixel);
@@ -499,7 +584,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                 ISWRenderSetColor(ctx, iw->iconView.foreground);
             }
             DrawWrappedLabel(ctx, iw->iconView.labels[i],
-                             label_w, max_h, cx, ly, line_h);
+                             label_w, max_lines, cx, ly, line_h);
         }
     }
 
@@ -510,9 +595,9 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         int col = ci % iw->iconView.ncols;
         int row = ci / iw->iconView.ncols;
         int fx = col * (int)iw->iconView.cell_w + (int)half_sp;
-        int fy = row * (int)iw->iconView.cell_h + (int)half_sp;
+        int fy = iw->iconView.row_y[row] + (int)half_sp;
         int fw = (int)(iw->iconView.cell_w - spacing);
-        int fh = (int)(iw->iconView.cell_h - spacing);
+        int fh = (int)(iw->iconView.row_h[row] - spacing);
 
         ISWRenderSetColor(ctx, iw->iconView.foreground);
         ISWRenderSetLineWidth(ctx, 1.0);
@@ -634,7 +719,20 @@ HitTest(IconViewWidget iw, Position x, Position y)
     Dimension spacing = iw->iconView.item_spacing;
     Dimension half_sp = spacing / 2;
     int col = (int)x / (int)iw->iconView.cell_w;
-    int row = (int)y / (int)iw->iconView.cell_h;
+
+    /* Binary search for row by Y coordinate */
+    int row = -1;
+    int lo = 0, hi = iw->iconView.nrows - 1;
+    while (lo <= hi) {
+        int mid = (lo + hi) / 2;
+        if ((int)y < iw->iconView.row_y[mid])
+            hi = mid - 1;
+        else if ((int)y >= iw->iconView.row_y[mid] + (int)iw->iconView.row_h[mid])
+            lo = mid + 1;
+        else { row = mid; break; }
+    }
+    if (row < 0)
+        return -1;
 
     if (col < 0 || col >= iw->iconView.ncols)
         return -1;
@@ -645,9 +743,9 @@ HitTest(IconViewWidget iw, Position x, Position y)
 
     /* Check if click is within the item's content rect, not just the cell */
     int cx = col * (int)iw->iconView.cell_w + (int)half_sp;
-    int cy = row * (int)iw->iconView.cell_h + (int)half_sp;
+    int cy = iw->iconView.row_y[row] + (int)half_sp;
     int cw = (int)(iw->iconView.cell_w - spacing);
-    int ch = (int)(iw->iconView.cell_h - spacing);
+    int ch = (int)(iw->iconView.row_h[row] - spacing);
 
     if ((int)x < cx || (int)x >= cx + cw ||
         (int)y < cy || (int)y >= cy + ch)
@@ -778,9 +876,9 @@ BandUpdateSelection(IconViewWidget iw)
         int col = i % iw->iconView.ncols;
         int row = i / iw->iconView.ncols;
         int ix = col * (int)iw->iconView.cell_w + (int)half_sp;
-        int iy = row * (int)iw->iconView.cell_h + (int)half_sp;
+        int iy = iw->iconView.row_y[row] + (int)half_sp;
         int ix2 = ix + (int)(iw->iconView.cell_w - spacing);
-        int iy2 = iy + (int)(iw->iconView.cell_h - spacing);
+        int iy2 = iy + (int)(iw->iconView.row_h[row] - spacing);
 
         Boolean intersects = !(ix2 < bx1 || ix > bx2 ||
                                iy2 < by1 || iy > by2);
@@ -928,8 +1026,8 @@ ScrollToCursor(IconViewWidget iw)
     Position child_y = w->core.y;  /* Our position within the viewport clip */
 
     int row = cur / iw->iconView.ncols;
-    int item_top = row * (int)iw->iconView.cell_h;
-    int item_bot = item_top + (int)iw->iconView.cell_h;
+    int item_top = iw->iconView.row_y[row];
+    int item_bot = item_top + (int)iw->iconView.row_h[row];
 
     /* Convert to viewport-relative coordinates */
     int vis_top = -(int)child_y;

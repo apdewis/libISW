@@ -21,6 +21,8 @@
 #define XtCIconSize       "IconSize"
 #define XtNitemSpacing    "itemSpacing"
 #define XtCItemSpacing    "ItemSpacing"
+#define XtNlabelLines     "labelLines"
+#define XtCLabelLines     "LabelLines"
 #define XtNselectCallback "selectCallback"
 #define XtNmultiSelect    "multiSelect"
 #define XtCMultiSelect    "MultiSelect"
