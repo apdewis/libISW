@@ -108,6 +108,7 @@ void my_callback(Widget w, XtPointer client_data, XtPointer call_data)
 | Widget | Class Symbol | Header | Purpose |
 |---|---|---|---|
 | List | `listWidgetClass` | `<ISW/List.h>` | Scrollable item list |
+| ListView | `listViewWidgetClass` | `<ISW/ListView.h>` | Multi-column list with resizable columns, multiselect, rubberband |
 | IconView | `iconViewWidgetClass` | `<ISW/IconView.h>` | Scrollable icon grid with multiselect |
 | Tree | `treeWidgetClass` | `<ISW/Tree.h>` | Hierarchical tree view |
 
@@ -359,6 +360,48 @@ void iconview_cb(Widget w, XtPointer cd, XtPointer call_data)
 }
 ```
 
+## ListView
+
+```c
+#include <ISW/ListView.h>
+
+/* Define columns */
+IswListViewColumn cols[] = {
+    {"Name", 150, 60},   /* title, width, min_width */
+    {"Size",  80, 40},
+};
+
+/* Flat row-major data: data[row * ncols + col] */
+String cell_data[] = {
+    "report.pdf", "2.4 MB",
+    "photo.jpg",  "3.1 MB",
+};
+
+n = 0;
+XtSetArg(args[n], XtNlistViewColumns, cols); n++;
+XtSetArg(args[n], XtNnumColumns, 2); n++;
+XtSetArg(args[n], XtNlistViewData, cell_data); n++;
+XtSetArg(args[n], XtNnumRows, 2); n++;
+XtSetArg(args[n], XtNmultiSelect, True); n++;
+Widget lv = XtCreateManagedWidget("lv", listViewWidgetClass, viewport, args, n);
+
+/* Dynamic column addition */
+IswListViewAddColumn(lv, "Type", 100, 50);
+
+/* call_data is IswListViewCallbackData* */
+void listview_cb(Widget w, XtPointer cd, XtPointer call_data)
+{
+    IswListViewCallbackData *d = (IswListViewCallbackData *)call_data;
+    printf("Row %d, Col %d, %d selected\n", d->row, d->column, d->num_selected);
+}
+```
+
+**Resources:** `listViewColumns` (IswListViewColumn*), `numColumns`, `numRows`, `listViewData` (flat String*), `multiSelect`, `showHeader`, `rowHeight`, `headerHeight`, `cursorRow`.
+
+**API:** `IswListViewSetData`, `IswListViewSetColumns`, `IswListViewAddColumn`, `IswListViewGetSelected`, `IswListViewGetSelectedRows`, `IswListViewBandActive`.
+
+**Features:** Resizable column headers (drag separator), rubberband row selection, Ctrl+click toggle, Shift+click range, Ctrl+A select all, keyboard Up/Down/Home/End navigation with Shift-extend, alternating row tint.
+
 ## FontChooser
 
 ```c
@@ -379,4 +422,4 @@ void font_cb(Widget w, XtPointer cd, XtPointer call_data)
 - **Cairo rendering** — anti-aliased text and drawing by default via Cairo-XCB backend. The `ISW_RENDER_BACKEND` environment variable overrides backend selection.
 - **HiDPI aware** — widgets auto-scale. Use `ISWScaleDim`/`ISWScaleFactor` for app-level dimensions.
 - **Unified image loading** — Label/Command/Toggle display PNG or SVG via `XtNimage`/`XtNleftImage` (format auto-detected). SmeBSB uses `XtNleftImage`/`XtNrightImage`.
-- **New widgets** — MainWindow, MenuBar, Toolbar, StatusBar, Tabs, ComboBox, SpinBox, ProgressBar, IconView, ColorPicker, FontChooser, ScrollWheel.
+- **New widgets** — MainWindow, MenuBar, Toolbar, StatusBar, Tabs, ComboBox, SpinBox, ProgressBar, IconView, ListView, ColorPicker, FontChooser, ScrollWheel.

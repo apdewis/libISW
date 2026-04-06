@@ -50,6 +50,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ColorPicker.h>
 #include <ISW/ComboBox.h>
 #include <ISW/IconView.h>
+#include <ISW/ListView.h>
 #include <ISW/List.h>
 #include <ISW/MenuBar.h>
 #include <ISW/MenuButton.h>
@@ -94,6 +95,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "iconView", &iconViewWidgetClass },
 { "label", &labelWidgetClass },
 { "layout", &layoutWidgetClass },
+{ "listView", &listViewWidgetClass },
 { "list", &listWidgetClass },
 { "menuBar", &menuBarWidgetClass },
 { "menuButton", &menuButtonWidgetClass },

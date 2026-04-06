@@ -40,6 +40,7 @@
 
 /* Selection widgets */
 #include <ISW/IconView.h>
+#include <ISW/ListView.h>
 #include <ISW/List.h>
 #include <ISW/ComboBox.h>
 #include <ISW/Tree.h>
@@ -105,6 +106,7 @@ Widget create_menu_demo(Widget parent);
 Widget create_repeater_demo(Widget parent);
 
 Widget create_iconview_demo(Widget parent);
+Widget create_listview_demo(Widget parent);
 Widget create_list_demo(Widget parent);
 Widget create_combobox_demo(Widget parent);
 Widget create_text_demo(Widget parent);
@@ -1023,7 +1025,7 @@ Widget create_repeater_demo(Widget parent) {
  * ============================================================ */
 
 Widget create_selection_section(Widget parent) {
-    Widget form, section_label, iconview_demo, list_demo, combobox_demo, text_demo;
+    Widget form, section_label, iconview_demo, listview_demo, list_demo, combobox_demo, text_demo;
     Arg args[10];
     Cardinal n;
 
@@ -1035,7 +1037,7 @@ Widget create_selection_section(Widget parent) {
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Selection Widgets: IconView, List, ComboBox, AsciiText"); n++;
+    XtSetArg(args[n], XtNlabel, "Selection Widgets: IconView, ListView, List, ComboBox, AsciiText"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
@@ -1050,10 +1052,18 @@ Widget create_selection_section(Widget parent) {
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(iconview_demo, args, n);
 
+    /* ListView demo (multi-column list) */
+    listview_demo = create_listview_demo(form);
+    n = 0;
+    XtSetArg(args[n], XtNfromHoriz, iconview_demo); n++;
+    XtSetArg(args[n], XtNfromVert, section_label); n++;
+    XtSetArg(args[n], XtNhorizDistance, 10); n++;
+    XtSetValues(listview_demo, args, n);
+
     /* List demo (classic multi-item list) */
     list_demo = create_list_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, iconview_demo); n++;
+    XtSetArg(args[n], XtNfromHoriz, listview_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(list_demo, args, n);
@@ -1122,6 +1132,68 @@ Widget create_iconview_demo(Widget parent) {
     iconview = XtCreateManagedWidget("iconView", iconViewWidgetClass,
                                       viewport, args, n);
     XtAddCallback(iconview, XtNselectCallback, iconview_callback, NULL);
+
+    return viewport;
+}
+
+void listview_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswListViewCallbackData *data = (IswListViewCallbackData *)call_data;
+    printf("ListView row=%d col=%d, %d selected:",
+           data->row, data->column, data->num_selected);
+    for (int i = 0; i < data->num_selected; i++)
+        printf(" %d", data->selected[i]);
+    printf("\n");
+}
+
+Widget create_listview_demo(Widget parent) {
+    Widget viewport, listview;
+    Arg args[12];
+    Cardinal n;
+
+    static IswListViewColumn cols[] = {
+        {"Name",    120, 60},
+        {"Type",     80, 50},
+        {"Size",     70, 40},
+    };
+
+    /* Row-major flat array: data[row * ncols + col] */
+    static String cell_data[] = {
+        "report.pdf",   "PDF",       "2.4 MB",
+        "photo.jpg",    "Image",     "3.1 MB",
+        "notes.txt",    "Text",      "12 KB",
+        "backup.tar",   "Archive",   "156 MB",
+        "slides.pptx",  "Slides",    "8.7 MB",
+        "data.csv",     "CSV",       "45 KB",
+        "music.mp3",    "Audio",     "4.2 MB",
+        "video.mp4",    "Video",     "890 MB",
+        "code.c",       "Source",    "3.5 KB",
+        "readme.md",    "Markdown",  "1.8 KB",
+        "config.json",  "JSON",      "520 B",
+        "logo.svg",     "SVG",       "6.1 KB",
+    };
+    int nrows = 12, ncols = 3;
+
+    /* Viewport for scrolling */
+    n = 0;
+    XtSetArg(args[n], XtNallowVert, True); n++;
+    XtSetArg(args[n], XtNwidth, S(300)); n++;
+    XtSetArg(args[n], XtNheight, S(180)); n++;
+    XtSetArg(args[n], XtNborderWidth, 1); n++;
+    viewport = XtCreateManagedWidget("listViewViewport", viewportWidgetClass,
+                                      parent, args, n);
+
+    /* ListView inside viewport */
+    n = 0;
+    XtSetArg(args[n], XtNlistViewColumns, cols); n++;
+    XtSetArg(args[n], XtNnumColumns, ncols); n++;
+    XtSetArg(args[n], XtNlistViewData, cell_data); n++;
+    XtSetArg(args[n], XtNnumRows, nrows); n++;
+    XtSetArg(args[n], XtNwidth, S(300)); n++;
+    XtSetArg(args[n], XtNmultiSelect, True); n++;
+    XtSetArg(args[n], XtNshowHeader, True); n++;
+    listview = XtCreateManagedWidget("listView", listViewWidgetClass,
+                                      viewport, args, n);
+    XtAddCallback(listview, XtNselectCallback, listview_callback, NULL);
 
     return viewport;
 }
