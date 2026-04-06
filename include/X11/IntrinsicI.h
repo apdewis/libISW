@@ -200,6 +200,13 @@ extern Boolean _XtIsHookObject(
     Widget      /* widget */
 );
 
+extern xcb_cursor_t _XtLoadThemedCursor(
+    xcb_connection_t *	/* dpy */,
+    xcb_screen_t *	/* screen */,
+    const char *	/* name */,
+    unsigned int	/* shape (fallback glyph) */
+);
+
 extern void _XtAddShellToHookObj(
     Widget      /* widget */
 );

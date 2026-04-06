@@ -1165,6 +1165,14 @@ _XtDisplayInitialize(xcb_connection_t *dpy,
 
         if (scale != 1.0)
             fprintf(stderr, "ISW: HiDPI scale factor: %.2f\n", scale);
+
+        /* Set XCURSOR_SIZE for xcb-cursor if not already set by the user.
+         * The standard base cursor size is 24; scale it to match DPI. */
+        if (!getenv("XCURSOR_SIZE") && scale > 1.0) {
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%d", (int)(24 * scale + 0.5));
+            setenv("XCURSOR_SIZE", buf, 0);
+        }
     }
 }
 

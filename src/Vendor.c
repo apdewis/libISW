@@ -454,9 +454,20 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
 }
 
 static void
+_VendorFetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED,
+                       XrmValue *value)
+{
+    static xcb_connection_t *_fetch_dpy;
+    _fetch_dpy = XtDisplayOfObject(widget);
+    value->size = sizeof(xcb_connection_t *);
+    value->addr = (XtPointer) &_fetch_dpy;
+}
+
+static void
 IswVendorShellClassInitialize(void)
 {
-    static XtConvertArgRec screenConvertArg[] = {
+    static XtConvertArgRec cursorConvertArgs[] = {
+        {XtProcedureArg, (XtPointer)_VendorFetchDisplayArg, 0},
         {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.screen),
 	     sizeof(xcb_screen_t *)}
     };
@@ -472,7 +483,7 @@ IswVendorShellClassInitialize(void)
 
     /* XtSetTypeConverter needs 7 args: from, to, converter, args, num_args, cache, destructor */
     XtSetTypeConverter(XtRString, XtRCursor, XtCvtStringToCursor,
-     screenConvertArg, XtNumber(screenConvertArg),
+     cursorConvertArgs, XtNumber(cursorConvertArgs),
      XtCacheNone, NULL);
 
     XtSetTypeConverter(XtRString, XtRBitmap,

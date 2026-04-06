@@ -84,6 +84,7 @@ in this Software without prior written authorization from The Open Group.
 #include "VendorP.h"
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
+#include <X11/cursorfont.h>
 #include <ISW/ISWXdnd.h>
 #include "ISWXcbDraw.h"
 #include <stdio.h>
@@ -1405,10 +1406,18 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
                 xcb_change_window_attributes(XtDisplay(wid), wid->core.window,
                                              post_mask, post_vals);
         }
-        /* Note: CW_CURSOR and CW_BACKING_STORE are also stripped from
-           create_mask.  Cursor is handled by subclass callbacks (e.g.
-           SimpleMenu's ChangeCursorOnGrab).  Backing store defaults to
-           XCB_BACKING_STORE_NOT_USEFUL which is the server default. */
+        /* Set a themed default cursor on the shell window so child
+           widgets that don't set their own cursor inherit the theme's
+           left_ptr instead of the X server's default glyph cursor. */
+        {
+            xcb_cursor_t cursor = _XtLoadThemedCursor(
+                XtDisplay(wid), wid->core.screen, "left_ptr", XC_left_ptr);
+            if (cursor != XCB_NONE) {
+                uint32_t val = cursor;
+                xcb_change_window_attributes(XtDisplay(wid), wid->core.window,
+                                             XCB_CW_CURSOR, &val);
+            }
+        }
     }
     xcb_flush(XtDisplay(wid));
 

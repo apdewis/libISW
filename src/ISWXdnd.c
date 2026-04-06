@@ -21,11 +21,13 @@
 #endif
 
 #include <X11/IntrinsicP.h>
+#include <X11/IntrinsicI.h>
 #include <X11/StringDefs.h>
 #include <ISW/ISWXdnd.h>
 #include <ISW/ISWContext.h>
 #include <ISW/IconView.h>
 #include "ISWXcbDraw.h"
+#include <xcb/xcb_cursor.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -152,7 +154,8 @@ typedef struct _XdndState {
 /* ------------------------------------------------------------------ */
 
 static void InternAtoms(XdndState *st, xcb_connection_t *conn);
-static void CreateCursors(XdndState *st, xcb_connection_t *conn);
+static void CreateCursors(XdndState *st, xcb_connection_t *conn,
+                          xcb_screen_t *screen);
 
 /* Drop target handlers */
 static void HandleXdndEvent(Widget w, XtPointer closure,
@@ -271,14 +274,31 @@ CreateGlyphCursor(xcb_connection_t *conn, unsigned int shape)
     return cursor;
 }
 
-static void
-CreateCursors(XdndState *st, xcb_connection_t *conn)
+static xcb_cursor_t
+LoadThemedCursor(xcb_connection_t *conn, xcb_screen_t *screen,
+                 const char *name, unsigned int shape)
 {
-    st->cursor_default = CreateGlyphCursor(conn, XC_left_ptr);
-    st->cursor_copy    = CreateGlyphCursor(conn, XC_hand2);
-    st->cursor_move    = CreateGlyphCursor(conn, XC_fleur);
-    st->cursor_link    = CreateGlyphCursor(conn, XC_hand1);
-    st->cursor_reject  = CreateGlyphCursor(conn, XC_X_cursor);
+    xcb_cursor_context_t *ctx;
+    if (xcb_cursor_context_new(conn, screen, &ctx) < 0)
+        return CreateGlyphCursor(conn, shape);
+
+    xcb_cursor_t cursor = xcb_cursor_load_cursor(ctx, name);
+    xcb_cursor_context_free(ctx);
+
+    if (cursor == XCB_CURSOR_NONE)
+        return CreateGlyphCursor(conn, shape);
+
+    return cursor;
+}
+
+static void
+CreateCursors(XdndState *st, xcb_connection_t *conn, xcb_screen_t *screen)
+{
+    st->cursor_default = LoadThemedCursor(conn, screen, "left_ptr",  XC_left_ptr);
+    st->cursor_copy    = LoadThemedCursor(conn, screen, "hand2",     XC_hand2);
+    st->cursor_move    = LoadThemedCursor(conn, screen, "fleur",     XC_fleur);
+    st->cursor_link    = LoadThemedCursor(conn, screen, "hand1",     XC_hand1);
+    st->cursor_reject  = LoadThemedCursor(conn, screen, "X_cursor",  XC_X_cursor);
 }
 
 /* ------------------------------------------------------------------ */
@@ -605,7 +625,7 @@ ISWXdndEnable(Widget shell)
     st = (XdndState *) XtCalloc(1, sizeof(XdndState));
     st->shell = shell;
     InternAtoms(st, conn);
-    CreateCursors(st, conn);
+    CreateCursors(st, conn, XtScreen(shell));
 
     /* Store state on the shell window */
     IswSaveContext(XtDisplay(shell), XtWindow(shell),

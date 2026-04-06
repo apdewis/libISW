@@ -895,121 +895,113 @@ _XtResourceConfigurationEH(Widget w,
                            xcb_generic_event_t *event,
                            Boolean *continue_to_dispatch _X_UNUSED)
 {
-//#TODO: re-implement when an alternative to XRM is found
-//    Atom actual_type;
-//    int actual_format;
-//    unsigned long nitems;
-//    unsigned long leftover;
-//    char *data = NULL;
-//    char *data_ptr;
-//
-//#ifdef DEBUG
-//    int indent = 0;
-//#endif
-//    XtPerDisplay pd;
-//    xcb_property_notify_event_t* pe = (xcb_property_notify_event_t *)event;
-//
-//#ifdef DEBUG
-//    fprintf(stderr, "in _XtResourceConfiguationEH atom = %u\n",
-//            (unsigned) event->xproperty.atom);
-//    fprintf(stderr, "    window = %x\n", (unsigned) XtWindow(w));
-//    if (XtIsWidget(w))
-//        fprintf(stderr, "    widget = %zx   name = %s\n", (size_t) w,
-//                w->core.name);
-//#endif
-//
-//    pd = _XtGetPerDisplay(XtDisplay(w));
-//
-//    /*
-//     * The window on which a customizing tool places the property
-//     * is determined at this point.  It should be the applications
-//     * toplevel shell window.
-//     *
-//     * A customizing tool sends a "ping" to the application on
-//     * the RCM_INIT property.  The application answers the ping
-//     * by deleting the property.
-//     */
-//    if (pe->atom == pd->rcm_init) {
-//        XDeleteProperty(XtDisplay(w), XtWindow(w), pd->rcm_init);
-//
-//#ifdef DEBUG
-//        if (XtIsWidget(w))
-//            fprintf(stderr, "%s\n", w->core.name);
-//        else
-//            fprintf(stderr, "NULL name\n");
-//        dump_widget_tree(w, indent);
-//
-//        fprintf(stderr, "answer ping\n");
-//#endif
-//    }
-//
-//    /*
-//     * This event handler ignores any property notify events that
-//     * are not RCM_INIT or RCM_DATA
-//     */
-//    if (pe->atom != pd->rcm_data)
-//        return;
-//
-//    /*
-//     * Retrieve the data from the property
-//     */
-//#ifdef DEBUG
-//    fprintf(stderr, "receiving RCM_DATA property\n");
-//#endif
-//    if (XGetWindowProperty(XtDisplay(w),
-//                           XtWindow(w),
-//                           pd->rcm_data, 0L, 8192L,
-//                           TRUE, XCB_ATOM_STRING,
-//                           &actual_type, &actual_format, &nitems, &leftover,
-//                           (unsigned char **) &data) == Success &&
-//        actual_type == XCB_ATOM_STRING && actual_format == 8) {
-//        /*
-//         *      data format is:
-//         *
-//         *      resource_length, resource, value
-//         *
-//         *      convert the resource_length to a long, skip over it, put a
-//         *      zero byte at the end of the resource, and pick off the
-//         *      resource and value fields.
-//         */
-//        if (data) {
-//            char *data_end = data + nitems;
-//            char *data_value;
-//            unsigned long resource_len;
-//
-//            resource_len = strtoul(data, &data_ptr, 10);
-//
-//            if (data_ptr != (char *) data) {
-//                data_ptr++;
-//                data_value = data_ptr + resource_len;
-//            }
-//            else                /* strtoul failed to convert a number */
-//                data_ptr = data_value = NULL;
-//
-//            if (data_value > data_ptr && data_value < data_end) {
-//                char *resource;
-//                char *value;
-//
-//                *data_value++ = '\0';
-//
-//                resource = XtNewString(data_ptr);
-//                value = XtNewString(data_value);
-//#ifdef DEBUG
-//                fprintf(stderr, "resource_len=%lu\n", resource_len);
-//                fprintf(stderr, "resource = %s\t value = %s\n",
-//                        resource, value);
-//#endif
-//                /*
-//                 * descend the application widget tree and
-//                 * apply the value to the appropriate widgets
-//                 */
-//                _search_widget_tree(w, resource, value);
-//
-//                XtFree(resource);
-//                XtFree(value);
-//            }
-//        }
-//    }
-//
-//    XtFree((char *) data);
+    xcb_connection_t *dpy;
+    XtPerDisplay pd;
+    xcb_property_notify_event_t *pe = (xcb_property_notify_event_t *) event;
+
+#ifdef DEBUG
+    int indent = 0;
+
+    fprintf(stderr, "in _XtResourceConfigurationEH atom = %u\n",
+            (unsigned) pe->atom);
+    fprintf(stderr, "    window = %x\n", (unsigned) XtWindow(w));
+    if (XtIsWidget(w))
+        fprintf(stderr, "    widget = %zx   name = %s\n", (size_t) w,
+                w->core.name);
+#endif
+
+    dpy = XtDisplay(w);
+    pd = _XtGetPerDisplay(dpy);
+
+    /*
+     * A customizing tool sends a "ping" to the application on
+     * the RCM_INIT property.  The application answers the ping
+     * by deleting the property.
+     */
+    if (pe->atom == pd->rcm_init) {
+        xcb_delete_property(dpy, XtWindow(w), pd->rcm_init);
+        xcb_flush(dpy);
+
+#ifdef DEBUG
+        if (XtIsWidget(w))
+            fprintf(stderr, "%s\n", w->core.name);
+        else
+            fprintf(stderr, "NULL name\n");
+        dump_widget_tree(w, indent);
+        fprintf(stderr, "answer ping\n");
+#endif
+    }
+
+    /*
+     * Ignore any property notify events that are not RCM_INIT or RCM_DATA
+     */
+    if (pe->atom != pd->rcm_data)
+        return;
+
+    /*
+     * Retrieve the data from the property and delete it
+     */
+#ifdef DEBUG
+    fprintf(stderr, "receiving RCM_DATA property\n");
+#endif
+    {
+        xcb_get_property_cookie_t cookie =
+            xcb_get_property(dpy, True, /* delete after read */
+                             XtWindow(w), pd->rcm_data,
+                             XCB_ATOM_STRING, 0, 8192);
+        xcb_get_property_reply_t *reply =
+            xcb_get_property_reply(dpy, cookie, NULL);
+
+        if (reply && reply->type == XCB_ATOM_STRING && reply->format == 8) {
+            char *data = (char *) xcb_get_property_value(reply);
+            int nitems = xcb_get_property_value_length(reply);
+
+            /*
+             *  data format is:
+             *
+             *      resource_length, resource, value
+             *
+             *  convert the resource_length to a long, skip over it, put a
+             *  zero byte at the end of the resource, and pick off the
+             *  resource and value fields.
+             */
+            if (data && nitems > 0) {
+                char *data_end = data + nitems;
+                char *data_ptr;
+                char *data_value;
+                unsigned long resource_len;
+
+                resource_len = strtoul(data, &data_ptr, 10);
+
+                if (data_ptr != data) {
+                    data_ptr++;
+                    data_value = data_ptr + resource_len;
+                }
+                else
+                    data_ptr = data_value = NULL;
+
+                if (data_value && data_value > data_ptr
+                    && data_value < data_end) {
+                    char *resource;
+                    char *value;
+
+                    *data_value++ = '\0';
+
+                    resource = XtNewString(data_ptr);
+                    value = XtNewString(data_value);
+#ifdef DEBUG
+                    fprintf(stderr, "resource_len=%lu\n", resource_len);
+                    fprintf(stderr, "resource = %s\t value = %s\n",
+                            resource, value);
+#endif
+                    _search_widget_tree(w, resource, value);
+
+                    XtFree(resource);
+                    XtFree(value);
+                }
+            }
+        }
+
+        free(reply);
+    }
 }

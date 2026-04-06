@@ -78,6 +78,7 @@ in this Software without prior written authorization from The Open Group.
 #include        "Shell.h"
 #include        <stdio.h>
 #include        <X11/cursorfont.h>
+#include        <xcb/xcb_cursor.h>
 #include        <X11/keysym.h>
 #include        <X11/Xlocale.h>
 #include        <errno.h>       /* for StringToDirectoryString */
@@ -679,11 +680,16 @@ FetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED, XrmValue *value)
 static XtConvertArgRec const displayConvertArg[] = {
     {XtProcedureArg, (XtPointer)FetchDisplayArg, 0},
 };
+
+static XtConvertArgRec const cursorConvertArgs[] = {
+    {XtProcedureArg, (XtPointer)FetchDisplayArg, 0},
+    {XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.screen),
+     sizeof(xcb_screen_t *)},
+};
 /* *INDENT-ON* */
 
 /* -----------------------------------------------------------------------
- * XCB replacement for XCreateFontCursor(display, shape)
- * Opens the standard "cursor" font once (cached) and creates a glyph cursor.
+ * Create a glyph cursor from the built-in X cursor font (fallback).
  * ----------------------------------------------------------------------- */
 static xcb_cursor_t
 _XtCreateFontCursor(xcb_connection_t *dpy, unsigned int shape)
@@ -702,6 +708,27 @@ _XtCreateFontCursor(xcb_connection_t *dpy, unsigned int shape)
                             shape + 1,      /* mask char */
                             0, 0, 0,        /* foreground RGB (black) */
                             65535, 65535, 65535); /* background RGB (white) */
+    return cursor;
+}
+
+/* -----------------------------------------------------------------------
+ * Load a cursor by name via xcb-cursor (Xcursor theme-aware).
+ * Falls back to glyph cursor if xcb-cursor fails.
+ * ----------------------------------------------------------------------- */
+xcb_cursor_t
+_XtLoadThemedCursor(xcb_connection_t *dpy, xcb_screen_t *screen,
+                    const char *name, unsigned int shape)
+{
+    xcb_cursor_context_t *ctx;
+    if (xcb_cursor_context_new(dpy, screen, &ctx) < 0)
+        return _XtCreateFontCursor(dpy, shape);
+
+    xcb_cursor_t cursor = xcb_cursor_load_cursor(ctx, name);
+    xcb_cursor_context_free(ctx);
+
+    if (cursor == XCB_CURSOR_NONE)
+        return _XtCreateFontCursor(dpy, shape);
+
     return cursor;
 }
 
@@ -940,11 +967,11 @@ XtCvtStringToCursor(xcb_connection_t *dpy,
     char *name = (char *) fromVal->addr;
     register Cardinal i;
 
-    if (*num_args != 1) {
+    if (*num_args != 2) {
         XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
                         XtNwrongParameters, "cvtStringToCursor",
                         XtCXtToolkitError,
-                        "String to cursor conversion needs display argument",
+                        "String to cursor conversion needs display and screen arguments",
                         NULL, NULL);
         return False;
     }
@@ -952,7 +979,9 @@ XtCvtStringToCursor(xcb_connection_t *dpy,
     for (i = 0, nP = cursor_names; i < XtNumber(cursor_names); i++, nP++) {
         if (strcmp(name, nP->name) == 0) {
             xcb_connection_t *display = *(xcb_connection_t **) args[0].addr;
-            xcb_cursor_t cursor = _XtCreateFontCursor(display, nP->shape);
+            xcb_screen_t *screen = *(xcb_screen_t **) args[1].addr;
+            xcb_cursor_t cursor = _XtLoadThemedCursor(display, screen,
+                                                      nP->name, nP->shape);
 
             done_string(xcb_cursor_t, cursor, XtRCursor);
         }
@@ -2025,7 +2054,7 @@ _XtAddDefaultConverters(ConverterTable table)
     Add2(_XtQString, XtQCommandArgArray, XtCvtStringToCommandArgArray,
          NULL, 0, XtCacheNone | XtCacheRefCount, ArgArrayDestructor);
     Add2(_XtQString, XtQCursor, XtCvtStringToCursor,
-         displayConvertArg, XtNumber(displayConvertArg),
+         cursorConvertArgs, XtNumber(cursorConvertArgs),
          XtCacheByDisplay, FreeCursor);
     Add(_XtQString, XtQDimension, XtCvtStringToDimension, NULL, 0, XtCacheNone);
     Add2(_XtQString, XtQDirectoryString, XtCvtStringToDirectoryString, NULL, 0,
