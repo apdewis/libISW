@@ -727,6 +727,9 @@ _XtLoadFontconfigFont(const char *name)
     /* Parse fontconfig name format: "Family-Size:weight=bold:slant=italic" */
     pattern = FcNameParse((const FcChar8 *)name);
     if (!pattern) return NULL;
+    /* Prefer scalable (outline) fonts — bitmap fonts like "fixed" become
+     * fuzzy when scaled to non-native sizes under HiDPI. */
+    FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
     FcConfigSubstitute(NULL, pattern, FcMatchPattern);
     FcDefaultSubstitute(pattern);
 

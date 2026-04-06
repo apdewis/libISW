@@ -775,12 +775,15 @@ _ISWResolveFontFace(const char *family, int weight, int slant)
 
     _ISWInitFreeType();
 
-    /* Use fontconfig to find a matching font file */
+    /* Use fontconfig to find a matching font file.
+     * Prefer scalable (outline) fonts — bitmap fonts like "fixed" become
+     * fuzzy when scaled to non-native sizes under HiDPI. */
     pattern = FcPatternCreate();
     FcPatternAddString(pattern, FC_FAMILY,
                        (const FcChar8 *)(family ? family : "Sans"));
     FcPatternAddInteger(pattern, FC_WEIGHT, weight);
     FcPatternAddInteger(pattern, FC_SLANT, slant);
+    FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
     FcConfigSubstitute(NULL, pattern, FcMatchPattern);
     FcDefaultSubstitute(pattern);
 
