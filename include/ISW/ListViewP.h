@@ -26,6 +26,7 @@ typedef struct {
     ISWFontSet     *fontset;
 #endif
     XtCallbackList  select_callback;
+    XtCallbackList  reorder_callback;
     Boolean         multi_select;
     Boolean         show_header;
     Dimension       row_height;     /* row height (0 = auto from font) */
@@ -66,6 +67,10 @@ typedef struct {
     double          fg_r, fg_g, fg_b;
     Boolean         redraw_pending;
     XtWorkProcId    work_proc_id;
+
+    /* sort state */
+    int             sort_column;     /* -1 = no sort */
+    IswListViewSortDirection sort_direction;
 
     /* column resize drag */
     Boolean         col_resize_active;

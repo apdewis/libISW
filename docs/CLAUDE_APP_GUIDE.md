@@ -394,13 +394,25 @@ void listview_cb(Widget w, XtPointer cd, XtPointer call_data)
     IswListViewCallbackData *d = (IswListViewCallbackData *)call_data;
     printf("Row %d, Col %d, %d selected\n", d->row, d->column, d->num_selected);
 }
+
+/* call_data is IswListViewReorderCallbackData* — fired on header click */
+void reorder_cb(Widget w, XtPointer cd, XtPointer call_data)
+{
+    IswListViewReorderCallbackData *d = (IswListViewReorderCallbackData *)call_data;
+    /* d->column: which column was clicked */
+    /* d->direction: IswListViewSortAscending or IswListViewSortDescending */
+    /* Application should re-sort data and call IswListViewSetData() */
+}
+
+/* Programmatic sort indicator (without triggering callback) */
+IswListViewSetSort(lv, 0, IswListViewSortAscending);
 ```
 
-**Resources:** `listViewColumns` (IswListViewColumn*), `numColumns`, `numRows`, `listViewData` (flat String*), `multiSelect`, `showHeader`, `rowHeight`, `headerHeight`, `cursorRow`.
+**Resources:** `listViewColumns` (IswListViewColumn*), `numColumns`, `numRows`, `listViewData` (flat String*), `multiSelect`, `showHeader`, `rowHeight`, `headerHeight`, `cursorRow`, `reorderCallback`.
 
-**API:** `IswListViewSetData`, `IswListViewSetColumns`, `IswListViewAddColumn`, `IswListViewGetSelected`, `IswListViewGetSelectedRows`, `IswListViewBandActive`.
+**API:** `IswListViewSetData`, `IswListViewSetColumns`, `IswListViewAddColumn`, `IswListViewGetSelected`, `IswListViewGetSelectedRows`, `IswListViewBandActive`, `IswListViewSetSort`.
 
-**Features:** Resizable column headers (drag separator), rubberband row selection, Ctrl+click toggle, Shift+click range, Ctrl+A select all, keyboard Up/Down/Home/End navigation with Shift-extend, alternating row tint.
+**Features:** Resizable column headers (drag separator), column sort indicators (arrow icons toggled on header click with `reorderCallback`), rubberband row selection, Ctrl+click toggle, Shift+click range, Ctrl+A select all, keyboard Up/Down/Home/End navigation with Shift-extend, alternating row tint.
 
 ## FontChooser
 

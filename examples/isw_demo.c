@@ -1145,6 +1145,70 @@ void listview_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     printf("\n");
 }
 
+/* --- ListView sort support --- */
+
+#define LV_DEMO_ROWS 12
+#define LV_DEMO_COLS 3
+
+typedef struct {
+    String  cells[LV_DEMO_COLS]; /* Name, Type, Size (display) */
+    double  size_bytes;          /* Size in bytes for numeric sort */
+} LvDemoRow;
+
+static LvDemoRow lv_demo_rows[LV_DEMO_ROWS];
+static String    lv_demo_flat[LV_DEMO_ROWS * LV_DEMO_COLS];
+
+/* Sort context passed through qsort_r / global (qsort has no context arg) */
+static int lv_sort_col;
+static int lv_sort_ascending;
+
+static double parse_size(const char *s) {
+    double val;
+    char unit[4] = {0};
+    if (sscanf(s, "%lf %3s", &val, unit) < 1)
+        return 0.0;
+    if (strcmp(unit, "KB") == 0)  return val * 1024.0;
+    if (strcmp(unit, "MB") == 0)  return val * 1024.0 * 1024.0;
+    if (strcmp(unit, "GB") == 0)  return val * 1024.0 * 1024.0 * 1024.0;
+    return val; /* "B" or no unit */
+}
+
+static int lv_demo_cmp(const void *a, const void *b) {
+    const LvDemoRow *ra = (const LvDemoRow *)a;
+    const LvDemoRow *rb = (const LvDemoRow *)b;
+    int result;
+
+    if (lv_sort_col == 2) {
+        /* Size column: numeric comparison */
+        if (ra->size_bytes < rb->size_bytes)      result = -1;
+        else if (ra->size_bytes > rb->size_bytes)  result = 1;
+        else                                       result = 0;
+    } else {
+        /* Name or Type: alphabetical (case-insensitive) */
+        result = strcasecmp(ra->cells[lv_sort_col], rb->cells[lv_sort_col]);
+    }
+
+    return lv_sort_ascending ? result : -result;
+}
+
+static void lv_demo_rebuild_flat(void) {
+    for (int r = 0; r < LV_DEMO_ROWS; r++)
+        for (int c = 0; c < LV_DEMO_COLS; c++)
+            lv_demo_flat[r * LV_DEMO_COLS + c] = lv_demo_rows[r].cells[c];
+}
+
+void listview_reorder_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswListViewReorderCallbackData *data = (IswListViewReorderCallbackData *)call_data;
+    (void)client_data;
+
+    lv_sort_col = data->column;
+    lv_sort_ascending = (data->direction == IswListViewSortAscending);
+
+    qsort(lv_demo_rows, LV_DEMO_ROWS, sizeof(LvDemoRow), lv_demo_cmp);
+    lv_demo_rebuild_flat();
+    IswListViewSetData(w, lv_demo_flat, LV_DEMO_ROWS, LV_DEMO_COLS);
+}
+
 Widget create_listview_demo(Widget parent) {
     Widget viewport, listview;
     Arg args[12];
@@ -1156,22 +1220,28 @@ Widget create_listview_demo(Widget parent) {
         {"Size",     70, 40},
     };
 
-    /* Row-major flat array: data[row * ncols + col] */
-    static String cell_data[] = {
-        "report.pdf",   "PDF",       "2.4 MB",
-        "photo.jpg",    "Image",     "3.1 MB",
-        "notes.txt",    "Text",      "12 KB",
-        "backup.tar",   "Archive",   "156 MB",
-        "slides.pptx",  "Slides",    "8.7 MB",
-        "data.csv",     "CSV",       "45 KB",
-        "music.mp3",    "Audio",     "4.2 MB",
-        "video.mp4",    "Video",     "890 MB",
-        "code.c",       "Source",    "3.5 KB",
-        "readme.md",    "Markdown",  "1.8 KB",
-        "config.json",  "JSON",      "520 B",
-        "logo.svg",     "SVG",       "6.1 KB",
+    /* Source data — copied into sortable lv_demo_rows[] */
+    static String src[][3] = {
+        {"report.pdf",  "PDF",      "2.4 MB"},
+        {"photo.jpg",   "Image",    "3.1 MB"},
+        {"notes.txt",   "Text",     "12 KB"},
+        {"backup.tar",  "Archive",  "156 MB"},
+        {"slides.pptx", "Slides",   "8.7 MB"},
+        {"data.csv",    "CSV",      "45 KB"},
+        {"music.mp3",   "Audio",    "4.2 MB"},
+        {"video.mp4",   "Video",    "890 MB"},
+        {"code.c",      "Source",   "3.5 KB"},
+        {"readme.md",   "Markdown", "1.8 KB"},
+        {"config.json", "JSON",     "520 B"},
+        {"logo.svg",    "SVG",      "6.1 KB"},
     };
-    int nrows = 12, ncols = 3;
+
+    for (int i = 0; i < LV_DEMO_ROWS; i++) {
+        for (int j = 0; j < LV_DEMO_COLS; j++)
+            lv_demo_rows[i].cells[j] = src[i][j];
+        lv_demo_rows[i].size_bytes = parse_size(src[i][2]);
+    }
+    lv_demo_rebuild_flat();
 
     /* Viewport for scrolling */
     n = 0;
@@ -1185,15 +1255,16 @@ Widget create_listview_demo(Widget parent) {
     /* ListView inside viewport */
     n = 0;
     XtSetArg(args[n], XtNlistViewColumns, cols); n++;
-    XtSetArg(args[n], XtNnumColumns, ncols); n++;
-    XtSetArg(args[n], XtNlistViewData, cell_data); n++;
-    XtSetArg(args[n], XtNnumRows, nrows); n++;
+    XtSetArg(args[n], XtNnumColumns, LV_DEMO_COLS); n++;
+    XtSetArg(args[n], XtNlistViewData, lv_demo_flat); n++;
+    XtSetArg(args[n], XtNnumRows, LV_DEMO_ROWS); n++;
     XtSetArg(args[n], XtNwidth, S(300)); n++;
     XtSetArg(args[n], XtNmultiSelect, True); n++;
     XtSetArg(args[n], XtNshowHeader, True); n++;
     listview = XtCreateManagedWidget("listView", listViewWidgetClass,
                                       viewport, args, n);
     XtAddCallback(listview, XtNselectCallback, listview_callback, NULL);
+    XtAddCallback(listview, XtNreorderCallback, listview_reorder_callback, NULL);
 
     return viewport;
 }

@@ -31,6 +31,14 @@
 #define XtCCursorRow          "CursorRow"
 #define XtNshowHeader         "showHeader"
 #define XtCShowHeader         "ShowHeader"
+#define XtNreorderCallback    "reorderCallback"
+
+/* Sort direction */
+typedef enum {
+    IswListViewSortNone = 0,
+    IswListViewSortAscending,
+    IswListViewSortDescending
+} IswListViewSortDirection;
 
 extern WidgetClass listViewWidgetClass;
 
@@ -44,13 +52,19 @@ typedef struct {
     Dimension min_width;    /* minimum width for resize (0 = 30) */
 } IswListViewColumn;
 
-/* Callback data */
+/* Callback data for selectCallback */
 typedef struct {
     int    row;             /* last clicked row index */
     int    column;          /* column of the click */
     int   *selected;        /* array of selected row indices */
     int    num_selected;    /* count of selected rows */
 } IswListViewCallbackData;
+
+/* Callback data for reorderCallback (header click) */
+typedef struct {
+    int                      column;     /* column index clicked */
+    IswListViewSortDirection direction;  /* new sort direction */
+} IswListViewReorderCallbackData;
 
 _XFUNCPROTOBEGIN
 
@@ -63,6 +77,8 @@ extern int  IswListViewAddColumn(Widget w, const char *title,
 extern int  IswListViewGetSelected(Widget w);
 extern int  IswListViewGetSelectedRows(Widget w, int **indices_out);
 extern Boolean IswListViewBandActive(Widget w);
+extern void IswListViewSetSort(Widget w, int column,
+                               IswListViewSortDirection direction);
 
 _XFUNCPROTOEND
 

@@ -30,6 +30,9 @@
 #define RESIZE_GRIP  4   /* pixels from column separator edge for resize cursor */
 #define DEFAULT_COL_W 120
 #define MIN_COL_W     30
+#define SORT_ARROW_W  7  /* width of sort direction arrow */
+#define SORT_ARROW_H  4  /* height of sort direction arrow */
+#define SORT_ARROW_GAP 4 /* gap between title text and arrow */
 
 #define Offset(field) XtOffsetOf(ListViewRec, field)
 
@@ -44,6 +47,8 @@ static XtResource resources[] = {
 #endif
     {XtNselectCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
         Offset(listView.select_callback), XtRCallback, NULL},
+    {XtNreorderCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
+        Offset(listView.reorder_callback), XtRCallback, NULL},
     {XtNmultiSelect, XtCMultiSelect, XtRBoolean, sizeof(Boolean),
         Offset(listView.multi_select), XtRImmediate, (XtPointer) False},
     {XtNshowHeader, XtCShowHeader, XtRBoolean, sizeof(Boolean),
@@ -416,6 +421,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     lv->listView.col_resize_active = False;
     lv->listView.col_resize_index = -1;
     lv->listView.total_col_w = 0;
+    lv->listView.sort_column = -1;
+    lv->listView.sort_direction = IswListViewSortNone;
 
     BuildColumns(lv);
     AllocSelFlags(lv);
@@ -502,17 +509,74 @@ DrawHeader(ListViewWidget lv, ISWRenderContext *ctx)
             ISWRenderDrawLine(ctx, x, 0, x, (int)hdr_h);
         }
 
-        /* Title text */
-        if (lv->listView.col_info[i].title) {
-            const char *title = lv->listView.col_info[i].title;
-            int len = (int)strlen(title);
-
-            ISWRenderSetColor(ctx, lv->listView.foreground);
-            ISWRenderSetClipRectangle(ctx, x + (int)pad_x, 0,
-                                      (int)cw - 2 * (int)pad_x, (int)hdr_h);
+        /* Title text and sort arrow */
+        {
+            int text_x = x + (int)pad_x;
+            int avail_w = (int)cw - 2 * (int)pad_x;
             int ty = ((int)hdr_h - 1 + ascent) / 2;
-            ISWRenderDrawString(ctx, title, len, x + (int)pad_x, ty);
-            ISWRenderClearClip(ctx);
+
+            /* Reserve space for sort arrow if this is the sorted column */
+            int arrow_w_scaled = (int)ISWScaleDim(w, SORT_ARROW_W);
+            int arrow_h_scaled = (int)ISWScaleDim(w, SORT_ARROW_H);
+            int arrow_gap = (int)ISWScaleDim(w, SORT_ARROW_GAP);
+            Boolean is_sorted = (lv->listView.sort_column == i &&
+                                 lv->listView.sort_direction != IswListViewSortNone);
+
+            if (is_sorted)
+                avail_w -= arrow_w_scaled + arrow_gap;
+
+            if (lv->listView.col_info[i].title) {
+                const char *title = lv->listView.col_info[i].title;
+                int len = (int)strlen(title);
+
+                ISWRenderSetColor(ctx, lv->listView.foreground);
+                ISWRenderSetClipRectangle(ctx, text_x, 0, avail_w, (int)hdr_h);
+                ISWRenderDrawString(ctx, title, len, text_x, ty);
+                ISWRenderClearClip(ctx);
+
+                /* Draw sort direction arrow right of the text */
+                if (is_sorted) {
+                    int tw = ISWRenderTextWidth(ctx, title, len);
+                    if (tw > avail_w)
+                        tw = avail_w;
+                    int ax = text_x + tw + arrow_gap;
+                    int ay = ((int)hdr_h - arrow_h_scaled) / 2;
+
+                    ISWRenderSetColor(ctx, lv->listView.foreground);
+
+                    xcb_point_t pts[3];
+                    if (lv->listView.sort_direction == IswListViewSortAscending) {
+                        /* Up arrow: triangle pointing up */
+                        pts[0] = (xcb_point_t){ax + arrow_w_scaled / 2, ay};
+                        pts[1] = (xcb_point_t){ax, ay + arrow_h_scaled};
+                        pts[2] = (xcb_point_t){ax + arrow_w_scaled, ay + arrow_h_scaled};
+                    } else {
+                        /* Down arrow: triangle pointing down */
+                        pts[0] = (xcb_point_t){ax, ay};
+                        pts[1] = (xcb_point_t){ax + arrow_w_scaled, ay};
+                        pts[2] = (xcb_point_t){ax + arrow_w_scaled / 2, ay + arrow_h_scaled};
+                    }
+                    ISWRenderFillPolygon(ctx, pts, 3);
+                }
+            } else if (is_sorted) {
+                /* No title but sorted — draw arrow centered */
+                int ax = x + ((int)cw - arrow_w_scaled) / 2;
+                int ay = ((int)hdr_h - arrow_h_scaled) / 2;
+
+                ISWRenderSetColor(ctx, lv->listView.foreground);
+
+                xcb_point_t pts[3];
+                if (lv->listView.sort_direction == IswListViewSortAscending) {
+                    pts[0] = (xcb_point_t){ax + arrow_w_scaled / 2, ay};
+                    pts[1] = (xcb_point_t){ax, ay + arrow_h_scaled};
+                    pts[2] = (xcb_point_t){ax + arrow_w_scaled, ay + arrow_h_scaled};
+                } else {
+                    pts[0] = (xcb_point_t){ax, ay};
+                    pts[1] = (xcb_point_t){ax + arrow_w_scaled, ay};
+                    pts[2] = (xcb_point_t){ax + arrow_w_scaled / 2, ay + arrow_h_scaled};
+                }
+                ISWRenderFillPolygon(ctx, pts, 3);
+            }
         }
 
         x += (int)cw;
@@ -772,9 +836,29 @@ SelectRow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
         return;
     }
 
-    /* Click in header (not on separator) — ignore */
-    if ((int)y < (int)lv->listView.computed_hdr_h)
+    /* Click in header (not on separator) — toggle sort */
+    if ((int)y < (int)lv->listView.computed_hdr_h) {
+        int col = ColAtX(lv, x);
+        if (col >= 0) {
+            /* Toggle sort direction for this column */
+            if (lv->listView.sort_column == col) {
+                if (lv->listView.sort_direction == IswListViewSortAscending)
+                    lv->listView.sort_direction = IswListViewSortDescending;
+                else
+                    lv->listView.sort_direction = IswListViewSortAscending;
+            } else {
+                lv->listView.sort_column = col;
+                lv->listView.sort_direction = IswListViewSortAscending;
+            }
+
+            IswListViewReorderCallbackData cb;
+            cb.column = col;
+            cb.direction = lv->listView.sort_direction;
+            XtCallCallbacks(w, XtNreorderCallback, (XtPointer)&cb);
+            Redisplay(w, NULL, 0);
+        }
         return;
+    }
 
     int row = RowAtY(lv, y);
     int col = ColAtX(lv, x);
@@ -1210,4 +1294,14 @@ IswListViewBandActive(Widget w)
 {
     ListViewWidget lv = (ListViewWidget) w;
     return lv->listView.band_active;
+}
+
+void
+IswListViewSetSort(Widget w, int column, IswListViewSortDirection direction)
+{
+    ListViewWidget lv = (ListViewWidget) w;
+    lv->listView.sort_column = column;
+    lv->listView.sort_direction = direction;
+    if (XtIsRealized(w))
+        Redisplay(w, NULL, 0);
 }
