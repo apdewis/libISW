@@ -337,6 +337,103 @@ Resize(Widget w)
         Redisplay(w, NULL, 0);
 }
 
+/*
+ * Draw label text wrapped into as many lines as fit in max_h.
+ * The last visible line is truncated with "..." if text remains.
+ */
+static void
+DrawWrappedLabel(ISWRenderContext *ctx, const char *label, int max_w,
+                 int max_h, int cx, int baseline_y, int line_h)
+{
+    int len = (int)strlen(label);
+    if (len == 0 || line_h <= 0 || max_w <= 0) return;
+
+    int max_lines = max_h / line_h;
+    if (max_lines < 1) max_lines = 1;
+
+    /* Fast path: entire label fits on one line */
+    int full_w = ISWRenderTextWidth(ctx, label, len);
+    if (full_w <= max_w) {
+        int lx = cx + (max_w - full_w) / 2;
+        ISWRenderDrawString(ctx, label, len, lx, baseline_y);
+        return;
+    }
+
+    const char *pos = label;
+    int remaining = len;
+
+    for (int line = 0; line < max_lines && remaining > 0; line++) {
+        /* Skip leading spaces on continuation lines */
+        if (line > 0) {
+            while (remaining > 0 && *pos == ' ') {
+                pos++;
+                remaining--;
+            }
+            if (remaining == 0) break;
+        }
+
+        int is_last = (line == max_lines - 1);
+
+        /* Check if the rest fits on this line */
+        int rest_w = ISWRenderTextWidth(ctx, pos, remaining);
+        if (rest_w <= max_w) {
+            int lx = cx + (max_w - rest_w) / 2;
+            ISWRenderDrawString(ctx, pos, remaining,
+                                lx, baseline_y + line * line_h);
+            break;
+        }
+
+        if (is_last) {
+            /* Truncate with ellipsis */
+            static const char ellipsis[] = "...";
+            int ew = ISWRenderTextWidth(ctx, ellipsis, 3);
+            int avail = max_w - ew;
+            int trunc = 0;
+            if (avail > 0) {
+                for (int i = remaining; i > 0; i--) {
+                    if (ISWRenderTextWidth(ctx, pos, i) <= avail) {
+                        trunc = i;
+                        break;
+                    }
+                }
+            }
+            char buf[256];
+            if (trunc + 3 < (int)sizeof(buf)) {
+                memcpy(buf, pos, (size_t)trunc);
+                memcpy(buf + trunc, ellipsis, 4);
+            } else {
+                memcpy(buf, ellipsis, 4);
+                trunc = 0;
+            }
+            int tw = ISWRenderTextWidth(ctx, buf, trunc + 3);
+            int lx = cx + (max_w - tw) / 2;
+            ISWRenderDrawString(ctx, buf, trunc + 3,
+                                lx, baseline_y + line * line_h);
+        } else {
+            /* Find word-break point that fits within max_w */
+            int brk = 0;
+            int last_space = -1;
+            for (int i = 0; i < remaining; i++) {
+                if (pos[i] == ' ' || pos[i] == '-' || pos[i] == '_'
+                    || pos[i] == '.')
+                    last_space = i + 1;
+                if (ISWRenderTextWidth(ctx, pos, i + 1) > max_w) {
+                    brk = (last_space > 0) ? last_space : i;
+                    break;
+                }
+            }
+            if (brk == 0) brk = remaining;
+
+            int w1 = ISWRenderTextWidth(ctx, pos, brk);
+            int lx = cx + (max_w - w1) / 2;
+            ISWRenderDrawString(ctx, pos, brk,
+                                lx, baseline_y + line * line_h);
+            pos += brk;
+            remaining -= brk;
+        }
+    }
+}
+
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
@@ -382,22 +479,27 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                                    ix, cy, icon_sz, icon_sz);
         }
 
-        /* Label */
+        /* Label (word-wrapped, ellipsis on last visible line) */
         if (iw->iconView.labels && iw->iconView.labels[i]) {
-            const char *label = iw->iconView.labels[i];
-            int text_w = ISWRenderTextWidth(ctx, label, (int)strlen(label));
-            int lx = cx + ((int)(iw->iconView.cell_w - spacing) - text_w) / 2;
-            int ly = cy + (int)icon_sz + ISWScaledFontAscent(w, iw->iconView.font)
-                   + (int)ISWScaleDim(w, LABEL_MARGIN);
-
-            if (lx < cx) lx = cx;
+            int label_w = (int)(iw->iconView.cell_w - spacing);
+            int ascent = ISWScaledFontAscent(w, iw->iconView.font);
+            int margin = (int)ISWScaleDim(w, LABEL_MARGIN);
+            int ly = cy + (int)icon_sz + ascent + margin;
+            int line_h = iw->iconView.font
+                ? ISWScaledFontHeight(w, iw->iconView.font)
+                : (int)ISWScaleDim(w, 14);
+            /* Available height: from top of label area to bottom of cell */
+            int label_top = cy + (int)icon_sz + margin;
+            int cell_bottom = cy + (int)(iw->iconView.cell_h - spacing);
+            int max_h = cell_bottom - label_top;
 
             if (iw->iconView.sel_flags && iw->iconView.sel_flags[i]) {
                 ISWRenderSetColor(ctx, w->core.background_pixel);
             } else {
                 ISWRenderSetColor(ctx, iw->iconView.foreground);
             }
-            ISWRenderDrawString(ctx, label, (int)strlen(label), lx, ly);
+            DrawWrappedLabel(ctx, iw->iconView.labels[i],
+                             label_w, max_h, cx, ly, line_h);
         }
     }
 
