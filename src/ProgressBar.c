@@ -136,12 +136,7 @@ Destroy(Widget w)
 static void
 Resize(Widget w)
 {
-    ProgressBarWidget pbw = (ProgressBarWidget) w;
-
-    if (pbw->progress_bar.render_ctx) {
-	ISWRenderDestroy(pbw->progress_bar.render_ctx);
-	pbw->progress_bar.render_ctx = NULL;
-    }
+    (void)w;
 }
 
 /*

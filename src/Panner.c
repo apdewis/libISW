@@ -504,13 +504,6 @@ Resize (Widget gw)
 {
     PannerWidget pw = (PannerWidget) gw;
     
-    /* Destroy and recreate context on resize - Cairo contexts need to match window size */
-    if (pw->panner.render_ctx) {
-        ISWRenderDestroy(pw->panner.render_ctx);
-        pw->panner.render_ctx = NULL;
-        /* Context will be recreated lazily in next Redisplay */
-    }
-    
     rescale (pw);
 }
 

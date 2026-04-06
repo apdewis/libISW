@@ -523,7 +523,7 @@ HighlightBackground(Widget w, int x, int y, Pixel color)
         x = lw->list.internal_width;
     }
     if ( y < lw->list.internal_height) {
-        height = height - ( lw->list.internal_height - x );
+        height = height - ( lw->list.internal_height - y );
         y = lw->list.internal_height;
     }
 
@@ -783,11 +783,6 @@ Resize(Widget w)
  XtAppWarning(XtWidgetToApplicationContext(w),
     "List Widget: Size changed when it shouldn't have when resising.");
 
-    /* On resize, destroy and recreate the render context on next redisplay */
-    if (lw->list.render_ctx) {
-        ISWRenderDestroy(lw->list.render_ctx);
-        lw->list.render_ctx = NULL;
-    }
 }
 
 
@@ -1405,10 +1400,6 @@ DropdownMenuSelect(Widget w, XtPointer client_data, XtPointer call_data)
     lw->list.selected_item = index;
 
     /* Redraw the collapsed widget to show new selection */
-    if (lw->list.render_ctx) {
-        ISWRenderDestroy(lw->list.render_ctx);
-        lw->list.render_ctx = NULL;
-    }
     Redisplay(list_w, NULL, 0);
 
     /* Fire the parent widget's callbacks */
