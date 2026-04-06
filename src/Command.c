@@ -447,31 +447,79 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
         ISWRenderSetColor(ctx, saved_foreground);
         cairo_paint(cr);
 
-        /* Redraw label text in inverted color, clipped to shape */
-        ISWRenderSetFont(ctx, cbw->label.font);
+        /* Redraw content in inverted color, clipped to shape */
         ISWRenderSetColor(ctx, saved_background);
-        if (cbw->label.label && cbw->label.font) {
-          int y = cbw->label.label_y
-                  + (int)ISWScaledFontAscent(w, cbw->label.font);
-          int lbl_len = cbw->label.label_len;
-          char *label = cbw->label.label;
 
-          if (lbl_len == MULTI_LINE_LABEL) {
-            int line_height = ISWScaledFontHeight(w, cbw->label.font);
-            char *nl;
-            while ((nl = index(label, '\n')) != NULL) {
-              int seg = (int)(nl - label);
-              if (seg > 0)
-                ISWRenderDrawString(ctx, label, seg,
-                                    cbw->label.label_x, y);
-              y += line_height;
-              label = nl + 1;
-            }
-            lbl_len = strlen(label);
+        if (cbw->label.image) {
+          /* Redraw main image */
+          unsigned int disp_w = cbw->label.label_width;
+          unsigned int disp_h = cbw->label.label_height;
+
+          unsigned int avail_w = cbw->core.width > 2 * cbw->label.internal_width
+              ? cbw->core.width - 2 * cbw->label.internal_width : 0;
+          unsigned int avail_h = cbw->core.height > 2 * cbw->label.internal_height
+              ? cbw->core.height - 2 * cbw->label.internal_height : 0;
+          if (avail_w > 0 && avail_h > 0 && (disp_w != avail_w || disp_h != avail_h)) {
+            float sw = (float)avail_w / disp_w;
+            float sh = (float)avail_h / disp_h;
+            float s  = sw < sh ? sw : sh;
+            disp_w = (unsigned int)(disp_w * s + 0.5f);
+            disp_h = (unsigned int)(disp_h * s + 0.5f);
+            if (disp_w == 0) disp_w = 1;
+            if (disp_h == 0) disp_h = 1;
           }
-          if (lbl_len > 0)
-            ISWRenderDrawString(ctx, label, lbl_len,
-                                cbw->label.label_x, y);
+
+          unsigned int rw, rh;
+          const unsigned char *pixels = ISWImageRasterize(cbw->label.image,
+              disp_w, disp_h, &rw, &rh);
+          if (pixels) {
+            int draw_x = (int)(cbw->core.width  - disp_w) / 2;
+            int draw_y = (int)(cbw->core.height - disp_h) / 2;
+            if (draw_x < 0) draw_x = 0;
+            if (draw_y < 0) draw_y = 0;
+            ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+                                   draw_x, draw_y, disp_w, disp_h);
+          }
+        } else {
+          /* Redraw label text in inverted color */
+          ISWRenderSetFont(ctx, cbw->label.font);
+          if (cbw->label.label && cbw->label.font) {
+            int y = cbw->label.label_y
+                    + (int)ISWScaledFontAscent(w, cbw->label.font);
+            int lbl_len = cbw->label.label_len;
+            char *label = cbw->label.label;
+
+            if (lbl_len == MULTI_LINE_LABEL) {
+              int line_height = ISWScaledFontHeight(w, cbw->label.font);
+              char *nl;
+              while ((nl = index(label, '\n')) != NULL) {
+                int seg = (int)(nl - label);
+                if (seg > 0)
+                  ISWRenderDrawString(ctx, label, seg,
+                                      cbw->label.label_x, y);
+                y += line_height;
+                label = nl + 1;
+              }
+              lbl_len = strlen(label);
+            }
+            if (lbl_len > 0)
+              ISWRenderDrawString(ctx, label, lbl_len,
+                                  cbw->label.label_x, y);
+          }
+
+          /* Redraw left image if present */
+          if (cbw->label.left_image && cbw->label.lbm_width != 0) {
+            unsigned int rw, rh;
+            const unsigned char *pixels = ISWImageRasterize(cbw->label.left_image,
+                cbw->label.lbm_width, cbw->label.lbm_height, &rw, &rh);
+            if (pixels) {
+              ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+                                     (int)cbw->label.internal_width,
+                                     (int)cbw->label.lbm_y,
+                                     cbw->label.lbm_width,
+                                     cbw->label.lbm_height);
+            }
+          }
         }
 
         cairo_restore(cr);
