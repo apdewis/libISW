@@ -203,6 +203,28 @@ CreateScrollbar(ViewportWidget w, Boolean horizontal)
     XtAddCallback( bar, XtNscrollProc, ScrollUpDownProc, (XtPointer)w );
     XtAddCallback( bar, XtNjumpProc, ThumbProc, (XtPointer)w );
 
+    /*
+     * Only put a border on the edge facing the clip; the other edges
+     * abut the viewport's own border and don't need one.
+     */
+    Dimension bw = bar->core.border_width;
+    bar->core.border_width = 0;
+    bar->core.border_width_top = 0;
+    bar->core.border_width_right = 0;
+    bar->core.border_width_bottom = 0;
+    bar->core.border_width_left = 0;
+    if (horizontal) {
+	if (w->viewport.usebottom)
+	    bar->core.border_width_top = bw;
+	else
+	    bar->core.border_width_bottom = bw;
+    } else {
+	if (w->viewport.useright)
+	    bar->core.border_width_left = bw;
+	else
+	    bar->core.border_width_right = bw;
+    }
+
     if (horizontal) {
 	w->viewport.horiz_bar = bar;
 	constraints->form.vert_base = bar;
