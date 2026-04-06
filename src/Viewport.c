@@ -57,8 +57,15 @@ SOFTWARE.
 #include <ISW/Scrollbar.h>
 #include <ISW/ViewportP.h>
 
-/* Utility macro */
+/* Utility macros */
 #define AssignMax(x, y) ((x) = ((x) > (y) ? (x) : (y)))
+#define Max4(a,b,c,d) ((a)>(b)?((a)>(c)?((a)>(d)?(a):(d)):((c)>(d)?(c):(d))):((b)>(c)?((b)>(d)?(b):(d)):((c)>(d)?(c):(d))))
+
+/* Inset from the Viewport's own painted border (replaces old ThreeD sw). */
+#define VP_BORDER_INSET(w) Max4((w)->core.border_width_top, \
+                                (w)->core.border_width_right, \
+                                (w)->core.border_width_bottom, \
+                                (w)->core.border_width_left)
 
 #include <stdint.h>
 #include <xcb/xcb.h>
@@ -220,7 +227,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     Cardinal arg_cnt;
     Widget h_bar, v_bar;
     Dimension clip_height, clip_width;
-    Dimension pad = 0, sw = 0;
+    Dimension sw = VP_BORDER_INSET(w);
+    Dimension pad = sw ? 2 : 0;
 
     w->form.default_spacing = 0;  /* Reset the default spacing to 0 pixels. */
 
@@ -284,13 +292,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     if ( (h_bar != NULL) &&
 	 ((int)w->core.width >
-	  (int)(h_bar->core.width + h_bar->core.border_width + pad)) )
-        clip_width -= h_bar->core.width + h_bar->core.border_width + pad;
+	  (int)(h_bar->core.width + pad)) )
+        clip_width -= h_bar->core.width + pad;
 
     if ( (v_bar != NULL) &&
 	 ((int)w->core.height >
-	  (int)(v_bar->core.height + v_bar->core.border_width + pad)) )
-        clip_height -= v_bar->core.height + v_bar->core.border_width + pad;
+	  (int)(v_bar->core.height + pad)) )
+        clip_height -= v_bar->core.height + pad;
 
     arg_cnt = 0;
     XtSetArg(clip_args[arg_cnt], XtNwidth, clip_width); arg_cnt++;
@@ -529,7 +537,8 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
     int clip_width, clip_height;
     int bar_width, bar_height;
     XtWidgetGeometry intended;
-    Dimension pad = 0, sw = 0;
+    Dimension sw = VP_BORDER_INSET(w);
+    Dimension pad = sw ? 2 : 0;
 
     /*
      * I've made two optimizations here. The first does away with the
@@ -542,9 +551,6 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 #undef PREP_CHILD_TO_CLIP
 
     if (child == (Widget) NULL) return;
-
-    /* XtVaGetValues(threeD, XtNshadowWidth, &sw, NULL);
-       if (sw) pad = 2; */ sw = 0; pad = 0;
 
     clip_width = w->core.width - 2 * sw;
     clip_height = w->core.height - 2 * sw;
@@ -628,8 +634,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		    needshoriz = True;					\
 		    if (horiz_bar == (Widget)NULL)			\
 			horiz_bar = CreateScrollbar(w, True);		\
-		    clip_height -= horiz_bar->core.height +		\
-				   horiz_bar->core.border_width + pad;	\
+		    clip_height -= horiz_bar->core.height + pad;	\
 		    if (clip_height < 1) clip_height = 1;		\
 		}							\
 		intended.width = preferred.width;			\
@@ -643,8 +648,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		    needsvert = True;
 		    if (vert_bar == (Widget)NULL)
 			vert_bar = CreateScrollbar(w, False);
-		    clip_width -= vert_bar->core.width +
-				  vert_bar->core.border_width + pad;
+		    clip_width -= vert_bar->core.width + pad;
 		    if (clip_width < 1) clip_width = 1;
 		    if (!needshoriz) CheckHoriz();
 		}
@@ -687,11 +691,9 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 
     bar_width = bar_height = 0;
     if (needsvert)
-	bar_width = w->viewport.vert_bar->core.width +
-		    w->viewport.vert_bar->core.border_width + pad;
+	bar_width = w->viewport.vert_bar->core.width + pad;
     if (needshoriz)
-	bar_height = w->viewport.horiz_bar->core.height +
-		     w->viewport.horiz_bar->core.border_width + pad;
+	bar_height = w->viewport.horiz_bar->core.height + pad;
 
     if (0 /* XtIsRealized(threeD) */ )
 	/* XLowerWindow( XtDisplay(threeD), XtWindow(threeD) ); */
@@ -725,17 +727,16 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	    }
 	}
 	else {
-	    int bw = bar->core.border_width;
 	    XtResizeWidget( bar,
 			    (Dimension)(clip_width + 2 * sw), bar->core.height,
-			    (Dimension)bw );
+			    bar->core.border_width );
 	    XtMoveWidget( bar,
 			  (Position)((needsvert && !w->viewport.useright)
-			   ? w->viewport.vert_bar->core.width + pad
-			   : -bw),
+			   ? w->viewport.vert_bar->core.width + pad + sw
+			   : sw),
 			  (Position)(w->viewport.usebottom
-			    ? w->core.height - bar->core.height - bw
-			    : -bw) );
+			    ? w->core.height - bar->core.height - sw
+			    : sw) );
 	    XtSetMappedWhenManaged( bar, True );
 	}
     }
@@ -750,17 +751,16 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	    }
 	}
 	else {
-	    int bw = bar->core.border_width;
 	    XtResizeWidget( bar,
 			    bar->core.width, (Dimension)(clip_height + 2 * sw),
-			    (Dimension)bw );
+			    bar->core.border_width );
 	    XtMoveWidget( bar,
 			  (Position)(w->viewport.useright
-			   ? w->core.width - bar->core.width - bw
-			   : -bw),
+			   ? w->core.width - bar->core.width - sw
+			   : sw),
 			  (Position)((needshoriz && !w->viewport.usebottom)
-			    ? w->viewport.horiz_bar->core.height + pad
-			    : -bw) );
+			    ? w->viewport.horiz_bar->core.height + pad + sw
+			    : sw) );
 	    XtSetMappedWhenManaged( bar, True );
 	}
     }
@@ -794,30 +794,26 @@ ComputeWithForceBars(Widget widget, Boolean query, XtWidgetGeometry *intended,
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
     XtWidgetGeometry preferred;
-    Dimension pad = 0, sw = 0;
+    Dimension sw = VP_BORDER_INSET(w);
+    Dimension pad = sw ? 2 : 0;
 
 /*
  * If forcebars then needs = allows = has.
  * Thus if needsvert is set it MUST have a scrollbar.
  */
 
-    /* XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
-       if (sw) pad = 2; */ sw = 0; pad = 0;
-
     if (w->viewport.allowvert) {
 	if (w->viewport.vert_bar == NULL)
 	    w->viewport.vert_bar = CreateScrollbar(w, False);
 
-	*clip_width -= w->viewport.vert_bar->core.width +
-		       w->viewport.vert_bar->core.border_width + pad;
+	*clip_width -= w->viewport.vert_bar->core.width + pad;
     }
 
     if (w->viewport.allowhoriz) {
 	if (w->viewport.horiz_bar == NULL)
 	    w->viewport.horiz_bar = CreateScrollbar(w, True);
 
-        *clip_height -= w->viewport.horiz_bar->core.height +
-		       w->viewport.horiz_bar->core.border_width + pad;
+        *clip_height -= w->viewport.horiz_bar->core.height + pad;
     }
 
     AssignMax( *clip_width, 1 );
@@ -960,10 +956,8 @@ GeometryRequestPlusScrollbar(ViewportWidget w, Boolean horizontal,
 {
   Widget bar;
   XtWidgetGeometry plusScrollbars;
-  Dimension pad = 0, sw = 0;
-
-  /* XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
-     if (sw) pad = 2; */ sw = 0; pad = 0;
+  Dimension sw = VP_BORDER_INSET(w);
+  Dimension pad = sw ? 2 : 0;
 
   plusScrollbars = *request;
   if ((bar = w->viewport.horiz_bar) == (Widget)NULL)
@@ -1021,7 +1015,8 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
     Boolean reconfigured;
     Boolean child_changed_size;
     Dimension height_remaining;
-    Dimension pad = 0, sw = 0;
+    Dimension sw = VP_BORDER_INSET(w);
+    Dimension pad = sw ? 2 : 0;
 
     if (request->request_mode & XtCWQueryOnly)
       return QueryGeometry(w, request, reply);
@@ -1032,9 +1027,6 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 	|| ((request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
 	    && request->border_width > 0))
 	return XtGeometryNo;
-
-    /* XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
-       if (sw) pad = 2; */ sw = 0; pad = 0;
 
     allowed = *request;
 
@@ -1053,8 +1045,7 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 	    Widget bar;
 	    if ((bar = w->viewport.horiz_bar) == (Widget)NULL)
 		bar = CreateScrollbar( w, True );
-	    height_remaining -= bar->core.height +
-				bar->core.border_width + pad;
+	    height_remaining -= bar->core.height + pad;
 	    reconfigured = True;
 	}
 	else {
@@ -1073,9 +1064,8 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 		    allowed.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 		}
 		if ( (int)allowed.width >
-		     (int)(bar->core.width + bar->core.border_width + pad) )
-		    allowed.width -= bar->core.width +
-				     bar->core.border_width + pad;
+		     (int)(bar->core.width + pad) )
+		    allowed.width -= bar->core.width + pad;
 		else
 		    allowed.width = 1;
 		reconfigured = True;
