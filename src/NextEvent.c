@@ -555,6 +555,14 @@ _XtFillEventQueue(XtAppContext app) {
     int dd;
     for (dd = 0; dd < app->count; dd++) {
         xcb_generic_event_t *e;
+
+        /* If the connection is broken, set exit flag so the app
+         * doesn't spin at 100% CPU polling a dead fd. */
+        if (xcb_connection_has_error(app->list[dd])) {
+            app->exit_flag = TRUE;
+            continue;
+        }
+
         /* Flush pending requests before polling for events.
          * XCB does not auto-flush like Xlib's XNextEvent did. */
         xcb_flush(app->list[dd]);
@@ -1398,6 +1406,12 @@ XtAppNextEvent(XtAppContext app, xcb_generic_event_t *event)
 
     LOCK_APP(app);
     for (;;) {
+        if (app->exit_flag) {
+            memset(event, 0, sizeof(*event));
+            UNLOCK_APP(app);
+            return;
+        }
+
         /* Check if there are already queued events before waiting */
         _XtFillEventQueue(app);
         if (app->event_front != NULL)
@@ -1462,6 +1476,11 @@ XtAppProcessEvent(XtAppContext app, XtInputMask mask)
     }
 
     for (;;) {
+
+        if (app->exit_flag) {
+            UNLOCK_APP(app);
+            return;
+        }
 
         if (mask & XtIMSignal && app->signalQueue != NULL) {
             SignalEventRec *se_ptr = app->signalQueue;
@@ -1680,6 +1699,12 @@ XtAppPeekEvent(XtAppContext app, xcb_generic_event_t *event)
         goto GotEvent;
 
     while (1) {
+        if (app->exit_flag) {
+            memset(event, 0, sizeof(*event));
+            UNLOCK_APP(app);
+            return FALSE;
+        }
+
         d = _XtWaitForSomething(app,
                                 FALSE, FALSE, FALSE, FALSE,
                                 TRUE, TRUE, (unsigned long *) NULL);
