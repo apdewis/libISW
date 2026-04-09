@@ -523,6 +523,8 @@ XtCreateApplicationContext(void)
     app->signalQueue = NULL;
     app->input_list = NULL;
     app->outstandingQueue = NULL;
+    app->event_front = NULL;
+    app->event_back = NULL;
     //app->errorDB = NULL;
     _XtSetDefaultErrorHandlers(&app->errorMsgHandler,
                                &app->warningMsgHandler, &app->errorHandler,

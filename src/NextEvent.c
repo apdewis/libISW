@@ -579,7 +579,6 @@ _XtFillEventQueue(XtAppContext app) {
             if (type == XCB_CONFIGURE_NOTIFY) {
                 xcb_configure_notify_event_t *cne =
                     (xcb_configure_notify_event_t *)e;
-                XtEventQueue *prev = NULL;
                 XtEventQueue *scan = app->event_front;
                 XtEventQueue *found = NULL;
                 while (scan) {
@@ -593,7 +592,6 @@ _XtFillEventQueue(XtAppContext app) {
                             /* keep scanning — we want the last one */
                         }
                     }
-                    prev = scan;
                     scan = scan->next;
                 }
                 if (found) {
@@ -1556,22 +1554,25 @@ XtAppProcessEvent(XtAppContext app, XtInputMask mask)
         GotEvent:
             if (app->event_front != NULL) {
                 XtEventQueue *node = app->event_front;
+                xcb_connection_t *disp = node->display;
                 event = node->event;
 
-                if (event->response_type == XCB_MAPPING_NOTIFY)
-                    _XtRefreshMapping(node->display, event, False);
-
-                XtDispatchEvent(event, node->display);
-
-                /* Dequeue: advance front pointer first, then free */
+                /* Dequeue before dispatch so reentrant calls see a
+                 * consistent queue (no freed nodes still linked). */
                 if (app->event_front == app->event_back) {
                     app->event_front = NULL;
                     app->event_back = NULL;
                 } else {
                     app->event_front = node->next;
                 }
-                free(event);            /* free XCB-allocated event */
-                XtFree((char *) node);  /* free Xt-allocated queue node */
+                XtFree((char *) node);
+
+                if (event->response_type == XCB_MAPPING_NOTIFY)
+                    _XtRefreshMapping(disp, event, False);
+
+                XtDispatchEvent(event, disp);
+
+                free(event);
             }
 
             UNLOCK_APP(app);
