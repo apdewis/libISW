@@ -2804,7 +2804,7 @@ _IswTextExecuteUpdate(TextWidget ctx)
   if((ctx->text.old_insert != ctx->text.insertPos) || (ctx->text.showposition))
     _IswTextShowPosition(ctx);
   FlushUpdate(ctx);
-  InsertCursor((Widget)ctx, IswisOn);
+  InsertCursor((Widget)ctx, ctx->text.hasfocus ? IswisOn : IswisOff);
   ctx->text.old_insert = -1;
 }
 

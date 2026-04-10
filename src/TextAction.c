@@ -1248,6 +1248,11 @@ ModifySelection(TextWidget ctx, xcb_generic_event_t *event, IswTextSelectionMode
 static void
 SelectStart(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
+  Widget shell;
+
+  for (shell = w; !XtIsShell(shell); shell = XtParent(shell))
+    ;
+  XtSetKeyboardFocus(shell, w);
   ModifySelection((TextWidget) w, event,
 		  IswsmTextSelect, IswactionStart, params, num_params);
 }
@@ -1363,7 +1368,9 @@ TextFocusIn (Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
       return;
   }
 
+  _IswTextPrepareToUpdate(ctx);
   ctx->text.hasfocus = TRUE;
+  _IswTextExecuteUpdate(ctx);
 }
 
 /*ARGSUSED*/
@@ -1384,7 +1391,9 @@ TextFocusOut(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   if (fev->detail == XCB_NOTIFY_DETAIL_POINTER) {
       return;
   }
+  _IswTextPrepareToUpdate(ctx);
   ctx->text.hasfocus = FALSE;
+  _IswTextExecuteUpdate(ctx);
 }
 
 /*ARGSUSED*/
@@ -1395,10 +1404,8 @@ TextEnterWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *
   TextWidget ctx = (TextWidget) w;
   xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
-  if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && (cev->same_screen_focus & 1) &&
-      !ctx->text.hasfocus) {
-	_IswImSetFocusValues(w, NULL, 0);
-  }
+  if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && !ctx->text.hasfocus)
+    _IswImSetFocusValues(w, NULL, 0);
 #endif
 }
 
@@ -1410,10 +1417,8 @@ TextLeaveWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *
   TextWidget ctx = (TextWidget) w;
   xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
-  if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && (cev->same_screen_focus & 1) &&
-      !ctx->text.hasfocus) {
-	_IswImUnsetFocus(w);
-  }
+  if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && !ctx->text.hasfocus)
+    _IswImUnsetFocus(w);
 #endif
 }
 
