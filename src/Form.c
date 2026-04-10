@@ -714,11 +714,19 @@ ConstraintInitialize(Widget request, Widget new, ArgList args, Cardinal *num_arg
     form->form.virtual_width = (int) new->core.width;
     form->form.virtual_height = (int) new->core.height;
 
-    if (form->form.dx == default_value)
+    if (form->form.dx == default_value) {
         form->form.dx = fw->form.default_spacing;
+    } else if (form->form.dx > 0) {
+        double sf = ISWScaleFactor(new);
+        form->form.dx = (int)(form->form.dx * sf + 0.5);
+    }
 
-    if (form->form.dy == default_value)
+    if (form->form.dy == default_value) {
         form->form.dy = fw->form.default_spacing;
+    } else if (form->form.dy > 0) {
+        double sf = ISWScaleFactor(new);
+        form->form.dy = (int)(form->form.dy * sf + 0.5);
+    }
 
     form->form.deferred_resize = False;
 }
