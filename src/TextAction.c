@@ -1372,10 +1372,10 @@ TextFocusOut(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
 
-  if ((event->response_type & ~0x80) != XCB_FOCUS_IN) {
+  if ((event->response_type & ~0x80) != XCB_FOCUS_OUT) {
     return;
   }
-  xcb_focus_in_event_t *fev = (xcb_focus_in_event_t *)event;
+  xcb_focus_out_event_t *fev = (xcb_focus_out_event_t *)event;
 
   /* Let the input method know focus has left.*/
 #ifdef ISW_INTERNATIONALIZATION
