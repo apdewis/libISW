@@ -470,11 +470,18 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         unsigned int disp_w = w->label.label_width;
         unsigned int disp_h = w->label.label_height;
 
+        /* For image-only widgets use minimal padding so the icon
+         * fills the button; text labels keep their full internal_width. */
+        unsigned int img_pad_w = (w->label.label_len == 0)
+            ? ISWScaleDim((Widget)w, 2) : w->label.internal_width;
+        unsigned int img_pad_h = (w->label.label_len == 0)
+            ? ISWScaleDim((Widget)w, 2) : w->label.internal_height;
+
         /* Clamp to available widget space */
-        unsigned int avail_w = w->core.width > 2 * w->label.internal_width
-            ? w->core.width - 2 * w->label.internal_width : 0;
-        unsigned int avail_h = w->core.height > 2 * w->label.internal_height
-            ? w->core.height - 2 * w->label.internal_height : 0;
+        unsigned int avail_w = w->core.width > 2 * img_pad_w
+            ? w->core.width - 2 * img_pad_w : 0;
+        unsigned int avail_h = w->core.height > 2 * img_pad_h
+            ? w->core.height - 2 * img_pad_h : 0;
         if (avail_w > 0 && avail_h > 0 && (disp_w != avail_w || disp_h != avail_h)) {
             float sw = (float)avail_w / disp_w;
             float sh = (float)avail_h / disp_h;

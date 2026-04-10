@@ -455,10 +455,14 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
           unsigned int disp_w = cbw->label.label_width;
           unsigned int disp_h = cbw->label.label_height;
 
-          unsigned int avail_w = cbw->core.width > 2 * cbw->label.internal_width
-              ? cbw->core.width - 2 * cbw->label.internal_width : 0;
-          unsigned int avail_h = cbw->core.height > 2 * cbw->label.internal_height
-              ? cbw->core.height - 2 * cbw->label.internal_height : 0;
+          unsigned int img_pad_w = (cbw->label.label_len == 0)
+              ? ISWScaleDim(w, 2) : cbw->label.internal_width;
+          unsigned int img_pad_h = (cbw->label.label_len == 0)
+              ? ISWScaleDim(w, 2) : cbw->label.internal_height;
+          unsigned int avail_w = cbw->core.width > 2 * img_pad_w
+              ? cbw->core.width - 2 * img_pad_w : 0;
+          unsigned int avail_h = cbw->core.height > 2 * img_pad_h
+              ? cbw->core.height - 2 * img_pad_h : 0;
           if (avail_w > 0 && avail_h > 0 && (disp_w != avail_w || disp_h != avail_h)) {
             float sw = (float)avail_w / disp_w;
             float sh = (float)avail_h / disp_h;
