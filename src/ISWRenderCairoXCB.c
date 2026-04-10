@@ -55,6 +55,11 @@ typedef struct {
     /* Deferred initialization: surface created on first begin() if widget
      * had zero dimensions at ISWRenderCreate time. */
     Boolean deferred;
+
+    /* Nested begin/end: when > 0, begin() and end() are no-ops so that
+     * a parent widget can wrap the entire paint in one frame while child
+     * widgets keep their own begin/end calls without causing extra blits. */
+    int frame_depth;
 } ISWRenderCairoXCBData;
 
 /*
@@ -272,6 +277,13 @@ cairo_xcb_begin(ISWRenderContext *ctx)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
 
+    /* Nested begin: a parent widget already started the frame — just
+     * keep drawing into the same back buffer without blitting. */
+    if (data->frame_depth > 0) {
+        data->frame_depth++;
+        return;
+    }
+
     /* Complete deferred initialization now that the widget has a window */
     if (data->deferred) {
         if (ctx->widget->core.width == 0 || ctx->widget->core.height == 0 ||
@@ -397,12 +409,21 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         data->cairo_ctx = data->back_ctx;
         cairo_save(data->cairo_ctx);
     }
+
+    data->frame_depth = 1;
 }
 
 static void
 cairo_xcb_end(ISWRenderContext *ctx)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+
+    /* Nested end: parent frame still active — don't blit yet. */
+    if (data->frame_depth > 1) {
+        data->frame_depth--;
+        return;
+    }
+    data->frame_depth = 0;
 
     if (!data->cairo_ctx)
         return;

@@ -397,13 +397,21 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         }
     }
 
+    /* Wrap the entire menu paint in one Begin/End frame.  Child SmeBSB
+     * widgets call Begin/End themselves, but with frame nesting those
+     * become no-ops — all drawing accumulates in a single back buffer
+     * and one blit to the window at the end.  This eliminates the
+     * window-to-backbuffer round-trip between every entry that caused
+     * intermittent text rendering failures. */
+    if (smw->simple_menu.render_ctx) {
+        ISWRenderBegin(smw->simple_menu.render_ctx);
+    }
+
     if (region == NULL) {
         if (smw->simple_menu.render_ctx) {
-            ISWRenderBegin(smw->simple_menu.render_ctx);
             ISWRenderSetColor(smw->simple_menu.render_ctx, w->core.background_pixel);
             ISWRenderFillRectangle(smw->simple_menu.render_ctx, 0, 0,
                                    w->core.width, w->core.height);
-            ISWRenderEnd(smw->simple_menu.render_ctx);
         }
     }
 
@@ -515,13 +523,16 @@ dy = SMW_ARROW_SIZE;
 
     /* Draw 1px border around the menu */
     if (smw->simple_menu.render_ctx) {
-        ISWRenderBegin(smw->simple_menu.render_ctx);
         ISWRenderSetColor(smw->simple_menu.render_ctx,
                           smw->core.border_pixel);
         ISWRenderStrokeRectangle(smw->simple_menu.render_ctx,
                                  0, 0,
                                  w->core.width - 1,
                                  w->core.height - 1);
+    }
+
+    /* End the outer frame — this is the single blit to the window */
+    if (smw->simple_menu.render_ctx) {
         ISWRenderEnd(smw->simple_menu.render_ctx);
     }
 }
@@ -905,7 +916,16 @@ Unhighlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * n
     old_pos = entry->rectangle.y;
     entry->rectangle.y -= smw->simple_menu.first_y;
 
+    /* Wrap in Begin/End for the standalone-action case.  When called
+     * from Highlight(), the outer frame is already active and this
+     * nests harmlessly. */
+    if (smw->simple_menu.render_ctx) {
+	ISWRenderBegin(smw->simple_menu.render_ctx);
+    }
     (class->sme_class.unhighlight) ((Widget) entry);
+    if (smw->simple_menu.render_ctx) {
+	ISWRenderEnd(smw->simple_menu.render_ctx);
+    }
 
     entry->rectangle.y = old_pos;
 }
@@ -933,13 +953,26 @@ Highlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num
     if (entry == smw->simple_menu.entry_set)
 	return;
 
+    /* Wrap unhighlight + highlight in a single render frame so the
+     * old and new entry are both painted before blitting to the window. */
+    if (smw->simple_menu.render_ctx) {
+	ISWRenderBegin(smw->simple_menu.render_ctx);
+    }
+
     PopdownSubMenu(smw);
     Unhighlight(w, event, params, num_params);
 
-    if (entry == NULL)
+    if (entry == NULL) {
+	if (smw->simple_menu.render_ctx) {
+	    ISWRenderEnd(smw->simple_menu.render_ctx);
+	}
 	return;
+    }
     if (!XtIsSensitive((Widget) entry)) {
 	smw->simple_menu.entry_set = NULL;
+	if (smw->simple_menu.render_ctx) {
+	    ISWRenderEnd(smw->simple_menu.render_ctx);
+	}
 	return;
     }
 
@@ -956,6 +989,10 @@ Highlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num
 	    PopupSubMenu(smw);
 
 	entry->rectangle.y = old_pos;
+    }
+
+    if (smw->simple_menu.render_ctx) {
+	ISWRenderEnd(smw->simple_menu.render_ctx);
     }
 }
 
