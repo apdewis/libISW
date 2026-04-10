@@ -1512,7 +1512,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* HiDPI: scale dimension resources */
     pw->paned.internal_bw = ISWScaleDim(new, pw->paned.internal_bw);
-    pw->paned.grip_indent = (Position)ISWScaleDim(new, pw->paned.grip_indent);
 
     pw->paned.recursively_called = False;
     pw->paned.stack = NULL;

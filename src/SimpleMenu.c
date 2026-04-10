@@ -312,13 +312,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   IswCallInitializers(XtWidgetToApplicationContext(new));
 
-  /* HiDPI: scale dimension resources */
-  smw->simple_menu.row_height = ISWScaleDim(new, smw->simple_menu.row_height);
-  smw->simple_menu.top_margin = ISWScaleDim(new, smw->simple_menu.top_margin);
-  smw->simple_menu.bottom_margin = ISWScaleDim(new, smw->simple_menu.bottom_margin);
-  smw->simple_menu.left_whitespace = ISWScaleDim(new, smw->simple_menu.left_whitespace);
-  smw->simple_menu.right_whitespace = ISWScaleDim(new, smw->simple_menu.right_whitespace);
-
   smw->simple_menu.label = NULL;
   smw->simple_menu.entry_set = NULL;
   smw->simple_menu.recursive_set_values = FALSE;

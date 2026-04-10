@@ -700,15 +700,6 @@ GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 static Boolean
 SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
-    FormWidget cfw = (FormWidget)current;
-    FormWidget nfw = (FormWidget)new;
-
-    if (cfw->form.default_spacing != nfw->form.default_spacing &&
-        nfw->form.default_spacing > 0) {
-        double scale = ISWScaleFactor(new);
-        nfw->form.default_spacing = (int)(nfw->form.default_spacing * scale + 0.5);
-    }
-
     return( FALSE );
 }
 
@@ -746,15 +737,6 @@ ConstraintSetValues(Widget current, Widget request, Widget new, ArgList args, Ca
 {
   FormConstraints cfc = (FormConstraints) current->core.constraints;
   FormConstraints nfc = (FormConstraints) new->core.constraints;
-
-  if (cfc->form.dx != nfc->form.dx && nfc->form.dx > 0) {
-      double sf = ISWScaleFactor(new);
-      nfc->form.dx = (int)(nfc->form.dx * sf + 0.5);
-  }
-  if (cfc->form.dy != nfc->form.dy && nfc->form.dy > 0) {
-      double sf = ISWScaleFactor(new);
-      nfc->form.dy = (int)(nfc->form.dy * sf + 0.5);
-  }
 
   if (cfc->form.top          != nfc->form.top         ||
       cfc->form.bottom       != nfc->form.bottom      ||
