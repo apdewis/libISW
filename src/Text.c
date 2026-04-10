@@ -610,18 +610,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.updateTo = (ISWTextPosition *) XtMalloc((unsigned) ONE);
   ctx->text.numranges = ctx->text.maxranges = 0;
   
-  /* Create xcb_gcontext_t - XCB doesn't have default xcb_gcontext_t */
-  {
-    xcb_connection_t *conn = XtDisplay((Widget)ctx);
-    xcb_screen_t *screen = XtScreen((Widget)ctx);
-    xcb_create_gc_value_list_t values;
-    memset(&values, 0, sizeof(values));
-    values.foreground = BlackPixelOfScreen(screen);
-    values.background = WhitePixelOfScreen(screen);
-    ctx->text.gc = xcb_generate_id(conn);
-    xcb_create_gc(conn, ctx->text.gc, XtWindow((Widget)ctx),
-                  XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, &values);
-  }
+  ctx->text.gc = 0;  /* created in Realize once window exists */
   ctx->text.hasfocus = FALSE;
   ctx->text.margin = ctx->text.r_margin; /* Strucure copy. */
   ctx->text.update_disabled = FALSE;
@@ -679,6 +668,17 @@ Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attr
   /* XCB-based libXt realize function requires 4 arguments */
   (*textClassRec.core_class.superclass->core_class.realize)
     (conn, w, valueMask, attributes);
+
+  /* Create the GC now that the window exists */
+  {
+    xcb_screen_t *screen = XtScreen(w);
+    uint32_t gc_values[2];
+    gc_values[0] = BlackPixelOfScreen(screen);
+    gc_values[1] = WhitePixelOfScreen(screen);
+    ctx->text.gc = xcb_generate_id(conn);
+    xcb_create_gc(conn, ctx->text.gc, XtWindow(w),
+                  XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
+  }
 
   if (ctx->text.hbar != NULL) {	        /* Put up Hbar -- Must be first. */
     XtRealizeWidget(ctx->text.hbar);
