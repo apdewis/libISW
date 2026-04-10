@@ -224,7 +224,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     w->form.default_spacing = 0;  /* Reset the default spacing to 0 pixels. */
 
-
 /*
  * Initialize all widget pointers to NULL.
  */
@@ -572,25 +571,13 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	 * child's preferences are not acceptable.
 	 */
 
+	intended.width = clip_width;
+	intended.height = clip_height;
+
 	if (!w->viewport.allowhoriz)
 	    intended.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
-
-#ifdef PREP_CHILD_TO_CLIP
-	if ((int)child->core.width < clip_width)
-	    intended.width = clip_width;
-	else
-#endif
-	    intended.width = child->core.width;
-
 	if (!w->viewport.allowvert)
 	    intended.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
-
-#ifdef PREP_CHILD_TO_CLIP
-	if ((int)child->core.height < clip_height)
-	    intended.height = clip_height;
-	else
-#endif
-	    intended.height = child->core.height;
 
 	if (!query) {
 	    preferred.width = child->core.width;
@@ -601,7 +588,14 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	do { /* while intended != prev */
 #endif
 	    if (query) {
-	        (void) XtQueryGeometry( child, &intended, &preferred );
+		/* Always pass both dimensions in the query so the child
+		 * can compute its preferred size relative to the clip.
+		 * The mode bits above only mark axes where the child
+		 * MUST accept the constraint (scrolling disallowed). */
+		XtWidgetGeometry query_intended = intended;
+		query_intended.request_mode |=
+		    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+	        (void) XtQueryGeometry( child, &query_intended, &preferred );
 		if ( !(preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH) )
 		    preferred.width = intended.width;
 		if ( !(preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT) )

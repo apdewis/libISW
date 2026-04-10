@@ -80,6 +80,9 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include <stdio.h>
 
+/* Defined in Initialize.c */
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
 static _Xconst _XtString XtNxtCreateWidget = "xtCreateWidget";
 static _Xconst _XtString XtNxtCreatePopupShell = "xtCreatePopupShell";
 
@@ -413,6 +416,23 @@ xtCreate(String name,
             args[i].value = typed_args[i].value;
         }
         num_args = num_typed_args;
+    }
+
+    /* HiDPI: scale core geometry resources so widgets operate in logical
+     * coordinates.  This must happen after _XtGetResources (which fills in
+     * the resource values) and before the req_widget copy + CallInitialize
+     * (which sees the final requested geometry). */
+    if (XtIsRectObj(widget) && widget->core.display) {
+        double sf = _XtGetScaleFactor(widget->core.display);
+        if (sf > 1.0) {
+            if (widget->core.width != 0)
+                widget->core.width = (Dimension)(widget->core.width * sf + 0.5f);
+            if (widget->core.height != 0)
+                widget->core.height = (Dimension)(widget->core.height * sf + 0.5f);
+            if (widget->core.border_width != 0)
+                widget->core.border_width =
+                    (Dimension)(widget->core.border_width * sf + 0.5f);
+        }
     }
 
     CompileCallbacks(widget);

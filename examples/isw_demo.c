@@ -251,7 +251,9 @@ Widget create_main_window(Widget parent) {
     /* Viewport as content child — scrolls independently of menubar */
     n = 0;
     XtSetArg(args[n], XtNallowVert, True); n++;
+    XtSetArg(args[n], XtNallowHoriz, True); n++;
     XtSetArg(args[n], XtNuseRight, True); n++;
+    XtSetArg(args[n], XtNuseBottom, True); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     viewport = XtCreateManagedWidget("viewport", viewportWidgetClass,
                                       main_win, args, n);

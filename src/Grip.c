@@ -137,8 +137,7 @@ WidgetClass gripWidgetClass = (WidgetClass) &gripClassRec;
 static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
-    new->core.width = ISWScaleDim(new, new->core.width);
-    new->core.height = ISWScaleDim(new, new->core.height);
+    /* core.width / core.height are now scaled centrally in xtCreate() */
 }
 
 static void
