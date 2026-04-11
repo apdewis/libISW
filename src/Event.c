@@ -154,6 +154,31 @@ _XtDescaleEventCoords(xcb_generic_event_t *event, double sf)
         e->root_y = (int16_t)(e->root_y * inv);
         break;
     }
+    case XCB_EXPOSE: {
+        xcb_expose_event_t *e = (xcb_expose_event_t *)event;
+        e->x = (uint16_t)(e->x * inv);
+        e->y = (uint16_t)(e->y * inv);
+        e->width = (uint16_t)(e->width * inv + 0.5f);
+        e->height = (uint16_t)(e->height * inv + 0.5f);
+        break;
+    }
+    case XCB_GRAPHICS_EXPOSURE: {
+        xcb_graphics_exposure_event_t *e = (xcb_graphics_exposure_event_t *)event;
+        e->x = (uint16_t)(e->x * inv);
+        e->y = (uint16_t)(e->y * inv);
+        e->width = (uint16_t)(e->width * inv + 0.5f);
+        e->height = (uint16_t)(e->height * inv + 0.5f);
+        break;
+    }
+    case XCB_CONFIGURE_NOTIFY: {
+        xcb_configure_notify_event_t *e = (xcb_configure_notify_event_t *)event;
+        e->x = (int16_t)(e->x * inv);
+        e->y = (int16_t)(e->y * inv);
+        e->width = (uint16_t)(e->width * inv + 0.5f);
+        e->height = (uint16_t)(e->height * inv + 0.5f);
+        e->border_width = (uint16_t)(e->border_width * inv + 0.5f);
+        break;
+    }
     }
 }
 

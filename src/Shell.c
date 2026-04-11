@@ -1807,23 +1807,18 @@ EventHandler(Widget wid,
         xcb_configure_notify_event_t * cne = (xcb_configure_notify_event_t *)event;
         if (w->core.window != cne->window)
             return;             /* in case of SubstructureNotify */
-        /* HiDPI: convert physical ConfigureNotify values to logical */
-        double _inv = 1.0 / _XtGetScaleFactor(XtDisplay(wid));
-        Dimension cne_w = (Dimension)(cne->width * _inv + 0.5);
-        Dimension cne_h = (Dimension)(cne->height * _inv + 0.5);
-        Dimension cne_bw = (Dimension)(cne->border_width * _inv + 0.5);
-        Position cne_x = (Position)(cne->x * _inv + 0.5);
-        Position cne_y = (Position)(cne->y * _inv + 0.5);
-        if (w->core.width != cne_w || w->core.height != cne_h ||
-            w->core.border_width != cne_bw) {
+        /* ConfigureNotify values are already descaled to logical pixels
+         * by _XtDescaleEventCoords in the event dispatcher. */
+        if (w->core.width != cne->width || w->core.height != cne->height ||
+            w->core.border_width != cne->border_width) {
             sizechanged = TRUE;
-            w->core.width = cne_w;
-            w->core.height = cne_h;
-            w->core.border_width = cne_bw;
+            w->core.width = (Dimension) cne->width;
+            w->core.height = (Dimension) cne->height;
+            w->core.border_width = (Dimension) cne->border_width;
         }
         if (w->shell.client_specified & _XtShellNotReparented) {
-            w->core.x = cne_x;
-            w->core.y = cne_y;
+            w->core.x = (Position) cne->x;
+            w->core.y = (Position) cne->y;
             w->shell.client_specified |= _XtShellPositionValid;
         }
         else
