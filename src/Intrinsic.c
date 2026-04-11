@@ -83,6 +83,8 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include <stdlib.h>
 
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
 String XtCXtToolkitError = "XtToolkitError";
 
 Boolean
@@ -542,14 +544,18 @@ XtCreateWindow(xcb_connection_t *display,
             xcb_window_t parent_win = widget->core.parent ?
                 widget->core.parent->core.window :
                 widget->core.screen->root;
+            /* HiDPI: create window at physical pixel geometry */
+            double _sf = _XtGetScaleFactor(display);
             xcb_void_cookie_t cookie = xcb_create_window_checked(
                 display,
                 widget->core.depth,
                 widget->core.window,
                 parent_win,
-                widget->core.x, widget->core.y,
-                widget->core.width, widget->core.height,
-                widget->core.border_width,
+                (int16_t)(widget->core.x * _sf + 0.5),
+                (int16_t)(widget->core.y * _sf + 0.5),
+                (uint16_t)(widget->core.width * _sf + 0.5),
+                (uint16_t)(widget->core.height * _sf + 0.5),
+                (uint16_t)(widget->core.border_width * _sf + 0.5),
                 window_class,
                 visual ? visual->visual_id : XCB_COPY_FROM_PARENT,
                 value_mask,

@@ -74,6 +74,8 @@ SOFTWARE.
 #include <xcb/xfixes.h>
 #include "ISWXcbDraw.h"
 
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
 /* I don't know why Paned.c calls _IswImCallVendorShellExtResize, but... */
 /* FIXME: IswImP.h uses Xlib-specific types (XIM, XIC) that don't exist in XCB */
 /* #ifdef ISW_INTERNATIONALIZATION
@@ -694,11 +696,12 @@ CommitNewLocations(PanedWidget pw)
 	    grip->core.y = grip_y;
 
 	    if (XtIsRealized(pane->grip)) {
-	        /* XCB: Use xcb_configure_window with values array */
+	        /* HiDPI: scale logical to physical for the X server */
+	        double _sf = _XtGetScaleFactor(XtDisplay(pane->grip));
 	        uint32_t values[3];
-	        values[0] = grip_x;  /* x */
-	        values[1] = grip_y;  /* y */
-	        values[2] = XCB_STACK_MODE_ABOVE;  /* stack_mode */
+	        values[0] = (uint32_t)(int32_t)(grip_x * _sf + 0.5);
+	        values[1] = (uint32_t)(int32_t)(grip_y * _sf + 0.5);
+	        values[2] = XCB_STACK_MODE_ABOVE;
 	        xcb_configure_window(XtDisplay(pane->grip), XtWindow(pane->grip),
 				     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
 				     XCB_CONFIG_WINDOW_STACK_MODE, values);
@@ -1510,8 +1513,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     PanedWidget pw = (PanedWidget)new;
 
-    /* HiDPI: scale dimension resources */
-    pw->paned.internal_bw = ISWScaleDim(new, pw->paned.internal_bw);
+    /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
     pw->paned.recursively_called = False;
     pw->paned.stack = NULL;

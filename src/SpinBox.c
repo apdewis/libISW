@@ -263,14 +263,14 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* Set default size if not specified */
     if (sbw->core.width == 0)
-        sbw->core.width = ISWScaleDim(new, 120);
+        sbw->core.width = (120);
     if (sbw->core.height == 0) {
         /* Derive height from font metrics so the text line fits */
         XFontStruct *font = NULL;
         XtVaGetValues(sbw->spinBox.textW, XtNfont, &font, NULL);
-        int font_h = font ? ISWScaledFontHeight(new, font) : ISWScaleDim(new, 14);
+        int font_h = font ? ISWScaledFontHeight(new, font) : (14);
         int margin = 4;  /* Text widget default VMargins (top=2 + bottom=2) */
-        sbw->core.height = (Dimension)(font_h + margin + ISWScaleDim(new, 4));
+        sbw->core.height = (Dimension)(font_h + margin + (4));
     }
 
     sbw->spinBox.render_ctx = NULL;
@@ -314,7 +314,7 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 static void
 LayoutChildren(SpinBoxWidget sbw)
 {
-    Dimension btn_w = ISWScaleDim((Widget)sbw, 27);
+    Dimension btn_w = (27);
     Dimension w = sbw->core.width;
     Dimension h = sbw->core.height;
     /* Leave 1px for vertical divider, 1px for horizontal divider */
@@ -347,7 +347,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (!ctx || !XtIsRealized(w))
         return;
 
-    Dimension btn_w = ISWScaleDim(w, 27);
+    Dimension btn_w = (27);
     int text_w = (int)sbw->core.width - (int)btn_w - 1;
     int gap_x = text_w;
     int gap_y = (int)sbw->core.height / 2;

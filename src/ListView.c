@@ -219,11 +219,11 @@ BuildColumns(ListViewWidget lv)
         ListViewColumnInfo *dst = &lv->listView.col_info[i];
         dst->title = src->title;
         dst->width = src->width > 0
-            ? ISWScaleDim((Widget)lv, src->width)
-            : ISWScaleDim((Widget)lv, DEFAULT_COL_W);
+            ? (src->width)
+            : (DEFAULT_COL_W);
         dst->min_width = src->min_width > 0
-            ? ISWScaleDim((Widget)lv, src->min_width)
-            : ISWScaleDim((Widget)lv, MIN_COL_W);
+            ? (src->min_width)
+            : (MIN_COL_W);
     }
 }
 
@@ -234,24 +234,24 @@ ComputeMetrics(ListViewWidget lv)
 
     /* Row height */
     if (lv->listView.row_height > 0) {
-        lv->listView.computed_row_h = ISWScaleDim(w, lv->listView.row_height);
+        lv->listView.computed_row_h = (lv->listView.row_height);
     } else {
         int fh = lv->listView.font
             ? ISWScaledFontHeight(w, lv->listView.font)
-            : (int)ISWScaleDim(w, 14);
-        lv->listView.computed_row_h = (Dimension)(fh + 2 * ISWScaleDim(w, CELL_PAD_Y));
+            : (int)(14);
+        lv->listView.computed_row_h = (Dimension)(fh + 2 * (CELL_PAD_Y));
     }
 
     /* Header height */
     if (!lv->listView.show_header) {
         lv->listView.computed_hdr_h = 0;
     } else if (lv->listView.header_height > 0) {
-        lv->listView.computed_hdr_h = ISWScaleDim(w, lv->listView.header_height);
+        lv->listView.computed_hdr_h = (lv->listView.header_height);
     } else {
         int fh = lv->listView.font
             ? ISWScaledFontHeight(w, lv->listView.font)
-            : (int)ISWScaleDim(w, 14);
-        lv->listView.computed_hdr_h = (Dimension)(fh + 2 * ISWScaleDim(w, CELL_PAD_Y) + 2);
+            : (int)(14);
+        lv->listView.computed_hdr_h = (Dimension)(fh + 2 * (CELL_PAD_Y) + 2);
     }
 
     /* Total column width */
@@ -261,7 +261,7 @@ ComputeMetrics(ListViewWidget lv)
     lv->listView.total_col_w = tw;
 
     /* Request preferred size: width = sum of columns, height = header + rows */
-    Dimension pref_w = tw > 0 ? tw : ISWScaleDim(w, 300);
+    Dimension pref_w = tw > 0 ? tw : (300);
     Dimension pref_h = lv->listView.computed_hdr_h
                      + (Dimension)(lv->listView.nrows * (int)lv->listView.computed_row_h);
     if (pref_h < 1) pref_h = 1;
@@ -304,7 +304,7 @@ ResizeHitTest(ListViewWidget lv, Position x, Position y)
     if ((int)y >= (int)lv->listView.computed_hdr_h)
         return -1;  /* only in header */
     int cx = 0;
-    int grip = (int)ISWScaleDim((Widget)lv, RESIZE_GRIP);
+    int grip = (int)(RESIZE_GRIP);
     for (int i = 0; i < lv->listView.col_count; i++) {
         cx += (int)lv->listView.col_info[i].width;
         if (abs((int)x - cx) <= grip)
@@ -428,9 +428,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     AllocSelFlags(lv);
 
     if (new->core.width == 0)
-        new->core.width = ISWScaleDim(new, 400);
+        new->core.width = (400);
     if (new->core.height == 0)
-        new->core.height = ISWScaleDim(new, 200);
+        new->core.height = (200);
 
     ComputeMetrics(lv);
 }
@@ -476,7 +476,7 @@ DrawHeader(ListViewWidget lv, ISWRenderContext *ctx)
 {
     Widget w = (Widget)lv;
     Dimension hdr_h = lv->listView.computed_hdr_h;
-    Dimension pad_x = ISWScaleDim(w, CELL_PAD_X);
+    Dimension pad_x = (CELL_PAD_X);
 
     if (!hdr_h)
         return;
@@ -496,7 +496,7 @@ DrawHeader(ListViewWidget lv, ISWRenderContext *ctx)
 
     int ascent = lv->listView.font
         ? ISWScaledFontAscent(w, lv->listView.font)
-        : (int)ISWScaleDim(w, 11);
+        : (int)(11);
 
     int x = 0;
     for (int i = 0; i < lv->listView.col_count; i++) {
@@ -516,9 +516,9 @@ DrawHeader(ListViewWidget lv, ISWRenderContext *ctx)
             int ty = ((int)hdr_h - 1 + ascent) / 2;
 
             /* Reserve space for sort arrow if this is the sorted column */
-            int arrow_w_scaled = (int)ISWScaleDim(w, SORT_ARROW_W);
-            int arrow_h_scaled = (int)ISWScaleDim(w, SORT_ARROW_H);
-            int arrow_gap = (int)ISWScaleDim(w, SORT_ARROW_GAP);
+            int arrow_w_scaled = (int)(SORT_ARROW_W);
+            int arrow_h_scaled = (int)(SORT_ARROW_H);
+            int arrow_gap = (int)(SORT_ARROW_GAP);
             Boolean is_sorted = (lv->listView.sort_column == i &&
                                  lv->listView.sort_direction != IswListViewSortNone);
 
@@ -589,14 +589,14 @@ DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
     Widget w = (Widget)lv;
     Dimension hdr_h = lv->listView.computed_hdr_h;
     Dimension row_h = lv->listView.computed_row_h;
-    Dimension pad_x = ISWScaleDim(w, CELL_PAD_X);
+    Dimension pad_x = (CELL_PAD_X);
 
     if (lv->listView.font)
         ISWRenderSetFont(ctx, lv->listView.font);
 
     int ascent = lv->listView.font
         ? ISWScaledFontAscent(w, lv->listView.font)
-        : (int)ISWScaleDim(w, 11);
+        : (int)(11);
 
     for (int row = 0; row < lv->listView.nrows; row++) {
         int ry = (int)hdr_h + row * (int)row_h;
@@ -1233,11 +1233,11 @@ IswListViewAddColumn(Widget w, const char *title, Dimension width, Dimension min
     ListViewColumnInfo *ci = &lv->listView.col_info[n - 1];
     ci->title = (String)title;
     ci->width = width > 0
-        ? ISWScaleDim(w, width)
-        : ISWScaleDim(w, DEFAULT_COL_W);
+        ? (width)
+        : (DEFAULT_COL_W);
     ci->min_width = min_width > 0
-        ? ISWScaleDim(w, min_width)
-        : ISWScaleDim(w, MIN_COL_W);
+        ? (min_width)
+        : (MIN_COL_W);
 
     lv->listView.col_count = n;
     lv->listView.ncols = n;

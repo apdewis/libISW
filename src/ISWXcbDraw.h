@@ -825,46 +825,7 @@ xcb_pixmap_t IswLocatePixmapFile(
  * =================================================================
  */
 
-/* Map XUnmapWindow to XCB version */
-#ifndef XUnmapWindow
-#define XUnmapWindow(dpy, win) xcb_unmap_window((dpy), (win))
-#endif
-
-/* Map XMapRaised to XCB version - just use xcb_map_window (XCB doesn't have direct MapRaised) */
-#ifndef XMapRaised
-#define XMapRaised(dpy, win) xcb_map_window((dpy), (win))
-#endif
-
-/* XMoveResizeWindow - use xcb_configure_window */
-#ifndef XMoveResizeWindow
-#define XMoveResizeWindow(dpy, win, x, y, w, h) \
-    do { \
-        uint16_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | \
-                        XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT; \
-        uint32_t values[] = { (uint32_t)(x), (uint32_t)(y), (uint32_t)(w), (uint32_t)(h) }; \
-        xcb_configure_window((dpy), (win), mask, values); \
-    } while(0)
-#endif
-
-/* XLowerWindow - use xcb_configure_window with stack mode */
-#ifndef XLowerWindow
-#define XLowerWindow(dpy, win) \
-    do { \
-        uint16_t mask = XCB_CONFIG_WINDOW_STACK_MODE; \
-        uint32_t values[] = { XCB_STACK_MODE_BELOW }; \
-        xcb_configure_window((dpy), (win), mask, values); \
-    } while(0)
-#endif
-
-/* XRaiseWindow - use xcb_configure_window with stack mode */
-#ifndef XRaiseWindow
-#define XRaiseWindow(dpy, win) \
-    do { \
-        uint16_t mask = XCB_CONFIG_WINDOW_STACK_MODE; \
-        uint32_t values[] = { XCB_STACK_MODE_ABOVE }; \
-        xcb_configure_window((dpy), (win), mask, values); \
-    } while(0)
-#endif
+/* Xlib-named window operation macros removed — use xcb_* calls directly. */
 
 /* XQueryPointer - simple wrapper function declared once */
 int ISWQueryPointer(xcb_connection_t *dpy, xcb_window_t win,

@@ -33,6 +33,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
 /* XDND protocol version we support */
 #define XDND_VERSION 5
 
@@ -1793,9 +1795,11 @@ MoveDragIcon(XdndState *st, int root_x, int root_y)
         return;
 
     xcb_connection_t *conn = XtDisplay(st->shell);
+    /* HiDPI: scale logical to physical for the X server */
+    double _sf = _XtGetScaleFactor(conn);
     uint32_t values[2];
-    values[0] = root_x - st->drag_desc.icon_hotspot_x;
-    values[1] = root_y - st->drag_desc.icon_hotspot_y;
+    values[0] = (uint32_t)(int32_t)((root_x - st->drag_desc.icon_hotspot_x) * _sf + 0.5);
+    values[1] = (uint32_t)(int32_t)((root_y - st->drag_desc.icon_hotspot_y) * _sf + 0.5);
 
     xcb_configure_window(conn, st->drag_icon_win,
                          XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,

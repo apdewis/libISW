@@ -699,7 +699,8 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		    (Dimension)(w->core.height - bar_height), (Dimension)0 ); */
 
     if (XtIsRealized(clip))
-	XRaiseWindow( XtDisplay(clip), XtWindow(clip) );
+	xcb_configure_window(XtDisplay(clip), XtWindow(clip),
+	    XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
 
     XtMoveWidget( clip,
 		  (Position)(!needsvert ? sw :

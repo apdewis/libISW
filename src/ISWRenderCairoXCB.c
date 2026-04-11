@@ -99,6 +99,14 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
         return False;
     }
 
+    /* HiDPI: set device scale so Cairo maps logical drawing coordinates
+     * to physical surface pixels transparently. */
+    {
+        double sf = _XtGetScaleFactor(ctx->connection);
+        if (sf > 1.0)
+            cairo_surface_set_device_scale(data->surface, sf, sf);
+    }
+
     /* Create context on window surface — always available for queries */
     data->window_ctx = cairo_create(data->surface);
     if (cairo_status(data->window_ctx) != CAIRO_STATUS_SUCCESS) {
@@ -301,13 +309,15 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         data->deferred = False;
     }
 
-    /* Update window surface size */
+    /* Update window surface size — use physical pixels for surfaces
+     * since the X window is at physical size. */
     if (ctx->widget && data->surface) {
-        Dimension w = ctx->widget->core.width;
-        Dimension h = ctx->widget->core.height;
+        double sf = _XtGetScaleFactor(ctx->connection);
+        Dimension w = (Dimension)(ctx->widget->core.width * sf + 0.5);
+        Dimension h = (Dimension)(ctx->widget->core.height * sf + 0.5);
         cairo_xcb_surface_set_size(data->surface, w, h);
 
-        /* Ensure back buffer can hold widget dimensions.
+        /* Ensure back buffer can hold widget dimensions (physical).
          *
          * To avoid destroying and recreating the server-side pixmap on
          * every ConfigureNotify during interactive resize, we over-
@@ -345,6 +355,12 @@ cairo_xcb_begin(ISWRenderContext *ctx)
                               ctx->window, aw, ah);
             data->back_surface = cairo_xcb_surface_create(
                 ctx->connection, data->back_pixmap, data->visual, aw, ah);
+            /* HiDPI: device scale for logical→physical mapping */
+            {
+                double sf = _XtGetScaleFactor(ctx->connection);
+                if (sf > 1.0)
+                    cairo_surface_set_device_scale(data->back_surface, sf, sf);
+            }
             data->back_ctx = cairo_create(data->back_surface);
             cairo_set_antialias(data->back_ctx, CAIRO_ANTIALIAS_GOOD);
             cairo_set_line_width(data->back_ctx, 1.0);
@@ -407,6 +423,10 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         }
 
         data->cairo_ctx = data->back_ctx;
+        cairo_save(data->cairo_ctx);
+
+    } else {
+        /* No back buffer — draw directly to window surface */
         cairo_save(data->cairo_ctx);
     }
 
@@ -690,20 +710,18 @@ cairo_xcb_text_width(ISWRenderContext *ctx, const char *text, int len)
     int width;
 
     if (!data->cairo_ctx) return len * 8;
-    /* Cairo expects null-terminated string */
     null_term = (char*)malloc(len + 1);
     if (!null_term) {
-        return len * 8;  /* Estimate */
+        return len * 8;
     }
-    
+
     memcpy(null_term, text, len);
     null_term[len] = '\0';
-    
+
+    /* With cairo_surface_set_device_scale, cairo_text_extents returns
+     * logical pixel values automatically. */
     cairo_text_extents(data->cairo_ctx, null_term, &extents);
-    /* Use x_advance (pen advance), not width (ink bounding box).
-     * width can be smaller than x_advance due to side bearings,
-     * causing cumulative positioning drift in multi-chunk text. */
-    width = (int)ceil(extents.x_advance);
+    width = (int)lrint(extents.x_advance);
 
     free(null_term);
 
@@ -729,14 +747,15 @@ cairo_xcb_set_font(ISWRenderContext *ctx, XFontStruct *font)
 
     if (!data->cairo_ctx) return;
 
-    double scale = _XtGetScaleFactor(ctx->connection);
-    _ISWSetCairoFontFromXFont(data->cairo_ctx, font, scale);
+    /* HiDPI: set font at logical size — the Cairo scale transform on
+     * the render surface handles physical magnification. */
+    _ISWSetCairoFontFromXFont(data->cairo_ctx, font, 1.0);
 
     /* Keep both contexts in sync so text queries work outside begin/end */
     if (data->back_ctx && data->cairo_ctx != data->back_ctx)
-        _ISWSetCairoFontFromXFont(data->back_ctx, font, scale);
+        _ISWSetCairoFontFromXFont(data->back_ctx, font, 1.0);
     if (data->window_ctx && data->cairo_ctx != data->window_ctx)
-        _ISWSetCairoFontFromXFont(data->window_ctx, font, scale);
+        _ISWSetCairoFontFromXFont(data->window_ctx, font, 1.0);
 }
 
 /*

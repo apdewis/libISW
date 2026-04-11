@@ -240,11 +240,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     FontChooserWidget fcw = (FontChooserWidget) new;
     Arg a[10];
     Cardinal n;
-    Dimension list_w = ISWScaleDim(new, 180);
-    Dimension list_h = ISWScaleDim(new, 150);
-    Dimension size_w = ISWScaleDim(new, 50);
-    Dimension preview_w = ISWScaleDim(new, 240);
-    Dimension preview_h = ISWScaleDim(new, 40);
+    Dimension list_w = (180);
+    Dimension list_h = (150);
+    Dimension size_w = (50);
+    Dimension preview_w = (240);
+    Dimension preview_h = (40);
     (void)request; (void)args; (void)num_args;
 
     /* Enumerate system fonts */

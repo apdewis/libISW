@@ -192,7 +192,7 @@ ChildBasis(FlexBoxWidget fw, Widget child, Boolean is_horizontal)
     FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
 
     if (fc->flexBox.flex_basis > 0)
-        return ISWScaleDim((Widget)fw, (int)fc->flexBox.flex_basis);
+        return ((int)fc->flexBox.flex_basis);
 
     /* Ask the child what size it wants */
     XtWidgetGeometry preferred;
@@ -236,7 +236,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
     int n = fw->composite.num_children;
     WidgetList children = fw->composite.children;
     Boolean horiz = (fw->flexBox.orientation == XtorientHorizontal);
-    Dimension spacing = ISWScaleDim((Widget)fw, (int)fw->flexBox.spacing);
+    Dimension spacing = ((int)fw->flexBox.spacing);
 
     /* Count managed children and compute fixed-size total.
      * flexGrow=0 children claim their preferred/basis size.
@@ -259,8 +259,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
         if (fc->flexBox.flex_grow > 0) {
             /* Grow children: only flexBasis counts as fixed space */
             if (fc->flexBox.flex_basis > 0)
-                total_fixed += (int)ISWScaleDim((Widget)fw,
-                               (int)fc->flexBox.flex_basis) + bw2;
+                total_fixed += (int)fc->flexBox.flex_basis + bw2;
             else
                 total_fixed += bw2;
             total_grow += fc->flexBox.flex_grow;
@@ -324,8 +323,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             /* Grow children: flexBasis + proportional share of remaining */
             int basis = 0;
             if (fc->flexBox.flex_basis > 0)
-                basis = (int)ISWScaleDim((Widget)fw,
-                        (int)fc->flexBox.flex_basis);
+                basis = (int)fc->flexBox.flex_basis;
             main_sz = basis + (remaining * fc->flexBox.flex_grow) / total_grow;
         } else {
             /* Non-grow children: preferred/basis size */

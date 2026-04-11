@@ -203,12 +203,12 @@ static void
 ComputeLayout(IconViewWidget iw)
 {
     Widget w = (Widget)iw;
-    Dimension icon_sz = ISWScaleDim(w, iw->iconView.icon_size);
-    Dimension spacing = ISWScaleDim(w, iw->iconView.item_spacing);
+    Dimension icon_sz = (iw->iconView.icon_size);
+    Dimension spacing = (iw->iconView.item_spacing);
     Dimension font_h = iw->iconView.font
         ? (Dimension)ISWScaledFontHeight(w, iw->iconView.font)
-        : ISWScaleDim(w, 14);
-    Dimension margin = ISWScaleDim(w, LABEL_MARGIN);
+        : (14);
+    Dimension margin = (LABEL_MARGIN);
     int max_lines = iw->iconView.label_lines;
     if (max_lines < 1) max_lines = 1;
 
@@ -278,7 +278,7 @@ GetItemRaster(IconViewWidget iw, int index)
         return NULL;
 
     IconViewItemCache *ic = &iw->iconView.cache[index];
-    Dimension icon_sz = ISWScaleDim((Widget)iw, iw->iconView.icon_size);
+    Dimension icon_sz = (iw->iconView.icon_size);
 
     /* Already rasterized at correct size? */
     if (ic->raster && ic->raster_w == icon_sz && ic->raster_h == icon_sz)
@@ -330,15 +330,15 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     iw->iconView.deselect_pending = False;
     iw->iconView.deselect_index = -1;
 
-    iw->iconView.icon_size = ISWScaleDim(new, iw->iconView.icon_size);
-    iw->iconView.item_spacing = ISWScaleDim(new, iw->iconView.item_spacing);
+    iw->iconView.icon_size = (iw->iconView.icon_size);
+    iw->iconView.item_spacing = (iw->iconView.item_spacing);
 
     AllocCache(iw);
 
     if (iw->core.width == 0)
-        iw->core.width = ISWScaleDim(new, 300);
+        iw->core.width = (300);
     if (iw->core.height == 0)
-        iw->core.height = ISWScaleDim(new, 200);
+        iw->core.height = (200);
 
     ComputeLayout(iw);
 }
@@ -528,7 +528,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (!ctx || !XtIsRealized(w))
         return;
 
-    Dimension icon_sz = ISWScaleDim(w, iw->iconView.icon_size);
+    Dimension icon_sz = (iw->iconView.icon_size);
     Dimension spacing = iw->iconView.item_spacing;
     Dimension half_sp = spacing / 2;
 
@@ -568,11 +568,11 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         if (iw->iconView.labels && iw->iconView.labels[i]) {
             int label_w = (int)(iw->iconView.cell_w - spacing);
             int ascent = ISWScaledFontAscent(w, iw->iconView.font);
-            int margin = (int)ISWScaleDim(w, LABEL_MARGIN);
+            int margin = (int)(LABEL_MARGIN);
             int ly = cy + (int)icon_sz + ascent + margin;
             int line_h = iw->iconView.font
                 ? ISWScaledFontHeight(w, iw->iconView.font)
-                : (int)ISWScaleDim(w, 14);
+                : (int)(14);
             int label_top = cy + (int)icon_sz + margin;
             int cell_bottom = cy + (int)(rh - spacing);
             int max_lines = (cell_bottom - label_top) / line_h;

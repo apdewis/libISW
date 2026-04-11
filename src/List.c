@@ -327,10 +327,10 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
     ListWidget lw = (ListWidget) new;
 
     /* HiDPI: scale dimension resources */
-    lw->list.internal_width = ISWScaleDim(new, lw->list.internal_width);
-    lw->list.internal_height = ISWScaleDim(new, lw->list.internal_height);
-    lw->list.row_space = ISWScaleDim(new, lw->list.row_space);
-    lw->list.column_space = ISWScaleDim(new, lw->list.column_space);
+    lw->list.internal_width = (lw->list.internal_width);
+    lw->list.internal_height = (lw->list.internal_height);
+    lw->list.row_space = (lw->list.row_space);
+    lw->list.column_space = (lw->list.column_space);
 
     lw->list.clip_contents = NULL;
 

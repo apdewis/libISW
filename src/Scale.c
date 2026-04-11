@@ -147,19 +147,19 @@ WidgetClass scaleWidgetClass = (WidgetClass)&scaleClassRec;
 static Dimension
 ThumbW(ScaleWidget sw)
 {
-    return ISWScaleDim((Widget)sw, THUMB_WIDTH);
+    return (THUMB_WIDTH);
 }
 
 static Dimension
 ThumbH(ScaleWidget sw)
 {
-    return ISWScaleDim((Widget)sw, THUMB_HEIGHT);
+    return (THUMB_HEIGHT);
 }
 
 static Dimension
 TrackThick(ScaleWidget sw)
 {
-    return ISWScaleDim((Widget)sw, TRACK_THICKNESS);
+    return (TRACK_THICKNESS);
 }
 
 static int ValueZoneHeight(ScaleWidget sw);
@@ -296,19 +296,19 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     (void)request; (void)args; (void)num_args;
 
     /* HiDPI scaling */
-    sw->scale.length = ISWScaleDim(new, sw->scale.length);
-    sw->scale.thickness = ISWScaleDim(new, sw->scale.thickness);
+    sw->scale.length = (sw->scale.length);
+    sw->scale.thickness = (sw->scale.thickness);
 
     /* Compute minimum cross-axis size from content:
      * thumb + value label zone + tick marks */
-    Dimension thumb_cross = ISWScaleDim(new, THUMB_HEIGHT);
+    Dimension thumb_cross = (THUMB_HEIGHT);
     Dimension tick_zone = 0;
     if (sw->scale.tick_interval > 0)
-        tick_zone = ISWScaleDim(new, TICK_LENGTH) + 2;
+        tick_zone = (TICK_LENGTH) + 2;
     Dimension value_zone = 0;
     if (sw->scale.show_value && sw->scale.font) {
         value_zone = ISWScaledFontHeight(new, sw->scale.font)
-                   + ISWScaleDim(new, VALUE_MARGIN);
+                   + (VALUE_MARGIN);
     }
     Dimension min_cross = thumb_cross + tick_zone + value_zone;
 
@@ -379,7 +379,7 @@ ValueZoneHeight(ScaleWidget sw)
         sw->scale.value_pos != IswScaleValueBottom)
         return 0;
     return ISWScaledFontHeight((Widget)sw, sw->scale.font)
-         + (int)ISWScaleDim((Widget)sw, VALUE_MARGIN);
+         + (int)(VALUE_MARGIN);
 }
 
 static int
@@ -397,7 +397,7 @@ ValueZoneWidth(ScaleWidget sw)
     snprintf(buf, sizeof(buf), "%d", sw->scale.minimum);
     int w_min = ISWRenderTextWidth(sw->scale.render_ctx, buf, (int)strlen(buf));
     int wid = (w_max > w_min) ? w_max : w_min;
-    return wid + (int)ISWScaleDim((Widget)sw, VALUE_MARGIN);
+    return wid + (int)(VALUE_MARGIN);
 }
 
 /*
@@ -416,7 +416,7 @@ DrawValueLabel(Widget w, ScaleWidget sw, ISWRenderContext *ctx,
     snprintf(buf, sizeof(buf), "%d", sw->scale.value);
     int text_w = ISWRenderTextWidth(ctx, buf, (int)strlen(buf));
     int font_asc = ISWScaledFontAscent(w, sw->scale.font);
-    int margin = (int)ISWScaleDim(w, VALUE_MARGIN);
+    int margin = (int)(VALUE_MARGIN);
     int lx, ly;
 
     switch (sw->scale.value_pos) {
@@ -491,7 +491,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
         /* Tick marks (below track) */
         if (sw->scale.tick_interval > 0) {
-            Dimension tick_len = ISWScaleDim(w, TICK_LENGTH);
+            Dimension tick_len = (TICK_LENGTH);
             int tick_y = track_y + (int)track_thick + 2;
 
             for (int v = sw->scale.minimum; v <= sw->scale.maximum;
@@ -507,7 +507,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
         /* Thumb — thin bar perpendicular to track, radiused on the ends */
         {
-            Dimension bar_thick = ISWScaleDim(w, THUMB_BAR_THICK);
+            Dimension bar_thick = (THUMB_BAR_THICK);
             Position tx = sw->scale.thumb_pos - (Position)(bar_thick / 2);
             Position ty = track_center_y - (int)thumb_h / 2;
             ISWRenderFillRoundedRectangle(ctx, tx, ty, bar_thick, thumb_h,
@@ -531,7 +531,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
         /* Tick marks (right of track) */
         if (sw->scale.tick_interval > 0) {
-            Dimension tick_len = ISWScaleDim(w, TICK_LENGTH);
+            Dimension tick_len = (TICK_LENGTH);
             int tick_x = track_x + (int)track_thick + 2;
 
             for (int v = sw->scale.minimum; v <= sw->scale.maximum;
@@ -547,7 +547,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
         /* Thumb — same shape as horizontal, rotated 90 degrees */
         {
-            Dimension bar_thick = ISWScaleDim(w, THUMB_BAR_THICK);
+            Dimension bar_thick = (THUMB_BAR_THICK);
             Position tx = track_center_x - (int)thumb_h / 2;
             Position ty = sw->scale.thumb_pos - (Position)(bar_thick / 2);
             ISWRenderFillRoundedRectangle(ctx, tx, ty, thumb_h, bar_thick,

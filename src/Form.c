@@ -56,6 +56,8 @@ SOFTWARE.
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
 /* Private Definitions */
 
 static int default_value = -99999;
@@ -281,10 +283,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     fw->form.resize_in_layout = True;
     fw->form.resize_is_no_op = False;
 
-    if (fw->form.default_spacing > 0) {
-        double scale = ISWScaleFactor(new);
-        fw->form.default_spacing = (int)(fw->form.default_spacing * scale + 0.5);
-    }
+    /* HiDPI: default_spacing stays in logical pixels; scaled at X boundary */
 }
 
 /*	Function Name: ChangeFormGeometry
@@ -714,19 +713,11 @@ ConstraintInitialize(Widget request, Widget new, ArgList args, Cardinal *num_arg
     form->form.virtual_width = (int) new->core.width;
     form->form.virtual_height = (int) new->core.height;
 
-    if (form->form.dx == default_value) {
+    if (form->form.dx == default_value)
         form->form.dx = fw->form.default_spacing;
-    } else if (form->form.dx > 0) {
-        double sf = ISWScaleFactor(new);
-        form->form.dx = (int)(form->form.dx * sf + 0.5);
-    }
 
-    if (form->form.dy == default_value) {
+    if (form->form.dy == default_value)
         form->form.dy = fw->form.default_spacing;
-    } else if (form->form.dy > 0) {
-        double sf = ISWScaleFactor(new);
-        form->form.dy = (int)(form->form.dy * sf + 0.5);
-    }
 
     form->form.deferred_resize = False;
 }
@@ -861,12 +852,13 @@ IswFormDoLayout(Widget _fw,
 	     */
 
 	    {
-		/* XCB Migration: Replace XMoveResizeWindow with xcb_configure_window */
+		/* HiDPI: scale logical to physical for the X server */
+		double _sf = _XtGetScaleFactor(XtDisplay(w));
 		uint32_t values[4];
-		values[0] = w->core.x;
-		values[1] = w->core.y;
-		values[2] = w->core.width;
-		values[3] = w->core.height;
+		values[0] = (uint32_t)(int32_t)(w->core.x * _sf + 0.5);
+		values[1] = (uint32_t)(int32_t)(w->core.y * _sf + 0.5);
+		values[2] = (uint32_t)(w->core.width * _sf + 0.5);
+		values[3] = (uint32_t)(w->core.height * _sf + 0.5);
 		xcb_configure_window(XtDisplay(w), XtWindow(w),
 		    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
 		    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,

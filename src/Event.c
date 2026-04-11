@@ -81,6 +81,8 @@ in this Software without prior written authorization from The Open Group.
 #include "Shell.h"
 #include "StringDefs.h"
 
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
 typedef struct _XtEventRecExt {
     int type;
     XtPointer select_data[1];   /* actual dimension is [mask] */
@@ -107,6 +109,53 @@ typedef struct _XtEventRecExt {
 #define GRAPHICS_EXPOSE  ((XtExposeGraphicsExpose & COMP_EXPOSE) || \
                           (XtExposeGraphicsExposeMerged & COMP_EXPOSE))
 #define NO_EXPOSE        (XtExposeNoExpose & COMP_EXPOSE)
+
+/* HiDPI: convert physical pixel event coordinates to logical pixels */
+static void
+_XtDescaleEventCoords(xcb_generic_event_t *event, double sf)
+{
+    if (sf <= 1.0)
+        return;
+    float inv = 1.0f / (float)sf;
+
+    switch (event->response_type & ~0x80) {
+    case XCB_KEY_PRESS:
+    case XCB_KEY_RELEASE: {
+        xcb_key_press_event_t *e = (xcb_key_press_event_t *)event;
+        e->event_x = (int16_t)(e->event_x * inv);
+        e->event_y = (int16_t)(e->event_y * inv);
+        e->root_x = (int16_t)(e->root_x * inv);
+        e->root_y = (int16_t)(e->root_y * inv);
+        break;
+    }
+    case XCB_BUTTON_PRESS:
+    case XCB_BUTTON_RELEASE: {
+        xcb_button_press_event_t *e = (xcb_button_press_event_t *)event;
+        e->event_x = (int16_t)(e->event_x * inv);
+        e->event_y = (int16_t)(e->event_y * inv);
+        e->root_x = (int16_t)(e->root_x * inv);
+        e->root_y = (int16_t)(e->root_y * inv);
+        break;
+    }
+    case XCB_MOTION_NOTIFY: {
+        xcb_motion_notify_event_t *e = (xcb_motion_notify_event_t *)event;
+        e->event_x = (int16_t)(e->event_x * inv);
+        e->event_y = (int16_t)(e->event_y * inv);
+        e->root_x = (int16_t)(e->root_x * inv);
+        e->root_y = (int16_t)(e->root_y * inv);
+        break;
+    }
+    case XCB_ENTER_NOTIFY:
+    case XCB_LEAVE_NOTIFY: {
+        xcb_enter_notify_event_t *e = (xcb_enter_notify_event_t *)event;
+        e->event_x = (int16_t)(e->event_x * inv);
+        e->event_y = (int16_t)(e->event_y * inv);
+        e->root_x = (int16_t)(e->root_x * inv);
+        e->root_y = (int16_t)(e->root_y * inv);
+        break;
+    }
+    }
+}
 
 xcb_window_t get_event_window(xcb_generic_event_t *event) {
     uint32_t window_id = 0;
@@ -1557,6 +1606,9 @@ _XtDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
     XtGrabList grabList;
     Boolean was_dispatched = False;
     DPY_TO_APPCON(dpy);
+
+    /* HiDPI: convert physical event coordinates to logical pixels */
+    _XtDescaleEventCoords(event, _XtGetScaleFactor(dpy));
 
     int raw_type = event->response_type;
     int type = raw_type & ~0x80;

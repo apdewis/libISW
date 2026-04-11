@@ -46,6 +46,8 @@
 
 #include <stdlib.h>
 
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
 /* BackingStore resource definitions (stub - limited XCB support) */
 #ifndef XtNbackingStore
 #define XtNbackingStore "backingStore"
@@ -301,8 +303,8 @@ IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
     TipWidget tip = (TipWidget)w;
 
     /* HiDPI: scale dimension resources */
-    tip->tip.internal_width = ISWScaleDim(w, tip->tip.internal_width);
-    tip->tip.internal_height = ISWScaleDim(w, tip->tip.internal_height);
+    tip->tip.internal_width = (tip->tip.internal_width);
+    tip->tip.internal_height = (tip->tip.internal_height);
 
     /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
      * If font is NULL but fontset is available, create a minimal XFontStruct
@@ -386,20 +388,25 @@ IswTipRealize(xcb_connection_t *conn, Widget w, XtValueMask *mask, uint32_t *val
 
     window = xcb_generate_id(conn);
 
-    xcb_create_window(
-        conn,
-        screen->root_depth,
-        window,
-        screen->root,
-        XtX(w), XtY(w),
-        XtWidth(w) ? XtWidth(w) : 1,
-        XtHeight(w) ? XtHeight(w) : 1,
-        XtBorderWidth(w),
-        XCB_WINDOW_CLASS_INPUT_OUTPUT,
-        screen->root_visual,
-        value_mask,
-        value_list
-    );
+    /* HiDPI: create window at physical pixel geometry */
+    {
+        double _sf = _XtGetScaleFactor(conn);
+        xcb_create_window(
+            conn,
+            screen->root_depth,
+            window,
+            screen->root,
+            (int16_t)(XtX(w) * _sf + 0.5),
+            (int16_t)(XtY(w) * _sf + 0.5),
+            (uint16_t)((XtWidth(w) ? XtWidth(w) : 1) * _sf + 0.5),
+            (uint16_t)((XtHeight(w) ? XtHeight(w) : 1) * _sf + 0.5),
+            (uint16_t)(XtBorderWidth(w) * _sf + 0.5),
+            XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            screen->root_visual,
+            value_mask,
+            value_list
+        );
+    }
     
     XtWindow(w) = window;
 }
@@ -543,10 +550,19 @@ TipPosition(IswTipInfo *info)
     if (y < 0)
 	y = 0;
 
-    XMoveResizeWindow(XtDisplay(info->tip), XtWindow(info->tip),
-		      (int)(XtX(info->tip) = x), (int)(XtY(info->tip) = y),
-		      (unsigned)XtWidth(info->tip),
-		      (unsigned)XtHeight(info->tip));
+    {
+        double _sf = _XtGetScaleFactor(XtDisplay(info->tip));
+        XtX(info->tip) = x;
+        XtY(info->tip) = y;
+        uint32_t mv[4];
+        mv[0] = (uint32_t)(int32_t)(x * _sf + 0.5);
+        mv[1] = (uint32_t)(int32_t)(y * _sf + 0.5);
+        mv[2] = (uint32_t)(XtWidth(info->tip) * _sf + 0.5);
+        mv[3] = (uint32_t)(XtHeight(info->tip) * _sf + 0.5);
+        xcb_configure_window(XtDisplay(info->tip), XtWindow(info->tip),
+            XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
+            XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, mv);
+    }
 }
 
 static WidgetInfo *

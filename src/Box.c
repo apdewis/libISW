@@ -619,9 +619,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     BoxWidget newbbw = (BoxWidget)new;
 
-    /* HiDPI: scale dimension resources */
-    newbbw->box.h_space = ISWScaleDim(new, newbbw->box.h_space);
-    newbbw->box.v_space = ISWScaleDim(new, newbbw->box.v_space);
+    /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
     newbbw->box.last_query_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     newbbw->box.last_query_width = newbbw->box.last_query_height = 0;

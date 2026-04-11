@@ -202,8 +202,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     SmeBSBObject entry = (SmeBSBObject) new;
 
     /* HiDPI: scale dimension resources */
-    entry->sme_bsb.left_margin = ISWScaleDim(new, entry->sme_bsb.left_margin);
-    entry->sme_bsb.right_margin = ISWScaleDim(new, entry->sme_bsb.right_margin);
+    entry->sme_bsb.left_margin = (entry->sme_bsb.left_margin);
+    entry->sme_bsb.right_margin = (entry->sme_bsb.right_margin);
 
     /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
      * If font is NULL but fontset is available, create a minimal XFontStruct
@@ -318,8 +318,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      font_descent = ISWScaledFontHeight(XtParent(w), entry->sme_bsb.font)
                     - font_ascent;
  } else {
-     font_ascent = ISWScaleDim(w, 11);
-     font_descent = ISWScaleDim(w, 3);
+     font_ascent = (11);
+     font_descent = (3);
  }
     }
     y_loc = entry->rectangle.y;
@@ -660,8 +660,8 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
      if (entry->sme_bsb.label == NULL)
   *width = 0;
      else
-  *width = ISWScaleDim(w, strlen(entry->sme_bsb.label) * 8);
-     *height = ISWScaleDim(w, 14);
+  *width = (strlen(entry->sme_bsb.label) * 8);
+     *height = (14);
  }
     }
 

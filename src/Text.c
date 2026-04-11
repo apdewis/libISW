@@ -581,10 +581,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   char error_buf[BUFSIZ];
   int s;
 
-  /* HiDPI: scale dimension resources */  ctx->text.r_margin.left = (Position)ISWScaleDim(new, ctx->text.r_margin.left);
-  ctx->text.r_margin.right = (Position)ISWScaleDim(new, ctx->text.r_margin.right);
-  ctx->text.r_margin.top = (Position)ISWScaleDim(new, ctx->text.r_margin.top);
-  ctx->text.r_margin.bottom = (Position)ISWScaleDim(new, ctx->text.r_margin.bottom);
+  /* HiDPI: scale dimension resources */  ctx->text.r_margin.left = (Position)(ctx->text.r_margin.left);
+  ctx->text.r_margin.right = (Position)(ctx->text.r_margin.right);
+  ctx->text.r_margin.top = (Position)(ctx->text.r_margin.top);
+  ctx->text.r_margin.bottom = (Position)(ctx->text.r_margin.bottom);
 
   s = 0;
 

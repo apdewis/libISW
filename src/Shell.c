@@ -84,6 +84,8 @@ in this Software without prior written authorization from The Open Group.
 #include "VendorP.h"
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
+
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
 #include <X11/cursorfont.h>
 #include <ISW/ISWXdnd.h>
 #include "ISWXcbDraw.h"
@@ -1372,22 +1374,26 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
         if (create_mask & XCB_CW_COLORMAP)
             vals[vi++] = wid->core.colormap;
 
-        wid->core.window = xcb_generate_id(XtDisplay(wid));
-        xcb_create_window(
-            XtDisplay(wid),
-            wid->core.depth,
-            wid->core.window,
-            wid->core.screen->root,
-            wid->core.x,
-            wid->core.y,
-            wid->core.width,
-            wid->core.height,
-            wid->core.border_width,
-            XCB_WINDOW_CLASS_INPUT_OUTPUT,
-            w->shell.visual,
-            create_mask,
-            vals
-        );
+        /* HiDPI: create window at physical pixel geometry */
+        {
+            double sf = _XtGetScaleFactor(XtDisplay(wid));
+            wid->core.window = xcb_generate_id(XtDisplay(wid));
+            xcb_create_window(
+                XtDisplay(wid),
+                wid->core.depth,
+                wid->core.window,
+                wid->core.screen->root,
+                (int16_t)(wid->core.x * sf + 0.5),
+                (int16_t)(wid->core.y * sf + 0.5),
+                (uint16_t)(wid->core.width * sf + 0.5),
+                (uint16_t)(wid->core.height * sf + 0.5),
+                (uint16_t)(wid->core.border_width * sf + 0.5),
+                XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                w->shell.visual,
+                create_mask,
+                vals
+            );
+        }
 
         /* Apply shell attributes that were stripped from the create mask */
         {
@@ -1797,21 +1803,27 @@ EventHandler(Widget wid,
     Boolean sizechanged = FALSE;
 
     switch (event->response_type) {
-    case XCB_CONFIGURE_NOTIFY:
+    case XCB_CONFIGURE_NOTIFY: {
         xcb_configure_notify_event_t * cne = (xcb_configure_notify_event_t *)event;
         if (w->core.window != cne->window)
             return;             /* in case of SubstructureNotify */
-#define NEQ(x)  ( w->core.x != cne->x )
-        if (NEQ(width) || NEQ(height) || NEQ(border_width)) {
+        /* HiDPI: convert physical ConfigureNotify values to logical */
+        double _inv = 1.0 / _XtGetScaleFactor(XtDisplay(wid));
+        Dimension cne_w = (Dimension)(cne->width * _inv + 0.5);
+        Dimension cne_h = (Dimension)(cne->height * _inv + 0.5);
+        Dimension cne_bw = (Dimension)(cne->border_width * _inv + 0.5);
+        Position cne_x = (Position)(cne->x * _inv + 0.5);
+        Position cne_y = (Position)(cne->y * _inv + 0.5);
+        if (w->core.width != cne_w || w->core.height != cne_h ||
+            w->core.border_width != cne_bw) {
             sizechanged = TRUE;
-#undef NEQ
-            w->core.width = (Dimension) cne->width;
-            w->core.height = (Dimension) cne->height;
-            w->core.border_width = (Dimension) cne->border_width;
+            w->core.width = cne_w;
+            w->core.height = cne_h;
+            w->core.border_width = cne_bw;
         }
         if (w->shell.client_specified & _XtShellNotReparented) {
-            w->core.x = (Position) cne->x;
-            w->core.y = (Position) cne->y;
+            w->core.x = cne_x;
+            w->core.y = cne_y;
             w->shell.client_specified |= _XtShellPositionValid;
         }
         else
@@ -1827,6 +1839,7 @@ EventHandler(Widget wid,
 #undef EQ
         }
         break;
+    }
 
     case XCB_REPARENT_NOTIFY:
         xcb_reparent_notify_event_t *rne = (xcb_reparent_notify_event_t *)event;
@@ -2515,6 +2528,22 @@ RootGeometryManager(Widget gw,
     }
 #endif
     CALLGEOTAT(_XtGeoTab(-1));
+    /* HiDPI: scale logical values to physical for the X server */
+    {
+        double sf = _XtGetScaleFactor(XtDisplay((Widget)w));
+        if (sf > 1.0) {
+            if (mask & XCB_CONFIG_WINDOW_X)
+                values.x = (int32_t)(values.x * sf + 0.5);
+            if (mask & XCB_CONFIG_WINDOW_Y)
+                values.y = (int32_t)(values.y * sf + 0.5);
+            if (mask & XCB_CONFIG_WINDOW_WIDTH)
+                values.width = (uint32_t)(values.width * sf + 0.5);
+            if (mask & XCB_CONFIG_WINDOW_HEIGHT)
+                values.height = (uint32_t)(values.height * sf + 0.5);
+            if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
+                values.border_width = (uint32_t)(values.border_width * sf + 0.5);
+        }
+    }
     xcb_void_cookie_t cookie = xcb_configure_window(XtDisplay((Widget) w),
         XtWindow((Widget) w), mask, (const void *)&values);
     request_num = cookie.sequence;
@@ -2613,14 +2642,17 @@ RootGeometryManager(Widget gw,
                 return XtGeometryNo;
             }
             else {
-                w->core.width = (Dimension) cne->width;
-                w->core.height = (Dimension) cne->height;
+                /* HiDPI: ConfigureNotify values are physical pixels;
+                 * convert back to logical for widget internals. */
+                double inv = 1.0 / _XtGetScaleFactor(XtDisplay((Widget)w));
+                w->core.width = (Dimension)(cne->width * inv + 0.5);
+                w->core.height = (Dimension)(cne->height * inv + 0.5);
                 w->core.border_width =
-                    (Dimension) cne->border_width;
+                    (Dimension)(cne->border_width * inv + 0.5);
                 if (w->shell.client_specified & _XtShellNotReparented) {
 
-                    w->core.x = (Position) cne->x;
-                    w->core.y = (Position) cne->y;
+                    w->core.x = (Position)(cne->x * inv + 0.5);
+                    w->core.y = (Position)(cne->y * inv + 0.5);
                     w->shell.client_specified |= _XtShellPositionValid;
                 }
                 else

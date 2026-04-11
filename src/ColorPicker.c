@@ -166,10 +166,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     ColorPickerWidget cpw = (ColorPickerWidget) new;
     Arg a[10];
     Cardinal n;
-    Dimension slider_w = ISWScaleDim(new, 150);
-    Dimension slider_h = ISWScaleDim(new, 30);
-    Dimension swatch_sz = ISWScaleDim(new, 60);
-    Dimension label_w = ISWScaleDim(new, 20);
+    Dimension slider_w = (150);
+    Dimension slider_h = (30);
+    Dimension swatch_sz = (60);
+    Dimension label_w = (20);
     (void)request; (void)args; (void)num_args;
 
     /* Clamp */

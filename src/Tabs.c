@@ -160,7 +160,7 @@ static Dimension
 TabBarHeight(TabsWidget tw)
 {
     return ISWScaledFontHeight((Widget)tw, tw->tabs.font)
-           + ISWScaleDim((Widget)tw, TAB_V_PAD * 2);
+           + (TAB_V_PAD * 2);
 }
 
 static void
@@ -180,7 +180,7 @@ LayoutChildren(TabsWidget tw)
         String label = tc->tabs.tab_label ? tc->tabs.tab_label : XtName(child);
         int text_w = ISWScaledTextWidth((Widget)tw, tw->tabs.font,
                                         label, strlen(label));
-        tc->tabs.tab_width = text_w + ISWScaleDim((Widget)tw, TAB_H_PAD * 2);
+        tc->tabs.tab_width = text_w + (TAB_H_PAD * 2);
         tc->tabs.tab_x = x;
         x += tc->tabs.tab_width;
     }
@@ -235,7 +235,7 @@ DrawTabBar(Widget w)
         Dimension tw_ = tc->tabs.tab_width;
 
         if (cr) {
-            double r = 4.0 * ISWScaleFactor(w);
+            double r = 4.0;  /* logical pixels; Cairo scale handles physical */
             cairo_save(cr);
             cairo_new_path(cr);
 
@@ -265,8 +265,8 @@ DrawTabBar(Widget w)
         ISWRenderSetFont(ctx, tw->tabs.font);
         ISWRenderSetColor(ctx, tw->tabs.foreground);
         int text_y = ISWScaledFontAscent(w, tw->tabs.font)
-                     + ISWScaleDim(w, TAB_V_PAD);
-        int text_x = tx + ISWScaleDim(w, TAB_H_PAD);
+                     + (TAB_V_PAD);
+        int text_x = tx + (TAB_H_PAD);
         ISWRenderDrawString(ctx, label, strlen(label), text_x, text_y);
     }
 
@@ -316,9 +316,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     tw->tabs.render_ctx = NULL;
 
     if (tw->core.width == 0)
-        tw->core.width = ISWScaleDim(new, 200);
+        tw->core.width = (200);
     if (tw->core.height == 0)
-        tw->core.height = TabBarHeight(tw) + ISWScaleDim(new, 100);
+        tw->core.height = TabBarHeight(tw) + (100);
 }
 
 static void

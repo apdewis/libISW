@@ -101,22 +101,21 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ProgressBarWidget pbw = (ProgressBarWidget) new;
-    double scale = ISWScaleFactor(new);
 
     ClampValue(pbw);
 
-    /* Set default size if not specified */
+    /* Set default size if not specified (logical pixels) */
     if (pbw->core.width == 0) {
 	if (pbw->progress_bar.orientation == XtorientHorizontal)
-	    pbw->core.width = (Dimension)(200 * scale);
+	    pbw->core.width = 200;
 	else
-	    pbw->core.width = (Dimension)(24 * scale);
+	    pbw->core.width = 24;
     }
     if (pbw->core.height == 0) {
 	if (pbw->progress_bar.orientation == XtorientHorizontal)
-	    pbw->core.height = (Dimension)(24 * scale);
+	    pbw->core.height = 24;
 	else
-	    pbw->core.height = (Dimension)(200 * scale);
+	    pbw->core.height = 200;
     }
 
     pbw->progress_bar.render_ctx = NULL;
@@ -162,9 +161,9 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ProgressBarWidget pbw = (ProgressBarWidget) w;
     ISWRenderContext *ctx = pbw->progress_bar.render_ctx;
-    double scale = ISWScaleFactor(w);
-    double r = 2.0 * scale;
-    double pad = 2.0 * scale;
+    /* Drawing in logical pixels; Cairo scale transform handles physical */
+    double r = 2.0;
+    double pad = 2.0;
 
     /* Lazy-create render context */
     if (!ctx && w->core.width > 0 && w->core.height > 0 && XtIsRealized(w)) {
@@ -199,12 +198,12 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
 
     ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
-    cairo_set_line_width(cr, 1.0 * scale);
+    cairo_set_line_width(cr, 1.0);
     RoundedRectPath(cr, bx, by, bw, bh, r);
     cairo_stroke(cr);
 
     /* Compute fill bar dimensions (needed for both drawing and text clipping) */
-    double inner_pad = 2.0 * scale;
+    double inner_pad = 2.0;
     double ix = bx + inner_pad;
     double iy = by + inner_pad;
     double iw = bw - 2 * inner_pad;

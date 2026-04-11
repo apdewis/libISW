@@ -459,11 +459,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* Install scroll wheel event dispatcher (once per connection) */
     ISWScrollWheelInit(XtDisplay(new));
 
-    /* HiDPI: scale dimension resources */
-    sbw->scrollbar.thickness = ISWScaleDim(new, sbw->scrollbar.thickness);
-    sbw->scrollbar.length = ISWScaleDim(new, sbw->scrollbar.length);
-    sbw->scrollbar.min_thumb = ISWScaleDim(new, sbw->scrollbar.min_thumb);
-    sbw->scrollbar.scroll_wheel_increment = ISWScaleDim(new, sbw->scrollbar.scroll_wheel_increment);
+    /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
     if (sbw->core.width == 0)
 	sbw->core.width = (sbw->scrollbar.orientation == XtorientVertical)

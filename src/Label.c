@@ -268,10 +268,13 @@ SetTextWidthAndHeight(LabelWidget lw)
 
     /* image resource takes priority over text */
     if (lw->label.image) {
-        double scale = ISWImageIsVector(lw->label.image)
+        /* Image dimensions are in logical pixels; Cairo scale transform
+         * handles physical rendering.  SVG is rasterized at physical DPI
+         * for quality but dimensions are divided back to logical. */
+        double sf = ISWImageIsVector(lw->label.image)
                        ? ISWScaleFactor((Widget)lw) : 1.0;
-        lw->label.label_width  = (Dimension)(ISWImageGetWidth(lw->label.image)  * scale + 0.5);
-        lw->label.label_height = (Dimension)(ISWImageGetHeight(lw->label.image) * scale + 0.5);
+        lw->label.label_width  = (Dimension)(ISWImageGetWidth(lw->label.image)  / sf + 0.5);
+        lw->label.label_height = (Dimension)(ISWImageGetHeight(lw->label.image) / sf + 0.5);
         lw->label.label_len = 0;
         return;
     }
@@ -324,10 +327,10 @@ static void
 set_left_image_info(LabelWidget lw)
 {
     if (lw->label.left_image) {
-        double scale = ISWImageIsVector(lw->label.left_image)
+        double sf = ISWImageIsVector(lw->label.left_image)
                        ? ISWScaleFactor((Widget)lw) : 1.0;
-        lw->label.lbm_width  = (unsigned int)(ISWImageGetWidth(lw->label.left_image)  * scale + 0.5);
-        lw->label.lbm_height = (unsigned int)(ISWImageGetHeight(lw->label.left_image) * scale + 0.5);
+        lw->label.lbm_width  = (unsigned int)(ISWImageGetWidth(lw->label.left_image)  / sf + 0.5);
+        lw->label.lbm_height = (unsigned int)(ISWImageGetHeight(lw->label.left_image) / sf + 0.5);
     } else {
         lw->label.lbm_width = lw->label.lbm_height = 0;
     }
@@ -340,9 +343,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     LabelWidget lw = (LabelWidget) new;
 
-    /* HiDPI: scale dimension resources */
-    lw->label.internal_width = ISWScaleDim(new, lw->label.internal_width);
-    lw->label.internal_height = ISWScaleDim(new, lw->label.internal_height);
+    /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
     if (lw->label.label == NULL)
         lw->label.label = XtNewString(lw->core.name);
@@ -473,9 +474,9 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         /* For image-only widgets use minimal padding so the icon
          * fills the button; text labels keep their full internal_width. */
         unsigned int img_pad_w = (w->label.label_len == 0)
-            ? ISWScaleDim((Widget)w, 2) : w->label.internal_width;
+            ? 2 : w->label.internal_width;
         unsigned int img_pad_h = (w->label.label_len == 0)
-            ? ISWScaleDim((Widget)w, 2) : w->label.internal_height;
+            ? 2 : w->label.internal_height;
 
         /* Clamp to available widget space */
         unsigned int avail_w = w->core.width > 2 * img_pad_w

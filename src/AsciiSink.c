@@ -364,7 +364,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
     }
 
     y += ScaledAscent(sink);
-    
+
     for ( j = 0 ; pos1 < pos2 ; ) {
 	pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
 	for (k = 0; k < blk.length; k++) {
@@ -545,18 +545,66 @@ FindDistance (Widget w,
     unsigned char c;
     ISWTextBlock blk;
 
-    /* we may not need this */
+    /* Measure the span as a single string so kerning matches rendering.
+     * Fall back to per-character measurement for special chars. */
     lastPos = GETLASTPOS;
     IswTextSourceRead(source, fromPos, &blk, (int) toPos - fromPos);
     *resWidth = 0;
-    for (index = fromPos; index != toPos && index < lastPos; index++) {
-	if (index - blk.firstPos >= blk.length)
-	    IswTextSourceRead(source, index, &blk, (int) toPos - fromPos);
-	c = blk.ptr[index - blk.firstPos];
-	*resWidth += CharWidth(w, fromx + *resWidth, c);
-	if (c == IswLF) {
-	    index++;
-	    break;
+    {
+	unsigned char buf[BUFSIZ];
+	int buflen = 0;
+	int has_special = 0;
+
+	for (index = fromPos; index != toPos && index < lastPos; index++) {
+	    if (index - blk.firstPos >= blk.length)
+		IswTextSourceRead(source, index, &blk, (int) toPos - fromPos);
+	    c = blk.ptr[index - blk.firstPos];
+	    if (c == IswLF) {
+		index++;
+		break;
+	    }
+	    if (c == IswTAB || c < (unsigned char)IswSP) {
+		/* Flush accumulated printable text */
+		if (buflen > 0 && sink->ascii_sink.render_ctx) {
+		    *resWidth += ISWRenderTextWidth(sink->ascii_sink.render_ctx,
+						    (char *)buf, buflen);
+		} else if (buflen > 0) {
+		    *resWidth += ISWScaledTextWidth(XtParent(w),
+						    sink->ascii_sink.font,
+						    (char *)buf, buflen);
+		}
+		buflen = 0;
+		/* Measure special char individually */
+		*resWidth += CharWidth(w, fromx + *resWidth, c);
+		has_special = 1;
+	    } else {
+		if (c < (unsigned char)IswSP && sink->ascii_sink.display_nonprinting) {
+		    buf[buflen++] = '^';
+		    buf[buflen++] = c + '@';
+		} else {
+		    buf[buflen++] = c;
+		}
+		if (buflen >= BUFSIZ - 2) {
+		    if (sink->ascii_sink.render_ctx)
+			*resWidth += ISWRenderTextWidth(sink->ascii_sink.render_ctx,
+							(char *)buf, buflen);
+		    else
+			*resWidth += ISWScaledTextWidth(XtParent(w),
+							sink->ascii_sink.font,
+							(char *)buf, buflen);
+		    buflen = 0;
+		}
+	    }
+	}
+	/* Flush remaining */
+	if (buflen > 0) {
+	    if (sink->ascii_sink.render_ctx)
+		*resWidth += ISWRenderTextWidth(sink->ascii_sink.render_ctx,
+						(char *)buf, buflen);
+	    else
+		*resWidth += ISWScaledTextWidth(XtParent(w),
+						sink->ascii_sink.font,
+						(char *)buf, buflen);
 	}
     }
     *resPos = index;

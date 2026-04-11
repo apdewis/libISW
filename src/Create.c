@@ -418,25 +418,10 @@ xtCreate(String name,
         num_args = num_typed_args;
     }
 
-    /* HiDPI: scale core geometry resources so widgets operate in logical
-     * coordinates.  This must happen after _XtGetResources (which fills in
-     * the resource values) and before the req_widget copy + CallInitialize
-     * (which sees the final requested geometry).
-     * Skip 0 (means "compute later") and (Dimension)~0 (sentinel for
-     * "not set", used by e.g. Text widget's DEFAULT_TEXT_HEIGHT). */
-    if (XtIsRectObj(widget) && widget->core.display) {
-        double sf = _XtGetScaleFactor(widget->core.display);
-        if (sf > 1.0) {
-            Dimension max_dim = (Dimension)~0;
-            if (widget->core.width != 0 && widget->core.width != max_dim)
-                widget->core.width = (Dimension)(widget->core.width * sf + 0.5f);
-            if (widget->core.height != 0 && widget->core.height != max_dim)
-                widget->core.height = (Dimension)(widget->core.height * sf + 0.5f);
-            if (widget->core.border_width != 0 && widget->core.border_width != max_dim)
-                widget->core.border_width =
-                    (Dimension)(widget->core.border_width * sf + 0.5f);
-        }
-    }
+    /* HiDPI: widget internals operate in logical pixels.  Physical pixel
+     * conversion happens only at the X boundary (window create/configure
+     * in Geometry.c/Shell.c, and inbound event coordinate division in
+     * Event.c).  No resource values are scaled here. */
 
     CompileCallbacks(widget);
 

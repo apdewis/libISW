@@ -841,6 +841,9 @@ _ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double scale)
     if (face)
         cairo_set_font_face(cr, face);
 
+    /* HiDPI: font size is in logical pixels.  The Cairo scale transform
+     * on the render surface handles physical magnification.  The scale
+     * parameter is kept for the measurement context which has no transform. */
     if (font)
         size = (font->ascent + font->descent) * scale;
     else
@@ -860,14 +863,18 @@ static cairo_t *_measure_cr = NULL;
 /* Cached font extents — re-queried only when font size changes. */
 static double _cached_font_size = -1.0;
 static cairo_font_extents_t _cached_font_extents;
+static double _measure_device_scale = 0.0;
 
 static cairo_t *
-_ISWGetMeasureCR(void)
+_ISWGetMeasureCR(double device_scale)
 {
     if (!_measure_cr) {
         cairo_font_face_t *face;
 
         _measure_surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
+        if (device_scale > 1.0)
+            cairo_surface_set_device_scale(_measure_surf, device_scale, device_scale);
+        _measure_device_scale = device_scale;
         _measure_cr = cairo_create(_measure_surf);
 
         face = _ISWResolveFontFace("Sans", FC_WEIGHT_NORMAL, FC_SLANT_ROMAN);
@@ -877,18 +884,26 @@ _ISWGetMeasureCR(void)
             cairo_select_font_face(_measure_cr, "Sans",
                                    CAIRO_FONT_SLANT_NORMAL,
                                    CAIRO_FONT_WEIGHT_NORMAL);
+    } else if (device_scale != _measure_device_scale) {
+        cairo_surface_set_device_scale(_measure_surf,
+            device_scale > 1.0 ? device_scale : 1.0,
+            device_scale > 1.0 ? device_scale : 1.0);
+        _measure_device_scale = device_scale;
+        _cached_font_size = -1.0;  /* force re-query of font extents */
     }
     return _measure_cr;
 }
 
-/* Compute the scaled font size from a font + widget scale factor */
+/* Compute the logical font size from an XFontStruct.
+ * HiDPI: font sizes are in logical pixels; the Cairo scale transform
+ * on the render surface handles physical magnification. */
 static double
 _ISWComputeFontSize(Widget widget, XFontStruct *font)
 {
-    double scale = ISWScaleFactor(widget);
+    (void)widget;
     if (font)
-        return (font->ascent + font->descent) * scale;
-    return 12.0 * scale;
+        return (double)(font->ascent + font->descent);
+    return 12.0;
 }
 
 /*
@@ -899,7 +914,7 @@ static void
 _ISWGetCairoFontExtents(Widget widget, XFontStruct *font, cairo_font_extents_t *extents)
 {
     double size = _ISWComputeFontSize(widget, font);
-    cairo_t *cr = _ISWGetMeasureCR();
+    cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
 
     if (size != _cached_font_size) {
         cairo_set_font_size(cr, size);
@@ -926,7 +941,7 @@ ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
         return 0;
 
     size = _ISWComputeFontSize(widget, font);
-    cr = _ISWGetMeasureCR();
+    cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
 
     if (size != _cached_font_size) {
         cairo_set_font_size(cr, size);
@@ -941,7 +956,7 @@ ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
     null_term[len] = '\0';
 
     cairo_text_extents(cr, null_term, &extents);
-    width = (int)ceil(extents.x_advance);
+    width = (int)lrint(extents.x_advance);
 
     free(null_term);
     return width;
@@ -967,7 +982,7 @@ int
 ISWScaledFontCapHeight(Widget widget, XFontStruct *font)
 {
     double size = _ISWComputeFontSize(widget, font);
-    cairo_t *cr = _ISWGetMeasureCR();
+    cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
     cairo_text_extents_t text_ext;
 
     if (size != _cached_font_size) {

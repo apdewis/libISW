@@ -711,8 +711,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      * and adapts automatically if the font changes.
      */
     int cap_height = ISWScaledFontCapHeight((Widget)tw, tw->label.font);
-    double scale = ISWScaleFactor(w);
-    int padding = (int)(2 * scale + 0.5);
+    int padding = 2;  /* logical pixels; Cairo scale handles physical */
     int indicator_size = cap_height;
 
     /* Ensure indicator fits within widget bounds */
@@ -721,7 +720,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
 
     /* Minimum size to be visible */
-    int min_size = (int)(8 * scale + 0.5);
+    int min_size = 8;
     if (indicator_size < min_size) {
         indicator_size = min_size;
     }
@@ -741,10 +740,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     /* Checkbox: standalone toggle */
     if (tw->toggle.radio_group != NULL) {
         /* Radio button - draw circle outline with optional filled center */
-        DrawRadioButton(ctx, x, y, indicator_size, tw->command.set, scale);
+        DrawRadioButton(ctx, x, y, indicator_size, tw->command.set, 1.0);
     } else {
         /* Checkbox - draw square outline with optional checkmark */
-        DrawCheckbox(ctx, x, y, indicator_size, tw->command.set, scale);
+        DrawCheckbox(ctx, x, y, indicator_size, tw->command.set, 1.0);
     }
     
     /* End rendering */

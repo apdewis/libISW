@@ -184,11 +184,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     StatusBarWidget sw = (StatusBarWidget) new;
     (void)request; (void)args; (void)num_args;
 
-    sw->statusBar.h_space = ISWScaleDim(new, 4);
+    sw->statusBar.h_space = (4);
 
     /* Default height so MainWindow can lay us out before children arrive */
     if (sw->core.height == 0)
-        sw->core.height = ISWScaleDim(new, 20);
+        sw->core.height = (20);
 }
 
 static void

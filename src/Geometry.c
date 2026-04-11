@@ -75,6 +75,10 @@ in this Software without prior written authorization from The Open Group.
 #include "ShellP.h"
 #include "ShellI.h"
 
+extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+
+#include <math.h>
+
 static void
 ClearRectObjAreas(RectObj r, uint32_t old_x, uint32_t old_y, uint32_t old_w, uint32_t old_h, uint32_t old_bw)
 {
@@ -710,24 +714,24 @@ XtConfigureWidget(Widget w,
                                        "XConfigure \"%s\"'s window\n",
                                        XtName(w)));
 
-                /* XCB requires values in ascending bit order, only for set bits */
+                /* HiDPI: convert logical pixels to physical for the X server.
+                 * Use lrint() for correct rounding of negative positions. */
                 {
+                    double sf = _XtGetScaleFactor(dpy);
                     uint32_t values[5];
                     int vi = 0;
                     if (req.changeMask & XCB_CONFIG_WINDOW_X)
-                        values[vi++] = (uint32_t)(int32_t)req.changes_x;
+                        values[vi++] = (uint32_t)(int32_t)lrint((double)req.changes_x * sf);
                     if (req.changeMask & XCB_CONFIG_WINDOW_Y)
-                        values[vi++] = (uint32_t)(int32_t)req.changes_y;
+                        values[vi++] = (uint32_t)(int32_t)lrint((double)req.changes_y * sf);
                     if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH)
-                        values[vi++] = req.changes_w;
+                        values[vi++] = (uint32_t)lrint((double)req.changes_w * sf);
                     if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)
-                        values[vi++] = req.changes_h;
+                        values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
                     if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
-                        values[vi++] = req.changes_bw;
+                        values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
                     xcb_configure_window(dpy, XtWindow(w), req.changeMask, values);
                 }
-                //XConfigureWindow(XtDisplay(w), XtWindow(w), req.changeMask,
-                //                 &req.changes);
             }
             else {
                 CALLGEOTAT(_XtGeoTrace(w,

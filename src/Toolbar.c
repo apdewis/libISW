@@ -96,8 +96,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* Force horizontal layout with tight spacing */
     tw->box.orientation = XtorientHorizontal;
-    tw->box.h_space = ISWScaleDim(new, 2);
-    tw->box.v_space = ISWScaleDim(new, 2);
+    tw->box.h_space = (2);
+    tw->box.v_space = (2);
 }
 
 static void

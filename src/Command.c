@@ -270,9 +270,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     cbw->core.border_width = 1;
   }
 
-  /* HiDPI: scale dimension resources (after shape logic resolves values) */
-  cbw->command.border_stroke_width = ISWScaleDim(new, cbw->command.border_stroke_width);
-  cbw->command.corner_radius = ISWScaleDim(new, cbw->command.corner_radius);
+  /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
   cbw->command.set = FALSE;
   cbw->command.highlighted = HighlightNone;
@@ -508,9 +506,9 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
           unsigned int disp_h = cbw->label.label_height;
 
           unsigned int img_pad_w = (cbw->label.label_len == 0)
-              ? ISWScaleDim(w, 2) : cbw->label.internal_width;
+              ? 2 : cbw->label.internal_width;
           unsigned int img_pad_h = (cbw->label.label_len == 0)
-              ? ISWScaleDim(w, 2) : cbw->label.internal_height;
+              ? 2 : cbw->label.internal_height;
           unsigned int avail_w = cbw->core.width > 2 * img_pad_w
               ? cbw->core.width - 2 * img_pad_w : 0;
           unsigned int avail_h = cbw->core.height > 2 * img_pad_h
