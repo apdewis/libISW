@@ -255,17 +255,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     XtSetArg(a[n], XtNlabel, "Family"); n++;
     XtSetArg(a[n], XtNborderWidth, 0); n++;
     XtSetArg(a[n], XtNleft, XtChainLeft); n++;
-    XtCreateManagedWidget("familyLabel", labelWidgetClass, new, a, n);
-
-    /* Size label */
-    Widget familyLabel = XtNameToWidget(new, "familyLabel");
-
-    n = 0;
-    XtSetArg(a[n], XtNlabel, "Size"); n++;
-    XtSetArg(a[n], XtNborderWidth, 0); n++;
-    XtSetArg(a[n], XtNfromHoriz, familyLabel); n++;
-    XtSetArg(a[n], XtNhorizDistance, (int)list_w); n++;
-    XtCreateManagedWidget("sizeLabel", labelWidgetClass, new, a, n);
+    Widget familyLabel = XtCreateManagedWidget("familyLabel", labelWidgetClass, new, a, n);
 
     /* Family list in a viewport */
     Widget familyVp;
@@ -277,6 +267,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     XtSetArg(a[n], XtNleft, XtChainLeft); n++;
     familyVp = XtCreateManagedWidget("familyViewport", viewportWidgetClass,
                                       new, a, n);
+
+    /* Size label — positioned relative to family viewport */
+    n = 0;
+    XtSetArg(a[n], XtNlabel, "Size"); n++;
+    XtSetArg(a[n], XtNborderWidth, 0); n++;
+    XtSetArg(a[n], XtNfromHoriz, familyVp); n++;
+    XtCreateManagedWidget("sizeLabel", labelWidgetClass, new, a, n);
 
     n = 0;
     if (fcw->fontChooser.num_families > 0) {
