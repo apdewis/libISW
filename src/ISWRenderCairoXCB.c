@@ -405,15 +405,7 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         cairo_set_font_face(data->back_ctx, face);
         cairo_set_font_matrix(data->back_ctx, &font_matrix);
 
-        /* Seed the back buffer so partial repaints preserve context.
-         *
-         * Without Present: copy the window surface (X server keeps it
-         * current via background fills and the previous cairo blit).
-         *
-         * With Present: the back buffer already holds the previous
-         * frame (Present copies from it, never into it).  Copying
-         * from the window surface would race with the async present.
-         * Skip the copy — the back buffer is already authoritative. */
+        /* Seed the back buffer so partial repaints preserve context. */
         if (!data->present_ok) {
             cairo_surface_flush(data->surface);
             cairo_set_source_surface(data->back_ctx, data->surface, 0, 0);
@@ -450,14 +442,11 @@ cairo_xcb_end(ISWRenderContext *ctx)
 
     cairo_restore(data->cairo_ctx);
 
-    /* Blit back buffer to window */
+    /* Blit back buffer to window. */
     if (data->back_surface) {
         cairo_surface_flush(data->back_surface);
 
         if (data->present_ok && data->back_pixmap) {
-            /* Vsync'd present: the X server will schedule the
-             * pixmap copy at the next vblank, eliminating tearing.
-             * target_msc=0 means "next vblank". */
             xcb_present_pixmap(ctx->connection,
                                ctx->window,
                                data->back_pixmap,
@@ -474,7 +463,6 @@ cairo_xcb_end(ISWRenderContext *ctx)
                                0,              /* remainder */
                                0, NULL);       /* notifies */
         } else if (data->window_ctx) {
-            /* Fallback: immediate cairo blit (no vsync) */
             cairo_set_source_surface(data->window_ctx, data->back_surface, 0, 0);
             cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_SOURCE);
             cairo_paint(data->window_ctx);
@@ -486,6 +474,7 @@ cairo_xcb_end(ISWRenderContext *ctx)
         cairo_surface_flush(data->surface);
     xcb_flush(ctx->connection);
 }
+
 
 /*
  * =================================================================
@@ -697,7 +686,7 @@ cairo_xcb_draw_string(ISWRenderContext *ctx, const char *text, int len,
     /* Draw text */
     cairo_move_to(data->cairo_ctx, x, y);
     cairo_show_text(data->cairo_ctx, null_term);
-    
+
     free(null_term);
 }
 

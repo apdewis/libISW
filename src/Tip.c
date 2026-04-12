@@ -316,6 +316,8 @@ IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
 	    tip->tip.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
 	    memset(tip->tip.font, 0, sizeof(XFontStruct));
 	    tip->tip.font->fid = tip->tip.fontset->font_id;
+	    tip->tip.font->ascent = tip->tip.fontset->ascent;
+	    tip->tip.font->descent = tip->tip.fontset->descent;
 	    tip->tip.font->min_char_or_byte2 = 0;
 	    tip->tip.font->max_char_or_byte2 = 255;
 	} else

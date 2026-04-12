@@ -347,6 +347,8 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
 	    lw->list.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
 	    memset(lw->list.font, 0, sizeof(XFontStruct));
 	    lw->list.font->fid = lw->list.fontset->font_id;
+	    lw->list.font->ascent = lw->list.fontset->ascent;
+	    lw->list.font->descent = lw->list.fontset->descent;
 	    lw->list.font->min_char_or_byte2 = 0;
 	    lw->list.font->max_char_or_byte2 = 255;
 	} else
@@ -1305,8 +1307,22 @@ IswListChange(Widget w, String* list, int nitems, int longest,
         ChangeSize( w, new_width, new_height );
 
     lw->list.is_highlighted = lw->list.highlight = NO_HIGHLIGHT;
-    if ( XtIsRealized( w ) )
-      Redisplay( w, NULL, 0 );
+    if ( XtIsRealized( w ) ) {
+      /* Only repaint if the window is actually viewable.  When a
+       * parent shell hasn't been mapped yet the blit goes to an
+       * unmapped window whose contents the X server will clear at
+       * map time.  The server's Expose after mapping handles the
+       * repaint; calling Redisplay here would be wasted work that
+       * races with the map and can leave the window blank. */
+      xcb_get_window_attributes_cookie_t ac =
+          xcb_get_window_attributes(XtDisplay(w), XtWindow(w));
+      xcb_get_window_attributes_reply_t *ar =
+          xcb_get_window_attributes_reply(XtDisplay(w), ac, NULL);
+      int viewable = ar && ar->map_state == XCB_MAP_STATE_VIEWABLE;
+      free(ar);
+      if (viewable)
+          Redisplay( w, NULL, 0 );
+    }
 }
 
 /*	Function Name: IswListUnhighlight

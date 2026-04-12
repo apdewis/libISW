@@ -215,6 +215,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 	    entry->sme_bsb.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
 	    memset(entry->sme_bsb.font, 0, sizeof(XFontStruct));
 	    entry->sme_bsb.font->fid = entry->sme_bsb.fontset->font_id;
+	    entry->sme_bsb.font->ascent = entry->sme_bsb.fontset->ascent;
+	    entry->sme_bsb.font->descent = entry->sme_bsb.fontset->descent;
 	    entry->sme_bsb.font->min_char_or_byte2 = 0;
 	    entry->sme_bsb.font->max_char_or_byte2 = 255;
 	} else

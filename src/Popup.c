@@ -83,6 +83,34 @@ _XtPopup(Widget widget, XtGrabKind grab_kind, _XtBoolean spring_loaded)
         xcb_configure_window(XtDisplay(widget), XtWindow(widget), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
         xcb_flush(XtDisplay(widget));
 
+        /* Synchronize with the server so the map is fully processed,
+         * then force Expose on every managed child.  Without this,
+         * child widgets painted before the shell was mapped (e.g. from
+         * IswListChange) have their content cleared by the server's
+         * background fill at map time, and the Expose that should
+         * trigger a repaint doesn't always arrive. */
+        {
+            /* Round-trip to ensure the map has been processed */
+            xcb_get_input_focus_reply_t *sync =
+                xcb_get_input_focus_reply(XtDisplay(widget),
+                    xcb_get_input_focus(XtDisplay(widget)), NULL);
+            free(sync);
+
+            if (XtIsComposite(widget)) {
+                CompositeWidget cw = (CompositeWidget)widget;
+                Cardinal i;
+                for (i = 0; i < cw->composite.num_children; i++) {
+                    Widget child = cw->composite.children[i];
+                    if (XtIsWidget(child) && XtIsRealized(child) &&
+                        XtIsManaged(child)) {
+                        xcb_clear_area(XtDisplay(widget), 1,
+                                       XtWindow(child), 0, 0, 0, 0);
+                    }
+                }
+                xcb_flush(XtDisplay(widget));
+            }
+        }
+
     }
     else {
         //XRaiseWindow(XtDisplay(widget), XtWindow(widget));

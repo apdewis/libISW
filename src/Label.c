@@ -370,6 +370,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      lw->label.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
      memset(lw->label.font, 0, sizeof(XFontStruct));
      lw->label.font->fid = lw->label.fontset->font_id;
+     lw->label.font->ascent = lw->label.fontset->ascent;
+     lw->label.font->descent = lw->label.fontset->descent;
      lw->label.font->min_char_or_byte2 = 0;
      lw->label.font->max_char_or_byte2 = 255;
  } else

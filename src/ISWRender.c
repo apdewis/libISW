@@ -849,6 +849,12 @@ _ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double scale)
     else
         size = 12.0 * scale;
 
+    /* Guard against zero-metric fonts (e.g. incomplete XFontStruct
+     * from failed resource converters) — Cairo renders nothing at
+     * size 0, causing silent text loss. */
+    if (size < 1.0)
+        size = 12.0 * scale;
+
     cairo_set_font_size(cr, size);
 }
 
@@ -903,8 +909,10 @@ static double
 _ISWComputeFontSize(Widget widget, XFontStruct *font)
 {
     (void)widget;
-    if (font)
-        return (double)(font->ascent + font->descent);
+    if (font) {
+        double s = (double)(font->ascent + font->descent);
+        return s >= 1.0 ? s : 10.0;
+    }
     return 10.0;
 }
 

@@ -1341,10 +1341,16 @@ ISWLoadFallbackFont(xcb_connection_t *conn)
             font->fid = fid;
             font->min_char_or_byte2 = 0;
             font->max_char_or_byte2 = 255;
-            
-            /* Note: We don't query font properties here to avoid additional
-             * round-trips. The widgets will use reasonable defaults. */
-            
+
+            /* Query actual font metrics from X server so that
+             * Cairo text rendering gets a valid (non-zero) font size. */
+            {
+                ISWFontMetrics metrics;
+                ISWXcbQueryFontMetrics(conn, fid, &metrics);
+                font->ascent  = metrics.ascent;
+                font->descent = metrics.descent;
+            }
+
             return font;
         }
         free(error);
