@@ -33,6 +33,10 @@ static XtResource resources[] = {
         Offset(fontChooser.family), XtRString, (XtPointer) "Sans"},
     {XtNfontSize, XtCFontSize, XtRInt, sizeof(int),
         Offset(fontChooser.size), XtRImmediate, (XtPointer) 12},
+    {XtNfontWeight, XtCFontWeight, XtRInt, sizeof(int),
+        Offset(fontChooser.weight), XtRImmediate, (XtPointer) FC_WEIGHT_NORMAL},
+    {XtNfontSlant, XtCFontSlant, XtRInt, sizeof(int),
+        Offset(fontChooser.slant), XtRImmediate, (XtPointer) FC_SLANT_ROMAN},
     {XtNpreviewText, XtCPreviewText, XtRString, sizeof(String),
         Offset(fontChooser.preview_text), XtRString,
         (XtPointer) "The quick brown fox jumps over the lazy dog"},
@@ -47,7 +51,10 @@ static XtResource resources[] = {
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void FamilySelected(Widget, XtPointer, XtPointer);
+static void StyleSelected(Widget, XtPointer, XtPointer);
 static void SizeSelected(Widget, XtPointer, XtPointer);
+static void RefreshStyles(FontChooserWidget);
+static void FreeStyles(FontChooserWidget);
 static void NotifyChange(FontChooserWidget);
 
 FontChooserClassRec fontChooserClassRec = {
@@ -172,6 +179,121 @@ FreeFontNames(FontChooserWidget fcw)
     }
 }
 
+/* --- Style enumeration per family --- */
+
+static void
+FreeStyles(FontChooserWidget fcw)
+{
+    if (fcw->fontChooser.style_names) {
+        for (int i = 0; i < fcw->fontChooser.num_styles; i++)
+            free((void *)fcw->fontChooser.style_names[i]);
+        free(fcw->fontChooser.style_names);
+        fcw->fontChooser.style_names = NULL;
+    }
+    free(fcw->fontChooser.style_weights);
+    fcw->fontChooser.style_weights = NULL;
+    free(fcw->fontChooser.style_slants);
+    fcw->fontChooser.style_slants = NULL;
+    fcw->fontChooser.num_styles = 0;
+}
+
+static void
+RefreshStyles(FontChooserWidget fcw)
+{
+    FreeStyles(fcw);
+
+    FcPattern *pat = FcPatternCreate();
+    FcPatternAddString(pat, FC_FAMILY, (FcChar8 *)fcw->fontChooser.family);
+    FcObjectSet *os = FcObjectSetBuild(FC_STYLE, FC_WEIGHT, FC_SLANT, (char *)NULL);
+    FcFontSet *fs = FcFontList(NULL, pat, os);
+
+    if (!fs || fs->nfont == 0) {
+        /* Fallback: single "Regular" entry */
+        fcw->fontChooser.style_names   = calloc(1, sizeof(String));
+        fcw->fontChooser.style_weights = calloc(1, sizeof(int));
+        fcw->fontChooser.style_slants  = calloc(1, sizeof(int));
+        fcw->fontChooser.style_names[0]   = strdup("Regular");
+        fcw->fontChooser.style_weights[0] = FC_WEIGHT_NORMAL;
+        fcw->fontChooser.style_slants[0]  = FC_SLANT_ROMAN;
+        fcw->fontChooser.num_styles = 1;
+        goto cleanup;
+    }
+
+    String *names   = calloc((size_t)fs->nfont, sizeof(String));
+    int    *weights = calloc((size_t)fs->nfont, sizeof(int));
+    int    *slants  = calloc((size_t)fs->nfont, sizeof(int));
+    int count = 0;
+
+    for (int i = 0; i < fs->nfont; i++) {
+        FcChar8 *style = NULL;
+        int w = FC_WEIGHT_NORMAL, s = FC_SLANT_ROMAN;
+
+        if (FcPatternGetString(fs->fonts[i], FC_STYLE, 0, &style) != FcResultMatch
+            || !style)
+            continue;
+
+        FcPatternGetInteger(fs->fonts[i], FC_WEIGHT, 0, &w);
+        FcPatternGetInteger(fs->fonts[i], FC_SLANT, 0, &s);
+
+        /* Deduplicate by style name */
+        int dup = 0;
+        for (int j = 0; j < count; j++) {
+            if (strcmp(names[j], (char *)style) == 0) {
+                dup = 1;
+                break;
+            }
+        }
+        if (!dup) {
+            names[count]   = strdup((char *)style);
+            weights[count] = w;
+            slants[count]  = s;
+            count++;
+        }
+    }
+
+    /* Sort by weight then slant so the list reads naturally */
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = i + 1; j < count; j++) {
+            if (weights[i] > weights[j] ||
+                (weights[i] == weights[j] && slants[i] > slants[j])) {
+                String tn = names[i];   names[i]   = names[j];   names[j]   = tn;
+                int tw     = weights[i]; weights[i] = weights[j]; weights[j] = tw;
+                int ts     = slants[i];  slants[i]  = slants[j];  slants[j]  = ts;
+            }
+        }
+    }
+
+    fcw->fontChooser.style_names   = names;
+    fcw->fontChooser.style_weights = weights;
+    fcw->fontChooser.style_slants  = slants;
+    fcw->fontChooser.num_styles    = count;
+
+cleanup:
+    if (fs) FcFontSetDestroy(fs);
+    if (os) FcObjectSetDestroy(os);
+    if (pat) FcPatternDestroy(pat);
+
+    /* Update the style list widget */
+    if (fcw->fontChooser.styleListW) {
+        IswListChange(fcw->fontChooser.styleListW,
+                      fcw->fontChooser.style_names,
+                      fcw->fontChooser.num_styles, 0, True);
+
+        /* Select the entry matching current weight/slant, or first */
+        int sel = 0;
+        for (int i = 0; i < fcw->fontChooser.num_styles; i++) {
+            if (fcw->fontChooser.style_weights[i] == fcw->fontChooser.weight &&
+                fcw->fontChooser.style_slants[i]  == fcw->fontChooser.slant) {
+                sel = i;
+                break;
+            }
+        }
+        IswListHighlight(fcw->fontChooser.styleListW, sel);
+        fcw->fontChooser.weight = fcw->fontChooser.style_weights[sel];
+        fcw->fontChooser.slant  = fcw->fontChooser.style_slants[sel];
+    }
+}
+
 /* --- Callbacks --- */
 
 static void
@@ -183,6 +305,27 @@ FamilySelected(Widget w, XtPointer client_data, XtPointer call_data)
 
     if (item && item->string)
         fcw->fontChooser.family = item->string;
+
+    RefreshStyles(fcw);
+    NotifyChange(fcw);
+}
+
+static void
+StyleSelected(Widget w, XtPointer client_data, XtPointer call_data)
+{
+    FontChooserWidget fcw = (FontChooserWidget) client_data;
+    IswListReturnStruct *item = (IswListReturnStruct *) call_data;
+    (void)w;
+
+    if (item && item->string) {
+        for (int i = 0; i < fcw->fontChooser.num_styles; i++) {
+            if (strcmp(fcw->fontChooser.style_names[i], item->string) == 0) {
+                fcw->fontChooser.weight = fcw->fontChooser.style_weights[i];
+                fcw->fontChooser.slant  = fcw->fontChooser.style_slants[i];
+                break;
+            }
+        }
+    }
 
     NotifyChange(fcw);
 }
@@ -217,8 +360,8 @@ NotifyChange(FontChooserWidget fcw)
         fs->ascent = fcw->fontChooser.size;
         fs->descent = fcw->fontChooser.size / 3;
         fs->font_family = XtNewString(fcw->fontChooser.family);
-        fs->font_weight = FC_WEIGHT_NORMAL;
-        fs->font_slant  = FC_SLANT_ROMAN;
+        fs->font_weight = fcw->fontChooser.weight;
+        fs->font_slant  = fcw->fontChooser.slant;
 
         Arg a[2];
         XtSetArg(a[0], XtNlabel, buf);
@@ -228,7 +371,9 @@ NotifyChange(FontChooserWidget fcw)
 
     IswFontChooserCallbackData cb;
     cb.family = fcw->fontChooser.family;
-    cb.size = fcw->fontChooser.size;
+    cb.size   = fcw->fontChooser.size;
+    cb.weight = fcw->fontChooser.weight;
+    cb.slant  = fcw->fontChooser.slant;
     XtCallCallbacks((Widget)fcw, XtNfontChanged, (XtPointer)&cb);
 }
 
@@ -243,7 +388,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     Dimension list_w = (180);
     Dimension list_h = (150);
     Dimension size_w = (50);
-    Dimension preview_w = (240);
+    Dimension preview_w = (360);
     Dimension preview_h = (40);
     (void)request; (void)args; (void)num_args;
 
@@ -268,13 +413,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     familyVp = XtCreateManagedWidget("familyViewport", viewportWidgetClass,
                                       new, a, n);
 
-    /* Size label — positioned relative to family viewport */
-    n = 0;
-    XtSetArg(a[n], XtNlabel, "Size"); n++;
-    XtSetArg(a[n], XtNborderWidth, 0); n++;
-    XtSetArg(a[n], XtNfromHoriz, familyVp); n++;
-    XtCreateManagedWidget("sizeLabel", labelWidgetClass, new, a, n);
-
     n = 0;
     if (fcw->fontChooser.num_families > 0) {
         XtSetArg(a[n], XtNlist, fcw->fontChooser.family_names); n++;
@@ -287,6 +425,52 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     XtAddCallback(fcw->fontChooser.familyListW, XtNcallback,
                   FamilySelected, (XtPointer)fcw);
 
+    /* Style label — positioned to the right of family viewport */
+    n = 0;
+    XtSetArg(a[n], XtNlabel, "Style"); n++;
+    XtSetArg(a[n], XtNborderWidth, 0); n++;
+    XtSetArg(a[n], XtNfromHoriz, familyVp); n++;
+    Widget styleLabel = XtCreateManagedWidget("styleLabel", labelWidgetClass, new, a, n);
+
+    /* Style list in a viewport */
+    Dimension style_w = 120;
+    Widget styleVp;
+    n = 0;
+    XtSetArg(a[n], XtNallowVert, True); n++;
+    XtSetArg(a[n], XtNwidth, style_w); n++;
+    XtSetArg(a[n], XtNheight, list_h); n++;
+    XtSetArg(a[n], XtNfromHoriz, familyVp); n++;
+    XtSetArg(a[n], XtNfromVert, styleLabel); n++;
+    styleVp = XtCreateManagedWidget("styleViewport", viewportWidgetClass,
+                                     new, a, n);
+
+    /* Populate styles for the initial family */
+    fcw->fontChooser.style_names   = NULL;
+    fcw->fontChooser.style_weights = NULL;
+    fcw->fontChooser.style_slants  = NULL;
+    fcw->fontChooser.num_styles    = 0;
+    fcw->fontChooser.styleListW    = NULL;
+    RefreshStyles(fcw);
+
+    n = 0;
+    if (fcw->fontChooser.num_styles > 0) {
+        XtSetArg(a[n], XtNlist, fcw->fontChooser.style_names); n++;
+        XtSetArg(a[n], XtNnumberStrings, fcw->fontChooser.num_styles); n++;
+    }
+    XtSetArg(a[n], XtNdefaultColumns, 1); n++;
+    XtSetArg(a[n], XtNforceColumns, True); n++;
+    fcw->fontChooser.styleListW = XtCreateManagedWidget(
+        "styleList", listWidgetClass, styleVp, a, n);
+    XtAddCallback(fcw->fontChooser.styleListW, XtNcallback,
+                  StyleSelected, (XtPointer)fcw);
+
+    /* Size label — positioned to the right of style viewport */
+    n = 0;
+    XtSetArg(a[n], XtNlabel, "Size"); n++;
+    XtSetArg(a[n], XtNborderWidth, 0); n++;
+    XtSetArg(a[n], XtNfromHoriz, styleVp); n++;
+    XtCreateManagedWidget("sizeLabel", labelWidgetClass, new, a, n);
+
     /* Size list in a viewport */
     static String sizes[] = {
         "8", "9", "10", "11", "12", "14", "16", "18",
@@ -298,8 +482,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     XtSetArg(a[n], XtNallowVert, True); n++;
     XtSetArg(a[n], XtNwidth, size_w); n++;
     XtSetArg(a[n], XtNheight, list_h); n++;
-    XtSetArg(a[n], XtNfromHoriz, familyVp); n++;
-    XtSetArg(a[n], XtNfromVert, familyLabel); n++;
+    XtSetArg(a[n], XtNfromHoriz, styleVp); n++;
+    XtSetArg(a[n], XtNfromVert, styleLabel); n++;
     sizeVp = XtCreateManagedWidget("sizeViewport", viewportWidgetClass,
                                     new, a, n);
 
@@ -337,6 +521,7 @@ Destroy(Widget w)
 {
     FontChooserWidget fcw = (FontChooserWidget) w;
     FreeFontNames(fcw);
+    FreeStyles(fcw);
 }
 
 /* --- Public API --- */
@@ -351,4 +536,16 @@ int
 IswFontChooserGetSize(Widget w)
 {
     return ((FontChooserWidget) w)->fontChooser.size;
+}
+
+int
+IswFontChooserGetWeight(Widget w)
+{
+    return ((FontChooserWidget) w)->fontChooser.weight;
+}
+
+int
+IswFontChooserGetSlant(Widget w)
+{
+    return ((FontChooserWidget) w)->fontChooser.slant;
 }
