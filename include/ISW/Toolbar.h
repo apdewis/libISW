@@ -1,14 +1,34 @@
 /*
  * Toolbar.h - Public header for Toolbar widget
  *
- * A horizontal (or vertical) strip for holding buttons and controls.
- * Subclasses Box with tight spacing and consistent child styling.
+ * A horizontal strip for holding buttons and controls.
+ * Subclasses Constraint to support per-child alignment (left, center, right).
  */
 
 #ifndef _ISW_IswToolbar_h
 #define _ISW_IswToolbar_h
 
-#include <ISW/Box.h>
+#include <X11/Constraint.h>
+
+/* Widget resources */
+#ifndef XtNspacing
+#define XtNspacing "spacing"
+#endif
+#ifndef XtCSpacing
+#define XtCSpacing "Spacing"
+#endif
+
+/* Constraint resource names */
+#define XtNtoolbarAlignment "toolbarAlignment"
+#define XtCtoolbarAlignment "ToolbarAlignment"
+#define XtRToolbarAlignment "ToolbarAlignment"
+
+/* Alignment enum */
+typedef enum {
+    XtToolbarAlignLeft,
+    XtToolbarAlignCenter,
+    XtToolbarAlignRight
+} IswToolbarAlignment;
 
 extern WidgetClass toolbarWidgetClass;
 

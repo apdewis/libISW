@@ -6,26 +6,41 @@
 #define _ISW_IswToolbarP_h
 
 #include <ISW/Toolbar.h>
-#include <ISW/BoxP.h>
+#include <ISW/ISWP.h>
 
 typedef struct {int empty;} ToolbarClassPart;
 
 typedef struct _ToolbarClassRec {
     CoreClassPart       core_class;
     CompositeClassPart  composite_class;
-    BoxClassPart        box_class;
+    ConstraintClassPart constraint_class;
     ToolbarClassPart    toolbar_class;
 } ToolbarClassRec;
 
 extern ToolbarClassRec toolbarClassRec;
 
-typedef struct {int empty;} ToolbarPart;
+typedef struct {
+    /* resources */
+    Dimension   h_space;
+    Dimension   v_space;
+    /* private */
+    Dimension   preferred_width;
+    Dimension   preferred_height;
+} ToolbarPart;
 
 typedef struct _ToolbarRec {
     CorePart        core;
     CompositePart   composite;
-    BoxPart         box;
+    ConstraintPart  constraint;
     ToolbarPart     toolbar;
 } ToolbarRec;
+
+typedef struct _ToolbarConstraintsPart {
+    IswToolbarAlignment alignment;
+} ToolbarConstraintsPart;
+
+typedef struct _ToolbarConstraintsRec {
+    ToolbarConstraintsPart toolbar;
+} ToolbarConstraintsRec, *ToolbarConstraints;
 
 #endif /* _ISW_IswToolbarP_h */
