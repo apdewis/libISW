@@ -2540,8 +2540,8 @@ RootGeometryManager(Widget gw,
                 values.border_width = (uint32_t)(values.border_width * sf + 0.5);
         }
     }
-    xcb_void_cookie_t cookie = xcb_configure_window(XtDisplay((Widget) w),
-        XtWindow((Widget) w), mask, (const void *)&values);
+    xcb_void_cookie_t cookie = xcb_configure_window_aux(XtDisplay((Widget) w),
+        XtWindow((Widget) w), mask, &values);
     request_num = cookie.sequence;
     
     if (wm && !w->shell.override_redirect
