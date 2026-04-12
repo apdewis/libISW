@@ -77,8 +77,8 @@ SOFTWARE.
 
 /*
  * Draw an RGBA image using its alpha channel as a mask, painting with the
- * current Cairo source color.  This makes the image appear in the current
- * color regardless of the original pixel colors in the raster.
+ * current Cairo source color.  Used for monochrome (currentColor) SVG icons
+ * so the pressed state can invert them to the background color.
  */
 static void
 _DrawImageMasked(cairo_t *cr,
@@ -533,8 +533,12 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
             int draw_y = (int)(cbw->core.height - disp_h) / 2;
             if (draw_x < 0) draw_x = 0;
             if (draw_y < 0) draw_y = 0;
-            _DrawImageMasked(cr, pixels, rw, rh,
-                             draw_x, draw_y, disp_w, disp_h);
+            if (ISWImageIsMonochrome(cbw->label.image))
+              _DrawImageMasked(cr, pixels, rw, rh,
+                               draw_x, draw_y, disp_w, disp_h);
+            else
+              ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+                                     draw_x, draw_y, disp_w, disp_h);
           }
         } else {
           /* Redraw label text in inverted color */
@@ -571,11 +575,18 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
                 (unsigned int)(cbw->label.lbm_width * lsf2 + 0.5f),
                 (unsigned int)(cbw->label.lbm_height * lsf2 + 0.5f), &rw, &rh);
             if (pixels) {
-              _DrawImageMasked(cr, pixels, rw, rh,
-                               (int)cbw->label.internal_width,
-                               (int)cbw->label.lbm_y,
-                               cbw->label.lbm_width,
-                               cbw->label.lbm_height);
+              if (ISWImageIsMonochrome(cbw->label.left_image))
+                _DrawImageMasked(cr, pixels, rw, rh,
+                                 (int)cbw->label.internal_width,
+                                 (int)cbw->label.lbm_y,
+                                 cbw->label.lbm_width,
+                                 cbw->label.lbm_height);
+              else
+                ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+                                       (int)cbw->label.internal_width,
+                                       (int)cbw->label.lbm_y,
+                                       cbw->label.lbm_width,
+                                       cbw->label.lbm_height);
             }
           }
         }

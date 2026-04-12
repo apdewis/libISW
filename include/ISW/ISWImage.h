@@ -53,6 +53,12 @@ float ISWImageGetHeight(ISWImage *image);
 Boolean ISWImageIsVector(ISWImage *image);
 
 /*
+ * ISWImageIsMonochrome - Returns True if the image is a currentColor SVG.
+ * These icons are single-color and suitable for alpha-mask color inversion.
+ */
+Boolean ISWImageIsMonochrome(ISWImage *image);
+
+/*
  * ISWImageRasterize - Get RGBA pixel data for the image.
  *
  * For SVG: rasterizes at hint_w x hint_h (result is cached by size).

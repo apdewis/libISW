@@ -142,6 +142,12 @@ ISWImageIsVector(ISWImage *image)
     return image && image->type == ISW_IMAGE_SVG;
 }
 
+Boolean
+ISWImageIsMonochrome(ISWImage *image)
+{
+    return image && image->type == ISW_IMAGE_SVG && image->fg_hex[0];
+}
+
 const unsigned char*
 ISWImageRasterize(ISWImage *image,
                   unsigned int hint_w, unsigned int hint_h,
