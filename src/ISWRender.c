@@ -905,7 +905,7 @@ _ISWComputeFontSize(Widget widget, XFontStruct *font)
     (void)widget;
     if (font)
         return (double)(font->ascent + font->descent);
-    return 12.0;
+    return 10.0;
 }
 
 /*

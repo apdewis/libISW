@@ -212,7 +212,7 @@ ComputeLayout(IconViewWidget iw)
     int max_lines = iw->iconView.label_lines;
     if (max_lines < 1) max_lines = 1;
 
-    iw->iconView.cell_w = icon_sz + spacing;
+    iw->iconView.cell_w = icon_sz + 4 * spacing;
 
     if (iw->core.width > 0 && iw->iconView.cell_w > 0)
         iw->iconView.ncols = (int)iw->core.width / (int)iw->iconView.cell_w;
