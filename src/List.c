@@ -38,7 +38,6 @@ in this Software without prior written authorization from the X Consortium.
 #include "config.h"
 #endif
 #include <ISW/ISWP.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -1279,6 +1278,7 @@ IswListChange(Widget w, String* list, int nitems, int longest,
     ListWidget lw = (ListWidget) w;
     Dimension new_width = w->core.width;
     Dimension new_height = w->core.height;
+    
 
     lw->list.list = list;
 
@@ -1294,15 +1294,14 @@ IswListChange(Widget w, String* list, int nitems, int longest,
 
     if ( resize_it )
         lw->list.freedoms &= ~WidthLock & ~HeightLock;
-    else
-        lw->list.freedoms |= WidthLock | HeightLock;
 
     lw->list.longest = longest;
 
     CalculatedValues( w );
 
-    if( Layout( w, WidthFree( w ), HeightFree( w ),
-		&new_width, &new_height ) )
+    Layout( w, WidthFree( w ), HeightFree( w ), &new_width, &new_height );
+
+    if ( new_width != w->core.width || new_height != w->core.height )
         ChangeSize( w, new_width, new_height );
 
     lw->list.is_highlighted = lw->list.highlight = NO_HIGHLIGHT;

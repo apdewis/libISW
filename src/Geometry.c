@@ -466,24 +466,24 @@ _XtMakeGeometryRequest(Widget widget,
                                    XtName(widget)));
         }
 #endif
-        /* XCB requires values in ascending bit order, only for set bits */
+        /* HiDPI: convert logical pixels to physical for the X server.
+         * Use lrint() for correct rounding of negative positions. */
         {
+            double sf = _XtGetScaleFactor(XtDisplay(widget));
             uint32_t values[5];
             int vi = 0;
             if (req.changeMask & XCB_CONFIG_WINDOW_X)
-                values[vi++] = (uint32_t)(int32_t)req.changes_x;
+                values[vi++] = (uint32_t)(int32_t)lrint((double)req.changes_x * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_Y)
-                values[vi++] = (uint32_t)(int32_t)req.changes_y;
+                values[vi++] = (uint32_t)(int32_t)lrint((double)req.changes_y * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH)
-                values[vi++] = req.changes_w;
+                values[vi++] = (uint32_t)lrint((double)req.changes_w * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)
-                values[vi++] = req.changes_h;
+                values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
-                values[vi++] = req.changes_bw;
+                values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
             xcb_configure_window(XtDisplay(widget), XtWindow(widget), req.changeMask, values);
         }
-        //  XConfigureWindow(XtDisplay(widget), XtWindow(widget),
-        //                 req.changeMask, &req.changes);
     }
     else {                      /* RectObj child of realized Widget */
         *clear_rect_obj = TRUE;
@@ -612,20 +612,19 @@ XtResizeWindow(Widget w)
         req.changes_h = w->core.height;
         req.changes_bw = w->core.border_width;
         req.changeMask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
-        /* XCB requires values in ascending bit order, only for set bits */
+        /* HiDPI: convert logical pixels to physical for the X server. */
         {
+            double sf = _XtGetScaleFactor(XtDisplay(w));
             uint32_t values[3];
             int vi = 0;
             if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH)
-                values[vi++] = req.changes_w;
+                values[vi++] = (uint32_t)lrint((double)req.changes_w * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)
-                values[vi++] = req.changes_h;
+                values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
-                values[vi++] = req.changes_bw;
+                values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
             xcb_configure_window(XtDisplay(w), XtWindow(w), req.changeMask, values);
         }
-        //XConfigureWindow(XtDisplay(w), XtWindow(w),
-        //                 (unsigned) req.changeMask, &req.changes);
         hookobj = XtHooksOfDisplay(XtDisplayOfObject(w));
         if (XtHasCallbacks(hookobj, XtNconfigureHook) == XtCallbackHasSome) {
             req.type = XtHconfigure;
