@@ -1294,7 +1294,8 @@ IswListChange(Widget w, String* list, int nitems, int longest,
 
     if ( resize_it )
         lw->list.freedoms &= ~WidthLock & ~HeightLock;
-    /* else - still resize if its not locked */
+    else
+        lw->list.freedoms |= WidthLock | HeightLock;
 
     lw->list.longest = longest;
 
