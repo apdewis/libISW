@@ -860,8 +860,9 @@ _ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double scale)
 static cairo_surface_t *_measure_surf = NULL;
 static cairo_t *_measure_cr = NULL;
 
-/* Cached font extents — re-queried only when font size changes. */
+/* Cached font state — re-queried only when font identity or size changes. */
 static double _cached_font_size = -1.0;
+static XFontStruct *_cached_font_ptr = NULL;
 static cairo_font_extents_t _cached_font_extents;
 static double _measure_device_scale = 0.0;
 
@@ -890,6 +891,7 @@ _ISWGetMeasureCR(double device_scale)
             device_scale > 1.0 ? device_scale : 1.0);
         _measure_device_scale = device_scale;
         _cached_font_size = -1.0;  /* force re-query of font extents */
+        _cached_font_ptr = NULL;
     }
     return _measure_cr;
 }
@@ -907,20 +909,38 @@ _ISWComputeFontSize(Widget widget, XFontStruct *font)
 }
 
 /*
+ * Ensure the measurement context has the correct font face and size.
+ * Only re-sets when the font identity or size actually changes.
+ */
+static void
+_ISWSyncMeasureFont(cairo_t *cr, Widget widget, XFontStruct *font)
+{
+    double size = _ISWComputeFontSize(widget, font);
+
+    if (font != _cached_font_ptr) {
+        /* Scale 1.0: the measurement surface has device_scale set,
+         * so Cairo handles physical magnification — same as render path. */
+        _ISWSetCairoFontFromXFont(cr, font, 1.0);
+        _cached_font_ptr = font;
+        cairo_font_extents(cr, &_cached_font_extents);
+        _cached_font_size = size;
+    } else if (size != _cached_font_size) {
+        cairo_set_font_size(cr, size);
+        cairo_font_extents(cr, &_cached_font_extents);
+        _cached_font_size = size;
+    }
+}
+
+/*
  * Get cached Cairo font extents. Only re-queries Cairo when the
  * effective font size changes (different font or different scale).
  */
 static void
 _ISWGetCairoFontExtents(Widget widget, XFontStruct *font, cairo_font_extents_t *extents)
 {
-    double size = _ISWComputeFontSize(widget, font);
     cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
 
-    if (size != _cached_font_size) {
-        cairo_set_font_size(cr, size);
-        cairo_font_extents(cr, &_cached_font_extents);
-        _cached_font_size = size;
-    }
+    _ISWSyncMeasureFont(cr, widget, font);
     *extents = _cached_font_extents;
 }
 
@@ -933,21 +953,14 @@ ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
 {
     cairo_text_extents_t extents;
     char *null_term;
-    double size;
     int width;
     cairo_t *cr;
 
     if (!text || len <= 0)
         return 0;
 
-    size = _ISWComputeFontSize(widget, font);
     cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
-
-    if (size != _cached_font_size) {
-        cairo_set_font_size(cr, size);
-        cairo_font_extents(cr, &_cached_font_extents);
-        _cached_font_size = size;
-    }
+    _ISWSyncMeasureFont(cr, widget, font);
 
     null_term = (char *)malloc(len + 1);
     if (!null_term)
@@ -981,15 +994,10 @@ ISWScaledFontAscent(Widget widget, XFontStruct *font)
 int
 ISWScaledFontCapHeight(Widget widget, XFontStruct *font)
 {
-    double size = _ISWComputeFontSize(widget, font);
     cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
     cairo_text_extents_t text_ext;
 
-    if (size != _cached_font_size) {
-        cairo_set_font_size(cr, size);
-        cairo_font_extents(cr, &_cached_font_extents);
-        _cached_font_size = size;
-    }
+    _ISWSyncMeasureFont(cr, widget, font);
 
     cairo_text_extents(cr, "X", &text_ext);
     return (int)ceil(-text_ext.y_bearing);
