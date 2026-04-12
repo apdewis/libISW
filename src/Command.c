@@ -448,20 +448,10 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   Pixel saved_foreground = cbw->label.foreground;
   Pixel saved_background = w->core.background_pixel;
 
-  /*
-   * Repaint sequence: Label first (draws background + text), then
-   * Command overdraws border and pressed-state fill on top.
-   *
-   * Label.Redisplay fills the entire widget rectangle with
-   * background_pixel, so the border must come after.  The pressed
-   * fill is also done here with a clipped rounded-rect path so it
-   * respects corner_radius.
-   */
-
   /* Let Label draw normal background + text */
   (*SuperClass->core_class.expose)(w, event, 0);
 
-  /* Now draw pressed fill (if set) and border on top */
+  /* Now draw pressed-state fill (if set) and border on top */
   ISWRenderBegin(ctx);
 
   {
@@ -477,123 +467,9 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
 
       cairo_save(cr);
 
-      /* Build rounded-rect border path */
-      cairo_new_path(cr);
-      if (r > 0) {
-        cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
-        cairo_arc(cr, bx + bw - r, by + bh - r, r, 0, M_PI/2);
-        cairo_arc(cr, bx + r, by + bh - r, r, M_PI/2, M_PI);
-        cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
-        cairo_close_path(cr);
-      } else {
-        cairo_rectangle(cr, bx, by, bw, bh);
-      }
-
       if (cbw->command.set) {
-        /* Pressed: fill the rounded rect with foreground, then
-         * redraw text in background color on top */
-        cairo_save(cr);
-        cairo_clip(cr);
-        ISWRenderSetColor(ctx, saved_foreground);
-        cairo_paint(cr);
-
-        /* Redraw content in inverted color, clipped to shape */
-        ISWRenderSetColor(ctx, saved_background);
-
-        if (cbw->label.image) {
-          /* Redraw main image using alpha mask so it appears in bg color */
-          unsigned int disp_w = cbw->label.label_width;
-          unsigned int disp_h = cbw->label.label_height;
-
-          unsigned int img_pad_w = (cbw->label.label_len == 0)
-              ? 2 : cbw->label.internal_width;
-          unsigned int img_pad_h = (cbw->label.label_len == 0)
-              ? 2 : cbw->label.internal_height;
-          unsigned int avail_w = cbw->core.width > 2 * img_pad_w
-              ? cbw->core.width - 2 * img_pad_w : 0;
-          unsigned int avail_h = cbw->core.height > 2 * img_pad_h
-              ? cbw->core.height - 2 * img_pad_h : 0;
-          if (avail_w > 0 && avail_h > 0 && (disp_w != avail_w || disp_h != avail_h)) {
-            float sw = (float)avail_w / disp_w;
-            float sh = (float)avail_h / disp_h;
-            float s  = sw < sh ? sw : sh;
-            disp_w = (unsigned int)(disp_w * s + 0.5f);
-            disp_h = (unsigned int)(disp_h * s + 0.5f);
-            if (disp_w == 0) disp_w = 1;
-            if (disp_h == 0) disp_h = 1;
-          }
-
-          float csf = (float)ISWScaleFactor(w);
-          unsigned int rw, rh;
-          const unsigned char *pixels = ISWImageRasterize(cbw->label.image,
-              (unsigned int)(disp_w * csf + 0.5f),
-              (unsigned int)(disp_h * csf + 0.5f), &rw, &rh);
-          if (pixels) {
-            int draw_x = (int)(cbw->core.width  - disp_w) / 2;
-            int draw_y = (int)(cbw->core.height - disp_h) / 2;
-            if (draw_x < 0) draw_x = 0;
-            if (draw_y < 0) draw_y = 0;
-            if (ISWImageIsMonochrome(cbw->label.image))
-              _DrawImageMasked(cr, pixels, rw, rh,
-                               draw_x, draw_y, disp_w, disp_h);
-            else
-              ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
-                                     draw_x, draw_y, disp_w, disp_h);
-          }
-        } else {
-          /* Redraw label text in inverted color */
-          ISWRenderSetFont(ctx, cbw->label.font);
-          if (cbw->label.label && cbw->label.font) {
-            int y = cbw->label.label_y
-                    + (int)ISWScaledFontAscent(w, cbw->label.font);
-            int lbl_len = cbw->label.label_len;
-            char *label = cbw->label.label;
-
-            if (lbl_len == MULTI_LINE_LABEL) {
-              int line_height = ISWScaledFontHeight(w, cbw->label.font);
-              char *nl;
-              while ((nl = index(label, '\n')) != NULL) {
-                int seg = (int)(nl - label);
-                if (seg > 0)
-                  ISWRenderDrawString(ctx, label, seg,
-                                      cbw->label.label_x, y);
-                y += line_height;
-                label = nl + 1;
-              }
-              lbl_len = strlen(label);
-            }
-            if (lbl_len > 0)
-              ISWRenderDrawString(ctx, label, lbl_len,
-                                  cbw->label.label_x, y);
-          }
-
-          /* Redraw left image if present */
-          if (cbw->label.left_image && cbw->label.lbm_width != 0) {
-            float lsf2 = (float)ISWScaleFactor(w);
-            unsigned int rw, rh;
-            const unsigned char *pixels = ISWImageRasterize(cbw->label.left_image,
-                (unsigned int)(cbw->label.lbm_width * lsf2 + 0.5f),
-                (unsigned int)(cbw->label.lbm_height * lsf2 + 0.5f), &rw, &rh);
-            if (pixels) {
-              if (ISWImageIsMonochrome(cbw->label.left_image))
-                _DrawImageMasked(cr, pixels, rw, rh,
-                                 (int)cbw->label.internal_width,
-                                 (int)cbw->label.lbm_y,
-                                 cbw->label.lbm_width,
-                                 cbw->label.lbm_height);
-              else
-                ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
-                                       (int)cbw->label.internal_width,
-                                       (int)cbw->label.lbm_y,
-                                       cbw->label.lbm_width,
-                                       cbw->label.lbm_height);
-            }
-          }
-        }
-
-        cairo_restore(cr);
-
-        /* Rebuild path for the border stroke (clip consumed it) */
+        /* Pressed: fill with foreground, redraw content in background.
+         * Clip to the border shape so the fill respects corner_radius. */
         cairo_new_path(cr);
         if (r > 0) {
           cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
@@ -604,6 +480,33 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
         } else {
           cairo_rectangle(cr, bx, by, bw, bh);
         }
+        cairo_save(cr);
+        cairo_clip(cr);
+
+        /* Fill background */
+        ISWRenderSetColor(ctx, saved_foreground);
+        cairo_paint(cr);
+
+        /* Redraw content with inverted colors */
+        cbw->label.foreground = saved_background;
+        w->core.background_pixel = saved_foreground;
+        (*SuperClass->core_class.expose)(w, event, 0);
+        cbw->label.foreground = saved_foreground;
+        w->core.background_pixel = saved_background;
+
+        cairo_restore(cr);
+      }
+
+      /* Build border path */
+      cairo_new_path(cr);
+      if (r > 0) {
+        cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
+        cairo_arc(cr, bx + bw - r, by + bh - r, r, 0, M_PI/2);
+        cairo_arc(cr, bx + r, by + bh - r, r, M_PI/2, M_PI);
+        cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
+        cairo_close_path(cr);
+      } else {
+        cairo_rectangle(cr, bx, by, bw, bh);
       }
 
       /* Stroke the border */
