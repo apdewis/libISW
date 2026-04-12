@@ -966,17 +966,15 @@ cairo_xcb_draw_image_rgba(ISWRenderContext *ctx,
 
     cairo_save(data->cairo_ctx);
 
-    /* Scale if destination size differs from image size */
+    /* HiDPI: if the image was rasterized at physical resolution, set
+     * device scale on the image surface so Cairo maps it 1:1 to the
+     * device-scaled destination without resampling. */
     if (dst_w != img_w || dst_h != img_h) {
-        cairo_translate(data->cairo_ctx, dst_x, dst_y);
-        cairo_scale(data->cairo_ctx,
-                    (double)dst_w / (double)img_w,
-                    (double)dst_h / (double)img_h);
-        cairo_set_source_surface(data->cairo_ctx, img_surface, 0, 0);
-    } else {
-        cairo_set_source_surface(data->cairo_ctx, img_surface, dst_x, dst_y);
+        double sx = (double)img_w / (double)dst_w;
+        double sy = (double)img_h / (double)dst_h;
+        cairo_surface_set_device_scale(img_surface, sx, sy);
     }
-
+    cairo_set_source_surface(data->cairo_ctx, img_surface, dst_x, dst_y);
     cairo_paint(data->cairo_ctx);
     cairo_restore(data->cairo_ctx);
 

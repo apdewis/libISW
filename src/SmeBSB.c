@@ -700,10 +700,13 @@ DrawBitmaps(Widget w, Boolean highlighted)
         y_loc = entry->rectangle.y +
                 (int)(entry->rectangle.height - entry->sme_bsb.left_image_height) / 2;
 
+        {
+        float msf = (float)ISWScaleFactor(XtParent(w));
         pixels = ISWImageRasterize(entry->sme_bsb.left_image,
-                                   entry->sme_bsb.left_image_width,
-                                   entry->sme_bsb.left_image_height,
+                                   (unsigned int)(entry->sme_bsb.left_image_width * msf + 0.5f),
+                                   (unsigned int)(entry->sme_bsb.left_image_height * msf + 0.5f),
                                    &rw, &rh);
+        }
         if (pixels && ctx) {
             ISWRenderBegin(ctx);
             ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
@@ -721,10 +724,13 @@ DrawBitmaps(Widget w, Boolean highlighted)
         y_loc = entry->rectangle.y +
                 (int)(entry->rectangle.height - entry->sme_bsb.right_image_height) / 2;
 
+        {
+        float msf2 = (float)ISWScaleFactor(XtParent(w));
         pixels = ISWImageRasterize(entry->sme_bsb.right_image,
-                                   entry->sme_bsb.right_image_width,
-                                   entry->sme_bsb.right_image_height,
+                                   (unsigned int)(entry->sme_bsb.right_image_width * msf2 + 0.5f),
+                                   (unsigned int)(entry->sme_bsb.right_image_height * msf2 + 0.5f),
                                    &rw, &rh);
+        }
         if (pixels && ctx) {
             ISWRenderBegin(ctx);
             ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,

@@ -523,9 +523,11 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
             if (disp_h == 0) disp_h = 1;
           }
 
+          float csf = (float)ISWScaleFactor(w);
           unsigned int rw, rh;
           const unsigned char *pixels = ISWImageRasterize(cbw->label.image,
-              disp_w, disp_h, &rw, &rh);
+              (unsigned int)(disp_w * csf + 0.5f),
+              (unsigned int)(disp_h * csf + 0.5f), &rw, &rh);
           if (pixels) {
             int draw_x = (int)(cbw->core.width  - disp_w) / 2;
             int draw_y = (int)(cbw->core.height - disp_h) / 2;
@@ -563,9 +565,11 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
 
           /* Redraw left image if present */
           if (cbw->label.left_image && cbw->label.lbm_width != 0) {
+            float lsf2 = (float)ISWScaleFactor(w);
             unsigned int rw, rh;
             const unsigned char *pixels = ISWImageRasterize(cbw->label.left_image,
-                cbw->label.lbm_width, cbw->label.lbm_height, &rw, &rh);
+                (unsigned int)(cbw->label.lbm_width * lsf2 + 0.5f),
+                (unsigned int)(cbw->label.lbm_height * lsf2 + 0.5f), &rw, &rh);
             if (pixels) {
               _DrawImageMasked(cr, pixels, rw, rh,
                                (int)cbw->label.internal_width,

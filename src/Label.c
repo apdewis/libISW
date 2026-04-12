@@ -493,9 +493,15 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             if (disp_h == 0) disp_h = 1;
         }
 
+        /* Rasterize at physical resolution for sharp HiDPI rendering.
+         * Device scale on the Cairo surface maps the logical draw area
+         * to physical pixels 1:1 with the rasterized image. */
+        float sf = (float)ISWScaleFactor((Widget)w);
+        unsigned int raster_w = (unsigned int)(disp_w * sf + 0.5f);
+        unsigned int raster_h = (unsigned int)(disp_h * sf + 0.5f);
         unsigned int rw, rh;
         const unsigned char *pixels = ISWImageRasterize(w->label.image,
-            disp_w, disp_h, &rw, &rh);
+            raster_w, raster_h, &rw, &rh);
         if (pixels && ctx) {
             int draw_x = (int)(w->core.width  - disp_w) / 2;
             int draw_y = (int)(w->core.height - disp_h) / 2;
@@ -534,9 +540,12 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 	/* display left image */
 	if (w->label.left_image && w->label.lbm_width != 0) {
+	    float lsf = (float)ISWScaleFactor((Widget)w);
+	    unsigned int lrw_phys = (unsigned int)(w->label.lbm_width * lsf + 0.5f);
+	    unsigned int lrh_phys = (unsigned int)(w->label.lbm_height * lsf + 0.5f);
 	    unsigned int rw, rh;
 	    const unsigned char *pixels = ISWImageRasterize(w->label.left_image,
-	        w->label.lbm_width, w->label.lbm_height, &rw, &rh);
+	        lrw_phys, lrh_phys, &rw, &rh);
 	    if (pixels && ctx) {
 		ISWRenderBegin(ctx);
 		ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
