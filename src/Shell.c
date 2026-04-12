@@ -90,6 +90,7 @@ extern double _XtGetScaleFactor(xcb_connection_t *dpy);
 #include <ISW/ISWXdnd.h>
 #include "ISWXcbDraw.h"
 #include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
@@ -3333,11 +3334,15 @@ _XtShellGetCoordinates(Widget widget, Position *x, Position *y)
         //                             &tmpx, &tmpy, &tmpchild);
                                      
 
+        /* HiDPI: border_width is logical; X server expects physical pixels. */
+        double sf = _XtGetScaleFactor(XtDisplay(widget));
+        int bw_phys = (int)lrint((double)w->core.border_width * sf);
+
         xcb_translate_coordinates_cookie_t cookie = xcb_translate_coordinates(XtDisplay(w),
             XtWindow(w),
             RootWindowOfScreen(XtScreen(w)),
-            -w->core.border_width,
-            -w->core.border_width);
+            -bw_phys,
+            -bw_phys);
 
         xcb_translate_coordinates_reply_t *reply = xcb_translate_coordinates_reply(XtDisplay(w), cookie, NULL);
         if (reply) {
@@ -3346,8 +3351,10 @@ _XtShellGetCoordinates(Widget widget, Position *x, Position *y)
             tmpchild = reply->child;
             free(reply);
         }
-        w->core.x = (Position) tmpx;
-        w->core.y = (Position) tmpy;
+        /* HiDPI: X server returns physical pixels; convert to logical. */
+        double inv = 1.0 / sf;
+        w->core.x = (Position)lrint((double)tmpx * inv);
+        w->core.y = (Position)lrint((double)tmpy * inv);
         w->shell.client_specified |= _XtShellPositionValid;
     }
     *x = w->core.x;
