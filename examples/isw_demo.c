@@ -59,7 +59,7 @@
 #include <ISW/ColorPicker.h>
 #include <ISW/FontChooser.h>
 #include <ISW/SpinBox.h>
-#include <ISW/Scale.h>
+#include <ISW/Slider.h>
 #include <ISW/Tip.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/Dialog.h>
@@ -117,7 +117,7 @@ Widget create_panner_demo(Widget parent);
 Widget create_fontchooser_demo(Widget parent);
 Widget create_colorpicker_demo(Widget parent);
 Widget create_spinbox_demo(Widget parent);
-Widget create_scale_demo(Widget parent);
+Widget create_slider_demo(Widget parent);
 Widget create_scrollbar_demo(Widget parent);
 Widget create_progressbar_demo(Widget parent);
 Widget create_dialog_demo(Widget parent);
@@ -134,7 +134,7 @@ void list_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void iconview_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void scale_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void slider_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void colorpicker_callback(Widget w, XtPointer client_data, XtPointer call_data);
 void fontchooser_callback(Widget w, XtPointer client_data, XtPointer call_data);
@@ -1691,7 +1691,7 @@ Widget create_paned_grip_demo(Widget parent) {
 
 Widget create_specialized_section(Widget parent) {
     Widget form, section_label;
-    Widget spinbox_demo, scale_demo, scrollbar_demo, progressbar_demo, dialog_demo, colorpicker_demo, fontchooser_demo, drawingarea_demo;
+    Widget spinbox_demo, slider_demo, scrollbar_demo, progressbar_demo, dialog_demo, colorpicker_demo, fontchooser_demo, drawingarea_demo;
     Arg args[10];
     Cardinal n;
 
@@ -1704,7 +1704,7 @@ Widget create_specialized_section(Widget parent) {
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Specialized Widgets: SpinBox, Scale, Scrollbar, ProgressBar, Dialog"); n++;
+    XtSetArg(args[n], XtNlabel, "Specialized Widgets: SpinBox, Slider, Scrollbar, ProgressBar, Dialog"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
@@ -1719,16 +1719,16 @@ Widget create_specialized_section(Widget parent) {
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(spinbox_demo, args, n);
 
-    scale_demo = create_scale_demo(form);
+    slider_demo = create_slider_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromHoriz, spinbox_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(scale_demo, args, n);
+    XtSetValues(slider_demo, args, n);
 
     scrollbar_demo = create_scrollbar_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, scale_demo); n++;
+    XtSetArg(args[n], XtNfromHoriz, slider_demo); n++;
     XtSetArg(args[n], XtNfromVert, section_label); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(scrollbar_demo, args, n);
@@ -1756,7 +1756,7 @@ Widget create_specialized_section(Widget parent) {
 
     fontchooser_demo = create_fontchooser_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, scale_demo); n++;
+    XtSetArg(args[n], XtNfromVert, slider_demo); n++;
     XtSetArg(args[n], XtNtop, XtChainTop); n++;
     XtSetArg(args[n], XtNleft, XtChainLeft); n++;
     XtSetValues(fontchooser_demo, args, n);
@@ -1764,7 +1764,7 @@ Widget create_specialized_section(Widget parent) {
     drawingarea_demo = create_drawingarea_demo(form);
     n = 0;
     XtSetArg(args[n], XtNfromHoriz, fontchooser_demo); n++;
-    XtSetArg(args[n], XtNfromVert, scale_demo); n++;
+    XtSetArg(args[n], XtNfromVert, slider_demo); n++;
     XtSetArg(args[n], XtNhorizDistance, 10); n++;
     XtSetValues(drawingarea_demo, args, n);
 
@@ -1945,8 +1945,8 @@ Widget create_spinbox_demo(Widget parent) {
     return box;
 }
 
-Widget create_scale_demo(Widget parent) {
-    Widget box, title, scale_h, scale_v;
+Widget create_slider_demo(Widget parent) {
+    Widget box, title, slider_h, slider_v;
     Arg args[12];
     Cardinal n;
 
@@ -1954,38 +1954,38 @@ Widget create_scale_demo(Widget parent) {
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
     XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("scaleBox", boxWidgetClass, parent, args, n);
+    box = XtCreateManagedWidget("sliderBox", boxWidgetClass, parent, args, n);
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Scale"); n++;
+    XtSetArg(args[n], XtNlabel, "Slider"); n++;
     XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("scaleTitle", labelWidgetClass, box, args, n);
+    title = XtCreateManagedWidget("sliderTitle", labelWidgetClass, box, args, n);
 
-    /* Horizontal scale with ticks */
+    /* Horizontal slider with ticks */
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
     XtSetArg(args[n], XtNminimumValue, 0); n++;
     XtSetArg(args[n], XtNmaximumValue, 100); n++;
-    XtSetArg(args[n], XtNscaleValue, 50); n++;
+    XtSetArg(args[n], XtNsliderValue, 50); n++;
     XtSetArg(args[n], XtNtickInterval, 25); n++;
     XtSetArg(args[n], XtNshowValue, True); n++;
     XtSetArg(args[n], XtNwidth, 200); n++;
     XtSetArg(args[n], XtNheight, 50); n++;
-    scale_h = XtCreateManagedWidget("scaleH", scaleWidgetClass, box, args, n);
-    XtAddCallback(scale_h, XtNvalueChanged, scale_callback, (XtPointer)"Horizontal");
+    slider_h = XtCreateManagedWidget("sliderH", sliderWidgetClass, box, args, n);
+    XtAddCallback(slider_h, XtNvalueChanged, slider_callback, (XtPointer)"Horizontal");
 
-    /* Vertical scale */
+    /* Vertical slider */
     n = 0;
     XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
     XtSetArg(args[n], XtNminimumValue, 0); n++;
     XtSetArg(args[n], XtNmaximumValue, 255); n++;
-    XtSetArg(args[n], XtNscaleValue, 128); n++;
+    XtSetArg(args[n], XtNsliderValue, 128); n++;
     XtSetArg(args[n], XtNshowValue, True); n++;
     XtSetArg(args[n], XtNwidth, 70); n++;
     XtSetArg(args[n], XtNheight, 120); n++;
-    scale_v = XtCreateManagedWidget("scaleV", scaleWidgetClass, box, args, n);
-    XtAddCallback(scale_v, XtNvalueChanged, scale_callback, (XtPointer)"Vertical");
+    slider_v = XtCreateManagedWidget("sliderV", sliderWidgetClass, box, args, n);
+    XtAddCallback(slider_v, XtNvalueChanged, slider_callback, (XtPointer)"Vertical");
 
     return box;
 }
@@ -2086,9 +2086,9 @@ void list_callback(Widget w, XtPointer client_data, XtPointer call_data) {
            item->string, item->list_index);
 }
 
-void scale_callback(Widget w, XtPointer client_data, XtPointer call_data) {
-    IswScaleCallbackData *data = (IswScaleCallbackData *)call_data;
-    printf("Scale (%s) value: %d\n", (char *)client_data, data->value);
+void slider_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+    IswSliderCallbackData *data = (IswSliderCallbackData *)call_data;
+    printf("Slider (%s) value: %d\n", (char *)client_data, data->value);
 }
 
 void fontchooser_callback(Widget w, XtPointer client_data, XtPointer call_data) {

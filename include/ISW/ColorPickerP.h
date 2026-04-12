@@ -26,9 +26,9 @@ typedef struct {
     XtCallbackList  color_changed;
 
     /* private */
-    Widget          redScale;
-    Widget          greenScale;
-    Widget          blueScale;
+    Widget          redSlider;
+    Widget          greenSlider;
+    Widget          blueSlider;
     Widget          redLabel;
     Widget          greenLabel;
     Widget          blueLabel;

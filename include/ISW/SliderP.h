@@ -1,13 +1,13 @@
 /*
- * ScaleP.h - Private definitions for Scale widget
+ * SliderP.h - Private definitions for Slider widget
  */
 
-#ifndef _ISW_IswScaleP_h
-#define _ISW_IswScaleP_h
+#ifndef _ISW_IswSliderP_h
+#define _ISW_IswSliderP_h
 
 #include "ISWP.h"
 #include <ISW/SimpleP.h>
-#include <ISW/Scale.h>
+#include <ISW/Slider.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWXftCompat.h>
 
@@ -29,7 +29,7 @@ typedef struct {
     int           value;
     int           tick_interval;   /* 0 = no ticks */
     Boolean       show_value;
-    IswScaleValuePosition value_pos;
+    IswSliderValuePosition value_pos;
     Dimension     length;
     Dimension     thickness;
     XtCallbackList value_changed;
@@ -43,22 +43,22 @@ typedef struct {
     Boolean       dragging;
     int           drag_offset;    /* pixel offset from thumb center at grab */
     ISWRenderContext *render_ctx;
-} ScalePart;
+} SliderPart;
 
-typedef struct _ScaleRec {
+typedef struct _SliderRec {
     CorePart    core;
     SimplePart  simple;
-    ScalePart   scale;
-} ScaleRec;
+    SliderPart  slider;
+} SliderRec;
 
-typedef struct {int empty;} ScaleClassPart;
+typedef struct {int empty;} SliderClassPart;
 
-typedef struct _ScaleClassRec {
+typedef struct _SliderClassRec {
     CoreClassPart   core_class;
     SimpleClassPart simple_class;
-    ScaleClassPart  scale_class;
-} ScaleClassRec;
+    SliderClassPart slider_class;
+} SliderClassRec;
 
-extern ScaleClassRec scaleClassRec;
+extern SliderClassRec sliderClassRec;
 
-#endif /* _ISW_IswScaleP_h */
+#endif /* _ISW_IswSliderP_h */

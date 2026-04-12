@@ -188,7 +188,7 @@ set(ISW_WIDGET_SOURCES
     src/Porthole.c
     src/ProgressBar.c
     src/Repeater.c
-    src/Scale.c
+    src/Slider.c
     src/Scrollbar.c
     src/ScrollWheel.c
     src/SpinBox.c

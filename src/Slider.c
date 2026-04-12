@@ -1,5 +1,5 @@
 /*
- * Scale.c - Scale (slider) widget implementation
+ * Slider.c - Slider widget implementation
  *
  * A slider control for selecting an integer value within a range.
  * Supports horizontal and vertical orientations, optional tick marks,
@@ -15,7 +15,7 @@
 #include <X11/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
-#include <ISW/ScaleP.h>
+#include <ISW/SliderP.h>
 
 #include "ISWXcbDraw.h"
 
@@ -33,38 +33,38 @@
 #define TICK_LENGTH  6
 #define VALUE_MARGIN 4
 
-#define Offset(field) XtOffsetOf(ScaleRec, field)
+#define Offset(field) XtOffsetOf(SliderRec, field)
 
 static XtResource resources[] = {
     {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
         Offset(core.border_width), XtRImmediate, (XtPointer) 0},
     {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-        Offset(scale.foreground), XtRString, XtDefaultForeground},
+        Offset(slider.foreground), XtRString, XtDefaultForeground},
     {XtNorientation, XtCOrientation, XtROrientation, sizeof(XtOrientation),
-        Offset(scale.orientation), XtRImmediate, (XtPointer) XtorientHorizontal},
+        Offset(slider.orientation), XtRImmediate, (XtPointer) XtorientHorizontal},
     {XtNminimumValue, XtCMinimumValue, XtRInt, sizeof(int),
-        Offset(scale.minimum), XtRImmediate, (XtPointer) 0},
+        Offset(slider.minimum), XtRImmediate, (XtPointer) 0},
     {XtNmaximumValue, XtCMaximumValue, XtRInt, sizeof(int),
-        Offset(scale.maximum), XtRImmediate, (XtPointer) 100},
-    {XtNscaleValue, XtCScaleValue, XtRInt, sizeof(int),
-        Offset(scale.value), XtRImmediate, (XtPointer) 0},
+        Offset(slider.maximum), XtRImmediate, (XtPointer) 100},
+    {XtNsliderValue, XtCSliderValue, XtRInt, sizeof(int),
+        Offset(slider.value), XtRImmediate, (XtPointer) 0},
     {XtNtickInterval, XtCTickInterval, XtRInt, sizeof(int),
-        Offset(scale.tick_interval), XtRImmediate, (XtPointer) 0},
+        Offset(slider.tick_interval), XtRImmediate, (XtPointer) 0},
     {XtNshowValue, XtCShowValue, XtRBoolean, sizeof(Boolean),
-        Offset(scale.show_value), XtRImmediate, (XtPointer) True},
-    {XtNvaluePosition, XtCValuePosition, XtRInt, sizeof(IswScaleValuePosition),
-        Offset(scale.value_pos), XtRImmediate, (XtPointer) IswScaleValueTop},
+        Offset(slider.show_value), XtRImmediate, (XtPointer) True},
+    {XtNvaluePosition, XtCValuePosition, XtRInt, sizeof(IswSliderValuePosition),
+        Offset(slider.value_pos), XtRImmediate, (XtPointer) IswSliderValueTop},
     {XtNlength, XtCLength, XtRDimension, sizeof(Dimension),
-        Offset(scale.length), XtRImmediate, (XtPointer) 200},
+        Offset(slider.length), XtRImmediate, (XtPointer) 200},
     {XtNthickness, XtCThickness, XtRDimension, sizeof(Dimension),
-        Offset(scale.thickness), XtRImmediate, (XtPointer) 30},
+        Offset(slider.thickness), XtRImmediate, (XtPointer) 30},
     {XtNvalueChanged, XtCCallback, XtRCallback, sizeof(XtPointer),
-        Offset(scale.value_changed), XtRCallback, NULL},
+        Offset(slider.value_changed), XtRCallback, NULL},
     {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct *),
-        Offset(scale.font), XtRString, XtDefaultFont},
+        Offset(slider.font), XtRString, XtDefaultFont},
 #ifdef ISW_INTERNATIONALIZATION
     {XtNfontSet, XtCFontSet, XtRFontSet, sizeof(ISWFontSet *),
-        Offset(scale.fontset), XtRString, XtDefaultFontSet},
+        Offset(slider.fontset), XtRString, XtDefaultFontSet},
 #endif
 };
 
@@ -96,11 +96,11 @@ static XtActionsRec actions[] = {
     {"JumpToPosition", JumpToPosition},
 };
 
-ScaleClassRec scaleClassRec = {
+SliderClassRec sliderClassRec = {
   { /* core_class fields */
     /* superclass         */ (WidgetClass) &simpleClassRec,
-    /* class_name         */ "Scale",
-    /* widget_size        */ sizeof(ScaleRec),
+    /* class_name         */ "Slider",
+    /* widget_size        */ sizeof(SliderRec),
     /* class_initialize   */ ClassInitialize,
     /* class_part_init    */ NULL,
     /* class_inited       */ FALSE,
@@ -134,67 +134,67 @@ ScaleClassRec scaleClassRec = {
   { /* simple_class fields */
     /* change_sensitive   */ XtInheritChangeSensitive
   },
-  { /* scale_class fields */
+  { /* slider_class fields */
     /* empty              */ 0
   }
 };
 
-WidgetClass scaleWidgetClass = (WidgetClass)&scaleClassRec;
+WidgetClass sliderWidgetClass = (WidgetClass)&sliderClassRec;
 
 /* --- Geometry helpers --- */
 
 /* Track margins: half the thumb size so the thumb center can reach the ends */
 static Dimension
-ThumbW(ScaleWidget sw)
+ThumbW(SliderWidget sw)
 {
     return (THUMB_WIDTH);
 }
 
 static Dimension
-ThumbH(ScaleWidget sw)
+ThumbH(SliderWidget sw)
 {
     return (THUMB_HEIGHT);
 }
 
 static Dimension
-TrackThick(ScaleWidget sw)
+TrackThick(SliderWidget sw)
 {
     return (TRACK_THICKNESS);
 }
 
-static int ValueZoneHeight(ScaleWidget sw);
-static int ValueZoneWidth(ScaleWidget sw);
+static int ValueZoneHeight(SliderWidget sw);
+static int ValueZoneWidth(SliderWidget sw);
 
 /*
  * How many pixels the track zone is offset from the widget origin.
  * For top/left value positions, the label zone pushes the track over/down.
  */
 static int
-TrackZoneOffsetX(ScaleWidget sw)
+TrackZoneOffsetX(SliderWidget sw)
 {
-    if (!sw->scale.show_value)
+    if (!sw->slider.show_value)
         return 0;
-    if (sw->scale.value_pos == IswScaleValueLeft)
+    if (sw->slider.value_pos == IswSliderValueLeft)
         return ValueZoneWidth(sw);
     return 0;
 }
 
 static int
-TrackZoneOffsetY(ScaleWidget sw)
+TrackZoneOffsetY(SliderWidget sw)
 {
-    if (!sw->scale.show_value)
+    if (!sw->slider.show_value)
         return 0;
-    if (sw->scale.value_pos == IswScaleValueTop)
+    if (sw->slider.value_pos == IswSliderValueTop)
         return ValueZoneHeight(sw);
     return 0;
 }
 
 /* The usable track length in pixels (thumb center can travel this range) */
 static int
-TrackLength(ScaleWidget sw)
+TrackLength(SliderWidget sw)
 {
     Dimension tw = ThumbW(sw);
-    if (sw->scale.orientation == XtorientHorizontal)
+    if (sw->slider.orientation == XtorientHorizontal)
         return (int)sw->core.width - TrackZoneOffsetX(sw) - (int)tw;
     else
         return (int)sw->core.height - TrackZoneOffsetY(sw) - (int)tw;
@@ -202,25 +202,25 @@ TrackLength(ScaleWidget sw)
 
 /* Convert a value to a pixel position (thumb center along the track axis) */
 static Position
-ValueToPixel(ScaleWidget sw, int value)
+ValueToPixel(SliderWidget sw, int value)
 {
-    int range = sw->scale.maximum - sw->scale.minimum;
+    int range = sw->slider.maximum - sw->slider.minimum;
     int track = TrackLength(sw);
     Dimension half_thumb = ThumbW(sw) / 2;
-    int offset = (sw->scale.orientation == XtorientHorizontal)
+    int offset = (sw->slider.orientation == XtorientHorizontal)
                  ? TrackZoneOffsetX(sw) : TrackZoneOffsetY(sw);
 
     if (range <= 0 || track <= 0)
         return (Position)(offset + (int)half_thumb);
 
     int clamped = value;
-    if (clamped < sw->scale.minimum) clamped = sw->scale.minimum;
-    if (clamped > sw->scale.maximum) clamped = sw->scale.maximum;
+    if (clamped < sw->slider.minimum) clamped = sw->slider.minimum;
+    if (clamped > sw->slider.maximum) clamped = sw->slider.maximum;
 
-    int frac = (int)((long)(clamped - sw->scale.minimum) * track / range);
+    int frac = (int)((long)(clamped - sw->slider.minimum) * track / range);
 
     /* Vertical: minimum at bottom, maximum at top */
-    if (sw->scale.orientation == XtorientVertical)
+    if (sw->slider.orientation == XtorientVertical)
         frac = track - frac;
 
     return (Position)(offset + (int)half_thumb + frac);
@@ -228,32 +228,32 @@ ValueToPixel(ScaleWidget sw, int value)
 
 /* Convert a pixel position to a value */
 static int
-PixelToValue(ScaleWidget sw, Position pixel)
+PixelToValue(SliderWidget sw, Position pixel)
 {
-    int range = sw->scale.maximum - sw->scale.minimum;
+    int range = sw->slider.maximum - sw->slider.minimum;
     int track = TrackLength(sw);
     Dimension half_thumb = ThumbW(sw) / 2;
-    int offset = (sw->scale.orientation == XtorientHorizontal)
+    int offset = (sw->slider.orientation == XtorientHorizontal)
                  ? TrackZoneOffsetX(sw) : TrackZoneOffsetY(sw);
 
     if (range <= 0 || track <= 0)
-        return sw->scale.minimum;
+        return sw->slider.minimum;
 
     int pos = (int)pixel - offset - (int)half_thumb;
     if (pos < 0) pos = 0;
     if (pos > track) pos = track;
 
     /* Vertical: invert so bottom = minimum, top = maximum */
-    if (sw->scale.orientation == XtorientVertical)
+    if (sw->slider.orientation == XtorientVertical)
         pos = track - pos;
 
-    return sw->scale.minimum + (int)((long)pos * range / track);
+    return sw->slider.minimum + (int)((long)pos * range / track);
 }
 
 static void
-UpdateThumbPos(ScaleWidget sw)
+UpdateThumbPos(SliderWidget sw)
 {
-    sw->scale.thumb_pos = ValueToPixel(sw, sw->scale.value);
+    sw->slider.thumb_pos = ValueToPixel(sw, sw->slider.value);
 }
 
 /* --- Extract position from XCB events --- */
@@ -292,35 +292,35 @@ ClassInitialize(void)
 static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
-    ScaleWidget sw = (ScaleWidget) new;
+    SliderWidget sw = (SliderWidget) new;
     (void)request; (void)args; (void)num_args;
 
     /* HiDPI scaling */
-    sw->scale.length = (sw->scale.length);
-    sw->scale.thickness = (sw->scale.thickness);
+    sw->slider.length = (sw->slider.length);
+    sw->slider.thickness = (sw->slider.thickness);
 
     /* Compute minimum cross-axis size from content:
      * thumb + value label zone + tick marks */
     Dimension thumb_cross = (THUMB_HEIGHT);
     Dimension tick_zone = 0;
-    if (sw->scale.tick_interval > 0)
+    if (sw->slider.tick_interval > 0)
         tick_zone = (TICK_LENGTH) + 2;
     Dimension value_zone = 0;
-    if (sw->scale.show_value && sw->scale.font) {
-        value_zone = ISWScaledFontHeight(new, sw->scale.font)
+    if (sw->slider.show_value && sw->slider.font) {
+        value_zone = ISWScaledFontHeight(new, sw->slider.font)
                    + (VALUE_MARGIN);
     }
     Dimension min_cross = thumb_cross + tick_zone + value_zone;
 
     /* Default geometry */
     if (sw->core.width == 0)
-        sw->core.width = (sw->scale.orientation == XtorientHorizontal)
-            ? sw->scale.length : min_cross;
+        sw->core.width = (sw->slider.orientation == XtorientHorizontal)
+            ? sw->slider.length : min_cross;
     if (sw->core.height == 0)
-        sw->core.height = (sw->scale.orientation == XtorientHorizontal)
-            ? min_cross : sw->scale.length;
+        sw->core.height = (sw->slider.orientation == XtorientHorizontal)
+            ? min_cross : sw->slider.length;
     /* Enforce minimum so nothing gets clipped */
-    if (sw->scale.orientation == XtorientHorizontal) {
+    if (sw->slider.orientation == XtorientHorizontal) {
         if (sw->core.height < min_cross)
             sw->core.height = min_cross;
     } else {
@@ -329,14 +329,14 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     }
 
     /* Clamp value */
-    if (sw->scale.value < sw->scale.minimum)
-        sw->scale.value = sw->scale.minimum;
-    if (sw->scale.value > sw->scale.maximum)
-        sw->scale.value = sw->scale.maximum;
+    if (sw->slider.value < sw->slider.minimum)
+        sw->slider.value = sw->slider.minimum;
+    if (sw->slider.value > sw->slider.maximum)
+        sw->slider.value = sw->slider.maximum;
 
-    sw->scale.dragging = False;
-    sw->scale.drag_offset = 0;
-    sw->scale.render_ctx = NULL;
+    sw->slider.dragging = False;
+    sw->slider.drag_offset = 0;
+    sw->slider.render_ctx = NULL;
 
     UpdateThumbPos(sw);
 }
@@ -344,58 +344,58 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 static void
 Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
-    ScaleWidget sw = (ScaleWidget) w;
+    SliderWidget sw = (SliderWidget) w;
 
     /* Chain up to Simple's realize */
-    (*scaleWidgetClass->core_class.superclass->core_class.realize)
+    (*sliderWidgetClass->core_class.superclass->core_class.realize)
         (dpy, w, valueMask, attributes);
 
-    sw->scale.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    sw->slider.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
 }
 
 static void
 Destroy(Widget w)
 {
-    ScaleWidget sw = (ScaleWidget) w;
-    if (sw->scale.render_ctx)
-        ISWRenderDestroy(sw->scale.render_ctx);
+    SliderWidget sw = (SliderWidget) w;
+    if (sw->slider.render_ctx)
+        ISWRenderDestroy(sw->slider.render_ctx);
 }
 
 static void
 Resize(Widget w)
 {
-    ScaleWidget sw = (ScaleWidget) w;
+    SliderWidget sw = (SliderWidget) w;
     UpdateThumbPos(sw);
     if (XtIsRealized(w))
         Redisplay(w, NULL, 0);
 }
 
 static int
-ValueZoneHeight(ScaleWidget sw)
+ValueZoneHeight(SliderWidget sw)
 {
-    if (!sw->scale.show_value || !sw->scale.font)
+    if (!sw->slider.show_value || !sw->slider.font)
         return 0;
-    if (sw->scale.value_pos != IswScaleValueTop &&
-        sw->scale.value_pos != IswScaleValueBottom)
+    if (sw->slider.value_pos != IswSliderValueTop &&
+        sw->slider.value_pos != IswSliderValueBottom)
         return 0;
-    return ISWScaledFontHeight((Widget)sw, sw->scale.font)
+    return ISWScaledFontHeight((Widget)sw, sw->slider.font)
          + (int)(VALUE_MARGIN);
 }
 
 static int
-ValueZoneWidth(ScaleWidget sw)
+ValueZoneWidth(SliderWidget sw)
 {
-    if (!sw->scale.show_value || !sw->scale.font)
+    if (!sw->slider.show_value || !sw->slider.font)
         return 0;
-    if (sw->scale.value_pos != IswScaleValueLeft &&
-        sw->scale.value_pos != IswScaleValueRight)
+    if (sw->slider.value_pos != IswSliderValueLeft &&
+        sw->slider.value_pos != IswSliderValueRight)
         return 0;
     /* Reserve space for widest possible value string */
     char buf[32];
-    snprintf(buf, sizeof(buf), "%d", sw->scale.maximum);
-    int w_max = ISWRenderTextWidth(sw->scale.render_ctx, buf, (int)strlen(buf));
-    snprintf(buf, sizeof(buf), "%d", sw->scale.minimum);
-    int w_min = ISWRenderTextWidth(sw->scale.render_ctx, buf, (int)strlen(buf));
+    snprintf(buf, sizeof(buf), "%d", sw->slider.maximum);
+    int w_max = ISWRenderTextWidth(sw->slider.render_ctx, buf, (int)strlen(buf));
+    snprintf(buf, sizeof(buf), "%d", sw->slider.minimum);
+    int w_min = ISWRenderTextWidth(sw->slider.render_ctx, buf, (int)strlen(buf));
     int wid = (w_max > w_min) ? w_max : w_min;
     return wid + (int)(VALUE_MARGIN);
 }
@@ -406,33 +406,33 @@ ValueZoneWidth(ScaleWidget sw)
  * not just the thin track line.
  */
 static void
-DrawValueLabel(Widget w, ScaleWidget sw, ISWRenderContext *ctx,
+DrawValueLabel(Widget w, SliderWidget sw, ISWRenderContext *ctx,
                int area_x, int area_y, int area_w, int area_h)
 {
-    if (!sw->scale.show_value || !sw->scale.font)
+    if (!sw->slider.show_value || !sw->slider.font)
         return;
 
     char buf[32];
-    snprintf(buf, sizeof(buf), "%d", sw->scale.value);
+    snprintf(buf, sizeof(buf), "%d", sw->slider.value);
     int text_w = ISWRenderTextWidth(ctx, buf, (int)strlen(buf));
-    int font_asc = ISWScaledFontAscent(w, sw->scale.font);
+    int font_asc = ISWScaledFontAscent(w, sw->slider.font);
     int margin = (int)(VALUE_MARGIN);
     int lx, ly;
 
-    switch (sw->scale.value_pos) {
-    case IswScaleValueTop:
+    switch (sw->slider.value_pos) {
+    case IswSliderValueTop:
         lx = area_x;
         ly = area_y - margin;  /* baseline sits above the slider area */
         break;
-    case IswScaleValueBottom:
+    case IswSliderValueBottom:
         lx = area_x;
         ly = area_y + area_h + margin + font_asc;
         break;
-    case IswScaleValueLeft:
+    case IswSliderValueLeft:
         lx = area_x - margin - text_w;
         ly = area_y + area_h / 2 + font_asc / 2;
         break;
-    case IswScaleValueRight:
+    case IswSliderValueRight:
         lx = area_x + area_w + margin;
         ly = area_y + area_h / 2 + font_asc / 2;
         break;
@@ -454,8 +454,8 @@ DrawValueLabel(Widget w, ScaleWidget sw, ISWRenderContext *ctx,
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-    ScaleWidget sw = (ScaleWidget) w;
-    ISWRenderContext *ctx = sw->scale.render_ctx;
+    SliderWidget sw = (SliderWidget) w;
+    ISWRenderContext *ctx = sw->slider.render_ctx;
     (void)event; (void)region;
 
     if (!ctx || !XtIsRealized(w))
@@ -474,11 +474,11 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     ISWRenderSetColor(ctx, sw->core.background_pixel);
     ISWRenderFillRectangle(ctx, 0, 0, sw->core.width, sw->core.height);
 
-    ISWRenderSetColor(ctx, sw->scale.foreground);
-    if (sw->scale.font)
-        ISWRenderSetFont(ctx, sw->scale.font);
+    ISWRenderSetColor(ctx, sw->slider.foreground);
+    if (sw->slider.font)
+        ISWRenderSetFont(ctx, sw->slider.font);
 
-    if (sw->scale.orientation == XtorientHorizontal) {
+    if (sw->slider.orientation == XtorientHorizontal) {
         /* --- Horizontal layout --- */
         int track_zone_h = (int)sw->core.height - off_y;
         int track_center_y = off_y + track_zone_h / 2;
@@ -490,17 +490,17 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         ISWRenderFillRectangle(ctx, track_x, track_y, track_w, track_thick);
 
         /* Tick marks (below track) */
-        if (sw->scale.tick_interval > 0) {
+        if (sw->slider.tick_interval > 0) {
             Dimension tick_len = (TICK_LENGTH);
             int tick_y = track_y + (int)track_thick + 2;
 
-            for (int v = sw->scale.minimum; v <= sw->scale.maximum;
-                 v += sw->scale.tick_interval) {
+            for (int v = sw->slider.minimum; v <= sw->slider.maximum;
+                 v += sw->slider.tick_interval) {
                 Position px = ValueToPixel(sw, v);
                 ISWRenderDrawLine(ctx, px, tick_y, px, tick_y + (int)tick_len);
             }
-            if ((sw->scale.maximum - sw->scale.minimum) % sw->scale.tick_interval != 0) {
-                Position px = ValueToPixel(sw, sw->scale.maximum);
+            if ((sw->slider.maximum - sw->slider.minimum) % sw->slider.tick_interval != 0) {
+                Position px = ValueToPixel(sw, sw->slider.maximum);
                 ISWRenderDrawLine(ctx, px, tick_y, px, tick_y + (int)tick_len);
             }
         }
@@ -508,7 +508,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         /* Thumb — thin bar perpendicular to track, radiused on the ends */
         {
             Dimension bar_thick = (THUMB_BAR_THICK);
-            Position tx = sw->scale.thumb_pos - (Position)(bar_thick / 2);
+            Position tx = sw->slider.thumb_pos - (Position)(bar_thick / 2);
             Position ty = track_center_y - (int)thumb_h / 2;
             ISWRenderFillRoundedRectangle(ctx, tx, ty, bar_thick, thumb_h,
                                           bar_thick / 2.0);
@@ -530,17 +530,17 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         ISWRenderFillRectangle(ctx, track_x, track_top, track_thick, track_h);
 
         /* Tick marks (right of track) */
-        if (sw->scale.tick_interval > 0) {
+        if (sw->slider.tick_interval > 0) {
             Dimension tick_len = (TICK_LENGTH);
             int tick_x = track_x + (int)track_thick + 2;
 
-            for (int v = sw->scale.minimum; v <= sw->scale.maximum;
-                 v += sw->scale.tick_interval) {
+            for (int v = sw->slider.minimum; v <= sw->slider.maximum;
+                 v += sw->slider.tick_interval) {
                 Position py = ValueToPixel(sw, v);
                 ISWRenderDrawLine(ctx, tick_x, py, tick_x + (int)tick_len, py);
             }
-            if ((sw->scale.maximum - sw->scale.minimum) % sw->scale.tick_interval != 0) {
-                Position py = ValueToPixel(sw, sw->scale.maximum);
+            if ((sw->slider.maximum - sw->slider.minimum) % sw->slider.tick_interval != 0) {
+                Position py = ValueToPixel(sw, sw->slider.maximum);
                 ISWRenderDrawLine(ctx, tick_x, py, tick_x + (int)tick_len, py);
             }
         }
@@ -549,7 +549,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         {
             Dimension bar_thick = (THUMB_BAR_THICK);
             Position tx = track_center_x - (int)thumb_h / 2;
-            Position ty = sw->scale.thumb_pos - (Position)(bar_thick / 2);
+            Position ty = sw->slider.thumb_pos - (Position)(bar_thick / 2);
             ISWRenderFillRoundedRectangle(ctx, tx, ty, thumb_h, bar_thick,
                                           bar_thick / 2.0);
         }
@@ -565,26 +565,26 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 static Boolean
 SetValues(Widget current, Widget request, Widget desired, ArgList args, Cardinal *num_args)
 {
-    ScaleWidget csw = (ScaleWidget) current;
-    ScaleWidget dsw = (ScaleWidget) desired;
+    SliderWidget csw = (SliderWidget) current;
+    SliderWidget dsw = (SliderWidget) desired;
     Boolean redraw = FALSE;
     (void)request; (void)args; (void)num_args;
 
     /* Clamp value */
-    if (dsw->scale.value < dsw->scale.minimum)
-        dsw->scale.value = dsw->scale.minimum;
-    if (dsw->scale.value > dsw->scale.maximum)
-        dsw->scale.value = dsw->scale.maximum;
+    if (dsw->slider.value < dsw->slider.minimum)
+        dsw->slider.value = dsw->slider.minimum;
+    if (dsw->slider.value > dsw->slider.maximum)
+        dsw->slider.value = dsw->slider.maximum;
 
-    if (csw->scale.value != dsw->scale.value ||
-        csw->scale.minimum != dsw->scale.minimum ||
-        csw->scale.maximum != dsw->scale.maximum ||
-        csw->scale.foreground != dsw->scale.foreground ||
+    if (csw->slider.value != dsw->slider.value ||
+        csw->slider.minimum != dsw->slider.minimum ||
+        csw->slider.maximum != dsw->slider.maximum ||
+        csw->slider.foreground != dsw->slider.foreground ||
         csw->core.background_pixel != dsw->core.background_pixel ||
-        csw->scale.orientation != dsw->scale.orientation ||
-        csw->scale.tick_interval != dsw->scale.tick_interval ||
-        csw->scale.show_value != dsw->scale.show_value ||
-        csw->scale.value_pos != dsw->scale.value_pos) {
+        csw->slider.orientation != dsw->slider.orientation ||
+        csw->slider.tick_interval != dsw->slider.tick_interval ||
+        csw->slider.show_value != dsw->slider.show_value ||
+        csw->slider.value_pos != dsw->slider.value_pos) {
         UpdateThumbPos(dsw);
         redraw = TRUE;
     }
@@ -595,17 +595,17 @@ SetValues(Widget current, Widget request, Widget desired, ArgList args, Cardinal
 /* --- Action procedures --- */
 
 static void
-SetValueAndNotify(ScaleWidget sw, int new_value)
+SetValueAndNotify(SliderWidget sw, int new_value)
 {
-    if (new_value < sw->scale.minimum) new_value = sw->scale.minimum;
-    if (new_value > sw->scale.maximum) new_value = sw->scale.maximum;
+    if (new_value < sw->slider.minimum) new_value = sw->slider.minimum;
+    if (new_value > sw->slider.maximum) new_value = sw->slider.maximum;
 
-    if (new_value != sw->scale.value) {
-        sw->scale.value = new_value;
+    if (new_value != sw->slider.value) {
+        sw->slider.value = new_value;
         UpdateThumbPos(sw);
         Redisplay((Widget)sw, NULL, 0);
 
-        IswScaleCallbackData cb_data;
+        IswSliderCallbackData cb_data;
         cb_data.value = new_value;
         XtCallCallbacks((Widget)sw, XtNvalueChanged, (XtPointer)&cb_data);
     }
@@ -614,24 +614,24 @@ SetValueAndNotify(ScaleWidget sw, int new_value)
 static void
 StartDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
-    ScaleWidget sw = (ScaleWidget) w;
+    SliderWidget sw = (SliderWidget) w;
     Position x, y;
     (void)params; (void)num_params;
 
     ExtractPosition(event, &x, &y);
 
-    Position pick = (sw->scale.orientation == XtorientHorizontal) ? x : y;
+    Position pick = (sw->slider.orientation == XtorientHorizontal) ? x : y;
     Dimension half_thumb = ThumbW(sw) / 2;
 
     /* Check if click is on the thumb */
-    if (pick >= sw->scale.thumb_pos - (Position)half_thumb &&
-        pick <= sw->scale.thumb_pos + (Position)half_thumb) {
-        sw->scale.dragging = True;
-        sw->scale.drag_offset = (int)pick - (int)sw->scale.thumb_pos;
+    if (pick >= sw->slider.thumb_pos - (Position)half_thumb &&
+        pick <= sw->slider.thumb_pos + (Position)half_thumb) {
+        sw->slider.dragging = True;
+        sw->slider.drag_offset = (int)pick - (int)sw->slider.thumb_pos;
     } else {
         /* Jump to clicked position */
-        sw->scale.dragging = True;
-        sw->scale.drag_offset = 0;
+        sw->slider.dragging = True;
+        sw->slider.drag_offset = 0;
         SetValueAndNotify(sw, PixelToValue(sw, pick));
     }
 }
@@ -639,61 +639,61 @@ StartDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
 static void
 Drag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
-    ScaleWidget sw = (ScaleWidget) w;
+    SliderWidget sw = (SliderWidget) w;
     Position x, y;
     (void)params; (void)num_params;
 
-    if (!sw->scale.dragging)
+    if (!sw->slider.dragging)
         return;
 
     ExtractPosition(event, &x, &y);
-    Position pick = (sw->scale.orientation == XtorientHorizontal) ? x : y;
-    SetValueAndNotify(sw, PixelToValue(sw, pick - sw->scale.drag_offset));
+    Position pick = (sw->slider.orientation == XtorientHorizontal) ? x : y;
+    SetValueAndNotify(sw, PixelToValue(sw, pick - sw->slider.drag_offset));
 }
 
 static void
 EndDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
-    ScaleWidget sw = (ScaleWidget) w;
+    SliderWidget sw = (SliderWidget) w;
     (void)event; (void)params; (void)num_params;
-    sw->scale.dragging = False;
+    sw->slider.dragging = False;
 }
 
 static void
 JumpToPosition(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
-    ScaleWidget sw = (ScaleWidget) w;
+    SliderWidget sw = (SliderWidget) w;
     Position x, y;
     (void)params; (void)num_params;
 
     ExtractPosition(event, &x, &y);
-    Position pick = (sw->scale.orientation == XtorientHorizontal) ? x : y;
-    sw->scale.dragging = False;
+    Position pick = (sw->slider.orientation == XtorientHorizontal) ? x : y;
+    sw->slider.dragging = False;
     SetValueAndNotify(sw, PixelToValue(sw, pick));
 }
 
 /* --- Public API --- */
 
 void
-IswScaleSetValue(Widget w, int value)
+IswSliderSetValue(Widget w, int value)
 {
-    ScaleWidget sw = (ScaleWidget) w;
+    SliderWidget sw = (SliderWidget) w;
     Arg args[1];
 
-    XtSetArg(args[0], XtNscaleValue, value);
+    XtSetArg(args[0], XtNsliderValue, value);
     XtSetValues(w, args, 1);
 
     /* Fire callback if value actually changed */
-    if (sw->scale.value == value) {
-        IswScaleCallbackData cb_data;
+    if (sw->slider.value == value) {
+        IswSliderCallbackData cb_data;
         cb_data.value = value;
         XtCallCallbacks(w, XtNvalueChanged, (XtPointer)&cb_data);
     }
 }
 
 int
-IswScaleGetValue(Widget w)
+IswSliderGetValue(Widget w)
 {
-    ScaleWidget sw = (ScaleWidget) w;
-    return sw->scale.value;
+    SliderWidget sw = (SliderWidget) w;
+    return sw->slider.value;
 }

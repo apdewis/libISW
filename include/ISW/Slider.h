@@ -1,22 +1,22 @@
 /*
- * Scale.h - Public header for Scale widget
+ * Slider.h - Public header for Slider widget
  *
  * A slider control for selecting a value within a range.
  * Supports horizontal and vertical orientations.
  */
 
-#ifndef _ISW_IswScale_h
-#define _ISW_IswScale_h
+#ifndef _ISW_IswSlider_h
+#define _ISW_IswSlider_h
 
 #include <X11/Xfuncproto.h>
 
-/* Scale-specific resource names */
+/* Slider-specific resource names */
 #define XtNminimumValue   "minimumValue"
 #define XtCMinimumValue   "MinimumValue"
 #define XtNmaximumValue   "maximumValue"
 #define XtCMaximumValue   "MaximumValue"
-#define XtNscaleValue     "scaleValue"
-#define XtCScaleValue     "ScaleValue"
+#define XtNsliderValue    "sliderValue"
+#define XtCSliderValue    "SliderValue"
 #define XtNshowValue      "showValue"
 #define XtCShowValue      "ShowValue"
 #define XtNvalueChanged   "valueChanged"
@@ -27,27 +27,27 @@
 
 /* Value position enum */
 typedef enum {
-    IswScaleValueTop,
-    IswScaleValueBottom,
-    IswScaleValueLeft,
-    IswScaleValueRight
-} IswScaleValuePosition;
+    IswSliderValueTop,
+    IswSliderValueBottom,
+    IswSliderValueLeft,
+    IswSliderValueRight
+} IswSliderValuePosition;
 
-extern WidgetClass scaleWidgetClass;
+extern WidgetClass sliderWidgetClass;
 
-typedef struct _ScaleClassRec *ScaleWidgetClass;
-typedef struct _ScaleRec      *ScaleWidget;
+typedef struct _SliderClassRec *SliderWidgetClass;
+typedef struct _SliderRec      *SliderWidget;
 
 /* Callback data passed with valueChanged */
 typedef struct {
     int value;
-} IswScaleCallbackData;
+} IswSliderCallbackData;
 
 _XFUNCPROTOBEGIN
 
-extern void IswScaleSetValue(Widget w, int value);
-extern int  IswScaleGetValue(Widget w);
+extern void IswSliderSetValue(Widget w, int value);
+extern int  IswSliderGetValue(Widget w);
 
 _XFUNCPROTOEND
 
-#endif /* _ISW_IswScale_h */
+#endif /* _ISW_IswSlider_h */

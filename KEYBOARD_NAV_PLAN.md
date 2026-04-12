@@ -6,7 +6,7 @@ ISW currently has no keyboard navigation beyond what the Text widget provides. T
 
 - **Xt keyboard infrastructure exists**: `XtSetKeyboardFocus`, `XtGetKeyboardFocusWidget`, key event dispatch, translation manager `<Key>` handling all work.
 - **No Tab traversal**: Motif had this, Xaw never did. ISW inherits the gap.
-- **No widget-level key bindings**: Interactive widgets (Command, Toggle, List, IconView, Scale, SpinBox, menus) have no keyboard activation or navigation.
+- **No widget-level key bindings**: Interactive widgets (Command, Toggle, List, IconView, Slider, SpinBox, menus) have no keyboard activation or navigation.
 
 ## Work Items
 
@@ -25,7 +25,7 @@ ISW currently has no keyboard navigation beyond what the Text widget provides. T
 | Command / Toggle | Space or Enter to activate |
 | List | Up/Down arrow to move selection, Home/End, Page Up/Down, type-ahead search |
 | IconView | Arrow keys (grid-aware: left/right/up/down), Home/End, Space to toggle selection in multi-select mode, Ctrl+A to select all |
-| Scale | Left/Down to decrement, Right/Up to increment, Home/End for min/max, Page Up/Down for large steps |
+| Slider | Left/Down to decrement, Right/Up to increment, Home/End for min/max, Page Up/Down for large steps |
 | SpinBox | Up/Down arrows to increment/decrement (in addition to button clicks) |
 | Scrollbar | Arrow keys, Page Up/Down |
 | ComboBox | Up/Down to change selection, Enter to confirm, Escape to close dropdown |
@@ -53,7 +53,7 @@ Currently `display_accelerator` is NULL on both SmeBSB and SimpleMenu, and no me
 2. **Command/Toggle activation** — simplest widget key bindings, good test of focus system.
 3. **List/ComboBox keyboard nav** — high value, commonly needed.
 4. **IconView keyboard nav** — grid-aware arrow movement.
-5. **Scale/SpinBox keyboard adjustment** — straightforward.
+5. **Slider/SpinBox keyboard adjustment** — straightforward.
 6. **Menu keyboard access** — mnemonics, arrow navigation across menus.
 7. **Menu accelerators** — shortcut keys on menu items, display text, install on Shell.
 

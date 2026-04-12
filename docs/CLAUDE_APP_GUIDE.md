@@ -81,7 +81,7 @@ void my_callback(Widget w, XtPointer client_data, XtPointer call_data)
 | Toggle | `toggleWidgetClass` | `<ISW/Toggle.h>` | Checkbox / radio button (`XtNradioGroup`) |
 | Repeater | `repeaterWidgetClass` | `<ISW/Repeater.h>` | Auto-repeating button |
 | Scrollbar | `scrollbarWidgetClass` | `<ISW/Scrollbar.h>` | Scrollbar with arrows |
-| Scale | `scaleWidgetClass` | `<ISW/Scale.h>` | Slider with numeric display |
+| Slider | `sliderWidgetClass` | `<ISW/Slider.h>` | Slider with numeric display |
 | SpinBox | `spinBoxWidgetClass` | `<ISW/SpinBox.h>` | Numeric input with +/- buttons |
 | ComboBox | `comboBoxWidgetClass` | `<ISW/ComboBox.h>` | Dropdown selection |
 

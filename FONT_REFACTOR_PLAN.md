@@ -25,7 +25,7 @@ Every reference to `XFontStruct *` / `XtFontStruct *` across the codebase needs 
 - SmeBSB.c / SmeBSBP.h — menu item text
 - AsciiSink.c / AsciiSinkP.h — text widget rendering
 - MultiSink.c / MultiSinkP.h — international text
-- Scale.c / ScaleP.h — value label
+- Slider.c / SliderP.h — value label
 - SpinBox.c — child text widget font
 - FontChooser.c — preview font
 - IconView.c / IconViewP.h — icon label font

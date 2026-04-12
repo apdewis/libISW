@@ -1,7 +1,7 @@
 /*
  * ColorPicker.c - ColorPicker widget implementation
  *
- * A Form subclass with three Scale sliders (R/G/B 0-255), labels,
+ * A Form subclass with three Slider widgets (R/G/B 0-255), labels,
  * and a preview swatch showing the selected color.
  */
 
@@ -15,7 +15,7 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ColorPickerP.h>
-#include <ISW/Scale.h>
+#include <ISW/Slider.h>
 #include <ISW/Label.h>
 #include <ISW/Simple.h>
 
@@ -139,14 +139,14 @@ static void
 SliderChanged(Widget w, XtPointer client_data, XtPointer call_data)
 {
     ColorPickerWidget cpw = (ColorPickerWidget) client_data;
-    IswScaleCallbackData *sd = (IswScaleCallbackData *) call_data;
+    IswSliderCallbackData *sd = (IswSliderCallbackData *) call_data;
     (void)w;
 
-    if (w == cpw->colorPicker.redScale)
+    if (w == cpw->colorPicker.redSlider)
         cpw->colorPicker.red = sd->value;
-    else if (w == cpw->colorPicker.greenScale)
+    else if (w == cpw->colorPicker.greenSlider)
         cpw->colorPicker.green = sd->value;
-    else if (w == cpw->colorPicker.blueScale)
+    else if (w == cpw->colorPicker.blueSlider)
         cpw->colorPicker.blue = sd->value;
 
     UpdateSwatch(cpw);
@@ -193,15 +193,15 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     n = 0;
     XtSetArg(a[n], XtNminimumValue, 0); n++;
     XtSetArg(a[n], XtNmaximumValue, 255); n++;
-    XtSetArg(a[n], XtNscaleValue, cpw->colorPicker.red); n++;
+    XtSetArg(a[n], XtNsliderValue, cpw->colorPicker.red); n++;
     XtSetArg(a[n], XtNshowValue, False); n++;
     XtSetArg(a[n], XtNorientation, XtorientHorizontal); n++;
     XtSetArg(a[n], XtNwidth, slider_w); n++;
     XtSetArg(a[n], XtNheight, slider_h); n++;
     XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.redLabel); n++;
-    cpw->colorPicker.redScale = XtCreateManagedWidget(
-        "redScale", scaleWidgetClass, new, a, n);
-    XtAddCallback(cpw->colorPicker.redScale, XtNvalueChanged,
+    cpw->colorPicker.redSlider = XtCreateManagedWidget(
+        "redSlider", sliderWidgetClass, new, a, n);
+    XtAddCallback(cpw->colorPicker.redSlider, XtNvalueChanged,
                   SliderChanged, (XtPointer)cpw);
 
     /* G label */
@@ -218,16 +218,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     n = 0;
     XtSetArg(a[n], XtNminimumValue, 0); n++;
     XtSetArg(a[n], XtNmaximumValue, 255); n++;
-    XtSetArg(a[n], XtNscaleValue, cpw->colorPicker.green); n++;
+    XtSetArg(a[n], XtNsliderValue, cpw->colorPicker.green); n++;
     XtSetArg(a[n], XtNshowValue, False); n++;
     XtSetArg(a[n], XtNorientation, XtorientHorizontal); n++;
     XtSetArg(a[n], XtNwidth, slider_w); n++;
     XtSetArg(a[n], XtNheight, slider_h); n++;
     XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.greenLabel); n++;
-    XtSetArg(a[n], XtNfromVert, cpw->colorPicker.redScale); n++;
-    cpw->colorPicker.greenScale = XtCreateManagedWidget(
-        "greenScale", scaleWidgetClass, new, a, n);
-    XtAddCallback(cpw->colorPicker.greenScale, XtNvalueChanged,
+    XtSetArg(a[n], XtNfromVert, cpw->colorPicker.redSlider); n++;
+    cpw->colorPicker.greenSlider = XtCreateManagedWidget(
+        "greenSlider", sliderWidgetClass, new, a, n);
+    XtAddCallback(cpw->colorPicker.greenSlider, XtNvalueChanged,
                   SliderChanged, (XtPointer)cpw);
 
     /* B label */
@@ -244,16 +244,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     n = 0;
     XtSetArg(a[n], XtNminimumValue, 0); n++;
     XtSetArg(a[n], XtNmaximumValue, 255); n++;
-    XtSetArg(a[n], XtNscaleValue, cpw->colorPicker.blue); n++;
+    XtSetArg(a[n], XtNsliderValue, cpw->colorPicker.blue); n++;
     XtSetArg(a[n], XtNshowValue, False); n++;
     XtSetArg(a[n], XtNorientation, XtorientHorizontal); n++;
     XtSetArg(a[n], XtNwidth, slider_w); n++;
     XtSetArg(a[n], XtNheight, slider_h); n++;
     XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.blueLabel); n++;
-    XtSetArg(a[n], XtNfromVert, cpw->colorPicker.greenScale); n++;
-    cpw->colorPicker.blueScale = XtCreateManagedWidget(
-        "blueScale", scaleWidgetClass, new, a, n);
-    XtAddCallback(cpw->colorPicker.blueScale, XtNvalueChanged,
+    XtSetArg(a[n], XtNfromVert, cpw->colorPicker.greenSlider); n++;
+    cpw->colorPicker.blueSlider = XtCreateManagedWidget(
+        "blueSlider", sliderWidgetClass, new, a, n);
+    XtAddCallback(cpw->colorPicker.blueSlider, XtNvalueChanged,
                   SliderChanged, (XtPointer)cpw);
 
     /* Color swatch preview */
@@ -261,7 +261,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     XtSetArg(a[n], XtNwidth, swatch_sz); n++;
     XtSetArg(a[n], XtNheight, swatch_sz); n++;
     XtSetArg(a[n], XtNborderWidth, 1); n++;
-    XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.redScale); n++;
+    XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.redSlider); n++;
     cpw->colorPicker.swatchW = XtCreateManagedWidget(
         "swatch", simpleWidgetClass, new, a, n);
     XtAddEventHandler(cpw->colorPicker.swatchW, XCB_EVENT_MASK_EXPOSURE, False,
@@ -279,15 +279,15 @@ SetValues(Widget current, Widget request, Widget desired,
     Boolean changed = FALSE;
 
     if (ccpw->colorPicker.red != dcpw->colorPicker.red) {
-        IswScaleSetValue(dcpw->colorPicker.redScale, dcpw->colorPicker.red);
+        IswSliderSetValue(dcpw->colorPicker.redSlider, dcpw->colorPicker.red);
         changed = TRUE;
     }
     if (ccpw->colorPicker.green != dcpw->colorPicker.green) {
-        IswScaleSetValue(dcpw->colorPicker.greenScale, dcpw->colorPicker.green);
+        IswSliderSetValue(dcpw->colorPicker.greenSlider, dcpw->colorPicker.green);
         changed = TRUE;
     }
     if (ccpw->colorPicker.blue != dcpw->colorPicker.blue) {
-        IswScaleSetValue(dcpw->colorPicker.blueScale, dcpw->colorPicker.blue);
+        IswSliderSetValue(dcpw->colorPicker.blueSlider, dcpw->colorPicker.blue);
         changed = TRUE;
     }
 
