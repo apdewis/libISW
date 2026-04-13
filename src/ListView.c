@@ -268,8 +268,11 @@ ComputeMetrics(ListViewWidget lv)
 
     if (pref_h != w->core.height) {
         Dimension actual_w, actual_h;
-        XtMakeResizeRequest(w, w->core.width > 0 ? w->core.width : pref_w,
-                            pref_h, &actual_w, &actual_h);
+        XtGeometryResult r = XtMakeResizeRequest(w,
+                                w->core.width > 0 ? w->core.width : pref_w,
+                                pref_h, &actual_w, &actual_h);
+        if (r == XtGeometryAlmost)
+            XtMakeResizeRequest(w, actual_w, actual_h, NULL, NULL);
     }
 }
 

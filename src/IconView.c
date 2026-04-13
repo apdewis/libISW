@@ -266,8 +266,10 @@ ComputeLayout(IconViewWidget iw)
 
     if (pref_h != iw->core.height) {
         Dimension actual_w, actual_h;
-        XtMakeResizeRequest(w, iw->core.width, pref_h,
-                            &actual_w, &actual_h);
+        XtGeometryResult r = XtMakeResizeRequest(w, iw->core.width, pref_h,
+                                                  &actual_w, &actual_h);
+        if (r == XtGeometryAlmost)
+            XtMakeResizeRequest(w, actual_w, actual_h, NULL, NULL);
     }
 }
 
