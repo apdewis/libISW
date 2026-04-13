@@ -92,8 +92,8 @@ GetValues(char *const base,             /* Base address to fetch values from */
 
     LOCK_PROCESS;
     if (QCallback == NULLQUARK) {
-        QCallback = XrmPermStringToQuark(XtRCallback);
-        QTranslationTable = XrmPermStringToQuark(XtRTranslationTable);
+        QCallback = XrmPermStringToQuark(IswRCallback);
+        QTranslationTable = XrmPermStringToQuark(IswRTranslationTable);
     }
     UNLOCK_PROCESS;
 
@@ -106,20 +106,20 @@ GetValues(char *const base,             /* Base address to fetch values from */
                 /* hack; do special cases here instead of a get_values_hook
                  * because get_values_hook looses info as to
                  * whether arg->value == NULL for ancient compatibility
-                 * mode in _XtCopyToArg.  It helps performance, too...
+                 * mode in _IswCopyToArg.  It helps performance, too...
                  */
                 if ((*xrmres)->xrm_type == QCallback) {
-                    XtCallbackList callback =
-                        _XtGetCallbackList((InternalCallbackList *)
+                    IswCallbackList callback =
+                        _IswGetCallbackList((InternalCallbackList *)
                                            (base - (*xrmres)->xrm_offset - 1));
 
-                    _XtCopyToArg((char *) &callback, &arg->value,
+                    _IswCopyToArg((char *) &callback, &arg->value,
                                  (*xrmres)->xrm_size);
                 }
                 else if ((*xrmres)->xrm_type == QTranslationTable)
                     translation_arg_num = (int) (arg - args);
                 else {
-                    _XtCopyToArg(base - (*xrmres)->xrm_offset - 1,
+                    _IswCopyToArg(base - (*xrmres)->xrm_offset - 1,
                                  &arg->value, (*xrmres)->xrm_size);
                 }
                 break;
@@ -136,7 +136,7 @@ CallGetValuesHook(WidgetClass widget_class,
                   Cardinal num_args)
 {
     WidgetClass superclass;
-    XtArgsProc get_values_hook;
+    IswArgsProc get_values_hook;
 
     LOCK_PROCESS;
     superclass = widget_class->core_class.superclass;
@@ -172,7 +172,7 @@ CallConstraintGetValuesHook(WidgetClass widget_class,
          ext = (ConstraintClassExtension) ext->next_extension);
 
     if (ext != NULL) {
-        if (ext->version == XtConstraintExtensionVersion
+        if (ext->version == IswConstraintExtensionVersion
             && ext->record_size == sizeof(ConstraintClassExtensionRec)) {
             if (ext->get_values_hook != NULL)
                 (*(ext->get_values_hook)) (w, args, &num_args);
@@ -182,9 +182,9 @@ CallConstraintGetValuesHook(WidgetClass widget_class,
             Cardinal num_params = 1;
 
             params[0] = widget_class->core_class.class_name;
-            XtAppWarningMsg(XtWidgetToApplicationContext(w),
+            IswAppWarningMsg(IswWidgetToApplicationContext(w),
                             "invalidExtension", "xtCreateWidget",
-                            XtCXtToolkitError,
+                            IswCIswToolkitError,
                             "widget class %s has invalid ConstraintClassExtension record",
                             params, &num_params);
         }
@@ -193,43 +193,43 @@ CallConstraintGetValuesHook(WidgetClass widget_class,
 }
 
 void
-XtGetValues(register Widget w,
+IswGetValues(register Widget w,
             register ArgList args,
             register Cardinal num_args)
 {
     WidgetClass wc;
     int targ;
-    XtAppContext app = XtWidgetToApplicationContext(w);
+    IswAppContext app = IswWidgetToApplicationContext(w);
 
     if (num_args == 0) {
         return;
     } else if (args == NULL) {
-        XtAppErrorMsg(app,
-                      "invalidArgCount", "xtGetValues", XtCXtToolkitError,
-                      "Argument count > 0 on NULL argument list in XtGetValues",
+        IswAppErrorMsg(app,
+                      "invalidArgCount", "xtGetValues", IswCIswToolkitError,
+                      "Argument count > 0 on NULL argument list in IswGetValues",
                       NULL, NULL);
     }
 
     LOCK_APP(app);
-    wc = XtClass(w);
+    wc = IswClass(w);
     LOCK_PROCESS;
     /* Get widget values */
     targ = GetValues((char *) w, (XrmResourceList *) wc->core_class.resources,
                      wc->core_class.num_resources, args, num_args);
     UNLOCK_PROCESS;
-    if (targ != -1 && XtIsWidget(w)) {
-        XtTranslations translations = _XtGetTranslationValue(w);
+    if (targ != -1 && IswIsWidget(w)) {
+        IswTranslations translations = _IswGetTranslationValue(w);
 
-        _XtCopyToArg((char *) &translations, &args[targ].value,
-                     sizeof(XtTranslations));
+        _IswCopyToArg((char *) &translations, &args[targ].value,
+                     sizeof(IswTranslations));
     }
 
     /* Get constraint values if necessary */
     /* constraints may be NULL if constraint_size==0 */
-    if (XtParent(w) != NULL && !XtIsShell(w) && XtIsConstraint(XtParent(w)) &&
+    if (IswParent(w) != NULL && !IswIsShell(w) && IswIsConstraint(IswParent(w)) &&
         w->core.constraints) {
         ConstraintWidgetClass cwc
-            = (ConstraintWidgetClass) XtClass(XtParent(w));
+            = (ConstraintWidgetClass) IswClass(IswParent(w));
         LOCK_PROCESS;
         GetValues((char *) w->core.constraints,
                   (XrmResourceList *) (cwc->constraint_class.resources),
@@ -240,21 +240,21 @@ XtGetValues(register Widget w,
     CallGetValuesHook(wc, w, args, num_args);
 
     /* Notify constraint get_values if necessary */
-    if (XtParent(w) != NULL && !XtIsShell(w) && XtIsConstraint(XtParent(w)))
-        CallConstraintGetValuesHook(XtClass(XtParent(w)), w, args, num_args);
+    if (IswParent(w) != NULL && !IswIsShell(w) && IswIsConstraint(IswParent(w)))
+        CallConstraintGetValuesHook(IswClass(IswParent(w)), w, args, num_args);
     UNLOCK_APP(app);
-}                               /* XtGetValues */
+}                               /* IswGetValues */
 
 void
-XtGetSubvalues(XtPointer base,          /* Base address to fetch values from */
-               XtResourceList resources,/* The current resource values.      */
+IswGetSubvalues(IswPointer base,          /* Base address to fetch values from */
+               IswResourceList resources,/* The current resource values.      */
                Cardinal num_resources,  /* number of items in resources      */
                ArgList args,            /* The resource values requested */
                Cardinal num_args)       /* number of items in arg list       */
 {
     XrmResourceList *xrmres;
 
-    xrmres = _XtCreateIndirectionTable(resources, num_resources);
+    xrmres = _IswCreateIndirectionTable(resources, num_resources);
     GetValues((char *) base, xrmres, num_resources, args, num_args);
-    XtFree((char *) xrmres);
+    IswFree((char *) xrmres);
 }

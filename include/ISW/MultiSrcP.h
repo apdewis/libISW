@@ -151,13 +151,13 @@ typedef struct _MultiSrcPart {
   /* Resources. */
 
   XIC ic;			/* for X Input Method. */
-  XtPointer string;		/* either the string, or the file name, depend-
+  IswPointer string;		/* either the string, or the file name, depend-
                                  ing upon the `type'.  ALWAYS IN MB FORMAT. */
   IswAsciiType type;		/* either string or disk. */
   ISWTextPosition piece_size;	/* Size of text buffer for each piece. */
   Boolean data_compression;	/* compress to minimum memory automatically
 				   on save? */
-  XtCallbackList callback;	/* A callback list to call when the source is
+  IswCallbackList callback;	/* A callback list to call when the source is
 				   changed. */
   Boolean use_string_in_place;	/* Use the string passed in place. */
   int     multi_length;		/* length field for multi string emulation. */

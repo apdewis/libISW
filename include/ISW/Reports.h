@@ -47,7 +47,7 @@ typedef struct {
 #define IswPRCanvasHeight	(1 << 5)
 #define IswPRAll		(63)	/* union of above */
 
-#define XtNreportCallback "reportCallback"
-#define XtCReportCallback "reportCallback"
+#define IswNreportCallback "reportCallback"
+#define IswCReportCallback "reportCallback"
 
 #endif /* _ISW_Reports_h */

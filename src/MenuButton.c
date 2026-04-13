@@ -48,8 +48,8 @@ in this Software without prior written authorization from the X Consortium.
 #include "config.h"
 #endif
 #include <stdio.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 
 #include <ISW/ISWInit.h>
 #include <ISW/MenuButtoP.h>
@@ -73,15 +73,15 @@ static char defaultTranslations[] =
 
 /* Private Data */
 
-#define offset(field) XtOffsetOf(MenuButtonRec, field)
-static XtResource resources[] = {
+#define offset(field) IswOffsetOf(MenuButtonRec, field)
+static IswResource resources[] = {
   {
-    XtNmenuName, XtCMenuName, XtRString, sizeof(String),
-    offset(menu_button.menu_name), XtRString, (XtPointer)"menu"},
+    IswNmenuName, IswCMenuName, IswRString, sizeof(String),
+    offset(menu_button.menu_name), IswRString, (IswPointer)"menu"},
 };
 #undef offset
 
-static XtActionsRec actionsList[] =
+static IswActionsRec actionsList[] =
 {
   {"PopupMenu",	PopupMenu}
 };
@@ -96,33 +96,33 @@ MenuButtonClassRec menuButtonClassRec = {
     FALSE,				/* class_inited		  */
     NULL,				/* initialize		  */
     NULL,				/* initialize_hook	  */
-    XtInheritRealize,			/* realize		  */
+    IswInheritRealize,			/* realize		  */
     actionsList,			/* actions		  */
-    XtNumber(actionsList),		/* num_actions		  */
+    IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
-    XtNumber(resources),		/* resource_count	  */
+    IswNumber(resources),		/* resource_count	  */
     NULLQUARK,				/* xrm_class		  */
     FALSE,				/* compress_motion	  */
     TRUE,				/* compress_exposure	  */
     TRUE,				/* compress_enterleave    */
     FALSE,				/* visible_interest	  */
     NULL,				/* destroy		  */
-    XtInheritResize,			/* resize		  */
-    XtInheritExpose,			/* expose		  */
+    IswInheritResize,			/* resize		  */
+    IswInheritExpose,			/* expose		  */
     NULL,				/* set_values		  */
     NULL,				/* set_values_hook	  */
-    XtInheritSetValuesAlmost,		/* set_values_almost	  */
+    IswInheritSetValuesAlmost,		/* set_values_almost	  */
     NULL,				/* get_values_hook	  */
     NULL,				/* accept_focus		  */
-    XtVersion,				/* version		  */
+    IswVersion,				/* version		  */
     NULL,				/* callback_private	  */
     defaultTranslations,               	/* tm_table		  */
-    XtInheritQueryGeometry,		/* query_geometry	  */
-    XtInheritDisplayAccelerator,	/* display_accelerator	  */
+    IswInheritQueryGeometry,		/* query_geometry	  */
+    IswInheritDisplayAccelerator,	/* display_accelerator	  */
     NULL				/* extension		  */
   },  /* CoreClass fields initialization */
   {
-    XtInheritChangeSensitive		/* change_sensitive	  */
+    IswInheritChangeSensitive		/* change_sensitive	  */
   },  /* SimpleClass fields initialization */
   {
     0,                                     /* field not used    */
@@ -148,7 +148,7 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    XtRegisterGrabAction(PopupMenu, True,
+    IswRegisterGrabAction(PopupMenu, True,
 			 (unsigned int)(XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE),
 			 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 }
@@ -166,9 +166,9 @@ PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
 
   temp = w;
   while(temp != NULL) {
-    menu = XtNameToWidget(temp, mbw->menu_button.menu_name);
+    menu = IswNameToWidget(temp, mbw->menu_button.menu_name);
     if (menu == NULL)
-      temp = XtParent(temp);
+      temp = IswParent(temp);
     else
       break;
   }
@@ -177,22 +177,22 @@ PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
     char error_buf[BUFSIZ];
     (void) sprintf(error_buf, "MenuButton: %s %s.",
 	    "Could not find menu widget named", mbw->menu_button.menu_name);
-    XtAppWarning(XtWidgetToApplicationContext(w), error_buf);
+    IswAppWarning(IswWidgetToApplicationContext(w), error_buf);
     return;
   }
-  if (!XtIsRealized(menu))
-    XtRealizeWidget(menu);
+  if (!IswIsRealized(menu))
+    IswRealizeWidget(menu);
 
   menu_width = menu->core.width + 2 * menu->core.border_width;
   button_height = w->core.height + 2 * w->core.border_width;
   menu_height = menu->core.height + 2 * menu->core.border_width;
 
-  XtTranslateCoords(w, 0, 0, &button_x, &button_y);
+  IswTranslateCoords(w, 0, 0, &button_x, &button_y);
   menu_x = button_x;
   menu_y = button_y + button_height;
 
   if (menu_x >= 0) {
-    int scr_width = WidthOfScreen(XtScreen(menu));
+    int scr_width = WidthOfScreen(IswScreen(menu));
     if (menu_x + menu_width > scr_width)
       menu_x = scr_width - menu_width;
   }
@@ -200,7 +200,7 @@ PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
     menu_x = 0;
 
   if (menu_y >= 0) {
-    int scr_height = HeightOfScreen(XtScreen(menu));
+    int scr_height = HeightOfScreen(IswScreen(menu));
     if (menu_y + menu_height > scr_height)
       menu_y = scr_height - menu_height;
   }
@@ -208,10 +208,10 @@ PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
     menu_y = 0;
 
   num_args = 0;
-  XtSetArg(arglist[num_args], XtNx, menu_x); num_args++;
-  XtSetArg(arglist[num_args], XtNy, menu_y); num_args++;
-  XtSetValues(menu, arglist, num_args);
+  IswSetArg(arglist[num_args], IswNx, menu_x); num_args++;
+  IswSetArg(arglist[num_args], IswNy, menu_y); num_args++;
+  IswSetValues(menu, arglist, num_args);
 
-  XtPopupSpringLoaded(menu);
+  IswPopupSpringLoaded(menu);
 }
 

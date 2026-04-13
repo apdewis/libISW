@@ -88,7 +88,7 @@ ConstraintClassRec constraintClassRec = {
      /* class_inited         */ FALSE,
      /* initialize           */ NULL,
      /* initialize_hook      */ NULL,
-     /* realize              */ XtInheritRealize,
+     /* realize              */ IswInheritRealize,
      /* actions              */ NULL,
      /* num_actions          */ 0,
      /* resources            */ NULL,
@@ -103,10 +103,10 @@ ConstraintClassRec constraintClassRec = {
      /* expose               */ NULL,
      /* set_values           */ NULL,
      /* set_values_hook      */ NULL,
-     /* set_values_almost    */ XtInheritSetValuesAlmost,
+     /* set_values_almost    */ IswInheritSetValuesAlmost,
      /* get_values_hook      */ NULL,
      /* accept_focus         */ NULL,
-     /* version              */ XtVersion,
+     /* version              */ IswVersion,
      /* callback_offsets     */ NULL,
      /* tm_table             */ NULL,
      /* query_geometry       */ NULL,
@@ -117,8 +117,8 @@ ConstraintClassRec constraintClassRec = {
       /**** CompositePart *****/
        /* geometry_handler     */ NULL,
        /* change_managed       */ NULL,
-       /* insert_child         */ XtInheritInsertChild,
-       /* delete_child         */ XtInheritDeleteChild,
+       /* insert_child         */ IswInheritInsertChild,
+       /* delete_child         */ IswInheritDeleteChild,
        /* extension            */ NULL
        }
     , {
@@ -142,8 +142,8 @@ ConstraintPartInitialize(WidgetClass wc)
     ConstraintWidgetClass cwc = (ConstraintWidgetClass) wc;
 
     if (cwc->constraint_class.resources)
-        _XtCompileResourceList(cwc->constraint_class.resources,
+        _IswCompileResourceList(cwc->constraint_class.resources,
                                cwc->constraint_class.num_resources);
 
-    _XtConstraintResDependencies((ConstraintWidgetClass) wc);
+    _IswConstraintResDependencies((ConstraintWidgetClass) wc);
 }

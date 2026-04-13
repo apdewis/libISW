@@ -26,7 +26,7 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef _ISWAllWidgets_h
 #define _ISWAllWidgets_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /*
  * Widget node structure for widget array tables

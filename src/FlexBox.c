@@ -22,8 +22,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/FlexBoxP.h>
 #include <ISW/ISWRender.h>
@@ -34,8 +34,8 @@
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
-static XtGeometryResult PreferredGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
+static IswGeometryResult PreferredGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void ChangeManaged(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -46,23 +46,23 @@ static void DoLayout(FlexBoxWidget fw, Boolean set_children);
 
 static IswFlexAlign defAlign = XtflexAlignStretch;
 
-#define Offset(field) XtOffsetOf(FlexBoxRec, flexBox.field)
-static XtResource resources[] = {
-    {XtNorientation, XtCOrientation, XtROrientation, sizeof(XtOrientation),
-     Offset(orientation), XtRImmediate, (XtPointer)XtorientVertical},
-    {XtNspacing, XtCSpacing, XtRDimension, sizeof(Dimension),
-     Offset(spacing), XtRImmediate, (XtPointer)0},
+#define Offset(field) IswOffsetOf(FlexBoxRec, flexBox.field)
+static IswResource resources[] = {
+    {IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
+     Offset(orientation), IswRImmediate, (IswPointer)XtorientVertical},
+    {IswNspacing, IswCSpacing, IswRDimension, sizeof(Dimension),
+     Offset(spacing), IswRImmediate, (IswPointer)0},
 };
 #undef Offset
 
-#define COffset(field) XtOffsetOf(FlexBoxConstraintsRec, flexBox.field)
-static XtResource constraintResources[] = {
-    {XtNflexGrow, XtCFlexGrow, XtRInt, sizeof(int),
-     COffset(flex_grow), XtRImmediate, (XtPointer)0},
-    {XtNflexBasis, XtCFlexBasis, XtRDimension, sizeof(Dimension),
-     COffset(flex_basis), XtRImmediate, (XtPointer)0},
-    {XtNflexAlign, XtCFlexAlign, XtRFlexAlign, sizeof(IswFlexAlign),
-     COffset(flex_align), XtRFlexAlign, (XtPointer)&defAlign},
+#define COffset(field) IswOffsetOf(FlexBoxConstraintsRec, flexBox.field)
+static IswResource constraintResources[] = {
+    {IswNflexGrow, IswCFlexGrow, IswRInt, sizeof(int),
+     COffset(flex_grow), IswRImmediate, (IswPointer)0},
+    {IswNflexBasis, IswCFlexBasis, IswRDimension, sizeof(Dimension),
+     COffset(flex_basis), IswRImmediate, (IswPointer)0},
+    {IswNflexAlign, IswCFlexAlign, IswRFlexAlign, sizeof(IswFlexAlign),
+     COffset(flex_align), IswRFlexAlign, (IswPointer)&defAlign},
 };
 #undef COffset
 
@@ -78,11 +78,11 @@ FlexBoxClassRec flexBoxClassRec = {
     /* class_inited       */ FALSE,
     /* initialize         */ Initialize,
     /* initialize_hook    */ NULL,
-    /* realize            */ XtInheritRealize,
+    /* realize            */ IswInheritRealize,
     /* actions            */ NULL,
     /* num_actions        */ 0,
     /* resources          */ resources,
-    /* num_resources      */ XtNumber(resources),
+    /* num_resources      */ IswNumber(resources),
     /* xrm_class          */ NULLQUARK,
     /* compress_motion    */ TRUE,
     /* compress_exposure  */ TRUE,
@@ -93,26 +93,26 @@ FlexBoxClassRec flexBoxClassRec = {
     /* expose             */ NULL,
     /* set_values         */ SetValues,
     /* set_values_hook    */ NULL,
-    /* set_values_almost  */ XtInheritSetValuesAlmost,
+    /* set_values_almost  */ IswInheritSetValuesAlmost,
     /* get_values_hook    */ NULL,
     /* accept_focus       */ NULL,
-    /* version            */ XtVersion,
+    /* version            */ IswVersion,
     /* callback_private   */ NULL,
     /* tm_table           */ NULL,
     /* query_geometry     */ PreferredGeometry,
-    /* display_accelerator*/ XtInheritDisplayAccelerator,
+    /* display_accelerator*/ IswInheritDisplayAccelerator,
     /* extension          */ NULL
   },
   { /* composite_class */
     /* geometry_manager   */ GeometryManager,
     /* change_managed     */ ChangeManaged,
-    /* insert_child       */ XtInheritInsertChild,
-    /* delete_child       */ XtInheritDeleteChild,
+    /* insert_child       */ IswInheritInsertChild,
+    /* delete_child       */ IswInheritDeleteChild,
     /* extension          */ NULL
   },
   { /* constraint_class */
     /* subresources       */ constraintResources,
-    /* subresource_count  */ XtNumber(constraintResources),
+    /* subresource_count  */ IswNumber(constraintResources),
     /* constraint_size    */ sizeof(FlexBoxConstraintsRec),
     /* initialize         */ NULL,
     /* destroy            */ NULL,
@@ -152,7 +152,7 @@ _CvtStringToFlexAlign(XrmValuePtr args, Cardinal *num_args,
             return;
         }
         toVal->size = sizeof(align);
-        toVal->addr = (XtPointer)&align;
+        toVal->addr = (IswPointer)&align;
         return;
     }
     toVal->addr = NULL;
@@ -167,7 +167,7 @@ ClassInitialize(void)
     QEnd     = XrmPermStringToQuark("end");
     QCenter  = XrmPermStringToQuark("center");
     QStretch = XrmPermStringToQuark("stretch");
-    XtAddConverter(XtRString, XtRFlexAlign, _CvtStringToFlexAlign, NULL, 0);
+    IswAddConverter(IswRString, IswRFlexAlign, _CvtStringToFlexAlign, NULL, 0);
 }
 
 static void
@@ -195,8 +195,8 @@ ChildBasis(FlexBoxWidget fw, Widget child, Boolean is_horizontal)
         return ((int)fc->flexBox.flex_basis);
 
     /* Ask the child what size it wants */
-    XtWidgetGeometry preferred;
-    XtQueryGeometry(child, NULL, &preferred);
+    IswWidgetGeometry preferred;
+    IswQueryGeometry(child, NULL, &preferred);
 
     if (is_horizontal) {
         if (preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH)
@@ -212,8 +212,8 @@ ChildBasis(FlexBoxWidget fw, Widget child, Boolean is_horizontal)
 static Dimension
 ChildCrossPreferred(Widget child, Boolean is_horizontal)
 {
-    XtWidgetGeometry preferred;
-    XtQueryGeometry(child, NULL, &preferred);
+    IswWidgetGeometry preferred;
+    IswQueryGeometry(child, NULL, &preferred);
 
     if (is_horizontal) {
         if (preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT)
@@ -249,7 +249,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 
     for (int i = 0; i < n; i++) {
         Widget child = children[i];
-        if (!XtIsManaged(child))
+        if (!IswIsManaged(child))
             continue;
 
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
@@ -288,7 +288,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
         int preferred_base = 0;
         for (int i = 0; i < n; i++) {
             Widget child = children[i];
-            if (!XtIsManaged(child))
+            if (!IswIsManaged(child))
                 continue;
             int bw2 = 2 * (int)child->core.border_width;
             preferred_base += (int)ChildBasis(fw, child, horiz) + bw2;
@@ -311,7 +311,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 
     for (int i = 0; i < n; i++) {
         Widget child = children[i];
-        if (!XtIsManaged(child))
+        if (!IswIsManaged(child))
             continue;
 
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
@@ -371,7 +371,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             h = (Dimension)main_sz;
         }
 
-        XtConfigureWidget(child, x, y, w, h, child->core.border_width);
+        IswConfigureWidget(child, x, y, w, h, child->core.border_width);
 
         pos += (Position)(main_sz + bw2) + (Position)spacing;
     }
@@ -396,31 +396,31 @@ ChangeManaged(Widget w)
     if (fw->flexBox.preferred_width != fw->core.width ||
         fw->flexBox.preferred_height != fw->core.height)
     {
-        XtWidgetGeometry req, reply;
+        IswWidgetGeometry req, reply;
         req.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
         req.width = fw->flexBox.preferred_width;
         req.height = fw->flexBox.preferred_height;
-        XtGeometryResult result = XtMakeGeometryRequest(w, &req, &reply);
-        if (result == XtGeometryAlmost) {
+        IswGeometryResult result = IswMakeGeometryRequest(w, &req, &reply);
+        if (result == IswGeometryAlmost) {
             req.width = reply.width;
             req.height = reply.height;
-            XtMakeGeometryRequest(w, &req, NULL);
+            IswMakeGeometryRequest(w, &req, NULL);
         }
     }
 
     DoLayout(fw, TRUE);
 }
 
-static XtGeometryResult
-GeometryManager(Widget child, XtWidgetGeometry *request,
-                XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager(Widget child, IswWidgetGeometry *request,
+                IswWidgetGeometry *reply)
 {
-    FlexBoxWidget fw = (FlexBoxWidget)XtParent(child);
+    FlexBoxWidget fw = (FlexBoxWidget)IswParent(child);
     (void)reply;
 
     /* Reject position requests — we control placement */
     if (request->request_mode & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y))
-        return XtGeometryNo;
+        return IswGeometryNo;
 
     /* Accept size requests, then re-layout */
     if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
@@ -432,12 +432,12 @@ GeometryManager(Widget child, XtWidgetGeometry *request,
 
     ChangeManaged((Widget)fw);
 
-    return XtGeometryDone;
+    return IswGeometryDone;
 }
 
-static XtGeometryResult
-PreferredGeometry(Widget widget, XtWidgetGeometry *request,
-                  XtWidgetGeometry *reply)
+static IswGeometryResult
+PreferredGeometry(Widget widget, IswWidgetGeometry *request,
+                  IswWidgetGeometry *reply)
 {
     FlexBoxWidget fw = (FlexBoxWidget)widget;
 
@@ -450,10 +450,10 @@ PreferredGeometry(Widget widget, XtWidgetGeometry *request,
     if ((request->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) == (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)
         && request->width == reply->width
         && request->height == reply->height)
-        return XtGeometryYes;
+        return IswGeometryYes;
     if (reply->width == fw->core.width && reply->height == fw->core.height)
-        return XtGeometryNo;
-    return XtGeometryAlmost;
+        return IswGeometryNo;
+    return IswGeometryAlmost;
 }
 
 static Boolean
@@ -484,7 +484,7 @@ ConstraintSetValues(Widget current, Widget request, Widget new,
         cfc->flexBox.flex_basis != nfc->flexBox.flex_basis ||
         cfc->flexBox.flex_align != nfc->flexBox.flex_align)
     {
-        DoLayout((FlexBoxWidget)XtParent(new), TRUE);
+        DoLayout((FlexBoxWidget)IswParent(new), TRUE);
     }
     return FALSE;
 }

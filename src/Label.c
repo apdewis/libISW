@@ -55,8 +55,8 @@ SOFTWARE.
  */
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <X11/Xos.h>
 /* REMOVED: Xmu headers include Xlib.h which conflicts with XCB-only approach */
 /* #include <X11/Xmu/Converters.h> */
@@ -77,7 +77,7 @@ SOFTWARE.
 
 
 /* Forward declarations for Xmu functions that need XCB replacements */
-/* XmuCvtStringToJustify signature must match XtConverter */
+/* XmuCvtStringToJustify signature must match IswConverter */
 //extern void XmuCvtStringToJustify(XrmValue*, Cardinal*, XrmValue*, XrmValue*);
 //extern xcb_pixmap_t XmuCreateStippledPixmap(xcb_screen_t*, Pixel, Pixel, unsigned int);
 //extern void XmuReleaseStippledPixmap(Screen*, xcb_pixmap_t);
@@ -105,35 +105,35 @@ int abs();
 
 /* Private Data */
 
-#define offset(field) XtOffsetOf(LabelRec, field)
-static XtResource resources[] = {
-    {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-	offset(label.foreground), XtRString, XtDefaultForeground},
-    {XtNfont,  XtCFont, XtRFontStruct, sizeof(XFontStruct *),
-	offset(label.font),XtRString, XtDefaultFont},
+#define offset(field) IswOffsetOf(LabelRec, field)
+static IswResource resources[] = {
+    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+	offset(label.foreground), IswRString, IswDefaultForeground},
+    {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+	offset(label.font),IswRString, IswDefaultFont},
 #ifdef ISW_INTERNATIONALIZATION
-    {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(XFontSet ),
-        offset(label.fontset),XtRString, XtDefaultFontSet},
+    {IswNfontSet,  IswCFontSet, IswRFontSet, sizeof(IswFontSet ),
+        offset(label.fontset),IswRString, IswDefaultFontSet},
 #endif
-    {XtNlabel,  XtCLabel, XtRString, sizeof(String),
-	offset(label.label), XtRString, NULL},
-    {XtNencoding, XtCEncoding, XtRUnsignedChar, sizeof(unsigned char),
-	offset(label.encoding), XtRImmediate, (XtPointer)IswTextEncoding8bit},
-    {XtNjustify, XtCJustify, XtRJustify, sizeof(XtJustify),
-	offset(label.justify), XtRImmediate, (XtPointer)XtJustifyCenter},
-    {XtNinternalWidth, XtCWidth, XtRDimension,  sizeof(Dimension),
-	offset(label.internal_width), XtRImmediate, (XtPointer)4},
-    {XtNinternalHeight, XtCHeight, XtRDimension, sizeof(Dimension),
-	offset(label.internal_height), XtRImmediate, (XtPointer)2},
-    {XtNleftImage, XtCLeftImage, XtRString, sizeof(String),
-       offset(label.left_image_source), XtRImmediate, (XtPointer)NULL},
-    {XtNimage, XtCImage, XtRString, sizeof(String),
-	offset(label.image_source), XtRImmediate, (XtPointer)NULL},
-    {XtNresize, XtCResize, XtRBoolean, sizeof(Boolean),
-	offset(label.resize), XtRImmediate, (XtPointer)True},
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-         XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
-         (XtPointer)1},
+    {IswNlabel,  IswCLabel, IswRString, sizeof(String),
+	offset(label.label), IswRString, NULL},
+    {IswNencoding, IswCEncoding, IswRUnsignedChar, sizeof(unsigned char),
+	offset(label.encoding), IswRImmediate, (IswPointer)IswTextEncoding8bit},
+    {IswNjustify, IswCJustify, IswRJustify, sizeof(IswJustify),
+	offset(label.justify), IswRImmediate, (IswPointer)IswJustifyCenter},
+    {IswNinternalWidth, IswCWidth, IswRDimension,  sizeof(Dimension),
+	offset(label.internal_width), IswRImmediate, (IswPointer)4},
+    {IswNinternalHeight, IswCHeight, IswRDimension, sizeof(Dimension),
+	offset(label.internal_height), IswRImmediate, (IswPointer)2},
+    {IswNleftImage, IswCLeftImage, IswRString, sizeof(String),
+       offset(label.left_image_source), IswRImmediate, (IswPointer)NULL},
+    {IswNimage, IswCImage, IswRString, sizeof(String),
+	offset(label.image_source), IswRImmediate, (IswPointer)NULL},
+    {IswNresize, IswCResize, IswRBoolean, sizeof(Boolean),
+	offset(label.resize), IswRImmediate, (IswPointer)True},
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+         IswOffsetOf(RectObjRec,rectangle.border_width), IswRImmediate,
+         (IswPointer)1},
 };
 #undef offset
 
@@ -143,7 +143,7 @@ static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void ClassInitialize(void);
 static void Destroy(Widget);
-static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 LabelClassRec labelClassRec = {
   {
@@ -156,11 +156,11 @@ LabelClassRec labelClassRec = {
     /* class_inited       	*/	FALSE,
     /* initialize	  	*/	Initialize,
     /* initialize_hook		*/	NULL,
-    /* realize		  	*/	XtInheritRealize,
+    /* realize		  	*/	IswInheritRealize,
     /* actions		  	*/	NULL,
     /* num_actions	  	*/	0,
     /* resources	  	*/	resources,
-    /* num_resources	  	*/	XtNumber(resources),
+    /* num_resources	  	*/	IswNumber(resources),
     /* xrm_class	  	*/	NULLQUARK,
     /* compress_motion	  	*/	TRUE,
     /* compress_exposure  	*/	TRUE,
@@ -171,19 +171,19 @@ LabelClassRec labelClassRec = {
     /* expose		  	*/	Redisplay,
     /* set_values	  	*/	SetValues,
     /* set_values_hook		*/	NULL,
-    /* set_values_almost	*/	XtInheritSetValuesAlmost,
+    /* set_values_almost	*/	IswInheritSetValuesAlmost,
     /* get_values_hook		*/	NULL,
     /* accept_focus	 	*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private   	*/	NULL,
     /* tm_table		   	*/	NULL,
     /* query_geometry		*/	QueryGeometry,
-    /* display_accelerator	*/	XtInheritDisplayAccelerator,
+    /* display_accelerator	*/	IswInheritDisplayAccelerator,
     /* extension		*/	NULL
   },
 /* Simple class fields initialization */
   {
-    /* change_sensitive		*/	XtInheritChangeSensitive
+    /* change_sensitive		*/	IswInheritChangeSensitive
   },
 /* Label class fields initialization */
   {
@@ -203,8 +203,8 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    //XtAddConverter( XtRString, XtRJustify, ISWCvtStringToJustify,
-	//	    (XtConvertArgList)NULL, 0 );
+    //IswAddConverter( IswRString, IswRJustify, ISWCvtStringToJustify,
+	//	    (IswConvertArgList)NULL, 0 );
 }
 
 /*
@@ -262,7 +262,7 @@ _LabelLoadImage(LabelWidget lw, const char *source)
 static void
 SetTextWidthAndHeight(LabelWidget lw)
 {
-    XFontStruct	*fs = lw->label.font;
+    IswFontStruct	*fs = lw->label.font;
 
     char *nl;
 
@@ -346,29 +346,29 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
     if (lw->label.label == NULL)
-        lw->label.label = XtNewString(lw->core.name);
+        lw->label.label = IswNewString(lw->core.name);
     else
-        lw->label.label = XtNewString(lw->label.label);
+        lw->label.label = IswNewString(lw->label.label);
 
     /* Load images from string resources */
     lw->label.image_source = lw->label.image_source
-        ? XtNewString(lw->label.image_source) : NULL;
+        ? IswNewString(lw->label.image_source) : NULL;
     lw->label.left_image_source = lw->label.left_image_source
-        ? XtNewString(lw->label.left_image_source) : NULL;
+        ? IswNewString(lw->label.left_image_source) : NULL;
     lw->label.image = lw->label.image_source
         ? _LabelLoadImage(lw, lw->label.image_source) : NULL;
     lw->label.left_image = lw->label.left_image_source
         ? _LabelLoadImage(lw, lw->label.left_image_source) : NULL;
 
-    /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
-     * If font is NULL but fontset is available, create a minimal XFontStruct
+    /* XCB Fix: IswRFontStruct converter may fail in XCB mode, leaving font NULL.
+     * If font is NULL but fontset is available, create a minimal IswFontStruct
      * using the fontset's font_id (similar to MultiSink.c approach). */
     if (lw->label.font == NULL) {
 #ifdef ISW_INTERNATIONALIZATION
  if (lw->label.fontset != NULL) {
-     /* Allocate and initialize a minimal XFontStruct from fontset */
-     lw->label.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
-     memset(lw->label.font, 0, sizeof(XFontStruct));
+     /* Allocate and initialize a minimal IswFontStruct from fontset */
+     lw->label.font = (IswFontStruct *)IswMalloc(sizeof(IswFontStruct));
+     memset(lw->label.font, 0, sizeof(IswFontStruct));
      lw->label.font->fid = lw->label.fontset->font_id;
      lw->label.font->ascent = lw->label.fontset->ascent;
      lw->label.font->descent = lw->label.fontset->descent;
@@ -379,15 +379,15 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  {
      /* Both font and fontset are NULL - load fallback font */
      fprintf(stderr, "WARNING Label.c: Both font and fontset are NULL for widget '%s'\n",
-             XtName(new));
+             IswName(new));
      fprintf(stderr, "         Attempting to load fallback font...\n");
      
-     lw->label.font = ISWLoadFallbackFont(XtDisplay(new));
+     lw->label.font = ISWLoadFallbackFont(IswDisplay(new));
      
      if (lw->label.font == NULL) {
          fprintf(stderr, "FATAL Label.c: Fallback font loading failed for widget '%s'\n",
-                 XtName(new));
-         XtAppError(XtWidgetToApplicationContext(new),
+                 IswName(new));
+         IswAppError(IswWidgetToApplicationContext(new),
                     "Label widget: Both font resource converters failed AND fallback font loading failed");
      } else {
          fprintf(stderr, "SUCCESS Label.c: Fallback font loaded with fid=%lu\n",
@@ -418,7 +418,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 				LEFT_OFFSET(lw);  /* req's label.lbm_width */
 
     lw->label.label_x = lw->label.label_y = 0;
-    (*XtClass(new)->core_class.resize) ((Widget)lw);
+    (*IswClass(new)->core_class.resize) ((Widget)lw);
 
 } /* Initialize */
 
@@ -431,7 +431,7 @@ static void
 Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     LabelWidget w = (LabelWidget) gw;
-    LabelWidgetClass lwclass = (LabelWidgetClass) XtClass (gw);
+    LabelWidgetClass lwclass = (LabelWidgetClass) IswClass (gw);
     ISWRenderContext *ctx = w->label.render_ctx;  /* Cairo rendering context */
     
     /* Create render context on first use (lazy initialization) */
@@ -523,7 +523,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
  int len = w->label.label_len;
  char *label = w->label.label;
  Position y = w->label.label_y;
- XFontStruct *fs = w->label.font;
+ IswFontStruct *fs = w->label.font;
 
  if (fs == NULL) {
      /* No font available - skip text rendering */
@@ -642,13 +642,13 @@ _Reposition(LabelWidget lw, Dimension width, Dimension height,
     Position leftedge = lw->label.internal_width + LEFT_OFFSET(lw);
 
     switch (lw->label.justify) {
-	case XtJustifyLeft:
+	case IswJustifyLeft:
 	    newPos = leftedge;
 	    break;
-	case XtJustifyRight:
+	case IswJustifyRight:
 	    newPos = width - lw->label.label_width - lw->label.internal_width;
 	    break;
-	case XtJustifyCenter:
+	case IswJustifyCenter:
 	default:
 	    newPos = (int)(width - lw->label.label_width) / 2;
 	    break;
@@ -698,18 +698,18 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     for (i = 0; i < NUM_CHECKS; i++)
 	checks[i] = FALSE;
     for (i = 0; i < *num_args; i++) {
-	if (streq(XtNwidth, args[i].name))
+	if (streq(IswNwidth, args[i].name))
 	    checks[WIDTH] = TRUE;
-	if (streq(XtNheight, args[i].name))
+	if (streq(IswNheight, args[i].name))
 	    checks[HEIGHT] = TRUE;
     }
 
     /* Handle image resource changes */
     if (curlw->label.image_source != newlw->label.image_source) {
 	if (curlw->label.image_source)
-	    XtFree(curlw->label.image_source);
+	    IswFree(curlw->label.image_source);
 	newlw->label.image_source = newlw->label.image_source
-	    ? XtNewString(newlw->label.image_source) : NULL;
+	    ? IswNewString(newlw->label.image_source) : NULL;
 	if (newlw->label.image) {
 	    ISWImageDestroy(newlw->label.image);
 	    newlw->label.image = NULL;
@@ -720,9 +720,9 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     }
     if (curlw->label.left_image_source != newlw->label.left_image_source) {
 	if (curlw->label.left_image_source)
-	    XtFree(curlw->label.left_image_source);
+	    IswFree(curlw->label.left_image_source);
 	newlw->label.left_image_source = newlw->label.left_image_source
-	    ? XtNewString(newlw->label.left_image_source) : NULL;
+	    ? IswNewString(newlw->label.left_image_source) : NULL;
 	if (newlw->label.left_image) {
 	    ISWImageDestroy(newlw->label.left_image);
 	    newlw->label.left_image = NULL;
@@ -736,9 +736,9 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	newlw->label.label = newlw->core.name;
     if (curlw->label.label != newlw->label.label) {
         if (curlw->label.label != curlw->core.name)
-	    XtFree((char *)curlw->label.label);
+	    IswFree((char *)curlw->label.label);
 	if (newlw->label.label != newlw->core.name)
-	    newlw->label.label = XtNewString(newlw->label.label);
+	    newlw->label.label = IswNewString(newlw->label.label);
 	was_resized = True;
     }
 
@@ -830,7 +830,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     }
 
     return was_resized || redisplay ||
-	   XtIsSensitive(current) != XtIsSensitive(new);
+	   IswIsSensitive(current) != IswIsSensitive(new);
 }
 
 static void
@@ -839,11 +839,11 @@ Destroy(Widget w)
     LabelWidget lw = (LabelWidget)w;
 
     if ( lw->label.label != lw->core.name )
-	XtFree( lw->label.label );
+	IswFree( lw->label.label );
     if (lw->label.image_source)
-	XtFree(lw->label.image_source);
+	IswFree(lw->label.image_source);
     if (lw->label.left_image_source)
-	XtFree(lw->label.left_image_source);
+	IswFree(lw->label.left_image_source);
     if (lw->label.image) {
 	ISWImageDestroy(lw->label.image);
 	lw->label.image = NULL;
@@ -860,8 +860,8 @@ Destroy(Widget w)
 }
 
 
-static XtGeometryResult
-QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *preferred)
+static IswGeometryResult
+QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *preferred)
 {
     LabelWidget lw = (LabelWidget)w;
 
@@ -875,10 +875,10 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *preferred)
 	   	== (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
 	  intended->width == preferred->width &&
 	  intended->height == preferred->height)
-	return XtGeometryYes;
+	return IswGeometryYes;
     else if (preferred->width == w->core.width &&
 	     preferred->height == w->core.height)
-	return XtGeometryNo;
+	return IswGeometryNo;
     else
-	return XtGeometryAlmost;
+	return IswGeometryAlmost;
 }

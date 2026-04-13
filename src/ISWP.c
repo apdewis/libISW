@@ -37,7 +37,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 unsigned long
 grayPixel(unsigned long p, xcb_connection_t *dpy, xcb_screen_t *scn)
 {
-    static XColor Gray =
+    static IswColor Gray =
     {
 	0,		/* pixel */
 	0, 0, 0,	/* red, green, blue */
@@ -47,7 +47,7 @@ grayPixel(unsigned long p, xcb_connection_t *dpy, xcb_screen_t *scn)
 
     if (!Gray.pixel)
     {
-	XColor exact;
+	IswColor exact;
 
 	(void)XAllocNamedColor(dpy, DefaultColormapOfScreen(scn),
 			       "gray", &Gray, &exact);  /* Blindflug */

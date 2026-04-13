@@ -30,7 +30,7 @@
 #endif
 
 #include <stdlib.h>
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 #include <ISW/ISWContext.h>
 #include "uthash.h"
 
@@ -47,7 +47,7 @@ typedef struct _IswContextKey {
 
 typedef struct _IswContextEntry {
     IswContextKey  key;      /* composite key (must be first for HASH_FIND) */
-    XtPointer       data;     /* associated data */
+    IswPointer       data;     /* associated data */
     UT_hash_handle hh;       /* uthash handle */
 } IswContextEntry;
 
@@ -110,7 +110,7 @@ int
 IswSaveContext(xcb_connection_t *dpy _X_UNUSED,
                XID id,
                XContext context,
-               XtPointer data)
+               IswPointer data)
 {
     IswContextEntry *entry;
     IswContextKey key;
@@ -158,7 +158,7 @@ int
 IswFindContext(xcb_connection_t *dpy _X_UNUSED,
                XID id,
                XContext context,
-               XtPointer *data_return)
+               IswPointer *data_return)
 {
     IswContextEntry *entry;
     IswContextKey key;

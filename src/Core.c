@@ -90,52 +90,52 @@ in this Software without prior written authorization from The Open Group.
  ******************************************************************/
 
 externaldef(xtinherittranslations)
-int _XtInheritTranslations = 0;
-extern String XtCXtToolkitError;        /* from IntrinsicI.h */
+int _IswInheritTranslations = 0;
+extern String IswCIswToolkitError;        /* from IntrinsicI.h */
 static void
-XtCopyScreen(Widget, int, XrmValue *);
+IswCopyScreen(Widget, int, XrmValue *);
 
-static XtResource resources[] = {
-    {XtNscreen, XtCScreen, XtRScreen, sizeof(xcb_screen_t *),
-     XtOffsetOf(CoreRec, core.screen), XtRCallProc, (XtPointer) XtCopyScreen},
-/*_XtCopyFromParent does not work for screen because the Display
-parameter is not passed through to the XtRCallProc routines */
-    {XtNdepth, XtCDepth, XtRInt, sizeof(int),
-     XtOffsetOf(CoreRec, core.depth),
-     XtRCallProc, (XtPointer) _XtCopyFromParent},
-    {XtNcolormap, XtCColormap, XtRColormap, sizeof(xcb_colormap_t),
-     XtOffsetOf(CoreRec, core.colormap),
-     XtRCallProc, (XtPointer) _XtCopyFromParent},
-    {XtNbackground, XtCBackground, XtRPixel, sizeof(Pixel),
-     XtOffsetOf(CoreRec, core.background_pixel),
-     XtRString, (XtPointer) "XtDefaultBackground"},
-    {XtNbackgroundPixmap, XtCPixmap, XtRPixmap, sizeof(xcb_pixmap_t),
-     XtOffsetOf(CoreRec, core.background_pixmap),
-     XtRImmediate, (XtPointer) XtUnspecifiedPixmap},
-    {XtNborderColor, XtCBorderColor, XtRPixel, sizeof(Pixel),
-     XtOffsetOf(CoreRec, core.border_pixel),
-     XtRString, (XtPointer) "XtDefaultForeground"},
-    {XtNborderPixmap, XtCPixmap, XtRPixmap, sizeof(xcb_pixmap_t),
-     XtOffsetOf(CoreRec, core.border_pixmap),
-     XtRImmediate, (XtPointer) XtUnspecifiedPixmap},
-    {XtNmappedWhenManaged, XtCMappedWhenManaged, XtRBoolean, sizeof(Boolean),
-     XtOffsetOf(CoreRec, core.mapped_when_managed),
-     XtRImmediate, (XtPointer) True},
-    {XtNtranslations, XtCTranslations, XtRTranslationTable,
-     sizeof(XtTranslations), XtOffsetOf(CoreRec, core.tm.translations),
-     XtRTranslationTable, (XtPointer) NULL},
-    {XtNaccelerators, XtCAccelerators, XtRAcceleratorTable,
-     sizeof(XtTranslations), XtOffsetOf(CoreRec, core.accelerators),
-     XtRTranslationTable, (XtPointer) NULL}
+static IswResource resources[] = {
+    {IswNscreen, IswCScreen, IswRScreen, sizeof(xcb_screen_t *),
+     IswOffsetOf(CoreRec, core.screen), IswRCallProc, (IswPointer) IswCopyScreen},
+/*_IswCopyFromParent does not work for screen because the Display
+parameter is not passed through to the IswRCallProc routines */
+    {IswNdepth, IswCDepth, IswRInt, sizeof(int),
+     IswOffsetOf(CoreRec, core.depth),
+     IswRCallProc, (IswPointer) _IswCopyFromParent},
+    {IswNcolormap, IswCColormap, IswRColormap, sizeof(xcb_colormap_t),
+     IswOffsetOf(CoreRec, core.colormap),
+     IswRCallProc, (IswPointer) _IswCopyFromParent},
+    {IswNbackground, IswCBackground, IswRPixel, sizeof(Pixel),
+     IswOffsetOf(CoreRec, core.background_pixel),
+     IswRString, (IswPointer) "IswDefaultBackground"},
+    {IswNbackgroundPixmap, IswCPixmap, IswRPixmap, sizeof(xcb_pixmap_t),
+     IswOffsetOf(CoreRec, core.background_pixmap),
+     IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
+    {IswNborderColor, IswCBorderColor, IswRPixel, sizeof(Pixel),
+     IswOffsetOf(CoreRec, core.border_pixel),
+     IswRString, (IswPointer) "IswDefaultForeground"},
+    {IswNborderPixmap, IswCPixmap, IswRPixmap, sizeof(xcb_pixmap_t),
+     IswOffsetOf(CoreRec, core.border_pixmap),
+     IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
+    {IswNmappedWhenManaged, IswCMappedWhenManaged, IswRBoolean, sizeof(Boolean),
+     IswOffsetOf(CoreRec, core.mapped_when_managed),
+     IswRImmediate, (IswPointer) True},
+    {IswNtranslations, IswCTranslations, IswRTranslationTable,
+     sizeof(IswTranslations), IswOffsetOf(CoreRec, core.tm.translations),
+     IswRTranslationTable, (IswPointer) NULL},
+    {IswNaccelerators, IswCAccelerators, IswRAcceleratorTable,
+     sizeof(IswTranslations), IswOffsetOf(CoreRec, core.accelerators),
+     IswRTranslationTable, (IswPointer) NULL}
 };
 
 static void CoreInitialize(Widget, Widget, ArgList, Cardinal *);
 static void CoreClassPartInitialize(WidgetClass);
 static void CoreDestroy(Widget);
-static void CoreRealize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void CoreRealize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static Boolean CoreSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void CoreSetValuesAlmost(Widget, Widget, XtWidgetGeometry *,
-                                XtWidgetGeometry *);
+static void CoreSetValuesAlmost(Widget, Widget, IswWidgetGeometry *,
+                                IswWidgetGeometry *);
 
 static RectObjClassRec unNamedObjClassRec = {
     {
@@ -147,7 +147,7 @@ static RectObjClassRec unNamedObjClassRec = {
      /* class_inited       */ FALSE,
      /* initialize         */ NULL,
      /* initialize_hook    */ NULL,
-     /* realize            */ (XtProc) XtInheritRealize,
+     /* realize            */ (IswProc) IswInheritRealize,
      /* actions            */ NULL,
      /* num_actions        */ 0,
      /* resources          */ NULL,
@@ -162,10 +162,10 @@ static RectObjClassRec unNamedObjClassRec = {
      /* expose             */ NULL,
      /* set_values         */ NULL,
      /* set_values_hook    */ NULL,
-     /* set_values_almost  */ XtInheritSetValuesAlmost,
+     /* set_values_almost  */ IswInheritSetValuesAlmost,
      /* get_values_hook    */ NULL,
      /* accept_focus       */ NULL,
-     /* version            */ XtVersion,
+     /* version            */ IswVersion,
      /* callback_offsets   */ NULL,
      /* tm_table           */ NULL,
      /* query_geometry       */ NULL,
@@ -189,7 +189,7 @@ WidgetClassRec widgetClassRec = {
      /* actions            */ NULL,
      /* num_actions        */ 0,
      /* resources          */ resources,
-     /* num_resources      */ XtNumber(resources),
+     /* num_resources      */ IswNumber(resources),
      /* xrm_class          */ NULLQUARK,
      /* compress_motion    */ FALSE,
      /* compress_exposure  */ TRUE,
@@ -203,7 +203,7 @@ WidgetClassRec widgetClassRec = {
      /* set_values_almost  */ CoreSetValuesAlmost,
      /* get_values_hook    */ NULL,
      /* accept_focus       */ NULL,
-     /* version            */ XtVersion,
+     /* version            */ IswVersion,
      /* callback_offsets   */ NULL,
      /* tm_table           */ NULL,
      /* query_geometry       */ NULL,
@@ -219,9 +219,9 @@ externaldef(WidgetClass)
 WidgetClass coreWidgetClass = &widgetClassRec;
 
 static void
-XtCopyScreen(Widget widget, int offset _X_UNUSED, XrmValue *value)
+IswCopyScreen(Widget widget, int offset _X_UNUSED, XrmValue *value)
 {
-    value->addr = (XtPointer) (&widget->core.screen);
+    value->addr = (IswPointer) (&widget->core.screen);
 }
 
 /*
@@ -237,39 +237,39 @@ CoreClassPartInitialize(register WidgetClass wc)
     register WidgetClass super = wc->core_class.superclass;
 
     LOCK_PROCESS;
-    if (wc->core_class.realize == XtInheritRealize) {
+    if (wc->core_class.realize == IswInheritRealize) {
         wc->core_class.realize = super->core_class.realize;
     }
 
-    if (wc->core_class.accept_focus == XtInheritAcceptFocus) {
+    if (wc->core_class.accept_focus == IswInheritAcceptFocus) {
         wc->core_class.accept_focus = super->core_class.accept_focus;
     }
 
-    if (wc->core_class.display_accelerator == XtInheritDisplayAccelerator) {
+    if (wc->core_class.display_accelerator == IswInheritDisplayAccelerator) {
         wc->core_class.display_accelerator =
             super->core_class.display_accelerator;
     }
 
-    if (wc->core_class.tm_table == XtInheritTranslations) {
+    if (wc->core_class.tm_table == IswInheritTranslations) {
         wc->core_class.tm_table =
             wc->core_class.superclass->core_class.tm_table;
     }
     else if (wc->core_class.tm_table != NULL) {
         wc->core_class.tm_table =
-            (String) XtParseTranslationTable(wc->core_class.tm_table);
+            (String) IswParseTranslationTable(wc->core_class.tm_table);
     }
 
     if (wc->core_class.actions != NULL) {
         Boolean inPlace;
 
-        if (wc->core_class.version == XtVersionDontCheck)
+        if (wc->core_class.version == IswVersionDontCheck)
             inPlace = True;
         else
-            inPlace = (wc->core_class.version < XtVersion) ? False : True;
+            inPlace = (wc->core_class.version < IswVersion) ? False : True;
 
         /* Compile the action table into a more efficient form */
         wc->core_class.actions =
-            (XtActionList) _XtInitializeActionData(wc->core_class.actions,
+            (IswActionList) _IswInitializeActionData(wc->core_class.actions,
                                                    wc->core_class.num_actions,
                                                    inPlace);
     }
@@ -282,44 +282,44 @@ CoreInitialize(Widget requested_widget _X_UNUSED,
                ArgList args _X_UNUSED,
                Cardinal *num_args _X_UNUSED)
 {
-    XtTranslations save1, save2;
+    IswTranslations save1, save2;
 
     new_widget->core.event_table = NULL;
     new_widget->core.tm.proc_table = NULL;
     new_widget->core.tm.lastEventTime = 0;
     /* magic semi-resource fetched by GetResources */
-    save1 = (XtTranslations) new_widget->core.tm.current_state;
+    save1 = (IswTranslations) new_widget->core.tm.current_state;
     new_widget->core.tm.current_state = NULL;
     save2 = new_widget->core.tm.translations;
     LOCK_PROCESS;
     new_widget->core.tm.translations =
-        (XtTranslations) new_widget->core.widget_class->core_class.tm_table;
+        (IswTranslations) new_widget->core.widget_class->core_class.tm_table;
     UNLOCK_PROCESS;
     if (save1)
-        _XtMergeTranslations(new_widget, save1, save1->operation);
+        _IswMergeTranslations(new_widget, save1, save1->operation);
     if (save2)
-        _XtMergeTranslations(new_widget, save2, save2->operation);
+        _IswMergeTranslations(new_widget, save2, save2->operation);
 }
 
 static void
 CoreRealize(xcb_connection_t *display,
             Widget widget,
-            XtValueMask *value_mask,
+            IswValueMask *value_mask,
             uint32_t *attributes)
 {
-    XtCreateWindow(display, widget, (unsigned int) XCB_WINDOW_CLASS_INPUT_OUTPUT,
+    IswCreateWindow(display, widget, (unsigned int) XCB_WINDOW_CLASS_INPUT_OUTPUT,
                    (xcb_visualtype_t *) CopyFromParent, *value_mask, attributes);
 }                               /* CoreRealize */
 
 static void
 CoreDestroy(Widget widget)
 {
-    _XtFreeEventTable(&widget->core.event_table);
-    _XtDestroyTMData(widget);
-    XtUnregisterDrawable(XtDisplay(widget), widget->core.window);
+    _IswFreeEventTable(&widget->core.event_table);
+    _IswDestroyTMData(widget);
+    IswUnregisterDrawable(IswDisplay(widget), widget->core.window);
 
     if (widget->core.popup_list != NULL)
-        XtFree((char *) widget->core.popup_list);
+        IswFree((char *) widget->core.popup_list);
 
 }                               /* CoreDestroy */
 
@@ -338,26 +338,26 @@ CoreSetValues(Widget old,
     redisplay = FALSE;
     
     if (old->core.tm.translations != new->core.tm.translations) {
-        XtTranslations save = new->core.tm.translations;
+        IswTranslations save = new->core.tm.translations;
         new->core.tm.translations = old->core.tm.translations;
-        _XtMergeTranslations(new, save, XtTableReplace);
+        _IswMergeTranslations(new, save, IswTableReplace);
     }
     
     /* Check everything that depends upon window being realized */
-    if (XtIsRealized(old)) {
+    if (IswIsRealized(old)) {
         window_mask = 0;
-        conn = XtDisplay(new);
+        conn = IswDisplay(new);
         values = (uint32_t*)malloc(sizeof(uint32_t) * 32); // Allocate space for values
         
         /* Check window attributes */
         if (old->core.background_pixel != new->core.background_pixel
-            && new->core.background_pixmap == XtUnspecifiedPixmap) {
+            && new->core.background_pixmap == IswUnspecifiedPixmap) {
             values[0] = new->core.background_pixel;
             window_mask |= XCB_CW_BACK_PIXEL;
             redisplay = TRUE;
         }
         if (old->core.background_pixmap != new->core.background_pixmap) {
-            if (new->core.background_pixmap == XtUnspecifiedPixmap) {
+            if (new->core.background_pixmap == IswUnspecifiedPixmap) {
                 values[0] = new->core.background_pixel;
                 window_mask |= XCB_CW_BACK_PIXEL;
             }
@@ -369,12 +369,12 @@ CoreSetValues(Widget old,
             redisplay = TRUE;
         }
         if (old->core.border_pixel != new->core.border_pixel
-            && new->core.border_pixmap == XtUnspecifiedPixmap) {
+            && new->core.border_pixmap == IswUnspecifiedPixmap) {
             values[0] = new->core.border_pixel;
             window_mask |= XCB_CW_BORDER_PIXEL;
         }
         if (old->core.border_pixmap != new->core.border_pixmap) {
-            if (new->core.border_pixmap == XtUnspecifiedPixmap) {
+            if (new->core.border_pixmap == IswUnspecifiedPixmap) {
                 values[0] = new->core.border_pixel;
                 window_mask |= XCB_CW_BORDER_PIXEL;
             }
@@ -385,8 +385,8 @@ CoreSetValues(Widget old,
             }
         }
         if (old->core.depth != new->core.depth) {
-            XtAppWarningMsg(XtWidgetToApplicationContext(old),
-                            "invalidDepth", "setValues", XtCXtToolkitError,
+            IswAppWarningMsg(IswWidgetToApplicationContext(old),
+                            "invalidDepth", "setValues", IswCIswToolkitError,
                             "Can't change widget depth", NULL, NULL);
             new->core.depth = old->core.depth;
         }
@@ -397,13 +397,13 @@ CoreSetValues(Widget old,
         
         if (window_mask != 0) {
             /* Actually change XCB window attributes */
-            xcb_change_window_attributes(conn, XtWindow(new), window_mask, values);
+            xcb_change_window_attributes(conn, IswWindow(new), window_mask, values);
             //#TODO batching/error handling here?
         }
         if (old->core.mapped_when_managed != new->core.mapped_when_managed) {
             Boolean mapped_when_managed = new->core.mapped_when_managed;
             new->core.mapped_when_managed = !mapped_when_managed;
-            XtSetMappedWhenManaged(new, mapped_when_managed);
+            IswSetMappedWhenManaged(new, mapped_when_managed);
         }
         
         free(values);
@@ -414,8 +414,8 @@ CoreSetValues(Widget old,
 static void
 CoreSetValuesAlmost(Widget old _X_UNUSED,
                     Widget new _X_UNUSED,
-                    XtWidgetGeometry *request,
-                    XtWidgetGeometry *reply)
+                    IswWidgetGeometry *request,
+                    IswWidgetGeometry *reply)
 {
     *request = *reply;
 }

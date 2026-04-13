@@ -61,7 +61,7 @@ SOFTWARE.
 
 #define TM_NO_MATCH (-2)
 
-#define _XtRStateTablePair "_XtStateTablePair"
+#define _IswRStateTablePair "_IswStateTablePair"
 
 typedef unsigned char TMByteCard;
 typedef unsigned short TMShortCard;
@@ -99,8 +99,8 @@ typedef struct _ActionsRec {
     ActionPtr next;		/* next action to perform */
 } ActionRec;
 
-typedef struct _XtStateRec *StatePtr;
-typedef struct _XtStateRec {
+typedef struct _IswStateRec *StatePtr;
+typedef struct _IswStateRec {
     unsigned int	isCycleStart:1;
     unsigned int	isCycleEnd:1;
     TMShortCard		typeIndex;
@@ -110,12 +110,12 @@ typedef struct _XtStateRec {
 }StateRec;
 
 
-#define XtTableReplace	0
-#define XtTableAugment	1
-#define XtTableOverride	2
-#define XtTableUnmerge  3
+#define IswTableReplace	0
+#define IswTableAugment	1
+#define IswTableOverride	2
+#define IswTableUnmerge  3
 
-typedef unsigned int _XtTranslateOp;
+typedef unsigned int _IswTranslateOp;
 
 /*
  * New Definitions
@@ -204,13 +204,13 @@ typedef union _TMStateTreeRec{
 }*TMStateTree, **TMStateTreePtr, **TMStateTreeList;
 
 typedef struct _TMSimpleBindProcsRec {
-    XtActionProc	*procs;
+    IswActionProc	*procs;
 }TMSimpleBindProcsRec, *TMSimpleBindProcs;
 
 typedef struct _TMComplexBindProcsRec {
     Widget	 	widget;		/*widgetID to pass to action Proc*/
-    XtTranslations	aXlations;
-    XtActionProc	*procs;
+    IswTranslations	aXlations;
+    IswActionProc	*procs;
 }TMComplexBindProcsRec, *TMComplexBindProcs;
 
 typedef struct _TMSimpleBindDataRec {
@@ -254,11 +254,11 @@ typedef struct _ATranslationData{
 }ATranslationData, *ATranslations;
 
 typedef struct _TMConvertRec {
-    XtTranslations	old; /* table to merge into */
-    XtTranslations	new; /* table to merge from */
+    IswTranslations	old; /* table to merge into */
+    IswTranslations	new; /* table to merge from */
 } TMConvertRec;
 
-#define _XtEventTimerEventType ((TMLongCard)~0L)
+#define _IswEventTimerEventType ((TMLongCard)~0L)
 #define KeysymModMask		(1L<<27) /* private to TM */
 #define AnyButtonMask		(1L<<28) /* private to TM */
 
@@ -292,9 +292,9 @@ typedef struct _TMEventRec {
 
 typedef struct _ActionHookRec {
     struct _ActionHookRec* next; /* must remain first */
-    XtAppContext app;
-    XtActionHookProc proc;
-    XtPointer closure;
+    IswAppContext app;
+    IswActionHookProc proc;
+    IswPointer closure;
 } ActionHookRec, *ActionHook;
 
 /* choose a number between 2 and 8 */
@@ -327,7 +327,7 @@ typedef struct _TMGlobalRec{
     TMShortCard			modMatchSegmentTblSize;
     Boolean			newMatchSemantics;
 #ifdef TRACE_TM
-    XtTranslations		*tmTbl;
+    IswTranslations		*tmTbl;
     TMShortCard			numTms;
     TMShortCard			tmTblSize;
     struct _TMBindCacheRec	**bindCacheTbl;
@@ -342,20 +342,20 @@ typedef struct _TMGlobalRec{
 
 _XFUNCPROTOBEGIN
 
-extern TMGlobalRec _XtGlobalTM;
+extern TMGlobalRec _IswGlobalTM;
 
 #define TM_MOD_SEGMENT_SIZE 	16
 #define TM_TYPE_SEGMENT_SIZE 	16
 
 #define TMGetTypeMatch(idx) \
   ((TMTypeMatch) \
-   &((_XtGlobalTM.typeMatchSegmentTbl[((idx) >> 4)])[(idx) & 15]))
+   &((_IswGlobalTM.typeMatchSegmentTbl[((idx) >> 4)])[(idx) & 15]))
 #define TMGetModifierMatch(idx) \
   ((TMModifierMatch) \
-   &((_XtGlobalTM.modMatchSegmentTbl[(idx) >> 4])[(idx) & 15]))
+   &((_IswGlobalTM.modMatchSegmentTbl[(idx) >> 4])[(idx) & 15]))
 
 /* Useful Access Macros */
-#define TMNewMatchSemantics() (_XtGlobalTM.newMatchSemantics)
+#define TMNewMatchSemantics() (_IswGlobalTM.newMatchSemantics)
 #define TMBranchMore(branch) (branch->more)
 #define TMComplexBranchHead(tree, br) \
   (((TMComplexStateTree)tree)->complexBranchHeadTbl[TMBranchMore(br)])
@@ -369,65 +369,65 @@ extern TMGlobalRec _XtGlobalTM;
 
 #define _InitializeKeysymTables(dpy, pd) \
     if (pd->keysyms == NULL) \
-        _XtBuildKeysymTables(dpy, pd)
+        _IswBuildKeysymTables(dpy, pd)
 
 /*
  * Internal Functions
  */
 
-extern void _XtPopup(
+extern void _IswPopup(
     Widget      /* widget */,
-    XtGrabKind  /* grab_kind */,
-    _XtBoolean	/* spring_loaded */
+    IswGrabKind  /* grab_kind */,
+    _IswBoolean	/* spring_loaded */
 );
 
-extern _XtString _XtPrintXlations(
+extern _IswString _IswPrintXlations(
     Widget		/* w */,
-    XtTranslations 	/* xlations */,
+    IswTranslations 	/* xlations */,
     Widget		/* accelWidget */,
-    _XtBoolean		/* includeRHS */
+    _IswBoolean		/* includeRHS */
 );
 
-extern void _XtRegisterGrabs(
+extern void _IswRegisterGrabs(
     Widget	/* widget */
 );
 
-extern XtPointer _XtInitializeActionData(
-    struct _XtActionsRec *	/* actions */,
+extern IswPointer _IswInitializeActionData(
+    struct _IswActionsRec *	/* actions */,
     Cardinal 			/* count */,
-    _XtBoolean			/* inPlace */
+    _IswBoolean			/* inPlace */
 );
 
-extern void _XtAddEventSeqToStateTree(
+extern void _IswAddEventSeqToStateTree(
     EventSeqPtr		/* eventSeq */,
     TMParseStateTree	/* stateTree */
 );
 
-extern Boolean _XtMatchUsingStandardMods(
+extern Boolean _IswMatchUsingStandardMods(
     TMTypeMatch		/* typeMatch */,
     TMModifierMatch	/* modMatch */,
     TMEventPtr		/* eventSeq */
 );
 
-extern Boolean _XtMatchUsingDontCareMods(
+extern Boolean _IswMatchUsingDontCareMods(
     TMTypeMatch		/* typeMatch */,
     TMModifierMatch	/* modMatch */,
     TMEventPtr		/* eventSeq */
 );
 
-extern Boolean _XtRegularMatch(
+extern Boolean _IswRegularMatch(
     TMTypeMatch		/* typeMatch */,
     TMModifierMatch	/* modMatch */,
     TMEventPtr		/* eventSeq */
 );
 
-extern Boolean _XtMatchAtom(
+extern Boolean _IswMatchAtom(
     TMTypeMatch		/* typeMatch */,
     TMModifierMatch	/* modMatch */,
     TMEventPtr		/* eventSeq */
 );
 
-extern void _XtTranslateEvent(
+extern void _IswTranslateEvent(
     Widget		/* widget */,
     xcb_generic_event_t*		/* event */
 );
@@ -441,24 +441,24 @@ extern void _XtTranslateEvent(
 #include "ResourceI.h"
 #include "StringDefs.h"
 
-extern void _XtBuildKeysymTables(xcb_connection_t *dpy, XtPerDisplay pd);
+extern void _IswBuildKeysymTables(xcb_connection_t *dpy, IswPerDisplay pd);
 
 #ifndef NO_MIT_HACKS
-extern void  _XtDisplayTranslations(
+extern void  _IswDisplayTranslations(
     Widget		/* widget */,
    xcb_generic_event_t*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
 
-extern void  _XtDisplayAccelerators(
+extern void  _IswDisplayAccelerators(
     Widget		/* widget */,
    xcb_generic_event_t*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
 
-extern void _XtDisplayInstalledAccelerators(
+extern void _IswDisplayInstalledAccelerators(
     Widget		/* widget */,
    xcb_generic_event_t*		/* event */,
     String*		/* params */,
@@ -466,142 +466,142 @@ extern void _XtDisplayInstalledAccelerators(
 );
 #endif /* ifndef NO_MIT_HACKS */
 
-extern void _XtPopupInitialize(
-    XtAppContext	/* app_context */
+extern void _IswPopupInitialize(
+    IswAppContext	/* app_context */
 );
 
-extern void _XtBindActions(
+extern void _IswBindActions(
     Widget	/* widget */,
-    XtTM 	/* tm_rec */
+    IswTM 	/* tm_rec */
 );
 
-extern Boolean _XtComputeLateBindings(
+extern Boolean _IswComputeLateBindings(
     xcb_connection_t *		/* dpy */,
     LateBindingsPtr	/* lateModifiers */,
     Modifiers*		/* computed */,
     Modifiers*		/* computedMask */
 );
 
-extern XtTranslations _XtCreateXlations(
+extern IswTranslations _IswCreateXlations(
     TMStateTree *	/* stateTrees */,
     TMShortCard		/* numStateTrees */,
-    XtTranslations 	/* first */,
-    XtTranslations	/* second */
+    IswTranslations 	/* first */,
+    IswTranslations	/* second */
 );
 
-extern Boolean _XtCvtMergeTranslations(
+extern Boolean _IswCvtMergeTranslations(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr	/* args */,
     Cardinal*	/* num_args */,
     XrmValuePtr	/* from */,
     XrmValuePtr	/* to */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-void _XtRemoveStateTreeByIndex(
-    XtTranslations	/* xlations */,
+void _IswRemoveStateTreeByIndex(
+    IswTranslations	/* xlations */,
     TMShortCard	/* i */);
 
-void _XtFreeTranslations(
-    XtAppContext	/* app */,
+void _IswFreeTranslations(
+    IswAppContext	/* app */,
     XrmValuePtr		/* toVal */,
-    XtPointer		/* closure */,
+    IswPointer		/* closure */,
     XrmValuePtr		/* args */,
     Cardinal*		/* num_args */
 );
 
-extern TMShortCard _XtGetModifierIndex(
+extern TMShortCard _IswGetModifierIndex(
     Event*	/* event */
 );
 
-extern TMShortCard _XtGetQuarkIndex(
+extern TMShortCard _IswGetQuarkIndex(
     TMParseStateTree	/* stateTreePtr */,
     XrmQuark		/* quark */
 );
 
-extern XtTranslations _XtGetTranslationValue(
+extern IswTranslations _IswGetTranslationValue(
     Widget		/* widget */
 );
 
-extern TMShortCard _XtGetTypeIndex(
+extern TMShortCard _IswGetTypeIndex(
     Event*	/* event */
 );
 
-extern void _XtGrabInitialize(
-    XtAppContext	/* app */
+extern void _IswGrabInitialize(
+    IswAppContext	/* app */
 );
 
-extern void _XtInstallTranslations(
+extern void _IswInstallTranslations(
     Widget		/* widget */
 );
 
-extern void _XtRemoveTranslations(
+extern void _IswRemoveTranslations(
     Widget		/* widget */
 );
 
-extern void _XtDestroyTMData(
+extern void _IswDestroyTMData(
     Widget		/* widget */
 );
 
-extern void _XtMergeTranslations(
+extern void _IswMergeTranslations(
     Widget		/* widget */,
-    XtTranslations	/* newXlations */,
-    _XtTranslateOp	/* operation */
+    IswTranslations	/* newXlations */,
+    _IswTranslateOp	/* operation */
 );
 
-extern void _XtActionInitialize(
-    XtAppContext	/* app */
+extern void _IswActionInitialize(
+    IswAppContext	/* app */
 );
 
-extern TMStateTree _XtParseTreeToStateTree(
+extern TMStateTree _IswParseTreeToStateTree(
     TMParseStateTree 	/* parseTree */
 );
 
-extern String _XtPrintActions(
+extern String _IswPrintActions(
     ActionRec*	/* actions */,
     XrmQuark*	/* quarkTbl */
 );
 
-extern String _XtPrintState(
+extern String _IswPrintState(
     TMStateTree	/* stateTree */,
     TMBranchHead /* branchHead */);
 
-extern String _XtPrintEventSeq(
+extern String _IswPrintEventSeq(
     EventSeqPtr	/* eventSeq */,
     xcb_connection_t *	/* dpy */
 );
 
-typedef Boolean (*_XtTraversalProc)(
+typedef Boolean (*_IswTraversalProc)(
     StatePtr	/* state */,
-    XtPointer	/* data */
+    IswPointer	/* data */
 );
 
-extern void _XtTraverseStateTree(
+extern void _IswTraverseStateTree(
     TMStateTree		/* tree */,
-    _XtTraversalProc	/* func */,
-    XtPointer		/* data */
+    _IswTraversalProc	/* func */,
+    IswPointer		/* data */
 );
 
-extern void _XtTranslateInitialize(
+extern void _IswTranslateInitialize(
     void
 );
 
-extern void _XtAddTMConverters(
+extern void _IswAddTMConverters(
     ConverterTable	/* table */
 );
 
-extern void _XtUnbindActions(
+extern void _IswUnbindActions(
     Widget		/* widget */,
-    XtTranslations	/* xlations */,
+    IswTranslations	/* xlations */,
     TMBindData		/* bindData */
 );
 
-extern void _XtUnmergeTranslations(
+extern void _IswUnmergeTranslations(
     Widget		/* widget */,
-    XtTranslations 	/* xlations */
+    IswTranslations 	/* xlations */
 );
 
 /* TMKey.c */
-extern void _XtAllocTMContext(XtPerDisplay pd);
+extern void _IswAllocTMContext(IswPerDisplay pd);
 
 _XFUNCPROTOEND

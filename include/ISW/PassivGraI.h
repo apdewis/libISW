@@ -59,15 +59,15 @@ in this Software without prior written authorization from The Open Group.
 _XFUNCPROTOBEGIN
 
 typedef enum {
-    XtNoServerGrab,
-    XtPassiveServerGrab,
-    XtActiveServerGrab,
-    XtPseudoPassiveServerGrab,
-    XtPseudoActiveServerGrab
-}XtServerGrabType;
+    IswNoServerGrab,
+    IswPassiveServerGrab,
+    IswActiveServerGrab,
+    IswPseudoPassiveServerGrab,
+    IswPseudoActiveServerGrab
+}IswServerGrabType;
 
-typedef struct _XtServerGrabRec {
-    struct _XtServerGrabRec 	*next;
+typedef struct _IswServerGrabRec {
+    struct _IswServerGrabRec 	*next;
     Widget			widget;
     unsigned int		ownerEvents:1;
     unsigned int		pointerMode:1;
@@ -77,109 +77,109 @@ typedef struct _XtServerGrabRec {
     xcb_keycode_t			keybut;
     unsigned short		modifiers;
     unsigned short		eventMask;
-} XtServerGrabRec, *XtServerGrabPtr;
+} IswServerGrabRec, *IswServerGrabPtr;
 
-typedef struct _XtGrabExtRec {
+typedef struct _IswGrabExtRec {
     Mask			*pKeyButMask;
     Mask			*pModifiersMask;
     xcb_window_t			confineTo;
     xcb_cursor_t			cursor;
-} XtServerGrabExtRec, *XtServerGrabExtPtr;
+} IswServerGrabExtRec, *IswServerGrabExtPtr;
 
-#define GRABEXT(p) ((XtServerGrabExtPtr)((p)+1))
+#define GRABEXT(p) ((IswServerGrabExtPtr)((p)+1))
 
-typedef struct _XtDeviceRec{
-    XtServerGrabRec	grab; 	/* need copy in order to protect
+typedef struct _IswDeviceRec{
+    IswServerGrabRec	grab; 	/* need copy in order to protect
 				   during grab */
-    XtServerGrabType	grabType;
-}XtDeviceRec, *XtDevice;
+    IswServerGrabType	grabType;
+}IswDeviceRec, *IswDevice;
 
-#define XtMyAncestor	0
-#define XtMyDescendant	1
-#define XtMyCousin	2
-#define XtMySelf	3
-#define XtUnrelated	4
-typedef char XtGeneology; /* do not use an enum makes PerWidgetInput larger */
+#define IswMyAncestor	0
+#define IswMyDescendant	1
+#define IswMyCousin	2
+#define IswMySelf	3
+#define IswUnrelated	4
+typedef char IswGeneology; /* do not use an enum makes PerWidgetInput larger */
 
 typedef struct {
     Widget		id;		/* hash key: widget pointer (NOT window ID) */
     Widget		focusKid;
-    XtServerGrabPtr	keyList, ptrList;
+    IswServerGrabPtr	keyList, ptrList;
     Widget		queryEventDescendant;
     unsigned int	map_handler_added:1;
     unsigned int	realize_handler_added:1;
     unsigned int	active_handler_added:1;
     unsigned int	haveFocus:1;
-    XtGeneology		focalPoint;
+    IswGeneology		focalPoint;
     UT_hash_handle hh;
-}XtPerWidgetInputRec, *XtPerWidgetInput;
+}IswPerWidgetInputRec, *IswPerWidgetInput;
 
-typedef struct XtPerDisplayInputRec{
-    XtGrabList 	grabList;
-    XtDeviceRec keyboard, pointer;
+typedef struct IswPerDisplayInputRec{
+    IswGrabList 	grabList;
+    IswDeviceRec keyboard, pointer;
     xcb_keycode_t	activatingKey;
     Widget 	*trace;
     int		traceDepth, traceMax;
     Widget 	focusWidget;
-}XtPerDisplayInputRec, *XtPerDisplayInput;
+}IswPerDisplayInputRec, *IswPerDisplayInput;
 
-#define IsServerGrab(g) ((g == XtPassiveServerGrab) ||\
-			 (g == XtActiveServerGrab))
+#define IsServerGrab(g) ((g == IswPassiveServerGrab) ||\
+			 (g == IswActiveServerGrab))
 
-#define IsAnyGrab(g) ((g == XtPassiveServerGrab) ||\
-		      (g == XtActiveServerGrab)  ||\
-		      (g == XtPseudoPassiveServerGrab))
+#define IsAnyGrab(g) ((g == IswPassiveServerGrab) ||\
+		      (g == IswActiveServerGrab)  ||\
+		      (g == IswPseudoPassiveServerGrab))
 
-#define IsEitherPassiveGrab(g) ((g == XtPassiveServerGrab) ||\
-				(g == XtPseudoPassiveServerGrab))
+#define IsEitherPassiveGrab(g) ((g == IswPassiveServerGrab) ||\
+				(g == IswPseudoPassiveServerGrab))
 
-#define IsPseudoGrab(g) ((g == XtPseudoPassiveServerGrab))
+#define IsPseudoGrab(g) ((g == IswPseudoPassiveServerGrab))
 
-extern void _XtDestroyServerGrabs(
+extern void _IswDestroyServerGrabs(
     Widget		/* w */,
-    XtPointer		/* pwi */, /*XtPerWidgetInput*/
-    XtPointer		/* call_data */
+    IswPointer		/* pwi */, /*IswPerWidgetInput*/
+    IswPointer		/* call_data */
 );
 
-extern XtPerWidgetInput _XtGetPerWidgetInput(
+extern IswPerWidgetInput _IswGetPerWidgetInput(
     Widget	/* widget */,
-    _XtBoolean	/* create */
+    _IswBoolean	/* create */
 );
 
-extern XtServerGrabPtr _XtCheckServerGrabsOnWidget(
+extern IswServerGrabPtr _IswCheckServerGrabsOnWidget(
    xcb_generic_event_t*		/* event */,
     Widget		/* widget */,
-    _XtBoolean		/* isKeyboard */
+    _IswBoolean		/* isKeyboard */
 );
 
 /*
-extern XtGrabList* _XtGetGrabList( XtPerDisplayInput );
+extern IswGrabList* _IswGetGrabList( IswPerDisplayInput );
 */
 
-#define _XtGetGrabList(pdi) (&(pdi)->grabList)
+#define _IswGetGrabList(pdi) (&(pdi)->grabList)
 
-extern void _XtFreePerWidgetInput(
+extern void _IswFreePerWidgetInput(
     Widget		/* w */,
-    XtPerWidgetInput	/* pwi */
+    IswPerWidgetInput	/* pwi */
 );
 
-extern Widget _XtProcessKeyboardEvent(
+extern Widget _IswProcessKeyboardEvent(
     xcb_key_press_event_t*		/* event */,
     Widget		/* widget */,
-    XtPerDisplayInput	/* pdi */
+    IswPerDisplayInput	/* pdi */
 );
 
-extern Widget _XtProcessPointerEvent(
+extern Widget _IswProcessPointerEvent(
     xcb_button_press_event_t*	/* event */,
     Widget		/* widget */,
-    XtPerDisplayInput	/* pdi */
+    IswPerDisplayInput	/* pdi */
 );
 
-extern void _XtRegisterPassiveGrabs(
+extern void _IswRegisterPassiveGrabs(
     Widget		/* widget */
 );
 
-extern void _XtClearAncestorCache(
+extern void _IswClearAncestorCache(
     Widget		/* widget */
 );
 

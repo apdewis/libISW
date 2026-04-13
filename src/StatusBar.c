@@ -11,8 +11,8 @@
 #endif
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/StatusBarP.h>
 #include <ISW/Label.h>
@@ -22,21 +22,21 @@
 
 /* --- Resources --- */
 
-#define Offset(field) XtOffsetOf(StatusBarRec, field)
+#define Offset(field) IswOffsetOf(StatusBarRec, field)
 
-static XtResource resources[] = {
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-        Offset(core.border_width), XtRImmediate, (XtPointer) 0},
+static IswResource resources[] = {
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+        Offset(core.border_width), IswRImmediate, (IswPointer) 0},
 };
 
 #undef Offset
 
 /* Constraint resources (per-child) */
-#define COffset(field) XtOffsetOf(StatusBarConstraintsRec, field)
+#define COffset(field) IswOffsetOf(StatusBarConstraintsRec, field)
 
-static XtResource constraintResources[] = {
-    {XtNstatusStretch, XtCStatusStretch, XtRBoolean, sizeof(Boolean),
-        COffset(statusBar.stretch), XtRImmediate, (XtPointer) False},
+static IswResource constraintResources[] = {
+    {IswNstatusStretch, IswCStatusStretch, IswRBoolean, sizeof(Boolean),
+        COffset(statusBar.stretch), IswRImmediate, (IswPointer) False},
 };
 
 #undef COffset
@@ -48,7 +48,7 @@ static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void InsertChild(Widget);
 static void ChangeManaged(Widget);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 static void DoLayout(StatusBarWidget);
 
@@ -64,11 +64,11 @@ StatusBarClassRec statusBarClassRec = {
     FALSE,                              /* class_inited           */
     Initialize,                         /* initialize             */
     NULL,                               /* initialize_hook        */
-    XtInheritRealize,                   /* realize                */
+    IswInheritRealize,                   /* realize                */
     NULL,                               /* actions                */
     0,                                  /* num_actions            */
     resources,                          /* resources              */
-    XtNumber(resources),                /* resource_count         */
+    IswNumber(resources),                /* resource_count         */
     NULLQUARK,                          /* xrm_class              */
     TRUE,                               /* compress_motion        */
     TRUE,                               /* compress_exposure      */
@@ -79,26 +79,26 @@ StatusBarClassRec statusBarClassRec = {
     Redisplay,                          /* expose                 */
     NULL,                               /* set_values             */
     NULL,                               /* set_values_hook        */
-    XtInheritSetValuesAlmost,           /* set_values_almost      */
+    IswInheritSetValuesAlmost,           /* set_values_almost      */
     NULL,                               /* get_values_hook        */
     NULL,                               /* accept_focus           */
-    XtVersion,                          /* version                */
+    IswVersion,                          /* version                */
     NULL,                               /* callback_private       */
     NULL,                               /* tm_table               */
-    XtInheritQueryGeometry,             /* query_geometry         */
-    XtInheritDisplayAccelerator,        /* display_accelerator    */
+    IswInheritQueryGeometry,             /* query_geometry         */
+    IswInheritDisplayAccelerator,        /* display_accelerator    */
     NULL                                /* extension              */
   },
   { /* composite */
     GeometryManager,                    /* geometry_manager       */
     ChangeManaged,                      /* change_managed         */
     InsertChild,                        /* insert_child           */
-    XtInheritDeleteChild,               /* delete_child           */
+    IswInheritDeleteChild,               /* delete_child           */
     NULL                                /* extension              */
   },
   { /* constraint */
     constraintResources,                /* subresources           */
-    XtNumber(constraintResources),      /* subresource_count      */
+    IswNumber(constraintResources),      /* subresource_count      */
     sizeof(StatusBarConstraintsRec),    /* constraint_size        */
     NULL,                               /* initialize             */
     NULL,                               /* destroy                */
@@ -129,7 +129,7 @@ DoLayout(StatusBarWidget sw)
 
     for (i = 0; i < sw->composite.num_children; i++) {
         Widget child = sw->composite.children[i];
-        if (!XtIsManaged(child))
+        if (!IswIsManaged(child))
             continue;
 
         StatusBarConstraintsPart *cp =
@@ -139,8 +139,8 @@ DoLayout(StatusBarWidget sw)
         if (cp->stretch && !stretch_child) {
             stretch_child = child;
         } else {
-            XtWidgetGeometry pref;
-            XtQueryGeometry(child, NULL, &pref);
+            IswWidgetGeometry pref;
+            IswQueryGeometry(child, NULL, &pref);
             Dimension cw = (pref.request_mode & XCB_CONFIG_WINDOW_WIDTH) ? pref.width
                                                           : child->core.width;
             fixed_total += cw;
@@ -156,22 +156,22 @@ DoLayout(StatusBarWidget sw)
     Position x = 0;
     for (i = 0; i < sw->composite.num_children; i++) {
         Widget child = sw->composite.children[i];
-        if (!XtIsManaged(child))
+        if (!IswIsManaged(child))
             continue;
 
         Dimension cw;
         if (child == stretch_child) {
             cw = available;
         } else {
-            XtWidgetGeometry pref;
-            XtQueryGeometry(child, NULL, &pref);
+            IswWidgetGeometry pref;
+            IswQueryGeometry(child, NULL, &pref);
             cw = (pref.request_mode & XCB_CONFIG_WINDOW_WIDTH) ? pref.width
                                                 : child->core.width;
         }
 
         /* Start at y=1 to leave room for top separator line */
         Dimension child_h = (bar_h > 1) ? bar_h - 1 : 1;
-        XtConfigureWidget(child, x, 1, cw, child_h, 0);
+        IswConfigureWidget(child, x, 1, cw, child_h, 0);
         x += (Position)(cw + h_space);
     }
 }
@@ -197,10 +197,10 @@ InsertChild(Widget child)
     (*constraintClassRec.composite_class.insert_child)(child);
 
     /* Style Label children for flat appearance */
-    if (XtIsSubclass(child, labelWidgetClass)) {
+    if (IswIsSubclass(child, labelWidgetClass)) {
         Arg args[1];
-        XtSetArg(args[0], XtNborderWidth, 0);
-        XtSetValues(child, args, 1);
+        IswSetArg(args[0], IswNborderWidth, 0);
+        IswSetValues(child, args, 1);
     }
 }
 
@@ -216,13 +216,13 @@ ChangeManaged(Widget w)
     DoLayout((StatusBarWidget) w);
 }
 
-static XtGeometryResult
-GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 {
     (void)child; (void)request; (void)reply;
     /* Deny child resize requests — layout controls sizing */
-    DoLayout((StatusBarWidget) XtParent(child));
-    return XtGeometryNo;
+    DoLayout((StatusBarWidget) IswParent(child));
+    return IswGeometryNo;
 }
 
 static void
@@ -230,7 +230,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     (void)event; (void)region;
 
-    if (!XtIsRealized(w) || w->core.width == 0 || w->core.height == 0)
+    if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
         return;
 
     /* Draw top separator line */

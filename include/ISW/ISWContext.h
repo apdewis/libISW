@@ -10,7 +10,7 @@
 #ifndef _ISW_IswContext_h
 #define _ISW_IswContext_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 #include <xcb/xcb.h>
 
 _XFUNCPROTOBEGIN

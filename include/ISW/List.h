@@ -49,18 +49,18 @@ in this Software without prior written authorization from the X Consortium.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- background	     Background		Pixel		XtDefaultBackground
- border		     BorderColor	Pixel		XtDefaultForeground
+ background	     Background		Pixel		IswDefaultBackground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
- callback            Callback           XtCallbackList  NULL       **6
+ callback            Callback           IswCallbackList  NULL       **6
  columnSpacing       Spacing            Dimension       6
  cursor		     Cursor		Cursor		left_ptr
  cursorName	     Cursor		String		NULL
  defaultColumns      Columns            int             2          **5
  destroyCallback     Callback		Pointer		NULL
- font		     Font		XFontStruct*	XtDefaultFont
+ font		     Font		IswFontStruct*	IswDefaultFont
  forceColumns        Columns            Boolean         False      **5
- foreground	     Foreground		Pixel		XtDefaultForeground
+ foreground	     Foreground		Pixel		IswDefaultForeground
  height		     Height		Dimension	0          **1
  insensitiveBorder   Insensitive	Pixmap		Gray
  internalHeight	     Height		Dimension	2
@@ -70,8 +70,8 @@ in this Software without prior written authorization from the X Consortium.
  mappedWhenManaged   MappedWhenManaged	Boolean		True
  numberStrings       NumberStrings      int             0          **4
  pasteBuffer         Boolean            Boolean         False
- pointerColor	     Foreground		Pixel		XtDefaultForeground
- pointerColorBackground Background	Pixel		XtDefaultBackground
+ pointerColor	     Foreground		Pixel		IswDefaultForeground
+ pointerColorBackground Background	Pixel		IswDefaultBackground
  rowSpacing          Spacing            Dimension       4
  sensitive	     Sensitive		Boolean		True
  verticalList        Boolean            Boolean         False
@@ -117,31 +117,31 @@ in this Software without prior written authorization from the X Consortium.
 
 #define XAW_LIST_NONE -1
 
-#define XtCList "List"
-#define XtCSpacing "Spacing"
-#define XtCColumns "Columns"
-#define XtCLongest "Longest"
-#define XtCNumberStrings "NumberStrings"
+#define IswCList "List"
+#define IswCSpacing "Spacing"
+#define IswCColumns "Columns"
+#define IswCLongest "Longest"
+#define IswCNumberStrings "NumberStrings"
 
-#define XtNcursor "cursor"
-#define XtNcolumnSpacing "columnSpacing"
-#define XtNdefaultColumns "defaultColumns"
-#define XtNforceColumns "forceColumns"
-#define XtNlist "list"
-#define XtNlongest "longest"
-#define XtNnumberStrings "numberStrings"
-#define XtNpasteBuffer "pasteBuffer"
-#define XtNrowSpacing "rowSpacing"
-#define XtNverticalList "verticalList"
-#define XtNdropdownMode "dropdownMode"
-#define XtCDropdownMode "DropdownMode"
+#define IswNcursor "cursor"
+#define IswNcolumnSpacing "columnSpacing"
+#define IswNdefaultColumns "defaultColumns"
+#define IswNforceColumns "forceColumns"
+#define IswNlist "list"
+#define IswNlongest "longest"
+#define IswNnumberStrings "numberStrings"
+#define IswNpasteBuffer "pasteBuffer"
+#define IswNrowSpacing "rowSpacing"
+#define IswNverticalList "verticalList"
+#define IswNdropdownMode "dropdownMode"
+#define IswCDropdownMode "DropdownMode"
 
 #ifdef ISW_INTERNATIONALIZATION
-#ifndef XtNfontSet
-#define XtNfontSet "fontSet"
+#ifndef IswNfontSet
+#define IswNfontSet "fontSet"
 #endif
-#ifndef XtCFontSet
-#define XtCFontSet "FontSet"
+#ifndef IswCFontSet
+#define IswCFontSet "FontSet"
 #endif
 #endif
 

@@ -43,8 +43,8 @@ in this Software without prior written authorization from the X Consortium.
 
 #endif
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <X11/Xos.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SimpleMenP.h>
@@ -66,35 +66,35 @@ in this Software without prior written authorization from the X Consortium.
 extern int abs();
 #endif
 
-#define offset(field) XtOffsetOf(SmeBSBRec, sme_bsb.field)
+#define offset(field) IswOffsetOf(SmeBSBRec, sme_bsb.field)
 
-static XtResource resources[] = {
-  {XtNlabel,  XtCLabel, XtRString, sizeof(String),
-     offset(label), XtRString, NULL},
-  {XtNvertSpace,  XtCVertSpace, XtRInt, sizeof(int),
-     offset(vert_space), XtRImmediate, (XtPointer) 25},
-  {XtNleftImage, XtCLeftImage, XtRString, sizeof(String),
-     offset(left_image_source), XtRImmediate, (XtPointer)NULL},
-  {XtNjustify, XtCJustify, XtRJustify, sizeof(XtJustify),
-     offset(justify), XtRImmediate, (XtPointer) XtJustifyLeft},
-  {XtNrightImage, XtCRightImage, XtRString, sizeof(String),
-     offset(right_image_source), XtRImmediate, (XtPointer)NULL},
-  {XtNleftMargin,  XtCHorizontalMargins, XtRDimension, sizeof(Dimension),
-     offset(left_margin), XtRImmediate, (XtPointer) 4},
-  {XtNrightMargin,  XtCHorizontalMargins, XtRDimension, sizeof(Dimension),
-     offset(right_margin), XtRImmediate, (XtPointer) 4},
-  {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-     offset(foreground), XtRString, XtDefaultForeground},
-  {XtNfont,  XtCFont, XtRFontStruct, sizeof(XFontStruct *),
-     offset(font), XtRString, XtDefaultFont},
+static IswResource resources[] = {
+  {IswNlabel,  IswCLabel, IswRString, sizeof(String),
+     offset(label), IswRString, NULL},
+  {IswNvertSpace,  IswCVertSpace, IswRInt, sizeof(int),
+     offset(vert_space), IswRImmediate, (IswPointer) 25},
+  {IswNleftImage, IswCLeftImage, IswRString, sizeof(String),
+     offset(left_image_source), IswRImmediate, (IswPointer)NULL},
+  {IswNjustify, IswCJustify, IswRJustify, sizeof(IswJustify),
+     offset(justify), IswRImmediate, (IswPointer) IswJustifyLeft},
+  {IswNrightImage, IswCRightImage, IswRString, sizeof(String),
+     offset(right_image_source), IswRImmediate, (IswPointer)NULL},
+  {IswNleftMargin,  IswCHorizontalMargins, IswRDimension, sizeof(Dimension),
+     offset(left_margin), IswRImmediate, (IswPointer) 4},
+  {IswNrightMargin,  IswCHorizontalMargins, IswRDimension, sizeof(Dimension),
+     offset(right_margin), IswRImmediate, (IswPointer) 4},
+  {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+     offset(foreground), IswRString, IswDefaultForeground},
+  {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+     offset(font), IswRString, IswDefaultFont},
 #ifdef ISW_INTERNATIONALIZATION
-  {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(ISWFontSet *),
-     offset(fontset),XtRString, XtDefaultFontSet},
+  {IswNfontSet,  IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
+     offset(fontset),IswRString, IswDefaultFontSet},
 #endif
-  {XtNmenuName, XtCMenuName, XtRString, sizeof(String),
-     offset(menu_name), XtRImmediate, (XtPointer) NULL},
-  {XtNunderline,  XtCIndex, XtRInt, sizeof(int),
-     offset(underline), XtRImmediate, (XtPointer) -1},
+  {IswNmenuName, IswCMenuName, IswRString, sizeof(String),
+     offset(menu_name), IswRImmediate, (IswPointer) NULL},
+  {IswNunderline,  IswCIndex, IswRInt, sizeof(int),
+     offset(underline), IswRImmediate, (IswPointer) -1},
 };
 #undef offset
 
@@ -109,7 +109,7 @@ static void Highlight(Widget);
 static void Unhighlight(Widget);
 static void ClassInitialize(void);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 /*
  * Private Function Definitions.
@@ -133,7 +133,7 @@ SmeBSBClassRec smeBSBClassRec = {
     /* actions            */    NULL,
     /* num_actions        */    ZERO,
     /* resources          */    resources,
-    /* resource_count     */	XtNumber(resources),
+    /* resource_count     */	IswNumber(resources),
     /* xrm_class          */    NULLQUARK,
     /* compress_motion    */    FALSE,
     /* compress_exposure  */    FALSE,
@@ -144,10 +144,10 @@ SmeBSBClassRec smeBSBClassRec = {
     /* expose             */    Redisplay,
     /* set_values         */    SetValues,
     /* set_values_hook    */	NULL,
-    /* set_values_almost  */	XtInheritSetValuesAlmost,
+    /* set_values_almost  */	IswInheritSetValuesAlmost,
     /* get_values_hook    */	NULL,
     /* accept_focus       */    NULL,
-    /* intrinsics version */	XtVersion,
+    /* intrinsics version */	IswVersion,
     /* callback offsets   */    NULL,
     /* tm_table		  */    NULL,
     /* query_geometry	  */    QueryGeometry,
@@ -157,7 +157,7 @@ SmeBSBClassRec smeBSBClassRec = {
     /* SimpleMenuClass Fields */
     /* highlight          */	Highlight,
     /* unhighlight        */	Unhighlight,
-    /* notify             */	XtInheritNotify,
+    /* notify             */	IswInheritNotify,
     /* extension	  */	NULL
   }, {
     /* BSBClass Fields */
@@ -183,8 +183,8 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    XtSetTypeConverter( XtRString, XtRJustify, ISWCvtStringToJustify,
-		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
+    IswSetTypeConverter( IswRString, IswRJustify, ISWCvtStringToJustify,
+		    (IswConvertArgList)NULL, 0, IswCacheNone, (IswDestructor)NULL );
 }
 
 /*      Function Name: Initialize
@@ -205,15 +205,15 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     entry->sme_bsb.left_margin = (entry->sme_bsb.left_margin);
     entry->sme_bsb.right_margin = (entry->sme_bsb.right_margin);
 
-    /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
-     * If font is NULL but fontset is available, create a minimal XFontStruct
+    /* XCB Fix: IswRFontStruct converter may fail in XCB mode, leaving font NULL.
+     * If font is NULL but fontset is available, create a minimal IswFontStruct
      * using the fontset's font_id (similar to Label.c approach). */
     if (entry->sme_bsb.font == NULL) {
 #ifdef ISW_INTERNATIONALIZATION
 	if (entry->sme_bsb.fontset != NULL) {
-	    /* Allocate and initialize a minimal XFontStruct from fontset */
-	    entry->sme_bsb.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
-	    memset(entry->sme_bsb.font, 0, sizeof(XFontStruct));
+	    /* Allocate and initialize a minimal IswFontStruct from fontset */
+	    entry->sme_bsb.font = (IswFontStruct *)IswMalloc(sizeof(IswFontStruct));
+	    memset(entry->sme_bsb.font, 0, sizeof(IswFontStruct));
 	    entry->sme_bsb.font->fid = entry->sme_bsb.fontset->font_id;
 	    entry->sme_bsb.font->ascent = entry->sme_bsb.fontset->ascent;
 	    entry->sme_bsb.font->descent = entry->sme_bsb.fontset->descent;
@@ -222,24 +222,24 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 	} else
 #endif
 	{
-	    XtAppWarning(XtWidgetToApplicationContext(new),
+	    IswAppWarning(IswWidgetToApplicationContext(new),
 			 "SmeBSB widget: font and fontset are both NULL - text rendering will fail");
 	}
     }
 
     if (entry->sme_bsb.label == NULL)
-	entry->sme_bsb.label = XtName(new);
+	entry->sme_bsb.label = IswName(new);
     else
-	entry->sme_bsb.label = XtNewString( entry->sme_bsb.label );
+	entry->sme_bsb.label = IswNewString( entry->sme_bsb.label );
 
     /* Load images from string resources */
     if (entry->sme_bsb.left_image_source) {
-        entry->sme_bsb.left_image_source = XtNewString(entry->sme_bsb.left_image_source);
+        entry->sme_bsb.left_image_source = IswNewString(entry->sme_bsb.left_image_source);
         entry->sme_bsb.left_image = ISWImageLoad(entry->sme_bsb.left_image_source,
                                                   96.0, NULL);
     }
     if (entry->sme_bsb.right_image_source) {
-        entry->sme_bsb.right_image_source = XtNewString(entry->sme_bsb.right_image_source);
+        entry->sme_bsb.right_image_source = IswNewString(entry->sme_bsb.right_image_source);
         entry->sme_bsb.right_image = ISWImageLoad(entry->sme_bsb.right_image_source,
                                                    96.0, NULL);
     }
@@ -269,9 +269,9 @@ Destroy(Widget w)
     /* render_ctx lives on the parent SimpleMenu — nothing to destroy here */
 
     if (entry->sme_bsb.left_image_source)
-        XtFree(entry->sme_bsb.left_image_source);
+        IswFree(entry->sme_bsb.left_image_source);
     if (entry->sme_bsb.right_image_source)
-        XtFree(entry->sme_bsb.right_image_source);
+        IswFree(entry->sme_bsb.right_image_source);
     if (entry->sme_bsb.left_image) {
         ISWImageDestroy(entry->sme_bsb.left_image);
         entry->sme_bsb.left_image = NULL;
@@ -281,8 +281,8 @@ Destroy(Widget w)
         entry->sme_bsb.right_image = NULL;
     }
 
-    if (entry->sme_bsb.label != XtName(w))
-	XtFree(entry->sme_bsb.label);
+    if (entry->sme_bsb.label != IswName(w))
+	IswFree(entry->sme_bsb.label);
 }
 
 /*      Function Name: Redisplay
@@ -316,8 +316,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     { /*else, compute size from font like R5*/
  /* XCB Fix: Add NULL check for font before accessing fields */
  if (entry->sme_bsb.font != NULL) {
-     font_ascent = ISWScaledFontAscent(XtParent(w), entry->sme_bsb.font);
-     font_descent = ISWScaledFontHeight(XtParent(w), entry->sme_bsb.font)
+     font_ascent = ISWScaledFontAscent(IswParent(w), entry->sme_bsb.font);
+     font_descent = ISWScaledFontHeight(IswParent(w), entry->sme_bsb.font)
                     - font_ascent;
  } else {
      font_ascent = (11);
@@ -327,10 +327,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     y_loc = entry->rectangle.y;
 
     /* Use the parent SimpleMenu's shared render context */
-    ISWRenderContext *ctx = ((SimpleMenuWidget)XtParent(w))->simple_menu.render_ctx;
+    ISWRenderContext *ctx = ((SimpleMenuWidget)IswParent(w))->simple_menu.render_ctx;
 
-    if (XtIsSensitive(w) && XtIsSensitive( XtParent(w) ) ) {
- if ( w == IswSimpleMenuGetActiveEntry(XtParent(w)) ) {
+    if (IswIsSensitive(w) && IswIsSensitive( IswParent(w) ) ) {
+ if ( w == IswSimpleMenuGetActiveEntry(IswParent(w)) ) {
      if (ctx) {
          ISWRenderBegin(ctx);
          ISWRenderSetColor(ctx, entry->sme_bsb.foreground);
@@ -345,7 +345,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
  else {
      if (ctx) {
          ISWRenderBegin(ctx);
-         ISWRenderSetColor(ctx, XtParent(w)->core.background_pixel);
+         ISWRenderSetColor(ctx, IswParent(w)->core.background_pixel);
          ISWRenderFillRectangle(ctx,
                                 s, y_loc + s,
                                 entry->rectangle.width - 2 * s,
@@ -362,31 +362,31 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	char * label = entry->sme_bsb.label;
 
 	switch(entry->sme_bsb.justify) {
-	    case XtJustifyCenter:
+	    case IswJustifyCenter:
 #ifdef ISW_INTERNATIONALIZATION
 		if ( entry->sme.international == True )
 		    t_width = IswTextWidth(entry->sme_bsb.fontset,label,len);
 		else
 #endif
-		    t_width = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, label, len);
+		    t_width = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, label, len);
 
 		width = entry->rectangle.width -
 				(entry->sme_bsb.left_margin +
 				entry->sme_bsb.right_margin);
 		x_loc += (width - t_width)/2;
 		break;
-	    case XtJustifyRight:
+	    case IswJustifyRight:
 #ifdef ISW_INTERNATIONALIZATION
 		if ( entry->sme.international == True )
 		    t_width = IswTextWidth(entry->sme_bsb.fontset,label,len);
 		else
 #endif
-		    t_width = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, label, len);
+		    t_width = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, label, len);
 
 		x_loc = entry->rectangle.width -
 				(entry->sme_bsb.right_margin + t_width);
 		break;
-	    case XtJustifyLeft:
+	    case IswJustifyLeft:
 	    default:
 		break;
 	}
@@ -398,7 +398,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             y_loc += ((int)entry->rectangle.height -
 		  (fontset_ascent + fontset_descent)) / 2 + fontset_ascent;
 
-            IswDrawString(XtDisplayOfObject(w), XtWindowOfObject(w),
+            IswDrawString(IswDisplayOfObject(w), IswWindowOfObject(w),
                 entry->sme_bsb.fontset, XCB_NONE, x_loc + s, y_loc, label, len);
         }
         else
@@ -409,7 +409,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
             if (ctx) {
                 Pixel text_color = highlighted_active
-                    ? XtParent(w)->core.background_pixel
+                    ? IswParent(w)->core.background_pixel
                     : entry->sme_bsb.foreground;
                 ISWRenderBegin(ctx);
                 ISWRenderSetColor(ctx, text_color);
@@ -428,12 +428,12 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	    Pixel underline_color;
 
 	    if (ul != 0)
-	 ul_x1_loc += ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, label, ul);
-	    ul_wid = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font, &label[ul], 1) - 2;
+	 ul_x1_loc += ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, label, ul);
+	    ul_wid = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, &label[ul], 1) - 2;
 	    
 	    underline_color = highlighted_active
 	        ? entry->sme_bsb.foreground
-	        : XtParent(w)->core.background_pixel;
+	        : IswParent(w)->core.background_pixel;
 	    
 	    /* Draw underline using Cairo or XCB */
 	    if (ctx) {
@@ -463,17 +463,17 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 static Boolean
 SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
-    Widget parent = XtParent(new);
+    Widget parent = IswParent(new);
     SmeBSBObject entry = (SmeBSBObject) new;
     SmeBSBObject old_entry = (SmeBSBObject) current;
     Boolean ret_val = FALSE;
 
     if (old_entry->sme_bsb.label != entry->sme_bsb.label) {
-        if (old_entry->sme_bsb.label != XtName( new ) )
-	    XtFree( (char *) old_entry->sme_bsb.label );
+        if (old_entry->sme_bsb.label != IswName( new ) )
+	    IswFree( (char *) old_entry->sme_bsb.label );
 
-	if (entry->sme_bsb.label != XtName(new) )
-	    entry->sme_bsb.label = XtNewString( entry->sme_bsb.label );
+	if (entry->sme_bsb.label != IswName(new) )
+	    entry->sme_bsb.label = IswNewString( entry->sme_bsb.label );
 
 	ret_val = TRUE;
     }
@@ -506,11 +506,11 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     if (entry->sme_bsb.left_image_source != old_entry->sme_bsb.left_image_source) {
         if (old_entry->sme_bsb.left_image_source)
-            XtFree(old_entry->sme_bsb.left_image_source);
+            IswFree(old_entry->sme_bsb.left_image_source);
         if (old_entry->sme_bsb.left_image)
             ISWImageDestroy(old_entry->sme_bsb.left_image);
         entry->sme_bsb.left_image_source = entry->sme_bsb.left_image_source
-            ? XtNewString(entry->sme_bsb.left_image_source) : NULL;
+            ? IswNewString(entry->sme_bsb.left_image_source) : NULL;
         entry->sme_bsb.left_image = entry->sme_bsb.left_image_source
             ? ISWImageLoad(entry->sme_bsb.left_image_source, 96.0, NULL) : NULL;
         GetImageInfo(new, TRUE);
@@ -522,11 +522,11 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     if (entry->sme_bsb.right_image_source != old_entry->sme_bsb.right_image_source) {
         if (old_entry->sme_bsb.right_image_source)
-            XtFree(old_entry->sme_bsb.right_image_source);
+            IswFree(old_entry->sme_bsb.right_image_source);
         if (old_entry->sme_bsb.right_image)
             ISWImageDestroy(old_entry->sme_bsb.right_image);
         entry->sme_bsb.right_image_source = entry->sme_bsb.right_image_source
-            ? XtNewString(entry->sme_bsb.right_image_source) : NULL;
+            ? IswNewString(entry->sme_bsb.right_image_source) : NULL;
         entry->sme_bsb.right_image = entry->sme_bsb.right_image_source
             ? ISWImageLoad(entry->sme_bsb.right_image_source, 96.0, NULL) : NULL;
         GetImageInfo(new, FALSE);
@@ -565,13 +565,13 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
  * I just return the height and width of the label plus the margins.
  */
 
-static XtGeometryResult
-QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val)
+static IswGeometryResult
+QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *return_val)
 {
     SmeBSBObject entry = (SmeBSBObject) w;
     Dimension width, height;
-    XtGeometryResult ret_val = XtGeometryYes;
-    XtGeometryMask mode = intended->request_mode;
+    IswGeometryResult ret_val = IswGeometryYes;
+    IswGeometryMask mode = intended->request_mode;
 
     GetDefaultSize(w, &width, &height );
 
@@ -579,22 +579,22 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val
 	 !(mode & XCB_CONFIG_WINDOW_WIDTH) ) {
 	return_val->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 	return_val->width = width;
-	ret_val = XtGeometryAlmost;
+	ret_val = IswGeometryAlmost;
     }
 
     if ( ((mode & XCB_CONFIG_WINDOW_HEIGHT) && (intended->height != height)) ||
 	 !(mode & XCB_CONFIG_WINDOW_HEIGHT) ) {
 	return_val->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 	return_val->height = height;
-	ret_val = XtGeometryAlmost;
+	ret_val = IswGeometryAlmost;
     }
 
-    if (ret_val == XtGeometryAlmost) {
+    if (ret_val == IswGeometryAlmost) {
 	mode = return_val->request_mode;
 
 	if ( ((mode & XCB_CONFIG_WINDOW_WIDTH) && (width == entry->rectangle.width)) &&
 	     ((mode & XCB_CONFIG_WINDOW_HEIGHT) && (height == entry->rectangle.height)) )
-	    return(XtGeometryNo);
+	    return(IswGeometryNo);
     }
 
     entry->rectangle.width = width;
@@ -653,10 +653,10 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
      if (entry->sme_bsb.label == NULL)
   *width = 0;
      else
-  *width = ISWScaledTextWidth(XtParent(w), entry->sme_bsb.font,
+  *width = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font,
     entry->sme_bsb.label, strlen(entry->sme_bsb.label));
 
-     *height = ISWScaledFontHeight(XtParent(w), entry->sme_bsb.font);
+     *height = ISWScaledFontHeight(IswParent(w), entry->sme_bsb.font);
  } else {
      /* No font available - use defaults */
      if (entry->sme_bsb.label == NULL)
@@ -689,7 +689,7 @@ DrawBitmaps(Widget w, Boolean highlighted)
     SmeBSBObject entry = (SmeBSBObject) w;
     unsigned int rw, rh;
     const unsigned char *pixels;
-    ISWRenderContext *ctx = ((SimpleMenuWidget)XtParent(w))->simple_menu.render_ctx;
+    ISWRenderContext *ctx = ((SimpleMenuWidget)IswParent(w))->simple_menu.render_ctx;
 
     (void)highlighted;  /* reserved for future tinting */
 
@@ -703,7 +703,7 @@ DrawBitmaps(Widget w, Boolean highlighted)
                 (int)(entry->rectangle.height - entry->sme_bsb.left_image_height) / 2;
 
         {
-        float msf = (float)ISWScaleFactor(XtParent(w));
+        float msf = (float)ISWScaleFactor(IswParent(w));
         pixels = ISWImageRasterize(entry->sme_bsb.left_image,
                                    (unsigned int)(entry->sme_bsb.left_image_width * msf + 0.5f),
                                    (unsigned int)(entry->sme_bsb.left_image_height * msf + 0.5f),
@@ -727,7 +727,7 @@ DrawBitmaps(Widget w, Boolean highlighted)
                 (int)(entry->rectangle.height - entry->sme_bsb.right_image_height) / 2;
 
         {
-        float msf2 = (float)ISWScaleFactor(XtParent(w));
+        float msf2 = (float)ISWScaleFactor(IswParent(w));
         pixels = ISWImageRasterize(entry->sme_bsb.right_image,
                                    (unsigned int)(entry->sme_bsb.right_image_width * msf2 + 0.5f),
                                    (unsigned int)(entry->sme_bsb.right_image_height * msf2 + 0.5f),

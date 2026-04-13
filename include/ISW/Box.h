@@ -59,14 +59,14 @@ SOFTWARE.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- background	     Background		Pixel		XtDefaultBackground
- border		     BorderColor	Pixel		XtDefaultForeground
+ background	     Background		Pixel		IswDefaultBackground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
  destroyCallback     Callback		Pointer		NULL
  hSpace 	     HSpace		Dimension	4
  height		     Height		Dimension	0
  mappedWhenManaged   MappedWhenManaged	Boolean		True
- orientation	     Orientation	XtOrientation	vertical
+ orientation	     Orientation	IswOrientation	vertical
  vSpace 	     VSpace		Dimension	4
  width		     Width		Dimension	0
  x		     Position		Position	0
@@ -76,9 +76,9 @@ SOFTWARE.
 
 
 /* New fields */
-#ifndef _XtStringDefs_h_
-#define XtNhSpace "hSpace"
-#define XtNvSpace "vSpace"
+#ifndef _IswStringDefs_h_
+#define IswNhSpace "hSpace"
+#define IswNvSpace "vSpace"
 #endif
 
 /* Class record constants */

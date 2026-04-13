@@ -1,10 +1,10 @@
-/* include/X11/XtTypes.h
+/* include/X11/IswTypes.h
  * Local definitions for types and constants not provided by XCB headers.
  * Only contains types/constants that have NO XCB equivalent.
  * Everything else should be used directly from xcb/xproto.h or xcb/xcb_icccm.h.
  */
-#ifndef _XtTypes_h
-#define _XtTypes_h
+#ifndef _IswTypes_h
+#define _IswTypes_h
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -30,7 +30,7 @@ typedef int Bool;
 typedef uint32_t XID;
 #endif
 
-/* Must match XtValueMask (unsigned long) to avoid pointer type conflicts. */
+/* Must match IswValueMask (unsigned long) to avoid pointer type conflicts. */
 #ifndef Mask
 typedef unsigned long Mask;
 #endif
@@ -104,18 +104,18 @@ typedef xcb_keysym_t KeySym;
 #ifndef XKeysymToString
 #include <string.h>
 static inline const char *XKeysymToString(KeySym keysym) {
-    static char _xt_keysym_buf[64];
+    static char _isw_keysym_buf[64];
     int n = xkb_keysym_get_name((xkb_keysym_t) keysym,
-                                 _xt_keysym_buf, sizeof(_xt_keysym_buf));
+                                 _isw_keysym_buf, sizeof(_isw_keysym_buf));
     if (n < 0) return NULL;
-    return _xt_keysym_buf;
+    return _isw_keysym_buf;
 }
 #endif
 
 
 /*
  * -----------------------------------------------------------------------
- * XSetWindowAttributes — no XCB struct equivalent
+ * IswSetWindowAttributes — no XCB struct equivalent
  * (XCB uses uint32_t value lists instead)
  * -----------------------------------------------------------------------
  */
@@ -137,7 +137,7 @@ typedef struct {
     Bool          override_redirect;
     xcb_colormap_t colormap;
     xcb_cursor_t  cursor;
-} XSetWindowAttributes;
+} IswSetWindowAttributes;
 #endif
 
 /*
@@ -224,8 +224,8 @@ typedef struct {
     unsigned short red, green, blue;
     char flags;
     char pad;
-} XtColor;
-typedef XtColor XColor;
+} IswColor;
+typedef IswColor IswColor;
 
 typedef struct {
     xcb_visualtype_t *visual;
@@ -238,10 +238,10 @@ typedef struct {
     unsigned long     blue_mask;
     int               colormap_size;
     int               bits_per_rgb;
-} XtVisualInfo;
-typedef XtVisualInfo XVisualInfo;
+} IswVisualInfo;
+typedef IswVisualInfo IswVisualInfo;
 
-typedef struct _XtFontStruct {
+typedef struct _IswFontStruct {
     xcb_font_t      fid;
     unsigned        direction;
     unsigned        min_char_or_byte2;
@@ -253,14 +253,14 @@ typedef struct _XtFontStruct {
     char           *font_family;
     int             font_weight;
     int             font_slant;
-} XtFontStruct;
-typedef XtFontStruct XFontStruct;
+} IswFontStruct;
+typedef IswFontStruct IswFontStruct;
 
-typedef void *XtFontSet;
-typedef XtFontSet XFontSet;
+typedef void *IswFontSet;
+typedef IswFontSet IswFontSet;
 
 #ifndef XrmString
 typedef char *XrmString;
 #endif
 
-#endif /* _XtTypes_h */
+#endif /* _IswTypes_h */

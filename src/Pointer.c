@@ -57,12 +57,12 @@ in this Software without prior written authorization from The Open Group.
 #define AllButtonsMask (XCB_BUTTON_MASK_1 | XCB_BUTTON_MASK_2 | XCB_BUTTON_MASK_3 | XCB_BUTTON_MASK_4 | XCB_BUTTON_MASK_5)
 
 Widget
-_XtProcessPointerEvent(xcb_button_press_event_t *event,
+_IswProcessPointerEvent(xcb_button_press_event_t *event,
                        Widget widget,
-                       XtPerDisplayInput pdi)
+                       IswPerDisplayInput pdi)
 {
-    XtDevice device = &pdi->pointer;
-    XtServerGrabPtr newGrab = NULL, devGrab = &device->grab;
+    IswDevice device = &pdi->pointer;
+    IswServerGrabPtr newGrab = NULL, devGrab = &device->grab;
     Widget dspWidget = NULL;
     Boolean deactivateGrab = FALSE;
 
@@ -73,21 +73,21 @@ _XtProcessPointerEvent(xcb_button_press_event_t *event,
             Cardinal i;
 
             for (i = (Cardinal) pdi->traceDepth; i > 0 && !newGrab; i--)
-                newGrab = _XtCheckServerGrabsOnWidget((xcb_generic_event_t *)event,
+                newGrab = _IswCheckServerGrabsOnWidget((xcb_generic_event_t *)event,
                                                       pdi->trace[i - 1],
                                                       POINTER);
         }
         if (newGrab) {
             /* Activate the grab */
             device->grab = *newGrab;
-            device->grabType = XtPassiveServerGrab;
+            device->grabType = IswPassiveServerGrab;
         }
     }
         break;
 
     case XCB_BUTTON_RELEASE:
     {
-        if ((device->grabType == XtPassiveServerGrab) &&
+        if ((device->grabType == IswPassiveServerGrab) &&
             !(event->state & (unsigned) (~(XCB_BUTTON_MASK_1 << (event->detail - 1)))
               & AllButtonsMask))
             deactivateGrab = TRUE;
@@ -101,7 +101,7 @@ _XtProcessPointerEvent(xcb_button_press_event_t *event,
         dspWidget = widget;
 
     if (deactivateGrab)
-        device->grabType = XtNoServerGrab;
+        device->grabType = IswNoServerGrab;
 
     return dspWidget;
 }

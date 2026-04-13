@@ -53,32 +53,32 @@ SOFTWARE.
  * Grip.c - Grip Widget (Used by Paned Widget)
  *
  */
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/GripP.h>
 
-static XtResource resources[] = {
-   {XtNwidth, XtCWidth, XtRDimension, sizeof(Dimension),
-      XtOffsetOf(GripRec, core.width), XtRImmediate,
-      (XtPointer) DEFAULT_GRIP_SIZE},
-   {XtNheight, XtCHeight, XtRDimension, sizeof(Dimension),
-      XtOffsetOf(GripRec, core.height), XtRImmediate,
-      (XtPointer) DEFAULT_GRIP_SIZE},
-   {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-      XtOffsetOf(GripRec, core.background_pixel), XtRString,
-      XtDefaultForeground},
-   {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-      XtOffsetOf(GripRec, core.border_width), XtRImmediate, (XtPointer)0},
-   {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-      XtOffsetOf(GripRec, grip.grip_action), XtRCallback, NULL},
+static IswResource resources[] = {
+   {IswNwidth, IswCWidth, IswRDimension, sizeof(Dimension),
+      IswOffsetOf(GripRec, core.width), IswRImmediate,
+      (IswPointer) DEFAULT_GRIP_SIZE},
+   {IswNheight, IswCHeight, IswRDimension, sizeof(Dimension),
+      IswOffsetOf(GripRec, core.height), IswRImmediate,
+      (IswPointer) DEFAULT_GRIP_SIZE},
+   {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+      IswOffsetOf(GripRec, core.background_pixel), IswRString,
+      IswDefaultForeground},
+   {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+      IswOffsetOf(GripRec, core.border_width), IswRImmediate, (IswPointer)0},
+   {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+      IswOffsetOf(GripRec, grip.grip_action), IswRCallback, NULL},
 };
 
 static void GripAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 
-static XtActionsRec actionsList[] =
+static IswActionsRec actionsList[] =
 {
   {"GripAction",      GripAction},
 };
@@ -96,11 +96,11 @@ GripClassRec gripClassRec = {
     /* class_inited       */   FALSE,
     /* initialize         */   Initialize,
     /* initialize_hook    */   NULL,
-    /* realize            */   XtInheritRealize,
+    /* realize            */   IswInheritRealize,
     /* actions            */   actionsList,
-    /* num_actions        */   XtNumber(actionsList),
+    /* num_actions        */   IswNumber(actionsList),
     /* resources          */   resources,
-    /* resource_count     */   XtNumber(resources),
+    /* resource_count     */   IswNumber(resources),
     /* xrm_class          */   NULLQUARK,
     /* compress_motion    */   TRUE,
     /* compress_exposure  */   TRUE,
@@ -108,22 +108,22 @@ GripClassRec gripClassRec = {
     /* visible_interest   */   FALSE,
     /* destroy            */   NULL,
     /* resize             */   NULL,
-    /* expose             */   XtInheritExpose,
+    /* expose             */   IswInheritExpose,
     /* set_values         */   NULL,
     /* set_values_hook    */   NULL,
-    /* set_values_almost  */   XtInheritSetValuesAlmost,
+    /* set_values_almost  */   IswInheritSetValuesAlmost,
     /* get_values_hook    */   NULL,
     /* accept_focus       */   NULL,
-    /* version            */   XtVersion,
+    /* version            */   IswVersion,
     /* callback_private   */   NULL,
     /* tm_table           */   NULL,
-    /* query_geometry     */   XtInheritQueryGeometry,
-    /* display_accelerator*/   XtInheritDisplayAccelerator,
+    /* query_geometry     */   IswInheritQueryGeometry,
+    /* display_accelerator*/   IswInheritDisplayAccelerator,
     /* extension          */   NULL
    },
 /* Simple class fields initialization */
    {
-    /* change_sensitive   */   XtInheritChangeSensitive
+    /* change_sensitive   */   IswInheritChangeSensitive
    },
 /* Grip class fields initialization */
    {
@@ -149,5 +149,5 @@ GripAction(Widget widget, xcb_generic_event_t *event, String *params, Cardinal *
     call_data.params = params;
     call_data.num_params = *num_params;
 
-    XtCallCallbacks( widget, XtNcallback, (XtPointer)&call_data );
+    IswCallCallbacks( widget, IswNcallback, (IswPointer)&call_data );
 }

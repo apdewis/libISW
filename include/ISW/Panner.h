@@ -42,15 +42,15 @@ in this Software without prior written authorization from the X Consortium.
  *  ----		-----		----		-------
  *
  *  allowOff		AllowOff	Boolean		FALSE
- *  background		Background	Pixel		XtDefaultBackground
+ *  background		Background	Pixel		IswDefaultBackground
  *  backgroundStipple	BackgroundStipple	String	NULL
  *  canvasWidth		CanvasWidth	Dimension	0
  *  canvasHeight	CanvasHeight	Dimension	0
  *  defaultScale	DefaultScale	Dimension	8 percent
- *  foreground		Foreground	Pixel		XtDefaultBackground
+ *  foreground		Foreground	Pixel		IswDefaultBackground
  *  internalSpace	InternalSpace	Dimension	4
  *  lineWidth		LineWidth	Dimension	0
- *  reportCallback	ReportCallback	XtCallbackList	NULL
+ *  reportCallback	ReportCallback	IswCallbackList	NULL
  *  resize		Resize		Boolean		TRUE
  *  rubberBand		RubberBand	Boolean		FALSE
  *  sliderX		SliderX		Position	0
@@ -61,35 +61,35 @@ in this Software without prior written authorization from the X Consortium.
  *****************************************************************************/
 
 					/* new instance and class names */
-#ifndef _XtStringDefs_h_
-#define XtNresize "resize"
-#define XtCResize "Resize"
+#ifndef _IswStringDefs_h_
+#define IswNresize "resize"
+#define IswCResize "Resize"
 #endif
 
-#define XtNallowOff "allowOff"
-#define XtCAllowOff "AllowOff"
-#define XtNbackgroundStipple "backgroundStipple"
-#define XtCBackgroundStipple "BackgroundStipple"
-#define XtNdefaultScale "defaultScale"
-#define XtCDefaultScale "DefaultScale"
-#define XtNcanvasWidth "canvasWidth"
-#define XtCCanvasWidth "CanvasWidth"
-#define XtNcanvasHeight "canvasHeight"
-#define XtCCanvasHeight "CanvasHeight"
-#define XtNinternalSpace "internalSpace"
-#define XtCInternalSpace "InternalSpace"
-#define XtNlineWidth "lineWidth"
-#define XtCLineWidth "LineWidth"
-#define XtNrubberBand "rubberBand"
-#define XtCRubberBand "RubberBand"
-#define XtNsliderX "sliderX"
-#define XtCSliderX "SliderX"
-#define XtNsliderY "sliderY"
-#define XtCSliderY "SliderY"
-#define XtNsliderWidth "sliderWidth"
-#define XtCSliderWidth "SliderWidth"
-#define XtNsliderHeight "sliderHeight"
-#define XtCSliderHeight "SliderHeight"
+#define IswNallowOff "allowOff"
+#define IswCAllowOff "AllowOff"
+#define IswNbackgroundStipple "backgroundStipple"
+#define IswCBackgroundStipple "BackgroundStipple"
+#define IswNdefaultScale "defaultScale"
+#define IswCDefaultScale "DefaultScale"
+#define IswNcanvasWidth "canvasWidth"
+#define IswCCanvasWidth "CanvasWidth"
+#define IswNcanvasHeight "canvasHeight"
+#define IswCCanvasHeight "CanvasHeight"
+#define IswNinternalSpace "internalSpace"
+#define IswCInternalSpace "InternalSpace"
+#define IswNlineWidth "lineWidth"
+#define IswCLineWidth "LineWidth"
+#define IswNrubberBand "rubberBand"
+#define IswCRubberBand "RubberBand"
+#define IswNsliderX "sliderX"
+#define IswCSliderX "SliderX"
+#define IswNsliderY "sliderY"
+#define IswCSliderY "SliderY"
+#define IswNsliderWidth "sliderWidth"
+#define IswCSliderWidth "SliderWidth"
+#define IswNsliderHeight "sliderHeight"
+#define IswCSliderHeight "SliderHeight"
 
 					/* external declarations */
 extern WidgetClass pannerWidgetClass;

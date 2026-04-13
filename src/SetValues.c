@@ -75,7 +75,7 @@ in this Software without prior written authorization from The Open Group.
 #include "ResourceI.h"
 
 /*
- *      XtSetValues(), XtSetSubvalues()
+ *      IswSetValues(), IswSetSubvalues()
  */
 
 static void
@@ -91,7 +91,7 @@ SetValues(char *base,                           /* Base address to write values 
     register XrmResourceList *xrmres;
 
     /* Resource lists are assumed to be in compiled form already via the
-       initial XtGetResources, XtGetSubresources calls */
+       initial IswGetResources, IswGetSubresources calls */
 
     for (arg = args; num_args != 0; num_args--, arg++) {
         argName = StringToName(arg->name);
@@ -99,7 +99,7 @@ SetValues(char *base,                           /* Base address to write values 
             if(xrmres == NULL) continue;
 
             if (argName == (*xrmres)->xrm_name) {
-                _XtCopyFromArg(arg->value,
+                _IswCopyFromArg(arg->value,
                                base - (*xrmres)->xrm_offset - 1,
                                (*xrmres)->xrm_size);
                 break;
@@ -118,8 +118,8 @@ CallSetValues(WidgetClass class,
 {
     Boolean redisplay = FALSE;
     WidgetClass superclass;
-    XtArgsFunc set_values_hook;
-    XtSetValuesFunc set_values;
+    IswArgsFunc set_values_hook;
+    IswSetValuesFunc set_values;
 
     LOCK_PROCESS;
     superclass = class->core_class.superclass;
@@ -151,13 +151,13 @@ CallConstraintSetValues(ConstraintWidgetClass class,
                         Cardinal num_args)
 {
     Boolean redisplay = FALSE;
-    XtSetValuesFunc set_values;
+    IswSetValuesFunc set_values;
 
     if ((WidgetClass) class != constraintWidgetClass) {
         if (class == NULL) {
-            XtAppErrorMsg(XtWidgetToApplicationContext(current),
+            IswAppErrorMsg(IswWidgetToApplicationContext(current),
                           "invalidClass", "constraintSetValue",
-                          XtCXtToolkitError,
+                          IswCIswToolkitError,
                           "Subclass of Constraint required in CallConstraintSetValues",
                           NULL, NULL);
         }
@@ -181,21 +181,21 @@ CallConstraintSetValues(ConstraintWidgetClass class,
 }
 
 void
-XtSetSubvalues(XtPointer base,                  /* Base address to write values to */
-               register XtResourceList resources,       /* The current resource values.      */
+IswSetSubvalues(IswPointer base,                  /* Base address to write values to */
+               register IswResourceList resources,       /* The current resource values.      */
                register Cardinal num_resources, /* number of items in resources      */
                ArgList args,                    /* The resource values to set */
                Cardinal num_args)               /* number of items in arg list       */
 {
     register XrmResourceList *xrmres;
 
-    xrmres = _XtCreateIndirectionTable(resources, num_resources);
+    xrmres = _IswCreateIndirectionTable(resources, num_resources);
     SetValues((char *) base, xrmres, num_resources, args, num_args);
-    XtFree((char *) xrmres);
+    IswFree((char *) xrmres);
 }
 
 void
-XtSetValues(register Widget w, ArgList args, Cardinal num_args)
+IswSetValues(register Widget w, ArgList args, Cardinal num_args)
 {
     register Widget oldw, reqw;
 
@@ -204,19 +204,19 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
     double oldcCache[20], reqcCache[20];
     Cardinal widgetSize, constraintSize;
     Boolean redisplay, cleared_rect_obj = False;
-    XtWidgetGeometry geoReq, geoReply;
+    IswWidgetGeometry geoReq, geoReply;
     WidgetClass wc;
     ConstraintWidgetClass cwc = NULL;
     Boolean hasConstraints;
-    XtAppContext app = XtWidgetToApplicationContext(w);
-    Widget hookobj = XtHooksOfDisplay(XtDisplayOfObject(w));
+    IswAppContext app = IswWidgetToApplicationContext(w);
+    Widget hookobj = IswHooksOfDisplay(IswDisplayOfObject(w));
 
     LOCK_APP(app);
-    wc = XtClass(w);
+    wc = IswClass(w);
     if ((args == NULL) && (num_args != 0)) {
-        XtAppErrorMsg(app,
-                      "invalidArgCount", "xtSetValues", XtCXtToolkitError,
-                      "Argument count > 0 on NULL argument list in XtSetValues",
+        IswAppErrorMsg(app,
+                      "invalidArgCount", "xtSetValues", IswCIswToolkitError,
+                      "Argument count > 0 on NULL argument list in IswSetValues",
                       NULL, NULL);
     }
 
@@ -225,8 +225,8 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
     LOCK_PROCESS;
     widgetSize = wc->core_class.widget_size;
     UNLOCK_PROCESS;
-    oldw = (Widget) XtStackAlloc(widgetSize, oldwCache);
-    reqw = (Widget) XtStackAlloc(widgetSize, reqwCache);
+    oldw = (Widget) IswStackAlloc(widgetSize, oldwCache);
+    reqw = (Widget) IswStackAlloc(widgetSize, reqwCache);
     (void) memcpy(oldw, w, (size_t) widgetSize);
 
     /* Set resource values */
@@ -238,13 +238,13 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
 
     (void) memcpy(reqw, w, (size_t) widgetSize);
 
-    hasConstraints = (XtParent(w) != NULL && !XtIsShell(w) &&
-                      XtIsConstraint(XtParent(w)));
+    hasConstraints = (IswParent(w) != NULL && !IswIsShell(w) &&
+                      IswIsConstraint(IswParent(w)));
 
     /* Some widget sets apparently do ugly things by freeing the
      * constraints on some children, thus the extra test here */
     if (hasConstraints) {
-        cwc = (ConstraintWidgetClass) XtClass(w->core.parent);
+        cwc = (ConstraintWidgetClass) IswClass(w->core.parent);
         if (w->core.constraints) {
             LOCK_PROCESS;
             constraintSize = cwc->constraint_class.constraint_size;
@@ -258,8 +258,8 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
 
     if (constraintSize) {
         /* Allocate and copy current constraints into oldw */
-        oldw->core.constraints = XtStackAlloc(constraintSize, oldcCache);
-        reqw->core.constraints = XtStackAlloc(constraintSize, reqcCache);
+        oldw->core.constraints = IswStackAlloc(constraintSize, oldcCache);
+        reqw->core.constraints = IswStackAlloc(constraintSize, reqcCache);
         (void) memcpy(oldw->core.constraints,
                       w->core.constraints, (size_t) constraintSize);
 
@@ -280,23 +280,23 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
             CallConstraintSetValues(cwc, oldw, reqw, w, args, num_args);
     }
 
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
-        XtChangeHookSetValuesDataRec set_val;
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
+        IswChangeHookSetValuesDataRec set_val;
 
         set_val.old = oldw;
         set_val.req = reqw;
         set_val.args = args;
         set_val.num_args = num_args;
-        call_data.type = XtHsetValues;
+        call_data.type = IswHsetValues;
         call_data.widget = w;
-        call_data.event_data = (XtPointer) &set_val;
-        XtCallCallbackList(hookobj,
+        call_data.event_data = (IswPointer) &set_val;
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
 
-    if (XtIsRectObj(w)) {
+    if (IswIsRectObj(w)) {
         /* Now perform geometry request if needed */
         geoReq.request_mode = 0;
         if (oldw->core.x != w->core.x) {
@@ -326,71 +326,71 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
         }
 
         if (geoReq.request_mode != 0) {
-            XtGeometryResult result;
+            IswGeometryResult result;
 
             /* Pass on any requests for unchanged geometry values */
             if (geoReq.request_mode !=
                 (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
                 for (; num_args != 0; num_args--, args++) {
                     if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_X) &&
-                        strcmp(XtNx, args->name) == 0) {
+                        strcmp(IswNx, args->name) == 0) {
                         geoReq.x = w->core.x;
                         geoReq.request_mode |= XCB_CONFIG_WINDOW_X;
                     }
                     else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_Y) &&
-                             strcmp(XtNy, args->name) == 0) {
+                             strcmp(IswNy, args->name) == 0) {
                         geoReq.y = w->core.y;
                         geoReq.request_mode |= XCB_CONFIG_WINDOW_Y;
                     }
                     else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_WIDTH) &&
-                             strcmp(XtNwidth, args->name) == 0) {
+                             strcmp(IswNwidth, args->name) == 0) {
                         geoReq.width = w->core.width;
                         geoReq.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
                     }
                     else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
-                             strcmp(XtNheight, args->name) == 0) {
+                             strcmp(IswNheight, args->name) == 0) {
                         geoReq.height = w->core.height;
                         geoReq.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
                     }
                     else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) &&
-                             strcmp(XtNborderWidth, args->name) == 0) {
+                             strcmp(IswNborderWidth, args->name) == 0) {
                         geoReq.border_width = w->core.border_width;
                         geoReq.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
                     }
                 }
             }
-            CALLGEOTAT(_XtGeoTrace(w,
+            CALLGEOTAT(_IswGeoTrace(w,
                                    "\nXtSetValues sees some geometry changes for \"%s\".\n",
-                                   XtName(w)));
-            CALLGEOTAT(_XtGeoTab(1));
+                                   IswName(w)));
+            CALLGEOTAT(_IswGeoTab(1));
             do {
-                XtGeometryHookDataRec call_data;
-                XtAlmostProc set_values_almost;
+                IswGeometryHookDataRec call_data;
+                IswAlmostProc set_values_almost;
 
-                if (XtHasCallbacks(hookobj, XtNgeometryHook) ==
-                    XtCallbackHasSome) {
-                    call_data.type = XtHpreGeometry;
+                if (IswHasCallbacks(hookobj, IswNgeometryHook) ==
+                    IswCallbackHasSome) {
+                    call_data.type = IswHpreGeometry;
                     call_data.widget = w;
                     call_data.request = &geoReq;
-                    XtCallCallbackList(hookobj,
+                    IswCallCallbackList(hookobj,
                                        ((HookObject) hookobj)->hooks.
                                        geometryhook_callbacks,
-                                       (XtPointer) &call_data);
+                                       (IswPointer) &call_data);
                     call_data.result = result =
-                        _XtMakeGeometryRequest(w, &geoReq, &geoReply,
+                        _IswMakeGeometryRequest(w, &geoReq, &geoReply,
                                                &cleared_rect_obj);
-                    call_data.type = XtHpostGeometry;
+                    call_data.type = IswHpostGeometry;
                     call_data.reply = &geoReply;
-                    XtCallCallbackList(hookobj,
+                    IswCallCallbackList(hookobj,
                                        ((HookObject) hookobj)->hooks.
                                        geometryhook_callbacks,
-                                       (XtPointer) &call_data);
+                                       (IswPointer) &call_data);
                 }
                 else {
-                    result = _XtMakeGeometryRequest(w, &geoReq, &geoReply,
+                    result = _IswMakeGeometryRequest(w, &geoReq, &geoReply,
                                                     &cleared_rect_obj);
                 }
-                if (result == XtGeometryYes || result == XtGeometryDone)
+                if (result == IswGeometryYes || result == IswGeometryDone)
                     break;
 
                 /* An Almost or No reply.  Call widget and let it munge
@@ -399,76 +399,76 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
                 set_values_almost = wc->core_class.set_values_almost;
                 UNLOCK_PROCESS;
                 if (set_values_almost == NULL) {
-                    XtAppWarningMsg(app,
+                    IswAppWarningMsg(app,
                                     "invalidProcedure", "set_values_almost",
-                                    XtCXtToolkitError,
+                                    IswCIswToolkitError,
                                     "set_values_almost procedure shouldn't be NULL",
                                     NULL, NULL);
                     break;
                 }
-                if (result == XtGeometryNo)
+                if (result == IswGeometryNo)
                     geoReply.request_mode = 0;
-                CALLGEOTAT(_XtGeoTrace(w, "calling SetValuesAlmost.\n"));
+                CALLGEOTAT(_IswGeoTrace(w, "calling SetValuesAlmost.\n"));
                 (*set_values_almost) (oldw, w, &geoReq, &geoReply);
             } while (geoReq.request_mode != 0);
             /* call resize proc if we changed size and parent
              * didn't already invoke resize */
             {
-                XtWidgetProc resize;
+                IswWidgetProc resize;
 
                 LOCK_PROCESS;
                 resize = wc->core_class.resize;
                 UNLOCK_PROCESS;
                 if ((w->core.width != oldw->core.width ||
                      w->core.height != oldw->core.height)
-                    && result != XtGeometryDone
-                    && resize != (XtWidgetProc) NULL) {
-                    CALLGEOTAT(_XtGeoTrace(w,
-                                           "XtSetValues calls \"%s\"'s resize proc.\n",
-                                           XtName(w)));
+                    && result != IswGeometryDone
+                    && resize != (IswWidgetProc) NULL) {
+                    CALLGEOTAT(_IswGeoTrace(w,
+                                           "IswSetValues calls \"%s\"'s resize proc.\n",
+                                           IswName(w)));
                     (*resize) (w);
                 }
             }
-            CALLGEOTAT(_XtGeoTab(-1));
+            CALLGEOTAT(_IswGeoTab(-1));
         }
         /* Redisplay if needed.  No point in clearing if the window is
          * about to disappear, as the Expose event will just go straight
          * to the bit bucket. */
-        if (XtIsWidget(w)) {
+        if (IswIsWidget(w)) {
             /* widgets can distinguish between redisplay and resize, since
                the server will cause an expose on resize */
-            if (redisplay && XtIsRealized(w) && !w->core.being_destroyed) {
-                CALLGEOTAT(_XtGeoTrace(w,
-                                       "XtSetValues calls ClearArea on \"%s\".\n",
-                                       XtName(w)));
+            if (redisplay && IswIsRealized(w) && !w->core.being_destroyed) {
+                CALLGEOTAT(_IswGeoTrace(w,
+                                       "IswSetValues calls ClearArea on \"%s\".\n",
+                                       IswName(w)));
                 xcb_clear_area(
-                        XtDisplay(w), 1, XtWindow(w), 0, 0, 0, 0
+                        IswDisplay(w), 1, IswWindow(w), 0, 0, 0, 0
                     );
-                xcb_flush(XtDisplay(w));
+                xcb_flush(IswDisplay(w));
             }
         }
         else {                  /*non-window object */
             if (redisplay && !cleared_rect_obj) {
-                Widget pw = _XtWindowedAncestor(w);
+                Widget pw = _IswWindowedAncestor(w);
 
-                if (XtIsRealized(pw) && !pw->core.being_destroyed) {
+                if (IswIsRealized(pw) && !pw->core.being_destroyed) {
                     RectObj r = (RectObj) w;
                     int bw2 = r->rectangle.border_width << 1;
 
-                    CALLGEOTAT(_XtGeoTrace(w,
-                                           "XtSetValues calls ClearArea on \"%s\"'s parent \"%s\".\n",
-                                           XtName(w), XtName(pw)));
+                    CALLGEOTAT(_IswGeoTrace(w,
+                                           "IswSetValues calls ClearArea on \"%s\"'s parent \"%s\".\n",
+                                           IswName(w), IswName(pw)));
 
                     xcb_clear_area(
-                        XtDisplay(pw),
+                        IswDisplay(pw),
                         1,  /* generate Expose event */
-                        XtWindow(pw),
+                        IswWindow(pw),
                         r->rectangle.x, 
                         r->rectangle.y,
                         (unsigned) (r->rectangle.width + bw2),
                         (unsigned) (r->rectangle.height + bw2)
                     );
-                    xcb_flush(XtDisplay(pw));
+                    xcb_flush(IswDisplay(pw));
                 }
             }
         }
@@ -476,10 +476,10 @@ XtSetValues(register Widget w, ArgList args, Cardinal num_args)
 
     /* Free dynamic storage */
     if (constraintSize) {
-        XtStackFree(oldw->core.constraints, oldcCache);
-        XtStackFree(reqw->core.constraints, reqcCache);
+        IswStackFree(oldw->core.constraints, oldcCache);
+        IswStackFree(reqw->core.constraints, reqcCache);
     }
-    XtStackFree((XtPointer) oldw, oldwCache);
-    XtStackFree((XtPointer) reqw, reqwCache);
+    IswStackFree((IswPointer) oldw, oldwCache);
+    IswStackFree((IswPointer) reqw, reqwCache);
     UNLOCK_APP(app);
-}                               /* XtSetValues */
+}                               /* IswSetValues */

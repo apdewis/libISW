@@ -21,18 +21,18 @@ typedef struct {
 typedef struct {
     /* public resources */
     Pixel           foreground;
-    XFontStruct    *font;
+    IswFontStruct    *font;
 #ifdef ISW_INTERNATIONALIZATION
     ISWFontSet     *fontset;
 #endif
-    XtCallbackList  select_callback;
-    XtCallbackList  reorder_callback;
+    IswCallbackList  select_callback;
+    IswCallbackList  reorder_callback;
     Boolean         multi_select;
     Boolean         show_header;
     Dimension       row_height;     /* row height (0 = auto from font) */
     Dimension       header_height;  /* header height (0 = auto) */
 
-    /* column definitions (set via API, not XtResource directly) */
+    /* column definitions (set via API, not IswResource directly) */
     IswListViewColumn *columns_res; /* resource pointer (not owned) */
     int             ncols_res;      /* resource column count */
 
@@ -66,7 +66,7 @@ typedef struct {
     Position        band_cur_x, band_cur_y;
     double          fg_r, fg_g, fg_b;
     Boolean         redraw_pending;
-    XtWorkProcId    work_proc_id;
+    IswWorkProcId    work_proc_id;
 
     /* sort state */
     int             sort_column;     /* -1 = no sort */

@@ -11,8 +11,8 @@
 #endif
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/TabsP.h>
@@ -41,7 +41,7 @@ static char defaultTranslations[] =
 
 static void TabSelect(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
-static XtActionsRec actionsList[] = {
+static IswActionsRec actionsList[] = {
     {"TabSelect", TabSelect},
 };
 
@@ -49,21 +49,21 @@ static XtActionsRec actionsList[] = {
  * Resources
  ****************************************************************/
 
-#define offset(field) XtOffsetOf(TabsRec, tabs.field)
-static XtResource resources[] = {
-    {XtNtabCallback, XtCCallback, XtRCallback, sizeof(XtCallbackList),
-         offset(tab_callbacks), XtRCallback, (XtPointer)NULL},
-    {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct *),
-         offset(font), XtRString, XtDefaultFont},
-    {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-         offset(foreground), XtRString, XtDefaultForeground},
+#define offset(field) IswOffsetOf(TabsRec, tabs.field)
+static IswResource resources[] = {
+    {IswNtabCallback, IswCCallback, IswRCallback, sizeof(IswCallbackList),
+         offset(tab_callbacks), IswRCallback, (IswPointer)NULL},
+    {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+         offset(font), IswRString, IswDefaultFont},
+    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+         offset(foreground), IswRString, IswDefaultForeground},
 };
 #undef offset
 
-#define offset(field) XtOffsetOf(TabsConstraintsRec, tabs.field)
-static XtResource subresources[] = {
-    {XtNtabLabel, XtCTabLabel, XtRString, sizeof(String),
-         offset(tab_label), XtRString, (XtPointer)NULL},
+#define offset(field) IswOffsetOf(TabsConstraintsRec, tabs.field)
+static IswResource subresources[] = {
+    {IswNtabLabel, IswCTabLabel, IswRString, sizeof(String),
+         offset(tab_label), IswRString, (IswPointer)NULL},
 };
 #undef offset
 
@@ -73,12 +73,12 @@ static XtResource subresources[] = {
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Destroy(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void ChangeManaged(Widget);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -106,9 +106,9 @@ TabsClassRec tabsClassRec = {
     /* initialize_hook    */   NULL,
     /* realize            */   Realize,
     /* actions            */   actionsList,
-    /* num_actions        */   XtNumber(actionsList),
+    /* num_actions        */   IswNumber(actionsList),
     /* resources          */   resources,
-    /* resource_count     */   XtNumber(resources),
+    /* resource_count     */   IswNumber(resources),
     /* xrm_class          */   NULLQUARK,
     /* compress_motion    */   TRUE,
     /* compress_exposure  */   TRUE,
@@ -119,26 +119,26 @@ TabsClassRec tabsClassRec = {
     /* expose             */   Redisplay,
     /* set_values         */   SetValues,
     /* set_values_hook    */   NULL,
-    /* set_values_almost  */   XtInheritSetValuesAlmost,
+    /* set_values_almost  */   IswInheritSetValuesAlmost,
     /* get_values_hook    */   NULL,
     /* accept_focus       */   NULL,
-    /* version            */   XtVersion,
+    /* version            */   IswVersion,
     /* callback_private   */   NULL,
     /* tm_table           */   defaultTranslations,
-    /* query_geometry     */   XtInheritQueryGeometry,
-    /* display_accelerator*/   XtInheritDisplayAccelerator,
+    /* query_geometry     */   IswInheritQueryGeometry,
+    /* display_accelerator*/   IswInheritDisplayAccelerator,
     /* extension          */   NULL
    }, {
 /* composite class fields */
     /* geometry_manager   */   GeometryManager,
     /* change_managed     */   ChangeManaged,
-    /* insert_child       */   XtInheritInsertChild,
-    /* delete_child       */   XtInheritDeleteChild,
+    /* insert_child       */   IswInheritInsertChild,
+    /* delete_child       */   IswInheritDeleteChild,
     /* extension          */   NULL
    }, {
 /* constraint class fields */
     /* subresources       */   subresources,
-    /* subresource_count  */   XtNumber(subresources),
+    /* subresource_count  */   IswNumber(subresources),
     /* constraint_size    */   sizeof(TabsConstraintsRec),
     /* initialize         */   ConstraintInitialize,
     /* destroy            */   ConstraintDestroy,
@@ -175,9 +175,9 @@ LayoutChildren(TabsWidget tw)
     /* Compute tab positions */
     ForAllChildren(tw, childP) {
         Widget child = *childP;
-        if (!XtIsManaged(child)) continue;
+        if (!IswIsManaged(child)) continue;
         TabsConstraints tc = TabInfo(child);
-        String label = tc->tabs.tab_label ? tc->tabs.tab_label : XtName(child);
+        String label = tc->tabs.tab_label ? tc->tabs.tab_label : IswName(child);
         int text_w = ISWScaledTextWidth((Widget)tw, tw->tabs.font,
                                         label, strlen(label));
         tc->tabs.tab_width = text_w + (TAB_H_PAD * 2);
@@ -188,19 +188,19 @@ LayoutChildren(TabsWidget tw)
     /* Position children: only top_widget is mapped */
     ForAllChildren(tw, childP) {
         Widget child = *childP;
-        if (!XtIsManaged(child)) continue;
+        if (!IswIsManaged(child)) continue;
 
-        XtConfigureWidget(child, 0, tab_h,
+        IswConfigureWidget(child, 0, tab_h,
                           tw->core.width, content_h,
                           child->core.border_width);
 
         if (child == tw->tabs.top_widget) {
-            if (XtIsRealized(child)) {
-                XtMapWidget(child);
+            if (IswIsRealized(child)) {
+                IswMapWidget(child);
             }
         } else {
-            if (XtIsRealized(child)) {
-                XtUnmapWidget(child);
+            if (IswIsRealized(child)) {
+                IswUnmapWidget(child);
             }
         }
     }
@@ -226,9 +226,9 @@ DrawTabBar(Widget w)
 
     ForAllChildren(tw, childP) {
         Widget child = *childP;
-        if (!XtIsManaged(child)) continue;
+        if (!IswIsManaged(child)) continue;
         TabsConstraints tc = TabInfo(child);
-        String label = tc->tabs.tab_label ? tc->tabs.tab_label : XtName(child);
+        String label = tc->tabs.tab_label ? tc->tabs.tab_label : IswName(child);
         Boolean is_top = (child == tw->tabs.top_widget);
 
         Position tx = tc->tabs.tab_x;
@@ -279,7 +279,7 @@ DrawTabBar(Widget w)
         cairo_line_to(cr, tw->core.width, tab_h - 0.5);
 
         /* Cut gap under the active tab */
-        if (tw->tabs.top_widget && XtIsManaged(tw->tabs.top_widget)) {
+        if (tw->tabs.top_widget && IswIsManaged(tw->tabs.top_widget)) {
             TabsConstraints tc = TabInfo(tw->tabs.top_widget);
             /* Overdraw the gap with background */
             cairo_stroke(cr);
@@ -322,7 +322,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     TabsWidget tw = (TabsWidget)w;
 
@@ -344,7 +344,7 @@ Resize(Widget w)
         ISWRenderDestroy(old);
         tw->tabs.render_ctx = NULL;
     }
-    if (XtIsRealized(w) && w->core.width > 0 && w->core.height > 0) {
+    if (IswIsRealized(w) && w->core.width > 0 && w->core.height > 0) {
         tw->tabs.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
     }
 
@@ -357,7 +357,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     TabsWidget tw = (TabsWidget)w;
 
-    if (!tw->tabs.render_ctx && XtIsRealized(w) &&
+    if (!tw->tabs.render_ctx && IswIsRealized(w) &&
         w->core.width > 0 && w->core.height > 0) {
         tw->tabs.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
     }
@@ -394,18 +394,18 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
  * Composite/Constraint methods
  ****************************************************************/
 
-static XtGeometryResult
-GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 {
-    TabsWidget tw = (TabsWidget)XtParent(child);
+    TabsWidget tw = (TabsWidget)IswParent(child);
     Dimension tab_h = TabBarHeight(tw);
     Dimension content_h = tw->core.height > tab_h ?
                           tw->core.height - tab_h : 0;
 
-    XtConfigureWidget(child, 0, tab_h,
+    IswConfigureWidget(child, 0, tab_h,
                       tw->core.width, content_h,
                       child->core.border_width);
-    return XtGeometryDone;
+    return IswGeometryDone;
 }
 
 static void
@@ -415,13 +415,13 @@ ChangeManaged(Widget w)
     Widget *childP;
 
     /* If top_widget is no longer managed, pick a new one */
-    if (tw->tabs.top_widget && !XtIsManaged(tw->tabs.top_widget))
+    if (tw->tabs.top_widget && !IswIsManaged(tw->tabs.top_widget))
         tw->tabs.top_widget = NULL;
 
     /* If no top widget, pick the first managed child */
     if (tw->tabs.top_widget == NULL) {
         ForAllChildren(tw, childP) {
-            if (XtIsManaged(*childP)) {
+            if (IswIsManaged(*childP)) {
                 tw->tabs.top_widget = *childP;
                 break;
             }
@@ -429,7 +429,7 @@ ChangeManaged(Widget w)
     }
 
     LayoutChildren(tw);
-    if (XtIsRealized(w)) {
+    if (IswIsRealized(w)) {
         DrawTabBar(w);
     }
 }
@@ -441,7 +441,7 @@ ConstraintInitialize(Widget request, Widget new, ArgList args, Cardinal *num_arg
     TabsConstraints tc = TabInfo(new);
 
     if (tc->tabs.tab_label)
-        tc->tabs.tab_label = XtNewString(tc->tabs.tab_label);
+        tc->tabs.tab_label = IswNewString(tc->tabs.tab_label);
     tc->tabs.tab_width = 0;
     tc->tabs.tab_x = 0;
 }
@@ -451,7 +451,7 @@ ConstraintDestroy(Widget w)
 {
     TabsConstraints tc = TabInfo(w);
     if (tc->tabs.tab_label)
-        XtFree((char *)tc->tabs.tab_label);
+        IswFree((char *)tc->tabs.tab_label);
 }
 
 /* ARGSUSED */
@@ -464,13 +464,13 @@ ConstraintSetValues(Widget old, Widget request, Widget new,
 
     if (old_tc->tabs.tab_label != new_tc->tabs.tab_label) {
         if (old_tc->tabs.tab_label)
-            XtFree((char *)old_tc->tabs.tab_label);
+            IswFree((char *)old_tc->tabs.tab_label);
         if (new_tc->tabs.tab_label)
-            new_tc->tabs.tab_label = XtNewString(new_tc->tabs.tab_label);
+            new_tc->tabs.tab_label = IswNewString(new_tc->tabs.tab_label);
 
-        TabsWidget tw = (TabsWidget)XtParent(new);
+        TabsWidget tw = (TabsWidget)IswParent(new);
         LayoutChildren(tw);
-        if (XtIsRealized((Widget)tw)) {
+        if (IswIsRealized((Widget)tw)) {
             DrawTabBar((Widget)tw);
         }
     }
@@ -497,7 +497,7 @@ TabSelect(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
 
     ForAllChildren(tw, childP) {
         Widget child = *childP;
-        if (!XtIsManaged(child)) continue;
+        if (!IswIsManaged(child)) continue;
         TabsConstraints tc = TabInfo(child);
         if (click_x >= tc->tabs.tab_x &&
             click_x < tc->tabs.tab_x + (int)tc->tabs.tab_width) {
@@ -524,28 +524,28 @@ IswTabsSetTop(Widget w, Widget child)
     tw->tabs.top_widget = child;
 
     /* Map/unmap as needed */
-    if (old_top && XtIsRealized(old_top)) {
-        XtUnmapWidget(old_top);
+    if (old_top && IswIsRealized(old_top)) {
+        IswUnmapWidget(old_top);
     }
 
-    if (child && XtIsRealized(child)) {
+    if (child && IswIsRealized(child)) {
         Dimension tab_h = TabBarHeight(tw);
         Dimension content_h = tw->core.height > tab_h ?
                               tw->core.height - tab_h : 0;
-        XtConfigureWidget(child, 0, tab_h,
+        IswConfigureWidget(child, 0, tab_h,
                           tw->core.width, content_h,
                           child->core.border_width);
-        XtMapWidget(child);
+        IswMapWidget(child);
     }
 
     /* Redraw tab bar */
-    if (XtIsRealized(w)) {
+    if (IswIsRealized(w)) {
         DrawTabBar(w);
     }
 
     /* Compute index and fire callback */
     ForAllChildren(tw, childP) {
-        if (!XtIsManaged(*childP)) continue;
+        if (!IswIsManaged(*childP)) continue;
         if (*childP == child) break;
         index++;
     }
@@ -553,5 +553,5 @@ IswTabsSetTop(Widget w, Widget child)
     TabsCallbackStruct cbs;
     cbs.child = child;
     cbs.tab_index = index;
-    XtCallCallbackList(w, tw->tabs.tab_callbacks, (XtPointer)&cbs);
+    IswCallCallbackList(w, tw->tabs.tab_callbacks, (IswPointer)&cbs);
 }

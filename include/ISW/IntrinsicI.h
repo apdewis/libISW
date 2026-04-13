@@ -45,10 +45,10 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtintrinsicI_h
-#define _XtintrinsicI_h
+#ifndef _IswintrinsicI_h
+#define _IswintrinsicI_h
 
-#include "Xtos.h"
+#include "Iswos.h"
 #include "IntrinsicP.h"
 #ifdef WIN32
 #define _WILLWINSOCK_
@@ -81,25 +81,25 @@ SOFTWARE.
  * be evaluated exactly once.
  */
 
-#define XtDisplayOfObject(object) \
-    (XtIsWidget(object) ? (object)->core.display : \
-    _XtIsHookObject(object) ? ((HookObject)(object))->hooks.display : \
-    _XtWindowedAncestor(object)->core.display)
+#define IswDisplayOfObject(object) \
+    (IswIsWidget(object) ? (object)->core.display : \
+    _IswIsHookObject(object) ? ((HookObject)(object))->hooks.display : \
+    _IswWindowedAncestor(object)->core.display)
 
-#define XtScreenOfObject(object) \
-    (XtIsWidget(object) ? (object)->core.screen : \
-    _XtIsHookObject(object) ? ((HookObject)(object))->hooks.screen : \
-    _XtWindowedAncestor(object)->core.screen)
+#define IswScreenOfObject(object) \
+    (IswIsWidget(object) ? (object)->core.screen : \
+    _IswIsHookObject(object) ? ((HookObject)(object))->hooks.screen : \
+    _IswWindowedAncestor(object)->core.screen)
 
-#define XtWindowOfObject(object) \
-    ((XtIsWidget(object) ? (object) : _XtWindowedAncestor(object)) \
+#define IswWindowOfObject(object) \
+    ((IswIsWidget(object) ? (object) : _IswWindowedAncestor(object)) \
      ->core.window)
 
-#define XtIsManaged(object) \
-    (XtIsRectObj(object) ? (object)->core.managed : False)
+#define IswIsManaged(object) \
+    (IswIsRectObj(object) ? (object)->core.managed : False)
 
-#define XtIsSensitive(object) \
-    (XtIsRectObj(object) ? ((object)->core.sensitive && \
+#define IswIsSensitive(object) \
+    (IswIsRectObj(object) ? ((object)->core.sensitive && \
 			    (object)->core.ancestor_sensitive) : False)
 
 
@@ -108,8 +108,8 @@ SOFTWARE.
  * Bit utilities
  *
  ****************************************************************/
-#define XtSetBits(dst,src,len)  dst = (((1U << (len)) - 1) & (unsigned)(src))
-#define XtSetBit(dst,src)  XtSetBits(dst,src,1)
+#define IswSetBits(dst,src,len)  dst = (((1U << (len)) - 1) & (unsigned)(src))
+#define IswSetBit(dst,src)  IswSetBits(dst,src,1)
 
 /****************************************************************
  *
@@ -120,17 +120,17 @@ SOFTWARE.
 /* Use standard C library functions instead of X11/Xfuncs.h */
 #define bcopy(src, dst, size) memmove((dst), (src), (size))
 #define bzero(dst, size) memset((dst), 0, (size))
-#define _XtBcopy(src, dst, size) memmove((dst), (src), (size))
+#define _IswBcopy(src, dst, size) memmove((dst), (src), (size))
 
-#define XtMemmove(dst, src, size)	\
+#define IswMemmove(dst, src, size)	\
     if ((const void *)(dst) != (const void *)(src)) {		    \
 	(void) memcpy((void *) (dst), (const void *) (src), (size_t) (size)); \
     }
 
-#define XtBZero(dst, size) 	\
+#define IswBZero(dst, size) 	\
 	memset((void *) (dst), 0, (size_t) (size))
 
-#define XtMemcmp(b1, b2, size) 		\
+#define IswMemcmp(b1, b2, size) 		\
 	memcmp((const void *) (b1), (const void *) (b2), (size_t) (size))
 
 /* gettimeofday wrapper - was in X11/Xos.h */
@@ -144,13 +144,13 @@ SOFTWARE.
  *
  ****************************************************************/
 
-#define XtStackAlloc(size, stack_cache_array)     \
+#define IswStackAlloc(size, stack_cache_array)     \
     ((size) <= sizeof(stack_cache_array)	  \
-    ?  (XtPointer)(stack_cache_array)		  \
-    :  XtMalloc((Cardinal)(size)))
+    ?  (IswPointer)(stack_cache_array)		  \
+    :  IswMalloc((Cardinal)(size)))
 
-#define XtStackFree(pointer, stack_cache_array) \
-    { if ((pointer) != ((XtPointer)(stack_cache_array))) XtFree(pointer); }
+#define IswStackFree(pointer, stack_cache_array) \
+    { if ((pointer) != ((IswPointer)(stack_cache_array))) IswFree(pointer); }
 
 /***************************************************************
  *
@@ -158,7 +158,7 @@ SOFTWARE.
  *
  **************************************************************/
 
-/* used by XtResolvePathname */
+/* used by IswResolvePathname */
 #ifndef XFILESEARCHPATHDEFAULT
 #define XFILESEARCHPATHDEFAULT "/usr/lib/X11/%L/%T/%N%S:/usr/lib/X11/%l/%T/%N%S:/usr/lib/X11/%T/%N%S"
 #endif
@@ -178,45 +178,45 @@ SOFTWARE.
 
 _XFUNCPROTOBEGIN
 
-extern String XtCXtToolkitError;
+extern String IswCIswToolkitError;
 
-extern void _XtAllocError(
+extern void _IswAllocError(
     String	/* alloc_type */
 ) _X_NORETURN;
 
-extern void _XtCompileResourceList(
-    XtResourceList 	/* resources */,
+extern void _IswCompileResourceList(
+    IswResourceList 	/* resources */,
     Cardinal 		/* num_resources */
 );
 
-extern XtGeometryResult _XtMakeGeometryRequest(
+extern IswGeometryResult _IswMakeGeometryRequest(
     Widget 		/* widget */,
-    XtWidgetGeometry*	/* request */,
-    XtWidgetGeometry*	/* reply_return */,
+    IswWidgetGeometry*	/* request */,
+    IswWidgetGeometry*	/* reply_return */,
     Boolean*		/* clear_rect_obj */
 );
 
-extern Boolean _XtIsHookObject(
+extern Boolean _IswIsHookObject(
     Widget      /* widget */
 );
 
-extern xcb_cursor_t _XtLoadThemedCursor(
+extern xcb_cursor_t _IswLoadThemedCursor(
     xcb_connection_t *	/* dpy */,
     xcb_screen_t *	/* screen */,
     const char *	/* name */,
     unsigned int	/* shape (fallback glyph) */
 );
 
-extern void _XtAddShellToHookObj(
+extern void _IswAddShellToHookObj(
     Widget      /* widget */
 );
 
 /** GeoTattler stuff */
 
-#ifdef XT_GEO_TATTLER
+#ifdef ISW_GEO_TATTLER
 
-extern void _XtGeoTab (int);
-extern void _XtGeoTrace (
+extern void _IswGeoTab (int);
+extern void _IswGeoTrace (
 			    Widget widget,
 			    const char *,
 			    ...
@@ -224,11 +224,11 @@ extern void _XtGeoTrace (
 
 #define CALLGEOTAT(f) f
 
-#else /* XT_GEO_TATTLER */
+#else /* ISW_GEO_TATTLER */
 
 #define CALLGEOTAT(f)
 
-#endif /* XT_GEO_TATTLER */
+#endif /* ISW_GEO_TATTLER */
 
 #ifndef XTTRACEMEMORY
 
@@ -242,11 +242,11 @@ extern char* __XtCalloc (
 
 #else
 
-#define __XtMalloc XtMalloc
-#define __XtCalloc XtCalloc
+#define __XtMalloc IswMalloc
+#define __XtCalloc IswCalloc
 #endif
 
 _XFUNCPROTOEND
 
-#endif /* _XtintrinsicI_h */
+#endif /* _IswintrinsicI_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

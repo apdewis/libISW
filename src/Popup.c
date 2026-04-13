@@ -51,37 +51,37 @@ SOFTWARE.
 #include "ShellP.h"
 
 void
-_XtPopup(Widget widget, XtGrabKind grab_kind, _XtBoolean spring_loaded)
+_IswPopup(Widget widget, IswGrabKind grab_kind, _IswBoolean spring_loaded)
 {
     register ShellWidget shell_widget = (ShellWidget) widget;
 
-    if (!XtIsShell(widget)) {
-        XtAppErrorMsg(XtWidgetToApplicationContext(widget),
-                      "invalidClass", "xtPopup", XtCXtToolkitError,
-                      "XtPopup requires a subclass of shellWidgetClass",
+    if (!IswIsShell(widget)) {
+        IswAppErrorMsg(IswWidgetToApplicationContext(widget),
+                      "invalidClass", "xtPopup", IswCIswToolkitError,
+                      "IswPopup requires a subclass of shellWidgetClass",
                       NULL, NULL);
     }
 
     if (!shell_widget->shell.popped_up) {
-        XtGrabKind call_data = grab_kind;
+        IswGrabKind call_data = grab_kind;
 
-        XtCallCallbacks(widget, XtNpopupCallback, (XtPointer) &call_data);
+        IswCallCallbacks(widget, IswNpopupCallback, (IswPointer) &call_data);
         shell_widget->shell.popped_up = TRUE;
         shell_widget->shell.grab_kind = grab_kind;
         shell_widget->shell.spring_loaded = (Boolean) spring_loaded;
         if (shell_widget->shell.create_popup_child_proc != NULL) {
             (*(shell_widget->shell.create_popup_child_proc)) (widget);
         }
-        if (grab_kind == XtGrabExclusive) {
-            XtAddGrab(widget, TRUE, spring_loaded);
+        if (grab_kind == IswGrabExclusive) {
+            IswAddGrab(widget, TRUE, spring_loaded);
         }
-        else if (grab_kind == XtGrabNonexclusive) {
-            XtAddGrab(widget, FALSE, spring_loaded);
+        else if (grab_kind == IswGrabNonexclusive) {
+            IswAddGrab(widget, FALSE, spring_loaded);
         }
-        XtRealizeWidget(widget);
-        xcb_map_window(XtDisplay(widget), XtWindow(widget));
-        xcb_configure_window(XtDisplay(widget), XtWindow(widget), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
-        xcb_flush(XtDisplay(widget));
+        IswRealizeWidget(widget);
+        xcb_map_window(IswDisplay(widget), IswWindow(widget));
+        xcb_configure_window(IswDisplay(widget), IswWindow(widget), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
+        xcb_flush(IswDisplay(widget));
 
         /* Synchronize with the server so the map is fully processed,
          * then force Expose on every managed child.  Without this,
@@ -92,100 +92,100 @@ _XtPopup(Widget widget, XtGrabKind grab_kind, _XtBoolean spring_loaded)
         {
             /* Round-trip to ensure the map has been processed */
             xcb_get_input_focus_reply_t *sync =
-                xcb_get_input_focus_reply(XtDisplay(widget),
-                    xcb_get_input_focus(XtDisplay(widget)), NULL);
+                xcb_get_input_focus_reply(IswDisplay(widget),
+                    xcb_get_input_focus(IswDisplay(widget)), NULL);
             free(sync);
 
-            if (XtIsComposite(widget)) {
+            if (IswIsComposite(widget)) {
                 CompositeWidget cw = (CompositeWidget)widget;
                 Cardinal i;
                 for (i = 0; i < cw->composite.num_children; i++) {
                     Widget child = cw->composite.children[i];
-                    if (XtIsWidget(child) && XtIsRealized(child) &&
-                        XtIsManaged(child)) {
-                        xcb_clear_area(XtDisplay(widget), 1,
-                                       XtWindow(child), 0, 0, 0, 0);
+                    if (IswIsWidget(child) && IswIsRealized(child) &&
+                        IswIsManaged(child)) {
+                        xcb_clear_area(IswDisplay(widget), 1,
+                                       IswWindow(child), 0, 0, 0, 0);
                     }
                 }
-                xcb_flush(XtDisplay(widget));
+                xcb_flush(IswDisplay(widget));
             }
         }
 
     }
     else {
-        //XRaiseWindow(XtDisplay(widget), XtWindow(widget));
-        xcb_configure_window(XtDisplay(widget), XtWindow(widget), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
-        xcb_flush(XtDisplay(widget));
+        //XRaiseWindow(IswDisplay(widget), IswWindow(widget));
+        xcb_configure_window(IswDisplay(widget), IswWindow(widget), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
+        xcb_flush(IswDisplay(widget));
     }
 
-}                               /* _XtPopup */
+}                               /* _IswPopup */
 
 void
-XtPopup(Widget widget, XtGrabKind grab_kind)
+IswPopup(Widget widget, IswGrabKind grab_kind)
 {
     Widget hookobj;
 
     switch (grab_kind) {
 
-    case XtGrabNone:
-    case XtGrabExclusive:
-    case XtGrabNonexclusive:
+    case IswGrabNone:
+    case IswGrabExclusive:
+    case IswGrabNonexclusive:
         break;
 
     default:
-        XtAppWarningMsg(XtWidgetToApplicationContext(widget),
-                        "invalidGrabKind", "xtPopup", XtCXtToolkitError,
-                        "grab kind argument has invalid value; XtGrabNone assumed",
+        IswAppWarningMsg(IswWidgetToApplicationContext(widget),
+                        "invalidGrabKind", "xtPopup", IswCIswToolkitError,
+                        "grab kind argument has invalid value; IswGrabNone assumed",
                         NULL, NULL);
-        grab_kind = XtGrabNone;
+        grab_kind = IswGrabNone;
     }
 
-    _XtPopup(widget, grab_kind, FALSE);
+    _IswPopup(widget, grab_kind, FALSE);
 
-    hookobj = XtHooksOfDisplay(XtDisplay(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHpopup;
+        call_data.type = IswHpopup;
         call_data.widget = widget;
-        call_data.event_data = (XtPointer) (XtIntPtr) grab_kind;
-        XtCallCallbackList(hookobj,
+        call_data.event_data = (IswPointer) (IswIntPtr) grab_kind;
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
-}                               /* XtPopup */
+}                               /* IswPopup */
 
 void
-XtPopupSpringLoaded(Widget widget)
+IswPopupSpringLoaded(Widget widget)
 {
     Widget hookobj;
 
-    _XtPopup(widget, XtGrabExclusive, True);
+    _IswPopup(widget, IswGrabExclusive, True);
 
-    hookobj = XtHooksOfDisplay(XtDisplay(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHpopupSpringLoaded;
+        call_data.type = IswHpopupSpringLoaded;
         call_data.widget = widget;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
 }
 
 void
-XtPopdown(Widget widget)
+IswPopdown(Widget widget)
 {
     /* Unmap a shell widget if it is mapped, and remove from grab list */
     Widget hookobj;
     ShellWidget shell_widget = (ShellWidget) widget;
-    XtGrabKind grab_kind;
+    IswGrabKind grab_kind;
 
-    if (!XtIsShell(widget)) {
-        XtAppErrorMsg(XtWidgetToApplicationContext(widget),
-                      "invalidClass", "xtPopdown", XtCXtToolkitError,
-                      "XtPopdown requires a subclass of shellWidgetClass",
+    if (!IswIsShell(widget)) {
+        IswAppErrorMsg(IswWidgetToApplicationContext(widget),
+                      "invalidClass", "xtPopdown", IswCIswToolkitError,
+                      "IswPopdown requires a subclass of shellWidgetClass",
                       NULL, NULL);
     }
 
@@ -195,34 +195,34 @@ XtPopdown(Widget widget)
 #endif
 
     grab_kind = shell_widget->shell.grab_kind;
-    xcb_unmap_window(XtDisplay(widget), XtWindow(widget));
-    xcb_flush(XtDisplay(widget));
-    if (grab_kind != XtGrabNone)
-        XtRemoveGrab(widget);
+    xcb_unmap_window(IswDisplay(widget), IswWindow(widget));
+    xcb_flush(IswDisplay(widget));
+    if (grab_kind != IswGrabNone)
+        IswRemoveGrab(widget);
     shell_widget->shell.popped_up = FALSE;
-    XtCallCallbacks(widget, XtNpopdownCallback, (XtPointer) &grab_kind);
+    IswCallCallbacks(widget, IswNpopdownCallback, (IswPointer) &grab_kind);
 
-    hookobj = XtHooksOfDisplay(XtDisplay(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHpopdown;
+        call_data.type = IswHpopdown;
         call_data.widget = widget;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
-}                               /* XtPopdown */
+}                               /* IswPopdown */
 
 void
-XtCallbackPopdown(Widget widget _X_UNUSED,
-                  XtPointer closure,
-                  XtPointer call_data _X_UNUSED)
+IswCallbackPopdown(Widget widget _X_UNUSED,
+                  IswPointer closure,
+                  IswPointer call_data _X_UNUSED)
 {
-    register XtPopdownID id = (XtPopdownID) closure;
+    register IswPopdownID id = (IswPopdownID) closure;
 
-    XtPopdown(id->shell_widget);
+    IswPopdown(id->shell_widget);
     if (id->enable_widget != NULL) {
-        XtSetSensitive(id->enable_widget, TRUE);
+        IswSetSensitive(id->enable_widget, TRUE);
     }
-}                               /* XtCallbackPopdown */
+}                               /* IswCallbackPopdown */

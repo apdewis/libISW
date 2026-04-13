@@ -41,8 +41,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xfixes.h>
@@ -53,7 +53,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SimpleMenu.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSB.h>
-#include <X11/Shell.h>
+#include <ISW/Shell.h>
 #include "ISWXcbDraw.h"
 
 /* These added so widget knows whether its height, width are user selected.
@@ -83,45 +83,45 @@ static char defaultTranslations[] =
 
 /* Private Data */
 
-#define offset(field) XtOffset(ListWidget, field)
+#define offset(field) IswOffset(ListWidget, field)
 
-static XtResource resources[] = {
-    {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-	offset(list.foreground), XtRString, XtDefaultForeground},
-    {XtNcursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
-       offset(simple.cursor), XtRString, "left_ptr"},
-    {XtNfont,  XtCFont, XtRFontStruct, sizeof(XFontStruct *),
-	offset(list.font),XtRString, XtDefaultFont},
+static IswResource resources[] = {
+    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+	offset(list.foreground), IswRString, IswDefaultForeground},
+    {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+       offset(simple.cursor), IswRString, "left_ptr"},
+    {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+	offset(list.font),IswRString, IswDefaultFont},
 #ifdef ISW_INTERNATIONALIZATION
-    {XtNfontSet,  XtCFontSet, XtRFontSet, sizeof(ISWFontSet *),
-	offset(list.fontset),XtRString, XtDefaultFontSet},
+    {IswNfontSet,  IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
+	offset(list.fontset),IswRString, IswDefaultFontSet},
 #endif
-    {XtNlist, XtCList, XtRPointer, sizeof(char **),
-       offset(list.list), XtRString, NULL},
-    {XtNdefaultColumns, XtCColumns, XtRInt,  sizeof(int),
-	offset(list.default_cols), XtRImmediate, (XtPointer)2},
-    {XtNlongest, XtCLongest, XtRInt,  sizeof(int),
-	offset(list.longest), XtRImmediate, (XtPointer)0},
-    {XtNnumberStrings, XtCNumberStrings, XtRInt,  sizeof(int),
-	offset(list.nitems), XtRImmediate, (XtPointer)0},
-    {XtNpasteBuffer, XtCBoolean, XtRBoolean,  sizeof(Boolean),
-	offset(list.paste), XtRImmediate, (XtPointer) False},
-    {XtNforceColumns, XtCColumns, XtRBoolean,  sizeof(Boolean),
-	offset(list.force_cols), XtRImmediate, (XtPointer) False},
-    {XtNverticalList, XtCBoolean, XtRBoolean,  sizeof(Boolean),
-	offset(list.vertical_cols), XtRImmediate, (XtPointer) False},
-    {XtNinternalWidth, XtCWidth, XtRDimension,  sizeof(Dimension),
-	offset(list.internal_width), XtRImmediate, (XtPointer)2},
-    {XtNinternalHeight, XtCHeight, XtRDimension, sizeof(Dimension),
-	offset(list.internal_height), XtRImmediate, (XtPointer)2},
-    {XtNcolumnSpacing, XtCSpacing, XtRDimension,  sizeof(Dimension),
-	offset(list.column_space), XtRImmediate, (XtPointer)6},
-    {XtNrowSpacing, XtCSpacing, XtRDimension,  sizeof(Dimension),
-	offset(list.row_space), XtRImmediate, (XtPointer)2},
-    {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-        offset(list.callback), XtRCallback, NULL},
-    {XtNdropdownMode, XtCDropdownMode, XtRBoolean, sizeof(Boolean),
-	offset(list.dropdown), XtRImmediate, (XtPointer) False},
+    {IswNlist, IswCList, IswRPointer, sizeof(char **),
+       offset(list.list), IswRString, NULL},
+    {IswNdefaultColumns, IswCColumns, IswRInt,  sizeof(int),
+	offset(list.default_cols), IswRImmediate, (IswPointer)2},
+    {IswNlongest, IswCLongest, IswRInt,  sizeof(int),
+	offset(list.longest), IswRImmediate, (IswPointer)0},
+    {IswNnumberStrings, IswCNumberStrings, IswRInt,  sizeof(int),
+	offset(list.nitems), IswRImmediate, (IswPointer)0},
+    {IswNpasteBuffer, IswCBoolean, IswRBoolean,  sizeof(Boolean),
+	offset(list.paste), IswRImmediate, (IswPointer) False},
+    {IswNforceColumns, IswCColumns, IswRBoolean,  sizeof(Boolean),
+	offset(list.force_cols), IswRImmediate, (IswPointer) False},
+    {IswNverticalList, IswCBoolean, IswRBoolean,  sizeof(Boolean),
+	offset(list.vertical_cols), IswRImmediate, (IswPointer) False},
+    {IswNinternalWidth, IswCWidth, IswRDimension,  sizeof(Dimension),
+	offset(list.internal_width), IswRImmediate, (IswPointer)2},
+    {IswNinternalHeight, IswCHeight, IswRDimension, sizeof(Dimension),
+	offset(list.internal_height), IswRImmediate, (IswPointer)2},
+    {IswNcolumnSpacing, IswCSpacing, IswRDimension,  sizeof(Dimension),
+	offset(list.column_space), IswRImmediate, (IswPointer)6},
+    {IswNrowSpacing, IswCSpacing, IswRDimension,  sizeof(Dimension),
+	offset(list.row_space), IswRImmediate, (IswPointer)2},
+    {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+        offset(list.callback), IswRCallback, NULL},
+    {IswNdropdownMode, IswCDropdownMode, IswRBoolean, sizeof(Boolean),
+	offset(list.dropdown), IswRImmediate, (IswPointer) False},
 };
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
@@ -130,16 +130,16 @@ static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Destroy(Widget);
 static Boolean Layout(Widget, Boolean, Boolean, Dimension *, Dimension *);
-static XtGeometryResult PreferredGeom(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult PreferredGeom(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Set(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Unset(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void DropdownMenuSelect(Widget, XtPointer, XtPointer);
-static void DropdownPopdownCB(Widget, XtPointer, XtPointer);
-static void DropdownDismissHandler(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
+static void DropdownMenuSelect(Widget, IswPointer, IswPointer);
+static void DropdownPopdownCB(Widget, IswPointer, IswPointer);
+static void DropdownDismissHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
 
-static XtActionsRec actions[] = {
+static IswActionsRec actions[] = {
       {"Notify",         Notify},
       {"Set",            Set},
       {"Unset",          Unset},
@@ -156,11 +156,11 @@ ListClassRec listClassRec = {
     /* class_inited       	*/	FALSE,
     /* initialize	  	*/	Initialize,
     /* initialize_hook		*/	NULL,
-    /* realize		  	*/	XtInheritRealize,
+    /* realize		  	*/	IswInheritRealize,
     /* actions		  	*/	actions,
-    /* num_actions	  	*/	XtNumber(actions),
+    /* num_actions	  	*/	IswNumber(actions),
     /* resources	  	*/	resources,
-    /* num_resources	  	*/	XtNumber(resources),
+    /* num_resources	  	*/	IswNumber(resources),
     /* xrm_class	  	*/	NULLQUARK,
     /* compress_motion	  	*/	TRUE,
     /* compress_exposure  	*/	FALSE,
@@ -171,17 +171,17 @@ ListClassRec listClassRec = {
     /* expose		  	*/	Redisplay,
     /* set_values	  	*/	SetValues,
     /* set_values_hook		*/	NULL,
-    /* set_values_almost	*/	XtInheritSetValuesAlmost,
+    /* set_values_almost	*/	IswInheritSetValuesAlmost,
     /* get_values_hook		*/	NULL,
     /* accept_focus	 	*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private   	*/	NULL,
     /* tm_table		   	*/	defaultTranslations,
    /* query_geometry		*/      PreferredGeom,
   },
 /* Simple class fields initialization */
   {
-    /* change_sensitive		*/	XtInheritChangeSensitive
+    /* change_sensitive		*/	IswInheritChangeSensitive
   },
 /* List class fields initialization */
   {
@@ -203,7 +203,7 @@ WidgetClass listWidgetClass = (WidgetClass)&listClassRec;
  * but won't hurt if accidently called
  *
  * These calculations were needed in SetValues.  They were in ResetList.
- * ResetList called ChangeSize, which made an XtGeometryRequest.  You
+ * ResetList called ChangeSize, which made an IswGeometryRequest.  You
  * MAY NOT change your geometry from within a SetValues. (Xt man,
  * sect. 9.7.2)  So, I factored these changes out. */
 
@@ -273,40 +273,40 @@ ResetList(Widget w, Boolean changex, Boolean changey)
 static void
 ChangeSize(Widget w, Dimension width, Dimension height)
 {
-    XtWidgetGeometry request, reply;
+    IswWidgetGeometry request, reply;
 
     request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     request.width = width;
     request.height = height;
 
-    switch ( XtMakeGeometryRequest(w, &request, &reply) ) {
-    case XtGeometryYes:
+    switch ( IswMakeGeometryRequest(w, &request, &reply) ) {
+    case IswGeometryYes:
         break;
-    case XtGeometryNo:
+    case IswGeometryNo:
         break;
-    case XtGeometryAlmost:
+    case IswGeometryAlmost:
 	Layout(w, (request.height != reply.height),
 	          (request.width != reply.width),
 	       &(reply.width), &(reply.height));
 	request = reply;
-	switch (XtMakeGeometryRequest(w, &request, &reply) ) {
-	case XtGeometryYes:
-	case XtGeometryNo:
+	switch (IswMakeGeometryRequest(w, &request, &reply) ) {
+	case IswGeometryYes:
+	case IswGeometryNo:
 	    break;
-	case XtGeometryAlmost:
+	case IswGeometryAlmost:
 	    request = reply;
 	    Layout(w, FALSE, FALSE, &(request.width), &(request.height));
 	    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-	    XtMakeGeometryRequest(w, &request, &reply);
+	    IswMakeGeometryRequest(w, &request, &reply);
 	    break;
 	default:
-	  XtAppWarning(XtWidgetToApplicationContext(w),
+	  IswAppWarning(IswWidgetToApplicationContext(w),
 		       "List Widget: Unknown geometry return.");
 	  break;
 	}
 	break;
     default:
-	XtAppWarning(XtWidgetToApplicationContext(w),
+	IswAppWarning(IswWidgetToApplicationContext(w),
 		     "List Widget: Unknown geometry return.");
 	break;
     }
@@ -337,15 +337,15 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
  * Initialize all private resources.
  */
 
-    /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
-     * If font is NULL but fontset is available, create a minimal XFontStruct
+    /* XCB Fix: IswRFontStruct converter may fail in XCB mode, leaving font NULL.
+     * If font is NULL but fontset is available, create a minimal IswFontStruct
      * using the fontset's font_id (similar to Label.c approach). */
     if (lw->list.font == NULL) {
 #ifdef ISW_INTERNATIONALIZATION
 	if (lw->list.fontset != NULL) {
-	    /* Allocate and initialize a minimal XFontStruct from fontset */
-	    lw->list.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
-	    memset(lw->list.font, 0, sizeof(XFontStruct));
+	    /* Allocate and initialize a minimal IswFontStruct from fontset */
+	    lw->list.font = (IswFontStruct *)IswMalloc(sizeof(IswFontStruct));
+	    memset(lw->list.font, 0, sizeof(IswFontStruct));
 	    lw->list.font->fid = lw->list.fontset->font_id;
 	    lw->list.font->ascent = lw->list.fontset->ascent;
 	    lw->list.font->descent = lw->list.fontset->descent;
@@ -354,7 +354,7 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
 	} else
 #endif
 	{
-	    XtAppWarning(XtWidgetToApplicationContext(new),
+	    IswAppWarning(IswWidgetToApplicationContext(new),
 			 "List widget: font and fontset are both NULL - text rendering will fail");
 	}
     }
@@ -549,7 +549,7 @@ PaintItemName(Widget w, int item)
     int x, y, str_y;
     ListWidget lw = (ListWidget) w;
 
-    if (!XtIsRealized(w)) return; /* Just in case... */
+    if (!IswIsRealized(w)) return; /* Just in case... */
 
     if (lw->list.vertical_cols) {
 	x = lw->list.col_width * (item / lw->list.nrows)
@@ -648,7 +648,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     (void)region;
 
     /* Create render context if needed (lazy initialization) */
-    if (!lw->list.render_ctx && XtIsRealized(w)) {
+    if (!lw->list.render_ctx && IswIsRealized(w)) {
         if (w->core.width > 0 && w->core.height > 0) {
             lw->list.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
         }
@@ -726,8 +726,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
  * intended - what the parent intends to do with us.
  * requested - what we want to happen. */
 
-static XtGeometryResult
-PreferredGeom(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *requested)
+static IswGeometryResult
+PreferredGeom(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *requested)
 {
     Dimension new_width, new_height;
     Boolean change, width_req, height_req;
@@ -752,7 +752,7 @@ PreferredGeom(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *requested)
  */
 
     if ( !width_req && !height_req)
-      return(XtGeometryYes);
+      return(IswGeometryYes);
 
     change = Layout(w, !width_req, !height_req, &new_width, &new_height);
 
@@ -762,8 +762,8 @@ PreferredGeom(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *requested)
     requested->height = new_height;
 
     if (change)
-        return(XtGeometryAlmost);
-    return(XtGeometryYes);
+        return(IswGeometryAlmost);
+    return(IswGeometryYes);
 }
 
 
@@ -781,7 +781,7 @@ Resize(Widget w)
     height = w->core.height;
 
     if (Layout(w, FALSE, FALSE, &width, &height))
- XtAppWarning(XtWidgetToApplicationContext(w),
+ IswAppWarning(IswWidgetToApplicationContext(w),
     "List Widget: Size changed when it shouldn't have when resising.");
 
 }
@@ -885,17 +885,17 @@ Layout(Widget w, Boolean xfree, Boolean yfree, Dimension *width, Dimension *heig
 
 static Boolean
 ListConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
-		     xcb_atom_t *type, XtPointer *value,
+		     xcb_atom_t *type, IswPointer *value,
 		     unsigned long *length, int *format)
 {
     ListWidget lw = (ListWidget) w;
 
-    if (*target == XCB_ATOM_TARGETS(XtDisplay(w))) {
-	xcb_atom_t *targets = (xcb_atom_t *) XtMalloc(2 * sizeof(xcb_atom_t));
-	targets[0] = XCB_ATOM_TARGETS(XtDisplay(w));
+    if (*target == XCB_ATOM_TARGETS(IswDisplay(w))) {
+	xcb_atom_t *targets = (xcb_atom_t *) IswMalloc(2 * sizeof(xcb_atom_t));
+	targets[0] = XCB_ATOM_TARGETS(IswDisplay(w));
 	targets[1] = XCB_ATOM_STRING;
 	*type = XCB_ATOM_ATOM;
-	*value = (XtPointer) targets;
+	*value = (IswPointer) targets;
 	*length = 2;
 	*format = 32;
 	return True;
@@ -905,7 +905,7 @@ ListConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
 	if (lw->list.clip_contents == NULL)
 	    return False;
 	*type = XCB_ATOM_STRING;
-	*value = XtNewString(lw->list.clip_contents);
+	*value = IswNewString(lw->list.clip_contents);
 	*length = strlen(lw->list.clip_contents);
 	*format = 8;
 	return True;
@@ -919,7 +919,7 @@ ListLoseSelection(Widget w, xcb_atom_t *selection)
 {
     ListWidget lw = (ListWidget) w;
     if (lw->list.clip_contents) {
-	XtFree(lw->list.clip_contents);
+	IswFree(lw->list.clip_contents);
 	lw->list.clip_contents = NULL;
     }
 }
@@ -927,7 +927,7 @@ ListLoseSelection(Widget w, xcb_atom_t *selection)
 /* Notify() - ACTION
  *
  * Notifies the user that a button has been pressed, and
- * calls the callback; if the XtNpasteBuffer resource is true
+ * calls the callback; if the IswNpasteBuffer resource is true
  * then the name of the item is placed on the CLIPBOARD selection. */
 
 /* ARGSUSED */
@@ -955,10 +955,10 @@ Notify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_param
 
     if ( lw->list.paste ) {
 	if (lw->list.clip_contents)
-	    XtFree(lw->list.clip_contents);
-	lw->list.clip_contents = XtNewString(lw->list.list[item]);
-	XtOwnSelection(w, XCB_ATOM_CLIPBOARD(XtDisplay(w)),
-			XtLastTimestampProcessed(XtDisplay(w)),
+	    IswFree(lw->list.clip_contents);
+	lw->list.clip_contents = IswNewString(lw->list.list[item]);
+	IswOwnSelection(w, XCB_ATOM_CLIPBOARD(IswDisplay(w)),
+			IswLastTimestampProcessed(IswDisplay(w)),
 			ListConvertSelection, ListLoseSelection, NULL);
     }
 
@@ -969,7 +969,7 @@ Notify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_param
     ret_value.string = lw->list.list[item];
     ret_value.list_index = item;
 
-    XtCallCallbacks( w, XtNcallback, (XtPointer) &ret_value);
+    IswCallCallbacks( w, IswNcallback, (IswPointer) &ret_value);
 }
 
 
@@ -1007,33 +1007,33 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 
     /* Destroy previous popup so it's rebuilt with current items */
     if (lw->list.popup_shell) {
-        XtDestroyWidget(lw->list.popup_shell);
+        IswDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
     }
 
     /* Compute position below the collapsed widget */
-    XtTranslateCoords(w, 0, 0, &abs_x, &abs_y);
+    IswTranslateCoords(w, 0, 0, &abs_x, &abs_y);
     Position below_y = abs_y + (Position)w->core.height;
 
     /* Create SimpleMenu popup — same widget class as menubar submenus */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtSetArg(args[n], XtNwidth, w->core.width); n++;
-    lw->list.popup_shell = XtCreatePopupShell("dropdownPopup",
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswSetArg(args[n], IswNwidth, w->core.width); n++;
+    lw->list.popup_shell = IswCreatePopupShell("dropdownPopup",
         simpleMenuWidgetClass, w, args, n);
 
     /* Populate with SmeBSB entries for each list item */
     for (i = 0; i < lw->list.nitems; i++) {
         Widget entry;
         n = 0;
-        XtSetArg(args[n], XtNlabel, lw->list.list[i]); n++;
+        IswSetArg(args[n], IswNlabel, lw->list.list[i]); n++;
         if (lw->list.font) {
-            XtSetArg(args[n], XtNfont, lw->list.font); n++;
+            IswSetArg(args[n], IswNfont, lw->list.font); n++;
         }
-        entry = XtCreateManagedWidget(lw->list.list[i],
+        entry = IswCreateManagedWidget(lw->list.list[i],
             smeBSBObjectClass, lw->list.popup_shell, args, n);
-        XtAddCallback(entry, XtNcallback,
-                      DropdownMenuSelect, (XtPointer)(intptr_t)i);
+        IswAddCallback(entry, IswNcallback,
+                      DropdownMenuSelect, (IswPointer)(intptr_t)i);
     }
 
     /* Override translations: hover to highlight, click to select
@@ -1048,19 +1048,19 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
              <Btn5Down>:        unhighlight() popdown() \n\
              <BtnUp>:           highlight()             \n\
              <BtnDown>:         notify() unhighlight() popdown()";
-        XtOverrideTranslations(lw->list.popup_shell,
-            XtParseTranslationTable(dropdownTranslations));
+        IswOverrideTranslations(lw->list.popup_shell,
+            IswParseTranslationTable(dropdownTranslations));
     }
 
     /* Compute available space and pick direction */
     {
-        int scr_height = HeightOfScreen(XtScreen(w));
+        int scr_height = HeightOfScreen(IswScreen(w));
         int space_below = scr_height - below_y;
         int space_above = abs_y;
         Position popup_y = below_y;
 
         /* Realize so SimpleMenu calculates its natural height */
-        XtRealizeWidget(lw->list.popup_shell);
+        IswRealizeWidget(lw->list.popup_shell);
 
         int menu_h = (int)lw->list.popup_shell->core.height;
 
@@ -1077,53 +1077,53 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
             SimpleMenuWidget smw = (SimpleMenuWidget)lw->list.popup_shell;
             smw->simple_menu.too_tall = TRUE;
             n = 0;
-            XtSetArg(args[n], XtNheight, (Dimension)avail); n++;
-            XtSetValues(lw->list.popup_shell, args, n);
+            IswSetArg(args[n], IswNheight, (Dimension)avail); n++;
+            IswSetValues(lw->list.popup_shell, args, n);
         }
 
         n = 0;
-        XtSetArg(args[n], XtNx, abs_x); n++;
-        XtSetArg(args[n], XtNy, popup_y); n++;
-        XtSetValues(lw->list.popup_shell, args, n);
+        IswSetArg(args[n], IswNx, abs_x); n++;
+        IswSetArg(args[n], IswNy, popup_y); n++;
+        IswSetValues(lw->list.popup_shell, args, n);
     }
 
-    XtPopup(lw->list.popup_shell, XtGrabNone);
+    IswPopup(lw->list.popup_shell, IswGrabNone);
 
     /* X server pointer grab — all button events (scroll, outside clicks)
      * delivered to popup window. Same technique as GTK/Motif popups. */
-    xcb_grab_pointer(XtDisplay(w), False, XtWindow(lw->list.popup_shell),
+    xcb_grab_pointer(IswDisplay(w), False, IswWindow(lw->list.popup_shell),
         XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
         XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
         XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
         XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
         XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
-    xcb_flush(XtDisplay(w));
+    xcb_flush(IswDisplay(w));
 
     /* Dismiss on focus loss, minimize, or visibility change */
     {
         Widget shell = w;
-        while (shell && !XtIsShell(shell))
-            shell = XtParent(shell);
+        while (shell && !IswIsShell(shell))
+            shell = IswParent(shell);
         if (shell)
-            XtAddEventHandler(shell,
+            IswAddEventHandler(shell,
                               XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
                               XCB_EVENT_MASK_VISIBILITY_CHANGE,
-                              False, DropdownDismissHandler, (XtPointer)lw);
+                              False, DropdownDismissHandler, (IswPointer)lw);
     }
 
     /* Dismiss if any ancestor moves (e.g. viewport scrolled).
      * Walk up to the shell, installing handlers on each ancestor. */
     {
-        Widget ancestor = XtParent(w);
-        while (ancestor && !XtIsShell(ancestor)) {
-            XtAddEventHandler(ancestor, XCB_EVENT_MASK_STRUCTURE_NOTIFY, False,
-                              DropdownDismissHandler, (XtPointer)lw);
-            ancestor = XtParent(ancestor);
+        Widget ancestor = IswParent(w);
+        while (ancestor && !IswIsShell(ancestor)) {
+            IswAddEventHandler(ancestor, XCB_EVENT_MASK_STRUCTURE_NOTIFY, False,
+                              DropdownDismissHandler, (IswPointer)lw);
+            ancestor = IswParent(ancestor);
         }
     }
 
-    XtAddCallback(lw->list.popup_shell, XtNpopdownCallback,
-                  DropdownPopdownCB, (XtPointer)lw);
+    IswAddCallback(lw->list.popup_shell, IswNpopdownCallback,
+                  DropdownPopdownCB, (IswPointer)lw);
     return;
   }
 
@@ -1224,7 +1224,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	redraw = TRUE;
     }
 
-    if (!XtIsRealized(current))
+    if (!IswIsRealized(current))
       return(FALSE);
 
     return(redraw);
@@ -1243,12 +1243,12 @@ Destroy(Widget w)
 
     /* Clean up dropdown popup */
     if (lw->list.popup_shell) {
-        XtDestroyWidget(lw->list.popup_shell);
+        IswDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
     }
 
     if (lw->list.clip_contents) {
-	XtFree(lw->list.clip_contents);
+	IswFree(lw->list.clip_contents);
 	lw->list.clip_contents = NULL;
     }
 }
@@ -1307,7 +1307,7 @@ IswListChange(Widget w, String* list, int nitems, int longest,
         ChangeSize( w, new_width, new_height );
 
     lw->list.is_highlighted = lw->list.highlight = NO_HIGHLIGHT;
-    if ( XtIsRealized( w ) ) {
+    if ( IswIsRealized( w ) ) {
       /* Only repaint if the window is actually viewable.  When a
        * parent shell hasn't been mapped yet the blit goes to an
        * unmapped window whose contents the X server will clear at
@@ -1315,9 +1315,9 @@ IswListChange(Widget w, String* list, int nitems, int longest,
        * repaint; calling Redisplay here would be wasted work that
        * races with the map and can leave the window blank. */
       xcb_get_window_attributes_cookie_t ac =
-          xcb_get_window_attributes(XtDisplay(w), XtWindow(w));
+          xcb_get_window_attributes(IswDisplay(w), IswWindow(w));
       xcb_get_window_attributes_reply_t *ar =
-          xcb_get_window_attributes_reply(XtDisplay(w), ac, NULL);
+          xcb_get_window_attributes_reply(IswDisplay(w), ac, NULL);
       int viewable = ar && ar->map_state == XCB_MAP_STATE_VIEWABLE;
       free(ar);
       if (viewable)
@@ -1358,7 +1358,7 @@ IswListHighlight(Widget w, int item)
 {
     ListWidget lw = ( ListWidget ) w;
 
-    if (XtIsSensitive(w)) {
+    if (IswIsSensitive(w)) {
         lw->list.highlight = item;
         if (lw->list.render_ctx)
             ISWRenderBegin(lw->list.render_ctx);
@@ -1383,7 +1383,7 @@ IswListShowCurrent(Widget w)
     IswListReturnStruct * ret_val;
 
     ret_val = (IswListReturnStruct *)
-	          XtMalloc (sizeof (IswListReturnStruct));/* SPARE MALLOC OK */
+	          IswMalloc (sizeof (IswListReturnStruct));/* SPARE MALLOC OK */
 
     ret_val->list_index = lw->list.highlight;
     if (ret_val->list_index == XAW_LIST_NONE)
@@ -1403,11 +1403,11 @@ IswListShowCurrent(Widget w)
  * DropdownMenuSelect - SmeBSB callback. client_data carries the item index.
  */
 static void
-DropdownMenuSelect(Widget w, XtPointer client_data, XtPointer call_data)
+DropdownMenuSelect(Widget w, IswPointer client_data, IswPointer call_data)
 {
     (void)call_data;
-    Widget menu = XtParent(w);
-    Widget list_w = XtParent(menu);
+    Widget menu = IswParent(w);
+    Widget list_w = IswParent(menu);
     ListWidget lw = (ListWidget) list_w;
     int index = (int)(intptr_t)client_data;
     IswListReturnStruct parent_ret;
@@ -1421,11 +1421,11 @@ DropdownMenuSelect(Widget w, XtPointer client_data, XtPointer call_data)
     /* Fire the parent widget's callbacks */
     parent_ret.string = lw->list.list[index];
     parent_ret.list_index = index;
-    XtCallCallbacks(list_w, XtNcallback, (XtPointer)&parent_ret);
+    IswCallCallbacks(list_w, IswNcallback, (IswPointer)&parent_ret);
 }
 
 static void
-DropdownDismissHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event,
+DropdownDismissHandler(Widget w, IswPointer client_data, xcb_generic_event_t *event,
                        Boolean *continue_to_dispatch)
 {
     ListWidget lw = (ListWidget) client_data;
@@ -1439,38 +1439,38 @@ DropdownDismissHandler(Widget w, XtPointer client_data, xcb_generic_event_t *eve
 
     if (type == XCB_FOCUS_OUT || type == XCB_UNMAP_NOTIFY ||
         type == XCB_VISIBILITY_NOTIFY || type == XCB_CONFIGURE_NOTIFY) {
-        XtPopdown(lw->list.popup_shell);
+        IswPopdown(lw->list.popup_shell);
     }
 }
 
 static void
-DropdownPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
+DropdownPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
 {
     (void)call_data;
     ListWidget lw = (ListWidget) client_data;
     Widget shell = (Widget)lw;
 
-    xcb_ungrab_pointer(XtDisplay((Widget)lw), XCB_CURRENT_TIME);
-    xcb_flush(XtDisplay((Widget)lw));
+    xcb_ungrab_pointer(IswDisplay((Widget)lw), XCB_CURRENT_TIME);
+    xcb_flush(IswDisplay((Widget)lw));
 
-    while (shell && !XtIsShell(shell))
-        shell = XtParent(shell);
+    while (shell && !IswIsShell(shell))
+        shell = IswParent(shell);
     if (shell)
-        XtRemoveEventHandler(shell,
+        IswRemoveEventHandler(shell,
                              XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
                              XCB_EVENT_MASK_VISIBILITY_CHANGE,
-                             False, DropdownDismissHandler, (XtPointer)lw);
+                             False, DropdownDismissHandler, (IswPointer)lw);
 
     /* Remove ancestor-move handlers */
     {
-        Widget ancestor = XtParent((Widget)lw);
-        while (ancestor && !XtIsShell(ancestor)) {
-            XtRemoveEventHandler(ancestor, XCB_EVENT_MASK_STRUCTURE_NOTIFY, False,
-                                 DropdownDismissHandler, (XtPointer)lw);
-            ancestor = XtParent(ancestor);
+        Widget ancestor = IswParent((Widget)lw);
+        while (ancestor && !IswIsShell(ancestor)) {
+            IswRemoveEventHandler(ancestor, XCB_EVENT_MASK_STRUCTURE_NOTIFY, False,
+                                 DropdownDismissHandler, (IswPointer)lw);
+            ancestor = IswParent(ancestor);
         }
     }
 
-    XtRemoveCallback(menu, XtNpopdownCallback, DropdownPopdownCB, client_data);
+    IswRemoveCallback(menu, IswNpopdownCallback, DropdownPopdownCB, client_data);
 }
 

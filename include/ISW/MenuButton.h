@@ -51,21 +51,21 @@ in this Software without prior written authorization from the X Consortium.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- background	     Background		Pixel		XtDefaultBackground
+ background	     Background		Pixel		IswDefaultBackground
  bitmap		     Pixmap		Pixmap		None
- border		     BorderColor	Pixel		XtDefaultForeground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
  callback	     Callback		Pointer		NULL
  cursor		     Cursor		Cursor		None
  destroyCallback     Callback		Pointer		NULL
- font		     Font		XFontStruct*	XtDefaultFont
- foreground	     Foreground		Pixel		XtDefaultForeground
+ font		     Font		IswFontStruct*	IswDefaultFont
+ foreground	     Foreground		Pixel		IswDefaultForeground
  height		     Height		Dimension	text height
  borderStrokeWidth   Thickness		Dimension	2
  insensitiveBorder   Insensitive	Pixmap		Gray
  internalHeight	     Height		Dimension	2
  internalWidth	     Width		Dimension	4
- justify	     Justify		XtJustify	XtJustifyCenter
+ justify	     Justify		IswJustify	IswJustifyCenter
  label		     Label		String		NULL
  mappedWhenManaged   MappedWhenManaged	Boolean		True
  menuName            MenuName           String          "menu"
@@ -77,8 +77,8 @@ in this Software without prior written authorization from the X Consortium.
 
 */
 
-#define XtNmenuName "menuName"
-#define XtCMenuName "MenuName"
+#define IswNmenuName "menuName"
+#define IswCMenuName "MenuName"
 
 extern WidgetClass     menuButtonWidgetClass;
 

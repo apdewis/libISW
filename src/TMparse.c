@@ -86,12 +86,12 @@ in this Software without prior written authorization from The Open Group.
 
 #ifdef CACHE_TRANSLATIONS
 #ifdef REFCNT_TRANSLATIONS
-#define CACHED XtCacheAll | XtCacheRefCount
+#define CACHED IswCacheAll | IswCacheRefCount
 #else
-#define CACHED XtCacheAll
+#define CACHED IswCacheAll
 #endif
 #else
-#define CACHED XtCacheNone
+#define CACHED IswCacheNone
 #endif
 
 #ifndef MAX
@@ -102,7 +102,7 @@ in this Software without prior written authorization from The Open Group.
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
-static _Xconst char *XtNtranslationParseError = "translationParseError";
+static _Xconst char *IswNtranslationParseError = "translationParseError";
 
 typedef int EventType;
 
@@ -140,7 +140,7 @@ typedef struct {
 static void ParseModImmed(Value, LateBindingsPtr *, Boolean, Value *);
 static void ParseModSym(Value, LateBindingsPtr *, Boolean, Value *);
 static String PanicModeRecovery(String);
-static String CheckForPoundSign(String, _XtTranslateOp, _XtTranslateOp *);
+static String CheckForPoundSign(String, _IswTranslateOp, _IswTranslateOp *);
 static xcb_keysym_t StringToKeySym(String, Boolean *);
 /* *INDENT-OFF* */
 static ModifierRec modifiers[] = {
@@ -370,8 +370,8 @@ static EventKey events[] = {
 
 #ifdef DEBUG
 # ifdef notdef
-{"Timer",           NULLQUARK, _XtTimerEventType, ParseNone,     NULL},
-{"EventTimer",      NULLQUARK, _XtEventTimerEventType, ParseNone,NULL},
+{"Timer",           NULLQUARK, _IswTimerEventType, ParseNone,     NULL},
+{"EventTimer",      NULLQUARK, _IswEventTimerEventType, ParseNone,NULL},
 # endif /* notdef */
 #endif /* DEBUG */
 
@@ -420,7 +420,7 @@ FreeEventSeq(EventSeqPtr eventSeq)
         evs = evs->next;
         if (evs == event)
             evs = NULL;
-        XtFree((char *) event);
+        IswFree((char *) event);
     }
 }
 
@@ -487,7 +487,7 @@ Syntax(_Xconst char *str0, _Xconst char *str1)
 
     params[0] = (String) str0;
     params[1] = (String) str1;
-    XtWarningMsg(XtNtranslationParseError, "parseError", XtCXtToolkitError,
+    IswWarningMsg(IswNtranslationParseError, "parseError", IswCIswToolkitError,
                  "translation table syntax error: %s %s", params, &num_params);
 }
 
@@ -505,7 +505,7 @@ LookupTMEventType(String eventStr, Boolean *error)
     }
 
     left = 0;
-    right = XtNumber(events) - 1;
+    right = IswNumber(events) - 1;
     while (left <= right) {
         i = (left + right) >> 1;
         if (signature < events[i].signature)
@@ -556,16 +556,16 @@ StoreLateBindings(xcb_keysym_t keysymL,
             pair = TRUE;
         }
 
-        temp = XtReallocArray(temp, (Cardinal) (count + number + 1),
+        temp = IswReallocArray(temp, (Cardinal) (count + number + 1),
                               (Cardinal) sizeof(LateBindings));
         *lateBindings = temp;
-        XtSetBit(temp[count].knot, notL);
-        XtSetBit(temp[count].pair, pair);
+        IswSetBit(temp[count].knot, notL);
+        IswSetBit(temp[count].pair, pair);
         if (count == 0)
             temp[count].ref_count = 1;
         temp[count++].keysym = keysymL;
         if (keysymR) {
-            XtSetBit(temp[count].knot, notR);
+            IswSetBit(temp[count].knot, notR);
             temp[count].pair = FALSE;
             temp[count].ref_count = 0;
             temp[count++].keysym = keysymR;
@@ -577,7 +577,7 @@ StoreLateBindings(xcb_keysym_t keysymL,
 }
 
 static void
-_XtParseKeysymMod(String name,
+_IswParseKeysymMod(String name,
                   LateBindingsPtr *lateBindings,
                   Boolean notFlag,
                   Value *valueP,
@@ -593,7 +593,7 @@ _XtParseKeysymMod(String name,
 }
 
 static Boolean
-_XtLookupModifier(XrmQuark signature,
+_IswLookupModifier(XrmQuark signature,
                   LateBindingsPtr *lateBindings,
                   Boolean notFlag,
                   Value *valueP,
@@ -614,7 +614,7 @@ _XtLookupModifier(XrmQuark signature,
     }
 
     left = 0;
-    right = XtNumber(modifiers) - 1;
+    right = IswNumber(modifiers) - 1;
     while (left <= right) {
         int i = (left + right) >> 1;
 
@@ -671,13 +671,13 @@ FetchModifierToken(String str, XrmQuark *token_return)
             char modStrbuf[100];
             char *modStr;
 
-            modStr = XtStackAlloc((size_t) (str - start + 1), modStrbuf);
+            modStr = IswStackAlloc((size_t) (str - start + 1), modStrbuf);
             if (modStr == NULL)
-                _XtAllocError(NULL);
+                _IswAllocError(NULL);
             (void) memcpy(modStr, start, (size_t) (str - start));
             modStr[str - start] = '\0';
             *token_return = XrmStringToQuark(modStr);
-            XtStackFree(modStr, modStrbuf);
+            IswStackFree(modStr, modStrbuf);
         }
     }
     return str;
@@ -745,14 +745,14 @@ ParseModifiers(register String str, EventPtr event, Boolean *error)
             return PanicModeRecovery(str);
         }
         if (keysymAsMod) {
-            _XtParseKeysymMod(XrmQuarkToString(Qmod),
+            _IswParseKeysymMod(XrmQuarkToString(Qmod),
                               &event->event.lateModifiers,
                               notFlag, &maskBit, error);
             if (*error)
                 return PanicModeRecovery(str);
 
         }
-        else if (!_XtLookupModifier(Qmod, &event->event.lateModifiers,
+        else if (!_IswLookupModifier(Qmod, &event->event.lateModifiers,
                                     notFlag, &maskBit, FALSE)) {
             Syntax("Unknown modifier name:  ", XrmQuarkToString(Qmod));
             *error = TRUE;
@@ -772,7 +772,7 @@ ParseModifiers(register String str, EventPtr event, Boolean *error)
 }
 
 static String
-ParseXtEventType(register String str,
+ParseIswEventType(register String str,
                  EventPtr event,
                  Cardinal *tmEventP,
                  Boolean *error)
@@ -782,13 +782,13 @@ ParseXtEventType(register String str,
     char *eventTypeStr;
 
     ScanAlphanumeric(str);
-    eventTypeStr = XtStackAlloc((size_t) (str - start + 1), eventTypeStrbuf);
+    eventTypeStr = IswStackAlloc((size_t) (str - start + 1), eventTypeStrbuf);
     if (eventTypeStr == NULL)
-        _XtAllocError(NULL);
+        _IswAllocError(NULL);
     (void) memcpy(eventTypeStr, start, (size_t) (str - start));
     eventTypeStr[str - start] = '\0';
     *tmEventP = LookupTMEventType(eventTypeStr, error);
-    XtStackFree(eventTypeStr, eventTypeStrbuf);
+    IswStackFree(eventTypeStr, eventTypeStrbuf);
     if (*error)
         return PanicModeRecovery(str);
     event->event.eventType = (TMLongCard) events[*tmEventP].eventType;
@@ -974,7 +974,7 @@ ParseKeyAndModifiers(String str,
     if ((unsigned long) closure == 0) {
         Value metaMask;         /* unused */
 
-        (void) _XtLookupModifier(QMeta, &event->event.lateModifiers, FALSE,
+        (void) _IswLookupModifier(QMeta, &event->event.lateModifiers, FALSE,
                                  &metaMask, FALSE);
     }
     else {
@@ -1024,7 +1024,7 @@ ParseKeySym(register String str,
                && (*str != '(' || *(str + 1) <= '0' || *(str + 1) >= '9')
                && *str != '\0')
             str++;
-        keySymName = XtStackAlloc((size_t) (str - start + 1), keySymNamebuf);
+        keySymName = IswStackAlloc((size_t) (str - start + 1), keySymNamebuf);
         (void) memcpy(keySymName, start, (size_t) (str - start));
         keySymName[str - start] = '\0';
         event->event.eventCode = StringToKeySym(keySymName, error);
@@ -1034,20 +1034,20 @@ ParseKeySym(register String str,
         /* We never get here when keySymName hasn't been allocated */
         if (keySymName[0] == '<') {
             /* special case for common error */
-            XtWarningMsg(XtNtranslationParseError, "missingComma",
-                         XtCXtToolkitError,
+            IswWarningMsg(IswNtranslationParseError, "missingComma",
+                         IswCIswToolkitError,
                          "... possibly due to missing ',' in event sequence.",
                          (String *) NULL, (Cardinal *) NULL);
         }
-        XtStackFree(keySymName, keySymNamebuf);
+        IswStackFree(keySymName, keySymNamebuf);
         return PanicModeRecovery(str);
     }
     if (event->event.standard)
-        event->event.matchEvent = _XtMatchUsingStandardMods;
+        event->event.matchEvent = _IswMatchUsingStandardMods;
     else
-        event->event.matchEvent = _XtMatchUsingDontCareMods;
+        event->event.matchEvent = _IswMatchUsingDontCareMods;
 
-    XtStackFree(keySymName, keySymNamebuf);
+    IswStackFree(keySymName, keySymNamebuf);
 
     return str;
 }
@@ -1166,7 +1166,7 @@ ParseAtom(String str, Opaque closure _X_UNUSED, EventPtr event, Boolean *error)
         (void) memcpy(atomName, start, (size_t) (str - start));
         atomName[str - start] = '\0';
         event->event.eventCode = (TMLongCard) XrmStringToQuark(atomName);
-        event->event.matchEvent = _XtMatchAtom;
+        event->event.matchEvent = _IswMatchAtom;
     }
     return str;
 }
@@ -1195,7 +1195,7 @@ ParseEvent(register String str,
     }
     else
         str++;
-    str = ParseXtEventType(str, event, &tmEvent, error);
+    str = ParseIswEventType(str, event, &tmEvent, error);
     if (*error)
         return str;
     if (*str != '>') {
@@ -1246,7 +1246,7 @@ ParseQuotedStringEvent(register String str,
     }
     else if (*str == '$') {
         str++;
-        (void) _XtLookupModifier(QMeta, &event->event.lateModifiers, FALSE,
+        (void) _IswLookupModifier(QMeta, &event->event.lateModifiers, FALSE,
                                  &metaMask, FALSE);
     }
     if (*str == '\\')
@@ -1260,14 +1260,14 @@ ParseQuotedStringEvent(register String str,
     if (*error)
         return PanicModeRecovery(str);
     event->event.eventCodeMask = (unsigned long) (~0L);
-    event->event.matchEvent = _XtMatchUsingStandardMods;
+    event->event.matchEvent = _IswMatchUsingStandardMods;
     event->event.standard = TRUE;
 
     return str;
 }
 
 static EventSeqRec timerEventRec = {
-    {0, 0, NULL, _XtEventTimerEventType, 0L, 0L, NULL, False},
+    {0, 0, NULL, _IswEventTimerEventType, 0L, 0L, NULL, False},
     /* (StatePtr) -1 */ NULL,
     NULL,
     NULL
@@ -1301,17 +1301,17 @@ RepeatDown(EventPtr *eventP, int reps, ActionPtr **actionsP)
     for (i = 1; i < reps; i++) {
 
         /* up */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = *upEvent;
 
         /* timer */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = timerEventRec;
 
         /* down */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = *downEvent;
 
@@ -1351,19 +1351,19 @@ RepeatDownPlus(EventPtr *eventP, int reps, ActionPtr **actionsP)
 
         if (i > 0) {
             /* down */
-            event->next = XtNew(EventSeqRec);
+            event->next = IswNew(EventSeqRec);
             event = event->next;
             *event = *downEvent;
         }
         lastDownEvent = event;
 
         /* up */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = *upEvent;
 
         /* timer */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = timerEventRec;
 
@@ -1404,24 +1404,24 @@ RepeatUp(EventPtr *eventP, int reps, ActionPtr **actionsP)
                               1);
 
     /* up */
-    event->next = XtNew(EventSeqRec);
+    event->next = IswNew(EventSeqRec);
     event = event->next;
     *event = *upEvent;
 
     for (i = 1; i < reps; i++) {
 
         /* timer */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = timerEventRec;
 
         /* down */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = *downEvent;
 
         /* up */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = *upEvent;
 
@@ -1463,17 +1463,17 @@ RepeatUpPlus(EventPtr *eventP, int reps, ActionPtr **actionsP)
     for (i = 0; i < reps; i++) {
 
         /* up */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         lastUpEvent = event = event->next;
         *event = *upEvent;
 
         /* timer */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = timerEventRec;
 
         /* down */
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = *downEvent;
 
@@ -1497,7 +1497,7 @@ RepeatOther(EventPtr *eventP, int reps, ActionPtr **actionsP)
             (unsigned short) (event->event.lateModifiers->ref_count + reps - 1);
 
     for (i = 1; i < reps; i++) {
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = *tempEvent;
     }
@@ -1519,7 +1519,7 @@ RepeatOtherPlus(EventPtr *eventP, int reps, ActionPtr **actionsP)
             (unsigned short) (event->event.lateModifiers->ref_count + reps - 1);
 
     for (i = 1; i < reps; i++) {
-        event->next = XtNew(EventSeqRec);
+        event->next = IswNew(EventSeqRec);
         event = event->next;
         *event = *tempEvent;
     }
@@ -1625,7 +1625,7 @@ ParseEventSeq(register String str,
 
     while (*str != '\0' && !IsNewline(*str)) {
         static Event nullEvent =
-            { 0, 0, NULL, 0, 0L, 0L, _XtRegularMatch, FALSE };
+            { 0, 0, NULL, 0, 0L, 0L, _IswRegularMatch, FALSE };
         EventPtr event;
 
         ScanWhitespace(str);
@@ -1633,18 +1633,18 @@ ParseEventSeq(register String str,
         if (*str == '"') {
             str++;
             while (*str != '"' && *str != '\0' && !IsNewline(*str)) {
-                event = XtNew(EventRec);
+                event = IswNew(EventRec);
                 event->event = nullEvent;
                 event->state = /* (StatePtr) -1 */ NULL;
                 event->next = NULL;
                 event->actions = NULL;
                 str = ParseQuotedStringEvent(str, event, error);
                 if (*error) {
-                    XtWarningMsg(XtNtranslationParseError, "nonLatin1",
-                                 XtCXtToolkitError,
+                    IswWarningMsg(IswNtranslationParseError, "nonLatin1",
+                                 IswCIswToolkitError,
                                  "... probably due to non-Latin1 character in quoted string",
                                  (String *) NULL, (Cardinal *) NULL);
-                    XtFree((char *) event);
+                    IswFree((char *) event);
                     return PanicModeRecovery(str);
                 }
                 *nextEvent = event;
@@ -1663,7 +1663,7 @@ ParseEventSeq(register String str,
             int reps = 0;
             Boolean plus = FALSE;
 
-            event = XtNew(EventRec);
+            event = IswNew(EventRec);
             event->event = nullEvent;
             event->state = /* (StatePtr) -1 */ NULL;
             event->next = NULL;
@@ -1722,7 +1722,7 @@ ParseActionProc(register String str, XrmQuark *actionProcNameP, Boolean *error)
 }
 
 static String
-ParseString(register String str, _XtString *strP)
+ParseString(register String str, _IswString *strP)
 {
     register String start;
 
@@ -1742,7 +1742,7 @@ ParseString(register String str, _XtString *strP)
                 (*(str + 1) == '"' ||
                  (*(str + 1) == '\\' && *(str + 2) == '"'))) {
                 len = (unsigned) (prev_len + (str - start + 2));
-                *strP = XtRealloc(*strP, len);
+                *strP = IswRealloc(*strP, len);
                 (void) memcpy(*strP + prev_len, start, (size_t) (str - start));
                 prev_len = len - 1;
                 str++;
@@ -1753,14 +1753,14 @@ ParseString(register String str, _XtString *strP)
             str++;
         }
         len = (unsigned) (prev_len + (str - start + 1));
-        *strP = XtRealloc(*strP, len);
+        *strP = IswRealloc(*strP, len);
         (void) memcpy(*strP + prev_len, start, (size_t) (str - start));
         (*strP)[len - 1] = '\0';
         if (*str == '"')
             str++;
         else
-            XtWarningMsg(XtNtranslationParseError, "parseString",
-                         XtCXtToolkitError, "Missing '\"'.",
+            IswWarningMsg(IswNtranslationParseError, "parseString",
+                         IswCIswToolkitError, "Missing '\"'.",
                          (String *) NULL, (Cardinal *) NULL);
     }
     else {
@@ -1791,7 +1791,7 @@ ParseParamSeq(register String str, String **paramSeqP, Cardinal *paramNumP)
 
     ScanWhitespace(str);
     while (*str != ')' && *str != '\0' && !IsNewline(*str)) {
-        _XtString newStr;
+        _IswString newStr;
 
         str = ParseString(str, &newStr);
         if (newStr != NULL) {
@@ -1799,7 +1799,7 @@ ParseParamSeq(register String str, String **paramSeqP, Cardinal *paramNumP)
                 ALLOCATE_LOCAL((unsigned) sizeof(ParamRec));
 
             if (temp == NULL)
-                _XtAllocError(NULL);
+                _IswAllocError(NULL);
 
             num_params++;
             temp->next = params;
@@ -1814,7 +1814,7 @@ ParseParamSeq(register String str, String **paramSeqP, Cardinal *paramNumP)
     }
 
     if (num_params != 0) {
-        String *paramP = XtMallocArray(num_params + 1, (Cardinal)sizeof(String));
+        String *paramP = IswMallocArray(num_params + 1, (Cardinal)sizeof(String));
         Cardinal i;
 
         *paramSeqP = paramP;
@@ -1878,18 +1878,18 @@ ParseActionSeq(TMParseStateTree parseTree,
         register ActionPtr action;
         XrmQuark quark = NULLQUARK;
 
-        action = XtNew(ActionRec);
+        action = IswNew(ActionRec);
         action->params = NULL;
         action->num_params = 0;
         action->next = NULL;
 
         str = ParseAction(str, action, &quark, error);
         if (*error) {
-            XtFree((char *) action);
+            IswFree((char *) action);
             return PanicModeRecovery(str);
         }
 
-        action->idx = _XtGetQuarkIndex(parseTree, quark);
+        action->idx = _IswGetQuarkIndex(parseTree, quark);
         ScanWhitespace(str);
         if (nextActionP) {
             *nextActionP = action;
@@ -1915,17 +1915,17 @@ ShowProduction(String currentProduction)
         len = (size_t) (eol - currentProduction);
     else
         len = strlen(currentProduction);
-    production = XtStackAlloc(len + 1, productionbuf);
+    production = IswStackAlloc(len + 1, productionbuf);
     if (production == NULL)
-        _XtAllocError(NULL);
+        _IswAllocError(NULL);
     (void) memcpy(production, currentProduction, len);
     production[len] = '\0';
 
     params[0] = production;
-    XtWarningMsg(XtNtranslationParseError, "showLine", XtCXtToolkitError,
+    IswWarningMsg(IswNtranslationParseError, "showLine", IswCIswToolkitError,
                  "... found while parsing '%s'", params, &num_params);
 
-    XtStackFree(production, productionbuf);
+    IswStackFree(production, productionbuf);
 }
 
 /***********************************************************************
@@ -1954,7 +1954,7 @@ ParseTranslationTableProduction(TMParseStateTree parseTree,
             ShowProduction(production);
         }
         else {
-            _XtAddEventSeqToStateTree(eventSeq, parseTree);
+            _IswAddEventSeqToStateTree(eventSeq, parseTree);
         }
     }
     FreeEventSeq(eventSeq);
@@ -1963,10 +1963,10 @@ ParseTranslationTableProduction(TMParseStateTree parseTree,
 
 static String
 CheckForPoundSign(String str,
-                  _XtTranslateOp defaultOp,
-                  _XtTranslateOp *actualOpRtn)
+                  _IswTranslateOp defaultOp,
+                  _IswTranslateOp *actualOpRtn)
 {
-    _XtTranslateOp opType;
+    _IswTranslateOp opType;
 
     opType = defaultOp;
     ScanWhitespace(str);
@@ -1983,11 +1983,11 @@ CheckForPoundSign(String str,
         (void) memcpy(operation, start, (size_t) len);
         operation[len] = '\0';
         if (!strcmp(operation, "replace"))
-            opType = XtTableReplace;
+            opType = IswTableReplace;
         else if (!strcmp(operation, "augment"))
-            opType = XtTableAugment;
+            opType = IswTableAugment;
         else if (!strcmp(operation, "override"))
-            opType = XtTableOverride;
+            opType = IswTableOverride;
         ScanWhitespace(str);
         if (IsNewline(*str)) {
             str++;
@@ -1998,30 +1998,30 @@ CheckForPoundSign(String str,
     return str;
 }
 
-static XtTranslations
+static IswTranslations
 ParseTranslationTable(String source,
                       Boolean isAccelerator,
-                      _XtTranslateOp defaultOp,
+                      _IswTranslateOp defaultOp,
                       Boolean *error)
 {
-    XtTranslations xlations;
+    IswTranslations xlations;
     TMStateTree stateTrees[8];
     TMParseStateTreeRec parseTreeRec, *parseTree = &parseTreeRec;
     XrmQuark stackQuarks[200];
     TMBranchHeadRec stackBranchHeads[200];
     StatePtr stackComplexBranchHeads[200];
-    _XtTranslateOp actualOp;
+    _IswTranslateOp actualOp;
 
     if (source == NULL)
-        return (XtTranslations) NULL;
+        return (IswTranslations) NULL;
 
     source = CheckForPoundSign(source, defaultOp, &actualOp);
-    if (isAccelerator && actualOp == XtTableReplace)
+    if (isAccelerator && actualOp == IswTableReplace)
         actualOp = defaultOp;
 
     parseTree->isSimple = TRUE;
     parseTree->mappingNotifyInterest = FALSE;
-    XtSetBit(parseTree->isAccelerator, isAccelerator);
+    IswSetBit(parseTree->isAccelerator, isAccelerator);
     parseTree->isStackBranchHeads =
         parseTree->isStackQuarks = parseTree->isStackComplexBranchHeads = TRUE;
 
@@ -2041,20 +2041,20 @@ ParseTranslationTable(String source,
         if (*error == TRUE)
             break;
     }
-    stateTrees[0] = _XtParseTreeToStateTree(parseTree);
+    stateTrees[0] = _IswParseTreeToStateTree(parseTree);
 
     if (!parseTree->isStackQuarks)
-        XtFree((char *) parseTree->quarkTbl);
+        IswFree((char *) parseTree->quarkTbl);
     if (!parseTree->isStackBranchHeads)
-        XtFree((char *) parseTree->branchHeadTbl);
+        IswFree((char *) parseTree->branchHeadTbl);
     if (!parseTree->isStackComplexBranchHeads)
-        XtFree((char *) parseTree->complexBranchHeadTbl);
+        IswFree((char *) parseTree->complexBranchHeadTbl);
 
-    xlations = _XtCreateXlations(stateTrees, 1, NULL, NULL);
+    xlations = _IswCreateXlations(stateTrees, 1, NULL, NULL);
     xlations->operation = (unsigned char) actualOp;
 
 #ifdef notdef
-    XtFree(stateTrees);
+    IswFree(stateTrees);
 #endif                          /* notdef */
     return xlations;
 }
@@ -2062,104 +2062,104 @@ ParseTranslationTable(String source,
 /*** public procedures ***/
 
 Boolean
-XtCvtStringToAcceleratorTable(xcb_connection_t *dpy,
+IswCvtStringToAcceleratorTable(xcb_connection_t *dpy,
                               XrmValuePtr args _X_UNUSED,
                               Cardinal *num_args,
                               XrmValuePtr from,
                               XrmValuePtr to,
-                              XtPointer *closure _X_UNUSED)
+                              IswPointer *closure _X_UNUSED)
 {
     String str;
     Boolean error = FALSE;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                         "wrongParameters", "cvtStringToAcceleratorTable",
-                        XtCXtToolkitError,
+                        IswCIswToolkitError,
                         "String to AcceleratorTable conversion needs no extra arguments",
                         (String *) NULL, (Cardinal *) NULL);
     str = (String) (from->addr);
     if (str == NULL) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                         "badParameters", "cvtStringToAcceleratorTable",
-                        XtCXtToolkitError,
+                        IswCIswToolkitError,
                         "String to AcceleratorTable conversion needs string",
                         (String *) NULL, (Cardinal *) NULL);
         return FALSE;
     }
     if (to->addr != NULL) {
-        if (to->size < sizeof(XtAccelerators)) {
-            to->size = sizeof(XtAccelerators);
+        if (to->size < sizeof(IswAccelerators)) {
+            to->size = sizeof(IswAccelerators);
             return FALSE;
         }
-        *(XtAccelerators *) to->addr =
-            (XtAccelerators) ParseTranslationTable(str, TRUE, XtTableAugment,
+        *(IswAccelerators *) to->addr =
+            (IswAccelerators) ParseTranslationTable(str, TRUE, IswTableAugment,
                                                    &error);
     }
     else {
-        static XtAccelerators staticStateTable;
+        static IswAccelerators staticStateTable;
 
         staticStateTable =
-            (XtAccelerators) ParseTranslationTable(str, TRUE, XtTableAugment,
+            (IswAccelerators) ParseTranslationTable(str, TRUE, IswTableAugment,
                                                    &error);
-        to->addr = (XtPointer) &staticStateTable;
-        to->size = sizeof(XtAccelerators);
+        to->addr = (IswPointer) &staticStateTable;
+        to->size = sizeof(IswAccelerators);
     }
     if (error == TRUE)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                         "parseError", "cvtStringToAcceleratorTable",
-                        XtCXtToolkitError,
+                        IswCIswToolkitError,
                         "String to AcceleratorTable conversion encountered errors",
                         (String *) NULL, (Cardinal *) NULL);
     return (error != TRUE);
 }
 
 Boolean
-XtCvtStringToTranslationTable(xcb_connection_t *dpy,
+IswCvtStringToTranslationTable(xcb_connection_t *dpy,
                               XrmValuePtr args _X_UNUSED,
                               Cardinal *num_args,
                               XrmValuePtr from,
                               XrmValuePtr to,
-                              XtPointer *closure_ret _X_UNUSED)
+                              IswPointer *closure_ret _X_UNUSED)
 {
     String str;
     Boolean error = FALSE;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                         "wrongParameters", "cvtStringToTranslationTable",
-                        XtCXtToolkitError,
+                        IswCIswToolkitError,
                         "String to TranslationTable conversion needs no extra arguments",
                         (String *) NULL, (Cardinal *) NULL);
     str = (String) (from->addr);
     if (str == NULL) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                         "badParameters", "cvtStringToTranslation",
-                        XtCXtToolkitError,
+                        IswCIswToolkitError,
                         "String to TranslationTable conversion needs string",
                         (String *) NULL, (Cardinal *) NULL);
         return FALSE;
     }
     if (to->addr != NULL) {
-        if (to->size < sizeof(XtTranslations)) {
-            to->size = sizeof(XtTranslations);
+        if (to->size < sizeof(IswTranslations)) {
+            to->size = sizeof(IswTranslations);
             return FALSE;
         }
-        *(XtTranslations *) to->addr =
-            ParseTranslationTable(str, FALSE, XtTableReplace, &error);
+        *(IswTranslations *) to->addr =
+            ParseTranslationTable(str, FALSE, IswTableReplace, &error);
     }
     else {
-        static XtTranslations staticStateTable;
+        static IswTranslations staticStateTable;
 
         staticStateTable =
-            ParseTranslationTable(str, FALSE, XtTableReplace, &error);
-        to->addr = (XtPointer) &staticStateTable;
-        to->size = sizeof(XtTranslations);
+            ParseTranslationTable(str, FALSE, IswTableReplace, &error);
+        to->addr = (IswPointer) &staticStateTable;
+        to->size = sizeof(IswTranslations);
     }
     if (error == TRUE)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                         "parseError", "cvtStringToTranslationTable",
-                        XtCXtToolkitError,
+                        IswCIswToolkitError,
                         "String to TranslationTable conversion encountered errors",
                         (String *) NULL, (Cardinal *) NULL);
     return (error != TRUE);
@@ -2168,43 +2168,43 @@ XtCvtStringToTranslationTable(xcb_connection_t *dpy,
 /*
  * Parses a user's or applications translation table
  */
-XtAccelerators
-XtParseAcceleratorTable(_Xconst char *source)
+IswAccelerators
+IswParseAcceleratorTable(_Xconst char *source)
 {
     Boolean error = FALSE;
-    XtAccelerators ret =
-        (XtAccelerators) ParseTranslationTable(source, TRUE, XtTableAugment,
+    IswAccelerators ret =
+        (IswAccelerators) ParseTranslationTable(source, TRUE, IswTableAugment,
                                                &error);
 
     if (error == TRUE)
-        XtWarningMsg("parseError", "cvtStringToAcceleratorTable",
-                     XtCXtToolkitError,
+        IswWarningMsg("parseError", "cvtStringToAcceleratorTable",
+                     IswCIswToolkitError,
                      "String to AcceleratorTable conversion encountered errors",
                      (String *) NULL, (Cardinal *) NULL);
     return ret;
 }
 
-XtTranslations
-XtParseTranslationTable(_Xconst char *source)
+IswTranslations
+IswParseTranslationTable(_Xconst char *source)
 {
     Boolean error = FALSE;
-    XtTranslations ret =
-        ParseTranslationTable(source, FALSE, XtTableReplace, &error);
+    IswTranslations ret =
+        ParseTranslationTable(source, FALSE, IswTableReplace, &error);
     if (error == TRUE)
-        XtWarningMsg("parseError",
-                     "cvtStringToTranslationTable", XtCXtToolkitError,
+        IswWarningMsg("parseError",
+                     "cvtStringToTranslationTable", IswCIswToolkitError,
                      "String to TranslationTable conversion encountered errors",
                      (String *) NULL, (Cardinal *) NULL);
     return ret;
 }
 
 void
-_XtTranslateInitialize(void)
+_IswTranslateInitialize(void)
 {
     LOCK_PROCESS;
     if (initialized) {
-        XtWarningMsg("translationError", "xtTranslateInitialize",
-                     XtCXtToolkitError,
+        IswWarningMsg("translationError", "xtTranslateInitialize",
+                     IswCIswToolkitError,
                      "Initializing Translation manager twice.", (String *) NULL,
                      (Cardinal *) NULL);
         UNLOCK_PROCESS;
@@ -2218,8 +2218,8 @@ _XtTranslateInitialize(void)
     QNone = XrmPermStringToQuark("None");
     QAny = XrmPermStringToQuark("Any");
 
-    Compile_XtEventTable(events, XtNumber(events));
-    Compile_XtModifierTable(modifiers, XtNumber(modifiers));
+    Compile_XtEventTable(events, IswNumber(events));
+    Compile_XtModifierTable(modifiers, IswNumber(modifiers));
     CompileNameValueTable(notifyModes);
     CompileNameValueTable(motionDetails);
 #if 0
@@ -2232,20 +2232,20 @@ _XtTranslateInitialize(void)
 }
 
 void
-_XtAddTMConverters(ConverterTable table)
+_IswAddTMConverters(ConverterTable table)
 {
-    _XtTableAddConverter(table,
-                         _XtQString,
-                         XrmPermStringToQuark(XtRTranslationTable),
-                         XtCvtStringToTranslationTable, (XtConvertArgList) NULL,
-                         (Cardinal) 0, True, CACHED, _XtFreeTranslations, True);
-    _XtTableAddConverter(table, _XtQString,
-                         XrmPermStringToQuark(XtRAcceleratorTable),
-                         XtCvtStringToAcceleratorTable, (XtConvertArgList) NULL,
-                         (Cardinal) 0, True, CACHED, _XtFreeTranslations, True);
-    _XtTableAddConverter(table,
-                         XrmPermStringToQuark(_XtRStateTablePair),
-                         XrmPermStringToQuark(XtRTranslationTable),
-                         _XtCvtMergeTranslations, (XtConvertArgList) NULL,
-                         (Cardinal) 0, True, CACHED, _XtFreeTranslations, True);
+    _IswTableAddConverter(table,
+                         _IswQString,
+                         XrmPermStringToQuark(IswRTranslationTable),
+                         IswCvtStringToTranslationTable, (IswConvertArgList) NULL,
+                         (Cardinal) 0, True, CACHED, _IswFreeTranslations, True);
+    _IswTableAddConverter(table, _IswQString,
+                         XrmPermStringToQuark(IswRAcceleratorTable),
+                         IswCvtStringToAcceleratorTable, (IswConvertArgList) NULL,
+                         (Cardinal) 0, True, CACHED, _IswFreeTranslations, True);
+    _IswTableAddConverter(table,
+                         XrmPermStringToQuark(_IswRStateTablePair),
+                         XrmPermStringToQuark(IswRTranslationTable),
+                         _IswCvtMergeTranslations, (IswConvertArgList) NULL,
+                         (Cardinal) 0, True, CACHED, _IswFreeTranslations, True);
 }

@@ -87,7 +87,7 @@ extern AsciiSinkClassRec asciiSinkClassRec;
 /* New fields for the AsciiSink object record */
 typedef struct {
     /* public resources */
-    XFontStruct *font;          /* Font to draw in. */
+    IswFontStruct *font;          /* Font to draw in. */
     Boolean echo;
     Boolean display_nonprinting;
 

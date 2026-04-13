@@ -49,24 +49,24 @@ in this Software without prior written authorization from the X Consortium.
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
  radioGroup          RadioGroup         Widget          NULL              +
- radioData           RadioData          Pointer         (XtPointer) Widget  ++
+ radioData           RadioData          Pointer         (IswPointer) Widget  ++
  state               State              Boolean         Off
 
- background	     Background		Pixel		XtDefaultBackground
+ background	     Background		Pixel		IswDefaultBackground
  bitmap		     Pixmap		Pixmap		None
- border		     BorderColor	Pixel		XtDefaultForeground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
  callback	     Callback		Pointer		NULL
  cursor		     Cursor		Cursor		None
  destroyCallback     Callback		Pointer		NULL
- font		     Font		XFontStructx*	XtDefaultFont
- foreground	     Foreground		Pixel		XtDefaultForeground
+ font		     Font		XFontStructx*	IswDefaultFont
+ foreground	     Foreground		Pixel		IswDefaultForeground
  height		     Height		Dimension	text height
  borderStrokeWidth   Thickness		Dimension	2
  insensitiveBorder   Insensitive	Pixmap		Gray
  internalHeight	     Height		Dimension	2
  internalWidth	     Width		Dimension	4
- justify	     Justify		XtJustify	XtJustifyCenter
+ justify	     Justify		IswJustify	IswJustifyCenter
  label		     Label		String		NULL
  mappedWhenManaged   MappedWhenManaged	Boolean		True
  resize		     Resize		Boolean		True
@@ -78,7 +78,7 @@ in this Software without prior written authorization from the X Consortium.
 + To use the toggle as a radio toggle button, set this resource to point to
   any other widget in the radio group.
 
-++ This is the data returned from a call to XtToggleGetCurrent, by default
+++ This is the data returned from a call to IswToggleGetCurrent, by default
    this is set to the name of toggle widget.
 
 */
@@ -89,18 +89,18 @@ in this Software without prior written authorization from the X Consortium.
  */
 
 
-#define XtCWidget "Widget"
-#define XtCState "State"
-#define XtCRadioGroup "RadioGroup"
-#define XtCRadioData "RadioData"
+#define IswCWidget "Widget"
+#define IswCState "State"
+#define IswCRadioGroup "RadioGroup"
+#define IswCRadioData "RadioData"
 
-#ifndef _XtStringDefs_h_
-#define XtRWidget "Widget"
+#ifndef _IswStringDefs_h_
+#define IswRWidget "Widget"
 #endif
 
-#define XtNstate "state"
-#define XtNradioGroup "radioGroup"
-#define XtNradioData "radioData"
+#define IswNstate "state"
+#define IswNradioGroup "radioGroup"
+#define IswNradioData "radioData"
 
 extern WidgetClass               toggleWidgetClass;
 
@@ -132,10 +132,10 @@ extern void IswToggleChangeRadioGroup(
  *	Description: Returns the RadioData associated with the toggle
  *                   widget that is currently active in a toggle list.
  *	Arguments: radio_group - any toggle widget in the toggle list.
- *	Returns: The XtNradioData associated with the toggle widget.
+ *	Returns: The IswNradioData associated with the toggle widget.
  */
 
-extern XtPointer IswToggleGetCurrent(
+extern IswPointer IswToggleGetCurrent(
     Widget		/* radio_group */
 );
 
@@ -149,7 +149,7 @@ extern XtPointer IswToggleGetCurrent(
 
 extern void IswToggleSetCurrent(
     Widget		/* radio_group */,
-    XtPointer		/* radio_data */
+    IswPointer		/* radio_data */
 );
 
 /*	Function Name: IswToggleUnsetCurrent

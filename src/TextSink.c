@@ -41,8 +41,8 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <stdio.h>
 #include <ctype.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/TextSinkP.h>
 #include <ISW/TextP.h>
@@ -74,12 +74,12 @@ static void Resolve(Widget, ISWTextPosition, int, int, ISWTextPosition *);
 static void SetTabs(Widget, int, short *);
 static void GetCursorBounds(Widget, xcb_rectangle_t *);
 
-#define offset(field) XtOffsetOf(TextSinkRec, text_sink.field)
-static XtResource resources[] = {
-  {XtNforeground, XtCForeground, XtRPixel, sizeof (Pixel),
-     offset(foreground), XtRString, XtDefaultForeground},
-  {XtNbackground, XtCBackground, XtRPixel, sizeof (Pixel),
-     offset(background), XtRString, XtDefaultBackground},
+#define offset(field) IswOffsetOf(TextSinkRec, text_sink.field)
+static IswResource resources[] = {
+  {IswNforeground, IswCForeground, IswRPixel, sizeof (Pixel),
+     offset(foreground), IswRString, IswDefaultForeground},
+  {IswNbackground, IswCBackground, IswRPixel, sizeof (Pixel),
+     offset(background), IswRString, IswDefaultBackground},
 };
 #undef offset
 
@@ -99,7 +99,7 @@ TextSinkClassRec textSinkClassRec = {
     /* obj2		  	*/	NULL,
     /* obj3	  		*/	0,
     /* resources	  	*/	resources,
-    /* num_resources	  	*/	XtNumber(resources),
+    /* num_resources	  	*/	IswNumber(resources),
     /* xrm_class	  	*/	NULLQUARK,
     /* obj4		  	*/	FALSE,
     /* obj5	  		*/	FALSE,
@@ -113,7 +113,7 @@ TextSinkClassRec textSinkClassRec = {
     /* obj10			*/	NULL,
     /* get_values_hook		*/	NULL,
     /* obj11		 	*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private   	*/	NULL,
     /* obj12		   	*/	NULL,
     /* obj13			*/	NULL,
@@ -150,38 +150,38 @@ ClassPartInitialize(WidgetClass wc)
  * eventually.
  */
 
-    if (t_src->text_sink_class.DisplayText == XtInheritDisplayText)
+    if (t_src->text_sink_class.DisplayText == IswInheritDisplayText)
       t_src->text_sink_class.DisplayText = superC->text_sink_class.DisplayText;
 
-    if (t_src->text_sink_class.InsertCursor == XtInheritInsertCursor)
+    if (t_src->text_sink_class.InsertCursor == IswInheritInsertCursor)
       t_src->text_sink_class.InsertCursor =
                   	                  superC->text_sink_class.InsertCursor;
 
-    if (t_src->text_sink_class.ClearToBackground== XtInheritClearToBackground)
+    if (t_src->text_sink_class.ClearToBackground== IswInheritClearToBackground)
       t_src->text_sink_class.ClearToBackground =
 	                             superC->text_sink_class.ClearToBackground;
 
-    if (t_src->text_sink_class.FindPosition == XtInheritFindPosition)
+    if (t_src->text_sink_class.FindPosition == IswInheritFindPosition)
       t_src->text_sink_class.FindPosition =
 	                                  superC->text_sink_class.FindPosition;
 
-    if (t_src->text_sink_class.FindDistance == XtInheritFindDistance)
+    if (t_src->text_sink_class.FindDistance == IswInheritFindDistance)
       t_src->text_sink_class.FindDistance =
 	                                 superC->text_sink_class.FindDistance;
 
-    if (t_src->text_sink_class.Resolve == XtInheritResolve)
+    if (t_src->text_sink_class.Resolve == IswInheritResolve)
       t_src->text_sink_class.Resolve = superC->text_sink_class.Resolve;
 
-    if (t_src->text_sink_class.MaxLines == XtInheritMaxLines)
+    if (t_src->text_sink_class.MaxLines == IswInheritMaxLines)
       t_src->text_sink_class.MaxLines = superC->text_sink_class.MaxLines;
 
-    if (t_src->text_sink_class.MaxHeight == XtInheritMaxHeight)
+    if (t_src->text_sink_class.MaxHeight == IswInheritMaxHeight)
       t_src->text_sink_class.MaxHeight = superC->text_sink_class.MaxHeight;
 
-    if (t_src->text_sink_class.SetTabs == XtInheritSetTabs)
+    if (t_src->text_sink_class.SetTabs == IswInheritSetTabs)
       t_src->text_sink_class.SetTabs = superC->text_sink_class.SetTabs;
 
-    if (t_src->text_sink_class.GetCursorBounds == XtInheritGetCursorBounds)
+    if (t_src->text_sink_class.GetCursorBounds == IswInheritGetCursorBounds)
       t_src->text_sink_class.GetCursorBounds =
                                        superC->text_sink_class.GetCursorBounds;
 }
@@ -217,8 +217,8 @@ Destroy(Widget w)
 {
   TextSinkObject sink = (TextSinkObject) w;
 
-  XtFree((char *) sink->text_sink.tabs);
-  XtFree((char *) sink->text_sink.char_tabs);
+  IswFree((char *) sink->text_sink.tabs);
+  IswFree((char *) sink->text_sink.char_tabs);
 }
 
 /*	Function Name: SetValues
@@ -237,7 +237,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
   TextSinkObject old_w = (TextSinkObject) current;
 
   if (w->text_sink.foreground != old_w->text_sink.foreground)
-     ((TextWidget)XtParent(new))->text.redisplay_needed = True;
+     ((TextWidget)IswParent(new))->text.redisplay_needed = True;
 
   return FALSE;
 }
@@ -315,8 +315,8 @@ ClearToBackground(Widget w, Position x, Position y, Dimension width, Dimension h
      * xcb_clear_area is a server-side operation that works safely alongside
      * Cairo when called between Begin/End render pairs.
      */
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-    xcb_clear_area(conn, 0, XtWindowOfObject(w), x, y, width, height);
+    xcb_connection_t *conn = IswDisplayOfObject(w);
+    xcb_clear_area(conn, 0, IswWindowOfObject(w), x, y, width, height);
     xcb_flush(conn);
 }
 
@@ -663,14 +663,14 @@ IswTextSinkSetTabs(Widget w, int tab_count, int *tabs)
 {
   if (tab_count > 0) {
     TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-    short *char_tabs = (short*)XtMalloc( (unsigned)tab_count*sizeof(short) );
+    short *char_tabs = (short*)IswMalloc( (unsigned)tab_count*sizeof(short) );
     short *tab;
     int i;
 
     for (i = tab_count, tab = char_tabs; i; i--) *tab++ = (short)*tabs++;
 
     (*class->text_sink_class.SetTabs)(w, tab_count, char_tabs);
-    XtFree((char *)char_tabs);
+    IswFree((char *)char_tabs);
   }
 }
 

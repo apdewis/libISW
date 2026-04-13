@@ -55,7 +55,7 @@ Corporation.
 #ifndef _RESCONFIGP_H
 #define _RESCONFIGP_H
 
-#include <X11/XtFuncproto.h>
+#include <ISW/IswFuncproto.h>
 
 _XFUNCPROTOBEGIN
 
@@ -65,9 +65,9 @@ _XFUNCPROTOBEGIN
 #define RCM_DATA "Custom Data"
 #define RCM_INIT "Custom Init"
 
-extern void _XtResourceConfigurationEH(
+extern void _IswResourceConfigurationEH(
 	Widget 		/* w */,
-	XtPointer 	/* client_data */,
+	IswPointer 	/* client_data */,
 	xcb_generic_event_t * 	/* event */,
 	Boolean *	/* continue_to_dispatch */
 );

@@ -25,9 +25,9 @@ typedef struct {
     /* resources */
     int             value;          /* 0 to 100 */
     Pixel           foreground;
-    XtOrientation   orientation;
+    IswOrientation   orientation;
     Boolean         show_value;
-    XFontStruct    *font;
+    IswFontStruct    *font;
 
     /* private */
     ISWRenderContext *render_ctx;

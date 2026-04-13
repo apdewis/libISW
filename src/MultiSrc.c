@@ -62,8 +62,8 @@ in this Software without prior written authorization from the X Consortium.
 #include "config.h"
 #endif
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/MultiSrcP.h>
 #include <ISW/ISWImP.h>
@@ -85,24 +85,24 @@ in this Software without prior written authorization from the X Consortium.
 
 static int magic_value = MAGIC_VALUE;
 
-#define offset(field) XtOffsetOf(MultiSrcRec, multi_src.field)
+#define offset(field) IswOffsetOf(MultiSrcRec, multi_src.field)
 
-static XtResource resources[] = {
-    {XtNstring, XtCString, XtRString, sizeof (XtPointer),
-       offset(string), XtRPointer, NULL},
-    {XtNtype, XtCType, XtRMultiType, sizeof (IswAsciiType),
-       offset(type), XtRImmediate, (XtPointer)IswAsciiString},
+static IswResource resources[] = {
+    {IswNstring, IswCString, IswRString, sizeof (IswPointer),
+       offset(string), IswRPointer, NULL},
+    {IswNtype, IswCType, IswRMultiType, sizeof (IswAsciiType),
+       offset(type), IswRImmediate, (IswPointer)IswAsciiString},
     /* not used. */
-    {XtNdataCompression, XtCDataCompression, XtRBoolean, sizeof (Boolean),
-       offset(data_compression), XtRImmediate, (XtPointer) FALSE},
-    {XtNpieceSize, XtCPieceSize, XtRInt, sizeof (ISWTextPosition),
-       offset(piece_size), XtRImmediate, (XtPointer) BUFSIZ},
-    {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-       offset(callback), XtRCallback, (XtPointer)NULL},
-    {XtNuseStringInPlace, XtCUseStringInPlace, XtRBoolean, sizeof (Boolean),
-       offset(use_string_in_place), XtRImmediate, (XtPointer) FALSE},
-    {XtNlength, XtCLength, XtRInt, sizeof (int),
-       offset(multi_length), XtRInt, (XtPointer) &magic_value},
+    {IswNdataCompression, IswCDataCompression, IswRBoolean, sizeof (Boolean),
+       offset(data_compression), IswRImmediate, (IswPointer) FALSE},
+    {IswNpieceSize, IswCPieceSize, IswRInt, sizeof (ISWTextPosition),
+       offset(piece_size), IswRImmediate, (IswPointer) BUFSIZ},
+    {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+       offset(callback), IswRCallback, (IswPointer)NULL},
+    {IswNuseStringInPlace, IswCUseStringInPlace, IswRBoolean, sizeof (Boolean),
+       offset(use_string_in_place), IswRImmediate, (IswPointer) FALSE},
+    {IswNlength, IswCLength, IswRInt, sizeof (int),
+       offset(multi_length), IswRInt, (IswPointer) &magic_value},
 
 };
 #undef offset
@@ -167,7 +167,7 @@ MultiSrcClassRec multiSrcClassRec = {
     /* pad		  	*/	NULL,
     /* pad		  	*/	0,
     /* resources	  	*/	resources,
-    /* num_resources	  	*/	XtNumber(resources),
+    /* num_resources	  	*/	IswNumber(resources),
     /* xrm_class	  	*/	NULLQUARK,
     /* pad		  	*/	FALSE,
     /* pad		  	*/	FALSE,
@@ -181,7 +181,7 @@ MultiSrcClassRec multiSrcClassRec = {
     /* pad			*/	NULL,
     /* get_values_hook		*/	GetValuesHook,
     /* pad		 	*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private   	*/	NULL,
     /* pad		   	*/	NULL,
     /* pad			*/	NULL,
@@ -193,8 +193,8 @@ MultiSrcClassRec multiSrcClassRec = {
     /* Replace                  */      ReplaceText,
     /* Scan                     */      Scan,
     /* Search                   */      Search,
-    /* SetSelection             */      XtInheritSetSelection,
-    /* ConvertSelection         */      XtInheritConvertSelection
+    /* SetSelection             */      IswInheritSetSelection,
+    /* ConvertSelection         */      IswInheritConvertSelection
   },
   { /* multiSrc_class fields */
     /* Keep the compiler happy */       '\0'
@@ -219,7 +219,7 @@ static void
 ClassInitialize(void)
 {
   IswInitializeWidgetSet();
-  XtAddConverter( XtRString, XtRMultiType, CvtStringToMultiType,
+  IswAddConverter( IswRString, IswRMultiType, CvtStringToMultiType,
 		 NULL, (Cardinal) 0);
 }
 
@@ -319,7 +319,7 @@ ReplaceText(Widget w, ISWTextPosition startPos, ISWTextPosition endPos, ISWTextB
       text.firstPos = 0;
       text.length = u_text_p->length; /* _ISWTextMBToWC converts this to wchar len. */
 
-      text.ptr = (char*)_ISWTextMBToWC( XtDisplay(XtParent(w)),
+      text.ptr = (char*)_ISWTextMBToWC( IswDisplay(IswParent(w)),
 			 &(u_text_p->ptr[u_text_p->firstPos]), &(text.length) );
 
       /* I assert the following assignment is not needed - since Step 4
@@ -434,14 +434,14 @@ ReplaceText(Widget w, ISWTextPosition startPos, ISWTextPosition endPos, ISWTextB
       /* In other words, text is not the u_text that the user handed me but
       one I made myself.  I only care, because I need to free the string. */
 
-      XtFree( text.ptr );
+      IswFree( text.ptr );
 
   if (src->multi_src.use_string_in_place)
     start_piece->text[start_piece->used] = (wchar_t)0;
 
   src->multi_src.changes = TRUE;
 
-  XtCallCallbacks(w, XtNcallback, NULL);
+  IswCallCallbacks(w, IswNcallback, NULL);
 
   return(IswEditDone);
 }
@@ -600,7 +600,7 @@ Search(Widget w, ISWTextPosition position, IswTextScanDirection dir, ISWTextBloc
   wchar_t * ptr;
   wchar_t* wtarget;
   int wtarget_len;
-  xcb_connection_t *d = XtDisplay(XtParent(w));
+  xcb_connection_t *d = IswDisplay(IswParent(w));
   MultiPiece * piece;
   wchar_t* buf;
   ISWTextPosition first;
@@ -642,7 +642,7 @@ Search(Widget w, ISWTextPosition position, IswTextScanDirection dir, ISWTextBloc
 
   /* STEP 3: SEARCH! */
 
-  buf = (wchar_t *)XtMalloc((unsigned)sizeof(wchar_t) * wtarget_len );
+  buf = (wchar_t *)IswMalloc((unsigned)sizeof(wchar_t) * wtarget_len );
   (void)wcsncpy(buf, wtarget, wtarget_len );
   piece = FindPiece(src, position, &first);
   ptr = (position - first) + piece->text;
@@ -670,7 +670,7 @@ Search(Widget w, ISWTextPosition position, IswTextScanDirection dir, ISWTextBloc
     while ( ptr < piece->text ) {
       piece = piece->prev;
       if (piece == NULL) {	/* Begining of text. */
-	XtFree((char *)buf);
+	IswFree((char *)buf);
 	return(IswTextSearchError);
       }
       ptr = piece->text + piece->used - 1;
@@ -679,14 +679,14 @@ Search(Widget w, ISWTextPosition position, IswTextScanDirection dir, ISWTextBloc
     while ( ptr >= (piece->text + piece->used) ) {
       piece = piece->next;
       if (piece == NULL) {	/* End of text. */
-	XtFree((char *)buf);
+	IswFree((char *)buf);
 	return(IswTextSearchError);
       }
       ptr = piece->text;
     }
   }
 
-  XtFree( (char *) buf );
+  IswFree( (char *) buf );
   if (dir == IswsdLeft)
     return( position );
   return( position - ( wtarget_len - 1 ) );
@@ -706,21 +706,21 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 {
   MultiSrcObject src =      (MultiSrcObject) new;
   MultiSrcObject old_src = (MultiSrcObject) current;
-  XtAppContext app_con = XtWidgetToApplicationContext(new);
+  IswAppContext app_con = IswWidgetToApplicationContext(new);
   Boolean total_reset = FALSE, string_set = FALSE;
   FILE * file;
   int i;
 
   if ( old_src->multi_src.use_string_in_place !=
        src->multi_src.use_string_in_place ) {
-      XtAppWarning( app_con,
-	   "MultiSrc: The XtNuseStringInPlace resources may not be changed.");
+      IswAppWarning( app_con,
+	   "MultiSrc: The IswNuseStringInPlace resources may not be changed.");
        src->multi_src.use_string_in_place =
 	   old_src->multi_src.use_string_in_place;
   }
 
   for (i = 0; i < *num_args ; i++ )
-      if (streq(args[i].name, XtNstring)) {
+      if (streq(args[i].name, IswNstring)) {
 	  string_set = TRUE;
 	  break;
       }
@@ -736,7 +736,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     else*/
         LoadPieces(src, file, NULL);
     if (file != NULL) fclose(file);
-    IswTextSetSource( XtParent(new), new, 0);   /* Tell text widget
+    IswTextSetSource( IswParent(new), new, 0);   /* Tell text widget
 						   what happened. */
     total_reset = TRUE;
   }
@@ -751,13 +751,13 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
       if ( mb_string != 0 ) {
           FreeAllPieces( old_src );
           LoadPieces( src, NULL, mb_string );
-          XtFree( mb_string );
+          IswFree( mb_string );
       } else {
           /* If the buffer holds bad chars, don't touch it... */
-          XtAppWarningMsg( app_con,
+          IswAppWarningMsg( app_con,
 		"convertError", "multiSource", "IswError",
-                 XtName( XtParent( (Widget) old_src ) ), NULL, NULL );
-          XtAppWarningMsg( app_con,
+                 IswName( IswParent( (Widget) old_src ) ), NULL, NULL );
+          IswAppWarningMsg( app_con,
 		"convertError", "multiSource", "IswError",
                  "Non-character code(s) in buffer.", NULL, NULL );
       }
@@ -783,7 +783,7 @@ GetValuesHook(Widget w, ArgList args, Cardinal *num_args)
 
   if (src->multi_src.type == IswAsciiString) {
     for (i = 0; i < *num_args ; i++ )
-      if (streq(args[i].name, XtNstring)) {
+      if (streq(args[i].name, IswNstring)) {
 	  if (src->multi_src.use_string_in_place) {
               *((char **) args[i].value) = (char *)
 					src->multi_src.first_piece->text;
@@ -833,7 +833,7 @@ _ISWMultiSourceFreeString(
 /*if (src->multi_src.allocated_string&& src->multi_src.type != IswAsciiFile) {*/
   /* ASSERT: src->multi_src.allocated_string -> we MUST free .string! */
   if ( src->multi_src.allocated_string ) {
-    XtFree(src->multi_src.string);
+    IswFree(src->multi_src.string);
     src->multi_src.allocated_string = FALSE;
     src->multi_src.string = NULL;
   }
@@ -852,7 +852,7 @@ _ISWMultiSave(
     Widget w)
 {
   MultiSrcObject src = (MultiSrcObject) w;
-  XtAppContext app_con = XtWidgetToApplicationContext(w);
+  IswAppContext app_con = IswWidgetToApplicationContext(w);
   char * mb_string;
 
 /*
@@ -872,15 +872,15 @@ _ISWMultiSave(
 
       if ( mb_string != 0 ) {
           if ( WriteToFile( mb_string, src->multi_src.string ) == FALSE ) {
-              XtFree( mb_string );
+              IswFree( mb_string );
               return( FALSE );
           }
-          XtFree( mb_string );
+          IswFree( mb_string );
           src->multi_src.changes = FALSE;
           return( TRUE );
       } else {
           /* If the buffer holds bad chars, don't touch it... */
-          XtAppWarningMsg( app_con,
+          IswAppWarningMsg( app_con,
 		"convertError", "multiSource", "IswError",
                 "Due to illegal characters, file not saved.", NULL, NULL);
           return( FALSE );
@@ -895,15 +895,15 @@ _ISWMultiSave(
 
       if ( mb_string == 0 ) {
           /* If the buffer holds bad chars, don't touch it... */
-          XtAppWarningMsg( app_con,
+          IswAppWarningMsg( app_con,
 		"convertError", "multiSource", "IswError",
-                 XtName( XtParent( (Widget) src ) ), NULL, NULL);
+                 IswName( IswParent( (Widget) src ) ), NULL, NULL);
           return( FALSE );
       }
 
       /* assert: mb_string holds good characters so the buffer is fine */
       if (src->multi_src.allocated_string == TRUE)
-          XtFree(src->multi_src.string);
+          IswFree(src->multi_src.string);
       else
           src->multi_src.allocated_string = TRUE;
 
@@ -935,14 +935,14 @@ _ISWMultiSaveAsFile(
 
   if ( mb_string != 0 ) {
       ret = WriteToFile( mb_string, name );
-      XtFree( mb_string );
+      IswFree( mb_string );
       return( ret );
   }
 
   /* otherwise there was a conversion error.  So print widget name too. */
-  XtAppWarningMsg( XtWidgetToApplicationContext(w),
+  IswAppWarningMsg( IswWidgetToApplicationContext(w),
 		"convertError", "multiSource", "IswError",
-		XtName( XtParent( (Widget) src ) ), NULL, NULL);
+		IswName( IswParent( (Widget) src ) ), NULL, NULL);
   return( False );
 }
 
@@ -958,7 +958,7 @@ RemoveOldStringOrFile(MultiSrcObject src, Boolean checkString)
   FreeAllPieces(src);
 
   if (checkString && src->multi_src.allocated_string) {
-    XtFree(src->multi_src.string);
+    IswFree(src->multi_src.string);
     src->multi_src.allocated_string = False;
     src->multi_src.string = NULL;
   }
@@ -1006,7 +1006,7 @@ StorePiecesInString(MultiSrcObject src)
 
   /* I believe the char_count + 1 and the NULL termination are unneeded! FS*/
 
-  wc_string = (wchar_t*) XtMalloc((unsigned)(char_count + 1) * sizeof(wchar_t));
+  wc_string = (wchar_t*) IswMalloc((unsigned)(char_count + 1) * sizeof(wchar_t));
 
   for (first = 0, piece = src->multi_src.first_piece ; piece != NULL;
       				first += piece->used, piece = piece->next)
@@ -1024,11 +1024,11 @@ StorePiecesInString(MultiSrcObject src)
 
   /* Lastly, convert it to a MB format and send it back. */
 
-  mb_string = _ISWTextWCToMB( XtDisplayOfObject( (Widget)src ),
+  mb_string = _ISWTextWCToMB( IswDisplayOfObject( (Widget)src ),
 						wc_string, &char_count );
 
   /* NOTE THAT mb_string MAY BE ZERO IF THE CONVERSION FAILED. */
-  XtFree( (char*) wc_string );
+  IswFree( (char*) wc_string );
   return( mb_string );
 }
 
@@ -1045,7 +1045,7 @@ InitStringOrFile(MultiSrcObject src, Boolean newString)
     char * open_mode = NULL;
     FILE * file;
     char fileName[TMPSIZ];
-    xcb_connection_t *d = XtDisplayOfObject((Widget)src);
+    xcb_connection_t *d = IswDisplayOfObject((Widget)src);
 
     if (src->multi_src.type == IswAsciiString) {
 
@@ -1054,9 +1054,9 @@ InitStringOrFile(MultiSrcObject src, Boolean newString)
 
 	else if (! src->multi_src.use_string_in_place) {
 	    int length;
-            String temp = XtNewString(src->multi_src.string);
+            String temp = IswNewString(src->multi_src.string);
             if ( src->multi_src.allocated_string )
-                XtFree( src->multi_src.string );
+                IswFree( src->multi_src.string );
             src->multi_src.allocated_string = True;
 	    src->multi_src.string = temp;
 
@@ -1090,7 +1090,7 @@ InitStringOrFile(MultiSrcObject src, Boolean newString)
     switch (src->text_src.edit_mode) {
     case IswtextRead:
 	if (src->multi_src.string == NULL)
-	    XtErrorMsg("NoFile", "multiSourceCreate", "IswError",
+	    IswErrorMsg("NoFile", "multiSourceCreate", "IswError",
 		     "Creating a read only disk widget and no file specified.",
 		       NULL, 0);
 	open_mode = "r";
@@ -1100,7 +1100,7 @@ InitStringOrFile(MultiSrcObject src, Boolean newString)
 	if (src->multi_src.string == NULL) {
 
             if ( src->multi_src.allocated_string )
-                XtFree( src->multi_src.string );
+                IswFree( src->multi_src.string );
             src->multi_src.allocated_string = False;
 	    src->multi_src.string = fileName;
 
@@ -1111,7 +1111,7 @@ InitStringOrFile(MultiSrcObject src, Boolean newString)
 	    open_mode = "r+";
 	break;
     default:
-	XtErrorMsg("badMode", "multiSourceCreate", "IswError",
+	IswErrorMsg("badMode", "multiSourceCreate", "IswError",
 		"Bad editMode for multi source; must be Read, Append or Edit.",
 		   NULL, NULL);
     }
@@ -1122,7 +1122,7 @@ InitStringOrFile(MultiSrcObject src, Boolean newString)
      */
     if (newString || src->multi_src.is_tempfile) {
 	if ( src->multi_src.allocated_string )
-	    src->multi_src.string = XtNewString(src->multi_src.string);
+	    src->multi_src.string = IswNewString(src->multi_src.string);
 	src->multi_src.allocated_string = TRUE;
     }
 
@@ -1137,7 +1137,7 @@ InitStringOrFile(MultiSrcObject src, Boolean newString)
 
 	    params[0] = src->multi_src.string;
 	    params[1] = strerror(errno);
-	    XtAppWarningMsg(XtWidgetToApplicationContext((Widget)src),
+	    IswAppWarningMsg(IswWidgetToApplicationContext((Widget)src),
 			    "openError", "multiSourceCreate", "IswWarning",
 			    "Cannot open file %s; %s", params, &num_params);
 	}
@@ -1158,7 +1158,7 @@ the length of the parameter string if string is non-NULL.		*/
 static void
 LoadPieces(MultiSrcObject src, FILE *file, char *string)
 {
-  xcb_connection_t *d = XtDisplayOfObject((Widget)src);
+  xcb_connection_t *d = IswDisplayOfObject((Widget)src);
   wchar_t* local_str, *ptr;
   MultiPiece* piece = NULL;
   ISWTextPosition left;
@@ -1191,13 +1191,13 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
   } else {
     if (src->multi_src.length != 0) {
       temp_mb_holder =
-	XtMalloc((unsigned)(src->multi_src.length + 1) * sizeof(unsigned char));
+	IswMalloc((unsigned)(src->multi_src.length + 1) * sizeof(unsigned char));
       fseek(file, (Off_t)0, 0);
       src->multi_src.length = fread (temp_mb_holder,
 				     (Size_t)sizeof(unsigned char),
 				     (Size_t)src->multi_src.length, file);
       if (src->multi_src.length <= 0)
-	XtAppErrorMsg( XtWidgetToApplicationContext ((Widget) src),
+	IswAppErrorMsg( IswWidgetToApplicationContext ((Widget) src),
 		       "readError", "multiSource", "IswError",
 		       "fread returned error.", NULL, NULL);
       local_length = src->multi_src.length;
@@ -1210,11 +1210,11 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
 	static char err_text[] =
 		"<<< FILE CONTENTS NOT REPRESENTABLE IN THIS LOCALE >>>";
 
-	params[0] = XtName(XtParent((Widget)src));
+	params[0] = IswName(IswParent((Widget)src));
 	params[1] = src->multi_src.string;
 	num_params = 2;
 
-	XtAppWarningMsg( XtWidgetToApplicationContext((Widget)src),
+	IswAppWarningMsg( IswWidgetToApplicationContext((Widget)src),
 			 "readLocaleError", "multiSource", "IswError",
     "%s: The file `%s' contains characters not representable in this locale.",
 			 params, &num_params);
@@ -1243,7 +1243,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
   do {
       piece = AllocNewPiece(src, piece);
 
-      piece->text = (wchar_t*)XtMalloc(src->multi_src.piece_size * bytes);
+      piece->text = (wchar_t*)IswMalloc(src->multi_src.piece_size * bytes);
       piece->used = IswMin(left, src->multi_src.piece_size);
       if (piece->used != 0)
           (void) wcsncpy(piece->text, ptr, piece->used);
@@ -1253,7 +1253,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
   } while (left > 0);
 
   if ( temp_mb_holder )
-      XtFree( (char*) temp_mb_holder );
+      IswFree( (char*) temp_mb_holder );
 }
 
 
@@ -1267,7 +1267,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
 static MultiPiece *
 AllocNewPiece(MultiSrcObject src, MultiPiece *prev)
 {
-  MultiPiece * piece = XtNew(MultiPiece);
+  MultiPiece * piece = IswNew(MultiPiece);
 
   if (prev == NULL) {
     src->multi_src.first_piece = piece;
@@ -1324,9 +1324,9 @@ RemovePiece(MultiSrcObject src, MultiPiece *piece)
     (piece->next)->prev = piece->prev;
 
   if (!src->multi_src.use_string_in_place)
-    XtFree((char *)piece->text);
+    IswFree((char *)piece->text);
 
-  XtFree((char *)piece);
+  IswFree((char *)piece);
 }
 
 /*	Function Name: FindPiece
@@ -1367,7 +1367,7 @@ BreakPiece(MultiSrcObject src, MultiPiece *piece)
 {
   MultiPiece * new = AllocNewPiece(src, piece);
 
-  new->text = (wchar_t*)XtMalloc(src->multi_src.piece_size * sizeof(wchar_t));
+  new->text = (wchar_t*)IswMalloc(src->multi_src.piece_size * sizeof(wchar_t));
   (void) wcsncpy(new->text, piece->text + HALF_PIECE,
           src->multi_src.piece_size - HALF_PIECE);
   piece->used = HALF_PIECE;
@@ -1382,29 +1382,29 @@ CvtStringToMultiType(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
                      XrmValuePtr toVal)
 {
   static IswAsciiType type;
-  static XrmQuark  XtQEstring = NULLQUARK;
-  static XrmQuark  XtQEfile;
+  static XrmQuark  IswQEstring = NULLQUARK;
+  static XrmQuark  IswQEfile;
   XrmQuark q;
   char lowerName[40];
 
-  if (XtQEstring == NULLQUARK) {
-    XtQEstring = XrmPermStringToQuark(XtEstring);
-    XtQEfile   = XrmPermStringToQuark(XtEfile);
+  if (IswQEstring == NULLQUARK) {
+    IswQEstring = XrmPermStringToQuark(IswEstring);
+    IswQEfile   = XrmPermStringToQuark(IswEfile);
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
     ISWCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
-    if (q == XtQEstring)     type = IswAsciiString;
-    else if (q == XtQEfile)  type = IswAsciiFile;
+    if (q == IswQEstring)     type = IswAsciiString;
+    else if (q == IswQEfile)  type = IswAsciiFile;
     else {
       toVal->size = 0;
       toVal->addr = NULL;
       return;
     }
     toVal->size = sizeof type;
-    toVal->addr = (XtPointer) &type;
+    toVal->addr = (IswPointer) &type;
     return;
   }
   toVal->size = 0;

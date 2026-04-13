@@ -89,7 +89,7 @@ Meta<Key>Z:	scroll-one-line-down() \n\
 ~Shift Meta<Key>BackSpace:	delete-previous-word() \n\
  Shift Meta<Key>BackSpace:	backward-kill-word() \n\
 ",
-#if XtVersion >= 11006
+#if IswVersion >= 11006
 *_IswDefaultTextTranslations3 = "\
 <Key>Home:	beginning-of-file() \n\
 :<Key>KP_Home:	beginning-of-file() \n\

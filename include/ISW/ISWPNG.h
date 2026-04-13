@@ -12,7 +12,7 @@
 #ifndef _ISW_ISWPNG_h
 #define _ISW_ISWPNG_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /*
  * Opaque handle to a decoded PNG image

@@ -62,26 +62,26 @@ SOFTWARE.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- background	     Background		Pixel		XtDefaultBackground
+ background	     Background		Pixel		IswDefaultBackground
  bitmap		     Pixmap		Pixmap		None
- border		     BorderColor	Pixel		XtDefaultForeground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
  cursor		     Cursor		Cursor		None
  cursorName	     Cursor		String		NULL
- destroyCallback     Callback		XtCallbackList	NULL
+ destroyCallback     Callback		IswCallbackList	NULL
  encoding	     Encoding		unsigned char	IswTextEncoding8bit
- font		     Font		XFontStruct*	XtDefaultFont
- foreground	     Foreground		Pixel		XtDefaultForeground
+ font		     Font		IswFontStruct*	IswDefaultFont
+ foreground	     Foreground		Pixel		IswDefaultForeground
  height		     Height		Dimension	text height
  insensitiveBorder   Insensitive	Pixmap		Gray
  internalHeight	     Height		Dimension	2
  internalWidth	     Width		Dimension	4
- justify	     Justify		XtJustify	XtJustifyCenter
+ justify	     Justify		IswJustify	IswJustifyCenter
  label		     Label		String		NULL
  leftBitmap	     LeftBitmap		Pixmap		None
  mappedWhenManaged   MappedWhenManaged	Boolean		True
- pointerColor	     Foreground		Pixel		XtDefaultForeground
- pointerColorBackground Background	Pixel		XtDefaultBackground
+ pointerColor	     Foreground		Pixel		IswDefaultForeground
+ pointerColorBackground Background	Pixel		IswDefaultBackground
  resize		     Resize		Boolean		True
  sensitive	     Sensitive		Boolean		True
  width		     Width		Dimension	text width
@@ -93,31 +93,31 @@ SOFTWARE.
 #define IswTextEncoding8bit	0
 #define IswTextEncodingChar2b	1
 
-#define XtNencoding "encoding"
-#define XtCEncoding "Encoding"
+#define IswNencoding "encoding"
+#define IswCEncoding "Encoding"
 
-#define XtNimage "image"
-#define XtCImage "Image"
-#define XtNleftImage "leftImage"
-#define XtCLeftImage "LeftImage"
+#define IswNimage "image"
+#define IswCImage "Image"
+#define IswNleftImage "leftImage"
+#define IswCLeftImage "LeftImage"
 
 #ifdef ISW_INTERNATIONALIZATION
-#ifndef XtNfontSet
-#define XtNfontSet "fontSet"
+#ifndef IswNfontSet
+#define IswNfontSet "fontSet"
 #endif
-#ifndef XtCFontSet
-#define XtCFontSet "FontSet"
+#ifndef IswCFontSet
+#define IswCFontSet "FontSet"
 #endif
 #endif
 
-#ifndef _XtStringDefs_h_
-#define XtNforeground "foreground"
-#define XtNlabel "label"
-#define XtNfont "font"
-#define XtNinternalWidth "internalWidth"
-#define XtNinternalHeight "internalHeight"
-#define XtNresize "resize"
-#define XtCResize "Resize"
+#ifndef _IswStringDefs_h_
+#define IswNforeground "foreground"
+#define IswNlabel "label"
+#define IswNfont "font"
+#define IswNinternalWidth "internalWidth"
+#define IswNinternalHeight "internalHeight"
+#define IswNresize "resize"
+#define IswCResize "Resize"
 #endif
 
 /* Class record constants */

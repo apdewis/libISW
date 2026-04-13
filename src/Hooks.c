@@ -32,23 +32,23 @@ in this Software without prior written authorization from The Open Group.
 
 static void
 FreeBlockHookList(Widget widget _X_UNUSED,
-                  XtPointer closure, /* ActionHook* */
-                  XtPointer call_data _X_UNUSED)
+                  IswPointer closure, /* ActionHook* */
+                  IswPointer call_data _X_UNUSED)
 {
     BlockHook list = *(BlockHook *) closure;
 
     while (list != NULL) {
         BlockHook next = list->next;
 
-        XtFree((XtPointer) list);
+        IswFree((IswPointer) list);
         list = next;
     }
 }
 
-XtBlockHookId
-XtAppAddBlockHook(XtAppContext app, XtBlockHookProc proc, XtPointer closure)
+IswBlockHookId
+IswAppAddBlockHook(IswAppContext app, IswBlockHookProc proc, IswPointer closure)
 {
-    BlockHook hook = XtNew(BlockHookRec);
+    BlockHook hook = IswNew(BlockHookRec);
 
     LOCK_APP(app);
     hook->next = app->block_hook_list;
@@ -56,40 +56,40 @@ XtAppAddBlockHook(XtAppContext app, XtBlockHookProc proc, XtPointer closure)
     hook->proc = proc;
     hook->closure = closure;
     if (app->block_hook_list == NULL) {
-        _XtAddCallback(&app->destroy_callbacks,
-                       FreeBlockHookList, (XtPointer) &app->block_hook_list);
+        _IswAddCallback(&app->destroy_callbacks,
+                       FreeBlockHookList, (IswPointer) &app->block_hook_list);
     }
     app->block_hook_list = hook;
     UNLOCK_APP(app);
-    return (XtBlockHookId) hook;
+    return (IswBlockHookId) hook;
 }
 
 void
-XtRemoveBlockHook(XtBlockHookId id)
+IswRemoveBlockHook(IswBlockHookId id)
 {
     BlockHook *p, hook = (BlockHook) id;
-    XtAppContext app = hook->app;
+    IswAppContext app = hook->app;
 
     LOCK_APP(app);
     for (p = &app->block_hook_list; p != NULL && *p != hook; p = &(*p)->next);
     if (p == NULL) {
 #ifdef DEBUG
-        XtAppWarningMsg(app, "badId", "xtRemoveBlockHook", XtCXtToolkitError,
-                        "XtRemoveBlockHook called with bad or old hook id",
+        IswAppWarningMsg(app, "badId", "xtRemoveBlockHook", IswCIswToolkitError,
+                        "IswRemoveBlockHook called with bad or old hook id",
                         NULL, NULL);
 #endif   /*DEBUG*/
             UNLOCK_APP(app);
         return;
     }
     *p = hook->next;
-    XtFree((XtPointer) hook);
+    IswFree((IswPointer) hook);
     UNLOCK_APP(app);
 }
 
 static void
 DeleteShellFromHookObj(const Widget shell,
-                       XtPointer closure,
-                       XtPointer call_data _X_UNUSED)
+                       IswPointer closure,
+                       IswPointer call_data _X_UNUSED)
 {
     /* app_con is locked when this function is called */
     Cardinal ii, jj;
@@ -110,44 +110,44 @@ DeleteShellFromHookObj(const Widget shell,
 #define SHELL_INCR 4
 
 void
-_XtAddShellToHookObj(Widget shell)
+_IswAddShellToHookObj(Widget shell)
 {
     /* app_con is locked when this function is called */
-    HookObject ho = (HookObject) XtHooksOfDisplay(XtDisplay(shell));
+    HookObject ho = (HookObject) IswHooksOfDisplay(IswDisplay(shell));
 
     if (ho->hooks.num_shells == ho->hooks.max_shells) {
         ho->hooks.max_shells += SHELL_INCR;
-        ho->hooks.shells = XtReallocArray(ho->hooks.shells,
+        ho->hooks.shells = IswReallocArray(ho->hooks.shells,
                                           (Cardinal) ho->hooks.max_shells,
                                           (Cardinal) sizeof(Widget));
     }
     ho->hooks.shells[ho->hooks.num_shells++] = shell;
 
-    XtAddCallback(shell, XtNdestroyCallback, DeleteShellFromHookObj,
-                  (XtPointer) ho);
+    IswAddCallback(shell, IswNdestroyCallback, DeleteShellFromHookObj,
+                  (IswPointer) ho);
 }
 
 Boolean
-_XtIsHookObject(Widget widget)
+_IswIsHookObject(Widget widget)
 {
     return (widget->core.widget_class == hookObjectClass);
 }
 
 Widget
-XtHooksOfDisplay(xcb_connection_t *dpy)
+IswHooksOfDisplay(xcb_connection_t *dpy)
 {
     Widget retval;
-    XtPerDisplay pd;
+    IswPerDisplay pd;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
     if (pd->hook_object == NULL)
         /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
-         * Use _XtGetDefaultScreen(dpy) instead. See _XtGetDefaultScreen() for details. */
+         * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
         pd->hook_object =
-            _XtCreateHookObj(_XtGetDefaultScreen(dpy), dpy);
+            _IswCreateHookObj(_IswGetDefaultScreen(dpy), dpy);
     retval = pd->hook_object;
     UNLOCK_APP(app);
     return retval;

@@ -13,8 +13,8 @@ This gives you `-lISW` plus transitive XCB dependencies (`xcb`, `xcb-xrm`, `xcb-
 Required headers:
 
 ```c
-#include <X11/Intrinsic.h>    /* XtAppInitialize, XtCreateManagedWidget, etc. */
-#include <X11/StringDefs.h>   /* XtNlabel, XtNcallback, XtNforeground, etc. */
+#include <ISW/Intrinsic.h>    /* IswAppInitialize, IswCreateManagedWidget, etc. */
+#include <ISW/StringDefs.h>   /* IswNlabel, IswNcallback, IswNforeground, etc. */
 ```
 
 Widget-specific headers live under `<ISW/WidgetName.h>`.
@@ -24,14 +24,14 @@ Widget-specific headers live under `<ISW/WidgetName.h>`.
 ```c
 int main(int argc, char *argv[])
 {
-    XtAppContext app;
-    Widget toplevel = XtAppInitialize(&app, "MyApp",
+    IswAppContext app;
+    Widget toplevel = IswAppInitialize(&app, "MyApp",
                                       NULL, 0, &argc, argv, NULL, NULL, 0);
 
     /* Create your widget tree here */
 
-    XtRealizeWidget(toplevel);
-    XtAppMainLoop(app);
+    IswRealizeWidget(toplevel);
+    IswAppMainLoop(app);
     return 0;
 }
 ```
@@ -45,17 +45,17 @@ All widgets use the Arg/Cardinal pattern:
 
 Arg args[10];
 Cardinal n = 0;
-XtSetArg(args[n], XtNlabel, "Click Me"); n++;
-Widget btn = XtCreateManagedWidget("btn", commandWidgetClass, parent, args, n);
-XtAddCallback(btn, XtNcallback, my_callback, (XtPointer)"btn");
+IswSetArg(args[n], IswNlabel, "Click Me"); n++;
+Widget btn = IswCreateManagedWidget("btn", commandWidgetClass, parent, args, n);
+IswAddCallback(btn, IswNcallback, my_callback, (IswPointer)"btn");
 ```
 
 Callback signature:
 
 ```c
-void my_callback(Widget w, XtPointer client_data, XtPointer call_data)
+void my_callback(Widget w, IswPointer client_data, IswPointer call_data)
 {
-    /* client_data is what you passed to XtAddCallback */
+    /* client_data is what you passed to IswAddCallback */
 }
 ```
 
@@ -67,7 +67,7 @@ void my_callback(Widget w, XtPointer client_data, XtPointer call_data)
 |---|---|---|---|
 | MainWindow | `mainWindowWidgetClass` | `<ISW/MainWindow.h>` | App shell with menubar + status bar |
 | Box | `boxWidgetClass` | `<ISW/Box.h>` | Row/column packing |
-| Form | `formWidgetClass` | `<ISW/Form.h>` | Constraint-based layout (`XtNfromVert`, `XtNfromHoriz`) |
+| Form | `formWidgetClass` | `<ISW/Form.h>` | Constraint-based layout (`IswNfromVert`, `IswNfromHoriz`) |
 | Paned | `panedWidgetClass` | `<ISW/Paned.h>` | Vertically stacked panes with dividers |
 | Viewport | `viewportWidgetClass` | `<ISW/Viewport.h>` | Scrollable clipped view |
 | Tabs | `tabsWidgetClass` | `<ISW/Tabs.h>` | Tabbed pane switching |
@@ -78,7 +78,7 @@ void my_callback(Widget w, XtPointer client_data, XtPointer call_data)
 | Widget | Class Symbol | Header | Purpose |
 |---|---|---|---|
 | Command | `commandWidgetClass` | `<ISW/Command.h>` | Push button |
-| Toggle | `toggleWidgetClass` | `<ISW/Toggle.h>` | Checkbox / radio button (`XtNradioGroup`) |
+| Toggle | `toggleWidgetClass` | `<ISW/Toggle.h>` | Checkbox / radio button (`IswNradioGroup`) |
 | Repeater | `repeaterWidgetClass` | `<ISW/Repeater.h>` | Auto-repeating button |
 | Scrollbar | `scrollbarWidgetClass` | `<ISW/Scrollbar.h>` | Scrollbar with arrows |
 | Slider | `sliderWidgetClass` | `<ISW/Slider.h>` | Slider with numeric display |
@@ -135,73 +135,73 @@ ISW menus use a three-layer hierarchy:
 #include <ISW/SmeBSB.h>
 #include <ISW/SmeLine.h>
 
-/* 1. Create a MenuButton. XtNmenuName links it to the SimpleMenu by name. */
+/* 1. Create a MenuButton. IswNmenuName links it to the SimpleMenu by name. */
 n = 0;
-XtSetArg(args[n], XtNlabel, "File"); n++;
-XtSetArg(args[n], XtNmenuName, "fileMenu"); n++;
-Widget file_btn = XtCreateManagedWidget("fileBtn", menuButtonWidgetClass,
+IswSetArg(args[n], IswNlabel, "File"); n++;
+IswSetArg(args[n], IswNmenuName, "fileMenu"); n++;
+Widget file_btn = IswCreateManagedWidget("fileBtn", menuButtonWidgetClass,
                                         menubar, args, n);
 
 /* 2. Create the SimpleMenu as a popup shell. The widget name must match
-      the XtNmenuName string above. The parent is the MenuButton. */
-Widget file_menu = XtCreatePopupShell("fileMenu", simpleMenuWidgetClass,
+      the IswNmenuName string above. The parent is the MenuButton. */
+Widget file_menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass,
                                       file_btn, NULL, 0);
 
 /* 3. Add entries as children of the SimpleMenu. */
 n = 0;
-XtSetArg(args[n], XtNlabel, "New"); n++;
-Widget item_new = XtCreateManagedWidget("new", smeBSBObjectClass,
+IswSetArg(args[n], IswNlabel, "New"); n++;
+Widget item_new = IswCreateManagedWidget("new", smeBSBObjectClass,
                                         file_menu, args, n);
-XtAddCallback(item_new, XtNcallback, file_cb, (XtPointer)"new");
+IswAddCallback(item_new, IswNcallback, file_cb, (IswPointer)"new");
 
 /* Separator */
-XtCreateManagedWidget("sep", smeLineObjectClass, file_menu, NULL, 0);
+IswCreateManagedWidget("sep", smeLineObjectClass, file_menu, NULL, 0);
 
 n = 0;
-XtSetArg(args[n], XtNlabel, "Quit"); n++;
-Widget item_quit = XtCreateManagedWidget("quit", smeBSBObjectClass,
+IswSetArg(args[n], IswNlabel, "Quit"); n++;
+Widget item_quit = IswCreateManagedWidget("quit", smeBSBObjectClass,
                                          file_menu, args, n);
-XtAddCallback(item_quit, XtNcallback, file_cb, (XtPointer)"quit");
+IswAddCallback(item_quit, IswNcallback, file_cb, (IswPointer)"quit");
 ```
 
 ### Cascade / Submenu
 
-Any SmeBSB entry can open a submenu. Set `XtNmenuName` on the SmeBSB entry to the name of another SimpleMenu widget. The submenu pops up automatically on highlight and pops down when the cursor moves away.
+Any SmeBSB entry can open a submenu. Set `IswNmenuName` on the SmeBSB entry to the name of another SimpleMenu widget. The submenu pops up automatically on highlight and pops down when the cursor moves away.
 
 ```c
 /* Parent menu already exists as file_menu (SimpleMenu). */
 
 /* Create the submenu as a popup shell. The parent must be an ancestor of
    the SmeBSB entry — typically the same SimpleMenu or its parent. */
-Widget export_menu = XtCreatePopupShell("exportMenu", simpleMenuWidgetClass,
+Widget export_menu = IswCreatePopupShell("exportMenu", simpleMenuWidgetClass,
                                         file_menu, NULL, 0);
 
 /* Add entries to the submenu */
 n = 0;
-XtSetArg(args[n], XtNlabel, "PNG"); n++;
-Widget png = XtCreateManagedWidget("png", smeBSBObjectClass,
+IswSetArg(args[n], IswNlabel, "PNG"); n++;
+Widget png = IswCreateManagedWidget("png", smeBSBObjectClass,
                                    export_menu, args, n);
-XtAddCallback(png, XtNcallback, export_cb, (XtPointer)"png");
+IswAddCallback(png, IswNcallback, export_cb, (IswPointer)"png");
 
 n = 0;
-XtSetArg(args[n], XtNlabel, "SVG"); n++;
-Widget svg = XtCreateManagedWidget("svg", smeBSBObjectClass,
+IswSetArg(args[n], IswNlabel, "SVG"); n++;
+Widget svg = IswCreateManagedWidget("svg", smeBSBObjectClass,
                                    export_menu, args, n);
-XtAddCallback(svg, XtNcallback, export_cb, (XtPointer)"svg");
+IswAddCallback(svg, IswNcallback, export_cb, (IswPointer)"svg");
 
 /* Now create the cascade entry in the parent menu.
-   XtNmenuName must match the popup shell name ("exportMenu"). */
+   IswNmenuName must match the popup shell name ("exportMenu"). */
 n = 0;
-XtSetArg(args[n], XtNlabel, "Export"); n++;
-XtSetArg(args[n], XtNmenuName, "exportMenu"); n++;
-Widget export_entry = XtCreateManagedWidget("export", smeBSBObjectClass,
+IswSetArg(args[n], IswNlabel, "Export"); n++;
+IswSetArg(args[n], IswNmenuName, "exportMenu"); n++;
+Widget export_entry = IswCreateManagedWidget("export", smeBSBObjectClass,
                                             file_menu, args, n);
-/* No XtNcallback on a cascade entry — selection happens in the submenu. */
+/* No IswNcallback on a cascade entry — selection happens in the submenu. */
 ```
 
-**How it works:** When the user highlights a SmeBSB entry that has `XtNmenuName` set, `SimpleMenu` automatically finds the named widget, positions it at the right edge of the current menu (or left edge if it would go off-screen), and pops it up. Moving the cursor into the submenu keeps it open. Moving away pops it down. Submenus can nest arbitrarily deep.
+**How it works:** When the user highlights a SmeBSB entry that has `IswNmenuName` set, `SimpleMenu` automatically finds the named widget, positions it at the right edge of the current menu (or left edge if it would go off-screen), and pops it up. Moving the cursor into the submenu keeps it open. Moving away pops it down. Submenus can nest arbitrarily deep.
 
-**Widget lookup:** `SimpleMenu` searches for the named menu by walking up the widget tree from itself, calling `XtNameToWidget` at each level. The submenu popup shell just needs to be findable from that search — making it a child of the parent menu or any ancestor works.
+**Widget lookup:** `SimpleMenu` searches for the named menu by walking up the widget tree from itself, calling `IswNameToWidget` at each level. The submenu popup shell just needs to be findable from that search — making it a child of the parent menu or any ancestor works.
 
 ### Menu Bar
 
@@ -210,7 +210,7 @@ Use `MenuBar` (or `MainWindow` which includes one) as the container for `MenuBut
 ```c
 #include <ISW/MenuBar.h>
 
-Widget menubar = XtCreateManagedWidget("menubar", menuBarWidgetClass,
+Widget menubar = IswCreateManagedWidget("menubar", menuBarWidgetClass,
                                        parent, NULL, 0);
 /* Then create MenuButtons as children of menubar (as shown above). */
 ```
@@ -220,7 +220,7 @@ With `MainWindow`:
 ```c
 #include <ISW/MainWindow.h>
 
-Widget main_w = XtCreateManagedWidget("main", mainWindowWidgetClass,
+Widget main_w = IswCreateManagedWidget("main", mainWindowWidgetClass,
                                       toplevel, NULL, 0);
 Widget menubar = IswMainWindowGetMenuBar(main_w);
 /* Create MenuButtons as children of menubar. */
@@ -230,26 +230,26 @@ Widget menubar = IswMainWindowGetMenuBar(main_w);
 
 | Resource | Type | Default | Purpose |
 |---|---|---|---|
-| `XtNlabel` | String | widget name | Entry text |
-| `XtNcallback` | Callback | NULL | Selection callback |
-| `XtNmenuName` | String | NULL | Submenu name (cascade) |
-| `XtNleftImage` | String | NULL | Left icon (file path or inline SVG) |
-| `XtNrightImage` | String | NULL | Right icon (file path or inline SVG) |
-| `XtNleftMargin` | Dimension | 4 | Left margin |
-| `XtNrightMargin` | Dimension | 4 | Right margin |
-| `XtNforeground` | Pixel | XtDefaultForeground | Text color |
-| `XtNfont` | XFontStruct* | XtDefaultFont | Font |
-| `XtNfontSet` | ISWFontSet* | XtDefaultFontSet | Font (internationalized) |
-| `XtNunderline` | int | -1 | Keyboard mnemonic underline index |
-| `XtNvertSpace` | int | 25 | Extra vertical space (% of font height) |
+| `IswNlabel` | String | widget name | Entry text |
+| `IswNcallback` | Callback | NULL | Selection callback |
+| `IswNmenuName` | String | NULL | Submenu name (cascade) |
+| `IswNleftImage` | String | NULL | Left icon (file path or inline SVG) |
+| `IswNrightImage` | String | NULL | Right icon (file path or inline SVG) |
+| `IswNleftMargin` | Dimension | 4 | Left margin |
+| `IswNrightMargin` | Dimension | 4 | Right margin |
+| `IswNforeground` | Pixel | IswDefaultForeground | Text color |
+| `IswNfont` | IswFontStruct* | IswDefaultFont | Font |
+| `IswNfontSet` | ISWFontSet* | IswDefaultFontSet | Font (internationalized) |
+| `IswNunderline` | int | -1 | Keyboard mnemonic underline index |
+| `IswNvertSpace` | int | 25 | Extra vertical space (% of font height) |
 
 ### Menu Callback Data
 
-SmeBSB `XtNcallback` provides `NULL` as `call_data`. Use `client_data` to identify which entry was selected.
+SmeBSB `IswNcallback` provides `NULL` as `call_data`. Use `client_data` to identify which entry was selected.
 
 ## Images
 
-Label (and its subclasses Command, MenuButton, Toggle) display images via the unified `XtNimage` and `XtNleftImage` resources. Format is auto-detected from the source string:
+Label (and its subclasses Command, MenuButton, Toggle) display images via the unified `IswNimage` and `IswNleftImage` resources. Format is auto-detected from the source string:
 
 - File path ending in `.svg` → SVG (vector, scales to any size)
 - File path ending in `.png` → PNG (raster, displayed at native resolution)
@@ -257,23 +257,23 @@ Label (and its subclasses Command, MenuButton, Toggle) display images via the un
 
 ```c
 /* SVG file */
-XtSetArg(args[n], XtNimage, "icon.svg"); n++;
+IswSetArg(args[n], IswNimage, "icon.svg"); n++;
 
 /* PNG file */
-XtSetArg(args[n], XtNimage, "photo.png"); n++;
+IswSetArg(args[n], IswNimage, "photo.png"); n++;
 
 /* Inline SVG */
-XtSetArg(args[n], XtNimage, "<svg viewBox='0 0 24 24'>...</svg>"); n++;
+IswSetArg(args[n], IswNimage, "<svg viewBox='0 0 24 24'>...</svg>"); n++;
 
 /* Icon beside text (does not replace the label) */
-XtSetArg(args[n], XtNleftImage, "bullet.png"); n++;
+IswSetArg(args[n], IswNleftImage, "bullet.png"); n++;
 ```
 
-`XtNimage` replaces the text label entirely. `XtNleftImage` draws an icon to the left of the text.
+`IswNimage` replaces the text label entirely. `IswNleftImage` draws an icon to the left of the text.
 
-For menu entries (`SmeBSB`), use `XtNleftImage` and `XtNrightImage` the same way.
+For menu entries (`SmeBSB`), use `IswNleftImage` and `IswNrightImage` the same way.
 
-SVG images support `currentColor` — occurrences are automatically substituted with the widget's `XtNforeground` color and update when the foreground changes.
+SVG images support `currentColor` — occurrences are automatically substituted with the widget's `IswNforeground` color and update when the foreground changes.
 
 File paths are resolved through ISW's search path: executable directory, `$ISW_DATA_PATH`, `$XDG_DATA_HOME/isw/`, system data dirs, then cwd.
 
@@ -287,9 +287,9 @@ ISWXdndEnable(toplevel);
 
 /* Mark a widget as a drop target */
 ISWXdndWidgetAcceptDrops(my_widget);
-XtAddCallback(my_widget, XtNdropCallback, drop_cb, NULL);
+IswAddCallback(my_widget, IswNdropCallback, drop_cb, NULL);
 
-void drop_cb(Widget w, XtPointer client_data, XtPointer call_data)
+void drop_cb(Widget w, IswPointer client_data, IswPointer call_data)
 {
     IswDropCallbackData *data = (IswDropCallbackData *)call_data;
     for (int i = 0; i < data->num_uris; i++)
@@ -316,16 +316,16 @@ Form is the primary constraint-based layout. Position children relative to each 
 #include <ISW/Form.h>
 
 n = 0;
-XtSetArg(args[n], XtNlabel, "Name:"); n++;
-Widget lbl = XtCreateManagedWidget("lbl", labelWidgetClass, form, args, n);
+IswSetArg(args[n], IswNlabel, "Name:"); n++;
+Widget lbl = IswCreateManagedWidget("lbl", labelWidgetClass, form, args, n);
 
 n = 0;
-XtSetArg(args[n], XtNfromHoriz, lbl); n++;
-Widget txt = XtCreateManagedWidget("txt", asciiTextWidgetClass, form, args, n);
+IswSetArg(args[n], IswNfromHoriz, lbl); n++;
+Widget txt = IswCreateManagedWidget("txt", asciiTextWidgetClass, form, args, n);
 
 n = 0;
-XtSetArg(args[n], XtNfromVert, lbl); n++;
-Widget btn = XtCreateManagedWidget("ok", commandWidgetClass, form, args, n);
+IswSetArg(args[n], IswNfromVert, lbl); n++;
+Widget btn = IswCreateManagedWidget("ok", commandWidgetClass, form, args, n);
 ```
 
 ## Toggle / Radio Groups
@@ -334,13 +334,13 @@ Widget btn = XtCreateManagedWidget("ok", commandWidgetClass, form, args, n);
 #include <ISW/Toggle.h>
 
 n = 0;
-XtSetArg(args[n], XtNlabel, "Option A"); n++;
-Widget a = XtCreateManagedWidget("a", toggleWidgetClass, parent, args, n);
+IswSetArg(args[n], IswNlabel, "Option A"); n++;
+Widget a = IswCreateManagedWidget("a", toggleWidgetClass, parent, args, n);
 
 n = 0;
-XtSetArg(args[n], XtNlabel, "Option B"); n++;
-XtSetArg(args[n], XtNradioGroup, a); n++;
-Widget b = XtCreateManagedWidget("b", toggleWidgetClass, parent, args, n);
+IswSetArg(args[n], IswNlabel, "Option B"); n++;
+IswSetArg(args[n], IswNradioGroup, a); n++;
+Widget b = IswCreateManagedWidget("b", toggleWidgetClass, parent, args, n);
 ```
 
 ## IconView
@@ -353,7 +353,7 @@ String icons[]  = { svg_data_1, svg_data_2, svg_data_3 };  /* SVG strings or NUL
 IswIconViewSetItems(iconview, labels, icons, 3);
 
 /* call_data is IswIconViewCallbackData* */
-void iconview_cb(Widget w, XtPointer cd, XtPointer call_data)
+void iconview_cb(Widget w, IswPointer cd, IswPointer call_data)
 {
     IswIconViewCallbackData *d = (IswIconViewCallbackData *)call_data;
     printf("Selected: %s (index %d)\n", d->label, d->index);
@@ -378,25 +378,25 @@ String cell_data[] = {
 };
 
 n = 0;
-XtSetArg(args[n], XtNlistViewColumns, cols); n++;
-XtSetArg(args[n], XtNnumColumns, 2); n++;
-XtSetArg(args[n], XtNlistViewData, cell_data); n++;
-XtSetArg(args[n], XtNnumRows, 2); n++;
-XtSetArg(args[n], XtNmultiSelect, True); n++;
-Widget lv = XtCreateManagedWidget("lv", listViewWidgetClass, viewport, args, n);
+IswSetArg(args[n], IswNlistViewColumns, cols); n++;
+IswSetArg(args[n], IswNnumColumns, 2); n++;
+IswSetArg(args[n], IswNlistViewData, cell_data); n++;
+IswSetArg(args[n], IswNnumRows, 2); n++;
+IswSetArg(args[n], IswNmultiSelect, True); n++;
+Widget lv = IswCreateManagedWidget("lv", listViewWidgetClass, viewport, args, n);
 
 /* Dynamic column addition */
 IswListViewAddColumn(lv, "Type", 100, 50);
 
 /* call_data is IswListViewCallbackData* */
-void listview_cb(Widget w, XtPointer cd, XtPointer call_data)
+void listview_cb(Widget w, IswPointer cd, IswPointer call_data)
 {
     IswListViewCallbackData *d = (IswListViewCallbackData *)call_data;
     printf("Row %d, Col %d, %d selected\n", d->row, d->column, d->num_selected);
 }
 
 /* call_data is IswListViewReorderCallbackData* — fired on header click */
-void reorder_cb(Widget w, XtPointer cd, XtPointer call_data)
+void reorder_cb(Widget w, IswPointer cd, IswPointer call_data)
 {
     IswListViewReorderCallbackData *d = (IswListViewReorderCallbackData *)call_data;
     /* d->column: which column was clicked */
@@ -420,7 +420,7 @@ IswListViewSetSort(lv, 0, IswListViewSortAscending);
 #include <ISW/FontChooser.h>
 
 /* call_data is IswFontChooserCallbackData* */
-void font_cb(Widget w, XtPointer cd, XtPointer call_data)
+void font_cb(Widget w, IswPointer cd, IswPointer call_data)
 {
     IswFontChooserCallbackData *d = (IswFontChooserCallbackData *)call_data;
     printf("Font: %s %d\n", d->family, d->size);
@@ -430,8 +430,8 @@ void font_cb(Widget w, XtPointer cd, XtPointer call_data)
 ## Key Differences from Xaw/Xaw3d
 
 - **Pure XCB** — no Xlib types. `Display*` → `xcb_connection_t*`, `Window` → `xcb_window_t`, `XEvent` → `xcb_generic_event_t*`.
-- **Embedded libXt** — do not link a separate libXt. The Xt API (`XtCreateManagedWidget`, `XtAddCallback`, etc.) is provided by `libISW.so`.
+- **Embedded libXt** — do not link a separate libXt. The Xt API (`IswCreateManagedWidget`, `IswAddCallback`, etc.) is provided by `libISW.so`.
 - **Cairo rendering** — anti-aliased text and drawing by default via Cairo-XCB backend. The `ISW_RENDER_BACKEND` environment variable overrides backend selection.
 - **HiDPI aware** — widgets auto-scale. Use `ISWScaleDim`/`ISWScaleFactor` for app-level dimensions.
-- **Unified image loading** — Label/Command/Toggle display PNG or SVG via `XtNimage`/`XtNleftImage` (format auto-detected). SmeBSB uses `XtNleftImage`/`XtNrightImage`.
+- **Unified image loading** — Label/Command/Toggle display PNG or SVG via `IswNimage`/`IswNleftImage` (format auto-detected). SmeBSB uses `IswNleftImage`/`IswNrightImage`.
 - **New widgets** — MainWindow, MenuBar, Toolbar, StatusBar, Tabs, ComboBox, SpinBox, ProgressBar, IconView, ListView, ColorPicker, FontChooser, ScrollWheel.

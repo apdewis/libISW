@@ -88,51 +88,51 @@ in this Software without prior written authorization from The Open Group.
 #define IsNewline(str) ((str) == '\n')
 #define IsWhitespace(str) ((str)== ' ' || (str) == '\t')
 
-static _Xconst _XtString XtNwrongParameters = "wrongParameters";
-static _Xconst _XtString XtNconversionError = "conversionError";
-static _Xconst _XtString XtNmissingCharsetList = "missingCharsetList";
+static _Xconst _IswString IswNwrongParameters = "wrongParameters";
+static _Xconst _IswString IswNconversionError = "conversionError";
+static _Xconst _IswString IswNmissingCharsetList = "missingCharsetList";
 
 /* Representation types */
 
-#define XtQAtom                 XrmPermStringToQuark(XtRAtom)
-#define XtQCursor               XrmPermStringToQuark(XtRCursor)
-#define XtQDisplay              XrmPermStringToQuark(XtRDisplay)
-#define XtQFile                 XrmPermStringToQuark(XtRFile)
-#define XtQFloat                XrmPermStringToQuark(XtRFloat)
-#define XtQInitialState         XrmPermStringToQuark(XtRInitialState)
-#define XtQPixmap               XrmPermStringToQuark(XtRPixmap)
-#define XtQShort                XrmPermStringToQuark(XtRShort)
-#define XtQUnsignedChar         XrmPermStringToQuark(XtRUnsignedChar)
-#define XtQVisual               XrmPermStringToQuark(XtRVisual)
+#define IswQAtom                 XrmPermStringToQuark(IswRAtom)
+#define IswQCursor               XrmPermStringToQuark(IswRCursor)
+#define IswQDisplay              XrmPermStringToQuark(IswRDisplay)
+#define IswQFile                 XrmPermStringToQuark(IswRFile)
+#define IswQFloat                XrmPermStringToQuark(IswRFloat)
+#define IswQInitialState         XrmPermStringToQuark(IswRInitialState)
+#define IswQPixmap               XrmPermStringToQuark(IswRPixmap)
+#define IswQShort                XrmPermStringToQuark(IswRShort)
+#define IswQUnsignedChar         XrmPermStringToQuark(IswRUnsignedChar)
+#define IswQVisual               XrmPermStringToQuark(IswRVisual)
 
-static XrmQuark XtQBool;
-static XrmQuark XtQBoolean;
-static XrmQuark XtQColor;
-static XrmQuark XtQDimension;
-static XrmQuark XtQFont;
-static XrmQuark XtQFontSet;
-static XrmQuark XtQFontStruct;
-static XrmQuark XtQGravity;
-static XrmQuark XtQInt;
-static XrmQuark XtQPixel;
-static XrmQuark XtQPosition;
-XrmQuark _XtQString;
+static XrmQuark IswQBool;
+static XrmQuark IswQBoolean;
+static XrmQuark IswQColor;
+static XrmQuark IswQDimension;
+static XrmQuark IswQFont;
+static XrmQuark IswQFontSet;
+static XrmQuark IswQFontStruct;
+static XrmQuark IswQGravity;
+static XrmQuark IswQInt;
+static XrmQuark IswQPixel;
+static XrmQuark IswQPosition;
+XrmQuark _IswQString;
 
 void
-_XtConvertInitialize(void)
+_IswConvertInitialize(void)
 {
-    XtQBool = XrmPermStringToQuark(XtRBool);
-    XtQBoolean = XrmPermStringToQuark(XtRBoolean);
-    XtQColor = XrmPermStringToQuark(XtRColor);
-    XtQDimension = XrmPermStringToQuark(XtRDimension);
-    XtQFont = XrmPermStringToQuark(XtRFont);
-    XtQFontSet = XrmPermStringToQuark(XtRFontSet);
-    XtQFontStruct = XrmPermStringToQuark(XtRFontStruct);
-    XtQGravity = XrmPermStringToQuark(XtRGravity);
-    XtQInt = XrmPermStringToQuark(XtRInt);
-    XtQPixel = XrmPermStringToQuark(XtRPixel);
-    XtQPosition = XrmPermStringToQuark(XtRPosition);
-    _XtQString = XrmPermStringToQuark(XtRString);
+    IswQBool = XrmPermStringToQuark(IswRBool);
+    IswQBoolean = XrmPermStringToQuark(IswRBoolean);
+    IswQColor = XrmPermStringToQuark(IswRColor);
+    IswQDimension = XrmPermStringToQuark(IswRDimension);
+    IswQFont = XrmPermStringToQuark(IswRFont);
+    IswQFontSet = XrmPermStringToQuark(IswRFontSet);
+    IswQFontStruct = XrmPermStringToQuark(IswRFontStruct);
+    IswQGravity = XrmPermStringToQuark(IswRGravity);
+    IswQInt = XrmPermStringToQuark(IswRInt);
+    IswQPixel = XrmPermStringToQuark(IswRPixel);
+    IswQPosition = XrmPermStringToQuark(IswRPosition);
+    _IswQString = XrmPermStringToQuark(IswRString);
 }
 
 #define done_typed_string(type, typed_value, tstr) \
@@ -140,7 +140,7 @@ _XtConvertInitialize(void)
             if (toVal->addr != NULL) {                          \
                 if (toVal->size < sizeof(type)) {               \
                     toVal->size = sizeof(type);                 \
-                    XtDisplayStringConversionWarning(dpy,       \
+                    IswDisplayStringConversionWarning(dpy,       \
                         (char*) fromVal->addr, tstr);           \
                     return False;                               \
                 }                                               \
@@ -149,7 +149,7 @@ _XtConvertInitialize(void)
             else {                                              \
                 static type static_val;                         \
                 static_val = typed_value;                       \
-                toVal->addr = (XtPointer)&static_val;            \
+                toVal->addr = (IswPointer)&static_val;            \
             }                                                   \
             toVal->size = sizeof(type);                         \
             return True;                                        \
@@ -170,7 +170,7 @@ _XtConvertInitialize(void)
             else {                                              \
                 static type static_val;                         \
                 static_val = typed_value;                       \
-                toVal->addr = (XtPointer)&static_val;            \
+                toVal->addr = (IswPointer)&static_val;            \
             }                                                   \
             toVal->size = sizeof(type);                         \
             return True;                                        \
@@ -180,7 +180,7 @@ _XtConvertInitialize(void)
         done_typed(type, (type) (value))
 
 void
-XtDisplayStringConversionWarning(xcb_connection_t *dpy,
+IswDisplayStringConversionWarning(xcb_connection_t *dpy,
                                  _Xconst char *from,
                                  _Xconst char *toType)
 {
@@ -188,12 +188,12 @@ XtDisplayStringConversionWarning(xcb_connection_t *dpy,
     /* Allow suppression of conversion warnings. %%%  Not specified. */
 
     static enum { Check, Report, Ignore } report_it = Check;
-    XtAppContext app = XtDisplayToApplicationContext(dpy);
+    IswAppContext app = IswDisplayToApplicationContext(dpy);
 
     LOCK_APP(app);
     LOCK_PROCESS;
     if (report_it == Check) {
-        XrmDatabase rdb = XtDatabase(dpy);
+        XrmDatabase rdb = IswDatabase(dpy);
         XrmName xrm_name[2];
         XrmClass xrm_class[2];
         XrmRepresentation rep_type;
@@ -204,17 +204,17 @@ XtDisplayStringConversionWarning(xcb_connection_t *dpy,
         xrm_class[0] = XrmPermStringToQuark("StringConversionWarnings");
         xrm_class[1] = 0;
         if (XrmQGetResource(rdb, xrm_name, xrm_class, &rep_type, &value)) {
-            if (rep_type == XtQBoolean)
+            if (rep_type == IswQBoolean)
                 report_it = *(Boolean *) value.addr ? Report : Ignore;
-            else if (rep_type == _XtQString) {
+            else if (rep_type == _IswQString) {
                 XrmValue toVal;
                 Boolean report = False;
 
-                toVal.addr = (XtPointer) &report;
+                toVal.addr = (IswPointer) &report;
                 toVal.size = sizeof(Boolean);
-                if (XtCallConverter
-                    (dpy, XtCvtStringToBoolean, (XrmValuePtr) NULL,
-                     (Cardinal) 0, &value, &toVal, (XtCacheRef *) NULL))
+                if (IswCallConverter
+                    (dpy, IswCvtStringToBoolean, (XrmValuePtr) NULL,
+                     (Cardinal) 0, &value, &toVal, (IswCacheRef *) NULL))
                     report_it = report ? Report : Ignore;
             }
             else
@@ -231,8 +231,8 @@ XtDisplayStringConversionWarning(xcb_connection_t *dpy,
 
         params[0] = (String) from;
         params[1] = (String) toType;
-        XtAppWarningMsg(app,
-                        XtNconversionError, "string", XtCXtToolkitError,
+        IswAppWarningMsg(app,
+                        IswNconversionError, "string", IswCIswToolkitError,
                         "Cannot convert string \"%s\" to type %s",
                         params, &num_params);
 #ifndef NO_MIT_HACKS
@@ -294,52 +294,52 @@ IsInteger(String string, int *value)
 }
 
 Boolean
-XtCvtIntToBoolean(xcb_connection_t *dpy,
+IswCvtIntToBoolean(xcb_connection_t *dpy,
                   XrmValuePtr args _X_UNUSED,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
                   XrmValuePtr toVal,
-                  XtPointer *closure_ret _X_UNUSED)
+                  IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtIntToBoolean",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtIntToBoolean",
+                        IswCIswToolkitError,
                         "Integer to Boolean conversion needs no extra arguments",
                         NULL, NULL);
     done(Boolean, (*(int *) fromVal->addr != 0));
 }
 
 Boolean
-XtCvtIntToShort(xcb_connection_t *dpy,
+IswCvtIntToShort(xcb_connection_t *dpy,
                 XrmValuePtr args _X_UNUSED,
                 Cardinal *num_args,
                 XrmValuePtr fromVal,
                 XrmValuePtr toVal,
-                XtPointer *closure_ret _X_UNUSED)
+                IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtIntToShort", XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtIntToShort", IswCIswToolkitError,
                         "Integer to Short conversion needs no extra arguments",
                         NULL, NULL);
     done(short, (*(int *) fromVal->addr));
 }
 
 Boolean
-XtCvtStringToBoolean(xcb_connection_t *dpy,
+IswCvtStringToBoolean(xcb_connection_t *dpy,
                      XrmValuePtr args _X_UNUSED,
                      Cardinal *num_args,
                      XrmValuePtr fromVal,
                      XrmValuePtr toVal,
-                     XtPointer *closure_ret _X_UNUSED)
+                     IswPointer *closure_ret _X_UNUSED)
 {
     String str = (String) fromVal->addr;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToBoolean",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToBoolean",
+                        IswCIswToolkitError,
                         "String to Boolean conversion needs no extra arguments",
                         NULL, NULL);
 
@@ -347,48 +347,48 @@ XtCvtStringToBoolean(xcb_connection_t *dpy,
         || (CompareISOLatin1(str, "yes") == 0)
         || (CompareISOLatin1(str, "on") == 0)
         || (CompareISOLatin1(str, "1") == 0))
-        done_string(Boolean, True, XtRBoolean);
+        done_string(Boolean, True, IswRBoolean);
 
     if ((CompareISOLatin1(str, "false") == 0)
         || (CompareISOLatin1(str, "no") == 0)
         || (CompareISOLatin1(str, "off") == 0)
         || (CompareISOLatin1(str, "0") == 0))
-        done_string(Boolean, False, XtRBoolean);
+        done_string(Boolean, False, IswRBoolean);
 
-    XtDisplayStringConversionWarning(dpy, str, XtRBoolean);
+    IswDisplayStringConversionWarning(dpy, str, IswRBoolean);
     return False;
 }
 
 Boolean
-XtCvtIntToBool(xcb_connection_t *dpy,
+IswCvtIntToBool(xcb_connection_t *dpy,
                XrmValuePtr args _X_UNUSED,
                Cardinal *num_args,
                XrmValuePtr fromVal,
                XrmValuePtr toVal,
-               XtPointer *closure_ret _X_UNUSED)
+               IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtIntToBool", XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtIntToBool", IswCIswToolkitError,
                         "Integer to Bool conversion needs no extra arguments",
                         NULL, NULL);
     done(Bool, (*(int *) fromVal->addr != 0));
 }
 
 Boolean
-XtCvtStringToBool(xcb_connection_t *dpy,
+IswCvtStringToBool(xcb_connection_t *dpy,
                   XrmValuePtr args _X_UNUSED,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
                   XrmValuePtr toVal,
-                  XtPointer *closure_ret _X_UNUSED)
+                  IswPointer *closure_ret _X_UNUSED)
 {
     String str = (String) fromVal->addr;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToBool",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToBool",
+                        IswCIswToolkitError,
                         "String to Bool conversion needs no extra arguments",
                         NULL, NULL);
 
@@ -396,42 +396,42 @@ XtCvtStringToBool(xcb_connection_t *dpy,
         || (CompareISOLatin1(str, "yes") == 0)
         || (CompareISOLatin1(str, "on") == 0)
         || (CompareISOLatin1(str, "1") == 0))
-        done_string(Bool, True, XtRBool);
+        done_string(Bool, True, IswRBool);
 
     if ((CompareISOLatin1(str, "false") == 0)
         || (CompareISOLatin1(str, "no") == 0)
         || (CompareISOLatin1(str, "off") == 0)
         || (CompareISOLatin1(str, "0") == 0))
-        done_string(Bool, False, XtRBool);
+        done_string(Bool, False, IswRBool);
 
-    XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRBool);
+    IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRBool);
     return False;
 }
 
 /* *INDENT-OFF* */
-XtConvertArgRec const colorConvertArgs[] = {
-    {XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.screen),
+IswConvertArgRec const colorConvertArgs[] = {
+    {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
      sizeof(xcb_screen_t *)},
-    {XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.colormap),
+    {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.colormap),
      sizeof(xcb_colormap_t)}
 };
 /* *INDENT-ON* */
 
 Boolean
-XtCvtIntToColor(xcb_connection_t *dpy,
+IswCvtIntToColor(xcb_connection_t *dpy,
                 XrmValuePtr args,
                 Cardinal *num_args,
                 XrmValuePtr fromVal,
                 XrmValuePtr toVal,
-                XtPointer *closure_ret _X_UNUSED)
+                IswPointer *closure_ret _X_UNUSED)
 {
     xcb_screen_t *screen;
     xcb_colormap_t colormap;
 
     if (*num_args != 2) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtIntOrPixelToXColor",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtIntOrPixelToXColor",
+                        IswCIswToolkitError,
                         "Pixel to color conversion needs screen and colormap arguments",
                         NULL, NULL);
         return False;
@@ -443,7 +443,7 @@ XtCvtIntToColor(xcb_connection_t *dpy,
         xcb_query_colors_cookie_t qc_cookie;
         xcb_query_colors_reply_t *qc_reply;
         uint32_t pixel = (uint32_t) (*(int *) fromVal->addr);
-        XtColor c;
+        IswColor c;
 
         qc_cookie = xcb_query_colors(dpy, colormap, 1, &pixel);
         qc_reply = xcb_query_colors_reply(dpy, qc_cookie, NULL);
@@ -456,27 +456,27 @@ XtCvtIntToColor(xcb_connection_t *dpy,
         c.blue  = rgb[0].blue;
         c.flags = DoRed | DoGreen | DoBlue;
         free(qc_reply);
-        done_typed(XtColor, c);
+        done_typed(IswColor, c);
     }
 }
 
 Boolean
-XtCvtStringToPixel(xcb_connection_t *dpy,
+IswCvtStringToPixel(xcb_connection_t *dpy,
                    XrmValuePtr args,
                    Cardinal *num_args,
                    XrmValuePtr fromVal,
                    XrmValuePtr toVal,
-                   XtPointer *closure_ret)
+                   IswPointer *closure_ret)
 {
     String str = (String) fromVal->addr;
     xcb_screen_t *screen;
-    XtPerDisplay pd = _XtGetPerDisplay(dpy);
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
     xcb_colormap_t colormap;
     Cardinal num_params = 1;
 
     if (*num_args != 2) {
-        XtAppWarningMsg(pd->appContext, XtNwrongParameters, "cvtStringToPixel",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(pd->appContext, IswNwrongParameters, "cvtStringToPixel",
+                        IswCIswToolkitError,
                         "String to pixel conversion needs screen and colormap arguments",
                         NULL, NULL);
         return False;
@@ -485,22 +485,22 @@ XtCvtStringToPixel(xcb_connection_t *dpy,
     screen = *((xcb_screen_t **) args[0].addr);
     colormap = *((xcb_colormap_t *) args[1].addr);
 
-    if (CompareISOLatin1(str, XtDefaultBackground) == 0) {
+    if (CompareISOLatin1(str, IswDefaultBackground) == 0) {
         *closure_ret = NULL;
         if (pd->rv) {
-            done_string(Pixel, BlackPixelOfScreen(screen), XtRPixel);
+            done_string(Pixel, BlackPixelOfScreen(screen), IswRPixel);
         }
         else {
-            done_string(Pixel, WhitePixelOfScreen(screen), XtRPixel);
+            done_string(Pixel, WhitePixelOfScreen(screen), IswRPixel);
         }
     }
-    if (CompareISOLatin1(str, XtDefaultForeground) == 0) {
+    if (CompareISOLatin1(str, IswDefaultForeground) == 0) {
         *closure_ret = NULL;
         if (pd->rv) {
-            done_string(Pixel, WhitePixelOfScreen(screen), XtRPixel);
+            done_string(Pixel, WhitePixelOfScreen(screen), IswRPixel);
         }
         else {
-            done_string(Pixel, BlackPixelOfScreen(screen), XtRPixel);
+            done_string(Pixel, BlackPixelOfScreen(screen), IswRPixel);
         }
     }
 
@@ -528,8 +528,8 @@ XtCvtStringToPixel(xcb_connection_t *dpy,
         } else {
             String params[1];
             params[0] = str;
-            XtAppWarningMsg(pd->appContext, "badValue", "cvtStringToPixel",
-                            XtCXtToolkitError,
+            IswAppWarningMsg(pd->appContext, "badValue", "cvtStringToPixel",
+                            IswCIswToolkitError,
                             "Color name \"%s\" is not defined",
                             params, &num_params);
             *closure_ret = NULL;
@@ -545,13 +545,13 @@ XtCvtStringToPixel(xcb_connection_t *dpy,
             *closure_ret = (char *) True;
             Pixel result_pixel = ac_reply->pixel;
             free(ac_reply);
-            done_string(Pixel, result_pixel, XtRPixel);
+            done_string(Pixel, result_pixel, IswRPixel);
         }
 
         String params[1];
         params[0] = str;
-        XtAppWarningMsg(pd->appContext, "noColormap", "cvtStringToPixel",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(pd->appContext, "noColormap", "cvtStringToPixel",
+                        IswCIswToolkitError,
                         "Cannot allocate colormap entry for \"%s\"",
                         params, &num_params);
         *closure_ret = NULL;
@@ -569,7 +569,7 @@ XtCvtStringToPixel(xcb_connection_t *dpy,
             *closure_ret = (char *) True;
             Pixel result_pixel = anc_reply->pixel;
             free(anc_reply);
-            done_string(Pixel, result_pixel, XtRPixel);
+            done_string(Pixel, result_pixel, IswRPixel);
         }
 
         /* Allocation failed — check if name is valid */
@@ -578,8 +578,8 @@ XtCvtStringToPixel(xcb_connection_t *dpy,
         xcb_lookup_color_reply_t *lc_reply =
             xcb_lookup_color_reply(dpy, lc_cookie, NULL);
 
-        _Xconst _XtString msg;
-        _Xconst _XtString type;
+        _Xconst _IswString msg;
+        _Xconst _IswString type;
         String params[1];
 
         params[0] = str;
@@ -592,17 +592,17 @@ XtCvtStringToPixel(xcb_connection_t *dpy,
             msg = "Color name \"%s\" is not defined";
         }
 
-        XtAppWarningMsg(pd->appContext, type, "cvtStringToPixel",
-                        XtCXtToolkitError, msg, params, &num_params);
+        IswAppWarningMsg(pd->appContext, type, "cvtStringToPixel",
+                        IswCIswToolkitError, msg, params, &num_params);
         *closure_ret = NULL;
         return False;
     }
 }
 
 static void
-FreePixel(XtAppContext app,
+FreePixel(IswAppContext app,
           XrmValuePtr toVal,
-          XtPointer closure,
+          IswPointer closure,
           XrmValuePtr args,
           Cardinal *num_args)
 {
@@ -610,7 +610,7 @@ FreePixel(XtAppContext app,
     xcb_colormap_t colormap;
 
     if (*num_args != 2) {
-        XtAppWarningMsg(app, XtNwrongParameters, "freePixel", XtCXtToolkitError,
+        IswAppWarningMsg(app, IswNwrongParameters, "freePixel", IswCIswToolkitError,
                         "Freeing a pixel requires screen and colormap arguments",
                         NULL, NULL);
         return;
@@ -620,7 +620,7 @@ FreePixel(XtAppContext app,
     colormap = *((xcb_colormap_t *) args[1].addr);
 
     if (closure) {
-        xcb_connection_t *dpy = _XtConnectionOfScreen(screen);
+        xcb_connection_t *dpy = _IswConnectionOfScreen(screen);
         if (dpy != NULL && xcb_connection_has_error(dpy) == 0) {
             uint32_t pixel = *(uint32_t *) toVal->addr;
             xcb_free_colors(dpy, colormap, 0, 1, &pixel);
@@ -629,8 +629,8 @@ FreePixel(XtAppContext app,
 }
 
 /* no longer used by Xt, but it's in the spec */
-XtConvertArgRec const screenConvertArg[] = {
-    {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.screen),
+IswConvertArgRec const screenConvertArg[] = {
+    {IswWidgetBaseOffset, (IswPointer) IswOffsetOf(WidgetRec, core.screen),
      sizeof(xcb_screen_t *)}
 };
 
@@ -638,7 +638,7 @@ static void
 FetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED, XrmValue *value)
 {
     if (widget == NULL) {
-        XtErrorMsg("missingWidget", "fetchDisplayArg", XtCXtToolkitError,
+        IswErrorMsg("missingWidget", "fetchDisplayArg", IswCIswToolkitError,
                    "FetchDisplayArg called without a widget to reference",
                    NULL, NULL);
         /* can't return any useful Display and caller will de-ref NULL,
@@ -646,27 +646,27 @@ FetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED, XrmValue *value)
     }
     else {
         static xcb_connection_t *_fetch_dpy;
-        Boolean isWidget = XtIsWidget(widget);
+        Boolean isWidget = IswIsWidget(widget);
         if (!isWidget) {
-            Widget parent = XtParent(widget);
-            if (parent && XtIsWidget(parent)) {
+            Widget parent = IswParent(widget);
+            if (parent && IswIsWidget(parent)) {
             }
         } else {
         }
-        _fetch_dpy = XtDisplayOfObject(widget);
+        _fetch_dpy = IswDisplayOfObject(widget);
         value->size = sizeof(xcb_connection_t *);
-        value->addr = (XtPointer) &_fetch_dpy;
+        value->addr = (IswPointer) &_fetch_dpy;
     }
 }
 
 /* *INDENT-OFF* */
-static XtConvertArgRec const displayConvertArg[] = {
-    {XtProcedureArg, (XtPointer)FetchDisplayArg, 0},
+static IswConvertArgRec const displayConvertArg[] = {
+    {IswProcedureArg, (IswPointer)FetchDisplayArg, 0},
 };
 
-static XtConvertArgRec const cursorConvertArgs[] = {
-    {XtProcedureArg, (XtPointer)FetchDisplayArg, 0},
-    {XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.screen),
+static IswConvertArgRec const cursorConvertArgs[] = {
+    {IswProcedureArg, (IswPointer)FetchDisplayArg, 0},
+    {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
      sizeof(xcb_screen_t *)},
 };
 /* *INDENT-ON* */
@@ -675,7 +675,7 @@ static XtConvertArgRec const cursorConvertArgs[] = {
  * Create a glyph cursor from the built-in X cursor font (fallback).
  * ----------------------------------------------------------------------- */
 static xcb_cursor_t
-_XtCreateFontCursor(xcb_connection_t *dpy, unsigned int shape)
+_IswCreateFontCursor(xcb_connection_t *dpy, unsigned int shape)
 {
     static xcb_font_t cursor_font = XCB_NONE;
     xcb_cursor_t cursor;
@@ -699,29 +699,29 @@ _XtCreateFontCursor(xcb_connection_t *dpy, unsigned int shape)
  * Falls back to glyph cursor if xcb-cursor fails.
  * ----------------------------------------------------------------------- */
 xcb_cursor_t
-_XtLoadThemedCursor(xcb_connection_t *dpy, xcb_screen_t *screen,
+_IswLoadThemedCursor(xcb_connection_t *dpy, xcb_screen_t *screen,
                     const char *name, unsigned int shape)
 {
     xcb_cursor_context_t *ctx;
     if (xcb_cursor_context_new(dpy, screen, &ctx) < 0)
-        return _XtCreateFontCursor(dpy, shape);
+        return _IswCreateFontCursor(dpy, shape);
 
     xcb_cursor_t cursor = xcb_cursor_load_cursor(ctx, name);
     xcb_cursor_context_free(ctx);
 
     if (cursor == XCB_CURSOR_NONE)
-        return _XtCreateFontCursor(dpy, shape);
+        return _IswCreateFontCursor(dpy, shape);
 
     return cursor;
 }
 
 /* -----------------------------------------------------------------------
  * Resolve a fontconfig family name (optionally with "-size" suffix) into
- * an XtFontStruct with font_family set for Cairo rendering.  fid is 0
+ * an IswFontStruct with font_family set for Cairo rendering.  fid is 0
  * since rendering goes through Cairo, not core X11 fonts.
  * ----------------------------------------------------------------------- */
-static XtFontStruct *
-_XtLoadFontconfigFont(const char *name)
+static IswFontStruct *
+_IswLoadFontconfigFont(const char *name)
 {
     double pt_size = 10.0;
     FcPattern *pattern = NULL, *match = NULL;
@@ -732,7 +732,7 @@ _XtLoadFontconfigFont(const char *name)
     int slant = FC_SLANT_ROMAN;
     FT_Library ft_lib = NULL;
     FT_Face ft_face = NULL;
-    XtFontStruct *fs = NULL;
+    IswFontStruct *fs = NULL;
 
     /* Parse fontconfig name format: "Family-Size:weight=bold:slant=italic" */
     pattern = FcNameParse((const FcChar8 *)name);
@@ -769,7 +769,7 @@ _XtLoadFontconfigFont(const char *name)
     /* Set character size: FreeType uses 1/64th of a point units */
     FT_Set_Char_Size(ft_face, 0, (FT_F26Dot6)(pt_size * 64), 96, 96);
 
-    fs = XtNew(XtFontStruct);
+    fs = IswNew(IswFontStruct);
     fs->fid       = 0;
     fs->ascent    = (int)(ft_face->size->metrics.ascender >> 6);
     fs->descent   = (int)(-(ft_face->size->metrics.descender >> 6));
@@ -777,7 +777,7 @@ _XtLoadFontconfigFont(const char *name)
     fs->max_char_or_byte2 = 0;
     fs->min_byte1 = 0;
     fs->max_byte1 = 0;
-    fs->font_family = XtNewString((const char *)matched_family);
+    fs->font_family = IswNewString((const char *)matched_family);
     fs->font_weight = weight;
     fs->font_slant  = slant;
 
@@ -793,7 +793,7 @@ cleanup:
  * XCB replacement for XLoadFont(display, name)
  * ----------------------------------------------------------------------- */
 static xcb_font_t
-_XtLoadFont(xcb_connection_t *dpy, const char *name)
+_IswLoadFont(xcb_connection_t *dpy, const char *name)
 {
     
     xcb_font_t fid = xcb_generate_id(dpy);
@@ -811,14 +811,14 @@ _XtLoadFont(xcb_connection_t *dpy, const char *name)
  * XCB replacement for XFreeFont(display, fontstruct)
  * ----------------------------------------------------------------------- */
 static void
-_XtFreeFont(xcb_connection_t *dpy, XtFontStruct *fs)
+_IswFreeFont(xcb_connection_t *dpy, IswFontStruct *fs)
 {
     if (fs == NULL) return;
     if (fs->fid != 0)
         xcb_close_font(dpy, fs->fid);
     if (fs->font_family)
-        XtFree(fs->font_family);
-    XtFree((char *) fs);
+        IswFree(fs->font_family);
+    IswFree((char *) fs);
 }
 
 /* -----------------------------------------------------------------------
@@ -826,10 +826,10 @@ _XtFreeFont(xcb_connection_t *dpy, XtFontStruct *fs)
  * Iterates the screen's allowed depths/visuals to find a matching visual.
  * ----------------------------------------------------------------------- */
 static Bool
-_XtMatchVisualInfo(xcb_connection_t *dpy _X_UNUSED,
+_IswMatchVisualInfo(xcb_connection_t *dpy _X_UNUSED,
                    xcb_screen_t *screen,
                    int depth, int class,
-                   XtVisualInfo *vinfo_return)
+                   IswVisualInfo *vinfo_return)
 {
     xcb_depth_iterator_t depth_iter = xcb_screen_allowed_depths_iterator(screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
@@ -855,12 +855,12 @@ _XtMatchVisualInfo(xcb_connection_t *dpy _X_UNUSED,
 }
 
 Boolean
-XtCvtStringToCursor(xcb_connection_t *dpy,
+IswCvtStringToCursor(xcb_connection_t *dpy,
                     XrmValuePtr args,
                     Cardinal *num_args,
                     XrmValuePtr fromVal,
                     XrmValuePtr toVal,
-                    XtPointer *closure_ret _X_UNUSED)
+                    IswPointer *closure_ret _X_UNUSED)
 {
     /* *INDENT-OFF* */
     static const struct _CursorName {
@@ -951,40 +951,40 @@ XtCvtStringToCursor(xcb_connection_t *dpy,
     register Cardinal i;
 
     if (*num_args != 2) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToCursor",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToCursor",
+                        IswCIswToolkitError,
                         "String to cursor conversion needs display and screen arguments",
                         NULL, NULL);
         return False;
     }
 
-    for (i = 0, nP = cursor_names; i < XtNumber(cursor_names); i++, nP++) {
+    for (i = 0, nP = cursor_names; i < IswNumber(cursor_names); i++, nP++) {
         if (strcmp(name, nP->name) == 0) {
             xcb_connection_t *display = *(xcb_connection_t **) args[0].addr;
             xcb_screen_t *screen = *(xcb_screen_t **) args[1].addr;
-            xcb_cursor_t cursor = _XtLoadThemedCursor(display, screen,
+            xcb_cursor_t cursor = _IswLoadThemedCursor(display, screen,
                                                       nP->name, nP->shape);
 
-            done_string(xcb_cursor_t, cursor, XtRCursor);
+            done_string(xcb_cursor_t, cursor, IswRCursor);
         }
     }
-    XtDisplayStringConversionWarning(dpy, name, XtRCursor);
+    IswDisplayStringConversionWarning(dpy, name, IswRCursor);
     return False;
 }
 
 static void
-FreeCursor(XtAppContext app,
+FreeCursor(IswAppContext app,
            XrmValuePtr toVal,
-           XtPointer closure _X_UNUSED,
+           IswPointer closure _X_UNUSED,
            XrmValuePtr args,
            Cardinal *num_args)
 {
     xcb_connection_t *display;
 
     if (*num_args != 1) {
-        XtAppWarningMsg(app,
-                        XtNwrongParameters, "freeCursor", XtCXtToolkitError,
+        IswAppWarningMsg(app,
+                        IswNwrongParameters, "freeCursor", IswCIswToolkitError,
                         "Free Cursor requires display argument", NULL, NULL);
         return;
     }
@@ -994,19 +994,19 @@ FreeCursor(XtAppContext app,
 }
 
 Boolean
-XtCvtStringToDisplay(xcb_connection_t *dpy,
+IswCvtStringToDisplay(xcb_connection_t *dpy,
                      XrmValuePtr args _X_UNUSED,
                      Cardinal *num_args,
                      XrmValuePtr fromVal,
                      XrmValuePtr toVal,
-                     XtPointer *closure_ret _X_UNUSED)
+                     IswPointer *closure_ret _X_UNUSED)
 {
     xcb_connection_t *d;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToDisplay",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToDisplay",
+                        IswCIswToolkitError,
                         "String to Display conversion needs no extra arguments",
                         NULL, NULL);
 
@@ -1014,78 +1014,78 @@ XtCvtStringToDisplay(xcb_connection_t *dpy,
         int screen_num = 0;
         d = xcb_connect((char *) fromVal->addr, &screen_num);
         if (d != NULL && xcb_connection_has_error(d) == 0)
-            done_string(xcb_connection_t *, d, XtRDisplay);
+            done_string(xcb_connection_t *, d, IswRDisplay);
         if (d != NULL)
             xcb_disconnect(d);
     }
 
-    XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRDisplay);
+    IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRDisplay);
     return False;
 }
 
 Boolean
-XtCvtStringToFile(xcb_connection_t *dpy,
+IswCvtStringToFile(xcb_connection_t *dpy,
                   XrmValuePtr args _X_UNUSED,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
                   XrmValuePtr toVal,
-                  XtPointer *closure_ret _X_UNUSED)
+                  IswPointer *closure_ret _X_UNUSED)
 {
     FILE *f;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToFile",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToFile",
+                        IswCIswToolkitError,
                         "String to File conversion needs no extra arguments",
                         NULL, NULL);
 
     f = fopen((char *) fromVal->addr, "r");
     if (f != NULL)
-        done_string(FILE *, f, XtRFile);
+        done_string(FILE *, f, IswRFile);
 
-    XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRFile);
+    IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRFile);
     return False;
 }
 
 static void
-FreeFile(XtAppContext app,
+FreeFile(IswAppContext app,
          XrmValuePtr toVal,
-         XtPointer closure _X_UNUSED,
+         IswPointer closure _X_UNUSED,
          XrmValuePtr args _X_UNUSED,
          Cardinal *num_args)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(app,
-                        XtNwrongParameters, "freeFile", XtCXtToolkitError,
+        IswAppWarningMsg(app,
+                        IswNwrongParameters, "freeFile", IswCIswToolkitError,
                         "Free File requires no extra arguments", NULL, NULL);
 
     fclose(*(FILE **) toVal->addr);
 }
 
 Boolean
-XtCvtIntToFloat(xcb_connection_t *dpy,
+IswCvtIntToFloat(xcb_connection_t *dpy,
                 XrmValuePtr args _X_UNUSED,
                 Cardinal *num_args,
                 XrmValuePtr fromVal,
                 XrmValuePtr toVal,
-                XtPointer *closure_ret _X_UNUSED)
+                IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtIntToFloat", XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtIntToFloat", IswCIswToolkitError,
                         "Integer to Float conversion needs no extra arguments",
                         NULL, NULL);
     done(float, (*(int *) fromVal->addr));
 }
 
 Boolean
-XtCvtStringToFloat(xcb_connection_t *dpy,
+IswCvtStringToFloat(xcb_connection_t *dpy,
                    XrmValuePtr args _X_UNUSED,
                    Cardinal *num_args,
                    XrmValuePtr fromVal,
                    XrmValuePtr toVal,
-                   XtPointer *closure_ret _X_UNUSED)
+                   IswPointer *closure_ret _X_UNUSED)
 {
     int ret;
     float f, nan = 0.0;
@@ -1094,9 +1094,9 @@ XtCvtStringToFloat(xcb_connection_t *dpy,
                   toVal->addr != NULL ? (float *) toVal->addr : &nan);
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToFloat",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToFloat",
+                        IswCIswToolkitError,
                         "String to Float conversion needs no extra arguments",
                         NULL, NULL);
 
@@ -1104,27 +1104,27 @@ XtCvtStringToFloat(xcb_connection_t *dpy,
     if (ret == 0) {
         if (toVal->addr != NULL && toVal->size == sizeof nan)
             *(float *) toVal->addr = nan;
-        XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRFloat);
+        IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRFloat);
         return False;
     }
-    done_string(float, f, XtRFloat);
+    done_string(float, f, IswRFloat);
 }
 
 Boolean
-XtCvtStringToFont(xcb_connection_t *dpy,
+IswCvtStringToFont(xcb_connection_t *dpy,
                   XrmValuePtr args,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
                   XrmValuePtr toVal,
-                  XtPointer *closure_ret _X_UNUSED)
+                  IswPointer *closure_ret _X_UNUSED)
 {
     xcb_font_t f;
     xcb_connection_t *display;
 
     if (*num_args != 1) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToFont",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToFont",
+                        IswCIswToolkitError,
                         "String to font conversion needs display argument",
                         NULL, NULL);
         return False;
@@ -1133,13 +1133,13 @@ XtCvtStringToFont(xcb_connection_t *dpy,
     display = *(xcb_connection_t **) args[0].addr;
 
 
-    if (CompareISOLatin1((String) fromVal->addr, XtDefaultFont) != 0) {
-        f = _XtLoadFont(display, (char *) fromVal->addr);
+    if (CompareISOLatin1((String) fromVal->addr, IswDefaultFont) != 0) {
+        f = _IswLoadFont(display, (char *) fromVal->addr);
 
         if (f != 0) {
- Done:     done_string(xcb_font_t, f, XtRFont);
+ Done:     done_string(xcb_font_t, f, IswRFont);
         }
-        XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRFont);
+        IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRFont);
     } else {
     }
     /* try and get the default font */
@@ -1152,56 +1152,56 @@ XtCvtStringToFont(xcb_connection_t *dpy,
 
         xrm_name[0] = XrmPermStringToQuark("xtDefaultFont");
         xrm_name[1] = 0;
-        xrm_class[0] = XrmPermStringToQuark("XtDefaultFont");
+        xrm_class[0] = XrmPermStringToQuark("IswDefaultFont");
         xrm_class[1] = 0;
-        if (XrmQGetResource(XtDatabase(display), xrm_name, xrm_class,
+        if (XrmQGetResource(IswDatabase(display), xrm_name, xrm_class,
                             &rep_type, &value)) {
-            if (rep_type == _XtQString) {
-                f = _XtLoadFont(display, (char *) value.addr);
+            if (rep_type == _IswQString) {
+                f = _IswLoadFont(display, (char *) value.addr);
 
                 if (f != 0)
                     goto Done;
                 else
-                    XtDisplayStringConversionWarning(dpy, (char *) value.addr,
-                                                     XtRFont);
+                    IswDisplayStringConversionWarning(dpy, (char *) value.addr,
+                                                     IswRFont);
             }
-            else if (rep_type == XtQFont) {
+            else if (rep_type == IswQFont) {
                 f = *(xcb_font_t *) value.addr;
                 goto Done;
             }
-            else if (rep_type == XtQFontStruct) {
-                f = ((XFontStruct *) value.addr)->fid;
+            else if (rep_type == IswQFontStruct) {
+                f = ((IswFontStruct *) value.addr)->fid;
                 goto Done;
             }
         } else {
         }
     }
     /* Should really do XListFonts, but most servers support this */
-    f = _XtLoadFont(display, "-*-*-*-R-*-*-*-120-*-*-*-*-ISO8859-*");
+    f = _IswLoadFont(display, "-*-*-*-R-*-*-*-120-*-*-*-*-ISO8859-*");
 
     if (f != 0) {
         goto Done;
     }
 
-    XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                    "noFont", "cvtStringToFont", XtCXtToolkitError,
+    IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                    "noFont", "cvtStringToFont", IswCIswToolkitError,
                     "Unable to load any usable ISO8859 font", NULL, NULL);
 
     return False;
 }
 
 static void
-FreeFont(XtAppContext app,
+FreeFont(IswAppContext app,
          XrmValuePtr toVal,
-         XtPointer closure _X_UNUSED,
+         IswPointer closure _X_UNUSED,
          XrmValuePtr args,
          Cardinal *num_args)
 {
     xcb_connection_t *display;
 
     if (*num_args != 1) {
-        XtAppWarningMsg(app,
-                        XtNwrongParameters, "freeFont", XtCXtToolkitError,
+        IswAppWarningMsg(app,
+                        IswNwrongParameters, "freeFont", IswCIswToolkitError,
                         "Free Font needs display argument", NULL, NULL);
         return;
     }
@@ -1211,47 +1211,47 @@ FreeFont(XtAppContext app,
 }
 
 Boolean
-XtCvtIntToFont(xcb_connection_t *dpy,
+IswCvtIntToFont(xcb_connection_t *dpy,
                XrmValuePtr args _X_UNUSED,
                Cardinal *num_args,
                XrmValuePtr fromVal,
                XrmValuePtr toVal,
-               XtPointer *closure_ret _X_UNUSED)
+               IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtIntToFont", XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtIntToFont", IswCIswToolkitError,
                         "Integer to Font conversion needs no extra arguments",
                         NULL, NULL);
     done(xcb_font_t, *(int *) fromVal->addr);
 }
 
 Boolean
-XtCvtStringToFontSet(xcb_connection_t *dpy,
+IswCvtStringToFontSet(xcb_connection_t *dpy,
                      XrmValuePtr args _X_UNUSED,
                      Cardinal *num_args _X_UNUSED,
                      XrmValuePtr fromVal _X_UNUSED,
                      XrmValuePtr toVal _X_UNUSED,
-                     XtPointer *closure_ret _X_UNUSED)
+                     IswPointer *closure_ret _X_UNUSED)
 {
-    /* XFontSet is an Xlib-specific locale font abstraction with no XCB
+    /* IswFontSet is an Xlib-specific locale font abstraction with no XCB
      * equivalent. This converter is not functional in the XCB port.
      * Applications requiring FontSet support should use a higher-level
      * text rendering library (e.g., Pango, Cairo, or libxkbcommon). */
-    XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                    "noFontSet", "cvtStringToFontSet", XtCXtToolkitError,
+    IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                    "noFontSet", "cvtStringToFontSet", IswCIswToolkitError,
                     "FontSet conversion not supported in XCB port", NULL, NULL);
     return False;
 }
 
 static void
-FreeFontSet(XtAppContext app _X_UNUSED,
+FreeFontSet(IswAppContext app _X_UNUSED,
             XrmValuePtr toVal _X_UNUSED,
-            XtPointer closure _X_UNUSED,
+            IswPointer closure _X_UNUSED,
             XrmValuePtr args _X_UNUSED,
             Cardinal *num_args _X_UNUSED)
 {
-    /* No-op: XFontSet not supported in XCB port */
+    /* No-op: IswFontSet not supported in XCB port */
 }
 
 static void
@@ -1264,31 +1264,31 @@ FetchLocaleArg(Widget widget _X_UNUSED,
     locale = XrmQuarkToString(XrmStringToQuark
                               (setlocale(LC_CTYPE, (char *) NULL)));
     value->size = sizeof(const char *);
-    value->addr = (XtPointer) &locale;
+    value->addr = (IswPointer) &locale;
 }
 
 /* *INDENT-OFF* */
-static XtConvertArgRec const localeDisplayConvertArgs[] = {
-    {XtProcedureArg, (XtPointer)FetchDisplayArg, 0},
-    {XtProcedureArg, (XtPointer)FetchLocaleArg, 0},
+static IswConvertArgRec const localeDisplayConvertArgs[] = {
+    {IswProcedureArg, (IswPointer)FetchDisplayArg, 0},
+    {IswProcedureArg, (IswPointer)FetchLocaleArg, 0},
 };
 /* *INDENT-ON* */
 
 Boolean
-XtCvtStringToFontStruct(xcb_connection_t *dpy,
+IswCvtStringToFontStruct(xcb_connection_t *dpy,
                         XrmValuePtr args,
                         Cardinal *num_args,
                         XrmValuePtr fromVal,
                         XrmValuePtr toVal,
-                        XtPointer *closure_ret _X_UNUSED)
+                        IswPointer *closure_ret _X_UNUSED)
 {
-    XFontStruct *f;
+    IswFontStruct *f;
     xcb_connection_t *display;
 
     if (*num_args != 1) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToFontStruct",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToFontStruct",
+                        IswCIswToolkitError,
                         "String to font conversion needs display argument",
                         NULL, NULL);
         return False;
@@ -1296,16 +1296,16 @@ XtCvtStringToFontStruct(xcb_connection_t *dpy,
 
     display = *(xcb_connection_t **) args[0].addr;
 
-    if (CompareISOLatin1((String) fromVal->addr, XtDefaultFont) != 0) {
-        f = _XtLoadFontconfigFont((const char *) fromVal->addr);
+    if (CompareISOLatin1((String) fromVal->addr, IswDefaultFont) != 0) {
+        f = _IswLoadFontconfigFont((const char *) fromVal->addr);
         if (f != NULL) {
- Done:      done_string(XFontStruct *, f, XtRFontStruct);
+ Done:      done_string(IswFontStruct *, f, IswRFontStruct);
         }
-        XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
-                                         XtRFontStruct);
+        IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
+                                         IswRFontStruct);
     }
 
-    /* XtDefaultFont or explicit name failed — check xtDefaultFont resource */
+    /* IswDefaultFont or explicit name failed — check xtDefaultFont resource */
     {
         XrmName xrm_name[2];
         XrmClass xrm_class[2];
@@ -1314,215 +1314,215 @@ XtCvtStringToFontStruct(xcb_connection_t *dpy,
 
         xrm_name[0] = XrmPermStringToQuark("xtDefaultFont");
         xrm_name[1] = 0;
-        xrm_class[0] = XrmPermStringToQuark("XtDefaultFont");
+        xrm_class[0] = XrmPermStringToQuark("IswDefaultFont");
         xrm_class[1] = 0;
-        if (XrmQGetResource(XtDatabase(display), xrm_name, xrm_class,
+        if (XrmQGetResource(IswDatabase(display), xrm_name, xrm_class,
                             &rep_type, &value)) {
-            if (rep_type == _XtQString) {
-                f = _XtLoadFontconfigFont((const char *) value.addr);
+            if (rep_type == _IswQString) {
+                f = _IswLoadFontconfigFont((const char *) value.addr);
                 if (f != NULL) goto Done;
-                XtDisplayStringConversionWarning(dpy, (char *) value.addr,
-                                                 XtRFontStruct);
+                IswDisplayStringConversionWarning(dpy, (char *) value.addr,
+                                                 IswRFontStruct);
             }
-            else if (rep_type == XtQFontStruct) {
-                f = (XFontStruct *) value.addr;
+            else if (rep_type == IswQFontStruct) {
+                f = (IswFontStruct *) value.addr;
                 goto Done;
             }
         }
     }
 
     /* Default: Sans 10pt */
-    f = _XtLoadFontconfigFont("Sans-10");
+    f = _IswLoadFontconfigFont("Sans-10");
     if (f != NULL)
         goto Done;
 
-    XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                    "noFont", "cvtStringToFontStruct", XtCXtToolkitError,
+    IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                    "noFont", "cvtStringToFontStruct", IswCIswToolkitError,
                     "Unable to load any usable font via fontconfig", NULL, NULL);
 
     return False;
 }
 
 static void
-FreeFontStruct(XtAppContext app,
+FreeFontStruct(IswAppContext app,
                XrmValuePtr toVal,
-               XtPointer closure _X_UNUSED,
+               IswPointer closure _X_UNUSED,
                XrmValuePtr args,
                Cardinal *num_args)
 {
     xcb_connection_t *display;
 
     if (*num_args != 1) {
-        XtAppWarningMsg(app,
-                        XtNwrongParameters, "freeFontStruct", XtCXtToolkitError,
+        IswAppWarningMsg(app,
+                        IswNwrongParameters, "freeFontStruct", IswCIswToolkitError,
                         "Free FontStruct requires display argument",
                         NULL, NULL);
         return;
     }
 
     display = *(xcb_connection_t **) args[0].addr;
-    _XtFreeFont(display, *(XtFontStruct **) toVal->addr);
+    _IswFreeFont(display, *(IswFontStruct **) toVal->addr);
 }
 
 Boolean
-XtCvtStringToInt(xcb_connection_t *dpy,
+IswCvtStringToInt(xcb_connection_t *dpy,
                  XrmValuePtr args _X_UNUSED,
                  Cardinal *num_args,
                  XrmValuePtr fromVal,
                  XrmValuePtr toVal,
-                 XtPointer *closure_ret _X_UNUSED)
+                 IswPointer *closure_ret _X_UNUSED)
 {
     int i;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToInt", XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToInt", IswCIswToolkitError,
                         "String to Integer conversion needs no extra arguments",
                         NULL, NULL);
     if (IsInteger((String) fromVal->addr, &i))
-        done_string(int, i, XtRInt);
+        done_string(int, i, IswRInt);
 
-    XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRInt);
+    IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRInt);
     return False;
 }
 
 Boolean
-XtCvtStringToShort(xcb_connection_t *dpy,
+IswCvtStringToShort(xcb_connection_t *dpy,
                    XrmValuePtr args _X_UNUSED,
                    Cardinal *num_args,
                    XrmValuePtr fromVal,
                    XrmValuePtr toVal,
-                   XtPointer *closure_ret _X_UNUSED)
+                   IswPointer *closure_ret _X_UNUSED)
 {
     int i;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToShort",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToShort",
+                        IswCIswToolkitError,
                         "String to Integer conversion needs no extra arguments",
                         NULL, NULL);
     if (IsInteger((String) fromVal->addr, &i))
-        done_string(short, (short) i, XtRShort);
+        done_string(short, (short) i, IswRShort);
 
-    XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRShort);
+    IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRShort);
     return False;
 }
 
 Boolean
-XtCvtStringToDimension(xcb_connection_t *dpy,
+IswCvtStringToDimension(xcb_connection_t *dpy,
                        XrmValuePtr args _X_UNUSED,
                        Cardinal *num_args,
                        XrmValuePtr fromVal,
                        XrmValuePtr toVal,
-                       XtPointer *closure_ret _X_UNUSED)
+                       IswPointer *closure_ret _X_UNUSED)
 {
     int i;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToDimension",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToDimension",
+                        IswCIswToolkitError,
                         "String to Dimension conversion needs no extra arguments",
                         NULL, NULL);
     if (IsInteger((String) fromVal->addr, &i)) {
         if (i < 0)
-            XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
-                                             XtRDimension);
-        done_string(Dimension, (Dimension) i, XtRDimension);
+            IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
+                                             IswRDimension);
+        done_string(Dimension, (Dimension) i, IswRDimension);
     }
-    XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRDimension);
+    IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRDimension);
     return False;
 }
 
 Boolean
-XtCvtIntToUnsignedChar(xcb_connection_t *dpy,
+IswCvtIntToUnsignedChar(xcb_connection_t *dpy,
                        XrmValuePtr args _X_UNUSED,
                        Cardinal *num_args,
                        XrmValuePtr fromVal,
                        XrmValuePtr toVal,
-                       XtPointer *closure_ret _X_UNUSED)
+                       IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtIntToUnsignedChar",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtIntToUnsignedChar",
+                        IswCIswToolkitError,
                         "Integer to UnsignedChar conversion needs no extra arguments",
                         NULL, NULL);
     done(unsigned char, (*(int *) fromVal->addr));
 }
 
 Boolean
-XtCvtStringToUnsignedChar(xcb_connection_t *dpy,
+IswCvtStringToUnsignedChar(xcb_connection_t *dpy,
                           XrmValuePtr args _X_UNUSED,
                           Cardinal *num_args,
                           XrmValuePtr fromVal,
                           XrmValuePtr toVal,
-                          XtPointer *closure_ret _X_UNUSED)
+                          IswPointer *closure_ret _X_UNUSED)
 {
     int i;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToUnsignedChar",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToUnsignedChar",
+                        IswCIswToolkitError,
                         "String to Integer conversion needs no extra arguments",
                         NULL, NULL);
     if (IsInteger((String) fromVal->addr, &i)) {
         if (i < 0 || i > 255)
-            XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
-                                             XtRUnsignedChar);
-        done_string(unsigned char, i, XtRUnsignedChar);
+            IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
+                                             IswRUnsignedChar);
+        done_string(unsigned char, i, IswRUnsignedChar);
     }
-    XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
-                                     XtRUnsignedChar);
+    IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
+                                     IswRUnsignedChar);
     return False;
 }
 
 Boolean
-XtCvtColorToPixel(xcb_connection_t *dpy,
+IswCvtColorToPixel(xcb_connection_t *dpy,
                   XrmValuePtr args _X_UNUSED,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
                   XrmValuePtr toVal,
-                  XtPointer *closure_ret _X_UNUSED)
+                  IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtXColorToPixel",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtXColorToPixel",
+                        IswCIswToolkitError,
                         "Color to Pixel conversion needs no extra arguments",
                         NULL, NULL);
-    done(Pixel, ((XColor *) fromVal->addr)->pixel);
+    done(Pixel, ((IswColor *) fromVal->addr)->pixel);
 }
 
 Boolean
-XtCvtIntToPixel(xcb_connection_t *dpy,
+IswCvtIntToPixel(xcb_connection_t *dpy,
                 XrmValuePtr args _X_UNUSED,
                 Cardinal *num_args,
                 XrmValuePtr fromVal,
                 XrmValuePtr toVal,
-                XtPointer *closure_ret _X_UNUSED)
+                IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtIntToPixel", XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtIntToPixel", IswCIswToolkitError,
                         "Integer to Pixel conversion needs no extra arguments",
                         NULL, NULL);
     done(Pixel, *(int *) fromVal->addr);
 }
 
 Boolean
-XtCvtIntToPixmap(xcb_connection_t *dpy,
+IswCvtIntToPixmap(xcb_connection_t *dpy,
                  XrmValuePtr args _X_UNUSED,
                  Cardinal *num_args,
                  XrmValuePtr fromVal,
                  XrmValuePtr toVal,
-                 XtPointer *closure_ret _X_UNUSED)
+                 IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtIntToPixmap", XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtIntToPixmap", IswCIswToolkitError,
                         "Integer to Pixmap conversion needs no extra arguments",
                         NULL, NULL);
     done(xcb_pixmap_t, *(int *) fromVal->addr);
@@ -1598,62 +1598,62 @@ CopyISOLatin1Lowered(char *dst, const char *src)
 }
 
 Boolean
-XtCvtStringToInitialState(xcb_connection_t *dpy,
+IswCvtStringToInitialState(xcb_connection_t *dpy,
                           XrmValuePtr args _X_UNUSED,
                           Cardinal *num_args,
                           XrmValuePtr fromVal,
                           XrmValuePtr toVal,
-                          XtPointer *closure_ret _X_UNUSED)
+                          IswPointer *closure_ret _X_UNUSED)
 {
     String str = (String) fromVal->addr;
 
     if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToInitialState",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToInitialState",
+                        IswCIswToolkitError,
                         "String to InitialState conversion needs no extra arguments",
                         NULL, NULL);
 
     if (CompareISOLatin1(str, "NormalState") == 0)
-        done_string(int, XCB_ICCCM_WM_STATE_NORMAL, XtRInitialState);
+        done_string(int, XCB_ICCCM_WM_STATE_NORMAL, IswRInitialState);
 
     if (CompareISOLatin1(str, "IconicState") == 0)
-        done_string(int, XCB_ICCCM_WM_STATE_ICONIC, XtRInitialState);
+        done_string(int, XCB_ICCCM_WM_STATE_ICONIC, IswRInitialState);
 
     {
         int val;
 
         if (IsInteger(str, &val))
-            done_string(int, val, XtRInitialState);
+            done_string(int, val, IswRInitialState);
     }
-    XtDisplayStringConversionWarning(dpy, str, XtRInitialState);
+    IswDisplayStringConversionWarning(dpy, str, IswRInitialState);
     return False;
 }
 
 /* *INDENT-OFF* */
-static XtConvertArgRec const visualConvertArgs[] = {
-    {XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.screen),
+static IswConvertArgRec const visualConvertArgs[] = {
+    {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
      sizeof(xcb_screen_t *)},
-    {XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.depth),
+    {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.depth),
      sizeof(Cardinal)}
 };
 /* *INDENT-ON* */
 
 Boolean
-XtCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, depth */
+IswCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, depth */
                     Cardinal *num_args,        /* 2 */
                     XrmValuePtr fromVal,
                     XrmValuePtr toVal,
-                    XtPointer *closure_ret _X_UNUSED)
+                    IswPointer *closure_ret _X_UNUSED)
 {
     String str = (String) fromVal->addr;
     int vc;
-    XVisualInfo vinfo;
+    IswVisualInfo vinfo;
 
     if (*num_args != 2) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToVisual",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToVisual",
+                        IswCIswToolkitError,
                         "String to Visual conversion needs screen and depth arguments",
                         NULL, NULL);
         return False;
@@ -1672,15 +1672,15 @@ XtCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, dept
     else if (CompareISOLatin1(str, "DirectColor") == 0)
         vc = XCB_VISUAL_CLASS_DIRECT_COLOR;
     else if (!IsInteger(str, &vc)) {
-        XtDisplayStringConversionWarning(dpy, str, "Visual class name");
+        IswDisplayStringConversionWarning(dpy, str, "Visual class name");
         return False;
     }
 
     {
         xcb_screen_t *screen = *(xcb_screen_t **) args[0].addr;
-        if (_XtMatchVisualInfo(dpy, screen,
+        if (_IswMatchVisualInfo(dpy, screen,
                                (int) *(int *) args[1].addr, vc, &vinfo)) {
-            done_string(xcb_visualtype_t *, vinfo.visual, XtRVisual);
+            done_string(xcb_visualtype_t *, vinfo.visual, IswRVisual);
         }
         else {
             String params[2];
@@ -1691,8 +1691,8 @@ XtCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, dept
 
             params[0] = str;
             params[1] = (String) vendor;
-            XtAppWarningMsg(XtDisplayToApplicationContext(dpy), XtNconversionError,
-                            "stringToVisual", XtCXtToolkitError,
+            IswAppWarningMsg(IswDisplayToApplicationContext(dpy), IswNconversionError,
+                            "stringToVisual", IswCIswToolkitError,
                             "Cannot find Visual of class %s for display %s", params,
                             &num_params);
             return False;
@@ -1701,19 +1701,19 @@ XtCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, dept
 }
 
 Boolean
-XtCvtStringToAtom(xcb_connection_t *dpy,
+IswCvtStringToAtom(xcb_connection_t *dpy,
                   XrmValuePtr args,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
                   XrmValuePtr toVal,
-                  XtPointer *closure_ret _X_UNUSED)
+                  IswPointer *closure_ret _X_UNUSED)
 {
     Atom atom;
 
     if (*num_args != 1) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToAtom",
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToAtom",
+                        IswCIswToolkitError,
                         "String to Atom conversion needs Display argument",
                         NULL, NULL);
         return False;
@@ -1726,23 +1726,23 @@ XtCvtStringToAtom(xcb_connection_t *dpy,
                                                               (uint16_t) strlen(name), name);
         xcb_intern_atom_reply_t *ia_reply = xcb_intern_atom_reply(conn, ia_cookie, NULL);
         if (ia_reply == NULL) {
-            XtDisplayStringConversionWarning(dpy, name, XtRAtom);
+            IswDisplayStringConversionWarning(dpy, name, IswRAtom);
             return False;
         }
         atom = ia_reply->atom;
         free(ia_reply);
     }
-    done_string(Atom, atom, XtRAtom);
+    done_string(Atom, atom, IswRAtom);
 }
 
 
 Boolean
-XtCvtStringToGravity(xcb_connection_t *dpy,
+IswCvtStringToGravity(xcb_connection_t *dpy,
                      XrmValuePtr args _X_UNUSED,
                      Cardinal *num_args,
                      XrmValuePtr fromVal,
                      XrmValuePtr toVal,
-                     XtPointer *closure_ret _X_UNUSED)
+                     IswPointer *closure_ret _X_UNUSED)
 {
     /* *INDENT-OFF* */
     static struct _namepair {
@@ -1783,9 +1783,9 @@ XtCvtStringToGravity(xcb_connection_t *dpy,
     struct _namepair *np;
 
     if (*num_args != 0) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                         "wrongParameters", "cvtStringToGravity",
-                        "XtToolkitError",
+                        "IswToolkitError",
                         "String to Gravity conversion needs no extra arguments",
                         NULL, NULL);
         return False;
@@ -1802,83 +1802,83 @@ XtCvtStringToGravity(xcb_connection_t *dpy,
         q = XrmStringToQuark(lowerName);
         for (np = names; np->name; np++)
             if (np->quark == q)
-                done_string(int, np->gravity, XtRGravity);
+                done_string(int, np->gravity, IswRGravity);
     }
-    XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr, XtRGravity);
+    IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRGravity);
     return False;
 }
 
 void
-_XtAddDefaultConverters(ConverterTable table)
+_IswAddDefaultConverters(ConverterTable table)
 {
     
 #define Add(from, to, proc, convert_args, num_args, cache) \
-    _XtTableAddConverter(table, from, to, proc, \
-            (XtConvertArgRec const*) convert_args, (Cardinal)num_args, \
-            True, cache, (XtDestructor)NULL, True)
+    _IswTableAddConverter(table, from, to, proc, \
+            (IswConvertArgRec const*) convert_args, (Cardinal)num_args, \
+            True, cache, (IswDestructor)NULL, True)
 
 #define Add2(from, to, proc, convert_args, num_args, cache, destructor) \
-    _XtTableAddConverter(table, from, to, proc, \
-            (XtConvertArgRec const *) convert_args, (Cardinal)num_args, \
+    _IswTableAddConverter(table, from, to, proc, \
+            (IswConvertArgRec const *) convert_args, (Cardinal)num_args, \
             True, cache, destructor, True)
 
-    Add(XtQColor, XtQPixel, XtCvtColorToPixel, NULL, 0, XtCacheNone);
+    Add(IswQColor, IswQPixel, IswCvtColorToPixel, NULL, 0, IswCacheNone);
 
-    Add(XtQInt, XtQBool, XtCvtIntToBool, NULL, 0, XtCacheNone);
-    Add(XtQInt, XtQBoolean, XtCvtIntToBoolean, NULL, 0, XtCacheNone);
-    Add(XtQInt, XtQColor, XtCvtIntToColor,
-        colorConvertArgs, XtNumber(colorConvertArgs), XtCacheByDisplay);
-    Add(XtQInt, XtQDimension, XtCvtIntToShort, NULL, 0, XtCacheNone);
-    Add(XtQInt, XtQFloat, XtCvtIntToFloat, NULL, 0, XtCacheNone);
-    Add(XtQInt, XtQFont, XtCvtIntToFont, NULL, 0, XtCacheNone);
-    Add(XtQInt, XtQPixel, XtCvtIntToPixel, NULL, 0, XtCacheNone);
-    Add(XtQInt, XtQPixmap, XtCvtIntToPixmap, NULL, 0, XtCacheNone);
-    Add(XtQInt, XtQPosition, XtCvtIntToShort, NULL, 0, XtCacheNone);
-    Add(XtQInt, XtQShort, XtCvtIntToShort, NULL, 0, XtCacheNone);
-    Add(XtQInt, XtQUnsignedChar, XtCvtIntToUnsignedChar, NULL, 0, XtCacheNone);
+    Add(IswQInt, IswQBool, IswCvtIntToBool, NULL, 0, IswCacheNone);
+    Add(IswQInt, IswQBoolean, IswCvtIntToBoolean, NULL, 0, IswCacheNone);
+    Add(IswQInt, IswQColor, IswCvtIntToColor,
+        colorConvertArgs, IswNumber(colorConvertArgs), IswCacheByDisplay);
+    Add(IswQInt, IswQDimension, IswCvtIntToShort, NULL, 0, IswCacheNone);
+    Add(IswQInt, IswQFloat, IswCvtIntToFloat, NULL, 0, IswCacheNone);
+    Add(IswQInt, IswQFont, IswCvtIntToFont, NULL, 0, IswCacheNone);
+    Add(IswQInt, IswQPixel, IswCvtIntToPixel, NULL, 0, IswCacheNone);
+    Add(IswQInt, IswQPixmap, IswCvtIntToPixmap, NULL, 0, IswCacheNone);
+    Add(IswQInt, IswQPosition, IswCvtIntToShort, NULL, 0, IswCacheNone);
+    Add(IswQInt, IswQShort, IswCvtIntToShort, NULL, 0, IswCacheNone);
+    Add(IswQInt, IswQUnsignedChar, IswCvtIntToUnsignedChar, NULL, 0, IswCacheNone);
 
-    Add(XtQPixel, XtQColor, XtCvtIntToColor,
-        colorConvertArgs, XtNumber(colorConvertArgs), XtCacheByDisplay);
+    Add(IswQPixel, IswQColor, IswCvtIntToColor,
+        colorConvertArgs, IswNumber(colorConvertArgs), IswCacheByDisplay);
 
-    Add(_XtQString, XtQAtom, XtCvtStringToAtom,
-        displayConvertArg, XtNumber(displayConvertArg), XtCacheNone);
-    Add(_XtQString, XtQBool, XtCvtStringToBool, NULL, 0, XtCacheNone);
-    Add(_XtQString, XtQBoolean, XtCvtStringToBoolean, NULL, 0, XtCacheNone);
-    Add2(_XtQString, XtQCursor, XtCvtStringToCursor,
-         cursorConvertArgs, XtNumber(cursorConvertArgs),
-         XtCacheByDisplay, FreeCursor);
-    Add(_XtQString, XtQDimension, XtCvtStringToDimension, NULL, 0, XtCacheNone);
-    Add(_XtQString, XtQDisplay, XtCvtStringToDisplay, NULL, 0, XtCacheAll);
-    Add2(_XtQString, XtQFile, XtCvtStringToFile, NULL, 0,
-         XtCacheAll | XtCacheRefCount, FreeFile);
-    Add(_XtQString, XtQFloat, XtCvtStringToFloat, NULL, 0, XtCacheNone);
+    Add(_IswQString, IswQAtom, IswCvtStringToAtom,
+        displayConvertArg, IswNumber(displayConvertArg), IswCacheNone);
+    Add(_IswQString, IswQBool, IswCvtStringToBool, NULL, 0, IswCacheNone);
+    Add(_IswQString, IswQBoolean, IswCvtStringToBoolean, NULL, 0, IswCacheNone);
+    Add2(_IswQString, IswQCursor, IswCvtStringToCursor,
+         cursorConvertArgs, IswNumber(cursorConvertArgs),
+         IswCacheByDisplay, FreeCursor);
+    Add(_IswQString, IswQDimension, IswCvtStringToDimension, NULL, 0, IswCacheNone);
+    Add(_IswQString, IswQDisplay, IswCvtStringToDisplay, NULL, 0, IswCacheAll);
+    Add2(_IswQString, IswQFile, IswCvtStringToFile, NULL, 0,
+         IswCacheAll | IswCacheRefCount, FreeFile);
+    Add(_IswQString, IswQFloat, IswCvtStringToFloat, NULL, 0, IswCacheNone);
 
-    Add2(_XtQString, XtQFont, XtCvtStringToFont,
-         displayConvertArg, XtNumber(displayConvertArg),
-         XtCacheByDisplay, FreeFont);
+    Add2(_IswQString, IswQFont, IswCvtStringToFont,
+         displayConvertArg, IswNumber(displayConvertArg),
+         IswCacheByDisplay, FreeFont);
     
-    //Add2(_XtQString, XtQFontSet, XtCvtStringToFontSet,
-    //     localeDisplayConvertArgs, XtNumber(localeDisplayConvertArgs),
-    //     XtCacheByDisplay, FreeFontSet);
+    //Add2(_IswQString, IswQFontSet, IswCvtStringToFontSet,
+    //     localeDisplayConvertArgs, IswNumber(localeDisplayConvertArgs),
+    //     IswCacheByDisplay, FreeFontSet);
     
-    Add2(_XtQString, XtQFontStruct, XtCvtStringToFontStruct,
-         displayConvertArg, XtNumber(displayConvertArg),
-         XtCacheByDisplay, FreeFontStruct);
+    Add2(_IswQString, IswQFontStruct, IswCvtStringToFontStruct,
+         displayConvertArg, IswNumber(displayConvertArg),
+         IswCacheByDisplay, FreeFontStruct);
 
-    Add(_XtQString, XtQGravity, XtCvtStringToGravity, NULL, 0, XtCacheNone);
-    Add(_XtQString, XtQInitialState, XtCvtStringToInitialState, NULL, 0,
-        XtCacheNone);
-    Add(_XtQString, XtQInt, XtCvtStringToInt, NULL, 0, XtCacheAll);
-    Add2(_XtQString, XtQPixel, XtCvtStringToPixel,
-         colorConvertArgs, XtNumber(colorConvertArgs),
-         XtCacheByDisplay, FreePixel);
-    Add(_XtQString, XtQPosition, XtCvtStringToShort, NULL, 0, XtCacheAll);
-    Add(_XtQString, XtQShort, XtCvtStringToShort, NULL, 0, XtCacheAll);
-    Add(_XtQString, XtQUnsignedChar, XtCvtStringToUnsignedChar,
-        NULL, 0, XtCacheAll);
-    Add2(_XtQString, XtQVisual, XtCvtStringToVisual,
-         visualConvertArgs, XtNumber(visualConvertArgs),
-         XtCacheByDisplay, NULL);
+    Add(_IswQString, IswQGravity, IswCvtStringToGravity, NULL, 0, IswCacheNone);
+    Add(_IswQString, IswQInitialState, IswCvtStringToInitialState, NULL, 0,
+        IswCacheNone);
+    Add(_IswQString, IswQInt, IswCvtStringToInt, NULL, 0, IswCacheAll);
+    Add2(_IswQString, IswQPixel, IswCvtStringToPixel,
+         colorConvertArgs, IswNumber(colorConvertArgs),
+         IswCacheByDisplay, FreePixel);
+    Add(_IswQString, IswQPosition, IswCvtStringToShort, NULL, 0, IswCacheAll);
+    Add(_IswQString, IswQShort, IswCvtStringToShort, NULL, 0, IswCacheAll);
+    Add(_IswQString, IswQUnsignedChar, IswCvtStringToUnsignedChar,
+        NULL, 0, IswCacheAll);
+    Add2(_IswQString, IswQVisual, IswCvtStringToVisual,
+         visualConvertArgs, IswNumber(visualConvertArgs),
+         IswCacheByDisplay, NULL);
 
-    _XtAddTMConverters(table);
+    _IswAddTMConverters(table);
 }

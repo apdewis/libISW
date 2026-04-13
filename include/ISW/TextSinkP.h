@@ -153,15 +153,15 @@ typedef struct _TextSinkRec {
  *
  ************************************************************/
 
-#define XtInheritDisplayText	   ((_IswSinkDisplayTextProc)_XtInherit)
-#define XtInheritInsertCursor	   ((_IswSinkInsertCursorProc)_XtInherit)
-#define XtInheritClearToBackground ((_IswSinkClearToBackgroundProc)_XtInherit)
-#define XtInheritFindPosition	   ((_IswSinkFindPositionProc)_XtInherit)
-#define XtInheritFindDistance	   ((_IswSinkFindDistanceProc)_XtInherit)
-#define XtInheritResolve	   ((_IswSinkResolveProc)_XtInherit)
-#define XtInheritMaxLines	   ((_IswSinkMaxLinesProc)_XtInherit)
-#define XtInheritMaxHeight	   ((_IswSinkMaxHeightProc)_XtInherit)
-#define XtInheritSetTabs	   ((_IswSinkSetTabsProc)_XtInherit)
-#define XtInheritGetCursorBounds   ((_IswSinkGetCursorBoundsProc)_XtInherit)
+#define IswInheritDisplayText	   ((_IswSinkDisplayTextProc)_IswInherit)
+#define IswInheritInsertCursor	   ((_IswSinkInsertCursorProc)_IswInherit)
+#define IswInheritClearToBackground ((_IswSinkClearToBackgroundProc)_IswInherit)
+#define IswInheritFindPosition	   ((_IswSinkFindPositionProc)_IswInherit)
+#define IswInheritFindDistance	   ((_IswSinkFindDistanceProc)_IswInherit)
+#define IswInheritResolve	   ((_IswSinkResolveProc)_IswInherit)
+#define IswInheritMaxLines	   ((_IswSinkMaxLinesProc)_IswInherit)
+#define IswInheritMaxHeight	   ((_IswSinkMaxHeightProc)_IswInherit)
+#define IswInheritSetTabs	   ((_IswSinkSetTabsProc)_IswInherit)
+#define IswInheritGetCursorBounds   ((_IswSinkGetCursorBoundsProc)_IswInherit)
 
 #endif /* _ISW_IswTextSinkP_h */

@@ -76,7 +76,7 @@ typedef struct _ViewportPart {
     Boolean allowvert;		/* Whether we allow vertical scrollbars. */
     Boolean usebottom;		/* True iff horiz bars appear at bottom. */
     Boolean useright;		/* True iff vert bars appear at right. */
-    XtCallbackList report_callbacks;	/* when size/position changes */
+    IswCallbackList report_callbacks;	/* when size/position changes */
     /* private state */
     Widget clip, child;		/* The clipping and (scrolled) child widgets */
     Widget  horiz_bar, vert_bar;/* What scrollbars we currently have. */

@@ -9,7 +9,7 @@
 #include "config.h"
 #endif
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <stdlib.h>

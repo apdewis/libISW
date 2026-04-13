@@ -45,7 +45,7 @@ typedef struct _PannerClassRec {	/* Panner widget class */
 
 typedef struct {			/* new fields in widget */
     /* resources... */
-    XtCallbackList report_callbacks;	/* callback/Callback */
+    IswCallbackList report_callbacks;	/* callback/Callback */
     Boolean allow_off;			/* allowOff/AllowOff */
     Boolean resize_to_pref;		/* resizeToPreferred/Boolean */
     Pixel foreground;			/* foreground/Foreground */

@@ -51,9 +51,9 @@ SOFTWARE.
 
 #endif
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
-#include <X11/Shell.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
+#include <ISW/Shell.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <ISW/ISWRender.h>
@@ -129,11 +129,11 @@ extern void _IswTextZapSelection(TextWidget, xcb_generic_event_t *, Boolean);
 /*
  * Defined in Text.c
  */
-static void UnrealizeScrollbars(Widget, XtPointer, XtPointer);
-static void VScroll(Widget, XtPointer, XtPointer);
-static void VJump(Widget, XtPointer, XtPointer);
-static void HScroll(Widget, XtPointer, XtPointer);
-static void HJump(Widget, XtPointer, XtPointer);
+static void UnrealizeScrollbars(Widget, IswPointer, IswPointer);
+static void VScroll(Widget, IswPointer, IswPointer);
+static void VJump(Widget, IswPointer, IswPointer);
+static void HScroll(Widget, IswPointer, IswPointer);
+static void HJump(Widget, IswPointer, IswPointer);
 static void ClearWindow(Widget);
 static void DisplayTextWindow(Widget);
 static void ModifySelection(TextWidget, ISWTextPosition, ISWTextPosition);
@@ -175,7 +175,7 @@ _TextDrawShadows(TextWidget ctx, Position x0, Position y0, Position x1, Position
 #ifdef ISW_INTERNATIONALIZATION
 /* IswWcToUtf8: Convert wide-char string to UTF-8
  * Returns malloced UTF-8 string or NULL on failure
- * Caller must free returned string with XtFree()
+ * Caller must free returned string with IswFree()
  */
 static char *
 IswWcToUtf8(const wchar_t *wcs, int wc_len, int *utf8_len_out)
@@ -204,53 +204,53 @@ static IswTextSelectType defaultSelectTypes[] = {
   IswselectAll,      IswselectNull,
 };
 
-static XtPointer defaultSelectTypesPtr = (XtPointer)defaultSelectTypes;
+static IswPointer defaultSelectTypesPtr = (IswPointer)defaultSelectTypes;
 extern char *_IswDefaultTextTranslations1, *_IswDefaultTextTranslations2,
   *_IswDefaultTextTranslations3, *_IswDefaultTextTranslations4;
 static Dimension defWidth = 100;
 static Dimension defHeight = DEFAULT_TEXT_HEIGHT;
 
-#define offset(field) XtOffsetOf(TextRec, field)
-static XtResource resources[] = {
-  {XtNwidth, XtCWidth, XtRDimension, sizeof(Dimension),
-     offset(core.width), XtRDimension, (XtPointer)&defWidth},
-  {XtNcursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
-     offset(simple.cursor), XtRString, "xterm"},
-  {XtNheight, XtCHeight, XtRDimension, sizeof(Dimension),
-     offset(core.height), XtRDimension, (XtPointer)&defHeight},
-  {XtNdisplayPosition, XtCTextPosition, XtRInt, sizeof(ISWTextPosition),
-     offset(text.lt.top), XtRImmediate, (XtPointer)0},
-  {XtNinsertPosition, XtCTextPosition, XtRInt, sizeof(ISWTextPosition),
-     offset(text.insertPos), XtRImmediate,(XtPointer)0},
-  {XtNleftMargin, XtCMargin, XtRPosition, sizeof (Position),
-     offset(text.r_margin.left), XtRImmediate, (XtPointer)2},
-  {XtNrightMargin, XtCMargin, XtRPosition, sizeof (Position),
-     offset(text.r_margin.right), XtRImmediate, (XtPointer)4},
-  {XtNtopMargin, XtCMargin, XtRPosition, sizeof (Position),
-     offset(text.r_margin.top), XtRImmediate, (XtPointer)2},
-  {XtNbottomMargin, XtCMargin, XtRPosition, sizeof (Position),
-     offset(text.r_margin.bottom), XtRImmediate, (XtPointer)2},
-  {XtNselectTypes, XtCSelectTypes, XtRPointer,
+#define offset(field) IswOffsetOf(TextRec, field)
+static IswResource resources[] = {
+  {IswNwidth, IswCWidth, IswRDimension, sizeof(Dimension),
+     offset(core.width), IswRDimension, (IswPointer)&defWidth},
+  {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+     offset(simple.cursor), IswRString, "xterm"},
+  {IswNheight, IswCHeight, IswRDimension, sizeof(Dimension),
+     offset(core.height), IswRDimension, (IswPointer)&defHeight},
+  {IswNdisplayPosition, IswCTextPosition, IswRInt, sizeof(ISWTextPosition),
+     offset(text.lt.top), IswRImmediate, (IswPointer)0},
+  {IswNinsertPosition, IswCTextPosition, IswRInt, sizeof(ISWTextPosition),
+     offset(text.insertPos), IswRImmediate,(IswPointer)0},
+  {IswNleftMargin, IswCMargin, IswRPosition, sizeof (Position),
+     offset(text.r_margin.left), IswRImmediate, (IswPointer)2},
+  {IswNrightMargin, IswCMargin, IswRPosition, sizeof (Position),
+     offset(text.r_margin.right), IswRImmediate, (IswPointer)4},
+  {IswNtopMargin, IswCMargin, IswRPosition, sizeof (Position),
+     offset(text.r_margin.top), IswRImmediate, (IswPointer)2},
+  {IswNbottomMargin, IswCMargin, IswRPosition, sizeof (Position),
+     offset(text.r_margin.bottom), IswRImmediate, (IswPointer)2},
+  {IswNselectTypes, IswCSelectTypes, IswRPointer,
      sizeof(IswTextSelectType*), offset(text.sarray),
-     XtRPointer, (XtPointer)&defaultSelectTypesPtr},
-  {XtNtextSource, XtCTextSource, XtRWidget, sizeof (Widget),
-     offset(text.source), XtRImmediate, NULL},
-  {XtNtextSink, XtCTextSink, XtRWidget, sizeof (Widget),
-     offset(text.sink), XtRImmediate, NULL},
-  {XtNdisplayCaret, XtCOutput, XtRBoolean, sizeof(Boolean),
-     offset(text.display_caret), XtRImmediate, (XtPointer)True},
-  {XtNscrollVertical, XtCScroll, XtRScrollMode, sizeof(IswTextScrollMode),
-     offset(text.scroll_vert), XtRImmediate, (XtPointer) IswtextScrollNever},
-  {XtNscrollHorizontal, XtCScroll, XtRScrollMode, sizeof(IswTextScrollMode),
-     offset(text.scroll_horiz), XtRImmediate, (XtPointer) IswtextScrollNever},
-  {XtNwrap, XtCWrap, XtRWrapMode, sizeof(IswTextWrapMode),
-     offset(text.wrap), XtRImmediate, (XtPointer) IswtextWrapNever},
-  {XtNresize, XtCResize, XtRResizeMode, sizeof(IswTextResizeMode),
-     offset(text.resize), XtRImmediate, (XtPointer) IswtextResizeNever},
-  {XtNautoFill, XtCAutoFill, XtRBoolean, sizeof(Boolean),
-     offset(text.auto_fill), XtRImmediate, (XtPointer) FALSE},
-  {XtNunrealizeCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-     offset(text.unrealize_callbacks), XtRCallback, (XtPointer) NULL},
+     IswRPointer, (IswPointer)&defaultSelectTypesPtr},
+  {IswNtextSource, IswCTextSource, IswRWidget, sizeof (Widget),
+     offset(text.source), IswRImmediate, NULL},
+  {IswNtextSink, IswCTextSink, IswRWidget, sizeof (Widget),
+     offset(text.sink), IswRImmediate, NULL},
+  {IswNdisplayCaret, IswCOutput, IswRBoolean, sizeof(Boolean),
+     offset(text.display_caret), IswRImmediate, (IswPointer)True},
+  {IswNscrollVertical, IswCScroll, IswRScrollMode, sizeof(IswTextScrollMode),
+     offset(text.scroll_vert), IswRImmediate, (IswPointer) IswtextScrollNever},
+  {IswNscrollHorizontal, IswCScroll, IswRScrollMode, sizeof(IswTextScrollMode),
+     offset(text.scroll_horiz), IswRImmediate, (IswPointer) IswtextScrollNever},
+  {IswNwrap, IswCWrap, IswRWrapMode, sizeof(IswTextWrapMode),
+     offset(text.wrap), IswRImmediate, (IswPointer) IswtextWrapNever},
+  {IswNresize, IswCResize, IswRResizeMode, sizeof(IswTextResizeMode),
+     offset(text.resize), IswRImmediate, (IswPointer) IswtextResizeNever},
+  {IswNautoFill, IswCAutoFill, IswRBoolean, sizeof(Boolean),
+     offset(text.auto_fill), IswRImmediate, (IswPointer) FALSE},
+  {IswNunrealizeCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+     offset(text.unrealize_callbacks), IswRCallback, (IswPointer) NULL},
 };
 #undef offset
 
@@ -266,9 +266,9 @@ CvtStringToScrollMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   static Boolean inited = FALSE;
 
   if ( !inited ) {
-    QScrollNever      = XrmPermStringToQuark(XtEtextScrollNever);
-    QScrollWhenNeeded = XrmPermStringToQuark(XtEtextScrollWhenNeeded);
-    QScrollAlways     = XrmPermStringToQuark(XtEtextScrollAlways);
+    QScrollNever      = XrmPermStringToQuark(IswEtextScrollNever);
+    QScrollWhenNeeded = XrmPermStringToQuark(IswEtextScrollWhenNeeded);
+    QScrollAlways     = XrmPermStringToQuark(IswEtextScrollAlways);
     inited = TRUE;
   }
 
@@ -285,7 +285,7 @@ CvtStringToScrollMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
       return;
     }
     toVal->size = sizeof scrollMode;
-    toVal->addr = (XtPointer) &scrollMode;
+    toVal->addr = (IswPointer) &scrollMode;
     return;
   }
   toVal->size = 0;
@@ -304,9 +304,9 @@ CvtStringToWrapMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   static Boolean inited = FALSE;
 
   if ( !inited ) {
-    QWrapNever = XrmPermStringToQuark(XtEtextWrapNever);
-    QWrapLine  = XrmPermStringToQuark(XtEtextWrapLine);
-    QWrapWord  = XrmPermStringToQuark(XtEtextWrapWord);
+    QWrapNever = XrmPermStringToQuark(IswEtextWrapNever);
+    QWrapLine  = XrmPermStringToQuark(IswEtextWrapLine);
+    QWrapWord  = XrmPermStringToQuark(IswEtextWrapWord);
     inited = TRUE;
   }
 
@@ -323,7 +323,7 @@ CvtStringToWrapMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
       return;
     }
     toVal->size = sizeof wrapMode;
-    toVal->addr = (XtPointer) &wrapMode;
+    toVal->addr = (IswPointer) &wrapMode;
     return;
   }
   toVal->size = 0;
@@ -342,10 +342,10 @@ CvtStringToResizeMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   static Boolean inited = FALSE;
 
   if ( !inited ) {
-    QResizeNever      = XrmPermStringToQuark(XtEtextResizeNever);
-    QResizeWidth      = XrmPermStringToQuark(XtEtextResizeWidth);
-    QResizeHeight     = XrmPermStringToQuark(XtEtextResizeHeight);
-    QResizeBoth       = XrmPermStringToQuark(XtEtextResizeBoth);
+    QResizeNever      = XrmPermStringToQuark(IswEtextResizeNever);
+    QResizeWidth      = XrmPermStringToQuark(IswEtextResizeWidth);
+    QResizeHeight     = XrmPermStringToQuark(IswEtextResizeHeight);
+    QResizeBoth       = XrmPermStringToQuark(IswEtextResizeBoth);
     inited = TRUE;
   }
 
@@ -363,7 +363,7 @@ CvtStringToResizeMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
       return;
     }
     toVal->size = sizeof resizeMode;
-    toVal->addr = (XtPointer) &resizeMode;
+    toVal->addr = (IswPointer) &resizeMode;
     return;
   }
   toVal->size = 0;
@@ -377,7 +377,7 @@ ClassInitialize(void)
   int len2 = strlen (_IswDefaultTextTranslations2);
   int len3 = strlen (_IswDefaultTextTranslations3);
   int len4 = strlen (_IswDefaultTextTranslations4);
-  char *buf = XtMalloc ((unsigned)(len1 + len2 + len3 + len4 + 1));
+  char *buf = IswMalloc ((unsigned)(len1 + len2 + len3 + len4 + 1));
   char *cp = buf;
 
   if (!IswFmt8Bit)
@@ -401,12 +401,12 @@ ClassInitialize(void)
   (void) strcpy( cp, _IswDefaultTextTranslations4);
   textWidgetClass->core_class.tm_table = buf;
 
-  XtAddConverter(XtRString, XtRScrollMode, CvtStringToScrollMode,
-			(XtConvertArgList)NULL, (Cardinal)0 );
-  XtAddConverter(XtRString, XtRWrapMode,   CvtStringToWrapMode,
-			(XtConvertArgList)NULL, (Cardinal)0 );
-  XtAddConverter(XtRString, XtRResizeMode, CvtStringToResizeMode,
-			(XtConvertArgList)NULL, (Cardinal)0 );
+  IswAddConverter(IswRString, IswRScrollMode, CvtStringToScrollMode,
+			(IswConvertArgList)NULL, (Cardinal)0 );
+  IswAddConverter(IswRString, IswRWrapMode,   CvtStringToWrapMode,
+			(IswConvertArgList)NULL, (Cardinal)0 );
+  IswAddConverter(IswRString, IswRResizeMode, CvtStringToResizeMode,
+			(IswConvertArgList)NULL, (Cardinal)0 );
 }
 
 /*	Function Name: PositionHScrollBar.
@@ -427,7 +427,7 @@ PositionHScrollBar(TextWidget ctx)
   if (vbar != NULL)
     left += (Position) (vbar->core.width + vbar->core.border_width);
 
-  XtResizeWidget( hbar, ctx->core.width - left - s, hbar->core.height,
+  IswResizeWidget( hbar, ctx->core.width - left - s, hbar->core.height,
 		 hbar->core.border_width );
 
   left = s / 2 - (Position) hbar->core.border_width;
@@ -437,7 +437,7 @@ PositionHScrollBar(TextWidget ctx)
 
   top = ctx->core.height - (hbar->core.height + hbar->core.border_width + s / 2);
 
-  XtMoveWidget( hbar, left, top);
+  IswMoveWidget( hbar, left, top);
 }
 
 /*	Function Name: PositionVScrollBar.
@@ -459,12 +459,12 @@ PositionVScrollBar(TextWidget ctx)
   
   bw = vbar->core.border_width;
 
-  XtResizeWidget( vbar, vbar->core.width, ctx->core.height - s, bw);
+  IswResizeWidget( vbar, vbar->core.width, ctx->core.height - s, bw);
   
   pos = s / 2 - (Position)bw;
   if (pos < 0) pos = 0;
 
-  XtMoveWidget( vbar, pos, pos);
+  IswMoveWidget( vbar, pos, pos);
 }
 
 static void
@@ -476,14 +476,14 @@ CreateVScrollBar(TextWidget ctx)
     return;
 
   ctx->text.vbar = vbar =
-    XtCreateWidget("vScrollbar", scrollbarWidgetClass, (Widget)ctx,
+    IswCreateWidget("vScrollbar", scrollbarWidgetClass, (Widget)ctx,
   (ArgList) NULL, ZERO);
   
-  XtAddCallback( vbar, XtNscrollProc, VScroll, (XtPointer)ctx );
-  XtAddCallback( vbar, XtNjumpProc, VJump, (XtPointer)ctx );
+  IswAddCallback( vbar, IswNscrollProc, VScroll, (IswPointer)ctx );
+  IswAddCallback( vbar, IswNjumpProc, VJump, (IswPointer)ctx );
   if (ctx->text.hbar == NULL)
-      XtAddCallback((Widget) ctx, XtNunrealizeCallback, UnrealizeScrollbars,
-      (XtPointer) NULL);
+      IswAddCallback((Widget) ctx, IswNunrealizeCallback, UnrealizeScrollbars,
+      (IswPointer) NULL);
 
   ctx->text.r_margin.left += vbar->core.width + vbar->core.border_width;
   ctx->text.margin.left = ctx->text.r_margin.left;
@@ -491,10 +491,10 @@ CreateVScrollBar(TextWidget ctx)
   PositionVScrollBar(ctx);
   PositionHScrollBar(ctx);	/* May modify location of Horiz. Bar. */
 
-  if (XtIsRealized((Widget)ctx)) {
-    XtRealizeWidget(vbar);
-    XtMapWidget(vbar);
-    xcb_flush(XtDisplay((Widget)ctx));
+  if (IswIsRealized((Widget)ctx)) {
+    IswRealizeWidget(vbar);
+    IswMapWidget(vbar);
+    xcb_flush(IswDisplay((Widget)ctx));
   }
 }
 
@@ -514,9 +514,9 @@ DestroyVScrollBar(TextWidget ctx)
   ctx->text.r_margin.left -= vbar->core.width + vbar->core.border_width;
   ctx->text.margin.left = ctx->text.r_margin.left;
   if (ctx->text.hbar == NULL)
-      XtRemoveCallback((Widget) ctx, XtNunrealizeCallback, UnrealizeScrollbars,
-		       (XtPointer) NULL);
-  XtDestroyWidget(vbar);
+      IswRemoveCallback((Widget) ctx, IswNunrealizeCallback, UnrealizeScrollbars,
+		       (IswPointer) NULL);
+  IswDestroyWidget(vbar);
   ctx->text.vbar = NULL;
   PositionHScrollBar(ctx);
 }
@@ -529,23 +529,23 @@ CreateHScrollBar(TextWidget ctx)
 
   if (ctx->text.hbar != NULL) return;
 
-  XtSetArg(args[0], XtNorientation, XtorientHorizontal);
+  IswSetArg(args[0], IswNorientation, XtorientHorizontal);
   ctx->text.hbar = hbar =
-    XtCreateWidget("hScrollbar", scrollbarWidgetClass, (Widget)ctx, args, ONE);
-  XtAddCallback( hbar, XtNscrollProc, HScroll, (XtPointer)ctx );
-  XtAddCallback( hbar, XtNjumpProc, HJump, (XtPointer)ctx );
+    IswCreateWidget("hScrollbar", scrollbarWidgetClass, (Widget)ctx, args, ONE);
+  IswAddCallback( hbar, IswNscrollProc, HScroll, (IswPointer)ctx );
+  IswAddCallback( hbar, IswNjumpProc, HJump, (IswPointer)ctx );
   if (ctx->text.vbar == NULL)
-      XtAddCallback((Widget) ctx, XtNunrealizeCallback, UnrealizeScrollbars,
-		    (XtPointer) NULL);
+      IswAddCallback((Widget) ctx, IswNunrealizeCallback, UnrealizeScrollbars,
+		    (IswPointer) NULL);
 
 /**/
   ctx->text.r_margin.bottom += hbar->core.height + hbar->core.border_width;
   ctx->text.margin.bottom = ctx->text.r_margin.bottom;
 /**/
   PositionHScrollBar(ctx);
-  if (XtIsRealized((Widget)ctx)) {
-    XtRealizeWidget(hbar);
-    XtMapWidget(hbar);
+  if (IswIsRealized((Widget)ctx)) {
+    IswRealizeWidget(hbar);
+    IswMapWidget(hbar);
   }
 }
 
@@ -567,9 +567,9 @@ DestroyHScrollBar(TextWidget ctx)
   ctx->text.margin.bottom = ctx->text.r_margin.bottom;
 /**/
   if (ctx->text.vbar == NULL)
-      XtRemoveCallback((Widget) ctx, XtNunrealizeCallback, UnrealizeScrollbars,
-		       (XtPointer) NULL);
-  XtDestroyWidget(hbar);
+      IswRemoveCallback((Widget) ctx, IswNunrealizeCallback, UnrealizeScrollbars,
+		       (IswPointer) NULL);
+  IswDestroyWidget(hbar);
   ctx->text.hbar = NULL;
 }
 
@@ -606,8 +606,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.lastPos = (ctx->text.source != NULL) ? GETLASTPOS : 0;
   ctx->text.file_insert = NULL;
   ctx->text.search = NULL;
-  ctx->text.updateFrom = (ISWTextPosition *) XtMalloc((unsigned) ONE);
-  ctx->text.updateTo = (ISWTextPosition *) XtMalloc((unsigned) ONE);
+  ctx->text.updateFrom = (ISWTextPosition *) IswMalloc((unsigned) ONE);
+  ctx->text.updateTo = (ISWTextPosition *) IswMalloc((unsigned) ONE);
   ctx->text.numranges = ctx->text.maxranges = 0;
   
   ctx->text.gc = 0;  /* created in Realize once window exists */
@@ -632,7 +632,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       (void) sprintf(error_buf, "Isw Text Widget %s:\n %s %s.", ctx->core.name,
 	      "Vertical scrolling not allowed with height resize.\n",
 	      "Vertical scrolling has been DEACTIVATED.");
-      XtAppWarning(XtWidgetToApplicationContext(new), error_buf);
+      IswAppWarning(IswWidgetToApplicationContext(new), error_buf);
       ctx->text.scroll_vert = IswtextScrollNever;
     }
     else if (ctx->text.scroll_vert == IswtextScrollAlways)
@@ -644,7 +644,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       (void) sprintf(error_buf, "Isw Text Widget %s:\n %s %s.", ctx->core.name,
 	      "Horizontal scrolling not allowed with wrapping active.\n",
 	      "Horizontal scrolling has been DEACTIVATED.");
-      XtAppWarning(XtWidgetToApplicationContext(new), error_buf);
+      IswAppWarning(IswWidgetToApplicationContext(new), error_buf);
       ctx->text.scroll_horiz = IswtextScrollNever;
     }
     else if ( (ctx->text.resize == IswtextResizeWidth) ||
@@ -652,7 +652,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       (void) sprintf(error_buf, "Isw Text Widget %s:\n %s %s.", ctx->core.name,
 	      "Horizontal scrolling not allowed with width resize.\n",
 	      "Horizontal scrolling has been DEACTIVATED.");
-      XtAppWarning(XtWidgetToApplicationContext(new), error_buf);
+      IswAppWarning(IswWidgetToApplicationContext(new), error_buf);
       ctx->text.scroll_horiz = IswtextScrollNever;
     }
     else if (ctx->text.scroll_horiz == IswtextScrollAlways)
@@ -661,7 +661,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+Realize(xcb_connection_t *conn, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
   TextWidget ctx = (TextWidget)w;
 
@@ -671,23 +671,23 @@ Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attr
 
   /* Create the GC now that the window exists */
   {
-    xcb_screen_t *screen = XtScreen(w);
+    xcb_screen_t *screen = IswScreen(w);
     uint32_t gc_values[2];
     gc_values[0] = BlackPixelOfScreen(screen);
     gc_values[1] = WhitePixelOfScreen(screen);
     ctx->text.gc = xcb_generate_id(conn);
-    xcb_create_gc(conn, ctx->text.gc, XtWindow(w),
+    xcb_create_gc(conn, ctx->text.gc, IswWindow(w),
                   XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
   }
 
   if (ctx->text.hbar != NULL) {	        /* Put up Hbar -- Must be first. */
-    XtRealizeWidget(ctx->text.hbar);
-    XtMapWidget(ctx->text.hbar);
+    IswRealizeWidget(ctx->text.hbar);
+    IswMapWidget(ctx->text.hbar);
   }
 
   if (ctx->text.vbar != NULL) {	        /* Put up Vbar. */
-    XtRealizeWidget(ctx->text.vbar);
-    XtMapWidget(ctx->text.vbar);
+    IswRealizeWidget(ctx->text.vbar);
+    IswMapWidget(ctx->text.vbar);
     xcb_flush(conn);
   }
 
@@ -698,14 +698,14 @@ Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attr
 
 /*ARGSUSED*/
 static void
-UnrealizeScrollbars(Widget widget, XtPointer client, XtPointer call)
+UnrealizeScrollbars(Widget widget, IswPointer client, IswPointer call)
 {
     TextWidget ctx = (TextWidget) widget;
 
     if (ctx->text.hbar)
-	XtUnrealizeWidget(ctx->text.hbar);
+	IswUnrealizeWidget(ctx->text.hbar);
     if (ctx->text.vbar)
-	XtUnrealizeWidget(ctx->text.vbar);
+	IswUnrealizeWidget(ctx->text.vbar);
 }
 
 /* Utility routines for support of Text */
@@ -744,7 +744,7 @@ InsertCursor (Widget w, IswTextInsertState state)
   if ( ctx->simple.international ) {
     Arg list[1];
 
-    XtSetArg (list[0], XtNinsertPosition, ctx->text.insertPos);
+    IswSetArg (list[0], IswNinsertPosition, ctx->text.insertPos);
     _IswImSetValues (w, list, 1);
   }
 #endif
@@ -773,9 +773,9 @@ _IswTextNeedsUpdating(TextWidget ctx, ISWTextPosition left, ISWTextPosition righ
       ctx->text.maxranges = ctx->text.numranges;
       i = ctx->text.maxranges * sizeof(ISWTextPosition);
       ctx->text.updateFrom = (ISWTextPosition *)
-	XtRealloc((char *)ctx->text.updateFrom, (unsigned) i);
+	IswRealloc((char *)ctx->text.updateFrom, (unsigned) i);
       ctx->text.updateTo = (ISWTextPosition *)
-	XtRealloc((char *)ctx->text.updateTo, (unsigned) i);
+	IswRealloc((char *)ctx->text.updateTo, (unsigned) i);
     }
     ctx->text.updateFrom[ctx->text.numranges - 1] = left;
     ctx->text.updateTo[ctx->text.numranges - 1] = right;
@@ -805,7 +805,7 @@ _IswTextGetText(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
       bytes = 1;
 
   /* leave space for ZERO */
-  tempResult=result=XtMalloc( (unsigned)(((Cardinal)(right-left))+ONE )* bytes);
+  tempResult=result=IswMalloc( (unsigned)(((Cardinal)(right-left))+ONE )* bytes);
   while (left < right) {
     left = SrcRead(ctx->text.source, left, &text, (int)(right - left));
     if (!text.length)
@@ -969,7 +969,7 @@ void
 _IswTextBuildLineTable (
     TextWidget ctx,
     ISWTextPosition position,
-    _XtBoolean force_rebuild)
+    _IswBoolean force_rebuild)
 {
   Dimension height = 0;
   int lines = 0;
@@ -982,7 +982,7 @@ _IswTextBuildLineTable (
   size = sizeof(IswTextLineTableEntry) * (lines + 1);
 
   if ( (lines != ctx->text.lt.lines) || (ctx->text.lt.info == NULL) ) {
-    ctx->text.lt.info = (IswTextLineTableEntry *) XtRealloc((char *) ctx->text.
+    ctx->text.lt.info = (IswTextLineTableEntry *) IswRealloc((char *) ctx->text.
 							    lt.info, size);
     ctx->text.lt.lines = lines;
     force_rebuild = TRUE;
@@ -1249,8 +1249,8 @@ _IswTextVScroll(TextWidget ctx, int n)
     else {
       /* Use xcb_copy_area directly — the AsciiSink/MultiSink already owns
        * a Cairo surface for this window, creating a second would corrupt it. */
-      xcb_connection_t *conn = XtDisplay(ctx);
-      xcb_copy_area(conn, XtWindow(ctx), XtWindow(ctx), ctx->text.gc,
+      xcb_connection_t *conn = IswDisplay(ctx);
+      xcb_copy_area(conn, IswWindow(ctx), IswWindow(ctx), ctx->text.gc,
 		    s, y, s, ctx->text.margin.top,
 		    (int)ctx->core.width - 2 * s, (int)ctx->core.height - y - s);
       xcb_flush(conn);
@@ -1301,7 +1301,7 @@ _IswTextVScroll(TextWidget ctx, int n)
     DisplayTextWindow((Widget)ctx);
     _IswTextSetScrollBars(ctx);
   }
-  XtSetArg (list[0], XtNinsertPosition, ctx->text.lt.top+ctx->text.lt.lines);
+  IswSetArg (list[0], IswNinsertPosition, ctx->text.lt.top+ctx->text.lt.lines);
 #ifdef ISW_INTERNATIONALIZATION
   _IswImSetValues ((Widget) ctx, list, 1);
 #endif
@@ -1311,7 +1311,7 @@ _IswTextVScroll(TextWidget ctx, int n)
 
 /*ARGSUSED*/
 static void
-HScroll(Widget w, XtPointer closure, XtPointer callData)
+HScroll(Widget w, IswPointer closure, IswPointer callData)
 {
   TextWidget ctx = (TextWidget) closure;
   Widget tw = (Widget) ctx;
@@ -1334,8 +1334,8 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
     rect.y = (short) ctx->text.margin.top;
     rect.height = (unsigned short) ctx->core.height - rect.y - 2 * s;
 
-    xcb_connection_t *conn = XtDisplay(tw);
-    xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
+    xcb_connection_t *conn = IswDisplay(tw);
+    xcb_copy_area(conn, IswWindow(tw), IswWindow(tw), ctx->text.gc,
 		  pixels + s, (int) rect.y,
 		  s, (int) rect.y,
 		  (unsigned int) rect.x, (unsigned int) ctx->core.height - 2 * s);
@@ -1354,8 +1354,8 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
     rect.y = ctx->text.margin.top;
     rect.height = ctx->core.height - rect.y - 2 * s;
 
-    xcb_connection_t *conn = XtDisplay(tw);
-    xcb_copy_area(conn, XtWindow(tw), XtWindow(tw), ctx->text.gc,
+    xcb_connection_t *conn = IswDisplay(tw);
+    xcb_copy_area(conn, IswWindow(tw), IswWindow(tw), ctx->text.gc,
 		  (int) rect.x, (int) rect.y,
 		  (int) rect.x + rect.width, (int) rect.y,
 		  (unsigned int) ctx->core.width - rect.width - 2 * s,
@@ -1395,7 +1395,7 @@ HScroll(Widget w, XtPointer closure, XtPointer callData)
 
 /*ARGSUSED*/
 static void
-HJump(Widget w, XtPointer closure, XtPointer callData)
+HJump(Widget w, IswPointer closure, IswPointer callData)
 {
   TextWidget ctx = (TextWidget) closure;
   float * percent = (float *) callData;
@@ -1408,12 +1408,12 @@ HJump(Widget w, XtPointer closure, XtPointer callData)
   move = old_left - new_left;
 
   if (abs(move) < (int)ctx->core.width) {
-    HScroll(w, (XtPointer) ctx, (XtPointer) move);
+    HScroll(w, (IswPointer) ctx, (IswPointer) move);
     return;
   }
   _IswTextPrepareToUpdate(ctx);
   ctx->text.margin.left = new_left;
-  if (XtIsRealized((Widget) ctx)) DisplayTextWindow((Widget) ctx);
+  if (IswIsRealized((Widget) ctx)) DisplayTextWindow((Widget) ctx);
   _IswTextExecuteUpdate(ctx);
 }
 
@@ -1473,7 +1473,7 @@ UpdateTextInLine(TextWidget ctx, int line, Position left, Position right)
 
 /*ARGSUSED*/
 static void
-VScroll(Widget w, XtPointer closure, XtPointer callData)
+VScroll(Widget w, IswPointer closure, IswPointer callData)
 {
   TextWidget ctx = (TextWidget)closure;
   int height, nlines, lines = (intptr_t) callData;
@@ -1503,7 +1503,7 @@ VScroll(Widget w, XtPointer closure, XtPointer callData)
 
 /*ARGSUSED*/
 static void
-VJump(Widget w, XtPointer closure, XtPointer callData)
+VJump(Widget w, IswPointer closure, IswPointer callData)
 {
   float * percent = (float *) callData;
   TextWidget ctx = (TextWidget)closure;
@@ -1545,7 +1545,7 @@ VJump(Widget w, XtPointer closure, XtPointer callData)
 /* Stub for IswConvertStandardSelection - simplified for XCB port */
 static Boolean
 IswConvertStandardSelection(Widget w, xcb_timestamp_t time, xcb_atom_t *selection,
-                           xcb_atom_t *target, xcb_atom_t *type, XtPointer *value,
+                           xcb_atom_t *target, xcb_atom_t *type, IswPointer *value,
                            unsigned long *length, int *format)
 {
     /* Minimal stub - returns empty targets list */
@@ -1571,9 +1571,9 @@ MatchSelection(xcb_atom_t selection, IswTextSelection *s)
 
 static Boolean
 ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
-                 XtPointer *value, unsigned long *length, int *format)
+                 IswPointer *value, unsigned long *length, int *format)
 {
-  xcb_connection_t* d = XtDisplay(w);
+  xcb_connection_t* d = IswDisplay(w);
   TextWidget ctx = (TextWidget)w;
   Widget src = ctx->text.source;
   IswTextEditType edit_mode;
@@ -1590,10 +1590,10 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	return True;
 
     IswConvertStandardSelection(w, ctx->text.time, selection,
-				target, type, (XtPointer*)&std_targets,
+				target, type, (IswPointer*)&std_targets,
 				&std_length, format);
 
-    *value = XtMalloc((unsigned) sizeof(xcb_atom_t)*(std_length + 7));
+    *value = IswMalloc((unsigned) sizeof(xcb_atom_t)*(std_length + 7));
     targetP = *(xcb_atom_t**)value;
     *length = std_length + 6;
     *targetP++ = XCB_ATOM_STRING;
@@ -1603,15 +1603,15 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
     *targetP++ = XCB_ATOM_LIST_LENGTH(d);
     *targetP++ = XCB_ATOM_CHARACTER_POSITION(d);
 
-    XtSetArg(args[0], XtNeditType,&edit_mode);
-    XtGetValues(src, args, ONE);
+    IswSetArg(args[0], IswNeditType,&edit_mode);
+    IswGetValues(src, args, ONE);
 
     if (edit_mode == IswtextEdit) {
       *targetP++ = XCB_ATOM_DELETE(d);
       (*length)++;
     }
     (void) memmove((char*)targetP, (char*)std_targets, sizeof(xcb_atom_t)*std_length);
-    XtFree((char*)std_targets);
+    IswFree((char*)std_targets);
     *type = XCB_ATOM_ATOM;
     *format = 32;
     return True;
@@ -1660,11 +1660,11 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 		if (XwcTextListToTextProperty(d, (wchar_t **)value, 1,
 					      XCompoundTextStyle, &textprop)
 			<  Success) {
-		    XtFree(*value);
+		    IswFree(*value);
 		    return False;
 		}
-		XtFree(*value);
-		*value = (XtPointer)textprop.value;
+		IswFree(*value);
+		*value = (IswPointer)textprop.value;
 		*length = textprop.nitems;
 #else
 		/* XCB: TextProperty I18N not available, use 8-bit fallback */
@@ -1678,7 +1678,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 		*length = strlen(*value);
 	    }
 	} else {
-	    *value = XtMalloc((salt->length + 1) * sizeof(unsigned char));
+	    *value = IswMalloc((salt->length + 1) * sizeof(unsigned char));
 	    strcpy (*value, salt->contents);
 	    *length = salt->length;
 	}
@@ -1694,16 +1694,16 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	    textprop.format = 8;
 	    if (XwcTextPropertyToTextList(d, &textprop, (wchar_t ***)&wlist, &count)
 			< Success) {
-		XtFree(*value);
+		IswFree(*value);
 		return False;
 	    }
-	    XtFree(*value);
+	    IswFree(*value);
 	    if (XwcTextListToTextProperty( d, (wchar_t **)wlist, 1,
 					  XStringStyle, &textprop) < Success) {
 		XwcFreeStringList( (wchar_t**) wlist );
 		return False;
 	    }
-	    *value = (XtPointer) textprop.value;
+	    *value = (IswPointer) textprop.value;
 	    *length = textprop.nitems;
 	    XwcFreeStringList( (wchar_t**) wlist );
 #else
@@ -1720,13 +1720,13 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   if ( (*target == XCB_ATOM_LIST_LENGTH(d)) || (*target == XCB_ATOM_LENGTH(d)) ) {
     long * temp;
 
-    temp = (long *) XtMalloc( (unsigned) sizeof(long) );
+    temp = (long *) IswMalloc( (unsigned) sizeof(long) );
     if (*target == XCB_ATOM_LIST_LENGTH(d))
       *temp = 1L;
     else			/* *target == XCB_ATOM_LENGTH(d) */
       *temp = (long) (s->right - s->left);
 
-    *value = (XtPointer) temp;
+    *value = (IswPointer) temp;
     *type = XCB_ATOM_INTEGER;
     *length = 1L;
     *format = 32;
@@ -1736,10 +1736,10 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   if (*target == XCB_ATOM_CHARACTER_POSITION(d)) {
     long * temp;
 
-    temp = (long *) XtMalloc( (unsigned)( 2 * sizeof(long) ) );
+    temp = (long *) IswMalloc( (unsigned)( 2 * sizeof(long) ) );
     temp[0] = (long) (s->left + 1);
     temp[1] = s->right;
-    *value = (XtPointer) temp;
+    *value = (IswPointer) temp;
     *type = XCB_ATOM_SPAN(d);
     *length = 2L;
     *format = 32;
@@ -1757,7 +1757,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   }
 
   if (IswConvertStandardSelection(w, ctx->text.time, selection, target, type,
-				  (XtPointer *)value, length, format))
+				  (IswPointer *)value, length, format))
     return True;
 
   /* else */
@@ -1833,13 +1833,13 @@ LoseSelection(Widget w, xcb_atom_t *selection)
     	    }
 	if (salt->s.atom_count == 0)
 	{
-	    XtFree ((char *) salt->s.selections);
-	    XtFree (salt->contents);
+	    IswFree ((char *) salt->s.selections);
+	    IswFree (salt->contents);
 	    if (prevSalt)
 		prevSalt->next = nextSalt;
 	    else
 		ctx->text.salt = nextSalt;
-	    XtFree ((char *) salt);
+	    IswFree ((char *) salt);
 	}
 	else
 	    prevSalt = salt;
@@ -1857,14 +1857,14 @@ _IswTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
     if (num_atoms == 0)
 	return;
     salt = (IswTextSelectionSalt *)
-		XtMalloc( (unsigned) sizeof(IswTextSelectionSalt) );
+		IswMalloc( (unsigned) sizeof(IswTextSelectionSalt) );
     if (!salt)
 	return;
     salt->s.selections = (xcb_atom_t *)
-	 XtMalloc( (unsigned) ( num_atoms * sizeof (xcb_atom_t) ) );
+	 IswMalloc( (unsigned) ( num_atoms * sizeof (xcb_atom_t) ) );
     if (!salt->s.selections)
     {
-	XtFree ((char *) salt);
+	IswFree ((char *) salt);
 	return;
     }
     salt->s.left = ctx->text.s.left;
@@ -1875,14 +1875,14 @@ _IswTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
     if (_IswTextFormat(ctx) == IswFmtWide) {
 #ifdef ISW_HAS_XIM
 	XTextProperty textprop;
-	if (XwcTextListToTextProperty(XtDisplay((Widget)ctx),
+	if (XwcTextListToTextProperty(IswDisplay((Widget)ctx),
 			(wchar_t**)(&(salt->contents)), 1, XCompoundTextStyle,
 			&textprop) < Success) {
-	    XtFree(salt->contents);
+	    IswFree(salt->contents);
 	    salt->length = 0;
 	    return;
 	}
-	XtFree(salt->contents);
+	IswFree(salt->contents);
 	salt->contents = (char *)textprop.value;
 	salt->length = textprop.nitems;
 #else
@@ -1898,8 +1898,8 @@ _IswTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
     for (i = 0; i < num_atoms; i++)
     {
 	salt->s.selections[i] = selections[i];
-	XtOwnSelection ((Widget) ctx, selections[i], ctx->text.time,
-		ConvertSelection, LoseSelection, (XtSelectionDoneProc)NULL);
+	IswOwnSelection ((Widget) ctx, selections[i], ctx->text.time,
+		ConvertSelection, LoseSelection, (IswSelectionDoneProc)NULL);
     }
     salt->s.atom_count = num_atoms;
 }
@@ -1938,8 +1938,8 @@ _SetSelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right,
 
     while (count) {
       xcb_atom_t selection = selections[--count];
-      XtOwnSelection(w, selection, ctx->text.time, ConvertSelection,
-		     LoseSelection, (XtSelectionDoneProc)NULL);
+      IswOwnSelection(w, selection, ctx->text.time, ConvertSelection,
+		     LoseSelection, (IswSelectionDoneProc)NULL);
     }
   }
   else
@@ -1971,8 +1971,8 @@ _IswTextReplace (TextWidget ctx, ISWTextPosition pos1, ISWTextPosition pos2,
  * The insertPos may not always be set to the right spot in IswtextAppend
  */
 
-  XtSetArg(args[0], XtNeditType, &edit_mode);
-  XtGetValues(src, args, ONE);
+  IswSetArg(args[0], IswNeditType, &edit_mode);
+  IswGetValues(src, args, ONE);
 
   if ((pos1 == ctx->text.insertPos) && (edit_mode == IswtextAppend)) {
     ctx->text.insertPos = ctx->text.lastPos;
@@ -2237,7 +2237,7 @@ DoSelection (TextWidget ctx, ISWTextPosition pos, xcb_timestamp_t time, Boolean 
     newRight = SrcScan(src, pos, IswstAll, IswsdRight, 1, FALSE);
     break;
   default:
-    XtAppWarning(XtWidgetToApplicationContext((Widget) ctx),
+    IswAppWarning(IswWidgetToApplicationContext((Widget) ctx),
 	       "Text Widget: empty selection array.");
     return;
   }
@@ -2364,7 +2364,7 @@ ClearWindow (Widget w)
   TextWidget ctx = (TextWidget) w;
   int s = 0;
 
-  if (XtIsRealized(w))
+  if (IswIsRealized(w))
   {
     SinkClearToBG(ctx->text.sink,
     (Position) s, (Position) s,
@@ -2415,7 +2415,7 @@ _IswTextCheckResize(TextWidget ctx)
 {
   Widget w = (Widget) ctx;
   int line = 0, old_height;
-  XtWidgetGeometry rbox, return_geom;
+  IswWidgetGeometry rbox, return_geom;
 
   if ( (ctx->text.resize == IswtextResizeWidth) ||
        (ctx->text.resize == IswtextResizeBoth) ) {
@@ -2431,8 +2431,8 @@ _IswTextCheckResize(TextWidget ctx)
     rbox.width += ctx->text.margin.right;
     if (rbox.width > ctx->core.width) { /* Only get wider. */
       rbox.request_mode = XCB_CONFIG_WINDOW_WIDTH;
-      if (XtMakeGeometryRequest(w, &rbox, &return_geom) == XtGeometryAlmost)
-	(void) XtMakeGeometryRequest(w, &return_geom, (XtWidgetGeometry*) NULL);
+      if (IswMakeGeometryRequest(w, &rbox, &return_geom) == IswGeometryAlmost)
+	(void) IswMakeGeometryRequest(w, &return_geom, (IswWidgetGeometry*) NULL);
     }
   }
 
@@ -2453,8 +2453,8 @@ _IswTextCheckResize(TextWidget ctx)
 
   if ((int)rbox.height < old_height) return; /* It will only get taller. */
 
-  if (XtMakeGeometryRequest(w, &rbox, &return_geom) == XtGeometryAlmost)
-    if (XtMakeGeometryRequest(w, &return_geom, (XtWidgetGeometry*)NULL) != XtGeometryYes)
+  if (IswMakeGeometryRequest(w, &rbox, &return_geom) == IswGeometryAlmost)
+    if (IswMakeGeometryRequest(w, &return_geom, (IswWidgetGeometry*)NULL) != IswGeometryYes)
       return;
 
   _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
@@ -2469,11 +2469,11 @@ xcb_atom_t*
 _IswTextSelectionList(TextWidget ctx, String *list, Cardinal nelems)
 {
   xcb_atom_t * sel = ctx->text.s.selections;
-  xcb_connection_t *dpy = XtDisplay((Widget) ctx);
+  xcb_connection_t *dpy = IswDisplay((Widget) ctx);
   int n;
 
   if (nelems > ctx->text.s.array_size) {
-    sel = (xcb_atom_t *) XtRealloc((char *) sel, sizeof(xcb_atom_t) * nelems);
+    sel = (xcb_atom_t *) IswRealloc((char *) sel, sizeof(xcb_atom_t) * nelems);
     ctx->text.s.array_size = nelems;
     ctx->text.s.selections = sel;
   }
@@ -2679,7 +2679,7 @@ _IswTextPrepareToUpdate(TextWidget ctx)
 static
 void FlushUpdate(TextWidget ctx)
 {
-  if (!XtIsRealized((Widget)ctx)) {
+  if (!IswIsRealized((Widget)ctx)) {
     ctx->text.numranges = 0;
     return;
   }
@@ -2710,7 +2710,7 @@ _IswTextShowPosition(TextWidget ctx)
   Boolean no_scroll;
   ISWTextPosition max_pos, top, first;
 
-  if ( (!XtIsRealized((Widget)ctx)) || (ctx->text.lt.lines <= 0) )
+  if ( (!IswIsRealized((Widget)ctx)) || (ctx->text.lt.lines <= 0) )
     return;
 
 /*
@@ -2817,11 +2817,11 @@ TextDestroy(Widget w)
   DestroyHScrollBar(ctx);
   DestroyVScrollBar(ctx);
 
-  XtFree((char *)ctx->text.s.selections);
-  XtFree((char *)ctx->text.lt.info);
-  XtFree((char *)ctx->text.search);
-  XtFree((char *)ctx->text.updateFrom);
-  XtFree((char *)ctx->text.updateTo);
+  IswFree((char *)ctx->text.s.selections);
+  IswFree((char *)ctx->text.lt.info);
+  IswFree((char *)ctx->text.search);
+  IswFree((char *)ctx->text.updateFrom);
+  IswFree((char *)ctx->text.updateTo);
 }
 
 /*
@@ -2895,8 +2895,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     IswTextSetSource( (Widget) newtw, newtw->text.source, newtw->text.lt.top);
 
   newtw->text.redisplay_needed = False;
-  XtSetValues( (Widget)newtw->text.source, args, *num_args );
-  XtSetValues( (Widget)newtw->text.sink, args, *num_args );
+  IswSetValues( (Widget)newtw->text.source, args, *num_args );
+  IswSetValues( (Widget)newtw->text.sink, args, *num_args );
 
   if ( oldtw->text.wrap != newtw->text.wrap ||
        oldtw->text.lt.top != newtw->text.lt.top ||
@@ -2930,12 +2930,12 @@ ChangeSensitive(Widget w)
 
     (*(&simpleClassRec)->simple_class.change_sensitive)(w);
 
-    XtSetArg(args[0], XtNancestorSensitive,
+    IswSetArg(args[0], IswNancestorSensitive,
 	       (tw->core.ancestor_sensitive && tw->core.sensitive));
     if (tw->text.vbar)
-	XtSetValues(tw->text.vbar, args, ONE);
+	IswSetValues(tw->text.vbar, args, ONE);
     if (tw->text.hbar)
-	XtSetValues(tw->text.hbar, args, ONE);
+	IswSetValues(tw->text.hbar, args, ONE);
     return False;
 }
 
@@ -2951,8 +2951,8 @@ ChangeSensitive(Widget w)
 static void
 GetValuesHook(Widget w, ArgList args, Cardinal * num_args)
 {
-  XtGetValues( ((TextWidget) w)->text.source, args, *num_args );
-  XtGetValues( ((TextWidget) w)->text.sink, args, *num_args );
+  IswGetValues( ((TextWidget) w)->text.source, args, *num_args );
+  IswGetValues( ((TextWidget) w)->text.sink, args, *num_args );
 }
 
 /*	Function Name: FindGoodPosition
@@ -2984,7 +2984,7 @@ FindGoodPosition(TextWidget ctx, ISWTextPosition pos)
 static void
 PushCopyQueue(TextWidget ctx, int h, int v)
 {
-    struct text_move * offsets = XtNew(struct text_move);
+    struct text_move * offsets = IswNew(struct text_move);
 
     offsets->h = h;
     offsets->v = v;
@@ -3012,10 +3012,10 @@ PopCopyQueue(TextWidget ctx)
 
     if (offsets == NULL)
 	(void) printf( "Isw Text widget %s: empty copy queue\n",
-		       XtName( (Widget) ctx ) );
+		       IswName( (Widget) ctx ) );
     else {
 	ctx->text.copy_area_offsets = offsets->next;
-	XtFree((char *) offsets);	/* free what you allocate. */
+	IswFree((char *) offsets);	/* free what you allocate. */
     }
 }
 
@@ -3120,7 +3120,7 @@ version of Text.
 void
 IswTextDisplay (Widget w)
 {
-  if (!XtIsRealized(w)) return;
+  if (!IswIsRealized(w)) return;
 
   _IswTextPrepareToUpdate( (TextWidget) w);
   DisplayTextWindow(w);
@@ -3221,7 +3221,7 @@ void
 IswTextUnsetSelection(Widget w)
 {
   TextWidget ctx = (TextWidget)w;
-  xcb_atom_t clipboard = XCB_ATOM_CLIPBOARD(XtDisplay(w));
+  xcb_atom_t clipboard = XCB_ATOM_CLIPBOARD(IswDisplay(w));
 
   while (ctx->text.s.atom_count != 0) {
     xcb_atom_t sel = ctx->text.s.selections[ctx->text.s.atom_count - 1];
@@ -3235,8 +3235,8 @@ IswTextUnsetSelection(Widget w)
 	ctx->text.s.atom_count--;
 	continue;
       }
-      XtDisownSelection(w, sel, ctx->text.time);
-      LoseSelection(w, &sel); /* In case XtDisownSelection failed to call us. */
+      IswDisownSelection(w, sel, ctx->text.time);
+      LoseSelection(w, &sel); /* In case IswDisownSelection failed to call us. */
     }
   }
 }
@@ -3290,7 +3290,7 @@ IswTextEnableRedisplay(Widget w)
     ctx->text.s.left = ctx->text.s.right = 0;
 
   _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
-  if (XtIsRealized(w))
+  if (IswIsRealized(w))
     DisplayTextWindow(w);
   _IswTextExecuteUpdate(ctx);
 }
@@ -3319,7 +3319,7 @@ IswTextDisplayCaret (Widget w,
 
   if (ctx->text.display_caret == display_caret) return;
 
-  if (XtIsRealized(w)) {
+  if (IswIsRealized(w)) {
     _IswTextPrepareToUpdate(ctx);
     ctx->text.display_caret = display_caret;
     _IswTextExecuteUpdate(ctx);
@@ -3366,10 +3366,10 @@ TextClassRec textClassRec = {
     /* actions          */      _IswTextActionsTable,
     /* num_actions      */      0,                /* Set in ClassInitialize. */
     /* resources        */      resources,
-    /* num_ resource    */      XtNumber(resources),
+    /* num_ resource    */      IswNumber(resources),
     /* xrm_class        */      NULLQUARK,
     /* compress_motion  */      TRUE,
-    /* compress_exposure*/      XtExposeGraphicsExpose | XtExposeNoExpose,
+    /* compress_exposure*/      IswExposeGraphicsExpose | IswExposeNoExpose,
     /* compress_enterleave*/	TRUE,
     /* visible_interest */      FALSE,
     /* destroy          */      TextDestroy,
@@ -3377,14 +3377,14 @@ TextClassRec textClassRec = {
     /* expose           */      (void (*)(Widget, xcb_generic_event_t *, xcb_xfixes_region_t))ProcessExposeRegion,
     /* set_values       */      SetValues,
     /* set_values_hook  */	NULL,
-    /* set_values_almost*/	XtInheritSetValuesAlmost,
+    /* set_values_almost*/	IswInheritSetValuesAlmost,
     /* get_values_hook  */	GetValuesHook,
     /* accept_focus     */      NULL,
-    /* version          */	XtVersion,
+    /* version          */	IswVersion,
     /* callback_private */      NULL,
     /* tm_table         */      NULL,    /* set in ClassInitialize */
-    /* query_geometry   */	XtInheritQueryGeometry,
-    /* display_accelerator*/	XtInheritDisplayAccelerator,
+    /* query_geometry   */	IswInheritQueryGeometry,
+    /* display_accelerator*/	IswInheritDisplayAccelerator,
     /* extension	*/	NULL
   },
   { /* Simple fields */

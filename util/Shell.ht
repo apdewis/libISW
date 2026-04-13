@@ -45,10 +45,10 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtShell_h
-#define _XtShell_h
+#ifndef _IswShell_h
+#define _IswShell_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /***********************************************************************
  *
@@ -59,14 +59,14 @@ SOFTWARE.
  * Shell-specific resources names, classes, and a representation type.
  */
 
-#ifndef XTSTRINGDEFINES
-#define _XtShell_h_Const const
+#ifndef ISWSTRINGDEFINES
+#define _IswShell_h_Const const
 #endif
 
 <<<STRING_TABLE_GOES_HERE>>>
 
-#ifndef XTSTRINGDEFINES
-#undef _XtShell_h_Const
+#ifndef ISWSTRINGDEFINES
+#undef _IswShell_h_Const
 #endif
 
 /* Class record constants */
@@ -87,5 +87,5 @@ externalref WidgetClass topLevelShellWidgetClass;
 externalref WidgetClass applicationShellWidgetClass;
 #endif
 
-#endif /* _XtShell_h */
+#endif /* _IswShell_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

@@ -24,8 +24,8 @@ in this Software without prior written authorization from The Open Group.
 
 */
 
-#ifndef _XtHookObjI_h
-#define _XtHookObjI_h
+#ifndef _IswHookObjI_h
+#define _IswHookObjI_h
 
 _XFUNCPROTOBEGIN
 
@@ -38,11 +38,11 @@ externalref WidgetClass hookObjectClass;
 
 typedef struct _HookObjPart {
     /* resources */
-    XtCallbackList createhook_callbacks;
-    XtCallbackList changehook_callbacks;
-    XtCallbackList confighook_callbacks;
-    XtCallbackList geometryhook_callbacks;
-    XtCallbackList destroyhook_callbacks;
+    IswCallbackList createhook_callbacks;
+    IswCallbackList changehook_callbacks;
+    IswCallbackList confighook_callbacks;
+    IswCallbackList geometryhook_callbacks;
+    IswCallbackList destroyhook_callbacks;
     WidgetList shells;
     Cardinal num_shells;
     /* private data */
@@ -69,6 +69,6 @@ externalref HookObjClassRec hookObjClassRec;
 
 _XFUNCPROTOEND
 
-#endif /* ifndef _Xt_HookObjI_h */
+#endif /* ifndef _Isw_HookObjI_h */
 
 

@@ -83,12 +83,12 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include <stdlib.h>
 
-extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
-String XtCXtToolkitError = "XtToolkitError";
+String IswCIswToolkitError = "IswToolkitError";
 
 Boolean
-XtIsSubclass(Widget widget, WidgetClass myWidgetClass)
+IswIsSubclass(Widget widget, WidgetClass myWidgetClass)
 {
     register WidgetClass w;
     Boolean retval = FALSE;
@@ -105,10 +105,10 @@ XtIsSubclass(Widget widget, WidgetClass myWidgetClass)
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
     return retval;
-}                               /* XtIsSubclass */
+}                               /* IswIsSubclass */
 
 Boolean
-_XtCheckSubclassFlag(Widget object, _XtXtEnum flag)
+_IswCheckSubclassFlag(Widget object, _IswEnum flag)
 {
     Boolean retval;
 
@@ -119,13 +119,13 @@ _XtCheckSubclassFlag(Widget object, _XtXtEnum flag)
         retval = FALSE;
     UNLOCK_PROCESS;
     return retval;
-} /*_XtVerifySubclass */
+} /*_IswVerifySubclass */
 
 Boolean
-_XtIsSubclassOf(Widget object,
+_IswIsSubclassOf(Widget object,
                 WidgetClass myWidgetClass,
                 WidgetClass superClass,
-                _XtXtEnum flag)
+                _IswEnum flag)
 {
     LOCK_PROCESS;
     if (!(object->core.widget_class->core_class.class_inited & flag)) {
@@ -145,10 +145,10 @@ _XtIsSubclassOf(Widget object,
         UNLOCK_PROCESS;
         return False;
     }
-} /*_XtIsSubclassOf */
+} /*_IswIsSubclassOf */
 
-XtPointer
-XtGetClassExtension(WidgetClass object_class,
+IswPointer
+IswGetClassExtension(WidgetClass object_class,
                     Cardinal byte_offset,
                     XrmQuark type, long version, Cardinal record_size)
 {
@@ -163,7 +163,7 @@ XtGetClassExtension(WidgetClass object_class,
     }
 
     UNLOCK_PROCESS;
-    return (XtPointer) ext;
+    return (IswPointer) ext;
 }
 
 //#TODO, had LLM rework this for me, verify function
@@ -180,7 +180,7 @@ ComputeWindowAttributes(Widget widget,
      * XCB_CW_* bit positions exactly. */
 
     /* XCB_CW_BACK_PIXMAP (bit 0) or XCB_CW_BACK_PIXEL (bit 1) */
-    if (widget->core.background_pixmap != XtUnspecifiedPixmap) {
+    if (widget->core.background_pixmap != IswUnspecifiedPixmap) {
         mask |= XCB_CW_BACK_PIXMAP;
         values[value_index++] = widget->core.background_pixmap;
     }
@@ -190,7 +190,7 @@ ComputeWindowAttributes(Widget widget,
     }
 
     /* XCB_CW_BORDER_PIXMAP (bit 2) or XCB_CW_BORDER_PIXEL (bit 3) */
-    if (widget->core.border_pixmap != XtUnspecifiedPixmap) {
+    if (widget->core.border_pixmap != IswUnspecifiedPixmap) {
         mask |= XCB_CW_BORDER_PIXMAP;
         values[value_index++] = widget->core.border_pixmap;
     }
@@ -223,7 +223,7 @@ ComputeWindowAttributes(Widget widget,
     /* XCB_CW_EVENT_MASK (bit 11) */
     mask |= XCB_CW_EVENT_MASK;
     {
-        uint32_t evmask = XtBuildEventMask(widget);
+        uint32_t evmask = IswBuildEventMask(widget);
         values[value_index++] = evmask;
     }
 
@@ -238,14 +238,14 @@ static void
 CallChangeManaged(register Widget widget)
 {
     register Cardinal i;
-    XtWidgetProc change_managed;
+    IswWidgetProc change_managed;
     register WidgetList children;
     int managed_children = 0;
 
     register CompositePtr cpPtr;
     register CompositePartPtr clPtr;
 
-    if (XtIsComposite(widget)) {
+    if (IswIsComposite(widget)) {
         cpPtr = (CompositePtr) &((CompositeWidget) widget)->composite;
         clPtr = (CompositePartPtr) &((CompositeWidgetClass)
                                       widget->core.
@@ -262,13 +262,13 @@ CallChangeManaged(register Widget widget)
     /* CallChangeManaged for all children */
     for (i = cpPtr->num_children; i != 0; --i) {
         CallChangeManaged(children[i - 1]);
-        if (XtIsManaged(children[i - 1]))
+        if (IswIsManaged(children[i - 1]))
             managed_children++;
     }
 
     if (change_managed != NULL && managed_children != 0) {
-        CALLGEOTAT(_XtGeoTrace(widget, "Call \"%s\"[%d,%d]'s changemanaged\n",
-                               XtName(widget),
+        CALLGEOTAT(_IswGeoTrace(widget, "Call \"%s\"[%d,%d]'s changemanaged\n",
+                               IswName(widget),
                                widget->core.width, widget->core.height));
         (*change_managed) (widget);
     }
@@ -284,9 +284,9 @@ MapChildren(CompositePart *cwp)
     for (i = 0; i < cwp->num_children; i++) {
         Widget child = children[i];
 
-        if (XtIsWidget(child)) {
+        if (IswIsWidget(child)) {
             if (child->core.managed && child->core.mapped_when_managed) {
-                XtMapWidget(children[i]);
+                IswMapWidget(children[i]);
             }
         }
     }
@@ -302,8 +302,8 @@ ShouldMapAllChildren(CompositePart *cwp)
     for (i = 0; i < cwp->num_children; i++) {
         Widget child = children[i];
 
-        if (XtIsWidget(child)) {
-            if (XtIsRealized(child) && (!(child->core.managed
+        if (IswIsWidget(child)) {
+            if (IswIsRealized(child) && (!(child->core.managed
                                           && child->core.
                                           mapped_when_managed))) {
                 return False;
@@ -317,19 +317,19 @@ ShouldMapAllChildren(CompositePart *cwp)
 static void
 RealizeWidget(Widget widget)
 {
-    XtValueMask value_mask;
+    IswValueMask value_mask;
     uint32_t values[32];
-    XtRealizeProc realize;
+    IswRealizeProc realize;
     xcb_window_t window;
     xcb_connection_t *display;
     String class_name;
     Widget hookobj;
 
-    if (!XtIsWidget(widget) || XtIsRealized(widget))
+    if (!IswIsWidget(widget) || IswIsRealized(widget))
         return;
-    display = XtDisplay(widget);
+    display = IswDisplay(widget);
 
-    _XtInstallTranslations(widget);
+    _IswInstallTranslations(widget);
 
     ComputeWindowAttributes(widget, &value_mask, values);
     LOCK_PROCESS;
@@ -337,28 +337,28 @@ RealizeWidget(Widget widget)
     class_name = widget->core.widget_class->core_class.class_name;
     UNLOCK_PROCESS;
     if (realize == NULL)
-        XtAppErrorMsg(XtWidgetToApplicationContext(widget),
-                      "invalidProcedure", "realizeProc", XtCXtToolkitError,
+        IswAppErrorMsg(IswWidgetToApplicationContext(widget),
+                      "invalidProcedure", "realizeProc", IswCIswToolkitError,
                       "No realize class procedure defined", NULL, NULL);
     else {
-        CALLGEOTAT(_XtGeoTrace(widget, "Call \"%s\"[%d,%d]'s realize proc\n",
-                               XtName(widget),
+        CALLGEOTAT(_IswGeoTrace(widget, "Call \"%s\"[%d,%d]'s realize proc\n",
+                               IswName(widget),
                                widget->core.width, widget->core.height));
         (*realize) (display, widget, &value_mask, values);
     }
-    window = XtWindow(widget);
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    window = IswWindow(widget);
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHrealizeWidget;
+        call_data.type = IswHrealizeWidget;
         call_data.widget = widget;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
 #ifndef NO_IDENTIFY_WINDOWS
-    if (_XtGetPerDisplay(display)->appContext->identify_windows) {
+    if (_IswGetPerDisplay(display)->appContext->identify_windows) {
         int len_nm, len_cl;
         char *s;
         xcb_intern_atom_cookie_t cookie;
@@ -386,21 +386,21 @@ RealizeWidget(Widget widget)
                               len_nm + len_cl + 2, (const void *) s);
             free(reply);
         }
-        XtFree(s);
+        IswFree(s);
     }
 #endif
 #ifdef notdef
-    _XtRegisterAsyncHandlers(widget);
+    _IswRegisterAsyncHandlers(widget);
 #endif
     /* (re)register any grabs extant in the translations */
-    _XtRegisterGrabs(widget);
-    /* reregister any grabs added with XtGrab{Button,Key} */
-    _XtRegisterPassiveGrabs(widget);
-    XtRegisterDrawable(display, window, widget);
+    _IswRegisterGrabs(widget);
+    /* reregister any grabs added with IswGrab{Button,Key} */
+    _IswRegisterPassiveGrabs(widget);
+    IswRegisterDrawable(display, window, widget);
 
-    _XtExtensionSelect(widget);
+    _IswExtensionSelect(widget);
 
-    if (XtIsComposite(widget)) {
+    if (IswIsComposite(widget)) {
         Cardinal i;
         CompositePart *cwp = &(((CompositeWidget) widget)->composite);
         WidgetList children = cwp->children;
@@ -423,38 +423,38 @@ RealizeWidget(Widget widget)
 
     /* If this is the application's popup shell, map it */
     if (widget->core.parent == NULL && widget->core.mapped_when_managed) {
-        XtMapWidget(widget);
+        IswMapWidget(widget);
     }
 }                               /* RealizeWidget */
 
 void
-XtRealizeWidget(Widget widget)
+IswRealizeWidget(Widget widget)
 {
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    if (XtIsRealized(widget)) {
+    if (IswIsRealized(widget)) {
         UNLOCK_APP(app);
         return;
     }
     CallChangeManaged(widget);
     RealizeWidget(widget);
     UNLOCK_APP(app);
-}                               /* XtRealizeWidget */
+}                               /* IswRealizeWidget */
 
 static void
 UnrealizeWidget(Widget widget)
 {
     CompositeWidget cw;
 
-    if (!XtIsWidget(widget) || !XtIsRealized(widget))
+    if (!IswIsWidget(widget) || !IswIsRealized(widget))
         return;
 
     /* If this is the application's popup shell, unmap it? */
     /* no, the window is being destroyed */
 
     /* Recurse on children */
-    if (XtIsComposite(widget)) {
+    if (IswIsComposite(widget)) {
         Cardinal i;
         WidgetList children;
 
@@ -466,15 +466,15 @@ UnrealizeWidget(Widget widget)
         }
         /* Unmap children that are managed and mapped_when_managed? */
         /* No, it's ok to be managed and unrealized as long as your parent */
-        /* is unrealized. XtUnrealize widget makes sure the "top" widget */
+        /* is unrealized. IswUnrealize widget makes sure the "top" widget */
         /* is unmanaged, we can ignore all descendents */
     }
 
-    if (XtHasCallbacks(widget, XtNunrealizeCallback) == XtCallbackHasSome)
-        XtCallCallbacks(widget, XtNunrealizeCallback, NULL);
+    if (IswHasCallbacks(widget, IswNunrealizeCallback) == IswCallbackHasSome)
+        IswCallCallbacks(widget, IswNunrealizeCallback, NULL);
 
     /* Unregister window */
-    XtUnregisterDrawable(XtDisplay(widget), XtWindow(widget));
+    IswUnregisterDrawable(IswDisplay(widget), IswWindow(widget));
 
     /* Remove Event Handlers */
     /* remove grabs. Happens automatically when window is destroyed. */
@@ -485,11 +485,11 @@ UnrealizeWidget(Widget widget)
     /* Removing the event handler here saves having to keep track if
      * the translation table is changed while the widget is unrealized.
      */
-    _XtRemoveTranslations(widget);
+    _IswRemoveTranslations(widget);
 }                               /* UnrealizeWidget */
 
 void
-XtUnrealizeWidget(Widget widget)
+IswUnrealizeWidget(Widget widget)
 {
     xcb_window_t window;
     Widget hookobj;
@@ -497,50 +497,50 @@ XtUnrealizeWidget(Widget widget)
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    window = XtWindow(widget);
-    if (!XtIsRealized(widget)) {
+    window = IswWindow(widget);
+    if (!IswIsRealized(widget)) {
         UNLOCK_APP(app);
         return;
     }
     if (widget->core.managed && widget->core.parent != NULL)
-        XtUnmanageChild(widget);
+        IswUnmanageChild(widget);
     UnrealizeWidget(widget);
     if (window != None) {
-        //XDestroyWindow(XtDisplay(widget), window);
-        xcb_destroy_window(XtDisplay(widget), window);
-        xcb_flush(XtDisplay(widget));
+        //XDestroyWindow(IswDisplay(widget), window);
+        xcb_destroy_window(IswDisplay(widget), window);
+        xcb_flush(IswDisplay(widget));
     }
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHunrealizeWidget;
+        call_data.type = IswHunrealizeWidget;
         call_data.widget = widget;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
-}                               /* XtUnrealizeWidget */
+}                               /* IswUnrealizeWidget */
 
 void
-XtCreateWindow(xcb_connection_t *display,
+IswCreateWindow(xcb_connection_t *display,
                Widget widget,
                unsigned int window_class,
                xcb_visualtype_t *visual,
-               XtValueMask value_mask,
+               IswValueMask value_mask,
                uint32_t *attributes)
 {
-    XtAppContext app = XtWidgetToApplicationContext(widget);
+    IswAppContext app = IswWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
     if (widget->core.window == None) {
         if (widget->core.width == 0 || widget->core.height == 0) {
             Cardinal count = 1;
 
-            XtAppErrorMsg(app,
+            IswAppErrorMsg(app,
                           "invalidDimension", "xtCreateWindow",
-                          XtCXtToolkitError,
+                          IswCIswToolkitError,
                           "Widget %s has zero width and/or height",
                           &widget->core.name, &count);
         }
@@ -556,7 +556,7 @@ XtCreateWindow(xcb_connection_t *display,
                 widget->core.parent->core.window :
                 widget->core.screen->root;
             /* HiDPI: create window at physical pixel geometry */
-            double _sf = _XtGetScaleFactor(display);
+            double _sf = _IswGetScaleFactor(display);
             xcb_void_cookie_t cookie = xcb_create_window_checked(
                 display,
                 widget->core.depth,
@@ -573,7 +573,7 @@ XtCreateWindow(xcb_connection_t *display,
                 (const uint32_t*)attributes);
             xcb_generic_error_t *err = xcb_request_check(display, cookie);
             if (err) {
-                fprintf(stderr, "ERROR XtCreateWindow: xcb_create_window FAILED for widget=%s! "
+                fprintf(stderr, "ERROR IswCreateWindow: xcb_create_window FAILED for widget=%s! "
                         "error_code=%d, resource_id=0x%x\n",
                         widget->core.name ? widget->core.name : "(null)",
                         (int)err->error_code, (unsigned)err->resource_id);
@@ -581,7 +581,7 @@ XtCreateWindow(xcb_connection_t *display,
             } else {
             }
         }
-            //XCreateWindow(XtDisplay(widget),
+            //XCreateWindow(IswDisplay(widget),
             //              (widget->core.parent ?
             //               widget->core.parent->core.window :
             //               widget->core.screen->root),
@@ -593,9 +593,9 @@ XtCreateWindow(xcb_connection_t *display,
             //              value_mask, attributes);
     }
     UNLOCK_APP(app);
-}                               /* XtCreateWindow */
+}                               /* IswCreateWindow */
 
-/* ---------------- XtNameToWidget ----------------- */
+/* ---------------- IswNameToWidget ----------------- */
 
 static Widget NameListToWidget(Widget root,
                                XrmNameList names,
@@ -671,7 +671,7 @@ SearchChildren(Widget root,
     Widget w1 = NULL, w2;
     int d1, d2;
 
-    if (XtIsComposite(root)) {
+    if (IswIsComposite(root)) {
         w1 = (*matchproc) (names, bindings,
                            ((CompositeWidget) root)->composite.children,
                            ((CompositeWidget) root)->composite.num_children,
@@ -705,7 +705,7 @@ NameListToWidget(register Widget root,
         return root;
     }
 
-    if (!XtIsWidget(root)) {
+    if (!IswIsWidget(root)) {
         *out_depth = 10000;
         return NULL;
     }
@@ -728,7 +728,7 @@ NameListToWidget(register Widget root,
 }                               /* NameListToWidget */
 
 Widget
-XtNameToWidget(Widget root, _Xconst char *name)
+IswNameToWidget(Widget root, _Xconst char *name)
 {
     XrmName *names;
     XrmBinding *bindings;
@@ -746,7 +746,7 @@ XtNameToWidget(Widget root, _Xconst char *name)
     bindings = (XrmBinding *)
         ALLOCATE_LOCAL((unsigned) (len + 1) * sizeof(XrmBinding));
     if (names == NULL || bindings == NULL)
-        _XtAllocError(NULL);
+        _IswAllocError(NULL);
 
     XrmStringToBindingQuarkList(name, bindings, names);
     if (names[0] == NULLQUARK) {
@@ -762,75 +762,75 @@ XtNameToWidget(Widget root, _Xconst char *name)
     DEALLOCATE_LOCAL((char *) names);
     UNLOCK_APP(app);
     return result;
-}                               /* XtNameToWidget */
+}                               /* IswNameToWidget */
 
 /* Define user versions of intrinsics macros */
 
-#undef XtDisplayOfObject
+#undef IswDisplayOfObject
 xcb_connection_t *
-XtDisplayOfObject(Widget object)
+IswDisplayOfObject(Widget object)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
-    if (XtIsSubclass(object, hookObjectClass))
+    if (IswIsSubclass(object, hookObjectClass))
         return ((HookObject) object)->hooks.display;
-    return XtDisplay(XtIsWidget(object) ? object : _XtWindowedAncestor(object));
+    return IswDisplay(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
 }
 
-#undef XtDisplay
+#undef IswDisplay
 xcb_connection_t *
-XtDisplay(Widget widget)
+IswDisplay(Widget widget)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return widget->core.display;
 }
 
-#undef XtScreenOfObject
+#undef IswScreenOfObject
 xcb_screen_t *
-XtScreenOfObject(Widget object)
+IswScreenOfObject(Widget object)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
-    if (XtIsSubclass(object, hookObjectClass))
+    if (IswIsSubclass(object, hookObjectClass))
         return ((HookObject) object)->hooks.screen;
-    return XtScreen(XtIsWidget(object) ? object : _XtWindowedAncestor(object));
+    return IswScreen(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
 }
 
-#undef XtScreen
+#undef IswScreen
 xcb_screen_t *
-XtScreen(Widget widget)
+IswScreen(Widget widget)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return widget->core.screen;
 }
 
-#undef XtWindowOfObject
+#undef IswWindowOfObject
 xcb_window_t
-XtWindowOfObject(Widget object)
+IswWindowOfObject(Widget object)
 {
-    return XtWindow(XtIsWidget(object) ? object : _XtWindowedAncestor(object));
+    return IswWindow(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
 }
 
-#undef XtWindow
+#undef IswWindow
 xcb_window_t
-XtWindow(Widget widget)
+IswWindow(Widget widget)
 {
     return widget->core.window;
 }
 
-#undef XtSuperclass
+#undef IswSuperclass
 WidgetClass
-XtSuperclass(Widget widget)
+IswSuperclass(Widget widget)
 {
     WidgetClass retval;
 
     LOCK_PROCESS;
-    retval = XtClass(widget)->core_class.superclass;
+    retval = IswClass(widget)->core_class.superclass;
     UNLOCK_PROCESS;
     return retval;
 }
 
-#undef XtClass
+#undef IswClass
 WidgetClass
-XtClass(Widget widget)
+IswClass(Widget widget)
 {
     WidgetClass retval;
 
@@ -840,16 +840,16 @@ XtClass(Widget widget)
     return retval;
 }
 
-#undef XtIsManaged
+#undef IswIsManaged
 Boolean
-XtIsManaged(Widget object)
+IswIsManaged(Widget object)
 {
     Boolean retval;
 
     WIDGET_TO_APPCON(object);
 
     LOCK_APP(app);
-    if (XtIsRectObj(object))
+    if (IswIsRectObj(object))
         retval = object->core.managed;
     else
         retval = False;
@@ -857,30 +857,30 @@ XtIsManaged(Widget object)
     return retval;
 }
 
-#undef XtIsRealized
+#undef IswIsRealized
 Boolean
-XtIsRealized(Widget object)
+IswIsRealized(Widget object)
 {
     Boolean retval;
 
     WIDGET_TO_APPCON(object);
 
     LOCK_APP(app);
-    retval = XtWindowOfObject(object) != None;
+    retval = IswWindowOfObject(object) != None;
     UNLOCK_APP(app);
     return retval;
-}                               /* XtIsRealized */
+}                               /* IswIsRealized */
 
-#undef XtIsSensitive
+#undef IswIsSensitive
 Boolean
-XtIsSensitive(Widget object)
+IswIsSensitive(Widget object)
 {
     Boolean retval;
 
     WIDGET_TO_APPCON(object);
 
     LOCK_APP(app);
-    if (XtIsRectObj(object))
+    if (IswIsRectObj(object))
         retval = object->core.sensitive && object->core.ancestor_sensitive;
     else
         retval = False;
@@ -889,21 +889,21 @@ XtIsSensitive(Widget object)
 }
 
 /*
- * Internal routine; must be called only after XtIsWidget returns false
+ * Internal routine; must be called only after IswIsWidget returns false
  */
 Widget
-_XtWindowedAncestor(register Widget object)
+_IswWindowedAncestor(register Widget object)
 {
     Widget obj = object;
 
-    for (object = XtParent(object); object && !XtIsWidget(object);)
-        object = XtParent(object);
+    for (object = IswParent(object); object && !IswIsWidget(object);)
+        object = IswParent(object);
 
     if (object == NULL) {
-        String params = XtName(obj);
+        String params = IswName(obj);
         Cardinal num_params = 1;
 
-        XtErrorMsg("noWidgetAncestor", "windowedAncestor", XtCXtToolkitError,
+        IswErrorMsg("noWidgetAncestor", "windowedAncestor", IswCIswToolkitError,
                    "Object \"%s\" does not have windowed ancestor",
                    &params, &num_params);
     }
@@ -911,24 +911,24 @@ _XtWindowedAncestor(register Widget object)
     return object;
 }
 
-#undef XtParent
+#undef IswParent
 Widget
-XtParent(Widget widget)
+IswParent(Widget widget)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return widget->core.parent;
 }
 
-#undef XtName
+#undef IswName
 String
-XtName(Widget object)
+IswName(Widget object)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return XrmQuarkToString(object->core.xrm_name);
 }
 
 Boolean
-XtIsObject(Widget object)
+IswIsObject(Widget object)
 {
     WidgetClass wc;
     String class_name;
@@ -948,7 +948,7 @@ XtIsObject(Widget object)
     }
     UNLOCK_PROCESS;
 
-    if (XtIsWidget(object)) {
+    if (IswIsWidget(object)) {
         if (object->core.name == NULL ||
             (class_name = XrmNameToString(object->core.xrm_name)) == NULL ||
             strcmp(object->core.name, class_name) != 0)
@@ -965,7 +965,7 @@ access_file(char *path, char *pathbuf, int len_pathbuf, char **pathret)
         if (strlen(path) < len_pathbuf)
             *pathret = pathbuf;
         else
-            *pathret = XtMalloc(strlen(path));
+            *pathret = IswMalloc(strlen(path));
         if (*pathret) {
             strcpy(*pathret, path);
             return 1;
@@ -997,11 +997,11 @@ AccessFile(char *path, char *pathbuf, int len_pathbuf, char **pathret)
     if (!drive)
         drive = "C:";
     len = strlen(drive) + strlen(path);
-    bufp = XtStackAlloc(len + 1, buf);
+    bufp = IswStackAlloc(len + 1, buf);
     strcpy(bufp, drive);
     strcat(bufp, path);
     if (access_file(bufp, pathbuf, len_pathbuf, pathret)) {
-        XtStackFree(bufp, buf);
+        IswStackFree(bufp, buf);
         return 1;
     }
 
@@ -1009,11 +1009,11 @@ AccessFile(char *path, char *pathbuf, int len_pathbuf, char **pathret)
     drive = getenv("HOMEDRIVE");
     if (drive) {
         len = strlen(drive) + strlen(path);
-        bufp = XtStackAlloc(len + 1, buf);
+        bufp = IswStackAlloc(len + 1, buf);
         strcpy(bufp, drive);
         strcat(bufp, path);
         if (access_file(bufp, pathbuf, len_pathbuf, pathret)) {
-            XtStackFree(bufp, buf);
+            IswStackFree(bufp, buf);
             return 1;
         }
     }
@@ -1026,13 +1026,13 @@ AccessFile(char *path, char *pathbuf, int len_pathbuf, char **pathret)
     for (i = C_DRIVE; i <= Z_DRIVE; i++) {      /* don't check on A: or B: */
         if ((1 << i) & drives) {
             len = 2 + strlen(path);
-            bufp = XtStackAlloc(len + 1, buf);
+            bufp = IswStackAlloc(len + 1, buf);
             *bufp = 'A' + i;
             *(bufp + 1) = ':';
             *(bufp + 2) = '\0';
             strcat(bufp, path);
             if (access_file(bufp, pathbuf, len_pathbuf, pathret)) {
-                XtStackFree(bufp, buf);
+                IswStackFree(bufp, buf);
                 return 1;
             }
         }
@@ -1162,14 +1162,14 @@ static Boolean Resolve(register _Xconst char *source,   /* The source string */
 #undef escape
 }
 
-_XtString
-XtFindFile(_Xconst _XtString path,
+_IswString
+IswFindFile(_Xconst _IswString path,
            Substitution substitutions,
            Cardinal num_substitutions,
-           XtFilePredicate predicate)
+           IswFilePredicate predicate)
 {
     char *buf, *buf1, *buf2;
-    _Xconst _XtString colon;
+    _Xconst _IswString colon;
     int len;
     Boolean firstTime = TRUE;
 
@@ -1211,10 +1211,10 @@ XtFindFile(_Xconst _XtString path,
                     printf("File found.\n");
 #endif                          /* XNL_DEBUG */
                     if (buf == buf1) {
-                        XtFree(buf2);
+                        IswFree(buf2);
                         return buf1;
                     }
-                    XtFree(buf1);
+                    IswFree(buf1);
                     return buf2;
                 }
                 if (buf == buf1)
@@ -1234,8 +1234,8 @@ XtFindFile(_Xconst _XtString path,
 
     /* No file found */
 
-    XtFree(buf1);
-    XtFree(buf2);
+    IswFree(buf1);
+    IswFree(buf2);
     return NULL;
 }
 
@@ -1298,8 +1298,8 @@ ExtractLocaleName(String lang)
 
         if ((end = strchr(start, ENDCHAR))) {
             len = (int) (end - start);
-            XtFree(buf);
-            buf = XtMalloc((Cardinal) (len + 1));
+            IswFree(buf);
+            buf = IswMalloc((Cardinal) (len + 1));
             if (buf == NULL)
                 return NULL;
             strncpy(buf, start, (size_t) len);
@@ -1315,7 +1315,7 @@ ExtractLocaleName(String lang)
     }
 #ifdef WHITEFILL
     if (strchr(lang, ' ')) {
-        XtFree(buf);
+        IswFree(buf);
         buf = strdup(lang);
         if (buf == NULL)
             return NULL;
@@ -1333,7 +1333,7 @@ ExtractLocaleName(String lang)
 }
 
 static void
-FillInLangSubs(Substitution subs, XtPerDisplay pd)
+FillInLangSubs(Substitution subs, IswPerDisplay pd)
 {
     int len;
     String string;
@@ -1356,8 +1356,8 @@ FillInLangSubs(Substitution subs, XtPerDisplay pd)
     }
 
     len = (int) strlen(string) + 1;
-    subs[0].substitution = (_XtString) string;
-    p1 = subs[1].substitution = XtMallocArray(3, (Cardinal) len);
+    subs[0].substitution = (_IswString) string;
+    p1 = subs[1].substitution = IswMallocArray(3, (Cardinal) len);
     p2 = subs[2].substitution = subs[1].substitution + len;
     p3 = subs[3].substitution = subs[2].substitution + len;
 
@@ -1423,17 +1423,17 @@ static SubstitutionRec defaultSubs[] = {
 };
 /* *INDENT-ON* */
 
-_XtString
-XtResolvePathname(xcb_connection_t *dpy,
+_IswString
+IswResolvePathname(xcb_connection_t *dpy,
                   _Xconst char *type,
                   _Xconst char *filename,
                   _Xconst char *suffix,
                   _Xconst char *path,
                   Substitution substitutions,
                   Cardinal num_substitutions,
-                  XtFilePredicate predicate)
+                  IswFilePredicate predicate)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
     static const char *defaultPath = NULL;
     const char *impl_default = implementation_default_path();
     int idef_len = (int) strlen(impl_default);
@@ -1445,7 +1445,7 @@ XtResolvePathname(xcb_connection_t *dpy,
     Boolean pathMallocd = False;
 
     LOCK_PROCESS;
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
     if (path == NULL) {
         if (defaultPath == NULL) {
             defaultPath = getenv("XFILESEARCHPATH");
@@ -1466,7 +1466,7 @@ XtResolvePathname(xcb_connection_t *dpy,
     bytesAllocd = bytesLeft = 1000;
     massagedPath = ALLOCATE_LOCAL((size_t) bytesAllocd);
     if (massagedPath == NULL)
-        _XtAllocError(NULL);
+        _IswAllocError(NULL);
 
     if (path[0] == ':') {
         strcpy(massagedPath, "%N%S");
@@ -1491,7 +1491,7 @@ XtResolvePathname(xcb_connection_t *dpy,
             strncpy(new, massagedPath, (size_t) bytesUsed);
             ch = new + bytesUsed;
             if (pathMallocd)
-                XtFree(massagedPath);
+                IswFree(massagedPath);
             else
                 DEALLOCATE_LOCAL(massagedPath);
             pathMallocd = True;
@@ -1531,22 +1531,22 @@ XtResolvePathname(xcb_connection_t *dpy,
     if (num_substitutions == 0)
         merged_substitutions = defaultSubs;
     else {
-        int i = XtNumber(defaultSubs);
+        int i = IswNumber(defaultSubs);
         Substitution sub, def;
 
         merged_substitutions = sub = (Substitution)
             ALLOCATE_LOCAL((unsigned) (num_substitutions + (Cardinal) i) *
                            sizeof(SubstitutionRec));
         if (sub == NULL)
-            _XtAllocError(NULL);
+            _IswAllocError(NULL);
         for (def = defaultSubs; i--; sub++, def++)
             sub->match = def->match;
         for (i = (int) num_substitutions; i--;)
             *sub++ = *substitutions++;
     }
-    merged_substitutions[0].substitution = (_XtString) filename;
-    merged_substitutions[1].substitution = (_XtString) type;
-    merged_substitutions[2].substitution = (_XtString) suffix;
+    merged_substitutions[0].substitution = (_IswString) filename;
+    merged_substitutions[1].substitution = (_IswString) type;
+    merged_substitutions[2].substitution = (_IswString) suffix;
 
     /* Look up "customization" resource using xcb-xrm.
      * Build the resource name as "appname.customization" and class as
@@ -1560,29 +1560,29 @@ XtResolvePathname(xcb_connection_t *dpy,
         if (db != NULL && pd->name != NULL && pd->class != NULL) {
             char *res_name = NULL;
             char *res_class = NULL;
-            XtAsprintf(&res_name, "%s.customization", pd->name);
-            XtAsprintf(&res_class, "%s.Customization", pd->class);
+            IswAsprintf(&res_name, "%s.customization", pd->name);
+            IswAsprintf(&res_class, "%s.Customization", pd->class);
             if (xcb_xrm_resource_get_string(db, res_name, res_class,
                                             &customization) < 0)
                 customization = NULL;
-            XtFree(res_name);
-            XtFree(res_class);
+            IswFree(res_name);
+            IswFree(res_class);
         }
     }
     merged_substitutions[3].substitution = customization;
     FillInLangSubs(&merged_substitutions[4], pd);
 
-    result = XtFindFile(massagedPath, merged_substitutions,
-                        num_substitutions + XtNumber(defaultSubs), predicate);
+    result = IswFindFile(massagedPath, merged_substitutions,
+                        num_substitutions + IswNumber(defaultSubs), predicate);
 
     if (merged_substitutions[5].substitution != NULL)
-        XtFree((XtPointer) merged_substitutions[5].substitution);
+        IswFree((IswPointer) merged_substitutions[5].substitution);
 
     if (merged_substitutions != defaultSubs)
         DEALLOCATE_LOCAL(merged_substitutions);
 
     if (pathMallocd)
-        XtFree(massagedPath);
+        IswFree(massagedPath);
     else
         DEALLOCATE_LOCAL(massagedPath);
 
@@ -1594,16 +1594,16 @@ XtResolvePathname(xcb_connection_t *dpy,
 }
 
 Boolean
-XtCallAcceptFocus(Widget widget, xcb_timestamp_t *time)
+IswCallAcceptFocus(Widget widget, xcb_timestamp_t *time)
 {
-    XtAcceptFocusProc ac;
+    IswAcceptFocusProc ac;
     Boolean retval;
 
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
     LOCK_PROCESS;
-    ac = XtClass(widget)->core_class.accept_focus;
+    ac = IswClass(widget)->core_class.accept_focus;
     UNLOCK_PROCESS;
 
     if (ac != NULL)
@@ -1614,11 +1614,11 @@ XtCallAcceptFocus(Widget widget, xcb_timestamp_t *time)
     return retval;
 }
 
-#ifdef XT_GEO_TATTLER
+#ifdef ISW_GEO_TATTLER
 /**************************************************************************
  GeoTattler:  This is used to debug Geometry management in Xt.
 
-  It uses a pseudo resource XtNgeotattler.
+  It uses a pseudo resource IswNgeotattler.
 
   E.G. if those lines are found in the resource database:
 
@@ -1637,32 +1637,32 @@ XtCallAcceptFocus(Widget widget, xcb_timestamp_t *time)
 
 *************************************************************************/
 
-#define XtNgeoTattler "geoTattler"
-#define XtCGeoTattler "GeoTattler"
+#define IswNgeoTattler "geoTattler"
+#define IswCGeoTattler "GeoTattler"
 
 typedef struct {
     Boolean geo_tattler;
 } GeoDataRec;
 
 /* *INDENT-OFF* */
-static XtResource geo_resources[] = {
-    { XtNgeoTattler, XtCGeoTattler, XtRBoolean, sizeof(Boolean),
-      XtOffsetOf(GeoDataRec, geo_tattler),
-      XtRImmediate, (XtPointer) False }
+static IswResource geo_resources[] = {
+    { IswNgeoTattler, IswCGeoTattler, IswRBoolean, sizeof(Boolean),
+      IswOffsetOf(GeoDataRec, geo_tattler),
+      IswRImmediate, (IswPointer) False }
 };
 /* *INDENT-ON* */
 
 /************************************************************************
-  This function uses XtGetSubresources to find out if a widget
+  This function uses IswGetSubresources to find out if a widget
   needs to be geo-spied by the caller. */
 static Boolean
 IsTattled(Widget widget)
 {
     GeoDataRec geo_data;
 
-    XtGetSubresources(widget, (XtPointer) &geo_data,
+    IswGetSubresources(widget, (IswPointer) &geo_data,
                       (String) NULL, (String) NULL,
-                      geo_resources, XtNumber(geo_resources), NULL, 0);
+                      geo_resources, IswNumber(geo_resources), NULL, 0);
 
     return geo_data.geo_tattler;
 
@@ -1671,13 +1671,13 @@ IsTattled(Widget widget)
 static int n_tab = 0;           /* not MT for now */
 
 void
-_XtGeoTab(int direction)
+_IswGeoTab(int direction)
 {                               /* +1 or -1 */
     n_tab += direction;
 }
 
 void
-_XtGeoTrace(Widget widget, const char *fmt, ...)
+_IswGeoTrace(Widget widget, const char *fmt, ...)
 {
     if (IsTattled(widget)) {
         va_list args;
@@ -1691,4 +1691,4 @@ _XtGeoTrace(Widget widget, const char *fmt, ...)
     }
 }
 
-#endif                          /* XT_GEO_TATTLER */
+#endif                          /* ISW_GEO_TATTLER */

@@ -55,8 +55,8 @@ SOFTWARE.
  *
  */
 
-#include	<X11/IntrinsicP.h>
-#include	<X11/StringDefs.h>
+#include	<ISW/IntrinsicP.h>
+#include	<ISW/StringDefs.h>
 #include	<ISW/ISWInit.h>
 #include	<ISW/BoxP.h>
 #include	<ISW/ISWRender.h>
@@ -68,16 +68,16 @@ SOFTWARE.
  *
  ****************************************************************/
 
-static XtResource resources[] = {
-    { XtNhSpace, XtCHSpace, XtRDimension, sizeof(Dimension),
-		XtOffsetOf(BoxRec, box.h_space),
-		XtRImmediate, (XtPointer)4 },
-    { XtNvSpace, XtCVSpace, XtRDimension, sizeof(Dimension),
-		XtOffsetOf(BoxRec, box.v_space),
-		XtRImmediate, (XtPointer)4 },
-    { XtNorientation, XtCOrientation, XtROrientation, sizeof(XtOrientation),
-		XtOffsetOf(BoxRec, box.orientation),
-		XtRImmediate, (XtPointer)XtorientVertical },
+static IswResource resources[] = {
+    { IswNhSpace, IswCHSpace, IswRDimension, sizeof(Dimension),
+		IswOffsetOf(BoxRec, box.h_space),
+		IswRImmediate, (IswPointer)4 },
+    { IswNvSpace, IswCVSpace, IswRDimension, sizeof(Dimension),
+		IswOffsetOf(BoxRec, box.v_space),
+		IswRImmediate, (IswPointer)4 },
+    { IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
+		IswOffsetOf(BoxRec, box.orientation),
+		IswRImmediate, (IswPointer)XtorientVertical },
 };
 
 /****************************************************************
@@ -88,13 +88,13 @@ static XtResource resources[] = {
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void ChangeManaged(Widget);
-static XtGeometryResult PreferredSize(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult PreferredSize(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 BoxClassRec boxClassRec = {
   {
@@ -111,7 +111,7 @@ BoxClassRec boxClassRec = {
     /* actions            */    NULL,
     /* num_actions	  */	0,
     /* resources          */    resources,
-    /* num_resources      */    XtNumber(resources),
+    /* num_resources      */    IswNumber(resources),
     /* xrm_class          */    NULLQUARK,
     /* compress_motion	  */	TRUE,
     /* compress_exposure  */	TRUE,
@@ -122,21 +122,21 @@ BoxClassRec boxClassRec = {
     /* expose             */    Redisplay,
     /* set_values         */    SetValues,
     /* set_values_hook    */	NULL,
-    /* set_values_almost  */    XtInheritSetValuesAlmost,
+    /* set_values_almost  */    IswInheritSetValuesAlmost,
     /* get_values_hook    */	NULL,
     /* accept_focus       */    NULL,
-    /* version            */	XtVersion,
+    /* version            */	IswVersion,
     /* callback_private   */    NULL,
     /* tm_table           */    NULL,
     /* query_geometry     */	PreferredSize,
-    /* display_accelerator*/	XtInheritDisplayAccelerator,
+    /* display_accelerator*/	IswInheritDisplayAccelerator,
     /* extension          */	NULL
   },{
 /* composite_class fields */
     /* geometry_manager   */    GeometryManager,
     /* change_managed     */    ChangeManaged,
-    /* insert_child	  */	XtInheritInsertChild,
-    /* delete_child	  */	XtInheritDeleteChild,
+    /* insert_child	  */	IswInheritInsertChild,
+    /* delete_child	  */	IswInheritDeleteChild,
     /* extension          */	NULL
   },{
 /* Box class fields */
@@ -227,12 +227,12 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
 		 * perform the moves from the correct end so we don't
 		 * force extra exposures as children occlude each other.
 		 */
-		if (XtIsRealized(widget) && widget->core.mapped_when_managed) {
-		    xcb_connection_t *conn = XtDisplay(widget);
-		    xcb_unmap_window(conn, XtWindow(widget));
+		if (IswIsRealized(widget) && widget->core.mapped_when_managed) {
+		    xcb_connection_t *conn = IswDisplay(widget);
+		    xcb_unmap_window(conn, IswWindow(widget));
 		    xcb_flush(conn);
 		}
-		XtMoveWidget(widget, (int)lw, (int)h);
+		IswMoveWidget(widget, (int)lw, (int)h);
 	    }
 	    lw += bw;
 	    bh = widget->core.height + 2*widget->core.border_width;
@@ -244,7 +244,7 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
 	/* reduce width if too wide and height not filled */
 	Dimension sw = lw, sh = lh;
 	Dimension width_needed = 0;
-	XtOrientation orientation = bbw->box.orientation;
+	IswOrientation orientation = bbw->box.orientation;
 	bbw->box.orientation = XtorientVertical;
 	while (sh < height && sw > width) {
 	    width_needed = sw;
@@ -263,18 +263,18 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
         DoLayout( bbw, w, height, reply_width, reply_height, position );
         return;
     }
-    if (position && XtIsRealized((Widget)bbw)) {
+    if (position && IswIsRealized((Widget)bbw)) {
  if (bbw->composite.num_children == num_mapped_children) {
-     xcb_connection_t *conn = XtDisplay((Widget)bbw);
-     xcb_map_subwindows(conn, XtWindow((Widget)bbw));
+     xcb_connection_t *conn = IswDisplay((Widget)bbw);
+     xcb_map_subwindows(conn, IswWindow((Widget)bbw));
      xcb_flush(conn);
  } else {
 	    int j = bbw->composite.num_children;
 	    Widget *childP = bbw->composite.children;
 	    for (; j > 0; childP++, j--)
-		if (XtIsRealized(*childP) && XtIsManaged(*childP) &&
+		if (IswIsRealized(*childP) && IswIsManaged(*childP) &&
 		    (*childP)->core.mapped_when_managed)
-		    XtMapWidget(*childP);
+		    IswMapWidget(*childP);
 	}
     }
 
@@ -294,8 +294,8 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
  *
  */
 
-static XtGeometryResult
-PreferredSize(Widget widget, XtWidgetGeometry *constraint, XtWidgetGeometry *preferred)
+static IswGeometryResult
+PreferredSize(Widget widget, IswWidgetGeometry *constraint, IswWidgetGeometry *preferred)
 {
     BoxWidget w = (BoxWidget)widget;
     Dimension width /*, height */;
@@ -306,7 +306,7 @@ PreferredSize(Widget widget, XtWidgetGeometry *constraint, XtWidgetGeometry *pre
 
     if (constraint->request_mode == 0)
 	/* parent isn't going to change w or h, so nothing to re-compute */
-	return XtGeometryYes;
+	return IswGeometryYes;
 
     if (constraint->request_mode == w->box.last_query_mode &&
 	(!(constraint->request_mode & XCB_CONFIG_WINDOW_WIDTH) ||
@@ -320,9 +320,9 @@ PreferredSize(Widget widget, XtWidgetGeometry *constraint, XtWidgetGeometry *pre
 	if (constraint->request_mode == (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT) &&
 	    constraint->width == preferred_width &&
 	    constraint->height == preferred_height)
-	    return XtGeometryYes;
+	    return IswGeometryYes;
 	else
-	    return XtGeometryAlmost;
+	    return IswGeometryAlmost;
     }
 
     /* else gotta do it the long way...
@@ -384,9 +384,9 @@ PreferredSize(Widget widget, XtWidgetGeometry *constraint, XtWidgetGeometry *pre
     if (constraint->request_mode == (XCB_CONFIG_WINDOW_WIDTH|XCB_CONFIG_WINDOW_HEIGHT)
 	&& constraint->width == preferred_width
 	&& constraint->height == preferred_height)
-	return XtGeometryYes;
+	return IswGeometryYes;
     else
-	return XtGeometryAlmost;
+	return IswGeometryAlmost;
 
 }
 
@@ -439,13 +439,13 @@ TryNewLayout(BoxWidget bbw)
     proposed_width = preferred_width;
     proposed_height = preferred_height;
     do {
-	switch (XtMakeResizeRequest((Widget)bbw,proposed_width,proposed_height,
+	switch (IswMakeResizeRequest((Widget)bbw,proposed_width,proposed_height,
 				     &proposed_width, &proposed_height))
 	{
-	    case XtGeometryYes:
+	    case IswGeometryYes:
 		return (TRUE);
 
-	    case XtGeometryNo:
+	    case IswGeometryNo:
 		if (iterations > 0)
 		    /* protect from malicious parents who change their minds */
 		    DoLayout( bbw, bbw->core.width, bbw->core.height,
@@ -456,7 +456,7 @@ TryNewLayout(BoxWidget bbw)
 		else
 		    return (FALSE);
 
-	    case XtGeometryAlmost:
+	    case IswGeometryAlmost:
 		if (proposed_height >= preferred_height &&
 		    proposed_width >= preferred_width) {
 
@@ -467,7 +467,7 @@ TryNewLayout(BoxWidget bbw)
 		     * almost.
 		     *
 		     */
-		    (void) XtMakeResizeRequest( (Widget)bbw,
+		    (void) IswMakeResizeRequest( (Widget)bbw,
 				       proposed_width, proposed_height,
 				       &proposed_width, &proposed_height);
 		    return(TRUE);
@@ -479,7 +479,7 @@ TryNewLayout(BoxWidget bbw)
 		    proposed_height = preferred_height;
 		}
 		else { /* proposed_height != preferred_height */
-		    XtWidgetGeometry constraints, reply;
+		    IswWidgetGeometry constraints, reply;
 		    constraints.request_mode = XCB_CONFIG_WINDOW_HEIGHT;
 		    constraints.height = proposed_height;
 		    (void)PreferredSize((Widget)bbw, &constraints, &reply);
@@ -487,7 +487,7 @@ TryNewLayout(BoxWidget bbw)
 		}
 		break;
 
-	    case XtGeometryDone: /* ??? */
+	    case IswGeometryDone: /* ??? */
 	    default:
 		break;
 	}
@@ -505,8 +505,8 @@ TryNewLayout(BoxWidget bbw)
  */
 
 /*ARGSUSED*/
-static XtGeometryResult
-GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager(Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 {
     Dimension	width, height, borderWidth;
     BoxWidget bbw;
@@ -514,7 +514,7 @@ GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
     /* Position request always denied */
     if ((request->request_mode & XCB_CONFIG_WINDOW_X && request->x != w->core.x) ||
 	(request->request_mode & XCB_CONFIG_WINDOW_Y && request->y != w->core.y))
-        return (XtGeometryNo);
+        return (IswGeometryNo);
 
     /* Size changes must see if the new size can be accomodated */
     if (request->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
@@ -551,19 +551,19 @@ GeometryManager(Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
  */
 	if (TryNewLayout(bbw)) {
 	    /* Fits in existing or new space, relayout */
-	    (*XtClass((Widget)bbw)->core_class.resize)((Widget)bbw);
-	    return (XtGeometryYes);
+	    (*IswClass((Widget)bbw)->core_class.resize)((Widget)bbw);
+	    return (IswGeometryYes);
 	} else {
 	    /* Cannot satisfy request, change back to original geometry */
 	    w->core.width = width;
 	    w->core.height = height;
 	    w->core.border_width = borderWidth;
-	    return (XtGeometryNo);
+	    return (IswGeometryNo);
 	}
     }; /* if any size changes requested */
 
     /* Any stacking changes don't make a difference, so allow if that's all */
-    return (XtGeometryYes);
+    return (IswGeometryYes);
 }
 
 static void
@@ -578,7 +578,7 @@ static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     /* Only draw border if border_width is set */
-    if (w->core.border_width == 0 || !XtIsRealized(w))
+    if (w->core.border_width == 0 || !IswIsRealized(w))
         return;
 
     ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
@@ -590,8 +590,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         ISWRenderEnd(ctx);
         ISWRenderDestroy(ctx);
     } else {
-        xcb_connection_t *conn = XtDisplay(w);
-        xcb_window_t win = (xcb_window_t) XtWindow(w);
+        xcb_connection_t *conn = IswDisplay(w);
+        xcb_window_t win = (xcb_window_t) IswWindow(w);
         xcb_gcontext_t gc = xcb_generate_id(conn);
         uint32_t values[2];
         values[0] = w->core.background_pixel;
@@ -609,8 +609,8 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    XtSetTypeConverter( XtRString, XtROrientation, ISWCvtStringToOrientation,
-		        (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
+    IswSetTypeConverter( IswRString, IswROrientation, ISWCvtStringToOrientation,
+		        (IswConvertArgList)NULL, 0, IswCacheNone, (IswDestructor)NULL );
 }
 
 /* ARGSUSED */
@@ -635,7 +635,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 } /* Initialize */
 
 static void
-Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+Realize(xcb_connection_t *conn, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     /* XCB Migration: attributes is a uint32_t array in ascending mask bit order.
      * We need to INSERT the XCB_CW_BIT_GRAVITY value at the correct position,
@@ -669,7 +669,7 @@ Realize(xcb_connection_t *conn, Widget w, XtValueMask *valueMask, uint32_t *attr
         *valueMask |= XCB_CW_BIT_GRAVITY;
     }
     
-    XtCreateWindow(conn, w, (unsigned)XCB_WINDOW_CLASS_INPUT_OUTPUT,
+    IswCreateWindow(conn, w, (unsigned)XCB_WINDOW_CLASS_INPUT_OUTPUT,
                    (xcb_visualtype_t *)CopyFromParent, *valueMask, attributes);
 } /* Realize */
 

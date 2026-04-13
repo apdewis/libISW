@@ -52,8 +52,8 @@ SOFTWARE.
 #include <stdio.h>
 
 #include <X11/Xatom.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/AsciiSinkP.h>
 #include <ISW/AsciiSrcP.h>	/* For source function defs. */
@@ -67,15 +67,15 @@ SOFTWARE.
 #endif
 #include "ISWXcbDraw.h"
 
-/* XCB-based XFontStruct lacks per_char metrics */
+/* XCB-based IswFontStruct lacks per_char metrics */
 #define XFONTSTRUCT_HAS_NO_PER_CHAR 1
 
 /* HiDPI helpers: return Cairo-matched scaled font metrics */
 static int ScaledAscent(AsciiSinkObject sink) {
-    return ISWScaledFontAscent(XtParent((Widget)sink), sink->ascii_sink.font);
+    return ISWScaledFontAscent(IswParent((Widget)sink), sink->ascii_sink.font);
 }
 static int ScaledFontHeight(AsciiSinkObject sink) {
-    return ISWScaledFontHeight(XtParent((Widget)sink), sink->ascii_sink.font);
+    return ISWScaledFontHeight(IswParent((Widget)sink), sink->ascii_sink.font);
 }
 static int ScaledDescent(AsciiSinkObject sink) {
     return ScaledFontHeight(sink) - ScaledAscent(sink);
@@ -106,15 +106,15 @@ static void FindDistance(Widget, ISWTextPosition, int, ISWTextPosition, int *,
 static void Resolve(Widget, ISWTextPosition, int, int, ISWTextPosition *);
 static void GetCursorBounds(Widget, xcb_rectangle_t *);
 
-#define offset(field) XtOffsetOf(AsciiSinkRec, ascii_sink.field)
+#define offset(field) IswOffsetOf(AsciiSinkRec, ascii_sink.field)
 
-static XtResource resources[] = {
-    {XtNfont, XtCFont, XtRFontStruct, sizeof (XFontStruct *),
-	offset(font), XtRString, XtDefaultFont},
-    {XtNecho, XtCOutput, XtRBoolean, sizeof(Boolean),
-	offset(echo), XtRImmediate, (XtPointer) True},
-    {XtNdisplayNonprinting, XtCOutput, XtRBoolean, sizeof(Boolean),
-	offset(display_nonprinting), XtRImmediate, (XtPointer) True},
+static IswResource resources[] = {
+    {IswNfont, IswCFont, IswRFontStruct, sizeof (IswFontStruct *),
+	offset(font), IswRString, IswDefaultFont},
+    {IswNecho, IswCOutput, IswRBoolean, sizeof(Boolean),
+	offset(echo), IswRImmediate, (IswPointer) True},
+    {IswNdisplayNonprinting, IswCOutput, IswRBoolean, sizeof(Boolean),
+	offset(display_nonprinting), IswRImmediate, (IswPointer) True},
 };
 #undef offset
 
@@ -134,7 +134,7 @@ AsciiSinkClassRec asciiSinkClassRec = {
     /* obj2		  	*/	NULL,
     /* obj3		  	*/	0,
     /* resources	  	*/	resources,
-    /* num_resources	  	*/	XtNumber(resources),
+    /* num_resources	  	*/	IswNumber(resources),
     /* xrm_class	  	*/	NULLQUARK,
     /* obj4		  	*/	FALSE,
     /* obj5		  	*/	FALSE,
@@ -148,7 +148,7 @@ AsciiSinkClassRec asciiSinkClassRec = {
     /* obj10			*/	NULL,
     /* get_values_hook		*/	NULL,
     /* obj11		 	*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private   	*/	NULL,
     /* obj12		   	*/	NULL,
     /* obj13			*/	NULL,
@@ -183,20 +183,20 @@ CharWidth (Widget w, int x, unsigned char c)
 {
     int    i, width, nonPrinting;
     AsciiSinkObject sink = (AsciiSinkObject) w;
-    XFontStruct *font = sink->ascii_sink.font;
+    IswFontStruct *font = sink->ascii_sink.font;
     Position *tab;
 
     if ( c == IswLF ) return(0);
 
     if (c == IswTAB) {
 	/* Adjust for Left Margin. */
-	x -= ((TextWidget) XtParent(w))->text.margin.left;
+	x -= ((TextWidget) IswParent(w))->text.margin.left;
 
-	if (x >= (int)XtParent(w)->core.width) return 0;
+	if (x >= (int)IswParent(w)->core.width) return 0;
 	for (i = 0, tab = sink->text_sink.tabs ;
 	     i < sink->text_sink.tab_count ; i++, tab++) {
 	    if (x < *tab) {
-		if (*tab < (int)XtParent(w)->core.width)
+		if (*tab < (int)IswParent(w)->core.width)
 		    return *tab - x;
 		else
 		    return 0;
@@ -237,10 +237,10 @@ CharWidth (Widget w, int x, unsigned char c)
 	if (nonPrinting) {
 	    ch_buf[0] = '^';
 	    ch_buf[1] = (char)c;
-	    return ISWScaledTextWidth(XtParent(w), font, ch_buf, 2);
+	    return ISWScaledTextWidth(IswParent(w), font, ch_buf, 2);
 	}
 	ch_buf[0] = (char)c;
-	return ISWScaledTextWidth(XtParent(w), font, ch_buf, 1);
+	return ISWScaledTextWidth(IswParent(w), font, ch_buf, 1);
     }
 }
 
@@ -260,13 +260,13 @@ static Dimension
 PaintText(Widget w, Boolean highlight, Position x, Position y, unsigned char * buf, int len)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
-    TextWidget ctx = (TextWidget) XtParent(w);
+    TextWidget ctx = (TextWidget) IswParent(w);
 
     Position max_x;
     Dimension width;
     
     /* Lazy render context creation with dimension validation */
-    if (!sink->ascii_sink.render_ctx && XtIsRealized((Widget)ctx) &&
+    if (!sink->ascii_sink.render_ctx && IswIsRealized((Widget)ctx) &&
         ctx->core.width > 0 && ctx->core.height > 0) {
         sink->ascii_sink.render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
         if (sink->ascii_sink.render_ctx && sink->ascii_sink.font) {
@@ -329,8 +329,8 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
             ISWTextPosition pos2, Boolean highlight)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
-    Widget source = IswTextGetSource(XtParent(w));
-    TextWidget ctx = (TextWidget) XtParent(w);
+    Widget source = IswTextGetSource(IswParent(w));
+    TextWidget ctx = (TextWidget) IswParent(w);
     unsigned char buf[BUFSIZ];
 
     int j, k;
@@ -343,7 +343,7 @@ DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
 
     /* Lazy render context creation — must happen BEFORE ISWRenderBegin so that
      * the Begin/End calls are always balanced on the same render_ctx. */
-    if (!sink->ascii_sink.render_ctx && XtIsRealized((Widget)ctx) &&
+    if (!sink->ascii_sink.render_ctx && IswIsRealized((Widget)ctx) &&
         ctx->core.width > 0 && ctx->core.height > 0) {
         sink->ascii_sink.render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
         if (sink->ascii_sink.render_ctx && sink->ascii_sink.font) {
@@ -430,11 +430,11 @@ AsciiSinkClearToBackground(Widget w, Position x, Position y,
     if (height == 0 || width == 0) return;
 
     AsciiSinkObject sink = (AsciiSinkObject) w;
-    TextWidget ctx = (TextWidget) XtParent(w);
+    TextWidget ctx = (TextWidget) IswParent(w);
 
 
     /* Ensure render context exists (same lazy init as PaintText/DisplayText) */
-    if (!sink->ascii_sink.render_ctx && XtIsRealized((Widget)ctx) &&
+    if (!sink->ascii_sink.render_ctx && IswIsRealized((Widget)ctx) &&
         ctx->core.width > 0 && ctx->core.height > 0) {
         sink->ascii_sink.render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
         if (sink->ascii_sink.render_ctx && sink->ascii_sink.font)
@@ -459,8 +459,8 @@ static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
 static xcb_pixmap_t
 CreateInsertCursor(Widget w)
 {
-    xcb_connection_t *conn = XtDisplayOfObject(w);
-    xcb_screen_t *s = XtScreenOfObject(w);
+    xcb_connection_t *conn = IswDisplayOfObject(w);
+    xcb_screen_t *s = IswScreenOfObject(w);
     xcb_drawable_t root = RootWindowOfScreen(s);
     return IswCreateBitmapFromData(conn, root,
 		  insertCursor_bits, insertCursor_width, insertCursor_height);
@@ -492,14 +492,14 @@ static void
 InsertCursor (Widget w, Position x, Position y, IswTextInsertState state)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
-    Widget text_widget = XtParent(w);
+    Widget text_widget = IswParent(w);
     xcb_rectangle_t rect;
 
     sink->ascii_sink.cursor_x = x;
     sink->ascii_sink.cursor_y = y;
 
     GetCursorBounds(w, &rect);
-    if (state != sink->ascii_sink.laststate && XtIsRealized(text_widget)) {
+    if (state != sink->ascii_sink.laststate && IswIsRealized(text_widget)) {
         if (state == IswisOn) {
             /* Draw cursor as a filled bar.
              * y is the bottom of the line; cursor extends upward. */
@@ -539,7 +539,7 @@ FindDistance (Widget w,
               int *resHeight		/* Height required. */)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
-    Widget source = IswTextGetSource(XtParent(w));
+    Widget source = IswTextGetSource(IswParent(w));
 
     ISWTextPosition index, lastPos;
     unsigned char c;
@@ -569,7 +569,7 @@ FindDistance (Widget w,
 		    *resWidth += ISWRenderTextWidth(sink->ascii_sink.render_ctx,
 						    (char *)buf, buflen);
 		} else if (buflen > 0) {
-		    *resWidth += ISWScaledTextWidth(XtParent(w),
+		    *resWidth += ISWScaledTextWidth(IswParent(w),
 						    sink->ascii_sink.font,
 						    (char *)buf, buflen);
 		}
@@ -589,7 +589,7 @@ FindDistance (Widget w,
 			*resWidth += ISWRenderTextWidth(sink->ascii_sink.render_ctx,
 							(char *)buf, buflen);
 		    else
-			*resWidth += ISWScaledTextWidth(XtParent(w),
+			*resWidth += ISWScaledTextWidth(IswParent(w),
 							sink->ascii_sink.font,
 							(char *)buf, buflen);
 		    buflen = 0;
@@ -602,7 +602,7 @@ FindDistance (Widget w,
 		*resWidth += ISWRenderTextWidth(sink->ascii_sink.render_ctx,
 						(char *)buf, buflen);
 	    else
-		*resWidth += ISWScaledTextWidth(XtParent(w),
+		*resWidth += ISWScaledTextWidth(IswParent(w),
 						sink->ascii_sink.font,
 						(char *)buf, buflen);
 	}
@@ -624,7 +624,7 @@ FindPosition(Widget w,
              int *resHeight		/* Height required. */)
 {
     AsciiSinkObject sink = (AsciiSinkObject) w;
-    Widget source = IswTextGetSource(XtParent(w));
+    Widget source = IswTextGetSource(IswParent(w));
 
     ISWTextPosition lastPos, index, whiteSpacePosition = 0;
     int     lastWidth = 0, whiteSpaceWidth = 0;
@@ -672,7 +672,7 @@ static void
 Resolve (Widget w, ISWTextPosition pos, int fromx, int width, ISWTextPosition *resPos)
 {
     int resWidth, resHeight;
-    Widget source = IswTextGetSource(XtParent(w));
+    Widget source = IswTextGetSource(IswParent(w));
 
     FindPosition(w, pos, fromx, width, FALSE, resPos, &resWidth, &resHeight);
     if (*resPos > GETLASTPOS)
@@ -695,10 +695,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     AsciiSinkObject sink = (AsciiSinkObject) new;
 
-    /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
+    /* XCB Fix: IswRFontStruct converter may fail in XCB mode, leaving font NULL.
      * AsciiSink doesn't have fontset support, so just issue a warning. */
     if (sink->ascii_sink.font == NULL) {
-	XtAppWarning(XtWidgetToApplicationContext(new),
+	IswAppWarning(IswWidgetToApplicationContext(new),
 		     "AsciiSink widget: font is NULL - text rendering will fail");
     }
 
@@ -725,7 +725,7 @@ Destroy(Widget w)
        sink->ascii_sink.render_ctx = NULL;
    }
 
-   ISWFreePixmap(XtDisplayOfObject(w), sink->ascii_sink.insertCursorOn);
+   ISWFreePixmap(IswDisplayOfObject(w), sink->ascii_sink.insertCursorOn);
 }
 
 /*	Function Name: SetValues
@@ -755,12 +755,12 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (font_changed ||
 	w->text_sink.background != old_w->text_sink.background ||
 	w->text_sink.foreground != old_w->text_sink.foreground) {
-	((TextWidget)XtParent(new))->text.redisplay_needed = True;
+	((TextWidget)IswParent(new))->text.redisplay_needed = True;
     } else {
 	if ( (w->ascii_sink.echo != old_w->ascii_sink.echo) ||
 	     (w->ascii_sink.display_nonprinting !=
                                      old_w->ascii_sink.display_nonprinting) )
-	    ((TextWidget)XtParent(new))->text.redisplay_needed = True;
+	    ((TextWidget)IswParent(new))->text.redisplay_needed = True;
     }
 
     return False;
@@ -817,24 +817,24 @@ SetTabs(Widget w, int tab_count, short *tabs)
   AsciiSinkObject sink = (AsciiSinkObject) w;
   int i;
   unsigned long figure_width = 0;
-  XFontStruct *font = sink->ascii_sink.font;
-  xcb_connection_t *conn = XtDisplayOfObject(w);
+  IswFontStruct *font = sink->ascii_sink.font;
+  xcb_connection_t *conn = IswDisplayOfObject(w);
 
 /*
  * Find the figure width of the current font.
  */
 
   /* Use Cairo-matched figure width so tab stops align with rendered text */
-  figure_width = ISWScaledTextWidth(XtParent(w), font, "$", 1);
+  figure_width = ISWScaledTextWidth(IswParent(w), font, "$", 1);
   if (figure_width == 0)
       figure_width = 8;
 
   if (tab_count > sink->text_sink.tab_count) {
     sink->text_sink.tabs = (Position *)
-	XtRealloc((char *) sink->text_sink.tabs,
+	IswRealloc((char *) sink->text_sink.tabs,
 		  (Cardinal) (tab_count * sizeof(Position)));
     sink->text_sink.char_tabs = (short *)
-	XtRealloc((char *) sink->text_sink.char_tabs,
+	IswRealloc((char *) sink->text_sink.char_tabs,
 		  (Cardinal) (tab_count * sizeof(short)));
   }
 
@@ -846,7 +846,7 @@ SetTabs(Widget w, int tab_count, short *tabs)
   sink->text_sink.tab_count = tab_count;
 
 #ifndef NO_TAB_FIX
-  {  TextWidget ctx = (TextWidget)XtParent(w);
+  {  TextWidget ctx = (TextWidget)IswParent(w);
       ctx->text.redisplay_needed = True;
       _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
   }

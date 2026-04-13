@@ -45,49 +45,49 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtComposite_h
-#define _XtComposite_h
+#ifndef _IswComposite_h
+#define _IswComposite_h
 
 typedef struct _CompositeClassRec *CompositeWidgetClass;
 
-typedef Cardinal (*XtOrderProc)(
+typedef Cardinal (*IswOrderProc)(
     Widget 	/* child */
 );
 
 _XFUNCPROTOBEGIN
 
-extern void XtManageChildren(
+extern void IswManageChildren(
     WidgetList 		/* children */,
     Cardinal 		/* num_children */
 );
 
-extern void XtManageChild(
+extern void IswManageChild(
     Widget 		/* child */
 );
 
-extern void XtUnmanageChildren(
+extern void IswUnmanageChildren(
     WidgetList 		/* children */,
     Cardinal 		/* num_children */
 );
 
-extern void XtUnmanageChild(
+extern void IswUnmanageChild(
     Widget 		/* child */
 );
 
-typedef void (*XtDoChangeProc)(
+typedef void (*IswDoChangeProc)(
     Widget		/* composite_parent */,
     WidgetList		/* unmanage_children */,
     Cardinal *		/* num_unmanage_children */,
     WidgetList		/* manage_children */,
     Cardinal *		/* num_manage_children */,
-    XtPointer		/* client_data */
+    IswPointer		/* client_data */
 );
 
-extern void XtChangeManagedSet(
+extern void IswChangeManagedSet(
     WidgetList		/* unmanage_children */,
     Cardinal		/* num_unmanage_children */,
-    XtDoChangeProc	/* do_change_proc */,
-    XtPointer		/* client_data */,
+    IswDoChangeProc	/* do_change_proc */,
+    IswPointer		/* client_data */,
     WidgetList		/* manage_children */,
     Cardinal		/* num_manage_children */
 );
@@ -96,5 +96,5 @@ _XFUNCPROTOEND
 
 externalref WidgetClass compositeWidgetClass;
 
-#endif /* _XtComposite_h */
+#endif /* _IswComposite_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

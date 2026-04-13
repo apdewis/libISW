@@ -10,29 +10,29 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ProgressBarP.h>
 #include <xcb/xcb.h>
 #include <cairo/cairo.h>
 
-#define offset(field) XtOffsetOf(ProgressBarRec, field)
+#define offset(field) IswOffsetOf(ProgressBarRec, field)
 
-static XtResource resources[] = {
-    {XtNvalue, XtCValue, XtRInt, sizeof(int),
-	offset(progress_bar.value), XtRImmediate, (XtPointer) 0},
-    {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-	offset(progress_bar.foreground), XtRString, (XtPointer) XtDefaultForeground},
-    {XtNorientation, XtCOrientation, XtROrientation, sizeof(XtOrientation),
-	offset(progress_bar.orientation), XtRImmediate, (XtPointer) XtorientHorizontal},
-    {XtNshowValue, XtCShowValue, XtRBoolean, sizeof(Boolean),
-	offset(progress_bar.show_value), XtRImmediate, (XtPointer) True},
-    {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct *),
-	offset(progress_bar.font), XtRString, XtDefaultFont},
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-	XtOffsetOf(RectObjRec, rectangle.border_width), XtRImmediate, (XtPointer) 1},
+static IswResource resources[] = {
+    {IswNvalue, IswCValue, IswRInt, sizeof(int),
+	offset(progress_bar.value), IswRImmediate, (IswPointer) 0},
+    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+	offset(progress_bar.foreground), IswRString, (IswPointer) IswDefaultForeground},
+    {IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
+	offset(progress_bar.orientation), IswRImmediate, (IswPointer) XtorientHorizontal},
+    {IswNshowValue, IswCShowValue, IswRBoolean, sizeof(Boolean),
+	offset(progress_bar.show_value), IswRImmediate, (IswPointer) True},
+    {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+	offset(progress_bar.font), IswRString, IswDefaultFont},
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+	IswOffsetOf(RectObjRec, rectangle.border_width), IswRImmediate, (IswPointer) 1},
 };
 #undef offset
 
@@ -54,11 +54,11 @@ ProgressBarClassRec progressBarClassRec = {
     FALSE,				/* class_inited		  */
     Initialize,				/* initialize		  */
     NULL,				/* initialize_hook	  */
-    XtInheritRealize,			/* realize		  */
+    IswInheritRealize,			/* realize		  */
     NULL,				/* actions		  */
     0,					/* num_actions		  */
     resources,				/* resources		  */
-    XtNumber(resources),		/* resource_count	  */
+    IswNumber(resources),		/* resource_count	  */
     NULLQUARK,				/* xrm_class		  */
     TRUE,				/* compress_motion	  */
     TRUE,				/* compress_exposure	  */
@@ -69,18 +69,18 @@ ProgressBarClassRec progressBarClassRec = {
     Redisplay,				/* expose		  */
     SetValues,				/* set_values		  */
     NULL,				/* set_values_hook	  */
-    XtInheritSetValuesAlmost,		/* set_values_almost	  */
+    IswInheritSetValuesAlmost,		/* set_values_almost	  */
     NULL,				/* get_values_hook	  */
     NULL,				/* accept_focus		  */
-    XtVersion,				/* version		  */
+    IswVersion,				/* version		  */
     NULL,				/* callback_private	  */
     NULL,				/* tm_table (no translations) */
-    XtInheritQueryGeometry,		/* query_geometry	  */
-    XtInheritDisplayAccelerator,	/* display_accelerator	  */
+    IswInheritQueryGeometry,		/* query_geometry	  */
+    IswInheritDisplayAccelerator,	/* display_accelerator	  */
     NULL				/* extension		  */
   },
   {
-    XtInheritChangeSensitive		/* change_sensitive	  */
+    IswInheritChangeSensitive		/* change_sensitive	  */
   },
   {
     0					/* makes_compiler_happy   */
@@ -166,7 +166,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     double pad = 2.0;
 
     /* Lazy-create render context */
-    if (!ctx && w->core.width > 0 && w->core.height > 0 && XtIsRealized(w)) {
+    if (!ctx && w->core.width > 0 && w->core.height > 0 && IswIsRealized(w)) {
 	ctx = pbw->progress_bar.render_ctx =
 	    ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
     }

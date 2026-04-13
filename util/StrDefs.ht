@@ -45,17 +45,17 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtStringDefs_h_
-#define _XtStringDefs_h_
+#ifndef _IswStringDefs_h_
+#define _IswStringDefs_h_
 
-#ifndef XTSTRINGDEFINES
-#define _XtStringDefs_h_Const const
+#ifndef ISWSTRINGDEFINES
+#define _IswStringDefs_h_Const const
 #endif
 
 <<<STRING_TABLE_GOES_HERE>>>
 
-#ifndef XTSTRINGDEFINES
-#undef _XtStringDefs_h_Const
+#ifndef ISWSTRINGDEFINES
+#undef _IswStringDefs_h_Const
 #endif
 
-#endif /* _XtStringDefs_h_ */
+#endif /* _IswStringDefs_h_ */

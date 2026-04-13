@@ -31,8 +31,8 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>		/* get XtN and XtC defines */
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>		/* get IswN and IswC defines */
 #include <ISW/ISWInit.h>		/* get Isw initialize stuff */
 #include <ISW/PortholeP.h>		/* get porthole structs */
 #include <ISW/ISWP.h>		/* get utility macros */
@@ -41,10 +41,10 @@ in this Software without prior written authorization from the X Consortium.
 /*
  * resources for the porthole
  */
-static XtResource resources[] = {
-#define poff(field) XtOffsetOf(PortholeRec, porthole.field)
-    { XtNreportCallback, XtCReportCallback, XtRCallback, sizeof(XtPointer),
-	poff(report_callbacks), XtRCallback, (XtPointer) NULL },
+static IswResource resources[] = {
+#define poff(field) IswOffsetOf(PortholeRec, porthole.field)
+    { IswNreportCallback, IswCReportCallback, IswRCallback, sizeof(IswPointer),
+	poff(report_callbacks), IswRCallback, (IswPointer) NULL },
 #undef poff
 };
 
@@ -52,11 +52,11 @@ static XtResource resources[] = {
 /*
  * widget class methods used below
  */
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void ChangeManaged(Widget);
-static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 PortholeClassRec portholeClassRec = {
   { /* core fields */
@@ -72,7 +72,7 @@ PortholeClassRec portholeClassRec = {
     /* actions			*/	NULL,
     /* num_actions		*/	0,
     /* resources		*/	resources,
-    /* num_resources		*/	XtNumber(resources),
+    /* num_resources		*/	IswNumber(resources),
     /* xrm_class		*/	NULLQUARK,
     /* compress_motion		*/	TRUE,
     /* compress_exposure	*/	TRUE,
@@ -83,21 +83,21 @@ PortholeClassRec portholeClassRec = {
     /* expose			*/	NULL,
     /* set_values		*/	NULL,
     /* set_values_hook		*/	NULL,
-    /* set_values_almost	*/	XtInheritSetValuesAlmost,
+    /* set_values_almost	*/	IswInheritSetValuesAlmost,
     /* get_values_hook		*/	NULL,
     /* accept_focus		*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private		*/	NULL,
     /* tm_table			*/	NULL,
     /* query_geometry		*/	QueryGeometry,
-    /* display_accelerator	*/	XtInheritDisplayAccelerator,
+    /* display_accelerator	*/	IswInheritDisplayAccelerator,
     /* extension		*/	NULL
   },
   { /* composite fields */
     /* geometry_manager		*/	GeometryManager,
     /* change_managed		*/	ChangeManaged,
-    /* insert_child		*/	XtInheritInsertChild,
-    /* delete_child		*/	XtInheritDeleteChild,
+    /* insert_child		*/	IswInheritInsertChild,
+    /* delete_child		*/	IswInheritDeleteChild,
     /* extension		*/	NULL
   },
   { /* porthole fields */
@@ -126,7 +126,7 @@ find_child (PortholeWidget pw)
      */
     for (i = 0, children = pw->composite.children;
 	 i < pw->composite.num_children; i++, children++) {
-	if (XtIsManaged(*children)) return *children;
+	if (IswIsManaged(*children)) return *children;
     }
 
     return (Widget) NULL;
@@ -147,14 +147,14 @@ SendReport (PortholeWidget pw, unsigned int changed)
 	prep.slider_height = pw->core.height;
 	prep.canvas_width = child->core.width;
 	prep.canvas_height = child->core.height;
-	XtCallCallbackList ((Widget)pw, pw->porthole.report_callbacks,
-			    (XtPointer) &prep);
+	IswCallCallbackList ((Widget)pw, pw->porthole.report_callbacks,
+			    (IswPointer) &prep);
     }
 }
 
 
 static void
-layout_child (PortholeWidget pw, Widget child, XtWidgetGeometry *geomp,
+layout_child (PortholeWidget pw, Widget child, IswWidgetGeometry *geomp,
               Position *xp, Position *yp, Dimension *widthp, Dimension *heightp)
 {
     Position minx, miny;
@@ -201,7 +201,7 @@ layout_child (PortholeWidget pw, Widget child, XtWidgetGeometry *geomp,
 
 
 static void
-Realize (xcb_connection_t *dpy, Widget gw, XtValueMask *valueMask, uint32_t *attributes)
+Realize (xcb_connection_t *dpy, Widget gw, IswValueMask *valueMask, uint32_t *attributes)
 {
     if (!(*valueMask & XCB_CW_BIT_GRAVITY)) {
         int insert_idx = 0;
@@ -248,17 +248,17 @@ Resize (Widget gw)
 	Position x, y;
 	Dimension width, height;
 
-	layout_child (pw, child, (XtWidgetGeometry *)NULL,
+	layout_child (pw, child, (IswWidgetGeometry *)NULL,
 		      &x, &y, &width, &height);
-	XtConfigureWidget (child, x, y, width, height, (Dimension) 0);
+	IswConfigureWidget (child, x, y, width, height, (Dimension) 0);
     }
 
     SendReport (pw, (unsigned int) (IswPRCanvasWidth | IswPRCanvasHeight));
 }
 
 
-static XtGeometryResult
-QueryGeometry (Widget gw, XtWidgetGeometry *intended, XtWidgetGeometry *preferred)
+static IswGeometryResult
+QueryGeometry (Widget gw, IswWidgetGeometry *intended, IswWidgetGeometry *preferred)
 {
     PortholeWidget pw = (PortholeWidget) gw;
     Widget child = find_child (pw);
@@ -272,26 +272,26 @@ QueryGeometry (Widget gw, XtWidgetGeometry *intended, XtWidgetGeometry *preferre
 	if (((intended->request_mode & SIZEONLY) == SIZEONLY) &&
 	    intended->width == preferred->width &&
 	    intended->height == preferred->height)
-	  return XtGeometryYes;
+	  return IswGeometryYes;
 	else if (preferred->width == pw->core.width &&
 		 preferred->height == pw->core.height)
-	  return XtGeometryNo;
+	  return IswGeometryNo;
 	else
-	  return XtGeometryAlmost;
+	  return IswGeometryAlmost;
 #undef SIZEONLY
     }
-    return XtGeometryNo;
+    return IswGeometryNo;
 }
 
 
-static XtGeometryResult
-GeometryManager (Widget w, XtWidgetGeometry *req, XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager (Widget w, IswWidgetGeometry *req, IswWidgetGeometry *reply)
 {
     PortholeWidget pw = (PortholeWidget) w->core.parent;
     Widget child = find_child (pw);
     Boolean okay = TRUE;
 
-    if (child != w) return XtGeometryNo;  /* unknown child */
+    if (child != w) return IswGeometryNo;  /* unknown child */
 
     *reply = *req;			/* assume we'll grant everything */
 
@@ -314,14 +314,14 @@ GeometryManager (Widget w, XtWidgetGeometry *req, XtWidgetGeometry *reply)
     /*
      * If we failed on anything, simply return without touching widget
      */
-    if (!okay) return XtGeometryAlmost;
+    if (!okay) return IswGeometryAlmost;
 
     /*
      * If not just doing a query, update widget and send report.  Note that
      * we will often set fields that weren't requested because we want to keep
      * the child visible.
      */
-    if (!(req->request_mode & XtCWQueryOnly)) {
+    if (!(req->request_mode & IswCWQueryOnly)) {
 	unsigned int changed = 0;
 
 	if (child->core.x != reply->x) {
@@ -343,7 +343,7 @@ GeometryManager (Widget w, XtWidgetGeometry *req, XtWidgetGeometry *reply)
 	if (changed) SendReport (pw, changed);
     }
 
-    return XtGeometryYes;		/* success! */
+    return IswGeometryYes;		/* success! */
 }
 
 
@@ -354,8 +354,8 @@ ChangeManaged (Widget gw)
     Widget child = find_child (pw);	/* ignore extra children */
 
     if (child) {
-	if (!XtIsRealized (gw)) {
-	    XtWidgetGeometry geom, retgeom;
+	if (!IswIsRealized (gw)) {
+	    IswWidgetGeometry geom, retgeom;
 
 	    geom.request_mode = 0;
 	    if (pw->core.width == 0) {
@@ -367,12 +367,12 @@ ChangeManaged (Widget gw)
 		geom.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 	    }
 	    if (geom.request_mode &&
-		XtMakeGeometryRequest (gw, &geom, &retgeom) == XtGeometryAlmost) {
-	        (void) XtMakeGeometryRequest (gw, &retgeom, (XtWidgetGeometry *)NULL);
+		IswMakeGeometryRequest (gw, &geom, &retgeom) == IswGeometryAlmost) {
+	        (void) IswMakeGeometryRequest (gw, &retgeom, (IswWidgetGeometry *)NULL);
 	    }
 	}
 
-	XtResizeWidget (child, Max (child->core.width, pw->core.width),
+	IswResizeWidget (child, Max (child->core.width, pw->core.width),
 			Max (child->core.height, pw->core.height), 0);
 
 	SendReport (pw, (unsigned int) IswPRAll);

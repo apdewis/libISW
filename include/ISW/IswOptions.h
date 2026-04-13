@@ -1,9 +1,9 @@
 /*
- * XtOptions.h - Command-line option parsing types for libXt
+ * IswOptions.h - Command-line option parsing types for libXt
  *
  * This replaces XrmOptionDescRec and related types from
  * <X11/Xresource.h>, providing the option table structures
- * used by XtDisplayInitialize and related functions.
+ * used by IswDisplayInitialize and related functions.
  *
  * Copyright (c) 2024 libXt contributors
  *
@@ -26,22 +26,22 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _XtOptions_h
-#define _XtOptions_h
+#ifndef _IswOptions_h
+#define _IswOptions_h
 
 /*
  * Option argument kinds - how to interpret the option's value.
  */
 typedef enum {
-    XtOptionNoArg,      /* Value is specified in OptionDescRec.value */
-    XtOptionIsArg,      /* Value is the option string itself */
-    XtOptionStickyArg,  /* Value is chars immediately following option */
-    XtOptionSepArg,     /* Value is next argument in argv */
-    XtOptionResArg,     /* Resource and value in next argument in argv */
-    XtOptionSkipArg,    /* Ignore this option and next argument in argv */
-    XtOptionSkipLine,   /* Ignore this option and rest of argv */
-    XtOptionSkipNArgs   /* Ignore this option and next N arguments in argv */
-} XtOptionKind;
+    IswOptionNoArg,      /* Value is specified in OptionDescRec.value */
+    IswOptionIsArg,      /* Value is the option string itself */
+    IswOptionStickyArg,  /* Value is chars immediately following option */
+    IswOptionSepArg,     /* Value is next argument in argv */
+    IswOptionResArg,     /* Resource and value in next argument in argv */
+    IswOptionSkipArg,    /* Ignore this option and next argument in argv */
+    IswOptionSkipLine,   /* Ignore this option and rest of argv */
+    IswOptionSkipNArgs   /* Ignore this option and next N arguments in argv */
+} IswOptionKind;
 
 /*
  * Option description record - describes how to map a command-line
@@ -50,24 +50,24 @@ typedef enum {
 typedef struct {
     char        *option;    /* Option abbreviation in argv (e.g. "-bg") */
     char        *specifier; /* Resource specifier (e.g. "*background") */
-    XtOptionKind argKind;   /* Which style of option it is */
-    XtPointer   value;      /* Value to provide if XtOptionNoArg */
-} XtOptionDescRec, *XtOptionDescList;
+    IswOptionKind argKind;   /* Which style of option it is */
+    IswPointer   value;      /* Value to provide if IswOptionNoArg */
+} IswOptionDescRec, *IswOptionDescList;
 
 /*
  * Backward compatibility - map old Xrm names to new Xt names.
  */
-typedef XtOptionKind    XrmOptionKind;
-typedef XtOptionDescRec XrmOptionDescRec;
-typedef XtOptionDescList XrmOptionDescList;
+typedef IswOptionKind    XrmOptionKind;
+typedef IswOptionDescRec XrmOptionDescRec;
+typedef IswOptionDescList XrmOptionDescList;
 
-#define XrmoptionNoArg      XtOptionNoArg
-#define XrmoptionIsArg      XtOptionIsArg
-#define XrmoptionStickyArg  XtOptionStickyArg
-#define XrmoptionSepArg     XtOptionSepArg
-#define XrmoptionResArg     XtOptionResArg
-#define XrmoptionSkipArg    XtOptionSkipArg
-#define XrmoptionSkipLine   XtOptionSkipLine
-#define XrmoptionSkipNArgs  XtOptionSkipNArgs
+#define XrmoptionNoArg      IswOptionNoArg
+#define XrmoptionIsArg      IswOptionIsArg
+#define XrmoptionStickyArg  IswOptionStickyArg
+#define XrmoptionSepArg     IswOptionSepArg
+#define XrmoptionResArg     IswOptionResArg
+#define XrmoptionSkipArg    IswOptionSkipArg
+#define XrmoptionSkipLine   IswOptionSkipLine
+#define XrmoptionSkipNArgs  IswOptionSkipNArgs
 
-#endif /* _XtOptions_h */
+#endif /* _IswOptions_h */

@@ -46,14 +46,14 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
 
-/* XtJustify is missing from XCB-based libXt, define it here */
-#ifndef _IswXtJustify_defined
-#define _IswXtJustify_defined
+/* IswJustify is missing from XCB-based libXt, define it here */
+#ifndef _IswJustify_defined
+#define _IswJustify_defined
 typedef enum {
-    XtJustifyLeft,
-    XtJustifyCenter,
-    XtJustifyRight
-} XtJustify;
+    IswJustifyLeft,
+    IswJustifyCenter,
+    IswJustifyRight
+} IswJustify;
 #endif
 
 /************************************************************
@@ -63,7 +63,7 @@ typedef enum {
  ************************************************************/
 
 typedef struct _SmeBSBClassPart {
-  XtPointer extension;
+  IswPointer extension;
 } SmeBSBClassPart;
 
 /* Full class record declaration */
@@ -87,11 +87,11 @@ typedef struct {
     ISWImage *right_image;
     Dimension left_margin, right_margin; /* left and right margins. */
     Pixel foreground;		/* foreground color. */
-    XFontStruct * font;		/* The font to show label in. */
+    IswFontStruct * font;		/* The font to show label in. */
 #ifdef ISW_INTERNATIONALIZATION
     ISWFontSet *fontset;		/* or fontset */
 #endif
-    XtJustify justify;		/* Justification for the label. */
+    IswJustify justify;		/* Justification for the label. */
     int underline;		/* index of letter to underline in label. */
 
     /* private state. */

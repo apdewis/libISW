@@ -20,8 +20,8 @@
 #include <xcb/xcb.h>
 
 /* Resource names for scroll wheel configuration */
-#define XtNscrollWheelIncrement "scrollWheelIncrement"
-#define XtCScrollWheelIncrement "ScrollWheelIncrement"
+#define IswNscrollWheelIncrement "scrollWheelIncrement"
+#define IswCScrollWheelIncrement "ScrollWheelIncrement"
 
 /* Default scroll increment in pixels per wheel notch */
 #define ISW_SCROLL_WHEEL_DEFAULT_INCREMENT 50

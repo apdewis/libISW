@@ -75,7 +75,7 @@ in this Software without prior written authorization from The Open Group.
 
 typedef struct _GrabActionRec {
     struct _GrabActionRec *next;
-    XtActionProc action_proc;
+    IswActionProc action_proc;
     Boolean owner_events;
     unsigned int event_mask;
     int pointer_mode, keyboard_mode;
@@ -88,7 +88,7 @@ GrabAllCorrectKeys(Widget widget,
                    TMTypeMatch typeMatch,
                    TMModifierMatch modMatch, GrabActionRec * grabP)
 {
-    xcb_connection_t *dpy = XtDisplay(widget);
+    xcb_connection_t *dpy = IswDisplay(widget);
     xcb_keycode_t *keycodes, *keycodeP;
     Cardinal keycount;
     Modifiers careOn = 0;
@@ -97,7 +97,7 @@ GrabAllCorrectKeys(Widget widget,
     if (modMatch->lateModifiers) {
         Boolean resolved;
 
-        resolved = _XtComputeLateBindings(dpy, modMatch->lateModifiers,
+        resolved = _IswComputeLateBindings(dpy, modMatch->lateModifiers,
                                           &careOn, &careMask);
         if (!resolved)
             return;
@@ -106,10 +106,10 @@ GrabAllCorrectKeys(Widget widget,
     careMask = (careMask | (Modifiers) modMatch->modifierMask);
 
     keycodes = NULL;
-    XtKeysymToKeycodeList(dpy,
+    IswKeysymToKeycodeList(dpy,
                           (xcb_keysym_t) typeMatch->eventCode, &keycodes, &keycount);
     if (keycount == 0) {
-        XtFree((char *) keycodes);
+        IswFree((char *) keycodes);
         return;
     }
     for (keycodeP = keycodes; keycount--; keycodeP++) {
@@ -120,11 +120,11 @@ GrabAllCorrectKeys(Widget widget,
             Modifiers modifiers_return;
 
             if (careOn & modifiers_return) {
-                XtFree((char *) keycodes);
+                IswFree((char *) keycodes);
                 return;
             }
             if (keysym == typeMatch->eventCode) {
-                XtGrabKey(widget, *keycodeP, careOn,
+                IswGrabKey(widget, *keycodeP, careOn,
                           grabP->owner_events,
                           grabP->pointer_mode, grabP->keyboard_mode);
                 /* continue; *//* grab all modifier combinations */
@@ -137,10 +137,10 @@ GrabAllCorrectKeys(Widget widget,
                 /* check all useful combinations of modifier bits */
                 if ((modifiers_return & (Modifiers) std_mods) &&
                     !(~modifiers_return & (Modifiers) std_mods)) {
-                    XtTranslateKeycode(dpy, *keycodeP,
+                    IswTranslateKeycode(dpy, *keycodeP,
                                        (Modifiers) std_mods, &dummy, &keysym);
                     if (keysym == typeMatch->eventCode) {
-                        XtGrabKey(widget, *keycodeP,
+                        IswGrabKey(widget, *keycodeP,
                                   careOn | (Modifiers) std_mods,
                                   grabP->owner_events,
                                   grabP->pointer_mode, grabP->keyboard_mode);
@@ -151,12 +151,12 @@ GrabAllCorrectKeys(Widget widget,
         }
         else {                  /* !event->standard */
 
-            XtGrabKey(widget, *keycodeP, careOn,
+            IswGrabKey(widget, *keycodeP, careOn,
                       grabP->owner_events,
                       grabP->pointer_mode, grabP->keyboard_mode);
         }
     }
-    XtFree((char *) keycodes);
+    IswFree((char *) keycodes);
 }
 
 typedef struct {
@@ -166,7 +166,7 @@ typedef struct {
 } DoGrabRec;
 
 static Boolean
-DoGrab(StatePtr state, XtPointer data)
+DoGrab(StatePtr state, IswPointer data)
 {
     /* *INDENT-EQLS* */
     DoGrabRec *doGrabP     = (DoGrabRec *) data;
@@ -197,7 +197,7 @@ DoGrab(StatePtr state, XtPointer data)
     case XCB_BUTTON_PRESS:
     case XCB_BUTTON_RELEASE:
         if (modMatch->lateModifiers) {
-            Boolean resolved = _XtComputeLateBindings(XtDisplay(widget),
+            Boolean resolved = _IswComputeLateBindings(IswDisplay(widget),
                                                       modMatch->lateModifiers,
                                                       &careOn, &careMask);
 
@@ -205,7 +205,7 @@ DoGrab(StatePtr state, XtPointer data)
                 break;
         }
         careOn = (careOn | (Modifiers) modMatch->modifiers);
-        XtGrabButton(widget,
+        IswGrabButton(widget,
                      (int) typeMatch->eventCode,
                      careOn,
                      grabP->owner_events,
@@ -225,9 +225,9 @@ DoGrab(StatePtr state, XtPointer data)
         break;
 
     default:
-        XtAppWarningMsg(XtWidgetToApplicationContext(widget),
+        IswAppWarningMsg(IswWidgetToApplicationContext(widget),
                         "invalidPopup", "unsupportedOperation",
-                        XtCXtToolkitError,
+                        IswCIswToolkitError,
                         "Pop-up menu creation is only supported on Button, Key or EnterNotify events.",
                         NULL, NULL);
         break;
@@ -237,16 +237,16 @@ DoGrab(StatePtr state, XtPointer data)
 }
 
 void
-_XtRegisterGrabs(Widget widget)
+_IswRegisterGrabs(Widget widget)
 {
-    XtTranslations xlations = widget->core.tm.translations;
+    IswTranslations xlations = widget->core.tm.translations;
     TMComplexStateTree *stateTreePtr;
     unsigned int count;
     TMShortCard i;
     TMBindData bindData = (TMBindData) widget->core.tm.proc_table;
-    XtActionProc *procs;
+    IswActionProc *procs;
 
-    if (!XtIsRealized(widget) || widget->core.being_destroyed)
+    if (!IswIsRealized(widget) || widget->core.being_destroyed)
         return;
 
     /* walk the widget instance action bindings table looking for */
@@ -278,8 +278,8 @@ _XtRegisterGrabs(Widget widget)
                     doGrab.widget = widget;
                     doGrab.grabP = grabP;
                     doGrab.count = (TMShortCard) count;
-                    _XtTraverseStateTree((TMStateTree) *stateTreePtr,
-                                         DoGrab, (XtPointer) &doGrab);
+                    _IswTraverseStateTree((TMStateTree) *stateTreePtr,
+                                         DoGrab, (IswPointer) &doGrab);
                 }
             }
             UNLOCK_PROCESS;
@@ -288,8 +288,8 @@ _XtRegisterGrabs(Widget widget)
 }
 
 void
-XtRegisterGrabAction(XtActionProc action_proc,
-                     _XtBoolean owner_events,
+IswRegisterGrabAction(IswActionProc action_proc,
+                     _IswBoolean owner_events,
                      unsigned int event_mask,
                      int pointer_mode,
                      int keyboard_mode)
@@ -302,7 +302,7 @@ XtRegisterGrabAction(XtActionProc action_proc,
             break;
     }
     if (actionP == NULL) {
-        actionP = XtNew(GrabActionRec);
+        actionP = IswNew(GrabActionRec);
         actionP->action_proc = action_proc;
         actionP->next = grabActionList;
         grabActionList = actionP;
@@ -314,8 +314,8 @@ XtRegisterGrabAction(XtActionProc action_proc,
              || actionP->keyboard_mode != keyboard_mode) {
         Cardinal n = 0;
 
-        XtWarningMsg("argsReplaced", "xtRegisterGrabAction", XtCXtToolkitError,
-                     "XtRegisterGrabAction called on same proc with different args",
+        IswWarningMsg("argsReplaced", "xtRegisterGrabAction", IswCIswToolkitError,
+                     "IswRegisterGrabAction called on same proc with different args",
                      NULL, &n);
     }
 #endif /*DEBUG*/
@@ -327,11 +327,11 @@ XtRegisterGrabAction(XtActionProc action_proc,
 }
 
 void
-_XtGrabInitialize(XtAppContext app _X_UNUSED)
+_IswGrabInitialize(IswAppContext app _X_UNUSED)
 {
     LOCK_PROCESS;
     if (grabActionList == NULL)
-        XtRegisterGrabAction(XtMenuPopupAction, True,
+        IswRegisterGrabAction(IswMenuPopupAction, True,
                              (unsigned) (XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE),
                              XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     UNLOCK_PROCESS;

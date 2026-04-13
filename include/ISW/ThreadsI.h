@@ -50,8 +50,8 @@ in this Software without prior written authorization from The Open Group.
 */
 /* $XFree86: xc/lib/Xt/ThreadsI.h,v 3.5 2001/12/14 19:56:31 dawes Exp $ */
 
-#ifndef _XtThreadsI_h
-#define _XtThreadsI_h
+#ifndef _IswThreadsI_h
+#define _IswThreadsI_h
 
 //#include <X11/XlibConf.h>
 
@@ -60,43 +60,43 @@ in this Software without prior written authorization from The Open Group.
 typedef struct _LockRec *LockPtr;
 
 typedef void (*ThreadAppProc)(
-    XtAppContext /* app */
+    IswAppContext /* app */
 );
 
 typedef void (*ThreadAppYieldLockProc)(
-    XtAppContext, /* app */
+    IswAppContext, /* app */
     Boolean*, /* push_thread */
     Boolean*, /* pushed_thread */
     int* /* level */
 );
 
 typedef void (*ThreadAppRestoreLockProc)(
-    XtAppContext /* app */,
+    IswAppContext /* app */,
     int, /* level */
     Boolean* /* pushed_thread */
 );
 
 _XFUNCPROTOBEGIN
 
-extern void (*_XtProcessLock)(
+extern void (*_IswProcessLock)(
     void
 );
 
-extern void (*_XtProcessUnlock)(
+extern void (*_IswProcessUnlock)(
     void
 );
 
-extern void (*_XtInitAppLock)(
-    XtAppContext /* app */
+extern void (*_IswInitAppLock)(
+    IswAppContext /* app */
 );
 
 _XFUNCPROTOEND
 
-#define INIT_APP_LOCK(app) if(_XtInitAppLock) (*_XtInitAppLock)(app)
+#define INIT_APP_LOCK(app) if(_IswInitAppLock) (*_IswInitAppLock)(app)
 #define FREE_APP_LOCK(app) if(app && app->free_lock)(*app->free_lock)(app)
 
-#define LOCK_PROCESS if(_XtProcessLock)(*_XtProcessLock)()
-#define UNLOCK_PROCESS if(_XtProcessUnlock)(*_XtProcessUnlock)()
+#define LOCK_PROCESS if(_IswProcessLock)(*_IswProcessLock)()
+#define UNLOCK_PROCESS if(_IswProcessUnlock)(*_IswProcessUnlock)()
 #define LOCK_APP(app) if(app && app->lock)(*app->lock)(app)
 #define UNLOCK_APP(app) if(app && app->unlock)(*app->unlock)(app)
 
@@ -106,11 +106,11 @@ _XFUNCPROTOEND
 	 if(app && app->restore_lock) (*app->restore_lock)(app,level,pushed)
 
 #define WIDGET_TO_APPCON(w) \
-    XtAppContext app = (w && _XtProcessLock ? \
-	XtWidgetToApplicationContext(w) : NULL)
+    IswAppContext app = (w && _IswProcessLock ? \
+	IswWidgetToApplicationContext(w) : NULL)
 
 #define DPY_TO_APPCON(d) \
-    XtAppContext app = (_XtProcessLock ? XtDisplayToApplicationContext(d): NULL)
+    IswAppContext app = (_IswProcessLock ? IswDisplayToApplicationContext(d): NULL)
 
 #else /* defined(XTHREADS) */
 
@@ -126,4 +126,4 @@ _XFUNCPROTOEND
 #define DPY_TO_APPCON(d)
 
 #endif /* !defined(XTHREADS) */
-#endif /* _XtThreadsI_h */
+#endif /* _IswThreadsI_h */

@@ -11,7 +11,7 @@
 #define _ISW_IswXftCompat_h
 
 #include <xcb/xcb.h>
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /*
  * ISWFontSet - Font set wrapper for XCB-based text rendering

@@ -9,17 +9,17 @@
 
 #include <X11/Xfuncproto.h>
 
-#define XtNfontFamily     "fontFamily"
-#define XtCFontFamily     "FontFamily"
-#define XtNfontSize       "fontSize"
-#define XtCFontSize       "FontSize"
-#define XtNfontWeight     "fontWeight"
-#define XtCFontWeight     "FontWeight"
-#define XtNfontSlant      "fontSlant"
-#define XtCFontSlant      "FontSlant"
-#define XtNpreviewText    "previewText"
-#define XtCPreviewText    "PreviewText"
-#define XtNfontChanged    "fontChanged"
+#define IswNfontFamily     "fontFamily"
+#define IswCFontFamily     "FontFamily"
+#define IswNfontSize       "fontSize"
+#define IswCFontSize       "FontSize"
+#define IswNfontWeight     "fontWeight"
+#define IswCFontWeight     "FontWeight"
+#define IswNfontSlant      "fontSlant"
+#define IswCFontSlant      "FontSlant"
+#define IswNpreviewText    "previewText"
+#define IswCPreviewText    "PreviewText"
+#define IswNfontChanged    "fontChanged"
 
 extern WidgetClass fontChooserWidgetClass;
 

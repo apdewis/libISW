@@ -41,7 +41,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 unsigned long
 grayPixel(unsigned long p, xcb_connection_t *dpy, xcb_screen_t *scn)
 {
-    static XColor Gray =
+    static IswColor Gray =
     {
 	0,		/* pixel */
 	0, 0, 0,	/* red, green, blue */
@@ -51,7 +51,7 @@ grayPixel(unsigned long p, xcb_connection_t *dpy, xcb_screen_t *scn)
 
     if (!Gray.pixel)
     {
-	XColor exact;
+	IswColor exact;
 
 	(void)XAllocNamedColor(dpy, DefaultColormapOfScreen(scn),
 			       "gray", &Gray, &exact);  /* Blindflug */
@@ -78,10 +78,10 @@ stipplePixmap(Widget w, xcb_pixmap_t pm, xcb_colormap_t cm, Pixel bg, unsigned i
 
     if (pm == None)
 	return (None);
-    if (XtIsRealized(w) == False)
+    if (IswIsRealized(w) == False)
 	return (None);
 
-    dpy = XtDisplayOfObject(w);
+    dpy = IswDisplayOfObject(w);
 
     attr.colormap = cm;
     attr.closeness = 32768;	/* might help on 8-bpp displays? */
@@ -98,7 +98,7 @@ stipplePixmap(Widget w, xcb_pixmap_t pm, xcb_colormap_t cm, Pixel bg, unsigned i
 
     if (d > 1)
     {
-	XColor x_color;
+	IswColor x_color;
 	XpmColor *dst_color;
 	char dst_rgb[14];
 
@@ -114,7 +114,7 @@ stipplePixmap(Widget w, xcb_pixmap_t pm, xcb_colormap_t cm, Pixel bg, unsigned i
 	sprintf(dst_rgb, "#%04X%04X%04X",
 		x_color.red, x_color.green, x_color.blue);
 
-	dst_table = (XpmColor *) XtCalloc(sizeof(XpmColor),
+	dst_table = (XpmColor *) IswCalloc(sizeof(XpmColor),
 					  image.ncolors + 1);
 	memcpy(dst_table, image.colorTable, image.ncolors * sizeof(XpmColor));
 
@@ -196,7 +196,7 @@ stipplePixmap(Widget w, xcb_pixmap_t pm, xcb_colormap_t cm, Pixel bg, unsigned i
 
     if (d > 1)
     {
-	XtFree((void *)image.colorTable);	/* dst_table */
+	IswFree((void *)image.colorTable);	/* dst_table */
 	image.colorTable = src_table;
 	image.ncolors--;
     }

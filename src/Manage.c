@@ -73,10 +73,10 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 
-static _Xconst _XtString XtNinvalidChild = "invalidChild";
-static _Xconst _XtString XtNxtUnmanageChildren = "xtUnmanageChildren";
-static _Xconst _XtString XtNxtManageChildren = "xtManageChildren";
-static _Xconst _XtString XtNxtChangeManagedSet = "xtChangeManagedSet";
+static _Xconst _IswString IswNinvalidChild = "invalidChild";
+static _Xconst _IswString IswNxtUnmanageChildren = "xtUnmanageChildren";
+static _Xconst _IswString IswNxtManageChildren = "xtManageChildren";
+static _Xconst _IswString IswNxtChangeManagedSet = "xtChangeManagedSet";
 
 static void
 UnmanageChildren(WidgetList children,
@@ -84,25 +84,25 @@ UnmanageChildren(WidgetList children,
                  Widget parent,
                  Cardinal *num_unique_children,
                  Boolean call_change_managed,
-                 _Xconst _XtString caller_func)
+                 _Xconst _IswString caller_func)
 {
     Widget child;
     Cardinal i;
-    XtWidgetProc change_managed = NULL;
+    IswWidgetProc change_managed = NULL;
     Bool parent_realized = False;
 
     *num_unique_children = 0;
 
-    if (XtIsComposite((Widget) parent)) {
+    if (IswIsComposite((Widget) parent)) {
         LOCK_PROCESS;
         change_managed = ((CompositeWidgetClass) parent->core.widget_class)
             ->composite_class.change_managed;
         UNLOCK_PROCESS;
-        parent_realized = XtIsRealized((Widget) parent);
+        parent_realized = IswIsRealized((Widget) parent);
     }
     else {
-        XtAppErrorMsg(XtWidgetToApplicationContext((Widget) parent),
-                      "invalidParent", caller_func, XtCXtToolkitError,
+        IswAppErrorMsg(IswWidgetToApplicationContext((Widget) parent),
+                      "invalidParent", caller_func, IswCIswToolkitError,
                       "Attempt to unmanage a child when parent is not Composite",
                       NULL, NULL);
     }
@@ -110,46 +110,46 @@ UnmanageChildren(WidgetList children,
     for (i = 0; i < num_children; i++) {
         child = children[i];
         if (child == NULL) {
-            XtAppWarningMsg(XtWidgetToApplicationContext(parent),
-                            XtNinvalidChild, caller_func, XtCXtToolkitError,
-                            "Null child passed to XtUnmanageChildren",
+            IswAppWarningMsg(IswWidgetToApplicationContext(parent),
+                            IswNinvalidChild, caller_func, IswCIswToolkitError,
+                            "Null child passed to IswUnmanageChildren",
                             NULL, NULL);
             return;
         }
         if (child->core.parent != parent) {
-            XtAppWarningMsg(XtWidgetToApplicationContext(parent),
-                            "ambiguousParent", caller_func, XtCXtToolkitError,
+            IswAppWarningMsg(IswWidgetToApplicationContext(parent),
+                            "ambiguousParent", caller_func, IswCIswToolkitError,
                             "Not all children have same parent in UnmanageChildren",
                             NULL, NULL);
         }
         else if (child->core.managed) {
             (*num_unique_children)++;
-            CALLGEOTAT(_XtGeoTrace(child, "Child \"%s\" is marked unmanaged\n",
-                                   XtName(child)));
+            CALLGEOTAT(_IswGeoTrace(child, "Child \"%s\" is marked unmanaged\n",
+                                   IswName(child)));
             child->core.managed = FALSE;
-            if (XtIsWidget(child)
-                && XtIsRealized(child)
+            if (IswIsWidget(child)
+                && IswIsRealized(child)
                 && child->core.mapped_when_managed) {
-                XtUnmapWidget(child);
+                IswUnmapWidget(child);
             } else {              /* RectObj child */
                 Widget pw = child->core.parent;
                 RectObj r = (RectObj) child;
 
-                while ((pw != NULL) && (!XtIsWidget(pw))) {
+                while ((pw != NULL) && (!IswIsWidget(pw))) {
                     pw = pw->core.parent;
                 }
 
-                if ((pw != NULL) && XtIsRealized(pw)) {
+                if ((pw != NULL) && IswIsRealized(pw)) {
                     xcb_clear_area(
-                        XtDisplay(pw), 
+                        IswDisplay(pw), 
                         0,  // exposure flag (0 = no exposure)
-                        XtWindow(pw),
+                        IswWindow(pw),
                         r->rectangle.x, 
                         r->rectangle.y,
                         r->rectangle.width + (r->rectangle.border_width << 1),
                         r->rectangle.height + (r->rectangle.border_width << 1)
                     );
-                    xcb_flush(XtDisplay(pw));
+                    xcb_flush(IswDisplay(pw));
                 }
             }
 
@@ -158,34 +158,34 @@ UnmanageChildren(WidgetList children,
 
     if (call_change_managed && *num_unique_children != 0 &&
         change_managed != NULL && parent_realized) {
-        CALLGEOTAT(_XtGeoTrace((Widget) parent,
+        CALLGEOTAT(_IswGeoTrace((Widget) parent,
                                "Call parent: \"%s\"[%d,%d]'s changemanaged proc\n",
-                               XtName((Widget) parent),
+                               IswName((Widget) parent),
                                parent->core.width, parent->core.height));
         (*change_managed) (parent);
     }
 }                               /* UnmanageChildren */
 
 void
-XtUnmanageChildren(WidgetList children, Cardinal num_children)
+IswUnmanageChildren(WidgetList children, Cardinal num_children)
 {
     Widget parent, hookobj;
     Cardinal ii;
 
 #ifdef XTHREADS
-    XtAppContext app;
+    IswAppContext app;
 #endif
 
     if (num_children == 0)
         return;
     if (children[0] == NULL) {
-        XtWarningMsg(XtNinvalidChild, XtNxtUnmanageChildren, XtCXtToolkitError,
+        IswWarningMsg(IswNinvalidChild, IswNxtUnmanageChildren, IswCIswToolkitError,
                      "Null child found in argument list to unmanage",
                      NULL, NULL);
         return;
     }
 #ifdef XTHREADS
-    app = XtWidgetToApplicationContext(children[0]);
+    app = IswWidgetToApplicationContext(children[0]);
 #endif
     LOCK_APP(app);
     parent = children[0]->core.parent;
@@ -194,53 +194,53 @@ XtUnmanageChildren(WidgetList children, Cardinal num_children)
         return;
     }
     UnmanageChildren(children, num_children, parent, &ii,
-                     (Boolean) True, XtNxtUnmanageChildren);
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(children[0]));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+                     (Boolean) True, IswNxtUnmanageChildren);
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(children[0]));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHunmanageChildren;
+        call_data.type = IswHunmanageChildren;
         call_data.widget = parent;
-        call_data.event_data = (XtPointer) children;
+        call_data.event_data = (IswPointer) children;
         call_data.num_event_data = num_children;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
-}                               /* XtUnmanageChildren */
+}                               /* IswUnmanageChildren */
 
 void
-XtUnmanageChild(Widget child)
+IswUnmanageChild(Widget child)
 {
-    XtUnmanageChildren(&child, (Cardinal) 1);
-}                               /* XtUnmanageChild */
+    IswUnmanageChildren(&child, (Cardinal) 1);
+}                               /* IswUnmanageChild */
 
 static void
 ManageChildren(WidgetList children,
                Cardinal num_children,
                Widget parent,
                Boolean call_change_managed,
-               _Xconst _XtString caller_func)
+               _Xconst _IswString caller_func)
 {
 #define MAXCHILDREN 100
     Widget child;
     Cardinal num_unique_children, i;
-    XtWidgetProc change_managed = NULL;
+    IswWidgetProc change_managed = NULL;
     WidgetList unique_children;
     Widget cache[MAXCHILDREN];
     Bool parent_realized = False;
 
-    if (XtIsComposite((Widget) parent)) {
+    if (IswIsComposite((Widget) parent)) {
         LOCK_PROCESS;
         change_managed = ((CompositeWidgetClass) parent->core.widget_class)
             ->composite_class.change_managed;
         UNLOCK_PROCESS;
-        parent_realized = XtIsRealized((Widget) parent);
+        parent_realized = IswIsRealized((Widget) parent);
     }
     else {
-        XtAppErrorMsg(XtWidgetToApplicationContext((Widget) parent),
-                      "invalidParent", caller_func, XtCXtToolkitError,
+        IswAppErrorMsg(IswWidgetToApplicationContext((Widget) parent),
+                      "invalidParent", caller_func, IswCIswToolkitError,
                       "Attempt to manage a child when parent is not Composite",
                       NULL, NULL);
     }
@@ -250,44 +250,44 @@ ManageChildren(WidgetList children,
         unique_children = cache;
     }
     else {
-        unique_children = XtMallocArray(num_children, (Cardinal) sizeof(Widget));
+        unique_children = IswMallocArray(num_children, (Cardinal) sizeof(Widget));
     }
     num_unique_children = 0;
     for (i = 0; i < num_children; i++) {
         child = children[i];
         if (child == NULL) {
-            XtAppWarningMsg(XtWidgetToApplicationContext((Widget) parent),
-                            XtNinvalidChild, caller_func, XtCXtToolkitError,
+            IswAppWarningMsg(IswWidgetToApplicationContext((Widget) parent),
+                            IswNinvalidChild, caller_func, IswCIswToolkitError,
                             "null child passed to ManageChildren", NULL, NULL);
             if (unique_children != cache)
-                XtFree((char *) unique_children);
+                IswFree((char *) unique_children);
             return;
         }
 #ifdef DEBUG
-        if (!XtIsRectObj(child)) {
+        if (!IswIsRectObj(child)) {
             String params[2];
             Cardinal num_params = 2;
 
-            params[0] = XtName(child);
+            params[0] = IswName(child);
             params[1] = child->core.widget_class->core_class.class_name;
-            XtAppWarningMsg(XtWidgetToApplicationContext((Widget) parent),
-                            "notRectObj", caller_func, XtCXtToolkitError,
+            IswAppWarningMsg(IswWidgetToApplicationContext((Widget) parent),
+                            "notRectObj", caller_func, IswCIswToolkitError,
                             "child \"%s\", class %s is not a RectObj",
                             params, &num_params);
             continue;
         }
 #endif   /*DEBUG*/
             if (child->core.parent != parent) {
-            XtAppWarningMsg(XtWidgetToApplicationContext((Widget) parent),
-                            "ambiguousParent", caller_func, XtCXtToolkitError,
-                            "Not all children have same parent in XtManageChildren",
+            IswAppWarningMsg(IswWidgetToApplicationContext((Widget) parent),
+                            "ambiguousParent", caller_func, IswCIswToolkitError,
+                            "Not all children have same parent in IswManageChildren",
                             NULL, NULL);
         }
         else if (!child->core.managed && !child->core.being_destroyed) {
             unique_children[num_unique_children++] = child;
-            CALLGEOTAT(_XtGeoTrace(child,
+            CALLGEOTAT(_IswGeoTrace(child,
                                    "Child \"%s\"[%d,%d] is marked managed\n",
-                                   XtName(child),
+                                   IswName(child),
                                    child->core.width, child->core.height));
             child->core.managed = TRUE;
         }
@@ -296,9 +296,9 @@ ManageChildren(WidgetList children,
     if ((call_change_managed || num_unique_children != 0) && parent_realized) {
         /* Compute geometry of new managed set of children. */
         if (change_managed != NULL) {
-            CALLGEOTAT(_XtGeoTrace((Widget) parent,
+            CALLGEOTAT(_IswGeoTrace((Widget) parent,
                                    "Call parent: \"%s\"[%d,%d]'s changemanaged\n",
-                                   XtName((Widget) parent),
+                                   IswName((Widget) parent),
                                    parent->core.width, parent->core.height));
             (*change_managed) ((Widget) parent);
         }
@@ -306,56 +306,56 @@ ManageChildren(WidgetList children,
         /* Realize each child if necessary, then map if necessary */
         for (i = 0; i < num_unique_children; i++) {
             child = unique_children[i];
-            if (XtIsWidget(child)) {
-                if (!XtIsRealized(child))
-                    XtRealizeWidget(child);
+            if (IswIsWidget(child)) {
+                if (!IswIsRealized(child))
+                    IswRealizeWidget(child);
                 if (child->core.mapped_when_managed)
-                    XtMapWidget(child);
+                    IswMapWidget(child);
             }
             else {              /* RectObj child */
                 Widget pw = child->core.parent;
                 RectObj r = (RectObj) child;
 
-                while ((pw != NULL) && (!XtIsWidget(pw)))
+                while ((pw != NULL) && (!IswIsWidget(pw)))
                     pw = pw->core.parent;
                 if (pw != NULL) {
                     xcb_clear_area(
-                        XtDisplay(pw), 
+                        IswDisplay(pw), 
                         0,  // exposure flag (0 = no exposure)
-                        XtWindow(pw),
+                        IswWindow(pw),
                         r->rectangle.x, 
                         r->rectangle.y,
                         r->rectangle.width + (r->rectangle.border_width << 1),
                         r->rectangle.height + (r->rectangle.border_width << 1)
                     );
-                    xcb_flush(XtDisplay(pw));
+                    xcb_flush(IswDisplay(pw));
                 }
             }
         }
     }
 
     if (unique_children != cache)
-        XtFree((char *) unique_children);
+        IswFree((char *) unique_children);
 }                               /* ManageChildren */
 
 void
-XtManageChildren(WidgetList children, Cardinal num_children)
+IswManageChildren(WidgetList children, Cardinal num_children)
 {
     Widget parent, hookobj;
 
 #ifdef XTHREADS
-    XtAppContext app;
+    IswAppContext app;
 #endif
 
     if (num_children == 0)
         return;
     if (children[0] == NULL) {
-        XtWarningMsg(XtNinvalidChild, XtNxtManageChildren, XtCXtToolkitError,
-                     "null child passed to XtManageChildren", NULL, NULL);
+        IswWarningMsg(IswNinvalidChild, IswNxtManageChildren, IswCIswToolkitError,
+                     "null child passed to IswManageChildren", NULL, NULL);
         return;
     }
 #ifdef XTHREADS
-    app = XtWidgetToApplicationContext(children[0]);
+    app = IswWidgetToApplicationContext(children[0]);
 #endif
     LOCK_APP(app);
     parent = children[0]->core.parent;
@@ -364,30 +364,30 @@ XtManageChildren(WidgetList children, Cardinal num_children)
         return;
     }
     ManageChildren(children, num_children, parent, (Boolean) False,
-                   XtNxtManageChildren);
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(children[0]));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+                   IswNxtManageChildren);
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(children[0]));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHmanageChildren;
+        call_data.type = IswHmanageChildren;
         call_data.widget = parent;
-        call_data.event_data = (XtPointer) children;
+        call_data.event_data = (IswPointer) children;
         call_data.num_event_data = num_children;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
-}                               /* XtManageChildren */
+}                               /* IswManageChildren */
 
 void
-XtManageChild(Widget child)
+IswManageChild(Widget child)
 {
-    XtManageChildren(&child, (Cardinal) 1);
-}                               /* XtManageChild */
+    IswManageChildren(&child, (Cardinal) 1);
+}                               /* IswManageChild */
 
 void
-XtSetMappedWhenManaged(Widget widget, _XtBoolean mapped_when_managed)
+IswSetMappedWhenManaged(Widget widget, _IswBoolean mapped_when_managed)
 {
     Widget hookobj;
 
@@ -400,41 +400,41 @@ XtSetMappedWhenManaged(Widget widget, _XtBoolean mapped_when_managed)
     }
     widget->core.mapped_when_managed = (Boolean) mapped_when_managed;
 
-    hookobj = XtHooksOfDisplay(XtDisplay(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHsetMappedWhenManaged;
+        call_data.type = IswHsetMappedWhenManaged;
         call_data.widget = widget;
-        call_data.event_data = (XtPointer) (XtUIntPtr) mapped_when_managed;
-        XtCallCallbackList(hookobj,
+        call_data.event_data = (IswPointer) (IswUIntPtr) mapped_when_managed;
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
 
-    if (!XtIsManaged(widget)) {
+    if (!IswIsManaged(widget)) {
         UNLOCK_APP(app);
         return;
     }
 
     if (mapped_when_managed) {
         /* Didn't used to be mapped when managed.               */
-        if (XtIsRealized(widget))
-            XtMapWidget(widget);
+        if (IswIsRealized(widget))
+            IswMapWidget(widget);
     }
     else {
         /* Used to be mapped when managed.                      */
-        if (XtIsRealized(widget))
-            XtUnmapWidget(widget);
+        if (IswIsRealized(widget))
+            IswUnmapWidget(widget);
     }
     UNLOCK_APP(app);
-}                               /* XtSetMappedWhenManaged */
+}                               /* IswSetMappedWhenManaged */
 
 void
-XtChangeManagedSet(WidgetList unmanage_children,
+IswChangeManagedSet(WidgetList unmanage_children,
                    Cardinal num_unmanage,
-                   XtDoChangeProc do_change_proc,
-                   XtPointer client_data,
+                   IswDoChangeProc do_change_proc,
+                   IswPointer client_data,
                    WidgetList manage_children,
                    Cardinal num_manage)
 {
@@ -443,9 +443,9 @@ XtChangeManagedSet(WidgetList unmanage_children,
     int i;
     Cardinal some_unmanaged;
     Boolean call_out;
-    XtAppContext app;
+    IswAppContext app;
     Widget hookobj;
-    XtChangeHookDataRec call_data;
+    IswChangeHookDataRec call_data;
 
     if (num_unmanage == 0 && num_manage == 0)
         return;
@@ -453,26 +453,26 @@ XtChangeManagedSet(WidgetList unmanage_children,
     /* specification doesn't state that library will check for NULL in list */
 
     childp = num_unmanage ? unmanage_children : manage_children;
-    app = XtWidgetToApplicationContext(*childp);
+    app = IswWidgetToApplicationContext(*childp);
     LOCK_APP(app);
 
-    parent = XtParent(*childp);
+    parent = IswParent(*childp);
     childp = unmanage_children;
-    for (i = (int) num_unmanage; --i >= 0 && XtParent(*childp) == parent;
+    for (i = (int) num_unmanage; --i >= 0 && IswParent(*childp) == parent;
          childp++);
     call_out = (i >= 0);
     childp = manage_children;
-    for (i = (int) num_manage; --i >= 0 && XtParent(*childp) == parent;
+    for (i = (int) num_manage; --i >= 0 && IswParent(*childp) == parent;
          childp++);
     if (call_out || i >= 0) {
-        XtAppWarningMsg(app, "ambiguousParent", XtNxtChangeManagedSet,
-                        XtCXtToolkitError, "Not all children have same parent",
+        IswAppWarningMsg(app, "ambiguousParent", IswNxtChangeManagedSet,
+                        IswCIswToolkitError, "Not all children have same parent",
                         NULL, NULL);
     }
-    if (!XtIsComposite(parent)) {
+    if (!IswIsComposite(parent)) {
         UNLOCK_APP(app);
-        XtAppErrorMsg(app, "invalidParent", XtNxtChangeManagedSet,
-                      XtCXtToolkitError,
+        IswAppErrorMsg(app, "invalidParent", IswNxtChangeManagedSet,
+                      IswCIswToolkitError,
                       "Attempt to manage a child when parent is not Composite",
                       NULL, NULL);
     }
@@ -484,10 +484,10 @@ XtChangeManagedSet(WidgetList unmanage_children,
     call_out = False;
     if (do_change_proc) {
         CompositeClassExtension ext = (CompositeClassExtension)
-            XtGetClassExtension(parent->core.widget_class,
-                                XtOffsetOf(CompositeClassRec,
+            IswGetClassExtension(parent->core.widget_class,
+                                IswOffsetOf(CompositeClassRec,
                                            composite_class.extension),
-                                NULLQUARK, XtCompositeExtensionVersion,
+                                NULLQUARK, IswCompositeExtensionVersion,
                                 sizeof(CompositeClassExtensionRec));
 
         if (!ext || !ext->allows_change_managed_set)
@@ -495,17 +495,17 @@ XtChangeManagedSet(WidgetList unmanage_children,
     }
 
     UnmanageChildren(unmanage_children, num_unmanage, parent,
-                     &some_unmanaged, call_out, XtNxtChangeManagedSet);
+                     &some_unmanaged, call_out, IswNxtChangeManagedSet);
 
-    hookobj = XtHooksOfDisplay(XtDisplay(parent));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        call_data.type = XtHunmanageSet;
+    hookobj = IswHooksOfDisplay(IswDisplay(parent));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        call_data.type = IswHunmanageSet;
         call_data.widget = parent;
-        call_data.event_data = (XtPointer) unmanage_children;
+        call_data.event_data = (IswPointer) unmanage_children;
         call_data.num_event_data = num_unmanage;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
 
     if (do_change_proc)
@@ -514,15 +514,15 @@ XtChangeManagedSet(WidgetList unmanage_children,
 
     call_out = (some_unmanaged && !call_out);
     ManageChildren(manage_children, num_manage, parent, call_out,
-                   XtNxtChangeManagedSet);
+                   IswNxtChangeManagedSet);
 
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        call_data.type = XtHmanageSet;
-        call_data.event_data = (XtPointer) manage_children;
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        call_data.type = IswHmanageSet;
+        call_data.event_data = (IswPointer) manage_children;
         call_data.num_event_data = num_manage;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
-}                               /* XtChangeManagedSet */
+}                               /* IswChangeManagedSet */

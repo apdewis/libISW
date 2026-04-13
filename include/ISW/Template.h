@@ -38,8 +38,8 @@ in this Software without prior written authorization from the X Consortium.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- background	     Background		Pixel		XtDefaultBackground
- border		     BorderColor	Pixel		XtDefaultForeground
+ background	     Background		Pixel		IswDefaultBackground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
  destroyCallback     Callback		Pointer		NULL
  height		     Height		Dimension	0
@@ -53,9 +53,9 @@ in this Software without prior written authorization from the X Consortium.
 
 /* define any special resource names here that are not in <X11/StringDefs.h> */
 
-#define XtNtemplateResource "templateResource"
+#define IswNtemplateResource "templateResource"
 
-#define XtCTemplateResource "TemplateResource"
+#define IswCTemplateResource "TemplateResource"
 
 /* declare specific TemplateWidget class and instance datatypes */
 

@@ -13,7 +13,7 @@
 
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /*
  * =================================================================
@@ -36,16 +36,16 @@
  * WIDGET ORIENTATION TYPE (Missing from modified libXt)
  * =================================================================
  *
- * The XCB-based libXt doesn't define XtOrientation type, only the
- * string constants XtCOrientation, XtEvertical, XtEhorizontal.
+ * The XCB-based libXt doesn't define IswOrientation type, only the
+ * string constants IswCOrientation, IswEvertical, IswEhorizontal.
  * We need to define the enumeration type for widget structures.
  */
-#ifndef _IswXtOrientation_defined
-#define _IswXtOrientation_defined
+#ifndef _IswOrientation_defined
+#define _IswOrientation_defined
 typedef enum {
     XtorientHorizontal = 0,
     XtorientVertical = 1
-} XtOrientation;
+} IswOrientation;
 #endif
 
 /*
@@ -53,16 +53,16 @@ typedef enum {
  * TEXT JUSTIFICATION TYPE (Missing from modified libXt)
  * =================================================================
  *
- * The XCB-based libXt doesn't define XtJustify type.
+ * The XCB-based libXt doesn't define IswJustify type.
  * Used by Label, SmeBSB, and other text widgets.
  */
-#ifndef _IswXtJustify_defined
-#define _IswXtJustify_defined
+#ifndef _IswJustify_defined
+#define _IswJustify_defined
 typedef enum {
-    XtJustifyLeft,
-    XtJustifyCenter,
-    XtJustifyRight
-} XtJustify;
+    IswJustifyLeft,
+    IswJustifyCenter,
+    IswJustifyRight
+} IswJustify;
 #endif
 
 /*
@@ -71,7 +71,7 @@ typedef enum {
  * =================================================================
  *
  * IswEdgeType is defined in Form.h with IswChain* values.
- * Form.h also provides XtEdgeType as an alias via #define.
+ * Form.h also provides IswEdgeType as an alias via #define.
  * The converter uses IswEdgeType directly.
  */
 
@@ -80,12 +80,12 @@ typedef enum {
  * WIDGET GRAVITY TYPE (Missing from modified libXt)
  * =================================================================
  *
- * The XCB-based libXt doesn't define XtGravity type.
+ * The XCB-based libXt doesn't define IswGravity type.
  * Used by Tree widget and other layout widgets.
  */
-#ifndef _IswXtGravity_defined
-#define _IswXtGravity_defined
-typedef unsigned int XtGravity;
+#ifndef _IswGravity_defined
+#define _IswGravity_defined
+typedef unsigned int IswGravity;
 #endif
 
 /*
@@ -166,11 +166,11 @@ xcb_pixmap_t IswCreatePixmapFromBitmapData(xcb_connection_t *conn,
  * Parameters:
  *   conn  - XCB connection
  *   cmap  - Colormap to query
- *   color - XColor structure with pixel set, RGB values filled in
+ *   color - IswColor structure with pixel set, RGB values filled in
  *
  * Returns: 1 on success, 0 on failure
  */
-int ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color);
+int ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color);
 
 /*
  * ISWAllocColor - Allocate a color cell
@@ -181,11 +181,11 @@ int ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color);
  * Parameters:
  *   conn  - XCB connection
  *   cmap  - Colormap to allocate from
- *   color - XColor structure with RGB values, pixel filled in on success
+ *   color - IswColor structure with RGB values, pixel filled in on success
  *
  * Returns: 1 on success, 0 on failure
  */
-int ISWAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color);
+int ISWAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color);
 
 /*
  * IswCreateStippledPixmap - Create a stippled pixmap for grayed-out effects
@@ -220,26 +220,26 @@ xcb_pixmap_t IswCreateStippledPixmap(xcb_connection_t *conn,
 void ISWReleaseStippledPixmap(xcb_screen_t *screen, xcb_pixmap_t pixmap);
 
 /*
- * ISWFontStructTextWidth - Calculate text width using XFontStruct
+ * ISWFontStructTextWidth - Calculate text width using IswFontStruct
  *
- * Replacement for XTextWidth when using XFontStruct (legacy fonts).
+ * Replacement for XTextWidth when using IswFontStruct (legacy fonts).
  *
  * Parameters:
- *   font - XFontStruct pointer
+ *   font - IswFontStruct pointer
  *   text - Text string
  *   len  - Length of text
  *
  * Returns: Width in pixels
  */
-int ISWFontStructTextWidth(XFontStruct *font, const char *text, int len);
+int ISWFontStructTextWidth(IswFontStruct *font, const char *text, int len);
 
 /*
- * ISWFontSetTextWidth - Calculate text width using XFontSet (void*)
+ * ISWFontSetTextWidth - Calculate text width using IswFontSet (void*)
  *
  * For internationalized text - currently a stub that returns an estimate.
  *
  * Parameters:
- *   fontset - XFontSet (void*) pointer
+ *   fontset - IswFontSet (void*) pointer
  *   text    - Text string
  *   len     - Length of text
  *
@@ -252,16 +252,16 @@ int ISWFontSetTextWidth(void *fontset, const char *text, int len);
 #if __STDC_VERSION__ >= 201112L
 /* C11 _Generic selection */
 #define XTextWidth(font, text, len) _Generic((font), \
-    XFontStruct*: ISWFontStructTextWidth, \
+    IswFontStruct*: ISWFontStructTextWidth, \
     default: ISWFontSetTextWidth \
 )((font), (text), (len))
 #else
-/* Pre-C11: use XFontStruct version by default */
-#define XTextWidth(font, text, len) ISWFontStructTextWidth((XFontStruct*)(font), (text), (len))
+/* Pre-C11: use IswFontStruct version by default */
+#define XTextWidth(font, text, len) ISWFontStructTextWidth((IswFontStruct*)(font), (text), (len))
 #endif
 #else
-/* Pre-C11: use XFontStruct version by default */
-#define XTextWidth(font, text, len) ISWFontStructTextWidth((XFontStruct*)(font), (text), (len))
+/* Pre-C11: use IswFontStruct version by default */
+#define XTextWidth(font, text, len) ISWFontStructTextWidth((IswFontStruct*)(font), (text), (len))
 #endif
 
 /* XTextWidth16 stub - XCB doesn't support 16-bit text well, returns estimated width */
@@ -364,10 +364,10 @@ void ISWSetGCFunction(xcb_create_gc_value_list_t *values, uint32_t function);
 
 /*
  * =================================================================
- * FONT METRICS (XFontStruct compatibility)
+ * FONT METRICS (IswFontStruct compatibility)
  * =================================================================
  *
- * The XCB-based XFontStruct lacks per-character metrics.
+ * The XCB-based IswFontStruct lacks per-character metrics.
  * These functions provide alternatives using XCB font queries.
  */
 
@@ -378,7 +378,7 @@ void ISWSetGCFunction(xcb_create_gc_value_list_t *values, uint32_t function);
  *
  * Parameters:
  *   conn - XCB connection
- *   font - XCB font ID (from XFontStruct->fid)
+ *   font - XCB font ID (from IswFontStruct->fid)
  *   text - Text string
  *   len  - Length of text in bytes
  *
@@ -408,13 +408,13 @@ int ISWFontCharWidth(xcb_connection_t *conn, xcb_font_t font, unsigned char c);
  *
  * Parameters:
  *   conn   - XCB connection
- *   font   - XFontStruct pointer (for font ID)
+ *   font   - IswFontStruct pointer (for font ID)
  *   atom   - Atom to query
  *   value  - Output value
  *
  * Returns: True if property found, False otherwise
  */
-Bool IswGetFontProperty(xcb_connection_t *conn, XFontStruct *font,
+Bool IswGetFontProperty(xcb_connection_t *conn, IswFontStruct *font,
                         xcb_atom_t atom, unsigned long *value);
 
 /*
@@ -511,7 +511,7 @@ void ISWXcbDrawString(xcb_connection_t *conn, xcb_drawable_t d,
  *
  * Parameters:
  *   conn - XCB connection
- *   font - XCB font ID (from XFontStruct->fid)
+ *   font - XCB font ID (from IswFontStruct->fid)
  *   text - Text string
  *   len  - Length of text in bytes
  *
@@ -532,7 +532,7 @@ typedef struct {
 /*
  * ISWXcbQueryFontMetrics - Query font metrics using xcb_query_font
  *
- * Replacement for accessing XFontStruct->max_bounds
+ * Replacement for accessing IswFontStruct->max_bounds
  *
  * Parameters:
  *   conn    - XCB connection
@@ -649,12 +649,12 @@ void ISWCopyISOLatin1Lowered(char *dst, const char *src);
  */
 
 /*
- * ISWCvtStringToOrientation - Convert string to XtOrientation
+ * ISWCvtStringToOrientation - Convert string to IswOrientation
  *
  * Replacement for the converter that was in libXmu/Converters.c
- * Converts "horizontal" or "vertical" to XtOrientation values.
+ * Converts "horizontal" or "vertical" to IswOrientation values.
  *
- * This is an XtTypeConverter for use with XtSetTypeConverter().
+ * This is an IswTypeConverter for use with IswSetTypeConverter().
  * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
  */
 Boolean ISWCvtStringToOrientation(
@@ -663,16 +663,16 @@ Boolean ISWCvtStringToOrientation(
     Cardinal *num_args,
     XrmValuePtr from,
     XrmValuePtr to,
-    XtPointer *converter_data
+    IswPointer *converter_data
 );
 
 /*
- * ISWCvtStringToJustify - Convert string to XtJustify
+ * ISWCvtStringToJustify - Convert string to IswJustify
  *
  * Replacement for the converter that was in libXmu/Converters.c
- * Converts "left", "center", or "right" to XtJustify values.
+ * Converts "left", "center", or "right" to IswJustify values.
  *
- * This is an XtTypeConverter for use with XtSetTypeConverter().
+ * This is an IswTypeConverter for use with IswSetTypeConverter().
  * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
  */
 Boolean ISWCvtStringToJustify(
@@ -681,16 +681,16 @@ Boolean ISWCvtStringToJustify(
     Cardinal *num_args,
     XrmValuePtr from,
     XrmValuePtr to,
-    XtPointer *converter_data
+    IswPointer *converter_data
 );
 
 /*
- * ISWCvtStringToEdgeType - Convert string to XtEdgeType
+ * ISWCvtStringToEdgeType - Convert string to IswEdgeType
  *
  * Converts "ChainTop", "ChainBottom", "ChainLeft", "ChainRight", "Rubber"
- * to XtEdgeType values for Form widget constraints.
+ * to IswEdgeType values for Form widget constraints.
  *
- * This is an XtTypeConverter for use with XtSetTypeConverter().
+ * This is an IswTypeConverter for use with IswSetTypeConverter().
  * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
  */
 Boolean ISWCvtStringToEdgeType(
@@ -699,7 +699,7 @@ Boolean ISWCvtStringToEdgeType(
     Cardinal *num_args,
     XrmValuePtr from,
     XrmValuePtr to,
-    XtPointer *converter_data
+    IswPointer *converter_data
 );
 
 /*
@@ -709,7 +709,7 @@ Boolean ISWCvtStringToEdgeType(
  * Converts a widget name string to a Widget reference by searching
  * the widget tree starting from the parent widget.
  *
- * This is an XtTypeConverter for use with XtSetTypeConverter().
+ * This is an IswTypeConverter for use with IswSetTypeConverter().
  * Requires parentCvtArgs to provide the parent widget.
  * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
  */
@@ -719,7 +719,7 @@ Boolean ISWCvtStringToWidget(
     Cardinal *num_args,
     XrmValuePtr from,
     XrmValuePtr to,
-    XtPointer *converter_data
+    IswPointer *converter_data
 );
 
 /*
@@ -883,9 +883,9 @@ int ISWQueryPointer(xcb_connection_t *dpy, xcb_window_t win,
  */
 
 /* Load a fallback font when resource converters fail */
-XFontStruct *ISWLoadFallbackFont(xcb_connection_t *conn);
+IswFontStruct *ISWLoadFallbackFont(xcb_connection_t *conn);
 
 /* Free a fallback font created by ISWLoadFallbackFont */
-void ISWFreeFallbackFont(xcb_connection_t *conn, XFontStruct *font);
+void ISWFreeFallbackFont(xcb_connection_t *conn, IswFontStruct *font);
 
 #endif /* _IswXcbDraw_h */

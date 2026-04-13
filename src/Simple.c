@@ -51,37 +51,37 @@ SOFTWARE.
 #endif
 #include <ISW/ISWP.h>
 #include <stdio.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SimpleP.h>
 #include "ISWXcbDraw.h"
 
-#define offset(field) XtOffsetOf(SimpleRec, simple.field)
+#define offset(field) IswOffsetOf(SimpleRec, simple.field)
 
-static XtResource resources[] = {
-  {XtNcursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
-     offset(cursor), XtRImmediate, (XtPointer) None},
-  {XtNinsensitiveBorder, XtCInsensitive, XtRPixmap, sizeof(xcb_pixmap_t),
-     offset(insensitive_border), XtRImmediate, (XtPointer) NULL},
+static IswResource resources[] = {
+  {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+     offset(cursor), IswRImmediate, (IswPointer) None},
+  {IswNinsensitiveBorder, IswCInsensitive, IswRPixmap, sizeof(xcb_pixmap_t),
+     offset(insensitive_border), IswRImmediate, (IswPointer) NULL},
   /* Color cursor resources removed - not available in XCB
-  {XtNpointerColor, XtCForeground, XtRPixel, sizeof(Pixel),
-     offset(pointer_fg), XtRString, XtDefaultForeground},
-  {XtNpointerColorBackground, XtCBackground, XtRPixel, sizeof(Pixel),
-     offset(pointer_bg), XtRString, XtDefaultBackground},
+  {IswNpointerColor, IswCForeground, IswRPixel, sizeof(Pixel),
+     offset(pointer_fg), IswRString, IswDefaultForeground},
+  {IswNpointerColorBackground, IswCBackground, IswRPixel, sizeof(Pixel),
+     offset(pointer_bg), IswRString, IswDefaultBackground},
   */
-  {XtNcursorName, XtCCursor, XtRString, sizeof(String),
-     offset(cursor_name), XtRString, NULL},
+  {IswNcursorName, IswCCursor, IswRString, sizeof(String),
+     offset(cursor_name), IswRString, NULL},
 #ifdef ISW_INTERNATIONALIZATION
-  {XtNinternational, XtCInternational, XtRBoolean, sizeof(Boolean),
-     offset(international), XtRImmediate, (XtPointer) FALSE},
+  {IswNinternational, IswCInternational, IswRBoolean, sizeof(Boolean),
+     offset(international), IswRImmediate, (IswPointer) FALSE},
 #endif
 #undef offset
 };
 
 static void ClassPartInitialize(WidgetClass);
 static void ClassInitialize(void);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void ConvertCursor(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ChangeSensitive(Widget);
@@ -100,7 +100,7 @@ SimpleClassRec simpleClassRec = {
     /* actions			*/	NULL,
     /* num_actions		*/	0,
     /* resources		*/	resources,
-    /* num_resources		*/	XtNumber(resources),
+    /* num_resources		*/	IswNumber(resources),
     /* xrm_class		*/	NULLQUARK,
     /* compress_motion		*/	TRUE,
     /* compress_exposure	*/	TRUE,
@@ -111,14 +111,14 @@ SimpleClassRec simpleClassRec = {
     /* expose			*/	NULL,
     /* set_values		*/	SetValues,
     /* set_values_hook		*/	NULL,
-    /* set_values_almost	*/	XtInheritSetValuesAlmost,
+    /* set_values_almost	*/	IswInheritSetValuesAlmost,
     /* get_values_hook		*/	NULL,
     /* accept_focus		*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private		*/	NULL,
     /* tm_table			*/	NULL,
-    /* query_geometry		*/	XtInheritQueryGeometry,
-    /* display_accelerator	*/	XtInheritDisplayAccelerator,
+    /* query_geometry		*/	IswInheritQueryGeometry,
+    /* display_accelerator	*/	IswInheritDisplayAccelerator,
     /* extension		*/	NULL
   },
   { /* simple fields */
@@ -131,23 +131,23 @@ WidgetClass simpleWidgetClass = (WidgetClass)&simpleClassRec;
 static void
 ClassInitialize(void)
 {
-    static XtConvertArgRec convertArg[] = {
-        {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.screen),
+    static IswConvertArgRec convertArg[] = {
+        {IswWidgetBaseOffset, (IswPointer) IswOffsetOf(WidgetRec, core.screen),
       sizeof(xcb_screen_t *)},
         /* Color resources removed for XCB compatibility
-        {XtResourceString, (XtPointer) XtNpointerColor, sizeof(Pixel)},
-        {XtResourceString, (XtPointer) XtNpointerColorBackground,
+        {IswResourceString, (IswPointer) IswNpointerColor, sizeof(Pixel)},
+        {IswResourceString, (IswPointer) IswNpointerColorBackground,
       sizeof(Pixel)},
         */
-        {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.colormap),
+        {IswWidgetBaseOffset, (IswPointer) IswOffsetOf(WidgetRec, core.colormap),
       sizeof(xcb_colormap_t)}
     };
 
     IswInitializeWidgetSet();
     /* Color cursor converter removed - not available in XCB
-    XtSetTypeConverter( XtRString, XtRColorCursor, XmuCvtStringToColorCursor,
-         convertArg, XtNumber(convertArg),
-         XtCacheByDisplay, (XtDestructor)NULL);
+    IswSetTypeConverter( IswRString, IswRColorCursor, XmuCvtStringToColorCursor,
+         convertArg, IswNumber(convertArg),
+         IswCacheByDisplay, (IswDestructor)NULL);
     */
 }
 
@@ -164,25 +164,25 @@ ClassPartInitialize(WidgetClass class)
 	(void) sprintf(buf,
 		"%s Widget: The Simple Widget class method 'change_sensitive' is undefined.\nA function must be defined or inherited.",
 		c->core_class.class_name);
-	XtWarning(buf);
+	IswWarning(buf);
 	c->simple_class.change_sensitive = ChangeSensitive;
     }
 
-    if (c->simple_class.change_sensitive == XtInheritChangeSensitive)
+    if (c->simple_class.change_sensitive == IswInheritChangeSensitive)
 	c->simple_class.change_sensitive = super->simple_class.change_sensitive;
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     xcb_pixmap_t border_pixmap = 0;
     
-    if (!XtIsSensitive(w)) {
+    if (!IswIsSensitive(w)) {
 	/* change border to gray; have to remember the old one,
-	 * so XtDestroyWidget deletes the proper one */
+	 * so IswDestroyWidget deletes the proper one */
 	if (((SimpleWidget)w)->simple.insensitive_border == None)
 	    ((SimpleWidget)w)->simple.insensitive_border =
-		IswCreateStippledPixmap(XtDisplay(w), XtWindow(w),
+		IswCreateStippledPixmap(IswDisplay(w), IswWindow(w),
 					w->core.border_pixel,
 					w->core.background_pixel,
 					w->core.depth);
@@ -204,10 +204,10 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
     }
 
     /* attributes parameter is already in XCB uint32_t format */
-    XtCreateWindow(XtDisplay(w), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
+    IswCreateWindow(IswDisplay(w), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
                    (xcb_visualtype_t *)CopyFromParent, *valueMask, attributes);
 
-    if (!XtIsSensitive(w))
+    if (!IswIsSensitive(w))
 	w->core.border_pixmap = border_pixmap;
 }
 
@@ -227,19 +227,19 @@ ConvertCursor(Widget w)
     if (simple->simple.cursor_name == NULL)
 	return;
 
-    from.addr = (XtPointer) simple->simple.cursor_name;
+    from.addr = (IswPointer) simple->simple.cursor_name;
     from.size = strlen((char *) from.addr) + 1;
 
     to.size = sizeof(xcb_cursor_t);
-    to.addr = (XtPointer) &cursor;
+    to.addr = (IswPointer) &cursor;
 
-    /* Changed XtRColorCursor to XtRCursor for XCB compatibility */
-    if (XtConvertAndStore(w, XtRString, &from, XtRCursor, &to)) {
+    /* Changed IswRColorCursor to IswRCursor for XCB compatibility */
+    if (IswConvertAndStore(w, IswRString, &from, IswRCursor, &to)) {
  if ( cursor !=  None)
      simple->simple.cursor = cursor;
     }
     else {
- XtAppErrorMsg(XtWidgetToApplicationContext(w),
+ IswAppErrorMsg(IswWidgetToApplicationContext(w),
         "convertFailed","ConvertCursor","IswError",
         "Simple: ConvertCursor failed.",
         (String *)NULL, (Cardinal *)NULL);
@@ -260,8 +260,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     s_new->simple.international = s_old->simple.international;
 #endif
 
-    if ( XtIsSensitive(current) != XtIsSensitive(new) )
-	(*((SimpleWidgetClass)XtClass(new))->
+    if ( IswIsSensitive(current) != IswIsSensitive(new) )
+	(*((SimpleWidgetClass)IswClass(new))->
 	     simple_class.change_sensitive) ( new );
 
     if (s_old->simple.cursor != s_new->simple.cursor) {
@@ -279,10 +279,10 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	new_cursor = TRUE;
     }
 
-    if (new_cursor && XtIsRealized(new)) {
+    if (new_cursor && IswIsRealized(new)) {
         /* XDefineCursor → xcb_change_window_attributes */
         uint32_t value = s_new->simple.cursor;
-        xcb_change_window_attributes(XtDisplay(new), XtWindow(new),
+        xcb_change_window_attributes(IswDisplay(new), IswWindow(new),
                                      XCB_CW_CURSOR, &value);
     }
 
@@ -293,29 +293,29 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 static Boolean
 ChangeSensitive(Widget w)
 {
-    if (XtIsRealized(w)) {
- if (XtIsSensitive(w)) {
-     if (w->core.border_pixmap != XtUnspecifiedPixmap) {
+    if (IswIsRealized(w)) {
+ if (IswIsSensitive(w)) {
+     if (w->core.border_pixmap != IswUnspecifiedPixmap) {
   /* XSetWindowBorderPixmap → xcb_change_window_attributes */
   uint32_t value = w->core.border_pixmap;
-  xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+  xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
     	     XCB_CW_BORDER_PIXMAP, &value);
      } else {
   /* XSetWindowBorder → xcb_change_window_attributes */
   uint32_t value = w->core.border_pixel;
-  xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+  xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
     	     XCB_CW_BORDER_PIXEL, &value);
      }
  } else {
      if (((SimpleWidget)w)->simple.insensitive_border == None)
   ((SimpleWidget)w)->simple.insensitive_border =
-      IswCreateStippledPixmap(XtDisplay(w), XtWindow(w),
+      IswCreateStippledPixmap(IswDisplay(w), IswWindow(w),
          w->core.border_pixel,
          w->core.background_pixel,
         w->core.depth);
     /* XSetWindowBorderPixmap → xcb_change_window_attributes */
     uint32_t value = ((SimpleWidget)w)->simple.insensitive_border;
-    xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+    xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
      XCB_CW_BORDER_PIXMAP, &value);
 }
     }

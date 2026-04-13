@@ -45,7 +45,7 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef _ISW_SimpleMenu_h
 #define _ISW_SimpleMenu_h
 
-#include <X11/Shell.h>
+#include <ISW/Shell.h>
 
 /****************************************************************
  *
@@ -57,9 +57,9 @@ in this Software without prior written authorization from the X Consortium.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- background	     Background		Pixel		XtDefaultBackground
+ background	     Background		Pixel		IswDefaultBackground
  backgroundPixmap    BackgroundPixmap	Pixmap          None
- borderColor	     BorderColor	Pixel		XtDefaultForeground
+ borderColor	     BorderColor	Pixel		IswDefaultForeground
  borderPixmap	     BorderPixmap	Pixmap		None
  borderWidth	     BorderWidth	Dimension	1
  bottomMargin        VerticalMargins    Dimension       VerticalSpace
@@ -84,28 +84,28 @@ typedef struct _SimpleMenuRec*		SimpleMenuWidget;
 
 extern WidgetClass simpleMenuWidgetClass;
 
-#define XtNcursor "cursor"
-#define XtNbottomMargin "bottomMargin"
-#define XtNcolumnWidth "columnWidth"
-#define XtNlabelClass "labelClass"
-#define XtNmenuOnScreen "menuOnScreen"
-#define XtNpopupOnEntry "popupOnEntry"
-#define XtNrowHeight "rowHeight"
-#define XtNtopMargin "topMargin"
-#define XtNjumpScroll "jumpScroll"
-#define XtNleftWhitespace "leftWhitespace"
-#define XtNrightWhitespace "rightWhitespace"
+#define IswNcursor "cursor"
+#define IswNbottomMargin "bottomMargin"
+#define IswNcolumnWidth "columnWidth"
+#define IswNlabelClass "labelClass"
+#define IswNmenuOnScreen "menuOnScreen"
+#define IswNpopupOnEntry "popupOnEntry"
+#define IswNrowHeight "rowHeight"
+#define IswNtopMargin "topMargin"
+#define IswNjumpScroll "jumpScroll"
+#define IswNleftWhitespace "leftWhitespace"
+#define IswNrightWhitespace "rightWhitespace"
 
-#define XtCColumnWidth "ColumnWidth"
-#define XtCLabelClass "LabelClass"
-#define XtCMenuOnScreen "MenuOnScreen"
-#define XtCPopupOnEntry "PopupOnEntry"
-#define XtCRowHeight "RowHeight"
-#define XtCVerticalMargins "VerticalMargins"
-#define XtCJumpScroll "JumpScroll"
-#define XtCLeftWhitespace "LeftWhitespace"
-#define XtCRightWhitespace "RightWhitespace"
-#define XtCHorizontalWhitespace "HorizontalWhitespace"
+#define IswCColumnWidth "ColumnWidth"
+#define IswCLabelClass "LabelClass"
+#define IswCMenuOnScreen "MenuOnScreen"
+#define IswCPopupOnEntry "PopupOnEntry"
+#define IswCRowHeight "RowHeight"
+#define IswCVerticalMargins "VerticalMargins"
+#define IswCJumpScroll "JumpScroll"
+#define IswCLeftWhitespace "LeftWhitespace"
+#define IswCRightWhitespace "RightWhitespace"
+#define IswCHorizontalWhitespace "HorizontalWhitespace"
 
 /************************************************************
  *
@@ -122,7 +122,7 @@ _XFUNCPROTOBEGIN
  */
 
 extern void IswSimpleMenuAddGlobalActions(
-    XtAppContext	/* app_con */
+    IswAppContext	/* app_con */
 );
 
 /*	Function Name: IswSimpleMenuGetActiveEntry

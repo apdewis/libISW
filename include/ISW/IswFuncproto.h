@@ -1,4 +1,4 @@
-/* include/X11/XtFuncproto.h
+/* include/X11/IswFuncproto.h
  * Local replacement for <X11/Xfuncproto.h>
  * Provides C++ extern "C" guards and function attributes without pulling in Xlib headers.
  */
@@ -29,8 +29,8 @@ in this Software without prior written authorization from The Open Group.
 
 ******************************************************************/
 
-#ifndef _XtFuncproto_h
-#define _XtFuncproto_h
+#ifndef _IswFuncproto_h
+#define _IswFuncproto_h
 
 /* C++ extern "C" guards */
 #ifdef __cplusplus
@@ -82,4 +82,4 @@ in this Software without prior written authorization from The Open Group.
 # define _X_SENTINEL(x)
 #endif
 
-#endif /* _XtFuncproto_h */
+#endif /* _IswFuncproto_h */

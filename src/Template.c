@@ -29,23 +29,23 @@ in this Software without prior written authorization from the X Consortium.
 #include "config.h"
 #endif
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <ISW/TemplateP.h>
 
-static XtResource resources[] = {
-#define offset(field) XtOffsetOf(TemplateRec, template.field)
+static IswResource resources[] = {
+#define offset(field) IswOffsetOf(TemplateRec, template.field)
     /* {name, class, type, size, offset, default_type, default_addr}, */
-    { XtNtemplateResource, XtCTemplateResource, XtRTemplateResource,
-	  sizeof(char*), offset(resource), XtRString, (XtPointer) "default" },
+    { IswNtemplateResource, IswCTemplateResource, IswRTemplateResource,
+	  sizeof(char*), offset(resource), IswRString, (IswPointer) "default" },
 #undef offset
 };
 
 static void TemplateAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params);
 
-static XtActionsRec actions[] =
+static IswActionsRec actions[] =
 {
   /* {name, procedure}, */
     {"template",	TemplateAction},
@@ -65,11 +65,11 @@ TemplateClassRec templateClassRec = {
     /* class_inited		*/	FALSE,
     /* initialize		*/	NULL,
     /* initialize_hook		*/	NULL,
-    /* realize			*/	XtInheritRealize,
+    /* realize			*/	IswInheritRealize,
     /* actions			*/	actions,
-    /* num_actions		*/	XtNumber(actions),
+    /* num_actions		*/	IswNumber(actions),
     /* resources		*/	resources,
-    /* num_resources		*/	XtNumber(resources),
+    /* num_resources		*/	IswNumber(resources),
     /* xrm_class		*/	NULLQUARK,
     /* compress_motion		*/	TRUE,
     /* compress_exposure	*/	TRUE,
@@ -80,14 +80,14 @@ TemplateClassRec templateClassRec = {
     /* expose			*/	NULL,
     /* set_values		*/	NULL,
     /* set_values_hook		*/	NULL,
-    /* set_values_almost	*/	XtInheritSetValuesAlmost,
+    /* set_values_almost	*/	IswInheritSetValuesAlmost,
     /* get_values_hook		*/	NULL,
     /* accept_focus		*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private		*/	NULL,
     /* tm_table			*/	translations,
-    /* query_geometry		*/	XtInheritQueryGeometry,
-    /* display_accelerator	*/	XtInheritDisplayAccelerator,
+    /* query_geometry		*/	IswInheritQueryGeometry,
+    /* display_accelerator	*/	IswInheritDisplayAccelerator,
     /* extension		*/	NULL
   },
   { /* template fields */

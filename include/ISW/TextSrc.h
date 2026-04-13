@@ -195,7 +195,7 @@ extern Boolean IswTextSourceConvertSelection(
     xcb_atom_t*		/* selection */,
     xcb_atom_t*		/* target */,
     xcb_atom_t*		/* type */,
-    XtPointer*		/* value_return */,
+    IswPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
 );

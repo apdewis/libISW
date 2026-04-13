@@ -43,7 +43,7 @@ typedef struct _PortholeClassRec {	/* Porthole widget class */
 
 typedef struct {			/* new fields in widget */
     /* resources... */
-    XtCallbackList report_callbacks;	/* callback/Callback */
+    IswCallbackList report_callbacks;	/* callback/Callback */
     /* private data... */
 } PortholePart;
 

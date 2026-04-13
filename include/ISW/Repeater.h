@@ -46,24 +46,24 @@ in this Software without prior written authorization from the X Consortium.
  *  initialDelay	Delay		int		200 milliseconds
  *  minimumDelay	MinimumDelay	int		10 milliseconds
  *  repeatDelay		Delay		int		50 milliseconds
- *  startCallback	StartCallback	XtCallbackList	NULL
- *  stopCallback	StopCallback	XtCallbackList	NULL
+ *  startCallback	StartCallback	IswCallbackList	NULL
+ *  stopCallback	StopCallback	IswCallbackList	NULL
  *
  *****************************************************************************/
 
 					/* new instance and class names */
-#define XtNdecay "decay"
-#define XtCDecay "Decay"
-#define XtNinitialDelay "initialDelay"
-#define XtCDelay "Delay"
-#define XtNminimumDelay "minimumDelay"
-#define XtCMinimumDelay "MinimumDelay"
-#define XtNrepeatDelay "repeatDelay"
-#define XtNflash "flash"
-#define XtNstartCallback "startCallback"
-#define XtCStartCallback "StartCallback"
-#define XtNstopCallback "stopCallback"
-#define XtCStopCallback "StopCallback"
+#define IswNdecay "decay"
+#define IswCDecay "Decay"
+#define IswNinitialDelay "initialDelay"
+#define IswCDelay "Delay"
+#define IswNminimumDelay "minimumDelay"
+#define IswCMinimumDelay "MinimumDelay"
+#define IswNrepeatDelay "repeatDelay"
+#define IswNflash "flash"
+#define IswNstartCallback "startCallback"
+#define IswCStartCallback "StartCallback"
+#define IswNstopCallback "stopCallback"
+#define IswCStopCallback "StopCallback"
 
 
 					/* external declarations */

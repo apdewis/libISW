@@ -11,8 +11,8 @@
 #endif
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/SliderP.h>
@@ -33,38 +33,38 @@
 #define TICK_LENGTH  6
 #define VALUE_MARGIN 4
 
-#define Offset(field) XtOffsetOf(SliderRec, field)
+#define Offset(field) IswOffsetOf(SliderRec, field)
 
-static XtResource resources[] = {
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-        Offset(core.border_width), XtRImmediate, (XtPointer) 0},
-    {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-        Offset(slider.foreground), XtRString, XtDefaultForeground},
-    {XtNorientation, XtCOrientation, XtROrientation, sizeof(XtOrientation),
-        Offset(slider.orientation), XtRImmediate, (XtPointer) XtorientHorizontal},
-    {XtNminimumValue, XtCMinimumValue, XtRInt, sizeof(int),
-        Offset(slider.minimum), XtRImmediate, (XtPointer) 0},
-    {XtNmaximumValue, XtCMaximumValue, XtRInt, sizeof(int),
-        Offset(slider.maximum), XtRImmediate, (XtPointer) 100},
-    {XtNsliderValue, XtCSliderValue, XtRInt, sizeof(int),
-        Offset(slider.value), XtRImmediate, (XtPointer) 0},
-    {XtNtickInterval, XtCTickInterval, XtRInt, sizeof(int),
-        Offset(slider.tick_interval), XtRImmediate, (XtPointer) 0},
-    {XtNshowValue, XtCShowValue, XtRBoolean, sizeof(Boolean),
-        Offset(slider.show_value), XtRImmediate, (XtPointer) True},
-    {XtNvaluePosition, XtCValuePosition, XtRInt, sizeof(IswSliderValuePosition),
-        Offset(slider.value_pos), XtRImmediate, (XtPointer) IswSliderValueTop},
-    {XtNlength, XtCLength, XtRDimension, sizeof(Dimension),
-        Offset(slider.length), XtRImmediate, (XtPointer) 200},
-    {XtNthickness, XtCThickness, XtRDimension, sizeof(Dimension),
-        Offset(slider.thickness), XtRImmediate, (XtPointer) 30},
-    {XtNvalueChanged, XtCCallback, XtRCallback, sizeof(XtPointer),
-        Offset(slider.value_changed), XtRCallback, NULL},
-    {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct *),
-        Offset(slider.font), XtRString, XtDefaultFont},
+static IswResource resources[] = {
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+        Offset(core.border_width), IswRImmediate, (IswPointer) 0},
+    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+        Offset(slider.foreground), IswRString, IswDefaultForeground},
+    {IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
+        Offset(slider.orientation), IswRImmediate, (IswPointer) XtorientHorizontal},
+    {IswNminimumValue, IswCMinimumValue, IswRInt, sizeof(int),
+        Offset(slider.minimum), IswRImmediate, (IswPointer) 0},
+    {IswNmaximumValue, IswCMaximumValue, IswRInt, sizeof(int),
+        Offset(slider.maximum), IswRImmediate, (IswPointer) 100},
+    {IswNsliderValue, IswCSliderValue, IswRInt, sizeof(int),
+        Offset(slider.value), IswRImmediate, (IswPointer) 0},
+    {IswNtickInterval, IswCTickInterval, IswRInt, sizeof(int),
+        Offset(slider.tick_interval), IswRImmediate, (IswPointer) 0},
+    {IswNshowValue, IswCShowValue, IswRBoolean, sizeof(Boolean),
+        Offset(slider.show_value), IswRImmediate, (IswPointer) True},
+    {IswNvaluePosition, IswCValuePosition, IswRInt, sizeof(IswSliderValuePosition),
+        Offset(slider.value_pos), IswRImmediate, (IswPointer) IswSliderValueTop},
+    {IswNlength, IswCLength, IswRDimension, sizeof(Dimension),
+        Offset(slider.length), IswRImmediate, (IswPointer) 200},
+    {IswNthickness, IswCThickness, IswRDimension, sizeof(Dimension),
+        Offset(slider.thickness), IswRImmediate, (IswPointer) 30},
+    {IswNvalueChanged, IswCCallback, IswRCallback, sizeof(IswPointer),
+        Offset(slider.value_changed), IswRCallback, NULL},
+    {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+        Offset(slider.font), IswRString, IswDefaultFont},
 #ifdef ISW_INTERNATIONALIZATION
-    {XtNfontSet, XtCFontSet, XtRFontSet, sizeof(ISWFontSet *),
-        Offset(slider.fontset), XtRString, XtDefaultFontSet},
+    {IswNfontSet, IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
+        Offset(slider.fontset), IswRString, IswDefaultFontSet},
 #endif
 };
 
@@ -74,7 +74,7 @@ static XtResource resources[] = {
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -89,7 +89,7 @@ static char defaultTranslations[] =
      <Btn1Motion>: Drag()\n\
      <Btn1Up>:     EndDrag()";
 
-static XtActionsRec actions[] = {
+static IswActionsRec actions[] = {
     {"StartDrag",      StartDrag},
     {"Drag",           Drag},
     {"EndDrag",        EndDrag},
@@ -108,9 +108,9 @@ SliderClassRec sliderClassRec = {
     /* initialize_hook    */ NULL,
     /* realize            */ Realize,
     /* actions            */ actions,
-    /* num_actions        */ XtNumber(actions),
+    /* num_actions        */ IswNumber(actions),
     /* resources          */ resources,
-    /* num_resources      */ XtNumber(resources),
+    /* num_resources      */ IswNumber(resources),
     /* xrm_class          */ NULLQUARK,
     /* compress_motion    */ TRUE,
     /* compress_exposure  */ TRUE,
@@ -121,18 +121,18 @@ SliderClassRec sliderClassRec = {
     /* expose             */ Redisplay,
     /* set_values         */ SetValues,
     /* set_values_hook    */ NULL,
-    /* set_values_almost  */ XtInheritSetValuesAlmost,
+    /* set_values_almost  */ IswInheritSetValuesAlmost,
     /* get_values_hook    */ NULL,
     /* accept_focus       */ NULL,
-    /* version            */ XtVersion,
+    /* version            */ IswVersion,
     /* callback_private   */ NULL,
     /* tm_table           */ defaultTranslations,
-    /* query_geometry     */ XtInheritQueryGeometry,
-    /* display_accelerator*/ XtInheritDisplayAccelerator,
+    /* query_geometry     */ IswInheritQueryGeometry,
+    /* display_accelerator*/ IswInheritDisplayAccelerator,
     /* extension          */ NULL
   },
   { /* simple_class fields */
-    /* change_sensitive   */ XtInheritChangeSensitive
+    /* change_sensitive   */ IswInheritChangeSensitive
   },
   { /* slider_class fields */
     /* empty              */ 0
@@ -285,8 +285,8 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    XtSetTypeConverter(XtRString, XtROrientation, ISWCvtStringToOrientation,
-                       (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL);
+    IswSetTypeConverter(IswRString, IswROrientation, ISWCvtStringToOrientation,
+                       (IswConvertArgList)NULL, 0, IswCacheNone, (IswDestructor)NULL);
 }
 
 static void
@@ -342,7 +342,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     SliderWidget sw = (SliderWidget) w;
 
@@ -366,7 +366,7 @@ Resize(Widget w)
 {
     SliderWidget sw = (SliderWidget) w;
     UpdateThumbPos(sw);
-    if (XtIsRealized(w))
+    if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
 }
 
@@ -458,7 +458,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     ISWRenderContext *ctx = sw->slider.render_ctx;
     (void)event; (void)region;
 
-    if (!ctx || !XtIsRealized(w))
+    if (!ctx || !IswIsRealized(w))
         return;
 
     Dimension thumb_w = ThumbW(sw);
@@ -607,7 +607,7 @@ SetValueAndNotify(SliderWidget sw, int new_value)
 
         IswSliderCallbackData cb_data;
         cb_data.value = new_value;
-        XtCallCallbacks((Widget)sw, XtNvalueChanged, (XtPointer)&cb_data);
+        IswCallCallbacks((Widget)sw, IswNvalueChanged, (IswPointer)&cb_data);
     }
 }
 
@@ -680,14 +680,14 @@ IswSliderSetValue(Widget w, int value)
     SliderWidget sw = (SliderWidget) w;
     Arg args[1];
 
-    XtSetArg(args[0], XtNsliderValue, value);
-    XtSetValues(w, args, 1);
+    IswSetArg(args[0], IswNsliderValue, value);
+    IswSetValues(w, args, 1);
 
     /* Fire callback if value actually changed */
     if (sw->slider.value == value) {
         IswSliderCallbackData cb_data;
         cb_data.value = value;
-        XtCallCallbacks(w, XtNvalueChanged, (XtPointer)&cb_data);
+        IswCallCallbacks(w, IswNvalueChanged, (IswPointer)&cb_data);
     }
 }
 

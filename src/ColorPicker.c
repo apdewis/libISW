@@ -10,8 +10,8 @@
 #endif
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ColorPickerP.h>
@@ -23,26 +23,26 @@
 
 #define superclass (&formClassRec)
 
-#define Offset(field) XtOffsetOf(ColorPickerRec, field)
+#define Offset(field) IswOffsetOf(ColorPickerRec, field)
 
-static XtResource resources[] = {
-    {XtNcolorRed, XtCColorRed, XtRInt, sizeof(int),
-        Offset(colorPicker.red), XtRImmediate, (XtPointer) 0},
-    {XtNcolorGreen, XtCColorGreen, XtRInt, sizeof(int),
-        Offset(colorPicker.green), XtRImmediate, (XtPointer) 0},
-    {XtNcolorBlue, XtCColorBlue, XtRInt, sizeof(int),
-        Offset(colorPicker.blue), XtRImmediate, (XtPointer) 0},
-    {XtNcolorChanged, XtCCallback, XtRCallback, sizeof(XtPointer),
-        Offset(colorPicker.color_changed), XtRCallback, NULL},
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-        Offset(core.border_width), XtRImmediate, (XtPointer) 0},
+static IswResource resources[] = {
+    {IswNcolorRed, IswCColorRed, IswRInt, sizeof(int),
+        Offset(colorPicker.red), IswRImmediate, (IswPointer) 0},
+    {IswNcolorGreen, IswCColorGreen, IswRInt, sizeof(int),
+        Offset(colorPicker.green), IswRImmediate, (IswPointer) 0},
+    {IswNcolorBlue, IswCColorBlue, IswRInt, sizeof(int),
+        Offset(colorPicker.blue), IswRImmediate, (IswPointer) 0},
+    {IswNcolorChanged, IswCCallback, IswRCallback, sizeof(IswPointer),
+        Offset(colorPicker.color_changed), IswRCallback, NULL},
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+        Offset(core.border_width), IswRImmediate, (IswPointer) 0},
 };
 
 #undef Offset
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void SliderChanged(Widget, XtPointer, XtPointer);
+static void SliderChanged(Widget, IswPointer, IswPointer);
 static void UpdateSwatch(ColorPickerWidget);
 
 ColorPickerClassRec colorPickerClassRec = {
@@ -55,36 +55,36 @@ ColorPickerClassRec colorPickerClassRec = {
     FALSE,
     Initialize,
     NULL,
-    XtInheritRealize,
+    IswInheritRealize,
     NULL,
     0,
     resources,
-    XtNumber(resources),
+    IswNumber(resources),
     NULLQUARK,
     TRUE,
     TRUE,
     TRUE,
     FALSE,
     NULL,
-    XtInheritResize,
-    XtInheritExpose,
+    IswInheritResize,
+    IswInheritExpose,
     SetValues,
     NULL,
-    XtInheritSetValuesAlmost,
+    IswInheritSetValuesAlmost,
     NULL,
     NULL,
-    XtVersion,
+    IswVersion,
     NULL,
     NULL,
-    XtInheritQueryGeometry,
-    XtInheritDisplayAccelerator,
+    IswInheritQueryGeometry,
+    IswInheritDisplayAccelerator,
     NULL
   },
   { /* composite */
-    XtInheritGeometryManager,
-    XtInheritChangeManaged,
-    XtInheritInsertChild,
-    XtInheritDeleteChild,
+    IswInheritGeometryManager,
+    IswInheritChangeManaged,
+    IswInheritInsertChild,
+    IswInheritDeleteChild,
     NULL
   },
   { /* constraint */
@@ -93,7 +93,7 @@ ColorPickerClassRec colorPickerClassRec = {
     NULL, NULL, NULL, NULL
   },
   { /* form */
-    XtInheritLayout
+    IswInheritLayout
   },
   { /* colorPicker */
     0
@@ -105,7 +105,7 @@ WidgetClass colorPickerWidgetClass = (WidgetClass)&colorPickerClassRec;
 /* --- Swatch expose callback --- */
 
 static void
-SwatchExpose(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boolean *cont)
+SwatchExpose(Widget w, IswPointer client_data, xcb_generic_event_t *event, Boolean *cont)
 {
     ColorPickerWidget cpw = (ColorPickerWidget) client_data;
     (void)event; (void)cont;
@@ -127,16 +127,16 @@ SwatchExpose(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boolea
 static void
 UpdateSwatch(ColorPickerWidget cpw)
 {
-    if (cpw->colorPicker.swatchW && XtIsRealized(cpw->colorPicker.swatchW)) {
+    if (cpw->colorPicker.swatchW && IswIsRealized(cpw->colorPicker.swatchW)) {
         /* Trigger a redraw by clearing and exposing */
-        SwatchExpose(cpw->colorPicker.swatchW, (XtPointer)cpw, NULL, NULL);
+        SwatchExpose(cpw->colorPicker.swatchW, (IswPointer)cpw, NULL, NULL);
     }
 }
 
 /* --- Slider callback --- */
 
 static void
-SliderChanged(Widget w, XtPointer client_data, XtPointer call_data)
+SliderChanged(Widget w, IswPointer client_data, IswPointer call_data)
 {
     ColorPickerWidget cpw = (ColorPickerWidget) client_data;
     IswSliderCallbackData *sd = (IswSliderCallbackData *) call_data;
@@ -155,7 +155,7 @@ SliderChanged(Widget w, XtPointer client_data, XtPointer call_data)
     cb.red = cpw->colorPicker.red;
     cb.green = cpw->colorPicker.green;
     cb.blue = cpw->colorPicker.blue;
-    XtCallCallbacks((Widget)cpw, XtNcolorChanged, (XtPointer)&cb);
+    IswCallCallbacks((Widget)cpw, IswNcolorChanged, (IswPointer)&cb);
 }
 
 /* --- Widget methods --- */
@@ -182,90 +182,90 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* R label */
     n = 0;
-    XtSetArg(a[n], XtNlabel, "R"); n++;
-    XtSetArg(a[n], XtNborderWidth, 0); n++;
-    XtSetArg(a[n], XtNwidth, label_w); n++;
-    XtSetArg(a[n], XtNleft, XtChainLeft); n++;
-    cpw->colorPicker.redLabel = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNlabel, "R"); n++;
+    IswSetArg(a[n], IswNborderWidth, 0); n++;
+    IswSetArg(a[n], IswNwidth, label_w); n++;
+    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    cpw->colorPicker.redLabel = IswCreateManagedWidget(
         "redLabel", labelWidgetClass, new, a, n);
 
     /* R slider */
     n = 0;
-    XtSetArg(a[n], XtNminimumValue, 0); n++;
-    XtSetArg(a[n], XtNmaximumValue, 255); n++;
-    XtSetArg(a[n], XtNsliderValue, cpw->colorPicker.red); n++;
-    XtSetArg(a[n], XtNshowValue, False); n++;
-    XtSetArg(a[n], XtNorientation, XtorientHorizontal); n++;
-    XtSetArg(a[n], XtNwidth, slider_w); n++;
-    XtSetArg(a[n], XtNheight, slider_h); n++;
-    XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.redLabel); n++;
-    cpw->colorPicker.redSlider = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNminimumValue, 0); n++;
+    IswSetArg(a[n], IswNmaximumValue, 255); n++;
+    IswSetArg(a[n], IswNsliderValue, cpw->colorPicker.red); n++;
+    IswSetArg(a[n], IswNshowValue, False); n++;
+    IswSetArg(a[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(a[n], IswNwidth, slider_w); n++;
+    IswSetArg(a[n], IswNheight, slider_h); n++;
+    IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.redLabel); n++;
+    cpw->colorPicker.redSlider = IswCreateManagedWidget(
         "redSlider", sliderWidgetClass, new, a, n);
-    XtAddCallback(cpw->colorPicker.redSlider, XtNvalueChanged,
-                  SliderChanged, (XtPointer)cpw);
+    IswAddCallback(cpw->colorPicker.redSlider, IswNvalueChanged,
+                  SliderChanged, (IswPointer)cpw);
 
     /* G label */
     n = 0;
-    XtSetArg(a[n], XtNlabel, "G"); n++;
-    XtSetArg(a[n], XtNborderWidth, 0); n++;
-    XtSetArg(a[n], XtNwidth, label_w); n++;
-    XtSetArg(a[n], XtNfromVert, cpw->colorPicker.redLabel); n++;
-    XtSetArg(a[n], XtNleft, XtChainLeft); n++;
-    cpw->colorPicker.greenLabel = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNlabel, "G"); n++;
+    IswSetArg(a[n], IswNborderWidth, 0); n++;
+    IswSetArg(a[n], IswNwidth, label_w); n++;
+    IswSetArg(a[n], IswNfromVert, cpw->colorPicker.redLabel); n++;
+    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    cpw->colorPicker.greenLabel = IswCreateManagedWidget(
         "greenLabel", labelWidgetClass, new, a, n);
 
     /* G slider */
     n = 0;
-    XtSetArg(a[n], XtNminimumValue, 0); n++;
-    XtSetArg(a[n], XtNmaximumValue, 255); n++;
-    XtSetArg(a[n], XtNsliderValue, cpw->colorPicker.green); n++;
-    XtSetArg(a[n], XtNshowValue, False); n++;
-    XtSetArg(a[n], XtNorientation, XtorientHorizontal); n++;
-    XtSetArg(a[n], XtNwidth, slider_w); n++;
-    XtSetArg(a[n], XtNheight, slider_h); n++;
-    XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.greenLabel); n++;
-    XtSetArg(a[n], XtNfromVert, cpw->colorPicker.redSlider); n++;
-    cpw->colorPicker.greenSlider = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNminimumValue, 0); n++;
+    IswSetArg(a[n], IswNmaximumValue, 255); n++;
+    IswSetArg(a[n], IswNsliderValue, cpw->colorPicker.green); n++;
+    IswSetArg(a[n], IswNshowValue, False); n++;
+    IswSetArg(a[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(a[n], IswNwidth, slider_w); n++;
+    IswSetArg(a[n], IswNheight, slider_h); n++;
+    IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.greenLabel); n++;
+    IswSetArg(a[n], IswNfromVert, cpw->colorPicker.redSlider); n++;
+    cpw->colorPicker.greenSlider = IswCreateManagedWidget(
         "greenSlider", sliderWidgetClass, new, a, n);
-    XtAddCallback(cpw->colorPicker.greenSlider, XtNvalueChanged,
-                  SliderChanged, (XtPointer)cpw);
+    IswAddCallback(cpw->colorPicker.greenSlider, IswNvalueChanged,
+                  SliderChanged, (IswPointer)cpw);
 
     /* B label */
     n = 0;
-    XtSetArg(a[n], XtNlabel, "B"); n++;
-    XtSetArg(a[n], XtNborderWidth, 0); n++;
-    XtSetArg(a[n], XtNwidth, label_w); n++;
-    XtSetArg(a[n], XtNfromVert, cpw->colorPicker.greenLabel); n++;
-    XtSetArg(a[n], XtNleft, XtChainLeft); n++;
-    cpw->colorPicker.blueLabel = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNlabel, "B"); n++;
+    IswSetArg(a[n], IswNborderWidth, 0); n++;
+    IswSetArg(a[n], IswNwidth, label_w); n++;
+    IswSetArg(a[n], IswNfromVert, cpw->colorPicker.greenLabel); n++;
+    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    cpw->colorPicker.blueLabel = IswCreateManagedWidget(
         "blueLabel", labelWidgetClass, new, a, n);
 
     /* B slider */
     n = 0;
-    XtSetArg(a[n], XtNminimumValue, 0); n++;
-    XtSetArg(a[n], XtNmaximumValue, 255); n++;
-    XtSetArg(a[n], XtNsliderValue, cpw->colorPicker.blue); n++;
-    XtSetArg(a[n], XtNshowValue, False); n++;
-    XtSetArg(a[n], XtNorientation, XtorientHorizontal); n++;
-    XtSetArg(a[n], XtNwidth, slider_w); n++;
-    XtSetArg(a[n], XtNheight, slider_h); n++;
-    XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.blueLabel); n++;
-    XtSetArg(a[n], XtNfromVert, cpw->colorPicker.greenSlider); n++;
-    cpw->colorPicker.blueSlider = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNminimumValue, 0); n++;
+    IswSetArg(a[n], IswNmaximumValue, 255); n++;
+    IswSetArg(a[n], IswNsliderValue, cpw->colorPicker.blue); n++;
+    IswSetArg(a[n], IswNshowValue, False); n++;
+    IswSetArg(a[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(a[n], IswNwidth, slider_w); n++;
+    IswSetArg(a[n], IswNheight, slider_h); n++;
+    IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.blueLabel); n++;
+    IswSetArg(a[n], IswNfromVert, cpw->colorPicker.greenSlider); n++;
+    cpw->colorPicker.blueSlider = IswCreateManagedWidget(
         "blueSlider", sliderWidgetClass, new, a, n);
-    XtAddCallback(cpw->colorPicker.blueSlider, XtNvalueChanged,
-                  SliderChanged, (XtPointer)cpw);
+    IswAddCallback(cpw->colorPicker.blueSlider, IswNvalueChanged,
+                  SliderChanged, (IswPointer)cpw);
 
     /* Color swatch preview */
     n = 0;
-    XtSetArg(a[n], XtNwidth, swatch_sz); n++;
-    XtSetArg(a[n], XtNheight, swatch_sz); n++;
-    XtSetArg(a[n], XtNborderWidth, 1); n++;
-    XtSetArg(a[n], XtNfromHoriz, cpw->colorPicker.redSlider); n++;
-    cpw->colorPicker.swatchW = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNwidth, swatch_sz); n++;
+    IswSetArg(a[n], IswNheight, swatch_sz); n++;
+    IswSetArg(a[n], IswNborderWidth, 1); n++;
+    IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.redSlider); n++;
+    cpw->colorPicker.swatchW = IswCreateManagedWidget(
         "swatch", simpleWidgetClass, new, a, n);
-    XtAddEventHandler(cpw->colorPicker.swatchW, XCB_EVENT_MASK_EXPOSURE, False,
-                      SwatchExpose, (XtPointer)cpw);
+    IswAddEventHandler(cpw->colorPicker.swatchW, XCB_EVENT_MASK_EXPOSURE, False,
+                      SwatchExpose, (IswPointer)cpw);
 }
 
 static Boolean
@@ -312,8 +312,8 @@ void
 IswColorPickerSetColor(Widget w, int r, int g, int b)
 {
     Arg args[3];
-    XtSetArg(args[0], XtNcolorRed, r);
-    XtSetArg(args[1], XtNcolorGreen, g);
-    XtSetArg(args[2], XtNcolorBlue, b);
-    XtSetValues(w, args, 3);
+    IswSetArg(args[0], IswNcolorRed, r);
+    IswSetArg(args[1], IswNcolorGreen, g);
+    IswSetArg(args[2], IswNcolorBlue, b);
+    IswSetValues(w, args, 3);
 }

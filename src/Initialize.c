@@ -103,30 +103,30 @@ in this Software without prior written authorization from The Open Group.
 
 /* *INDENT-OFF* */
 static XrmOptionDescRec const opTable[] = {
-{"+rv",               "*reverseVideo",     XrmoptionNoArg,   (XtPointer) "off"},
-{"+synchronous",      "*synchronous",      XrmoptionNoArg,   (XtPointer) "off"},
-{"-background",       "*background",       XrmoptionSepArg,  (XtPointer) NULL},
-{"-bd",               "*borderColor",      XrmoptionSepArg,  (XtPointer) NULL},
-{"-bg",               "*background",       XrmoptionSepArg,  (XtPointer) NULL},
-{"-bordercolor",      "*borderColor",      XrmoptionSepArg,  (XtPointer) NULL},
-{"-borderwidth",      ".borderWidth",      XrmoptionSepArg,  (XtPointer) NULL},
-{"-bw",               ".borderWidth",      XrmoptionSepArg,  (XtPointer) NULL},
-{"-display",          ".display",          XrmoptionSepArg,  (XtPointer) NULL},
-{"-fg",               "*foreground",       XrmoptionSepArg,  (XtPointer) NULL},
-{"-fn",               "*font",             XrmoptionSepArg,  (XtPointer) NULL},
-{"-font",             "*font",             XrmoptionSepArg,  (XtPointer) NULL},
-{"-foreground",       "*foreground",       XrmoptionSepArg,  (XtPointer) NULL},
-{"-geometry",         ".geometry",         XrmoptionSepArg,  (XtPointer) NULL},
-{"-iconic",           ".iconic",           XrmoptionNoArg,   (XtPointer) "on"},
-{"-name",             ".name",             XrmoptionSepArg,  (XtPointer) NULL},
-{"-reverse",          "*reverseVideo",     XrmoptionNoArg,   (XtPointer) "on"},
-{"-rv",               "*reverseVideo",     XrmoptionNoArg,   (XtPointer) "on"},
-{"-selectionTimeout", ".selectionTimeout", XrmoptionSepArg,  (XtPointer) NULL},
-{"-synchronous",      "*synchronous",      XrmoptionNoArg,   (XtPointer) "on"},
-{"-title",            ".title",            XrmoptionSepArg,  (XtPointer) NULL},
-{"-xnllanguage",      ".xnlLanguage",      XrmoptionSepArg,  (XtPointer) NULL},
-{"-xrm",              NULL,                XrmoptionResArg,  (XtPointer) NULL},
-{"-xtsessionID",      ".sessionID",        XrmoptionSepArg,  (XtPointer) NULL},
+{"+rv",               "*reverseVideo",     XrmoptionNoArg,   (IswPointer) "off"},
+{"+synchronous",      "*synchronous",      XrmoptionNoArg,   (IswPointer) "off"},
+{"-background",       "*background",       XrmoptionSepArg,  (IswPointer) NULL},
+{"-bd",               "*borderColor",      XrmoptionSepArg,  (IswPointer) NULL},
+{"-bg",               "*background",       XrmoptionSepArg,  (IswPointer) NULL},
+{"-bordercolor",      "*borderColor",      XrmoptionSepArg,  (IswPointer) NULL},
+{"-borderwidth",      ".borderWidth",      XrmoptionSepArg,  (IswPointer) NULL},
+{"-bw",               ".borderWidth",      XrmoptionSepArg,  (IswPointer) NULL},
+{"-display",          ".display",          XrmoptionSepArg,  (IswPointer) NULL},
+{"-fg",               "*foreground",       XrmoptionSepArg,  (IswPointer) NULL},
+{"-fn",               "*font",             XrmoptionSepArg,  (IswPointer) NULL},
+{"-font",             "*font",             XrmoptionSepArg,  (IswPointer) NULL},
+{"-foreground",       "*foreground",       XrmoptionSepArg,  (IswPointer) NULL},
+{"-geometry",         ".geometry",         XrmoptionSepArg,  (IswPointer) NULL},
+{"-iconic",           ".iconic",           XrmoptionNoArg,   (IswPointer) "on"},
+{"-name",             ".name",             XrmoptionSepArg,  (IswPointer) NULL},
+{"-reverse",          "*reverseVideo",     XrmoptionNoArg,   (IswPointer) "on"},
+{"-rv",               "*reverseVideo",     XrmoptionNoArg,   (IswPointer) "on"},
+{"-selectionTimeout", ".selectionTimeout", XrmoptionSepArg,  (IswPointer) NULL},
+{"-synchronous",      "*synchronous",      XrmoptionNoArg,   (IswPointer) "on"},
+{"-title",            ".title",            XrmoptionSepArg,  (IswPointer) NULL},
+{"-xnllanguage",      ".xnlLanguage",      XrmoptionSepArg,  (IswPointer) NULL},
+{"-xrm",              NULL,                XrmoptionResArg,  (IswPointer) NULL},
+{"-xtsessionID",      ".sessionID",        XrmoptionSepArg,  (IswPointer) NULL},
 };
 /* *INDENT-ON* */
 
@@ -148,7 +148,7 @@ GetHostname(char *buf, int maxlen)
 
 #if defined (WIN32) || defined(__CYGWIN__)
 /*
- * The Symbol _XtInherit is used in two different manners.
+ * The Symbol _IswInherit is used in two different manners.
  * First it could be used as a generic function and second
  * as an absolute address reference, which will be used to
  * check the initialisation process of several other libraries.
@@ -180,7 +180,7 @@ GetHostname(char *buf, int maxlen)
  * this two above mentioned requirements, to export this
  * symbol to all clients and to allow calling this symbol
  * as a function.  The solution I've used exports the
- * symbol _XtInherit as data symbol, because global data
+ * symbol _IswInherit as data symbol, because global data
  * symbols are exported to all clients.  But how to deal
  * with the second requirement, that this symbol should
  * be used as function.  The Trick is to build a little
@@ -197,8 +197,8 @@ GetHostname(char *buf, int maxlen)
 
 #ifdef __x86_64__
 asm(".section .trampoline, \"dwx\" \n\
- .globl _XtInherit        \n\
- _XtInherit:              \n\
+ .globl _IswInherit        \n\
+ _IswInherit:              \n\
     jmp *_y(%rip)         \n\
 _y: .quad __XtInherit     \n\
     .text                 \n");
@@ -210,18 +210,18 @@ asm(".data\n\
     .text                 \n");
 #endif
 
-#define _XtInherit __XtInherit
+#define _IswInherit __XtInherit
 #endif
 
 void
-_XtInherit(void)
+_IswInherit(void)
 {
-    XtErrorMsg("invalidProcedure", "inheritanceProc", XtCXtToolkitError,
+    IswErrorMsg("invalidProcedure", "inheritanceProc", IswCIswToolkitError,
                "Unresolved inheritance operation", NULL, NULL);
 }
 
 void
-XtToolkitInitialize(void)
+IswToolkitInitialize(void)
 {
     static Boolean initialized = False;
 
@@ -237,23 +237,23 @@ XtToolkitInitialize(void)
     
     /* NOTE: XrmPermStringToQuark is NOT Xrm-dependent - it's just string interning.
      * These initializations are REQUIRED for resource system and converters to work. */
-    _XtResourceListInitialize();
+    _IswResourceListInitialize();
 
     /* Other intrinsic initialization */
 
-    _XtConvertInitialize();
-    _XtEventInitialize();
-    _XtTranslateInitialize();
+    _IswConvertInitialize();
+    _IswEventInitialize();
+    _IswTranslateInitialize();
 
-    /* Some apps rely on old (broken) XtAppPeekEvent behavior */
+    /* Some apps rely on old (broken) IswAppPeekEvent behavior */
     //if (getenv("XTAPPPEEKEVENT_SKIPTIMER"))
-    //    XtAppPeekEvent_SkipTimer = True;
+    //    IswAppPeekEvent_SkipTimer = True;
     //else
-    //    XtAppPeekEvent_SkipTimer = False;
+    //    IswAppPeekEvent_SkipTimer = False;
 }
 
 String
-_XtGetUserName(_XtString dest, int len)
+_IswGetUserName(_IswString dest, int len)
 {
 #ifdef WIN32
     String ptr = NULL;
@@ -288,7 +288,7 @@ _XtGetUserName(_XtString dest, int len)
 }
 
 static String
-GetRootDirName(_XtString dest, int len)
+GetRootDirName(_IswString dest, int len)
 {
 #ifdef WIN32
     register char *ptr1;
@@ -355,12 +355,12 @@ CombineAppUserDefaults(xcb_connection_t *dpy, xcb_xrm_database_t **pdb)
 
         GetRootDirName(homedir, PATH_MAX);
         if (!(old_path = getenv("XAPPLRESDIR"))) {
-            XtAsprintf(&path,
+            IswAsprintf(&path,
                        "%s/%%L/%%N%%C:%s/%%l/%%N%%C:%s/%%N%%C:%s/%%L/%%N:%s/%%l/%%N:%s/%%N",
                        homedir, homedir, homedir, homedir, homedir, homedir);
         }
         else {
-            XtAsprintf(&path,
+            IswAsprintf(&path,
                        "%s/%%L/%%N%%C:%s/%%l/%%N%%C:%s/%%N%%C:%s/%%N%%C:%s/%%L/%%N:%s/%%l/%%N:%s/%%N:%s/%%N",
                        old_path, old_path, old_path, homedir,
                        old_path, old_path, old_path, homedir);
@@ -369,16 +369,16 @@ CombineAppUserDefaults(xcb_connection_t *dpy, xcb_xrm_database_t **pdb)
 #endif
     }
 
-    filename = XtResolvePathname(dpy, NULL, NULL, NULL, path, NULL, 0, NULL);
+    filename = IswResolvePathname(dpy, NULL, NULL, NULL, path, NULL, 0, NULL);
     if (filename) {
         xcb_xrm_database_t *fdb = xcb_xrm_database_from_file(filename);
         if (fdb)
             xcb_xrm_database_combine(fdb, pdb, False);
-        XtFree(filename);
+        IswFree(filename);
     }
 
     if (deallocate)
-        XtFree(path);
+        IswFree(path);
 }
 
 static void
@@ -422,12 +422,12 @@ CopyDB(xcb_xrm_database_t *db)
 }
 
 static String
-_XtDefaultLanguageProc(xcb_connection_t *dpy _X_UNUSED,
+_IswDefaultLanguageProc(xcb_connection_t *dpy _X_UNUSED,
                        String xnl,
-                       XtPointer closure _X_UNUSED)
+                       IswPointer closure _X_UNUSED)
 {
     if (!setlocale(LC_ALL, xnl))
-        XtWarning("locale not supported by C library, locale unchanged");
+        IswWarning("locale not supported by C library, locale unchanged");
 
     /* XCB Note: Unlike Xlib, XCB doesn't provide XSupportsLocale() as locale
      * support is handled by the C library, not the X protocol. The setlocale()
@@ -442,7 +442,7 @@ _XtDefaultLanguageProc(xcb_connection_t *dpy _X_UNUSED,
         /* If XMODIFIERS is not set, input methods may use their defaults */
         static int warned = 0;
         if (!warned) {
-            XtWarning("XMODIFIERS environment variable not set, input methods may use defaults");
+            IswWarning("XMODIFIERS environment variable not set, input methods may use defaults");
             warned = 1;
         }
     }
@@ -450,13 +450,13 @@ _XtDefaultLanguageProc(xcb_connection_t *dpy _X_UNUSED,
     return setlocale(LC_ALL, NULL);     /* re-query in case overwritten */
 }
 
-XtLanguageProc
-XtSetLanguageProc(XtAppContext app, XtLanguageProc proc, XtPointer closure)
+IswLanguageProc
+IswSetLanguageProc(IswAppContext app, IswLanguageProc proc, IswPointer closure)
 {
-    XtLanguageProc old;
+    IswLanguageProc old;
 
     if (!proc) {
-        proc = _XtDefaultLanguageProc;
+        proc = _IswDefaultLanguageProc;
         closure = NULL;
     }
 
@@ -475,7 +475,7 @@ XtSetLanguageProc(XtAppContext app, XtLanguageProc proc, XtPointer closure)
         ProcessContext process;
 
         LOCK_PROCESS;
-        process = _XtGetProcessContext();
+        process = _IswGetProcessContext();
         old = process->globalLangProcRec.proc;
         process->globalLangProcRec.proc = proc;
         process->globalLangProcRec.closure = closure;
@@ -487,22 +487,22 @@ XtSetLanguageProc(XtAppContext app, XtLanguageProc proc, XtPointer closure)
         }
         UNLOCK_PROCESS;
     }
-    return (old ? old : _XtDefaultLanguageProc);
+    return (old ? old : _IswDefaultLanguageProc);
 }
 
 XrmDatabase
-XtScreenDatabase(xcb_screen_t *screen)
+IswScreenDatabase(xcb_screen_t *screen)
 {
     int scrno;
     xcb_xrm_database_t *db;
-    XtPerDisplay pd;
+    IswPerDisplay pd;
     xcb_connection_t *dpy = NULL;
     int nscreens;
 
     if (screen == NULL) {
-        XtErrorMsg("nullDisplay",
-                   "XtScreenDatabase", XtCXtToolkitError,
-                   "XtScreenDatabase requires a non-NULL screen",
+        IswErrorMsg("nullDisplay",
+                   "IswScreenDatabase", IswCIswToolkitError,
+                   "IswScreenDatabase requires a non-NULL screen",
                    NULL, NULL);
         return NULL;
     }
@@ -511,7 +511,7 @@ XtScreenDatabase(xcb_screen_t *screen)
     {
         PerDisplayTablePtr pdt;
         LOCK_PROCESS;
-        for (pdt = _XtperDisplayList; pdt != NULL; pdt = pdt->next) {
+        for (pdt = _IswperDisplayList; pdt != NULL; pdt = pdt->next) {
             xcb_screen_iterator_t iter =
                 xcb_setup_roots_iterator(xcb_get_setup(pdt->dpy));
             int n = 0;
@@ -529,9 +529,9 @@ XtScreenDatabase(xcb_screen_t *screen)
     }
 
     if (dpy == NULL) {
-        XtErrorMsg("nullDisplay",
-                   "XtScreenDatabase", XtCXtToolkitError,
-                   "XtScreenDatabase: could not find display for screen",
+        IswErrorMsg("nullDisplay",
+                   "IswScreenDatabase", IswCIswToolkitError,
+                   "IswScreenDatabase: could not find display for screen",
                    NULL, NULL);
         return NULL;
     }
@@ -541,7 +541,7 @@ XtScreenDatabase(xcb_screen_t *screen)
         LOCK_APP(app);
         LOCK_PROCESS;
 
-        pd = _XtGetPerDisplay(dpy);
+        pd = _IswGetPerDisplay(dpy);
         nscreens = xcb_setup_roots_length(xcb_get_setup(dpy));
 
         /* Return cached database if available */
@@ -608,13 +608,13 @@ XtScreenDatabase(xcb_screen_t *screen)
         /* App user defaults and system app-defaults */
         CombineAppUserDefaults(dpy, &db);
         {
-            char *filename = XtResolvePathname(dpy, "app-defaults",
+            char *filename = IswResolvePathname(dpy, "app-defaults",
                                                NULL, NULL, NULL, NULL, 0, NULL);
             if (filename) {
                 xcb_xrm_database_t *fdb = xcb_xrm_database_from_file(filename);
                 if (fdb)
                     xcb_xrm_database_combine(fdb, &db, False);
-                XtFree(filename);
+                IswFree(filename);
             }
         }
 
@@ -658,7 +658,7 @@ _MergeOptionTables(const XrmOptionDescRec *src1,
     int dst_len, order;
     enum { Check, NotSorted, IsSorted } sort_order = Check;
 
-    *dst = table = XtMallocArray(num_src1 + num_src2,
+    *dst = table = IswMallocArray(num_src1 + num_src2,
                                  (Cardinal) sizeof(XrmOptionDescRec));
 
     (void) memcpy(table, src1, sizeof(XrmOptionDescRec) * num_src1);
@@ -707,13 +707,13 @@ _MergeOptionTables(const XrmOptionDescRec *src1,
 }
 
 /*
- * _XtParseCommand - Parse command line options into a resource database.
+ * _IswParseCommand - Parse command line options into a resource database.
  * Replacement for XrmParseCommand using xcb-util-xrm.
  */
 /* Helper: put a resource into the database, using put_resource_line for
  * entries with wildcards (* or ?) so xcb-util-xrm parses them correctly. */
 static void
-_XtDbPutResource(xcb_xrm_database_t **db, const char *resource, const char *value)
+_IswDbPutResource(xcb_xrm_database_t **db, const char *resource, const char *value)
 {
     char line_buf[1024];
 
@@ -726,17 +726,17 @@ _XtDbPutResource(xcb_xrm_database_t **db, const char *resource, const char *valu
 }
 
 static void
-_XtParseCommand(xcb_xrm_database_t **db,
+_IswParseCommand(xcb_xrm_database_t **db,
                 XrmOptionDescRec *options,
                 int num_options,
                 _Xconst char *prefix,
                 int *argc,
-                _XtString *argv)
+                _IswString *argv)
 {
     int i, j;
     int remaining = *argc;
-    _XtString *src = argv;
-    _XtString *dst = argv;
+    _IswString *src = argv;
+    _IswString *dst = argv;
     char resource_buf[512];
 
     /* Skip argv[0] (program name) */
@@ -768,7 +768,7 @@ _XtParseCommand(xcb_xrm_database_t **db,
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
                         *db = xcb_xrm_database_from_string("");
-                    _XtDbPutResource(db, resource_buf,
+                    _IswDbPutResource(db, resource_buf,
                                      (char *) options[i].value);
                 }
                 src++;
@@ -781,7 +781,7 @@ _XtParseCommand(xcb_xrm_database_t **db,
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
                         *db = xcb_xrm_database_from_string("");
-                    _XtDbPutResource(db, resource_buf, *src);
+                    _IswDbPutResource(db, resource_buf, *src);
                 }
                 src++;
                 remaining--;
@@ -793,7 +793,7 @@ _XtParseCommand(xcb_xrm_database_t **db,
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
                         *db = xcb_xrm_database_from_string("");
-                    _XtDbPutResource(db, resource_buf, *src + optlen);
+                    _IswDbPutResource(db, resource_buf, *src + optlen);
                 }
                 src++;
                 remaining--;
@@ -807,7 +807,7 @@ _XtParseCommand(xcb_xrm_database_t **db,
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
                         *db = xcb_xrm_database_from_string("");
-                    _XtDbPutResource(db, resource_buf, *src);
+                    _IswDbPutResource(db, resource_buf, *src);
                     src++;
                     remaining--;
                 }
@@ -884,7 +884,7 @@ _XtParseCommand(xcb_xrm_database_t **db,
 //
 //    if (XrmQGetSearchResource(list, Qname, Qclass, &db_type, &db_value)) {
 //        if (db_type == Qtype) {
-//            if (Qtype == _XtQString)
+//            if (Qtype == _IswQString)
 //                *(String *) value->addr = db_value.addr;
 //            else
 //                (void) memcpy(value->addr, db_value.addr, value->size);
@@ -897,8 +897,8 @@ _XtParseCommand(xcb_xrm_database_t **db,
 //            widget.core.self = &widget;
 //            widget.core.widget_class = coreWidgetClass;
 //            widget.core.screen = (xcb_screen_t *) DefaultScreenOfDisplay(dpy);
-//            XtInitializeWidgetClass(coreWidgetClass);
-//            if (_XtConvert(&widget, db_type, &db_value, Qtype, value, NULL)) {
+//            IswInitializeWidgetClass(coreWidgetClass);
+//            if (_IswConvert(&widget, db_type, &db_value, Qtype, value, NULL)) {
 //                return True;
 //            }
 //        }
@@ -907,10 +907,10 @@ _XtParseCommand(xcb_xrm_database_t **db,
 //}
 
 xcb_xrm_database_t *
-_XtPreparseCommandLine(XrmOptionDescRec *urlist,
+_IswPreparseCommandLine(XrmOptionDescRec *urlist,
                        Cardinal num_urs,
                        int argc,
-                       _XtString *argv,
+                       _IswString *argv,
                        String *applName,
                        String *displayName,
                        String *language)
@@ -918,15 +918,15 @@ _XtPreparseCommandLine(XrmOptionDescRec *urlist,
     xcb_xrm_database_t *db = NULL;
     XrmOptionDescRec *options;
     Cardinal num_options;
-    _XtString *targv;
+    _IswString *targv;
     int targc = argc;
     char *value = NULL;
 
-    targv = XtMallocArray((Cardinal) argc, (Cardinal) sizeof(_XtString *));
+    targv = IswMallocArray((Cardinal) argc, (Cardinal) sizeof(_IswString *));
     (void) memcpy(targv, argv, sizeof(char *) * (size_t) argc);
-    _MergeOptionTables(opTable, XtNumber(opTable), urlist, num_urs,
+    _MergeOptionTables(opTable, IswNumber(opTable), urlist, num_urs,
                        &options, &num_options);
-    _XtParseCommand(&db, options, (int) num_options, ".", &targc, targv);
+    _IswParseCommand(&db, options, (int) num_options, ".", &targc, targv);
 
     if (db != NULL) {
         if (applName) {
@@ -953,13 +953,13 @@ _XtPreparseCommandLine(XrmOptionDescRec *urlist,
         }
     }
 
-    XtFree((char *) targv);
-    XtFree((char *) options);
+    IswFree((char *) targv);
+    IswFree((char *) options);
     return db;
 }
 
 static void
-GetLanguage(xcb_connection_t *dpy, XtPerDisplay pd)
+GetLanguage(xcb_connection_t *dpy, IswPerDisplay pd)
 {
     LOCK_PROCESS;
     if (!pd->language && pd->server_db != NULL) {
@@ -969,17 +969,17 @@ GetLanguage(xcb_connection_t *dpy, XtPerDisplay pd)
 
         /* Build resource name: <appname>.xnlLanguage */
         if (pd->name)
-            XtAsprintf(&name_str, "%s.xnlLanguage", pd->name);
+            IswAsprintf(&name_str, "%s.xnlLanguage", pd->name);
         if (pd->class)
-            XtAsprintf(&class_str, "%s.XnlLanguage", pd->class);
+            IswAsprintf(&class_str, "%s.XnlLanguage", pd->class);
 
         if (name_str && class_str &&
             xcb_xrm_resource_get_string(pd->server_db, name_str, class_str,
                                          &value) >= 0 && value != NULL) {
             pd->language = value;  /* takes ownership */
         }
-        XtFree(name_str);
-        XtFree(class_str);
+        IswFree(name_str);
+        IswFree(class_str);
     }
 
     if (pd->appContext->langProcRec.proc) {
@@ -992,53 +992,53 @@ GetLanguage(xcb_connection_t *dpy, XtPerDisplay pd)
         pd->language = getenv("LANG");
 
     if (pd->language)
-        pd->language = XtNewString(pd->language);
+        pd->language = IswNewString(pd->language);
     UNLOCK_PROCESS;
 }
 
 //
 //static void
-//ProcessInternalConnection(XtPointer client_data,
+//ProcessInternalConnection(IswPointer client_data,
 //                          int *fd,
-//                          XtInputId *id _X_UNUSED)
+//                          IswInputId *id _X_UNUSED)
 //{
 //    XProcessInternalConnection((xcb_connection_t *) client_data, *fd);
 //}
 
 //static void
 //ConnectionWatch(xcb_connection_t *dpy,
-//                XtPointer client_data,
+//                IswPointer client_data,
 //                int fd,
 //                Bool opening,
-//                XtPointer *watch_data)
+//                IswPointer *watch_data)
 //{
-//    XtInputId *iptr;
-//    XtAppContext app = XtDisplayToApplicationContext(dpy);
+//    IswInputId *iptr;
+//    IswAppContext app = IswDisplayToApplicationContext(dpy);
 //
 //    if (opening) {
-//        iptr = (XtInputId *) __XtMalloc(sizeof(XtInputId));
-//        *iptr = XtAppAddInput(app, fd, (XtPointer) XtInputReadMask,
+//        iptr = (IswInputId *) __XtMalloc(sizeof(IswInputId));
+//        *iptr = IswAppAddInput(app, fd, (IswPointer) IswInputReadMask,
 //                              ProcessInternalConnection, client_data);
-//        *watch_data = (XtPointer) iptr;
+//        *watch_data = (IswPointer) iptr;
 //    }
 //    else {
-//        iptr = (XtInputId *) *watch_data;
-//        XtRemoveInput(*iptr);
-//        (void) XtFree(*watch_data);
+//        iptr = (IswInputId *) *watch_data;
+//        IswRemoveInput(*iptr);
+//        (void) IswFree(*watch_data);
 //    }
 //}
 
 double
-_XtGetScaleFactor(xcb_connection_t *dpy)
+_IswGetScaleFactor(xcb_connection_t *dpy)
 {
     PerDisplayTablePtr pdt;
 
     if (!dpy)
         return 1.0;
 
-    /* Walk the list directly instead of _XtGetPerDisplay to avoid
+    /* Walk the list directly instead of _IswGetPerDisplay to avoid
      * fatal error if display not yet registered (early converter calls) */
-    for (pdt = _XtperDisplayList; pdt != NULL; pdt = pdt->next) {
+    for (pdt = _IswperDisplayList; pdt != NULL; pdt = pdt->next) {
         if (pdt->dpy == dpy) {
             if (pdt->perDpy.scale_factor > 0.0)
                 return pdt->perDpy.scale_factor;
@@ -1049,8 +1049,8 @@ _XtGetScaleFactor(xcb_connection_t *dpy)
 }
 
 void
-_XtDisplayInitialize(xcb_connection_t *dpy,
-                     XtPerDisplay pd,
+_IswDisplayInitialize(xcb_connection_t *dpy,
+                     IswPerDisplay pd,
                      _Xconst char *name,
                      //XrmOptionDescRec *urlist,
                      Cardinal num_urs,
@@ -1063,16 +1063,16 @@ _XtDisplayInitialize(xcb_connection_t *dpy,
     GetLanguage(dpy, pd);
 
     /* Parse the command line and remove Xt arguments from argv */
-    _MergeOptionTables(opTable, XtNumber(opTable), NULL, num_urs,
+    _MergeOptionTables(opTable, IswNumber(opTable), NULL, num_urs,
                        &options, &num_options);
-    _XtParseCommand(&pd->cmd_db, options, (int) num_options, name, argc, argv);
-    XtFree((char *) options);
+    _IswParseCommand(&pd->cmd_db, options, (int) num_options, name, argc, argv);
+    IswFree((char *) options);
 
-    //db = XtScreenDatabase(DefaultScreenOfDisplay(dpy));
+    //db = IswScreenDatabase(DefaultScreenOfDisplay(dpy));
 
     //if (!(search_list = (XrmHashTable *)
     //      ALLOCATE_LOCAL(SEARCH_LIST_SIZE * sizeof(XrmHashTable))))
-    //    _XtAllocError(NULL);
+    //    _IswAllocError(NULL);
     //name_list[0] = pd->name;
     //class_list[0] = pd->class;
     //name_list[1] = NULLQUARK;
@@ -1085,16 +1085,16 @@ _XtDisplayInitialize(xcb_connection_t *dpy,
     //        (Cardinal) ((size_t) (search_list_size *= 2) *
     //                    sizeof(XrmHashTable));
     //    if (!(search_list = (XrmHashTable *) ALLOCATE_LOCAL(size)))
-    //        _XtAllocError(NULL);
+    //        _IswAllocError(NULL);
     //    (void) memcpy(search_list, old, (size >> 1));
     //    DEALLOCATE_LOCAL(old);
     //}
 
     //value.size = sizeof(tmp_bool);
-    //value.addr = (XtPointer) &tmp_bool;
+    //value.addr = (IswPointer) &tmp_bool;
     //XCB inherently ASYNC
     //if (_GetResource(dpy, search_list, "synchronous", "Synchronous",
-    //                 XtRBoolean, &value)) {
+    //                 IswRBoolean, &value)) {
     //    int i;
     //    xcb_connection_t **dpyP = pd->appContext->list;
 //
@@ -1108,33 +1108,33 @@ _XtDisplayInitialize(xcb_connection_t *dpy,
     //}
 
     //if (_GetResource(dpy, search_list, "reverseVideo", "ReverseVideo",
-    //                 XtRBoolean, &value)
+    //                 IswRBoolean, &value)
     //    && tmp_bool) {
     //    pd->rv = True;
     //}
 
     //value.size = sizeof(pd->multi_click_time);
-    //value.addr = (XtPointer) &pd->multi_click_time;
+    //value.addr = (IswPointer) &pd->multi_click_time;
     //if (!_GetResource(dpy, search_list,
-    //                  "multiClickTime", "MultiClickTime", XtRInt, &value)) {
+    //                  "multiClickTime", "MultiClickTime", IswRInt, &value)) {
         pd->multi_click_time = 200;
     //}
 
     //value.size = sizeof(pd->appContext->selectionTimeout);
-    //value.addr = (XtPointer) &pd->appContext->selectionTimeout;
+    //value.addr = (IswPointer) &pd->appContext->selectionTimeout;
     //(void) _GetResource(dpy, search_list,
-    //                    "selectionTimeout", "SelectionTimeout", XtRInt, &value);
+    //                    "selectionTimeout", "SelectionTimeout", IswRInt, &value);
 
 #ifndef NO_IDENTIFY_WINDOWS
     //value.size = sizeof(pd->appContext->identify_windows);
-    //value.addr = (XtPointer) &pd->appContext->identify_windows;
+    //value.addr = (IswPointer) &pd->appContext->identify_windows;
     //(void) _GetResource(dpy, search_list,
-    //                    "xtIdentifyWindows", "XtDebug", XtRBoolean, &value);
+    //                    "xtIdentifyWindows", "IswDebug", IswRBoolean, &value);
 #endif
 
-    //XAddConnectionWatch(dpy, ConnectionWatch, (XtPointer) dpy);
+    //XAddConnectionWatch(dpy, ConnectionWatch, (IswPointer) dpy);
 
-    //XtFree((XtPointer) options);
+    //IswFree((IswPointer) options);
     //DEALLOCATE_LOCAL(search_list);
 
     /* Detect HiDPI scale factor */
@@ -1176,7 +1176,7 @@ _XtDisplayInitialize(xcb_connection_t *dpy,
     }
 }
 
-/*      Function Name: XtAppSetFallbackResources
+/*      Function Name: IswAppSetFallbackResources
  *      Description: Sets the fallback resource list that will be loaded
  *                   at display initialization time.
  *      Arguments: app_context - the app context.
@@ -1185,7 +1185,7 @@ _XtDisplayInitialize(xcb_connection_t *dpy,
  */
 
 void
-XtAppSetFallbackResources(XtAppContext app_context, String *specification_list)
+IswAppSetFallbackResources(IswAppContext app_context, String *specification_list)
 {
     LOCK_APP(app_context);
     app_context->fallback_resources = specification_list;
@@ -1193,66 +1193,66 @@ XtAppSetFallbackResources(XtAppContext app_context, String *specification_list)
 }
 
 Widget
-XtOpenApplication(XtAppContext *app_context_return,
+IswOpenApplication(IswAppContext *app_context_return,
                   _Xconst char *application_class,
                   XrmOptionDescRec *options,
                   Cardinal num_options,
                   int *argc_in_out,
-                  _XtString *argv_in_out,
+                  _IswString *argv_in_out,
                   String *fallback_resources,
                   WidgetClass widget_class,
                   ArgList args_in,
                   Cardinal num_args_in)
 {
-    XtAppContext app_con;
+    IswAppContext app_con;
     xcb_connection_t *dpy;
     register int saved_argc = *argc_in_out;
     Widget root;
     Arg args[3], *merged_args;
     Cardinal num = 0;
 
-    XtToolkitInitialize();      /* cannot be moved into _XtAppInit */
+    IswToolkitInitialize();      /* cannot be moved into _IswAppInit */
 
-    dpy = _XtAppInit(&app_con, (String) application_class, options, num_options,
+    dpy = _IswAppInit(&app_con, (String) application_class, options, num_options,
                      argc_in_out, &argv_in_out, fallback_resources);
 
     LOCK_APP(app_con);
     /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
-     * Use _XtGetDefaultScreen(dpy) instead. See _XtGetDefaultScreen() for details. */
-    XtSetArg(args[num], XtNscreen, _XtGetDefaultScreen(dpy));
+     * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
+    IswSetArg(args[num], IswNscreen, _IswGetDefaultScreen(dpy));
     num++;
-    XtSetArg(args[num], XtNargc, saved_argc);
+    IswSetArg(args[num], IswNargc, saved_argc);
     num++;
-    XtSetArg(args[num], XtNargv, argv_in_out);
+    IswSetArg(args[num], IswNargv, argv_in_out);
     num++;
 
-    merged_args = XtMergeArgLists(args_in, num_args_in, args, num);
+    merged_args = IswMergeArgLists(args_in, num_args_in, args, num);
     num += num_args_in;
 
-    root = XtAppCreateShell(NULL, application_class, widget_class, dpy,
+    root = IswAppCreateShell(NULL, application_class, widget_class, dpy,
                             merged_args, num);
 
     if (app_context_return)
         *app_context_return = app_con;
 
-    XtFree((XtPointer) merged_args);
-    XtFree((XtPointer) argv_in_out);
+    IswFree((IswPointer) merged_args);
+    IswFree((IswPointer) argv_in_out);
     UNLOCK_APP(app_con);
     return root;
 }
 
 Widget
-XtAppInitialize(XtAppContext *app_context_return,
+IswAppInitialize(IswAppContext *app_context_return,
                 _Xconst char *application_class,
                 XrmOptionDescRec *options,
                 Cardinal num_options,
                 int *argc_in_out,
-                _XtString *argv_in_out,
+                _IswString *argv_in_out,
                 String *fallback_resources,
                 ArgList args_in,
                 Cardinal num_args_in)
 {
-    return XtOpenApplication(app_context_return, application_class,
+    return IswOpenApplication(app_context_return, application_class,
                              options, num_options,
                              argc_in_out, argv_in_out, fallback_resources,
                              applicationShellWidgetClass, args_in, num_args_in);

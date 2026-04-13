@@ -24,8 +24,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 
 
 #ifdef MOTIF
@@ -73,13 +73,13 @@ static int DBUG_level = 0;
  *
  ****************************************************************************/
 
-#define offset(field) XtOffsetOf(LayoutRec, layout.field)
+#define offset(field) IswOffsetOf(LayoutRec, layout.field)
 
-static XtResource resources[] = {
-    {XtNlayout, XtCLayout, XtRLayout, sizeof (BoxPtr),
-	offset(layout), XtRLayout, NULL },
-    {XtNdebug, XtCBoolean, XtRBoolean, sizeof(Boolean),
-	 offset(debug), XtRImmediate, (XtPointer) FALSE},
+static IswResource resources[] = {
+    {IswNlayout, IswCLayout, IswRLayout, sizeof (BoxPtr),
+	offset(layout), IswRLayout, NULL },
+    {IswNdebug, IswCBoolean, IswRBoolean, sizeof(Boolean),
+	 offset(debug), IswRImmediate, (IswPointer) FALSE},
 };
 
 #undef offset
@@ -88,10 +88,10 @@ static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void ChangeManaged(Widget);
 static void InsertChild(Widget);
-static XtGeometryResult QueryGeometry (Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult QueryGeometry (Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void GetDesiredSize (Widget);
 #ifdef MOTIF
 static void Redisplay (Widget, xcb_generic_event_t *, Region);
@@ -118,11 +118,11 @@ LayoutClassRec layoutClassRec = {
     /* class_inited       */   FALSE,
     /* initialize         */   Initialize,
     /* initialize_hook    */   NULL,
-    /* realize            */   XtInheritRealize,
+    /* realize            */   IswInheritRealize,
     /* actions            */   NULL,
     /* num_actions        */   0,
     /* resources          */   resources,
-    /* resource_count     */   XtNumber(resources),
+    /* resource_count     */   IswNumber(resources),
     /* xrm_class          */   NULLQUARK,
     /* compress_motion    */   FALSE,
     /* compress_exposure  */   0,
@@ -137,25 +137,25 @@ LayoutClassRec layoutClassRec = {
 #endif
     /* set_values         */   SetValues,
     /* set_values_hook    */   NULL,
-    /* set_values_almost  */   XtInheritSetValuesAlmost,
+    /* set_values_almost  */   IswInheritSetValuesAlmost,
     /* get_values_hook    */   NULL,
     /* accept_focus       */   NULL,
-    /* version            */   XtVersion,
+    /* version            */   IswVersion,
     /* callback_private   */   NULL,
 #ifdef MOTIF
-    /* tm_table           */   XtInheritTranslations,
+    /* tm_table           */   IswInheritTranslations,
 #else
     /* tm_table           */   NULL,
 #endif
     /* query_geometry	  */   QueryGeometry,
-    /* display_accelerator*/   XtInheritDisplayAccelerator,
+    /* display_accelerator*/   IswInheritDisplayAccelerator,
     /* extension          */   NULL
    }, {
 /* composite class fields */
     /* geometry_manager   */   GeometryManager,
     /* change_managed     */   ChangeManaged,
     /* insert_child       */   InsertChild,
-    /* delete_child       */   XtInheritDeleteChild,
+    /* delete_child       */   IswInheritDeleteChild,
     /* extension          */   NULL
    }, {
 /* constraint class fields */
@@ -170,7 +170,7 @@ LayoutClassRec layoutClassRec = {
 #ifdef MOTIF
    {
     /* manager class */
-    XtInheritTranslations,                /* translations           */
+    IswInheritTranslations,                /* translations           */
     NULL,                                 /* syn resources          */
     0,                                    /* num syn_resources      */
     NULL,                                 /* get_cont_resources     */
@@ -189,7 +189,7 @@ WidgetClass layoutWidgetClass = (WidgetClass) &layoutClassRec;
 #define ForAllChildren(pw, childP) \
   for ( (childP) = (pw)->composite.children ; \
         (childP) < (pw)->composite.children + (pw)->composite.num_children ; \
-        (childP)++ ) if (!XtIsManaged(*childP)) ; else
+        (childP)++ ) if (!IswIsManaged(*childP)) ; else
 
 /************************************************************
  *
@@ -206,12 +206,12 @@ WidgetClass layoutWidgetClass = (WidgetClass) &layoutClassRec;
 /*ARGSUSED*/
 static Boolean
 CvtStringToLayout (xcb_connection_t *dpy, XrmValue *args, Cardinal *num_args,
-                   XrmValue *from, XrmValue *to, XtPointer *converter_data)
+                   XrmValue *from, XrmValue *to, IswPointer *converter_data)
 {
     static BoxPtr tmp;
 
     LayYYsetsource ((char *) from->addr);
-    if (!to->addr) to->addr = (XtPointer)&tmp;
+    if (!to->addr) to->addr = (IswPointer)&tmp;
     LayYYsetdest ((BoxPtr *) to->addr);
     to->size = sizeof (BoxPtr *);
     return  LayYYparse() ? FALSE : TRUE;
@@ -219,7 +219,7 @@ CvtStringToLayout (xcb_connection_t *dpy, XrmValue *args, Cardinal *num_args,
 
 /*ARGSUSED*/
 static void
-DisposeLayout (XtAppContext app, XrmValue *to, XtPointer data, XrmValuePtr args,
+DisposeLayout (IswAppContext app, XrmValue *to, IswPointer data, XrmValuePtr args,
                Cardinal *num_args)
 {
     LayoutFreeLayout (* (LayoutPtr *) to->addr);
@@ -228,8 +228,8 @@ DisposeLayout (XtAppContext app, XrmValue *to, XtPointer data, XrmValuePtr args,
 static void
 ClassInitialize(void)
 {
-    XtSetTypeConverter ( XtRString, XtRLayout, CvtStringToLayout,
-		    (XtConvertArgList)NULL, (Cardinal)0, XtCacheNone,
+    IswSetTypeConverter ( IswRString, IswRLayout, CvtStringToLayout,
+		    (IswConvertArgList)NULL, (Cardinal)0, IswCacheNone,
  		    DisposeLayout );
 }
 
@@ -241,7 +241,7 @@ Redisplay (Widget gw, xcb_generic_event_t *event, Region region)
     * If the Layout widget is visible, redraw gadgets.
     */
 
-    if ( XtIsRealized ( gw ) && gw->core.visible )
+    if ( IswIsRealized ( gw ) && gw->core.visible )
     {
         _XmRedisplayGadgets ( gw, event, region );
     }
@@ -250,10 +250,10 @@ Redisplay (Widget gw, xcb_generic_event_t *event, Region region)
 #endif
 
 /*ARGSUSED*/
-static XtGeometryResult
-GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 {
-    LayoutWidget    w = (LayoutWidget) XtParent(child);
+    LayoutWidget    w = (LayoutWidget) IswParent(child);
     SubInfoPtr	    p = SubInfo(child);
     int		    bw;
     Bool	    changed, bwChanged;
@@ -283,7 +283,7 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
     }
     if (changed)
 	LayoutLayout (w, TRUE);
-    return XtGeometryDone;
+    return IswGeometryDone;
 }
 
 /* ARGSUSED */
@@ -313,10 +313,10 @@ ChangeManaged(Widget gw)
 static void
 GetDesiredSize (Widget child)
 {
-    XtWidgetGeometry	desired;
+    IswWidgetGeometry	desired;
     SubInfoPtr		p;
 
-    XtQueryGeometry (child, (XtWidgetGeometry *) NULL, &desired);
+    IswQueryGeometry (child, (IswWidgetGeometry *) NULL, &desired);
     p = SubInfo (child);
     p->naturalBw = desired.border_width;
     p->naturalSize[LayoutHorizontal] = desired.width + desired.border_width * 2;
@@ -348,37 +348,37 @@ SetValues(Widget gold, Widget greq, Widget gnew, ArgList args, Cardinal *num_arg
     return FALSE;
 } /* SetValues */
 
-static XtGeometryResult
-QueryGeometry (Widget gw, XtWidgetGeometry *request, XtWidgetGeometry *prefered_return)
+static IswGeometryResult
+QueryGeometry (Widget gw, IswWidgetGeometry *request, IswWidgetGeometry *prefered_return)
 {
     LayoutWidget	w = (LayoutWidget) gw;
-    XtGeometryResult	result;
-    XtWidgetGeometry	prefered_size;
+    IswGeometryResult	result;
+    IswWidgetGeometry	prefered_size;
 
     if (request && !(request->request_mode & (XCB_CONFIG_WINDOW_WIDTH|XCB_CONFIG_WINDOW_HEIGHT)))
-	return XtGeometryYes;
+	return IswGeometryYes;
     LayoutGetNaturalSize (w, &prefered_size.width, &prefered_size.height);
     prefered_return->request_mode = 0;
-    result = XtGeometryYes;
+    result = IswGeometryYes;
     if (!request) {
 	prefered_return->width = prefered_size.width;
 	prefered_return->height= prefered_size.height;
 	if (prefered_size.width != w->core.width) {
 	    prefered_return->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
-	    result = XtGeometryAlmost;
+	    result = IswGeometryAlmost;
 	}
 	if (prefered_size.height != w->core.height) {
 	    prefered_return->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
-	    result = XtGeometryAlmost;
+	    result = IswGeometryAlmost;
 	}
     } else {
     	if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) {
 	    if (prefered_size.width > request->width)
 	    {
 	    	if (prefered_size.width == w->core.width)
-		    result = XtGeometryNo;
-	    	else if (result != XtGeometryNo) {
-		    result = XtGeometryAlmost;
+		    result = IswGeometryNo;
+	    	else if (result != IswGeometryNo) {
+		    result = IswGeometryAlmost;
 		    prefered_return->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 		    prefered_return->width = prefered_size.width;
 	    	}
@@ -388,9 +388,9 @@ QueryGeometry (Widget gw, XtWidgetGeometry *request, XtWidgetGeometry *prefered_
 	    if (prefered_size.height > request->height)
 	    {
 	    	if (prefered_size.height == w->core.height)
-		    result = XtGeometryNo;
-	    	else if (result != XtGeometryNo) {
-		    result = XtGeometryAlmost;
+		    result = IswGeometryNo;
+	    	else if (result != IswGeometryNo) {
+		    result = IswGeometryAlmost;
 		    prefered_return->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 		    prefered_return->height = prefered_size.height;
 	    	}
@@ -566,7 +566,7 @@ Evaluate (LayoutWidget l, BoxPtr box, ExprPtr expr, double natural)
 	    char    buf[256];
 	    (void) sprintf (buf, "Layout: undefined variable %s\n",
 			    XrmQuarkToString (expr->u.variable));
-	    XtError (buf);
+	    IswError (buf);
 	    return 0.0;
 	    }
 	return Evaluate (l, box, nexpr, natural);
@@ -891,7 +891,7 @@ SetSizes (BoxPtr box, Position x, Position y)
 		x = -1;
 		y = -1;
 	    }
-	    XtConfigureWidget (w, x, y,
+	    IswConfigureWidget (w, x, y,
 			      (Dimension)width, (Dimension)height,
 			      (Dimension)bw);
 	}
@@ -983,7 +983,7 @@ LayoutLayout (LayoutWidget l, Bool attemptResize)
     box->size[LayoutVertical] = l->core.height;
     if (!ComputeSizes (box) && attemptResize)
     {
-	XtMakeResizeRequest ((Widget) l,
+	IswMakeResizeRequest ((Widget) l,
 			    prefered_width, prefered_height,
 			    &width, &height);
 	if (width != box->size[LayoutHorizontal] ||

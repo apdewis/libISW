@@ -28,7 +28,7 @@ in this Software without prior written authorization from the X Consortium.
 #if defined(SUNSHLIB) && !defined(SHAREDCODE)
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
+#include <ISW/IntrinsicP.h>
 #include <ISW/AsciiSinkP.h>
 #include <ISW/AsciiSrcP.h>
 #include <ISW/AsciiTextP.h>
@@ -61,7 +61,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/TipP.h>
 #include <ISW/ToggleP.h>
 #include <ISW/TreeP.h>
-#include <X11/VendorP.h>
+#include <ISW/VendorP.h>
 #include <ISW/ViewportP.h>
 
 extern AsciiSinkClassRec asciiSinkClassRec;

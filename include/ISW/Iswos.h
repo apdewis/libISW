@@ -45,11 +45,11 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _Xtos_h
-#define _Xtos_h
+#ifndef _Iswos_h
+#define _Iswos_h
 
-#define ALLOCATE_LOCAL_FALLBACK(_size) XtMalloc((unsigned long)(_size))
-#define DEALLOCATE_LOCAL_FALLBACK(_ptr) XtFree((XtPointer)(_ptr))
+#define ALLOCATE_LOCAL_FALLBACK(_size) IswMalloc((unsigned long)(_size))
+#define DEALLOCATE_LOCAL_FALLBACK(_ptr) IswFree((IswPointer)(_ptr))
 
 /* alloca() portability */
 #ifdef HAVE_ALLOCA_H
@@ -86,5 +86,5 @@ SOFTWARE.
 #define LONG64
 #endif
 
-#endif /* _Xtos_h */
+#endif /* _Iswos_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

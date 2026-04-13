@@ -73,17 +73,17 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 
-static _Xconst _XtString XtNinvalidCallbackList = "invalidCallbackList";
-static _Xconst _XtString XtNxtAddCallback = "xtAddCallback";
-static _Xconst _XtString XtNxtRemoveCallback = "xtRemoveCallback";
-static _Xconst _XtString XtNxtRemoveAllCallback = "xtRemoveAllCallback";
-static _Xconst _XtString XtNxtCallCallback = "xtCallCallback";
+static _Xconst _IswString IswNinvalidCallbackList = "invalidCallbackList";
+static _Xconst _IswString IswNxtAddCallback = "xtAddCallback";
+static _Xconst _IswString IswNxtRemoveCallback = "xtRemoveCallback";
+static _Xconst _IswString IswNxtRemoveAllCallback = "xtRemoveAllCallback";
+static _Xconst _IswString IswNxtCallCallback = "xtCallCallback";
 
 /* However it doesn't contain a final NULL record */
 #if __STDC_VERSION__ >= 199901L
 #define ToList(p) ((p)->callbacks)
 #else
-#define ToList(p) ((XtCallbackList) ((p)+1))
+#define ToList(p) ((IswCallbackList) ((p)+1))
 #endif
 
 static InternalCallbackList *
@@ -116,30 +116,30 @@ FetchInternalList(Widget widget,
 }
 
 void
-_XtAddCallback(InternalCallbackList *callbacks,
-               XtCallbackProc callback,
-               XtPointer closure)
+_IswAddCallback(InternalCallbackList *callbacks,
+               IswCallbackProc callback,
+               IswPointer closure)
 {
     register InternalCallbackList icl;
-    register XtCallbackList cl;
+    register IswCallbackList cl;
     register int count;
 
     icl = *callbacks;
     count = icl ? icl->count : 0;
 
     if (icl && icl->call_state) {
-        icl->call_state |= _XtCBFreeAfterCalling;
+        icl->call_state |= _IswCBFreeAfterCalling;
         icl = (InternalCallbackList)
             __XtMalloc((Cardinal) (sizeof(InternalCallbackRec) +
-                                   sizeof(XtCallbackRec) * (size_t) (count +
+                                   sizeof(IswCallbackRec) * (size_t) (count +
                                                                      1)));
         (void) memmove((char *) ToList(icl), (char *) ToList(*callbacks),
-                       sizeof(XtCallbackRec) * (size_t) count);
+                       sizeof(IswCallbackRec) * (size_t) count);
     }
     else {
         icl = (InternalCallbackList)
-            XtRealloc((char *) icl, (Cardinal) (sizeof(InternalCallbackRec) +
-                                                sizeof(XtCallbackRec) *
+            IswRealloc((char *) icl, (Cardinal) (sizeof(InternalCallbackRec) +
+                                                sizeof(IswCallbackRec) *
                                                 (size_t) (count + 1)));
     }
     *callbacks = icl;
@@ -149,88 +149,88 @@ _XtAddCallback(InternalCallbackList *callbacks,
     cl = ToList(icl) + count;
     cl->callback = callback;
     cl->closure = closure;
-}                               /* _XtAddCallback */
+}                               /* _IswAddCallback */
 
 void
-_XtAddCallbackOnce(register InternalCallbackList *callbacks,
-                   XtCallbackProc callback,
-                   XtPointer closure)
+_IswAddCallbackOnce(register InternalCallbackList *callbacks,
+                   IswCallbackProc callback,
+                   IswPointer closure)
 {
-    register XtCallbackList cl = ToList(*callbacks);
+    register IswCallbackList cl = ToList(*callbacks);
     register int i;
 
     for (i = (*callbacks)->count; --i >= 0; cl++)
         if (cl->callback == callback && cl->closure == closure)
             return;
 
-    _XtAddCallback(callbacks, callback, closure);
-}                               /* _XtAddCallbackOnce */
+    _IswAddCallback(callbacks, callback, closure);
+}                               /* _IswAddCallbackOnce */
 
 void
-XtAddCallback(Widget widget,
+IswAddCallback(Widget widget,
               _Xconst char *name,
-              XtCallbackProc callback,
-              XtPointer closure)
+              IswCallbackProc callback,
+              IswPointer closure)
 {
     InternalCallbackList *callbacks;
-    XtAppContext app = XtWidgetToApplicationContext(widget);
+    IswAppContext app = IswWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
     callbacks = FetchInternalList(widget, name);
     if (!callbacks) {
-        XtAppWarningMsg(app,
-                        XtNinvalidCallbackList, XtNxtAddCallback,
-                        XtCXtToolkitError,
-                        "Cannot find callback list in XtAddCallback", NULL,
+        IswAppWarningMsg(app,
+                        IswNinvalidCallbackList, IswNxtAddCallback,
+                        IswCIswToolkitError,
+                        "Cannot find callback list in IswAddCallback", NULL,
                         NULL);
         UNLOCK_APP(app);
         return;
     }
-    _XtAddCallback(callbacks, callback, closure);
-    if (!_XtIsHookObject(widget)) {
-        Widget hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
+    _IswAddCallback(callbacks, callback, closure);
+    if (!_IswIsHookObject(widget)) {
+        Widget hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
 
-        if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-            XtChangeHookDataRec call_data;
+        if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+            IswChangeHookDataRec call_data;
 
-            call_data.type = XtHaddCallback;
+            call_data.type = IswHaddCallback;
             call_data.widget = widget;
-            call_data.event_data = (XtPointer) name;
-            XtCallCallbackList(hookobj,
+            call_data.event_data = (IswPointer) name;
+            IswCallCallbackList(hookobj,
                                ((HookObject) hookobj)->hooks.
-                               changehook_callbacks, (XtPointer) &call_data);
+                               changehook_callbacks, (IswPointer) &call_data);
         }
     }
     UNLOCK_APP(app);
-}                               /* XtAddCallback */
+}                               /* IswAddCallback */
 
 static void
 AddCallbacks(Widget widget _X_UNUSED,
              InternalCallbackList *callbacks,
-             XtCallbackList newcallbacks)
+             IswCallbackList newcallbacks)
 {
     register InternalCallbackList icl;
     register int i, j;
-    register XtCallbackList cl;
+    register IswCallbackList cl;
 
     icl = *callbacks;
     i = icl ? icl->count : 0;
     for (j = 0, cl = newcallbacks; cl->callback; cl++, j++);
     if (icl && icl->call_state) {
-        icl->call_state |= _XtCBFreeAfterCalling;
+        icl->call_state |= _IswCBFreeAfterCalling;
         icl = (InternalCallbackList)
             __XtMalloc((Cardinal)
                        (sizeof(InternalCallbackRec) +
-                        sizeof(XtCallbackRec) * (size_t) (i + j)));
+                        sizeof(IswCallbackRec) * (size_t) (i + j)));
         (void) memmove((char *) ToList(*callbacks), (char *) ToList(icl),
-                       sizeof(XtCallbackRec) * (size_t) i);
+                       sizeof(IswCallbackRec) * (size_t) i);
     }
     else {
-        icl = (InternalCallbackList) XtRealloc((char *) icl,
+        icl = (InternalCallbackList) IswRealloc((char *) icl,
                                                (Cardinal) (sizeof
                                                            (InternalCallbackRec)
                                                            +
-                                                           sizeof(XtCallbackRec)
+                                                           sizeof(IswCallbackRec)
                                                            * (size_t) (i + j)));
     }
     *callbacks = icl;
@@ -242,48 +242,48 @@ AddCallbacks(Widget widget _X_UNUSED,
 }                               /* AddCallbacks */
 
 void
-XtAddCallbacks(Widget widget,
+IswAddCallbacks(Widget widget,
                _Xconst char *name,
-               XtCallbackList xtcallbacks)
+               IswCallbackList xtcallbacks)
 {
     InternalCallbackList *callbacks;
     Widget hookobj;
-    XtAppContext app = XtWidgetToApplicationContext(widget);
+    IswAppContext app = IswWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
     callbacks = FetchInternalList(widget, name);
     if (!callbacks) {
-        XtAppWarningMsg(app,
-                        XtNinvalidCallbackList, XtNxtAddCallback,
-                        XtCXtToolkitError,
-                        "Cannot find callback list in XtAddCallbacks", NULL,
+        IswAppWarningMsg(app,
+                        IswNinvalidCallbackList, IswNxtAddCallback,
+                        IswCIswToolkitError,
+                        "Cannot find callback list in IswAddCallbacks", NULL,
                         NULL);
         UNLOCK_APP(app);
         return;
     }
     AddCallbacks(widget, callbacks, xtcallbacks);
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHaddCallbacks;
+        call_data.type = IswHaddCallbacks;
         call_data.widget = widget;
-        call_data.event_data = (XtPointer) name;
-        XtCallCallbackList(hookobj,
+        call_data.event_data = (IswPointer) name;
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
-}                               /* XtAddCallbacks */
+}                               /* IswAddCallbacks */
 
 void
-_XtRemoveCallback(InternalCallbackList *callbacks,
-                  XtCallbackProc callback,
-                  XtPointer closure)
+_IswRemoveCallback(InternalCallbackList *callbacks,
+                  IswCallbackProc callback,
+                  IswPointer closure)
 {
     register InternalCallbackList icl;
     register int i, j;
-    register XtCallbackList cl, ncl, ocl;
+    register IswCallbackList cl, ncl, ocl;
 
     icl = *callbacks;
     if (!icl)
@@ -293,7 +293,7 @@ _XtRemoveCallback(InternalCallbackList *callbacks,
     for (i = icl->count; --i >= 0; cl++) {
         if (cl->callback == callback && cl->closure == closure) {
             if (icl->call_state) {
-                icl->call_state |= _XtCBFreeAfterCalling;
+                icl->call_state |= _IswCBFreeAfterCalling;
                 if (icl->count == 1) {
                     *callbacks = NULL;
                 }
@@ -302,7 +302,7 @@ _XtRemoveCallback(InternalCallbackList *callbacks,
                     ocl = ToList(icl);
                     icl = (InternalCallbackList)
                         __XtMalloc((Cardinal) (sizeof(InternalCallbackRec) +
-                                               sizeof(XtCallbackRec) *
+                                               sizeof(IswCallbackRec) *
                                                (size_t) (i + j)));
                     icl->count = (unsigned short) (i + j);
                     icl->is_padded = 0;
@@ -321,79 +321,79 @@ _XtRemoveCallback(InternalCallbackList *callbacks,
                     while (--i >= 0)
                         *cl++ = *ncl++;
                     icl = (InternalCallbackList)
-                        XtRealloc((char *) icl,
+                        IswRealloc((char *) icl,
                                   (Cardinal) (sizeof(InternalCallbackRec)
                                               +
-                                              sizeof(XtCallbackRec) *
+                                              sizeof(IswCallbackRec) *
                                               icl->count));
                     icl->is_padded = 0;
                     *callbacks = icl;
                 }
                 else {
-                    XtFree((char *) icl);
+                    IswFree((char *) icl);
                     *callbacks = NULL;
                 }
             }
             return;
         }
     }
-}                               /* _XtRemoveCallback */
+}                               /* _IswRemoveCallback */
 
 void
-XtRemoveCallback(Widget widget,
+IswRemoveCallback(Widget widget,
                  _Xconst char *name,
-                 XtCallbackProc callback,
-                 XtPointer closure)
+                 IswCallbackProc callback,
+                 IswPointer closure)
 {
     InternalCallbackList *callbacks;
     Widget hookobj;
-    XtAppContext app = XtWidgetToApplicationContext(widget);
+    IswAppContext app = IswWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
     callbacks = FetchInternalList(widget, name);
     if (!callbacks) {
-        XtAppWarningMsg(app,
-                        XtNinvalidCallbackList, XtNxtRemoveCallback,
-                        XtCXtToolkitError,
-                        "Cannot find callback list in XtRemoveCallback", NULL,
+        IswAppWarningMsg(app,
+                        IswNinvalidCallbackList, IswNxtRemoveCallback,
+                        IswCIswToolkitError,
+                        "Cannot find callback list in IswRemoveCallback", NULL,
                         NULL);
         UNLOCK_APP(app);
         return;
     }
-    _XtRemoveCallback(callbacks, callback, closure);
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    _IswRemoveCallback(callbacks, callback, closure);
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHremoveCallback;
+        call_data.type = IswHremoveCallback;
         call_data.widget = widget;
-        call_data.event_data = (XtPointer) name;
-        XtCallCallbackList(hookobj,
+        call_data.event_data = (IswPointer) name;
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
-}                               /* XtRemoveCallback */
+}                               /* IswRemoveCallback */
 
 void
-XtRemoveCallbacks(Widget widget,
+IswRemoveCallbacks(Widget widget,
                   _Xconst char *name,
-                  XtCallbackList xtcallbacks)
+                  IswCallbackList xtcallbacks)
 {
     InternalCallbackList *callbacks;
     Widget hookobj;
     int i;
     InternalCallbackList icl;
-    XtCallbackList cl, ccl, rcl;
-    XtAppContext app = XtWidgetToApplicationContext(widget);
+    IswCallbackList cl, ccl, rcl;
+    IswAppContext app = IswWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
     callbacks = FetchInternalList(widget, name);
     if (!callbacks) {
-        XtAppWarningMsg(app,
-                        XtNinvalidCallbackList, XtNxtRemoveCallback,
-                        XtCXtToolkitError,
-                        "Cannot find callback list in XtRemoveCallbacks", NULL,
+        IswAppWarningMsg(app,
+                        IswNinvalidCallbackList, IswNxtRemoveCallback,
+                        IswCIswToolkitError,
+                        "Cannot find callback list in IswRemoveCallbacks", NULL,
                         NULL);
         UNLOCK_APP(app);
         return;
@@ -408,12 +408,12 @@ XtRemoveCallbacks(Widget widget,
     i = icl->count;
     cl = ToList(icl);
     if (icl->call_state) {
-        icl->call_state |= _XtCBFreeAfterCalling;
+        icl->call_state |= _IswCBFreeAfterCalling;
         icl =
             (InternalCallbackList)
             __XtMalloc((Cardinal)
                        (sizeof(InternalCallbackRec) +
-                        sizeof(XtCallbackRec) * (size_t) i));
+                        sizeof(IswCallbackRec) * (size_t) i));
         icl->count = (unsigned short) i;
         icl->call_state = 0;
     }
@@ -431,82 +431,82 @@ XtRemoveCallbacks(Widget widget,
     }
     if (icl->count) {
         icl = (InternalCallbackList)
-            XtRealloc((char *) icl, (Cardinal) (sizeof(InternalCallbackRec) +
-                                                sizeof(XtCallbackRec) *
+            IswRealloc((char *) icl, (Cardinal) (sizeof(InternalCallbackRec) +
+                                                sizeof(IswCallbackRec) *
                                                 icl->count));
         icl->is_padded = 0;
         *callbacks = icl;
     }
     else {
-        XtFree((char *) icl);
+        IswFree((char *) icl);
         *callbacks = NULL;
     }
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHremoveCallbacks;
+        call_data.type = IswHremoveCallbacks;
         call_data.widget = widget;
-        call_data.event_data = (XtPointer) name;
-        XtCallCallbackList(hookobj,
+        call_data.event_data = (IswPointer) name;
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
-}                               /* XtRemoveCallbacks */
+}                               /* IswRemoveCallbacks */
 
 void
-_XtRemoveAllCallbacks(InternalCallbackList *callbacks)
+_IswRemoveAllCallbacks(InternalCallbackList *callbacks)
 {
     register InternalCallbackList icl = *callbacks;
 
     if (icl) {
         if (icl->call_state)
-            icl->call_state |= _XtCBFreeAfterCalling;
+            icl->call_state |= _IswCBFreeAfterCalling;
         else
-            XtFree((char *) icl);
+            IswFree((char *) icl);
         *callbacks = NULL;
     }
-}                               /* _XtRemoveAllCallbacks */
+}                               /* _IswRemoveAllCallbacks */
 
 void
-XtRemoveAllCallbacks(Widget widget, _Xconst char *name)
+IswRemoveAllCallbacks(Widget widget, _Xconst char *name)
 {
     InternalCallbackList *callbacks;
     Widget hookobj;
-    XtAppContext app = XtWidgetToApplicationContext(widget);
+    IswAppContext app = IswWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
     callbacks = FetchInternalList(widget, name);
     if (!callbacks) {
-        XtAppWarningMsg(app,
-                        XtNinvalidCallbackList, XtNxtRemoveAllCallback,
-                        XtCXtToolkitError,
-                        "Cannot find callback list in XtRemoveAllCallbacks",
+        IswAppWarningMsg(app,
+                        IswNinvalidCallbackList, IswNxtRemoveAllCallback,
+                        IswCIswToolkitError,
+                        "Cannot find callback list in IswRemoveAllCallbacks",
                         NULL, NULL);
         UNLOCK_APP(app);
         return;
     }
-    _XtRemoveAllCallbacks(callbacks);
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    _IswRemoveAllCallbacks(callbacks);
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHremoveAllCallbacks;
+        call_data.type = IswHremoveAllCallbacks;
         call_data.widget = widget;
-        call_data.event_data = (XtPointer) name;
-        XtCallCallbackList(hookobj,
+        call_data.event_data = (IswPointer) name;
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
-}                               /* XtRemoveAllCallbacks */
+}                               /* IswRemoveAllCallbacks */
 
 InternalCallbackList
-_XtCompileCallbackList(XtCallbackList xtcallbacks)
+_IswCompileCallbackList(IswCallbackList xtcallbacks)
 {
     register int n;
-    register XtCallbackList xtcl, cl;
+    register IswCallbackList xtcl, cl;
     register InternalCallbackList callbacks;
 
     for (n = 0, xtcl = xtcallbacks; xtcl->callback; n++, xtcl++) {
@@ -518,7 +518,7 @@ _XtCompileCallbackList(XtCallbackList xtcallbacks)
         (InternalCallbackList)
         __XtMalloc((Cardinal)
                    (sizeof(InternalCallbackRec) +
-                    sizeof(XtCallbackRec) * (size_t) n));
+                    sizeof(IswCallbackRec) * (size_t) n));
     callbacks->count = (unsigned short) n;
     callbacks->is_padded = 0;
     callbacks->call_state = 0;
@@ -526,32 +526,32 @@ _XtCompileCallbackList(XtCallbackList xtcallbacks)
     while (--n >= 0)
         *cl++ = *xtcallbacks++;
     return (callbacks);
-}                               /* _XtCompileCallbackList */
+}                               /* _IswCompileCallbackList */
 
-XtCallbackList
-_XtGetCallbackList(InternalCallbackList *callbacks)
+IswCallbackList
+_IswGetCallbackList(InternalCallbackList *callbacks)
 {
     int i;
     InternalCallbackList icl;
-    XtCallbackList cl;
+    IswCallbackList cl;
 
     icl = *callbacks;
     if (!icl) {
-        static XtCallbackRec emptyList[1] = { {NULL, NULL} };
-        return (XtCallbackList) emptyList;
+        static IswCallbackRec emptyList[1] = { {NULL, NULL} };
+        return (IswCallbackList) emptyList;
     }
     if (icl->is_padded)
         return ToList(icl);
     i = icl->count;
     if (icl->call_state) {
-        XtCallbackList ocl;
+        IswCallbackList ocl;
 
-        icl->call_state |= _XtCBFreeAfterCalling;
+        icl->call_state |= _IswCBFreeAfterCalling;
         ocl = ToList(icl);
         icl = (InternalCallbackList)
             __XtMalloc((Cardinal)
                        (sizeof(InternalCallbackRec) +
-                        sizeof(XtCallbackRec) * (size_t) (i + 1)));
+                        sizeof(IswCallbackRec) * (size_t) (i + 1)));
         icl->count = (unsigned short) i;
         icl->call_state = 0;
         cl = ToList(icl);
@@ -560,37 +560,37 @@ _XtGetCallbackList(InternalCallbackList *callbacks)
     }
     else {
         icl = (InternalCallbackList)
-            XtRealloc((char *) icl, (Cardinal) (sizeof(InternalCallbackRec)
-                                                + sizeof(XtCallbackRec)
+            IswRealloc((char *) icl, (Cardinal) (sizeof(InternalCallbackRec)
+                                                + sizeof(IswCallbackRec)
                                                 * (size_t) (i + 1)));
         cl = ToList(icl) + i;
     }
     icl->is_padded = 1;
-    cl->callback = (XtCallbackProc) NULL;
+    cl->callback = (IswCallbackProc) NULL;
     cl->closure = NULL;
     *callbacks = icl;
     return ToList(icl);
 }
 
 void
-XtCallCallbacks(Widget widget,
+IswCallCallbacks(Widget widget,
                 _Xconst char *name,
-                XtPointer call_data)
+                IswPointer call_data)
 {
     InternalCallbackList *callbacks;
     InternalCallbackList icl;
-    XtCallbackList cl;
+    IswCallbackList cl;
     int i;
     char ostate;
-    XtAppContext app = XtWidgetToApplicationContext(widget);
+    IswAppContext app = IswWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
     callbacks = FetchInternalList(widget, name);
     if (!callbacks) {
-        XtAppWarningMsg(app,
-                        XtNinvalidCallbackList, XtNxtCallCallback,
-                        XtCXtToolkitError,
-                        "Cannot find callback list in XtCallCallbacks", NULL,
+        IswAppWarningMsg(app,
+                        IswNinvalidCallbackList, IswNxtCallCallback,
+                        IswCIswToolkitError,
+                        "Cannot find callback list in IswCallCallbacks", NULL,
                         NULL);
         UNLOCK_APP(app);
         return;
@@ -608,44 +608,44 @@ XtCallCallbacks(Widget widget,
         return;
     }
     ostate = icl->call_state;
-    icl->call_state = _XtCBCalling;
+    icl->call_state = _IswCBCalling;
     for (i = icl->count; --i >= 0; cl++)
         (*cl->callback) (widget, cl->closure, call_data);
     if (ostate)
         icl->call_state |= ostate;
-    else if (icl->call_state & _XtCBFreeAfterCalling)
-        XtFree((char *) icl);
+    else if (icl->call_state & _IswCBFreeAfterCalling)
+        IswFree((char *) icl);
     else
         icl->call_state = ostate;
     UNLOCK_APP(app);
-}                               /* XtCallCallbacks */
+}                               /* IswCallCallbacks */
 
-XtCallbackStatus
-XtHasCallbacks(Widget widget,
+IswCallbackStatus
+IswHasCallbacks(Widget widget,
                _Xconst char *callback_name)
 {
     InternalCallbackList *callbacks;
-    XtCallbackStatus retval = XtCallbackHasSome;
+    IswCallbackStatus retval = IswCallbackHasSome;
 
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
     callbacks = FetchInternalList(widget, callback_name);
     if (!callbacks)
-        retval = XtCallbackNoList;
+        retval = IswCallbackNoList;
     else if (!*callbacks)
-        retval = XtCallbackHasNone;
+        retval = IswCallbackHasNone;
     UNLOCK_APP(app);
     return retval;
-}                               /* XtHasCallbacks */
+}                               /* IswHasCallbacks */
 
 void
-XtCallCallbackList(Widget widget,
-                   XtCallbackList callbacks,
-                   XtPointer call_data)
+IswCallCallbackList(Widget widget,
+                   IswCallbackList callbacks,
+                   IswPointer call_data)
 {
     register InternalCallbackList icl;
-    register XtCallbackList cl;
+    register IswCallbackList cl;
     register int i;
     char ostate;
 
@@ -664,29 +664,29 @@ XtCallCallbackList(Widget widget,
         return;
     }
     ostate = icl->call_state;
-    icl->call_state = _XtCBCalling;
+    icl->call_state = _IswCBCalling;
     for (i = icl->count; --i >= 0; cl++)
         (*cl->callback) (widget, cl->closure, call_data);
     if (ostate)
         icl->call_state |= ostate;
-    else if (icl->call_state & _XtCBFreeAfterCalling)
-        XtFree((char *) icl);
+    else if (icl->call_state & _IswCBFreeAfterCalling)
+        IswFree((char *) icl);
     else
         icl->call_state = 0;
     UNLOCK_APP(app);
-}                               /* XtCallCallbackList */
+}                               /* IswCallCallbackList */
 
 void
-_XtPeekCallback(Widget widget _X_UNUSED,
-                XtCallbackList callbacks,
-                XtCallbackProc *callback,
-                XtPointer *closure)
+_IswPeekCallback(Widget widget _X_UNUSED,
+                IswCallbackList callbacks,
+                IswCallbackProc *callback,
+                IswPointer *closure)
 {
     register InternalCallbackList icl = (InternalCallbackList) callbacks;
-    register XtCallbackList cl;
+    register IswCallbackList cl;
 
     if (!callbacks) {
-        *callback = (XtCallbackProc) NULL;
+        *callback = (IswCallbackProc) NULL;
         return;
     }
     cl = ToList(icl);
@@ -696,13 +696,13 @@ _XtPeekCallback(Widget widget _X_UNUSED,
 }
 
 void
-_XtCallConditionalCallbackList(Widget widget,
-                               XtCallbackList callbacks,
-                               XtPointer call_data,
-                               _XtConditionProc cond_proc)
+_IswCallConditionalCallbackList(Widget widget,
+                               IswCallbackList callbacks,
+                               IswPointer call_data,
+                               _IswConditionProc cond_proc)
 {
     register InternalCallbackList icl;
-    register XtCallbackList cl;
+    register IswCallbackList cl;
     register int i;
     char ostate;
 
@@ -722,7 +722,7 @@ _XtCallConditionalCallbackList(Widget widget,
         return;
     }
     ostate = icl->call_state;
-    icl->call_state = _XtCBCalling;
+    icl->call_state = _IswCBCalling;
     for (i = icl->count; --i >= 0; cl++) {
         (*cl->callback) (widget, cl->closure, call_data);
         if (!(*cond_proc) (call_data))
@@ -730,8 +730,8 @@ _XtCallConditionalCallbackList(Widget widget,
     }
     if (ostate)
         icl->call_state |= ostate;
-    else if (icl->call_state & _XtCBFreeAfterCalling)
-        XtFree((char *) icl);
+    else if (icl->call_state & _IswCBFreeAfterCalling)
+        IswFree((char *) icl);
     else
         icl->call_state = 0;
     UNLOCK_APP(app);

@@ -36,7 +36,7 @@
 #include <ISW/ISWRender.h>
 
 typedef struct {
-    XtPointer extension;
+    IswPointer extension;
 } TipClassPart;
 
 typedef struct _TipClassRec {
@@ -49,7 +49,7 @@ extern TipClassRec tipClassRec;
 typedef struct _TipPart {
     /* resources */
     Pixel foreground;
-    XFontStruct	*font;
+    IswFontStruct	*font;
 #ifdef ISW_INTERNATIONALIZATION
     ISWFontSet *fontset;
 #endif
@@ -61,7 +61,7 @@ typedef struct _TipPart {
 
     /* private */
     ISWRenderContext *render_ctx;
-    XtIntervalId timer;
+    IswIntervalId timer;
 #ifdef ISW_INTERNATIONALIZATION
     Boolean international;
 #endif

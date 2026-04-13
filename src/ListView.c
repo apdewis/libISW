@@ -11,8 +11,8 @@
 #endif
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ListViewP.h>
@@ -38,41 +38,41 @@
 #define SORT_ARROW_H  4  /* height of sort direction arrow */
 #define SORT_ARROW_GAP 4 /* gap between title text and arrow */
 
-#define Offset(field) XtOffsetOf(ListViewRec, field)
+#define Offset(field) IswOffsetOf(ListViewRec, field)
 
-static XtResource resources[] = {
-    {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-        Offset(listView.foreground), XtRString, XtDefaultForeground},
-    {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct *),
-        Offset(listView.font), XtRString, XtDefaultFont},
+static IswResource resources[] = {
+    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+        Offset(listView.foreground), IswRString, IswDefaultForeground},
+    {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+        Offset(listView.font), IswRString, IswDefaultFont},
 #ifdef ISW_INTERNATIONALIZATION
-    {XtNfontSet, XtCFontSet, XtRFontSet, sizeof(ISWFontSet *),
-        Offset(listView.fontset), XtRString, XtDefaultFontSet},
+    {IswNfontSet, IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
+        Offset(listView.fontset), IswRString, IswDefaultFontSet},
 #endif
-    {XtNselectCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-        Offset(listView.select_callback), XtRCallback, NULL},
-    {XtNreorderCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-        Offset(listView.reorder_callback), XtRCallback, NULL},
-    {XtNmultiSelect, XtCMultiSelect, XtRBoolean, sizeof(Boolean),
-        Offset(listView.multi_select), XtRImmediate, (XtPointer) False},
-    {XtNshowHeader, XtCShowHeader, XtRBoolean, sizeof(Boolean),
-        Offset(listView.show_header), XtRImmediate, (XtPointer) True},
-    {XtNrowHeight, XtCRowHeight, XtRDimension, sizeof(Dimension),
-        Offset(listView.row_height), XtRImmediate, (XtPointer) 0},
-    {XtNheaderHeight, XtCHeaderHeight, XtRDimension, sizeof(Dimension),
-        Offset(listView.header_height), XtRImmediate, (XtPointer) 0},
-    {XtNlistViewColumns, XtCListViewColumns, XtRPointer, sizeof(XtPointer),
-        Offset(listView.columns_res), XtRImmediate, NULL},
-    {XtNnumColumns, XtCNumColumns, XtRInt, sizeof(int),
-        Offset(listView.ncols_res), XtRImmediate, (XtPointer) 0},
-    {XtNnumRows, XtCNumRows, XtRInt, sizeof(int),
-        Offset(listView.nrows), XtRImmediate, (XtPointer) 0},
-    {XtNlistViewData, XtCListViewData, XtRPointer, sizeof(XtPointer),
-        Offset(listView.data), XtRImmediate, NULL},
-    {XtNcursorRow, XtCCursorRow, XtRInt, sizeof(int),
-        Offset(listView.cursor), XtRImmediate, (XtPointer) -1},
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-        Offset(core.border_width), XtRImmediate, (XtPointer) 0},
+    {IswNselectCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+        Offset(listView.select_callback), IswRCallback, NULL},
+    {IswNreorderCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+        Offset(listView.reorder_callback), IswRCallback, NULL},
+    {IswNmultiSelect, IswCMultiSelect, IswRBoolean, sizeof(Boolean),
+        Offset(listView.multi_select), IswRImmediate, (IswPointer) False},
+    {IswNshowHeader, IswCShowHeader, IswRBoolean, sizeof(Boolean),
+        Offset(listView.show_header), IswRImmediate, (IswPointer) True},
+    {IswNrowHeight, IswCRowHeight, IswRDimension, sizeof(Dimension),
+        Offset(listView.row_height), IswRImmediate, (IswPointer) 0},
+    {IswNheaderHeight, IswCHeaderHeight, IswRDimension, sizeof(Dimension),
+        Offset(listView.header_height), IswRImmediate, (IswPointer) 0},
+    {IswNlistViewColumns, IswCListViewColumns, IswRPointer, sizeof(IswPointer),
+        Offset(listView.columns_res), IswRImmediate, NULL},
+    {IswNnumColumns, IswCNumColumns, IswRInt, sizeof(int),
+        Offset(listView.ncols_res), IswRImmediate, (IswPointer) 0},
+    {IswNnumRows, IswCNumRows, IswRInt, sizeof(int),
+        Offset(listView.nrows), IswRImmediate, (IswPointer) 0},
+    {IswNlistViewData, IswCListViewData, IswRPointer, sizeof(IswPointer),
+        Offset(listView.data), IswRImmediate, NULL},
+    {IswNcursorRow, IswCCursorRow, IswRInt, sizeof(int),
+        Offset(listView.cursor), IswRImmediate, (IswPointer) -1},
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+        Offset(core.border_width), IswRImmediate, (IswPointer) 0},
 };
 
 #undef Offset
@@ -80,7 +80,7 @@ static XtResource resources[] = {
 /* Forward declarations */
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -113,7 +113,7 @@ static char defaultTranslations[] =
     "<FocusIn>: HandleFocus(in)\n"
     "<FocusOut>: HandleFocus(out)";
 
-static XtActionsRec actions[] = {
+static IswActionsRec actions[] = {
     {"SelectRow",        SelectRow},
     {"BandDrag",         BandDrag},
     {"BandFinish",       BandFinish},
@@ -138,9 +138,9 @@ ListViewClassRec listViewClassRec = {
     NULL,
     Realize,
     actions,
-    XtNumber(actions),
+    IswNumber(actions),
     resources,
-    XtNumber(resources),
+    IswNumber(resources),
     NULLQUARK,
     TRUE,
     TRUE,
@@ -151,18 +151,18 @@ ListViewClassRec listViewClassRec = {
     Redisplay,
     SetValues,
     NULL,
-    XtInheritSetValuesAlmost,
+    IswInheritSetValuesAlmost,
     NULL,
     NULL,
-    XtVersion,
+    IswVersion,
     NULL,
     defaultTranslations,
-    XtInheritQueryGeometry,
-    XtInheritDisplayAccelerator,
+    IswInheritQueryGeometry,
+    IswInheritDisplayAccelerator,
     NULL
   },
   { /* simple */
-    XtInheritChangeSensitive
+    IswInheritChangeSensitive
   },
   { /* listView */
     0
@@ -275,11 +275,11 @@ ComputeMetrics(ListViewWidget lv)
 
     if (pref_h != w->core.height) {
         Dimension actual_w, actual_h;
-        XtGeometryResult r = XtMakeResizeRequest(w,
+        IswGeometryResult r = IswMakeResizeRequest(w,
                                 w->core.width > 0 ? w->core.width : pref_w,
                                 pref_h, &actual_w, &actual_h);
-        if (r == XtGeometryAlmost)
-            XtMakeResizeRequest(w, actual_w, actual_h, NULL, NULL);
+        if (r == IswGeometryAlmost)
+            IswMakeResizeRequest(w, actual_w, actual_h, NULL, NULL);
     }
 }
 
@@ -339,7 +339,7 @@ FireCallback(ListViewWidget lv, int clicked_row, int clicked_col)
     int count = 0;
 
     if (lv->listView.sel_flags) {
-        indices = (int *)XtMalloc((Cardinal)lv->listView.nrows * sizeof(int));
+        indices = (int *)IswMalloc((Cardinal)lv->listView.nrows * sizeof(int));
         for (int i = 0; i < lv->listView.nrows; i++) {
             if (lv->listView.sel_flags[i])
                 indices[count++] = i;
@@ -351,10 +351,10 @@ FireCallback(ListViewWidget lv, int clicked_row, int clicked_col)
     cb.column = clicked_col;
     cb.selected = indices;
     cb.num_selected = count;
-    XtCallCallbacks(w, XtNselectCallback, (XtPointer)&cb);
+    IswCallCallbacks(w, IswNselectCallback, (IswPointer)&cb);
 
     if (indices)
-        XtFree((char *)indices);
+        IswFree((char *)indices);
 }
 
 static void
@@ -380,10 +380,10 @@ static void
 ScrollToCursor(ListViewWidget lv)
 {
     Widget w = (Widget)lv;
-    Widget parent = XtParent(w);
+    Widget parent = IswParent(w);
     int cur = lv->listView.cursor;
 
-    if (cur < 0 || !parent || !XtIsRealized(w))
+    if (cur < 0 || !parent || !IswIsRealized(w))
         return;
 
     Dimension visible_h = parent->core.height;
@@ -484,7 +484,7 @@ LoadCursor(xcb_connection_t *conn, xcb_screen_t *screen,
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     ListViewWidget lv = (ListViewWidget) w;
 
@@ -504,13 +504,13 @@ Destroy(Widget w)
 {
     ListViewWidget lv = (ListViewWidget) w;
     if (lv->listView.work_proc_id)
-        XtRemoveWorkProc(lv->listView.work_proc_id);
+        IswRemoveWorkProc(lv->listView.work_proc_id);
     FreeColumns(lv);
     FreeSelFlags(lv);
     if (lv->listView.render_ctx)
         ISWRenderDestroy(lv->listView.render_ctx);
     if (lv->listView.resize_cursor != XCB_CURSOR_NONE)
-        xcb_free_cursor(XtDisplay(w), lv->listView.resize_cursor);
+        xcb_free_cursor(IswDisplay(w), lv->listView.resize_cursor);
 }
 
 static void
@@ -547,7 +547,7 @@ Resize(Widget w)
     }
 
     ComputeMetrics(lv);
-    if (XtIsRealized(w))
+    if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
 }
 
@@ -796,7 +796,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     ISWRenderContext *ctx = lv->listView.render_ctx;
     (void)event; (void)region;
 
-    if (!ctx || !XtIsRealized(w))
+    if (!ctx || !IswIsRealized(w))
         return;
 
     ISWRenderBegin(ctx);
@@ -876,7 +876,7 @@ BandUpdateSelection(ListViewWidget lv)
 }
 
 static Boolean
-BandRedrawWorkProc(XtPointer closure)
+BandRedrawWorkProc(IswPointer closure)
 {
     Widget w = (Widget) closure;
     ListViewWidget lv = (ListViewWidget) w;
@@ -898,20 +898,20 @@ static void
 UpdateResizeCursor(ListViewWidget lv, Boolean over_grip)
 {
     Widget w = (Widget)lv;
-    if (!XtIsRealized(w))
+    if (!IswIsRealized(w))
         return;
 
     if (over_grip && !lv->listView.resize_cursor_set) {
         uint32_t value = lv->listView.resize_cursor;
-        xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+        xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
                                      XCB_CW_CURSOR, &value);
-        xcb_flush(XtDisplay(w));
+        xcb_flush(IswDisplay(w));
         lv->listView.resize_cursor_set = True;
     } else if (!over_grip && lv->listView.resize_cursor_set) {
         uint32_t value = lv->listView.default_cursor;
-        xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+        xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
                                      XCB_CW_CURSOR, &value);
-        xcb_flush(XtDisplay(w));
+        xcb_flush(IswDisplay(w));
         lv->listView.resize_cursor_set = False;
     }
 }
@@ -989,7 +989,7 @@ SelectRow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
             IswListViewReorderCallbackData cb;
             cb.column = col;
             cb.direction = lv->listView.sort_direction;
-            XtCallCallbacks(w, XtNreorderCallback, (XtPointer)&cb);
+            IswCallCallbacks(w, IswNreorderCallback, (IswPointer)&cb);
             Redisplay(w, NULL, 0);
         }
         return;
@@ -1010,7 +1010,7 @@ SelectRow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
 
     if (row < 0) {
         /* Click below last row — start rubber band if multi-select */
-        if (lv->listView.multi_select && XtIsRealized(w)) {
+        if (lv->listView.multi_select && IswIsRealized(w)) {
             if (!toggle)
                 ClearSelection(lv);
             if (lv->listView.band_saved && lv->listView.sel_flags)
@@ -1043,7 +1043,7 @@ SelectRow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
         lv->listView.deselect_index = row;
     } else {
         /* Plain click or start rubber band from a row */
-        if (lv->listView.multi_select && XtIsRealized(w)) {
+        if (lv->listView.multi_select && IswIsRealized(w)) {
             /* Allow rubber band starting from a row area too */
             ClearSelection(lv);
             lv->listView.sel_flags[row] = True;
@@ -1104,9 +1104,9 @@ BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
             lv->listView.total_col_w = tw;
             lv->listView.redraw_pending = True;
             if (!lv->listView.work_proc_id) {
-                lv->listView.work_proc_id = XtAppAddWorkProc(
-                    XtWidgetToApplicationContext(w),
-                    BandRedrawWorkProc, (XtPointer)w);
+                lv->listView.work_proc_id = IswAppAddWorkProc(
+                    IswWidgetToApplicationContext(w),
+                    BandRedrawWorkProc, (IswPointer)w);
             }
         }
         return;
@@ -1134,8 +1134,8 @@ BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
 
     lv->listView.redraw_pending = True;
     if (!lv->listView.work_proc_id) {
-        lv->listView.work_proc_id = XtAppAddWorkProc(
-            XtWidgetToApplicationContext(w), BandRedrawWorkProc, (XtPointer)w);
+        lv->listView.work_proc_id = IswAppAddWorkProc(
+            IswWidgetToApplicationContext(w), BandRedrawWorkProc, (IswPointer)w);
     }
 }
 
@@ -1177,7 +1177,7 @@ BandFinish(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
     lv->listView.band_active = False;
 
     if (lv->listView.work_proc_id) {
-        XtRemoveWorkProc(lv->listView.work_proc_id);
+        IswRemoveWorkProc(lv->listView.work_proc_id);
         lv->listView.work_proc_id = 0;
     }
     lv->listView.redraw_pending = False;
@@ -1336,7 +1336,7 @@ HandleFocus(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_
         lv->listView.has_focus = False;
     }
 
-    if (XtIsRealized(w))
+    if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
 }
 
@@ -1350,22 +1350,22 @@ IswListViewSetData(Widget w, String *data, int nrows, int ncols)
     ListViewWidget lv = (ListViewWidget) w;
     /* data is a flat array: data[row * ncols + col] */
     Arg args[3];
-    XtSetArg(args[0], XtNlistViewData, data);
-    XtSetArg(args[1], XtNnumRows, nrows);
-    XtSetArg(args[2], XtNnumColumns, ncols);
+    IswSetArg(args[0], IswNlistViewData, data);
+    IswSetArg(args[1], IswNnumRows, nrows);
+    IswSetArg(args[2], IswNnumColumns, ncols);
     /* Update ncols to match data layout (columns_res drives column headers,
      * ncols in data can differ if user hasn't set columns yet) */
     lv->listView.ncols = ncols;
-    XtSetValues(w, args, 3);
+    IswSetValues(w, args, 3);
 }
 
 void
 IswListViewSetColumns(Widget w, IswListViewColumn *cols, int ncols)
 {
     Arg args[2];
-    XtSetArg(args[0], XtNlistViewColumns, cols);
-    XtSetArg(args[1], XtNnumColumns, ncols);
-    XtSetValues(w, args, 2);
+    IswSetArg(args[0], IswNlistViewColumns, cols);
+    IswSetArg(args[1], IswNnumColumns, ncols);
+    IswSetValues(w, args, 2);
 }
 
 int
@@ -1389,7 +1389,7 @@ IswListViewAddColumn(Widget w, const char *title, Dimension width, Dimension min
     lv->listView.ncols = n;
     ComputeMetrics(lv);
 
-    if (XtIsRealized(w))
+    if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
 
     return n - 1;  /* index of new column */
@@ -1419,14 +1419,14 @@ IswListViewGetSelectedRows(Widget w, int **indices_out)
         return 0;
     }
 
-    int *buf = (int *)XtMalloc((Cardinal)lv->listView.nrows * sizeof(int));
+    int *buf = (int *)IswMalloc((Cardinal)lv->listView.nrows * sizeof(int));
     for (int i = 0; i < lv->listView.nrows; i++) {
         if (lv->listView.sel_flags[i])
             buf[count++] = i;
     }
 
     if (count == 0) {
-        XtFree((char *)buf);
+        IswFree((char *)buf);
         *indices_out = NULL;
         return 0;
     }
@@ -1448,6 +1448,6 @@ IswListViewSetSort(Widget w, int column, IswListViewSortDirection direction)
     ListViewWidget lv = (ListViewWidget) w;
     lv->listView.sort_column = column;
     lv->listView.sort_direction = direction;
-    if (XtIsRealized(w))
+    if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
 }

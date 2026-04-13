@@ -57,34 +57,34 @@ SOFTWARE.
  *
  ******************************************************************/
 
-static void XtCopyAncestorSensitive(Widget, int, XrmValue *);
+static void IswCopyAncestorSensitive(Widget, int, XrmValue *);
 
 /* *INDENT-OFF* */
-static XtResource resources[] = {
+static IswResource resources[] = {
 
-    {XtNancestorSensitive, XtCSensitive, XtRBoolean, sizeof(Boolean),
-      XtOffsetOf(RectObjRec,rectangle.ancestor_sensitive),XtRCallProc,
-      (XtPointer)XtCopyAncestorSensitive},
-    {XtNx, XtCPosition, XtRPosition, sizeof(Position),
-         XtOffsetOf(RectObjRec,rectangle.x), XtRImmediate, (XtPointer)0},
-    {XtNy, XtCPosition, XtRPosition, sizeof(Position),
-         XtOffsetOf(RectObjRec,rectangle.y), XtRImmediate, (XtPointer)0},
-    {XtNwidth, XtCWidth, XtRDimension, sizeof(Dimension),
-         XtOffsetOf(RectObjRec,rectangle.width), XtRImmediate, (XtPointer)0},
-    {XtNheight, XtCHeight, XtRDimension, sizeof(Dimension),
-         XtOffsetOf(RectObjRec,rectangle.height), XtRImmediate, (XtPointer)0},
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-         XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
-         (XtPointer)1},
-    {XtNsensitive, XtCSensitive, XtRBoolean, sizeof(Boolean),
-         XtOffsetOf(RectObjRec,rectangle.sensitive), XtRImmediate,
-         (XtPointer)True}
+    {IswNancestorSensitive, IswCSensitive, IswRBoolean, sizeof(Boolean),
+      IswOffsetOf(RectObjRec,rectangle.ancestor_sensitive),IswRCallProc,
+      (IswPointer)IswCopyAncestorSensitive},
+    {IswNx, IswCPosition, IswRPosition, sizeof(Position),
+         IswOffsetOf(RectObjRec,rectangle.x), IswRImmediate, (IswPointer)0},
+    {IswNy, IswCPosition, IswRPosition, sizeof(Position),
+         IswOffsetOf(RectObjRec,rectangle.y), IswRImmediate, (IswPointer)0},
+    {IswNwidth, IswCWidth, IswRDimension, sizeof(Dimension),
+         IswOffsetOf(RectObjRec,rectangle.width), IswRImmediate, (IswPointer)0},
+    {IswNheight, IswCHeight, IswRDimension, sizeof(Dimension),
+         IswOffsetOf(RectObjRec,rectangle.height), IswRImmediate, (IswPointer)0},
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+         IswOffsetOf(RectObjRec,rectangle.border_width), IswRImmediate,
+         (IswPointer)1},
+    {IswNsensitive, IswCSensitive, IswRBoolean, sizeof(Boolean),
+         IswOffsetOf(RectObjRec,rectangle.sensitive), IswRImmediate,
+         (IswPointer)True}
 };
 /* *INDENT-ON* */
 
 static void RectClassPartInitialize(WidgetClass);
-static void RectSetValuesAlmost(Widget, Widget, XtWidgetGeometry *,
-                                XtWidgetGeometry *);
+static void RectSetValuesAlmost(Widget, Widget, IswWidgetGeometry *,
+                                IswWidgetGeometry *);
 
 /* *INDENT-OFF* */
 externaldef(rectobjclassrec) RectObjClassRec rectObjClassRec = {
@@ -101,7 +101,7 @@ externaldef(rectobjclassrec) RectObjClassRec rectObjClassRec = {
     /* actions               */ NULL,
     /* num_actions           */ 0,
     /* resources             */ resources,
-    /* num_resources         */ XtNumber(resources),
+    /* num_resources         */ IswNumber(resources),
     /* xrm_class             */ NULLQUARK,
     /* compress_motion       */ FALSE,
     /* compress_exposure     */ TRUE,
@@ -115,7 +115,7 @@ externaldef(rectobjclassrec) RectObjClassRec rectObjClassRec = {
     /* set_values_almost     */ RectSetValuesAlmost,
     /* get_values_hook       */ NULL,
     /* accept_focus          */ NULL,
-    /* version               */ XtVersion,
+    /* version               */ IswVersion,
     /* callback_offsets      */ NULL,
     /* tm_table              */ NULL,
     /* query_geometry        */ NULL,
@@ -129,7 +129,7 @@ externaldef(rectObjClass)
 WidgetClass rectObjClass = (WidgetClass) &rectObjClassRec;
 
 static void
-XtCopyAncestorSensitive(Widget widget, int offset _X_UNUSED, XrmValue *value)
+IswCopyAncestorSensitive(Widget widget, int offset _X_UNUSED, XrmValue *value)
 {
     static Boolean sensitive;
     Widget parent = widget->core.parent;
@@ -140,7 +140,7 @@ XtCopyAncestorSensitive(Widget widget, int offset _X_UNUSED, XrmValue *value)
     } else {
         sensitive = (parent->core.ancestor_sensitive & parent->core.sensitive);
     }
-    value->addr = (XtPointer) (&sensitive);
+    value->addr = (IswPointer) (&sensitive);
 }
 
 /*
@@ -156,19 +156,19 @@ RectClassPartInitialize(register WidgetClass wc)
     /* We don't need to check for null super since we'll get to object
        eventually, and it had better define them!  */
 
-    if (roc->rect_class.resize == XtInheritResize) {
+    if (roc->rect_class.resize == IswInheritResize) {
         roc->rect_class.resize = super->rect_class.resize;
     }
 
-    if (roc->rect_class.expose == XtInheritExpose) {
+    if (roc->rect_class.expose == IswInheritExpose) {
         roc->rect_class.expose = super->rect_class.expose;
     }
 
-    if (roc->rect_class.set_values_almost == XtInheritSetValuesAlmost) {
+    if (roc->rect_class.set_values_almost == IswInheritSetValuesAlmost) {
         roc->rect_class.set_values_almost = super->rect_class.set_values_almost;
     }
 
-    if (roc->rect_class.query_geometry == XtInheritQueryGeometry) {
+    if (roc->rect_class.query_geometry == IswInheritQueryGeometry) {
         roc->rect_class.query_geometry = super->rect_class.query_geometry;
     }
 }
@@ -177,15 +177,15 @@ RectClassPartInitialize(register WidgetClass wc)
  * Why there isn't an Initialize Method:
  *
  * Initialization of the RectObj non-Resource field is done by the
- * intrinsics in _XtCreateWidget in order that the field is initialized
+ * intrinsics in _IswCreateWidget in order that the field is initialized
  * for use by converters during instance resource resolution.
  */
 
 static void
 RectSetValuesAlmost(Widget old _X_UNUSED,
                     Widget new _X_UNUSED,
-                    XtWidgetGeometry *request,
-                    XtWidgetGeometry *reply)
+                    IswWidgetGeometry *request,
+                    IswWidgetGeometry *reply)
 {
     *request = *reply;
 }

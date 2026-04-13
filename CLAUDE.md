@@ -119,8 +119,10 @@ Defined in `CMakeLists.txt`, used throughout:
 
 ## Header Namespaces
 
-- `include/ISW/` — widget public/private headers (`*.h` / `*P.h`)
-- `include/X11/` — libXt headers (`Intrinsic.h`, `Core.h`, etc.) and generated files
+- `include/ISW/` — all public/private headers: widgets (`*.h` / `*P.h`), Isw Toolkit Intrinsics (`Intrinsic.h`, `Core.h`, etc.), and generated files (`StringDefs.h`, `Shell.h`)
+- `include/X11/` — backward-compat shim headers only (thin wrappers that `#include` the ISW/ equivalents)
+
+The embedded Toolkit Intrinsics use `Isw` prefixes (`IswCreateWidget`, `IswAppContext`, `IswNlabel`, etc.). Internal Xrm types (`XrmQuark`, `XrmResource`, etc.) retain their original names.
 
 Applications link with `pkg-config --cflags --libs isw`.
 

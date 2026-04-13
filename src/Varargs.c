@@ -31,19 +31,19 @@ in this Software without prior written authorization from The Open Group.
 #include "VarargsI.h"
 #include "StringDefs.h"
 
-static String XtNxtConvertVarToArgList = "xtConvertVarToArgList";
+static String IswNxtConvertVarToArgList = "xtConvertVarToArgList";
 
 /*
- *    Given a nested list, _XtCountNestedList() returns counts of the
+ *    Given a nested list, _IswCountNestedList() returns counts of the
  *    total number of attribute-value pairs and the count of those
  *    attributes that are typed. The list is counted recursively.
  */
 static void
-_XtCountNestedList(XtTypedArgList avlist, int *total_count, int *typed_count)
+_IswCountNestedList(IswTypedArgList avlist, int *total_count, int *typed_count)
 {
     for (; avlist->name != NULL; avlist++) {
-        if (strcmp(avlist->name, XtVaNestedList) == 0) {
-            _XtCountNestedList((XtTypedArgList) avlist->value, total_count,
+        if (strcmp(avlist->name, IswVaNestedList) == 0) {
+            _IswCountNestedList((IswTypedArgList) avlist->value, total_count,
                                typed_count);
         }
         else {
@@ -56,13 +56,13 @@ _XtCountNestedList(XtTypedArgList avlist, int *total_count, int *typed_count)
 }
 
 /*
- *    Given a variable length attribute-value list, _XtCountVaList()
+ *    Given a variable length attribute-value list, _IswCountVaList()
  *    returns counts of the total number of attribute-value pairs,
  *    and the count of the number of those attributes that are typed.
  *    The list is counted recursively.
  */
 void
-_XtCountVaList(va_list var, int *total_count, int *typed_count)
+_IswCountVaList(va_list var, int *total_count, int *typed_count)
 {
     String attr;
 
@@ -70,36 +70,36 @@ _XtCountVaList(va_list var, int *total_count, int *typed_count)
     *typed_count = 0;
 
     for (attr = va_arg(var, String); attr != NULL; attr = va_arg(var, String)) {
-        if (strcmp(attr, XtVaTypedArg) == 0) {
+        if (strcmp(attr, IswVaTypedArg) == 0) {
             (void) va_arg(var, String);
             (void) va_arg(var, String);
-            (void) va_arg(var, XtArgVal);
+            (void) va_arg(var, IswArgVal);
             (void) va_arg(var, int);
 
             ++(*total_count);
             ++(*typed_count);
         }
-        else if (strcmp(attr, XtVaNestedList) == 0) {
-            _XtCountNestedList(va_arg(var, XtTypedArgList), total_count,
+        else if (strcmp(attr, IswVaNestedList) == 0) {
+            _IswCountNestedList(va_arg(var, IswTypedArgList), total_count,
                                typed_count);
         }
         else {
-            (void) va_arg(var, XtArgVal);
+            (void) va_arg(var, IswArgVal);
             ++(*total_count);
         }
     }
 }
 
 /*
- *   Given a variable length attribute-value list, XtVaCreateArgsList()
- *   constructs an attribute-value list of type XtTypedArgList and
+ *   Given a variable length attribute-value list, IswVaCreateArgsList()
+ *   constructs an attribute-value list of type IswTypedArgList and
  *   returns the list.
  */
-XtVarArgsList
-XtVaCreateArgsList(XtPointer unused _X_UNUSED, ...)
+IswVarArgsList
+IswVaCreateArgsList(IswPointer unused _X_UNUSED, ...)
 {
     va_list var;
-    XtTypedArgList avlist;
+    IswTypedArgList avlist;
     int count = 0;
     String attr;
 
@@ -111,45 +111,45 @@ XtVaCreateArgsList(XtPointer unused _X_UNUSED, ...)
     va_start(var, unused);
     for (attr = va_arg(var, String); attr != NULL; attr = va_arg(var, String)) {
         ++count;
-        if (strcmp(attr, XtVaTypedArg) == 0) {
+        if (strcmp(attr, IswVaTypedArg) == 0) {
             (void) va_arg(var, String);
             (void) va_arg(var, String);
-            (void) va_arg(var, XtArgVal);
+            (void) va_arg(var, IswArgVal);
             (void) va_arg(var, int);
         }
         else {
-            (void) va_arg(var, XtArgVal);
+            (void) va_arg(var, IswArgVal);
         }
     }
     va_end(var);
 
     va_start(var, unused);
-    avlist = _XtVaCreateTypedArgList(var, count);
+    avlist = _IswVaCreateTypedArgList(var, count);
     va_end(var);
-    return (XtVarArgsList) avlist;
+    return (IswVarArgsList) avlist;
 }
 
-XtTypedArgList
-_XtVaCreateTypedArgList(va_list var, register int count)
+IswTypedArgList
+_IswVaCreateTypedArgList(va_list var, register int count)
 {
     String attr;
-    XtTypedArgList avlist;
+    IswTypedArgList avlist;
 
-    avlist = (XtTypedArgList)
-        __XtCalloc((Cardinal) count + 1, (unsigned) sizeof(XtTypedArg));
+    avlist = (IswTypedArgList)
+        __XtCalloc((Cardinal) count + 1, (unsigned) sizeof(IswTypedArg));
 
     for (attr = va_arg(var, String), count = 0; attr != NULL;
          attr = va_arg(var, String)) {
-        if (strcmp(attr, XtVaTypedArg) == 0) {
+        if (strcmp(attr, IswVaTypedArg) == 0) {
             avlist[count].name = va_arg(var, String);
             avlist[count].type = va_arg(var, String);
-            avlist[count].value = va_arg(var, XtArgVal);
+            avlist[count].value = va_arg(var, IswArgVal);
             avlist[count].size = va_arg(var, int);
         }
         else {
             avlist[count].name = attr;
             avlist[count].type = NULL;
-            avlist[count].value = va_arg(var, XtArgVal);
+            avlist[count].value = va_arg(var, IswArgVal);
         }
         ++count;
     }
@@ -168,9 +168,9 @@ _XtVaCreateTypedArgList(va_list var, register int count)
  */
 static int
 TypedArgToArg(Widget widget,
-              XtTypedArgList typed_arg,
+              IswTypedArgList typed_arg,
               ArgList arg_return,
-              XtResourceList resources,
+              IswResourceList resources,
               Cardinal num_resources,
               ArgList memory_return)
 {
@@ -178,15 +178,15 @@ TypedArgToArg(Widget widget,
     XrmValue from_val, to_val;
 
     if (widget == NULL) {
-        XtAppWarningMsg(XtWidgetToApplicationContext(widget),
-                        "nullWidget", XtNxtConvertVarToArgList,
-                        XtCXtToolkitError,
-                        "XtVaTypedArg conversion needs non-NULL widget handle",
+        IswAppWarningMsg(IswWidgetToApplicationContext(widget),
+                        "nullWidget", IswNxtConvertVarToArgList,
+                        IswCIswToolkitError,
+                        "IswVaTypedArg conversion needs non-NULL widget handle",
                         NULL, NULL);
         return (0);
     }
 
-    /* again we assume that the XtResourceList is un-compiled */
+    /* again we assume that the IswResourceList is un-compiled */
 
     for (; num_resources--; resources++)
         if (strcmp(typed_arg->name, resources->resource_name) == 0) {
@@ -195,9 +195,9 @@ TypedArgToArg(Widget widget,
         }
 
     if (to_type == NULL) {
-        XtAppWarningMsg(XtWidgetToApplicationContext(widget),
-                        "unknownType", XtNxtConvertVarToArgList,
-                        XtCXtToolkitError,
+        IswAppWarningMsg(IswWidgetToApplicationContext(widget),
+                        "unknownType", IswNxtConvertVarToArgList,
+                        IswCIswToolkitError,
                         "Unable to find type of resource for conversion", NULL,
                         NULL);
         return (0);
@@ -205,45 +205,45 @@ TypedArgToArg(Widget widget,
 
     to_val.addr = NULL;
     from_val.size = (Cardinal) typed_arg->size;
-    if ((strcmp(typed_arg->type, XtRString) == 0) ||
-        ((unsigned) typed_arg->size > sizeof(XtArgVal))) {
-        from_val.addr = (XtPointer) typed_arg->value;
+    if ((strcmp(typed_arg->type, IswRString) == 0) ||
+        ((unsigned) typed_arg->size > sizeof(IswArgVal))) {
+        from_val.addr = (IswPointer) typed_arg->value;
     }
     else {
-        from_val.addr = (XtPointer) &typed_arg->value;
+        from_val.addr = (IswPointer) &typed_arg->value;
     }
 
     LOCK_PROCESS;
-    XtConvertAndStore(widget, typed_arg->type, &from_val, to_type, &to_val);
+    IswConvertAndStore(widget, typed_arg->type, &from_val, to_type, &to_val);
 
     if (to_val.addr == NULL) {
         UNLOCK_PROCESS;
-        XtAppWarningMsg(XtWidgetToApplicationContext(widget),
-                        "conversionFailed", XtNxtConvertVarToArgList,
-                        XtCXtToolkitError, "Type conversion failed", NULL,
+        IswAppWarningMsg(IswWidgetToApplicationContext(widget),
+                        "conversionFailed", IswNxtConvertVarToArgList,
+                        IswCIswToolkitError, "Type conversion failed", NULL,
                         NULL);
         return (0);
     }
 
     arg_return->name = typed_arg->name;
-    memory_return->value = (XtArgVal) NULL;
+    memory_return->value = (IswArgVal) NULL;
 
-    if (strcmp(to_type, XtRString) == 0) {
-        arg_return->value = (XtArgVal) to_val.addr;
+    if (strcmp(to_type, IswRString) == 0) {
+        arg_return->value = (IswArgVal) to_val.addr;
     }
     else {
         if (to_val.size == sizeof(long))
-            arg_return->value = (XtArgVal) * (long *) to_val.addr;
+            arg_return->value = (IswArgVal) * (long *) to_val.addr;
         else if (to_val.size == sizeof(int))
-            arg_return->value = (XtArgVal) * (int *) to_val.addr;
+            arg_return->value = (IswArgVal) * (int *) to_val.addr;
         else if (to_val.size == sizeof(short))
-            arg_return->value = (XtArgVal) * (short *) to_val.addr;
+            arg_return->value = (IswArgVal) * (short *) to_val.addr;
         else if (to_val.size == sizeof(char))
-            arg_return->value = (XtArgVal) * (char *) to_val.addr;
-        else if (to_val.size == sizeof(XtArgVal))
-            arg_return->value = *(XtArgVal *) to_val.addr;
-        else if (to_val.size > sizeof(XtArgVal)) {
-            arg_return->value = (XtArgVal) (void *) __XtMalloc(to_val.size);
+            arg_return->value = (IswArgVal) * (char *) to_val.addr;
+        else if (to_val.size == sizeof(IswArgVal))
+            arg_return->value = *(IswArgVal *) to_val.addr;
+        else if (to_val.size > sizeof(IswArgVal)) {
+            arg_return->value = (IswArgVal) (void *) __XtMalloc(to_val.size);
             if ((memory_return->value = arg_return->value) != 0)
                 memcpy((void *) arg_return->value, to_val.addr, to_val.size);
         }
@@ -259,9 +259,9 @@ TypedArgToArg(Widget widget,
  */
 static int
 NestedArgtoArg(Widget widget,
-               XtTypedArgList avlist,
+               IswTypedArgList avlist,
                ArgList args,
-               XtResourceList resources,
+               IswResourceList resources,
                Cardinal num_resources,
                ArgList memory_return)
 {
@@ -277,8 +277,8 @@ NestedArgtoArg(Widget widget,
                                        (memory_return + count));
             }
         }
-        else if (strcmp(avlist->name, XtVaNestedList) == 0) {
-            count += NestedArgtoArg(widget, (XtTypedArgList) avlist->value,
+        else if (strcmp(avlist->name, IswVaNestedList) == 0) {
+            count += NestedArgtoArg(widget, (IswTypedArgList) avlist->value,
                                     (args + count), resources, num_resources,
                                     (memory_return + count));
         }
@@ -293,7 +293,7 @@ NestedArgtoArg(Widget widget,
 }
 
 /*
- * Free memory allocated through _XtVaToArgList.  The actual args array
+ * Free memory allocated through _IswVaToArgList.  The actual args array
  * size is expected to be total_count * 2, where total_count is the number
  * of elements needed for resource representations.  The lower half of the
  * array contains pairs of resource names and values as usual.  For each
@@ -307,36 +307,36 @@ NestedArgtoArg(Widget widget,
  * there were no typed arguments in the original varargs, there is no need
  * to examine the upper half of the array.  In the choice of data structure
  * to make this representation, priority was given to the wish to retrofit
- * the release of memory around the existing signature of _XtVaToArgList.
+ * the release of memory around the existing signature of _IswVaToArgList.
  */
 void
-_XtFreeArgList(ArgList args,    /* as returned by _XtVaToArgList */
-               int total_count, /* argument count returned by _XtCountVaList */
-               int typed_count) /* typed arg count returned by _XtCountVaList */
+_IswFreeArgList(ArgList args,    /* as returned by _IswVaToArgList */
+               int total_count, /* argument count returned by _IswCountVaList */
+               int typed_count) /* typed arg count returned by _IswCountVaList */
 {
     if (args) {
         if (typed_count) {
             ArgList p;
 
             for (p = args + total_count; total_count--; ++p) {
-                XtFree((char *) p->value);
+                IswFree((char *) p->value);
             }
         }
-        XtFree((char *) args);
+        IswFree((char *) args);
     }
 }
 
-static void GetResources(Widget widget, XtResourceList *res_list,
+static void GetResources(Widget widget, IswResourceList *res_list,
                          Cardinal *number);
 
 /*
- *    Given a variable argument list, _XtVaToArgList() returns the
- *    equivalent ArgList and count. _XtVaToArgList() handles nested
+ *    Given a variable argument list, _IswVaToArgList() returns the
+ *    equivalent ArgList and count. _IswVaToArgList() handles nested
  *    lists and typed arguments.  If typed arguments are present, the
- *    ArgList should be freed with _XtFreeArgList.
+ *    ArgList should be freed with _IswFreeArgList.
  */
 void
-_XtVaToArgList(Widget widget,
+_IswVaToArgList(Widget widget,
                va_list var,
                int max_count,
                ArgList *args_return,
@@ -345,8 +345,8 @@ _XtVaToArgList(Widget widget,
     String		attr;
     int			count;
     ArgList		args = (ArgList)NULL;
-    XtTypedArg		typed_arg;
-    XtResourceList	resources = (XtResourceList)NULL;
+    IswTypedArg		typed_arg;
+    IswResourceList	resources = (IswResourceList)NULL;
     Cardinal		num_resources = 0;
     Boolean		fetched_resource_list = False;
 
@@ -364,10 +364,10 @@ _XtVaToArgList(Widget widget,
 
     for(attr = va_arg(var, String) ; attr != NULL;
 			    attr = va_arg(var, String)) {
-	    if (strcmp(attr, XtVaTypedArg) == 0) {
+	    if (strcmp(attr, IswVaTypedArg) == 0) {
 		typed_arg.name = va_arg(var, String);
 		typed_arg.type = va_arg(var, String);
-		typed_arg.value = va_arg(var, XtArgVal);
+		typed_arg.value = va_arg(var, IswArgVal);
 		typed_arg.size = va_arg(var, int);
 
 		/* if widget is NULL, typed args are ignored */
@@ -380,7 +380,7 @@ _XtVaToArgList(Widget widget,
 					      resources, num_resources,
 					      &args[max_count + count]);
 		}
-	    } else if (strcmp(attr, XtVaNestedList) == 0) {
+	    } else if (strcmp(attr, IswVaNestedList) == 0) {
 		if (widget != NULL) {
 		    if (!fetched_resource_list) {
 			GetResources(widget, &resources, &num_resources);
@@ -388,16 +388,16 @@ _XtVaToArgList(Widget widget,
 		    }
 		}
 
-		count += NestedArgtoArg(widget, va_arg(var, XtTypedArgList),
+		count += NestedArgtoArg(widget, va_arg(var, IswTypedArgList),
 					   &args[count], resources, num_resources,
 					   &args[max_count + count]);
 	    } else {
 		args[count].name = attr;
-		args[count].value = va_arg(var, XtArgVal);
+		args[count].value = va_arg(var, IswArgVal);
 		count ++;
 	    }
     }
-    XtFree((XtPointer) resources);
+    IswFree((IswPointer) resources);
 
     *num_args_return = (Cardinal) count;
     *args_return = (ArgList) args;
@@ -413,35 +413,35 @@ _XtVaToArgList(Widget widget,
  */
 
 static void
-GetResources(Widget widget, XtResourceList *res_list, Cardinal *number)
+GetResources(Widget widget, IswResourceList *res_list, Cardinal *number)
 {
-    Widget parent = XtParent(widget);
+    Widget parent = IswParent(widget);
 
-    XtInitializeWidgetClass(XtClass(widget));
-    XtGetResourceList(XtClass(widget), res_list, number);
+    IswInitializeWidgetClass(IswClass(widget));
+    IswGetResourceList(IswClass(widget), res_list, number);
 
-    if (!XtIsShell(widget) && parent && XtIsConstraint(parent)) {
-        XtResourceList res, constraint, cons_top;
+    if (!IswIsShell(widget) && parent && IswIsConstraint(parent)) {
+        IswResourceList res, constraint, cons_top;
         Cardinal num_constraint, temp;
 
-        XtGetConstraintResourceList(XtClass(parent), &constraint,
+        IswGetConstraintResourceList(IswClass(parent), &constraint,
                                     &num_constraint);
 
         cons_top = constraint;
-        *res_list = XtReallocArray(*res_list, *number + num_constraint,
-                                   (Cardinal) sizeof(XtResource));
+        *res_list = IswReallocArray(*res_list, *number + num_constraint,
+                                   (Cardinal) sizeof(IswResource));
 
         for (temp = num_constraint, res = *res_list + *number; temp != 0;
              temp--)
             *res++ = *constraint++;
 
         *number += num_constraint;
-        XtFree((XtPointer) cons_top);
+        IswFree((IswPointer) cons_top);
     }
 }
 
 static int
-NestedArgtoTypedArg(XtTypedArgList args, XtTypedArgList avlist)
+NestedArgtoTypedArg(IswTypedArgList args, IswTypedArgList avlist)
 {
     int count = 0;
 
@@ -453,9 +453,9 @@ NestedArgtoTypedArg(XtTypedArgList args, XtTypedArgList avlist)
             (args + count)->value = avlist->value;
             ++count;
         }
-        else if (strcmp(avlist->name, XtVaNestedList) == 0) {
+        else if (strcmp(avlist->name, IswVaNestedList) == 0) {
             count += NestedArgtoTypedArg((args + count),
-                                         (XtTypedArgList) avlist->value);
+                                         (IswTypedArgList) avlist->value);
         }
         else {
             (args + count)->name = avlist->name;
@@ -468,18 +468,18 @@ NestedArgtoTypedArg(XtTypedArgList args, XtTypedArgList avlist)
 }
 
 /*
- *    Given a variable argument list, _XtVaToTypedArgList() returns
- *    the equivalent TypedArgList. _XtVaToTypedArgList() handles nested
+ *    Given a variable argument list, _IswVaToTypedArgList() returns
+ *    the equivalent TypedArgList. _IswVaToTypedArgList() handles nested
  *    lists.
- *    Note: _XtVaToTypedArgList() does not do type conversions.
+ *    Note: _IswVaToTypedArgList() does not do type conversions.
  */
 void
-_XtVaToTypedArgList(va_list var,
+_IswVaToTypedArgList(va_list var,
                     int max_count,
-                    XtTypedArgList *args_return,
+                    IswTypedArgList *args_return,
                     Cardinal *num_args_return)
 {
-    XtTypedArgList args;
+    IswTypedArgList args;
     String attr;
     int count;
 
@@ -489,8 +489,8 @@ _XtVaToTypedArgList(va_list var,
     if (max_count  == 0)
 	return;
 
-    args = (XtTypedArgList)
-        __XtCalloc((Cardinal) max_count , sizeof(XtTypedArg));
+    args = (IswTypedArgList)
+        __XtCalloc((Cardinal) max_count , sizeof(IswTypedArg));
     if (!args)
     	return;	    
 
@@ -498,22 +498,22 @@ _XtVaToTypedArgList(va_list var,
 
     for (attr = va_arg(var, String); attr != NULL;
          attr = va_arg(var, String)) {
-        if (strcmp(attr, XtVaTypedArg) == 0) {
+        if (strcmp(attr, IswVaTypedArg) == 0) {
             args[count].name = va_arg(var, String);
             args[count].type = va_arg(var, String);
-            args[count].value = va_arg(var, XtArgVal);
+            args[count].value = va_arg(var, IswArgVal);
             args[count].size = va_arg(var, int);
 
             ++count;
         }
-        else if (strcmp(attr, XtVaNestedList) == 0) {
+        else if (strcmp(attr, IswVaNestedList) == 0) {
             count += NestedArgtoTypedArg(&args[count],
-                                         va_arg(var, XtTypedArgList));
+                                         va_arg(var, IswTypedArgList));
         }
         else {
             args[count].name = attr;
             args[count].type = NULL;
-            args[count].value = va_arg(var, XtArgVal);
+            args[count].value = va_arg(var, IswArgVal);
             ++count;
         }
     }

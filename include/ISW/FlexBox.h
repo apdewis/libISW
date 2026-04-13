@@ -22,7 +22,7 @@
 #ifndef _ISW_FlexBox_h
 #define _ISW_FlexBox_h
 
-#include <X11/Constraint.h>
+#include <ISW/Constraint.h>
 
 /*
  * FlexBox Widget
@@ -34,7 +34,7 @@
  *
  * Name              Class           RepType         Default Value
  * ----              -----           -------         -------------
- * orientation       Orientation     XtOrientation   XtorientVertical
+ * orientation       Orientation     IswOrientation   XtorientVertical
  * spacing           Spacing         Dimension       0
  *
  * Constraint resources (per-child):
@@ -47,25 +47,25 @@
  */
 
 /* Widget-level resource names/classes */
-#ifndef XtNspacing
-#define XtNspacing "spacing"
+#ifndef IswNspacing
+#define IswNspacing "spacing"
 #endif
-#ifndef XtCSpacing
-#define XtCSpacing "Spacing"
+#ifndef IswCSpacing
+#define IswCSpacing "Spacing"
 #endif
 
 /* Constraint resource names */
-#define XtNflexGrow  "flexGrow"
-#define XtNflexBasis "flexBasis"
-#define XtNflexAlign "flexAlign"
+#define IswNflexGrow  "flexGrow"
+#define IswNflexBasis "flexBasis"
+#define IswNflexAlign "flexAlign"
 
 /* Constraint resource classes */
-#define XtCFlexGrow  "FlexGrow"
-#define XtCFlexBasis "FlexBasis"
-#define XtCFlexAlign "FlexAlign"
+#define IswCFlexGrow  "FlexGrow"
+#define IswCFlexBasis "FlexBasis"
+#define IswCFlexAlign "FlexAlign"
 
 /* Representation type */
-#define XtRFlexAlign "FlexAlign"
+#define IswRFlexAlign "FlexAlign"
 
 /* FlexAlign enum */
 typedef enum {

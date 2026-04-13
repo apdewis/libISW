@@ -9,13 +9,13 @@
 
 #include <X11/Xfuncproto.h>
 
-#define XtNcolorRed       "colorRed"
-#define XtCColorRed       "ColorRed"
-#define XtNcolorGreen     "colorGreen"
-#define XtCColorGreen     "ColorGreen"
-#define XtNcolorBlue      "colorBlue"
-#define XtCColorBlue      "ColorBlue"
-#define XtNcolorChanged   "colorChanged"
+#define IswNcolorRed       "colorRed"
+#define IswCColorRed       "ColorRed"
+#define IswNcolorGreen     "colorGreen"
+#define IswCColorGreen     "ColorGreen"
+#define IswNcolorBlue      "colorBlue"
+#define IswCColorBlue      "ColorBlue"
+#define IswNcolorChanged   "colorChanged"
 
 extern WidgetClass colorPickerWidgetClass;
 

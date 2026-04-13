@@ -45,8 +45,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtConstraint_h
-#define _XtConstraint_h
+#ifndef _IswConstraint_h
+#define _IswConstraint_h
 
 _XFUNCPROTOBEGIN
 
@@ -56,5 +56,5 @@ externalref WidgetClass constraintWidgetClass;
 
 _XFUNCPROTOEND
 
-#endif /* _XtConstraint_h */
+#endif /* _IswConstraint_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

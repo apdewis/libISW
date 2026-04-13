@@ -28,7 +28,7 @@ typedef struct _SpinBoxPart {
     int           value;
     int           increment;
     Boolean       wrap;
-    XtCallbackList value_changed;
+    IswCallbackList value_changed;
 
     /* private */
     Widget        textW;       /* AsciiText child */

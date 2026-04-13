@@ -17,8 +17,8 @@
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
 #include <ISW/ISWInit.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <stdlib.h>
 
 static void ClassInitialize(void);
@@ -35,7 +35,7 @@ ImageClassRec imageClassRec = {
     /* class_inited	*/	FALSE,
     /* initialize	*/	NULL,
     /* initialize_hook	*/	NULL,
-    /* realize		*/	XtInheritRealize,
+    /* realize		*/	IswInheritRealize,
     /* actions		*/	NULL,
     /* num_actions	*/	0,
     /* resources	*/	NULL,
@@ -47,22 +47,22 @@ ImageClassRec imageClassRec = {
     /* visible_interest	*/	FALSE,
     /* destroy		*/	NULL,
     /* resize		*/	Resize,
-    /* expose		*/	XtInheritExpose,
+    /* expose		*/	IswInheritExpose,
     /* set_values	*/	NULL,
     /* set_values_hook	*/	NULL,
-    /* set_values_almost	*/	XtInheritSetValuesAlmost,
+    /* set_values_almost	*/	IswInheritSetValuesAlmost,
     /* get_values_hook	*/	NULL,
     /* accept_focus	*/	NULL,
-    /* version		*/	XtVersion,
+    /* version		*/	IswVersion,
     /* callback_private	*/	NULL,
     /* tm_table		*/	NULL,
-    /* query_geometry	*/	XtInheritQueryGeometry,
-    /* display_accelerator	*/	XtInheritDisplayAccelerator,
+    /* query_geometry	*/	IswInheritQueryGeometry,
+    /* display_accelerator	*/	IswInheritDisplayAccelerator,
     /* extension	*/	NULL
   },
   /* Simple class */
   {
-    /* change_sensitive	*/	XtInheritChangeSensitive
+    /* change_sensitive	*/	IswInheritChangeSensitive
   },
   /* Label class */
   {

@@ -25,7 +25,7 @@
 #ifndef _ISW_IswLayout_h
 #define _ISW_IswLayout_h
 
-#include <X11/Constraint.h>
+#include <ISW/Constraint.h>
 #include <X11/Xfuncproto.h>
 
 /****************************************************************
@@ -38,8 +38,8 @@
 
  Name		         Class		   RepType	    Default Value
  ----		         -----		   -------	    -------------
- background	         Background	   Pixel	    XtDefaultBackground
- border		         BorderColor       Pixel	    XtDefaultForeground
+ background	         Background	   Pixel	    IswDefaultBackground
+ border		         BorderColor       Pixel	    IswDefaultForeground
  borderWidth	         BorderWidth       Dimension	    1
  cursor		         Cursor	           Cursor	    None
  destroyCallback         Callback	   Pointer	    NULL
@@ -77,10 +77,10 @@
  */
 
 /* New Fields */
-#define XtNlayout "layout"
-#define XtCLayout "Layout"
-#define XtRLayout "Layout"
-#define XtNdebug  "debug"
+#define IswNlayout "layout"
+#define IswCLayout "Layout"
+#define IswRLayout "Layout"
+#define IswNdebug  "debug"
 
 /* Class record constant */
 

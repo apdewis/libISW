@@ -11,8 +11,8 @@
 #endif
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SpinBoxP.h>
 #include <ISW/ISWRender.h>
@@ -27,41 +27,41 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define Offset(field) XtOffsetOf(SpinBoxRec, field)
+#define Offset(field) IswOffsetOf(SpinBoxRec, field)
 
-static XtResource resources[] = {
-    {XtNspinMinimum, XtCSpinMinimum, XtRInt, sizeof(int),
-        Offset(spinBox.minimum), XtRImmediate, (XtPointer) 0},
-    {XtNspinMaximum, XtCSpinMaximum, XtRInt, sizeof(int),
-        Offset(spinBox.maximum), XtRImmediate, (XtPointer) 100},
-    {XtNspinValue, XtCSpinValue, XtRInt, sizeof(int),
-        Offset(spinBox.value), XtRImmediate, (XtPointer) 0},
-    {XtNspinIncrement, XtCSpinIncrement, XtRInt, sizeof(int),
-        Offset(spinBox.increment), XtRImmediate, (XtPointer) 1},
-    {XtNspinWrap, XtCSpinWrap, XtRBoolean, sizeof(Boolean),
-        Offset(spinBox.wrap), XtRImmediate, (XtPointer) False},
-    {XtNvalueChanged, XtCCallback, XtRCallback, sizeof(XtPointer),
-        Offset(spinBox.value_changed), XtRCallback, NULL},
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-        Offset(core.border_width), XtRImmediate, (XtPointer) 1},
+static IswResource resources[] = {
+    {IswNspinMinimum, IswCSpinMinimum, IswRInt, sizeof(int),
+        Offset(spinBox.minimum), IswRImmediate, (IswPointer) 0},
+    {IswNspinMaximum, IswCSpinMaximum, IswRInt, sizeof(int),
+        Offset(spinBox.maximum), IswRImmediate, (IswPointer) 100},
+    {IswNspinValue, IswCSpinValue, IswRInt, sizeof(int),
+        Offset(spinBox.value), IswRImmediate, (IswPointer) 0},
+    {IswNspinIncrement, IswCSpinIncrement, IswRInt, sizeof(int),
+        Offset(spinBox.increment), IswRImmediate, (IswPointer) 1},
+    {IswNspinWrap, IswCSpinWrap, IswRBoolean, sizeof(Boolean),
+        Offset(spinBox.wrap), IswRImmediate, (IswPointer) False},
+    {IswNvalueChanged, IswCCallback, IswRCallback, sizeof(IswPointer),
+        Offset(spinBox.value_changed), IswRCallback, NULL},
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+        Offset(core.border_width), IswRImmediate, (IswPointer) 1},
 };
 
 #undef Offset
 
 /* Forward declarations */
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Destroy(Widget);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void GetValuesHook(Widget, ArgList, Cardinal *);
 
-static void UpCallback(Widget, XtPointer, XtPointer);
-static void DownCallback(Widget, XtPointer, XtPointer);
+static void UpCallback(Widget, IswPointer, IswPointer);
+static void DownCallback(Widget, IswPointer, IswPointer);
 static void LayoutChildren(SpinBoxWidget);
 static void ChangeManaged(Widget);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 SpinBoxClassRec spinBoxClassRec = {
   { /* core_class fields */
@@ -77,7 +77,7 @@ SpinBoxClassRec spinBoxClassRec = {
     /* actions            */ NULL,
     /* num_actions        */ 0,
     /* resources          */ resources,
-    /* num_resources      */ XtNumber(resources),
+    /* num_resources      */ IswNumber(resources),
     /* xrm_class          */ NULLQUARK,
     /* compress_motion    */ TRUE,
     /* compress_exposure  */ TRUE,
@@ -88,21 +88,21 @@ SpinBoxClassRec spinBoxClassRec = {
     /* expose             */ Redisplay,
     /* set_values         */ SetValues,
     /* set_values_hook    */ NULL,
-    /* set_values_almost  */ XtInheritSetValuesAlmost,
+    /* set_values_almost  */ IswInheritSetValuesAlmost,
     /* get_values_hook    */ GetValuesHook,
     /* accept_focus       */ NULL,
-    /* version            */ XtVersion,
+    /* version            */ IswVersion,
     /* callback_private   */ NULL,
     /* tm_table           */ NULL,
-    /* query_geometry     */ XtInheritQueryGeometry,
-    /* display_accelerator*/ XtInheritDisplayAccelerator,
+    /* query_geometry     */ IswInheritQueryGeometry,
+    /* display_accelerator*/ IswInheritDisplayAccelerator,
     /* extension          */ NULL
   },
   { /* composite_class fields */
     /* geometry_manager   */ GeometryManager,
     /* change_managed     */ ChangeManaged,
-    /* insert_child       */ XtInheritInsertChild,
-    /* delete_child       */ XtInheritDeleteChild,
+    /* insert_child       */ IswInheritInsertChild,
+    /* delete_child       */ IswInheritDeleteChild,
     /* extension          */ NULL
   },
   { /* constraint_class fields */
@@ -115,7 +115,7 @@ SpinBoxClassRec spinBoxClassRec = {
     /* extension          */ NULL
   },
   { /* form_class fields */
-    /* layout             */ XtInheritLayout
+    /* layout             */ IswInheritLayout
   },
   { /* spinBox_class fields */
     /* empty              */ 0
@@ -133,8 +133,8 @@ SyncTextFromValue(SpinBoxWidget sbw)
     Arg args[1];
 
     snprintf(buf, sizeof(buf), "%d", sbw->spinBox.value);
-    XtSetArg(args[0], XtNstring, buf);
-    XtSetValues(sbw->spinBox.textW, args, 1);
+    IswSetArg(args[0], IswNstring, buf);
+    IswSetValues(sbw->spinBox.textW, args, 1);
 }
 
 static int
@@ -143,8 +143,8 @@ ReadTextValue(SpinBoxWidget sbw)
     String str = NULL;
     Arg args[1];
 
-    XtSetArg(args[0], XtNstring, &str);
-    XtGetValues(sbw->spinBox.textW, args, 1);
+    IswSetArg(args[0], IswNstring, &str);
+    IswGetValues(sbw->spinBox.textW, args, 1);
 
     if (str == NULL || *str == '\0')
         return sbw->spinBox.value;
@@ -176,14 +176,14 @@ ClampAndNotify(SpinBoxWidget sbw, int new_value)
 
         IswSpinBoxCallbackData cb_data;
         cb_data.value = new_value;
-        XtCallCallbacks((Widget)sbw, XtNvalueChanged, (XtPointer)&cb_data);
+        IswCallCallbacks((Widget)sbw, IswNvalueChanged, (IswPointer)&cb_data);
     }
 }
 
 /* --- Button callbacks --- */
 
 static void
-UpCallback(Widget w, XtPointer client_data, XtPointer call_data)
+UpCallback(Widget w, IswPointer client_data, IswPointer call_data)
 {
     SpinBoxWidget sbw = (SpinBoxWidget) client_data;
     (void)w; (void)call_data;
@@ -191,7 +191,7 @@ UpCallback(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 static void
-DownCallback(Widget w, XtPointer client_data, XtPointer call_data)
+DownCallback(Widget w, IswPointer client_data, IswPointer call_data)
 {
     SpinBoxWidget sbw = (SpinBoxWidget) client_data;
     (void)w; (void)call_data;
@@ -221,10 +221,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* Text field */
     n = 0;
-    XtSetArg(arglist[n], XtNstring, buf); n++;
-    XtSetArg(arglist[n], XtNeditType, IswtextEdit); n++;
-    XtSetArg(arglist[n], XtNborderWidth, 0); n++;
-    sbw->spinBox.textW = XtCreateManagedWidget("text", asciiTextWidgetClass,
+    IswSetArg(arglist[n], IswNstring, buf); n++;
+    IswSetArg(arglist[n], IswNeditType, IswtextEdit); n++;
+    IswSetArg(arglist[n], IswNborderWidth, 0); n++;
+    sbw->spinBox.textW = IswCreateManagedWidget("text", asciiTextWidgetClass,
                                                 new, arglist, n);
 
     /* Up button with upward arrow SVG */
@@ -233,16 +233,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         "<path d='M1,5 L5,1 L9,5' stroke='black' stroke-width='1.5' "
         "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
     n = 0;
-    XtSetArg(arglist[n], XtNlabel, ""); n++;
-    XtSetArg(arglist[n], XtNimage, up_arrow_svg); n++;
-    XtSetArg(arglist[n], XtNborderWidth, 0); n++;
-    XtSetArg(arglist[n], XtNborderStrokeWidth, 0); n++;
-    XtSetArg(arglist[n], XtNcornerRadius, 0); n++;
-    XtSetArg(arglist[n], XtNinternalWidth, 0); n++;
-    XtSetArg(arglist[n], XtNinternalHeight, 0); n++;
-    sbw->spinBox.upW = XtCreateManagedWidget("up", repeaterWidgetClass,
+    IswSetArg(arglist[n], IswNlabel, ""); n++;
+    IswSetArg(arglist[n], IswNimage, up_arrow_svg); n++;
+    IswSetArg(arglist[n], IswNborderWidth, 0); n++;
+    IswSetArg(arglist[n], IswNborderStrokeWidth, 0); n++;
+    IswSetArg(arglist[n], IswNcornerRadius, 0); n++;
+    IswSetArg(arglist[n], IswNinternalWidth, 0); n++;
+    IswSetArg(arglist[n], IswNinternalHeight, 0); n++;
+    sbw->spinBox.upW = IswCreateManagedWidget("up", repeaterWidgetClass,
                                               new, arglist, n);
-    XtAddCallback(sbw->spinBox.upW, XtNcallback, UpCallback, (XtPointer)sbw);
+    IswAddCallback(sbw->spinBox.upW, IswNcallback, UpCallback, (IswPointer)sbw);
 
     /* Down button with downward arrow SVG */
     static const char down_arrow_svg[] =
@@ -250,24 +250,24 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         "<path d='M1,1 L5,5 L9,1' stroke='black' stroke-width='1.5' "
         "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
     n = 0;
-    XtSetArg(arglist[n], XtNlabel, ""); n++;
-    XtSetArg(arglist[n], XtNimage, down_arrow_svg); n++;
-    XtSetArg(arglist[n], XtNborderWidth, 0); n++;
-    XtSetArg(arglist[n], XtNborderStrokeWidth, 0); n++;
-    XtSetArg(arglist[n], XtNcornerRadius, 0); n++;
-    XtSetArg(arglist[n], XtNinternalWidth, 0); n++;
-    XtSetArg(arglist[n], XtNinternalHeight, 0); n++;
-    sbw->spinBox.downW = XtCreateManagedWidget("down", repeaterWidgetClass,
+    IswSetArg(arglist[n], IswNlabel, ""); n++;
+    IswSetArg(arglist[n], IswNimage, down_arrow_svg); n++;
+    IswSetArg(arglist[n], IswNborderWidth, 0); n++;
+    IswSetArg(arglist[n], IswNborderStrokeWidth, 0); n++;
+    IswSetArg(arglist[n], IswNcornerRadius, 0); n++;
+    IswSetArg(arglist[n], IswNinternalWidth, 0); n++;
+    IswSetArg(arglist[n], IswNinternalHeight, 0); n++;
+    sbw->spinBox.downW = IswCreateManagedWidget("down", repeaterWidgetClass,
                                                 new, arglist, n);
-    XtAddCallback(sbw->spinBox.downW, XtNcallback, DownCallback, (XtPointer)sbw);
+    IswAddCallback(sbw->spinBox.downW, IswNcallback, DownCallback, (IswPointer)sbw);
 
     /* Set default size if not specified */
     if (sbw->core.width == 0)
         sbw->core.width = (120);
     if (sbw->core.height == 0) {
         /* Derive height from font metrics so the text line fits */
-        XFontStruct *font = NULL;
-        XtVaGetValues(sbw->spinBox.textW, XtNfont, &font, NULL);
+        IswFontStruct *font = NULL;
+        IswVaGetValues(sbw->spinBox.textW, IswNfont, &font, NULL);
         int font_h = font ? ISWScaledFontHeight(new, font) : (14);
         int margin = 4;  /* Text widget default VMargins (top=2 + bottom=2) */
         sbw->core.height = (Dimension)(font_h + margin + (4));
@@ -278,7 +278,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     SpinBoxWidget sbw = (SpinBoxWidget) w;
 
@@ -303,12 +303,12 @@ ChangeManaged(Widget w)
     LayoutChildren((SpinBoxWidget) w);
 }
 
-static XtGeometryResult
-GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 {
     (void)child; (void)request; (void)reply;
     /* Deny all child geometry requests — we control layout */
-    return XtGeometryNo;
+    return IswGeometryNo;
 }
 
 static void
@@ -325,9 +325,9 @@ LayoutChildren(SpinBoxWidget sbw)
     Dimension down_h = (h > (Dimension)down_y) ? (h - (Dimension)down_y) : 1;
 
     /* All children borderless — SpinBox draws divider lines in the gaps */
-    XtConfigureWidget(sbw->spinBox.textW, 0, 0, text_w, h, 0);
-    XtConfigureWidget(sbw->spinBox.upW, btn_x, 0, btn_w, up_h, 0);
-    XtConfigureWidget(sbw->spinBox.downW, btn_x, down_y, btn_w, down_h, 0);
+    IswConfigureWidget(sbw->spinBox.textW, 0, 0, text_w, h, 0);
+    IswConfigureWidget(sbw->spinBox.upW, btn_x, 0, btn_w, up_h, 0);
+    IswConfigureWidget(sbw->spinBox.downW, btn_x, down_y, btn_w, down_h, 0);
 }
 
 static void
@@ -344,7 +344,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     ISWRenderContext *ctx = sbw->spinBox.render_ctx;
     (void)event; (void)region;
 
-    if (!ctx || !XtIsRealized(w))
+    if (!ctx || !IswIsRealized(w))
         return;
 
     Dimension btn_w = (27);
@@ -395,7 +395,7 @@ GetValuesHook(Widget w, ArgList args, Cardinal *num_args)
 
     /* Sync value from text field before returning */
     for (i = 0; i < *num_args; i++) {
-        if (strcmp(args[i].name, XtNspinValue) == 0) {
+        if (strcmp(args[i].name, IswNspinValue) == 0) {
             sbw->spinBox.value = ReadTextValue(sbw);
             *(int *)args[i].value = sbw->spinBox.value;
         }
@@ -408,8 +408,8 @@ void
 IswSpinBoxSetValue(Widget w, int value)
 {
     Arg args[1];
-    XtSetArg(args[0], XtNspinValue, value);
-    XtSetValues(w, args, 1);
+    IswSetArg(args[0], IswNspinValue, value);
+    IswSetValues(w, args, 1);
 }
 
 int
@@ -417,7 +417,7 @@ IswSpinBoxGetValue(Widget w)
 {
     int value;
     Arg args[1];
-    XtSetArg(args[0], XtNspinValue, &value);
-    XtGetValues(w, args, 1);
+    IswSetArg(args[0], IswNspinValue, &value);
+    IswGetValues(w, args, 1);
     return value;
 }

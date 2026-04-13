@@ -56,7 +56,7 @@ in this Software without prior written authorization from The Open Group.
 #ifdef XTHREADS
 
 #define xmalloc __XtMalloc
-#define xfree XtFree
+#define xfree IswFree
 #include <X11/Xthreads.h>
 
 #ifndef NDEBUG
@@ -92,7 +92,7 @@ static void
 InitProcessLock(void)
 {
     if (!process_lock) {
-        process_lock = XtNew(LockRec);
+        process_lock = IswNew(LockRec);
         process_lock->mutex = xmutex_malloc();
         xmutex_init(process_lock->mutex);
         process_lock->level = 0;
@@ -159,7 +159,7 @@ ProcessUnlock(void)
 }
 
 static void
-AppLock(XtAppContext app)
+AppLock(IswAppContext app)
 {
     LockPtr app_lock = app->lock_info;
 
@@ -191,7 +191,7 @@ AppLock(XtAppContext app)
 }
 
 static void
-AppUnlock(XtAppContext app)
+AppUnlock(IswAppContext app)
 {
     LockPtr app_lock = app->lock_info;
 
@@ -218,7 +218,7 @@ AppUnlock(XtAppContext app)
 }
 
 static void
-YieldAppLock(XtAppContext app,
+YieldAppLock(IswAppContext app,
              Boolean *push_thread,
              Boolean *pushed_thread,
              int *level)
@@ -239,7 +239,7 @@ YieldAppLock(XtAppContext app,
             unsigned ii;
 
             app_lock->stack.st = (struct _Tstack *)
-                XtReallocArray(app_lock->stack.st,
+                IswReallocArray(app_lock->stack.st,
                                (Cardinal) (app_lock->stack.size + STACK_INCR),
                                (Cardinal) sizeof(struct _Tstack));
             ii = app_lock->stack.size;
@@ -265,7 +265,7 @@ YieldAppLock(XtAppContext app,
 }
 
 static void
-RestoreAppLock(XtAppContext app, int level, Boolean *pushed_thread)
+RestoreAppLock(IswAppContext app, int level, Boolean *pushed_thread)
 {
     LockPtr app_lock = app->lock_info;
     xthread_t self = xthread_self();
@@ -316,7 +316,7 @@ RestoreAppLock(XtAppContext app, int level, Boolean *pushed_thread)
 }
 
 static void
-FreeAppLock(XtAppContext app)
+FreeAppLock(IswAppContext app)
 {
     unsigned ii;
     LockPtr app_lock = app->lock_info;
@@ -333,15 +333,15 @@ FreeAppLock(XtAppContext app)
                 xcondition_clear(app_lock->stack.st[ii].c);
                 xcondition_free(app_lock->stack.st[ii].c);
             }
-            XtFree((char *) app_lock->stack.st);
+            IswFree((char *) app_lock->stack.st);
         }
-        XtFree((char *) app_lock);
+        IswFree((char *) app_lock);
         app->lock_info = NULL;
     }
 }
 
 static void
-InitAppLock(XtAppContext app)
+InitAppLock(IswAppContext app)
 {
     int ii;
     LockPtr app_lock;
@@ -352,7 +352,7 @@ InitAppLock(XtAppContext app)
     app->restore_lock = RestoreAppLock;
     app->free_lock = FreeAppLock;
 
-    app_lock = app->lock_info = XtNew(LockRec);
+    app_lock = app->lock_info = IswNew(LockRec);
     app_lock->mutex = xmutex_malloc();
     xmutex_init(app_lock->mutex);
     app_lock->level = 0;
@@ -363,7 +363,7 @@ InitAppLock(XtAppContext app)
 #endif
     app_lock->stack.size = STACK_INCR;
     app_lock->stack.sp = -1;
-    app_lock->stack.st = XtMallocArray(STACK_INCR, sizeof(struct _Tstack));
+    app_lock->stack.st = IswMallocArray(STACK_INCR, sizeof(struct _Tstack));
     for (ii = 0; ii < STACK_INCR; ii++) {
         app_lock->stack.st[ii].c = xcondition_malloc();
         xcondition_init(app_lock->stack.st[ii].c);
@@ -373,7 +373,7 @@ InitAppLock(XtAppContext app)
 #endif                          /* defined(XTHREADS) */
 
 void
-XtAppLock(XtAppContext app)
+IswAppLock(IswAppContext app)
 {
 #ifdef XTHREADS
     if (app->lock)
@@ -382,7 +382,7 @@ XtAppLock(XtAppContext app)
 }
 
 void
-XtAppUnlock(XtAppContext app)
+IswAppUnlock(IswAppContext app)
 {
 #ifdef XTHREADS
     if (app->unlock)
@@ -391,35 +391,35 @@ XtAppUnlock(XtAppContext app)
 }
 
 void
-XtProcessLock(void)
+IswProcessLock(void)
 {
 #ifdef XTHREADS
-    if (_XtProcessLock)
-        (*_XtProcessLock) ();
+    if (_IswProcessLock)
+        (*_IswProcessLock) ();
 #endif
 }
 
 void
-XtProcessUnlock(void)
+IswProcessUnlock(void)
 {
 #ifdef XTHREADS
-    if (_XtProcessUnlock)
-        (*_XtProcessUnlock) ();
+    if (_IswProcessUnlock)
+        (*_IswProcessUnlock) ();
 #endif
 }
 
 Boolean
-XtToolkitThreadInitialize(void)
+IswToolkitThreadInitialize(void)
 {
 #ifdef XTHREADS
-    if (_XtProcessLock == NULL) {
+    if (_IswProcessLock == NULL) {
 #ifdef xthread_init
         xthread_init();
 #endif
         InitProcessLock();
-        _XtProcessLock = ProcessLock;
-        _XtProcessUnlock = ProcessUnlock;
-        _XtInitAppLock = InitAppLock;
+        _IswProcessLock = ProcessLock;
+        _IswProcessUnlock = ProcessUnlock;
+        _IswInitAppLock = InitAppLock;
     }
     return True;
 #else

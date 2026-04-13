@@ -10,21 +10,21 @@
 #include "config.h"
 #endif
 
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/DrawingAreaP.h>
 
-#define offset(field) XtOffsetOf(DrawingAreaRec, field)
+#define offset(field) IswOffsetOf(DrawingAreaRec, field)
 
-static XtResource resources[] = {
-    {XtNexposeCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-	offset(drawing_area.expose_callbacks), XtRCallback, NULL},
-    {XtNresizeCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-	offset(drawing_area.resize_callbacks), XtRCallback, NULL},
-    {XtNinputCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-	offset(drawing_area.input_callbacks), XtRCallback, NULL},
+static IswResource resources[] = {
+    {IswNexposeCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+	offset(drawing_area.expose_callbacks), IswRCallback, NULL},
+    {IswNresizeCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+	offset(drawing_area.resize_callbacks), IswRCallback, NULL},
+    {IswNinputCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+	offset(drawing_area.input_callbacks), IswRCallback, NULL},
 };
 #undef offset
 
@@ -35,7 +35,7 @@ static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void DrawingAreaInput(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
-static XtActionsRec actionsList[] = {
+static IswActionsRec actionsList[] = {
     {"DrawingAreaInput", DrawingAreaInput},
 };
 
@@ -58,11 +58,11 @@ DrawingAreaClassRec drawingAreaClassRec = {
     FALSE,				/* class_inited		  */
     Initialize,				/* initialize		  */
     NULL,				/* initialize_hook	  */
-    XtInheritRealize,			/* realize		  */
+    IswInheritRealize,			/* realize		  */
     actionsList,			/* actions		  */
-    XtNumber(actionsList),		/* num_actions		  */
+    IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
-    XtNumber(resources),		/* resource_count	  */
+    IswNumber(resources),		/* resource_count	  */
     NULLQUARK,				/* xrm_class		  */
     TRUE,				/* compress_motion	  */
     FALSE,				/* compress_exposure	  */
@@ -73,18 +73,18 @@ DrawingAreaClassRec drawingAreaClassRec = {
     Redisplay,				/* expose		  */
     SetValues,				/* set_values		  */
     NULL,				/* set_values_hook	  */
-    XtInheritSetValuesAlmost,		/* set_values_almost	  */
+    IswInheritSetValuesAlmost,		/* set_values_almost	  */
     NULL,				/* get_values_hook	  */
     NULL,				/* accept_focus		  */
-    XtVersion,				/* version		  */
+    IswVersion,				/* version		  */
     NULL,				/* callback_private	  */
     defaultTranslations,		/* tm_table		  */
-    XtInheritQueryGeometry,		/* query_geometry	  */
-    XtInheritDisplayAccelerator,	/* display_accelerator	  */
+    IswInheritQueryGeometry,		/* query_geometry	  */
+    IswInheritDisplayAccelerator,	/* display_accelerator	  */
     NULL				/* extension		  */
   },
   {
-    XtInheritChangeSensitive		/* change_sensitive	  */
+    IswInheritChangeSensitive		/* change_sensitive	  */
   },
   {
     0					/* makes_compiler_happy   */
@@ -129,10 +129,10 @@ Resize(Widget w)
 
     call_data.render_ctx = NULL;
     call_data.event = NULL;
-    call_data.window = XtIsRealized(w) ? XtWindow(w) : 0;
+    call_data.window = IswIsRealized(w) ? IswWindow(w) : 0;
 
-    XtCallCallbackList(w, daw->drawing_area.resize_callbacks,
-		       (XtPointer)&call_data);
+    IswCallCallbackList(w, daw->drawing_area.resize_callbacks,
+		       (IswPointer)&call_data);
 }
 
 /* ARGSUSED */
@@ -144,7 +144,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     ISWDrawingCallbackData call_data;
 
     /* Lazy-create render context */
-    if (!ctx && w->core.width > 0 && w->core.height > 0 && XtIsRealized(w)) {
+    if (!ctx && w->core.width > 0 && w->core.height > 0 && IswIsRealized(w)) {
 	ctx = daw->drawing_area.render_ctx =
 	    ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
     }
@@ -152,11 +152,11 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     call_data.render_ctx = ctx;
     call_data.event = event;
-    call_data.window = XtWindow(w);
+    call_data.window = IswWindow(w);
 
     ISWRenderBegin(ctx);
-    XtCallCallbackList(w, daw->drawing_area.expose_callbacks,
-		       (XtPointer)&call_data);
+    IswCallCallbackList(w, daw->drawing_area.expose_callbacks,
+		       (IswPointer)&call_data);
     ISWRenderEnd(ctx);
 }
 
@@ -169,10 +169,10 @@ DrawingAreaInput(Widget w, xcb_generic_event_t *event,
 
     call_data.render_ctx = daw->drawing_area.render_ctx;
     call_data.event = event;
-    call_data.window = XtIsRealized(w) ? XtWindow(w) : 0;
+    call_data.window = IswIsRealized(w) ? IswWindow(w) : 0;
 
-    XtCallCallbackList(w, daw->drawing_area.input_callbacks,
-		       (XtPointer)&call_data);
+    IswCallCallbackList(w, daw->drawing_area.input_callbacks,
+		       (IswPointer)&call_data);
 }
 
 /* ARGSUSED */

@@ -45,11 +45,11 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _Xt_RectObjP_h_
-#define _Xt_RectObjP_h_
+#ifndef _Isw_RectObjP_h_
+#define _Isw_RectObjP_h_
 
-#include <X11/RectObj.h>
-#include <X11/ObjectP.h>
+#include <ISW/RectObj.h>
+#include <ISW/ObjectP.h>
 
 _XFUNCPROTOBEGIN
 
@@ -89,35 +89,35 @@ typedef struct _RectObjClassPart {
     WidgetClass     superclass;         /* pointer to superclass ClassRec   */
     String          class_name;         /* widget resource class name       */
     Cardinal        widget_size;        /* size in bytes of widget record   */
-    XtProc          class_initialize;   /* class initialization proc        */
-    XtWidgetClassProc class_part_initialize; /* dynamic initialization      */
-    XtEnum          class_inited;       /* has class been initialized?      */
-    XtInitProc      initialize;         /* initialize subclass fields       */
-    XtArgsProc      initialize_hook;    /* notify that initialize called    */
-    XtProc          rect1;		/* NULL                             */
-    XtPointer       rect2;              /* NULL                             */
+    IswProc          class_initialize;   /* class initialization proc        */
+    IswWidgetClassProc class_part_initialize; /* dynamic initialization      */
+    IswEnum          class_inited;       /* has class been initialized?      */
+    IswInitProc      initialize;         /* initialize subclass fields       */
+    IswArgsProc      initialize_hook;    /* notify that initialize called    */
+    IswProc          rect1;		/* NULL                             */
+    IswPointer       rect2;              /* NULL                             */
     Cardinal        rect3;              /* NULL                             */
-    XtResourceList  resources;          /* resources for subclass fields    */
+    IswResourceList  resources;          /* resources for subclass fields    */
     Cardinal        num_resources;      /* number of entries in resources   */
     XrmClass        xrm_class;          /* resource class quarkified        */
     Boolean         rect4;              /* NULL                             */
-    XtEnum          rect5;              /* NULL                             */
+    IswEnum          rect5;              /* NULL                             */
     Boolean         rect6;              /* NULL				    */
     Boolean         rect7;              /* NULL                             */
-    XtWidgetProc    destroy;            /* free data for subclass pointers  */
-    XtWidgetProc    resize;             /* geom manager changed widget size */
-    XtExposeProc    expose;             /* rediplay rectangle               */
-    XtSetValuesFunc set_values;         /* set subclass resource values     */
-    XtArgsFunc      set_values_hook;    /* notify that set_values called    */
-    XtAlmostProc    set_values_almost;  /* set values almost for geometry   */
-    XtArgsProc      get_values_hook;    /* notify that get_values called    */
-    XtProc          rect9;              /* NULL                             */
-    XtVersionType   version;            /* version of intrinsics used       */
-    XtPointer       callback_private;   /* list of callback offsets         */
+    IswWidgetProc    destroy;            /* free data for subclass pointers  */
+    IswWidgetProc    resize;             /* geom manager changed widget size */
+    IswExposeProc    expose;             /* rediplay rectangle               */
+    IswSetValuesFunc set_values;         /* set subclass resource values     */
+    IswArgsFunc      set_values_hook;    /* notify that set_values called    */
+    IswAlmostProc    set_values_almost;  /* set values almost for geometry   */
+    IswArgsProc      get_values_hook;    /* notify that get_values called    */
+    IswProc          rect9;              /* NULL                             */
+    IswVersionType   version;            /* version of intrinsics used       */
+    IswPointer       callback_private;   /* list of callback offsets         */
     String          rect10;             /* NULL                             */
-    XtGeometryHandler query_geometry;   /* return preferred geometry        */
-    XtProc          rect11;             /* NULL                             */
-    XtPointer       extension;          /* pointer to extension record      */
+    IswGeometryHandler query_geometry;   /* return preferred geometry        */
+    IswProc          rect11;             /* NULL                             */
+    IswPointer       extension;          /* pointer to extension record      */
 } RectObjClassPart;
 
 typedef struct _RectObjClassRec {
@@ -128,4 +128,4 @@ externalref RectObjClassRec rectObjClassRec;
 
 _XFUNCPROTOEND
 
-#endif /*_Xt_RectObjP_h_*/
+#endif /*_Isw_RectObjP_h_*/

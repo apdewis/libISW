@@ -66,10 +66,10 @@ SOFTWARE.
 
 */
 
-#define XtCOutput "Output"
+#define IswCOutput "Output"
 
-#define XtNdisplayNonprinting "displayNonprinting"
-#define XtNecho "echo"
+#define IswNdisplayNonprinting "displayNonprinting"
+#define IswNecho "echo"
 
 /* Class record constants */
 

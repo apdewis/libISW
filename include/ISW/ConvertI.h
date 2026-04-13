@@ -49,7 +49,7 @@ _XFUNCPROTOBEGIN
 
 /* Representation types */
 
-extern	XrmQuark  _XtQString;
+extern	XrmQuark  _IswQString;
 
 /*
  * Resource conversions
@@ -57,44 +57,44 @@ extern	XrmQuark  _XtQString;
 
 typedef struct _ConverterRec **ConverterTable;
 
-extern void _XtAddDefaultConverters(
+extern void _IswAddDefaultConverters(
     ConverterTable	/* table */
 );
 
-extern void _XtSetDefaultConverterTable(
+extern void _IswSetDefaultConverterTable(
     ConverterTable* 		/* table */
 );
 
-extern void _XtFreeConverterTable(
+extern void _IswFreeConverterTable(
     ConverterTable 		/* table */
 );
 
-extern void _XtTableAddConverter(
+extern void _IswTableAddConverter(
     ConverterTable		/* table */,
     XrmRepresentation    	/* from_type */,
     XrmRepresentation    	/* to_type */,
-    XtTypeConverter      	/* converter */,
-    XtConvertArgRec const *     /* convert_args */,
+    IswTypeConverter      	/* converter */,
+    IswConvertArgRec const *     /* convert_args */,
     Cardinal             	/* num_args */,
-    _XtBoolean              	/* new_style */,
-    XtCacheType	    		/* cache_type */,
-    XtDestructor         	/* destructor */,
-    _XtBoolean			/* global */
+    _IswBoolean              	/* new_style */,
+    IswCacheType	    		/* cache_type */,
+    IswDestructor         	/* destructor */,
+    _IswBoolean			/* global */
 );
 
-extern Boolean _XtConvert(
+extern Boolean _IswConvert(
     Widget			/* widget */,
     XrmRepresentation    	/* from_type */,
     XrmValuePtr			/* from */,
     XrmRepresentation		/* to_type */,
     XrmValuePtr			/* to */,
-    XtCacheRef*			/* cache_ref_return */
+    IswCacheRef*			/* cache_ref_return */
 );
 
-void _XtConvertInitialize(void);
+void _IswConvertInitialize(void);
 
 #ifdef DEBUG
-void _XtConverterCacheStats(void);
+void _IswConverterCacheStats(void);
 #endif
 
 _XFUNCPROTOEND

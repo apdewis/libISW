@@ -74,7 +74,7 @@ typedef struct _ISWRenderOps {
     int (*text_width)(struct _ISWRenderContext *ctx,
                      const char *text, int len);
     int (*text_height)(struct _ISWRenderContext *ctx);
-    void (*set_font)(struct _ISWRenderContext *ctx, XFontStruct *font);
+    void (*set_font)(struct _ISWRenderContext *ctx, IswFontStruct *font);
     
     /* Clipping */
     void (*set_clip_rectangle)(struct _ISWRenderContext *ctx,
@@ -133,7 +133,7 @@ typedef struct _ISWRenderContext {
     /* Current state */
     Pixel current_color;
     double line_width;
-    XFontStruct *current_font;
+    IswFontStruct *current_font;
     
     /* Backend-specific data */
     void *backend_data;

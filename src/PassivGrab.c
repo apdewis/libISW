@@ -111,7 +111,7 @@ DeleteDetailFromMask(Mask **ppDetailMask, unsigned short detail)
     if (!pDetailMask) {
         int i;
 
-        pDetailMask = XtMallocArray(MasksPerDetailMask, (Cardinal) sizeof(Mask));
+        pDetailMask = IswMallocArray(MasksPerDetailMask, (Cardinal) sizeof(Mask));
         for (i = MasksPerDetailMask; --i >= 0;)
             pDetailMask[i] = (unsigned long) (~0);
         *ppDetailMask = pDetailMask;
@@ -132,7 +132,7 @@ CopyDetailMask(const Mask *pOriginalDetailMask)
     if (!pOriginalDetailMask)
         return NULL;
 
-    pTempMask = XtMallocArray(MasksPerDetailMask, (Cardinal) sizeof(Mask));
+    pTempMask = IswMallocArray(MasksPerDetailMask, (Cardinal) sizeof(Mask));
 
     for (i = 0; i < MasksPerDetailMask; i++)
         pTempMask[i] = pOriginalDetailMask[i];
@@ -145,7 +145,7 @@ CopyDetailMask(const Mask *pOriginalDetailMask)
  * specified parameters.
  */
 
-static XtServerGrabPtr
+static IswServerGrabPtr
 CreateGrab(Widget widget,
            Boolean ownerEvents,
            Modifiers modifiers,
@@ -157,25 +157,25 @@ CreateGrab(Widget widget,
            xcb_cursor_t cursor,
            Boolean need_ext)
 {
-    XtServerGrabPtr grab;
+    IswServerGrabPtr grab;
 
     if (confine_to || cursor)
         need_ext = True;
-    grab = (XtServerGrabPtr) __XtMalloc(sizeof(XtServerGrabRec) +
-                                        (need_ext ? sizeof(XtServerGrabExtRec)
+    grab = (IswServerGrabPtr) __XtMalloc(sizeof(IswServerGrabRec) +
+                                        (need_ext ? sizeof(IswServerGrabExtRec)
                                          : 0));
     grab->next = NULL;
     grab->widget = widget;
-    XtSetBit(grab->ownerEvents, ownerEvents);
-    XtSetBit(grab->pointerMode, pointer_mode);
-    XtSetBit(grab->keyboardMode, keyboard_mode);
+    IswSetBit(grab->ownerEvents, ownerEvents);
+    IswSetBit(grab->pointerMode, pointer_mode);
+    IswSetBit(grab->keyboardMode, keyboard_mode);
     grab->eventMask = (unsigned short) event_mask;
-    XtSetBit(grab->hasExt, need_ext);
-    grab->confineToIsWidgetWin = (XtWindow(widget) == confine_to);
+    IswSetBit(grab->hasExt, need_ext);
+    grab->confineToIsWidgetWin = (IswWindow(widget) == confine_to);
     grab->modifiers = (unsigned short) modifiers;
     grab->keybut = keybut;
     if (need_ext) {
-        XtServerGrabExtPtr ext = GRABEXT(grab);
+        IswServerGrabExtPtr ext = GRABEXT(grab);
 
         ext->pModifiersMask = NULL;
         ext->pKeyButMask = NULL;
@@ -190,14 +190,14 @@ CreateGrab(Widget widget,
  */
 
 static void
-FreeGrab(XtServerGrabPtr pGrab)
+FreeGrab(IswServerGrabPtr pGrab)
 {
     if (pGrab->hasExt) {
-	XtServerGrabExtPtr ext = GRABEXT(pGrab);
-	XtFree((char *)ext->pModifiersMask);
-	XtFree((char *)ext->pKeyButMask);
+	IswServerGrabExtPtr ext = GRABEXT(pGrab);
+	IswFree((char *)ext->pModifiersMask);
+	IswFree((char *)ext->pKeyButMask);
     }
-    XtFree((char *) pGrab);
+    IswFree((char *) pGrab);
 }
 
 typedef struct _DetailRec {
@@ -277,8 +277,8 @@ DetailSupersedesSecond(register DetailPtr firstDetail,
  */
 
 static Bool
-GrabSupersedesSecond(register XtServerGrabPtr pFirstGrab,
-                     register XtServerGrabPtr pSecondGrab)
+GrabSupersedesSecond(register IswServerGrabPtr pFirstGrab,
+                     register IswServerGrabPtr pSecondGrab)
 {
     DetailRec first, second;
 
@@ -324,8 +324,8 @@ GrabSupersedesSecond(register XtServerGrabPtr pFirstGrab,
  */
 
 static Bool
-GrabMatchesSecond(register XtServerGrabPtr pFirstGrab,
-                  register XtServerGrabPtr pSecondGrab)
+GrabMatchesSecond(register IswServerGrabPtr pFirstGrab,
+                  register IswServerGrabPtr pSecondGrab)
 {
     DetailRec firstD, firstM, secondD, secondM;
 
@@ -377,12 +377,12 @@ GrabMatchesSecond(register XtServerGrabPtr pFirstGrab,
  */
 
 static void
-DeleteServerGrabFromList(XtServerGrabPtr *passiveListPtr,
-                         XtServerGrabPtr pMinuendGrab)
+DeleteServerGrabFromList(IswServerGrabPtr *passiveListPtr,
+                         IswServerGrabPtr pMinuendGrab)
 {
-    register XtServerGrabPtr *next;
-    register XtServerGrabPtr grab;
-    register XtServerGrabExtPtr ext;
+    register IswServerGrabPtr *next;
+    register IswServerGrabPtr grab;
+    register IswServerGrabExtPtr ext;
 
     for (next = passiveListPtr; (grab = *next);) {
         if (GrabMatchesSecond(grab, pMinuendGrab) &&
@@ -398,9 +398,9 @@ DeleteServerGrabFromList(XtServerGrabPtr *passiveListPtr,
             }
 
             if (!grab->hasExt) {
-                grab = (XtServerGrabPtr)
-                    XtRealloc((char *) grab, (sizeof(XtServerGrabRec) +
-                                              sizeof(XtServerGrabExtRec)));
+                grab = (IswServerGrabPtr)
+                    IswRealloc((char *) grab, (sizeof(IswServerGrabRec) +
+                                              sizeof(IswServerGrabExtRec)));
                 *next = grab;
                 grab->hasExt = True;
                 ext = GRABEXT(grab);
@@ -442,7 +442,7 @@ DeleteServerGrabFromList(XtServerGrabPtr *passiveListPtr,
                  * new entry for this keycode, which has a modifier
                  * mask set to XCB_MOD_MASK_ANY & ~(deleted modifiers).
                  */
-                XtServerGrabPtr pNewGrab;
+                IswServerGrabPtr pNewGrab;
 
                 DeleteDetailFromMask(&ext->pKeyButMask, pMinuendGrab->keybut);
                 pNewGrab = CreateGrab(grab->widget,
@@ -488,9 +488,9 @@ DeleteServerGrabFromList(XtServerGrabPtr *passiveListPtr,
 }
 
 static void
-DestroyPassiveList(XtServerGrabPtr *passiveListPtr)
+DestroyPassiveList(IswServerGrabPtr *passiveListPtr)
 {
-    XtServerGrabPtr next, grab;
+    IswServerGrabPtr next, grab;
 
     for (next = *passiveListPtr; next;) {
         grab = next;
@@ -508,32 +508,32 @@ DestroyPassiveList(XtServerGrabPtr *passiveListPtr)
  * This function is called at widget destroy time to clean up
  */
 void
-_XtDestroyServerGrabs(Widget w,
-                      XtPointer closure,
-                      XtPointer call_data _X_UNUSED)
+_IswDestroyServerGrabs(Widget w,
+                      IswPointer closure,
+                      IswPointer call_data _X_UNUSED)
 {
-    XtPerWidgetInput pwi = (XtPerWidgetInput) closure;
-    XtPerDisplayInput pdi;
+    IswPerWidgetInput pwi = (IswPerWidgetInput) closure;
+    IswPerDisplayInput pdi;
 
     LOCK_PROCESS;
-    pdi = _XtGetPerDisplayInput(XtDisplay(w));
-    _XtClearAncestorCache(w);
+    pdi = _IswGetPerDisplayInput(IswDisplay(w));
+    _IswClearAncestorCache(w);
     UNLOCK_PROCESS;
 
     /* Remove the active grab, if necessary */
-    if ((pdi->keyboard.grabType != XtNoServerGrab) &&
+    if ((pdi->keyboard.grabType != IswNoServerGrab) &&
         (pdi->keyboard.grab.widget == w)) {
-        pdi->keyboard.grabType = XtNoServerGrab;
+        pdi->keyboard.grabType = IswNoServerGrab;
         pdi->activatingKey = (xcb_keycode_t) 0;
     }
-    if ((pdi->pointer.grabType != XtNoServerGrab) &&
+    if ((pdi->pointer.grabType != IswNoServerGrab) &&
         (pdi->pointer.grab.widget == w))
-        pdi->pointer.grabType = XtNoServerGrab;
+        pdi->pointer.grabType = IswNoServerGrab;
 
     DestroyPassiveList(&pwi->keyList);
     DestroyPassiveList(&pwi->ptrList);
 
-    _XtFreePerWidgetInput(w, pwi);
+    _IswFreePerWidgetInput(w, pwi);
 }
 
 /*
@@ -541,19 +541,19 @@ _XtDestroyServerGrabs(Widget w,
  * the grab.  The grab will remain in effect until the key is released.
  */
 
-XtServerGrabPtr
-_XtCheckServerGrabsOnWidget(xcb_generic_event_t *event, Widget widget, _XtBoolean isKeyboard)
+IswServerGrabPtr
+_IswCheckServerGrabsOnWidget(xcb_generic_event_t *event, Widget widget, _IswBoolean isKeyboard)
 {
-    register XtServerGrabPtr grab;
-    XtServerGrabRec tempGrab;
-    XtServerGrabPtr *passiveListPtr;
-    XtPerWidgetInput pwi;
+    register IswServerGrabPtr grab;
+    IswServerGrabRec tempGrab;
+    IswServerGrabPtr *passiveListPtr;
+    IswPerWidgetInput pwi;
 
     LOCK_PROCESS;
-    pwi = _XtGetPerWidgetInput(widget, FALSE);
+    pwi = _IswGetPerWidgetInput(widget, FALSE);
     UNLOCK_PROCESS;
     if (!pwi)
-        return (XtServerGrabPtr) NULL;
+        return (IswServerGrabPtr) NULL;
     if (isKeyboard)
         passiveListPtr = &pwi->keyList;
     else
@@ -564,7 +564,7 @@ _XtCheckServerGrabsOnWidget(xcb_generic_event_t *event, Widget widget, _XtBoolea
      * is empty, or the keyboard is grabbed, then no work to be done
      */
     if (!*passiveListPtr)
-        return (XtServerGrabPtr) NULL;
+        return (IswServerGrabPtr) NULL;
 
     /* Take only the lower thirteen bits as modifier state.  The X Keyboard
      * Extension may be representing keyboard group state in two upper bits.
@@ -579,7 +579,7 @@ _XtCheckServerGrabsOnWidget(xcb_generic_event_t *event, Widget widget, _XtBoolea
         if (GrabMatchesSecond(&tempGrab, grab))
             return (grab);
     }
-    return (XtServerGrabPtr) NULL;
+    return (IswServerGrabPtr) NULL;
 }
 
 /*
@@ -589,7 +589,7 @@ _XtCheckServerGrabsOnWidget(xcb_generic_event_t *event, Widget widget, _XtBoolea
 
 static void
 ActiveHandler(Widget widget _X_UNUSED,
-              XtPointer pdi _X_UNUSED,
+              IswPointer pdi _X_UNUSED,
              xcb_generic_event_t *event _X_UNUSED,
               Boolean *cont _X_UNUSED)
 {
@@ -600,15 +600,15 @@ ActiveHandler(Widget widget _X_UNUSED,
  *      MakeGrab
  */
 static void
-MakeGrab(XtServerGrabPtr grab,
-         XtServerGrabPtr *passiveListPtr,
+MakeGrab(IswServerGrabPtr grab,
+         IswServerGrabPtr *passiveListPtr,
          Boolean isKeyboard,
-         XtPerDisplayInput pdi,
-         XtPerWidgetInput pwi)
+         IswPerDisplayInput pdi,
+         IswPerWidgetInput pwi)
 {
     if (!isKeyboard && !pwi->active_handler_added) {
-        XtAddEventHandler(grab->widget, XCB_EVENT_MASK_BUTTON_RELEASE, FALSE,
-                          ActiveHandler, (XtPointer) pdi);
+        IswAddEventHandler(grab->widget, XCB_EVENT_MASK_BUTTON_RELEASE, FALSE,
+                          ActiveHandler, (IswPointer) pdi);
         pwi->active_handler_added = TRUE;
     }
 
@@ -621,7 +621,7 @@ MakeGrab(XtServerGrabPtr grab,
 
         if (grab->hasExt) {
             if (grab->confineToIsWidgetWin)
-                confineTo = XtWindow(grab->widget);
+                confineTo = IswWindow(grab->widget);
             else
                 confineTo = GRABEXT(grab)->confineTo;
             cursor = GRABEXT(grab)->cursor;
@@ -635,11 +635,11 @@ MakeGrab(XtServerGrabPtr grab,
 }
 
 static void
-MakeGrabs(XtServerGrabPtr *passiveListPtr,
+MakeGrabs(IswServerGrabPtr *passiveListPtr,
           Boolean isKeyboard,
-          XtPerDisplayInput pdi)
+          IswPerDisplayInput pdi)
 {
-    XtServerGrabPtr next = *passiveListPtr;
+    IswServerGrabPtr next = *passiveListPtr;
 
     /*
      * make MakeGrab build a new list that has had the merge
@@ -649,12 +649,12 @@ MakeGrabs(XtServerGrabPtr *passiveListPtr,
     LOCK_PROCESS;
     *passiveListPtr = NULL;
     while (next) {
-        XtServerGrabPtr grab;
-        XtPerWidgetInput pwi;
+        IswServerGrabPtr grab;
+        IswPerWidgetInput pwi;
 
         grab = next;
         next = grab->next;
-        pwi = _XtGetPerWidgetInput(grab->widget, FALSE);
+        pwi = _IswGetPerWidgetInput(grab->widget, FALSE);
         MakeGrab(grab, passiveListPtr, isKeyboard, pdi, pwi);
     }
     UNLOCK_PROCESS;
@@ -669,21 +669,21 @@ MakeGrabs(XtServerGrabPtr *passiveListPtr,
 
 static void
 RealizeHandler(Widget widget,
-               XtPointer closure,
+               IswPointer closure,
               xcb_generic_event_t *event _X_UNUSED,
                Boolean *cont _X_UNUSED)
 {
-    XtPerWidgetInput pwi = (XtPerWidgetInput) closure;
-    XtPerDisplayInput pdi;
+    IswPerWidgetInput pwi = (IswPerWidgetInput) closure;
+    IswPerDisplayInput pdi;
 
     LOCK_PROCESS;
-    pdi = _XtGetPerDisplayInput(XtDisplay(widget));
+    pdi = _IswGetPerDisplayInput(IswDisplay(widget));
     UNLOCK_PROCESS;
     MakeGrabs(&pwi->keyList, KEYBOARD, pdi);
     MakeGrabs(&pwi->ptrList, POINTER, pdi);
 
-    XtRemoveEventHandler(widget, XtAllEvents, True,
-                         RealizeHandler, (XtPointer) pwi);
+    IswRemoveEventHandler(widget, IswAllEvents, True,
+                         RealizeHandler, (IswPointer) pwi);
     pwi->realize_handler_added = FALSE;
 }
 
@@ -708,19 +708,19 @@ GrabKeyOrButton(Widget widget,
                 xcb_cursor_t cursor,
                 Boolean isKeyboard)
 {
-    XtServerGrabPtr *passiveListPtr;
-    XtServerGrabPtr newGrab;
-    XtPerWidgetInput pwi;
-    XtPerDisplayInput pdi;
+    IswServerGrabPtr *passiveListPtr;
+    IswServerGrabPtr newGrab;
+    IswPerWidgetInput pwi;
+    IswPerDisplayInput pdi;
 
-    XtCheckSubclass(widget, coreWidgetClass, "in XtGrabKey or XtGrabButton");
+    IswCheckSubclass(widget, coreWidgetClass, "in IswGrabKey or IswGrabButton");
     LOCK_PROCESS;
-    pwi = _XtGetPerWidgetInput(widget, TRUE);
+    pwi = _IswGetPerWidgetInput(widget, TRUE);
     if (isKeyboard)
         passiveListPtr = &pwi->keyList;
     else
         passiveListPtr = &pwi->ptrList;
-    pdi = _XtGetPerDisplayInput(XtDisplay(widget));
+    pdi = _IswGetPerDisplayInput(IswDisplay(widget));
     UNLOCK_PROCESS;
     newGrab = CreateGrab(widget, owner_events, modifiers,
                          keyOrButton, pointer_mode, keyboard_mode,
@@ -731,12 +731,12 @@ GrabKeyOrButton(Widget widget,
      * event handler. then add the raw entry to the list for processing
      * in the handler at realize time.
      */
-    if (XtIsRealized(widget))
+    if (IswIsRealized(widget))
         MakeGrab(newGrab, passiveListPtr, isKeyboard, pdi, pwi);
     else {
         if (!pwi->realize_handler_added) {
-            XtAddEventHandler(widget, XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
-                              RealizeHandler, (XtPointer) pwi);
+            IswAddEventHandler(widget, XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
+                              RealizeHandler, (IswPointer) pwi);
             pwi->realize_handler_added = TRUE;
         }
 
@@ -752,11 +752,11 @@ UngrabKeyOrButton(Widget widget,
                   Modifiers modifiers,
                   Boolean isKeyboard)
 {
-    XtServerGrabRec tempGrab;
-    XtPerWidgetInput pwi;
+    IswServerGrabRec tempGrab;
+    IswPerWidgetInput pwi;
 
-    XtCheckSubclass(widget, coreWidgetClass,
-                    "in XtUngrabKey or XtUngrabButton");
+    IswCheckSubclass(widget, coreWidgetClass,
+                    "in IswUngrabKey or IswUngrabButton");
 
     /* Build a temporary grab list entry */
     tempGrab.widget = widget;
@@ -765,24 +765,24 @@ UngrabKeyOrButton(Widget widget,
     tempGrab.hasExt = False;
 
     LOCK_PROCESS;
-    pwi = _XtGetPerWidgetInput(widget, FALSE);
+    pwi = _IswGetPerWidgetInput(widget, FALSE);
     UNLOCK_PROCESS;
     /*
      * if there is no entry in the context manager then somethings wrong
      */
     if (!pwi) {
-        XtAppWarningMsg(XtWidgetToApplicationContext(widget),
-                        "invalidGrab", "ungrabKeyOrButton", XtCXtToolkitError,
+        IswAppWarningMsg(IswWidgetToApplicationContext(widget),
+                        "invalidGrab", "ungrabKeyOrButton", IswCIswToolkitError,
                         "Attempt to remove nonexistent passive grab",
                         NULL, NULL);
         return;
     }
 
-    if (XtIsRealized(widget)) {
+    if (IswIsRealized(widget)) {
         if (isKeyboard)
-            xcb_ungrab_key(XtDisplay(widget), (uint8_t)modifiers, widget->core.window, keyOrButton);
+            xcb_ungrab_key(IswDisplay(widget), (uint8_t)modifiers, widget->core.window, keyOrButton);
         else
-            xcb_ungrab_button(XtDisplay(widget), (uint16_t)modifiers, widget->core.window, keyOrButton);
+            xcb_ungrab_button(IswDisplay(widget), (uint16_t)modifiers, widget->core.window, keyOrButton);
     }
 
     /* Delete all entries which are encompassed by the specified grab. */
@@ -791,10 +791,10 @@ UngrabKeyOrButton(Widget widget,
 }
 
 void
-XtGrabKey(Widget widget,
-          _XtKeyCode keycode,
+IswGrabKey(Widget widget,
+          _IswKeyCode keycode,
           Modifiers modifiers,
-          _XtBoolean owner_events,
+          _IswBoolean owner_events,
           int pointer_mode,
           int keyboard_mode)
 {
@@ -808,10 +808,10 @@ XtGrabKey(Widget widget,
 }
 
 void
-XtGrabButton(Widget widget,
+IswGrabButton(Widget widget,
              int button,
              Modifiers modifiers,
-             _XtBoolean owner_events,
+             _IswBoolean owner_events,
              unsigned int event_mask,
              int pointer_mode,
              int keyboard_mode,
@@ -833,7 +833,7 @@ XtGrabButton(Widget widget,
  */
 
 void
-XtUngrabKey(Widget widget, _XtKeyCode keycode, Modifiers modifiers)
+IswUngrabKey(Widget widget, _IswKeyCode keycode, Modifiers modifiers)
 {
     WIDGET_TO_APPCON(widget);
 
@@ -843,7 +843,7 @@ XtUngrabKey(Widget widget, _XtKeyCode keycode, Modifiers modifiers)
 }
 
 void
-XtUngrabButton(Widget widget, unsigned int button, Modifiers modifiers)
+IswUngrabButton(Widget widget, unsigned int button, Modifiers modifiers)
 {
     WIDGET_TO_APPCON(widget);
 
@@ -866,36 +866,36 @@ GrabDevice(Widget widget,
            xcb_timestamp_t time,
            Boolean isKeyboard)
 {
-    XtPerDisplayInput pdi;
+    IswPerDisplayInput pdi;
     int returnVal;
 
-    XtCheckSubclass(widget, coreWidgetClass,
-                    "in XtGrabKeyboard or XtGrabPointer");
-    if (!XtIsRealized(widget))
+    IswCheckSubclass(widget, coreWidgetClass,
+                    "in IswGrabKeyboard or IswGrabPointer");
+    if (!IswIsRealized(widget))
         return XCB_GRAB_STATUS_NOT_VIEWABLE;
     LOCK_PROCESS;
-    pdi = _XtGetPerDisplayInput(XtDisplay(widget));
+    pdi = _IswGetPerDisplayInput(IswDisplay(widget));
     UNLOCK_PROCESS;
     if (!isKeyboard) {
-        //returnVal = XGrabPointer(XtDisplay(widget), XtWindow(widget),
+        //returnVal = XGrabPointer(IswDisplay(widget), IswWindow(widget),
         //                         owner_events, (unsigned) event_mask,
         //                         pointer_mode, keyboard_mode,
         //                         confine_to, cursor, time);
         xcb_grab_pointer_cookie_t cookie = xcb_grab_pointer(
-            XtDisplay(widget), 0, XtWindow(widget), XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION,
+            IswDisplay(widget), 0, IswWindow(widget), XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION,
             XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_SYNC, XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
-        xcb_grab_pointer_reply_t *reply = xcb_grab_pointer_reply(XtDisplay(widget), cookie, NULL);
+        xcb_grab_pointer_reply_t *reply = xcb_grab_pointer_reply(IswDisplay(widget), cookie, NULL);
         if (reply) {
             returnVal = reply->status;
             free(reply);
         }
     } else {
-        //returnVal = XGrabKeyboard(XtDisplay(widget), XtWindow(widget),
+        //returnVal = XGrabKeyboard(IswDisplay(widget), IswWindow(widget),
         //                          owner_events, pointer_mode,
         //                          keyboard_mode, time);
         xcb_grab_keyboard_cookie_t cookie = xcb_grab_keyboard(
-            XtDisplay(widget), 0, XtWindow(widget), XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_SYNC, XCB_CURRENT_TIME);
-        xcb_grab_keyboard_reply_t *reply = xcb_grab_keyboard_reply(XtDisplay(widget), cookie, NULL);
+            IswDisplay(widget), 0, IswWindow(widget), XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_SYNC, XCB_CURRENT_TIME);
+        xcb_grab_keyboard_reply_t *reply = xcb_grab_keyboard_reply(IswDisplay(widget), cookie, NULL);
         if (reply) {
             returnVal = reply->status;
             free(reply);
@@ -903,7 +903,7 @@ GrabDevice(Widget widget,
     }
 
     if (returnVal == XCB_GRAB_STATUS_SUCCESS) {
-        XtDevice device;
+        IswDevice device;
 
         device = isKeyboard ? &pdi->keyboard : &pdi->pointer;
 
@@ -911,11 +911,11 @@ GrabDevice(Widget widget,
         device->grab.widget = widget;
         device->grab.modifiers = 0;
         device->grab.keybut = 0;
-        XtSetBit(device->grab.ownerEvents, owner_events);
-        XtSetBit(device->grab.pointerMode, pointer_mode);
-        XtSetBit(device->grab.keyboardMode, keyboard_mode);
+        IswSetBit(device->grab.ownerEvents, owner_events);
+        IswSetBit(device->grab.pointerMode, pointer_mode);
+        IswSetBit(device->grab.keyboardMode, keyboard_mode);
         device->grab.hasExt = False;
-        device->grabType = XtActiveServerGrab;
+        device->grabType = IswActiveServerGrab;
         pdi->activatingKey = (xcb_keycode_t) 0;
     }
     return returnVal;
@@ -924,23 +924,23 @@ GrabDevice(Widget widget,
 static void
 UngrabDevice(Widget widget, xcb_timestamp_t time, Boolean isKeyboard)
 {
-    XtPerDisplayInput pdi;
-    XtDevice device;
+    IswPerDisplayInput pdi;
+    IswDevice device;
     xcb_void_cookie_t cookie;
-    xcb_connection_t *display = XtDisplay(widget);
+    xcb_connection_t *display = IswDisplay(widget);
 
     LOCK_PROCESS;
-    pdi = _XtGetPerDisplayInput(display);
+    pdi = _IswGetPerDisplayInput(display);
     UNLOCK_PROCESS;
     device = isKeyboard ? &pdi->keyboard : &pdi->pointer;
 
-    XtCheckSubclass(widget, coreWidgetClass,
-                    "in XtUngrabKeyboard or XtUngrabPointer");
+    IswCheckSubclass(widget, coreWidgetClass,
+                    "in IswUngrabKeyboard or IswUngrabPointer");
 
-    if (device->grabType != XtNoServerGrab) {
+    if (device->grabType != IswNoServerGrab) {
 
-        if (device->grabType != XtPseudoPassiveServerGrab
-            && XtIsRealized(widget)) {
+        if (device->grabType != IswPseudoPassiveServerGrab
+            && IswIsRealized(widget)) {
             if (isKeyboard)
                 cookie = xcb_ungrab_keyboard(display, XCB_CURRENT_TIME);
             else
@@ -951,7 +951,7 @@ UngrabDevice(Widget widget, xcb_timestamp_t time, Boolean isKeyboard)
             fprintf(stderr, "Failed to ungrab keyboard: %d\n", error->error_code);
             // Handle error appropriately
         }
-        device->grabType = XtNoServerGrab;
+        device->grabType = IswNoServerGrab;
         pdi->activatingKey = (xcb_keycode_t) 0;
     }
 }
@@ -960,8 +960,8 @@ UngrabDevice(Widget widget, xcb_timestamp_t time, Boolean isKeyboard)
  * Active grab of keyboard. clear any client side grabs so we don't lock
  */
 int
-XtGrabKeyboard(Widget widget,
-               _XtBoolean owner_events,
+IswGrabKeyboard(Widget widget,
+               _IswBoolean owner_events,
                int pointer_mode,
                int keyboard_mode,
                xcb_timestamp_t time)
@@ -983,7 +983,7 @@ XtGrabKeyboard(Widget widget,
  */
 
 void
-XtUngrabKeyboard(Widget widget, xcb_timestamp_t time)
+IswUngrabKeyboard(Widget widget, xcb_timestamp_t time)
 {
     WIDGET_TO_APPCON(widget);
 
@@ -996,8 +996,8 @@ XtUngrabKeyboard(Widget widget, xcb_timestamp_t time)
  * grab the pointer
  */
 int
-XtGrabPointer(Widget widget,
-              _XtBoolean owner_events,
+IswGrabPointer(Widget widget,
+              _IswBoolean owner_events,
               unsigned int event_mask,
               int pointer_mode,
               int keyboard_mode,
@@ -1022,7 +1022,7 @@ XtGrabPointer(Widget widget,
  */
 
 void
-XtUngrabPointer(Widget widget, xcb_timestamp_t time)
+IswUngrabPointer(Widget widget, xcb_timestamp_t time)
 {
     WIDGET_TO_APPCON(widget);
 
@@ -1032,13 +1032,13 @@ XtUngrabPointer(Widget widget, xcb_timestamp_t time)
 }
 
 void
-_XtRegisterPassiveGrabs(Widget widget)
+_IswRegisterPassiveGrabs(Widget widget)
 {
-    XtPerWidgetInput pwi = _XtGetPerWidgetInput(widget, FALSE);
+    IswPerWidgetInput pwi = _IswGetPerWidgetInput(widget, FALSE);
 
     if (pwi != NULL && !pwi->realize_handler_added) {
-        XtAddEventHandler(widget, XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
-                          RealizeHandler, (XtPointer) pwi);
+        IswAddEventHandler(widget, XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
+                          RealizeHandler, (IswPointer) pwi);
         pwi->realize_handler_added = TRUE;
     }
 }

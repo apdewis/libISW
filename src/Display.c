@@ -85,35 +85,35 @@ in this Software without prior written authorization from The Open Group.
 
 
 #ifdef XTHREADS
-void (*_XtProcessLock) (void) = NULL;
-void (*_XtProcessUnlock) (void) = NULL;
-void (*_XtInitAppLock) (XtAppContext) = NULL;
+void (*_IswProcessLock) (void) = NULL;
+void (*_IswProcessUnlock) (void) = NULL;
+void (*_IswInitAppLock) (IswAppContext) = NULL;
 #endif
 
-static _Xconst _XtString XtNnoPerDisplay = "noPerDisplay";
+static _Xconst _IswString IswNnoPerDisplay = "noPerDisplay";
 
 ProcessContext
-_XtGetProcessContext(void)
+_IswGetProcessContext(void)
 {
     static ProcessContextRec processContextRec = {
-        (XtAppContext) NULL,
-        (XtAppContext) NULL,
+        (IswAppContext) NULL,
+        (IswAppContext) NULL,
         (ConverterTable) NULL,
-        {(XtLanguageProc) NULL, (XtPointer) NULL}
+        {(IswLanguageProc) NULL, (IswPointer) NULL}
     };
 
     return &processContextRec;
 }
 
-XtAppContext
-_XtDefaultAppContext(void)
+IswAppContext
+_IswDefaultAppContext(void)
 {
-    ProcessContext process = _XtGetProcessContext();
-    XtAppContext app;
+    ProcessContext process = _IswGetProcessContext();
+    IswAppContext app;
 
     LOCK_PROCESS;
     if (process->defaultAppContext == NULL) {
-        process->defaultAppContext = XtCreateApplicationContext();
+        process->defaultAppContext = IswCreateApplicationContext();
     }
     app = process->defaultAppContext;
     UNLOCK_PROCESS;
@@ -121,13 +121,13 @@ _XtDefaultAppContext(void)
 }
 
 static void
-AddToAppContext(xcb_connection_t *d, XtAppContext app)
+AddToAppContext(xcb_connection_t *d, IswAppContext app)
 {
 #define DISPLAYS_TO_ADD 4
 
     if (app->count >= app->max) {
         app->max = (short) (app->max + DISPLAYS_TO_ADD);
-        app->list = XtReallocArray(app->list,
+        app->list = IswReallocArray(app->list,
                                    (Cardinal) app->max,
                                    (Cardinal) sizeof(xcb_connection_t *));
     }
@@ -145,7 +145,7 @@ AddToAppContext(xcb_connection_t *d, XtAppContext app)
 }
 
 static void
-XtDeleteFromAppContext(const xcb_connection_t *d, register XtAppContext app)
+IswDeleteFromAppContext(const xcb_connection_t *d, register IswAppContext app)
 {
     register int i;
 
@@ -171,37 +171,37 @@ XtDeleteFromAppContext(const xcb_connection_t *d, register XtAppContext app)
 #endif
 }
 
-static XtPerDisplay
+static IswPerDisplay
 NewPerDisplay(xcb_connection_t *dpy)
 {
     PerDisplayTablePtr pd;
 
-    pd = XtNew(PerDisplayTable);
+    pd = IswNew(PerDisplayTable);
 
     LOCK_PROCESS;
     pd->dpy = dpy;
-    pd->next = _XtperDisplayList;
-    _XtperDisplayList = pd;
+    pd->next = _IswperDisplayList;
+    _IswperDisplayList = pd;
     UNLOCK_PROCESS;
     return &(pd->perDpy);
 }
 
-static XtPerDisplay
+static IswPerDisplay
 InitPerDisplay(xcb_connection_t *dpy,
                int defaultScreen,
-               XtAppContext app,
+               IswAppContext app,
                _Xconst char *name,
                _Xconst char *classname)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
 
     AddToAppContext(dpy, app);
 
     pd = NewPerDisplay(dpy);
-    _XtHeapInit(&pd->heap);
+    _IswHeapInit(&pd->heap);
     pd->destroy_callbacks = NULL;
     /* Store the default screen number from xcb_connect() so that
-     * _XtGetDefaultScreen() can later retrieve the correct xcb_screen_t*.
+     * _IswGetDefaultScreen() can later retrieve the correct xcb_screen_t*.
      * NOTE: Do NOT use the Xlib DefaultScreenOfDisplay() macro here — it
      * reads ((Display*)dpy)->default_screen which is meaningless for an
      * xcb_connection_t* and returns NULL/garbage. */
@@ -229,7 +229,7 @@ InitPerDisplay(xcb_connection_t *dpy,
     }
 
     pd->case_cvt = NULL;
-    pd->defaultKeycodeTranslator = XtTranslateKey;
+    pd->defaultKeycodeTranslator = IswTranslateKey;
     pd->keysyms_serial = 0;
     pd->keysyms = NULL;
 
@@ -247,7 +247,7 @@ InitPerDisplay(xcb_connection_t *dpy,
     pd->rv = False;
     pd->last_event.full_sequence = 0;
     pd->last_timestamp = 0;
-    _XtAllocTMContext(pd);
+    _IswAllocTMContext(pd);
     pd->mapping_callbacks = NULL;
 
     pd->PerWidgetContext = NULL;    /* uthash head must be NULL before first use */
@@ -257,10 +257,10 @@ InitPerDisplay(xcb_connection_t *dpy,
     pd->pdi.traceMax = 0;
     pd->pdi.focusWidget = NULL;
     pd->pdi.activatingKey = 0;
-    pd->pdi.keyboard.grabType = XtNoServerGrab;
-    pd->pdi.pointer.grabType = XtNoServerGrab;
+    pd->pdi.keyboard.grabType = IswNoServerGrab;
+    pd->pdi.pointer.grabType = IswNoServerGrab;
 
-    _XtAllocWWTable(pd);
+    _IswAllocWWTable(pd);
     pd->per_screen_db = (xcb_xrm_database_t **) __XtCalloc(
         (Cardinal) xcb_setup_roots_length(xcb_get_setup(dpy)),
         (Cardinal) sizeof(xcb_xrm_database_t *));
@@ -272,11 +272,11 @@ InitPerDisplay(xcb_connection_t *dpy,
     pd->hook_object = NULL;
 #if 0
     /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
-     * Use _XtGetDefaultScreen(dpy) instead. See _XtGetDefaultScreen() for details. */
-    pd->hook_object = _XtCreate("hooks", "Hooks", hookObjectClass,
+     * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
+    pd->hook_object = _IswCreate("hooks", "Hooks", hookObjectClass,
                                 (Widget) NULL,
-                                _XtGetDefaultScreen(dpy),
-                                (ArgList) NULL, 0, (XtTypedArgList) NULL, 0,
+                                _IswGetDefaultScreen(dpy),
+                                (ArgList) NULL, 0, (IswTypedArgList) NULL, 0,
                                 (ConstraintWidgetClass) NULL);
 #endif
 
@@ -299,16 +299,16 @@ InitPerDisplay(xcb_connection_t *dpy,
     return pd;
 }
 
-#define THIS_FUNC "XtOpenDisplay"
+#define THIS_FUNC "IswOpenDisplay"
 xcb_connection_t *
-XtOpenDisplay(XtAppContext app,
-              _Xconst _XtString displayName,
-              _Xconst _XtString applName,
-              _Xconst _XtString className,
+IswOpenDisplay(IswAppContext app,
+              _Xconst _IswString displayName,
+              _Xconst _IswString applName,
+              _Xconst _IswString className,
               XrmOptionDescRec *urlist,
               Cardinal num_urs,
               int *argc,
-              _XtString *argv)
+              _IswString *argv)
 {
     xcb_connection_t *d;
     int defaultScreen = 0;
@@ -319,7 +319,7 @@ XtOpenDisplay(XtAppContext app,
     LOCK_PROCESS;
 
     /* parse the command line for name, display, and/or language */
-    db = _XtPreparseCommandLine(urlist, num_urs, *argc, argv,
+    db = _IswPreparseCommandLine(urlist, num_urs, *argc, argv,
                                 (String *) &applName,
                                 (String *) (displayName ? NULL : &displayName),
                                 (app->process->globalLangProcRec.proc ?
@@ -329,14 +329,14 @@ XtOpenDisplay(XtAppContext app,
     if (xcb_connection_has_error(d) == 0) {
         int numScr = xcb_setup_roots_length(xcb_get_setup(d));
         if (numScr <= 0) {
-            XtErrorMsg("nullDisplay",
-                       THIS_FUNC, XtCXtToolkitError,
+            IswErrorMsg("nullDisplay",
+                       THIS_FUNC, IswCIswToolkitError,
                        THIS_FUNC " requires a non-NULL display",
                        NULL, NULL);
         }
         if (defaultScreen < 0 || defaultScreen >= numScr) {
-            XtWarningMsg("nullDisplay",
-                         THIS_FUNC, XtCXtToolkitError,
+            IswWarningMsg("nullDisplay",
+                         THIS_FUNC, IswCIswToolkitError,
                          THIS_FUNC " default screen is invalid (ignoring)",
                          NULL, NULL);
             defaultScreen = 0;
@@ -366,11 +366,11 @@ XtOpenDisplay(XtAppContext app,
     }
 
     if (d) {
-        XtPerDisplay pd;
+        IswPerDisplay pd;
 
         pd = InitPerDisplay(d, defaultScreen, app, applName, className);
         pd->language = language;
-        _XtDisplayInitialize(d, pd, applName, num_urs, argc, argv);
+        _IswDisplayInitialize(d, pd, applName, num_urs, argc, argv);
     }
     else {
         int len;
@@ -379,7 +379,7 @@ XtOpenDisplay(XtAppContext app,
         if (!displayName) displayName = getenv("DISPLAY");
         if (!displayName) displayName = "";
         len = (int) strlen(displayName);
-        app->display_name_tried = (_XtString) __XtMalloc((Cardinal) (len + 1));
+        app->display_name_tried = (_IswString) __XtMalloc((Cardinal) (len + 1));
         strncpy((char *) app->display_name_tried, displayName,
                 (size_t) (len + 1));
         app->display_name_tried[len] = '\0';
@@ -391,7 +391,7 @@ XtOpenDisplay(XtAppContext app,
 }
 
 /*
- * _XtGetDefaultScreen - XCB replacement for the Xlib DefaultScreenOfDisplay()
+ * _IswGetDefaultScreen - XCB replacement for the Xlib DefaultScreenOfDisplay()
  * macro.
  *
  * DefaultScreenOfDisplay() is an Xlib macro defined as:
@@ -400,14 +400,14 @@ XtOpenDisplay(XtAppContext app,
  * xcb_connection_t* and returns NULL/garbage, causing a SIGSEGV when the
  * result is dereferenced.
  *
- * This function retrieves the default screen number stored in XtPerDisplay
+ * This function retrieves the default screen number stored in IswPerDisplay
  * (set from the screen-number output of xcb_connect()) and walks
  * xcb_setup_roots_iterator() to return the correct xcb_screen_t*.
  */
 xcb_screen_t *
-_XtGetDefaultScreen(xcb_connection_t *dpy)
+_IswGetDefaultScreen(xcb_connection_t *dpy)
 {
-    XtPerDisplay pd = _XtGetPerDisplay(dpy);
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
     int screen_num = pd ? pd->defaultScreen : 0;
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(xcb_get_setup(dpy));
     for (int i = 0; i < screen_num; i++) {
@@ -419,35 +419,35 @@ _XtGetDefaultScreen(xcb_connection_t *dpy)
 }
 
 xcb_connection_t *
-_XtAppInit(XtAppContext *app_context_return,
+_IswAppInit(IswAppContext *app_context_return,
            String application_class,
            XrmOptionDescRec *options,
            Cardinal num_options,
            int *argc_in_out,
-           _XtString **argv_in_out,
+           _IswString **argv_in_out,
            String *fallback_resources)
 {
-    _XtString *saved_argv;
+    _IswString *saved_argv;
     int i;
     xcb_connection_t *dpy;
 
     /*
      * Save away argv and argc so we can set the properties later
      */
-    saved_argv = XtMallocArray((Cardinal) *argc_in_out + 1,
-                               (Cardinal) sizeof(_XtString));
+    saved_argv = IswMallocArray((Cardinal) *argc_in_out + 1,
+                               (Cardinal) sizeof(_IswString));
 
     for (i = 0; i < *argc_in_out; i++)
         saved_argv[i] = (*argv_in_out)[i];
     saved_argv[i] = NULL;       /* NULL terminate that sucker. */
 
-    *app_context_return = XtCreateApplicationContext();
+    *app_context_return = IswCreateApplicationContext();
 
     LOCK_APP((*app_context_return));
     if (fallback_resources)     /* save a procedure call */
-        XtAppSetFallbackResources(*app_context_return, fallback_resources);
+        IswAppSetFallbackResources(*app_context_return, fallback_resources);
 
-    dpy = XtOpenDisplay(*app_context_return, NULL, NULL,
+    dpy = IswOpenDisplay(*app_context_return, NULL, NULL,
                         application_class,
                         options, num_options, argc_in_out, *argv_in_out);
 
@@ -455,9 +455,9 @@ _XtAppInit(XtAppContext *app_context_return,
         String param = (*app_context_return)->display_name_tried;
         Cardinal param_count = 1;
 
-        XtErrorMsg("invalidDisplay", "xtInitialize", XtCXtToolkitError,
+        IswErrorMsg("invalidDisplay", "xtInitialize", IswCIswToolkitError,
                    "Can't open display: %s", &param, &param_count);
-        XtFree((char *) (*app_context_return)->display_name_tried);
+        IswFree((char *) (*app_context_return)->display_name_tried);
     }
     *argv_in_out = saved_argv;
     UNLOCK_APP((*app_context_return));
@@ -465,39 +465,39 @@ _XtAppInit(XtAppContext *app_context_return,
 }
 
 void
-XtDisplayInitialize(XtAppContext app,
+IswDisplayInitialize(IswAppContext app,
                     xcb_connection_t *dpy,
-                    _Xconst _XtString name,
-                    _Xconst _XtString classname,
+                    _Xconst _IswString name,
+                    _Xconst _IswString classname,
                     //XrmOptionDescRec *urlist,
                     Cardinal num_urs,
                     int *argc,
-                    _XtString *argv)
+                    _IswString *argv)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
     //XrmDatabase db = NULL;
 
     LOCK_APP(app);
-    /* XtDisplayInitialize doesn't receive a screen number; default to 0.
-     * If the caller needs a specific screen, they should use XtOpenDisplay
+    /* IswDisplayInitialize doesn't receive a screen number; default to 0.
+     * If the caller needs a specific screen, they should use IswOpenDisplay
      * which captures the screen number from xcb_connect(). */
     pd = InitPerDisplay(dpy, 0, app, name, classname);
     LOCK_PROCESS;
     //if (app->process->globalLangProcRec.proc)
     //    /* pre-parse the command line for the language resource */
-    //    db = _XtPreparseCommandLine(urlist, num_urs, *argc, argv, NULL, NULL,
+    //    db = _IswPreparseCommandLine(urlist, num_urs, *argc, argv, NULL, NULL,
     //                                &pd->language);
     UNLOCK_PROCESS;
-    _XtDisplayInitialize(dpy, pd, name, num_urs, argc, argv);
+    _IswDisplayInitialize(dpy, pd, name, num_urs, argc, argv);
     //if (db)
     //    XrmDestroyDatabase(db);
     UNLOCK_APP(app);
 }
 
-XtAppContext
-XtCreateApplicationContext(void)
+IswAppContext
+IswCreateApplicationContext(void)
 {
-    XtAppContext app = XtNew(XtAppStruct);
+    IswAppContext app = IswNew(IswAppStruct);
 
 #ifdef XTHREADS
     app->lock_info = NULL;
@@ -510,7 +510,7 @@ XtCreateApplicationContext(void)
     INIT_APP_LOCK(app);
     LOCK_APP(app);
     LOCK_PROCESS;
-    app->process = _XtGetProcessContext();
+    app->process = _IswGetProcessContext();
     app->next = app->process->appContextList;
     app->process->appContextList = app;
     app->langProcRec.proc = app->process->globalLangProcRec.proc;
@@ -526,12 +526,12 @@ XtCreateApplicationContext(void)
     app->event_front = NULL;
     app->event_back = NULL;
     //app->errorDB = NULL;
-    _XtSetDefaultErrorHandlers(&app->errorMsgHandler,
+    _IswSetDefaultErrorHandlers(&app->errorMsgHandler,
                                &app->warningMsgHandler, &app->errorHandler,
                                &app->warningHandler);
     app->action_table = NULL;
-    _XtSetDefaultSelectionTimeout(&app->selectionTimeout);
-    _XtSetDefaultConverterTable(&app->converterTable);
+    _IswSetDefaultSelectionTimeout(&app->selectionTimeout);
+    _IswSetDefaultConverterTable(&app->converterTable);
     app->sync = app->being_destroyed = app->error_inited = FALSE;
     app->in_phase2_destroy = NULL;
 #ifndef USE_POLL
@@ -541,9 +541,9 @@ XtCreateApplicationContext(void)
 #endif
     app->fds.nfds = 0;
     app->input_count = app->input_max = 0;
-    _XtHeapInit(&app->heap);
+    _IswHeapInit(&app->heap);
     app->fallback_resources = NULL;
-    _XtPopupInitialize(app);
+    _IswPopupInitialize(app);
     app->action_hook_list = NULL;
     app->block_hook_list = NULL;
     app->destroy_list_size = app->destroy_count = app->dispatch_level = 0;
@@ -563,7 +563,7 @@ XtCreateApplicationContext(void)
 }
 
 void
-XtAppSetExitFlag(XtAppContext app)
+IswAppSetExitFlag(IswAppContext app)
 {
     LOCK_APP(app);
     app->exit_flag = TRUE;
@@ -571,7 +571,7 @@ XtAppSetExitFlag(XtAppContext app)
 }
 
 Boolean
-XtAppGetExitFlag(XtAppContext app)
+IswAppGetExitFlag(IswAppContext app)
 {
     Boolean retval;
 
@@ -582,50 +582,50 @@ XtAppGetExitFlag(XtAppContext app)
 }
 
 static void
-DestroyAppContext(XtAppContext app)
+DestroyAppContext(IswAppContext app)
 {
-    XtAppContext *prev_app;
+    IswAppContext *prev_app;
 
     prev_app = &app->process->appContextList;
     while (app->count > 0)
-        XtCloseDisplay(app->list[app->count - 1]);
+        IswCloseDisplay(app->list[app->count - 1]);
     if (app->list != NULL)
-        XtFree((char *) app->list);
-    _XtFreeConverterTable(app->converterTable);
-    _XtCacheFlushTag(app, (XtPointer) &app->heap);
-    _XtFreeActions(app->action_table);
+        IswFree((char *) app->list);
+    _IswFreeConverterTable(app->converterTable);
+    _IswCacheFlushTag(app, (IswPointer) &app->heap);
+    _IswFreeActions(app->action_table);
     if (app->destroy_callbacks != NULL) {
-        XtCallCallbackList((Widget) NULL,
-                           (XtCallbackList) app->destroy_callbacks,
-                           (XtPointer) app);
-        _XtRemoveAllCallbacks(&app->destroy_callbacks);
+        IswCallCallbackList((Widget) NULL,
+                           (IswCallbackList) app->destroy_callbacks,
+                           (IswPointer) app);
+        _IswRemoveAllCallbacks(&app->destroy_callbacks);
     }
     while (app->timerQueue)
-        XtRemoveTimeOut((XtIntervalId) app->timerQueue);
+        IswRemoveTimeOut((IswIntervalId) app->timerQueue);
     while (app->workQueue)
-        XtRemoveWorkProc((XtWorkProcId) app->workQueue);
+        IswRemoveWorkProc((IswWorkProcId) app->workQueue);
     while (app->signalQueue)
-        XtRemoveSignal((XtSignalId) app->signalQueue);
+        IswRemoveSignal((IswSignalId) app->signalQueue);
     if (app->input_list)
-        _XtRemoveAllInputs(app);
-    XtFree((char *) app->destroy_list);
-    _XtHeapFree(&app->heap);
+        _IswRemoveAllInputs(app);
+    IswFree((char *) app->destroy_list);
+    _IswHeapFree(&app->heap);
     while (*prev_app != app)
         prev_app = &(*prev_app)->next;
     *prev_app = app->next;
     if (app->process->defaultAppContext == app)
         app->process->defaultAppContext = NULL;
     if (app->free_bindings)
-        _XtDoFreeBindings(app);
+        _IswDoFreeBindings(app);
     FREE_APP_LOCK(app);
-    XtFree((char *) app);
+    IswFree((char *) app);
 }
 
-static XtAppContext *appDestroyList = NULL;
-int _XtAppDestroyCount = 0;
+static IswAppContext *appDestroyList = NULL;
+int _IswAppDestroyCount = 0;
 
 void
-XtDestroyApplicationContext(XtAppContext app)
+IswDestroyApplicationContext(IswAppContext app)
 {
     LOCK_APP(app);
     if (app->being_destroyed) {
@@ -633,7 +633,7 @@ XtDestroyApplicationContext(XtAppContext app)
         return;
     }
 
-    if (_XtSafeToDestroy(app)) {
+    if (_IswSafeToDestroy(app)) {
         LOCK_PROCESS;
         DestroyAppContext(app);
         UNLOCK_PROCESS;
@@ -641,46 +641,46 @@ XtDestroyApplicationContext(XtAppContext app)
     else {
         app->being_destroyed = TRUE;
         LOCK_PROCESS;
-        _XtAppDestroyCount++;
-        appDestroyList = XtReallocArray(appDestroyList,
-                                        (Cardinal) _XtAppDestroyCount,
-                                        (Cardinal) sizeof(XtAppContext));
-        appDestroyList[_XtAppDestroyCount - 1] = app;
+        _IswAppDestroyCount++;
+        appDestroyList = IswReallocArray(appDestroyList,
+                                        (Cardinal) _IswAppDestroyCount,
+                                        (Cardinal) sizeof(IswAppContext));
+        appDestroyList[_IswAppDestroyCount - 1] = app;
         UNLOCK_PROCESS;
         UNLOCK_APP(app);
     }
 }
 
 void
-_XtDestroyAppContexts(void)
+_IswDestroyAppContexts(void)
 {
     int i, ii;
-    XtAppContext apps[8];
-    XtAppContext *pApps;
+    IswAppContext apps[8];
+    IswAppContext *pApps;
 
     pApps =
-        XtStackAlloc(sizeof(XtAppContext) * (size_t) _XtAppDestroyCount, apps);
+        IswStackAlloc(sizeof(IswAppContext) * (size_t) _IswAppDestroyCount, apps);
 
-    for (i = ii = 0; i < _XtAppDestroyCount; i++) {
-        if (_XtSafeToDestroy(appDestroyList[i]))
+    for (i = ii = 0; i < _IswAppDestroyCount; i++) {
+        if (_IswSafeToDestroy(appDestroyList[i]))
             DestroyAppContext(appDestroyList[i]);
         else
             pApps[ii++] = appDestroyList[i];
     }
-    _XtAppDestroyCount = ii;
-    if (_XtAppDestroyCount == 0) {
-        XtFree((char *) appDestroyList);
+    _IswAppDestroyCount = ii;
+    if (_IswAppDestroyCount == 0) {
+        IswFree((char *) appDestroyList);
         appDestroyList = NULL;
     }
     else {
         for (i = 0; i < ii; i++)
             appDestroyList[i] = pApps[i];
     }
-    XtStackFree((XtPointer) pApps, apps);
+    IswStackFree((IswPointer) pApps, apps);
 }
 
 XrmDatabase
-XtDatabase(xcb_connection_t *dpy)
+IswDatabase(xcb_connection_t *dpy)
 {
     xcb_xrm_database_t *db;
     xcb_screen_t *screen;
@@ -689,39 +689,39 @@ XtDatabase(xcb_connection_t *dpy)
 
     LOCK_APP(app);
     
-    screen = _XtGetDefaultScreen(dpy);
+    screen = _IswGetDefaultScreen(dpy);
     
     /* Return the merged database for the default screen */
-    db = XtScreenDatabase(screen);
+    db = IswScreenDatabase(screen);
     
     UNLOCK_APP(app);
     return db;
 }
 
-PerDisplayTablePtr _XtperDisplayList = NULL;
+PerDisplayTablePtr _IswperDisplayList = NULL;
 
-XtPerDisplay
-_XtSortPerDisplayList(xcb_connection_t *dpy)
+IswPerDisplay
+_IswSortPerDisplayList(xcb_connection_t *dpy)
 {
     register PerDisplayTablePtr pd, opd = NULL;
-    XtPerDisplay result = NULL;
+    IswPerDisplay result = NULL;
 
     LOCK_PROCESS;
-    for (pd = _XtperDisplayList; pd != NULL && pd->dpy != dpy; pd = pd->next) {
+    for (pd = _IswperDisplayList; pd != NULL && pd->dpy != dpy; pd = pd->next) {
         opd = pd;
     }
 
     if (pd == NULL) {
-        XtErrorMsg(XtNnoPerDisplay, "getPerDisplay", XtCXtToolkitError,
+        IswErrorMsg(IswNnoPerDisplay, "getPerDisplay", IswCIswToolkitError,
                    "Couldn't find per display information", NULL, NULL);
     }
     else {
-        if (pd != _XtperDisplayList) {  /* move it to the front */
+        if (pd != _IswperDisplayList) {  /* move it to the front */
             /* opd points to the previous one... */
 
             opd->next = pd->next;
-            pd->next = _XtperDisplayList;
-            _XtperDisplayList = pd;
+            pd->next = _IswperDisplayList;
+            _IswperDisplayList = pd;
         }
         result = &(pd->perDpy);
     }
@@ -729,37 +729,37 @@ _XtSortPerDisplayList(xcb_connection_t *dpy)
     return result;
 }
 
-XtAppContext
-XtDisplayToApplicationContext(xcb_connection_t *dpy)
+IswAppContext
+IswDisplayToApplicationContext(xcb_connection_t *dpy)
 {
-    XtAppContext retval;
+    IswAppContext retval;
 
-    retval = _XtGetPerDisplay(dpy)->appContext;
+    retval = _IswGetPerDisplay(dpy)->appContext;
     return retval;
 }
 
 static void
 CloseDisplay(xcb_connection_t *dpy)
 {
-    register XtPerDisplay xtpd = NULL;
+    register IswPerDisplay xtpd = NULL;
     register PerDisplayTablePtr pd, opd = NULL;
     //XrmDatabase db;
 
-    XtDestroyWidget(XtHooksOfDisplay(dpy));
+    IswDestroyWidget(IswHooksOfDisplay(dpy));
 
     LOCK_PROCESS;
-    for (pd = _XtperDisplayList; pd != NULL && pd->dpy != dpy; pd = pd->next) {
+    for (pd = _IswperDisplayList; pd != NULL && pd->dpy != dpy; pd = pd->next) {
         opd = pd;
     }
 
     if (pd == NULL) {
-        XtErrorMsg(XtNnoPerDisplay, "closeDisplay", XtCXtToolkitError,
+        IswErrorMsg(IswNnoPerDisplay, "closeDisplay", IswCIswToolkitError,
                    "Couldn't find per display information", NULL, NULL);
     }
     else {
 
-        if (pd == _XtperDisplayList)
-            _XtperDisplayList = pd->next;
+        if (pd == _IswperDisplayList)
+            _IswperDisplayList = pd->next;
         else
             opd->next = pd->next;
 
@@ -770,24 +770,24 @@ CloseDisplay(xcb_connection_t *dpy)
         int i;
 
         if (xtpd->destroy_callbacks != NULL) {
-            XtCallCallbackList((Widget) NULL,
-                               (XtCallbackList) xtpd->destroy_callbacks,
-                               (XtPointer) xtpd);
-            _XtRemoveAllCallbacks(&xtpd->destroy_callbacks);
+            IswCallCallbackList((Widget) NULL,
+                               (IswCallbackList) xtpd->destroy_callbacks,
+                               (IswPointer) xtpd);
+            _IswRemoveAllCallbacks(&xtpd->destroy_callbacks);
         }
         if (xtpd->mapping_callbacks != NULL)
-            _XtRemoveAllCallbacks(&xtpd->mapping_callbacks);
+            _IswRemoveAllCallbacks(&xtpd->mapping_callbacks);
         /* Flush the converter cache and GC list before removing the
          * display from the app context.  FreePixel (called from the
-         * cache flush) uses _XtConnectionOfScreen() which walks
+         * cache flush) uses _IswConnectionOfScreen() which walks
          * app->list[] — the display must still be in that list. */
-        _XtCacheFlushTag(xtpd->appContext, (XtPointer) &xtpd->heap);
-        XtDeleteFromAppContext(dpy, xtpd->appContext);
+        _IswCacheFlushTag(xtpd->appContext, (IswPointer) &xtpd->heap);
+        IswDeleteFromAppContext(dpy, xtpd->appContext);
         //if (xtpd->keysyms)
         //    xcb_key_symbols_free(xtpd->keysyms); //causes linker error even with xcb-xkb linked
-            //XtFree((char *) xtpd->keysyms);
-        XtFree((char *) xtpd->modKeysyms);
-        XtFree((char *) xtpd->modsToKeysyms);
+            //IswFree((char *) xtpd->keysyms);
+        IswFree((char *) xtpd->modKeysyms);
+        IswFree((char *) xtpd->modsToKeysyms);
         xtpd->keysyms_per_keycode = 0;
         xtpd->being_destroyed = FALSE;
         xtpd->keysyms = NULL;
@@ -795,16 +795,16 @@ CloseDisplay(xcb_connection_t *dpy)
         xtpd->modsToKeysyms = NULL;
         //XDestroyRegion(xtpd->region);
         xcb_xfixes_destroy_region(dpy, xtpd->region);
-        XtFree((char *) xtpd->pdi.trace);
-        _XtHeapFree(&xtpd->heap);
-        _XtFreeWWTable(xtpd);
+        IswFree((char *) xtpd->pdi.trace);
+        _IswHeapFree(&xtpd->heap);
+        _IswFreeWWTable(xtpd);
         if (xtpd->per_screen_db) {
             int nscreens = xcb_setup_roots_length(xcb_get_setup(dpy));
             for (i = 0; i < nscreens; i++) {
                 if (xtpd->per_screen_db[i])
                     xcb_xrm_database_free(xtpd->per_screen_db[i]);
             }
-            XtFree((char *) xtpd->per_screen_db);
+            IswFree((char *) xtpd->per_screen_db);
             xtpd->per_screen_db = NULL;
         }
         if (xtpd->cmd_db) {
@@ -815,37 +815,37 @@ CloseDisplay(xcb_connection_t *dpy)
             xcb_xrm_database_free(xtpd->server_db);
             xtpd->server_db = NULL;
         }
-        XtFree((_XtString) xtpd->language);
+        IswFree((_IswString) xtpd->language);
         if (xtpd->dispatcher_list != NULL)
-            XtFree((char *) xtpd->dispatcher_list);
+            IswFree((char *) xtpd->dispatcher_list);
         if (xtpd->ext_select_list != NULL)
-            XtFree((char *) xtpd->ext_select_list);
+            IswFree((char *) xtpd->ext_select_list);
     }
-    XtFree((char *) pd);
+    IswFree((char *) pd);
     /* No need to clear database on connection - we manage our own databases */
     xcb_disconnect(dpy);
     UNLOCK_PROCESS;
 }
 
 void
-XtCloseDisplay(xcb_connection_t *dpy)
+IswCloseDisplay(xcb_connection_t *dpy)
 {
-    XtPerDisplay pd;
-    XtAppContext app = XtDisplayToApplicationContext(dpy);
+    IswPerDisplay pd;
+    IswAppContext app = IswDisplayToApplicationContext(dpy);
 
     LOCK_APP(app);
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
     if (pd->being_destroyed) {
         UNLOCK_APP(app);
         return;
     }
 
-    if (_XtSafeToDestroy(app))
+    if (_IswSafeToDestroy(app))
         CloseDisplay(dpy);
     else {
         pd->being_destroyed = TRUE;
         app->dpy_destroy_count++;
-        app->dpy_destroy_list = XtReallocArray(app->dpy_destroy_list,
+        app->dpy_destroy_list = IswReallocArray(app->dpy_destroy_list,
                                                (Cardinal) app->dpy_destroy_count,
                                                (Cardinal) sizeof(xcb_connection_t *));
         app->dpy_destroy_list[app->dpy_destroy_count - 1] = dpy;
@@ -854,7 +854,7 @@ XtCloseDisplay(xcb_connection_t *dpy)
 }
 
 void
-_XtCloseDisplays(XtAppContext app)
+_IswCloseDisplays(IswAppContext app)
 {
     int i;
 
@@ -863,60 +863,60 @@ _XtCloseDisplays(XtAppContext app)
         CloseDisplay(app->dpy_destroy_list[i]);
     }
     app->dpy_destroy_count = 0;
-    XtFree((char *) app->dpy_destroy_list);
+    IswFree((char *) app->dpy_destroy_list);
     app->dpy_destroy_list = NULL;
     UNLOCK_APP(app);
 }
 
-XtAppContext
-XtWidgetToApplicationContext(Widget w)
+IswAppContext
+IswWidgetToApplicationContext(Widget w)
 {
-    XtAppContext retval;
+    IswAppContext retval;
 
-    retval = _XtGetPerDisplay(XtDisplayOfObject(w))->appContext;
+    retval = _IswGetPerDisplay(IswDisplayOfObject(w))->appContext;
     return retval;
 }
 
 void
-XtGetApplicationNameAndClass(xcb_connection_t *dpy,
+IswGetApplicationNameAndClass(xcb_connection_t *dpy,
                              String *name_return,
                              String *class_return)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
 
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
     *name_return = pd->name;
     *class_return = pd->class;
 }
 
-XtPerDisplay
-_XtGetPerDisplay(xcb_connection_t *display)
+IswPerDisplay
+_IswGetPerDisplay(xcb_connection_t *display)
 {
-    XtPerDisplay retval;
+    IswPerDisplay retval;
 
     LOCK_PROCESS;
-    retval = ((_XtperDisplayList != NULL && _XtperDisplayList->dpy == display)
-              ? &_XtperDisplayList->perDpy : _XtSortPerDisplayList(display));
+    retval = ((_IswperDisplayList != NULL && _IswperDisplayList->dpy == display)
+              ? &_IswperDisplayList->perDpy : _IswSortPerDisplayList(display));
 
     UNLOCK_PROCESS;
     return retval;
 }
 
-XtPerDisplayInputRec *
-_XtGetPerDisplayInput(xcb_connection_t *display)
+IswPerDisplayInputRec *
+_IswGetPerDisplayInput(xcb_connection_t *display)
 {
-    XtPerDisplayInputRec *retval;
+    IswPerDisplayInputRec *retval;
 
     LOCK_PROCESS;
-    retval = ((_XtperDisplayList != NULL && _XtperDisplayList->dpy == display)
-              ? &_XtperDisplayList->perDpy.pdi
-              : &_XtSortPerDisplayList(display)->pdi);
+    retval = ((_IswperDisplayList != NULL && _IswperDisplayList->dpy == display)
+              ? &_IswperDisplayList->perDpy.pdi
+              : &_IswSortPerDisplayList(display)->pdi);
     UNLOCK_PROCESS;
     return retval;
 }
 
 void
-XtGetDisplays(XtAppContext app_context,
+IswGetDisplays(IswAppContext app_context,
               xcb_connection_t ***dpy_return,
               Cardinal *num_dpy_return)
 {
@@ -924,7 +924,7 @@ XtGetDisplays(XtAppContext app_context,
 
     LOCK_APP(app_context);
     *num_dpy_return = (Cardinal) app_context->count;
-    *dpy_return = XtMallocArray((Cardinal) app_context->count,
+    *dpy_return = IswMallocArray((Cardinal) app_context->count,
                                 (Cardinal) sizeof(xcb_connection_t *));
     for (ii = 0; ii < app_context->count; ii++)
         (*dpy_return)[ii] = app_context->list[ii];
@@ -932,13 +932,13 @@ XtGetDisplays(XtAppContext app_context,
 }
 
 xcb_connection_t *
-_XtConnectionOfScreen(xcb_screen_t *screen)
+_IswConnectionOfScreen(xcb_screen_t *screen)
 {
-    XtAppContext app;
+    IswAppContext app;
 
     LOCK_PROCESS;
     /* Walk the process-level display list */
-    app = _XtDefaultAppContext();
+    app = _IswDefaultAppContext();
     if (app != NULL) {
         int i;
         for (i = 0; i < app->count; i++) {

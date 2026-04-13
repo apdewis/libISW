@@ -3,7 +3,7 @@
  *
  * Implements XDND version 5 with full drag source and drop target support.
  * Widgets initiate drags via ISWXdndStartDrag and accept drops via
- * XtNdropCallback. Enter/leave/motion callbacks allow visual feedback
+ * IswNdropCallback. Enter/leave/motion callbacks allow visual feedback
  * during drag-over.
  *
  * Supports multiple MIME types, action negotiation (copy/move/link),
@@ -15,20 +15,20 @@
 #ifndef _ISWXdnd_h
 #define _ISWXdnd_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /* ------------------------------------------------------------------ */
 /* Callback resource names                                            */
 /* ------------------------------------------------------------------ */
 
-#define XtNdropCallback         "dropCallback"
-#define XtCDropCallback         "DropCallback"
-#define XtNdragEnterCallback    "dragEnterCallback"
-#define XtCDragEnterCallback    "DragEnterCallback"
-#define XtNdragMotionCallback   "dragMotionCallback"
-#define XtCDragMotionCallback   "DragMotionCallback"
-#define XtNdragLeaveCallback    "dragLeaveCallback"
-#define XtCDragLeaveCallback    "DragLeaveCallback"
+#define IswNdropCallback         "dropCallback"
+#define IswCDropCallback         "DropCallback"
+#define IswNdragEnterCallback    "dragEnterCallback"
+#define IswCDragEnterCallback    "DragEnterCallback"
+#define IswNdragMotionCallback   "dragMotionCallback"
+#define IswCDragMotionCallback   "DragMotionCallback"
+#define IswNdragLeaveCallback    "dragLeaveCallback"
+#define IswCDragLeaveCallback    "DragLeaveCallback"
 
 /* ------------------------------------------------------------------ */
 /* Action flags                                                       */
@@ -52,15 +52,15 @@ typedef enum {
  *
  * The source widget provides data in the requested MIME type.
  * Return True if the type is supported and data was provided.
- * The library takes ownership of *data_return (will XtFree it).
+ * The library takes ownership of *data_return (will IswFree it).
  */
 typedef Boolean (*IswDragConvertProc)(
     Widget          widget,
     xcb_atom_t      target_type,
-    XtPointer      *data_return,
+    IswPointer      *data_return,
     unsigned long  *length_return,
     int            *format_return,
-    XtPointer       client_data
+    IswPointer       client_data
 );
 
 /*
@@ -70,7 +70,7 @@ typedef void (*IswDragFinishedProc)(
     Widget          widget,
     IswDndAction    performed_action,
     Boolean         accepted,
-    XtPointer       client_data
+    IswPointer       client_data
 );
 
 /*
@@ -82,7 +82,7 @@ typedef struct {
     IswDndAction        actions;        /* bitmask of offered actions */
     IswDragConvertProc  convert;        /* data provider */
     IswDragFinishedProc finished;       /* completion notification */
-    XtPointer           client_data;
+    IswPointer           client_data;
     /* Optional drag icon (0 for default cursor-only feedback) */
     xcb_pixmap_t        icon_pixmap;
     int                 icon_width;
@@ -96,7 +96,7 @@ typedef struct {
 /* ------------------------------------------------------------------ */
 
 /*
- * IswDropCallbackData - Passed to XtNdropCallback.
+ * IswDropCallbackData - Passed to IswNdropCallback.
  *
  * Legacy fields (uris, num_uris) are populated when the data type is
  * text/uri-list for backward compatibility. For other types, use the
@@ -109,7 +109,7 @@ typedef struct {
     int             x, y;               /* drop position relative to widget */
 
     /* Extended fields */
-    XtPointer       data;               /* raw data from source */
+    IswPointer       data;               /* raw data from source */
     unsigned long   data_length;        /* data length in bytes */
     xcb_atom_t      data_type;          /* MIME type atom of the data */
     int             data_format;        /* 8, 16, or 32 */
@@ -148,7 +148,7 @@ void ISWXdndEnable(Widget shell);
 
 /*
  * ISWXdndWidgetAcceptDrops - Register a widget as a drop target.
- * The widget should have an XtNdropCallback. Optionally also register
+ * The widget should have an IswNdropCallback. Optionally also register
  * dragEnter/dragMotion/dragLeave callbacks for visual feedback.
  */
 void ISWXdndWidgetAcceptDrops(Widget w);
@@ -192,15 +192,15 @@ void ISWXdndSetAcceptedActions(
 /*
  * ISWXdndSetDropCallback - Set a direct drop callback on a widget.
  *
- * Use this instead of XtAddCallback(w, XtNdropCallback, ...) when
- * the widget's class doesn't declare XtNdropCallback as a resource
+ * Use this instead of IswAddCallback(w, IswNdropCallback, ...) when
+ * the widget's class doesn't declare IswNdropCallback as a resource
  * (i.e. any widget not inheriting from Simple).  The callback
- * receives IswDropCallbackData* as call_data, same as XtNdropCallback.
+ * receives IswDropCallbackData* as call_data, same as IswNdropCallback.
  */
 void ISWXdndSetDropCallback(
     Widget          w,
-    XtCallbackProc  proc,
-    XtPointer       closure
+    IswCallbackProc  proc,
+    IswPointer       closure
 );
 
 /*

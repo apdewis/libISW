@@ -62,8 +62,8 @@ SOFTWARE.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- foreground          Foreground      Pixel              XtDefaultForeground
- background          Background      Pixel              XtDefaultBackground
+ foreground          Foreground      Pixel              IswDefaultForeground
+ background          Background      Pixel              IswDefaultBackground
 
 */
 

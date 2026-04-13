@@ -12,8 +12,8 @@
 #endif
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ToolbarP.h>
 #include <ISW/Command.h>
@@ -23,24 +23,24 @@
 
 #define superclass (&constraintClassRec)
 
-#define Offset(field) XtOffsetOf(ToolbarRec, field)
+#define Offset(field) IswOffsetOf(ToolbarRec, field)
 
-static XtResource resources[] = {
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-        XtOffsetOf(ToolbarRec, core.border_width), XtRImmediate, (XtPointer) 0},
-    {XtNhSpace, XtCHSpace, XtRDimension, sizeof(Dimension),
-        Offset(toolbar.h_space), XtRImmediate, (XtPointer) 2},
-    {XtNvSpace, XtCVSpace, XtRDimension, sizeof(Dimension),
-        Offset(toolbar.v_space), XtRImmediate, (XtPointer) 2},
+static IswResource resources[] = {
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+        IswOffsetOf(ToolbarRec, core.border_width), IswRImmediate, (IswPointer) 0},
+    {IswNhSpace, IswCHSpace, IswRDimension, sizeof(Dimension),
+        Offset(toolbar.h_space), IswRImmediate, (IswPointer) 2},
+    {IswNvSpace, IswCVSpace, IswRDimension, sizeof(Dimension),
+        Offset(toolbar.v_space), IswRImmediate, (IswPointer) 2},
 };
 
 #undef Offset
 
-#define COffset(field) XtOffsetOf(ToolbarConstraintsRec, toolbar.field)
-static XtResource constraintResources[] = {
-    {XtNtoolbarAlignment, XtCtoolbarAlignment, XtRToolbarAlignment,
+#define COffset(field) IswOffsetOf(ToolbarConstraintsRec, toolbar.field)
+static IswResource constraintResources[] = {
+    {IswNtoolbarAlignment, IswCtoolbarAlignment, IswRToolbarAlignment,
      sizeof(IswToolbarAlignment),
-     COffset(alignment), XtRImmediate, (XtPointer)XtToolbarAlignLeft},
+     COffset(alignment), IswRImmediate, (IswPointer)IswToolbarAlignLeft},
 };
 #undef COffset
 
@@ -53,8 +53,8 @@ static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void ChangeManaged(Widget);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
-static XtGeometryResult PreferredSize(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
+static IswGeometryResult PreferredSize(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 ToolbarClassRec toolbarClassRec = {
   { /* core */
@@ -66,11 +66,11 @@ ToolbarClassRec toolbarClassRec = {
     FALSE,                              /* class_inited           */
     Initialize,                         /* initialize             */
     NULL,                               /* initialize_hook        */
-    XtInheritRealize,                   /* realize                */
+    IswInheritRealize,                   /* realize                */
     NULL,                               /* actions                */
     0,                                  /* num_actions            */
     resources,                          /* resources              */
-    XtNumber(resources),                /* resource_count         */
+    IswNumber(resources),                /* resource_count         */
     NULLQUARK,                          /* xrm_class              */
     TRUE,                               /* compress_motion        */
     TRUE,                               /* compress_exposure      */
@@ -81,26 +81,26 @@ ToolbarClassRec toolbarClassRec = {
     Redisplay,                          /* expose                 */
     SetValues,                          /* set_values             */
     NULL,                               /* set_values_hook        */
-    XtInheritSetValuesAlmost,           /* set_values_almost      */
+    IswInheritSetValuesAlmost,           /* set_values_almost      */
     NULL,                               /* get_values_hook        */
     NULL,                               /* accept_focus           */
-    XtVersion,                          /* version                */
+    IswVersion,                          /* version                */
     NULL,                               /* callback_private       */
     NULL,                               /* tm_table               */
     PreferredSize,                      /* query_geometry         */
-    XtInheritDisplayAccelerator,        /* display_accelerator    */
+    IswInheritDisplayAccelerator,        /* display_accelerator    */
     NULL                                /* extension              */
   },
   { /* composite */
     GeometryManager,                    /* geometry_manager       */
     ChangeManaged,                      /* change_managed         */
     InsertChild,                        /* insert_child           */
-    XtInheritDeleteChild,               /* delete_child           */
+    IswInheritDeleteChild,               /* delete_child           */
     NULL                                /* extension              */
   },
   { /* constraint */
     constraintResources,                /* subresources           */
-    XtNumber(constraintResources),      /* subresource_count      */
+    IswNumber(constraintResources),      /* subresource_count      */
     sizeof(ToolbarConstraintsRec),      /* constraint_size        */
     NULL,                               /* initialize             */
     NULL,                               /* destroy                */
@@ -130,16 +130,16 @@ _CvtStringToToolbarAlignment(XrmValuePtr args, Cardinal *num_args,
     if (strlen((char *)fromVal->addr) < sizeof(lower)) {
         ISWCopyISOLatin1Lowered(lower, (char *)fromVal->addr);
         q = XrmStringToQuark(lower);
-        if      (q == QLeft)   align = XtToolbarAlignLeft;
-        else if (q == QCenter) align = XtToolbarAlignCenter;
-        else if (q == QRight)  align = XtToolbarAlignRight;
+        if      (q == QLeft)   align = IswToolbarAlignLeft;
+        else if (q == QCenter) align = IswToolbarAlignCenter;
+        else if (q == QRight)  align = IswToolbarAlignRight;
         else {
             toVal->size = 0;
             toVal->addr = NULL;
             return;
         }
         toVal->size = sizeof(align);
-        toVal->addr = (XtPointer)&align;
+        toVal->addr = (IswPointer)&align;
         return;
     }
     toVal->addr = NULL;
@@ -153,7 +153,7 @@ ClassInitialize(void)
     QLeft   = XrmPermStringToQuark("left");
     QCenter = XrmPermStringToQuark("center");
     QRight  = XrmPermStringToQuark("right");
-    XtAddConverter(XtRString, XtRToolbarAlignment,
+    IswAddConverter(IswRString, IswRToolbarAlignment,
                    _CvtStringToToolbarAlignment, NULL, 0);
 }
 
@@ -179,13 +179,13 @@ InsertChild(Widget child)
     (*constraintClassRec.composite_class.insert_child)(child);
 
     /* Style Command-subclass children for flat toolbar appearance */
-    if (XtIsSubclass(child, commandWidgetClass)) {
+    if (IswIsSubclass(child, commandWidgetClass)) {
         Arg args[4];
         Cardinal n = 0;
 
-        XtSetArg(args[n], XtNborderWidth, 0); n++;
-        XtSetArg(args[n], XtNborderStrokeWidth, 0); n++;
-        XtSetValues(child, args, n);
+        IswSetArg(args[n], IswNborderWidth, 0); n++;
+        IswSetArg(args[n], IswNborderStrokeWidth, 0); n++;
+        IswSetValues(child, args, n);
 
         /* Force border_stroke_width to 0 (bypasses Command's Initialize default) */
         ((CommandWidget)child)->command.border_stroke_width = 0;
@@ -194,14 +194,14 @@ InsertChild(Widget child)
 
 /*
  * Query a child's preferred width and height.
- * Uses the larger of XtQueryGeometry and the child's current core size,
- * so that explicitly set dimensions (e.g. XtNwidth 24) are respected.
+ * Uses the larger of IswQueryGeometry and the child's current core size,
+ * so that explicitly set dimensions (e.g. IswNwidth 24) are respected.
  */
 static void
 ChildPreferredSize(Widget child, Dimension *w_out, Dimension *h_out)
 {
-    XtWidgetGeometry preferred;
-    XtQueryGeometry(child, NULL, &preferred);
+    IswWidgetGeometry preferred;
+    IswQueryGeometry(child, NULL, &preferred);
 
     Dimension pw = (preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH)
                    ? preferred.width : child->core.width;
@@ -282,9 +282,9 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
         return;
 
     /* Compute group widths */
-    Dimension left_w  = GroupWidth(tw, XtToolbarAlignLeft);
-    Dimension right_w = GroupWidth(tw, XtToolbarAlignRight);
-    Dimension center_w = GroupWidth(tw, XtToolbarAlignCenter);
+    Dimension left_w  = GroupWidth(tw, IswToolbarAlignLeft);
+    Dimension right_w = GroupWidth(tw, IswToolbarAlignRight);
+    Dimension center_w = GroupWidth(tw, IswToolbarAlignCenter);
 
     Dimension container_w = tw->core.width;
     Dimension container_h = tw->core.height;
@@ -296,14 +296,14 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
         if (!child->core.managed)
             continue;
         ToolbarConstraints tc = (ToolbarConstraints)child->core.constraints;
-        if (tc->toolbar.alignment != XtToolbarAlignLeft)
+        if (tc->toolbar.alignment != IswToolbarAlignLeft)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
         Dimension bw2 = 2 * child->core.border_width;
         Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
         if (y < (Position)v_space) y = (Position)v_space;
-        XtConfigureWidget(child, x, y, cw, ch, child->core.border_width);
+        IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
         x += (Position)(cw + bw2 + h_space);
     }
 
@@ -315,7 +315,7 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
         if (!child->core.managed)
             continue;
         ToolbarConstraints tc = (ToolbarConstraints)child->core.constraints;
-        if (tc->toolbar.alignment != XtToolbarAlignRight)
+        if (tc->toolbar.alignment != IswToolbarAlignRight)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
@@ -323,7 +323,7 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
         x -= (Position)(cw + bw2);
         Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
         if (y < (Position)v_space) y = (Position)v_space;
-        XtConfigureWidget(child, x, y, cw, ch, child->core.border_width);
+        IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
         x -= (Position)h_space;
     }
 
@@ -350,14 +350,14 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
             if (!child->core.managed)
                 continue;
             ToolbarConstraints tc = (ToolbarConstraints)child->core.constraints;
-            if (tc->toolbar.alignment != XtToolbarAlignCenter)
+            if (tc->toolbar.alignment != IswToolbarAlignCenter)
                 continue;
             Dimension cw, ch;
             ChildPreferredSize(child, &cw, &ch);
             Dimension bw2 = 2 * child->core.border_width;
             Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
             if (y < (Position)v_space) y = (Position)v_space;
-            XtConfigureWidget(child, x, y, cw, ch, child->core.border_width);
+            IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
             x += (Position)(cw + bw2 + h_space);
         }
     }
@@ -379,35 +379,35 @@ ChangeManaged(Widget w)
     if (tw->toolbar.preferred_width != tw->core.width ||
         tw->toolbar.preferred_height != tw->core.height)
     {
-        XtWidgetGeometry req, reply;
+        IswWidgetGeometry req, reply;
         req.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
         req.width = tw->toolbar.preferred_width;
         req.height = tw->toolbar.preferred_height;
-        XtGeometryResult result = XtMakeGeometryRequest(w, &req, &reply);
-        if (result == XtGeometryAlmost) {
+        IswGeometryResult result = IswMakeGeometryRequest(w, &req, &reply);
+        if (result == IswGeometryAlmost) {
             req.width = reply.width;
             req.height = reply.height;
-            XtMakeGeometryRequest(w, &req, NULL);
+            IswMakeGeometryRequest(w, &req, NULL);
         }
     }
 
     DoLayout(tw, TRUE);
 }
 
-static XtGeometryResult
-GeometryManager(Widget child, XtWidgetGeometry *request,
-                XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager(Widget child, IswWidgetGeometry *request,
+                IswWidgetGeometry *reply)
 {
-    ToolbarWidget tw = (ToolbarWidget)XtParent(child);
+    ToolbarWidget tw = (ToolbarWidget)IswParent(child);
     (void)reply;
 
     /* Strip position bits — we control placement */
     request->request_mode &= ~(XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y);
     if (request->request_mode == 0)
-        return XtGeometryNo;
+        return IswGeometryNo;
 
     /* Save requested sizes, then let Xt apply them.
-     * We must NOT pre-set core fields — DoLayout calls XtConfigureWidget,
+     * We must NOT pre-set core fields — DoLayout calls IswConfigureWidget,
      * which skips the xcb_configure_window if it sees no delta. */
     Dimension save_w = child->core.width;
     Dimension save_h = child->core.height;
@@ -425,32 +425,32 @@ GeometryManager(Widget child, XtWidgetGeometry *request,
     if (tw->toolbar.preferred_width != tw->core.width ||
         tw->toolbar.preferred_height != tw->core.height)
     {
-        XtWidgetGeometry req, rep;
+        IswWidgetGeometry req, rep;
         req.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
         req.width = tw->toolbar.preferred_width;
         req.height = tw->toolbar.preferred_height;
-        XtGeometryResult result = XtMakeGeometryRequest((Widget)tw, &req, &rep);
-        if (result == XtGeometryAlmost) {
+        IswGeometryResult result = IswMakeGeometryRequest((Widget)tw, &req, &rep);
+        if (result == IswGeometryAlmost) {
             req.width = rep.width;
             req.height = rep.height;
-            XtMakeGeometryRequest((Widget)tw, &req, NULL);
+            IswMakeGeometryRequest((Widget)tw, &req, NULL);
         }
     }
 
-    /* Restore old values so XtConfigureWidget sees the delta */
+    /* Restore old values so IswConfigureWidget sees the delta */
     child->core.width = save_w;
     child->core.height = save_h;
     child->core.border_width = save_bw;
 
-    /* Layout with real positioning — XtConfigureWidget will apply changes */
+    /* Layout with real positioning — IswConfigureWidget will apply changes */
     DoLayout(tw, TRUE);
 
-    return XtGeometryYes;
+    return IswGeometryYes;
 }
 
-static XtGeometryResult
-PreferredSize(Widget widget, XtWidgetGeometry *constraint,
-              XtWidgetGeometry *preferred)
+static IswGeometryResult
+PreferredSize(Widget widget, IswWidgetGeometry *constraint,
+              IswWidgetGeometry *preferred)
 {
     ToolbarWidget tw = (ToolbarWidget)widget;
 
@@ -464,10 +464,10 @@ PreferredSize(Widget widget, XtWidgetGeometry *constraint,
         == (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)
         && constraint->width == preferred->width
         && constraint->height == preferred->height)
-        return XtGeometryYes;
+        return IswGeometryYes;
     if (preferred->width == tw->core.width && preferred->height == tw->core.height)
-        return XtGeometryNo;
-    return XtGeometryAlmost;
+        return IswGeometryNo;
+    return IswGeometryAlmost;
 }
 
 static Boolean
@@ -495,7 +495,7 @@ ConstraintSetValues(Widget current, Widget request, Widget new,
     (void)request; (void)args; (void)num_args;
 
     if (ctc->toolbar.alignment != ntc->toolbar.alignment)
-        DoLayout((ToolbarWidget)XtParent(new), TRUE);
+        DoLayout((ToolbarWidget)IswParent(new), TRUE);
 
     return FALSE;
 }
@@ -505,7 +505,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     (void)event; (void)region;
 
-    if (!XtIsRealized(w) || w->core.width == 0 || w->core.height == 0)
+    if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
         return;
 
     /* Skip separator when the X window already has a border */

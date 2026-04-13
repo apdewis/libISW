@@ -41,13 +41,13 @@
 
   Name		    Class		RepType		Default Value
   ----		    -----		-------		-------------
-  background	    Background		Pixel		XtDefaultBackground
-  backgroundPixmap  BackgroundPixmap	Pixmap		XtUnspecifiedPixmap
-  border	    BorderColor		Pixel		XtDefaultForeground
+  background	    Background		Pixel		IswDefaultBackground
+  backgroundPixmap  BackgroundPixmap	Pixmap		IswUnspecifiedPixmap
+  border	    BorderColor		Pixel		IswDefaultForeground
   borderWidth	    BorderWidth		Dimension	1
-  destroyCallback   Callback		XtCallbackList	NULL
-  font		    Font		XFontStruct*	XtDefaultFont
-  foreground	    Foreground		Pixel		XtDefaultForeground
+  destroyCallback   Callback		IswCallbackList	NULL
+  font		    Font		IswFontStruct*	IswDefaultFont
+  foreground	    Foreground		Pixel		IswDefaultForeground
   height	    Height		Dimension	text height
   internalHeight    Height		Dimension	2
   internalWidth     Width		Dimension	2
@@ -67,29 +67,29 @@ extern WidgetClass tipWidgetClass;
 #define IswTextEncoding8bit	0
 #define IswTextEncodingChar2b	1
 
-#define XtNencoding "encoding"
-#define XtNtimeout "timeout"
-#define XtNtip "tip"
+#define IswNencoding "encoding"
+#define IswNtimeout "timeout"
+#define IswNtip "tip"
 
 #ifdef ISW_INTERNATIONALIZATION
-#ifndef XtNfontSet
-#define XtNfontSet "fontSet"
+#ifndef IswNfontSet
+#define IswNfontSet "fontSet"
 #endif
-#ifndef XtCFontSet
-#define XtCFontSet "FontSet"
+#ifndef IswCFontSet
+#define IswCFontSet "FontSet"
 #endif
 #endif
 
-#define XtCEncoding "Encoding"
-#define XtCTimeout "Timeout"
-#define XtCTip "Tip"
+#define IswCEncoding "Encoding"
+#define IswCTimeout "Timeout"
+#define IswCTip "Tip"
 
-#ifndef _XtStringDefs_h_
-#define XtNforeground "foreground"
-#define XtNlabel "label"
-#define XtNfont "font"
-#define XtNinternalWidth "internalWidth"
-#define XtNinternalHeight "internalHeight"
+#ifndef _IswStringDefs_h_
+#define IswNforeground "foreground"
+#define IswNlabel "label"
+#define IswNfont "font"
+#define IswNinternalWidth "internalWidth"
+#define IswNinternalHeight "internalHeight"
 #endif
 
 /*

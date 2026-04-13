@@ -39,11 +39,11 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <ISW/SimpleMenu.h>
 #include <ISW/SmeP.h>
-#include <X11/ShellP.h>
+#include <ISW/ShellP.h>
 #include <ISW/ISWRender.h>
 
 typedef struct {
-    XtPointer extension;		/* For future needs. */
+    IswPointer extension;		/* For future needs. */
 } SimpleMenuClassPart;
 
 typedef struct _SimpleMenuClassRec {

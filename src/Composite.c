@@ -74,13 +74,13 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include "StringDefs.h"
 
-static XtResource resources[] = {
-    {XtNchildren, XtCReadOnly, XtRWidgetList, sizeof(WidgetList),
-     XtOffsetOf(CompositeRec, composite.children), XtRImmediate, NULL},
-    {XtNnumChildren, XtCReadOnly, XtRCardinal, sizeof(Cardinal),
-     XtOffsetOf(CompositeRec, composite.num_children), XtRImmediate, NULL},
-    {XtNinsertPosition, XtCInsertPosition, XtRFunction, sizeof(XtOrderProc),
-     XtOffsetOf(CompositeRec, composite.insert_position), XtRImmediate, NULL},
+static IswResource resources[] = {
+    {IswNchildren, IswCReadOnly, IswRWidgetList, sizeof(WidgetList),
+     IswOffsetOf(CompositeRec, composite.children), IswRImmediate, NULL},
+    {IswNnumChildren, IswCReadOnly, IswRCardinal, sizeof(Cardinal),
+     IswOffsetOf(CompositeRec, composite.num_children), IswRImmediate, NULL},
+    {IswNinsertPosition, IswCInsertPosition, IswRFunction, sizeof(IswOrderProc),
+     IswOffsetOf(CompositeRec, composite.insert_position), IswRImmediate, NULL},
 };
 
 static void CompositeClassPartInitialize(WidgetClass);
@@ -101,11 +101,11 @@ CompositeClassRec compositeClassRec = {
      /* class_inited         */ FALSE,
      /* initialize           */ CompositeInitialize,
      /* initialize_hook      */ NULL,
-     /* realize              */ XtInheritRealize,
+     /* realize              */ IswInheritRealize,
      /* actions              */ NULL,
      /* num_actions          */ 0,
      /* resources            */ resources,
-     /* num_resources        */ XtNumber(resources),
+     /* num_resources        */ IswNumber(resources),
      /* xrm_class            */ NULLQUARK,
      /* compress_motion      */ FALSE,
      /* compress_exposure    */ TRUE,
@@ -116,10 +116,10 @@ CompositeClassRec compositeClassRec = {
      /* expose               */ NULL,
      /* set_values           */ NULL,
      /* set_values_hook      */ NULL,
-     /* set_values_almost    */ XtInheritSetValuesAlmost,
+     /* set_values_almost    */ IswInheritSetValuesAlmost,
      /* get_values_hook      */ NULL,
      /* accept_focus         */ NULL,
-     /* version              */ XtVersion,
+     /* version              */ IswVersion,
      /* callback_offsets     */ NULL,
      /* tm_table             */ NULL,
      /* query_geometry       */ NULL,
@@ -147,22 +147,22 @@ InheritAllowsChangeManagedSet(WidgetClass widget_class)
     CompositeClassExtension ext, super_ext;
 
     ext = (CompositeClassExtension)
-        XtGetClassExtension(widget_class,
-                            XtOffsetOf(CompositeClassRec,
+        IswGetClassExtension(widget_class,
+                            IswOffsetOf(CompositeClassRec,
                                        composite_class.extension), NULLQUARK,
                             1L, 0);
 
-    if (ext && ext->version == XtCompositeExtensionVersion)
+    if (ext && ext->version == IswCompositeExtensionVersion)
         return;
 
     super_ext = (CompositeClassExtension)
-        XtGetClassExtension(cc->core_class.superclass,
-                            XtOffsetOf(CompositeClassRec,
+        IswGetClassExtension(cc->core_class.superclass,
+                            IswOffsetOf(CompositeClassRec,
                                        composite_class.extension), NULLQUARK,
                             1L, 0);
 
     LOCK_PROCESS;
-    if (super_ext && super_ext->version == XtCompositeExtensionVersion &&
+    if (super_ext && super_ext->version == IswCompositeExtensionVersion &&
         super_ext->record_size == sizeof(CompositeClassExtensionRec) &&
         super_ext->allows_change_managed_set) {
         CompositeClassExtension new_ext;
@@ -173,11 +173,11 @@ InheritAllowsChangeManagedSet(WidgetClass widget_class)
         /* Be careful to inherit only what is appropriate */
         new_ext->next_extension = cc->composite_class.extension;
         new_ext->record_type = NULLQUARK;
-        new_ext->version = XtCompositeExtensionVersion;
+        new_ext->version = IswCompositeExtensionVersion;
         new_ext->record_size = sizeof(CompositeClassExtensionRec);
         new_ext->accepts_objects = (ext ? ext->accepts_objects : False);
         new_ext->allows_change_managed_set = True;
-        cc->composite_class.extension = (XtPointer) new_ext;
+        cc->composite_class.extension = (IswPointer) new_ext;
     }
     UNLOCK_PROCESS;
 }
@@ -199,20 +199,20 @@ CompositeClassPartInitialize(WidgetClass myWidgetClass)
              composite_class);
 
         LOCK_PROCESS;
-        if (wcPtr->geometry_manager == XtInheritGeometryManager) {
+        if (wcPtr->geometry_manager == IswInheritGeometryManager) {
             wcPtr->geometry_manager = superPtr->geometry_manager;
         }
 
-        if (wcPtr->change_managed == XtInheritChangeManaged) {
+        if (wcPtr->change_managed == IswInheritChangeManaged) {
             wcPtr->change_managed = superPtr->change_managed;
             InheritAllowsChangeManagedSet(myWidgetClass);
         }
 
-        if (wcPtr->insert_child == XtInheritInsertChild) {
+        if (wcPtr->insert_child == IswInheritInsertChild) {
             wcPtr->insert_child = superPtr->insert_child;
         }
 
-        if (wcPtr->delete_child == XtInheritDeleteChild) {
+        if (wcPtr->delete_child == IswInheritDeleteChild) {
             wcPtr->delete_child = superPtr->delete_child;
         }
         UNLOCK_PROCESS;
@@ -224,7 +224,7 @@ CompositeDestroy(Widget w)
 {
     register CompositeWidget cw = (CompositeWidget) w;
 
-    XtFree((char *) cw->composite.children);
+    IswFree((char *) cw->composite.children);
 }
 
 static void
@@ -247,7 +247,7 @@ CompositeInsertChild(Widget w)
         /* Allocate more space */
         cw->composite.num_slots += (cw->composite.num_slots / 2) + 2;
         cw->composite.children = children =
-            XtReallocArray(children, cw->composite.num_slots,
+            IswReallocArray(children, cw->composite.num_slots,
                            (Cardinal) sizeof(Widget));
     }
     /* Ripple children up one space from "position" */

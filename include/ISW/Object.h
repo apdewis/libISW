@@ -45,8 +45,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtObject_h
-#define _XtObject_h
+#ifndef _IswObject_h
+#define _IswObject_h
 
 _XFUNCPROTOBEGIN
 
@@ -57,5 +57,5 @@ externalref WidgetClass objectClass;
 
 _XFUNCPROTOEND
 
-#endif /* _XtObject_h */
+#endif /* _IswObject_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

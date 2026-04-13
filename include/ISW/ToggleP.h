@@ -63,9 +63,9 @@ typedef struct _RadioGroup {
 
    /* New fields for the Toggle widget class record */
 typedef struct _ToggleClass  {
-    XtActionProc Set;
-    XtActionProc Unset;
-    XtPointer extension;
+    IswActionProc Set;
+    IswActionProc Unset;
+    IswPointer extension;
 } ToggleClassPart;
 
    /* Full class record declaration */
@@ -89,7 +89,7 @@ extern ToggleClassRec toggleClassRec;
 typedef struct {
     /* resources */
     Widget      widget;
-    XtPointer   radio_data;
+    IswPointer   radio_data;
 
     /* private data */
     RadioGroup * radio_group;

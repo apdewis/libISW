@@ -10,8 +10,8 @@
 #endif
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/FontChooserP.h>
@@ -26,33 +26,33 @@
 
 #define superclass (&formClassRec)
 
-#define Offset(field) XtOffsetOf(FontChooserRec, field)
+#define Offset(field) IswOffsetOf(FontChooserRec, field)
 
-static XtResource resources[] = {
-    {XtNfontFamily, XtCFontFamily, XtRString, sizeof(String),
-        Offset(fontChooser.family), XtRString, (XtPointer) "Sans"},
-    {XtNfontSize, XtCFontSize, XtRInt, sizeof(int),
-        Offset(fontChooser.size), XtRImmediate, (XtPointer) 12},
-    {XtNfontWeight, XtCFontWeight, XtRInt, sizeof(int),
-        Offset(fontChooser.weight), XtRImmediate, (XtPointer) FC_WEIGHT_NORMAL},
-    {XtNfontSlant, XtCFontSlant, XtRInt, sizeof(int),
-        Offset(fontChooser.slant), XtRImmediate, (XtPointer) FC_SLANT_ROMAN},
-    {XtNpreviewText, XtCPreviewText, XtRString, sizeof(String),
-        Offset(fontChooser.preview_text), XtRString,
-        (XtPointer) "The quick brown fox jumps over the lazy dog"},
-    {XtNfontChanged, XtCCallback, XtRCallback, sizeof(XtPointer),
-        Offset(fontChooser.font_changed), XtRCallback, NULL},
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-        Offset(core.border_width), XtRImmediate, (XtPointer) 0},
+static IswResource resources[] = {
+    {IswNfontFamily, IswCFontFamily, IswRString, sizeof(String),
+        Offset(fontChooser.family), IswRString, (IswPointer) "Sans"},
+    {IswNfontSize, IswCFontSize, IswRInt, sizeof(int),
+        Offset(fontChooser.size), IswRImmediate, (IswPointer) 12},
+    {IswNfontWeight, IswCFontWeight, IswRInt, sizeof(int),
+        Offset(fontChooser.weight), IswRImmediate, (IswPointer) FC_WEIGHT_NORMAL},
+    {IswNfontSlant, IswCFontSlant, IswRInt, sizeof(int),
+        Offset(fontChooser.slant), IswRImmediate, (IswPointer) FC_SLANT_ROMAN},
+    {IswNpreviewText, IswCPreviewText, IswRString, sizeof(String),
+        Offset(fontChooser.preview_text), IswRString,
+        (IswPointer) "The quick brown fox jumps over the lazy dog"},
+    {IswNfontChanged, IswCCallback, IswRCallback, sizeof(IswPointer),
+        Offset(fontChooser.font_changed), IswRCallback, NULL},
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+        Offset(core.border_width), IswRImmediate, (IswPointer) 0},
 };
 
 #undef Offset
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void FamilySelected(Widget, XtPointer, XtPointer);
-static void StyleSelected(Widget, XtPointer, XtPointer);
-static void SizeSelected(Widget, XtPointer, XtPointer);
+static void FamilySelected(Widget, IswPointer, IswPointer);
+static void StyleSelected(Widget, IswPointer, IswPointer);
+static void SizeSelected(Widget, IswPointer, IswPointer);
 static void RefreshStyles(FontChooserWidget);
 static void FreeStyles(FontChooserWidget);
 static void NotifyChange(FontChooserWidget);
@@ -67,36 +67,36 @@ FontChooserClassRec fontChooserClassRec = {
     FALSE,
     Initialize,
     NULL,
-    XtInheritRealize,
+    IswInheritRealize,
     NULL,
     0,
     resources,
-    XtNumber(resources),
+    IswNumber(resources),
     NULLQUARK,
     TRUE,
     TRUE,
     TRUE,
     FALSE,
     Destroy,
-    XtInheritResize,
-    XtInheritExpose,
+    IswInheritResize,
+    IswInheritExpose,
     NULL,
     NULL,
-    XtInheritSetValuesAlmost,
+    IswInheritSetValuesAlmost,
     NULL,
     NULL,
-    XtVersion,
+    IswVersion,
     NULL,
     NULL,
-    XtInheritQueryGeometry,
-    XtInheritDisplayAccelerator,
+    IswInheritQueryGeometry,
+    IswInheritDisplayAccelerator,
     NULL
   },
   { /* composite */
-    XtInheritGeometryManager,
-    XtInheritChangeManaged,
-    XtInheritInsertChild,
-    XtInheritDeleteChild,
+    IswInheritGeometryManager,
+    IswInheritChangeManaged,
+    IswInheritInsertChild,
+    IswInheritDeleteChild,
     NULL
   },
   { /* constraint */
@@ -105,7 +105,7 @@ FontChooserClassRec fontChooserClassRec = {
     NULL, NULL, NULL, NULL
   },
   { /* form */
-    XtInheritLayout
+    IswInheritLayout
   },
   { /* fontChooser */
     0
@@ -297,7 +297,7 @@ cleanup:
 /* --- Callbacks --- */
 
 static void
-FamilySelected(Widget w, XtPointer client_data, XtPointer call_data)
+FamilySelected(Widget w, IswPointer client_data, IswPointer call_data)
 {
     FontChooserWidget fcw = (FontChooserWidget) client_data;
     IswListReturnStruct *item = (IswListReturnStruct *) call_data;
@@ -311,7 +311,7 @@ FamilySelected(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 static void
-StyleSelected(Widget w, XtPointer client_data, XtPointer call_data)
+StyleSelected(Widget w, IswPointer client_data, IswPointer call_data)
 {
     FontChooserWidget fcw = (FontChooserWidget) client_data;
     IswListReturnStruct *item = (IswListReturnStruct *) call_data;
@@ -331,7 +331,7 @@ StyleSelected(Widget w, XtPointer client_data, XtPointer call_data)
 }
 
 static void
-SizeSelected(Widget w, XtPointer client_data, XtPointer call_data)
+SizeSelected(Widget w, IswPointer client_data, IswPointer call_data)
 {
     FontChooserWidget fcw = (FontChooserWidget) client_data;
     IswListReturnStruct *item = (IswListReturnStruct *) call_data;
@@ -354,19 +354,19 @@ NotifyChange(FontChooserWidget fcw)
                  fcw->fontChooser.size,
                  fcw->fontChooser.preview_text);
 
-        /* Create an XFontStruct with the selected family for Cairo rendering */
-        XFontStruct *fs = XtNew(XFontStruct);
+        /* Create an IswFontStruct with the selected family for Cairo rendering */
+        IswFontStruct *fs = IswNew(IswFontStruct);
         memset(fs, 0, sizeof(*fs));
         fs->ascent = fcw->fontChooser.size;
         fs->descent = fcw->fontChooser.size / 3;
-        fs->font_family = XtNewString(fcw->fontChooser.family);
+        fs->font_family = IswNewString(fcw->fontChooser.family);
         fs->font_weight = fcw->fontChooser.weight;
         fs->font_slant  = fcw->fontChooser.slant;
 
         Arg a[2];
-        XtSetArg(a[0], XtNlabel, buf);
-        XtSetArg(a[1], XtNfont, fs);
-        XtSetValues(fcw->fontChooser.previewW, a, 2);
+        IswSetArg(a[0], IswNlabel, buf);
+        IswSetArg(a[1], IswNfont, fs);
+        IswSetValues(fcw->fontChooser.previewW, a, 2);
     }
 
     IswFontChooserCallbackData cb;
@@ -374,7 +374,7 @@ NotifyChange(FontChooserWidget fcw)
     cb.size   = fcw->fontChooser.size;
     cb.weight = fcw->fontChooser.weight;
     cb.slant  = fcw->fontChooser.slant;
-    XtCallCallbacks((Widget)fcw, XtNfontChanged, (XtPointer)&cb);
+    IswCallCallbacks((Widget)fcw, IswNfontChanged, (IswPointer)&cb);
 }
 
 /* --- Widget methods --- */
@@ -397,51 +397,51 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* Family label */
     n = 0;
-    XtSetArg(a[n], XtNlabel, "Family"); n++;
-    XtSetArg(a[n], XtNborderWidth, 0); n++;
-    XtSetArg(a[n], XtNleft, XtChainLeft); n++;
-    Widget familyLabel = XtCreateManagedWidget("familyLabel", labelWidgetClass, new, a, n);
+    IswSetArg(a[n], IswNlabel, "Family"); n++;
+    IswSetArg(a[n], IswNborderWidth, 0); n++;
+    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    Widget familyLabel = IswCreateManagedWidget("familyLabel", labelWidgetClass, new, a, n);
 
     /* Family list in a viewport */
     Widget familyVp;
     n = 0;
-    XtSetArg(a[n], XtNallowVert, True); n++;
-    XtSetArg(a[n], XtNwidth, list_w); n++;
-    XtSetArg(a[n], XtNheight, list_h); n++;
-    XtSetArg(a[n], XtNfromVert, familyLabel); n++;
-    XtSetArg(a[n], XtNleft, XtChainLeft); n++;
-    familyVp = XtCreateManagedWidget("familyViewport", viewportWidgetClass,
+    IswSetArg(a[n], IswNallowVert, True); n++;
+    IswSetArg(a[n], IswNwidth, list_w); n++;
+    IswSetArg(a[n], IswNheight, list_h); n++;
+    IswSetArg(a[n], IswNfromVert, familyLabel); n++;
+    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    familyVp = IswCreateManagedWidget("familyViewport", viewportWidgetClass,
                                       new, a, n);
 
     n = 0;
     if (fcw->fontChooser.num_families > 0) {
-        XtSetArg(a[n], XtNlist, fcw->fontChooser.family_names); n++;
-        XtSetArg(a[n], XtNnumberStrings, fcw->fontChooser.num_families); n++;
+        IswSetArg(a[n], IswNlist, fcw->fontChooser.family_names); n++;
+        IswSetArg(a[n], IswNnumberStrings, fcw->fontChooser.num_families); n++;
     }
-    XtSetArg(a[n], XtNdefaultColumns, 1); n++;
-    XtSetArg(a[n], XtNforceColumns, True); n++;
-    fcw->fontChooser.familyListW = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNdefaultColumns, 1); n++;
+    IswSetArg(a[n], IswNforceColumns, True); n++;
+    fcw->fontChooser.familyListW = IswCreateManagedWidget(
         "familyList", listWidgetClass, familyVp, a, n);
-    XtAddCallback(fcw->fontChooser.familyListW, XtNcallback,
-                  FamilySelected, (XtPointer)fcw);
+    IswAddCallback(fcw->fontChooser.familyListW, IswNcallback,
+                  FamilySelected, (IswPointer)fcw);
 
     /* Style label — positioned to the right of family viewport */
     n = 0;
-    XtSetArg(a[n], XtNlabel, "Style"); n++;
-    XtSetArg(a[n], XtNborderWidth, 0); n++;
-    XtSetArg(a[n], XtNfromHoriz, familyVp); n++;
-    Widget styleLabel = XtCreateManagedWidget("styleLabel", labelWidgetClass, new, a, n);
+    IswSetArg(a[n], IswNlabel, "Style"); n++;
+    IswSetArg(a[n], IswNborderWidth, 0); n++;
+    IswSetArg(a[n], IswNfromHoriz, familyVp); n++;
+    Widget styleLabel = IswCreateManagedWidget("styleLabel", labelWidgetClass, new, a, n);
 
     /* Style list in a viewport */
     Dimension style_w = 120;
     Widget styleVp;
     n = 0;
-    XtSetArg(a[n], XtNallowVert, True); n++;
-    XtSetArg(a[n], XtNwidth, style_w); n++;
-    XtSetArg(a[n], XtNheight, list_h); n++;
-    XtSetArg(a[n], XtNfromHoriz, familyVp); n++;
-    XtSetArg(a[n], XtNfromVert, styleLabel); n++;
-    styleVp = XtCreateManagedWidget("styleViewport", viewportWidgetClass,
+    IswSetArg(a[n], IswNallowVert, True); n++;
+    IswSetArg(a[n], IswNwidth, style_w); n++;
+    IswSetArg(a[n], IswNheight, list_h); n++;
+    IswSetArg(a[n], IswNfromHoriz, familyVp); n++;
+    IswSetArg(a[n], IswNfromVert, styleLabel); n++;
+    styleVp = IswCreateManagedWidget("styleViewport", viewportWidgetClass,
                                      new, a, n);
 
     /* Populate styles for the initial family */
@@ -454,22 +454,22 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     n = 0;
     if (fcw->fontChooser.num_styles > 0) {
-        XtSetArg(a[n], XtNlist, fcw->fontChooser.style_names); n++;
-        XtSetArg(a[n], XtNnumberStrings, fcw->fontChooser.num_styles); n++;
+        IswSetArg(a[n], IswNlist, fcw->fontChooser.style_names); n++;
+        IswSetArg(a[n], IswNnumberStrings, fcw->fontChooser.num_styles); n++;
     }
-    XtSetArg(a[n], XtNdefaultColumns, 1); n++;
-    XtSetArg(a[n], XtNforceColumns, True); n++;
-    fcw->fontChooser.styleListW = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNdefaultColumns, 1); n++;
+    IswSetArg(a[n], IswNforceColumns, True); n++;
+    fcw->fontChooser.styleListW = IswCreateManagedWidget(
         "styleList", listWidgetClass, styleVp, a, n);
-    XtAddCallback(fcw->fontChooser.styleListW, XtNcallback,
-                  StyleSelected, (XtPointer)fcw);
+    IswAddCallback(fcw->fontChooser.styleListW, IswNcallback,
+                  StyleSelected, (IswPointer)fcw);
 
     /* Size label — positioned to the right of style viewport */
     n = 0;
-    XtSetArg(a[n], XtNlabel, "Size"); n++;
-    XtSetArg(a[n], XtNborderWidth, 0); n++;
-    XtSetArg(a[n], XtNfromHoriz, styleVp); n++;
-    XtCreateManagedWidget("sizeLabel", labelWidgetClass, new, a, n);
+    IswSetArg(a[n], IswNlabel, "Size"); n++;
+    IswSetArg(a[n], IswNborderWidth, 0); n++;
+    IswSetArg(a[n], IswNfromHoriz, styleVp); n++;
+    IswCreateManagedWidget("sizeLabel", labelWidgetClass, new, a, n);
 
     /* Size list in a viewport */
     static String sizes[] = {
@@ -479,23 +479,23 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     Widget sizeVp;
     n = 0;
-    XtSetArg(a[n], XtNallowVert, True); n++;
-    XtSetArg(a[n], XtNwidth, size_w); n++;
-    XtSetArg(a[n], XtNheight, list_h); n++;
-    XtSetArg(a[n], XtNfromHoriz, styleVp); n++;
-    XtSetArg(a[n], XtNfromVert, styleLabel); n++;
-    sizeVp = XtCreateManagedWidget("sizeViewport", viewportWidgetClass,
+    IswSetArg(a[n], IswNallowVert, True); n++;
+    IswSetArg(a[n], IswNwidth, size_w); n++;
+    IswSetArg(a[n], IswNheight, list_h); n++;
+    IswSetArg(a[n], IswNfromHoriz, styleVp); n++;
+    IswSetArg(a[n], IswNfromVert, styleLabel); n++;
+    sizeVp = IswCreateManagedWidget("sizeViewport", viewportWidgetClass,
                                     new, a, n);
 
     n = 0;
-    XtSetArg(a[n], XtNlist, sizes); n++;
-    XtSetArg(a[n], XtNnumberStrings, XtNumber(sizes)); n++;
-    XtSetArg(a[n], XtNdefaultColumns, 1); n++;
-    XtSetArg(a[n], XtNforceColumns, True); n++;
-    fcw->fontChooser.sizeListW = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNlist, sizes); n++;
+    IswSetArg(a[n], IswNnumberStrings, IswNumber(sizes)); n++;
+    IswSetArg(a[n], IswNdefaultColumns, 1); n++;
+    IswSetArg(a[n], IswNforceColumns, True); n++;
+    fcw->fontChooser.sizeListW = IswCreateManagedWidget(
         "sizeList", listWidgetClass, sizeVp, a, n);
-    XtAddCallback(fcw->fontChooser.sizeListW, XtNcallback,
-                  SizeSelected, (XtPointer)fcw);
+    IswAddCallback(fcw->fontChooser.sizeListW, IswNcallback,
+                  SizeSelected, (IswPointer)fcw);
 
     /* Preview label */
     char preview_buf[256];
@@ -505,14 +505,14 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
              fcw->fontChooser.preview_text);
 
     n = 0;
-    XtSetArg(a[n], XtNlabel, preview_buf); n++;
-    XtSetArg(a[n], XtNwidth, preview_w); n++;
-    XtSetArg(a[n], XtNheight, preview_h); n++;
-    XtSetArg(a[n], XtNborderWidth, 1); n++;
-    XtSetArg(a[n], XtNfromVert, familyVp); n++;
-    XtSetArg(a[n], XtNleft, XtChainLeft); n++;
-    XtSetArg(a[n], XtNresize, False); n++;
-    fcw->fontChooser.previewW = XtCreateManagedWidget(
+    IswSetArg(a[n], IswNlabel, preview_buf); n++;
+    IswSetArg(a[n], IswNwidth, preview_w); n++;
+    IswSetArg(a[n], IswNheight, preview_h); n++;
+    IswSetArg(a[n], IswNborderWidth, 1); n++;
+    IswSetArg(a[n], IswNfromVert, familyVp); n++;
+    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    IswSetArg(a[n], IswNresize, False); n++;
+    fcw->fontChooser.previewW = IswCreateManagedWidget(
         "preview", labelWidgetClass, new, a, n);
 }
 

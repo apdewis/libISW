@@ -65,13 +65,13 @@ SOFTWARE.
 
 #include <ISW/Box.h>
 
-/* XtOrientation is defined in standard Xt headers, but if not available, use fallback */
-#ifndef _IswXtOrientation_defined
-#define _IswXtOrientation_defined
+/* IswOrientation is defined in standard Xt headers, but if not available, use fallback */
+#ifndef _IswOrientation_defined
+#define _IswOrientation_defined
 typedef enum {
     XtorientHorizontal = 0,
     XtorientVertical = 1
-} XtOrientation;
+} IswOrientation;
 #endif
 
 /* New fields for the Box widget class record */
@@ -90,12 +90,12 @@ extern BoxClassRec boxClassRec;
 typedef struct {
     /* resources */
     Dimension   h_space, v_space;
-    XtOrientation orientation;
+    IswOrientation orientation;
 
     /* private state */
     Dimension	preferred_width, preferred_height;
     Dimension	last_query_width, last_query_height;
-    XtGeometryMask last_query_mode;
+    IswGeometryMask last_query_mode;
 } BoxPart;
 
 

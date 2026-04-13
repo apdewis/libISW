@@ -1,7 +1,7 @@
 /*
  * ScrollWheel.c - Scroll wheel support for ISW widgets
  *
- * Installs a custom XtEventDispatchProc for ButtonPress and ButtonRelease
+ * Installs a custom IswEventDispatchProc for ButtonPress and ButtonRelease
  * events. When a scroll wheel button (4/5 vertical, 6/7 horizontal) is
  * detected, walks up the widget tree from the pointer target to find the
  * nearest scrollable container (Viewport, Text) or standalone Scrollbar,
@@ -24,8 +24,8 @@
 #include "config.h"
 #endif
 
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ScrollWheel.h>
 #include <ISW/ScrollbarP.h>
 #include <ISW/ViewportP.h>
@@ -35,8 +35,8 @@
 #include <xcb/xcb.h>
 
 /* Saved original dispatchers so we can chain to them */
-static XtEventDispatchProc original_press_dispatcher = NULL;
-static XtEventDispatchProc original_release_dispatcher = NULL;
+static IswEventDispatchProc original_press_dispatcher = NULL;
+static IswEventDispatchProc original_release_dispatcher = NULL;
 static Boolean scroll_wheel_initialized = False;
 
 /* Scroll stickiness state */
@@ -49,7 +49,7 @@ static xcb_timestamp_t sticky_timestamp = 0;
  * hold a dangling pointer.
  */
 static void
-StickyDestroyCallback(Widget w, XtPointer closure, XtPointer call_data)
+StickyDestroyCallback(Widget w, IswPointer closure, IswPointer call_data)
 {
     if (sticky_scrollbar == w)
         sticky_scrollbar = NULL;
@@ -64,11 +64,11 @@ SetStickyTarget(Widget bar, xcb_timestamp_t time)
 {
     if (bar != sticky_scrollbar) {
         if (sticky_scrollbar != NULL)
-            XtRemoveCallback(sticky_scrollbar, XtNdestroyCallback,
+            IswRemoveCallback(sticky_scrollbar, IswNdestroyCallback,
                              StickyDestroyCallback, NULL);
         sticky_scrollbar = bar;
         if (bar != NULL)
-            XtAddCallback(bar, XtNdestroyCallback,
+            IswAddCallback(bar, IswNdestroyCallback,
                           StickyDestroyCallback, NULL);
     }
     sticky_timestamp = time;
@@ -83,7 +83,7 @@ ScrollTo(Widget bar, int direction, xcb_timestamp_t time)
     ScrollbarWidget sbw = (ScrollbarWidget)bar;
     intptr_t increment = direction *
         (intptr_t)sbw->scrollbar.scroll_wheel_increment;
-    XtCallCallbacks(bar, XtNscrollProc, (XtPointer)increment);
+    IswCallCallbacks(bar, IswNscrollProc, (IswPointer)increment);
     SetStickyTarget(bar, time);
 }
 
@@ -128,9 +128,9 @@ FindAndDispatchScroll(Widget start, int direction, Boolean horizontal,
     Widget w;
     Widget scrollbar_found = NULL;
 
-    for (w = start; w != NULL; w = XtParent(w)) {
+    for (w = start; w != NULL; w = IswParent(w)) {
         /* Check for Viewport - preferred target */
-        if (XtIsSubclass(w, viewportWidgetClass)) {
+        if (IswIsSubclass(w, viewportWidgetClass)) {
             ViewportWidget vw = (ViewportWidget)w;
             Widget bar = horizontal ? vw->viewport.horiz_bar
                                     : vw->viewport.vert_bar;
@@ -140,7 +140,7 @@ FindAndDispatchScroll(Widget start, int direction, Boolean horizontal,
         }
 
         /* Check for Text widget */
-        if (XtIsSubclass(w, textWidgetClass)) {
+        if (IswIsSubclass(w, textWidgetClass)) {
             TextWidget tw = (TextWidget)w;
             Widget bar = horizontal ? tw->text.hbar : tw->text.vbar;
             if (bar != NULL)
@@ -149,7 +149,7 @@ FindAndDispatchScroll(Widget start, int direction, Boolean horizontal,
         }
 
         /* Remember first scrollbar seen (fallback for standalone scrollbars) */
-        if (scrollbar_found == NULL && XtIsSubclass(w, scrollbarWidgetClass)) {
+        if (scrollbar_found == NULL && IswIsSubclass(w, scrollbarWidgetClass)) {
             scrollbar_found = w;
         }
     }
@@ -185,7 +185,7 @@ ScrollWheelPressDispatcher(xcb_generic_event_t *event, xcb_connection_t *conn)
                 ScrollTo(sticky_scrollbar, direction, bev->time);
             } else {
                 /* Fresh lookup via ancestor walk */
-                Widget target = XtWindowToWidget(conn, bev->event);
+                Widget target = IswWindowToWidget(conn, bev->event);
                 if (target != NULL)
                     FindAndDispatchScroll(target, direction, horizontal,
                                           bev->time);
@@ -231,9 +231,9 @@ ISWScrollWheelInit(xcb_connection_t *conn)
         return;
     scroll_wheel_initialized = True;
 
-    original_press_dispatcher = XtSetEventDispatcher(
+    original_press_dispatcher = IswSetEventDispatcher(
         conn, XCB_BUTTON_PRESS, ScrollWheelPressDispatcher);
 
-    original_release_dispatcher = XtSetEventDispatcher(
+    original_release_dispatcher = IswSetEventDispatcher(
         conn, XCB_BUTTON_RELEASE, ScrollWheelReleaseDispatcher);
 }

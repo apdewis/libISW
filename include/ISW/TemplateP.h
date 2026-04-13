@@ -31,11 +31,11 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <ISW/Template.h>
 /* include superclass private header file */
-#include <X11/CoreP.h>
+#include <ISW/CoreP.h>
 
 /* define unique representation types not found in <X11/StringDefs.h> */
 
-#define XtRTemplateResource "TemplateResource"
+#define IswRTemplateResource "TemplateResource"
 
 typedef struct {
     int empty;

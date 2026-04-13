@@ -45,8 +45,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtselectionI_h
-#define _XtselectionI_h
+#ifndef _IswselectionI_h
+#define _IswselectionI_h
 
 #include "Intrinsic.h"
 
@@ -61,11 +61,11 @@ typedef struct _RequestRec {
    xcb_atom_t target;
    xcb_atom_t type;
    int format;
-   XtPointer value;
+   IswPointer value;
    unsigned long bytelength;
    unsigned long offset;
-   XtIntervalId timeout;
-   xcb_selection_request_event_t event; /* for XtGetSelectionRequest */
+   IswIntervalId timeout;
+   xcb_selection_request_event_t event; /* for IswGetSelectionRequest */
    Boolean allSent;
 } RequestRec;
 
@@ -89,11 +89,11 @@ typedef struct _SelectRec {
     Widget widget;
     xcb_timestamp_t time;
     unsigned long serial;
-    XtConvertSelectionProc convert;
-    XtLoseSelectionProc loses;
-    XtSelectionDoneProc notify;
-    XtCancelConvertSelectionProc owner_cancel;
-    XtPointer owner_closure;
+    IswConvertSelectionProc convert;
+    IswLoseSelectionProc loses;
+    IswSelectionDoneProc notify;
+    IswCancelConvertSelectionProc owner_cancel;
+    IswPointer owner_closure;
     PropList prop_list;
     Request req;			/* state for local non-incr xfer */
     int ref_count;			/* of active transfers */
@@ -116,8 +116,8 @@ typedef struct _QueuedRequestRec {
     xcb_atom_t selection;
     xcb_atom_t target;
     xcb_atom_t param;
-    XtSelectionCallbackProc callback;
-    XtPointer closure;
+    IswSelectionCallbackProc callback;
+    IswPointer closure;
     xcb_timestamp_t time;
     Boolean incremental;
 } QueuedRequestRec, *QueuedRequest;
@@ -129,8 +129,8 @@ typedef struct _QueuedRequestInfoRec {
 } QueuedRequestInfoRec, *QueuedRequestInfo;
 
 typedef struct {
-    XtSelectionCallbackProc *callbacks;
-    XtPointer *req_closure;
+    IswSelectionCallbackProc *callbacks;
+    IswPointer *req_closure;
     xcb_atom_t property;
     xcb_atom_t *target;
     xcb_atom_t type;
@@ -138,8 +138,8 @@ typedef struct {
     char *value;
     int bytelength;
     int offset;
-    XtIntervalId timeout;
-    XtEventHandler proc;
+    IswIntervalId timeout;
+    IswEventHandler proc;
     Widget widget;
     xcb_timestamp_t time;
     Select ctx;
@@ -162,9 +162,9 @@ typedef struct {
     (65536 << 2) : (xcb_get_maximum_request_length(connection) << 2)) - 100)
 
 #define MATCH_SELECT(event, info) ((event->time == info->time) && \
-	    (event->requestor == XtWindow(info->widget)) && \
+	    (event->requestor == IswWindow(info->widget)) && \
 	    (event->selection == info->ctx->selection) && \
 	    (event->target == *info->target))
 
-#endif /* _XtselectionI_h */
+#endif /* _IswselectionI_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

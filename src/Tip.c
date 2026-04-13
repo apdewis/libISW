@@ -36,8 +36,8 @@
 #include "config.h"
 #endif
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <X11/Xos.h>
 #include <ISW/TipP.h>
 #include <ISW/ISWInit.h>
@@ -46,29 +46,29 @@
 
 #include <stdlib.h>
 
-extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 /* BackingStore resource definitions (stub - limited XCB support) */
-#ifndef XtNbackingStore
-#define XtNbackingStore "backingStore"
+#ifndef IswNbackingStore
+#define IswNbackingStore "backingStore"
 #endif
-#ifndef XtCBackingStore
-#define XtCBackingStore "BackingStore"
+#ifndef IswCBackingStore
+#define IswCBackingStore "BackingStore"
 #endif
-#ifndef XtRBackingStore
-#define XtRBackingStore "BackingStore"
+#ifndef IswRBackingStore
+#define IswRBackingStore "BackingStore"
 #endif
-#ifndef XtEnotUseful
-#define XtEnotUseful "notUseful"
+#ifndef IswEnotUseful
+#define IswEnotUseful "notUseful"
 #endif
-#ifndef XtEwhenMapped
-#define XtEwhenMapped "whenMapped"
+#ifndef IswEwhenMapped
+#define IswEwhenMapped "whenMapped"
 #endif
-#ifndef XtEalways
-#define XtEalways "always"
+#ifndef IswEalways
+#define IswEalways "always"
 #endif
-#ifndef XtEdefault
-#define XtEdefault "default"
+#ifndef IswEdefault
+#define IswEdefault "default"
 #endif
 
 #define	TIP_EVENT_MASK (XCB_EVENT_MASK_BUTTON_PRESS	  |	\
@@ -109,49 +109,49 @@ static void IswTipClassInitialize(void);
 static void IswTipInitialize(Widget, Widget, ArgList, Cardinal *);
 static void IswTipDestroy(Widget);
 static void IswTipExpose(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
-static void IswTipRealize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void IswTipRealize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static Boolean IswTipSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 /*
  * Prototypes
  */
-static void TipEventHandler(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
-static void TipShellEventHandler(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
+static void TipEventHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
+static void TipShellEventHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
 static WidgetInfo *CreateWidgetInfo(Widget);
 static WidgetInfo *FindWidgetInfo(IswTipInfo *, Widget);
 static IswTipInfo *CreateTipInfo(Widget);
 static IswTipInfo *FindTipInfo(Widget);
 static void ResetTip(IswTipInfo *, WidgetInfo *, Bool);
-static void TipTimeoutCallback(XtPointer, XtIntervalId *);
+static void TipTimeoutCallback(IswPointer, IswIntervalId *);
 static void TipLayout(IswTipInfo *);
 static void TipPosition(IswTipInfo *);
 
 /*
  * Initialization
  */
-#define offset(field) XtOffsetOf(TipRec, tip.field)
-static XtResource resources[] = {
-  {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-    offset(foreground), XtRString, XtDefaultForeground},
-  {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct*),
-    offset(font), XtRString, XtDefaultFont},
+#define offset(field) IswOffsetOf(TipRec, tip.field)
+static IswResource resources[] = {
+  {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+    offset(foreground), IswRString, IswDefaultForeground},
+  {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct*),
+    offset(font), IswRString, IswDefaultFont},
 #ifdef ISW_INTERNATIONALIZATION
-  {XtNfontSet, XtCFontSet, XtRFontSet, sizeof(ISWFontSet*),
-    offset(fontset), XtRString, XtDefaultFontSet},
+  {IswNfontSet, IswCFontSet, IswRFontSet, sizeof(ISWFontSet*),
+    offset(fontset), IswRString, IswDefaultFontSet},
 #endif
-  {XtNlabel, XtCLabel, XtRString, sizeof(String),
-    offset(label), XtRString, NULL},
-  {XtNencoding, XtCEncoding, XtRUnsignedChar, sizeof(unsigned char),
-    offset(encoding), XtRImmediate, (XtPointer)IswTextEncoding8bit},
-  {XtNinternalHeight, XtCHeight, XtRDimension, sizeof(Dimension),
-    offset(internal_height), XtRImmediate, (XtPointer)2},
-  {XtNinternalWidth, XtCWidth, XtRDimension, sizeof(Dimension),
-    offset(internal_width), XtRImmediate, (XtPointer)2},
-  {XtNbackingStore, XtCBackingStore, XtRBackingStore, sizeof(int),
-    offset(backing_store), XtRImmediate,
-    (XtPointer)(XCB_BACKING_STORE_ALWAYS + XCB_BACKING_STORE_WHEN_MAPPED + XCB_BACKING_STORE_NOT_USEFUL)},
-  {XtNtimeout, XtCTimeout, XtRInt, sizeof(int),
-    offset(timeout), XtRImmediate, (XtPointer)500},
+  {IswNlabel, IswCLabel, IswRString, sizeof(String),
+    offset(label), IswRString, NULL},
+  {IswNencoding, IswCEncoding, IswRUnsignedChar, sizeof(unsigned char),
+    offset(encoding), IswRImmediate, (IswPointer)IswTextEncoding8bit},
+  {IswNinternalHeight, IswCHeight, IswRDimension, sizeof(Dimension),
+    offset(internal_height), IswRImmediate, (IswPointer)2},
+  {IswNinternalWidth, IswCWidth, IswRDimension, sizeof(Dimension),
+    offset(internal_width), IswRImmediate, (IswPointer)2},
+  {IswNbackingStore, IswCBackingStore, IswRBackingStore, sizeof(int),
+    offset(backing_store), IswRImmediate,
+    (IswPointer)(XCB_BACKING_STORE_ALWAYS + XCB_BACKING_STORE_WHEN_MAPPED + XCB_BACKING_STORE_NOT_USEFUL)},
+  {IswNtimeout, IswCTimeout, IswRInt, sizeof(int),
+    offset(timeout), IswRImmediate, (IswPointer)500},
 };
 #undef offset
 
@@ -170,7 +170,7 @@ TipClassRec tipClassRec = {
     NULL,				/* actions */
     0,					/* num_actions */
     resources,				/* resources */
-    XtNumber(resources),		/* num_resources */
+    IswNumber(resources),		/* num_resources */
     NULLQUARK,				/* xrm_class */
     True,				/* compress_motion */
     True,				/* compress_exposure */
@@ -181,14 +181,14 @@ TipClassRec tipClassRec = {
     IswTipExpose,			/* expose */
     IswTipSetValues,			/* set_values */
     NULL,				/* set_values_hook */
-    XtInheritSetValuesAlmost,		/* set_values_almost */
+    IswInheritSetValuesAlmost,		/* set_values_almost */
     NULL,				/* get_values_hook */
     NULL,				/* accept_focus */
-    XtVersion,				/* version */
+    IswVersion,				/* version */
     NULL,				/* callback_private */
     NULL,				/* tm_table */
-    XtInheritQueryGeometry,		/* query_geometry */
-    XtInheritDisplayAccelerator,	/* display_accelerator */
+    IswInheritQueryGeometry,		/* query_geometry */
+    IswInheritDisplayAccelerator,	/* display_accelerator */
     NULL,				/* extension */
   },
   /* tip */
@@ -213,7 +213,7 @@ static TimeoutInfo TimeoutData;
 /*ARGSUSED*/
 static Boolean
 XmuCvtStringToBackingStore(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
-                           XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
+                           XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
 {
   static int backingStore = XCB_BACKING_STORE_NOT_USEFUL;
   
@@ -228,7 +228,7 @@ XmuCvtStringToBackingStore(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
     *(int *)(toVal->addr) = XCB_BACKING_STORE_NOT_USEFUL;
   }
   else
-    toVal->addr = (XtPointer)&backingStore;
+    toVal->addr = (IswPointer)&backingStore;
   
   toVal->size = sizeof(int);
   return True;
@@ -242,7 +242,7 @@ XmuCvtStringToBackingStore(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 /*ARGSUSED*/
 static Boolean
 IswCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
-                           XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
+                           XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
 {
   static String buffer;
   Cardinal size;
@@ -250,19 +250,19 @@ IswCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
   switch (*(int *)fromVal->addr)
   {
     case XCB_BACKING_STORE_NOT_USEFUL:
-      buffer = XtEnotUseful;
+      buffer = IswEnotUseful;
       break;
     case XCB_BACKING_STORE_WHEN_MAPPED:
-      buffer = XtEwhenMapped;
+      buffer = IswEwhenMapped;
       break;
     case XCB_BACKING_STORE_ALWAYS:
-      buffer = XtEalways;
+      buffer = IswEalways;
       break;
     case (XCB_BACKING_STORE_ALWAYS + XCB_BACKING_STORE_WHEN_MAPPED + XCB_BACKING_STORE_NOT_USEFUL):
-      buffer = XtEdefault;
+      buffer = IswEdefault;
       break;
     default:
-      XtWarning("Cannot convert BackingStore to String");
+      IswWarning("Cannot convert BackingStore to String");
       toVal->addr = NULL;
       toVal->size = 0;
       return (False);
@@ -279,7 +279,7 @@ IswCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
       strcpy((char *)toVal->addr, buffer);
   }
   else
-    toVal->addr = (XtPointer)buffer;
+    toVal->addr = (IswPointer)buffer;
   toVal->size = sizeof(String);
 
   return (True);
@@ -290,10 +290,10 @@ IswTipClassInitialize(void)
 {
     IswInitializeWidgetSet();
     /* BackingStore converters - XCB has limited BackingStore support, but keep for compatibility */
-    XtSetTypeConverter(XtRString, XtRBackingStore, XmuCvtStringToBackingStore,
-		       NULL, 0, XtCacheNone, NULL);
-    XtSetTypeConverter(XtRBackingStore, XtRString, IswCvtBackingStoreToString,
-		       NULL, 0, XtCacheNone, NULL);
+    IswSetTypeConverter(IswRString, IswRBackingStore, XmuCvtStringToBackingStore,
+		       NULL, 0, IswCacheNone, NULL);
+    IswSetTypeConverter(IswRBackingStore, IswRString, IswCvtBackingStoreToString,
+		       NULL, 0, IswCacheNone, NULL);
 }
 
 /*ARGSUSED*/
@@ -306,15 +306,15 @@ IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
     tip->tip.internal_width = (tip->tip.internal_width);
     tip->tip.internal_height = (tip->tip.internal_height);
 
-    /* XCB Fix: XtRFontStruct converter may fail in XCB mode, leaving font NULL.
-     * If font is NULL but fontset is available, create a minimal XFontStruct
+    /* XCB Fix: IswRFontStruct converter may fail in XCB mode, leaving font NULL.
+     * If font is NULL but fontset is available, create a minimal IswFontStruct
      * using the fontset's font_id (similar to Label.c approach). */
     if (tip->tip.font == NULL) {
 #ifdef ISW_INTERNATIONALIZATION
 	if (tip->tip.fontset != NULL) {
-	    /* Allocate and initialize a minimal XFontStruct from fontset */
-	    tip->tip.font = (XFontStruct *)XtMalloc(sizeof(XFontStruct));
-	    memset(tip->tip.font, 0, sizeof(XFontStruct));
+	    /* Allocate and initialize a minimal IswFontStruct from fontset */
+	    tip->tip.font = (IswFontStruct *)IswMalloc(sizeof(IswFontStruct));
+	    memset(tip->tip.font, 0, sizeof(IswFontStruct));
 	    tip->tip.font->fid = tip->tip.fontset->font_id;
 	    tip->tip.font->ascent = tip->tip.fontset->ascent;
 	    tip->tip.font->descent = tip->tip.fontset->descent;
@@ -323,7 +323,7 @@ IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
 	} else
 #endif
 	{
-	    XtAppWarning(XtWidgetToApplicationContext(w),
+	    IswAppWarning(IswWidgetToApplicationContext(w),
 			 "Tip widget: font and fontset are both NULL - text rendering will fail");
 	}
     }
@@ -340,20 +340,20 @@ IswTipDestroy(Widget w)
     TipWidget tip = (TipWidget)w;
 
     if (tip->tip.timer)
-	XtRemoveTimeOut(tip->tip.timer);
+	IswRemoveTimeOut(tip->tip.timer);
 
     if (tip->tip.render_ctx) {
 	ISWRenderDestroy(tip->tip.render_ctx);
 	tip->tip.render_ctx = NULL;
     }
 
-    XtRemoveEventHandler(XtParent(w), XCB_EVENT_MASK_KEY_PRESS, False,
-			 TipShellEventHandler, (XtPointer)NULL);
+    IswRemoveEventHandler(IswParent(w), XCB_EVENT_MASK_KEY_PRESS, False,
+			 TipShellEventHandler, (IswPointer)NULL);
 
     while (info->widgets) {
 	winfo = info->widgets->next;
-	XtFree((char *)info->widgets->label);
-	XtFree((char *)info->widgets);
+	IswFree((char *)info->widgets->label);
+	IswFree((char *)info->widgets);
 	info->widgets = winfo;
     }
 
@@ -368,13 +368,13 @@ IswTipDestroy(Widget w)
 	    p->next = info->next;
     }
 
-    XtFree((char *)info);
+    IswFree((char *)info);
 }
 
 static void
-IswTipRealize(xcb_connection_t *conn, Widget w, XtValueMask *mask, uint32_t *values)
+IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *values)
 {
-    xcb_screen_t *screen = XtScreen(w);
+    xcb_screen_t *screen = IswScreen(w);
     xcb_window_t window;
     uint32_t value_mask = 0;
     uint32_t value_list[32];
@@ -392,17 +392,17 @@ IswTipRealize(xcb_connection_t *conn, Widget w, XtValueMask *mask, uint32_t *val
 
     /* HiDPI: create window at physical pixel geometry */
     {
-        double _sf = _XtGetScaleFactor(conn);
+        double _sf = _IswGetScaleFactor(conn);
         xcb_create_window(
             conn,
             screen->root_depth,
             window,
             screen->root,
-            (int16_t)(XtX(w) * _sf + 0.5),
-            (int16_t)(XtY(w) * _sf + 0.5),
-            (uint16_t)((XtWidth(w) ? XtWidth(w) : 1) * _sf + 0.5),
-            (uint16_t)((XtHeight(w) ? XtHeight(w) : 1) * _sf + 0.5),
-            (uint16_t)(XtBorderWidth(w) * _sf + 0.5),
+            (int16_t)(IswX(w) * _sf + 0.5),
+            (int16_t)(IswY(w) * _sf + 0.5),
+            (uint16_t)((IswWidth(w) ? IswWidth(w) : 1) * _sf + 0.5),
+            (uint16_t)((IswHeight(w) ? IswHeight(w) : 1) * _sf + 0.5),
+            (uint16_t)(IswBorderWidth(w) * _sf + 0.5),
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             screen->root_visual,
             value_mask,
@@ -410,7 +410,7 @@ IswTipRealize(xcb_connection_t *conn, Widget w, XtValueMask *mask, uint32_t *val
         );
     }
     
-    XtWindow(w) = window;
+    IswWindow(w) = window;
 }
 
 static void
@@ -485,14 +485,14 @@ IswTipSetValues(Widget current, Widget request, Widget cnew, ArgList args, Cardi
 static void
 TipLayout(IswTipInfo *info)
 {
-    XFontStruct	*fs = info->tip->tip.font;
+    IswFontStruct	*fs = info->tip->tip.font;
     Widget w = (Widget)info->tip;
     int width = 0, height;
     char *nl, *label = info->tip->tip.label;
 
     if (!label || !*label) {
-	XtWidth(info->tip) = 1;
-	XtHeight(info->tip) = 1;
+	IswWidth(info->tip) = 1;
+	IswHeight(info->tip) = 1;
 	return;
     }
 
@@ -517,8 +517,8 @@ TipLayout(IswTipInfo *info)
     else
 	width = ISWScaledTextWidth(w, fs, label, strlen(label));
 
-    XtWidth(info->tip) = width + info->tip->tip.internal_width * 2;
-    XtHeight(info->tip) = height + info->tip->tip.internal_height * 2;
+    IswWidth(info->tip) = width + info->tip->tip.internal_width * 2;
+    IswHeight(info->tip) = height + info->tip->tip.internal_height * 2;
 }
 
 #define	DEFAULT_TIP_OFFSET	12
@@ -530,14 +530,14 @@ TipPosition(IswTipInfo *info)
     int rx, ry, wx, wy;
     unsigned mask;
     Position x, y;
-    int bw2 = XtBorderWidth(info->tip) * 2;
-    int scr_width = WidthOfScreen(XtScreen(info->tip));
-    int scr_height = HeightOfScreen(XtScreen(info->tip));
-    int win_width = XtWidth(info->tip) + bw2;
-    int win_height = XtHeight(info->tip) + bw2;
+    int bw2 = IswBorderWidth(info->tip) * 2;
+    int scr_width = WidthOfScreen(IswScreen(info->tip));
+    int scr_height = HeightOfScreen(IswScreen(info->tip));
+    int win_width = IswWidth(info->tip) + bw2;
+    int win_height = IswHeight(info->tip) + bw2;
 
-    XQueryPointer(XtDisplay((Widget)info->tip),
-		  XtScreen(info->tip)->root,
+    XQueryPointer(IswDisplay((Widget)info->tip),
+		  IswScreen(info->tip)->root,
 		  &r, &c, &rx, &ry, &wx, &wy, &mask);
     x = rx + DEFAULT_TIP_OFFSET;
     y = ry + DEFAULT_TIP_OFFSET;
@@ -553,15 +553,15 @@ TipPosition(IswTipInfo *info)
 	y = 0;
 
     {
-        double _sf = _XtGetScaleFactor(XtDisplay(info->tip));
-        XtX(info->tip) = x;
-        XtY(info->tip) = y;
+        double _sf = _IswGetScaleFactor(IswDisplay(info->tip));
+        IswX(info->tip) = x;
+        IswY(info->tip) = y;
         uint32_t mv[4];
         mv[0] = (uint32_t)(int32_t)(x * _sf + 0.5);
         mv[1] = (uint32_t)(int32_t)(y * _sf + 0.5);
-        mv[2] = (uint32_t)(XtWidth(info->tip) * _sf + 0.5);
-        mv[3] = (uint32_t)(XtHeight(info->tip) * _sf + 0.5);
-        xcb_configure_window(XtDisplay(info->tip), XtWindow(info->tip),
+        mv[2] = (uint32_t)(IswWidth(info->tip) * _sf + 0.5);
+        mv[3] = (uint32_t)(IswHeight(info->tip) * _sf + 0.5);
+        xcb_configure_window(IswDisplay(info->tip), IswWindow(info->tip),
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, mv);
     }
@@ -570,7 +570,7 @@ TipPosition(IswTipInfo *info)
 static WidgetInfo *
 CreateWidgetInfo(Widget w)
 {
-    WidgetInfo *winfo = XtNew(WidgetInfo);
+    WidgetInfo *winfo = IswNew(WidgetInfo);
 
     winfo->widget = w;
     winfo->label = NULL;
@@ -597,21 +597,21 @@ FindWidgetInfo(IswTipInfo *info, Widget w)
 static IswTipInfo *
 CreateTipInfo(Widget w)
 {
-    IswTipInfo *info = XtNew(IswTipInfo);
+    IswTipInfo *info = IswNew(IswTipInfo);
     Widget shell = w;
 
-    while (XtParent(shell))
-	shell = XtParent(shell);
+    while (IswParent(shell))
+	shell = IswParent(shell);
 
-    info->tip = (TipWidget)XtCreateWidget("tip", tipWidgetClass,
+    info->tip = (TipWidget)IswCreateWidget("tip", tipWidgetClass,
 					  shell, NULL, 0);
-    XtRealizeWidget((Widget)info->tip);
-    info->screen = XtScreen(w);
+    IswRealizeWidget((Widget)info->tip);
+    info->screen = IswScreen(w);
     info->mapped = False;
     info->widgets = NULL;
     info->next = NULL;
-    XtAddEventHandler(shell, XCB_EVENT_MASK_KEY_PRESS, False, TipShellEventHandler,
-		      (XtPointer)NULL);
+    IswAddEventHandler(shell, XCB_EVENT_MASK_KEY_PRESS, False, TipShellEventHandler,
+		      (IswPointer)NULL);
 
     return (info);
 }
@@ -625,7 +625,7 @@ FindTipInfo(Widget w)
     if (list == NULL)
 	return (TipInfoList = CreateTipInfo(w));
 
-    screen = XtScreen(w);
+    screen = IswScreen(w);
     for (info = list; list; info = list, list = list->next)
 	if (list->screen == screen)
 	    return (list);
@@ -637,27 +637,27 @@ static void
 ResetTip(IswTipInfo *info, WidgetInfo *winfo, Bool add_timeout)
 {
     if (info->tip->tip.timer) {
-	XtRemoveTimeOut(info->tip->tip.timer);
+	IswRemoveTimeOut(info->tip->tip.timer);
 	info->tip->tip.timer = 0;
     }
     if (info->mapped) {
-	XtRemoveGrab(XtParent((Widget)info->tip));
-	xcb_unmap_window(XtDisplay((Widget)info->tip), XtWindow((Widget)info->tip));
-	xcb_flush(XtDisplay((Widget)info->tip));
+	IswRemoveGrab(IswParent((Widget)info->tip));
+	xcb_unmap_window(IswDisplay((Widget)info->tip), IswWindow((Widget)info->tip));
+	xcb_flush(IswDisplay((Widget)info->tip));
 	info->mapped = False;
     }
     if (add_timeout) {
 	TimeoutData.info = info;
 	TimeoutData.winfo = winfo;
 	info->tip->tip.timer =
-	    XtAppAddTimeOut(XtWidgetToApplicationContext((Widget)info->tip),
+	    IswAppAddTimeOut(IswWidgetToApplicationContext((Widget)info->tip),
 			    info->tip->tip.timeout, TipTimeoutCallback,
-			    (XtPointer)&TimeoutData);
+			    (IswPointer)&TimeoutData);
     }
 }
 
 static void
-TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
+TipTimeoutCallback(IswPointer closure, IswIntervalId *id)
 {
     TimeoutInfo *cinfo = (TimeoutInfo *)closure;
     IswTipInfo *info = cinfo->info;
@@ -666,13 +666,13 @@ TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
 
     info->tip->tip.label = winfo->label;
     info->tip->tip.encoding = 0;
-    XtSetArg(args[0], XtNencoding, &info->tip->tip.encoding);
+    IswSetArg(args[0], IswNencoding, &info->tip->tip.encoding);
 #ifdef ISW_INTERNATIONALIZATION
     info->tip->tip.international = False;
-    XtSetArg(args[1], XtNinternational, &info->tip->tip.international);
-    XtGetValues(winfo->widget, args, 2);
+    IswSetArg(args[1], IswNinternational, &info->tip->tip.international);
+    IswGetValues(winfo->widget, args, 2);
 #else
-    XtGetValues(winfo->widget, args, 1);
+    IswGetValues(winfo->widget, args, 1);
 #endif
 
     TipLayout(info);
@@ -685,21 +685,21 @@ TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
     }
 
     {
-	xcb_connection_t *conn = XtDisplay((Widget)info->tip);
-	xcb_window_t win = XtWindow((Widget)info->tip);
+	xcb_connection_t *conn = IswDisplay((Widget)info->tip);
+	xcb_window_t win = IswWindow((Widget)info->tip);
 	uint32_t stack_above = XCB_STACK_MODE_ABOVE;
 
 	xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_STACK_MODE, &stack_above);
 	xcb_map_window(conn, win);
 	xcb_flush(conn);
     }
-    XtAddGrab(XtParent((Widget)info->tip), True, True);
+    IswAddGrab(IswParent((Widget)info->tip), True, True);
     info->mapped = True;
 }
 
 /*ARGSUSED*/
 static void
-TipShellEventHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
+TipShellEventHandler(Widget w, IswPointer client_data, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
 {
     IswTipInfo *info = FindTipInfo(w);
 
@@ -708,7 +708,7 @@ TipShellEventHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event
 
 /*ARGSUSED*/
 static void
-TipEventHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
+TipEventHandler(Widget w, IswPointer client_data, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
 {
     IswTipInfo *info = FindTipInfo(w);
     Boolean add_timeout;
@@ -736,27 +736,27 @@ TipEventHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boo
 void
 IswTipEnable(Widget w, String label)
 {
-    if (XtIsWidget(w) && label && *label) {
+    if (IswIsWidget(w) && label && *label) {
 	IswTipInfo *info = FindTipInfo(w);
 	WidgetInfo *winfo = FindWidgetInfo(info, w);
 
 	if (winfo->label)
-	    XtFree((char *)winfo->label);
-	winfo->label = XtNewString(label);
+	    IswFree((char *)winfo->label);
+	winfo->label = IswNewString(label);
 
-	XtAddEventHandler(w, TIP_EVENT_MASK, False, TipEventHandler,
-			  (XtPointer)NULL);
+	IswAddEventHandler(w, TIP_EVENT_MASK, False, TipEventHandler,
+			  (IswPointer)NULL);
     }
 }
 
 void
 IswTipDisable(Widget w)
 {
-    if (XtIsWidget(w)) {
+    if (IswIsWidget(w)) {
 	IswTipInfo *info = FindTipInfo(w);
 
-	XtRemoveEventHandler(w, TIP_EVENT_MASK, False, TipEventHandler,
-			     (XtPointer)NULL);
+	IswRemoveEventHandler(w, TIP_EVENT_MASK, False, TipEventHandler,
+			     (IswPointer)NULL);
 	ResetTip(info, FindWidgetInfo(info, w), False);
     }
 }

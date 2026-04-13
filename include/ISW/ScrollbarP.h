@@ -60,22 +60,22 @@ SOFTWARE.
 #include <ISW/SimpleP.h>
 #include <ISW/ISWRender.h>
 
-/* XtOrientation is missing from XCB-based libXt, define it here */
-#ifndef _IswXtOrientation_defined
-#define _IswXtOrientation_defined
+/* IswOrientation is missing from XCB-based libXt, define it here */
+#ifndef _IswOrientation_defined
+#define _IswOrientation_defined
 typedef enum {
     XtorientHorizontal,
     XtorientVertical
-} XtOrientation;
+} IswOrientation;
 #endif
 
 typedef struct {
      /* public */
     Pixel	  foreground;	/* thumb foreground color */
-    XtOrientation orientation;	/* horizontal or vertical */
-    XtCallbackList scrollProc;	/* proportional scroll */
-    XtCallbackList thumbProc;	/* jump (to position) scroll */
-    XtCallbackList jumpProc;	/* same as thumbProc but pass data by ref */
+    IswOrientation orientation;	/* horizontal or vertical */
+    IswCallbackList scrollProc;	/* proportional scroll */
+    IswCallbackList thumbProc;	/* jump (to position) scroll */
+    IswCallbackList jumpProc;	/* same as thumbProc but pass data by ref */
     xcb_pixmap_t	  thumb;	/* thumb color */
     float	  top;		/* What percent is above the win's top */
     float	  shown;	/* What percent is shown in the win */
@@ -87,7 +87,7 @@ typedef struct {
 				 * when scrolling starts */
 
      /* private */
-    XtIntervalId  timer_id;     /* autorepeat timer; remove on destruction */
+    IswIntervalId  timer_id;     /* autorepeat timer; remove on destruction */
     char	  scroll_mode;	/* 0:none 1:up/back 2:track 3:down/forward */
     Position	  topLoc;	/* Pixel that corresponds to top */
     Dimension	  shownLength;	/* Num pixels corresponding to shown */

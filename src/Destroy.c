@@ -79,12 +79,12 @@ struct _DestroyRec {
 };
 
 static void
-Recursive(Widget widget, XtWidgetProc proc)
+Recursive(Widget widget, IswWidgetProc proc)
 {
     register Cardinal i;
 
     /* Recurse down normal children */
-    if (XtIsComposite(widget)) {
+    if (IswIsComposite(widget)) {
         CompositePart *cwp = &(((CompositeWidget) widget)->composite);
 
         for (i = 0; i < cwp->num_children; i++) {
@@ -93,7 +93,7 @@ Recursive(Widget widget, XtWidgetProc proc)
     }
 
     /* Recurse down popup children */
-    if (XtIsWidget(widget)) {
+    if (IswIsWidget(widget)) {
         for (i = 0; i < widget->core.num_popups; i++) {
             Recursive(widget->core.popup_list[i], proc);
         }
@@ -106,17 +106,17 @@ Recursive(Widget widget, XtWidgetProc proc)
 static void
 Phase1Destroy(Widget widget)
 {
-    Widget hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
+    Widget hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
 
     widget->core.being_destroyed = TRUE;
-    if (XtHasCallbacks(hookobj, XtNdestroyHook) == XtCallbackHasSome) {
-        XtDestroyHookDataRec call_data;
+    if (IswHasCallbacks(hookobj, IswNdestroyHook) == IswCallbackHasSome) {
+        IswDestroyHookDataRec call_data;
 
-        call_data.type = XtHdestroy;
+        call_data.type = IswHdestroy;
         call_data.widget = widget;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.destroyhook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
 }                               /* Phase1Destroy */
 
@@ -124,8 +124,8 @@ static void
 Phase2Callbacks(Widget widget)
 {
     if (widget->core.destroy_callbacks != NULL) {
-        XtCallCallbackList(widget,
-                           widget->core.destroy_callbacks, (XtPointer) NULL);
+        IswCallCallbackList(widget,
+                           widget->core.destroy_callbacks, (IswPointer) NULL);
     }
 }                               /* Phase2Callbacks */
 
@@ -137,13 +137,13 @@ Phase2Destroy(register Widget widget)
     ObjectClassExtension ext;
 
     /* Call constraint destroy procedures */
-    if (XtParent(widget) != NULL && !XtIsShell(widget) &&
-        XtIsConstraint(XtParent(widget))) {
+    if (IswParent(widget) != NULL && !IswIsShell(widget) &&
+        IswIsConstraint(IswParent(widget))) {
         LOCK_PROCESS;
-        cwClass = (ConstraintWidgetClass) XtParent(widget)->core.widget_class;
+        cwClass = (ConstraintWidgetClass) IswParent(widget)->core.widget_class;
         UNLOCK_PROCESS;
         for (;;) {
-            XtWidgetProc destroy;
+            IswWidgetProc destroy;
 
             LOCK_PROCESS;
             destroy = cwClass->constraint_class.destroy;
@@ -162,7 +162,7 @@ Phase2Destroy(register Widget widget)
     LOCK_PROCESS;
     for (class = widget->core.widget_class;
          class != NULL; class = class->core_class.superclass) {
-        XtWidgetProc destroy;
+        IswWidgetProc destroy;
 
         destroy = class->core_class.destroy;
         UNLOCK_PROCESS;
@@ -172,15 +172,15 @@ Phase2Destroy(register Widget widget)
     }
 
     /* Call widget deallocate procedure */
-    ext = (ObjectClassExtension) XtGetClassExtension(widget->core.widget_class,
-                                                     XtOffsetOf(CoreClassPart,
+    ext = (ObjectClassExtension) IswGetClassExtension(widget->core.widget_class,
+                                                     IswOffsetOf(CoreClassPart,
                                                                 extension),
                                                      NULLQUARK,
-                                                     XtObjectExtensionVersion,
+                                                     IswObjectExtensionVersion,
                                                      sizeof
                                                      (ObjectClassExtensionRec));
     if (ext && ext->deallocate) {
-        XtDeallocateProc deallocate;
+        IswDeallocateProc deallocate;
 
         deallocate = ext->deallocate;
         UNLOCK_PROCESS;
@@ -188,36 +188,36 @@ Phase2Destroy(register Widget widget)
     }
     else {
         UNLOCK_PROCESS;
-        XtFree((char *) widget);
+        IswFree((char *) widget);
     }
 }                               /* Phase2Destroy */
 
 static Boolean
 IsDescendant(Widget widget, const Widget root)
 {
-    while (widget != NULL && (widget = XtParent(widget)) != root) {
+    while (widget != NULL && (widget = IswParent(widget)) != root) {
         ;
     }
     return (widget != NULL) ? True : False;
 }
 
 static void
-XtPhase2Destroy(Widget widget)
+IswPhase2Destroy(Widget widget)
 {
     xcb_connection_t *display = NULL;
     xcb_window_t window;
     Widget parent;
-    XtAppContext app = XtWidgetToApplicationContext(widget);
+    IswAppContext app = IswWidgetToApplicationContext(widget);
     Widget outerInPhase2Destroy = app->in_phase2_destroy;
     int starting_count = app->destroy_count;
     Boolean isPopup = False;
 
     /* invalidate focus trace cache for this xcb_connection_t */
-    _XtGetPerDisplay(XtDisplayOfObject(widget))->pdi.traceDepth = 0;
+    _IswGetPerDisplay(IswDisplayOfObject(widget))->pdi.traceDepth = 0;
 
     parent = widget->core.parent;
 
-    if (parent && XtIsWidget(parent) && parent->core.num_popups) {
+    if (parent && IswIsWidget(parent) && parent->core.num_popups) {
         Cardinal i;
 
         for (i = 0; i < parent->core.num_popups; i++) {
@@ -228,16 +228,16 @@ XtPhase2Destroy(Widget widget)
         }
     }
 
-    if (!isPopup && parent && XtIsComposite(parent)) {
-        XtWidgetProc delete_child;
+    if (!isPopup && parent && IswIsComposite(parent)) {
+        IswWidgetProc delete_child;
 
         LOCK_PROCESS;
         delete_child =
             ((CompositeWidgetClass) parent->core.widget_class)->composite_class.
             delete_child;
         UNLOCK_PROCESS;
-        if (XtIsRectObj(widget)) {
-            XtUnmanageChild(widget);
+        if (IswIsRectObj(widget)) {
+            IswUnmanageChild(widget);
         }
         if (delete_child == NULL) {
             String param;
@@ -246,10 +246,10 @@ XtPhase2Destroy(Widget widget)
             LOCK_PROCESS;
             param = parent->core.widget_class->core_class.class_name;
             UNLOCK_PROCESS;
-            XtAppWarningMsg(XtWidgetToApplicationContext(widget),
+            IswAppWarningMsg(IswWidgetToApplicationContext(widget),
                             "invalidProcedure", "deleteChild",
-                            XtCXtToolkitError,
-                            "null delete_child procedure for class %s in XtDestroy",
+                            IswCIswToolkitError,
+                            "null delete_child procedure for class %s in IswDestroy",
                             &param, &num_params);
         }
         else {
@@ -259,13 +259,13 @@ XtPhase2Destroy(Widget widget)
 
     /* widget is freed in Phase2Destroy, so retrieve window now.
      * Shells destroy their own windows, to prevent window leaks in
-     * popups; this test is practical only when XtIsShell() is cheap.
+     * popups; this test is practical only when IswIsShell() is cheap.
      */
-    if (XtIsShell(widget) || !XtIsWidget(widget)) {
+    if (IswIsShell(widget) || !IswIsWidget(widget)) {
         window = 0;
     }
     else {
-        display = XtDisplay(widget);
+        display = IswDisplay(widget);
 
         window = widget->core.window;
     }
@@ -285,7 +285,7 @@ XtPhase2Destroy(Widget widget)
                 app->destroy_count--;
                 for (j = app->destroy_count - i; --j >= 0; dr++)
                     *dr = *(dr + 1);
-                XtPhase2Destroy(descendant);
+                IswPhase2Destroy(descendant);
             }
             else
                 i++;
@@ -317,10 +317,10 @@ XtPhase2Destroy(Widget widget)
     if (window && (parent == NULL || !parent->core.being_destroyed))
         xcb_destroy_window(display, window);
         //XDestroyWindow(display, window);
-}                               /* XtPhase2Destroy */
+}                               /* IswPhase2Destroy */
 
 void
-_XtDoPhase2Destroy(XtAppContext app, int dispatch_level)
+_IswDoPhase2Destroy(IswAppContext app, int dispatch_level)
 {
     /* Phase 2 must occur in fifo order.  List is not necessarily
      * contiguous in dispatch_level.
@@ -330,7 +330,7 @@ _XtDoPhase2Destroy(XtAppContext app, int dispatch_level)
 
     while (i < app->destroy_count) {
 
-        /* XtPhase2Destroy can result in calls to XtDestroyWidget,
+        /* IswPhase2Destroy can result in calls to IswDestroyWidget,
          * and these could cause app->destroy_list to be reallocated.
          */
 
@@ -343,7 +343,7 @@ _XtDoPhase2Destroy(XtAppContext app, int dispatch_level)
             app->destroy_count--;
             for (j = app->destroy_count - i; --j >= 0; dr++)
                 *dr = *(dr + 1);
-            XtPhase2Destroy(w);
+            IswPhase2Destroy(w);
         }
         else
             i++;
@@ -351,12 +351,12 @@ _XtDoPhase2Destroy(XtAppContext app, int dispatch_level)
 }
 
 void
-XtDestroyWidget(Widget widget)
+IswDestroyWidget(Widget widget)
 {
-    XtAppContext app;
+    IswAppContext app;
     DestroyRec *dr;
 
-    app = XtWidgetToApplicationContext(widget);
+    app = IswWidgetToApplicationContext(widget);
     LOCK_APP(app);
     if (widget->core.being_destroyed) {
         UNLOCK_APP(app);
@@ -365,14 +365,14 @@ XtDestroyWidget(Widget widget)
     Recursive(widget, Phase1Destroy);
 
     if (app->in_phase2_destroy && IsDescendant(widget, app->in_phase2_destroy)) {
-        XtPhase2Destroy(widget);
+        IswPhase2Destroy(widget);
         UNLOCK_APP(app);
         return;
     }
 
     if (app->destroy_count == app->destroy_list_size) {
         app->destroy_list_size += 10;
-        app->destroy_list = XtReallocArray(app->destroy_list,
+        app->destroy_list = IswReallocArray(app->destroy_list,
                                            (Cardinal) app->destroy_list_size,
                                            (Cardinal) sizeof(DestroyRec));
     }
@@ -396,11 +396,11 @@ XtDestroyWidget(Widget widget)
         }
     }
 
-    if (_XtSafeToDestroy(app)) {
-        app->dispatch_level = 1;        /* avoid nested _XtDoPhase2Destroy */
-        _XtDoPhase2Destroy(app, 0);
+    if (_IswSafeToDestroy(app)) {
+        app->dispatch_level = 1;        /* avoid nested _IswDoPhase2Destroy */
+        _IswDoPhase2Destroy(app, 0);
         app->dispatch_level = 0;
     }
     UNLOCK_APP(app);
 
-}                               /* XtDestroyWidget */
+}                               /* IswDestroyWidget */

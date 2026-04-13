@@ -75,24 +75,24 @@ in this Software without prior written authorization from The Open Group.
 #include "Intrinsic.h"
 
 /*
- * XtGetResourceList(), XtGetConstraintResourceList()
+ * IswGetResourceList(), IswGetConstraintResourceList()
  */
 
 #define TOXRMQUARK(p) ((XrmQuark)(long)(p))     /* avoid LP64 warnings */
 
 void
-XtGetResourceList(WidgetClass widget_class,
-                  XtResourceList *resources,
+IswGetResourceList(WidgetClass widget_class,
+                  IswResourceList *resources,
                   Cardinal *num_resources)
 {
     int size;
     register Cardinal i, dest = 0;
-    register XtResourceList *list, dlist;
+    register IswResourceList *list, dlist;
 
     LOCK_PROCESS;
-    *resources = XtMallocArray(widget_class->core_class.num_resources,
-                               (Cardinal) sizeof(XtResource));
-    size = (int) (widget_class->core_class.num_resources * sizeof(XtResource));
+    *resources = IswMallocArray(widget_class->core_class.num_resources,
+                               (Cardinal) sizeof(IswResource));
+    size = (int) (widget_class->core_class.num_resources * sizeof(IswResource));
 
     if (!widget_class->core_class.class_inited) {
         /* Easy case */
@@ -106,7 +106,7 @@ XtGetResourceList(WidgetClass widget_class,
 
     /* Nope, it's the hard case */
 
-    list = (XtResourceList *) widget_class->core_class.resources;
+    list = (IswResourceList *) widget_class->core_class.resources;
     dlist = *resources;
     for (i = 0; i < widget_class->core_class.num_resources; i++) {
         if (list[i] != NULL) {
@@ -141,13 +141,13 @@ ClassIsSubclassOf(WidgetClass class, const WidgetClass superclass)
 }
 
 void
-XtGetConstraintResourceList(WidgetClass widget_class,
-                            XtResourceList *resources,
+IswGetConstraintResourceList(WidgetClass widget_class,
+                            IswResourceList *resources,
                             Cardinal *num_resources)
 {
     int size;
     register Cardinal i, dest = 0;
-    register XtResourceList *list, dlist;
+    register IswResourceList *list, dlist;
     ConstraintWidgetClass class = (ConstraintWidgetClass) widget_class;
 
     LOCK_PROCESS;
@@ -163,9 +163,9 @@ XtGetConstraintResourceList(WidgetClass widget_class,
         return;
     }
 
-    *resources = XtMallocArray(class->constraint_class.num_resources,
-                               (Cardinal) sizeof(XtResource));
-    size = (int) (class->constraint_class.num_resources * sizeof(XtResource));
+    *resources = IswMallocArray(class->constraint_class.num_resources,
+                               (Cardinal) sizeof(IswResource));
+    size = (int) (class->constraint_class.num_resources * sizeof(IswResource));
 
     if (!class->core_class.class_inited) {
         /* Easy case */
@@ -179,7 +179,7 @@ XtGetConstraintResourceList(WidgetClass widget_class,
 
     /* Nope, it's the hard case */
 
-    list = (XtResourceList *) class->constraint_class.resources;
+    list = (IswResourceList *) class->constraint_class.resources;
     dlist = *resources;
     for (i = 0; i < class->constraint_class.num_resources; i++) {
         if (list[i] != NULL) {

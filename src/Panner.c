@@ -28,8 +28,8 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>		/* for XtN and XtC defines */
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>		/* for IswN and IswC defines */
 #include <ISW/ISWInit.h>		/* for IswInitializeWidgetSet */
 #include <ISW/PannerP.h>		/* us */
 #include <ISW/ISWRender.h>		/* Cairo rendering */
@@ -49,7 +49,7 @@ extern double atof(char *);
 #endif
 
 
-#if XtVersion >= 11006
+#if IswVersion >= 11006
 static char defaultTranslations[] =
   "<Btn1Down>:    start() \n\
    <Btn1Motion>:  move() \n\
@@ -96,7 +96,7 @@ static void ActionPage(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void ActionNotify(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void ActionSet(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
-static XtActionsRec actions[] = {
+static IswActionsRec actions[] = {
     { "start", ActionStart },		/* start tmp graphics */
     { "stop", ActionStop },		/* stop tmp graphics */
     { "abort", ActionAbort },		/* punt */
@@ -110,38 +110,38 @@ static XtActionsRec actions[] = {
 /*
  * resources for the panner
  */
-static XtResource resources[] = {
-#define poff(field) XtOffsetOf(PannerRec, panner.field)
-    { XtNallowOff, XtCAllowOff, XtRBoolean, sizeof(Boolean),
-	poff(allow_off), XtRImmediate, (XtPointer) FALSE },
-    { XtNresize, XtCResize, XtRBoolean, sizeof(Boolean),
-	poff(resize_to_pref), XtRImmediate, (XtPointer) TRUE },
-    { XtNreportCallback, XtCReportCallback, XtRCallback, sizeof(XtPointer),
-	poff(report_callbacks), XtRCallback, (XtPointer) NULL },
-    { XtNdefaultScale, XtCDefaultScale, XtRDimension, sizeof(Dimension),
-	poff(default_scale), XtRImmediate, (XtPointer) PANNER_DEFAULT_SCALE },
-    { XtNrubberBand, XtCRubberBand, XtRBoolean, sizeof(Boolean),
-	poff(rubber_band), XtRImmediate, (XtPointer) FALSE },
-    { XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-	poff(foreground), XtRString, (XtPointer) XtDefaultForeground },
-    { XtNinternalSpace, XtCInternalSpace, XtRDimension, sizeof(Dimension),
-	poff(internal_border), XtRImmediate, (XtPointer) 4 },
-    { XtNlineWidth, XtCLineWidth, XtRDimension, sizeof(Dimension),
-	poff(line_width), XtRImmediate, (XtPointer) 0 },
-    { XtNcanvasWidth, XtCCanvasWidth, XtRDimension, sizeof(Dimension),
-	poff(canvas_width), XtRImmediate, (XtPointer) 0 },
-    { XtNcanvasHeight, XtCCanvasHeight, XtRDimension, sizeof(Dimension),
-	poff(canvas_height), XtRImmediate, (XtPointer) 0 },
-    { XtNsliderX, XtCSliderX, XtRPosition, sizeof(Position),
-	poff(slider_x), XtRImmediate, (XtPointer) 0 },
-    { XtNsliderY, XtCSliderY, XtRPosition, sizeof(Position),
-	poff(slider_y), XtRImmediate, (XtPointer) 0 },
-    { XtNsliderWidth, XtCSliderWidth, XtRDimension, sizeof(Dimension),
-	poff(slider_width), XtRImmediate, (XtPointer) 0 },
-    { XtNsliderHeight, XtCSliderHeight, XtRDimension, sizeof(Dimension),
-	poff(slider_height), XtRImmediate, (XtPointer) 0 },
-    { XtNbackgroundStipple, XtCBackgroundStipple, XtRString, sizeof(String),
-	poff(stipple_name), XtRImmediate, (XtPointer) NULL },
+static IswResource resources[] = {
+#define poff(field) IswOffsetOf(PannerRec, panner.field)
+    { IswNallowOff, IswCAllowOff, IswRBoolean, sizeof(Boolean),
+	poff(allow_off), IswRImmediate, (IswPointer) FALSE },
+    { IswNresize, IswCResize, IswRBoolean, sizeof(Boolean),
+	poff(resize_to_pref), IswRImmediate, (IswPointer) TRUE },
+    { IswNreportCallback, IswCReportCallback, IswRCallback, sizeof(IswPointer),
+	poff(report_callbacks), IswRCallback, (IswPointer) NULL },
+    { IswNdefaultScale, IswCDefaultScale, IswRDimension, sizeof(Dimension),
+	poff(default_scale), IswRImmediate, (IswPointer) PANNER_DEFAULT_SCALE },
+    { IswNrubberBand, IswCRubberBand, IswRBoolean, sizeof(Boolean),
+	poff(rubber_band), IswRImmediate, (IswPointer) FALSE },
+    { IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+	poff(foreground), IswRString, (IswPointer) IswDefaultForeground },
+    { IswNinternalSpace, IswCInternalSpace, IswRDimension, sizeof(Dimension),
+	poff(internal_border), IswRImmediate, (IswPointer) 4 },
+    { IswNlineWidth, IswCLineWidth, IswRDimension, sizeof(Dimension),
+	poff(line_width), IswRImmediate, (IswPointer) 0 },
+    { IswNcanvasWidth, IswCCanvasWidth, IswRDimension, sizeof(Dimension),
+	poff(canvas_width), IswRImmediate, (IswPointer) 0 },
+    { IswNcanvasHeight, IswCCanvasHeight, IswRDimension, sizeof(Dimension),
+	poff(canvas_height), IswRImmediate, (IswPointer) 0 },
+    { IswNsliderX, IswCSliderX, IswRPosition, sizeof(Position),
+	poff(slider_x), IswRImmediate, (IswPointer) 0 },
+    { IswNsliderY, IswCSliderY, IswRPosition, sizeof(Position),
+	poff(slider_y), IswRImmediate, (IswPointer) 0 },
+    { IswNsliderWidth, IswCSliderWidth, IswRDimension, sizeof(Dimension),
+	poff(slider_width), IswRImmediate, (IswPointer) 0 },
+    { IswNsliderHeight, IswCSliderHeight, IswRDimension, sizeof(Dimension),
+	poff(slider_height), IswRImmediate, (IswPointer) 0 },
+    { IswNbackgroundStipple, IswCBackgroundStipple, IswRString, sizeof(String),
+	poff(stipple_name), IswRImmediate, (IswPointer) NULL },
 #undef poff
 };
 
@@ -150,13 +150,13 @@ static XtResource resources[] = {
  * widget class methods used below
  */
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Destroy(Widget);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void SetValuesAlmost(Widget, Widget, XtWidgetGeometry *, XtWidgetGeometry *);
-static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static void SetValuesAlmost(Widget, Widget, IswWidgetGeometry *, IswWidgetGeometry *);
+static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 PannerClassRec pannerClassRec = {
   { /* core fields */
@@ -170,9 +170,9 @@ PannerClassRec pannerClassRec = {
     /* initialize_hook		*/	NULL,
     /* realize			*/	Realize,
     /* actions			*/	actions,
-    /* num_actions		*/	XtNumber(actions),
+    /* num_actions		*/	IswNumber(actions),
     /* resources		*/	resources,
-    /* num_resources		*/	XtNumber(resources),
+    /* num_resources		*/	IswNumber(resources),
     /* xrm_class		*/	NULLQUARK,
     /* compress_motion		*/	TRUE,
     /* compress_exposure	*/	TRUE,
@@ -186,15 +186,15 @@ PannerClassRec pannerClassRec = {
     /* set_values_almost	*/	SetValuesAlmost,
     /* get_values_hook		*/	NULL,
     /* accept_focus		*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private		*/	NULL,
     /* tm_table			*/	defaultTranslations,
     /* query_geometry		*/	QueryGeometry,
-    /* display_accelerator	*/	XtInheritDisplayAccelerator,
+    /* display_accelerator	*/	IswInheritDisplayAccelerator,
     /* extension		*/	NULL
   },
   { /* simple fields */
-    /* change_sensitive		*/	XtInheritChangeSensitive
+    /* change_sensitive		*/	IswInheritChangeSensitive
   },
   { /* panner fields */
     /* ignore                   */	0
@@ -423,7 +423,7 @@ draw_tmp_rubber_band(PannerWidget pw)
 		       pw->panner.foreground, pw->core.background_pixel, \
 		       pw->core.depth, NULL, 0, NULL, NULL, NULL, NULL)
 
-#define PIXMAP_OKAY(pm) ((pm) != None && (pm) != XtUnspecifiedPixmap)
+#define PIXMAP_OKAY(pm) ((pm) != None && (pm) != IswUnspecifiedPixmap)
 
 
 /*****************************************************************************
@@ -459,13 +459,13 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
 
 
 static void
-Realize (xcb_connection_t *conn, Widget gw, XtValueMask *valuemaskp, uint32_t *values)
+Realize (xcb_connection_t *conn, Widget gw, IswValueMask *valuemaskp, uint32_t *values)
 {
     PannerWidget pw = (PannerWidget) gw;
-    xcb_pixmap_t pm = XtUnspecifiedPixmap;
+    xcb_pixmap_t pm = IswUnspecifiedPixmap;
     Boolean gotpm = FALSE;
 
-    if (pw->core.background_pixmap == XtUnspecifiedPixmap) {
+    if (pw->core.background_pixmap == IswUnspecifiedPixmap) {
 	if (pw->panner.stipple_name) pm = BACKGROUND_STIPPLE (pw);
 
 	if (PIXMAP_OKAY(pm)) {
@@ -584,20 +584,20 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 
     if ((cur->panner.stipple_name != new->panner.stipple_name ||
   cur->core.background_pixel != new->core.background_pixel) &&
- XtIsRealized(gnew)) {
+ IswIsRealized(gnew)) {
  xcb_pixmap_t pm = (new->panner.stipple_name ? BACKGROUND_STIPPLE (new)
-       : XtUnspecifiedPixmap);
+       : IswUnspecifiedPixmap);
 
  if (PIXMAP_OKAY(pm)) {
-     xcb_connection_t *conn = XtDisplay(new);
+     xcb_connection_t *conn = IswDisplay(new);
      uint32_t pixmap_val = pm;
-     xcb_change_window_attributes(conn, XtWindow(new), XCB_CW_BACK_PIXMAP, &pixmap_val);
+     xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_BACK_PIXMAP, &pixmap_val);
      xcb_free_pixmap(conn, pm);
      xcb_flush(conn);
  } else {
-     xcb_connection_t *conn = XtDisplay(new);
+     xcb_connection_t *conn = IswDisplay(new);
      uint32_t pixel_val = new->core.background_pixel;
-     xcb_change_window_attributes(conn, XtWindow(new), XCB_CW_BACK_PIXEL, &pixel_val);
+     xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_BACK_PIXEL, &pixel_val);
      xcb_flush(conn);
  }
  redisplay = TRUE;
@@ -631,7 +631,7 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 }
 
 static void
-SetValuesAlmost (Widget gold, Widget gnew, XtWidgetGeometry *req, XtWidgetGeometry *reply)
+SetValuesAlmost (Widget gold, Widget gnew, IswWidgetGeometry *req, IswWidgetGeometry *reply)
 {
     if (reply->request_mode == 0) {	/* got turned down, so cope */
 	Resize (gnew);
@@ -640,8 +640,8 @@ SetValuesAlmost (Widget gold, Widget gnew, XtWidgetGeometry *req, XtWidgetGeomet
 	(gold, gnew, req, reply);
 }
 
-static XtGeometryResult
-QueryGeometry (Widget gw, XtWidgetGeometry *intended, XtWidgetGeometry *pref)
+static IswGeometryResult
+QueryGeometry (Widget gw, IswWidgetGeometry *intended, IswWidgetGeometry *pref)
 {
     PannerWidget pw = (PannerWidget) gw;
 
@@ -652,11 +652,11 @@ QueryGeometry (Widget gw, XtWidgetGeometry *intended, XtWidgetGeometry *pref)
 	 (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
 	intended->width == pref->width &&
 	intended->height == pref->height)
-      return XtGeometryYes;
+      return IswGeometryYes;
     else if (pref->width == pw->core.width && pref->height == pw->core.height)
-      return XtGeometryNo;
+      return IswGeometryNo;
     else
-      return XtGeometryAlmost;
+      return IswGeometryAlmost;
 }
 
 
@@ -674,7 +674,7 @@ ActionStart (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *nu
     int x, y;
 
     if (!get_event_xy (pw, event, &x, &y)) {
- xcb_connection_t *conn = XtDisplay(gw);
+ xcb_connection_t *conn = IswDisplay(gw);
  xcb_bell(conn, 0);
  xcb_flush(conn);
  return;
@@ -735,7 +735,7 @@ ActionMove (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num
     if (!pw->panner.tmp.doing) return;
 
     if (!get_event_xy (pw, event, &x, &y)) {
-	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_connection_t *conn = IswDisplay(gw);
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -766,7 +766,7 @@ ActionPage (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num
     int pad = pw->panner.internal_border * 2;
 
     if (*num_params != 2) {
-	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_connection_t *conn = IswDisplay(gw);
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -840,7 +840,7 @@ ActionNotify (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *n
 	rep.slider_height = pw->panner.slider_height;
 	rep.canvas_width = pw->panner.canvas_width;
 	rep.canvas_height = pw->panner.canvas_height;
-	XtCallCallbackList (gw, pw->panner.report_callbacks, (XtPointer) &rep);
+	IswCallCallbackList (gw, pw->panner.report_callbacks, (IswPointer) &rep);
     }
 }
 
@@ -853,7 +853,7 @@ ActionSet (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_
 
     if (*num_params < 2 ||
 	ISWCompareISOLatin1 (params[0], "rubberband") != 0) {
-	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_connection_t *conn = IswDisplay(gw);
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -866,7 +866,7 @@ ActionSet (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_
     } else if (ISWCompareISOLatin1 (params[1], "toggle") == 0) {
 	rb = !pw->panner.rubber_band;
     } else {
-	xcb_connection_t *conn = XtDisplay(gw);
+	xcb_connection_t *conn = IswDisplay(gw);
 	xcb_bell(conn, 0);
 	xcb_flush(conn);
 	return;
@@ -874,7 +874,7 @@ ActionSet (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_
 
     if (rb != pw->panner.rubber_band) {
 	Arg args[1];
-	XtSetArg (args[0], XtNrubberBand, rb);
-	XtSetValues (gw, args, (Cardinal) 1);
+	IswSetArg (args[0], IswNrubberBand, rb);
+	IswSetValues (gw, args, (Cardinal) 1);
     }
 }

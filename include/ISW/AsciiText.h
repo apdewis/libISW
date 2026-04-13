@@ -86,8 +86,8 @@ SOFTWARE.
  Name		     Class		RepType		  Default Value
  ----		     -----		-------		  -------------
  autoFill	     AutoFill		Boolean		  False
- background	     Background		Pixel		  XtDefaultBackground
- border		     BorderColor	Pixel		  XtDefaultForeground
+ background	     Background		Pixel		  IswDefaultBackground
+ border		     BorderColor	Pixel		  IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	  1
  bottomMargin	     Margin		Position	  2
  cursor		     Cursor		Cursor		  xterm
@@ -95,7 +95,7 @@ SOFTWARE.
  displayCaret	     Output		Boolean		  True
  displayPosition     TextPosition	int		  0
  editType	     EditType		IswTextEditType	  IswtextRead
- font		     Font		XFontStruct*	  Fixed
+ font		     Font		IswFontStruct*	  Fixed
  foreground	     Foreground		Pixel		  Black
  height		     Height		Dimension	  font height
  insertPosition	     TextPosition	int		  0

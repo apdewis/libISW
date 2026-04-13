@@ -11,17 +11,17 @@
 #include <X11/Xfuncproto.h>
 
 /* SpinBox-specific resource names */
-#define XtNspinMinimum    "spinMinimum"
-#define XtCSpinMinimum    "SpinMinimum"
-#define XtNspinMaximum    "spinMaximum"
-#define XtCSpinMaximum    "SpinMaximum"
-#define XtNspinValue      "spinValue"
-#define XtCSpinValue      "SpinValue"
-#define XtNspinIncrement  "spinIncrement"
-#define XtCSpinIncrement  "SpinIncrement"
-#define XtNspinWrap       "spinWrap"
-#define XtCSpinWrap       "SpinWrap"
-#define XtNvalueChanged   "valueChanged"
+#define IswNspinMinimum    "spinMinimum"
+#define IswCSpinMinimum    "SpinMinimum"
+#define IswNspinMaximum    "spinMaximum"
+#define IswCSpinMaximum    "SpinMaximum"
+#define IswNspinValue      "spinValue"
+#define IswCSpinValue      "SpinValue"
+#define IswNspinIncrement  "spinIncrement"
+#define IswCSpinIncrement  "SpinIncrement"
+#define IswNspinWrap       "spinWrap"
+#define IswCSpinWrap       "SpinWrap"
+#define IswNvalueChanged   "valueChanged"
 
 extern WidgetClass spinBoxWidgetClass;
 

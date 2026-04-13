@@ -51,8 +51,8 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWP.h>
 #include <ISW/ISWInit.h>
 #include <ISW/Cardinals.h>
@@ -73,48 +73,48 @@ static void ConstraintDestroy(Widget);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void ChangeManaged(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
-static XtGeometryResult	QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult	QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 					/* utility routines */
 static void insert_node(Widget, Widget);
 static void delete_node(Widget, Widget);
 static void layout_tree(TreeWidget, Boolean);
-static void check_gravity(TreeWidget, XtGravity);
+static void check_gravity(TreeWidget, IswGravity);
 
 
 /*
  * resources of the tree itself
  */
-static XtResource resources[] = {
-    { XtNautoReconfigure, XtCAutoReconfigure, XtRBoolean, sizeof (Boolean),
-	XtOffsetOf(TreeRec, tree.auto_reconfigure), XtRImmediate,
-	(XtPointer) FALSE },
-    { XtNhSpace, XtCHSpace, XtRDimension, sizeof (Dimension),
-	XtOffsetOf(TreeRec, tree.hpad), XtRImmediate, (XtPointer) 0 },
-    { XtNvSpace, XtCVSpace, XtRDimension, sizeof (Dimension),
-	XtOffsetOf(TreeRec, tree.vpad), XtRImmediate, (XtPointer) 0 },
-    { XtNforeground, XtCForeground, XtRPixel, sizeof (Pixel),
-	XtOffsetOf(TreeRec, tree.foreground), XtRString,
-	XtDefaultForeground},
-    { XtNlineWidth, XtCLineWidth, XtRDimension, sizeof (Dimension),
-	XtOffsetOf(TreeRec, tree.line_width), XtRImmediate, (XtPointer) 0 },
-    { XtNgravity, XtCGravity, XtRGravity, sizeof (XtGravity),
-	XtOffsetOf(TreeRec, tree.gravity), XtRImmediate,
-	(XtPointer) XCB_GRAVITY_WEST },
+static IswResource resources[] = {
+    { IswNautoReconfigure, IswCAutoReconfigure, IswRBoolean, sizeof (Boolean),
+	IswOffsetOf(TreeRec, tree.auto_reconfigure), IswRImmediate,
+	(IswPointer) FALSE },
+    { IswNhSpace, IswCHSpace, IswRDimension, sizeof (Dimension),
+	IswOffsetOf(TreeRec, tree.hpad), IswRImmediate, (IswPointer) 0 },
+    { IswNvSpace, IswCVSpace, IswRDimension, sizeof (Dimension),
+	IswOffsetOf(TreeRec, tree.vpad), IswRImmediate, (IswPointer) 0 },
+    { IswNforeground, IswCForeground, IswRPixel, sizeof (Pixel),
+	IswOffsetOf(TreeRec, tree.foreground), IswRString,
+	IswDefaultForeground},
+    { IswNlineWidth, IswCLineWidth, IswRDimension, sizeof (Dimension),
+	IswOffsetOf(TreeRec, tree.line_width), IswRImmediate, (IswPointer) 0 },
+    { IswNgravity, IswCGravity, IswRGravity, sizeof (IswGravity),
+	IswOffsetOf(TreeRec, tree.gravity), IswRImmediate,
+	(IswPointer) XCB_GRAVITY_WEST },
 };
 
 
 /*
  * resources that are attached to all children of the tree
  */
-static XtResource treeConstraintResources[] = {
-    { XtNtreeParent, XtCTreeParent, XtRWidget, sizeof (Widget),
-	XtOffsetOf(TreeConstraintsRec, tree.parent), XtRImmediate, NULL },
-    { XtNtreeForeground, XtCTreeForeground, XtRPixel, sizeof(Pixel),
-	XtOffsetOf(TreeConstraintsRec, tree.foreground), XtRImmediate, NULL },
+static IswResource treeConstraintResources[] = {
+    { IswNtreeParent, IswCTreeParent, IswRWidget, sizeof (Widget),
+	IswOffsetOf(TreeConstraintsRec, tree.parent), IswRImmediate, NULL },
+    { IswNtreeForeground, IswCTreeForeground, IswRPixel, sizeof(Pixel),
+	IswOffsetOf(TreeConstraintsRec, tree.foreground), IswRImmediate, NULL },
 };
 
 
@@ -129,11 +129,11 @@ TreeClassRec treeClassRec = {
     FALSE,				/* class_inited       */
     Initialize,				/* initialize         */
     NULL,				/* initialize_hook    */
-    XtInheritRealize,			/* realize            */
+    IswInheritRealize,			/* realize            */
     NULL,				/* actions            */
     0,					/* num_actions        */
     resources,				/* resources          */
-    XtNumber(resources),		/* num_resources      */
+    IswNumber(resources),		/* num_resources      */
     NULLQUARK,				/* xrm_class          */
     TRUE,				/* compress_motion    */
     TRUE,				/* compress_exposure  */
@@ -144,10 +144,10 @@ TreeClassRec treeClassRec = {
     Redisplay,				/* expose             */
     SetValues,				/* set_values         */
     NULL,				/* set_values_hook    */
-    XtInheritSetValuesAlmost,		/* set_values_almost  */
+    IswInheritSetValuesAlmost,		/* set_values_almost  */
     NULL,				/* get_values_hook    */
     NULL,				/* accept_focus       */
-    XtVersion,				/* version            */
+    IswVersion,				/* version            */
     NULL,				/* callback_private   */
     NULL,				/* tm_table           */
     QueryGeometry,			/* query_geometry     */
@@ -158,14 +158,14 @@ TreeClassRec treeClassRec = {
 					/* composite_class fields */
     GeometryManager,			/* geometry_manager    */
     ChangeManaged,			/* change_managed      */
-    XtInheritInsertChild,		/* insert_child        */
-    XtInheritDeleteChild,		/* delete_child        */
+    IswInheritInsertChild,		/* insert_child        */
+    IswInheritDeleteChild,		/* delete_child        */
     NULL,				/* extension           */
   },
   {
 					/* constraint_class fields */
    treeConstraintResources,		/* subresources        */
-   XtNumber(treeConstraintResources),	/* subresource_count   */
+   IswNumber(treeConstraintResources),	/* subresource_count   */
    sizeof(TreeConstraintsRec),		/* constraint_size     */
    ConstraintInitialize,		/* initialize          */
    ConstraintDestroy,			/* destroy             */
@@ -194,13 +194,13 @@ initialize_dimensions (Dimension **listp, int *sizep, int n)
     Dimension *l;
 
     if (!*listp) {
-	*listp = (Dimension *) XtCalloc ((unsigned int) n,
+	*listp = (Dimension *) IswCalloc ((unsigned int) n,
 					 (unsigned int) sizeof(Dimension));
 	*sizep = ((*listp) ? n : 0);
 	return;
     }
     if (n > *sizep) {
-	*listp = (Dimension *) XtRealloc((char *) *listp,
+	*listp = (Dimension *) IswRealloc((char *) *listp,
 					 (unsigned int) (n*sizeof(Dimension)));
 	if (!*listp) {
 	    *sizep = 0;
@@ -232,7 +232,7 @@ insert_node (Widget parent, Widget node)
 
     if (pc->tree.n_children == pc->tree.max_children) {
 	pc->tree.max_children += (pc->tree.max_children / 2) + 2;
-	pc->tree.children = (WidgetList) XtRealloc ((char *)pc->tree.children,
+	pc->tree.children = (WidgetList) IswRealloc ((char *)pc->tree.children,
 						    (unsigned int)
 						    ((pc->tree.max_children) *
 						    sizeof(Widget)));
@@ -283,7 +283,7 @@ delete_node (Widget parent, Widget node)
 }
 
 static void
-check_gravity (TreeWidget tw, XtGravity grav)
+check_gravity (TreeWidget tw, IswGravity grav)
 {
     switch (tw->tree.gravity) {
       case XCB_GRAVITY_WEST: case XCB_GRAVITY_NORTH: case XCB_GRAVITY_EAST: case XCB_GRAVITY_SOUTH:
@@ -307,9 +307,9 @@ check_gravity (TreeWidget tw, XtGravity grav)
 /*ARGSUSED*/
 static Boolean
 XmuCvtStringToGravity(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
-                      XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
+                      XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
 {
-    static XtGravity gravity;
+    static IswGravity gravity;
     char *str = (char*)fromVal->addr;
     
     /* Simple string matching for gravity values */
@@ -325,16 +325,16 @@ XmuCvtStringToGravity(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_arg
         gravity = XCB_GRAVITY_WEST; /* default */
     
     if (toVal->addr != NULL) {
-        if (toVal->size < sizeof(XtGravity)) {
-            toVal->size = sizeof(XtGravity);
+        if (toVal->size < sizeof(IswGravity)) {
+            toVal->size = sizeof(IswGravity);
             return False;
         }
-        *(XtGravity*)(toVal->addr) = gravity;
+        *(IswGravity*)(toVal->addr) = gravity;
     } else {
-        toVal->addr = (XtPointer)&gravity;
+        toVal->addr = (IswPointer)&gravity;
     }
     
-    toVal->size = sizeof(XtGravity);
+    toVal->size = sizeof(IswGravity);
     return True;
 }
 
@@ -342,8 +342,8 @@ static void
 ClassInitialize (void)
 {
     IswInitializeWidgetSet();
-    XtSetTypeConverter (XtRString, XtRGravity, XmuCvtStringToGravity,
- 	        (XtConvertArgList) NULL, (Cardinal) 0, XtCacheNone, NULL);
+    IswSetTypeConverter (IswRString, IswRGravity, XmuCvtStringToGravity,
+ 	        (IswConvertArgList) NULL, (Cardinal) 0, IswCacheNone, NULL);
 }
 
 
@@ -391,9 +391,9 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
      * Create the hidden root widget.
      */
     new->tree.tree_root = (Widget) NULL;
-    XtSetArg(arglist[0], XtNwidth, 1);
-    XtSetArg(arglist[1], XtNheight, 1);
-    new->tree.tree_root = XtCreateWidget ("root", widgetClass, gnew,
+    IswSetArg(arglist[0], IswNwidth, 1);
+    IswSetArg(arglist[1], IswNheight, 1);
+    new->tree.tree_root = IswCreateWidget ("root", widgetClass, gnew,
 					  arglist,TWO);
 
     /*
@@ -507,7 +507,7 @@ ConstraintSetValues (Widget current, Widget request, Widget new, ArgList args, C
 	 * If the Tree widget has been realized,
 	 * compute new layout.
 	 */
-	if (XtIsRealized((Widget)tw))
+	if (IswIsRealized((Widget)tw))
 	  layout_tree (tw, FALSE);
     }
     return False;
@@ -518,7 +518,7 @@ static void
 ConstraintDestroy (Widget w)
 {
     TreeConstraints tc = TREE_CONSTRAINT(w);
-    TreeWidget tw = (TreeWidget) XtParent(w);
+    TreeWidget tw = (TreeWidget) IswParent(w);
     int i;
 
     /*
@@ -541,8 +541,8 @@ ConstraintDestroy (Widget w)
 }
 
 /* ARGSUSED */
-static XtGeometryResult
-GeometryManager (Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager (Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 {
 
     TreeWidget tw = (TreeWidget) w->core.parent;
@@ -552,7 +552,7 @@ GeometryManager (Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
      */
     if ((request->request_mode & XCB_CONFIG_WINDOW_X && request->x!=w->core.x)
 	||(request->request_mode & XCB_CONFIG_WINDOW_Y && request->y!=w->core.y))
-      return (XtGeometryNo);
+      return (IswGeometryNo);
 
     /*
      * Allow all resize requests.
@@ -566,7 +566,7 @@ GeometryManager (Widget w, XtWidgetGeometry *request, XtWidgetGeometry *reply)
       w->core.border_width = request->border_width;
 
     if (tw->tree.auto_reconfigure) layout_tree (tw, FALSE);
-    return (XtGeometryYes);
+    return (IswGeometryYes);
 }
 
 static void
@@ -586,7 +586,7 @@ Destroy (Widget gw)
         w->tree.render_ctx = NULL;
     }
 
-    if (w->tree.largest) XtFree ((char *) w->tree.largest);
+    if (w->tree.largest) IswFree ((char *) w->tree.largest);
 }
 
 
@@ -601,8 +601,8 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      */
     if (tw->core.visible) {
 	int i, j;
-	xcb_connection_t *dpy = XtDisplay (tw);
-	xcb_window_t w = XtWindow (tw);
+	xcb_connection_t *dpy = IswDisplay (tw);
+	xcb_window_t w = IswWindow (tw);
 
 	for (i = 0; i < tw->composite.num_children; i++) {
 	    Widget child = tw->composite.children[i];
@@ -704,8 +704,8 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
 }
 
-static XtGeometryResult
-QueryGeometry (Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *preferred)
+static IswGeometryResult
+QueryGeometry (Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *preferred)
 {
     TreeWidget tw = (TreeWidget) w;
 
@@ -717,12 +717,12 @@ QueryGeometry (Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *preferred
 	 (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
 	intended->width == preferred->width &&
 	intended->height == preferred->height)
-      return XtGeometryYes;
+      return IswGeometryYes;
     else if (preferred->width == w->core.width &&
              preferred->height == w->core.height)
-      return XtGeometryNo;
+      return IswGeometryNo;
     else
-      return XtGeometryAlmost;
+      return IswGeometryAlmost;
 }
 
 
@@ -835,7 +835,7 @@ set_positions (TreeWidget tw, Widget w, int level)
 	    /*
 	     * Move the widget into position.
 	     */
-	    XtMoveWidget (w, tc->tree.x, tc->tree.y);
+	    IswMoveWidget (w, tc->tree.x, tc->tree.y);
 	}
 
 	/*
@@ -959,15 +959,15 @@ set_tree_size (TreeWidget tw, Boolean insetvalues, Dimension width, Dimension he
 	tw->core.height = height;
     } else {
 	Dimension replyWidth = 0, replyHeight = 0;
-	XtGeometryResult result = XtMakeResizeRequest ((Widget) tw,
+	IswGeometryResult result = IswMakeResizeRequest ((Widget) tw,
 						       width, height,
 						       &replyWidth,
 						       &replyHeight);
 	/*
 	 * Accept any compromise.
 	 */
-	if (result == XtGeometryAlmost)
-	  XtMakeResizeRequest ((Widget) tw, replyWidth, replyHeight,
+	if (result == IswGeometryAlmost)
+	  IswMakeResizeRequest ((Widget) tw, replyWidth, replyHeight,
 			       (Dimension *) NULL, (Dimension *) NULL);
     }
     return;
@@ -1011,7 +1011,7 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
     /*
      * And redisplay.
      */
-    if (XtIsRealized ((Widget) tw)) {
+    if (IswIsRealized ((Widget) tw)) {
         if (tw->tree.render_ctx) {
             ISWRenderBegin(tw->tree.render_ctx);
             ISWRenderSetColor(tw->tree.render_ctx, tw->core.background_pixel);
@@ -1021,8 +1021,8 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
         }
         /* Also clear via X server to generate expose events (clear_area with
            exposures=True triggers repainting of child widgets) */
-        xcb_connection_t *conn = XtDisplay(tw);
-        xcb_clear_area(conn, 1, XtWindow((Widget)tw), 0, 0, 0, 0);
+        xcb_connection_t *conn = IswDisplay(tw);
+        xcb_clear_area(conn, 1, IswWindow((Widget)tw), 0, 0, 0, 0);
         xcb_flush(conn);
     }
 }

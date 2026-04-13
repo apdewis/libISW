@@ -754,8 +754,8 @@ char *yytext;
 #endif
 
 /* System Xlib headers removed - XrmQuark/XrmStringToQuark available via X11/IntrinsicP.h from custom libXt */
-#include    <X11/IntrinsicP.h>
-#include    <X11/StringDefs.h>
+#include    <ISW/IntrinsicP.h>
+#include    <ISW/StringDefs.h>
 
 #include    <ISW/LayoutP.h>
 #include    "laygram.h"

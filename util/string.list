@@ -4,15 +4,15 @@
 ! See the makestrs(1) manual.
 !
 
-#prefix Xt
-#feature XTSTRINGDEFINES
+#prefix Isw
+#feature ISWSTRINGDEFINES
 #externref extern
 #externdef
 ! note that the trailing space is required in the #externdef line.
 #ctmpl util/StrDefs.ct
 
 #file StringDefs.h
-#table XtStrings
+#table IswStrings
 #htmpl util/StrDefs.ht
 
 Naccelerators
@@ -229,7 +229,7 @@ NfontSet
 RFontSet
 CFontSet
 
-#table XtStringsR6
+#table IswStringsR6
 
 RGravity
 NcreateHook
@@ -269,7 +269,7 @@ HpostGeometry
 Hdestroy
 
 #file Shell.h
-#table XtShellStrings
+#table IswShellStrings
 #htmpl util/Shell.ht
 
 NiconName
@@ -350,7 +350,7 @@ CWmTimeout
 NwaitForWm waitforwm
 CWaitForWm Waitforwm
 
-#table XtShellStringsR6
+#table IswShellStringsR6
 
 Nwaitforwm
 CWaitforwm

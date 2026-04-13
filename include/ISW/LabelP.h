@@ -67,7 +67,7 @@ SOFTWARE.
 #include <ISW/ISWRender.h>     /* For ISWRenderContext */
 #include <ISW/ISWImage.h>      /* For ISWImage */
 
-/* XtJustify type is now centrally defined in Isw3dP.h and IswXcbDraw.h */
+/* IswJustify type is now centrally defined in Isw3dP.h and IswXcbDraw.h */
 /* with proper include guards to prevent redefinition */
 
 /* New fields for the Label widget class record */
@@ -87,12 +87,12 @@ extern LabelClassRec labelClassRec;
 typedef struct {
     /* resources */
     Pixel	foreground;
-    XFontStruct	*font;
+    IswFontStruct	*font;
 #ifdef ISW_INTERNATIONALIZATION
-    ISWFontSet	*fontset;  /* Phase 3.2: Changed from XFontSet to ISWFontSet* */
+    ISWFontSet	*fontset;  /* Phase 3.2: Changed from IswFontSet to ISWFontSet* */
 #endif
     char	*label;
-    XtJustify	justify;
+    IswJustify	justify;
     Dimension	internal_width;
     Dimension	internal_height;
     Boolean	resize;

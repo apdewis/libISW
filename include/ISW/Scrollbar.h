@@ -63,31 +63,31 @@ SOFTWARE.
  ----		     -----		-------		-------------
  accelerators	     Accelerators	AcceleratorTable NULL
  ancestorSensitive   AncestorSensitive	Boolean		True
- background	     Background		Pixel		XtDefaultBackground
- backgroundPixmap    Pixmap		Pixmap		XtUnspecifiedPixmap
- borderColor	     BorderColor	Pixel		XtDefaultForeground
- borderPixmap	     Pixmap		Pixmap		XtUnspecifiedPixmap
+ background	     Background		Pixel		IswDefaultBackground
+ backgroundPixmap    Pixmap		Pixmap		IswUnspecifiedPixmap
+ borderColor	     BorderColor	Pixel		IswDefaultForeground
+ borderPixmap	     Pixmap		Pixmap		IswUnspecifiedPixmap
  borderWidth	     BorderWidth	Dimension	1
  colormap	     Colormap		Colormap	parent's colormap
  cursor		     Cursor		Cursor		None
  cursorName	     Cursor		String		NULL
  depth		     Depth		int		parent's depth
- destroyCallback     Callback		XtCallbackList	NULL
- foreground	     Foreground		Pixel		XtDefaultForeground
+ destroyCallback     Callback		IswCallbackList	NULL
+ foreground	     Foreground		Pixel		IswDefaultForeground
  height		     Height		Dimension	length or thickness
  insensitiveBorder   Insensitive	Pixmap		GreyPixmap
- jumpProc	     Callback		XtCallbackList	NULL
+ jumpProc	     Callback		IswCallbackList	NULL
  length		     Length		Dimension	1
  mappedWhenManaged   MappedWhenManaged	Boolean		True
  minimumThumb	     MinimumThumb	Dimension	7
- orientation	     Orientation	XtOrientation	XtorientVertical
- pointerColor	     Foreground		Pixel		XtDefaultForeground
- pointerColorBackground Background	Pixel		XtDefaultBackground
+ orientation	     Orientation	IswOrientation	XtorientVertical
+ pointerColor	     Foreground		Pixel		IswDefaultForeground
+ pointerColorBackground Background	Pixel		IswDefaultBackground
  screen		     Screen		Screen		parent's screen
  scrollDCursor	     Cursor		Cursor		XC_sb_down_arrow
  scrollHCursor	     Cursor		Cursor		XC_sb_h_double_arrow
  scrollLCursor	     Cursor		Cursor		XC_sb_left_arrow
- scrollProc	     Callback		XtCallbackList	NULL
+ scrollProc	     Callback		IswCallbackList	NULL
  scrollRCursor	     Cursor		Cursor		XC_sb_right_arrow
  scrollUCursor	     Cursor		Cursor		XC_sb_up_arrow
  scrollVCursor	     Cursor		Cursor		XC_sb_v_double_arrow
@@ -95,7 +95,7 @@ SOFTWARE.
  shown		     Shown		Float		0.0
  thickness	     Thickness		Dimension	14
  thumb		     Thumb		Bitmap		GreyPixmap
- thumbProc	     Callback		XtCallbackList	NULL
+ thumbProc	     Callback		IswCallbackList	NULL
  topOfThumb	     TopOfThumb		Float		0.0
  pickTop	     PickTop		Boolean		False
  translations	     Translations	TranslationTable see source or doc
@@ -109,16 +109,16 @@ SOFTWARE.
  * Most things we need are in StringDefs.h
  */
 
-#define XtCMinimumThumb "MinimumThumb"
-#define XtCShown "Shown"
-#define XtCTopOfThumb "TopOfThumb"
-#define XtCPickTop "PickTop"
+#define IswCMinimumThumb "MinimumThumb"
+#define IswCShown "Shown"
+#define IswCTopOfThumb "TopOfThumb"
+#define IswCPickTop "PickTop"
 
-#define XtNminimumThumb "minimumThumb"
-#define XtNtopOfThumb "topOfThumb"
-#define XtNpickTop "pickTop"
-#define XtNscrollWheelIncrement "scrollWheelIncrement"
-#define XtCScrollWheelIncrement "ScrollWheelIncrement"
+#define IswNminimumThumb "minimumThumb"
+#define IswNtopOfThumb "topOfThumb"
+#define IswNpickTop "pickTop"
+#define IswNscrollWheelIncrement "scrollWheelIncrement"
+#define IswCScrollWheelIncrement "ScrollWheelIncrement"
 
 typedef struct _ScrollbarRec	  *ScrollbarWidget;
 typedef struct _ScrollbarClassRec *ScrollbarWidgetClass;

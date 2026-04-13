@@ -57,79 +57,79 @@ SOFTWARE.
 #ifndef _Event_h_
 #define _Event_h_
 
-typedef struct _XtGrabRec  *XtGrabList;
+typedef struct _IswGrabRec  *IswGrabList;
 
 #include "PassivGraI.h"
 
 _XFUNCPROTOBEGIN
 
-extern void _XtEventInitialize();
+extern void _IswEventInitialize();
 
 extern xcb_window_t get_event_window(xcb_generic_event_t *event);
 
-typedef struct _XtEventRec {
-     XtEventTable	next;
+typedef struct _IswEventRec {
+     IswEventTable	next;
      EventMask		mask;	/*  also select_data count for RecExt */
-     XtEventHandler	proc;
-     XtPointer		closure;
+     IswEventHandler	proc;
+     IswPointer		closure;
      unsigned int	select:1;
      unsigned int	has_type_specifier:1;
      unsigned int	async:1; /* not used, here for Digital extension? */
-} XtEventRec;
+} IswEventRec;
 
-typedef struct _XtGrabRec {
-    XtGrabList next;
+typedef struct _IswGrabRec {
+    IswGrabList next;
     Widget   widget;
     unsigned int exclusive:1;
     unsigned int spring_loaded:1;
-}XtGrabRec;
+}IswGrabRec;
 
 typedef struct _BlockHookRec {
     struct _BlockHookRec* next;
-    XtAppContext app;
-    XtBlockHookProc proc;
-    XtPointer closure;
+    IswAppContext app;
+    IswBlockHookProc proc;
+    IswPointer closure;
 } BlockHookRec, *BlockHook;
 
-extern void _XtFreeEventTable(
-    XtEventTable*	/* event_table */
+extern void _IswFreeEventTable(
+    IswEventTable*	/* event_table */
 );
 
-extern Boolean _XtOnGrabList(
+extern Boolean _IswOnGrabList(
     Widget	/* widget */,
-    XtGrabRec*	/* grabList */
+    IswGrabRec*	/* grabList */
 );
 
-extern void _XtRemoveAllInputs(
-    XtAppContext /* app */
+extern void _IswRemoveAllInputs(
+    IswAppContext /* app */
 );
 
-extern void _XtRefreshMapping(
+extern void _IswRefreshMapping(
     xcb_connection_t*,
     xcb_generic_event_t*	/* event */,
-    _XtBoolean	/* dispatch */
+    _IswBoolean	/* dispatch */
 );
 
-extern void _XtSendFocusEvent(
+extern void _IswSendFocusEvent(
     Widget	/* child */,
     int		/* type */);
 
-extern EventMask _XtConvertTypeToMask(
+extern EventMask _IswConvertTypeToMask(
     int		/* eventType */
 );
 
 /* EventUtil.c */
-extern Widget _XtFindRemapWidget(xcb_generic_event_t *event, Widget widget,
-				 xcb_event_mask_t mask, XtPerDisplayInput pdi);
-extern void _XtUngrabBadGrabs(xcb_generic_event_t *event, Widget widget,
-				 xcb_event_mask_t mask, XtPerDisplayInput pdi);
-extern void _XtFillAncestorList(Widget **listPtr, int *maxElemsPtr,
+extern Widget _IswFindRemapWidget(xcb_generic_event_t *event, Widget widget,
+				 xcb_event_mask_t mask, IswPerDisplayInput pdi);
+extern void _IswUngrabBadGrabs(xcb_generic_event_t *event, Widget widget,
+				 xcb_event_mask_t mask, IswPerDisplayInput pdi);
+extern void _IswFillAncestorList(Widget **listPtr, int *maxElemsPtr,
 				int *numElemsPtr, Widget start,
 				Widget breakWidget);
 
 /* NextEvent.c */
-extern Boolean XtAppPeekEvent_SkipTimer;
-extern void _XtFillEventQueue(XtAppContext /* app */);
+extern Boolean IswAppPeekEvent_SkipTimer;
+extern void _IswFillEventQueue(IswAppContext /* app */);
 
 _XFUNCPROTOEND
 

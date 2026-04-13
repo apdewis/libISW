@@ -8,26 +8,26 @@
 #ifndef _ISW_IswToolbar_h
 #define _ISW_IswToolbar_h
 
-#include <X11/Constraint.h>
+#include <ISW/Constraint.h>
 
 /* Widget resources */
-#ifndef XtNspacing
-#define XtNspacing "spacing"
+#ifndef IswNspacing
+#define IswNspacing "spacing"
 #endif
-#ifndef XtCSpacing
-#define XtCSpacing "Spacing"
+#ifndef IswCSpacing
+#define IswCSpacing "Spacing"
 #endif
 
 /* Constraint resource names */
-#define XtNtoolbarAlignment "toolbarAlignment"
-#define XtCtoolbarAlignment "ToolbarAlignment"
-#define XtRToolbarAlignment "ToolbarAlignment"
+#define IswNtoolbarAlignment "toolbarAlignment"
+#define IswCtoolbarAlignment "ToolbarAlignment"
+#define IswRToolbarAlignment "ToolbarAlignment"
 
 /* Alignment enum */
 typedef enum {
-    XtToolbarAlignLeft,
-    XtToolbarAlignCenter,
-    XtToolbarAlignRight
+    IswToolbarAlignLeft,
+    IswToolbarAlignCenter,
+    IswToolbarAlignRight
 } IswToolbarAlignment;
 
 extern WidgetClass toolbarWidgetClass;

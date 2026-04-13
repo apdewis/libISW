@@ -15,21 +15,21 @@
 #ifndef _ISWRender_h
 #define _ISWRender_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 #include <xcb/xcb.h>
 
 /*
  * Relief types for 3D shadows (shared with ThreeD.h)
  */
-#ifndef _XtRelief_defined
-#define _XtRelief_defined
+#ifndef _IswRelief_defined
+#define _IswRelief_defined
 typedef enum {
-    XtReliefNone,
-    XtReliefRaised,
-    XtReliefSunken,
-    XtReliefRidge,
-    XtReliefGroove
-} XtRelief;
+    IswReliefNone,
+    IswReliefRaised,
+    IswReliefSunken,
+    IswReliefRidge,
+    IswReliefGroove
+} IswRelief;
 #endif
 
 /*
@@ -374,12 +374,12 @@ int ISWRenderTextHeight(ISWRenderContext *ctx);
  *
  * Parameters:
  *   ctx  - Rendering context
- *   font - XFontStruct pointer
+ *   font - IswFontStruct pointer
  *
  * Notes:
- *   - Converts XFontStruct metrics to Cairo font sizing
+ *   - Converts IswFontStruct metrics to Cairo font sizing
  */
-void ISWRenderSetFont(ISWRenderContext *ctx, XFontStruct *font);
+void ISWRenderSetFont(ISWRenderContext *ctx, IswFontStruct *font);
 
 /*
  * =================================================================
@@ -557,28 +557,28 @@ Dimension ISWScaleDim(Widget widget, int value);
  *
  * Parameters:
  *   widget - Widget for display/scale context
- *   font   - XFontStruct for base font metrics (may be NULL for default)
+ *   font   - IswFontStruct for base font metrics (may be NULL for default)
  *   text   - Text string to measure
  *   len    - Length of text
  *
  * Returns: Text width in pixels as Cairo would render it
  */
-int ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len);
+int ISWScaledTextWidth(Widget widget, IswFontStruct *font, const char *text, int len);
 
 /*
  * ISWScaledFontHeight - Get the font line height as Cairo would render it.
  */
-int ISWScaledFontHeight(Widget widget, XFontStruct *font);
+int ISWScaledFontHeight(Widget widget, IswFontStruct *font);
 
 /*
  * ISWScaledFontAscent - Get the font ascent as Cairo would render it.
  */
-int ISWScaledFontAscent(Widget widget, XFontStruct *font);
+int ISWScaledFontAscent(Widget widget, IswFontStruct *font);
 
 /*
  * ISWScaledFontCapHeight - Get the cap height (height of a capital letter)
  * as Cairo would render it.
  */
-int ISWScaledFontCapHeight(Widget widget, XFontStruct *font);
+int ISWScaledFontCapHeight(Widget widget, IswFontStruct *font);
 
 #endif /* _ISWRender_h */

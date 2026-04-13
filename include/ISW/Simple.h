@@ -61,8 +61,8 @@ SOFTWARE.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- background	     Background		Pixel		XtDefaultBackground
- border		     BorderColor	Pixel		XtDefaultForeground
+ background	     Background		Pixel		IswDefaultBackground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
  cursor		     Cursor		Cursor		None
  cursorName	     Cursor		String		NULL
@@ -70,8 +70,8 @@ SOFTWARE.
  height		     Height		Dimension	0
  insensitiveBorder   Insensitive	Pixmap		Gray
  mappedWhenManaged   MappedWhenManaged	Boolean		True
- pointerColor        Foreground         Pixel           XtDefaultForeground
- pointerColorBackground Background      Pixel           XtDefaultBackground
+ pointerColor        Foreground         Pixel           IswDefaultForeground
+ pointerColorBackground Background      Pixel           IswDefaultBackground
  sensitive	     Sensitive		Boolean		True
  width		     Width		Dimension	0
  x		     Position		Position	0
@@ -79,18 +79,18 @@ SOFTWARE.
 
 */
 
-#define XtNcursor "cursor"
-#define XtNcursorName "cursorName"
-#define XtNinsensitiveBorder "insensitiveBorder"
+#define IswNcursor "cursor"
+#define IswNcursorName "cursorName"
+#define IswNinsensitiveBorder "insensitiveBorder"
 
-#define XtCInsensitive "Insensitive"
+#define IswCInsensitive "Insensitive"
 
 #ifdef ISW_INTERNATIONALIZATION
-#ifndef XtCInternational
-#define XtCInternational "International"
+#ifndef IswCInternational
+#define IswCInternational "International"
 #endif
-#ifndef XtNinternational
-#define XtNinternational "international"
+#ifndef IswNinternational
+#define IswNinternational "international"
 #endif
 #endif
 

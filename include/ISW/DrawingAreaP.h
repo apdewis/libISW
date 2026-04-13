@@ -23,9 +23,9 @@ extern DrawingAreaClassRec drawingAreaClassRec;
 
 typedef struct {
     /* resources */
-    XtCallbackList expose_callbacks;
-    XtCallbackList resize_callbacks;
-    XtCallbackList input_callbacks;
+    IswCallbackList expose_callbacks;
+    IswCallbackList resize_callbacks;
+    IswCallbackList input_callbacks;
 
     /* private */
     ISWRenderContext *render_ctx;

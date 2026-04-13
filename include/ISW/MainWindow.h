@@ -29,7 +29,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * never scrolls) and a single content child below filling the rest.
  */
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /* Class record constants */
 extern WidgetClass mainWindowWidgetClass;

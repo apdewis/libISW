@@ -11,19 +11,19 @@
 #include <X11/Xfuncproto.h>
 
 /* Slider-specific resource names */
-#define XtNminimumValue   "minimumValue"
-#define XtCMinimumValue   "MinimumValue"
-#define XtNmaximumValue   "maximumValue"
-#define XtCMaximumValue   "MaximumValue"
-#define XtNsliderValue    "sliderValue"
-#define XtCSliderValue    "SliderValue"
-#define XtNshowValue      "showValue"
-#define XtCShowValue      "ShowValue"
-#define XtNvalueChanged   "valueChanged"
-#define XtNvaluePosition  "valuePosition"
-#define XtCValuePosition  "ValuePosition"
-#define XtNtickInterval   "tickInterval"
-#define XtCTickInterval   "TickInterval"
+#define IswNminimumValue   "minimumValue"
+#define IswCMinimumValue   "MinimumValue"
+#define IswNmaximumValue   "maximumValue"
+#define IswCMaximumValue   "MaximumValue"
+#define IswNsliderValue    "sliderValue"
+#define IswCSliderValue    "SliderValue"
+#define IswNshowValue      "showValue"
+#define IswCShowValue      "ShowValue"
+#define IswNvalueChanged   "valueChanged"
+#define IswNvaluePosition  "valuePosition"
+#define IswCValuePosition  "ValuePosition"
+#define IswNtickInterval   "tickInterval"
+#define IswCTickInterval   "TickInterval"
 
 /* Value position enum */
 typedef enum {

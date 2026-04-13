@@ -26,7 +26,7 @@
 #include FT_FREETYPE_H
 
 /* Defined in Initialize.c — avoids pulling in InitialI.h */
-extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 /*
  * =================================================================
@@ -121,9 +121,9 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
     
     /* Get widget display and window info */
     ctx->widget = widget;
-    ctx->connection = (xcb_connection_t*)XtDisplay(widget);
-    ctx->window = XtWindow(widget);
-    ctx->screen = (xcb_screen_t*)XtScreen(widget);
+    ctx->connection = (xcb_connection_t*)IswDisplay(widget);
+    ctx->window = IswWindow(widget);
+    ctx->screen = (xcb_screen_t*)IswScreen(widget);
     
     /* Get colormap from screen - we'll use the screen's default colormap */
     ctx->colormap = ctx->screen ? ctx->screen->default_colormap : 0;
@@ -507,7 +507,7 @@ ISWRenderTextHeight(ISWRenderContext *ctx)
 }
 
 void
-ISWRenderSetFont(ISWRenderContext *ctx, XFontStruct *font)
+ISWRenderSetFont(ISWRenderContext *ctx, IswFontStruct *font)
 {
     if (!ctx || !ctx->ops || !ctx->ops->set_font) {
         return;
@@ -635,7 +635,7 @@ void
 ISWRenderPixelToRGB(ISWRenderContext *ctx, Pixel pixel,
                    double *r, double *g, double *b)
 {
-    XColor color;
+    IswColor color;
     
     if (!ctx || !r || !g || !b) {
         return;
@@ -695,7 +695,7 @@ ISWScaleFactor(Widget widget)
 {
     if (!widget)
         return 1.0;
-    return _XtGetScaleFactor(XtDisplayOfObject(widget));
+    return _IswGetScaleFactor(IswDisplayOfObject(widget));
 }
 
 Dimension
@@ -826,10 +826,10 @@ _ISWResolveFontFace(const char *family, int weight, int slant)
 
 /*
  * _ISWSetCairoFontFromXFont - Configure a Cairo context with a proper
- * TTF font face resolved via fontconfig, sized from XFontStruct metrics.
+ * TTF font face resolved via fontconfig, sized from IswFontStruct metrics.
  */
 void
-_ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double scale)
+_ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale)
 {
     cairo_font_face_t *face;
     double size;
@@ -849,7 +849,7 @@ _ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double scale)
     else
         size = 12.0 * scale;
 
-    /* Guard against zero-metric fonts (e.g. incomplete XFontStruct
+    /* Guard against zero-metric fonts (e.g. incomplete IswFontStruct
      * from failed resource converters) — Cairo renders nothing at
      * size 0, causing silent text loss. */
     if (size < 1.0)
@@ -868,7 +868,7 @@ static cairo_t *_measure_cr = NULL;
 
 /* Cached font state — re-queried only when font identity or size changes. */
 static double _cached_font_size = -1.0;
-static XFontStruct *_cached_font_ptr = NULL;
+static IswFontStruct *_cached_font_ptr = NULL;
 static cairo_font_extents_t _cached_font_extents;
 static double _measure_device_scale = 0.0;
 
@@ -902,11 +902,11 @@ _ISWGetMeasureCR(double device_scale)
     return _measure_cr;
 }
 
-/* Compute the logical font size from an XFontStruct.
+/* Compute the logical font size from an IswFontStruct.
  * HiDPI: font sizes are in logical pixels; the Cairo scale transform
  * on the render surface handles physical magnification. */
 static double
-_ISWComputeFontSize(Widget widget, XFontStruct *font)
+_ISWComputeFontSize(Widget widget, IswFontStruct *font)
 {
     (void)widget;
     if (font) {
@@ -921,7 +921,7 @@ _ISWComputeFontSize(Widget widget, XFontStruct *font)
  * Only re-sets when the font identity or size actually changes.
  */
 static void
-_ISWSyncMeasureFont(cairo_t *cr, Widget widget, XFontStruct *font)
+_ISWSyncMeasureFont(cairo_t *cr, Widget widget, IswFontStruct *font)
 {
     double size = _ISWComputeFontSize(widget, font);
 
@@ -944,7 +944,7 @@ _ISWSyncMeasureFont(cairo_t *cr, Widget widget, XFontStruct *font)
  * effective font size changes (different font or different scale).
  */
 static void
-_ISWGetCairoFontExtents(Widget widget, XFontStruct *font, cairo_font_extents_t *extents)
+_ISWGetCairoFontExtents(Widget widget, IswFontStruct *font, cairo_font_extents_t *extents)
 {
     cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
 
@@ -957,7 +957,7 @@ _ISWGetCairoFontExtents(Widget widget, XFontStruct *font, cairo_font_extents_t *
  * and size that the render path uses. This ensures layout matches rendering.
  */
 int
-ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
+ISWScaledTextWidth(Widget widget, IswFontStruct *font, const char *text, int len)
 {
     cairo_text_extents_t extents;
     char *null_term;
@@ -984,7 +984,7 @@ ISWScaledTextWidth(Widget widget, XFontStruct *font, const char *text, int len)
 }
 
 int
-ISWScaledFontHeight(Widget widget, XFontStruct *font)
+ISWScaledFontHeight(Widget widget, IswFontStruct *font)
 {
     cairo_font_extents_t extents;
     _ISWGetCairoFontExtents(widget, font, &extents);
@@ -992,7 +992,7 @@ ISWScaledFontHeight(Widget widget, XFontStruct *font)
 }
 
 int
-ISWScaledFontAscent(Widget widget, XFontStruct *font)
+ISWScaledFontAscent(Widget widget, IswFontStruct *font)
 {
     cairo_font_extents_t extents;
     _ISWGetCairoFontExtents(widget, font, &extents);
@@ -1000,7 +1000,7 @@ ISWScaledFontAscent(Widget widget, XFontStruct *font)
 }
 
 int
-ISWScaledFontCapHeight(Widget widget, XFontStruct *font)
+ISWScaledFontCapHeight(Widget widget, IswFontStruct *font)
 {
     cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
     cairo_text_extents_t text_ext;

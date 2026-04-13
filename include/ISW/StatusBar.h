@@ -8,11 +8,11 @@
 #ifndef _ISW_IswStatusBar_h
 #define _ISW_IswStatusBar_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /* Constraint resource: set on children to make them fill remaining space */
-#define XtNstatusStretch  "statusStretch"
-#define XtCStatusStretch  "StatusStretch"
+#define IswNstatusStretch  "statusStretch"
+#define IswCStatusStretch  "StatusStretch"
 
 extern WidgetClass statusBarWidgetClass;
 

@@ -45,10 +45,10 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _Xt_ObjectP_h_
-#define _Xt_ObjectP_h_
+#ifndef _Isw_ObjectP_h_
+#define _Isw_ObjectP_h_
 
-#include <X11/Object.h>
+#include <ISW/Object.h>
 
 _XFUNCPROTOBEGIN
 
@@ -64,8 +64,8 @@ typedef struct _ObjectPart {
     Widget          parent;             /* parent widget                     */
     XrmName         xrm_name;           /* widget resource name quarkified   */
     Boolean         being_destroyed;    /* marked for destroy                */
-    XtCallbackList  destroy_callbacks;  /* who to call when widget destroyed */
-    XtPointer       constraints;        /* constraint record                 */
+    IswCallbackList  destroy_callbacks;  /* who to call when widget destroyed */
+    IswPointer       constraints;        /* constraint record                 */
 } ObjectPart;
 
 typedef struct _ObjectRec {
@@ -86,44 +86,44 @@ typedef struct _ObjectClassPart {
     WidgetClass     superclass;         /* pointer to superclass ClassRec   */
     String          class_name;         /* widget resource class name       */
     Cardinal        widget_size;        /* size in bytes of widget record   */
-    XtProc          class_initialize;   /* class initialization proc        */
-    XtWidgetClassProc class_part_initialize; /* dynamic initialization      */
-    XtEnum          class_inited;       /* has class been initialized?      */
-    XtInitProc      initialize;         /* initialize subclass fields       */
-    XtArgsProc      initialize_hook;    /* notify that initialize called    */
-    XtProc          obj1;		/* NULL                             */
-    XtPointer       obj2;               /* NULL                             */
+    IswProc          class_initialize;   /* class initialization proc        */
+    IswWidgetClassProc class_part_initialize; /* dynamic initialization      */
+    IswEnum          class_inited;       /* has class been initialized?      */
+    IswInitProc      initialize;         /* initialize subclass fields       */
+    IswArgsProc      initialize_hook;    /* notify that initialize called    */
+    IswProc          obj1;		/* NULL                             */
+    IswPointer       obj2;               /* NULL                             */
     Cardinal        obj3;               /* NULL                             */
-    XtResourceList  resources;          /* resources for subclass fields    */
+    IswResourceList  resources;          /* resources for subclass fields    */
     Cardinal        num_resources;      /* number of entries in resources   */
     XrmClass        xrm_class;          /* resource class quarkified (placeholder to match CoreClassPart layout) */
     Boolean         obj4;               /* NULL                             */
-    XtEnum          obj5;               /* NULL                             */
+    IswEnum          obj5;               /* NULL                             */
     Boolean         obj6;               /* NULL				    */
     Boolean         obj7;               /* NULL                             */
-    XtWidgetProc    destroy;            /* free data for subclass pointers  */
-    XtProc          obj8;               /* NULL                             */
-    XtProc          obj9;               /* NULL			            */
-    XtSetValuesFunc set_values;         /* set subclass resource values     */
-    XtArgsFunc      set_values_hook;    /* notify that set_values called    */
-    XtProc          obj10;              /* NULL                             */
-    XtArgsProc      get_values_hook;    /* notify that get_values called    */
-    XtProc          obj11;              /* NULL                             */
-    XtVersionType   version;            /* version of intrinsics used       */
-    XtPointer       callback_private;   /* list of callback offsets         */
+    IswWidgetProc    destroy;            /* free data for subclass pointers  */
+    IswProc          obj8;               /* NULL                             */
+    IswProc          obj9;               /* NULL			            */
+    IswSetValuesFunc set_values;         /* set subclass resource values     */
+    IswArgsFunc      set_values_hook;    /* notify that set_values called    */
+    IswProc          obj10;              /* NULL                             */
+    IswArgsProc      get_values_hook;    /* notify that get_values called    */
+    IswProc          obj11;              /* NULL                             */
+    IswVersionType   version;            /* version of intrinsics used       */
+    IswPointer       callback_private;   /* list of callback offsets         */
     String          obj12;              /* NULL                             */
-    XtProc          obj13;              /* NULL                             */
-    XtProc          obj14;              /* NULL                             */
-    XtPointer       extension;          /* pointer to extension record      */
+    IswProc          obj13;              /* NULL                             */
+    IswProc          obj14;              /* NULL                             */
+    IswPointer       extension;          /* pointer to extension record      */
 }ObjectClassPart;
 
 typedef struct {
-    XtPointer next_extension;	/* 1st 4 required for all extension records */
+    IswPointer next_extension;	/* 1st 4 required for all extension records */
     XrmQuark record_type;	/* NULLQUARK; when on ObjectClassPart */
-    long version;		/* must be XtObjectExtensionVersion */
+    long version;		/* must be IswObjectExtensionVersion */
     Cardinal record_size;	/* sizeof(ObjectClassExtensionRec) */
-    XtAllocateProc allocate;
-    XtDeallocateProc deallocate;
+    IswAllocateProc allocate;
+    IswDeallocateProc deallocate;
 } ObjectClassExtensionRec, *ObjectClassExtension;
 
 typedef struct _ObjectClassRec {
@@ -134,8 +134,8 @@ externalref ObjectClassRec objectClassRec;
 
 _XFUNCPROTOEND
 
-#define XtObjectExtensionVersion 1L
-#define XtInheritAllocate ((XtAllocateProc) _XtInherit)
-#define XtInheritDeallocate ((XtDeallocateProc) _XtInherit)
+#define IswObjectExtensionVersion 1L
+#define IswInheritAllocate ((IswAllocateProc) _IswInherit)
+#define IswInheritDeallocate ((IswDeallocateProc) _IswInherit)
 
-#endif /*_Xt_ObjectP_h_*/
+#endif /*_Isw_ObjectP_h_*/

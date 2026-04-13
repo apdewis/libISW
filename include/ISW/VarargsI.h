@@ -33,32 +33,32 @@ in this Software without prior written authorization from The Open Group.
 
 _XFUNCPROTOBEGIN
 
-extern void _XtCountVaList(
+extern void _IswCountVaList(
     va_list /*var*/, int* /*total_count*/, int* /*typed_count*/
 );
 
-extern void _XtVaToArgList(
+extern void _IswVaToArgList(
    Widget /*widget*/, va_list /*var*/, int /*max_count*/, ArgList* /*args_return*/, Cardinal* /*num_args_return*/
 );
 
-extern void _XtVaToTypedArgList(
-    va_list /*var*/, int /*count*/, XtTypedArgList* /*args_return*/, Cardinal* /*num_args_return*/
+extern void _IswVaToTypedArgList(
+    va_list /*var*/, int /*count*/, IswTypedArgList* /*args_return*/, Cardinal* /*num_args_return*/
 );
 
-extern XtTypedArgList _XtVaCreateTypedArgList(
+extern IswTypedArgList _IswVaCreateTypedArgList(
     va_list /*var*/, int /*count*/
 );
 
-extern void _XtFreeArgList(
+extern void _IswFreeArgList(
     ArgList /*args*/, int /*total_count*/, int /*typed_count*/
 );
 
-extern void _XtGetApplicationResources(
-    Widget /*w*/, XtPointer /*base*/, XtResourceList /*resources*/, Cardinal /*num_resources*/, ArgList /*args*/, Cardinal /*num_args*/, XtTypedArgList /*typed_args*/, Cardinal /*num_typed_args*/
+extern void _IswGetApplicationResources(
+    Widget /*w*/, IswPointer /*base*/, IswResourceList /*resources*/, Cardinal /*num_resources*/, ArgList /*args*/, Cardinal /*num_args*/, IswTypedArgList /*typed_args*/, Cardinal /*num_typed_args*/
 );
 
-extern void _XtGetSubresources(
-    Widget /*w*/, XtPointer /*base*/, const char* /*name*/, const char* /*class*/, XtResourceList /*resources*/, Cardinal /*num_resources*/, ArgList /*args*/, Cardinal /*num_args*/, XtTypedArgList /*typed_args*/, Cardinal /*num_typed_args*/
+extern void _IswGetSubresources(
+    Widget /*w*/, IswPointer /*base*/, const char* /*name*/, const char* /*class*/, IswResourceList /*resources*/, Cardinal /*num_resources*/, ArgList /*args*/, Cardinal /*num_args*/, IswTypedArgList /*typed_args*/, Cardinal /*num_typed_args*/
 );
 
 _XFUNCPROTOEND

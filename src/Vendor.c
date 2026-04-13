@@ -65,9 +65,9 @@ SOFTWARE.
 
 #include <ISW/ISWP.h>
 #include <stdio.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
-#include <X11/ShellP.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
+#include <ISW/ShellP.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
@@ -75,7 +75,7 @@ SOFTWARE.
 #ifndef XCB_ATOM_COMPOUND_TEXT
 #define XCB_ATOM_COMPOUND_TEXT(dpy) XCB_ATOM_STRING
 #endif
-#include <X11/VendorP.h>
+#include <ISW/VendorP.h>
 #ifdef ISW_INTERNATIONALIZATION
 /* Editres support - see IswUtils.h */
 #endif
@@ -89,10 +89,10 @@ SOFTWARE.
 #endif
 
 
-static XtResource resources[] = {
-  {XtNinput, XtCInput, XtRBool, sizeof(Bool),
-		XtOffsetOf(VendorShellRec, wm.wm_hints.input),
-		XtRImmediate, (XtPointer)True}
+static IswResource resources[] = {
+  {IswNinput, IswCInput, IswRBool, sizeof(Bool),
+		IswOffsetOf(VendorShellRec, wm.wm_hints.input),
+		IswRImmediate, (IswPointer)True}
 };
 
 /***************************************************************************
@@ -104,9 +104,9 @@ static XtResource resources[] = {
 static void IswVendorShellClassInitialize(void);
 static void IswVendorShellInitialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean IswVendorShellSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void ChangeManaged(Widget);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 #ifdef ISW_INTERNATIONALIZATION
 static void IswVendorShellClassPartInit(WidgetClass);
 void IswVendorShellExtResize(Widget);
@@ -162,7 +162,7 @@ DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
 static CompositeClassExtensionRec vendorCompositeExt = {
     /* next_extension     */	NULL,
     /* record_type        */    NULLQUARK,
-    /* version            */    XtCompositeExtensionVersion,
+    /* version            */    IswCompositeExtensionVersion,
     /* record_size        */    sizeof (CompositeClassExtensionRec),
     /* accepts_objects    */    TRUE,
     /* allows_change_managed_set */ FALSE
@@ -188,7 +188,7 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
     /* actions		  */	NULL,
     /* num_actions	  */	0,
     /* resources	  */	resources,
-    /* resource_count	  */	XtNumber(resources),
+    /* resource_count	  */	IswNumber(resources),
     /* xrm_class	  */	NULLQUARK,
     /* compress_motion	  */	FALSE,
     /* compress_exposure  */	TRUE,
@@ -198,15 +198,15 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
 #ifdef ISW_INTERNATIONALIZATION
     /* resize		  */	IswVendorShellExtResize,
 #else
-    /* resize		  */	XtInheritResize,
+    /* resize		  */	IswInheritResize,
 #endif
     /* expose		  */	NULL,
     /* set_values	  */	IswVendorShellSetValues,
     /* set_values_hook	  */	NULL,
-    /* set_values_almost  */	XtInheritSetValuesAlmost,
+    /* set_values_almost  */	IswInheritSetValuesAlmost,
     /* get_values_hook	  */	NULL,
     /* accept_focus	  */	NULL,
-    /* intrinsics version */	XtVersion,
+    /* intrinsics version */	IswVersion,
     /* callback offsets	  */	NULL,
     /* tm_table		  */	NULL,
     /* query_geometry	  */	NULL,
@@ -215,10 +215,10 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
   },{
     /* geometry_manager	  */	GeometryManager,
     /* change_managed	  */	ChangeManaged,
-    /* insert_child	  */	XtInheritInsertChild,
-    /* delete_child	  */	XtInheritDeleteChild,
+    /* insert_child	  */	IswInheritInsertChild,
+    /* delete_child	  */	IswInheritDeleteChild,
 #ifdef ISW_INTERNATIONALIZATION
-    /* extension	  */	(XtPointer) &vendorCompositeExt
+    /* extension	  */	(IswPointer) &vendorCompositeExt
 #else
     /* extension	  */	NULL
 #endif
@@ -242,19 +242,19 @@ externaldef(vendorshellwidgetclass) WidgetClass vendorShellWidgetClass =
  *
  ***************************************************************************/
 
-static XtResource ext_resources[] = {
-  {XtNinputMethod, XtCInputMethod, XtRString, sizeof(String),
-		XtOffsetOf(IswVendorShellExtRec, vendor_ext.im.input_method),
-		XtRString, (XtPointer)NULL},
-  {XtNpreeditType, XtCPreeditType, XtRString, sizeof(String),
-		XtOffsetOf(IswVendorShellExtRec, vendor_ext.im.preedit_type),
-		XtRString, (XtPointer)"OverTheSpot,OffTheSpot,Root"},
-  {XtNopenIm, XtCOpenIm, XtRBoolean, sizeof(Boolean),
-		XtOffsetOf(IswVendorShellExtRec, vendor_ext.im.open_im),
-		XtRImmediate, (XtPointer)TRUE},
-  {XtNsharedIc, XtCSharedIc, XtRBoolean, sizeof(Boolean),
-		XtOffsetOf(IswVendorShellExtRec, vendor_ext.ic.shared_ic),
-		XtRImmediate, (XtPointer)FALSE}
+static IswResource ext_resources[] = {
+  {IswNinputMethod, IswCInputMethod, IswRString, sizeof(String),
+		IswOffsetOf(IswVendorShellExtRec, vendor_ext.im.input_method),
+		IswRString, (IswPointer)NULL},
+  {IswNpreeditType, IswCPreeditType, IswRString, sizeof(String),
+		IswOffsetOf(IswVendorShellExtRec, vendor_ext.im.preedit_type),
+		IswRString, (IswPointer)"OverTheSpot,OffTheSpot,Root"},
+  {IswNopenIm, IswCOpenIm, IswRBoolean, sizeof(Boolean),
+		IswOffsetOf(IswVendorShellExtRec, vendor_ext.im.open_im),
+		IswRImmediate, (IswPointer)TRUE},
+  {IswNsharedIc, IswCSharedIc, IswRBoolean, sizeof(Boolean),
+		IswOffsetOf(IswVendorShellExtRec, vendor_ext.ic.shared_ic),
+		IswRImmediate, (IswPointer)FALSE}
 };
 
 static void IswVendorShellExtClassInitialize(void);
@@ -277,7 +277,7 @@ externaldef(vendorshellextclassrec) IswVendorShellExtClassRec
     /* pad		  */	NULL,
     /* pad		  */	0,
     /* resources	  */	ext_resources,
-    /* resource_count	  */	XtNumber(ext_resources),
+    /* resource_count	  */	IswNumber(ext_resources),
     /* xrm_class	  */	NULLQUARK,
     /* pad		  */	FALSE,
     /* pad		  */	FALSE,
@@ -291,7 +291,7 @@ externaldef(vendorshellextclassrec) IswVendorShellExtClassRec
     /* pad		  */	NULL,
     /* get_values_hook	  */	NULL,
     /* pad		  */	NULL,
-    /* version		  */	XtVersion,
+    /* version		  */	IswVersion,
     /* callback_offsets	  */	NULL,
     /* pad		  */	NULL,
     /* pad		  */	NULL,
@@ -313,7 +313,7 @@ externaldef(xawvendorshellwidgetclass) WidgetClass
 /*ARGSUSED*/
 static Boolean
 IswCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
-                           XrmValue *fromVal, XrmValue *toVal, XtPointer *cvt_data)
+                           XrmValue *fromVal, XrmValue *toVal, IswPointer *cvt_data)
 {
     XTextProperty prop;
     char **list;
@@ -327,17 +327,17 @@ IswCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
     prop.nitems = fromVal->size;
 
     if(XmbTextPropertyToTextList(dpy, &prop, &list, &count) < Success) {
-	XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+	IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
 	"converter", "XmbTextPropertyToTextList", "IswError",
 	"conversion from CT to MB failed.", NULL, 0);
 	return False;
     }
     len = strlen(*list);
     toVal->size = len;
-    mbs = XtRealloc(mbs, len + 1); /* keep buffer because no one call free :( */
+    mbs = IswRealloc(mbs, len + 1); /* keep buffer because no one call free :( */
     strcpy(mbs, *list);
     XFreeStringList(list);
-    toVal->addr = (XtPointer)mbs;
+    toVal->addr = (IswPointer)mbs;
     return True;
 }
 #endif /* 0 */
@@ -347,12 +347,12 @@ IswCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 #endif
 
 #define DONE(type, address) \
-	{to->size = sizeof(type); to->addr = (XtPointer)address;}
+	{to->size = sizeof(type); to->addr = (IswPointer)address;}
 
 /* ARGSUSED */
 static Boolean
 _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
-                      XrmValuePtr from, XrmValuePtr to, XtPointer *data)
+                      XrmValuePtr from, XrmValuePtr to, IswPointer *data)
 {
     static xcb_pixmap_t pixmap;
     ISWPNGImage *png;
@@ -361,8 +361,8 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     const unsigned char *rgba;
 
     if (*nargs != 3)
-	XtAppErrorMsg(XtDisplayToApplicationContext(dpy),
-		"_IswCvtStringToPixmap", "wrongParameters", "XtToolkitError",
+	IswAppErrorMsg(IswDisplayToApplicationContext(dpy),
+		"_IswCvtStringToPixmap", "wrongParameters", "IswToolkitError",
 	"_IswCvtStringToPixmap needs screen, colormap, and background_pixel",
 		      (String *) NULL, (Cardinal *) NULL);
 
@@ -382,7 +382,7 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     /* Load PNG via lodepng (with ISW path resolution) */
     png = ISWPNGLoadFile((String) from->addr);
     if (!png) {
-	XtDisplayStringConversionWarning(dpy, (String) from->addr, XtRPixmap);
+	IswDisplayStringConversionWarning(dpy, (String) from->addr, IswRPixmap);
 	return (False);
     }
 
@@ -436,14 +436,14 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     ISWPNGDestroy(png);
 
     if (to->addr == NULL)
-	to->addr = (XtPointer) & pixmap;
+	to->addr = (IswPointer) & pixmap;
     else
     {
 	if (to->size < sizeof(xcb_pixmap_t))
 	{
 	    to->size = sizeof(xcb_pixmap_t);
-	    XtDisplayStringConversionWarning(dpy, (String) from->addr,
-					     XtRPixmap);
+	    IswDisplayStringConversionWarning(dpy, (String) from->addr,
+					     IswRPixmap);
 	    return (False);
 	}
 
@@ -458,42 +458,42 @@ _VendorFetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED,
                        XrmValue *value)
 {
     static xcb_connection_t *_fetch_dpy;
-    _fetch_dpy = XtDisplayOfObject(widget);
+    _fetch_dpy = IswDisplayOfObject(widget);
     value->size = sizeof(xcb_connection_t *);
-    value->addr = (XtPointer) &_fetch_dpy;
+    value->addr = (IswPointer) &_fetch_dpy;
 }
 
 static void
 IswVendorShellClassInitialize(void)
 {
-    static XtConvertArgRec cursorConvertArgs[] = {
-        {XtProcedureArg, (XtPointer)_VendorFetchDisplayArg, 0},
-        {XtWidgetBaseOffset, (XtPointer) XtOffsetOf(WidgetRec, core.screen),
+    static IswConvertArgRec cursorConvertArgs[] = {
+        {IswProcedureArg, (IswPointer)_VendorFetchDisplayArg, 0},
+        {IswWidgetBaseOffset, (IswPointer) IswOffsetOf(WidgetRec, core.screen),
 	     sizeof(xcb_screen_t *)}
     };
-    static XtConvertArgRec _IswCvtStrToPix[] = {
-	{XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.screen),
+    static IswConvertArgRec _IswCvtStrToPix[] = {
+	{IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
 	     sizeof(xcb_screen_t *)},
-	{XtWidgetBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.colormap),
+	{IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.colormap),
 	     sizeof(xcb_colormap_t)},
-	{XtWidgetBaseOffset,
-	     (XtPointer)XtOffsetOf(WidgetRec, core.background_pixel),
+	{IswWidgetBaseOffset,
+	     (IswPointer)IswOffsetOf(WidgetRec, core.background_pixel),
 	     sizeof(Pixel)}
     };
 
-    /* XtSetTypeConverter needs 7 args: from, to, converter, args, num_args, cache, destructor */
-    XtSetTypeConverter(XtRString, XtRCursor, XtCvtStringToCursor,
-     cursorConvertArgs, XtNumber(cursorConvertArgs),
-     XtCacheNone, NULL);
+    /* IswSetTypeConverter needs 7 args: from, to, converter, args, num_args, cache, destructor */
+    IswSetTypeConverter(IswRString, IswRCursor, IswCvtStringToCursor,
+     cursorConvertArgs, IswNumber(cursorConvertArgs),
+     IswCacheNone, NULL);
 
-    XtSetTypeConverter(XtRString, XtRBitmap,
-		       (XtTypeConverter)_IswCvtStringToPixmap,
-		       _IswCvtStrToPix, XtNumber(_IswCvtStrToPix),
-		       XtCacheByDisplay, (XtDestructor)NULL);
+    IswSetTypeConverter(IswRString, IswRBitmap,
+		       (IswTypeConverter)_IswCvtStringToPixmap,
+		       _IswCvtStrToPix, IswNumber(_IswCvtStrToPix),
+		       IswCacheByDisplay, (IswDestructor)NULL);
 
     /* IswCvtCompoundTextToString commented out - complex text conversion not ported yet */
-    /* XtSetTypeConverter("CompoundText", XtRString, IswCvtCompoundTextToString,
-			NULL, 0, XtCacheNone, NULL); */
+    /* IswSetTypeConverter("CompoundText", IswRString, IswCvtCompoundTextToString,
+			NULL, 0, IswCacheNone, NULL); */
 }
 
 #ifdef ISW_INTERNATIONALIZATION
@@ -504,19 +504,19 @@ IswVendorShellClassPartInit(WidgetClass class)
     VendorShellWidgetClass vsclass = (VendorShellWidgetClass) class;
 
     if ((ext = (CompositeClassExtension)
-	    XtGetClassExtension (class,
-				 XtOffsetOf(CompositeClassRec,
+	    IswGetClassExtension (class,
+				 IswOffsetOf(CompositeClassRec,
 					    composite_class.extension),
 				 NULLQUARK, 1L, (Cardinal) 0)) == NULL) {
-	ext = (CompositeClassExtension) XtNew (CompositeClassExtensionRec);
+	ext = (CompositeClassExtension) IswNew (CompositeClassExtensionRec);
 	if (ext != NULL) {
 	    ext->next_extension = vsclass->composite_class.extension;
 	    ext->record_type = NULLQUARK;
-	    ext->version = XtCompositeExtensionVersion;
+	    ext->version = IswCompositeExtensionVersion;
 	    ext->record_size = sizeof (CompositeClassExtensionRec);
 	    ext->accepts_objects = TRUE;
 	    ext->allows_change_managed_set = FALSE;
-	    vsclass->composite_class.extension = (XtPointer) ext;
+	    vsclass->composite_class.extension = (IswPointer) ext;
 	}
     }
 }
@@ -540,11 +540,11 @@ static void
 IswVendorShellInitialize(Widget req, Widget new, ArgList args, Cardinal *num_args)
 {
     /* EditRes support commented out for XCB port - optional feature */
-    /* XtAddEventHandler(new, (EventMask) 0, TRUE, _XEditResCheckMessages, NULL); */
+    /* IswAddEventHandler(new, (EventMask) 0, TRUE, _XEditResCheckMessages, NULL); */
 #ifdef ISW_INTERNATIONALIZATION
     /* IswRegisterExternalAgent stub - XCB does not support XIM */
-    /* XtAddEventHandler(new, (EventMask) 0, TRUE, IswRegisterExternalAgent, NULL); */
-    XtCreateWidget("shellext", xawvendorShellExtWidgetClass,
+    /* IswAddEventHandler(new, (EventMask) 0, TRUE, IswRegisterExternalAgent, NULL); */
+    IswCreateWidget("shellext", xawvendorShellExtWidgetClass,
 		   new, args, *num_args);
 #endif
 }
@@ -557,7 +557,7 @@ IswVendorShellSetValues(Widget old, Widget ref, Widget new, ArgList args, Cardin
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget wid, XtValueMask *vmask, uint32_t *attr)
+Realize(xcb_connection_t *dpy, Widget wid, IswValueMask *vmask, uint32_t *attr)
 {
 	WidgetClass super = wmShellWidgetClass;
 
@@ -615,9 +615,9 @@ IswVendorShellExtResize(Widget w)
 	}
 	
 	for( i = 0; i < sw->composite.num_children; i++ ) {
-	    if( XtIsManaged( sw->composite.children[ i ] ) ) {
+	    if( IswIsManaged( sw->composite.children[ i ] ) ) {
 		childwid = sw->composite.children[ i ];
-		XtResizeWidget( childwid, sw->core.width, core_height,
+		IswResizeWidget( childwid, sw->core.width, core_height,
 			       childwid->core.border_width );
 	    }
 	}
@@ -625,19 +625,19 @@ IswVendorShellExtResize(Widget w)
 #endif
 
 /*ARGSUSED*/
-static XtGeometryResult
-GeometryManager(Widget wid, XtWidgetGeometry *request, XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager(Widget wid, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 {
 	ShellWidget shell = (ShellWidget)(wid->core.parent);
-	XtWidgetGeometry my_request;
+	IswWidgetGeometry my_request;
 
-	if(shell->shell.allow_shell_resize == FALSE && XtIsRealized(wid))
-		return(XtGeometryNo);
+	if(shell->shell.allow_shell_resize == FALSE && IswIsRealized(wid))
+		return(IswGeometryNo);
 
 	if (request->request_mode & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y))
-	    return(XtGeometryNo);
+	    return(IswGeometryNo);
 
-	/* %%% worry about XtCWQueryOnly */
+	/* %%% worry about IswCWQueryOnly */
 	my_request.request_mode = 0;
 	if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) {
 	    my_request.width = request->width;
@@ -655,8 +655,8 @@ GeometryManager(Widget wid, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 	    my_request.border_width = request->border_width;
 	    my_request.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
 	}
-	if (XtMakeGeometryRequest((Widget)shell, &my_request, NULL)
-		== XtGeometryYes) {
+	if (IswMakeGeometryRequest((Widget)shell, &my_request, NULL)
+		== IswGeometryYes) {
 	    /* assert: if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) then
 	     * 		  shell->core.width == request->width
 	     * assert: if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) then
@@ -674,8 +674,8 @@ GeometryManager(Widget wid, XtWidgetGeometry *request, XtWidgetGeometry *reply)
 #ifdef ISW_INTERNATIONALIZATION
 	    _IswImCallVendorShellExtResize(wid);
 #endif
-	    return XtGeometryYes;
-	} else return XtGeometryNo;
+	    return IswGeometryYes;
+	} else return IswGeometryNo;
 }
 
 static void
@@ -688,8 +688,8 @@ ChangeManaged(Widget wid)
 	(*SuperClass->composite_class.change_managed)(wid);
 	for (i = w->composite.num_children, childP = w->composite.children;
 	     i; i--, childP++) {
-	    if (XtIsManaged(*childP)) {
-		XtSetKeyboardFocus(wid, *childP);
+	    if (IswIsManaged(*childP)) {
+		IswSetKeyboardFocus(wid, *childP);
 		break;
 	    }
 	}

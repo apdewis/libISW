@@ -1,5 +1,5 @@
 /*
- * XtDatabase.h - Resource database type definitions for libXt
+ * IswDatabase.h - Resource database type definitions for libXt
  *
  * This replaces XrmDatabase from <X11/Xresource.h> with the
  * xcb-util-xrm database type, and provides backward compatibility
@@ -26,8 +26,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _XtDatabase_h
-#define _XtDatabase_h
+#ifndef _IswDatabase_h
+#define _IswDatabase_h
 
 #include <xcb/xcb_xrm.h>
 
@@ -36,7 +36,7 @@
  * xcb-util-xrm provides xcb_xrm_database_t as an opaque type.
  * We use a pointer to it as our database handle.
  */
-typedef xcb_xrm_database_t *XtDatabaseHandle;
+typedef xcb_xrm_database_t *IswDatabaseHandle;
 
 /*
  * Backward compatibility - map old XrmDatabase to new type.
@@ -64,4 +64,4 @@ extern Bool XrmQGetResource(
     XrmValue *          /* value_return */
 );
 
-#endif /* _XtDatabase_h */
+#endif /* _IswDatabase_h */

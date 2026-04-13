@@ -45,15 +45,15 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtConstraintP_h
-#define _XtConstraintP_h
+#ifndef _IswConstraintP_h
+#define _IswConstraintP_h
 
-#include <X11/Constraint.h>
+#include <ISW/Constraint.h>
 
 _XFUNCPROTOBEGIN
 
 typedef struct _ConstraintPart {
-    XtPointer   mumble;		/* No new fields, keep C compiler happy */
+    IswPointer   mumble;		/* No new fields, keep C compiler happy */
 } ConstraintPart;
 
 typedef struct _ConstraintRec {
@@ -63,21 +63,21 @@ typedef struct _ConstraintRec {
 } ConstraintRec, *ConstraintWidget;
 
 typedef struct _ConstraintClassPart {
-    XtResourceList resources;	      /* constraint resource list	     */
+    IswResourceList resources;	      /* constraint resource list	     */
     Cardinal   num_resources;         /* number of constraints in list       */
     Cardinal   constraint_size;       /* size of constraint record           */
-    XtInitProc initialize;            /* constraint initialization           */
-    XtWidgetProc destroy;             /* constraint destroy proc             */
-    XtSetValuesFunc set_values;       /* constraint set_values proc          */
-    XtPointer	    extension;		/* pointer to extension record      */
+    IswInitProc initialize;            /* constraint initialization           */
+    IswWidgetProc destroy;             /* constraint destroy proc             */
+    IswSetValuesFunc set_values;       /* constraint set_values proc          */
+    IswPointer	    extension;		/* pointer to extension record      */
 } ConstraintClassPart;
 
 typedef struct {
-    XtPointer next_extension;	/* 1st 4 mandated for all extension records */
+    IswPointer next_extension;	/* 1st 4 mandated for all extension records */
     XrmQuark record_type;	/* NULLQUARK; on ConstraintClassPart */
-    long version;		/* must be XtConstraintExtensionVersion */
+    long version;		/* must be IswConstraintExtensionVersion */
     Cardinal record_size;	/* sizeof(ConstraintClassExtensionRec) */
-    XtArgsProc get_values_hook;
+    IswArgsProc get_values_hook;
 } ConstraintClassExtensionRec, *ConstraintClassExtension;
 
 typedef struct _ConstraintClassRec {
@@ -90,7 +90,7 @@ externalref ConstraintClassRec constraintClassRec;
 
 _XFUNCPROTOEND
 
-#define XtConstraintExtensionVersion 1L
+#define IswConstraintExtensionVersion 1L
 
-#endif /* _XtConstraintP_h */
+#endif /* _IswConstraintP_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

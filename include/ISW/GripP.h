@@ -79,7 +79,7 @@ extern GripClassRec gripClassRec;
 
 /* New fields for the Grip widget record */
 typedef struct {
-  XtCallbackList grip_action;
+  IswCallbackList grip_action;
 } GripPart;
 
 /*****************************************************************************

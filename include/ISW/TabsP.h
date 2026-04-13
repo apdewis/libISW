@@ -40,8 +40,8 @@ extern TabsClassRec tabsClassRec;
 /* Instance part */
 typedef struct _TabsPart {
     /* Resources */
-    XtCallbackList  tab_callbacks;
-    XFontStruct    *font;
+    IswCallbackList  tab_callbacks;
+    IswFontStruct    *font;
     Pixel           foreground;
 
     /* Private */

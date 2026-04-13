@@ -88,15 +88,15 @@ in this Software without prior written authorization from The Open Group.
 static XContext perWidgetInputContext = 0;
 
 void
-_XtFreePerWidgetInput(Widget w, XtPerWidgetInput pwi)
+_IswFreePerWidgetInput(Widget w, IswPerWidgetInput pwi)
 {
     LOCK_PROCESS;
     xcb_connection_t *dpy = w->core.display;
-    XtPerDisplay pd = _XtGetPerDisplay(dpy);
-    //XDeleteContext(XtDisplay(w), (Window) w, perWidgetInputContext);
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
+    //XDeleteContext(IswDisplay(w), (Window) w, perWidgetInputContext);
     HASH_DEL(pd->PerWidgetContext, pwi);
 
-    XtFree((char *) pwi);
+    IswFree((char *) pwi);
     UNLOCK_PROCESS;
 }
 
@@ -104,12 +104,12 @@ _XtFreePerWidgetInput(Widget w, XtPerWidgetInput pwi)
  * This routine gets the passive list associated with the widget
  * from the context manager.
  */
-XtPerWidgetInput
-_XtGetPerWidgetInput(Widget widget, _XtBoolean create)
+IswPerWidgetInput
+_IswGetPerWidgetInput(Widget widget, _IswBoolean create)
 {
-    XtPerWidgetInput pwi = NULL;
+    IswPerWidgetInput pwi = NULL;
     xcb_connection_t *dpy = widget->core.display;
-    XtPerDisplay pd = _XtGetPerDisplay(dpy);
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
 
     LOCK_PROCESS;
     //if (!perWidgetInputContext)
@@ -118,24 +118,24 @@ _XtGetPerWidgetInput(Widget widget, _XtBoolean create)
     /* Key on widget pointer, matching the original XSaveContext(dpy,
      * (Window)widget, ctx, data) semantics.  Using the X window ID
      * fails because the window hasn't been created yet when
-     * XtSetKeyboardFocus is first called during ChangeManaged. */
+     * IswSetKeyboardFocus is first called during ChangeManaged. */
     HASH_FIND_PTR(pd->PerWidgetContext, &widget, pwi);
     if (pwi == NULL && create) {
-        pwi = (XtPerWidgetInput)
-            __XtMalloc((unsigned) sizeof(XtPerWidgetInputRec));
+        pwi = (IswPerWidgetInput)
+            __XtMalloc((unsigned) sizeof(IswPerWidgetInputRec));
 
         pwi->id = widget;
         pwi->focusKid = NULL;
         pwi->queryEventDescendant = NULL;
-        pwi->focalPoint = XtUnrelated;
+        pwi->focalPoint = IswUnrelated;
         pwi->keyList = pwi->ptrList = NULL;
 
         pwi->haveFocus =
             pwi->map_handler_added =
             pwi->realize_handler_added = pwi->active_handler_added = FALSE;
 
-        XtAddCallback(widget, XtNdestroyCallback,
-                      _XtDestroyServerGrabs, (XtPointer) pwi);
+        IswAddCallback(widget, IswNdestroyCallback,
+                      _IswDestroyServerGrabs, (IswPointer) pwi);
 
         HASH_ADD_PTR(pd->PerWidgetContext, id, pwi);
     }
@@ -144,7 +144,7 @@ _XtGetPerWidgetInput(Widget widget, _XtBoolean create)
 }
 
 void
-_XtFillAncestorList(Widget **listPtr,
+_IswFillAncestorList(Widget **listPtr,
                     int *maxElemsPtr,
                     int *numElemsPtr,
                     Widget start,
@@ -157,21 +157,21 @@ _XtFillAncestorList(Widget **listPtr,
 
     /* First time in, allocate the ancestor list */
     if (trace == NULL) {
-        trace = XtMallocArray(CACHESIZE, (Cardinal) sizeof(Widget));
+        trace = IswMallocArray(CACHESIZE, (Cardinal) sizeof(Widget));
         *maxElemsPtr = CACHESIZE;
     }
     /* First fill in the ancestor list */
 
     trace[0] = start;
 
-    for (i = 1, w = XtParent(start);
-         w != NULL && !XtIsShell(trace[i - 1]) && trace[i - 1] != breakWidget;
-         w = XtParent(w), i++) {
+    for (i = 1, w = IswParent(start);
+         w != NULL && !IswIsShell(trace[i - 1]) && trace[i - 1] != breakWidget;
+         w = IswParent(w), i++) {
         if (i == (Cardinal) *maxElemsPtr) {
             /* This should rarely happen, but if it does it'll probably
                happen again, so grow the ancestor list */
             *maxElemsPtr += CACHESIZE;
-            trace = XtReallocArray(trace, (Cardinal) *maxElemsPtr,
+            trace = IswReallocArray(trace, (Cardinal) *maxElemsPtr,
                                    (Cardinal) sizeof(Widget));
         }
         trace[i] = w;
@@ -182,48 +182,48 @@ _XtFillAncestorList(Widget **listPtr,
 }
 
 Widget
-_XtFindRemapWidget(xcb_generic_event_t *event,
+_IswFindRemapWidget(xcb_generic_event_t *event,
                    Widget widget,
                    xcb_event_mask_t mask,
-                   XtPerDisplayInput pdi)
+                   IswPerDisplayInput pdi)
 {
     Widget dspWidget = widget;
 
     if (!pdi->traceDepth || !(widget == pdi->trace[0])) {
-        _XtFillAncestorList(&pdi->trace, &pdi->traceMax,
+        _IswFillAncestorList(&pdi->trace, &pdi->traceMax,
                             &pdi->traceDepth, widget, NULL);
         pdi->focusWidget = NULL;        /* invalidate the focus
                                            cache */
     }
     if (mask & (XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE))
-        dspWidget = _XtProcessKeyboardEvent((xcb_key_press_event_t *)event, widget, pdi);
+        dspWidget = _IswProcessKeyboardEvent((xcb_key_press_event_t *)event, widget, pdi);
     else if (mask & (XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE))
-        dspWidget = _XtProcessPointerEvent((xcb_button_press_event_t *)event, widget, pdi);
+        dspWidget = _IswProcessPointerEvent((xcb_button_press_event_t *)event, widget, pdi);
 
     return dspWidget;
 }
 
 void
-_XtUngrabBadGrabs(xcb_generic_event_t *event,
+_IswUngrabBadGrabs(xcb_generic_event_t *event,
                   Widget widget,
                   xcb_event_mask_t mask,
-                  XtPerDisplayInput pdi)
+                  IswPerDisplayInput pdi)
 {
 
     if (event->response_type == XCB_INPUT_DEVICE_KEY_PRESS) {
         xcb_input_key_press_event_t *ke = (xcb_input_key_press_event_t *) event;
         if (IsServerGrab(pdi->keyboard.grabType) &&
-            !_XtOnGrabList(pdi->keyboard.grab.widget, pdi->grabList))
-            XtUngrabKeyboard(widget, ke->time);
+            !_IswOnGrabList(pdi->keyboard.grab.widget, pdi->grabList))
+            IswUngrabKeyboard(widget, ke->time);
     } else if (event->response_type == XCB_INPUT_DEVICE_KEY_RELEASE) {
         xcb_input_key_release_event_t *ke = (xcb_input_key_press_event_t *) event;
         if (IsServerGrab(pdi->keyboard.grabType) &&
-            !_XtOnGrabList(pdi->keyboard.grab.widget, pdi->grabList))
-            XtUngrabKeyboard(widget, ke->time);
+            !_IswOnGrabList(pdi->keyboard.grab.widget, pdi->grabList))
+            IswUngrabKeyboard(widget, ke->time);
     } else {
         xcb_input_button_press_event_t *ke = (xcb_input_button_press_event_t *) event;
         if (IsServerGrab(pdi->pointer.grabType) &&
-            !_XtOnGrabList(pdi->pointer.grab.widget, pdi->grabList))
-             XtUngrabPointer(widget, ke->time);
+            !_IswOnGrabList(pdi->pointer.grab.widget, pdi->grabList))
+             IswUngrabPointer(widget, ke->time);
     }
 }

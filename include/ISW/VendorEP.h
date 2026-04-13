@@ -57,7 +57,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWImP.h>
 
 typedef struct {
-    XtPointer	extension;
+    IswPointer	extension;
 } IswVendorShellExtClassPart;
 
 typedef	struct _VendorShellExtClassRec {

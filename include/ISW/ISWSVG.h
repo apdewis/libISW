@@ -11,7 +11,7 @@
 #ifndef _ISW_ISWSVG_h
 #define _ISW_ISWSVG_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /*
  * Opaque handle to a parsed SVG image

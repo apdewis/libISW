@@ -38,19 +38,19 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include <ISW/ISWP.h>
 #include <stdio.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SmeP.h>
 #include <ISW/Cardinals.h>
 
-#define offset(field) XtOffsetOf(SmeRec, sme.field)
-static XtResource resources[] = {
-  {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-     offset(callbacks), XtRCallback, (XtPointer)NULL},
+#define offset(field) IswOffsetOf(SmeRec, sme.field)
+static IswResource resources[] = {
+  {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+     offset(callbacks), IswRCallback, (IswPointer)NULL},
 #ifdef ISW_INTERNATIONALIZATION
-  {XtNinternational, XtCInternational, XtRBoolean, sizeof(Boolean),
-     offset(international), XtRImmediate, (XtPointer) FALSE},
+  {IswNinternational, IswCInternational, IswRBoolean, sizeof(Boolean),
+     offset(international), IswRImmediate, (IswPointer) FALSE},
 #endif
 };
 #undef offset
@@ -64,7 +64,7 @@ static void Highlight(Widget);
 static void Notify(Widget);
 static void ClassPartInitialize(WidgetClass);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 #define SUPERCLASS (&rectObjClassRec)
 
@@ -82,7 +82,7 @@ SmeClassRec smeClassRec = {
     /* actions            */    NULL,
     /* num_actions        */    ZERO,
     /* resources          */    resources,
-    /* resource_count     */	XtNumber(resources),
+    /* resource_count     */	IswNumber(resources),
     /* xrm_class          */    NULLQUARK,
     /* compress_motion    */    FALSE,
     /* compress_exposure  */    FALSE,
@@ -93,10 +93,10 @@ SmeClassRec smeClassRec = {
     /* expose             */    NULL,
     /* set_values         */    NULL,
     /* set_values_hook    */	NULL,
-    /* set_values_almost  */	XtInheritSetValuesAlmost,
+    /* set_values_almost  */	IswInheritSetValuesAlmost,
     /* get_values_hook    */	NULL,
     /* accept_focus       */    NULL,
-    /* intrinsics version */	XtVersion,
+    /* intrinsics version */	IswVersion,
     /* callback offsets   */    NULL,
     /* tm_table		  */    NULL,
     /* query_geometry	  */    QueryGeometry,
@@ -139,13 +139,13 @@ ClassPartInitialize(WidgetClass class)
  * eventually.
  */
 
-    if (m_ent->sme_class.highlight == XtInheritHighlight)
+    if (m_ent->sme_class.highlight == IswInheritHighlight)
 	m_ent->sme_class.highlight = superC->sme_class.highlight;
 
-    if (m_ent->sme_class.unhighlight == XtInheritUnhighlight)
+    if (m_ent->sme_class.unhighlight == IswInheritUnhighlight)
 	m_ent->sme_class.unhighlight = superC->sme_class.unhighlight;
 
-    if (m_ent->sme_class.notify == XtInheritNotify)
+    if (m_ent->sme_class.notify == IswInheritNotify)
 	m_ent->sme_class.notify = superC->sme_class.notify;
 }
 
@@ -203,7 +203,7 @@ Unhighlight(Widget w)
 static void
 Notify(Widget w)
 {
-    XtCallCallbacks(w, XtNcallback, (XtPointer)NULL);
+    IswCallCallbacks(w, IswNcallback, (IswPointer)NULL);
 }
 
 /*	Function Name: QueryGeometry.
@@ -217,13 +217,13 @@ Notify(Widget w)
  * I just return the height and a width of 1.
  */
 
-static XtGeometryResult
-QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val)
+static IswGeometryResult
+QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *return_val)
 {
     SmeObject entry = (SmeObject) w;
     Dimension width;
-    XtGeometryResult ret_val = XtGeometryYes;
-    XtGeometryMask mode = intended->request_mode;
+    IswGeometryResult ret_val = IswGeometryYes;
+    IswGeometryMask mode = intended->request_mode;
 
     width = 1;			/* we can be really small. */
 
@@ -234,8 +234,8 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val
 	mode = return_val->request_mode;
 
 	if ( (mode & XCB_CONFIG_WINDOW_WIDTH) && (width == entry->rectangle.width) )
-	    return(XtGeometryNo);
-	return(XtGeometryAlmost);
+	    return(IswGeometryNo);
+	return(IswGeometryAlmost);
     }
     return(ret_val);
 }

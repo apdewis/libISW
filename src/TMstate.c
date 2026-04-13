@@ -81,9 +81,9 @@ in this Software without prior written authorization from The Open Group.
 /* forward definitions */
 static StatePtr NewState(TMParseStateTree, TMShortCard, TMShortCard);
 
-static String XtNtranslationError = "translationError";
+static String IswNtranslationError = "translationError";
 
-TMGlobalRec _XtGlobalTM;        /* initialized to zero K&R */
+TMGlobalRec _IswGlobalTM;        /* initialized to zero K&R */
 
 #define MatchIncomingEvent(tmEvent, typeMatch, modMatch) \
   (typeMatch->eventType == tmEvent->event.eventType && \
@@ -129,7 +129,7 @@ GetBranchHead(TMParseStateTree parseTree,
             TMBranchHead oldBranchHeadTbl = parseTree->branchHeadTbl;
 
             parseTree->branchHeadTbl =
-                XtMallocArray((Cardinal) parseTree->branchHeadTblSize,
+                IswMallocArray((Cardinal) parseTree->branchHeadTblSize,
                               (Cardinal) sizeof(TMBranchHeadRec));
             memcpy(parseTree->branchHeadTbl, oldBranchHeadTbl,
                    parseTree->branchHeadTblSize * sizeof(TMBranchHeadRec));
@@ -137,14 +137,14 @@ GetBranchHead(TMParseStateTree parseTree,
         }
         else {
             parseTree->branchHeadTbl = (TMBranchHead)
-                XtReallocArray(parseTree->branchHeadTbl,
+                IswReallocArray(parseTree->branchHeadTbl,
                                (Cardinal) parseTree->branchHeadTblSize,
                                (Cardinal) sizeof(TMBranchHeadRec));
         }
     }
 #ifdef TRACE_TM
     LOCK_PROCESS;
-    _XtGlobalTM.numBranchHeads++;
+    _IswGlobalTM.numBranchHeads++;
     UNLOCK_PROCESS;
 #endif                          /* TRACE_TM */
     branchHead = &parseTree->branchHeadTbl[parseTree->numBranchHeads++];
@@ -158,7 +158,7 @@ GetBranchHead(TMParseStateTree parseTree,
 }
 
 TMShortCard
-_XtGetQuarkIndex(TMParseStateTree parseTree, XrmQuark quark)
+_IswGetQuarkIndex(TMParseStateTree parseTree, XrmQuark quark)
 {
 #define TM_QUARK_TBL_ALLOC      ((TMShortCard) 16)
 #define TM_QUARK_TBL_REALLOC    ((TMShortCard) 16)
@@ -180,7 +180,7 @@ _XtGetQuarkIndex(TMParseStateTree parseTree, XrmQuark quark)
                 XrmQuark *oldquarkTbl = parseTree->quarkTbl;
 
                 parseTree->quarkTbl =
-                    XtMallocArray((Cardinal) parseTree->quarkTblSize,
+                    IswMallocArray((Cardinal) parseTree->quarkTblSize,
                                   (Cardinal) sizeof(XrmQuark));
                 memcpy(parseTree->quarkTbl, oldquarkTbl,
                        parseTree->quarkTblSize * sizeof(XrmQuark));
@@ -188,7 +188,7 @@ _XtGetQuarkIndex(TMParseStateTree parseTree, XrmQuark quark)
             }
             else {
                 parseTree->quarkTbl = (XrmQuark *)
-                    XtReallocArray(parseTree->quarkTbl,
+                    IswReallocArray(parseTree->quarkTbl,
                                    (Cardinal) parseTree->quarkTblSize,
                                    (Cardinal) sizeof(XrmQuark));
             }
@@ -224,7 +224,7 @@ GetComplexBranchIndex(TMParseStateTree parseTree,
             StatePtr *oldcomplexBranchHeadTbl = parseTree->complexBranchHeadTbl;
 
             parseTree->complexBranchHeadTbl =
-                XtMallocArray((Cardinal) parseTree->complexBranchHeadTblSize,
+                IswMallocArray((Cardinal) parseTree->complexBranchHeadTblSize,
                               (Cardinal) sizeof(StatePtr));
             memcpy(parseTree->complexBranchHeadTbl, oldcomplexBranchHeadTbl,
                    parseTree->complexBranchHeadTblSize * sizeof(StatePtr));
@@ -232,7 +232,7 @@ GetComplexBranchIndex(TMParseStateTree parseTree,
         }
         else {
             parseTree->complexBranchHeadTbl = (StatePtr *)
-                XtReallocArray(parseTree->complexBranchHeadTbl,
+                IswReallocArray(parseTree->complexBranchHeadTbl,
                                (Cardinal) parseTree->complexBranchHeadTblSize,
                                (Cardinal) sizeof(StatePtr));
         }
@@ -242,7 +242,7 @@ GetComplexBranchIndex(TMParseStateTree parseTree,
 }
 
 TMShortCard
-_XtGetTypeIndex(Event *event)
+_IswGetTypeIndex(Event *event)
 {
     TMShortCard i, j = TM_TYPE_SEGMENT_SIZE;
     TMShortCard typeIndex = 0;
@@ -250,10 +250,10 @@ _XtGetTypeIndex(Event *event)
     TMTypeMatch segment = NULL;
 
     LOCK_PROCESS;
-    for (i = 0; i < _XtGlobalTM.numTypeMatchSegments; i++) {
-        segment = _XtGlobalTM.typeMatchSegmentTbl[i];
+    for (i = 0; i < _IswGlobalTM.numTypeMatchSegments; i++) {
+        segment = _IswGlobalTM.typeMatchSegmentTbl[i];
         for (j = 0;
-             typeIndex < _XtGlobalTM.numTypeMatches && j < TM_TYPE_SEGMENT_SIZE;
+             typeIndex < _IswGlobalTM.numTypeMatches && j < TM_TYPE_SEGMENT_SIZE;
              j++, typeIndex++) {
             typeMatch = &(segment[j]);
             if (event->eventType == typeMatch->eventType &&
@@ -267,17 +267,17 @@ _XtGetTypeIndex(Event *event)
     }
 
     if (j == TM_TYPE_SEGMENT_SIZE) {
-        if (_XtGlobalTM.numTypeMatchSegments ==
-            _XtGlobalTM.typeMatchSegmentTblSize) {
-            _XtGlobalTM.typeMatchSegmentTblSize =
-                (TMShortCard) (_XtGlobalTM.typeMatchSegmentTblSize + 4);
-            _XtGlobalTM.typeMatchSegmentTbl = (TMTypeMatch *)
-                XtReallocArray(_XtGlobalTM.typeMatchSegmentTbl,
-                               (Cardinal) _XtGlobalTM.typeMatchSegmentTblSize,
+        if (_IswGlobalTM.numTypeMatchSegments ==
+            _IswGlobalTM.typeMatchSegmentTblSize) {
+            _IswGlobalTM.typeMatchSegmentTblSize =
+                (TMShortCard) (_IswGlobalTM.typeMatchSegmentTblSize + 4);
+            _IswGlobalTM.typeMatchSegmentTbl = (TMTypeMatch *)
+                IswReallocArray(_IswGlobalTM.typeMatchSegmentTbl,
+                               (Cardinal) _IswGlobalTM.typeMatchSegmentTblSize,
                                (Cardinal) sizeof(TMTypeMatch));
         }
-        _XtGlobalTM.typeMatchSegmentTbl[_XtGlobalTM.numTypeMatchSegments++] =
-            segment = XtMallocArray(TM_TYPE_SEGMENT_SIZE,
+        _IswGlobalTM.typeMatchSegmentTbl[_IswGlobalTM.numTypeMatchSegments++] =
+            segment = IswMallocArray(TM_TYPE_SEGMENT_SIZE,
                                     (Cardinal) sizeof(TMTypeMatchRec));
         j = 0;
     }
@@ -286,7 +286,7 @@ _XtGetTypeIndex(Event *event)
     typeMatch->eventCode = event->eventCode;
     typeMatch->eventCodeMask = event->eventCodeMask;
     typeMatch->matchEvent = event->matchEvent;
-    _XtGlobalTM.numTypeMatches++;
+    _IswGlobalTM.numTypeMatches++;
     UNLOCK_PROCESS;
     return typeIndex;
 }
@@ -332,7 +332,7 @@ CompareLateModifiers(LateBindingsPtr lateBind1P, LateBindingsPtr lateBind2P)
 }
 
 TMShortCard
-_XtGetModifierIndex(Event *event)
+_IswGetModifierIndex(Event *event)
 {
     TMShortCard i, j = TM_MOD_SEGMENT_SIZE;
     TMShortCard modIndex = 0;
@@ -340,10 +340,10 @@ _XtGetModifierIndex(Event *event)
     TMModifierMatch segment = NULL;
 
     LOCK_PROCESS;
-    for (i = 0; i < _XtGlobalTM.numModMatchSegments; i++) {
-        segment = _XtGlobalTM.modMatchSegmentTbl[i];
+    for (i = 0; i < _IswGlobalTM.numModMatchSegments; i++) {
+        segment = _IswGlobalTM.modMatchSegmentTbl[i];
         for (j = 0;
-             modIndex < _XtGlobalTM.numModMatches && j < TM_MOD_SEGMENT_SIZE;
+             modIndex < _IswGlobalTM.numModMatches && j < TM_MOD_SEGMENT_SIZE;
              j++, modIndex++) {
             modMatch = &(segment[j]);
             if (event->modifiers == modMatch->modifiers &&
@@ -359,7 +359,7 @@ _XtGetModifierIndex(Event *event)
                  */
                 if (event->lateModifiers &&
                     --event->lateModifiers->ref_count == 0) {
-                    XtFree((char *) event->lateModifiers);
+                    IswFree((char *) event->lateModifiers);
                     event->lateModifiers = NULL;
                 }
                 UNLOCK_PROCESS;
@@ -369,17 +369,17 @@ _XtGetModifierIndex(Event *event)
     }
 
     if (j == TM_MOD_SEGMENT_SIZE) {
-        if (_XtGlobalTM.numModMatchSegments ==
-            _XtGlobalTM.modMatchSegmentTblSize) {
-            _XtGlobalTM.modMatchSegmentTblSize =
-                (TMShortCard) (_XtGlobalTM.modMatchSegmentTblSize + 4);
-            _XtGlobalTM.modMatchSegmentTbl = (TMModifierMatch *)
-                XtReallocArray(_XtGlobalTM.modMatchSegmentTbl,
-                               (Cardinal) _XtGlobalTM.modMatchSegmentTblSize,
+        if (_IswGlobalTM.numModMatchSegments ==
+            _IswGlobalTM.modMatchSegmentTblSize) {
+            _IswGlobalTM.modMatchSegmentTblSize =
+                (TMShortCard) (_IswGlobalTM.modMatchSegmentTblSize + 4);
+            _IswGlobalTM.modMatchSegmentTbl = (TMModifierMatch *)
+                IswReallocArray(_IswGlobalTM.modMatchSegmentTbl,
+                               (Cardinal) _IswGlobalTM.modMatchSegmentTblSize,
                                (Cardinal) sizeof(TMModifierMatch));
         }
-        _XtGlobalTM.modMatchSegmentTbl[_XtGlobalTM.numModMatchSegments++] =
-            segment = XtMallocArray(TM_MOD_SEGMENT_SIZE,
+        _IswGlobalTM.modMatchSegmentTbl[_IswGlobalTM.numModMatchSegments++] =
+            segment = IswMallocArray(TM_MOD_SEGMENT_SIZE,
                                     (Cardinal) sizeof(TMModifierMatchRec));
         j = 0;
     }
@@ -392,10 +392,10 @@ _XtGetModifierIndex(Event *event)
      */
 #ifdef TRACE_TM
     if (event->lateModifiers)
-        _XtGlobalTM.numLateBindings++;
+        _IswGlobalTM.numLateBindings++;
 #endif                          /* TRACE_TM */
     modMatch->lateModifiers = event->lateModifiers;
-    _XtGlobalTM.numModMatches++;
+    _IswGlobalTM.numModMatches++;
     UNLOCK_PROCESS;
     return modIndex;
 }
@@ -428,7 +428,7 @@ MatchBranchHead(TMSimpleStateTree stateTree, int startIndex, TMEventPtr event)
 }
 
 Boolean
-_XtRegularMatch(TMTypeMatch typeMatch,
+_IswRegularMatch(TMTypeMatch typeMatch,
                 TMModifierMatch modMatch,
                 TMEventPtr eventSeq)
 {
@@ -440,7 +440,7 @@ _XtRegularMatch(TMTypeMatch typeMatch,
                                  typeMatch->eventCodeMask))
         return FALSE;
     if (modMatch->lateModifiers != NULL)
-        resolved = _XtComputeLateBindings(eventSeq->dpy,
+        resolved = _IswComputeLateBindings(eventSeq->dpy,
                                           modMatch->lateModifiers,
                                           &computed, &computedMask);
     if (!resolved)
@@ -453,7 +453,7 @@ _XtRegularMatch(TMTypeMatch typeMatch,
 }
 
 Boolean
-_XtMatchAtom(TMTypeMatch typeMatch,
+_IswMatchAtom(TMTypeMatch typeMatch,
              TMModifierMatch modMatch _X_UNUSED,
              TMEventPtr eventSeq)
 {
@@ -485,16 +485,16 @@ static Boolean
 Ignore(Widget widget, TMEventPtr event)
 {
     xcb_connection_t *dpy;
-    XtPerDisplay pd;
+    IswPerDisplay pd;
 
     if (event->event.eventType == XCB_MOTION_NOTIFY)
         return TRUE;
     if (!(event->event.eventType == XCB_KEY_PRESS ||
           event->event.eventType == XCB_KEY_RELEASE))
         return FALSE;
-    dpy = XtDisplay(widget);
+    dpy = IswDisplay(widget);
 
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
     _InitializeKeysymTables(dpy, pd);
     return IsOn(pd->isModifier, event->event.eventCode) ? TRUE : FALSE;
 }
@@ -600,7 +600,7 @@ XEventToTMEvent(xcb_generic_event_t *event, TMEventPtr tmEvent)
 }
 
 static unsigned long
-GetTime(XtTM tm, xcb_generic_event_t *event)
+GetTime(IswTM tm, xcb_generic_event_t *event)
 {
     switch (event->response_type & 0x7f) {  // Mask out the "reply" bit
         case XCB_KEY_PRESS:
@@ -621,14 +621,14 @@ HandleActions(Widget w,
               xcb_generic_event_t *event,
               TMSimpleStateTree stateTree,
               Widget accelWidget,
-              XtActionProc *procs,
+              IswActionProc *procs,
               ActionRec *actions)
 {
     ActionHook actionHookList;
     Widget bindWidget;
 
     bindWidget = accelWidget ? accelWidget : w;
-    if (accelWidget && !XtIsSensitive(accelWidget) &&
+    if (accelWidget && !IswIsSensitive(accelWidget) &&
     (event->response_type == XCB_KEY_PRESS || event->response_type == XCB_KEY_RELEASE ||
      event->response_type == XCB_BUTTON_PRESS || event->response_type == XCB_BUTTON_RELEASE ||
      event->response_type == XCB_MOTION_NOTIFY || event->response_type == XCB_ENTER_NOTIFY ||
@@ -636,7 +636,7 @@ HandleActions(Widget w,
      event->response_type == XCB_FOCUS_OUT))
     return;
 
-    actionHookList = XtWidgetToApplicationContext(w)->action_hook_list;
+    actionHookList = IswWidgetToApplicationContext(w)->action_hook_list;
 
     while (actions != NULL) {
         /* perform any actions */
@@ -650,7 +650,7 @@ HandleActions(Widget w,
                 for (hook = actionHookList; hook != NULL;) {
                     /*
                      * Need to cache hook->next because the following action
-                     * proc may free hook via XtRemoveActionHook making
+                     * proc may free hook via IswRemoveActionHook making
                      * hook->next invalid upon return from the action proc.
                      */
                     next_hook = hook->next;
@@ -701,7 +701,7 @@ PushContext(TMContext *contextPtr, StatePtr newState)
         else if (contextCache[1].numMatches == 0)
             context = &contextCache[1];
         if (!context) {
-            context = XtNew(TMContextRec);
+            context = IswNew(TMContextRec);
             context->matches = NULL;
             context->numMatches = context->maxMatches = 0;
         }
@@ -718,7 +718,7 @@ PushContext(TMContext *contextPtr, StatePtr newState)
             context->numMatches = (TMShortCard) (i + 1);
 #ifdef DEBUG
         else
-            XtWarning("pushing cycle end with no cycle start");
+            IswWarning("pushing cycle end with no cycle start");
 #endif                          /* DEBUG */
     }
     else {
@@ -732,7 +732,7 @@ PushContext(TMContext *contextPtr, StatePtr newState)
                     (TMShortCard) (context->maxMatches +
                                    TM_CONTEXT_MATCHES_REALLOC);
             context->matches = (MatchPairRec *)
-                XtReallocArray(context->matches,
+                IswReallocArray(context->matches,
                                (Cardinal) context->maxMatches,
                                sizeof(MatchPairRec));
         }
@@ -761,8 +761,8 @@ FreeContext(TMContext *contextPtr)
     if (context)
         context->numMatches = 0;
     else if (*contextPtr) {
-        XtFree((char *) ((*contextPtr)->matches));
-        XtFree((char *) *contextPtr);
+        IswFree((char *) ((*contextPtr)->matches));
+        IswFree((char *) *contextPtr);
     }
 
     *contextPtr = NULL;
@@ -787,9 +787,9 @@ MatchExact(TMSimpleStateTree stateTree,
 }
 
 static void
-HandleSimpleState(Widget w, XtTM tmRecPtr, TMEventRec *curEventPtr)
+HandleSimpleState(Widget w, IswTM tmRecPtr, TMEventRec *curEventPtr)
 {
-    XtTranslations xlations = tmRecPtr->translations;
+    IswTranslations xlations = tmRecPtr->translations;
     TMContext *contextPtr = GetContextPtr(tmRecPtr);
     TMShortCard i;
     ActionRec *actions = NULL;
@@ -872,7 +872,7 @@ HandleSimpleState(Widget w, XtTM tmRecPtr, TMEventRec *curEventPtr)
     }
     if (match) {
         TMBindData bindData = (TMBindData) tmRecPtr->proc_table;
-        XtActionProc *procs;
+        IswActionProc *procs;
         Widget accelWidget;
 
         if (bindData->simple.isComplex) {
@@ -934,7 +934,7 @@ MatchComplexBranch(TMComplexStateTree stateTree,
 static StatePtr
 TryCurrentTree(Widget widget,
                TMComplexStateTree *stateTreePtr,
-               XtTM tmRecPtr,
+               IswTM tmRecPtr,
                TMEventRec *curEventPtr)
 {
     StatePtr candState = NULL, matchState = NULL;
@@ -966,7 +966,7 @@ TryCurrentTree(Widget widget,
                     matchState = candState;
             }
             /* is this an event timer? */
-            if (typeMatch->eventType == _XtEventTimerEventType) {
+            if (typeMatch->eventType == _IswEventTimerEventType) {
                 StatePtr nextState = candState->nextLevel;
 
                 /* does the succeeding state match? */
@@ -982,7 +982,7 @@ TryCurrentTree(Widget widget,
                                            nextTypeMatch, nextModMatch)) {
                         xcb_generic_event_t *xev = curEventPtr->xev;
                         unsigned long time = GetTime(tmRecPtr, xev);
-                        XtPerDisplay pd = _XtGetPerDisplay(XtDisplay(widget));
+                        IswPerDisplay pd = _IswGetPerDisplay(IswDisplay(widget));
                         unsigned long delta =
                             (unsigned long) pd->multi_click_time;
 
@@ -1004,9 +1004,9 @@ TryCurrentTree(Widget widget,
 }
 
 static void
-HandleComplexState(Widget w, XtTM tmRecPtr, TMEventRec *curEventPtr)
+HandleComplexState(Widget w, IswTM tmRecPtr, TMEventRec *curEventPtr)
 {
-    XtTranslations xlations = tmRecPtr->translations;
+    IswTranslations xlations = tmRecPtr->translations;
     TMContext *contextPtr = GetContextPtr(tmRecPtr);
     TMShortCard i, matchTreeIndex = 0;
     StatePtr matchState = NULL, candState;
@@ -1038,14 +1038,14 @@ HandleComplexState(Widget w, XtTM tmRecPtr, TMEventRec *curEventPtr)
     }
     else {
         TMBindData bindData = (TMBindData) tmRecPtr->proc_table;
-        XtActionProc *procs;
+        IswActionProc *procs;
         Widget accelWidget;
         TMTypeMatch typeMatch;
 
         typeMatch = TMGetTypeMatch(matchState->typeIndex);
 
         PushContext(contextPtr, matchState);
-        if (typeMatch->eventType == _XtEventTimerEventType) {
+        if (typeMatch->eventType == _IswEventTimerEventType) {
             matchState = matchState->nextLevel;
             PushContext(contextPtr, matchState);
         }
@@ -1071,18 +1071,18 @@ HandleComplexState(Widget w, XtTM tmRecPtr, TMEventRec *curEventPtr)
 }
 
 void
-_XtTranslateEvent(Widget w, xcb_generic_event_t *event)
+_IswTranslateEvent(Widget w, xcb_generic_event_t *event)
 {
-    XtTM tmRecPtr = &w->core.tm;
+    IswTM tmRecPtr = &w->core.tm;
     TMEventRec curEvent;
     StatePtr current_state = tmRecPtr->current_state;
 
     XEventToTMEvent(event, &curEvent);
-    curEvent.dpy = XtDisplay(w);  /* dpy not set by XEventToTMEvent; needed by _XtMatchUsingStandardMods */
+    curEvent.dpy = IswDisplay(w);  /* dpy not set by XEventToTMEvent; needed by _IswMatchUsingStandardMods */
 
     if (!tmRecPtr->translations) {
-        XtAppWarningMsg(XtWidgetToApplicationContext(w),
-                        XtNtranslationError, "nullTable", XtCXtToolkitError,
+        IswAppWarningMsg(IswWidgetToApplicationContext(w),
+                        IswNtranslationError, "nullTable", IswCIswToolkitError,
                         "Can't translate event through NULL table", NULL, NULL);
         return;
     }
@@ -1097,11 +1097,11 @@ NewState(TMParseStateTree stateTree _X_UNUSED,
          TMShortCard typeIndex,
          TMShortCard modIndex)
 {
-    StatePtr state = XtNew(StateRec);
+    StatePtr state = IswNew(StateRec);
 
 #ifdef TRACE_TM
     LOCK_PROCESS;
-    _XtGlobalTM.numComplexStates++;
+    _IswGlobalTM.numComplexStates++;
     UNLOCK_PROCESS;
 #endif                          /* TRACE_TM */
     state->typeIndex = typeIndex;
@@ -1117,7 +1117,7 @@ NewState(TMParseStateTree stateTree _X_UNUSED,
  * true then iteration is over.
  */
 void
-_XtTraverseStateTree(TMStateTree tree, _XtTraversalProc func, XtPointer data)
+_IswTraverseStateTree(TMStateTree tree, _IswTraversalProc func, IswPointer data)
 {
     TMComplexStateTree stateTree = (TMComplexStateTree) tree;
     TMBranchHead currBH;
@@ -1144,8 +1144,8 @@ _XtTraverseStateTree(TMStateTree tree, _XtTraversalProc func, XtPointer data)
          i < stateTree->numBranchHeads; i++, currBH++) {
         if (currBH->isSimple && currBH->hasActions) {
             if (firstSimple) {
-                XtBZero((char *) dummyState, sizeof(StateRec));
-                XtBZero((char *) dummyAction, sizeof(ActionRec));
+                IswBZero((char *) dummyState, sizeof(StateRec));
+                IswBZero((char *) dummyAction, sizeof(ActionRec));
                 dummyState->actions = dummyAction;
                 firstSimple = False;
             }
@@ -1192,7 +1192,7 @@ EventToMask(TMTypeMatch typeMatch, TMModifierMatch modMatch)
             returnMask |= XCB_EVENT_MASK_BUTTON_5_MOTION;
         return returnMask;
     }
-    returnMask = _XtConvertTypeToMask((int) eventType);
+    returnMask = _IswConvertTypeToMask((int) eventType);
     if (returnMask == (XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY))
         returnMask = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     return returnMask;
@@ -1200,23 +1200,23 @@ EventToMask(TMTypeMatch typeMatch, TMModifierMatch modMatch)
 
 static void
 DispatchMappingNotify(Widget widget _X_UNUSED,  /* will be NULL from _RefreshMapping */
-                      XtPointer closure,        /* real Widget */
-                      XtPointer call_data)      /* xcb_generic_event_t* */
+                      IswPointer closure,        /* real Widget */
+                      IswPointer call_data)      /* xcb_generic_event_t* */
 {
-    _XtTranslateEvent((Widget) closure, (xcb_generic_event_t *) call_data);
+    _IswTranslateEvent((Widget) closure, (xcb_generic_event_t *) call_data);
 }
 
 static void
 RemoveFromMappingCallbacks(Widget widget,
-                           XtPointer closure,    /* target widget */
-                           XtPointer call_data _X_UNUSED)
+                           IswPointer closure,    /* target widget */
+                           IswPointer call_data _X_UNUSED)
 {
-    _XtRemoveCallback(&_XtGetPerDisplay(XtDisplay(widget))->mapping_callbacks,
+    _IswRemoveCallback(&_IswGetPerDisplay(IswDisplay(widget))->mapping_callbacks,
                       DispatchMappingNotify, closure);
 }
 
 static Boolean
-AggregateEventMask(StatePtr state, XtPointer data)
+AggregateEventMask(StatePtr state, IswPointer data)
 {
     LOCK_PROCESS;
     *((EventMask *) data) |= EventToMask(TMGetTypeMatch(state->typeIndex),
@@ -1226,9 +1226,9 @@ AggregateEventMask(StatePtr state, XtPointer data)
 }
 
 void
-_XtInstallTranslations(Widget widget)
+_IswInstallTranslations(Widget widget)
 {
-    XtTranslations xlations;
+    IswTranslations xlations;
     Cardinal i;
     Boolean mappingNotifyInterest = False;
 
@@ -1242,12 +1242,12 @@ _XtInstallTranslations(Widget widget)
      * ComposeTranslations but we *should* have bindings by then
      */
     if (widget->core.tm.proc_table == NULL) {
-        _XtMergeTranslations(widget, NULL, XtTableReplace);
+        _IswMergeTranslations(widget, NULL, IswTableReplace);
         /*
          * if we're realized then we'll be called out of
          * ComposeTranslations
          */
-        if (XtIsRealized(widget))
+        if (IswIsRealized(widget))
             return;
     }
 
@@ -1255,9 +1255,9 @@ _XtInstallTranslations(Widget widget)
     for (i = 0; i < xlations->numStateTrees; i++) {
         TMStateTree stateTree = xlations->stateTreeTbl[i];
 
-        _XtTraverseStateTree(stateTree,
+        _IswTraverseStateTree(stateTree,
                              AggregateEventMask,
-                             (XtPointer) &xlations->eventMask);
+                             (IswPointer) &xlations->eventMask);
         mappingNotifyInterest =
             (Boolean) (mappingNotifyInterest |
                        stateTree->simple.mappingNotifyInterest);
@@ -1272,34 +1272,34 @@ _XtInstallTranslations(Widget widget)
 
 
     if (mappingNotifyInterest) {
-        XtPerDisplay pd = _XtGetPerDisplay(XtDisplay(widget));
+        IswPerDisplay pd = _IswGetPerDisplay(IswDisplay(widget));
 
         if (pd->mapping_callbacks)
-            _XtAddCallbackOnce(&(pd->mapping_callbacks),
-                               DispatchMappingNotify, (XtPointer) widget);
+            _IswAddCallbackOnce(&(pd->mapping_callbacks),
+                               DispatchMappingNotify, (IswPointer) widget);
         else
-            _XtAddCallback(&(pd->mapping_callbacks),
-                           DispatchMappingNotify, (XtPointer) widget);
+            _IswAddCallback(&(pd->mapping_callbacks),
+                           DispatchMappingNotify, (IswPointer) widget);
 
         if (widget->core.destroy_callbacks != NULL)
-            _XtAddCallbackOnce((InternalCallbackList *)
+            _IswAddCallbackOnce((InternalCallbackList *)
                                &widget->core.destroy_callbacks,
-                               RemoveFromMappingCallbacks, (XtPointer) widget);
+                               RemoveFromMappingCallbacks, (IswPointer) widget);
         else
-            _XtAddCallback((InternalCallbackList *)
+            _IswAddCallback((InternalCallbackList *)
                            &widget->core.destroy_callbacks,
-                           RemoveFromMappingCallbacks, (XtPointer) widget);
+                           RemoveFromMappingCallbacks, (IswPointer) widget);
     }
-    _XtBindActions(widget, (XtTM) &widget->core.tm);
-    _XtRegisterGrabs(widget);
+    _IswBindActions(widget, (IswTM) &widget->core.tm);
+    _IswRegisterGrabs(widget);
 }
 
 void
-_XtRemoveTranslations(Widget widget)
+_IswRemoveTranslations(Widget widget)
 {
     Cardinal i;
     Boolean mappingNotifyInterest = False;
-    XtTranslations xlations = widget->core.tm.translations;
+    IswTranslations xlations = widget->core.tm.translations;
 
     if (xlations == NULL)
         return;
@@ -1312,26 +1312,26 @@ _XtRemoveTranslations(Widget widget)
                        stateTree->mappingNotifyInterest);
     }
     if (mappingNotifyInterest)
-        RemoveFromMappingCallbacks(widget, (XtPointer) widget, NULL);
+        RemoveFromMappingCallbacks(widget, (IswPointer) widget, NULL);
 }
 
 static void
-_XtUninstallTranslations(Widget widget)
+_IswUninstallTranslations(Widget widget)
 {
-    XtTranslations xlations = widget->core.tm.translations;
+    IswTranslations xlations = widget->core.tm.translations;
 
-    _XtUnbindActions(widget, xlations, (TMBindData) widget->core.tm.proc_table);
-    _XtRemoveTranslations(widget);
+    _IswUnbindActions(widget, xlations, (TMBindData) widget->core.tm.proc_table);
+    _IswRemoveTranslations(widget);
     widget->core.tm.translations = NULL;
     FreeContext((TMContext *) &widget->core.tm.current_state);
 }
 
 void
-_XtDestroyTMData(Widget widget)
+_IswDestroyTMData(Widget widget)
 {
     TMComplexBindData cBindData;
 
-    _XtUninstallTranslations(widget);
+    _IswUninstallTranslations(widget);
 
     if ((cBindData = (TMComplexBindData) widget->core.tm.proc_table)) {
         if (cBindData->isComplex) {
@@ -1341,17 +1341,17 @@ _XtDestroyTMData(Widget widget)
                 ATranslations aXlations = nXlations;
 
                 nXlations = nXlations->next;
-                XtFree((char *) aXlations);
+                IswFree((char *) aXlations);
             }
         }
-        XtFree((char *) cBindData);
+        IswFree((char *) cBindData);
     }
 }
 
 /*** Public procedures ***/
 
 void
-XtUninstallTranslations(Widget widget)
+IswUninstallTranslations(Widget widget)
 {
     EventMask oldMask;
     Widget hookobj;
@@ -1364,59 +1364,59 @@ XtUninstallTranslations(Widget widget)
         return;
     }
     oldMask = widget->core.tm.translations->eventMask;
-    _XtUninstallTranslations(widget);
-    if (XtIsRealized(widget) && oldMask) {
-        uint32_t event_mask = (uint32_t) XtBuildEventMask(widget);
+    _IswUninstallTranslations(widget);
+    if (IswIsRealized(widget) && oldMask) {
+        uint32_t event_mask = (uint32_t) IswBuildEventMask(widget);
         xcb_void_cookie_t cookie = xcb_change_window_attributes(
-            XtDisplay(widget),  /* your XCB connection */
-            XtWindow(widget),  /* window XID */
+            IswDisplay(widget),  /* your XCB connection */
+            IswWindow(widget),  /* window XID */
             XCB_CW_EVENT_MASK,
             &event_mask
         );
     }
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHuninstallTranslations;
+        call_data.type = IswHuninstallTranslations;
         call_data.widget = widget;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
 }
 
-XtTranslations
-_XtCreateXlations(TMStateTree *stateTrees,
+IswTranslations
+_IswCreateXlations(TMStateTree *stateTrees,
                   TMShortCard numStateTrees,
-                  XtTranslations first,
-                  XtTranslations second)
+                  IswTranslations first,
+                  IswTranslations second)
 {
-    XtTranslations xlations;
+    IswTranslations xlations;
     TMShortCard i;
 
-    xlations = (XtTranslations)
+    xlations = (IswTranslations)
         __XtMalloc((Cardinal) (sizeof(TranslationData) +
                                (size_t) (numStateTrees -
                                          1) * sizeof(TMStateTree)));
 #ifdef TRACE_TM
     LOCK_PROCESS;
-    if (_XtGlobalTM.numTms == _XtGlobalTM.tmTblSize) {
-        _XtGlobalTM.tmTblSize = (TMShortCard) (_XtGlobalTM.tmTblSize + 16);
-        _XtGlobalTM.tmTbl = (XtTranslations *)
-            XtReallocArray(_XtGlobalTM.tmTbl,
-                           (Cardinal) _XtGlobalTM.tmTblSize,
-                           (Cardinal) sizeof(XtTranslations));
+    if (_IswGlobalTM.numTms == _IswGlobalTM.tmTblSize) {
+        _IswGlobalTM.tmTblSize = (TMShortCard) (_IswGlobalTM.tmTblSize + 16);
+        _IswGlobalTM.tmTbl = (IswTranslations *)
+            IswReallocArray(_IswGlobalTM.tmTbl,
+                           (Cardinal) _IswGlobalTM.tmTblSize,
+                           (Cardinal) sizeof(IswTranslations));
     }
-    _XtGlobalTM.tmTbl[_XtGlobalTM.numTms++] = xlations;
+    _IswGlobalTM.tmTbl[_IswGlobalTM.numTms++] = xlations;
     UNLOCK_PROCESS;
 #endif                          /* TRACE_TM */
 
     xlations->composers[0] = first;
     xlations->composers[1] = second;
     xlations->hasBindings = False;
-    xlations->operation = XtTableReplace;
+    xlations->operation = IswTableReplace;
 
     for (i = 0; i < numStateTrees; i++) {
         xlations->stateTreeTbl[i] = (TMStateTree) stateTrees[i];
@@ -1428,17 +1428,17 @@ _XtCreateXlations(TMStateTree *stateTrees,
 }
 
 TMStateTree
-_XtParseTreeToStateTree(TMParseStateTree parseTree)
+_IswParseTreeToStateTree(TMParseStateTree parseTree)
 {
     TMSimpleStateTree simpleTree;
 
     if (parseTree->numComplexBranchHeads) {
         TMComplexStateTree complexTree;
 
-        complexTree = XtNew(TMComplexStateTreeRec);
+        complexTree = IswNew(TMComplexStateTreeRec);
         complexTree->isSimple = False;
         complexTree->complexBranchHeadTbl =
-            XtMallocArray((Cardinal) parseTree->numComplexBranchHeads,
+            IswMallocArray((Cardinal) parseTree->numComplexBranchHeads,
                           (Cardinal) sizeof(StatePtr));
         memcpy(complexTree->complexBranchHeadTbl,
                parseTree->complexBranchHeadTbl,
@@ -1447,7 +1447,7 @@ _XtParseTreeToStateTree(TMParseStateTree parseTree)
         simpleTree = (TMSimpleStateTree) complexTree;
     }
     else {
-        simpleTree = XtNew(TMSimpleStateTreeRec);
+        simpleTree = IswNew(TMSimpleStateTreeRec);
         simpleTree->isSimple = True;
     }
     simpleTree->isAccelerator = parseTree->isAccelerator;
@@ -1455,13 +1455,13 @@ _XtParseTreeToStateTree(TMParseStateTree parseTree)
     simpleTree->mappingNotifyInterest = parseTree->mappingNotifyInterest;
 
     simpleTree->branchHeadTbl =
-        XtMallocArray((Cardinal) parseTree->numBranchHeads,
+        IswMallocArray((Cardinal) parseTree->numBranchHeads,
                       (Cardinal) sizeof(TMBranchHeadRec));
     memcpy(simpleTree->branchHeadTbl, parseTree->branchHeadTbl,
            parseTree->numBranchHeads * sizeof(TMBranchHeadRec));
     simpleTree->numBranchHeads = parseTree->numBranchHeads;
 
-    simpleTree->quarkTbl = XtMallocArray((Cardinal) parseTree->numQuarks,
+    simpleTree->quarkTbl = IswMallocArray((Cardinal) parseTree->numQuarks,
                                          (Cardinal) sizeof(XrmQuark));
     memcpy(simpleTree->quarkTbl, parseTree->quarkTbl,
            parseTree->numQuarks * sizeof(XrmQuark));
@@ -1480,10 +1480,10 @@ FreeActions(ActionPtr actions)
         ActionPtr nextAction = action->next;
 
         for (i = (TMShortCard) action->num_params; i;) {
-            XtFree((_XtString) action->params[--i]);
+            IswFree((_IswString) action->params[--i]);
         }
-        XtFree((char *) action->params);
-        XtFree((char *) action);
+        IswFree((char *) action->params);
+        IswFree((char *) action);
         action = nextAction;
     }
 }
@@ -1496,21 +1496,21 @@ AmbigActions(EventSeqPtr initialEvent,
     String params[3];
     Cardinal numParams = 0;
 
-    params[numParams++] = _XtPrintEventSeq(initialEvent, NULL);
-    params[numParams++] = _XtPrintActions((*state)->actions,
+    params[numParams++] = _IswPrintEventSeq(initialEvent, NULL);
+    params[numParams++] = _IswPrintActions((*state)->actions,
                                           stateTree->quarkTbl);
-    XtWarningMsg(XtNtranslationError, "oldActions", XtCXtToolkitError,
+    IswWarningMsg(IswNtranslationError, "oldActions", IswCIswToolkitError,
                  "Previous entry was: %s %s", params, &numParams);
-    XtFree((char *) params[0]);
-    XtFree((char *) params[1]);
+    IswFree((char *) params[0]);
+    IswFree((char *) params[1]);
     numParams = 0;
-    params[numParams++] = _XtPrintActions(initialEvent->actions,
+    params[numParams++] = _IswPrintActions(initialEvent->actions,
                                           stateTree->quarkTbl);
-    XtWarningMsg(XtNtranslationError, "newActions", XtCXtToolkitError,
+    IswWarningMsg(IswNtranslationError, "newActions", IswCIswToolkitError,
                  "New actions are:%s", params, &numParams);
-    XtFree((char *) params[0]);
-    XtWarningMsg(XtNtranslationError, "ambiguousActions",
-                 XtCXtToolkitError,
+    IswFree((char *) params[0]);
+    IswWarningMsg(IswNtranslationError, "ambiguousActions",
+                 IswCIswToolkitError,
                  "Overriding earlier translation manager actions.", NULL, NULL);
 
     FreeActions((*state)->actions);
@@ -1518,7 +1518,7 @@ AmbigActions(EventSeqPtr initialEvent,
 }
 
 void
-_XtAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
+_IswAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
 {
     StatePtr *state;
     EventSeqPtr initialEvent = eventSeq;
@@ -1535,8 +1535,8 @@ _XtAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
      * We need to free the parser data structures !!!
      */
 
-    typeIndex = _XtGetTypeIndex(&eventSeq->event);
-    modIndex = _XtGetModifierIndex(&eventSeq->event);
+    typeIndex = _IswGetTypeIndex(&eventSeq->event);
+    modIndex = _IswGetModifierIndex(&eventSeq->event);
     idx = GetBranchHead(stateTree, typeIndex, modIndex, False);
     branchHead = &stateTree->branchHeadTbl[idx];
 
@@ -1553,7 +1553,7 @@ _XtAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
         if (eventSeq->event.eventType == XCB_MAPPING_NOTIFY)
             stateTree->mappingNotifyInterest = True;
         branchHead->hasActions = True;
-        XtSetBits(branchHead->more, eventSeq->actions->idx, 13);
+        IswSetBits(branchHead->more, eventSeq->actions->idx, 13);
         FreeActions(eventSeq->actions);
         eventSeq->actions = NULL;
         return;
@@ -1562,7 +1562,7 @@ _XtAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
     branchHead->isSimple = False;
     if (!eventSeq->next)
         branchHead->hasActions = True;
-    XtSetBits(branchHead->more,
+    IswSetBits(branchHead->more,
               GetComplexBranchIndex(stateTree, typeIndex, modIndex), 13);
     state = &stateTree->complexBranchHeadTbl[TMBranchMore(branchHead)];
 
@@ -1581,7 +1581,7 @@ _XtAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
             (*state)->actions = eventSeq->actions;
 #ifdef TRACE_TM
             LOCK_PROCESS;
-            _XtGlobalTM.numComplexActions++;
+            _IswGlobalTM.numComplexActions++;
             UNLOCK_PROCESS;
 #endif                          /* TRACE_TM */
         }
@@ -1590,8 +1590,8 @@ _XtAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
             break;
 
         state = &(*state)->nextLevel;
-        typeIndex = _XtGetTypeIndex(&eventSeq->event);
-        modIndex = _XtGetModifierIndex(&eventSeq->event);
+        typeIndex = _IswGetTypeIndex(&eventSeq->event);
+        modIndex = _IswGetModifierIndex(&eventSeq->event);
         LOCK_PROCESS;
         if (!TMNewMatchSemantics()) {
             /*
@@ -1616,25 +1616,25 @@ _XtAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
  * Internal Converter for merging. Old and New must both be valid xlations
  */
 Boolean
-_XtCvtMergeTranslations(xcb_connection_t *dpy _X_UNUSED,
+_IswCvtMergeTranslations(xcb_connection_t *dpy _X_UNUSED,
                         XrmValuePtr args _X_UNUSED,
                         Cardinal *num_args,
                         XrmValuePtr from,
                         XrmValuePtr to,
-                        XtPointer *closure_ret _X_UNUSED)
+                        IswPointer *closure_ret _X_UNUSED)
 {
-    XtTranslations first, second, xlations;
+    IswTranslations first, second, xlations;
     TMStateTree *stateTrees, stackStateTrees[16];
     TMShortCard numStateTrees, i;
 
     if (*num_args != 0)
-        XtWarningMsg("invalidParameters", "mergeTranslations",
-                     XtCXtToolkitError,
+        IswWarningMsg("invalidParameters", "mergeTranslations",
+                     IswCIswToolkitError,
                      "MergeTM to TranslationTable needs no extra arguments",
                      NULL, NULL);
 
-    if (to->addr != NULL && to->size < sizeof(XtTranslations)) {
-        to->size = sizeof(XtTranslations);
+    if (to->addr != NULL && to->size < sizeof(IswTranslations)) {
+        to->size = sizeof(IswTranslations);
         return False;
     }
 
@@ -1645,54 +1645,54 @@ _XtCvtMergeTranslations(xcb_connection_t *dpy _X_UNUSED,
         (TMShortCard) (first->numStateTrees + second->numStateTrees);
 
     stateTrees = (TMStateTree *)
-        XtStackAlloc(numStateTrees * sizeof(TMStateTree), stackStateTrees);
+        IswStackAlloc(numStateTrees * sizeof(TMStateTree), stackStateTrees);
 
     for (i = 0; i < first->numStateTrees; i++)
         stateTrees[i] = first->stateTreeTbl[i];
     for (i = 0; i < second->numStateTrees; i++)
         stateTrees[i + first->numStateTrees] = second->stateTreeTbl[i];
 
-    xlations = _XtCreateXlations(stateTrees, numStateTrees, first, second);
+    xlations = _IswCreateXlations(stateTrees, numStateTrees, first, second);
 
     if (to->addr != NULL) {
-        *(XtTranslations *) to->addr = xlations;
+        *(IswTranslations *) to->addr = xlations;
     }
     else {
-        static XtTranslations staticStateTable;
+        static IswTranslations staticStateTable;
 
         staticStateTable = xlations;
-        to->addr = (XtPointer) &staticStateTable;
-        to->size = sizeof(XtTranslations);
+        to->addr = (IswPointer) &staticStateTable;
+        to->size = sizeof(IswTranslations);
     }
 
-    XtStackFree((XtPointer) stateTrees, (XtPointer) stackStateTrees);
+    IswStackFree((IswPointer) stateTrees, (IswPointer) stackStateTrees);
     return True;
 }
 
-static XtTranslations
-MergeThem(Widget dest, XtTranslations first, XtTranslations second)
+static IswTranslations
+MergeThem(Widget dest, IswTranslations first, IswTranslations second)
 {
-    XtCacheRef cache_ref;
+    IswCacheRef cache_ref;
     static XrmQuark from_type = NULLQUARK, to_type;
     XrmValue from, to;
     TMConvertRec convert_rec;
-    XtTranslations newTable;
+    IswTranslations newTable;
 
     LOCK_PROCESS;
     if (from_type == NULLQUARK) {
-        from_type = XrmPermStringToQuark(_XtRStateTablePair);
-        to_type = XrmPermStringToQuark(XtRTranslationTable);
+        from_type = XrmPermStringToQuark(_IswRStateTablePair);
+        to_type = XrmPermStringToQuark(IswRTranslationTable);
     }
     UNLOCK_PROCESS;
-    from.addr = (XtPointer) &convert_rec;
+    from.addr = (IswPointer) &convert_rec;
     from.size = sizeof(TMConvertRec);
-    to.addr = (XtPointer) &newTable;
-    to.size = sizeof(XtTranslations);
+    to.addr = (IswPointer) &newTable;
+    to.size = sizeof(IswTranslations);
     convert_rec.old = first;
     convert_rec.new = second;
 
     LOCK_PROCESS;
-    if (!_XtConvert(dest, from_type, &from, to_type, &to, &cache_ref)) {
+    if (!_IswConvert(dest, from_type, &from, to_type, &to, &cache_ref)) {
         UNLOCK_PROCESS;
         return NULL;
     }
@@ -1701,8 +1701,8 @@ MergeThem(Widget dest, XtTranslations first, XtTranslations second)
 #ifndef REFCNT_TRANSLATIONS
 
     if (cache_ref)
-        XtAddCallback(dest, XtNdestroyCallback,
-                      XtCallbackReleaseCacheRef, (XtPointer) cache_ref);
+        IswAddCallback(dest, IswNdestroyCallback,
+                      IswCallbackReleaseCacheRef, (IswPointer) cache_ref);
 
 #endif
 
@@ -1716,17 +1716,17 @@ MergeThem(Widget dest, XtTranslations first, XtTranslations second)
  * the potential that an xlation will be both an accelerator and
  * normal. This is not supported by the spec anyway.
  */
-static XtTranslations
+static IswTranslations
 UnmergeTranslations(Widget widget,
-                    XtTranslations xlations,
-                    XtTranslations unmergeXlations,
+                    IswTranslations xlations,
+                    IswTranslations unmergeXlations,
                     TMShortCard currIndex,
                     TMComplexBindProcs oldBindings,
                     TMShortCard numOldBindings,
                     TMComplexBindProcs newBindings,
                     TMShortCard *numNewBindingsRtn)
 {
-    XtTranslations first, second, result;
+    IswTranslations first, second, result;
 
     if (!xlations || (xlations == unmergeXlations))
         return NULL;
@@ -1785,21 +1785,21 @@ UnmergeTranslations(Widget widget,
 }
 
 typedef struct {
-    XtTranslations xlations;
+    IswTranslations xlations;
     TMComplexBindProcs bindings;
 } MergeBindRec, *MergeBind;
 
-static XtTranslations
+static IswTranslations
 MergeTranslations(Widget widget,
-                  XtTranslations oldXlations,
-                  XtTranslations newXlations,
-                  _XtTranslateOp operation,
+                  IswTranslations oldXlations,
+                  IswTranslations newXlations,
+                  _IswTranslateOp operation,
                   Widget source,
                   TMComplexBindProcs oldBindings,
                   TMComplexBindProcs newBindings,
                   TMShortCard *numNewRtn)
 {
-    XtTranslations newTable = NULL, xlations;
+    IswTranslations newTable = NULL, xlations;
     TMComplexBindProcs bindings;
     TMShortCard i, j;
     TMStateTree *treePtr;
@@ -1821,20 +1821,20 @@ MergeTranslations(Widget widget,
     }
     switch (operation) {
     default:
-    case XtTableReplace:
+    case IswTableReplace:
         newTable = bindPair[0].xlations = xlations;
         bindPair[0].bindings = bindings;
         bindPair[1].xlations = NULL;
         bindPair[1].bindings = NULL;
         break;
-    case XtTableAugment:
+    case IswTableAugment:
         bindPair[0].xlations = oldXlations;
         bindPair[0].bindings = oldBindings;
         bindPair[1].xlations = xlations;
         bindPair[1].bindings = bindings;
         newTable = NULL;
         break;
-    case XtTableOverride:
+    case IswTableOverride:
         bindPair[0].xlations = xlations;
         bindPair[0].bindings = bindings;
         bindPair[1].xlations = oldXlations;
@@ -1893,7 +1893,7 @@ MakeBindData(TMComplexBindProcs bindings,
 
     bindData =
         (TMBindData) __XtCalloc((Cardinal) sizeof(char), (Cardinal) bytes);
-    XtSetBit(bindData->simple.isComplex, isComplex);
+    IswSetBit(bindData->simple.isComplex, isComplex);
     if (isComplex) {
         TMComplexBindData cBindData = (TMComplexBindData) bindData;
 
@@ -1918,12 +1918,12 @@ MakeBindData(TMComplexBindProcs bindings,
  */
 static Boolean
 ComposeTranslations(Widget dest,
-                    _XtTranslateOp operation,
+                    _IswTranslateOp operation,
                     Widget source,
-                    XtTranslations newXlations)
+                    IswTranslations newXlations)
 {
-    XtTranslations newTable, oldXlations;
-    XtTranslations accNewXlations;
+    IswTranslations newTable, oldXlations;
+    IswTranslations accNewXlations;
     EventMask oldMask = 0;
     TMBindData bindData;
     TMComplexBindProcs oldBindings = NULL;
@@ -1935,8 +1935,8 @@ ComposeTranslations(Widget dest,
      * replaced translation table ???
      */
     if (!newXlations) {
-        XtAppWarningMsg(XtWidgetToApplicationContext(dest),
-                        XtNtranslationError, "nullTable", XtCXtToolkitError,
+        IswAppWarningMsg(IswWidgetToApplicationContext(dest),
+                        IswNtranslationError, "nullTable", IswCIswToolkitError,
                         "table to (un)merge must not be null", NULL, NULL);
         return False;
     }
@@ -1946,40 +1946,40 @@ ComposeTranslations(Widget dest,
                    ? ((ATranslations) newXlations)->xlations : newXlations);
 
     if (!(oldXlations = dest->core.tm.translations))
-        operation = XtTableReplace;
+        operation = IswTableReplace;
 
     /*
      * try to avoid generation of duplicate state trees. If the source
      * isn't simple (1 state Tree) then it's too much hassle
      */
-    if (((operation == XtTableAugment) ||
-         (operation == XtTableOverride)) && (newXlations->numStateTrees == 1)) {
+    if (((operation == IswTableAugment) ||
+         (operation == IswTableOverride)) && (newXlations->numStateTrees == 1)) {
         Cardinal i;
 
         for (i = 0; i < oldXlations->numStateTrees; i++)
             if (oldXlations->stateTreeTbl[i] == newXlations->stateTreeTbl[0])
                 break;
         if (i < oldXlations->numStateTrees) {
-            if (operation == XtTableAugment) {
+            if (operation == IswTableAugment) {
                 /*
                  * we don't need to do anything since it's already
                  * there
                  */
                 return True;
             }
-            else {              /* operation == XtTableOverride */
+            else {              /* operation == IswTableOverride */
                 /*
                  * We'll get rid of the duplicate trees throughout the
                  * and leave it with a pruned translation table. This
                  * will only work if the same table has been merged
                  * into this table (or one of it's composers
                  */
-                _XtUnmergeTranslations(dest, newXlations);
+                _IswUnmergeTranslations(dest, newXlations);
                 /*
                  * reset oldXlations so we're back in sync
                  */
                 if (!(oldXlations = dest->core.tm.translations))
-                    operation = XtTableReplace;
+                    operation = IswTableReplace;
             }
         }
     }
@@ -1999,10 +1999,10 @@ ComposeTranslations(Widget dest,
                                  +
                                  newXlations->numStateTrees) *
                        sizeof(TMComplexBindProcsRec));
-    newBindings = (TMComplexBindProcs) XtStackAlloc(numBytes, stackBindings);
-    XtBZero((char *) newBindings, numBytes);
+    newBindings = (TMComplexBindProcs) IswStackAlloc(numBytes, stackBindings);
+    IswBZero((char *) newBindings, numBytes);
 
-    if (operation == XtTableUnmerge) {
+    if (operation == IswTableUnmerge) {
         newTable = UnmergeTranslations(dest,
                                        oldXlations,
                                        newXlations,
@@ -2012,8 +2012,8 @@ ComposeTranslations(Widget dest,
 #ifdef DEBUG
         /* check for no match for unmerge */
         if (newTable == oldXlations) {
-            XtWarning("attempt to unmerge invalid table");
-            XtStackFree((char *) newBindings, (char *) stackBindings);
+            IswWarning("attempt to unmerge invalid table");
+            IswStackFree((char *) newBindings, (char *) stackBindings);
             return (newTable != NULL);
         }
 #endif                          /* DEBUG */
@@ -2026,39 +2026,39 @@ ComposeTranslations(Widget dest,
                                      source,
                                      oldBindings, newBindings, &numNewBindings);
     }
-    if (XtIsRealized(dest)) {
+    if (IswIsRealized(dest)) {
         oldMask = 0;
         if (oldXlations)
             oldMask = oldXlations->eventMask;
-        _XtUninstallTranslations(dest);
+        _IswUninstallTranslations(dest);
     }
 
     dest->core.tm.proc_table =
-        (XtActionProc *) MakeBindData(newBindings, numNewBindings, bindData);
+        (IswActionProc *) MakeBindData(newBindings, numNewBindings, bindData);
 
-    XtFree((char *) bindData);
+    IswFree((char *) bindData);
 
     dest->core.tm.translations = newTable;
 
-    if (XtIsRealized(dest)) {
+    if (IswIsRealized(dest)) {
         EventMask mask = 0;
 
-        _XtInstallTranslations(dest);
+        _IswInstallTranslations(dest);
         if (newTable)
             mask = newTable->eventMask;
         if (mask != oldMask){
-            uint32_t event_mask = (uint32_t) XtBuildEventMask(dest);
+            uint32_t event_mask = (uint32_t) IswBuildEventMask(dest);
             xcb_void_cookie_t cookie = xcb_change_window_attributes(
-                XtDisplay(dest),  /* your XCB connection */
-                XtWindow(dest),  /* window XID */
+                IswDisplay(dest),  /* your XCB connection */
+                IswWindow(dest),  /* window XID */
                 XCB_CW_EVENT_MASK,
                 &event_mask
             );
         }
-            //XSelectInput(XtDisplay(dest), XtWindow(dest),
-            //             (long) XtBuildEventMask(dest));
+            //XSelectInput(IswDisplay(dest), IswWindow(dest),
+            //             (long) IswBuildEventMask(dest));
     }
-    XtStackFree((XtPointer) newBindings, (XtPointer) stackBindings);
+    IswStackFree((IswPointer) newBindings, (IswPointer) stackBindings);
     return (newTable != NULL);
 }
 
@@ -2070,13 +2070,13 @@ ComposeTranslations(Widget dest,
  * that we return (via a linked list pointed to from the bindData) and
  * free it at destroy time.
  */
-XtTranslations
-_XtGetTranslationValue(Widget w)
+IswTranslations
+_IswGetTranslationValue(Widget w)
 {
-    XtTM tmRecPtr = (XtTM) &w->core.tm;
+    IswTM tmRecPtr = (IswTM) &w->core.tm;
     ATranslations *aXlationsPtr;
     TMComplexBindData cBindData = (TMComplexBindData) tmRecPtr->proc_table;
-    XtTranslations xlations = tmRecPtr->translations;
+    IswTranslations xlations = tmRecPtr->translations;
 
     if (!xlations || !cBindData || !cBindData->isComplex)
         return xlations;
@@ -2089,7 +2089,7 @@ _XtGetTranslationValue(Widget w)
          *aXlationsPtr && (*aXlationsPtr)->xlations != xlations;
          aXlationsPtr = &(*aXlationsPtr)->next);
     if (*aXlationsPtr)
-        return (XtTranslations) *aXlationsPtr;
+        return (IswTranslations) *aXlationsPtr;
     else {
         /* create a new aXlations context */
         ATranslations aXlations;
@@ -2106,7 +2106,7 @@ _XtGetTranslationValue(Widget w)
         memcpy(&aXlations->bindTbl[0],
                &cBindData->bindTbl[0],
                numBindings * sizeof(TMComplexBindProcsRec));
-        return (XtTranslations) aXlations;
+        return (IswTranslations) aXlations;
     }
 }
 
@@ -2133,19 +2133,19 @@ RemoveStateTree(TMStateTree tree _X_UNUSED)
                         nextState = currState->nextLevel;
                     else
                         nextState = NULL;
-                    XtFree((char *) currState);
+                    IswFree((char *) currState);
                 }
             }
-            XtFree((char *) stateTree->complexBranchHeadTbl);
+            IswFree((char *) stateTree->complexBranchHeadTbl);
         }
-        XtFree((char *) stateTree->branchHeadTbl);
-        XtFree((char *) stateTree);
+        IswFree((char *) stateTree->branchHeadTbl);
+        IswFree((char *) stateTree);
     }
 #endif                          /* REFCNT_TRANSLATIONS */
 }
 
 void
-_XtRemoveStateTreeByIndex(XtTranslations xlations, TMShortCard i)
+_IswRemoveStateTreeByIndex(IswTranslations xlations, TMShortCard i)
 {
     TMStateTree *stateTrees = xlations->stateTreeTbl;
 
@@ -2158,36 +2158,36 @@ _XtRemoveStateTreeByIndex(XtTranslations xlations, TMShortCard i)
 }
 
 void
-_XtFreeTranslations(XtAppContext app,
+_IswFreeTranslations(IswAppContext app,
                     XrmValuePtr toVal,
-                    XtPointer closure _X_UNUSED,
+                    IswPointer closure _X_UNUSED,
                     XrmValuePtr args _X_UNUSED,
                     Cardinal *num_args)
 {
-    XtTranslations xlations;
+    IswTranslations xlations;
     int i;
 
     if (*num_args != 0)
-        XtAppWarningMsg(app,
+        IswAppWarningMsg(app,
                         "invalidParameters", "freeTranslations",
-                        XtCXtToolkitError,
-                        "Freeing XtTranslations requires no extra arguments",
+                        IswCIswToolkitError,
+                        "Freeing IswTranslations requires no extra arguments",
                         NULL, NULL);
 
-    xlations = *(XtTranslations *) toVal->addr;
+    xlations = *(IswTranslations *) toVal->addr;
     for (i = 0; i < (int) xlations->numStateTrees; i++)
         RemoveStateTree(xlations->stateTreeTbl[i]);
-    XtFree((char *) xlations);
+    IswFree((char *) xlations);
 }
 
 /*  The spec is not clear on when actions specified in accelerators are bound;
  *  Bind them at Realize the same as translations
  */
 void
-XtInstallAccelerators(Widget destination, Widget source)
+IswInstallAccelerators(Widget destination, Widget source)
 {
-    XtTranslations aXlations;
-    _XtTranslateOp op;
+    IswTranslations aXlations;
+    _IswTranslateOp op;
 
     WIDGET_TO_APPCON(destination);
 
@@ -2198,7 +2198,7 @@ XtInstallAccelerators(Widget destination, Widget source)
      */
     LOCK_APP(app);
     LOCK_PROCESS;
-    if ((!XtIsWidget(source)) ||
+    if ((!IswIsWidget(source)) ||
         ((aXlations = source->core.accelerators) == NULL) ||
         (aXlations->stateTreeTbl[0]->simple.isAccelerator == False)) {
         UNLOCK_PROCESS;
@@ -2210,18 +2210,18 @@ XtInstallAccelerators(Widget destination, Widget source)
     op = aXlations->operation;
 
     if (ComposeTranslations(destination, op, source, aXlations) &&
-        (XtClass(source)->core_class.display_accelerator != NULL)) {
-        _XtString buf = _XtPrintXlations(destination, aXlations, source, False);
+        (IswClass(source)->core_class.display_accelerator != NULL)) {
+        _IswString buf = _IswPrintXlations(destination, aXlations, source, False);
 
-        (*(XtClass(source)->core_class.display_accelerator)) (source, buf);
-        XtFree(buf);
+        (*(IswClass(source)->core_class.display_accelerator)) (source, buf);
+        IswFree(buf);
     }
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
 }
 
 void
-XtInstallAllAccelerators(Widget destination, Widget source)
+IswInstallAllAccelerators(Widget destination, Widget source)
 {
     Cardinal i;
 
@@ -2230,29 +2230,29 @@ XtInstallAllAccelerators(Widget destination, Widget source)
     /* Recurse down normal children */
     LOCK_APP(app);
     LOCK_PROCESS;
-    if (XtIsComposite(source)) {
+    if (IswIsComposite(source)) {
         CompositeWidget cw = (CompositeWidget) source;
 
         for (i = 0; i < cw->composite.num_children; i++) {
-            XtInstallAllAccelerators(destination, cw->composite.children[i]);
+            IswInstallAllAccelerators(destination, cw->composite.children[i]);
         }
     }
 
     /* Recurse down popup children */
-    if (XtIsWidget(source)) {
+    if (IswIsWidget(source)) {
         for (i = 0; i < source->core.num_popups; i++) {
-            XtInstallAllAccelerators(destination, source->core.popup_list[i]);
+            IswInstallAllAccelerators(destination, source->core.popup_list[i]);
         }
     }
     /* Finally, apply procedure to this widget */
-    XtInstallAccelerators(destination, source);
+    IswInstallAccelerators(destination, source);
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
 }
 
 #if 0                           /* dead code */
-static _XtTranslateOp
-_XtGetTMOperation(XtTranslations xlations)
+static _IswTranslateOp
+_IswGetTMOperation(IswTranslations xlations)
 {
     return ((xlations->hasBindings)
             ? ((ATranslations) xlations)->xlations->operation
@@ -2261,7 +2261,7 @@ _XtGetTMOperation(XtTranslations xlations)
 #endif
 
 void
-XtAugmentTranslations(Widget widget, XtTranslations new)
+IswAugmentTranslations(Widget widget, IswTranslations new)
 {
     Widget hookobj;
 
@@ -2269,23 +2269,23 @@ XtAugmentTranslations(Widget widget, XtTranslations new)
 
     LOCK_APP(app);
     LOCK_PROCESS;
-    (void) ComposeTranslations(widget, XtTableAugment, (Widget) NULL, new);
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    (void) ComposeTranslations(widget, IswTableAugment, (Widget) NULL, new);
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHaugmentTranslations;
+        call_data.type = IswHaugmentTranslations;
         call_data.widget = widget;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
 }
 
 void
-XtOverrideTranslations(Widget widget, XtTranslations new)
+IswOverrideTranslations(Widget widget, IswTranslations new)
 {
     Widget hookobj;
 
@@ -2293,25 +2293,25 @@ XtOverrideTranslations(Widget widget, XtTranslations new)
 
     LOCK_APP(app);
     LOCK_PROCESS;
-    (void) ComposeTranslations(widget, XtTableOverride, (Widget) NULL, new);
-    hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    (void) ComposeTranslations(widget, IswTableOverride, (Widget) NULL, new);
+    hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHoverrideTranslations;
+        call_data.type = IswHoverrideTranslations;
         call_data.widget = widget;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
 }
 
 void
-_XtMergeTranslations(Widget widget,
-                     XtTranslations newXlations,
-                     _XtTranslateOp op)
+_IswMergeTranslations(Widget widget,
+                     IswTranslations newXlations,
+                     _IswTranslateOp op)
 {
     if (!newXlations) {
         if (!widget->core.tm.translations)
@@ -2325,7 +2325,7 @@ _XtMergeTranslations(Widget widget,
 }
 
 void
-_XtUnmergeTranslations(Widget widget, XtTranslations xlations)
+_IswUnmergeTranslations(Widget widget, IswTranslations xlations)
 {
-    ComposeTranslations(widget, XtTableUnmerge, (Widget) NULL, xlations);
+    ComposeTranslations(widget, IswTableUnmerge, (Widget) NULL, xlations);
 }

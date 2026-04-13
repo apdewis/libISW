@@ -56,8 +56,8 @@ in this Software without prior written authorization from the X Consortium.
  ----		     -----		-------		-------------
  callback            Callback           Callback        NULL
  destroyCallback     Callback		Pointer		NULL
- font                Font               XFontStruct *   XtDefaultFont
- foreground          Foreground         Pixel           XtDefaultForeground
+ font                Font               IswFontStruct *   IswDefaultFont
+ foreground          Foreground         Pixel           IswDefaultForeground
  height		     Height		Dimension	0
  label               Label              String          Name of entry
  leftBitmap          LeftBitmap         Pixmap          None
@@ -79,30 +79,30 @@ typedef struct _SmeBSBRec         *SmeBSBObject;
 
 extern WidgetClass smeBSBObjectClass;
 
-#define XtNleftImage "leftImage"
-#define XtNleftMargin "leftMargin"
-#define XtNleftWhitespace "leftWhitespace"
-#define XtNrightImage "rightImage"
-#define XtNrightMargin "rightMargin"
-#define XtNrightWhitespace "rightWhitespace"
-#define XtNvertSpace "vertSpace"
-#define XtNmenuName "menuName"
-#define XtNunderline "underline"
+#define IswNleftImage "leftImage"
+#define IswNleftMargin "leftMargin"
+#define IswNleftWhitespace "leftWhitespace"
+#define IswNrightImage "rightImage"
+#define IswNrightMargin "rightMargin"
+#define IswNrightWhitespace "rightWhitespace"
+#define IswNvertSpace "vertSpace"
+#define IswNmenuName "menuName"
+#define IswNunderline "underline"
 
 #ifdef ISW_INTERNATIONALIZATION
-#ifndef XtNfontSet
-#define XtNfontSet		"fontSet"
+#ifndef IswNfontSet
+#define IswNfontSet		"fontSet"
 #endif
-#ifndef XtCFontSet
-#define XtCFontSet		"FontSet"
+#ifndef IswCFontSet
+#define IswCFontSet		"FontSet"
 #endif
 #endif
 
-#define XtCLeftImage "LeftImage"
-#define XtCRightImage "RightImage"
-#define XtCHorizontalMargins "HorizontalMargins"
-#define XtCVertSpace "VertSpace"
-#define XtCMenuName "MenuName"
-#define XtCUnderline "Underline"
+#define IswCLeftImage "LeftImage"
+#define IswCRightImage "RightImage"
+#define IswCHorizontalMargins "HorizontalMargins"
+#define IswCVertSpace "VertSpace"
+#define IswCMenuName "MenuName"
+#define IswCUnderline "Underline"
 
 #endif /* _ISW_SmeBSB_h */

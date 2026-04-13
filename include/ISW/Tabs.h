@@ -9,17 +9,17 @@
 #ifndef _ISW_IswTabs_h
 #define _ISW_IswTabs_h
 
-#include <X11/Constraint.h>
+#include <ISW/Constraint.h>
 
 /* Widget resources */
-#define XtNtabCallback    "tabCallback"
-#define XtNtopWidget      "topWidget"
+#define IswNtabCallback    "tabCallback"
+#define IswNtopWidget      "topWidget"
 
-#define XtCTopWidget      "TopWidget"
+#define IswCTopWidget      "TopWidget"
 
 /* Constraint resources (per-child) */
-#define XtNtabLabel       "tabLabel"
-#define XtCTabLabel       "TabLabel"
+#define IswNtabLabel       "tabLabel"
+#define IswCTabLabel       "TabLabel"
 
 /* Class record constant */
 extern WidgetClass tabsWidgetClass;

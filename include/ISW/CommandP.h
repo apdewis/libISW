@@ -70,7 +70,7 @@ typedef enum {
 				   functionality. */
   HighlightAlways		/* Always highlight, lets the toggle widget
 				   and other subclasses do the right thing. */
-} XtCommandHighlight;
+} IswCommandHighlight;
 
 /************************************
  *
@@ -105,19 +105,19 @@ extern CommandClassRec commandClassRec;
 typedef struct {
     /* resources */
     Dimension   border_stroke_width;
-    XtCallbackList callbacks;
+    IswCallbackList callbacks;
 
     /* private state */
     xcb_pixmap_t      	gray_pixmap;
     Boolean     	set;
-    XtCommandHighlight	highlighted;
+    IswCommandHighlight	highlighted;
     /* more resources */
     int			shape_style;
     Dimension		corner_radius;
 } CommandPart;
 
 
-/*    XtEventsPtr eventTable;*/
+/*    IswEventsPtr eventTable;*/
 
 
    /* Full widget declaration */

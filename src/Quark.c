@@ -44,7 +44,7 @@
  */
 typedef struct _QuarkEntry {
     const char  *string;        /* The interned string (key) */
-    XtQuark     quark;          /* The quark value */
+    IswQuark     quark;          /* The quark value */
     int         is_permanent;   /* If true, string is not owned by us */
     UT_hash_handle hh;          /* uthash handle */
 } QuarkEntry;
@@ -55,18 +55,18 @@ typedef struct _QuarkEntry {
 static QuarkEntry   *quark_table = NULL;    /* hash table: string -> quark */
 static const char   **quark_strings = NULL; /* array: quark -> string */
 static int          *quark_permanent = NULL;/* array: quark -> is_permanent flag */
-static XtQuark      next_quark = 1;         /* next quark to assign (0 = NULLQUARK) */
+static IswQuark      next_quark = 1;         /* next quark to assign (0 = NULLQUARK) */
 static int          quark_table_size = 0;   /* allocated size of quark_strings array */
 
 #define INITIAL_QUARK_TABLE_SIZE 512
 #define QUARK_TABLE_GROW_FACTOR  2
 
 /*
- * _XtQuarkGrow - Grow the quark-to-string reverse mapping array.
+ * _IswQuarkGrow - Grow the quark-to-string reverse mapping array.
  * Must be called with LOCK_PROCESS held.
  */
 static void
-_XtQuarkGrow(void)
+_IswQuarkGrow(void)
 {
     int new_size;
 
@@ -81,8 +81,8 @@ _XtQuarkGrow(void)
 
     if (quark_strings == NULL || quark_permanent == NULL) {
         /* Fatal allocation failure */
-        _XtAllocError("quark table");
-        return; /* not reached if _XtAllocError exits */
+        _IswAllocError("quark table");
+        return; /* not reached if _IswAllocError exits */
     }
 
     /* Initialize new entries */
@@ -95,19 +95,19 @@ _XtQuarkGrow(void)
 }
 
 /*
- * _XtInternString - Core interning function.
+ * _IswInternString - Core interning function.
  * If permanent is true, the string pointer is stored directly.
  * If permanent is false, a copy is made via strdup().
  * Must be called with LOCK_PROCESS held.
  */
-static XtQuark
-_XtInternString(const char *string, int permanent)
+static IswQuark
+_IswInternString(const char *string, int permanent)
 {
     QuarkEntry *entry;
-    XtQuark quark;
+    IswQuark quark;
 
     if (string == NULL)
-        return XT_NULLQUARK;
+        return ISW_NULLQUARK;
 
     /* Look up existing entry */
     HASH_FIND_STR(quark_table, string, entry);
@@ -116,7 +116,7 @@ _XtInternString(const char *string, int permanent)
 
     /* Grow reverse mapping array if needed */
     if (next_quark >= quark_table_size)
-        _XtQuarkGrow();
+        _IswQuarkGrow();
 
     /* Assign new quark */
     quark = next_quark++;
@@ -124,8 +124,8 @@ _XtInternString(const char *string, int permanent)
     /* Create hash table entry */
     entry = malloc(sizeof(QuarkEntry));
     if (entry == NULL) {
-        _XtAllocError("quark entry");
-        return XT_NULLQUARK; /* not reached */
+        _IswAllocError("quark entry");
+        return ISW_NULLQUARK; /* not reached */
     }
 
     if (permanent) {
@@ -135,8 +135,8 @@ _XtInternString(const char *string, int permanent)
         entry->string = strdup(string);
         if (entry->string == NULL) {
             free(entry);
-            _XtAllocError("quark string");
-            return XT_NULLQUARK; /* not reached */
+            _IswAllocError("quark string");
+            return ISW_NULLQUARK; /* not reached */
         }
         entry->is_permanent = 0;
     }
@@ -153,57 +153,57 @@ _XtInternString(const char *string, int permanent)
 }
 
 /*
- * XtStringToQuark - Intern a string, making a copy.
+ * IswStringToQuark - Intern a string, making a copy.
  *
  * The string is copied internally; the caller may free the original
  * after this call returns. If the string was previously interned
- * (by either XtStringToQuark or XtPermStringToQuark), the existing
+ * (by either IswStringToQuark or IswPermStringToQuark), the existing
  * quark is returned without making a new copy.
  */
-XtQuark
-XtStringToQuark(const char *string)
+IswQuark
+IswStringToQuark(const char *string)
 {
-    XtQuark result;
+    IswQuark result;
 
     LOCK_PROCESS;
-    result = _XtInternString(string, 0);
+    result = _IswInternString(string, 0);
     UNLOCK_PROCESS;
 
     return result;
 }
 
 /*
- * XtPermStringToQuark - Intern a permanent string without copying.
+ * IswPermStringToQuark - Intern a permanent string without copying.
  *
  * The caller guarantees the string will remain valid for the lifetime
  * of the program (e.g., string literals). This avoids an internal copy.
  * If the string was previously interned, the existing quark is returned.
  */
-XtQuark
-XtPermStringToQuark(const char *string)
+IswQuark
+IswPermStringToQuark(const char *string)
 {
-    XtQuark result;
+    IswQuark result;
 
     LOCK_PROCESS;
-    result = _XtInternString(string, 1);
+    result = _IswInternString(string, 1);
     UNLOCK_PROCESS;
 
     return result;
 }
 
 /*
- * XtQuarkToString - Look up the string for a quark.
+ * IswQuarkToString - Look up the string for a quark.
  *
  * Returns the interned string, or NULL if the quark is invalid
  * (out of range or NULLQUARK). The returned string must not be
  * freed or modified by the caller.
  */
 const char *
-XtQuarkToString(XtQuark quark)
+IswQuarkToString(IswQuark quark)
 {
     const char *result;
 
-    if (quark == XT_NULLQUARK)
+    if (quark == ISW_NULLQUARK)
         return NULL;
 
     LOCK_PROCESS;
@@ -224,54 +224,54 @@ XtQuarkToString(XtQuark quark)
  */
 
 #undef XrmStringToQuark
-XtQuark
+IswQuark
 XrmStringToQuark(const char *string)
 {
-    return XtStringToQuark(string);
+    return IswStringToQuark(string);
 }
 
 #undef XrmPermStringToQuark
-XtQuark
+IswQuark
 XrmPermStringToQuark(const char *string)
 {
-    return XtPermStringToQuark(string);
+    return IswPermStringToQuark(string);
 }
 
 #undef XrmQuarkToString
 const char *
-XrmQuarkToString(XtQuark quark)
+XrmQuarkToString(IswQuark quark)
 {
-    return XtQuarkToString(quark);
+    return IswQuarkToString(quark);
 }
 
 #undef XrmStringToBindingQuarkList
 void
 XrmStringToBindingQuarkList(const char *name,
-                            XtBindingType *bindings_return,
-                            XtQuark *quarks_return)
+                            IswBindingType *bindings_return,
+                            IswQuark *quarks_return)
 {
-    XtStringToBindingQuarkList(name, bindings_return, quarks_return);
+    IswStringToBindingQuarkList(name, bindings_return, quarks_return);
 }
 
 /*
- * XtStringToBindingQuarkList - Parse a resource path string.
+ * IswStringToBindingQuarkList - Parse a resource path string.
  *
  * Parses a string like "name.name*name" into parallel arrays of
- * bindings and quarks. The '.' separator produces XtBindTightly,
- * the '*' separator produces XtBindLoosely.
+ * bindings and quarks. The '.' separator produces IswBindTightly,
+ * the '*' separator produces IswBindLoosely.
  *
  * The first binding in the output corresponds to the binding
- * *before* the first component (conventionally XtBindTightly).
+ * *before* the first component (conventionally IswBindTightly).
  *
- * The quarks array is terminated with XT_NULLQUARK.
+ * The quarks array is terminated with ISW_NULLQUARK.
  *
  * Both arrays must be pre-allocated by the caller with enough
  * space for all components.
  */
 void
-XtStringToBindingQuarkList(const char *name,
-                           XtBindingType *bindings_return,
-                           XtQuark *quarks_return)
+IswStringToBindingQuarkList(const char *name,
+                           IswBindingType *bindings_return,
+                           IswQuark *quarks_return)
 {
     const char *p;
     const char *start;
@@ -279,7 +279,7 @@ XtStringToBindingQuarkList(const char *name,
     char buf[256];
 
     if (name == NULL || *name == '\0') {
-        quarks_return[0] = XT_NULLQUARK;
+        quarks_return[0] = ISW_NULLQUARK;
         return;
     }
 
@@ -287,10 +287,10 @@ XtStringToBindingQuarkList(const char *name,
 
     /* Handle leading binding character */
     if (*p == '.' || *p == '*') {
-        bindings_return[0] = (*p == '*') ? XtBindLoosely : XtBindTightly;
+        bindings_return[0] = (*p == '*') ? IswBindLoosely : IswBindTightly;
         p++;
     } else {
-        bindings_return[0] = XtBindTightly;
+        bindings_return[0] = IswBindTightly;
     }
 
     while (*p != '\0') {
@@ -313,14 +313,14 @@ XtStringToBindingQuarkList(const char *name,
             } else {
                 component = malloc(len + 1);
                 if (component == NULL) {
-                    quarks_return[idx] = XT_NULLQUARK;
+                    quarks_return[idx] = ISW_NULLQUARK;
                     return;
                 }
                 memcpy(component, start, len);
                 component[len] = '\0';
             }
 
-            quarks_return[idx] = XtStringToQuark(component);
+            quarks_return[idx] = IswStringToQuark(component);
 
             if (component != buf)
                 free(component);
@@ -330,10 +330,10 @@ XtStringToBindingQuarkList(const char *name,
 
         /* Process separator */
         if (*p == '.' || *p == '*') {
-            bindings_return[idx] = (*p == '*') ? XtBindLoosely : XtBindTightly;
+            bindings_return[idx] = (*p == '*') ? IswBindLoosely : IswBindTightly;
             p++;
         }
     }
 
-    quarks_return[idx] = XT_NULLQUARK;
+    quarks_return[idx] = ISW_NULLQUARK;
 }

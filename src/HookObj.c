@@ -36,26 +36,26 @@ in this Software without prior written authorization from The Open Group.
  ******************************************************************/
 
 /* *INDENT-OFF* */
-static XtResource resources[] = {
-  { XtNcreateHook, XtCCallback, XtRCallback, sizeof(XtPointer),
-    XtOffsetOf(HookObjRec, hooks.createhook_callbacks),
-    XtRCallback, (XtPointer)NULL},
-  { XtNchangeHook, XtCCallback, XtRCallback, sizeof(XtPointer),
-    XtOffsetOf(HookObjRec, hooks.changehook_callbacks),
-    XtRCallback, (XtPointer)NULL},
-  { XtNconfigureHook, XtCCallback, XtRCallback, sizeof(XtPointer),
-    XtOffsetOf(HookObjRec, hooks.confighook_callbacks),
-    XtRCallback, (XtPointer)NULL},
-  { XtNgeometryHook, XtCCallback, XtRCallback, sizeof(XtPointer),
-    XtOffsetOf(HookObjRec, hooks.geometryhook_callbacks),
-    XtRCallback, (XtPointer)NULL},
-  { XtNdestroyHook, XtCCallback, XtRCallback, sizeof(XtPointer),
-    XtOffsetOf(HookObjRec, hooks.destroyhook_callbacks),
-    XtRCallback, (XtPointer)NULL},
-  { XtNshells, XtCReadOnly, XtRWidgetList, sizeof(WidgetList),
-    XtOffsetOf(HookObjRec, hooks.shells), XtRImmediate, (XtPointer) NULL },
-  { XtNnumShells, XtCReadOnly, XtRCardinal, sizeof(Cardinal),
-    XtOffsetOf(HookObjRec, hooks.num_shells), XtRImmediate, (XtPointer) 0 }
+static IswResource resources[] = {
+  { IswNcreateHook, IswCCallback, IswRCallback, sizeof(IswPointer),
+    IswOffsetOf(HookObjRec, hooks.createhook_callbacks),
+    IswRCallback, (IswPointer)NULL},
+  { IswNchangeHook, IswCCallback, IswRCallback, sizeof(IswPointer),
+    IswOffsetOf(HookObjRec, hooks.changehook_callbacks),
+    IswRCallback, (IswPointer)NULL},
+  { IswNconfigureHook, IswCCallback, IswRCallback, sizeof(IswPointer),
+    IswOffsetOf(HookObjRec, hooks.confighook_callbacks),
+    IswRCallback, (IswPointer)NULL},
+  { IswNgeometryHook, IswCCallback, IswRCallback, sizeof(IswPointer),
+    IswOffsetOf(HookObjRec, hooks.geometryhook_callbacks),
+    IswRCallback, (IswPointer)NULL},
+  { IswNdestroyHook, IswCCallback, IswRCallback, sizeof(IswPointer),
+    IswOffsetOf(HookObjRec, hooks.destroyhook_callbacks),
+    IswRCallback, (IswPointer)NULL},
+  { IswNshells, IswCReadOnly, IswRWidgetList, sizeof(WidgetList),
+    IswOffsetOf(HookObjRec, hooks.shells), IswRImmediate, (IswPointer) NULL },
+  { IswNnumShells, IswCReadOnly, IswRCardinal, sizeof(Cardinal),
+    IswOffsetOf(HookObjRec, hooks.num_shells), IswRImmediate, (IswPointer) 0 }
 };
 /* *INDENT-ON* */
 
@@ -78,7 +78,7 @@ externaldef(hookobjclassrec) HookObjClassRec hookObjClassRec = {
     /* actions                 */ NULL,
     /* num_actions             */ 0,
     /* resources               */ resources,
-    /* num_resources           */ XtNumber(resources),
+    /* num_resources           */ IswNumber(resources),
     /* xrm_class               */ NULLQUARK,
     /* compress_motion         */ FALSE,
     /* compress_exposure       */ TRUE,
@@ -92,7 +92,7 @@ externaldef(hookobjclassrec) HookObjClassRec hookObjClassRec = {
     /* set_values_almost       */ NULL,
     /* get_values_hook         */ GetValuesHook,
     /* accept_focus            */ NULL,
-    /* version                 */ XtVersion,
+    /* version                 */ IswVersion,
     /* callback_offsets        */ NULL,
     /* tm_table                */ NULL,
     /* query_geometry          */ NULL,
@@ -110,13 +110,13 @@ WidgetClass hookObjectClass = (WidgetClass) &hookObjClassRec;
 
 static void
 FreeShellList(Widget w,
-              XtPointer closure _X_UNUSED,
-              XtPointer call_data _X_UNUSED)
+              IswPointer closure _X_UNUSED,
+              IswPointer call_data _X_UNUSED)
 {
     HookObject h = (HookObject) w;
 
     if (h->hooks.shells != NULL)
-        XtFree((char *) h->hooks.shells);
+        IswFree((char *) h->hooks.shells);
 }
 
 static void
@@ -128,7 +128,7 @@ Initialize(Widget req _X_UNUSED,
     HookObject w = (HookObject) new;
 
     w->hooks.max_shells = 0;
-    XtAddCallback(new, XtNdestroyCallback, FreeShellList, (XtPointer) NULL);
+    IswAddCallback(new, IswNdestroyCallback, FreeShellList, (IswPointer) NULL);
 }
 
 static void
@@ -136,5 +136,5 @@ GetValuesHook(Widget widget _X_UNUSED,
               ArgList args _X_UNUSED,
               Cardinal *num_args _X_UNUSED)
 {
-    /* get the XtNshells and XtNnumShells pseudo-resources */
+    /* get the IswNshells and IswNnumShells pseudo-resources */
 }

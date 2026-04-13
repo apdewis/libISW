@@ -53,11 +53,11 @@ SOFTWARE.
 
 #include <ISW/Form.h>
 
-#define XtREdgeType "EdgeType"
+#define IswREdgeType "EdgeType"
 
 typedef enum {LayoutPending, LayoutInProgress, LayoutDone} LayoutState;
-#define XtInheritLayout \
-((Boolean (*)(FormWidget, Dimension, Dimension, Boolean))_XtInherit)
+#define IswInheritLayout \
+((Boolean (*)(FormWidget, Dimension, Dimension, Boolean))_IswInherit)
 
 typedef struct {
     Boolean	(*layout)(FormWidget, Dimension, Dimension, Boolean);
@@ -107,7 +107,7 @@ typedef struct _FormConstraintsPart {
 /*
  * Constraint Resources.
  */
-    XtEdgeType	top, bottom,	/* where to drag edge on resize		*/
+    IswEdgeType	top, bottom,	/* where to drag edge on resize		*/
 		left, right;
     int		dx;		/* desired horiz offset			*/
     int		dy;		/* desired vertical offset		*/

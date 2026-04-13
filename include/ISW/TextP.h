@@ -52,7 +52,7 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <ISW/Text.h>
 #include <ISW/SimpleP.h>
-#include <ISW/ISWRender.h>  /* for XtRelief type */
+#include <ISW/ISWRender.h>  /* for IswRelief type */
 
 /****************************************************************
  *
@@ -66,7 +66,7 @@ SOFTWARE.
 
 #define zeroPosition ((ISWTextPosition) 0)
 
-extern XtActionsRec _IswTextActionsTable[];
+extern IswActionsRec _IswTextActionsTable[];
 extern Cardinal _IswTextActionsTableCount;
 
 #define IswLF	0x0a
@@ -184,7 +184,7 @@ typedef struct _TextPart {
     IswTextWrapMode     wrap;            /* The type of wrapping. */
     IswTextResizeMode   resize;	             /* what to resize */
     IswTextMargin       r_margin;            /* The real margins. */
-    XtCallbackList	unrealize_callbacks; /* used for scrollbars */
+    IswCallbackList	unrealize_callbacks; /* used for scrollbars */
 
     /* private state */
 
@@ -223,9 +223,9 @@ typedef struct _TextPart {
  *
  *************************************************************/
 
-#define XtRScrollMode "ScrollMode"
-#define XtRWrapMode "WrapMode"
-#define XtRResizeMode "ResizeMode"
+#define IswRScrollMode "ScrollMode"
+#define IswRWrapMode "WrapMode"
+#define IswRResizeMode "ResizeMode"
 
 /****************************************************************
  *
@@ -249,7 +249,7 @@ typedef struct _TextRec {
 extern void _IswTextBuildLineTable (
     TextWidget /*ctx*/,
     ISWTextPosition /*top pos*/,
-    _XtBoolean /* force_rebuild */
+    _IswBoolean /* force_rebuild */
 );
 
 extern char* _IswTextGetSTRING(

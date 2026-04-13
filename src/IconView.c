@@ -10,8 +10,8 @@
 #endif
 
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWSVG.h>
@@ -27,37 +27,37 @@
 
 #define LABEL_MARGIN 2
 
-#define Offset(field) XtOffsetOf(IconViewRec, field)
+#define Offset(field) IswOffsetOf(IconViewRec, field)
 
-static XtResource resources[] = {
-    {XtNiconLabels, XtCIconLabels, XtRPointer, sizeof(String *),
-        Offset(iconView.labels), XtRImmediate, NULL},
-    {XtNiconData, XtCIconData, XtRPointer, sizeof(String *),
-        Offset(iconView.icon_data), XtRImmediate, NULL},
-    {XtNnumIcons, XtCNumIcons, XtRInt, sizeof(int),
-        Offset(iconView.nitems), XtRImmediate, (XtPointer) 0},
-    {XtNiconSize, XtCIconSize, XtRDimension, sizeof(Dimension),
-        Offset(iconView.icon_size), XtRImmediate, (XtPointer) 48},
-    {XtNitemSpacing, XtCItemSpacing, XtRDimension, sizeof(Dimension),
-        Offset(iconView.item_spacing), XtRImmediate, (XtPointer) 8},
-    {XtNlabelLines, XtCLabelLines, XtRInt, sizeof(int),
-        Offset(iconView.label_lines), XtRImmediate, (XtPointer) 1},
-    {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-        Offset(iconView.foreground), XtRString, XtDefaultForeground},
-    {XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct *),
-        Offset(iconView.font), XtRString, XtDefaultFont},
+static IswResource resources[] = {
+    {IswNiconLabels, IswCIconLabels, IswRPointer, sizeof(String *),
+        Offset(iconView.labels), IswRImmediate, NULL},
+    {IswNiconData, IswCIconData, IswRPointer, sizeof(String *),
+        Offset(iconView.icon_data), IswRImmediate, NULL},
+    {IswNnumIcons, IswCNumIcons, IswRInt, sizeof(int),
+        Offset(iconView.nitems), IswRImmediate, (IswPointer) 0},
+    {IswNiconSize, IswCIconSize, IswRDimension, sizeof(Dimension),
+        Offset(iconView.icon_size), IswRImmediate, (IswPointer) 48},
+    {IswNitemSpacing, IswCItemSpacing, IswRDimension, sizeof(Dimension),
+        Offset(iconView.item_spacing), IswRImmediate, (IswPointer) 8},
+    {IswNlabelLines, IswCLabelLines, IswRInt, sizeof(int),
+        Offset(iconView.label_lines), IswRImmediate, (IswPointer) 1},
+    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+        Offset(iconView.foreground), IswRString, IswDefaultForeground},
+    {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+        Offset(iconView.font), IswRString, IswDefaultFont},
 #ifdef ISW_INTERNATIONALIZATION
-    {XtNfontSet, XtCFontSet, XtRFontSet, sizeof(ISWFontSet *),
-        Offset(iconView.fontset), XtRString, XtDefaultFontSet},
+    {IswNfontSet, IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
+        Offset(iconView.fontset), IswRString, IswDefaultFontSet},
 #endif
-    {XtNselectCallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-        Offset(iconView.select_callback), XtRCallback, NULL},
-    {XtNmultiSelect, XtCMultiSelect, XtRBoolean, sizeof(Boolean),
-        Offset(iconView.multi_select), XtRImmediate, (XtPointer) False},
-    {XtNcursorItem, XtCCursorItem, XtRInt, sizeof(int),
-        Offset(iconView.cursor), XtRImmediate, (XtPointer) -1},
-    {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-        Offset(core.border_width), XtRImmediate, (XtPointer) 0},
+    {IswNselectCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+        Offset(iconView.select_callback), IswRCallback, NULL},
+    {IswNmultiSelect, IswCMultiSelect, IswRBoolean, sizeof(Boolean),
+        Offset(iconView.multi_select), IswRImmediate, (IswPointer) False},
+    {IswNcursorItem, IswCCursorItem, IswRInt, sizeof(int),
+        Offset(iconView.cursor), IswRImmediate, (IswPointer) -1},
+    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+        Offset(core.border_width), IswRImmediate, (IswPointer) 0},
 };
 
 #undef Offset
@@ -66,7 +66,7 @@ static XtResource resources[] = {
 static int CountLabelLines(ISWRenderContext *, const char *, int);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -103,7 +103,7 @@ static char defaultTranslations[] =
     "<FocusIn>: HandleFocus(in)\n"
     "<FocusOut>: HandleFocus(out)";
 
-static XtActionsRec actions[] = {
+static IswActionsRec actions[] = {
     {"SelectItem",      SelectItem},
     {"BandDrag",        BandDrag},
     {"BandFinish",      BandFinish},
@@ -127,9 +127,9 @@ IconViewClassRec iconViewClassRec = {
     NULL,
     Realize,
     actions,
-    XtNumber(actions),
+    IswNumber(actions),
     resources,
-    XtNumber(resources),
+    IswNumber(resources),
     NULLQUARK,
     TRUE,
     TRUE,
@@ -140,18 +140,18 @@ IconViewClassRec iconViewClassRec = {
     Redisplay,
     SetValues,
     NULL,
-    XtInheritSetValuesAlmost,
+    IswInheritSetValuesAlmost,
     NULL,
     NULL,
-    XtVersion,
+    IswVersion,
     NULL,
     defaultTranslations,
-    XtInheritQueryGeometry,
-    XtInheritDisplayAccelerator,
+    IswInheritQueryGeometry,
+    IswInheritDisplayAccelerator,
     NULL
   },
   { /* simple */
-    XtInheritChangeSensitive
+    IswInheritChangeSensitive
   },
   { /* iconView */
     0
@@ -266,10 +266,10 @@ ComputeLayout(IconViewWidget iw)
 
     if (pref_h != iw->core.height) {
         Dimension actual_w, actual_h;
-        XtGeometryResult r = XtMakeResizeRequest(w, iw->core.width, pref_h,
+        IswGeometryResult r = IswMakeResizeRequest(w, iw->core.width, pref_h,
                                                   &actual_w, &actual_h);
-        if (r == XtGeometryAlmost)
-            XtMakeResizeRequest(w, actual_w, actual_h, NULL, NULL);
+        if (r == IswGeometryAlmost)
+            IswMakeResizeRequest(w, actual_w, actual_h, NULL, NULL);
     }
 }
 
@@ -346,7 +346,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     IconViewWidget iw = (IconViewWidget) w;
 
@@ -361,7 +361,7 @@ Destroy(Widget w)
 {
     IconViewWidget iw = (IconViewWidget) w;
     if (iw->iconView.work_proc_id)
-        XtRemoveWorkProc(iw->iconView.work_proc_id);
+        IswRemoveWorkProc(iw->iconView.work_proc_id);
     FreeCache(iw);
     if (iw->iconView.sel_flags)
         free(iw->iconView.sel_flags);
@@ -378,7 +378,7 @@ Resize(Widget w)
 {
     IconViewWidget iw = (IconViewWidget) w;
     ComputeLayout(iw);
-    if (XtIsRealized(w))
+    if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
 }
 
@@ -527,7 +527,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     ISWRenderContext *ctx = iw->iconView.render_ctx;
     (void)event; (void)region;
 
-    if (!ctx || !XtIsRealized(w))
+    if (!ctx || !IswIsRealized(w))
         return;
 
     Dimension icon_sz = (iw->iconView.icon_size);
@@ -695,7 +695,7 @@ FireCallback(IconViewWidget iw, int clicked)
 
     /* Build array of selected indices */
     if (iw->iconView.sel_flags) {
-        indices = (int *)XtMalloc((Cardinal)iw->iconView.nitems * sizeof(int));
+        indices = (int *)IswMalloc((Cardinal)iw->iconView.nitems * sizeof(int));
         for (int i = 0; i < iw->iconView.nitems; i++) {
             if (iw->iconView.sel_flags[i])
                 indices[count++] = i;
@@ -709,10 +709,10 @@ FireCallback(IconViewWidget iw, int clicked)
                ? iw->iconView.labels[clicked] : NULL;
     cb.selected = indices;
     cb.num_selected = count;
-    XtCallCallbacks(w, XtNselectCallback, (XtPointer)&cb);
+    IswCallCallbacks(w, IswNselectCallback, (IswPointer)&cb);
 
     if (indices)
-        XtFree((char *)indices);
+        IswFree((char *)indices);
 }
 
 static int
@@ -787,7 +787,7 @@ SelectItem(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
 
     if (index < 0) {
         /* Click on empty space — start rubber band if multi-select */
-        if (iw->iconView.multi_select && XtIsRealized(w)) {
+        if (iw->iconView.multi_select && IswIsRealized(w)) {
             if (!toggle)
                 ClearSelection(iw);
             /* Save current selection for additive (Ctrl) mode */
@@ -895,7 +895,7 @@ BandUpdateSelection(IconViewWidget iw)
 }
 
 static Boolean
-BandRedrawWorkProc(XtPointer closure)
+BandRedrawWorkProc(IswPointer closure)
 {
     Widget w = (Widget) closure;
     IconViewWidget iw = (IconViewWidget) w;
@@ -941,8 +941,8 @@ BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
      * arriving in the same event-loop pass produce only one repaint */
     iw->iconView.redraw_pending = True;
     if (!iw->iconView.work_proc_id) {
-        iw->iconView.work_proc_id = XtAppAddWorkProc(
-            XtWidgetToApplicationContext(w), BandRedrawWorkProc, (XtPointer)w);
+        iw->iconView.work_proc_id = IswAppAddWorkProc(
+            IswWidgetToApplicationContext(w), BandRedrawWorkProc, (IswPointer)w);
     }
 }
 
@@ -973,7 +973,7 @@ BandFinish(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
 
     /* Cancel any pending coalesced redraw */
     if (iw->iconView.work_proc_id) {
-        XtRemoveWorkProc(iw->iconView.work_proc_id);
+        IswRemoveWorkProc(iw->iconView.work_proc_id);
         iw->iconView.work_proc_id = 0;
     }
     iw->iconView.redraw_pending = False;
@@ -1016,10 +1016,10 @@ static void
 ScrollToCursor(IconViewWidget iw)
 {
     Widget w = (Widget)iw;
-    Widget parent = XtParent(w);
+    Widget parent = IswParent(w);
     int cur = iw->iconView.cursor;
 
-    if (cur < 0 || !parent || !XtIsRealized(w))
+    if (cur < 0 || !parent || !IswIsRealized(w))
         return;
 
     /* Check if parent is a Viewport by seeing if it has a clip child.
@@ -1174,7 +1174,7 @@ HandleFocus(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_
         iw->iconView.has_focus = False;
     }
 
-    if (XtIsRealized(w))
+    if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
 }
 
@@ -1184,10 +1184,10 @@ void
 IswIconViewSetItems(Widget w, String *labels, String *icon_data, int nitems)
 {
     Arg args[3];
-    XtSetArg(args[0], XtNiconLabels, labels);
-    XtSetArg(args[1], XtNiconData, icon_data);
-    XtSetArg(args[2], XtNnumIcons, nitems);
-    XtSetValues(w, args, 3);
+    IswSetArg(args[0], IswNiconLabels, labels);
+    IswSetArg(args[1], IswNiconData, icon_data);
+    IswSetArg(args[2], IswNnumIcons, nitems);
+    IswSetValues(w, args, 3);
 }
 
 int
@@ -1215,14 +1215,14 @@ IswIconViewGetSelectedItems(Widget w, int **indices_out)
         return 0;
     }
 
-    int *buf = (int *)XtMalloc((Cardinal)iw->iconView.nitems * sizeof(int));
+    int *buf = (int *)IswMalloc((Cardinal)iw->iconView.nitems * sizeof(int));
     for (int i = 0; i < iw->iconView.nitems; i++) {
         if (iw->iconView.sel_flags[i])
             buf[count++] = i;
     }
 
     if (count == 0) {
-        XtFree((char *)buf);
+        IswFree((char *)buf);
         *indices_out = NULL;
         return 0;
     }

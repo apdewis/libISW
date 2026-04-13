@@ -50,8 +50,8 @@ SOFTWARE.
 #include "config.h"
 
 #endif
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 
 #include <ISW/ISWInit.h>
 #include <ISW/Scrollbar.h>
@@ -64,38 +64,38 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include "ISWXcbDraw.h"
 
-static void ScrollUpDownProc(Widget, XtPointer, XtPointer);
-static void ThumbProc(Widget, XtPointer, XtPointer);
-static void ScrollWheelSink(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
+static void ScrollUpDownProc(Widget, IswPointer, IswPointer);
+static void ThumbProc(Widget, IswPointer, IswPointer);
+static void ScrollWheelSink(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
 static Boolean GetGeometry(Widget, Dimension, Dimension);
-static void ComputeWithForceBars(Widget, Boolean, XtWidgetGeometry *, int *, int *);
+static void ComputeWithForceBars(Widget, Boolean, IswWidgetGeometry *, int *, int *);
 
-#define offset(field) XtOffsetOf(ViewportRec, viewport.field)
-static XtResource resources[] = {
-    {XtNforceBars, XtCBoolean, XtRBoolean, sizeof(Boolean),
-	 offset(forcebars), XtRImmediate, (XtPointer)False},
-    {XtNallowHoriz, XtCBoolean, XtRBoolean, sizeof(Boolean),
-	 offset(allowhoriz), XtRImmediate, (XtPointer)False},
-    {XtNallowVert, XtCBoolean, XtRBoolean, sizeof(Boolean),
-	 offset(allowvert), XtRImmediate, (XtPointer)False},
-    {XtNuseBottom, XtCBoolean, XtRBoolean, sizeof(Boolean),
-	 offset(usebottom), XtRImmediate, (XtPointer)False},
-    {XtNuseRight, XtCBoolean, XtRBoolean, sizeof(Boolean),
-	 offset(useright), XtRImmediate, (XtPointer)False},
-    {XtNreportCallback, XtCReportCallback, XtRCallback, sizeof(XtPointer),
-	 offset(report_callbacks), XtRImmediate, (XtPointer) NULL},
+#define offset(field) IswOffsetOf(ViewportRec, viewport.field)
+static IswResource resources[] = {
+    {IswNforceBars, IswCBoolean, IswRBoolean, sizeof(Boolean),
+	 offset(forcebars), IswRImmediate, (IswPointer)False},
+    {IswNallowHoriz, IswCBoolean, IswRBoolean, sizeof(Boolean),
+	 offset(allowhoriz), IswRImmediate, (IswPointer)False},
+    {IswNallowVert, IswCBoolean, IswRBoolean, sizeof(Boolean),
+	 offset(allowvert), IswRImmediate, (IswPointer)False},
+    {IswNuseBottom, IswCBoolean, IswRBoolean, sizeof(Boolean),
+	 offset(usebottom), IswRImmediate, (IswPointer)False},
+    {IswNuseRight, IswCBoolean, IswRBoolean, sizeof(Boolean),
+	 offset(useright), IswRImmediate, (IswPointer)False},
+    {IswNreportCallback, IswCReportCallback, IswRCallback, sizeof(IswPointer),
+	 offset(report_callbacks), IswRImmediate, (IswPointer) NULL},
 };
 #undef offset
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void ChangeManaged(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean Layout(FormWidget, Dimension, Dimension, Boolean);
-static XtGeometryResult GeometryManager(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
-static XtGeometryResult PreferredGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
+static IswGeometryResult PreferredGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 #define superclass	(&formClassRec)
 ViewportClassRec viewportClassRec = {
@@ -112,7 +112,7 @@ ViewportClassRec viewportClassRec = {
     /* actions		  */	NULL,
     /* num_actions	  */	0,
     /* resources	  */	resources,
-    /* num_resources	  */	XtNumber(resources),
+    /* num_resources	  */	IswNumber(resources),
     /* xrm_class	  */	NULLQUARK,
     /* compress_motion	  */	TRUE,
     /* compress_exposure  */	TRUE,
@@ -120,24 +120,24 @@ ViewportClassRec viewportClassRec = {
     /* visible_interest	  */	FALSE,
     /* destroy		  */	NULL,
     /* resize		  */	Resize,
-    /* expose		  */	XtInheritExpose,
+    /* expose		  */	IswInheritExpose,
     /* set_values	  */	SetValues,
     /* set_values_hook    */    NULL,
-    /* set_values_almost  */    XtInheritSetValuesAlmost,
+    /* set_values_almost  */    IswInheritSetValuesAlmost,
     /* get_values_hook    */	NULL,
     /* accept_focus	  */	NULL,
-    /* version            */    XtVersion,
+    /* version            */    IswVersion,
     /* callback_private	  */	NULL,
     /* tm_table    	  */	NULL,
     /* query_geometry     */    PreferredGeometry,
-    /* display_accelerator*/	XtInheritDisplayAccelerator,
+    /* display_accelerator*/	IswInheritDisplayAccelerator,
     /* extension          */	NULL
   },
   { /* composite_class fields */
     /* geometry_manager	  */	GeometryManager,
     /* change_managed	  */	ChangeManaged,
-    /* insert_child	  */	XtInheritInsertChild,
-    /* delete_child	  */	XtInheritDeleteChild,
+    /* insert_child	  */	IswInheritInsertChild,
+    /* delete_child	  */	IswInheritDeleteChild,
     /* extension          */	NULL
   },
   { /* constraint_class fields */
@@ -167,34 +167,34 @@ CreateScrollbar(ViewportWidget w, Boolean horizontal)
     ViewportConstraints constraints =
 	(ViewportConstraints)clip->core.constraints;
     static Arg barArgs[] = {
-	{XtNorientation,       (XtArgVal) 0},
-	{XtNlength,            (XtArgVal) 0},
-	{XtNleft,              (XtArgVal) 0},
-	{XtNright,             (XtArgVal) 0},
-	{XtNtop,               (XtArgVal) 0},
-	{XtNbottom,            (XtArgVal) 0},
-	{XtNmappedWhenManaged, (XtArgVal) False},
+	{IswNorientation,       (IswArgVal) 0},
+	{IswNlength,            (IswArgVal) 0},
+	{IswNleft,              (IswArgVal) 0},
+	{IswNright,             (IswArgVal) 0},
+	{IswNtop,               (IswArgVal) 0},
+	{IswNbottom,            (IswArgVal) 0},
+	{IswNmappedWhenManaged, (IswArgVal) False},
     };
     Widget bar;
 
-    XtSetArg(barArgs[0], XtNorientation,
+    IswSetArg(barArgs[0], IswNorientation,
        horizontal ? XtorientHorizontal : XtorientVertical );
-    XtSetArg(barArgs[1], XtNlength,
+    IswSetArg(barArgs[1], IswNlength,
 	     horizontal ? clip->core.width : clip->core.height);
-    XtSetArg(barArgs[2], XtNleft,
-	     (!horizontal && w->viewport.useright) ? XtChainRight : XtChainLeft);
-    XtSetArg(barArgs[3], XtNright,
-	     (!horizontal && !w->viewport.useright) ? XtChainLeft : XtChainRight);
-    XtSetArg(barArgs[4], XtNtop,
-	     (horizontal && w->viewport.usebottom) ? XtChainBottom : XtChainTop);
-    XtSetArg(barArgs[5], XtNbottom,
-	     (horizontal && !w->viewport.usebottom) ? XtChainTop : XtChainBottom);
+    IswSetArg(barArgs[2], IswNleft,
+	     (!horizontal && w->viewport.useright) ? IswChainRight : IswChainLeft);
+    IswSetArg(barArgs[3], IswNright,
+	     (!horizontal && !w->viewport.useright) ? IswChainLeft : IswChainRight);
+    IswSetArg(barArgs[4], IswNtop,
+	     (horizontal && w->viewport.usebottom) ? IswChainBottom : IswChainTop);
+    IswSetArg(barArgs[5], IswNbottom,
+	     (horizontal && !w->viewport.usebottom) ? IswChainTop : IswChainBottom);
 
-    bar = XtCreateWidget((horizontal ? "horizontal" : "vertical"),
+    bar = IswCreateWidget((horizontal ? "horizontal" : "vertical"),
 			  scrollbarWidgetClass, (Widget)w,
-			  barArgs, XtNumber(barArgs) );
-    XtAddCallback( bar, XtNscrollProc, ScrollUpDownProc, (XtPointer)w );
-    XtAddCallback( bar, XtNjumpProc, ThumbProc, (XtPointer)w );
+			  barArgs, IswNumber(barArgs) );
+    IswAddCallback( bar, IswNscrollProc, ScrollUpDownProc, (IswPointer)w );
+    IswAddCallback( bar, IswNjumpProc, ThumbProc, (IswPointer)w );
 
     if (horizontal) {
 	w->viewport.horiz_bar = bar;
@@ -205,7 +205,7 @@ CreateScrollbar(ViewportWidget w, Boolean horizontal)
 	constraints->form.horiz_base = bar;
     }
 
-    XtManageChild( bar );
+    IswManageChild( bar );
 
     return bar;
 }
@@ -241,16 +241,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  */
 
     arg_cnt = 0;
-    XtSetArg(clip_args[arg_cnt], XtNbackgroundPixmap, None); arg_cnt++;
-    XtSetArg(clip_args[arg_cnt], XtNborderWidth, 0); arg_cnt++;
-    XtSetArg(clip_args[arg_cnt], XtNleft, XtChainLeft); arg_cnt++;
-    XtSetArg(clip_args[arg_cnt], XtNright, XtChainRight); arg_cnt++;
-    XtSetArg(clip_args[arg_cnt], XtNtop, XtChainTop); arg_cnt++;
-    XtSetArg(clip_args[arg_cnt], XtNbottom, XtChainBottom); arg_cnt++;
-    XtSetArg(clip_args[arg_cnt], XtNwidth, w->core.width - 2 * sw); arg_cnt++;
-    XtSetArg(clip_args[arg_cnt], XtNheight, w->core.height - 2 * sw); arg_cnt++;
+    IswSetArg(clip_args[arg_cnt], IswNbackgroundPixmap, None); arg_cnt++;
+    IswSetArg(clip_args[arg_cnt], IswNborderWidth, 0); arg_cnt++;
+    IswSetArg(clip_args[arg_cnt], IswNleft, IswChainLeft); arg_cnt++;
+    IswSetArg(clip_args[arg_cnt], IswNright, IswChainRight); arg_cnt++;
+    IswSetArg(clip_args[arg_cnt], IswNtop, IswChainTop); arg_cnt++;
+    IswSetArg(clip_args[arg_cnt], IswNbottom, IswChainBottom); arg_cnt++;
+    IswSetArg(clip_args[arg_cnt], IswNwidth, w->core.width - 2 * sw); arg_cnt++;
+    IswSetArg(clip_args[arg_cnt], IswNheight, w->core.height - 2 * sw); arg_cnt++;
 
-    w->viewport.clip = XtCreateManagedWidget("clip", widgetClass, new,
+    w->viewport.clip = IswCreateManagedWidget("clip", widgetClass, new,
 					     clip_args, arg_cnt);
 
     /*
@@ -259,7 +259,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      * to the clip window instead of being discarded by the X server.
      * The actual scroll handling is done by the ScrollWheel event dispatcher.
      */
-    XtAddEventHandler(w->viewport.clip,
+    IswAddEventHandler(w->viewport.clip,
                       XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
                       False, ScrollWheelSink, NULL);
 
@@ -292,9 +292,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         clip_height -= v_bar->core.height + v_bar->core.border_width + pad;
 
     arg_cnt = 0;
-    XtSetArg(clip_args[arg_cnt], XtNwidth, clip_width); arg_cnt++;
-    XtSetArg(clip_args[arg_cnt], XtNheight, clip_height); arg_cnt++;
-    XtSetValues(w->viewport.clip, clip_args, arg_cnt);
+    IswSetArg(clip_args[arg_cnt], IswNwidth, clip_width); arg_cnt++;
+    IswSetArg(clip_args[arg_cnt], IswNheight, clip_height); arg_cnt++;
+    IswSetValues(w->viewport.clip, clip_args, arg_cnt);
 }
 
 /* ARGSUSED */
@@ -305,7 +305,7 @@ ConstraintInitialize(Widget request, Widget new, ArgList args, Cardinal *num_arg
 }
 
 static void
-Realize(xcb_connection_t *conn, Widget widget, XtValueMask *value_mask, uint32_t *values)
+Realize(xcb_connection_t *conn, Widget widget, IswValueMask *value_mask, uint32_t *values)
 {
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
@@ -340,19 +340,19 @@ Realize(xcb_connection_t *conn, Widget widget, XtValueMask *value_mask, uint32_t
     (*w->core.widget_class->core_class.resize)(widget);	/* turn on bars */
 
     if (child != (Widget)NULL) {
-	XtMoveWidget( child, (Position)0, (Position)0 );
-	XtRealizeWidget( clip );
-	XtRealizeWidget( child );
-	/* XtRealizeWidget( threeD ); */
+	IswMoveWidget( child, (Position)0, (Position)0 );
+	IswRealizeWidget( clip );
+	IswRealizeWidget( child );
+	/* IswRealizeWidget( threeD ); */
 	
 	/* Lower threeD window */
 	uint32_t lower_values[] = { XCB_STACK_MODE_BELOW };
-	/* xcb_configure_window(conn, XtWindow(threeD), XCB_CONFIG_WINDOW_STACK_MODE, lower_values);
+	/* xcb_configure_window(conn, IswWindow(threeD), XCB_CONFIG_WINDOW_STACK_MODE, lower_values);
 	
 	/* Reparent child to clip */
-	xcb_reparent_window(conn, XtWindow(child), XtWindow(clip), 0, 0);
+	xcb_reparent_window(conn, IswWindow(child), IswWindow(clip), 0, 0);
 	
-	XtMapWidget( child );
+	IswMapWidget( child );
     }
 }
 
@@ -386,7 +386,7 @@ ChangeManaged(Widget widget)
 
     child = (Widget)NULL;
     for (childP=w->composite.children, i=0; i < num_children; childP++, i++) {
-	if (XtIsManaged(*childP)
+	if (IswIsManaged(*childP)
 	    && *childP != w->viewport.clip
 	    && *childP != w->viewport.horiz_bar
 	    && *childP != w->viewport.vert_bar
@@ -400,36 +400,36 @@ ChangeManaged(Widget widget)
     if (child != w->viewport.child) {
 	w->viewport.child = child;
 	if (child != (Widget)NULL) {
-	    XtResizeWidget( child, child->core.width,
+	    IswResizeWidget( child, child->core.width,
 			    child->core.height, (Dimension)0 );
-	    if (XtIsRealized(widget)) {
+	    if (IswIsRealized(widget)) {
 		ViewportConstraints constraints =
 		    (ViewportConstraints)child->core.constraints;
-		if (!XtIsRealized(child)) {
-		    xcb_window_t window = XtWindow(w);
-		    XtMoveWidget( child, (Position)0, (Position)0 );
+		if (!IswIsRealized(child)) {
+		    xcb_window_t window = IswWindow(w);
+		    IswMoveWidget( child, (Position)0, (Position)0 );
 #ifdef notdef
 		    /* this is dirty, but it saves the following code: */
-		    XtRealizeWidget( child );
-		    xcb_connection_t *conn = XtDisplay(w);
-		    xcb_reparent_window(conn, XtWindow(child),
-				     XtWindow(w->viewport.clip), 0, 0);
+		    IswRealizeWidget( child );
+		    xcb_connection_t *conn = IswDisplay(w);
+		    xcb_reparent_window(conn, IswWindow(child),
+				     IswWindow(w->viewport.clip), 0, 0);
 		    if (child->core.mapped_when_managed)
-			XtMapWidget( child );
+			IswMapWidget( child );
 #else
-		    w->core.window = XtWindow(w->viewport.clip);
-		    XtRealizeWidget( child );
+		    w->core.window = IswWindow(w->viewport.clip);
+		    IswRealizeWidget( child );
 		    w->core.window = window;
 #endif /* notdef */
 		    constraints->viewport.reparented = True;
 		}
 		else if (!constraints->viewport.reparented) {
-		    xcb_connection_t *conn = XtDisplay(w);
-		    xcb_reparent_window(conn, XtWindow(child),
-				     XtWindow(w->viewport.clip), 0, 0);
+		    xcb_connection_t *conn = IswDisplay(w);
+		    xcb_reparent_window(conn, IswWindow(child),
+				     IswWindow(w->viewport.clip), 0, 0);
 		    constraints->viewport.reparented = True;
 		    if (child->core.mapped_when_managed)
-			XtMapWidget( child );
+			IswMapWidget( child );
 		}
 	    }
 	    GetGeometry( widget, child->core.width, child->core.height );
@@ -485,8 +485,8 @@ SendReport (ViewportWidget w, unsigned int changed)
 	rep.slider_height = clip->core.height;
 	rep.canvas_width = child->core.width;
 	rep.canvas_height = child->core.height;
-	XtCallCallbackList ((Widget) w, w->viewport.report_callbacks,
-			    (XtPointer) &rep);
+	IswCallCallbackList ((Widget) w, w->viewport.report_callbacks,
+			    (IswPointer) &rep);
     }
 }
 
@@ -508,7 +508,7 @@ MoveChild(ViewportWidget w, Position x, Position y)
     if (x >= 0) x = 0;
     if (y >= 0) y = 0;
 
-    XtMoveWidget(child, x, y);
+    IswMoveWidget(child, x, y);
     SendReport (w, (IswPRSliderX | IswPRSliderY));
 
     RedrawThumbs(w);
@@ -527,7 +527,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
     Boolean needshoriz, needsvert;
     int clip_width, clip_height;
     int bar_width, bar_height;
-    XtWidgetGeometry intended;
+    IswWidgetGeometry intended;
     Dimension pad = 0, sw = 0;
 
     /*
@@ -542,7 +542,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 
     if (child == (Widget) NULL) return;
 
-    /* XtVaGetValues(threeD, XtNshadowWidth, &sw, NULL);
+    /* IswVaGetValues(threeD, IswNshadowWidth, &sw, NULL);
        if (sw) pad = 2; */ sw = 0; pad = 0;
 
     clip_width = w->core.width - 2 * sw;
@@ -559,9 +559,9 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
     else {
 #ifdef NEED_LAYOUT_LOOP
         Dimension prev_width, prev_height;
-	XtGeometryMask prev_mode;
+	IswGeometryMask prev_mode;
 #endif
-	XtWidgetGeometry preferred;
+	IswWidgetGeometry preferred;
 
 	needshoriz = needsvert = False;
 
@@ -593,9 +593,9 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		 * unconstrained when vertical scrolling is allowed so the
 		 * child reports its natural height. */
 		{
-		    XtWidgetGeometry query_intended = intended;
+		    IswWidgetGeometry query_intended = intended;
 		    query_intended.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
-		    (void) XtQueryGeometry( child, &query_intended, &preferred );
+		    (void) IswQueryGeometry( child, &query_intended, &preferred );
 		}
 		if ( !(preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH) )
 		    preferred.width = intended.width;
@@ -688,27 +688,27 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	bar_height = w->viewport.horiz_bar->core.height +
 		     w->viewport.horiz_bar->core.border_width + pad;
 
-    if (0 /* XtIsRealized(threeD) */ )
-	/* XLowerWindow( XtDisplay(threeD), XtWindow(threeD) ); */
+    if (0 /* IswIsRealized(threeD) */ )
+	/* XLowerWindow( IswDisplay(threeD), IswWindow(threeD) ); */
 
-    /* XtMoveWidget( threeD,
+    /* IswMoveWidget( threeD,
 		  (Position)(!needsvert ? 0 :
 			     (w->viewport.useright ? 0 : bar_width)),
 		  (Position)(!needshoriz ? 0 :
 			     (w->viewport.usebottom ? 0 : bar_height)) ); */
-    /* XtResizeWidget( threeD, (Dimension)(w->core.width - bar_width),
+    /* IswResizeWidget( threeD, (Dimension)(w->core.width - bar_width),
 		    (Dimension)(w->core.height - bar_height), (Dimension)0 ); */
 
-    if (XtIsRealized(clip))
-	xcb_configure_window(XtDisplay(clip), XtWindow(clip),
+    if (IswIsRealized(clip))
+	xcb_configure_window(IswDisplay(clip), IswWindow(clip),
 	    XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
 
-    XtMoveWidget( clip,
+    IswMoveWidget( clip,
 		  (Position)(!needsvert ? sw :
 			     (w->viewport.useright ? sw : bar_width + sw)),
 		  (Position)(!needshoriz ? sw :
 			     (w->viewport.usebottom ? sw : bar_height + sw)) );
-    XtResizeWidget( clip, (Dimension)clip_width, (Dimension)clip_height,
+    IswResizeWidget( clip, (Dimension)clip_width, (Dimension)clip_height,
 		    (Dimension)0 );
 
     if (w->viewport.horiz_bar != (Widget)NULL) {
@@ -716,23 +716,23 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	if (!needshoriz) {
 	    constraints->form.vert_base = (Widget)NULL;
 	    if (destroy_scrollbars) {
-		XtDestroyWidget( bar );
+		IswDestroyWidget( bar );
 		w->viewport.horiz_bar = (Widget)NULL;
 	    }
 	}
 	else {
 	    int bw = bar->core.border_width;
-	    XtResizeWidget( bar,
+	    IswResizeWidget( bar,
 			    (Dimension)(clip_width + 2 * sw), bar->core.height,
 			    (Dimension)bw );
-	    XtMoveWidget( bar,
+	    IswMoveWidget( bar,
 			  (Position)((needsvert && !w->viewport.useright)
 			   ? w->viewport.vert_bar->core.width + pad
 			   : -bw),
 			  (Position)(w->viewport.usebottom
 			    ? w->core.height - bar->core.height - bw
 			    : -bw) );
-	    XtSetMappedWhenManaged( bar, True );
+	    IswSetMappedWhenManaged( bar, True );
 	}
     }
 
@@ -741,28 +741,28 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	if (!needsvert) {
 	    constraints->form.horiz_base = (Widget)NULL;
 	    if (destroy_scrollbars) {
-		XtDestroyWidget( bar );
+		IswDestroyWidget( bar );
 		w->viewport.vert_bar = (Widget)NULL;
 	    }
 	}
 	else {
 	    int bw = bar->core.border_width;
-	    XtResizeWidget( bar,
+	    IswResizeWidget( bar,
 			    bar->core.width, (Dimension)(clip_height + 2 * sw),
 			    (Dimension)bw );
-	    XtMoveWidget( bar,
+	    IswMoveWidget( bar,
 			  (Position)(w->viewport.useright
 			   ? w->core.width - bar->core.width - bw
 			   : -bw),
 			  (Position)((needshoriz && !w->viewport.usebottom)
 			    ? w->viewport.horiz_bar->core.height + pad
 			    : -bw) );
-	    XtSetMappedWhenManaged( bar, True );
+	    IswSetMappedWhenManaged( bar, True );
 	}
     }
 
     if (child != (Widget)NULL) {
-	XtResizeWidget( child, (Dimension)intended.width,
+	IswResizeWidget( child, (Dimension)intended.width,
 		        (Dimension)intended.height, (Dimension)0 );
 	MoveChild(w,
 		  needshoriz ? child->core.x : 0,
@@ -784,12 +784,12 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
  */
 
 static void
-ComputeWithForceBars(Widget widget, Boolean query, XtWidgetGeometry *intended,
+ComputeWithForceBars(Widget widget, Boolean query, IswWidgetGeometry *intended,
                      int *clip_width, int *clip_height)
 {
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
-    XtWidgetGeometry preferred;
+    IswWidgetGeometry preferred;
     Dimension pad = 0, sw = 0;
 
 /*
@@ -797,7 +797,7 @@ ComputeWithForceBars(Widget widget, Boolean query, XtWidgetGeometry *intended,
  * Thus if needsvert is set it MUST have a scrollbar.
  */
 
-    /* XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
+    /* IswVaGetValues((Widget)(w->viewport.threeD), IswNshadowWidth, &sw, NULL);
        if (sw) pad = 2; */ sw = 0; pad = 0;
 
     if (w->viewport.allowvert) {
@@ -830,7 +830,7 @@ ComputeWithForceBars(Widget widget, Boolean query, XtWidgetGeometry *intended,
 
     if ( query ) {
         if ( (w->viewport.allowvert || w->viewport.allowhoriz) ) {
-	    XtQueryGeometry( child, intended, &preferred );
+	    IswQueryGeometry( child, intended, &preferred );
 
 	    if ( !(intended->request_mode & XCB_CONFIG_WINDOW_WIDTH) ) {
 	        if ( preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH )
@@ -887,14 +887,14 @@ Layout(FormWidget w, Dimension width, Dimension height, Boolean junk)
  */
 /* ARGSUSED */
 static void
-ScrollWheelSink(Widget w, XtPointer closure, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
+ScrollWheelSink(Widget w, IswPointer closure, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
 {
     /* Intentionally empty — the ScrollWheel event dispatcher handles
        scroll wheel events before they reach this handler. */
 }
 
 static void
-ScrollUpDownProc(Widget widget, XtPointer closure, XtPointer call_data)
+ScrollUpDownProc(Widget widget, IswPointer closure, IswPointer call_data)
 {
     ViewportWidget w = (ViewportWidget)closure;
     Widget child = w->viewport.child;
@@ -911,7 +911,7 @@ ScrollUpDownProc(Widget widget, XtPointer closure, XtPointer call_data)
 
 /* ARGSUSED */
 static void
-ThumbProc(Widget widget, XtPointer closure, XtPointer call_data)
+ThumbProc(Widget widget, IswPointer closure, IswPointer call_data)
 {
     ViewportWidget w = (ViewportWidget)closure;
     Widget child = w->viewport.child;
@@ -941,24 +941,24 @@ ThumbProc(Widget widget, XtPointer closure, XtPointer call_data)
     MoveChild(w, x, y);
 }
 
-static XtGeometryResult
-TestSmaller(ViewportWidget w, XtWidgetGeometry *request, XtWidgetGeometry *reply_return)
+static IswGeometryResult
+TestSmaller(ViewportWidget w, IswWidgetGeometry *request, IswWidgetGeometry *reply_return)
 {
   if (request->width < w->core.width || request->height < w->core.height)
-    return XtMakeGeometryRequest((Widget)w, request, reply_return);
+    return IswMakeGeometryRequest((Widget)w, request, reply_return);
   else
-    return XtGeometryYes;
+    return IswGeometryYes;
 }
 
-static XtGeometryResult
+static IswGeometryResult
 GeometryRequestPlusScrollbar(ViewportWidget w, Boolean horizontal,
-                             XtWidgetGeometry *request, XtWidgetGeometry *reply_return)
+                             IswWidgetGeometry *request, IswWidgetGeometry *reply_return)
 {
   Widget bar;
-  XtWidgetGeometry plusScrollbars;
+  IswWidgetGeometry plusScrollbars;
   Dimension pad = 0, sw = 0;
 
-  /* XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
+  /* IswVaGetValues((Widget)(w->viewport.threeD), IswNshadowWidth, &sw, NULL);
      if (sw) pad = 2; */ sw = 0; pad = 0;
 
   plusScrollbars = *request;
@@ -966,15 +966,15 @@ GeometryRequestPlusScrollbar(ViewportWidget w, Boolean horizontal,
     bar = CreateScrollbar(w, horizontal);
   request->width += bar->core.width + pad;
   request->height += bar->core.height + pad;
-  XtDestroyWidget(bar);
-  return XtMakeGeometryRequest((Widget) w, &plusScrollbars, reply_return);
+  IswDestroyWidget(bar);
+  return IswMakeGeometryRequest((Widget) w, &plusScrollbars, reply_return);
  }
 
 #define WidthChange() (request->width != w->core.width)
 #define HeightChange() (request->height != w->core.height)
 
-static XtGeometryResult
-QueryGeometry(ViewportWidget w, XtWidgetGeometry *request, XtWidgetGeometry *reply_return)
+static IswGeometryResult
+QueryGeometry(ViewportWidget w, IswWidgetGeometry *request, IswWidgetGeometry *reply_return)
 {
   if (w->viewport.allowhoriz && w->viewport.allowvert)
     return TestSmaller(w, request, reply_return);
@@ -983,43 +983,43 @@ QueryGeometry(ViewportWidget w, XtWidgetGeometry *request, XtWidgetGeometry *rep
     if (WidthChange() && !HeightChange())
       return TestSmaller(w, request, reply_return);
     else if (!WidthChange() && HeightChange())
-      return XtMakeGeometryRequest((Widget) w, request, reply_return);
+      return IswMakeGeometryRequest((Widget) w, request, reply_return);
     else if (WidthChange() && HeightChange()) /* hard part */
       return GeometryRequestPlusScrollbar(w, True, request, reply_return);
     else /* !WidthChange() && !HeightChange() */
-      return XtGeometryYes;
+      return IswGeometryYes;
   }
   else if (!w->viewport.allowhoriz && w->viewport.allowvert) {
     if (!WidthChange() && HeightChange())
       return TestSmaller(w, request, reply_return);
     else if (WidthChange() && !HeightChange())
-      return XtMakeGeometryRequest((Widget)w, request, reply_return);
+      return IswMakeGeometryRequest((Widget)w, request, reply_return);
     else if (WidthChange() && HeightChange()) /* hard part */
       return GeometryRequestPlusScrollbar(w, False, request, reply_return);
     else /* !WidthChange() && !HeightChange() */
-      return XtGeometryYes;
+      return IswGeometryYes;
   }
   else /* (!w->viewport.allowhoriz && !w->viewport.allowvert) */
-    return XtMakeGeometryRequest((Widget) w, request, reply_return);
+    return IswMakeGeometryRequest((Widget) w, request, reply_return);
 }
 
 #undef WidthChange
 #undef HeightChange
 
-static XtGeometryResult
-GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply)
+static IswGeometryResult
+GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 {
     ViewportWidget w = (ViewportWidget)child->core.parent;
     Boolean rWidth = (Boolean)(request->request_mode & XCB_CONFIG_WINDOW_WIDTH);
     Boolean rHeight = (Boolean)(request->request_mode & XCB_CONFIG_WINDOW_HEIGHT);
-    XtWidgetGeometry allowed;
-    XtGeometryResult result;
+    IswWidgetGeometry allowed;
+    IswGeometryResult result;
     Boolean reconfigured;
     Boolean child_changed_size;
     Dimension height_remaining;
     Dimension pad = 0, sw = 0;
 
-    if (request->request_mode & XtCWQueryOnly)
+    if (request->request_mode & IswCWQueryOnly)
       return QueryGeometry(w, request, reply);
 
     if (child != w->viewport.child
@@ -1027,9 +1027,9 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 				     | XCB_CONFIG_WINDOW_BORDER_WIDTH)
 	|| ((request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
 	    && request->border_width > 0))
-	return XtGeometryNo;
+	return IswGeometryNo;
 
-    /* XtVaGetValues((Widget)(w->viewport.threeD), XtNshadowWidth, &sw, NULL);
+    /* IswVaGetValues((Widget)(w->viewport.threeD), IswNshadowWidth, &sw, NULL);
        if (sw) pad = 2; */ sw = 0; pad = 0;
 
     allowed = *request;
@@ -1084,18 +1084,18 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 
     if (allowed.width != request->width || allowed.height != request->height) {
 	*reply = allowed;
-	result = XtGeometryAlmost;
+	result = IswGeometryAlmost;
     }
     else {
 	if (rWidth)  child->core.width = request->width;
 	if (rHeight) child->core.height = request->height;
-	result = XtGeometryYes;
+	result = IswGeometryYes;
     }
 
     if (reconfigured || child_changed_size)
 	ComputeLayout( (Widget)w,
 		       /*query=*/ False,
-		       /*destroy=*/ (result == XtGeometryYes) ? True : False );
+		       /*destroy=*/ (result == IswGeometryYes) ? True : False );
 
     return result;
   }
@@ -1104,8 +1104,8 @@ GeometryManager(Widget child, XtWidgetGeometry *request, XtWidgetGeometry *reply
 static Boolean
 GetGeometry(Widget w, Dimension width, Dimension height)
 {
-    XtWidgetGeometry geometry, return_geom;
-    XtGeometryResult result;
+    IswWidgetGeometry geometry, return_geom;
+    IswGeometryResult result;
 
     if (width == w->core.width && height == w->core.height)
 	return False;
@@ -1114,7 +1114,7 @@ GetGeometry(Widget w, Dimension width, Dimension height)
     geometry.width = width;
     geometry.height = height;
 
-    if (XtIsRealized(w)) {
+    if (IswIsRealized(w)) {
 	/* Post-realize, the viewport should not request resizes from its
 	   parent.  Its size is determined by its parent; it scrolls to
 	   accommodate content that doesn't fit. */
@@ -1128,15 +1128,15 @@ GetGeometry(Widget w, Dimension width, Dimension height)
 	if (w->core.height != 0) geometry.height = w->core.height;
     }
 
-    result = XtMakeGeometryRequest(w, &geometry, &return_geom);
-    if (result == XtGeometryAlmost)
-	result = XtMakeGeometryRequest(w, &return_geom, (XtWidgetGeometry *)NULL);
+    result = IswMakeGeometryRequest(w, &geometry, &return_geom);
+    if (result == IswGeometryAlmost)
+	result = IswMakeGeometryRequest(w, &return_geom, (IswWidgetGeometry *)NULL);
 
-    return (result == XtGeometryYes);
+    return (result == IswGeometryYes);
 }
 
-static XtGeometryResult
-PreferredGeometry(Widget w, XtWidgetGeometry *constraints, XtWidgetGeometry *reply)
+static IswGeometryResult
+PreferredGeometry(Widget w, IswWidgetGeometry *constraints, IswWidgetGeometry *reply)
 {
     /* If the viewport has been given an explicit size, report that as
        preferred rather than delegating to the child.  Delegating to the
@@ -1151,14 +1151,14 @@ PreferredGeometry(Widget w, XtWidgetGeometry *constraints, XtWidgetGeometry *rep
 	    constraints->width == w->core.width &&
 	    (constraints->request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
 	    constraints->height == w->core.height)
-	    return XtGeometryYes;
-	return XtGeometryAlmost;
+	    return IswGeometryYes;
+	return IswGeometryAlmost;
     }
     if (((ViewportWidget)w)->viewport.child != NULL)
-	return XtQueryGeometry( ((ViewportWidget)w)->viewport.child,
+	return IswQueryGeometry( ((ViewportWidget)w)->viewport.child,
 			       constraints, reply );
     else
-	return XtGeometryYes;
+	return IswGeometryYes;
 }
 
 

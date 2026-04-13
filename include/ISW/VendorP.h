@@ -60,17 +60,17 @@ SOFTWARE.
  *
  ***********************************************************************/
 
-#ifndef  _XtVendorPrivate_h
-#define _XtVendorPrivate_h
+#ifndef  _IswVendorPrivate_h
+#define _IswVendorPrivate_h
 
-#include <X11/Vendor.h>
+#include <ISW/Vendor.h>
 
 /* New fields for the VendorShell widget class record */
 
 _XFUNCPROTOBEGIN
 
 typedef struct {
-    XtPointer       extension;          /* pointer to extension record      */
+    IswPointer       extension;          /* pointer to extension record      */
 } VendorShellClassPart;
 
 typedef struct _VendorShellClassRec {
@@ -99,4 +99,4 @@ typedef  struct {
 
 _XFUNCPROTOEND
 
-#endif  /* _XtVendorPrivate_h */
+#endif  /* _IswVendorPrivate_h */

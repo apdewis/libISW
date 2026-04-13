@@ -15,21 +15,21 @@
  Name             Class            RepType       Default Value
  ----             -----            -------       -------------
  value            Value            Int           0
- foreground       Foreground       Pixel         XtDefaultForeground
+ foreground       Foreground       Pixel         IswDefaultForeground
  orientation      Orientation      Orientation   horizontal
  showValue        ShowValue        Boolean       True
- font             Font             FontStruct    XtDefaultFont
+ font             Font             FontStruct    IswDefaultFont
 
 */
 
-#define XtNshowValue "showValue"
-#define XtCShowValue "ShowValue"
+#define IswNshowValue "showValue"
+#define IswCShowValue "ShowValue"
 
-#ifndef XtNvalue
-#define XtNvalue "value"
+#ifndef IswNvalue
+#define IswNvalue "value"
 #endif
-#ifndef XtCValue
-#define XtCValue "Value"
+#ifndef IswCValue
+#define IswCValue "Value"
 #endif
 
 extern WidgetClass progressBarWidgetClass;

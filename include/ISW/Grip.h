@@ -66,8 +66,8 @@ SOFTWARE.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- foreground	     Foreground		Pixel		XtDefaultForeground
- border		     BorderColor	Pixel		XtDefaultForeground
+ foreground	     Foreground		Pixel		IswDefaultForeground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	0
  callback	     Callback		Pointer		GripAction
  cursor		     Cursor		Cursor		None
@@ -75,8 +75,8 @@ SOFTWARE.
  destroyCallback     Callback		Pointer		NULL
  height		     Height		Dimension	8
  mappedWhenManaged   MappedWhenManaged	Boolean		True
- pointerColor	     Foreground		Pixel		XtDefaultForeground
- pointerColorBackground Background	Pixel		XtDefaultBackground
+ pointerColor	     Foreground		Pixel		IswDefaultForeground
+ pointerColorBackground Background	Pixel		IswDefaultBackground
  sensitive	     Sensitive		Boolean		True
  width		     Width		Dimension	8
  x		     Position		Position	0
@@ -84,10 +84,10 @@ SOFTWARE.
 
 */
 
-#define XtNgripTranslations "gripTranslations"
+#define IswNgripTranslations "gripTranslations"
 
 typedef struct _IswGripCallData {
-  XtPointer event;		/* the event causing the GripAction (opaque pointer) */
+  IswPointer event;		/* the event causing the GripAction (opaque pointer) */
   String *params;		/* the TranslationTable params */
   Cardinal num_params;		/* count of params */
 } IswGripCallDataRec, *IswGripCallData,

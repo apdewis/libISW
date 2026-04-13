@@ -87,21 +87,21 @@ SOFTWARE.
  ----		     -----		-------		-------------
  echo                Output             Boolean         True
  displayNonprinting  Output             Boolean         True
- fontSet             FontSet            ISWFontSet*     XtDefaultFontSet
+ fontSet             FontSet            ISWFontSet*     IswDefaultFontSet
 
 */
 
-#define XtCOutput "Output"
+#define IswCOutput "Output"
 
-#define XtNdisplayNonprinting "displayNonprinting"
-#define XtNecho "echo"
+#define IswNdisplayNonprinting "displayNonprinting"
+#define IswNecho "echo"
 
-#ifndef XtNfontSet		/*Sheeran, Omron KK, 93/03/04*/
-#define XtNfontSet		"fontSet"
+#ifndef IswNfontSet		/*Sheeran, Omron KK, 93/03/04*/
+#define IswNfontSet		"fontSet"
 #endif
 
-#ifndef XtCFontSet		/*Sheeran, Omron KK, 93/03/04*/
-#define XtCFontSet		"FontSet"
+#ifndef IswCFontSet		/*Sheeran, Omron KK, 93/03/04*/
+#define IswCFontSet		"FontSet"
 #endif
 
 /* Class record constants */

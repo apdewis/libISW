@@ -599,11 +599,11 @@ DoLine(char *buf)
         if ((table->name = strdup(buf + strlen(table_str) + 1)) == NULL)
             exit(1);
         if (solaris_abi_names) {
-            if (strcmp(table->name, "XtStringsR6") == 0) {
-                strcpy(table->name, "XtR6Strings");
+            if (strcmp(table->name, "IswStringsR6") == 0) {
+                strcpy(table->name, "IswR6Strings");
             }
-            else if (strcmp(table->name, "XtShellStringsR6") == 0) {
-                strcpy(table->name, "XtR6ShellStrings");
+            else if (strcmp(table->name, "IswShellStringsR6") == 0) {
+                strcpy(table->name, "IswR6ShellStrings");
             }
         }
         table->tableent = NULL;

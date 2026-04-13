@@ -22,14 +22,14 @@
 
 */
 
-#ifndef XtNexposeCallback
-#define XtNexposeCallback "exposeCallback"
+#ifndef IswNexposeCallback
+#define IswNexposeCallback "exposeCallback"
 #endif
-#ifndef XtNresizeCallback
-#define XtNresizeCallback "resizeCallback"
+#ifndef IswNresizeCallback
+#define IswNresizeCallback "resizeCallback"
 #endif
-#ifndef XtNinputCallback
-#define XtNinputCallback "inputCallback"
+#ifndef IswNinputCallback
+#define IswNinputCallback "inputCallback"
 #endif
 
 /*

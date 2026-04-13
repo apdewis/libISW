@@ -30,7 +30,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #ifndef _ISW_Isw3dP_h
 #define _ISW_Isw3dP_h
 
-#include <X11/IntrinsicP.h>
+#include <ISW/IntrinsicP.h>
 #include <xcb/xcb.h>
 #include <xcb/xfixes.h>
 
@@ -71,48 +71,48 @@ typedef struct _IswRegion* Region;
 #define AssignMin(x, y) do { if ((y) < (x)) (x) = (y); } while (0)
 #endif
 
-#ifndef XtX
-#define XtX(w)			(((RectObj)w)->rectangle.x)
+#ifndef IswX
+#define IswX(w)			(((RectObj)w)->rectangle.x)
 #endif
-#ifndef XtY
-#define XtY(w)			(((RectObj)w)->rectangle.y)
+#ifndef IswY
+#define IswY(w)			(((RectObj)w)->rectangle.y)
 #endif
-#ifndef XtWidth
-#define XtWidth(w)		(((RectObj)w)->rectangle.width)
+#ifndef IswWidth
+#define IswWidth(w)		(((RectObj)w)->rectangle.width)
 #endif
-#ifndef XtHeight
-#define XtHeight(w)		(((RectObj)w)->rectangle.height)
+#ifndef IswHeight
+#define IswHeight(w)		(((RectObj)w)->rectangle.height)
 #endif
-#ifndef XtBorderWidth
-#define XtBorderWidth(w)	(((RectObj)w)->rectangle.border_width)
+#ifndef IswBorderWidth
+#define IswBorderWidth(w)	(((RectObj)w)->rectangle.border_width)
 #endif
 
 /* Text justification types (missing from XCB-based libXt) */
-#ifndef _IswXtJustify_defined
-#define _IswXtJustify_defined
+#ifndef _IswJustify_defined
+#define _IswJustify_defined
 typedef enum {
-    XtJustifyLeft,
-    XtJustifyCenter,
-    XtJustifyRight
-} XtJustify;
+    IswJustifyLeft,
+    IswJustifyCenter,
+    IswJustifyRight
+} IswJustify;
 #endif
 
 /* Widget edge types for Form layout are defined in Form.h (IswEdgeType) */
-/* IswXcbDraw.h provides XtEdgeType for converters */
+/* IswXcbDraw.h provides IswEdgeType for converters */
 
 /* Orientation type for Box, Paned, Scrollbar (missing from XCB-based libXt) */
-#ifndef _IswXtOrientation_defined
-#define _IswXtOrientation_defined
+#ifndef _IswOrientation_defined
+#define _IswOrientation_defined
 typedef enum {
     XtorientHorizontal = 0,
     XtorientVertical = 1
-} XtOrientation;
+} IswOrientation;
 #endif
 
 /* Widget gravity type for Tree layout (missing from XCB-based libXt) */
-#ifndef _IswXtGravity_defined
-#define _IswXtGravity_defined
-typedef unsigned int XtGravity;
+#ifndef _IswGravity_defined
+#define _IswGravity_defined
+typedef unsigned int IswGravity;
 #endif
 
 #ifdef ISW_GRAY_BLKWHT_STIPPLES

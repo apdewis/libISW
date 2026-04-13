@@ -47,8 +47,8 @@ in this Software without prior written authorization from The Open Group.
 
 */
 
-#ifndef _XtIntrinsic_h
-#define _XtIntrinsic_h
+#ifndef _IswIntrinsic_h
+#define _IswIntrinsic_h
 
 //#include	<X11/Xlib.h>
 #include    <xcb/xcb.h>
@@ -56,13 +56,13 @@ in this Software without prior written authorization from The Open Group.
 #include    <xcb/xcbext.h>
 #include    <xcb/xkb.h>
 #include    <xcb/xcb_keysyms.h>
-#include	<X11/XtTypes.h>
-/* Xresource.h replaced by custom XtQuark/XtValue/XtDatabase/XtOptions headers */
-#include	<X11/XtFuncproto.h>
-#include <string.h>		/* for XtNewString, memcpy, etc. */
+#include	<ISW/IswTypes.h>
+/* Xresource.h replaced by custom IswQuark/IswValue/IswDatabase/IswOptions headers */
+#include	<ISW/IswFuncproto.h>
+#include <string.h>		/* for IswNewString, memcpy, etc. */
 #include <stdlib.h>		/* for malloc, free */
 
-#define XtSpecificationRelease 7
+#define IswSpecificationRelease 7
 
 /*
  * As used in its function interface, the String type of libXt can be readonly.
@@ -76,25 +76,25 @@ typedef char *String;
 #endif
 
 /* We do this in order to get "const" declarations to work right.  We
- * use _XtString instead of String so that C++ applications can
+ * use _IswString instead of String so that C++ applications can
  * #define String to something else if they choose, to avoid conflicts
  * with other C++ libraries.
  */
-#define _XtString char*
+#define _IswString char*
 
 /* _Xt names are private to Xt implementation, do not use in client code */
 #if NeedWidePrototypes
-#define _XtBoolean	int
-#define _XtDimension	unsigned int
-#define _XtKeyCode	unsigned int
-#define _XtPosition	int
-#define _XtXtEnum	unsigned int
+#define _IswBoolean	int
+#define _IswDimension	unsigned int
+#define _IswKeyCode	unsigned int
+#define _IswPosition	int
+#define _IswEnum	unsigned int
 #else
-#define _XtBoolean	Boolean
-#define _XtDimension	Dimension
-#define _XtKeyCode	xcb_keycode_t
-#define _XtPosition	Position
-#define _XtXtEnum	XtEnum
+#define _IswBoolean	Boolean
+#define _IswDimension	Dimension
+#define _IswKeyCode	xcb_keycode_t
+#define _IswPosition	Position
+#define _IswEnum	IswEnum
 #endif /* NeedWidePrototypes */
 
 #include <stddef.h>
@@ -109,36 +109,36 @@ typedef char *String;
 
 #if __STDC_VERSION__ >= 199901L
 #include <stdint.h>
-typedef intptr_t	XtIntPtr;
-typedef uintptr_t	XtUIntPtr;
+typedef intptr_t	IswIntPtr;
+typedef uintptr_t	IswUIntPtr;
 #else
-typedef long		XtIntPtr;
-typedef unsigned long	XtUIntPtr;
+typedef long		IswIntPtr;
+typedef unsigned long	IswUIntPtr;
 #endif
 
-#define XtNumber(arr)		((Cardinal) (sizeof(arr) / sizeof(arr[0])))
+#define IswNumber(arr)		((Cardinal) (sizeof(arr) / sizeof(arr[0])))
 
 typedef struct _WidgetRec *Widget;
 typedef Widget *WidgetList;
 typedef struct _WidgetClassRec *WidgetClass;
 typedef struct _CompositeRec *CompositeWidget;
-typedef struct _XtActionsRec *XtActionList;
-typedef struct _XtEventRec *XtEventTable;
+typedef struct _IswActionsRec *IswActionList;
+typedef struct _IswEventRec *IswEventTable;
 
-typedef struct _XtAppStruct *XtAppContext;
-typedef unsigned long	XtValueMask;
-typedef XtUIntPtr	XtIntervalId;
-typedef XtUIntPtr	XtInputId;
-typedef XtUIntPtr	XtWorkProcId;
-typedef XtUIntPtr	XtSignalId;
-typedef unsigned int	XtGeometryMask;
-typedef unsigned long	XtGCMask;   /* Mask of values that are used by widget*/
+typedef struct _IswAppStruct *IswAppContext;
+typedef unsigned long	IswValueMask;
+typedef IswUIntPtr	IswIntervalId;
+typedef IswUIntPtr	IswInputId;
+typedef IswUIntPtr	IswWorkProcId;
+typedef IswUIntPtr	IswSignalId;
+typedef unsigned int	IswGeometryMask;
+typedef unsigned long	IswGCMask;   /* Mask of values that are used by widget*/
 typedef unsigned long	Pixel;	    /* Index into colormap		*/
-typedef int		XtCacheType;
-#define			XtCacheNone	  0x001
-#define			XtCacheAll	  0x002
-#define			XtCacheByDisplay  0x003
-#define			XtCacheRefCount	  0x100
+typedef int		IswCacheType;
+#define			IswCacheNone	  0x001
+#define			IswCacheAll	  0x002
+#define			IswCacheByDisplay  0x003
+#define			IswCacheRefCount	  0x100
 
 /****************************************************************
  *
@@ -147,12 +147,12 @@ typedef int		XtCacheType;
  * same base types!
  *
  *
- * XtArgVal ought to be a union of XtPointer, char *, long, int *, and proc *
+ * IswArgVal ought to be a union of IswPointer, char *, long, int *, and proc *
  * but casting to union types is not really supported.
  *
- * So the typedef for XtArgVal should be chosen such that
+ * So the typedef for IswArgVal should be chosen such that
  *
- *	sizeof (XtArgVal) >=	sizeof(XtPointer)
+ *	sizeof (IswArgVal) >=	sizeof(IswPointer)
  *				sizeof(char *)
  *				sizeof(long)
  *				sizeof(int *)
@@ -162,242 +162,242 @@ typedef int		XtCacheType;
  *
  ****************************************************************/
 typedef char		Boolean;
-typedef XtIntPtr	XtArgVal;
-typedef unsigned char	XtEnum;
+typedef IswIntPtr	IswArgVal;
+typedef unsigned char	IswEnum;
 
 typedef unsigned int	Cardinal;
 typedef unsigned short	Dimension;  /* Size in pixels			*/
 typedef short		Position;   /* Offset from 0 coordinate		*/
 
-typedef void*		XtPointer;
+typedef void*		IswPointer;
 #if __STDC_VERSION__ >= 201112L && !defined(__cplusplus)
-_Static_assert(sizeof(XtArgVal) >= sizeof(XtPointer), "XtArgVal too small");
-_Static_assert(sizeof(XtArgVal) >= sizeof(long), "XtArgVal too small");
+_Static_assert(sizeof(IswArgVal) >= sizeof(IswPointer), "IswArgVal too small");
+_Static_assert(sizeof(IswArgVal) >= sizeof(long), "IswArgVal too small");
 #endif
 
-/* XRM replacement headers - must come after XtPointer is defined */
-#include <X11/XtQuark.h>
-#include <X11/XtValue.h>
-#include <X11/XtDatabase.h>
-#include <X11/XtOptions.h>
+/* XRM replacement headers - must come after IswPointer is defined */
+#include <ISW/IswQuark.h>
+#include <ISW/IswValue.h>
+#include <ISW/IswDatabase.h>
+#include <ISW/IswOptions.h>
 
 /* The type Opaque is NOT part of the Xt standard, do NOT use it. */
 /* (It remains here only for backward compatibility.) */
-typedef XtPointer	Opaque;
+typedef IswPointer	Opaque;
 
-#include <X11/Core.h>
-#include <X11/Composite.h>
-#include <X11/Constraint.h>
-#include <X11/Object.h>
-#include <X11/RectObj.h>
+#include <ISW/Core.h>
+#include <ISW/Composite.h>
+#include <ISW/Constraint.h>
+#include <ISW/Object.h>
+#include <ISW/RectObj.h>
 
-typedef struct _TranslationData *XtTranslations;
-typedef struct _TranslationData *XtAccelerators;
+typedef struct _TranslationData *IswTranslations;
+typedef struct _TranslationData *IswAccelerators;
 typedef uint16_t Modifiers;
 
-typedef void (*XtActionProc)(
+typedef void (*IswActionProc)(
     Widget 		/* widget */,
     xcb_generic_event_t*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
 
-typedef XtActionProc* XtBoundActions;
+typedef IswActionProc* IswBoundActions;
 
-typedef struct _XtActionsRec{
+typedef struct _IswActionsRec{
     String	 string;
-    XtActionProc proc;
-} XtActionsRec;
+    IswActionProc proc;
+} IswActionsRec;
 
 typedef enum {
 /* address mode		parameter representation    */
 /* ------------		------------------------    */
-    XtAddress,		/* address		    */
-    XtBaseOffset,	/* offset		    */
-    XtImmediate,	/* constant		    */
-    XtResourceString,	/* resource name string	    */
-    XtResourceQuark,	/* resource name quark	    */
-    XtWidgetBaseOffset,	/* offset from ancestor	    */
-    XtProcedureArg	/* procedure to invoke	    */
-} XtAddressMode;
+    IswAddress,		/* address		    */
+    IswBaseOffset,	/* offset		    */
+    IswImmediate,	/* constant		    */
+    IswResourceString,	/* resource name string	    */
+    IswResourceQuark,	/* resource name quark	    */
+    IswWidgetBaseOffset,	/* offset from ancestor	    */
+    IswProcedureArg	/* procedure to invoke	    */
+} IswAddressMode;
 
 typedef struct {
-    XtAddressMode   address_mode;
-    XtPointer	    address_id;
+    IswAddressMode   address_mode;
+    IswPointer	    address_id;
     Cardinal	    size;
-} XtConvertArgRec, *XtConvertArgList;
+} IswConvertArgRec, *IswConvertArgList;
 
-typedef void (*XtConvertArgProc)(
+typedef void (*IswConvertArgProc)(
     Widget 		/* widget */,
     Cardinal*		/* size */,
     XrmValue*		/* value */
 );
 
 typedef struct {
-    XtGeometryMask request_mode;
+    IswGeometryMask request_mode;
     Position x, y;
     Dimension width, height, border_width;
     Widget sibling;
     int stack_mode;   /* Above, Below, TopIf, BottomIf, Opposite, DontChange */
-} XtWidgetGeometry;
+} IswWidgetGeometry;
 
 /* Additions to Xlib geometry requests: ask what would happen, don't do it */
-#define XtCWQueryOnly	(1 << 7)
+#define IswCWQueryOnly	(1 << 7)
 
 /* Additions to Xlib stack modes: don't change stack order */
-#define XtSMDontChange	5
+#define IswSMDontChange	5
 
-typedef void (*XtConverter)( /* obsolete */
+typedef void (*IswConverter)( /* obsolete */
     XrmValue*		/* args */,
     Cardinal*		/* num_args */,
     XrmValue*		/* from */,
     XrmValue*		/* to */
 );
 
-typedef Boolean (*XtTypeConverter)(
+typedef Boolean (*IswTypeConverter)(
     xcb_connection_t *		/* dpy */,
     XrmValue*		/* args */,
     Cardinal*		/* num_args */,
     XrmValue*		/* from */,
     XrmValue*		/* to */,
-    XtPointer*		/* converter_data */
+    IswPointer*		/* converter_data */
 );
 
-typedef void (*XtDestructor)(
-    XtAppContext	/* app */,
+typedef void (*IswDestructor)(
+    IswAppContext	/* app */,
     XrmValue*		/* to */,
-    XtPointer 		/* converter_data */,
+    IswPointer 		/* converter_data */,
     XrmValue*		/* args */,
     Cardinal*		/* num_args */
 );
 
-typedef Opaque XtCacheRef;
+typedef Opaque IswCacheRef;
 
-typedef Opaque XtActionHookId;
+typedef Opaque IswActionHookId;
 
-typedef void (*XtActionHookProc)(
+typedef void (*IswActionHookProc)(
     Widget		/* w */,
-    XtPointer		/* client_data */,
+    IswPointer		/* client_data */,
     String		/* action_name */,
     xcb_generic_event_t*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
 
-typedef XtUIntPtr XtBlockHookId;
+typedef IswUIntPtr IswBlockHookId;
 
-typedef void (*XtBlockHookProc)(
-    XtPointer		/* client_data */
+typedef void (*IswBlockHookProc)(
+    IswPointer		/* client_data */
 );
 
-typedef void (*XtKeyProc)(
+typedef void (*IswKeyProc)(
     xcb_connection_t *		/* dpy */,
-    _XtKeyCode 		/* keycode */,
+    _IswKeyCode 		/* keycode */,
     Modifiers		/* modifiers */,
     Modifiers*		/* modifiers_return */,
     xcb_keysym_t*		/* keysym_return */
 );
 
-typedef void (*XtCaseProc)(
+typedef void (*IswCaseProc)(
     xcb_connection_t*		/* xcb_connection_t */,
     xcb_keysym_t		/* keysym */,
     xcb_keysym_t*		/* lower_return */,
     xcb_keysym_t*		/* upper_return */
 );
 
-typedef void (*XtEventHandler)(
+typedef void (*IswEventHandler)(
     Widget 		/* widget */,
-    XtPointer 		/* closure */,
+    IswPointer 		/* closure */,
     xcb_generic_event_t*		/* event */,
     Boolean*		/* continue_to_dispatch */
 );
 typedef unsigned long EventMask;
 
-typedef enum {XtListHead, XtListTail } XtListPosition;
+typedef enum {IswListHead, IswListTail } IswListPosition;
 
-typedef unsigned long	XtInputMask;
-#define XtInputNoneMask		0L
-#define XtInputReadMask		(1L<<0)
-#define XtInputWriteMask	(1L<<1)
-#define XtInputExceptMask	(1L<<2)
+typedef unsigned long	IswInputMask;
+#define IswInputNoneMask		0L
+#define IswInputReadMask		(1L<<0)
+#define IswInputWriteMask	(1L<<1)
+#define IswInputExceptMask	(1L<<2)
 
-typedef void (*XtTimerCallbackProc)(
-    XtPointer 		/* closure */,
-    XtIntervalId*	/* id */
+typedef void (*IswTimerCallbackProc)(
+    IswPointer 		/* closure */,
+    IswIntervalId*	/* id */
 );
 
-typedef void (*XtInputCallbackProc)(
-    XtPointer 		/* closure */,
+typedef void (*IswInputCallbackProc)(
+    IswPointer 		/* closure */,
     int*		/* source */,
-    XtInputId*		/* id */
+    IswInputId*		/* id */
 );
 
-typedef void (*XtSignalCallbackProc)(
-    XtPointer		/* closure */,
-    XtSignalId*		/* id */
+typedef void (*IswSignalCallbackProc)(
+    IswPointer		/* closure */,
+    IswSignalId*		/* id */
 );
 
 typedef struct {
     String	name;
-    XtArgVal	value;
+    IswArgVal	value;
 } Arg, *ArgList;
 
-typedef XtPointer	XtVarArgsList;
+typedef IswPointer	IswVarArgsList;
 
-typedef void (*XtCallbackProc)(
+typedef void (*IswCallbackProc)(
     Widget 		/* widget */,
-    XtPointer 		/* closure */,	/* data the application registered */
-    XtPointer 		/* call_data */	/* callback specific data */
+    IswPointer 		/* closure */,	/* data the application registered */
+    IswPointer 		/* call_data */	/* callback specific data */
 );
 
-typedef struct _XtCallbackRec {
-    XtCallbackProc  callback;
-    XtPointer	    closure;
-} XtCallbackRec, *XtCallbackList;
+typedef struct _IswCallbackRec {
+    IswCallbackProc  callback;
+    IswPointer	    closure;
+} IswCallbackRec, *IswCallbackList;
 
 typedef enum {
-	XtCallbackNoList,
-	XtCallbackHasNone,
-	XtCallbackHasSome
-} XtCallbackStatus;
+	IswCallbackNoList,
+	IswCallbackHasNone,
+	IswCallbackHasSome
+} IswCallbackStatus;
 
 typedef enum  {
-    XtGeometryYes,	  /* Request accepted. */
-    XtGeometryNo,	  /* Request denied. */
-    XtGeometryAlmost,	  /* Request denied, but willing to take replyBox. */
-    XtGeometryDone	  /* Request accepted and done. */
-} XtGeometryResult;
+    IswGeometryYes,	  /* Request accepted. */
+    IswGeometryNo,	  /* Request denied. */
+    IswGeometryAlmost,	  /* Request denied, but willing to take replyBox. */
+    IswGeometryDone	  /* Request accepted and done. */
+} IswGeometryResult;
 
-typedef enum {XtGrabNone, XtGrabNonexclusive, XtGrabExclusive} XtGrabKind;
+typedef enum {IswGrabNone, IswGrabNonexclusive, IswGrabExclusive} IswGrabKind;
 
 typedef struct {
     Widget  shell_widget;
     Widget  enable_widget;
-} XtPopdownIDRec, *XtPopdownID;
+} IswPopdownIDRec, *IswPopdownID;
 
-typedef struct _XtResource {
+typedef struct _IswResource {
     String	resource_name;	/* Resource name			    */
     String	resource_class;	/* Resource class			    */
     String	resource_type;	/* Representation type desired		    */
     Cardinal	resource_size;	/* Size in bytes of representation	    */
     Cardinal	resource_offset;/* Offset from base to put resource value   */
     String	default_type;	/* representation type of specified default */
-    XtPointer	default_addr;	/* Address of default resource		    */
-} XtResource, *XtResourceList;
+    IswPointer	default_addr;	/* Address of default resource		    */
+} IswResource, *IswResourceList;
 
-typedef void (*XtResourceDefaultProc)(
+typedef void (*IswResourceDefaultProc)(
     Widget	/* widget */,
     int		/* offset */,
     XrmValue*	/* value */
 );
 
-typedef String (*XtLanguageProc)(
+typedef String (*IswLanguageProc)(
     xcb_connection_t *	/* dpy */,
     String	/* xnl */,
-    XtPointer	/* client_data */
+    IswPointer	/* client_data */
 );
 
-typedef void (*XtErrorMsgHandler)(
+typedef void (*IswErrorMsgHandler)(
     String 		/* name */,
     String		/* type */,
     String		/* class */,
@@ -406,106 +406,106 @@ typedef void (*XtErrorMsgHandler)(
     Cardinal*		/* num_params */
 );
 
-typedef void (*XtErrorHandler)(
+typedef void (*IswErrorHandler)(
   String		/* msg */
 );
 
-typedef void (*XtCreatePopupChildProc)(
+typedef void (*IswCreatePopupChildProc)(
     Widget	/* shell */
 );
 
-typedef Boolean (*XtWorkProc)(
-    XtPointer 		/* closure */	/* data the application registered */
+typedef Boolean (*IswWorkProc)(
+    IswPointer 		/* closure */	/* data the application registered */
 );
 
 typedef struct {
     char match;
-    _XtString substitution;
+    _IswString substitution;
 } SubstitutionRec, *Substitution;
 
-typedef Boolean (*XtFilePredicate)(
+typedef Boolean (*IswFilePredicate)(
    String /* filename */
 );
 
-typedef XtPointer XtRequestId;
+typedef IswPointer IswRequestId;
 
-typedef Boolean (*XtConvertSelectionProc)(
+typedef Boolean (*IswConvertSelectionProc)(
     Widget 		/* widget */,
     xcb_atom_t*		/* selection */,
     xcb_atom_t*		/* target */,
     xcb_atom_t*		/* type_return */,
-    XtPointer*		/* value_return */,
+    IswPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
 );
 
-typedef void (*XtLoseSelectionProc)(
+typedef void (*IswLoseSelectionProc)(
     Widget 		/* widget */,
     xcb_atom_t*		/* selection */
 );
 
-typedef void (*XtSelectionDoneProc)(
+typedef void (*IswSelectionDoneProc)(
     Widget 		/* widget */,
     xcb_atom_t*		/* selection */,
     xcb_atom_t*		/* target */
 );
 
-typedef void (*XtSelectionCallbackProc)(
+typedef void (*IswSelectionCallbackProc)(
     Widget 		/* widget */,
-    XtPointer 		/* closure */,
+    IswPointer 		/* closure */,
     xcb_atom_t*		/* selection */,
     xcb_atom_t*		/* type */,
-    XtPointer 		/* value */,
+    IswPointer 		/* value */,
     unsigned long*	/* length */,
     int*		/* format */
 );
 
-typedef void (*XtLoseSelectionIncrProc)(
+typedef void (*IswLoseSelectionIncrProc)(
     Widget 		/* widget */,
     xcb_atom_t*		/* selection */,
-    XtPointer 		/* client_data */
+    IswPointer 		/* client_data */
 );
 
-typedef void (*XtSelectionDoneIncrProc)(
+typedef void (*IswSelectionDoneIncrProc)(
     Widget 		/* widget */,
     xcb_atom_t*		/* selection */,
     xcb_atom_t*		/* target */,
-    XtRequestId*	/* receiver_id */,
-    XtPointer 		/* client_data */
+    IswRequestId*	/* receiver_id */,
+    IswPointer 		/* client_data */
 );
 
-typedef Boolean (*XtConvertSelectionIncrProc)(
+typedef Boolean (*IswConvertSelectionIncrProc)(
     Widget 		/* widget */,
     xcb_atom_t*		/* selection */,
     xcb_atom_t*		/* target */,
     xcb_atom_t*		/* type */,
-    XtPointer*		/* value */,
+    IswPointer*		/* value */,
     unsigned long*	/* length */,
     int*		/* format */,
     unsigned long*	/* max_length */,
-    XtPointer 		/* client_data */,
-    XtRequestId*	/* receiver_id */
+    IswPointer 		/* client_data */,
+    IswRequestId*	/* receiver_id */
 );
 
-typedef void (*XtCancelConvertSelectionProc)(
+typedef void (*IswCancelConvertSelectionProc)(
     Widget 		/* widget */,
     xcb_atom_t*		/* selection */,
     xcb_atom_t*		/* target */,
-    XtRequestId*	/* receiver_id */,
-    XtPointer 		/* client_data */
+    IswRequestId*	/* receiver_id */,
+    IswPointer 		/* client_data */
 );
 
-typedef Boolean (*XtEventDispatchProc)(
+typedef Boolean (*IswEventDispatchProc)(
     xcb_generic_event_t*		/* event */,
     xcb_connection_t*           /* connection */
 );
 
-typedef void (*XtExtensionSelectProc)(
+typedef void (*IswExtensionSelectProc)(
     Widget		/* widget */,
     int*		/* event_types */,
-    XtPointer*		/* select_data */,
+    IswPointer*		/* select_data */,
     int			/* count */,
-    XtPointer		/* client_data */
+    IswPointer		/* client_data */
 );
 
 /***************************************************************
@@ -516,178 +516,178 @@ typedef void (*XtExtensionSelectProc)(
 
 _XFUNCPROTOBEGIN
 
-extern Boolean XtConvertAndStore(
+extern Boolean IswConvertAndStore(
     Widget 		/* widget */,
-    _Xconst _XtString 	/* from_type */,
+    _Xconst _IswString 	/* from_type */,
     XrmValue*		/* from */,
-    _Xconst _XtString 	/* to_type */,
+    _Xconst _IswString 	/* to_type */,
     XrmValue*		/* to_in_out */
 );
 
-extern Boolean XtCallConverter(
+extern Boolean IswCallConverter(
     xcb_connection_t*		/* dpy */,
-    XtTypeConverter 	/* converter */,
+    IswTypeConverter 	/* converter */,
     XrmValuePtr 	/* args */,
     Cardinal 		/* num_args */,
     XrmValuePtr 	/* from */,
     XrmValue*		/* to_in_out */,
-    XtCacheRef*		/* cache_ref_return */
+    IswCacheRef*		/* cache_ref_return */
 );
 
-extern Boolean XtDispatchEvent(
+extern Boolean IswDispatchEvent(
     xcb_generic_event_t*, 
     xcb_connection_t *
 );
 
-extern Boolean XtCallAcceptFocus(
+extern Boolean IswCallAcceptFocus(
     Widget 		/* widget */,
     xcb_timestamp_t*		/* time */
 );
 
-extern Boolean XtAppPeekEvent(
-    XtAppContext 	/* app_context */,
+extern Boolean IswAppPeekEvent(
+    IswAppContext 	/* app_context */,
     xcb_generic_event_t*		/* event_return */
 );
 
-extern Boolean XtIsSubclass(
+extern Boolean IswIsSubclass(
     Widget 		/* widget */,
     WidgetClass 	/* widgetClass */
 );
 
-extern Boolean XtIsObject(
+extern Boolean IswIsObject(
     Widget 		/* object */
 );
 
-extern Boolean _XtCheckSubclassFlag( /* implementation-private */
+extern Boolean _IswCheckSubclassFlag( /* implementation-private */
     Widget		/* object */,
-    _XtXtEnum		/* type_flag */
+    _IswEnum		/* type_flag */
 );
 
-extern Boolean _XtIsSubclassOf( /* implementation-private */
+extern Boolean _IswIsSubclassOf( /* implementation-private */
     Widget		/* object */,
     WidgetClass		/* widget_class */,
     WidgetClass		/* flag_class */,
-    _XtXtEnum		/* type_flag */
+    _IswEnum		/* type_flag */
 );
 
-extern Boolean XtIsManaged(
+extern Boolean IswIsManaged(
     Widget 		/* rectobj */
 );
 
-extern Boolean XtIsRealized(
+extern Boolean IswIsRealized(
     Widget 		/* widget */
 );
 
-extern Boolean XtIsSensitive(
+extern Boolean IswIsSensitive(
     Widget 		/* widget */
 );
 
-extern Boolean XtOwnSelection(
+extern Boolean IswOwnSelection(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
     xcb_timestamp_t 		/* time */,
-    XtConvertSelectionProc /* convert */,
-    XtLoseSelectionProc	/* lose */,
-    XtSelectionDoneProc /* done */
+    IswConvertSelectionProc /* convert */,
+    IswLoseSelectionProc	/* lose */,
+    IswSelectionDoneProc /* done */
 );
 
-extern Boolean XtOwnSelectionIncremental(
+extern Boolean IswOwnSelectionIncremental(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
     xcb_timestamp_t 		/* time */,
-    XtConvertSelectionIncrProc	/* convert_callback */,
-    XtLoseSelectionIncrProc	/* lose_callback */,
-    XtSelectionDoneIncrProc	/* done_callback */,
-    XtCancelConvertSelectionProc /* cancel_callback */,
-    XtPointer 		/* client_data */
+    IswConvertSelectionIncrProc	/* convert_callback */,
+    IswLoseSelectionIncrProc	/* lose_callback */,
+    IswSelectionDoneIncrProc	/* done_callback */,
+    IswCancelConvertSelectionProc /* cancel_callback */,
+    IswPointer 		/* client_data */
 );
 
-extern XtGeometryResult XtMakeResizeRequest(
+extern IswGeometryResult IswMakeResizeRequest(
     Widget 		/* widget */,
-    _XtDimension	/* width */,
-    _XtDimension	/* height */,
+    _IswDimension	/* width */,
+    _IswDimension	/* height */,
     Dimension*		/* width_return */,
     Dimension*		/* height_return */
 );
 
-extern void XtTranslateCoords(
+extern void IswTranslateCoords(
     Widget 		/* widget */,
-    _XtPosition		/* x */,
-    _XtPosition		/* y */,
+    _IswPosition		/* x */,
+    _IswPosition		/* y */,
     Position*		/* rootx_return */,
     Position*		/* rooty_return */
 );
 
-extern xcb_key_symbols_t* XtGetKeysymTable(
+extern xcb_key_symbols_t* IswGetKeysymTable(
     xcb_connection_t *		/* dpy */,
     xcb_keycode_t *		/* min_keycode_return */,
     int*		/* keysyms_per_keycode_return */
 );
 
-extern void XtKeysymToKeycodeList(
+extern void IswKeysymToKeycodeList(
     xcb_connection_t *		/* dpy */,
     xcb_keysym_t 		/* keysym */,
     xcb_keycode_t**		/* keycodes_return */,
     Cardinal*		/* keycount_return */
 );
 
-extern void XtDisplayStringConversionWarning(
+extern void IswDisplayStringConversionWarning(
     xcb_connection_t *	 	/* dpy */,
-    _Xconst _XtString	/* from_value */,
-    _Xconst _XtString	/* to_type */
+    _Xconst _IswString	/* from_value */,
+    _Xconst _IswString	/* to_type */
 );
 
-externalref XtConvertArgRec const colorConvertArgs[];
-externalref XtConvertArgRec const screenConvertArg[];
+externalref IswConvertArgRec const colorConvertArgs[];
+externalref IswConvertArgRec const screenConvertArg[];
 
-extern void XtAppAddConverter( /* obsolete */
-    XtAppContext	/* app_context */,
-    _Xconst _XtString	/* from_type */,
-    _Xconst _XtString	/* to_type */,
-    XtConverter 	/* converter */,
-    XtConvertArgList	/* convert_args */,
+extern void IswAppAddConverter( /* obsolete */
+    IswAppContext	/* app_context */,
+    _Xconst _IswString	/* from_type */,
+    _Xconst _IswString	/* to_type */,
+    IswConverter 	/* converter */,
+    IswConvertArgList	/* convert_args */,
     Cardinal 		/* num_args */
 );
 
-extern void XtAddConverter( /* obsolete */
-    _Xconst _XtString	/* from_type */,
-    _Xconst _XtString 	/* to_type */,
-    XtConverter 	/* converter */,
-    XtConvertArgList 	/* convert_args */,
+extern void IswAddConverter( /* obsolete */
+    _Xconst _IswString	/* from_type */,
+    _Xconst _IswString 	/* to_type */,
+    IswConverter 	/* converter */,
+    IswConvertArgList 	/* convert_args */,
     Cardinal 		/* num_args */
 );
 
-extern void XtSetTypeConverter(
-    _Xconst _XtString 	/* from_type */,
-    _Xconst _XtString 	/* to_type */,
-    XtTypeConverter 	/* converter */,
-    XtConvertArgList 	/* convert_args */,
+extern void IswSetTypeConverter(
+    _Xconst _IswString 	/* from_type */,
+    _Xconst _IswString 	/* to_type */,
+    IswTypeConverter 	/* converter */,
+    IswConvertArgList 	/* convert_args */,
     Cardinal 		/* num_args */,
-    XtCacheType 	/* cache_type */,
-    XtDestructor 	/* destructor */
+    IswCacheType 	/* cache_type */,
+    IswDestructor 	/* destructor */
 );
 
-extern void XtAppSetTypeConverter(
-    XtAppContext 	/* app_context */,
-    _Xconst _XtString 	/* from_type */,
-    _Xconst _XtString 	/* to_type */,
-    XtTypeConverter 	/* converter */,
-    XtConvertArgList 	/* convert_args */,
+extern void IswAppSetTypeConverter(
+    IswAppContext 	/* app_context */,
+    _Xconst _IswString 	/* from_type */,
+    _Xconst _IswString 	/* to_type */,
+    IswTypeConverter 	/* converter */,
+    IswConvertArgList 	/* convert_args */,
     Cardinal 		/* num_args */,
-    XtCacheType 	/* cache_type */,
-    XtDestructor 	/* destructor */
+    IswCacheType 	/* cache_type */,
+    IswDestructor 	/* destructor */
 );
 
-//extern void XtConvert( /* obsolete */
+//extern void IswConvert( /* obsolete */
 //    Widget 		/* widget */,
-//    _Xconst _XtString 	/* from_type */,
+//    _Xconst _IswString 	/* from_type */,
 //    XrmValue*		/* from */,
-//    _Xconst _XtString 	/* to_type */,
+//    _Xconst _IswString 	/* to_type */,
 //    XrmValue*		/* to_return */
 //);
 //
-//extern void XtDirectConvert( /* obsolete */
-//    XtConverter 	/* converter */,
+//extern void IswDirectConvert( /* obsolete */
+//    IswConverter 	/* converter */,
 //    XrmValuePtr 	/* args */,
 //    Cardinal 		/* num_args */,
 //    XrmValuePtr 	/* from */,
@@ -700,86 +700,86 @@ extern void XtAppSetTypeConverter(
  *
  ****************************************************************/
 
-extern XtTranslations XtParseTranslationTable(
-    _Xconst _XtString	/* table */
+extern IswTranslations IswParseTranslationTable(
+    _Xconst _IswString	/* table */
 );
 
-extern XtAccelerators XtParseAcceleratorTable(
-    _Xconst _XtString	/* source */
+extern IswAccelerators IswParseAcceleratorTable(
+    _Xconst _IswString	/* source */
 );
 
-extern void XtOverrideTranslations(
+extern void IswOverrideTranslations(
     Widget 		/* widget */,
-    XtTranslations 	/* translations */
+    IswTranslations 	/* translations */
 );
 
-extern void XtAugmentTranslations(
+extern void IswAugmentTranslations(
     Widget 		/* widget */,
-    XtTranslations 	/* translations */
+    IswTranslations 	/* translations */
 );
 
-extern void XtInstallAccelerators(
+extern void IswInstallAccelerators(
     Widget 		/* destination */,
     Widget		/* source */
 );
 
-extern void XtInstallAllAccelerators(
+extern void IswInstallAllAccelerators(
     Widget 		/* destination */,
     Widget		/* source */
 );
 
-extern void XtUninstallTranslations(
+extern void IswUninstallTranslations(
     Widget 		/* widget */
 );
 
-extern void XtAppAddActions(
-    XtAppContext 	/* app_context */,
-    XtActionList 	/* actions */,
+extern void IswAppAddActions(
+    IswAppContext 	/* app_context */,
+    IswActionList 	/* actions */,
     Cardinal 		/* num_actions */
 );
 
-extern XtActionHookId XtAppAddActionHook(
-    XtAppContext 	/* app_context */,
-    XtActionHookProc 	/* proc */,
-    XtPointer 		/* client_data */
+extern IswActionHookId IswAppAddActionHook(
+    IswAppContext 	/* app_context */,
+    IswActionHookProc 	/* proc */,
+    IswPointer 		/* client_data */
 );
 
-extern void XtRemoveActionHook(
-    XtActionHookId 	/* id */
+extern void IswRemoveActionHook(
+    IswActionHookId 	/* id */
 );
 
-extern void XtGetActionList(
+extern void IswGetActionList(
     WidgetClass		/* widget_class */,
-    XtActionList*	/* actions_return */,
+    IswActionList*	/* actions_return */,
     Cardinal*		/* num_actions_return */
 );
 
-extern void XtCallActionProc(
+extern void IswCallActionProc(
     Widget		/* widget */,
-    _Xconst _XtString	/* action */,
+    _Xconst _IswString	/* action */,
     xcb_generic_event_t*		/* event */,
     String*		/* params */,
     Cardinal		/* num_params */
 );
 
-extern void XtRegisterGrabAction(
-    XtActionProc 	/* action_proc */,
-    _XtBoolean 		/* owner_events */,
+extern void IswRegisterGrabAction(
+    IswActionProc 	/* action_proc */,
+    _IswBoolean 		/* owner_events */,
     unsigned int 	/* event_mask */,
     int			/* pointer_mode */,
     int	 		/* keyboard_mode */
 );
 
-extern void XtSetMultiClickTime(
+extern void IswSetMultiClickTime(
     xcb_connection_t *		/* dpy */,
     int 		/* milliseconds */
 );
 
-extern int XtGetMultiClickTime(
+extern int IswGetMultiClickTime(
     xcb_connection_t *		/* dpy */
 );
 
-extern xcb_keysym_t XtGetActionKeysym(
+extern xcb_keysym_t IswGetActionKeysym(
     xcb_generic_event_t*		/* event */,
     Modifiers*		/* modifiers_return */,
     xcb_connection_t *
@@ -791,35 +791,35 @@ extern xcb_keysym_t XtGetActionKeysym(
  *
  ****************************************************************/
 
-extern void XtTranslateKeycode(
+extern void IswTranslateKeycode(
     xcb_connection_t *		/* dpy */,
-    _XtKeyCode 		/* keycode */,
+    _IswKeyCode 		/* keycode */,
     Modifiers 		/* modifiers */,
     Modifiers*		/* modifiers_return */,
     xcb_keysym_t*		/* keysym_return */
 );
 
-extern void XtTranslateKey(
+extern void IswTranslateKey(
     xcb_connection_t *		/* dpy */,
-    _XtKeyCode		/* keycode */,
+    _IswKeyCode		/* keycode */,
     Modifiers		/* modifiers */,
     Modifiers*		/* modifiers_return */,
     xcb_keysym_t*		/* keysym_return */
 );
 
-extern void XtSetKeyTranslator(
+extern void IswSetKeyTranslator(
     xcb_connection_t *		/* dpy */,
-    XtKeyProc 		/* proc */
+    IswKeyProc 		/* proc */
 );
 
-extern void XtRegisterCaseConverter(
+extern void IswRegisterCaseConverter(
     xcb_connection_t *		/* dpy */,
-    XtCaseProc 		/* proc */,
+    IswCaseProc 		/* proc */,
     xcb_keysym_t 		/* start */,
     xcb_keysym_t 		/* stop */
 );
 
-extern void XtConvertCase(
+extern void IswConvertCase(
     xcb_connection_t *		/* dpy */,
     xcb_keysym_t 		/* keysym */,
     xcb_keysym_t*		/* lower_return */,
@@ -832,118 +832,118 @@ extern void XtConvertCase(
  *
  ****************************************************************/
 
-/* XtAllEvents is valid only for XtRemoveEventHandler and
- * XtRemoveRawEventHandler; don't use it to select events!
+/* IswAllEvents is valid only for IswRemoveEventHandler and
+ * IswRemoveRawEventHandler; don't use it to select events!
  */
-#define XtAllEvents ((EventMask) -1L)
+#define IswAllEvents ((EventMask) -1L)
 
-extern void XtAddEventHandler(
+extern void IswAddEventHandler(
     Widget 		/* widget */,
     EventMask 		/* event_mask */,
-    _XtBoolean 		/* nonmaskable */,
-    XtEventHandler 	/* proc */,
-    XtPointer 		/* closure */
+    _IswBoolean 		/* nonmaskable */,
+    IswEventHandler 	/* proc */,
+    IswPointer 		/* closure */
 );
 
-extern void XtRemoveEventHandler(
+extern void IswRemoveEventHandler(
     Widget 		/* widget */,
     EventMask 		/* event_mask */,
-    _XtBoolean 		/* nonmaskable */,
-    XtEventHandler 	/* proc */,
-    XtPointer 		/* closure */
+    _IswBoolean 		/* nonmaskable */,
+    IswEventHandler 	/* proc */,
+    IswPointer 		/* closure */
 );
 
-extern void XtAddRawEventHandler(
+extern void IswAddRawEventHandler(
     Widget 		/* widget */,
     EventMask 		/* event_mask */,
-    _XtBoolean 		/* nonmaskable */,
-    XtEventHandler 	/* proc */,
-    XtPointer 		/* closure */
+    _IswBoolean 		/* nonmaskable */,
+    IswEventHandler 	/* proc */,
+    IswPointer 		/* closure */
 );
 
-extern void XtRemoveRawEventHandler(
+extern void IswRemoveRawEventHandler(
     Widget 		/* widget */,
     EventMask 		/* event_mask */,
-    _XtBoolean 		/* nonmaskable */,
-    XtEventHandler 	/* proc */,
-    XtPointer 		/* closure */
+    _IswBoolean 		/* nonmaskable */,
+    IswEventHandler 	/* proc */,
+    IswPointer 		/* closure */
 );
 
-extern void XtInsertEventHandler(
+extern void IswInsertEventHandler(
     Widget 		/* widget */,
     EventMask 		/* event_mask */,
-    _XtBoolean 		/* nonmaskable */,
-    XtEventHandler 	/* proc */,
-    XtPointer 		/* closure */,
-    XtListPosition 	/* position */
+    _IswBoolean 		/* nonmaskable */,
+    IswEventHandler 	/* proc */,
+    IswPointer 		/* closure */,
+    IswListPosition 	/* position */
 );
 
-extern void XtInsertRawEventHandler(
+extern void IswInsertRawEventHandler(
     Widget 		/* widget */,
     EventMask 		/* event_mask */,
-    _XtBoolean 		/* nonmaskable */,
-    XtEventHandler 	/* proc */,
-    XtPointer 		/* closure */,
-    XtListPosition 	/* position */
+    _IswBoolean 		/* nonmaskable */,
+    IswEventHandler 	/* proc */,
+    IswPointer 		/* closure */,
+    IswListPosition 	/* position */
 );
 
-extern XtEventDispatchProc XtSetEventDispatcher(
+extern IswEventDispatchProc IswSetEventDispatcher(
     xcb_connection_t *		/* dpy */,
     int			/* event_type */,
-    XtEventDispatchProc	/* proc */
+    IswEventDispatchProc	/* proc */
 );
 
-extern Boolean XtDispatchEventToWidget(
+extern Boolean IswDispatchEventToWidget(
     Widget		                /* widget */,
     xcb_generic_event_t*		/* event */
 );
 
-extern void XtInsertEventTypeHandler(
+extern void IswInsertEventTypeHandler(
     Widget		/* widget */,
     int			/* type */,
-    XtPointer		/* select_data */,
-    XtEventHandler	/* proc */,
-    XtPointer		/* closure */,
-    XtListPosition	/* position */
+    IswPointer		/* select_data */,
+    IswEventHandler	/* proc */,
+    IswPointer		/* closure */,
+    IswListPosition	/* position */
 );
 
-extern void XtRemoveEventTypeHandler(
+extern void IswRemoveEventTypeHandler(
     Widget		/* widget */,
     int			/* type */,
-    XtPointer		/* select_data */,
-    XtEventHandler	/* proc */,
-    XtPointer		/* closure */
+    IswPointer		/* select_data */,
+    IswEventHandler	/* proc */,
+    IswPointer		/* closure */
 );
 
-extern EventMask XtBuildEventMask(
+extern EventMask IswBuildEventMask(
     Widget 		/* widget */
 );
 
-extern void XtRegisterExtensionSelector(
+extern void IswRegisterExtensionSelector(
     xcb_connection_t *		/* dpy */,
     int			/* min_event_type */,
     int			/* max_event_type */,
-    XtExtensionSelectProc /* proc */,
-    XtPointer		/* client_data */
+    IswExtensionSelectProc /* proc */,
+    IswPointer		/* client_data */
 );
 
-extern void XtAddGrab(
+extern void IswAddGrab(
     Widget 		/* widget */,
-    _XtBoolean 		/* exclusive */,
-    _XtBoolean 		/* spring_loaded */
+    _IswBoolean 		/* exclusive */,
+    _IswBoolean 		/* spring_loaded */
 );
 
-extern void XtRemoveGrab(
+extern void IswRemoveGrab(
     Widget 		/* widget */
 );
 
-extern void XtAppProcessEvent(
-    XtAppContext 		/* app_context */,
-    XtInputMask 		/* mask */
+extern void IswAppProcessEvent(
+    IswAppContext 		/* app_context */,
+    IswInputMask 		/* mask */
 );
 
-extern void XtAppMainLoop(
-    XtAppContext 		/* app_context */
+extern void IswAppMainLoop(
+    IswAppContext 		/* app_context */
 );
 
 void get_region_bounding_box(
@@ -952,26 +952,26 @@ void get_region_bounding_box(
     xcb_rectangle_t*
 );
 
-extern void XtAddExposureToRegion(
+extern void IswAddExposureToRegion(
     xcb_connection_t *, 
     xcb_generic_event_t *, 
     xcb_xfixes_region_t
 );
 
-extern void XtSetKeyboardFocus(
+extern void IswSetKeyboardFocus(
     Widget		/* subtree */,
     Widget 		/* descendent */
 );
 
-extern Widget XtGetKeyboardFocusWidget(
+extern Widget IswGetKeyboardFocusWidget(
     Widget		/* widget */
 );
 
-extern xcb_generic_event_t* XtLastEventProcessed(
+extern xcb_generic_event_t* IswLastEventProcessed(
     xcb_connection_t *		/* dpy */
 );
 
-extern xcb_timestamp_t XtLastTimestampProcessed(
+extern xcb_timestamp_t IswLastTimestampProcessed(
     xcb_connection_t *		/* dpy */
 );
 
@@ -981,78 +981,78 @@ extern xcb_timestamp_t XtLastTimestampProcessed(
  *
  ****************************************************************/
 
-extern XtIntervalId XtAppAddTimeOut(
-    XtAppContext 	/* app_context */,
+extern IswIntervalId IswAppAddTimeOut(
+    IswAppContext 	/* app_context */,
     unsigned long 	/* interval */,
-    XtTimerCallbackProc /* proc */,
-    XtPointer 		/* closure */
+    IswTimerCallbackProc /* proc */,
+    IswPointer 		/* closure */
 );
 
-extern void XtRemoveTimeOut(
-    XtIntervalId 	/* timer */
+extern void IswRemoveTimeOut(
+    IswIntervalId 	/* timer */
 );
 
-extern XtInputId XtAppAddInput(
-    XtAppContext       	/* app_context */,
+extern IswInputId IswAppAddInput(
+    IswAppContext       	/* app_context */,
     int 		/* source */,
-    XtPointer 		/* condition */,
-    XtInputCallbackProc /* proc */,
-    XtPointer 		/* closure */
+    IswPointer 		/* condition */,
+    IswInputCallbackProc /* proc */,
+    IswPointer 		/* closure */
 );
 
-extern void XtRemoveInput(
-    XtInputId 		/* id */
+extern void IswRemoveInput(
+    IswInputId 		/* id */
 );
 
-extern XtSignalId XtAddSignal(
-    XtSignalCallbackProc /* proc */,
-    XtPointer		/* closure */);
+extern IswSignalId IswAddSignal(
+    IswSignalCallbackProc /* proc */,
+    IswPointer		/* closure */);
 
-extern XtSignalId XtAppAddSignal(
-    XtAppContext       	/* app_context */,
-    XtSignalCallbackProc /* proc */,
-    XtPointer 		/* closure */
+extern IswSignalId IswAppAddSignal(
+    IswAppContext       	/* app_context */,
+    IswSignalCallbackProc /* proc */,
+    IswPointer 		/* closure */
 );
 
-extern void XtRemoveSignal(
-    XtSignalId 		/* id */
+extern void IswRemoveSignal(
+    IswSignalId 		/* id */
 );
 
-extern void XtNoticeSignal(
-    XtSignalId		/* id */
+extern void IswNoticeSignal(
+    IswSignalId		/* id */
 );
 
-extern void XtNextEvent( /* obsolete */
+extern void IswNextEvent( /* obsolete */
     xcb_generic_event_t* 		/* event */
 );
 
-extern void XtAppNextEvent(
-    XtAppContext 	/* app_context */,
+extern void IswAppNextEvent(
+    IswAppContext 	/* app_context */,
     xcb_generic_event_t*		/* event_return */
 );
 
-#define XtIMXEvent		1
-#define XtIMTimer		2
-#define XtIMAlternateInput	4
-#define XtIMSignal		8
-#define XtIMAll (XtIMXEvent | XtIMTimer | XtIMAlternateInput | XtIMSignal)
+#define IswIMXEvent		1
+#define IswIMTimer		2
+#define IswIMAlternateInput	4
+#define IswIMSignal		8
+#define IswIMAll (IswIMXEvent | IswIMTimer | IswIMAlternateInput | IswIMSignal)
 
-extern Boolean XtPending( /* obsolete */
+extern Boolean IswPending( /* obsolete */
     void
 );
 
-extern XtInputMask XtAppPending(
-    XtAppContext 	/* app_context */
+extern IswInputMask IswAppPending(
+    IswAppContext 	/* app_context */
 );
 
-extern XtBlockHookId XtAppAddBlockHook(
-    XtAppContext 	/* app_context */,
-    XtBlockHookProc 	/* proc */,
-    XtPointer 		/* client_data */
+extern IswBlockHookId IswAppAddBlockHook(
+    IswAppContext 	/* app_context */,
+    IswBlockHookProc 	/* proc */,
+    IswPointer 		/* client_data */
 );
 
-extern void XtRemoveBlockHook(
-    XtBlockHookId 	/* id */
+extern void IswRemoveBlockHook(
+    IswBlockHookId 	/* id */
 );
 
 /****************************************************************
@@ -1061,72 +1061,72 @@ extern void XtRemoveBlockHook(
  *
  ****************************************************************/
 
-#define XtIsRectObj(object)	(_XtCheckSubclassFlag(object, (XtEnum)0x02))
-#define XtIsWidget(object)	(_XtCheckSubclassFlag(object, (XtEnum)0x04))
-#define XtIsComposite(widget)	(_XtCheckSubclassFlag(widget, (XtEnum)0x08))
-#define XtIsConstraint(widget)	(_XtCheckSubclassFlag(widget, (XtEnum)0x10))
-#define XtIsShell(widget)	(_XtCheckSubclassFlag(widget, (XtEnum)0x20))
+#define IswIsRectObj(object)	(_IswCheckSubclassFlag(object, (IswEnum)0x02))
+#define IswIsWidget(object)	(_IswCheckSubclassFlag(object, (IswEnum)0x04))
+#define IswIsComposite(widget)	(_IswCheckSubclassFlag(widget, (IswEnum)0x08))
+#define IswIsConstraint(widget)	(_IswCheckSubclassFlag(widget, (IswEnum)0x10))
+#define IswIsShell(widget)	(_IswCheckSubclassFlag(widget, (IswEnum)0x20))
 
-#undef XtIsOverrideShell
-extern Boolean XtIsOverrideShell(Widget /* object */);
-#define XtIsOverrideShell(widget) \
-    (_XtIsSubclassOf(widget, (WidgetClass)overrideShellWidgetClass, \
-		     (WidgetClass)shellWidgetClass, (XtEnum)0x20))
+#undef IswIsOverrideShell
+extern Boolean IswIsOverrideShell(Widget /* object */);
+#define IswIsOverrideShell(widget) \
+    (_IswIsSubclassOf(widget, (WidgetClass)overrideShellWidgetClass, \
+		     (WidgetClass)shellWidgetClass, (IswEnum)0x20))
 
-#define XtIsWMShell(widget)	(_XtCheckSubclassFlag(widget, (XtEnum)0x40))
+#define IswIsWMShell(widget)	(_IswCheckSubclassFlag(widget, (IswEnum)0x40))
 
-#undef XtIsVendorShell
-extern Boolean XtIsVendorShell(Widget /* object */);
-#define XtIsVendorShell(widget)	\
-    (_XtIsSubclassOf(widget, (WidgetClass)vendorShellWidgetClass, \
-		     (WidgetClass)wmShellWidgetClass, (XtEnum)0x40))
+#undef IswIsVendorShell
+extern Boolean IswIsVendorShell(Widget /* object */);
+#define IswIsVendorShell(widget)	\
+    (_IswIsSubclassOf(widget, (WidgetClass)vendorShellWidgetClass, \
+		     (WidgetClass)wmShellWidgetClass, (IswEnum)0x40))
 
-#undef XtIsTransientShell
-extern Boolean XtIsTransientShell(Widget /* object */);
-#define XtIsTransientShell(widget) \
-    (_XtIsSubclassOf(widget, (WidgetClass)transientShellWidgetClass, \
-		     (WidgetClass)wmShellWidgetClass, (XtEnum)0x40))
-#define XtIsTopLevelShell(widget) (_XtCheckSubclassFlag(widget, (XtEnum)0x80))
+#undef IswIsTransientShell
+extern Boolean IswIsTransientShell(Widget /* object */);
+#define IswIsTransientShell(widget) \
+    (_IswIsSubclassOf(widget, (WidgetClass)transientShellWidgetClass, \
+		     (WidgetClass)wmShellWidgetClass, (IswEnum)0x40))
+#define IswIsTopLevelShell(widget) (_IswCheckSubclassFlag(widget, (IswEnum)0x80))
 
-#undef XtIsApplicationShell
-extern Boolean XtIsApplicationShell(Widget /* object */);
-#define XtIsApplicationShell(widget) \
-    (_XtIsSubclassOf(widget, (WidgetClass)applicationShellWidgetClass, \
-		     (WidgetClass)topLevelShellWidgetClass, (XtEnum)0x80))
+#undef IswIsApplicationShell
+extern Boolean IswIsApplicationShell(Widget /* object */);
+#define IswIsApplicationShell(widget) \
+    (_IswIsSubclassOf(widget, (WidgetClass)applicationShellWidgetClass, \
+		     (WidgetClass)topLevelShellWidgetClass, (IswEnum)0x80))
 
-extern void XtRealizeWidget(
+extern void IswRealizeWidget(
     Widget 		/* widget */
 );
 
-void XtUnrealizeWidget(
+void IswUnrealizeWidget(
     Widget 		/* widget */
 );
 
-extern void XtDestroyWidget(
+extern void IswDestroyWidget(
     Widget 		/* widget */
 );
 
-extern void XtSetSensitive(
+extern void IswSetSensitive(
     Widget 		/* widget */,
-    _XtBoolean 		/* sensitive */
+    _IswBoolean 		/* sensitive */
 );
 
-extern void XtSetMappedWhenManaged(
+extern void IswSetMappedWhenManaged(
     Widget 		/* widget */,
-    _XtBoolean 		/* mapped_when_managed */
+    _IswBoolean 		/* mapped_when_managed */
 );
 
-extern Widget XtNameToWidget(
+extern Widget IswNameToWidget(
     Widget 		/* reference */,
-    _Xconst _XtString	/* names */
+    _Xconst _IswString	/* names */
 );
 
-extern Widget XtWindowToWidget(
+extern Widget IswWindowToWidget(
     xcb_connection_t*		/* xcb_connection_t */,
     xcb_window_t 		/* window */
 );
 
-extern XtPointer XtGetClassExtension(
+extern IswPointer IswGetClassExtension(
     WidgetClass		/* object_class */,
     Cardinal		/* byte_offset */,
     XrmQuark		/* type */,
@@ -1141,10 +1141,10 @@ extern XtPointer XtGetClassExtension(
  ****************************************************************/
 
 
-#define XtSetArg(arg, n, d) \
-    ((void)( (arg).name = (n), (arg).value = (XtArgVal)(d) ))
+#define IswSetArg(arg, n, d) \
+    ((void)( (arg).name = (n), (arg).value = (IswArgVal)(d) ))
 
-extern ArgList XtMergeArgLists(
+extern ArgList IswMergeArgLists(
     ArgList 		/* args1 */,
     Cardinal 		/* num_args1 */,
     ArgList 		/* args2 */,
@@ -1157,11 +1157,11 @@ extern ArgList XtMergeArgLists(
  *
  ****************************************************************/
 
-#define XtVaNestedList  "XtVaNestedList"
-#define XtVaTypedArg    "XtVaTypedArg"
+#define IswVaNestedList  "IswVaNestedList"
+#define IswVaTypedArg    "IswVaTypedArg"
 
-extern XtVarArgsList XtVaCreateArgsList(
-    XtPointer		/*unused*/, ...
+extern IswVarArgsList IswVaCreateArgsList(
+    IswPointer		/*unused*/, ...
 ) _X_SENTINEL(0);
 
 /*************************************************************
@@ -1170,107 +1170,107 @@ extern XtVarArgsList XtVaCreateArgsList(
  *
  ************************************************************/
 
-#ifndef _XtIntrinsicP_h
+#ifndef _IswIntrinsicP_h
 
 /* We're not included from the private file, so define these */
 
-extern xcb_connection_t *XtDisplay(
+extern xcb_connection_t *IswDisplay(
     Widget 		/* widget */
 );
 
-extern xcb_connection_t *XtDisplayOfObject(
+extern xcb_connection_t *IswDisplayOfObject(
     Widget 		/* object */
 );
 
-extern xcb_screen_t *XtScreen(
+extern xcb_screen_t *IswScreen(
     Widget 		/* widget */
 );
 
-extern xcb_screen_t *XtScreenOfObject(
+extern xcb_screen_t *IswScreenOfObject(
     Widget 		/* object */
 );
 
-extern xcb_window_t XtWindow(
+extern xcb_window_t IswWindow(
     Widget 		/* widget */
 );
 
-extern xcb_window_t XtWindowOfObject(
+extern xcb_window_t IswWindowOfObject(
     Widget 		/* object */
 );
 
-extern String XtName(
+extern String IswName(
     Widget 		/* object */
 );
 
-extern WidgetClass XtSuperclass(
+extern WidgetClass IswSuperclass(
     Widget 		/* object */
 );
 
-extern WidgetClass XtClass(
+extern WidgetClass IswClass(
     Widget 		/* object */
 );
 
-extern Widget XtParent(
+extern Widget IswParent(
     Widget 		/* widget */
 );
 
-#endif /*_XtIntrinsicP_h*/
+#endif /*_IswIntrinsicP_h*/
 
-#undef XtMapWidget
-extern void XtMapWidget(Widget /* w */);
-#define XtMapWidget(widget)	do { xcb_map_window(XtDisplay(widget), XtWindow(widget)); xcb_flush(XtDisplay(widget)); } while(0)
+#undef IswMapWidget
+extern void IswMapWidget(Widget /* w */);
+#define IswMapWidget(widget)	do { xcb_map_window(IswDisplay(widget), IswWindow(widget)); xcb_flush(IswDisplay(widget)); } while(0)
 
-#undef XtUnmapWidget
-extern void XtUnmapWidget(Widget /* w */);
-#define XtUnmapWidget(widget)	do { xcb_unmap_window(XtDisplay(widget), XtWindow(widget)); xcb_flush(XtDisplay(widget)); } while(0)
+#undef IswUnmapWidget
+extern void IswUnmapWidget(Widget /* w */);
+#define IswUnmapWidget(widget)	do { xcb_unmap_window(IswDisplay(widget), IswWindow(widget)); xcb_flush(IswDisplay(widget)); } while(0)
 
-extern void XtAddCallback(
+extern void IswAddCallback(
     Widget 		/* widget */,
-    _Xconst _XtString 	/* callback_name */,
-    XtCallbackProc 	/* callback */,
-    XtPointer 		/* closure */
+    _Xconst _IswString 	/* callback_name */,
+    IswCallbackProc 	/* callback */,
+    IswPointer 		/* closure */
 );
 
-extern void XtRemoveCallback(
+extern void IswRemoveCallback(
     Widget 		/* widget */,
-    _Xconst _XtString 	/* callback_name */,
-    XtCallbackProc 	/* callback */,
-    XtPointer 		/* closure */
+    _Xconst _IswString 	/* callback_name */,
+    IswCallbackProc 	/* callback */,
+    IswPointer 		/* closure */
 );
 
-extern void XtAddCallbacks(
+extern void IswAddCallbacks(
     Widget 		/* widget */,
-    _Xconst _XtString	/* callback_name */,
-    XtCallbackList 	/* callbacks */
+    _Xconst _IswString	/* callback_name */,
+    IswCallbackList 	/* callbacks */
 );
 
-extern void XtRemoveCallbacks(
+extern void IswRemoveCallbacks(
     Widget 		/* widget */,
-    _Xconst _XtString 	/* callback_name */,
-    XtCallbackList 	/* callbacks */
+    _Xconst _IswString 	/* callback_name */,
+    IswCallbackList 	/* callbacks */
 );
 
-extern void XtRemoveAllCallbacks(
+extern void IswRemoveAllCallbacks(
     Widget 		/* widget */,
-    _Xconst _XtString 	/* callback_name */
+    _Xconst _IswString 	/* callback_name */
 );
 
 
-extern void XtCallCallbacks(
+extern void IswCallCallbacks(
     Widget 		/* widget */,
-    _Xconst _XtString 	/* callback_name */,
-    XtPointer 		/* call_data */
+    _Xconst _IswString 	/* callback_name */,
+    IswPointer 		/* call_data */
 );
 
-extern void XtCallCallbackList(
+extern void IswCallCallbackList(
     Widget		/* widget */,
-    XtCallbackList 	/* callbacks */,
-    XtPointer 		/* call_data */
+    IswCallbackList 	/* callbacks */,
+    IswPointer 		/* call_data */
 );
 
-extern XtCallbackStatus XtHasCallbacks(
+extern IswCallbackStatus IswHasCallbacks(
     Widget 		/* widget */,
-    _Xconst _XtString 	/* callback_name */
+    _Xconst _IswString 	/* callback_name */
 );
 
 /****************************************************************
@@ -1280,119 +1280,119 @@ extern XtCallbackStatus XtHasCallbacks(
  ****************************************************************/
 
 
-extern XtGeometryResult XtMakeGeometryRequest(
+extern IswGeometryResult IswMakeGeometryRequest(
     Widget 		/* widget */,
-    XtWidgetGeometry*	/* request */,
-    XtWidgetGeometry*	/* reply_return */
+    IswWidgetGeometry*	/* request */,
+    IswWidgetGeometry*	/* reply_return */
 );
 
-extern XtGeometryResult XtQueryGeometry(
+extern IswGeometryResult IswQueryGeometry(
     Widget 		/* widget */,
-    XtWidgetGeometry*	/* intended */,
-    XtWidgetGeometry*	/* preferred_return */
+    IswWidgetGeometry*	/* intended */,
+    IswWidgetGeometry*	/* preferred_return */
 );
 
-extern Widget XtCreatePopupShell(
-    _Xconst _XtString	/* name */,
+extern Widget IswCreatePopupShell(
+    _Xconst _IswString	/* name */,
     WidgetClass 	/* widgetClass */,
     Widget 		/* parent */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern Widget XtVaCreatePopupShell(
-    _Xconst _XtString	/* name */,
+extern Widget IswVaCreatePopupShell(
+    _Xconst _IswString	/* name */,
     WidgetClass		/* widgetClass */,
     Widget		/* parent */,
     ...
 ) _X_SENTINEL(0);
 
-extern void XtPopup(
+extern void IswPopup(
     Widget 		/* popup_shell */,
-    XtGrabKind 		/* grab_kind */
+    IswGrabKind 		/* grab_kind */
 );
 
-extern void XtPopupSpringLoaded(
+extern void IswPopupSpringLoaded(
     Widget 		/* popup_shell */
 );
 
-extern void XtCallbackNone(
+extern void IswCallbackNone(
     Widget 		/* widget */,
-    XtPointer 		/* closure */,
-    XtPointer 		/* call_data */
+    IswPointer 		/* closure */,
+    IswPointer 		/* call_data */
 );
 
-extern void XtCallbackNonexclusive(
+extern void IswCallbackNonexclusive(
     Widget 		/* widget */,
-    XtPointer 		/* closure */,
-    XtPointer 		/* call_data */
+    IswPointer 		/* closure */,
+    IswPointer 		/* call_data */
 );
 
-extern void XtCallbackExclusive(
+extern void IswCallbackExclusive(
     Widget 		/* widget */,
-    XtPointer 		/* closure */,
-    XtPointer 		/* call_data */
+    IswPointer 		/* closure */,
+    IswPointer 		/* call_data */
 );
 
-extern void XtPopdown(
+extern void IswPopdown(
     Widget 		/* popup_shell */
 );
 
-extern void XtCallbackPopdown(
+extern void IswCallbackPopdown(
     Widget 		/* widget */,
-    XtPointer 		/* closure */,
-    XtPointer 		/* call_data */
+    IswPointer 		/* closure */,
+    IswPointer 		/* call_data */
 );
 
-extern void XtMenuPopupAction(
+extern void IswMenuPopupAction(
     Widget 		/* widget */,
     xcb_generic_event_t*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
 
-extern Widget XtCreateWidget(
-    _Xconst _XtString 	/* name */,
+extern Widget IswCreateWidget(
+    _Xconst _IswString 	/* name */,
     WidgetClass 	/* widget_class */,
     Widget 		/* parent */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern Widget XtCreateManagedWidget(
-    _Xconst _XtString 	/* name */,
+extern Widget IswCreateManagedWidget(
+    _Xconst _IswString 	/* name */,
     WidgetClass 	/* widget_class */,
     Widget 		/* parent */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern Widget XtVaCreateWidget(
-    _Xconst _XtString	/* name */,
+extern Widget IswVaCreateWidget(
+    _Xconst _IswString	/* name */,
     WidgetClass		/* widget */,
     Widget		/* parent */,
     ...
 ) _X_SENTINEL(0);
 
-extern Widget XtVaCreateManagedWidget(
-    _Xconst _XtString	/* name */,
+extern Widget IswVaCreateManagedWidget(
+    _Xconst _IswString	/* name */,
     WidgetClass		/* widget_class */,
     Widget		/* parent */,
     ...
 ) _X_SENTINEL(0);
 
-extern Widget XtAppCreateShell(
-    _Xconst _XtString	/* application_name */,
-    _Xconst _XtString	/* application_class */,
+extern Widget IswAppCreateShell(
+    _Xconst _IswString	/* application_name */,
+    _Xconst _IswString	/* application_class */,
     WidgetClass 	/* widget_class */,
     xcb_connection_t*		/* xcb_connection_t */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern Widget XtVaAppCreateShell(
-    _Xconst _XtString	/* application_name */,
-    _Xconst _XtString	/* application_class */,
+extern Widget IswVaAppCreateShell(
+    _Xconst _IswString	/* application_name */,
+    _Xconst _IswString	/* application_class */,
     WidgetClass		/* widget_class */,
     xcb_connection_t*		/* xcb_connection_t */,
     ...
@@ -1404,242 +1404,242 @@ extern Widget XtVaAppCreateShell(
  *
  ****************************************************************/
 
-extern void XtToolkitInitialize(
+extern void IswToolkitInitialize(
     void
 );
 
-extern XtLanguageProc XtSetLanguageProc(
-    XtAppContext	/* app_context */,
-    XtLanguageProc	/* proc */,
-    XtPointer		/* client_data */
+extern IswLanguageProc IswSetLanguageProc(
+    IswAppContext	/* app_context */,
+    IswLanguageProc	/* proc */,
+    IswPointer		/* client_data */
 );
 
-extern void XtDisplayInitialize(
-    XtAppContext 	/* app_context */,
+extern void IswDisplayInitialize(
+    IswAppContext 	/* app_context */,
     xcb_connection_t *		/* dpy */,
-    _Xconst _XtString	/* application_name */,
-    _Xconst _XtString	/* application_class */,
+    _Xconst _IswString	/* application_name */,
+    _Xconst _IswString	/* application_class */,
     //XrmOptionDescRec* 	/* options */,
     Cardinal 		/* num_options */,
     int*		/* argc */,
-    _XtString*		/* argv */
+    _IswString*		/* argv */
 );
 
-extern Widget XtOpenApplication(
-    XtAppContext*	/* app_context_return */,
-    _Xconst _XtString	/* application_class */,
+extern Widget IswOpenApplication(
+    IswAppContext*	/* app_context_return */,
+    _Xconst _IswString	/* application_class */,
     XrmOptionDescList 	/* options */,
     Cardinal 		/* num_options */,
     int*		/* argc_in_out */,
-    _XtString*		/* argv_in_out */,
+    _IswString*		/* argv_in_out */,
     String*		/* fallback_resources */,
     WidgetClass		/* widget_class */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern Widget XtVaOpenApplication(
-    XtAppContext*	/* app_context_return */,
-    _Xconst _XtString	/* application_class */,
+extern Widget IswVaOpenApplication(
+    IswAppContext*	/* app_context_return */,
+    _Xconst _IswString	/* application_class */,
     XrmOptionDescList	/* options */,
     Cardinal		/* num_options */,
     int*		/* argc_in_out */,
-    _XtString*		/* argv_in_out */,
+    _IswString*		/* argv_in_out */,
     String*		/* fallback_resources */,
     WidgetClass		/* widget_class */,
     ...
 ) _X_SENTINEL(0);
 
-extern Widget XtAppInitialize( /* obsolete */
-    XtAppContext*	/* app_context_return */,
-    _Xconst _XtString	/* application_class */,
+extern Widget IswAppInitialize( /* obsolete */
+    IswAppContext*	/* app_context_return */,
+    _Xconst _IswString	/* application_class */,
     XrmOptionDescList 	/* options */,
     Cardinal 		/* num_options */,
     int*		/* argc_in_out */,
-    _XtString*		/* argv_in_out */,
+    _IswString*		/* argv_in_out */,
     String*		/* fallback_resources */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern Widget XtVaAppInitialize( /* obsolete */
-    XtAppContext*	/* app_context_return */,
-    _Xconst _XtString	/* application_class */,
+extern Widget IswVaAppInitialize( /* obsolete */
+    IswAppContext*	/* app_context_return */,
+    _Xconst _IswString	/* application_class */,
     XrmOptionDescList	/* options */,
     Cardinal		/* num_options */,
     int*		/* argc_in_out */,
-    _XtString*		/* argv_in_out */,
+    _IswString*		/* argv_in_out */,
     String*		/* fallback_resources */,
     ...
 ) _X_SENTINEL(0);
 
-extern xcb_connection_t *XtOpenDisplay(
-    XtAppContext 	/* app_context */,
-    _Xconst _XtString	/* display_string */,
-    _Xconst _XtString	/* application_name */,
-    _Xconst _XtString	/* application_class */,
+extern xcb_connection_t *IswOpenDisplay(
+    IswAppContext 	/* app_context */,
+    _Xconst _IswString	/* display_string */,
+    _Xconst _IswString	/* application_name */,
+    _Xconst _IswString	/* application_class */,
     XrmOptionDescRec*	/* options */,
     Cardinal 		/* num_options */,
     int*		/* argc */,
-    _XtString*		/* argv */
+    _IswString*		/* argv */
 );
 
-extern XtAppContext XtCreateApplicationContext(
+extern IswAppContext IswCreateApplicationContext(
     void
 );
 
-extern void XtAppSetFallbackResources(
-    XtAppContext 	/* app_context */,
+extern void IswAppSetFallbackResources(
+    IswAppContext 	/* app_context */,
     String*		/* specification_list */
 );
 
-extern void XtDestroyApplicationContext(
-    XtAppContext 	/* app_context */
+extern void IswDestroyApplicationContext(
+    IswAppContext 	/* app_context */
 );
 
-extern void XtInitializeWidgetClass(
+extern void IswInitializeWidgetClass(
     WidgetClass 	/* widget_class */
 );
 
-extern XtAppContext XtWidgetToApplicationContext(
+extern IswAppContext IswWidgetToApplicationContext(
     Widget 		/* widget */
 );
 
-extern XtAppContext XtDisplayToApplicationContext(
+extern IswAppContext IswDisplayToApplicationContext(
     xcb_connection_t *		/* dpy */
 );
 
-extern XrmDatabase XtDatabase(
+extern XrmDatabase IswDatabase(
     xcb_connection_t *		/* dpy */
 );
 
-extern XrmDatabase XtScreenDatabase(
+extern XrmDatabase IswScreenDatabase(
     xcb_screen_t*		/* xcb_screen_t */
 );
 
-extern void XtCloseDisplay(
+extern void IswCloseDisplay(
     xcb_connection_t *		/* dpy */
 );
 
-extern void XtGetApplicationResources(
+extern void IswGetApplicationResources(
     Widget 		/* widget */,
-    XtPointer 		/* base */,
-    XtResourceList 	/* resources */,
+    IswPointer 		/* base */,
+    IswResourceList 	/* resources */,
     Cardinal 		/* num_resources */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern void XtVaGetApplicationResources(
+extern void IswVaGetApplicationResources(
     Widget		/* widget */,
-    XtPointer		/* base */,
-    XtResourceList	/* resources */,
+    IswPointer		/* base */,
+    IswResourceList	/* resources */,
     Cardinal		/* num_resources */,
     ...
 ) _X_SENTINEL(0);
 
-extern void XtGetSubresources(
+extern void IswGetSubresources(
     Widget 		/* widget */,
-    XtPointer 		/* base */,
-    _Xconst _XtString 	/* name */,
-    _Xconst _XtString 	/* class */,
-    XtResourceList 	/* resources */,
+    IswPointer 		/* base */,
+    _Xconst _IswString 	/* name */,
+    _Xconst _IswString 	/* class */,
+    IswResourceList 	/* resources */,
     Cardinal 		/* num_resources */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern void XtVaGetSubresources(
+extern void IswVaGetSubresources(
     Widget		/* widget */,
-    XtPointer		/* base */,
-    _Xconst _XtString	/* name */,
-    _Xconst _XtString	/* class */,
-    XtResourceList	/* resources */,
+    IswPointer		/* base */,
+    _Xconst _IswString	/* name */,
+    _Xconst _IswString	/* class */,
+    IswResourceList	/* resources */,
     Cardinal		/* num_resources */,
     ...
 ) _X_SENTINEL(0);
 
-extern void XtSetValues(
+extern void IswSetValues(
     Widget 		/* widget */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern void XtVaSetValues(
+extern void IswVaSetValues(
     Widget		/* widget */,
     ...
 ) _X_SENTINEL(0);
 
-extern void XtGetValues(
+extern void IswGetValues(
     Widget 		/* widget */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern void XtVaGetValues(
+extern void IswVaGetValues(
     Widget		/* widget */,
     ...
 ) _X_SENTINEL(0);
 
-extern void XtSetSubvalues(
-    XtPointer 		/* base */,
-    XtResourceList 	/* resources */,
+extern void IswSetSubvalues(
+    IswPointer 		/* base */,
+    IswResourceList 	/* resources */,
     Cardinal 		/* num_resources */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern void XtVaSetSubvalues(
-    XtPointer		/* base */,
-    XtResourceList	/* resources */,
+extern void IswVaSetSubvalues(
+    IswPointer		/* base */,
+    IswResourceList	/* resources */,
     Cardinal		/* num_resources */,
     ...
 ) _X_SENTINEL(0);
 
-extern void XtGetSubvalues(
-    XtPointer 		/* base */,
-    XtResourceList 	/* resources */,
+extern void IswGetSubvalues(
+    IswPointer 		/* base */,
+    IswResourceList 	/* resources */,
     Cardinal 		/* num_resources */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
 
-extern void XtVaGetSubvalues(
-    XtPointer		/* base */,
-    XtResourceList	/* resources */,
+extern void IswVaGetSubvalues(
+    IswPointer		/* base */,
+    IswResourceList	/* resources */,
     Cardinal		/* num_resources */,
     ...
 ) _X_SENTINEL(0);
 
-extern void XtGetResourceList(
+extern void IswGetResourceList(
     WidgetClass 	/* widget_class */,
-    XtResourceList*	/* resources_return */,
+    IswResourceList*	/* resources_return */,
     Cardinal*		/* num_resources_return */
 );
 
-extern void XtGetConstraintResourceList(
+extern void IswGetConstraintResourceList(
     WidgetClass 	/* widget_class */,
-    XtResourceList*	/* resources_return */,
+    IswResourceList*	/* resources_return */,
     Cardinal*		/* num_resources_return */
 );
 
-#define XtUnspecifiedPixmap	((xcb_pixmap_t)2)
-#define XtUnspecifiedShellInt	(-1)
-#define XtUnspecifiedWindow	((xcb_window_t)2)
-#define XtUnspecifiedWindowGroup ((xcb_window_t)3)
-#define XtCurrentDirectory	"XtCurrentDirectory"
-#define XtDefaultForeground	"XtDefaultForeground"
-#define XtDefaultBackground	"XtDefaultBackground"
-#define XtDefaultFont		"XtDefaultFont"
-#define XtDefaultFontSet	"XtDefaultFontSet"
+#define IswUnspecifiedPixmap	((xcb_pixmap_t)2)
+#define IswUnspecifiedShellInt	(-1)
+#define IswUnspecifiedWindow	((xcb_window_t)2)
+#define IswUnspecifiedWindowGroup ((xcb_window_t)3)
+#define IswCurrentDirectory	"IswCurrentDirectory"
+#define IswDefaultForeground	"IswDefaultForeground"
+#define IswDefaultBackground	"IswDefaultBackground"
+#define IswDefaultFont		"IswDefaultFont"
+#define IswDefaultFontSet	"IswDefaultFontSet"
 
-#define XtOffset(p_type,field) \
+#define IswOffset(p_type,field) \
 	((Cardinal) (((char *) (&(((p_type)NULL)->field))) - ((char *) NULL)))
 
 #ifdef offsetof
-#define XtOffsetOf(s_type,field) offsetof(s_type,field)
+#define IswOffsetOf(s_type,field) offsetof(s_type,field)
 #else
-#define XtOffsetOf(s_type,field) XtOffset(s_type*,field)
+#define IswOffsetOf(s_type,field) IswOffset(s_type*,field)
 #endif
 
 /*************************************************************
@@ -1648,115 +1648,115 @@ extern void XtGetConstraintResourceList(
  *
  ************************************************************/
 
-extern XtErrorMsgHandler XtAppSetErrorMsgHandler(
-    XtAppContext 	/* app_context */,
-    XtErrorMsgHandler 	/* handler */ _X_NORETURN
+extern IswErrorMsgHandler IswAppSetErrorMsgHandler(
+    IswAppContext 	/* app_context */,
+    IswErrorMsgHandler 	/* handler */ _X_NORETURN
 );
 
-extern void XtSetErrorMsgHandler( /* obsolete */
-    XtErrorMsgHandler 	/* handler */ _X_NORETURN
+extern void IswSetErrorMsgHandler( /* obsolete */
+    IswErrorMsgHandler 	/* handler */ _X_NORETURN
 );
 
-extern XtErrorMsgHandler XtAppSetWarningMsgHandler(
-    XtAppContext 	/* app_context */,
-    XtErrorMsgHandler 	/* handler */
+extern IswErrorMsgHandler IswAppSetWarningMsgHandler(
+    IswAppContext 	/* app_context */,
+    IswErrorMsgHandler 	/* handler */
 );
 
-extern void XtSetWarningMsgHandler( /* obsolete */
-    XtErrorMsgHandler 	/* handler */
+extern void IswSetWarningMsgHandler( /* obsolete */
+    IswErrorMsgHandler 	/* handler */
 );
 
-extern void XtAppErrorMsg(
-    XtAppContext 	/* app_context */,
-    _Xconst _XtString 	/* name */,
-    _Xconst _XtString	/* type */,
-    _Xconst _XtString	/* class */,
-    _Xconst _XtString	/* default */,
+extern void IswAppErrorMsg(
+    IswAppContext 	/* app_context */,
+    _Xconst _IswString 	/* name */,
+    _Xconst _IswString	/* type */,
+    _Xconst _IswString	/* class */,
+    _Xconst _IswString	/* default */,
     String*		/* params */,
     Cardinal*		/* num_params */
 ) _X_NORETURN;
 
-extern void XtErrorMsg( /* obsolete */
-    _Xconst _XtString 	/* name */,
-    _Xconst _XtString	/* type */,
-    _Xconst _XtString	/* class */,
-    _Xconst _XtString	/* default */,
+extern void IswErrorMsg( /* obsolete */
+    _Xconst _IswString 	/* name */,
+    _Xconst _IswString	/* type */,
+    _Xconst _IswString	/* class */,
+    _Xconst _IswString	/* default */,
     String*		/* params */,
     Cardinal*		/* num_params */
 ) _X_NORETURN;
 
-extern void XtAppWarningMsg(
-    XtAppContext 	/* app_context */,
-    _Xconst _XtString 	/* name */,
-    _Xconst _XtString 	/* type */,
-    _Xconst _XtString 	/* class */,
-    _Xconst _XtString 	/* default */,
+extern void IswAppWarningMsg(
+    IswAppContext 	/* app_context */,
+    _Xconst _IswString 	/* name */,
+    _Xconst _IswString 	/* type */,
+    _Xconst _IswString 	/* class */,
+    _Xconst _IswString 	/* default */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
 
-extern void XtWarningMsg( /* obsolete */
-    _Xconst _XtString	/* name */,
-    _Xconst _XtString	/* type */,
-    _Xconst _XtString	/* class */,
-    _Xconst _XtString	/* default */,
+extern void IswWarningMsg( /* obsolete */
+    _Xconst _IswString	/* name */,
+    _Xconst _IswString	/* type */,
+    _Xconst _IswString	/* class */,
+    _Xconst _IswString	/* default */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
 
-extern XtErrorHandler XtAppSetErrorHandler(
-    XtAppContext 	/* app_context */,
-    XtErrorHandler 	/* handler */ _X_NORETURN
+extern IswErrorHandler IswAppSetErrorHandler(
+    IswAppContext 	/* app_context */,
+    IswErrorHandler 	/* handler */ _X_NORETURN
 );
 
-extern XtErrorHandler XtAppSetWarningHandler(
-    XtAppContext 	/* app_context */,
-    XtErrorHandler 	/* handler */
+extern IswErrorHandler IswAppSetWarningHandler(
+    IswAppContext 	/* app_context */,
+    IswErrorHandler 	/* handler */
 );
 
-extern void XtAppError(
-    XtAppContext 	/* app_context */,
-    _Xconst _XtString	/* message */
+extern void IswAppError(
+    IswAppContext 	/* app_context */,
+    _Xconst _IswString	/* message */
 ) _X_NORETURN;
 
-extern void XtError( /* obsolete */
-    _Xconst _XtString	/* message */
+extern void IswError( /* obsolete */
+    _Xconst _IswString	/* message */
 ) _X_NORETURN;
 
-extern void XtAppWarning(
-    XtAppContext 	/* app_context */,
-    _Xconst _XtString	/* message */
+extern void IswAppWarning(
+    IswAppContext 	/* app_context */,
+    _Xconst _IswString	/* message */
 );
 
-extern void XtWarning( /* obsolete */
-    _Xconst _XtString	/* message */
+extern void IswWarning( /* obsolete */
+    _Xconst _IswString	/* message */
 );
 
-extern XrmDatabase *XtAppGetErrorDatabase(
-    XtAppContext 	/* app_context */
+extern XrmDatabase *IswAppGetErrorDatabase(
+    IswAppContext 	/* app_context */
 );
 
-extern XrmDatabase *XtGetErrorDatabase( /* obsolete */
+extern XrmDatabase *IswGetErrorDatabase( /* obsolete */
     void
 );
 
-extern void XtAppGetErrorDatabaseText(
-    XtAppContext 	/* app_context */,
-    _Xconst _XtString	/* name */,
-    _Xconst _XtString	/* type */,
-    _Xconst _XtString	/* class */,
-    _Xconst _XtString 	/* default */,
-    _XtString 		/* buffer_return */,
+extern void IswAppGetErrorDatabaseText(
+    IswAppContext 	/* app_context */,
+    _Xconst _IswString	/* name */,
+    _Xconst _IswString	/* type */,
+    _Xconst _IswString	/* class */,
+    _Xconst _IswString 	/* default */,
+    _IswString 		/* buffer_return */,
     int 		/* nbytes */,
     XrmDatabase 	/* database */
 );
 
-extern void XtGetErrorDatabaseText( /* obsolete */
-    _Xconst _XtString	/* name */,
-    _Xconst _XtString	/* type */,
-    _Xconst _XtString	/* class */,
-    _Xconst _XtString 	/* default */,
-    _XtString 		/* buffer_return */,
+extern void IswGetErrorDatabaseText( /* obsolete */
+    _Xconst _IswString	/* name */,
+    _Xconst _IswString	/* type */,
+    _Xconst _IswString	/* class */,
+    _Xconst _IswString 	/* default */,
+    _IswString 		/* buffer_return */,
     int 		/* nbytes */
 );
 
@@ -1766,55 +1766,55 @@ extern void XtGetErrorDatabaseText( /* obsolete */
  *
  ****************************************************************/
 
-extern char *XtMalloc(
+extern char *IswMalloc(
     Cardinal 		/* size */
 );
 
-extern char *XtCalloc(
+extern char *IswCalloc(
     Cardinal		/* num */,
     Cardinal 		/* size */
 );
 
-extern char *XtRealloc(
+extern char *IswRealloc(
     char* 		/* ptr */,
     Cardinal 		/* num */
 );
 
-extern void *XtReallocArray(
+extern void *IswReallocArray(
     void * 		/* ptr */,
     Cardinal 		/* num */,
     Cardinal 		/* size */
 );
 
-extern void XtFree(
+extern void IswFree(
     char*		/* ptr */
 );
 
 #ifndef _X_RESTRICT_KYWD
 # define _X_RESTRICT_KYWD
 #endif
-extern Cardinal XtAsprintf(
-    _XtString *new_string,
+extern Cardinal IswAsprintf(
+    _IswString *new_string,
     _Xconst char * _X_RESTRICT_KYWD format,
     ...
 ) _X_ATTRIBUTE_PRINTF(2,3);
 
 #ifdef XTTRACEMEMORY
 
-extern char *_XtMalloc( /* implementation-private */
+extern char *_IswMalloc( /* implementation-private */
     Cardinal	/* size */,
     const char */* file */,
     int	        /* line */
 );
 
-extern char *_XtRealloc( /* implementation-private */
+extern char *_IswRealloc( /* implementation-private */
     char *	/* ptr */,
     Cardinal    /* size */,
     const char */* file */,
     int		/* line */
 );
 
-extern char *_XtReallocArray( /* implementation-private */
+extern char *_IswReallocArray( /* implementation-private */
     char *	/* ptr */,
     Cardinal	/* num */,
     Cardinal    /* size */,
@@ -1822,42 +1822,42 @@ extern char *_XtReallocArray( /* implementation-private */
     int		/* line */
 );
 
-extern char *_XtCalloc( /* implementation-private */
+extern char *_IswCalloc( /* implementation-private */
     Cardinal	/* num */,
     Cardinal 	/* size */,
     const char */* file */,
     int		/* line */
 );
 
-extern void _XtFree( /* implementation-private */
+extern void _IswFree( /* implementation-private */
     char *	/* ptr */
 );
 
-extern Boolean _XtIsValidPointer( /* implementation-private */
+extern Boolean _IswIsValidPointer( /* implementation-private */
     char *	/* ptr */);
 
-extern void _XtPrintMemory( /* implementation-private */
+extern void _IswPrintMemory( /* implementation-private */
     const char */* filename */);
 
-#define XtMalloc(size) _XtMalloc(size, __FILE__, __LINE__)
-#define XtRealloc(ptr,size) _XtRealloc(ptr, size, __FILE__, __LINE__)
-#define XtMallocArray(num,size) _XtReallocArray(NULL, num, size, __FILE__, __LINE__)
-#define XtReallocArray(ptr,num,size) _XtReallocArray(ptr, num, size, __FILE__, __LINE__)
-#define XtCalloc(num,size) _XtCalloc(num, size, __FILE__, __LINE__)
-#define XtFree(ptr) _XtFree(ptr)
+#define IswMalloc(size) _IswMalloc(size, __FILE__, __LINE__)
+#define IswRealloc(ptr,size) _IswRealloc(ptr, size, __FILE__, __LINE__)
+#define IswMallocArray(num,size) _IswReallocArray(NULL, num, size, __FILE__, __LINE__)
+#define IswReallocArray(ptr,num,size) _IswReallocArray(ptr, num, size, __FILE__, __LINE__)
+#define IswCalloc(num,size) _IswCalloc(num, size, __FILE__, __LINE__)
+#define IswFree(ptr) _IswFree(ptr)
 
 #else
 
-#define XtMallocArray(num,size) XtReallocArray(NULL, num, size)
+#define IswMallocArray(num,size) IswReallocArray(NULL, num, size)
 
 #endif /* ifdef XTTRACEMEMORY */
 
-#define XtNew(type) ((type *) XtMalloc((unsigned) sizeof(type)))
+#define IswNew(type) ((type *) IswMalloc((unsigned) sizeof(type)))
 
-#undef XtNewString
-extern String XtNewString(String /* str */);
-#define XtNewString(str) \
-    ((str) != NULL ? (strcpy(XtMalloc((unsigned)strlen(str) + 1), str)) : NULL)
+#undef IswNewString
+extern String IswNewString(String /* str */);
+#define IswNewString(str) \
+    ((str) != NULL ? (strcpy(IswMalloc((unsigned)strlen(str) + 1), str)) : NULL)
 
 /*************************************************************
  *
@@ -1865,63 +1865,63 @@ extern String XtNewString(String /* str */);
  *
  **************************************************************/
 
-extern XtWorkProcId XtAddWorkProc( /* obsolete */
-    XtWorkProc 		/* proc */,
-    XtPointer 		/* closure */
+extern IswWorkProcId IswAddWorkProc( /* obsolete */
+    IswWorkProc 		/* proc */,
+    IswPointer 		/* closure */
 );
 
-extern XtWorkProcId XtAppAddWorkProc(
-    XtAppContext 	/* app_context */,
-    XtWorkProc 		/* proc */,
-    XtPointer 		/* closure */
+extern IswWorkProcId IswAppAddWorkProc(
+    IswAppContext 	/* app_context */,
+    IswWorkProc 		/* proc */,
+    IswPointer 		/* closure */
 );
 
-extern void  XtRemoveWorkProc(
-    XtWorkProcId 	/* id */
+extern void  IswRemoveWorkProc(
+    IswWorkProcId 	/* id */
 );
 
 
 
 
-extern void XtAppReleaseCacheRefs(
-    XtAppContext	/* app_context */,
-    XtCacheRef*		/* cache_ref */
+extern void IswAppReleaseCacheRefs(
+    IswAppContext	/* app_context */,
+    IswCacheRef*		/* cache_ref */
 );
 
-extern void XtCallbackReleaseCacheRef(
+extern void IswCallbackReleaseCacheRef(
     Widget 		/* widget */,
-    XtPointer 		/* closure */,	/* XtCacheRef */
-    XtPointer 		/* call_data */
+    IswPointer 		/* closure */,	/* IswCacheRef */
+    IswPointer 		/* call_data */
 );
 
-extern void XtCallbackReleaseCacheRefList(
+extern void IswCallbackReleaseCacheRefList(
     Widget 		/* widget */,
-    XtPointer 		/* closure */,	/* XtCacheRef* */
-    XtPointer 		/* call_data */
+    IswPointer 		/* closure */,	/* IswCacheRef* */
+    IswPointer 		/* call_data */
 );
 
-extern void XtSetWMColormapWindows(
+extern void IswSetWMColormapWindows(
     Widget 		/* widget */,
     Widget*		/* list */,
     Cardinal		/* count */
 );
 
-extern _XtString XtFindFile(
-    _Xconst _XtString	/* path */,
+extern _IswString IswFindFile(
+    _Xconst _IswString	/* path */,
     Substitution	/* substitutions */,
     Cardinal 		/* num_substitutions */,
-    XtFilePredicate	/* predicate */
+    IswFilePredicate	/* predicate */
 );
 
-extern _XtString XtResolvePathname(
+extern _IswString IswResolvePathname(
     xcb_connection_t *		/* dpy */,
-    _Xconst _XtString	/* type */,
-    _Xconst _XtString	/* filename */,
-    _Xconst _XtString	/* suffix */,
-    _Xconst _XtString	/* path */,
+    _Xconst _IswString	/* type */,
+    _Xconst _IswString	/* filename */,
+    _Xconst _IswString	/* suffix */,
+    _Xconst _IswString	/* path */,
     Substitution	/* substitutions */,
     Cardinal		/* num_substitutions */,
-    XtFilePredicate 	/* predicate */
+    IswFilePredicate 	/* predicate */
 );
 
 /****************************************************************
@@ -1930,152 +1930,152 @@ extern _XtString XtResolvePathname(
  *
  *****************************************************************/
 
-#define XT_CONVERT_FAIL (xcb_atom_t)0x80000001
+#define ISW_CONVERT_FAIL (xcb_atom_t)0x80000001
 
-extern void XtDisownSelection(
+extern void IswDisownSelection(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
     xcb_timestamp_t 		/* time */
 );
 
-extern void XtGetSelectionValue(
+extern void IswGetSelectionValue(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
     xcb_atom_t 		/* target */,
-    XtSelectionCallbackProc /* callback */,
-    XtPointer 		/* closure */,
+    IswSelectionCallbackProc /* callback */,
+    IswPointer 		/* closure */,
     xcb_timestamp_t 		/* time */
 );
 
-extern void XtGetSelectionValues(
+extern void IswGetSelectionValues(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
     xcb_atom_t*		/* targets */,
     int 		/* count */,
-    XtSelectionCallbackProc /* callback */,
-    XtPointer*		/* closures */,
+    IswSelectionCallbackProc /* callback */,
+    IswPointer*		/* closures */,
     xcb_timestamp_t 		/* time */
 );
 
-extern void XtAppSetSelectionTimeout(
-    XtAppContext 	/* app_context */,
+extern void IswAppSetSelectionTimeout(
+    IswAppContext 	/* app_context */,
     unsigned long 	/* timeout */
 );
 
-extern void XtSetSelectionTimeout( /* obsolete */
+extern void IswSetSelectionTimeout( /* obsolete */
     unsigned long 	/* timeout */
 );
 
-extern unsigned long XtAppGetSelectionTimeout(
-    XtAppContext 	/* app_context */
+extern unsigned long IswAppGetSelectionTimeout(
+    IswAppContext 	/* app_context */
 );
 
-extern unsigned long XtGetSelectionTimeout( /* obsolete */
+extern unsigned long IswGetSelectionTimeout( /* obsolete */
     void
 );
 
-extern xcb_selection_request_event_t *XtGetSelectionRequest(
+extern xcb_selection_request_event_t *IswGetSelectionRequest(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
-    XtRequestId 	/* request_id */
+    IswRequestId 	/* request_id */
 );
 
-extern void XtGetSelectionValueIncremental(
+extern void IswGetSelectionValueIncremental(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
     xcb_atom_t 		/* target */,
-    XtSelectionCallbackProc /* selection_callback */,
-    XtPointer 		/* client_data */,
+    IswSelectionCallbackProc /* selection_callback */,
+    IswPointer 		/* client_data */,
     xcb_timestamp_t 		/* time */
 );
 
-extern void XtGetSelectionValuesIncremental(
+extern void IswGetSelectionValuesIncremental(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
     xcb_atom_t*		/* targets */,
     int 		/* count */,
-    XtSelectionCallbackProc /* callback */,
-    XtPointer*		/* client_data */,
+    IswSelectionCallbackProc /* callback */,
+    IswPointer*		/* client_data */,
     xcb_timestamp_t 		/* time */
 );
 
-extern void XtSetSelectionParameters(
+extern void IswSetSelectionParameters(
     Widget		/* requestor */,
     xcb_atom_t		/* selection */,
     xcb_atom_t		/* type */,
-    XtPointer		/* value */,
+    IswPointer		/* value */,
     unsigned long	/* length */,
     int			/* format */
 );
 
-extern void XtGetSelectionParameters(
+extern void IswGetSelectionParameters(
     Widget		/* owner */,
     xcb_atom_t		/* selection */,
-    XtRequestId		/* request_id */,
+    IswRequestId		/* request_id */,
     xcb_atom_t*		/* type_return */,
-    XtPointer*		/* value_return */,
+    IswPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
 );
 
-extern void XtCreateSelectionRequest(
+extern void IswCreateSelectionRequest(
     Widget		/* requestor */,
     xcb_atom_t		/* selection */
 );
 
-extern void XtSendSelectionRequest(
+extern void IswSendSelectionRequest(
     Widget		/* requestor */,
     xcb_atom_t		/* selection */,
     xcb_timestamp_t		/* time */
 );
 
-extern void XtCancelSelectionRequest(
+extern void IswCancelSelectionRequest(
     Widget		/* requestor */,
     xcb_atom_t		/* selection */
 );
 
-extern xcb_atom_t XtReservePropertyAtom(
+extern xcb_atom_t IswReservePropertyAtom(
     Widget		/* widget */
 );
 
-extern void XtReleasePropertyAtom(
+extern void IswReleasePropertyAtom(
     Widget		/* widget */,
     xcb_atom_t		/* selection */
 );
 
-extern void XtGrabKey(
+extern void IswGrabKey(
     Widget 		/* widget */,
-    _XtKeyCode 		/* keycode */,
+    _IswKeyCode 		/* keycode */,
     Modifiers	 	/* modifiers */,
-    _XtBoolean 		/* owner_events */,
+    _IswBoolean 		/* owner_events */,
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */
 );
 
-extern void XtUngrabKey(
+extern void IswUngrabKey(
     Widget 		/* widget */,
-    _XtKeyCode 		/* keycode */,
+    _IswKeyCode 		/* keycode */,
     Modifiers	 	/* modifiers */
 );
 
-extern int XtGrabKeyboard(
+extern int IswGrabKeyboard(
     Widget 		/* widget */,
-    _XtBoolean 		/* owner_events */,
+    _IswBoolean 		/* owner_events */,
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
     xcb_timestamp_t 		/* time */
 );
 
-extern void XtUngrabKeyboard(
+extern void IswUngrabKeyboard(
     Widget 		/* widget */,
     xcb_timestamp_t 		/* time */
 );
 
-extern void XtGrabButton(
+extern void IswGrabButton(
     Widget 		/* widget */,
     int 		/* button */,
     Modifiers	 	/* modifiers */,
-    _XtBoolean 		/* owner_events */,
+    _IswBoolean 		/* owner_events */,
     unsigned int	/* event_mask */,
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
@@ -2083,15 +2083,15 @@ extern void XtGrabButton(
     xcb_cursor_t 		/* cursor */
 );
 
-extern void XtUngrabButton(
+extern void IswUngrabButton(
     Widget 		/* widget */,
     unsigned int	/* button */,
     Modifiers	 	/* modifiers */
 );
 
-extern int XtGrabPointer(
+extern int IswGrabPointer(
     Widget 		/* widget */,
-    _XtBoolean 		/* owner_events */,
+    _IswBoolean 		/* owner_events */,
     unsigned int	/* event_mask */,
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
@@ -2100,29 +2100,29 @@ extern int XtGrabPointer(
     xcb_timestamp_t 		/* time */
 );
 
-extern void XtUngrabPointer(
+extern void IswUngrabPointer(
     Widget 		/* widget */,
     xcb_timestamp_t 		/* time */
 );
 
-extern void XtGetApplicationNameAndClass(
+extern void IswGetApplicationNameAndClass(
     xcb_connection_t *		/* dpy */,
     String*		/* name_return */,
     String*		/* class_return */
 );
 
-extern void XtRegisterDrawable(
+extern void IswRegisterDrawable(
     xcb_connection_t *		/* dpy */,
     xcb_drawable_t		/* drawable */,
     Widget		/* widget */
 );
 
-extern void XtUnregisterDrawable(
+extern void IswUnregisterDrawable(
     xcb_connection_t *		/* dpy */,
     xcb_drawable_t		/* drawable */
 );
 
-extern Widget XtHooksOfDisplay(
+extern Widget IswHooksOfDisplay(
     xcb_connection_t *		/* dpy */
 );
 
@@ -2131,25 +2131,25 @@ typedef struct {
     Widget widget;
     ArgList args;
     Cardinal num_args;
-} XtCreateHookDataRec, *XtCreateHookData;
+} IswCreateHookDataRec, *IswCreateHookData;
 
 typedef struct {
     String type;
     Widget widget;
-    XtPointer event_data;
+    IswPointer event_data;
     Cardinal num_event_data;
-} XtChangeHookDataRec, *XtChangeHookData;
+} IswChangeHookDataRec, *IswChangeHookData;
 
 typedef struct {
     Widget old, req;
     ArgList args;
     Cardinal num_args;
-} XtChangeHookSetValuesDataRec, *XtChangeHookSetValuesData;
+} IswChangeHookSetValuesDataRec, *IswChangeHookSetValuesData;
 
 typedef struct {
     String type;
     Widget widget;
-    XtGeometryMask changeMask;
+    IswGeometryMask changeMask;
     uint32_t changes_x;
     uint32_t changes_y;
     uint32_t changes_h;
@@ -2157,45 +2157,45 @@ typedef struct {
     uint32_t changes_bw;
     uint32_t changes_sm;
     uint32_t changes_sb;
-} XtConfigureHookDataRec, *XtConfigureHookData;
+} IswConfigureHookDataRec, *IswConfigureHookData;
 
 typedef struct {
     String type;
     Widget widget;
-    XtWidgetGeometry* request;
-    XtWidgetGeometry* reply;
-    XtGeometryResult result;
-} XtGeometryHookDataRec, *XtGeometryHookData;
+    IswWidgetGeometry* request;
+    IswWidgetGeometry* reply;
+    IswGeometryResult result;
+} IswGeometryHookDataRec, *IswGeometryHookData;
 
 typedef struct {
     String type;
     Widget widget;
-} XtDestroyHookDataRec, *XtDestroyHookData;
+} IswDestroyHookDataRec, *IswDestroyHookData;
 
-extern void XtGetDisplays(
-    XtAppContext	/* app_context */,
+extern void IswGetDisplays(
+    IswAppContext	/* app_context */,
     xcb_connection_t ***		/* dpy_return */,
     Cardinal*		/* num_dpy_return */
 );
 
-extern Boolean XtToolkitThreadInitialize(
+extern Boolean IswToolkitThreadInitialize(
     void
 );
 
-extern void XtAppSetExitFlag(
-    XtAppContext	/* app_context */
+extern void IswAppSetExitFlag(
+    IswAppContext	/* app_context */
 );
 
-extern Boolean XtAppGetExitFlag(
-    XtAppContext	/* app_context */
+extern Boolean IswAppGetExitFlag(
+    IswAppContext	/* app_context */
 );
 
-extern void XtAppLock(
-    XtAppContext	/* app_context */
+extern void IswAppLock(
+    IswAppContext	/* app_context */
 );
 
-extern void XtAppUnlock(
-    XtAppContext	/* app_context */
+extern void IswAppUnlock(
+    IswAppContext	/* app_context */
 );
 
 /*
@@ -2205,311 +2205,311 @@ extern void XtAppUnlock(
 
 /* String converters */
 
-extern Boolean XtCvtStringToAcceleratorTable(
+extern Boolean IswCvtStringToAcceleratorTable(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToAtom(
+extern Boolean IswCvtStringToAtom(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToBool(
+extern Boolean IswCvtStringToBool(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToBoolean(
+extern Boolean IswCvtStringToBoolean(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToCommandArgArray(
+extern Boolean IswCvtStringToCommandArgArray(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToCursor(
+extern Boolean IswCvtStringToCursor(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToDimension(
+extern Boolean IswCvtStringToDimension(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToDirectoryString(
+extern Boolean IswCvtStringToDirectoryString(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToDisplay(
+extern Boolean IswCvtStringToDisplay(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToFile(
+extern Boolean IswCvtStringToFile(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToFloat(
+extern Boolean IswCvtStringToFloat(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToFont(
+extern Boolean IswCvtStringToFont(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToFontSet(
+extern Boolean IswCvtStringToFontSet(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* Display, locale */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToFontStruct(
+extern Boolean IswCvtStringToFontStruct(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToGravity(
+extern Boolean IswCvtStringToGravity(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToInitialState(
+extern Boolean IswCvtStringToInitialState(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToInt(
+extern Boolean IswCvtStringToInt(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToPixel(
+extern Boolean IswCvtStringToPixel(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* Screen, Colormap */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-#define XtCvtStringToPosition XtCvtStringToShort
+#define IswCvtStringToPosition IswCvtStringToShort
 
 
-extern Boolean XtCvtStringToShort(
+extern Boolean IswCvtStringToShort(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToTranslationTable(
+extern Boolean IswCvtStringToTranslationTable(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToUnsignedChar(
+extern Boolean IswCvtStringToUnsignedChar(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtStringToVisual(
+extern Boolean IswCvtStringToVisual(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* Screen, depth */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
 /* int converters */
 
-extern Boolean XtCvtIntToBool(
+extern Boolean IswCvtIntToBool(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtIntToBoolean(
+extern Boolean IswCvtIntToBoolean(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtIntToColor(
+extern Boolean IswCvtIntToColor(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* Screen, Colormap */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-#define XtCvtIntToDimension XtCvtIntToShort
+#define IswCvtIntToDimension IswCvtIntToShort
 
-extern Boolean XtCvtIntToFloat(
+extern Boolean IswCvtIntToFloat(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtIntToFont(
+extern Boolean IswCvtIntToFont(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtIntToPixel(
+extern Boolean IswCvtIntToPixel(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtIntToPixmap(
+extern Boolean IswCvtIntToPixmap(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-#define XtCvtIntToPosition XtCvtIntToShort
+#define IswCvtIntToPosition IswCvtIntToShort
 
-extern Boolean XtCvtIntToShort(
+extern Boolean IswCvtIntToShort(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
-extern Boolean XtCvtIntToUnsignedChar(
+extern Boolean IswCvtIntToUnsignedChar(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
 /* Color converter */
 
-extern Boolean XtCvtColorToPixel(
+extern Boolean IswCvtColorToPixel(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
+    IswPointer*	/* closure_ret */
 );
 
 /* Pixel converter */
 
-#define XtCvtPixelToColor XtCvtIntToColor
+#define IswCvtPixelToColor IswCvtIntToColor
 
 
 _XFUNCPROTOEND
 
-#endif /*_XtIntrinsic_h*/
+#endif /*_IswIntrinsic_h*/
 /* DON'T ADD STUFF AFTER THIS #endif */

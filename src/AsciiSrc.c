@@ -34,11 +34,11 @@ in this Software without prior written authorization from the X Consortium.
 #include "config.h"
 #endif
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
+#include <ISW/IntrinsicP.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
-#include <X11/StringDefs.h>
+#include <ISW/StringDefs.h>
 #include <X11/Xos.h>
 #ifndef X_NOT_STDC_ENV
 #include <stdlib.h>
@@ -66,27 +66,27 @@ in this Software without prior written authorization from the X Consortium.
 
 static int magic_value = MAGIC_VALUE;
 
-#define offset(field) XtOffsetOf(AsciiSrcRec, ascii_src.field)
+#define offset(field) IswOffsetOf(AsciiSrcRec, ascii_src.field)
 
-static XtResource resources[] = {
-    {XtNstring, XtCString, XtRString, sizeof (char *),
-       offset(string), XtRString, NULL},
-    {XtNtype, XtCType, XtRAsciiType, sizeof (IswAsciiType),
-       offset(type), XtRImmediate, (XtPointer)IswAsciiString},
-    {XtNdataCompression, XtCDataCompression, XtRBoolean, sizeof (Boolean),
-       offset(data_compression), XtRImmediate, (XtPointer) TRUE},
-    {XtNpieceSize, XtCPieceSize, XtRInt, sizeof (ISWTextPosition),
-       offset(piece_size), XtRImmediate, (XtPointer) BUFSIZ},
-    {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-       offset(callback), XtRCallback, (XtPointer)NULL},
-    {XtNuseStringInPlace, XtCUseStringInPlace, XtRBoolean, sizeof (Boolean),
-       offset(use_string_in_place), XtRImmediate, (XtPointer) FALSE},
-    {XtNlength, XtCLength, XtRInt, sizeof (int),
-       offset(ascii_length), XtRInt, (XtPointer) &magic_value},
+static IswResource resources[] = {
+    {IswNstring, IswCString, IswRString, sizeof (char *),
+       offset(string), IswRString, NULL},
+    {IswNtype, IswCType, IswRAsciiType, sizeof (IswAsciiType),
+       offset(type), IswRImmediate, (IswPointer)IswAsciiString},
+    {IswNdataCompression, IswCDataCompression, IswRBoolean, sizeof (Boolean),
+       offset(data_compression), IswRImmediate, (IswPointer) TRUE},
+    {IswNpieceSize, IswCPieceSize, IswRInt, sizeof (ISWTextPosition),
+       offset(piece_size), IswRImmediate, (IswPointer) BUFSIZ},
+    {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+       offset(callback), IswRCallback, (IswPointer)NULL},
+    {IswNuseStringInPlace, IswCUseStringInPlace, IswRBoolean, sizeof (Boolean),
+       offset(use_string_in_place), IswRImmediate, (IswPointer) FALSE},
+    {IswNlength, IswCLength, IswRInt, sizeof (int),
+       offset(ascii_length), IswRInt, (IswPointer) &magic_value},
 
 #ifdef ASCII_DISK
-    {XtNfile, XtCFile, XtRString, sizeof (String),
-       offset(filename), XtRString, NULL},
+    {IswNfile, IswCFile, IswRString, sizeof (String),
+       offset(filename), IswRString, NULL},
 #endif /* ASCII_DISK */
 };
 #undef offset
@@ -113,7 +113,7 @@ static void GetValuesHook(Widget, ArgList, Cardinal *);
 static String MyStrncpy(char *, char *, int);
 static char * StorePiecesInString(AsciiSrcObject);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static Boolean WriteToFile(_Xconst _XtString, _Xconst _XtString);
+static Boolean WriteToFile(_Xconst _IswString, _Xconst _IswString);
 #ifdef X_NOT_STDC_ENV
 extern int errno;
 #endif
@@ -142,7 +142,7 @@ AsciiSrcClassRec asciiSrcClassRec = {
     /* actions		  	*/	NULL,
     /* num_actions	  	*/	0,
     /* resources	  	*/	resources,
-    /* num_resources	  	*/	XtNumber(resources),
+    /* num_resources	  	*/	IswNumber(resources),
     /* xrm_class	  	*/	NULLQUARK,
     /* compress_motion	  	*/	FALSE,
     /* compress_exposure  	*/	FALSE,
@@ -156,7 +156,7 @@ AsciiSrcClassRec asciiSrcClassRec = {
     /* set_values_almost	*/	NULL,
     /* get_values_hook		*/	GetValuesHook,
     /* accept_focus	 	*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private   	*/	NULL,
     /* tm_table		   	*/	NULL,
     /* query_geometry		*/	NULL,
@@ -169,8 +169,8 @@ AsciiSrcClassRec asciiSrcClassRec = {
     /* Replace                  */      ReplaceText,
     /* Scan                     */      Scan,
     /* Search                   */      Search,
-    /* SetSelection             */      XtInheritSetSelection,
-    /* ConvertSelection         */      XtInheritConvertSelection
+    /* SetSelection             */      IswInheritSetSelection,
+    /* ConvertSelection         */      IswInheritConvertSelection
   },
 /* asciiSrc_class fields */
   {
@@ -196,7 +196,7 @@ static void
 ClassInitialize(void)
 {
   IswInitializeWidgetSet();
-  XtAddConverter( XtRString, XtRAsciiType, CvtStringToAsciiType,
+  IswAddConverter( IswRString, IswRAsciiType, CvtStringToAsciiType,
 		 NULL, (Cardinal) 0);
 }
 
@@ -222,14 +222,14 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   src->text_src.text_format = IswFmt8Bit;	/* data format. */
 
 #ifdef ASCII_DISK
-  if (XtIsSubclass(XtParent(new), asciiDiskWidgetClass)) {
+  if (IswIsSubclass(IswParent(new), asciiDiskWidgetClass)) {
     src->ascii_src.type = IswAsciiFile;
     src->ascii_src.string = src->ascii_src.filename;
   }
 #endif
 
 #ifdef ASCII_STRING
-  if (XtIsSubclass(XtParent(new), asciiStringWidgetClass)) {
+  if (IswIsSubclass(IswParent(new), asciiStringWidgetClass)) {
     src->ascii_src.use_string_in_place = TRUE;
     src->ascii_src.type = IswAsciiString;
   }
@@ -390,7 +390,7 @@ ReplaceText (Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
   if (src->ascii_src.use_string_in_place)
     start_piece->text[start_piece->used] = '\0';
 
-  XtCallCallbacks(w, XtNcallback, NULL); /* Call callbacks, we have changed
+  IswCallCallbacks(w, IswNcallback, NULL); /* Call callbacks, we have changed
 					    the buffer. */
 
   return(IswEditDone);
@@ -565,7 +565,7 @@ Search(Widget w, ISWTextPosition position, IswTextScanDirection dir,
     position--;
   }
 
-  buf = XtMalloc((unsigned)sizeof(unsigned char) * text->length);
+  buf = IswMalloc((unsigned)sizeof(unsigned char) * text->length);
   strncpy(buf, (text->ptr + text->firstPos), text->length);
   piece = FindPiece(src, position, &first);
   ptr = (position - first) + piece->text;
@@ -593,7 +593,7 @@ Search(Widget w, ISWTextPosition position, IswTextScanDirection dir,
     while ( ptr < piece->text ) {
       piece = piece->prev;
       if (piece == NULL) {	/* Begining of text. */
-	XtFree(buf);
+	IswFree(buf);
 	return(IswTextSearchError);
       }
       ptr = piece->text + piece->used - 1;
@@ -602,14 +602,14 @@ Search(Widget w, ISWTextPosition position, IswTextScanDirection dir,
     while ( ptr >= (piece->text + piece->used) ) {
       piece = piece->next;
       if (piece == NULL) {	/* End of text. */
-	XtFree(buf);
+	IswFree(buf);
 	return(IswTextSearchError);
       }
       ptr = piece->text;
     }
   }
 
-  XtFree(buf);
+  IswFree(buf);
   if (dir == IswsdLeft)
     return(position);
   return(position - (text->length - 1));
@@ -636,14 +636,14 @@ SetValues(Widget current, Widget request, Widget new, ArgList args,
 
   if ( old_src->ascii_src.use_string_in_place !=
        src->ascii_src.use_string_in_place ) {
-      XtAppWarning( XtWidgetToApplicationContext(new),
-	   "AsciiSrc: The XtNuseStringInPlace resource may not be changed.");
+      IswAppWarning( IswWidgetToApplicationContext(new),
+	   "AsciiSrc: The IswNuseStringInPlace resource may not be changed.");
        src->ascii_src.use_string_in_place =
 	   old_src->ascii_src.use_string_in_place;
   }
 
   for (i = 0; i < *num_args ; i++ )
-      if (streq(args[i].name, XtNstring)) {
+      if (streq(args[i].name, IswNstring)) {
 	  string_set = TRUE;
 	  break;
       }
@@ -653,7 +653,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args,
     file = InitStringOrFile(src, string_set);	/* Init new info. */
     LoadPieces(src, file, NULL);    /* load new info into internal buffers. */
     if (file != NULL) fclose(file);
-    IswTextSetSource( XtParent(new), new, 0);   /* Tell text widget
+    IswTextSetSource( IswParent(new), new, 0);   /* Tell text widget
 						   what happened. */
     total_reset = TRUE;
   }
@@ -666,7 +666,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args,
       String string = StorePiecesInString(old_src);
       FreeAllPieces(old_src);
       LoadPieces(src, NULL, string);
-      XtFree(string);
+      IswFree(string);
   }
 
   return(FALSE);
@@ -689,7 +689,7 @@ GetValuesHook(Widget w, ArgList args, Cardinal * num_args)
 
   if (src->ascii_src.type == IswAsciiString) {
     for (i = 0; i < *num_args ; i++ )
-      if (streq(args[i].name, XtNstring)) {
+      if (streq(args[i].name, IswNstring)) {
 	  if (src->ascii_src.use_string_in_place) {
 	      *((char **) args[i].value) = src->ascii_src.first_piece->text;
 	  }
@@ -735,14 +735,14 @@ IswAsciiSourceFreeString(Widget w)
   /* If the src is really a multi, call the multi routine.*/
 
 #ifdef ISW_INTERNATIONALIZATION
-  if ( XtIsSubclass( w, multiSrcObjectClass ) ) {
+  if ( IswIsSubclass( w, multiSrcObjectClass ) ) {
       _ISWMultiSourceFreeString( w );
       return;
   }
   else
 #endif
-  if ( !XtIsSubclass( w, asciiSrcObjectClass ) ) {
-      XtErrorMsg("bad argument", "asciiSource", "IswError",
+  if ( !IswIsSubclass( w, asciiSrcObjectClass ) ) {
+      IswErrorMsg("bad argument", "asciiSource", "IswError",
 #ifdef ISW_INTERNATIONALIZATION
             "IswAsciiSourceFreeString's parameter must be an asciiSrc or multiSrc.",
 #else
@@ -753,7 +753,7 @@ IswAsciiSourceFreeString(Widget w)
 
   if (src->ascii_src.allocated_string && src->ascii_src.type != IswAsciiFile) {
     src->ascii_src.allocated_string = FALSE;
-    XtFree(src->ascii_src.string);
+    IswFree(src->ascii_src.string);
     src->ascii_src.string = NULL;
   }
 }
@@ -772,12 +772,12 @@ IswAsciiSave(Widget w)
   /* If the src is really a multi, call the multi save. */
 
 #ifdef ISW_INTERNATIONALIZATION
-  if ( XtIsSubclass( w, multiSrcObjectClass ) )
+  if ( IswIsSubclass( w, multiSrcObjectClass ) )
       return( _ISWMultiSave( w ) );
   else
 #endif
-  if ( !XtIsSubclass( w, asciiSrcObjectClass ) ) {
-      	XtErrorMsg("bad argument", "asciiSource", "IswError",
+  if ( !IswIsSubclass( w, asciiSrcObjectClass ) ) {
+      	IswErrorMsg("bad argument", "asciiSource", "IswError",
 #ifdef ISW_INTERNATIONALIZATION
 		"IswAsciiSave's parameter must be an asciiSrc or multiSrc.",
 #else
@@ -803,14 +803,14 @@ IswAsciiSave(Widget w)
     string = StorePiecesInString(src);
 
     if (WriteToFile(string, src->ascii_src.string) == FALSE) {
-      XtFree(string);
+      IswFree(string);
       return(FALSE);
     }
-    XtFree(string);
+    IswFree(string);
   }
   else {
     if (src->ascii_src.allocated_string == TRUE)
-      XtFree(src->ascii_src.string);
+      IswFree(src->ascii_src.string);
     else
       src->ascii_src.allocated_string = TRUE;
 
@@ -837,12 +837,12 @@ IswAsciiSaveAsFile(Widget w, _Xconst char* name)
   /* If the src is really a multi, call the multi save. - */
 
 #ifdef ISW_INTERNATIONALIZATION
-  if ( XtIsSubclass( w, multiSrcObjectClass ) )
+  if ( IswIsSubclass( w, multiSrcObjectClass ) )
       return( _ISWMultiSaveAsFile( w, name ) );
   else
 #endif
-  if ( !XtIsSubclass( w, asciiSrcObjectClass ) ) {
-      	XtErrorMsg("bad argument", "asciiSource", "IswError",
+  if ( !IswIsSubclass( w, asciiSrcObjectClass ) ) {
+      	IswErrorMsg("bad argument", "asciiSource", "IswError",
 #ifdef ISW_INTERNATIONALIZATION
 		"IswAsciiSaveAsFile's 1st parameter must be an asciiSrc or multiSrc.",
 #else
@@ -854,7 +854,7 @@ IswAsciiSaveAsFile(Widget w, _Xconst char* name)
   string = StorePiecesInString(src);
 
   ret = WriteToFile(string, name);
-  XtFree(string);
+  IswFree(string);
   return(ret);
 }
 
@@ -868,14 +868,14 @@ Boolean
 IswAsciiSourceChanged(Widget w)
 {
 #ifdef ISW_INTERNATIONALIZATION
-  if ( XtIsSubclass( w, multiSrcObjectClass ) )
+  if ( IswIsSubclass( w, multiSrcObjectClass ) )
       return( ( (MultiSrcObject) w )->multi_src.changes );
 #endif
 
-  if ( XtIsSubclass( w, asciiSrcObjectClass ) )
+  if ( IswIsSubclass( w, asciiSrcObjectClass ) )
       return( ( (AsciiSrcObject) w)->ascii_src.changes );
 
-  XtErrorMsg("bad argument", "asciiSource", "IswError",
+  IswErrorMsg("bad argument", "asciiSource", "IswError",
 #ifdef ISW_INTERNATIONALIZATION
 		"IswAsciiSourceChanged parameter must be an asciiSrc or multiSrc.",
 #else
@@ -898,7 +898,7 @@ RemoveOldStringOrFile(AsciiSrcObject src, Boolean checkString)
   FreeAllPieces(src);
 
   if (checkString && src->ascii_src.allocated_string) {
-    XtFree(src->ascii_src.string);
+    IswFree(src->ascii_src.string);
     src->ascii_src.allocated_string = False;
     src->ascii_src.string = NULL;
   }
@@ -913,7 +913,7 @@ RemoveOldStringOrFile(AsciiSrcObject src, Boolean checkString)
  */
 
 static Boolean
-WriteToFile(_Xconst _XtString string, _Xconst _XtString name)
+WriteToFile(_Xconst _IswString string, _Xconst _IswString name)
 {
   int fd;
 
@@ -940,7 +940,7 @@ StorePiecesInString(AsciiSrcObject src)
   ISWTextPosition first;
   Piece * piece;
 
-  string = XtMalloc((unsigned) sizeof(unsigned char) *
+  string = IswMalloc((unsigned) sizeof(unsigned char) *
 		    src->ascii_src.length + 1);
 
   for (first = 0, piece = src->ascii_src.first_piece ; piece != NULL;
@@ -980,7 +980,7 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
 	    src->ascii_src.length = 0;
 
 	else if (! src->ascii_src.use_string_in_place) {
-	    src->ascii_src.string = XtNewString(src->ascii_src.string);
+	    src->ascii_src.string = IswNewString(src->ascii_src.string);
 	    src->ascii_src.allocated_string = True;
 	    src->ascii_src.length = strlen(src->ascii_src.string);
 	}
@@ -1009,7 +1009,7 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
     switch (src->text_src.edit_mode) {
     case IswtextRead:
 	if (src->ascii_src.string == NULL)
-	    XtErrorMsg("NoFile", "asciiSourceCreate", "IswError",
+	    IswErrorMsg("NoFile", "asciiSourceCreate", "IswError",
 		     "Creating a read only disk widget and no file specified.",
 		       NULL, 0);
 	open_mode = "r";
@@ -1025,7 +1025,7 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
 	    open_mode = "r+";
 	break;
     default:
-	XtErrorMsg("badMode", "asciiSourceCreate", "IswError",
+	IswErrorMsg("badMode", "asciiSourceCreate", "IswError",
 		"Bad editMode for ascii source; must be Read, Append or Edit.",
 		   NULL, NULL);
     }
@@ -1036,7 +1036,7 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
      * in this routine, and its former setting is unused.
      */
     if (newString || src->ascii_src.is_tempfile) {
-	src->ascii_src.string = XtNewString(src->ascii_src.string);
+	src->ascii_src.string = IswNewString(src->ascii_src.string);
 	src->ascii_src.allocated_string = TRUE;
     }
 
@@ -1051,7 +1051,7 @@ InitStringOrFile(AsciiSrcObject src, Boolean newString)
 
 	    params[0] = src->ascii_src.string;
 	    params[1] = strerror(errno);
-	    XtAppWarningMsg(XtWidgetToApplicationContext((Widget)src),
+	    IswAppWarningMsg(IswWidgetToApplicationContext((Widget)src),
 			    "openError", "asciiSourceCreate", "IswWarning",
 			    "Cannot open file %s; %s", params, &num_params);
 	}
@@ -1069,14 +1069,14 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
 
   if (string == NULL) {
     if (src->ascii_src.type == IswAsciiFile) {
-      local_str = XtMalloc((unsigned) (src->ascii_src.length + 1)
+      local_str = IswMalloc((unsigned) (src->ascii_src.length + 1)
 			   * sizeof(unsigned char));
       if (src->ascii_src.length != 0) {
 	fseek(file, (Off_t)0, 0);
 	src->ascii_src.length = fread(local_str, (Size_t)sizeof(unsigned char),
 				      (Size_t)src->ascii_src.length, file);
 	if (src->ascii_src.length <= 0)
-	  XtErrorMsg("readError", "asciiSourceCreate", "IswError",
+	  IswErrorMsg("readError", "asciiSourceCreate", "IswError",
 		     "fread returned error.", NULL, NULL);
       }
       local_str[src->ascii_src.length] = '\0';
@@ -1100,7 +1100,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
   do {
     piece = AllocNewPiece(src, piece);
 
-    piece->text = XtMalloc((unsigned)src->ascii_src.piece_size
+    piece->text = IswMalloc((unsigned)src->ascii_src.piece_size
 			   * sizeof(unsigned char));
     piece->used = IswMin(left, src->ascii_src.piece_size);
     if (piece->used != 0)
@@ -1111,7 +1111,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
   } while (left > 0);
 
   if ( (src->ascii_src.type == IswAsciiFile) && (string == NULL) )
-    XtFree(local_str);
+    IswFree(local_str);
 }
 
 /*	Function Name: AllocNewPiece
@@ -1124,7 +1124,7 @@ LoadPieces(AsciiSrcObject src, FILE * file, char * string)
 static Piece *
 AllocNewPiece(AsciiSrcObject src, Piece * prev)
 {
-  Piece * piece = XtNew(Piece);
+  Piece * piece = IswNew(Piece);
 
   if (prev == NULL) {
     src->ascii_src.first_piece = piece;
@@ -1181,9 +1181,9 @@ RemovePiece(AsciiSrcObject src, Piece * piece)
     (piece->next)->prev = piece->prev;
 
   if (!src->ascii_src.use_string_in_place)
-    XtFree(piece->text);
+    IswFree(piece->text);
 
-  XtFree((char *)piece);
+  IswFree((char *)piece);
 }
 
 /*	Function Name: FindPiece
@@ -1227,12 +1227,12 @@ MyStrncpy(char * s1, char * s2, int n)
   if (n == 0) return s1;
 
   if (n < sizeof buf) temp = buf;
-  else temp = XtMalloc((unsigned)sizeof(unsigned char) * n);
+  else temp = IswMalloc((unsigned)sizeof(unsigned char) * n);
 
   strncpy(temp, s2, n);		/* Saber has a bug that causes it to generate*/
   strncpy(s1, temp, n);		/* a bogus warning message here (CDP 6/32/89)*/
 
-  if (temp != buf) XtFree(temp);
+  if (temp != buf) IswFree(temp);
   return s1;
 }
 
@@ -1250,7 +1250,7 @@ BreakPiece(AsciiSrcObject src, Piece * piece)
 {
   Piece * new = AllocNewPiece(src, piece);
 
-  new->text = XtMalloc(src->ascii_src.piece_size * sizeof(unsigned char));
+  new->text = IswMalloc(src->ascii_src.piece_size * sizeof(unsigned char));
   strncpy(new->text, piece->text + HALF_PIECE,
 	  src->ascii_src.piece_size - HALF_PIECE);
   piece->used = HALF_PIECE;
@@ -1263,29 +1263,29 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
                      XrmValuePtr toVal)
 {
   static IswAsciiType type;
-  static XrmQuark  XtQEstring = NULLQUARK;
-  static XrmQuark  XtQEfile;
+  static XrmQuark  IswQEstring = NULLQUARK;
+  static XrmQuark  IswQEfile;
   XrmQuark q;
   char lowerName[40];
 
-  if (XtQEstring == NULLQUARK) {
-    XtQEstring = XrmPermStringToQuark(XtEstring);
-    XtQEfile   = XrmPermStringToQuark(XtEfile);
+  if (IswQEstring == NULLQUARK) {
+    IswQEstring = XrmPermStringToQuark(IswEstring);
+    IswQEfile   = XrmPermStringToQuark(IswEfile);
   }
 
   if (strlen ((char*)fromVal->addr) < sizeof lowerName) {
     ISWCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
-    if (q == XtQEstring)     type = IswAsciiString;
-    else if (q == XtQEfile)  type = IswAsciiFile;
+    if (q == IswQEstring)     type = IswAsciiString;
+    else if (q == IswQEfile)  type = IswAsciiFile;
     else {
       toVal->size = 0;
       toVal->addr = NULL;
       return;
     }
     toVal->size = sizeof type;
-    toVal->addr = (XtPointer) &type;
+    toVal->addr = (IswPointer) &type;
     return;
   }
   toVal->size = 0;
@@ -1317,13 +1317,13 @@ IswStringSourceCreate(Widget parent, ArgList args, Cardinal num_args)
   ArgList ascii_args;
   Arg temp[2];
 
-  XtSetArg(temp[0], XtNtype, IswAsciiString);
-  XtSetArg(temp[1], XtNuseStringInPlace, TRUE);
-  ascii_args = XtMergeArgLists(temp, TWO, args, num_args);
+  IswSetArg(temp[0], IswNtype, IswAsciiString);
+  IswSetArg(temp[1], IswNuseStringInPlace, TRUE);
+  ascii_args = IswMergeArgLists(temp, TWO, args, num_args);
 
-  src = XtCreateWidget("genericAsciiString", asciiSrcObjectClass, parent,
+  src = IswCreateWidget("genericAsciiString", asciiSrcObjectClass, parent,
 		       ascii_args, num_args + TWO);
-  XtFree((char *)ascii_args);
+  IswFree((char *)ascii_args);
   return(src);
 }
 
@@ -1359,18 +1359,18 @@ IswDiskSourceCreate(Widget parent, ArgList args, Cardinal num_args)
   Arg temp[1];
   int i;
 
-  XtSetArg(temp[0], XtNtype, IswAsciiFile);
-  ascii_args = XtMergeArgLists(temp, ONE, args, num_args);
+  IswSetArg(temp[0], IswNtype, IswAsciiFile);
+  ascii_args = IswMergeArgLists(temp, ONE, args, num_args);
   num_args++;
 
   for (i = 0; i < num_args; i++)
-    if (streq(ascii_args[i].name, XtNfile) ||
-	          streq(ascii_args[i].name, XtCFile))
-      ascii_args[i].name = XtNstring;
+    if (streq(ascii_args[i].name, IswNfile) ||
+	          streq(ascii_args[i].name, IswCFile))
+      ascii_args[i].name = IswNstring;
 
-  src = XtCreateWidget("genericAsciiDisk", asciiSrcObjectClass, parent,
+  src = IswCreateWidget("genericAsciiDisk", asciiSrcObjectClass, parent,
 		       ascii_args, num_args);
-  XtFree((char *)ascii_args);
+  IswFree((char *)ascii_args);
   return(src);
 }
 #endif /* ASCII_DISK */

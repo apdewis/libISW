@@ -50,27 +50,27 @@ SOFTWARE.
 #include "IntrinsicI.h"
 
 void
-XtCallbackNone(Widget widget, XtPointer closure, XtPointer call_data _X_UNUSED)
+IswCallbackNone(Widget widget, IswPointer closure, IswPointer call_data _X_UNUSED)
 {
-    XtSetSensitive(widget, FALSE);
-    _XtPopup((Widget) closure, XtGrabNone, FALSE);
-}                               /* XtCallbackNone */
+    IswSetSensitive(widget, FALSE);
+    _IswPopup((Widget) closure, IswGrabNone, FALSE);
+}                               /* IswCallbackNone */
 
 void
-XtCallbackNonexclusive(Widget widget,
-                       XtPointer closure,
-                       XtPointer call_data _X_UNUSED)
+IswCallbackNonexclusive(Widget widget,
+                       IswPointer closure,
+                       IswPointer call_data _X_UNUSED)
 {
 
-    XtSetSensitive(widget, FALSE);
-    _XtPopup((Widget) closure, XtGrabNonexclusive, FALSE);
-}                               /* XtCallbackNonexclusive */
+    IswSetSensitive(widget, FALSE);
+    _IswPopup((Widget) closure, IswGrabNonexclusive, FALSE);
+}                               /* IswCallbackNonexclusive */
 
 void
-XtCallbackExclusive(Widget widget,
-                    XtPointer closure,
-                    XtPointer call_data _X_UNUSED)
+IswCallbackExclusive(Widget widget,
+                    IswPointer closure,
+                    IswPointer call_data _X_UNUSED)
 {
-    XtSetSensitive(widget, FALSE);
-    _XtPopup((Widget) closure, XtGrabExclusive, FALSE);
-}                               /* XtCallbackExclusive */
+    IswSetSensitive(widget, FALSE);
+    _IswPopup((Widget) closure, IswGrabExclusive, FALSE);
+}                               /* IswCallbackExclusive */

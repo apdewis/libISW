@@ -1,10 +1,10 @@
-#ifndef _XtShellInternal_h
-#define _XtShellInternal_h
+#ifndef _IswShellInternal_h
+#define _IswShellInternal_h
 
-#include <X11/XtFuncproto.h>
+#include <ISW/IswFuncproto.h>
 
 _XFUNCPROTOBEGIN
 
-extern void _XtShellGetCoordinates(Widget widget, Position *x, Position *y);
+extern void _IswShellGetCoordinates(Widget widget, Position *x, Position *y);
 
-#endif /* _XtShellInternal_h */
+#endif /* _IswShellInternal_h */

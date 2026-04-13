@@ -75,7 +75,7 @@ in this Software without prior written authorization from The Open Group.
 #include "StringDefs.h"
 
 /*
- *      XtSetSensitive()
+ *      IswSetSensitive()
  */
 
 static void
@@ -86,14 +86,14 @@ SetAncestorSensitive(register Widget widget, Boolean ancestor_sensitive)
     if (widget->core.ancestor_sensitive == ancestor_sensitive)
         return;
 
-    XtSetArg(args[0], XtNancestorSensitive, ancestor_sensitive);
-    XtSetValues(widget, args, XtNumber(args));
+    IswSetArg(args[0], IswNancestorSensitive, ancestor_sensitive);
+    IswSetValues(widget, args, IswNumber(args));
 
     /* If widget's sensitive is TRUE, propagate new ancestor_sensitive to
        children's ancestor_sensitive; else do nothing as children's
        ancestor_sensitive is already FALSE */
 
-    if (widget->core.sensitive && XtIsComposite(widget)) {
+    if (widget->core.sensitive && IswIsComposite(widget)) {
         Cardinal i;
         WidgetList children;
 
@@ -105,7 +105,7 @@ SetAncestorSensitive(register Widget widget, Boolean ancestor_sensitive)
 }                               /* SetAncestorSensitive */
 
 void
-XtSetSensitive(register Widget widget, _XtBoolean sensitive)
+IswSetSensitive(register Widget widget, _IswBoolean sensitive)
 {
     Arg args[1];
 
@@ -117,14 +117,14 @@ XtSetSensitive(register Widget widget, _XtBoolean sensitive)
         return;
     }
 
-    XtSetArg(args[0], XtNsensitive, sensitive);
-    XtSetValues(widget, args, XtNumber(args));
+    IswSetArg(args[0], IswNsensitive, sensitive);
+    IswSetValues(widget, args, IswNumber(args));
 
     /* If widget's ancestor_sensitive is TRUE, propagate new sensitive to
        children's ancestor_sensitive; else do nothing as children's
        ancestor_sensitive is already FALSE */
 
-    if (widget->core.ancestor_sensitive && XtIsComposite(widget)) {
+    if (widget->core.ancestor_sensitive && IswIsComposite(widget)) {
         Cardinal i;
         WidgetList children;
 
@@ -134,4 +134,4 @@ XtSetSensitive(register Widget widget, _XtBoolean sensitive)
         }
     }
     UNLOCK_APP(app);
-}                               /* XtSetSensitive */
+}                               /* IswSetSensitive */

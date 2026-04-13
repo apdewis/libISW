@@ -56,7 +56,7 @@ typedef struct {
     Boolean	(*change_sensitive)(Widget);
 } SimpleClassPart;
 
-#define XtInheritChangeSensitive ((Boolean (*)(Widget))_XtInherit)
+#define IswInheritChangeSensitive ((Boolean (*)(Widget))_IswInherit)
 
 typedef struct _SimpleClassRec {
     CoreClassPart	core_class;

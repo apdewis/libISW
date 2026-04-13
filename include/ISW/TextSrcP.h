@@ -72,7 +72,7 @@ SOFTWARE.
 
 #if 0	/* no longer used */
 typedef struct {
-  XtPointer		next_extension;
+  IswPointer		next_extension;
   XrmQuark		record_type;
   long			version;
   Cardinal		record_size;
@@ -97,7 +97,7 @@ typedef void (*_IswSrcSetSelectionProc)
      (Widget, ISWTextPosition, ISWTextPosition, xcb_atom_t);
 
 typedef Boolean (*_IswSrcConvertSelectionProc)
-     (Widget, xcb_atom_t*, xcb_atom_t*, xcb_atom_t*, XtPointer*, unsigned long*, int*);
+     (Widget, xcb_atom_t*, xcb_atom_t*, xcb_atom_t*, IswPointer*, unsigned long*, int*);
 
 typedef struct _TextSrcClassPart {
     _IswSrcReadProc Read;
@@ -163,14 +163,14 @@ wchar_t* _ISWTextMBToWC(
 typedef ISWTextPosition (*_IswTextPositionFunc)();
 #endif
 
-#define XtInheritInput                ((_IswTextPositionFunc) _XtInherit)
-#define XtInheritRead                 ((_IswSrcReadProc) _XtInherit)
-#define XtInheritReplace              ((_IswSrcReplaceProc) _XtInherit)
-#define XtInheritScan                 ((_IswSrcScanProc) _XtInherit)
-#define XtInheritSearch               ((_IswSrcSearchProc) _XtInherit)
-#define XtInheritSetSelection         ((_IswSrcSetSelectionProc) _XtInherit)
-#define XtInheritConvertSelection     ((_IswSrcConvertSelectionProc) _XtInherit)
-#define XtTextSrcExtVersion	      1
-#define XtTextSrcExtTypeString        "XT_TEXTSRC_EXT"
+#define IswInheritInput                ((_IswTextPositionFunc) _IswInherit)
+#define IswInheritRead                 ((_IswSrcReadProc) _IswInherit)
+#define IswInheritReplace              ((_IswSrcReplaceProc) _IswInherit)
+#define IswInheritScan                 ((_IswSrcScanProc) _IswInherit)
+#define IswInheritSearch               ((_IswSrcSearchProc) _IswInherit)
+#define IswInheritSetSelection         ((_IswSrcSetSelectionProc) _IswInherit)
+#define IswInheritConvertSelection     ((_IswSrcConvertSelectionProc) _IswInherit)
+#define IswTextSrcExtVersion	      1
+#define IswTextSrcExtTypeString        "ISW_TEXTSRC_EXT"
 
 #endif /* _ISW_IswTextSrcP_h */

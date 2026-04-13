@@ -58,7 +58,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
-/*      Function Name: XtSetWMColormapWindows
+/*      Function Name: IswSetWMColormapWindows
  *
  *      Description: Sets the value of the WM_COLORMAP_WINDOWS
  *                   property on a widget's window.
@@ -74,7 +74,7 @@ in this Software without prior written authorization from The Open Group.
  */
 
 void
-XtSetWMColormapWindows(Widget widget, Widget *list, Cardinal count)
+IswSetWMColormapWindows(Widget widget, Widget *list, Cardinal count)
 {
     xcb_window_t *data;
     Widget *checked, *top, *temp, hookobj;
@@ -85,12 +85,12 @@ XtSetWMColormapWindows(Widget widget, Widget *list, Cardinal count)
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    if (!XtIsRealized(widget) || (count == 0)) {
+    if (!IswIsRealized(widget) || (count == 0)) {
         UNLOCK_APP(app);
         return;
     }
 
-    top = checked = XtMallocArray(count, (Cardinal) sizeof(Widget));
+    top = checked = IswMallocArray(count, (Cardinal) sizeof(Widget));
 
 /*
  * The specification calls for only adding the windows that have unique
@@ -101,7 +101,7 @@ XtSetWMColormapWindows(Widget widget, Widget *list, Cardinal count)
  */
 
     for (checked_count = 0, i = 0; i < count; i++) {
-        if (!XtIsRealized(list[i]))
+        if (!IswIsRealized(list[i]))
             continue;
 
         *checked = list[i];
@@ -134,35 +134,35 @@ XtSetWMColormapWindows(Widget widget, Widget *list, Cardinal count)
  * windows and set the property.
  */
 
-    data = XtMallocArray(checked_count, (Cardinal) sizeof(xcb_window_t));
+    data = IswMallocArray(checked_count, (Cardinal) sizeof(xcb_window_t));
 
     for (i = 0; i < checked_count; i++)
-        data[i] = XtWindow(top[i]);
+        data[i] = IswWindow(top[i]);
 
-    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(XtDisplay(widget), FALSE, strlen("WM_COLORMAP_WINDOWS"), "WM_COLORMAP_WINDOWS");
-    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(XtDisplay(widget), cookie, NULL);
+    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(IswDisplay(widget), FALSE, strlen("WM_COLORMAP_WINDOWS"), "WM_COLORMAP_WINDOWS");
+    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(IswDisplay(widget), cookie, NULL);
     if (reply) {
         xa_wm_colormap_windows = reply->atom;
         free(reply);
     }
 
-    xcb_change_property(XtDisplay(widget), XCB_PROP_MODE_REPLACE, XtWindow(widget),
+    xcb_change_property(IswDisplay(widget), XCB_PROP_MODE_REPLACE, IswWindow(widget),
                     xa_wm_colormap_windows, XCB_ATOM_WINDOW, 32, i, data);
 
-    hookobj = XtHooksOfDisplay(XtDisplay(widget));
-    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-        XtChangeHookDataRec call_data;
+    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+        IswChangeHookDataRec call_data;
 
-        call_data.type = XtHsetWMColormapWindows;
+        call_data.type = IswHsetWMColormapWindows;
         call_data.widget = widget;
-        call_data.event_data = (XtPointer) list;
+        call_data.event_data = (IswPointer) list;
         call_data.num_event_data = count;
-        XtCallCallbackList(hookobj,
+        IswCallCallbackList(hookobj,
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (XtPointer) &call_data);
+                           (IswPointer) &call_data);
     }
 
-    XtFree((char *) data);
-    XtFree((char *) top);
+    IswFree((char *) data);
+    IswFree((char *) top);
     UNLOCK_APP(app);
 }

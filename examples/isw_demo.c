@@ -8,9 +8,9 @@
  * Run: ./xaw3d_demo
  */
 
-#include <X11/Intrinsic.h>
-#include <X11/StringDefs.h>
-#include <X11/Shell.h>
+#include <ISW/Intrinsic.h>
+#include <ISW/StringDefs.h>
+#include <ISW/Shell.h>
 
 /* Container widgets */
 #include <ISW/Paned.h>
@@ -123,33 +123,33 @@ Widget create_progressbar_demo(Widget parent);
 Widget create_dialog_demo(Widget parent);
 Widget create_drawingarea_demo(Widget parent);
 Widget create_tabs_demo(Widget parent);
-void tabs_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void tabs_callback(Widget w, IswPointer client_data, IswPointer call_data);
 
 /* Callback functions */
-void button_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void toggle_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void checkbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void list_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void iconview_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void slider_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void colorpicker_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void fontchooser_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void drawingarea_expose(Widget w, XtPointer client_data, XtPointer call_data);
-void quit_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void drop_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void drag_enter_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void drag_leave_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void button_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void toggle_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void checkbox_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void menu_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void list_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void combobox_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void iconview_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void repeater_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void slider_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void spinbox_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void colorpicker_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void fontchooser_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void dialog_ok_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void drawingarea_expose(Widget w, IswPointer client_data, IswPointer call_data);
+void quit_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void drop_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void drag_enter_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void drag_leave_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void drag_start_action(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params);
 
 /* Menu bar callbacks */
-void file_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void edit_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
-void about_menu_callback(Widget w, XtPointer client_data, XtPointer call_data);
+void file_menu_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void edit_menu_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void about_menu_callback(Widget w, IswPointer client_data, IswPointer call_data);
 
 /* Timer callbacks */
 /* Tooltip helper */
@@ -162,13 +162,13 @@ void attach_tooltip(Widget widget, const char *tip_text);
  * ============================================================ */
 
 int main(int argc, char *argv[]) {
-    XtAppContext app_context;
+    IswAppContext app_context;
     Widget toplevel, main_widget;
     Arg args[10];
     Cardinal n;
     
     /* Initialize X Toolkit with XCB backend */
-    toplevel = XtAppInitialize(&app_context, "Isw3dDemo",
+    toplevel = IswAppInitialize(&app_context, "Isw3dDemo",
                                NULL, 0,
                                &argc, argv,
                                NULL, NULL, 0);
@@ -176,11 +176,11 @@ int main(int argc, char *argv[]) {
 
     /* Set main window size — not scaled, so it fits the screen at any DPI */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 1200); n++;
-    XtSetArg(args[n], XtNheight, 900); n++;
-    XtSetArg(args[n], XtNtitle, "Isw3d Widget Demonstration - Comprehensive Widget Showcase"); n++;
-    XtSetArg(args[n], XtNallowShellResize, True); n++;
-    XtSetValues(toplevel, args, n);
+    IswSetArg(args[n], IswNwidth, 1200); n++;
+    IswSetArg(args[n], IswNheight, 900); n++;
+    IswSetArg(args[n], IswNtitle, "Isw3d Widget Demonstration - Comprehensive Widget Showcase"); n++;
+    IswSetArg(args[n], IswNallowShellResize, True); n++;
+    IswSetValues(toplevel, args, n);
     
     /* Create main widget structure */
     main_widget = create_main_window(toplevel);
@@ -194,10 +194,10 @@ int main(int argc, char *argv[]) {
     printf("\n");
     
     /* Realize all widgets */
-    XtRealizeWidget(toplevel);
+    IswRealizeWidget(toplevel);
 
     /* Enter event loop */
-    XtAppMainLoop(app_context);
+    IswAppMainLoop(app_context);
 
     return 0;
 }
@@ -213,9 +213,9 @@ Widget create_main_window(Widget parent) {
 
     /* MainWindow as direct shell child — menubar fixed at top */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 1200); n++;
-    XtSetArg(args[n], XtNheight, 900); n++;
-    main_win = XtCreateManagedWidget("mainWindow", mainWindowWidgetClass,
+    IswSetArg(args[n], IswNwidth, 1200); n++;
+    IswSetArg(args[n], IswNheight, 900); n++;
+    main_win = IswCreateManagedWidget("mainWindow", mainWindowWidgetClass,
                                       parent, args, n);
 
     /* Populate the built-in menubar */
@@ -228,36 +228,36 @@ Widget create_main_window(Widget parent) {
         Cardinal sn;
 
         sn = 0;
-        statusbar = XtCreateManagedWidget("statusbar", statusBarWidgetClass,
+        statusbar = IswCreateManagedWidget("statusbar", statusBarWidgetClass,
                                            main_win, sb_args, sn);
 
         sn = 0;
-        XtSetArg(sb_args[sn], XtNlabel, "Ready"); sn++;
-        XtSetArg(sb_args[sn], XtNstatusStretch, True); sn++;
-        sb_label = XtCreateManagedWidget("statusText", labelWidgetClass,
+        IswSetArg(sb_args[sn], IswNlabel, "Ready"); sn++;
+        IswSetArg(sb_args[sn], IswNstatusStretch, True); sn++;
+        sb_label = IswCreateManagedWidget("statusText", labelWidgetClass,
                                           statusbar, sb_args, sn);
 
         sn = 0;
-        XtSetArg(sb_args[sn], XtNlabel, "Ln 1, Col 1"); sn++;
-        XtCreateManagedWidget("statusPos", labelWidgetClass,
+        IswSetArg(sb_args[sn], IswNlabel, "Ln 1, Col 1"); sn++;
+        IswCreateManagedWidget("statusPos", labelWidgetClass,
                                statusbar, sb_args, sn);
     }
 
     /* Viewport as content child — scrolls independently of menubar */
     n = 0;
-    XtSetArg(args[n], XtNallowVert, True); n++;
-    XtSetArg(args[n], XtNallowHoriz, True); n++;
-    XtSetArg(args[n], XtNuseRight, True); n++;
-    XtSetArg(args[n], XtNuseBottom, True); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    viewport = XtCreateManagedWidget("viewport", viewportWidgetClass,
+    IswSetArg(args[n], IswNallowVert, True); n++;
+    IswSetArg(args[n], IswNallowHoriz, True); n++;
+    IswSetArg(args[n], IswNuseRight, True); n++;
+    IswSetArg(args[n], IswNuseBottom, True); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    viewport = IswCreateManagedWidget("viewport", viewportWidgetClass,
                                       main_win, args, n);
 
     /* Content box inside viewport — holds all demo sections */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    content_box = XtCreateManagedWidget("contentBox", boxWidgetClass,
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    content_box = IswCreateManagedWidget("contentBox", boxWidgetClass,
                                          viewport, args, n);
 
     /* Title section */
@@ -271,9 +271,9 @@ Widget create_main_window(Widget parent) {
     /* Advanced widgets in a horizontal box */
     Widget advanced_box;
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    advanced_box = XtCreateManagedWidget("advancedBox", boxWidgetClass, content_box, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    advanced_box = IswCreateManagedWidget("advancedBox", boxWidgetClass, content_box, args, n);
 
     create_tree_demo(advanced_box);
     create_layout_demo(advanced_box);
@@ -298,129 +298,129 @@ void populate_menubar(Widget menubar) {
 
     /* === FILE MENU === */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "File"); n++;
-    XtSetArg(args[n], XtNmenuName, "fileMenu"); n++;
-    file_button = XtCreateManagedWidget("fileButton", menuButtonWidgetClass, menubar, args, n);
+    IswSetArg(args[n], IswNlabel, "File"); n++;
+    IswSetArg(args[n], IswNmenuName, "fileMenu"); n++;
+    file_button = IswCreateManagedWidget("fileButton", menuButtonWidgetClass, menubar, args, n);
     
     n = 0;
-    file_menu = XtCreatePopupShell("fileMenu", simpleMenuWidgetClass, file_button, args, n);
+    file_menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass, file_button, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "New"); n++;
-    entry = XtCreateManagedWidget("menuNew", smeBSBObjectClass, file_menu, args, n);
-    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"New");
+    IswSetArg(args[n], IswNlabel, "New"); n++;
+    entry = IswCreateManagedWidget("menuNew", smeBSBObjectClass, file_menu, args, n);
+    IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"New");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Open..."); n++;
-    entry = XtCreateManagedWidget("menuOpen", smeBSBObjectClass, file_menu, args, n);
-    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"Open");
+    IswSetArg(args[n], IswNlabel, "Open..."); n++;
+    entry = IswCreateManagedWidget("menuOpen", smeBSBObjectClass, file_menu, args, n);
+    IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Open");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Save"); n++;
-    entry = XtCreateManagedWidget("menuSave", smeBSBObjectClass, file_menu, args, n);
-    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"Save");
+    IswSetArg(args[n], IswNlabel, "Save"); n++;
+    entry = IswCreateManagedWidget("menuSave", smeBSBObjectClass, file_menu, args, n);
+    IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Save");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Save As..."); n++;
-    entry = XtCreateManagedWidget("menuSaveAs", smeBSBObjectClass, file_menu, args, n);
-    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"Save As");
+    IswSetArg(args[n], IswNlabel, "Save As..."); n++;
+    entry = IswCreateManagedWidget("menuSaveAs", smeBSBObjectClass, file_menu, args, n);
+    IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Save As");
     
     /* 3D separator */
     n = 0;
-    XtCreateManagedWidget("sep1", smeLineObjectClass, file_menu, args, n);
+    IswCreateManagedWidget("sep1", smeLineObjectClass, file_menu, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Export"); n++;
-    entry = XtCreateManagedWidget("menuExport", smeBSBObjectClass, file_menu, args, n);
-    XtAddCallback(entry, XtNcallback, file_menu_callback, (XtPointer)"Export");
+    IswSetArg(args[n], IswNlabel, "Export"); n++;
+    entry = IswCreateManagedWidget("menuExport", smeBSBObjectClass, file_menu, args, n);
+    IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Export");
     
     n = 0;
-    XtCreateManagedWidget("sep2", smeLineObjectClass, file_menu, args, n);
+    IswCreateManagedWidget("sep2", smeLineObjectClass, file_menu, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Quit"); n++;
-    entry = XtCreateManagedWidget("menuQuit", smeBSBObjectClass, file_menu, args, n);
-    XtAddCallback(entry, XtNcallback, quit_callback, NULL);
+    IswSetArg(args[n], IswNlabel, "Quit"); n++;
+    entry = IswCreateManagedWidget("menuQuit", smeBSBObjectClass, file_menu, args, n);
+    IswAddCallback(entry, IswNcallback, quit_callback, NULL);
     
     /* === EDIT MENU === */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Edit"); n++;
-    XtSetArg(args[n], XtNmenuName, "editMenu"); n++;
-    edit_button = XtCreateManagedWidget("editButton", menuButtonWidgetClass, menubar, args, n);
+    IswSetArg(args[n], IswNlabel, "Edit"); n++;
+    IswSetArg(args[n], IswNmenuName, "editMenu"); n++;
+    edit_button = IswCreateManagedWidget("editButton", menuButtonWidgetClass, menubar, args, n);
     
     n = 0;
-    edit_menu = XtCreatePopupShell("editMenu", simpleMenuWidgetClass, edit_button, args, n);
+    edit_menu = IswCreatePopupShell("editMenu", simpleMenuWidgetClass, edit_button, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Undo"); n++;
-    entry = XtCreateManagedWidget("menuUndo", smeBSBObjectClass, edit_menu, args, n);
-    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Undo");
+    IswSetArg(args[n], IswNlabel, "Undo"); n++;
+    entry = IswCreateManagedWidget("menuUndo", smeBSBObjectClass, edit_menu, args, n);
+    IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Undo");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Redo"); n++;
-    entry = XtCreateManagedWidget("menuRedo", smeBSBObjectClass, edit_menu, args, n);
-    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Redo");
+    IswSetArg(args[n], IswNlabel, "Redo"); n++;
+    entry = IswCreateManagedWidget("menuRedo", smeBSBObjectClass, edit_menu, args, n);
+    IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Redo");
     
     n = 0;
-    XtCreateManagedWidget("sep3", smeLineObjectClass, edit_menu, args, n);
+    IswCreateManagedWidget("sep3", smeLineObjectClass, edit_menu, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Cut"); n++;
-    entry = XtCreateManagedWidget("menuCut", smeBSBObjectClass, edit_menu, args, n);
-    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Cut");
+    IswSetArg(args[n], IswNlabel, "Cut"); n++;
+    entry = IswCreateManagedWidget("menuCut", smeBSBObjectClass, edit_menu, args, n);
+    IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Cut");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Copy"); n++;
-    entry = XtCreateManagedWidget("menuCopy", smeBSBObjectClass, edit_menu, args, n);
-    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Copy");
+    IswSetArg(args[n], IswNlabel, "Copy"); n++;
+    entry = IswCreateManagedWidget("menuCopy", smeBSBObjectClass, edit_menu, args, n);
+    IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Copy");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Paste"); n++;
-    entry = XtCreateManagedWidget("menuPaste", smeBSBObjectClass, edit_menu, args, n);
-    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Paste");
+    IswSetArg(args[n], IswNlabel, "Paste"); n++;
+    entry = IswCreateManagedWidget("menuPaste", smeBSBObjectClass, edit_menu, args, n);
+    IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Paste");
     
     n = 0;
-    XtCreateManagedWidget("sep4", smeLineObjectClass, edit_menu, args, n);
+    IswCreateManagedWidget("sep4", smeLineObjectClass, edit_menu, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Preferences..."); n++;
-    entry = XtCreateManagedWidget("menuPrefs", smeBSBObjectClass, edit_menu, args, n);
-    XtAddCallback(entry, XtNcallback, edit_menu_callback, (XtPointer)"Preferences");
+    IswSetArg(args[n], IswNlabel, "Preferences..."); n++;
+    entry = IswCreateManagedWidget("menuPrefs", smeBSBObjectClass, edit_menu, args, n);
+    IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Preferences");
     
     /* === ABOUT MENU === */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "About"); n++;
-    XtSetArg(args[n], XtNmenuName, "aboutMenu"); n++;
-    about_button = XtCreateManagedWidget("aboutButton", menuButtonWidgetClass, menubar, args, n);
+    IswSetArg(args[n], IswNlabel, "About"); n++;
+    IswSetArg(args[n], IswNmenuName, "aboutMenu"); n++;
+    about_button = IswCreateManagedWidget("aboutButton", menuButtonWidgetClass, menubar, args, n);
     
     n = 0;
-    about_menu = XtCreatePopupShell("aboutMenu", simpleMenuWidgetClass, about_button, args, n);
+    about_menu = IswCreatePopupShell("aboutMenu", simpleMenuWidgetClass, about_button, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "About ISW Demo"); n++;
-    entry = XtCreateManagedWidget("menuAbout", smeBSBObjectClass, about_menu, args, n);
-    XtAddCallback(entry, XtNcallback, about_menu_callback, (XtPointer)"About");
+    IswSetArg(args[n], IswNlabel, "About ISW Demo"); n++;
+    entry = IswCreateManagedWidget("menuAbout", smeBSBObjectClass, about_menu, args, n);
+    IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"About");
     
     n = 0;
-    XtCreateManagedWidget("sep5", smeLineObjectClass, about_menu, args, n);
+    IswCreateManagedWidget("sep5", smeLineObjectClass, about_menu, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "ISW Documentation"); n++;
-    entry = XtCreateManagedWidget("menuDocs", smeBSBObjectClass, about_menu, args, n);
-    XtAddCallback(entry, XtNcallback, about_menu_callback, (XtPointer)"Documentation");
+    IswSetArg(args[n], IswNlabel, "ISW Documentation"); n++;
+    entry = IswCreateManagedWidget("menuDocs", smeBSBObjectClass, about_menu, args, n);
+    IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"Documentation");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Report Bug"); n++;
-    entry = XtCreateManagedWidget("menuBug", smeBSBObjectClass, about_menu, args, n);
-    XtAddCallback(entry, XtNcallback, about_menu_callback, (XtPointer)"Bug");
+    IswSetArg(args[n], IswNlabel, "Report Bug"); n++;
+    entry = IswCreateManagedWidget("menuBug", smeBSBObjectClass, about_menu, args, n);
+    IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"Bug");
     
     n = 0;
-    XtCreateManagedWidget("sep6", smeLineObjectClass, about_menu, args, n);
+    IswCreateManagedWidget("sep6", smeLineObjectClass, about_menu, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "License"); n++;
-    entry = XtCreateManagedWidget("menuLicense", smeBSBObjectClass, about_menu, args, n);
-    XtAddCallback(entry, XtNcallback, about_menu_callback, (XtPointer)"License");
+    IswSetArg(args[n], IswNlabel, "License"); n++;
+    entry = IswCreateManagedWidget("menuLicense", smeBSBObjectClass, about_menu, args, n);
+    IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"License");
     
 }
 
@@ -430,12 +430,12 @@ Widget create_title_label(Widget parent) {
     Cardinal n;
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "=== Isw3d Widget Demonstration (XCB Backend) ==="); n++;
-    XtSetArg(args[n], XtNjustify, XtJustifyCenter); n++;
-    XtSetArg(args[n], XtNwidth, 830); n++;
-    XtSetArg(args[n], XtNheight, 35); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    title = XtCreateManagedWidget("titleLabel", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "=== Isw3d Widget Demonstration (XCB Backend) ==="); n++;
+    IswSetArg(args[n], IswNjustify, IswJustifyCenter); n++;
+    IswSetArg(args[n], IswNwidth, 830); n++;
+    IswSetArg(args[n], IswNheight, 35); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    title = IswCreateManagedWidget("titleLabel", labelWidgetClass,
                                   parent, args, n);
     
     return title;
@@ -453,50 +453,50 @@ Widget create_containers_section(Widget parent) {
 
     /* Create Form to hold container demos */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNdefaultDistance, 5); n++;
-    form = XtCreateManagedWidget("containersForm", formWidgetClass,
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    IswSetArg(args[n], IswNdefaultDistance, 5); n++;
+    form = IswCreateManagedWidget("containersForm", formWidgetClass,
                                  parent, args, n);
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Container Widgets: Toolbar, Box, Form, Viewport"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    section_label = XtCreateManagedWidget("containerLabel", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Container Widgets: Toolbar, Box, Form, Viewport"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    section_label = IswCreateManagedWidget("containerLabel", labelWidgetClass,
                                           form, args, n);
 
     /* Toolbar demo */
     toolbar_demo = create_toolbar_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetValues(toolbar_demo, args, n);
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetValues(toolbar_demo, args, n);
 
     /* Create demos */
     box_demo = create_box_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, toolbar_demo); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetValues(box_demo, args, n);
+    IswSetArg(args[n], IswNfromVert, toolbar_demo); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetValues(box_demo, args, n);
 
     form_demo = create_form_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, box_demo); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetValues(form_demo, args, n);
+    IswSetArg(args[n], IswNfromVert, box_demo); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetValues(form_demo, args, n);
 
     viewport_demo = create_viewport_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, form_demo); n++;
-    XtSetArg(args[n], XtNfromVert, box_demo); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetValues(viewport_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, form_demo); n++;
+    IswSetArg(args[n], IswNfromVert, box_demo); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetValues(viewport_demo, args, n);
 
     return form;
 }
@@ -545,59 +545,59 @@ Widget create_toolbar_demo(Widget parent) {
     Dimension btn_size = 24;
 
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    toolbar = XtCreateManagedWidget("toolbar", toolbarWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    toolbar = IswCreateManagedWidget("toolbar", toolbarWidgetClass, parent, args, n);
 
     /* Icon buttons with uniform size */
     n = 0;
-    XtSetArg(args[n], XtNimage, svg_new); n++;
-    XtSetArg(args[n], XtNlabel, ""); n++;
-    XtSetArg(args[n], XtNwidth, btn_size); n++;
-    XtSetArg(args[n], XtNheight, btn_size); n++;
-    XtCreateManagedWidget("tbNew", commandWidgetClass, toolbar, args, n);
+    IswSetArg(args[n], IswNimage, svg_new); n++;
+    IswSetArg(args[n], IswNlabel, ""); n++;
+    IswSetArg(args[n], IswNwidth, btn_size); n++;
+    IswSetArg(args[n], IswNheight, btn_size); n++;
+    IswCreateManagedWidget("tbNew", commandWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNimage, svg_open); n++;
-    XtSetArg(args[n], XtNlabel, ""); n++;
-    XtSetArg(args[n], XtNwidth, btn_size); n++;
-    XtSetArg(args[n], XtNheight, btn_size); n++;
-    XtCreateManagedWidget("tbOpen", commandWidgetClass, toolbar, args, n);
+    IswSetArg(args[n], IswNimage, svg_open); n++;
+    IswSetArg(args[n], IswNlabel, ""); n++;
+    IswSetArg(args[n], IswNwidth, btn_size); n++;
+    IswSetArg(args[n], IswNheight, btn_size); n++;
+    IswCreateManagedWidget("tbOpen", commandWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNimage, svg_save); n++;
-    XtSetArg(args[n], XtNlabel, ""); n++;
-    XtSetArg(args[n], XtNwidth, btn_size); n++;
-    XtSetArg(args[n], XtNheight, btn_size); n++;
-    XtCreateManagedWidget("tbSave", commandWidgetClass, toolbar, args, n);
+    IswSetArg(args[n], IswNimage, svg_save); n++;
+    IswSetArg(args[n], IswNlabel, ""); n++;
+    IswSetArg(args[n], IswNwidth, btn_size); n++;
+    IswSetArg(args[n], IswNheight, btn_size); n++;
+    IswCreateManagedWidget("tbSave", commandWidgetClass, toolbar, args, n);
 
     /* Separator */
     n = 0;
-    XtSetArg(args[n], XtNlabel, ""); n++;
-    XtSetArg(args[n], XtNwidth, 2); n++;
-    XtSetArg(args[n], XtNheight, btn_size); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtCreateManagedWidget("tbSep", labelWidgetClass, toolbar, args, n);
+    IswSetArg(args[n], IswNlabel, ""); n++;
+    IswSetArg(args[n], IswNwidth, 2); n++;
+    IswSetArg(args[n], IswNheight, btn_size); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswCreateManagedWidget("tbSep", labelWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNimage, svg_cut); n++;
-    XtSetArg(args[n], XtNlabel, ""); n++;
-    XtSetArg(args[n], XtNwidth, btn_size); n++;
-    XtSetArg(args[n], XtNheight, btn_size); n++;
-    XtCreateManagedWidget("tbCut", commandWidgetClass, toolbar, args, n);
+    IswSetArg(args[n], IswNimage, svg_cut); n++;
+    IswSetArg(args[n], IswNlabel, ""); n++;
+    IswSetArg(args[n], IswNwidth, btn_size); n++;
+    IswSetArg(args[n], IswNheight, btn_size); n++;
+    IswCreateManagedWidget("tbCut", commandWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNimage, svg_copy); n++;
-    XtSetArg(args[n], XtNlabel, ""); n++;
-    XtSetArg(args[n], XtNwidth, btn_size); n++;
-    XtSetArg(args[n], XtNheight, btn_size); n++;
-    XtCreateManagedWidget("tbCopy", commandWidgetClass, toolbar, args, n);
+    IswSetArg(args[n], IswNimage, svg_copy); n++;
+    IswSetArg(args[n], IswNlabel, ""); n++;
+    IswSetArg(args[n], IswNwidth, btn_size); n++;
+    IswSetArg(args[n], IswNheight, btn_size); n++;
+    IswCreateManagedWidget("tbCopy", commandWidgetClass, toolbar, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNimage, svg_paste); n++;
-    XtSetArg(args[n], XtNlabel, ""); n++;
-    XtSetArg(args[n], XtNwidth, btn_size); n++;
-    XtSetArg(args[n], XtNheight, btn_size); n++;
-    XtCreateManagedWidget("tbPaste", commandWidgetClass, toolbar, args, n);
+    IswSetArg(args[n], IswNimage, svg_paste); n++;
+    IswSetArg(args[n], IswNlabel, ""); n++;
+    IswSetArg(args[n], IswNwidth, btn_size); n++;
+    IswSetArg(args[n], IswNheight, btn_size); n++;
+    IswCreateManagedWidget("tbPaste", commandWidgetClass, toolbar, args, n);
 
     return toolbar;
 }
@@ -609,37 +609,37 @@ Widget create_box_demo(Widget parent) {
     
     /* Container with label */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box_container = XtCreateManagedWidget("boxContainer", boxWidgetClass,
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box_container = IswCreateManagedWidget("boxContainer", boxWidgetClass,
                                           parent, args, n);
     
     /* Label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Box Widget (Horizontal)"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtCreateManagedWidget("boxLabel", labelWidgetClass, box_container, args, n);
+    IswSetArg(args[n], IswNlabel, "Box Widget (Horizontal)"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswCreateManagedWidget("boxLabel", labelWidgetClass, box_container, args, n);
     
     /* Horizontal Box */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
-    XtSetArg(args[n], XtNhSpace, 5); n++;
-    XtSetArg(args[n], XtNvSpace, 5); n++;
-    box = XtCreateManagedWidget("demoBox", boxWidgetClass,
+    IswSetArg(args[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(args[n], IswNhSpace, 5); n++;
+    IswSetArg(args[n], IswNvSpace, 5); n++;
+    box = IswCreateManagedWidget("demoBox", boxWidgetClass,
                                 box_container, args, n);
     
     /* Add three labels to box */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Item 1"); n++;
-    label1 = XtCreateManagedWidget("boxItem1", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Item 1"); n++;
+    label1 = IswCreateManagedWidget("boxItem1", labelWidgetClass, box, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Item 2"); n++;
-    label2 = XtCreateManagedWidget("boxItem2", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Item 2"); n++;
+    label2 = IswCreateManagedWidget("boxItem2", labelWidgetClass, box, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Item 3"); n++;
-    label3 = XtCreateManagedWidget("boxItem3", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Item 3"); n++;
+    label3 = IswCreateManagedWidget("boxItem3", labelWidgetClass, box, args, n);
     
     return box_container;
 }
@@ -651,47 +651,47 @@ Widget create_form_demo(Widget parent) {
     
     /* Form container */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNwidth, 350); n++;
-    XtSetArg(args[n], XtNheight, 80); n++;
-    form = XtCreateManagedWidget("demoForm", formWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    IswSetArg(args[n], IswNwidth, 350); n++;
+    IswSetArg(args[n], IswNheight, 80); n++;
+    form = IswCreateManagedWidget("demoForm", formWidgetClass, parent, args, n);
     
     /* Title label - top, spans width */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Form Widget (Constraint Layout)"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    title_label = XtCreateManagedWidget("formTitle", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Form Widget (Constraint Layout)"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    title_label = IswCreateManagedWidget("formTitle", labelWidgetClass,
                                         form, args, n);
     
     /* Button row - relative positioning */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Left"); n++;
-    XtSetArg(args[n], XtNfromVert, title_label); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    button1 = XtCreateManagedWidget("formBtn1", commandWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Left"); n++;
+    IswSetArg(args[n], IswNfromVert, title_label); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    button1 = IswCreateManagedWidget("formBtn1", commandWidgetClass,
                                     form, args, n);
-    XtAddCallback(button1, XtNcallback, button_callback, (XtPointer)"Form Left Button");
+    IswAddCallback(button1, IswNcallback, button_callback, (IswPointer)"Form Left Button");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Center"); n++;
-    XtSetArg(args[n], XtNfromVert, title_label); n++;
-    XtSetArg(args[n], XtNfromHoriz, button1); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    button2 = XtCreateManagedWidget("formBtn2", commandWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Center"); n++;
+    IswSetArg(args[n], IswNfromVert, title_label); n++;
+    IswSetArg(args[n], IswNfromHoriz, button1); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    button2 = IswCreateManagedWidget("formBtn2", commandWidgetClass,
                                     form, args, n);
-    XtAddCallback(button2, XtNcallback, button_callback, (XtPointer)"Form Center Button");
+    IswAddCallback(button2, IswNcallback, button_callback, (IswPointer)"Form Center Button");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Right"); n++;
-    XtSetArg(args[n], XtNfromVert, title_label); n++;
-    XtSetArg(args[n], XtNfromHoriz, button2); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    button3 = XtCreateManagedWidget("formBtn3", commandWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Right"); n++;
+    IswSetArg(args[n], IswNfromVert, title_label); n++;
+    IswSetArg(args[n], IswNfromHoriz, button2); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    button3 = IswCreateManagedWidget("formBtn3", commandWidgetClass,
                                     form, args, n);
-    XtAddCallback(button3, XtNcallback, button_callback, (XtPointer)"Form Right Button");
+    IswAddCallback(button3, IswNcallback, button_callback, (IswPointer)"Form Right Button");
     
     return form;
 }
@@ -703,32 +703,32 @@ Widget create_viewport_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    viewport_container = XtCreateManagedWidget("viewportContainer", boxWidgetClass,
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    viewport_container = IswCreateManagedWidget("viewportContainer", boxWidgetClass,
                                                parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Viewport Widget (Scrollable)"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtCreateManagedWidget("viewportTitle", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Viewport Widget (Scrollable)"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswCreateManagedWidget("viewportTitle", labelWidgetClass,
                           viewport_container, args, n);
     
     /* Viewport with scrollbars */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 250); n++;
-    XtSetArg(args[n], XtNheight, 80); n++;
-    XtSetArg(args[n], XtNallowHoriz, True); n++;
-    XtSetArg(args[n], XtNallowVert, True); n++;
-    XtSetArg(args[n], XtNuseBottom, True); n++;
-    XtSetArg(args[n], XtNuseRight, True); n++;
-    viewport = XtCreateManagedWidget("viewport", viewportWidgetClass,
+    IswSetArg(args[n], IswNwidth, 250); n++;
+    IswSetArg(args[n], IswNheight, 80); n++;
+    IswSetArg(args[n], IswNallowHoriz, True); n++;
+    IswSetArg(args[n], IswNallowVert, True); n++;
+    IswSetArg(args[n], IswNuseBottom, True); n++;
+    IswSetArg(args[n], IswNuseRight, True); n++;
+    viewport = IswCreateManagedWidget("viewport", viewportWidgetClass,
                                      viewport_container, args, n);
     
     /* Large content inside viewport */
     n = 0;
-    XtSetArg(args[n], XtNlabel, 
+    IswSetArg(args[n], IswNlabel, 
              "This demonstrates scrolling.\n"
              "The content is larger than\n"
              "the viewport, so scrollbars\n"
@@ -739,10 +739,10 @@ Widget create_viewport_demo(Widget parent) {
              "the viewport, so scrollbars\n"
              "appear automatically.\n"
             ); n++;
-    XtSetArg(args[n], XtNjustify, XtJustifyLeft); n++;
-    XtSetArg(args[n], XtNwidth, 400); n++;
-    XtSetArg(args[n], XtNheight, 150); n++;
-    large_label = XtCreateManagedWidget("viewportContent", labelWidgetClass,
+    IswSetArg(args[n], IswNjustify, IswJustifyLeft); n++;
+    IswSetArg(args[n], IswNwidth, 400); n++;
+    IswSetArg(args[n], IswNheight, 150); n++;
+    large_label = IswCreateManagedWidget("viewportContent", labelWidgetClass,
                                         viewport, args, n);
     
     return viewport_container;
@@ -760,54 +760,54 @@ Widget create_basic_widgets_section(Widget parent) {
 
     /* Section container */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNdefaultDistance, 5); n++;
-    form = XtCreateManagedWidget("basicForm", formWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    IswSetArg(args[n], IswNdefaultDistance, 5); n++;
+    form = IswCreateManagedWidget("basicForm", formWidgetClass, parent, args, n);
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Basic Interactive Widgets: Command, Toggle, Checkbox, Menu, Repeater"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    section_label = XtCreateManagedWidget("basicLabel", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Basic Interactive Widgets: Command, Toggle, Checkbox, Menu, Repeater"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    section_label = IswCreateManagedWidget("basicLabel", labelWidgetClass,
                                           form, args, n);
 
     /* Create widget demos */
     command_demo = create_command_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetValues(command_demo, args, n);
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetValues(command_demo, args, n);
 
     toggle_demo = create_toggle_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, command_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(toggle_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, command_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(toggle_demo, args, n);
 
     checkbox_demo = create_checkbox_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, toggle_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(checkbox_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, toggle_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(checkbox_demo, args, n);
 
     menu_demo = create_menu_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, checkbox_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(menu_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, checkbox_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(menu_demo, args, n);
 
     repeater_demo = create_repeater_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, menu_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(repeater_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, menu_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(repeater_demo, args, n);
 
     return form;
 }
@@ -819,42 +819,42 @@ Widget create_command_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("commandBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("commandBox", boxWidgetClass, parent, args, n);
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Command Buttons"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("commandTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Command Buttons"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("commandTitle", labelWidgetClass, box, args, n);
 
     /* Buttons */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Click Me!"); n++;
-    button1 = XtCreateManagedWidget("cmdBtn1", commandWidgetClass, box, args, n);
-    XtAddCallback(button1, XtNcallback, button_callback, (XtPointer)"Button 1");
+    IswSetArg(args[n], IswNlabel, "Click Me!"); n++;
+    button1 = IswCreateManagedWidget("cmdBtn1", commandWidgetClass, box, args, n);
+    IswAddCallback(button1, IswNcallback, button_callback, (IswPointer)"Button 1");
     attach_tooltip(button1, "This is a clickable command button");
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Or Me!"); n++;
-    XtSetArg(args[n], XtNcornerRadius, 0); n++;
-    button2 = XtCreateManagedWidget("cmdBtn2", commandWidgetClass, box, args, n);
-    XtAddCallback(button2, XtNcallback, button_callback, (XtPointer)"Button 2");
+    IswSetArg(args[n], IswNlabel, "Or Me!"); n++;
+    IswSetArg(args[n], IswNcornerRadius, 0); n++;
+    button2 = IswCreateManagedWidget("cmdBtn2", commandWidgetClass, box, args, n);
+    IswAddCallback(button2, IswNcallback, button_callback, (IswPointer)"Button 2");
     attach_tooltip(button2, "Another command button with tooltip");
 
     /* SVG icon button */
     n = 0;
-    XtSetArg(args[n], XtNimage, "x11.svg"); n++;
-    XtSetArg(args[n], XtNlabel, ""); n++;
-    svg_button = XtCreateManagedWidget("svgBtn", commandWidgetClass, box, args, n);
-    XtAddCallback(svg_button, XtNcallback, button_callback, (XtPointer)"SVG Button");
+    IswSetArg(args[n], IswNimage, "x11.svg"); n++;
+    IswSetArg(args[n], IswNlabel, ""); n++;
+    svg_button = IswCreateManagedWidget("svgBtn", commandWidgetClass, box, args, n);
+    IswAddCallback(svg_button, IswNcallback, button_callback, (IswPointer)"SVG Button");
     attach_tooltip(svg_button, "Command button with SVG icon");
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Quit"); n++;
-    quit_button = XtCreateManagedWidget("quitBtn", commandWidgetClass, box, args, n);
-    XtAddCallback(quit_button, XtNcallback, quit_callback, NULL);
+    IswSetArg(args[n], IswNlabel, "Quit"); n++;
+    quit_button = IswCreateManagedWidget("quitBtn", commandWidgetClass, box, args, n);
+    IswAddCallback(quit_button, IswNcallback, quit_callback, NULL);
     attach_tooltip(quit_button, "Click to exit the application");
 
     return box;
@@ -868,35 +868,35 @@ Widget create_toggle_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("toggleBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("toggleBox", boxWidgetClass, parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Toggle (Radio) Buttons"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("toggleTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Toggle (Radio) Buttons"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("toggleTitle", labelWidgetClass, box, args, n);
     
     /* Radio button group */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Option A"); n++;
-    XtSetArg(args[n], XtNstate, True); n++;
-    toggle1 = XtCreateManagedWidget("toggleA", toggleWidgetClass, box, args, n);
-    XtAddCallback(toggle1, XtNcallback, toggle_callback, (XtPointer)"Option A");
+    IswSetArg(args[n], IswNlabel, "Option A"); n++;
+    IswSetArg(args[n], IswNstate, True); n++;
+    toggle1 = IswCreateManagedWidget("toggleA", toggleWidgetClass, box, args, n);
+    IswAddCallback(toggle1, IswNcallback, toggle_callback, (IswPointer)"Option A");
     radio_group = toggle1;
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Option B"); n++;
-    XtSetArg(args[n], XtNradioGroup, radio_group); n++;
-    toggle2 = XtCreateManagedWidget("toggleB", toggleWidgetClass, box, args, n);
-    XtAddCallback(toggle2, XtNcallback, toggle_callback, (XtPointer)"Option B");
+    IswSetArg(args[n], IswNlabel, "Option B"); n++;
+    IswSetArg(args[n], IswNradioGroup, radio_group); n++;
+    toggle2 = IswCreateManagedWidget("toggleB", toggleWidgetClass, box, args, n);
+    IswAddCallback(toggle2, IswNcallback, toggle_callback, (IswPointer)"Option B");
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Option C"); n++;
-    XtSetArg(args[n], XtNradioGroup, radio_group); n++;
-    toggle3 = XtCreateManagedWidget("toggleC", toggleWidgetClass, box, args, n);
-    XtAddCallback(toggle3, XtNcallback, toggle_callback, (XtPointer)"Option C");
+    IswSetArg(args[n], IswNlabel, "Option C"); n++;
+    IswSetArg(args[n], IswNradioGroup, radio_group); n++;
+    toggle3 = IswCreateManagedWidget("toggleC", toggleWidgetClass, box, args, n);
+    IswAddCallback(toggle3, IswNcallback, toggle_callback, (IswPointer)"Option C");
     
     return box;
 }
@@ -908,32 +908,32 @@ Widget create_checkbox_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("checkboxBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("checkboxBox", boxWidgetClass, parent, args, n);
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Toggle (Checkbox) Buttons"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("checkboxTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Toggle (Checkbox) Buttons"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("checkboxTitle", labelWidgetClass, box, args, n);
 
     /* Standalone toggles (no radioGroup) render as checkboxes */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Enable notifications"); n++;
-    XtSetArg(args[n], XtNstate, True); n++;
-    cb1 = XtCreateManagedWidget("cb1", toggleWidgetClass, box, args, n);
-    XtAddCallback(cb1, XtNcallback, checkbox_callback, (XtPointer)"Enable notifications");
+    IswSetArg(args[n], IswNlabel, "Enable notifications"); n++;
+    IswSetArg(args[n], IswNstate, True); n++;
+    cb1 = IswCreateManagedWidget("cb1", toggleWidgetClass, box, args, n);
+    IswAddCallback(cb1, IswNcallback, checkbox_callback, (IswPointer)"Enable notifications");
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Dark mode"); n++;
-    cb2 = XtCreateManagedWidget("cb2", toggleWidgetClass, box, args, n);
-    XtAddCallback(cb2, XtNcallback, checkbox_callback, (XtPointer)"Dark mode");
+    IswSetArg(args[n], IswNlabel, "Dark mode"); n++;
+    cb2 = IswCreateManagedWidget("cb2", toggleWidgetClass, box, args, n);
+    IswAddCallback(cb2, IswNcallback, checkbox_callback, (IswPointer)"Dark mode");
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Auto-save"); n++;
-    cb3 = XtCreateManagedWidget("cb3", toggleWidgetClass, box, args, n);
-    XtAddCallback(cb3, XtNcallback, checkbox_callback, (XtPointer)"Auto-save");
+    IswSetArg(args[n], IswNlabel, "Auto-save"); n++;
+    cb3 = IswCreateManagedWidget("cb3", toggleWidgetClass, box, args, n);
+    IswAddCallback(cb3, IswNcallback, checkbox_callback, (IswPointer)"Auto-save");
 
     return box;
 }
@@ -946,46 +946,46 @@ Widget create_menu_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("menuBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("menuBox", boxWidgetClass, parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Menu Demo"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("menuTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Menu Demo"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("menuTitle", labelWidgetClass, box, args, n);
     
     /* MenuButton */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "File Menu"); n++;
-    menu_button = XtCreateManagedWidget("menuButton", menuButtonWidgetClass,
+    IswSetArg(args[n], IswNlabel, "File Menu"); n++;
+    menu_button = IswCreateManagedWidget("menuButton", menuButtonWidgetClass,
                                         box, args, n);
     
     /* Create SimpleMenu popup */
     n = 0;
-    menu = XtCreatePopupShell("fileMenu", simpleMenuWidgetClass,
+    menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass,
                               menu_button, args, n);
     
     /* Menu entries */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Open"); n++;
-    entry1 = XtCreateManagedWidget("menuOpen", smeBSBObjectClass, menu, args, n);
-    XtAddCallback(entry1, XtNcallback, menu_callback, (XtPointer)"Open");
+    IswSetArg(args[n], IswNlabel, "Open"); n++;
+    entry1 = IswCreateManagedWidget("menuOpen", smeBSBObjectClass, menu, args, n);
+    IswAddCallback(entry1, IswNcallback, menu_callback, (IswPointer)"Open");
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Save"); n++;
-    entry2 = XtCreateManagedWidget("menuSave", smeBSBObjectClass, menu, args, n);
-    XtAddCallback(entry2, XtNcallback, menu_callback, (XtPointer)"Save");
+    IswSetArg(args[n], IswNlabel, "Save"); n++;
+    entry2 = IswCreateManagedWidget("menuSave", smeBSBObjectClass, menu, args, n);
+    IswAddCallback(entry2, IswNcallback, menu_callback, (IswPointer)"Save");
     
     /* Separator line */
     n = 0;
-    line = XtCreateManagedWidget("menuLine", smeLineObjectClass, menu, args, n);
+    line = IswCreateManagedWidget("menuLine", smeLineObjectClass, menu, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Exit"); n++;
-    entry3 = XtCreateManagedWidget("menuExit", smeBSBObjectClass, menu, args, n);
-    XtAddCallback(entry3, XtNcallback, menu_callback, (XtPointer)"Exit");
+    IswSetArg(args[n], IswNlabel, "Exit"); n++;
+    entry3 = IswCreateManagedWidget("menuExit", smeBSBObjectClass, menu, args, n);
+    IswAddCallback(entry3, IswNcallback, menu_callback, (IswPointer)"Exit");
     
     return box;
 }
@@ -997,22 +997,22 @@ Widget create_repeater_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("repeaterBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("repeaterBox", boxWidgetClass, parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Repeater Button"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("repeaterTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Repeater Button"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("repeaterTitle", labelWidgetClass, box, args, n);
     
     /* Repeater button - auto-repeats while held */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Hold Me"); n++;
-    XtSetArg(args[n], XtNrepeatDelay, 500); n++;
-    repeater = XtCreateManagedWidget("repeater", repeaterWidgetClass, box, args, n);
-    XtAddCallback(repeater, XtNcallback, repeater_callback, NULL);
+    IswSetArg(args[n], IswNlabel, "Hold Me"); n++;
+    IswSetArg(args[n], IswNrepeatDelay, 500); n++;
+    repeater = IswCreateManagedWidget("repeater", repeaterWidgetClass, box, args, n);
+    IswAddCallback(repeater, IswNcallback, repeater_callback, NULL);
     
     return box;
 }
@@ -1028,58 +1028,58 @@ Widget create_selection_section(Widget parent) {
 
     /* Section container */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNdefaultDistance, 5); n++;
-    form = XtCreateManagedWidget("selectionForm", formWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    IswSetArg(args[n], IswNdefaultDistance, 5); n++;
+    form = IswCreateManagedWidget("selectionForm", formWidgetClass, parent, args, n);
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Selection Widgets: IconView, ListView, List, ComboBox, AsciiText"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    section_label = XtCreateManagedWidget("selectionLabel", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Selection Widgets: IconView, ListView, List, ComboBox, AsciiText"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    section_label = IswCreateManagedWidget("selectionLabel", labelWidgetClass,
                                           form, args, n);
 
     /* IconView demo */
     iconview_demo = create_iconview_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetValues(iconview_demo, args, n);
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetValues(iconview_demo, args, n);
 
     /* ListView demo (multi-column list) */
     listview_demo = create_listview_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, iconview_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(listview_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, iconview_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(listview_demo, args, n);
 
     /* List demo (classic multi-item list) */
     list_demo = create_list_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, listview_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(list_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, listview_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(list_demo, args, n);
 
     /* ComboBox demo (dropdown selector) */
     combobox_demo = create_combobox_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, list_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(combobox_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, list_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(combobox_demo, args, n);
 
     /* Text demo */
     text_demo = create_text_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, combobox_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(text_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, combobox_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(text_demo, args, n);
 
     return form;
 }
@@ -1111,29 +1111,29 @@ Widget create_iconview_demo(Widget parent) {
 
     /* Viewport for scrolling */
     n = 0;
-    XtSetArg(args[n], XtNallowVert, True); n++;
-    XtSetArg(args[n], XtNwidth, 200); n++;
-    XtSetArg(args[n], XtNheight, 180); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    viewport = XtCreateManagedWidget("iconViewport", viewportWidgetClass,
+    IswSetArg(args[n], IswNallowVert, True); n++;
+    IswSetArg(args[n], IswNwidth, 200); n++;
+    IswSetArg(args[n], IswNheight, 180); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    viewport = IswCreateManagedWidget("iconViewport", viewportWidgetClass,
                                       parent, args, n);
 
     /* IconView inside viewport */
     n = 0;
-    XtSetArg(args[n], XtNiconLabels, iv_labels); n++;
-    XtSetArg(args[n], XtNiconData, iv_icons); n++;
-    XtSetArg(args[n], XtNnumIcons, XtNumber(iv_labels)); n++;
-    XtSetArg(args[n], XtNiconSize, 32); n++;
-    XtSetArg(args[n], XtNwidth, 200); n++;
-    XtSetArg(args[n], XtNmultiSelect, True); n++;
-    iconview = XtCreateManagedWidget("iconView", iconViewWidgetClass,
+    IswSetArg(args[n], IswNiconLabels, iv_labels); n++;
+    IswSetArg(args[n], IswNiconData, iv_icons); n++;
+    IswSetArg(args[n], IswNnumIcons, IswNumber(iv_labels)); n++;
+    IswSetArg(args[n], IswNiconSize, 32); n++;
+    IswSetArg(args[n], IswNwidth, 200); n++;
+    IswSetArg(args[n], IswNmultiSelect, True); n++;
+    iconview = IswCreateManagedWidget("iconView", iconViewWidgetClass,
                                       viewport, args, n);
-    XtAddCallback(iconview, XtNselectCallback, iconview_callback, NULL);
+    IswAddCallback(iconview, IswNselectCallback, iconview_callback, NULL);
 
     return viewport;
 }
 
-void listview_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void listview_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswListViewCallbackData *data = (IswListViewCallbackData *)call_data;
     printf("ListView row=%d col=%d, %d selected:",
            data->row, data->column, data->num_selected);
@@ -1194,7 +1194,7 @@ static void lv_demo_rebuild_flat(void) {
             lv_demo_flat[r * LV_DEMO_COLS + c] = lv_demo_rows[r].cells[c];
 }
 
-void listview_reorder_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void listview_reorder_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswListViewReorderCallbackData *data = (IswListViewReorderCallbackData *)call_data;
     (void)client_data;
 
@@ -1242,26 +1242,26 @@ Widget create_listview_demo(Widget parent) {
 
     /* Viewport for scrolling */
     n = 0;
-    XtSetArg(args[n], XtNallowVert, True); n++;
-    XtSetArg(args[n], XtNwidth, 300); n++;
-    XtSetArg(args[n], XtNheight, 180); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    viewport = XtCreateManagedWidget("listViewViewport", viewportWidgetClass,
+    IswSetArg(args[n], IswNallowVert, True); n++;
+    IswSetArg(args[n], IswNwidth, 300); n++;
+    IswSetArg(args[n], IswNheight, 180); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    viewport = IswCreateManagedWidget("listViewViewport", viewportWidgetClass,
                                       parent, args, n);
 
     /* ListView inside viewport */
     n = 0;
-    XtSetArg(args[n], XtNlistViewColumns, cols); n++;
-    XtSetArg(args[n], XtNnumColumns, LV_DEMO_COLS); n++;
-    XtSetArg(args[n], XtNlistViewData, lv_demo_flat); n++;
-    XtSetArg(args[n], XtNnumRows, LV_DEMO_ROWS); n++;
-    XtSetArg(args[n], XtNwidth, 300); n++;
-    XtSetArg(args[n], XtNmultiSelect, True); n++;
-    XtSetArg(args[n], XtNshowHeader, True); n++;
-    listview = XtCreateManagedWidget("listView", listViewWidgetClass,
+    IswSetArg(args[n], IswNlistViewColumns, cols); n++;
+    IswSetArg(args[n], IswNnumColumns, LV_DEMO_COLS); n++;
+    IswSetArg(args[n], IswNlistViewData, lv_demo_flat); n++;
+    IswSetArg(args[n], IswNnumRows, LV_DEMO_ROWS); n++;
+    IswSetArg(args[n], IswNwidth, 300); n++;
+    IswSetArg(args[n], IswNmultiSelect, True); n++;
+    IswSetArg(args[n], IswNshowHeader, True); n++;
+    listview = IswCreateManagedWidget("listView", listViewWidgetClass,
                                       viewport, args, n);
-    XtAddCallback(listview, XtNselectCallback, listview_callback, NULL);
-    XtAddCallback(listview, XtNreorderCallback, listview_reorder_callback, NULL);
+    IswAddCallback(listview, IswNselectCallback, listview_callback, NULL);
+    IswAddCallback(listview, IswNreorderCallback, listview_reorder_callback, NULL);
 
     return viewport;
 }
@@ -1278,26 +1278,26 @@ Widget create_list_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("listBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("listBox", boxWidgetClass, parent, args, n);
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "List"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("listTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "List"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("listTitle", labelWidgetClass, box, args, n);
 
     /* Classic list widget — full multi-item display */
     n = 0;
-    XtSetArg(args[n], XtNlist, items); n++;
-    XtSetArg(args[n], XtNnumberStrings, XtNumber(items)); n++;
-    XtSetArg(args[n], XtNdefaultColumns, 1); n++;
-    XtSetArg(args[n], XtNforceColumns, True); n++;
-    XtSetArg(args[n], XtNwidth, 150); n++;
-    list = XtCreateManagedWidget("list", listWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlist, items); n++;
+    IswSetArg(args[n], IswNnumberStrings, IswNumber(items)); n++;
+    IswSetArg(args[n], IswNdefaultColumns, 1); n++;
+    IswSetArg(args[n], IswNforceColumns, True); n++;
+    IswSetArg(args[n], IswNwidth, 150); n++;
+    list = IswCreateManagedWidget("list", listWidgetClass, box, args, n);
 
-    XtAddCallback(list, XtNcallback, list_callback, NULL);
+    IswAddCallback(list, IswNcallback, list_callback, NULL);
 
     return box;
 }
@@ -1313,24 +1313,24 @@ Widget create_combobox_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("comboBoxBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("comboBoxBox", boxWidgetClass, parent, args, n);
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "ComboBox"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("comboBoxTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "ComboBox"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("comboBoxTitle", labelWidgetClass, box, args, n);
 
     /* ComboBox — List subclass with dropdown default */
     n = 0;
-    XtSetArg(args[n], XtNlist, items); n++;
-    XtSetArg(args[n], XtNnumberStrings, XtNumber(items)); n++;
-    XtSetArg(args[n], XtNwidth, 150); n++;
-    combo = XtCreateManagedWidget("comboBox", comboBoxWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlist, items); n++;
+    IswSetArg(args[n], IswNnumberStrings, IswNumber(items)); n++;
+    IswSetArg(args[n], IswNwidth, 150); n++;
+    combo = IswCreateManagedWidget("comboBox", comboBoxWidgetClass, box, args, n);
 
-    XtAddCallback(combo, XtNcallback, combobox_callback, NULL);
+    IswAddCallback(combo, IswNcallback, combobox_callback, NULL);
 
     return box;
 }
@@ -1342,23 +1342,23 @@ Widget create_text_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("textBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("textBox", boxWidgetClass, parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "AsciiText Widget (Editable)"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("textTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "AsciiText Widget (Editable)"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("textTitle", labelWidgetClass, box, args, n);
     
     /* Editable text widget with scrollbars */
     n = 0;
-    XtSetArg(args[n], XtNeditType, IswtextEdit); n++;
-    XtSetArg(args[n], XtNwidth, 450); n++;
-    XtSetArg(args[n], XtNheight, 120); n++;
-    XtSetArg(args[n], XtNscrollVertical, IswtextScrollAlways); n++;
-    XtSetArg(args[n], XtNstring,
+    IswSetArg(args[n], IswNeditType, IswtextEdit); n++;
+    IswSetArg(args[n], IswNwidth, 450); n++;
+    IswSetArg(args[n], IswNheight, 120); n++;
+    IswSetArg(args[n], IswNscrollVertical, IswtextScrollAlways); n++;
+    IswSetArg(args[n], IswNstring,
              "This is an editable text widget with scrollbars.\n"
              "Line 2: You can type, edit, and select text here.\n"
              "Line 3: The scrollbar should now work correctly!\n"
@@ -1374,7 +1374,7 @@ Widget create_text_demo(Widget parent) {
              "Line 13: Or use mouse wheel to scroll.\n"
              "Line 14: The text widget is now fully functional.\n"
              "Line 15: End of demo text."); n++;
-    text = XtCreateManagedWidget("textEditor", asciiTextWidgetClass, box, args, n);
+    text = IswCreateManagedWidget("textEditor", asciiTextWidgetClass, box, args, n);
     
     return box;
 }
@@ -1391,62 +1391,62 @@ Widget create_navigation_section(Widget parent) {
     
     /* Section container */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNdefaultDistance, 5); n++;
-    form = XtCreateManagedWidget("navigationForm", formWidgetClass,
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    IswSetArg(args[n], IswNdefaultDistance, 5); n++;
+    form = IswCreateManagedWidget("navigationForm", formWidgetClass,
                                  parent, args, n);
     
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Navigation Widgets: Panner/Porthole"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    section_label = XtCreateManagedWidget("navigationLabel", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Navigation Widgets: Panner/Porthole"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    section_label = IswCreateManagedWidget("navigationLabel", labelWidgetClass,
                                           form, args, n);
     
     /* Create demos */
     panner_demo = create_panner_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetValues(panner_demo, args, n);
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetValues(panner_demo, args, n);
     
     return form;
 }
 
 /* Panner report callback: user dragged the panner slider, move porthole content */
-void panner_report_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void panner_report_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswPannerReport *report = (IswPannerReport *)call_data;
     Widget content = (Widget)client_data;
     Arg args[2];
     Cardinal n = 0;
 
     if (report->changed & IswPRSliderX) {
-        XtSetArg(args[n], XtNx, -report->slider_x); n++;
+        IswSetArg(args[n], IswNx, -report->slider_x); n++;
     }
     if (report->changed & IswPRSliderY) {
-        XtSetArg(args[n], XtNy, -report->slider_y); n++;
+        IswSetArg(args[n], IswNy, -report->slider_y); n++;
     }
     if (n > 0)
-        XtSetValues(content, args, n);
+        IswSetValues(content, args, n);
 }
 
 /* Porthole report callback: porthole moved its child, update panner slider */
-void porthole_report_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void porthole_report_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswPannerReport *report = (IswPannerReport *)call_data;
     Widget panner = (Widget)client_data;
     Arg args[6];
     Cardinal n = 0;
 
-    XtSetArg(args[n], XtNsliderX, report->slider_x); n++;
-    XtSetArg(args[n], XtNsliderY, report->slider_y); n++;
-    XtSetArg(args[n], XtNsliderWidth, report->slider_width); n++;
-    XtSetArg(args[n], XtNsliderHeight, report->slider_height); n++;
-    XtSetArg(args[n], XtNcanvasWidth, report->canvas_width); n++;
-    XtSetArg(args[n], XtNcanvasHeight, report->canvas_height); n++;
-    XtSetValues(panner, args, n);
+    IswSetArg(args[n], IswNsliderX, report->slider_x); n++;
+    IswSetArg(args[n], IswNsliderY, report->slider_y); n++;
+    IswSetArg(args[n], IswNsliderWidth, report->slider_width); n++;
+    IswSetArg(args[n], IswNsliderHeight, report->slider_height); n++;
+    IswSetArg(args[n], IswNcanvasWidth, report->canvas_width); n++;
+    IswSetArg(args[n], IswNcanvasHeight, report->canvas_height); n++;
+    IswSetValues(panner, args, n);
 }
 
 Widget create_panner_demo(Widget parent) {
@@ -1456,45 +1456,45 @@ Widget create_panner_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("pannerBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("pannerBox", boxWidgetClass, parent, args, n);
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Panner/Porthole"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("pannerTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Panner/Porthole"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("pannerTitle", labelWidgetClass, box, args, n);
 
     /* Panner widget (miniature navigator) */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 200); n++;
-    XtSetArg(args[n], XtNheight, 150); n++;
-    panner = XtCreateManagedWidget("panner", pannerWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNwidth, 200); n++;
+    IswSetArg(args[n], IswNheight, 150); n++;
+    panner = IswCreateManagedWidget("panner", pannerWidgetClass, box, args, n);
 
     /* Porthole (viewing area) */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 200); n++;
-    XtSetArg(args[n], XtNheight, 150); n++;
-    porthole = XtCreateManagedWidget("porthole", portholeWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNwidth, 200); n++;
+    IswSetArg(args[n], IswNheight, 150); n++;
+    porthole = IswCreateManagedWidget("porthole", portholeWidgetClass, box, args, n);
 
     /* Large widget inside porthole */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Large Content Area\n\n"\
+    IswSetArg(args[n], IswNlabel, "Large Content Area\n\n"\
              "This area is larger than the\n"\
              "visible porthole window.\n\n"\
              "Use the panner above to\n"\
              "navigate around this content."); n++;
-    XtSetArg(args[n], XtNwidth, 400); n++;
-    XtSetArg(args[n], XtNheight, 300); n++;
-    large_widget = XtCreateManagedWidget("pannerContent", labelWidgetClass,
+    IswSetArg(args[n], IswNwidth, 400); n++;
+    IswSetArg(args[n], IswNheight, 300); n++;
+    large_widget = IswCreateManagedWidget("pannerContent", labelWidgetClass,
                                          porthole, args, n);
 
     /* Wire panner and porthole together */
-    XtAddCallback(panner, XtNreportCallback, panner_report_callback,
-                  (XtPointer)large_widget);
-    XtAddCallback(porthole, XtNreportCallback, porthole_report_callback,
-                  (XtPointer)panner);
+    IswAddCallback(panner, IswNreportCallback, panner_report_callback,
+                  (IswPointer)large_widget);
+    IswAddCallback(porthole, IswNreportCallback, porthole_report_callback,
+                  (IswPointer)panner);
 
     return box;
 }
@@ -1511,51 +1511,51 @@ Widget create_tree_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("treeBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("treeBox", boxWidgetClass, parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Tree Widget (Hierarchical Structure)"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("treeTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Tree Widget (Hierarchical Structure)"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("treeTitle", labelWidgetClass, box, args, n);
     
     /* Tree widget */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 300); n++;
-    XtSetArg(args[n], XtNheight, 200); n++;
-    XtSetArg(args[n], XtNautoReconfigure, True); n++;
-    XtSetArg(args[n], XtNhSpace, 20); n++;
-    XtSetArg(args[n], XtNvSpace, 10); n++;
-    tree = XtCreateManagedWidget("tree", treeWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNwidth, 300); n++;
+    IswSetArg(args[n], IswNheight, 200); n++;
+    IswSetArg(args[n], IswNautoReconfigure, True); n++;
+    IswSetArg(args[n], IswNhSpace, 20); n++;
+    IswSetArg(args[n], IswNvSpace, 10); n++;
+    tree = IswCreateManagedWidget("tree", treeWidgetClass, box, args, n);
     
     /* Root node */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Root"); n++;
-    node1 = XtCreateManagedWidget("node1", commandWidgetClass, tree, args, n);
+    IswSetArg(args[n], IswNlabel, "Root"); n++;
+    node1 = IswCreateManagedWidget("node1", commandWidgetClass, tree, args, n);
     
     /* Child nodes of root */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Child 1"); n++;
-    XtSetArg(args[n], XtNtreeParent, node1); n++;
-    node2 = XtCreateManagedWidget("node2", commandWidgetClass, tree, args, n);
+    IswSetArg(args[n], IswNlabel, "Child 1"); n++;
+    IswSetArg(args[n], IswNtreeParent, node1); n++;
+    node2 = IswCreateManagedWidget("node2", commandWidgetClass, tree, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Child 2"); n++;
-    XtSetArg(args[n], XtNtreeParent, node1); n++;
-    node3 = XtCreateManagedWidget("node3", commandWidgetClass, tree, args, n);
+    IswSetArg(args[n], IswNlabel, "Child 2"); n++;
+    IswSetArg(args[n], IswNtreeParent, node1); n++;
+    node3 = IswCreateManagedWidget("node3", commandWidgetClass, tree, args, n);
     
     /* Grandchild nodes */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Grandchild 1"); n++;
-    XtSetArg(args[n], XtNtreeParent, node2); n++;
-    node4 = XtCreateManagedWidget("node4", commandWidgetClass, tree, args, n);
+    IswSetArg(args[n], IswNlabel, "Grandchild 1"); n++;
+    IswSetArg(args[n], IswNtreeParent, node2); n++;
+    node4 = IswCreateManagedWidget("node4", commandWidgetClass, tree, args, n);
     
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Grandchild 2"); n++;
-    XtSetArg(args[n], XtNtreeParent, node3); n++;
-    node5 = XtCreateManagedWidget("node5", commandWidgetClass, tree, args, n);
+    IswSetArg(args[n], IswNlabel, "Grandchild 2"); n++;
+    IswSetArg(args[n], IswNtreeParent, node3); n++;
+    node5 = IswCreateManagedWidget("node5", commandWidgetClass, tree, args, n);
     
     return box;
 }
@@ -1571,15 +1571,15 @@ Widget create_layout_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("layoutBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("layoutBox", boxWidgetClass, parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Layout Widget (Constraint-based)"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("layoutTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Layout Widget (Constraint-based)"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("layoutTitle", labelWidgetClass, box, args, n);
     
     /* Use Form widget to demonstrate constraint-based layout.
      * Form positions children by fromHoriz/fromVert and distances;
@@ -1588,42 +1588,42 @@ Widget create_layout_demo(Widget parent) {
      * compute an offset for "Bottom Center". */
 
     n = 0;
-    XtSetArg(args[n], XtNwidth, 300); n++;
-    XtSetArg(args[n], XtNheight, 120); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNdefaultDistance, 8); n++;
-    layout = XtCreateManagedWidget("layout", formWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNwidth, 300); n++;
+    IswSetArg(args[n], IswNheight, 120); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    IswSetArg(args[n], IswNdefaultDistance, 8); n++;
+    layout = IswCreateManagedWidget("layout", formWidgetClass, box, args, n);
 
     /* Top Left: pinned to top-left */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Top Left"); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNbottom, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetArg(args[n], XtNright, XtChainLeft); n++;
-    button1 = XtCreateManagedWidget("layoutBtn1", commandWidgetClass, layout, args, n);
+    IswSetArg(args[n], IswNlabel, "Top Left"); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNbottom, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetArg(args[n], IswNright, IswChainLeft); n++;
+    button1 = IswCreateManagedWidget("layoutBtn1", commandWidgetClass, layout, args, n);
 
     /* Top Right: pushed to right side via horizDistance */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Top Right"); n++;
-    XtSetArg(args[n], XtNfromHoriz, button1); n++;
-    XtSetArg(args[n], XtNhorizDistance, 100); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNbottom, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainRight); n++;
-    XtSetArg(args[n], XtNright, XtChainRight); n++;
-    button2 = XtCreateManagedWidget("layoutBtn2", commandWidgetClass, layout, args, n);
+    IswSetArg(args[n], IswNlabel, "Top Right"); n++;
+    IswSetArg(args[n], IswNfromHoriz, button1); n++;
+    IswSetArg(args[n], IswNhorizDistance, 100); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNbottom, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainRight); n++;
+    IswSetArg(args[n], IswNright, IswChainRight); n++;
+    button2 = IswCreateManagedWidget("layoutBtn2", commandWidgetClass, layout, args, n);
 
     /* Bottom Center: below button1, centered via horizDistance */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Bottom Center"); n++;
-    XtSetArg(args[n], XtNfromVert, button1); n++;
-    XtSetArg(args[n], XtNhorizDistance, 80); n++;
-    XtSetArg(args[n], XtNtop, XtChainBottom); n++;
-    XtSetArg(args[n], XtNbottom, XtChainBottom); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetArg(args[n], XtNright, XtChainLeft); n++;
-    button3 = XtCreateManagedWidget("layoutBtn3", commandWidgetClass, layout, args, n);
+    IswSetArg(args[n], IswNlabel, "Bottom Center"); n++;
+    IswSetArg(args[n], IswNfromVert, button1); n++;
+    IswSetArg(args[n], IswNhorizDistance, 80); n++;
+    IswSetArg(args[n], IswNtop, IswChainBottom); n++;
+    IswSetArg(args[n], IswNbottom, IswChainBottom); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetArg(args[n], IswNright, IswChainLeft); n++;
+    button3 = IswCreateManagedWidget("layoutBtn3", commandWidgetClass, layout, args, n);
     
     return box;
 }
@@ -1640,47 +1640,47 @@ Widget create_paned_grip_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("gripBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("gripBox", boxWidgetClass, parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Grip Widget (Pane Resizing)"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("gripTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Grip Widget (Pane Resizing)"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("gripTitle", labelWidgetClass, box, args, n);
     
     /* Paned widget with visible grips */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNwidth, 200); n++;
-    XtSetArg(args[n], XtNheight, 200); n++;
-    paned = XtCreateManagedWidget("gripPaned", panedWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNwidth, 200); n++;
+    IswSetArg(args[n], IswNheight, 200); n++;
+    paned = IswCreateManagedWidget("gripPaned", panedWidgetClass, box, args, n);
     
     /* First section */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Section 1\n(Drag grip to resize)"); n++;
-    XtSetArg(args[n], XtNmin, 30); n++;
-    XtSetArg(args[n], XtNmax, 150); n++;
-    XtSetArg(args[n], XtNshowGrip, True); n++;
-    section1 = XtCreateManagedWidget("section1", labelWidgetClass, paned, args, n);
+    IswSetArg(args[n], IswNlabel, "Section 1\n(Drag grip to resize)"); n++;
+    IswSetArg(args[n], IswNmin, 30); n++;
+    IswSetArg(args[n], IswNmax, 150); n++;
+    IswSetArg(args[n], IswNshowGrip, True); n++;
+    section1 = IswCreateManagedWidget("section1", labelWidgetClass, paned, args, n);
     
     /* Grip is automatically created between panes */
     
     /* Second section */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Section 2"); n++;
-    XtSetArg(args[n], XtNmin, 30); n++;
-    XtSetArg(args[n], XtNmax, 150); n++;
-    XtSetArg(args[n], XtNshowGrip, True); n++;
-    section2 = XtCreateManagedWidget("section2", labelWidgetClass, paned, args, n);
+    IswSetArg(args[n], IswNlabel, "Section 2"); n++;
+    IswSetArg(args[n], IswNmin, 30); n++;
+    IswSetArg(args[n], IswNmax, 150); n++;
+    IswSetArg(args[n], IswNshowGrip, True); n++;
+    section2 = IswCreateManagedWidget("section2", labelWidgetClass, paned, args, n);
     
     /* Third section */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Section 3"); n++;
-    XtSetArg(args[n], XtNmin, 30); n++;
-    XtSetArg(args[n], XtNskipAdjust, True); n++;
-    section3 = XtCreateManagedWidget("section3", labelWidgetClass, paned, args, n);
+    IswSetArg(args[n], IswNlabel, "Section 3"); n++;
+    IswSetArg(args[n], IswNmin, 30); n++;
+    IswSetArg(args[n], IswNskipAdjust, True); n++;
+    section3 = IswCreateManagedWidget("section3", labelWidgetClass, paned, args, n);
     
     return box;
 }
@@ -1697,117 +1697,117 @@ Widget create_specialized_section(Widget parent) {
 
     /* Section container */
     n = 0;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNdefaultDistance, 5); n++;
-    form = XtCreateManagedWidget("specializedForm", formWidgetClass,
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    IswSetArg(args[n], IswNdefaultDistance, 5); n++;
+    form = IswCreateManagedWidget("specializedForm", formWidgetClass,
                                  parent, args, n);
 
     /* Section label */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Specialized Widgets: SpinBox, Slider, Scrollbar, ProgressBar, Dialog"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    section_label = XtCreateManagedWidget("specializedLabel", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Specialized Widgets: SpinBox, Slider, Scrollbar, ProgressBar, Dialog"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    section_label = IswCreateManagedWidget("specializedLabel", labelWidgetClass,
                                           form, args, n);
 
     /* Create demos */
     spinbox_demo = create_spinbox_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetValues(spinbox_demo, args, n);
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetValues(spinbox_demo, args, n);
 
     slider_demo = create_slider_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, spinbox_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(slider_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, spinbox_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(slider_demo, args, n);
 
     scrollbar_demo = create_scrollbar_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, slider_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(scrollbar_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, slider_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(scrollbar_demo, args, n);
 
     progressbar_demo = create_progressbar_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, scrollbar_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(progressbar_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, scrollbar_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(progressbar_demo, args, n);
 
     dialog_demo = create_dialog_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, progressbar_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(dialog_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, progressbar_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(dialog_demo, args, n);
 
     colorpicker_demo = create_colorpicker_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, dialog_demo); n++;
-    XtSetArg(args[n], XtNfromVert, section_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(colorpicker_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, dialog_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(colorpicker_demo, args, n);
 
     fontchooser_demo = create_fontchooser_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromVert, slider_demo); n++;
-    XtSetArg(args[n], XtNtop, XtChainTop); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    XtSetValues(fontchooser_demo, args, n);
+    IswSetArg(args[n], IswNfromVert, slider_demo); n++;
+    IswSetArg(args[n], IswNtop, IswChainTop); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    IswSetValues(fontchooser_demo, args, n);
 
     drawingarea_demo = create_drawingarea_demo(form);
     n = 0;
-    XtSetArg(args[n], XtNfromHoriz, fontchooser_demo); n++;
-    XtSetArg(args[n], XtNfromVert, slider_demo); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetValues(drawingarea_demo, args, n);
+    IswSetArg(args[n], IswNfromHoriz, fontchooser_demo); n++;
+    IswSetArg(args[n], IswNfromVert, slider_demo); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(drawingarea_demo, args, n);
 
     /* Drop target demo — receives drops from any XDND app */
     Widget drop_label;
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Drop files here"); n++;
-    XtSetArg(args[n], XtNwidth, 200); n++;
-    XtSetArg(args[n], XtNheight, 40); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNresize, False); n++;
-    XtSetArg(args[n], XtNfromVert, fontchooser_demo); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    drop_label = XtCreateManagedWidget("dropTarget", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Drop files here"); n++;
+    IswSetArg(args[n], IswNwidth, 200); n++;
+    IswSetArg(args[n], IswNheight, 40); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    IswSetArg(args[n], IswNresize, False); n++;
+    IswSetArg(args[n], IswNfromVert, fontchooser_demo); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    drop_label = IswCreateManagedWidget("dropTarget", labelWidgetClass,
                                         form, args, n);
-    XtAddCallback(drop_label, XtNdropCallback, drop_callback, NULL);
-    XtAddCallback(drop_label, XtNdragEnterCallback, drag_enter_callback, NULL);
-    XtAddCallback(drop_label, XtNdragLeaveCallback, drag_leave_callback, NULL);
+    IswAddCallback(drop_label, IswNdropCallback, drop_callback, NULL);
+    IswAddCallback(drop_label, IswNdragEnterCallback, drag_enter_callback, NULL);
+    IswAddCallback(drop_label, IswNdragLeaveCallback, drag_leave_callback, NULL);
     ISWXdndWidgetAcceptDrops(drop_label);
 
     /* Drag source demo — drag text to any XDND app */
-    static XtActionsRec drag_actions[] = {
+    static IswActionsRec drag_actions[] = {
         {"drag-start", drag_start_action}
     };
-    XtAppAddActions(XtWidgetToApplicationContext(form),
-                    drag_actions, XtNumber(drag_actions));
+    IswAppAddActions(IswWidgetToApplicationContext(form),
+                    drag_actions, IswNumber(drag_actions));
 
     Widget drag_label;
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Drag me"); n++;
-    XtSetArg(args[n], XtNwidth, 100); n++;
-    XtSetArg(args[n], XtNheight, 40); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    XtSetArg(args[n], XtNfromVert, fontchooser_demo); n++;
-    XtSetArg(args[n], XtNfromHoriz, drop_label); n++;
-    XtSetArg(args[n], XtNhorizDistance, 10); n++;
-    XtSetArg(args[n], XtNleft, XtChainLeft); n++;
-    drag_label = XtCreateManagedWidget("dragSource", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Drag me"); n++;
+    IswSetArg(args[n], IswNwidth, 100); n++;
+    IswSetArg(args[n], IswNheight, 40); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    IswSetArg(args[n], IswNfromVert, fontchooser_demo); n++;
+    IswSetArg(args[n], IswNfromHoriz, drop_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetArg(args[n], IswNleft, IswChainLeft); n++;
+    drag_label = IswCreateManagedWidget("dragSource", labelWidgetClass,
                                         form, args, n);
 
     /* Override translations so button press starts a drag */
-    XtOverrideTranslations(drag_label,
-        XtParseTranslationTable("<BtnDown>: drag-start()"));
+    IswOverrideTranslations(drag_label,
+        IswParseTranslationTable("<BtnDown>: drag-start()"));
 
     return form;
 }
@@ -1819,40 +1819,40 @@ Widget create_progressbar_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("progressBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("progressBox", boxWidgetClass, parent, args, n);
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "ProgressBar Widget"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("progressTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "ProgressBar Widget"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("progressTitle", labelWidgetClass, box, args, n);
 
     /* Horizontal progress bar at 75% with text */
     n = 0;
-    XtSetArg(args[n], XtNvalue, 75); n++;
-    XtSetArg(args[n], XtNwidth, 180); n++;
-    XtSetArg(args[n], XtNheight, 24); n++;
-    XtSetArg(args[n], XtNshowValue, True); n++;
-    pb_h1 = XtCreateManagedWidget("progressH1", progressBarWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNvalue, 75); n++;
+    IswSetArg(args[n], IswNwidth, 180); n++;
+    IswSetArg(args[n], IswNheight, 24); n++;
+    IswSetArg(args[n], IswNshowValue, True); n++;
+    pb_h1 = IswCreateManagedWidget("progressH1", progressBarWidgetClass, box, args, n);
 
     /* Horizontal progress bar at 30% without text */
     n = 0;
-    XtSetArg(args[n], XtNvalue, 30); n++;
-    XtSetArg(args[n], XtNwidth, 180); n++;
-    XtSetArg(args[n], XtNheight, 18); n++;
-    XtSetArg(args[n], XtNshowValue, False); n++;
-    pb_h2 = XtCreateManagedWidget("progressH2", progressBarWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNvalue, 30); n++;
+    IswSetArg(args[n], IswNwidth, 180); n++;
+    IswSetArg(args[n], IswNheight, 18); n++;
+    IswSetArg(args[n], IswNshowValue, False); n++;
+    pb_h2 = IswCreateManagedWidget("progressH2", progressBarWidgetClass, box, args, n);
 
     /* Vertical progress bar at 60% with text */
     n = 0;
-    XtSetArg(args[n], XtNvalue, 60); n++;
-    XtSetArg(args[n], XtNwidth, 30); n++;
-    XtSetArg(args[n], XtNheight, 100); n++;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNshowValue, True); n++;
-    pb_v = XtCreateManagedWidget("progressV", progressBarWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNvalue, 60); n++;
+    IswSetArg(args[n], IswNwidth, 30); n++;
+    IswSetArg(args[n], IswNheight, 100); n++;
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNshowValue, True); n++;
+    pb_v = IswCreateManagedWidget("progressV", progressBarWidgetClass, box, args, n);
 
     return box;
 }
@@ -1863,18 +1863,18 @@ Widget create_fontchooser_demo(Widget parent) {
     Cardinal n;
 
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("fontChooserBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("fontChooserBox", boxWidgetClass, parent, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Font Chooser"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("fontChooserTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Font Chooser"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("fontChooserTitle", labelWidgetClass, box, args, n);
 
     n = 0;
-    chooser = XtCreateManagedWidget("fontChooser", fontChooserWidgetClass, box, args, n);
-    XtAddCallback(chooser, XtNfontChanged, fontchooser_callback, NULL);
+    chooser = IswCreateManagedWidget("fontChooser", fontChooserWidgetClass, box, args, n);
+    IswAddCallback(chooser, IswNfontChanged, fontchooser_callback, NULL);
 
     return box;
 }
@@ -1885,21 +1885,21 @@ Widget create_colorpicker_demo(Widget parent) {
     Cardinal n;
 
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("colorPickerBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("colorPickerBox", boxWidgetClass, parent, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Color Picker"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("colorPickerTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Color Picker"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("colorPickerTitle", labelWidgetClass, box, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNcolorRed, 128); n++;
-    XtSetArg(args[n], XtNcolorGreen, 64); n++;
-    XtSetArg(args[n], XtNcolorBlue, 192); n++;
-    picker = XtCreateManagedWidget("colorPicker", colorPickerWidgetClass, box, args, n);
-    XtAddCallback(picker, XtNcolorChanged, colorpicker_callback, NULL);
+    IswSetArg(args[n], IswNcolorRed, 128); n++;
+    IswSetArg(args[n], IswNcolorGreen, 64); n++;
+    IswSetArg(args[n], IswNcolorBlue, 192); n++;
+    picker = IswCreateManagedWidget("colorPicker", colorPickerWidgetClass, box, args, n);
+    IswAddCallback(picker, IswNcolorChanged, colorpicker_callback, NULL);
 
     return box;
 }
@@ -1911,36 +1911,36 @@ Widget create_spinbox_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("spinBoxBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("spinBoxBox", boxWidgetClass, parent, args, n);
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "SpinBox"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("spinBoxTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "SpinBox"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("spinBoxTitle", labelWidgetClass, box, args, n);
 
     /* SpinBox: 0-100, increment 1 */
     n = 0;
-    XtSetArg(args[n], XtNspinMinimum, 0); n++;
-    XtSetArg(args[n], XtNspinMaximum, 100); n++;
-    XtSetArg(args[n], XtNspinValue, 50); n++;
-    XtSetArg(args[n], XtNspinIncrement, 1); n++;
-    XtSetArg(args[n], XtNwidth, 120); n++;
-    spin1 = XtCreateManagedWidget("spin1", spinBoxWidgetClass, box, args, n);
-    XtAddCallback(spin1, XtNvalueChanged, spinbox_callback, (XtPointer)"Spin1");
+    IswSetArg(args[n], IswNspinMinimum, 0); n++;
+    IswSetArg(args[n], IswNspinMaximum, 100); n++;
+    IswSetArg(args[n], IswNspinValue, 50); n++;
+    IswSetArg(args[n], IswNspinIncrement, 1); n++;
+    IswSetArg(args[n], IswNwidth, 120); n++;
+    spin1 = IswCreateManagedWidget("spin1", spinBoxWidgetClass, box, args, n);
+    IswAddCallback(spin1, IswNvalueChanged, spinbox_callback, (IswPointer)"Spin1");
 
     /* SpinBox: wrapping, step 10 */
     n = 0;
-    XtSetArg(args[n], XtNspinMinimum, 0); n++;
-    XtSetArg(args[n], XtNspinMaximum, 255); n++;
-    XtSetArg(args[n], XtNspinValue, 128); n++;
-    XtSetArg(args[n], XtNspinIncrement, 10); n++;
-    XtSetArg(args[n], XtNspinWrap, True); n++;
-    XtSetArg(args[n], XtNwidth, 120); n++;
-    spin2 = XtCreateManagedWidget("spin2", spinBoxWidgetClass, box, args, n);
-    XtAddCallback(spin2, XtNvalueChanged, spinbox_callback, (XtPointer)"Spin2");
+    IswSetArg(args[n], IswNspinMinimum, 0); n++;
+    IswSetArg(args[n], IswNspinMaximum, 255); n++;
+    IswSetArg(args[n], IswNspinValue, 128); n++;
+    IswSetArg(args[n], IswNspinIncrement, 10); n++;
+    IswSetArg(args[n], IswNspinWrap, True); n++;
+    IswSetArg(args[n], IswNwidth, 120); n++;
+    spin2 = IswCreateManagedWidget("spin2", spinBoxWidgetClass, box, args, n);
+    IswAddCallback(spin2, IswNvalueChanged, spinbox_callback, (IswPointer)"Spin2");
 
     return box;
 }
@@ -1952,40 +1952,40 @@ Widget create_slider_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("sliderBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("sliderBox", boxWidgetClass, parent, args, n);
 
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Slider"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("sliderTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Slider"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("sliderTitle", labelWidgetClass, box, args, n);
 
     /* Horizontal slider with ticks */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientHorizontal); n++;
-    XtSetArg(args[n], XtNminimumValue, 0); n++;
-    XtSetArg(args[n], XtNmaximumValue, 100); n++;
-    XtSetArg(args[n], XtNsliderValue, 50); n++;
-    XtSetArg(args[n], XtNtickInterval, 25); n++;
-    XtSetArg(args[n], XtNshowValue, True); n++;
-    XtSetArg(args[n], XtNwidth, 200); n++;
-    XtSetArg(args[n], XtNheight, 50); n++;
-    slider_h = XtCreateManagedWidget("sliderH", sliderWidgetClass, box, args, n);
-    XtAddCallback(slider_h, XtNvalueChanged, slider_callback, (XtPointer)"Horizontal");
+    IswSetArg(args[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(args[n], IswNminimumValue, 0); n++;
+    IswSetArg(args[n], IswNmaximumValue, 100); n++;
+    IswSetArg(args[n], IswNsliderValue, 50); n++;
+    IswSetArg(args[n], IswNtickInterval, 25); n++;
+    IswSetArg(args[n], IswNshowValue, True); n++;
+    IswSetArg(args[n], IswNwidth, 200); n++;
+    IswSetArg(args[n], IswNheight, 50); n++;
+    slider_h = IswCreateManagedWidget("sliderH", sliderWidgetClass, box, args, n);
+    IswAddCallback(slider_h, IswNvalueChanged, slider_callback, (IswPointer)"Horizontal");
 
     /* Vertical slider */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNminimumValue, 0); n++;
-    XtSetArg(args[n], XtNmaximumValue, 255); n++;
-    XtSetArg(args[n], XtNsliderValue, 128); n++;
-    XtSetArg(args[n], XtNshowValue, True); n++;
-    XtSetArg(args[n], XtNwidth, 70); n++;
-    XtSetArg(args[n], XtNheight, 120); n++;
-    slider_v = XtCreateManagedWidget("sliderV", sliderWidgetClass, box, args, n);
-    XtAddCallback(slider_v, XtNvalueChanged, slider_callback, (XtPointer)"Vertical");
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNminimumValue, 0); n++;
+    IswSetArg(args[n], IswNmaximumValue, 255); n++;
+    IswSetArg(args[n], IswNsliderValue, 128); n++;
+    IswSetArg(args[n], IswNshowValue, True); n++;
+    IswSetArg(args[n], IswNwidth, 70); n++;
+    IswSetArg(args[n], IswNheight, 120); n++;
+    slider_v = IswCreateManagedWidget("sliderV", sliderWidgetClass, box, args, n);
+    IswAddCallback(slider_v, IswNvalueChanged, slider_callback, (IswPointer)"Vertical");
 
     return box;
 }
@@ -1997,23 +1997,23 @@ Widget create_scrollbar_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("scrollbarBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("scrollbarBox", boxWidgetClass, parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Scrollbar Widget"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("scrollbarTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Scrollbar Widget"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("scrollbarTitle", labelWidgetClass, box, args, n);
     
     /* Vertical scrollbar */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNwidth, 20); n++;
-    XtSetArg(args[n], XtNheight, 100); n++;
-    XtSetArg(args[n], XtNshown, 30); n++;
-    scrollbar = XtCreateManagedWidget("scrollbar", scrollbarWidgetClass,
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNwidth, 20); n++;
+    IswSetArg(args[n], IswNheight, 100); n++;
+    IswSetArg(args[n], IswNshown, 30); n++;
+    scrollbar = IswCreateManagedWidget("scrollbar", scrollbarWidgetClass,
                                       box, args, n);
     
     return box;
@@ -2026,24 +2026,24 @@ Widget create_dialog_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("dialogBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("dialogBox", boxWidgetClass, parent, args, n);
     
     /* Title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Dialog Widget"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("dialogTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Dialog Widget"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("dialogTitle", labelWidgetClass, box, args, n);
     
     /* Dialog widget */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Enter name:"); n++;
-    XtSetArg(args[n], XtNvalue, "John Doe"); n++;
-    dialog = XtCreateManagedWidget("dialog", dialogWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "Enter name:"); n++;
+    IswSetArg(args[n], IswNvalue, "John Doe"); n++;
+    dialog = IswCreateManagedWidget("dialog", dialogWidgetClass, box, args, n);
     
     /* Add buttons */
-    IswDialogAddButton(dialog, "OK", dialog_ok_callback, (XtPointer)dialog);
+    IswDialogAddButton(dialog, "OK", dialog_ok_callback, (IswPointer)dialog);
     IswDialogAddButton(dialog, "Cancel", NULL, NULL);
     
     return box;
@@ -2053,24 +2053,24 @@ Widget create_dialog_demo(Widget parent) {
  * CALLBACK FUNCTIONS
  * ============================================================ */
 
-void button_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void button_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     char *button_name = (char *)client_data;
     printf("Button activated: %s\n", button_name);
 }
 
-void toggle_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void toggle_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     char *toggle_name = (char *)client_data;
     Boolean state = (Boolean)(intptr_t)call_data;
     printf("Toggle %s: %s\n", toggle_name, state ? "ON" : "OFF");
 }
 
-void checkbox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void checkbox_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     char *label = (char *)client_data;
     Boolean state = (Boolean)(intptr_t)call_data;
     printf("Checkbox '%s': %s\n", label, state ? "checked" : "unchecked");
 }
 
-void menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void menu_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     char *item = (char *)client_data;
     printf("Menu item selected: %s\n", item);
     
@@ -2080,33 +2080,33 @@ void menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     }
 }
 
-void list_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void list_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswListReturnStruct *item = (IswListReturnStruct *)call_data;
     printf("List item selected: %s (index %d)\n",
            item->string, item->list_index);
 }
 
-void slider_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void slider_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswSliderCallbackData *data = (IswSliderCallbackData *)call_data;
     printf("Slider (%s) value: %d\n", (char *)client_data, data->value);
 }
 
-void fontchooser_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void fontchooser_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswFontChooserCallbackData *data = (IswFontChooserCallbackData *)call_data;
     printf("Font: %s %dpt\n", data->family ? data->family : "(null)", data->size);
 }
 
-void colorpicker_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void colorpicker_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswColorPickerCallbackData *data = (IswColorPickerCallbackData *)call_data;
     printf("Color: R=%d G=%d B=%d\n", data->red, data->green, data->blue);
 }
 
-void spinbox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void spinbox_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswSpinBoxCallbackData *data = (IswSpinBoxCallbackData *)call_data;
     printf("SpinBox (%s) value: %d\n", (char *)client_data, data->value);
 }
 
-void iconview_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void iconview_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswIconViewCallbackData *data = (IswIconViewCallbackData *)call_data;
     (void)w; (void)client_data;
     printf("IconView clicked: %s (index %d), %d selected:",
@@ -2117,13 +2117,13 @@ void iconview_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     printf("\n");
 }
 
-void combobox_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void combobox_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswListReturnStruct *item = (IswListReturnStruct *)call_data;
     printf("ComboBox selected: %s (index %d)\n",
            item->string, item->list_index);
 }
 
-void drop_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void drop_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     IswDropCallbackData *data = (IswDropCallbackData *)call_data;
     (void) client_data;
 
@@ -2135,48 +2135,48 @@ void drop_callback(Widget w, XtPointer client_data, XtPointer call_data) {
 
         /* Update the label to show the first dropped file */
         Arg a[1];
-        XtSetArg(a[0], XtNlabel, data->uris[0]);
-        XtSetValues(w, a, 1);
+        IswSetArg(a[0], IswNlabel, data->uris[0]);
+        IswSetValues(w, a, 1);
     } else if (data->data && data->data_length > 0) {
         /* Non-URI drop — show raw text data */
         printf("Drop received: %lu bytes at (%d, %d)\n",
                data->data_length, data->x, data->y);
-        char *text = XtMalloc(data->data_length + 1);
+        char *text = IswMalloc(data->data_length + 1);
         memcpy(text, data->data, data->data_length);
         text[data->data_length] = '\0';
         printf("  data: %s\n", text);
 
         Arg a[1];
-        XtSetArg(a[0], XtNlabel, text);
-        XtSetValues(w, a, 1);
-        XtFree(text);
+        IswSetArg(a[0], IswNlabel, text);
+        IswSetValues(w, a, 1);
+        IswFree(text);
     }
 }
 
-void drag_enter_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void drag_enter_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     (void) client_data;
     (void) call_data;
     Arg a[1];
     Pixel highlight;
     /* Use a simple visual cue — swap border width */
-    XtSetArg(a[0], XtNborderWidth, 3);
-    XtSetValues(w, a, 1);
+    IswSetArg(a[0], IswNborderWidth, 3);
+    IswSetValues(w, a, 1);
     (void) highlight;
 }
 
-void drag_leave_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void drag_leave_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     (void) client_data;
     (void) call_data;
     Arg a[1];
-    XtSetArg(a[0], XtNborderWidth, 1);
-    XtSetValues(w, a, 1);
+    IswSetArg(a[0], IswNborderWidth, 1);
+    IswSetValues(w, a, 1);
 }
 
 /* Drag source convert proc — provides text/plain data */
 static Boolean
 demo_drag_convert(Widget widget, xcb_atom_t target_type,
-                  XtPointer *data_return, unsigned long *length_return,
-                  int *format_return, XtPointer client_data)
+                  IswPointer *data_return, unsigned long *length_return,
+                  int *format_return, IswPointer client_data)
 {
     (void) widget;
     (void) client_data;
@@ -2188,7 +2188,7 @@ demo_drag_convert(Widget widget, xcb_atom_t target_type,
     if (target_type == text_plain) {
         const char *msg = "Hello from ISW drag source!";
         int len = strlen(msg);
-        char *copy = XtMalloc(len + 1);
+        char *copy = IswMalloc(len + 1);
         memcpy(copy, msg, len + 1);
         *data_return = copy;
         *length_return = len;
@@ -2199,7 +2199,7 @@ demo_drag_convert(Widget widget, xcb_atom_t target_type,
     if (target_type == text_uri) {
         const char *uri = "file:///tmp/isw-demo-drag\r\n";
         int len = strlen(uri);
-        char *copy = XtMalloc(len + 1);
+        char *copy = IswMalloc(len + 1);
         memcpy(copy, uri, len + 1);
         *data_return = copy;
         *length_return = len;
@@ -2212,7 +2212,7 @@ demo_drag_convert(Widget widget, xcb_atom_t target_type,
 
 static void
 demo_drag_finished(Widget widget, IswDndAction performed_action,
-                   Boolean accepted, XtPointer client_data)
+                   Boolean accepted, IswPointer client_data)
 {
     (void) widget;
     (void) client_data;
@@ -2243,23 +2243,23 @@ void drag_start_action(Widget w, xcb_generic_event_t *event,
 }
 
 
-void repeater_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void repeater_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     static int count = 0;
     printf("Repeater activated: count = %d\n", ++count);
 }
 
-void dialog_ok_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void dialog_ok_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     Widget dialog = (Widget)client_data;
     String value;
     Arg args[1];
     
-    XtSetArg(args[0], XtNvalue, &value);
-    XtGetValues(dialog, args, 1);
+    IswSetArg(args[0], IswNvalue, &value);
+    IswGetValues(dialog, args, 1);
     
     printf("Dialog OK pressed. Value: %s\n", value);
 }
 
-void quit_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void quit_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     printf("Quit button pressed. Exiting...\n");
     exit(0);
 }
@@ -2268,7 +2268,7 @@ void quit_callback(Widget w, XtPointer client_data, XtPointer call_data) {
  * MENU BAR CALLBACKS
  * ============================================================ */
 
-void file_menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void file_menu_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     char *item = (char *)client_data;
     printf("File menu item selected: %s\n", item);
     
@@ -2277,12 +2277,12 @@ void file_menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
     }
 }
 
-void edit_menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void edit_menu_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     char *item = (char *)client_data;
     printf("Edit menu item selected: %s\n", item);
 }
 
-void about_menu_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void about_menu_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     char *item = (char *)client_data;
     
     if (strcmp(item, "About") == 0) {
@@ -2314,24 +2314,24 @@ void attach_tooltip(Widget widget, const char *tip_text) {
  * TABS WIDGET DEMO
  * ============================================================ */
 
-void tabs_callback(Widget w, XtPointer client_data, XtPointer call_data) {
+void tabs_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     TabsCallbackStruct *cbs = (TabsCallbackStruct *)call_data;
     printf("Tab switched to index %d (widget: %s)\n",
-           cbs->tab_index, XtName(cbs->child));
+           cbs->tab_index, IswName(cbs->child));
 }
 
 /* ============================================================
  * DRAWING AREA DEMO - Procedural checkerboard
  * ============================================================ */
 
-void drawingarea_expose(Widget w, XtPointer client_data, XtPointer call_data) {
+void drawingarea_expose(Widget w, IswPointer client_data, IswPointer call_data) {
     ISWDrawingCallbackData *cb = (ISWDrawingCallbackData *)call_data;
     ISWRenderContext *ctx = cb->render_ctx;
     Dimension width, height;
     int cell_size = 20;
     int row, col;
 
-    XtVaGetValues(w, XtNwidth, &width, XtNheight, &height, NULL);
+    IswVaGetValues(w, IswNwidth, &width, IswNheight, &height, NULL);
 
     /* Clear to white */
     ISWRenderSetColorRGBA(ctx, 1.0, 1.0, 1.0, 1.0);
@@ -2358,22 +2358,22 @@ Widget create_drawingarea_demo(Widget parent) {
     Cardinal n;
 
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    box = XtCreateManagedWidget("drawingAreaBox", boxWidgetClass, parent, args, n);
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    box = IswCreateManagedWidget("drawingAreaBox", boxWidgetClass, parent, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "DrawingArea Widget"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("drawingAreaTitle", labelWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNlabel, "DrawingArea Widget"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("drawingAreaTitle", labelWidgetClass, box, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNwidth, 160); n++;
-    XtSetArg(args[n], XtNheight, 160); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    canvas = XtCreateManagedWidget("canvas", drawingAreaWidgetClass, box, args, n);
+    IswSetArg(args[n], IswNwidth, 160); n++;
+    IswSetArg(args[n], IswNheight, 160); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    canvas = IswCreateManagedWidget("canvas", drawingAreaWidgetClass, box, args, n);
 
-    XtAddCallback(canvas, XtNexposeCallback, drawingarea_expose, NULL);
+    IswAddCallback(canvas, IswNexposeCallback, drawingarea_expose, NULL);
 
     return box;
 }
@@ -2386,54 +2386,54 @@ Widget create_tabs_demo(Widget parent) {
 
     /* Section container */
     n = 0;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 1); n++;
-    section_box = XtCreateManagedWidget("tabsSection", boxWidgetClass,
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    section_box = IswCreateManagedWidget("tabsSection", boxWidgetClass,
                                          parent, args, n);
 
     /* Section title */
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Tabs Widget"); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    title = XtCreateManagedWidget("tabsTitle", labelWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Tabs Widget"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("tabsTitle", labelWidgetClass,
                                    section_box, args, n);
 
     /* The Tabs widget */
     n = 0;
-    XtSetArg(args[n], XtNwidth, 400); n++;
-    XtSetArg(args[n], XtNheight, 180); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    tabs_widget = XtCreateManagedWidget("tabs", tabsWidgetClass,
+    IswSetArg(args[n], IswNwidth, 400); n++;
+    IswSetArg(args[n], IswNheight, 180); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    tabs_widget = IswCreateManagedWidget("tabs", tabsWidgetClass,
                                          section_box, args, n);
-    XtAddCallback(tabs_widget, XtNtabCallback, tabs_callback, NULL);
+    IswAddCallback(tabs_widget, IswNtabCallback, tabs_callback, NULL);
 
     /* Tab 1: a label */
     n = 0;
-    XtSetArg(args[n], XtNtabLabel, "General"); n++;
-    XtSetArg(args[n], XtNlabel, "This is the General tab.\n\n"
+    IswSetArg(args[n], IswNtabLabel, "General"); n++;
+    IswSetArg(args[n], IswNlabel, "This is the General tab.\n\n"
              "The Tabs widget is a Constraint\n"
              "container that shows one child at\n"
              "a time, with a clickable tab bar."); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    tab1_content = XtCreateManagedWidget("tab1", labelWidgetClass,
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    tab1_content = IswCreateManagedWidget("tab1", labelWidgetClass,
                                           tabs_widget, args, n);
 
     /* Tab 2: a box with buttons */
     n = 0;
-    XtSetArg(args[n], XtNtabLabel, "Controls"); n++;
-    XtSetArg(args[n], XtNorientation, XtorientVertical); n++;
-    XtSetArg(args[n], XtNborderWidth, 0); n++;
-    tab2_content = XtCreateManagedWidget("tab2", boxWidgetClass,
+    IswSetArg(args[n], IswNtabLabel, "Controls"); n++;
+    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    tab2_content = IswCreateManagedWidget("tab2", boxWidgetClass,
                                           tabs_widget, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Button A"); n++;
-    XtCreateManagedWidget("tab2BtnA", commandWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Button A"); n++;
+    IswCreateManagedWidget("tab2BtnA", commandWidgetClass,
                            tab2_content, args, n);
 
     n = 0;
-    XtSetArg(args[n], XtNlabel, "Button B"); n++;
-    XtCreateManagedWidget("tab2BtnB", commandWidgetClass,
+    IswSetArg(args[n], IswNlabel, "Button B"); n++;
+    IswCreateManagedWidget("tab2BtnB", commandWidgetClass,
                            tab2_content, args, n);
 
     return section_box;

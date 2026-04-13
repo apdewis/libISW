@@ -27,7 +27,7 @@ typedef struct {
     int             weight;         /* FC_WEIGHT value */
     int             slant;          /* FC_SLANT value */
     String          preview_text;
-    XtCallbackList  font_changed;
+    IswCallbackList  font_changed;
 
     /* private */
     Widget          familyListW;

@@ -49,7 +49,7 @@ SOFTWARE.
 #ifndef _ISW_IswForm_h
 #define _ISW_IswForm_h
 
-#include <X11/Constraint.h>
+#include <ISW/Constraint.h>
 
 /***********************************************************************
  *
@@ -61,8 +61,8 @@ SOFTWARE.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- background	     Background		Pixel		XtDefaultBackground
- border		     BorderColor	Pixel		XtDefaultForeground
+ background	     Background		Pixel		IswDefaultBackground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
  defaultDistance     Thickness		int		4
  destroyCallback     Callback		Pointer		NULL
@@ -79,36 +79,36 @@ SOFTWARE.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- bottom		     Edge		XtEdgeType	XtRubber
+ bottom		     Edge		IswEdgeType	IswRubber
  fromHoriz	     Widget		Widget		(left edge of form)
  fromVert	     Widget		Widget		(top of form)
  horizDistance	     Thickness		int		defaultDistance
- left		     Edge		XtEdgeType	XtRubber
+ left		     Edge		IswEdgeType	IswRubber
  resizable	     Boolean		Boolean		False
- right		     Edge		XtEdgeType	XtRubber
- top		     Edge		XtEdgeType	XtRubber
+ right		     Edge		IswEdgeType	IswRubber
+ top		     Edge		IswEdgeType	IswRubber
  vertDistance	     Thickness		int		defaultDistance
 
 */
 
 
-#ifndef _XtStringDefs_h_
-#define XtNtop "top"
-#define XtRWidget "Widget"
+#ifndef _IswStringDefs_h_
+#define IswNtop "top"
+#define IswRWidget "Widget"
 #endif
 
-#define XtNdefaultDistance "defaultDistance"
-#define XtNbottom "bottom"
-#define XtNleft "left"
-#define XtNright "right"
-#define XtNfromHoriz "fromHoriz"
-#define XtNfromVert "fromVert"
-#define XtNhorizDistance "horizDistance"
-#define XtNvertDistance "vertDistance"
-#define XtNresizable "resizable"
+#define IswNdefaultDistance "defaultDistance"
+#define IswNbottom "bottom"
+#define IswNleft "left"
+#define IswNright "right"
+#define IswNfromHoriz "fromHoriz"
+#define IswNfromVert "fromVert"
+#define IswNhorizDistance "horizDistance"
+#define IswNvertDistance "vertDistance"
+#define IswNresizable "resizable"
 
-#define XtCEdge "Edge"
-#define XtCWidget "Widget"
+#define IswCEdge "Edge"
+#define IswCWidget "Widget"
 
 #ifndef _IswEdgeType_e
 #define _IswEdgeType_e
@@ -134,13 +134,13 @@ typedef enum {
  * Chris D. Peterson - 3/23/90.
  */
 
-#define XtEdgeType IswEdgeType
+#define IswEdgeType IswEdgeType
 
-#define XtChainTop IswChainTop
-#define XtChainBottom IswChainBottom
-#define XtChainLeft IswChainLeft
-#define XtChainRight IswChainRight
-#define XtRubber IswRubber
+#define IswChainTop IswChainTop
+#define IswChainBottom IswChainBottom
+#define IswChainLeft IswChainLeft
+#define IswChainRight IswChainRight
+#define IswRubber IswRubber
 
 typedef struct _FormClassRec	*FormWidgetClass;
 typedef struct _FormRec		*FormWidget;

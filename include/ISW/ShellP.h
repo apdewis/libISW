@@ -54,11 +54,11 @@ SOFTWARE.
  * Date:	Thu Dec 3, 1987
  */
 
-#ifndef _XtShellPrivate_h
-#define _XtShellPrivate_h
+#ifndef _IswShellPrivate_h
+#define _IswShellPrivate_h
 
 #include <xcb/xcb_icccm.h>
-#include <X11/Shell.h>
+#include <ISW/Shell.h>
 
 /* *****
  * ***** VendorP.h is included later on; it needs fields defined in the first
@@ -77,19 +77,19 @@ _XFUNCPROTOBEGIN
 /* New fields for the Shell widget class record */
 
 typedef struct {
-    XtPointer       extension;          /* pointer to extension record      */
+    IswPointer       extension;          /* pointer to extension record      */
 } ShellClassPart;
 
 typedef struct {
-    XtPointer next_extension;	/* 1st 4 mandated for all extension records */
+    IswPointer next_extension;	/* 1st 4 mandated for all extension records */
     XrmQuark record_type;	/* NULLQUARK; on ShellClassPart */
-    long version;		/* must be XtShellExtensionVersion */
+    long version;		/* must be IswShellExtensionVersion */
     Cardinal record_size;	/* sizeof(ShellClassExtensionRec) */
-    XtGeometryHandler root_geometry_manager;
+    IswGeometryHandler root_geometry_manager;
 } ShellClassExtensionRec, *ShellClassExtension;
 
-#define XtShellExtensionVersion 1L
-#define XtInheritRootGeometryManager ((XtGeometryHandler)_XtInherit)
+#define IswShellExtensionVersion 1L
+#define IswInheritRootGeometryManager ((IswGeometryHandler)_IswInherit)
 
 typedef struct _ShellClassRec {
   	CoreClassPart      core_class;
@@ -103,21 +103,21 @@ externalref ShellClassRec shellClassRec;
 
 typedef struct {
 	char       *geometry;
-	XtCreatePopupChildProc	create_popup_child_proc;
-	XtGrabKind	grab_kind;
+	IswCreatePopupChildProc	create_popup_child_proc;
+	IswGrabKind	grab_kind;
 	Boolean	    spring_loaded;
 	Boolean	    popped_up;
 	Boolean	    allow_shell_resize;
 	Boolean     client_specified; /* re-using old name */
-#define _XtShellPositionValid	((Boolean)(1<<0))
-#define _XtShellNotReparented	((Boolean)(1<<1))
-#define _XtShellPPositionOK	((Boolean)(1<<2))
-#define _XtShellGeometryParsed	((Boolean)(1<<3))
+#define _IswShellPositionValid	((Boolean)(1<<0))
+#define _IswShellNotReparented	((Boolean)(1<<1))
+#define _IswShellPPositionOK	((Boolean)(1<<2))
+#define _IswShellGeometryParsed	((Boolean)(1<<3))
 	Boolean	    save_under;
 	Boolean	    override_redirect;
 
-	XtCallbackList popup_callback;
-	XtCallbackList popdown_callback;
+	IswCallbackList popup_callback;
+	IswCallbackList popdown_callback;
 	xcb_visualid_t visual;
 } ShellPart;
 
@@ -136,7 +136,7 @@ typedef  struct {
 /* New fields for the OverrideShell widget class record */
 
 typedef struct {
-    XtPointer       extension;          /* pointer to extension record      */
+    IswPointer       extension;          /* pointer to extension record      */
 } OverrideShellClassPart;
 
 typedef struct _OverrideShellClassRec {
@@ -168,7 +168,7 @@ typedef  struct {
 /* New fields for the WMShell widget class record */
 
 typedef struct {
-    XtPointer       extension;          /* pointer to extension record      */
+    IswPointer       extension;          /* pointer to extension record      */
 } WMShellClassPart;
 
 typedef struct _WMShellClassRec {
@@ -223,7 +223,7 @@ typedef  struct {
 
 _XFUNCPROTOEND
 
-#include <X11/VendorP.h>
+#include <ISW/VendorP.h>
 
 _XFUNCPROTOBEGIN
 
@@ -236,7 +236,7 @@ _XFUNCPROTOBEGIN
 /* New fields for the TransientShell widget class record */
 
 typedef struct {
-    XtPointer       extension;          /* pointer to extension record      */
+    IswPointer       extension;          /* pointer to extension record      */
 } TransientShellClassPart;
 
 typedef struct _TransientShellClassRec {
@@ -274,7 +274,7 @@ typedef  struct {
 /* New fields for the TopLevelShell widget class record */
 
 typedef struct {
-    XtPointer       extension;          /* pointer to extension record      */
+    IswPointer       extension;          /* pointer to extension record      */
 } TopLevelShellClassPart;
 
 typedef struct _TopLevelShellClassRec {
@@ -314,7 +314,7 @@ typedef  struct {
 /* New fields for the ApplicationShell widget class record */
 
 typedef struct {
-    XtPointer       extension;          /* pointer to extension record      */
+    IswPointer       extension;          /* pointer to extension record      */
 } ApplicationShellClassPart;
 
 typedef struct _ApplicationShellClassRec {
@@ -339,7 +339,7 @@ typedef struct {
 #endif
     //XrmClass xrm_class;
     int argc;
-    _XtString *argv;
+    _IswString *argv;
 } ApplicationShellPart;
 
 typedef  struct {
@@ -354,4 +354,4 @@ typedef  struct {
 
 _XFUNCPROTOEND
 
-#endif /* _XtShellPrivate_h */
+#endif /* _IswShellPrivate_h */

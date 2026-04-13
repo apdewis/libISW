@@ -61,8 +61,8 @@ SOFTWARE.
 #endif
 #include <ISW/ISWP.h>
 
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
@@ -87,45 +87,45 @@ static char defaultTranslations[] =
 
 static float floatZero = 0.0;
 
-#define Offset(field) XtOffsetOf(ScrollbarRec, field)
+#define Offset(field) IswOffsetOf(ScrollbarRec, field)
 
-static XtResource resources[] = {
-/*  {XtNscrollCursor, XtCCursor, XtRCursor, sizeof(xcb_cursor_t),
-       Offset(scrollbar.cursor), XtRString, "crosshair"},*/
-  {XtNlength, XtCLength, XtRDimension, sizeof(Dimension),
-       Offset(scrollbar.length), XtRImmediate, (XtPointer) 1},
-  {XtNthickness, XtCThickness, XtRDimension, sizeof(Dimension),
-       Offset(scrollbar.thickness), XtRImmediate, (XtPointer) 14},
-  {XtNorientation, XtCOrientation, XtROrientation, sizeof(XtOrientation),
-      Offset(scrollbar.orientation), XtRImmediate, (XtPointer) XtorientVertical},
-  {XtNscrollProc, XtCCallback, XtRCallback, sizeof(XtPointer),
-       Offset(scrollbar.scrollProc), XtRCallback, NULL},
-  {XtNthumbProc, XtCCallback, XtRCallback, sizeof(XtPointer),
-       Offset(scrollbar.thumbProc), XtRCallback, NULL},
-  {XtNjumpProc, XtCCallback, XtRCallback, sizeof(XtPointer),
-       Offset(scrollbar.jumpProc), XtRCallback, NULL},
-  {XtNthumb, XtCThumb, XtRBitmap, sizeof(xcb_pixmap_t),
-       Offset(scrollbar.thumb), XtRImmediate, (XtPointer) XtUnspecifiedPixmap},
-  {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-       Offset(scrollbar.foreground), XtRString, XtDefaultForeground},
-  {XtNshown, XtCShown, XtRFloat, sizeof(float),
-       Offset(scrollbar.shown), XtRFloat, (XtPointer)&floatZero},
-  {XtNtopOfThumb, XtCTopOfThumb, XtRFloat, sizeof(float),
-       Offset(scrollbar.top), XtRFloat, (XtPointer)&floatZero},
-  {XtNpickTop, XtCPickTop, XtRBoolean, sizeof(Boolean),
-       Offset(scrollbar.pick_top), XtRBoolean, (XtPointer) False},
-  {XtNminimumThumb, XtCMinimumThumb, XtRDimension, sizeof(Dimension),
-       Offset(scrollbar.min_thumb), XtRImmediate, (XtPointer) 7},
-  {XtNscrollWheelIncrement, XtCScrollWheelIncrement, XtRDimension, sizeof(Dimension),
-       Offset(scrollbar.scroll_wheel_increment), XtRImmediate,
-       (XtPointer) ISW_SCROLL_WHEEL_DEFAULT_INCREMENT},
+static IswResource resources[] = {
+/*  {IswNscrollCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+       Offset(scrollbar.cursor), IswRString, "crosshair"},*/
+  {IswNlength, IswCLength, IswRDimension, sizeof(Dimension),
+       Offset(scrollbar.length), IswRImmediate, (IswPointer) 1},
+  {IswNthickness, IswCThickness, IswRDimension, sizeof(Dimension),
+       Offset(scrollbar.thickness), IswRImmediate, (IswPointer) 14},
+  {IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
+      Offset(scrollbar.orientation), IswRImmediate, (IswPointer) XtorientVertical},
+  {IswNscrollProc, IswCCallback, IswRCallback, sizeof(IswPointer),
+       Offset(scrollbar.scrollProc), IswRCallback, NULL},
+  {IswNthumbProc, IswCCallback, IswRCallback, sizeof(IswPointer),
+       Offset(scrollbar.thumbProc), IswRCallback, NULL},
+  {IswNjumpProc, IswCCallback, IswRCallback, sizeof(IswPointer),
+       Offset(scrollbar.jumpProc), IswRCallback, NULL},
+  {IswNthumb, IswCThumb, IswRBitmap, sizeof(xcb_pixmap_t),
+       Offset(scrollbar.thumb), IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
+  {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+       Offset(scrollbar.foreground), IswRString, IswDefaultForeground},
+  {IswNshown, IswCShown, IswRFloat, sizeof(float),
+       Offset(scrollbar.shown), IswRFloat, (IswPointer)&floatZero},
+  {IswNtopOfThumb, IswCTopOfThumb, IswRFloat, sizeof(float),
+       Offset(scrollbar.top), IswRFloat, (IswPointer)&floatZero},
+  {IswNpickTop, IswCPickTop, IswRBoolean, sizeof(Boolean),
+       Offset(scrollbar.pick_top), IswRBoolean, (IswPointer) False},
+  {IswNminimumThumb, IswCMinimumThumb, IswRDimension, sizeof(Dimension),
+       Offset(scrollbar.min_thumb), IswRImmediate, (IswPointer) 7},
+  {IswNscrollWheelIncrement, IswCScrollWheelIncrement, IswRDimension, sizeof(Dimension),
+       Offset(scrollbar.scroll_wheel_increment), IswRImmediate,
+       (IswPointer) ISW_SCROLL_WHEEL_DEFAULT_INCREMENT},
 };
 #undef Offset
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Realize(xcb_connection_t *, Widget, XtValueMask *, uint32_t *);
+static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -136,7 +136,7 @@ static void NotifyThumb(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void NotifyScroll(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void EndScroll(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
-static XtActionsRec actions[] = {
+static IswActionsRec actions[] = {
     {"HandleThumb",	HandleThumb},
     {"MoveThumb",	MoveThumb},
     {"NotifyThumb",	NotifyThumb},
@@ -157,9 +157,9 @@ ScrollbarClassRec scrollbarClassRec = {
     /* initialize_hook  */	NULL,
     /* realize          */	Realize,
     /* actions          */	actions,
-    /* num_actions	*/	XtNumber(actions),
+    /* num_actions	*/	IswNumber(actions),
     /* resources        */	resources,
-    /* num_resources    */	XtNumber(resources),
+    /* num_resources    */	IswNumber(resources),
     /* xrm_class        */	NULLQUARK,
     /* compress_motion	*/	TRUE,
     /* compress_exposure*/	TRUE,
@@ -170,18 +170,18 @@ ScrollbarClassRec scrollbarClassRec = {
     /* expose           */	Redisplay,
     /* set_values       */	SetValues,
     /* set_values_hook  */	NULL,
-    /* set_values_almost */	XtInheritSetValuesAlmost,
+    /* set_values_almost */	IswInheritSetValuesAlmost,
     /* get_values_hook  */	NULL,
     /* accept_focus     */	NULL,
-    /* version          */	XtVersion,
+    /* version          */	IswVersion,
     /* callback_private */	NULL,
     /* tm_table         */	defaultTranslations,
-    /* query_geometry	*/	XtInheritQueryGeometry,
-    /* display_accelerator*/	XtInheritDisplayAccelerator,
+    /* query_geometry	*/	IswInheritQueryGeometry,
+    /* display_accelerator*/	IswInheritDisplayAccelerator,
     /* extension        */	NULL
   },
   { /* simple fields */
-    /* change_sensitive	*/	XtInheritChangeSensitive
+    /* change_sensitive	*/	IswInheritChangeSensitive
   },
   { /* scrollbar fields */
     /* ignore		*/	0
@@ -201,8 +201,8 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    XtSetTypeConverter( XtRString, XtROrientation, ISWCvtStringToOrientation,
-		    (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
+    IswSetTypeConverter( IswRString, IswROrientation, ISWCvtStringToOrientation,
+		    (IswConvertArgList)NULL, 0, IswCacheNone, (IswDestructor)NULL );
 }
 
 /* CHECKIT #define MARGIN(sbw) (sbw)->scrollbar.thickness */
@@ -296,7 +296,7 @@ PaintThumb (ScrollbarWidget sbw, xcb_generic_event_t *event)
 
     sbw->scrollbar.topLoc = newtop;
     sbw->scrollbar.shownLength = newbot - newtop;
-    if (XtIsRealized ((Widget) sbw)) {
+    if (IswIsRealized ((Widget) sbw)) {
       /*  3D thumb wanted ?
        */
       if (s)
@@ -338,7 +338,7 @@ PaintArrows (ScrollbarWidget sbw)
     Dimension sa30 = (Dimension)(1.732 * s );  /* cotangent of 30 deg */
 
 
-    if (XtIsRealized ((Widget) sbw)) {
+    if (IswIsRealized ((Widget) sbw)) {
 	/* 3D arrows?
          */
 	if (s) {
@@ -431,8 +431,8 @@ static void
 Destroy (Widget w)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
-    if(sbw->scrollbar.timer_id != (XtIntervalId) 0)
-	XtRemoveTimeOut (sbw->scrollbar.timer_id);
+    if(sbw->scrollbar.timer_id != (IswIntervalId) 0)
+	IswRemoveTimeOut (sbw->scrollbar.timer_id);
     /* Destroy Cairo rendering context */
     if (sbw->scrollbar.render_ctx)
         ISWRenderDestroy(sbw->scrollbar.render_ctx);
@@ -457,7 +457,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) new;
     /* Install scroll wheel event dispatcher (once per connection) */
-    ISWScrollWheelInit(XtDisplay(new));
+    ISWScrollWheelInit(IswDisplay(new));
 
     /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
@@ -471,7 +471,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     SetDimensions (sbw);
     sbw->scrollbar.scroll_mode = 0;
-    sbw->scrollbar.timer_id = (XtIntervalId)0;
+    sbw->scrollbar.timer_id = (IswIntervalId)0;
     sbw->scrollbar.topLoc = 0;
     sbw->scrollbar.shownLength = sbw->scrollbar.min_thumb;
 
@@ -480,11 +480,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
+Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     if(sbw->simple.cursor_name == NULL)
-	XtVaSetValues(w, XtNcursorName, "crosshair", NULL);
+	IswVaSetValues(w, IswNcursorName, "crosshair", NULL);
     /* dont set the cursor of the window to anything */
     *valueMask &= ~XCB_CW_CURSOR;
     /*
@@ -519,7 +519,7 @@ SetValues(Widget current, Widget request, Widget desired, ArgList args, Cardinal
 /*
  * Change colors and stuff...
  */
-    if (XtIsRealized (desired)) {
+    if (IswIsRealized (desired)) {
 	if (sbw->scrollbar.foreground != dsbw->scrollbar.foreground ||
 	    sbw->core.background_pixel != dsbw->core.background_pixel ||
 	    sbw->scrollbar.thumb != dsbw->scrollbar.thumb) {
@@ -716,27 +716,27 @@ HandleThumb(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_
     if (sbw->scrollbar.scroll_mode == 2 ||
 	(PICKLENGTH (sbw,x,y) >= sbw->scrollbar.topLoc &&
 	PICKLENGTH (sbw,x,y) <= sbw->scrollbar.topLoc + sbw->scrollbar.shownLength)){
-	XtCallActionProc(w, "MoveThumb", event, params, *num_params);
-	XtCallActionProc(w, "NotifyThumb", event, params, *num_params);
+	IswCallActionProc(w, "MoveThumb", event, params, *num_params);
+	IswCallActionProc(w, "NotifyThumb", event, params, *num_params);
     }
 }
 
 static void
-RepeatNotify(XtPointer client_data, XtIntervalId *idp)
+RepeatNotify(IswPointer client_data, IswIntervalId *idp)
 {
 #define A_FEW_PIXELS 5
     ScrollbarWidget sbw = (ScrollbarWidget) client_data;
     intptr_t call_data;
     if (sbw->scrollbar.scroll_mode != 1 && sbw->scrollbar.scroll_mode != 3) {
-	sbw->scrollbar.timer_id = (XtIntervalId) 0;
+	sbw->scrollbar.timer_id = (IswIntervalId) 0;
 	return;
     }
     call_data = MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
     if (sbw->scrollbar.scroll_mode == 1)
 	call_data = -call_data;
-    XtCallCallbacks((Widget)sbw, XtNscrollProc, (XtPointer) call_data);
+    IswCallCallbacks((Widget)sbw, IswNscrollProc, (IswPointer) call_data);
     sbw->scrollbar.timer_id =
-    XtAppAddTimeOut(XtWidgetToApplicationContext((Widget)sbw),
+    IswAppAddTimeOut(IswWidgetToApplicationContext((Widget)sbw),
 		    (unsigned long) 150,
 		    RepeatNotify,
 		    client_data);
@@ -774,29 +774,29 @@ NotifyScroll (Widget w, xcb_generic_event_t *event, String *params, Cardinal *nu
     if (PICKLENGTH (sbw,x,y) < sbw->scrollbar.thickness) {
  /* handle first arrow zone */
  call_data = -MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
-	XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
+	IswCallCallbacks (w, IswNscrollProc, (IswPointer)(call_data));
 	/* establish autoscroll */
 	sbw->scrollbar.timer_id =
-	    XtAppAddTimeOut (XtWidgetToApplicationContext (w),
-				(unsigned long) 300, RepeatNotify, (XtPointer)w);
+	    IswAppAddTimeOut (IswWidgetToApplicationContext (w),
+				(unsigned long) 300, RepeatNotify, (IswPointer)w);
 	sbw->scrollbar.scroll_mode = 1;
     } else if (PICKLENGTH (sbw,x,y) > sbw->scrollbar.length - sbw->scrollbar.thickness) {
  /* handle last arrow zone */
  call_data = MAX (A_FEW_PIXELS, sbw->scrollbar.length / 20);
- XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
+ IswCallCallbacks (w, IswNscrollProc, (IswPointer)(call_data));
 	/* establish autoscroll */
 	sbw->scrollbar.timer_id =
-	    XtAppAddTimeOut (XtWidgetToApplicationContext (w),
-				(unsigned long) 300, RepeatNotify, (XtPointer)w);
+	    IswAppAddTimeOut (IswWidgetToApplicationContext (w),
+				(unsigned long) 300, RepeatNotify, (IswPointer)w);
 	sbw->scrollbar.scroll_mode = 3;
     } else if (PICKLENGTH (sbw, x, y) < sbw->scrollbar.topLoc) {
  /* handle zone "above" the thumb */
  call_data = - sbw->scrollbar.length;
- XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
+ IswCallCallbacks (w, IswNscrollProc, (IswPointer)(call_data));
     } else if (PICKLENGTH (sbw, x, y) > sbw->scrollbar.topLoc + sbw->scrollbar.shownLength) {
  /* handle zone "below" the thumb */
  call_data = sbw->scrollbar.length;
- XtCallCallbacks (w, XtNscrollProc, (XtPointer)(call_data));
+ IswCallCallbacks (w, IswNscrollProc, (IswPointer)(call_data));
     } else
 	{
 	/* handle the thumb in the motion notify action */
@@ -867,7 +867,7 @@ MoveThumb (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
       sbw->scrollbar.top = 1.0 - sbw->scrollbar.shown;
     sbw->scrollbar.scroll_mode = 2; /* indicate continuous scroll */
     PaintThumb (sbw, event);
-    xcb_flush(XtDisplay(w));	/* re-draw it before Notifying */
+    xcb_flush(IswDisplay(w));	/* re-draw it before Notifying */
 }
 
 
@@ -877,7 +877,7 @@ NotifyThumb (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
 {
     register ScrollbarWidget sbw = (ScrollbarWidget) w;
     union {
-        XtPointer xtp;
+        IswPointer xtp;
         float xtf;
     } xtpf;
 
@@ -909,8 +909,8 @@ NotifyThumb (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
     xtpf.xtf += 0.0001;
 /* #endif */
 
-    XtCallCallbacks (w, XtNthumbProc, xtpf.xtp);
-    XtCallCallbacks (w, XtNjumpProc, (XtPointer)&sbw->scrollbar.top);
+    IswCallCallbacks (w, IswNthumbProc, xtpf.xtp);
+    IswCallCallbacks (w, IswNjumpProc, (IswPointer)&sbw->scrollbar.top);
 }
 
 

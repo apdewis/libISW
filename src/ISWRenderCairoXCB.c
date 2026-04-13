@@ -14,8 +14,8 @@
 #endif
 
 #include "ISWRenderPrivate.h"
-#include <X11/IntrinsicP.h> /* For Xt private types */
-#include <X11/CoreP.h>       /* For accessing widget->core fields */
+#include <ISW/IntrinsicP.h> /* For Xt private types */
+#include <ISW/CoreP.h>       /* For accessing widget->core fields */
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -23,10 +23,10 @@
 #include <xcb/present.h>
 
 /* Defined in Initialize.c */
-extern double _XtGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 /* Defined in ISWRender.c — TTF font resolution via fontconfig/FreeType/cairo-ft */
-extern void _ISWSetCairoFontFromXFont(cairo_t *cr, XFontStruct *font, double scale);
+extern void _ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale);
 
 /*
  * Cairo-XCB Backend Data
@@ -102,7 +102,7 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
     /* HiDPI: set device scale so Cairo maps logical drawing coordinates
      * to physical surface pixels transparently. */
     {
-        double sf = _XtGetScaleFactor(ctx->connection);
+        double sf = _IswGetScaleFactor(ctx->connection);
         if (sf > 1.0)
             cairo_surface_set_device_scale(data->surface, sf, sf);
     }
@@ -300,8 +300,8 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         }
         /* Pick up the window that wasn't available at init time */
         if (ctx->window != 0 && ctx->window != (xcb_window_t)-1) {
-            ctx->connection = (xcb_connection_t*)XtDisplay(ctx->widget);
-            ctx->window = XtWindow(ctx->widget);
+            ctx->connection = (xcb_connection_t*)IswDisplay(ctx->widget);
+            ctx->window = IswWindow(ctx->widget);
         }
         if (!_cairo_xcb_create_surface(ctx, data)) {
             return;  /* Surface creation failed — skip this frame */
@@ -312,7 +312,7 @@ cairo_xcb_begin(ISWRenderContext *ctx)
     /* Update window surface size — use physical pixels for surfaces
      * since the X window is at physical size. */
     if (ctx->widget && data->surface) {
-        double sf = _XtGetScaleFactor(ctx->connection);
+        double sf = _IswGetScaleFactor(ctx->connection);
         Dimension w = (Dimension)(ctx->widget->core.width * sf + 0.5);
         Dimension h = (Dimension)(ctx->widget->core.height * sf + 0.5);
         cairo_xcb_surface_set_size(data->surface, w, h);
@@ -357,7 +357,7 @@ cairo_xcb_begin(ISWRenderContext *ctx)
                 ctx->connection, data->back_pixmap, data->visual, aw, ah);
             /* HiDPI: device scale for logical→physical mapping */
             {
-                double sf = _XtGetScaleFactor(ctx->connection);
+                double sf = _IswGetScaleFactor(ctx->connection);
                 if (sf > 1.0)
                     cairo_surface_set_device_scale(data->back_surface, sf, sf);
             }
@@ -730,7 +730,7 @@ cairo_xcb_text_height(ISWRenderContext *ctx)
 }
 
 static void
-cairo_xcb_set_font(ISWRenderContext *ctx, XFontStruct *font)
+cairo_xcb_set_font(ISWRenderContext *ctx, IswFontStruct *font)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
 

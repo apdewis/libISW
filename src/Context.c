@@ -31,13 +31,13 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 static int context_id_counter = 0;
 
 /*
- * XtUniqueContext - Create a new unique context
+ * IswUniqueContext - Create a new unique context
  * Returns: New context identifier
  */
-XtContext
-XtUniqueContext(void)
+IswContext
+IswUniqueContext(void)
 {
-    XtContext context = (XtContext) malloc(sizeof(*context));
+    IswContext context = (IswContext) malloc(sizeof(*context));
     if (context) {
         context->id = ++context_id_counter;
         context->entries = NULL;
@@ -46,24 +46,24 @@ XtUniqueContext(void)
 }
 
 /*
- * XtSaveContext - Save data in a context
+ * IswSaveContext - Save data in a context
  * Parameters:
  *   dpy     - Display connection
  *   key     - Key (window ID or atom)
  *   context - Context identifier
  *   data    - Data to save
- * Returns: XT_CONTEXT_SUCCESS on success, error code on failure
+ * Returns: ISW_CONTEXT_SUCCESS on success, error code on failure
  */
 int
-XtSaveContext(xcb_connection_t *dpy, XID key, XtContext context, const void *data)
+IswSaveContext(xcb_connection_t *dpy, XID key, IswContext context, const void *data)
 {
-    XtContextEntry *entry;
+    IswContextEntry *entry;
 
     if (!context)
-        return XT_CONTEXT_BAD_CONTEXT;
+        return ISW_CONTEXT_BAD_CONTEXT;
     
     if (!data)
-        return XT_CONTEXT_BAD_DATA;
+        return ISW_CONTEXT_BAD_DATA;
 
     /* Check if entry already exists */
     HASH_FIND(hh, context->entries, &key, sizeof(key), entry);
@@ -72,9 +72,9 @@ XtSaveContext(xcb_connection_t *dpy, XID key, XtContext context, const void *dat
         entry->data = (void *)data;
     } else {
         /* Create new entry */
-        entry = (XtContextEntry *) malloc(sizeof(XtContextEntry));
+        entry = (IswContextEntry *) malloc(sizeof(IswContextEntry));
         if (!entry)
-            return XT_CONTEXT_BAD_DATA;
+            return ISW_CONTEXT_BAD_DATA;
         
         entry->dpy = dpy;
         entry->key = key;
@@ -82,60 +82,60 @@ XtSaveContext(xcb_connection_t *dpy, XID key, XtContext context, const void *dat
         HASH_ADD(hh, context->entries, key, sizeof(key), entry);
     }
 
-    return XT_CONTEXT_SUCCESS;
+    return ISW_CONTEXT_SUCCESS;
 }
 
 /*
- * XtFindContext - Find data in a context
+ * IswFindContext - Find data in a context
  * Parameters:
  *   dpy     - Display connection
  *   key     - Key (window ID or atom)
  *   context - Context identifier
  *   data    - Pointer to store found data
- * Returns: XT_CONTEXT_SUCCESS on success, error code on failure
+ * Returns: ISW_CONTEXT_SUCCESS on success, error code on failure
  */
 int
-XtFindContext(xcb_connection_t *dpy, XID key, XtContext context, void **data)
+IswFindContext(xcb_connection_t *dpy, XID key, IswContext context, void **data)
 {
-    XtContextEntry *entry;
+    IswContextEntry *entry;
 
     if (!context)
-        return XT_CONTEXT_BAD_CONTEXT;
+        return ISW_CONTEXT_BAD_CONTEXT;
     
     if (!data)
-        return XT_CONTEXT_BAD_DATA;
+        return ISW_CONTEXT_BAD_DATA;
 
     HASH_FIND(hh, context->entries, &key, sizeof(key), entry);
     if (entry) {
         *data = entry->data;
-        return XT_CONTEXT_SUCCESS;
+        return ISW_CONTEXT_SUCCESS;
     }
 
-    return XT_CONTEXT_NO_CONTEXT;
+    return ISW_CONTEXT_NO_CONTEXT;
 }
 
 /*
- * XtDeleteContext - Delete data from a context
+ * IswDeleteContext - Delete data from a context
  * Parameters:
  *   dpy     - Display connection
  *   key     - Key (window ID or atom)
  *   context - Context identifier
- * Returns: XT_CONTEXT_SUCCESS on success, error code on failure
+ * Returns: ISW_CONTEXT_SUCCESS on success, error code on failure
  */
 int
-XtDeleteContext(xcb_connection_t *dpy, XID key, XtContext context)
+IswDeleteContext(xcb_connection_t *dpy, XID key, IswContext context)
 {
-    XtContextEntry *entry;
+    IswContextEntry *entry;
 
     if (!context)
-        return XT_CONTEXT_BAD_CONTEXT;
+        return ISW_CONTEXT_BAD_CONTEXT;
 
     HASH_FIND(hh, context->entries, &key, sizeof(key), entry);
     if (entry) {
         HASH_DEL(context->entries, entry);
         free(entry);
-        return XT_CONTEXT_SUCCESS;
+        return ISW_CONTEXT_SUCCESS;
     }
 
-    return XT_CONTEXT_NO_CONTEXT;
+    return ISW_CONTEXT_NO_CONTEXT;
 }

@@ -78,8 +78,8 @@ in this Software without prior written authorization from The Open Group.
 #endif
 
 typedef struct _TMStringBufRec {
-    _XtString start;
-    _XtString current;
+    _IswString start;
+    _IswString current;
     Cardinal max;
 } TMStringBufRec, *TMStringBuf;
 
@@ -89,15 +89,15 @@ typedef struct _TMStringBufRec {
 #define CHECK_STR_OVERFLOW(sb) \
     if (sb->current - sb->start > (int)sb->max - STR_THRESHOLD)           \
     {                                                                     \
-        _XtString old = sb->start;                                        \
-        sb->start = XtRealloc(old, (Cardinal)(sb->max += STR_INCAMOUNT)); \
+        _IswString old = sb->start;                                        \
+        sb->start = IswRealloc(old, (Cardinal)(sb->max += STR_INCAMOUNT)); \
         sb->current = sb->current - old + sb->start;                      \
     }
 
 #define ExpandForChars(sb, nchars )                                       \
     if ((unsigned)(sb->current - sb->start) > (sb->max - STR_THRESHOLD - (Cardinal) nchars)) { \
-        _XtString old = sb->start;                                        \
-        sb->start = XtRealloc(old,                                        \
+        _IswString old = sb->start;                                        \
+        sb->start = IswRealloc(old,                                        \
             (Cardinal)(sb->max = (Cardinal)(sb->max + STR_INCAMOUNT + (Cardinal) nchars)));     \
         sb->current = sb->current - old + sb->start;                      \
     }
@@ -193,7 +193,7 @@ PrintEventType(TMStringBuf sb, unsigned long event)
             PRINTEVENT(XCB_SELECTION_NOTIFY, "<SelectionNotify>")
             PRINTEVENT(XCB_COLORMAP_NOTIFY, "<ColormapNotify>")
             PRINTEVENT(XCB_CLIENT_MESSAGE, "<ClientMessage>")
-    case _XtEventTimerEventType:
+    case _IswEventTimerEventType:
         (void) strcpy(sb->current, "<EventTimer>");
         break;
     default:
@@ -383,11 +383,11 @@ PrintActions(TMStringBuf sb,
 
         if (accelWidget) {
             /* accelerator */
-            String name = XtName(accelWidget);
+            String name = IswName(accelWidget);
             int nameLen = (int) strlen(name);
 
             ExpandForChars(sb, nameLen);
-            XtMemmove(sb->current, name, nameLen);
+            IswMemmove(sb->current, name, nameLen);
             sb->current += nameLen;
             *sb->current++ = '`';
         }
@@ -440,7 +440,7 @@ LookAheadForCycleOrMulticlick(register StatePtr state,
             repeatCount++;
             *nextLevelP = state;
         }
-        else if (typeMatch->eventType == _XtEventTimerEventType)
+        else if (typeMatch->eventType == _IswEventTimerEventType)
             continue;
         else {                  /* not same event as starting event and not timer */
 
@@ -539,7 +539,7 @@ typedef struct {
 static int
 FindNextMatch(PrintRec *printData,
               TMShortCard numPrints,
-              XtTranslations xlations,
+              IswTranslations xlations,
               TMBranchHead branchHead,
               StatePtr nextLevel,
               TMShortCard startIndex)
@@ -586,7 +586,7 @@ FindNextMatch(PrintRec *printData,
 
 static void
 ProcessLaterMatches(PrintRec *printData,
-                    XtTranslations xlations,
+                    IswTranslations xlations,
                     TMShortCard tIndex,
                     int bIndex,
                     TMShortCard *numPrintsRtn)
@@ -631,7 +631,7 @@ ProcessLaterMatches(PrintRec *printData,
 
 static void
 ProcessStateTree(PrintRec *printData,
-                 XtTranslations xlations,
+                 IswTranslations xlations,
                  TMShortCard tIndex,
                  TMShortCard *numPrintsRtn)
 {
@@ -658,7 +658,7 @@ ProcessStateTree(PrintRec *printData,
                 (*numPrintsRtn)++;
             }
             LOCK_PROCESS;
-            if (_XtGlobalTM.newMatchSemantics == False)
+            if (_IswGlobalTM.newMatchSemantics == False)
                 ProcessLaterMatches(printData,
                                     xlations, tIndex, i, numPrintsRtn);
             UNLOCK_PROCESS;
@@ -711,11 +711,11 @@ PrintState(TMStringBuf sb,
     UNLOCK_PROCESS;
 }
 
-_XtString
-_XtPrintXlations(Widget w,
-                 XtTranslations xlations,
+_IswString
+_IswPrintXlations(Widget w,
+                 IswTranslations xlations,
                  Widget accelWidget,
-                 _XtBoolean includeRHS)
+                 _IswBoolean includeRHS)
 {
     register Cardinal i;
 
@@ -741,7 +741,7 @@ _XtPrintXlations(Widget w,
                                     (xlations->stateTreeTbl[i]))->
                                    numBranchHeads);
     prints = (PrintRec *)
-        XtStackAlloc(maxPrints * sizeof(PrintRec), stackPrints);
+        IswStackAlloc(maxPrints * sizeof(PrintRec), stackPrints);
 
     numPrints = 0;
     for (i = 0; i < xlations->numStateTrees; i++)
@@ -764,58 +764,58 @@ _XtPrintXlations(Widget w,
         }
 #endif                          /* TRACE_TM */
         PrintState(sb, (TMStateTree) stateTree, branchHead,
-                   (Boolean) includeRHS, accelWidget, XtDisplay(w));
+                   (Boolean) includeRHS, accelWidget, IswDisplay(w));
     }
-    XtStackFree((XtPointer) prints, (XtPointer) stackPrints);
+    IswStackFree((IswPointer) prints, (IswPointer) stackPrints);
     return (sb->start);
 }
 
 #ifndef NO_MIT_HACKS
 void
-_XtDisplayTranslations(Widget widget,
+_IswDisplayTranslations(Widget widget,
                       xcb_generic_event_t *event _X_UNUSED,
                        String *params _X_UNUSED,
                        Cardinal *num_params _X_UNUSED)
 {
-    _XtString xString;
+    _IswString xString;
 
-    xString = _XtPrintXlations(widget,
+    xString = _IswPrintXlations(widget,
                                widget->core.tm.translations, NULL, True);
     if (xString) {
         printf("%s\n", xString);
-        XtFree(xString);
+        IswFree(xString);
     }
 }
 
 void
-_XtDisplayAccelerators(Widget widget,
+_IswDisplayAccelerators(Widget widget,
                       xcb_generic_event_t *event _X_UNUSED,
                        String *params _X_UNUSED,
                        Cardinal *num_params _X_UNUSED)
 {
-    _XtString xString;
+    _IswString xString;
 
-    xString = _XtPrintXlations(widget, widget->core.accelerators, NULL, True);
+    xString = _IswPrintXlations(widget, widget->core.accelerators, NULL, True);
     if (xString) {
         printf("%s\n", xString);
-        XtFree(xString);
+        IswFree(xString);
     }
 }
 
 void
-_XtDisplayInstalledAccelerators(Widget widget,
+_IswDisplayInstalledAccelerators(Widget widget,
                                 xcb_generic_event_t *event,
                                 String *params _X_UNUSED,
                                 Cardinal *num_params _X_UNUSED)
 {
 
     Widget eventWidget;
-    xcb_connection_t *dpy = XtDisplay(widget);
+    xcb_connection_t *dpy = IswDisplay(widget);
     xcb_window_t window = get_event_window(event);
-    eventWidget = XtWindowToWidget(dpy, window);
+    eventWidget = IswWindowToWidget(dpy, window);
     register Cardinal i;
     TMStringBufRec sbRec, *sb = &sbRec;
-    XtTranslations xlations;
+    IswTranslations xlations;
 
 #define STACKPRINTSIZE 250
     PrintRec stackPrints[STACKPRINTSIZE];
@@ -841,7 +841,7 @@ _XtDisplayInstalledAccelerators(Widget widget,
                                    ((TMSimpleStateTree) xlations->
                                     stateTreeTbl[i])->numBranchHeads);
     prints = (PrintRec *)
-        XtStackAlloc(maxPrints * sizeof(PrintRec), stackPrints);
+        IswStackAlloc(maxPrints * sizeof(PrintRec), stackPrints);
 
     numPrints = 0;
 
@@ -860,16 +860,16 @@ _XtDisplayInstalledAccelerators(Widget widget,
 
         PrintState(sb, (TMStateTree) stateTree, branchHead, True,
                    complexBindProcs[prints[i].tIndex].widget,
-                   XtDisplay(widget));
+                   IswDisplay(widget));
     }
-    XtStackFree((XtPointer) prints, (XtPointer) stackPrints);
+    IswStackFree((IswPointer) prints, (IswPointer) stackPrints);
     printf("%s\n", sb->start);
-    XtFree(sb->start);
+    IswFree(sb->start);
 }
 #endif                          /*NO_MIT_HACKS */
 
 String
-_XtPrintActions(register ActionRec *actions, XrmQuark *quarkTbl)
+_IswPrintActions(register ActionRec *actions, XrmQuark *quarkTbl)
 {
     TMStringBufRec sbRec, *sb = &sbRec;
 
@@ -880,7 +880,7 @@ _XtPrintActions(register ActionRec *actions, XrmQuark *quarkTbl)
 }
 
 String
-_XtPrintState(TMStateTree stateTree, TMBranchHead branchHead)
+_IswPrintState(TMStateTree stateTree, TMBranchHead branchHead)
 {
     TMStringBufRec sbRec, *sb = &sbRec;
 
@@ -892,7 +892,7 @@ _XtPrintState(TMStateTree stateTree, TMBranchHead branchHead)
 }
 
 String
-_XtPrintEventSeq(register EventSeqPtr eventSeq, xcb_connection_t *dpy)
+_IswPrintEventSeq(register EventSeqPtr eventSeq, xcb_connection_t *dpy)
 {
     TMStringBufRec sbRec, *sb = &sbRec;
 
@@ -916,9 +916,9 @@ _XtPrintEventSeq(register EventSeqPtr eventSeq, xcb_connection_t *dpy)
         TMTypeMatch typeMatch;
         TMModifierMatch modMatch;
 
-        typeMatch = TMGetTypeMatch(_XtGetTypeIndex(&eventSeqs[j]->event));
+        typeMatch = TMGetTypeMatch(_IswGetTypeIndex(&eventSeqs[j]->event));
         modMatch =
-            TMGetModifierMatch(_XtGetModifierIndex(&eventSeqs[j]->event));
+            TMGetModifierMatch(_IswGetModifierIndex(&eventSeqs[j]->event));
         PrintEvent(sb, typeMatch, modMatch, dpy);
         *sb->current++ = ',';
     }

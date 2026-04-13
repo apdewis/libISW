@@ -148,7 +148,7 @@ FM(0x1e), FM(0x9e), FM(0x5e), FM(0xde), FM(0x3e), FM(0xbe), FM(0x7e), FM(0xfe)
         mod_ret = MOD_RETURN(ctx, key); \
         sym_ret = (ctx)->keycache.keysym[_i_]; \
     } else { \
-        XtTranslateKeycode(dpy, (xcb_keycode_t) key, mod, &mod_ret, &sym_ret); \
+        IswTranslateKeycode(dpy, (xcb_keycode_t) key, mod, &mod_ret, &sym_ret); \
         (ctx)->keycache.keycode[_i_] = (xcb_keycode_t) (key); \
         (ctx)->keycache.modifiers[_i_] = (unsigned char)(mod); \
         (ctx)->keycache.keysym[_i_] = sym_ret; \
@@ -166,24 +166,24 @@ FM(0x1e), FM(0x9e), FM(0x5e), FM(0xde), FM(0x3e), FM(0xbe), FM(0x7e), FM(0xfe)
     MOD_RETURN(ctx, key) = (unsigned char)(mod_ret); \
 }
 
-/* usual number of expected keycodes in XtKeysymToKeycodeList */
+/* usual number of expected keycodes in IswKeysymToKeycodeList */
 #define KEYCODE_ARRAY_SIZE 10
 
 Boolean
-_XtComputeLateBindings(xcb_connection_t *dpy,
+_IswComputeLateBindings(xcb_connection_t *dpy,
                        LateBindingsPtr lateModifiers,
                        uint16_t *computed,
                        uint16_t *computedMask)
 {
     int i, j, ref;
     ModToKeysymTable *temp;
-    XtPerDisplay perDisplay;
+    IswPerDisplay perDisplay;
     xcb_keysym_t tempKeysym = NoSymbol;
 
-    perDisplay = _XtGetPerDisplay(dpy);
+    perDisplay = _IswGetPerDisplay(dpy);
     if (perDisplay == NULL) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        "displayError", "invalidDisplay", XtCXtToolkitError,
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        "displayError", "invalidDisplay", IswCIswToolkitError,
                         "Can't find display structure", NULL, NULL);
         return FALSE;
     }
@@ -224,11 +224,11 @@ _XtComputeLateBindings(xcb_connection_t *dpy,
 }
 
 void
-_XtAllocTMContext(XtPerDisplay pd)
+_IswAllocTMContext(IswPerDisplay pd)
 {
     TMKeyContext ctx;
 
-    ctx = (TMKeyContext) _XtHeapAlloc(&pd->heap, sizeof(TMKeyContextRec));
+    ctx = (TMKeyContext) _IswHeapAlloc(&pd->heap, sizeof(TMKeyContextRec));
     ctx->event = NULL;
     ctx->serial = 0;
     ctx->keysym = NoSymbol;
@@ -248,7 +248,7 @@ num_bits(unsigned long mask)
 }
 
 Boolean
-_XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
+_IswMatchUsingDontCareMods(TMTypeMatch typeMatch,
                           TMModifierMatch modMatch,
                           TMEventPtr eventSeq)
 {
@@ -259,10 +259,10 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
     Modifiers computedMask = 0;
     Boolean resolved = TRUE;
     xcb_connection_t *dpy = eventSeq->dpy;
-    XtPerDisplay pd;
+    IswPerDisplay pd;
 
     if (modMatch->lateModifiers != NULL)
-        resolved = _XtComputeLateBindings(dpy, modMatch->lateModifiers,
+        resolved = _IswComputeLateBindings(dpy, modMatch->lateModifiers,
                                           &computed, &computedMask);
     if (!resolved)
         return FALSE;
@@ -275,12 +275,12 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
         int i;
         xcb_keysym_t lower, upper;
 
-        pd = _XtGetPerDisplay(dpy);
+        pd = _IswGetPerDisplay(dpy);
         tm_context = pd->tm_context;
         TRANSLATE(tm_context, pd, dpy, (xcb_keycode_t) eventSeq->event.eventCode,
                   (unsigned) 0, modifiers_return, keysym_return);
 
-        XtConvertCase(dpy, keysym_return, &lower, &upper);
+        IswConvertCase(dpy, keysym_return, &lower, &upper);
         if ((upper & typeMatch->eventCodeMask) == typeMatch->eventCode
             || (lower & typeMatch->eventCodeMask) == typeMatch->eventCode) {
             tm_context->event = eventSeq->xev;
@@ -298,7 +298,7 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
         case 8:
             /*
              * one modbit should never happen, in fact the implementation
-             * of XtTranslateKey and XmTranslateKey guarantee that it
+             * of IswTranslateKey and XmTranslateKey guarantee that it
              * won't, so don't care if the loop is set up for the case
              * when one modbit is set.
              * The performance implications of all eight modbits being
@@ -309,7 +309,7 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
             for (i = (int) useful_mods; i > 0; i--) {
                 TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
                           (Modifiers) i, modifiers_return, keysym_return);
-                XtConvertCase(dpy, keysym_return, &lower, &upper);
+                IswConvertCase(dpy, keysym_return, &lower, &upper);
                 if ((upper & typeMatch->eventCodeMask) ==
                         (typeMatch->eventCode & typeMatch->eventCodeMask)
                     || (lower & typeMatch->eventCodeMask) ==
@@ -342,7 +342,7 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
                         tmod |= mod_masks[i];
                 TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
                           tmod, modifiers_return, keysym_return);
-                XtConvertCase(dpy, keysym_return, &lower, &upper);
+                IswConvertCase(dpy, keysym_return, &lower, &upper);
                 if ((upper & typeMatch->eventCodeMask) ==
                         (typeMatch->eventCode & typeMatch->eventCodeMask)
                     || (lower & typeMatch->eventCodeMask) ==
@@ -362,18 +362,18 @@ _XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
 }
 
 void
-XtConvertCase(xcb_connection_t *dpy,
+IswConvertCase(xcb_connection_t *dpy,
               xcb_keysym_t keysym,
               xcb_keysym_t *lower_return,
               xcb_keysym_t *upper_return)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
     CaseConverterPtr ptr;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
 
     *lower_return = *upper_return = keysym;
     for (ptr = pd->case_cvt; ptr; ptr = ptr->next)
@@ -393,7 +393,7 @@ XtConvertCase(xcb_connection_t *dpy,
 }
 
 Boolean
-_XtMatchUsingStandardMods(TMTypeMatch typeMatch,
+_IswMatchUsingStandardMods(TMTypeMatch typeMatch,
                           TMModifierMatch modMatch,
                           TMEventPtr eventSeq)
 {
@@ -402,7 +402,7 @@ _XtMatchUsingStandardMods(TMTypeMatch typeMatch,
     uint16_t computed = 0;
     uint16_t computedMask = 0;
     xcb_connection_t *dpy = eventSeq->dpy;
-    XtPerDisplay pd = _XtGetPerDisplay(dpy);
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
     TMKeyContext tm_context = pd->tm_context;
     uint16_t translateModifiers;
 
@@ -414,7 +414,7 @@ _XtMatchUsingStandardMods(TMTypeMatch typeMatch,
 
     modifiers_return = MOD_RETURN(tm_context, eventSeq->event.eventCode);
     if (!modifiers_return) {
-        XtTranslateKeycode(dpy, (xcb_keycode_t) eventSeq->event.eventCode,
+        IswTranslateKeycode(dpy, (xcb_keycode_t) eventSeq->event.eventCode,
                            (Modifiers) eventSeq->event.modifiers,
                            &modifiers_return, &keysym_return);
         translateModifiers =
@@ -431,7 +431,7 @@ _XtMatchUsingStandardMods(TMTypeMatch typeMatch,
 
     {
         xcb_keysym_t lower, upper;
-        XtConvertCase(dpy, keysym_return, &lower, &upper);
+        IswConvertCase(dpy, keysym_return, &lower, &upper);
         if ((typeMatch->eventCode & typeMatch->eventCodeMask) ==
                 (upper & typeMatch->eventCodeMask)
             || (typeMatch->eventCode & typeMatch->eventCodeMask) ==
@@ -439,7 +439,7 @@ _XtMatchUsingStandardMods(TMTypeMatch typeMatch,
         Boolean resolved = TRUE;
 
         if (modMatch->lateModifiers != NULL)
-            resolved = _XtComputeLateBindings(dpy, modMatch->lateModifiers,
+            resolved = _IswComputeLateBindings(dpy, modMatch->lateModifiers,
                                               &computed, &computedMask);
         if (!resolved)
             return FALSE;
@@ -460,7 +460,7 @@ _XtMatchUsingStandardMods(TMTypeMatch typeMatch,
 }
 
 void
-_XtBuildKeysymTables(xcb_connection_t *dpy, register XtPerDisplay pd)
+_IswBuildKeysymTables(xcb_connection_t *dpy, register IswPerDisplay pd)
 {
     xcb_get_modifier_mapping_cookie_t mod_cookie;
     xcb_get_modifier_mapping_reply_t *mod_mapping;
@@ -527,18 +527,18 @@ _XtBuildKeysymTables(xcb_connection_t *dpy, register XtPerDisplay pd)
 }
 
 void
-XtTranslateKey(xcb_connection_t *dpy, _XtKeyCode keycode,
+IswTranslateKey(xcb_connection_t *dpy, _IswKeyCode keycode,
                Modifiers modifiers, Modifiers *modifiers_return,
                xcb_keysym_t *keysym_return)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
     xcb_keysym_t sym;
     int col;
     Modifiers mods_consumed = 0;
 
     DPY_TO_APPCON(dpy);
     LOCK_APP(app);
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
     _InitializeKeysymTables(dpy, pd);
 
     if (pd->keysyms == NULL) {
@@ -578,18 +578,18 @@ XtTranslateKey(xcb_connection_t *dpy, _XtKeyCode keycode,
 }
 
 void
-XtTranslateKeycode(xcb_connection_t *dpy,
-                   _XtKeyCode keycode,
+IswTranslateKeycode(xcb_connection_t *dpy,
+                   _IswKeyCode keycode,
                    Modifiers modifiers,
                    Modifiers *modifiers_return,
                    xcb_keysym_t *keysym_return)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
     _InitializeKeysymTables(dpy, pd);
     (*pd->defaultKeycodeTranslator) (dpy, keycode, modifiers, modifiers_return,
                                      keysym_return);
@@ -597,14 +597,14 @@ XtTranslateKeycode(xcb_connection_t *dpy,
 }
 
 void
-XtSetKeyTranslator(xcb_connection_t *dpy, XtKeyProc translator)
+IswSetKeyTranslator(xcb_connection_t *dpy, IswKeyProc translator)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
 
     pd->defaultKeycodeTranslator = translator;
     FLUSHKEYCACHE(pd->tm_context);
@@ -613,18 +613,18 @@ XtSetKeyTranslator(xcb_connection_t *dpy, XtKeyProc translator)
 }
 
 void
-XtRegisterCaseConverter(xcb_connection_t *dpy,
-                        XtCaseProc proc,
+IswRegisterCaseConverter(xcb_connection_t *dpy,
+                        IswCaseProc proc,
                         xcb_keysym_t start,
                         xcb_keysym_t stop)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
     CaseConverterPtr ptr, prev;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
 
     ptr = (CaseConverterPtr) __XtMalloc(sizeof(CaseConverterRec));
     ptr->start = start;
@@ -638,7 +638,7 @@ XtRegisterCaseConverter(xcb_connection_t *dpy,
     for (ptr = ptr->next; ptr; ptr = prev->next) {
         if (start <= ptr->start && stop >= ptr->stop) {
             prev->next = ptr->next;
-            XtFree((char *) ptr);
+            IswFree((char *) ptr);
         }
         else
             prev = ptr;
@@ -649,17 +649,17 @@ XtRegisterCaseConverter(xcb_connection_t *dpy,
 }
 
 xcb_key_symbols_t *
-XtGetKeysymTable(xcb_connection_t *dpy,
+IswGetKeysymTable(xcb_connection_t *dpy,
                  xcb_keycode_t *min_keycode_return,
                  int *keysyms_per_keycode_return)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
     xcb_key_symbols_t *retval;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
     _InitializeKeysymTables(dpy, pd);
     *min_keycode_return = (xcb_keycode_t) pd->min_keycode;    /* %%% */
     *keysyms_per_keycode_return = pd->keysyms_per_keycode;
@@ -669,12 +669,12 @@ XtGetKeysymTable(xcb_connection_t *dpy,
 }
 
 void
-XtKeysymToKeycodeList(xcb_connection_t *dpy,
+IswKeysymToKeycodeList(xcb_connection_t *dpy,
                       xcb_keysym_t keysym,
                       xcb_keycode_t **keycodes_return,
                       unsigned int *keycount_return)
 {
-    XtPerDisplay pd;
+    IswPerDisplay pd;
     unsigned int keycode;
     int per;
     register xcb_keysym_t *syms;
@@ -689,7 +689,7 @@ XtKeysymToKeycodeList(xcb_connection_t *dpy,
     DPY_TO_APPCON(dpy);
     LOCK_APP(app);
     
-    pd = _XtGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(dpy);
     _InitializeKeysymTables(dpy, pd);
     
     keycodes = NULL;
@@ -724,7 +724,7 @@ XtKeysymToKeycodeList(xcb_connection_t *dpy,
         if (!match) {
             for (i = 1; i < 5; i += 2) {
                 if ((per == i) || ((per > i) && (syms[i] == XCB_NO_SYMBOL))) {
-                    XtConvertCase(dpy, syms[i - 1], &lsym, &usym);
+                    IswConvertCase(dpy, syms[i - 1], &lsym, &usym);
                     if ((lsym == keysym) || (usym == keysym)) {
                         match = 1;
                         break;
@@ -737,10 +737,10 @@ XtKeysymToKeycodeList(xcb_connection_t *dpy,
             if (ncodes == maxcodes) {
                 xcb_keycode_t *old = keycodes;
                 maxcodes += KEYCODE_ARRAY_SIZE;
-                keycodes = XtMallocArray(maxcodes, sizeof(xcb_keycode_t));
+                keycodes = IswMallocArray(maxcodes, sizeof(xcb_keycode_t));
                 if (ncodes) {
                     (void) memcpy(keycodes, old, ncodes * sizeof(xcb_keycode_t));
-                    XtFree((char *) old);
+                    IswFree((char *) old);
                 }
                 codeP = &keycodes[ncodes];
             }

@@ -11,19 +11,19 @@
 #include <ISW/ISWRender.h>
 #include <ISW/ISWXftCompat.h>
 
-/* Reuse XtOrientation from ScrollbarP.h */
-#ifndef _IswXtOrientation_defined
-#define _IswXtOrientation_defined
+/* Reuse IswOrientation from ScrollbarP.h */
+#ifndef _IswOrientation_defined
+#define _IswOrientation_defined
 typedef enum {
     XtorientHorizontal,
     XtorientVertical
-} XtOrientation;
+} IswOrientation;
 #endif
 
 typedef struct {
     /* public resources */
     Pixel         foreground;
-    XtOrientation orientation;
+    IswOrientation orientation;
     int           minimum;
     int           maximum;
     int           value;
@@ -32,8 +32,8 @@ typedef struct {
     IswSliderValuePosition value_pos;
     Dimension     length;
     Dimension     thickness;
-    XtCallbackList value_changed;
-    XFontStruct  *font;
+    IswCallbackList value_changed;
+    IswFontStruct  *font;
 #ifdef ISW_INTERNATIONALIZATION
     ISWFontSet   *fontset;
 #endif

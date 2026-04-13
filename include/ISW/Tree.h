@@ -65,9 +65,9 @@ in this Software without prior written authorization from the X Consortium.
  *  ----                -----              ----            -------
  *
  *  autoReconfigure     AutoReconfigure    Boolean         FALSE
- *  background          Background         Pixel           XtDefaultBackground
- *  foreground          Foreground         Pixel           XtDefaultForeground
- *  gravity             Gravity            XtGravity       West
+ *  background          Background         Pixel           IswDefaultBackground
+ *  foreground          Foreground         Pixel           IswDefaultForeground
+ *  gravity             Gravity            IswGravity       West
  *  hSpace              HSpace             Dimension       20
  *  lineWidth           LineWidth          Dimension       0
  *  vSpace              VSpace             Dimension       6
@@ -82,27 +82,27 @@ in this Software without prior written authorization from the X Consortium.
  *****************************************************************************/
 
                                         /* new instance field names */
-#ifndef _XtStringDefs_h_
-#define XtNhSpace "hSpace"
-#define XtNvSpace "vSpace"
-#define XtCHSpace "HSpace"
-#define XtCVSpace "VSpace"
+#ifndef _IswStringDefs_h_
+#define IswNhSpace "hSpace"
+#define IswNvSpace "vSpace"
+#define IswCHSpace "HSpace"
+#define IswCVSpace "VSpace"
 #endif
 
-#define XtNautoReconfigure "autoReconfigure"
-#define XtNlineWidth "lineWidth"
-#define XtNtreeForeground "treeForeground"
-#define XtNtreeParent "treeParent"
-#define XtNgravity "gravity"
+#define IswNautoReconfigure "autoReconfigure"
+#define IswNlineWidth "lineWidth"
+#define IswNtreeForeground "treeForeground"
+#define IswNtreeParent "treeParent"
+#define IswNgravity "gravity"
 
                                         /* new class field names */
-#define XtCAutoReconfigure "AutoReconfigure"
-#define XtCLineWidth "LineWidth"
-#define XtCTreeForeground "TreeForeground"
-#define XtCTreeParent "TreeParent"
-#define XtCGravity "Gravity"
+#define IswCAutoReconfigure "AutoReconfigure"
+#define IswCLineWidth "LineWidth"
+#define IswCTreeForeground "TreeForeground"
+#define IswCTreeParent "TreeParent"
+#define IswCGravity "Gravity"
 
-#define XtRGC "GC"  /* vestigial, kept for compat */
+#define IswRGC "GC"  /* vestigial, kept for compat */
                                         /* external declarations */
 extern WidgetClass treeWidgetClass;
 

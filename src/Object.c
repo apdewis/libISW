@@ -75,10 +75,10 @@ in this Software without prior written authorization from The Open Group.
 #include "StringDefs.h"
 
 /* *INDENT-OFF* */
-static XtResource resources[] = {
-    {XtNdestroyCallback, XtCCallback, XtRCallback,sizeof(XtPointer),
-     XtOffsetOf(ObjectRec,object.destroy_callbacks),
-     XtRCallback, (XtPointer)NULL}
+static IswResource resources[] = {
+    {IswNdestroyCallback, IswCCallback, IswRCallback,sizeof(IswPointer),
+     IswOffsetOf(ObjectRec,object.destroy_callbacks),
+     IswRCallback, (IswPointer)NULL}
 };
 /* *INDENT-ON* */
 
@@ -101,7 +101,7 @@ externaldef(objectclassrec) ObjectClassRec objectClassRec = {
     /* pad                     */ NULL,
     /* pad                     */ 0,
     /* resources               */ resources,
-    /* num_resources           */ XtNumber(resources),
+    /* num_resources           */ IswNumber(resources),
     /* xrm_class               */ NULLQUARK,
     /* pad                     */ FALSE,
     /* pad                     */ FALSE,
@@ -115,7 +115,7 @@ externaldef(objectclassrec) ObjectClassRec objectClassRec = {
     /* pad                     */ NULL,
     /* get_values_hook         */ NULL,
     /* pad                     */ NULL,
-    /* version                 */ XtVersion,
+    /* version                 */ IswVersion,
     /* callback_offsets        */ NULL,
     /* pad                     */ NULL,
     /* pad                     */ NULL,
@@ -151,7 +151,7 @@ ConstructCallbackOffsets(WidgetClass myWidgetClass)
      */
 
     if (QCallback == NULLQUARK)
-        QCallback = XrmPermStringToQuark(XtRCallback);
+        QCallback = XrmPermStringToQuark(IswRCallback);
 
     if (myObjectClass->object_class.superclass != NULL) {
         superTable = (CallbackTable)
@@ -179,10 +179,10 @@ ConstructCallbackOffsets(WidgetClass myWidgetClass)
      * offsets occur in the table ahead of the superclass callback
      * offsets so that resource overrides work.
      */
-    newTable = XtMallocArray((Cardinal) tableSize + 1,
+    newTable = IswMallocArray((Cardinal) tableSize + 1,
                              (Cardinal) sizeof(XrmResource *));
 
-    newTable[0] = (XrmResource *) (XtIntPtr) tableSize;
+    newTable[0] = (XrmResource *) (IswIntPtr) tableSize;
 
     if (superTable)
         tableSize -= (int) (long) superTable[0];
@@ -198,7 +198,7 @@ ConstructCallbackOffsets(WidgetClass myWidgetClass)
              --tableSize >= 0; superTable++)
             newTable[i++] = *superTable;
 
-    myObjectClass->object_class.callback_private = (XtPointer) newTable;
+    myObjectClass->object_class.callback_private = (IswPointer) newTable;
 }
 
 static void
@@ -208,23 +208,23 @@ InheritObjectExtensionMethods(WidgetClass widget_class)
     ObjectClassExtension ext, super_ext = NULL;
 
     ext = (ObjectClassExtension)
-        XtGetClassExtension(widget_class,
-                            XtOffsetOf(ObjectClassRec, object_class.extension),
-                            NULLQUARK, XtObjectExtensionVersion,
+        IswGetClassExtension(widget_class,
+                            IswOffsetOf(ObjectClassRec, object_class.extension),
+                            NULLQUARK, IswObjectExtensionVersion,
                             sizeof(ObjectClassExtensionRec));
 
     if (oc->object_class.superclass)
         super_ext = (ObjectClassExtension)
-            XtGetClassExtension(oc->object_class.superclass,
-                                XtOffsetOf(ObjectClassRec,
+            IswGetClassExtension(oc->object_class.superclass,
+                                IswOffsetOf(ObjectClassRec,
                                            object_class.extension), NULLQUARK,
-                                XtObjectExtensionVersion,
+                                IswObjectExtensionVersion,
                                 sizeof(ObjectClassExtensionRec));
     LOCK_PROCESS;
     if (ext) {
-        if (ext->allocate == XtInheritAllocate)
+        if (ext->allocate == IswInheritAllocate)
             ext->allocate = (super_ext ? super_ext->allocate : NULL);
-        if (ext->deallocate == XtInheritDeallocate)
+        if (ext->deallocate == IswInheritDeallocate)
             ext->deallocate = (super_ext ? super_ext->deallocate : NULL);
     }
     else if (super_ext) {
@@ -233,11 +233,11 @@ InheritObjectExtensionMethods(WidgetClass widget_class)
             __XtCalloc(1, sizeof(ObjectClassExtensionRec));
         ext->next_extension = oc->object_class.extension;
         ext->record_type = NULLQUARK;
-        ext->version = XtObjectExtensionVersion;
+        ext->version = IswObjectExtensionVersion;
         ext->record_size = sizeof(ObjectClassExtensionRec);
         ext->allocate = super_ext->allocate;
         ext->deallocate = super_ext->deallocate;
-        oc->object_class.extension = (XtPointer) ext;
+        oc->object_class.extension = (IswPointer) ext;
     }
     UNLOCK_PROCESS;
 }
@@ -251,12 +251,12 @@ ObjectClassPartInitialize(register WidgetClass wc)
         XrmPermStringToQuark(oc->object_class.class_name);
 
     if (oc->object_class.resources)
-        _XtCompileResourceList(oc->object_class.resources,
+        _IswCompileResourceList(oc->object_class.resources,
                                oc->object_class.num_resources);
 
     ConstructCallbackOffsets(wc);
 
-    _XtResourceDependencies(wc);
+    _IswResourceDependencies(wc);
     InheritObjectExtensionMethods(wc);
 }
 
@@ -272,7 +272,7 @@ ObjectSetValues(Widget old,
 
     LOCK_PROCESS;
     /* Compile any callback lists into internal form */
-    offsets = (CallbackTable) XtClass(widget)->core_class.callback_private;
+    offsets = (CallbackTable) IswClass(widget)->core_class.callback_private;
 
     if (offsets == NULL) {
         UNLOCK_PROCESS;
@@ -288,9 +288,9 @@ ObjectSetValues(Widget old,
             ((char *) widget - (*offsets)->xrm_offset - 1);
         if (*ol != *nl) {
             if (*ol != NULL)
-                XtFree((char *) *ol);
+                IswFree((char *) *ol);
             if (*nl != NULL)
-                *nl = _XtCompileCallbackList((XtCallbackList) *nl);
+                *nl = _IswCompileCallbackList((IswCallbackList) *nl);
         }
     }
     UNLOCK_PROCESS;
@@ -318,7 +318,7 @@ ObjectDestroy(register Widget widget)
             ((char *) widget - (*offsets)->xrm_offset - 1);
 
         if (cl)
-            XtFree((char *) cl);
+            IswFree((char *) cl);
     }
     UNLOCK_PROCESS;
 }                               /* ObjectDestroy */

@@ -42,8 +42,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <stdio.h>
 #include <math.h>
 
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/Label.h>
@@ -67,15 +67,15 @@ in this Software without prior written authorization from the X Consortium.
 static char defaultTranslations[] =
     "<Btn1Down>,<Btn1Up>:   toggle() notify()";
 
-#define offset(field) XtOffsetOf(ToggleRec, field)
+#define offset(field) IswOffsetOf(ToggleRec, field)
 
-static XtResource resources[] = {
-   {XtNstate, XtCState, XtRBoolean, sizeof(Boolean),
-      offset(command.set), XtRString, "off"},
-   {XtNradioGroup, XtCWidget, XtRWidget, sizeof(Widget),
-      offset(toggle.widget), XtRWidget, (XtPointer) NULL },
-   {XtNradioData, XtCRadioData, XtRPointer, sizeof(XtPointer),
-      offset(toggle.radio_data), XtRPointer, (XtPointer) NULL },
+static IswResource resources[] = {
+   {IswNstate, IswCState, IswRBoolean, sizeof(Boolean),
+      offset(command.set), IswRString, "off"},
+   {IswNradioGroup, IswCWidget, IswRWidget, sizeof(Widget),
+      offset(toggle.widget), IswRWidget, (IswPointer) NULL },
+   {IswNradioData, IswCRadioData, IswRPointer, sizeof(IswPointer),
+      offset(toggle.radio_data), IswRPointer, (IswPointer) NULL },
 };
 
 #undef offset
@@ -85,7 +85,7 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Toggle(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void ToggleSet(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ToggleDestroy(Widget, XtPointer, XtPointer);
+static void ToggleDestroy(Widget, IswPointer, IswPointer);
 static void ClassInit(void);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
@@ -101,7 +101,7 @@ static void RemoveFromRadioGroup(Widget);
 static void ToggleSetAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void ToggleUnsetAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
-static XtActionsRec actionsList[] =
+static IswActionsRec actionsList[] =
 {
   {"toggle",	        Toggle},
   {"notify",	        Notify},
@@ -124,33 +124,33 @@ ToggleClassRec toggleClassRec = {
     FALSE,				/* class_inited		  */
     Initialize,				/* initialize		  */
     NULL,				/* initialize_hook	  */
-    XtInheritRealize,			/* realize		  */
+    IswInheritRealize,			/* realize		  */
     actionsList,			/* actions		  */
-    XtNumber(actionsList),		/* num_actions		  */
+    IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
-    XtNumber(resources),		/* resource_count	  */
+    IswNumber(resources),		/* resource_count	  */
     NULLQUARK,				/* xrm_class		  */
     FALSE,				/* compress_motion	  */
     TRUE,				/* compress_exposure	  */
     TRUE,				/* compress_enterleave    */
     FALSE,				/* visible_interest	  */
     NULL,         			/* destroy		  */
-    XtInheritResize,			/* resize		  */
+    IswInheritResize,			/* resize		  */
     Redisplay,				/* expose		  */
     SetValues,				/* set_values		  */
     NULL,				/* set_values_hook	  */
-    XtInheritSetValuesAlmost,		/* set_values_almost	  */
+    IswInheritSetValuesAlmost,		/* set_values_almost	  */
     NULL,				/* get_values_hook	  */
     NULL,				/* accept_focus		  */
-    XtVersion,				/* version		  */
+    IswVersion,				/* version		  */
     NULL,				/* callback_private	  */
     defaultTranslations,		/* tm_table		  */
-    XtInheritQueryGeometry,		/* query_geometry	  */
-    XtInheritDisplayAccelerator,	/* display_accelerator	  */
+    IswInheritQueryGeometry,		/* query_geometry	  */
+    IswInheritDisplayAccelerator,	/* display_accelerator	  */
     NULL				/* extension		  */
   },  /* CoreClass fields initialization */
   {
-    XtInheritChangeSensitive		/* change_sensitive	  */
+    IswInheritChangeSensitive		/* change_sensitive	  */
   },  /* SimpleClass fields initialization */
   {
     0                                     /* field not used    */
@@ -181,13 +181,13 @@ WidgetClass toggleWidgetClass = (WidgetClass) &toggleClassRec;
 /*ARGSUSED*/
 static Boolean
 ISWCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
-                     XrmValuePtr fromVal, XrmValuePtr toVal, XtPointer *data)
+                     XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
 {
     Widget widget;
     Widget parent;
     
     if (*num_args != 1) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                        "wrongParameters", "cvtStringToWidget", "IswError",
                        "String to Widget conversion needs parent argument",
                        (String *)NULL, (Cardinal *)NULL);
@@ -196,16 +196,16 @@ ISWCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args
     
     parent = *(Widget*)args[0].addr;
     if (parent == NULL) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                        "missingParent", "cvtStringToWidget", "IswError",
                        "String to Widget conversion: parent is NULL",
                        (String *)NULL, (Cardinal *)NULL);
         return False;
     }
     
-    widget = XtNameToWidget(parent, (char*)fromVal->addr);
+    widget = IswNameToWidget(parent, (char*)fromVal->addr);
     if (widget == NULL) {
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                        "noWidget", "cvtStringToWidget", "IswError",
                        "Cannot find widget '%s'",
                        (String *)&fromVal->addr, (Cardinal *)NULL);
@@ -221,7 +221,7 @@ ISWCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args
     } else {
         static Widget widget_ret;
         widget_ret = widget;
-        toVal->addr = (XtPointer)&widget_ret;
+        toVal->addr = (IswPointer)&widget_ret;
     }
     
     toVal->size = sizeof(Widget);
@@ -232,15 +232,15 @@ static void
 ClassInit(void)
 {
   ToggleWidgetClass class = (ToggleWidgetClass) toggleWidgetClass;
-  static XtConvertArgRec parentCvtArgs[] = {
-      {XtBaseOffset, (XtPointer)XtOffsetOf(WidgetRec, core.parent),
+  static IswConvertArgRec parentCvtArgs[] = {
+      {IswBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.parent),
 	   sizeof(Widget)}
   };
 
   IswInitializeWidgetSet();
-  XtSetTypeConverter(XtRString, XtRWidget, ISWCvtStringToWidget,
-		     parentCvtArgs, XtNumber(parentCvtArgs), XtCacheNone,
-		     (XtDestructor)NULL);
+  IswSetTypeConverter(IswRString, IswRWidget, ISWCvtStringToWidget,
+		     parentCvtArgs, IswNumber(parentCvtArgs), IswCacheNone,
+		     (IswDestructor)NULL);
 /*
  * Use Toggle's own Set/Unset actions so that state changes redraw
  * through Toggle's Redisplay (which draws checkbox/radio indicators)
@@ -261,7 +261,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     tw->toggle.radio_group = NULL;
 
     if (tw->toggle.radio_data == NULL)
-      tw->toggle.radio_data = (XtPointer) new->core.name;
+      tw->toggle.radio_data = (IswPointer) new->core.name;
 
     if (tw->toggle.widget != NULL) {
       if ( GetRadioGroup(tw->toggle.widget) == NULL)
@@ -269,7 +269,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       else
 	AddToRadioGroup( GetRadioGroup(tw->toggle.widget), new);
     }
-    XtAddCallback(new, XtNdestroyCallback, ToggleDestroy, (XtPointer)NULL);
+    IswAddCallback(new, IswNdestroyCallback, ToggleDestroy, (IswPointer)NULL);
 
     /*
      * Reserve space on the left for the radio button or checkbox indicator.
@@ -309,7 +309,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  */
 
     /* Re-run Resize to recalculate label_x with the updated internal_width */
-    (*XtClass(new)->core_class.resize)(new);
+    (*IswClass(new)->core_class.resize)(new);
 
     if (tw_req->command.set)
       ToggleSet(new, (xcb_generic_event_t *)NULL, (String *)NULL, (Cardinal *)0);
@@ -337,7 +337,7 @@ ToggleSetAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *
         return;
 
     cbw->command.set = TRUE;
-    if (XtIsRealized(w)) {
+    if (IswIsRealized(w)) {
         /* Clear background and completely redraw */
         ISWRenderContext *ctx = cbw->label.render_ctx;
         if (ctx) {
@@ -365,7 +365,7 @@ ToggleUnsetAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal
         return;
 
     cbw->command.set = FALSE;
-    if (XtIsRealized(w)) {
+    if (IswIsRealized(w)) {
         /* Clear background and completely redraw */
         ISWRenderContext *ctx = cbw->label.render_ctx;
         if (ctx) {
@@ -404,7 +404,7 @@ static void Notify(Widget w, xcb_generic_event_t *event, String *params, Cardina
   ToggleWidget tw = (ToggleWidget) w;
   long antilint = tw->command.set;
 
-  XtCallCallbacks( w, XtNcallback, (XtPointer) antilint );
+  IswCallCallbacks( w, IswNcallback, (IswPointer) antilint );
 }
 
 /************************************************************
@@ -443,7 +443,7 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
 
 /* ARGSUSED */
 static void
-ToggleDestroy(Widget w, XtPointer junk, XtPointer garbage)
+ToggleDestroy(Widget w, IswPointer junk, IswPointer garbage)
 {
   RemoveFromRadioGroup(w);
 }
@@ -490,7 +490,7 @@ CreateRadioGroup(Widget w1, Widget w2)
   if ( (tw1->toggle.radio_group != NULL) || (tw2->toggle.radio_group != NULL) ) {
     (void) sprintf(error_buf, "%s %s", "Toggle Widget Error - Attempting",
 	    "to create a new toggle group, when one already exists.");
-    XtWarning(error_buf);
+    IswWarning(error_buf);
   }
 
   AddToRadioGroup( (RadioGroup *)NULL, w1 );
@@ -510,7 +510,7 @@ AddToRadioGroup(RadioGroup *group, Widget w)
   ToggleWidget tw = (ToggleWidget) w;
   RadioGroup * local;
 
-  local = (RadioGroup *) XtMalloc( sizeof(RadioGroup) );
+  local = (RadioGroup *) IswMalloc( sizeof(RadioGroup) );
   local->widget = w;
   tw->toggle.radio_group = local;
 
@@ -571,7 +571,7 @@ RemoveFromRadioGroup(Widget w)
       (group->prev)->next = group->next;
     if (group->next != NULL)
       (group->next)->prev = group->prev;
-    XtFree((char *) group);
+    IswFree((char *) group);
   }
 }
 
@@ -790,10 +790,10 @@ IswToggleChangeRadioGroup(Widget w, Widget radio_group)
  *	Description: Returns the RadioData associated with the toggle
  *                   widget that is currently active in a toggle group.
  *	Arguments: w - any toggle widget in the toggle group.
- *	Returns: The XtNradioData associated with the toggle widget.
+ *	Returns: The IswNradioData associated with the toggle widget.
  */
 
-XtPointer
+IswPointer
 IswToggleGetCurrent(Widget w)
 {
   RadioGroup * group;
@@ -819,7 +819,7 @@ IswToggleGetCurrent(Widget w)
  */
 
 void
-IswToggleSetCurrent(Widget radio_group, XtPointer radio_data)
+IswToggleSetCurrent(Widget radio_group, IswPointer radio_data)
 {
   RadioGroup * group;
   ToggleWidget local_tog;

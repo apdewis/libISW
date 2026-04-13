@@ -58,7 +58,7 @@ typedef struct _SmeClassPart {
   void (*highlight)(Widget);
   void (*unhighlight)(Widget);
   void (*notify)(Widget);
-  XtPointer extension;
+  IswPointer extension;
 } SmeClassPart;
 
 /* Full class record declaration */
@@ -72,7 +72,7 @@ extern SmeClassRec smeClassRec;
 /* New fields for the Sme widget record */
 typedef struct {
     /* resources */
-    XtCallbackList callbacks;	/* The callback list */
+    IswCallbackList callbacks;	/* The callback list */
 #ifdef ISW_INTERNATIONALIZATION
     Boolean     international;
 #endif
@@ -98,8 +98,8 @@ typedef struct _SmeRec {
 
 typedef void (*_IswEntryVoidFunc)(Widget);
 
-#define XtInheritHighlight   ((_IswEntryVoidFunc) _XtInherit)
-#define XtInheritUnhighlight XtInheritHighlight
-#define XtInheritNotify      XtInheritHighlight
+#define IswInheritHighlight   ((_IswEntryVoidFunc) _IswInherit)
+#define IswInheritUnhighlight IswInheritHighlight
+#define IswInheritNotify      IswInheritHighlight
 
 #endif /* _ISW_IswSmeP_h */

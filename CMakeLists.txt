@@ -71,15 +71,15 @@ configure_file(config.h.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 add_executable(makestrs util/makestrs.c)
 
 set(STRINGDEFS_C ${CMAKE_CURRENT_BINARY_DIR}/src/StringDefs.c)
-set(STRINGDEFS_H ${CMAKE_CURRENT_BINARY_DIR}/include/X11/StringDefs.h)
-set(SHELL_H      ${CMAKE_CURRENT_BINARY_DIR}/include/X11/Shell.h)
+set(STRINGDEFS_H ${CMAKE_CURRENT_BINARY_DIR}/include/ISW/StringDefs.h)
+set(SHELL_H      ${CMAKE_CURRENT_BINARY_DIR}/include/ISW/Shell.h)
 
 # makestrs writes StringDefs.c to stdout, and drops StringDefs.h + Shell.h
 # in the current working directory as side effects.
 add_custom_command(
     OUTPUT  ${STRINGDEFS_C} ${STRINGDEFS_H} ${SHELL_H}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/src
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include/X11
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/include/ISW
     COMMAND $<TARGET_FILE:makestrs> -i ${CMAKE_SOURCE_DIR} < ${CMAKE_SOURCE_DIR}/util/string.list
             > ${STRINGDEFS_C}
     COMMAND ${CMAKE_COMMAND} -E rename
@@ -112,7 +112,6 @@ set(LIBXT_SOURCES
     src/ClickTime.c
     src/Composite.c
     src/Constraint.c
-    src/Context.c
     src/Convert.c
     src/Converters.c
     src/Core.c
@@ -279,8 +278,8 @@ target_include_directories(ISW
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/include/X11
-        ${CMAKE_CURRENT_BINARY_DIR}/include/X11
+        ${CMAKE_SOURCE_DIR}/include/ISW
+        ${CMAKE_CURRENT_BINARY_DIR}/include/ISW
         ${CMAKE_CURRENT_BINARY_DIR}/src
         ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -463,15 +462,9 @@ if(NOT ISW_INTERNATIONALIZATION)
     ")
 endif()
 
-# X Toolkit Intrinsics headers
-install(DIRECTORY include/X11/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/isw/X11
-    FILES_MATCHING PATTERN "*.h"
-)
-
-# Generated headers
+# Generated headers (StringDefs.h, Shell.h — now in ISW namespace)
 install(FILES ${STRINGDEFS_H} ${SHELL_H}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/isw/X11
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/isw/ISW
 )
 
 # uthash

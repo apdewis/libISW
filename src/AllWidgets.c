@@ -28,16 +28,16 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/IntrinsicP.h>
+#include <ISW/IntrinsicP.h>
 #include <ISW/AllWidgets.h>
 
-#include <X11/Composite.h>
-#include <X11/Constraint.h>
-#include <X11/Core.h>
-#include <X11/Object.h>
-#include <X11/RectObj.h>
-#include <X11/Shell.h>
-#include <X11/Vendor.h>
+#include <ISW/Composite.h>
+#include <ISW/Constraint.h>
+#include <ISW/Core.h>
+#include <ISW/Object.h>
+#include <ISW/RectObj.h>
+#include <ISW/Shell.h>
+#include <ISW/Vendor.h>
 #include <ISW/AsciiSink.h>
 #include <ISW/AsciiText.h>
 #include <ISW/Box.h>
@@ -133,5 +133,5 @@ IswWidgetNode IswWidgetArray[] = {
 { "wmShell", &wmShellWidgetClass },
 };
 
-int IswWidgetCount = XtNumber(IswWidgetArray);
+int IswWidgetCount = IswNumber(IswWidgetArray);
 

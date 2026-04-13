@@ -194,7 +194,7 @@ IswCreatePixmapFromBitmapData(xcb_connection_t *conn,
  * ISWQueryColor - Query RGB values for a pixel
  */
 int
-ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color)
+ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color)
 {
     xcb_query_colors_cookie_t cookie;
     xcb_query_colors_reply_t *reply;
@@ -226,7 +226,7 @@ ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color)
  * ISWAllocColor - Allocate a read-only color cell
  */
 int
-ISWAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, XColor *color)
+ISWAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color)
 {
     xcb_alloc_color_cookie_t cookie;
     xcb_alloc_color_reply_t *reply;
@@ -304,14 +304,14 @@ IswCreateStippledPixmap(xcb_connection_t *conn, xcb_drawable_t d,
 }
 
 /*
- * ISWFontStructTextWidth - Convenience wrapper that works with XFontStruct
+ * ISWFontStructTextWidth - Convenience wrapper that works with IswFontStruct
  *
  * This function is provided for backward compatibility with code that
  * used XTextWidth. It requires a connection context, so it gets it from
  * a global or per-widget state.
  */
 int
-ISWFontStructTextWidth(XFontStruct *font, const char *text, int len)
+ISWFontStructTextWidth(IswFontStruct *font, const char *text, int len)
 {
     /* Note: This is a stub - in actual use, the widget should call
      * ISWXcbTextWidth directly with the connection.
@@ -324,7 +324,7 @@ ISWFontStructTextWidth(XFontStruct *font, const char *text, int len)
 }
 
 /*
- * ISWFontSetTextWidth - Text width for XFontSet (internationalized text)
+ * ISWFontSetTextWidth - Text width for IswFontSet (internationalized text)
  *
  * This is a stub for internationalized text support.
  */
@@ -450,7 +450,7 @@ ISWFontCharWidth(xcb_connection_t *conn, xcb_font_t font, unsigned char c)
  * Queries the font for a specific property atom.
  */
 Bool
-IswGetFontProperty(xcb_connection_t *conn, XFontStruct *font,
+IswGetFontProperty(xcb_connection_t *conn, IswFontStruct *font,
                    xcb_atom_t atom, unsigned long *value)
 {
     xcb_query_font_cookie_t cookie;
@@ -652,7 +652,7 @@ ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
 /*
  * ISWXcbQueryFontMetrics - Query font ascent, descent, and max width
  *
- * Replacement for accessing XFontStruct->max_bounds directly.
+ * Replacement for accessing IswFontStruct->max_bounds directly.
  */
 void
 ISWXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
@@ -744,9 +744,9 @@ ISWCopyISOLatin1Lowered(char *dst, const char *src)
  */
 
 /*
- * ISWCvtStringToOrientation - Convert string to XtOrientation
+ * ISWCvtStringToOrientation - Convert string to IswOrientation
  *
- * Converts "horizontal" or "vertical" (case-insensitive) to XtOrientation.
+ * Converts "horizontal" or "vertical" (case-insensitive) to IswOrientation.
  */
 Boolean
 ISWCvtStringToOrientation(
@@ -755,9 +755,9 @@ ISWCvtStringToOrientation(
     Cardinal *num_args,
     XrmValuePtr from,
     XrmValuePtr to,
-    XtPointer *converter_data)
+    IswPointer *converter_data)
 {
-    static XtOrientation orientation;
+    static IswOrientation orientation;
     char lowerName[64];
     const char *str = (const char *)from->addr;
     
@@ -780,22 +780,22 @@ ISWCvtStringToOrientation(
     }
     
     if (to->addr == NULL) {
-        to->addr = (XtPointer)&orientation;
-    } else if (to->size < sizeof(XtOrientation)) {
-        to->size = sizeof(XtOrientation);
+        to->addr = (IswPointer)&orientation;
+    } else if (to->size < sizeof(IswOrientation)) {
+        to->size = sizeof(IswOrientation);
         return False;
     } else {
-        *(XtOrientation *)to->addr = orientation;
+        *(IswOrientation *)to->addr = orientation;
     }
-    to->size = sizeof(XtOrientation);
+    to->size = sizeof(IswOrientation);
     
     return True;
 }
 
 /*
- * ISWCvtStringToJustify - Convert string to XtJustify
+ * ISWCvtStringToJustify - Convert string to IswJustify
  *
- * Converts "left", "center", or "right" (case-insensitive) to XtJustify.
+ * Converts "left", "center", or "right" (case-insensitive) to IswJustify.
  */
 Boolean
 ISWCvtStringToJustify(
@@ -804,9 +804,9 @@ ISWCvtStringToJustify(
     Cardinal *num_args,
     XrmValuePtr from,
     XrmValuePtr to,
-    XtPointer *converter_data)
+    IswPointer *converter_data)
 {
-    static XtJustify justify;
+    static IswJustify justify;
     char lowerName[64];
     const char *str = (const char *)from->addr;
     
@@ -821,33 +821,33 @@ ISWCvtStringToJustify(
     ISWCopyISOLatin1Lowered(lowerName, str);
     
     if (strcmp(lowerName, "left") == 0) {
-        justify = XtJustifyLeft;
+        justify = IswJustifyLeft;
     } else if (strcmp(lowerName, "center") == 0) {
-        justify = XtJustifyCenter;
+        justify = IswJustifyCenter;
     } else if (strcmp(lowerName, "right") == 0) {
-        justify = XtJustifyRight;
+        justify = IswJustifyRight;
     } else {
         return False;
     }
     
     if (to->addr == NULL) {
-        to->addr = (XtPointer)&justify;
-    } else if (to->size < sizeof(XtJustify)) {
-        to->size = sizeof(XtJustify);
+        to->addr = (IswPointer)&justify;
+    } else if (to->size < sizeof(IswJustify)) {
+        to->size = sizeof(IswJustify);
         return False;
     } else {
-        *(XtJustify *)to->addr = justify;
+        *(IswJustify *)to->addr = justify;
     }
-    to->size = sizeof(XtJustify);
+    to->size = sizeof(IswJustify);
     
     return True;
 }
 
 /*
- * ISWCvtStringToEdgeType - Convert string to XtEdgeType
+ * ISWCvtStringToEdgeType - Convert string to IswEdgeType
  *
  * Converts "ChainTop", "ChainBottom", "ChainLeft", "ChainRight", "Rubber"
- * (case-insensitive) to XtEdgeType values for Form widget constraints.
+ * (case-insensitive) to IswEdgeType values for Form widget constraints.
  */
 Boolean
 ISWCvtStringToEdgeType(
@@ -856,7 +856,7 @@ ISWCvtStringToEdgeType(
     Cardinal *num_args,
     XrmValuePtr from,
     XrmValuePtr to,
-    XtPointer *converter_data)
+    IswPointer *converter_data)
 {
     static IswEdgeType edge;  /* Use IswEdgeType from Form.h */
     char lowerName[64];
@@ -872,7 +872,7 @@ ISWCvtStringToEdgeType(
     
     ISWCopyISOLatin1Lowered(lowerName, str);
     
-    /* Use IswChain* values from Form.h (Form.h maps XtChain* to IswChain* via defines) */
+    /* Use IswChain* values from Form.h (Form.h maps IswChain* to IswChain* via defines) */
     if (strcmp(lowerName, "chaintop") == 0) {
         edge = IswChainTop;
     } else if (strcmp(lowerName, "chainbottom") == 0) {
@@ -888,7 +888,7 @@ ISWCvtStringToEdgeType(
     }
     
     if (to->addr == NULL) {
-        to->addr = (XtPointer)&edge;
+        to->addr = (IswPointer)&edge;
     } else if (to->size < sizeof(IswEdgeType)) {
         to->size = sizeof(IswEdgeType);
         return False;
@@ -914,7 +914,7 @@ ISWCvtStringToWidget(
     Cardinal *num_args,
     XrmValuePtr from,
     XrmValuePtr to,
-    XtPointer *converter_data)
+    IswPointer *converter_data)
 {
     static Widget widget;
     Widget parent;
@@ -925,9 +925,9 @@ ISWCvtStringToWidget(
     
     /* Need exactly one argument: the parent widget */
     if (*num_args != 1) {
-        XtAppWarningMsg(
-            XtWidgetToApplicationContext(*((Widget *)args[0].addr)),
-            "wrongParameters", "cvtStringToWidget", "XtToolkitError",
+        IswAppWarningMsg(
+            IswWidgetToApplicationContext(*((Widget *)args[0].addr)),
+            "wrongParameters", "cvtStringToWidget", "IswToolkitError",
             "String to Widget conversion requires parent argument",
             (String *)NULL, (Cardinal *)NULL);
         return False;
@@ -941,7 +941,7 @@ ISWCvtStringToWidget(
     }
     
     /* Look up widget by name from the parent */
-    widget = XtNameToWidget(parent, (String)name);
+    widget = IswNameToWidget(parent, (String)name);
     
     if (widget == (Widget)NULL) {
         /* Widget not found - not an error, may be created later */
@@ -949,7 +949,7 @@ ISWCvtStringToWidget(
     }
     
     if (to->addr == NULL) {
-        to->addr = (XtPointer)&widget;
+        to->addr = (IswPointer)&widget;
     } else if (to->size < sizeof(Widget)) {
         to->size = sizeof(Widget);
         return False;
@@ -1297,14 +1297,14 @@ xcb_pixmap_t IswLocatePixmapFile(
  * ISWLoadFallbackFont - Load a fallback font when resource converters fail
  *
  * This function loads a hardcoded default font using XCB when the
- * XtRFontStruct and XtRFontSet resource converters fail in the custom libXt.
+ * IswRFontStruct and IswRFontSet resource converters fail in the custom libXt.
  *
- * Returns: A minimal XFontStruct with a valid font ID, or NULL on failure
+ * Returns: A minimal IswFontStruct with a valid font ID, or NULL on failure
  */
-XFontStruct *
+IswFontStruct *
 ISWLoadFallbackFont(xcb_connection_t *conn)
 {
-    XFontStruct *font;
+    IswFontStruct *font;
     xcb_font_t fid;
     const char *fallback_names[] = {
         "fixed",
@@ -1331,8 +1331,8 @@ ISWLoadFallbackFont(xcb_connection_t *conn)
             fprintf(stderr, "ISWLoadFallbackFont: Loaded font '%s' with fid=%lu\n",
                     fallback_names[i], (unsigned long)fid);
             
-            /* Create minimal XFontStruct */
-            font = (XFontStruct *)calloc(1, sizeof(XFontStruct));
+            /* Create minimal IswFontStruct */
+            font = (IswFontStruct *)calloc(1, sizeof(IswFontStruct));
             if (!font) {
                 xcb_close_font(conn, fid);
                 return NULL;
@@ -1365,7 +1365,7 @@ ISWLoadFallbackFont(xcb_connection_t *conn)
  * ISWFreeFallbackFont - Free a fallback font created by ISWLoadFallbackFont
  */
 void
-ISWFreeFallbackFont(xcb_connection_t *conn, XFontStruct *font)
+ISWFreeFallbackFont(xcb_connection_t *conn, IswFontStruct *font)
 {
     if (font) {
         if (conn && font->fid) {

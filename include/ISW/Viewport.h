@@ -58,8 +58,8 @@ SOFTWARE.
  ----		     -----		-------		-------------
  allowHoriz	     Boolean		Boolean		False
  allowVert	     Boolean		Boolean		False
- background	     Background		Pixel		XtDefaultBackground
- border		     BorderColor	Pixel		XtDefaultForeground
+ background	     Background		Pixel		IswDefaultBackground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
  destroyCallback     Callback		Pointer		NULL
  foreceBars	     Boolean		Boolean		False
@@ -76,12 +76,12 @@ SOFTWARE.
 */
 
 /* fields added to Form */
-#ifndef _XtStringDefs_h_
-#define XtNforceBars "forceBars"
-#define XtNallowHoriz "allowHoriz"
-#define XtNallowVert "allowVert"
-#define XtNuseBottom "useBottom"
-#define XtNuseRight "useRight"
+#ifndef _IswStringDefs_h_
+#define IswNforceBars "forceBars"
+#define IswNallowHoriz "allowHoriz"
+#define IswNallowVert "allowVert"
+#define IswNuseBottom "useBottom"
+#define IswNuseRight "useRight"
 #endif
 
 extern WidgetClass viewportWidgetClass;

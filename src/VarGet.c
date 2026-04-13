@@ -56,19 +56,19 @@ in this Software without prior written authorization from The Open Group.
 #include "VarargsI.h"
 #include "StringDefs.h"
 
-static String XtNxtGetTypedArg = "xtGetTypedArg";
+static String IswNxtGetTypedArg = "xtGetTypedArg";
 
 void
-XtVaGetSubresources(Widget widget,
-                    XtPointer base,
+IswVaGetSubresources(Widget widget,
+                    IswPointer base,
                     _Xconst char *name,
                     _Xconst char *class,
-                    XtResourceList resources,
+                    IswResourceList resources,
                     Cardinal num_resources,
                     ...)
 {
     va_list var;
-    XtTypedArgList args;
+    IswTypedArgList args;
     Cardinal num_args;
     int total_count, typed_count;
 
@@ -76,31 +76,31 @@ XtVaGetSubresources(Widget widget,
 
     LOCK_APP(app);
     va_start(var, num_resources);
-    _XtCountVaList(var, &total_count, &typed_count);
+    _IswCountVaList(var, &total_count, &typed_count);
     va_end(var);
 
     va_start(var, num_resources);
 
-    _XtVaToTypedArgList(var, total_count, &args, &num_args);
+    _IswVaToTypedArgList(var, total_count, &args, &num_args);
 
-    _XtGetSubresources(widget, base, name, class, resources, num_resources,
+    _IswGetSubresources(widget, base, name, class, resources, num_resources,
                        NULL, 0, args, num_args);
 
-    XtFree((XtPointer) args);
+    IswFree((IswPointer) args);
 
     va_end(var);
     UNLOCK_APP(app);
 }
 
 void
-XtVaGetApplicationResources(Widget widget,
-                            XtPointer base,
-                            XtResourceList resources,
+IswVaGetApplicationResources(Widget widget,
+                            IswPointer base,
+                            IswResourceList resources,
                             Cardinal num_resources,
                             ...)
 {
     va_list var;
-    XtTypedArgList args;
+    IswTypedArgList args;
     Cardinal num_args;
     int total_count, typed_count;
 
@@ -108,17 +108,17 @@ XtVaGetApplicationResources(Widget widget,
 
     LOCK_APP(app);
     va_start(var, num_resources);
-    _XtCountVaList(var, &total_count, &typed_count);
+    _IswCountVaList(var, &total_count, &typed_count);
     va_end(var);
 
     va_start(var, num_resources);
 
-    _XtVaToTypedArgList(var, total_count, &args, &num_args);
+    _IswVaToTypedArgList(var, total_count, &args, &num_args);
 
-    _XtGetApplicationResources(widget, base, resources, num_resources,
+    _IswGetApplicationResources(widget, base, resources, num_resources,
                                NULL, 0, args, num_args);
 
-    XtFree((XtPointer) args);
+    IswFree((IswPointer) args);
 
     va_end(var);
     UNLOCK_APP(app);
@@ -126,8 +126,8 @@ XtVaGetApplicationResources(Widget widget,
 
 static void
 GetTypedArg(Widget widget,
-            XtTypedArgList typed_arg,
-            XtResourceList resources,
+            IswTypedArgList typed_arg,
+            IswResourceList resources,
             Cardinal num_resources)
 {
     String from_type = NULL;
@@ -135,9 +135,9 @@ GetTypedArg(Widget widget,
     XrmValue from_val, to_val;
     register Cardinal i;
     Arg arg;
-    XtPointer value;
+    IswPointer value;
 
-    /* note we presume that the XtResourceList to be un-compiled */
+    /* note we presume that the IswResourceList to be un-compiled */
 
     for (i = 0; i < num_resources; i++) {
         if (StringToName(typed_arg->name) ==
@@ -149,8 +149,8 @@ GetTypedArg(Widget widget,
     }
 
     if (i == num_resources) {
-        XtAppWarningMsg(XtWidgetToApplicationContext(widget),
-                        "unknownType", XtNxtGetTypedArg, XtCXtToolkitError,
+        IswAppWarningMsg(IswWidgetToApplicationContext(widget),
+                        "unknownType", IswNxtGetTypedArg, IswCIswToolkitError,
                         "Unable to find type of resource for conversion",
                         NULL, NULL);
         return;
@@ -158,26 +158,26 @@ GetTypedArg(Widget widget,
 
     value = ALLOCATE_LOCAL(from_size);
     if (value == NULL)
-        _XtAllocError(NULL);
-    XtSetArg(arg, typed_arg->name, value);
-    XtGetValues(widget, &arg, 1);
+        _IswAllocError(NULL);
+    IswSetArg(arg, typed_arg->name, value);
+    IswGetValues(widget, &arg, 1);
 
     from_val.size = from_size;
-    from_val.addr = (XtPointer) value;
-    to_val.addr = (XtPointer) typed_arg->value;
+    from_val.addr = (IswPointer) value;
+    to_val.addr = (IswPointer) typed_arg->value;
     to_val.size = (unsigned) typed_arg->size;
 
-    if (!XtConvertAndStore(widget, from_type, &from_val,
+    if (!IswConvertAndStore(widget, from_type, &from_val,
                            typed_arg->type, &to_val)) {
         if (to_val.size > (unsigned) typed_arg->size) {
             String params[2];
             Cardinal num_params = 2;
 
             params[0] = typed_arg->type;
-            params[1] = XtName(widget);
-            XtAppWarningMsg(XtWidgetToApplicationContext(widget),
-                            "insufficientSpace", XtNxtGetTypedArg,
-                            XtCXtToolkitError,
+            params[1] = IswName(widget);
+            IswAppWarningMsg(IswWidgetToApplicationContext(widget),
+                            "insufficientSpace", IswNxtGetTypedArg,
+                            IswCIswToolkitError,
                             "Insufficient space for converted type '%s' in widget '%s'",
                             params, &num_params);
         }
@@ -187,10 +187,10 @@ GetTypedArg(Widget widget,
 
             params[0] = from_type;
             params[1] = typed_arg->type;
-            params[2] = XtName(widget);
-            XtAppWarningMsg(XtWidgetToApplicationContext(widget),
-                            "conversionFailed", XtNxtGetTypedArg,
-                            XtCXtToolkitError,
+            params[2] = IswName(widget);
+            IswAppWarningMsg(IswWidgetToApplicationContext(widget),
+                            "conversionFailed", IswNxtGetTypedArg,
+                            IswCIswToolkitError,
                             "Type conversion (%s to %s) failed for widget '%s'",
                             params, &num_params);
         }
@@ -200,9 +200,9 @@ GetTypedArg(Widget widget,
 
 static int
 GetNestedArg(Widget widget,
-             XtTypedArgList avlist,
+             IswTypedArgList avlist,
              ArgList args,
-             XtResourceList resources,
+             IswResourceList resources,
              Cardinal num_resources)
 {
     int count = 0;
@@ -211,8 +211,8 @@ GetNestedArg(Widget widget,
         if (avlist->type != NULL) {
             GetTypedArg(widget, avlist, resources, num_resources);
         }
-        else if (strcmp(avlist->name, XtVaNestedList) == 0) {
-            count += GetNestedArg(widget, (XtTypedArgList) avlist->value,
+        else if (strcmp(avlist->name, IswVaNestedList) == 0) {
+            count += GetNestedArg(widget, (IswTypedArgList) avlist->value,
                                   args, resources, num_resources);
         }
         else {
@@ -226,13 +226,13 @@ GetNestedArg(Widget widget,
 }
 
 void
-XtVaGetValues(Widget widget, ...)
+IswVaGetValues(Widget widget, ...)
 {
     va_list var;
     String attr;
     ArgList args;
-    XtTypedArg typed_arg;
-    XtResourceList resources = (XtResourceList) NULL;
+    IswTypedArg typed_arg;
+    IswResourceList resources = (IswResourceList) NULL;
     Cardinal num_resources;
     int count, total_count, typed_count;
 
@@ -241,12 +241,12 @@ XtVaGetValues(Widget widget, ...)
     LOCK_APP(app);
     va_start(var, widget);
 
-    _XtCountVaList(var, &total_count, &typed_count);
+    _IswCountVaList(var, &total_count, &typed_count);
 
     if (total_count != typed_count) {
         size_t limit = (size_t) (total_count - typed_count);
 
-        args = XtMallocArray((Cardinal) limit, (Cardinal) sizeof(Arg));
+        args = IswMallocArray((Cardinal) limit, (Cardinal) sizeof(Arg));
     }
     else
         args = NULL;            /* for lint; really unused */
@@ -256,49 +256,49 @@ XtVaGetValues(Widget widget, ...)
         va_start(var, widget);
         for (attr = va_arg(var, String), count = 0; attr != NULL;
              attr = va_arg(var, String)) {
-            if (strcmp(attr, XtVaTypedArg) == 0) {
+            if (strcmp(attr, IswVaTypedArg) == 0) {
                 typed_arg.name = va_arg(var, String);
                 typed_arg.type = va_arg(var, String);
-                typed_arg.value = va_arg(var, XtArgVal);
+                typed_arg.value = va_arg(var, IswArgVal);
                 typed_arg.size = va_arg(var, int);
 
                 if (resources == NULL) {
-                    XtGetResourceList(XtClass(widget), &resources,
+                    IswGetResourceList(IswClass(widget), &resources,
                                       &num_resources);
                 }
 
                 GetTypedArg(widget, &typed_arg, resources, num_resources);
             }
-            else if (strcmp(attr, XtVaNestedList) == 0) {
+            else if (strcmp(attr, IswVaNestedList) == 0) {
                 if (resources == NULL) {
-                    XtGetResourceList(XtClass(widget), &resources,
+                    IswGetResourceList(IswClass(widget), &resources,
                                       &num_resources);
                 }
 
-                count += GetNestedArg(widget, va_arg(var, XtTypedArgList),
+                count += GetNestedArg(widget, va_arg(var, IswTypedArgList),
                                       (args + count), resources, num_resources);
             }
             else {
                 args[count].name = attr;
-                args[count].value = va_arg(var, XtArgVal);
+                args[count].value = va_arg(var, IswArgVal);
                 count++;
             }
         }
         va_end(var);
     }
 
-    XtFree((XtPointer) resources);
+    IswFree((IswPointer) resources);
 
     if (args != NULL) {
-        XtGetValues(widget, args, (Cardinal) count);
-        XtFree((XtPointer) args);
+        IswGetValues(widget, args, (Cardinal) count);
+        IswFree((IswPointer) args);
     }
     UNLOCK_APP(app);
 }
 
 void
-XtVaGetSubvalues(XtPointer base,
-                 XtResourceList resources,
+IswVaGetSubvalues(IswPointer base,
+                 IswResourceList resources,
                  Cardinal num_resources,
                  ...)
 {
@@ -309,19 +309,19 @@ XtVaGetSubvalues(XtPointer base,
 
     va_start(var, num_resources);
 
-    _XtCountVaList(var, &total_count, &typed_count);
+    _IswCountVaList(var, &total_count, &typed_count);
 
     if (typed_count != 0) {
-        XtWarning
-            ("XtVaTypedArg is an invalid argument to XtVaGetSubvalues()\n");
+        IswWarning
+            ("IswVaTypedArg is an invalid argument to IswVaGetSubvalues()\n");
     }
     va_end(var);
 
     va_start(var, num_resources);
-    _XtVaToArgList((Widget) NULL, var, total_count, &args, &num_args);
+    _IswVaToArgList((Widget) NULL, var, total_count, &args, &num_args);
     va_end(var);
 
-    XtGetSubvalues(base, resources, num_resources, args, num_args);
+    IswGetSubvalues(base, resources, num_resources, args, num_args);
 
-    XtFree((XtPointer) args);
+    IswFree((IswPointer) args);
 }

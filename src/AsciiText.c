@@ -70,8 +70,8 @@ SOFTWARE.
 
 #include <ISW/ISWP.h>
 #include <stdio.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/Cardinals.h>
 #include <ISW/AsciiTextP.h>
@@ -98,31 +98,31 @@ AsciiTextClassRec asciiTextClassRec = {
     /* class_inited     */      FALSE,
     /* initialize       */      Initialize,
     /* initialize_hook  */	NULL,
-    /* realize          */      XtInheritRealize,
+    /* realize          */      IswInheritRealize,
     /* actions          */      NULL,
     /* num_actions      */      0,
     /* resources        */      NULL,
     /* num_resource     */      0,
     /* xrm_class        */      NULLQUARK,
     /* compress_motion  */      TRUE,
-    /* compress_exposure*/      XtExposeGraphicsExpose | XtExposeNoExpose,
+    /* compress_exposure*/      IswExposeGraphicsExpose | IswExposeNoExpose,
     /* compress_enterleave*/	TRUE,
     /* visible_interest */      FALSE,
     /* destroy          */      Destroy,
-    /* resize           */      XtInheritResize,
-    /* expose           */      XtInheritExpose,
+    /* resize           */      IswInheritResize,
+    /* expose           */      IswInheritExpose,
     /* set_values       */      NULL,
     /* set_values_hook  */	NULL,
-    /* set_values_almost*/	XtInheritSetValuesAlmost,
+    /* set_values_almost*/	IswInheritSetValuesAlmost,
     /* get_values_hook  */	NULL,
-    /* accept_focus     */      XtInheritAcceptFocus,
-    /* version          */	XtVersion,
+    /* accept_focus     */      IswInheritAcceptFocus,
+    /* version          */	IswVersion,
     /* callback_private */      NULL,
-    /* tm_table         */      XtInheritTranslations,
-    /* query_geometry	*/	XtInheritQueryGeometry
+    /* tm_table         */      IswInheritTranslations,
+    /* query_geometry	*/	IswInheritQueryGeometry
   },
   { /* Simple fields */
-    /* change_sensitive	*/	XtInheritChangeSensitive
+    /* change_sensitive	*/	IswInheritChangeSensitive
   },
   { /* text fields */
     /* empty            */      0
@@ -158,18 +158,18 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 #ifdef ISW_INTERNATIONALIZATION
   if ( w->simple.international == True ) { /* The multi* are international. */
 
-      w->text.source = XtCreateWidget( "textSource", multiSrcObjectClass,
+      w->text.source = IswCreateWidget( "textSource", multiSrcObjectClass,
 				  new, args, *num_args );
-      w->text.sink = XtCreateWidget( "textSink", multiSinkObjectClass,
+      w->text.sink = IswCreateWidget( "textSink", multiSinkObjectClass,
 				new, args, *num_args );
   }
   else
 #endif
   {
 
-      w->text.source = XtCreateWidget( "textSource", asciiSrcObjectClass,
+      w->text.source = IswCreateWidget( "textSource", asciiSrcObjectClass,
 				  new, args, *num_args );
-      w->text.sink = XtCreateWidget( "textSink", asciiSinkObjectClass,
+      w->text.sink = IswCreateWidget( "textSink", asciiSinkObjectClass,
 				new, args, *num_args );
   }
 
@@ -194,10 +194,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     sink = (MultiSinkObject)w->text.sink;
     _IswImRegister( new );
-    XtSetArg (list[ac], XtNfontSet, sink->multi_sink.fontset); ac++;
-    XtSetArg (list[ac], XtNinsertPosition, w->text.insertPos); ac++;
-    XtSetArg (list[ac], XtNforeground, sink->text_sink.foreground); ac++;
-    XtSetArg (list[ac], XtNbackground, sink->text_sink.background); ac++;
+    IswSetArg (list[ac], IswNfontSet, sink->multi_sink.fontset); ac++;
+    IswSetArg (list[ac], IswNinsertPosition, w->text.insertPos); ac++;
+    IswSetArg (list[ac], IswNforeground, sink->text_sink.foreground); ac++;
+    IswSetArg (list[ac], IswNbackground, sink->text_sink.background); ac++;
     _IswImSetValues(new, list, ac);
   }
 #endif
@@ -213,11 +213,11 @@ Destroy(Widget w)
         _IswImUnregister( w );
 #endif
 
-    if (w == XtParent(((AsciiWidget)w)->text.source))
-	XtDestroyWidget( ((AsciiWidget)w)->text.source );
+    if (w == IswParent(((AsciiWidget)w)->text.source))
+	IswDestroyWidget( ((AsciiWidget)w)->text.source );
 
-    if (w == XtParent(((AsciiWidget)w)->text.sink))
-	XtDestroyWidget( ((AsciiWidget)w)->text.sink );
+    if (w == IswParent(((AsciiWidget)w)->text.sink))
+	IswDestroyWidget( ((AsciiWidget)w)->text.sink );
 }
 
 #ifdef ASCII_STRING
@@ -238,31 +238,31 @@ AsciiStringClassRec asciiStringClassRec = {
     /* class_inited     */      FALSE,
     /* initialize       */      NULL,
     /* initialize_hook  */	NULL,
-    /* realize          */      XtInheritRealize,
+    /* realize          */      IswInheritRealize,
     /* actions          */      NULL,
     /* num_actions      */      0,
     /* resources        */      NULL,
     /* num_ resource    */      0,
     /* xrm_class        */      NULLQUARK,
     /* compress_motion  */      TRUE,
-    /* compress_exposure*/      XtExposeGraphicsExpose,
+    /* compress_exposure*/      IswExposeGraphicsExpose,
     /* compress_enterleave*/	TRUE,
     /* visible_interest */      FALSE,
     /* destroy          */      NULL,
-    /* resize           */      XtInheritResize,
-    /* expose           */      XtInheritExpose,
+    /* resize           */      IswInheritResize,
+    /* expose           */      IswInheritExpose,
     /* set_values       */      NULL,
     /* set_values_hook  */	NULL,
-    /* set_values_almost*/	XtInheritSetValuesAlmost,
+    /* set_values_almost*/	IswInheritSetValuesAlmost,
     /* get_values_hook  */	NULL,
-    /* accept_focus     */      XtInheritAcceptFocus,
-    /* version          */	XtVersion,
+    /* accept_focus     */      IswInheritAcceptFocus,
+    /* version          */	IswVersion,
     /* callback_private */      NULL,
-    /* tm_table         */      XtInheritTranslations,
-    /* query_geometry	*/	XtInheritQueryGeometry
+    /* tm_table         */      IswInheritTranslations,
+    /* query_geometry	*/	IswInheritQueryGeometry
   },
   { /* Simple fields */
-    /* change_sensitive	*/	XtInheritChangeSensitive
+    /* change_sensitive	*/	IswInheritChangeSensitive
   },
   { /* text fields */
     /* empty            */      0
@@ -294,31 +294,31 @@ AsciiDiskClassRec asciiDiskClassRec = {
     /* class_inited     */      FALSE,
     /* initialize       */      NULL,
     /* initialize_hook  */	NULL,
-    /* realize          */      XtInheritRealize,
+    /* realize          */      IswInheritRealize,
     /* actions          */      NULL,
     /* num_actions      */      0,
     /* resources        */      NULL,
     /* num_ resource    */      0,
     /* xrm_class        */      NULLQUARK,
     /* compress_motion  */      TRUE,
-    /* compress_exposure*/      XtExposeGraphicsExpose,
+    /* compress_exposure*/      IswExposeGraphicsExpose,
     /* compress_enterleave*/	TRUE,
     /* visible_interest */      FALSE,
     /* destroy          */      NULL,
-    /* resize           */      XtInheritResize,
-    /* expose           */      XtInheritExpose,
+    /* resize           */      IswInheritResize,
+    /* expose           */      IswInheritExpose,
     /* set_values       */      NULL,
     /* set_values_hook  */	NULL,
-    /* set_values_almost*/	XtInheritSetValuesAlmost,
+    /* set_values_almost*/	IswInheritSetValuesAlmost,
     /* get_values_hook  */	NULL,
-    /* accept_focus     */      XtInheritAcceptFocus,
-    /* version          */	XtVersion,
+    /* accept_focus     */      IswInheritAcceptFocus,
+    /* version          */	IswVersion,
     /* callback_private */      NULL,
-    /* tm_table         */      XtInheritTranslations,
-    /* query_geometry	*/	XtInheritQueryGeometry
+    /* tm_table         */      IswInheritTranslations,
+    /* query_geometry	*/	IswInheritQueryGeometry
   },
   { /* Simple fields */
-    /* change_sensitive	*/	XtInheritChangeSensitive
+    /* change_sensitive	*/	IswInheritChangeSensitive
   },
   { /* text fields */
     /* empty            */      0

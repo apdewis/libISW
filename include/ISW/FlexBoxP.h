@@ -28,7 +28,7 @@
 #include <ISW/FlexBox.h>
 
 typedef struct {
-    XtPointer extension;
+    IswPointer extension;
 } FlexBoxClassPart;
 
 typedef struct _FlexBoxClassRec {
@@ -42,7 +42,7 @@ extern FlexBoxClassRec flexBoxClassRec;
 
 typedef struct _FlexBoxPart {
     /* resources */
-    XtOrientation orientation;
+    IswOrientation orientation;
     Dimension     spacing;
     /* private */
     Dimension     preferred_width;

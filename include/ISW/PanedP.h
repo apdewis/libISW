@@ -64,13 +64,13 @@ SOFTWARE.
 #include <ISW/Paned.h>
 #include <ISW/ISWRender.h>
 
-/* XCB-based libXt doesn't define XtOrientation - define it here */
-#ifndef _IswXtOrientation_defined
-#define _IswXtOrientation_defined
+/* XCB-based libXt doesn't define IswOrientation - define it here */
+#ifndef _IswOrientation_defined
+#define _IswOrientation_defined
 typedef enum {
     XtorientHorizontal = 0,
     XtorientVertical = 1
-} XtOrientation;
+} IswOrientation;
 #endif
 
 /*********************************************************************
@@ -146,10 +146,10 @@ typedef struct {
 					      from right margin) */
     Boolean     refiguremode;              /* Whether to refigure changes
 					      right now */
-    XtTranslations grip_translations;      /* grip translation table */
+    IswTranslations grip_translations;      /* grip translation table */
     Pixel       internal_bp;               /* color of internal borders. */
     Dimension   internal_bw;	           /* internal border width. */
-    XtOrientation orientation;	           /* Orientation of paned widget. */
+    IswOrientation orientation;	           /* Orientation of paned widget. */
 
     xcb_cursor_t	cursor;		           /* Cursor for paned window */
     xcb_cursor_t	grip_cursor;               /* inactive grip cursor */

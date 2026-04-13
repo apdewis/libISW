@@ -45,8 +45,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtRect_h
-#define _XtRect_h
+#ifndef _IswRect_h
+#define _IswRect_h
 
 _XFUNCPROTOBEGIN
 
@@ -57,5 +57,5 @@ externalref WidgetClass rectObjClass;
 
 _XFUNCPROTOEND
 
-#endif /* _XtRect_h */
+#endif /* _IswRect_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

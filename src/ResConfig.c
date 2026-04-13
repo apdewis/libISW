@@ -105,7 +105,7 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
     char *resource_value;
     Widget cur = w;
     char *temp;
-    XtResourceList resources_return = NULL;
+    IswResourceList resources_return = NULL;
     Cardinal num_resources_return = 0;
     Cardinal res_index;
     Boolean found_resource = False;
@@ -115,20 +115,20 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
     if (last_part == NULL)
         return;
 
-    if (!XtIsWidget(w)) {
+    if (!IswIsWidget(w)) {
         if (w == 0 || w->core.parent == 0)
             return;
-        dpy = XtDisplay(w->core.parent);
+        dpy = IswDisplay(w->core.parent);
     }
     else {
-        dpy = XtDisplay(w);
+        dpy = IswDisplay(w);
     }
-    tmp_db = XtDatabase(dpy);
+    tmp_db = IswDatabase(dpy);
 
     /*
      * get a list of all the valid resources for this widget
      */
-    XtGetResourceList(w->core.widget_class,
+    IswGetResourceList(w->core.widget_class,
                       &resources_return, &num_resources_return);
 
     /*
@@ -153,7 +153,7 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
     if (!found_resource
         || !resources_return[res_index].resource_name
         || !resources_return[res_index].resource_class) {
-        XtFree((char *) resources_return);
+        IswFree((char *) resources_return);
         return;
     }
 
@@ -168,66 +168,66 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
          * create resource name string
          */
         if (resource_name) {
-            XtAsprintf(&temp, ".%s%s", cur->core.name, resource_name);
-            XtFree(resource_name);
+            IswAsprintf(&temp, ".%s%s", cur->core.name, resource_name);
+            IswFree(resource_name);
         }
-        else if (!XtIsWidget(cur) || !cur->core.name) {
-            cur = XtParent(cur);
+        else if (!IswIsWidget(cur) || !cur->core.name) {
+            cur = IswParent(cur);
             continue;
         }
         else {
-            XtAsprintf(&temp, ".%s", cur->core.name);
+            IswAsprintf(&temp, ".%s", cur->core.name);
         }
         resource_name = temp;
 
         /*
          * create resource class string
          */
-        if ((XtIsTopLevelShell(cur)) && (XtParent(cur) == NULL)) {
+        if ((IswIsTopLevelShell(cur)) && (IswParent(cur) == NULL)) {
             ApplicationShellWidget top = (ApplicationShellWidget) (cur);
 
             if (resource_class) {
-                XtAsprintf(&temp, ".%s%s",
+                IswAsprintf(&temp, ".%s%s",
                            top->application.class, resource_class);
             }
             else {
-                XtAsprintf(&temp, ".%s", top->application.class);
+                IswAsprintf(&temp, ".%s", top->application.class);
             }
         }
         else {
             if (resource_class) {
-                XtAsprintf(&temp, ".%s%s",
+                IswAsprintf(&temp, ".%s%s",
                            cur->core.widget_class->core_class.class_name,
                            resource_class);
             }
             else {
-                XtAsprintf(&temp, ".%s",
+                IswAsprintf(&temp, ".%s",
                            cur->core.widget_class->core_class.class_name);
             }
         }
 
-        XtFree(resource_class);
+        IswFree(resource_class);
         resource_class = temp;
 
-        cur = XtParent(cur);
+        cur = IswParent(cur);
     }
 
     /*
      * add the resource name to the end of the resource name string
      */
-    XtAsprintf(&temp, "%s.%s", resource_name,
+    IswAsprintf(&temp, "%s.%s", resource_name,
                resources_return[res_index].resource_name);
 
-    XtFree(resource_name);
+    IswFree(resource_name);
     resource_name = temp;
 
     /*
      * add the resource class to the end of the resource class string
      */
-    XtAsprintf(&temp, "%s.%s", resource_class,
+    IswAsprintf(&temp, "%s.%s", resource_class,
                resources_return[res_index].resource_class);
 
-    XtFree(resource_class);
+    IswFree(resource_class);
     resource_class = temp;
 
 #ifdef DEBUG
@@ -256,13 +256,13 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
                                          resource_class,
                                          &queried_value) >= 0
             && queried_value != NULL) {
-            resource_value = XtNewString(queried_value);
+            resource_value = IswNewString(queried_value);
             free(queried_value);
         } else {
-            resource_value = XtNewString(value);
+            resource_value = IswNewString(value);
         }
     } else {
-        resource_value = XtNewString(value);
+        resource_value = IswNewString(value);
     }
 
 #ifdef DEBUG
@@ -272,18 +272,18 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
             resources_return[res_index].resource_name, resource_value);
 #endif
     /*
-     * use XtVaSetValues with XtVaTypedArg to convert the value of
+     * use IswVaSetValues with IswVaTypedArg to convert the value of
      * type String the the same type as the resource (last_part).
      * Then set the value.
      */
-    XtVaSetValues(w,
-                  XtVaTypedArg, resources_return[res_index].resource_name,
-                  XtRString, resource_value, strlen(resource_value) + 1, NULL);
+    IswVaSetValues(w,
+                  IswVaTypedArg, resources_return[res_index].resource_name,
+                  IswRString, resource_value, strlen(resource_value) + 1, NULL);
 
-    XtFree((char *) resources_return);
-    XtFree(resource_name);
-    XtFree(resource_class);
-    XtFree(resource_value);
+    IswFree((char *) resources_return);
+    IswFree(resource_name);
+    IswFree(resource_class);
+    IswFree(resource_value);
 }
 
 /*
@@ -326,15 +326,15 @@ _apply_values_to_children(Widget w,
     for (i = 0; i < num_children; i++) {
 
 #ifdef DEBUG
-        if (XtIsWidget(children[i]) && XtIsWidget(w))
+        if (IswIsWidget(children[i]) && IswIsWidget(w))
             fprintf(stderr, "searching child %s of parent %s\n",
                     children[i]->core.name, w->core.name);
         else
             fprintf(stderr, "searching child (NULL) of parent %s\n",
                     w->core.name);
-        if (!XtIsWidget(children[i]))
+        if (!IswIsWidget(children[i]))
             fprintf(stderr, "children[%d] is NOT a widget\n", i);
-        if (!XtIsWidget(w))
+        if (!IswIsWidget(w))
             fprintf(stderr, "w is NOT a widget\n");
 #endif
 
@@ -343,7 +343,7 @@ _apply_values_to_children(Widget w,
                                   resource, value, last_token, last_part);
     }
 
-    XtFree((char *) children);
+    IswFree((char *) children);
 }
 
 /*
@@ -387,7 +387,7 @@ _search_child(Widget w,
                         value, last_token, last_part);
     }
 
-    XtFree((char *) children);
+    IswFree((char *) children);
 }
 
 /*
@@ -429,7 +429,7 @@ _get_part(char *remainder _X_UNUSED, char **indx, char **part)
     }
     *buf_ptr = '\0';
 
-    *part = XtNewString(buffer);        /* return a new string to part  */
+    *part = IswNewString(buffer);        /* return a new string to part  */
 
     if (strcmp(*indx, "") == 0)
         *indx = NULL;
@@ -467,7 +467,7 @@ _match_resource_to_widget(Widget w, char *part)
      * a widget name when the object is not a widget, you may get a
      * core dump from an invalid pointer reference.
      */
-    if (XtIsWidget(w)) {
+    if (IswIsWidget(w)) {
         if ((strcmp(w->core.name, part) == 0) ||
             (strcmp(w->core.widget_class->core_class.class_name, part) == 0))
             return (True);
@@ -562,7 +562,7 @@ _set_and_search(Widget w,
             else
                 _search_child(w, local_index, remainder,
                               resource, value, last_token, last_part);
-            XtFree(part);
+            IswFree(part);
             return;
         }
         if (token == '*') {
@@ -591,7 +591,7 @@ _set_and_search(Widget w,
         }
     }
 
-    XtFree(part);
+    IswFree(part);
 }
 
 /*
@@ -623,17 +623,17 @@ _get_last_part(char *remainder, char **part)
     tight = strrchr(remainder, '.');
 
     if ((loose == NULL) && (tight == NULL)) {
-        *part = XtNewString(remainder);
+        *part = IswNewString(remainder);
         return ('.');
     }
     if ((loose == NULL) || (tight && (strcoll(loose, tight) < 0))) {
         *tight++ = '\0';        /* shorten the remainder string */
-        *part = XtNewString(tight);
+        *part = IswNewString(tight);
         return ('.');
     }
     if ((tight == NULL) || (strcoll(tight, loose) < 0)) {
         *loose++ = '\0';
-        *part = XtNewString(loose);
+        *part = IswNewString(loose);
         return ('*');
     }
     *part = NULL;
@@ -685,11 +685,11 @@ _search_widget_tree(Widget w, char *resource, char *value)
     /*
      * Find the root of the tree given any widget
      */
-    while (XtParent(parent) != NULL) {
-        parent = XtParent(parent);
+    while (IswParent(parent) != NULL) {
+        parent = IswParent(parent);
     }
 #ifdef DEBUG
-    if (XtIsWidget(w) && XtIsWidget(parent))
+    if (IswIsWidget(w) && IswIsWidget(parent))
         fprintf(stderr, "widget = %s parent = %s\n",
                 w->core.name, parent->core.name);
     else
@@ -709,9 +709,9 @@ _search_widget_tree(Widget w, char *resource, char *value)
     tight_len = (tight) ? (int) strlen(tight) : 0;
 
     if ((loose == NULL) || (tight_len > loose_len))
-        remainder = XtNewString(tight);
+        remainder = IswNewString(tight);
     else if ((tight == NULL) || (loose_len > tight_len))
-        remainder = XtNewString(loose);
+        remainder = IswNewString(loose);
 
     /*
      * Parse last segment off of resource string, (eg. background, font,
@@ -738,8 +738,8 @@ _search_widget_tree(Widget w, char *resource, char *value)
             char *indx, *copy;
 
             if (remainder[0] != '*' && remainder[0] != '.') {
-                XtAsprintf(&copy, ".%s", remainder);
-                XtFree(remainder);
+                IswAsprintf(&copy, ".%s", remainder);
+                IswFree(remainder);
                 remainder = copy;
             }
             indx = remainder;
@@ -747,8 +747,8 @@ _search_widget_tree(Widget w, char *resource, char *value)
                             last_token, last_part);
         }
 
-        XtFree(remainder);
-        XtFree(last_part);
+        IswFree(remainder);
+        IswFree(last_part);
     }
 }
 
@@ -781,10 +781,10 @@ _locate_children(Widget parent, Widget **children)
     /*
      * count the number of children
      */
-    if (XtIsWidget(parent))
+    if (IswIsWidget(parent))
         num_children =
             (int) ((Cardinal) num_children + parent->core.num_popups);
-    if (XtIsComposite(parent))
+    if (IswIsComposite(parent))
         num_children =
             (int) ((Cardinal) num_children + comp->composite.num_children);
     if (num_children == 0) {
@@ -792,16 +792,16 @@ _locate_children(Widget parent, Widget **children)
         return (0);
     }
 
-    *children = XtMallocArray((Cardinal)num_children, (Cardinal)sizeof(Widget));
+    *children = IswMallocArray((Cardinal)num_children, (Cardinal)sizeof(Widget));
 
-    if (XtIsComposite(parent)) {
+    if (IswIsComposite(parent)) {
         for (i = 0; i < comp->composite.num_children; i++) {
             (*children)[current] = comp->composite.children[i];
             current++;
         }
     }
 
-    if (XtIsWidget(parent)) {
+    if (IswIsWidget(parent)) {
         for (i = 0; i < parent->core.num_popups; i++) {
             (*children)[current] = comp->core.popup_list[i];
             current++;
@@ -842,7 +842,7 @@ dump_widget_tree(Widget w, int indent)
         if (children[i] != NULL) {
             for (j = 0; j < indent; j++)
                 fprintf(stderr, " ");
-            if (XtIsWidget(children[i])) {
+            if (IswIsWidget(children[i])) {
                 fprintf(stderr, "(%s)\t", children[i]->core.name);
                 fprintf(stderr, "(%s)\n",
                         children[i]->core.widget_class->core_class.class_name);
@@ -856,18 +856,18 @@ dump_widget_tree(Widget w, int indent)
         dump_widget_tree(children[i], indent);
     }
 
-    XtFree((char *) children);
+    IswFree((char *) children);
 }
 #endif
 
 /*
- * NAME: _XtResourceConfiguationEH
+ * NAME: _IswResourceConfiguationEH
  *
  * FUNCTION:
  *      This function is the event handler for the on-the-fly communication
  *      with a resource customization tool.  This event handler must be
  *      registered for the toplevel shell of each app.  This is best done
- *      in the _XtCreatePopupShell and _XtAppCreateShell functions in Xt's
+ *      in the _IswCreatePopupShell and _IswAppCreateShell functions in Xt's
  *      Create.c source file.
  *
  *      The property used to communicate with a customizing tool is
@@ -878,7 +878,7 @@ dump_widget_tree(Widget w, int indent)
  *      the server.  The contents of the property are a resource string
  *      and value.  The event handler then calls functions to walk the
  *      applications widget tree, determining which widgets are affected
- *      by the resource string, and then applying the value with XtSetValues.
+ *      by the resource string, and then applying the value with IswSetValues.
  *
  * PARAMETERS:
  *      w               the widget that invoked this event handler
@@ -890,28 +890,28 @@ dump_widget_tree(Widget w, int indent)
  * ERRORS: none
  */
 void
-_XtResourceConfigurationEH(Widget w,
-                           XtPointer client_data _X_UNUSED,
+_IswResourceConfigurationEH(Widget w,
+                           IswPointer client_data _X_UNUSED,
                            xcb_generic_event_t *event,
                            Boolean *continue_to_dispatch _X_UNUSED)
 {
     xcb_connection_t *dpy;
-    XtPerDisplay pd;
+    IswPerDisplay pd;
     xcb_property_notify_event_t *pe = (xcb_property_notify_event_t *) event;
 
 #ifdef DEBUG
     int indent = 0;
 
-    fprintf(stderr, "in _XtResourceConfigurationEH atom = %u\n",
+    fprintf(stderr, "in _IswResourceConfigurationEH atom = %u\n",
             (unsigned) pe->atom);
-    fprintf(stderr, "    window = %x\n", (unsigned) XtWindow(w));
-    if (XtIsWidget(w))
+    fprintf(stderr, "    window = %x\n", (unsigned) IswWindow(w));
+    if (IswIsWidget(w))
         fprintf(stderr, "    widget = %zx   name = %s\n", (size_t) w,
                 w->core.name);
 #endif
 
-    dpy = XtDisplay(w);
-    pd = _XtGetPerDisplay(dpy);
+    dpy = IswDisplay(w);
+    pd = _IswGetPerDisplay(dpy);
 
     /*
      * A customizing tool sends a "ping" to the application on
@@ -919,11 +919,11 @@ _XtResourceConfigurationEH(Widget w,
      * by deleting the property.
      */
     if (pe->atom == pd->rcm_init) {
-        xcb_delete_property(dpy, XtWindow(w), pd->rcm_init);
+        xcb_delete_property(dpy, IswWindow(w), pd->rcm_init);
         xcb_flush(dpy);
 
 #ifdef DEBUG
-        if (XtIsWidget(w))
+        if (IswIsWidget(w))
             fprintf(stderr, "%s\n", w->core.name);
         else
             fprintf(stderr, "NULL name\n");
@@ -947,7 +947,7 @@ _XtResourceConfigurationEH(Widget w,
     {
         xcb_get_property_cookie_t cookie =
             xcb_get_property(dpy, True, /* delete after read */
-                             XtWindow(w), pd->rcm_data,
+                             IswWindow(w), pd->rcm_data,
                              XCB_ATOM_STRING, 0, 8192);
         xcb_get_property_reply_t *reply =
             xcb_get_property_reply(dpy, cookie, NULL);
@@ -987,8 +987,8 @@ _XtResourceConfigurationEH(Widget w,
 
                     *data_value++ = '\0';
 
-                    resource = XtNewString(data_ptr);
-                    value = XtNewString(data_value);
+                    resource = IswNewString(data_ptr);
+                    value = IswNewString(data_value);
 #ifdef DEBUG
                     fprintf(stderr, "resource_len=%lu\n", resource_len);
                     fprintf(stderr, "resource = %s\t value = %s\n",
@@ -996,8 +996,8 @@ _XtResourceConfigurationEH(Widget w,
 #endif
                     _search_widget_tree(w, resource, value);
 
-                    XtFree(resource);
-                    XtFree(value);
+                    IswFree(resource);
+                    IswFree(value);
                 }
             }
         }

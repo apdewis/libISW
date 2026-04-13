@@ -20,8 +20,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtcontextI_h
-#define _XtcontextI_h
+#ifndef _IswcontextI_h
+#define _IswcontextI_h
 
 #include "Intrinsic.h"
 #include "uthash.h"
@@ -41,26 +41,26 @@ typedef struct {
     XID key;                    /* Key: window ID or xcb_atom_t */
     void *data;                 /* Value: context data */
     UT_hash_handle hh;          /* Hash handle for uthash */
-} XtContextEntry;
+} IswContextEntry;
 
 /* Context type identifier */
 typedef struct {
     int id;                     /* Unique context identifier */
-    XtContextEntry *entries;    /* Hash table of entries */
-} *XtContext;
+    IswContextEntry *entries;    /* Hash table of entries */
+} *IswContext;
 
 /* Function prototypes */
-extern XtContext XtUniqueContext(void);
-extern int XtSaveContext(xcb_connection_t *dpy, XID key, XtContext context, const void *data);
-extern int XtFindContext(xcb_connection_t *dpy, XID key, XtContext context, void **data);
-extern int XtDeleteContext(xcb_connection_t *dpy, XID key, XtContext context);
+extern IswContext IswUniqueContext(void);
+extern int IswSaveContext(xcb_connection_t *dpy, XID key, IswContext context, const void *data);
+extern int IswFindContext(xcb_connection_t *dpy, XID key, IswContext context, void **data);
+extern int IswDeleteContext(xcb_connection_t *dpy, XID key, IswContext context);
 
 /* Return codes */
-#define XT_CONTEXT_SUCCESS      0
-#define XT_CONTEXT_BAD_CONTEXT  1
-#define XT_CONTEXT_BAD_KEY      2
-#define XT_CONTEXT_BAD_DATA     3
-#define XT_CONTEXT_NO_CONTEXT   4
+#define ISW_CONTEXT_SUCCESS      0
+#define ISW_CONTEXT_BAD_CONTEXT  1
+#define ISW_CONTEXT_BAD_KEY      2
+#define ISW_CONTEXT_BAD_DATA     3
+#define ISW_CONTEXT_NO_CONTEXT   4
 
-#endif /* _XtcontextI_h */
+#endif /* _IswcontextI_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

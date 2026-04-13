@@ -11,7 +11,7 @@
 #ifndef _ISW_ISWImage_h
 #define _ISW_ISWImage_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 typedef struct _ISWImage ISWImage;
 

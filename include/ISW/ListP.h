@@ -81,12 +81,12 @@ typedef struct {
                 vertical_cols;
     int         longest;	/* in pixels */
     int         nitems;		/* number of items in the list. */
-    XFontStruct	*font;
+    IswFontStruct	*font;
 #ifdef ISW_INTERNATIONALIZATION
     ISWFontSet 	*fontset;	/* Sheeran, Omron KK, 93/03/05 */
 #endif
     String *    list;		/* for i18n, always in multibyte format */
-    XtCallbackList callback;
+    IswCallbackList callback;
 
     /* private state */
     int         is_highlighted,	/* set to the item currently highlighted. */

@@ -55,8 +55,8 @@ SOFTWARE.
 
 #include <ISW/ISWP.h>
 #include <stdio.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 /* XCB Migration: Removed Xmu includes - not compatible with XCB */
 /* #include <X11/Xmu/Misc.h> */
 /* #include <X11/Xmu/Converters.h> */
@@ -139,24 +139,24 @@ static char defaultTranslations[] =
     "<Btn1Down>:	set()			\n\
      <Btn1Up>:		notify() unset()	";
 
-#define offset(field) XtOffsetOf(CommandRec, field)
-static XtResource resources[] = {
-   {XtNcallback, XtCCallback, XtRCallback, sizeof(XtPointer),
-      offset(command.callbacks), XtRCallback, (XtPointer)NULL},
-   {XtNborderStrokeWidth, XtCBorderStrokeWidth, XtRDimension, sizeof(Dimension),
-      offset(command.border_stroke_width), XtRImmediate,
-      (XtPointer) DEFAULT_SHAPE_HIGHLIGHT},
-   {XtNshapeStyle, XtCShapeStyle, XtRShapeStyle, sizeof(int),
-      offset(command.shape_style), XtRImmediate, (XtPointer)IswShapeRectangle},
-   {XtNcornerRadius, XtCCornerRadius, XtRDimension, sizeof(Dimension),
-      offset(command.corner_radius), XtRImmediate, (XtPointer) 5},
-   {XtNborderWidth, XtCBorderWidth, XtRDimension, sizeof(Dimension),
-      XtOffsetOf(RectObjRec,rectangle.border_width), XtRImmediate,
-      (XtPointer) 0},
-   {XtNinternalWidth, XtCWidth, XtRDimension, sizeof(Dimension),
-      offset(label.internal_width), XtRImmediate, (XtPointer) 8},
-   {XtNinternalHeight, XtCHeight, XtRDimension, sizeof(Dimension),
-      offset(label.internal_height), XtRImmediate, (XtPointer) 4},
+#define offset(field) IswOffsetOf(CommandRec, field)
+static IswResource resources[] = {
+   {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+      offset(command.callbacks), IswRCallback, (IswPointer)NULL},
+   {IswNborderStrokeWidth, IswCBorderStrokeWidth, IswRDimension, sizeof(Dimension),
+      offset(command.border_stroke_width), IswRImmediate,
+      (IswPointer) DEFAULT_SHAPE_HIGHLIGHT},
+   {IswNshapeStyle, IswCShapeStyle, IswRShapeStyle, sizeof(int),
+      offset(command.shape_style), IswRImmediate, (IswPointer)IswShapeRectangle},
+   {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
+      offset(command.corner_radius), IswRImmediate, (IswPointer) 5},
+   {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+      IswOffsetOf(RectObjRec,rectangle.border_width), IswRImmediate,
+      (IswPointer) 0},
+   {IswNinternalWidth, IswCWidth, IswRDimension, sizeof(Dimension),
+      offset(label.internal_width), IswRImmediate, (IswPointer) 8},
+   {IswNinternalHeight, IswCHeight, IswRDimension, sizeof(Dimension),
+      offset(label.internal_height), IswRImmediate, (IswPointer) 4},
 };
 #undef offset
 
@@ -176,7 +176,7 @@ static Boolean ShapeButton(CommandWidget, Boolean);
 static void Realize(xcb_connection_t *, Widget, Mask *, uint32_t *);
 static void Resize(Widget);
 
-static XtActionsRec actionsList[] = {
+static IswActionsRec actionsList[] = {
   {"set",		Set},
   {"notify",		Notify},
   {"highlight",		Highlight},
@@ -199,9 +199,9 @@ CommandClassRec commandClassRec = {
     NULL,				/* initialize_hook	  */
     Realize,				/* realize		  */
     actionsList,			/* actions		  */
-    XtNumber(actionsList),		/* num_actions		  */
+    IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
-    XtNumber(resources),		/* resource_count	  */
+    IswNumber(resources),		/* resource_count	  */
     NULLQUARK,				/* xrm_class		  */
     FALSE,				/* compress_motion	  */
     TRUE,				/* compress_exposure	  */
@@ -212,18 +212,18 @@ CommandClassRec commandClassRec = {
     Redisplay,				/* expose		  */
     SetValues,				/* set_values		  */
     NULL,				/* set_values_hook	  */
-    XtInheritSetValuesAlmost,		/* set_values_almost	  */
+    IswInheritSetValuesAlmost,		/* set_values_almost	  */
     NULL,				/* get_values_hook	  */
     NULL,				/* accept_focus		  */
-    XtVersion,				/* version		  */
+    IswVersion,				/* version		  */
     NULL,				/* callback_private	  */
     defaultTranslations,		/* tm_table		  */
-    XtInheritQueryGeometry,		/* query_geometry	  */
-    XtInheritDisplayAccelerator,	/* display_accelerator	  */
+    IswInheritQueryGeometry,		/* query_geometry	  */
+    IswInheritDisplayAccelerator,	/* display_accelerator	  */
     NULL				/* extension		  */
   },  /* CoreClass fields initialization */
   {
-    XtInheritChangeSensitive		/* change_sensitive	*/
+    IswInheritChangeSensitive		/* change_sensitive	*/
   },  /* SimpleClass fields initialization */
   {
     0,                                     /* field not used    */
@@ -250,7 +250,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   /* XCB Migration: Query shape extension using XCB */
   if (cbw->command.shape_style != IswShapeRectangle) {
-      xcb_connection_t *conn = XtDisplay(new);
+      xcb_connection_t *conn = IswDisplay(new);
       xcb_shape_query_version_cookie_t cookie = xcb_shape_query_version(conn);
       xcb_shape_query_version_reply_t *reply = xcb_shape_query_version_reply(conn, cookie, NULL);
       if (!reply) {
@@ -322,7 +322,7 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
     return;
 
   cbw->command.set= TRUE;
-  if (XtIsRealized(w))
+  if (IswIsRealized(w))
     PaintCommandWidget(w, event, (Region) NULL, TRUE);
 }
 
@@ -336,7 +336,7 @@ Unset(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params
     return;
 
   cbw->command.set = FALSE;
-  if (XtIsRealized(w))
+  if (IswIsRealized(w))
     PaintCommandWidget(w, event, (Region) NULL, TRUE);
 }
 
@@ -363,7 +363,7 @@ Highlight(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
     cbw->command.highlighted = HighlightWhenUnset;
   else {
     if ( *num_params != (Cardinal) 1)
-      XtWarning("Too many parameters passed to highlight action table.");
+      IswWarning("Too many parameters passed to highlight action table.");
     switch (params[0][0]) {
     case 'A':
     case 'a':
@@ -375,7 +375,7 @@ Highlight(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
     }
   }
 
-  if (XtIsRealized(w))
+  if (IswIsRealized(w))
     PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
 }
 
@@ -386,7 +386,7 @@ Unhighlight(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_
   CommandWidget cbw = (CommandWidget)w;
 
   cbw->command.highlighted = HighlightNone;
-  if (XtIsRealized(w))
+  if (IswIsRealized(w))
     PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
 }
 
@@ -401,7 +401,7 @@ Notify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_param
      bindings.
   */
   if (cbw->command.set)
-    XtCallCallbackList(w, cbw->command.callbacks, (XtPointer) NULL);
+    IswCallCallbackList(w, cbw->command.callbacks, (IswPointer) NULL);
 }
 
 /*
@@ -437,7 +437,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   ISWRenderContext *ctx = cbw->label.render_ctx;
 
   /* Create render context on first use (Command bypasses Label.Redisplay) */
-  if (!ctx && w->core.width > 0 && w->core.height > 0 && XtIsRealized(w)) {
+  if (!ctx && w->core.width > 0 && w->core.height > 0 && IswIsRealized(w)) {
     ctx = cbw->label.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
   }
 
@@ -562,7 +562,7 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
   if (cbw->core.border_width != oldcbw->core.border_width)
       redisplay = True;
 
-  if ( XtIsRealized(new)
+  if ( IswIsRealized(new)
        && oldcbw->command.shape_style != cbw->command.shape_style
        && !ShapeButton(cbw, TRUE))
   {
@@ -580,7 +580,7 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
 /* XCB Migration: Simple ShapeStyle converter to replace XmuCvtStringToShapeStyle */
 static Boolean
 CvtStringToShapeStyle(xcb_connection_t *conn, XrmValue *args, Cardinal *num_args,
-                      XrmValue *fromVal, XrmValue *toVal, XtPointer *closure_ret)
+                      XrmValue *fromVal, XrmValue *toVal, IswPointer *closure_ret)
 {
     String str = (String)fromVal->addr;
     static int result;
@@ -594,7 +594,7 @@ CvtStringToShapeStyle(xcb_connection_t *conn, XrmValue *args, Cardinal *num_args
     } else if (strcmp(str, "RoundedRectangle") == 0 || strcmp(str, "roundedRectangle") == 0) {
         result = IswShapeRoundedRectangle;
     } else {
-        XtDisplayStringConversionWarning(conn, str, XtRShapeStyle);
+        IswDisplayStringConversionWarning(conn, str, IswRShapeStyle);
         return False;
     }
     
@@ -605,7 +605,7 @@ CvtStringToShapeStyle(xcb_connection_t *conn, XrmValue *args, Cardinal *num_args
         }
         *(int *)toVal->addr = result;
     } else {
-        toVal->addr = (XtPointer)&result;
+        toVal->addr = (IswPointer)&result;
     }
     toVal->size = sizeof(int);
     return True;
@@ -615,8 +615,8 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    XtSetTypeConverter( XtRString, XtRShapeStyle, CvtStringToShapeStyle,
-		        (XtConvertArgList)NULL, 0, XtCacheNone, (XtDestructor)NULL );
+    IswSetTypeConverter( IswRString, IswRShapeStyle, CvtStringToShapeStyle,
+		        (IswConvertArgList)NULL, 0, IswCacheNone, (IswDestructor)NULL );
 }
 
 
@@ -652,7 +652,7 @@ Realize(xcb_connection_t *conn, Widget w, Mask *valueMask, uint32_t *attributes)
 static void
 Resize(Widget w)
 {
-    if (XtIsRealized(w))
+    if (IswIsRealized(w))
 	ShapeButton( (CommandWidget) w, FALSE);
 
     (*commandWidgetClass->core_class.superclass->core_class.resize)(w);

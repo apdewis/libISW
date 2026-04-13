@@ -50,7 +50,7 @@ in this Software without prior written authorization from the X Consortium.
  ************************************************************/
 
 typedef struct _SmeLineClassPart {
-  XtPointer extension;
+  IswPointer extension;
 } SmeLineClassPart;
 
 /* Full class record declaration */

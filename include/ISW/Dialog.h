@@ -61,8 +61,8 @@ SOFTWARE.
 
  Name		     Class		RepType		Default Value
  ----		     -----		-------		-------------
- background	     Background		Pixel		XtDefaultBackground
- border		     BorderColor	Pixel		XtDefaultForeground
+ background	     Background		Pixel		IswDefaultBackground
+ border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
  destroyCallback     Callback		Pointer		NULL
  height		     Height		Dimension	computed at create
@@ -77,8 +77,8 @@ SOFTWARE.
 
 */
 
-#define XtCIcon "Icon"
-#define XtNicon "icon"
+#define IswCIcon "Icon"
+#define IswNicon "icon"
 
 typedef struct _DialogClassRec	*DialogWidgetClass;
 typedef struct _DialogRec	*DialogWidget;
@@ -90,8 +90,8 @@ _XFUNCPROTOBEGIN
 extern void IswDialogAddButton(
     Widget		/* dialog */,
     _Xconst char*	/* name */,
-    XtCallbackProc	/* function */,
-    XtPointer		/* client_data */
+    IswCallbackProc	/* function */,
+    IswPointer		/* client_data */
 );
 
 extern char *IswDialogGetValueString(

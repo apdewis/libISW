@@ -26,13 +26,13 @@ in this Software without prior written authorization from the X Consortium.
 */
 
 #include "ISWXcbDraw.h"
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_keysyms.h>
@@ -102,15 +102,15 @@ ParameterError(Widget w, String param)
 {
     String params[2];
     Cardinal num_params = 2;
-    params[0] = XtName(w);
+    params[0] = IswName(w);
     params[1] = param;
 
-    XtAppWarningMsg( XtWidgetToApplicationContext(w),
+    IswAppWarningMsg( IswWidgetToApplicationContext(w),
  "parameterError", "textAction", "IswError",
  "Widget: %s Parameter: %s",
  params, &num_params);
-    xcb_bell(XtDisplay(w), 0); // 0 = default volume
-    xcb_flush(XtDisplay(w));
+    xcb_bell(IswDisplay(w), 0); // 0 = default volume
+    xcb_flush(IswDisplay(w));
 }
 #endif
 
@@ -233,13 +233,13 @@ ProbablyMB(char *s)
 
 /* ARGSUSED */
 static void
-_SelectionReceived(Widget w, XtPointer client_data, xcb_atom_t *selection, xcb_atom_t *type,
-                   XtPointer value, unsigned long *length, int* format)
+_SelectionReceived(Widget w, IswPointer client_data, xcb_atom_t *selection, xcb_atom_t *type,
+                   IswPointer value, unsigned long *length, int* format)
 {
   TextWidget ctx = (TextWidget)w;
   ISWTextBlock text;
 
-  if (*type == 0 /*XT_CONVERT_FAIL*/ || *length == 0) {
+  if (*type == 0 /*ISW_CONVERT_FAIL*/ || *length == 0) {
     struct _SelectionList* list = (struct _SelectionList*)client_data;
     if (list != NULL) {
       if (list->CT_asked) {
@@ -248,11 +248,11 @@ _SelectionReceived(Widget w, XtPointer client_data, xcb_atom_t *selection, xcb_a
 	response, we'll ask again, this time for an XCB_ATOM_STRING. */
 
 	list->CT_asked = False;
-        XtGetSelectionValue(w, list->selection, XCB_ATOM_STRING, _SelectionReceived,
-                            (XtPointer)list, list->time);
+        IswGetSelectionValue(w, list->selection, XCB_ATOM_STRING, _SelectionReceived,
+                            (IswPointer)list, list->time);
       } else {
 	GetSelection(w, list->time, list->params, list->count);
-	XtFree(client_data);
+	IswFree(client_data);
      }
     }
     return;
@@ -269,7 +269,7 @@ we are, and convert it.  I also warn the user that the other client is evil. */
   if (_IswTextFormat(ctx) == IswFmtWide) {
 #ifdef ISW_HAS_XIM
       XTextProperty textprop;
-      xcb_connection_t *d = XtDisplay((Widget)ctx);
+      xcb_connection_t *d = IswDisplay((Widget)ctx);
       wchar_t **wlist;
       int count;
       int try_CT = 1;
@@ -306,11 +306,11 @@ we are, and convert it.  I also warn the user that the other client is evil. */
 		!=  Success) return;
       }
 
-      XtFree(value);
-      value = (XtPointer)wlist[0];
+      IswFree(value);
+      value = (IswPointer)wlist[0];
 
       *length = wcslen(wlist[0]);
-      XtFree((XtPointer)wlist);
+      IswFree((IswPointer)wlist);
       text.format = IswFmtWide;
 #else
       /* XCB: TextProperty I18N functions not available */
@@ -326,8 +326,8 @@ we are, and convert it.  I also warn the user that the other client is evil. */
   text.firstPos = 0;
   text.length = *length;
   if (_IswTextReplace(ctx, ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(XtDisplay(ctx));
+    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(IswDisplay(ctx));
     return;
   }
   ctx->text.insertPos = SrcScan(ctx->text.source, ctx->text.insertPos,
@@ -335,8 +335,8 @@ we are, and convert it.  I also warn the user that the other client is evil. */
 
   _IswTextSetScrollBars(ctx);
   EndAction(ctx);
-  XtFree(client_data);
-  XtFree(value);		/* the selection value should be freed with XtFree */
+  IswFree(client_data);
+  IswFree(value);		/* the selection value should be freed with IswFree */
 }
 
 
@@ -346,18 +346,18 @@ GetSelection(Widget w, xcb_timestamp_t time, String *params, Cardinal num_params
     xcb_atom_t selection;
     struct _SelectionList* list;
 
-    selection = IswXcbInternAtom(XtDisplay(w), *params, False);
+    selection = IswXcbInternAtom(IswDisplay(w), *params, False);
 
     if (--num_params) {
-	list = XtNew(struct _SelectionList);
+	list = IswNew(struct _SelectionList);
 	list->params = params + 1;
 	list->count = num_params;
 	list->time = time;
 	list->CT_asked = True;
 	list->selection = selection;
     } else list = NULL;
-    XtGetSelectionValue(w, selection, XCB_ATOM_COMPOUND_TEXT(XtDisplay(w)),
-			_SelectionReceived, (XtPointer)list, time);
+    IswGetSelectionValue(w, selection, XCB_ATOM_COMPOUND_TEXT(IswDisplay(w)),
+			_SelectionReceived, (IswPointer)list, time);
 }
 
 static void
@@ -585,12 +585,12 @@ MatchSelection(xcb_atom_t selection, IswTextSelection *s)
 static Boolean
 IswConvertStandardSelection(Widget w, xcb_timestamp_t time, xcb_atom_t *selection,
                            xcb_atom_t *target, xcb_atom_t *type,
-                           XtPointer *value, unsigned long *length, int *format)
+                           IswPointer *value, unsigned long *length, int *format)
 {
     (void)w; (void)time; (void)selection; (void)target; (void)format;
     
     /* Return empty list - the caller will add text-specific targets */
-    *value = (XtPointer)XtMalloc(0);
+    *value = (IswPointer)IswMalloc(0);
     *length = 0;
     *type = XCB_ATOM_ATOM;
     return True;
@@ -598,9 +598,9 @@ IswConvertStandardSelection(Widget w, xcb_timestamp_t time, xcb_atom_t *selectio
 
 static Boolean
 ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
-                 XtPointer* value, unsigned long *length, int *format)
+                 IswPointer* value, unsigned long *length, int *format)
 {
-  xcb_connection_t* d = XtDisplay(w);
+  xcb_connection_t* d = IswDisplay(w);
   TextWidget ctx = (TextWidget)w;
   Widget src = ctx->text.source;
   IswTextEditType edit_mode;
@@ -616,10 +616,10 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	return True;
 
     IswConvertStandardSelection(w, ctx->text.time, selection,
-				target, type, (XtPointer*)&std_targets,
+				target, type, (IswPointer*)&std_targets,
 				&std_length, format);
 
-    *value = XtMalloc((unsigned) sizeof(xcb_atom_t)*(std_length + 7));
+    *value = IswMalloc((unsigned) sizeof(xcb_atom_t)*(std_length + 7));
     targetP = *(xcb_atom_t**)value;
 
     *length = std_length + 6;
@@ -630,15 +630,15 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
     *targetP++ = XCB_ATOM_LIST_LENGTH(d);
     *targetP++ = XCB_ATOM_CHARACTER_POSITION(d);
 
-    XtSetArg(args[0], XtNeditType,&edit_mode);
-    XtGetValues(src, args, 1);
+    IswSetArg(args[0], IswNeditType,&edit_mode);
+    IswGetValues(src, args, 1);
 
     if (edit_mode == IswtextEdit) {
       *targetP++ = XCB_ATOM_DELETE(d);
       (*length)++;
     }
     memcpy((char*)targetP, (char*)std_targets, sizeof(xcb_atom_t)*std_length);
-    XtFree((char*)std_targets);
+    IswFree((char*)std_targets);
     *type = XCB_ATOM_ATOM;
     *format = 32;
     return True;
@@ -682,11 +682,11 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 		if (XwcTextListToTextProperty(d, (wchar_t**)value, 1,
 					      XCompoundTextStyle, &textprop)
 			< Success) {
-		    XtFree(*value);
+		    IswFree(*value);
 		    return False;
 		}
-		XtFree(*value);
-		*value = (XtPointer)textprop.value;
+		IswFree(*value);
+		*value = (IswPointer)textprop.value;
 		*length = textprop.nitems;
 #else
 		/* XCB: TextProperty I18N functions not available */
@@ -701,7 +701,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 		*length = strlen(*value);
 	    }
 	} else {
-	    *value = XtMalloc((salt->length + 1) * sizeof(unsigned char));
+	    *value = IswMalloc((salt->length + 1) * sizeof(unsigned char));
 	    strcpy (*value, salt->contents);
 	    *length = salt->length;
 	}
@@ -717,16 +717,16 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	    textprop.format = 8;
 	    if (XwcTextPropertyToTextList(d, &textprop, (wchar_t***)&wlist, &count)
 			< Success) {
-		XtFree(*value);
+		IswFree(*value);
 		return False;
 	    }
-	    XtFree(*value);
+	    IswFree(*value);
 	    if (XwcTextListToTextProperty(d, (wchar_t**)wlist, 1,
 					  XStringStyle, &textprop) < Success) {
 		XwcFreeStringList( (wchar_t**) wlist );
 		return False;
 	    }
-	    *value = (XtPointer)textprop.value;
+	    *value = (IswPointer)textprop.value;
 	    *length = textprop.nitems;
 	    XwcFreeStringList( (wchar_t**) wlist );
 #else
@@ -743,13 +743,13 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   if ( (*target == XCB_ATOM_LIST_LENGTH(d)) || (*target == XCB_ATOM_LENGTH(d)) ) {
     long * temp;
 
-    temp = (long *) XtMalloc(sizeof(long));
+    temp = (long *) IswMalloc(sizeof(long));
     if (*target == XCB_ATOM_LIST_LENGTH(d))
       *temp = 1L;
     else			/* *target == XCB_ATOM_LENGTH(d) */
       *temp = (long) (s->right - s->left);
 
-    *value = (XtPointer) temp;
+    *value = (IswPointer) temp;
     *type = XCB_ATOM_INTEGER;
     *length = 1L;
     *format = 32;
@@ -759,10 +759,10 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   if (*target == XCB_ATOM_CHARACTER_POSITION(d)) {
     long * temp;
 
-    temp = (long *) XtMalloc(2 * sizeof(long));
+    temp = (long *) IswMalloc(2 * sizeof(long));
     temp[0] = (long) (s->left + 1);
     temp[1] = s->right;
-    *value = (XtPointer) temp;
+    *value = (IswPointer) temp;
     xcb_intern_atom_cookie_t cookie = xcb_intern_atom(d, 0, 5, "SPAN");
     xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(d, cookie, NULL);
     if(reply) {
@@ -787,7 +787,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   }
 
   if (IswConvertStandardSelection(w, ctx->text.time, selection, target, type,
-				  (XtPointer *)value, length, format))
+				  (IswPointer *)value, length, format))
     return True;
 
   /* else */
@@ -832,16 +832,16 @@ LoseSelection(Widget w, xcb_atom_t *selection)
     	    }
 	if (salt->s.atom_count == 0)
 	{
-	    XtFree ((char *) salt->s.selections);
+	    IswFree ((char *) salt->s.selections);
 
             /* WARNING: the next line frees memory not allocated in Isw. */
             /* Could be a serious bug.  Someone look into it. */
-	    XtFree (salt->contents);
+	    IswFree (salt->contents);
 	    if (prevSalt)
 		prevSalt->next = nextSalt;
 	    else
 		ctx->text.salt2 = nextSalt;
-	    XtFree ((char *) salt);
+	    IswFree ((char *) salt);
 	}
 	else
 	    prevSalt = salt;
@@ -855,16 +855,16 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
 
   if (kill && from < to) {
     IswTextSelectionSalt    *salt;
-    xcb_atom_t selection = IswXcbInternAtom(XtDisplay(ctx), "SECONDARY", False);
+    xcb_atom_t selection = IswXcbInternAtom(IswDisplay(ctx), "SECONDARY", False);
 
     LoseSelection ((Widget) ctx, &selection);
-    salt = (IswTextSelectionSalt *) XtMalloc (sizeof (IswTextSelectionSalt));
+    salt = (IswTextSelectionSalt *) IswMalloc (sizeof (IswTextSelectionSalt));
     if (!salt)
 	return;
-    salt->s.selections = (xcb_atom_t *) XtMalloc (sizeof (xcb_atom_t));
+    salt->s.selections = (xcb_atom_t *) IswMalloc (sizeof (xcb_atom_t));
     if (!salt->s.selections)
     {
-	XtFree ((char *) salt);
+	IswFree ((char *) salt);
 	return;
     }
     salt->s.left = from;
@@ -874,14 +874,14 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
     if (_IswTextFormat(ctx) == IswFmtWide) {
 #ifdef ISW_HAS_XIM
 	XTextProperty textprop;
-	if (XwcTextListToTextProperty(XtDisplay((Widget)ctx),
+	if (XwcTextListToTextProperty(IswDisplay((Widget)ctx),
 			(wchar_t**)(&(salt->contents)), 1, XCompoundTextStyle,
 			&textprop) <  Success) {
-	    XtFree(salt->contents);
+	    IswFree(salt->contents);
 	    salt->length = 0;
 	    return;
 	}
-	XtFree(salt->contents);
+	IswFree(salt->contents);
 	salt->contents = (char *)textprop.value;
 	salt->length = textprop.nitems;
 #else
@@ -895,12 +895,12 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
     salt->next = ctx->text.salt2;
     ctx->text.salt2 = salt;
     salt->s.selections[0] = selection;
-    XtOwnSelection ((Widget) ctx, selection, ctx->text.time,
+    IswOwnSelection ((Widget) ctx, selection, ctx->text.time,
 		    ConvertSelection, LoseSelection, NULL);
     salt->s.atom_count = 1;
 /*
-    XStoreBuffer(XtDisplay(ctx), ptr, strlen(ptr), 1);
-    XtFree(ptr);
+    XStoreBuffer(IswDisplay(ctx), ptr, strlen(ptr), 1);
+    IswFree(ptr);
 */
   }
   text.length = 0;
@@ -910,8 +910,8 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
   text.ptr = "";	/* These two lines needed to make legal TextBlock */
 
   if (_IswTextReplace(ctx, from, to, &text)) {
-    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(XtDisplay(ctx));
+    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(IswDisplay(ctx));
     return;
   }
   ctx->text.insertPos = from;
@@ -1040,7 +1040,7 @@ KillCurrentSelection(Widget w, xcb_generic_event_t *event, String *p, Cardinal *
   StartAction(ctx, event);
   /* Snapshot selection to CLIPBOARD before deleting */
   if (ctx->text.s.left < ctx->text.s.right) {
-    xcb_atom_t clip = XCB_ATOM_CLIPBOARD(XtDisplay(w));
+    xcb_atom_t clip = XCB_ATOM_CLIPBOARD(IswDisplay(w));
     _IswTextSaltAwaySelection(ctx, &clip, 1);
   }
   _DeleteOrKill(ctx, ctx->text.s.left, ctx->text.s.right, TRUE);
@@ -1074,7 +1074,7 @@ InsertNewLineAndBackupInternal(TextWidget ctx)
 #ifdef ISW_INTERNATIONALIZATION
   if ( text.format == IswFmtWide ) {
       wchar_t* wptr;
-      text.ptr =  XtMalloc(sizeof(wchar_t) * ctx->text.mult);
+      text.ptr =  IswMalloc(sizeof(wchar_t) * ctx->text.mult);
       wptr = (wchar_t *)text.ptr;
       for (count = 0; count < ctx->text.mult; count++ )
           wptr[count] = _Isw_atowc(IswLF);
@@ -1082,20 +1082,20 @@ InsertNewLineAndBackupInternal(TextWidget ctx)
   else
 #endif
   {
-      text.ptr = XtMalloc(sizeof(char) * ctx->text.mult);
+      text.ptr = IswMalloc(sizeof(char) * ctx->text.mult);
       for (count = 0; count < ctx->text.mult; count++ )
           text.ptr[count] = IswLF;
   }
 
   if (_IswTextReplace(ctx, ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(XtDisplay(ctx));
+    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(IswDisplay(ctx));
     error = IswEditError;
   }
   else
     ctx->text.showposition = TRUE;
 
-  XtFree( text.ptr );
+  IswFree( text.ptr );
   return( error );
 }
 
@@ -1151,7 +1151,7 @@ InsertNewLineAndIndent(Widget w, xcb_generic_event_t *event, String *p, Cardinal
 #ifdef ISW_INTERNATIONALIZATION
   if ( text.format == IswFmtWide ) {
      wchar_t* ptr;
-     text.ptr = XtMalloc( ( 2 + wcslen((wchar_t*)line_to_ip) ) * sizeof(wchar_t) );
+     text.ptr = IswMalloc( ( 2 + wcslen((wchar_t*)line_to_ip) ) * sizeof(wchar_t) );
 
      ptr = (wchar_t*)text.ptr;
      ptr[0] = _Isw_atowc( IswLF );
@@ -1176,7 +1176,7 @@ InsertNewLineAndIndent(Widget w, xcb_generic_event_t *event, String *p, Cardinal
 
 	-gustaf neumann
       */
-     text.ptr = XtMalloc( ( 2 + length ) * sizeof( char ) );
+     text.ptr = IswMalloc( ( 2 + length ) * sizeof( char ) );
 
      ptr = text.ptr;
      ptr[0] = IswLF;
@@ -1188,16 +1188,16 @@ InsertNewLineAndIndent(Widget w, xcb_generic_event_t *event, String *p, Cardinal
      *ptr = '\0';
      text.length = strlen(text.ptr);
   }
-  XtFree( line_to_ip );
+  IswFree( line_to_ip );
 
   if (_IswTextReplace(ctx,ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(XtDisplay(ctx));
-    XtFree(text.ptr);
+    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(IswDisplay(ctx));
+    IswFree(text.ptr);
     EndAction(ctx);
     return;
   }
-  XtFree(text.ptr);
+  IswFree(text.ptr);
   ctx->text.insertPos = SrcScan(ctx->text.source, ctx->text.insertPos,
 				IswstPositions, IswsdRight, text.length, TRUE);
   _IswTextSetScrollBars(ctx);
@@ -1250,9 +1250,9 @@ SelectStart(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_
 {
   Widget shell;
 
-  for (shell = w; !XtIsShell(shell); shell = XtParent(shell))
+  for (shell = w; !IswIsShell(shell); shell = IswParent(shell))
     ;
-  XtSetKeyboardFocus(shell, w);
+  IswSetKeyboardFocus(shell, w);
   ModifySelection((TextWidget) w, event,
 		  IswsmTextSelect, IswactionStart, params, num_params);
 }
@@ -1300,7 +1300,7 @@ SelectSave(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
 {
     int	    num_atoms;
     xcb_atom_t*   sel;
-    xcb_connection_t* dpy = XtDisplay(w);
+    xcb_connection_t* dpy = IswDisplay(w);
     xcb_atom_t    selections[256];
 
     StartAction(  (TextWidget) w, event );
@@ -1319,7 +1319,7 @@ CopySelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *nu
   TextWidget ctx = (TextWidget) w;
   int num_atoms;
   xcb_atom_t *sel;
-  xcb_connection_t *dpy = XtDisplay(w);
+  xcb_connection_t *dpy = IswDisplay(w);
   xcb_atom_t selections[256];
 
   StartAction(ctx, event);
@@ -1459,7 +1459,7 @@ AutoFill(TextWidget ctx)
 #ifdef ISW_INTERNATIONALIZATION
   if (_IswTextFormat(ctx) == IswFmtWide) {
     text.format = IswFmtWide;
-    text.ptr =  (char *)XtMalloc(sizeof(wchar_t) * 2);
+    text.ptr =  (char *)IswMalloc(sizeof(wchar_t) * 2);
     ((wchar_t*)text.ptr)[0] = _Isw_atowc(IswLF);
     ((wchar_t*)text.ptr)[1] = 0;
   } else
@@ -1469,8 +1469,8 @@ AutoFill(TextWidget ctx)
   text.firstPos = 0;
 
   if (_IswTextReplace(ctx, ret_pos - 1, ret_pos, &text)) {
-      xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-      xcb_flush(XtDisplay(ctx));
+      xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
+      xcb_flush(IswDisplay(ctx));
   }
 }
 
@@ -1485,7 +1485,7 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   ISWTextBlock text;
 
 #ifdef ISW_INTERNATIONALIZATION
-  if (XtIsSubclass (ctx->text.source, (WidgetClass) multiSrcObjectClass)) {
+  if (IswIsSubclass (ctx->text.source, (WidgetClass) multiSrcObjectClass)) {
     Status status;
     xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
     text.length = _IswImWcLookupString (w, (XKeyPressedEvent*)kev,
@@ -1495,7 +1495,7 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   {
     /* Non-I18N path: convert XCB key event to character using XCB keysyms */
     xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
-    xcb_connection_t *conn = XtDisplay(w);
+    xcb_connection_t *conn = IswDisplay(w);
     static xcb_key_symbols_t *keysyms = NULL;
     
     /* Initialize key symbols context if needed */
@@ -1568,7 +1568,7 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   text.format = _IswTextFormat( ctx );
 #ifdef ISW_INTERNATIONALIZATION
   if ( text.format == IswFmtWide ) {
-      text.ptr = ptr = XtMalloc(sizeof(wchar_t) * text.length * ctx->text.mult );
+      text.ptr = ptr = IswMalloc(sizeof(wchar_t) * text.length * ctx->text.mult );
       for (count = 0; count < ctx->text.mult; count++ ) {
           memcpy((char*) ptr, (char *)strbuf, sizeof(wchar_t) * text.length );
           ptr += sizeof(wchar_t) * text.length;
@@ -1577,7 +1577,7 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   } else
 #endif
   { /* == IswFmt8Bit */
-      text.ptr = ptr = XtMalloc( sizeof(char) * text.length * ctx->text.mult );
+      text.ptr = ptr = IswMalloc( sizeof(char) * text.length * ctx->text.mult );
       for ( count = 0; count < ctx->text.mult; count++ ) {
           strncpy( ptr, strbuf, text.length );
           ptr += text.length;
@@ -1597,11 +1597,11 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
       AutoFill(ctx);
   }
   else {
-      xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-      xcb_flush(XtDisplay(ctx));
+      xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
+      xcb_flush(IswDisplay(ctx));
   }
 
-  XtFree(text.ptr);
+  IswFree(text.ptr);
   _IswTextSetScrollBars(ctx);
   EndAction(ctx);
 }
@@ -1704,7 +1704,7 @@ InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
 {
   TextWidget ctx = (TextWidget) w;
 #ifdef ISW_INTERNATIONALIZATION
-  XtAppContext app_con = XtWidgetToApplicationContext(w);
+  IswAppContext app_con = IswWidgetToApplicationContext(w);
 #endif
   ISWTextBlock text;
   int	   i;
@@ -1723,11 +1723,11 @@ InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
       if ( _IswTextFormat( ctx ) == IswFmtWide ) { /* convert to WC */
 
           int temp_len;
-          text.ptr = (char*) _ISWTextMBToWC( XtDisplay(w), text.ptr,
+          text.ptr = (char*) _ISWTextMBToWC( IswDisplay(w), text.ptr,
 					      &text.length );
 
           if ( text.ptr == NULL ) { /* conversion error */
-              XtAppWarningMsg( app_con,
+              IswAppWarningMsg( app_con,
 		"insertString", "textAction", "IswError",
 		"insert-string()'s parameter contents not legal in this locale.",
 		NULL, NULL );
@@ -1738,8 +1738,8 @@ InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
           /* Double check that the new input is legal: try to convert to MB. */
 
           temp_len = text.length;      /* _ISWTextWCToMB's 3rd arg is in_out */
-          if ( _ISWTextWCToMB( XtDisplay(w), (wchar_t*)text.ptr, &temp_len ) == NULL ) {
-              XtAppWarningMsg( app_con,
+          if ( _ISWTextWCToMB( IswDisplay(w), (wchar_t*)text.ptr, &temp_len ) == NULL ) {
+              IswAppWarningMsg( app_con,
 		"insertString", "textAction", "IswError",
 		"insert-string()'s parameter contents not legal in this locale.",
 				NULL, NULL );
@@ -1751,8 +1751,8 @@ InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
 
       if ( _IswTextReplace( ctx, ctx->text.insertPos,
 			    ctx->text.insertPos, &text ) ) {
-          xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-          xcb_flush(XtDisplay(ctx));
+          xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
+          xcb_flush(IswDisplay(ctx));
           EndAction( ctx );
           return;
       }
@@ -1793,9 +1793,9 @@ DisplayCaret(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
       Boolean converted_value;
       from.size = strlen(from.addr = params[0]);
       to.size = sizeof(Boolean);
-      to.addr = (XtPointer)&converted_value;
+      to.addr = (IswPointer)&converted_value;
       
-      if ( XtConvertAndStore( w, XtRString, &from, XtRBoolean, &to ) )
+      if ( IswConvertAndStore( w, IswRString, &from, IswRBoolean, &to ) )
           display_caret = converted_value;
       if ( ctx->text.display_caret == display_caret )
           return;
@@ -1824,16 +1824,16 @@ Multiply(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
   int mult;
 
   if (*num_params != 1) {
-      XtAppError( XtWidgetToApplicationContext( w ),
+      IswAppError( IswWidgetToApplicationContext( w ),
 	       "Isw Text Widget: multiply() takes exactly one argument.");
-      xcb_bell(XtDisplay(w), 0); // 0 = default volume
-      xcb_flush(XtDisplay(w));
+      xcb_bell(IswDisplay(w), 0); // 0 = default volume
+      xcb_flush(IswDisplay(w));
       return;
   }
 
   if ( ( params[0][0] == 'r' ) || ( params[0][0] == 'R' ) ) {
-      xcb_bell(XtDisplay(w), 0); // 0 = default volume
-      xcb_flush(XtDisplay(w));
+      xcb_bell(IswDisplay(w), 0); // 0 = default volume
+      xcb_flush(IswDisplay(w));
       ctx->text.mult = 1;
       return;
   }
@@ -1842,9 +1842,9 @@ Multiply(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
       char buf[ BUFSIZ ];
       sprintf(buf, "%s %s", "Isw Text Widget: multiply() argument",
 	    "must be a number greater than zero, or 'Reset'." );
-      XtAppError( XtWidgetToApplicationContext( w ), buf );
-      xcb_bell(XtDisplay(w), 0); // 0 = default volume
-      xcb_flush(XtDisplay(w));
+      IswAppError( IswWidgetToApplicationContext( w ), buf );
+      xcb_bell(IswDisplay(w), 0); // 0 = default volume
+      xcb_flush(IswDisplay(w));
       return;
   }
 
@@ -1940,7 +1940,7 @@ StripOutOldCRs(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
 	      break;
 	  }
 
-      XtFree(buf);
+      IswFree(buf);
 
       to -= (i - text.length - 1);
       startPos = SrcScan(src, periodPos, IswstPositions, IswsdRight, i, TRUE);
@@ -2012,7 +2012,7 @@ InsertNewCRs(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
       to -= (i - 1);
       endPos = SrcScan(ctx->text.source, endPos,
 		     IswstPositions, IswsdRight, i, TRUE);
-      XtFree(buf);
+      IswFree(buf);
 
       if (_IswTextReplace(ctx, startPos, endPos, &text))
           return;
@@ -2067,8 +2067,8 @@ FormParagraph(Widget w, xcb_generic_event_t *event, String *params, Cardinal *nu
 		 IswstParagraph, IswsdRight, 1, FALSE );
 
   if ( FormRegion( ctx, from, to ) == IswReplaceError ) {
-      xcb_bell(XtDisplay(w), 0); // 0 = default volume
-      xcb_flush(XtDisplay(w));
+      xcb_bell(IswDisplay(w), 0); // 0 = default volume
+      xcb_flush(IswDisplay(w));
   }
   _IswTextSetScrollBars( ctx );
   EndAction( ctx );
@@ -2102,8 +2102,8 @@ TransposeCharacters(Widget w, xcb_generic_event_t *event, String *params, Cardin
   /* Make sure we aren't at the very beginning or end of the buffer. */
 
   if ( ( start == ctx->text.insertPos ) || ( end == ctx->text.insertPos ) ) {
-      xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-      xcb_flush(XtDisplay(ctx));
+      xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
+      xcb_flush(IswDisplay(ctx));
       EndAction( ctx );
       return;
   }
@@ -2145,11 +2145,11 @@ TransposeCharacters(Widget w, xcb_generic_event_t *event, String *params, Cardin
   /* Store new text in source. */
 
   if (_IswTextReplace (ctx, start, end, &text))	{/* Unable to edit, complain. */
-    xcb_bell(XtDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(XtDisplay(ctx));
+    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
+    xcb_flush(IswDisplay(ctx));
   }
 
-  XtFree((char *) buf);
+  IswFree((char *) buf);
   EndAction(ctx);
 }
 
@@ -2172,8 +2172,8 @@ NoOp(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
     switch(params[0][0]) {
     case 'R':
     case 'r':
-	xcb_bell(XtDisplay(w), 0); // 0 = default volume
-  xcb_flush(XtDisplay(w));
+	xcb_bell(IswDisplay(w), 0); // 0 = default volume
+  xcb_flush(IswDisplay(w));
     default:			/* Fall Through */
 	break;
     }
@@ -2195,7 +2195,7 @@ Reconnect(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
 #endif
 
 
-XtActionsRec _IswTextActionsTable[] = {
+IswActionsRec _IswTextActionsTable[] = {
 
 /* motion bindings */
 
@@ -2283,4 +2283,4 @@ XtActionsRec _IswTextActionsTable[] = {
 #endif
 };
 
-Cardinal _IswTextActionsTableCount = XtNumber(_IswTextActionsTable);
+Cardinal _IswTextActionsTableCount = IswNumber(_IswTextActionsTable);

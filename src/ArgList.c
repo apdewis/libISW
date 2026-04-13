@@ -55,7 +55,7 @@ SOFTWARE.
  */
 
 ArgList
-XtMergeArgLists(ArgList args1,
+IswMergeArgLists(ArgList args1,
                 Cardinal num_args1,
                 ArgList args2,
                 Cardinal num_args2)

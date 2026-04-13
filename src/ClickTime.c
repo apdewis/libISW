@@ -69,7 +69,7 @@ in this Software without prior written authorization from The Open Group.
 */
 
 /*
- * Contains XtSetMultiClickTime, XtGetMultiClickTime
+ * Contains IswSetMultiClickTime, IswGetMultiClickTime
  */
 
 #ifdef HAVE_CONFIG_H
@@ -78,24 +78,24 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 
 void
-XtSetMultiClickTime(xcb_connection_t *dpy, int time)
+IswSetMultiClickTime(xcb_connection_t *dpy, int time)
 {
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    _XtGetPerDisplay(dpy)->multi_click_time = time;
+    _IswGetPerDisplay(dpy)->multi_click_time = time;
     UNLOCK_APP(app);
 }
 
 int
-XtGetMultiClickTime(xcb_connection_t *dpy)
+IswGetMultiClickTime(xcb_connection_t *dpy)
 {
     int retval;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    retval = _XtGetPerDisplay(dpy)->multi_click_time;
+    retval = _IswGetPerDisplay(dpy)->multi_click_time;
     UNLOCK_APP(app);
     return retval;
 }

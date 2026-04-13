@@ -53,71 +53,71 @@ SOFTWARE.
 
 typedef XrmResource **CallbackTable;
 
-#define _XtCBCalling 1
-#define _XtCBFreeAfterCalling 2
+#define _IswCBCalling 1
+#define _IswCBFreeAfterCalling 2
 
 _XFUNCPROTOBEGIN
 
 typedef struct internalCallbackRec {
     unsigned short count;
     char	   is_padded;	/* contains NULL padding for external form */
-    char	   call_state;  /* combination of _XtCB{FreeAfter}Calling */
+    char	   call_state;  /* combination of _IswCB{FreeAfter}Calling */
 #if __STDC_VERSION__ >= 199901L
     /* When compiling with C99 or newer, use a flexible member to ensure
      * padding and alignment for sizeof(). */
-    XtCallbackRec callbacks[];
+    IswCallbackRec callbacks[];
 #elif defined(LONG64)
     unsigned int   align_pad;	/* padding to align callback list */
 #endif
-    /* XtCallbackList */
+    /* IswCallbackList */
 } InternalCallbackRec, *InternalCallbackList;
 
-typedef Boolean (*_XtConditionProc)(
-    XtPointer	/* data */
+typedef Boolean (*_IswConditionProc)(
+    IswPointer	/* data */
 );
 
-extern void _XtAddCallback(
+extern void _IswAddCallback(
     InternalCallbackList*	/* callbacks */,
-    XtCallbackProc		/* callback */,
-    XtPointer 			/* closure */
+    IswCallbackProc		/* callback */,
+    IswPointer 			/* closure */
 );
 
-extern void _XtAddCallbackOnce(
+extern void _IswAddCallbackOnce(
     InternalCallbackList*	/* callbacks */,
-    XtCallbackProc		/* callback */,
-    XtPointer 			/* closure */
+    IswCallbackProc		/* callback */,
+    IswPointer 			/* closure */
 );
 
-extern InternalCallbackList _XtCompileCallbackList(
-    XtCallbackList		/* xtcallbacks */
+extern InternalCallbackList _IswCompileCallbackList(
+    IswCallbackList		/* xtcallbacks */
 );
 
-extern XtCallbackList _XtGetCallbackList(
+extern IswCallbackList _IswGetCallbackList(
     InternalCallbackList*	/* callbacks */
 );
 
-extern void _XtRemoveAllCallbacks(
+extern void _IswRemoveAllCallbacks(
     InternalCallbackList*	/* callbacks */
 );
 
-extern void _XtRemoveCallback(
+extern void _IswRemoveCallback(
     InternalCallbackList*	/* callbacks */,
-    XtCallbackProc		/* callback */,
-    XtPointer			/* closure */
+    IswCallbackProc		/* callback */,
+    IswPointer			/* closure */
 );
 
-extern void _XtPeekCallback(
+extern void _IswPeekCallback(
     Widget			/* widget */,
-    XtCallbackList		/* callbacks */,
-    XtCallbackProc *		/* callback */,
-    XtPointer *			/* closure */
+    IswCallbackList		/* callbacks */,
+    IswCallbackProc *		/* callback */,
+    IswPointer *			/* closure */
 );
 
-extern void _XtCallConditionalCallbackList(
+extern void _IswCallConditionalCallbackList(
     Widget			/* widget */,
-    XtCallbackList		/* callbacks */,
-    XtPointer			/* call_data */,
-    _XtConditionProc		/* cond_proc */
+    IswCallbackList		/* callbacks */,
+    IswPointer			/* call_data */,
+    _IswConditionProc		/* cond_proc */
 );
 
 _XFUNCPROTOEND

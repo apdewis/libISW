@@ -23,7 +23,7 @@ extern ColorPickerClassRec colorPickerClassRec;
 typedef struct {
     /* resources */
     int             red, green, blue;
-    XtCallbackList  color_changed;
+    IswCallbackList  color_changed;
 
     /* private */
     Widget          redSlider;

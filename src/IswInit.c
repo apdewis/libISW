@@ -35,8 +35,8 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/Intrinsic.h>
-#include <X11/Vendor.h>
+#include <ISW/Intrinsic.h>
+#include <ISW/Vendor.h>
 #include <ISW/ISWInit.h>
 
 void IswInitializeWidgetSet (void)
@@ -45,6 +45,6 @@ void IswInitializeWidgetSet (void)
 
     if (firsttime) {
 	firsttime = 0;
-	XtInitializeWidgetClass (vendorShellWidgetClass);
+	IswInitializeWidgetClass (vendorShellWidgetClass);
     }
 }

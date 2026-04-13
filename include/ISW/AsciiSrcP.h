@@ -124,7 +124,7 @@ typedef struct _AsciiSrcPart {
   ISWTextPosition piece_size;	/* Size of text buffer for each piece. */
   Boolean data_compression;	/* compress to minimum memory automatically
 				   on save? */
-  XtCallbackList callback;	/* A callback list to call when the source is
+  IswCallbackList callback;	/* A callback list to call when the source is
 				   changed. */
   Boolean use_string_in_place;	/* Use the string passed in place. */
   int     ascii_length;		/* length field for ascii string emulation. */

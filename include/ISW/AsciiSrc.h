@@ -78,20 +78,20 @@ typedef struct _AsciiSrcRec      *AsciiSrcObject;
  * Resource Definitions.
  */
 
-#define XtCDataCompression "DataCompression"
-#define XtCPieceSize "PieceSize"
-#define XtCType "Type"
-#define XtCUseStringInPlace "UseStringInPlace"
+#define IswCDataCompression "DataCompression"
+#define IswCPieceSize "PieceSize"
+#define IswCType "Type"
+#define IswCUseStringInPlace "UseStringInPlace"
 
-#define XtNdataCompression "dataCompression"
-#define XtNpieceSize "pieceSize"
-#define XtNtype "type"
-#define XtNuseStringInPlace "useStringInPlace"
+#define IswNdataCompression "dataCompression"
+#define IswNpieceSize "pieceSize"
+#define IswNtype "type"
+#define IswNuseStringInPlace "useStringInPlace"
 
-#define XtRAsciiType "AsciiType"
+#define IswRAsciiType "AsciiType"
 
-#define XtEstring "string"
-#define XtEfile "file"
+#define IswEstring "string"
+#define IswEfile "file"
 
 typedef enum {IswAsciiFile, IswAsciiString} IswAsciiType;
 

@@ -39,8 +39,8 @@ in this Software without prior written authorization from the X Consortium.
 #include "config.h"
 #endif
 #include <ISW/ISWP.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <ISW/ISWInit.h>
@@ -77,17 +77,17 @@ in this Software without prior written authorization from the X Consortium.
 
 /* Private Data */
 
-#define offset(field) XtOffsetOf(TextSrcRec, textSrc.field)
-static XtResource resources[] = {
-    {XtNeditType, XtCEditType, XtREditMode, sizeof(IswTextEditType),
-        offset(edit_mode), XtRString, "read"},
+#define offset(field) IswOffsetOf(TextSrcRec, textSrc.field)
+static IswResource resources[] = {
+    {IswNeditType, IswCEditType, IswREditMode, sizeof(IswTextEditType),
+        offset(edit_mode), IswRString, "read"},
 };
 
 static void ClassInitialize(void);
 static void ClassPartInitialize(WidgetClass);
 static void SetSelection(Widget, ISWTextPosition, ISWTextPosition, xcb_atom_t);
 static void CvtStringToEditMode(XrmValuePtr, Cardinal *, XrmValuePtr, XrmValuePtr);
-static Boolean ConvertSelection(Widget, xcb_atom_t *, xcb_atom_t *, xcb_atom_t *, XtPointer *,
+static Boolean ConvertSelection(Widget, xcb_atom_t *, xcb_atom_t *, xcb_atom_t *, IswPointer *,
                                 unsigned long *, int *);
 static ISWTextPosition Search(Widget, ISWTextPosition, IswTextScanDirection,
                        ISWTextBlock *);
@@ -112,7 +112,7 @@ TextSrcClassRec textSrcClassRec = {
     /* actions		  	*/	NULL,
     /* num_actions	  	*/	0,
     /* resources	  	*/	resources,
-    /* num_resources	  	*/	XtNumber(resources),
+    /* num_resources	  	*/	IswNumber(resources),
     /* xrm_class	  	*/	NULLQUARK,
     /* compress_motion	  	*/	FALSE,
     /* compress_exposure  	*/	FALSE,
@@ -126,7 +126,7 @@ TextSrcClassRec textSrcClassRec = {
     /* set_values_almost	*/	NULL,
     /* get_values_hook		*/	NULL,
     /* accept_focus	 	*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private   	*/	NULL,
     /* tm_table		   	*/	NULL,
     /* query_geometry		*/	NULL,
@@ -150,7 +150,7 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet ();
-    XtAddConverter(XtRString, XtREditMode,   CvtStringToEditMode,   NULL, 0);
+    IswAddConverter(IswRString, IswREditMode,   CvtStringToEditMode,   NULL, 0);
 }
 
 
@@ -166,22 +166,22 @@ ClassPartInitialize(WidgetClass wc)
  * We don't need to check for null super since we'll get to TextSrc
  * eventually.
  */
-    if (t_src->textSrc_class.Read == XtInheritRead)
+    if (t_src->textSrc_class.Read == IswInheritRead)
       t_src->textSrc_class.Read = superC->textSrc_class.Read;
 
-    if (t_src->textSrc_class.Replace == XtInheritReplace)
+    if (t_src->textSrc_class.Replace == IswInheritReplace)
       t_src->textSrc_class.Replace = superC->textSrc_class.Replace;
 
-    if (t_src->textSrc_class.Scan == XtInheritScan)
+    if (t_src->textSrc_class.Scan == IswInheritScan)
       t_src->textSrc_class.Scan = superC->textSrc_class.Scan;
 
-    if (t_src->textSrc_class.Search == XtInheritSearch)
+    if (t_src->textSrc_class.Search == IswInheritSearch)
       t_src->textSrc_class.Search = superC->textSrc_class.Search;
 
-    if (t_src->textSrc_class.SetSelection == XtInheritSetSelection)
+    if (t_src->textSrc_class.SetSelection == IswInheritSetSelection)
       t_src->textSrc_class.SetSelection = superC->textSrc_class.SetSelection;
 
-    if (t_src->textSrc_class.ConvertSelection == XtInheritConvertSelection)
+    if (t_src->textSrc_class.ConvertSelection == IswInheritConvertSelection)
       t_src->textSrc_class.ConvertSelection =
 	                               superC->textSrc_class.ConvertSelection;
 }
@@ -205,7 +205,7 @@ ClassPartInitialize(WidgetClass wc)
 static ISWTextPosition
 Read(Widget w, ISWTextPosition pos, ISWTextBlock *text, int length)
 {
-  XtAppError(XtWidgetToApplicationContext(w),
+  IswAppError(IswWidgetToApplicationContext(w),
 	     "TextSrc Object: No read function is defined.");
 
   return( (ISWTextPosition) 0 ); /* for gcc -Wall and lint */
@@ -246,7 +246,7 @@ ISWTextPosition
 Scan(Widget w, ISWTextPosition position, IswTextScanType type,
      IswTextScanDirection dir, int count, Boolean include)
 {
-  XtAppError(XtWidgetToApplicationContext(w),
+  IswAppError(IswWidgetToApplicationContext(w),
 	     "TextSrc Object: No SCAN function is defined.");
 
   return( (ISWTextPosition) 0 ); /* for gcc -Wall and lint */
@@ -283,7 +283,7 @@ Search(Widget w, ISWTextPosition position, IswTextScanDirection dir, ISWTextBloc
 /* ARGSUSED */
 static Boolean
 ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
-                 XtPointer *value, unsigned long *length, int *format)
+                 IswPointer *value, unsigned long *length, int *format)
 {
   return(FALSE);
 }
@@ -315,9 +315,9 @@ CvtStringToEditMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal, X
   static Boolean inited = FALSE;
 
   if ( !inited ) {
-    QRead   = XrmPermStringToQuark(XtEtextRead);
-    QAppend = XrmPermStringToQuark(XtEtextAppend);
-    QEdit   = XrmPermStringToQuark(XtEtextEdit);
+    QRead   = XrmPermStringToQuark(IswEtextRead);
+    QAppend = XrmPermStringToQuark(IswEtextAppend);
+    QEdit   = XrmPermStringToQuark(IswEtextEdit);
     inited = TRUE;
   }
 
@@ -334,7 +334,7 @@ CvtStringToEditMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal, X
       return;
     }
     toVal->size = sizeof editType;
-    toVal->addr = (XtPointer) &editType;
+    toVal->addr = (IswPointer) &editType;
     return;
   }
   toVal->size = 0;
@@ -364,8 +364,8 @@ IswTextSourceRead(Widget w, ISWTextPosition pos, ISWTextBlock *text,
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
-  if ( !XtIsSubclass( w, textSrcObjectClass ) )
-      XtErrorMsg("bad argument", "textSource", "IswError",
+  if ( !IswIsSubclass( w, textSrcObjectClass ) )
+      IswErrorMsg("bad argument", "textSource", "IswError",
 		"IswTextSourceRead's 1st parameter must be subclass of asciiSrc.",
 		   NULL, NULL);
 
@@ -387,8 +387,8 @@ IswTextSourceReplace (Widget w, ISWTextPosition startPos,
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
-  if ( !XtIsSubclass( w, textSrcObjectClass ) )
-      XtErrorMsg("bad argument", "textSource", "IswError",
+  if ( !IswIsSubclass( w, textSrcObjectClass ) )
+      IswErrorMsg("bad argument", "textSource", "IswError",
 		"IswTextSourceReplace's 1st parameter must be subclass of asciiSrc.",
 		   NULL, NULL);
 
@@ -425,8 +425,8 @@ IswTextSourceScan(Widget w, ISWTextPosition position,
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
-  if ( !XtIsSubclass( w, textSrcObjectClass ) )
-      XtErrorMsg("bad argument", "textSource", "IswError",
+  if ( !IswIsSubclass( w, textSrcObjectClass ) )
+      IswErrorMsg("bad argument", "textSource", "IswError",
 		"IswTextSourceScan's 1st parameter must be subclass of asciiSrc.",
 		   NULL, NULL);
 
@@ -454,8 +454,8 @@ IswTextSourceSearch(Widget w, ISWTextPosition position,
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
-  if ( !XtIsSubclass( w, textSrcObjectClass ) )
-      XtErrorMsg("bad argument", "textSource", "IswError",
+  if ( !IswIsSubclass( w, textSrcObjectClass ) )
+      IswErrorMsg("bad argument", "textSource", "IswError",
 		"IswTextSourceSearch's 1st parameter must be subclass of asciiSrc.",
 		   NULL, NULL);
 
@@ -476,13 +476,13 @@ IswTextSourceSearch(Widget w, ISWTextPosition position,
 
 Boolean
 IswTextSourceConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
-			      xcb_atom_t *type, XtPointer *value,
+			      xcb_atom_t *type, IswPointer *value,
 			      unsigned long *length, int *format)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
-  if ( !XtIsSubclass( w, textSrcObjectClass ) )
-      XtErrorMsg("bad argument", "textSource", "IswError",
+  if ( !IswIsSubclass( w, textSrcObjectClass ) )
+      IswErrorMsg("bad argument", "textSource", "IswError",
 		"IswTextSourceConvertSelectionIswTextSourceConvertSelection's 1st parameter must be subclass of asciiSrc.",
 		   NULL, NULL);
 
@@ -504,8 +504,8 @@ IswTextSourceSetSelection(Widget w, ISWTextPosition left,
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
-  if ( !XtIsSubclass( w, textSrcObjectClass ) )
-      XtErrorMsg("bad argument", "textSource", "IswError",
+  if ( !IswIsSubclass( w, textSrcObjectClass ) )
+      IswErrorMsg("bad argument", "textSource", "IswError",
 		"'s 1st parameter must be subclass of asciiSrc.",
 		   NULL, NULL);
 
@@ -549,7 +549,7 @@ _ISWTextWCToMB(xcb_connection_t *conn, wchar_t *wstr, int *len_in_out)
     XTextProperty textprop;
     if (XwcTextListToTextProperty(conn, (wchar_t**)&wstr, 1,
       XTextStyle, &textprop) < Success) {
-      XtWarningMsg("convertError", "textSource", "IswError",
+      IswWarningMsg("convertError", "textSource", "IswError",
                  "Non-character code(s) in buffer.", NULL, NULL);
       *len_in_out = 0;
       return NULL;
@@ -560,12 +560,12 @@ _ISWTextWCToMB(xcb_connection_t *conn, wchar_t *wstr, int *len_in_out)
     /* XCB: WC→MB conversion not available, use wcstombs */
     size_t mb_len = wcstombs(NULL, wstr, 0);
     if (mb_len == (size_t)-1) {
-        XtWarningMsg("convertError", "textSource", "IswError",
+        IswWarningMsg("convertError", "textSource", "IswError",
                      "Non-character code(s) in buffer.", NULL, NULL);
         *len_in_out = 0;
         return NULL;
     }
-    char *mb_str = XtMalloc(mb_len + 1);
+    char *mb_str = IswMalloc(mb_len + 1);
     if (!mb_str) {
         *len_in_out = 0;
         return NULL;
@@ -598,9 +598,9 @@ _ISWTextMBToWC(xcb_connection_t *conn, char *str, int *len_in_out)
     char *buf;
     wchar_t **wlist, *wstr;
     int count;
-    buf = XtMalloc(*len_in_out + 1);
+    buf = IswMalloc(*len_in_out + 1);
     if (!buf) {
-        XtErrorMsg("convertError", "multiSourceCreate", "IswError",
+        IswErrorMsg("convertError", "multiSourceCreate", "IswError",
                    "No Memory", NULL, NULL);
         *len_in_out = 0;
         return NULL;
@@ -608,35 +608,35 @@ _ISWTextMBToWC(xcb_connection_t *conn, char *str, int *len_in_out)
     strncpy(buf, str, *len_in_out);
     *(buf + *len_in_out) = '\0';
     if (XmbTextListToTextProperty(conn, &buf, 1, XTextStyle, &textprop) != Success) {
-        XtWarningMsg("convertError", "textSource", "IswError",
+        IswWarningMsg("convertError", "textSource", "IswError",
                      "No Memory, or Locale not supported.", NULL, NULL);
-        XtFree(buf);
+        IswFree(buf);
         *len_in_out = 0;
         return NULL;
     }
-    XtFree(buf);
+    IswFree(buf);
     if (XwcTextPropertyToTextList(conn, &textprop, (wchar_t***)&wlist, &count) != Success) {
-        XtWarningMsg("convertError", "multiSourceCreate", "IswError",
+        IswWarningMsg("convertError", "multiSourceCreate", "IswError",
                      "Non-character code(s) in source.", NULL, NULL);
         *len_in_out = 0;
         return NULL;
     }
     wstr = wlist[0];
     *len_in_out = wcslen(wstr);
-    XtFree((char**)wlist);
+    IswFree((char**)wlist);
     return wstr;
 #else
     /* XCB: MB→WC conversion not available, use mbstowcs */
     size_t wc_len = mbstowcs(NULL, str, 0);
     if (wc_len == (size_t)-1) {
-        XtWarningMsg("convertError", "textSource", "IswError",
+        IswWarningMsg("convertError", "textSource", "IswError",
                      "Non-character code(s) in source.", NULL, NULL);
         *len_in_out = 0;
         return NULL;
     }
-    wchar_t *wstr = (wchar_t *)XtMalloc((wc_len + 1) * sizeof(wchar_t));
+    wchar_t *wstr = (wchar_t *)IswMalloc((wc_len + 1) * sizeof(wchar_t));
     if (!wstr) {
-        XtErrorMsg("convertError", "multiSourceCreate", "IswError",
+        IswErrorMsg("convertError", "multiSourceCreate", "IswError",
                    "No Memory", NULL, NULL);
         *len_in_out = 0;
         return NULL;

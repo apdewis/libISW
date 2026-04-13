@@ -40,8 +40,8 @@ in this Software without prior written authorization from the X Consortium.
 
 #endif
 #include <stdio.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
@@ -49,14 +49,14 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeLineP.h>
 #include <ISW/Cardinals.h>
 
-#define offset(field) XtOffsetOf(SmeLineRec, sme_line.field)
-static XtResource resources[] = {
-  {XtNlineWidth, XtCLineWidth, XtRDimension, sizeof(Dimension),
-     offset(line_width), XtRImmediate, (XtPointer) 1},
-  {XtNstipple, XtCStipple, XtRBitmap, sizeof(xcb_pixmap_t),
-     offset(stipple), XtRImmediate, (XtPointer) XtUnspecifiedPixmap},
-  {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
-     offset(foreground), XtRString, XtDefaultForeground},
+#define offset(field) IswOffsetOf(SmeLineRec, sme_line.field)
+static IswResource resources[] = {
+  {IswNlineWidth, IswCLineWidth, IswRDimension, sizeof(Dimension),
+     offset(line_width), IswRImmediate, (IswPointer) 1},
+  {IswNstipple, IswCStipple, IswRBitmap, sizeof(xcb_pixmap_t),
+     offset(stipple), IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
+  {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+     offset(foreground), IswRString, IswDefaultForeground},
 };
 #undef offset
 
@@ -67,7 +67,7 @@ static XtResource resources[] = {
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static XtGeometryResult QueryGeometry(Widget, XtWidgetGeometry *, XtWidgetGeometry *);
+static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 
 #define SUPERCLASS (&smeClassRec)
@@ -86,7 +86,7 @@ SmeLineClassRec smeLineClassRec = {
     /* actions            */    NULL,
     /* num_actions        */    ZERO,
     /* resources          */    resources,
-    /* resource_count     */	XtNumber(resources),
+    /* resource_count     */	IswNumber(resources),
     /* xrm_class          */    NULLQUARK,
     /* compress_motion    */    FALSE,
     /* compress_exposure  */    FALSE,
@@ -97,10 +97,10 @@ SmeLineClassRec smeLineClassRec = {
     /* expose             */    Redisplay,
     /* set_values         */    SetValues,
     /* set_values_hook    */	NULL,
-    /* set_values_almost  */	XtInheritSetValuesAlmost,
+    /* set_values_almost  */	IswInheritSetValuesAlmost,
     /* get_values_hook    */	NULL,
     /* accept_focus       */    NULL,
-    /* intrinsics version */	XtVersion,
+    /* intrinsics version */	IswVersion,
     /* callback offsets   */    NULL,
     /* tm_table		  */    NULL,
     /* query_geometry	  */    QueryGeometry,
@@ -109,9 +109,9 @@ SmeLineClassRec smeLineClassRec = {
   },{
     /* Menu Entry Fields */
 
-    /* highlight */             XtInheritHighlight,
-    /* unhighlight */           XtInheritUnhighlight,
-    /* notify */		XtInheritNotify,
+    /* highlight */             IswInheritHighlight,
+    /* unhighlight */           IswInheritUnhighlight,
+    /* notify */		IswInheritNotify,
     /* extension */             NULL
   },{
     /* Line Menu Entry Fields */
@@ -160,7 +160,7 @@ static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     SmeLineObject entry = (SmeLineObject) w;
-    SimpleMenuWidget smw = (SimpleMenuWidget) XtParent (w);
+    SimpleMenuWidget smw = (SimpleMenuWidget) IswParent (w);
     Dimension s = 1;  /* inset from SimpleMenu's 1px drawn border */
     int y = entry->rectangle.y +
 	    (int)(entry->rectangle.height - entry->sme_line.line_width) / 2;
@@ -168,7 +168,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     /* Use the parent SimpleMenu's shared render context */
     ISWRenderContext *ctx = smw->simple_menu.render_ctx;
 
-    if (ctx && XtIsRealized(w)) {
+    if (ctx && IswIsRealized(w)) {
         ISWRenderBegin(ctx);
         ISWRenderSetColor(ctx, entry->sme_line.foreground);
         ISWRenderFillRectangle(ctx, s, y,
@@ -211,13 +211,13 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
  * I just return the height and a width of 1.
  */
 
-static XtGeometryResult
-QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val)
+static IswGeometryResult
+QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *return_val)
 {
     SmeObject entry = (SmeObject) w;
     Dimension width;
-    XtGeometryResult ret_val = XtGeometryYes;
-    XtGeometryMask mode = intended->request_mode;
+    IswGeometryResult ret_val = IswGeometryYes;
+    IswGeometryMask mode = intended->request_mode;
 
     width = 1;			/* we can be really small. */
 
@@ -228,8 +228,8 @@ QueryGeometry(Widget w, XtWidgetGeometry *intended, XtWidgetGeometry *return_val
 	mode = return_val->request_mode;
 
 	if ( (mode & XCB_CONFIG_WINDOW_WIDTH) && (width == entry->rectangle.width) )
-	    return(XtGeometryNo);
-	return(XtGeometryAlmost);
+	    return(IswGeometryNo);
+	return(IswGeometryAlmost);
     }
     return(ret_val);
 }

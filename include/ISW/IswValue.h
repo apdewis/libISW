@@ -1,5 +1,5 @@
 /*
- * XtValue.h - Generic value container for libXt
+ * IswValue.h - Generic value container for libXt
  *
  * This replaces XrmValue from <X11/Xresource.h>, providing a simple
  * {size, address} pair used throughout the type converter system.
@@ -25,24 +25,24 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _XtValue_h
-#define _XtValue_h
+#ifndef _IswValue_h
+#define _IswValue_h
 
 /*
- * XtValueRec - A generic value container holding a size and a pointer
+ * IswValueRec - A generic value container holding a size and a pointer
  * to the value data. Used extensively in the type converter system.
  */
 typedef struct {
     unsigned int    size;   /* Size of the value data in bytes */
-    XtPointer       addr;   /* Pointer to the value data */
-} XtValueRec, *XtValuePtr;
+    IswPointer       addr;   /* Pointer to the value data */
+} IswValueRec, *IswValuePtr;
 
 /*
  * Backward compatibility - map old Xrm names to new Xt names.
  * These allow existing code using XrmValue, XrmValuePtr, etc.
  * to compile without modification.
  */
-typedef XtValueRec  XrmValue;
-typedef XtValuePtr  XrmValuePtr;
+typedef IswValueRec  XrmValue;
+typedef IswValuePtr  XrmValuePtr;
 
-#endif /* _XtValue_h */
+#endif /* _IswValue_h */

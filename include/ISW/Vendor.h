@@ -45,10 +45,10 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtVendor_h
-#define _XtVendor_h
+#ifndef _IswVendor_h
+#define _IswVendor_h
 
-#include <X11/Intrinsic.h>
+#include <ISW/Intrinsic.h>
 
 /***********************************************************************
  *
@@ -66,5 +66,5 @@ externalref WidgetClass vendorShellWidgetClass;
 
 _XFUNCPROTOEND
 
-#endif /* _XtVendor_h */
+#endif /* _IswVendor_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

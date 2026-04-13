@@ -30,27 +30,27 @@ in this Software without prior written authorization from the X Consortium.
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>		/* for XtN and XtC defines */
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>		/* for IswN and IswC defines */
 #include <ISW/ISWInit.h>		/* for IswInitializeWidgetSet() */
 #include <ISW/RepeaterP.h>		/* us */
 #include <ISW/ISWRender.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
-static void tic(XtPointer, XtIntervalId *);	/* clock timeout */
+static void tic(IswPointer, IswIntervalId *);	/* clock timeout */
 
 #define DO_CALLBACK(rw) \
-    XtCallCallbackList ((Widget) rw, rw->command.callbacks, (XtPointer)NULL)
+    IswCallCallbackList ((Widget) rw, rw->command.callbacks, (IswPointer)NULL)
 
 
 #define ADD_TIMEOUT(rw,delay) \
-  XtAppAddTimeOut (XtWidgetToApplicationContext ((Widget) rw), \
-		   (unsigned long) delay, tic, (XtPointer) rw)
+  IswAppAddTimeOut (IswWidgetToApplicationContext ((Widget) rw), \
+		   (unsigned long) delay, tic, (IswPointer) rw)
 
 #define CLEAR_TIMEOUT(rw) \
   if ((rw)->repeater.timer) { \
-      XtRemoveTimeOut ((rw)->repeater.timer); \
+      IswRemoveTimeOut ((rw)->repeater.timer); \
       (rw)->repeater.timer = 0; \
   }
 
@@ -71,7 +71,7 @@ static char defaultTranslations[] =
 static void ActionStart(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void ActionStop(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
-static XtActionsRec actions[] = {
+static IswActionsRec actions[] = {
     { "start", ActionStart },		/* trigger timers */
     { "stop", ActionStop },		/* clear timers */
 };
@@ -80,22 +80,22 @@ static XtActionsRec actions[] = {
 /*
  * New resources added by this widget
  */
-static XtResource resources[] = {
-#define off(field) XtOffsetOf(RepeaterRec, repeater.field)
-    { XtNdecay, XtCDecay, XtRInt, sizeof (int),
-	off(decay), XtRImmediate, (XtPointer) REP_DEF_DECAY },
-    { XtNinitialDelay, XtCDelay, XtRInt, sizeof (int),
-	off(initial_delay), XtRImmediate, (XtPointer) REP_DEF_INITIAL_DELAY },
-    { XtNminimumDelay, XtCMinimumDelay, XtRInt, sizeof (int),
-	off(minimum_delay), XtRImmediate, (XtPointer) REP_DEF_MINIMUM_DELAY },
-    { XtNrepeatDelay, XtCDelay, XtRInt, sizeof (int),
-	off(repeat_delay), XtRImmediate, (XtPointer) REP_DEF_REPEAT_DELAY },
-    { XtNflash, XtCBoolean, XtRBoolean, sizeof (Boolean),
-	off(flash), XtRImmediate, (XtPointer) FALSE },
-    { XtNstartCallback, XtCStartCallback, XtRCallback, sizeof (XtPointer),
-	off(start_callbacks), XtRImmediate, (XtPointer) NULL },
-    { XtNstopCallback, XtCStopCallback, XtRCallback, sizeof (XtPointer),
-	off(stop_callbacks), XtRImmediate, (XtPointer) NULL },
+static IswResource resources[] = {
+#define off(field) IswOffsetOf(RepeaterRec, repeater.field)
+    { IswNdecay, IswCDecay, IswRInt, sizeof (int),
+	off(decay), IswRImmediate, (IswPointer) REP_DEF_DECAY },
+    { IswNinitialDelay, IswCDelay, IswRInt, sizeof (int),
+	off(initial_delay), IswRImmediate, (IswPointer) REP_DEF_INITIAL_DELAY },
+    { IswNminimumDelay, IswCMinimumDelay, IswRInt, sizeof (int),
+	off(minimum_delay), IswRImmediate, (IswPointer) REP_DEF_MINIMUM_DELAY },
+    { IswNrepeatDelay, IswCDelay, IswRInt, sizeof (int),
+	off(repeat_delay), IswRImmediate, (IswPointer) REP_DEF_REPEAT_DELAY },
+    { IswNflash, IswCBoolean, IswRBoolean, sizeof (Boolean),
+	off(flash), IswRImmediate, (IswPointer) FALSE },
+    { IswNstartCallback, IswCStartCallback, IswRCallback, sizeof (IswPointer),
+	off(start_callbacks), IswRImmediate, (IswPointer) NULL },
+    { IswNstopCallback, IswCStopCallback, IswRCallback, sizeof (IswPointer),
+	off(stop_callbacks), IswRImmediate, (IswPointer) NULL },
 #undef off
 };
 
@@ -118,33 +118,33 @@ RepeaterClassRec repeaterClassRec = {
     /* class_inited		*/	FALSE,
     /* initialize		*/	Initialize,
     /* initialize_hook		*/	NULL,
-    /* realize			*/	XtInheritRealize,
+    /* realize			*/	IswInheritRealize,
     /* actions			*/	actions,
-    /* num_actions		*/	XtNumber(actions),
+    /* num_actions		*/	IswNumber(actions),
     /* resources		*/	resources,
-    /* num_resources		*/	XtNumber(resources),
+    /* num_resources		*/	IswNumber(resources),
     /* xrm_class		*/	NULLQUARK,
     /* compress_motion		*/	TRUE,
     /* compress_exposure	*/	TRUE,
     /* compress_enterleave	*/	TRUE,
     /* visible_interest		*/	FALSE,
     /* destroy			*/	Destroy,
-    /* resize			*/	XtInheritResize,
-    /* expose			*/	XtInheritExpose,
+    /* resize			*/	IswInheritResize,
+    /* expose			*/	IswInheritExpose,
     /* set_values		*/	SetValues,
     /* set_values_hook		*/	NULL,
-    /* set_values_almost	*/	XtInheritSetValuesAlmost,
+    /* set_values_almost	*/	IswInheritSetValuesAlmost,
     /* get_values_hook		*/	NULL,
     /* accept_focus		*/	NULL,
-    /* version			*/	XtVersion,
+    /* version			*/	IswVersion,
     /* callback_private		*/	NULL,
     /* tm_table			*/	defaultTranslations,
-    /* query_geometry		*/	XtInheritQueryGeometry,
-    /* display_accelerator	*/	XtInheritDisplayAccelerator,
+    /* query_geometry		*/	IswInheritQueryGeometry,
+    /* display_accelerator	*/	IswInheritDisplayAccelerator,
     /* extension		*/	NULL
   },
   { /* simple fields */
-    /* change_sensitive		*/	XtInheritChangeSensitive
+    /* change_sensitive		*/	IswInheritChangeSensitive
   },
   { /* label fields */
     /* ignore			*/	0
@@ -168,13 +168,13 @@ WidgetClass repeaterWidgetClass = (WidgetClass) &repeaterClassRec;
 
 /* ARGSUSED */
 static void
-tic (XtPointer client_data, XtIntervalId *id)
+tic (IswPointer client_data, IswIntervalId *id)
 {
     RepeaterWidget rw = (RepeaterWidget) client_data;
 
     rw->repeater.timer = 0;		/* timer is removed */
     if (rw->repeater.flash) {
- XtExposeProc expose;
+ IswExposeProc expose;
  expose = repeaterWidgetClass->core_class.superclass->core_class.expose;
  ISWRenderContext *ctx = rw->label.render_ctx;
  if (ctx) {
@@ -220,7 +220,7 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
     RepeaterWidget new = (RepeaterWidget) gnew;
 
     if (new->repeater.minimum_delay < 0) new->repeater.minimum_delay = 0;
-    new->repeater.timer = (XtIntervalId) 0;
+    new->repeater.timer = (IswIntervalId) 0;
 }
 
 static void
@@ -259,7 +259,7 @@ ActionStart (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *nu
 
     CLEAR_TIMEOUT (rw);
     if (rw->repeater.start_callbacks)
-      XtCallCallbackList (gw, rw->repeater.start_callbacks, (XtPointer)NULL);
+      IswCallCallbackList (gw, rw->repeater.start_callbacks, (IswPointer)NULL);
 
     DO_CALLBACK (rw);
     rw->repeater.timer = ADD_TIMEOUT (rw, rw->repeater.initial_delay);
@@ -275,6 +275,6 @@ ActionStop (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num
 
     CLEAR_TIMEOUT ((RepeaterWidget) gw);
     if (rw->repeater.stop_callbacks)
-      XtCallCallbackList (gw, rw->repeater.stop_callbacks, (XtPointer)NULL);
+      IswCallCallbackList (gw, rw->repeater.stop_callbacks, (IswPointer)NULL);
 }
 

@@ -40,7 +40,7 @@ in this Software without prior written authorization from the X Consortium.
 #define _ISW_Sme_h
 
 #include "ISWP.h"
-#include <X11/RectObj.h>
+#include <ISW/RectObj.h>
 
 /****************************************************************
  *
@@ -63,11 +63,11 @@ in this Software without prior written authorization from the X Consortium.
 */
 
 #ifdef ISW_INTERNATIONALIZATION
-#ifndef XtCInternational
-#define XtCInternational	"International"
+#ifndef IswCInternational
+#define IswCInternational	"International"
 #endif
-#ifndef XtNinternational
-#define XtNinternational	"international"
+#ifndef IswNinternational
+#define IswNinternational	"international"
 #endif
 #endif
 

@@ -45,8 +45,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtCore_h
-#define _XtCore_h
+#ifndef _IswCore_h
+#define _IswCore_h
 
 _XFUNCPROTOBEGIN
 
@@ -59,5 +59,5 @@ externalref WidgetClass widgetClass;
 
 _XFUNCPROTOEND
 
-#endif /* _XtCore_h */
+#endif /* _IswCore_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

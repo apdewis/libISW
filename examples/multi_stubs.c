@@ -12,9 +12,9 @@
  * NOTE: This is a temporary workaround. DO NOT USE in production code.
  */
 
-#include <X11/Intrinsic.h>
-#include <X11/IntrinsicP.h>
-#include <X11/Object.h>
+#include <ISW/Intrinsic.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/Object.h>
 
 /*
  * Stub widget class records for Multi* widgets.
@@ -28,11 +28,11 @@ typedef struct _MultiSrcClassRec *MultiSrcObjectClass;
 
 /* Minimal class structures */
 typedef struct {
-    XtPointer extension;
+    IswPointer extension;
 } MultiSinkClassPart;
 
 typedef struct {
-    XtPointer extension;
+    IswPointer extension;
 } MultiSrcClassPart;
 
 struct _MultiSinkClassRec {
@@ -74,7 +74,7 @@ static struct _MultiSinkClassRec multiSinkClassRec = {
         /* set_values_almost  */ NULL,
         /* get_values_hook    */ NULL,
         /* accept_focus       */ NULL,
-        /* version            */ XtVersion,
+        /* version            */ IswVersion,
         /* callback_private   */ NULL,
         /* tm_table           */ NULL,
         /* query_geometry     */ NULL,
@@ -114,7 +114,7 @@ static struct _MultiSrcClassRec multiSrcClassRec = {
         /* set_values_almost  */ NULL,
         /* get_values_hook    */ NULL,
         /* accept_focus       */ NULL,
-        /* version            */ XtVersion,
+        /* version            */ IswVersion,
         /* callback_private   */ NULL,
         /* tm_table           */ NULL,
         /* query_geometry     */ NULL,

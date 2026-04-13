@@ -45,8 +45,8 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifndef _XtinitialI_h
-#define _XtinitialI_h
+#ifndef _IswinitialI_h
+#define _IswinitialI_h
 
 /****************************************************************
  *
@@ -96,34 +96,34 @@ _XFUNCPROTOBEGIN
 typedef struct _TimerEventRec {
         struct timeval        te_timer_value;
 	struct _TimerEventRec *te_next;
-	XtTimerCallbackProc   te_proc;
-	XtAppContext	      app;
-	XtPointer	      te_closure;
+	IswTimerCallbackProc   te_proc;
+	IswAppContext	      app;
+	IswPointer	      te_closure;
 } TimerEventRec;
 
 typedef struct _InputEvent {
-	XtInputCallbackProc   ie_proc;
-	XtPointer	      ie_closure;
+	IswInputCallbackProc   ie_proc;
+	IswPointer	      ie_closure;
 	struct _InputEvent    *ie_next;
 	struct _InputEvent    *ie_oq;
-	XtAppContext	      app;
+	IswAppContext	      app;
 	int		      ie_source;
-	XtInputMask	      ie_condition;
+	IswInputMask	      ie_condition;
 } InputEvent;
 
 typedef struct _SignalEventRec {
-	XtSignalCallbackProc  se_proc;
-	XtPointer	      se_closure;
+	IswSignalCallbackProc  se_proc;
+	IswPointer	      se_closure;
 	struct _SignalEventRec *se_next;
-	XtAppContext	      app;
+	IswAppContext	      app;
 	Boolean		      se_notice;
 } SignalEventRec;
 
 typedef struct _WorkProcRec {
-	XtWorkProc proc;
-	XtPointer closure;
+	IswWorkProc proc;
+	IswPointer closure;
 	struct _WorkProcRec *next;
-	XtAppContext app;
+	IswAppContext app;
 } WorkProcRec;
 
 
@@ -138,13 +138,13 @@ typedef struct
 } FdStruct;
 
 typedef struct _LangProcRec {
-    XtLanguageProc	proc;
-    XtPointer		closure;
+    IswLanguageProc	proc;
+    IswPointer		closure;
 } LangProcRec;
 
 typedef struct _ProcessContextRec {
-    XtAppContext	defaultAppContext;
-    XtAppContext	appContextList;
+    IswAppContext	defaultAppContext;
+    IswAppContext	appContextList;
     ConverterTable	globalConverterTable;
     LangProcRec		globalLangProcRec;
 } ProcessContextRec, *ProcessContext;
@@ -157,15 +157,15 @@ typedef struct {
 
 typedef struct _DestroyRec DestroyRec;
 
-typedef struct _XtEventQueue  XtEventQueue;
-typedef struct _XtEventQueue {
+typedef struct _IswEventQueue  IswEventQueue;
+typedef struct _IswEventQueue {
     xcb_generic_event_t *event;
     xcb_connection_t *display;
-    XtEventQueue *next;
-} XtEventQueue;
+    IswEventQueue *next;
+} IswEventQueue;
 
-typedef struct _XtAppStruct {
-    XtAppContext next;		/* link to next app in process context */
+typedef struct _IswAppStruct {
+    IswAppContext next;		/* link to next app in process context */
     ProcessContext process;	/* back pointer to our process context */
     InternalCallbackList destroy_callbacks;
     xcb_connection_t **list;
@@ -175,8 +175,8 @@ typedef struct _XtAppStruct {
     InputEvent *outstandingQueue;
     SignalEventRec *signalQueue;
     xcb_xrm_database_t *errorDB;
-    XtErrorMsgHandler errorMsgHandler, warningMsgHandler;
-    XtErrorHandler errorHandler, warningHandler;
+    IswErrorMsgHandler errorMsgHandler, warningMsgHandler;
+    IswErrorHandler errorHandler, warningHandler;
     struct _ActionListRec *action_table;
     ConverterTable converterTable;
     unsigned long selectionTimeout;
@@ -191,7 +191,7 @@ typedef struct _XtAppStruct {
     Boolean identify_windows;		/* debugging hack */
 #endif
     Heap heap;
-    String * fallback_resources;	/* Set by XtAppSetFallbackResources. */
+    String * fallback_resources;	/* Set by IswAppSetFallbackResources. */
     struct _ActionHookRec* action_hook_list;
     struct _BlockHookRec* block_hook_list;
     int destroy_list_size;		/* state data for 2-phase destroy */
@@ -201,9 +201,9 @@ typedef struct _XtAppStruct {
     Widget in_phase2_destroy;
     LangProcRec langProcRec;
     struct _TMBindCacheRec * free_bindings;
-    _XtString display_name_tried;
+    _IswString display_name_tried;
     xcb_connection_t **dpy_destroy_list;
-    XtEventQueue *event_front, *event_back;
+    IswEventQueue *event_front, *event_back;
     int dpy_destroy_count;
     Boolean exit_flag;
     Boolean rebuild_fdlist;
@@ -215,81 +215,81 @@ typedef struct _XtAppStruct {
     ThreadAppRestoreLockProc restore_lock;
     ThreadAppProc free_lock;
 #endif
-} XtAppStruct;
+} IswAppStruct;
 
-extern void _XtHeapInit(Heap* heap);
-extern void _XtHeapFree(Heap* heap);
+extern void _IswHeapInit(Heap* heap);
+extern void _IswHeapFree(Heap* heap);
 
 #ifdef XTTRACEMEMORY
 
 
-extern char *_XtHeapMalloc(
+extern char *_IswHeapMalloc(
     Heap*	/* heap */,
     Cardinal	/* size */,
     const char */* file */,
     int		/* line */
 );
 
-#define _XtHeapAlloc(heap,bytes) _XtHeapMalloc(heap, bytes, __FILE__, __LINE__)
+#define _IswHeapAlloc(heap,bytes) _IswHeapMalloc(heap, bytes, __FILE__, __LINE__)
 
 #else /* XTTRACEMEMORY */
 
-extern char* _XtHeapAlloc(
+extern char* _IswHeapAlloc(
     Heap*	/* heap */,
     Cardinal	/* size */
 );
 
 #endif /* XTTRACEMEMORY */
 
-extern void _XtSetDefaultErrorHandlers(
-    XtErrorMsgHandler*	/* errMsg */,
-    XtErrorMsgHandler*	/* warnMsg */,
-    XtErrorHandler*	/* err */,
-    XtErrorHandler*	/* warn */
+extern void _IswSetDefaultErrorHandlers(
+    IswErrorMsgHandler*	/* errMsg */,
+    IswErrorMsgHandler*	/* warnMsg */,
+    IswErrorHandler*	/* err */,
+    IswErrorHandler*	/* warn */
 );
 
-extern void _XtSetDefaultSelectionTimeout(
+extern void _IswSetDefaultSelectionTimeout(
     unsigned long* /* timeout */
 );
 
-extern XtAppContext _XtDefaultAppContext(
+extern IswAppContext _IswDefaultAppContext(
     void
 );
 
-extern ProcessContext _XtGetProcessContext(
+extern ProcessContext _IswGetProcessContext(
     void
 );
 
 xcb_connection_t *
-_XtAppInit(
-    XtAppContext*	/* app_context_return */,
+_IswAppInit(
+    IswAppContext*	/* app_context_return */,
     String		/* application_class */,
     XrmOptionDescRec*	/* options */,
     Cardinal		/* num_options */,
     int*		/* argc_in_out */,
-    _XtString**		/* argv_in_out */,
+    _IswString**		/* argv_in_out */,
     String*		/* fallback_resources */
 );
 
-extern void _XtDestroyAppContexts(
+extern void _IswDestroyAppContexts(
     void
 );
 
-extern void _XtCloseDisplays(
-    XtAppContext	/* app */
+extern void _IswCloseDisplays(
+    IswAppContext	/* app */
 );
 
-extern int _XtAppDestroyCount;
+extern int _IswAppDestroyCount;
 
-extern int _XtWaitForSomething(
-    XtAppContext	/* app */,
-    _XtBoolean 		/* ignoreEvents */,
-    _XtBoolean 		/* ignoreTimers */,
-    _XtBoolean 		/* ignoreInputs */,
-    _XtBoolean		/* ignoreSignals */,
-    _XtBoolean 		/* block */,
+extern int _IswWaitForSomething(
+    IswAppContext	/* app */,
+    _IswBoolean 		/* ignoreEvents */,
+    _IswBoolean 		/* ignoreTimers */,
+    _IswBoolean 		/* ignoreInputs */,
+    _IswBoolean		/* ignoreSignals */,
+    _IswBoolean 		/* block */,
 //#ifdef XTHREADS
-    _XtBoolean		/* drop_lock */,
+    _IswBoolean		/* drop_lock */,
 //#endif
     unsigned long*	/* howlong */
 );
@@ -298,36 +298,36 @@ typedef struct _CaseConverterRec *CaseConverterPtr;
 typedef struct _CaseConverterRec {
     xcb_keysym_t		start;		/* first xcb_keysym_t valid in converter */
     xcb_keysym_t		stop;		/* last xcb_keysym_t valid in converter */
-    XtCaseProc		proc;		/* case converter function */
+    IswCaseProc		proc;		/* case converter function */
     CaseConverterPtr	next;		/* next converter record */
 } CaseConverterRec;
 
 typedef struct _ExtensionSelectorRec {
-    XtExtensionSelectProc proc;
+    IswExtensionSelectProc proc;
     int min, max;
-    XtPointer client_data;
+    IswPointer client_data;
 } ExtSelectRec;
 
-typedef struct _XtPixmapStruct {
+typedef struct _IswPixmapStruct {
     unsigned char depth;
     xcb_pixmap_t pixmap;
     UT_hash_handle hh;
-} XtPixmapStruct, *XtPixmapStructPtr;
+} IswPixmapStruct, *IswPixmapStructPtr;
 
-typedef struct _XtScreenPixmapStruct {
+typedef struct _IswScreenPixmapStruct {
     xcb_screen_t *screen;
-    XtPixmapStructPtr pixmaps;
+    IswPixmapStructPtr pixmaps;
     UT_hash_handle hh;
-} XtScreenPixmapStruct, *XtScreenPixmapStructPtr;
+} IswScreenPixmapStruct, *IswScreenPixmapStructPtr;
 
-typedef struct _XtPerDisplayStruct {
+typedef struct _IswPerDisplayStruct {
     InternalCallbackList destroy_callbacks;
     int defaultScreen;             /* default screen number from xcb_connect() */
     xcb_xfixes_region_t region;
     xcb_xfixes_region_t null_region;  /* empty region for clearing operations */
     CaseConverterPtr case_cvt;		/* user-registered case converters */
-    XtKeyProc defaultKeycodeTranslator;
-    XtAppContext appContext;
+    IswKeyProc defaultKeycodeTranslator;
+    IswAppContext appContext;
     unsigned long keysyms_serial;      /* for tracking MappingNotify events */
     xcb_key_symbols_t *keysyms;                   /* keycode to keysym table */
     int keysyms_per_keycode;           /* number of keysyms for each keycode*/
@@ -345,135 +345,135 @@ typedef struct _XtPerDisplayStruct {
     //XrmClass class;		       /* application class */
     String class;
     Heap heap;
-    XtScreenPixmapStructPtr pixmap_tab;   /* pixmap cache */
+    IswScreenPixmapStructPtr pixmap_tab;   /* pixmap cache */
     String language;		       /* XPG language string */
     xcb_generic_event_t last_event;		       /* last event dispatched */
     xcb_timestamp_t last_timestamp;	       /* from last event dispatched */
-    int multi_click_time;	       /* for XtSetMultiClickTime */
-    struct _TMKeyContextRec* tm_context;     /* for XtGetActionKeysym */
+    int multi_click_time;	       /* for IswSetMultiClickTime */
+    struct _TMKeyContextRec* tm_context;     /* for IswGetActionKeysym */
     InternalCallbackList mapping_callbacks;  /* special case for TM */
-    XtPerDisplayInputRec pdi;	       /* state for modal grabs & kbd focus */
+    IswPerDisplayInputRec pdi;	       /* state for modal grabs & kbd focus */
     struct _WWTable *WWtable;	       /* window to widget table */
     xcb_xrm_database_t **per_screen_db;  /* per screen resource databases */
     xcb_xrm_database_t *cmd_db;	       /* db from command line, if needed */
     xcb_xrm_database_t *server_db;       /* resource property else .Xdefaults */
-    XtEventDispatchProc* dispatcher_list;
+    IswEventDispatchProc* dispatcher_list;
     ExtSelectRec* ext_select_list;
     int ext_select_count;
     Widget hook_object;
-    XtPerWidgetInput PerWidgetContext;
+    IswPerWidgetInput PerWidgetContext;
     double scale_factor;	       /* HiDPI scale factor (1.0 = 96 DPI) */
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
     xcb_atom_t rcm_init;			/* ResConfig - initialize */
     xcb_atom_t rcm_data;			/* ResConfig - data xcb_atom_t */
 #endif
-} XtPerDisplayStruct, *XtPerDisplay;
+} IswPerDisplayStruct, *IswPerDisplay;
 
 typedef struct _PerDisplayTable {
 	xcb_connection_t *dpy;
-	XtPerDisplayStruct perDpy;
+	IswPerDisplayStruct perDpy;
 	struct _PerDisplayTable *next;
 } PerDisplayTable, *PerDisplayTablePtr;
 
-extern PerDisplayTablePtr _XtperDisplayList;
+extern PerDisplayTablePtr _IswperDisplayList;
 
-extern XtPerDisplay _XtSortPerDisplayList(
+extern IswPerDisplay _IswSortPerDisplayList(
     xcb_connection_t * /* dpy */
 );
 
-extern XtPerDisplay _XtGetPerDisplay(
+extern IswPerDisplay _IswGetPerDisplay(
     xcb_connection_t *		/* dpy */
 );
 
 /*
- * _XtGetDefaultScreen - XCB replacement for the Xlib DefaultScreenOfDisplay()
+ * _IswGetDefaultScreen - XCB replacement for the Xlib DefaultScreenOfDisplay()
  * macro.  DefaultScreenOfDisplay() reads ((Display*)dpy)->default_screen which
  * is meaningless for an xcb_connection_t*.  This function uses the screen
- * number stored in XtPerDisplay (set from xcb_connect's screen-number output)
+ * number stored in IswPerDisplay (set from xcb_connect's screen-number output)
  * and walks xcb_setup_roots_iterator() to return the correct xcb_screen_t*.
  */
-extern xcb_screen_t *_XtGetDefaultScreen(
+extern xcb_screen_t *_IswGetDefaultScreen(
     xcb_connection_t *		/* dpy */
 );
 
 /* Look up the xcb_connection_t* for a given xcb_screen_t*.
  * Searches the per-display table. Returns NULL if not found. */
-extern xcb_connection_t *_XtConnectionOfScreen(xcb_screen_t *screen);
+extern xcb_connection_t *_IswConnectionOfScreen(xcb_screen_t *screen);
 
-extern XtPerDisplayInputRec* _XtGetPerDisplayInput(
+extern IswPerDisplayInputRec* _IswGetPerDisplayInput(
     xcb_connection_t * 		/* dpy */
 );
 
 #if 0
 #ifdef DEBUG
-#define _XtGetPerDisplay(display) \
-    ((_XtperDisplayList != NULL && (_XtperDisplayList->dpy == (display))) \
-     ? &_XtperDisplayList->perDpy \
-     : _XtSortPerDisplayList(display))
-#define _XtGetPerDisplayInput(display) \
-    ((_XtperDisplayList != NULL && (_XtperDisplayList->dpy == (display))) \
-     ? &_XtperDisplayList->perDpy.pdi \
-     : &_XtSortPerDisplayList(display)->pdi)
+#define _IswGetPerDisplay(display) \
+    ((_IswperDisplayList != NULL && (_IswperDisplayList->dpy == (display))) \
+     ? &_IswperDisplayList->perDpy \
+     : _IswSortPerDisplayList(display))
+#define _IswGetPerDisplayInput(display) \
+    ((_IswperDisplayList != NULL && (_IswperDisplayList->dpy == (display))) \
+     ? &_IswperDisplayList->perDpy.pdi \
+     : &_IswSortPerDisplayList(display)->pdi)
 #else
-#define _XtGetPerDisplay(display) \
-    ((_XtperDisplayList->dpy == (display)) \
-     ? &_XtperDisplayList->perDpy \
-     : _XtSortPerDisplayList(display))
-#define _XtGetPerDisplayInput(display) \
-    ((_XtperDisplayList->dpy == (display)) \
-     ? &_XtperDisplayList->perDpy.pdi \
-     : &_XtSortPerDisplayList(display)->pdi)
+#define _IswGetPerDisplay(display) \
+    ((_IswperDisplayList->dpy == (display)) \
+     ? &_IswperDisplayList->perDpy \
+     : _IswSortPerDisplayList(display))
+#define _IswGetPerDisplayInput(display) \
+    ((_IswperDisplayList->dpy == (display)) \
+     ? &_IswperDisplayList->perDpy.pdi \
+     : &_IswSortPerDisplayList(display)->pdi)
 #endif /*DEBUG*/
 #endif
 
-extern void _XtDisplayInitialize(
+extern void _IswDisplayInitialize(
     xcb_connection_t *		/* dpy */,
-    XtPerDisplay	/* pd */,
+    IswPerDisplay	/* pd */,
     _Xconst char*	/* name */,
     //XrmOptionDescRec*	/* urlist */,
     Cardinal 		/* num_urs */,
     int*		/* argc */,
-    _XtString* 		/* argv */
+    _IswString* 		/* argv */
 );
 
-extern void _XtCacheFlushTag(
-    XtAppContext /* app */,
-    XtPointer	 /* tag */
+extern void _IswCacheFlushTag(
+    IswAppContext /* app */,
+    IswPointer	 /* tag */
 );
 
-extern void _XtFreeActions(
+extern void _IswFreeActions(
     struct _ActionListRec* /* action_table */
 );
 
-extern void _XtDoPhase2Destroy(
-    XtAppContext /* app */,
+extern void _IswDoPhase2Destroy(
+    IswAppContext /* app */,
     int		 /* dispatch_level */
 );
 
-extern void _XtDoFreeBindings(
-    XtAppContext /* app */
+extern void _IswDoFreeBindings(
+    IswAppContext /* app */
 );
 
-extern void _XtExtensionSelect(
+extern void _IswExtensionSelect(
     Widget /* widget */
 );
 
-#define _XtSafeToDestroy(app) ((app)->dispatch_level == 0)
+#define _IswSafeToDestroy(app) ((app)->dispatch_level == 0)
 
-extern void _XtAllocWWTable(
-    XtPerDisplay pd
+extern void _IswAllocWWTable(
+    IswPerDisplay pd
 );
 
-extern void _XtFreeWWTable(
-    XtPerDisplay pd
+extern void _IswFreeWWTable(
+    IswPerDisplay pd
 );
 
-extern String _XtGetUserName(_XtString dest, int len);
-extern xcb_xrm_database_t *_XtPreparseCommandLine(XrmOptionDescRec *urlist,
-			Cardinal num_urs, int argc, _XtString *argv,
+extern String _IswGetUserName(_IswString dest, int len);
+extern xcb_xrm_database_t *_IswPreparseCommandLine(XrmOptionDescRec *urlist,
+			Cardinal num_urs, int argc, _IswString *argv,
 			String *applName, String *displayName,
 			String *language);
 
 _XFUNCPROTOEND
 
-#endif /* _XtinitialI_h */
+#endif /* _IswinitialI_h */

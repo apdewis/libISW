@@ -31,8 +31,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #endif
 
 #include <stdio.h>
-#include <X11/IntrinsicP.h>
-#include <X11/StringDefs.h>
+#include <ISW/IntrinsicP.h>
+#include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/MenuBarP.h>
 #include <ISW/MenuButtoP.h>
@@ -42,7 +42,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 
-#include <ISW/Command.h>  /* for XtNborderStrokeWidth */
+#include <ISW/Command.h>  /* for IswNborderStrokeWidth */
 
 #define superclass (&boxClassRec)
 
@@ -67,8 +67,8 @@ static void OpenMenu(MenuBarWidget, Widget);
 static void CloseMenu(MenuBarWidget);
 static void SwitchMenu(MenuBarWidget, Widget);
 static Widget FindMenuForButton(Widget);
-static void MenuPopdownCB(Widget, XtPointer, XtPointer);
-static void OutsideClickHandler(Widget, XtPointer, xcb_generic_event_t *, Boolean *);
+static void MenuPopdownCB(Widget, IswPointer, IswPointer);
+static void OutsideClickHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
 static Widget FindToplevelShell(Widget);
 
 /* Override SimpleMenu translations for click-to-select behavior.
@@ -94,12 +94,12 @@ static char menuBarChildTranslations[] =
      <LeaveWindow>:     menubar-leave()         \n\
      Any<BtnDown>:      menubar-click()";
 
-static XtActionsRec actionsList[] = {
+static IswActionsRec actionsList[] = {
     {"menubar-dismiss",  MenuBarDismiss},
 };
 
 /* Actions registered globally (for use by MenuButton children) */
-static XtActionsRec globalActionsList[] = {
+static IswActionsRec globalActionsList[] = {
     {"menubar-enter",    MenuBarEnter},
     {"menubar-leave",    MenuBarLeave},
     {"menubar-click",    MenuBarClick},
@@ -118,9 +118,9 @@ MenuBarClassRec menuBarClassRec = {
     FALSE,                              /* class_inited           */
     Initialize,                         /* initialize             */
     NULL,                               /* initialize_hook        */
-    XtInheritRealize,                   /* realize                */
+    IswInheritRealize,                   /* realize                */
     actionsList,                        /* actions                */
-    XtNumber(actionsList),              /* num_actions            */
+    IswNumber(actionsList),              /* num_actions            */
     NULL,                               /* resources              */
     0,                                  /* resource_count         */
     NULLQUARK,                          /* xrm_class              */
@@ -129,25 +129,25 @@ MenuBarClassRec menuBarClassRec = {
     TRUE,                               /* compress_enterleave    */
     FALSE,                              /* visible_interest       */
     Destroy,                            /* destroy                */
-    XtInheritResize,                    /* resize                 */
+    IswInheritResize,                    /* resize                 */
     Redisplay,                          /* expose                 */
     NULL,                               /* set_values             */
     NULL,                               /* set_values_hook        */
-    XtInheritSetValuesAlmost,           /* set_values_almost      */
+    IswInheritSetValuesAlmost,           /* set_values_almost      */
     NULL,                               /* get_values_hook        */
     NULL,                               /* accept_focus           */
-    XtVersion,                          /* version                */
+    IswVersion,                          /* version                */
     NULL,                               /* callback_private       */
     defaultTranslations,                /* tm_table               */
-    XtInheritQueryGeometry,             /* query_geometry         */
-    XtInheritDisplayAccelerator,        /* display_accelerator    */
+    IswInheritQueryGeometry,             /* query_geometry         */
+    IswInheritDisplayAccelerator,        /* display_accelerator    */
     NULL                                /* extension              */
   },
   { /* composite */
-    XtInheritGeometryManager,           /* geometry_manager       */
-    XtInheritChangeManaged,             /* change_managed         */
+    IswInheritGeometryManager,           /* geometry_manager       */
+    IswInheritChangeManaged,             /* change_managed         */
     InsertChild,                        /* insert_child           */
-    XtInheritDeleteChild,               /* delete_child           */
+    IswInheritDeleteChild,               /* delete_child           */
     NULL                                /* extension              */
   },
   { /* box */
@@ -171,7 +171,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     (void)event; (void)region;
 
-    if (!XtIsRealized(w) || w->core.width == 0 || w->core.height == 0)
+    if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
         return;
 
     ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
@@ -210,8 +210,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* Register global actions once so MenuButton children can find them */
     if (!globalActionsRegistered) {
-        XtAppAddActions(XtWidgetToApplicationContext(new),
-                        globalActionsList, XtNumber(globalActionsList));
+        IswAppAddActions(IswWidgetToApplicationContext(new),
+                        globalActionsList, IswNumber(globalActionsList));
         globalActionsRegistered = TRUE;
     }
 }
@@ -232,21 +232,21 @@ InsertChild(Widget child)
     (*boxClassRec.composite_class.insert_child)(child);
 
     /* If the child is a MenuButton, style it for menubar use */
-    if (XtIsSubclass(child, menuButtonWidgetClass)) {
+    if (IswIsSubclass(child, menuButtonWidgetClass)) {
         Arg args[6];
         Cardinal n = 0;
-        static XtTranslations parsed = NULL;
+        static IswTranslations parsed = NULL;
 
         /* Flat appearance: no border, no 3D shadow, no highlight frame */
-        XtSetArg(args[n], XtNborderWidth, 0); n++;
-        XtSetArg(args[n], XtNinternalWidth, 6); n++;
-        XtSetArg(args[n], XtNinternalHeight, 2); n++;
-        XtSetArg(args[n], XtNborderStrokeWidth, 0); n++;
-        XtSetValues(child, args, n);
+        IswSetArg(args[n], IswNborderWidth, 0); n++;
+        IswSetArg(args[n], IswNinternalWidth, 6); n++;
+        IswSetArg(args[n], IswNinternalHeight, 2); n++;
+        IswSetArg(args[n], IswNborderStrokeWidth, 0); n++;
+        IswSetValues(child, args, n);
 
         if (parsed == NULL)
-            parsed = XtParseTranslationTable(menuBarChildTranslations);
-        XtOverrideTranslations(child, parsed);
+            parsed = IswParseTranslationTable(menuBarChildTranslations);
+        IswOverrideTranslations(child, parsed);
     }
 }
 
@@ -265,14 +265,14 @@ MenuBarEnter(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
 {
     MenuBarWidget mbw;
 
-    if (!XtIsSubclass(w, menuButtonWidgetClass))
+    if (!IswIsSubclass(w, menuButtonWidgetClass))
         return;
-    mbw = (MenuBarWidget) XtParent(w);
-    if (!XtIsSubclass((Widget)mbw, menuBarWidgetClass))
+    mbw = (MenuBarWidget) IswParent(w);
+    if (!IswIsSubclass((Widget)mbw, menuBarWidgetClass))
         return;
 
     /* Highlight the button on hover */
-    XtCallActionProc(w, "highlight", event, NULL, 0);
+    IswCallActionProc(w, "highlight", event, NULL, 0);
 
     /* If a menu is open and we entered a different button, switch */
     if (mbw->menu_bar.menu_is_open && w != mbw->menu_bar.active_button)
@@ -288,17 +288,17 @@ MenuBarLeave(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
 {
     MenuBarWidget mbw;
 
-    if (!XtIsSubclass(w, menuButtonWidgetClass))
+    if (!IswIsSubclass(w, menuButtonWidgetClass))
         return;
-    mbw = (MenuBarWidget) XtParent(w);
-    if (!XtIsSubclass((Widget)mbw, menuBarWidgetClass))
+    mbw = (MenuBarWidget) IswParent(w);
+    if (!IswIsSubclass((Widget)mbw, menuBarWidgetClass))
         return;
 
     /* Keep the active button highlighted while its menu is open */
     if (mbw->menu_bar.menu_is_open && w == mbw->menu_bar.active_button)
         return;
 
-    XtCallActionProc(w, "reset", event, NULL, 0);
+    IswCallActionProc(w, "reset", event, NULL, 0);
 }
 
 /*
@@ -310,10 +310,10 @@ MenuBarClick(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
 {
     MenuBarWidget mbw;
 
-    if (!XtIsSubclass(w, menuButtonWidgetClass))
+    if (!IswIsSubclass(w, menuButtonWidgetClass))
         return;
-    mbw = (MenuBarWidget) XtParent(w);
-    if (!XtIsSubclass((Widget)mbw, menuBarWidgetClass))
+    mbw = (MenuBarWidget) IswParent(w);
+    if (!IswIsSubclass((Widget)mbw, menuBarWidgetClass))
         return;
 
     if (mbw->menu_bar.menu_is_open) {
@@ -338,7 +338,7 @@ MenuBarDismiss(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
 {
     MenuBarWidget mbw = (MenuBarWidget) w;
 
-    if (!XtIsSubclass(w, menuBarWidgetClass))
+    if (!IswIsSubclass(w, menuBarWidgetClass))
         return;
 
     if (mbw->menu_bar.menu_is_open)
@@ -363,9 +363,9 @@ FindMenuForButton(Widget button)
 
     temp = button;
     while (temp != NULL) {
-        menu = XtNameToWidget(temp, mbtn->menu_button.menu_name);
+        menu = IswNameToWidget(temp, mbtn->menu_button.menu_name);
         if (menu == NULL)
-            temp = XtParent(temp);
+            temp = IswParent(temp);
         else
             break;
     }
@@ -383,7 +383,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     Position button_x, button_y;
     Arg arglist[2];
     Cardinal num_args;
-    static XtTranslations menu_translations = NULL;
+    static IswTranslations menu_translations = NULL;
 
     menu = FindMenuForButton(button);
     if (menu == NULL)
@@ -392,25 +392,25 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     /* Remove border from menu */
     {
         Arg flat[1];
-        XtSetArg(flat[0], XtNborderWidth, 0);
-        XtSetValues(menu, flat, 1);
+        IswSetArg(flat[0], IswNborderWidth, 0);
+        IswSetValues(menu, flat, 1);
     }
 
-    if (!XtIsRealized(menu))
-        XtRealizeWidget(menu);
+    if (!IswIsRealized(menu))
+        IswRealizeWidget(menu);
 
     /* Position menu below the button */
     menu_width = menu->core.width + 2 * menu->core.border_width;
     button_height = button->core.height + 2 * button->core.border_width;
     menu_height = menu->core.height + 2 * menu->core.border_width;
 
-    XtTranslateCoords(button, 0, 0, &button_x, &button_y);
+    IswTranslateCoords(button, 0, 0, &button_x, &button_y);
     menu_x = button_x;
     menu_y = button_y + button_height;
 
     /* Clamp to screen edges */
     if (menu_x >= 0) {
-        int scr_width = WidthOfScreen(XtScreen(menu));
+        int scr_width = WidthOfScreen(IswScreen(menu));
         if (menu_x + menu_width > scr_width)
             menu_x = scr_width - menu_width;
     }
@@ -418,7 +418,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
         menu_x = 0;
 
     if (menu_y >= 0) {
-        int scr_height = HeightOfScreen(XtScreen(menu));
+        int scr_height = HeightOfScreen(IswScreen(menu));
         if (menu_y + menu_height > scr_height)
             menu_y = scr_height - menu_height;
     }
@@ -426,43 +426,43 @@ OpenMenu(MenuBarWidget mbw, Widget button)
         menu_y = 0;
 
     num_args = 0;
-    XtSetArg(arglist[num_args], XtNx, menu_x); num_args++;
-    XtSetArg(arglist[num_args], XtNy, menu_y); num_args++;
-    XtSetValues(menu, arglist, num_args);
+    IswSetArg(arglist[num_args], IswNx, menu_x); num_args++;
+    IswSetArg(arglist[num_args], IswNy, menu_y); num_args++;
+    IswSetValues(menu, arglist, num_args);
 
     /* Override SimpleMenu translations for click-to-select behavior */
     if (menu_translations == NULL)
-        menu_translations = XtParseTranslationTable(menuBarMenuTranslations);
-    XtOverrideTranslations(menu, menu_translations);
+        menu_translations = IswParseTranslationTable(menuBarMenuTranslations);
+    IswOverrideTranslations(menu, menu_translations);
 
     /* Pop up without grab -- we handle dismissal ourselves */
-    XtPopup(menu, XtGrabNone);
+    IswPopup(menu, IswGrabNone);
 
     /* X server pointer grab — delivers all button events (scroll, outside
      * clicks) to the menu window. Same technique as GTK/Motif popups. */
-    if (XtIsRealized(menu)) {
-        xcb_grab_pointer(XtDisplay(menu), True, XtWindow(menu),
+    if (IswIsRealized(menu)) {
+        xcb_grab_pointer(IswDisplay(menu), True, IswWindow(menu),
             XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
             XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
             XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
             XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
-        xcb_flush(XtDisplay(menu));
+        xcb_flush(IswDisplay(menu));
     }
 
     /* Visually activate the button (inverted/set state) */
-    XtCallActionProc(button, "set", NULL, NULL, 0);
-    XtCallActionProc(button, "highlight", NULL, (String[]){"Always"}, 1);
+    IswCallActionProc(button, "set", NULL, NULL, 0);
+    IswCallActionProc(button, "highlight", NULL, (String[]){"Always"}, 1);
 
     /* Register popdown callback to clean up state */
-    XtAddCallback(menu, XtNpopdownCallback, MenuPopdownCB, (XtPointer)mbw);
+    IswAddCallback(menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
 
     /* Install click-outside handler on toplevel shell */
     {
         Widget toplevel = FindToplevelShell((Widget)mbw);
         if (toplevel)
-            XtAddEventHandler(toplevel, DISMISS_MASK, False,
-                              OutsideClickHandler, (XtPointer)mbw);
+            IswAddEventHandler(toplevel, DISMISS_MASK, False,
+                              OutsideClickHandler, (IswPointer)mbw);
     }
 
     mbw->menu_bar.active_button = button;
@@ -484,24 +484,24 @@ CloseMenu(MenuBarWidget mbw)
     menu = mbw->menu_bar.active_menu;
     button = mbw->menu_bar.active_button;
 
-    xcb_ungrab_pointer(XtDisplay((Widget)mbw), XCB_CURRENT_TIME);
-    xcb_flush(XtDisplay((Widget)mbw));
+    xcb_ungrab_pointer(IswDisplay((Widget)mbw), XCB_CURRENT_TIME);
+    xcb_flush(IswDisplay((Widget)mbw));
 
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);
     if (toplevel)
-        XtRemoveEventHandler(toplevel, DISMISS_MASK, False,
-                             OutsideClickHandler, (XtPointer)mbw);
+        IswRemoveEventHandler(toplevel, DISMISS_MASK, False,
+                             OutsideClickHandler, (IswPointer)mbw);
 
     if (menu) {
-        XtRemoveCallback(menu, XtNpopdownCallback, MenuPopdownCB, (XtPointer)mbw);
-        XtPopdown(menu);
+        IswRemoveCallback(menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
+        IswPopdown(menu);
     }
 
     /* Reset the button visual state */
     if (button) {
-        XtCallActionProc(button, "unset", NULL, NULL, 0);
-        XtCallActionProc(button, "unhighlight", NULL, NULL, 0);
+        IswCallActionProc(button, "unset", NULL, NULL, 0);
+        IswCallActionProc(button, "unhighlight", NULL, NULL, 0);
     }
 
     mbw->menu_bar.active_button = NULL;
@@ -519,24 +519,24 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
     Widget old_menu = mbw->menu_bar.active_menu;
     Widget toplevel;
 
-    xcb_ungrab_pointer(XtDisplay((Widget)mbw), XCB_CURRENT_TIME);
-    xcb_flush(XtDisplay((Widget)mbw));
+    xcb_ungrab_pointer(IswDisplay((Widget)mbw), XCB_CURRENT_TIME);
+    xcb_flush(IswDisplay((Widget)mbw));
 
     /* Remove popdown callback and click-outside handler from old menu */
     toplevel = FindToplevelShell((Widget)mbw);
     if (toplevel)
-        XtRemoveEventHandler(toplevel, DISMISS_MASK, False,
-                             OutsideClickHandler, (XtPointer)mbw);
+        IswRemoveEventHandler(toplevel, DISMISS_MASK, False,
+                             OutsideClickHandler, (IswPointer)mbw);
 
     if (old_menu) {
-        XtRemoveCallback(old_menu, XtNpopdownCallback, MenuPopdownCB, (XtPointer)mbw);
-        XtPopdown(old_menu);
+        IswRemoveCallback(old_menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
+        IswPopdown(old_menu);
     }
 
     /* Reset old button visual state */
     if (old_button) {
-        XtCallActionProc(old_button, "unset", NULL, NULL, 0);
-        XtCallActionProc(old_button, "unhighlight", NULL, NULL, 0);
+        IswCallActionProc(old_button, "unset", NULL, NULL, 0);
+        IswCallActionProc(old_button, "unhighlight", NULL, NULL, 0);
     }
 
     mbw->menu_bar.active_button = NULL;
@@ -552,7 +552,7 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
  * Cleans up MenuBar state.
  */
 static void
-MenuPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
+MenuPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
 {
     MenuBarWidget mbw = (MenuBarWidget) client_data;
     Widget button, toplevel;
@@ -562,21 +562,21 @@ MenuPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
 
     button = mbw->menu_bar.active_button;
 
-    xcb_ungrab_pointer(XtDisplay((Widget)mbw), XCB_CURRENT_TIME);
-    xcb_flush(XtDisplay((Widget)mbw));
+    xcb_ungrab_pointer(IswDisplay((Widget)mbw), XCB_CURRENT_TIME);
+    xcb_flush(IswDisplay((Widget)mbw));
 
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);
     if (toplevel)
-        XtRemoveEventHandler(toplevel, DISMISS_MASK, False,
-                             OutsideClickHandler, (XtPointer)mbw);
+        IswRemoveEventHandler(toplevel, DISMISS_MASK, False,
+                             OutsideClickHandler, (IswPointer)mbw);
 
-    XtRemoveCallback(menu, XtNpopdownCallback, MenuPopdownCB, (XtPointer)mbw);
+    IswRemoveCallback(menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
 
     /* Reset button visual state */
     if (button) {
-        XtCallActionProc(button, "unset", NULL, NULL, 0);
-        XtCallActionProc(button, "unhighlight", NULL, NULL, 0);
+        IswCallActionProc(button, "unset", NULL, NULL, 0);
+        IswCallActionProc(button, "unhighlight", NULL, NULL, 0);
     }
 
     mbw->menu_bar.active_button = NULL;
@@ -589,7 +589,7 @@ MenuPopdownCB(Widget menu, XtPointer client_data, XtPointer call_data)
  * clicks, focus loss, minimize, or visibility changes.
  */
 static void
-OutsideClickHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event, Boolean *cont)
+OutsideClickHandler(Widget w, IswPointer client_data, xcb_generic_event_t *event, Boolean *cont)
 {
     MenuBarWidget mbw = (MenuBarWidget) client_data;
     uint8_t type;
@@ -614,14 +614,14 @@ OutsideClickHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event,
         Widget target;
 
         /* Check if the click is on the menubar itself or any of its children */
-        target = XtWindowToWidget(XtDisplay((Widget)mbw), bev->event);
+        target = IswWindowToWidget(IswDisplay((Widget)mbw), bev->event);
         if (target == NULL) {
             CloseMenu(mbw);
             return;
         }
 
         /* If click is on a MenuButton child of this menubar, let MenuBarClick handle it */
-        if (XtParent(target) == (Widget)mbw && XtIsSubclass(target, menuButtonWidgetClass))
+        if (IswParent(target) == (Widget)mbw && IswIsSubclass(target, menuButtonWidgetClass))
             return;
 
         /* If click is on the menubar itself, ignore */
@@ -634,7 +634,7 @@ OutsideClickHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event,
             while (check != NULL) {
                 if (check == mbw->menu_bar.active_menu)
                     return;
-                check = XtParent(check);
+                check = IswParent(check);
             }
         }
 
@@ -649,7 +649,7 @@ OutsideClickHandler(Widget w, XtPointer client_data, xcb_generic_event_t *event,
 static Widget
 FindToplevelShell(Widget w)
 {
-    while (w != NULL && !XtIsShell(w))
-        w = XtParent(w);
+    while (w != NULL && !IswIsShell(w))
+        w = IswParent(w);
     return w;
 }

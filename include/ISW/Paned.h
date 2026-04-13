@@ -61,7 +61,7 @@ SOFTWARE.
 #ifndef _ISW_IswPaned_h
 #define _ISW_IswPaned_h
 
-#include <X11/Constraint.h>
+#include <ISW/Constraint.h>
 
 /****************************************************************
  *
@@ -73,9 +73,9 @@ SOFTWARE.
 
  Name		         Class		   RepType	    Default Value
  ----		         -----		   -------	    -------------
- background	         Background	   Pixel	    XtDefaultBackground
+ background	         Background	   Pixel	    IswDefaultBackground
  betweenCursor	         Cursor	           Cursor	    **
- border		         BorderColor       Pixel	    XtDefaultForeground
+ border		         BorderColor       Pixel	    IswDefaultForeground
  borderWidth	         BorderWidth       Dimension	    1
  cursor		         Cursor	           Cursor	    None
  destroyCallback         Callback	   Pointer	    NULL
@@ -84,12 +84,12 @@ SOFTWARE.
  gripCursor	         Cursor	           Cursor	    **
  horizontalGripCursol    Cursor	           Cursor	    sb_h_double_arrow
  horizontalBetweencursor Cursor	           Cursor	    sb_up_arrow
- internalBorderColor     BorderColor	   Pixel	    XtDefaultForeground
+ internalBorderColor     BorderColor	   Pixel	    IswDefaultForeground
  internalBorderWidth     BorderWidth	   Position	    1
  leftCursor	         Cursor	           Cursor	    sb_left_arrow
  lowerCursor	         Cursor	           Cursor	    sb_down_arrow
  mappedWhenManaged       MappedWhenManaged Boolean	    True
- orientation             Orientation       XtOrientation    XtorientVertical
+ orientation             Orientation       IswOrientation    XtorientVertical
  refigureMode	         Boolean	   Boolean	    On
  rightCursor	         Cursor	           Cursor           sb_right_arrow
  sensitive	         Sensitive	   Boolean	    True
@@ -123,34 +123,34 @@ CONSTRAINT RESOURCES:
 #define PANED_GRIP_SIZE 0
 
 /* New Fields */
-#define XtNallowResize "allowResize"
-#define XtNbetweenCursor "betweenCursor"
-#define XtNverticalBetweenCursor "verticalBetweenCursor"
-#define XtNhorizontalBetweenCursor "horizontalBetweenCursor"
-#define XtNgripCursor "gripCursor"
-#define XtNgripIndent "gripIndent"
-#define XtNhorizontalGripCursor "horizontalGripCursor"
-#define XtNinternalBorderColor "internalBorderColor"
-#define XtNinternalBorderWidth "internalBorderWidth"
-#define XtNleftCursor "leftCursor"
-#define XtNlowerCursor "lowerCursor"
-#define XtNrefigureMode "refigureMode"
-#define XtNposition "position"
-#define XtNmin "min"
-#define XtNmax "max"
-#define XtNpreferredPaneSize "preferredPaneSize"
-#define XtNresizeToPreferred "resizeToPreferred"
-#define XtNrightCursor "rightCursor"
-#define XtNshowGrip "showGrip"
-#define XtNskipAdjust "skipAdjust"
-#define XtNupperCursor "upperCursor"
-#define XtNverticalGripCursor "verticalGripCursor"
+#define IswNallowResize "allowResize"
+#define IswNbetweenCursor "betweenCursor"
+#define IswNverticalBetweenCursor "verticalBetweenCursor"
+#define IswNhorizontalBetweenCursor "horizontalBetweenCursor"
+#define IswNgripCursor "gripCursor"
+#define IswNgripIndent "gripIndent"
+#define IswNhorizontalGripCursor "horizontalGripCursor"
+#define IswNinternalBorderColor "internalBorderColor"
+#define IswNinternalBorderWidth "internalBorderWidth"
+#define IswNleftCursor "leftCursor"
+#define IswNlowerCursor "lowerCursor"
+#define IswNrefigureMode "refigureMode"
+#define IswNposition "position"
+#define IswNmin "min"
+#define IswNmax "max"
+#define IswNpreferredPaneSize "preferredPaneSize"
+#define IswNresizeToPreferred "resizeToPreferred"
+#define IswNrightCursor "rightCursor"
+#define IswNshowGrip "showGrip"
+#define IswNskipAdjust "skipAdjust"
+#define IswNupperCursor "upperCursor"
+#define IswNverticalGripCursor "verticalGripCursor"
 
-#define XtCGripIndent "GripIndent"
-#define XtCMin "Min"
-#define XtCMax "Max"
-#define XtCPreferredPaneSize "PreferredPaneSize"
-#define XtCShowGrip "ShowGrip"
+#define IswCGripIndent "GripIndent"
+#define IswCMin "Min"
+#define IswCMax "Max"
+#define IswCPreferredPaneSize "PreferredPaneSize"
+#define IswCShowGrip "ShowGrip"
 
 /* Class record constant */
 extern WidgetClass panedWidgetClass;

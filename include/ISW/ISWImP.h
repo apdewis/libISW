@@ -54,14 +54,14 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef _ISW_IswImP_h
 #define _ISW_IswImP_h
 
-#define XtNinputMethod		"inputMethod"
-#define XtCInputMethod		"InputMethod"
-#define XtNpreeditType		"preeditType"
-#define XtCPreeditType		"PreeditType"
-#define XtNopenIm		"openIm"
-#define XtCOpenIm		"OpenIm"
-#define XtNsharedIc		"sharedIc"
-#define XtCSharedIc		"SharedIc"
+#define IswNinputMethod		"inputMethod"
+#define IswCInputMethod		"InputMethod"
+#define IswNpreeditType		"preeditType"
+#define IswCPreeditType		"PreeditType"
+#define IswNopenIm		"openIm"
+#define IswCOpenIm		"OpenIm"
+#define IswNsharedIc		"sharedIc"
+#define IswCSharedIc		"SharedIc"
 
 #include <ISW/Text.h>
 #include <ISW/ISWXftCompat.h>  /* For ISWFontSet typedef */
