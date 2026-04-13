@@ -77,6 +77,11 @@ typedef struct {
     int             col_resize_index;  /* which column separator */
     Position        col_resize_start_x;
     Dimension       col_resize_start_w;
+
+    /* column resize cursors */
+    xcb_cursor_t    resize_cursor;     /* sb_h_double_arrow */
+    xcb_cursor_t    default_cursor;    /* widget's normal cursor */
+    Boolean         resize_cursor_set; /* True when resize cursor is active */
 } ListViewPart;
 
 typedef struct _ListViewRec {

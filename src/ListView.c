@@ -24,6 +24,10 @@
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#include <xcb/xcb_cursor.h>
+
+#define XC_sb_h_double_arrow 108
+#define XC_left_ptr          68
 
 #define CELL_PAD_X   6
 #define CELL_PAD_Y   2
@@ -84,6 +88,7 @@ static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void SelectRow(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void BandDrag(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void BandFinish(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void TrackMotion(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void MoveCursor(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void ExtendSelection(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void ActivateCursor(Widget, xcb_generic_event_t *, String *, Cardinal *);
@@ -95,6 +100,7 @@ static char defaultTranslations[] =
     "<Btn1Down>: SelectRow()\n"
     "<Btn1Motion>: BandDrag()\n"
     "<Btn1Up>: BandFinish()\n"
+    "<Motion>: TrackMotion()\n"
     "Ctrl<Key>a: SelectAll()\n"
     "Shift<Key>Up: ExtendSelection(up)\n"
     "Shift<Key>Down: ExtendSelection(down)\n"
@@ -111,6 +117,7 @@ static XtActionsRec actions[] = {
     {"SelectRow",        SelectRow},
     {"BandDrag",         BandDrag},
     {"BandFinish",       BandFinish},
+    {"TrackMotion",      TrackMotion},
     {"MoveCursor",       MoveCursor},
     {"ExtendSelection",  ExtendSelection},
     {"ActivateCursor",   ActivateCursor},
@@ -424,6 +431,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     lv->listView.col_resize_active = False;
     lv->listView.col_resize_index = -1;
     lv->listView.total_col_w = 0;
+    lv->listView.resize_cursor = XCB_CURSOR_NONE;
+    lv->listView.default_cursor = XCB_CURSOR_NONE;
+    lv->listView.resize_cursor_set = False;
     lv->listView.sort_column = -1;
     lv->listView.sort_direction = IswListViewSortNone;
 
@@ -438,6 +448,41 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     ComputeMetrics(lv);
 }
 
+static xcb_cursor_t
+CreateGlyphCursor(xcb_connection_t *conn, unsigned int shape)
+{
+    static xcb_font_t cursor_font = XCB_NONE;
+
+    if (cursor_font == XCB_NONE) {
+        cursor_font = xcb_generate_id(conn);
+        xcb_open_font(conn, cursor_font, 6, "cursor");
+    }
+    xcb_cursor_t cursor = xcb_generate_id(conn);
+    xcb_create_glyph_cursor(conn, cursor,
+                            cursor_font, cursor_font,
+                            shape, shape + 1,
+                            0, 0, 0,
+                            65535, 65535, 65535);
+    return cursor;
+}
+
+static xcb_cursor_t
+LoadCursor(xcb_connection_t *conn, xcb_screen_t *screen,
+           const char *name, unsigned int shape)
+{
+    xcb_cursor_context_t *ctx;
+    if (xcb_cursor_context_new(conn, screen, &ctx) < 0)
+        return CreateGlyphCursor(conn, shape);
+
+    xcb_cursor_t cursor = xcb_cursor_load_cursor(ctx, name);
+    xcb_cursor_context_free(ctx);
+
+    if (cursor == XCB_CURSOR_NONE)
+        return CreateGlyphCursor(conn, shape);
+
+    return cursor;
+}
+
 static void
 Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attributes)
 {
@@ -447,6 +492,11 @@ Realize(xcb_connection_t *dpy, Widget w, XtValueMask *valueMask, uint32_t *attri
         (dpy, w, valueMask, attributes);
 
     lv->listView.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+
+    xcb_screen_t *screen = w->core.screen;
+    lv->listView.resize_cursor = LoadCursor(dpy, screen,
+        "sb_h_double_arrow", XC_sb_h_double_arrow);
+    lv->listView.default_cursor = ((SimpleWidget)w)->simple.cursor;
 }
 
 static void
@@ -459,12 +509,43 @@ Destroy(Widget w)
     FreeSelFlags(lv);
     if (lv->listView.render_ctx)
         ISWRenderDestroy(lv->listView.render_ctx);
+    if (lv->listView.resize_cursor != XCB_CURSOR_NONE)
+        xcb_free_cursor(XtDisplay(w), lv->listView.resize_cursor);
 }
 
 static void
 Resize(Widget w)
 {
     ListViewWidget lv = (ListViewWidget) w;
+    int n = lv->listView.col_count;
+
+    if (n > 0 && w->core.width > 0) {
+        Dimension avail = w->core.width;
+        Dimension total = 0;
+        for (int i = 0; i < n; i++)
+            total += lv->listView.col_info[i].width;
+
+        if (total != avail) {
+            /* Distribute proportionally, respecting min_width */
+            double scale = (double)avail / (double)total;
+            Dimension sum = 0;
+
+            for (int i = 0; i < n; i++) {
+                Dimension nw;
+                if (i == n - 1) {
+                    /* Last column gets remainder to avoid rounding gaps */
+                    nw = avail - sum;
+                } else {
+                    nw = (Dimension)(lv->listView.col_info[i].width * scale + 0.5);
+                }
+                if (nw < lv->listView.col_info[i].min_width)
+                    nw = lv->listView.col_info[i].min_width;
+                lv->listView.col_info[i].width = nw;
+                sum += nw;
+            }
+        }
+    }
+
     ComputeMetrics(lv);
     if (XtIsRealized(w))
         Redisplay(w, NULL, 0);
@@ -814,6 +895,41 @@ BandRedrawWorkProc(XtPointer closure)
  * ================================================================ */
 
 static void
+UpdateResizeCursor(ListViewWidget lv, Boolean over_grip)
+{
+    Widget w = (Widget)lv;
+    if (!XtIsRealized(w))
+        return;
+
+    if (over_grip && !lv->listView.resize_cursor_set) {
+        uint32_t value = lv->listView.resize_cursor;
+        xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+                                     XCB_CW_CURSOR, &value);
+        lv->listView.resize_cursor_set = True;
+    } else if (!over_grip && lv->listView.resize_cursor_set) {
+        uint32_t value = lv->listView.default_cursor;
+        xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
+                                     XCB_CW_CURSOR, &value);
+        lv->listView.resize_cursor_set = False;
+    }
+}
+
+static void
+TrackMotion(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+{
+    ListViewWidget lv = (ListViewWidget) w;
+    (void)params; (void)num_params;
+
+    uint8_t type = event->response_type & ~0x80;
+    if (type != XCB_MOTION_NOTIFY)
+        return;
+
+    xcb_motion_notify_event_t *ev = (xcb_motion_notify_event_t *)event;
+    int col = ResizeHitTest(lv, ev->event_x, ev->event_y);
+    UpdateResizeCursor(lv, col >= 0);
+}
+
+static void
 SelectRow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     ListViewWidget lv = (ListViewWidget) w;
@@ -836,6 +952,7 @@ SelectRow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
         lv->listView.col_resize_index = resize_col;
         lv->listView.col_resize_start_x = x;
         lv->listView.col_resize_start_w = lv->listView.col_info[resize_col].width;
+        UpdateResizeCursor(lv, True);
         return;
     }
 
@@ -1007,6 +1124,7 @@ BandFinish(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
     if (lv->listView.col_resize_active) {
         lv->listView.col_resize_active = False;
         lv->listView.col_resize_index = -1;
+        UpdateResizeCursor(lv, False);
         return;
     }
 
