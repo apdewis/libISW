@@ -905,11 +905,13 @@ UpdateResizeCursor(ListViewWidget lv, Boolean over_grip)
         uint32_t value = lv->listView.resize_cursor;
         xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
                                      XCB_CW_CURSOR, &value);
+        xcb_flush(XtDisplay(w));
         lv->listView.resize_cursor_set = True;
     } else if (!over_grip && lv->listView.resize_cursor_set) {
         uint32_t value = lv->listView.default_cursor;
         xcb_change_window_attributes(XtDisplay(w), XtWindow(w),
                                      XCB_CW_CURSOR, &value);
+        xcb_flush(XtDisplay(w));
         lv->listView.resize_cursor_set = False;
     }
 }
@@ -924,8 +926,21 @@ TrackMotion(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_
     if (type != XCB_MOTION_NOTIFY)
         return;
 
+    /* Skip during active drag — cursor is already set */
+    if (lv->listView.col_resize_active || lv->listView.band_active)
+        return;
+
     xcb_motion_notify_event_t *ev = (xcb_motion_notify_event_t *)event;
-    int col = ResizeHitTest(lv, ev->event_x, ev->event_y);
+    Position y = ev->event_y;
+
+    /* Outside header — just restore default if needed */
+    if ((int)y >= (int)lv->listView.computed_hdr_h) {
+        if (lv->listView.resize_cursor_set)
+            UpdateResizeCursor(lv, False);
+        return;
+    }
+
+    int col = ResizeHitTest(lv, ev->event_x, y);
     UpdateResizeCursor(lv, col >= 0);
 }
 
@@ -1080,9 +1095,19 @@ BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
             Dimension min_w = lv->listView.col_info[ci].min_width;
             if (new_w < (int)min_w)
                 new_w = (int)min_w;
+            if ((Dimension)new_w == lv->listView.col_info[ci].width)
+                return;
             lv->listView.col_info[ci].width = (Dimension)new_w;
-            ComputeMetrics(lv);
-            Redisplay(w, NULL, 0);
+            Dimension tw = 0;
+            for (int i = 0; i < lv->listView.col_count; i++)
+                tw += lv->listView.col_info[i].width;
+            lv->listView.total_col_w = tw;
+            lv->listView.redraw_pending = True;
+            if (!lv->listView.work_proc_id) {
+                lv->listView.work_proc_id = XtAppAddWorkProc(
+                    XtWidgetToApplicationContext(w),
+                    BandRedrawWorkProc, (XtPointer)w);
+            }
         }
         return;
     }
