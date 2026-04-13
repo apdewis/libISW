@@ -535,8 +535,7 @@ SetValues(Widget current, Widget request, Widget desired, ArgList args, Cardinal
 static void
 Resize (Widget w)
 {
-    /* XCB_GRAVITY_BIT_FORGET has taken care of background, but thumb may
-     * have to move as a result of the new size. */
+    /* Thumb may have to move as a result of the new size. */
     SetDimensions ((ScrollbarWidget) w);
     Redisplay (w, NULL, 0);
 }

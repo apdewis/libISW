@@ -172,7 +172,6 @@ ComputeWindowAttributes(Widget widget,
                         uint64_t *value_mask,
                         uint32_t *values)
 {
-    XtExposeProc expose;
     uint32_t mask = 0;
     uint32_t value_index = 0;
 
@@ -200,14 +199,26 @@ ComputeWindowAttributes(Widget widget,
         values[value_index++] = widget->core.border_pixel;
     }
 
-    /* XCB_CW_BIT_GRAVITY (bit 4) */
-    LOCK_PROCESS;
-    expose = widget->core.widget_class->core_class.expose;
-    UNLOCK_PROCESS;
-    if (expose == (XtExposeProc) NULL) {
-        mask |= XCB_CW_BIT_GRAVITY;
-        values[value_index++] = XCB_GRAVITY_NORTH_WEST;
-    }
+    /* XCB_CW_BIT_GRAVITY (bit 4)
+     *
+     * Original Xt only set NorthWest gravity for widgets without an expose
+     * handler, leaving widgets with expose handlers at ForgetGravity (the
+     * server default).  ForgetGravity discards all window content on any
+     * geometry change and generates a full-window expose, which causes
+     * visible flicker during scrolling — the Viewport moves its child
+     * window, the server clears it, and every descendant repaints from
+     * scratch.
+     *
+     * NorthWest gravity tells the server to preserve existing pixels on
+     * geometry changes and only expose newly-revealed regions.  For
+     * position-only moves (scrolling) this eliminates the
+     * clear-then-redraw flash entirely.  For resizes, the resize proc
+     * already handles the layout update, and partial exposes are handled
+     * correctly by ISWRender's back-buffer seeding (cairo_xcb_begin copies
+     * the current window surface into the back buffer before drawing).
+     */
+    mask |= XCB_CW_BIT_GRAVITY;
+    values[value_index++] = XCB_GRAVITY_NORTH_WEST;
 
     /* XCB_CW_EVENT_MASK (bit 11) */
     mask |= XCB_CW_EVENT_MASK;
