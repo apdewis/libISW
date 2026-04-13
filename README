@@ -35,22 +35,26 @@ dependencies on traditional Xlib or libXt.
 
 BUILDING
 --------
-See BUILD_INSTRUCTIONS.md for detailed build instructions.
+    cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build -j$(nproc)
 
-Quick start:
-    ./autogen.sh
-    ./configure --enable-arrow-scrollbars --enable-internationalization
-    make
-    sudo make install
+Run the demo app (exercises all major widgets):
+    cmake --build build -j$(nproc) --target demo
 
 DEPENDENCIES
 ------------
-Required build dependencies:
-  - libxcb and XCB extension libraries (xfixes, render, shape, xrm, keysyms)
-  - libxft (Freetype-based font rendering)
-  - libsm, libice (X Session Management)
-  - bison, flex (for parser generation)
-  - Standard build tools (gcc, autoconf, automake, libtool, pkg-config)
+Required:
+  - cmake >= 3.20
+  - libxcb, xcb-xfixes, xcb-shape, xcb-present, xcb-cursor, xcb-xrm,
+    xcb-keysyms (core XCB protocol and extensions)
+  - cairo >= 1.12, cairo-xcb >= 1.12 (rendering backend)
+  - fontconfig, freetype2 (font discovery and metrics)
+  - bison, flex (parser generation for layout engine)
+  - pkg-config
+
+Optional:
+  - xkbcommon (keysym name functions)
+  - egl >= 1.4, cairo-gl >= 1.12 (hardware-accelerated Cairo-EGL backend)
 
 USAGE
 -----
@@ -79,10 +83,139 @@ Example code:
         return 0;
     }
 
+CURRENT STATE
+-------------
+ISW descends from Xaw3d and the X Toolkit Intrinsics (libXt). The entire
+codebase has been converted from Xlib to pure XCB — there are no Xlib calls
+or Xlib link dependencies remaining. The sections below describe what was
+kept, what was removed, what changed, and what is new.
+
+### libXt Intrinsics — kept and converted
+
+All 45 core libXt source files are present, rewritten to use XCB:
+
+    Alloc, ActionHook, ArgList, Callback, Composite, Constraint, Context,
+    Convert, Converters, Core, Create, Destroy, Display, Error, Event,
+    Geometry, GetActKey, GetResList, GetValues, HookObj, Initialize,
+    Intrinsic, Keyboard, Manage, NextEvent, Object, PassivGrab, Pointer,
+    Popup, RectObj, Resources, Selection, SetSens, SetValues, SetWMCW,
+    Shell, TMaction, TMgrab, TMkey, TMparse, TMprint, TMstate, Threads,
+    VarCreate, VarGet, Vendor
+
+The widget class hierarchy (Object → RectObj → Core → Composite →
+Constraint → Shell), resource system, translation manager, callback
+mechanism, and geometry management all function as they did in libXt, with
+XCB types in place of Xlib types (see API changes below).
+
+### libXt — removed
+
+    GCManager.c — Xlib GC (Graphics Context) management was removed
+    entirely. XCB uses value-list-based xcb_create_gc() instead; ISW
+    provides ISWInitGCValues/ISWSetGCForeground/etc. helpers in
+    ISWXcbDraw.h.
+
+### Xaw3d widgets — kept
+
+29 of 30 original Xaw3d widgets are present:
+
+    AsciiSink, AsciiSrc, AsciiText, Box, Command, Dialog, Form, Grip,
+    Label, List, MenuButton, MultiSink, MultiSrc, Paned, Panner,
+    Porthole, Repeater, Scrollbar, Simple, SimpleMenu, SmeBSB, SmeLine,
+    Sme, Text, TextSink, TextSrc, Toggle, Tree, Viewport
+
+### Xaw3d widgets — removed
+
+    StripChart — removed (real-time strip chart plotting widget).
+
+### New widgets
+
+17 widgets not present in Xaw3d:
+
+    ColorPicker, ComboBox, DrawingArea, FlexBox, FontChooser, IconView,
+    ListView, MainWindow, MenuBar, ProgressBar, Slider, SpinBox,
+    StatusBar, Tabs, Tip (tooltips), Toolbar, ScrollWheel
+
+### New subsystems
+
+    ISWRender      — backend-agnostic rendering vtable (Cairo-XCB backend,
+                     Cairo-EGL declared but unimplemented). Widgets draw
+                     through ISWRenderBegin/Draw*/End, never XCB directly.
+    ISWXdnd        — full XDND v5 drag-and-drop (source and target, MIME
+                     types, action negotiation, drag icons).
+    ISWAtoms       — runtime atom interning replacing Xlib's static atoms.
+    ISWXcbDraw     — Xlib drawing function replacements (XDrawString →
+                     ISWXcbDrawString, XCreateBitmapFromData →
+                     ISWCreateBitmapFromData, etc.).
+    ISWImage/PNG   — PNG loading via vendored lodepng.
+    ISWSVG         — SVG loading via vendored nanosvg.
+    ISWI18n        — internationalization scaffolding. The build flag
+                     ISW_INTERNATIONALIZATION (on by default) gates fontset
+                     resource paths and wchar conversion stubs carried over
+                     from Xaw3d, but the actual text pipeline is ASCII
+                     throughout — MultiSink/MultiSrc route through the same
+                     single-byte rendering as AsciiSink. The original Xlib
+                     i18n calls (XwcDrawString, XmbTextExtents,
+                     XCreateFontSet) were removed and not yet replaced.
+                     XIM input method support (ISWIm.c) still calls Xlib
+                     XIM APIs and is disabled (ISW_HAS_XIM=OFF).
+    ResConfig      — live theme resource override hook.
+    Layout         — constraint-based layout engine (bison/flex grammar).
+
+### Public API changes — Xlib types replaced with XCB types
+
+The Xt function names and calling conventions are preserved, but every type
+that referred to an Xlib struct or ID is now its XCB equivalent:
+
+    Xlib type              XCB replacement
+    ─────────────────────  ─────────────────────────
+    Display*               xcb_connection_t*
+    Window                 xcb_window_t
+    Pixmap                 xcb_pixmap_t
+    GC                     xcb_gcontext_t
+    XEvent                 xcb_generic_event_t*
+    Atom                   xcb_atom_t
+    Font                   xcb_font_t
+    Colormap               xcb_colormap_t
+    Cursor                 xcb_cursor_t
+    Visual*                xcb_visualtype_t*
+    Screen*                xcb_screen_t*
+    KeySym                 xcb_keysym_t
+
+These changes propagate into every public typedef and callback signature.
+Examples:
+
+    /* Event handler — XEvent* is now xcb_generic_event_t* */
+    typedef void (*XtEventHandler)(Widget, XtPointer,
+                                   xcb_generic_event_t*, Boolean*);
+
+    /* Type converter — Display* is now xcb_connection_t* */
+    typedef Boolean (*XtTypeConverter)(xcb_connection_t*, XrmValue*,
+                                       Cardinal*, XrmValue*,
+                                       XrmValue*, XtPointer*);
+
+    /* Key procedure */
+    typedef void (*XtKeyProc)(xcb_connection_t*, _XtKeyCode,
+                              Modifiers, Modifiers*, xcb_keysym_t*);
+
+The CorePart widget structure stores xcb_connection_t* (display),
+xcb_window_t (window), xcb_screen_t* (screen), and xcb_colormap_t
+(colormap) directly.
+
+Xlib accessor macros are reimplemented over XCB in XtTypes.h:
+
+    ConnectionNumber(dpy)   → xcb_get_file_descriptor(dpy)
+    DefaultRootWindow(dpy)  → root from xcb_setup_roots_iterator()
+    RootWindowOfScreen(s)   → s->root
+    BlackPixelOfScreen(s)   → s->black_pixel
+    WhitePixelOfScreen(s)   → s->white_pixel
+
+XSetWindowAttributes is provided as a compat struct in XtTypes.h with XCB
+member types. XFontStruct is replaced by XtFontStruct wrapping xcb_font_t
+with FreeType/Fontconfig metrics.
+
 FORKED FROM
 -----------
-This project is an attempt at a modern fork of Xaw3d (X 3D Athena Widget Set).
-
+Modern fork of Xaw3d (X 3D Athena Widget Set).
 
 Original Xaw3d repository:
     git://anongit.freedesktop.org/git/xorg/lib/libXaw3d
@@ -90,12 +223,4 @@ Original Xaw3d repository:
 LICENSE
 -------
 See COPYING file for license information.
-
-TODO
--------
-- UTF-8 support
-- return i18n support
-- Icon support
-- Keyboard navigation (Tab traversal, per-widget key bindings, menu mnemonics) — see KEYBOARD_NAV_PLAN.md
-- Font type refactor (replace XFontStruct compat shim with native ISWFont) — see FONT_REFACTOR_PLAN.md
 
