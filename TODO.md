@@ -129,6 +129,61 @@ Files: Core.c.
 5. Update geometry managers
 6. Update SetValues and resource handling
 
+## Full API rename — Xt → Isw
+
+The embedded libXt uses Xt/Xrm prefixes and lives under include/X11/. This
+made sense when it was a fork of libXt, but the subsequent work — GL backend,
+windowless widgets, platform vtable — will create substantial new code. If the
+rename happens after those changes, every new function, type, and header gets
+written with the old names and then mechanically rewritten. Do it first so all
+new infrastructure uses the final namespace from the start.
+
+### Scope
+
+- Function prefix: Xt → Isw (XtCreateWidget → IswCreateWidget, etc.)
+- Type prefix: Xt → Isw (XtResource → IswResource, XtCallbackProc →
+  IswCallbackProc, XtAppContext → IswAppContext, etc.)
+- Xrm prefix: Xrm → Isw (XrmValue → IswValue, XrmQuark → IswQuark, etc.)
+- Header path: include/X11/ → include/ISW/ (Intrinsic.h, IntrinsicP.h,
+  Core.h, Shell.h, StringDefs.h, etc. move into the ISW namespace)
+- Macro aliases: XtTypes.h Xlib-compat macros (ConnectionNumber,
+  DefaultRootWindow, BlackPixelOfScreen, etc.) get Isw-prefixed
+  replacements
+- Predefined atoms/constants: XA_PRIMARY, XA_STRING etc. become
+  ISW-namespaced or backend-internal details
+- Generated files: util/string.list, util/makestrs need updating so
+  StringDefs.h generates Isw names
+
+### What does NOT change
+
+- ISWRender API — already Isw-namespaced
+- ISW widget names (IswCommand, IswLabel, etc.) — already Isw-namespaced
+- XCB types (xcb_connection_t, xcb_window_t, etc.) — these get abstracted
+  later by the platform vtable, not this rename
+
+### Approach
+
+This is mechanical — sed/script-driven, not design work. But it touches
+every file in the project (~150+ source and header files).
+
+1. Write a rename script mapping old symbols → new symbols. Build the
+   mapping from the public headers (include/X11/*.h) — every Xt/Xrm
+   prefixed typedef, function, macro.
+2. Move include/X11/*.h → include/ISW/ (many already live there)
+3. Run the rename across all source and headers
+4. Update CMakeLists.txt, pkg-config, util/makestrs, util/string.list
+5. Provide compat headers: include/X11/Intrinsic.h that #includes
+   include/ISW/Intrinsic.h with #define aliases, for downstream
+   consumers during transition. Remove after one release cycle.
+6. Update examples/isw_demo to use new names
+7. Verify build, run demo
+
+### Downstream impact
+
+The compat headers mean existing code keeps compiling with deprecation
+warnings. New code uses Isw names. The app developer guide
+(docs/CLAUDE_APP_GUIDE.md) gets updated to reflect the new API.
+
 ## ISWRenderGL — native GL rendering backend (replace Cairo dependency)
 
 Cairo is a bottleneck for multi-platform support. Cairo-XCB ties rendering to
@@ -227,17 +282,177 @@ gradient model proves insufficient.
 This TODO handles the *rendering* side. The ISWPlatform vtable (below)
 handles *everything else* (windows, events, input, etc.). The two connect
 at EGL surface creation: ISWPlatform provides the EGL display/surface,
-ISWRenderGL consumes it. Do this first — it removes the Cairo dependency
-that would otherwise force every new platform to port Cairo.
+ISWRenderGL consumes it.
+
+**Depends on:** Xt → Isw rename (above) — new GL backend code uses Isw
+names from the start.
+
+**Sequencing:** Rename → GL backend → windowless widgets → platform vtable.
+
+## Windowless widgets — eliminate window-per-widget model
+
+The current architecture creates one X window per widget. The X server
+handles clipping, background painting, cursor management, and event routing
+by window ID. This model is incompatible with Arcan (one surface per client
+segment, no window tree) and is unnecessary overhead on X11 for interior
+widgets that don't need their own server-side resource.
+
+Move to a model where only shells, popups, and menus have real platform
+windows. All interior widgets are windowless — they draw into their parent's
+window and receive events via hit-testing.
+
+### What the X server currently does for free
+
+| Service | Current (windowed) | Replacement (windowless) |
+|---|---|---|
+| Event routing | X sends event to window → XtWindowToWidget lookup | Hit-test widget tree at pointer coords |
+| Clipping | Child window clips to parent bounds automatically | ISWRender set_clip_rectangle before each child |
+| Background | X paints XCB_CW_BACK_PIXEL on Expose | Widget paints own background in expose method |
+| Cursor | XCB_CW_CURSOR per window | Track pointer widget, update shell cursor on change |
+| Scrolling | Move child window to negative coords, clip window masks | Coordinate translation + software clip |
+| Enter/Leave | X generates crossing events at window boundaries | Synthesize from pointer motion across widget bounds |
+| Event masks | Per-window xcb_change_window_attributes | Shell selects all types, filter in dispatch |
+| Stacking | X server manages child window z-order | Widget tree order defines paint/hit-test order |
+
+### What stays windowed
+
+- **TopLevelShell / ApplicationShell** — real WM-managed windows
+- **OverrideShell** — menus, tooltips (override-redirect)
+- **TransientShell** — dialogs
+- Optionally **Viewport clip windows** — performance optimization, can be
+  eliminated later
+
+### Phase 1: Windowless widget infrastructure
+
+Add windowless realization path. RectObj (RectObj.c:100) already has
+`realize = NULL` — extend this pattern to Core-derived widgets.
+
+- Add `Boolean windowless` to CorePart, default True for non-shell widgets
+- Windowless realize: skip xcb_create_window, inherit parent's window for
+  drawing context
+- `XtWindow(widget)` returns nearest windowed ancestor's window
+- `XtIsRealized(widget)` returns True if nearest windowed ancestor is
+  realized
+- Modify XtCreateWindow (Intrinsic.c:527) to no-op for windowless widgets
+
+Files: CoreP.h, Core.c, Intrinsic.c, Create.c.
+
+### Phase 2: Hit-test event dispatch
+
+Replace window-based event routing with spatial dispatch for windowless
+widgets.
+
+- Implement `_XtFindWidgetAtPoint(shell, x, y)` — recursive descent
+  through widget tree, test point-in-rectangle, return deepest match.
+  Walk children in reverse stacking order (topmost first).
+- Modify XtDispatchEvent (Event.c:1735+) — when XtWindowToWidget returns
+  a shell, hit-test to find the actual target widget, translate coords
+  to widget-local.
+- Keyboard events: route to focus widget (already logical —
+  Keyboard.c:169 tracks focusWidget, no change needed).
+- Synthesize Enter/Leave: track "pointer widget", on motion compare
+  with hit-test result, generate crossing events on change.
+
+Files: Event.c (~1,200 lines, major rework), Keyboard.c, Pointer.c.
+
+### Phase 3: Expose and rendering
+
+Parent's expose method must walk children and delegate rendering.
+
+- Shell expose: iterate children in stacking order
+- Before each child: push ISWRender clip rectangle to child bounds
+- Translate coordinate origin to child's (x, y)
+- Call child's expose method
+- After: pop clip, restore origin
+- Damage tracking: intersect expose region with each child's bounds,
+  skip children outside damaged area
+- Background painting: widgets already mostly paint their own backgrounds
+  via ISWRender. Remove reliance on X server XCB_CW_BACK_PIXEL — move
+  background fill to start of each widget's expose method.
+
+Files: Core.c (expose dispatch), Shell.c, ISWRender.c (coordinate
+transform helpers), every widget expose method (add background fill).
+
+### Phase 4: Cursor management
+
+- Shell tracks "current cursor widget" — the widget under the pointer
+  from the most recent hit-test
+- On pointer motion: if cursor widget changed, look up new widget's
+  cursor resource, call xcb_change_window_attributes on the shell window
+  (or platform equivalent)
+- Simple.c currently sets cursor per-widget window in Realize — change
+  to store cursor value in widget instance, apply lazily via shell
+
+Files: Simple.c, Shell.c, Event.c (pointer motion hook).
+
+### Phase 5: Viewport scrolling
+
+Viewport.c currently scrolls by moving the child window to negative
+coordinates (XtMoveWidget at Viewport.c:511). The clip window masks
+overflow.
+
+- Replace with scroll offset stored in Viewport instance
+- During child rendering: apply offset as coordinate translation
+- During hit-testing: apply inverse offset
+- Use ISWRender clip rectangle instead of clip window
+- Remove xcb_reparent_window calls (Viewport.c:353, 415-416, 428-429)
+
+Files: Viewport.c (~500 lines, significant rework).
+
+### Phase 6: Geometry management
+
+Widget x, y coordinates are currently relative to parent window and
+applied via xcb_configure_window. For windowless widgets:
+
+- x, y remain relative to parent (no change to geometry negotiation)
+- XtConfigureWidget (Geometry.c:650) skips xcb_configure_window for
+  windowless widgets — just updates fields and triggers
+  expose/
+- XtTranslateCoords (Geometry.c:779) already walks the hierarchy
+  accumulating offsets — continues to work unchanged
+- XtMoveWidget, XtResizeWidget skip X calls for windowless widgets,
+  invalidate affected region in parent instead
+
+Files: Geometry.c.
+
+### Migration strategy
+
+Opt-in per widget class, not a flag day:
+
+1. Build the infrastructure (phases 1-2) with all widgets still windowed
+2. Convert leaf widgets first: Label, Command, Toggle (no children,
+   simple expose)
+3. Convert container widgets: Box, Form, Paned (need expose delegation)
+4. Convert complex widgets: Text, List, Scrollbar (heavy event usage)
+5. Convert Viewport last (scrolling rework)
+6. Shells never convert — they own the real windows
+
+Each step is independently testable via the demo app. A widget can be
+toggled back to windowed by overriding `windowless = False` in its
+class record if problems surface.
+
+### Relationship to other TODOs
+
+**Depends on:** Xt → Isw rename, ISWRenderGL (phase 3 needs render
+clip/transform support that shouldn't be built on Cairo).
+
+**Enables:** ISWPlatform vtable — with windowless widgets, the platform
+only needs to create windows for shells and popups. ISWPlatformWindow
+becomes a small interface instead of the largest abstraction surface.
+ISWPlatformEvent only translates native events at the shell level;
+interior dispatch is pure toolkit logic.
+
+**Sequencing:** Rename → GL backend → windowless widgets → platform vtable.
 
 ## ISWPlatform vtable — abstract all X11/XCB platform dependencies
 
-ISWRender already abstracts drawing, and the GL backend (above) removes the
-Cairo dependency from rendering. The resource system is being abstracted
-separately (above). Everything else — display, windows, events, input, grabs,
-atoms, selections, colormaps, fonts, cursors — is still hardcoded to XCB. This
-needs a platform vtable so backends other than X11 can be supported (Arcan/SHMIF,
-or any platform that provides EGL and an event system).
+ISWRender already abstracts drawing, the GL backend (above) removes the Cairo
+dependency, and windowless widgets (above) reduce the platform surface to
+shells and popups only. The resource system is being abstracted separately
+(above). What remains — display/connection, shell windows, top-level events,
+input, grabs, atoms, selections, colormaps, fonts, cursors — is still hardcoded
+to XCB. This needs a platform vtable so backends other than X11 can be
+supported (Arcan/SHMIF, or any platform that provides EGL and an event system).
 
 ### Vtable structure
 
@@ -368,25 +583,7 @@ the abstract API.
 Files: ISWXdnd.c (~1,800 lines, refactor into vtable), ISWXdnd.h.
 Depends on: ISWPlatformEvent, ISWPlatformWindow, ISWPlatformSelection.
 
-### Full API rename — Xt → Isw
+### Note on API names
 
-Once the platform vtable is in place, the embedded libXt is no longer libXt. It
-is a platform-agnostic toolkit intrinsics layer that happens to have an XCB
-backend. The entire public API should be renamed at that point:
-
-- Function prefix: Xt → Isw (XtCreateWidget → IswCreateWidget, etc.)
-- Type prefix: Xt → Isw (XtResource → IswResource, XtCallbackProc →
-  IswCallbackProc, XtAppContext → IswAppContext, etc.)
-- Xrm prefix: Xrm → Isw (XrmValue → IswValue, XrmQuark → IswQuark, etc.)
-- Header path: include/X11/ → include/ISW/ (Intrinsic.h, IntrinsicP.h, Core.h,
-  Shell.h, StringDefs.h, etc. move into the ISW namespace)
-- Macro aliases: XtTypes.h Xlib-compat macros (ConnectionNumber,
-  DefaultRootWindow, BlackPixelOfScreen, etc.) replaced by ISWPlatform vtable
-  calls
-- Predefined atoms/constants: XA_PRIMARY, XA_STRING etc. become ISW-namespaced
-  or backend-internal details
-
-This is a mechanical but large rename. Do it as the final step after the vtable
-is proven, not before — renaming first would create unnecessary churn during
-development. Provide compat headers (include/X11/ → include/ISW/ forwarding)
-during a transition period if needed for downstream consumers.
+The Xt → Isw rename (above) is sequenced before this work. All new
+platform vtable code uses Isw-prefixed names from the start.
