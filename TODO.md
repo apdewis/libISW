@@ -129,13 +129,115 @@ Files: Core.c.
 5. Update geometry managers
 6. Update SetValues and resource handling
 
+## ISWRenderGL — native GL rendering backend (replace Cairo dependency)
+
+Cairo is a bottleneck for multi-platform support. Cairo-XCB ties rendering to
+X11. Cairo-EGL (declared but unimplemented) is unmaintained upstream and was
+always a second-class Cairo backend. Meanwhile both X11 (via EGL) and Arcan
+(via arcan_shmifext) provide native EGL contexts that GL can render into
+directly.
+
+Replace Cairo with a native GL 2D rendering backend so the render layer works
+identically on any platform that provides an EGL surface.
+
+### Architecture
+
+```
+ISWRender vtable (unchanged API)
+       ↓
+ISWRenderGL backend (new)
+  ├─ 2D primitives: NanoVG or equivalent (rectangles, lines, arcs, polygons)
+  ├─ Text: FreeType glyph atlas → GL textures
+  ├─ Gradients, alpha, anti-aliasing: native GL
+  └─ EGL surface from ISWPlatform (see next TODO)
+       ↓
+EGL context — provided by platform
+  ├─ X11:  EGL_KHR_platform_xcb / EGL_EXT_platform_x11
+  └─ Arcan: arcan_shmifext_egl_meta()
+```
+
+### What the GL backend replaces
+
+| Current (Cairo) | GL backend |
+|---|---|
+| cairo_xcb_surface_create | EGL surface (platform-provided) |
+| cairo_fill/stroke | NanoVG nvgFill/nvgStroke or raw GL |
+| cairo_show_text + fontconfig | FreeType + glyph texture atlas |
+| cairo_pattern_create_linear | GL shader gradient |
+| pixman (transitive dep) | gone |
+
+### ISWRenderOps vtable cleanup
+
+The current vtable leaks XCB types that block non-X backends:
+
+- `xcb_point_t *pts` in fill_polygon/stroke_polygon — replace with
+  `ISWPoint` (typedef struct { int16_t x, y; })
+- `xcb_pixmap_t` in draw_pixmap — replace with opaque `ISWDrawable` handle
+  that each platform backend maps to its native drawable type
+- `ISWRenderContext` embeds `xcb_connection_t*`, `xcb_window_t`,
+  `xcb_screen_t*`, `xcb_colormap_t` — replace with opaque `ISWDisplay`
+  and `ISWWindow` handles (dovetails with ISWPlatform vtable below)
+- `get_cairo_context` op — remove; GL backend has no cairo_t to return.
+  Any widget code reaching through this is backend-specific and needs
+  fixing.
+
+### Font rendering without Cairo
+
+Cairo currently delegates to FreeType/Fontconfig. The GL backend needs its
+own text path:
+
+1. Font discovery: Fontconfig (keep — it's not tied to Cairo or X11)
+2. Glyph rasterization: FreeType (keep — already an indirect dependency)
+3. Glyph caching: texture atlas, packed per font size. Upload glyphs on
+   first use, render as textured quads.
+4. XFontStruct compatibility: ISWRender's set_font/text_width/text_height
+   ops already abstract this. The GL backend implements them via FreeType
+   metrics instead of xcb_query_font.
+
+### NanoVG vs raw GL
+
+NanoVG is ~4,500 lines, zlib licensed, designed exactly for this use case
+(anti-aliased 2D vector graphics on GL). Provides path-based drawing,
+gradients, text rendering (via stb_truetype, replaceable with FreeType),
+scissoring. Can be vendored as a single .c/.h pair.
+
+Alternative: raw GL with a small custom 2D layer. More control, more code
+to maintain. NanoVG is the pragmatic choice unless its text rendering or
+gradient model proves insufficient.
+
+### Suggested order
+
+1. Vendor NanoVG (or chosen 2D-on-GL library)
+2. Implement ISWRenderGL backend behind ISWRenderOps vtable
+3. Clean XCB types out of ISWRenderOps and ISWRenderContext
+4. EGL context creation on X11 (ISW_RENDER_BACKEND_GL enum value)
+5. Verify all widgets render correctly via GL path
+6. Cairo-XCB backend becomes optional/legacy
+7. Remove Cairo-EGL declarations (never implemented, now superseded)
+
+### Dependencies
+
+- EGL (already optional dep in CMakeLists.txt)
+- GL ES 2.0+ or GL 2.1+ (NanoVG requirement)
+- FreeType + Fontconfig (already transitive deps via Cairo — become direct)
+- NanoVG or equivalent (vendored)
+
+### Relationship to ISWPlatform vtable
+
+This TODO handles the *rendering* side. The ISWPlatform vtable (below)
+handles *everything else* (windows, events, input, etc.). The two connect
+at EGL surface creation: ISWPlatform provides the EGL display/surface,
+ISWRenderGL consumes it. Do this first — it removes the Cairo dependency
+that would otherwise force every new platform to port Cairo.
+
 ## ISWPlatform vtable — abstract all X11/XCB platform dependencies
 
-ISWRender already abstracts drawing. The resource system is being abstracted
+ISWRender already abstracts drawing, and the GL backend (above) removes the
+Cairo dependency from rendering. The resource system is being abstracted
 separately (above). Everything else — display, windows, events, input, grabs,
 atoms, selections, colormaps, fonts, cursors — is still hardcoded to XCB. This
 needs a platform vtable so backends other than X11 can be supported (Arcan/SHMIF,
-or anything Cairo can render to with a usable event system).
+or any platform that provides EGL and an event system).
 
 ### Vtable structure
 
@@ -202,9 +304,9 @@ Files: Selection.c (~800 lines).
 True-color backends can simplify this massively to direct RGBA.
 Files: Converters.c, Core.c, Display.c.
 
-**Fonts** — xcb_font_t, XLFD queries, XtFontStruct. Cairo+fontconfig already
-does the real rendering work; the XCB font path is mostly legacy metrics
-queries. Abstract to open-by-pattern + metrics.
+**Fonts** — xcb_font_t, XLFD queries, XtFontStruct. The GL backend handles
+rendering via FreeType+fontconfig; the XCB font path is legacy metrics queries.
+Abstract to open-by-pattern + metrics.
 Files: AsciiSink.c, MultiSink.c, Converters.c.
 
 **Cursors** — xcb_cursor_t, glyph cursor creation. Map to a symbolic cursor
