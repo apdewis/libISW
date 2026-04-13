@@ -512,8 +512,13 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             ISWRenderBegin(ctx);
             ISWRenderSetColor(ctx, w->core.background_pixel);
             ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
-            ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
-                                   draw_x, draw_y, disp_w, disp_h);
+            if (ISWImageIsMonochrome(w->label.image))
+                ISWRenderDrawImageMasked(ctx, w->label.foreground,
+                                         pixels, rw, rh,
+                                         draw_x, draw_y, disp_w, disp_h);
+            else
+                ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+                                       draw_x, draw_y, disp_w, disp_h);
             ISWRenderEnd(ctx);
         }
         return;
@@ -550,11 +555,19 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	        lrw_phys, lrh_phys, &rw, &rh);
 	    if (pixels && ctx) {
 		ISWRenderBegin(ctx);
-		ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
-				       (int)w->label.internal_width,
-				       (int)w->label.lbm_y,
-				       w->label.lbm_width,
-				       w->label.lbm_height);
+		if (ISWImageIsMonochrome(w->label.left_image))
+		    ISWRenderDrawImageMasked(ctx, w->label.foreground,
+					    pixels, rw, rh,
+					    (int)w->label.internal_width,
+					    (int)w->label.lbm_y,
+					    w->label.lbm_width,
+					    w->label.lbm_height);
+		else
+		    ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+					  (int)w->label.internal_width,
+					  (int)w->label.lbm_y,
+					  w->label.lbm_width,
+					  w->label.lbm_height);
 		ISWRenderEnd(ctx);
 	    }
 	}

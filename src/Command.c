@@ -75,58 +75,6 @@ SOFTWARE.
 #define DEFAULT_HIGHLIGHT_THICKNESS 2
 #define DEFAULT_SHAPE_HIGHLIGHT 32767
 
-/*
- * Draw an RGBA image using its alpha channel as a mask, painting with the
- * current Cairo source color.  Used for monochrome (currentColor) SVG icons
- * so the pressed state can invert them to the background color.
- */
-static void
-_DrawImageMasked(cairo_t *cr,
-                 const unsigned char *rgba,
-                 unsigned int img_w, unsigned int img_h,
-                 int dst_x, int dst_y,
-                 unsigned int dst_w, unsigned int dst_h)
-{
-    unsigned int stride, i;
-    unsigned char *a8_buf;
-    cairo_surface_t *mask_surface;
-
-    if (!cr || !rgba || img_w == 0 || img_h == 0)
-        return;
-
-    /* Build an A8 surface from the RGBA alpha channel */
-    stride = cairo_format_stride_for_width(CAIRO_FORMAT_A8, (int)img_w);
-    a8_buf = (unsigned char *)calloc(stride * img_h, 1);
-    if (!a8_buf)
-        return;
-
-    for (i = 0; i < img_w * img_h; i++) {
-        unsigned int row = i / img_w;
-        unsigned int col = i % img_w;
-        a8_buf[row * stride + col] = rgba[i * 4 + 3];
-    }
-
-    mask_surface = cairo_image_surface_create_for_data(
-        a8_buf, CAIRO_FORMAT_A8, (int)img_w, (int)img_h, (int)stride);
-
-    if (cairo_surface_status(mask_surface) == CAIRO_STATUS_SUCCESS) {
-        cairo_save(cr);
-        if (dst_w != img_w || dst_h != img_h) {
-            cairo_translate(cr, dst_x, dst_y);
-            cairo_scale(cr,
-                        (double)dst_w / (double)img_w,
-                        (double)dst_h / (double)img_h);
-            cairo_mask_surface(cr, mask_surface, 0, 0);
-        } else {
-            cairo_mask_surface(cr, mask_surface, dst_x, dst_y);
-        }
-        cairo_restore(cr);
-    }
-
-    cairo_surface_destroy(mask_surface);
-    free(a8_buf);
-}
-
 /****************************************************************
  *
  * Full class record constant

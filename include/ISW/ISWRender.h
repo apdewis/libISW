@@ -488,6 +488,24 @@ void ISWRenderDrawImageRGBA(ISWRenderContext *ctx,
                             unsigned int dst_w, unsigned int dst_h);
 
 /*
+ * ISWRenderDrawImageMasked - Draw an RGBA image as an alpha mask painted
+ *                            with the given foreground color.
+ *
+ * Extracts the alpha channel from the RGBA buffer and uses it as a Cairo
+ * mask surface.  The visible pixels are painted in `foreground`, ignoring
+ * the RGB channels of the source image.  This is the correct way to render
+ * monochrome (currentColor) SVG icons so that color inversion (e.g. pressed
+ * button state) works by simply changing the foreground pixel value.
+ *
+ * Parameters match ISWRenderDrawImageRGBA plus a foreground color.
+ */
+void ISWRenderDrawImageMasked(ISWRenderContext *ctx, Pixel foreground,
+                              const unsigned char *rgba,
+                              unsigned int img_width, unsigned int img_height,
+                              int dst_x, int dst_y,
+                              unsigned int dst_w, unsigned int dst_h);
+
+/*
  * =================================================================
  * Advanced Features (Cairo-only)
  * =================================================================
