@@ -488,8 +488,6 @@ _XtHandleFocus(Widget widget,
                         newFocalPoint = XtUnrelated;
                     break;
                 case XtUnrelated:
-                    if (event->response_type == XCB_ENTER_NOTIFY)
-                        newFocalPoint = XtMyAncestor;
                     break;
                 case XtMySelf:
                     break;
