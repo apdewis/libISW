@@ -1430,8 +1430,12 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
 
     _popup_set_prop(w);
 
-    /* Enable XDND drop target on all shell windows */
-    ISWXdndEnable(wid);
+    /* Enable XDND drop target on WM-managed shell windows.
+     * Override-redirect shells (WM frames, menus, tooltips) must NOT
+     * advertise XdndAware — otherwise drag sources target the frame
+     * instead of the client window inside it. */
+    if (!w->shell.override_redirect)
+        ISWXdndEnable(wid);
 
     /* Set up default WM_DELETE_WINDOW handling for WM-managed shells */
     if (!w->shell.override_redirect)

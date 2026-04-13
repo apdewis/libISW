@@ -1269,8 +1269,9 @@ HandleDragEvent(Widget w, XtPointer closure, xcb_generic_event_t *event,
 
     (void) w;
 
-    if (!st->dragging)
+    if (!st->dragging) {
         return;
+    }
 
     switch (type) {
     case XCB_MOTION_NOTIFY: {
@@ -1329,41 +1330,58 @@ HandleDragEvent(Widget w, XtPointer closure, xcb_generic_event_t *event,
 /* Drag motion — track target windows                                 */
 /* ------------------------------------------------------------------ */
 
+static Boolean
+WindowHasXdndAware(XdndState *st, xcb_connection_t *conn,
+                   xcb_window_t win, int *version_out)
+{
+    xcb_get_property_cookie_t cookie =
+        xcb_get_property(conn, False, win,
+                         st->XdndAware, XCB_ATOM_ATOM, 0, 1);
+    xcb_get_property_reply_t *reply =
+        xcb_get_property_reply(conn, cookie, NULL);
+
+    if (reply && reply->type != XCB_ATOM_NONE &&
+        xcb_get_property_value_length(reply) >= (int) sizeof(uint32_t)) {
+        *version_out = (int) *(uint32_t *) xcb_get_property_value(reply);
+        free(reply);
+        return True;
+    }
+    free(reply);
+    return False;
+}
+
 static xcb_window_t
 FindXdndAwareWindow(XdndState *st, xcb_connection_t *conn,
                     xcb_window_t start, int *version_out)
 {
-    xcb_window_t win = start;
     *version_out = 0;
 
-    /* Walk up the window tree looking for XdndAware */
-    while (win != XCB_NONE && win != XtScreen(st->shell)->root) {
-        xcb_get_property_cookie_t cookie =
-            xcb_get_property(conn, False, win,
-                             st->XdndAware, XCB_ATOM_ATOM, 0, 1);
-        xcb_get_property_reply_t *reply =
-            xcb_get_property_reply(conn, cookie, NULL);
+    if (start == XCB_NONE || start == XtScreen(st->shell)->root)
+        return XCB_NONE;
 
-        if (reply && reply->type != XCB_ATOM_NONE &&
-            xcb_get_property_value_length(reply) >= (int) sizeof(uint32_t)) {
-            uint32_t ver = *(uint32_t *) xcb_get_property_value(reply);
-            *version_out = (int) ver;
-            free(reply);
-            return win;
-        }
-        free(reply);
+    /* Check the starting window (WM frame or unmanaged toplevel) */
+    if (WindowHasXdndAware(st, conn, start, version_out))
+        return start;
 
-        /* Go to parent */
-        xcb_query_tree_cookie_t tc = xcb_query_tree(conn, win);
-        xcb_query_tree_reply_t *tr = xcb_query_tree_reply(conn, tc, NULL);
-        if (!tr)
-            return XCB_NONE;
-        xcb_window_t parent = tr->parent;
-        free(tr);
-
-        if (parent == win)
+    /* The WM reparents the client inside a frame.  Walk down into
+     * children to find the actual XdndAware client window.  Use
+     * translate_coordinates to follow the pointer into subwindows. */
+    xcb_window_t win = start;
+    for (int depth = 0; depth < 8; depth++) {
+        xcb_query_pointer_cookie_t qpc = xcb_query_pointer(conn, win);
+        xcb_query_pointer_reply_t *qpr = xcb_query_pointer_reply(conn, qpc, NULL);
+        if (!qpr)
             break;
-        win = parent;
+        xcb_window_t child = qpr->child;
+        free(qpr);
+
+        if (child == XCB_NONE)
+            break;
+
+        if (WindowHasXdndAware(st, conn, child, version_out))
+            return child;
+
+        win = child;
     }
 
     return XCB_NONE;
