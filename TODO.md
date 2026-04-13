@@ -210,60 +210,6 @@ Files: Core.c.
 5. Update geometry managers
 6. Update SetValues and resource handling
 
-## Full API rename — Xt → Isw
-
-The embedded libXt uses Xt/Xrm prefixes and lives under include/X11/. This
-made sense when it was a fork of libXt, but the subsequent work — GL backend,
-windowless widgets, platform vtable — will create substantial new code. If the
-rename happens after those changes, every new function, type, and header gets
-written with the old names and then mechanically rewritten. Do it first so all
-new infrastructure uses the final namespace from the start.
-
-### Scope
-
-- Function prefix: Xt → Isw (XtCreateWidget → IswCreateWidget, etc.)
-- Type prefix: Xt → Isw (XtResource → IswResource, XtCallbackProc →
-  IswCallbackProc, XtAppContext → IswAppContext, etc.)
-- Xrm prefix: Xrm → Isw (XrmValue → IswValue, XrmQuark → IswQuark, etc.)
-- Header path: include/X11/ → include/ISW/ (Intrinsic.h, IntrinsicP.h,
-  Core.h, Shell.h, StringDefs.h, etc. move into the ISW namespace)
-- Macro aliases: XtTypes.h Xlib-compat macros (ConnectionNumber,
-  DefaultRootWindow, BlackPixelOfScreen, etc.) get Isw-prefixed
-  replacements
-- Predefined atoms/constants: XA_PRIMARY, XA_STRING etc. become
-  ISW-namespaced or backend-internal details
-- Generated files: util/string.list, util/makestrs need updating so
-  StringDefs.h generates Isw names
-
-### What does NOT change
-
-- ISWRender API — already Isw-namespaced
-- ISW widget names (IswCommand, IswLabel, etc.) — already Isw-namespaced
-- XCB types (xcb_connection_t, xcb_window_t, etc.) — these get abstracted
-  later by the platform vtable, not this rename
-
-### Approach
-
-This is mechanical — sed/script-driven, not design work. But it touches
-every file in the project (~150+ source and header files).
-
-1. Write a rename script mapping old symbols → new symbols. Build the
-   mapping from the public headers (include/X11/*.h) — every Xt/Xrm
-   prefixed typedef, function, macro.
-2. Move include/X11/*.h → include/ISW/ (many already live there)
-3. Run the rename across all source and headers
-4. Update CMakeLists.txt, pkg-config, util/makestrs, util/string.list
-5. Provide compat headers: include/X11/Intrinsic.h that #includes
-   include/ISW/Intrinsic.h with #define aliases, for downstream
-   consumers during transition. Remove after one release cycle.
-6. Update examples/isw_demo to use new names
-7. Verify build, run demo
-
-### Downstream impact
-
-The compat headers mean existing code keeps compiling with deprecation
-warnings. New code uses Isw names. The app developer guide
-(docs/CLAUDE_APP_GUIDE.md) gets updated to reflect the new API.
 
 ## ISWRenderGL — native GL rendering backend (replace Cairo dependency)
 
