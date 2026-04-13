@@ -220,23 +220,28 @@ Files: Tip.c, Panner.c, Simple.c.
 5. ISWPlatformSelection, ISWPlatformCursor, grabs (lower priority)
 6. ISWPlatformDragDrop (depends on events, windows, selections)
 
-### Drag-and-drop — complete and abstract ISWXdnd
+### Drag-and-drop — abstract ISWXdnd behind platform vtable
 
-Current state: ISWXdnd.c implements XDND v5 drop-target only, hardwired to XCB
-atoms, client messages, selection transfers, and xcb_translate_coordinates. No
-drag-source support exists.
+Current state: ISWXdnd.c (~1,800 lines) implements full XDND v5 with both drag
+source and drop target support, hardwired to XCB atoms, client messages,
+selection transfers, and xcb_translate_coordinates. Feature-complete for the XCB
+backend:
 
-**Missing functionality (complete XDND first, then abstract):**
+- Drag source via ISWXdndStartDrag — pointer grab, motion tracking, full
+  XdndEnter/Position/Drop protocol, XdndStatus/XdndFinished handling
+- Drag visual feedback — glyph cursor changes, drag icon window from pixmap
+- Action negotiation — Copy, Move, Link with modifier-key selection
+  (Ctrl=Copy, Shift=Move, Ctrl+Shift=Link) and source/target negotiation
+- Multiple MIME types — arbitrary types via ISWXdndSetAcceptedTypes and
+  ISWXdndInternType; text/uri-list and text/plain interned by default
+- Drop position feedback — dragEnter/dragMotion/dragLeave callbacks with
+  IswDragOverCallbackData for visual highlight on targets
+- Incremental transfer — delegated to Xt selection mechanism (INCR for free)
 
-- Drag source initiation — widget calls ISWDragStart, library handles
-  XdndEnter/Position/Drop protocol toward the target window
-- Drag visual feedback — cursor changes, drag icon/proxy window
-- Action negotiation — XdndActionCopy is hardcoded; need Move, Link, Ask, Private
-- Multiple MIME types — only text/uri-list supported; need text/plain,
-  application-specific types, type negotiation
-- Drop position feedback — visual highlight on potential targets (enter/leave
-  callbacks on drop-aware widgets)
-- Incremental transfer — large payloads via INCR property protocol
+**Minor gaps:**
+
+- Ask and Private actions are declared in the IswDndAction enum but have no
+  atom/protocol support
 
 **Abstraction (ISWPlatformDragDrop vtable):**
 
@@ -258,7 +263,7 @@ The XCB backend implements this via XDND atoms + client messages + selection
 transfers. Other backends implement their native protocol. Widget code only sees
 the abstract API.
 
-Files: ISWXdnd.c (~470 lines, rewrite), ISWXdnd.h (expand public API).
+Files: ISWXdnd.c (~1,800 lines, refactor into vtable), ISWXdnd.h.
 Depends on: ISWPlatformEvent, ISWPlatformWindow, ISWPlatformSelection.
 
 ### Full API rename — Xt → Isw
