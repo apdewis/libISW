@@ -26,7 +26,7 @@ option(ISW_GRAY_BLKWHT_STIPPLES "Enable gray stipple patterns" OFF)
 # ===========================================================================
 
 pkg_check_modules(XT_DEPS REQUIRED IMPORTED_TARGET
-    sm ice xproto xcb xcb-xrm xcb-keysyms)
+    xproto xcb xcb-xrm xcb-keysyms)
 
 pkg_check_modules(ISW_DEPS REQUIRED IMPORTED_TARGET
     xcb xcb-xfixes xcb-shape xcb-present xcb-cursor)

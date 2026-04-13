@@ -261,35 +261,6 @@ the abstract API.
 Files: ISWXdnd.c (~470 lines, rewrite), ISWXdnd.h (expand public API).
 Depends on: ISWPlatformEvent, ISWPlatformWindow, ISWPlatformSelection.
 
-### Remove X Session Management (XSMP/ICE) support
-
-SessionShell and associated API are dead code. The XSMP protocol (save/restore
-app state across logout/login via libSM/libICE) is unused by any downstream
-consumer — ISDE links libSM/libICE but calls zero SM/ICE functions, implementing
-its own session management instead. Modern desktops use D-Bus or .desktop
-autostart; Wayland doesn't use XSMP at all.
-
-**Remove from ISW:**
-
-- `SessionShell` widget class and `sessionShellWidgetClass` symbol
-- Session-related resources: `XtNsessionID`, `XtNrestartCommand`,
-  `XtNcloneCommand`, `XtNresignCommand`, `XtNshutdownCommand`,
-  `XtNsaveCallback`, `XtNsaveCompleteCallback`, `XtNdieCallback`,
-  `XtNerrorCallback`, `XtNcancelCallback`
-- `XtSessionGetToken()`, `XtSessionReturnToken()`
-- Any ICE transport integration in the event loop
-- `XtIsSessionShell()` predicate
-- Obsolete non-App-context functions that only exist for backward compat:
-  `XtInitialize`, `XtMainLoop`, `XtAddConverter`, `XtPeekEvent`,
-  `XtDestroyGC`, `XtAddInput`, `XtAddTimeOut`, `XtProcessEvent`,
-  `XtAddActions`, `XtCreateApplicationShell`, `XtSetErrorHandler`,
-  `XtSetWarningHandler`, `XtStringConversionWarning`
-
-Files: ShellP.h, Shell.h (generated from string.list), Intrinsic.h,
-util/string.list, and any Session-related source in src/.
-
-Do this before the API rename so the new Isw namespace starts clean.
-
 ### Full API rename — Xt → Isw
 
 Once the platform vtable is in place, the embedded libXt is no longer libXt. It

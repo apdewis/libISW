@@ -227,16 +227,16 @@ target_link_libraries(myapp ${ISW_LIBRARIES})
 
 int main(int argc, char **argv)
 {
+    XtAppContext app;
     Widget toplevel, box, button;
-    xcb_connection_t *dpy;
 
-    toplevel = XtInitialize(argv[0], "MyApp", NULL, 0, &argc, argv);
+    toplevel = XtAppInitialize(&app, "MyApp", NULL, 0, &argc, argv, NULL, NULL, 0);
 
     box = XtCreateManagedWidget("box", boxWidgetClass, toplevel, NULL, 0);
     button = XtCreateManagedWidget("quit", commandWidgetClass, box, NULL, 0);
 
     XtRealizeWidget(toplevel);
-    XtMainLoop();
+    XtAppMainLoop(app);
 
     return 0;
 }

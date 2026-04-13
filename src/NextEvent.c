@@ -900,14 +900,6 @@ _XtWaitForSomething(XtAppContext app,
  * Public Routines
  */
 
-XtIntervalId
-XtAddTimeOut(unsigned long interval,
-             XtTimerCallbackProc proc,
-             XtPointer closure)
-{
-    return XtAppAddTimeOut(_XtDefaultAppContext(), interval, proc, closure);
-}
-
 static void
 QueueTimerEvent(XtAppContext app, TimerEventRec *ptr)
 {
@@ -1123,16 +1115,6 @@ XtNoticeSignal(XtSignalId id)
     SignalEventRec *sid = (SignalEventRec *) id;
 
     sid->se_notice = TRUE;
-}
-
-XtInputId
-XtAddInput(int source,
-           XtPointer Condition,
-           XtInputCallbackProc proc,
-           XtPointer closure)
-{
-    return XtAppAddInput(_XtDefaultAppContext(),
-                         source, Condition, proc, closure);
 }
 
 XtInputId
@@ -1454,13 +1436,6 @@ XtAppNextEvent(XtAppContext app, xcb_generic_event_t *event)
 }
 
 void
-XtProcessEvent(XtInputMask mask)
-{
-    XtAppProcessEvent(_XtDefaultAppContext(), mask);
-}
-
-
-void
 XtAppProcessEvent(XtAppContext app, XtInputMask mask)
 {
     int d;
@@ -1677,12 +1652,6 @@ PeekOtherSources(XtAppContext app)
     }
 
     return FALSE;
-}
-
-Boolean
-XtPeekEvent(xcb_generic_event_t *event)
-{
-    return XtAppPeekEvent(_XtDefaultAppContext(), event);
 }
 
 Boolean XtAppPeekEvent_SkipTimer;

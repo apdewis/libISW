@@ -1915,12 +1915,6 @@ XtRemoveGrab(Widget widget)
 }
 
 void
-XtMainLoop(void)
-{
-    XtAppMainLoop(_XtDefaultAppContext());
-}
-
-void
 XtAppMainLoop(XtAppContext app)
 {
     XtInputMask m = XtIMAll;

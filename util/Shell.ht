@@ -48,7 +48,6 @@ SOFTWARE.
 #ifndef _XtShell_h
 #define _XtShell_h
 
-#include <X11/SM/SMlib.h>
 #include <X11/Intrinsic.h>
 
 /***********************************************************************
@@ -78,7 +77,6 @@ typedef struct _WMShellClassRec *WMShellWidgetClass;
 typedef struct _TransientShellClassRec *TransientShellWidgetClass;
 typedef struct _TopLevelShellClassRec *TopLevelShellWidgetClass;
 typedef struct _ApplicationShellClassRec *ApplicationShellWidgetClass;
-typedef struct _SessionShellClassRec *SessionShellWidgetClass;
 
 #ifndef SHELL
 externalref WidgetClass shellWidgetClass;
@@ -87,7 +85,6 @@ externalref WidgetClass wmShellWidgetClass;
 externalref WidgetClass transientShellWidgetClass;
 externalref WidgetClass topLevelShellWidgetClass;
 externalref WidgetClass applicationShellWidgetClass;
-externalref WidgetClass sessionShellWidgetClass;
 #endif
 
 #endif /* _XtShell_h */

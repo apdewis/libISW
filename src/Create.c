@@ -775,29 +775,6 @@ XtAppCreateShell(_Xconst char *name,
 }
 
 Widget
-XtCreateApplicationShell(_Xconst char *name _X_UNUSED,
-                         WidgetClass widget_class,
-                         ArgList args,
-                         Cardinal num_args)
-{
-    Widget retval;
-    xcb_connection_t *dpy;
-    String class = _XtGetPerDisplay(dpy)->class;
-
-    XtAppContext app = _XtDefaultAppContext();
-
-    LOCK_APP(app);
-    dpy = app->list[0];
-
-    retval =
-        _XtAppCreateShell((String) NULL, class,
-                          widget_class, dpy, args, num_args,
-                          (XtTypedArgList) NULL, (Cardinal) 0);
-    UNLOCK_APP(app);
-    return retval;
-}
-
-Widget
 _XtCreateHookObj(xcb_screen_t *screen, xcb_connection_t *dpy)
 {
     Widget req_widget;

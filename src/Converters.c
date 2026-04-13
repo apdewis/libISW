@@ -81,7 +81,6 @@ in this Software without prior written authorization from The Open Group.
 #include        <xcb/xcb_cursor.h>
 #include        <X11/keysym.h>
 #include        <X11/Xlocale.h>
-#include        <errno.h>       /* for StringToDirectoryString */
 #include        <fontconfig/fontconfig.h>
 #include        <ft2build.h>
 #include        FT_FREETYPE_H
@@ -96,15 +95,12 @@ static _Xconst _XtString XtNmissingCharsetList = "missingCharsetList";
 /* Representation types */
 
 #define XtQAtom                 XrmPermStringToQuark(XtRAtom)
-#define XtQCommandArgArray      XrmPermStringToQuark(XtRCommandArgArray)
 #define XtQCursor               XrmPermStringToQuark(XtRCursor)
-#define XtQDirectoryString      XrmPermStringToQuark(XtRDirectoryString)
 #define XtQDisplay              XrmPermStringToQuark(XtRDisplay)
 #define XtQFile                 XrmPermStringToQuark(XtRFile)
 #define XtQFloat                XrmPermStringToQuark(XtRFloat)
 #define XtQInitialState         XrmPermStringToQuark(XtRInitialState)
 #define XtQPixmap               XrmPermStringToQuark(XtRPixmap)
-#define XtQRestartStyle         XrmPermStringToQuark(XtRRestartStyle)
 #define XtQShort                XrmPermStringToQuark(XtRShort)
 #define XtQUnsignedChar         XrmPermStringToQuark(XtRUnsignedChar)
 #define XtQVisual               XrmPermStringToQuark(XtRVisual)
@@ -244,19 +240,6 @@ XtDisplayStringConversionWarning(xcb_connection_t *dpy,
 #endif                          /* ifndef NO_MIT_HACKS */
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
-}
-
-void
-XtStringConversionWarning(_Xconst char *from, _Xconst char *toType)
-{
-    String params[2];
-    Cardinal num_params = 2;
-
-    params[0] = (String) from;
-    params[1] = (String) toType;
-    XtWarningMsg(XtNconversionError, "string", XtCXtToolkitError,
-                 "Cannot convert string \"%s\" to type %s",
-                 params, &num_params);
 }
 
 static int CompareISOLatin1(const char *, const char *);
@@ -1752,196 +1735,6 @@ XtCvtStringToAtom(xcb_connection_t *dpy,
     done_string(Atom, atom, XtRAtom);
 }
 
-Boolean
-XtCvtStringToDirectoryString(xcb_connection_t *dpy,
-                             XrmValuePtr args _X_UNUSED,
-                             Cardinal *num_args,
-                             XrmValuePtr fromVal,
-                             XrmValuePtr toVal,
-                             XtPointer *closure_ret _X_UNUSED)
-{
-    String str;
-    char directory[PATH_MAX + 1];
-
-    if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToDirectoryString",
-                        XtCXtToolkitError,
-                        "String to DirectoryString conversion needs no extra arguments",
-                        NULL, NULL);
-
-    str = (String) fromVal->addr;
-    if (CompareISOLatin1(str, "XtCurrentDirectory") == 0) {
-        /* uglier, but does not depend on compiler knowing return type */
-#if !defined(X_NOT_POSIX) || defined(SYSV) || defined(WIN32)
-        if (getcwd(directory, PATH_MAX + 1))
-            str = directory;
-#else
-        if (getwd(directory))
-            str = directory;
-#endif
-        if (!str) {
-            if (errno == EACCES)
-                errno = 0;      /* reset errno */
-            XtDisplayStringConversionWarning(dpy, (char *) fromVal->addr,
-                                             XtRDirectoryString);
-            return False;
-        }
-    }
-
-    /* Since memory from the resource database or from static buffers of
-     * system libraries may be freed or overwritten, allocate memory.
-     * The memory is freed when all cache references are released.
-     */
-    str = XtNewString(str);
-    done_string(String, str, XtRDirectoryString);
-}
-
-static void
-FreeDirectoryString(XtAppContext app,
-                    XrmValuePtr toVal,
-                    XtPointer closure _X_UNUSED,
-                    XrmValuePtr args _X_UNUSED,
-                    Cardinal *num_args)
-{
-    if (*num_args != 0)
-        XtAppWarningMsg(app,
-                        XtNwrongParameters, "freeDirectoryString",
-                        XtCXtToolkitError,
-                        "Free Directory String requires no extra arguments",
-                        NULL, NULL);
-
-    XtFree((char *) toVal->addr);
-}
-
-Boolean
-XtCvtStringToRestartStyle(xcb_connection_t *dpy,
-                          XrmValuePtr args _X_UNUSED,
-                          Cardinal *num_args,
-                          XrmValuePtr fromVal,
-                          XrmValuePtr toVal,
-                          XtPointer *closure_ret _X_UNUSED)
-{
-    String str = (String) fromVal->addr;
-
-    if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToRestartStyle",
-                        XtCXtToolkitError,
-                        "String to RestartStyle conversion needs no extra arguments",
-                        NULL, NULL);
-
-    if (CompareISOLatin1(str, "RestartIfRunning") == 0)
-        done_string(unsigned char, SmRestartIfRunning, XtRRestartStyle);
-
-    if (CompareISOLatin1(str, "RestartAnyway") == 0)
-        done_string(unsigned char, SmRestartAnyway, XtRRestartStyle);
-
-    if (CompareISOLatin1(str, "RestartImmediately") == 0)
-        done_string(unsigned char, SmRestartImmediately, XtRRestartStyle);
-
-    if (CompareISOLatin1(str, "RestartNever") == 0)
-        done_string(unsigned char, SmRestartNever, XtRRestartStyle);
-
-    XtDisplayStringConversionWarning(dpy, str, XtRRestartStyle);
-    return False;
-}
-
-Boolean
-XtCvtStringToCommandArgArray(xcb_connection_t *dpy,
-                             XrmValuePtr args _X_UNUSED,
-                             Cardinal *num_args,
-                             XrmValuePtr fromVal,
-                             XrmValuePtr toVal,
-                             XtPointer *closure_ret)
-{
-    String *strarray, *ptr;
-    char *src;
-    char *dst, *dst_str;
-    int tokens, len;
-
-    if (*num_args != 0)
-        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-                        XtNwrongParameters, "cvtStringToCommandArgArray",
-                        XtCXtToolkitError,
-                        "String to CommandArgArray conversion needs no extra arguments",
-                        NULL, NULL);
-
-    src = fromVal->addr;
-    dst = dst_str = __XtMalloc((unsigned) strlen(src) + 1);
-    tokens = 0;
-
-    while (*src != '\0') {
-        char *start;
-
-        /* skip whitespace */
-        while (IsWhitespace(*src) || IsNewline(*src))
-            src++;
-        /* test for end of string */
-        if (*src == '\0')
-            break;
-
-        /* start new token */
-        tokens++;
-        start = src;
-        while (*src != '\0' && !IsWhitespace(*src) && !IsNewline(*src)) {
-            if (*src == '\\' &&
-                (IsWhitespace(*(src + 1)) || IsNewline(*(src + 1)))) {
-                len = (int) (src - start);
-                if (len) {
-                    /* copy preceding part of token */
-                    memcpy(dst, start, (size_t) len);
-                    dst += len;
-                }
-                /* skip backslash */
-                src++;
-                /* next part of token starts at whitespace */
-                start = src;
-            }
-            src++;
-        }
-        len = (int) (src - start);
-        if (len) {
-            /* copy last part of token */
-            memcpy(dst, start, (size_t) len);
-            dst += len;
-        }
-        *dst = '\0';
-        if (*src != '\0')
-            dst++;
-    }
-
-    ptr = strarray = XtMallocArray((Cardinal) tokens + 1,
-                                   (Cardinal) sizeof(String));
-    src = dst_str;
-    while (--tokens >= 0) {
-        *ptr = src;
-        ptr++;
-        if (tokens) {
-            len = (int) strlen(src);
-            src = src + len + 1;
-        }
-    }
-    *ptr = NULL;
-
-    *closure_ret = (XtPointer) strarray;
-    done_typed_string(String *, strarray, XtRCommandArgArray)
-}
-
-static void
-ArgArrayDestructor(XtAppContext app _X_UNUSED,
-                   XrmValuePtr toVal _X_UNUSED,
-                   XtPointer closure,
-                   XrmValuePtr args _X_UNUSED,
-                   Cardinal *num_args _X_UNUSED)
-{
-    if (closure) {
-        _XtString *strarray = (_XtString *) closure;
-
-        XtFree(*strarray);
-        XtFree((char *) strarray);
-    }
-}
 
 Boolean
 XtCvtStringToGravity(xcb_connection_t *dpy,
@@ -2051,14 +1844,10 @@ _XtAddDefaultConverters(ConverterTable table)
         displayConvertArg, XtNumber(displayConvertArg), XtCacheNone);
     Add(_XtQString, XtQBool, XtCvtStringToBool, NULL, 0, XtCacheNone);
     Add(_XtQString, XtQBoolean, XtCvtStringToBoolean, NULL, 0, XtCacheNone);
-    Add2(_XtQString, XtQCommandArgArray, XtCvtStringToCommandArgArray,
-         NULL, 0, XtCacheNone | XtCacheRefCount, ArgArrayDestructor);
     Add2(_XtQString, XtQCursor, XtCvtStringToCursor,
          cursorConvertArgs, XtNumber(cursorConvertArgs),
          XtCacheByDisplay, FreeCursor);
     Add(_XtQString, XtQDimension, XtCvtStringToDimension, NULL, 0, XtCacheNone);
-    Add2(_XtQString, XtQDirectoryString, XtCvtStringToDirectoryString, NULL, 0,
-         XtCacheNone | XtCacheRefCount, FreeDirectoryString);
     Add(_XtQString, XtQDisplay, XtCvtStringToDisplay, NULL, 0, XtCacheAll);
     Add2(_XtQString, XtQFile, XtCvtStringToFile, NULL, 0,
          XtCacheAll | XtCacheRefCount, FreeFile);
@@ -2084,8 +1873,6 @@ _XtAddDefaultConverters(ConverterTable table)
          colorConvertArgs, XtNumber(colorConvertArgs),
          XtCacheByDisplay, FreePixel);
     Add(_XtQString, XtQPosition, XtCvtStringToShort, NULL, 0, XtCacheAll);
-    Add(_XtQString, XtQRestartStyle, XtCvtStringToRestartStyle, NULL, 0,
-        XtCacheNone);
     Add(_XtQString, XtQShort, XtCvtStringToShort, NULL, 0, XtCacheAll);
     Add(_XtQString, XtQUnsignedChar, XtCvtStringToUnsignedChar,
         NULL, 0, XtCacheAll);

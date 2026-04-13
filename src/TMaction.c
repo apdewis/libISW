@@ -721,12 +721,6 @@ _XtFreeActions(ActionList actions)
 }
 
 void
-XtAddActions(XtActionList actions, Cardinal num_actions)
-{
-    XtAppAddActions(_XtDefaultAppContext(), actions, num_actions);
-}
-
-void
 XtAppAddActions(XtAppContext app, XtActionList actions, Cardinal num_actions)
 {
     register ActionList rec;

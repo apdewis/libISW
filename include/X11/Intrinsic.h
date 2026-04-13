@@ -544,10 +544,6 @@ extern Boolean XtCallAcceptFocus(
     xcb_timestamp_t*		/* time */
 );
 
-extern Boolean XtPeekEvent( /* obsolete */
-    xcb_generic_event_t*		/* event_return */
-);
-
 extern Boolean XtAppPeekEvent(
     XtAppContext 	/* app_context */,
     xcb_generic_event_t*		/* event_return */
@@ -633,11 +629,6 @@ extern void XtKeysymToKeycodeList(
     xcb_keysym_t 		/* keysym */,
     xcb_keycode_t**		/* keycodes_return */,
     Cardinal*		/* keycount_return */
-);
-
-extern void XtStringConversionWarning( /* obsolete */
-    _Xconst _XtString	/* from_value */,
-    _Xconst _XtString	/* to_type */
 );
 
 extern void XtDisplayStringConversionWarning(
@@ -743,11 +734,6 @@ extern void XtUninstallTranslations(
 
 extern void XtAppAddActions(
     XtAppContext 	/* app_context */,
-    XtActionList 	/* actions */,
-    Cardinal 		/* num_actions */
-);
-
-extern void XtAddActions( /* obsolete */
     XtActionList 	/* actions */,
     Cardinal 		/* num_actions */
 );
@@ -951,17 +937,9 @@ extern void XtRemoveGrab(
     Widget 		/* widget */
 );
 
-extern void XtProcessEvent( /* obsolete */
-    XtInputMask 		/* mask */
-);
-
 extern void XtAppProcessEvent(
     XtAppContext 		/* app_context */,
     XtInputMask 		/* mask */
-);
-
-extern void XtMainLoop( /* obsolete */
-    void
 );
 
 extern void XtAppMainLoop(
@@ -1003,12 +981,6 @@ extern xcb_timestamp_t XtLastTimestampProcessed(
  *
  ****************************************************************/
 
-extern XtIntervalId XtAddTimeOut( /* obsolete */
-    unsigned long 	/* interval */,
-    XtTimerCallbackProc /* proc */,
-    XtPointer 		/* closure */
-);
-
 extern XtIntervalId XtAppAddTimeOut(
     XtAppContext 	/* app_context */,
     unsigned long 	/* interval */,
@@ -1018,13 +990,6 @@ extern XtIntervalId XtAppAddTimeOut(
 
 extern void XtRemoveTimeOut(
     XtIntervalId 	/* timer */
-);
-
-extern XtInputId XtAddInput( /* obsolete */
-    int 		/* source */,
-    XtPointer 		/* condition */,
-    XtInputCallbackProc /* proc */,
-    XtPointer 		/* closure */
 );
 
 extern XtInputId XtAppAddInput(
@@ -1127,12 +1092,6 @@ extern Boolean XtIsTransientShell(Widget /* object */);
 extern Boolean XtIsApplicationShell(Widget /* object */);
 #define XtIsApplicationShell(widget) \
     (_XtIsSubclassOf(widget, (WidgetClass)applicationShellWidgetClass, \
-		     (WidgetClass)topLevelShellWidgetClass, (XtEnum)0x80))
-
-#undef XtIsSessionShell
-extern Boolean XtIsSessionShell(Widget /* object */);
-#define XtIsSessionShell(widget) \
-    (_XtIsSubclassOf(widget, (WidgetClass)sessionShellWidgetClass, \
 		     (WidgetClass)topLevelShellWidgetClass, (XtEnum)0x80))
 
 extern void XtRealizeWidget(
@@ -1422,13 +1381,6 @@ extern Widget XtVaCreateManagedWidget(
     ...
 ) _X_SENTINEL(0);
 
-extern Widget XtCreateApplicationShell( /* obsolete */
-    _Xconst _XtString 	/* name */,
-    WidgetClass 	/* widget_class */,
-    ArgList 		/* args */,
-    Cardinal 		/* num_args */
-);
-
 extern Widget XtAppCreateShell(
     _Xconst _XtString	/* application_name */,
     _Xconst _XtString	/* application_class */,
@@ -1520,15 +1472,6 @@ extern Widget XtVaAppInitialize( /* obsolete */
     String*		/* fallback_resources */,
     ...
 ) _X_SENTINEL(0);
-
-extern Widget XtInitialize( /* obsolete */
-    _Xconst _XtString 	/* shell_name */,
-    _Xconst _XtString 	/* application_class */,
-    XrmOptionDescRec* 	/* options */,
-    Cardinal 		/* num_options */,
-    int*		/* argc */,
-    _XtString*		/* argv */
-);
 
 extern xcb_connection_t *XtOpenDisplay(
     XtAppContext 	/* app_context */,
@@ -1701,35 +1644,6 @@ extern void XtGetConstraintResourceList(
 
 /*************************************************************
  *
- * Session Management
- *
- ************************************************************/
-
-typedef struct _XtCheckpointTokenRec {
-    int		save_type;
-    int		interact_style;
-    Boolean	shutdown;
-    Boolean	fast;
-    Boolean	cancel_shutdown;
-    int		phase;
-    int		interact_dialog_type;	/* return */
-    Boolean	request_cancel;		/* return */
-    Boolean	request_next_phase;	/* return */
-    Boolean	save_success;		/* return */
-    int		type;		/* implementation private */
-    Widget	widget;		/* implementation private */
-} XtCheckpointTokenRec, *XtCheckpointToken;
-
-XtCheckpointToken XtSessionGetToken(
-    Widget		/* widget */
-);
-
-void XtSessionReturnToken(
-    XtCheckpointToken	/* token */
-);
-
-/*************************************************************
- *
  * Error Handling
  *
  ************************************************************/
@@ -1795,16 +1709,8 @@ extern XtErrorHandler XtAppSetErrorHandler(
     XtErrorHandler 	/* handler */ _X_NORETURN
 );
 
-extern void XtSetErrorHandler( /* obsolete */
-    XtErrorHandler 	/* handler */ _X_NORETURN
-);
-
 extern XtErrorHandler XtAppSetWarningHandler(
     XtAppContext 	/* app_context */,
-    XtErrorHandler 	/* handler */
-);
-
-extern void XtSetWarningHandler( /* obsolete */
     XtErrorHandler 	/* handler */
 );
 
@@ -2463,14 +2369,6 @@ extern Boolean XtCvtStringToPixel(
 
 #define XtCvtStringToPosition XtCvtStringToShort
 
-extern Boolean XtCvtStringToRestartStyle(
-    xcb_connection_t *	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
-    Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
-    XtPointer*	/* closure_ret */
-);
 
 extern Boolean XtCvtStringToShort(
     xcb_connection_t *	/* dpy */,

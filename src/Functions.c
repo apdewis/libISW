@@ -156,14 +156,6 @@ XtIsApplicationShell(Widget object)
                            (WidgetClass) topLevelShellWidgetClass, 0x80);
 }
 
-#undef XtIsSessionShell
-Boolean
-XtIsSessionShell(Widget object)
-{
-    return _XtIsSubclassOf(object, (WidgetClass) sessionShellWidgetClass,
-                           (WidgetClass) topLevelShellWidgetClass, 0x80);
-}
-
 #undef XtMapWidget
 void
 XtMapWidget(Widget w)

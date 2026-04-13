@@ -48,7 +48,6 @@ SOFTWARE.
 #ifndef _XtShell_h
 #define _XtShell_h
 
-#include <X11/SM/SMlib.h>
 #include <X11/Intrinsic.h>
 
 /***********************************************************************
@@ -155,36 +154,6 @@ SOFTWARE.
 #define XtCWindowRole "WindowRole"
 #define XtNurgency "urgency"
 #define XtCUrgency "Urgency"
-#define XtNcancelCallback "cancelCallback"
-#define XtNcloneCommand "cloneCommand"
-#define XtCCloneCommand "CloneCommand"
-#define XtNconnection "connection"
-#define XtCConnection "Connection"
-#define XtNcurrentDirectory "currentDirectory"
-#define XtCCurrentDirectory "CurrentDirectory"
-#define XtNdieCallback "dieCallback"
-#define XtNdiscardCommand "discardCommand"
-#define XtCDiscardCommand "DiscardCommand"
-#define XtNenvironment "environment"
-#define XtCEnvironment "Environment"
-#define XtNinteractCallback "interactCallback"
-#define XtNjoinSession "joinSession"
-#define XtCJoinSession "JoinSession"
-#define XtNprogramPath "programPath"
-#define XtCProgramPath "ProgramPath"
-#define XtNresignCommand "resignCommand"
-#define XtCResignCommand "ResignCommand"
-#define XtNrestartCommand "restartCommand"
-#define XtCRestartCommand "RestartCommand"
-#define XtNrestartStyle "restartStyle"
-#define XtCRestartStyle "RestartStyle"
-#define XtNsaveCallback "saveCallback"
-#define XtNsaveCompleteCallback "saveCompleteCallback"
-#define XtNsessionID "sessionID"
-#define XtCSessionID "SessionID"
-#define XtNshutdownCommand "shutdownCommand"
-#define XtCShutdownCommand "ShutdownCommand"
-#define XtNerrorCallback "errorCallback"
 #define XtNbottom "bottom"
 #define XtNleft "left"
 #define XtNright "right"
@@ -445,104 +414,14 @@ extern _XtShell_h_Const char XtShellStrings[];
 #ifndef XtCUrgency
 #define XtCUrgency ((String)&XtShellStrings[869])
 #endif
-#ifndef XtNcancelCallback
-#define XtNcancelCallback ((String)&XtShellStrings[877])
-#endif
-#ifndef XtNcloneCommand
-#define XtNcloneCommand ((String)&XtShellStrings[892])
-#endif
-#ifndef XtCCloneCommand
-#define XtCCloneCommand ((String)&XtShellStrings[905])
-#endif
-#ifndef XtNconnection
-#define XtNconnection ((String)&XtShellStrings[918])
-#endif
-#ifndef XtCConnection
-#define XtCConnection ((String)&XtShellStrings[929])
-#endif
-#ifndef XtNcurrentDirectory
-#define XtNcurrentDirectory ((String)&XtShellStrings[940])
-#endif
-#ifndef XtCCurrentDirectory
-#define XtCCurrentDirectory ((String)&XtShellStrings[957])
-#endif
-#ifndef XtNdieCallback
-#define XtNdieCallback ((String)&XtShellStrings[974])
-#endif
-#ifndef XtNdiscardCommand
-#define XtNdiscardCommand ((String)&XtShellStrings[986])
-#endif
-#ifndef XtCDiscardCommand
-#define XtCDiscardCommand ((String)&XtShellStrings[1001])
-#endif
-#ifndef XtNenvironment
-#define XtNenvironment ((String)&XtShellStrings[1016])
-#endif
-#ifndef XtCEnvironment
-#define XtCEnvironment ((String)&XtShellStrings[1028])
-#endif
-#ifndef XtNinteractCallback
-#define XtNinteractCallback ((String)&XtShellStrings[1040])
-#endif
-#ifndef XtNjoinSession
-#define XtNjoinSession ((String)&XtShellStrings[1057])
-#endif
-#ifndef XtCJoinSession
-#define XtCJoinSession ((String)&XtShellStrings[1069])
-#endif
-#ifndef XtNprogramPath
-#define XtNprogramPath ((String)&XtShellStrings[1081])
-#endif
-#ifndef XtCProgramPath
-#define XtCProgramPath ((String)&XtShellStrings[1093])
-#endif
-#ifndef XtNresignCommand
-#define XtNresignCommand ((String)&XtShellStrings[1105])
-#endif
-#ifndef XtCResignCommand
-#define XtCResignCommand ((String)&XtShellStrings[1119])
-#endif
-#ifndef XtNrestartCommand
-#define XtNrestartCommand ((String)&XtShellStrings[1133])
-#endif
-#ifndef XtCRestartCommand
-#define XtCRestartCommand ((String)&XtShellStrings[1148])
-#endif
-#ifndef XtNrestartStyle
-#define XtNrestartStyle ((String)&XtShellStrings[1163])
-#endif
-#ifndef XtCRestartStyle
-#define XtCRestartStyle ((String)&XtShellStrings[1176])
-#endif
-#ifndef XtNsaveCallback
-#define XtNsaveCallback ((String)&XtShellStrings[1189])
-#endif
-#ifndef XtNsaveCompleteCallback
-#define XtNsaveCompleteCallback ((String)&XtShellStrings[1202])
-#endif
-#ifndef XtNsessionID
-#define XtNsessionID ((String)&XtShellStrings[1223])
-#endif
-#ifndef XtCSessionID
-#define XtCSessionID ((String)&XtShellStrings[1233])
-#endif
-#ifndef XtNshutdownCommand
-#define XtNshutdownCommand ((String)&XtShellStrings[1243])
-#endif
-#ifndef XtCShutdownCommand
-#define XtCShutdownCommand ((String)&XtShellStrings[1259])
-#endif
-#ifndef XtNerrorCallback
-#define XtNerrorCallback ((String)&XtShellStrings[1275])
-#endif
 #ifndef XtNbottom
-#define XtNbottom ((String)&XtShellStrings[1289])
+#define XtNbottom ((String)&XtShellStrings[877])
 #endif
 #ifndef XtNleft
-#define XtNleft ((String)&XtShellStrings[1296])
+#define XtNleft ((String)&XtShellStrings[884])
 #endif
 #ifndef XtNright
-#define XtNright ((String)&XtShellStrings[1301])
+#define XtNright ((String)&XtShellStrings[889])
 #endif
 #endif /* XTSTRINGDEFINES */
 
@@ -558,7 +437,6 @@ typedef struct _WMShellClassRec *WMShellWidgetClass;
 typedef struct _TransientShellClassRec *TransientShellWidgetClass;
 typedef struct _TopLevelShellClassRec *TopLevelShellWidgetClass;
 typedef struct _ApplicationShellClassRec *ApplicationShellWidgetClass;
-typedef struct _SessionShellClassRec *SessionShellWidgetClass;
 
 #ifndef SHELL
 externalref WidgetClass shellWidgetClass;
@@ -567,7 +445,6 @@ externalref WidgetClass wmShellWidgetClass;
 externalref WidgetClass transientShellWidgetClass;
 externalref WidgetClass topLevelShellWidgetClass;
 externalref WidgetClass applicationShellWidgetClass;
-externalref WidgetClass sessionShellWidgetClass;
 #endif
 
 #endif /* _XtShell_h */

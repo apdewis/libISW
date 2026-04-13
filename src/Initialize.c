@@ -1257,24 +1257,3 @@ XtAppInitialize(XtAppContext *app_context_return,
                              argc_in_out, argv_in_out, fallback_resources,
                              applicationShellWidgetClass, args_in, num_args_in);
 }
-
-Widget
-XtInitialize(_Xconst _XtString name _X_UNUSED,
-             _Xconst _XtString classname,
-             XrmOptionDescRec *options,
-             Cardinal num_options,
-             int *argc,
-             _XtString *argv)
-{
-    Widget root;
-    XtAppContext app_con;
-    register ProcessContext process = _XtGetProcessContext();
-
-    root = XtAppInitialize(&app_con, classname, options, num_options,
-                           argc, argv, NULL, NULL, (Cardinal) 0);
-
-    LOCK_PROCESS;
-    process->defaultAppContext = app_con;
-    UNLOCK_PROCESS;
-    return root;
-}

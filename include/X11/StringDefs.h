@@ -279,11 +279,6 @@ SOFTWARE.
 #define XtNdestroyHook "destroyHook"
 #define XtNshells "shells"
 #define XtNnumShells "numShells"
-#define XtRCommandArgArray "CommandArgArray"
-#define XtRDirectoryString "DirectoryString"
-#define XtREnvironmentArray "EnvironmentArray"
-#define XtRRestartStyle "RestartStyle"
-#define XtRSmcConn "SmcConn"
 #define XtHcreate "Xtcreate"
 #define XtHsetValues "XtsetValues"
 #define XtHmanageChildren "XtmanageChildren"
@@ -977,104 +972,89 @@ extern _XtStringDefs_h_Const char XtStrings[];
 #ifndef XtNnumShells
 #define XtNnumShells ((String)&XtStrings[2118])
 #endif
-#ifndef XtRCommandArgArray
-#define XtRCommandArgArray ((String)&XtStrings[2128])
-#endif
-#ifndef XtRDirectoryString
-#define XtRDirectoryString ((String)&XtStrings[2144])
-#endif
-#ifndef XtREnvironmentArray
-#define XtREnvironmentArray ((String)&XtStrings[2160])
-#endif
-#ifndef XtRRestartStyle
-#define XtRRestartStyle ((String)&XtStrings[2177])
-#endif
-#ifndef XtRSmcConn
-#define XtRSmcConn ((String)&XtStrings[2190])
-#endif
 #ifndef XtHcreate
-#define XtHcreate ((String)&XtStrings[2198])
+#define XtHcreate ((String)&XtStrings[2128])
 #endif
 #ifndef XtHsetValues
-#define XtHsetValues ((String)&XtStrings[2207])
+#define XtHsetValues ((String)&XtStrings[2137])
 #endif
 #ifndef XtHmanageChildren
-#define XtHmanageChildren ((String)&XtStrings[2219])
+#define XtHmanageChildren ((String)&XtStrings[2149])
 #endif
 #ifndef XtHunmanageChildren
-#define XtHunmanageChildren ((String)&XtStrings[2236])
+#define XtHunmanageChildren ((String)&XtStrings[2166])
 #endif
 #ifndef XtHmanageSet
-#define XtHmanageSet ((String)&XtStrings[2255])
+#define XtHmanageSet ((String)&XtStrings[2185])
 #endif
 #ifndef XtHunmanageSet
-#define XtHunmanageSet ((String)&XtStrings[2267])
+#define XtHunmanageSet ((String)&XtStrings[2197])
 #endif
 #ifndef XtHrealizeWidget
-#define XtHrealizeWidget ((String)&XtStrings[2281])
+#define XtHrealizeWidget ((String)&XtStrings[2211])
 #endif
 #ifndef XtHunrealizeWidget
-#define XtHunrealizeWidget ((String)&XtStrings[2297])
+#define XtHunrealizeWidget ((String)&XtStrings[2227])
 #endif
 #ifndef XtHaddCallback
-#define XtHaddCallback ((String)&XtStrings[2315])
+#define XtHaddCallback ((String)&XtStrings[2245])
 #endif
 #ifndef XtHaddCallbacks
-#define XtHaddCallbacks ((String)&XtStrings[2329])
+#define XtHaddCallbacks ((String)&XtStrings[2259])
 #endif
 #ifndef XtHremoveCallback
-#define XtHremoveCallback ((String)&XtStrings[2344])
+#define XtHremoveCallback ((String)&XtStrings[2274])
 #endif
 #ifndef XtHremoveCallbacks
-#define XtHremoveCallbacks ((String)&XtStrings[2361])
+#define XtHremoveCallbacks ((String)&XtStrings[2291])
 #endif
 #ifndef XtHremoveAllCallbacks
-#define XtHremoveAllCallbacks ((String)&XtStrings[2379])
+#define XtHremoveAllCallbacks ((String)&XtStrings[2309])
 #endif
 #ifndef XtHaugmentTranslations
-#define XtHaugmentTranslations ((String)&XtStrings[2400])
+#define XtHaugmentTranslations ((String)&XtStrings[2330])
 #endif
 #ifndef XtHoverrideTranslations
-#define XtHoverrideTranslations ((String)&XtStrings[2422])
+#define XtHoverrideTranslations ((String)&XtStrings[2352])
 #endif
 #ifndef XtHuninstallTranslations
-#define XtHuninstallTranslations ((String)&XtStrings[2445])
+#define XtHuninstallTranslations ((String)&XtStrings[2375])
 #endif
 #ifndef XtHsetKeyboardFocus
-#define XtHsetKeyboardFocus ((String)&XtStrings[2469])
+#define XtHsetKeyboardFocus ((String)&XtStrings[2399])
 #endif
 #ifndef XtHsetWMColormapWindows
-#define XtHsetWMColormapWindows ((String)&XtStrings[2488])
+#define XtHsetWMColormapWindows ((String)&XtStrings[2418])
 #endif
 #ifndef XtHsetMappedWhenManaged
-#define XtHsetMappedWhenManaged ((String)&XtStrings[2511])
+#define XtHsetMappedWhenManaged ((String)&XtStrings[2441])
 #endif
 #ifndef XtHmapWidget
-#define XtHmapWidget ((String)&XtStrings[2534])
+#define XtHmapWidget ((String)&XtStrings[2464])
 #endif
 #ifndef XtHunmapWidget
-#define XtHunmapWidget ((String)&XtStrings[2546])
+#define XtHunmapWidget ((String)&XtStrings[2476])
 #endif
 #ifndef XtHpopup
-#define XtHpopup ((String)&XtStrings[2560])
+#define XtHpopup ((String)&XtStrings[2490])
 #endif
 #ifndef XtHpopupSpringLoaded
-#define XtHpopupSpringLoaded ((String)&XtStrings[2568])
+#define XtHpopupSpringLoaded ((String)&XtStrings[2498])
 #endif
 #ifndef XtHpopdown
-#define XtHpopdown ((String)&XtStrings[2588])
+#define XtHpopdown ((String)&XtStrings[2518])
 #endif
 #ifndef XtHconfigure
-#define XtHconfigure ((String)&XtStrings[2598])
+#define XtHconfigure ((String)&XtStrings[2528])
 #endif
 #ifndef XtHpreGeometry
-#define XtHpreGeometry ((String)&XtStrings[2610])
+#define XtHpreGeometry ((String)&XtStrings[2540])
 #endif
 #ifndef XtHpostGeometry
-#define XtHpostGeometry ((String)&XtStrings[2624])
+#define XtHpostGeometry ((String)&XtStrings[2554])
 #endif
 #ifndef XtHdestroy
-#define XtHdestroy ((String)&XtStrings[2639])
+#define XtHdestroy ((String)&XtStrings[2569])
 #endif
 #endif /* XTSTRINGDEFINES */
 

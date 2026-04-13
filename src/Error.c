@@ -606,21 +606,6 @@ XtAppWarning(XtAppContext app _X_UNUSED, _Xconst char *message)
 #endif                          /* GLOBALERRORS */
 }
 
-void
-XtSetErrorHandler(XtErrorHandler handler _X_NORETURN)
-{
-#if GLOBALERRORS
-    LOCK_PROCESS;
-    if (handler != NULL)
-        errorHandler = handler;
-    else
-        errorHandler = _XtDefaultError;
-    UNLOCK_PROCESS;
-#else
-    XtAppSetErrorHandler(_XtDefaultAppContext(), handler);
-#endif                          /* GLOBALERRORS */
-}
-
 XtErrorHandler
 XtAppSetErrorHandler(XtAppContext app _X_UNUSED,
                      XtErrorHandler handler _X_NORETURN)
@@ -645,21 +630,6 @@ XtAppSetErrorHandler(XtAppContext app _X_UNUSED,
     UNLOCK_APP(app);
 #endif                          /* GLOBALERRORS */
     return old;
-}
-
-void
-XtSetWarningHandler(XtErrorHandler handler)
-{
-#if GLOBALERRORS
-    LOCK_PROCESS;
-    if (handler != NULL)
-        warningHandler = handler;
-    else
-        warningHandler = _XtDefaultWarning;
-    UNLOCK_PROCESS;
-#else
-    XtAppSetWarningHandler(_XtDefaultAppContext(), handler);
-#endif                          /* GLOBALERRORS */
 }
 
 XtErrorHandler
