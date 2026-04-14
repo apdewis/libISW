@@ -217,6 +217,7 @@ set(ISW_WIDGET_SOURCES
     src/ISWInit.c
     src/ISWXcbDraw.c
     src/ISWXdnd.c
+    src/IswTrayIcon.c
     src/Image.c
     src/ISWImage.c
 )
