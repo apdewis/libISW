@@ -14,6 +14,7 @@
 #include <ISW/ISWImage.h>
 #include <ISW/ISWSVG.h>
 #include <ISW/ISWPNG.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -70,19 +71,44 @@ ISWImageLoad(const char *source, double dpi, const char *current_color)
         return NULL;
 
     img->dpi = dpi > 0 ? dpi : 96.0;
-    if (current_color)
-        snprintf(img->fg_hex, sizeof(img->fg_hex), "%s", current_color);
-
     img->type = _detect_format(source);
 
     if (img->type == ISW_IMAGE_SVG) {
-        const char *color = img->fg_hex[0] ? img->fg_hex : NULL;
+        /*
+         * Only store fg_hex (marking the image as monochrome) when the SVG
+         * actually uses currentColor.  Multi-color SVGs must not be treated
+         * as monochrome — the alpha-mask rendering path would destroy their
+         * colors.
+         */
+        Boolean has_current_color = False;
         if (source[0] == '<') {
             img->svg_source = strdup(source);
-            img->svg = ISWSVGLoadData(source, "px", (float)img->dpi, color);
+            has_current_color = (strstr(source, "currentColor") != NULL);
         } else {
             img->svg_file = strdup(source);
-            img->svg = ISWSVGLoadFile(source, "px", (float)img->dpi, color);
+        }
+
+        if (current_color && !has_current_color && img->svg_file) {
+            /* File-based SVG — need to check contents for currentColor */
+            FILE *fp = fopen(img->svg_file, "rb");
+            if (fp) {
+                char probe[8192];
+                size_t n = fread(probe, 1, sizeof(probe) - 1, fp);
+                probe[n] = '\0';
+                fclose(fp);
+                has_current_color = (strstr(probe, "currentColor") != NULL);
+            }
+        }
+
+        if (current_color && has_current_color)
+            snprintf(img->fg_hex, sizeof(img->fg_hex), "%s", current_color);
+
+        {
+            const char *color = img->fg_hex[0] ? img->fg_hex : NULL;
+            if (img->svg_source)
+                img->svg = ISWSVGLoadData(img->svg_source, "px", (float)img->dpi, color);
+            else
+                img->svg = ISWSVGLoadFile(img->svg_file, "px", (float)img->dpi, color);
         }
         if (!img->svg) {
             free(img->svg_source);
