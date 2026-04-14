@@ -758,6 +758,30 @@ ISWScaleDim(Widget widget, int value)
     return (Dimension)(result > 0 ? result : 1);
 }
 
+Dimension
+ISWUnscaleDim(Widget widget, int value)
+{
+    double scale = ISWScaleFactor(widget);
+    if (value == 0)
+        return 0;
+    int result = (int)(value / scale + 0.5);
+    return (Dimension)(result > 0 ? result : 1);
+}
+
+Position
+ISWScalePos(Widget widget, int value)
+{
+    double scale = ISWScaleFactor(widget);
+    return (Position)lrint((double)value * scale);
+}
+
+Position
+ISWUnscalePos(Widget widget, int value)
+{
+    double scale = ISWScaleFactor(widget);
+    return (Position)lrint((double)value / scale);
+}
+
 #include <cairo.h>
 #include <math.h>
 

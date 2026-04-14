@@ -569,6 +569,39 @@ double ISWScaleFactor(Widget widget);
 Dimension ISWScaleDim(Widget widget, int value);
 
 /*
+ * ISWUnscaleDim - Convert a physical dimension to logical pixels
+ *
+ * Parameters:
+ *   widget - Widget to query
+ *   value  - Physical dimension value to unscale
+ *
+ * Returns: Logical dimension (rounded half-up), minimum 1
+ */
+Dimension ISWUnscaleDim(Widget widget, int value);
+
+/*
+ * ISWScalePos - Scale a position value from logical to physical pixels
+ *
+ * Parameters:
+ *   widget - Widget to query
+ *   value  - Logical position value to scale
+ *
+ * Returns: Physical position (rounded to nearest)
+ */
+Position ISWScalePos(Widget widget, int value);
+
+/*
+ * ISWUnscalePos - Convert a physical position to logical pixels
+ *
+ * Parameters:
+ *   widget - Widget to query
+ *   value  - Physical position value to unscale
+ *
+ * Returns: Logical position (rounded to nearest)
+ */
+Position ISWUnscalePos(Widget widget, int value);
+
+/*
  * ISWScaledTextWidth - Measure text width using Cairo at the scaled font size.
  * Returns the width Cairo will actually use to render this text, ensuring
  * layout matches rendering on HiDPI displays.
