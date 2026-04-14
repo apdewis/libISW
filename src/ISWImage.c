@@ -223,10 +223,12 @@ ISWImageRecolor(ISWImage *image, const char *hex_color)
     if (!image || image->type != ISW_IMAGE_SVG)
         return;
 
+    /* Only recolor SVGs that actually use currentColor */
+    if (!image->fg_hex[0])
+        return;
+
     /* No-op if color hasn't changed */
     if (hex_color && strncmp(image->fg_hex, hex_color, 7) == 0)
-        return;
-    if (!hex_color && !image->fg_hex[0])
         return;
 
     if (hex_color)
