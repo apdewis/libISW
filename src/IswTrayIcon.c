@@ -42,6 +42,8 @@
 /* Default icon size if the tray doesn't specify one */
 #define DEFAULT_ICON_SIZE          24
 
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+
 /* Maximum number of click callbacks */
 #define MAX_CLICK_CALLBACKS        8
 
@@ -493,13 +495,17 @@ tray_event_handler(Widget widget, IswPointer closure,
 
     case XCB_CONFIGURE_NOTIFY: {
         xcb_configure_notify_event_t *e = (xcb_configure_notify_event_t *)event;
-        if (e->width != icon->width || e->height != icon->height) {
-            icon->width = e->width;
-            icon->height = e->height;
+        /* The event dispatcher descales coordinates to logical pixels,
+         * but our Cairo surface needs physical pixel dimensions. */
+        double sf = _IswGetScaleFactor(icon->conn);
+        uint16_t phys_w = (uint16_t)(e->width * sf + 0.5);
+        uint16_t phys_h = (uint16_t)(e->height * sf + 0.5);
+        if (phys_w != icon->width || phys_h != icon->height) {
+            icon->width = phys_w;
+            icon->height = phys_h;
 
-            /* Resize the Cairo surface */
-            if (icon->surface)
-                cairo_xcb_surface_set_size(icon->surface, icon->width, icon->height);
+            /* Recreate the Cairo surface at the new dimensions */
+            create_surface(icon);
 
             paint_icon(icon);
         }
