@@ -82,6 +82,7 @@ struct _IswTrayIcon {
     cairo_surface_t     *surface;
     cairo_t             *cr;
     xcb_visualtype_t    *visual;
+    uint8_t              depth;
 
     /* Icon data */
     unsigned char       *rgba_data;       /* owned copy, or NULL */
@@ -328,11 +329,17 @@ paint_icon(IswTrayIcon icon)
     if (!icon->cr)
         return;
 
-    /* Clear to transparent */
-    cairo_save(icon->cr);
-    cairo_set_operator(icon->cr, CAIRO_OPERATOR_CLEAR);
-    cairo_paint(icon->cr);
-    cairo_restore(icon->cr);
+    if (icon->depth == 32) {
+        /* 32-bit visual has alpha — clear to fully transparent */
+        cairo_save(icon->cr);
+        cairo_set_operator(icon->cr, CAIRO_OPERATOR_CLEAR);
+        cairo_paint(icon->cr);
+        cairo_restore(icon->cr);
+    }
+    /* Non-32-bit: ParentRelative background means the server already
+     * filled the window with the parent's background before expose.
+     * We paint the icon with OVER so transparent areas keep that
+     * background rather than becoming black. */
 
     if (icon->rgba_data) {
         /* Render RGBA image data */
@@ -373,7 +380,6 @@ paint_icon(IswTrayIcon icon)
             icon->rgba_w, icon->rgba_h, stride);
 
         if (cairo_surface_status(img) == CAIRO_STATUS_SUCCESS) {
-            /* Scale to fit the tray icon size */
             cairo_save(icon->cr);
             cairo_scale(icon->cr,
                         (double)icon->width / icon->rgba_w,
@@ -598,6 +604,8 @@ IswTrayIconCreate(Widget shell, const char *tooltip)
             depth = icon->screen->root_depth;
         }
 
+        icon->depth = depth;
+
         if (!icon->visual) {
             fprintf(stderr, "IswTrayIcon: No usable visual\n");
             free(icon->tooltip);
@@ -640,8 +648,8 @@ IswTrayIconCreate(Widget shell, const char *tooltip)
                               icon->visual->visual_id,
                               wmask, vals);
         } else {
-            mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-            values[0] = icon->screen->black_pixel;
+            mask = XCB_CW_BACK_PIXMAP | XCB_CW_EVENT_MASK;
+            values[0] = XCB_BACK_PIXMAP_PARENT_RELATIVE;
             values[1] = XCB_EVENT_MASK_EXPOSURE |
                         XCB_EVENT_MASK_BUTTON_PRESS |
                         XCB_EVENT_MASK_STRUCTURE_NOTIFY;
