@@ -177,6 +177,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     FlexBoxWidget fw = (FlexBoxWidget)new;
     fw->flexBox.preferred_width = 0;
     fw->flexBox.preferred_height = 0;
+    fw->flexBox.layout_in_progress = False;
 }
 
 /* --- Layout engine --- */
@@ -390,6 +391,11 @@ ChangeManaged(Widget w)
 {
     FlexBoxWidget fw = (FlexBoxWidget)w;
 
+    if (fw->flexBox.layout_in_progress)
+        return;
+
+    fw->flexBox.layout_in_progress = True;
+
     DoLayout(fw, FALSE);
 
     /* Try to get our preferred size */
@@ -409,6 +415,8 @@ ChangeManaged(Widget w)
     }
 
     DoLayout(fw, TRUE);
+
+    fw->flexBox.layout_in_progress = False;
 }
 
 static IswGeometryResult

@@ -47,6 +47,7 @@ typedef struct _FlexBoxPart {
     /* private */
     Dimension     preferred_width;
     Dimension     preferred_height;
+    Boolean       layout_in_progress;
 } FlexBoxPart;
 
 typedef struct _FlexBoxRec {
