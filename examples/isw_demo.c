@@ -293,135 +293,124 @@ void populate_menubar(Widget menubar) {
     Widget file_button, edit_button, about_button;
     Widget file_menu, edit_menu, about_menu;
     Widget entry;
-    Arg args[10];
-    Cardinal n;
+    IswArgBuilder ab = IswArgBuilderInit();
 
     /* === FILE MENU === */
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "File"); n++;
-    IswSetArg(args[n], IswNmenuName, "fileMenu"); n++;
-    file_button = IswCreateManagedWidget("fileButton", menuButtonWidgetClass, menubar, args, n);
-    
-    n = 0;
-    file_menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass, file_button, args, n);
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "New"); n++;
-    entry = IswCreateManagedWidget("menuNew", smeBSBObjectClass, file_menu, args, n);
+    ab.add(&ab, IswNlabel,    (IswArgVal)"File")
+      ->add(&ab, IswNmenuName, (IswArgVal)"fileMenu");
+    file_button = IswCreateManagedWidget("fileButton", menuButtonWidgetClass, menubar, ab.args, ab.count);
+
+    file_menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass, file_button, NULL, 0);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"New");
+    entry = IswCreateManagedWidget("menuNew", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"New");
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Open..."); n++;
-    entry = IswCreateManagedWidget("menuOpen", smeBSBObjectClass, file_menu, args, n);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Open...");
+    entry = IswCreateManagedWidget("menuOpen", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Open");
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Save"); n++;
-    entry = IswCreateManagedWidget("menuSave", smeBSBObjectClass, file_menu, args, n);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Save");
+    entry = IswCreateManagedWidget("menuSave", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Save");
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Save As..."); n++;
-    entry = IswCreateManagedWidget("menuSaveAs", smeBSBObjectClass, file_menu, args, n);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Save As...");
+    entry = IswCreateManagedWidget("menuSaveAs", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Save As");
-    
+
     /* 3D separator */
-    n = 0;
-    IswCreateManagedWidget("sep1", smeLineObjectClass, file_menu, args, n);
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Export"); n++;
-    entry = IswCreateManagedWidget("menuExport", smeBSBObjectClass, file_menu, args, n);
+    IswCreateManagedWidget("sep1", smeLineObjectClass, file_menu, NULL, 0);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Export");
+    entry = IswCreateManagedWidget("menuExport", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Export");
-    
-    n = 0;
-    IswCreateManagedWidget("sep2", smeLineObjectClass, file_menu, args, n);
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Quit"); n++;
-    entry = IswCreateManagedWidget("menuQuit", smeBSBObjectClass, file_menu, args, n);
+
+    IswCreateManagedWidget("sep2", smeLineObjectClass, file_menu, NULL, 0);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Quit");
+    entry = IswCreateManagedWidget("menuQuit", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, quit_callback, NULL);
-    
+
     /* === EDIT MENU === */
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Edit"); n++;
-    IswSetArg(args[n], IswNmenuName, "editMenu"); n++;
-    edit_button = IswCreateManagedWidget("editButton", menuButtonWidgetClass, menubar, args, n);
-    
-    n = 0;
-    edit_menu = IswCreatePopupShell("editMenu", simpleMenuWidgetClass, edit_button, args, n);
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Undo"); n++;
-    entry = IswCreateManagedWidget("menuUndo", smeBSBObjectClass, edit_menu, args, n);
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel,    (IswArgVal)"Edit")
+      ->add(&ab, IswNmenuName, (IswArgVal)"editMenu");
+    edit_button = IswCreateManagedWidget("editButton", menuButtonWidgetClass, menubar, ab.args, ab.count);
+
+    edit_menu = IswCreatePopupShell("editMenu", simpleMenuWidgetClass, edit_button, NULL, 0);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Undo");
+    entry = IswCreateManagedWidget("menuUndo", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Undo");
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Redo"); n++;
-    entry = IswCreateManagedWidget("menuRedo", smeBSBObjectClass, edit_menu, args, n);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Redo");
+    entry = IswCreateManagedWidget("menuRedo", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Redo");
-    
-    n = 0;
-    IswCreateManagedWidget("sep3", smeLineObjectClass, edit_menu, args, n);
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Cut"); n++;
-    entry = IswCreateManagedWidget("menuCut", smeBSBObjectClass, edit_menu, args, n);
+
+    IswCreateManagedWidget("sep3", smeLineObjectClass, edit_menu, NULL, 0);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Cut");
+    entry = IswCreateManagedWidget("menuCut", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Cut");
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Copy"); n++;
-    entry = IswCreateManagedWidget("menuCopy", smeBSBObjectClass, edit_menu, args, n);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Copy");
+    entry = IswCreateManagedWidget("menuCopy", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Copy");
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Paste"); n++;
-    entry = IswCreateManagedWidget("menuPaste", smeBSBObjectClass, edit_menu, args, n);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Paste");
+    entry = IswCreateManagedWidget("menuPaste", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Paste");
-    
-    n = 0;
-    IswCreateManagedWidget("sep4", smeLineObjectClass, edit_menu, args, n);
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Preferences..."); n++;
-    entry = IswCreateManagedWidget("menuPrefs", smeBSBObjectClass, edit_menu, args, n);
+
+    IswCreateManagedWidget("sep4", smeLineObjectClass, edit_menu, NULL, 0);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Preferences...");
+    entry = IswCreateManagedWidget("menuPrefs", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Preferences");
-    
+
     /* === ABOUT MENU === */
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "About"); n++;
-    IswSetArg(args[n], IswNmenuName, "aboutMenu"); n++;
-    about_button = IswCreateManagedWidget("aboutButton", menuButtonWidgetClass, menubar, args, n);
-    
-    n = 0;
-    about_menu = IswCreatePopupShell("aboutMenu", simpleMenuWidgetClass, about_button, args, n);
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "About ISW Demo"); n++;
-    entry = IswCreateManagedWidget("menuAbout", smeBSBObjectClass, about_menu, args, n);
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel,    (IswArgVal)"About")
+      ->add(&ab, IswNmenuName, (IswArgVal)"aboutMenu");
+    about_button = IswCreateManagedWidget("aboutButton", menuButtonWidgetClass, menubar, ab.args, ab.count);
+
+    about_menu = IswCreatePopupShell("aboutMenu", simpleMenuWidgetClass, about_button, NULL, 0);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"About ISW Demo");
+    entry = IswCreateManagedWidget("menuAbout", smeBSBObjectClass, about_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"About");
-    
-    n = 0;
-    IswCreateManagedWidget("sep5", smeLineObjectClass, about_menu, args, n);
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "ISW Documentation"); n++;
-    entry = IswCreateManagedWidget("menuDocs", smeBSBObjectClass, about_menu, args, n);
+
+    IswCreateManagedWidget("sep5", smeLineObjectClass, about_menu, NULL, 0);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"ISW Documentation");
+    entry = IswCreateManagedWidget("menuDocs", smeBSBObjectClass, about_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"Documentation");
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Report Bug"); n++;
-    entry = IswCreateManagedWidget("menuBug", smeBSBObjectClass, about_menu, args, n);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"Report Bug");
+    entry = IswCreateManagedWidget("menuBug", smeBSBObjectClass, about_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"Bug");
-    
-    n = 0;
-    IswCreateManagedWidget("sep6", smeLineObjectClass, about_menu, args, n);
-    
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "License"); n++;
-    entry = IswCreateManagedWidget("menuLicense", smeBSBObjectClass, about_menu, args, n);
+
+    IswCreateManagedWidget("sep6", smeLineObjectClass, about_menu, NULL, 0);
+
+    IswArgBuilderReset(&ab);
+    ab.add(&ab, IswNlabel, (IswArgVal)"License");
+    entry = IswCreateManagedWidget("menuLicense", smeBSBObjectClass, about_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"License");
-    
+
 }
 
 Widget create_title_label(Widget parent) {

@@ -1144,6 +1144,55 @@ extern IswPointer IswGetClassExtension(
 #define IswSetArg(arg, n, d) \
     ((void)( (arg).name = (n), (arg).value = (IswArgVal)(d) ))
 
+/*
+ * IswArgBuilder: convenience wrapper for building Arg lists with
+ * chained calls.  Stack-allocated, no cleanup needed.
+ *
+ * Usage:
+ *   IswArgBuilder ab = IswArgBuilderInit();
+ *   ab.add(&ab, IswNwidth,  (IswArgVal)400)
+ *     ->add(&ab, IswNheight, (IswArgVal)300);
+ *   widget = IswCreateManagedWidget("w", cls, parent, ab.args, ab.count);
+ */
+
+#define ISW_ARGBUILDER_MAX 32
+
+typedef struct _IswArgBuilder IswArgBuilder;
+
+typedef IswArgBuilder* (*IswArgBuilderAddFn)(
+    IswArgBuilder*,
+    String,
+    IswArgVal
+);
+
+struct _IswArgBuilder {
+    Arg                 args[ISW_ARGBUILDER_MAX];
+    Cardinal            count;
+    IswArgBuilderAddFn  add;
+};
+
+static inline IswArgBuilder*
+IswArgBuilderAdd(IswArgBuilder *ab, String name, IswArgVal value)
+{
+    if (ab->count < ISW_ARGBUILDER_MAX) {
+        IswSetArg(ab->args[ab->count], name, value);
+        ab->count++;
+    }
+    return ab;
+}
+
+#define IswArgBuilderInit() \
+    { .args = {{0}}, .count = 0, .add = IswArgBuilderAdd }
+
+#define IswArgBuilderSet(ab, name, val) \
+    ((ab)->add((ab), (name), (IswArgVal)(val)))
+
+static inline void
+IswArgBuilderReset(IswArgBuilder *ab)
+{
+    ab->count = 0;
+}
+
 extern ArgList IswMergeArgLists(
     ArgList 		/* args1 */,
     Cardinal 		/* num_args1 */,
