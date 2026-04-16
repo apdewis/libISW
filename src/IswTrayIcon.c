@@ -335,11 +335,14 @@ paint_icon(IswTrayIcon icon)
         cairo_set_operator(icon->cr, CAIRO_OPERATOR_CLEAR);
         cairo_paint(icon->cr);
         cairo_restore(icon->cr);
+    } else {
+        /* Force the server to repaint the ParentRelative background
+         * so we have a clean slate when called outside of expose. */
+        xcb_clear_area(icon->conn, 0, icon->window, 0, 0,
+                       icon->width, icon->height);
+        cairo_surface_flush(cairo_get_target(icon->cr));
+        xcb_flush(icon->conn);
     }
-    /* Non-32-bit: ParentRelative background means the server already
-     * filled the window with the parent's background before expose.
-     * We paint the icon with OVER so transparent areas keep that
-     * background rather than becoming black. */
 
     if (icon->rgba_data) {
         /* Render RGBA image data */
