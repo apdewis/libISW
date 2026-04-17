@@ -292,13 +292,16 @@ CreateGlyphCursor(xcb_connection_t *conn, unsigned int shape)
 
 static xcb_cursor_t
 LoadThemedCursor(xcb_connection_t *conn, xcb_screen_t *screen,
-                 const char *name, unsigned int shape)
+                 const char **names, int nnames, unsigned int shape)
 {
     xcb_cursor_context_t *ctx;
     if (xcb_cursor_context_new(conn, screen, &ctx) < 0)
         return CreateGlyphCursor(conn, shape);
 
-    xcb_cursor_t cursor = xcb_cursor_load_cursor(ctx, name);
+    xcb_cursor_t cursor = XCB_CURSOR_NONE;
+    for (int i = 0; i < nnames && cursor == XCB_CURSOR_NONE; i++)
+        cursor = xcb_cursor_load_cursor(ctx, names[i]);
+
     xcb_cursor_context_free(ctx);
 
     if (cursor == XCB_CURSOR_NONE)
@@ -310,11 +313,29 @@ LoadThemedCursor(xcb_connection_t *conn, xcb_screen_t *screen,
 static void
 CreateCursors(XdndState *st, xcb_connection_t *conn, xcb_screen_t *screen)
 {
-    st->cursor_default = LoadThemedCursor(conn, screen, "left_ptr",  XC_left_ptr);
-    st->cursor_copy    = LoadThemedCursor(conn, screen, "hand2",     XC_hand2);
-    st->cursor_move    = LoadThemedCursor(conn, screen, "fleur",     XC_fleur);
-    st->cursor_link    = LoadThemedCursor(conn, screen, "hand1",     XC_hand1);
-    st->cursor_reject  = LoadThemedCursor(conn, screen, "X_cursor",  XC_X_cursor);
+    static const char *default_names[] = {
+        "dnd-none", "grabbing", "closedhand", "fleur", "left_ptr"
+    };
+    static const char *copy_names[] = {
+        "dnd-copy", "copy", "left_ptr"
+    };
+    static const char *move_names[] = {
+        "dnd-move", "move", "grabbing", "closedhand", "fleur"
+    };
+    static const char *link_names[] = {
+        "dnd-link", "link", "alias", "left_ptr"
+    };
+    static const char *reject_names[] = {
+        "dnd-no-drop", "no-drop", "not-allowed", "crossed_circle", "X_cursor"
+    };
+
+#define NELEM(a) (int)(sizeof(a) / sizeof(a[0]))
+    st->cursor_default = LoadThemedCursor(conn, screen, default_names, NELEM(default_names), XC_fleur);
+    st->cursor_copy    = LoadThemedCursor(conn, screen, copy_names,    NELEM(copy_names),    XC_hand2);
+    st->cursor_move    = LoadThemedCursor(conn, screen, move_names,    NELEM(move_names),    XC_fleur);
+    st->cursor_link    = LoadThemedCursor(conn, screen, link_names,    NELEM(link_names),    XC_hand1);
+    st->cursor_reject  = LoadThemedCursor(conn, screen, reject_names,  NELEM(reject_names),  XC_X_cursor);
+#undef NELEM
 }
 
 /* ------------------------------------------------------------------ */
