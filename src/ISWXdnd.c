@@ -26,6 +26,8 @@
 #include <ISW/ISWXdnd.h>
 #include <ISW/ISWContext.h>
 #include <ISW/IconView.h>
+#include <ISW/ViewportP.h>
+#include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 #include <xcb/xcb_cursor.h>
 
@@ -515,6 +517,62 @@ FindDropTarget(XdndState *st, int root_x, int root_y)
 
     fprintf(stderr, "XDND FindDropTarget: searching children\n");
     Widget result = FindDropChild(st, st->shell, wx, wy);
+
+    /* Fallback: iterate registered DropConfigs directly.  This handles
+       widgets inside Viewports whose clip windows hide them from the
+       normal widget-tree walk. */
+    if (!result) {
+        DropConfig *dc;
+        fprintf(stderr, "XDND FindDropTarget: fallback scan, configs=%p\n",
+                (void*)st->drop_configs);
+        for (dc = st->drop_configs; dc; dc = dc->next) {
+            fprintf(stderr, "XDND FindDropTarget:   dc=%p widget=%p realized=%d shell=%d\n",
+                    (void*)dc, (void*)dc->widget,
+                    IswIsRealized(dc->widget),
+                    dc->widget == st->shell);
+            if (dc->widget == st->shell || !IswIsRealized(dc->widget))
+                continue;
+
+            /* For Viewport children, the widget is reparented into a clip
+               window (Viewport → clip → child).  The widget window is
+               scrolled inside the clip, so translating through it gives
+               the wrong screen position.  Detect this by checking if the
+               grandparent is a Viewport and use its clip widget instead. */
+            Widget bounds_widget = dc->widget;
+            Widget parent = IswParent(dc->widget);
+            Widget grandparent = parent ? IswParent(parent) : NULL;
+            if (grandparent && IswIsSubclass(grandparent, viewportWidgetClass)) {
+                ViewportWidget vp = (ViewportWidget) grandparent;
+                if (vp->viewport.clip && IswIsRealized(vp->viewport.clip))
+                    bounds_widget = vp->viewport.clip;
+            }
+
+            /* xcb_translate_coordinates returns physical (server) coords,
+               but XDND root coords are logical.  Scale to match. */
+            double sf = ISWScaleFactor(st->shell);
+            xcb_translate_coordinates_cookie_t tc =
+                xcb_translate_coordinates(conn,
+                    IswWindow(bounds_widget), IswScreen(st->shell)->root,
+                    0, 0);
+            xcb_translate_coordinates_reply_t *tr =
+                xcb_translate_coordinates_reply(conn, tc, NULL);
+            if (!tr) continue;
+            int abs_x = (int)(tr->dst_x / sf + 0.5);
+            int abs_y = (int)(tr->dst_y / sf + 0.5);
+            int w = (int) bounds_widget->core.width;
+            int h = (int) bounds_widget->core.height;
+            free(tr);
+            fprintf(stderr, "XDND FindDropTarget:   widget %p: abs(%d,%d) size(%d,%d) root(%d,%d) sf=%.2f\n",
+                    (void*)dc->widget, abs_x, abs_y, w, h, root_x, root_y, sf);
+            if (root_x >= abs_x && root_y >= abs_y &&
+                root_x < abs_x + w &&
+                root_y < abs_y + h) {
+                result = dc->widget;
+                break;
+            }
+        }
+    }
+
     fprintf(stderr, "XDND FindDropTarget: result=%p\n", (void*)result);
     return result;
 }
@@ -1406,10 +1464,6 @@ DragMotion(XdndState *st, int root_x, int root_y)
         modifiers = qpr->mask;
         free(qpr);
     }
-
-    /* Don't target our own shell window */
-    if (child_win == IswWindow(st->shell))
-        child_win = XCB_NONE;
 
     /* Find the XdndAware ancestor */
     int target_version = 0;
