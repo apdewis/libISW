@@ -1414,6 +1414,14 @@ ISWXdndStartDrag(Widget source_widget,
     }
     free(gr);
 
+    /* Grab the keyboard through Xt so key events dispatch to the shell,
+     * where HandleDragEvent is registered.  Raw xcb_grab_keyboard does
+     * the X grab but skips Xt's input dispatch bookkeeping, so key
+     * events get remapped to the focused child and never reach us. */
+    IswGrabKeyboard(st->shell, False,
+                    XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+                    st->drag_timestamp);
+
     /* Install raw event handler for drag tracking */
     IswAddEventHandler(st->shell,
                       XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
@@ -1475,7 +1483,6 @@ HandleDragEvent(Widget w, IswPointer closure, xcb_generic_event_t *event,
 
     case XCB_KEY_PRESS: {
         xcb_key_press_event_t *ke = (xcb_key_press_event_t *) event;
-        /* Check for Escape key (keycode 9 on most systems, but use keysym) */
         xcb_connection_t *conn = IswDisplay(st->shell);
         xcb_key_symbols_t *syms = xcb_key_symbols_alloc(conn);
         if (syms) {
@@ -1819,6 +1826,7 @@ DragDrop(XdndState *st)
      * True so HandleXdndEvent still processes XdndFinished/XdndStatus. */
     xcb_connection_t *conn = IswDisplay(st->shell);
     xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
+    IswUngrabKeyboard(st->shell, XCB_CURRENT_TIME);
     DestroyDragIcon(st);
 
     IswRemoveEventHandler(st->shell,
@@ -1848,8 +1856,9 @@ DragCleanup(XdndState *st)
 {
     xcb_connection_t *conn = IswDisplay(st->shell);
 
-    /* Ungrab pointer */
+    /* Ungrab pointer and keyboard */
     xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
+    IswUngrabKeyboard(st->shell, XCB_CURRENT_TIME);
 
     /* Remove drag event handler */
     IswRemoveEventHandler(st->shell,
