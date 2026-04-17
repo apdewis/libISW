@@ -877,25 +877,23 @@ GrabDevice(Widget widget,
     pdi = _IswGetPerDisplayInput(IswDisplay(widget));
     UNLOCK_PROCESS;
     if (!isKeyboard) {
-        //returnVal = XGrabPointer(IswDisplay(widget), IswWindow(widget),
-        //                         owner_events, (unsigned) event_mask,
-        //                         pointer_mode, keyboard_mode,
-        //                         confine_to, cursor, time);
         xcb_grab_pointer_cookie_t cookie = xcb_grab_pointer(
-            IswDisplay(widget), 0, IswWindow(widget), XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION,
-            XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_SYNC, XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
-        xcb_grab_pointer_reply_t *reply = xcb_grab_pointer_reply(IswDisplay(widget), cookie, NULL);
+            IswDisplay(widget), owner_events, IswWindow(widget),
+            (uint16_t)event_mask,
+            pointer_mode, keyboard_mode,
+            confine_to, cursor, time);
+        xcb_grab_pointer_reply_t *reply = xcb_grab_pointer_reply(
+            IswDisplay(widget), cookie, NULL);
         if (reply) {
             returnVal = reply->status;
             free(reply);
         }
     } else {
-        //returnVal = XGrabKeyboard(IswDisplay(widget), IswWindow(widget),
-        //                          owner_events, pointer_mode,
-        //                          keyboard_mode, time);
         xcb_grab_keyboard_cookie_t cookie = xcb_grab_keyboard(
-            IswDisplay(widget), 0, IswWindow(widget), XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_SYNC, XCB_CURRENT_TIME);
-        xcb_grab_keyboard_reply_t *reply = xcb_grab_keyboard_reply(IswDisplay(widget), cookie, NULL);
+            IswDisplay(widget), owner_events, IswWindow(widget),
+            time, pointer_mode, keyboard_mode);
+        xcb_grab_keyboard_reply_t *reply = xcb_grab_keyboard_reply(
+            IswDisplay(widget), cookie, NULL);
         if (reply) {
             returnVal = reply->status;
             free(reply);
