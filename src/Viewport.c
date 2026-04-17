@@ -1046,11 +1046,12 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
     if (rWidth && w->core.width != request->width) {
 	if (w->viewport.allowhoriz && request->width > w->core.width) {
 	    /* horizontal scrollbar will be needed so possibly reduce height */
-	    Widget bar;
-	    if ((bar = w->viewport.horiz_bar) == (Widget)NULL)
+	    Widget bar = w->viewport.horiz_bar;
+	    if (bar == (Widget)NULL) {
 		bar = CreateScrollbar( w, True );
-	    height_remaining -= bar->core.height +
-				bar->core.border_width + pad;
+		height_remaining -= bar->core.height +
+				    bar->core.border_width + pad;
+	    }
 	    reconfigured = True;
 	}
 	else {
@@ -1061,19 +1062,19 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
 	if (w->viewport.allowvert && request->height > height_remaining) {
 	    /* vertical scrollbar will be needed, so possibly reduce width */
 	    if (!w->viewport.allowhoriz || request->width < w->core.width) {
-		Widget bar;
-		if ((bar = w->viewport.vert_bar) == (Widget)NULL)
-		    bar = CreateScrollbar( w, False );
 		if (!rWidth) {
 		    allowed.width = w->core.width;
 		    allowed.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
 		}
-		if ( (int)allowed.width >
-		     (int)(bar->core.width + bar->core.border_width + pad) )
-		    allowed.width -= bar->core.width +
-				     bar->core.border_width + pad;
-		else
-		    allowed.width = 1;
+		if (w->viewport.vert_bar == (Widget)NULL) {
+		    Widget bar = CreateScrollbar( w, False );
+		    if ( (int)allowed.width >
+			 (int)(bar->core.width + bar->core.border_width + pad) )
+			allowed.width -= bar->core.width +
+					 bar->core.border_width + pad;
+		    else
+			allowed.width = 1;
+		}
 		reconfigured = True;
 	    }
 	}
@@ -1095,7 +1096,7 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
     if (reconfigured || child_changed_size)
 	ComputeLayout( (Widget)w,
 		       /*query=*/ False,
-		       /*destroy=*/ (result == IswGeometryYes) ? True : False );
+		       /*destroy=*/ True );
 
     return result;
   }
