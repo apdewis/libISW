@@ -45,6 +45,7 @@ typedef struct {
     Dimension      *row_h;        /* per-row cell heights */
     int            *row_y;        /* cumulative Y offset per row */
     IconViewItemCache *cache;     /* per-item raster cache */
+    int             cache_size;   /* allocated length of cache[] */
     ISWRenderContext  *render_ctx;
 
     /* cursor / keyboard focus */

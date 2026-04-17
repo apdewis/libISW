@@ -167,7 +167,7 @@ FreeCache(IconViewWidget iw)
 {
     if (!iw->iconView.cache)
         return;
-    for (int i = 0; i < iw->iconView.nitems; i++) {
+    for (int i = 0; i < iw->iconView.cache_size; i++) {
         if (iw->iconView.cache[i].raster)
             free(iw->iconView.cache[i].raster);
         if (iw->iconView.cache[i].svg_image)
@@ -175,6 +175,7 @@ FreeCache(IconViewWidget iw)
     }
     free(iw->iconView.cache);
     iw->iconView.cache = NULL;
+    iw->iconView.cache_size = 0;
 }
 
 static void
@@ -194,6 +195,7 @@ AllocCache(IconViewWidget iw)
         return;
     iw->iconView.cache = calloc((size_t)iw->iconView.nitems,
                                  sizeof(IconViewItemCache));
+    iw->iconView.cache_size = iw->iconView.nitems;
     iw->iconView.sel_flags = calloc((size_t)iw->iconView.nitems,
                                      sizeof(Boolean));
     iw->iconView.band_saved = calloc((size_t)iw->iconView.nitems,
@@ -325,6 +327,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     iw->iconView.has_focus = False;
     iw->iconView.render_ctx = NULL;
     iw->iconView.cache = NULL;
+    iw->iconView.cache_size = 0;
     iw->iconView.ncols = 1;
     iw->iconView.nrows = 0;
     iw->iconView.band_active = False;
