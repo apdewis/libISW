@@ -50,6 +50,8 @@ extern int  IswIconViewGetSelectedItems(Widget w, int **indices_out);
 extern Boolean IswIconViewBandActive(Widget w);
 extern void IswIconViewSetDropHighlight(Widget w, int item_index);
 extern int  IswIconViewHitTest(Widget w, int x, int y);
+extern const unsigned char *IswIconViewGetItemRaster(
+    Widget w, int index, unsigned int *width_out, unsigned int *height_out);
 
 _XFUNCPROTOEND
 

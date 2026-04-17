@@ -1284,3 +1284,16 @@ IswIconViewHitTest(Widget w, int x, int y)
 {
     return HitTest((IconViewWidget)w, (Position)x, (Position)y);
 }
+
+const unsigned char *
+IswIconViewGetItemRaster(Widget w, int index,
+                         unsigned int *width_out, unsigned int *height_out)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    unsigned char *raster = GetItemRaster(iw, index);
+    if (!raster)
+        return NULL;
+    if (width_out)  *width_out  = iw->iconView.cache[index].raster_w;
+    if (height_out) *height_out = iw->iconView.cache[index].raster_h;
+    return raster;
+}

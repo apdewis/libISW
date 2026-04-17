@@ -28,8 +28,11 @@
 #include <ISW/IconView.h>
 #include <ISW/ViewportP.h>
 #include <ISW/ISWRender.h>
+#include "ISWRenderPrivate.h"
 #include "ISWXcbDraw.h"
 #include <xcb/xcb_cursor.h>
+#include <cairo/cairo.h>
+#include <cairo/cairo-xcb.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -128,6 +131,8 @@ typedef struct _XdndState {
     xcb_timestamp_t     drag_timestamp;
     int                 drag_start_x;   /* root coords of initial press */
     int                 drag_start_y;
+    int                 drag_press_x;   /* widget-local press coords */
+    int                 drag_press_y;
     Boolean             drag_started;   /* past threshold? */
 
     /* Target tracking during drag */
@@ -142,6 +147,9 @@ typedef struct _XdndState {
 
     /* Drag icon */
     xcb_window_t        drag_icon_win;
+    Boolean             drag_icon_owned;  /* we created the pixmap */
+    xcb_colormap_t      drag_icon_cmap;   /* colormap for 32-bit icon window */
+    xcb_visualid_t      drag_icon_visual; /* visual for 32-bit icon window */
 
     /* Cursors */
     xcb_cursor_t        cursor_default;
@@ -1291,6 +1299,8 @@ ISWXdndStartDrag(Widget source_widget,
     st->drag_timestamp = trigger_event->time;
     st->drag_start_x = trigger_event->root_x;
     st->drag_start_y = trigger_event->root_y;
+    st->drag_press_x = trigger_event->event_x;
+    st->drag_press_y = trigger_event->event_y;
     st->drag_started = False;
     st->drag_target_win = XCB_NONE;
     st->drag_target_ver = 0;
@@ -1301,6 +1311,9 @@ ISWXdndStartDrag(Widget source_widget,
     st->drag_last_y = trigger_event->root_y;
     st->drag_position_deferred = False;
     st->drag_icon_win = XCB_NONE;
+    st->drag_icon_owned = False;
+    st->drag_icon_cmap = XCB_NONE;
+    st->drag_icon_visual = 0;
     st->finished_timer = 0;
 
     /* Copy the type list (caller's array may be transient) */
@@ -1828,6 +1841,15 @@ DragCleanup(XdndState *st)
 
     /* Clean up icon */
     DestroyDragIcon(st);
+    if (st->drag_icon_owned && st->drag_desc.icon_pixmap != 0) {
+        xcb_free_pixmap(conn, st->drag_desc.icon_pixmap);
+        st->drag_desc.icon_pixmap = 0;
+        st->drag_icon_owned = False;
+    }
+    if (st->drag_icon_cmap != XCB_NONE) {
+        xcb_free_colormap(conn, st->drag_icon_cmap);
+        st->drag_icon_cmap = XCB_NONE;
+    }
 
     /* Remove timeout */
     if (st->finished_timer) {
@@ -1908,8 +1930,95 @@ DragLoseSelection(Widget w, xcb_atom_t *selection)
 /* ------------------------------------------------------------------ */
 
 static void
+CreateDragIconFromRaster(XdndState *st, const unsigned char *rgba,
+                         unsigned int w, unsigned int h)
+{
+    xcb_connection_t *conn = IswDisplay(st->shell);
+    xcb_screen_t *screen = IswScreen(st->shell);
+
+    /* Find a 32-bit visual for alpha transparency */
+    xcb_visualtype_t *visual32 = ISWRenderFindVisual(screen, 32);
+    if (!visual32)
+        return;
+
+    /* Create pixmap at depth 32 so alpha is preserved */
+    xcb_pixmap_t pixmap = xcb_generate_id(conn);
+    xcb_create_pixmap(conn, 32, pixmap, screen->root, w, h);
+
+    /* Convert RGBA to premultiplied ARGB32 for Cairo */
+    int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, (int)w);
+    unsigned char *argb = (unsigned char *)malloc((size_t)stride * h);
+    if (!argb) {
+        xcb_free_pixmap(conn, pixmap);
+        return;
+    }
+
+    for (unsigned int i = 0; i < w * h; i++) {
+        unsigned char r = rgba[i * 4 + 0];
+        unsigned char g = rgba[i * 4 + 1];
+        unsigned char b = rgba[i * 4 + 2];
+        unsigned char a = rgba[i * 4 + 3];
+        unsigned int row = i / w;
+        unsigned int col = i % w;
+        uint32_t *pixel = (uint32_t *)(argb + row * stride + col * 4);
+        if (a == 255)
+            *pixel = (255u << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
+        else if (a == 0)
+            *pixel = 0;
+        else
+            *pixel = ((uint32_t)a << 24) |
+                     ((uint32_t)((r * a + 127) / 255) << 16) |
+                     ((uint32_t)((g * a + 127) / 255) << 8) |
+                     (uint32_t)((b * a + 127) / 255);
+    }
+
+    /* Paint onto the 32-bit pixmap via Cairo */
+    cairo_surface_t *target = cairo_xcb_surface_create(
+        conn, pixmap, visual32, w, h);
+    cairo_surface_t *source = cairo_image_surface_create_for_data(
+        argb, CAIRO_FORMAT_ARGB32, (int)w, (int)h, stride);
+    cairo_t *cr = cairo_create(target);
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    cairo_set_source_surface(cr, source, 0, 0);
+    cairo_paint(cr);
+    cairo_destroy(cr);
+    cairo_surface_destroy(source);
+    cairo_surface_flush(target);
+    cairo_surface_destroy(target);
+    free(argb);
+
+    /* Create a colormap for the 32-bit visual */
+    xcb_colormap_t cmap = xcb_generate_id(conn);
+    xcb_create_colormap(conn, XCB_COLORMAP_ALLOC_NONE,
+                        cmap, screen->root, visual32->visual_id);
+
+    st->drag_desc.icon_pixmap = pixmap;
+    st->drag_desc.icon_width = (int)w;
+    st->drag_desc.icon_height = (int)h;
+    st->drag_desc.icon_hotspot_x = (int)w / 2;
+    st->drag_desc.icon_hotspot_y = (int)h / 2;
+    st->drag_icon_owned = True;
+    st->drag_icon_cmap = cmap;
+    st->drag_icon_visual = visual32->visual_id;
+}
+
+static void
 CreateDragIcon(XdndState *st)
 {
+    /* Auto-generate icon from IconView item raster */
+    if (st->drag_desc.icon_pixmap == 0 &&
+        IswIsSubclass(st->drag_source, iconViewWidgetClass)) {
+        int idx = IswIconViewHitTest(st->drag_source,
+                                     st->drag_press_x, st->drag_press_y);
+        if (idx >= 0) {
+            unsigned int rw, rh;
+            const unsigned char *raster =
+                IswIconViewGetItemRaster(st->drag_source, idx, &rw, &rh);
+            if (raster)
+                CreateDragIconFromRaster(st, raster, rw, rh);
+        }
+    }
+
     if (st->drag_desc.icon_pixmap == 0)
         return;
 
@@ -1918,19 +2027,39 @@ CreateDragIcon(XdndState *st)
 
     st->drag_icon_win = xcb_generate_id(conn);
 
-    uint32_t values[2];
-    uint32_t mask = XCB_CW_OVERRIDE_REDIRECT | XCB_CW_BACK_PIXMAP;
-    values[0] = st->drag_desc.icon_pixmap;
-    values[1] = True;
+    if (st->drag_icon_owned && st->drag_icon_visual) {
+        /* 32-bit ARGB window for transparent drag icon */
+        uint32_t vals[4];
+        uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_BORDER_PIXEL |
+                        XCB_CW_OVERRIDE_REDIRECT | XCB_CW_COLORMAP;
+        vals[0] = st->drag_desc.icon_pixmap;
+        vals[1] = 0;
+        vals[2] = True;
+        vals[3] = st->drag_icon_cmap;
 
-    xcb_create_window(conn, XCB_COPY_FROM_PARENT,
-                      st->drag_icon_win, screen->root,
-                      (int16_t)(st->drag_start_x - st->drag_desc.icon_hotspot_x),
-                      (int16_t)(st->drag_start_y - st->drag_desc.icon_hotspot_y),
-                      st->drag_desc.icon_width,
-                      st->drag_desc.icon_height,
-                      0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                      XCB_COPY_FROM_PARENT, mask, values);
+        xcb_create_window(conn, 32,
+                          st->drag_icon_win, screen->root,
+                          (int16_t)(st->drag_start_x - st->drag_desc.icon_hotspot_x),
+                          (int16_t)(st->drag_start_y - st->drag_desc.icon_hotspot_y),
+                          st->drag_desc.icon_width,
+                          st->drag_desc.icon_height,
+                          0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                          st->drag_icon_visual, mask, vals);
+    } else {
+        uint32_t vals[2];
+        uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_OVERRIDE_REDIRECT;
+        vals[0] = st->drag_desc.icon_pixmap;
+        vals[1] = True;
+
+        xcb_create_window(conn, XCB_COPY_FROM_PARENT,
+                          st->drag_icon_win, screen->root,
+                          (int16_t)(st->drag_start_x - st->drag_desc.icon_hotspot_x),
+                          (int16_t)(st->drag_start_y - st->drag_desc.icon_hotspot_y),
+                          st->drag_desc.icon_width,
+                          st->drag_desc.icon_height,
+                          0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                          XCB_COPY_FROM_PARENT, mask, vals);
+    }
 
     xcb_map_window(conn, st->drag_icon_win);
     xcb_flush(conn);
