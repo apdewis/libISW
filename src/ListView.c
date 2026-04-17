@@ -202,6 +202,7 @@ static void
 AllocSelFlags(ListViewWidget lv)
 {
     FreeSelFlags(lv);
+    lv->listView.drop_highlight = -1;
     if (lv->listView.nrows <= 0)
         return;
     lv->listView.sel_flags = calloc((size_t)lv->listView.nrows, sizeof(Boolean));
@@ -436,6 +437,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     lv->listView.resize_cursor_set = False;
     lv->listView.sort_column = -1;
     lv->listView.sort_direction = IswListViewSortNone;
+    lv->listView.drop_highlight = -1;
 
     BuildColumns(lv);
     AllocSelFlags(lv);
@@ -492,6 +494,8 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
         (dpy, w, valueMask, attributes);
 
     lv->listView.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+
+    ResolveForegroundRGB(lv);
 
     xcb_screen_t *screen = w->core.screen;
     lv->listView.resize_cursor = LoadCursor(dpy, screen,
@@ -689,6 +693,18 @@ DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
         if (lv->listView.sel_flags && lv->listView.sel_flags[row]) {
             ISWRenderSetColor(ctx, lv->listView.foreground);
             ISWRenderFillRectangle(ctx, 0, ry, (int)w->core.width, (int)row_h);
+        }
+
+        /* Drop-target highlight */
+        if (lv->listView.drop_highlight == row) {
+            ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
+                                  lv->listView.fg_b, 0.15);
+            ISWRenderFillRectangle(ctx, 0, ry, (int)w->core.width, (int)row_h);
+            ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
+                                  lv->listView.fg_b, 0.8);
+            ISWRenderSetLineWidth(ctx, 2.0);
+            ISWRenderStrokeRectangle(ctx, 1, ry + 1,
+                                     (int)w->core.width - 2, (int)row_h - 2);
         }
 
         /* Alternating row tint for unselected rows */
@@ -1450,4 +1466,22 @@ IswListViewSetSort(Widget w, int column, IswListViewSortDirection direction)
     lv->listView.sort_direction = direction;
     if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
+}
+
+void
+IswListViewSetDropHighlight(Widget w, int row_index)
+{
+    ListViewWidget lv = (ListViewWidget) w;
+    if (row_index == lv->listView.drop_highlight)
+        return;
+    lv->listView.drop_highlight = row_index;
+    if (IswIsRealized(w))
+        Redisplay(w, NULL, 0);
+}
+
+int
+IswListViewHitTest(Widget w, int x, int y)
+{
+    (void)x;
+    return RowAtY((ListViewWidget)w, (Position)y);
 }

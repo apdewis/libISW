@@ -79,6 +79,8 @@ extern int  IswListViewGetSelectedRows(Widget w, int **indices_out);
 extern Boolean IswListViewBandActive(Widget w);
 extern void IswListViewSetSort(Widget w, int column,
                                IswListViewSortDirection direction);
+extern void IswListViewSetDropHighlight(Widget w, int row_index);
+extern int  IswListViewHitTest(Widget w, int x, int y);
 
 _XFUNCPROTOEND
 

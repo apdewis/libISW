@@ -68,6 +68,10 @@ typedef struct _DropConfig {
      * Core/Composite rather than Simple). */
     IswCallbackProc      drop_proc;
     IswPointer           drop_closure;
+    IswCallbackProc      motion_proc;
+    IswPointer           motion_closure;
+    IswCallbackProc      leave_proc;
+    IswPointer           leave_closure;
     struct _DropConfig *next;
 } DropConfig;
 
@@ -757,6 +761,30 @@ ISWXdndSetDropCallback(Widget w, IswCallbackProc proc, IswPointer closure)
     dc->drop_closure = closure;
 }
 
+void
+ISWXdndSetDragMotionCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+{
+    XdndState *st = GetXdndStateForWidget(w);
+    if (!st)
+        return;
+
+    DropConfig *dc = GetOrCreateDropConfig(st, w);
+    dc->motion_proc = proc;
+    dc->motion_closure = closure;
+}
+
+void
+ISWXdndSetDragLeaveCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+{
+    XdndState *st = GetXdndStateForWidget(w);
+    if (!st)
+        return;
+
+    DropConfig *dc = GetOrCreateDropConfig(st, w);
+    dc->leave_proc = proc;
+    dc->leave_closure = closure;
+}
+
 xcb_atom_t
 ISWXdndInternType(Widget w, const char *mime_type)
 {
@@ -900,6 +928,12 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
             IswHasCallbacks(st->hover_widget, IswNdragLeaveCallback) == IswCallbackHasSome) {
             IswDragOverCallbackData cbd = {0};
             IswCallCallbacks(st->hover_widget, IswNdragLeaveCallback, (IswPointer) &cbd);
+        } else if (st->hover_widget) {
+            DropConfig *dc = FindDropConfig(st, st->hover_widget);
+            if (dc && dc->leave_proc) {
+                IswDragOverCallbackData cbd = {0};
+                dc->leave_proc(st->hover_widget, dc->leave_closure, (IswPointer) &cbd);
+            }
         }
 
         st->hover_widget = target;
@@ -925,16 +959,17 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
         /* First, let the widget's dragMotion callback override */
         if (IswHasCallbacks(target, IswNdragMotionCallback) == IswCallbackHasSome) {
             xcb_connection_t *conn = IswDisplay(st->shell);
+            double sf = ISWScaleFactor(st->shell);
             xcb_translate_coordinates_cookie_t tc =
                 xcb_translate_coordinates(conn,
                     IswScreen(st->shell)->root, IswWindow(target),
-                    (int16_t) st->drop_x, (int16_t) st->drop_y);
+                    (int16_t)(st->drop_x * sf), (int16_t)(st->drop_y * sf));
             xcb_translate_coordinates_reply_t *tr =
                 xcb_translate_coordinates_reply(conn, tc, NULL);
 
             IswDragOverCallbackData cbd = {0};
-            cbd.x = tr ? tr->dst_x : 0;
-            cbd.y = tr ? tr->dst_y : 0;
+            cbd.x = tr ? (int)(tr->dst_x / sf + 0.5) : 0;
+            cbd.y = tr ? (int)(tr->dst_y / sf + 0.5) : 0;
             free(tr);
             cbd.offered_types = st->src_types;
             cbd.num_offered_types = st->src_num_types;
@@ -947,6 +982,35 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
                 accepted_type = cbd.accepted_type;
                 accepted_action = cbd.accepted_action;
                 accept = True;
+            }
+        } else {
+            DropConfig *dc = FindDropConfig(st, target);
+            if (dc && dc->motion_proc) {
+                xcb_connection_t *conn = IswDisplay(st->shell);
+                double sf = ISWScaleFactor(st->shell);
+                xcb_translate_coordinates_cookie_t tc =
+                    xcb_translate_coordinates(conn,
+                        IswScreen(st->shell)->root, IswWindow(target),
+                        (int16_t)(st->drop_x * sf), (int16_t)(st->drop_y * sf));
+                xcb_translate_coordinates_reply_t *tr =
+                    xcb_translate_coordinates_reply(conn, tc, NULL);
+
+                IswDragOverCallbackData cbd = {0};
+                cbd.x = tr ? (int)(tr->dst_x / sf + 0.5) : 0;
+                cbd.y = tr ? (int)(tr->dst_y / sf + 0.5) : 0;
+                free(tr);
+                cbd.offered_types = st->src_types;
+                cbd.num_offered_types = st->src_num_types;
+                cbd.offered_actions = st->src_actions;
+                cbd.proposed_action = proposed;
+
+                dc->motion_proc(target, dc->motion_closure, (IswPointer) &cbd);
+
+                if (cbd.accepted_type != XCB_ATOM_NONE) {
+                    accepted_type = cbd.accepted_type;
+                    accepted_action = cbd.accepted_action;
+                    accept = True;
+                }
             }
         }
 
@@ -1103,6 +1167,12 @@ TargetSelectionCallback(Widget w, IswPointer closure,
         IswHasCallbacks(st->hover_widget, IswNdragLeaveCallback) == IswCallbackHasSome) {
         IswDragOverCallbackData cbd = {0};
         IswCallCallbacks(st->hover_widget, IswNdragLeaveCallback, (IswPointer) &cbd);
+    } else if (st->hover_widget) {
+        DropConfig *dc = FindDropConfig(st, st->hover_widget);
+        if (dc && dc->leave_proc) {
+            IswDragOverCallbackData cbd = {0};
+            dc->leave_proc(st->hover_widget, dc->leave_closure, (IswPointer) &cbd);
+        }
     }
 
     /* Reset drop target state */
@@ -1128,6 +1198,12 @@ HandleTargetLeave(XdndState *st)
         IswHasCallbacks(st->hover_widget, IswNdragLeaveCallback) == IswCallbackHasSome) {
         IswDragOverCallbackData cbd = {0};
         IswCallCallbacks(st->hover_widget, IswNdragLeaveCallback, (IswPointer) &cbd);
+    } else if (st->hover_widget) {
+        DropConfig *dc = FindDropConfig(st, st->hover_widget);
+        if (dc && dc->leave_proc) {
+            IswDragOverCallbackData cbd = {0};
+            dc->leave_proc(st->hover_widget, dc->leave_closure, (IswPointer) &cbd);
+        }
     }
 
     st->src_window = 0;

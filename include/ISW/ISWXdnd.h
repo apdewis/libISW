@@ -204,6 +204,24 @@ void ISWXdndSetDropCallback(
 );
 
 /*
+ * ISWXdndSetDragMotionCallback / ISWXdndSetDragLeaveCallback
+ *
+ * Direct motion/leave callbacks for widgets whose class doesn't declare
+ * IswNdragMotionCallback / IswNdragLeaveCallback as resources.
+ * Same pattern as ISWXdndSetDropCallback.
+ */
+void ISWXdndSetDragMotionCallback(
+    Widget          w,
+    IswCallbackProc  proc,
+    IswPointer       closure
+);
+void ISWXdndSetDragLeaveCallback(
+    Widget          w,
+    IswCallbackProc  proc,
+    IswPointer       closure
+);
+
+/*
  * ISWXdndInternType - Convenience: intern a MIME type string as an atom.
  */
 xcb_atom_t ISWXdndInternType(Widget w, const char *mime_type);

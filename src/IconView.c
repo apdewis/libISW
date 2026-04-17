@@ -189,6 +189,7 @@ AllocCache(IconViewWidget iw)
         free(iw->iconView.band_saved);
         iw->iconView.band_saved = NULL;
     }
+    iw->iconView.drop_highlight = -1;
     if (iw->iconView.nitems <= 0)
         return;
     iw->iconView.cache = calloc((size_t)iw->iconView.nitems,
@@ -331,6 +332,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     iw->iconView.work_proc_id = 0;
     iw->iconView.deselect_pending = False;
     iw->iconView.deselect_index = -1;
+    iw->iconView.drop_highlight = -1;
 
     iw->iconView.icon_size = (iw->iconView.icon_size);
     iw->iconView.item_spacing = (iw->iconView.item_spacing);
@@ -354,6 +356,8 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
         (dpy, w, valueMask, attributes);
 
     iw->iconView.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+
+    ResolveForegroundRGB(iw);
 }
 
 static void
@@ -590,6 +594,29 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         }
     }
 
+    /* Drop-target highlight */
+    if (iw->iconView.drop_highlight >= 0 &&
+        iw->iconView.drop_highlight < iw->iconView.nitems) {
+        int di = iw->iconView.drop_highlight;
+        int col = di % iw->iconView.ncols;
+        int row = di / iw->iconView.ncols;
+        int dx = col * (int)iw->iconView.cell_w + (int)half_sp;
+        int dy = iw->iconView.row_y[row] + (int)half_sp;
+        int dw = (int)(iw->iconView.cell_w - spacing);
+        int dh = (int)(iw->iconView.row_h[row] - spacing);
+
+        /* Semi-transparent fill to show it's a target */
+        ISWRenderSetColorRGBA(ctx,
+            iw->iconView.fg_r, iw->iconView.fg_g, iw->iconView.fg_b, 0.15);
+        ISWRenderFillRectangle(ctx, dx, dy, dw, dh);
+
+        /* 2px solid border */
+        ISWRenderSetColorRGBA(ctx,
+            iw->iconView.fg_r, iw->iconView.fg_g, iw->iconView.fg_b, 0.8);
+        ISWRenderSetLineWidth(ctx, 2.0);
+        ISWRenderStrokeRectangle(ctx, dx + 1, dy + 1, dw - 2, dh - 2);
+    }
+
     /* Cursor focus indicator */
     if (iw->iconView.has_focus && iw->iconView.cursor >= 0 &&
         iw->iconView.cursor < iw->iconView.nitems) {
@@ -660,7 +687,7 @@ SetValues(Widget current, Widget request, Widget desired,
     if (ciw->iconView.nitems != diw->iconView.nitems ||
         ciw->iconView.labels != diw->iconView.labels ||
         ciw->iconView.icon_data != diw->iconView.icon_data) {
-        AllocCache(diw);
+        AllocCache(diw);  /* resets drop_highlight */
         ComputeLayout(diw);
         redraw = TRUE;
     }
@@ -1236,4 +1263,21 @@ IswIconViewBandActive(Widget w)
 {
     IconViewWidget iw = (IconViewWidget) w;
     return iw->iconView.band_active;
+}
+
+void
+IswIconViewSetDropHighlight(Widget w, int item_index)
+{
+    IconViewWidget iw = (IconViewWidget) w;
+    if (item_index == iw->iconView.drop_highlight)
+        return;
+    iw->iconView.drop_highlight = item_index;
+    if (IswIsRealized(w))
+        Redisplay(w, NULL, 0);
+}
+
+int
+IswIconViewHitTest(Widget w, int x, int y)
+{
+    return HitTest((IconViewWidget)w, (Position)x, (Position)y);
 }

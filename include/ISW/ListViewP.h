@@ -68,6 +68,8 @@ typedef struct {
     Boolean         redraw_pending;
     IswWorkProcId    work_proc_id;
 
+    int             drop_highlight;    /* row index to highlight as drop target, -1 = none */
+
     /* sort state */
     int             sort_column;     /* -1 = no sort */
     IswListViewSortDirection sort_direction;

@@ -62,6 +62,8 @@ typedef struct {
     double          fg_r, fg_g, fg_b; /* foreground RGB for band overlay */
     Boolean         redraw_pending;    /* coalesce band drag redraws */
     IswWorkProcId    work_proc_id;
+
+    int             drop_highlight;    /* item index to highlight as drop target, -1 = none */
 } IconViewPart;
 
 typedef struct _IconViewRec {
