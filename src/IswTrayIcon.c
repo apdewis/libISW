@@ -42,7 +42,6 @@
 /* Default icon size if the tray doesn't specify one */
 #define DEFAULT_ICON_SIZE          24
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 /* Maximum number of click callbacks */
 #define MAX_CLICK_CALLBACKS        8
@@ -388,6 +387,7 @@ paint_icon(IswTrayIcon icon)
                         (double)icon->width / icon->rgba_w,
                         (double)icon->height / icon->rgba_h);
             cairo_set_source_surface(icon->cr, img, 0, 0);
+            cairo_pattern_set_filter(cairo_get_source(icon->cr), CAIRO_FILTER_BEST);
             cairo_paint(icon->cr);
             cairo_restore(icon->cr);
         }
@@ -407,6 +407,7 @@ paint_icon(IswTrayIcon icon)
                         (double)icon->width / icon->pixmap_w,
                         (double)icon->height / icon->pixmap_h);
             cairo_set_source_surface(icon->cr, pix_surf, 0, 0);
+            cairo_pattern_set_filter(cairo_get_source(icon->cr), CAIRO_FILTER_BEST);
             cairo_paint(icon->cr);
             cairo_restore(icon->cr);
         }
@@ -682,20 +683,16 @@ tray_event_handler(Widget widget, IswPointer closure,
     }
 
     case XCB_CONFIGURE_NOTIFY: {
-        xcb_configure_notify_event_t *e = (xcb_configure_notify_event_t *)event;
-        /* The event dispatcher descales coordinates to logical pixels,
-         * but our Cairo surface needs physical pixel dimensions. */
-        double sf = _IswGetScaleFactor(icon->conn);
-        uint16_t phys_w = (uint16_t)(e->width * sf + 0.5);
-        uint16_t phys_h = (uint16_t)(e->height * sf + 0.5);
-        if (phys_w != icon->width || phys_h != icon->height) {
-            icon->width = phys_w;
-            icon->height = phys_h;
-
-            /* Recreate the Cairo surface at the new dimensions */
-            create_surface(icon);
-
-            paint_icon(icon);
+        xcb_get_geometry_cookie_t gc = xcb_get_geometry(icon->conn, icon->window);
+        xcb_get_geometry_reply_t *gr = xcb_get_geometry_reply(icon->conn, gc, NULL);
+        if (gr) {
+            if (gr->width != icon->width || gr->height != icon->height) {
+                icon->width  = gr->width;
+                icon->height = gr->height;
+                create_surface(icon);
+                paint_icon(icon);
+            }
+            free(gr);
         }
         break;
     }
