@@ -16,6 +16,7 @@
 #include <ISW/ISWRender.h>
 #include <ISW/ISWSVG.h>
 #include <ISW/IconViewP.h>
+#include <ISW/ISWXdnd.h>
 #include <ISW/Viewport.h>
 
 #include <stdio.h>
@@ -945,6 +946,9 @@ BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
     IconViewWidget iw = (IconViewWidget) w;
     (void)params; (void)num_params;
 
+    if (ISWXdndIsDragging(w))
+        return;
+
     /* Motion after clicking a selected item — cancel deferred deselect
      * so the multi-selection is preserved for drag-and-drop */
     iw->iconView.deselect_pending = False;
@@ -981,6 +985,9 @@ BandFinish(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)event; (void)params; (void)num_params;
+
+    if (ISWXdndIsDragging(w))
+        return;
 
     /* Resolve deferred deselect: user clicked a selected item and released
      * without dragging, so narrow the selection to just that item */

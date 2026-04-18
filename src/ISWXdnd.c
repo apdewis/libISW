@@ -820,6 +820,13 @@ ISWXdndInternType(Widget w, const char *mime_type)
     return IswXcbInternAtom(IswDisplay(w), mime_type, False);
 }
 
+Boolean
+ISWXdndIsDragging(Widget w)
+{
+    XdndState *st = GetXdndStateForWidget(w);
+    return st && st->dragging;
+}
+
 /* ================================================================== */
 /*                                                                    */
 /* DROP TARGET — incoming drag handling                                */
@@ -1425,7 +1432,8 @@ ISWXdndStartDrag(Widget source_widget,
     /* Install raw event handler for drag tracking */
     IswAddEventHandler(st->shell,
                       XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
-                      XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS,
+                      XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS |
+                      XCB_EVENT_MASK_KEY_RELEASE,
                       TRUE,  /* non-maskable too, for ClientMessage */
                       HandleDragEvent, (IswPointer) st);
 
@@ -1481,15 +1489,22 @@ HandleDragEvent(Widget w, IswPointer closure, xcb_generic_event_t *event,
         break;
     }
 
-    case XCB_KEY_PRESS: {
+    case XCB_KEY_PRESS:
+    case XCB_KEY_RELEASE: {
         xcb_key_press_event_t *ke = (xcb_key_press_event_t *) event;
         xcb_connection_t *conn = IswDisplay(st->shell);
         xcb_key_symbols_t *syms = xcb_key_symbols_alloc(conn);
         if (syms) {
             xcb_keysym_t sym = xcb_key_symbols_get_keysym(syms, ke->detail, 0);
             xcb_key_symbols_free(syms);
-            if (sym == 0xff1b) {  /* XK_Escape */
+            if (type == XCB_KEY_PRESS && sym == 0xff1b) {  /* XK_Escape */
                 DragCancel(st);
+                *cont = FALSE;
+            } else if (sym == 0xffe1 || sym == 0xffe2 ||  /* Shift_L/R */
+                       sym == 0xffe3 || sym == 0xffe4) {  /* Control_L/R */
+                /* Modifier changed — re-evaluate action and cursor */
+                if (st->drag_started)
+                    DragMotion(st, st->drag_last_x, st->drag_last_y);
                 *cont = FALSE;
             }
         }
@@ -1831,7 +1846,8 @@ DragDrop(XdndState *st)
 
     IswRemoveEventHandler(st->shell,
                          XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
-                         XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS,
+                         XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS |
+                         XCB_EVENT_MASK_KEY_RELEASE,
                          TRUE, HandleDragEvent, (IswPointer) st);
 
     xcb_flush(conn);
@@ -1863,7 +1879,8 @@ DragCleanup(XdndState *st)
     /* Remove drag event handler */
     IswRemoveEventHandler(st->shell,
                          XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
-                         XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS,
+                         XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS |
+                         XCB_EVENT_MASK_KEY_RELEASE,
                          TRUE, HandleDragEvent, (IswPointer) st);
 
     /* Disown selection */

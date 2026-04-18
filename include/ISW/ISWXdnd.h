@@ -226,4 +226,10 @@ void ISWXdndSetDragLeaveCallback(
  */
 xcb_atom_t ISWXdndInternType(Widget w, const char *mime_type);
 
+/*
+ * ISWXdndIsDragging - Return True if a drag operation is active.
+ * The widget can be any widget in the shell's tree.
+ */
+Boolean ISWXdndIsDragging(Widget w);
+
 #endif /* _ISWXdnd_h */
