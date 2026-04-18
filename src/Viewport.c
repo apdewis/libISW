@@ -588,15 +588,10 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	do { /* while intended != prev */
 #endif
 	    if (query) {
-		/* Query the child's preferred size.  Always constrain width
-		 * so the child lays out within the clip, but leave height
-		 * unconstrained when vertical scrolling is allowed so the
-		 * child reports its natural height. */
-		{
-		    IswWidgetGeometry query_intended = intended;
-		    query_intended.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
-		    (void) IswQueryGeometry( child, &query_intended, &preferred );
-		}
+		/* Query the child's preferred size.  Constrain each axis
+		 * only when scrolling is not allowed on that axis, so the
+		 * child reports its natural size on scrollable axes. */
+		(void) IswQueryGeometry( child, &intended, &preferred );
 		if ( !(preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH) )
 		    preferred.width = intended.width;
 		if ( !(preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT) )
