@@ -39,13 +39,17 @@ typedef void (*IswTrayIconClickProc)(
  *   tooltip - Tooltip text (may be NULL; stored but not yet displayed
  *             by this implementation)
  *
- * Returns: Tray icon handle, or NULL if no tray manager is running
+ * Returns: Tray icon handle, or NULL on allocation/visual failure.
+ *          If no tray manager is currently running, the icon is still
+ *          created and will auto-dock when a manager appears.
  *
  * Notes:
  *   - The shell must be realized before calling this function
  *   - Creates a small XCB window and sends SYSTEM_TRAY_REQUEST_DOCK
  *   - Sets _XEMBED_INFO for tray manager communication
  *   - Hooks into the Xt event loop via IswRegisterDrawable
+ *   - Monitors root window for MANAGER announcements; automatically
+ *     re-docks when a tray manager (re)starts
  */
 IswTrayIcon IswTrayIconCreate(Widget shell, const char *tooltip);
 

@@ -418,7 +418,186 @@ paint_icon(IswTrayIcon icon)
 }
 
 /* ------------------------------------------------------------------ */
-/* Event handler — registered via IswAddRawEventHandler               */
+/* Window creation / visual query (factored for reuse on re-dock)     */
+/* ------------------------------------------------------------------ */
+
+/* Query the tray manager's preferred visual (or fall back to root)
+ * and set icon->visual / icon->depth accordingly.  Returns True on
+ * success, False if no usable visual could be found. */
+static Boolean
+query_tray_visual(IswTrayIcon icon)
+{
+    xcb_visualid_t tray_vis_id;
+    uint8_t        depth;
+
+    if (icon->manager_window != XCB_NONE) {
+        tray_vis_id = get_tray_visual(icon);
+        if (tray_vis_id != XCB_NONE) {
+            icon->visual = find_visual(icon->screen, tray_vis_id);
+            depth = find_visual_depth(icon->screen, tray_vis_id);
+            if (icon->visual && depth) {
+                icon->depth = depth;
+                return True;
+            }
+        }
+    }
+
+    /* Fall back to root visual */
+    icon->visual = find_visual(icon->screen, icon->screen->root_visual);
+    icon->depth  = icon->screen->root_depth;
+    return icon->visual != NULL;
+}
+
+/* Create (or recreate) the icon's XCB window, register it into Xt's
+ * event dispatch, set _XEMBED_INFO, and create the Cairo surface.
+ * Assumes icon->visual / icon->depth are already set.
+ * Does NOT send a dock request. */
+static Boolean
+create_icon_window(IswTrayIcon icon)
+{
+    icon->width  = DEFAULT_ICON_SIZE;
+    icon->height = DEFAULT_ICON_SIZE;
+
+    icon->window = xcb_generate_id(icon->conn);
+
+    if (icon->depth == 32) {
+        xcb_colormap_t cmap = xcb_generate_id(icon->conn);
+        xcb_create_colormap(icon->conn, XCB_COLORMAP_ALLOC_NONE,
+                            cmap, icon->screen->root,
+                            icon->visual->visual_id);
+
+        uint32_t vals[4];
+        uint32_t wmask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
+                         XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
+        vals[0] = 0;           /* back_pixel — transparent black */
+        vals[1] = 0;           /* border_pixel */
+        vals[2] = XCB_EVENT_MASK_EXPOSURE |
+                  XCB_EVENT_MASK_BUTTON_PRESS |
+                  XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+        vals[3] = cmap;
+
+        xcb_create_window(icon->conn,
+                          icon->depth,
+                          icon->window,
+                          icon->screen->root,
+                          0, 0,
+                          icon->width, icon->height,
+                          0,
+                          XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                          icon->visual->visual_id,
+                          wmask, vals);
+    } else {
+        uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_EVENT_MASK;
+        uint32_t values[2];
+        values[0] = XCB_BACK_PIXMAP_PARENT_RELATIVE;
+        values[1] = XCB_EVENT_MASK_EXPOSURE |
+                    XCB_EVENT_MASK_BUTTON_PRESS |
+                    XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+
+        xcb_create_window(icon->conn,
+                          icon->depth,
+                          icon->window,
+                          icon->screen->root,
+                          0, 0,
+                          icon->width, icon->height,
+                          0,
+                          XCB_WINDOW_CLASS_INPUT_OUTPUT,
+                          icon->visual->visual_id,
+                          mask, values);
+    }
+
+    set_xembed_info(icon, 1);
+
+    IswRegisterDrawable(icon->conn, icon->window, icon->shell);
+
+    create_surface(icon);
+
+    return True;
+}
+
+/* Dock into a (possibly new) tray manager.  If the window was
+ * destroyed, recreate it first; otherwise just re-query the visual
+ * and send the dock request. */
+static void
+dock_into_manager(IswTrayIcon icon)
+{
+    if (icon->window == XCB_NONE) {
+        /* Window was destroyed — need to recreate everything */
+        if (!query_tray_visual(icon))
+            return;
+        if (!create_icon_window(icon))
+            return;
+    } else {
+        /* Window still exists (reparented back to root).
+         * The new manager might want a different visual; if it changed
+         * we have to recreate, otherwise just re-dock the existing window. */
+        xcb_visualtype_t *old_visual = icon->visual;
+        uint8_t           old_depth  = icon->depth;
+
+        query_tray_visual(icon);
+
+        if (icon->visual != old_visual || icon->depth != old_depth) {
+            /* Visual changed — destroy and recreate */
+            IswUnregisterDrawable(icon->conn, icon->window);
+            xcb_destroy_window(icon->conn, icon->window);
+            icon->window = XCB_NONE;
+
+            if (icon->cr) {
+                cairo_destroy(icon->cr);
+                icon->cr = NULL;
+            }
+            if (icon->surface) {
+                cairo_surface_destroy(icon->surface);
+                icon->surface = NULL;
+            }
+
+            if (!create_icon_window(icon))
+                return;
+        }
+
+        set_xembed_info(icon, 1);
+    }
+
+    send_dock_request(icon);
+}
+
+/* ------------------------------------------------------------------ */
+/* Root event handler — watches for MANAGER announcements             */
+/* ------------------------------------------------------------------ */
+
+static void
+root_event_handler(Widget widget, IswPointer closure,
+                   xcb_generic_event_t *event,
+                   Boolean *continue_to_dispatch)
+{
+    IswTrayIcon icon = (IswTrayIcon)closure;
+    uint8_t type = event->response_type & 0x7f;
+
+    (void)widget;
+    (void)continue_to_dispatch;
+
+    if (type != XCB_CLIENT_MESSAGE)
+        return;
+
+    xcb_client_message_event_t *e = (xcb_client_message_event_t *)event;
+
+    /* MANAGER announcement: data32[1] is the selection atom */
+    if (e->type != icon->atom_manager || e->format != 32)
+        return;
+    if (e->data.data32[1] != icon->atom_systray)
+        return;
+
+    /* A new tray manager appeared — data32[2] is its window */
+    icon->manager_window = e->data.data32[2];
+    if (icon->manager_window == XCB_NONE)
+        return;
+
+    dock_into_manager(icon);
+    xcb_flush(icon->conn);
+}
+
+/* ------------------------------------------------------------------ */
+/* Icon event handler — registered via IswAddRawEventHandler          */
 /* ------------------------------------------------------------------ */
 
 static void
@@ -522,9 +701,8 @@ tray_event_handler(Widget widget, IswPointer closure,
     }
 
     case XCB_DESTROY_NOTIFY:
-        /* Tray manager destroyed our window — clean up rendering state
-         * but keep the IswTrayIcon struct alive so the app can detect
-         * this and recreate if desired. */
+        /* Tray manager destroyed our window — clean up rendering state.
+         * The root_event_handler will re-dock when a new manager appears. */
         if (icon->cr) {
             cairo_destroy(icon->cr);
             icon->cr = NULL;
@@ -533,9 +711,32 @@ tray_event_handler(Widget widget, IswPointer closure,
             cairo_surface_destroy(icon->surface);
             icon->surface = NULL;
         }
+        IswUnregisterDrawable(icon->conn, icon->window);
         icon->window = XCB_NONE;
         icon->manager_window = XCB_NONE;
         break;
+
+    case XCB_REPARENT_NOTIFY: {
+        xcb_reparent_notify_event_t *e = (xcb_reparent_notify_event_t *)event;
+        if (e->parent == icon->screen->root) {
+            /* Reparented back to root — panel is cleaning up.
+             * Enter "waiting for new manager" state: window is still
+             * alive but we're no longer docked. */
+            icon->manager_window = XCB_NONE;
+
+            /* Destroy the Cairo surface — it may be stale after
+             * reparent, and we'll recreate on next dock. */
+            if (icon->cr) {
+                cairo_destroy(icon->cr);
+                icon->cr = NULL;
+            }
+            if (icon->surface) {
+                cairo_surface_destroy(icon->surface);
+                icon->surface = NULL;
+            }
+        }
+        break;
+    }
 
     case XCB_CLIENT_MESSAGE: {
         /* Could be _XEMBED messages from the tray manager */
@@ -555,8 +756,6 @@ IswTrayIcon
 IswTrayIconCreate(Widget shell, const char *tooltip)
 {
     IswTrayIcon icon;
-    uint32_t values[2];
-    uint32_t mask;
 
     if (!shell || !IswIsRealized(shell))
         return NULL;
@@ -577,106 +776,23 @@ IswTrayIconCreate(Widget shell, const char *tooltip)
     /* Intern protocol atoms */
     intern_atoms(icon);
 
-    /* Find the tray manager */
+    /* Look for an existing tray manager */
     icon->manager_window = find_tray_manager(icon);
-    if (icon->manager_window == XCB_NONE) {
-        fprintf(stderr, "IswTrayIcon: No system tray manager found\n");
+
+    /* Query visual (from manager if present, else root fallback) */
+    if (!query_tray_visual(icon)) {
+        fprintf(stderr, "IswTrayIcon: No usable visual\n");
         free(icon->tooltip);
         free(icon);
         return NULL;
     }
 
-    /* Use the tray manager's preferred visual if available, otherwise
-     * fall back to the screen's root visual.  The depth must match
-     * the visual — a mismatch causes the manager to reject the dock. */
-    {
-        xcb_visualid_t tray_vis_id = get_tray_visual(icon);
-        uint8_t        depth;
-
-        if (tray_vis_id != XCB_NONE) {
-            icon->visual = find_visual(icon->screen, tray_vis_id);
-            depth = find_visual_depth(icon->screen, tray_vis_id);
-        } else {
-            icon->visual = NULL;
-            depth = 0;
-        }
-
-        if (!icon->visual || depth == 0) {
-            /* Fall back to root visual */
-            icon->visual = find_visual(icon->screen, icon->screen->root_visual);
-            depth = icon->screen->root_depth;
-        }
-
-        icon->depth = depth;
-
-        if (!icon->visual) {
-            fprintf(stderr, "IswTrayIcon: No usable visual\n");
-            free(icon->tooltip);
-            free(icon);
-            return NULL;
-        }
-
-        /* Create the tray icon window */
-        icon->width = DEFAULT_ICON_SIZE;
-        icon->height = DEFAULT_ICON_SIZE;
-
-        icon->window = xcb_generate_id(icon->conn);
-
-        /* For 32-bit visuals we need our own colormap and must set
-         * border_pixel (the default colormap doesn't cover depth-32). */
-        if (depth == 32) {
-            xcb_colormap_t cmap = xcb_generate_id(icon->conn);
-            xcb_create_colormap(icon->conn, XCB_COLORMAP_ALLOC_NONE,
-                                cmap, icon->screen->root,
-                                icon->visual->visual_id);
-
-            uint32_t vals[4];
-            uint32_t wmask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
-                             XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
-            vals[0] = 0;           /* back_pixel — transparent black */
-            vals[1] = 0;           /* border_pixel */
-            vals[2] = XCB_EVENT_MASK_EXPOSURE |
-                      XCB_EVENT_MASK_BUTTON_PRESS |
-                      XCB_EVENT_MASK_STRUCTURE_NOTIFY;
-            vals[3] = cmap;
-
-            xcb_create_window(icon->conn,
-                              depth,
-                              icon->window,
-                              icon->screen->root,
-                              0, 0,
-                              icon->width, icon->height,
-                              0,
-                              XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                              icon->visual->visual_id,
-                              wmask, vals);
-        } else {
-            mask = XCB_CW_BACK_PIXMAP | XCB_CW_EVENT_MASK;
-            values[0] = XCB_BACK_PIXMAP_PARENT_RELATIVE;
-            values[1] = XCB_EVENT_MASK_EXPOSURE |
-                        XCB_EVENT_MASK_BUTTON_PRESS |
-                        XCB_EVENT_MASK_STRUCTURE_NOTIFY;
-
-            xcb_create_window(icon->conn,
-                              depth,
-                              icon->window,
-                              icon->screen->root,
-                              0, 0,
-                              icon->width, icon->height,
-                              0,
-                              XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                              icon->visual->visual_id,
-                              mask, values);
-        }
+    /* Create the icon window */
+    if (!create_icon_window(icon)) {
+        free(icon->tooltip);
+        free(icon);
+        return NULL;
     }
-
-    /* Set _XEMBED_INFO so the tray manager knows we want to be mapped */
-    set_xembed_info(icon, 1);
-
-    /* Register the tray window into Xt's event dispatch table.
-     * This makes IswAppMainLoop deliver events for our window
-     * to the shell widget, where our raw event handler picks them up. */
-    IswRegisterDrawable(icon->conn, icon->window, shell);
 
     /* Add raw event handler on the shell — it receives events for all
      * drawables registered to it, including our tray window. */
@@ -688,11 +804,23 @@ IswTrayIconCreate(Widget shell, const char *tooltip)
                           tray_event_handler,
                           (IswPointer)icon);
 
-    /* Create the Cairo rendering surface */
-    create_surface(icon);
+    /* Monitor root window for MANAGER announcements so we can
+     * (re-)dock when a tray manager appears or restarts. */
+    {
+        uint32_t emask = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+        xcb_change_window_attributes(icon->conn, icon->screen->root,
+                                     XCB_CW_EVENT_MASK, &emask);
+    }
+    IswRegisterDrawable(icon->conn, icon->screen->root, shell);
+    IswAddRawEventHandler(shell,
+                          XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                          True,  /* nonmaskable — for MANAGER client messages */
+                          root_event_handler,
+                          (IswPointer)icon);
 
-    /* Send the dock request — tray manager will reparent our window */
-    send_dock_request(icon);
+    /* If a manager is already running, dock now; otherwise wait. */
+    if (icon->manager_window != XCB_NONE)
+        send_dock_request(icon);
 
     xcb_flush(icon->conn);
 
@@ -705,13 +833,18 @@ IswTrayIconDestroy(IswTrayIcon icon)
     if (!icon)
         return;
 
-    /* Remove our event handler */
+    /* Remove event handlers */
     IswRemoveRawEventHandler(icon->shell,
                              XCB_EVENT_MASK_EXPOSURE |
                              XCB_EVENT_MASK_BUTTON_PRESS |
                              XCB_EVENT_MASK_STRUCTURE_NOTIFY,
                              True,
                              tray_event_handler,
+                             (IswPointer)icon);
+    IswRemoveRawEventHandler(icon->shell,
+                             XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                             True,
+                             root_event_handler,
                              (IswPointer)icon);
 
     /* Clean up rendering */
