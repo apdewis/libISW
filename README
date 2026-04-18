@@ -3,28 +3,28 @@ ISW (Infi Systems Widgets) - XCB-based 3D Widget Library
 
 ISW is a modern fork of the X 3D Athena Widget Set (Xaw3d).
 
-##WARNING
+## WARNING
 It was majority done by claude code after the initial work on libXt to support XCB.
 
 HERE BE (COPIOUS AMOUNTS) OF DRAGONS.
 
 If anyone is willing to do manual review of the LLM output that would be very appreciated
 
-##ENDWARNING
+## ENDWARNING
 
 This library provides a comprehensive set of widgets for building X11 graphical
 user interfaces, with a complete XCB-based implementation that eliminates all
 Xlib dependencies.
 
-FEATURES
+## FEATURES
 --------
 - Modern XCB rendering backend for better performance and smaller footprint
 - Complete X Toolkit Intrinsics (libXt) implementation using XCB
 - Single unified library (libISW.so) includes both widgets and toolkit
 - No Xlib dependencies - pure XCB implementation
 
-ARCHITECTURE
-------------
+## ARCHITECTURE
+
 ISW is a self-contained widget toolkit that includes:
   - ISW Widgets: Full set of 3D Athena widgets (Box, Button, List, Text, etc.)
   - X Toolkit Intrinsics: XCB-based reimplementation of the Xt library
@@ -33,16 +33,13 @@ ISW is a self-contained widget toolkit that includes:
 All components are built into a single libISW.so library with no external
 dependencies on traditional Xlib or libXt.
 
-BUILDING
---------
-    cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
-    cmake --build build -j$(nproc)
+## INSTALLING
 
-Run the demo app (exercises all major widgets):
-    cmake --build build -j$(nproc) --target demo
+cmake -B build .
+cd build
+make && sudo make install
 
-DEPENDENCIES
-------------
+## DEPENDENCIES
 Required:
   - cmake >= 3.20
   - libxcb, xcb-xfixes, xcb-shape, xcb-present, xcb-cursor, xcb-xrm,
@@ -56,8 +53,7 @@ Optional:
   - xkbcommon (keysym name functions)
   - egl >= 1.4, cairo-gl >= 1.12 (hardware-accelerated Cairo-EGL backend)
 
-USAGE
------
+## USAGE
 Programs using ISW can link against it using pkg-config:
 
     gcc myapp.c -o myapp $(pkg-config --cflags --libs isw)
@@ -83,8 +79,8 @@ Example code:
         return 0;
     }
 
-CURRENT STATE
--------------
+## CURRENT STATE
+
 ISW descends from Xaw3d and the X Toolkit Intrinsics (libXt). The entire
 codebase has been converted from Xlib to pure XCB — there are no Xlib calls
 or Xlib link dependencies remaining. The sections below describe what was
@@ -213,14 +209,11 @@ XSetWindowAttributes is provided as a compat struct in XtTypes.h with XCB
 member types. XFontStruct is replaced by XtFontStruct wrapping xcb_font_t
 with FreeType/Fontconfig metrics.
 
-FORKED FROM
------------
-Modern fork of Xaw3d (X 3D Athena Widget Set).
+## FORKED FROM
 
 Original Xaw3d repository:
     git://anongit.freedesktop.org/git/xorg/lib/libXaw3d
 
-LICENSE
--------
+## LICENSE
 See COPYING file for license information.
 
