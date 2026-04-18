@@ -121,13 +121,21 @@ void my_callback(Widget w, IswPointer client_data, IswPointer call_data)
 
 ## Menus
 
+**Full guide:** See `docs/MENUS.md` for comprehensive popup/grab behavior, all four menu patterns, and common mistakes. This section covers the essential API.
+
 ISW menus use a three-layer hierarchy:
 
 1. **MenuButton** — a button that opens a popup menu on click
 2. **SimpleMenu** — the popup menu container (an OverrideShell)
 3. **SmeBSB / SmeLine** — individual menu entries / separators
 
-### Basic Menu
+### Critical Rules
+
+- **Never call `IswPopupSpringLoaded()` in application code.** It is internal to `MenuButton`. Calling it directly creates broken grab states — menus that won't dismiss, eat events, or get stuck. Use the patterns below instead.
+- **The popup shell widget name must match `IswNmenuName` exactly.** Mismatches cause "Could not find menu widget" warnings and silent failures.
+- **Make the popup shell a child of the widget that triggers it** (the `MenuButton` for dropdowns, the owning widget for context menus, the parent `SimpleMenu` for submenus).
+
+### MenuButton Dropdown
 
 ```c
 #include <ISW/MenuButton.h>
@@ -164,44 +172,73 @@ Widget item_quit = IswCreateManagedWidget("quit", smeBSBObjectClass,
 IswAddCallback(item_quit, IswNcallback, file_cb, (IswPointer)"quit");
 ```
 
-### Cascade / Submenu
+The menu dismisses on entry click or click anywhere outside — `MenuButton` handles all grab logic internally.
 
-Any SmeBSB entry can open a submenu. Set `IswNmenuName` on the SmeBSB entry to the name of another SimpleMenu widget. The submenu pops up automatically on highlight and pops down when the cursor moves away.
+### Right-Click Context Menu
+
+Use the built-in `IswMenuPopup` action in a translation table. **Do not write a C action proc that calls `IswPopupSpringLoaded`.**
 
 ```c
-/* Parent menu already exists as file_menu (SimpleMenu). */
+/* Create the menu as a popup shell — parent is the widget that owns it. */
+Widget ctx_menu = IswCreatePopupShell("ctxMenu", simpleMenuWidgetClass,
+                                     my_widget, NULL, 0);
 
-/* Create the submenu as a popup shell. The parent must be an ancestor of
-   the SmeBSB entry — typically the same SimpleMenu or its parent. */
+/* Add entries (SmeBSB with callbacks, same as above) */
+n = 0;
+IswSetArg(args[n], IswNlabel, "Cut"); n++;
+Widget cut = IswCreateManagedWidget("cut", smeBSBObjectClass, ctx_menu, args, n);
+IswAddCallback(cut, IswNcallback, ctx_cb, (IswPointer)"cut");
+
+/* ... more entries ... */
+
+/* Install translation — IswMenuPopup handles spring-loaded grabs automatically
+   when triggered by a ButtonPress event. */
+IswOverrideTranslations(my_widget,
+    IswParseTranslationTable("<Btn3Down>: IswMenuPopup(ctxMenu)"));
+```
+
+The menu dismisses on entry click or click outside, identical to `MenuButton`.
+
+### Programmatic Popup
+
+For menus opened by keyboard shortcut or other non-button events:
+
+```c
+/* Position, then pop up with an exclusive grab for click-outside-to-dismiss. */
+n = 0;
+IswSetArg(args[n], IswNx, x_pos); n++;
+IswSetArg(args[n], IswNy, y_pos); n++;
+IswSetValues(my_menu, args, n);
+
+IswPopup(my_menu, IswGrabExclusive);
+```
+
+Use `IswGrabExclusive` when you want click-outside-to-dismiss. Use `IswGrabNonexclusive` when the menu should stay up until an entry is explicitly selected. **Never use `IswGrabNone` for menus** — the menu won't be dismissable by clicking outside it.
+
+### Cascade / Submenu
+
+Set `IswNmenuName` on a `SmeBSB` entry to open a submenu on highlight:
+
+```c
+/* Submenu popup shell — child of the parent menu */
 Widget export_menu = IswCreatePopupShell("exportMenu", simpleMenuWidgetClass,
                                         file_menu, NULL, 0);
 
-/* Add entries to the submenu */
+/* Submenu entries */
 n = 0;
 IswSetArg(args[n], IswNlabel, "PNG"); n++;
 Widget png = IswCreateManagedWidget("png", smeBSBObjectClass,
                                    export_menu, args, n);
 IswAddCallback(png, IswNcallback, export_cb, (IswPointer)"png");
 
-n = 0;
-IswSetArg(args[n], IswNlabel, "SVG"); n++;
-Widget svg = IswCreateManagedWidget("svg", smeBSBObjectClass,
-                                   export_menu, args, n);
-IswAddCallback(svg, IswNcallback, export_cb, (IswPointer)"svg");
-
-/* Now create the cascade entry in the parent menu.
-   IswNmenuName must match the popup shell name ("exportMenu"). */
+/* Cascade entry in the parent menu — no callback, just IswNmenuName. */
 n = 0;
 IswSetArg(args[n], IswNlabel, "Export"); n++;
 IswSetArg(args[n], IswNmenuName, "exportMenu"); n++;
-Widget export_entry = IswCreateManagedWidget("export", smeBSBObjectClass,
-                                            file_menu, args, n);
-/* No IswNcallback on a cascade entry — selection happens in the submenu. */
+IswCreateManagedWidget("export", smeBSBObjectClass, file_menu, args, n);
 ```
 
-**How it works:** When the user highlights a SmeBSB entry that has `IswNmenuName` set, `SimpleMenu` automatically finds the named widget, positions it at the right edge of the current menu (or left edge if it would go off-screen), and pops it up. Moving the cursor into the submenu keeps it open. Moving away pops it down. Submenus can nest arbitrarily deep.
-
-**Widget lookup:** `SimpleMenu` searches for the named menu by walking up the widget tree from itself, calling `IswNameToWidget` at each level. The submenu popup shell just needs to be findable from that search — making it a child of the parent menu or any ancestor works.
+Submenus nest to arbitrary depth. `SimpleMenu` searches for the named widget by walking up the tree calling `IswNameToWidget` — the popup shell just needs to be findable from that search.
 
 ### Menu Bar
 

@@ -610,7 +610,3 @@ the abstract API.
 Files: ISWXdnd.c (~1,800 lines, refactor into vtable), ISWXdnd.h.
 Depends on: ISWPlatformEvent, ISWPlatformWindow, ISWPlatformSelection.
 
-### Note on API names
-
-The Xt → Isw rename (above) is sequenced before this work. All new
-platform vtable code uses Isw-prefixed names from the start.
