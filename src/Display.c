@@ -823,6 +823,7 @@ CloseDisplay(xcb_connection_t *dpy)
     }
     IswFree((char *) pd);
     /* No need to clear database on connection - we manage our own databases */
+    xcb_flush(dpy);
     xcb_disconnect(dpy);
     UNLOCK_PROCESS;
 }
