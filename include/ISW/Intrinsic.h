@@ -1163,7 +1163,7 @@ static inline void IswArgBuilderAdd(IswArgBuilder *ab, String name, IswArgVal va
 }
 
 #define IswArgBuilderInit() \
-    { .args = {{0}}, .count = 0, .add = IswArgBuilderAdd }
+    { .args = {{0}}, .count = 0}
 
 #define IswArgBuilderSet(ab, name, val) \
     ((ab)->add((ab), (name), (IswArgVal)(val)))
