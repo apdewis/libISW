@@ -85,7 +85,9 @@ SOFTWARE.
 
 static char defaultTranslations[] =
     "<Btn1Down>:	set()			\n\
-     <Btn1Up>:		notify() unset()	";
+     <Btn1Up>:		notify() unset()	\n\
+     <Key>space:	set() notify() unset()	\n\
+     <Key>Return:	set() notify() unset()	";
 
 #define offset(field) IswOffsetOf(CommandRec, field)
 static IswResource resources[] = {

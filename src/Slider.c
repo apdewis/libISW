@@ -83,17 +83,37 @@ static void StartDrag(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Drag(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void EndDrag(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void JumpToPosition(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Increment(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Decrement(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void PageIncrement(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void PageDecrement(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void SetMin(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void SetMax(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 static char defaultTranslations[] =
     "<Btn1Down>:   StartDrag()\n\
      <Btn1Motion>: Drag()\n\
-     <Btn1Up>:     EndDrag()";
+     <Btn1Up>:     EndDrag()\n\
+     <Key>Left:    Decrement()\n\
+     <Key>Down:    Decrement()\n\
+     <Key>Right:   Increment()\n\
+     <Key>Up:      Increment()\n\
+     <Key>Page_Up: PageIncrement()\n\
+     <Key>Page_Down: PageDecrement()\n\
+     <Key>Home:    SetMin()\n\
+     <Key>End:     SetMax()";
 
 static IswActionsRec actions[] = {
     {"StartDrag",      StartDrag},
     {"Drag",           Drag},
     {"EndDrag",        EndDrag},
     {"JumpToPosition", JumpToPosition},
+    {"Increment",      Increment},
+    {"Decrement",      Decrement},
+    {"PageIncrement",  PageIncrement},
+    {"PageDecrement",  PageDecrement},
+    {"SetMin",         SetMin},
+    {"SetMax",         SetMax},
 };
 
 SliderClassRec sliderClassRec = {
@@ -670,6 +690,62 @@ JumpToPosition(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
     Position pick = (sw->slider.orientation == XtorientHorizontal) ? x : y;
     sw->slider.dragging = False;
     SetValueAndNotify(sw, PixelToValue(sw, pick));
+}
+
+static int
+PageStep(SliderWidget sw)
+{
+    int range = sw->slider.maximum - sw->slider.minimum;
+    int step = range / 10;
+    return step > 0 ? step : 1;
+}
+
+static void
+Increment(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SliderWidget sw = (SliderWidget) w;
+    (void)e; (void)p; (void)np;
+    SetValueAndNotify(sw, sw->slider.value + 1);
+}
+
+static void
+Decrement(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SliderWidget sw = (SliderWidget) w;
+    (void)e; (void)p; (void)np;
+    SetValueAndNotify(sw, sw->slider.value - 1);
+}
+
+static void
+PageIncrement(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SliderWidget sw = (SliderWidget) w;
+    (void)e; (void)p; (void)np;
+    SetValueAndNotify(sw, sw->slider.value + PageStep(sw));
+}
+
+static void
+PageDecrement(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SliderWidget sw = (SliderWidget) w;
+    (void)e; (void)p; (void)np;
+    SetValueAndNotify(sw, sw->slider.value - PageStep(sw));
+}
+
+static void
+SetMin(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SliderWidget sw = (SliderWidget) w;
+    (void)e; (void)p; (void)np;
+    SetValueAndNotify(sw, sw->slider.minimum);
+}
+
+static void
+SetMax(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SliderWidget sw = (SliderWidget) w;
+    (void)e; (void)p; (void)np;
+    SetValueAndNotify(sw, sw->slider.maximum);
 }
 
 /* --- Public API --- */

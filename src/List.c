@@ -73,7 +73,15 @@ I also added the freedoms member of the list widget part. */
 
 static char defaultTranslations[] =
   "<Btn1Down>:   Set()\n\
-   <Btn1Up>:     Notify()";
+   <Btn1Up>:     Notify()\n\
+   <Key>Up:        PrevItem()\n\
+   <Key>Down:      NextItem()\n\
+   <Key>Home:      FirstItem()\n\
+   <Key>End:       LastItem()\n\
+   <Key>Page_Up:   PageBackward()\n\
+   <Key>Page_Down: PageForward()\n\
+   <Key>Return:    Activate()\n\
+   <Key>space:     Activate()";
 
 /****************************************************************
  *
@@ -135,6 +143,13 @@ static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Set(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Unset(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void PrevItem(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void NextItem(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void FirstItem(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void LastItem(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void PageForward(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void PageBackward(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Activate(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void DropdownMenuSelect(Widget, IswPointer, IswPointer);
 static void DropdownPopdownCB(Widget, IswPointer, IswPointer);
 static void DropdownDismissHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
@@ -143,6 +158,13 @@ static IswActionsRec actions[] = {
       {"Notify",         Notify},
       {"Set",            Set},
       {"Unset",          Unset},
+      {"PrevItem",       PrevItem},
+      {"NextItem",       NextItem},
+      {"FirstItem",      FirstItem},
+      {"LastItem",       LastItem},
+      {"PageForward",    PageForward},
+      {"PageBackward",   PageBackward},
+      {"Activate",       Activate},
 };
 
 ListClassRec listClassRec = {
@@ -984,6 +1006,113 @@ Unset(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params
   IswListUnhighlight(w);
 }
 
+static int
+PageStep(ListWidget lw)
+{
+    int s = lw->list.vertical_cols ? lw->list.ncols : lw->list.nrows;
+    return s > 0 ? s : 1;
+}
+
+/* Returns True if we handled the key by opening the dropdown instead of
+ * moving the cursor. In dropdown mode the closed widget is just a
+ * collapsed selector, so arrows should pop the menu. */
+static Boolean
+KeyOpensDropdown(Widget w, xcb_generic_event_t *event)
+{
+    ListWidget lw = (ListWidget) w;
+    if (!lw->list.dropdown) return False;
+    if (lw->list.popup_shell != NULL) return False;
+    String params[1] = {NULL};
+    Cardinal nparams = 0;
+    Set(w, event, params, &nparams);
+    return True;
+}
+
+static void
+MoveCursor(Widget w, int new_index)
+{
+    ListWidget lw = (ListWidget) w;
+    if (lw->list.nitems <= 0) return;
+    if (new_index < 0) new_index = 0;
+    if (new_index >= lw->list.nitems) new_index = lw->list.nitems - 1;
+    if (new_index == lw->list.highlight) return;
+    IswListHighlight(w, new_index);
+}
+
+static void
+PrevItem(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ListWidget lw = (ListWidget) w;
+    int cur;
+    (void)p; (void)np;
+    if (KeyOpensDropdown(w, e)) return;
+    cur = (lw->list.highlight == NO_HIGHLIGHT) ? 0 : lw->list.highlight - 1;
+    MoveCursor(w, cur);
+}
+
+static void
+NextItem(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ListWidget lw = (ListWidget) w;
+    int cur;
+    (void)p; (void)np;
+    if (KeyOpensDropdown(w, e)) return;
+    cur = (lw->list.highlight == NO_HIGHLIGHT) ? 0 : lw->list.highlight + 1;
+    MoveCursor(w, cur);
+}
+
+static void
+FirstItem(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    (void)p; (void)np;
+    if (KeyOpensDropdown(w, e)) return;
+    MoveCursor(w, 0);
+}
+
+static void
+LastItem(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ListWidget lw = (ListWidget) w;
+    (void)p; (void)np;
+    if (KeyOpensDropdown(w, e)) return;
+    MoveCursor(w, lw->list.nitems - 1);
+}
+
+static void
+PageForward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ListWidget lw = (ListWidget) w;
+    int cur;
+    (void)p; (void)np;
+    if (KeyOpensDropdown(w, e)) return;
+    cur = (lw->list.highlight == NO_HIGHLIGHT) ? 0 : lw->list.highlight;
+    MoveCursor(w, cur + PageStep(lw));
+}
+
+static void
+PageBackward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ListWidget lw = (ListWidget) w;
+    int cur;
+    (void)p; (void)np;
+    if (KeyOpensDropdown(w, e)) return;
+    cur = (lw->list.highlight == NO_HIGHLIGHT) ? 0 : lw->list.highlight;
+    MoveCursor(w, cur - PageStep(lw));
+}
+
+static void
+Activate(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ListWidget lw = (ListWidget) w;
+    IswListReturnStruct ret_value;
+    (void)p; (void)np;
+    if (KeyOpensDropdown(w, e)) return;
+    if (lw->list.highlight == NO_HIGHLIGHT || lw->list.nitems <= 0) return;
+    ret_value.string     = lw->list.list[lw->list.highlight];
+    ret_value.list_index = lw->list.highlight;
+    IswCallCallbacks(w, IswNcallback, (IswPointer)&ret_value);
+}
+
 
 /* Set() - ACTION
  *
@@ -1097,6 +1226,11 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
         XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
         XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
         XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
+
+    /* Keyboard grab so arrow / Return / Escape route to the popup */
+    xcb_grab_keyboard(IswDisplay(w), False, IswWindow(lw->list.popup_shell),
+        XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+
     xcb_flush(IswDisplay(w));
 
     /* Dismiss on focus loss, minimize, or visibility change */
@@ -1437,6 +1571,19 @@ DropdownDismissHandler(Widget w, IswPointer client_data, xcb_generic_event_t *ev
 
     type = event->response_type & 0x7f;
 
+    /* Ignore focus changes caused by grabs: when we install our
+     * keyboard/pointer grab on the popup, the parent shell sees a
+     * synthetic FocusOut with mode != Normal — that's not a real
+     * dismissal trigger. */
+    if (type == XCB_FOCUS_OUT || type == XCB_FOCUS_IN) {
+        xcb_focus_out_event_t *fe = (xcb_focus_out_event_t *)event;
+        if (fe->mode != XCB_NOTIFY_MODE_NORMAL &&
+            fe->mode != XCB_NOTIFY_MODE_WHILE_GRABBED)
+            return;
+        if (type == XCB_FOCUS_IN)
+            return;  /* only FocusOut dismisses */
+    }
+
     if (type == XCB_FOCUS_OUT || type == XCB_UNMAP_NOTIFY ||
         type == XCB_VISIBILITY_NOTIFY || type == XCB_CONFIGURE_NOTIFY) {
         IswPopdown(lw->list.popup_shell);
@@ -1451,6 +1598,7 @@ DropdownPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
     Widget shell = (Widget)lw;
 
     xcb_ungrab_pointer(IswDisplay((Widget)lw), XCB_CURRENT_TIME);
+    xcb_ungrab_keyboard(IswDisplay((Widget)lw), XCB_CURRENT_TIME);
     xcb_flush(IswDisplay((Widget)lw));
 
     while (shell && !IswIsShell(shell))
@@ -1472,5 +1620,13 @@ DropdownPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
     }
 
     IswRemoveCallback(menu, IswNpopdownCallback, DropdownPopdownCB, client_data);
+
+    /* Destroy the popup widget and clear the pointer so subsequent key
+     * presses know the dropdown is closed and re-open it instead of
+     * operating on the (no-longer-visible) menu. */
+    if (lw->list.popup_shell) {
+        IswDestroyWidget(lw->list.popup_shell);
+        lw->list.popup_shell = NULL;
+    }
 }
 

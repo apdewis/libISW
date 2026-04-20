@@ -65,7 +65,9 @@ in this Software without prior written authorization from the X Consortium.
  */
 
 static char defaultTranslations[] =
-    "<Btn1Down>,<Btn1Up>:   toggle() notify()";
+    "<Btn1Down>,<Btn1Up>:   toggle() notify()\n\
+     <Key>space:            toggle() notify()\n\
+     <Key>Return:           toggle() notify()";
 
 #define offset(field) IswOffsetOf(ToggleRec, field)
 

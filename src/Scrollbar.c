@@ -83,7 +83,15 @@ static char defaultTranslations[] =
      <Btn1Motion>: HandleThumb() \n\
      <Btn3Motion>: HandleThumb() \n\
      <Btn2Motion>: MoveThumb() NotifyThumb() \n\
-     <BtnUp>:      EndScroll()";
+     <BtnUp>:      EndScroll()\n\
+     <Key>Up:      ScrollLineBackward()\n\
+     <Key>Down:    ScrollLineForward()\n\
+     <Key>Left:    ScrollLineBackward()\n\
+     <Key>Right:   ScrollLineForward()\n\
+     <Key>Page_Up:   ScrollPageBackward()\n\
+     <Key>Page_Down: ScrollPageForward()\n\
+     <Key>Home:    ScrollToStart()\n\
+     <Key>End:     ScrollToEnd()";
 
 static float floatZero = 0.0;
 
@@ -135,13 +143,25 @@ static void MoveThumb(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void NotifyThumb(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void NotifyScroll(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void EndScroll(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ScrollLineForward(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ScrollLineBackward(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ScrollPageForward(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ScrollPageBackward(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ScrollToStart(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ScrollToEnd(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 static IswActionsRec actions[] = {
-    {"HandleThumb",	HandleThumb},
-    {"MoveThumb",	MoveThumb},
-    {"NotifyThumb",	NotifyThumb},
-    {"NotifyScroll",	NotifyScroll},
-    {"EndScroll",	EndScroll}
+    {"HandleThumb",         HandleThumb},
+    {"MoveThumb",           MoveThumb},
+    {"NotifyThumb",         NotifyThumb},
+    {"NotifyScroll",        NotifyScroll},
+    {"EndScroll",           EndScroll},
+    {"ScrollLineForward",   ScrollLineForward},
+    {"ScrollLineBackward",  ScrollLineBackward},
+    {"ScrollPageForward",   ScrollPageForward},
+    {"ScrollPageBackward",  ScrollPageBackward},
+    {"ScrollToStart",       ScrollToStart},
+    {"ScrollToEnd",         ScrollToEnd},
 };
 
 
@@ -814,6 +834,83 @@ EndScroll(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
     /* no need to remove any autoscroll timeout; it will no-op */
     /* because the scroll_mode is 0 */
     /* but be sure to remove timeout in destroy proc */
+}
+
+static int
+LineDelta(ScrollbarWidget sbw)
+{
+    int d = MAX(A_FEW_PIXELS, sbw->scrollbar.length / 20);
+    return d > 0 ? d : 1;
+}
+
+static int
+PageDelta(ScrollbarWidget sbw)
+{
+    int d = sbw->scrollbar.length;
+    return d > 0 ? d : 1;
+}
+
+static void
+ScrollLineForward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ScrollbarWidget sbw = (ScrollbarWidget) w;
+    intptr_t cd = LineDelta(sbw);
+    (void)e; (void)p; (void)np;
+    IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
+}
+
+static void
+ScrollLineBackward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ScrollbarWidget sbw = (ScrollbarWidget) w;
+    intptr_t cd = -LineDelta(sbw);
+    (void)e; (void)p; (void)np;
+    IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
+}
+
+static void
+ScrollPageForward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ScrollbarWidget sbw = (ScrollbarWidget) w;
+    intptr_t cd = PageDelta(sbw);
+    (void)e; (void)p; (void)np;
+    IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
+}
+
+static void
+ScrollPageBackward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ScrollbarWidget sbw = (ScrollbarWidget) w;
+    intptr_t cd = -PageDelta(sbw);
+    (void)e; (void)p; (void)np;
+    IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
+}
+
+static void
+ScrollToStart(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ScrollbarWidget sbw = (ScrollbarWidget) w;
+    float top = 0.0;
+    union { IswPointer xtp; float xtf; } xtpf;
+    (void)e; (void)p; (void)np;
+    sbw->scrollbar.top = top;
+    xtpf.xtf = top + 0.0001f;
+    IswCallCallbacks(w, IswNthumbProc, xtpf.xtp);
+    IswCallCallbacks(w, IswNjumpProc, (IswPointer)&sbw->scrollbar.top);
+}
+
+static void
+ScrollToEnd(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    ScrollbarWidget sbw = (ScrollbarWidget) w;
+    float top = 1.0f - sbw->scrollbar.shown;
+    union { IswPointer xtp; float xtf; } xtpf;
+    (void)e; (void)p; (void)np;
+    if (top < 0.0f) top = 0.0f;
+    sbw->scrollbar.top = top;
+    xtpf.xtf = top + 0.0001f;
+    IswCallCallbacks(w, IswNthumbProc, xtpf.xtp);
+    IswCallCallbacks(w, IswNjumpProc, (IswPointer)&sbw->scrollbar.top);
 }
 
 static float

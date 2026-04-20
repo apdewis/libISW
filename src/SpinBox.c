@@ -63,6 +63,18 @@ static void LayoutChildren(SpinBoxWidget);
 static void ChangeManaged(Widget);
 static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
+static void IncrementAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void DecrementAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+
+static char defaultTranslations[] =
+    "<Key>Up:    Increment()\n"
+    "<Key>Down:  Decrement()";
+
+static IswActionsRec actionsList[] = {
+    {"Increment", IncrementAction},
+    {"Decrement", DecrementAction},
+};
+
 SpinBoxClassRec spinBoxClassRec = {
   { /* core_class fields */
     /* superclass         */ (WidgetClass) &formClassRec,
@@ -74,8 +86,8 @@ SpinBoxClassRec spinBoxClassRec = {
     /* initialize         */ Initialize,
     /* initialize_hook    */ NULL,
     /* realize            */ Realize,
-    /* actions            */ NULL,
-    /* num_actions        */ 0,
+    /* actions            */ actionsList,
+    /* num_actions        */ IswNumber(actionsList),
     /* resources          */ resources,
     /* num_resources      */ IswNumber(resources),
     /* xrm_class          */ NULLQUARK,
@@ -93,7 +105,7 @@ SpinBoxClassRec spinBoxClassRec = {
     /* accept_focus       */ NULL,
     /* version            */ IswVersion,
     /* callback_private   */ NULL,
-    /* tm_table           */ NULL,
+    /* tm_table           */ defaultTranslations,
     /* query_geometry     */ IswInheritQueryGeometry,
     /* display_accelerator*/ IswInheritDisplayAccelerator,
     /* extension          */ NULL
@@ -195,6 +207,22 @@ DownCallback(Widget w, IswPointer client_data, IswPointer call_data)
 {
     SpinBoxWidget sbw = (SpinBoxWidget) client_data;
     (void)w; (void)call_data;
+    ClampAndNotify(sbw, sbw->spinBox.value - sbw->spinBox.increment);
+}
+
+static void
+IncrementAction(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SpinBoxWidget sbw = (SpinBoxWidget) w;
+    (void)e; (void)p; (void)np;
+    ClampAndNotify(sbw, sbw->spinBox.value + sbw->spinBox.increment);
+}
+
+static void
+DecrementAction(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SpinBoxWidget sbw = (SpinBoxWidget) w;
+    (void)e; (void)p; (void)np;
     ClampAndNotify(sbw, sbw->spinBox.value - sbw->spinBox.increment);
 }
 

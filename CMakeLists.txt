@@ -394,6 +394,16 @@ add_custom_target(demo
     COMMENT "Running ISW demo"
 )
 
+add_executable(focus_dispatch_test EXCLUDE_FROM_ALL
+    examples/focus_dispatch_test.c
+    examples/multi_stubs.c
+)
+pkg_check_modules(XCB_KEYSYMS REQUIRED IMPORTED_TARGET xcb-keysyms)
+target_link_libraries(focus_dispatch_test PRIVATE ISW PkgConfig::DEMO_DEPS PkgConfig::XCB_KEYSYMS m)
+target_include_directories(focus_dispatch_test PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+)
+
 # ===========================================================================
 # pkg-config
 # ===========================================================================

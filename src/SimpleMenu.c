@@ -115,7 +115,14 @@ static char defaultTranslations[] =
     "<EnterWindow>:     highlight()             \n\
      <LeaveWindow>:     unhighlight()           \n\
      <Motion>:          highlight()             \n\
-     <BtnDown>:         notify() unhighlight() popdown()";
+     <BtnDown>:         notify() unhighlight() popdown()\n\
+     <Key>Down:         next-entry()            \n\
+     <Key>Up:           prev-entry()            \n\
+     <Key>Home:         first-entry()           \n\
+     <Key>End:          last-entry()            \n\
+     <Key>Return:       notify() unhighlight() popdown()\n\
+     <Key>space:        notify() unhighlight() popdown()\n\
+     <Key>Escape:       unhighlight() popdown()";
 
 /*
  * Semi Public function definitions.
@@ -145,6 +152,10 @@ static void Unhighlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void PositionMenuAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Popdown(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void NextEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void PrevEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void FirstEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void LastEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 /*
  * Private Function Definitions.
@@ -168,7 +179,11 @@ static IswActionsRec actionsList[] =
   {"notify",            Notify},
   {"highlight",         Highlight},
   {"unhighlight",       Unhighlight},
-  {"popdown",           Popdown}
+  {"popdown",           Popdown},
+  {"next-entry",        NextEntry},
+  {"prev-entry",        PrevEntry},
+  {"first-entry",       FirstEntry},
+  {"last-entry",        LastEntry}
 };
 
 static CompositeClassExtensionRec extension_rec = {
@@ -892,6 +907,29 @@ Unhighlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * n
     SmeObject entry = smw->simple_menu.entry_set;
     SmeObjectClass class;
     int old_pos;
+    uint8_t etype = event ? (event->response_type & 0x7f) : 0;
+    Boolean is_pointer_event =
+        (etype == XCB_ENTER_NOTIFY || etype == XCB_LEAVE_NOTIFY ||
+         etype == XCB_MOTION_NOTIFY || etype == XCB_BUTTON_PRESS ||
+         etype == XCB_BUTTON_RELEASE);
+
+    /* For non-pointer (e.g. key) events there are no coordinates to
+     * compare against. Just unhighlight whatever is currently set. */
+    if (!is_pointer_event) {
+        if (entry == NULL) return;
+        smw->simple_menu.entry_set = NULL;
+        class = (SmeObjectClass) entry->object.widget_class;
+        old_pos = entry->rectangle.y;
+        entry->rectangle.y -= smw->simple_menu.first_y;
+        if (smw->simple_menu.render_ctx)
+            ISWRenderBegin(smw->simple_menu.render_ctx);
+        (class->sme_class.unhighlight)((Widget) entry);
+        if (smw->simple_menu.render_ctx)
+            ISWRenderEnd(smw->simple_menu.render_ctx);
+        entry->rectangle.y = old_pos;
+        PopdownSubMenu(smw);
+        return;
+    }
 
     if (entry == NULL || entry == GetEventEntry(w, event)) {
 	smw->simple_menu.entry_set = NULL;
@@ -1016,6 +1054,139 @@ Notify(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_pa
 
     class = (SmeObjectClass) entry->object.widget_class;
     (class->sme_class.notify)( (Widget) entry );
+}
+
+/* --- Keyboard nav helpers and actions --- */
+
+static int
+EntryIsSelectable(SmeObject entry)
+{
+    if (entry == NULL) return 0;
+    if (!IswIsSensitive((Widget) entry)) return 0;
+    if (IswIsSubclass((Widget) entry, smeLineObjectClass)) return 0;
+    return 1;
+}
+
+static int
+FindEntryIndex(SimpleMenuWidget smw, SmeObject target)
+{
+    Cardinal i;
+    for (i = 0; i < smw->composite.num_children; i++) {
+        if ((SmeObject)smw->composite.children[i] == target)
+            return (int)i;
+    }
+    return -1;
+}
+
+static void
+SetEntry(SimpleMenuWidget smw, SmeObject entry)
+{
+    SmeObject old = smw->simple_menu.entry_set;
+    SmeObjectClass class;
+    int old_pos;
+
+    if (entry == old) return;
+
+    if (smw->simple_menu.render_ctx)
+        ISWRenderBegin(smw->simple_menu.render_ctx);
+
+    PopdownSubMenu(smw);
+
+    if (old != NULL) {
+        smw->simple_menu.entry_set = NULL;
+        class = (SmeObjectClass) old->object.widget_class;
+        old_pos = old->rectangle.y;
+        old->rectangle.y -= smw->simple_menu.first_y;
+        (class->sme_class.unhighlight) ((Widget) old);
+        old->rectangle.y = old_pos;
+    }
+
+    if (entry != NULL && EntryIsSelectable(entry) &&
+        !(smw->simple_menu.state & SMW_UNMAPPING)) {
+        smw->simple_menu.entry_set = entry;
+        class = (SmeObjectClass) entry->object.widget_class;
+        old_pos = entry->rectangle.y;
+        entry->rectangle.y -= smw->simple_menu.first_y;
+        (class->sme_class.highlight) ((Widget) entry);
+        if (IswIsSubclass((Widget)entry, smeBSBObjectClass))
+            PopupSubMenu(smw);
+        entry->rectangle.y = old_pos;
+    }
+
+    if (smw->simple_menu.render_ctx)
+        ISWRenderEnd(smw->simple_menu.render_ctx);
+}
+
+static SmeObject
+FindFirstSelectable(SimpleMenuWidget smw, int from, int direction)
+{
+    int i = from;
+    int n = (int)smw->composite.num_children;
+    while (i >= 0 && i < n) {
+        SmeObject e = (SmeObject) smw->composite.children[i];
+        if (EntryIsSelectable(e)) return e;
+        i += direction;
+    }
+    return NULL;
+}
+
+static void
+NextEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) w;
+    int start;
+    SmeObject next;
+    (void)e; (void)p; (void)np;
+    if (smw->composite.num_children == 0) return;
+    if (smw->simple_menu.entry_set == NULL) {
+        next = FindFirstSelectable(smw, 0, +1);
+    } else {
+        start = FindEntryIndex(smw, smw->simple_menu.entry_set) + 1;
+        next = FindFirstSelectable(smw, start, +1);
+        if (next == NULL) next = FindFirstSelectable(smw, 0, +1); /* wrap */
+    }
+    if (next) SetEntry(smw, next);
+}
+
+static void
+PrevEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) w;
+    int start;
+    SmeObject prev;
+    int n = (int)smw->composite.num_children;
+    (void)e; (void)p; (void)np;
+    if (n == 0) return;
+    if (smw->simple_menu.entry_set == NULL) {
+        prev = FindFirstSelectable(smw, n - 1, -1);
+    } else {
+        start = FindEntryIndex(smw, smw->simple_menu.entry_set) - 1;
+        prev = FindFirstSelectable(smw, start, -1);
+        if (prev == NULL) prev = FindFirstSelectable(smw, n - 1, -1); /* wrap */
+    }
+    if (prev) SetEntry(smw, prev);
+}
+
+static void
+FirstEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) w;
+    SmeObject first;
+    (void)e; (void)p; (void)np;
+    first = FindFirstSelectable(smw, 0, +1);
+    if (first) SetEntry(smw, first);
+}
+
+static void
+LastEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) w;
+    SmeObject last;
+    int n = (int)smw->composite.num_children;
+    (void)e; (void)p; (void)np;
+    if (n == 0) return;
+    last = FindFirstSelectable(smw, n - 1, -1);
+    if (last) SetEntry(smw, last);
 }
 
 /************************************************************

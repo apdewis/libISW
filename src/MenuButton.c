@@ -63,7 +63,9 @@ static void PopupMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static char defaultTranslations[] =
 "<EnterWindow>: highlight()\n\
  <LeaveWindow>: reset()\n\
- Any<BtnDown>:  reset() PopupMenu()";
+ Any<BtnDown>:  reset() PopupMenu()\n\
+ <Key>space:    PopupMenu()\n\
+ <Key>Return:   PopupMenu()";
 
 /****************************************************************
  *
