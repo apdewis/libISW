@@ -82,6 +82,7 @@ in this Software without prior written authorization from The Open Group.
 #include "ShellI.h"
 #include "Vendor.h"
 #include "VendorP.h"
+#include <ISW/FocusMgrI.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
@@ -1968,6 +1969,8 @@ ChangeManaged(Widget wid)
     if (child != NULL)
         IswConfigureWidget(child, (Position) 0, (Position) 0,
                           w->core.width, w->core.height, (Dimension) 0);
+
+    _IswFocusMgrEnsureInstalled(wid);
 }
 
 /*

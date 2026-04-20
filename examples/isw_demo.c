@@ -122,6 +122,7 @@ Widget create_slider_demo(Widget parent);
 Widget create_scrollbar_demo(Widget parent);
 Widget create_progressbar_demo(Widget parent);
 Widget create_dialog_demo(Widget parent);
+void open_modal_dialog_cb(Widget w, IswPointer client_data, IswPointer call_data);
 Widget create_drawingarea_demo(Widget parent);
 Widget create_tabs_demo(Widget parent);
 void tabs_callback(Widget w, IswPointer client_data, IswPointer call_data);
@@ -2036,8 +2037,80 @@ Widget create_dialog_demo(Widget parent) {
     /* Add buttons */
     IswDialogAddButton(dialog, "OK", dialog_ok_callback, (IswPointer)dialog);
     IswDialogAddButton(dialog, "Cancel", NULL, NULL);
-    
+
+    /* A button that launches a real modal transient popup — for testing
+     * that the focus manager runs Tab traversal inside the popup shell
+     * and doesn't leak to the parent shell. */
+    {
+        Widget open_btn;
+        Arg a[2];
+        Cardinal m = 0;
+        IswSetArg(a[m], IswNlabel, "Open Modal Dialog..."); m++;
+        open_btn = IswCreateManagedWidget("openModal", commandWidgetClass,
+                                          box, a, m);
+        IswAddCallback(open_btn, IswNcallback, open_modal_dialog_cb,
+                       (IswPointer)parent);
+    }
+
     return box;
+}
+
+static void
+modal_close_cb(Widget w, IswPointer client_data, IswPointer call_data)
+{
+    Widget shell = (Widget) client_data;
+    (void)w; (void)call_data;
+    IswPopdown(shell);
+    IswDestroyWidget(shell);
+    printf("Modal dialog closed\n");
+}
+
+void open_modal_dialog_cb(Widget w, IswPointer client_data, IswPointer call_data)
+{
+    Widget parent = (Widget) client_data;
+    Widget shell, form, label, text, ok, cancel;
+    Arg args[10];
+    Cardinal n;
+    (void)w; (void)call_data;
+
+    /* TransientShell so it gets WM decorations + stays above parent. */
+    n = 0;
+    IswSetArg(args[n], IswNtitle, "Modal Dialog"); n++;
+    IswSetArg(args[n], IswNwidth, 360); n++;
+    IswSetArg(args[n], IswNheight, 140); n++;
+    shell = IswCreatePopupShell("modalTest", transientShellWidgetClass,
+                                parent, args, n);
+
+    form = IswCreateManagedWidget("form", formWidgetClass, shell, NULL, 0);
+
+    n = 0;
+    IswSetArg(args[n], IswNlabel, "Type here, then Tab to cycle:"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    label = IswCreateManagedWidget("lbl", labelWidgetClass, form, args, n);
+
+    n = 0;
+    IswSetArg(args[n], IswNfromVert, label); n++;
+    IswSetArg(args[n], IswNeditType, IswtextEdit); n++;
+    IswSetArg(args[n], IswNwidth, 300); n++;
+    IswSetArg(args[n], IswNstring, ""); n++;
+    IswSetArg(args[n], IswNconsumeTab, False); n++;
+    text = IswCreateManagedWidget("entry", asciiTextWidgetClass, form, args, n);
+
+    n = 0;
+    IswSetArg(args[n], IswNfromVert, text); n++;
+    IswSetArg(args[n], IswNlabel, "OK"); n++;
+    ok = IswCreateManagedWidget("ok", commandWidgetClass, form, args, n);
+    IswAddCallback(ok, IswNcallback, modal_close_cb, (IswPointer)shell);
+
+    n = 0;
+    IswSetArg(args[n], IswNfromVert, text); n++;
+    IswSetArg(args[n], IswNfromHoriz, ok); n++;
+    IswSetArg(args[n], IswNlabel, "Cancel"); n++;
+    cancel = IswCreateManagedWidget("cancel", commandWidgetClass, form, args, n);
+    IswAddCallback(cancel, IswNcallback, modal_close_cb, (IswPointer)shell);
+
+    (void)text;
+    IswPopup(shell, IswGrabExclusive);
 }
 
 /* ============================================================
