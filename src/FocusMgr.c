@@ -348,6 +348,13 @@ _IswFocusMgrMaybeHandleKey(Widget widget, xcb_generic_event_t *event)
     return True;
 }
 
+static void
+shell_destroy_cb(Widget shell, IswPointer closure, IswPointer call_data)
+{
+    (void)closure; (void)call_data;
+    _IswFocusMgrDestroyShell(shell);
+}
+
 void
 _IswFocusMgrEnsureInstalled(Widget shell)
 {
@@ -368,5 +375,6 @@ _IswFocusMgrEnsureInstalled(Widget shell)
 
     IswAugmentTranslations(shell,
         IswParseTranslationTable(focus_translations));
+    IswAddCallback(shell, IswNdestroyCallback, shell_destroy_cb, NULL);
     slot->translations_installed = True;
 }
