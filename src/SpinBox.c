@@ -210,20 +210,30 @@ DownCallback(Widget w, IswPointer client_data, IswPointer call_data)
     ClampAndNotify(sbw, sbw->spinBox.value - sbw->spinBox.increment);
 }
 
+/* Walk up to find the enclosing SpinBox — lets the same action procs
+ * be bound on child widgets (e.g. the internal Text field). */
+static SpinBoxWidget
+FindSpinBox(Widget w)
+{
+    while (w && !IswIsSubclass(w, spinBoxWidgetClass))
+        w = IswParent(w);
+    return (SpinBoxWidget) w;
+}
+
 static void
 IncrementAction(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
 {
-    SpinBoxWidget sbw = (SpinBoxWidget) w;
+    SpinBoxWidget sbw = FindSpinBox(w);
     (void)e; (void)p; (void)np;
-    ClampAndNotify(sbw, sbw->spinBox.value + sbw->spinBox.increment);
+    if (sbw) ClampAndNotify(sbw, sbw->spinBox.value + sbw->spinBox.increment);
 }
 
 static void
 DecrementAction(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
 {
-    SpinBoxWidget sbw = (SpinBoxWidget) w;
+    SpinBoxWidget sbw = FindSpinBox(w);
     (void)e; (void)p; (void)np;
-    ClampAndNotify(sbw, sbw->spinBox.value - sbw->spinBox.increment);
+    if (sbw) ClampAndNotify(sbw, sbw->spinBox.value - sbw->spinBox.increment);
 }
 
 /* --- Widget methods --- */
@@ -252,8 +262,18 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(arglist[n], IswNstring, buf); n++;
     IswSetArg(arglist[n], IswNeditType, IswtextEdit); n++;
     IswSetArg(arglist[n], IswNborderWidth, 0); n++;
+    IswSetArg(arglist[n], IswNconsumeTab, False); n++;  /* single-line: Tab traverses */
     sbw->spinBox.textW = IswCreateManagedWidget("text", asciiTextWidgetClass,
                                                 new, arglist, n);
+
+    /* Augment the Text child so Up/Down step the SpinBox while focused. */
+    {
+        static char spinbox_text_translations[] =
+            "<Key>Up:   Increment()\n"
+            "<Key>Down: Decrement()";
+        IswOverrideTranslations(sbw->spinBox.textW,
+            IswParseTranslationTable(spinbox_text_translations));
+    }
 
     /* Up button with upward arrow SVG */
     static const char up_arrow_svg[] =
@@ -270,6 +290,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(arglist[n], IswNinternalHeight, 0); n++;
     sbw->spinBox.upW = IswCreateManagedWidget("up", repeaterWidgetClass,
                                               new, arglist, n);
+    ((SimpleWidget) sbw->spinBox.upW)->simple.traversal_on = False;
     IswAddCallback(sbw->spinBox.upW, IswNcallback, UpCallback, (IswPointer)sbw);
 
     /* Down button with downward arrow SVG */
@@ -287,6 +308,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(arglist[n], IswNinternalHeight, 0); n++;
     sbw->spinBox.downW = IswCreateManagedWidget("down", repeaterWidgetClass,
                                                 new, arglist, n);
+    ((SimpleWidget) sbw->spinBox.downW)->simple.traversal_on = False;
     IswAddCallback(sbw->spinBox.downW, IswNcallback, DownCallback, (IswPointer)sbw);
 
     /* Set default size if not specified */
