@@ -16,6 +16,7 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/SliderP.h>
+#include <ISW/FocusMgrI.h>
 
 #include "ISWXcbDraw.h"
 
@@ -315,6 +316,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     SliderWidget sw = (SliderWidget) new;
     (void)request; (void)args; (void)num_args;
 
+    ((SimpleWidget) new)->simple.traversal_on = True;
+
     /* HiDPI scaling */
     sw->slider.length = (sw->slider.length);
     sw->slider.thickness = (sw->slider.thickness);
@@ -578,6 +581,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         int area_x = track_center_x - (int)thumb_w / 2;
         DrawValueLabel(w, sw, ctx, area_x, track_top, (int)thumb_w, track_h);
     }
+
+    _IswFocusMgrDrawRing(w, ctx, sw->slider.foreground, 2.0);
 
     ISWRenderEnd(ctx);
 }

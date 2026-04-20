@@ -73,6 +73,7 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include "ISWXcbDraw.h"
+#include <ISW/FocusMgrI.h>
 
 /* Private definitions. */
 
@@ -479,6 +480,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* Install scroll wheel event dispatcher (once per connection) */
     ISWScrollWheelInit(IswDisplay(new));
 
+    /* Scrollbars are not Tab stops — users drive them indirectly via the
+     * widget they scroll (keyboard nav on the focused List/Text etc.). */
+
     /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
     if (sbw->core.width == 0)
@@ -597,6 +601,12 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     PaintThumb (sbw, event);
     PaintArrows (sbw);
 
+    if (sbw->scrollbar.render_ctx) {
+        ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
+        ISWRenderBegin(ctx);
+        _IswFocusMgrDrawRing((Widget) sbw, ctx, sbw->scrollbar.foreground, 1.0);
+        ISWRenderEnd(ctx);
+    }
 }
 
 

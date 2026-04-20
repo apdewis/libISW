@@ -31,4 +31,11 @@ extern void _IswFocusMgrDestroyShell(Widget shell);
 extern Boolean _IswFocusMgrMaybeHandleKey(Widget widget,
                                           xcb_generic_event_t *event);
 
+/* Draw a dashed focus ring inset 'pad' pixels from the widget's border,
+ * using 'color' as the stroke color. No-ops if the widget doesn't own
+ * focus (i.e. SimplePart.has_focus is False). 'ctx' must be an already-
+ * begun render context for the widget. */
+extern void _IswFocusMgrDrawRing(Widget w, void *ctx,
+                                 unsigned long color, double pad);
+
 #endif /* _ISW_FocusMgrI_h */

@@ -16,6 +16,7 @@
 #include <ISW/ISWRender.h>
 #include <ISW/ISWSVG.h>
 #include <ISW/IconViewP.h>
+#include <ISW/FocusMgrI.h>
 #include <ISW/ISWXdnd.h>
 #include <ISW/Viewport.h>
 
@@ -326,6 +327,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     iw->iconView.anchor = -1;
     iw->iconView.cursor = -1;
     iw->iconView.has_focus = False;
+    ((SimpleWidget) new)->simple.traversal_on = True;
     iw->iconView.render_ctx = NULL;
     iw->iconView.cache = NULL;
     iw->iconView.cache_size = 0;
@@ -675,6 +677,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             ISWRenderStrokeRectangle(ctx, bx, by, bw, bh);
         }
     }
+
+    _IswFocusMgrDrawRing(w, ctx, iw->iconView.foreground, 2.0);
 
     ISWRenderEnd(ctx);
 }

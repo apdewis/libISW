@@ -25,6 +25,8 @@
 #include <ISW/Simple.h>
 #include <ISW/SimpleP.h>
 #include <ISW/FocusMgrI.h>
+#include <ISW/ISWRender.h>
+#include <cairo/cairo.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -253,6 +255,35 @@ static char focus_translations[] =
     "<Key>ISO_Left_Tab: focus-prev()";
 
 /* --- Public install --- */
+
+void
+_IswFocusMgrDrawRing(Widget w, void *ctx_void, unsigned long color, double pad)
+{
+    if (!w || !ctx_void) return;
+    if (!IswIsSubclass(w, simpleWidgetClass)) return;
+    if (!((SimpleWidget) w)->simple.has_focus) return;
+
+    ISWRenderContext *ctx = (ISWRenderContext *) ctx_void;
+    cairo_t *cr = (cairo_t *) ISWRenderGetCairoContext(ctx);
+    if (!cr) return;
+
+    double rx = pad;
+    double ry = pad;
+    double rw = (double) w->core.width  - 2 * pad;
+    double rh = (double) w->core.height - 2 * pad;
+    if (rw <= 0 || rh <= 0) return;
+
+    double dashes[2] = { 2.0, 2.0 };
+    cairo_save(cr);
+    cairo_new_path(cr);
+    cairo_rectangle(cr, rx, ry, rw, rh);
+    ISWRenderSetColor(ctx, (Pixel) color);
+    cairo_set_dash(cr, dashes, 2, 0);
+    cairo_set_line_width(cr, 1.0);
+    cairo_stroke(cr);
+    cairo_set_dash(cr, NULL, 0, 0);
+    cairo_restore(cr);
+}
 
 /* --- Early-dispatch Tab intercept --- */
 

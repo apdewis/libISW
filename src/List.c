@@ -48,6 +48,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xfixes.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ListP.h>
+#include <ISW/FocusMgrI.h>
 #include <ISW/ISWRender.h>
 #include <ISW/Viewport.h>
 #include <ISW/SimpleMenu.h>
@@ -346,6 +347,9 @@ static void
 Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
 {
     ListWidget lw = (ListWidget) new;
+
+    /* Opt into Tab traversal. */
+    ((SimpleWidget) new)->simple.traversal_on = True;
 
     /* HiDPI: scale dimension resources */
     lw->list.internal_width = (lw->list.internal_width);
@@ -732,6 +736,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
           if (ItemInRectangle(w, ul_item, lr_item, item))
             PaintItemName(w, item);
     }
+
+    /* Focus ring overlay (drawn before End so it's part of the same frame). */
+    if (lw->list.render_ctx)
+        _IswFocusMgrDrawRing(w, lw->list.render_ctx, lw->list.foreground, 2.0);
 
     /* End Cairo rendering if available */
     if (lw->list.render_ctx) {

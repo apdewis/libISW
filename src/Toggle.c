@@ -48,6 +48,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWRender.h>
 #include <ISW/Label.h>
 #include <ISW/ToggleP.h>
+#include <ISW/FocusMgrI.h>
 #include <xcb/xcb.h>
 #include <cairo/cairo.h>
 
@@ -747,7 +748,9 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         /* Checkbox - draw square outline with optional checkmark */
         DrawCheckbox(ctx, x, y, indicator_size, tw->command.set, 1.0);
     }
-    
+
+    _IswFocusMgrDrawRing(w, ctx, tw->label.foreground, 2.0);
+
     /* End rendering */
     ISWRenderEnd(ctx);
 }
