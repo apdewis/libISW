@@ -76,6 +76,7 @@ SOFTWARE.
 #define XCB_ATOM_COMPOUND_TEXT(dpy) XCB_ATOM_STRING
 #endif
 #include <ISW/VendorP.h>
+#include <ISW/FocusMgrI.h>
 #ifdef ISW_INTERNATIONALIZATION
 /* Editres support - see IswUtils.h */
 #endif
@@ -693,4 +694,5 @@ ChangeManaged(Widget wid)
 		break;
 	    }
 	}
+	_IswFocusMgrEnsureInstalled(wid);
 }

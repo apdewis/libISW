@@ -131,6 +131,7 @@ set(LIBXT_SOURCES
     src/Initialize.c
     src/Intrinsic.c
     src/Keyboard.c
+    src/FocusMgr.c
     src/Manage.c
     src/NextEvent.c
     src/Object.c

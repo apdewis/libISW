@@ -267,6 +267,10 @@ Hconfigure
 HpreGeometry
 HpostGeometry
 Hdestroy
+NtraversalOn
+CTraversalOn
+NtabIndex
+CTabIndex
 
 #file Shell.h
 #table IswShellStrings

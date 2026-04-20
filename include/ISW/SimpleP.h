@@ -75,7 +75,13 @@ typedef struct {
 #ifdef ISW_INTERNATIONALIZATION
     Boolean     international;
 #endif
+
+    /* keyboard focus traversal */
+    Boolean     traversal_on;   /* widget participates in Tab cycle */
+    int         tab_index;      /* explicit ordering; 0 = follow tree order */
+
     /* private state */
+    Boolean     has_focus;      /* runtime: drawn-focus state */
 } SimplePart;
 
 typedef struct _SimpleRec {

@@ -76,6 +76,10 @@ static IswResource resources[] = {
   {IswNinternational, IswCInternational, IswRBoolean, sizeof(Boolean),
      offset(international), IswRImmediate, (IswPointer) FALSE},
 #endif
+  {IswNtraversalOn, IswCTraversalOn, IswRBoolean, sizeof(Boolean),
+     offset(traversal_on), IswRImmediate, (IswPointer) FALSE},
+  {IswNtabIndex, IswCTabIndex, IswRInt, sizeof(int),
+     offset(tab_index), IswRImmediate, (IswPointer) 0},
 #undef offset
 };
 

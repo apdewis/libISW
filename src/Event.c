@@ -1667,6 +1667,18 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
 
     grabList = *_IswGetGrabList(pdi);
 
+    /* Focus manager: intercept Tab / Shift+Tab before normal key dispatch
+     * so traversal works regardless of which widget currently holds the
+     * Xt focus descendant (it may not bind Tab). */
+    if (widget != NULL &&
+        (event->response_type & 0x7f) == XCB_KEY_PRESS) {
+        extern Boolean _IswFocusMgrMaybeHandleKey(Widget, xcb_generic_event_t *);
+        if (_IswFocusMgrMaybeHandleKey(widget, event)) {
+            UNLOCK_APP(app);
+            return True;
+        }
+    }
+
     if (widget == NULL) {
         if (grabType == remap
             && (widget = LookupSpringLoaded(grabList)) != NULL) {

@@ -224,6 +224,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   cbw->command.set = FALSE;
   cbw->command.highlighted = HighlightNone;
+
+  /* Opt this widget into Tab traversal (focus manager). */
+  ((SimpleWidget) new)->simple.traversal_on = True;
 }
 
 static ISWRegionPtr
@@ -466,6 +469,39 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
         cairo_stroke(cr);
       } else {
         cairo_new_path(cr);
+      }
+
+      /* Focus ring: dashed inset rectangle, drawn when this widget owns
+       * keyboard focus (set by the Tab traversal focus manager). */
+      if (((SimpleWidget) w)->simple.has_focus) {
+        double pad = 3.0;
+        double rx = bx + pad;
+        double ry = by + pad;
+        double rw = bw - 2 * pad;
+        double rh = bh - 2 * pad;
+        if (rw > 0 && rh > 0) {
+          double dashes[2] = { 2.0, 2.0 };
+          cairo_new_path(cr);
+          if (r > 0) {
+            double rr = r > pad ? r - pad : 0;
+            if (rr > 0) {
+              cairo_arc(cr, rx + rw - rr, ry + rr, rr, -M_PI/2, 0);
+              cairo_arc(cr, rx + rw - rr, ry + rh - rr, rr, 0, M_PI/2);
+              cairo_arc(cr, rx + rr, ry + rh - rr, rr, M_PI/2, M_PI);
+              cairo_arc(cr, rx + rr, ry + rr, rr, M_PI, 3*M_PI/2);
+              cairo_close_path(cr);
+            } else {
+              cairo_rectangle(cr, rx, ry, rw, rh);
+            }
+          } else {
+            cairo_rectangle(cr, rx, ry, rw, rh);
+          }
+          ISWRenderSetColor(ctx, saved_foreground);
+          cairo_set_dash(cr, dashes, 2, 0);
+          cairo_set_line_width(cr, 1.0);
+          cairo_stroke(cr);
+          cairo_set_dash(cr, NULL, 0, 0);
+        }
       }
 
       cairo_restore(cr);

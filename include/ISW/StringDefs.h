@@ -279,34 +279,38 @@ SOFTWARE.
 #define IswNdestroyHook "destroyHook"
 #define IswNshells "shells"
 #define IswNnumShells "numShells"
-#define IswHcreate "Xtcreate"
-#define IswHsetValues "XtsetValues"
-#define IswHmanageChildren "XtmanageChildren"
-#define IswHunmanageChildren "XtunmanageChildren"
-#define IswHmanageSet "XtmanageSet"
-#define IswHunmanageSet "XtunmanageSet"
-#define IswHrealizeWidget "XtrealizeWidget"
-#define IswHunrealizeWidget "XtunrealizeWidget"
-#define IswHaddCallback "XtaddCallback"
-#define IswHaddCallbacks "XtaddCallbacks"
-#define IswHremoveCallback "XtremoveCallback"
-#define IswHremoveCallbacks "XtremoveCallbacks"
-#define IswHremoveAllCallbacks "XtremoveAllCallbacks"
-#define IswHaugmentTranslations "XtaugmentTranslations"
-#define IswHoverrideTranslations "XtoverrideTranslations"
-#define IswHuninstallTranslations "XtuninstallTranslations"
-#define IswHsetKeyboardFocus "XtsetKeyboardFocus"
-#define IswHsetWMColormapWindows "XtsetWMColormapWindows"
-#define IswHsetMappedWhenManaged "XtsetMappedWhenManaged"
-#define IswHmapWidget "XtmapWidget"
-#define IswHunmapWidget "XtunmapWidget"
-#define IswHpopup "Xtpopup"
-#define IswHpopupSpringLoaded "XtpopupSpringLoaded"
-#define IswHpopdown "Xtpopdown"
-#define IswHconfigure "Xtconfigure"
-#define IswHpreGeometry "XtpreGeometry"
-#define IswHpostGeometry "XtpostGeometry"
-#define IswHdestroy "Xtdestroy"
+#define IswHcreate "Iswcreate"
+#define IswHsetValues "IswsetValues"
+#define IswHmanageChildren "IswmanageChildren"
+#define IswHunmanageChildren "IswunmanageChildren"
+#define IswHmanageSet "IswmanageSet"
+#define IswHunmanageSet "IswunmanageSet"
+#define IswHrealizeWidget "IswrealizeWidget"
+#define IswHunrealizeWidget "IswunrealizeWidget"
+#define IswHaddCallback "IswaddCallback"
+#define IswHaddCallbacks "IswaddCallbacks"
+#define IswHremoveCallback "IswremoveCallback"
+#define IswHremoveCallbacks "IswremoveCallbacks"
+#define IswHremoveAllCallbacks "IswremoveAllCallbacks"
+#define IswHaugmentTranslations "IswaugmentTranslations"
+#define IswHoverrideTranslations "IswoverrideTranslations"
+#define IswHuninstallTranslations "IswuninstallTranslations"
+#define IswHsetKeyboardFocus "IswsetKeyboardFocus"
+#define IswHsetWMColormapWindows "IswsetWMColormapWindows"
+#define IswHsetMappedWhenManaged "IswsetMappedWhenManaged"
+#define IswHmapWidget "IswmapWidget"
+#define IswHunmapWidget "IswunmapWidget"
+#define IswHpopup "Iswpopup"
+#define IswHpopupSpringLoaded "IswpopupSpringLoaded"
+#define IswHpopdown "Iswpopdown"
+#define IswHconfigure "Iswconfigure"
+#define IswHpreGeometry "IswpreGeometry"
+#define IswHpostGeometry "IswpostGeometry"
+#define IswHdestroy "Iswdestroy"
+#define IswNtraversalOn "traversalOn"
+#define IswCTraversalOn "TraversalOn"
+#define IswNtabIndex "tabIndex"
+#define IswCTabIndex "TabIndex"
 #else
 extern _IswStringDefs_h_Const char IswStrings[];
 #ifndef IswNaccelerators
@@ -976,85 +980,97 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #define IswHcreate ((String)&IswStrings[2128])
 #endif
 #ifndef IswHsetValues
-#define IswHsetValues ((String)&IswStrings[2137])
+#define IswHsetValues ((String)&IswStrings[2138])
 #endif
 #ifndef IswHmanageChildren
-#define IswHmanageChildren ((String)&IswStrings[2149])
+#define IswHmanageChildren ((String)&IswStrings[2151])
 #endif
 #ifndef IswHunmanageChildren
-#define IswHunmanageChildren ((String)&IswStrings[2166])
+#define IswHunmanageChildren ((String)&IswStrings[2169])
 #endif
 #ifndef IswHmanageSet
-#define IswHmanageSet ((String)&IswStrings[2185])
+#define IswHmanageSet ((String)&IswStrings[2189])
 #endif
 #ifndef IswHunmanageSet
-#define IswHunmanageSet ((String)&IswStrings[2197])
+#define IswHunmanageSet ((String)&IswStrings[2202])
 #endif
 #ifndef IswHrealizeWidget
-#define IswHrealizeWidget ((String)&IswStrings[2211])
+#define IswHrealizeWidget ((String)&IswStrings[2217])
 #endif
 #ifndef IswHunrealizeWidget
-#define IswHunrealizeWidget ((String)&IswStrings[2227])
+#define IswHunrealizeWidget ((String)&IswStrings[2234])
 #endif
 #ifndef IswHaddCallback
-#define IswHaddCallback ((String)&IswStrings[2245])
+#define IswHaddCallback ((String)&IswStrings[2253])
 #endif
 #ifndef IswHaddCallbacks
-#define IswHaddCallbacks ((String)&IswStrings[2259])
+#define IswHaddCallbacks ((String)&IswStrings[2268])
 #endif
 #ifndef IswHremoveCallback
-#define IswHremoveCallback ((String)&IswStrings[2274])
+#define IswHremoveCallback ((String)&IswStrings[2284])
 #endif
 #ifndef IswHremoveCallbacks
-#define IswHremoveCallbacks ((String)&IswStrings[2291])
+#define IswHremoveCallbacks ((String)&IswStrings[2302])
 #endif
 #ifndef IswHremoveAllCallbacks
-#define IswHremoveAllCallbacks ((String)&IswStrings[2309])
+#define IswHremoveAllCallbacks ((String)&IswStrings[2321])
 #endif
 #ifndef IswHaugmentTranslations
-#define IswHaugmentTranslations ((String)&IswStrings[2330])
+#define IswHaugmentTranslations ((String)&IswStrings[2343])
 #endif
 #ifndef IswHoverrideTranslations
-#define IswHoverrideTranslations ((String)&IswStrings[2352])
+#define IswHoverrideTranslations ((String)&IswStrings[2366])
 #endif
 #ifndef IswHuninstallTranslations
-#define IswHuninstallTranslations ((String)&IswStrings[2375])
+#define IswHuninstallTranslations ((String)&IswStrings[2390])
 #endif
 #ifndef IswHsetKeyboardFocus
-#define IswHsetKeyboardFocus ((String)&IswStrings[2399])
+#define IswHsetKeyboardFocus ((String)&IswStrings[2415])
 #endif
 #ifndef IswHsetWMColormapWindows
-#define IswHsetWMColormapWindows ((String)&IswStrings[2418])
+#define IswHsetWMColormapWindows ((String)&IswStrings[2435])
 #endif
 #ifndef IswHsetMappedWhenManaged
-#define IswHsetMappedWhenManaged ((String)&IswStrings[2441])
+#define IswHsetMappedWhenManaged ((String)&IswStrings[2459])
 #endif
 #ifndef IswHmapWidget
-#define IswHmapWidget ((String)&IswStrings[2464])
+#define IswHmapWidget ((String)&IswStrings[2483])
 #endif
 #ifndef IswHunmapWidget
-#define IswHunmapWidget ((String)&IswStrings[2476])
+#define IswHunmapWidget ((String)&IswStrings[2496])
 #endif
 #ifndef IswHpopup
-#define IswHpopup ((String)&IswStrings[2490])
+#define IswHpopup ((String)&IswStrings[2511])
 #endif
 #ifndef IswHpopupSpringLoaded
-#define IswHpopupSpringLoaded ((String)&IswStrings[2498])
+#define IswHpopupSpringLoaded ((String)&IswStrings[2520])
 #endif
 #ifndef IswHpopdown
-#define IswHpopdown ((String)&IswStrings[2518])
+#define IswHpopdown ((String)&IswStrings[2541])
 #endif
 #ifndef IswHconfigure
-#define IswHconfigure ((String)&IswStrings[2528])
+#define IswHconfigure ((String)&IswStrings[2552])
 #endif
 #ifndef IswHpreGeometry
-#define IswHpreGeometry ((String)&IswStrings[2540])
+#define IswHpreGeometry ((String)&IswStrings[2565])
 #endif
 #ifndef IswHpostGeometry
-#define IswHpostGeometry ((String)&IswStrings[2554])
+#define IswHpostGeometry ((String)&IswStrings[2580])
 #endif
 #ifndef IswHdestroy
-#define IswHdestroy ((String)&IswStrings[2569])
+#define IswHdestroy ((String)&IswStrings[2596])
+#endif
+#ifndef IswNtraversalOn
+#define IswNtraversalOn ((String)&IswStrings[2607])
+#endif
+#ifndef IswCTraversalOn
+#define IswCTraversalOn ((String)&IswStrings[2619])
+#endif
+#ifndef IswNtabIndex
+#define IswNtabIndex ((String)&IswStrings[2631])
+#endif
+#ifndef IswCTabIndex
+#define IswCTabIndex ((String)&IswStrings[2640])
 #endif
 #endif /* ISWSTRINGDEFINES */
 
