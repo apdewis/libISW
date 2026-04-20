@@ -180,6 +180,8 @@ typedef struct _TextPart {
     int			dialog_vert_offset;  /* position for popup dialog */
     Boolean		display_caret;	     /* insertion pt visible iff T */
     Boolean             auto_fill;           /* Auto fill mode? */
+    Boolean             consume_tab;         /* True: Tab inserts char;
+                                                False: Tab cycles focus */
     IswTextScrollMode   scroll_vert, scroll_horiz; /*what type of scrollbars.*/
     IswTextWrapMode     wrap;            /* The type of wrapping. */
     IswTextResizeMode   resize;	             /* what to resize */

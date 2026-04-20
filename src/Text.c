@@ -249,6 +249,8 @@ static IswResource resources[] = {
      offset(text.resize), IswRImmediate, (IswPointer) IswtextResizeNever},
   {IswNautoFill, IswCAutoFill, IswRBoolean, sizeof(Boolean),
      offset(text.auto_fill), IswRImmediate, (IswPointer) FALSE},
+  {IswNconsumeTab, IswCConsumeTab, IswRBoolean, sizeof(Boolean),
+     offset(text.consume_tab), IswRImmediate, (IswPointer) TRUE},
   {IswNunrealizeCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
      offset(text.unrealize_callbacks), IswRCallback, (IswPointer) NULL},
 };
@@ -580,6 +582,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   TextWidget ctx = (TextWidget) new;
   char error_buf[BUFSIZ];
   int s;
+
+  ((SimpleWidget) new)->simple.traversal_on = True;
 
   /* HiDPI: scale dimension resources */  ctx->text.r_margin.left = (Position)(ctx->text.r_margin.left);
   ctx->text.r_margin.right = (Position)(ctx->text.r_margin.right);

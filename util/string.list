@@ -271,6 +271,8 @@ NtraversalOn
 CTraversalOn
 NtabIndex
 CTabIndex
+NconsumeTab
+CConsumeTab
 
 #file Shell.h
 #table IswShellStrings

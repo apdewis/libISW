@@ -26,6 +26,8 @@
 #include <ISW/SimpleP.h>
 #include <ISW/FocusMgrI.h>
 #include <ISW/ISWRender.h>
+#include <ISW/Text.h>
+#include <ISW/TextP.h>
 #include <cairo/cairo.h>
 
 #include <stdlib.h>
@@ -170,9 +172,12 @@ static void
 redraw_widget(Widget w)
 {
     if (!w || !IswIsRealized(w)) return;
-    if (w->core.widget_class->core_class.expose != NULL) {
-        (*w->core.widget_class->core_class.expose)(w, NULL, XCB_NONE);
-    }
+    /* Ask the X server to generate a real Expose event for the whole
+     * widget. Calling core_class.expose directly with a NULL event is
+     * unsafe: some widgets (e.g. Text) dereference the event. */
+    xcb_clear_area(IswDisplay(w), 1 /* exposures */, IswWindow(w),
+                   0, 0, w->core.width, w->core.height);
+    xcb_flush(IswDisplay(w));
 }
 
 static void
@@ -322,6 +327,17 @@ _IswFocusMgrMaybeHandleKey(Widget widget, xcb_generic_event_t *event)
 
     Widget shell = nearest_shell(widget);
     if (!shell) return False;
+
+    /* Let Text widgets that opt to consume Tab handle it as input.
+     * Only plain (unmodified) Tab is consumed — Shift+Tab still traverses
+     * so users can always exit a Text widget. */
+    if (direction == +1) {
+        Widget focused = IswGetKeyboardFocusWidget(shell);
+        if (focused && IswIsSubclass(focused, textWidgetClass)) {
+            TextWidget tw = (TextWidget) focused;
+            if (tw->text.consume_tab) return False;
+        }
+    }
 
     /* Only handle if there are traversable widgets in this shell. */
     Widget list[MAX_FOCUS_LIST];

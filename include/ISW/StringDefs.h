@@ -311,6 +311,8 @@ SOFTWARE.
 #define IswCTraversalOn "TraversalOn"
 #define IswNtabIndex "tabIndex"
 #define IswCTabIndex "TabIndex"
+#define IswNconsumeTab "consumeTab"
+#define IswCConsumeTab "ConsumeTab"
 #else
 extern _IswStringDefs_h_Const char IswStrings[];
 #ifndef IswNaccelerators
@@ -1071,6 +1073,12 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #endif
 #ifndef IswCTabIndex
 #define IswCTabIndex ((String)&IswStrings[2640])
+#endif
+#ifndef IswNconsumeTab
+#define IswNconsumeTab ((String)&IswStrings[2649])
+#endif
+#ifndef IswCConsumeTab
+#define IswCConsumeTab ((String)&IswStrings[2660])
 #endif
 #endif /* ISWSTRINGDEFINES */
 
