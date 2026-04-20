@@ -273,6 +273,8 @@ NtabIndex
 CTabIndex
 NconsumeTab
 CConsumeTab
+NmnemonicKey
+CMnemonicKey
 
 #file Shell.h
 #table IswShellStrings

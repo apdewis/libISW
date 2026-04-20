@@ -53,6 +53,9 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <ISW/ISWInit.h>
 #include <ISW/MenuButtoP.h>
+#include <ISW/LabelP.h>
+#include <ISW/ISWRender.h>
+#include <ISW/FocusMgrI.h>
 #include "ISWXcbDraw.h"
 
 static void ClassInitialize(void);
@@ -80,6 +83,9 @@ static IswResource resources[] = {
   {
     IswNmenuName, IswCMenuName, IswRString, sizeof(String),
     offset(menu_button.menu_name), IswRString, (IswPointer)"menu"},
+  {
+    IswNmnemonicKey, IswCMnemonicKey, IswRInt, sizeof(xcb_keysym_t),
+    offset(menu_button.mnemonic_key), IswRImmediate, (IswPointer) 0},
 };
 #undef offset
 
@@ -87,6 +93,8 @@ static IswActionsRec actionsList[] =
 {
   {"PopupMenu",	PopupMenu}
 };
+
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 
 MenuButtonClassRec menuButtonClassRec = {
   {
@@ -110,7 +118,7 @@ MenuButtonClassRec menuButtonClassRec = {
     FALSE,				/* visible_interest	  */
     NULL,				/* destroy		  */
     IswInheritResize,			/* resize		  */
-    IswInheritExpose,			/* expose		  */
+    Redisplay,                          /* expose		  */
     NULL,				/* set_values		  */
     NULL,				/* set_values_hook	  */
     IswInheritSetValuesAlmost,		/* set_values_almost	  */
@@ -155,9 +163,47 @@ ClassInitialize(void)
 			 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 }
 
-/* ARGSUSED */
+/* Chain to Command's expose, then draw a mnemonic underline if Alt is
+ * held and a mnemonic_key is configured. */
 static void
-PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+{
+    MenuButtonWidget mbw = (MenuButtonWidget) w;
+    (*superclass->core_class.expose)(w, event, region);
+
+    if (!_IswFocusMgrAltHeld() || mbw->menu_button.mnemonic_key == 0)
+        return;
+    if (!mbw->label.label) return;
+
+    int idx = _IswFocusMgrFindMnemonicIndex(mbw->label.label,
+                                            mbw->menu_button.mnemonic_key);
+    if (idx < 0) return;
+
+    ISWRenderContext *ctx = mbw->label.render_ctx;
+    if (!ctx) return;
+
+    int x = mbw->label.label_x;
+    int baseline = mbw->label.label_y
+                 + ISWScaledFontAscent(w, mbw->label.font);
+
+    if (idx > 0)
+        x += ISWScaledTextWidth(w, mbw->label.font, mbw->label.label, idx);
+    int ul_w = ISWScaledTextWidth(w, mbw->label.font,
+                                  &mbw->label.label[idx], 1) - 2;
+    if (ul_w < 1) ul_w = 1;
+
+    ISWRenderBegin(ctx);
+    ISWRenderSetColor(ctx, mbw->label.foreground);
+    ISWRenderDrawLine(ctx, x, baseline + 1, x + ul_w, baseline + 1);
+    ISWRenderEnd(ctx);
+}
+
+/* Positions this MenuButton's menu under the button and popups it with
+ * the given grab kind. Split out so we can open the menu differently
+ * based on what triggered it (button = spring-loaded; keyboard =
+ * non-exclusive). Returns the menu widget or NULL if not found. */
+Widget
+_IswMenuButtonPopupKind(Widget w, IswGrabKind grab_kind)
 {
   MenuButtonWidget mbw = (MenuButtonWidget) w;
   Widget menu = NULL, temp;
@@ -180,7 +226,7 @@ PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
     (void) sprintf(error_buf, "MenuButton: %s %s.",
 	    "Could not find menu widget named", mbw->menu_button.menu_name);
     IswAppWarning(IswWidgetToApplicationContext(w), error_buf);
-    return;
+    return NULL;
   }
   if (!IswIsRealized(menu))
     IswRealizeWidget(menu);
@@ -214,6 +260,20 @@ PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
   IswSetArg(arglist[num_args], IswNy, menu_y); num_args++;
   IswSetValues(menu, arglist, num_args);
 
-  IswPopupSpringLoaded(menu);
+  if (grab_kind == IswGrabExclusive)
+    IswPopupSpringLoaded(menu);
+  else
+    IswPopup(menu, grab_kind);
+  return menu;
+}
+
+/* ARGSUSED */
+static void
+PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+{
+    /* Mouse-triggered popup: use the spring-loaded path so button-release
+     * dismisses the menu. */
+    (void)event; (void)params; (void)num_params;
+    _IswMenuButtonPopupKind(w, IswGrabExclusive);
 }
 

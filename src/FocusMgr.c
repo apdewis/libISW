@@ -28,6 +28,12 @@
 #include <ISW/ISWRender.h>
 #include <ISW/Text.h>
 #include <ISW/TextP.h>
+#include <ISW/MenuButton.h>
+#include <ISW/MenuButtoP.h>
+#include <ISW/SimpleMenu.h>
+#include <ISW/SimpleMenP.h>
+#include <ISW/SmeBSB.h>
+#include <ISW/SmeBSBP.h>
 #include <cairo/cairo.h>
 
 #include <stdlib.h>
@@ -50,6 +56,47 @@ static ShellSlot *g_slots = NULL;
 static int        g_slot_count = 0;
 static int        g_slot_cap = 0;
 static Boolean    g_actions_registered = False;
+static Boolean    g_alt_held = False;
+
+/* Currently-open SimpleMenu popup. Tracked via popup/popdown callbacks
+ * installed lazily on each SimpleMenu we see. At most one at a time —
+ * we enforce this in the Alt+letter handler by popping down any current
+ * menu before opening the next. */
+static Widget     g_open_menu = NULL;
+
+/* True if the currently-open menu was triggered by a mnemonic
+ * (Alt+letter or in-menu letter). When set, mnemonic underlines render
+ * even after Alt is released, until the menu is dismissed. */
+static Boolean    g_open_via_mnemonic = False;
+
+Boolean
+_IswFocusMgrShowMnemonicsForMenu(Widget menu)
+{
+    return g_alt_held || (g_open_via_mnemonic && menu == g_open_menu);
+}
+
+Boolean
+_IswFocusMgrAltHeld(void)
+{
+    return g_alt_held;
+}
+
+int
+_IswFocusMgrFindMnemonicIndex(const char *label, xcb_keysym_t mnemonic)
+{
+    if (!label || mnemonic == 0) return -1;
+    /* Lowercase printable-letter mnemonic */
+    int mk = (int) mnemonic;
+    if (mk >= 'A' && mk <= 'Z') mk += ('a' - 'A');
+    if (!(mk >= 'a' && mk <= 'z') && !(mk >= '0' && mk <= '9')) return -1;
+
+    for (int i = 0; label[i]; i++) {
+        int c = (unsigned char) label[i];
+        if (c >= 'A' && c <= 'Z') c += ('a' - 'A');
+        if (c == mk) return i;
+    }
+    return -1;
+}
 
 static ShellSlot *
 find_slot(Widget shell)
@@ -304,12 +351,142 @@ get_keysyms(xcb_connection_t *c)
     return cached;
 }
 
+/* Walk a subtree, repainting MenuButton + SimpleMenu (via clear-with-expose)
+ * so their mnemonic underlines redraw when Alt state changes. */
+static void
+repaint_menu_widgets(Widget w)
+{
+    if (!w) return;
+    if (IswIsSubclass(w, menuButtonWidgetClass) && IswIsRealized(w)) {
+        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
+                       0, 0, w->core.width, w->core.height);
+    }
+    if (IswIsComposite(w)) {
+        CompositeWidget cw = (CompositeWidget) w;
+        for (Cardinal i = 0; i < cw->composite.num_children; i++)
+            repaint_menu_widgets(cw->composite.children[i]);
+    }
+}
+
+/* Also walk all registered shells and currently-popped-up SimpleMenus. */
+static void
+repaint_for_alt_change(xcb_connection_t *c)
+{
+    for (int i = 0; i < g_slot_count; i++) {
+        Widget shell = g_slots[i].shell;
+        if (!shell || !IswIsRealized(shell)) continue;
+        repaint_menu_widgets(shell);
+        /* SimpleMenu shells need their window cleared so the SmeBSB
+         * entries redraw their underlines. */
+        if (IswIsSubclass(shell, simpleMenuWidgetClass)) {
+            xcb_clear_area(c, 1, IswWindow(shell),
+                           0, 0, shell->core.width, shell->core.height);
+        }
+    }
+    xcb_flush(c);
+}
+
+static void shell_destroy_cb(Widget, IswPointer, IswPointer);
+
+/* --- Open-menu tracking via popup/popdown callbacks -------------------
+ * Every registered shell gets these callbacks. When a SimpleMenu pops up
+ * it becomes the one 'g_open_menu'; on popdown we clear it. The Alt+letter
+ * handler uses this both to close any current menu before opening another
+ * and to find where mnemonic letters should be dispatched. */
+
+static void
+menu_popup_cb(Widget shell, IswPointer closure, IswPointer call_data)
+{
+    (void)closure; (void)call_data;
+    if (IswIsSubclass(shell, simpleMenuWidgetClass))
+        g_open_menu = shell;
+}
+
+static void
+menu_popdown_cb(Widget shell, IswPointer closure, IswPointer call_data)
+{
+    (void)closure; (void)call_data;
+    if (g_open_menu == shell) {
+        g_open_menu = NULL;
+        g_open_via_mnemonic = False;
+    }
+}
+
+void
+_IswFocusMgrRegisterMenu(Widget menu)
+{
+    if (!menu || !IswIsSubclass(menu, simpleMenuWidgetClass)) return;
+    ShellSlot *slot = ensure_slot(menu);
+    if (!slot || slot->translations_installed) return;
+    slot->translations_installed = True;
+    IswAddCallback(menu, IswNpopupCallback,   menu_popup_cb,   NULL);
+    IswAddCallback(menu, IswNpopdownCallback, menu_popdown_cb, NULL);
+    IswAddCallback(menu, IswNdestroyCallback, shell_destroy_cb, NULL);
+}
+
+/* Find a MenuButton anywhere in the tree whose mnemonic_key matches. */
+static Widget
+find_menubutton_mnemonic(Widget w, xcb_keysym_t target)
+{
+    if (!w) return NULL;
+    if (IswIsSubclass(w, menuButtonWidgetClass)) {
+        MenuButtonWidget mbw = (MenuButtonWidget) w;
+        if (mbw->menu_button.mnemonic_key != 0) {
+            xcb_keysym_t a = mbw->menu_button.mnemonic_key;
+            xcb_keysym_t b = target;
+            if (a >= 'A' && a <= 'Z') a += ('a' - 'A');
+            if (b >= 'A' && b <= 'Z') b += ('a' - 'A');
+            if (a == b) return w;
+        }
+    }
+    if (IswIsComposite(w)) {
+        CompositeWidget cw = (CompositeWidget) w;
+        for (Cardinal i = 0; i < cw->composite.num_children; i++) {
+            Widget r = find_menubutton_mnemonic(cw->composite.children[i], target);
+            if (r) return r;
+        }
+    }
+    return NULL;
+}
+
+/* Within a SimpleMenu, find an SmeBSB entry whose mnemonic_key matches. */
+static Widget
+find_menu_entry_mnemonic(Widget menu, xcb_keysym_t target)
+{
+    if (!IswIsSubclass(menu, simpleMenuWidgetClass)) return NULL;
+    CompositeWidget cw = (CompositeWidget) menu;
+    for (Cardinal i = 0; i < cw->composite.num_children; i++) {
+        Widget child = cw->composite.children[i];
+        if (!IswIsSubclass(child, smeBSBObjectClass)) continue;
+        SmeBSBObject sme = (SmeBSBObject) child;
+        xcb_keysym_t a = sme->sme_bsb.mnemonic_key;
+        xcb_keysym_t b = target;
+        if (a == 0) continue;
+        if (a >= 'A' && a <= 'Z') a += ('a' - 'A');
+        if (b >= 'A' && b <= 'Z') b += ('a' - 'A');
+        if (a == b) return child;
+    }
+    return NULL;
+}
+
+/* Internal MenuButton helper: positions the menu under the button and
+ * pops it up with the given grab kind. Implemented in MenuButton.c. */
+extern Widget _IswMenuButtonPopupKind(Widget mb, IswGrabKind grab_kind);
+
+/* Open a MenuButton's menu via the non-exclusive path — appropriate for
+ * keyboard-triggered opens (spring-loaded expects a button release). */
+static void
+trigger_menu_button(Widget mb)
+{
+    _IswMenuButtonPopupKind(mb, IswGrabNonexclusive);
+}
+
 Boolean
 _IswFocusMgrMaybeHandleKey(Widget widget, xcb_generic_event_t *event)
 {
     if (!widget || !event) return False;
     uint8_t type = event->response_type & 0x7f;
-    if (type != XCB_KEY_PRESS) return False;
+    if (type != XCB_KEY_PRESS && type != XCB_KEY_RELEASE) return False;
 
     xcb_key_press_event_t *ke = (xcb_key_press_event_t *)event;
     xcb_connection_t *c = IswDisplay(widget);
@@ -319,6 +496,71 @@ _IswFocusMgrMaybeHandleKey(Widget widget, xcb_generic_event_t *event)
     Boolean shift = (ke->state & XCB_MOD_MASK_SHIFT) != 0;
     xcb_keysym_t sym = xcb_key_symbols_get_keysym(syms, ke->detail, shift ? 1 : 0);
 
+    /* --- Track Alt press/release so mnemonic underlines show/hide. ----- */
+    if (sym == XK_Alt_L || sym == XK_Alt_R) {
+        Boolean new_state = (type == XCB_KEY_PRESS);
+        if (new_state != g_alt_held) {
+            g_alt_held = new_state;
+            repaint_for_alt_change(c);
+        }
+        return False;  /* don't swallow; let it propagate normally */
+    }
+
+    if (type != XCB_KEY_PRESS) return False;
+
+    Boolean alt_held = (ke->state & XCB_MOD_MASK_1) != 0;
+    Boolean ctrl_held = (ke->state & XCB_MOD_MASK_CONTROL) != 0;
+
+    /* --- Menubar mnemonic: Alt + letter, anywhere in the shell. ---
+     *     This takes priority over in-menu letter matching so Alt+E
+     *     always switches to the Edit menu rather than activating an
+     *     entry called "Export" in whatever menu happens to be open. */
+    if (alt_held && !ctrl_held) {
+        xcb_keysym_t base = xcb_key_symbols_get_keysym(syms, ke->detail, 0);
+        Widget shell = nearest_shell(widget);
+        if (shell) {
+            Widget hit = find_menubutton_mnemonic(shell, base);
+            if (hit) {
+                if (g_open_menu) {
+                    Widget old = g_open_menu;
+                    g_open_menu = NULL;
+                    IswPopdown(old);
+                }
+                trigger_menu_button(hit);
+                /* The popup callback set g_open_menu; mark it as opened
+                 * via mnemonic so underlines stay visible after Alt is
+                 * released, until the menu is dismissed. */
+                g_open_via_mnemonic = True;
+                return True;
+            }
+        }
+    }
+
+    /* --- When a menu is open: bare letter activates a matching entry;
+     *     Escape closes. (Alt+letter was already handled above.) --- */
+    if (g_open_menu != NULL &&
+        IswIsSubclass(g_open_menu, simpleMenuWidgetClass) &&
+        !ctrl_held && !alt_held) {
+        if (sym == XK_Escape) {
+            Widget menu = g_open_menu;
+            g_open_menu = NULL;
+            IswPopdown(menu);
+            return True;
+        }
+        xcb_keysym_t base = xcb_key_symbols_get_keysym(syms, ke->detail, 0);
+        Widget entry = find_menu_entry_mnemonic(g_open_menu, base);
+        if (entry) {
+            SmeObjectClass sc = (SmeObjectClass) entry->core.widget_class;
+            Widget menu = g_open_menu;
+            g_open_menu = NULL;
+            IswPopdown(menu);
+            if (sc->sme_class.notify)
+                (sc->sme_class.notify)(entry);
+            return True;
+        }
+    }
+
+    /* --- Tab / Shift+Tab focus traversal --- */
     int direction;
     if (sym == XK_Tab && !shift)               direction = +1;
     else if (sym == XK_Tab && shift)           direction = -1;
@@ -355,6 +597,18 @@ shell_destroy_cb(Widget shell, IswPointer closure, IswPointer call_data)
     _IswFocusMgrDestroyShell(shell);
 }
 
+/* Event handler: ensures KEY_RELEASE events are selected on the shell
+ * window so we can update the Alt-held state when the user lifts Alt. */
+static void
+shell_key_release_handler(Widget w, IswPointer closure,
+                          xcb_generic_event_t *event, Boolean *cont)
+{
+    (void)closure; (void)cont;
+    if ((event->response_type & 0x7f) != XCB_KEY_RELEASE) return;
+    /* Forward into the main intercept so Alt-release is processed. */
+    _IswFocusMgrMaybeHandleKey(w, event);
+}
+
 void
 _IswFocusMgrEnsureInstalled(Widget shell)
 {
@@ -376,5 +630,19 @@ _IswFocusMgrEnsureInstalled(Widget shell)
     IswAugmentTranslations(shell,
         IswParseTranslationTable(focus_translations));
     IswAddCallback(shell, IswNdestroyCallback, shell_destroy_cb, NULL);
+
+    /* Select KEY_RELEASE on the shell window so we see Alt-release. Widgets
+     * normally only request KEY_PRESS, and the default dispatcher wouldn't
+     * otherwise have a chance to update our g_alt_held flag. */
+    IswAddEventHandler(shell, XCB_EVENT_MASK_KEY_RELEASE, False,
+                       shell_key_release_handler, NULL);
+
+    /* Track when a SimpleMenu opens/closes so mnemonic dispatch can find
+     * the right popup without inspecting the grab list. */
+    if (IswIsSubclass(shell, simpleMenuWidgetClass)) {
+        IswAddCallback(shell, IswNpopupCallback,   menu_popup_cb,   NULL);
+        IswAddCallback(shell, IswNpopdownCallback, menu_popdown_cb, NULL);
+    }
+
     slot->translations_installed = True;
 }

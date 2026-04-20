@@ -93,6 +93,7 @@ typedef struct {
 #endif
     IswJustify justify;		/* Justification for the label. */
     int underline;		/* index of letter to underline in label. */
+    xcb_keysym_t mnemonic_key;  /* mnemonic keysym (NoSymbol = none) */
 
     /* private state. */
     Boolean set_values_area_cleared; /* Remember if we need to unhighlight. */

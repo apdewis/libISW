@@ -325,6 +325,14 @@
 #define IswArgCursorName(ab, v)                 ISW_ARG((ab), IswNcursorName, (v))
 #define IswArgInsensitiveBorder(ab, v)          ISW_ARG((ab), IswNinsensitiveBorder, (v))
 #define IswArgInternational(ab, v)              ISW_ARG((ab), IswNinternational, (v))
+#define IswArgTraversalOn(ab, v)                ISW_ARG((ab), IswNtraversalOn, (v))
+#define IswArgTabIndex(ab, v)                   ISW_ARG((ab), IswNtabIndex, (v))
+
+/* Text */
+#define IswArgConsumeTab(ab, v)                 ISW_ARG((ab), IswNconsumeTab, (v))
+
+/* Menu mnemonics (SmeBSB, MenuButton) */
+#define IswArgMnemonicKey(ab, v)                ISW_ARG((ab), IswNmnemonicKey, (v))
 
 /* Label */
 #define IswArgImage(ab, v)                      ISW_ARG((ab), IswNimage, (v))

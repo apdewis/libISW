@@ -313,6 +313,8 @@ SOFTWARE.
 #define IswCTabIndex "TabIndex"
 #define IswNconsumeTab "consumeTab"
 #define IswCConsumeTab "ConsumeTab"
+#define IswNmnemonicKey "mnemonicKey"
+#define IswCMnemonicKey "MnemonicKey"
 #else
 extern _IswStringDefs_h_Const char IswStrings[];
 #ifndef IswNaccelerators
@@ -1079,6 +1081,12 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #endif
 #ifndef IswCConsumeTab
 #define IswCConsumeTab ((String)&IswStrings[2660])
+#endif
+#ifndef IswNmnemonicKey
+#define IswNmnemonicKey ((String)&IswStrings[2671])
+#endif
+#ifndef IswCMnemonicKey
+#define IswCMnemonicKey ((String)&IswStrings[2683])
 #endif
 #endif /* ISWSTRINGDEFINES */
 

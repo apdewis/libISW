@@ -301,27 +301,32 @@ void populate_menubar(Widget menubar) {
     /* === FILE MENU === */
     IswArgLabel(&ab, "File");
     IswArgMenuName(&ab, "fileMenu");
+    IswArgMnemonicKey(&ab, 'f');
     file_button = IswCreateManagedWidget("fileButton", menuButtonWidgetClass, menubar, ab.args, ab.count);
 
     file_menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass, file_button, NULL, 0);
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "New");
+    IswArgMnemonicKey(&ab, 'n');
     entry = IswCreateManagedWidget("menuNew", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"New");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Open...");
+    IswArgMnemonicKey(&ab, 'o');
     entry = IswCreateManagedWidget("menuOpen", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Open");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Save");
+    IswArgMnemonicKey(&ab, 's');
     entry = IswCreateManagedWidget("menuSave", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Save");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Save As...");
+    IswArgMnemonicKey(&ab, 'a');
     entry = IswCreateManagedWidget("menuSaveAs", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Save As");
 
@@ -330,6 +335,7 @@ void populate_menubar(Widget menubar) {
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Export");
+    IswArgMnemonicKey(&ab, 'e');
     entry = IswCreateManagedWidget("menuExport", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Export");
 
@@ -337,6 +343,7 @@ void populate_menubar(Widget menubar) {
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Quit");
+    IswArgMnemonicKey(&ab, 'q');
     entry = IswCreateManagedWidget("menuQuit", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, quit_callback, NULL);
 
@@ -344,17 +351,20 @@ void populate_menubar(Widget menubar) {
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Edit");
     IswArgMenuName(&ab, "editMenu");
+    IswArgMnemonicKey(&ab, 'e');
     edit_button = IswCreateManagedWidget("editButton", menuButtonWidgetClass, menubar, ab.args, ab.count);
 
     edit_menu = IswCreatePopupShell("editMenu", simpleMenuWidgetClass, edit_button, NULL, 0);
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Undo");
+    IswArgMnemonicKey(&ab, 'u');
     entry = IswCreateManagedWidget("menuUndo", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Undo");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Redo");
+    IswArgMnemonicKey(&ab, 'r');
     entry = IswCreateManagedWidget("menuRedo", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Redo");
 
@@ -362,16 +372,19 @@ void populate_menubar(Widget menubar) {
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Cut");
+    IswArgMnemonicKey(&ab, 't');
     entry = IswCreateManagedWidget("menuCut", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Cut");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Copy");
+    IswArgMnemonicKey(&ab, 'c');
     entry = IswCreateManagedWidget("menuCopy", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Copy");
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Paste");
+    IswArgMnemonicKey(&ab, 'p');
     entry = IswCreateManagedWidget("menuPaste", smeBSBObjectClass, edit_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, edit_menu_callback, (IswPointer)"Paste");
 
@@ -386,6 +399,7 @@ void populate_menubar(Widget menubar) {
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "About");
     IswArgMenuName(&ab, "aboutMenu");
+    IswArgMnemonicKey(&ab, 'a');
     about_button = IswCreateManagedWidget("aboutButton", menuButtonWidgetClass, menubar, ab.args, ab.count);
 
     about_menu = IswCreatePopupShell("aboutMenu", simpleMenuWidgetClass, about_button, NULL, 0);

@@ -78,10 +78,11 @@ extern MenuButtonClassRec menuButtonClassRec;
  *
  **************************************/
 
-    /* New fields for the MenuButton widget record */
+/* New fields for the MenuButton widget record */
 typedef struct {
   /* resources */
   String menu_name;
+  xcb_keysym_t mnemonic_key;  /* Alt+key that opens this menu */
 
 } MenuButtonPart;
 

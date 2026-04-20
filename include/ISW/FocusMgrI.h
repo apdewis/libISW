@@ -38,4 +38,23 @@ extern Boolean _IswFocusMgrMaybeHandleKey(Widget widget,
 extern void _IswFocusMgrDrawRing(Widget w, void *ctx,
                                  unsigned long color, double pad);
 
+/* True while the Alt modifier is held (tracked by the dispatcher for
+ * rendering menu-mnemonic underlines). */
+extern Boolean _IswFocusMgrAltHeld(void);
+
+/* True if mnemonic underlines should be visible for this menu right now.
+ * That's the case when Alt is held, OR the menu was opened via a
+ * mnemonic (in which case underlines persist until it's dismissed). */
+extern Boolean _IswFocusMgrShowMnemonicsForMenu(Widget menu);
+
+/* Find the first index in 'label' whose lowercase character matches
+ * the lowercase letter of 'mnemonic' keysym. Returns -1 if no match or
+ * mnemonic is 0 / not a printable letter. */
+extern int _IswFocusMgrFindMnemonicIndex(const char *label,
+                                         xcb_keysym_t mnemonic);
+
+/* Register a SimpleMenu shell so mnemonic dispatch knows when it opens
+ * and closes. Safe to call multiple times. */
+extern void _IswFocusMgrRegisterMenu(Widget menu);
+
 #endif /* _ISW_FocusMgrI_h */

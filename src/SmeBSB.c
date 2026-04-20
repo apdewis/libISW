@@ -49,6 +49,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWInit.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSBP.h>
+#include <ISW/FocusMgrI.h>
 #include <ISW/Cardinals.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
@@ -95,6 +96,8 @@ static IswResource resources[] = {
      offset(menu_name), IswRImmediate, (IswPointer) NULL},
   {IswNunderline,  IswCIndex, IswRInt, sizeof(int),
      offset(underline), IswRImmediate, (IswPointer) -1},
+  {IswNmnemonicKey, IswCMnemonicKey, IswRInt, sizeof(xcb_keysym_t),
+     offset(mnemonic_key), IswRImmediate, (IswPointer) 0},
 };
 #undef offset
 
@@ -421,28 +424,45 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             }
         }
 
-	if (entry->sme_bsb.underline >= 0 && entry->sme_bsb.underline < len) {
+	{
+	    /* Explicit IswNunderline wins; else use IswNmnemonicKey if Alt is
+	     * held OR this menu was opened via a mnemonic (in which case the
+	     * underlines stay until the menu is dismissed). */
 	    int ul = entry->sme_bsb.underline;
-	    int ul_x1_loc = x_loc + s;
-	    int ul_wid;
-	    Pixel underline_color;
+	    Boolean from_mnemonic = False;
+	    if (ul < 0 &&
+	        _IswFocusMgrShowMnemonicsForMenu(IswParent(w)) &&
+	        entry->sme_bsb.mnemonic_key != 0) {
+	        ul = _IswFocusMgrFindMnemonicIndex(label, entry->sme_bsb.mnemonic_key);
+	        from_mnemonic = (ul >= 0);
+	    }
+	    if (ul >= 0 && ul < len) {
+	        int ul_x1_loc = x_loc + s;
+	        int ul_wid;
+	        Pixel underline_color;
 
-	    if (ul != 0)
-	 ul_x1_loc += ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, label, ul);
-	    ul_wid = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, &label[ul], 1) - 2;
-	    
-	    underline_color = highlighted_active
-	        ? entry->sme_bsb.foreground
-	        : IswParent(w)->core.background_pixel;
-	    
-	    /* Draw underline using Cairo or XCB */
-	    if (ctx) {
-	        ISWRenderBegin(ctx);
-	        ISWRenderSetColor(ctx, underline_color);
-	        ISWRenderDrawLine(ctx,
-	                          ul_x1_loc, y_loc + 1,
-	                          ul_x1_loc + ul_wid, y_loc + 1);
-	        ISWRenderEnd(ctx);
+	        if (ul != 0)
+	            ul_x1_loc += ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, label, ul);
+	        ul_wid = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, &label[ul], 1) - 2;
+
+	        /* Mnemonic underlines should always be visible (foreground),
+	         * even when not highlighted. The legacy IswNunderline path
+	         * retains its old highlight-driven toggle behavior. */
+	        if (from_mnemonic)
+	            underline_color = entry->sme_bsb.foreground;
+	        else
+	            underline_color = highlighted_active
+	                ? entry->sme_bsb.foreground
+	                : IswParent(w)->core.background_pixel;
+
+	        if (ctx) {
+	            ISWRenderBegin(ctx);
+	            ISWRenderSetColor(ctx, underline_color);
+	            ISWRenderDrawLine(ctx,
+	                              ul_x1_loc, y_loc + 1,
+	                              ul_x1_loc + ul_wid, y_loc + 1);
+	            ISWRenderEnd(ctx);
+	        }
 	    }
 	}
     }

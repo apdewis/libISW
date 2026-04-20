@@ -380,6 +380,71 @@ IswSetArg(args[n], IswNradioGroup, a); n++;
 Widget b = IswCreateManagedWidget("b", toggleWidgetClass, parent, args, n);
 ```
 
+## Keyboard Navigation
+
+ISW has Tab / Shift+Tab focus traversal across interactive widgets, plus per-widget keyboard activation.
+
+### Tab traversal
+
+All interactive widgets (Command, Toggle, MenuButton, List, ComboBox, IconView, Slider, Text, AsciiText) opt into the Tab cycle by default. Pressing **Tab** advances focus forward in widget-tree order; **Shift+Tab** goes back. The focused widget draws a dashed focus ring. Each popup / transient shell has its own isolated focus cycle — Tab in a modal dialog stays within the dialog.
+
+Scrollbars are deliberately *not* Tab stops: users drive them indirectly via the focused widget they scroll.
+
+Two resources, on any Simple subclass, control participation:
+
+| Resource | Class | Type | Default | Meaning |
+|---|---|---|---|---|
+| `IswNtraversalOn` | `IswCTraversalOn` | `IswRBoolean` | Widget-specific | Include in Tab cycle |
+| `IswNtabIndex` | `IswCTabIndex` | `IswRInt` | 0 | Explicit order (lower = earlier); 0 = tree order |
+
+To exclude a widget from Tab order:
+
+```c
+IswSetArg(args[n], IswNtraversalOn, False); n++;
+```
+
+To force a specific order:
+
+```c
+IswSetArg(args[n], IswNtabIndex, 10); n++;  /* earlier */
+IswSetArg(args[n], IswNtabIndex, 20); n++;  /* later */
+```
+
+### Activation keys
+
+Once focused, widgets respond to the usual keys:
+
+| Widget | Keys |
+|---|---|
+| Command | Space, Return → activate |
+| Toggle | Space, Return → toggle + notify |
+| MenuButton | Space, Return → open menu |
+| List / ComboBox | Up/Down/Home/End/Page_Up/Page_Down → move cursor; Return/Space → select |
+| ComboBox (open) | Up/Down nav entries, Return selects, Escape closes |
+| IconView | Arrow keys (grid), Home/End, Space toggles, Return activates, Ctrl+A select all |
+| Slider | Left/Down decrement, Right/Up increment, Page_Up/Page_Down large step, Home/End min/max |
+| SpinBox | Up/Down step the value (translations installed on the internal text field) |
+
+SimpleMenu (popup / dropdown) navigation while open:
+
+- Up/Down move between entries (skipping separators/insensitive entries)
+- Home/End jump to first / last
+- Return or Space select; Escape cancels
+
+### Text widget: Tab behavior
+
+By default Text/AsciiText **consume Tab** as literal input (inserts `\t`). For single-line entries where Tab should traverse out (e.g. form fields, SpinBox's internal text), set:
+
+```c
+IswSetArg(args[n], IswNconsumeTab, False); n++;  /* Tab cycles focus */
+```
+
+Shift+Tab always traverses out regardless of `IswNconsumeTab`.
+
+### Initial focus
+
+A newly realized shell seeds focus onto its first managed child. Applications can override with `IswSetKeyboardFocus(shell, widget)` at any time.
+
 ## IconView
 
 ```c

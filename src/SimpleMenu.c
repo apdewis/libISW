@@ -47,6 +47,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWRender.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSBP.h>
+#include <ISW/FocusMgrI.h>
 #include <ISW/SmeLine.h>
 #include <ISW/Cardinals.h>
 
@@ -326,6 +327,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   SimpleMenuWidget smw = (SimpleMenuWidget) new;
 
   IswCallInitializers(IswWidgetToApplicationContext(new));
+
+  _IswFocusMgrRegisterMenu(new);
 
   smw->simple_menu.label = NULL;
   smw->simple_menu.entry_set = NULL;
