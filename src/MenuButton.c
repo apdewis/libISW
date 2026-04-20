@@ -198,12 +198,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     ISWRenderEnd(ctx);
 }
 
-/* Positions this MenuButton's menu under the button and popups it with
- * the given grab kind. Split out so we can open the menu differently
- * based on what triggered it (button = spring-loaded; keyboard =
- * non-exclusive). Returns the menu widget or NULL if not found. */
+/* Positions this MenuButton's menu under the button and pops it up with
+ * a non-exclusive grab. Returns the menu widget or NULL if not found. */
 Widget
-_IswMenuButtonPopupKind(Widget w, IswGrabKind grab_kind)
+_IswMenuButtonPopup(Widget w)
 {
   MenuButtonWidget mbw = (MenuButtonWidget) w;
   Widget menu = NULL, temp;
@@ -260,10 +258,7 @@ _IswMenuButtonPopupKind(Widget w, IswGrabKind grab_kind)
   IswSetArg(arglist[num_args], IswNy, menu_y); num_args++;
   IswSetValues(menu, arglist, num_args);
 
-  if (grab_kind == IswGrabExclusive)
-    IswPopupSpringLoaded(menu);
-  else
-    IswPopup(menu, grab_kind);
+  IswPopup(menu, IswGrabNonexclusive);
   return menu;
 }
 
@@ -271,9 +266,7 @@ _IswMenuButtonPopupKind(Widget w, IswGrabKind grab_kind)
 static void
 PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
-    /* Mouse-triggered popup: use the spring-loaded path so button-release
-     * dismisses the menu. */
     (void)event; (void)params; (void)num_params;
-    _IswMenuButtonPopupKind(w, IswGrabExclusive);
+    _IswMenuButtonPopup(w);
 }
 

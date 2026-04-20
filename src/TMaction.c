@@ -801,7 +801,6 @@ IswMenuPopupAction(Widget widget,
                   String *params,
                   Cardinal *num_params)
 {
-    Boolean spring_loaded;
     register Widget popup_shell;
     IswAppContext app = IswWidgetToApplicationContext(widget);
 
@@ -815,11 +814,9 @@ IswMenuPopupAction(Widget widget,
         return;
     }
 
-    if (event->response_type == XCB_BUTTON_PRESS)
-        spring_loaded = True;
-    else if (event->response_type == XCB_KEY_PRESS || event->response_type == XCB_ENTER_NOTIFY)
-        spring_loaded = False;
-    else {
+    if (event->response_type != XCB_BUTTON_PRESS
+        && event->response_type != XCB_KEY_PRESS
+        && event->response_type != XCB_ENTER_NOTIFY) {
         IswAppWarningMsg(app,
                         "invalidPopup", "unsupportedOperation",
                         IswCIswToolkitError,
@@ -839,10 +836,7 @@ IswMenuPopupAction(Widget widget,
         return;
     }
 
-    if (spring_loaded)
-        _IswPopup(popup_shell, IswGrabExclusive, TRUE);
-    else
-        _IswPopup(popup_shell, IswGrabNonexclusive, FALSE);
+    _IswPopup(popup_shell, IswGrabNonexclusive);
     UNLOCK_APP(app);
 }
 

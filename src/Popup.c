@@ -51,7 +51,7 @@ SOFTWARE.
 #include "ShellP.h"
 
 void
-_IswPopup(Widget widget, IswGrabKind grab_kind, _IswBoolean spring_loaded)
+_IswPopup(Widget widget, IswGrabKind grab_kind)
 {
     register ShellWidget shell_widget = (ShellWidget) widget;
 
@@ -68,15 +68,14 @@ _IswPopup(Widget widget, IswGrabKind grab_kind, _IswBoolean spring_loaded)
         IswCallCallbacks(widget, IswNpopupCallback, (IswPointer) &call_data);
         shell_widget->shell.popped_up = TRUE;
         shell_widget->shell.grab_kind = grab_kind;
-        shell_widget->shell.spring_loaded = (Boolean) spring_loaded;
         if (shell_widget->shell.create_popup_child_proc != NULL) {
             (*(shell_widget->shell.create_popup_child_proc)) (widget);
         }
         if (grab_kind == IswGrabExclusive) {
-            IswAddGrab(widget, TRUE, spring_loaded);
+            IswAddGrab(widget, TRUE);
         }
         else if (grab_kind == IswGrabNonexclusive) {
-            IswAddGrab(widget, FALSE, spring_loaded);
+            IswAddGrab(widget, FALSE);
         }
         IswRealizeWidget(widget);
         xcb_map_window(IswDisplay(widget), IswWindow(widget));
@@ -140,7 +139,7 @@ IswPopup(Widget widget, IswGrabKind grab_kind)
         grab_kind = IswGrabNone;
     }
 
-    _IswPopup(widget, grab_kind, FALSE);
+    _IswPopup(widget, grab_kind);
 
     hookobj = IswHooksOfDisplay(IswDisplay(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
@@ -154,25 +153,6 @@ IswPopup(Widget widget, IswGrabKind grab_kind)
                            (IswPointer) &call_data);
     }
 }                               /* IswPopup */
-
-void
-IswPopupSpringLoaded(Widget widget)
-{
-    Widget hookobj;
-
-    _IswPopup(widget, IswGrabExclusive, True);
-
-    hookobj = IswHooksOfDisplay(IswDisplay(widget));
-    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
-        IswChangeHookDataRec call_data;
-
-        call_data.type = IswHpopupSpringLoaded;
-        call_data.widget = widget;
-        IswCallCallbackList(hookobj,
-                           ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (IswPointer) &call_data);
-    }
-}
 
 void
 IswPopdown(Widget widget)

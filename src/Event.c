@@ -1593,24 +1593,6 @@ _IswOnGrabList(register Widget widget, IswGrabRec *grabList)
     return FALSE;
 }
 
-static Widget
-LookupSpringLoaded(IswGrabList grabList)
-{
-    IswGrabList gl;
-
-    for (gl = grabList; gl != NULL; gl = gl->next) {
-        if (gl->spring_loaded) {
-            if (IswIsSensitive(gl->widget))
-                return gl->widget;
-            else
-                return NULL;
-        }
-        if (gl->exclusive)
-            break;
-    }
-    return NULL;
-}
-
 static Boolean
 DispatchEvent(xcb_generic_event_t *event, Widget widget)
 {
@@ -1682,17 +1664,7 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
     }
 
     if (widget == NULL) {
-        if (grabType == remap
-            && (widget = LookupSpringLoaded(grabList)) != NULL) {
-            /* event occurred in a non-widget window, but we've promised also
-               to dispatch it to the nearest accessible spring_loaded widget */
-            //was_dispatched = (XFilterEvent(event, IswWindow(widget))
-            //                  || IswDispatchEventToWidget(widget, event));
-            
-            was_dispatched = IswDispatchEventToWidget(widget, event);
-        }
-        //else
-        //    was_dispatched = (Boolean) XFilterEvent(event, None);
+        /* event occurred in a non-widget window -- drop it */
     }
     else if (grabType == pass) {
         if (event->response_type == XCB_LEAVE_NOTIFY ||
@@ -1712,34 +1684,15 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
     else if (grabType == remap) {
         EventMask mask = _IswConvertTypeToMask(event->response_type);
         Widget dspWidget;
-        Boolean was_filtered = False;
 
         dspWidget = _IswFindRemapWidget(event, widget, mask, pdi);
 
         if ((grabList == NULL || _IswOnGrabList(dspWidget, grabList))
             && IswIsSensitive(dspWidget)) {
-            //if ((was_filtered =
-            //     (Boolean) XFilterEvent(event, IswWindow(dspWidget)))) {
-            //    /* If this event activated a device grab, release it. */
-            //    _IswUngrabBadGrabs(event, widget, mask, pdi);
-            //    was_dispatched = True;
-            //}
-            //else
-                was_dispatched = IswDispatchEventToWidget(dspWidget, event);
+            was_dispatched = IswDispatchEventToWidget(dspWidget, event);
         }
         else
             _IswUngrabBadGrabs(event, widget, mask, pdi);
-
-        //if (!was_filtered) {
-            /* Also dispatch to nearest accessible spring_loaded. */
-            /* Fetch this afterward to reflect modal list changes */
-            grabList = *_IswGetGrabList(pdi);
-            widget = LookupSpringLoaded(grabList);
-            if (widget != NULL && widget != dspWidget) {
-                was_dispatched = IswDispatchEventToWidget(widget, event)
-                                  || was_dispatched;
-            }
-       // }
     }
     UNLOCK_APP(app);
     return was_dispatched;
@@ -1845,7 +1798,7 @@ GrabDestroyCallback(Widget widget,
 }
 
 static IswGrabRec *
-NewGrabRec(Widget widget, Boolean exclusive, Boolean spring_loaded)
+NewGrabRec(Widget widget, Boolean exclusive)
 {
     register IswGrabList gl;
 
@@ -1853,13 +1806,12 @@ NewGrabRec(Widget widget, Boolean exclusive, Boolean spring_loaded)
     gl->next = NULL;
     gl->widget = widget;
     IswSetBit(gl->exclusive, exclusive);
-    IswSetBit(gl->spring_loaded, spring_loaded);
 
     return gl;
 }
 
 void
-IswAddGrab(Widget widget, _IswBoolean exclusive, _IswBoolean spring_loaded)
+IswAddGrab(Widget widget, _IswBoolean exclusive)
 {
     register IswGrabList gl;
     IswGrabList *grabListPtr;
@@ -1869,15 +1821,7 @@ IswAddGrab(Widget widget, _IswBoolean exclusive, _IswBoolean spring_loaded)
     LOCK_PROCESS;
     grabListPtr = _IswGetGrabList(_IswGetPerDisplayInput(IswDisplay(widget)));
 
-    if (spring_loaded && !exclusive) {
-        IswAppWarningMsg(app,
-                        "grabError", "xtAddGrab", IswCIswToolkitError,
-                        "IswAddGrab requires exclusive grab if spring_loaded is TRUE",
-                        NULL, NULL);
-        exclusive = TRUE;
-    }
-
-    gl = NewGrabRec(widget, (Boolean) exclusive, (Boolean) spring_loaded);
+    gl = NewGrabRec(widget, (Boolean) exclusive);
     gl->next = *grabListPtr;
     *grabListPtr = gl;
 

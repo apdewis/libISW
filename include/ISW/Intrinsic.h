@@ -929,8 +929,7 @@ extern void IswRegisterExtensionSelector(
 
 extern void IswAddGrab(
     Widget 		/* widget */,
-    _IswBoolean 		/* exclusive */,
-    _IswBoolean 		/* spring_loaded */
+    _IswBoolean 		/* exclusive */
 );
 
 extern void IswRemoveGrab(
@@ -1340,10 +1339,6 @@ extern Widget IswVaCreatePopupShell(
 extern void IswPopup(
     Widget 		/* popup_shell */,
     IswGrabKind 		/* grab_kind */
-);
-
-extern void IswPopupSpringLoaded(
-    Widget 		/* popup_shell */
 );
 
 extern void IswCallbackNone(

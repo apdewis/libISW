@@ -71,13 +71,10 @@ static void MenuPopdownCB(Widget, IswPointer, IswPointer);
 static void OutsideClickHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
 static Widget FindToplevelShell(Widget);
 
-/* Override SimpleMenu translations for click-to-select behavior.
- * <Motion> is needed because there's no active pointer grab after
- * the opening click is released -- <BtnMotion> only fires while
- * a button is held down.
- * <BtnUp> is explicitly overridden to prevent the original
- * spring-loaded "release to select" behavior from firing.
- */
+/* Override SimpleMenu translations for menubar-owned menus.
+ * <Motion> is needed because menubar menus run under our own xcb_grab_pointer
+ * (IswGrabNone at popup time); <BtnMotion> only fires while a button is held.
+ * <Btn4Down>/<Btn5Down> make the scroll wheel dismiss the menu. */
 static char menuBarMenuTranslations[] =
     "<EnterWindow>:     highlight()             \n\
      <LeaveWindow>:     unhighlight()           \n\
@@ -85,7 +82,6 @@ static char menuBarMenuTranslations[] =
      <BtnMotion>:       highlight()             \n\
      <Btn4Down>:        unhighlight() popdown() \n\
      <Btn5Down>:        unhighlight() popdown() \n\
-     <BtnUp>:           highlight()             \n\
      <BtnDown>:         notify() unhighlight() popdown()";
 
 /* Translations for MenuButton children inside the menubar */

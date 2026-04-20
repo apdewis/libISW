@@ -301,7 +301,6 @@ SOFTWARE.
 #define IswHmapWidget "IswmapWidget"
 #define IswHunmapWidget "IswunmapWidget"
 #define IswHpopup "Iswpopup"
-#define IswHpopupSpringLoaded "IswpopupSpringLoaded"
 #define IswHpopdown "Iswpopdown"
 #define IswHconfigure "Iswconfigure"
 #define IswHpreGeometry "IswpreGeometry"
@@ -1046,47 +1045,44 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #ifndef IswHpopup
 #define IswHpopup ((String)&IswStrings[2511])
 #endif
-#ifndef IswHpopupSpringLoaded
-#define IswHpopupSpringLoaded ((String)&IswStrings[2520])
-#endif
 #ifndef IswHpopdown
-#define IswHpopdown ((String)&IswStrings[2541])
+#define IswHpopdown ((String)&IswStrings[2520])
 #endif
 #ifndef IswHconfigure
-#define IswHconfigure ((String)&IswStrings[2552])
+#define IswHconfigure ((String)&IswStrings[2531])
 #endif
 #ifndef IswHpreGeometry
-#define IswHpreGeometry ((String)&IswStrings[2565])
+#define IswHpreGeometry ((String)&IswStrings[2544])
 #endif
 #ifndef IswHpostGeometry
-#define IswHpostGeometry ((String)&IswStrings[2580])
+#define IswHpostGeometry ((String)&IswStrings[2559])
 #endif
 #ifndef IswHdestroy
-#define IswHdestroy ((String)&IswStrings[2596])
+#define IswHdestroy ((String)&IswStrings[2575])
 #endif
 #ifndef IswNtraversalOn
-#define IswNtraversalOn ((String)&IswStrings[2607])
+#define IswNtraversalOn ((String)&IswStrings[2586])
 #endif
 #ifndef IswCTraversalOn
-#define IswCTraversalOn ((String)&IswStrings[2619])
+#define IswCTraversalOn ((String)&IswStrings[2598])
 #endif
 #ifndef IswNtabIndex
-#define IswNtabIndex ((String)&IswStrings[2631])
+#define IswNtabIndex ((String)&IswStrings[2610])
 #endif
 #ifndef IswCTabIndex
-#define IswCTabIndex ((String)&IswStrings[2640])
+#define IswCTabIndex ((String)&IswStrings[2619])
 #endif
 #ifndef IswNconsumeTab
-#define IswNconsumeTab ((String)&IswStrings[2649])
+#define IswNconsumeTab ((String)&IswStrings[2628])
 #endif
 #ifndef IswCConsumeTab
-#define IswCConsumeTab ((String)&IswStrings[2660])
+#define IswCConsumeTab ((String)&IswStrings[2639])
 #endif
 #ifndef IswNmnemonicKey
-#define IswNmnemonicKey ((String)&IswStrings[2671])
+#define IswNmnemonicKey ((String)&IswStrings[2650])
 #endif
 #ifndef IswCMnemonicKey
-#define IswCMnemonicKey ((String)&IswStrings[2683])
+#define IswCMnemonicKey ((String)&IswStrings[2662])
 #endif
 #endif /* ISWSTRINGDEFINES */
 

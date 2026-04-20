@@ -53,7 +53,7 @@ void
 IswCallbackNone(Widget widget, IswPointer closure, IswPointer call_data _X_UNUSED)
 {
     IswSetSensitive(widget, FALSE);
-    _IswPopup((Widget) closure, IswGrabNone, FALSE);
+    _IswPopup((Widget) closure, IswGrabNone);
 }                               /* IswCallbackNone */
 
 void
@@ -63,7 +63,7 @@ IswCallbackNonexclusive(Widget widget,
 {
 
     IswSetSensitive(widget, FALSE);
-    _IswPopup((Widget) closure, IswGrabNonexclusive, FALSE);
+    _IswPopup((Widget) closure, IswGrabNonexclusive);
 }                               /* IswCallbackNonexclusive */
 
 void
@@ -72,5 +72,5 @@ IswCallbackExclusive(Widget widget,
                     IswPointer call_data _X_UNUSED)
 {
     IswSetSensitive(widget, FALSE);
-    _IswPopup((Widget) closure, IswGrabExclusive, FALSE);
+    _IswPopup((Widget) closure, IswGrabExclusive);
 }                               /* IswCallbackExclusive */

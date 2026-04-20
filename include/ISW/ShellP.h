@@ -105,7 +105,6 @@ typedef struct {
 	char       *geometry;
 	IswCreatePopupChildProc	create_popup_child_proc;
 	IswGrabKind	grab_kind;
-	Boolean	    spring_loaded;
 	Boolean	    popped_up;
 	Boolean	    allow_shell_resize;
 	Boolean     client_specified; /* re-using old name */

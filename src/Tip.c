@@ -693,7 +693,7 @@ TipTimeoutCallback(IswPointer closure, IswIntervalId *id)
 	xcb_map_window(conn, win);
 	xcb_flush(conn);
     }
-    IswAddGrab(IswParent((Widget)info->tip), True, True);
+    IswAddGrab(IswParent((Widget)info->tip), True);
     info->mapped = True;
 }
 

@@ -81,7 +81,6 @@ typedef struct _IswGrabRec {
     IswGrabList next;
     Widget   widget;
     unsigned int exclusive:1;
-    unsigned int spring_loaded:1;
 }IswGrabRec;
 
 typedef struct _BlockHookRec {

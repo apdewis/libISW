@@ -131,7 +131,6 @@ ISW menus use a three-layer hierarchy:
 
 ### Critical Rules
 
-- **Never call `IswPopupSpringLoaded()` in application code.** It is internal to `MenuButton`. Calling it directly creates broken grab states — menus that won't dismiss, eat events, or get stuck. Use the patterns below instead.
 - **The popup shell widget name must match `IswNmenuName` exactly.** Mismatches cause "Could not find menu widget" warnings and silent failures.
 - **Make the popup shell a child of the widget that triggers it** (the `MenuButton` for dropdowns, the owning widget for context menus, the parent `SimpleMenu` for submenus).
 
@@ -172,11 +171,11 @@ Widget item_quit = IswCreateManagedWidget("quit", smeBSBObjectClass,
 IswAddCallback(item_quit, IswNcallback, file_cb, (IswPointer)"quit");
 ```
 
-The menu dismisses on entry click or click anywhere outside — `MenuButton` handles all grab logic internally.
+The menu opens on click and dismisses on entry click, outside click, or `Escape`. Spring-loaded (press-and-hold) behavior is not supported — opening and closing are independent events.
 
 ### Right-Click Context Menu
 
-Use the built-in `IswMenuPopup` action in a translation table. **Do not write a C action proc that calls `IswPopupSpringLoaded`.**
+Use the built-in `IswMenuPopup` action in a translation table.
 
 ```c
 /* Create the menu as a popup shell — parent is the widget that owns it. */
@@ -191,8 +190,8 @@ IswAddCallback(cut, IswNcallback, ctx_cb, (IswPointer)"cut");
 
 /* ... more entries ... */
 
-/* Install translation — IswMenuPopup handles spring-loaded grabs automatically
-   when triggered by a ButtonPress event. */
+/* Install translation — IswMenuPopup opens the menu on ButtonPress,
+   KeyPress, or EnterNotify. */
 IswOverrideTranslations(my_widget,
     IswParseTranslationTable("<Btn3Down>: IswMenuPopup(ctxMenu)"));
 ```

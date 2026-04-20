@@ -470,15 +470,13 @@ find_menu_entry_mnemonic(Widget menu, xcb_keysym_t target)
 }
 
 /* Internal MenuButton helper: positions the menu under the button and
- * pops it up with the given grab kind. Implemented in MenuButton.c. */
-extern Widget _IswMenuButtonPopupKind(Widget mb, IswGrabKind grab_kind);
+ * pops it up with a non-exclusive grab. Implemented in MenuButton.c. */
+extern Widget _IswMenuButtonPopup(Widget mb);
 
-/* Open a MenuButton's menu via the non-exclusive path — appropriate for
- * keyboard-triggered opens (spring-loaded expects a button release). */
 static void
 trigger_menu_button(Widget mb)
 {
-    _IswMenuButtonPopupKind(mb, IswGrabNonexclusive);
+    _IswMenuButtonPopup(mb);
 }
 
 Boolean

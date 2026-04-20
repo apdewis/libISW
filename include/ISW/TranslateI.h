@@ -377,8 +377,7 @@ extern TMGlobalRec _IswGlobalTM;
 
 extern void _IswPopup(
     Widget      /* widget */,
-    IswGrabKind  /* grab_kind */,
-    _IswBoolean	/* spring_loaded */
+    IswGrabKind  /* grab_kind */
 );
 
 extern _IswString _IswPrintXlations(
