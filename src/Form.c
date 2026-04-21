@@ -98,7 +98,6 @@ static void ClassInitialize(void);
 static void ClassPartInitialize(WidgetClass);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -131,7 +130,7 @@ FormClassRec formClassRec = {
     /* visible_interest   */    FALSE,
     /* destroy            */    NULL,
     /* resize             */    Resize,
-    /* expose             */    Redisplay,
+    /* expose             */    NULL,
     /* set_values         */    SetValues,
     /* set_values_hook    */    NULL,
     /* set_values_almost  */    IswInheritSetValuesAlmost,
@@ -205,37 +204,6 @@ _CvtStringToEdgeType(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
   }
   toVal->addr = NULL;
   toVal->size = 0;
-}
-
-static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
-{
-    /* Only draw border if border_width is set */
-    if (w->core.border_width == 0 || !IswIsRealized(w))
-        return;
-
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-    if (ctx) {
-        ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.background_pixel);
-        ISWRenderSetLineWidth(ctx, (double)w->core.border_width);
-        ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);
-        ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
-    } else {
-        xcb_connection_t *conn = IswDisplay(w);
-        xcb_window_t win = (xcb_window_t) IswWindow(w);
-        xcb_gcontext_t gc = xcb_generate_id(conn);
-        uint32_t values[2];
-        values[0] = w->core.background_pixel;
-        values[1] = w->core.border_width;
-        xcb_create_gc(conn, gc, win,
-                      XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH, values);
-        xcb_rectangle_t rect = {0, 0, w->core.width, w->core.height};
-        xcb_poly_rectangle(conn, win, gc, 1, &rect);
-        xcb_free_gc(conn, gc);
-        xcb_flush(conn);
-    }
 }
 
 static void
@@ -494,15 +462,17 @@ LayoutChild(Widget w)
 	FormConstraints ref_form = (FormConstraints) ref->core.constraints;
 
 	LayoutChild(ref);
+	/* Advance by one border_width so this child's left border overlaps
+	 * ref's right border rather than stacking beside it. */
 	form->form.new_x += (ref_form->form.new_x +
-			     ref->core.width + (ref->core.border_width << 1));
+			     ref->core.width + ref->core.border_width);
     }
     if ((ref = form->form.vert_base) != (Widget)NULL) {
 	FormConstraints ref_form = (FormConstraints) ref->core.constraints;
 
 	LayoutChild(ref);
 	form->form.new_y += (ref_form->form.new_y +
-			     ref->core.height + (ref->core.border_width << 1));
+			     ref->core.height + ref->core.border_width);
     }
 
     form->form.layout_state = LayoutDone;

@@ -231,7 +231,8 @@ GroupWidth(ToolbarWidget tw, IswToolbarAlignment align)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
-        w += cw + 2 * child->core.border_width;
+        /* One border_width per child: adjacent children's borders overlap. */
+        w += cw + child->core.border_width;
         count++;
     }
 
@@ -266,7 +267,9 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
         Dimension bw2 = 2 * child->core.border_width;
-        total_width += cw + bw2;
+        /* Main axis: one border_width per child (adjacent borders overlap).
+         * Cross axis: full 2 * border_width (single child has both borders). */
+        total_width += cw + child->core.border_width;
         if (ch + bw2 > max_height)
             max_height = ch + bw2;
         managed++;
@@ -304,7 +307,9 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
         Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
         if (y < (Position)v_space) y = (Position)v_space;
         IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
-        x += (Position)(cw + bw2 + h_space);
+        /* Advance by one border_width so the next child's left border
+         * overlaps this child's right border. */
+        x += (Position)(cw + child->core.border_width + h_space);
     }
 
     /* Position right-aligned children (pack from right edge) */
@@ -320,7 +325,9 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
         Dimension bw2 = 2 * child->core.border_width;
-        x -= (Position)(cw + bw2);
+        /* Subtract one border_width so this child's right border overlaps
+         * the previously-placed (more rightward) child's left border. */
+        x -= (Position)(cw + child->core.border_width);
         Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
         if (y < (Position)v_space) y = (Position)v_space;
         IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
@@ -358,7 +365,8 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
             Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
             if (y < (Position)v_space) y = (Position)v_space;
             IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
-            x += (Position)(cw + bw2 + h_space);
+            /* One border_width advance — overlap with next child. */
+            x += (Position)(cw + child->core.border_width + h_space);
         }
     }
 }
