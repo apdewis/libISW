@@ -178,7 +178,7 @@ DoLayout(MainWindowWidget mw)
     if (content) {
         Dimension chrome = mb_h + sb_h;
         Dimension content_h = (h > chrome) ? h - chrome : 1;
-        IswConfigureWidget(content, 0, (Position)mb_h, w, content_h, 0);
+        IswConfigureWidget(content, 0, (Position)mb_h, w, content_h, content->core.border_width);
     }
 }
 
