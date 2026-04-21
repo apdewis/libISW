@@ -256,9 +256,9 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
         /* On the main axis, adjacent children's borders overlap so each
          * child only claims one border_width of extra space. Cross axis
-         * still takes both borders. */
+         * takes no extra — the child fills the container and its border
+         * sits outside, overlapping the container's own border. */
         int bw_main  = (int)child->core.border_width;
-        int bw_cross = 2 * (int)child->core.border_width;
         Dimension cross = ChildCrossPreferred(child, horiz);
 
         if (fc->flexBox.flex_grow > 0) {
@@ -273,8 +273,8 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             total_fixed += (int)ChildBasis(fw, child, horiz) + bw_main;
         }
 
-        if ((int)cross + bw_cross > (int)max_cross)
-            max_cross = (Dimension)((int)cross + bw_cross);
+        if ((int)cross > (int)max_cross)
+            max_cross = (Dimension)cross;
         managed++;
     }
 
@@ -321,7 +321,6 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             continue;
 
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
-        int bw2 = 2 * (int)child->core.border_width;
 
         /* Main-axis size */
         int main_sz;
@@ -338,7 +337,10 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
         if (main_sz < 1)
             main_sz = 1;
 
-        /* Cross-axis size and position */
+        /* Cross-axis size and position. The child's border_width is drawn
+         * by the X server outside the window rectangle, so for stretch
+         * the child's content simply fills the container's full extent
+         * and its border naturally sits on top of the container's border. */
         Dimension cross_pref = ChildCrossPreferred(child, horiz);
         int cross_pos = 0;
         int cross_sz = (int)cross_pref;
@@ -348,16 +350,16 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             cross_pos = 0;
             break;
         case XtflexAlignEnd:
-            cross_pos = (int)container_cross - cross_sz - bw2;
+            cross_pos = (int)container_cross - cross_sz;
             if (cross_pos < 0) cross_pos = 0;
             break;
         case XtflexAlignCenter:
-            cross_pos = ((int)container_cross - cross_sz - bw2) / 2;
+            cross_pos = ((int)container_cross - cross_sz) / 2;
             if (cross_pos < 0) cross_pos = 0;
             break;
         case XtflexAlignStretch:
             cross_pos = 0;
-            cross_sz = (int)container_cross - bw2;
+            cross_sz = (int)container_cross;
             break;
         }
         if (cross_sz < 1)
