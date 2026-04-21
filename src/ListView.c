@@ -416,6 +416,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     ListViewWidget lv = (ListViewWidget) new;
     (void)request; (void)args; (void)num_args;
 
+    ((SimpleWidget) new)->simple.traversal_on = True;
+
     lv->listView.col_info = NULL;
     lv->listView.col_count = 0;
     lv->listView.sel_flags = NULL;
