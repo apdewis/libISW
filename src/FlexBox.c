@@ -246,6 +246,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
     int managed = 0;
     int total_grow = 0;
     int total_fixed = 0;
+    int last_bw = 0;
     Dimension max_cross = 1;
 
     for (int i = 0; i < n; i++) {
@@ -254,25 +255,35 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             continue;
 
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
-        int bw2 = 2 * (int)child->core.border_width;
+        int bw = (int)child->core.border_width;
+        int bw2 = 2 * bw;
         Dimension cross = ChildCrossPreferred(child, horiz);
 
+        /* Border-overlap accounting: X11 positions are at the outer corner
+         * of the border, so a child at x spans [x, x + 2*bw + size].  Placing
+         * the next child at (x + bw + size) makes its leading-border column
+         * coincide with the previous child's trailing-border column, producing
+         * a single shared 1px line instead of a 2px double line.
+         * Each child therefore contributes (size + bw) to the main flow,
+         * plus one trailing bw contributed once after the loop for the last
+         * child's outer edge. */
         if (fc->flexBox.flex_grow > 0) {
-            /* Grow children: only flexBasis counts as fixed space */
             if (fc->flexBox.flex_basis > 0)
-                total_fixed += (int)fc->flexBox.flex_basis + bw2;
+                total_fixed += (int)fc->flexBox.flex_basis + bw;
             else
-                total_fixed += bw2;
+                total_fixed += bw;
             total_grow += fc->flexBox.flex_grow;
         } else {
-            /* Non-grow children: full preferred/basis size */
-            total_fixed += (int)ChildBasis(fw, child, horiz) + bw2;
+            total_fixed += (int)ChildBasis(fw, child, horiz) + bw;
         }
 
         if ((int)cross + bw2 > (int)max_cross)
             max_cross = (Dimension)((int)cross + bw2);
+        last_bw = bw;
         managed++;
     }
+    /* One extra bw for the final child's trailing outer border edge. */
+    total_fixed += last_bw;
 
     if (managed == 0) {
         fw->flexBox.preferred_width = 1;
@@ -284,16 +295,22 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 
     /* Preferred size: for the preferred calculation, include all
      * children's full preferred sizes (grow children want their
-     * natural size when unconstrained). */
+     * natural size when unconstrained). Borders overlap between
+     * adjacent children (shared pixel column), so each child costs
+     * size + bw, plus one extra bw for the first child's outer edge. */
     if (!set_children) {
         int preferred_base = 0;
+        int last_bw = 0;
         for (int i = 0; i < n; i++) {
             Widget child = children[i];
             if (!IswIsManaged(child))
                 continue;
-            int bw2 = 2 * (int)child->core.border_width;
-            preferred_base += (int)ChildBasis(fw, child, horiz) + bw2;
+            int bw = (int)child->core.border_width;
+            preferred_base += (int)ChildBasis(fw, child, horiz) + bw;
+            last_bw = bw;
         }
+        /* One extra bw for the last child's trailing outer border edge. */
+        preferred_base += last_bw;
         int preferred_main = preferred_base + total_spacing;
         fw->flexBox.preferred_width  = horiz ? (Dimension)preferred_main : max_cross;
         fw->flexBox.preferred_height = horiz ? max_cross : (Dimension)preferred_main;
@@ -308,6 +325,10 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
     if (remaining < 0)
         remaining = 0;
 
+    /* First child sits at pos=0; X11 places the child's outer border corner
+     * at that coordinate, so the leading border is already inside the
+     * container. Adjacent children's borders then overlap by one pixel
+     * column as `pos` advances by (main_sz + bw) per child. */
     Position pos = 0;
 
     for (int i = 0; i < n; i++) {
@@ -316,7 +337,8 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
             continue;
 
         FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
-        int bw2 = 2 * (int)child->core.border_width;
+        int bw = (int)child->core.border_width;
+        int bw2 = 2 * bw;
 
         /* Main-axis size */
         int main_sz;
@@ -374,7 +396,9 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 
         IswConfigureWidget(child, x, y, w, h, child->core.border_width);
 
-        pos += (Position)(main_sz + bw2) + (Position)spacing;
+        /* Advance by main_sz + one border width so the next child's border
+         * overlaps this child's trailing border by one pixel column. */
+        pos += (Position)(main_sz + bw) + (Position)spacing;
     }
 }
 
