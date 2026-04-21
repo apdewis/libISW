@@ -2175,13 +2175,13 @@ typedef struct {
     String type;
     Widget widget;
     IswGeometryMask changeMask;
-    uint32_t changes_x;
-    uint32_t changes_y;
-    uint32_t changes_h;
-    uint32_t changes_w;
-    uint32_t changes_bw;
-    uint32_t changes_sm;
-    uint32_t changes_sb;
+    int32_t changes_x;
+    int32_t changes_y;
+    int32_t changes_h;
+    int32_t changes_w;
+    int32_t changes_bw;
+    int32_t changes_sm;
+    int32_t changes_sb;
 } IswConfigureHookDataRec, *IswConfigureHookData;
 
 typedef struct {
