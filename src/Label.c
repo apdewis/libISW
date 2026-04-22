@@ -535,14 +535,31 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      return;
  }
 
- /* Use Cairo's actual font metrics for baseline and line height */
+ /* Use Cairo's actual font metrics for baseline and line height.
+  * Single-line text is centered on visual cap height rather than
+  * full font extents, since Cairo's ascent includes line-gap padding
+  * that pushes glyphs visually below center. Multi-line text falls
+  * back to metric-box centering via label_y. */
  int line_height = ISWScaledFontHeight((Widget)w, fs);
- y += (Position)ISWScaledFontAscent((Widget)w, fs);
+ if (len != MULTI_LINE_LABEL) {
+     int cap = ISWScaledFontCapHeight((Widget)w, fs);
+     y = (Position)(((int)w->core.height + cap) / 2);
+ } else {
+     y += (Position)ISWScaledFontAscent((Widget)w, fs);
+ }
 
 #ifdef ISW_INTERNATIONALIZATION
- Position ksy = w->label.label_y;
- if (w->simple.international == True)
-     ksy += (Position)ISWScaledFontAscent((Widget)w, fs);
+ Position ksy;
+ if (w->simple.international == True) {
+     if (len != MULTI_LINE_LABEL) {
+         int cap = ISWScaledFontCapHeight((Widget)w, fs);
+         ksy = (Position)(((int)w->core.height + cap) / 2);
+     } else {
+         ksy = w->label.label_y + (Position)ISWScaledFontAscent((Widget)w, fs);
+     }
+ } else {
+     ksy = w->label.label_y;
+ }
 #endif
 
 	/* display left image */
