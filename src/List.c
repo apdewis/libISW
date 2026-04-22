@@ -688,14 +688,18 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (event == NULL) {	/* repaint all. */
         ul_item = 0;
         lr_item = lw->list.nrows * lw->list.ncols - 1;
-        if (lw->list.render_ctx) {
-            ISWRenderSetColor(lw->list.render_ctx, w->core.background_pixel);
-            ISWRenderFillRectangle(lw->list.render_ctx, 0, 0,
-                                   w->core.width, w->core.height);
-        }
     }
     else
         FindCornerItems(w, (xcb_generic_event_t*)event, &ul_item, &lr_item);
+
+    /* Always fill background: the Cairo back buffer persists across frames,
+     * so partial expose-driven repaints would otherwise leave stale content
+     * (e.g. a dismissed focus ring) visible. */
+    if (lw->list.render_ctx) {
+        ISWRenderSetColor(lw->list.render_ctx, w->core.background_pixel);
+        ISWRenderFillRectangle(lw->list.render_ctx, 0, 0,
+                               w->core.width, w->core.height);
+    }
 
     /* Dropdown collapsed: only paint the selected item */
     if (lw->list.dropdown) {
