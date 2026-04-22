@@ -517,6 +517,28 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(a[n], IswNresize, False); n++;
     fcw->fontChooser.previewW = IswCreateManagedWidget(
         "preview", labelWidgetClass, new, a, n);
+
+    /* Reflect the initial family/style/size as highlighted rows. */
+    for (int i = 0; i < fcw->fontChooser.num_families; i++) {
+        if (strcmp(fcw->fontChooser.family_names[i],
+                   fcw->fontChooser.family) == 0) {
+            IswListHighlight(fcw->fontChooser.familyListW, i);
+            break;
+        }
+    }
+    for (int i = 0; i < fcw->fontChooser.num_styles; i++) {
+        if (fcw->fontChooser.style_weights[i] == fcw->fontChooser.weight &&
+            fcw->fontChooser.style_slants[i]  == fcw->fontChooser.slant) {
+            IswListHighlight(fcw->fontChooser.styleListW, i);
+            break;
+        }
+    }
+    for (Cardinal i = 0; i < IswNumber(sizes); i++) {
+        if (atoi(sizes[i]) == fcw->fontChooser.size) {
+            IswListHighlight(fcw->fontChooser.sizeListW, i);
+            break;
+        }
+    }
 }
 
 static void
