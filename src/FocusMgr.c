@@ -227,6 +227,26 @@ redraw_widget(Widget w)
     xcb_flush(IswDisplay(w));
 }
 
+/* The widget currently displaying the Tab-cycle focus ring, if any.
+ * Tracked so a stray click or unrelated keypress can clear it without
+ * walking the shell list. */
+static Widget g_ring_widget = NULL;
+
+void
+_IswFocusMgrClearRing(void)
+{
+    Widget w = g_ring_widget;
+    if (!w) return;
+    g_ring_widget = NULL;
+    if (IswIsSubclass(w, simpleWidgetClass)) {
+        SimpleWidget sw = (SimpleWidget) w;
+        if (sw->simple.has_focus) {
+            sw->simple.has_focus = False;
+            redraw_widget(w);
+        }
+    }
+}
+
 static void
 set_focus(Widget shell, Widget new_focus)
 {
@@ -239,6 +259,7 @@ set_focus(Widget shell, Widget new_focus)
         if (sw->simple.has_focus) {
             sw->simple.has_focus = False;
             redraw_widget(old);
+            if (g_ring_widget == old) g_ring_widget = NULL;
         }
     }
 
@@ -248,6 +269,7 @@ set_focus(Widget shell, Widget new_focus)
             SimpleWidget sw = (SimpleWidget) new_focus;
             sw->simple.has_focus = True;
             redraw_widget(new_focus);
+            g_ring_widget = new_focus;
         }
     }
 }
@@ -563,7 +585,21 @@ _IswFocusMgrMaybeHandleKey(Widget widget, xcb_generic_event_t *event)
     if (sym == XK_Tab && !shift)               direction = +1;
     else if (sym == XK_Tab && shift)           direction = -1;
     else if (sym == XK_ISO_Left_Tab)           direction = -1;
-    else                                        return False;
+    else {
+        /* Any other key press (that isn't a bare modifier) dismisses the
+         * Tab-cycle focus ring. Bare modifiers are left alone so e.g.
+         * pressing Shift before Shift+Tab doesn't kill the ring. */
+        if (sym != XK_Shift_L && sym != XK_Shift_R &&
+            sym != XK_Control_L && sym != XK_Control_R &&
+            sym != XK_Alt_L && sym != XK_Alt_R &&
+            sym != XK_Meta_L && sym != XK_Meta_R &&
+            sym != XK_Super_L && sym != XK_Super_R &&
+            sym != XK_Hyper_L && sym != XK_Hyper_R &&
+            sym != XK_Caps_Lock && sym != XK_Num_Lock) {
+            _IswFocusMgrClearRing();
+        }
+        return False;
+    }
 
     Widget shell = nearest_shell(widget);
     if (!shell) return False;

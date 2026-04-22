@@ -57,4 +57,9 @@ extern int _IswFocusMgrFindMnemonicIndex(const char *label,
  * and closes. Safe to call multiple times. */
 extern void _IswFocusMgrRegisterMenu(Widget menu);
 
+/* Clear the current Tab-cycle focus ring (if any). Called on pointer
+ * clicks and on non-Tab key presses so the ring only appears while the
+ * user is actively using keyboard traversal. */
+extern void _IswFocusMgrClearRing(void);
+
 #endif /* _ISW_FocusMgrI_h */

@@ -1661,6 +1661,10 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
                 return True;
             }
         }
+        else if (ftype == XCB_BUTTON_PRESS) {
+            extern void _IswFocusMgrClearRing(void);
+            _IswFocusMgrClearRing();
+        }
     }
 
     if (widget == NULL) {
