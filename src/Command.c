@@ -392,6 +392,31 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
 
       cairo_save(cr);
 
+      /* Mask out the corner regions outside the rounded shape using the
+       * parent's background, so corner_radius is honored even when the
+       * border stroke is thin or absent. Even-odd fill of outer rect +
+       * inner rounded rect paints only the four corner slivers. */
+      if (r > 0) {
+        Pixel corner_fill = saved_background;
+        if (IswParent(w) && IswIsWidget(IswParent(w))) {
+          corner_fill = IswParent(w)->core.background_pixel;
+        }
+        double iw = cbw->core.width;
+        double ih = cbw->core.height;
+        cairo_new_path(cr);
+        cairo_rectangle(cr, 0, 0, iw, ih);
+        cairo_new_sub_path(cr);
+        cairo_arc(cr, iw - r, r, r, -M_PI/2, 0);
+        cairo_arc(cr, iw - r, ih - r, r, 0, M_PI/2);
+        cairo_arc(cr, r, ih - r, r, M_PI/2, M_PI);
+        cairo_arc(cr, r, r, r, M_PI, 3*M_PI/2);
+        cairo_close_path(cr);
+        cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+        ISWRenderSetColor(ctx, corner_fill);
+        cairo_fill(cr);
+        cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);
+      }
+
       if (cbw->command.set) {
         /* Pressed: fill with foreground, redraw content in background.
          * Clip to the border shape so the fill respects corner_radius. */
