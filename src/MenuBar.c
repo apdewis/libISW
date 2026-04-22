@@ -42,7 +42,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 
-#include <ISW/Command.h>  /* for IswNborderStrokeWidth */
+#include <ISW/Command.h>
 
 #define superclass (&boxClassRec)
 
@@ -235,9 +235,9 @@ InsertChild(Widget child)
 
         /* Flat appearance: no border, no 3D shadow, no highlight frame */
         IswSetArg(args[n], IswNborderWidth, 0); n++;
+        IswSetArg(args[n], IswNcornerRadius, 0); n++;
         IswSetArg(args[n], IswNinternalWidth, 6); n++;
         IswSetArg(args[n], IswNinternalHeight, 2); n++;
-        IswSetArg(args[n], IswNborderStrokeWidth, 0); n++;
         IswSetValues(child, args, n);
 
         if (parsed == NULL)

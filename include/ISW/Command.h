@@ -74,7 +74,6 @@ SOFTWARE.
  font		     Font		IswFontStruct*	IswDefaultFont
  foreground	     Foreground		Pixel		IswDefaultForeground
  height		     Height		Dimension	text height
- borderStrokeWidth   Thickness		Dimension	0 if shaped, else 2
  insensitiveBorder   Insensitive	Pixmap		Gray
  internalHeight	     Height		Dimension	2
  internalWidth	     Width		Dimension	4
@@ -93,11 +92,6 @@ SOFTWARE.
  y		     Position		Position	0
 
 */
-
-#define IswNborderStrokeWidth "borderStrokeWidth"
-#define IswCBorderStrokeWidth "BorderStrokeWidth"
-/* Backward compatibility alias */
-#define IswNhighlightThickness IswNborderStrokeWidth
 
 #define IswNcornerRadius "cornerRadius"
 #define IswCCornerRadius "CornerRadius"

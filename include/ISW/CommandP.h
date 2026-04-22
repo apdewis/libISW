@@ -104,7 +104,6 @@ extern CommandClassRec commandClassRec;
     /* New fields for the Command widget record */
 typedef struct {
     /* resources */
-    Dimension   border_stroke_width;
     IswCallbackList callbacks;
 
     /* private state */

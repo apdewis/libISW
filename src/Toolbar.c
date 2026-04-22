@@ -180,15 +180,11 @@ InsertChild(Widget child)
 
     /* Style Command-subclass children for flat toolbar appearance */
     if (IswIsSubclass(child, commandWidgetClass)) {
-        Arg args[4];
+        Arg args[2];
         Cardinal n = 0;
 
         IswSetArg(args[n], IswNborderWidth, 0); n++;
-        IswSetArg(args[n], IswNborderStrokeWidth, 0); n++;
         IswSetValues(child, args, n);
-
-        /* Force border_stroke_width to 0 (bypasses Command's Initialize default) */
-        ((CommandWidget)child)->command.border_stroke_width = 0;
     }
 }
 

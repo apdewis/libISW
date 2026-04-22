@@ -287,8 +287,6 @@
 #define IswArgReorderCallback(ab, v)            ISW_ARG((ab), IswNreorderCallback, (v))
 
 /* Command */
-#define IswArgBorderStrokeWidth(ab, v)          ISW_ARG((ab), IswNborderStrokeWidth, (v))
-#define IswArgHighlightThickness(ab, v)         ISW_ARG((ab), IswNhighlightThickness, (v))
 #define IswArgCornerRadius(ab, v)               ISW_ARG((ab), IswNcornerRadius, (v))
 
 /* Toggle */

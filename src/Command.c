@@ -92,14 +92,11 @@ static char defaultTranslations[] =
 static IswResource resources[] = {
    {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
       offset(command.callbacks), IswRCallback, (IswPointer)NULL},
-   {IswNborderStrokeWidth, IswCBorderStrokeWidth, IswRDimension, sizeof(Dimension),
-      offset(command.border_stroke_width), IswRImmediate,
-      (IswPointer) DEFAULT_HIGHLIGHT_THICKNESS},
    {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
       offset(command.corner_radius), IswRImmediate, (IswPointer) 5},
    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
       IswOffsetOf(RectObjRec,rectangle.border_width), IswRImmediate,
-      (IswPointer) 0},
+      (IswPointer) DEFAULT_HIGHLIGHT_THICKNESS},
    {IswNinternalWidth, IswCWidth, IswRDimension, sizeof(Dimension),
       offset(label.internal_width), IswRImmediate, (IswPointer) 8},
    {IswNinternalHeight, IswCHeight, IswRDimension, sizeof(Dimension),
@@ -119,6 +116,7 @@ static void Unhighlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Destroy(Widget);
 static void PaintCommandWidget(Widget, xcb_generic_event_t *, Region, Boolean);
 static void ClassInitialize(void);
+static void Realize(xcb_connection_t *, Widget, Mask *, uint32_t *);
 
 static IswActionsRec actionsList[] = {
   {"set",		Set},
@@ -141,7 +139,7 @@ CommandClassRec commandClassRec = {
     FALSE,				/* class_inited		  */
     Initialize,				/* initialize		  */
     NULL,				/* initialize_hook	  */
-    IswInheritRealize,			/* realize		  */
+    Realize,				/* realize		  */
     actionsList,			/* actions		  */
     IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
@@ -207,8 +205,8 @@ HighlightRegion(CommandWidget cbw)
   static ISWRegionPtr outerRegion = NULL, innerRegion, emptyRegion;
   xcb_rectangle_t rect;
 
-  if (cbw->command.border_stroke_width == 0 ||
-      cbw->command.border_stroke_width >
+  if (cbw->core.border_width == 0 ||
+      cbw->core.border_width >
       (Dimension) ((Dimension) Min(cbw->core.width, cbw->core.height)/2))
     return(NULL);
 
@@ -223,9 +221,9 @@ HighlightRegion(CommandWidget cbw)
   rect.width = cbw->core.width;
   rect.height = cbw->core.height;
   ISWUnionRectWithRegion( &rect, emptyRegion, outerRegion );
-  rect.x = rect.y += cbw->command.border_stroke_width;
-  rect.width -= cbw->command.border_stroke_width * 2;
-  rect.height -= cbw->command.border_stroke_width * 2;
+  rect.x = rect.y += cbw->core.border_width;
+  rect.width -= cbw->core.border_width * 2;
+  rect.height -= cbw->core.border_width * 2;
   ISWUnionRectWithRegion( &rect, emptyRegion, innerRegion );
   ISWSubtractRegion( outerRegion, innerRegion, outerRegion );
   return outerRegion;
@@ -366,7 +364,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
     ctx = cbw->label.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
   }
 
-  very_thick = cbw->command.border_stroke_width >
+  very_thick = cbw->core.border_width >
                (Dimension)((Dimension) Min(cbw->core.width, cbw->core.height)/2);
 
   /* Save original colors for later restoration */
@@ -382,7 +380,7 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   {
     cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
     if (cr) {
-      double lw = cbw->command.border_stroke_width;
+      double lw = cbw->core.border_width;
       double off = lw / 2.0;
       double bx = off;
       double by = off;
@@ -535,15 +533,11 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
 
   if ( (oldcbw->label.foreground != cbw->label.foreground)           ||
        (oldcbw->core.background_pixel != cbw->core.background_pixel) ||
-       (oldcbw->command.border_stroke_width !=
-                                   cbw->command.border_stroke_width) ||
+       (oldcbw->core.border_width != cbw->core.border_width)         ||
        (oldcbw->label.font != cbw->label.font) )
   {
     redisplay = True;
   }
-
-  if (cbw->core.border_width != oldcbw->core.border_width)
-      redisplay = True;
 
   return (redisplay);
 }
@@ -552,4 +546,19 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
+}
+
+/*
+ * Suppress the X server-drawn window border. borderWidth drives the
+ * Cairo-rendered (rounded) stroke in Redisplay instead.
+ */
+static void
+Realize(xcb_connection_t *conn, Widget w, Mask *valueMask, uint32_t *attributes)
+{
+    (*commandWidgetClass->core_class.superclass->core_class.realize)
+        (conn, w, valueMask, attributes);
+
+    uint32_t zero = 0;
+    xcb_configure_window(conn, IswWindow(w),
+                         XCB_CONFIG_WINDOW_BORDER_WIDTH, &zero);
 }

@@ -284,7 +284,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(arglist[n], IswNlabel, ""); n++;
     IswSetArg(arglist[n], IswNimage, up_arrow_svg); n++;
     IswSetArg(arglist[n], IswNborderWidth, 0); n++;
-    IswSetArg(arglist[n], IswNborderStrokeWidth, 0); n++;
     IswSetArg(arglist[n], IswNcornerRadius, 0); n++;
     IswSetArg(arglist[n], IswNinternalWidth, 0); n++;
     IswSetArg(arglist[n], IswNinternalHeight, 0); n++;
@@ -302,7 +301,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(arglist[n], IswNlabel, ""); n++;
     IswSetArg(arglist[n], IswNimage, down_arrow_svg); n++;
     IswSetArg(arglist[n], IswNborderWidth, 0); n++;
-    IswSetArg(arglist[n], IswNborderStrokeWidth, 0); n++;
     IswSetArg(arglist[n], IswNcornerRadius, 0); n++;
     IswSetArg(arglist[n], IswNinternalWidth, 0); n++;
     IswSetArg(arglist[n], IswNinternalHeight, 0); n++;

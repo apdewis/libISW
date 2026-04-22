@@ -61,7 +61,6 @@ in this Software without prior written authorization from the X Consortium.
  font		     Font		IswFontStruct*	IswDefaultFont
  foreground	     Foreground		Pixel		IswDefaultForeground
  height		     Height		Dimension	text height
- borderStrokeWidth   Thickness		Dimension	2
  insensitiveBorder   Insensitive	Pixmap		Gray
  internalHeight	     Height		Dimension	2
  internalWidth	     Width		Dimension	4
