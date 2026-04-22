@@ -406,6 +406,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     Widget familyVp;
     n = 0;
     IswSetArg(a[n], IswNallowVert, True); n++;
+    IswSetArg(a[n], IswNuseRight, True); n++;
     IswSetArg(a[n], IswNwidth, list_w); n++;
     IswSetArg(a[n], IswNheight, list_h); n++;
     IswSetArg(a[n], IswNfromVert, familyLabel); n++;
@@ -437,6 +438,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     Widget styleVp;
     n = 0;
     IswSetArg(a[n], IswNallowVert, True); n++;
+    IswSetArg(a[n], IswNuseRight, True); n++;
     IswSetArg(a[n], IswNwidth, style_w); n++;
     IswSetArg(a[n], IswNheight, list_h); n++;
     IswSetArg(a[n], IswNfromHoriz, familyVp); n++;
@@ -480,6 +482,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     Widget sizeVp;
     n = 0;
     IswSetArg(a[n], IswNallowVert, True); n++;
+    IswSetArg(a[n], IswNuseRight, True); n++;
     IswSetArg(a[n], IswNwidth, size_w); n++;
     IswSetArg(a[n], IswNheight, list_h); n++;
     IswSetArg(a[n], IswNfromHoriz, styleVp); n++;
