@@ -215,12 +215,20 @@ ChildPreferredSize(Widget child, Dimension *w_out, Dimension *h_out)
 /*
  * Compute the width needed by a group of children.
  * Returns total width including inter-child spacing.
+ *
+ * Border-overlap accounting: X11 positions children at the outer corner of
+ * their border, so a child at x spans [x, x + size + 2*bw]. Placing the
+ * next child at (x + size + bw) makes its leading-border column coincide
+ * with the previous child's trailing-border column — a single shared 1px
+ * line instead of a 2px double line. Each child contributes (size + bw) to
+ * the flow, plus one extra bw for the last child's trailing outer edge.
  */
 static Dimension
 GroupWidth(ToolbarWidget tw, IswToolbarAlignment align)
 {
     Dimension w = 0;
     int count = 0;
+    Dimension last_bw = 0;
 
     for (Cardinal i = 0; i < tw->composite.num_children; i++) {
         Widget child = tw->composite.children[i];
@@ -231,12 +239,15 @@ GroupWidth(ToolbarWidget tw, IswToolbarAlignment align)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
-        w += cw + 2 * child->core.border_width;
+        w += cw + child->core.border_width;
+        last_bw = child->core.border_width;
         count++;
     }
 
-    if (count > 0)
+    if (count > 0) {
+        w += last_bw;
         w += (count - 1) * tw->toolbar.h_space;
+    }
 
     return w;
 }
@@ -257,26 +268,38 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
     int managed = 0;
     Dimension total_width = 0;
     Dimension max_height = 0;
+    Dimension last_bw = 0;
 
-    /* First pass: measure all managed children using preferred geometry */
+    /* First pass: measure all managed children using preferred geometry.
+     * Adjacent children's borders overlap by one pixel column, so each child
+     * costs (size + bw) along the main axis plus one trailing bw overall. */
     for (Cardinal i = 0; i < tw->composite.num_children; i++) {
         Widget child = tw->composite.children[i];
         if (!child->core.managed)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
-        Dimension bw2 = 2 * child->core.border_width;
-        total_width += cw + bw2;
+        Dimension bw = child->core.border_width;
+        Dimension bw2 = 2 * bw;
+        total_width += cw + bw;
+        last_bw = bw;
         if (ch + bw2 > max_height)
             max_height = ch + bw2;
         managed++;
     }
 
-    if (managed > 0)
+    if (managed > 0) {
+        total_width += last_bw;
         total_width += (managed - 1) * h_space;
+    }
 
     tw->toolbar.preferred_width = IswMax(total_width + 2 * h_space, 1);
-    tw->toolbar.preferred_height = IswMax(max_height + 2 * v_space, 1);
+    /* Height: v_space padding on top, child with its full border, and the
+     * bottom separator/edge overlaps the child's bottom border (no trailing
+     * v_space). When border_width > 0 the X border replaces the separator,
+     * but the geometry is the same — the outer edge coincides with the
+     * children's bottom border. */
+    tw->toolbar.preferred_height = IswMax(max_height + v_space, 1);
 
     if (!set_children)
         return;
@@ -300,11 +323,14 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
-        Dimension bw2 = 2 * child->core.border_width;
+        Dimension bw = child->core.border_width;
+        Dimension bw2 = 2 * bw;
         Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
         if (y < (Position)v_space) y = (Position)v_space;
-        IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
-        x += (Position)(cw + bw2 + h_space);
+        IswConfigureWidget(child, x, y, cw, ch, bw);
+        /* Advance by cw + bw so the next child's leading border overlaps
+         * this child's trailing border by one pixel column. */
+        x += (Position)(cw + bw + h_space);
     }
 
     /* Position right-aligned children (pack from right edge) */
@@ -319,11 +345,12 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
-        Dimension bw2 = 2 * child->core.border_width;
-        x -= (Position)(cw + bw2);
+        Dimension bw = child->core.border_width;
+        Dimension bw2 = 2 * bw;
+        x -= (Position)(cw + bw);
         Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
         if (y < (Position)v_space) y = (Position)v_space;
-        IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
+        IswConfigureWidget(child, x, y, cw, ch, bw);
         x -= (Position)h_space;
     }
 
@@ -354,11 +381,12 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
                 continue;
             Dimension cw, ch;
             ChildPreferredSize(child, &cw, &ch);
-            Dimension bw2 = 2 * child->core.border_width;
+            Dimension bw = child->core.border_width;
+            Dimension bw2 = 2 * bw;
             Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
             if (y < (Position)v_space) y = (Position)v_space;
-            IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
-            x += (Position)(cw + bw2 + h_space);
+            IswConfigureWidget(child, x, y, cw, ch, bw);
+            x += (Position)(cw + bw + h_space);
         }
     }
 }

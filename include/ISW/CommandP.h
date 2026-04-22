@@ -112,7 +112,6 @@ typedef struct {
     Boolean     	set;
     IswCommandHighlight	highlighted;
     /* more resources */
-    int			shape_style;
     Dimension		corner_radius;
 } CommandPart;
 

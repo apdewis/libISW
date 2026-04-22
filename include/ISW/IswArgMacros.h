@@ -97,6 +97,7 @@
 
 /* Form — edge chain constraints take IswEdgeType (IswChainTop/Bottom/Left/Right/IswRubber) */
 #define IswArgDefaultDistance(ab, v)            ISW_ARG((ab), IswNdefaultDistance, (v))
+#define IswArgTop(ab, v)                        ISW_ARG((ab), IswNtop, (v))
 #define IswArgBottom(ab, v)                     ISW_ARG((ab), IswNbottom, (v))
 #define IswArgLeft(ab, v)                       ISW_ARG((ab), IswNleft, (v))
 #define IswArgRight(ab, v)                      ISW_ARG((ab), IswNright, (v))
@@ -288,7 +289,6 @@
 /* Command */
 #define IswArgBorderStrokeWidth(ab, v)          ISW_ARG((ab), IswNborderStrokeWidth, (v))
 #define IswArgHighlightThickness(ab, v)         ISW_ARG((ab), IswNhighlightThickness, (v))
-#define IswArgShapeStyle(ab, v)                 ISW_ARG((ab), IswNshapeStyle, (v))
 #define IswArgCornerRadius(ab, v)               ISW_ARG((ab), IswNcornerRadius, (v))
 
 /* Toggle */

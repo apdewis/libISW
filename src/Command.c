@@ -73,7 +73,6 @@ SOFTWARE.
 
 #define MULTI_LINE_LABEL 32767
 #define DEFAULT_HIGHLIGHT_THICKNESS 1
-#define DEFAULT_SHAPE_HIGHLIGHT 32767
 
 /****************************************************************
  *
@@ -95,9 +94,7 @@ static IswResource resources[] = {
       offset(command.callbacks), IswRCallback, (IswPointer)NULL},
    {IswNborderStrokeWidth, IswCBorderStrokeWidth, IswRDimension, sizeof(Dimension),
       offset(command.border_stroke_width), IswRImmediate,
-      (IswPointer) DEFAULT_SHAPE_HIGHLIGHT},
-   {IswNshapeStyle, IswCShapeStyle, IswRShapeStyle, sizeof(int),
-      offset(command.shape_style), IswRImmediate, (IswPointer)IswShapeRectangle},
+      (IswPointer) DEFAULT_HIGHLIGHT_THICKNESS},
    {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
       offset(command.corner_radius), IswRImmediate, (IswPointer) 5},
    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
@@ -122,9 +119,6 @@ static void Unhighlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Destroy(Widget);
 static void PaintCommandWidget(Widget, xcb_generic_event_t *, Region, Boolean);
 static void ClassInitialize(void);
-static Boolean ShapeButton(CommandWidget, Boolean);
-static void Realize(xcb_connection_t *, Widget, Mask *, uint32_t *);
-static void Resize(Widget);
 
 static IswActionsRec actionsList[] = {
   {"set",		Set},
@@ -147,7 +141,7 @@ CommandClassRec commandClassRec = {
     FALSE,				/* class_inited		  */
     Initialize,				/* initialize		  */
     NULL,				/* initialize_hook	  */
-    Realize,				/* realize		  */
+    IswInheritRealize,			/* realize		  */
     actionsList,			/* actions		  */
     IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
@@ -158,7 +152,7 @@ CommandClassRec commandClassRec = {
     TRUE,				/* compress_enterleave    */
     FALSE,				/* visible_interest	  */
     Destroy,				/* destroy		  */
-    Resize,				/* resize		  */
+    IswInheritResize,			/* resize		  */
     Redisplay,				/* expose		  */
     SetValues,				/* set_values		  */
     NULL,				/* set_values_hook	  */
@@ -197,28 +191,6 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
   CommandWidget cbw = (CommandWidget) new;
-
-  /* XCB Migration: Query shape extension using XCB */
-  if (cbw->command.shape_style != IswShapeRectangle) {
-      xcb_connection_t *conn = IswDisplay(new);
-      xcb_shape_query_version_cookie_t cookie = xcb_shape_query_version(conn);
-      xcb_shape_query_version_reply_t *reply = xcb_shape_query_version_reply(conn, cookie, NULL);
-      if (!reply) {
-          cbw->command.shape_style = IswShapeRectangle;
-      } else {
-          free(reply);
-      }
-  }
-  if (cbw->command.border_stroke_width == DEFAULT_SHAPE_HIGHLIGHT) {
-      if (cbw->command.shape_style != IswShapeRectangle)
-	  cbw->command.border_stroke_width = 0;
-      else
-	  cbw->command.border_stroke_width = DEFAULT_HIGHLIGHT_THICKNESS;
-  }
-
-  if (cbw->command.shape_style != IswShapeRectangle) {
-    cbw->core.border_width = 1;
-  }
 
   /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
@@ -548,98 +520,11 @@ SetValues (Widget current, Widget request, Widget new, ArgList args, Cardinal *n
   if (cbw->core.border_width != oldcbw->core.border_width)
       redisplay = True;
 
-  if ( IswIsRealized(new)
-       && oldcbw->command.shape_style != cbw->command.shape_style
-       && !ShapeButton(cbw, TRUE))
-  {
-      cbw->command.shape_style = oldcbw->command.shape_style;
-  }
-
-  if (cbw->command.shape_style != IswShapeRectangle) {
-      ShapeButton(cbw, FALSE);
-      redisplay = True;
-  }
-
   return (redisplay);
-}
-
-/* XCB Migration: Simple ShapeStyle converter to replace XmuCvtStringToShapeStyle */
-static Boolean
-CvtStringToShapeStyle(xcb_connection_t *conn, XrmValue *args, Cardinal *num_args,
-                      XrmValue *fromVal, XrmValue *toVal, IswPointer *closure_ret)
-{
-    String str = (String)fromVal->addr;
-    static int result;
-    
-    if (strcmp(str, "Rectangle") == 0 || strcmp(str, "rectangle") == 0) {
-        result = IswShapeRectangle;
-    } else if (strcmp(str, "Oval") == 0 || strcmp(str, "oval") == 0) {
-        result = IswShapeOval;
-    } else if (strcmp(str, "Ellipse") == 0 || strcmp(str, "ellipse") == 0) {
-        result = IswShapeEllipse;
-    } else if (strcmp(str, "RoundedRectangle") == 0 || strcmp(str, "roundedRectangle") == 0) {
-        result = IswShapeRoundedRectangle;
-    } else {
-        IswDisplayStringConversionWarning(conn, str, IswRShapeStyle);
-        return False;
-    }
-    
-    if (toVal->addr != NULL) {
-        if (toVal->size < sizeof(int)) {
-            toVal->size = sizeof(int);
-            return False;
-        }
-        *(int *)toVal->addr = result;
-    } else {
-        toVal->addr = (IswPointer)&result;
-    }
-    toVal->size = sizeof(int);
-    return True;
 }
 
 static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    IswSetTypeConverter( IswRString, IswRShapeStyle, CvtStringToShapeStyle,
-		        (IswConvertArgList)NULL, 0, IswCacheNone, (IswDestructor)NULL );
-}
-
-
-static Boolean
-ShapeButton(CommandWidget cbw, Boolean checkRectangular)
-{
-    Dimension corner_size = 0;
-
-    if (cbw->command.shape_style == IswShapeRoundedRectangle) {
-	corner_size = cbw->command.corner_radius;
-    }
-
-    if (checkRectangular || cbw->command.shape_style != IswShapeRectangle) {
- if (!ISWReshapeWidget((Widget) cbw, cbw->command.shape_style,
-         corner_size, corner_size)) {
-     cbw->command.shape_style = IswShapeRectangle;
-     return(False);
- }
-    }
-    return(TRUE);
-}
-
-static void
-Realize(xcb_connection_t *conn, Widget w, Mask *valueMask, uint32_t *attributes)
-{
-    /* XCB Migration: superclass realize now takes conn as first parameter */
-    (*commandWidgetClass->core_class.superclass->core_class.realize)
-	(conn, w, valueMask, attributes);
-
-    ShapeButton( (CommandWidget) w, FALSE);
-}
-
-static void
-Resize(Widget w)
-{
-    if (IswIsRealized(w))
-	ShapeButton( (CommandWidget) w, FALSE);
-
-    (*commandWidgetClass->core_class.superclass->core_class.resize)(w);
 }

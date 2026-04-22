@@ -87,7 +87,6 @@ SOFTWARE.
  resize		     Resize		Boolean		True
  screen		     Screen		Screen		parent's Screen
  sensitive	     Sensitive		Boolean		True
- shapeStyle	     ShapeStyle		ShapeStyle	Rectangle
  translations	     Translations	TranslationTable see doc or source
  width		     Width		Dimension	text width
  x		     Position		Position	0
@@ -100,17 +99,8 @@ SOFTWARE.
 /* Backward compatibility alias */
 #define IswNhighlightThickness IswNborderStrokeWidth
 
-#define IswNshapeStyle "shapeStyle"
-#define IswCShapeStyle "ShapeStyle"
-#define IswRShapeStyle "ShapeStyle"
 #define IswNcornerRadius "cornerRadius"
 #define IswCCornerRadius "CornerRadius"
-
-/* Shape style constants */
-#define IswShapeRectangle 1
-#define IswShapeOval 2
-#define IswShapeEllipse 3
-#define IswShapeRoundedRectangle 4
 
 extern WidgetClass     commandWidgetClass;
 
