@@ -177,15 +177,6 @@ InsertChild(Widget child)
 {
     /* Call Constraint's insert_child */
     (*constraintClassRec.composite_class.insert_child)(child);
-
-    /* Style Command-subclass children for flat toolbar appearance */
-    if (IswIsSubclass(child, commandWidgetClass)) {
-        Arg args[2];
-        Cardinal n = 0;
-
-        IswSetArg(args[n], IswNborderWidth, 0); n++;
-        IswSetValues(child, args, n);
-    }
 }
 
 /*
