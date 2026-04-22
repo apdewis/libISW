@@ -461,29 +461,6 @@ CvtToItem(Widget w, int xloc, int yloc, int *item)
     return(ret_val);
 }
 
-/*	Function Name: FindCornerItems.
- *	Description: Find the corners of the rectangle in item space.
- *	Arguments: w - the list widget.
- *                 event - the event structure that has the rectangle it it.
- *                 ul_ret, lr_ret - the corners ** RETURNED **.
- *	Returns: none.
- */
-
-static void
-FindCornerItems(Widget w, xcb_generic_event_t *event, int *ul_ret, int *lr_ret)
-{
-    int xloc, yloc;
-    /* XCB: Cast to xcb_expose_event_t */
-    xcb_expose_event_t *expose = (xcb_expose_event_t *)event;
-
-    xloc = expose->x;
-    yloc = expose->y;
-    CvtToItem(w, xloc, yloc, ul_ret);
-    xloc += expose->width;
-    yloc += expose->height;
-    CvtToItem(w, xloc, yloc, lr_ret);
-}
-
 /*	Function Name: ItemInRectangle
  *	Description: returns TRUE if the item passed is in the given rectangle.
  *	Arguments: w - the list widget.
@@ -685,12 +662,12 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         ISWRenderBegin(lw->list.render_ctx);
     }
 
-    if (event == NULL) {	/* repaint all. */
-        ul_item = 0;
-        lr_item = lw->list.nrows * lw->list.ncols - 1;
-    }
-    else
-        FindCornerItems(w, (xcb_generic_event_t*)event, &ul_item, &lr_item);
+    /* Always repaint all items: the Cairo back buffer is cleared above on
+     * every expose, so limiting paint to the expose rectangle would leave
+     * items outside it blank. */
+    ul_item = 0;
+    lr_item = lw->list.nrows * lw->list.ncols - 1;
+    (void)event;
 
     /* Always fill background: the Cairo back buffer persists across frames,
      * so partial expose-driven repaints would otherwise leave stale content
