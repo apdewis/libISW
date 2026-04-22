@@ -72,7 +72,7 @@ SOFTWARE.
 #include "ISWXcbDraw.h"     /* For XCB xcb_gcontext_t helpers */
 
 #define MULTI_LINE_LABEL 32767
-#define DEFAULT_HIGHLIGHT_THICKNESS 2
+#define DEFAULT_HIGHLIGHT_THICKNESS 1
 #define DEFAULT_SHAPE_HIGHLIGHT 32767
 
 /****************************************************************
