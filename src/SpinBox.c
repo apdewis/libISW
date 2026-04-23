@@ -278,7 +278,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* Up button with upward arrow SVG */
     static const char up_arrow_svg[] =
         "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'>"
-        "<path d='M1,5 L5,1 L9,5' stroke='black' stroke-width='1.5' "
+        "<path d='M1,5 L5,1 L9,5' stroke='currentColor' stroke-width='1.5' "
         "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
     n = 0;
     IswSetArg(arglist[n], IswNlabel, ""); n++;
@@ -295,7 +295,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* Down button with downward arrow SVG */
     static const char down_arrow_svg[] =
         "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'>"
-        "<path d='M1,1 L5,5 L9,1' stroke='black' stroke-width='1.5' "
+        "<path d='M1,1 L5,5 L9,1' stroke='currentColor' stroke-width='1.5' "
         "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
     n = 0;
     IswSetArg(arglist[n], IswNlabel, ""); n++;
