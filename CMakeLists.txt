@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(libISW VERSION 1.0.0 LANGUAGES C)
+project(libISW VERSION 0.4.0 LANGUAGES C)
 
 # Default install prefix to /usr (overridable with -DCMAKE_INSTALL_PREFIX=...)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -264,7 +264,7 @@ add_dependencies(ISW generate_strings)
 
 set_target_properties(ISW PROPERTIES
     VERSION   ${PROJECT_VERSION}
-    SOVERSION 1
+    SOVERSION ${PROJECT_VERSION_MAJOR}
     C_STANDARD 11
     OUTPUT_NAME ISW
 )
