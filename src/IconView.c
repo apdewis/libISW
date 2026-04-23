@@ -15,7 +15,7 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWUtf8.h>
-#include <ISW/ISWSVG.h>
+#include <ISW/ISWImage.h>
 #include <ISW/IconViewP.h>
 #include <ISW/FocusMgrI.h>
 #include <ISW/ISWXdnd.h>
@@ -167,14 +167,28 @@ FreeCache(IconViewWidget iw)
     if (!iw->iconView.cache)
         return;
     for (int i = 0; i < iw->iconView.cache_size; i++) {
-        if (iw->iconView.cache[i].raster)
-            free(iw->iconView.cache[i].raster);
-        if (iw->iconView.cache[i].svg_image)
-            ISWSVGDestroy(iw->iconView.cache[i].svg_image);
+        if (iw->iconView.cache[i].image)
+            ISWImageDestroy(iw->iconView.cache[i].image);
     }
     free(iw->iconView.cache);
     iw->iconView.cache = NULL;
     iw->iconView.cache_size = 0;
+}
+
+static void
+FlushSVGCache(IconViewWidget iw)
+{
+    if (!iw->iconView.cache)
+        return;
+    for (int i = 0; i < iw->iconView.cache_size; i++) {
+        if (iw->iconView.cache[i].image) {
+            ISWImageDestroy(iw->iconView.cache[i].image);
+            iw->iconView.cache[i].image = NULL;
+        }
+        iw->iconView.cache[i].raster = NULL;
+        iw->iconView.cache[i].raster_w = 0;
+        iw->iconView.cache[i].raster_h = 0;
+    }
 }
 
 static void
@@ -275,7 +289,7 @@ ComputeLayout(IconViewWidget iw)
     }
 }
 
-static unsigned char *
+static const unsigned char *
 GetItemRaster(IconViewWidget iw, int index)
 {
     if (!iw->iconView.cache || index < 0 || index >= iw->iconView.nitems)
@@ -283,30 +297,34 @@ GetItemRaster(IconViewWidget iw, int index)
 
     IconViewItemCache *ic = &iw->iconView.cache[index];
     Dimension icon_sz = (iw->iconView.icon_size);
+    float sf = (float)ISWScaleFactor((Widget)iw);
+    unsigned int phys_sz = (unsigned int)(icon_sz * sf + 0.5f);
 
     /* Already rasterized at correct size? */
-    if (ic->raster && ic->raster_w == icon_sz && ic->raster_h == icon_sz)
+    if (ic->raster && ic->raster_w == phys_sz && ic->raster_h == phys_sz)
         return ic->raster;
 
-    /* Parse SVG if needed */
-    if (!ic->svg_image && iw->iconView.icon_data &&
+    /* Load image if needed */
+    if (!ic->image && iw->iconView.icon_data &&
         iw->iconView.icon_data[index]) {
-        float dpi = 96.0f * ISWScaleFactor((Widget)iw);
-        ic->svg_image = ISWSVGLoadData(iw->iconView.icon_data[index],
-                                        "px", dpi, NULL);
+        double dpi = 96.0 * ISWScaleFactor((Widget)iw);
+        char fg_hex[8];
+        snprintf(fg_hex, sizeof(fg_hex), "#%02x%02x%02x",
+                 (int)(iw->iconView.fg_r * 255.0),
+                 (int)(iw->iconView.fg_g * 255.0),
+                 (int)(iw->iconView.fg_b * 255.0));
+        ic->image = ISWImageLoad(iw->iconView.icon_data[index],
+                                  dpi, fg_hex);
     }
 
-    if (!ic->svg_image)
+    if (!ic->image)
         return NULL;
 
     /* Rasterize */
-    if (ic->raster) {
-        free(ic->raster);
-        ic->raster = NULL;
-    }
-    ic->raster = ISWSVGRasterize(ic->svg_image, icon_sz, icon_sz);
-    ic->raster_w = icon_sz;
-    ic->raster_h = icon_sz;
+    unsigned int rw, rh;
+    ic->raster = ISWImageRasterize(ic->image, phys_sz, phys_sz, &rw, &rh);
+    ic->raster_w = rw;
+    ic->raster_h = rh;
 
     return ic->raster;
 }
@@ -580,11 +598,23 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         }
 
         /* Icon */
-        unsigned char *raster = GetItemRaster(iw, i);
+        const unsigned char *raster = GetItemRaster(iw, i);
         if (raster) {
+            IconViewItemCache *ic = &iw->iconView.cache[i];
             int ix = cx + ((int)(iw->iconView.cell_w - spacing) - (int)icon_sz) / 2;
-            ISWRenderDrawImageRGBA(ctx, raster, icon_sz, icon_sz,
-                                   ix, cy, icon_sz, icon_sz);
+            if (ISWImageIsMonochrome(ic->image)) {
+                Boolean selected = iw->iconView.sel_flags &&
+                                   iw->iconView.sel_flags[i];
+                Pixel fg = selected ? w->core.background_pixel
+                                    : iw->iconView.foreground;
+                ISWRenderDrawImageMasked(ctx, fg, raster, ic->raster_w,
+                                         ic->raster_h, ix, cy,
+                                         icon_sz, icon_sz);
+            } else {
+                ISWRenderDrawImageRGBA(ctx, raster, ic->raster_w,
+                                       ic->raster_h, ix, cy,
+                                       icon_sz, icon_sz);
+            }
         }
 
         /* Label (word-wrapped, ellipsis on last visible line) */
@@ -709,6 +739,11 @@ SetValues(Widget current, Widget request, Widget desired,
         AllocCache(diw);  /* resets drop_highlight */
         ComputeLayout(diw);
         redraw = TRUE;
+    }
+
+    if (ciw->iconView.foreground != diw->iconView.foreground) {
+        ResolveForegroundRGB(diw);
+        FlushSVGCache(diw);
     }
 
     if (ciw->iconView.icon_size != diw->iconView.icon_size ||
@@ -1312,7 +1347,7 @@ IswIconViewGetItemRaster(Widget w, int index,
                          unsigned int *width_out, unsigned int *height_out)
 {
     IconViewWidget iw = (IconViewWidget) w;
-    unsigned char *raster = GetItemRaster(iw, index);
+    const unsigned char *raster = GetItemRaster(iw, index);
     if (!raster)
         return NULL;
     if (width_out)  *width_out  = iw->iconView.cache[index].raster_w;

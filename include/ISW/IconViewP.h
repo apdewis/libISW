@@ -9,13 +9,13 @@
 #include <ISW/SimpleP.h>
 #include <ISW/IconView.h>
 #include <ISW/ISWRender.h>
-#include <ISW/ISWSVG.h>
+#include <ISW/ISWImage.h>
 #include <ISW/ISWXftCompat.h>
 
 /* Cached per-item rendering state */
 typedef struct {
-    ISWSVGImage    *svg_image;
-    unsigned char  *raster;
+    ISWImage       *image;
+    const unsigned char *raster;
     unsigned int    raster_w, raster_h;
 } IconViewItemCache;
 
