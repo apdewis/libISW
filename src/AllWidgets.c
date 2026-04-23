@@ -54,8 +54,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/List.h>
 #include <ISW/MenuBar.h>
 #include <ISW/MenuButton.h>
-#include <ISW/MultiSink.h>
-#include <ISW/MultiSrc.h>
+#include <ISW/MultiSink.h>  /* deprecated alias for AsciiSink */
+#include <ISW/MultiSrc.h>   /* deprecated alias for AsciiSrc */
 #include <ISW/Paned.h>
 #include <ISW/Panner.h>
 #include <ISW/Porthole.h>

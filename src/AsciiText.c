@@ -78,8 +78,6 @@ SOFTWARE.
 #include <ISW/AsciiSrc.h>
 #include <ISW/AsciiSink.h>
 #ifdef ISW_INTERNATIONALIZATION
-#include <ISW/MultiSrc.h>
-#include <ISW/MultiSinkP.h>
 #include <ISW/ISWImP.h>
 #endif
 
@@ -142,36 +140,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   int i;
   int tabs[TAB_COUNT], tab;
 
-#ifdef ISW_INTERNATIONALIZATION
-  MultiSinkObject sink;
-#endif
-
   /* superclass Initialize can't set the following,
    * as it didn't know the source or sink when it was called */
 
   if (request->core.height == DEFAULT_TEXT_HEIGHT)
     new->core.height = DEFAULT_TEXT_HEIGHT;
 
-
-  /* This is the main change for internationalization.  */
-
-#ifdef ISW_INTERNATIONALIZATION
-  if ( w->simple.international == True ) { /* The multi* are international. */
-
-      w->text.source = IswCreateWidget( "textSource", multiSrcObjectClass,
-				  new, args, *num_args );
-      w->text.sink = IswCreateWidget( "textSink", multiSinkObjectClass,
-				new, args, *num_args );
-  }
-  else
-#endif
-  {
-
-      w->text.source = IswCreateWidget( "textSource", asciiSrcObjectClass,
-				  new, args, *num_args );
-      w->text.sink = IswCreateWidget( "textSink", asciiSinkObjectClass,
-				new, args, *num_args );
-  }
+  w->text.source = IswCreateWidget( "textSource", asciiSrcObjectClass,
+			      new, args, *num_args );
+  w->text.sink = IswCreateWidget( "textSink", asciiSinkObjectClass,
+			    new, args, *num_args );
 
   if (w->core.height == DEFAULT_TEXT_HEIGHT)
     w->core.height = VMargins(w) + IswTextSinkMaxHeight(w->text.sink, 1);
@@ -183,36 +161,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   IswTextDisableRedisplay(new);
   IswTextEnableRedisplay(new);
-
-
-  /* If we are using a MultiSink we need to tell the input method stuff. */
-
-#ifdef ISW_INTERNATIONALIZATION
-  if ( w->simple.international == True ) {
-    Arg list[4];
-    Cardinal ac = 0;
-
-    sink = (MultiSinkObject)w->text.sink;
-    _IswImRegister( new );
-    IswSetArg (list[ac], IswNfontSet, sink->multi_sink.fontset); ac++;
-    IswSetArg (list[ac], IswNinsertPosition, w->text.insertPos); ac++;
-    IswSetArg (list[ac], IswNforeground, sink->text_sink.foreground); ac++;
-    IswSetArg (list[ac], IswNbackground, sink->text_sink.background); ac++;
-    _IswImSetValues(new, list, ac);
-  }
-#endif
 }
 
 static void
 Destroy(Widget w)
 {
-    /* Disconnect input method */
-
-#ifdef ISW_INTERNATIONALIZATION
-    if ( ((AsciiWidget)w)->simple.international == True )
-        _IswImUnregister( w );
-#endif
-
     if (w == IswParent(((AsciiWidget)w)->text.source))
 	IswDestroyWidget( ((AsciiWidget)w)->text.source );
 

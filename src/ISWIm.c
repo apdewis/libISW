@@ -62,8 +62,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xproto.h>
 #include <ISW/ShellP.h>
 #include <ISW/TextP.h>
-#include <ISW/MultiSrc.h>
-#include <ISW/MultiSinkP.h>
 #include <ISW/ISWImP.h>
 #include <ISW/VendorEP.h>
 #include <ISW/ISWContext.h>

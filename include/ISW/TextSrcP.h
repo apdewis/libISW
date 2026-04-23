@@ -19,66 +19,21 @@ X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
 AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Except as contained in this notice, the name of the X Consortium shall not be
-used in advertising or otherwise to promote the sale, use or other dealings
-in this Software without prior written authorization from the X Consortium.
-
-
-Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
-
-                        All Rights Reserved
-
-Permission to use, copy, modify, and distribute this software and its
-documentation for any purpose and without fee is hereby granted,
-provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in
-supporting documentation, and that the name of Digital not be
-used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.
-
-DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
-ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
-DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
-ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
-WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
-ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-SOFTWARE.
-
 ******************************************************************/
 
 /*
  * TextSrcP.h - Private definitions for TextSrc object
  *
+ * Single concrete UTF-8 text source. Replaces the old abstract-TextSrc +
+ * concrete-AsciiSrc/MultiSrc hierarchy.
  */
 
 #ifndef _ISW_IswTextSrcP_h
 #define _ISW_IswTextSrcP_h
 
-/***********************************************************************
- *
- * TextSrc Object Private Data
- *
- ***********************************************************************/
-
 #include <xcb/xcb.h>
 #include <ISW/TextSrc.h>
-#include <ISW/TextP.h>	/* This source works with the Text widget. */
-
-/************************************************************
- *
- * New fields for the TextSrc object class record.
- *
- ************************************************************/
-
-#if 0	/* no longer used */
-typedef struct {
-  IswPointer		next_extension;
-  XrmQuark		record_type;
-  long			version;
-  Cardinal		record_size;
-  int			(*Input)();
-} TextSrcExtRec, *TextSrcExt;
-#endif
+#include <ISW/TextP.h>
 
 typedef ISWTextPosition (*_IswSrcReadProc)
      (Widget, ISWTextPosition, ISWTextBlock*, int);
@@ -108,69 +63,64 @@ typedef struct _TextSrcClassPart {
     _IswSrcConvertSelectionProc ConvertSelection;
 } TextSrcClassPart;
 
-/* Full class record declaration */
 typedef struct _TextSrcClassRec {
-    ObjectClassPart     object_class;
-    TextSrcClassPart	textSrc_class;
+    ObjectClassPart  object_class;
+    TextSrcClassPart text_src_class;
 } TextSrcClassRec;
 
 extern TextSrcClassRec textSrcClassRec;
 
-/* New fields for the TextSrc object record */
-typedef struct {
+/* Piece of the text buffer (used by the piece-table storage). */
+typedef struct _Piece {
+  char           *text;
+  ISWTextPosition used;
+  struct _Piece  *prev, *next;
+} Piece;
+
+/* Source type: in-memory string vs. on-disk file. */
+typedef enum {IswAsciiFile, IswAsciiString} IswAsciiType;
+
+/* Instance struct — absorbs the former AsciiSrcPart fields. */
+typedef struct _TextSrcPart {
     /* resources */
-  IswTextEditType	edit_mode;
-  XrmQuark		text_format;	/* 2 formats: FMT8BIT for Ascii */
-					/*            FMTWIDE for ISO 10646 */
-} TextSrcPart;
+    IswTextEditType  edit_mode;
+    XrmQuark         text_format;  /* always FMT8BIT now; kept for compat */
 
-/****************************************************************
- *
- * Full instance record declaration
- *
- ****************************************************************/
+    char            *string;       /* either the string or the file name */
+    IswAsciiType     type;
+    ISWTextPosition  piece_size;
+    Boolean          data_compression;
+    IswCallbackList  callback;
+    Boolean          use_string_in_place;
+    int              ascii_length;
 
-typedef struct _TextSrcRec {
-  ObjectPart    object;
-  TextSrcPart	textSrc;
-} TextSrcRec;
-
-/******************************************************************
- *
- * Semiprivate declarations of functions used in other modules
- *
- ******************************************************************/
-
-char* _ISWTextWCToMB(
-    xcb_connection_t* /* d */,
-    wchar_t* /* wstr */,
-    int*     /* len_in_out */
-);
-
-wchar_t* _ISWTextMBToWC(
-    xcb_connection_t*  /* d */,
-    char*     /* str */,
-    int*      /* len_in_out */
-);
-
-/************************************************************
- *
- * Private declarations.
- *
- ************************************************************/
-
-#if 0	/* no longer used */
-typedef ISWTextPosition (*_IswTextPositionFunc)();
+#ifdef ASCII_DISK
+    String           filename;
 #endif
 
-#define IswInheritInput                ((_IswTextPositionFunc) _IswInherit)
-#define IswInheritRead                 ((_IswSrcReadProc) _IswInherit)
-#define IswInheritReplace              ((_IswSrcReplaceProc) _IswInherit)
-#define IswInheritScan                 ((_IswSrcScanProc) _IswInherit)
-#define IswInheritSearch               ((_IswSrcSearchProc) _IswInherit)
-#define IswInheritSetSelection         ((_IswSrcSetSelectionProc) _IswInherit)
-#define IswInheritConvertSelection     ((_IswSrcConvertSelectionProc) _IswInherit)
-#define IswTextSrcExtVersion	      1
-#define IswTextSrcExtTypeString        "ISW_TEXTSRC_EXT"
+    /* private state */
+    Boolean          is_tempfile;
+    Boolean          changes;
+    Boolean          allocated_string;
+    ISWTextPosition  length;
+    Piece           *first_piece;
+} TextSrcPart;
+
+typedef struct _TextSrcRec {
+  ObjectPart  object;
+  TextSrcPart text_src;
+} TextSrcRec;
+
+/* Legacy inherit sentinels kept for ABI-compat; with a single concrete
+ * class nothing resolves through them. */
+#define IswInheritRead             ((_IswSrcReadProc) _IswInherit)
+#define IswInheritReplace          ((_IswSrcReplaceProc) _IswInherit)
+#define IswInheritScan             ((_IswSrcScanProc) _IswInherit)
+#define IswInheritSearch           ((_IswSrcSearchProc) _IswInherit)
+#define IswInheritSetSelection     ((_IswSrcSetSelectionProc) _IswInherit)
+#define IswInheritConvertSelection ((_IswSrcConvertSelectionProc) _IswInherit)
+
+#define IswTextSrcExtVersion       1
+#define IswTextSrcExtTypeString    "ISW_TEXTSRC_EXT"
 
 #endif /* _ISW_IswTextSrcP_h */

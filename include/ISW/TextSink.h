@@ -64,8 +64,21 @@ SOFTWARE.
  ----		     -----		-------		-------------
  foreground          Foreground      Pixel              IswDefaultForeground
  background          Background      Pixel              IswDefaultBackground
+ font                Font            IswFontStruct*     IswDefaultFont
+ echo                Output          Boolean            True
+ displayNonprinting  Output          Boolean            True
 
 */
+
+#ifndef IswCOutput
+#define IswCOutput "Output"
+#endif
+#ifndef IswNdisplayNonprinting
+#define IswNdisplayNonprinting "displayNonprinting"
+#endif
+#ifndef IswNecho
+#define IswNecho "echo"
+#endif
 
 /* Class record constants */
 

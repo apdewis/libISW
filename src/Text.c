@@ -71,7 +71,6 @@ SOFTWARE.
 #include <ISW/Scrollbar.h>
 #include <ISW/TextP.h>
 #ifdef ISW_INTERNATIONALIZATION
-#include <ISW/MultiSinkP.h>
 #include <ISW/ISWImP.h>
 #endif
 #include "ISWXcbDraw.h"
@@ -836,29 +835,6 @@ _IswTextGetSTRING(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
   unsigned char c;
   long i, j, n;
 
-  /* allow ESC in accordance with ICCCM */
-#ifdef ISW_INTERNATIONALIZATION
-  if (_IswTextFormat(ctx) == IswFmtWide) {
-     MultiSinkObject sink = (MultiSinkObject) ctx->text.sink;
-     wchar_t *ws, wc;
-     ws = (wchar_t *)_IswTextGetText(ctx, left, right);
-     n = wcslen(ws);
-     for (j = 0, i = 0; j < n; j++) {
-         wc = ws[j];
-         /* Phase 3.5: WC→UTF8 conversion for width check */
-         int utf8_len;
-         char *utf8_text = IswWcToUtf8(&wc, 1, &utf8_len);
-         int has_width = utf8_text && IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len) != 0;
-         if (utf8_text) free(utf8_text);
-         
-         if (has_width ||
-            (wc == _Isw_atowc(IswTAB)) || (wc == _Isw_atowc(IswLF)) || (wc == _Isw_atowc(IswESC)))
-            ws[i++] = wc;
-     }
-     ws[i] = (wchar_t)0;
-     return (char *)ws;
-  } else
-#endif
   {
      s = (unsigned char *)_IswTextGetText(ctx, left, right);
      /* only HT and NL control chars are allowed, strip out others */
