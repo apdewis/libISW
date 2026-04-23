@@ -28,10 +28,8 @@ in this Software without prior written authorization from the X Consortium.
 /*
  * TextSrc.c - UTF-8 text source for the Text widget.
  *
- * Single concrete class replacing the former abstract TextSrc plus its
- * AsciiSrc / MultiSrc subclasses. Applications use IswTextSource*
- * public functions; the AsciiSrc / MultiSrc class symbols survive as
- * deprecated aliases.
+ * Single concrete class. Applications use the IswTextSource* public
+ * functions.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -62,11 +60,6 @@ in this Software without prior written authorization from the X Consortium.
 #define MAGIC_VALUE ((ISWTextPosition) -1)
 #define streq(a, b) (strcmp((a), (b)) == 0)
 
-#if (defined(ASCII_STRING) || defined(ASCII_DISK))
-#  include <ISW/AsciiText.h> /* for Widget Classes. */
-#endif
-
-
 /****************************************************************
  *
  * Full class record constant
@@ -87,8 +80,8 @@ static IswResource resources[] = {
        offset(edit_mode), IswRString, "read"},
     {IswNstring, IswCString, IswRString, sizeof (char *),
        offset(string), IswRString, NULL},
-    {IswNtype, IswCType, IswRAsciiType, sizeof (IswAsciiType),
-       offset(type), IswRImmediate, (IswPointer)IswAsciiString},
+    {IswNtype, IswCType, IswRTextSourceType, sizeof (IswTextSourceType),
+       offset(type), IswRImmediate, (IswPointer)IswTextSourceString},
     {IswNdataCompression, IswCDataCompression, IswRBoolean, sizeof (Boolean),
        offset(data_compression), IswRImmediate, (IswPointer) TRUE},
     {IswNpieceSize, IswCPieceSize, IswRInt, sizeof (ISWTextPosition),
@@ -98,12 +91,7 @@ static IswResource resources[] = {
     {IswNuseStringInPlace, IswCUseStringInPlace, IswRBoolean, sizeof (Boolean),
        offset(use_string_in_place), IswRImmediate, (IswPointer) FALSE},
     {IswNlength, IswCLength, IswRInt, sizeof (int),
-       offset(ascii_length), IswRInt, (IswPointer) &magic_value},
-
-#ifdef ASCII_DISK
-    {IswNfile, IswCFile, IswRString, sizeof (String),
-       offset(filename), IswRString, NULL},
-#endif /* ASCII_DISK */
+       offset(text_length), IswRInt, (IswPointer) &magic_value},
 };
 #undef offset
 
@@ -121,7 +109,7 @@ static void RemovePiece(TextSrcObject, Piece *);
 static void BreakPiece(TextSrcObject, Piece *);
 static void LoadPieces(TextSrcObject, FILE *, char *);
 static void RemoveOldStringOrFile(TextSrcObject, Boolean);
-static void CvtStringToAsciiType(XrmValuePtr, Cardinal *, XrmValuePtr, XrmValuePtr);
+static void CvtStringToTextSourceType(XrmValuePtr, Cardinal *, XrmValuePtr, XrmValuePtr);
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
@@ -212,12 +200,6 @@ TextSrcClassRec textSrcClassRec = {
 
 WidgetClass textSrcObjectClass = (WidgetClass)&textSrcClassRec;
 
-/* Deprecated aliases: AsciiSrc / MultiSrc were the two legacy concrete
- * subclasses; both now resolve to the single TextSrc class. */
-WidgetClass asciiSrcObjectClass = (WidgetClass)&textSrcClassRec;
-WidgetClass multiSrcObjectClass = (WidgetClass)&textSrcClassRec;
-TextSrcClassRec asciiSrcClassRec; /* unused, referenced by some externs */
-
 /************************************************************
  *
  * Semi-Public Interfaces.
@@ -234,7 +216,7 @@ static void
 ClassInitialize(void)
 {
   IswInitializeWidgetSet();
-  IswAddConverter( IswRString, IswRAsciiType, CvtStringToAsciiType,
+  IswAddConverter( IswRString, IswRTextSourceType, CvtStringToTextSourceType,
 		 NULL, (Cardinal) 0);
   IswAddConverter( IswRString, IswREditMode, CvtStringToEditMode,
                  NULL, (Cardinal) 0);
@@ -299,24 +281,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   src->text_src.text_format = IswFmt8Bit;	/* data format. */
 
-#ifdef ASCII_DISK
-  if (IswIsSubclass(IswParent(new), asciiDiskWidgetClass)) {
-    src->text_src.type = IswAsciiFile;
-    src->text_src.string = src->text_src.filename;
-  }
-#endif
-
-#ifdef ASCII_STRING
-  if (IswIsSubclass(IswParent(new), asciiStringWidgetClass)) {
-    src->text_src.use_string_in_place = TRUE;
-    src->text_src.type = IswAsciiString;
-  }
-#endif
-
   src->text_src.changes = FALSE;
   src->text_src.allocated_string = FALSE;
 
-  file = InitStringOrFile(src, src->text_src.type == IswAsciiFile);
+  file = InitStringOrFile(src, src->text_src.type == IswTextSourceFile);
   LoadPieces(src, file, NULL);
 
   if (file != NULL) fclose(file);
@@ -324,7 +292,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
 /*	Function Name: ReadText
  *	Description: This function reads the source.
- *	Arguments: w - the AsciiSource widget.
+ *	Arguments: w - the TextSource widget.
  *                 pos - position of the text to retreive.
  * RETURNED        text - text block that will contain returned text.
  *                 length - maximum number of characters to read.
@@ -347,7 +315,7 @@ ReadText(Widget w, ISWTextPosition pos, ISWTextBlock *text, int length)
 
 /*	Function Name: ReplaceText.
  *	Description: Replaces a block of text with new text.
- *	Arguments: w - the AsciiSource widget.
+ *	Arguments: w - the TextSource widget.
  *                 startPos, endPos - ends of text that will be removed.
  *                 text - new text to be inserted into buffer at startPos.
  *	Returns: IswEditError or IswEditDone.
@@ -435,7 +403,7 @@ ReplaceText (Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
       if (src->text_src.use_string_in_place) {
 	if (start_piece->used == (src->text_src.piece_size - 1)) {
 	  /*
-	   * If we are in ascii string emulation mode. Then the
+	   * If we are in in-place string emulation mode. Then the
 	   *  string is not allowed to grow.
 	   */
 	  start_piece->used = src->text_src.length =
@@ -477,7 +445,7 @@ ReplaceText (Widget w, ISWTextPosition startPos, ISWTextPosition endPos,
 /*	Function Name: Scan
  *	Description: Scans the text source for the number and type
  *                   of item specified.
- *	Arguments: w - the AsciiSource widget.
+ *	Arguments: w - the TextSource widget.
  *                 position - the position to start scanning.
  *                 type - type of thing to scan for.
  *                 dir - direction to scan.
@@ -701,7 +669,7 @@ Scan (Widget w, ISWTextPosition position, IswTextScanType type,
 
 /*	Function Name: Search
  *	Description: Searchs the text source for the text block passed
- *	Arguments: w - the AsciiSource Widget.
+ *	Arguments: w - the TextSource Widget.
  *                 position - the position to start scanning.
  *                 dir - direction to scan.
  *                 text - the text block to search for.
@@ -779,7 +747,7 @@ Search(Widget w, ISWTextPosition position, IswTextScanDirection dir,
 }
 
 /*	Function Name: SetValues
- *	Description: Sets the values for the AsciiSource.
+ *	Description: Sets the values for the TextSource.
  *	Arguments: current - current state of the widget.
  *                 request - what was requested.
  *                 new - what the widget will become.
@@ -800,7 +768,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args,
   if ( old_src->text_src.use_string_in_place !=
        src->text_src.use_string_in_place ) {
       IswAppWarning( IswWidgetToApplicationContext(new),
-	   "AsciiSrc: The IswNuseStringInPlace resource may not be changed.");
+	   "TextSrc: The IswNuseStringInPlace resource may not be changed.");
        src->text_src.use_string_in_place =
 	   old_src->text_src.use_string_in_place;
   }
@@ -821,8 +789,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args,
     total_reset = TRUE;
   }
 
-  if ( old_src->text_src.ascii_length != src->text_src.ascii_length )
-      src->text_src.piece_size = src->text_src.ascii_length;
+  if ( old_src->text_src.text_length != src->text_src.text_length )
+      src->text_src.piece_size = src->text_src.text_length;
 
   if ( !total_reset &&
       (old_src->text_src.piece_size != src->text_src.piece_size) ) {
@@ -837,8 +805,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args,
 
 /*	Function Name: GetValuesHook
  *	Description: This is a get values hook routine that sets the
- *                   values specific to the ascii source.
- *	Arguments: w - the AsciiSource Widget.
+ *                   values specific to the text source.
+ *	Arguments: w - the TextSource Widget.
  *                 args - the argument list.
  *                 num_args - the number of args.
  *	Returns: none.
@@ -850,14 +818,14 @@ GetValuesHook(Widget w, ArgList args, Cardinal * num_args)
   TextSrcObject src = (TextSrcObject) w;
   int i;
 
-  if (src->text_src.type == IswAsciiString) {
+  if (src->text_src.type == IswTextSourceString) {
     for (i = 0; i < *num_args ; i++ )
       if (streq(args[i].name, IswNstring)) {
 	  if (src->text_src.use_string_in_place) {
 	      *((char **) args[i].value) = src->text_src.first_piece->text;
 	  }
 	  else {
-	      if (IswAsciiSave(w))	/* If save sucessful. */
+	      if (IswTextSourceSave(w))
 		  *((char **) args[i].value) = src->text_src.string;
 	  }
 	break;
@@ -866,10 +834,7 @@ GetValuesHook(Widget w, ArgList args, Cardinal * num_args)
 }
 
 /*	Function Name: Destroy
- *	Description: Destroys an ascii source (frees all data)
- *	Arguments: src - the Ascii source Widget to free.
- *	Returns: none.
- */
+ *	Description: Destroys a text source (frees all data). */
 
 static void
 Destroy (Widget w)
@@ -883,45 +848,42 @@ Destroy (Widget w)
  *
  ************************************************************/
 
-/*	Function Name: IswAsciiSourceFreeString
- *	Description: Frees the string returned by a get values call
- *                   on the string when the source is of type string.
- *	Arguments: w - the AsciiSrc widget.
- *	Returns: none.
+/*	Function Name: IswTextSourceFreeString
+ *	Description: Frees the string returned by a get values call on the
+ *                   string when the source is of type string.
  */
 
 void
-IswAsciiSourceFreeString(Widget w)
+IswTextSourceFreeString(Widget w)
 {
   TextSrcObject src = (TextSrcObject) w;
 
-  if ( !IswIsSubclass( w, asciiSrcObjectClass ) ) {
-      IswErrorMsg("bad argument", "asciiSource", "IswError",
-            "IswAsciiSourceFreeString's parameter must be an asciiSrc.",
+  if (!IswIsSubclass(w, textSrcObjectClass)) {
+      IswErrorMsg("bad argument", "textSource", "IswError",
+            "IswTextSourceFreeString's parameter must be a textSrc.",
 	     NULL, NULL);
   }
 
-  if (src->text_src.allocated_string && src->text_src.type != IswAsciiFile) {
+  if (src->text_src.allocated_string && src->text_src.type != IswTextSourceFile) {
     src->text_src.allocated_string = FALSE;
     IswFree(src->text_src.string);
     src->text_src.string = NULL;
   }
 }
 
-/*	Function Name: IswAsciiSave
+/*	Function Name: IswTextSourceSave
  *	Description: Saves all the pieces into a file or string as required.
- *	Arguments: w - the asciiSrc Widget.
  *	Returns: TRUE if the save was successful.
  */
 
 Boolean
-IswAsciiSave(Widget w)
+IswTextSourceSave(Widget w)
 {
   TextSrcObject src = (TextSrcObject) w;
 
-  if ( !IswIsSubclass( w, asciiSrcObjectClass ) ) {
-      	IswErrorMsg("bad argument", "asciiSource", "IswError",
-		"IswAsciiSave's parameter must be an asciiSrc.",
+  if (!IswIsSubclass(w, textSrcObjectClass)) {
+      IswErrorMsg("bad argument", "textSource", "IswError",
+		"IswTextSourceSave's parameter must be a textSrc.",
 		   NULL, NULL);
   }
 
@@ -933,7 +895,7 @@ IswAsciiSave(Widget w)
   if (src->text_src.use_string_in_place)
     return(TRUE);
 
-  if (src->text_src.type == IswAsciiFile) {
+  if (src->text_src.type == IswTextSourceFile) {
     char * string;
 
     if (!src->text_src.changes) 		/* No changes to save. */
@@ -959,23 +921,19 @@ IswAsciiSave(Widget w)
   return(TRUE);
 }
 
-/*	Function Name: IswAsciiSaveAsFile
- *	Description: Save the current buffer as a file.
- *	Arguments: w - the AsciiSrc widget.
- *                 name - name of the file to save this file into.
- *	Returns: True if the save was sucessful.
- */
+/*	Function Name: IswTextSourceSaveAsFile
+ *	Description: Save the current buffer as a file. */
 
 Boolean
-IswAsciiSaveAsFile(Widget w, _Xconst char* name)
+IswTextSourceSaveAsFile(Widget w, _Xconst char* name)
 {
   TextSrcObject src = (TextSrcObject) w;
   String string;
   Boolean ret;
 
-  if ( !IswIsSubclass( w, asciiSrcObjectClass ) ) {
-      	IswErrorMsg("bad argument", "asciiSource", "IswError",
-		"IswAsciiSaveAsFile's 1st parameter must be an asciiSrc.",
+  if (!IswIsSubclass(w, textSrcObjectClass)) {
+      IswErrorMsg("bad argument", "textSource", "IswError",
+		"IswTextSourceSaveAsFile's 1st parameter must be a textSrc.",
 		   NULL, NULL);
   }
 
@@ -986,23 +944,20 @@ IswAsciiSaveAsFile(Widget w, _Xconst char* name)
   return(ret);
 }
 
-/*	Function Name: IswAsciiSourceChanged
- *	Description: Returns true if the source has changed since last saved.
- *	Arguments: w - the ascii source widget.
- *	Returns: a Boolean (see description).
- */
+/*	Function Name: IswTextSourceChanged
+ *	Description: Returns true if the source has changed since last saved. */
 
 Boolean
-IswAsciiSourceChanged(Widget w)
+IswTextSourceChanged(Widget w)
 {
-  if ( IswIsSubclass( w, asciiSrcObjectClass ) )
-      return( ( (TextSrcObject) w)->text_src.changes );
+  if (IswIsSubclass(w, textSrcObjectClass))
+      return ((TextSrcObject) w)->text_src.changes;
 
-  IswErrorMsg("bad argument", "asciiSource", "IswError",
-		"IswAsciiSourceChanged parameter must be an asciiSrc.",
+  IswErrorMsg("bad argument", "textSource", "IswError",
+		"IswTextSourceChanged parameter must be a textSrc.",
 		   NULL, NULL);
 
-  return( True ); /* for gcc -Wall */
+  return True;
 }
 
 /************************************************************
@@ -1117,19 +1072,12 @@ IswTextSourceSetSelection(Widget w, ISWTextPosition left,
 
 /*	TextFormat():
  *	  returns the format quark of the source text. Always FMT8BIT now
- *	  (the former FMTWIDE path was tied to MultiSrc, which is gone). */
+ *	  Always FMT8BIT. */
 XrmQuark
 _IswTextFormat(TextWidget tw)
 {
   return ((TextSrcObject)(tw->text.source))->text_src.text_format;
 }
-
-/* Aliases for the legacy Ascii-named public functions so new code can use
- * the preferred names. */
-void    IswTextSourceFreeString(Widget w)                 { IswAsciiSourceFreeString(w); }
-Boolean IswTextSourceSave(Widget w)                        { return IswAsciiSave(w); }
-Boolean IswTextSourceSaveAsFile(Widget w, _Xconst char *n) { return IswAsciiSaveAsFile(w, n); }
-Boolean IswTextSourceChanged(Widget w)                     { return IswAsciiSourceChanged(w); }
 
 /************************************************************
  *
@@ -1173,8 +1121,8 @@ WriteToFile(_Xconst _IswString string, _Xconst _IswString name)
 }
 
 /*	Function Name: StorePiecesInString
- *	Description: store the pieces in memory into a standard ascii string.
- *	Arguments: data - the ascii pointer data.
+ *	Description: store the pieces in memory into a flat byte string.
+ *	Arguments: data - the text pointer data.
  *	Returns: none.
  */
 
@@ -1208,7 +1156,7 @@ StorePiecesInString(TextSrcObject src)
 
 /*	Function Name: InitStringOrFile.
  *	Description: Initializes the string or file.
- *	Arguments: src - the AsciiSource.
+ *	Arguments: src - the TextSource.
  *	Returns: none - May exit though.
  */
 
@@ -1219,7 +1167,7 @@ InitStringOrFile(TextSrcObject src, Boolean newString)
     FILE * file;
     char fileName[TMPSIZ];
 
-    if (src->text_src.type == IswAsciiString) {
+    if (src->text_src.type == IswTextSourceString) {
 
 	if (src->text_src.string == NULL)
 	    src->text_src.length = 0;
@@ -1233,20 +1181,20 @@ InitStringOrFile(TextSrcObject src, Boolean newString)
 	if (src->text_src.use_string_in_place) {
 	    src->text_src.length = strlen(src->text_src.string);
 	    /* In case the length resource is incorrectly set */
-	    if (src->text_src.length > src->text_src.ascii_length)
-		src->text_src.ascii_length = src->text_src.length;
+	    if (src->text_src.length > src->text_src.text_length)
+		src->text_src.text_length = src->text_src.length;
 
-	    if (src->text_src.ascii_length == MAGIC_VALUE)
+	    if (src->text_src.text_length == MAGIC_VALUE)
 		src->text_src.piece_size = src->text_src.length;
 	    else
-		src->text_src.piece_size = src->text_src.ascii_length + 1;
+		src->text_src.piece_size = src->text_src.text_length + 1;
 	}
 
 	return(NULL);
     }
 
 /*
- * type is IswAsciiFile.
+ * type is IswTextSourceFile.
  */
 
     src->text_src.is_tempfile = FALSE;
@@ -1254,7 +1202,7 @@ InitStringOrFile(TextSrcObject src, Boolean newString)
     switch (src->text_src.edit_mode) {
     case IswtextRead:
 	if (src->text_src.string == NULL)
-	    IswErrorMsg("NoFile", "asciiSourceCreate", "IswError",
+	    IswErrorMsg("NoFile", "textSourceCreate", "IswError",
 		     "Creating a read only disk widget and no file specified.",
 		       NULL, 0);
 	open_mode = "r";
@@ -1270,8 +1218,8 @@ InitStringOrFile(TextSrcObject src, Boolean newString)
 	    open_mode = "r+";
 	break;
     default:
-	IswErrorMsg("badMode", "asciiSourceCreate", "IswError",
-		"Bad editMode for ascii source; must be Read, Append or Edit.",
+	IswErrorMsg("badMode", "textSourceCreate", "IswError",
+		"Bad editMode for text source; must be Read, Append or Edit.",
 		   NULL, NULL);
     }
 
@@ -1297,7 +1245,7 @@ InitStringOrFile(TextSrcObject src, Boolean newString)
 	    params[0] = src->text_src.string;
 	    params[1] = strerror(errno);
 	    IswAppWarningMsg(IswWidgetToApplicationContext((Widget)src),
-			    "openError", "asciiSourceCreate", "IswWarning",
+			    "openError", "textSourceCreate", "IswWarning",
 			    "Cannot open file %s; %s", params, &num_params);
 	}
     }
@@ -1313,7 +1261,7 @@ LoadPieces(TextSrcObject src, FILE * file, char * string)
   ISWTextPosition left;
 
   if (string == NULL) {
-    if (src->text_src.type == IswAsciiFile) {
+    if (src->text_src.type == IswTextSourceFile) {
       local_str = IswMalloc((unsigned) (src->text_src.length + 1)
 			   * sizeof(unsigned char));
       if (src->text_src.length != 0) {
@@ -1321,7 +1269,7 @@ LoadPieces(TextSrcObject src, FILE * file, char * string)
 	src->text_src.length = fread(local_str, (Size_t)sizeof(unsigned char),
 				      (Size_t)src->text_src.length, file);
 	if (src->text_src.length <= 0)
-	  IswErrorMsg("readError", "asciiSourceCreate", "IswError",
+	  IswErrorMsg("readError", "textSourceCreate", "IswError",
 		     "fread returned error.", NULL, NULL);
       }
       local_str[src->text_src.length] = '\0';
@@ -1355,13 +1303,13 @@ LoadPieces(TextSrcObject src, FILE * file, char * string)
     ptr += piece->used;
   } while (left > 0);
 
-  if ( (src->text_src.type == IswAsciiFile) && (string == NULL) )
+  if ( (src->text_src.type == IswTextSourceFile) && (string == NULL) )
     IswFree(local_str);
 }
 
 /*	Function Name: AllocNewPiece
  *	Description: Allocates a new piece of memory.
- *	Arguments: src - The AsciiSrc Widget.
+ *	Arguments: src - The TextSrc Widget.
  *                 prev - the piece just before this one, or NULL.
  *	Returns: the allocated piece.
  */
@@ -1389,7 +1337,7 @@ AllocNewPiece(TextSrcObject src, Piece * prev)
 
 /*	Function Name: FreeAllPieces
  *	Description: Frees all the pieces
- *	Arguments: src - The AsciiSrc Widget.
+ *	Arguments: src - The TextSrc Widget.
  *	Returns: none.
  */
 
@@ -1399,7 +1347,7 @@ FreeAllPieces(TextSrcObject src)
   Piece * next, * first = src->text_src.first_piece;
 
   if (first->prev != NULL)
-    (void) printf("Isw AsciiSrc Object: possible memory leak in FreeAllPieces().\n");
+    (void) printf("Isw TextSrc Object: possible memory leak in FreeAllPieces().\n");
 
   for ( ; first != NULL ; first = next ) {
     next = first->next;
@@ -1433,7 +1381,7 @@ RemovePiece(TextSrcObject src, Piece * piece)
 
 /*	Function Name: FindPiece
  *	Description: Finds the piece containing the position indicated.
- *	Arguments: src - The AsciiSrc Widget.
+ *	Arguments: src - The TextSrc Widget.
  *                 position - the position that we are searching for.
  * RETURNED        first - the position of the first character in this piece.
  *	Returns: piece - the piece that contains this position.
@@ -1483,7 +1431,7 @@ MyStrncpy(char * s1, char * s2, int n)
 
 /*	Function Name: BreakPiece
  *	Description: Breaks a full piece into two new pieces.
- *	Arguments: src - The AsciiSrc Widget.
+ *	Arguments: src - The TextSrc Widget.
  *                 piece - the piece to break.
  *	Returns: none.
  */
@@ -1504,10 +1452,10 @@ BreakPiece(TextSrcObject src, Piece * piece)
 
 /* ARGSUSED */
 static void
-CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
+CvtStringToTextSourceType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
                      XrmValuePtr toVal)
 {
-  static IswAsciiType type;
+  static IswTextSourceType type;
   static XrmQuark  IswQEstring = NULLQUARK;
   static XrmQuark  IswQEfile;
   XrmQuark q;
@@ -1522,8 +1470,8 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
     ISWCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
     q = XrmStringToQuark(lowerName);
 
-    if (q == IswQEstring)     type = IswAsciiString;
-    else if (q == IswQEfile)  type = IswAsciiFile;
+    if (q == IswQEstring)     type = IswTextSourceString;
+    else if (q == IswQEfile)  type = IswTextSourceFile;
     else {
       toVal->size = 0;
       toVal->addr = NULL;
@@ -1537,85 +1485,3 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
   toVal->addr = NULL;
 }
 
-#if (defined(ASCII_STRING) || defined(ASCII_DISK))
-#  include <ISW/Cardinals.h>
-#endif
-
-#ifdef ASCII_STRING
-/************************************************************
- *
- * Compatability functions.
- *
- ************************************************************/
-
-/*	Function Name: AsciiStringSourceCreate
- *	Description: Creates a string source.
- *	Arguments: parent - the widget that will own this source.
- *                 args, num_args - the argument list.
- *	Returns: a pointer to the new text source.
- */
-
-Widget
-IswStringSourceCreate(Widget parent, ArgList args, Cardinal num_args)
-{
-  IswTextSource src;
-  ArgList ascii_args;
-  Arg temp[2];
-
-  IswSetArg(temp[0], IswNtype, IswAsciiString);
-  IswSetArg(temp[1], IswNuseStringInPlace, TRUE);
-  ascii_args = IswMergeArgLists(temp, TWO, args, num_args);
-
-  src = IswCreateWidget("genericAsciiString", asciiSrcObjectClass, parent,
-		       ascii_args, num_args + TWO);
-  IswFree((char *)ascii_args);
-  return(src);
-}
-
-/*
- * This is hacked up to try to emulate old functionality, it
- * may not work, as I have not old code to test it on.
- *
- * Chris D. Peterson  8/31/89.
- */
-
-void
-IswTextSetLastPos (Widget w, ISWTextPosition lastPos)
-{
-  TextSrcObject src = (TextSrcObject) IswTextGetSource(w);
-
-  src->text_src.piece_size = lastPos;
-}
-#endif /* ASCII_STRING */
-
-#ifdef ASCII_DISK
-/*	Function Name: AsciiDiskSourceCreate
- *	Description: Creates a disk source.
- *	Arguments: parent - the widget that will own this source.
- *                 args, num_args - the argument list.
- *	Returns: a pointer to the new text source.
- */
-
-Widget
-IswDiskSourceCreate(Widget parent, ArgList args, Cardinal num_args)
-{
-  IswTextSource src;
-  ArgList ascii_args;
-  Arg temp[1];
-  int i;
-
-  IswSetArg(temp[0], IswNtype, IswAsciiFile);
-  ascii_args = IswMergeArgLists(temp, ONE, args, num_args);
-  num_args++;
-
-  for (i = 0; i < num_args; i++)
-    if (streq(ascii_args[i].name, IswNfile) ||
-	          streq(ascii_args[i].name, IswCFile))
-      ascii_args[i].name = IswNstring;
-
-  src = IswCreateWidget("genericAsciiDisk", asciiSrcObjectClass, parent,
-		       ascii_args, num_args);
-  IswFree((char *)ascii_args);
-  return(src);
-}
-#endif /* ASCII_DISK */

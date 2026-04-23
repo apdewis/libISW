@@ -354,13 +354,13 @@
 #define IswArgReportCallback(ab, v)             ISW_ARG((ab), IswNreportCallback, (v))
 #define IswArgGripTranslations(ab, v)           ISW_ARG((ab), IswNgripTranslations, (v))
 
-/* AsciiSrc / MultiSrc */
+/* TextSrc */
 #define IswArgDataCompression(ab, v)            ISW_ARG((ab), IswNdataCompression, (v))
 #define IswArgPieceSize(ab, v)                  ISW_ARG((ab), IswNpieceSize, (v))
 #define IswArgType(ab, v)                       ISW_ARG((ab), IswNtype, (v))
 #define IswArgUseStringInPlace(ab, v)           ISW_ARG((ab), IswNuseStringInPlace, (v))
 
-/* AsciiSink / MultiSink */
+/* TextSink */
 #define IswArgDisplayNonprinting(ab, v)         ISW_ARG((ab), IswNdisplayNonprinting, (v))
 #define IswArgEcho(ab, v)                       ISW_ARG((ab), IswNecho, (v))
 

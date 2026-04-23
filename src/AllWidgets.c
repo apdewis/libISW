@@ -38,8 +38,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/RectObj.h>
 #include <ISW/Shell.h>
 #include <ISW/Vendor.h>
-#include <ISW/AsciiSink.h>
-#include <ISW/AsciiText.h>
 #include <ISW/Box.h>
 #include <ISW/Dialog.h>
 #include <ISW/DrawingArea.h>
@@ -54,8 +52,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/List.h>
 #include <ISW/MenuBar.h>
 #include <ISW/MenuButton.h>
-#include <ISW/MultiSink.h>  /* deprecated alias for AsciiSink */
-#include <ISW/MultiSrc.h>   /* deprecated alias for AsciiSrc */
+#include <ISW/Text.h>       /* textSink, textSrc, text */
 #include <ISW/Paned.h>
 #include <ISW/Panner.h>
 #include <ISW/Porthole.h>
@@ -77,9 +74,6 @@ in this Software without prior written authorization from the X Consortium.
 
 IswWidgetNode IswWidgetArray[] = {
 { "applicationShell", &applicationShellWidgetClass },
-{ "asciiSink", &asciiSinkObjectClass },
-{ "asciiSrc", &asciiSrcObjectClass },
-{ "asciiText", &asciiTextWidgetClass },
 { "box", &boxWidgetClass },
 { "colorPicker", &colorPickerWidgetClass },
 { "comboBox", &comboBoxWidgetClass },
@@ -99,8 +93,6 @@ IswWidgetNode IswWidgetArray[] = {
 { "list", &listWidgetClass },
 { "menuBar", &menuBarWidgetClass },
 { "menuButton", &menuButtonWidgetClass },
-{ "multiSink", &multiSinkObjectClass },
-{ "multiSrc", &multiSrcObjectClass },
 { "object", &objectClass },
 { "overrideShell", &overrideShellWidgetClass },
 { "paned", &panedWidgetClass },

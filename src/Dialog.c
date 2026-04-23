@@ -56,7 +56,7 @@ SOFTWARE.
 #include <ISW/StringDefs.h>
 
 #include <ISW/ISWInit.h>
-#include <ISW/AsciiText.h>
+#include <ISW/Text.h>
 #include <ISW/Command.h>
 #include <ISW/Label.h>
 #include <ISW/DialogP.h>
@@ -363,7 +363,7 @@ CreateDialogValueWidget(Widget w)
     IswSetArg(arglist[num_args], IswNleft, IswChainLeft);            num_args++;
     IswSetArg(arglist[num_args], IswNright, IswChainRight);          num_args++;
 
-    dw->dialog.valueW = IswCreateWidget("value", asciiTextWidgetClass,
+    dw->dialog.valueW = IswCreateWidget("value", textWidgetClass,
 				     w, arglist, num_args);
 
     /* if the value widget is being added after buttons,

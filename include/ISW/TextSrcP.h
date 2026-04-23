@@ -24,8 +24,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /*
  * TextSrcP.h - Private definitions for TextSrc object
  *
- * Single concrete UTF-8 text source. Replaces the old abstract-TextSrc +
- * concrete-AsciiSrc/MultiSrc hierarchy.
+ * Single concrete UTF-8 text source.
  */
 
 #ifndef _ISW_IswTextSrcP_h
@@ -77,26 +76,19 @@ typedef struct _Piece {
   struct _Piece  *prev, *next;
 } Piece;
 
-/* Source type: in-memory string vs. on-disk file. */
-typedef enum {IswAsciiFile, IswAsciiString} IswAsciiType;
-
-/* Instance struct — absorbs the former AsciiSrcPart fields. */
+/* Instance struct — source state for the unified concrete TextSrc. */
 typedef struct _TextSrcPart {
     /* resources */
-    IswTextEditType  edit_mode;
-    XrmQuark         text_format;  /* always FMT8BIT now; kept for compat */
+    IswTextEditType   edit_mode;
+    XrmQuark          text_format;  /* always FMT8BIT now; kept for compat */
 
-    char            *string;       /* either the string or the file name */
-    IswAsciiType     type;
+    char             *string;       /* either the string or the file name */
+    IswTextSourceType type;
     ISWTextPosition  piece_size;
     Boolean          data_compression;
     IswCallbackList  callback;
     Boolean          use_string_in_place;
-    int              ascii_length;
-
-#ifdef ASCII_DISK
-    String           filename;
-#endif
+    int              text_length;
 
     /* private state */
     Boolean          is_tempfile;

@@ -29,9 +29,6 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <ISW/ISWP.h>
 #include <ISW/IntrinsicP.h>
-#include <ISW/AsciiSinkP.h>
-#include <ISW/AsciiSrcP.h>
-#include <ISW/AsciiTextP.h>
 #include <ISW/BoxP.h>
 #include <ISW/CommandP.h>
 #include <ISW/DialogP.h>
@@ -59,28 +56,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/TreeP.h>
 #include <ISW/VendorP.h>
 #include <ISW/ViewportP.h>
-
-extern AsciiSinkClassRec asciiSinkClassRec;
-WidgetClass asciiSinkObjectClass = (WidgetClass)&asciiSinkClassRec;
-
-extern AsciiSrcClassRec asciiSrcClassRec;
-WidgetClass asciiSrcObjectClass = (WidgetClass)&asciiSrcClassRec;
-
-extern AsciiTextClassRec asciiTextClassRec;
-WidgetClass asciiTextWidgetClass = (WidgetClass)&asciiTextClassRec;
-
-#ifdef ASCII_STRING
-extern AsciiStringClassRec asciiStringClassRec;
-WidgetClass asciiStringWidgetClass = (WidgetClass)&asciiStringClassRec;
-#endif
-
-#ifdef ASCII_DISK
-extern AsciiDiskClassRec asciiDiskClassRec;
-WidgetClass asciiDiskWidgetClass = (WidgetClass)&asciiDiskClassRec;
-#endif
-
-/* multiSinkObjectClass / multiSrcObjectClass are deprecated aliases
- * defined in AsciiSink.c / AsciiSrc.c. */
 
 extern BoxClassRec boxClassRec;
 WidgetClass boxWidgetClass = (WidgetClass)&boxClassRec;

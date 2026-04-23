@@ -59,16 +59,16 @@ SOFTWARE.
 
 /* Resources:
 
- Name		     Class		RepType		Default Value
- ----		     -----		-------		-------------
- editType	     EditType		IswTextEditType	IswtextRead
- callback	     Callback		Callback	(none)
- dataCompression     DataCompression	Boolean		True
- length		     Length		int		(internal)
- pieceSize	     PieceSize		int		BUFSIZ
- string		     String		String		NULL
- type		     Type		IswAsciiType	IswAsciiString
- useStringInPlace    UseStringInPlace	Boolean		False
+ Name		     Class		RepType			Default Value
+ ----		     -----		-------			-------------
+ editType	     EditType		IswTextEditType		IswtextRead
+ callback	     Callback		Callback		(none)
+ dataCompression     DataCompression	Boolean			True
+ length		     Length		int			(internal)
+ pieceSize	     PieceSize		int			BUFSIZ
+ string		     String		String			NULL
+ type		     Type		IswTextSourceType	IswTextSourceString
+ useStringInPlace    UseStringInPlace	Boolean			False
 
 */
 
@@ -84,10 +84,12 @@ SOFTWARE.
 #define IswNtype "type"
 #define IswNuseStringInPlace "useStringInPlace"
 
-#define IswRAsciiType "AsciiType"
+#define IswRTextSourceType "TextSourceType"
 
 #define IswEstring "string"
 #define IswEfile "file"
+
+typedef enum { IswTextSourceFile, IswTextSourceString } IswTextSourceType;
 
 /* Class record constants */
 

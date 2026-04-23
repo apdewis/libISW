@@ -24,9 +24,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /*
  * TextSink.c - UTF-8 text sink for the Text widget.
  *
- * Single concrete class that replaces the former abstract TextSink plus
- * its AsciiSink / MultiSink subclasses. Text is rendered as UTF-8 via the
- * ISWRender pipeline.
+ * Single concrete class. Text is rendered as UTF-8 via the ISWRender
+ * pipeline.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -152,13 +151,6 @@ TextSinkClassRec textSinkClassRec = {
 };
 
 WidgetClass textSinkObjectClass = (WidgetClass)&textSinkClassRec;
-
-/* Deprecated aliases. AsciiSink / MultiSink were the two concrete
- * subclasses in the legacy hierarchy; both now resolve to the single
- * TextSink class. */
-WidgetClass asciiSinkObjectClass = (WidgetClass)&textSinkClassRec;
-WidgetClass multiSinkObjectClass = (WidgetClass)&textSinkClassRec;
-TextSinkClassRec asciiSinkClassRec;  /* unused, referenced by some externs */
 
 /* Utilities */
 

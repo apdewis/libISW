@@ -31,7 +31,7 @@ typedef struct _SpinBoxPart {
     IswCallbackList value_changed;
 
     /* private */
-    Widget        textW;       /* AsciiText child */
+    Widget        textW;       /* Text child */
     Widget        upW;         /* up/increment Repeater */
     Widget        downW;       /* down/decrement Repeater */
     ISWRenderContext *render_ctx;

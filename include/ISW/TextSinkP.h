@@ -24,8 +24,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /*
  * TextSinkP.h - Private definitions for TextSink object
  *
- * Single concrete UTF-8 text sink. Replaces the old abstract-TextSink +
- * concrete-AsciiSink/MultiSink hierarchy.
+ * Single concrete UTF-8 text sink.
  */
 
 #ifndef _ISW_IswTextSinkP_h
@@ -93,7 +92,7 @@ typedef struct _TextSinkClassRec {
 extern TextSinkClassRec textSinkClassRec;
 
 /* Instance struct — public resources and private state for the concrete
- * TextSink. Absorbs the former AsciiSinkPart fields. */
+ * TextSink. */
 typedef struct {
     /* public resources */
     Pixel foreground;

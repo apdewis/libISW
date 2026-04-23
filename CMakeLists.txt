@@ -162,7 +162,6 @@ set(LIBXT_SOURCES
 
 set(ISW_WIDGET_SOURCES
     src/AllWidgets.c
-    src/AsciiText.c
     src/Box.c
     src/ColorPicker.c
     src/ComboBox.c

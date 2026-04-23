@@ -2,7 +2,7 @@
  * SpinBox.c - SpinBox widget implementation
  *
  * A numeric entry with up/down arrow buttons. Subclasses Form and
- * creates three internal children: an AsciiText field and two Repeater
+ * creates three internal children: a Text field and two Repeater
  * buttons for increment/decrement with auto-repeat on hold.
  */
 
@@ -16,7 +16,7 @@
 #include <ISW/ISWInit.h>
 #include <ISW/SpinBoxP.h>
 #include <ISW/ISWRender.h>
-#include <ISW/AsciiText.h>
+#include <ISW/Text.h>
 #include <ISW/Repeater.h>
 #include <ISW/Label.h>
 #include <ISW/CommandP.h>
@@ -263,7 +263,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(arglist[n], IswNeditType, IswtextEdit); n++;
     IswSetArg(arglist[n], IswNborderWidth, 0); n++;
     IswSetArg(arglist[n], IswNconsumeTab, False); n++;  /* single-line: Tab traverses */
-    sbw->spinBox.textW = IswCreateManagedWidget("text", asciiTextWidgetClass,
+    sbw->spinBox.textW = IswCreateManagedWidget("text", textWidgetClass,
                                                 new, arglist, n);
 
     /* Augment the Text child so Up/Down step the SpinBox while focused. */

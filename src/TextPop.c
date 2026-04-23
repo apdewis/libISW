@@ -54,7 +54,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/StringDefs.h>
 #include <ISW/Shell.h>
 #include <ISW/TextP.h>
-#include <ISW/AsciiText.h>
+#include <ISW/Text.h>
 #include <ISW/Cardinals.h>
 #include <ISW/Command.h>
 #include <ISW/Form.h>
@@ -357,7 +357,7 @@ AddInsertFileChildren(Widget form, String ptr, Widget tw)
   IswSetArg(args[num_args], IswNresizable, TRUE); num_args++;
   IswSetArg(args[num_args], IswNresize, IswtextResizeWidth); num_args++;
   IswSetArg(args[num_args], IswNstring, ptr); num_args++;
-  text = IswCreateManagedWidget(TEXT_NAME, asciiTextWidgetClass, form,
+  text = IswCreateManagedWidget(TEXT_NAME, textWidgetClass, form,
 				args, num_args);
 
   num_args = 0;
@@ -689,7 +689,7 @@ AddSearchChildren(Widget form, String ptr, Widget tw)
   IswSetArg(args[num_args], IswNresizable, TRUE); num_args++;
   IswSetArg(args[num_args], IswNresize, IswtextResizeWidth); num_args++;
   IswSetArg(args[num_args], IswNstring, ptr); num_args++;
-  s_text = IswCreateManagedWidget("searchText", asciiTextWidgetClass, form,
+  s_text = IswCreateManagedWidget("searchText", textWidgetClass, form,
 				 args, num_args);
   search->search_text = s_text;
 
@@ -711,7 +711,7 @@ AddSearchChildren(Widget form, String ptr, Widget tw)
   IswSetArg(args[num_args], IswNresizable, TRUE); num_args++;
   IswSetArg(args[num_args], IswNresize, IswtextResizeWidth); num_args++;
   IswSetArg(args[num_args], IswNstring, ""); num_args++;
-  r_text = IswCreateManagedWidget("replaceText", asciiTextWidgetClass,
+  r_text = IswCreateManagedWidget("replaceText", textWidgetClass,
 				 form, args, num_args);
   search->rep_text = r_text;
 
