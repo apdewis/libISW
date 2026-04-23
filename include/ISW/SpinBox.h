@@ -2,7 +2,7 @@
  * SpinBox.h - Public header for SpinBox widget
  *
  * A numeric entry with up/down arrow buttons for increment/decrement.
- * Subclasses Form; creates internal AsciiText + two Repeater children.
+ * Subclasses Form; creates internal Text + two Repeater children.
  */
 
 #ifndef _ISW_IswSpinBox_h

@@ -39,7 +39,6 @@ in this Software without prior written authorization from the X Consortium.
 #include "ISWXcbDraw.h"
 #include <ISW/TextP.h>
 #ifdef ISW_INTERNATIONALIZATION
-#include <ISW/MultiSrcP.h>
 #include <ISW/ISWImP.h>
 #include "ISWI18n.h"
 #endif
@@ -1484,16 +1483,8 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   KeySym keysym;
   ISWTextBlock text;
 
-#ifdef ISW_INTERNATIONALIZATION
-  if (IswIsSubclass (ctx->text.source, (WidgetClass) multiSrcObjectClass)) {
-    Status status;
-    xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
-    text.length = _IswImWcLookupString (w, (XKeyPressedEvent*)kev,
-		(wchar_t*) strbuf, BUFSIZ, &keysym, &status);
-  } else
-#endif
   {
-    /* Non-I18N path: convert XCB key event to character using XCB keysyms */
+    /* Convert XCB key event to character using XCB keysyms */
     xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
     xcb_connection_t *conn = IswDisplay(w);
     static xcb_key_symbols_t *keysyms = NULL;
@@ -1718,36 +1709,6 @@ InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
       text.ptr = IfHexConvertHexElseReturnParam( *params, &text.length );
 
       if ( text.length == 0 ) continue;
-
-#ifdef ISW_INTERNATIONALIZATION
-      if ( _IswTextFormat( ctx ) == IswFmtWide ) { /* convert to WC */
-
-          int temp_len;
-          text.ptr = (char*) _ISWTextMBToWC( IswDisplay(w), text.ptr,
-					      &text.length );
-
-          if ( text.ptr == NULL ) { /* conversion error */
-              IswAppWarningMsg( app_con,
-		"insertString", "textAction", "IswError",
-		"insert-string()'s parameter contents not legal in this locale.",
-		NULL, NULL );
-              ParameterError( w, *params );
-              continue;
-          }
-
-          /* Double check that the new input is legal: try to convert to MB. */
-
-          temp_len = text.length;      /* _ISWTextWCToMB's 3rd arg is in_out */
-          if ( _ISWTextWCToMB( IswDisplay(w), (wchar_t*)text.ptr, &temp_len ) == NULL ) {
-              IswAppWarningMsg( app_con,
-		"insertString", "textAction", "IswError",
-		"insert-string()'s parameter contents not legal in this locale.",
-				NULL, NULL );
-              ParameterError( w, *params );
-              continue;
-          }
-      } /* convert to WC */
-#endif
 
       if ( _IswTextReplace( ctx, ctx->text.insertPos,
 			    ctx->text.insertPos, &text ) ) {

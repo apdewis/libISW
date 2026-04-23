@@ -324,21 +324,6 @@ ISWFontStructTextWidth(IswFontStruct *font, const char *text, int len)
 }
 
 /*
- * ISWFontSetTextWidth - Text width for IswFontSet (internationalized text)
- *
- * This is a stub for internationalized text support.
- */
-int
-ISWFontSetTextWidth(void *fontset, const char *text, int len)
-{
-    (void)fontset;
-    if (!text || len <= 0)
-        return 0;
-    /* Rough estimate for internationalized text */
-    return len * 10;  /* Assume 10 pixels per character as fallback */
-}
-
-/*
  * =================================================================
  * xcb_gcontext_t VALUE HELPERS
  * =================================================================

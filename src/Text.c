@@ -71,7 +71,6 @@ SOFTWARE.
 #include <ISW/Scrollbar.h>
 #include <ISW/TextP.h>
 #ifdef ISW_INTERNATIONALIZATION
-#include <ISW/MultiSinkP.h>
 #include <ISW/ISWImP.h>
 #endif
 #include "ISWXcbDraw.h"
@@ -607,7 +606,17 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.lasttime = 0; /* ||| correct? */
   ctx->text.time = 0; /* ||| correct? */
   ctx->text.showposition = TRUE;
-  ctx->text.lastPos = (ctx->text.source != NULL) ? GETLASTPOS : 0;
+
+  /* Auto-create a default source and sink unless the caller supplied
+   * them via XtNtextSource / XtNtextSink. */
+  if (ctx->text.source == NULL)
+    ctx->text.source = IswCreateWidget("textSource", textSrcObjectClass,
+                                        new, args, *num_args);
+  if (ctx->text.sink == NULL)
+    ctx->text.sink = IswCreateWidget("textSink", textSinkObjectClass,
+                                      new, args, *num_args);
+
+  ctx->text.lastPos = GETLASTPOS;
   ctx->text.file_insert = NULL;
   ctx->text.search = NULL;
   ctx->text.updateFrom = (ISWTextPosition *) IswMalloc((unsigned) ONE);
@@ -624,11 +633,19 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.copy_area_offsets = NULL;
   ctx->text.salt2 = NULL;
 
-  if (ctx->core.height == DEFAULT_TEXT_HEIGHT) {
-    ctx->core.height = VMargins(ctx);
-    if (ctx->text.sink != NULL)
-      ctx->core.height += IswTextSinkMaxHeight(ctx->text.sink, 1);
+  if (ctx->core.height == DEFAULT_TEXT_HEIGHT)
+    ctx->core.height = VMargins(ctx) + IswTextSinkMaxHeight(ctx->text.sink, 1);
+
+  /* Default tab stops every 8 chars. */
+  {
+    int tabs[32], tab, i;
+    for (i = 0, tab = 0; i < 32; i++)
+      tabs[i] = (tab += 8);
+    IswTextSinkSetTabs(ctx->text.sink, 32, tabs);
   }
+
+  IswTextDisableRedisplay(new);
+  IswTextEnableRedisplay(new);
 
   if (ctx->text.scroll_vert != IswtextScrollNever) {
     if ( (ctx->text.resize == IswtextResizeHeight) ||
@@ -787,7 +804,7 @@ _IswTextNeedsUpdating(TextWidget ctx, ISWTextPosition left, ISWTextPosition righ
 }
 
 /*
- * Procedure to read a span of text in Ascii form. This is purely a hack and
+ * Procedure to read a span of text as a flat byte buffer. This is purely a hack and
  * we probably need to add a function to sources to provide this functionality.
  * [note: this is really a private procedure but is used in multiple modules].
  */
@@ -836,29 +853,6 @@ _IswTextGetSTRING(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
   unsigned char c;
   long i, j, n;
 
-  /* allow ESC in accordance with ICCCM */
-#ifdef ISW_INTERNATIONALIZATION
-  if (_IswTextFormat(ctx) == IswFmtWide) {
-     MultiSinkObject sink = (MultiSinkObject) ctx->text.sink;
-     wchar_t *ws, wc;
-     ws = (wchar_t *)_IswTextGetText(ctx, left, right);
-     n = wcslen(ws);
-     for (j = 0, i = 0; j < n; j++) {
-         wc = ws[j];
-         /* Phase 3.5: WC→UTF8 conversion for width check */
-         int utf8_len;
-         char *utf8_text = IswWcToUtf8(&wc, 1, &utf8_len);
-         int has_width = utf8_text && IswTextWidth(sink->multi_sink.fontset, utf8_text, utf8_len) != 0;
-         if (utf8_text) free(utf8_text);
-         
-         if (has_width ||
-            (wc == _Isw_atowc(IswTAB)) || (wc == _Isw_atowc(IswLF)) || (wc == _Isw_atowc(IswESC)))
-            ws[i++] = wc;
-     }
-     ws[i] = (wchar_t)0;
-     return (char *)ws;
-  } else
-#endif
   {
      s = (unsigned char *)_IswTextGetText(ctx, left, right);
      /* only HT and NL control chars are allowed, strip out others */
@@ -1251,8 +1245,8 @@ _IswTextVScroll(TextWidget ctx, int n)
     if (top >= ctx->text.lastPos)
       DisplayTextWindow( (Widget) ctx);
     else {
-      /* Use xcb_copy_area directly — the AsciiSink/MultiSink already owns
-       * a Cairo surface for this window, creating a second would corrupt it. */
+      /* Use xcb_copy_area directly — the TextSink already owns a Cairo
+       * surface for this window, creating a second would corrupt it. */
       xcb_connection_t *conn = IswDisplay(ctx);
       xcb_copy_area(conn, IswWindow(ctx), IswWindow(ctx), ctx->text.gc,
 		    s, y, s, ctx->text.margin.top,
@@ -2821,6 +2815,11 @@ TextDestroy(Widget w)
   DestroyHScrollBar(ctx);
   DestroyVScrollBar(ctx);
 
+  if (ctx->text.source && w == IswParent(ctx->text.source))
+    IswDestroyWidget(ctx->text.source);
+  if (ctx->text.sink && w == IswParent(ctx->text.sink))
+    IswDestroyWidget(ctx->text.sink);
+
   IswFree((char *)ctx->text.s.selections);
   IswFree((char *)ctx->text.lt.info);
   IswFree((char *)ctx->text.search);
@@ -3400,3 +3399,4 @@ TextClassRec textClassRec = {
 };
 
 WidgetClass textWidgetClass = (WidgetClass)&textClassRec;
+

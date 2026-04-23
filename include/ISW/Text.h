@@ -267,12 +267,8 @@ extern void IswTextDisplayCaret(
 
 _XFUNCPROTOEND
 
-/*
- * For R3 compatability only.
- */
-
-#include <ISW/AsciiSrc.h>
-#include <ISW/AsciiSink.h>
+#include <ISW/TextSrc.h>
+#include <ISW/TextSink.h>
 
 #endif /* _ISW_IswText_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

@@ -110,7 +110,6 @@ static XrmQuark IswQBoolean;
 static XrmQuark IswQColor;
 static XrmQuark IswQDimension;
 static XrmQuark IswQFont;
-static XrmQuark IswQFontSet;
 static XrmQuark IswQFontStruct;
 static XrmQuark IswQGravity;
 static XrmQuark IswQInt;
@@ -126,7 +125,6 @@ _IswConvertInitialize(void)
     IswQColor = XrmPermStringToQuark(IswRColor);
     IswQDimension = XrmPermStringToQuark(IswRDimension);
     IswQFont = XrmPermStringToQuark(IswRFont);
-    IswQFontSet = XrmPermStringToQuark(IswRFontSet);
     IswQFontStruct = XrmPermStringToQuark(IswRFontStruct);
     IswQGravity = XrmPermStringToQuark(IswRGravity);
     IswQInt = XrmPermStringToQuark(IswRInt);
@@ -1226,34 +1224,6 @@ IswCvtIntToFont(xcb_connection_t *dpy,
     done(xcb_font_t, *(int *) fromVal->addr);
 }
 
-Boolean
-IswCvtStringToFontSet(xcb_connection_t *dpy,
-                     XrmValuePtr args _X_UNUSED,
-                     Cardinal *num_args _X_UNUSED,
-                     XrmValuePtr fromVal _X_UNUSED,
-                     XrmValuePtr toVal _X_UNUSED,
-                     IswPointer *closure_ret _X_UNUSED)
-{
-    /* IswFontSet is an Xlib-specific locale font abstraction with no XCB
-     * equivalent. This converter is not functional in the XCB port.
-     * Applications requiring FontSet support should use a higher-level
-     * text rendering library (e.g., Pango, Cairo, or libxkbcommon). */
-    IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
-                    "noFontSet", "cvtStringToFontSet", IswCIswToolkitError,
-                    "FontSet conversion not supported in XCB port", NULL, NULL);
-    return False;
-}
-
-static void
-FreeFontSet(IswAppContext app _X_UNUSED,
-            XrmValuePtr toVal _X_UNUSED,
-            IswPointer closure _X_UNUSED,
-            XrmValuePtr args _X_UNUSED,
-            Cardinal *num_args _X_UNUSED)
-{
-    /* No-op: IswFontSet not supported in XCB port */
-}
-
 static void
 FetchLocaleArg(Widget widget _X_UNUSED,
                Cardinal *size _X_UNUSED,
@@ -1856,11 +1826,7 @@ _IswAddDefaultConverters(ConverterTable table)
     Add2(_IswQString, IswQFont, IswCvtStringToFont,
          displayConvertArg, IswNumber(displayConvertArg),
          IswCacheByDisplay, FreeFont);
-    
-    //Add2(_IswQString, IswQFontSet, IswCvtStringToFontSet,
-    //     localeDisplayConvertArgs, IswNumber(localeDisplayConvertArgs),
-    //     IswCacheByDisplay, FreeFontSet);
-    
+
     Add2(_IswQString, IswQFontStruct, IswCvtStringToFontStruct,
          displayConvertArg, IswNumber(displayConvertArg),
          IswCacheByDisplay, FreeFontStruct);

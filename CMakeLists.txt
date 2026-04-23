@@ -162,9 +162,6 @@ set(LIBXT_SOURCES
 
 set(ISW_WIDGET_SOURCES
     src/AllWidgets.c
-    src/AsciiSink.c
-    src/AsciiSrc.c
-    src/AsciiText.c
     src/Box.c
     src/ColorPicker.c
     src/ComboBox.c
@@ -217,6 +214,7 @@ set(ISW_WIDGET_SOURCES
     src/ISWDrawing.c
     src/ISWInit.c
     src/ISWXcbDraw.c
+    src/ISWUtf8.c
     src/ISWXdnd.c
     src/IswTrayIcon.c
     src/Image.c
@@ -242,8 +240,6 @@ set(SVG_SOURCES
 set(I18N_SOURCES)
 if(ISW_INTERNATIONALIZATION)
     set(I18N_SOURCES
-        src/MultiSrc.c
-        src/MultiSink.c
         src/ISWIm.c
         src/ISWI18n.c
     )

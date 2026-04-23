@@ -88,10 +88,6 @@ static IswResource resources[] = {
      offset(foreground), IswRString, IswDefaultForeground},
   {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
      offset(font), IswRString, IswDefaultFont},
-#ifdef ISW_INTERNATIONALIZATION
-  {IswNfontSet,  IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
-     offset(fontset),IswRString, IswDefaultFontSet},
-#endif
   {IswNmenuName, IswCMenuName, IswRString, sizeof(String),
      offset(menu_name), IswRImmediate, (IswPointer) NULL},
   {IswNunderline,  IswCIndex, IswRInt, sizeof(int),
@@ -208,26 +204,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     entry->sme_bsb.left_margin = (entry->sme_bsb.left_margin);
     entry->sme_bsb.right_margin = (entry->sme_bsb.right_margin);
 
-    /* XCB Fix: IswRFontStruct converter may fail in XCB mode, leaving font NULL.
-     * If font is NULL but fontset is available, create a minimal IswFontStruct
-     * using the fontset's font_id (similar to Label.c approach). */
     if (entry->sme_bsb.font == NULL) {
-#ifdef ISW_INTERNATIONALIZATION
-	if (entry->sme_bsb.fontset != NULL) {
-	    /* Allocate and initialize a minimal IswFontStruct from fontset */
-	    entry->sme_bsb.font = (IswFontStruct *)IswMalloc(sizeof(IswFontStruct));
-	    memset(entry->sme_bsb.font, 0, sizeof(IswFontStruct));
-	    entry->sme_bsb.font->fid = entry->sme_bsb.fontset->font_id;
-	    entry->sme_bsb.font->ascent = entry->sme_bsb.fontset->ascent;
-	    entry->sme_bsb.font->descent = entry->sme_bsb.fontset->descent;
-	    entry->sme_bsb.font->min_char_or_byte2 = 0;
-	    entry->sme_bsb.font->max_char_or_byte2 = 255;
-	} else
-#endif
-	{
-	    IswAppWarning(IswWidgetToApplicationContext(new),
-			 "SmeBSB widget: font and fontset are both NULL - text rendering will fail");
-	}
+	IswAppWarning(IswWidgetToApplicationContext(new),
+		     "SmeBSB widget: font is NULL - text rendering will fail");
     }
 
     if (entry->sme_bsb.label == NULL)
@@ -304,19 +283,9 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     SmeBSBObject entry = (SmeBSBObject) w;
     Dimension s = 1;  /* inset from SimpleMenu's 1px drawn border */
     int	font_ascent = 0, font_descent = 0, y_loc;
-#ifdef ISW_INTERNATIONALIZATION
-    int	fontset_ascent = 0, fontset_descent = 0;
-#endif
 
     entry->sme_bsb.set_values_area_cleared = FALSE;
-#ifdef ISW_INTERNATIONALIZATION
-    if ( entry->sme.international == True ) {
-        fontset_ascent = entry->sme_bsb.fontset->ascent;
-        fontset_descent = entry->sme_bsb.fontset->descent;
-    }
-    else
-#endif
-    { /*else, compute size from font like R5*/
+    {
  /* XCB Fix: Add NULL check for font before accessing fields */
  if (entry->sme_bsb.font != NULL) {
      font_ascent = ISWScaledFontAscent(IswParent(w), entry->sme_bsb.font);
@@ -366,12 +335,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 	switch(entry->sme_bsb.justify) {
 	    case IswJustifyCenter:
-#ifdef ISW_INTERNATIONALIZATION
-		if ( entry->sme.international == True )
-		    t_width = IswTextWidth(entry->sme_bsb.fontset,label,len);
-		else
-#endif
-		    t_width = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, label, len);
+		t_width = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, label, len);
 
 		width = entry->rectangle.width -
 				(entry->sme_bsb.left_margin +
@@ -379,12 +343,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		x_loc += (width - t_width)/2;
 		break;
 	    case IswJustifyRight:
-#ifdef ISW_INTERNATIONALIZATION
-		if ( entry->sme.international == True )
-		    t_width = IswTextWidth(entry->sme_bsb.fontset,label,len);
-		else
-#endif
-		    t_width = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, label, len);
+		t_width = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, label, len);
 
 		x_loc = entry->rectangle.width -
 				(entry->sme_bsb.right_margin + t_width);
@@ -396,19 +355,9 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
 	/* this will center the text in the gadget top-to-bottom */
 
-#ifdef ISW_INTERNATIONALIZATION
-        if ( entry->sme.international==True ) {
-            y_loc += ((int)entry->rectangle.height -
-		  (fontset_ascent + fontset_descent)) / 2 + fontset_ascent;
-
-            IswDrawString(IswDisplayOfObject(w), IswWindowOfObject(w),
-                entry->sme_bsb.fontset, XCB_NONE, x_loc + s, y_loc, label, len);
-        }
-        else
-#endif
         {
             y_loc += ((int)entry->rectangle.height -
-    (font_ascent + font_descent)) / 2 + font_ascent;
+                      (font_ascent + font_descent)) / 2 + font_ascent;
 
             if (ctx) {
                 Pixel text_color = highlighted_active
@@ -556,12 +505,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (entry->sme_bsb.right_margin != old_entry->sme_bsb.right_margin)
 	ret_val = TRUE;
 
-#ifdef ISW_INTERNATIONALIZATION
-    if ( ( old_entry->sme_bsb.fontset != entry->sme_bsb.fontset) &&
-				(old_entry->sme.international == True ) )
-        /* don't change the GCs - the fontset is not in them */
-        ret_val = TRUE;
-#endif
 
     if (ret_val) {
 	GetDefaultSize(new,
@@ -655,18 +598,6 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
     SmeBSBObject entry = (SmeBSBObject) w;
     Dimension h;
 
-#ifdef ISW_INTERNATIONALIZATION
-    if ( entry->sme.international == True ) {
-        if (entry->sme_bsb.label == NULL)
-	    *width = 0;
-        else
-	    *width = IswTextWidth(entry->sme_bsb.fontset, entry->sme_bsb.label,
-			    strlen(entry->sme_bsb.label));
-
-        *height = entry->sme_bsb.fontset->height;
-    }
-    else
-#endif
     {
  /* XCB Fix: Add NULL check for font before accessing fields */
  if (entry->sme_bsb.font != NULL) {

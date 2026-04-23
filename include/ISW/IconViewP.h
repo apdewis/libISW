@@ -29,9 +29,6 @@ typedef struct {
     int             label_lines;  /* max label lines (0 or 1 = single line) */
     Pixel           foreground;
     IswFontStruct    *font;
-#ifdef ISW_INTERNATIONALIZATION
-    ISWFontSet     *fontset;
-#endif
     IswCallbackList  select_callback;
     Boolean         multi_select;
 

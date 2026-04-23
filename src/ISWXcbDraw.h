@@ -233,36 +233,7 @@ void ISWReleaseStippledPixmap(xcb_screen_t *screen, xcb_pixmap_t pixmap);
  */
 int ISWFontStructTextWidth(IswFontStruct *font, const char *text, int len);
 
-/*
- * ISWFontSetTextWidth - Calculate text width using IswFontSet (void*)
- *
- * For internationalized text - currently a stub that returns an estimate.
- *
- * Parameters:
- *   fontset - IswFontSet (void*) pointer
- *   text    - Text string
- *   len     - Length of text
- *
- * Returns: Width in pixels (estimated)
- */
-int ISWFontSetTextWidth(void *fontset, const char *text, int len);
-
-/* Generic XTextWidth that handles both types via _Generic in C11 or macro */
-#ifdef __STDC_VERSION__
-#if __STDC_VERSION__ >= 201112L
-/* C11 _Generic selection */
-#define XTextWidth(font, text, len) _Generic((font), \
-    IswFontStruct*: ISWFontStructTextWidth, \
-    default: ISWFontSetTextWidth \
-)((font), (text), (len))
-#else
-/* Pre-C11: use IswFontStruct version by default */
 #define XTextWidth(font, text, len) ISWFontStructTextWidth((IswFontStruct*)(font), (text), (len))
-#endif
-#else
-/* Pre-C11: use IswFontStruct version by default */
-#define XTextWidth(font, text, len) ISWFontStructTextWidth((IswFontStruct*)(font), (text), (len))
-#endif
 
 /* XTextWidth16 stub - XCB doesn't support 16-bit text well, returns estimated width */
 #define XTextWidth16(font, text, len) \

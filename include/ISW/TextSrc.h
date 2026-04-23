@@ -59,11 +59,37 @@ SOFTWARE.
 
 /* Resources:
 
- Name		     Class		RepType		Default Value
- ----		     -----		-------		-------------
- editType	     EditType		IswTextEditType	IswtextRead
+ Name		     Class		RepType			Default Value
+ ----		     -----		-------			-------------
+ editType	     EditType		IswTextEditType		IswtextRead
+ callback	     Callback		Callback		(none)
+ dataCompression     DataCompression	Boolean			True
+ length		     Length		int			(internal)
+ pieceSize	     PieceSize		int			BUFSIZ
+ string		     String		String			NULL
+ type		     Type		IswTextSourceType	IswTextSourceString
+ useStringInPlace    UseStringInPlace	Boolean			False
 
 */
+
+/* Resource Definitions. */
+
+#define IswCDataCompression "DataCompression"
+#define IswCPieceSize "PieceSize"
+#define IswCType "Type"
+#define IswCUseStringInPlace "UseStringInPlace"
+
+#define IswNdataCompression "dataCompression"
+#define IswNpieceSize "pieceSize"
+#define IswNtype "type"
+#define IswNuseStringInPlace "useStringInPlace"
+
+#define IswRTextSourceType "TextSourceType"
+
+#define IswEstring "string"
+#define IswEfile "file"
+
+typedef enum { IswTextSourceFile, IswTextSourceString } IswTextSourceType;
 
 /* Class record constants */
 
@@ -213,6 +239,32 @@ extern void IswTextSourceSetSelection(
     ISWTextPosition	/* start */,
     ISWTextPosition	/* end */,
     xcb_atom_t		/* selection */
+);
+
+/*	Function Name: IswTextSourceFreeString
+ *	Description: Frees the string returned by a get values call
+ *                   on the string when the source is of type string. */
+extern void IswTextSourceFreeString(
+    Widget		/* w */
+);
+
+/*	Function Name: IswTextSourceSave
+ *	Description: Saves all the pieces into a file or string. */
+extern Boolean IswTextSourceSave(
+    Widget		/* w */
+);
+
+/*	Function Name: IswTextSourceSaveAsFile
+ *	Description: Save the current buffer as a file. */
+extern Boolean IswTextSourceSaveAsFile(
+    Widget		/* w */,
+    _Xconst char*	/* name */
+);
+
+/*	Function Name: IswTextSourceChanged
+ *	Description: Returns true if the source has changed since last saved. */
+extern Boolean IswTextSourceChanged(
+    Widget		/* w */
 );
 
 _XFUNCPROTOEND

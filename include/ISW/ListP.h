@@ -82,9 +82,6 @@ typedef struct {
     int         longest;	/* in pixels */
     int         nitems;		/* number of items in the list. */
     IswFontStruct	*font;
-#ifdef ISW_INTERNATIONALIZATION
-    ISWFontSet 	*fontset;	/* Sheeran, Omron KK, 93/03/05 */
-#endif
     String *    list;		/* for i18n, always in multibyte format */
     IswCallbackList callback;
 

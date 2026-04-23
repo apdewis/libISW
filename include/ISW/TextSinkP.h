@@ -19,58 +19,27 @@ X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
 AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Except as contained in this notice, the name of the X Consortium shall not be
-used in advertising or otherwise to promote the sale, use or other dealings
-in this Software without prior written authorization from the X Consortium.
-
-
-Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
-
-                        All Rights Reserved
-
-Permission to use, copy, modify, and distribute this software and its
-documentation for any purpose and without fee is hereby granted,
-provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in
-supporting documentation, and that the name of Digital not be
-used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.
-
-DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
-ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
-DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
-ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
-WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
-ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-SOFTWARE.
-
 ******************************************************************/
 
 /*
  * TextSinkP.h - Private definitions for TextSink object
  *
+ * Single concrete UTF-8 text sink.
  */
 
 #ifndef _ISW_IswTextSinkP_h
 #define _ISW_IswTextSinkP_h
 
-/***********************************************************************
- *
- * TextSink Object Private Data
- *
- ***********************************************************************/
-
 #include <xcb/xcb.h>
 
 #include <ISW/TextSink.h>
-#include <ISW/TextP.h>	/* This source works with the Text widget. */
-#include <ISW/TextSrcP.h>	/* This source works with the Text Source. */
+#include <ISW/TextP.h>
+#include <ISW/TextSrcP.h>
+#include <ISW/ISWRender.h>
 
-/************************************************************
- *
- * New fields for the TextSink object class record.
- *
- ************************************************************/
+/* Class part (vtable) — kept so existing IswTextSink* dispatch functions
+ * continue to work unchanged. There is only one concrete implementation
+ * now, so the vtable entries are always populated by textSinkClassRec. */
 
 typedef void (*_IswSinkDisplayTextProc)
      (Widget, Position, Position, ISWTextPosition, ISWTextPosition, Boolean);
@@ -111,57 +80,55 @@ typedef struct _TextSinkClassPart {
     _IswSinkResolveProc Resolve;
     _IswSinkMaxLinesProc MaxLines;
     _IswSinkMaxHeightProc MaxHeight;
-    _IswSinkSetTabsProc	SetTabs;
+    _IswSinkSetTabsProc SetTabs;
     _IswSinkGetCursorBoundsProc GetCursorBounds;
 } TextSinkClassPart;
 
-/* Full class record declaration */
 typedef struct _TextSinkClassRec {
     ObjectClassPart     object_class;
-    TextSinkClassPart	text_sink_class;
+    TextSinkClassPart   text_sink_class;
 } TextSinkClassRec;
 
 extern TextSinkClassRec textSinkClassRec;
 
-/* New fields for the TextSink object record */
+/* Instance struct — public resources and private state for the concrete
+ * TextSink. */
 typedef struct {
-    /* resources */
-    Pixel foreground;		/* Foreground color. */
-    Pixel background;		/* Background color. */
+    /* public resources */
+    Pixel foreground;
+    Pixel background;
+    IswFontStruct *font;
+    Boolean echo;
+    Boolean display_nonprinting;
 
-    /* private state. */
-    Position *tabs;		/* The tab stops as pixel values. */
-    short    *char_tabs;	/* The tabs stops as character values. */
-    int      tab_count;		/* number of items in tabs */
+    /* private state */
+    Position *tabs;
+    short    *char_tabs;
+    int       tab_count;
 
+    xcb_pixmap_t insertCursorOn;
+    IswTextInsertState laststate;
+    short cursor_x, cursor_y;
+    ISWRenderContext *render_ctx;
 } TextSinkPart;
-
-/****************************************************************
- *
- * Full instance record declaration
- *
- ****************************************************************/
 
 typedef struct _TextSinkRec {
   ObjectPart    object;
-  TextSinkPart	text_sink;
+  TextSinkPart  text_sink;
 } TextSinkRec;
 
-/************************************************************
- *
- * Private declarations.
- *
- ************************************************************/
-
-#define IswInheritDisplayText	   ((_IswSinkDisplayTextProc)_IswInherit)
-#define IswInheritInsertCursor	   ((_IswSinkInsertCursorProc)_IswInherit)
+/* The old IswInherit* sentinels still need to exist for any caller that
+ * references them, but with a single concrete class nothing resolves
+ * through them. */
+#define IswInheritDisplayText       ((_IswSinkDisplayTextProc)_IswInherit)
+#define IswInheritInsertCursor      ((_IswSinkInsertCursorProc)_IswInherit)
 #define IswInheritClearToBackground ((_IswSinkClearToBackgroundProc)_IswInherit)
-#define IswInheritFindPosition	   ((_IswSinkFindPositionProc)_IswInherit)
-#define IswInheritFindDistance	   ((_IswSinkFindDistanceProc)_IswInherit)
-#define IswInheritResolve	   ((_IswSinkResolveProc)_IswInherit)
-#define IswInheritMaxLines	   ((_IswSinkMaxLinesProc)_IswInherit)
-#define IswInheritMaxHeight	   ((_IswSinkMaxHeightProc)_IswInherit)
-#define IswInheritSetTabs	   ((_IswSinkSetTabsProc)_IswInherit)
+#define IswInheritFindPosition      ((_IswSinkFindPositionProc)_IswInherit)
+#define IswInheritFindDistance      ((_IswSinkFindDistanceProc)_IswInherit)
+#define IswInheritResolve           ((_IswSinkResolveProc)_IswInherit)
+#define IswInheritMaxLines          ((_IswSinkMaxLinesProc)_IswInherit)
+#define IswInheritMaxHeight         ((_IswSinkMaxHeightProc)_IswInherit)
+#define IswInheritSetTabs           ((_IswSinkSetTabsProc)_IswInherit)
 #define IswInheritGetCursorBounds   ((_IswSinkGetCursorBoundsProc)_IswInherit)
 
 #endif /* _ISW_IswTextSinkP_h */

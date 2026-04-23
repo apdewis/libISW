@@ -53,7 +53,7 @@
 #include <ISW/Reports.h>
 
 /* Text widgets */
-#include <ISW/AsciiText.h>
+#include <ISW/Text.h>
 #include <ISW/Text.h>
 
 /* Specialized widgets */
@@ -1040,7 +1040,7 @@ Widget create_selection_section(Widget parent) {
 
     /* Section label */
     n = 0;
-    IswSetArg(args[n], IswNlabel, "Selection Widgets: IconView, ListView, List, ComboBox, AsciiText"); n++;
+    IswSetArg(args[n], IswNlabel, "Selection Widgets: IconView, ListView, List, ComboBox, Text"); n++;
     IswSetArg(args[n], IswNborderWidth, 0); n++;
     IswSetArg(args[n], IswNtop, IswChainTop); n++;
     IswSetArg(args[n], IswNleft, IswChainLeft); n++;
@@ -1354,7 +1354,7 @@ Widget create_text_demo(Widget parent) {
     
     /* Title */
     n = 0;
-    IswSetArg(args[n], IswNlabel, "AsciiText Widget (Editable)"); n++;
+    IswSetArg(args[n], IswNlabel, "Text Widget (Editable)"); n++;
     IswSetArg(args[n], IswNborderWidth, 0); n++;
     title = IswCreateManagedWidget("textTitle", labelWidgetClass, box, args, n);
     
@@ -1380,7 +1380,7 @@ Widget create_text_demo(Widget parent) {
              "Line 13: Or use mouse wheel to scroll.\n"
              "Line 14: The text widget is now fully functional.\n"
              "Line 15: End of demo text."); n++;
-    text = IswCreateManagedWidget("textEditor", asciiTextWidgetClass, box, args, n);
+    text = IswCreateManagedWidget("textEditor", textWidgetClass, box, args, n);
     
     return box;
 }
@@ -2108,7 +2108,7 @@ void open_modal_dialog_cb(Widget w, IswPointer client_data, IswPointer call_data
     IswSetArg(args[n], IswNwidth, 300); n++;
     IswSetArg(args[n], IswNstring, ""); n++;
     IswSetArg(args[n], IswNconsumeTab, False); n++;
-    text = IswCreateManagedWidget("entry", asciiTextWidgetClass, form, args, n);
+    text = IswCreateManagedWidget("entry", textWidgetClass, form, args, n);
 
     n = 0;
     IswSetArg(args[n], IswNfromVert, text); n++;

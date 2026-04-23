@@ -111,10 +111,6 @@ static IswResource resources[] = {
 	offset(label.foreground), IswRString, IswDefaultForeground},
     {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
 	offset(label.font),IswRString, IswDefaultFont},
-#ifdef ISW_INTERNATIONALIZATION
-    {IswNfontSet,  IswCFontSet, IswRFontSet, sizeof(IswFontSet ),
-        offset(label.fontset),IswRString, IswDefaultFontSet},
-#endif
     {IswNlabel,  IswCLabel, IswRString, sizeof(String),
 	offset(label.label), IswRString, NULL},
     {IswNencoding, IswCEncoding, IswRUnsignedChar, sizeof(unsigned char),
@@ -361,27 +357,12 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         ? _LabelLoadImage(lw, lw->label.left_image_source) : NULL;
 
     /* XCB Fix: IswRFontStruct converter may fail in XCB mode, leaving font NULL.
-     * If font is NULL but fontset is available, create a minimal IswFontStruct
-     * using the fontset's font_id (similar to MultiSink.c approach). */
+     * Load fallback font if so. */
     if (lw->label.font == NULL) {
-#ifdef ISW_INTERNATIONALIZATION
- if (lw->label.fontset != NULL) {
-     /* Allocate and initialize a minimal IswFontStruct from fontset */
-     lw->label.font = (IswFontStruct *)IswMalloc(sizeof(IswFontStruct));
-     memset(lw->label.font, 0, sizeof(IswFontStruct));
-     lw->label.font->fid = lw->label.fontset->font_id;
-     lw->label.font->ascent = lw->label.fontset->ascent;
-     lw->label.font->descent = lw->label.fontset->descent;
-     lw->label.font->min_char_or_byte2 = 0;
-     lw->label.font->max_char_or_byte2 = 255;
- } else
-#endif
- {
-     /* Both font and fontset are NULL - load fallback font */
-     fprintf(stderr, "WARNING Label.c: Both font and fontset are NULL for widget '%s'\n",
+     fprintf(stderr, "WARNING Label.c: font is NULL for widget '%s'\n",
              IswName(new));
      fprintf(stderr, "         Attempting to load fallback font...\n");
-     
+
      lw->label.font = ISWLoadFallbackFont(IswDisplay(new));
      
      if (lw->label.font == NULL) {
@@ -393,8 +374,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
          fprintf(stderr, "SUCCESS Label.c: Fallback font loaded with fid=%lu\n",
                  (unsigned long)lw->label.font->fid);
      }
- }
-    } else {
     }
 
     /* Initialize render context to NULL (will be created on first use) */
@@ -548,20 +527,6 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      y += (Position)ISWScaledFontAscent((Widget)w, fs);
  }
 
-#ifdef ISW_INTERNATIONALIZATION
- Position ksy;
- if (w->simple.international == True) {
-     if (len != MULTI_LINE_LABEL) {
-         int cap = ISWScaledFontCapHeight((Widget)w, fs);
-         ksy = (Position)(((int)w->core.height + cap) / 2);
-     } else {
-         ksy = w->label.label_y + (Position)ISWScaledFontAscent((Widget)w, fs);
-     }
- } else {
-     ksy = w->label.label_y;
- }
-#endif
-
 	/* display left image */
 	if (w->label.left_image && w->label.lbm_width != 0) {
 	    float lsf = (float)ISWScaleFactor((Widget)w);
@@ -589,42 +554,7 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	    }
 	}
 
-#ifdef ISW_INTERNATIONALIZATION
-        if ( w->simple.international == True ) {
-
-	    ksy += w->label.fontset->ascent;
-
-            /* Use Cairo rendering if available */
-            if (ctx) {
-                ISWRenderBegin(ctx);
-                /* Clear the widget area before drawing so stale text
-                 * from a previous label value doesn't show through. */
-                ISWRenderSetColor(ctx, w->core.background_pixel);
-                ISWRenderFillRectangle(ctx, 0, 0,
-                                       w->core.width, w->core.height);
-                ISWRenderSetFont(ctx, w->label.font);
-                ISWRenderSetColor(ctx, w->label.foreground);
-
-                if (len == MULTI_LINE_LABEL) {
-                    char *nl;
-                    while ((nl = index(label, '\n')) != NULL) {
-                        ISWRenderDrawString(ctx, label, (int)(nl - label),
-                                          w->label.label_x, ksy);
-                        ksy += line_height;
-                        label = nl + 1;
-                    }
-                    len = strlen(label);
-                }
-                if (len)
-                    ISWRenderDrawString(ctx, label, len,
-                                      w->label.label_x, ksy);
-
-                ISWRenderEnd(ctx);
-            }
-
-        } else
-#endif
-        { /* international false, so use XCB core font rendering */
+        {
 
             /* Use Cairo rendering if available */
             if (ctx) {
@@ -774,10 +704,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     if (was_resized ||
 		curlw->label.font != newlw->label.font ||
-#ifdef ISW_INTERNATIONALIZATION
-		(curlw->simple.international &&
-			curlw->label.fontset != newlw->label.fontset) ||
-#endif
 		curlw->label.encoding != newlw->label.encoding ||
 		curlw->label.justify != newlw->label.justify) {
 	SetTextWidthAndHeight(newlw);

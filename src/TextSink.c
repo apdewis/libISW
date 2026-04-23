@@ -1,6 +1,6 @@
-/*
+/***********************************************************
 
-Copyright (c) 1989, 1994  X Consortium
+Copyright (c) 1987, 1988, 1989, 1994  X Consortium
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,673 +19,829 @@ X CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
 AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Except as contained in this notice, the name of the X Consortium shall not be
-used in advertising or otherwise to promote the sale, use or other dealings
-in this Software without prior written authorization from the X Consortium.
-
-*/
+******************************************************************/
 
 /*
- * Author:  Chris Peterson, MIT X Consortium.
+ * TextSink.c - UTF-8 text sink for the Text widget.
  *
- * Much code taken from X11R3 AsciiSink.
- */
-
-/*
- * TextSink.c - TextSink object. (For use with the text widget).
- *
+ * Single concrete class. Text is rendered as UTF-8 via the ISWRender
+ * pipeline.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 #include <stdio.h>
-#include <ctype.h>
+
+#include <X11/Xatom.h>
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/TextSinkP.h>
+#include <ISW/ISWUtf8.h>
+#include <ISW/TextSrcP.h>
 #include <ISW/TextP.h>
+#include <ISW/ISWRender.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#ifdef HAVE_CAIRO
+#include <cairo.h>
+#include <cairo-xcb.h>
+#endif
+#include "ISWXcbDraw.h"
 
-/****************************************************************
- *
- * Full class record constant
- *
- ****************************************************************/
+/* HiDPI helpers: return Cairo-matched scaled font metrics */
+static int ScaledAscent(TextSinkObject sink) {
+    return ISWScaledFontAscent(IswParent((Widget)sink), sink->text_sink.font);
+}
+static int ScaledFontHeight(TextSinkObject sink) {
+    return ISWScaledFontHeight(IswParent((Widget)sink), sink->text_sink.font);
+}
+static int ScaledDescent(TextSinkObject sink) {
+    return ScaledFontHeight(sink) - ScaledAscent(sink);
+}
 
-static void ClassPartInitialize(WidgetClass);
+#ifdef GETLASTPOS
+#undef GETLASTPOS
+#endif
+#define GETLASTPOS IswTextSourceScan(source, (ISWTextPosition) 0, IswstAll, IswsdRight, 1, TRUE)
+
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-
-static int MaxHeight(Widget, int);
 static int MaxLines(Widget, Dimension);
+static int MaxHeight(Widget, int);
+static void SetTabs(Widget, int, short *);
+
 static void DisplayText(Widget, Position, Position, ISWTextPosition,
                         ISWTextPosition, Boolean);
 static void InsertCursor(Widget, Position, Position, IswTextInsertState);
 static void ClearToBackground(Widget, Position, Position, Dimension, Dimension);
 static void FindPosition(Widget, ISWTextPosition, int, int, Boolean,
                          ISWTextPosition *, int *, int *);
-static void FindDistance(Widget, ISWTextPosition, int, ISWTextPosition,
-                         int *, ISWTextPosition *, int *);
+static void FindDistance(Widget, ISWTextPosition, int, ISWTextPosition, int *,
+                         ISWTextPosition *, int *);
 static void Resolve(Widget, ISWTextPosition, int, int, ISWTextPosition *);
-static void SetTabs(Widget, int, short *);
 static void GetCursorBounds(Widget, xcb_rectangle_t *);
 
 #define offset(field) IswOffsetOf(TextSinkRec, text_sink.field)
+
 static IswResource resources[] = {
-  {IswNforeground, IswCForeground, IswRPixel, sizeof (Pixel),
-     offset(foreground), IswRString, IswDefaultForeground},
-  {IswNbackground, IswCBackground, IswRPixel, sizeof (Pixel),
-     offset(background), IswRString, IswDefaultBackground},
+    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+        offset(foreground), IswRString, IswDefaultForeground},
+    {IswNbackground, IswCBackground, IswRPixel, sizeof(Pixel),
+        offset(background), IswRString, IswDefaultBackground},
+    {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+        offset(font), IswRString, IswDefaultFont},
+    {IswNecho, IswCOutput, IswRBoolean, sizeof(Boolean),
+        offset(echo), IswRImmediate, (IswPointer) True},
+    {IswNdisplayNonprinting, IswCOutput, IswRBoolean, sizeof(Boolean),
+        offset(display_nonprinting), IswRImmediate, (IswPointer) True},
 };
 #undef offset
 
-#define SuperClass		(&objectClassRec)
+#define SuperClass (&objectClassRec)
 TextSinkClassRec textSinkClassRec = {
   {
-/* core_class fields */
-    /* superclass	  	*/	(WidgetClass) SuperClass,
-    /* class_name	  	*/	"TextSink",
-    /* widget_size	  	*/	sizeof(TextSinkRec),
-    /* class_initialize   	*/	IswInitializeWidgetSet,
-    /* class_part_initialize	*/	ClassPartInitialize,
-    /* class_inited       	*/	FALSE,
-    /* initialize	  	*/	Initialize,
-    /* initialize_hook		*/	NULL,
-    /* obj1		  	*/	NULL,
-    /* obj2		  	*/	NULL,
-    /* obj3	  		*/	0,
-    /* resources	  	*/	resources,
-    /* num_resources	  	*/	IswNumber(resources),
-    /* xrm_class	  	*/	NULLQUARK,
-    /* obj4		  	*/	FALSE,
-    /* obj5	  		*/	FALSE,
-    /* obj6			*/	FALSE,
-    /* obj7	  	  	*/	FALSE,
-    /* destroy		  	*/	Destroy,
-    /* obj8		  	*/	NULL,
-    /* obj9		  	*/	NULL,
-    /* set_values	  	*/	SetValues,
-    /* set_values_hook		*/	NULL,
-    /* obj10			*/	NULL,
-    /* get_values_hook		*/	NULL,
-    /* obj11		 	*/	NULL,
-    /* version			*/	IswVersion,
-    /* callback_private   	*/	NULL,
-    /* obj12		   	*/	NULL,
-    /* obj13			*/	NULL,
-    /* obj14			*/	NULL,
-    /* extension		*/	NULL
+    /* superclass          */      (WidgetClass) SuperClass,
+    /* class_name          */      "TextSink",
+    /* widget_size         */      sizeof(TextSinkRec),
+    /* class_initialize    */      IswInitializeWidgetSet,
+    /* class_part_initialize */    NULL,
+    /* class_inited        */      FALSE,
+    /* initialize          */      Initialize,
+    /* initialize_hook     */      NULL,
+    /* obj1                */      NULL,
+    /* obj2                */      NULL,
+    /* obj3                */      0,
+    /* resources           */      resources,
+    /* num_resources       */      IswNumber(resources),
+    /* xrm_class           */      NULLQUARK,
+    /* obj4                */      FALSE,
+    /* obj5                */      FALSE,
+    /* obj6                */      FALSE,
+    /* obj7                */      FALSE,
+    /* destroy             */      Destroy,
+    /* obj8                */      NULL,
+    /* obj9                */      NULL,
+    /* set_values          */      SetValues,
+    /* set_values_hook     */      NULL,
+    /* obj10               */      NULL,
+    /* get_values_hook     */      NULL,
+    /* obj11               */      NULL,
+    /* version             */      IswVersion,
+    /* callback_private    */      NULL,
+    /* obj12               */      NULL,
+    /* obj13               */      NULL,
+    /* obj14               */      NULL,
+    /* extension           */      NULL
   },
-/* textSink_class fields */
   {
-    /* DisplayText              */      DisplayText,
-    /* InsertCursor             */      InsertCursor,
-    /* ClearToBackground        */      ClearToBackground,
-    /* FindPosition             */      FindPosition,
-    /* FindDistance             */      FindDistance,
-    /* Resolve                  */      Resolve,
-    /* MaxLines                 */      MaxLines,
-    /* MaxHeight                */      MaxHeight,
-    /* SetTabs                  */      SetTabs,
-    /* GetCursorBounds          */      GetCursorBounds,
+    /* DisplayText         */      DisplayText,
+    /* InsertCursor        */      InsertCursor,
+    /* ClearToBackground   */      ClearToBackground,
+    /* FindPosition        */      FindPosition,
+    /* FindDistance        */      FindDistance,
+    /* Resolve             */      Resolve,
+    /* MaxLines            */      MaxLines,
+    /* MaxHeight           */      MaxHeight,
+    /* SetTabs             */      SetTabs,
+    /* GetCursorBounds     */      GetCursorBounds
   }
 };
 
 WidgetClass textSinkObjectClass = (WidgetClass)&textSinkClassRec;
 
-static void
-ClassPartInitialize(WidgetClass wc)
+/* Utilities */
+
+static int
+CharWidth(Widget w, int x, unsigned char c)
 {
-  TextSinkObjectClass t_src, superC;
+    int i, nonPrinting;
+    TextSinkObject sink = (TextSinkObject) w;
+    IswFontStruct *font = sink->text_sink.font;
+    Position *tab;
 
-  t_src = (TextSinkObjectClass) wc;
-  superC = (TextSinkObjectClass) t_src->object_class.superclass;
+    if (c == IswLF) return 0;
 
-/*
- * We don't need to check for null super since we'll get to TextSink
- * eventually.
- */
+    if (c == IswTAB) {
+        x -= ((TextWidget) IswParent(w))->text.margin.left;
+        if (x >= (int)IswParent(w)->core.width) return 0;
+        for (i = 0, tab = sink->text_sink.tabs;
+             i < sink->text_sink.tab_count; i++, tab++) {
+            if (x < *tab) {
+                if (*tab < (int)IswParent(w)->core.width)
+                    return *tab - x;
+                else
+                    return 0;
+            }
+        }
+        return 0;
+    }
 
-    if (t_src->text_sink_class.DisplayText == IswInheritDisplayText)
-      t_src->text_sink_class.DisplayText = superC->text_sink_class.DisplayText;
+    if ((nonPrinting = (c < (unsigned char) IswSP))) {
+        if (sink->text_sink.display_nonprinting)
+            c += '@';
+        else {
+            c = IswSP;
+            nonPrinting = False;
+        }
+    }
 
-    if (t_src->text_sink_class.InsertCursor == IswInheritInsertCursor)
-      t_src->text_sink_class.InsertCursor =
-                  	                  superC->text_sink_class.InsertCursor;
+    if (sink->text_sink.render_ctx) {
+        char ch_buf[2];
+        if (nonPrinting) {
+            ch_buf[0] = '^';
+            ch_buf[1] = (char)c;
+            return ISWRenderTextWidth(sink->text_sink.render_ctx, ch_buf, 2);
+        }
+        ch_buf[0] = (char)c;
+        return ISWRenderTextWidth(sink->text_sink.render_ctx, ch_buf, 1);
+    }
 
-    if (t_src->text_sink_class.ClearToBackground== IswInheritClearToBackground)
-      t_src->text_sink_class.ClearToBackground =
-	                             superC->text_sink_class.ClearToBackground;
-
-    if (t_src->text_sink_class.FindPosition == IswInheritFindPosition)
-      t_src->text_sink_class.FindPosition =
-	                                  superC->text_sink_class.FindPosition;
-
-    if (t_src->text_sink_class.FindDistance == IswInheritFindDistance)
-      t_src->text_sink_class.FindDistance =
-	                                 superC->text_sink_class.FindDistance;
-
-    if (t_src->text_sink_class.Resolve == IswInheritResolve)
-      t_src->text_sink_class.Resolve = superC->text_sink_class.Resolve;
-
-    if (t_src->text_sink_class.MaxLines == IswInheritMaxLines)
-      t_src->text_sink_class.MaxLines = superC->text_sink_class.MaxLines;
-
-    if (t_src->text_sink_class.MaxHeight == IswInheritMaxHeight)
-      t_src->text_sink_class.MaxHeight = superC->text_sink_class.MaxHeight;
-
-    if (t_src->text_sink_class.SetTabs == IswInheritSetTabs)
-      t_src->text_sink_class.SetTabs = superC->text_sink_class.SetTabs;
-
-    if (t_src->text_sink_class.GetCursorBounds == IswInheritGetCursorBounds)
-      t_src->text_sink_class.GetCursorBounds =
-                                       superC->text_sink_class.GetCursorBounds;
+    {
+        char ch_buf[2];
+        if (nonPrinting) {
+            ch_buf[0] = '^';
+            ch_buf[1] = (char)c;
+            return ISWScaledTextWidth(IswParent(w), font, ch_buf, 2);
+        }
+        ch_buf[0] = (char)c;
+        return ISWScaledTextWidth(IswParent(w), font, ch_buf, 1);
+    }
 }
 
-/*	Function Name: Initialize
- *	Description: Initializes the TextSink Object.
- *	Arguments: request, new - the requested and new values for the object
- *                                instance.
- *	Returns: none.
- *
- */
+static Dimension
+PaintText(Widget w, Boolean highlight, Position x, Position y,
+          unsigned char *buf, int len)
+{
+    TextSinkObject sink = (TextSinkObject) w;
+    TextWidget ctx = (TextWidget) IswParent(w);
+    Position max_x;
+    Dimension width;
+
+    if (!sink->text_sink.render_ctx && IswIsRealized((Widget)ctx) &&
+        ctx->core.width > 0 && ctx->core.height > 0) {
+        sink->text_sink.render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
+        if (sink->text_sink.render_ctx && sink->text_sink.font) {
+            ISWRenderSetFont(sink->text_sink.render_ctx, sink->text_sink.font);
+        }
+    }
+
+    width = ISWRenderTextWidth(sink->text_sink.render_ctx, (char *)buf, len);
+    max_x = (Position) ctx->core.width;
+
+    if (((int) width) <= -x)
+        return width;
+
+    {
+        int asc = ScaledAscent(sink);
+        int desc = ScaledDescent(sink);
+        Pixel bg = highlight ?
+            sink->text_sink.foreground : sink->text_sink.background;
+        ISWRenderSave(sink->text_sink.render_ctx);
+        ISWRenderSetColor(sink->text_sink.render_ctx, bg);
+        ISWRenderFillRectangle(sink->text_sink.render_ctx,
+                               (int)x, (int)y - asc,
+                               (int)(max_x - x), (int)(asc + desc + 1));
+        ISWRenderRestore(sink->text_sink.render_ctx);
+        ISWRenderDrawString(sink->text_sink.render_ctx, (char *)buf, len,
+                            (int)x, (int)y);
+    }
+
+    if ((((Position) width + x) > max_x) && (ctx->text.margin.right != 0)) {
+        x = ctx->core.width - ctx->text.margin.right;
+        width = ctx->text.margin.right;
+        int ascent = ScaledAscent(sink);
+        int descent = ScaledDescent(sink);
+        ISWRenderFillRectangle(sink->text_sink.render_ctx,
+                               (int)x, (int)y - ascent,
+                               (int)width, (int)(ascent + descent));
+        return 0;
+    }
+    return width;
+}
+
+static void
+DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
+            ISWTextPosition pos2, Boolean highlight)
+{
+    TextSinkObject sink = (TextSinkObject) w;
+    Widget source = IswTextGetSource(IswParent(w));
+    TextWidget ctx = (TextWidget) IswParent(w);
+    unsigned char buf[BUFSIZ];
+    int j, k;
+    ISWTextBlock blk;
+    Pixel fg_color = highlight ? sink->text_sink.background : sink->text_sink.foreground;
+    Pixel bg_color = highlight ? sink->text_sink.foreground : sink->text_sink.background;
+
+    if (!sink->text_sink.echo) return;
+
+    if (!sink->text_sink.render_ctx && IswIsRealized((Widget)ctx) &&
+        ctx->core.width > 0 && ctx->core.height > 0) {
+        sink->text_sink.render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
+        if (sink->text_sink.render_ctx && sink->text_sink.font) {
+            ISWRenderSetFont(sink->text_sink.render_ctx, sink->text_sink.font);
+        }
+    }
+
+    if (sink->text_sink.render_ctx) {
+        ISWRenderBegin(sink->text_sink.render_ctx);
+        ISWRenderSetClipRectangle(sink->text_sink.render_ctx,
+                                  0, 0,
+                                  (int)ctx->core.width,
+                                  (int)ctx->core.height);
+        ISWRenderSetColor(sink->text_sink.render_ctx, fg_color);
+    }
+
+    y += ScaledAscent(sink);
+
+    for (j = 0; pos1 < pos2;) {
+        pos1 = IswTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
+        for (k = 0; k < blk.length; k++) {
+            if (j >= BUFSIZ) {
+                x += PaintText(w, highlight, x, y, buf, j);
+                j = 0;
+            }
+            buf[j] = blk.ptr[k];
+            if (buf[j] == IswLF)
+                continue;
+            else if (buf[j] == '\t') {
+                Position temp = 0;
+                Dimension width;
+                if ((j != 0) && ((temp = PaintText(w, highlight, x, y, buf, j)) == 0))
+                    return;
+                x += temp;
+                width = CharWidth(w, x, (unsigned char) '\t');
+                int ascent = ScaledAscent(sink);
+                int descent = ScaledDescent(sink);
+                ISWRenderSave(sink->text_sink.render_ctx);
+                ISWRenderSetColor(sink->text_sink.render_ctx, bg_color);
+                ISWRenderFillRectangle(sink->text_sink.render_ctx,
+                                       (int)x, (int)y - ascent,
+                                       (int)width, (int)(ascent + descent));
+                ISWRenderRestore(sink->text_sink.render_ctx);
+                x += width;
+                j = -1;
+            }
+            else if (buf[j] < (unsigned char) ' ') {
+                if (sink->text_sink.display_nonprinting) {
+                    buf[j + 1] = buf[j] + '@';
+                    buf[j] = '^';
+                    j++;
+                }
+                else
+                    buf[j] = ' ';
+            }
+            j++;
+        }
+    }
+    if (j > 0)
+        (void) PaintText(w, highlight, x, y, buf, j);
+
+    if (sink->text_sink.render_ctx) {
+        ISWRenderEnd(sink->text_sink.render_ctx);
+    }
+}
+
+static void
+ClearToBackground(Widget w, Position x, Position y,
+                  Dimension width, Dimension height)
+{
+    if (height == 0 || width == 0) return;
+
+    TextSinkObject sink = (TextSinkObject) w;
+    TextWidget ctx = (TextWidget) IswParent(w);
+
+    if (!sink->text_sink.render_ctx && IswIsRealized((Widget)ctx) &&
+        ctx->core.width > 0 && ctx->core.height > 0) {
+        sink->text_sink.render_ctx = ISWRenderCreate((Widget)ctx, ISW_RENDER_BACKEND_AUTO);
+        if (sink->text_sink.render_ctx && sink->text_sink.font)
+            ISWRenderSetFont(sink->text_sink.render_ctx, sink->text_sink.font);
+    }
+
+    if (sink->text_sink.render_ctx) {
+        ISWRenderBegin(sink->text_sink.render_ctx);
+        ISWRenderSetColor(sink->text_sink.render_ctx,
+                          sink->text_sink.background);
+        ISWRenderFillRectangle(sink->text_sink.render_ctx,
+                               (int)x, (int)y,
+                               (int)width, (int)height);
+        ISWRenderEnd(sink->text_sink.render_ctx);
+    }
+}
+
+#define insertCursor_width 6
+#define insertCursor_height 3
+static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
+
+static xcb_pixmap_t
+CreateInsertCursor(Widget w)
+{
+    xcb_connection_t *conn = IswDisplayOfObject(w);
+    xcb_screen_t *s = IswScreenOfObject(w);
+    xcb_drawable_t root = RootWindowOfScreen(s);
+    return IswCreateBitmapFromData(conn, root,
+            insertCursor_bits, insertCursor_width, insertCursor_height);
+}
+
+static void
+GetCursorBounds(Widget w, xcb_rectangle_t *rect)
+{
+    TextSinkObject sink = (TextSinkObject) w;
+
+    rect->width = (uint16_t) insertCursor_width;
+    rect->height = (uint16_t) insertCursor_height;
+    rect->x = sink->text_sink.cursor_x - (int16_t) (rect->width / 2);
+    rect->y = sink->text_sink.cursor_y - (int16_t) rect->height;
+}
+
+static void
+InsertCursor(Widget w, Position x, Position y, IswTextInsertState state)
+{
+    TextSinkObject sink = (TextSinkObject) w;
+    Widget text_widget = IswParent(w);
+    xcb_rectangle_t rect;
+
+    sink->text_sink.cursor_x = x;
+    sink->text_sink.cursor_y = y;
+
+    GetCursorBounds(w, &rect);
+    if (state != sink->text_sink.laststate && IswIsRealized(text_widget)) {
+        if (state == IswisOn) {
+            int h = ScaledFontHeight(sink);
+            ISWRenderBegin(sink->text_sink.render_ctx);
+            ISWRenderSetColor(sink->text_sink.render_ctx,
+                              sink->text_sink.foreground);
+            ISWRenderFillRectangle(sink->text_sink.render_ctx,
+                                   (int)x - 1, (int)y - h, 2, h);
+            ISWRenderEnd(sink->text_sink.render_ctx);
+        } else if (state == IswisOff) {
+            int h = ScaledFontHeight(sink);
+            ISWRenderBegin(sink->text_sink.render_ctx);
+            ISWRenderSetColor(sink->text_sink.render_ctx,
+                              sink->text_sink.background);
+            ISWRenderFillRectangle(sink->text_sink.render_ctx,
+                                   (int)x - 1, (int)y - h, 2, h);
+            ISWRenderEnd(sink->text_sink.render_ctx);
+        }
+    }
+    sink->text_sink.laststate = state;
+}
+
+static void
+FindDistance(Widget w, ISWTextPosition fromPos, int fromx,
+             ISWTextPosition toPos, int *resWidth,
+             ISWTextPosition *resPos, int *resHeight)
+{
+    TextSinkObject sink = (TextSinkObject) w;
+    Widget source = IswTextGetSource(IswParent(w));
+    ISWTextPosition index, lastPos;
+    unsigned char c;
+    ISWTextBlock blk;
+
+    lastPos = GETLASTPOS;
+    IswTextSourceRead(source, fromPos, &blk, (int) toPos - fromPos);
+    *resWidth = 0;
+    {
+        unsigned char buf[BUFSIZ];
+        int buflen = 0;
+
+        for (index = fromPos; index != toPos && index < lastPos; index++) {
+            if (index - blk.firstPos >= blk.length)
+                IswTextSourceRead(source, index, &blk, (int) toPos - fromPos);
+            c = blk.ptr[index - blk.firstPos];
+            if (c == IswLF) {
+                index++;
+                break;
+            }
+            if (c == IswTAB || c < (unsigned char)IswSP) {
+                if (buflen > 0 && sink->text_sink.render_ctx) {
+                    *resWidth += ISWRenderTextWidth(sink->text_sink.render_ctx,
+                                                    (char *)buf, buflen);
+                } else if (buflen > 0) {
+                    *resWidth += ISWScaledTextWidth(IswParent(w),
+                                                    sink->text_sink.font,
+                                                    (char *)buf, buflen);
+                }
+                buflen = 0;
+                *resWidth += CharWidth(w, fromx + *resWidth, c);
+            } else {
+                if (c < (unsigned char)IswSP && sink->text_sink.display_nonprinting) {
+                    buf[buflen++] = '^';
+                    buf[buflen++] = c + '@';
+                } else {
+                    buf[buflen++] = c;
+                }
+                if (buflen >= BUFSIZ - 2) {
+                    if (sink->text_sink.render_ctx)
+                        *resWidth += ISWRenderTextWidth(sink->text_sink.render_ctx,
+                                                        (char *)buf, buflen);
+                    else
+                        *resWidth += ISWScaledTextWidth(IswParent(w),
+                                                        sink->text_sink.font,
+                                                        (char *)buf, buflen);
+                    buflen = 0;
+                }
+            }
+        }
+        if (buflen > 0) {
+            if (sink->text_sink.render_ctx)
+                *resWidth += ISWRenderTextWidth(sink->text_sink.render_ctx,
+                                                (char *)buf, buflen);
+            else
+                *resWidth += ISWScaledTextWidth(IswParent(w),
+                                                sink->text_sink.font,
+                                                (char *)buf, buflen);
+        }
+    }
+    *resPos = index;
+    *resHeight = ScaledFontHeight(sink);
+}
+
+static void
+FindPosition(Widget w,
+             ISWTextPosition fromPos,
+             int fromx,
+             int width,
+             Boolean stopAtWordBreak,
+             ISWTextPosition *resPos,
+             int *resWidth,
+             int *resHeight)
+{
+    TextSinkObject sink = (TextSinkObject) w;
+    Widget source = IswTextGetSource(IswParent(w));
+    ISWTextPosition lastPos, index, whiteSpacePosition = 0;
+    int lastWidth = 0, whiteSpaceWidth = 0;
+    Boolean whiteSpaceSeen;
+    unsigned char c;
+    ISWTextBlock blk;
+
+    lastPos = GETLASTPOS;
+    IswTextSourceRead(source, fromPos, &blk, BUFSIZ);
+    *resWidth = 0;
+    whiteSpaceSeen = FALSE;
+    c = 0;
+    index = fromPos;
+    while (*resWidth <= width && index < lastPos) {
+        lastWidth = *resWidth;
+        if (index - blk.firstPos >= blk.length)
+            IswTextSourceRead(source, index, &blk, BUFSIZ);
+        c = blk.ptr[index - blk.firstPos];
+
+        int step;
+        if (c == IswLF || c == IswTAB || c < (unsigned char)IswSP) {
+            *resWidth += CharWidth(w, fromx + *resWidth, c);
+            step = 1;
+        } else {
+            int avail = (int)(blk.length - (index - blk.firstPos));
+            step = _IswUtf8CharLen((const char *)(blk.ptr + (index - blk.firstPos)), avail);
+            if (step <= 0) step = 1;
+            if (step > avail) step = avail;
+            if (sink->text_sink.render_ctx) {
+                *resWidth += ISWRenderTextWidth(sink->text_sink.render_ctx,
+                                                (const char *)(blk.ptr + (index - blk.firstPos)),
+                                                step);
+            } else {
+                *resWidth += ISWScaledTextWidth(IswParent(w), sink->text_sink.font,
+                                                (const char *)(blk.ptr + (index - blk.firstPos)),
+                                                step);
+            }
+        }
+
+        if ((c == IswSP || c == IswTAB) && *resWidth <= width) {
+            whiteSpaceSeen = TRUE;
+            whiteSpacePosition = index;
+            whiteSpaceWidth = *resWidth;
+        }
+        if (c == IswLF) {
+            index += step;
+            break;
+        }
+        index += step;
+    }
+    if (*resWidth > width && index > fromPos) {
+        *resWidth = lastWidth;
+        ISWTextPosition prev = fromPos;
+        ISWTextPosition probe = fromPos;
+        while (probe < index) {
+            if (probe - blk.firstPos >= blk.length)
+                IswTextSourceRead(source, probe, &blk, BUFSIZ);
+            unsigned char pc = blk.ptr[probe - blk.firstPos];
+            int st;
+            if (pc == IswLF || pc == IswTAB || pc < (unsigned char)IswSP) {
+                st = 1;
+            } else {
+                int av = (int)(blk.length - (probe - blk.firstPos));
+                st = _IswUtf8CharLen((const char *)(blk.ptr + (probe - blk.firstPos)), av);
+                if (st <= 0) st = 1;
+            }
+            prev = probe;
+            probe += st;
+        }
+        index = prev;
+        if (stopAtWordBreak && whiteSpaceSeen) {
+            index = whiteSpacePosition + 1;
+            *resWidth = whiteSpaceWidth;
+        }
+    }
+    if (index == lastPos && c != IswLF) index = lastPos + 1;
+    *resPos = index;
+    *resHeight = ScaledFontHeight(sink);
+}
+
+static void
+Resolve(Widget w, ISWTextPosition pos, int fromx, int width, ISWTextPosition *resPos)
+{
+    int resWidth, resHeight;
+    Widget source = IswTextGetSource(IswParent(w));
+
+    FindPosition(w, pos, fromx, width, FALSE, resPos, &resWidth, &resHeight);
+    if (*resPos > GETLASTPOS)
+        *resPos = GETLASTPOS;
+}
 
 /* ARGSUSED */
 static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
-  TextSinkObject sink = (TextSinkObject) new;
+    TextSinkObject sink = (TextSinkObject) new;
 
-  sink->text_sink.tab_count = 0; /* Initialize the tab stops. */
-  sink->text_sink.tabs = NULL;
-  sink->text_sink.char_tabs = NULL;
+    sink->text_sink.tab_count = 0;
+    sink->text_sink.tabs = NULL;
+    sink->text_sink.char_tabs = NULL;
+
+    if (sink->text_sink.font == NULL) {
+        IswAppWarning(IswWidgetToApplicationContext(new),
+                      "TextSink widget: font is NULL - text rendering will fail");
+    }
+
+    sink->text_sink.insertCursorOn = CreateInsertCursor(new);
+    sink->text_sink.laststate = IswisOff;
+    sink->text_sink.cursor_x = sink->text_sink.cursor_y = 0;
+    sink->text_sink.render_ctx = NULL;
 }
-
-/*	Function Name: Destroy
- *	Description: This function cleans up when the object is
- *                   destroyed.
- *	Arguments: w - the TextSink Object.
- *	Returns: none.
- */
 
 static void
 Destroy(Widget w)
 {
-  TextSinkObject sink = (TextSinkObject) w;
+    TextSinkObject sink = (TextSinkObject) w;
 
-  IswFree((char *) sink->text_sink.tabs);
-  IswFree((char *) sink->text_sink.char_tabs);
+    IswFree((char *) sink->text_sink.tabs);
+    IswFree((char *) sink->text_sink.char_tabs);
+
+    if (sink->text_sink.render_ctx) {
+        ISWRenderDestroy(sink->text_sink.render_ctx);
+        sink->text_sink.render_ctx = NULL;
+    }
+
+    ISWFreePixmap(IswDisplayOfObject(w), sink->text_sink.insertCursorOn);
 }
-
-/*	Function Name: SetValues
- *	Description: Sets the values for the TextSink
- *	Arguments: current - current state of the object.
- *                 request - what was requested.
- *                 new - what the object will become.
- *	Returns: True if redisplay is needed.
- */
 
 /* ARGSUSED */
 static Boolean
 SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
-  TextSinkObject w = (TextSinkObject) new;
-  TextSinkObject old_w = (TextSinkObject) current;
+    TextSinkObject w = (TextSinkObject) new;
+    TextSinkObject old_w = (TextSinkObject) current;
 
-  if (w->text_sink.foreground != old_w->text_sink.foreground)
-     ((TextWidget)IswParent(new))->text.redisplay_needed = True;
+    Bool font_changed = False;
+    if (w->text_sink.font != NULL && old_w->text_sink.font != NULL) {
+        font_changed = (w->text_sink.font->fid != old_w->text_sink.font->fid);
+    } else if (w->text_sink.font != old_w->text_sink.font) {
+        font_changed = True;
+    }
 
-  return FALSE;
+    if (font_changed ||
+        w->text_sink.background != old_w->text_sink.background ||
+        w->text_sink.foreground != old_w->text_sink.foreground) {
+        ((TextWidget)IswParent(new))->text.redisplay_needed = True;
+    } else {
+        if ((w->text_sink.echo != old_w->text_sink.echo) ||
+            (w->text_sink.display_nonprinting !=
+                 old_w->text_sink.display_nonprinting))
+            ((TextWidget)IswParent(new))->text.redisplay_needed = True;
+    }
+
+    return False;
 }
-
-/************************************************************
- *
- * Class specific methods.
- *
- ************************************************************/
-
-/*	Function Name: DisplayText
- *	Description: Stub function that in subclasses will display text.
- *	Arguments: w - the TextSink Object.
- *                 x, y - location to start drawing text.
- *                 pos1, pos2 - location of starting and ending points
- *                              in the text buffer.
- *                 highlight - hightlight this text?
- *	Returns: none.
- *
- * This function doesn't actually display anything, it is only a place
- * holder.
- */
-
-/* ARGSUSED */
-static void
-DisplayText(Widget w, Position x, Position y, ISWTextPosition pos1,
-            ISWTextPosition pos2, Boolean highlight)
-{
-  return;
-}
-
-/*	Function Name: InsertCursor
- *	Description: Places the InsertCursor.
- *	Arguments: w - the TextSink Object.
- *                 x, y - location for the cursor.
- *                 staye - whether to turn the cursor on, or off.
- *	Returns: none.
- *
- * This function doesn't actually display anything, it is only a place
- * holder.
- */
-
-/* ARGSUSED */
-static void
-InsertCursor(Widget w, Position x, Position y, IswTextInsertState state)
-{
-  return;
-}
-
-/*	Function Name: ClearToBackground
- *	Description: Clears a region of the sink to the background color.
- *	Arguments: w - the TextSink Object.
- *                 x, y  - location of area to clear.
- *                 width, height - size of area to clear
- *	Returns: void.
- *
- */
-
-/* ARGSUSED */
-static void
-ClearToBackground(Widget w, Position x, Position y, Dimension width, Dimension height)
-{
-/*
- * Don't clear in height or width are zero.
- * XClearArea() has special semantic for these values.
- */
-
-    if ( (height == 0) || (width == 0) ) return;
-
-    /*
-     * Use xcb_clear_area directly — do NOT create a temporary ISWRenderContext.
-     * The AsciiSink/MultiSink subclasses maintain a persistent render_ctx with
-     * a Cairo surface for this window. Creating a second Cairo surface for the
-     * same window causes undefined behavior and surface corruption.
-     * xcb_clear_area is a server-side operation that works safely alongside
-     * Cairo when called between Begin/End render pairs.
-     */
-    xcb_connection_t *conn = IswDisplayOfObject(w);
-    xcb_clear_area(conn, 0, IswWindowOfObject(w), x, y, width, height);
-    xcb_flush(conn);
-}
-
-/*	Function Name: FindPosition
- *	Description: Finds a position in the text.
- *	Arguments: w - the TextSink Object.
- *                 fromPos - reference position.
- *                 fromX   - reference location.
- *                 width,  - width of section to paint text.
- *                 stopAtWordBreak - returned position is a word break?
- *                 resPos - Position to return.      *** RETURNED ***
- *                 resWidth - Width actually used.   *** RETURNED ***
- *                 resHeight - Height actually used. *** RETURNED ***
- *	Returns: none (see above).
- */
-
-/* ARGSUSED */
-static void
-FindPosition(Widget w, ISWTextPosition fromPos, int fromx, int width, Boolean stopAtWordBreak,
-             ISWTextPosition *resPos, int *resWidth, int *resHeight)
-{
-  *resPos = fromPos;
-  *resHeight = *resWidth = 0;
-}
-
-/*	Function Name: FindDistance
- *	Description: Find the Pixel Distance between two text Positions.
- *	Arguments: w - the TextSink Object.
- *                 fromPos - starting Position.
- *                 fromX   - x location of starting Position.
- *                 toPos   - end Position.
- *                 resWidth - Distance between fromPos and toPos.
- *                 resPos   - Acutal toPos used.
- *                 resHeight - Height required by this text.
- *	Returns: none.
- */
-
-/* ARGSUSED */
-static void
-FindDistance(Widget w, ISWTextPosition fromPos, int fromx, ISWTextPosition toPos,
-             int *resWidth, ISWTextPosition *resPos, int *resHeight)
-{
-  *resWidth = *resHeight = 0;
-  *resPos = fromPos;
-}
-
-/*	Function Name: Resolve
- *	Description: Resloves a location to a position.
- *	Arguments: w - the TextSink Object.
- *                 pos - a reference Position.
- *                 fromx - a reference Location.
- *                 width - width to move.
- *                 resPos - the resulting position.
- *	Returns: none
- */
-
-/* ARGSUSED */
-static void
-Resolve(Widget w, ISWTextPosition pos, int fromx, int width, ISWTextPosition *resPos)
-{
-  *resPos = pos;
-}
-
-/*	Function Name: MaxLines
- *	Description: Finds the Maximum number of lines that will fit in
- *                   a given height.
- *	Arguments: w - the TextSink Object.
- *                 height - height to fit lines into.
- *	Returns: the number of lines that will fit.
- */
 
 /* ARGSUSED */
 static int
 MaxLines(Widget w, Dimension height)
 {
-  /*
-   * The fontset has gone down to descent Sink Widget, so
-   * the functions such MaxLines, SetTabs... are bound to the descent.
-   *
-   * by Li Yuhong, Jan. 15, 1991
-   */
-  return 0;
+    TextSinkObject sink = (TextSinkObject) w;
+    int font_height = ScaledFontHeight(sink);
+    return ((int) height) / font_height;
 }
-
-/*	Function Name: MaxHeight
- *	Description: Finds the Minium height that will contain a given number
- *                   lines.
- *	Arguments: w - the TextSink Object.
- *                 lines - the number of lines.
- *	Returns: the height.
- */
 
 /* ARGSUSED */
 static int
 MaxHeight(Widget w, int lines)
 {
-  return 0;
+    TextSinkObject sink = (TextSinkObject) w;
+    int line_height = ScaledFontHeight(sink);
+    return lines * line_height;
 }
 
-/*	Function Name: SetTabs
- *	Description: Sets the Tab stops.
- *	Arguments: w - the TextSink Object.
- *                 tab_count - the number of tabs in the list.
- *                 tabs - the text positions of the tabs.
- *	Returns: none
- */
-
-/*ARGSUSED*/
 static void
 SetTabs(Widget w, int tab_count, short *tabs)
 {
-  return;
+    TextSinkObject sink = (TextSinkObject) w;
+    int i;
+    unsigned long figure_width = 0;
+    IswFontStruct *font = sink->text_sink.font;
+
+    figure_width = ISWScaledTextWidth(IswParent(w), font, "$", 1);
+    if (figure_width == 0)
+        figure_width = 8;
+
+    if (tab_count > sink->text_sink.tab_count) {
+        sink->text_sink.tabs = (Position *)
+            IswRealloc((char *) sink->text_sink.tabs,
+                       (Cardinal) (tab_count * sizeof(Position)));
+        sink->text_sink.char_tabs = (short *)
+            IswRealloc((char *) sink->text_sink.char_tabs,
+                       (Cardinal) (tab_count * sizeof(short)));
+    }
+
+    for (i = 0; i < tab_count; i++) {
+        sink->text_sink.tabs[i] = tabs[i] * figure_width;
+        sink->text_sink.char_tabs[i] = tabs[i];
+    }
+
+    sink->text_sink.tab_count = tab_count;
+
+#ifndef NO_TAB_FIX
+    {
+        TextWidget ctx = (TextWidget)IswParent(w);
+        ctx->text.redisplay_needed = True;
+        _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
+    }
+#endif
 }
 
-/*	Function Name: GetCursorBounds
- *	Description: Finds the bounding box for the insert curor (caret).
- *	Arguments: w - the TextSinkObject.
- *                 rect - an X rectance containing the cursor bounds.
- *	Returns: none (fills in rect).
- */
-
-/* ARGSUSED */
-static void
-GetCursorBounds(Widget w, xcb_rectangle_t * rect)
-{
-  rect->x = rect->y = rect->width = rect->height = 0;
-}
 /************************************************************
  *
- * Public Functions.
+ * Public dispatch API — unchanged from the old abstract TextSink.
  *
  ************************************************************/
 
-
-/*	Function Name: IswTextSinkDisplayText
- *	Description: Stub function that in subclasses will display text.
- *	Arguments: w - the TextSink Object.
- *                 x, y - location to start drawing text.
- *                 pos1, pos2 - location of starting and ending points
- *                              in the text buffer.
- *                 highlight - hightlight this text?
- *	Returns: none.
- *
- * This function doesn't actually display anything, it is only a place
- * holder.
- */
-
-/* ARGSUSED */
 void
 IswTextSinkDisplayText(Widget w,
 #if NeedWidePrototypes
-		       /* Position */ int x, /* Position */ int y,
+                       int x, int y,
 #else
-		       Position x, Position y,
+                       Position x, Position y,
 #endif
-		       ISWTextPosition pos1, ISWTextPosition pos2,
+                       ISWTextPosition pos1, ISWTextPosition pos2,
 #if NeedWidePrototypes
-		       /* Boolean */ int highlight)
+                       int highlight)
 #else
-		       Boolean highlight)
+                       Boolean highlight)
 #endif
 {
-  TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-
-  (*class->text_sink_class.DisplayText)(w, x, y, pos1, pos2, highlight);
+    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+    (*class->text_sink_class.DisplayText)(w, x, y, pos1, pos2, highlight);
 }
 
-/*	Function Name: IswTextSinkInsertCursor
- *	Description: Places the InsertCursor.
- *	Arguments: w - the TextSink Object.
- *                 x, y - location for the cursor.
- *                 staye - whether to turn the cursor on, or off.
- *	Returns: none.
- *
- * This function doesn't actually display anything, it is only a place
- * holder.
- */
-
-/* ARGSUSED */
 void
 IswTextSinkInsertCursor(Widget w,
 #if NeedWidePrototypes
-			int x, int y, int state)
+                        int x, int y, int state)
 #else
-			Position x, Position y, IswTextInsertState state)
+                        Position x, Position y, IswTextInsertState state)
 #endif
 {
-  TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-
-  (*class->text_sink_class.InsertCursor)(w, x, y, state);
+    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+    (*class->text_sink_class.InsertCursor)(w, x, y, state);
 }
 
-
-/*	Function Name: IswTextSinkClearToBackground
- *	Description: Clears a region of the sink to the background color.
- *	Arguments: w - the TextSink Object.
- *                 x, y  - location of area to clear.
- *                 width, height - size of area to clear
- *	Returns: void.
- *
- * This function doesn't actually display anything, it is only a place
- * holder.
- */
-
-/* ARGSUSED */
 void
-IswTextSinkClearToBackground (Widget w,
+IswTextSinkClearToBackground(Widget w,
 #if NeedWidePrototypes
-			      int x, int y, int width, int height)
+                             int x, int y, int width, int height)
 #else
-			      Position x, Position y,
-			      Dimension width, Dimension height)
+                             Position x, Position y,
+                             Dimension width, Dimension height)
 #endif
 {
-  TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-
-  (*class->text_sink_class.ClearToBackground)(w, x, y, width, height);
+    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+    (*class->text_sink_class.ClearToBackground)(w, x, y, width, height);
 }
 
-/*	Function Name: IswTextSinkFindPosition
- *	Description: Finds a position in the text.
- *	Arguments: w - the TextSink Object.
- *                 fromPos - reference position.
- *                 fromX   - reference location.
- *                 width,  - width of section to paint text.
- *                 stopAtWordBreak - returned position is a word break?
- *                 resPos - Position to return.      *** RETURNED ***
- *                 resWidth - Width actually used.   *** RETURNED ***
- *                 resHeight - Height actually used. *** RETURNED ***
- *	Returns: none (see above).
- */
-
-/* ARGSUSED */
 void
 IswTextSinkFindPosition(Widget w, ISWTextPosition fromPos, int fromx,
-			int width,
+                        int width,
 #if NeedWidePrototypes
-			/* Boolean */ int stopAtWordBreak,
+                        int stopAtWordBreak,
 #else
-			Boolean stopAtWordBreak,
+                        Boolean stopAtWordBreak,
 #endif
-			ISWTextPosition *resPos, int *resWidth, int *resHeight)
+                        ISWTextPosition *resPos, int *resWidth, int *resHeight)
 {
-  TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-
-  (*class->text_sink_class.FindPosition)(w, fromPos, fromx, width,
-					 stopAtWordBreak,
-					 resPos, resWidth, resHeight);
+    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+    (*class->text_sink_class.FindPosition)(w, fromPos, fromx, width,
+                                            stopAtWordBreak,
+                                            resPos, resWidth, resHeight);
 }
 
-/*	Function Name: IswTextSinkFindDistance
- *	Description: Find the Pixel Distance between two text Positions.
- *	Arguments: w - the TextSink Object.
- *                 fromPos - starting Position.
- *                 fromX   - x location of starting Position.
- *                 toPos   - end Position.
- *                 resWidth - Distance between fromPos and toPos.
- *                 resPos   - Acutal toPos used.
- *                 resHeight - Height required by this text.
- *	Returns: none.
- */
-
-/* ARGSUSED */
 void
-IswTextSinkFindDistance (Widget w, ISWTextPosition fromPos, int fromx,
-			 ISWTextPosition toPos, int *resWidth,
-			 ISWTextPosition *resPos, int *resHeight)
+IswTextSinkFindDistance(Widget w, ISWTextPosition fromPos, int fromx,
+                        ISWTextPosition toPos, int *resWidth,
+                        ISWTextPosition *resPos, int *resHeight)
 {
-  TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-
-  (*class->text_sink_class.FindDistance)(w, fromPos, fromx, toPos,
-					 resWidth, resPos, resHeight);
+    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+    (*class->text_sink_class.FindDistance)(w, fromPos, fromx, toPos,
+                                           resWidth, resPos, resHeight);
 }
 
-/*	Function Name: IswTextSinkResolve
- *	Description: Resloves a location to a position.
- *	Arguments: w - the TextSink Object.
- *                 pos - a reference Position.
- *                 fromx - a reference Location.
- *                 width - width to move.
- *                 resPos - the resulting position.
- *	Returns: none
- */
-
-/* ARGSUSED */
 void
 IswTextSinkResolve(Widget w, ISWTextPosition pos, int fromx, int width,
-		   ISWTextPosition *resPos)
+                   ISWTextPosition *resPos)
 {
-  TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-
-  (*class->text_sink_class.Resolve)(w, pos, fromx, width, resPos);
+    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+    (*class->text_sink_class.Resolve)(w, pos, fromx, width, resPos);
 }
 
-/*	Function Name: IswTextSinkMaxLines
- *	Description: Finds the Maximum number of lines that will fit in
- *                   a given height.
- *	Arguments: w - the TextSink Object.
- *                 height - height to fit lines into.
- *	Returns: the number of lines that will fit.
- */
-
-/* ARGSUSED */
 int
 IswTextSinkMaxLines(Widget w,
 #if NeedWidePrototypes
-		    /* Dimension */ int height)
+                    int height)
 #else
-		    Dimension height)
+                    Dimension height)
 #endif
 {
-  TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-
-  return((*class->text_sink_class.MaxLines)(w, height));
+    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+    return (*class->text_sink_class.MaxLines)(w, height);
 }
 
-/*	Function Name: IswTextSinkMaxHeight
- *	Description: Finds the Minimum height that will contain a given number
- *                   lines.
- *	Arguments: w - the TextSink Object.
- *                 lines - the number of lines.
- *	Returns: the height.
- */
-
-/* ARGSUSED */
 int
 IswTextSinkMaxHeight(Widget w, int lines)
 {
-  TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-
-  return((*class->text_sink_class.MaxHeight)(w, lines));
+    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+    return (*class->text_sink_class.MaxHeight)(w, lines);
 }
-
-/*	Function Name: IswTextSinkSetTabs
- *	Description: Sets the Tab stops.
- *	Arguments: w - the TextSink Object.
- *                 tab_count - the number of tabs in the list.
- *                 tabs - the text positions of the tabs.
- *	Returns: none
- */
 
 void
 IswTextSinkSetTabs(Widget w, int tab_count, int *tabs)
 {
-  if (tab_count > 0) {
-    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-    short *char_tabs = (short*)IswMalloc( (unsigned)tab_count*sizeof(short) );
-    short *tab;
-    int i;
+    if (tab_count > 0) {
+        TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+        short *char_tabs = (short*)IswMalloc((unsigned)tab_count * sizeof(short));
+        short *tab;
+        int i;
 
-    for (i = tab_count, tab = char_tabs; i; i--) *tab++ = (short)*tabs++;
+        for (i = tab_count, tab = char_tabs; i; i--) *tab++ = (short)*tabs++;
 
-    (*class->text_sink_class.SetTabs)(w, tab_count, char_tabs);
-    IswFree((char *)char_tabs);
-  }
+        (*class->text_sink_class.SetTabs)(w, tab_count, char_tabs);
+        IswFree((char *)char_tabs);
+    }
 }
 
-/*	Function Name: IswTextSinkGetCursorBounds
- *	Description: Finds the bounding box for the insert curor (caret).
- *	Arguments: w - the TextSinkObject.
- *                 rect - an X rectance containing the cursor bounds.
- *	Returns: none (fills in rect).
- */
-
-/* ARGSUSED */
 void
 IswTextSinkGetCursorBounds(Widget w, xcb_rectangle_t *rect)
 {
-  TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
-
-  (*class->text_sink_class.GetCursorBounds)(w, rect);
+    TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
+    (*class->text_sink_class.GetCursorBounds)(w, rect);
 }

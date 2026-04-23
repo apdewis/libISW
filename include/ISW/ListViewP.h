@@ -22,9 +22,6 @@ typedef struct {
     /* public resources */
     Pixel           foreground;
     IswFontStruct    *font;
-#ifdef ISW_INTERNATIONALIZATION
-    ISWFontSet     *fontset;
-#endif
     IswCallbackList  select_callback;
     IswCallbackList  reorder_callback;
     Boolean         multi_select;
