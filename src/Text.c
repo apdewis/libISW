@@ -2593,12 +2593,16 @@ ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
     Boolean need_to_draw;
     uint8_t type = event->response_type & ~0x80;
 
+    fprintf(stderr, "[text-expose] type=%d widget=%p\n", type, (void*)w);
+
     if (type == XCB_EXPOSE) {
 	xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
 	expose.x = ev->x;
 	expose.y = ev->y;
 	expose.width = ev->width;
 	expose.height = ev->height;
+	fprintf(stderr, "[text-expose] XCB_EXPOSE rect=(%d,%d,%d,%d) numranges_before=%d\n",
+	        ev->x, ev->y, ev->width, ev->height, ctx->text.numranges);
     }
     else if (type == XCB_GRAPHICS_EXPOSURE) {
 	xcb_graphics_exposure_event_t *gev = (xcb_graphics_exposure_event_t *)event;
@@ -2619,11 +2623,15 @@ ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
 	    PopCopyQueue(ctx);
     }
 
-    if (!need_to_draw)
-	return;			/* don't draw if we don't need to. */
+    if (!need_to_draw) {
+	fprintf(stderr, "[text-expose] need_to_draw=false, returning\n");
+	return;
+    }
 
     _IswTextPrepareToUpdate(ctx);
     UpdateTextInRectangle(ctx, &expose);
+    fprintf(stderr, "[text-expose] after UpdateTextInRectangle numranges=%d lt.lines=%d\n",
+            ctx->text.numranges, ctx->text.lt.lines);
     IswTextSinkGetCursorBounds(ctx->text.sink, &cursor);
     if (RectanglesOverlap(&cursor, &expose)) {
 	SinkClearToBG(ctx->text.sink, (Position) cursor.x, (Position) cursor.y,
@@ -2631,6 +2639,7 @@ ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
 	UpdateTextInRectangle(ctx, &cursor);
     }
     _IswTextExecuteUpdate(ctx);
+    fprintf(stderr, "[text-expose] done\n");
 
       _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
 }
@@ -3017,12 +3026,18 @@ TranslateExposeRegion(TextWidget ctx, xcb_rectangle_t *expose)
     int value;
     int x, y, width, height;
 
+    fprintf(stderr, "[translate] in rect=(%d,%d,%d,%d) core=(%dx%d) copy_area_offsets=%p\n",
+            expose->x, expose->y, expose->width, expose->height,
+            ctx->core.width, ctx->core.height, (void*)offsets);
+
     /*
      * Skip over the first one, this has already been taken into account.
      */
 
-    if (!offsets || !(offsets = offsets->next))
+    if (!offsets || !(offsets = offsets->next)) {
+	fprintf(stderr, "[translate] no offsets chain — returning TRUE\n");
 	return(TRUE);
+    }
 
     x = expose->x;
     y = expose->y;
@@ -3030,10 +3045,13 @@ TranslateExposeRegion(TextWidget ctx, xcb_rectangle_t *expose)
     height = expose->height;
 
     while (offsets) {
+	fprintf(stderr, "[translate] offset h=%d v=%d\n", offsets->h, offsets->v);
 	x += offsets->h;
 	y += offsets->v;
 	offsets = offsets->next;
     }
+
+    fprintf(stderr, "[translate] after offsets rect=(%d,%d,%d,%d)\n", x, y, width, height);
 
     /*
      * remove that area of the region that is now outside the window.
@@ -3048,8 +3066,10 @@ TranslateExposeRegion(TextWidget ctx, xcb_rectangle_t *expose)
     if (value > 0)
 	height -= value;
 
-    if (height <= 0)
-	return(FALSE);		/* no need to draw outside the window. */
+    if (height <= 0) {
+	fprintf(stderr, "[translate] height<=0 (%d) after clamp — FALSE\n", height);
+	return(FALSE);
+    }
 
     /*
      * and now in the horiz direction...
@@ -3064,8 +3084,10 @@ TranslateExposeRegion(TextWidget ctx, xcb_rectangle_t *expose)
     if (value > 0)
 	width -= value;
 
-    if (width <= 0)
-	return(FALSE);		/* no need to draw outside the window. */
+    if (width <= 0) {
+	fprintf(stderr, "[translate] width<=0 (%d) after clamp — FALSE\n", width);
+	return(FALSE);
+    }
 
     expose->x = x;
     expose->y = y;

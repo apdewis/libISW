@@ -1081,9 +1081,22 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
                     was_dispatched = True;
                 }
             }
-            /* Note: GraphicsExpose and NoExpose events are not currently
-             * handled here. Event compression is commented out pending
-             * reimplementation at the connection level. */
+            /* GraphicsExpose / NoExpose: forwarded to the expose proc when
+             * the class opts in via compress_exposure flags. The Text
+             * widget relies on these to drain its copy_area_offsets
+             * queue after xcb_copy_area scrolls — without the dispatch,
+             * the queue grows unbounded and TranslateExposeRegion
+             * mis-maps every subsequent real Expose rectangle. */
+            else if (event_type == XCB_GRAPHICS_EXPOSURE && GRAPHICS_EXPOSE) {
+                (*widget->core.widget_class->core_class.expose)
+                    (widget, event, 0);
+                was_dispatched = True;
+            }
+            else if (event_type == XCB_NO_EXPOSURE && NO_EXPOSE) {
+                (*widget->core.widget_class->core_class.expose)
+                    (widget, event, 0);
+                was_dispatched = True;
+            }
         }
     }
 
