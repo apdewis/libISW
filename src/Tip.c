@@ -135,10 +135,6 @@ static IswResource resources[] = {
     offset(foreground), IswRString, IswDefaultForeground},
   {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct*),
     offset(font), IswRString, IswDefaultFont},
-#ifdef ISW_INTERNATIONALIZATION
-  {IswNfontSet, IswCFontSet, IswRFontSet, sizeof(ISWFontSet*),
-    offset(fontset), IswRString, IswDefaultFontSet},
-#endif
   {IswNlabel, IswCLabel, IswRString, sizeof(String),
     offset(label), IswRString, NULL},
   {IswNencoding, IswCEncoding, IswRUnsignedChar, sizeof(unsigned char),
@@ -306,26 +302,9 @@ IswTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
     tip->tip.internal_width = (tip->tip.internal_width);
     tip->tip.internal_height = (tip->tip.internal_height);
 
-    /* XCB Fix: IswRFontStruct converter may fail in XCB mode, leaving font NULL.
-     * If font is NULL but fontset is available, create a minimal IswFontStruct
-     * using the fontset's font_id (similar to Label.c approach). */
     if (tip->tip.font == NULL) {
-#ifdef ISW_INTERNATIONALIZATION
-	if (tip->tip.fontset != NULL) {
-	    /* Allocate and initialize a minimal IswFontStruct from fontset */
-	    tip->tip.font = (IswFontStruct *)IswMalloc(sizeof(IswFontStruct));
-	    memset(tip->tip.font, 0, sizeof(IswFontStruct));
-	    tip->tip.font->fid = tip->tip.fontset->font_id;
-	    tip->tip.font->ascent = tip->tip.fontset->ascent;
-	    tip->tip.font->descent = tip->tip.fontset->descent;
-	    tip->tip.font->min_char_or_byte2 = 0;
-	    tip->tip.font->max_char_or_byte2 = 255;
-	} else
-#endif
-	{
-	    IswAppWarning(IswWidgetToApplicationContext(w),
-			 "Tip widget: font and fontset are both NULL - text rendering will fail");
-	}
+	IswAppWarning(IswWidgetToApplicationContext(w),
+		     "Tip widget: font is NULL - text rendering will fail");
     }
 
     tip->tip.timer = 0;

@@ -45,10 +45,6 @@ static IswResource resources[] = {
         Offset(listView.foreground), IswRString, IswDefaultForeground},
     {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
         Offset(listView.font), IswRString, IswDefaultFont},
-#ifdef ISW_INTERNATIONALIZATION
-    {IswNfontSet, IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
-        Offset(listView.fontset), IswRString, IswDefaultFontSet},
-#endif
     {IswNselectCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
         Offset(listView.select_callback), IswRCallback, NULL},
     {IswNreorderCallback, IswCCallback, IswRCallback, sizeof(IswPointer),

@@ -101,10 +101,6 @@ static IswResource resources[] = {
        offset(simple.cursor), IswRString, "left_ptr"},
     {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
 	offset(list.font),IswRString, IswDefaultFont},
-#ifdef ISW_INTERNATIONALIZATION
-    {IswNfontSet,  IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
-	offset(list.fontset),IswRString, IswDefaultFontSet},
-#endif
     {IswNlist, IswCList, IswRPointer, sizeof(char **),
        offset(list.list), IswRString, NULL},
     {IswNdefaultColumns, IswCColumns, IswRInt,  sizeof(int),
@@ -363,26 +359,9 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
  * Initialize all private resources.
  */
 
-    /* XCB Fix: IswRFontStruct converter may fail in XCB mode, leaving font NULL.
-     * If font is NULL but fontset is available, create a minimal IswFontStruct
-     * using the fontset's font_id (similar to Label.c approach). */
     if (lw->list.font == NULL) {
-#ifdef ISW_INTERNATIONALIZATION
-	if (lw->list.fontset != NULL) {
-	    /* Allocate and initialize a minimal IswFontStruct from fontset */
-	    lw->list.font = (IswFontStruct *)IswMalloc(sizeof(IswFontStruct));
-	    memset(lw->list.font, 0, sizeof(IswFontStruct));
-	    lw->list.font->fid = lw->list.fontset->font_id;
-	    lw->list.font->ascent = lw->list.fontset->ascent;
-	    lw->list.font->descent = lw->list.fontset->descent;
-	    lw->list.font->min_char_or_byte2 = 0;
-	    lw->list.font->max_char_or_byte2 = 255;
-	} else
-#endif
-	{
-	    IswAppWarning(IswWidgetToApplicationContext(new),
-			 "List widget: font and fontset are both NULL - text rendering will fail");
-	}
+	IswAppWarning(IswWidgetToApplicationContext(new),
+		     "List widget: font is NULL - text rendering will fail");
     }
 
     /* record for posterity if we are free */
@@ -1325,11 +1304,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	(cl->list.longest         != nl->list.longest)         ||
 	(cl->list.nitems          != nl->list.nitems)          ||
 	(cl->list.font            != nl->list.font)            ||
-   /* Equiv. fontsets might have different values, but the same fonts, so the
-   next comparison is sloppy but not dangerous.  */
-#ifdef ISW_INTERNATIONALIZATION
-	(cl->list.fontset         != nl->list.fontset)         ||
-#endif
 	(cl->list.list            != nl->list.list)          )   {
 
         CalculatedValues( new );

@@ -88,9 +88,6 @@ typedef struct {
     /* resources */
     Pixel	foreground;
     IswFontStruct	*font;
-#ifdef ISW_INTERNATIONALIZATION
-    ISWFontSet	*fontset;  /* Phase 3.2: Changed from IswFontSet to ISWFontSet* */
-#endif
     char	*label;
     IswJustify	justify;
     Dimension	internal_width;

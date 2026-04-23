@@ -88,9 +88,6 @@ typedef struct {
     Dimension left_margin, right_margin; /* left and right margins. */
     Pixel foreground;		/* foreground color. */
     IswFontStruct * font;		/* The font to show label in. */
-#ifdef ISW_INTERNATIONALIZATION
-    ISWFontSet *fontset;		/* or fontset */
-#endif
     IswJustify justify;		/* Justification for the label. */
     int underline;		/* index of letter to underline in label. */
     xcb_keysym_t mnemonic_key;  /* mnemonic keysym (NoSymbol = none) */

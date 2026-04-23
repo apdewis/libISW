@@ -50,9 +50,6 @@ typedef struct _TipPart {
     /* resources */
     Pixel foreground;
     IswFontStruct	*font;
-#ifdef ISW_INTERNATIONALIZATION
-    ISWFontSet *fontset;
-#endif
     Dimension internal_width;
     Dimension internal_height;
     String label;

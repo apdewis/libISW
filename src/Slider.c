@@ -63,10 +63,6 @@ static IswResource resources[] = {
         Offset(slider.value_changed), IswRCallback, NULL},
     {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
         Offset(slider.font), IswRString, IswDefaultFont},
-#ifdef ISW_INTERNATIONALIZATION
-    {IswNfontSet, IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
-        Offset(slider.fontset), IswRString, IswDefaultFontSet},
-#endif
 };
 
 #undef Offset

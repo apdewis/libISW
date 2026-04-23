@@ -34,9 +34,6 @@ typedef struct {
     Dimension     thickness;
     IswCallbackList value_changed;
     IswFontStruct  *font;
-#ifdef ISW_INTERNATIONALIZATION
-    ISWFontSet   *fontset;
-#endif
 
     /* private state */
     Position      thumb_pos;      /* pixel position of thumb center */

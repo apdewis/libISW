@@ -2338,15 +2338,6 @@ extern Boolean IswCvtStringToFont(
     IswPointer*	/* closure_ret */
 );
 
-extern Boolean IswCvtStringToFontSet(
-    xcb_connection_t *	/* dpy */,
-    XrmValuePtr /* args */,	/* Display, locale */
-    Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
-    IswPointer*	/* closure_ret */
-);
-
 extern Boolean IswCvtStringToFontStruct(
     xcb_connection_t *	/* dpy */,
     XrmValuePtr /* args */,	/* Display */

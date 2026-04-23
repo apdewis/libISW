@@ -14,6 +14,7 @@
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
+#include <ISW/ISWUtf8.h>
 #include <ISW/ISWSVG.h>
 #include <ISW/IconViewP.h>
 #include <ISW/FocusMgrI.h>
@@ -48,10 +49,6 @@ static IswResource resources[] = {
         Offset(iconView.foreground), IswRString, IswDefaultForeground},
     {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
         Offset(iconView.font), IswRString, IswDefaultFont},
-#ifdef ISW_INTERNATIONALIZATION
-    {IswNfontSet, IswCFontSet, IswRFontSet, sizeof(ISWFontSet *),
-        Offset(iconView.fontset), IswRString, IswDefaultFontSet},
-#endif
     {IswNselectCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
         Offset(iconView.select_callback), IswRCallback, NULL},
     {IswNmultiSelect, IswCMultiSelect, IswRBoolean, sizeof(Boolean),
@@ -418,14 +415,19 @@ CountLabelLines(ISWRenderContext *ctx, const char *label, int max_w)
         if (ISWRenderTextWidth(ctx, pos, remaining) <= max_w)
             break;
         int brk = 0, last_space = -1;
-        for (int i = 0; i < remaining; i++) {
+        int i = 0;
+        while (i < remaining) {
+            int step = _IswUtf8CharLen(pos + i, remaining - i);
+            if (step <= 0) step = 1;
+            int next = i + step;
             if (pos[i] == ' ' || pos[i] == '-' || pos[i] == '_'
                 || pos[i] == '.')
-                last_space = i + 1;
-            if (ISWRenderTextWidth(ctx, pos, i + 1) > max_w) {
+                last_space = next;
+            if (ISWRenderTextWidth(ctx, pos, next) > max_w) {
                 brk = (last_space > 0) ? last_space : i;
                 break;
             }
+            i = next;
         }
         if (brk == 0) break;
         pos += brk;
@@ -486,12 +488,16 @@ DrawWrappedLabel(ISWRenderContext *ctx, const char *label, int max_w,
             int avail = max_w - ew;
             int trunc = 0;
             if (avail > 0) {
-                for (int i = remaining; i > 0; i--) {
-                    if (ISWRenderTextWidth(ctx, pos, i) <= avail) {
-                        trunc = i;
-                        break;
-                    }
+                /* Walk codepoints forward keeping the largest prefix that fits. */
+                int i = 0;
+                while (i < remaining) {
+                    int step = _IswUtf8CharLen(pos + i, remaining - i);
+                    if (step <= 0) step = 1;
+                    int next = i + step;
+                    if (ISWRenderTextWidth(ctx, pos, next) > avail) break;
+                    i = next;
                 }
+                trunc = i;
             }
             char buf[256];
             if (trunc + 3 < (int)sizeof(buf)) {
@@ -509,14 +515,19 @@ DrawWrappedLabel(ISWRenderContext *ctx, const char *label, int max_w,
             /* Find word-break point that fits within max_w */
             int brk = 0;
             int last_space = -1;
-            for (int i = 0; i < remaining; i++) {
+            int i = 0;
+            while (i < remaining) {
+                int step = _IswUtf8CharLen(pos + i, remaining - i);
+                if (step <= 0) step = 1;
+                int next = i + step;
                 if (pos[i] == ' ' || pos[i] == '-' || pos[i] == '_'
                     || pos[i] == '.')
-                    last_space = i + 1;
-                if (ISWRenderTextWidth(ctx, pos, i + 1) > max_w) {
+                    last_space = next;
+                if (ISWRenderTextWidth(ctx, pos, next) > max_w) {
                     brk = (last_space > 0) ? last_space : i;
                     break;
                 }
+                i = next;
             }
             if (brk == 0) brk = remaining;
 
