@@ -90,6 +90,18 @@ SOFTWARE.
 
 */
 
+/* Ellipsize modes for text truncation */
+typedef enum {
+    IswEllipsizeNone,
+    IswEllipsizeStart,
+    IswEllipsizeMiddle,
+    IswEllipsizeEnd
+} IswEllipsize;
+
+#define IswNellipsize "ellipsize"
+#define IswCEllipsize "Ellipsize"
+#define IswREllipsize "Ellipsize"
+
 #define IswTextEncoding8bit	0
 #define IswTextEncodingChar2b	1
 

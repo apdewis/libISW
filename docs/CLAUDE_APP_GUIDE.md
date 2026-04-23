@@ -535,4 +535,6 @@ void font_cb(Widget w, IswPointer cd, IswPointer call_data)
 - **Cairo rendering** — anti-aliased text and drawing by default via Cairo-XCB backend. The `ISW_RENDER_BACKEND` environment variable overrides backend selection.
 - **HiDPI aware** — widgets auto-scale. Use `ISWScaleDim`/`ISWScaleFactor` for app-level dimensions.
 - **Unified image loading** — Label/Command/Toggle display PNG or SVG via `IswNimage`/`IswNleftImage` (format auto-detected). SmeBSB uses `IswNleftImage`/`IswNrightImage`.
+- **Label ellipsize** — `IswNellipsize` resource (`"none"`, `"start"`, `"middle"`, `"end"`) truncates text with "…" when the widget is narrower than the label's preferred width. Useful for paths and filenames.
+- **Toolbar center shrink** — center-aligned children (`IswToolbarAlignCenter`) are shrunk to fit between left and right groups instead of overflowing. Combined with `IswNellipsize`, center labels truncate cleanly.
 - **New widgets** — MainWindow, MenuBar, Toolbar, StatusBar, Tabs, ComboBox, SpinBox, ProgressBar, IconView, ListView, ColorPicker, FontChooser, ScrollWheel.

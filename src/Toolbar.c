@@ -353,10 +353,39 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
         int right_edge = (int)container_w - (int)h_space - (int)right_w;
         if (right_w > 0)
             right_edge -= (int)h_space;
-        if (center_start < left_edge)
+
+        int available = right_edge - left_edge;
+        if (available < 0) available = 0;
+        Boolean shrink = (int)center_w > available && available > 0;
+
+        if (shrink) {
             center_start = left_edge;
-        if (center_start + (int)center_w > right_edge)
-            center_start = right_edge - (int)center_w;
+        } else {
+            if (center_start < left_edge)
+                center_start = left_edge;
+            if (center_start + (int)center_w > right_edge)
+                center_start = right_edge - (int)center_w;
+        }
+
+        /* When shrinking, compute total preferred content width
+         * (excluding borders and spacing) for proportional distribution */
+        Dimension content_total = 0;
+        int content_available = 0;
+        if (shrink) {
+            for (Cardinal i = 0; i < tw->composite.num_children; i++) {
+                Widget child = tw->composite.children[i];
+                if (!child->core.managed) continue;
+                ToolbarConstraints tc =
+                    (ToolbarConstraints)child->core.constraints;
+                if (tc->toolbar.alignment != IswToolbarAlignCenter) continue;
+                Dimension cw, ch;
+                ChildPreferredSize(child, &cw, &ch);
+                content_total += cw;
+            }
+            content_available =
+                available - ((int)center_w - (int)content_total);
+            if (content_available < 0) content_available = 0;
+        }
 
         x = (Position)center_start;
         for (Cardinal i = 0; i < tw->composite.num_children; i++) {
@@ -368,6 +397,12 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
                 continue;
             Dimension cw, ch;
             ChildPreferredSize(child, &cw, &ch);
+
+            if (shrink && content_total > 0)
+                cw = (Dimension)((int)cw * content_available
+                                 / (int)content_total);
+            if (cw == 0) cw = 1;
+
             Dimension bw = child->core.border_width;
             Dimension bw2 = 2 * bw;
             Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;

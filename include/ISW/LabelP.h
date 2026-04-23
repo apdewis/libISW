@@ -94,6 +94,7 @@ typedef struct {
     Dimension	internal_height;
     Boolean	resize;
     unsigned char encoding;
+    IswEllipsize ellipsize;
 
     /* Unified image resources */
     String          image_source;

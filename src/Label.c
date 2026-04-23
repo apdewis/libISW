@@ -127,6 +127,8 @@ static IswResource resources[] = {
 	offset(label.image_source), IswRImmediate, (IswPointer)NULL},
     {IswNresize, IswCResize, IswRBoolean, sizeof(Boolean),
 	offset(label.resize), IswRImmediate, (IswPointer)True},
+    {IswNellipsize, IswCEllipsize, IswREllipsize, sizeof(IswEllipsize),
+	offset(label.ellipsize), IswRImmediate, (IswPointer)IswEllipsizeNone},
     {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
          IswOffsetOf(RectObjRec,rectangle.border_width), IswRImmediate,
          (IswPointer)1},
@@ -195,12 +197,47 @@ WidgetClass labelWidgetClass = (WidgetClass)&labelClassRec;
  *
  ****************************************************************/
 
+static XrmQuark QEllipNone, QEllipStart, QEllipMiddle, QEllipEnd;
+
+static void
+_CvtStringToEllipsize(XrmValuePtr args, Cardinal *num_args,
+                      XrmValuePtr fromVal, XrmValuePtr toVal)
+{
+    static IswEllipsize mode;
+    XrmQuark q;
+    char lower[40];
+    (void)args; (void)num_args;
+
+    if (strlen((char *)fromVal->addr) < sizeof(lower)) {
+        ISWCopyISOLatin1Lowered(lower, (char *)fromVal->addr);
+        q = XrmStringToQuark(lower);
+        if      (q == QEllipNone)   mode = IswEllipsizeNone;
+        else if (q == QEllipStart)  mode = IswEllipsizeStart;
+        else if (q == QEllipMiddle) mode = IswEllipsizeMiddle;
+        else if (q == QEllipEnd)    mode = IswEllipsizeEnd;
+        else {
+            toVal->size = 0;
+            toVal->addr = NULL;
+            return;
+        }
+        toVal->size = sizeof(mode);
+        toVal->addr = (IswPointer)&mode;
+        return;
+    }
+    toVal->addr = NULL;
+    toVal->size = 0;
+}
+
 static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    //IswAddConverter( IswRString, IswRJustify, ISWCvtStringToJustify,
-	//	    (IswConvertArgList)NULL, 0 );
+    QEllipNone   = XrmPermStringToQuark("none");
+    QEllipStart  = XrmPermStringToQuark("start");
+    QEllipMiddle = XrmPermStringToQuark("middle");
+    QEllipEnd    = XrmPermStringToQuark("end");
+    IswAddConverter(IswRString, IswREllipsize,
+                   _CvtStringToEllipsize, NULL, 0);
 }
 
 /*
@@ -401,9 +438,124 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
 } /* Initialize */
 
-/*
- * Repaint the widget window
- */
+static int
+_utf8_char_len(unsigned char c)
+{
+    if (c < 0x80) return 1;
+    if (c < 0xC0) return 1;
+    if (c < 0xE0) return 2;
+    if (c < 0xF0) return 3;
+    return 4;
+}
+
+static int
+_utf8_prev_start(const char *text, int pos)
+{
+    if (pos <= 0) return 0;
+    int p = pos - 1;
+    while (p > 0 && ((unsigned char)text[p] & 0xC0) == 0x80)
+        p--;
+    return p;
+}
+
+#define ELLIPSIS_UTF8 "\xe2\x80\xa6"
+#define ELLIPSIS_BYTES 3
+
+static int
+_EllipsizeText(Widget w, IswFontStruct *fs, const char *text, int text_len,
+               IswEllipsize mode, int avail_width,
+               char *buf, int buf_size)
+{
+    int ellipsis_w = ISWScaledTextWidth(w, fs, ELLIPSIS_UTF8, ELLIPSIS_BYTES);
+    int target = avail_width - ellipsis_w;
+
+    if (target <= 0 && ELLIPSIS_BYTES < buf_size) {
+        memcpy(buf, ELLIPSIS_UTF8, ELLIPSIS_BYTES);
+        return ELLIPSIS_BYTES;
+    }
+
+    switch (mode) {
+    case IswEllipsizeEnd: {
+        int best = 0, pos = 0;
+        while (pos < text_len) {
+            int clen = _utf8_char_len((unsigned char)text[pos]);
+            int end = pos + clen;
+            if (end > text_len) break;
+            if (ISWScaledTextWidth(w, fs, text, end) > target) break;
+            best = end;
+            pos = end;
+        }
+        if (best + ELLIPSIS_BYTES >= buf_size)
+            best = buf_size - ELLIPSIS_BYTES - 1;
+        if (best < 0) best = 0;
+        memcpy(buf, text, best);
+        memcpy(buf + best, ELLIPSIS_UTF8, ELLIPSIS_BYTES);
+        return best + ELLIPSIS_BYTES;
+    }
+    case IswEllipsizeStart: {
+        int best_start = text_len, pos = text_len;
+        while (pos > 0) {
+            int prev = _utf8_prev_start(text, pos);
+            int suffix_len = text_len - prev;
+            if (ISWScaledTextWidth(w, fs, text + prev, suffix_len) > target)
+                break;
+            best_start = prev;
+            pos = prev;
+        }
+        int suffix_len = text_len - best_start;
+        if (ELLIPSIS_BYTES + suffix_len >= buf_size)
+            suffix_len = buf_size - ELLIPSIS_BYTES - 1;
+        if (suffix_len < 0) suffix_len = 0;
+        memcpy(buf, ELLIPSIS_UTF8, ELLIPSIS_BYTES);
+        memcpy(buf + ELLIPSIS_BYTES, text + best_start, suffix_len);
+        return ELLIPSIS_BYTES + suffix_len;
+    }
+    case IswEllipsizeMiddle: {
+        int half = target / 2;
+        int prefix_end = 0, pos = 0;
+        while (pos < text_len) {
+            int clen = _utf8_char_len((unsigned char)text[pos]);
+            int end = pos + clen;
+            if (end > text_len) break;
+            if (ISWScaledTextWidth(w, fs, text, end) > half) break;
+            prefix_end = end;
+            pos = end;
+        }
+        int prefix_w = prefix_end > 0
+            ? ISWScaledTextWidth(w, fs, text, prefix_end) : 0;
+        int suffix_target = target - prefix_w;
+        int suffix_start = text_len;
+        pos = text_len;
+        while (pos > prefix_end) {
+            int prev = _utf8_prev_start(text, pos);
+            if (prev <= prefix_end) break;
+            int suffix_len = text_len - prev;
+            if (ISWScaledTextWidth(w, fs, text + prev, suffix_len) > suffix_target)
+                break;
+            suffix_start = prev;
+            pos = prev;
+        }
+        int suffix_len = text_len - suffix_start;
+        int total = prefix_end + ELLIPSIS_BYTES + suffix_len;
+        if (total >= buf_size) {
+            suffix_len = buf_size - prefix_end - ELLIPSIS_BYTES - 1;
+            if (suffix_len < 0) { suffix_len = 0; prefix_end = buf_size - ELLIPSIS_BYTES - 1; }
+            if (prefix_end < 0) prefix_end = 0;
+            total = prefix_end + ELLIPSIS_BYTES + suffix_len;
+        }
+        memcpy(buf, text, prefix_end);
+        memcpy(buf + prefix_end, ELLIPSIS_UTF8, ELLIPSIS_BYTES);
+        memcpy(buf + prefix_end + ELLIPSIS_BYTES,
+               text + suffix_start, suffix_len);
+        return total;
+    }
+    default:
+        break;
+    }
+    int copy = text_len < buf_size - 1 ? text_len : buf_size - 1;
+    memcpy(buf, text, copy);
+    return copy;
+}
 
 /* ARGSUSED */
 static void
@@ -578,11 +730,50 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                         y += line_height;
                         label = nl + 1;
                     }
-                    len = strlen(label);
-                }
-                if (len) {
-                    ISWRenderDrawString(ctx, label, len,
-                                      w->label.label_x, y);
+                    int last_len = strlen(label);
+                    if (last_len > 0)
+                        ISWRenderDrawString(ctx, label, last_len,
+                                          w->label.label_x, y);
+                } else if (len > 0) {
+                    const char *draw_str = label;
+                    int draw_len = len;
+                    int draw_x = w->label.label_x;
+                    char ellipsis_buf[1024];
+
+                    if (w->label.ellipsize != IswEllipsizeNone) {
+                        int avail = (int)w->core.width
+                                    - 2 * (int)w->label.internal_width
+                                    - (int)LEFT_OFFSET(w);
+                        if (avail > 0 &&
+                            (int)w->label.label_width > avail) {
+                            draw_len = _EllipsizeText((Widget)w, fs,
+                                label, len, w->label.ellipsize,
+                                avail, ellipsis_buf,
+                                (int)sizeof(ellipsis_buf));
+                            draw_str = ellipsis_buf;
+                            int trunc_w = ISWScaledTextWidth(
+                                (Widget)w, fs, draw_str, draw_len);
+                            Position leftedge =
+                                w->label.internal_width + LEFT_OFFSET(w);
+                            switch (w->label.justify) {
+                            case IswJustifyRight:
+                                draw_x = (int)w->core.width - trunc_w
+                                         - (int)w->label.internal_width;
+                                break;
+                            case IswJustifyCenter:
+                                draw_x = ((int)w->core.width
+                                          - trunc_w) / 2;
+                                break;
+                            default:
+                                draw_x = leftedge;
+                                break;
+                            }
+                            if (draw_x < (int)leftedge)
+                                draw_x = (int)leftedge;
+                        }
+                    }
+                    ISWRenderDrawString(ctx, draw_str, draw_len,
+                                      draw_x, y);
                 }
 
                 ISWRenderEnd(ctx);
@@ -784,6 +975,9 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	/* Resize() will be called if geometry changes succeed */
 	_Reposition(newlw, curlw->core.width, curlw->core.height, &dx, &dy);
     }
+
+    if (curlw->label.ellipsize != newlw->label.ellipsize)
+	redisplay = True;
 
     return was_resized || redisplay ||
 	   IswIsSensitive(current) != IswIsSensitive(new);
