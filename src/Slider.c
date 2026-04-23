@@ -506,7 +506,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         int track_y = track_center_y - (int)track_thick / 2;
         int track_x = off_x + (int)half_thumb;
         int track_w = (int)sw->core.width - off_x - (int)thumb_w;
-        ISWRenderFillRectangle(ctx, track_x, track_y, track_w, track_thick);
+        ISWRenderFillRoundedRectangle(ctx, track_x, track_y, track_w, track_thick,
+                                          track_thick / 2.0);
 
         /* Tick marks (below track) */
         if (sw->slider.tick_interval > 0) {
@@ -546,7 +547,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         int track_x = track_center_x - (int)track_thick / 2;
         int track_top = off_y + (int)half_thumb;
         int track_h = (int)sw->core.height - off_y - (int)thumb_w;
-        ISWRenderFillRectangle(ctx, track_x, track_top, track_thick, track_h);
+        ISWRenderFillRoundedRectangle(ctx, track_x, track_top, track_thick, track_h,
+                                          track_thick / 2.0);
 
         /* Tick marks (right of track) */
         if (sw->slider.tick_interval > 0) {
