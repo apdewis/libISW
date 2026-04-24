@@ -827,7 +827,7 @@ HandleSelectionEvents(Widget widget,
                       Boolean *cont _X_UNUSED)
 {
     Select ctx;
-    xcb_selection_request_event_t ev;
+    xcb_selection_notify_event_t ev;
     xcb_atom_t target;
 
     ctx = (Select) closure;

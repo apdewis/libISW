@@ -999,7 +999,7 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
             xcb_translate_coordinates_cookie_t tc =
                 xcb_translate_coordinates(conn,
                     IswScreen(st->shell)->root, IswWindow(target),
-                    (int16_t)(st->drop_x * sf), (int16_t)(st->drop_y * sf));
+                    (int16_t) st->drop_x, (int16_t) st->drop_y);
             xcb_translate_coordinates_reply_t *tr =
                 xcb_translate_coordinates_reply(conn, tc, NULL);
 
@@ -1027,7 +1027,7 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
                 xcb_translate_coordinates_cookie_t tc =
                     xcb_translate_coordinates(conn,
                         IswScreen(st->shell)->root, IswWindow(target),
-                        (int16_t)(st->drop_x * sf), (int16_t)(st->drop_y * sf));
+                        (int16_t) st->drop_x, (int16_t) st->drop_y);
                 xcb_translate_coordinates_reply_t *tr =
                     xcb_translate_coordinates_reply(conn, tc, NULL);
 
@@ -1683,6 +1683,7 @@ SendDragEnter(XdndState *st, xcb_window_t target)
     for (int i = 0; i < 3 && i < st->drag_desc.num_types; i++)
         cm.data.data32[2 + i] = st->drag_desc.types[i];
 
+
     xcb_send_event(conn, False, target, 0, (const char *) &cm);
     xcb_flush(conn);
 }
@@ -1693,12 +1694,19 @@ SendDragPosition(XdndState *st, int root_x, int root_y)
     xcb_connection_t *conn = IswDisplay(st->shell);
 
     /* Determine action from keyboard modifiers */
+    /* Query pointer for modifiers and physical root coordinates.
+     * root_x/root_y from the motion event have been descaled to logical
+     * pixels by the dispatcher — XdndPosition must use the X server's
+     * native physical coordinates so external apps map them correctly. */
     xcb_query_pointer_cookie_t qpc = xcb_query_pointer(conn,
                                          IswScreen(st->shell)->root);
     xcb_query_pointer_reply_t *qpr = xcb_query_pointer_reply(conn, qpc, NULL);
     unsigned int modifiers = 0;
+    int phys_x = root_x, phys_y = root_y;
     if (qpr) {
         modifiers = qpr->mask;
+        phys_x = qpr->root_x;
+        phys_y = qpr->root_y;
         free(qpr);
     }
 
@@ -1715,9 +1723,10 @@ SendDragPosition(XdndState *st, int root_x, int root_y)
     cm.format = 32;
     cm.data.data32[0] = IswWindow(st->shell);
     cm.data.data32[1] = 0;  /* reserved */
-    cm.data.data32[2] = ((uint32_t) root_x << 16) | ((uint32_t) root_y & 0xFFFF);
+    cm.data.data32[2] = ((uint32_t) phys_x << 16) | ((uint32_t) phys_y & 0xFFFF);
     cm.data.data32[3] = st->drag_timestamp;
     cm.data.data32[4] = ActionToAtom(st, desired);
+
 
     xcb_send_event(conn, False, st->drag_target_win, 0, (const char *) &cm);
     xcb_flush(conn);
@@ -1955,10 +1964,14 @@ DragConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
 
     /* Delegate to app's convert proc */
     if (st->drag_desc.convert) {
-        return st->drag_desc.convert(st->drag_source, *target,
-                                     value_return, length_return,
-                                     format_return,
-                                     st->drag_desc.client_data);
+        Boolean ok = st->drag_desc.convert(st->drag_source, *target,
+                                           value_return, length_return,
+                                           format_return,
+                                           st->drag_desc.client_data);
+        if (ok)
+            *type_return = *target;
+
+        return ok;
     }
 
     return False;
