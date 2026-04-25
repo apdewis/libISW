@@ -97,6 +97,7 @@ typedef struct _SimpleMenuPart {
   Boolean didnt_fit;            /* if some entry didn't fit in the menu */
   Widget sub_menu;              /* submenu of active SmeBSB object */
   unsigned char state;
+  IswIntervalId submenu_timer;  /* delayed submenu popup timer */
   ISWRenderContext *render_ctx; /* Cairo rendering context */
 } SimpleMenuPart;
 

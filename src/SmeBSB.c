@@ -67,6 +67,8 @@ in this Software without prior written authorization from the X Consortium.
 extern int abs();
 #endif
 
+#define SME_SUBMENU_ARROW_SIZE 6
+
 #define offset(field) IswOffsetOf(SmeBSBRec, sme_bsb.field)
 
 static IswResource resources[] = {
@@ -417,6 +419,25 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
 
     DrawBitmaps(w, highlighted_active);
+
+    if (entry->sme_bsb.menu_name != NULL && ctx) {
+	int sz = SME_SUBMENU_ARROW_SIZE;
+	int ax = entry->rectangle.width - entry->sme_bsb.right_margin / 2 - sz;
+	int ay = entry->rectangle.y + entry->rectangle.height / 2;
+	xcb_point_t tri[3];
+	Pixel arrow_color = highlighted_active
+	    ? IswParent(w)->core.background_pixel
+	    : entry->sme_bsb.foreground;
+
+	tri[0].x = ax;        tri[0].y = ay - sz;
+	tri[1].x = ax;        tri[1].y = ay + sz;
+	tri[2].x = ax + sz;   tri[2].y = ay;
+
+	ISWRenderBegin(ctx);
+	ISWRenderSetColor(ctx, arrow_color);
+	ISWRenderFillPolygon(ctx, tri, 3);
+	ISWRenderEnd(ctx);
+    }
 }
 
 
@@ -619,6 +640,9 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
     }
 
     *width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;
+
+    if (entry->sme_bsb.menu_name != NULL)
+	*width += SME_SUBMENU_ARROW_SIZE * 2 + 4;
 
     h = (entry->sme_bsb.left_image_height > entry->sme_bsb.right_image_height)
 	    ? entry->sme_bsb.left_image_height : entry->sme_bsb.right_image_height;

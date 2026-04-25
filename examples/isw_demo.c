@@ -336,8 +336,28 @@ void populate_menubar(Widget menubar) {
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Export");
     IswArgMnemonicKey(&ab, 'e');
+    IswArgMenuName(&ab, "exportMenu");
     entry = IswCreateManagedWidget("menuExport", smeBSBObjectClass, file_menu, ab.args, ab.count);
-    IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Export");
+
+    {
+	Widget export_menu = IswCreatePopupShell("exportMenu",
+	    simpleMenuWidgetClass, file_menu, NULL, 0);
+
+	IswArgBuilderReset(&ab);
+	IswArgLabel(&ab, "PDF");
+	entry = IswCreateManagedWidget("exportPdf", smeBSBObjectClass, export_menu, ab.args, ab.count);
+	IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Export PDF");
+
+	IswArgBuilderReset(&ab);
+	IswArgLabel(&ab, "PNG");
+	entry = IswCreateManagedWidget("exportPng", smeBSBObjectClass, export_menu, ab.args, ab.count);
+	IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Export PNG");
+
+	IswArgBuilderReset(&ab);
+	IswArgLabel(&ab, "SVG");
+	entry = IswCreateManagedWidget("exportSvg", smeBSBObjectClass, export_menu, ab.args, ab.count);
+	IswAddCallback(entry, IswNcallback, file_menu_callback, (IswPointer)"Export SVG");
+    }
 
     IswCreateManagedWidget("sep2", smeLineObjectClass, file_menu, NULL, 0);
 

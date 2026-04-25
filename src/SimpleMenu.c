@@ -121,6 +121,8 @@ static char defaultTranslations[] =
      <Key>Up:           prev-entry()            \n\
      <Key>Home:         first-entry()           \n\
      <Key>End:          last-entry()            \n\
+     <Key>Right:        enter-submenu()         \n\
+     <Key>Left:         leave-submenu()         \n\
      <Key>Return:       notify() unhighlight() popdown()\n\
      <Key>space:        notify() unhighlight() popdown()\n\
      <Key>Escape:       unhighlight() popdown()";
@@ -143,6 +145,8 @@ static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetG
 static void PopupCB(Widget, IswPointer, IswPointer);
 static void PopupSubMenu(SimpleMenuWidget);
 static void PopdownSubMenu(SimpleMenuWidget);
+static void CancelSubMenuTimer(SimpleMenuWidget);
+static void SchedulePopupSubMenu(SimpleMenuWidget);
 
 /*
  * Action Routine Definitions
@@ -157,6 +161,8 @@ static void NextEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void PrevEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void FirstEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void LastEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void EnterSubMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void LeaveSubMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 /*
  * Private Function Definitions.
@@ -184,7 +190,9 @@ static IswActionsRec actionsList[] =
   {"next-entry",        NextEntry},
   {"prev-entry",        PrevEntry},
   {"first-entry",       FirstEntry},
-  {"last-entry",        LastEntry}
+  {"last-entry",        LastEntry},
+  {"enter-submenu",     EnterSubMenu},
+  {"leave-submenu",     LeaveSubMenu}
 };
 
 static CompositeClassExtensionRec extension_rec = {
@@ -339,6 +347,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   smw->simple_menu.too_tall = FALSE;
   smw->simple_menu.sub_menu = NULL;
   smw->simple_menu.state = 0;
+  smw->simple_menu.submenu_timer = (IswIntervalId)0;
   
   /* Initialize Cairo rendering context to NULL - will be created when first drawn */
   smw->simple_menu.render_ctx = NULL;
@@ -379,7 +388,9 @@ static void
 Destroy(Widget w)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
-    
+
+    CancelSubMenuTimer(smw);
+
     /* Free Cairo rendering context */
     if (smw->simple_menu.render_ctx) {
         ISWRenderDestroy(smw->simple_menu.render_ctx);
@@ -579,6 +590,8 @@ Realize(xcb_connection_t *conn, Widget w, IswValueMask * mask, uint32_t * values
     }
     else
 	*mask &= ~XCB_CW_BACKING_STORE;
+
+    *mask |= XCB_CW_BORDER_PIXEL;
 
      /* check if the menu is too big */
      if (smw->core.height >= HeightOfScreen(IswScreen(w))) {
@@ -1027,7 +1040,7 @@ Highlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num
 
 	(class->sme_class.highlight) ((Widget) entry);
 	if (IswIsSubclass((Widget)entry, smeBSBObjectClass))
-	    PopupSubMenu(smw);
+	    SchedulePopupSubMenu(smw);
 
 	entry->rectangle.y = old_pos;
     }
@@ -1054,6 +1067,10 @@ Notify(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_pa
     SmeObjectClass class;
 
     if ( (entry == NULL) || !IswIsSensitive((Widget) entry ) ) return;
+
+    if (IswIsSubclass((Widget)entry, smeBSBObjectClass) &&
+	((SmeBSBObject)entry)->sme_bsb.menu_name != NULL)
+	return;
 
     class = (SmeObjectClass) entry->object.widget_class;
     (class->sme_class.notify)( (Widget) entry );
@@ -1112,7 +1129,7 @@ SetEntry(SimpleMenuWidget smw, SmeObject entry)
         entry->rectangle.y -= smw->simple_menu.first_y;
         (class->sme_class.highlight) ((Widget) entry);
         if (IswIsSubclass((Widget)entry, smeBSBObjectClass))
-            PopupSubMenu(smw);
+            SchedulePopupSubMenu(smw);
         entry->rectangle.y = old_pos;
     }
 
@@ -1190,6 +1207,95 @@ LastEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
     if (n == 0) return;
     last = FindFirstSelectable(smw, n - 1, -1);
     if (last) SetEntry(smw, last);
+}
+
+static void
+EnterSubMenu(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) w;
+    SmeObject entry = smw->simple_menu.entry_set;
+    SimpleMenuWidget sub;
+    SmeObject first;
+    (void)e; (void)p; (void)np;
+
+    if (entry == NULL) return;
+    if (!IswIsSubclass((Widget)entry, smeBSBObjectClass)) return;
+    if (((SmeBSBObject)entry)->sme_bsb.menu_name == NULL) return;
+
+    PopupSubMenu(smw);
+    sub = (SimpleMenuWidget) smw->simple_menu.sub_menu;
+    if (sub == NULL) return;
+
+    first = FindFirstSelectable(sub, 0, +1);
+    if (first) {
+	sub->simple_menu.entry_set = NULL;
+	SetEntry(sub, first);
+    }
+
+    /* Warp pointer into submenu so its translations receive events */
+    xcb_warp_pointer(IswDisplay(w), XCB_NONE, IswWindow((Widget)sub),
+		     0, 0, 0, 0,
+		     (int16_t)(IswWidth((Widget)sub) / 2),
+		     (int16_t)(first ? first->rectangle.y +
+		     first->rectangle.height / 2 -
+		     sub->simple_menu.first_y : 10));
+    xcb_flush(IswDisplay(w));
+}
+
+static void
+LeaveSubMenu(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) w;
+    Widget parent;
+    SimpleMenuWidget psmw;
+    SmeObject parent_entry;
+    (void)e; (void)p; (void)np;
+
+    /* Walk up: is this menu a submenu of a parent SimpleMenu? */
+    parent = IswParent(w);
+    if (parent == NULL || !IswIsSubclass(parent, simpleMenuWidgetClass))
+	return;
+    psmw = (SimpleMenuWidget) parent;
+    if (psmw->simple_menu.sub_menu != w)
+	return;
+
+    parent_entry = psmw->simple_menu.entry_set;
+
+    /* Popdown this submenu */
+    smw->simple_menu.state |= SMW_UNMAPPING;
+    PopdownSubMenu(smw);
+    if (smw->simple_menu.entry_set) {
+	SmeObjectClass cls = (SmeObjectClass)
+	    smw->simple_menu.entry_set->object.widget_class;
+	(cls->sme_class.unhighlight)((Widget)smw->simple_menu.entry_set);
+	smw->simple_menu.entry_set = NULL;
+    }
+    IswPopdown(w);
+    psmw->simple_menu.sub_menu = NULL;
+
+    /* Re-highlight the parent entry */
+    if (parent_entry) {
+	SmeObjectClass cls2 = (SmeObjectClass)
+	    parent_entry->object.widget_class;
+	int old_pos = parent_entry->rectangle.y;
+	psmw->simple_menu.entry_set = parent_entry;
+	parent_entry->rectangle.y -= psmw->simple_menu.first_y;
+	if (psmw->simple_menu.render_ctx)
+	    ISWRenderBegin(psmw->simple_menu.render_ctx);
+	(cls2->sme_class.highlight)((Widget)parent_entry);
+	if (psmw->simple_menu.render_ctx)
+	    ISWRenderEnd(psmw->simple_menu.render_ctx);
+	parent_entry->rectangle.y = old_pos;
+    }
+
+    /* Warp pointer back to parent menu */
+    xcb_warp_pointer(IswDisplay(w), XCB_NONE, IswWindow(parent),
+		     0, 0, 0, 0,
+		     (int16_t)(IswWidth(parent) / 2),
+		     (int16_t)(parent_entry ? parent_entry->rectangle.y +
+		     parent_entry->rectangle.height / 2 -
+		     psmw->simple_menu.first_y : 10));
+    xcb_flush(IswDisplay(w));
 }
 
 /************************************************************
@@ -1802,6 +1908,36 @@ PopupCB(Widget w, IswPointer client_data, IswPointer call_data)
     smw->simple_menu.state &= ~SMW_UNMAPPING;
 }
 
+#define SUBMENU_POPUP_DELAY 250
+
+static void
+CancelSubMenuTimer(SimpleMenuWidget smw)
+{
+    if (smw->simple_menu.submenu_timer) {
+	IswRemoveTimeOut(smw->simple_menu.submenu_timer);
+	smw->simple_menu.submenu_timer = (IswIntervalId)0;
+    }
+}
+
+static void
+SubMenuTimerCB(IswPointer closure, IswIntervalId *id)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) closure;
+    (void)id;
+    smw->simple_menu.submenu_timer = (IswIntervalId)0;
+    if (smw->simple_menu.entry_set != NULL)
+	PopupSubMenu(smw);
+}
+
+static void
+SchedulePopupSubMenu(SimpleMenuWidget smw)
+{
+    CancelSubMenuTimer(smw);
+    smw->simple_menu.submenu_timer = IswAppAddTimeOut(
+	IswWidgetToApplicationContext((Widget)smw),
+	SUBMENU_POPUP_DELAY, SubMenuTimerCB, (IswPointer)smw);
+}
+
 static void
 PopupSubMenu(SimpleMenuWidget smw)
 {
@@ -1871,6 +2007,14 @@ static void
 Popdown(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
+    SmeObject entry = smw->simple_menu.entry_set;
+
+    if (entry != NULL &&
+	IswIsSubclass((Widget)entry, smeBSBObjectClass) &&
+	((SmeBSBObject)entry)->sme_bsb.menu_name != NULL) {
+	PopupSubMenu(smw);
+	return;
+    }
 
     while (IswParent(w) &&
 	   IswIsSubclass(IswParent(w), simpleMenuWidgetClass)) {
@@ -1894,6 +2038,8 @@ static void
 PopdownSubMenu(SimpleMenuWidget smw)
 {
     SimpleMenuWidget menu = (SimpleMenuWidget)smw->simple_menu.sub_menu;
+
+    CancelSubMenuTimer(smw);
 
     if (!menu) return;
 
