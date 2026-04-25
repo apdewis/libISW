@@ -71,15 +71,6 @@ extern WidgetClass tipWidgetClass;
 #define IswNtimeout "timeout"
 #define IswNtip "tip"
 
-#ifdef ISW_INTERNATIONALIZATION
-#ifndef IswNfontSet
-#define IswNfontSet "fontSet"
-#endif
-#ifndef IswCFontSet
-#define IswCFontSet "FontSet"
-#endif
-#endif
-
 #define IswCEncoding "Encoding"
 #define IswCTimeout "Timeout"
 #define IswCTip "Tip"

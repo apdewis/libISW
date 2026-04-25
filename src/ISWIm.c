@@ -67,7 +67,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWContext.h>
 #include <ISW/ResourceI.h>
 #include <ISW/VarargsI.h>
-#include "ISWI18n.h"
 #include <ctype.h>
 
 # include <stdarg.h>

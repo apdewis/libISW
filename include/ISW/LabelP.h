@@ -63,7 +63,6 @@ SOFTWARE.
 #include "ISWP.h"
 #include <ISW/Label.h>
 #include <ISW/SimpleP.h>
-#include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef only */
 #include <ISW/ISWRender.h>     /* For ISWRenderContext */
 #include <ISW/ISWImage.h>      /* For ISWImage */
 

@@ -9,7 +9,6 @@
 #include <ISW/SimpleP.h>
 #include <ISW/ListView.h>
 #include <ISW/ISWRender.h>
-#include <ISW/ISWXftCompat.h>
 
 /* Internal column state */
 typedef struct {

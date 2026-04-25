@@ -116,9 +116,6 @@ WidgetClass textWidgetClass = (WidgetClass)&textClassRec;
 
 unsigned long FMT8BIT = 0L;
 unsigned long IswFmt8Bit = 0L;
-#ifdef ISW_INTERNATIONALIZATION
-unsigned long IswFmtWide = 0L;
-#endif
 
 extern TextSinkClassRec textSinkClassRec;
 WidgetClass textSinkObjectClass = (WidgetClass)&textSinkClassRec;

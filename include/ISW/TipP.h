@@ -32,7 +32,6 @@
 
 #include "ISWP.h"
 #include <ISW/Tip.h>
-#include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
 #include <ISW/ISWRender.h>
 
 typedef struct {
@@ -59,9 +58,7 @@ typedef struct _TipPart {
     /* private */
     ISWRenderContext *render_ctx;
     IswIntervalId timer;
-#ifdef ISW_INTERNATIONALIZATION
     Boolean international;
-#endif
     unsigned char encoding;
 } TipPart;
 

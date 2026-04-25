@@ -74,86 +74,37 @@ SetValues.c, GetValues.c, GetResList.c, VarCreate.c, VarGet.c (~6,200 lines).
 Public API: XtGetApplicationResources, XtSetValues, XtGetValues,
 XtSetTypeConverter remain unchanged — backends implement them.
 
-## Restore internationalization — real UTF-8 text support
+## Restore internationalization — real UTF-8 text support (done)
 
-The ISW_INTERNATIONALIZATION build flag (on by default) gates code paths
-inherited from Xaw3d's i18n support, but the actual functionality is gone.
-The original Xlib calls (XwcDrawString, XmbTextExtents, XCreateFontSet,
-XwcGetColumn) were removed during the XCB conversion and not replaced. The
-text pipeline is ASCII end to end.
+Complete. The text pipeline is UTF-8 end to end via Cairo. All legacy
+wchar/fontset/i18n scaffolding has been removed.
 
-### Current state
+### What was done
 
-- **MultiSink/MultiSrc**: exist and compile, but their wide-character paths
-  route through the same single-byte rendering as AsciiSink. ISWFontSet is
-  a thin wrapper around xcb_font_t with ascent/descent — no multibyte text
-  measurement or rendering.
-- **ISWFontSet**: defined in ISWXftCompat.h as {xcb_font_t, ascent, descent,
-  height}. IswTextWidth and IswDrawString use xcb_image_text_8 — single-byte
-  only.
-- **XFontSet**: typedef'd to void* in XtTypes.h. Not functional.
-- **Wchar conversion**: _ISWTextWCToMB in TextSrc.c and IswWcToUtf8 in
-  MultiSink.c exist but nothing produces wchar input.
-- **XIM**: ISWIm.c still calls Xlib XOpenIM/XCreateIC. Disabled via
-  ISW_HAS_XIM=OFF. Non-functional.
-- **Label, SmeBSB, List, etc.**: have #ifdef ISW_INTERNATIONALIZATION
-  fontset resource paths that compile but do nothing useful — the fontset
-  is the same xcb_font_t underneath.
+1. **ISWRenderDrawString / ISWRenderTextWidth handle UTF-8** — Cairo-XCB
+   backend uses cairo_show_text / cairo_text_extents.
+2. **Font abstraction** — IswFontStruct with Fontconfig + FreeType +
+   cairo-ft resolution and caching (_ISWResolveFontFace in ISWRender.c).
+3. **All display widgets migrated** — Label, SmeBSB, List, ListView,
+   IconView, Tip, Slider, Tabs, TextSink use the ISWRender text API.
+4. **Sink/Src types unified** — AsciiSink/MultiSink/AsciiSrc/MultiSrc
+   collapsed into TextSink/TextSrc. UTF-8 throughout.
+5. **Wchar conversion layer removed** — ISWI18n.c/h deleted, all
+   _Isw_atowc / _ISW_iswspace / wcslen(wchar_t*) code paths removed
+   from TextAction.c, TextPop.c, Text.c.
+6. **ISW_INTERNATIONALIZATION ifdefs removed** — zero occurrences remain
+   in the codebase. The build flag still exists in CMakeLists.txt (gates
+   ISWIm.c compilation) but no source code is conditional on it.
+7. **ISWFontSet / ISWXftCompat.h removed** — old xcb_font_t-based
+   fontset struct and its header deleted. IswFontSet void* typedef
+   removed from IswTypes.h. ISWFontSet forward-declared only in
+   ISWImP.h for the disabled XIM code path.
 
-### What needs to happen
+### Remaining (deferred)
 
-**Text rendering** — replace xcb_image_text_8 with a rendering path that
-handles UTF-8. Two options depending on where this falls relative to the
-GL backend TODO:
-
-- If before GL backend: use Cairo's cairo_show_text / pango, which handle
-  UTF-8 natively. ISWRenderDrawString routes through Cairo-XCB already.
-- If after GL backend: use FreeType glyph atlas with UTF-8 codepoint
-  decoding. NanoVG has basic UTF-8 text support built in.
-
-Either way, ISWRenderDrawString and ISWRenderTextWidth need to accept and
-correctly measure UTF-8 strings. This is the minimum viable fix.
-
-**Text measurement** — IswTextWidth must measure UTF-8 strings correctly.
-Currently delegates to xcb_query_text_extents which is single-byte. Replace
-with FreeType/Fontconfig metrics or Cairo text extents.
-
-**ISWFontSet replacement** — the current ISWFontSet struct is not useful.
-Replace with a font abstraction that wraps FreeType (or Cairo font) and
-provides:
-- Open by fontconfig pattern (already the discovery path)
-- UTF-8 string width measurement
-- Glyph rendering (via ISWRender)
-- Ascent/descent/height metrics
-This overlaps with the font refactor plan in FONT_REFACTOR_PLAN.md.
-
-**MultiSink/MultiSrc** — once text rendering handles UTF-8, the
-distinction between AsciiSink and MultiSink mostly disappears. MultiSink
-becomes "text sink that uses ISWFontSet" rather than "text sink that uses
-Xlib wide-char functions." The wchar conversion layer (_ISWTextWCToMB etc.)
-can be removed — work in UTF-8 throughout, no wchar intermediate.
-
-**XIM replacement** — lowest priority. Requires an XCB-native input method
-protocol or integration with IBus/Fcitx via DBus. This is a large effort
-and can be deferred. Without it, CJK input composition is unavailable.
-
-### Suggested order
-
-1. Make ISWRenderDrawString / ISWRenderTextWidth handle UTF-8 (smallest
-   change with largest impact — most display widgets start working)
-2. Replace ISWFontSet with FreeType/Fontconfig-backed font abstraction
-3. Fix MultiSink to use new font abstraction for text entry
-4. Remove wchar conversion layer, work in UTF-8 throughout
-5. Clean up or remove dead #ifdef ISW_INTERNATIONALIZATION scaffolding
-   that no longer serves a purpose
-6. XIM replacement (deferred — separate effort)
-
-### Files
-
-Core: ISWXftCompat.h, ISWXcbDraw.c, IswXcbDraw.c, ISWRenderCairoXCB.c,
-MultiSink.c, MultiSrc.c, AsciiSink.c, TextSrc.c, ISWI18n.c, ISWIm.c.
-Display widgets: Label.c, SmeBSB.c, List.c, ListView.c, IconView.c, Tip.c,
-Slider.c.
+- **XIM replacement** — ISWIm.c still references Xlib XOpenIM/XCreateIC,
+  disabled via ISW_HAS_XIM=OFF. Requires XCB-native input method protocol
+  or IBus/Fcitx via DBus. Separate effort.
 
 ## Edge-specific borders
 

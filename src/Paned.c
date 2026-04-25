@@ -76,12 +76,6 @@ SOFTWARE.
 
 extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
-/* I don't know why Paned.c calls _IswImCallVendorShellExtResize, but... */
-/* FIXME: IswImP.h uses Xlib-specific types (XIM, XIC) that don't exist in XCB */
-/* #ifdef ISW_INTERNATIONALIZATION
-#include <ISW/ISWImP.h>
-#endif */
-
 typedef enum {UpLeftPane = 'U', LowRightPane = 'L',
 	      ThisBorderOnly = 'T', AnyPane = 'A' } Direction;
 
@@ -327,10 +321,6 @@ AdjustPanedSize(PanedWidget pw, Dimension off_size, IswGeometryResult * result_r
       request.request_mode |= IswCWQueryOnly;
 
       *result_ret = IswMakeGeometryRequest( (Widget) pw, &request, &reply );
-      /* XIM support not available in XCB-based libXt - stub out */
-      /* #ifdef ISW_INTERNATIONALIZATION
-      _IswImCallVendorShellExtResize( (Widget) pw );
-      #endif */
 
       if ( (newsize == old_size) || (*result_ret == IswGeometryNo) ) {
    *on_size_ret = old_size;

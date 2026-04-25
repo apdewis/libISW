@@ -58,9 +58,6 @@ SOFTWARE.
 #include <xcb/xproto.h>
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
-#ifdef ISW_INTERNATIONALIZATION
-#include "ISWI18n.h"
-#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,9 +67,7 @@ SOFTWARE.
 #include <ISW/Cardinals.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/TextP.h>
-#ifdef ISW_INTERNATIONALIZATION
 #include <ISW/ISWImP.h>
-#endif
 #include "ISWXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
 
@@ -99,9 +94,6 @@ SOFTWARE.
 
 unsigned long FMT8BIT = 0L;
 unsigned long IswFmt8Bit = 0L;
-#ifdef ISW_INTERNATIONALIZATION
-unsigned long IswFmtWide = 0L;
-#endif
 
 #define SinkClearToBG          IswTextSinkClearToBackground
 
@@ -170,27 +162,6 @@ _TextDrawShadows(TextWidget ctx, Position x0, Position y0, Position x1, Position
 {
     /* No-op: shadow drawing functionality removed */
 }
-
-#ifdef ISW_INTERNATIONALIZATION
-/* IswWcToUtf8: Convert wide-char string to UTF-8
- * Returns malloced UTF-8 string or NULL on failure
- * Caller must free returned string with IswFree()
- */
-static char *
-IswWcToUtf8(const wchar_t *wcs, int wc_len, int *utf8_len_out)
-{
-#ifdef ISW_HAS_XIM
-    /* Would use Xlib XwcTextListToTextProperty here */
-    return NULL;
-#else
-    /* XCB: UTF-8 conversion not fully supported without iconv */
-    /* Fallback: return NULL to indicate conversion not available */
-    fprintf(stderr, "Isw3d: Wide-char UTF-8 conversion not supported in XCB mode\n");
-    if (utf8_len_out) *utf8_len_out = 0;
-    return NULL;
-#endif
-}
-#endif /* ISW_INTERNATIONALIZATION */
 
 /****************************************************************
  *
@@ -383,10 +354,6 @@ ClassInitialize(void)
 
   if (!IswFmt8Bit)
     FMT8BIT = IswFmt8Bit = XrmPermStringToQuark("FMT8BIT");
-#ifdef ISW_INTERNATIONALIZATION
-  if (!IswFmtWide)
-    IswFmtWide = XrmPermStringToQuark("FMTWIDE");
-#endif
 
   IswInitializeWidgetSet();
 
@@ -761,14 +728,12 @@ InsertCursor (Widget w, IswTextInsertState state)
 
   /* Keep Input Method up to speed  */
 
-#ifdef ISW_INTERNATIONALIZATION
   if ( ctx->simple.international ) {
     Arg list[1];
 
     IswSetArg (list[0], IswNinsertPosition, ctx->text.insertPos);
     _IswImSetValues (w, list, 1);
   }
-#endif
 }
 
 /*
@@ -816,14 +781,7 @@ _IswTextGetText(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
   ISWTextBlock text;
   int bytes;
 
-  if (_IswTextFormat(ctx) == IswFmt8Bit)
-      bytes = sizeof(unsigned char);
-#ifdef ISW_INTERNATIONALIZATION
-  else if (_IswTextFormat(ctx) == IswFmtWide)
-      bytes = sizeof(wchar_t);
-#endif
-  else /* if there is another fomat, add here */
-      bytes = 1;
+  bytes = sizeof(unsigned char);
 
   /* leave space for ZERO */
   tempResult=result=IswMalloc( (unsigned)(((Cardinal)(right-left))+ONE )* bytes);
@@ -1300,9 +1258,7 @@ _IswTextVScroll(TextWidget ctx, int n)
     _IswTextSetScrollBars(ctx);
   }
   IswSetArg (list[0], IswNinsertPosition, ctx->text.lt.top+ctx->text.lt.lines);
-#ifdef ISW_INTERNATIONALIZATION
   _IswImSetValues ((Widget) ctx, list, 1);
-#endif
 
     _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
 }
@@ -1633,11 +1589,6 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
       *target == XCB_ATOM_TEXT(d) ||
       *target == XCB_ATOM_COMPOUND_TEXT(d)) {
 	if (*target == XCB_ATOM_TEXT(d)) {
-#ifdef ISW_INTERNATIONALIZATION
-	    if (_IswTextFormat(ctx) == IswFmtWide)
-		*type = XCB_ATOM_COMPOUND_TEXT(d);
-	    else
-#endif
 		*type = XCB_ATOM_STRING;
 	} else {
 	    *type = *target;
@@ -1651,66 +1602,12 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	 */
 	if (!salt) {
 	    *value = _IswTextGetSTRING(ctx, s->left, s->right);
-#ifdef ISW_INTERNATIONALIZATION
-	    if (_IswTextFormat(ctx) == IswFmtWide) {
-#ifdef ISW_HAS_XIM
-		XTextProperty textprop;
-		if (XwcTextListToTextProperty(d, (wchar_t **)value, 1,
-					      XCompoundTextStyle, &textprop)
-			<  Success) {
-		    IswFree(*value);
-		    return False;
-		}
-		IswFree(*value);
-		*value = (IswPointer)textprop.value;
-		*length = textprop.nitems;
-#else
-		/* XCB: TextProperty I18N not available, use 8-bit fallback */
-		fprintf(stderr, "Isw3d: Wide-char selection not fully supported in XCB mode\n");
-		/* Fall through to 8-bit path */
-		*length = strlen(*value);
-#endif
-	    } else
-#endif
-	    {
-		*length = strlen(*value);
-	    }
+	    *length = strlen(*value);
 	} else {
 	    *value = IswMalloc((salt->length + 1) * sizeof(unsigned char));
 	    strcpy (*value, salt->contents);
 	    *length = salt->length;
 	}
-#ifdef ISW_INTERNATIONALIZATION
-	if (_IswTextFormat(ctx) == IswFmtWide && *type == XCB_ATOM_STRING) {
-#ifdef ISW_HAS_XIM
-	    XTextProperty textprop;
-	    wchar_t **wlist;
-	    int count;
-	    textprop.encoding = XCB_ATOM_COMPOUND_TEXT(d);
-	    textprop.value = (unsigned char *)*value;
-	    textprop.nitems = strlen(*value);
-	    textprop.format = 8;
-	    if (XwcTextPropertyToTextList(d, &textprop, (wchar_t ***)&wlist, &count)
-			< Success) {
-		IswFree(*value);
-		return False;
-	    }
-	    IswFree(*value);
-	    if (XwcTextListToTextProperty( d, (wchar_t **)wlist, 1,
-					  XStringStyle, &textprop) < Success) {
-		XwcFreeStringList( (wchar_t**) wlist );
-		return False;
-	    }
-	    *value = (IswPointer) textprop.value;
-	    *length = textprop.nitems;
-	    XwcFreeStringList( (wchar_t**) wlist );
-#else
-	    /* XCB: TextProperty conversion not available */
-	    fprintf(stderr, "Isw3d: Wide-char string conversion not supported in XCB mode\n");
-	    /* Keep existing value/length */
-#endif
-	}
-#endif
 	*format = 8;
 	return True;
   }
@@ -1869,28 +1766,7 @@ _IswTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
     salt->s.right = ctx->text.s.right;
     salt->s.type = ctx->text.s.type;
     salt->contents = _IswTextGetSTRING(ctx, ctx->text.s.left, ctx->text.s.right);
-#ifdef ISW_INTERNATIONALIZATION
-    if (_IswTextFormat(ctx) == IswFmtWide) {
-#ifdef ISW_HAS_XIM
-	XTextProperty textprop;
-	if (XwcTextListToTextProperty(IswDisplay((Widget)ctx),
-			(wchar_t**)(&(salt->contents)), 1, XCompoundTextStyle,
-			&textprop) < Success) {
-	    IswFree(salt->contents);
-	    salt->length = 0;
-	    return;
-	}
-	IswFree(salt->contents);
-	salt->contents = (char *)textprop.value;
-	salt->length = textprop.nitems;
-#else
-	/* XCB: Wide-char salt storage not supported */
-	fprintf(stderr, "Isw3d: Wide-char salt storage not supported in XCB mode\n");
-	salt->length = strlen(salt->contents);
-#endif
-    } else
-#endif
-       salt->length = strlen (salt->contents);
+    salt->length = strlen (salt->contents);
     salt->next = ctx->text.salt;
     ctx->text.salt = salt;
     for (i = 0; i < num_atoms; i++)

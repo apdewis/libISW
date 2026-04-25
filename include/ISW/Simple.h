@@ -85,13 +85,11 @@ SOFTWARE.
 
 #define IswCInsensitive "Insensitive"
 
-#ifdef ISW_INTERNATIONALIZATION
 #ifndef IswCInternational
 #define IswCInternational "International"
 #endif
 #ifndef IswNinternational
 #define IswNinternational "international"
-#endif
 #endif
 
 typedef struct _SimpleClassRec	*SimpleWidgetClass;

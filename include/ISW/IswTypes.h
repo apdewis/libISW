@@ -256,9 +256,6 @@ typedef struct _IswFontStruct {
 } IswFontStruct;
 typedef IswFontStruct IswFontStruct;
 
-typedef void *IswFontSet;
-typedef IswFontSet IswFontSet;
-
 #ifndef XrmString
 typedef char *XrmString;
 #endif

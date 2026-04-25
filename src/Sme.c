@@ -48,10 +48,8 @@ in this Software without prior written authorization from the X Consortium.
 static IswResource resources[] = {
   {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
      offset(callbacks), IswRCallback, (IswPointer)NULL},
-#ifdef ISW_INTERNATIONALIZATION
   {IswNinternational, IswCInternational, IswRBoolean, sizeof(Boolean),
      offset(international), IswRImmediate, (IswPointer) FALSE},
-#endif
 };
 #undef offset
 

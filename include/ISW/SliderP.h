@@ -9,7 +9,6 @@
 #include <ISW/SimpleP.h>
 #include <ISW/Slider.h>
 #include <ISW/ISWRender.h>
-#include <ISW/ISWXftCompat.h>
 
 /* Reuse IswOrientation from ScrollbarP.h */
 #ifndef _IswOrientation_defined

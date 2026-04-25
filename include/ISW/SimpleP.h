@@ -72,9 +72,7 @@ typedef struct {
     String      cursor_name;	/* cursor specified by name. */
 
     Pixel       pointer_fg, pointer_bg;	/* Pointer colors. */
-#ifdef ISW_INTERNATIONALIZATION
     Boolean     international;
-#endif
 
     /* keyboard focus traversal */
     Boolean     traversal_on;   /* widget participates in Tab cycle */

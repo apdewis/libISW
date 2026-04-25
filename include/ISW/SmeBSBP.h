@@ -42,7 +42,6 @@ in this Software without prior written authorization from the X Consortium.
 #include "ISWP.h"
 #include <ISW/SmeP.h>
 #include <ISW/SmeBSB.h>
-#include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
 

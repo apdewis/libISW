@@ -476,18 +476,14 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 
     /* XCB Fix: Add NULL checks before comparing font->fid */
     Bool font_changed = False;
-#ifdef ISW_INTERNATIONALIZATION
     if (old_entry->sme.international == False) {
-#endif
 	if (old_entry->sme_bsb.font != NULL && entry->sme_bsb.font != NULL) {
 	    font_changed = (old_entry->sme_bsb.font->fid != entry->sme_bsb.font->fid);
 	} else if (old_entry->sme_bsb.font != entry->sme_bsb.font) {
 	    /* One is NULL and the other isn't */
 	    font_changed = True;
 	}
-#ifdef ISW_INTERNATIONALIZATION
     }
-#endif
 
     if ( font_changed ||
 	(old_entry->sme_bsb.foreground != entry->sme_bsb.foreground) ) {

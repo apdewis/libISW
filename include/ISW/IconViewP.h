@@ -10,7 +10,6 @@
 #include <ISW/IconView.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
-#include <ISW/ISWXftCompat.h>
 
 /* Cached per-item rendering state */
 typedef struct {

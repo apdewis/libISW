@@ -646,13 +646,9 @@ TipTimeoutCallback(IswPointer closure, IswIntervalId *id)
     info->tip->tip.label = winfo->label;
     info->tip->tip.encoding = 0;
     IswSetArg(args[0], IswNencoding, &info->tip->tip.encoding);
-#ifdef ISW_INTERNATIONALIZATION
     info->tip->tip.international = False;
     IswSetArg(args[1], IswNinternational, &info->tip->tip.international);
     IswGetValues(winfo->widget, args, 2);
-#else
-    IswGetValues(winfo->widget, args, 1);
-#endif
 
     TipLayout(info);
     TipPosition(info);

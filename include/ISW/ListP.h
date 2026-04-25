@@ -47,7 +47,6 @@ in this Software without prior written authorization from the X Consortium.
 #include "ISWP.h"
 #include <ISW/SimpleP.h>
 #include <ISW/List.h>
-#include <ISW/ISWXftCompat.h>  /* ISWFontSet typedef */
 #include <ISW/ISWRender.h>
 
 #define NO_HIGHLIGHT            XAW_LIST_NONE

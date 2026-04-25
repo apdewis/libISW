@@ -158,7 +158,6 @@ typedef struct {
 
 extern unsigned long FMT8BIT;
 extern unsigned long IswFmt8Bit;
-extern unsigned long IswFmtWide;
 
 /* Class record constants */
 

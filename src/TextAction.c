@@ -38,10 +38,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb_keysyms.h>
 #include "ISWXcbDraw.h"
 #include <ISW/TextP.h>
-#ifdef ISW_INTERNATIONALIZATION
 #include <ISW/ISWImP.h>
-#include "ISWI18n.h"
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -95,23 +92,6 @@ extern int _IswTextReplace(TextWidget, ISWTextPosition, ISWTextPosition, ISWText
 static void GetSelection(Widget, xcb_timestamp_t, String *, Cardinal);
 void _IswTextZapSelection(TextWidget, xcb_generic_event_t *, Boolean);
 
-#ifdef ISW_INTERNATIONALIZATION
-static void
-ParameterError(Widget w, String param)
-{
-    String params[2];
-    Cardinal num_params = 2;
-    params[0] = IswName(w);
-    params[1] = param;
-
-    IswAppWarningMsg( IswWidgetToApplicationContext(w),
- "parameterError", "textAction", "IswError",
- "Widget: %s Parameter: %s",
- params, &num_params);
-    xcb_bell(IswDisplay(w), 0); // 0 = default volume
-    xcb_flush(IswDisplay(w));
-}
-#endif
 
 static void
 StartAction(TextWidget ctx, xcb_generic_event_t *event)
@@ -208,27 +188,6 @@ struct _SelectionList {
     xcb_atom_t selection;	/* selection atom when asking XCB_ATOM_COMPOUND_TEXT */
 };
 
-#ifdef ISW_INTERNATIONALIZATION
-static int
-ProbablyMB(char *s)
-{
-    int escapes = 0;
-    int has_hi_bit = False;
-
-    /* if it has more than one ESC char, I assume it is COMPOUND_TEXT.
-    If it has at least one hi bit set character, I pretend it is multibyte. */
-
-    while ( (wchar_t)(*s) != (wchar_t)0 ) {
-        if ( *s & 128 )
-            has_hi_bit = True;
-        if ( *s++ == '\033' )
-            escapes++;
-        if ( escapes >= 2 )
-            return( 0 );
-    }
-    return( has_hi_bit );
-}
-#endif
 
 /* ARGSUSED */
 static void
@@ -264,62 +223,6 @@ and if it is we can only assume the sending client is using the same locale as
 we are, and convert it.  I also warn the user that the other client is evil. */
 
   StartAction( ctx, (xcb_generic_event_t*) NULL );
-#ifdef ISW_INTERNATIONALIZATION
-  if (_IswTextFormat(ctx) == IswFmtWide) {
-#ifdef ISW_HAS_XIM
-      XTextProperty textprop;
-      xcb_connection_t *d = IswDisplay((Widget)ctx);
-      wchar_t **wlist;
-      int count;
-      int try_CT = 1;
-
-      /* IS THE SELECTION IN MULTIBYTE FORMAT? */
-
-      if ( ProbablyMB( (char *) value ) ) {
-          char * list[1];
-          list[0] = (char *) value;
-          if ( XmbTextListToTextProperty( d, (char**) list, 1,
-				XCompoundTextStyle, &textprop ) == Success )
-              try_CT = 0;
-      }
-
-      /* OR IN COMPOUND TEXT FORMAT? */
-
-      if ( try_CT ) {
-          textprop.encoding = XCB_ATOM_COMPOUND_TEXT(d);
-          textprop.value = (unsigned char *)value;
-          textprop.nitems = strlen(value);
-          textprop.format = 8;
-      }
-
-      if ( XwcTextPropertyToTextList( d, &textprop, (wchar_t***) &wlist, &count )
-		!=  Success) {
-          XwcFreeStringList( (wchar_t**) wlist );
-
-          /* Notify the user on strerr and in the insertion :) */
-          textprop.value = (unsigned char *) " >> ILLEGAL SELECTION << ";
-          count = 1;
-          fprintf( stderr, "Isw Text Widget: An attempt was made to insert an illegal selection.\n" );
-
-          if ( XwcTextPropertyToTextList( d, &textprop, (wchar_t***) &wlist, &count )
-		!=  Success) return;
-      }
-
-      IswFree(value);
-      value = (IswPointer)wlist[0];
-
-      *length = wcslen(wlist[0]);
-      IswFree((IswPointer)wlist);
-      text.format = IswFmtWide;
-#else
-      /* XCB: TextProperty I18N functions not available */
-      /* Fall through to simple ASCII handling */
-      fprintf(stderr, "Isw3d: Wide char selection not supported in XCB mode\n");
-      /* Fall through to 8-bit handling below */
-      text.format = IswFmt8Bit;
-#endif
-  } else
-#endif
       text.format = IswFmt8Bit;
   text.ptr = (char*)value;
   text.firstPos = 0;
@@ -656,11 +559,6 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
       *target == XCB_ATOM_TEXT(d) ||
       *target == XCB_ATOM_COMPOUND_TEXT(d)) {
 	if (*target == XCB_ATOM_TEXT(d)) {
-#ifdef ISW_INTERNATIONALIZATION
-	    if (_IswTextFormat(ctx) == IswFmtWide)
-		*type = XCB_ATOM_COMPOUND_TEXT(d);
-	    else
-#endif
 		*type = XCB_ATOM_STRING;
 	} else {
 	    *type = *target;
@@ -674,28 +572,6 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	 */
 	if (!salt) {
 	    *value = (char *)_IswTextGetSTRING(ctx, s->left, s->right);
-#ifdef ISW_INTERNATIONALIZATION
-	    if (_IswTextFormat(ctx) == IswFmtWide) {
-#ifdef ISW_HAS_XIM
-		XTextProperty textprop;
-		if (XwcTextListToTextProperty(d, (wchar_t**)value, 1,
-					      XCompoundTextStyle, &textprop)
-			< Success) {
-		    IswFree(*value);
-		    return False;
-		}
-		IswFree(*value);
-		*value = (IswPointer)textprop.value;
-		*length = textprop.nitems;
-#else
-		/* XCB: TextProperty I18N functions not available */
-		/* For now, return the raw wide char data as-is */
-		fprintf(stderr, "Isw3d: Wide char selection conversion not supported in XCB mode\n");
-		/* Fall through to length calculation below */
-		*length = wcslen((wchar_t*)*value);
-#endif
-	    } else
-#endif
 	    {
 		*length = strlen(*value);
 	    }
@@ -704,37 +580,6 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	    strcpy (*value, salt->contents);
 	    *length = salt->length;
 	}
-#ifdef ISW_INTERNATIONALIZATION
-	if (_IswTextFormat(ctx) == IswFmtWide && *type == XCB_ATOM_STRING) {
-#ifdef ISW_HAS_XIM
-	    XTextProperty textprop;
-	    wchar_t** wlist;
-	    int count;
-	    textprop.encoding = XCB_ATOM_COMPOUND_TEXT(d);
-	    textprop.value = (unsigned char *)*value;
-	    textprop.nitems = strlen(*value);
-	    textprop.format = 8;
-	    if (XwcTextPropertyToTextList(d, &textprop, (wchar_t***)&wlist, &count)
-			< Success) {
-		IswFree(*value);
-		return False;
-	    }
-	    IswFree(*value);
-	    if (XwcTextListToTextProperty(d, (wchar_t**)wlist, 1,
-					  XStringStyle, &textprop) < Success) {
-		XwcFreeStringList( (wchar_t**) wlist );
-		return False;
-	    }
-	    *value = (IswPointer)textprop.value;
-	    *length = textprop.nitems;
-	    XwcFreeStringList( (wchar_t**) wlist );
-#else
-	    /* XCB: TextProperty I18N functions not available */
-	    fprintf(stderr, "Isw3d: Wide char selection conversion not supported in XCB mode\n");
-	    /* Leave value and length as-is */
-#endif
-	}
-#endif
 	*format = 8;
 	return True;
   }
@@ -869,27 +714,6 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
     salt->s.left = from;
     salt->s.right = to;
     salt->contents = (char *)_IswTextGetSTRING(ctx, from, to);
-#ifdef ISW_INTERNATIONALIZATION
-    if (_IswTextFormat(ctx) == IswFmtWide) {
-#ifdef ISW_HAS_XIM
-	XTextProperty textprop;
-	if (XwcTextListToTextProperty(IswDisplay((Widget)ctx),
-			(wchar_t**)(&(salt->contents)), 1, XCompoundTextStyle,
-			&textprop) <  Success) {
-	    IswFree(salt->contents);
-	    salt->length = 0;
-	    return;
-	}
-	IswFree(salt->contents);
-	salt->contents = (char *)textprop.value;
-	salt->length = textprop.nitems;
-#else
-	/* XCB: TextProperty I18N functions not available */
-	fprintf(stderr, "Isw3d: Wide char selection conversion not supported in XCB mode\n");
-	salt->length = wcslen((wchar_t*)salt->contents);
-#endif
-    } else
-#endif
        salt->length = strlen (salt->contents);
     salt->next = ctx->text.salt2;
     ctx->text.salt2 = salt;
@@ -1070,16 +894,6 @@ InsertNewLineAndBackupInternal(TextWidget ctx)
   text.length = ctx->text.mult;
   text.firstPos = 0;
 
-#ifdef ISW_INTERNATIONALIZATION
-  if ( text.format == IswFmtWide ) {
-      wchar_t* wptr;
-      text.ptr =  IswMalloc(sizeof(wchar_t) * ctx->text.mult);
-      wptr = (wchar_t *)text.ptr;
-      for (count = 0; count < ctx->text.mult; count++ )
-          wptr[count] = _Isw_atowc(IswLF);
-  }
-  else
-#endif
   {
       text.ptr = IswMalloc(sizeof(char) * ctx->text.mult);
       for (count = 0; count < ctx->text.mult; count++ )
@@ -1147,23 +961,6 @@ InsertNewLineAndIndent(Widget w, xcb_generic_event_t *event, String *p, Cardinal
   text.format = _IswTextFormat(ctx);
   text.firstPos = 0;
 
-#ifdef ISW_INTERNATIONALIZATION
-  if ( text.format == IswFmtWide ) {
-     wchar_t* ptr;
-     text.ptr = IswMalloc( ( 2 + wcslen((wchar_t*)line_to_ip) ) * sizeof(wchar_t) );
-
-     ptr = (wchar_t*)text.ptr;
-     ptr[0] = _Isw_atowc( IswLF );
-     wcscpy( (wchar_t*) ++ptr, (wchar_t*) line_to_ip );
-
-     length = wcslen((wchar_t*)text.ptr);
-     while ( length && ( iswspace(*ptr) || ( *ptr == _Isw_atowc(IswTAB) ) ) )
-         ptr++, length--;
-     *ptr = (wchar_t)0;
-     text.length = wcslen((wchar_t*)text.ptr);
-
-  } else
-#endif
   {
      char *ptr;
      length = strlen(line_to_ip);
@@ -1360,9 +1157,7 @@ TextFocusIn (Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   xcb_focus_in_event_t *fev = (xcb_focus_in_event_t *)event;
 
   /* Let the input method know focus has arrived. */
-#ifdef ISW_INTERNATIONALIZATION
   _IswImSetFocusValues (w, NULL, 0);
-#endif
   if (fev->detail == XCB_NOTIFY_DETAIL_POINTER) {
       return;
   }
@@ -1384,9 +1179,7 @@ TextFocusOut(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   xcb_focus_out_event_t *fev = (xcb_focus_out_event_t *)event;
 
   /* Let the input method know focus has left.*/
-#ifdef ISW_INTERNATIONALIZATION
   _IswImUnsetFocus(w);
-#endif
   if (fev->detail == XCB_NOTIFY_DETAIL_POINTER) {
       return;
   }
@@ -1399,26 +1192,22 @@ TextFocusOut(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 static void
 TextEnterWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
-#ifdef ISW_INTERNATIONALIZATION
   TextWidget ctx = (TextWidget) w;
   xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
   if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && !ctx->text.hasfocus)
     _IswImSetFocusValues(w, NULL, 0);
-#endif
 }
 
 /*ARGSUSED*/
 static void
 TextLeaveWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
-#ifdef ISW_INTERNATIONALIZATION
   TextWidget ctx = (TextWidget) w;
   xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
   if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && !ctx->text.hasfocus)
     _IswImUnsetFocus(w);
-#endif
 }
 
 /* XComposeStatus removed - not available in XCB */
@@ -1455,14 +1244,6 @@ AutoFill(TextWidget ctx)
     return;
 
   text.format = IswFmt8Bit;
-#ifdef ISW_INTERNATIONALIZATION
-  if (_IswTextFormat(ctx) == IswFmtWide) {
-    text.format = IswFmtWide;
-    text.ptr =  (char *)IswMalloc(sizeof(wchar_t) * 2);
-    ((wchar_t*)text.ptr)[0] = _Isw_atowc(IswLF);
-    ((wchar_t*)text.ptr)[1] = 0;
-  } else
-#endif
     text.ptr = "\n";
   text.length = 1;
   text.firstPos = 0;
@@ -1557,16 +1338,6 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
       return;
 
   text.format = _IswTextFormat( ctx );
-#ifdef ISW_INTERNATIONALIZATION
-  if ( text.format == IswFmtWide ) {
-      text.ptr = ptr = IswMalloc(sizeof(wchar_t) * text.length * ctx->text.mult );
-      for (count = 0; count < ctx->text.mult; count++ ) {
-          memcpy((char*) ptr, (char *)strbuf, sizeof(wchar_t) * text.length );
-          ptr += sizeof(wchar_t) * text.length;
-      }
-
-  } else
-#endif
   { /* == IswFmt8Bit */
       text.ptr = ptr = IswMalloc( sizeof(char) * text.length * ctx->text.mult );
       for ( count = 0; count < ctx->text.mult; count++ ) {
@@ -1694,9 +1465,6 @@ static void
 InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
-#ifdef ISW_INTERNATIONALIZATION
-  IswAppContext app_con = IswWidgetToApplicationContext(w);
-#endif
   ISWTextBlock text;
   int	   i;
 
@@ -1834,15 +1602,6 @@ StripOutOldCRs(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
   text.format = _IswTextFormat(ctx);
   if ( text.format == IswFmt8Bit )
       text.ptr= "  ";
-#ifdef ISW_INTERNATIONALIZATION
-  else {
-      static wchar_t wc_two_spaces[ 3 ];
-      wc_two_spaces[0] = _Isw_atowc(IswSP);
-      wc_two_spaces[1] = _Isw_atowc(IswSP);
-      wc_two_spaces[2] = 0;
-      text.ptr = (char*) wc_two_spaces;
-  }
-#endif
 
   /* Strip out CR's. */
 
@@ -1876,12 +1635,6 @@ StripOutOldCRs(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
 
       text.length = 1;
       buf = _IswTextGetText(ctx, periodPos, next_word);
-#ifdef ISW_INTERNATIONALIZATION
-      if (text.format == IswFmtWide) {
-        if ( (periodPos < endPos) && (((wchar_t*)buf)[0] == _Isw_atowc('.')))
-          text.length++;
-      } else
-#endif
         if ( (periodPos < endPos) && (buf[0] == '.') )
 	  text.length++;	/* Put in two spaces. */
 
@@ -1890,13 +1643,6 @@ StripOutOldCRs(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
        */
 
       for (i = 1 ; i < len; i++)
-#ifdef ISW_INTERNATIONALIZATION
-        if (text.format ==  IswFmtWide) {
-          if ( !iswspace(((wchar_t*)buf)[i]) || ((periodPos + i) >= to) ) {
-             break;
-          }
-        } else
-#endif
 	  if ( !isspace(buf[i]) || ((periodPos + i) >= to) ) {
 	      break;
 	  }
@@ -1932,14 +1678,6 @@ InsertNewCRs(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
 
   if ( text.format == IswFmt8Bit )
       text.ptr = "\n";
-#ifdef ISW_INTERNATIONALIZATION
-  else {
-      static wchar_t wide_CR[ 2 ];
-      wide_CR[0] = _Isw_atowc(IswLF);
-      wide_CR[1] = 0;
-      text.ptr = (char*) wide_CR;
-  }
-#endif
 
   startPos = from;
   /* CONSTCOND */
@@ -1961,12 +1699,6 @@ InsertNewCRs(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
       len = (int) (space - eol);
       buf = _IswTextGetText(ctx, eol, space);
       for ( i = 0 ; i < len ; i++)
-#ifdef ISW_INTERNATIONALIZATION
-      if (text.format == IswFmtWide) {
-          if (!iswspace(((wchar_t*)buf)[i]))
-              break;
-      } else
-#endif
           if (!isspace(buf[i]))
               break;
 
@@ -2076,21 +1808,6 @@ TransposeCharacters(Widget w, xcb_generic_event_t *event, String *params, Cardin
 
   /* Retrieve text and swap the characters. */
 
-#ifdef ISW_INTERNATIONALIZATION
-  if ( text.format == IswFmtWide) {
-      wchar_t wc;
-      wchar_t* wbuf;
-
-      wbuf = (wchar_t*) _IswTextGetText(ctx, start, end);
-      text.length = wcslen( wbuf );
-      wc = wbuf[ 0 ];
-      for ( i = 1; i < text.length; i++ )
-          wbuf[ i-1 ] = wbuf[ i ];
-      wbuf[ i-1 ] = wc;
-      buf = (char*) wbuf; /* so that it gets assigned and freed */
-
-  } else
-#endif
   { /* thus text.format == IswFmt8Bit */
       char c;
       buf = _IswTextGetText( ctx, start, end );
@@ -2146,14 +1863,12 @@ NoOp(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
  * was started up before an IM was started up.
  */
 
-#ifdef ISW_INTERNATIONALIZATION
 /*ARGSUSED*/
 static void
 Reconnect(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
     _IswImReconnect( w );
 }
-#endif
 
 
 IswActionsRec _IswTextActionsTable[] = {
@@ -2239,9 +1954,7 @@ IswActionsRec _IswTextActionsTable[] = {
   {"PopdownSearchAction",       _IswTextPopdownSearchAction},
 
 /* Reconnect to Input Method */
-#ifdef ISW_INTERNATIONALIZATION
   {"reconnect-im",       Reconnect} /* Li Yuhong, Omron KK, 1991 */
-#endif
 };
 
 Cardinal _IswTextActionsTableCount = IswNumber(_IswTextActionsTable);

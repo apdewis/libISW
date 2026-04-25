@@ -73,9 +73,7 @@ extern SmeClassRec smeClassRec;
 typedef struct {
     /* resources */
     IswCallbackList callbacks;	/* The callback list */
-#ifdef ISW_INTERNATIONALIZATION
     Boolean     international;
-#endif
 } SmePart;
 
 /****************************************************************

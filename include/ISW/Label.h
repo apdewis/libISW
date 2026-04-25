@@ -113,15 +113,6 @@ typedef enum {
 #define IswNleftImage "leftImage"
 #define IswCLeftImage "LeftImage"
 
-#ifdef ISW_INTERNATIONALIZATION
-#ifndef IswNfontSet
-#define IswNfontSet "fontSet"
-#endif
-#ifndef IswCFontSet
-#define IswCFontSet "FontSet"
-#endif
-#endif
-
 #ifndef _IswStringDefs_h_
 #define IswNforeground "foreground"
 #define IswNlabel "label"

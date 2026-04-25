@@ -89,15 +89,6 @@ extern WidgetClass smeBSBObjectClass;
 #define IswNmenuName "menuName"
 #define IswNunderline "underline"
 
-#ifdef ISW_INTERNATIONALIZATION
-#ifndef IswNfontSet
-#define IswNfontSet		"fontSet"
-#endif
-#ifndef IswCFontSet
-#define IswCFontSet		"FontSet"
-#endif
-#endif
-
 #define IswCLeftImage "LeftImage"
 #define IswCRightImage "RightImage"
 #define IswCHorizontalMargins "HorizontalMargins"

@@ -77,17 +77,12 @@ SOFTWARE.
 #endif
 #include <ISW/VendorP.h>
 #include <ISW/FocusMgrI.h>
-#ifdef ISW_INTERNATIONALIZATION
-/* Editres support - see IswUtils.h */
-#endif
 #include <ISW/ISWPNG.h>
 #include "ISWRenderPrivate.h"
 
 /* The following two headers are for the input method. */
-#ifdef ISW_INTERNATIONALIZATION
 #include <ISW/VendorEP.h>
 #include <ISW/ISWImP.h>
-#endif
 
 
 static IswResource resources[] = {
@@ -108,10 +103,8 @@ static Boolean IswVendorShellSetValues(Widget, Widget, Widget, ArgList, Cardinal
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void ChangeManaged(Widget);
 static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
-#ifdef ISW_INTERNATIONALIZATION
 static void IswVendorShellClassPartInit(WidgetClass);
 void IswVendorShellExtResize(Widget);
-#endif
 
 #if defined(__UNIXOS2__) || defined(__CYGWIN__) || defined(__MINGW32__)
 /* to fix the EditRes problem because of wrong linker semantics */
@@ -159,7 +152,6 @@ DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
 
 #endif
 
-#ifdef ISW_INTERNATIONALIZATION
 static CompositeClassExtensionRec vendorCompositeExt = {
     /* next_extension     */	NULL,
     /* record_type        */    NULLQUARK,
@@ -168,7 +160,6 @@ static CompositeClassExtensionRec vendorCompositeExt = {
     /* accepts_objects    */    TRUE,
     /* allows_change_managed_set */ FALSE
 };
-#endif
 
 #define SuperClass (&wmShellClassRec)
 externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
@@ -177,11 +168,7 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
     /* class_name	  */	"VendorShell",
     /* size		  */	sizeof(VendorShellRec),
     /* class_initialize	  */	IswVendorShellClassInitialize,
-#ifdef ISW_INTERNATIONALIZATION
     /* class_part_init	  */	IswVendorShellClassPartInit,
-#else
-    /* class_part_init	  */	NULL,
-#endif
     /* Class init'ed ?	  */	FALSE,
     /* initialize         */	IswVendorShellInitialize,
     /* initialize_hook	  */	NULL,
@@ -196,11 +183,7 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
     /* compress_enterleave*/	FALSE,
     /* visible_interest	  */	FALSE,
     /* destroy		  */	NULL,
-#ifdef ISW_INTERNATIONALIZATION
     /* resize		  */	IswVendorShellExtResize,
-#else
-    /* resize		  */	IswInheritResize,
-#endif
     /* expose		  */	NULL,
     /* set_values	  */	IswVendorShellSetValues,
     /* set_values_hook	  */	NULL,
@@ -218,11 +201,7 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
     /* change_managed	  */	ChangeManaged,
     /* insert_child	  */	IswInheritInsertChild,
     /* delete_child	  */	IswInheritDeleteChild,
-#ifdef ISW_INTERNATIONALIZATION
     /* extension	  */	(IswPointer) &vendorCompositeExt
-#else
-    /* extension	  */	NULL
-#endif
   },{
     /* extension	  */	NULL
   },{
@@ -236,7 +215,6 @@ externaldef(vendorshellwidgetclass) WidgetClass vendorShellWidgetClass =
 	(WidgetClass) (&vendorShellClassRec);
 
 
-#ifdef ISW_INTERNATIONALIZATION
 /***************************************************************************
  *
  * The following section is for the Vendor shell Extension class record
@@ -305,7 +283,6 @@ externaldef(vendorshellextclassrec) IswVendorShellExtClassRec
 
 externaldef(xawvendorshellwidgetclass) WidgetClass
      xawvendorShellExtWidgetClass = (WidgetClass) (&xawvendorShellExtClassRec);
-#endif
 
 
 /* IswCvtCompoundTextToString - commented out for XCB port
@@ -497,7 +474,6 @@ IswVendorShellClassInitialize(void)
 			NULL, 0, IswCacheNone, NULL); */
 }
 
-#ifdef ISW_INTERNATIONALIZATION
 static void
 IswVendorShellClassPartInit(WidgetClass class)
 {
@@ -521,7 +497,6 @@ IswVendorShellClassPartInit(WidgetClass class)
 	}
     }
 }
-#endif
 
 #if defined(__osf__) || defined(__UNIXOS2__) || defined(__CYGWIN__) || defined(__MINGW32__)
 /* stupid OSF/1 shared libraries have the wrong semantics */
@@ -542,12 +517,10 @@ IswVendorShellInitialize(Widget req, Widget new, ArgList args, Cardinal *num_arg
 {
     /* EditRes support commented out for XCB port - optional feature */
     /* IswAddEventHandler(new, (EventMask) 0, TRUE, _XEditResCheckMessages, NULL); */
-#ifdef ISW_INTERNATIONALIZATION
     /* IswRegisterExternalAgent stub - XCB does not support XIM */
     /* IswAddEventHandler(new, (EventMask) 0, TRUE, IswRegisterExternalAgent, NULL); */
     IswCreateWidget("shellext", xawvendorShellExtWidgetClass,
 		   new, args, *num_args);
-#endif
 }
 
 /* ARGSUSED */
@@ -566,13 +539,10 @@ Realize(xcb_connection_t *dpy, Widget wid, IswValueMask *vmask, uint32_t *attr)
 
 	/* Call superclass realize - XCB custom libXt uses 4-parameter signature */
 	(*super->core_class.realize) (dpy, wid, vmask, attr);
-#ifdef ISW_INTERNATIONALIZATION
 	_IswImRealize(wid);
-#endif
 }
 
 
-#ifdef ISW_INTERNATIONALIZATION
 static void
 IswVendorShellExtClassInitialize(void)
 {
@@ -623,7 +593,6 @@ IswVendorShellExtResize(Widget w)
 	    }
 	}
 }
-#endif
 
 /*ARGSUSED*/
 static IswGeometryResult
@@ -646,9 +615,7 @@ GeometryManager(Widget wid, IswWidgetGeometry *request, IswWidgetGeometry *reply
 	}
 	if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) {
 	    my_request.height = request->height
-#ifdef ISW_INTERNATIONALIZATION
 			      + _IswImGetImAreaHeight( wid )
-#endif
 			      ;
 	    my_request.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
 	}
@@ -672,9 +639,7 @@ GeometryManager(Widget wid, IswWidgetGeometry *request, IswWidgetGeometry *reply
 	    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
 		wid->core.x = wid->core.y = -request->border_width;
 	    }
-#ifdef ISW_INTERNATIONALIZATION
 	    _IswImCallVendorShellExtResize(wid);
-#endif
 	    return IswGeometryYes;
 	} else return IswGeometryNo;
 }

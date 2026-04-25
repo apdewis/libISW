@@ -136,15 +136,6 @@ in this Software without prior written authorization from the X Consortium.
 #define IswNdropdownMode "dropdownMode"
 #define IswCDropdownMode "DropdownMode"
 
-#ifdef ISW_INTERNATIONALIZATION
-#ifndef IswNfontSet
-#define IswNfontSet "fontSet"
-#endif
-#ifndef IswCFontSet
-#define IswCFontSet "FontSet"
-#endif
-#endif
-
 /* Class record constants */
 
 extern WidgetClass listWidgetClass;

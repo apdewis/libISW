@@ -64,7 +64,7 @@ in this Software without prior written authorization from the X Consortium.
 #define IswCSharedIc		"SharedIc"
 
 #include <ISW/Text.h>
-#include <ISW/ISWXftCompat.h>  /* For ISWFontSet typedef */
+typedef struct _IswFontSet ISWFontSet;
 
 /* XCB Migration: XIM requires Xlib and is not available with XCB */
 #ifdef ISW_HAS_XIM

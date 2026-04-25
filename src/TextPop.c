@@ -59,9 +59,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Command.h>
 #include <ISW/Form.h>
 #include <ISW/Toggle.h>
-#ifdef ISW_INTERNATIONALIZATION
-#include "ISWI18n.h"
-#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <X11/Xos.h>		/* for O_RDONLY */
@@ -300,17 +297,6 @@ InsertFileNamed(Widget tw, char *str)
       IswErrorMsg("readError", "insertFileNamed", "IswError",
                  "fread returned error.", NULL, NULL);
 
- /* DELETE if (text.format == IswFmtWide) {
-     wchar_t* _ISWTextMBToWC();
-     wchar_t* wstr;
-     wstr = _ISWTextMBToWC(IswDisplay(tw), text.ptr, &(text.length));
-     wstr[text.length] = NULL;
-     IswFree(text.ptr);
-     text.ptr = (char *)wstr;
-  } else {
-     (text.ptr)[text.length] = '\0';
-  }*/
-
   if (IswTextReplace(tw, pos, pos, &text) != IswEditDone) {
      IswFree(text.ptr);
      fclose(file);
@@ -525,13 +511,6 @@ _IswTextSearch(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
   if (*num_params == 2 )
       ptr = params[1];
   else
-#ifdef ISW_INTERNATIONALIZATION
-      if (_IswTextFormat(ctx) == IswFmtWide) {
-          /*This just does the equivalent of ptr = ""L, a waste because params[1] isnt W aligned.*/
-          ptr = (char *)IswMalloc(sizeof(wchar_t));
-          *((wchar_t*)ptr) = (wchar_t)0;
-      } else
-#endif
           ptr = "";
 
   switch(params[0][0]) {
@@ -803,11 +782,6 @@ DoSearch(struct SearchAndReplace * search)
 
   text.ptr = GetStringRaw(search->search_text);
   text.format = _IswTextFormat(ctx);
-#ifdef ISW_INTERNATIONALIZATION
-  if (text.format == IswFmtWide)
-      text.length = wcslen((wchar_t*)text.ptr);
-  else
-#endif
       text.length = strlen(text.ptr);
   text.firstPos = 0;
 
@@ -927,22 +901,12 @@ Replace(struct SearchAndReplace *search, Boolean once_only, Boolean show_current
 
   find.ptr = GetStringRaw( search->search_text);
   find.format = _IswTextFormat(ctx);
-#ifdef ISW_INTERNATIONALIZATION
-  if (find.format == IswFmtWide)
-      find.length = wcslen((wchar_t*)find.ptr);
-  else
-#endif
       find.length = strlen(find.ptr);
   find.firstPos = 0;
 
   replace.ptr = GetStringRaw(search->rep_text);
   replace.firstPos = 0;
   replace.format = _IswTextFormat(ctx);
-#ifdef ISW_INTERNATIONALIZATION
-  if (replace.format == IswFmtWide)
-      replace.length = wcslen((wchar_t*)replace.ptr);
-  else
-#endif
       replace.length = strlen(replace.ptr);
 
   dir = (IswTextScanDirection)(intptr_t) ((IswPointer)IswToggleGetCurrent(search->left_toggle) -

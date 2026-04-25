@@ -241,7 +241,6 @@ set(I18N_SOURCES)
 if(ISW_INTERNATIONALIZATION)
     set(I18N_SOURCES
         src/ISWIm.c
-        src/ISWI18n.c
     )
 endif()
 

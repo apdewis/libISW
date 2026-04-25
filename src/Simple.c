@@ -72,10 +72,8 @@ static IswResource resources[] = {
   */
   {IswNcursorName, IswCCursor, IswRString, sizeof(String),
      offset(cursor_name), IswRString, NULL},
-#ifdef ISW_INTERNATIONALIZATION
   {IswNinternational, IswCInternational, IswRBoolean, sizeof(Boolean),
      offset(international), IswRImmediate, (IswPointer) FALSE},
-#endif
   {IswNtraversalOn, IswCTraversalOn, IswRBoolean, sizeof(Boolean),
      offset(traversal_on), IswRImmediate, (IswPointer) FALSE},
   {IswNtabIndex, IswCTabIndex, IswRInt, sizeof(int),
@@ -260,9 +258,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     Boolean new_cursor = FALSE;
 
     /* this disables user changes after creation*/
-#ifdef ISW_INTERNATIONALIZATION
     s_new->simple.international = s_old->simple.international;
-#endif
 
     if ( IswIsSensitive(current) != IswIsSensitive(new) )
 	(*((SimpleWidgetClass)IswClass(new))->

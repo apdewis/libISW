@@ -62,13 +62,11 @@ in this Software without prior written authorization from the X Consortium.
 
 */
 
-#ifdef ISW_INTERNATIONALIZATION
 #ifndef IswCInternational
 #define IswCInternational	"International"
 #endif
 #ifndef IswNinternational
 #define IswNinternational	"international"
-#endif
 #endif
 
 typedef struct _SmeClassRec*	SmeObjectClass;

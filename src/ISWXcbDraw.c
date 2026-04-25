@@ -8,7 +8,6 @@
  */
 
 #include "ISWXcbDraw.h"
-#include "../include/ISW/ISWXftCompat.h"  /* For ISWFontSet definition */
 #include "../include/ISW/Form.h"  /* For IswEdgeType definition */
 #include <stdlib.h>
 #include <string.h>
@@ -554,60 +553,6 @@ ISWXcbDrawString(xcb_connection_t *conn, xcb_drawable_t d,
          * xcb_gcontext_t fill style appropriately for transparent effect.
          * A full implementation would use poly_text_8 with proper items. */
         xcb_image_text_8(conn, chunk, d, gc, x, y, text);
-        text += chunk;
-        len -= chunk;
-    }
-    
-    xcb_flush(conn);
-}
-
-/*
- * =================================================================
- * XAWFONTSET TEXT RENDERING (IswXftCompat.h implementations)
- * =================================================================
- */
-
-/*
- * IswTextWidth - Calculate text width using ISWFontSet
- *
- * Wrapper around ISWFontTextWidth that uses the connection stored in fontset.
- * This provides a simplified API for widgets that have a fontset pointer.
- */
-int
-IswTextWidth(ISWFontSet *fontset, const char *text, int len)
-{
-    if (!fontset || !fontset->conn || !text || len <= 0)
-        return 0;
-    
-    /* Use the fontset's connection and font_id to query text width */
-    return ISWFontTextWidth(fontset->conn, fontset->font_id, text, len);
-}
-
-/*
- * IswDrawString - Draw text using ISWFontSet
- *
- * Draws text string using the font specified in fontset.
- * Uses xcb_image_text_8 which draws with background fill.
- */
-void
-IswDrawString(xcb_connection_t *conn, xcb_drawable_t d,
-              ISWFontSet *fontset, xcb_gcontext_t gc,
-              int x, int y, const char *text, int len)
-{
-    if (!conn || !fontset || !text || len <= 0)
-        return;
-    
-    /* Draw text in chunks (XCB limits to 255 chars per request) */
-    while (len > 0) {
-        int chunk = (len > 255) ? 255 : len;
-        xcb_image_text_8(conn, chunk, d, gc, x, y, text);
-        
-        /* For multi-chunk text, advance x position */
-        if (len > 255 && fontset->conn) {
-            int chunk_width = ISWFontTextWidth(fontset->conn, fontset->font_id, text, chunk);
-            x += chunk_width;
-        }
-        
         text += chunk;
         len -= chunk;
     }
