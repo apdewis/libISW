@@ -51,6 +51,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/FocusMgrI.h>
 #include <ISW/ISWRender.h>
 #include <ISW/Viewport.h>
+#include <ISW/ViewportP.h>
 #include <ISW/SimpleMenu.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSB.h>
@@ -997,6 +998,54 @@ KeyOpensDropdown(Widget w, xcb_generic_event_t *event)
 }
 
 static void
+ScrollToItem(Widget w, int item)
+{
+    ListWidget lw = (ListWidget) w;
+    Widget p, viewport;
+    int item_y;
+
+    if (lw->list.row_height <= 0) return;
+
+    if (lw->list.vertical_cols)
+        item_y = lw->list.row_height * (item % lw->list.nrows)
+                 + lw->list.internal_height;
+    else
+        item_y = lw->list.row_height * (item / lw->list.ncols)
+                 + lw->list.internal_height;
+
+    for (p = IswParent(w); p != NULL; p = IswParent(p)) {
+        if (IswIsSubclass(p, viewportWidgetClass))
+            break;
+    }
+    if (p == NULL) return;
+    viewport = p;
+
+    ViewportWidget vw = (ViewportWidget) viewport;
+    Widget clip = vw->viewport.clip;
+    Widget child = vw->viewport.child;
+    if (child == NULL || clip == NULL) return;
+
+    int abs_y = item_y;
+    for (Widget a = w; a != child && a != NULL; a = IswParent(a))
+        abs_y += a->core.y;
+
+    int scroll_y = -(child->core.y);
+    int clip_h = (int)clip->core.height;
+    int item_h = lw->list.row_height;
+
+    if (abs_y >= scroll_y && abs_y + item_h <= scroll_y + clip_h)
+        return;
+
+    int new_y;
+    if (abs_y < scroll_y)
+        new_y = abs_y;
+    else
+        new_y = abs_y + item_h - clip_h;
+
+    IswViewportSetCoordinates(viewport, -(child->core.x), (Position)new_y);
+}
+
+static void
 MoveCursor(Widget w, int new_index)
 {
     ListWidget lw = (ListWidget) w;
@@ -1005,6 +1054,7 @@ MoveCursor(Widget w, int new_index)
     if (new_index >= lw->list.nitems) new_index = lw->list.nitems - 1;
     if (new_index == lw->list.highlight) return;
     IswListHighlight(w, new_index);
+    ScrollToItem(w, new_index);
 }
 
 static void
