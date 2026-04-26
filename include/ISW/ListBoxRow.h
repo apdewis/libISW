@@ -8,10 +8,10 @@
 #ifndef _ISW_IswListBoxRow_h
 #define _ISW_IswListBoxRow_h
 
-#include <ISW/Composite.h>
+#include <ISW/Constraint.h>
 
-#define IswNrowPadding "rowPadding"
-#define IswCRowPadding "RowPadding"
+#define IswNrowPadding  "rowPadding"
+#define IswCRowPadding  "RowPadding"
 
 extern WidgetClass listBoxRowWidgetClass;
 

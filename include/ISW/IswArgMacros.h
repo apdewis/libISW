@@ -299,7 +299,6 @@
 #define IswArgSeparator(ab, v)                  ISW_ARG((ab), IswNseparator, (v))
 /* ListBoxRow */
 #define IswArgRowPadding(ab, v)                 ISW_ARG((ab), IswNrowPadding, (v))
-
 /* Command */
 #define IswArgCornerRadius(ab, v)               ISW_ARG((ab), IswNcornerRadius, (v))
 
