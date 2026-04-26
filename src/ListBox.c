@@ -228,6 +228,7 @@ static void
 ChildEventHandler(Widget child, IswPointer closure,
                   xcb_generic_event_t *event, Boolean *continue_to_dispatch)
 {
+    (void)continue_to_dispatch;
     Widget listbox = (Widget)closure;
     uint8_t type = event->response_type & ~0x80;
 
@@ -252,8 +253,6 @@ ChildEventHandler(Widget child, IswPointer closure,
     String action = "ListBoxSelect";
     Cardinal one = 1;
     SelectAction(listbox, (xcb_generic_event_t *)&synth, &action, &one);
-
-    *continue_to_dispatch = False;
 }
 
 static void
