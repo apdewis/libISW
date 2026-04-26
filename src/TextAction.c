@@ -480,7 +480,7 @@ MatchSelection(xcb_atom_t selection, IswTextSelection *s)
 /*
  * IswConvertStandardSelection - Stub for standard widget selection conversion
  *
- * In a full implementation, this would handle standard Xt selection targets like
+ * In a full implementation, this would handle standard selection targets like
  * TIMESTAMP, HOSTNAME, etc. For now, we return an empty list and let the text
  * widget provide its own targets.
  */

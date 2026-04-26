@@ -44,7 +44,7 @@ static void DoLayout(FlexBoxWidget fw, Boolean set_children);
 
 /* --- Resources --- */
 
-static IswFlexAlign defAlign = XtflexAlignStretch;
+static IswFlexAlign defAlign = IswFlexAlignStretch;
 
 #define Offset(field) IswOffsetOf(FlexBoxRec, flexBox.field)
 static IswResource resources[] = {
@@ -142,10 +142,10 @@ _CvtStringToFlexAlign(XrmValuePtr args, Cardinal *num_args,
     if (strlen((char *)fromVal->addr) < sizeof(lower)) {
         ISWCopyISOLatin1Lowered(lower, (char *)fromVal->addr);
         q = XrmStringToQuark(lower);
-        if      (q == QStart)   align = XtflexAlignStart;
-        else if (q == QEnd)     align = XtflexAlignEnd;
-        else if (q == QCenter)  align = XtflexAlignCenter;
-        else if (q == QStretch) align = XtflexAlignStretch;
+        if      (q == QStart)   align = IswFlexAlignStart;
+        else if (q == QEnd)     align = IswFlexAlignEnd;
+        else if (q == QCenter)  align = IswFlexAlignCenter;
+        else if (q == QStretch) align = IswFlexAlignStretch;
         else {
             toVal->size = 0;
             toVal->addr = NULL;
@@ -361,18 +361,18 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
         int cross_sz = (int)cross_pref;
 
         switch (fc->flexBox.flex_align) {
-        case XtflexAlignStart:
+        case IswFlexAlignStart:
             cross_pos = 0;
             break;
-        case XtflexAlignEnd:
+        case IswFlexAlignEnd:
             cross_pos = (int)container_cross - cross_sz - bw2;
             if (cross_pos < 0) cross_pos = 0;
             break;
-        case XtflexAlignCenter:
+        case IswFlexAlignCenter:
             cross_pos = ((int)container_cross - cross_sz - bw2) / 2;
             if (cross_pos < 0) cross_pos = 0;
             break;
-        case XtflexAlignStretch:
+        case IswFlexAlignStretch:
             cross_pos = 0;
             cross_sz = (int)container_cross - bw2;
             break;

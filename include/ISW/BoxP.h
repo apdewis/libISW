@@ -65,8 +65,6 @@ SOFTWARE.
 
 #include <ISW/Box.h>
 
-/* IswOrientation is defined in ISWP.h */
-
 /* New fields for the Box widget class record */
 typedef struct {int empty;} BoxClassPart;
 

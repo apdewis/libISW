@@ -574,8 +574,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.time = 0; /* ||| correct? */
   ctx->text.showposition = TRUE;
 
-  /* Auto-create a default source and sink unless the caller supplied
-   * them via XtNtextSource / XtNtextSink. */
+  /* Auto-create a default source and sink unless the caller supplied them. */
   if (ctx->text.source == NULL)
     ctx->text.source = IswCreateWidget("textSource", textSrcObjectClass,
                                         new, args, *num_args);

@@ -60,8 +60,6 @@ SOFTWARE.
 #include <ISW/SimpleP.h>
 #include <ISW/ISWRender.h>
 
-/* IswOrientation is defined in ISWP.h */
-
 typedef struct {
      /* public */
     Pixel	  foreground;	/* thumb foreground color */

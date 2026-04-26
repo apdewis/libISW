@@ -43,7 +43,7 @@
  * ----              -----           -------         -------------
  * flexGrow          FlexGrow        Int             0
  * flexBasis         FlexBasis       Dimension       0
- * flexAlign         FlexAlign       FlexAlign       XtflexAlignStretch
+ * flexAlign         FlexAlign       FlexAlign       IswFlexAlignStretch
  */
 
 /* Widget-level resource names/classes */
@@ -69,10 +69,10 @@
 
 /* FlexAlign enum */
 typedef enum {
-    XtflexAlignStart,
-    XtflexAlignEnd,
-    XtflexAlignCenter,
-    XtflexAlignStretch
+    IswFlexAlignStart,
+    IswFlexAlignEnd,
+    IswFlexAlignCenter,
+    IswFlexAlignStretch
 } IswFlexAlign;
 
 typedef struct _FlexBoxClassRec *FlexBoxWidgetClass;

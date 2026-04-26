@@ -65,8 +65,6 @@ SOFTWARE.
 #include <ISW/Paned.h>
 #include <ISW/ISWRender.h>
 
-/* IswOrientation is defined in ISWP.h */
-
 /*********************************************************************
  *
  * Paned Widget Private Data

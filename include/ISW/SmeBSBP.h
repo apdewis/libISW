@@ -45,7 +45,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
 
-/* IswJustify is missing from XCB-based libXt, define it here */
 #ifndef _IswJustify_defined
 #define _IswJustify_defined
 typedef enum {

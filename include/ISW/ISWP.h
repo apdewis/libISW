@@ -87,7 +87,6 @@ typedef struct _IswRegion* Region;
 #define IswBorderWidth(w)	(((RectObj)w)->rectangle.border_width)
 #endif
 
-/* Text justification types (missing from XCB-based libXt) */
 #ifndef _IswJustify_defined
 #define _IswJustify_defined
 typedef enum {
@@ -97,10 +96,6 @@ typedef enum {
 } IswJustify;
 #endif
 
-/* Widget edge types for Form layout are defined in Form.h (IswEdgeType) */
-/* IswXcbDraw.h provides IswEdgeType for converters */
-
-/* Orientation type for Box, Paned, Scrollbar (missing from XCB-based libXt) */
 #ifndef _IswOrientation_defined
 #define _IswOrientation_defined
 typedef enum {
@@ -109,7 +104,6 @@ typedef enum {
 } IswOrientation;
 #endif
 
-/* Widget gravity type for Tree layout (missing from XCB-based libXt) */
 #ifndef _IswGravity_defined
 #define _IswGravity_defined
 typedef unsigned int IswGravity;

@@ -32,14 +32,6 @@
 #define HeightOfScreen(s) ((s)->height_in_pixels)
 #endif
 
-/*
- * =================================================================
- * TEXT JUSTIFICATION TYPE (Missing from modified libXt)
- * =================================================================
- *
- * The XCB-based libXt doesn't define IswJustify type.
- * Used by Label, SmeBSB, and other text widgets.
- */
 #ifndef _IswJustify_defined
 #define _IswJustify_defined
 typedef enum {
@@ -49,24 +41,6 @@ typedef enum {
 } IswJustify;
 #endif
 
-/*
- * =================================================================
- * WIDGET EDGE TYPE  
- * =================================================================
- *
- * IswEdgeType is defined in Form.h with IswChain* values.
- * Form.h also provides IswEdgeType as an alias via #define.
- * The converter uses IswEdgeType directly.
- */
-
-/*
- * =================================================================
- * WIDGET GRAVITY TYPE (Missing from modified libXt)
- * =================================================================
- *
- * The XCB-based libXt doesn't define IswGravity type.
- * Used by Tree widget and other layout widgets.
- */
 #ifndef _IswGravity_defined
 #define _IswGravity_defined
 typedef unsigned int IswGravity;

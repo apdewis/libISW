@@ -10,8 +10,6 @@
 #include <ISW/Slider.h>
 #include <ISW/ISWRender.h>
 
-/* IswOrientation is defined in ISWP.h */
-
 typedef struct {
     /* public resources */
     Pixel         foreground;
