@@ -67,8 +67,8 @@ static IswResource resources[] = {
         Offset(row_spacing), IswRImmediate, (IswPointer)2},
     {IswNshowSeparators, IswCShowSeparators, IswRBoolean, sizeof(Boolean),
         Offset(show_separators), IswRImmediate, (IswPointer)False},
-    {IswNselectedBackground, IswCSelectedBackground, IswRPixel, sizeof(Pixel),
-        Offset(selected_background), IswRString, IswDefaultForeground},
+    {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
+        Offset(foreground), IswRString, IswDefaultForeground},
     {IswNselectCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
         Offset(select_callback), IswRCallback, NULL},
     {IswNactivateCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
@@ -631,7 +631,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                     2 * (int)child->core.border_width;
 
         if (lbc->listBox.selected) {
-            ISWRenderSetColor(ctx, lbw->listBox.selected_background);
+            ISWRenderSetColor(ctx, lbw->listBox.foreground);
             ISWRenderFillRectangle(ctx, 0, child->core.y,
                                    w->core.width, (unsigned)row_h);
         }
@@ -639,7 +639,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         if (lbc->listBox.separator && lbw->listBox.show_separators) {
             int sep_y = child->core.y + row_h +
                         (int)lbw->listBox.row_spacing / 2;
-            ISWRenderSetColor(ctx, lbw->listBox.selected_background);
+            ISWRenderSetColor(ctx, lbw->listBox.foreground);
             ISWRenderSetLineWidth(ctx, 1.0);
             ISWRenderDrawLine(ctx, 0, sep_y, (int)w->core.width, sep_y);
         }
@@ -648,7 +648,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (lbw->listBox.has_focus && lbw->listBox.focused_index >= 0) {
         Widget focused = ManagedChild(lbw, lbw->listBox.focused_index);
         if (focused) {
-            ISWRenderSetColor(ctx, lbw->listBox.selected_background);
+            ISWRenderSetColor(ctx, lbw->listBox.foreground);
             ISWRenderSetLineWidth(ctx, 1.0);
             ISWRenderStrokeRectangle(ctx,
                 focused->core.x - 1, focused->core.y - 1,
@@ -680,7 +680,7 @@ SetValues(Widget current, Widget request, Widget new,
     if (cur->listBox.show_separators != lbw->listBox.show_separators)
         redisplay = True;
 
-    if (cur->listBox.selected_background != lbw->listBox.selected_background) {
+    if (cur->listBox.foreground != lbw->listBox.foreground) {
         for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
             Widget child = lbw->composite.children[i];
             if (!IswIsManaged(child)) continue;

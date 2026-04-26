@@ -20,8 +20,6 @@
 #define IswCRowSpacing         "RowSpacing"
 #define IswNshowSeparators     "showSeparators"
 #define IswCShowSeparators     "ShowSeparators"
-#define IswNselectedBackground "selectedBackground"
-#define IswCSelectedBackground "SelectedBackground"
 #define IswNselectCallback     "selectCallback"
 #define IswNactivateCallback   "activateCallback"
 

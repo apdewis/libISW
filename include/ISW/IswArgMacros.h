@@ -5,6 +5,8 @@
 #include <ISW/StringDefs.h>
 #include <ISW/Shell.h>
 #include <ISW/Form.h>
+#include <ISW/ListBox.h>
+#include <ISW/ListBoxRow.h>
 
 #define ISW_ARG(ab, name, v) IswArgBuilderAdd((ab), (name), (IswArgVal)(v))
 
@@ -285,6 +287,18 @@
 #define IswArgCursorRow(ab, v)                  ISW_ARG((ab), IswNcursorRow, (v))
 #define IswArgShowHeader(ab, v)                 ISW_ARG((ab), IswNshowHeader, (v))
 #define IswArgReorderCallback(ab, v)            ISW_ARG((ab), IswNreorderCallback, (v))
+
+/* ListBox */
+#define IswArgSelectionMode(ab, v)              ISW_ARG((ab), IswNselectionMode, (v))
+#define IswArgRowSpacing(ab, v)                 ISW_ARG((ab), IswNrowSpacing, (v))
+#define IswArgShowSeparators(ab, v)             ISW_ARG((ab), IswNshowSeparators, (v))
+#define IswArgActivateCallback(ab, v)           ISW_ARG((ab), IswNactivateCallback, (v))
+/* ListBox constraint */
+#define IswArgSelectable(ab, v)                 ISW_ARG((ab), IswNselectable, (v))
+#define IswArgListBoxRowHeight(ab, v)           ISW_ARG((ab), IswNlistBoxRowHeight, (v))
+#define IswArgSeparator(ab, v)                  ISW_ARG((ab), IswNseparator, (v))
+/* ListBoxRow */
+#define IswArgRowPadding(ab, v)                 ISW_ARG((ab), IswNrowPadding, (v))
 
 /* Command */
 #define IswArgCornerRadius(ab, v)               ISW_ARG((ab), IswNcornerRadius, (v))

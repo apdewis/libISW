@@ -27,7 +27,7 @@ typedef struct {
     IswListBoxSelectionMode selection_mode;
     Dimension               row_spacing;
     Boolean                 show_separators;
-    Pixel                   selected_background;
+    Pixel                   foreground;
     IswCallbackList         select_callback;
     IswCallbackList         activate_callback;
 
