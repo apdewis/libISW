@@ -43,6 +43,8 @@
 #include <ISW/IconView.h>
 #include <ISW/ListView.h>
 #include <ISW/List.h>
+#include <ISW/ListBox.h>
+#include <ISW/ListBoxRow.h>
 #include <ISW/ComboBox.h>
 #include <ISW/Tree.h>
 
@@ -109,6 +111,7 @@ Widget create_repeater_demo(Widget parent);
 Widget create_iconview_demo(Widget parent);
 Widget create_listview_demo(Widget parent);
 Widget create_list_demo(Widget parent);
+Widget create_listbox_demo(Widget parent);
 Widget create_combobox_demo(Widget parent);
 Widget create_text_demo(Widget parent);
 Widget create_tree_demo(Widget parent);
@@ -133,6 +136,8 @@ void toggle_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void checkbox_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void menu_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void list_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void listbox_select_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void listbox_activate_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void combobox_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void iconview_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void repeater_callback(Widget w, IswPointer client_data, IswPointer call_data);
@@ -1048,7 +1053,7 @@ Widget create_repeater_demo(Widget parent) {
  * ============================================================ */
 
 Widget create_selection_section(Widget parent) {
-    Widget form, section_label, iconview_demo, listview_demo, list_demo, combobox_demo, text_demo;
+    Widget form, section_label, iconview_demo, listview_demo, list_demo, listbox_demo, combobox_demo, text_demo;
     Arg args[10];
     Cardinal n;
 
@@ -1060,7 +1065,7 @@ Widget create_selection_section(Widget parent) {
 
     /* Section label */
     n = 0;
-    IswSetArg(args[n], IswNlabel, "Selection Widgets: IconView, ListView, List, ComboBox, Text"); n++;
+    IswSetArg(args[n], IswNlabel, "Selection Widgets: IconView, ListView, List, ListBox, ComboBox, Text"); n++;
     IswSetArg(args[n], IswNborderWidth, 0); n++;
     IswSetArg(args[n], IswNtop, IswChainTop); n++;
     IswSetArg(args[n], IswNleft, IswChainLeft); n++;
@@ -1091,10 +1096,18 @@ Widget create_selection_section(Widget parent) {
     IswSetArg(args[n], IswNhorizDistance, 10); n++;
     IswSetValues(list_demo, args, n);
 
+    /* ListBox demo (composite row container) */
+    listbox_demo = create_listbox_demo(form);
+    n = 0;
+    IswSetArg(args[n], IswNfromHoriz, list_demo); n++;
+    IswSetArg(args[n], IswNfromVert, section_label); n++;
+    IswSetArg(args[n], IswNhorizDistance, 10); n++;
+    IswSetValues(listbox_demo, args, n);
+
     /* ComboBox demo (dropdown selector) */
     combobox_demo = create_combobox_demo(form);
     n = 0;
-    IswSetArg(args[n], IswNfromHoriz, list_demo); n++;
+    IswSetArg(args[n], IswNfromHoriz, listbox_demo); n++;
     IswSetArg(args[n], IswNfromVert, section_label); n++;
     IswSetArg(args[n], IswNhorizDistance, 10); n++;
     IswSetValues(combobox_demo, args, n);
@@ -1326,6 +1339,118 @@ Widget create_list_demo(Widget parent) {
     IswAddCallback(list, IswNcallback, list_callback, NULL);
 
     return box;
+}
+
+Widget create_listbox_demo(Widget parent) {
+    Widget outer_box, title, viewport, listbox;
+    Arg args[10];
+    Cardinal n;
+
+    static const char *icons[]  = { "\xe2\x9c\x89", "\xe2\x9c\x8f", "\xe2\x9e\xa4",
+                                    "\xe2\x9a\xa0", "\xf0\x9f\x97\x91", "\xf0\x9f\x93\xa6" };
+    static const char *names[]  = { "Inbox",  "Drafts",  "Sent",
+                                    "Spam",   "Trash",   "Archive" };
+    static const char *counts[] = { "12", "3", "",  "47", "8", "" };
+
+    /* Container */
+    n = 0;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    outer_box = IswCreateManagedWidget("listBoxOuterBox", boxWidgetClass,
+                                       parent, args, n);
+
+    /* Title */
+    n = 0;
+    IswSetArg(args[n], IswNlabel, "ListBox"); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    title = IswCreateManagedWidget("listBoxTitle", labelWidgetClass,
+                                   outer_box, args, n);
+
+    /* Viewport for scrolling */
+    n = 0;
+    IswSetArg(args[n], IswNallowVert, True); n++;
+    IswSetArg(args[n], IswNwidth, 220); n++;
+    IswSetArg(args[n], IswNheight, 160); n++;
+    IswSetArg(args[n], IswNborderWidth, 1); n++;
+    viewport = IswCreateManagedWidget("listBoxViewport", viewportWidgetClass,
+                                      outer_box, args, n);
+
+    /* ListBox inside viewport */
+    n = 0;
+    IswSetArg(args[n], IswNselectionMode, IswListBoxSelectSingle); n++;
+    IswSetArg(args[n], IswNrowSpacing, 1); n++;
+    IswSetArg(args[n], IswNshowSeparators, True); n++;
+    IswSetArg(args[n], IswNborderWidth, 0); n++;
+    listbox = IswCreateManagedWidget("listBox", listBoxWidgetClass,
+                                     viewport, args, n);
+
+    IswAddCallback(listbox, IswNselectCallback,
+                   listbox_select_callback, NULL);
+    IswAddCallback(listbox, IswNactivateCallback,
+                   listbox_activate_callback, NULL);
+
+    /* Each row is a Box with icon + name + count labels */
+    for (int i = 0; i < 6; i++) {
+        char rname[32];
+        snprintf(rname, sizeof(rname), "row%d", i);
+
+        n = 0;
+        IswSetArg(args[n], IswNborderWidth, 0); n++;
+        Widget row = IswCreateManagedWidget(rname, listBoxRowWidgetClass,
+                                            listbox, args, n);
+
+        /* Icon */
+        n = 0;
+        IswSetArg(args[n], IswNlabel, icons[i]); n++;
+        IswSetArg(args[n], IswNborderWidth, 0); n++;
+        IswCreateManagedWidget("icon", labelWidgetClass, row, args, n);
+
+        /* Name */
+        n = 0;
+        IswSetArg(args[n], IswNlabel, names[i]); n++;
+        IswSetArg(args[n], IswNborderWidth, 0); n++;
+        IswSetArg(args[n], IswNjustify, IswJustifyLeft); n++;
+        IswCreateManagedWidget("name", labelWidgetClass, row, args, n);
+
+        /* Count badge (if non-empty) */
+        if (counts[i][0] != '\0') {
+            n = 0;
+            IswSetArg(args[n], IswNlabel, counts[i]); n++;
+            IswSetArg(args[n], IswNborderWidth, 1); n++;
+            IswCreateManagedWidget("count", labelWidgetClass, row, args, n);
+        }
+
+        /* "Sent" gets a separator below it; "Spam" is non-selectable */
+        if (i == 2) {
+            n = 0;
+            IswSetArg(args[n], IswNseparator, True); n++;
+            IswSetValues(row, args, n);
+        }
+        if (i == 3) {
+            n = 0;
+            IswSetArg(args[n], IswNselectable, False); n++;
+            IswSetValues(row, args, n);
+        }
+    }
+
+    return outer_box;
+}
+
+void listbox_select_callback(Widget w, IswPointer client_data,
+                             IswPointer call_data)
+{
+    IswListBoxCallbackData *cb = (IswListBoxCallbackData *)call_data;
+    (void)w; (void)client_data;
+    printf("ListBox: selected row %d (%d total selected)\n",
+           cb->index, cb->num_selected);
+}
+
+void listbox_activate_callback(Widget w, IswPointer client_data,
+                               IswPointer call_data)
+{
+    IswListBoxCallbackData *cb = (IswListBoxCallbackData *)call_data;
+    (void)w; (void)client_data;
+    printf("ListBox: activated row %d\n", cb->index);
 }
 
 Widget create_combobox_demo(Widget parent) {

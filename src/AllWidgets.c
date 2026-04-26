@@ -50,6 +50,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/IconView.h>
 #include <ISW/ListView.h>
 #include <ISW/List.h>
+#include <ISW/ListBox.h>
+#include <ISW/ListBoxRow.h>
 #include <ISW/MenuBar.h>
 #include <ISW/MenuButton.h>
 #include <ISW/Text.h>       /* textSink, textSrc, text */
@@ -91,6 +93,8 @@ IswWidgetNode IswWidgetArray[] = {
 { "layout", &layoutWidgetClass },
 { "listView", &listViewWidgetClass },
 { "list", &listWidgetClass },
+{ "listBox", &listBoxWidgetClass },
+{ "listBoxRow", &listBoxRowWidgetClass },
 { "menuBar", &menuBarWidgetClass },
 { "menuButton", &menuButtonWidgetClass },
 { "object", &objectClass },

@@ -177,6 +177,8 @@ set(ISW_WIDGET_SOURCES
     src/Label.c
     src/Layout.c
     src/List.c
+    src/ListBox.c
+    src/ListBoxRow.c
     src/MainWindow.c
     src/MenuBar.c
     src/MenuButton.c
