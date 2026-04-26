@@ -258,7 +258,7 @@ Widget create_main_window(Widget parent) {
 
     /* Content box inside viewport — holds all demo sections */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 0); n++;
     content_box = IswCreateManagedWidget("contentBox", boxWidgetClass,
                                          viewport, args, n);
@@ -274,7 +274,7 @@ Widget create_main_window(Widget parent) {
     /* Advanced widgets in a horizontal box */
     Widget advanced_box;
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientHorizontal); n++;
     IswSetArg(args[n], IswNborderWidth, 0); n++;
     advanced_box = IswCreateManagedWidget("advancedBox", boxWidgetClass, content_box, args, n);
 
@@ -635,7 +635,7 @@ Widget create_box_demo(Widget parent) {
     
     /* Container with label */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box_container = IswCreateManagedWidget("boxContainer", boxWidgetClass,
                                           parent, args, n);
@@ -648,7 +648,7 @@ Widget create_box_demo(Widget parent) {
     
     /* Horizontal Box */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientHorizontal); n++;
     IswSetArg(args[n], IswNhSpace, 5); n++;
     IswSetArg(args[n], IswNvSpace, 5); n++;
     box = IswCreateManagedWidget("demoBox", boxWidgetClass,
@@ -729,7 +729,7 @@ Widget create_viewport_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     viewport_container = IswCreateManagedWidget("viewportContainer", boxWidgetClass,
                                                parent, args, n);
@@ -845,7 +845,7 @@ Widget create_command_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("commandBox", boxWidgetClass, parent, args, n);
 
@@ -894,7 +894,7 @@ Widget create_toggle_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("toggleBox", boxWidgetClass, parent, args, n);
     
@@ -934,7 +934,7 @@ Widget create_checkbox_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("checkboxBox", boxWidgetClass, parent, args, n);
 
@@ -972,7 +972,7 @@ Widget create_menu_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("menuBox", boxWidgetClass, parent, args, n);
     
@@ -1023,7 +1023,7 @@ Widget create_repeater_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("repeaterBox", boxWidgetClass, parent, args, n);
     
@@ -1304,7 +1304,7 @@ Widget create_list_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("listBox", boxWidgetClass, parent, args, n);
 
@@ -1339,7 +1339,7 @@ Widget create_combobox_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("comboBoxBox", boxWidgetClass, parent, args, n);
 
@@ -1368,7 +1368,7 @@ Widget create_text_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("textBox", boxWidgetClass, parent, args, n);
     
@@ -1482,7 +1482,7 @@ Widget create_panner_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("pannerBox", boxWidgetClass, parent, args, n);
 
@@ -1537,7 +1537,7 @@ Widget create_tree_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("treeBox", boxWidgetClass, parent, args, n);
     
@@ -1597,7 +1597,7 @@ Widget create_layout_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("layoutBox", boxWidgetClass, parent, args, n);
     
@@ -1666,7 +1666,7 @@ Widget create_paned_grip_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("gripBox", boxWidgetClass, parent, args, n);
     
@@ -1678,7 +1678,7 @@ Widget create_paned_grip_demo(Widget parent) {
     
     /* Paned widget with visible grips */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNwidth, 200); n++;
     IswSetArg(args[n], IswNheight, 200); n++;
     paned = IswCreateManagedWidget("gripPaned", panedWidgetClass, box, args, n);
@@ -1845,7 +1845,7 @@ Widget create_progressbar_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("progressBox", boxWidgetClass, parent, args, n);
 
@@ -1876,7 +1876,7 @@ Widget create_progressbar_demo(Widget parent) {
     IswSetArg(args[n], IswNvalue, 60); n++;
     IswSetArg(args[n], IswNwidth, 30); n++;
     IswSetArg(args[n], IswNheight, 100); n++;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNshowValue, True); n++;
     pb_v = IswCreateManagedWidget("progressV", progressBarWidgetClass, box, args, n);
 
@@ -1889,7 +1889,7 @@ Widget create_fontchooser_demo(Widget parent) {
     Cardinal n;
 
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("fontChooserBox", boxWidgetClass, parent, args, n);
 
@@ -1911,7 +1911,7 @@ Widget create_colorpicker_demo(Widget parent) {
     Cardinal n;
 
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("colorPickerBox", boxWidgetClass, parent, args, n);
 
@@ -1937,7 +1937,7 @@ Widget create_spinbox_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("spinBoxBox", boxWidgetClass, parent, args, n);
 
@@ -1978,7 +1978,7 @@ Widget create_slider_demo(Widget parent) {
 
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("sliderBox", boxWidgetClass, parent, args, n);
 
@@ -1990,7 +1990,7 @@ Widget create_slider_demo(Widget parent) {
 
     /* Horizontal slider with ticks */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientHorizontal); n++;
     IswSetArg(args[n], IswNminimumValue, 0); n++;
     IswSetArg(args[n], IswNmaximumValue, 100); n++;
     IswSetArg(args[n], IswNsliderValue, 50); n++;
@@ -2003,7 +2003,7 @@ Widget create_slider_demo(Widget parent) {
 
     /* Vertical slider */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNminimumValue, 0); n++;
     IswSetArg(args[n], IswNmaximumValue, 255); n++;
     IswSetArg(args[n], IswNsliderValue, 128); n++;
@@ -2023,7 +2023,7 @@ Widget create_scrollbar_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("scrollbarBox", boxWidgetClass, parent, args, n);
     
@@ -2035,7 +2035,7 @@ Widget create_scrollbar_demo(Widget parent) {
     
     /* Vertical scrollbar */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNwidth, 20); n++;
     IswSetArg(args[n], IswNheight, 100); n++;
     IswSetArg(args[n], IswNshown, 30); n++;
@@ -2052,7 +2052,7 @@ Widget create_dialog_demo(Widget parent) {
     
     /* Container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("dialogBox", boxWidgetClass, parent, args, n);
     
@@ -2456,7 +2456,7 @@ Widget create_drawingarea_demo(Widget parent) {
     Cardinal n;
 
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     box = IswCreateManagedWidget("drawingAreaBox", boxWidgetClass, parent, args, n);
 
@@ -2484,7 +2484,7 @@ Widget create_tabs_demo(Widget parent) {
 
     /* Section container */
     n = 0;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 1); n++;
     section_box = IswCreateManagedWidget("tabsSection", boxWidgetClass,
                                          parent, args, n);
@@ -2519,7 +2519,7 @@ Widget create_tabs_demo(Widget parent) {
     /* Tab 2: a box with buttons */
     n = 0;
     IswSetArg(args[n], IswNtabLabel, "Controls"); n++;
-    IswSetArg(args[n], IswNorientation, XtorientVertical); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientVertical); n++;
     IswSetArg(args[n], IswNborderWidth, 0); n++;
     tab2_content = IswCreateManagedWidget("tab2", boxWidgetClass,
                                           tabs_widget, args, n);

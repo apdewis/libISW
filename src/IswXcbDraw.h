@@ -14,6 +14,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <ISW/Intrinsic.h>
+#include <ISW/ISWP.h>
 
 /*
  * =================================================================
@@ -29,23 +30,6 @@
 
 #ifndef HeightOfScreen
 #define HeightOfScreen(s) ((s)->height_in_pixels)
-#endif
-
-/*
- * =================================================================
- * WIDGET ORIENTATION TYPE (Missing from modified libXt)
- * =================================================================
- *
- * The XCB-based libXt doesn't define IswOrientation type, only the
- * string constants IswCOrientation, IswEvertical, IswEhorizontal.
- * We need to define the enumeration type for widget structures.
- */
-#ifndef _IswOrientation_defined
-#define _IswOrientation_defined
-typedef enum {
-    XtorientHorizontal = 0,
-    XtorientVertical = 1
-} IswOrientation;
 #endif
 
 /*

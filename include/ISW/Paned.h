@@ -89,7 +89,7 @@ SOFTWARE.
  leftCursor	         Cursor	           Cursor	    sb_left_arrow
  lowerCursor	         Cursor	           Cursor	    sb_down_arrow
  mappedWhenManaged       MappedWhenManaged Boolean	    True
- orientation             Orientation       IswOrientation    XtorientVertical
+ orientation             Orientation       IswOrientation    IswOrientVertical
  refigureMode	         Boolean	   Boolean	    On
  rightCursor	         Cursor	           Cursor           sb_right_arrow
  sensitive	         Sensitive	   Boolean	    True

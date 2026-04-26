@@ -200,7 +200,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* Force horizontal orientation, minimal horizontal spacing,
      * vertical padding to keep items clear of the bottom border */
-    mbw->box.orientation = XtorientHorizontal;
+    mbw->box.orientation = IswOrientHorizontal;
     mbw->box.h_space = 0;
     mbw->box.v_space = 2;
 

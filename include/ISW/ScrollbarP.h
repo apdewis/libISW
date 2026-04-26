@@ -60,14 +60,7 @@ SOFTWARE.
 #include <ISW/SimpleP.h>
 #include <ISW/ISWRender.h>
 
-/* IswOrientation is missing from XCB-based libXt, define it here */
-#ifndef _IswOrientation_defined
-#define _IswOrientation_defined
-typedef enum {
-    XtorientHorizontal,
-    XtorientVertical
-} IswOrientation;
-#endif
+/* IswOrientation is defined in ISWP.h */
 
 typedef struct {
      /* public */

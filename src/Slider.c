@@ -42,7 +42,7 @@ static IswResource resources[] = {
     {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
         Offset(slider.foreground), IswRString, IswDefaultForeground},
     {IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
-        Offset(slider.orientation), IswRImmediate, (IswPointer) XtorientHorizontal},
+        Offset(slider.orientation), IswRImmediate, (IswPointer) IswOrientHorizontal},
     {IswNminimumValue, IswCMinimumValue, IswRInt, sizeof(int),
         Offset(slider.minimum), IswRImmediate, (IswPointer) 0},
     {IswNmaximumValue, IswCMaximumValue, IswRInt, sizeof(int),
@@ -211,7 +211,7 @@ static int
 TrackLength(SliderWidget sw)
 {
     Dimension tw = ThumbW(sw);
-    if (sw->slider.orientation == XtorientHorizontal)
+    if (sw->slider.orientation == IswOrientHorizontal)
         return (int)sw->core.width - TrackZoneOffsetX(sw) - (int)tw;
     else
         return (int)sw->core.height - TrackZoneOffsetY(sw) - (int)tw;
@@ -224,7 +224,7 @@ ValueToPixel(SliderWidget sw, int value)
     int range = sw->slider.maximum - sw->slider.minimum;
     int track = TrackLength(sw);
     Dimension half_thumb = ThumbW(sw) / 2;
-    int offset = (sw->slider.orientation == XtorientHorizontal)
+    int offset = (sw->slider.orientation == IswOrientHorizontal)
                  ? TrackZoneOffsetX(sw) : TrackZoneOffsetY(sw);
 
     if (range <= 0 || track <= 0)
@@ -237,7 +237,7 @@ ValueToPixel(SliderWidget sw, int value)
     int frac = (int)((long)(clamped - sw->slider.minimum) * track / range);
 
     /* Vertical: minimum at bottom, maximum at top */
-    if (sw->slider.orientation == XtorientVertical)
+    if (sw->slider.orientation == IswOrientVertical)
         frac = track - frac;
 
     return (Position)(offset + (int)half_thumb + frac);
@@ -250,7 +250,7 @@ PixelToValue(SliderWidget sw, Position pixel)
     int range = sw->slider.maximum - sw->slider.minimum;
     int track = TrackLength(sw);
     Dimension half_thumb = ThumbW(sw) / 2;
-    int offset = (sw->slider.orientation == XtorientHorizontal)
+    int offset = (sw->slider.orientation == IswOrientHorizontal)
                  ? TrackZoneOffsetX(sw) : TrackZoneOffsetY(sw);
 
     if (range <= 0 || track <= 0)
@@ -261,7 +261,7 @@ PixelToValue(SliderWidget sw, Position pixel)
     if (pos > track) pos = track;
 
     /* Vertical: invert so bottom = minimum, top = maximum */
-    if (sw->slider.orientation == XtorientVertical)
+    if (sw->slider.orientation == IswOrientVertical)
         pos = track - pos;
 
     return sw->slider.minimum + (int)((long)pos * range / track);
@@ -333,13 +333,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* Default geometry */
     if (sw->core.width == 0)
-        sw->core.width = (sw->slider.orientation == XtorientHorizontal)
+        sw->core.width = (sw->slider.orientation == IswOrientHorizontal)
             ? sw->slider.length : min_cross;
     if (sw->core.height == 0)
-        sw->core.height = (sw->slider.orientation == XtorientHorizontal)
+        sw->core.height = (sw->slider.orientation == IswOrientHorizontal)
             ? min_cross : sw->slider.length;
     /* Enforce minimum so nothing gets clipped */
-    if (sw->slider.orientation == XtorientHorizontal) {
+    if (sw->slider.orientation == IswOrientHorizontal) {
         if (sw->core.height < min_cross)
             sw->core.height = min_cross;
     } else {
@@ -497,7 +497,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (sw->slider.font)
         ISWRenderSetFont(ctx, sw->slider.font);
 
-    if (sw->slider.orientation == XtorientHorizontal) {
+    if (sw->slider.orientation == IswOrientHorizontal) {
         /* --- Horizontal layout --- */
         int track_zone_h = (int)sw->core.height - off_y;
         int track_center_y = off_y + track_zone_h / 2;
@@ -643,7 +643,7 @@ StartDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
 
     ExtractPosition(event, &x, &y);
 
-    Position pick = (sw->slider.orientation == XtorientHorizontal) ? x : y;
+    Position pick = (sw->slider.orientation == IswOrientHorizontal) ? x : y;
     Dimension half_thumb = ThumbW(sw) / 2;
 
     /* Check if click is on the thumb */
@@ -670,7 +670,7 @@ Drag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
         return;
 
     ExtractPosition(event, &x, &y);
-    Position pick = (sw->slider.orientation == XtorientHorizontal) ? x : y;
+    Position pick = (sw->slider.orientation == IswOrientHorizontal) ? x : y;
     SetValueAndNotify(sw, PixelToValue(sw, pick - sw->slider.drag_offset));
 }
 
@@ -690,7 +690,7 @@ JumpToPosition(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
     (void)params; (void)num_params;
 
     ExtractPosition(event, &x, &y);
-    Position pick = (sw->slider.orientation == XtorientHorizontal) ? x : y;
+    Position pick = (sw->slider.orientation == IswOrientHorizontal) ? x : y;
     sw->slider.dragging = False;
     SetValueAndNotify(sw, PixelToValue(sw, pick));
 }

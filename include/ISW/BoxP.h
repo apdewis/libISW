@@ -65,14 +65,7 @@ SOFTWARE.
 
 #include <ISW/Box.h>
 
-/* IswOrientation is defined in standard Xt headers, but if not available, use fallback */
-#ifndef _IswOrientation_defined
-#define _IswOrientation_defined
-typedef enum {
-    XtorientHorizontal = 0,
-    XtorientVertical = 1
-} IswOrientation;
-#endif
+/* IswOrientation is defined in ISWP.h */
 
 /* New fields for the Box widget class record */
 typedef struct {int empty;} BoxClassPart;

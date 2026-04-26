@@ -80,7 +80,7 @@ SOFTWARE.
  length		     Length		Dimension	1
  mappedWhenManaged   MappedWhenManaged	Boolean		True
  minimumThumb	     MinimumThumb	Dimension	7
- orientation	     Orientation	IswOrientation	XtorientVertical
+ orientation	     Orientation	IswOrientation	IswOrientVertical
  pointerColor	     Foreground		Pixel		IswDefaultForeground
  pointerColorBackground Background	Pixel		IswDefaultBackground
  screen		     Screen		Screen		parent's screen

@@ -497,7 +497,7 @@ CreateHScrollBar(TextWidget ctx)
 
   if (ctx->text.hbar != NULL) return;
 
-  IswSetArg(args[0], IswNorientation, XtorientHorizontal);
+  IswSetArg(args[0], IswNorientation, IswOrientHorizontal);
   ctx->text.hbar = hbar =
     IswCreateWidget("hScrollbar", scrollbarWidgetClass, (Widget)ctx, args, ONE);
   IswAddCallback( hbar, IswNscrollProc, HScroll, (IswPointer)ctx );

@@ -86,7 +86,7 @@ typedef enum {UpLeftPane = 'U', LowRightPane = 'L',
 #define HasGrip(w)	(PaneInfo(w)->grip != NULL)
 #define IsPane(w)	((w)->core.widget_class != gripWidgetClass)
 #define PaneIndex(w)	(PaneInfo(w)->position)
-#define IsVert(w)       ( (w)->paned.orientation == XtorientVertical )
+#define IsVert(w)       ( (w)->paned.orientation == IswOrientVertical )
 
 #define ForAllPanes(pw, childP) \
   for ( (childP) = (pw)->composite.children ; \
@@ -129,7 +129,7 @@ static IswResource resources[] = {
          sizeof(IswTranslations),
          offset(grip_translations), IswRString, (IswPointer)defGripTranslations},
     {IswNorientation,  IswCOrientation, IswROrientation, sizeof(IswOrientation),
-         offset(orientation), IswRImmediate, (IswPointer) XtorientVertical},
+         offset(orientation), IswRImmediate, (IswPointer) IswOrientVertical},
 
     /* Cursors - both horiz and vertical have to work. */
 

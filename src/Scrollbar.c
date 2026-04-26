@@ -106,7 +106,7 @@ static IswResource resources[] = {
   {IswNthickness, IswCThickness, IswRDimension, sizeof(Dimension),
        Offset(scrollbar.thickness), IswRImmediate, (IswPointer) 14},
   {IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
-      Offset(scrollbar.orientation), IswRImmediate, (IswPointer) XtorientVertical},
+      Offset(scrollbar.orientation), IswRImmediate, (IswPointer) IswOrientVertical},
   {IswNscrollProc, IswCCallback, IswRCallback, sizeof(IswPointer),
        Offset(scrollbar.scrollProc), IswRCallback, NULL},
   {IswNthumbProc, IswCCallback, IswRCallback, sizeof(IswPointer),
@@ -214,7 +214,7 @@ WidgetClass scrollbarWidgetClass = (WidgetClass)&scrollbarClassRec;
 
 #define NoButton -1
 #define PICKLENGTH(widget, x, y) \
-    ((widget->scrollbar.orientation == XtorientHorizontal) ? x : y)
+    ((widget->scrollbar.orientation == IswOrientHorizontal) ? x : y)
 #define MIN(x,y)	((x) < (y) ? (x) : (y))
 #define MAX(x,y)	((x) > (y) ? (x) : (y))
 
@@ -256,7 +256,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     /* Inset the thumb so it's narrower than the channel */
     int inset = fill ? (SCROLLBAR_PAD + THUMB_INSET) : SCROLLBAR_PAD;
 
-    if (sbw->scrollbar.orientation == XtorientHorizontal) {
+    if (sbw->scrollbar.orientation == IswOrientHorizontal) {
 	lx = ((top < margin) ? margin : top);
 	ly = sw + inset;
 	lw = ((bottom > floor) ? floor - top : tlen);
@@ -273,7 +273,7 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
 
     if (fill) {
         /* Draw thumb with rounded corners in foreground color */
-        double radius = (sbw->scrollbar.orientation == XtorientHorizontal)
+        double radius = (sbw->scrollbar.orientation == IswOrientHorizontal)
                         ? lh / 2.0 : lw / 2.0;
         ISWRenderBegin(ctx);
         ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
@@ -390,7 +390,7 @@ PaintArrows (ScrollbarWidget sbw)
 	    pt[19].x = tms - sa30; pt[19].y = lmt + s + 1;
 
 	    /* horizontal arrows require that x and y coordinates be swapped */
-	    if (sbw->scrollbar.orientation == XtorientHorizontal) {
+	    if (sbw->scrollbar.orientation == IswOrientHorizontal) {
 		int n;
 		int swap;
 		for (n = 0; n < 20; n++) {
@@ -424,7 +424,7 @@ PaintArrows (ScrollbarWidget sbw)
 	    pt[5].x = t2;          pt[5].y = l - tp;
 
 	    /* horizontal arrows require that x and y coordinates be swapped */
-	    if (sbw->scrollbar.orientation == XtorientHorizontal) {
+	    if (sbw->scrollbar.orientation == IswOrientHorizontal) {
 		int n;
 		int swap;
 		for (n = 0; n < 6; n++) {
@@ -463,7 +463,7 @@ Destroy (Widget w)
 static void
 SetDimensions (ScrollbarWidget sbw)
 {
-    if (sbw->scrollbar.orientation == XtorientVertical) {
+    if (sbw->scrollbar.orientation == IswOrientVertical) {
 	sbw->scrollbar.length = sbw->core.height;
 	sbw->scrollbar.thickness = sbw->core.width;
     } else {
@@ -486,11 +486,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
     if (sbw->core.width == 0)
-	sbw->core.width = (sbw->scrollbar.orientation == XtorientVertical)
+	sbw->core.width = (sbw->scrollbar.orientation == IswOrientVertical)
 	    ? sbw->scrollbar.thickness : sbw->scrollbar.length;
 
     if (sbw->core.height == 0)
-	sbw->core.height = (sbw->scrollbar.orientation == XtorientHorizontal)
+	sbw->core.height = (sbw->scrollbar.orientation == IswOrientHorizontal)
 	    ? sbw->scrollbar.thickness : sbw->scrollbar.length;
 
     SetDimensions (sbw);
@@ -577,7 +577,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         Dimension margin = MARGIN(sbw);
         int tx, ty, tw, th;
 
-        if (sbw->scrollbar.orientation == XtorientHorizontal) {
+        if (sbw->scrollbar.orientation == IswOrientHorizontal) {
             tx = margin;
             ty = s + SCROLLBAR_PAD;
             tw = sbw->scrollbar.length - 2 * margin;

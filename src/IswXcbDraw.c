@@ -772,9 +772,9 @@ ISWCvtStringToOrientation(
     ISWCopyISOLatin1Lowered(lowerName, str);
     
     if (strcmp(lowerName, "horizontal") == 0) {
-        orientation = XtorientHorizontal;
+        orientation = IswOrientHorizontal;
     } else if (strcmp(lowerName, "vertical") == 0) {
-        orientation = XtorientVertical;
+        orientation = IswOrientVertical;
     } else {
         return False;
     }

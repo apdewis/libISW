@@ -195,7 +195,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(a[n], IswNmaximumValue, 255); n++;
     IswSetArg(a[n], IswNsliderValue, cpw->colorPicker.red); n++;
     IswSetArg(a[n], IswNshowValue, False); n++;
-    IswSetArg(a[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(a[n], IswNorientation, IswOrientHorizontal); n++;
     IswSetArg(a[n], IswNwidth, slider_w); n++;
     IswSetArg(a[n], IswNheight, slider_h); n++;
     IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.redLabel); n++;
@@ -220,7 +220,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(a[n], IswNmaximumValue, 255); n++;
     IswSetArg(a[n], IswNsliderValue, cpw->colorPicker.green); n++;
     IswSetArg(a[n], IswNshowValue, False); n++;
-    IswSetArg(a[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(a[n], IswNorientation, IswOrientHorizontal); n++;
     IswSetArg(a[n], IswNwidth, slider_w); n++;
     IswSetArg(a[n], IswNheight, slider_h); n++;
     IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.greenLabel); n++;
@@ -246,7 +246,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswSetArg(a[n], IswNmaximumValue, 255); n++;
     IswSetArg(a[n], IswNsliderValue, cpw->colorPicker.blue); n++;
     IswSetArg(a[n], IswNshowValue, False); n++;
-    IswSetArg(a[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(a[n], IswNorientation, IswOrientHorizontal); n++;
     IswSetArg(a[n], IswNwidth, slider_w); n++;
     IswSetArg(a[n], IswNheight, slider_h); n++;
     IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.blueLabel); n++;

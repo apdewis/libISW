@@ -178,7 +178,7 @@ CreateScrollbar(ViewportWidget w, Boolean horizontal)
     Widget bar;
 
     IswSetArg(barArgs[0], IswNorientation,
-       horizontal ? XtorientHorizontal : XtorientVertical );
+       horizontal ? IswOrientHorizontal : IswOrientVertical );
     IswSetArg(barArgs[1], IswNlength,
 	     horizontal ? clip->core.width : clip->core.height);
     IswSetArg(barArgs[2], IswNleft,

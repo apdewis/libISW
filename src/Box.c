@@ -77,7 +77,7 @@ static IswResource resources[] = {
 		IswRImmediate, (IswPointer)4 },
     { IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
 		IswOffsetOf(BoxRec, box.orientation),
-		IswRImmediate, (IswPointer)XtorientVertical },
+		IswRImmediate, (IswPointer)IswOrientVertical },
 };
 
 /****************************************************************
@@ -164,7 +164,7 @@ static void
 DoLayout(BoxWidget bbw, Dimension width, Dimension height,
          Dimension *reply_width, Dimension *reply_height, Boolean position)
 {
-    Boolean vbox = (bbw->box.orientation == XtorientVertical);
+    Boolean vbox = (bbw->box.orientation == IswOrientVertical);
     Cardinal  i;
     Dimension w, h;	/* Width and height needed for box 		*/
     Dimension lw, lh;	/* Width and height needed for current line 	*/
@@ -247,7 +247,7 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
 	Dimension sw = lw, sh = lh;
 	Dimension width_needed = 0;
 	IswOrientation orientation = bbw->box.orientation;
-	bbw->box.orientation = XtorientVertical;
+	bbw->box.orientation = IswOrientVertical;
 	while (sh < height && sw > width) {
 	    width_needed = sw;
 	    DoLayout(bbw, sw-1, height, &sw, &sh, False);

@@ -34,7 +34,7 @@
  *
  * Name              Class           RepType         Default Value
  * ----              -----           -------         -------------
- * orientation       Orientation     IswOrientation   XtorientVertical
+ * orientation       Orientation     IswOrientation   IswOrientVertical
  * spacing           Spacing         Dimension       0
  *
  * Constraint resources (per-child):

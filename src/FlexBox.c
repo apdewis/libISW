@@ -49,7 +49,7 @@ static IswFlexAlign defAlign = XtflexAlignStretch;
 #define Offset(field) IswOffsetOf(FlexBoxRec, flexBox.field)
 static IswResource resources[] = {
     {IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
-     Offset(orientation), IswRImmediate, (IswPointer)XtorientVertical},
+     Offset(orientation), IswRImmediate, (IswPointer)IswOrientVertical},
     {IswNspacing, IswCSpacing, IswRDimension, sizeof(Dimension),
      Offset(spacing), IswRImmediate, (IswPointer)0},
 };
@@ -236,7 +236,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 {
     int n = fw->composite.num_children;
     WidgetList children = fw->composite.children;
-    Boolean horiz = (fw->flexBox.orientation == XtorientHorizontal);
+    Boolean horiz = (fw->flexBox.orientation == IswOrientHorizontal);
     Dimension spacing = ((int)fw->flexBox.spacing);
 
     /* Count managed children and compute fixed-size total.

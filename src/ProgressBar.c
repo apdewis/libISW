@@ -26,7 +26,7 @@ static IswResource resources[] = {
     {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
 	offset(progress_bar.foreground), IswRString, (IswPointer) IswDefaultForeground},
     {IswNorientation, IswCOrientation, IswROrientation, sizeof(IswOrientation),
-	offset(progress_bar.orientation), IswRImmediate, (IswPointer) XtorientHorizontal},
+	offset(progress_bar.orientation), IswRImmediate, (IswPointer) IswOrientHorizontal},
     {IswNshowValue, IswCShowValue, IswRBoolean, sizeof(Boolean),
 	offset(progress_bar.show_value), IswRImmediate, (IswPointer) True},
     {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
@@ -106,13 +106,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* Set default size if not specified (logical pixels) */
     if (pbw->core.width == 0) {
-	if (pbw->progress_bar.orientation == XtorientHorizontal)
+	if (pbw->progress_bar.orientation == IswOrientHorizontal)
 	    pbw->core.width = 200;
 	else
 	    pbw->core.width = 24;
     }
     if (pbw->core.height == 0) {
-	if (pbw->progress_bar.orientation == XtorientHorizontal)
+	if (pbw->progress_bar.orientation == IswOrientHorizontal)
 	    pbw->core.height = 24;
 	else
 	    pbw->core.height = 200;
@@ -211,7 +211,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     double fill_w = 0, fill_h = 0, fill_x = ix, fill_y = iy;
 
     if (iw > 0 && ih > 0 && pbw->progress_bar.value > 0) {
-	if (pbw->progress_bar.orientation == XtorientHorizontal) {
+	if (pbw->progress_bar.orientation == IswOrientHorizontal) {
 	    fill_w = (iw * pbw->progress_bar.value) / 100.0;
 	    fill_h = ih;
 	    fill_x = ix;
@@ -242,7 +242,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	int text_ascent = ISWScaledFontAscent(w, pbw->progress_bar.font);
 
 	int avail_w, avail_h;
-	if (pbw->progress_bar.orientation == XtorientHorizontal) {
+	if (pbw->progress_bar.orientation == IswOrientHorizontal) {
 	    avail_w = (int)w->core.width - 4;
 	    avail_h = (int)w->core.height - 4;
 	} else {
@@ -266,7 +266,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	float eff_text_h = text_h * text_scale;
 	float eff_ascent = text_ascent * text_scale;
 
-	if (pbw->progress_bar.orientation == XtorientHorizontal) {
+	if (pbw->progress_bar.orientation == IswOrientHorizontal) {
 	    double tx = (w->core.width - eff_text_w) / 2.0;
 	    double ty = (w->core.height - eff_text_h) / 2.0 + eff_ascent;
 

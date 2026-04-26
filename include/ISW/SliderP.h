@@ -10,14 +10,7 @@
 #include <ISW/Slider.h>
 #include <ISW/ISWRender.h>
 
-/* Reuse IswOrientation from ScrollbarP.h */
-#ifndef _IswOrientation_defined
-#define _IswOrientation_defined
-typedef enum {
-    XtorientHorizontal,
-    XtorientVertical
-} IswOrientation;
-#endif
+/* IswOrientation is defined in ISWP.h */
 
 typedef struct {
     /* public resources */

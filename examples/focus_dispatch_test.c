@@ -500,7 +500,7 @@ main(int argc, char *argv[])
     n = 0;
     IswSetArg(args[n], IswNwidth, 200); n++;
     IswSetArg(args[n], IswNheight, 20); n++;
-    IswSetArg(args[n], IswNorientation, XtorientHorizontal); n++;
+    IswSetArg(args[n], IswNorientation, IswOrientHorizontal); n++;
     g_scroll = IswCreateManagedWidget("sc", scrollbarWidgetClass, box, args, n);
 
     IswRealizeWidget(toplevel);

@@ -104,8 +104,8 @@ typedef enum {
 #ifndef _IswOrientation_defined
 #define _IswOrientation_defined
 typedef enum {
-    XtorientHorizontal = 0,
-    XtorientVertical = 1
+    IswOrientHorizontal = 0,
+    IswOrientVertical = 1
 } IswOrientation;
 #endif
 

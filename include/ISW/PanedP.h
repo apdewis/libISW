@@ -61,17 +61,11 @@ SOFTWARE.
 #ifndef _ISW_IswPanedP_h
 #define _ISW_IswPanedP_h
 
+#include <ISW/ISWP.h>
 #include <ISW/Paned.h>
 #include <ISW/ISWRender.h>
 
-/* XCB-based libXt doesn't define IswOrientation - define it here */
-#ifndef _IswOrientation_defined
-#define _IswOrientation_defined
-typedef enum {
-    XtorientHorizontal = 0,
-    XtorientVertical = 1
-} IswOrientation;
-#endif
+/* IswOrientation is defined in ISWP.h */
 
 /*********************************************************************
  *
