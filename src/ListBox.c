@@ -394,8 +394,9 @@ FireActivateCallback(ListBoxWidget lbw, Widget child, int index)
 static Dimension
 ComputeTotalHeight(ListBoxWidget lbw)
 {
-    Dimension total = 0;
-    Boolean first = True;
+    Dimension spacing = lbw->listBox.row_spacing;
+    Dimension total = spacing;
+    Boolean any = False;
 
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
         Widget child = lbw->composite.children[i];
@@ -405,11 +406,14 @@ ComputeTotalHeight(ListBoxWidget lbw)
         Dimension h = (lbc->listBox.row_height > 0)
             ? lbc->listBox.row_height : child->core.height;
 
-        if (!first)
-            total += lbw->listBox.row_spacing;
+        if (any)
+            total += spacing;
         total += h + 2 * child->core.border_width;
-        first = False;
+        any = True;
     }
+
+    if (any)
+        total += spacing;
 
     return total > 0 ? total : 1;
 }
@@ -418,7 +422,7 @@ static void
 DoLayout(ListBoxWidget lbw, Boolean position)
 {
     Widget w = (Widget)lbw;
-    Position y = 0;
+    Position y = (Position)lbw->listBox.row_spacing;
     Boolean first = True;
 
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
