@@ -342,8 +342,10 @@
 /* Text */
 #define IswArgConsumeTab(ab, v)                 ISW_ARG((ab), IswNconsumeTab, (v))
 
-/* Menu mnemonics (SmeBSB, MenuButton) */
+/* Menu mnemonics and accelerators (SmeBSB, MenuButton) */
 #define IswArgMnemonicKey(ab, v)                ISW_ARG((ab), IswNmnemonicKey, (v))
+#define IswArgAccelerator(ab, v)                ISW_ARG((ab), IswNaccelerator, (v))
+#define IswArgAcceleratorText(ab, v)            ISW_ARG((ab), IswNacceleratorText, (v))
 
 /* Label */
 #define IswArgImage(ab, v)                      ISW_ARG((ab), IswNimage, (v))

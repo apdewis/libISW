@@ -145,6 +145,21 @@ extern void IswSimpleMenuClearActiveEntry(
     Widget		/* w */
 );
 
+/*	Function Name: IswSimpleMenuInstallAccelerators
+ *	Description: Builds an accelerator table from SmeBSB children that
+ *		     have IswNaccelerator set, and installs it on the
+ *		     destination widget so shortcuts work when the menu
+ *		     is closed.
+ *	Arguments: destination - widget that receives key events.
+ *		   menu - the SimpleMenu widget.
+ *	Returns: none.
+ */
+
+extern void IswSimpleMenuInstallAccelerators(
+    Widget		/* destination */,
+    Widget		/* menu */
+);
+
 _XFUNCPROTOEND
 
 #endif /* _ISW_SimpleMenu_h */

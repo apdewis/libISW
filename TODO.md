@@ -593,7 +593,6 @@ Depends on: ISWPlatformEvent, ISWPlatformWindow, ISWPlatformSelection.
 
 ## Remaining
 
-- Menu accelerators — no `IswNaccelerator`/`IswNacceleratorText` resources, no right-aligned display text in SmeBSB, no auto-install on Shell
 - ComboBox keyboard nav — zero translations defined
 - List type-ahead search
 - Toggle `traversalOn` default not enabled

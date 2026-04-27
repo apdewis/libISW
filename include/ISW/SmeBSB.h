@@ -88,6 +88,8 @@ extern WidgetClass smeBSBObjectClass;
 #define IswNvertSpace "vertSpace"
 #define IswNmenuName "menuName"
 #define IswNunderline "underline"
+#define IswNaccelerator "accelerator"
+#define IswNacceleratorText "acceleratorText"
 
 #define IswCLeftImage "LeftImage"
 #define IswCRightImage "RightImage"
@@ -95,5 +97,7 @@ extern WidgetClass smeBSBObjectClass;
 #define IswCVertSpace "VertSpace"
 #define IswCMenuName "MenuName"
 #define IswCUnderline "Underline"
+#define IswCAccelerator "Accelerator"
+#define IswCAcceleratorText "AcceleratorText"
 
 #endif /* _ISW_SmeBSB_h */

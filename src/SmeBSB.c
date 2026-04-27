@@ -96,6 +96,10 @@ static IswResource resources[] = {
      offset(underline), IswRImmediate, (IswPointer) -1},
   {IswNmnemonicKey, IswCMnemonicKey, IswRInt, sizeof(xcb_keysym_t),
      offset(mnemonic_key), IswRImmediate, (IswPointer) 0},
+  {IswNaccelerator, IswCAccelerator, IswRString, sizeof(String),
+     offset(accelerator), IswRString, NULL},
+  {IswNacceleratorText, IswCAcceleratorText, IswRString, sizeof(String),
+     offset(accelerator_text), IswRString, NULL},
 };
 #undef offset
 
@@ -236,6 +240,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         entry->sme_bsb.right_image_height = (Dimension)ISWImageGetHeight(entry->sme_bsb.right_image);
     }
 
+    if (entry->sme_bsb.accelerator)
+	entry->sme_bsb.accelerator = IswNewString(entry->sme_bsb.accelerator);
+    if (entry->sme_bsb.accelerator_text)
+	entry->sme_bsb.accelerator_text = IswNewString(entry->sme_bsb.accelerator_text);
+
     GetDefaultSize(new, &(entry->rectangle.width), &(entry->rectangle.height));
 }
 
@@ -267,6 +276,10 @@ Destroy(Widget w)
 
     if (entry->sme_bsb.label != IswName(w))
 	IswFree(entry->sme_bsb.label);
+    if (entry->sme_bsb.accelerator)
+	IswFree(entry->sme_bsb.accelerator);
+    if (entry->sme_bsb.accelerator_text)
+	IswFree(entry->sme_bsb.accelerator_text);
 }
 
 /*      Function Name: Redisplay
@@ -418,6 +431,24 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	}
     }
 
+    if (entry->sme_bsb.accelerator_text != NULL && ctx) {
+	int accel_len = strlen(entry->sme_bsb.accelerator_text);
+	int accel_w = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font,
+					 entry->sme_bsb.accelerator_text, accel_len);
+	int accel_x = entry->rectangle.width - entry->sme_bsb.right_margin - accel_w;
+	Pixel accel_color = highlighted_active
+	    ? IswParent(w)->core.background_pixel
+	    : entry->sme_bsb.foreground;
+
+	ISWRenderBegin(ctx);
+	ISWRenderSetColor(ctx, accel_color);
+	if (entry->sme_bsb.font)
+	    ISWRenderSetFont(ctx, entry->sme_bsb.font);
+	ISWRenderDrawString(ctx, entry->sme_bsb.accelerator_text, accel_len,
+			    accel_x, y_loc);
+	ISWRenderEnd(ctx);
+    }
+
     DrawBitmaps(w, highlighted_active);
 
     if (entry->sme_bsb.menu_name != NULL && ctx) {
@@ -522,6 +553,21 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     if (entry->sme_bsb.right_margin != old_entry->sme_bsb.right_margin)
 	ret_val = TRUE;
 
+    if (old_entry->sme_bsb.accelerator != entry->sme_bsb.accelerator) {
+	if (old_entry->sme_bsb.accelerator)
+	    IswFree(old_entry->sme_bsb.accelerator);
+	entry->sme_bsb.accelerator = entry->sme_bsb.accelerator
+	    ? IswNewString(entry->sme_bsb.accelerator) : NULL;
+	ret_val = TRUE;
+    }
+
+    if (old_entry->sme_bsb.accelerator_text != entry->sme_bsb.accelerator_text) {
+	if (old_entry->sme_bsb.accelerator_text)
+	    IswFree(old_entry->sme_bsb.accelerator_text);
+	entry->sme_bsb.accelerator_text = entry->sme_bsb.accelerator_text
+	    ? IswNewString(entry->sme_bsb.accelerator_text) : NULL;
+	ret_val = TRUE;
+    }
 
     if (ret_val) {
 	GetDefaultSize(new,
@@ -633,6 +679,13 @@ GetDefaultSize(Widget w, Dimension * width, Dimension * height)
   *width = (strlen(entry->sme_bsb.label) * 8);
      *height = (14);
  }
+    }
+
+    if (entry->sme_bsb.accelerator_text != NULL && entry->sme_bsb.font != NULL) {
+	int accel_w = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font,
+					 entry->sme_bsb.accelerator_text,
+					 strlen(entry->sme_bsb.accelerator_text));
+	*width += accel_w + ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font, "  ", 2);
     }
 
     *width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;

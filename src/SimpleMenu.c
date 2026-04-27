@@ -164,6 +164,7 @@ static void FirstEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void LastEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void EnterSubMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void LeaveSubMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void AccelNotify(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 /*
  * Private Function Definitions.
@@ -193,7 +194,8 @@ static IswActionsRec actionsList[] =
   {"first-entry",       FirstEntry},
   {"last-entry",        LastEntry},
   {"enter-submenu",     EnterSubMenu},
-  {"leave-submenu",     LeaveSubMenu}
+  {"leave-submenu",     LeaveSubMenu},
+  {"accel-notify",      AccelNotify}
 };
 
 static CompositeClassExtensionRec extension_rec = {
@@ -2051,5 +2053,79 @@ PopdownSubMenu(SimpleMenuWidget smw)
     IswPopdown((Widget)menu);
 
     smw->simple_menu.sub_menu = NULL;
+}
+
+/*      Function Name: AccelNotify
+ *      Description: Action invoked by an installed accelerator.
+ *                   Finds the named SmeBSB child and fires its callback.
+ *      Arguments: w - the SimpleMenu (source of the accelerator).
+ *                 event, params, num_params - standard action args.
+ *                 params[0] = widget name of the menu entry.
+ *      Returns: none
+ */
+
+static void
+AccelNotify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) w;
+    SmeObject *entry;
+    SmeObjectClass class;
+
+    (void)event;
+
+    if (*num_params < 1) return;
+
+    ForAllChildren(smw, entry) {
+	if (!IswIsManaged((Widget)*entry)) continue;
+	if (strcmp(IswName((Widget)*entry), params[0]) != 0) continue;
+	if (!IswIsSensitive((Widget)*entry)) return;
+
+	if (IswIsSubclass((Widget)*entry, smeBSBObjectClass) &&
+	    ((SmeBSBObject)*entry)->sme_bsb.menu_name != NULL)
+	    return;
+
+	class = (SmeObjectClass) (*entry)->object.widget_class;
+	(class->sme_class.notify)((Widget)*entry);
+	return;
+    }
+}
+
+/*	Function Name: IswSimpleMenuInstallAccelerators
+ *	Description: Builds an Xt accelerator table from SmeBSB children
+ *		     that have IswNaccelerator set, and installs it on the
+ *		     destination widget.
+ *	Arguments: destination - widget that receives key events.
+ *		   menu - the SimpleMenu widget.
+ *	Returns: none.
+ */
+
+void
+IswSimpleMenuInstallAccelerators(Widget destination, Widget menu)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) menu;
+    SmeObject *entry;
+    char buf[4096];
+    int pos;
+
+    pos = snprintf(buf, sizeof(buf), "#override");
+
+    ForAllChildren(smw, entry) {
+	SmeBSBObject bsb;
+
+	if (!IswIsManaged((Widget)*entry)) continue;
+	if (!IswIsSubclass((Widget)*entry, smeBSBObjectClass)) continue;
+
+	bsb = (SmeBSBObject) *entry;
+	if (bsb->sme_bsb.accelerator == NULL) continue;
+
+	pos += snprintf(buf + pos, sizeof(buf) - pos, "\n %s: accel-notify(%s)",
+			bsb->sme_bsb.accelerator, IswName((Widget)*entry));
+	if ((size_t)pos >= sizeof(buf) - 1) break;
+    }
+
+    if (pos <= (int)strlen("#override")) return;
+
+    menu->core.accelerators = IswParseAcceleratorTable(buf);
+    IswInstallAccelerators(destination, menu);
 }
 

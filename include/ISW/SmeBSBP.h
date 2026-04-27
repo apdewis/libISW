@@ -89,6 +89,8 @@ typedef struct {
     IswJustify justify;		/* Justification for the label. */
     int underline;		/* index of letter to underline in label. */
     xcb_keysym_t mnemonic_key;  /* mnemonic keysym (NoSymbol = none) */
+    String accelerator;		/* Xt translation string, e.g. "Ctrl<Key>s" */
+    String accelerator_text;	/* display string, e.g. "Ctrl+S" */
 
     /* private state. */
     Boolean set_values_area_cleared; /* Remember if we need to unhighlight. */

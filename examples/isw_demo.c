@@ -84,7 +84,7 @@
 
 /* Main window creation */
 Widget create_main_window(Widget parent);
-void populate_menubar(Widget menubar);
+void populate_menubar(Widget menubar, Widget accel_dest);
 Widget create_title_label(Widget parent);
 
 /* Section creation functions */
@@ -222,7 +222,7 @@ Widget create_main_window(Widget parent) {
                                       parent, ab.args, ab.count);
 
     /* Populate the built-in menubar */
-    populate_menubar(IswMainWindowGetMenuBar(main_win));
+    populate_menubar(IswMainWindowGetMenuBar(main_win), main_win);
 
     /* Status bar at bottom — MainWindow auto-detects StatusBar children */
     {
@@ -290,7 +290,7 @@ Widget create_main_window(Widget parent) {
     return main_win;
 }
 
-void populate_menubar(Widget menubar) {
+void populate_menubar(Widget menubar, Widget accel_dest) {
     Widget file_button, edit_button, about_button;
     Widget file_menu, edit_menu, about_menu;
     Widget entry;
@@ -362,6 +362,8 @@ void populate_menubar(Widget menubar) {
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Quit");
     IswArgMnemonicKey(&ab, 'q');
+    IswArgAccelerator(&ab, "Ctrl<Key>q");
+    IswArgAcceleratorText(&ab, "Ctrl+Q");
     entry = IswCreateManagedWidget("menuQuit", smeBSBObjectClass, file_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, quit_callback, NULL);
 
@@ -446,6 +448,8 @@ void populate_menubar(Widget menubar) {
     entry = IswCreateManagedWidget("menuLicense", smeBSBObjectClass, about_menu, ab.args, ab.count);
     IswAddCallback(entry, IswNcallback, about_menu_callback, (IswPointer)"License");
 
+    /* Install keyboard accelerators on the main window */
+    IswSimpleMenuInstallAccelerators(accel_dest, file_menu);
 }
 
 Widget create_title_label(Widget parent) {
