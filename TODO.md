@@ -561,3 +561,53 @@ the abstract API.
 Files: ISWXdnd.c (~1,800 lines, refactor into vtable), ISWXdnd.h.
 Depends on: ISWPlatformEvent, ISWPlatformWindow, ISWPlatformSelection.
 
+# Font Type Refactor (~85%)
+
+## Done
+
+- All widgets on `IswFontStruct *`
+- Cairo backend fontconfig-native
+- Pure-XCB render backend removed
+- Old Xlib font loaders removed
+
+## Remaining
+
+- `ISWFontSet` — forward decl exists, struct undefined, code refs nonexistent fields
+- `IswFontStruct.size` — parser extracts point size then discards it
+- Legacy XCB font-server path — `_IswLoadFont`, `IswCvtStringToFont`, XLFD fallback, `fid` + byte-range fields
+- `XFontStructx*` typo in `Toggle.h:62`, dead byte-range fields zeroed but unread
+
+# Keyboard Navigation (~80%)
+
+## Done
+
+- Focus manager + Tab/Shift+Tab traversal (`FocusMgr.c`, ~680 lines)
+- Command/Toggle Space/Enter activation
+- List Up/Down/Home/End/Page/Return/Space
+- IconView grid-aware arrows, Shift+extend, Ctrl+A
+- Slider arrows/Home/End/Page
+- SpinBox Up/Down
+- Scrollbar arrows/Page/Home/End
+- Menu mnemonics (Alt+letter on MenuButton, letter in open menu)
+- Menu arrow navigation (Up/Down/Left/Right/Enter/Escape in SimpleMenu)
+
+## Remaining
+
+- Menu accelerators — no `IswNaccelerator`/`IswNacceleratorText` resources, no right-aligned display text in SmeBSB, no auto-install on Shell
+- ComboBox keyboard nav — zero translations defined
+- List type-ahead search
+- Toggle `traversalOn` default not enabled
+
+# UTF-8 Support (~95%)
+
+## Done
+- Phase 1: `ISWUtf8.h`/`.c` helpers, codepoint-aware truncation in all widgets
+- Phase 2: `ISWFontSet` removed from widgets (typedef lingers for XIM in `ISWImP.h`)
+- Phase 3: `MultiSink`/`Src` + `AsciiSink`/`Src` deleted, unified `TextSink`/`TextSrc`
+- Phase 4: Cursor/delete/word-nav all codepoint-aware in `TextSrc`/`TextAction`
+- Phase 5: Zero `#ifdef ISW_INTERNATIONALIZATION` in code, UTF-8 unconditional
+
+## Remaining
+- Phase 6: HarfBuzz shaping — deferred by design
+- Dead `ISWXcbDraw` byte-text compat shims still in tree
+- `ISWFontSet` typedef in `ISWImP.h` (XIM dependency)
