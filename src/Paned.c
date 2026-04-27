@@ -69,6 +69,7 @@ SOFTWARE.
 #include <ISW/Grip.h>
 #include <ISW/PanedP.h>
 #include <ISW/ISWRender.h>
+#include <ISW/IswArgMacros.h>
 #include <ctype.h>
 #include <xcb/xcb.h>
 #include <xcb/xfixes.h>
@@ -1058,7 +1059,6 @@ HandleGrip(Widget grip, IswPointer junk, IswPointer callData)
     char action_type;
     xcb_cursor_t cursor;
     Direction direction = 0;
-    Arg arglist[1];
 
     action_type = toupper(*call_data->params[0]);
 
@@ -1085,8 +1085,9 @@ HandleGrip(Widget grip, IswPointer junk, IswPointer callData)
 	    break;
 
 	case 'C': {
-	    IswSetArg(arglist[0], IswNcursor, &cursor);
-	    IswGetValues(grip, arglist, (Cardinal) 1);
+	    IswArgBuilder ab = IswArgBuilderInit();
+	    IswArgCursor(&ab, (IswArgVal)&cursor);
+	    IswGetValues(grip, ab.args, ab.count);
 	    /* XCB: Use xcb_change_window_attributes to set cursor */
 	    uint32_t value = cursor;
 	    xcb_change_window_attributes(IswDisplay(grip), IswWindow(grip),
@@ -1185,12 +1186,10 @@ static void
 CreateGrip(Widget child)
 {
     PanedWidget pw = (PanedWidget) IswParent(child);
-    Arg arglist[2];
-    Cardinal num_args = 0;
+    IswArgBuilder ab = IswArgBuilderInit();
     xcb_cursor_t cursor;
 
-    IswSetArg(arglist[num_args], IswNtranslations, pw->paned.grip_translations);
-    num_args++;
+    IswArgTranslations(&ab, pw->paned.grip_translations);
     if ( (cursor = pw->paned.grip_cursor) == None ) {
         if (IsVert(pw))
 	    cursor = pw->paned.v_grip_cursor;
@@ -1198,10 +1197,9 @@ CreateGrip(Widget child)
 	    cursor = pw->paned.h_grip_cursor;
     }
 
-    IswSetArg(arglist[num_args], IswNcursor, cursor);
-    num_args++;
+    IswArgCursor(&ab, cursor);
     PaneInfo(child)->grip = IswCreateWidget("grip", gripWidgetClass, (Widget)pw,
-					   arglist, num_args);
+					   ab.args, ab.count);
 
     IswAddCallback(PaneInfo(child)->grip, IswNcallback,
 		  HandleGrip, (IswPointer) child);
@@ -1261,7 +1259,7 @@ ChangeAllGripCursors(PanedWidget pw)
     Widget * childP;
 
     ForAllPanes(pw, childP) {
-	Arg arglist[1];
+	IswArgBuilder ab = IswArgBuilderInit();
 	xcb_cursor_t cursor;
 
 	if ( (cursor = pw->paned.grip_cursor) == None ) {
@@ -1272,8 +1270,8 @@ ChangeAllGripCursors(PanedWidget pw)
 	}
 
 	if (HasGrip (*childP)) {
-	    IswSetArg(arglist[0], IswNcursor, cursor);
-	    IswSetValues(PaneInfo(*childP)->grip, arglist, (Cardinal) 1);
+	    IswArgCursor(&ab, cursor);
+	    IswSetValues(PaneInfo(*childP)->grip, ab.args, ab.count);
 	}
     }
 }

@@ -56,6 +56,7 @@ SOFTWARE.
 #include <ISW/StringDefs.h>
 
 #include <ISW/ISWInit.h>
+#include <ISW/IswArgMacros.h>
 #include <ISW/Text.h>
 #include <ISW/Command.h>
 #include <ISW/Label.h>
@@ -153,32 +154,34 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     DialogWidget dw = (DialogWidget)new;
-    Arg arglist[9];
-    Cardinal arg_cnt = 0;
+    IswArgBuilder ab = IswArgBuilderInit();
 
-    IswSetArg(arglist[arg_cnt], IswNborderWidth, 0); arg_cnt++;
-    IswSetArg(arglist[arg_cnt], IswNleft, IswChainLeft); arg_cnt++;
+    IswArgBorderWidth(&ab, 0);
+    IswArgLeft(&ab, IswChainLeft);
 
     if (dw->dialog.icon != (xcb_pixmap_t)0) {
-	IswSetArg(arglist[arg_cnt], IswNbitmap, dw->dialog.icon); arg_cnt++;
-	IswSetArg(arglist[arg_cnt], IswNright, IswChainLeft); arg_cnt++;
+	IswArgBitmap(&ab, dw->dialog.icon);
+	IswArgRight(&ab, IswChainLeft);
 	dw->dialog.iconW =
 	    IswCreateManagedWidget( "icon", labelWidgetClass,
-				   new, arglist, arg_cnt );
-	arg_cnt = 2;
-	IswSetArg(arglist[arg_cnt], IswNfromHoriz, dw->dialog.iconW);arg_cnt++;
+				   new, ab.args, ab.count );
+	IswArgBuilderReset(&ab);
+	IswArgBorderWidth(&ab, 0);
+	IswArgLeft(&ab, IswChainLeft);
+	IswArgFromHoriz(&ab, dw->dialog.iconW);
     } else dw->dialog.iconW = (Widget)NULL;
 
-    IswSetArg(arglist[arg_cnt], IswNlabel, dw->dialog.label); arg_cnt++;
-    IswSetArg(arglist[arg_cnt], IswNright, IswChainRight); arg_cnt++;
+    IswArgLabel(&ab, dw->dialog.label);
+    IswArgRight(&ab, IswChainRight);
 
     dw->dialog.labelW = IswCreateManagedWidget( "label", labelWidgetClass,
-					      new, arglist, arg_cnt);
+					      new, ab.args, ab.count);
 
     if (dw->dialog.iconW != (Widget)NULL &&
 	(dw->dialog.labelW->core.height < dw->dialog.iconW->core.height)) {
-	IswSetArg( arglist[0], IswNheight, dw->dialog.iconW->core.height );
-	IswSetValues( dw->dialog.labelW, arglist, ONE );
+	IswArgBuilderReset(&ab);
+	IswArgHeight(&ab, dw->dialog.iconW->core.height);
+	IswSetValues( dw->dialog.labelW, ab.args, ab.count );
     }
     if (dw->dialog.value != NULL)
         CreateDialogValueWidget( (Widget) dw);
@@ -228,8 +231,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList in_args, Cardinal 
 {
     DialogWidget w = (DialogWidget)new;
     DialogWidget old = (DialogWidget)current;
-    Arg args[5];
-    Cardinal num_args;
+    IswArgBuilder ab = IswArgBuilderInit();
     int i;
     Boolean checks[NUM_CHECKS];
 
@@ -245,16 +247,16 @@ SetValues(Widget current, Widget request, Widget new, ArgList in_args, Cardinal 
 
     if (checks[ICON]) {
 	if (w->dialog.icon != (xcb_pixmap_t)0) {
-	    IswSetArg( args[0], IswNbitmap, w->dialog.icon );
+	    IswArgBitmap(&ab, w->dialog.icon);
 	    if (old->dialog.iconW != (Widget)NULL) {
-		IswSetValues( old->dialog.iconW, args, ONE );
+		IswSetValues( old->dialog.iconW, ab.args, ab.count );
 	    } else {
-		IswSetArg( args[1], IswNborderWidth, 0);
-		IswSetArg( args[2], IswNleft, IswChainLeft);
-		IswSetArg( args[3], IswNright, IswChainLeft);
+		IswArgBorderWidth(&ab, 0);
+		IswArgLeft(&ab, IswChainLeft);
+		IswArgRight(&ab, IswChainLeft);
 		w->dialog.iconW =
 		    IswCreateWidget( "icon", labelWidgetClass,
-				    new, args, FOUR );
+				    new, ab.args, ab.count );
 		((DialogConstraints)w->dialog.labelW->core.constraints)->
 		    form.horiz_base = w->dialog.iconW;
 		IswManageChild(w->dialog.iconW);
@@ -268,14 +270,13 @@ SetValues(Widget current, Widget request, Widget new, ArgList in_args, Cardinal 
     }
 
     if ( checks[LABEL] ) {
-        num_args = 0;
-        IswSetArg( args[num_args], IswNlabel, w->dialog.label ); num_args++;
+	IswArgBuilderReset(&ab);
+	IswArgLabel(&ab, w->dialog.label);
 	if (w->dialog.iconW != (Widget)NULL &&
 	    (w->dialog.labelW->core.height <= w->dialog.iconW->core.height)) {
-	    IswSetArg(args[num_args], IswNheight, w->dialog.iconW->core.height);
-	    num_args++;
+	    IswArgHeight(&ab, w->dialog.iconW->core.height);
 	}
-	IswSetValues( w->dialog.labelW, args, num_args );
+	IswSetValues( w->dialog.labelW, ab.args, ab.count );
     }
 
     if ( w->dialog.value != old->dialog.value ) {
@@ -301,9 +302,9 @@ SetValues(Widget current, Widget request, Widget new, ArgList in_args, Cardinal 
 #endif /*notdef*/
 	}
 	else {			/* Widget ok, just change string. */
-	    Arg args[1];
-	    IswSetArg(args[0], IswNstring, w->dialog.value);
-	    IswSetValues(w->dialog.valueW, args, ONE);
+	    IswArgBuilderReset(&ab);
+	    IswArgString(&ab, w->dialog.value);
+	    IswSetValues(w->dialog.valueW, ab.args, ab.count);
 	    w->dialog.value = MAGIC_VALUE;
 	}
     }
@@ -322,15 +323,15 @@ SetValues(Widget current, Widget request, Widget new, ArgList in_args, Cardinal 
 static void
 GetValuesHook(Widget w, ArgList args, Cardinal *num_args)
 {
-  Arg a[1];
   String s;
   DialogWidget src = (DialogWidget) w;
   int i;
 
   for (i=0; i < *num_args; i++)
     if (streq(args[i].name, IswNvalue)) {
-      IswSetArg(a[0], IswNstring, &s);
-      IswGetValues(src->dialog.valueW, a, 1);
+      IswArgBuilder ab = IswArgBuilderInit();
+      IswArgString(&ab, (IswArgVal)&s);
+      IswGetValues(src->dialog.valueW, ab.args, ab.count);
       *((char **) args[i].value) = s;
     }
 }
@@ -348,23 +349,21 @@ static void
 CreateDialogValueWidget(Widget w)
 {
     DialogWidget dw = (DialogWidget) w;
-    Arg arglist[10];
-    Cardinal num_args = 0;
+    IswArgBuilder ab = IswArgBuilderInit();
 
 #ifdef notdef
-    IswSetArg(arglist[num_args], IswNwidth,
-	     dw->dialog.labelW->core.width); num_args++; /* ||| hack */
+    IswArgWidth(&ab, dw->dialog.labelW->core.width); /* ||| hack */
 #endif /*notdef*/
-    IswSetArg(arglist[num_args], IswNstring, dw->dialog.value);     num_args++;
-    IswSetArg(arglist[num_args], IswNresizable, True);              num_args++;
-    IswSetArg(arglist[num_args], IswNresize, IswtextResizeBoth);    num_args++;
-    IswSetArg(arglist[num_args], IswNeditType, IswtextEdit);        num_args++;
-    IswSetArg(arglist[num_args], IswNfromVert, dw->dialog.labelW);  num_args++;
-    IswSetArg(arglist[num_args], IswNleft, IswChainLeft);            num_args++;
-    IswSetArg(arglist[num_args], IswNright, IswChainRight);          num_args++;
+    IswArgString(&ab, dw->dialog.value);
+    IswArgResizable(&ab, True);
+    IswArgResize(&ab, IswtextResizeBoth);
+    IswArgEditType(&ab, IswtextEdit);
+    IswArgFromVert(&ab, dw->dialog.labelW);
+    IswArgLeft(&ab, IswChainLeft);
+    IswArgRight(&ab, IswChainRight);
 
     dw->dialog.valueW = IswCreateWidget("value", textWidgetClass,
-				     w, arglist, num_args);
+				     w, ab.args, ab.count);
 
     /* if the value widget is being added after buttons,
      * then the buttons need new layout constraints.
@@ -414,10 +413,9 @@ IswDialogAddButton(Widget dialog, _Xconst char* name, IswCallbackProc function,
 char *
 IswDialogGetValueString(Widget w)
 {
-    Arg args[1];
     char * value;
-
-    IswSetArg(args[0], IswNstring, &value);
-    IswGetValues( ((DialogWidget)w)->dialog.valueW, args, ONE);
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgString(&ab, (IswArgVal)&value);
+    IswGetValues(((DialogWidget)w)->dialog.valueW, ab.args, ab.count);
     return(value);
 }

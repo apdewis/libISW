@@ -14,6 +14,7 @@
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
+#include <ISW/IswArgMacros.h>
 #include <ISW/SpinBoxP.h>
 #include <ISW/ISWRender.h>
 #include <ISW/Text.h>
@@ -142,21 +143,20 @@ static void
 SyncTextFromValue(SpinBoxWidget sbw)
 {
     char buf[32];
-    Arg args[1];
+    IswArgBuilder ab = IswArgBuilderInit();
 
     snprintf(buf, sizeof(buf), "%d", sbw->spinBox.value);
-    IswSetArg(args[0], IswNstring, buf);
-    IswSetValues(sbw->spinBox.textW, args, 1);
+    IswArgString(&ab, buf);
+    IswSetValues(sbw->spinBox.textW, ab.args, ab.count);
 }
 
 static int
 ReadTextValue(SpinBoxWidget sbw)
 {
     String str = NULL;
-    Arg args[1];
-
-    IswSetArg(args[0], IswNstring, &str);
-    IswGetValues(sbw->spinBox.textW, args, 1);
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgString(&ab, (IswArgVal)&str);
+    IswGetValues(sbw->spinBox.textW, ab.args, ab.count);
 
     if (str == NULL || *str == '\0')
         return sbw->spinBox.value;
@@ -242,8 +242,7 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     SpinBoxWidget sbw = (SpinBoxWidget) new;
-    Arg arglist[12];
-    Cardinal n;
+    IswArgBuilder ab = IswArgBuilderInit();
     char buf[32];
     (void)request; (void)args; (void)num_args;
 
@@ -258,13 +257,12 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* All children borderless — SpinBox draws its own border */
 
     /* Text field */
-    n = 0;
-    IswSetArg(arglist[n], IswNstring, buf); n++;
-    IswSetArg(arglist[n], IswNeditType, IswtextEdit); n++;
-    IswSetArg(arglist[n], IswNborderWidth, 0); n++;
-    IswSetArg(arglist[n], IswNconsumeTab, False); n++;  /* single-line: Tab traverses */
+    IswArgString(&ab, buf);
+    IswArgEditType(&ab, IswtextEdit);
+    IswArgBorderWidth(&ab, 0);
+    IswArgConsumeTab(&ab, False);  /* single-line: Tab traverses */
     sbw->spinBox.textW = IswCreateManagedWidget("text", textWidgetClass,
-                                                new, arglist, n);
+                                                new, ab.args, ab.count);
 
     /* Augment the Text child so Up/Down step the SpinBox while focused. */
     {
@@ -280,15 +278,15 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'>"
         "<path d='M1,5 L5,1 L9,5' stroke='currentColor' stroke-width='1.5' "
         "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
-    n = 0;
-    IswSetArg(arglist[n], IswNlabel, ""); n++;
-    IswSetArg(arglist[n], IswNimage, up_arrow_svg); n++;
-    IswSetArg(arglist[n], IswNborderWidth, 0); n++;
-    IswSetArg(arglist[n], IswNcornerRadius, 0); n++;
-    IswSetArg(arglist[n], IswNinternalWidth, 0); n++;
-    IswSetArg(arglist[n], IswNinternalHeight, 0); n++;
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "");
+    IswArgImage(&ab, up_arrow_svg);
+    IswArgBorderWidth(&ab, 0);
+    IswArgCornerRadius(&ab, 0);
+    IswArgInternalWidth(&ab, 0);
+    IswArgInternalHeight(&ab, 0);
     sbw->spinBox.upW = IswCreateManagedWidget("up", repeaterWidgetClass,
-                                              new, arglist, n);
+                                              new, ab.args, ab.count);
     ((SimpleWidget) sbw->spinBox.upW)->simple.traversal_on = False;
     IswAddCallback(sbw->spinBox.upW, IswNcallback, UpCallback, (IswPointer)sbw);
 
@@ -297,15 +295,15 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'>"
         "<path d='M1,1 L5,5 L9,1' stroke='currentColor' stroke-width='1.5' "
         "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
-    n = 0;
-    IswSetArg(arglist[n], IswNlabel, ""); n++;
-    IswSetArg(arglist[n], IswNimage, down_arrow_svg); n++;
-    IswSetArg(arglist[n], IswNborderWidth, 0); n++;
-    IswSetArg(arglist[n], IswNcornerRadius, 0); n++;
-    IswSetArg(arglist[n], IswNinternalWidth, 0); n++;
-    IswSetArg(arglist[n], IswNinternalHeight, 0); n++;
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "");
+    IswArgImage(&ab, down_arrow_svg);
+    IswArgBorderWidth(&ab, 0);
+    IswArgCornerRadius(&ab, 0);
+    IswArgInternalWidth(&ab, 0);
+    IswArgInternalHeight(&ab, 0);
     sbw->spinBox.downW = IswCreateManagedWidget("down", repeaterWidgetClass,
-                                                new, arglist, n);
+                                                new, ab.args, ab.count);
     ((SimpleWidget) sbw->spinBox.downW)->simple.traversal_on = False;
     IswAddCallback(sbw->spinBox.downW, IswNcallback, DownCallback, (IswPointer)sbw);
 
@@ -455,17 +453,17 @@ GetValuesHook(Widget w, ArgList args, Cardinal *num_args)
 void
 IswSpinBoxSetValue(Widget w, int value)
 {
-    Arg args[1];
-    IswSetArg(args[0], IswNspinValue, value);
-    IswSetValues(w, args, 1);
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgSpinValue(&ab, value);
+    IswSetValues(w, ab.args, ab.count);
 }
 
 int
 IswSpinBoxGetValue(Widget w)
 {
     int value;
-    Arg args[1];
-    IswSetArg(args[0], IswNspinValue, &value);
-    IswGetValues(w, args, 1);
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgSpinValue(&ab, (IswArgVal)&value);
+    IswGetValues(w, ab.args, ab.count);
     return value;
 }

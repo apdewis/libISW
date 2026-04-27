@@ -43,6 +43,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <cairo-xcb.h>
 #endif
 #include "ISWXcbDraw.h"
+#include <ISW/IswArgMacros.h>
 
 #if defined(ISC) && __STDC__ && !defined(ISC30)
 extern double atof(char *);
@@ -873,8 +874,8 @@ ActionSet (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_
     }
 
     if (rb != pw->panner.rubber_band) {
-	Arg args[1];
-	IswSetArg (args[0], IswNrubberBand, rb);
-	IswSetValues (gw, args, (Cardinal) 1);
+	IswArgBuilder ab = IswArgBuilderInit();
+	IswArgRubberBand(&ab, rb);
+	IswSetValues (gw, ab.args, ab.count);
     }
 }

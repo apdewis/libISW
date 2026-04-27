@@ -18,6 +18,7 @@
 #include <ISW/List.h>
 #include <ISW/Label.h>
 #include <ISW/Viewport.h>
+#include <ISW/IswArgMacros.h>
 
 #include <fontconfig/fontconfig.h>
 #include <stdio.h>
@@ -363,10 +364,10 @@ NotifyChange(FontChooserWidget fcw)
         fs->font_weight = fcw->fontChooser.weight;
         fs->font_slant  = fcw->fontChooser.slant;
 
-        Arg a[2];
-        IswSetArg(a[0], IswNlabel, buf);
-        IswSetArg(a[1], IswNfont, fs);
-        IswSetValues(fcw->fontChooser.previewW, a, 2);
+        IswArgBuilder ab = IswArgBuilderInit();
+        IswArgLabel(&ab, buf);
+        IswArgFont(&ab, fs);
+        IswSetValues(fcw->fontChooser.previewW, ab.args, ab.count);
     }
 
     IswFontChooserCallbackData cb;
@@ -383,8 +384,7 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     FontChooserWidget fcw = (FontChooserWidget) new;
-    Arg a[10];
-    Cardinal n;
+    IswArgBuilder ab = IswArgBuilderInit();
     Dimension list_w = (180);
     Dimension list_h = (150);
     Dimension size_w = (50);
@@ -396,55 +396,55 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     EnumerateFonts(fcw);
 
     /* Family label */
-    n = 0;
-    IswSetArg(a[n], IswNlabel, "Family"); n++;
-    IswSetArg(a[n], IswNborderWidth, 0); n++;
-    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
-    Widget familyLabel = IswCreateManagedWidget("familyLabel", labelWidgetClass, new, a, n);
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Family");
+    IswArgBorderWidth(&ab, 0);
+    IswArgLeft(&ab, IswChainLeft);
+    Widget familyLabel = IswCreateManagedWidget("familyLabel", labelWidgetClass, new, ab.args, ab.count);
 
     /* Family list in a viewport */
     Widget familyVp;
-    n = 0;
-    IswSetArg(a[n], IswNallowVert, True); n++;
-    IswSetArg(a[n], IswNuseRight, True); n++;
-    IswSetArg(a[n], IswNwidth, list_w); n++;
-    IswSetArg(a[n], IswNheight, list_h); n++;
-    IswSetArg(a[n], IswNfromVert, familyLabel); n++;
-    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    IswArgBuilderReset(&ab);
+    IswArgAllowVert(&ab, True);
+    IswArgUseRight(&ab, True);
+    IswArgWidth(&ab, list_w);
+    IswArgHeight(&ab, list_h);
+    IswArgFromVert(&ab, familyLabel);
+    IswArgLeft(&ab, IswChainLeft);
     familyVp = IswCreateManagedWidget("familyViewport", viewportWidgetClass,
-                                      new, a, n);
+                                      new, ab.args, ab.count);
 
-    n = 0;
+    IswArgBuilderReset(&ab);
     if (fcw->fontChooser.num_families > 0) {
-        IswSetArg(a[n], IswNlist, fcw->fontChooser.family_names); n++;
-        IswSetArg(a[n], IswNnumberStrings, fcw->fontChooser.num_families); n++;
+        IswArgList(&ab, fcw->fontChooser.family_names);
+        IswArgNumberStrings(&ab, fcw->fontChooser.num_families);
     }
-    IswSetArg(a[n], IswNdefaultColumns, 1); n++;
-    IswSetArg(a[n], IswNforceColumns, True); n++;
+    IswArgDefaultColumns(&ab, 1);
+    IswArgForceColumns(&ab, True);
     fcw->fontChooser.familyListW = IswCreateManagedWidget(
-        "familyList", listWidgetClass, familyVp, a, n);
+        "familyList", listWidgetClass, familyVp, ab.args, ab.count);
     IswAddCallback(fcw->fontChooser.familyListW, IswNcallback,
                   FamilySelected, (IswPointer)fcw);
 
     /* Style label — positioned to the right of family viewport */
-    n = 0;
-    IswSetArg(a[n], IswNlabel, "Style"); n++;
-    IswSetArg(a[n], IswNborderWidth, 0); n++;
-    IswSetArg(a[n], IswNfromHoriz, familyVp); n++;
-    Widget styleLabel = IswCreateManagedWidget("styleLabel", labelWidgetClass, new, a, n);
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Style");
+    IswArgBorderWidth(&ab, 0);
+    IswArgFromHoriz(&ab, familyVp);
+    Widget styleLabel = IswCreateManagedWidget("styleLabel", labelWidgetClass, new, ab.args, ab.count);
 
     /* Style list in a viewport */
     Dimension style_w = 120;
     Widget styleVp;
-    n = 0;
-    IswSetArg(a[n], IswNallowVert, True); n++;
-    IswSetArg(a[n], IswNuseRight, True); n++;
-    IswSetArg(a[n], IswNwidth, style_w); n++;
-    IswSetArg(a[n], IswNheight, list_h); n++;
-    IswSetArg(a[n], IswNfromHoriz, familyVp); n++;
-    IswSetArg(a[n], IswNfromVert, styleLabel); n++;
+    IswArgBuilderReset(&ab);
+    IswArgAllowVert(&ab, True);
+    IswArgUseRight(&ab, True);
+    IswArgWidth(&ab, style_w);
+    IswArgHeight(&ab, list_h);
+    IswArgFromHoriz(&ab, familyVp);
+    IswArgFromVert(&ab, styleLabel);
     styleVp = IswCreateManagedWidget("styleViewport", viewportWidgetClass,
-                                     new, a, n);
+                                     new, ab.args, ab.count);
 
     /* Populate styles for the initial family */
     fcw->fontChooser.style_names   = NULL;
@@ -454,24 +454,24 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     fcw->fontChooser.styleListW    = NULL;
     RefreshStyles(fcw);
 
-    n = 0;
+    IswArgBuilderReset(&ab);
     if (fcw->fontChooser.num_styles > 0) {
-        IswSetArg(a[n], IswNlist, fcw->fontChooser.style_names); n++;
-        IswSetArg(a[n], IswNnumberStrings, fcw->fontChooser.num_styles); n++;
+        IswArgList(&ab, fcw->fontChooser.style_names);
+        IswArgNumberStrings(&ab, fcw->fontChooser.num_styles);
     }
-    IswSetArg(a[n], IswNdefaultColumns, 1); n++;
-    IswSetArg(a[n], IswNforceColumns, True); n++;
+    IswArgDefaultColumns(&ab, 1);
+    IswArgForceColumns(&ab, True);
     fcw->fontChooser.styleListW = IswCreateManagedWidget(
-        "styleList", listWidgetClass, styleVp, a, n);
+        "styleList", listWidgetClass, styleVp, ab.args, ab.count);
     IswAddCallback(fcw->fontChooser.styleListW, IswNcallback,
                   StyleSelected, (IswPointer)fcw);
 
     /* Size label — positioned to the right of style viewport */
-    n = 0;
-    IswSetArg(a[n], IswNlabel, "Size"); n++;
-    IswSetArg(a[n], IswNborderWidth, 0); n++;
-    IswSetArg(a[n], IswNfromHoriz, styleVp); n++;
-    IswCreateManagedWidget("sizeLabel", labelWidgetClass, new, a, n);
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Size");
+    IswArgBorderWidth(&ab, 0);
+    IswArgFromHoriz(&ab, styleVp);
+    IswCreateManagedWidget("sizeLabel", labelWidgetClass, new, ab.args, ab.count);
 
     /* Size list in a viewport */
     static String sizes[] = {
@@ -480,23 +480,23 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     };
 
     Widget sizeVp;
-    n = 0;
-    IswSetArg(a[n], IswNallowVert, True); n++;
-    IswSetArg(a[n], IswNuseRight, True); n++;
-    IswSetArg(a[n], IswNwidth, size_w); n++;
-    IswSetArg(a[n], IswNheight, list_h); n++;
-    IswSetArg(a[n], IswNfromHoriz, styleVp); n++;
-    IswSetArg(a[n], IswNfromVert, styleLabel); n++;
+    IswArgBuilderReset(&ab);
+    IswArgAllowVert(&ab, True);
+    IswArgUseRight(&ab, True);
+    IswArgWidth(&ab, size_w);
+    IswArgHeight(&ab, list_h);
+    IswArgFromHoriz(&ab, styleVp);
+    IswArgFromVert(&ab, styleLabel);
     sizeVp = IswCreateManagedWidget("sizeViewport", viewportWidgetClass,
-                                    new, a, n);
+                                    new, ab.args, ab.count);
 
-    n = 0;
-    IswSetArg(a[n], IswNlist, sizes); n++;
-    IswSetArg(a[n], IswNnumberStrings, IswNumber(sizes)); n++;
-    IswSetArg(a[n], IswNdefaultColumns, 1); n++;
-    IswSetArg(a[n], IswNforceColumns, True); n++;
+    IswArgBuilderReset(&ab);
+    IswArgList(&ab, sizes);
+    IswArgNumberStrings(&ab, IswNumber(sizes));
+    IswArgDefaultColumns(&ab, 1);
+    IswArgForceColumns(&ab, True);
     fcw->fontChooser.sizeListW = IswCreateManagedWidget(
-        "sizeList", listWidgetClass, sizeVp, a, n);
+        "sizeList", listWidgetClass, sizeVp, ab.args, ab.count);
     IswAddCallback(fcw->fontChooser.sizeListW, IswNcallback,
                   SizeSelected, (IswPointer)fcw);
 
@@ -507,16 +507,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
              fcw->fontChooser.size,
              fcw->fontChooser.preview_text);
 
-    n = 0;
-    IswSetArg(a[n], IswNlabel, preview_buf); n++;
-    IswSetArg(a[n], IswNwidth, preview_w); n++;
-    IswSetArg(a[n], IswNheight, preview_h); n++;
-    IswSetArg(a[n], IswNborderWidth, 1); n++;
-    IswSetArg(a[n], IswNfromVert, familyVp); n++;
-    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
-    IswSetArg(a[n], IswNresize, False); n++;
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, preview_buf);
+    IswArgWidth(&ab, preview_w);
+    IswArgHeight(&ab, preview_h);
+    IswArgBorderWidth(&ab, 1);
+    IswArgFromVert(&ab, familyVp);
+    IswArgLeft(&ab, IswChainLeft);
+    IswArgResize(&ab, False);
     fcw->fontChooser.previewW = IswCreateManagedWidget(
-        "preview", labelWidgetClass, new, a, n);
+        "preview", labelWidgetClass, new, ab.args, ab.count);
 
     /* Reflect the initial family/style/size as highlighted rows. */
     for (int i = 0; i < fcw->fontChooser.num_families; i++) {

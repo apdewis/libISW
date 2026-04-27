@@ -17,6 +17,7 @@
 #include <ISW/StatusBarP.h>
 #include <ISW/Label.h>
 #include <ISW/ISWRender.h>
+#include <ISW/IswArgMacros.h>
 
 #define superclass (&constraintClassRec)
 
@@ -198,9 +199,9 @@ InsertChild(Widget child)
 
     /* Style Label children for flat appearance */
     if (IswIsSubclass(child, labelWidgetClass)) {
-        Arg args[1];
-        IswSetArg(args[0], IswNborderWidth, 0);
-        IswSetValues(child, args, 1);
+        IswArgBuilder ab = IswArgBuilderInit();
+        IswArgBorderWidth(&ab, 0);
+        IswSetValues(child, ab.args, ab.count);
     }
 }
 

@@ -67,6 +67,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWContext.h>
 #include <ISW/ResourceI.h>
 #include <ISW/VarargsI.h>
+#include <ISW/IswArgMacros.h>
 #include <ctype.h>
 
 # include <stdarg.h>
@@ -281,14 +282,13 @@ CloseIM(IswVendorShellExtPart *ve)
 static Dimension
 SetVendorShellHeight(IswVendorShellExtPart *ve, Dimension height)
 {
-    Arg			args[2];
-    Cardinal		i = 0;
+    IswArgBuilder	ab = IswArgBuilderInit();
 
    if (ve->im.area_height < height || height == 0) {
-       IswSetArg(args[i], IswNheight,
+       IswArgHeight(&ab,
 		(ve->parent->core.height + height - ve->im.area_height));
        ve->im.area_height = height;
-       IswSetValues(ve->parent, args, 1);
+       IswSetValues(ve->parent, ab.args, ab.count);
    }
    return(ve->im.area_height);
 }

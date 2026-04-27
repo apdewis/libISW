@@ -67,6 +67,7 @@ SOFTWARE.
 #include <ISW/Cardinals.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/TextP.h>
+#include <ISW/IswArgMacros.h>
 #include <ISW/ISWImP.h>
 #include "ISWXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
@@ -492,14 +493,14 @@ DestroyVScrollBar(TextWidget ctx)
 static void
 CreateHScrollBar(TextWidget ctx)
 {
-  Arg args[1];
+  IswArgBuilder ab = IswArgBuilderInit();
   Widget hbar;
 
   if (ctx->text.hbar != NULL) return;
 
-  IswSetArg(args[0], IswNorientation, IswOrientHorizontal);
+  IswArgOrientation(&ab, IswOrientHorizontal);
   ctx->text.hbar = hbar =
-    IswCreateWidget("hScrollbar", scrollbarWidgetClass, (Widget)ctx, args, ONE);
+    IswCreateWidget("hScrollbar", scrollbarWidgetClass, (Widget)ctx, ab.args, ab.count);
   IswAddCallback( hbar, IswNscrollProc, HScroll, (IswPointer)ctx );
   IswAddCallback( hbar, IswNjumpProc, HJump, (IswPointer)ctx );
   if (ctx->text.vbar == NULL)
@@ -728,10 +729,10 @@ InsertCursor (Widget w, IswTextInsertState state)
   /* Keep Input Method up to speed  */
 
   if ( ctx->simple.international ) {
-    Arg list[1];
+    IswArgBuilder ab = IswArgBuilderInit();
 
-    IswSetArg (list[0], IswNinsertPosition, ctx->text.insertPos);
-    _IswImSetValues (w, list, 1);
+    IswArgInsertPosition(&ab, ctx->text.insertPos);
+    _IswImSetValues (w, ab.args, ab.count);
   }
 }
 
@@ -1175,7 +1176,6 @@ _IswTextVScroll(TextWidget ctx, int n)
 {
   ISWTextPosition top, target;
   int y;
-  Arg list[1];
   IswTextLineTable * lt = &(ctx->text.lt);
   int s = 0;
 
@@ -1256,8 +1256,11 @@ _IswTextVScroll(TextWidget ctx, int n)
     DisplayTextWindow((Widget)ctx);
     _IswTextSetScrollBars(ctx);
   }
-  IswSetArg (list[0], IswNinsertPosition, ctx->text.lt.top+ctx->text.lt.lines);
-  _IswImSetValues ((Widget) ctx, list, 1);
+  {
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgInsertPosition(&ab, ctx->text.lt.top+ctx->text.lt.lines);
+    _IswImSetValues ((Widget) ctx, ab.args, ab.count);
+  }
 
     _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
 }
@@ -1530,7 +1533,6 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   TextWidget ctx = (TextWidget)w;
   Widget src = ctx->text.source;
   IswTextEditType edit_mode;
-  Arg args[1];
 
   IswTextSelectionSalt	*salt = NULL;
   IswTextSelection	*s;
@@ -1556,8 +1558,11 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
     *targetP++ = XCB_ATOM_LIST_LENGTH(d);
     *targetP++ = XCB_ATOM_CHARACTER_POSITION(d);
 
-    IswSetArg(args[0], IswNeditType,&edit_mode);
-    IswGetValues(src, args, ONE);
+    {
+      IswArgBuilder ab = IswArgBuilderInit();
+      IswArgEditType(&ab, (IswArgVal)&edit_mode);
+      IswGetValues(src, ab.args, ab.count);
+    }
 
     if (edit_mode == IswtextEdit) {
       *targetP++ = XCB_ATOM_DELETE(d);
@@ -1835,7 +1840,6 @@ _IswTextReplace (TextWidget ctx, ISWTextPosition pos1, ISWTextPosition pos2,
   ISWTextPosition updateFrom, updateTo;
   Widget src = ctx->text.source;
   IswTextEditType edit_mode;
-  Arg args[1];
   Boolean tmp = ctx->text.update_disabled;
 
   ctx->text.update_disabled = True; /* No redisplay during replacement. */
@@ -1844,8 +1848,11 @@ _IswTextReplace (TextWidget ctx, ISWTextPosition pos1, ISWTextPosition pos2,
  * The insertPos may not always be set to the right spot in IswtextAppend
  */
 
-  IswSetArg(args[0], IswNeditType, &edit_mode);
-  IswGetValues(src, args, ONE);
+  {
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgEditType(&ab, (IswArgVal)&edit_mode);
+    IswGetValues(src, ab.args, ab.count);
+  }
 
   if ((pos1 == ctx->text.insertPos) && (edit_mode == IswtextAppend)) {
     ctx->text.insertPos = ctx->text.lastPos;
@@ -2803,17 +2810,17 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 static Boolean
 ChangeSensitive(Widget w)
 {
-    Arg args[1];
+    IswArgBuilder ab = IswArgBuilderInit();
     TextWidget tw = (TextWidget) w;
 
     (*(&simpleClassRec)->simple_class.change_sensitive)(w);
 
-    IswSetArg(args[0], IswNancestorSensitive,
+    IswArgAncestorSensitive(&ab,
 	       (tw->core.ancestor_sensitive && tw->core.sensitive));
     if (tw->text.vbar)
-	IswSetValues(tw->text.vbar, args, ONE);
+	IswSetValues(tw->text.vbar, ab.args, ab.count);
     if (tw->text.hbar)
-	IswSetValues(tw->text.hbar, args, ONE);
+	IswSetValues(tw->text.hbar, ab.args, ab.count);
     return False;
 }
 

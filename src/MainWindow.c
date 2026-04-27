@@ -36,6 +36,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/MainWindowP.h>
 #include <ISW/MenuBarP.h>
 #include <ISW/StatusBar.h>
+#include <ISW/IswArgMacros.h>
 
 #define superclass (&compositeClassRec)
 
@@ -198,14 +199,13 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     MainWindowWidget mw = (MainWindowWidget) new;
-    Arg mbar_args[2];
-    Cardinal n = 0;
+    IswArgBuilder ab = IswArgBuilderInit();
 
     (void)request; (void)args; (void)num_args;
 
-    IswSetArg(mbar_args[n], IswNborderWidth, 0); n++;
+    IswArgBorderWidth(&ab, 0);
     mw->main_window.menubar = IswCreateManagedWidget(
-        "menubar", menuBarWidgetClass, new, mbar_args, n);
+        "menubar", menuBarWidgetClass, new, ab.args, ab.count);
     mw->main_window.statusbar = NULL;
 }
 

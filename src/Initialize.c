@@ -89,6 +89,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 
 #include <stdlib.h>
+#include <ISW/IswArgMacros.h>
 
 /* some unspecified magic number of expected search levels for Xrm */
 #define SEARCH_LIST_SIZE 1000
@@ -1208,8 +1209,8 @@ IswOpenApplication(IswAppContext *app_context_return,
     xcb_connection_t *dpy;
     register int saved_argc = *argc_in_out;
     Widget root;
-    Arg args[3], *merged_args;
-    Cardinal num = 0;
+    IswArgBuilder ab = IswArgBuilderInit();
+    ArgList merged_args;
 
     IswToolkitInitialize();      /* cannot be moved into _IswAppInit */
 
@@ -1219,15 +1220,12 @@ IswOpenApplication(IswAppContext *app_context_return,
     LOCK_APP(app_con);
     /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
      * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
-    IswSetArg(args[num], IswNscreen, _IswGetDefaultScreen(dpy));
-    num++;
-    IswSetArg(args[num], IswNargc, saved_argc);
-    num++;
-    IswSetArg(args[num], IswNargv, argv_in_out);
-    num++;
+    IswArgScreen(&ab, _IswGetDefaultScreen(dpy));
+    IswArgArgc(&ab, saved_argc);
+    IswArgArgv(&ab, argv_in_out);
 
-    merged_args = IswMergeArgLists(args_in, num_args_in, args, num);
-    num += num_args_in;
+    merged_args = IswMergeArgLists(args_in, num_args_in, ab.args, ab.count);
+    Cardinal num = ab.count + num_args_in;
 
     root = IswAppCreateShell(NULL, application_class, widget_class, dpy,
                             merged_args, num);

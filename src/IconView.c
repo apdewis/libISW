@@ -20,6 +20,7 @@
 #include <ISW/FocusMgrI.h>
 #include <ISW/ISWXdnd.h>
 #include <ISW/Viewport.h>
+#include <ISW/IswArgMacros.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -1270,11 +1271,11 @@ HandleFocus(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_
 void
 IswIconViewSetItems(Widget w, String *labels, String *icon_data, int nitems)
 {
-    Arg args[3];
-    IswSetArg(args[0], IswNiconLabels, labels);
-    IswSetArg(args[1], IswNiconData, icon_data);
-    IswSetArg(args[2], IswNnumIcons, nitems);
-    IswSetValues(w, args, 3);
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgIconLabels(&ab, labels);
+    IswArgIconData(&ab, icon_data);
+    IswArgNumIcons(&ab, nitems);
+    IswSetValues(w, ab.args, ab.count);
 }
 
 int

@@ -73,6 +73,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 #include "StringDefs.h"
+#include <ISW/IswArgMacros.h>
 
 /*
  *      IswSetSensitive()
@@ -81,13 +82,13 @@ in this Software without prior written authorization from The Open Group.
 static void
 SetAncestorSensitive(register Widget widget, Boolean ancestor_sensitive)
 {
-    Arg args[1];
+    IswArgBuilder ab = IswArgBuilderInit();
 
     if (widget->core.ancestor_sensitive == ancestor_sensitive)
         return;
 
-    IswSetArg(args[0], IswNancestorSensitive, ancestor_sensitive);
-    IswSetValues(widget, args, IswNumber(args));
+    IswArgAncestorSensitive(&ab, ancestor_sensitive);
+    IswSetValues(widget, ab.args, ab.count);
 
     /* If widget's sensitive is TRUE, propagate new ancestor_sensitive to
        children's ancestor_sensitive; else do nothing as children's
@@ -107,7 +108,7 @@ SetAncestorSensitive(register Widget widget, Boolean ancestor_sensitive)
 void
 IswSetSensitive(register Widget widget, _IswBoolean sensitive)
 {
-    Arg args[1];
+    IswArgBuilder ab = IswArgBuilderInit();
 
     WIDGET_TO_APPCON(widget);
 
@@ -117,8 +118,8 @@ IswSetSensitive(register Widget widget, _IswBoolean sensitive)
         return;
     }
 
-    IswSetArg(args[0], IswNsensitive, sensitive);
-    IswSetValues(widget, args, IswNumber(args));
+    IswArgSensitive(&ab, sensitive);
+    IswSetValues(widget, ab.args, ab.count);
 
     /* If widget's ancestor_sensitive is TRUE, propagate new sensitive to
        children's ancestor_sensitive; else do nothing as children's

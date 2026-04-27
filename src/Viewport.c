@@ -56,6 +56,7 @@ SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/ViewportP.h>
+#include <ISW/IswArgMacros.h>
 
 /* Utility macro */
 #define AssignMax(x, y) ((x) = ((x) > (y) ? (x) : (y)))
@@ -166,33 +167,26 @@ CreateScrollbar(ViewportWidget w, Boolean horizontal)
     Widget clip = w->viewport.clip;
     ViewportConstraints constraints =
 	(ViewportConstraints)clip->core.constraints;
-    static Arg barArgs[] = {
-	{IswNorientation,       (IswArgVal) 0},
-	{IswNlength,            (IswArgVal) 0},
-	{IswNleft,              (IswArgVal) 0},
-	{IswNright,             (IswArgVal) 0},
-	{IswNtop,               (IswArgVal) 0},
-	{IswNbottom,            (IswArgVal) 0},
-	{IswNmappedWhenManaged, (IswArgVal) False},
-    };
+    IswArgBuilder ab = IswArgBuilderInit();
     Widget bar;
 
-    IswSetArg(barArgs[0], IswNorientation,
+    IswArgOrientation(&ab,
        horizontal ? IswOrientHorizontal : IswOrientVertical );
-    IswSetArg(barArgs[1], IswNlength,
+    IswArgLength(&ab,
 	     horizontal ? clip->core.width : clip->core.height);
-    IswSetArg(barArgs[2], IswNleft,
+    IswArgLeft(&ab,
 	     (!horizontal && w->viewport.useright) ? IswChainRight : IswChainLeft);
-    IswSetArg(barArgs[3], IswNright,
+    IswArgRight(&ab,
 	     (!horizontal && !w->viewport.useright) ? IswChainLeft : IswChainRight);
-    IswSetArg(barArgs[4], IswNtop,
+    IswArgTop(&ab,
 	     (horizontal && w->viewport.usebottom) ? IswChainBottom : IswChainTop);
-    IswSetArg(barArgs[5], IswNbottom,
+    IswArgBottom(&ab,
 	     (horizontal && !w->viewport.usebottom) ? IswChainTop : IswChainBottom);
+    IswArgMappedWhenManaged(&ab, False);
 
     bar = IswCreateWidget((horizontal ? "horizontal" : "vertical"),
 			  scrollbarWidgetClass, (Widget)w,
-			  barArgs, IswNumber(barArgs) );
+			  ab.args, ab.count );
     IswAddCallback( bar, IswNscrollProc, ScrollUpDownProc, (IswPointer)w );
     IswAddCallback( bar, IswNjumpProc, ThumbProc, (IswPointer)w );
 
@@ -215,9 +209,7 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ViewportWidget w = (ViewportWidget)new;
-    static Arg clip_args[8];
-    /* static Arg threeD_args[8]; */
-    Cardinal arg_cnt;
+    IswArgBuilder ab = IswArgBuilderInit();
     Widget h_bar, v_bar;
     Dimension clip_height, clip_width;
     Dimension pad = 0, sw = 0;
@@ -240,18 +232,17 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  * Create Clip Widget.
  */
 
-    arg_cnt = 0;
-    IswSetArg(clip_args[arg_cnt], IswNbackgroundPixmap, None); arg_cnt++;
-    IswSetArg(clip_args[arg_cnt], IswNborderWidth, 0); arg_cnt++;
-    IswSetArg(clip_args[arg_cnt], IswNleft, IswChainLeft); arg_cnt++;
-    IswSetArg(clip_args[arg_cnt], IswNright, IswChainRight); arg_cnt++;
-    IswSetArg(clip_args[arg_cnt], IswNtop, IswChainTop); arg_cnt++;
-    IswSetArg(clip_args[arg_cnt], IswNbottom, IswChainBottom); arg_cnt++;
-    IswSetArg(clip_args[arg_cnt], IswNwidth, w->core.width - 2 * sw); arg_cnt++;
-    IswSetArg(clip_args[arg_cnt], IswNheight, w->core.height - 2 * sw); arg_cnt++;
+    IswArgBackgroundPixmap(&ab, None);
+    IswArgBorderWidth(&ab, 0);
+    IswArgLeft(&ab, IswChainLeft);
+    IswArgRight(&ab, IswChainRight);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainBottom);
+    IswArgWidth(&ab, w->core.width - 2 * sw);
+    IswArgHeight(&ab, w->core.height - 2 * sw);
 
     w->viewport.clip = IswCreateManagedWidget("clip", widgetClass, new,
-					     clip_args, arg_cnt);
+					     ab.args, ab.count);
 
     /*
      * Select XCB_EVENT_MASK_BUTTON_PRESS on the clip widget so that scroll wheel events
@@ -291,10 +282,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 	  (int)(v_bar->core.height + v_bar->core.border_width + pad)) )
         clip_height -= v_bar->core.height + v_bar->core.border_width + pad;
 
-    arg_cnt = 0;
-    IswSetArg(clip_args[arg_cnt], IswNwidth, clip_width); arg_cnt++;
-    IswSetArg(clip_args[arg_cnt], IswNheight, clip_height); arg_cnt++;
-    IswSetValues(w->viewport.clip, clip_args, arg_cnt);
+    IswArgBuilderReset(&ab);
+    IswArgWidth(&ab, clip_width);
+    IswArgHeight(&ab, clip_height);
+    IswSetValues(w->viewport.clip, ab.args, ab.count);
 }
 
 /* ARGSUSED */

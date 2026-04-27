@@ -55,6 +55,7 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include "VarargsI.h"
 #include "StringDefs.h"
+#include <ISW/IswArgMacros.h>
 
 static String IswNxtGetTypedArg = "xtGetTypedArg";
 
@@ -134,7 +135,7 @@ GetTypedArg(Widget widget,
     Cardinal from_size = 0;
     XrmValue from_val, to_val;
     register Cardinal i;
-    Arg arg;
+    IswArgBuilder ab = IswArgBuilderInit();
     IswPointer value;
 
     /* note we presume that the IswResourceList to be un-compiled */
@@ -159,8 +160,8 @@ GetTypedArg(Widget widget,
     value = ALLOCATE_LOCAL(from_size);
     if (value == NULL)
         _IswAllocError(NULL);
-    IswSetArg(arg, typed_arg->name, value);
-    IswGetValues(widget, &arg, 1);
+    IswArgBuilderAdd(&ab, typed_arg->name, (IswArgVal)value);
+    IswGetValues(widget, ab.args, ab.count);
 
     from_val.size = from_size;
     from_val.addr = (IswPointer) value;

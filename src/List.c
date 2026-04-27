@@ -56,6 +56,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSB.h>
 #include <ISW/Shell.h>
+#include <ISW/IswArgMacros.h>
 #include "ISWXcbDraw.h"
 
 /* These added so widget knows whether its height, width are user selected.
@@ -1148,8 +1149,7 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
   /* Dropdown mode: clicking the collapsed widget opens a popup menu */
   if (lw->list.dropdown) {
     Position abs_x, abs_y;
-    Arg args[10];
-    Cardinal n;
+    IswArgBuilder ab = IswArgBuilderInit();
     int i;
 
     /* Destroy previous popup so it's rebuilt with current items */
@@ -1163,22 +1163,21 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
     Position below_y = abs_y + (Position)w->core.height;
 
     /* Create SimpleMenu popup — same widget class as menubar submenus */
-    n = 0;
-    IswSetArg(args[n], IswNborderWidth, 0); n++;
-    IswSetArg(args[n], IswNwidth, w->core.width); n++;
+    IswArgBorderWidth(&ab, 0);
+    IswArgWidth(&ab, w->core.width);
     lw->list.popup_shell = IswCreatePopupShell("dropdownPopup",
-        simpleMenuWidgetClass, w, args, n);
+        simpleMenuWidgetClass, w, ab.args, ab.count);
 
     /* Populate with SmeBSB entries for each list item */
     for (i = 0; i < lw->list.nitems; i++) {
         Widget entry;
-        n = 0;
-        IswSetArg(args[n], IswNlabel, lw->list.list[i]); n++;
+        IswArgBuilderReset(&ab);
+        IswArgLabel(&ab, lw->list.list[i]);
         if (lw->list.font) {
-            IswSetArg(args[n], IswNfont, lw->list.font); n++;
+            IswArgFont(&ab, lw->list.font);
         }
         entry = IswCreateManagedWidget(lw->list.list[i],
-            smeBSBObjectClass, lw->list.popup_shell, args, n);
+            smeBSBObjectClass, lw->list.popup_shell, ab.args, ab.count);
         IswAddCallback(entry, IswNcallback,
                       DropdownMenuSelect, (IswPointer)(intptr_t)i);
     }
@@ -1223,15 +1222,15 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
         if (menu_h > avail && avail > 0) {
             SimpleMenuWidget smw = (SimpleMenuWidget)lw->list.popup_shell;
             smw->simple_menu.too_tall = TRUE;
-            n = 0;
-            IswSetArg(args[n], IswNheight, (Dimension)avail); n++;
-            IswSetValues(lw->list.popup_shell, args, n);
+            IswArgBuilderReset(&ab);
+            IswArgHeight(&ab, (Dimension)avail);
+            IswSetValues(lw->list.popup_shell, ab.args, ab.count);
         }
 
-        n = 0;
-        IswSetArg(args[n], IswNx, abs_x); n++;
-        IswSetArg(args[n], IswNy, popup_y); n++;
-        IswSetValues(lw->list.popup_shell, args, n);
+        IswArgBuilderReset(&ab);
+        IswArgX(&ab, abs_x);
+        IswArgY(&ab, popup_y);
+        IswSetValues(lw->list.popup_shell, ab.args, ab.count);
     }
 
     IswPopup(lw->list.popup_shell, IswGrabNone);

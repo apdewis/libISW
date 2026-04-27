@@ -39,6 +39,7 @@ in this Software without prior written authorization from the X Consortium.
 #include "ISWXcbDraw.h"
 #include <ISW/TextP.h>
 #include <ISW/ISWImP.h>
+#include <ISW/IswArgMacros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -506,7 +507,6 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   TextWidget ctx = (TextWidget)w;
   Widget src = ctx->text.source;
   IswTextEditType edit_mode;
-  Arg args[1];
   IswTextSelectionSalt	*salt = NULL;
   IswTextSelection  *s;
 
@@ -532,8 +532,11 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
     *targetP++ = XCB_ATOM_LIST_LENGTH(d);
     *targetP++ = XCB_ATOM_CHARACTER_POSITION(d);
 
-    IswSetArg(args[0], IswNeditType,&edit_mode);
-    IswGetValues(src, args, 1);
+    {
+      IswArgBuilder ab = IswArgBuilderInit();
+      IswArgEditType(&ab, (IswArgVal)&edit_mode);
+      IswGetValues(src, ab.args, ab.count);
+    }
 
     if (edit_mode == IswtextEdit) {
       *targetP++ = XCB_ATOM_DELETE(d);

@@ -56,6 +56,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/LabelP.h>
 #include <ISW/ISWRender.h>
 #include <ISW/FocusMgrI.h>
+#include <ISW/IswArgMacros.h>
 #include "ISWXcbDraw.h"
 
 static void ClassInitialize(void);
@@ -205,8 +206,7 @@ _IswMenuButtonPopup(Widget w)
 {
   MenuButtonWidget mbw = (MenuButtonWidget) w;
   Widget menu = NULL, temp;
-  Arg arglist[2];
-  Cardinal num_args;
+  IswArgBuilder ab = IswArgBuilderInit();
   int menu_x, menu_y, menu_width, menu_height, button_height;
   Position button_x, button_y;
 
@@ -253,10 +253,9 @@ _IswMenuButtonPopup(Widget w)
   if (menu_y < 0)
     menu_y = 0;
 
-  num_args = 0;
-  IswSetArg(arglist[num_args], IswNx, menu_x); num_args++;
-  IswSetArg(arglist[num_args], IswNy, menu_y); num_args++;
-  IswSetValues(menu, arglist, num_args);
+  IswArgX(&ab, menu_x);
+  IswArgY(&ab, menu_y);
+  IswSetValues(menu, ab.args, ab.count);
 
   IswPopup(menu, IswGrabNonexclusive);
   return menu;

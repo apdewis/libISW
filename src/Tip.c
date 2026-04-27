@@ -43,6 +43,7 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
+#include <ISW/IswArgMacros.h>
 
 #include <stdlib.h>
 
@@ -641,14 +642,15 @@ TipTimeoutCallback(IswPointer closure, IswIntervalId *id)
     TimeoutInfo *cinfo = (TimeoutInfo *)closure;
     IswTipInfo *info = cinfo->info;
     WidgetInfo *winfo = cinfo->winfo;
-    Arg args[2];
-
     info->tip->tip.label = winfo->label;
     info->tip->tip.encoding = 0;
-    IswSetArg(args[0], IswNencoding, &info->tip->tip.encoding);
     info->tip->tip.international = False;
-    IswSetArg(args[1], IswNinternational, &info->tip->tip.international);
-    IswGetValues(winfo->widget, args, 2);
+    {
+	IswArgBuilder ab = IswArgBuilderInit();
+	IswArgEncoding(&ab, (IswArgVal)&info->tip->tip.encoding);
+	IswArgInternational(&ab, (IswArgVal)&info->tip->tip.international);
+	IswGetValues(winfo->widget, ab.args, ab.count);
+    }
 
     TipLayout(info);
     TipPosition(info);

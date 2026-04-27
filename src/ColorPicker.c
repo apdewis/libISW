@@ -18,6 +18,7 @@
 #include <ISW/Slider.h>
 #include <ISW/Label.h>
 #include <ISW/Simple.h>
+#include <ISW/IswArgMacros.h>
 
 #include <stdio.h>
 
@@ -164,8 +165,7 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ColorPickerWidget cpw = (ColorPickerWidget) new;
-    Arg a[10];
-    Cardinal n;
+    IswArgBuilder ab = IswArgBuilderInit();
     Dimension slider_w = (150);
     Dimension slider_h = (30);
     Dimension swatch_sz = (60);
@@ -181,89 +181,88 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     if (cpw->colorPicker.blue > 255) cpw->colorPicker.blue = 255;
 
     /* R label */
-    n = 0;
-    IswSetArg(a[n], IswNlabel, "R"); n++;
-    IswSetArg(a[n], IswNborderWidth, 0); n++;
-    IswSetArg(a[n], IswNwidth, label_w); n++;
-    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    IswArgLabel(&ab, "R");
+    IswArgBorderWidth(&ab, 0);
+    IswArgWidth(&ab, label_w);
+    IswArgLeft(&ab, IswChainLeft);
     cpw->colorPicker.redLabel = IswCreateManagedWidget(
-        "redLabel", labelWidgetClass, new, a, n);
+        "redLabel", labelWidgetClass, new, ab.args, ab.count);
 
     /* R slider */
-    n = 0;
-    IswSetArg(a[n], IswNminimumValue, 0); n++;
-    IswSetArg(a[n], IswNmaximumValue, 255); n++;
-    IswSetArg(a[n], IswNsliderValue, cpw->colorPicker.red); n++;
-    IswSetArg(a[n], IswNshowValue, False); n++;
-    IswSetArg(a[n], IswNorientation, IswOrientHorizontal); n++;
-    IswSetArg(a[n], IswNwidth, slider_w); n++;
-    IswSetArg(a[n], IswNheight, slider_h); n++;
-    IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.redLabel); n++;
+    IswArgBuilderReset(&ab);
+    IswArgMinimumValue(&ab, 0);
+    IswArgMaximumValue(&ab, 255);
+    IswArgSliderValue(&ab, cpw->colorPicker.red);
+    IswArgShowValue(&ab, False);
+    IswArgOrientation(&ab, IswOrientHorizontal);
+    IswArgWidth(&ab, slider_w);
+    IswArgHeight(&ab, slider_h);
+    IswArgFromHoriz(&ab, cpw->colorPicker.redLabel);
     cpw->colorPicker.redSlider = IswCreateManagedWidget(
-        "redSlider", sliderWidgetClass, new, a, n);
+        "redSlider", sliderWidgetClass, new, ab.args, ab.count);
     IswAddCallback(cpw->colorPicker.redSlider, IswNvalueChanged,
                   SliderChanged, (IswPointer)cpw);
 
     /* G label */
-    n = 0;
-    IswSetArg(a[n], IswNlabel, "G"); n++;
-    IswSetArg(a[n], IswNborderWidth, 0); n++;
-    IswSetArg(a[n], IswNwidth, label_w); n++;
-    IswSetArg(a[n], IswNfromVert, cpw->colorPicker.redLabel); n++;
-    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "G");
+    IswArgBorderWidth(&ab, 0);
+    IswArgWidth(&ab, label_w);
+    IswArgFromVert(&ab, cpw->colorPicker.redLabel);
+    IswArgLeft(&ab, IswChainLeft);
     cpw->colorPicker.greenLabel = IswCreateManagedWidget(
-        "greenLabel", labelWidgetClass, new, a, n);
+        "greenLabel", labelWidgetClass, new, ab.args, ab.count);
 
     /* G slider */
-    n = 0;
-    IswSetArg(a[n], IswNminimumValue, 0); n++;
-    IswSetArg(a[n], IswNmaximumValue, 255); n++;
-    IswSetArg(a[n], IswNsliderValue, cpw->colorPicker.green); n++;
-    IswSetArg(a[n], IswNshowValue, False); n++;
-    IswSetArg(a[n], IswNorientation, IswOrientHorizontal); n++;
-    IswSetArg(a[n], IswNwidth, slider_w); n++;
-    IswSetArg(a[n], IswNheight, slider_h); n++;
-    IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.greenLabel); n++;
-    IswSetArg(a[n], IswNfromVert, cpw->colorPicker.redSlider); n++;
+    IswArgBuilderReset(&ab);
+    IswArgMinimumValue(&ab, 0);
+    IswArgMaximumValue(&ab, 255);
+    IswArgSliderValue(&ab, cpw->colorPicker.green);
+    IswArgShowValue(&ab, False);
+    IswArgOrientation(&ab, IswOrientHorizontal);
+    IswArgWidth(&ab, slider_w);
+    IswArgHeight(&ab, slider_h);
+    IswArgFromHoriz(&ab, cpw->colorPicker.greenLabel);
+    IswArgFromVert(&ab, cpw->colorPicker.redSlider);
     cpw->colorPicker.greenSlider = IswCreateManagedWidget(
-        "greenSlider", sliderWidgetClass, new, a, n);
+        "greenSlider", sliderWidgetClass, new, ab.args, ab.count);
     IswAddCallback(cpw->colorPicker.greenSlider, IswNvalueChanged,
                   SliderChanged, (IswPointer)cpw);
 
     /* B label */
-    n = 0;
-    IswSetArg(a[n], IswNlabel, "B"); n++;
-    IswSetArg(a[n], IswNborderWidth, 0); n++;
-    IswSetArg(a[n], IswNwidth, label_w); n++;
-    IswSetArg(a[n], IswNfromVert, cpw->colorPicker.greenLabel); n++;
-    IswSetArg(a[n], IswNleft, IswChainLeft); n++;
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "B");
+    IswArgBorderWidth(&ab, 0);
+    IswArgWidth(&ab, label_w);
+    IswArgFromVert(&ab, cpw->colorPicker.greenLabel);
+    IswArgLeft(&ab, IswChainLeft);
     cpw->colorPicker.blueLabel = IswCreateManagedWidget(
-        "blueLabel", labelWidgetClass, new, a, n);
+        "blueLabel", labelWidgetClass, new, ab.args, ab.count);
 
     /* B slider */
-    n = 0;
-    IswSetArg(a[n], IswNminimumValue, 0); n++;
-    IswSetArg(a[n], IswNmaximumValue, 255); n++;
-    IswSetArg(a[n], IswNsliderValue, cpw->colorPicker.blue); n++;
-    IswSetArg(a[n], IswNshowValue, False); n++;
-    IswSetArg(a[n], IswNorientation, IswOrientHorizontal); n++;
-    IswSetArg(a[n], IswNwidth, slider_w); n++;
-    IswSetArg(a[n], IswNheight, slider_h); n++;
-    IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.blueLabel); n++;
-    IswSetArg(a[n], IswNfromVert, cpw->colorPicker.greenSlider); n++;
+    IswArgBuilderReset(&ab);
+    IswArgMinimumValue(&ab, 0);
+    IswArgMaximumValue(&ab, 255);
+    IswArgSliderValue(&ab, cpw->colorPicker.blue);
+    IswArgShowValue(&ab, False);
+    IswArgOrientation(&ab, IswOrientHorizontal);
+    IswArgWidth(&ab, slider_w);
+    IswArgHeight(&ab, slider_h);
+    IswArgFromHoriz(&ab, cpw->colorPicker.blueLabel);
+    IswArgFromVert(&ab, cpw->colorPicker.greenSlider);
     cpw->colorPicker.blueSlider = IswCreateManagedWidget(
-        "blueSlider", sliderWidgetClass, new, a, n);
+        "blueSlider", sliderWidgetClass, new, ab.args, ab.count);
     IswAddCallback(cpw->colorPicker.blueSlider, IswNvalueChanged,
                   SliderChanged, (IswPointer)cpw);
 
     /* Color swatch preview */
-    n = 0;
-    IswSetArg(a[n], IswNwidth, swatch_sz); n++;
-    IswSetArg(a[n], IswNheight, swatch_sz); n++;
-    IswSetArg(a[n], IswNborderWidth, 1); n++;
-    IswSetArg(a[n], IswNfromHoriz, cpw->colorPicker.redSlider); n++;
+    IswArgBuilderReset(&ab);
+    IswArgWidth(&ab, swatch_sz);
+    IswArgHeight(&ab, swatch_sz);
+    IswArgBorderWidth(&ab, 1);
+    IswArgFromHoriz(&ab, cpw->colorPicker.redSlider);
     cpw->colorPicker.swatchW = IswCreateManagedWidget(
-        "swatch", simpleWidgetClass, new, a, n);
+        "swatch", simpleWidgetClass, new, ab.args, ab.count);
     IswAddEventHandler(cpw->colorPicker.swatchW, XCB_EVENT_MASK_EXPOSURE, False,
                       SwatchExpose, (IswPointer)cpw);
 }
@@ -311,9 +310,9 @@ IswColorPickerGetColor(Widget w, int *r, int *g, int *b)
 void
 IswColorPickerSetColor(Widget w, int r, int g, int b)
 {
-    Arg args[3];
-    IswSetArg(args[0], IswNcolorRed, r);
-    IswSetArg(args[1], IswNcolorGreen, g);
-    IswSetArg(args[2], IswNcolorBlue, b);
-    IswSetValues(w, args, 3);
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgColorRed(&ab, r);
+    IswArgColorGreen(&ab, g);
+    IswArgColorBlue(&ab, b);
+    IswSetValues(w, ab.args, ab.count);
 }

@@ -17,6 +17,7 @@
 #include <ISW/ISWRender.h>
 #include <ISW/ListViewP.h>
 #include <ISW/Viewport.h>
+#include <ISW/IswArgMacros.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -1363,23 +1364,23 @@ IswListViewSetData(Widget w, String *data, int nrows, int ncols)
 {
     ListViewWidget lv = (ListViewWidget) w;
     /* data is a flat array: data[row * ncols + col] */
-    Arg args[3];
-    IswSetArg(args[0], IswNlistViewData, data);
-    IswSetArg(args[1], IswNnumRows, nrows);
-    IswSetArg(args[2], IswNnumColumns, ncols);
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgListViewData(&ab, data);
+    IswArgNumRows(&ab, nrows);
+    IswArgNumColumns(&ab, ncols);
     /* Update ncols to match data layout (columns_res drives column headers,
      * ncols in data can differ if user hasn't set columns yet) */
     lv->listView.ncols = ncols;
-    IswSetValues(w, args, 3);
+    IswSetValues(w, ab.args, ab.count);
 }
 
 void
 IswListViewSetColumns(Widget w, IswListViewColumn *cols, int ncols)
 {
-    Arg args[2];
-    IswSetArg(args[0], IswNlistViewColumns, cols);
-    IswSetArg(args[1], IswNnumColumns, ncols);
-    IswSetValues(w, args, 2);
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgListViewColumns(&ab, cols);
+    IswArgNumColumns(&ab, ncols);
+    IswSetValues(w, ab.args, ab.count);
 }
 
 int

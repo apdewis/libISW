@@ -59,6 +59,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Command.h>
 #include <ISW/Form.h>
 #include <ISW/Toggle.h>
+#include <ISW/IswArgMacros.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <X11/Xos.h>		/* for O_RDONLY */
@@ -180,10 +181,9 @@ _IswTextInsertFile(Widget w, xcb_generic_event_t *event, String *params, Cardina
   TextWidget ctx = (TextWidget)w;
   char * ptr;
   IswTextEditType edit_mode;
-  Arg args[1];
-
-  IswSetArg(args[0], IswNeditType,&edit_mode);
-  IswGetValues(ctx->text.source, args, ONE);
+  IswArgBuilder ab = IswArgBuilderInit();
+  IswArgEditType(&ab, (IswArgVal)&edit_mode);
+  IswGetValues(ctx->text.source, ab.args, ab.count);
 
   if (edit_mode != IswtextEdit) {
     /* XCB equivalent of XBell */
@@ -321,47 +321,45 @@ InsertFileNamed(Widget tw, char *str)
 static void
 AddInsertFileChildren(Widget form, String ptr, Widget tw)
 {
-  Arg args[10];
-  Cardinal num_args;
   Widget label, text, cancel, insert;
   IswTranslations trans;
+  IswArgBuilder ab = IswArgBuilderInit();
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNlabel, INSERT_FILE);num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNresizable, TRUE ); num_args++;
-  IswSetArg(args[num_args], IswNborderWidth, 0 ); num_args++;
+  IswArgLabel(&ab, INSERT_FILE);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
+  IswArgResizable(&ab, TRUE);
+  IswArgBorderWidth(&ab, 0);
   label = IswCreateManagedWidget (LABEL_NAME, labelWidgetClass, form,
-				 args, num_args);
+				 ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNfromVert, label); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainRight); num_args++;
-  IswSetArg(args[num_args], IswNeditType, IswtextEdit); num_args++;
-  IswSetArg(args[num_args], IswNresizable, TRUE); num_args++;
-  IswSetArg(args[num_args], IswNresize, IswtextResizeWidth); num_args++;
-  IswSetArg(args[num_args], IswNstring, ptr); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgFromVert(&ab, label);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainRight);
+  IswArgEditType(&ab, IswtextEdit);
+  IswArgResizable(&ab, TRUE);
+  IswArgResize(&ab, IswtextResizeWidth);
+  IswArgString(&ab, ptr);
   text = IswCreateManagedWidget(TEXT_NAME, textWidgetClass, form,
-				args, num_args);
+				ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNlabel, "Insert File"); num_args++;
-  IswSetArg(args[num_args], IswNfromVert, text); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgLabel(&ab, "Insert File");
+  IswArgFromVert(&ab, text);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
   insert = IswCreateManagedWidget("insert", commandWidgetClass, form,
-				 args, num_args);
+				 ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNlabel, "Cancel"); num_args++;
-  IswSetArg(args[num_args], IswNfromVert, text); num_args++;
-  IswSetArg(args[num_args], IswNfromHoriz, insert); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgLabel(&ab, "Cancel");
+  IswArgFromVert(&ab, text);
+  IswArgFromHoriz(&ab, insert);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
   cancel = IswCreateManagedWidget(DISMISS_NAME, commandWidgetClass, form,
-				 args, num_args);
+				 ab.args, ab.count);
 
   IswAddCallback(cancel, IswNcallback, PopdownFileInsert, (IswPointer) tw);
   IswAddCallback(insert, IswNcallback, DoInsert, (IswPointer) tw);
@@ -491,7 +489,6 @@ _IswTextSearch(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
   IswTextScanDirection dir;
   char * ptr, buf[BUFSIZ];
   IswTextEditType edit_mode;
-  Arg args[1];
 
 #ifdef notdef
   if (ctx->text.source->Search == NULL) {
@@ -541,8 +538,11 @@ _IswTextSearch(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
     IswVaSetValues(ctx->text.search->search_text, IswNstring, ptr, NULL);
   }
 
-  IswSetArg(args[0], IswNeditType,&edit_mode);
-  IswGetValues(ctx->text.source, args, ONE);
+  {
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgEditType(&ab, (IswArgVal)&edit_mode);
+    IswGetValues(ctx->text.source, ab.args, ab.count);
+  }
 
   InitializeSearchWidget(ctx->text.search, dir, (edit_mode == IswtextEdit));
 
@@ -592,55 +592,51 @@ InitializeSearchWidget(struct SearchAndReplace *search, IswTextScanDirection dir
 static void
 AddSearchChildren(Widget form, String ptr, Widget tw)
 {
-  Arg args[10];
-  Cardinal num_args;
   Widget cancel, search_button, s_label, s_text, r_text;
   IswTranslations trans;
   struct SearchAndReplace * search = ((TextWidget) tw)->text.search;
+  IswArgBuilder ab = IswArgBuilderInit();
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNresizable, TRUE ); num_args++;
-  IswSetArg(args[num_args], IswNborderWidth, 0 ); num_args++;
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
+  IswArgResizable(&ab, TRUE);
+  IswArgBorderWidth(&ab, 0);
   search->label1 = IswCreateManagedWidget("label1", labelWidgetClass, form,
-					 args, num_args);
+					 ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNfromVert, search->label1); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNresizable, TRUE ); num_args++;
-  IswSetArg(args[num_args], IswNborderWidth, 0 ); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgFromVert(&ab, search->label1);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
+  IswArgResizable(&ab, TRUE);
+  IswArgBorderWidth(&ab, 0);
   search->label2 = IswCreateManagedWidget("label2", labelWidgetClass, form,
-					 args, num_args);
+					 ab.args, ab.count);
 
 /*
  * We need to add R_OFFSET to the radio_data, because the value zero (0)
  * has special meaning.
  */
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNlabel, "Backward"); num_args++;
-  IswSetArg(args[num_args], IswNfromVert, search->label2); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNradioData, (IswPointer) IswsdLeft + R_OFFSET);
-  num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgLabel(&ab, "Backward");
+  IswArgFromVert(&ab, search->label2);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
+  IswArgRadioData(&ab, (IswPointer) IswsdLeft + R_OFFSET);
   search->left_toggle = IswCreateManagedWidget("backwards", toggleWidgetClass,
-					      form, args, num_args);
+					      form, ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNlabel, "Forward"); num_args++;
-  IswSetArg(args[num_args], IswNfromVert, search->label2); num_args++;
-  IswSetArg(args[num_args], IswNfromHoriz, search->left_toggle); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNradioGroup, search->left_toggle); num_args++;
-  IswSetArg(args[num_args], IswNradioData, (IswPointer) IswsdRight + R_OFFSET);
-  num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgLabel(&ab, "Forward");
+  IswArgFromVert(&ab, search->label2);
+  IswArgFromHoriz(&ab, search->left_toggle);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
+  IswArgRadioGroup(&ab, search->left_toggle);
+  IswArgRadioData(&ab, (IswPointer) IswsdRight + R_OFFSET);
   search->right_toggle = IswCreateManagedWidget("forwards", toggleWidgetClass,
-					       form, args, num_args);
+					       form, ab.args, ab.count);
 
   {
     IswTranslations radio_translations;
@@ -650,84 +646,84 @@ AddSearchChildren(Widget form, String ptr, Widget tw)
     IswOverrideTranslations(search->right_toggle, radio_translations);
   }
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNfromVert, search->left_toggle); num_args++;
-  IswSetArg(args[num_args], IswNlabel, "Search for:  ");num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNborderWidth, 0 ); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgFromVert(&ab, search->left_toggle);
+  IswArgLabel(&ab, "Search for:  ");
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
+  IswArgBorderWidth(&ab, 0);
   s_label = IswCreateManagedWidget("searchLabel", labelWidgetClass, form,
-				  args, num_args);
+				  ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNfromVert, search->left_toggle); num_args++;
-  IswSetArg(args[num_args], IswNfromHoriz, s_label); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainRight); num_args++;
-  IswSetArg(args[num_args], IswNeditType, IswtextEdit); num_args++;
-  IswSetArg(args[num_args], IswNresizable, TRUE); num_args++;
-  IswSetArg(args[num_args], IswNresize, IswtextResizeWidth); num_args++;
-  IswSetArg(args[num_args], IswNstring, ptr); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgFromVert(&ab, search->left_toggle);
+  IswArgFromHoriz(&ab, s_label);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainRight);
+  IswArgEditType(&ab, IswtextEdit);
+  IswArgResizable(&ab, TRUE);
+  IswArgResize(&ab, IswtextResizeWidth);
+  IswArgString(&ab, ptr);
   s_text = IswCreateManagedWidget("searchText", textWidgetClass, form,
-				 args, num_args);
+				 ab.args, ab.count);
   search->search_text = s_text;
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNfromVert, s_text); num_args++;
-  IswSetArg(args[num_args], IswNlabel, "Replace with:");num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNborderWidth, 0 ); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgFromVert(&ab, s_text);
+  IswArgLabel(&ab, "Replace with:");
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
+  IswArgBorderWidth(&ab, 0);
   search->rep_label = IswCreateManagedWidget("replaceLabel", labelWidgetClass,
-					    form, args, num_args);
+					    form, ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNfromHoriz, s_label); num_args++;
-  IswSetArg(args[num_args], IswNfromVert, s_text); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainRight); num_args++;
-  IswSetArg(args[num_args], IswNeditType, IswtextEdit); num_args++;
-  IswSetArg(args[num_args], IswNresizable, TRUE); num_args++;
-  IswSetArg(args[num_args], IswNresize, IswtextResizeWidth); num_args++;
-  IswSetArg(args[num_args], IswNstring, ""); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgFromHoriz(&ab, s_label);
+  IswArgFromVert(&ab, s_text);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainRight);
+  IswArgEditType(&ab, IswtextEdit);
+  IswArgResizable(&ab, TRUE);
+  IswArgResize(&ab, IswtextResizeWidth);
+  IswArgString(&ab, "");
   r_text = IswCreateManagedWidget("replaceText", textWidgetClass,
-				 form, args, num_args);
+				 form, ab.args, ab.count);
   search->rep_text = r_text;
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNlabel, "Search"); num_args++;
-  IswSetArg(args[num_args], IswNfromVert, r_text); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgLabel(&ab, "Search");
+  IswArgFromVert(&ab, r_text);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
   search_button = IswCreateManagedWidget("search", commandWidgetClass, form,
-					args, num_args);
+					ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNlabel, "Replace"); num_args++;
-  IswSetArg(args[num_args], IswNfromVert, r_text); num_args++;
-  IswSetArg(args[num_args], IswNfromHoriz, search_button); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgLabel(&ab, "Replace");
+  IswArgFromVert(&ab, r_text);
+  IswArgFromHoriz(&ab, search_button);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
   search->rep_one = IswCreateManagedWidget("replaceOne", commandWidgetClass,
-					  form, args, num_args);
+					  form, ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNlabel, "Replace All"); num_args++;
-  IswSetArg(args[num_args], IswNfromVert, r_text); num_args++;
-  IswSetArg(args[num_args], IswNfromHoriz, search->rep_one); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgLabel(&ab, "Replace All");
+  IswArgFromVert(&ab, r_text);
+  IswArgFromHoriz(&ab, search->rep_one);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
   search->rep_all = IswCreateManagedWidget("replaceAll", commandWidgetClass,
-					  form, args, num_args);
+					  form, ab.args, ab.count);
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNlabel, "Cancel"); num_args++;
-  IswSetArg(args[num_args], IswNfromVert, r_text); num_args++;
-  IswSetArg(args[num_args], IswNfromHoriz, search->rep_all); num_args++;
-  IswSetArg(args[num_args], IswNleft, IswChainLeft); num_args++;
-  IswSetArg(args[num_args], IswNright, IswChainLeft); num_args++;
+  IswArgBuilderReset(&ab);
+  IswArgLabel(&ab, "Cancel");
+  IswArgFromVert(&ab, r_text);
+  IswArgFromHoriz(&ab, search->rep_all);
+  IswArgLeft(&ab, IswChainLeft);
+  IswArgRight(&ab, IswChainLeft);
   cancel = IswCreateManagedWidget(DISMISS_NAME, commandWidgetClass, form,
-				 args, num_args);
+				 ab.args, ab.count);
 
   IswAddCallback(search_button, IswNcallback, SearchButton, (IswPointer) search);
   IswAddCallback(search->rep_one, IswNcallback, DoReplaceOne, (IswPointer) search);
@@ -740,12 +736,12 @@ AddSearchChildren(Widget form, String ptr, Widget tw)
 
   {
     Pixel color;
-    num_args = 0;
-    IswSetArg(args[num_args], IswNbackground, &color); num_args++;
-    IswGetValues(search->rep_text, args, num_args);
-    num_args = 0;
-    IswSetArg(args[num_args], IswNborderColor, color); num_args++;
-    IswSetValues(search->rep_text, args, num_args);
+    IswArgBuilderReset(&ab);
+    IswArgBackground(&ab, (IswArgVal)&color);
+    IswGetValues(search->rep_text, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgBorderColor(&ab, color);
+    IswSetValues(search->rep_text, ab.args, ab.count);
     IswSetKeyboardFocus(form, search->search_text);
   }
 
@@ -1052,8 +1048,8 @@ _IswTextSetField(Widget w, xcb_generic_event_t *event, String *params, Cardinal 
 static void
 _SetField(Widget new, Widget old)
 {
-  Arg args[2];
   Pixel new_border, old_border, old_bg;
+  IswArgBuilder ab = IswArgBuilderInit();
 
   if (!IswIsSensitive(new)) {
     xcb_bell(IswDisplay(old), 0);	/* Don't set field to an inactive Widget. */
@@ -1062,12 +1058,13 @@ _SetField(Widget new, Widget old)
 
   IswSetKeyboardFocus(IswParent(new), new);
 
-  IswSetArg(args[0], IswNborderColor, &old_border);
-  IswSetArg(args[1], IswNbackground, &old_bg);
-  IswGetValues(new, args, TWO);
+  IswArgBorderColor(&ab, (IswArgVal)&old_border);
+  IswArgBackground(&ab, (IswArgVal)&old_bg);
+  IswGetValues(new, ab.args, ab.count);
 
-  IswSetArg(args[0], IswNborderColor, &new_border);
-  IswGetValues(old, args, ONE);
+  IswArgBuilderReset(&ab);
+  IswArgBorderColor(&ab, (IswArgVal)&new_border);
+  IswGetValues(old, ab.args, ab.count);
 
   if (old_border != old_bg)	/* Colors are already correct, return. */
       return;
@@ -1112,10 +1109,10 @@ SetResourceByName(Widget shell, char *name, char *res_name, IswArgVal value)
 static void
 SetResource(Widget w, char *res_name, IswArgVal value)
 {
-  Arg args[1];
+  IswArgBuilder ab = IswArgBuilderInit();
 
-  IswSetArg(args[0], res_name, value);
-  IswSetValues( w, args, ONE );
+  IswArgBuilderAdd(&ab, res_name, value);
+  IswSetValues( w, ab.args, ab.count );
 }
 
 /*	Function Name: GetString{Raw}
@@ -1131,10 +1128,9 @@ static String
 GetString(Widget text)
 {
   String string;
-  Arg args[1];
-
-  IswSetArg( args[0], IswNstring, &string );
-  IswGetValues( text, args, ONE );
+  IswArgBuilder ab = IswArgBuilderInit();
+  IswArgString(&ab, (IswArgVal)&string);
+  IswGetValues(text, ab.args, ab.count);
   return(string);
 }
 
@@ -1162,8 +1158,6 @@ GetStringRaw(Widget tw)
 static void
 CenterWidgetOnPoint(Widget w, xcb_generic_event_t *event)
 {
-  Arg args[3];
-  Cardinal num_args;
   Dimension width, height, b_width;
   Position x = 0, y = 0, max_x, max_y;
 
@@ -1191,11 +1185,13 @@ CenterWidgetOnPoint(Widget w, xcb_generic_event_t *event)
     }
   }
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNwidth, &width); num_args++;
-  IswSetArg(args[num_args], IswNheight, &height); num_args++;
-  IswSetArg(args[num_args], IswNborderWidth, &b_width); num_args++;
-  IswGetValues(w, args, num_args);
+  {
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgWidth(&ab, (IswArgVal)&width);
+    IswArgHeight(&ab, (IswArgVal)&height);
+    IswArgBorderWidth(&ab, (IswArgVal)&b_width);
+    IswGetValues(w, ab.args, ab.count);
+  }
 
   width += 2 * b_width;
   height += 2 * b_width;
@@ -1208,10 +1204,12 @@ CenterWidgetOnPoint(Widget w, xcb_generic_event_t *event)
   if (y < 0) y = 0;
   if ( y > (max_y = (Position) (IswScreen(w)->height_in_pixels - height)) ) y = max_y;
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNx, x); num_args++;
-  IswSetArg(args[num_args], IswNy, y); num_args++;
-  IswSetValues(w, args, num_args);
+  {
+    IswArgBuilder ab = IswArgBuilderInit();
+    IswArgX(&ab, x);
+    IswArgY(&ab, y);
+    IswSetValues(w, ab.args, ab.count);
+  }
 }
 
 /*	Function Name: CreateDialog
@@ -1236,16 +1234,14 @@ CreateDialog(Widget parent, String ptr, String name,
              void (*func)(Widget, String, Widget))
 {
   Widget popup, form;
-  Arg args[5];
-  Cardinal num_args;
+  IswArgBuilder ab = IswArgBuilderInit();
 
-  num_args = 0;
-  IswSetArg(args[num_args], IswNiconName, name); num_args++;
-  IswSetArg(args[num_args], IswNgeometry, NULL); num_args++;
-  IswSetArg(args[num_args], IswNallowShellResize, TRUE); num_args++;
-  IswSetArg(args[num_args], IswNtransientFor, GetShell(parent)); num_args++;
+  IswArgIconName(&ab, name);
+  IswArgGeometry(&ab, NULL);
+  IswArgAllowShellResize(&ab, TRUE);
+  IswArgTransientFor(&ab, GetShell(parent));
   popup = IswCreatePopupShell(name, transientShellWidgetClass,
-			     parent, args, num_args);
+			     parent, ab.args, ab.count);
 
   form = IswCreateManagedWidget(FORM_NAME, formWidgetClass, popup,
 			       (ArgList)NULL, ZERO);

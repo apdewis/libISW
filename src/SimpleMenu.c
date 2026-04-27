@@ -50,6 +50,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/FocusMgrI.h>
 #include <ISW/SmeLine.h>
 #include <ISW/Cardinals.h>
+#include <ISW/IswArgMacros.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -668,10 +669,10 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	else if (smw_old->simple_menu.label_string == NULL)    /* Create. */
 	    CreateLabel(new);
 	else {                                                 /* Change. */
-	    Arg arglist[1];
+	    IswArgBuilder ab = IswArgBuilderInit();
 
-	    IswSetArg(arglist[0], IswNlabel, smw_new->simple_menu.label_string);
-	    IswSetValues((Widget) smw_new->simple_menu.label, arglist, ONE);
+	    IswArgLabel(&ab, smw_new->simple_menu.label_string);
+	    IswSetValues((Widget) smw_new->simple_menu.label, ab.args, ab.count);
 	}
     }
 
@@ -1367,7 +1368,7 @@ CreateLabel(Widget w)
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     Widget * child, * next_child;
     int i;
-    Arg args[2];
+    IswArgBuilder ab = IswArgBuilderInit();
 
     if ( (smw->simple_menu.label_string == NULL) ||
 	 (smw->simple_menu.label != NULL) ) {
@@ -1380,12 +1381,12 @@ CreateLabel(Widget w)
 	return;
     }
 
-    IswSetArg(args[0], IswNlabel, smw->simple_menu.label_string);
-    IswSetArg(args[1], IswNjustify, IswJustifyCenter);
+    IswArgLabel(&ab, smw->simple_menu.label_string);
+    IswArgJustify(&ab, IswJustifyCenter);
     smw->simple_menu.label = (SmeObject)
 	                      IswCreateManagedWidget("menuLabel",
 					    smw->simple_menu.label_class, w,
-					    args, TWO);
+					    ab.args, ab.count);
 
     next_child = NULL;
     for (child = smw->composite.children + smw->composite.num_children,
@@ -1595,7 +1596,7 @@ static void
 MoveMenu(Widget w, Position x, Position y)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
-    Arg arglist[2];
+    IswArgBuilder ab = IswArgBuilderInit();
 
     if (smw->simple_menu.menu_on_screen) {
 	int width = w->core.width + 2 * w->core.border_width;
@@ -1618,9 +1619,9 @@ MoveMenu(Widget w, Position x, Position y)
 	    y = 0;
     }
 
-    IswSetArg(arglist[0], IswNx, x);
-    IswSetArg(arglist[1], IswNy, y);
-    IswSetValues(w, arglist, TWO);
+    IswArgX(&ab, x);
+    IswArgY(&ab, y);
+    IswSetValues(w, ab.args, ab.count);
 }
 
 /*	Function Name: ChangeCursorOnGrab
@@ -1666,12 +1667,12 @@ MakeSetValuesRequest(Widget w, Dimension width, Dimension height)
 
     if ( !smw->simple_menu.recursive_set_values ) {
 	if ( (smw->core.width != width) || (smw->core.height != height) ) {
-	    Arg arglist[2];
+	    IswArgBuilder ab = IswArgBuilderInit();
 
 	    smw->simple_menu.recursive_set_values = TRUE;
-	    IswSetArg(arglist[0], IswNwidth, width);
-	    IswSetArg(arglist[1], IswNheight, height);
-	    IswSetValues(w, arglist, TWO);
+	    IswArgWidth(&ab, width);
+	    IswArgHeight(&ab, height);
+	    IswSetValues(w, ab.args, ab.count);
 	}
 	else if (IswIsRealized( (Widget) smw))
 	    Redisplay((Widget) smw, NULL, 0);
@@ -1945,7 +1946,7 @@ PopupSubMenu(SimpleMenuWidget smw)
     SmeBSBObject entry = (SmeBSBObject)smw->simple_menu.entry_set;
     Position menu_x, menu_y;
     Bool popleft;
-    Arg args[2];
+    IswArgBuilder ab = IswArgBuilderInit();
 
     if (entry->sme_bsb.menu_name == NULL)
 	return;
@@ -1991,9 +1992,9 @@ PopupSubMenu(SimpleMenuWidget smw)
     if (menu_y < 0)
 	menu_y = 0;
 
-    IswSetArg(args[0], IswNx, menu_x);
-    IswSetArg(args[1], IswNy, menu_y);
-    IswSetValues(menu, args, TWO);
+    IswArgX(&ab, menu_x);
+    IswArgY(&ab, menu_y);
+    IswSetValues(menu, ab.args, ab.count);
 
     if (popleft)
 	((SimpleMenuWidget)menu)->simple_menu.state |= SMW_POPLEFT;

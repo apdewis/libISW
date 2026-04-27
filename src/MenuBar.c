@@ -43,6 +43,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "ISWXcbDraw.h"
 
 #include <ISW/Command.h>
+#include <ISW/IswArgMacros.h>
 
 #define superclass (&boxClassRec)
 
@@ -229,16 +230,15 @@ InsertChild(Widget child)
 
     /* If the child is a MenuButton, style it for menubar use */
     if (IswIsSubclass(child, menuButtonWidgetClass)) {
-        Arg args[6];
-        Cardinal n = 0;
+        IswArgBuilder ab = IswArgBuilderInit();
         static IswTranslations parsed = NULL;
 
         /* Flat appearance: no border, no 3D shadow, no highlight frame */
-        IswSetArg(args[n], IswNborderWidth, 0); n++;
-        IswSetArg(args[n], IswNcornerRadius, 0); n++;
-        IswSetArg(args[n], IswNinternalWidth, 6); n++;
-        IswSetArg(args[n], IswNinternalHeight, 2); n++;
-        IswSetValues(child, args, n);
+        IswArgBorderWidth(&ab, 0);
+        IswArgCornerRadius(&ab, 0);
+        IswArgInternalWidth(&ab, 6);
+        IswArgInternalHeight(&ab, 2);
+        IswSetValues(child, ab.args, ab.count);
 
         if (parsed == NULL)
             parsed = IswParseTranslationTable(menuBarChildTranslations);
@@ -377,8 +377,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     Widget menu;
     int menu_x, menu_y, menu_width, menu_height, button_height;
     Position button_x, button_y;
-    Arg arglist[2];
-    Cardinal num_args;
+    IswArgBuilder ab = IswArgBuilderInit();
     static IswTranslations menu_translations = NULL;
 
     menu = FindMenuForButton(button);
@@ -386,11 +385,8 @@ OpenMenu(MenuBarWidget mbw, Widget button)
         return;
 
     /* Remove border from menu */
-    {
-        Arg flat[1];
-        IswSetArg(flat[0], IswNborderWidth, 0);
-        IswSetValues(menu, flat, 1);
-    }
+    IswArgBorderWidth(&ab, 0);
+    IswSetValues(menu, ab.args, ab.count);
 
     if (!IswIsRealized(menu))
         IswRealizeWidget(menu);
@@ -421,10 +417,10 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     if (menu_y < 0)
         menu_y = 0;
 
-    num_args = 0;
-    IswSetArg(arglist[num_args], IswNx, menu_x); num_args++;
-    IswSetArg(arglist[num_args], IswNy, menu_y); num_args++;
-    IswSetValues(menu, arglist, num_args);
+    IswArgBuilderReset(&ab);
+    IswArgX(&ab, menu_x);
+    IswArgY(&ab, menu_y);
+    IswSetValues(menu, ab.args, ab.count);
 
     /* Override SimpleMenu translations for click-to-select behavior */
     if (menu_translations == NULL)

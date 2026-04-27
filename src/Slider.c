@@ -17,6 +17,7 @@
 #include <ISW/ISWRender.h>
 #include <ISW/SliderP.h>
 #include <ISW/FocusMgrI.h>
+#include <ISW/IswArgMacros.h>
 
 #include "ISWXcbDraw.h"
 
@@ -757,10 +758,10 @@ void
 IswSliderSetValue(Widget w, int value)
 {
     SliderWidget sw = (SliderWidget) w;
-    Arg args[1];
+    IswArgBuilder ab = IswArgBuilderInit();
 
-    IswSetArg(args[0], IswNsliderValue, value);
-    IswSetValues(w, args, 1);
+    IswArgSliderValue(&ab, value);
+    IswSetValues(w, ab.args, ab.count);
 
     /* Fire callback if value actually changed */
     if (sw->slider.value == value) {

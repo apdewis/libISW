@@ -421,8 +421,7 @@ int
 main(int argc, char *argv[])
 {
     Widget toplevel, box;
-    Arg args[12];
-    Cardinal n;
+    IswArgBuilder ab = IswArgBuilderInit();
 
     setvbuf(stderr, NULL, _IOLBF, 0);
     fprintf(stderr, "[%07.1fms] starting widget keyboard test\n", now_ms());
@@ -431,19 +430,18 @@ main(int argc, char *argv[])
                                 NULL, 0, &argc, argv, NULL, NULL, 0);
     g_shell = toplevel;
 
-    n = 0;
-    IswSetArg(args[n], IswNwidth,  640); n++;
-    IswSetArg(args[n], IswNheight, 480); n++;
-    IswSetArg(args[n], IswNtitle, "Focus Dispatch Test"); n++;
-    IswSetValues(toplevel, args, n);
+    IswArgWidth(&ab, 640);
+    IswArgHeight(&ab, 480);
+    IswArgTitle(&ab, "Focus Dispatch Test");
+    IswSetValues(toplevel, ab.args, ab.count);
 
     IswAppAddActionHook(g_app, trace_hook, NULL);
 
     box = IswCreateManagedWidget("box", boxWidgetClass, toplevel, NULL, 0);
 
-    n = 0;
-    IswSetArg(args[n], IswNlabel, "Cmd"); n++;
-    g_command = IswCreateManagedWidget("cmd", commandWidgetClass, box, args, n);
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Cmd");
+    g_command = IswCreateManagedWidget("cmd", commandWidgetClass, box, ab.args, ab.count);
 
     /* IconView with items */
     {
@@ -458,50 +456,50 @@ main(int argc, char *argv[])
             "<svg viewBox='0 0 16 16'><rect x='2' y='2' width='12' height='12' fill='none' stroke='black'/></svg>",
             "<svg viewBox='0 0 16 16'><circle cx='8' cy='8' r='6' fill='none' stroke='black'/></svg>",
         };
-        n = 0;
-        IswSetArg(args[n], IswNiconLabels, iv_labels); n++;
-        IswSetArg(args[n], IswNiconData,   iv_icons);  n++;
-        IswSetArg(args[n], IswNnumIcons,   8);         n++;
-        IswSetArg(args[n], IswNwidth,      200);       n++;
-        IswSetArg(args[n], IswNheight,     120);       n++;
-        IswSetArg(args[n], IswNmultiSelect,True);      n++;
-        g_iconview = IswCreateManagedWidget("iv", iconViewWidgetClass, box, args, n);
+        IswArgBuilderReset(&ab);
+        IswArgIconLabels(&ab, iv_labels);
+        IswArgIconData(&ab, iv_icons);
+        IswArgNumIcons(&ab, 8);
+        IswArgWidth(&ab, 200);
+        IswArgHeight(&ab, 120);
+        IswArgMultiSelect(&ab, True);
+        g_iconview = IswCreateManagedWidget("iv", iconViewWidgetClass, box, ab.args, ab.count);
     }
 
     /* List with items */
     {
         static String lst[] = {"alpha","beta","gamma","delta","epsilon",NULL};
-        n = 0;
-        IswSetArg(args[n], IswNlist, lst); n++;
-        IswSetArg(args[n], IswNwidth, 200); n++;
-        g_list = IswCreateManagedWidget("lst", listWidgetClass, box, args, n);
+        IswArgBuilderReset(&ab);
+        IswArgList(&ab, lst);
+        IswArgWidth(&ab, 200);
+        g_list = IswCreateManagedWidget("lst", listWidgetClass, box, ab.args, ab.count);
     }
 
     /* ComboBox */
     {
         static String cb_items[] = {"red","green","blue",NULL};
-        n = 0;
-        IswSetArg(args[n], IswNlist, cb_items); n++;
-        IswSetArg(args[n], IswNwidth, 200); n++;
-        g_combo = IswCreateManagedWidget("cb", comboBoxWidgetClass, box, args, n);
+        IswArgBuilderReset(&ab);
+        IswArgList(&ab, cb_items);
+        IswArgWidth(&ab, 200);
+        g_combo = IswCreateManagedWidget("cb", comboBoxWidgetClass, box, ab.args, ab.count);
     }
 
     /* SpinBox */
-    n = 0;
-    IswSetArg(args[n], IswNwidth, 200); n++;
-    g_spin = IswCreateManagedWidget("sb", spinBoxWidgetClass, box, args, n);
+    IswArgBuilderReset(&ab);
+    IswArgWidth(&ab, 200);
+    g_spin = IswCreateManagedWidget("sb", spinBoxWidgetClass, box, ab.args, ab.count);
 
     /* Slider */
-    n = 0;
-    IswSetArg(args[n], IswNwidth, 200); n++;
-    g_slider = IswCreateManagedWidget("sl", sliderWidgetClass, box, args, n);
+    IswArgBuilderReset(&ab);
+    IswArgWidth(&ab, 200);
+    g_slider = IswCreateManagedWidget("sl", sliderWidgetClass, box, ab.args, ab.count);
 
     /* Scrollbar */
-    n = 0;
-    IswSetArg(args[n], IswNwidth, 200); n++;
-    IswSetArg(args[n], IswNheight, 20); n++;
-    IswSetArg(args[n], IswNorientation, IswOrientHorizontal); n++;
-    g_scroll = IswCreateManagedWidget("sc", scrollbarWidgetClass, box, args, n);
+    IswArgBuilderReset(&ab);
+    IswArgWidth(&ab, 200);
+    IswArgHeight(&ab, 20);
+    IswArgOrientation(&ab, IswOrientHorizontal);
+    g_scroll = IswCreateManagedWidget("sc", scrollbarWidgetClass, box, ab.args, ab.count);
 
     IswRealizeWidget(toplevel);
 

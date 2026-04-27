@@ -58,6 +58,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Cardinals.h>
 #include <ISW/TreeP.h>
 #include <ISW/ISWRender.h>
+#include <ISW/IswArgMacros.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
@@ -352,7 +353,7 @@ static void
 Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
 {
     TreeWidget request = (TreeWidget) grequest, new = (TreeWidget) gnew;
-    Arg arglist[2];
+    IswArgBuilder ab = IswArgBuilderInit();
 
     /*
      * Make sure the widget's width and height are
@@ -391,10 +392,10 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
      * Create the hidden root widget.
      */
     new->tree.tree_root = (Widget) NULL;
-    IswSetArg(arglist[0], IswNwidth, 1);
-    IswSetArg(arglist[1], IswNheight, 1);
+    IswArgWidth(&ab, 1);
+    IswArgHeight(&ab, 1);
     new->tree.tree_root = IswCreateWidget ("root", widgetClass, gnew,
-					  arglist,TWO);
+					  ab.args, ab.count);
 
     /*
      * Allocate the array used to hold the widest values per depth
