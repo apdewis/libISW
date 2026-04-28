@@ -352,6 +352,10 @@
 #define IswArgLeftImage(ab, v)                  ISW_ARG((ab), IswNleftImage, (v))
 #define IswArgEncoding(ab, v)                   ISW_ARG((ab), IswNencoding, (v))
 
+/* ToggleButton */
+#define IswArgImageOn(ab, v)                   ISW_ARG((ab), IswNimageOn, (v))
+#define IswArgImageOff(ab, v)                  ISW_ARG((ab), IswNimageOff, (v))
+
 /* Tip */
 #define IswArgTimeout(ab, v)                    ISW_ARG((ab), IswNtimeout, (v))
 #define IswArgTip(ab, v)                        ISW_ARG((ab), IswNtip, (v))

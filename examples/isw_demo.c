@@ -28,6 +28,7 @@
 #include <ISW/Label.h>
 #include <ISW/Command.h>
 #include <ISW/Toggle.h>
+#include <ISW/ToggleButton.h>
 
 /* Menu widgets */
 #include <ISW/MenuBar.h>
@@ -104,6 +105,7 @@ Widget create_toolbar_demo(Widget parent);
 
 Widget create_command_demo(Widget parent);
 Widget create_toggle_demo(Widget parent);
+Widget create_togglebutton_demo(Widget parent);
 Widget create_checkbox_demo(Widget parent);
 Widget create_menu_demo(Widget parent);
 Widget create_repeater_demo(Widget parent);
@@ -133,6 +135,7 @@ void tabs_callback(Widget w, IswPointer client_data, IswPointer call_data);
 /* Callback functions */
 void button_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void toggle_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void togglebutton_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void checkbox_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void menu_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void list_callback(Widget w, IswPointer client_data, IswPointer call_data);
@@ -770,7 +773,7 @@ Widget create_viewport_demo(Widget parent) {
 
 Widget create_basic_widgets_section(Widget parent) {
     Widget form, section_label;
-    Widget command_demo, toggle_demo, checkbox_demo, menu_demo, repeater_demo;
+    Widget command_demo, toggle_demo, togglebutton_demo, checkbox_demo, menu_demo, repeater_demo;
     IswArgBuilder ab = IswArgBuilderInit();
 
     /* Section container */
@@ -780,7 +783,7 @@ Widget create_basic_widgets_section(Widget parent) {
 
     /* Section label */
     IswArgBuilderReset(&ab);
-    IswArgLabel(&ab, "Basic Interactive Widgets: Command, Toggle, Checkbox, Menu, Repeater");
+    IswArgLabel(&ab, "Basic Interactive Widgets: Command, Toggle, ToggleButton, Checkbox, Menu, Repeater");
     IswArgBorderWidth(&ab, 0);
     IswArgTop(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
@@ -802,9 +805,16 @@ Widget create_basic_widgets_section(Widget parent) {
     IswArgHorizDistance(&ab, 10);
     IswSetValues(toggle_demo, ab.args, ab.count);
 
-    checkbox_demo = create_checkbox_demo(form);
+    togglebutton_demo = create_togglebutton_demo(form);
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, toggle_demo);
+    IswArgFromVert(&ab, section_label);
+    IswArgHorizDistance(&ab, 10);
+    IswSetValues(togglebutton_demo, ab.args, ab.count);
+
+    checkbox_demo = create_checkbox_demo(form);
+    IswArgBuilderReset(&ab);
+    IswArgFromHoriz(&ab, togglebutton_demo);
     IswArgFromVert(&ab, section_label);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(checkbox_demo, ab.args, ab.count);
@@ -907,6 +917,47 @@ Widget create_toggle_demo(Widget parent) {
     IswArgRadioGroup(&ab, radio_group);
     toggle3 = IswCreateManagedWidget("toggleC", toggleWidgetClass, box, ab.args, ab.count);
     IswAddCallback(toggle3, IswNcallback, toggle_callback, (IswPointer)"Option C");
+
+    return box;
+}
+
+static const char svg_icon_on[] =
+    "<svg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'>"
+    "<circle cx='12' cy='12' r='10' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "<line x1='5' y1='5' x2='19' y2='19' stroke='currentColor' stroke-width='2'/>"
+    "</svg>";
+
+static const char svg_icon_off[] =
+    "<svg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'>"
+    "<circle cx='12' cy='12' r='10' fill='none' stroke='currentColor' stroke-width='2'/>"
+    "</svg>";
+
+Widget create_togglebutton_demo(Widget parent) {
+    Widget box, title, tb_text, tb_icon;
+    IswArgBuilder ab = IswArgBuilderInit();
+
+    IswArgOrientation(&ab, IswOrientVertical);
+    IswArgBorderWidth(&ab, 1);
+    box = IswCreateManagedWidget("toggleButtonBox", boxWidgetClass, parent, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Toggle Buttons");
+    IswArgBorderWidth(&ab, 0);
+    title = IswCreateManagedWidget("tbTitle", labelWidgetClass, box, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Bold");
+    tb_text = IswCreateManagedWidget("tbBold", toggleButtonWidgetClass, box, ab.args, ab.count);
+    IswAddCallback(tb_text, IswNcallback, togglebutton_callback, (IswPointer)"Bold");
+    attach_tooltip(tb_text, "Text-only toggle button — stays pressed when on");
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "");
+    IswArgImageOn(&ab, svg_icon_on);
+    IswArgImageOff(&ab, svg_icon_off);
+    tb_icon = IswCreateManagedWidget("tbIcon", toggleButtonWidgetClass, box, ab.args, ab.count);
+    IswAddCallback(tb_icon, IswNcallback, togglebutton_callback, (IswPointer)"Mute");
+    attach_tooltip(tb_icon, "Dual-icon toggle button — swaps icon based on state");
 
     return box;
 }
@@ -2210,6 +2261,12 @@ void toggle_callback(Widget w, IswPointer client_data, IswPointer call_data) {
     char *toggle_name = (char *)client_data;
     Boolean state = (Boolean)(intptr_t)call_data;
     printf("Toggle %s: %s\n", toggle_name, state ? "ON" : "OFF");
+}
+
+void togglebutton_callback(Widget w, IswPointer client_data, IswPointer call_data) {
+    char *name = (char *)client_data;
+    Boolean state = (Boolean)(intptr_t)call_data;
+    printf("ToggleButton '%s': %s\n", name, state ? "ON" : "OFF");
 }
 
 void checkbox_callback(Widget w, IswPointer client_data, IswPointer call_data) {

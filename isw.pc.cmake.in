@@ -6,7 +6,7 @@ includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@/isw
 Name: ISW
 Description: Infi Systems Widgets - XCB-based 3D Widget Library (includes embedded X Toolkit Intrinsics)
 Version: @PROJECT_VERSION@
-Requires: sm ice xcb xcb-xrm xcb-keysyms xcb-xfixes xcb-shape
+Requires: xcb xcb-xrm xcb-keysyms xcb-xfixes xcb-shape
 Requires.private: xkbcommon
 Cflags: -I${includedir}
 Libs: -L${libdir} -lISW
