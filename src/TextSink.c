@@ -414,7 +414,7 @@ InsertCursor(Widget w, Position x, Position y, IswTextInsertState state)
             ISWRenderSetColor(sink->text_sink.render_ctx,
                               sink->text_sink.foreground);
             ISWRenderFillRectangle(sink->text_sink.render_ctx,
-                                   (int)x - 1, (int)y - h, 2, h);
+                                   (int)x - 1, (int)y - h, 1, h);
             ISWRenderEnd(sink->text_sink.render_ctx);
         } else if (state == IswisOff) {
             int h = ScaledFontHeight(sink);
@@ -422,7 +422,7 @@ InsertCursor(Widget w, Position x, Position y, IswTextInsertState state)
             ISWRenderSetColor(sink->text_sink.render_ctx,
                               sink->text_sink.background);
             ISWRenderFillRectangle(sink->text_sink.render_ctx,
-                                   (int)x - 1, (int)y - h, 2, h);
+                                   (int)x - 1, (int)y - h, 1, h);
             ISWRenderEnd(sink->text_sink.render_ctx);
         }
     }

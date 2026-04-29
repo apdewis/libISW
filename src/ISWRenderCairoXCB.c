@@ -710,7 +710,7 @@ cairo_xcb_text_width(ISWRenderContext *ctx, const char *text, int len)
     /* With cairo_surface_set_device_scale, cairo_text_extents returns
      * logical pixel values automatically. */
     cairo_text_extents(data->cairo_ctx, null_term, &extents);
-    width = (int)lrint(extents.x_advance);
+    width = (int)ceil(extents.x_advance);
 
     free(null_term);
 
