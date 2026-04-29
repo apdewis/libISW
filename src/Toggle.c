@@ -290,7 +290,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
             /* Label's Initialize already computed core.width using the old
              * internal_width.  Widen the widget to account for the difference. */
             if (tw->core.width > 0)
-                tw->core.width += 2 * (min_iw - old_iw);
+                tw->core.width += (min_iw - old_iw);
         }
     }
 
@@ -714,12 +714,13 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
      * and adapts automatically if the font changes.
      */
     int cap_height = ISWScaledFontCapHeight((Widget)tw, tw->label.font);
-    int padding = 2;  /* logical pixels; Cairo scale handles physical */
+    int left_margin = (int)tw->label.internal_width;
     int indicator_size = cap_height;
 
     /* Ensure indicator fits within widget bounds */
-    if (indicator_size > (int)(tw->core.height - 2 * padding)) {
-        indicator_size = tw->core.height - 2 * padding;
+    int v_inset = 2;
+    if (indicator_size > (int)(tw->core.height - 2 * v_inset)) {
+        indicator_size = tw->core.height - 2 * v_inset;
     }
 
     /* Minimum size to be visible */
@@ -728,8 +729,8 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         indicator_size = min_size;
     }
 
-    /* Position: left edge + padding, vertically centered */
-    int x = padding;
+    /* Position: left edge, vertically centered */
+    int x = (left_margin - indicator_size) / 2;
     int y = (tw->core.height - indicator_size) / 2;
     
     /* Begin rendering */
