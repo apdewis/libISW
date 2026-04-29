@@ -253,6 +253,7 @@ typedef struct _IswFontStruct {
     char           *font_family;
     int             font_weight;
     int             font_slant;
+    double          pt_size;
 } IswFontStruct;
 typedef IswFontStruct IswFontStruct;
 

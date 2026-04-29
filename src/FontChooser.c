@@ -355,11 +355,9 @@ NotifyChange(FontChooserWidget fcw)
                  fcw->fontChooser.size,
                  fcw->fontChooser.preview_text);
 
-        /* Create an IswFontStruct with the selected family for Cairo rendering */
         IswFontStruct *fs = IswNew(IswFontStruct);
         memset(fs, 0, sizeof(*fs));
-        fs->ascent = fcw->fontChooser.size;
-        fs->descent = fcw->fontChooser.size / 3;
+        fs->pt_size     = (double)fcw->fontChooser.size;
         fs->font_family = IswNewString(fcw->fontChooser.family);
         fs->font_weight = fcw->fontChooser.weight;
         fs->font_slant  = fcw->fontChooser.slant;
