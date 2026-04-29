@@ -915,17 +915,13 @@ _ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale)
     if (face)
         cairo_set_font_face(cr, face);
 
-    /* HiDPI: font size is in logical pixels.  The Cairo scale transform
-     * on the render surface handles physical magnification.  The scale
-     * parameter is kept for the measurement context which has no transform. */
-    if (font)
-        size = (font->ascent + font->descent) * scale;
+    if (font && font->pt_size > 0)
+        size = font->pt_size * (96.0 / 72.0) * scale;
+    else if (font)
+        size = (double)(font->ascent + font->descent) * scale;
     else
         size = 12.0 * scale;
 
-    /* Guard against zero-metric fonts (e.g. incomplete IswFontStruct
-     * from failed resource converters) — Cairo renders nothing at
-     * size 0, causing silent text loss. */
     if (size < 1.0)
         size = 12.0 * scale;
 
@@ -976,14 +972,13 @@ _ISWGetMeasureCR(double device_scale)
     return _measure_cr;
 }
 
-/* Compute the logical font size from an IswFontStruct.
- * HiDPI: font sizes are in logical pixels; the Cairo scale transform
- * on the render surface handles physical magnification. */
 static double
 _ISWComputeFontSize(Widget widget, IswFontStruct *font)
 {
     (void)widget;
     if (font) {
+        if (font->pt_size > 0)
+            return font->pt_size * (96.0 / 72.0);
         double s = (double)(font->ascent + font->descent);
         return s >= 1.0 ? s : 10.0;
     }

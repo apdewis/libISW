@@ -778,6 +778,7 @@ _IswLoadFontconfigFont(const char *name)
     fs->font_family = IswNewString((const char *)matched_family);
     fs->font_weight = weight;
     fs->font_slant  = slant;
+    fs->pt_size     = pt_size;
 
 cleanup:
     if (ft_face) FT_Done_Face(ft_face);
