@@ -1046,7 +1046,7 @@ ISWScaledTextWidth(Widget widget, IswFontStruct *font, const char *text, int len
     null_term[len] = '\0';
 
     cairo_text_extents(cr, null_term, &extents);
-    width = (int)lrint(extents.x_advance);
+    width = (int)ceil(extents.x_advance);
 
     free(null_term);
     return width;
