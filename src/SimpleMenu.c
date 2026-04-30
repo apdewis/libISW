@@ -48,7 +48,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSBP.h>
 #include <ISW/FocusMgrI.h>
-#include <ISW/SmeLine.h>
+#include <ISW/SmeLineP.h>
 #include <ISW/Cardinals.h>
 #include <ISW/IswArgMacros.h>
 
@@ -1446,6 +1446,28 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 	height = smw->core.height;
     else if (do_layout)
     {
+	Dimension bsb_pad = 0;
+	ForAllChildren(smw, entry) {
+	    if (!IswIsManaged((Widget)*entry)) continue;
+	    if (IswIsSubclass((Widget)*entry, smeBSBObjectClass)) {
+		SmeBSBObject bsb = (SmeBSBObject)*entry;
+		int vs = bsb->sme_bsb.vert_space;
+		bsb_pad = (Dimension)((*entry)->rectangle.height * vs
+				      / (2 * (100 + vs)));
+		break;
+	    }
+	}
+	if (bsb_pad > 0) {
+	    ForAllChildren(smw, entry) {
+		if (!IswIsManaged((Widget)*entry)) continue;
+		if (IswIsSubclass((Widget)*entry, smeLineObjectClass)) {
+		    SmeLineObject line = (SmeLineObject)*entry;
+		    (*entry)->rectangle.height = 2 * bsb_pad
+						 + line->sme_line.line_width;
+		}
+	    }
+	}
+
 	height = smw->simple_menu.top_margin;
 
 	ForAllChildren(smw, entry)
