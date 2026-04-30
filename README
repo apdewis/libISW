@@ -1,7 +1,7 @@
 ISW (Infi Systems Widgets) - XCB-based 3D Widget Library
 ==========================================================
 
-ISW is a modern fork of the X 3D Athena Widget Set (Xaw3d).
+ISW is a widget toolkit derived from a combination of libXt and Xaw3d
 
 ## WARNING
 It was majority done by claude code after the initial work on libXt to support XCB.
