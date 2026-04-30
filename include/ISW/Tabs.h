@@ -12,10 +12,14 @@
 #include <ISW/Constraint.h>
 
 /* Widget resources */
-#define IswNtabCallback    "tabCallback"
-#define IswNtopWidget      "topWidget"
+#define IswNtabCallback        "tabCallback"
+#define IswNtopWidget          "topWidget"
+#define IswNtabBackground      "tabBackground"
+#define IswNtabSelectBackground "tabSelectBackground"
 
-#define IswCTopWidget      "TopWidget"
+#define IswCTopWidget           "TopWidget"
+#define IswCTabBackground       "TabBackground"
+#define IswCTabSelectBackground "TabSelectBackground"
 
 /* Constraint resources (per-child) */
 #define IswNtabLabel       "tabLabel"

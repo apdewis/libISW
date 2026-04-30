@@ -57,6 +57,10 @@ static IswResource resources[] = {
          offset(font), IswRString, IswDefaultFont},
     {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
          offset(foreground), IswRString, IswDefaultForeground},
+    {IswNtabBackground, IswCTabBackground, IswRPixel, sizeof(Pixel),
+         offset(tab_background), IswRString, IswDefaultBackground},
+    {IswNtabSelectBackground, IswCTabSelectBackground, IswRPixel, sizeof(Pixel),
+         offset(tab_select_background), IswRString, IswDefaultBackground},
 };
 #undef offset
 
@@ -247,10 +251,10 @@ DrawTabBar(Widget w)
             cairo_close_path(cr);
 
             if (is_top) {
-                ISWRenderSetColor(ctx, w->core.background_pixel);
+                ISWRenderSetColor(ctx, tw->tabs.tab_select_background);
                 cairo_fill_preserve(cr);
             } else {
-                ISWRenderSetColorRGBA(ctx, 0.0, 0.0, 0.0, 0.06);
+                ISWRenderSetColor(ctx, tw->tabs.tab_background);
                 cairo_fill_preserve(cr);
             }
 
@@ -281,9 +285,9 @@ DrawTabBar(Widget w)
         /* Cut gap under the active tab */
         if (tw->tabs.top_widget && IswIsManaged(tw->tabs.top_widget)) {
             TabsConstraints tc = TabInfo(tw->tabs.top_widget);
-            /* Overdraw the gap with background */
+            /* Overdraw the gap with selected tab background */
             cairo_stroke(cr);
-            ISWRenderSetColor(ctx, w->core.background_pixel);
+            ISWRenderSetColor(ctx, tw->tabs.tab_select_background);
             cairo_set_line_width(cr, 1.0);
             cairo_move_to(cr, tc->tabs.tab_x + 1, tab_h - 0.5);
             cairo_line_to(cr, tc->tabs.tab_x + tc->tabs.tab_width - 1,
