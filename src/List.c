@@ -1193,8 +1193,8 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
              <LeaveWindow>:     unhighlight()           \n\
              <Motion>:          highlight()             \n\
              <BtnMotion>:       highlight()             \n\
-             <Btn4Down>:        unhighlight() popdown() \n\
-             <Btn5Down>:        unhighlight() popdown() \n\
+             <Btn4Down>:        scroll-up()              \n\
+             <Btn5Down>:        scroll-down()            \n\
              <BtnUp>:           highlight()             \n\
              <BtnDown>:         notify() unhighlight() popdown()";
         IswOverrideTranslations(lw->list.popup_shell,

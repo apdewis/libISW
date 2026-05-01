@@ -121,6 +121,8 @@ static char defaultTranslations[] =
      <LeaveWindow>:     unhighlight()           \n\
      <Motion>:          highlight()             \n\
      <BtnDown>:         notify() unhighlight() popdown()\n\
+     <Btn4Down>:        scroll-up()              \n\
+     <Btn5Down>:        scroll-down()            \n\
      <Key>Down:         next-entry()            \n\
      <Key>Up:           prev-entry()            \n\
      <Key>Home:         first-entry()           \n\
@@ -168,6 +170,8 @@ static void LastEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void EnterSubMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void LeaveSubMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void AccelNotify(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ScrollUp(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ScrollDown(Widget, xcb_generic_event_t *, String *, Cardinal *);
 
 /*
  * Private Function Definitions.
@@ -185,6 +189,8 @@ static Dimension GetMenuHeight(Widget);
 static Widget FindMenu(Widget, String);
 static SmeObject GetEventEntry(Widget, xcb_generic_event_t *);
 static void MoveMenu(Widget, Position, Position);
+static void ScrollEntryVisible(SimpleMenuWidget, SmeObject);
+static void ScrollMenuTo(SimpleMenuWidget, int);
 
 static IswActionsRec actionsList[] =
 {
@@ -198,7 +204,9 @@ static IswActionsRec actionsList[] =
   {"last-entry",        LastEntry},
   {"enter-submenu",     EnterSubMenu},
   {"leave-submenu",     LeaveSubMenu},
-  {"accel-notify",      AccelNotify}
+  {"accel-notify",      AccelNotify},
+  {"scroll-up",         ScrollUp},
+  {"scroll-down",       ScrollDown}
 };
 
 static CompositeClassExtensionRec extension_rec = {
@@ -454,7 +462,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     smw->simple_menu.didnt_fit = False;
     y = 0;
-    max_y = (int)lrint(HeightOfScreen(IswScreen(w)) / _IswGetScaleFactor(IswDisplay(w))) - s;
+    max_y = (int)w->core.height - s;
     new_y = -(*(SmeObject *)(smw)->composite.children)->rectangle.y;
     can_paint = False;
 
@@ -1175,7 +1183,10 @@ NextEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
         next = FindFirstSelectable(smw, start, +1);
         if (next == NULL) next = FindFirstSelectable(smw, 0, +1); /* wrap */
     }
-    if (next) SetEntry(smw, next);
+    if (next) {
+        if (smw->simple_menu.too_tall) ScrollEntryVisible(smw, next);
+        SetEntry(smw, next);
+    }
 }
 
 static void
@@ -1194,7 +1205,10 @@ PrevEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
         prev = FindFirstSelectable(smw, start, -1);
         if (prev == NULL) prev = FindFirstSelectable(smw, n - 1, -1); /* wrap */
     }
-    if (prev) SetEntry(smw, prev);
+    if (prev) {
+        if (smw->simple_menu.too_tall) ScrollEntryVisible(smw, prev);
+        SetEntry(smw, prev);
+    }
 }
 
 static void
@@ -1204,7 +1218,10 @@ FirstEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
     SmeObject first;
     (void)e; (void)p; (void)np;
     first = FindFirstSelectable(smw, 0, +1);
-    if (first) SetEntry(smw, first);
+    if (first) {
+        if (smw->simple_menu.too_tall) ScrollEntryVisible(smw, first);
+        SetEntry(smw, first);
+    }
 }
 
 static void
@@ -1216,7 +1233,72 @@ LastEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
     (void)e; (void)p; (void)np;
     if (n == 0) return;
     last = FindFirstSelectable(smw, n - 1, -1);
-    if (last) SetEntry(smw, last);
+    if (last) {
+        if (smw->simple_menu.too_tall) ScrollEntryVisible(smw, last);
+        SetEntry(smw, last);
+    }
+}
+
+static void
+ScrollMenuTo(SimpleMenuWidget smw, int direction)
+{
+    if (!smw->simple_menu.too_tall) return;
+    if (direction > 0 && smw->simple_menu.didnt_fit) {
+        smw->simple_menu.current_first += smw->simple_menu.jump_val;
+        Redisplay((Widget)smw, NULL, 0);
+    } else if (direction < 0 &&
+               smw->simple_menu.current_first != smw->simple_menu.first_entry) {
+        smw->simple_menu.current_first -= smw->simple_menu.jump_val;
+        Redisplay((Widget)smw, NULL, 0);
+    }
+}
+
+static void
+ScrollUp(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    (void)e; (void)p; (void)np;
+    ScrollMenuTo((SimpleMenuWidget)w, -1);
+}
+
+static void
+ScrollDown(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+{
+    (void)e; (void)p; (void)np;
+    ScrollMenuTo((SimpleMenuWidget)w, +1);
+}
+
+static void
+ScrollEntryVisible(SimpleMenuWidget smw, SmeObject entry)
+{
+    int idx = FindEntryIndex(smw, entry);
+    SmeObject *entry_ptr = (SmeObject *)&smw->composite.children[idx];
+    Boolean scrolled = False;
+
+    while (entry_ptr >= smw->simple_menu.current_first +
+           (int)smw->composite.num_children) {
+        break;
+    }
+
+    if (entry_ptr < smw->simple_menu.current_first) {
+        while (smw->simple_menu.current_first > smw->simple_menu.first_entry &&
+               smw->simple_menu.current_first > entry_ptr) {
+            smw->simple_menu.current_first -= smw->simple_menu.jump_val;
+            scrolled = True;
+        }
+    } else {
+        int visible_y = entry->rectangle.y - smw->simple_menu.first_y;
+        int menu_h = (int)smw->core.height;
+        if (visible_y + (int)entry->rectangle.height > menu_h) {
+            while (smw->simple_menu.current_first < entry_ptr &&
+                   smw->simple_menu.didnt_fit) {
+                smw->simple_menu.current_first += smw->simple_menu.jump_val;
+                scrolled = True;
+            }
+        }
+    }
+
+    if (scrolled)
+        Redisplay((Widget)smw, NULL, 0);
 }
 
 static void
@@ -1829,8 +1911,7 @@ GetEventEntry(Widget w, xcb_generic_event_t * event)
     Position x_loc = 0, y_loc = 0;
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
     SmeObject *entry;
-    static xcb_point_t last_pos;
-    xcb_point_t pos;
+    static Position last_y_loc;
     int s = 0;
 
     uint8_t type = event->response_type & ~0x80;
@@ -1839,7 +1920,6 @@ GetEventEntry(Widget w, xcb_generic_event_t * event)
      xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
      x_loc = mev->event_x;
      y_loc = mev->event_y;
-     pos.y = mev->root_y;
      break;
  }
  case XCB_ENTER_NOTIFY:
@@ -1847,7 +1927,6 @@ GetEventEntry(Widget w, xcb_generic_event_t * event)
      xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
      x_loc = cev->event_x;
      y_loc = cev->event_y;
-     pos.y = cev->root_y;
      break;
  }
  case XCB_BUTTON_PRESS:
@@ -1855,7 +1934,6 @@ GetEventEntry(Widget w, xcb_generic_event_t * event)
      xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
      x_loc = bev->event_x;
      y_loc = bev->event_y;
-     pos.y = bev->root_y;
      break;
  }
 	default:
@@ -1867,29 +1945,29 @@ GetEventEntry(Widget w, xcb_generic_event_t * event)
     if (x_loc < 0 || x_loc >= (int)smw->core.width)
 	return NULL;
     else if (smw->simple_menu.too_tall) {
-	if (pos.y >= smw->simple_menu.last_y && smw->simple_menu.didnt_fit) {
-	    if (last_pos.y && pos.y < last_pos.y) {
-		last_pos.y = pos.y;
+	if (y_loc >= smw->simple_menu.last_y && smw->simple_menu.didnt_fit) {
+	    if (last_y_loc && y_loc < last_y_loc) {
+		last_y_loc = y_loc;
 		return NULL;
 	    }
 	    smw->simple_menu.current_first += smw->simple_menu.jump_val;
 	    Redisplay(w, NULL, 0);
-	    last_pos.y = pos.y;
+	    last_y_loc = y_loc;
 	    return NULL;
-	} else if (pos.y <= s + SMW_ARROW_SIZE &&
+	} else if (y_loc <= s + SMW_ARROW_SIZE &&
 		smw->simple_menu.first_entry != smw->simple_menu.current_first)
 	{
-	    if (pos.y && (!last_pos.y || pos.y > last_pos.y)) {
-		last_pos.y = pos.y;
+	    if (y_loc && (!last_y_loc || y_loc > last_y_loc)) {
+		last_y_loc = y_loc;
 		return NULL;
 	    }
 	    smw->simple_menu.current_first -= smw->simple_menu.jump_val;
 	    Redisplay(w, NULL, 0);
-	    last_pos.y = pos.y;
+	    last_y_loc = y_loc;
 	    return NULL;
 	}
 	else
-	    last_pos.y = 0;
+	    last_y_loc = 0;
     } else if (y_loc < 0 || y_loc >= (int)smw->core.height)
 	return NULL;
 
