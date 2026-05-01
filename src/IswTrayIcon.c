@@ -815,9 +815,19 @@ IswTrayIconCreate(Widget shell, const char *tooltip)
                           root_event_handler,
                           (IswPointer)icon);
 
-    /* If a manager is already running, dock now; otherwise wait. */
-    if (icon->manager_window != XCB_NONE)
+    /* Re-check selection owner to close the race window between
+     * find_tray_manager() and registering the root event handler.
+     * If a manager appeared and announced in that gap, we missed
+     * the MANAGER ClientMessage. */
+    if (icon->manager_window == XCB_NONE) {
+        icon->manager_window = find_tray_manager(icon);
+        if (icon->manager_window != XCB_NONE) {
+            query_tray_visual(icon);
+            send_dock_request(icon);
+        }
+    } else {
         send_dock_request(icon);
+    }
 
     xcb_flush(icon->conn);
 
