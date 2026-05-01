@@ -1176,6 +1176,7 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
         Widget entry;
         IswArgBuilderReset(&ab);
         IswArgLabel(&ab, lw->list.list[i]);
+        IswArgForeground(&ab, lw->list.foreground);
         if (lw->list.font) {
             IswArgFont(&ab, lw->list.font);
         }
