@@ -58,6 +58,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Shell.h>
 #include <ISW/IswArgMacros.h>
 #include "ISWXcbDraw.h"
+#include <math.h>
+
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 /* These added so widget knows whether its height, width are user selected.
 I also added the freedoms member of the list widget part. */
@@ -1200,7 +1203,8 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 
     /* Compute available space and pick direction */
     {
-        int scr_height = HeightOfScreen(IswScreen(w));
+        double sf = _IswGetScaleFactor(IswDisplay(w));
+        int scr_height = (int)lrint(HeightOfScreen(IswScreen(w)) / sf);
         int space_below = scr_height - below_y;
         int space_above = abs_y;
         Position popup_y = below_y;

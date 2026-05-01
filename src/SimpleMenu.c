@@ -56,6 +56,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xproto.h>
 
 #include "ISWXcbDraw.h"
+#include <math.h>
+
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 /* XPoint typedef for XCB */
 typedef xcb_point_t XPoint;
@@ -451,7 +454,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     smw->simple_menu.didnt_fit = False;
     y = 0;
-    max_y = HeightOfScreen(IswScreen(w)) - s;
+    max_y = (int)lrint(HeightOfScreen(IswScreen(w)) / _IswGetScaleFactor(IswDisplay(w))) - s;
     new_y = -(*(SmeObject *)(smw)->composite.children)->rectangle.y;
     can_paint = False;
 
@@ -597,9 +600,13 @@ Realize(xcb_connection_t *conn, Widget w, IswValueMask * mask, uint32_t * values
     *mask |= XCB_CW_BORDER_PIXEL;
 
      /* check if the menu is too big */
-     if (smw->core.height >= HeightOfScreen(IswScreen(w))) {
-         smw->simple_menu.too_tall = TRUE;
-         smw->core.height = HeightOfScreen(IswScreen(w));
+     {
+         double sf = _IswGetScaleFactor(conn);
+         int logical_scr_h = (int)lrint(HeightOfScreen(IswScreen(w)) / sf);
+         if (smw->core.height >= logical_scr_h) {
+             smw->simple_menu.too_tall = TRUE;
+             smw->core.height = logical_scr_h;
+         }
      }
 
     (*superclass->core_class.realize) (conn, w, mask, values);
@@ -1601,11 +1608,12 @@ MoveMenu(Widget w, Position x, Position y)
     IswArgBuilder ab = IswArgBuilderInit();
 
     if (smw->simple_menu.menu_on_screen) {
+	double sf = _IswGetScaleFactor(IswDisplay(w));
 	int width = w->core.width + 2 * w->core.border_width;
 	int height = w->core.height + 2 * w->core.border_width;
 
 	if (x >= 0) {
-	    int scr_width = WidthOfScreen(IswScreen(w));
+	    int scr_width = (int)lrint(WidthOfScreen(IswScreen(w)) / sf);
 	    if (x + width > scr_width)
 		x = scr_width - width;
 	}
@@ -1613,7 +1621,7 @@ MoveMenu(Widget w, Position x, Position y)
 	    x = 0;
 
 	if (y >= 0) {
-	    int scr_height = HeightOfScreen(IswScreen(w));
+	    int scr_height = (int)lrint(HeightOfScreen(IswScreen(w)) / sf);
 	    if (y + height > scr_height)
 		y = scr_height - height;
 	}
@@ -1970,29 +1978,32 @@ PopupSubMenu(SimpleMenuWidget smw)
 	IswTranslateCoords((Widget)smw, IswWidth(smw), IswY(entry)
 			  - IswBorderWidth(menu), &menu_x, &menu_y);
 
-    if (!popleft && menu_x >= 0) {
-	int scr_width = WidthOfScreen(IswScreen(menu));
+    {
+	double sf = _IswGetScaleFactor(IswDisplay(menu));
 
-	if (menu_x + IswWidth(menu) > scr_width) {
-	    menu_x -= IswWidth(menu) + IswWidth(smw);
-	    popleft = True;
+	if (!popleft && menu_x >= 0) {
+	    int scr_width = (int)lrint(WidthOfScreen(IswScreen(menu)) / sf);
+
+	    if (menu_x + IswWidth(menu) > scr_width) {
+		menu_x -= IswWidth(menu) + IswWidth(smw);
+		popleft = True;
+	    }
 	}
-    }
-    else if (popleft && menu_x < 0) {
-	menu_x = 0;
-	popleft = False;
-    }
+	else if (popleft && menu_x < 0) {
+	    menu_x = 0;
+	    popleft = False;
+	}
 
-    if (menu_y >= 0) {
-	SimpleMenuWidget smenu = (SimpleMenuWidget)menu;
-	int scr_height = HeightOfScreen(IswScreen(menu));
+	if (menu_y >= 0) {
+	    int scr_height = (int)lrint(HeightOfScreen(IswScreen(menu)) / sf);
 
-	if (menu_y + IswHeight(menu) > scr_height)
-	    menu_y = scr_height - IswHeight(menu) - IswBorderWidth(menu);
+	    if (menu_y + IswHeight(menu) > scr_height)
+		menu_y = scr_height - IswHeight(menu) - IswBorderWidth(menu);
 
+	}
+	if (menu_y < 0)
+	    menu_y = 0;
     }
-    if (menu_y < 0)
-	menu_y = 0;
 
     IswArgX(&ab, menu_x);
     IswArgY(&ab, menu_y);

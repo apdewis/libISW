@@ -58,6 +58,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/FocusMgrI.h>
 #include <ISW/IswArgMacros.h>
 #include "ISWXcbDraw.h"
+#include <math.h>
+
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 static void ClassInitialize(void);
 static void PopupMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
@@ -237,21 +240,25 @@ _IswMenuButtonPopup(Widget w)
   menu_x = button_x;
   menu_y = button_y + button_height;
 
-  if (menu_x >= 0) {
-    int scr_width = WidthOfScreen(IswScreen(menu));
-    if (menu_x + menu_width > scr_width)
-      menu_x = scr_width - menu_width;
-  }
-  if (menu_x < 0)
-    menu_x = 0;
+  {
+    double sf = _IswGetScaleFactor(IswDisplay(w));
 
-  if (menu_y >= 0) {
-    int scr_height = HeightOfScreen(IswScreen(menu));
-    if (menu_y + menu_height > scr_height)
-      menu_y = scr_height - menu_height;
+    if (menu_x >= 0) {
+      int scr_width = (int)lrint(WidthOfScreen(IswScreen(menu)) / sf);
+      if (menu_x + menu_width > scr_width)
+        menu_x = scr_width - menu_width;
+    }
+    if (menu_x < 0)
+      menu_x = 0;
+
+    if (menu_y >= 0) {
+      int scr_height = (int)lrint(HeightOfScreen(IswScreen(menu)) / sf);
+      if (menu_y + menu_height > scr_height)
+        menu_y = scr_height - menu_height;
+    }
+    if (menu_y < 0)
+      menu_y = 0;
   }
-  if (menu_y < 0)
-    menu_y = 0;
 
   IswArgX(&ab, menu_x);
   IswArgY(&ab, menu_y);
