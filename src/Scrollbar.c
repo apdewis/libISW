@@ -487,28 +487,12 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
 
-    /* Draw the trough (channel) in background color, padded from the edges */
+    /* Clear the full widget then arrows and thumb paint on top */
     {
-
-        Dimension margin = MARGIN(sbw);
-        int tx, ty, tw, th;
-
-        if (sbw->scrollbar.orientation == IswOrientHorizontal) {
-            tx = margin;
-            ty = 0;
-            tw = sbw->scrollbar.length - 2 * margin;
-            th = sbw->core.height - 2;
-        } else {
-            tx = 0;
-            ty = margin;
-            tw = sbw->core.width - 2;
-            th = sbw->scrollbar.length - 2 * margin;
-        }
-
         ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
         ISWRenderBegin(ctx);
         ISWRenderSetColor(ctx, sbw->core.background_pixel);
-        ISWRenderFillRectangle(ctx, tx, ty, tw, th);
+        ISWRenderFillRectangle(ctx, 0, 0, sbw->core.width, sbw->core.height);
         ISWRenderEnd(ctx);
     }
 
