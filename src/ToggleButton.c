@@ -157,9 +157,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
             tbw->label.label_width = iw;
             tbw->label.label_height = ih;
             tbw->label.label_len = 0;
-            if (new->core.width == 0 || new->core.width < iw + 2 * tbw->label.internal_width)
+            if (request->core.width == 0)
                 new->core.width = iw + 2 * tbw->label.internal_width;
-            if (new->core.height == 0 || new->core.height < ih + 2 * tbw->label.internal_height)
+            if (request->core.height == 0)
                 new->core.height = ih + 2 * tbw->label.internal_height;
         }
     }

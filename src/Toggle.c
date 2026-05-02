@@ -287,9 +287,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         if (tw->label.internal_width < min_iw) {
             Dimension old_iw = tw->label.internal_width;
             tw->label.internal_width = min_iw;
-            /* Label's Initialize already computed core.width using the old
-             * internal_width.  Widen the widget to account for the difference. */
-            if (tw->core.width > 0)
+            /* Only widen if the user didn't explicitly set a width (request
+             * width 0 means "auto-size"). Honor explicit size requests. */
+            if (tw_req->core.width == 0 && tw->core.width > 0)
                 tw->core.width += 2 * (min_iw - old_iw);
         }
     }
