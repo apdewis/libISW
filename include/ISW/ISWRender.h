@@ -274,6 +274,20 @@ void ISWRenderFillRoundedRectangle(ISWRenderContext *ctx,
                                    double radius);
 
 /*
+ * ISWRenderFillStrokeRoundedRectangle - Fill and stroke a rounded rectangle
+ *
+ * Fills with the current color at fill_alpha, then strokes the same path
+ * with the current color at full opacity.  Falls back to ISWRenderFillRectangle
+ * on backends without Cairo.
+ */
+void ISWRenderFillStrokeRoundedRectangle(ISWRenderContext *ctx,
+                                         int x, int y,
+                                         int width, int height,
+                                         double radius,
+                                         double fill_alpha,
+                                         double stroke_width);
+
+/*
  * ISWRenderStrokePolygon - Draw polygon outline
  *
  * Parameters:

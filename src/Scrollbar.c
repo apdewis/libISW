@@ -262,20 +262,19 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     if (lh <= 0 || lw <= 0) return;
 
     ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
-
+    double radius = (sbw->scrollbar.orientation == IswOrientHorizontal)
+                        ? lh / 2.0 : lw / 2.0;
     if (fill) {
         /* Draw thumb with rounded corners in foreground color */
-        double radius = (sbw->scrollbar.orientation == IswOrientHorizontal)
-                        ? lh / 2.0 : lw / 2.0;
         ISWRenderBegin(ctx);
         ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-        ISWRenderFillRoundedRectangle(ctx, lx, ly, lw, lh, radius);
+        ISWRenderFillStrokeRoundedRectangle(ctx, lx, ly, lw, lh, radius, 0.2, 1);
         ISWRenderEnd(ctx);
     } else {
         /* Erase thumb area by restoring trough (background) color */
         ISWRenderBegin(ctx);
         ISWRenderSetColor(ctx, sbw->core.background_pixel);
-        ISWRenderFillRectangle(ctx, lx, ly, lw, lh);
+        ISWRenderFillStrokeRoundedRectangle(ctx, lx, ly, lw, lh, radius, 1, 1.5);
         ISWRenderEnd(ctx);
     }
 }
@@ -297,13 +296,12 @@ PaintThumb (ScrollbarWidget sbw, xcb_generic_event_t *event)
     newtop = margin + (int)(tzl * sbw->scrollbar.top);
     newbot = newtop + (int)(tzl * sbw->scrollbar.shown);
     if (sbw->scrollbar.shown < 1.) newbot++;
-    if (newbot < newtop + (int)sbw->scrollbar.min_thumb +
-                        2 * (int)0)
-      newbot = newtop + sbw->scrollbar.min_thumb +
-                        2 * 0;
+    if (newbot < newtop + (int)sbw->scrollbar.min_thumb)
+      newbot = newtop + sbw->scrollbar.min_thumb;
+
     if ( newbot >= floor ) {
-	newtop = floor-(newbot-newtop)+1;
-	newbot = floor;
+	    newtop = floor-(newbot-newtop)+1;
+	    newbot = floor;
     }
 
     sbw->scrollbar.topLoc = newtop;
