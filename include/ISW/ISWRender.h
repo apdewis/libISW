@@ -274,6 +274,15 @@ void ISWRenderFillRoundedRectangle(ISWRenderContext *ctx,
                                    double radius);
 
 /*
+ * ISWRenderStrokeRoundedRectangle - Stroke a rounded rectangle outline
+ */
+void ISWRenderStrokeRoundedRectangle(ISWRenderContext *ctx,
+                                     int x, int y,
+                                     int width, int height,
+                                     double radius,
+                                     double stroke_width);
+
+/*
  * ISWRenderFillStrokeRoundedRectangle - Fill and stroke a rounded rectangle
  *
  * Fills with the current color at fill_alpha, then strokes the same path

@@ -427,6 +427,38 @@ ISWRenderFillRoundedRectangle(ISWRenderContext *ctx,
 }
 
 void
+ISWRenderStrokeRoundedRectangle(ISWRenderContext *ctx,
+                                int x, int y, int width, int height,
+                                double radius,
+                                double stroke_width)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->get_cairo_context) {
+        ISWRenderStrokeRectangle(ctx, x, y, width, height);
+        return;
+    }
+
+    cairo_t *cr = (cairo_t *)ctx->ops->get_cairo_context(ctx);
+    if (!cr) {
+        ISWRenderStrokeRectangle(ctx, x, y, width, height);
+        return;
+    }
+
+    double max_r = (width < height ? width : height) / 2.0;
+    if (radius > max_r) radius = max_r;
+
+    double x0 = x, y0 = y, w = width, h = height, rad = radius;
+    cairo_new_sub_path(cr);
+    cairo_arc(cr, x0 + w - rad, y0 + rad,     rad, -M_PI/2, 0);
+    cairo_arc(cr, x0 + w - rad, y0 + h - rad, rad, 0,        M_PI/2);
+    cairo_arc(cr, x0 + rad,     y0 + h - rad, rad, M_PI/2,   M_PI);
+    cairo_arc(cr, x0 + rad,     y0 + rad,     rad, M_PI,      3*M_PI/2);
+    cairo_close_path(cr);
+
+    cairo_set_line_width(cr, stroke_width);
+    cairo_stroke(cr);
+}
+
+void
 ISWRenderFillStrokeRoundedRectangle(ISWRenderContext *ctx,
                                     int x, int y, int width, int height,
                                     double radius,

@@ -28,9 +28,7 @@
 #include <xcb/xproto.h>
 
 /* Thumb dimensions (before HiDPI scaling) */
-#define THUMB_WIDTH  12
-#define THUMB_HEIGHT 20
-#define THUMB_BAR_THICK 6   /* cross-track thickness of the knob */
+#define THUMB_SIZE 14
 #define TRACK_THICKNESS 4
 #define TICK_LENGTH  6
 #define VALUE_MARGIN 4
@@ -87,6 +85,8 @@ static void PageIncrement(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void PageDecrement(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void SetMin(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void SetMax(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static int ValueZoneHeight(SliderWidget sw);
+static int ValueZoneWidth(SliderWidget sw);
 
 static char defaultTranslations[] =
     "<Btn1Down>:   StartDrag()\n\
@@ -159,30 +159,6 @@ SliderClassRec sliderClassRec = {
 
 WidgetClass sliderWidgetClass = (WidgetClass)&sliderClassRec;
 
-/* --- Geometry helpers --- */
-
-/* Track margins: half the thumb size so the thumb center can reach the ends */
-static Dimension
-ThumbW(SliderWidget sw)
-{
-    return (THUMB_WIDTH);
-}
-
-static Dimension
-ThumbH(SliderWidget sw)
-{
-    return (THUMB_HEIGHT);
-}
-
-static Dimension
-TrackThick(SliderWidget sw)
-{
-    return (TRACK_THICKNESS);
-}
-
-static int ValueZoneHeight(SliderWidget sw);
-static int ValueZoneWidth(SliderWidget sw);
-
 /*
  * How many pixels the track zone is offset from the widget origin.
  * For top/left value positions, the label zone pushes the track over/down.
@@ -191,10 +167,10 @@ static int
 TrackZoneOffsetX(SliderWidget sw)
 {
     if (!sw->slider.show_value)
-        return 0;
+        return 1;
     if (sw->slider.value_pos == IswSliderValueLeft)
         return ValueZoneWidth(sw);
-    return 0;
+    return 1;
 }
 
 static int
@@ -211,11 +187,11 @@ TrackZoneOffsetY(SliderWidget sw)
 static int
 TrackLength(SliderWidget sw)
 {
-    Dimension tw = ThumbW(sw);
+    Dimension tw = THUMB_SIZE;
     if (sw->slider.orientation == IswOrientHorizontal)
-        return (int)sw->core.width - TrackZoneOffsetX(sw) - (int)tw;
+        return (int)sw->core.width - TrackZoneOffsetX(sw) - (int)tw - 1;
     else
-        return (int)sw->core.height - TrackZoneOffsetY(sw) - (int)tw;
+        return (int)sw->core.height - TrackZoneOffsetY(sw) - (int)tw - 1;
 }
 
 /* Convert a value to a pixel position (thumb center along the track axis) */
@@ -224,7 +200,7 @@ ValueToPixel(SliderWidget sw, int value)
 {
     int range = sw->slider.maximum - sw->slider.minimum;
     int track = TrackLength(sw);
-    Dimension half_thumb = ThumbW(sw) / 2;
+    Dimension half_thumb = THUMB_SIZE / 2;
     int offset = (sw->slider.orientation == IswOrientHorizontal)
                  ? TrackZoneOffsetX(sw) : TrackZoneOffsetY(sw);
 
@@ -250,7 +226,7 @@ PixelToValue(SliderWidget sw, Position pixel)
 {
     int range = sw->slider.maximum - sw->slider.minimum;
     int track = TrackLength(sw);
-    Dimension half_thumb = ThumbW(sw) / 2;
+    Dimension half_thumb = THUMB_SIZE / 2;
     int offset = (sw->slider.orientation == IswOrientHorizontal)
                  ? TrackZoneOffsetX(sw) : TrackZoneOffsetY(sw);
 
@@ -281,19 +257,19 @@ ExtractPosition(xcb_generic_event_t *event, Position *x, Position *y)
 {
     uint8_t type = event->response_type & ~0x80;
     switch (type) {
-    case XCB_MOTION_NOTIFY: {
-        xcb_motion_notify_event_t *ev = (xcb_motion_notify_event_t *)event;
-        *x = ev->event_x; *y = ev->event_y;
-        break;
-    }
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE: {
-        xcb_button_press_event_t *ev = (xcb_button_press_event_t *)event;
-        *x = ev->event_x; *y = ev->event_y;
-        break;
-    }
-    default:
-        *x = 0; *y = 0;
+        case XCB_MOTION_NOTIFY: {
+            xcb_motion_notify_event_t *ev = (xcb_motion_notify_event_t *)event;
+            *x = ev->event_x; *y = ev->event_y;
+            break;
+        }
+        case XCB_BUTTON_PRESS:
+        case XCB_BUTTON_RELEASE: {
+            xcb_button_press_event_t *ev = (xcb_button_press_event_t *)event;
+            *x = ev->event_x; *y = ev->event_y;
+            break;
+        }
+        default:
+            *x = 0; *y = 0;
     }
 }
 
@@ -315,13 +291,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     ((SimpleWidget) new)->simple.traversal_on = True;
 
-    /* HiDPI scaling */
-    sw->slider.length = (sw->slider.length);
-    sw->slider.thickness = (sw->slider.thickness);
-
     /* Compute minimum cross-axis size from content:
      * thumb + value label zone + tick marks */
-    Dimension thumb_cross = (THUMB_HEIGHT);
+ 
     Dimension tick_zone = 0;
     if (sw->slider.tick_interval > 0)
         tick_zone = (TICK_LENGTH) + 2;
@@ -330,7 +302,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         value_zone = ISWScaledFontHeight(new, sw->slider.font)
                    + (VALUE_MARGIN);
     }
-    Dimension min_cross = thumb_cross + tick_zone + value_zone;
+    Dimension min_cross = THUMB_SIZE + tick_zone + value_zone + 10;
 
     /* Default geometry */
     if (sw->core.width == 0)
@@ -440,24 +412,32 @@ DrawValueLabel(Widget w, SliderWidget sw, ISWRenderContext *ctx,
     int lx, ly;
 
     switch (sw->slider.value_pos) {
-    case IswSliderValueTop:
-        lx = area_x;
-        ly = area_y - margin;  /* baseline sits above the slider area */
-        break;
-    case IswSliderValueBottom:
-        lx = area_x;
-        ly = area_y + area_h + margin + font_asc;
-        break;
-    case IswSliderValueLeft:
-        lx = area_x - margin - text_w;
-        ly = area_y + area_h / 2 + font_asc / 2;
-        break;
-    case IswSliderValueRight:
-        lx = area_x + area_w + margin;
-        ly = area_y + area_h / 2 + font_asc / 2;
-        break;
-    default:
-        return;
+        case IswSliderValueTop:
+            lx = area_x;
+            ly = area_y - margin;  /* baseline sits above the slider area */
+            if(sw->slider.orientation == IswOrientVertical) {
+                lx = lx + (area_w / 2) - (text_w / 2);
+                ly = ly - (THUMB_SIZE / 2);
+            }
+            break;
+        case IswSliderValueBottom:
+            lx = area_x;
+            ly = area_y + area_h + margin + font_asc;
+            if(sw->slider.orientation == IswOrientVertical) {
+                lx = lx + (area_w / 2) - (text_w / 2);
+                ly = ly + (THUMB_SIZE / 2);
+            }
+            break;
+        case IswSliderValueLeft:
+            lx = area_x - margin - text_w;
+            ly = area_y + area_h / 2 + font_asc / 2;
+            break;
+        case IswSliderValueRight:
+            lx = area_x + area_w + margin;
+            ly = area_y + area_h / 2 + font_asc / 2;
+            break;
+        default:
+            return;
     }
 
     /* Clamp to widget bounds */
@@ -481,10 +461,10 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (!ctx || !IswIsRealized(w))
         return;
 
-    Dimension thumb_w = ThumbW(sw);
-    Dimension thumb_h = ThumbH(sw);
-    Dimension track_thick = TrackThick(sw);
-    Dimension half_thumb = thumb_w / 2;
+    Dimension thumb_w = THUMB_SIZE;
+    Dimension thumb_h = THUMB_SIZE;
+    Dimension track_thick = TRACK_THICKNESS;
+    Dimension half_thumb = THUMB_SIZE / 2;
     int off_x = TrackZoneOffsetX(sw);
     int off_y = TrackZoneOffsetY(sw);
 
@@ -508,7 +488,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         int track_x = off_x + (int)half_thumb;
         int track_w = (int)sw->core.width - off_x - (int)thumb_w;
         ISWRenderFillStrokeRoundedRectangle(ctx, track_x, track_y, track_w, track_thick,
-                                          track_thick / 2.0, 0.2, 1);
+                                          track_thick / 2.0, 0.3, 1);
         
 
         /* Tick marks (below track) */
@@ -527,14 +507,13 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             }
         }
 
-        /* Thumb — thin bar perpendicular to track, radiused on the ends */
-        {
-            Dimension bar_thick = (THUMB_BAR_THICK);
-            Position tx = sw->slider.thumb_pos - (Position)(bar_thick / 2);
-            Position ty = track_center_y - (int)thumb_h / 2;
-            ISWRenderFillRoundedRectangle(ctx, tx, ty, bar_thick, thumb_h,
-                                          bar_thick / 2.0);
-        }
+        Dimension ts = (THUMB_SIZE);
+        Position tx = sw->slider.thumb_pos - (Position)(ts / 2);
+        Position ty = track_center_y - (int)ts / 2;
+        ISWRenderSetColor(ctx, sw->core.background_pixel);
+        ISWRenderFillRoundedRectangle(ctx, tx, ty, ts, ts, 3.0);
+        ISWRenderSetColor(ctx, sw->slider.foreground);
+        ISWRenderStrokeRoundedRectangle(ctx, tx, ty, ts, ts, 3.0, 1.0);
 
         /* Value label — area is the full thumb extent */
         int area_y = track_center_y - (int)thumb_h / 2;
@@ -550,7 +529,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         int track_top = off_y + (int)half_thumb;
         int track_h = (int)sw->core.height - off_y - (int)thumb_w;
         ISWRenderFillStrokeRoundedRectangle(ctx, track_x, track_top, track_thick, track_h,
-                                          track_thick / 2.0, 0.2, 1);
+                                          track_thick / 2.0, 0.3, 1);
 
         /* Tick marks (right of track) */
         if (sw->slider.tick_interval > 0) {
@@ -568,15 +547,14 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             }
         }
 
-        /* Thumb — same shape as horizontal, rotated 90 degrees */
-        {
-            Dimension bar_thick = (THUMB_BAR_THICK);
-            Position tx = track_center_x - (int)thumb_h / 2;
-            Position ty = sw->slider.thumb_pos - (Position)(bar_thick / 2);
-            ISWRenderFillRoundedRectangle(ctx, tx, ty, thumb_h, bar_thick,
-                                          bar_thick / 2.0);
-        }
-
+        Dimension ts = (THUMB_SIZE);
+        Position tx = track_center_x - (int)ts / 2;
+        Position ty = sw->slider.thumb_pos - (Position)(ts / 2);
+        ISWRenderSetColor(ctx, sw->core.background_pixel);
+        ISWRenderFillRoundedRectangle(ctx, tx, ty, ts, ts, 3.0);
+        ISWRenderSetColor(ctx, sw->slider.foreground);
+        ISWRenderStrokeRoundedRectangle(ctx, tx, ty, ts, ts, 3.0, 1.0);
+        
         /* Value label — area is the full thumb extent */
         int area_x = track_center_x - (int)thumb_w / 2;
         DrawValueLabel(w, sw, ctx, area_x, track_top, (int)thumb_w, track_h);
@@ -646,7 +624,7 @@ StartDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
     ExtractPosition(event, &x, &y);
 
     Position pick = (sw->slider.orientation == IswOrientHorizontal) ? x : y;
-    Dimension half_thumb = ThumbW(sw) / 2;
+    Dimension half_thumb = THUMB_SIZE / 2;
 
     /* Check if click is on the thumb */
     if (pick >= sw->slider.thumb_pos - (Position)half_thumb &&
