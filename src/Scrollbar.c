@@ -229,16 +229,8 @@ ClassInitialize(void)
 /* CHECKIT #define MARGIN(sbw) (sbw)->scrollbar.thickness */
 #define MARGIN(sbw) (sbw)->scrollbar.thickness
 
-/*
- The original Isw Scrollbar's FillArea *really* relied on the fact that the
- server was going to clip at the window boundaries; so the logic was really
- rather sloppy.  To avoid drawing over the shadows and the arrows requires
- some extra care...  Hope I didn't make any mistakes.
-*/
-/* Padding between the scrollbar edges and the trough/thumb */
-#define SCROLLBAR_PAD 2
 /* Inset of the thumb relative to the trough */
-#define THUMB_INSET 3
+#define THUMB_INSET 2
 
 static void
 FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
@@ -254,18 +246,18 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     floor = sbw->scrollbar.length - margin;
 
     /* Inset the thumb so it's narrower than the channel */
-    int inset = fill ? (SCROLLBAR_PAD + THUMB_INSET) : SCROLLBAR_PAD;
+    int inset = fill ? THUMB_INSET : 0;
 
     if (sbw->scrollbar.orientation == IswOrientHorizontal) {
-	lx = ((top < margin) ? margin : top);
-	ly = sw + inset;
-	lw = ((bottom > floor) ? floor - top : tlen);
-	lh = sbw->core.height - 2 * sw - 2 * inset;
+	    lx = ((top < margin) ? margin : top);
+	    ly = sw + inset;
+	    lw = ((bottom > floor) ? floor - top : tlen);
+	    lh = sbw->core.height - 2 * sw - 2 * inset;
     } else {
-	lx = sw + inset;
-	ly = ((top < margin) ? margin : top);
-	lw = sbw->core.width - 2 * sw - 2 * inset;
-	lh = ((bottom > floor) ? floor - top : tlen);
+	    lx = sw + inset;
+	    ly = ((top < margin) ? margin : top);
+	    lw = sbw->core.width - 2 * sw - 2 * inset;
+	    lh = ((bottom > floor) ? floor - top : tlen);
     }
     if (lh <= 0 || lw <= 0) return;
 
@@ -295,7 +287,6 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
 static void
 PaintThumb (ScrollbarWidget sbw, xcb_generic_event_t *event)
 {
-    Dimension s                   = 0;
     Position  oldtop              = sbw->scrollbar.topLoc;
     Position  oldbot              = oldtop + sbw->scrollbar.shownLength;
     Dimension margin              = MARGIN (sbw);
@@ -318,28 +309,10 @@ PaintThumb (ScrollbarWidget sbw, xcb_generic_event_t *event)
     sbw->scrollbar.topLoc = newtop;
     sbw->scrollbar.shownLength = newbot - newtop;
     if (IswIsRealized ((Widget) sbw)) {
-      /*  3D thumb wanted ?
-       */
-      if (s)
-   {
-          /* Clear entire old thumb area then draw new one.
-           * Differential clearing leaves border remnants. */
-          if (oldtop != oldbot)
-              FillArea(sbw, oldtop, oldbot, 0);
-          FillArea(sbw, newtop, newbot, 1);
-   }
-      else
-   {
-   /*
-     Note to Mitch: FillArea is (now) correctly implemented to
-     not draw over shadows or the arrows. Therefore setting clipmasks
-     doesn't seem to be necessary.  Correct me if I'm wrong!
-   */
-          /* Clear entire old thumb area then draw new one. */
-          if (oldtop != oldbot)
-              FillArea(sbw, oldtop, oldbot, 0);
-          FillArea(sbw, newtop, newbot, 1);
-   }
+        /* Clear entire old thumb area then draw new one. */
+        if (oldtop != oldbot)
+            FillArea(sbw, oldtop, oldbot, 0);
+        FillArea(sbw, newtop, newbot, 1);
     }
 }
 
@@ -347,72 +320,18 @@ static void
 PaintArrows (ScrollbarWidget sbw)
 {
     xcb_point_t    pt[20];
-    Dimension s                   = 0;
     Dimension t   = sbw->scrollbar.thickness;
     Dimension l   = sbw->scrollbar.length;
-    Dimension tms = t - s, lms = l - s;
+    Dimension tms = t , lms = l;
     Dimension tm1 = t - 1;
     Dimension lmt = l - t;
     Dimension lp1 = lmt + 1;
-    Dimension sm1 = s - 1;
     Dimension t2  = t / 2;
-    Dimension sa30 = (Dimension)(1.732 * s );  /* cotangent of 30 deg */
-
+    Dimension sa30 = (Dimension)(1.732);  /* cotangent of 30 deg */
 
     if (IswIsRealized ((Widget) sbw)) {
-	/* 3D arrows?
-         */
-	if (s) {
-	    /* upper/right arrow */
-	    pt[0].x = sm1;         pt[0].y = tm1;
-	    pt[1].x = t2;          pt[1].y = sm1;
-	    pt[2].x = t2;          pt[2].y = s + sa30;
-	    pt[3].x = sm1 + sa30;  pt[3].y = tms - 1;
-
-	    pt[4].x = sm1;         pt[4].y = tm1;
-	    pt[5].x = tms;         pt[5].y = tm1;
-	    pt[6].x = t2;          pt[6].y = sm1;
-	    pt[7].x = t2;          pt[7].y = s + sa30;
-	    pt[8].x = tms - sa30;  pt[8].y = tms - 1;
-	    pt[9].x = sm1 + sa30;  pt[9].y = tms - 1;
-
-	    /* lower/left arrow */
-	    pt[10].x = tms;        pt[10].y = lp1;
-	    pt[11].x = s;          pt[11].y = lp1;
-	    pt[12].x = t2;         pt[12].y = lms;
-	    pt[13].x = t2;         pt[13].y = lms - sa30;
-	    pt[14].x = s + sa30;   pt[14].y = lmt + s + 1;
-	    pt[15].x = tms - sa30; pt[15].y = lmt + s + 1;
-
-	    pt[16].x = tms;        pt[16].y = lp1;
-	    pt[17].x = t2;         pt[17].y = lms;
-	    pt[18].x = t2;         pt[18].y = lms - sa30;
-	    pt[19].x = tms - sa30; pt[19].y = lmt + s + 1;
-
-	    /* horizontal arrows require that x and y coordinates be swapped */
-	    if (sbw->scrollbar.orientation == IswOrientHorizontal) {
-		int n;
-		int swap;
-		for (n = 0; n < 20; n++) {
-		    swap = pt[n].x;
-		    pt[n].x = pt[n].y;
-		    pt[n].y = swap;
-		}
-	    }
-	           ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
-	           
-	           /* Use Cairo for polygon rendering */
-	           ISWRenderBegin(ctx);
-	           ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-	           ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 4);
-	           ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 4), 6);
-	           ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 10), 6);
-	           ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt + 16), 4);
-	           ISWRenderEnd(ctx);
-
-	} else {
 	    /* Arrow base matches trough width; tips are inset along length */
-	    Dimension bp = SCROLLBAR_PAD + THUMB_INSET;  /* base matches thumb width */
+	    Dimension bp = THUMB_INSET;  /* base matches thumb width */
 	    Dimension tp = t / 4;          /* tip inset along length axis */
 
 	    pt[0].x = bp;          pt[0].y = tm1 - tp;
@@ -425,13 +344,13 @@ PaintArrows (ScrollbarWidget sbw)
 
 	    /* horizontal arrows require that x and y coordinates be swapped */
 	    if (sbw->scrollbar.orientation == IswOrientHorizontal) {
-		int n;
-		int swap;
-		for (n = 0; n < 6; n++) {
-		    swap = pt[n].x;
-		    pt[n].x = pt[n].y;
-		    pt[n].y = swap;
-		}
+		    int n;
+		    int swap;
+		    for (n = 0; n < 6; n++) {
+		        swap = pt[n].x;
+		        pt[n].x = pt[n].y;
+		        pt[n].y = swap;
+		    }
 	    }
 	    ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
 	    ISWRenderBegin(ctx);
@@ -439,7 +358,6 @@ PaintArrows (ScrollbarWidget sbw)
 	    ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 3);
 	    ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt+3), 3);
 	    ISWRenderEnd(ctx);
-	}
     }
 }
 
@@ -464,11 +382,11 @@ static void
 SetDimensions (ScrollbarWidget sbw)
 {
     if (sbw->scrollbar.orientation == IswOrientVertical) {
-	sbw->scrollbar.length = sbw->core.height;
-	sbw->scrollbar.thickness = sbw->core.width;
+	    sbw->scrollbar.length = sbw->core.height;
+	    sbw->scrollbar.thickness = sbw->core.width;
     } else {
-	sbw->scrollbar.length = sbw->core.width;
-	sbw->scrollbar.thickness = sbw->core.height;
+	    sbw->scrollbar.length = sbw->core.width;
+	    sbw->scrollbar.thickness = sbw->core.height;
     }
 }
 
@@ -573,19 +491,19 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 
     /* Draw the trough (channel) in background color, padded from the edges */
     {
-        Dimension s = 0;
+
         Dimension margin = MARGIN(sbw);
         int tx, ty, tw, th;
 
         if (sbw->scrollbar.orientation == IswOrientHorizontal) {
             tx = margin;
-            ty = s + SCROLLBAR_PAD;
+            ty = 0;
             tw = sbw->scrollbar.length - 2 * margin;
-            th = sbw->core.height - 2 * s - 2 * SCROLLBAR_PAD;
+            th = sbw->core.height - 2;
         } else {
-            tx = s + SCROLLBAR_PAD;
+            tx = 0;
             ty = margin;
-            tw = sbw->core.width - 2 * s - 2 * SCROLLBAR_PAD;
+            tw = sbw->core.width - 2;
             th = sbw->scrollbar.length - 2 * margin;
         }
 
