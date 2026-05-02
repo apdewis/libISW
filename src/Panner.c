@@ -514,13 +514,10 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     PannerWidget pw = (PannerWidget) gw;
     int pad = pw->panner.internal_border;
-    Dimension lw = pw->panner.line_width;
-    Dimension extra = lw * 2;
     int kx = pw->panner.knob_x + pad, ky = pw->panner.knob_y + pad;
 
     pw->panner.tmp.showing = FALSE;
 
-    /* Lazy initialization of Cairo render context */
     if (!pw->panner.render_ctx) {
         pw->panner.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
         if (!pw->panner.render_ctx) {
@@ -528,37 +525,25 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         }
     }
 
-    /* Clear old knob position */
     ISWRenderBegin(pw->panner.render_ctx);
     ISWRenderSetColor(pw->panner.render_ctx, pw->core.background_pixel);
-    ISWRenderFillRectangle(pw->panner.render_ctx,
-                   (int) pw->panner.last_x - ((int) lw) + pad,
-                   (int) pw->panner.last_y - ((int) lw) + pad,
-                   (int) (pw->panner.knob_width + extra),
-                   (int) (pw->panner.knob_height + extra));
+    ISWRenderFillStrokeRoundedRectangle(pw->panner.render_ctx,
+                   (int) pw->panner.last_x - 1 + pad,
+                   (int) pw->panner.last_y - 1 + pad,
+                   (int) (pw->panner.knob_width + 1),
+                   (int) (pw->panner.knob_height + 1),
+                   0, 1, 1.5);
     ISWRenderEnd(pw->panner.render_ctx);
     pw->panner.last_x = pw->panner.knob_x;
     pw->panner.last_y = pw->panner.knob_y;
 
-    /* Use Cairo rendering for normal operations */
     ISWRenderBegin(pw->panner.render_ctx);
-    
-    /* Draw the slider/knob fill */
     ISWRenderSetColor(pw->panner.render_ctx, pw->panner.foreground);
-    ISWRenderFillRectangle(pw->panner.render_ctx,
-                          kx, ky, 
-                          pw->panner.knob_width - 1, 
-                          pw->panner.knob_height - 1);
-
-    /* Draw the slider/knob outline if line_width > 0 */
-    if (lw) {
-        ISWRenderSetLineWidth(pw->panner.render_ctx, (double)lw);
-        ISWRenderStrokeRectangle(pw->panner.render_ctx,
-                              kx, ky,
-                              pw->panner.knob_width - 1,
-                              pw->panner.knob_height - 1);
-    }
-
+    ISWRenderFillStrokeRoundedRectangle(pw->panner.render_ctx,
+                          kx, ky,
+                          pw->panner.knob_width - 1,
+                          pw->panner.knob_height - 1,
+                          0, 0.2, 1);
     ISWRenderEnd(pw->panner.render_ctx);
     
     /* XOR rubber-band drawing stays in XCB */
