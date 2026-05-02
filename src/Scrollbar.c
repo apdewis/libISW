@@ -230,7 +230,7 @@ ClassInitialize(void)
 #define MARGIN(sbw) (sbw)->scrollbar.thickness
 
 /* Inset of the thumb relative to the trough */
-#define THUMB_INSET 2
+#define THUMB_INSET 3
 
 static void
 FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
