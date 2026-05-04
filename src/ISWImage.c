@@ -149,7 +149,8 @@ ISWImageGetWidth(ISWImage *image)
         return 0.0f;
     if (image->type == ISW_IMAGE_SVG)
         return ISWSVGGetWidth(image->svg);
-    return (float)ISWPNGGetWidth(image->png);
+    unsigned int w = ISWPNGGetWidth(image->png);
+    return (float)w;
 }
 
 float
@@ -159,7 +160,8 @@ ISWImageGetHeight(ISWImage *image)
         return 0.0f;
     if (image->type == ISW_IMAGE_SVG)
         return ISWSVGGetHeight(image->svg);
-    return (float)ISWPNGGetHeight(image->png);
+    unsigned int h = ISWPNGGetHeight(image->png);
+    return (float)h;
 }
 
 Boolean

@@ -50,7 +50,7 @@ typedef int XContext;
  */
 
 #ifndef ConnectionNumber
-#define ConnectionNumber(dpy) xcb_get_file_descriptor(dpy)
+#define ConnectionNumber(dpy) xcb_get_file_descriptor((xcb_connection_t*)(dpy))
 #endif
 
 #ifndef DefaultRootWindow

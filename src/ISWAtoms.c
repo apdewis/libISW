@@ -29,6 +29,12 @@ typedef unsigned int Cardinal;
 #define True 1
 #endif
 
+/* Forward declarations */
+xcb_atom_t IswInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists);
+void IswInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, xcb_atom_t *atoms_return);
+char* IswNameOfAtom(xcb_connection_t *dpy, xcb_atom_t atom);
+xcb_atom_t IswMakeAtom(const char *name);
+
 /*
  * Static atom table for common X atoms
  * Avoids server round-trips for well-known atoms

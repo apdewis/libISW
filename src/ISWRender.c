@@ -1118,7 +1118,8 @@ ISWScaledTextWidth(Widget widget, IswFontStruct *font, const char *text, int len
     null_term[len] = '\0';
 
     cairo_text_extents(cr, null_term, &extents);
-    width = (int)ceil(extents.x_advance);
+    double adv = ceil(extents.x_advance);
+    width = (int)adv;
 
     free(null_term);
     return width;
@@ -1129,7 +1130,8 @@ ISWScaledFontHeight(Widget widget, IswFontStruct *font)
 {
     cairo_font_extents_t extents;
     _ISWGetCairoFontExtents(widget, font, &extents);
-    return (int)ceil(extents.ascent + extents.descent);
+    double h = ceil(extents.ascent + extents.descent);
+    return (int)h;
 }
 
 int
@@ -1137,7 +1139,8 @@ ISWScaledFontAscent(Widget widget, IswFontStruct *font)
 {
     cairo_font_extents_t extents;
     _ISWGetCairoFontExtents(widget, font, &extents);
-    return (int)ceil(extents.ascent);
+    double a = ceil(extents.ascent);
+    return (int)a;
 }
 
 int
@@ -1149,7 +1152,8 @@ ISWScaledFontCapHeight(Widget widget, IswFontStruct *font)
     _ISWSyncMeasureFont(cr, widget, font);
 
     cairo_text_extents(cr, "X", &text_ext);
-    return (int)ceil(-text_ext.y_bearing);
+    double cap = ceil(-text_ext.y_bearing);
+    return (int)cap;
 }
 
 /* Cairo is now a mandatory dependency — no non-Cairo fallback needed */

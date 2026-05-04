@@ -450,7 +450,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         ISWRenderBegin(smw->simple_menu.render_ctx);
     }
 
-    if (region == NULL) {
+    if (region == 0) {
         if (smw->simple_menu.render_ctx) {
             ISWRenderSetColor(smw->simple_menu.render_ctx, w->core.background_pixel);
             ISWRenderFillRectangle(smw->simple_menu.render_ctx, 0, 0,

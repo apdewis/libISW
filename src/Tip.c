@@ -397,7 +397,7 @@ static void
 IswTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     TipWidget tip = (TipWidget)w;
-    char *nl, *label = tip->tip.label;
+    const char *nl, *label = tip->tip.label;
     int len, line_height;
     Position y;
     ISWRenderContext *ctx;
@@ -468,7 +468,7 @@ TipLayout(IswTipInfo *info)
     IswFontStruct	*fs = info->tip->tip.font;
     Widget w = (Widget)info->tip;
     int width = 0, height;
-    char *nl, *label = info->tip->tip.label;
+    const char *nl, *label = info->tip->tip.label;
 
     if (!label || !*label) {
 	IswWidth(info->tip) = 1;

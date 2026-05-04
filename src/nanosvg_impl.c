@@ -17,8 +17,15 @@
 #include <math.h>
 #include <stdlib.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wbad-function-cast"
+#pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wmissing-prototypes"
+
 #define NANOSVG_IMPLEMENTATION
 #include "nanosvg.h"
 
 #define NANOSVGRAST_IMPLEMENTATION
 #include "nanosvgrast.h"
+
+#pragma GCC diagnostic pop

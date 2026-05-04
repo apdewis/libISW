@@ -41,7 +41,7 @@ The Japanese user typically hits their Kanji key when they want to do
 input.  This merely makes sure the input is connected.
 */
 
-char *_IswDefaultTextTranslations1 =
+const char *_IswDefaultTextTranslations1 =
 "\
 Ctrl<Key>A:	beginning-of-line() \n\
 Ctrl<Key>B:	backward-character() \n\

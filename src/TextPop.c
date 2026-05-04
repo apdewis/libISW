@@ -93,7 +93,7 @@ static void DoInsert(Widget, IswPointer, IswPointer);
 static void _SetField(Widget, Widget);
 static void InitializeSearchWidget(struct SearchAndReplace *,
                                    IswTextScanDirection, Boolean);
-static void SetResource(Widget, char *, IswArgVal);
+static void SetResource(Widget, const char *, IswArgVal);
 static void SetSearchLabels(struct SearchAndReplace *, String, String, Boolean);
 static void DoReplaceOne(Widget, IswPointer, IswPointer);
 static void DoReplaceAll(Widget, IswPointer, IswPointer);
@@ -101,12 +101,12 @@ static Widget CreateDialog(Widget, String, String, void (*)(Widget, String, Widg
 static Widget GetShell(Widget);
 static void SetWMProtocolTranslations(Widget);
 static Boolean DoSearch(struct SearchAndReplace *);
-static Boolean SetResourceByName(Widget, char *, char *, IswArgVal);
+static Boolean SetResourceByName(Widget, const char *, const char *, IswArgVal);
 static Boolean Replace(struct SearchAndReplace *, Boolean, Boolean);
 static String GetString(Widget);
-static String GetStringRaw(Widget);
+static char *GetStringRaw(Widget);
 static void AddInsertFileChildren(Widget, String, Widget);
-static Boolean InsertFileNamed(Widget, char *);
+static Boolean InsertFileNamed(Widget, const char *);
 static void AddSearchChildren(Widget, String, Widget);
 
 void _IswTextDoReplaceAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
@@ -179,7 +179,7 @@ void
 _IswTextInsertFile(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget)w;
-  char * ptr;
+  String ptr;
   IswTextEditType edit_mode;
   IswArgBuilder ab = IswArgBuilderInit();
   IswArgEditType(&ab, (IswArgVal)&edit_mode);
@@ -272,7 +272,7 @@ DoInsert(Widget w, IswPointer closure, IswPointer call_data)
 
 
 static Boolean
-InsertFileNamed(Widget tw, char *str)
+InsertFileNamed(Widget tw, const char *str)
 {
   FILE *file;
   ISWTextBlock text;
@@ -487,7 +487,8 @@ _IswTextSearch(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
 {
   TextWidget ctx = (TextWidget)w;
   IswTextScanDirection dir;
-  char * ptr, buf[BUFSIZ];
+  String ptr;
+  char buf[BUFSIZ];
   IswTextEditType edit_mode;
 
 #ifdef notdef
@@ -623,7 +624,7 @@ AddSearchChildren(Widget form, String ptr, Widget tw)
   IswArgFromVert(&ab, search->label2);
   IswArgLeft(&ab, IswChainLeft);
   IswArgRight(&ab, IswChainLeft);
-  IswArgRadioData(&ab, (IswPointer) IswsdLeft + R_OFFSET);
+  IswArgRadioData(&ab, (IswPointer)((intptr_t)IswsdLeft + R_OFFSET));
   search->left_toggle = IswCreateManagedWidget("backwards", toggleWidgetClass,
 					      form, ab.args, ab.count);
 
@@ -634,7 +635,7 @@ AddSearchChildren(Widget form, String ptr, Widget tw)
   IswArgLeft(&ab, IswChainLeft);
   IswArgRight(&ab, IswChainLeft);
   IswArgRadioGroup(&ab, search->left_toggle);
-  IswArgRadioData(&ab, (IswPointer) IswsdRight + R_OFFSET);
+  IswArgRadioData(&ab, (IswPointer)((intptr_t)IswsdRight + R_OFFSET));
   search->right_toggle = IswCreateManagedWidget("forwards", toggleWidgetClass,
 					       form, ab.args, ab.count);
 
@@ -781,8 +782,10 @@ DoSearch(struct SearchAndReplace * search)
       text.length = strlen(text.ptr);
   text.firstPos = 0;
 
-  dir = (IswTextScanDirection)(intptr_t) ((IswPointer)IswToggleGetCurrent(search->left_toggle) -
-				R_OFFSET);
+  {
+    IswPointer toggle_val = IswToggleGetCurrent(search->left_toggle);
+    dir = (IswTextScanDirection)(intptr_t) ((intptr_t)toggle_val - R_OFFSET);
+  }
 
   pos = IswTextSearch( tw, dir, &text);
 
@@ -905,8 +908,10 @@ Replace(struct SearchAndReplace *search, Boolean once_only, Boolean show_current
   replace.format = _IswTextFormat(ctx);
       replace.length = strlen(replace.ptr);
 
-  dir = (IswTextScanDirection)(intptr_t) ((IswPointer)IswToggleGetCurrent(search->left_toggle) -
-				R_OFFSET);
+  {
+    IswPointer toggle_val = IswToggleGetCurrent(search->left_toggle);
+    dir = (IswTextScanDirection)(intptr_t) ((intptr_t)toggle_val - R_OFFSET);
+  }
   /* CONSTCOND */
   while (TRUE) {
     if (count != 0) {
@@ -1084,7 +1089,7 @@ _SetField(Widget new, Widget old)
  */
 
 static Boolean
-SetResourceByName(Widget shell, char *name, char *res_name, IswArgVal value)
+SetResourceByName(Widget shell, const char *name, const char *res_name, IswArgVal value)
 {
   Widget temp_widget;
   char buf[BUFSIZ];
@@ -1107,7 +1112,7 @@ SetResourceByName(Widget shell, char *name, char *res_name, IswArgVal value)
  */
 
 static void
-SetResource(Widget w, char *res_name, IswArgVal value)
+SetResource(Widget w, const char *res_name, IswArgVal value)
 {
   IswArgBuilder ab = IswArgBuilderInit();
 
@@ -1134,7 +1139,7 @@ GetString(Widget text)
   return(string);
 }
 
-static String
+static char *
 GetStringRaw(Widget tw)
 {
   TextWidget ctx = (TextWidget)tw;
@@ -1277,7 +1282,7 @@ InParams(String str, String *p, Cardinal n)
     return False;
 }
 
-static char *WM_DELETE_WINDOW = "WM_DELETE_WINDOW";
+static const char *WM_DELETE_WINDOW = "WM_DELETE_WINDOW";
 
 static void
 WMProtocols(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)

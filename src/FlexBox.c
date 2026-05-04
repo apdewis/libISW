@@ -300,17 +300,17 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
      * size + bw, plus one extra bw for the first child's outer edge. */
     if (!set_children) {
         int preferred_base = 0;
-        int last_bw = 0;
+        int pref_last_bw = 0;
         for (int i = 0; i < n; i++) {
             Widget child = children[i];
             if (!IswIsManaged(child))
                 continue;
             int bw = (int)child->core.border_width;
             preferred_base += (int)ChildBasis(fw, child, horiz) + bw;
-            last_bw = bw;
+            pref_last_bw = bw;
         }
         /* One extra bw for the last child's trailing outer border edge. */
-        preferred_base += last_bw;
+        preferred_base += pref_last_bw;
         int preferred_main = preferred_base + total_spacing;
         fw->flexBox.preferred_width  = horiz ? (Dimension)preferred_main : max_cross;
         fw->flexBox.preferred_height = horiz ? max_cross : (Dimension)preferred_main;

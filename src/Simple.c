@@ -133,18 +133,6 @@ WidgetClass simpleWidgetClass = (WidgetClass)&simpleClassRec;
 static void
 ClassInitialize(void)
 {
-    static IswConvertArgRec convertArg[] = {
-        {IswWidgetBaseOffset, (IswPointer) IswOffsetOf(WidgetRec, core.screen),
-      sizeof(xcb_screen_t *)},
-        /* Color resources removed for XCB compatibility
-        {IswResourceString, (IswPointer) IswNpointerColor, sizeof(Pixel)},
-        {IswResourceString, (IswPointer) IswNpointerColorBackground,
-      sizeof(Pixel)},
-        */
-        {IswWidgetBaseOffset, (IswPointer) IswOffsetOf(WidgetRec, core.colormap),
-      sizeof(xcb_colormap_t)}
-    };
-
     IswInitializeWidgetSet();
     /* Color cursor converter removed - not available in XCB
     IswSetTypeConverter( IswRString, IswRColorCursor, XmuCvtStringToColorCursor,

@@ -38,8 +38,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
-
 /* XDND protocol version we support */
 #define XDND_VERSION 5
 

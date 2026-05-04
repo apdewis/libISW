@@ -474,6 +474,8 @@ extern xcb_xrm_database_t *_IswPreparseCommandLine(XrmOptionDescRec *urlist,
 			String *applName, String *displayName,
 			String *language);
 
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+
 _XFUNCPROTOEND
 
 #endif /* _IswinitialI_h */

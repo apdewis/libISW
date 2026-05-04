@@ -320,12 +320,10 @@ PaintArrows (ScrollbarWidget sbw)
     xcb_point_t    pt[20];
     Dimension t   = sbw->scrollbar.thickness;
     Dimension l   = sbw->scrollbar.length;
-    Dimension tms = t , lms = l;
     Dimension tm1 = t - 1;
     Dimension lmt = l - t;
     Dimension lp1 = lmt + 1;
     Dimension t2  = t / 2;
-    Dimension sa30 = (Dimension)(1.732);  /* cotangent of 30 deg */
 
     if (IswIsRealized ((Widget) sbw)) {
 	    /* Arrow base matches trough width; tips are inset along length */
@@ -509,56 +507,6 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     }
 }
 
-
-static Boolean
-CompareEvents(xcb_generic_event_t *oldEvent, xcb_generic_event_t *newEvent)
-{
-    uint8_t oldType = oldEvent->response_type & ~0x80;
-    uint8_t newType = newEvent->response_type & ~0x80;
-    
-    if (newType != oldType)
-	return False;
-
-    switch (newType) {
-    case XCB_MOTION_NOTIFY: {
-	xcb_motion_notify_event_t *newMotion = (xcb_motion_notify_event_t*)newEvent;
-	xcb_motion_notify_event_t *oldMotion = (xcb_motion_notify_event_t*)oldEvent;
-	if (newMotion->state != oldMotion->state) return False;
-	if (newMotion->event != oldMotion->event) return False;
-	break;
-    }
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE: {
-	xcb_button_press_event_t *newButton = (xcb_button_press_event_t*)newEvent;
-	xcb_button_press_event_t *oldButton = (xcb_button_press_event_t*)oldEvent;
-	if (newButton->state != oldButton->state) return False;
-	if (newButton->detail != oldButton->detail) return False;
-	if (newButton->event != oldButton->event) return False;
-	break;
-    }
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE: {
-	xcb_key_press_event_t *newKey = (xcb_key_press_event_t*)newEvent;
-	xcb_key_press_event_t *oldKey = (xcb_key_press_event_t*)oldEvent;
-	if (newKey->state != oldKey->state) return False;
-	if (newKey->detail != oldKey->detail) return False;
-	if (newKey->event != oldKey->event) return False;
-	break;
-    }
-    case XCB_ENTER_NOTIFY:
-    case XCB_LEAVE_NOTIFY: {
-	xcb_enter_notify_event_t *newCross = (xcb_enter_notify_event_t*)newEvent;
-	xcb_enter_notify_event_t *oldCross = (xcb_enter_notify_event_t*)oldEvent;
-	if (newCross->mode != oldCross->mode) return False;
-	if (newCross->detail != oldCross->detail) return False;
-	if (newCross->state != oldCross->state) return False;
-	if (newCross->event != oldCross->event) return False;
-	break;
-    }
-    }
-
-    return True;
-}
 
 /* Unused - LookAhead is stubbed out for XCB compatibility
 struct EventData {

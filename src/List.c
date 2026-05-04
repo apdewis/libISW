@@ -103,7 +103,7 @@ static IswResource resources[] = {
     {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
 	offset(list.foreground), IswRString, IswDefaultForeground},
     {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-       offset(simple.cursor), IswRString, "left_ptr"},
+       offset(simple.cursor), IswRString, (IswPointer)"left_ptr"},
     {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
 	offset(list.font),IswRString, IswDefaultFont},
     {IswNlist, IswCList, IswRPointer, sizeof(char **),
@@ -531,7 +531,7 @@ HighlightBackground(Widget w, int x, int y, Pixel color)
 static void
 PaintItemName(Widget w, int item)
 {
-    char * str;
+    const char * str;
     Boolean is_highlighted;
     int x, y, str_y;
     ListWidget lw = (ListWidget) w;
@@ -770,7 +770,6 @@ static void
 Resize(Widget w)
 {
     Dimension width, height;
-    ListWidget lw = (ListWidget) w;
 
     width = w->core.width;
     height = w->core.height;

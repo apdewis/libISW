@@ -562,7 +562,6 @@ static void
 Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
     LabelWidget w = (LabelWidget) gw;
-    LabelWidgetClass lwclass = (LabelWidgetClass) IswClass (gw);
     ISWRenderContext *ctx = w->label.render_ctx;  /* Cairo rendering context */
     
     /* Create render context on first use (lazy initialization) */
@@ -884,7 +883,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     }
 
     if (newlw->label.label == NULL)
-	newlw->label.label = newlw->core.name;
+	newlw->label.label = (char *)newlw->core.name;
     if (curlw->label.label != newlw->label.label) {
         if (curlw->label.label != curlw->core.name)
 	    IswFree((char *)curlw->label.label);

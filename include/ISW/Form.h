@@ -97,15 +97,33 @@ SOFTWARE.
 #define IswRWidget "Widget"
 #endif
 
+#ifndef IswNdefaultDistance
 #define IswNdefaultDistance "defaultDistance"
+#endif
+#ifndef IswNbottom
 #define IswNbottom "bottom"
+#endif
+#ifndef IswNleft
 #define IswNleft "left"
+#endif
+#ifndef IswNright
 #define IswNright "right"
+#endif
+#ifndef IswNfromHoriz
 #define IswNfromHoriz "fromHoriz"
+#endif
+#ifndef IswNfromVert
 #define IswNfromVert "fromVert"
+#endif
+#ifndef IswNhorizDistance
 #define IswNhorizDistance "horizDistance"
+#endif
+#ifndef IswNvertDistance
 #define IswNvertDistance "vertDistance"
+#endif
+#ifndef IswNresizable
 #define IswNresizable "resizable"
+#endif
 
 #define IswCEdge "Edge"
 #define IswCWidget "Widget"

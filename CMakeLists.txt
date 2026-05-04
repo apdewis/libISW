@@ -240,6 +240,10 @@ set(SVG_SOURCES
     src/ISWPNG.c
 )
 
+# Suppress warnings in vendored lodepng
+set_source_files_properties(src/lodepng.c PROPERTIES
+    COMPILE_OPTIONS "-Wno-missing-prototypes;-Wno-missing-declarations")
+
 set(I18N_SOURCES)
 if(ISW_INTERNATIONALIZATION)
     set(I18N_SOURCES
@@ -261,6 +265,10 @@ add_library(ISW SHARED
     src/laygram.c
     src/laylex.c
 )
+
+# Suppress warnings in generated parser/lexer files
+set_source_files_properties(src/laygram.c src/laylex.c PROPERTIES
+    COMPILE_OPTIONS "-Wno-redundant-decls;-Wno-discarded-qualifiers")
 
 add_dependencies(ISW generate_strings)
 

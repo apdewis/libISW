@@ -340,9 +340,9 @@ get_event_xy (PannerWidget pw, xcb_generic_event_t *event, int *x, int *y)
 }
 
 static int
-parse_page_string (char *s, int pagesize, int canvassize, Boolean *relative)
+parse_page_string (const char *s, int pagesize, int canvassize, Boolean *relative)
 {
-    char *cp;
+    const char *cp;
     double val = 1.0;
     Boolean rel = FALSE;
 

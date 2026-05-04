@@ -349,8 +349,10 @@ ISWSVGRasterizeScale(ISWSVGImage *image, float scale,
     if (!image || !image->nsvg || scale <= 0)
         return NULL;
 
-    w = (unsigned int)ceilf(image->nsvg->width * scale);
-    h = (unsigned int)ceilf(image->nsvg->height * scale);
+    float fw = ceilf(image->nsvg->width * scale);
+    float fh = ceilf(image->nsvg->height * scale);
+    w = (unsigned int)fw;
+    h = (unsigned int)fh;
     if (w == 0 || h == 0)
         return NULL;
 

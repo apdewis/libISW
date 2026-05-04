@@ -51,11 +51,7 @@ in this Software without prior written authorization from the X Consortium.
 #include "ISWXcbDraw.h"
 #include <string.h>
 
-#ifdef L_tmpnam
-#define TMPSIZ L_tmpnam
-#else
-#define TMPSIZ 32
-#endif
+#define TMPSIZ 64
 
 #define MAGIC_VALUE ((ISWTextPosition) -1)
 #define streq(a, b) (strcmp((a), (b)) == 0)
@@ -77,7 +73,7 @@ static void CvtStringToEditMode(XrmValuePtr, Cardinal *, XrmValuePtr, XrmValuePt
 
 static IswResource resources[] = {
     {IswNeditType, IswCEditType, IswREditMode, sizeof(IswTextEditType),
-       offset(edit_mode), IswRString, "read"},
+       offset(edit_mode), IswRString, (IswPointer)"read"},
     {IswNstring, IswCString, IswRString, sizeof (char *),
        offset(string), IswRString, NULL},
     {IswNtype, IswCType, IswRTextSourceType, sizeof (IswTextSourceType),
@@ -794,7 +790,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args,
 
   if ( !total_reset &&
       (old_src->text_src.piece_size != src->text_src.piece_size) ) {
-      String string = StorePiecesInString(old_src);
+      char *string = StorePiecesInString(old_src);
       FreeAllPieces(old_src);
       LoadPieces(src, NULL, string);
       IswFree(string);
@@ -928,7 +924,7 @@ Boolean
 IswTextSourceSaveAsFile(Widget w, _Xconst char* name)
 {
   TextSrcObject src = (TextSrcObject) w;
-  String string;
+  char *string;
   Boolean ret;
 
   if (!IswIsSubclass(w, textSrcObjectClass)) {
@@ -1163,7 +1159,7 @@ StorePiecesInString(TextSrcObject src)
 static FILE *
 InitStringOrFile(TextSrcObject src, Boolean newString)
 {
-    char * open_mode = NULL;
+    const char * open_mode = NULL;
     FILE * file;
     char fileName[TMPSIZ];
 
@@ -1210,8 +1206,14 @@ InitStringOrFile(TextSrcObject src, Boolean newString)
     case IswtextAppend:
     case IswtextEdit:
 	if (src->text_src.string == NULL) {
+	    strncpy(fileName, "/tmp/isw_txtXXXXXX", TMPSIZ - 1);
+	    fileName[TMPSIZ - 1] = '\0';
+	    {
+		int fd = mkstemp(fileName);
+		if (fd >= 0)
+		    close(fd);
+	    }
 	    src->text_src.string = fileName;
-	    (void) tmpnam(src->text_src.string);
 	    src->text_src.is_tempfile = TRUE;
 	    open_mode = "w";
 	} else

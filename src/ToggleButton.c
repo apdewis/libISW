@@ -17,7 +17,7 @@ static char defaultTranslations[] =
 #define offset(field) IswOffsetOf(ToggleButtonRec, field)
 static IswResource resources[] = {
     {IswNstate, IswCState, IswRBoolean, sizeof(Boolean),
-       offset(command.set), IswRString, "off"},
+       offset(command.set), IswRString, (IswPointer)"off"},
     {IswNimageOn, IswCImageOn, IswRString, sizeof(String),
        offset(toggle_button.image_on_source), IswRImmediate, (IswPointer)NULL},
     {IswNimageOff, IswCImageOff, IswRString, sizeof(String),

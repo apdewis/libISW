@@ -733,7 +733,7 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
   text.firstPos = 0;
 
   text.format = _IswTextFormat(ctx);
-  text.ptr = "";	/* These two lines needed to make legal TextBlock */
+  text.ptr = (char *)"";	/* These two lines needed to make legal TextBlock */
 
   if (_IswTextReplace(ctx, from, to, &text)) {
     xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
@@ -1247,7 +1247,7 @@ AutoFill(TextWidget ctx)
     return;
 
   text.format = IswFmt8Bit;
-    text.ptr = "\n";
+    text.ptr = (char *)"\n";
   text.length = 1;
   text.firstPos = 0;
 
@@ -1264,7 +1264,6 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   TextWidget ctx = (TextWidget) w;
   char *ptr, strbuf[BUFSIZ];
   int count, error;
-  KeySym keysym;
   ISWTextBlock text;
 
   {
@@ -1308,8 +1307,6 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
         }
       }
 
-      keysym = sym;
-
       /* Convert keysym to character */
       if (sym >= 0x20 && sym <= 0x7E) {
         /* Printable ASCII */
@@ -1333,7 +1330,6 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
       }
     } else {
       text.length = 0;
-      keysym = 0;
     }
   }
 
@@ -1391,9 +1387,9 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
  * NOTE:    In neither case will there be strings to free. */
 
 static char*
-IfHexConvertHexElseReturnParam(char *param, int *len_return)
+IfHexConvertHexElseReturnParam(const char *param, int *len_return)
 {
-  char *p;                     /* steps through param char by char */
+  const char *p;               /* steps through param char by char */
   char c;                      /* holds the character pointed to by p */
 
   int ind;		       /* steps through hexval buffer char by char */
@@ -1404,7 +1400,7 @@ IfHexConvertHexElseReturnParam(char *param, int *len_return)
 
   if ( ( param[0] != '0' ) || ( param[1] != 'x' ) || ( param[2] == '\0' ) ) {
       *len_return = strlen( param );
-      return( param );
+      return (char *)param;
   }
 
   /* Skip the 0x; go character by character shifting and adding. */
@@ -1433,7 +1429,7 @@ IfHexConvertHexElseReturnParam(char *param, int *len_return)
               hexval[ ind ] = '\0';
           else {
               *len_return = strlen( param );
-              return( param );
+              return (char *)param;
           }
       }
   }
@@ -1448,7 +1444,7 @@ IfHexConvertHexElseReturnParam(char *param, int *len_return)
   /* Else, there were non-hex chars or odd digit count, so... */
 
   *len_return = strlen( param );
-  return( param );			   /* ...return the verbatim string. */
+  return (char *)param;			   /* ...return the verbatim string. */
 }
 
 
@@ -1523,7 +1519,7 @@ DisplayCaret(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
   if (*num_params > 0) {	/* default arg is "True" */
       XrmValue from, to;
       Boolean converted_value;
-      from.size = strlen(from.addr = params[0]);
+      from.size = strlen(from.addr = (IswPointer)params[0]);
       to.size = sizeof(Boolean);
       to.addr = (IswPointer)&converted_value;
       
@@ -1604,7 +1600,7 @@ StripOutOldCRs(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
   text.firstPos = 0;
   text.format = _IswTextFormat(ctx);
   if ( text.format == IswFmt8Bit )
-      text.ptr= "  ";
+      text.ptr= (char *)"  ";
 
   /* Strip out CR's. */
 
@@ -1680,7 +1676,7 @@ InsertNewCRs(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
   text.format = _IswTextFormat( ctx );
 
   if ( text.format == IswFmt8Bit )
-      text.ptr = "\n";
+      text.ptr = (char *)"\n";
 
   startPos = from;
   /* CONSTCOND */

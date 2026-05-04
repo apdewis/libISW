@@ -25,8 +25,7 @@
 /* Defined in Initialize.c */
 extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
-/* Defined in ISWRender.c — TTF font resolution via fontconfig/FreeType/cairo-ft */
-extern void _ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale);
+/* _ISWSetCairoFontFromXFont declared in ISWRenderPrivate.h */
 
 /*
  * Cairo-XCB Backend Data
@@ -356,11 +355,8 @@ cairo_xcb_begin(ISWRenderContext *ctx)
             data->back_surface = cairo_xcb_surface_create(
                 ctx->connection, data->back_pixmap, data->visual, aw, ah);
             /* HiDPI: device scale for logical→physical mapping */
-            {
-                double sf = _IswGetScaleFactor(ctx->connection);
-                if (sf > 1.0)
-                    cairo_surface_set_device_scale(data->back_surface, sf, sf);
-            }
+            if (sf > 1.0)
+                cairo_surface_set_device_scale(data->back_surface, sf, sf);
             data->back_ctx = cairo_create(data->back_surface);
             cairo_set_antialias(data->back_ctx, CAIRO_ANTIALIAS_GOOD);
             cairo_set_line_width(data->back_ctx, 1.0);
@@ -710,7 +706,8 @@ cairo_xcb_text_width(ISWRenderContext *ctx, const char *text, int len)
     /* With cairo_surface_set_device_scale, cairo_text_extents returns
      * logical pixel values automatically. */
     cairo_text_extents(data->cairo_ctx, null_term, &extents);
-    width = (int)ceil(extents.x_advance);
+    double adv = ceil(extents.x_advance);
+    width = (int)adv;
 
     free(null_term);
 

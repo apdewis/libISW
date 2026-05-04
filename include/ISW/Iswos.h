@@ -54,7 +54,7 @@ SOFTWARE.
 /* alloca() portability */
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && !defined(alloca)
 #define alloca __builtin_alloca
 #elif defined(_MSC_VER)
 #include <malloc.h>

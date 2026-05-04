@@ -63,7 +63,7 @@ typedef struct _IswGrabRec  *IswGrabList;
 
 _XFUNCPROTOBEGIN
 
-extern void _IswEventInitialize();
+extern void _IswEventInitialize(void);
 
 extern xcb_window_t get_event_window(xcb_generic_event_t *event);
 

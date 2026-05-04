@@ -247,9 +247,9 @@ IswCalloc(unsigned num, unsigned size)
 }
 
 void
-IswFree(char *ptr)
+IswFree(const void *ptr)
 {
-    free(ptr);
+    free((void *)ptr);
 }
 
 char *
@@ -477,7 +477,7 @@ IswCalloc(unsigned num, unsigned size)
 }
 
 Boolean
-_IswIsValidPointer(char *ptr)
+_IswIsValidPointer(const void *ptr)
 {
     register StatsPtr mem;
     register StatsPtr stp = ToStats(ptr);
@@ -496,7 +496,7 @@ _IswIsValidPointer(char *ptr)
 Boolean _IswValidateMemory = False;
 
 void
-_IswFree(char *ptr)
+_IswFree(const void *ptr)
 {
     register StatsPtr stp;
 
@@ -519,7 +519,7 @@ _IswFree(char *ptr)
 }
 
 void
-IswFree(char *ptr)
+IswFree(const void *ptr)
 {
     _IswFree(ptr);
 }

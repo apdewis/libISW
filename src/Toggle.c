@@ -74,7 +74,7 @@ static char defaultTranslations[] =
 
 static IswResource resources[] = {
    {IswNstate, IswCState, IswRBoolean, sizeof(Boolean),
-      offset(command.set), IswRString, "off"},
+      offset(command.set), IswRString, (IswPointer)"off"},
    {IswNradioGroup, IswCWidget, IswRWidget, sizeof(Widget),
       offset(toggle.widget), IswRWidget, (IswPointer) NULL },
    {IswNradioData, IswCRadioData, IswRPointer, sizeof(IswPointer),
@@ -539,7 +539,6 @@ static void
 TurnOffRadioSiblings(Widget w)
 {
   RadioGroup * group;
-  ToggleWidgetClass class = (ToggleWidgetClass) w->core.widget_class;
 
   if ( (group = GetRadioGroup(w)) == NULL)  /* Punt if there is no group */
     return;

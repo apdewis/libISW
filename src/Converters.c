@@ -90,7 +90,6 @@ in this Software without prior written authorization from The Open Group.
 
 static _Xconst _IswString IswNwrongParameters = "wrongParameters";
 static _Xconst _IswString IswNconversionError = "conversionError";
-static _Xconst _IswString IswNmissingCharsetList = "missingCharsetList";
 
 /* Representation types */
 
@@ -423,7 +422,6 @@ IswCvtIntToColor(xcb_connection_t *dpy,
                 XrmValuePtr toVal,
                 IswPointer *closure_ret _X_UNUSED)
 {
-    xcb_screen_t *screen;
     xcb_colormap_t colormap;
 
     if (*num_args != 2) {
@@ -434,7 +432,6 @@ IswCvtIntToColor(xcb_connection_t *dpy,
                         NULL, NULL);
         return False;
     }
-    screen = *((xcb_screen_t **) args[0].addr);
     colormap = *((xcb_colormap_t *) args[1].addr);
 
     {
@@ -1224,26 +1221,6 @@ IswCvtIntToFont(xcb_connection_t *dpy,
                         NULL, NULL);
     done(xcb_font_t, *(int *) fromVal->addr);
 }
-
-static void
-FetchLocaleArg(Widget widget _X_UNUSED,
-               Cardinal *size _X_UNUSED,
-               XrmValue *value)
-{
-    static const char *locale;
-
-    locale = XrmQuarkToString(XrmStringToQuark
-                              (setlocale(LC_CTYPE, (char *) NULL)));
-    value->size = sizeof(const char *);
-    value->addr = (IswPointer) &locale;
-}
-
-/* *INDENT-OFF* */
-static IswConvertArgRec const localeDisplayConvertArgs[] = {
-    {IswProcedureArg, (IswPointer)FetchDisplayArg, 0},
-    {IswProcedureArg, (IswPointer)FetchLocaleArg, 0},
-};
-/* *INDENT-ON* */
 
 Boolean
 IswCvtStringToFontStruct(xcb_connection_t *dpy,

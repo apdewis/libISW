@@ -301,8 +301,6 @@ Realize(xcb_connection_t *conn, Widget widget, IswValueMask *value_mask, uint32_
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
     Widget clip = w->viewport.clip;
-    Widget threeD = NULL; /* (Widget)w->viewport.threeD; */
-
     if (!(*value_mask & XCB_CW_BIT_GRAVITY)) {
         int insert_idx = 0;
         int total_values = 0;
@@ -337,9 +335,8 @@ Realize(xcb_connection_t *conn, Widget widget, IswValueMask *value_mask, uint32_
 	/* IswRealizeWidget( threeD ); */
 	
 	/* Lower threeD window */
-	uint32_t lower_values[] = { XCB_STACK_MODE_BELOW };
-	/* xcb_configure_window(conn, IswWindow(threeD), XCB_CONFIG_WINDOW_STACK_MODE, lower_values);
-	
+	/* xcb_configure_window(conn, IswWindow(threeD), XCB_CONFIG_WINDOW_STACK_MODE, lower_values); */
+
 	/* Reparent child to clip */
 	xcb_reparent_window(conn, IswWindow(child), IswWindow(clip), 0, 0);
 	
@@ -512,7 +509,6 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
     Widget clip = w->viewport.clip;
-    Widget threeD = NULL; /* (Widget)w->viewport.threeD; */
     ViewportConstraints constraints
 	= (ViewportConstraints)clip->core.constraints;
     Boolean needshoriz, needsvert;
@@ -776,7 +772,7 @@ ComputeWithForceBars(Widget widget, Boolean query, IswWidgetGeometry *intended,
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
     IswWidgetGeometry preferred;
-    Dimension pad = 0, sw = 0;
+    Dimension pad = 0;
 
 /*
  * If forcebars then needs = allows = has.
@@ -784,7 +780,7 @@ ComputeWithForceBars(Widget widget, Boolean query, IswWidgetGeometry *intended,
  */
 
     /* IswVaGetValues((Widget)(w->viewport.threeD), IswNshadowWidth, &sw, NULL);
-       if (sw) pad = 2; */ sw = 0; pad = 0;
+       if (sw) pad = 2; */ pad = 0;
 
     if (w->viewport.allowvert) {
 	if (w->viewport.vert_bar == NULL)
@@ -942,10 +938,10 @@ GeometryRequestPlusScrollbar(ViewportWidget w, Boolean horizontal,
 {
   Widget bar;
   IswWidgetGeometry plusScrollbars;
-  Dimension pad = 0, sw = 0;
+  Dimension pad = 0;
 
   /* IswVaGetValues((Widget)(w->viewport.threeD), IswNshadowWidth, &sw, NULL);
-     if (sw) pad = 2; */ sw = 0; pad = 0;
+     if (sw) pad = 2; */ pad = 0;
 
   plusScrollbars = *request;
   if ((bar = w->viewport.horiz_bar) == (Widget)NULL)
@@ -1003,7 +999,7 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
     Boolean reconfigured;
     Boolean child_changed_size;
     Dimension height_remaining;
-    Dimension pad = 0, sw = 0;
+    Dimension pad = 0;
 
     if (request->request_mode & IswCWQueryOnly)
       return QueryGeometry(w, request, reply);
@@ -1016,7 +1012,7 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
 	return IswGeometryNo;
 
     /* IswVaGetValues((Widget)(w->viewport.threeD), IswNshadowWidth, &sw, NULL);
-       if (sw) pad = 2; */ sw = 0; pad = 0;
+       if (sw) pad = 2; */ pad = 0;
 
     allowed = *request;
 

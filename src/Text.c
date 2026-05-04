@@ -176,7 +176,7 @@ static IswTextSelectType defaultSelectTypes[] = {
 };
 
 static IswPointer defaultSelectTypesPtr = (IswPointer)defaultSelectTypes;
-extern char *_IswDefaultTextTranslations1, *_IswDefaultTextTranslations2,
+extern const char *_IswDefaultTextTranslations1, *_IswDefaultTextTranslations2,
   *_IswDefaultTextTranslations3, *_IswDefaultTextTranslations4;
 static Dimension defWidth = 100;
 static Dimension defHeight = DEFAULT_TEXT_HEIGHT;
@@ -186,7 +186,7 @@ static IswResource resources[] = {
   {IswNwidth, IswCWidth, IswRDimension, sizeof(Dimension),
      offset(core.width), IswRDimension, (IswPointer)&defWidth},
   {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-     offset(simple.cursor), IswRString, "xterm"},
+     offset(simple.cursor), IswRString, (IswPointer)"xterm"},
   {IswNheight, IswCHeight, IswRDimension, sizeof(Dimension),
      offset(core.height), IswRDimension, (IswPointer)&defHeight},
   {IswNdisplayPosition, IswCTextPosition, IswRInt, sizeof(ISWTextPosition),
@@ -1227,8 +1227,6 @@ _IswTextVScroll(TextWidget ctx, int n)
     }
   }
   else {
-    ISWTextPosition updateTo;
-    unsigned int height, clear_height;
 
     n = -n;
     target = lt->top;
@@ -1237,18 +1235,6 @@ _IswTextVScroll(TextWidget ctx, int n)
 
     _IswTextBuildLineTable(ctx, top, FALSE);
     y = IsValidLine(ctx, n) ? lt->info[n].y : ctx->core.height - 2 * s;
-    /* Clamp position to lastPos to avoid sentinel values */
-    updateTo = IsValidLine(ctx, n) ? IswMin(lt->info[n].position, ctx->text.lastPos) : ctx->text.lastPos;
-    if (IsValidLine(ctx, lt->lines - n))
-      height = lt->info[lt->lines-n].y - ctx->text.margin.top;
-    else if (ctx->core.height - HMargins(ctx))
-      height = ctx->core.height - HMargins(ctx);
-    else
-      height = 0;
-    if (y > (int) ctx->text.margin.top)
-      clear_height = y - ctx->text.margin.top;
-    else
-      clear_height = 0;
 
     /* XCB's xcb_copy_area has issues with overlapping regions for backward
      * scrolling, so we do a full redraw instead. This is simpler and more
@@ -1702,8 +1688,8 @@ LoseSelection(Widget w, xcb_atom_t *selection)
   if (ctx->text.old_insert >= 0) /* Update in progress. */
     _IswTextExecuteUpdate(ctx);
 
-    prevSalt = 0;
-    for (salt = ctx->text.salt; salt; salt = nextSalt)
+  prevSalt = 0;
+  for (salt = ctx->text.salt; salt; salt = nextSalt)
     {
     	atomP = salt->s.selections;
 	nextSalt = salt->next;
@@ -1749,7 +1735,7 @@ void
 _IswTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
 {
     IswTextSelectionSalt    *salt;
-    int			    i, j;
+    int			    i;
 
     for (i = 0; i < num_atoms; i++)
 	LoseSelection ((Widget) ctx, selections + i);
@@ -2382,8 +2368,8 @@ _IswTextSetSelection(TextWidget ctx, ISWTextPosition l, ISWTextPosition r,
 {
   if (nelems == 1 && !strcmp (list[0], "none"))
     return;
+  String defaultSel = "PRIMARY";
   if (nelems == 0) {
-    String defaultSel = "PRIMARY";
     list = &defaultSel;
     nelems = 1;
   }

@@ -603,7 +603,6 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (tw->core.visible) {
 	int i, j;
 	xcb_connection_t *dpy = IswDisplay (tw);
-	xcb_window_t w = IswWindow (tw);
 
 	for (i = 0; i < tw->composite.num_children; i++) {
 	    Widget child = tw->composite.children[i];

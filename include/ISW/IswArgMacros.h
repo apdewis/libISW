@@ -8,7 +8,12 @@
 #include <ISW/ListBox.h>
 #include <ISW/ListBoxRow.h>
 
-#define ISW_ARG(ab, name, v) IswArgBuilderAdd((ab), (name), (IswArgVal)(v))
+#define ISW_ARG(ab, name, v) do { \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wbad-function-cast\"") \
+    IswArgBuilderAdd((ab), (name), (IswArgVal)(uintptr_t)(v)); \
+    _Pragma("GCC diagnostic pop") \
+} while (0)
 
 /* Core (StringDefs.h) */
 #define IswArgAccelerators(ab, v)               ISW_ARG((ab), IswNaccelerators, (v))

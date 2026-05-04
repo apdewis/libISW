@@ -491,10 +491,6 @@ find_menu_entry_mnemonic(Widget menu, xcb_keysym_t target)
     return NULL;
 }
 
-/* Internal MenuButton helper: positions the menu under the button and
- * pops it up with a non-exclusive grab. Implemented in MenuButton.c. */
-extern Widget _IswMenuButtonPopup(Widget mb);
-
 static void
 trigger_menu_button(Widget mb)
 {

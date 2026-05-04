@@ -173,7 +173,7 @@ FreeFontNames(FontChooserWidget fcw)
 {
     if (fcw->fontChooser.family_names) {
         for (int i = 0; i < fcw->fontChooser.num_families; i++)
-            free(fcw->fontChooser.family_names[i]);
+            free((void *)fcw->fontChooser.family_names[i]);
         free(fcw->fontChooser.family_names);
         fcw->fontChooser.family_names = NULL;
         fcw->fontChooser.num_families = 0;

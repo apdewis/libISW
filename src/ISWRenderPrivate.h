@@ -226,4 +226,10 @@ void ISWRenderEGLResize(ISWRenderContext *ctx, int width, int height);
  */
 Boolean ISWRenderBackendAvailable(ISWRenderBackend backend);
 
+/*
+ * Font resolution — ISWRender.c
+ */
+cairo_font_face_t *_ISWResolveFontFace(const char *family, int weight, int slant);
+void _ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale);
+
 #endif /* _ISWRenderPrivate_h */

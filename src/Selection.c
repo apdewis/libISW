@@ -185,7 +185,7 @@ GetPropList(xcb_connection_t *dpy)
         xcb_atom_t atoms[4];
         xcb_intern_atom_cookie_t cookies[4];
 
-        static char *names[] = {
+        static const char *names[] = {
             "INCR",
             "MULTIPLE",
             "TIMESTAMP",
@@ -423,8 +423,6 @@ static IswContext selectWindowContext = NULL;
 //typedef int (*xErrorHandler) (xcb_connection_t *, XErrorEvent *);
 
 //static xErrorHandler oldErrorHandler = NULL;
-static unsigned long firstProtectRequest;
-static xcb_window_t errorWindow;
 
 //#TODO given what this code claims to do it will be worth further examination on how 
 //things work in XCB to see if some other means is necessary
@@ -828,7 +826,7 @@ HandleSelectionEvents(Widget widget,
 {
     Select ctx;
     xcb_selection_notify_event_t ev;
-    xcb_atom_t target;
+    xcb_atom_t target = None;
 
     ctx = (Select) closure;
     switch (event->response_type) {
@@ -866,8 +864,8 @@ HandleSelectionEvents(Widget widget,
         else {
             if (ev.target == ctx->prop_list->indirect_atom) {
                 IndirectPair *p;
-                int format;
-                unsigned long length;
+                int format = 0;
+                unsigned long length = 0;
                 unsigned char *value = NULL;
                 int count;
                 Boolean writeback = FALSE;
@@ -1192,8 +1190,6 @@ ReqTimedOut(IswPointer closure, IswIntervalId *id _X_UNUSED)
     unsigned long proplength;
 
     if (*info->target == info->ctx->prop_list->indirect_atom) {
-        IndirectPair *pairs = NULL;
-
         xcb_get_property_cookie_t cookie = xcb_get_property(
             IswDisplay(info->widget), 0, IswWindow(info->widget), info->property, XCB_ATOM_ATOM, 0, 10000000);
         xcb_get_property_reply_t *reply = xcb_get_property_reply(IswDisplay(info->widget), cookie, NULL);
@@ -1260,7 +1256,7 @@ HandleGetIncrement(Widget widget,
         info->type = reply->type;
         info->format = reply->format;
         length = reply->value_len;
-        value = (unsigned char *)xcb_get_property_value(reply);
+        value = xcb_get_property_value(reply);
     } else {
         return;
     }
@@ -1464,9 +1460,8 @@ HandleSelectionReplies(Widget widget,
     xcb_connection_t *dpy = IswDisplay(widget);
     CallBackInfo info = (CallBackInfo) closure;
     Select ctx = info->ctx;
-    unsigned long length;
-    int format;
-    xcb_atom_t type;
+    unsigned long length = 0;
+    int format = 0;
 
     if (event->response_type != XCB_SELECTION_NOTIFY)
         return;
@@ -1958,18 +1953,6 @@ IswGetSelectionRequest(Widget widget, xcb_atom_t selection, IswRequestId id)
     return &req->event;
 }
 
-/* Property atom access */
-xcb_atom_t
-IswReservePropertyxcb_atom_t(Widget w)
-{
-    return (GetSelectionProperty(IswDisplay(w)));
-}
-
-void
-IswReleasePropertyxcb_atom_t(Widget w, xcb_atom_t atom)
-{
-    FreeSelectionProperty(IswDisplay(w), atom);
-}
 
 /* Multiple utilities */
 
@@ -2076,7 +2059,7 @@ IsGatheringRequest(Widget wid, xcb_atom_t sel)
 
 /* Cleanup request scans the request queue and releases any
    properties queued, and removes any requests queued */
-void
+static void
 CleanupRequest(xcb_connection_t *dpy, QueuedRequestInfo qi, xcb_atom_t sel)
 {
     int i, j, n;

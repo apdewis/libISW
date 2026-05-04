@@ -616,10 +616,7 @@ AddFocusHandler(Widget widget,
 
     if (IswIsRealized(widget) && !pwi->haveFocus) {
         if (psi->haveFocus) {
-            xcb_window_t root, child;
-            int root_x, root_y, win_x, win_y;
             int left, right, top, bottom;
-            unsigned int modMask;
             ActiveType act;
 
             /*

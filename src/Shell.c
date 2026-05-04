@@ -86,7 +86,6 @@ in this Software without prior written authorization from The Open Group.
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 #include <X11/cursorfont.h>
 #include <ISW/ISWXdnd.h>
 #include "ISWXcbDraw.h"
@@ -118,7 +117,6 @@ extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 //static void _IswShellDepth(Widget, int, XrmValue *);
 //static void _IswShellColormap(Widget, int, XrmValue *);
-static void _IswShellAncestorSensitive(Widget, int, XrmValue *);
 //static void _IswTitleEncoding(Widget, int, XrmValue *);
 
 /***************************************************************************
@@ -713,8 +711,8 @@ externaldef(applicationshellwidgetclass)
 WidgetClass applicationShellWidgetClass =
     (WidgetClass) (&applicationShellClassRec);
 
-void SetWMProperties(Widget w, char *window_name, char *icon_name, 
-                     char **argv, int argc, 
+static void SetWMProperties(Widget w, char *window_name, char *icon_name,
+                     char **argv, int argc,
                      xcb_size_hints_t *size_hints,
                      xcb_icccm_wm_hints_t *wm_hints,
                      char *classhint_class, char *classhint_name) {
@@ -964,7 +962,6 @@ TopLevelInitialize(Widget req _X_UNUSED,
 }
 
 static _IswString *NewArgv(int, _IswString *);
-static _IswString *NewStringArray(_IswString *);
 static void FreeStringArray(_IswString *);
 
 static void
@@ -1424,8 +1421,6 @@ _popup_set_prop(ShellWidget w)
     int argc;
     xcb_size_hints_t *size_hints;
     xcb_window_t window_group;
-    XClassHint classhint;
-    Boolean copied_iname, copied_wname;
 
     if (!IswIsWMShell((Widget) w) || w->shell.override_redirect)
         return;
@@ -1434,7 +1429,6 @@ _popup_set_prop(ShellWidget w)
     if (size_hints == NULL)
         _IswAllocError("xcb_size_hints_t");
 
-    copied_iname = copied_wname = False;
     /* Use the title/icon_name strings directly.
      * The original code used XmbTextListToTextProperty for locale-aware
      * encoding, which is Xlib-specific and has no XCB equivalent.
@@ -1465,18 +1459,6 @@ _popup_set_prop(ShellWidget w)
         }
     }
 
-    classhint.res_name = (_IswString) w->core.name;
-    /* For the class, look up to the top of the tree */
-    for (p = (Widget) w; p->core.parent != NULL; p = p->core.parent);
-    if (IswIsApplicationShell(p)) {
-        classhint.res_class = ((ApplicationShellWidget) p)->application.class;
-    }
-    else {
-        LOCK_PROCESS;
-        classhint.res_class = (_IswString) IswClass(p)->core_class.class_name;
-        UNLOCK_PROCESS;
-    }
-
     if (IswIsApplicationShell((Widget) w)
         && (argc = appshell->application.argc) != -1)
         argv = (char **) appshell->application.argv;
@@ -1491,7 +1473,7 @@ _popup_set_prop(ShellWidget w)
     //                 argv, argc, size_hints, &wmshell->wm.wm_hints, &classhint);
     SetWMProperties((Widget)w, window_name, 
                 (IswIsTopLevelShell((Widget) w)) ? icon_name : NULL,
-                argv, argc, size_hints, &wmshell->wm.wm_hints, "", "");// classhint_class, classhint_name);
+                argv, argc, size_hints, &wmshell->wm.wm_hints, (char *)"", (char *)"");// classhint_class, classhint_name);
     if(size_hints) free(size_hints);
     //IswFree((char *) size_hints);
     //if (copied_wname)
@@ -1501,7 +1483,7 @@ _popup_set_prop(ShellWidget w)
 
     LOCK_PROCESS;
     if (IswWidgetToApplicationContext((Widget) w)->langProcRec.proc) {
-        char *locale = "C"; //setlocale(LC_CTYPE, (char *) NULL);
+        const char *locale = "C"; //setlocale(LC_CTYPE, (char *) NULL);
 
         if (locale) {
             // Get atom for WM_LOCALE_NAME
@@ -1620,7 +1602,6 @@ EventHandler(Widget wid,
 
     case XCB_UNMAP_NOTIFY:
     {
-        xcb_unmap_notify_event_t *une = (xcb_unmap_notify_event_t *)event; 
         IswPerDisplayInput pdi;
         IswDevice device;
         Widget p;
@@ -2519,7 +2500,6 @@ WMSetValues(Widget old,
             nwmshell->wm.title_encoding != owmshell->wm.title_encoding)) {
 
         //XTextProperty title;
-        Boolean copied = False;
 
         //if (nwmshell->wm.title_encoding == None &&
         //    XmbTextListToTextProperty(IswDisplay(new),
@@ -2541,7 +2521,7 @@ WMSetValues(Widget old,
         if (atom_reply) {
             xcb_change_property(IswDisplay(new), XCB_PROP_MODE_REPLACE, IswWindow(new),
                                 atom_reply->atom, XCB_ATOM_STRING, 8,
-                                strlen((unsigned char *) nwmshell->wm.title), (unsigned char *) nwmshell->wm.title);
+                                strlen((const char *) nwmshell->wm.title), (unsigned char *) nwmshell->wm.title);
             free(atom_reply);
         }
         //if (copied)
@@ -2770,7 +2750,6 @@ TopLevelSetValues(Widget oldW,
               != new->topLevel.icon_name_encoding))) {
 
             //XTextProperty icon_name;
-            Boolean copied = False;
 
             //if (new->topLevel.icon_name_encoding == None &&
             //    XmbTextListToTextProperty(IswDisplay(newW),
@@ -2793,7 +2772,7 @@ TopLevelSetValues(Widget oldW,
                 // Set the icon name property
                 xcb_change_property(IswDisplay(newW), XCB_PROP_MODE_REPLACE, IswWindow(newW),
                                     atom_reply->atom, XCB_ATOM_STRING, 8,
-                                    strlen((unsigned char *) new->topLevel.icon_name), (unsigned char *) new->topLevel.icon_name);
+                                    strlen((const char *) new->topLevel.icon_name), (unsigned char *) new->topLevel.icon_name);
                 free(atom_reply);
             }
 
@@ -2902,7 +2881,6 @@ _IswShellGetCoordinates(Widget widget, Position *x, Position *y)
     if (IswIsRealized(widget) &&
         !(w->shell.client_specified & _IswShellPositionValid)) {
         int tmpx, tmpy;
-        xcb_window_t tmpchild;
 
         //(void) XTranslateCoordinates(IswDisplay(w), IswWindow(w),
         //                             RootWindowOfScreen(IswScreen(w)),
@@ -2925,7 +2903,6 @@ _IswShellGetCoordinates(Widget widget, Position *x, Position *y)
         if (reply) {
             tmpx = reply->dst_x;
             tmpy = reply->dst_y;
-            tmpchild = reply->child;
             free(reply);
         }
         /* HiDPI: X server returns physical pixels; convert to logical. */
@@ -2988,41 +2965,9 @@ ApplicationShellInsertChild(Widget widget)
 /* Removed: Session Protocol (XSMP/ICE) support — dead code.
  * See commit history for the original SessionShell implementation.
  *
- * NewStringArray and FreeStringArray remain below — used by
+ * FreeStringArray remains below — used by
  * ApplicationShell for argv handling.
  */
-
-static _IswString *
-NewStringArray(_IswString *str)
-{
-    Cardinal nbytes = 0;
-    Cardinal num = 0;
-    _IswString *newarray;
-    _IswString *new;
-    _IswString *strarray = str;
-    _IswString sptr;
-
-    if (!str)
-        return NULL;
-
-    for (num = 0; *str; num++, str++) {
-        nbytes = nbytes + (Cardinal) strlen(*str);
-        nbytes++;
-    }
-    num = (Cardinal) ((size_t) (num + 1) * sizeof(_IswString));
-    new = newarray = (_IswString *) __XtMalloc(num + nbytes);
-    sptr = ((char *) new) + num;
-
-    for (str = strarray; *str; str++) {
-        *new = sptr;
-        strcpy(*new, *str);
-        new++;
-        sptr = strchr(sptr, '\0');
-        sptr++;
-    }
-    *new = NULL;
-    return newarray;
-}
 
 static void
 FreeStringArray(_IswString *str)

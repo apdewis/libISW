@@ -80,9 +80,6 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include <stdio.h>
 
-/* Defined in Initialize.c */
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
-
 static _Xconst _IswString IswNxtCreateWidget = "xtCreateWidget";
 static _Xconst _IswString IswNxtCreatePopupShell = "xtCreatePopupShell";
 

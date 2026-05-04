@@ -115,9 +115,9 @@ GrabAllCorrectKeys(Widget widget,
     for (keycodeP = keycodes; keycount--; keycodeP++) {
         if (modMatch->standard) {
             /* find standard modifiers that produce this keysym */
-            xcb_keysym_t keysym;
+            xcb_keysym_t keysym = XCB_NO_SYMBOL;
             int std_mods, least_mod;
-            Modifiers modifiers_return;
+            Modifiers modifiers_return = 0;
 
             if (careOn & modifiers_return) {
                 IswFree((char *) keycodes);

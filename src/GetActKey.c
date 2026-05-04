@@ -79,7 +79,7 @@ IswGetActionKeysym(xcb_generic_event_t *event, Modifiers *modifiers_return, xcb_
     TMKeyContext tm_context;
     Modifiers modifiers;
     xcb_keysym_t keysym, retval;
-    xcb_key_press_event_t *kp_event, tmc_event;
+    xcb_key_press_event_t *kp_event;
 
     LOCK_PROCESS;
     

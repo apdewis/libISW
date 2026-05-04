@@ -95,6 +95,9 @@ typedef struct _MenuButtonRec {
     MenuButtonPart   menu_button;
 } MenuButtonRec;
 
+/* Internal — pops up the menu associated with this button */
+Widget _IswMenuButtonPopup(Widget w);
+
 #endif /* _ISW_IswMenuButtonP_h */
 
 

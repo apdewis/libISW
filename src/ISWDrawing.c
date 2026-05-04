@@ -14,6 +14,7 @@
 #include <xcb/xproto.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ISWXcbDraw.h"
 
 
 /* 
@@ -22,7 +23,6 @@
  * These need to be implemented using IswContext or a global Screen->Display mapping.
  */
 static xcb_connection_t* GetDisplayFromScreen(xcb_screen_t *screen);
-static xcb_window_t GetRootFromScreen(xcb_screen_t *screen);
 
 /* IswCreateStippledPixmap - DUPLICATE - Commented out to avoid linker conflict
  * This function is now implemented in IswXcbDraw.c */
@@ -266,12 +266,3 @@ GetDisplayFromScreen(xcb_screen_t *screen)
  * 
  * In XCB, xcb_screen_t has a root member, so this is straightforward.
  */
-static xcb_window_t
-GetRootFromScreen(xcb_screen_t *screen)
-{
-    if (!screen) {
-        return 0;
-    }
-
-    return screen->root;
-}

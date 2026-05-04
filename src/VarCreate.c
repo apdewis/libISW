@@ -300,13 +300,16 @@ _IswVaOpenApplication(IswAppContext *app_context_return,
 
     /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
      * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
-    root =
-        IswVaAppCreateShell(NULL, application_class,
-                           widget_class, dpy,
-                           IswNscreen, (IswArgVal) _IswGetDefaultScreen(dpy),
-                           IswNargc, (IswArgVal) saved_argc,
-                           IswNargv, (IswArgVal) argv_in_out,
-                           IswVaNestedList, (IswVarArgsList) typed_args, NULL);
+    {
+        xcb_screen_t *def_screen = _IswGetDefaultScreen(dpy);
+        root =
+            IswVaAppCreateShell(NULL, application_class,
+                               widget_class, dpy,
+                               IswNscreen, (IswArgVal) def_screen,
+                               IswNargc, (IswArgVal) saved_argc,
+                               IswNargv, (IswArgVal) argv_in_out,
+                               IswVaNestedList, (IswVarArgsList) typed_args, NULL);
+    }
 
     if (app_context_return != NULL)
         *app_context_return = app_con;

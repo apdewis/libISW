@@ -139,25 +139,25 @@ static IswResource resources[] = {
     {IswNgripCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
          offset(grip_cursor), IswRImmediate, None},
     {IswNverticalGripCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(v_grip_cursor), IswRString, "sb_v_double_arrow"},
+         offset(v_grip_cursor), IswRString, (IswPointer)"sb_v_double_arrow"},
     {IswNhorizontalGripCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(h_grip_cursor), IswRString, "sb_h_double_arrow"},
+         offset(h_grip_cursor), IswRString, (IswPointer)"sb_h_double_arrow"},
 
     {IswNbetweenCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
          offset(adjust_this_cursor), IswRString, None},
     {IswNverticalBetweenCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(v_adjust_this_cursor), IswRString, "sb_left_arrow"},
+         offset(v_adjust_this_cursor), IswRString, (IswPointer)"sb_left_arrow"},
     {IswNhorizontalBetweenCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(h_adjust_this_cursor), IswRString, "sb_up_arrow"},
+         offset(h_adjust_this_cursor), IswRString, (IswPointer)"sb_up_arrow"},
 
     {IswNupperCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(adjust_upper_cursor), IswRString, "sb_up_arrow"},
+         offset(adjust_upper_cursor), IswRString, (IswPointer)"sb_up_arrow"},
     {IswNlowerCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(adjust_lower_cursor), IswRString, "sb_down_arrow"},
+         offset(adjust_lower_cursor), IswRString, (IswPointer)"sb_down_arrow"},
     {IswNleftCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(adjust_left_cursor), IswRString, "sb_left_arrow"},
+         offset(adjust_left_cursor), IswRString, (IswPointer)"sb_left_arrow"},
     {IswNrightCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(adjust_right_cursor), IswRString, "sb_right_arrow"},
+         offset(adjust_right_cursor), IswRString, (IswPointer)"sb_right_arrow"},
 };
 
 #undef offset
@@ -1070,7 +1070,10 @@ HandleGrip(Widget grip, IswPointer junk, IswPointer callData)
     loc = GetEventLocation(pw, (xcb_generic_event_t *) (call_data->event));
 
     if (action_type != 'C') {
-	direction = (Direction) toupper(*call_data->params[1]);
+	{
+	    int dir_ch = toupper(*call_data->params[1]);
+	    direction = (Direction) dir_ch;
+	}
     }
 
     switch (action_type) {

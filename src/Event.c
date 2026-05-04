@@ -78,10 +78,10 @@ in this Software without prior written authorization from The Open Group.
 #include <stdlib.h>
 
 #include "IntrinsicI.h"
+#include "InitialI.h"
 #include "Shell.h"
 #include "StringDefs.h"
-
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+#include "FocusMgrI.h"
 
 typedef struct _IswEventRecExt {
     int type;
@@ -1038,8 +1038,6 @@ CallEventHandlers(Widget widget,xcb_generic_event_t *event, EventMask mask)
     return cont_to_disp;
 }
 
-static void CompressExposures(xcb_generic_event_t *, Widget);
-
 #define KnownButtons (XCB_EVENT_MASK_BUTTON_1_MOTION|XCB_EVENT_MASK_BUTTON_2_MOTION|XCB_EVENT_MASK_BUTTON_3_MOTION|\
                       XCB_EVENT_MASK_BUTTON_4_MOTION|XCB_EVENT_MASK_BUTTON_5_MOTION)
 
@@ -1202,10 +1200,6 @@ typedef struct _CheckExposeInfo {
 
 #define GetCount(ev) (((XExposeEvent *)(ev))->count)
 
-static void SendExposureEvent(xcb_connection_t *, xcb_generic_event_t *, Widget, IswPerDisplay);
-static Bool CheckExposureEvent(xcb_connection_t *, xcb_generic_event_t *, char *);
-static void AddExposureToRectangularRegion(xcb_connection_t *, xcb_generic_event_t *, xcb_xfixes_region_t);
-
 /*      Function Name: CompressExposures
  *      Description: Handles all exposure compression
  *      Arguments: event - the xevent that is to be dispatched
@@ -1313,7 +1307,7 @@ IswAddExposureToRegion(xcb_connection_t *dpy, xcb_generic_event_t *event, xcb_xf
 {
     xcb_rectangle_t rect;
     xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
-    xcb_generic_error_t *error;
+    xcb_generic_error_t *error = NULL;
 
     /* These Expose and GraphicsExpose fields are at identical offsets */
 
@@ -1324,14 +1318,14 @@ IswAddExposureToRegion(xcb_connection_t *dpy, xcb_generic_event_t *event, xcb_xf
         rect.height = (Dimension) ev->height;
         
         xcb_xfixes_region_t new_region = xcb_generate_id(dpy);
-        xcb_void_cookie_t cookie = xcb_xfixes_create_region(dpy, new_region, 1, &rect);
+        (void)xcb_xfixes_create_region(dpy, new_region, 1, &rect);
         if (error) {
             fprintf(stderr, "Error creating new region: %d\n", error->error_code);
             free(error);
             return;
         }
 
-        cookie = xcb_xfixes_union_region(dpy, region, new_region, region);
+        (void)xcb_xfixes_union_region(dpy, region, new_region, region);
         if (error) {
             fprintf(stderr, "Error in union_region: %d\n", error->error_code);
             free(error);
@@ -1395,144 +1389,12 @@ void get_region_bounding_box(xcb_connection_t *dpy, xcb_xfixes_region_t region,
     rect->height = max_y - min_y;
 }
 
-static void
-AddExposureToRectangularRegion(xcb_connection_t *dpy, xcb_generic_event_t *event,   /* when called internally, type is always appropriate */
-                               xcb_xfixes_region_t region)
-{
-    xcb_rectangle_t rect;
-    xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
-    xcb_generic_error_t *error;
-
-    /* These Expose and GraphicsExpose fields are at identical offsets */
-
-    rect.x = (Position) ev->x;
-    rect.y = (Position) ev->y;
-    rect.width = (Dimension) ev->width;
-    rect.height = (Dimension) ev->height;
-
-    xcb_xfixes_region_t new_region = xcb_generate_id(dpy);
-    xcb_void_cookie_t cookie;
-
-    //check if region is empty
-    xcb_xfixes_fetch_region_cookie_t fetch_cookie = xcb_xfixes_fetch_region(dpy, region);
-    xcb_xfixes_fetch_region_reply_t *reply = xcb_xfixes_fetch_region_reply (dpy, fetch_cookie, &error);
-    if (error) {
-        fprintf(stderr, "Error fetching region: %d\n", error->error_code);
-        free(error);
-        return;
-    }
-    
-    if (xcb_xfixes_fetch_region_rectangles_length(reply) == 0) {
-        //XUnionRectWithRegion(&rect, region, region);
-        cookie = xcb_xfixes_create_region(dpy, new_region, 1, &rect);
-    }
-    else {
-        xcb_rectangle_t merged, bbox;
-
-        //XClipBox(region, &bbox);
-        get_region_bounding_box(dpy, region, &bbox);
-        merged.x = MIN(rect.x, bbox.x);
-        merged.y = MIN(rect.y, bbox.y);
-        merged.width = (unsigned short) (MAX(rect.x + rect.width,
-                                             bbox.x + bbox.width) - merged.x);
-        merged.height = (unsigned short) (MAX(rect.y + rect.height,
-                                              bbox.y + bbox.height) - merged.y);
-       // XUnionRectWithRegion(&merged, region, region);
-       cookie = xcb_xfixes_create_region(dpy, new_region, 1, &merged);
-    }
-
-    error = xcb_request_check(dpy, cookie);
-    if (error) {
-        fprintf(stderr, "Error creating new region: %d\n", error->error_code);
-        free(error);
-        return; // or handle appropriately
-    }
-
-    cookie = xcb_xfixes_union_region(dpy, region, new_region, region);
-    if (error) {
-        fprintf(stderr, "Error in union_region: %d\n", error->error_code);
-        free(error);
-        return; // or handle appropriately
-    }
-}
-
 /* No longer need a global nullRegion - each display has its own null_region in IswPerDisplayStruct */
 
 void
-_IswEventInitialize()
+_IswEventInitialize(void)
 {
     /* No-op: null_region is now initialized per-display in Display.c */
-}
-
-/*      Function Name: SendExposureEvent
- *      Description: Sets the x, y, width, and height of the event
- *                   to be the clip box of Expose Region.
- *      Arguments: event  - the X Event to mangle; Expose or GraphicsExpose.
- *                 widget - the widget that this event occurred in.
- *                 pd     - the per display information for this widget.
- *      Returns: none.
- */
-
-static void
-SendExposureEvent(xcb_connection_t *dpy, xcb_generic_event_t *event, Widget widget, IswPerDisplay pd)
-{
-    IswExposeProc expose;
-    xcb_rectangle_t rect;
-    IswEnum comp_expose;
-    xcb_expose_event_t *ev = (xcb_expose_event_t *) event;
-
-    //XClipBox(pd->region, &rect);
-    get_region_bounding_box(dpy, pd->region, &rect);
-    ev->x = rect.x;
-    ev->y = rect.y;
-    ev->width = rect.width;
-    ev->height = rect.height;
-
-    LOCK_PROCESS;
-    comp_expose = COMP_EXPOSE;
-    expose = widget->core.widget_class->core_class.expose;
-    UNLOCK_PROCESS;
-    if (comp_expose & IswExposeNoRegion)
-        (*expose) (widget, event, 0);
-    else
-        (*expose) (widget, event, pd->region);
-    /* Clear the region by intersecting with empty null_region */
-    xcb_void_cookie_t cookie = xcb_xfixes_intersect_region(dpy, pd->null_region, pd->region, pd->region);
-    
-    // Check for errors
-    xcb_generic_error_t *error = xcb_request_check(dpy, cookie);
-    if (error) {
-        fprintf(stderr, "Error intersecting regions: %d\n", error->error_code);
-        free(error);
-    }
-}
-
-/*      Function Name: CheckExposureEvent
- *      Description: Checks the event queue for an expose event
- *      Arguments: display - the display connection.
- *                 event - the event to check.
- *                 arg - a pointer to the exposure info structure.
- *      Returns: TRUE if we found an event of the correct type
- *               with the right window.
- *
- * NOTE: The only valid types (info.type1 and info.type2) are Expose
- *       and GraphicsExpose.
- */
-
-static Bool
-CheckExposureEvent(xcb_connection_t *disp _X_UNUSED, xcb_generic_event_t *event, char *arg)
-{
-    CheckExposeInfo *info = ((CheckExposeInfo *) arg);
-
-    if ((info->type1 == event->response_type) || (info->type2 == event->response_type)) {
-        if (!info->maximal && info->non_matching)
-            return FALSE;
-        if (event->response_type == XCB_GRAPHICS_EXPOSURE)
-            return (((xcb_graphics_exposure_event_t  *)event)->drawable == info->window);
-        return (((xcb_expose_event_t *)event)->window == info->window);
-    }
-    info->non_matching = TRUE;
-    return (FALSE);
 }
 
 static uint32_t const masks[] = {
@@ -1632,8 +1494,6 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
 
     int raw_type = event->response_type;
     int type = raw_type & ~0x80;
-    xcb_window_t win = get_event_window(event);
-
     /* the default dispatcher discards all extension events */
     if (type >= LASTEvent) {
         return False;
@@ -1668,14 +1528,12 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
     if (widget != NULL) {
         uint8_t ftype = event->response_type & 0x7f;
         if (ftype == XCB_KEY_PRESS || ftype == XCB_KEY_RELEASE) {
-            extern Boolean _IswFocusMgrMaybeHandleKey(Widget, xcb_generic_event_t *);
             if (_IswFocusMgrMaybeHandleKey(widget, event)) {
                 UNLOCK_APP(app);
                 return True;
             }
         }
         else if (ftype == XCB_BUTTON_PRESS) {
-            extern void _IswFocusMgrClearRing(void);
             _IswFocusMgrClearRing();
         }
     }
@@ -1833,6 +1691,7 @@ IswAddGrab(Widget widget, _IswBoolean exclusive)
     register IswGrabList gl;
     IswGrabList *grabListPtr;
     IswAppContext app = IswWidgetToApplicationContext(widget);
+    (void)app;
 
     LOCK_APP(app);
     LOCK_PROCESS;

@@ -75,7 +75,6 @@ in this Software without prior written authorization from The Open Group.
 #include "ShellP.h"
 #include "ShellI.h"
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 #include <math.h>
 
@@ -86,13 +85,13 @@ ClearRectObjAreas(RectObj r, uint32_t old_x, uint32_t old_y, uint32_t old_w, uin
     int bw2;
 
     bw2 = old_bw << 1;
-    xcb_void_cookie_t cookie = xcb_clear_area_checked(IswDisplay(pw), 0, IswWindow(pw),
+    (void)xcb_clear_area_checked(IswDisplay(pw), 0, IswWindow(pw),
         old_x, old_y,
         (unsigned) (old_w + bw2), (unsigned) (old_h + bw2)
     );
 
     bw2 = r->rectangle.border_width << 1;
-    cookie = xcb_clear_area_checked(IswDisplay(pw), 0, IswWindow(pw),
+    (void)xcb_clear_area_checked(IswDisplay(pw), 0, IswWindow(pw),
                (int) r->rectangle.x, (int) r->rectangle.y,
                (unsigned int) (r->rectangle.width + bw2),
                (unsigned int) (r->rectangle.height + bw2));

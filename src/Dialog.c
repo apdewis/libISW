@@ -332,7 +332,7 @@ GetValuesHook(Widget w, ArgList args, Cardinal *num_args)
       IswArgBuilder ab = IswArgBuilderInit();
       IswArgString(&ab, (IswArgVal)&s);
       IswGetValues(src->dialog.valueW, ab.args, ab.count);
-      *((char **) args[i].value) = s;
+      *((String *) args[i].value) = s;
     }
 }
 

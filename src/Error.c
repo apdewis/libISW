@@ -256,6 +256,8 @@ InitErrorHandling(xcb_xrm_database_t **db)
     }
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
 static void
 DefaultMsg(String name,
            String type,
@@ -351,6 +353,7 @@ program as a non-root user or by removing the suid bit on the executable.");
         }
     }
 }
+#pragma GCC diagnostic pop
 
 void
 _IswDefaultErrorMsg(String name,

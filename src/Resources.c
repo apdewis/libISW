@@ -1109,7 +1109,6 @@ _IswGetResources(register Widget w,
     if (IswIsWidget(w)) {
         xcb_connection_t *dpy_check = w->core.display;
         if ((uintptr_t)dpy_check < 0x1000) {
-            WidgetClass wc2 = IswClass(w);
             /* Check if constraint resources caused the corruption */
             if (w->core.constraints != NULL && w->core.parent != NULL) {
                 ConstraintWidgetClass cwc2 = (ConstraintWidgetClass) IswClass(w->core.parent);

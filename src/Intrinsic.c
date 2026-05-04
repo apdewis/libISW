@@ -83,7 +83,6 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include <stdlib.h>
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 String IswCIswToolkitError = "IswToolkitError";
 
@@ -939,10 +938,7 @@ IswIsObject(Widget object)
 
     LOCK_PROCESS;
     wc = object->core.widget_class;
-    if (wc->core_class.class_name == NULL ||
-        //wc->core_class.xrm_class == NULLQUARK ||
-        //(class_name = XrmClassToString(wc->core_class.xrm_class)) == NULL ||
-        strcmp(wc->core_class.class_name, class_name) != 0) {
+    if (wc->core_class.class_name == NULL) {
         UNLOCK_PROCESS;
         return False;
     }

@@ -183,8 +183,8 @@ externalref WMShellClassRec wmShellClassRec;
 
 /* Local replacement for Xlib's XClassHint */
 typedef struct {
-    char *res_name;
-    char *res_class;
+    const char *res_name;
+    const char *res_class;
 } XClassHint;
 
 typedef struct {
@@ -332,9 +332,9 @@ externalref ApplicationShellClassRec applicationShellClassRec;
 
 typedef struct {
 #if defined(__cplusplus) || defined(c_plusplus)
-    char *c_class;
+    const char *c_class;
 #else
-    char *class;
+    const char *class;
 #endif
     //XrmClass xrm_class;
     int argc;

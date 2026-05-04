@@ -678,21 +678,21 @@ extern void IswAppSetTypeConverter(
     IswDestructor 	/* destructor */
 );
 
-//extern void IswConvert( /* obsolete */
-//    Widget 		/* widget */,
-//    _Xconst _IswString 	/* from_type */,
-//    XrmValue*		/* from */,
-//    _Xconst _IswString 	/* to_type */,
-//    XrmValue*		/* to_return */
-//);
-//
-//extern void IswDirectConvert( /* obsolete */
-//    IswConverter 	/* converter */,
-//    XrmValuePtr 	/* args */,
-//    Cardinal 		/* num_args */,
-//    XrmValuePtr 	/* from */,
-//    XrmValue*		/* to_return */
-//);
+extern void IswConvert(
+    Widget 		/* widget */,
+    _Xconst _IswString 	/* from_type */,
+    XrmValue*		/* from */,
+    _Xconst _IswString 	/* to_type */,
+    XrmValue*		/* to_return */
+);
+
+extern void IswDirectConvert(
+    IswConverter 	/* converter */,
+    XrmValuePtr 	/* args */,
+    Cardinal 		/* num_args */,
+    XrmValuePtr 	/* from */,
+    XrmValue*		/* to_return */
+);
 
 /****************************************************************
  *
@@ -1652,11 +1652,11 @@ extern void IswGetConstraintResourceList(
 #define IswUnspecifiedShellInt	(-1)
 #define IswUnspecifiedWindow	((xcb_window_t)2)
 #define IswUnspecifiedWindowGroup ((xcb_window_t)3)
-#define IswCurrentDirectory	"IswCurrentDirectory"
-#define IswDefaultForeground	"IswDefaultForeground"
-#define IswDefaultBackground	"IswDefaultBackground"
-#define IswDefaultFont		"IswDefaultFont"
-#define IswDefaultFontSet	"IswDefaultFontSet"
+#define IswCurrentDirectory	((IswPointer)"IswCurrentDirectory")
+#define IswDefaultForeground	((IswPointer)"IswDefaultForeground")
+#define IswDefaultBackground	((IswPointer)"IswDefaultBackground")
+#define IswDefaultFont		((IswPointer)"IswDefaultFont")
+#define IswDefaultFontSet	((IswPointer)"IswDefaultFontSet")
 
 #define IswOffset(p_type,field) \
 	((Cardinal) (((char *) (&(((p_type)NULL)->field))) - ((char *) NULL)))
@@ -1812,7 +1812,7 @@ extern void *IswReallocArray(
 );
 
 extern void IswFree(
-    char*		/* ptr */
+    const void*		/* ptr */
 );
 
 #ifndef _X_RESTRICT_KYWD
@@ -1855,11 +1855,11 @@ extern char *_IswCalloc( /* implementation-private */
 );
 
 extern void _IswFree( /* implementation-private */
-    char *	/* ptr */
+    const void *	/* ptr */
 );
 
 extern Boolean _IswIsValidPointer( /* implementation-private */
-    char *	/* ptr */);
+    const void *	/* ptr */);
 
 extern void _IswPrintMemory( /* implementation-private */
     const char */* filename */);

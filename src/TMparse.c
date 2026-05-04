@@ -861,8 +861,6 @@ StrToNum(String str)
 static xcb_keysym_t
 StringToKeySym(String str, Boolean *error)
 {
-    xcb_keysym_t k;
-
     if (str == NULL || *str == '\0')
         return (xcb_keysym_t) 0;
 

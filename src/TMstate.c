@@ -1367,7 +1367,7 @@ IswUninstallTranslations(Widget widget)
     _IswUninstallTranslations(widget);
     if (IswIsRealized(widget) && oldMask) {
         uint32_t event_mask = (uint32_t) IswBuildEventMask(widget);
-        xcb_void_cookie_t cookie = xcb_change_window_attributes(
+        (void)xcb_change_window_attributes(
             IswDisplay(widget),  /* your XCB connection */
             IswWindow(widget),  /* window XID */
             XCB_CW_EVENT_MASK,
@@ -2048,7 +2048,7 @@ ComposeTranslations(Widget dest,
             mask = newTable->eventMask;
         if (mask != oldMask){
             uint32_t event_mask = (uint32_t) IswBuildEventMask(dest);
-            xcb_void_cookie_t cookie = xcb_change_window_attributes(
+            (void)xcb_change_window_attributes(
                 IswDisplay(dest),  /* your XCB connection */
                 IswWindow(dest),  /* window XID */
                 XCB_CW_EVENT_MASK,

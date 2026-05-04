@@ -85,8 +85,6 @@ in this Software without prior written authorization from The Open Group.
 #include "EventI.h"
 #include "uthash.h"
 
-static XContext perWidgetInputContext = 0;
-
 void
 _IswFreePerWidgetInput(Widget w, IswPerWidgetInput pwi)
 {

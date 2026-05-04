@@ -232,12 +232,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
                                                    96.0, NULL);
     }
     if (entry->sme_bsb.left_image) {
-        entry->sme_bsb.left_image_width  = (Dimension)ISWImageGetWidth(entry->sme_bsb.left_image);
-        entry->sme_bsb.left_image_height = (Dimension)ISWImageGetHeight(entry->sme_bsb.left_image);
+        float tmp_w = ISWImageGetWidth(entry->sme_bsb.left_image);
+        float tmp_h = ISWImageGetHeight(entry->sme_bsb.left_image);
+        entry->sme_bsb.left_image_width  = (Dimension)tmp_w;
+        entry->sme_bsb.left_image_height = (Dimension)tmp_h;
     }
     if (entry->sme_bsb.right_image) {
-        entry->sme_bsb.right_image_width  = (Dimension)ISWImageGetWidth(entry->sme_bsb.right_image);
-        entry->sme_bsb.right_image_height = (Dimension)ISWImageGetHeight(entry->sme_bsb.right_image);
+        float tmp_w = ISWImageGetWidth(entry->sme_bsb.right_image);
+        float tmp_h = ISWImageGetHeight(entry->sme_bsb.right_image);
+        entry->sme_bsb.right_image_width  = (Dimension)tmp_w;
+        entry->sme_bsb.right_image_height = (Dimension)tmp_h;
     }
 
     if (entry->sme_bsb.accelerator)
@@ -346,7 +350,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	int x_loc = entry->sme_bsb.left_margin;
 	int len = strlen(entry->sme_bsb.label);
 	int width, t_width;
-	char * label = entry->sme_bsb.label;
+	const char * label = entry->sme_bsb.label;
 
 	switch(entry->sme_bsb.justify) {
 	    case IswJustifyCenter:
@@ -783,16 +787,20 @@ GetImageInfo(Widget w, Boolean is_left)
 
     if (is_left) {
         if (entry->sme_bsb.left_image) {
-            entry->sme_bsb.left_image_width  = (Dimension)ISWImageGetWidth(entry->sme_bsb.left_image);
-            entry->sme_bsb.left_image_height = (Dimension)ISWImageGetHeight(entry->sme_bsb.left_image);
+            float tmp_w = ISWImageGetWidth(entry->sme_bsb.left_image);
+            float tmp_h = ISWImageGetHeight(entry->sme_bsb.left_image);
+            entry->sme_bsb.left_image_width  = (Dimension)tmp_w;
+            entry->sme_bsb.left_image_height = (Dimension)tmp_h;
         } else {
             entry->sme_bsb.left_image_width  = 0;
             entry->sme_bsb.left_image_height = 0;
         }
     } else {
         if (entry->sme_bsb.right_image) {
-            entry->sme_bsb.right_image_width  = (Dimension)ISWImageGetWidth(entry->sme_bsb.right_image);
-            entry->sme_bsb.right_image_height = (Dimension)ISWImageGetHeight(entry->sme_bsb.right_image);
+            float tmp_w = ISWImageGetWidth(entry->sme_bsb.right_image);
+            float tmp_h = ISWImageGetHeight(entry->sme_bsb.right_image);
+            entry->sme_bsb.right_image_width  = (Dimension)tmp_w;
+            entry->sme_bsb.right_image_height = (Dimension)tmp_h;
         } else {
             entry->sme_bsb.right_image_width  = 0;
             entry->sme_bsb.right_image_height = 0;

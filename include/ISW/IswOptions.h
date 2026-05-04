@@ -48,8 +48,8 @@ typedef enum {
  * option to a resource specification.
  */
 typedef struct {
-    char        *option;    /* Option abbreviation in argv (e.g. "-bg") */
-    char        *specifier; /* Resource specifier (e.g. "*background") */
+    const char  *option;    /* Option abbreviation in argv (e.g. "-bg") */
+    const char  *specifier; /* Resource specifier (e.g. "*background") */
     IswOptionKind argKind;   /* Which style of option it is */
     IswPointer   value;      /* Value to provide if IswOptionNoArg */
 } IswOptionDescRec, *IswOptionDescList;
