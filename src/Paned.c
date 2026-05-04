@@ -893,7 +893,6 @@ StartGripAdjustment(PanedWidget pw, Widget grip)
 static void
 MoveGripAdjustment(PanedWidget pw, Widget grip, int loc)
 {
-    Widget *childP;
     int diff, add_size, sub_size, old_add_size;
 
     diff = loc - pw->paned.start_loc;
@@ -915,10 +914,14 @@ MoveGripAdjustment(PanedWidget pw, Widget grip, int loc)
     CommitNewLocations(pw);
     DrawInternalBorders(pw);
 
-    ForAllPanes(pw, childP) {
-        if (IswIsRealized(*childP))
-            xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(*childP), 0, 0, 0, 0);
-    }
+    if (IswIsRealized(pw->paned.whichadd))
+        xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(pw->paned.whichadd), 0, 0, 0, 0);
+    if (IswIsRealized(pw->paned.whichsub))
+        xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(pw->paned.whichsub), 0, 0, 0, 0);
+    if (PaneInfo(pw->paned.whichadd)->grip &&
+        IswIsRealized(PaneInfo(pw->paned.whichadd)->grip))
+        xcb_clear_area(IswDisplay((Widget)pw), 1,
+                       IswWindow(PaneInfo(pw->paned.whichadd)->grip), 0, 0, 0, 0);
     xcb_flush(IswDisplay((Widget)pw));
 }
 
