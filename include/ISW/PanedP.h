@@ -165,6 +165,8 @@ typedef struct {
     	      and resize all children to
     	      preferred size. */
     int         start_loc;	           /* mouse origin when adjusting */
+    int         start_add_size;            /* whichadd size at grip start */
+    int         start_sub_size;            /* whichsub size at grip start */
     Widget      whichadd;                  /* Which pane to add changes to */
     Widget      whichsub;                  /* Which pane to sub changes from */
     int		num_panes;                 /* count of managed panes */

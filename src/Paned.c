@@ -106,12 +106,8 @@ typedef enum {UpLeftPane = 'U', LowRightPane = 'L',
  ****************************************************************************/
 
 static char defGripTranslations[] =
-    "<Btn1Down>:		GripAction(Start, UpLeftPane) \n\
-     <Btn2Down>:		GripAction(Start, ThisBorderOnly) \n\
-     <Btn3Down>:		GripAction(Start, LowRightPane) \n\
-     <Btn1Motion>:		GripAction(Move, UpLeft) \n\
-     <Btn2Motion>:		GripAction(Move, ThisBorder) \n\
-     <Btn3Motion>:		GripAction(Move, LowRight) \n\
+    "<Btn1Down>:		GripAction(Start, ThisBorderOnly) \n\
+     <Btn1Motion>:		GripAction(Move, ThisBorder) \n\
      Any<BtnUp>:		GripAction(Commit)";
 
 #define offset(field) IswOffsetOf(PanedRec, paned.field)
@@ -811,53 +807,6 @@ _DrawInternalBorders(PanedWidget pw, Pixel pixel)
 #define DrawInternalBorders(pw) _DrawInternalBorders((pw), (pw)->paned.internal_bp);
 #define EraseInternalBorders(pw) _DrawInternalBorders((pw), (pw)->core.background_pixel);
 
-/*	Function Name: _DrawTrackLines
- *	Description: Draws the lines that animate the pane borders when the
- *                   grips are moved.
- *	Arguments: pw - the Paned widget.
- *                 erase - if True then just erase track lines, else
- *                         draw them in.
- *	Returns: none.
- */
-
-static void
-_DrawTrackLines(PanedWidget pw, Boolean erase)
-{
-    Widget *childP;
-    Pane pane;
-    int on_loc, off_loc;
-    unsigned int on_size, off_size;
-
-    off_loc = 0;
-    off_size = PaneSize( (Widget) pw, !IsVert(pw));
-
-    ForAllPanes(pw, childP) {
-        pane = PaneInfo(*childP);
-	if ( erase || (pane->olddelta != pane->delta) ) {
-	    on_size = pw->paned.internal_bw;
-	    if (!erase) {
-	        on_loc = PaneInfo(*childP)->olddelta - (int) on_size;
-
-		_DrawRect( pw, pw->paned.internal_bp ^ pw->core.background_pixel,
-			  on_loc, off_loc, on_size, off_size);
-	    }
-
-	    on_loc = PaneInfo(*childP)->delta - (int) on_size;
-
-	    _DrawRect(pw, pw->paned.internal_bp ^ pw->core.background_pixel,
-		      on_loc, off_loc, on_size, off_size);
-
-	    pane->olddelta = pane->delta;
-	}
-    }
-}
-
-/*
- * This allows good reuse of code, as well as descriptive function names.
- */
-
-#define DrawTrackLines(pw) _DrawTrackLines((pw), FALSE);
-#define EraseTrackLines(pw) _DrawTrackLines((pw), TRUE);
 
 /*	Function Name: GetEventLocation
  *	Description: Converts and event to an x and y location.
@@ -913,7 +862,6 @@ GetEventLocation(PanedWidget pw, xcb_generic_event_t *event)
 static void
 StartGripAdjustment(PanedWidget pw, Widget grip, Direction dir)
 {
-    Widget *childP;
     xcb_cursor_t cursor;
 
     pw->paned.whichadd = pw->paned.whichsub = (Widget) NULL;
@@ -959,9 +907,10 @@ StartGripAdjustment(PanedWidget pw, Widget grip, Direction dir)
           XCB_CW_CURSOR, &value);
     }
 
-    EraseInternalBorders(pw);
-    ForAllPanes(pw, childP)
-        PaneInfo(*childP)->olddelta = -99;
+    pw->paned.start_add_size = pw->paned.whichadd ?
+        PaneSize(pw->paned.whichadd, IsVert(pw)) : 0;
+    pw->paned.start_sub_size = pw->paned.whichsub ?
+        PaneSize(pw->paned.whichsub, IsVert(pw)) : 0;
 }
 
 /*	Function Name: MoveGripAdjustment
@@ -977,15 +926,16 @@ StartGripAdjustment(PanedWidget pw, Widget grip, Direction dir)
 static void
 MoveGripAdjustment(PanedWidget pw, Widget grip, Direction dir, int loc)
 {
+    Widget *childP;
     int diff, add_size = 0, sub_size = 0;
 
     diff = loc - pw->paned.start_loc;
 
     if (pw->paned.whichadd)
-        add_size = PaneSize(pw->paned.whichadd, IsVert(pw) ) + diff;
+        add_size = pw->paned.start_add_size + diff;
 
     if (pw->paned.whichsub)
-        sub_size = PaneSize(pw->paned.whichsub, IsVert(pw) ) - diff;
+        sub_size = pw->paned.start_sub_size - diff;
 
 /*
  * If moving this border only then do not allow either of the borders
@@ -1011,7 +961,14 @@ MoveGripAdjustment(PanedWidget pw, Widget grip, Direction dir, int loc)
     if (sub_size != 0)
         PaneInfo(pw->paned.whichsub)->size = sub_size;
     RefigureLocations(pw, PaneIndex(grip), dir);
-    DrawTrackLines(pw);
+    CommitNewLocations(pw);
+    DrawInternalBorders(pw);
+
+    ForAllPanes(pw, childP) {
+        if (IswIsRealized(*childP))
+            xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(*childP), 0, 0, 0, 0);
+    }
+    xcb_flush(IswDisplay((Widget)pw));
 }
 
 /*	Function Name: CommitGripAdjustment
@@ -1023,14 +980,6 @@ MoveGripAdjustment(PanedWidget pw, Widget grip, Direction dir, int loc)
 static void
 CommitGripAdjustment(PanedWidget pw)
 {
-    EraseTrackLines(pw);
-    CommitNewLocations(pw);
-    DrawInternalBorders(pw);
-
-/*
- * Since the user selected this size then use it as the preferred size.
- */
-
     if (pw->paned.whichadd) {
         Pane pane = PaneInfo(pw->paned.whichadd);
 	pane->wp_size = pane->size;
