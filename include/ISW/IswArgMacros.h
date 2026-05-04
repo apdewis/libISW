@@ -182,18 +182,14 @@
 #define IswArgHorizontalGripCursor(ab, v)       ISW_ARG((ab), IswNhorizontalGripCursor, (v))
 #define IswArgInternalBorderColor(ab, v)        ISW_ARG((ab), IswNinternalBorderColor, (v))
 #define IswArgInternalBorderWidth(ab, v)        ISW_ARG((ab), IswNinternalBorderWidth, (v))
-#define IswArgLeftCursor(ab, v)                 ISW_ARG((ab), IswNleftCursor, (v))
-#define IswArgLowerCursor(ab, v)                ISW_ARG((ab), IswNlowerCursor, (v))
 #define IswArgRefigureMode(ab, v)               ISW_ARG((ab), IswNrefigureMode, (v))
 #define IswArgPosition(ab, v)                   ISW_ARG((ab), IswNposition, (v))
 #define IswArgMin(ab, v)                        ISW_ARG((ab), IswNmin, (v))
 #define IswArgMax(ab, v)                        ISW_ARG((ab), IswNmax, (v))
 #define IswArgPreferredPaneSize(ab, v)          ISW_ARG((ab), IswNpreferredPaneSize, (v))
 #define IswArgResizeToPreferred(ab, v)          ISW_ARG((ab), IswNresizeToPreferred, (v))
-#define IswArgRightCursor(ab, v)                ISW_ARG((ab), IswNrightCursor, (v))
 #define IswArgShowGrip(ab, v)                   ISW_ARG((ab), IswNshowGrip, (v))
 #define IswArgSkipAdjust(ab, v)                 ISW_ARG((ab), IswNskipAdjust, (v))
-#define IswArgUpperCursor(ab, v)                ISW_ARG((ab), IswNupperCursor, (v))
 #define IswArgVerticalGripCursor(ab, v)         ISW_ARG((ab), IswNverticalGripCursor, (v))
 
 /* Panner */

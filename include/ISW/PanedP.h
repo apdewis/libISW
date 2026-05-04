@@ -107,7 +107,6 @@ typedef struct _PanedConstraintsPart {
 
   /* Private state. */
     Position	delta;		/* Desired Location */
-    Position	olddelta;	/* The last value of dy. */
     Boolean     paned_adjusted_me; /* Has the vpaned adjusted this widget w/o
 				     user interaction to make things fit? */
     Dimension	wp_size;	/* widget's preferred size */
@@ -150,14 +149,6 @@ typedef struct {
     xcb_cursor_t	adjust_this_cursor;        /* active grip cursor: T */
     xcb_cursor_t	v_adjust_this_cursor;      /* active vert grip cursor: T */
     xcb_cursor_t	h_adjust_this_cursor;      /* active horiz grip cursor: T */
-
-				          /* vertical. */
-    xcb_cursor_t	adjust_upper_cursor;      /* active grip cursor: U */
-    xcb_cursor_t	adjust_lower_cursor;      /* active grip cursor: D */
-
-				          /* horizontal. */
-    xcb_cursor_t	adjust_left_cursor;       /* active grip cursor: U */
-    xcb_cursor_t	adjust_right_cursor;      /* active grip cursor: D */
 
     /* private */
     Boolean	recursively_called;        /* for ChangeManaged */

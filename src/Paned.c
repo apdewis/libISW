@@ -106,8 +106,8 @@ typedef enum {UpLeftPane = 'U', LowRightPane = 'L',
  ****************************************************************************/
 
 static char defGripTranslations[] =
-    "<Btn1Down>:		GripAction(Start, ThisBorderOnly) \n\
-     <Btn1Motion>:		GripAction(Move, ThisBorder) \n\
+    "<Btn1Down>:		GripAction(Start) \n\
+     <Btn1Motion>:		GripAction(Move) \n\
      Any<BtnUp>:		GripAction(Commit)";
 
 #define offset(field) IswOffsetOf(PanedRec, paned.field)
@@ -146,14 +146,6 @@ static IswResource resources[] = {
     {IswNhorizontalBetweenCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
          offset(h_adjust_this_cursor), IswRString, (IswPointer)"sb_up_arrow"},
 
-    {IswNupperCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(adjust_upper_cursor), IswRString, (IswPointer)"sb_up_arrow"},
-    {IswNlowerCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(adjust_lower_cursor), IswRString, (IswPointer)"sb_down_arrow"},
-    {IswNleftCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(adjust_left_cursor), IswRString, (IswPointer)"sb_left_arrow"},
-    {IswNrightCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
-         offset(adjust_right_cursor), IswRString, (IswPointer)"sb_right_arrow"},
 };
 
 #undef offset
@@ -805,7 +797,6 @@ _DrawInternalBorders(PanedWidget pw, Pixel pixel)
  */
 
 #define DrawInternalBorders(pw) _DrawInternalBorders((pw), (pw)->paned.internal_bp);
-#define EraseInternalBorders(pw) _DrawInternalBorders((pw), (pw)->core.background_pixel);
 
 
 /*	Function Name: GetEventLocation
@@ -860,57 +851,33 @@ GetEventLocation(PanedWidget pw, xcb_generic_event_t *event)
  */
 
 static void
-StartGripAdjustment(PanedWidget pw, Widget grip, Direction dir)
+StartGripAdjustment(PanedWidget pw, Widget grip)
 {
     xcb_cursor_t cursor;
 
-    pw->paned.whichadd = pw->paned.whichsub = (Widget) NULL;
-
-    if (dir == ThisBorderOnly || dir == UpLeftPane)
-      pw->paned.whichadd = pw->composite.children[PaneIndex(grip)];
-    if (dir == ThisBorderOnly || dir == LowRightPane)
-      pw->paned.whichsub = pw->composite.children[PaneIndex(grip) + 1];
-
-/*
- * Change the cursor.
- */
+    pw->paned.whichadd = pw->composite.children[PaneIndex(grip)];
+    pw->paned.whichsub = pw->composite.children[PaneIndex(grip) + 1];
 
     if (IswIsRealized(grip)) {
-        if ( IsVert(pw) ) {
-     if (dir == UpLeftPane)
-         cursor = pw->paned.adjust_upper_cursor;
-     else if (dir == LowRightPane)
-           cursor = pw->paned.adjust_lower_cursor;
-     else {
-         if ( pw->paned.adjust_this_cursor == None)
-      cursor = pw->paned.v_adjust_this_cursor;
-  else
-      cursor = pw->paned.adjust_this_cursor;
-     }
- }
- else {
-     if (dir == UpLeftPane)
-         cursor = pw->paned.adjust_left_cursor;
-     else if (dir == LowRightPane)
-           cursor = pw->paned.adjust_right_cursor;
-     else {
-         if (pw->paned.adjust_this_cursor == None)
-      cursor = pw->paned.h_adjust_this_cursor;
-  else
-      cursor = pw->paned.adjust_this_cursor;
-     }
- }
+        if (IsVert(pw)) {
+            if (pw->paned.adjust_this_cursor == None)
+                cursor = pw->paned.v_adjust_this_cursor;
+            else
+                cursor = pw->paned.adjust_this_cursor;
+        } else {
+            if (pw->paned.adjust_this_cursor == None)
+                cursor = pw->paned.h_adjust_this_cursor;
+            else
+                cursor = pw->paned.adjust_this_cursor;
+        }
 
- /* XCB: Use xcb_change_window_attributes to set cursor */
- uint32_t value = cursor;
- xcb_change_window_attributes(IswDisplay(grip), IswWindow(grip),
-          XCB_CW_CURSOR, &value);
+        uint32_t value = cursor;
+        xcb_change_window_attributes(IswDisplay(grip), IswWindow(grip),
+                                     XCB_CW_CURSOR, &value);
     }
 
-    pw->paned.start_add_size = pw->paned.whichadd ?
-        PaneSize(pw->paned.whichadd, IsVert(pw)) : 0;
-    pw->paned.start_sub_size = pw->paned.whichsub ?
-        PaneSize(pw->paned.whichsub, IsVert(pw)) : 0;
+    pw->paned.start_add_size = PaneSize(pw->paned.whichadd, IsVert(pw));
+    pw->paned.start_sub_size = PaneSize(pw->paned.whichsub, IsVert(pw));
 }
 
 /*	Function Name: MoveGripAdjustment
@@ -924,43 +891,27 @@ StartGripAdjustment(PanedWidget pw, Widget grip, Direction dir)
  */
 
 static void
-MoveGripAdjustment(PanedWidget pw, Widget grip, Direction dir, int loc)
+MoveGripAdjustment(PanedWidget pw, Widget grip, int loc)
 {
     Widget *childP;
-    int diff, add_size = 0, sub_size = 0;
+    int diff, add_size, sub_size, old_add_size;
 
     diff = loc - pw->paned.start_loc;
+    add_size = pw->paned.start_add_size + diff;
+    sub_size = pw->paned.start_sub_size - diff;
 
-    if (pw->paned.whichadd)
-        add_size = pw->paned.start_add_size + diff;
+    old_add_size = add_size;
+    AssignMax(add_size, (int) PaneInfo(pw->paned.whichadd)->min);
+    AssignMin(add_size, (int) PaneInfo(pw->paned.whichadd)->max);
+    if (add_size != old_add_size)
+	sub_size += old_add_size - add_size;
 
-    if (pw->paned.whichsub)
-        sub_size = pw->paned.start_sub_size - diff;
+    AssignMax(sub_size, (int) PaneInfo(pw->paned.whichsub)->min);
+    AssignMin(sub_size, (int) PaneInfo(pw->paned.whichsub)->max);
 
-/*
- * If moving this border only then do not allow either of the borders
- * to go beyond the min or max size allowed.
- */
-
-    if (dir == ThisBorderOnly) {
-      int old_add_size = add_size, old_sub_size;
-
-      AssignMax(add_size, (int) PaneInfo(pw->paned.whichadd)->min);
-      AssignMin(add_size, (int) PaneInfo(pw->paned.whichadd)->max);
-      if (add_size != old_add_size)
-	  sub_size += old_add_size - add_size;
-
-      old_sub_size = sub_size;
-      AssignMax(sub_size, (int) PaneInfo(pw->paned.whichsub)->min);
-      AssignMin(sub_size, (int) PaneInfo(pw->paned.whichsub)->max);
-      if (sub_size != old_sub_size) return; /* Abort to current sizes. */
-    }
-
-    if (add_size != 0)
-        PaneInfo(pw->paned.whichadd)->size = add_size;
-    if (sub_size != 0)
-        PaneInfo(pw->paned.whichsub)->size = sub_size;
-    RefigureLocations(pw, PaneIndex(grip), dir);
+    PaneInfo(pw->paned.whichadd)->size = add_size;
+    PaneInfo(pw->paned.whichsub)->size = sub_size;
+    RefigureLocations(pw, PaneIndex(grip), ThisBorderOnly);
     CommitNewLocations(pw);
     DrawInternalBorders(pw);
 
@@ -980,14 +931,8 @@ MoveGripAdjustment(PanedWidget pw, Widget grip, Direction dir, int loc)
 static void
 CommitGripAdjustment(PanedWidget pw)
 {
-    if (pw->paned.whichadd) {
-        Pane pane = PaneInfo(pw->paned.whichadd);
-	pane->wp_size = pane->size;
-    }
-    if (pw->paned.whichsub) {
-        Pane pane = PaneInfo(pw->paned.whichsub);
-	pane->wp_size = pane->size;
-    }
+    PaneInfo(pw->paned.whichadd)->wp_size = PaneInfo(pw->paned.whichadd)->size;
+    PaneInfo(pw->paned.whichsub)->wp_size = PaneInfo(pw->paned.whichsub)->size;
 }
 
 /*	Function Name: HandleGrip
@@ -1007,40 +952,29 @@ HandleGrip(Widget grip, IswPointer junk, IswPointer callData)
     int loc;
     char action_type;
     xcb_cursor_t cursor;
-    Direction direction = 0;
 
     action_type = toupper(*call_data->params[0]);
 
-    if (call_data->num_params == 0                             ||
-	(action_type == 'C' && call_data->num_params != 1)      ||
-	(action_type != 'C' && call_data->num_params != 2))
+    if (call_data->num_params != 1)
       	IswError( "Paned GripAction has been passed incorrect parameters." );
 
     loc = GetEventLocation(pw, (xcb_generic_event_t *) (call_data->event));
 
-    if (action_type != 'C') {
-	{
-	    int dir_ch = toupper(*call_data->params[1]);
-	    direction = (Direction) dir_ch;
-	}
-    }
-
     switch (action_type) {
-	case 'S':		/* Start adjustment */
+	case 'S':
             pw->paned.resize_children_to_pref = FALSE;
-            StartGripAdjustment(pw, grip, direction);
+            StartGripAdjustment(pw, grip);
 	    pw->paned.start_loc = loc;
 	    break;
 
 	case 'M':
-	    MoveGripAdjustment(pw, grip, direction, loc);
+	    MoveGripAdjustment(pw, grip, loc);
 	    break;
 
 	case 'C': {
 	    IswArgBuilder ab = IswArgBuilderInit();
 	    IswArgCursor(&ab, (IswArgVal)&cursor);
 	    IswGetValues(grip, ab.args, ab.count);
-	    /* XCB: Use xcb_change_window_attributes to set cursor */
 	    uint32_t value = cursor;
 	    xcb_change_window_attributes(IswDisplay(grip), IswWindow(grip),
 					  XCB_CW_CURSOR, &value);
