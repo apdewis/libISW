@@ -141,8 +141,6 @@ static IswResource resources[] = {
 	poff(slider_width), IswRImmediate, (IswPointer) 0 },
     { IswNsliderHeight, IswCSliderHeight, IswRDimension, sizeof(Dimension),
 	poff(slider_height), IswRImmediate, (IswPointer) 0 },
-    { IswNbackgroundStipple, IswCBackgroundStipple, IswRString, sizeof(String),
-	poff(stipple_name), IswRImmediate, (IswPointer) NULL },
 #undef poff
 };
 
@@ -419,11 +417,6 @@ draw_tmp_rubber_band(PannerWidget pw)
     if (pw->panner.tmp.showing) DRAW_TMP(pw); \
 }
 
-#define BACKGROUND_STIPPLE(pw) \
-  IswLocatePixmapFile (pw->core.screen, pw->panner.stipple_name, \
-		       pw->panner.foreground, pw->core.background_pixel, \
-		       pw->core.depth, NULL, 0, NULL, NULL, NULL, NULL)
-
 #define PIXMAP_OKAY(pm) ((pm) != None && (pm) != IswUnspecifiedPixmap)
 
 
@@ -462,27 +455,8 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
 static void
 Realize (xcb_connection_t *conn, Widget gw, IswValueMask *valuemaskp, uint32_t *values)
 {
-    PannerWidget pw = (PannerWidget) gw;
-    xcb_pixmap_t pm = IswUnspecifiedPixmap;
-    Boolean gotpm = FALSE;
-
-    if (pw->core.background_pixmap == IswUnspecifiedPixmap) {
-	if (pw->panner.stipple_name) pm = BACKGROUND_STIPPLE (pw);
-
-	if (PIXMAP_OKAY(pm)) {
-	    values[0] = pm;  /* background_pixmap */
-	    *valuemaskp |= XCB_CW_BACK_PIXMAP;
-	    *valuemaskp &= ~XCB_CW_BACK_PIXEL;
-	    gotpm = TRUE;
-	}
-    }
     (*pannerWidgetClass->core_class.superclass->core_class.realize)
       (conn, gw, valuemaskp, values);
-
-    if (gotpm) {
-        xcb_free_pixmap(conn, pm);
-        xcb_flush(conn);
-    }
 }
 
 
@@ -568,25 +542,13 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 	if (new->panner.tmp.doing) redisplay = TRUE;
     }
 
-    if ((cur->panner.stipple_name != new->panner.stipple_name ||
-  cur->core.background_pixel != new->core.background_pixel) &&
- IswIsRealized(gnew)) {
- xcb_pixmap_t pm = (new->panner.stipple_name ? BACKGROUND_STIPPLE (new)
-       : IswUnspecifiedPixmap);
-
- if (PIXMAP_OKAY(pm)) {
-     xcb_connection_t *conn = IswDisplay(new);
-     uint32_t pixmap_val = pm;
-     xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_BACK_PIXMAP, &pixmap_val);
-     xcb_free_pixmap(conn, pm);
-     xcb_flush(conn);
- } else {
-     xcb_connection_t *conn = IswDisplay(new);
-     uint32_t pixel_val = new->core.background_pixel;
-     xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_BACK_PIXEL, &pixel_val);
-     xcb_flush(conn);
- }
- redisplay = TRUE;
+    if (cur->core.background_pixel != new->core.background_pixel &&
+	IswIsRealized(gnew)) {
+	xcb_connection_t *conn = IswDisplay(new);
+	uint32_t pixel_val = new->core.background_pixel;
+	xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_BACK_PIXEL, &pixel_val);
+	xcb_flush(conn);
+	redisplay = TRUE;
     }
 
     if (new->panner.resize_to_pref &&

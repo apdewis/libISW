@@ -63,10 +63,7 @@ in this Software without prior written authorization from the X Consortium.
 */
 
 #define IswCLineWidth "LineWidth"
-#define IswCStipple "Stipple"
-
 #define IswNlineWidth "lineWidth"
-#define IswNstipple "stipple"
 
 typedef struct _SmeLineClassRec*	SmeLineObjectClass;
 typedef struct _SmeLineRec*	        SmeLineObject;

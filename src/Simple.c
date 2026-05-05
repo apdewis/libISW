@@ -55,15 +55,12 @@ SOFTWARE.
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SimpleP.h>
-#include "ISWXcbDraw.h"
 
 #define offset(field) IswOffsetOf(SimpleRec, simple.field)
 
 static IswResource resources[] = {
   {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
      offset(cursor), IswRImmediate, (IswPointer) None},
-  {IswNinsensitiveBorder, IswCInsensitive, IswRPixmap, sizeof(xcb_pixmap_t),
-     offset(insensitive_border), IswRImmediate, (IswPointer) NULL},
   /* Color cursor resources removed - not available in XCB
   {IswNpointerColor, IswCForeground, IswRPixel, sizeof(Pixel),
      offset(pointer_fg), IswRString, IswDefaultForeground},
@@ -165,40 +162,16 @@ ClassPartInitialize(WidgetClass class)
 static void
 Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
-    xcb_pixmap_t border_pixmap = 0;
-    
-    if (!IswIsSensitive(w)) {
-	/* change border to gray; have to remember the old one,
-	 * so IswDestroyWidget deletes the proper one */
-	if (((SimpleWidget)w)->simple.insensitive_border == None)
-	    ((SimpleWidget)w)->simple.insensitive_border =
-		IswCreateStippledPixmap(IswDisplay(w), IswWindow(w),
-					w->core.border_pixel,
-					w->core.background_pixel,
-					w->core.depth);
-        border_pixmap = w->core.border_pixmap;
-	w->core.border_pixmap = ((SimpleWidget)w)->simple.insensitive_border;
-
-	*valueMask |= XCB_CW_BORDER_PIXMAP;
-	*valueMask &= ~XCB_CW_BORDER_PIXEL;
-	attributes[__builtin_popcount(*valueMask & (XCB_CW_BORDER_PIXMAP - 1))] = w->core.border_pixmap;
-    }
-
     ConvertCursor(w);
 
     if (((SimpleWidget)w)->simple.cursor != None &&
         ((SimpleWidget)w)->simple.cursor != (xcb_cursor_t)0xffffffff) {
-	/* Only add cursor if it's a valid non-zero cursor ID */
 	*valueMask |= XCB_CW_CURSOR;
 	attributes[__builtin_popcount(*valueMask & (XCB_CW_CURSOR - 1))] = ((SimpleWidget)w)->simple.cursor;
     }
 
-    /* attributes parameter is already in XCB uint32_t format */
     IswCreateWindow(IswDisplay(w), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
                    (xcb_visualtype_t *)CopyFromParent, *valueMask, attributes);
-
-    if (!IswIsSensitive(w))
-	w->core.border_pixmap = border_pixmap;
 }
 
 /*	Function Name: ConvertCursor
@@ -281,31 +254,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 static Boolean
 ChangeSensitive(Widget w)
 {
-    if (IswIsRealized(w)) {
- if (IswIsSensitive(w)) {
-     if (w->core.border_pixmap != IswUnspecifiedPixmap) {
-  /* XSetWindowBorderPixmap → xcb_change_window_attributes */
-  uint32_t value = w->core.border_pixmap;
-  xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
-    	     XCB_CW_BORDER_PIXMAP, &value);
-     } else {
-  /* XSetWindowBorder → xcb_change_window_attributes */
-  uint32_t value = w->core.border_pixel;
-  xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
-    	     XCB_CW_BORDER_PIXEL, &value);
-     }
- } else {
-     if (((SimpleWidget)w)->simple.insensitive_border == None)
-  ((SimpleWidget)w)->simple.insensitive_border =
-      IswCreateStippledPixmap(IswDisplay(w), IswWindow(w),
-         w->core.border_pixel,
-         w->core.background_pixel,
-        w->core.depth);
-    /* XSetWindowBorderPixmap → xcb_change_window_attributes */
-    uint32_t value = ((SimpleWidget)w)->simple.insensitive_border;
-    xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
-     XCB_CW_BORDER_PIXMAP, &value);
-}
-    }
+    if (IswIsRealized(w))
+	xcb_clear_area(IswDisplay(w), 1, IswWindow(w), 0, 0, 0, 0);
     return False;
 }

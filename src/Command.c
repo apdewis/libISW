@@ -380,6 +380,8 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
   {
     cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
     if (cr) {
+      Boolean insensitive = !IswIsSensitive(w);
+      if (insensitive) cairo_push_group(cr);
       double lw = cbw->core.border_width;
       double off = lw / 2.0;
       double bx = off;
@@ -500,6 +502,10 @@ PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean 
       }
 
       cairo_restore(cr);
+      if (insensitive) {
+        cairo_pop_group_to_source(cr);
+        cairo_paint_with_alpha(cr, 0.4);
+      }
     }
   }
 

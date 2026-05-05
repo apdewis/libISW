@@ -66,7 +66,6 @@ extern SmeLineClassRec smeLineClassRec;
 typedef struct {
     /* resources */
     Pixel foreground;		/* Foreground color. */
-    xcb_pixmap_t stipple;		/* Line Stipple. */
     Dimension line_width;	/* Width of the line. */
 
 } SmeLinePart;

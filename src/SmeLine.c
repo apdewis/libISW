@@ -53,8 +53,6 @@ in this Software without prior written authorization from the X Consortium.
 static IswResource resources[] = {
   {IswNlineWidth, IswCLineWidth, IswRDimension, sizeof(Dimension),
      offset(line_width), IswRImmediate, (IswPointer) 1},
-  {IswNstipple, IswCStipple, IswRBitmap, sizeof(xcb_pixmap_t),
-     offset(stipple), IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
   {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
      offset(foreground), IswRString, IswDefaultForeground},
 };

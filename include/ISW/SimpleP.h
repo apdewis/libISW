@@ -68,7 +68,6 @@ extern SimpleClassRec simpleClassRec;
 typedef struct {
     /* resources */
     xcb_cursor_t	cursor;
-    xcb_pixmap_t	insensitive_border;
     String      cursor_name;	/* cursor specified by name. */
 
     Pixel       pointer_fg, pointer_bg;	/* Pointer colors. */

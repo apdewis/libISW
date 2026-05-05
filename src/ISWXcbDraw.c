@@ -248,59 +248,6 @@ ISWAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color)
     return 1;
 }
 
-/*
- * IswCreateStippledPixmap - Create a stippled pixmap for grayed-out effects
- *
- * Creates a 2x2 checkerboard pattern pixmap for use as a tile in GCs.
- */
-xcb_pixmap_t
-IswCreateStippledPixmap(xcb_connection_t *conn, xcb_drawable_t d,
-                        unsigned long fg, unsigned long bg,
-                        unsigned int depth)
-{
-    xcb_pixmap_t pixmap;
-    xcb_gcontext_t gc;
-    xcb_rectangle_t rects[2];
-    
-    if (!conn)
-        return 0;
-    
-    /* Create a 2x2 pixmap */
-    pixmap = xcb_generate_id(conn);
-    xcb_create_pixmap(conn, depth, pixmap, d, 2, 2);
-    
-    /* Create a temporary xcb_gcontext_t */
-    gc = xcb_generate_id(conn);
-    {
-        uint32_t values[1];
-        values[0] = bg;
-        xcb_create_gc(conn, gc, pixmap, XCB_GC_FOREGROUND, values);
-    }
-    
-    /* Fill with background */
-    rects[0].x = 0; rects[0].y = 0; rects[0].width = 2; rects[0].height = 2;
-    xcb_poly_fill_rectangle(conn, pixmap, gc, 1, rects);
-    
-    /* Draw foreground pixels in checkerboard pattern */
-    {
-        uint32_t values[1];
-        values[0] = fg;
-        xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, values);
-    }
-    
-    /* Draw two points for checkerboard: (0,0) and (1,1) */
-    {
-        xcb_point_t points[2];
-        points[0].x = 0; points[0].y = 0;
-        points[1].x = 1; points[1].y = 1;
-        xcb_poly_point(conn, XCB_COORD_MODE_ORIGIN, pixmap, gc, 2, points);
-    }
-    
-    xcb_free_gc(conn, gc);
-    xcb_flush(conn);
-    
-    return pixmap;
-}
 
 /*
  * ISWFontStructTextWidth - Convenience wrapper that works with IswFontStruct

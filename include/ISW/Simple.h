@@ -68,7 +68,6 @@ SOFTWARE.
  cursorName	     Cursor		String		NULL
  destroyCallback     Callback		Pointer		NULL
  height		     Height		Dimension	0
- insensitiveBorder   Insensitive	Pixmap		Gray
  mappedWhenManaged   MappedWhenManaged	Boolean		True
  pointerColor        Foreground         Pixel           IswDefaultForeground
  pointerColorBackground Background      Pixel           IswDefaultBackground
@@ -81,9 +80,6 @@ SOFTWARE.
 
 #define IswNcursor "cursor"
 #define IswNcursorName "cursorName"
-#define IswNinsensitiveBorder "insensitiveBorder"
-
-#define IswCInsensitive "Insensitive"
 
 #ifndef IswCInternational
 #define IswCInternational "International"

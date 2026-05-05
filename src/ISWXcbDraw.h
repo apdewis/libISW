@@ -145,37 +145,6 @@ int ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color);
  */
 int ISWAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color);
 
-/*
- * IswCreateStippledPixmap - Create a stippled pixmap for grayed-out effects
- *
- * Replacement for XmuCreateStippledPixmap from libXmu.
- * Creates a 2x2 checkerboard pattern pixmap.
- *
- * Parameters:
- *   conn  - XCB connection
- *   d     - Drawable for depth reference
- *   fg    - Foreground pixel value
- *   bg    - Background pixel value
- *   depth - Depth of pixmap to create
- *
- * Returns: xcb_pixmap_t (0 on failure)
- */
-xcb_pixmap_t IswCreateStippledPixmap(xcb_connection_t *conn,
-                                     xcb_drawable_t d,
-                                     unsigned long fg,
-                                     unsigned long bg,
-                                     unsigned int depth);
-
-/*
- * ISWReleaseStippledPixmap - Free a stippled pixmap
- *
- * Releases the server resources for a pixmap created by IswCreateStippledPixmap.
- *
- * Parameters:
- *   screen - XCB screen pointer
- *   pixmap - Pixmap to free
- */
-void ISWReleaseStippledPixmap(xcb_screen_t *screen, xcb_pixmap_t pixmap);
 
 /*
  * ISWFontStructTextWidth - Calculate text width using IswFontStruct

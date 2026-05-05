@@ -194,7 +194,6 @@
 
 /* Panner */
 #define IswArgAllowOff(ab, v)                   ISW_ARG((ab), IswNallowOff, (v))
-#define IswArgBackgroundStipple(ab, v)          ISW_ARG((ab), IswNbackgroundStipple, (v))
 #define IswArgDefaultScale(ab, v)               ISW_ARG((ab), IswNdefaultScale, (v))
 #define IswArgCanvasWidth(ab, v)                ISW_ARG((ab), IswNcanvasWidth, (v))
 #define IswArgCanvasHeight(ab, v)               ISW_ARG((ab), IswNcanvasHeight, (v))
@@ -335,7 +334,6 @@
 
 /* Simple */
 #define IswArgCursorName(ab, v)                 ISW_ARG((ab), IswNcursorName, (v))
-#define IswArgInsensitiveBorder(ab, v)          ISW_ARG((ab), IswNinsensitiveBorder, (v))
 #define IswArgInternational(ab, v)              ISW_ARG((ab), IswNinternational, (v))
 #define IswArgTraversalOn(ab, v)                ISW_ARG((ab), IswNtraversalOn, (v))
 #define IswArgTabIndex(ab, v)                   ISW_ARG((ab), IswNtabIndex, (v))

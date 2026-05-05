@@ -68,8 +68,6 @@ in this Software without prior written authorization from the X Consortium.
 
 #define IswNallowOff "allowOff"
 #define IswCAllowOff "AllowOff"
-#define IswNbackgroundStipple "backgroundStipple"
-#define IswCBackgroundStipple "BackgroundStipple"
 #define IswNdefaultScale "defaultScale"
 #define IswCDefaultScale "DefaultScale"
 #define IswNcanvasWidth "canvasWidth"

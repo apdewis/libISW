@@ -32,28 +32,3 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #endif
 #include <ISW/ISWP.h>
 
-#ifdef ISW_GRAY_BLKWHT_STIPPLES
-/* ARGSUSED */
-unsigned long
-grayPixel(unsigned long p, xcb_connection_t *dpy, xcb_screen_t *scn)
-{
-    static IswColor Gray =
-    {
-	0,		/* pixel */
-	0, 0, 0,	/* red, green, blue */
-        0,		/* flags */
-        0		/* pad */
-    };
-
-    if (!Gray.pixel)
-    {
-	IswColor exact;
-
-	(void)XAllocNamedColor(dpy, DefaultColormapOfScreen(scn),
-			       "gray", &Gray, &exact);  /* Blindflug */
-    }
-
-    return Gray.pixel;
-}
-#endif
-

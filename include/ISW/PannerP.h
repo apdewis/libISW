@@ -58,7 +58,6 @@ typedef struct {			/* new fields in widget */
     Dimension slider_width;		/* sliderWidth/SliderWidth */
     Dimension slider_height;		/* sliderHeight/SliderHeight */
     Dimension internal_border;		/* internalBorderWidth/BorderWidth */
-    String stipple_name;		/* backgroundStipple/BackgroundStipple */
     /* private data... */
     double haspect, vaspect;		/* aspect ratio of core to canvas */
     Boolean rubber_band;		/* true = rubber band, false = move */

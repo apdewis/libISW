@@ -64,6 +64,7 @@ SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
+#include <cairo/cairo.h>
 #include <ISW/Command.h>
 #include <ISW/LabelP.h>
 /* NO XFT - using pure XCB rendering */
@@ -569,8 +570,8 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
         ctx = w->label.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
     }
     
-    /* Note: event and region use XCB types per the migration plan */
-    (void)event; /* May be used in future for expose event handling */
+    (void)event;
+    Boolean insensitive = !IswIsSensitive(gw);
 
     /*
      * Don't draw shadows if Command is going to redraw them.
@@ -640,6 +641,8 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             if (draw_x < 0) draw_x = 0;
             if (draw_y < 0) draw_y = 0;
             ISWRenderBegin(ctx);
+            cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
+            if (insensitive && cr) cairo_push_group(cr);
             ISWRenderSetColor(ctx, w->core.background_pixel);
             ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
             if (ISWImageIsMonochrome(w->label.image))
@@ -649,6 +652,10 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             else
                 ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
                                        draw_x, draw_y, disp_w, disp_h);
+            if (insensitive && cr) {
+                cairo_pop_group_to_source(cr);
+                cairo_paint_with_alpha(cr, 0.4);
+            }
             ISWRenderEnd(ctx);
         }
         return;
@@ -710,8 +717,8 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
             /* Use Cairo rendering if available */
             if (ctx) {
                 ISWRenderBegin(ctx);
-                /* Clear the widget area before drawing so stale text
-                 * from a previous label value doesn't show through. */
+                cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
+                if (insensitive && cr) cairo_push_group(cr);
                 ISWRenderSetColor(ctx, w->core.background_pixel);
                 ISWRenderFillRectangle(ctx, 0, 0,
                                        w->core.width, w->core.height);
@@ -775,6 +782,10 @@ Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
                                       draw_x, y);
                 }
 
+                if (insensitive && cr) {
+                    cairo_pop_group_to_source(cr);
+                    cairo_paint_with_alpha(cr, 0.4);
+                }
                 ISWRenderEnd(ctx);
             }
 

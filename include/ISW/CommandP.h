@@ -107,7 +107,6 @@ typedef struct {
     IswCallbackList callbacks;
 
     /* private state */
-    xcb_pixmap_t      	gray_pixmap;
     Boolean     	set;
     IswCommandHighlight	highlighted;
     /* more resources */
