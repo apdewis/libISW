@@ -604,6 +604,14 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 	int i, j;
 	xcb_connection_t *dpy = IswDisplay (tw);
 
+	/* Create render context lazily with dimension validation */
+	if (!tw->tree.render_ctx && tw->core.width > 0 && tw->core.height > 0) {
+	    tw->tree.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
+	}
+
+	if (tw->tree.render_ctx)
+	    ISWRenderBegin(tw->tree.render_ctx);
+
 	for (i = 0; i < tw->composite.num_children; i++) {
 	    Widget child = tw->composite.children[i];
 	    TreeConstraints tc = TREE_CONSTRAINT(child);
@@ -686,11 +694,6 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		 break;
 		    }
 
-		    /* Create render context lazily with dimension validation */
-		    if (!tw->tree.render_ctx && tw->core.width > 0 && tw->core.height > 0) {
-			tw->tree.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
-		    }
-
 		    if (tw->tree.render_ctx) {
 			ISWRenderSetColor(tw->tree.render_ctx, line_color);
 			ISWRenderDrawLine(tw->tree.render_ctx, x1, y1, x2, y2);
@@ -698,8 +701,10 @@ Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 		}
 	    }
 	}
-	
-	/* Flush connection after all drawing */
+
+	if (tw->tree.render_ctx)
+	    ISWRenderEnd(tw->tree.render_ctx);
+
 	xcb_flush(dpy);
     }
 }
