@@ -2878,16 +2878,8 @@ _IswShellGetCoordinates(Widget widget, Position *x, Position *y)
 {
     ShellWidget w = (ShellWidget) widget;
 
-    if (IswIsRealized(widget) &&
-        !(w->shell.client_specified & _IswShellPositionValid)) {
+    if (IswIsRealized(widget)) {
         int tmpx, tmpy;
-
-        //(void) XTranslateCoordinates(IswDisplay(w), IswWindow(w),
-        //                             RootWindowOfScreen(IswScreen(w)),
-        //                             (int) -w->core.border_width,
-        //                             (int) -w->core.border_width,
-        //                             &tmpx, &tmpy, &tmpchild);
-                                     
 
         /* HiDPI: border_width is logical; X server expects physical pixels. */
         double sf = _IswGetScaleFactor(IswDisplay(widget));
@@ -2909,7 +2901,6 @@ _IswShellGetCoordinates(Widget widget, Position *x, Position *y)
         double inv = 1.0 / sf;
         w->core.x = (Position)lrint((double)tmpx * inv);
         w->core.y = (Position)lrint((double)tmpy * inv);
-        w->shell.client_specified |= _IswShellPositionValid;
     }
     *x = w->core.x;
     *y = w->core.y;
