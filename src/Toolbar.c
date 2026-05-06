@@ -16,10 +16,9 @@
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ToolbarP.h>
+#include "ISWXcbDraw.h"
 #include <ISW/Command.h>
 #include <ISW/CommandP.h>
-#include <ISW/ISWRender.h>
-#include "ISWXcbDraw.h"
 
 #define superclass (&constraintClassRec)
 
@@ -553,23 +552,5 @@ ConstraintSetValues(Widget current, Widget request, Widget new,
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-    (void)event; (void)region;
-
-    if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
-        return;
-
-    /* Skip separator when the X window already has a border */
-    if (w->core.border_width > 0)
-        return;
-
-    /* Draw bottom separator line */
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-    if (ctx) {
-        int y = (int)w->core.height - 1;
-        ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.border_pixel);
-        ISWRenderDrawLine(ctx, 0, y, (int)w->core.width, y);
-        ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
-    }
+    (void)w; (void)event; (void)region;
 }
