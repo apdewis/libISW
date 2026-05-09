@@ -270,8 +270,14 @@ ChangeManaged(Widget w)
         Dimension h = child->core.height + 2 * child->core.border_width;
         if (h > max_h) max_h = h;
     }
-    if (max_h > 0)
-        w->core.height = max_h + 2 * pad;
+    if (max_h > 0) {
+        Dimension want = max_h + 2 * pad;
+        Dimension got_w, got_h;
+        IswGeometryResult r = IswMakeResizeRequest(w, w->core.width,
+                                                   want, &got_w, &got_h);
+        if (r == IswGeometryAlmost)
+            IswMakeResizeRequest(w, got_w, got_h, NULL, NULL);
+    }
 
     DoLayout(rw);
 }

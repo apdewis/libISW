@@ -572,9 +572,11 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
     (void)reply;
 
     if ((request->request_mode & XCB_CONFIG_WINDOW_X) ||
-        (request->request_mode & XCB_CONFIG_WINDOW_Y) ||
-        (request->request_mode & XCB_CONFIG_WINDOW_WIDTH))
+        (request->request_mode & XCB_CONFIG_WINDOW_Y))
         return IswGeometryNo;
+
+    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
+        request->width = child->core.width;
 
     if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
         child->core.height = request->height;
