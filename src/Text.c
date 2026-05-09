@@ -2283,8 +2283,9 @@ _IswTextCheckResize(TextWidget ctx)
   int line = 0, old_height;
   IswWidgetGeometry rbox, return_geom;
 
-  if ( (ctx->text.resize == IswtextResizeWidth) ||
-       (ctx->text.resize == IswtextResizeBoth) ) {
+  if ( ((ctx->text.resize == IswtextResizeWidth) ||
+	(ctx->text.resize == IswtextResizeBoth)) &&
+       ctx->text.wrap != IswtextWrapNever ) {
     IswTextLineTableEntry *lt;
     rbox.width = 0;
     for (lt = ctx->text.lt.info;
@@ -2595,64 +2596,77 @@ _IswTextShowPosition(TextWidget ctx)
   max_pos = PositionForXY (ctx, x, y);
   lines = LineForPosition(ctx, max_pos) + 1; /* number of visable lines. */
 
-  if ( (ctx->text.insertPos >= ctx->text.lt.top) &&
-       (ctx->text.insertPos < max_pos))
-    return;
+  if ( (ctx->text.insertPos < ctx->text.lt.top) ||
+       (ctx->text.insertPos >= max_pos)) {
 
-  first = ctx->text.lt.top;
-  no_scroll = FALSE;
+    first = ctx->text.lt.top;
+    no_scroll = FALSE;
 
-  if (ctx->text.insertPos < first) { /* We need to scroll down. */
-      top = SrcScan(ctx->text.source, ctx->text.insertPos,
-		    IswstEOL, IswsdLeft, 1, FALSE);
+    if (ctx->text.insertPos < first) { /* We need to scroll down. */
+	top = SrcScan(ctx->text.source, ctx->text.insertPos,
+		      IswstEOL, IswsdLeft, 1, FALSE);
 
-      /* count the number of lines we have to scroll */
+	number = 0;
+	while (first > top) {
+	    first = SrcScan(ctx->text.source, first,
+			    IswstEOL, IswsdLeft, 1, TRUE);
 
-      number = 0;
-      while (first > top) {
-	  first = SrcScan(ctx->text.source, first,
-			  IswstEOL, IswsdLeft, 1, TRUE);
+	    if ( - number > lines )
+		break;
 
-	  if ( - number > lines )
-	      break;
+	    number--;
+	}
 
-	  number--;
-      }
+	if (first <= top) {
+	    first = SrcScan(ctx->text.source, first,
+			    IswstPositions, IswsdRight, 1, TRUE);
 
-      if (first <= top) {	/* If we found the proper number
-				   of lines. */
+	    if (first <= top)
+		number++;
 
-	  /* Back up to just before the last CR. */
+	    lines = number;
+	}
+	else
+	    no_scroll = TRUE;
+    }
+    else {			/* We need to Scroll up */
+	top = SrcScan(ctx->text.source, ctx->text.insertPos,
+		      IswstEOL, IswsdLeft, lines, FALSE);
 
-	  first = SrcScan(ctx->text.source, first,
-			  IswstPositions, IswsdRight, 1, TRUE);
+	if (top < max_pos)
+	    lines = LineForPosition(ctx, top);
+	else
+	    no_scroll = TRUE;
+    }
 
-	  /* Check to make sure the cursor is visable. */
-
-	  if (first <= top)
-	      number++;
-
-	  lines = number;
-      }
-      else
-	  no_scroll = TRUE;
+    if (no_scroll) {
+	_IswTextBuildLineTable(ctx, top, FALSE);
+	DisplayTextWindow((Widget)ctx);
+    }
+    else
+	_IswTextVScroll(ctx, lines);
   }
-  else {			/* We need to Scroll up */
-      top = SrcScan(ctx->text.source, ctx->text.insertPos,
-		    IswstEOL, IswsdLeft, lines, FALSE);
 
-      if (top < max_pos)
-	  lines = LineForPosition(ctx, top);
-      else
-	  no_scroll = TRUE;
-  }
+  {
+    int cur_line;
+    Position cur_x, cur_y;
+    Position visible_left, visible_right;
 
-  if (no_scroll) {
-      _IswTextBuildLineTable(ctx, top, FALSE);
-      DisplayTextWindow((Widget)ctx);
+    LineAndXYForPosition(ctx, ctx->text.insertPos, &cur_line, &cur_x, &cur_y);
+
+    visible_left = ctx->text.r_margin.left;
+    visible_right = (Position)ctx->core.width - ctx->text.margin.right;
+
+    if (cur_x < visible_left || cur_x >= visible_right) {
+      Position target_left = ctx->text.margin.left + (visible_left - cur_x)
+	+ (visible_right - visible_left) / 4;
+      if (target_left > ctx->text.r_margin.left)
+	target_left = ctx->text.r_margin.left;
+      ctx->text.margin.left = target_left;
+      _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
+      _IswTextNeedsUpdating(ctx, zeroPosition, ctx->text.lastPos);
+    }
   }
-  else
-      _IswTextVScroll(ctx, lines);
 
   _IswTextSetScrollBars(ctx);
 }
