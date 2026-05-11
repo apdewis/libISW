@@ -530,8 +530,9 @@ FindDropTarget(XdndState *st, int root_x, int root_y)
         return NULL;
     }
 
-    int wx = reply->dst_x;
-    int wy = reply->dst_y;
+    double sf = ISWScaleFactor(st->shell);
+    int wx = (int)(reply->dst_x / sf + 0.5);
+    int wy = (int)(reply->dst_y / sf + 0.5);
     free(reply);
 
     fprintf(stderr, "XDND FindDropTarget: root(%d,%d) -> shell(%d,%d)\n",
@@ -578,9 +579,8 @@ FindDropTarget(XdndState *st, int root_x, int root_y)
                     bounds_widget = vp->viewport.clip;
             }
 
-            /* xcb_translate_coordinates returns physical (server) coords,
-               but XDND root coords are logical.  Scale to match. */
-            double sf = ISWScaleFactor(st->shell);
+            /* xcb_translate_coordinates returns physical (server) coords;
+               descale to logical to match core geometry. */
             xcb_translate_coordinates_cookie_t tc =
                 xcb_translate_coordinates(conn,
                     IswWindow(bounds_widget), IswScreen(st->shell)->root,
@@ -593,11 +593,13 @@ FindDropTarget(XdndState *st, int root_x, int root_y)
             int w = (int) bounds_widget->core.width;
             int h = (int) bounds_widget->core.height;
             free(tr);
-            fprintf(stderr, "XDND FindDropTarget:   widget %p: abs(%d,%d) size(%d,%d) root(%d,%d) sf=%.2f\n",
-                    (void*)dc->widget, abs_x, abs_y, w, h, root_x, root_y, sf);
-            if (root_x >= abs_x && root_y >= abs_y &&
-                root_x < abs_x + w &&
-                root_y < abs_y + h) {
+            int lrx = (int)(root_x / sf + 0.5);
+            int lry = (int)(root_y / sf + 0.5);
+            fprintf(stderr, "XDND FindDropTarget:   widget %p: abs(%d,%d) size(%d,%d) root(%d,%d)->logical(%d,%d) sf=%.2f\n",
+                    (void*)dc->widget, abs_x, abs_y, w, h, root_x, root_y, lrx, lry, sf);
+            if (lrx >= abs_x && lry >= abs_y &&
+                lrx < abs_x + w &&
+                lry < abs_y + h) {
                 result = dc->widget;
                 break;
             }
