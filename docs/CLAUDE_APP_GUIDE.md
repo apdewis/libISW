@@ -38,16 +38,19 @@ int main(int argc, char *argv[])
 
 ## Widget Creation Pattern
 
-All widgets use the Arg/Cardinal pattern:
+Use the `IswArgBuilder` convenience API:
 
 ```c
 #include <ISW/Command.h>
+#include <ISW/IswArgMacros.h>
 
-Arg args[10];
-Cardinal n = 0;
-IswSetArg(args[n], IswNlabel, "Click Me"); n++;
-Widget btn = IswCreateManagedWidget("btn", commandWidgetClass, parent, args, n);
+IswArgBuilder ab = IswArgBuilderInit();
+IswArgLabel(&ab, "Click Me");
+Widget btn = IswCreateManagedWidget("btn", commandWidgetClass, parent,
+                                   ab.args, ab.count);
 IswAddCallback(btn, IswNcallback, my_callback, (IswPointer)"btn");
+
+IswArgBuilderReset(&ab);  /* Reuse for next widget */
 ```
 
 Callback signature:
@@ -71,6 +74,7 @@ void my_callback(Widget w, IswPointer client_data, IswPointer call_data)
 | Paned | `panedWidgetClass` | `<ISW/Paned.h>` | Vertically stacked panes with dividers |
 | Viewport | `viewportWidgetClass` | `<ISW/Viewport.h>` | Scrollable clipped view |
 | Tabs | `tabsWidgetClass` | `<ISW/Tabs.h>` | Tabbed pane switching |
+| FlexBox | `flexBoxWidgetClass` | `<ISW/FlexBox.h>` | Proportional space distribution (flex grow/align) |
 | Porthole | `portholeWidgetClass` | `<ISW/Porthole.h>` | 2D scrollable viewport (with Panner) |
 
 ### Controls
@@ -111,6 +115,8 @@ void my_callback(Widget w, IswPointer client_data, IswPointer call_data)
 | ListView | `listViewWidgetClass` | `<ISW/ListView.h>` | Multi-column list with resizable columns, multiselect, rubberband |
 | IconView | `iconViewWidgetClass` | `<ISW/IconView.h>` | Scrollable icon grid with multiselect |
 | Tree | `treeWidgetClass` | `<ISW/Tree.h>` | Hierarchical tree view |
+| ListBox | `listBoxWidgetClass` | `<ISW/ListBox.h>` | Selectable rows with rich widget content |
+| ListBoxRow | `listBoxRowWidgetClass` | `<ISW/ListBoxRow.h>` | Left-to-right row container for ListBox |
 
 ### Dialogs
 
@@ -143,11 +149,11 @@ ISW menus use a three-layer hierarchy:
 #include <ISW/SmeLine.h>
 
 /* 1. Create a MenuButton. IswNmenuName links it to the SimpleMenu by name. */
-n = 0;
-IswSetArg(args[n], IswNlabel, "File"); n++;
-IswSetArg(args[n], IswNmenuName, "fileMenu"); n++;
+IswArgBuilder ab = IswArgBuilderInit();
+IswArgLabel(&ab, "File");
+IswArgMenuName(&ab, "fileMenu");
 Widget file_btn = IswCreateManagedWidget("fileBtn", menuButtonWidgetClass,
-                                        menubar, args, n);
+                                        menubar, ab.args, ab.count);
 
 /* 2. Create the SimpleMenu as a popup shell. The widget name must match
       the IswNmenuName string above. The parent is the MenuButton. */
@@ -155,19 +161,19 @@ Widget file_menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass,
                                       file_btn, NULL, 0);
 
 /* 3. Add entries as children of the SimpleMenu. */
-n = 0;
-IswSetArg(args[n], IswNlabel, "New"); n++;
+IswArgBuilderReset(&ab);
+IswArgLabel(&ab, "New");
 Widget item_new = IswCreateManagedWidget("new", smeBSBObjectClass,
-                                        file_menu, args, n);
+                                        file_menu, ab.args, ab.count);
 IswAddCallback(item_new, IswNcallback, file_cb, (IswPointer)"new");
 
 /* Separator */
 IswCreateManagedWidget("sep", smeLineObjectClass, file_menu, NULL, 0);
 
-n = 0;
-IswSetArg(args[n], IswNlabel, "Quit"); n++;
+IswArgBuilderReset(&ab);
+IswArgLabel(&ab, "Quit");
 Widget item_quit = IswCreateManagedWidget("quit", smeBSBObjectClass,
-                                         file_menu, args, n);
+                                         file_menu, ab.args, ab.count);
 IswAddCallback(item_quit, IswNcallback, file_cb, (IswPointer)"quit");
 ```
 
@@ -183,9 +189,10 @@ Widget ctx_menu = IswCreatePopupShell("ctxMenu", simpleMenuWidgetClass,
                                      my_widget, NULL, 0);
 
 /* Add entries (SmeBSB with callbacks, same as above) */
-n = 0;
-IswSetArg(args[n], IswNlabel, "Cut"); n++;
-Widget cut = IswCreateManagedWidget("cut", smeBSBObjectClass, ctx_menu, args, n);
+IswArgBuilder ab = IswArgBuilderInit();
+IswArgLabel(&ab, "Cut");
+Widget cut = IswCreateManagedWidget("cut", smeBSBObjectClass, ctx_menu,
+                                   ab.args, ab.count);
 IswAddCallback(cut, IswNcallback, ctx_cb, (IswPointer)"cut");
 
 /* ... more entries ... */
@@ -204,10 +211,10 @@ For menus opened by keyboard shortcut or other non-button events:
 
 ```c
 /* Position, then pop up with an exclusive grab for click-outside-to-dismiss. */
-n = 0;
-IswSetArg(args[n], IswNx, x_pos); n++;
-IswSetArg(args[n], IswNy, y_pos); n++;
-IswSetValues(my_menu, args, n);
+IswArgBuilder ab = IswArgBuilderInit();
+IswArgX(&ab, x_pos);
+IswArgY(&ab, y_pos);
+IswSetValues(my_menu, ab.args, ab.count);
 
 IswPopup(my_menu, IswGrabExclusive);
 ```
@@ -224,17 +231,17 @@ Widget export_menu = IswCreatePopupShell("exportMenu", simpleMenuWidgetClass,
                                         file_menu, NULL, 0);
 
 /* Submenu entries */
-n = 0;
-IswSetArg(args[n], IswNlabel, "PNG"); n++;
+IswArgBuilder ab = IswArgBuilderInit();
+IswArgLabel(&ab, "PNG");
 Widget png = IswCreateManagedWidget("png", smeBSBObjectClass,
-                                   export_menu, args, n);
+                                   export_menu, ab.args, ab.count);
 IswAddCallback(png, IswNcallback, export_cb, (IswPointer)"png");
 
 /* Cascade entry in the parent menu — no callback, just IswNmenuName. */
-n = 0;
-IswSetArg(args[n], IswNlabel, "Export"); n++;
-IswSetArg(args[n], IswNmenuName, "exportMenu"); n++;
-IswCreateManagedWidget("export", smeBSBObjectClass, file_menu, args, n);
+IswArgBuilderReset(&ab);
+IswArgLabel(&ab, "Export");
+IswArgMenuName(&ab, "exportMenu");
+IswCreateManagedWidget("export", smeBSBObjectClass, file_menu, ab.args, ab.count);
 ```
 
 Submenus nest to arbitrary depth. `SimpleMenu` searches for the named widget by walking up the tree calling `IswNameToWidget` — the popup shell just needs to be findable from that search.
@@ -292,17 +299,19 @@ Label (and its subclasses Command, MenuButton, Toggle) display images via the un
 - String starting with `<` → inline SVG XML data
 
 ```c
+IswArgBuilder ab = IswArgBuilderInit();
+
 /* SVG file */
-IswSetArg(args[n], IswNimage, "icon.svg"); n++;
+IswArgImage(&ab, "icon.svg");
 
 /* PNG file */
-IswSetArg(args[n], IswNimage, "photo.png"); n++;
+IswArgImage(&ab, "photo.png");
 
 /* Inline SVG */
-IswSetArg(args[n], IswNimage, "<svg viewBox='0 0 24 24'>...</svg>"); n++;
+IswArgImage(&ab, "<svg viewBox='0 0 24 24'>...</svg>");
 
 /* Icon beside text (does not replace the label) */
-IswSetArg(args[n], IswNleftImage, "bullet.png"); n++;
+IswArgLeftImage(&ab, "bullet.png");
 ```
 
 `IswNimage` replaces the text label entirely. `IswNleftImage` draws an icon to the left of the text.
@@ -351,17 +360,20 @@ Form is the primary constraint-based layout. Position children relative to each 
 ```c
 #include <ISW/Form.h>
 
-n = 0;
-IswSetArg(args[n], IswNlabel, "Name:"); n++;
-Widget lbl = IswCreateManagedWidget("lbl", labelWidgetClass, form, args, n);
+IswArgBuilder ab = IswArgBuilderInit();
+IswArgLabel(&ab, "Name:");
+Widget lbl = IswCreateManagedWidget("lbl", labelWidgetClass, form,
+                                   ab.args, ab.count);
 
-n = 0;
-IswSetArg(args[n], IswNfromHoriz, lbl); n++;
-Widget txt = IswCreateManagedWidget("txt", asciiTextWidgetClass, form, args, n);
+IswArgBuilderReset(&ab);
+IswArgFromHoriz(&ab, lbl);
+Widget txt = IswCreateManagedWidget("txt", asciiTextWidgetClass, form,
+                                   ab.args, ab.count);
 
-n = 0;
-IswSetArg(args[n], IswNfromVert, lbl); n++;
-Widget btn = IswCreateManagedWidget("ok", commandWidgetClass, form, args, n);
+IswArgBuilderReset(&ab);
+IswArgFromVert(&ab, lbl);
+Widget btn = IswCreateManagedWidget("ok", commandWidgetClass, form,
+                                   ab.args, ab.count);
 ```
 
 ## Toggle / Radio Groups
@@ -369,14 +381,16 @@ Widget btn = IswCreateManagedWidget("ok", commandWidgetClass, form, args, n);
 ```c
 #include <ISW/Toggle.h>
 
-n = 0;
-IswSetArg(args[n], IswNlabel, "Option A"); n++;
-Widget a = IswCreateManagedWidget("a", toggleWidgetClass, parent, args, n);
+IswArgBuilder ab = IswArgBuilderInit();
+IswArgLabel(&ab, "Option A");
+Widget a = IswCreateManagedWidget("a", toggleWidgetClass, parent,
+                                 ab.args, ab.count);
 
-n = 0;
-IswSetArg(args[n], IswNlabel, "Option B"); n++;
-IswSetArg(args[n], IswNradioGroup, a); n++;
-Widget b = IswCreateManagedWidget("b", toggleWidgetClass, parent, args, n);
+IswArgBuilderReset(&ab);
+IswArgLabel(&ab, "Option B");
+IswArgRadioGroup(&ab, a);
+Widget b = IswCreateManagedWidget("b", toggleWidgetClass, parent,
+                                 ab.args, ab.count);
 ```
 
 ## Keyboard Navigation
@@ -399,14 +413,14 @@ Two resources, on any Simple subclass, control participation:
 To exclude a widget from Tab order:
 
 ```c
-IswSetArg(args[n], IswNtraversalOn, False); n++;
+IswArgTraversalOn(&ab, False);
 ```
 
 To force a specific order:
 
 ```c
-IswSetArg(args[n], IswNtabIndex, 10); n++;  /* earlier */
-IswSetArg(args[n], IswNtabIndex, 20); n++;  /* later */
+IswArgTabIndex(&ab, 10);  /* earlier */
+IswArgTabIndex(&ab, 20);  /* later */
 ```
 
 ### Activation keys
@@ -435,7 +449,7 @@ SimpleMenu (popup / dropdown) navigation while open:
 By default Text/AsciiText **consume Tab** as literal input (inserts `\t`). For single-line entries where Tab should traverse out (e.g. form fields, SpinBox's internal text), set:
 
 ```c
-IswSetArg(args[n], IswNconsumeTab, False); n++;  /* Tab cycles focus */
+IswArgConsumeTab(&ab, False);
 ```
 
 Shift+Tab always traverses out regardless of `IswNconsumeTab`.
@@ -478,13 +492,14 @@ String cell_data[] = {
     "photo.jpg",  "3.1 MB",
 };
 
-n = 0;
-IswSetArg(args[n], IswNlistViewColumns, cols); n++;
-IswSetArg(args[n], IswNnumColumns, 2); n++;
-IswSetArg(args[n], IswNlistViewData, cell_data); n++;
-IswSetArg(args[n], IswNnumRows, 2); n++;
-IswSetArg(args[n], IswNmultiSelect, True); n++;
-Widget lv = IswCreateManagedWidget("lv", listViewWidgetClass, viewport, args, n);
+IswArgBuilder ab = IswArgBuilderInit();
+IswArgListViewColumns(&ab, cols);
+IswArgNumColumns(&ab, 2);
+IswArgListViewData(&ab, cell_data);
+IswArgNumRows(&ab, 2);
+IswArgMultiSelect(&ab, True);
+Widget lv = IswCreateManagedWidget("lv", listViewWidgetClass, viewport,
+                                  ab.args, ab.count);
 
 /* Dynamic column addition */
 IswListViewAddColumn(lv, "Type", 100, 50);
