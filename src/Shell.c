@@ -753,17 +753,24 @@ static void SetWMProperties(Widget w, char *window_name, char *icon_name,
         }
     }
 
-    // Set WM_NORMAL_HINTS property (size_hints)
-    // Note: This requires proper packing of the size hints structure
-    // Implementation depends on your specific size_hints structure
-    
     // Set WM_HINTS property (wm_hints)
     // Note: This requires proper packing of the WM hints structure
     // Implementation depends on your specific wm_hints structure
     
-    // Set WM_CLASS property
-    // Note: This requires proper packing of the class hint structure
-    // Implementation depends on your specific class hint structure
+    if (classhint_name != NULL && classhint_class != NULL) {
+        size_t name_len = strlen(classhint_name);
+        size_t class_len = strlen(classhint_class);
+        size_t total = name_len + 1 + class_len + 1;
+        char *wm_class = malloc(total);
+        if (wm_class) {
+            memcpy(wm_class, classhint_name, name_len + 1);
+            memcpy(wm_class + name_len + 1, classhint_class, class_len + 1);
+            xcb_change_property(IswDisplay(w), XCB_PROP_MODE_REPLACE, IswWindow(w),
+                                XCB_ATOM_WM_CLASS, XCB_ATOM_STRING, 8,
+                                total, wm_class);
+            free(wm_class);
+        }
+    }
 }
 
 /****************************************************************************
@@ -1462,6 +1469,18 @@ _popup_set_prop(ShellWidget w)
         }
     }
 
+    XClassHint classhint;
+    classhint.res_name = (_IswString) w->core.name;
+    for (p = (Widget) w; p->core.parent != NULL; p = p->core.parent);
+    if (IswIsApplicationShell(p)) {
+        classhint.res_class = ((ApplicationShellWidget) p)->application.class;
+    }
+    else {
+        LOCK_PROCESS;
+        classhint.res_class = (_IswString) IswClass(p)->core_class.class_name;
+        UNLOCK_PROCESS;
+    }
+
     if (IswIsApplicationShell((Widget) w)
         && (argc = appshell->application.argc) != -1)
         argv = (char **) appshell->application.argv;
@@ -1470,13 +1489,10 @@ _popup_set_prop(ShellWidget w)
         argc = 0;
     }
 
-    //XSetWMProperties(IswDisplay((Widget) w), IswWindow((Widget) w),
-    //                 &window_name,
-    //                 (IswIsTopLevelShell((Widget) w)) ? &icon_name : NULL,
-    //                 argv, argc, size_hints, &wmshell->wm.wm_hints, &classhint);
-    SetWMProperties((Widget)w, window_name, 
+    SetWMProperties((Widget)w, window_name,
                 (IswIsTopLevelShell((Widget) w)) ? icon_name : NULL,
-                argv, argc, size_hints, &wmshell->wm.wm_hints, (char *)"", (char *)"");// classhint_class, classhint_name);
+                argv, argc, size_hints, &wmshell->wm.wm_hints,
+                (char *)classhint.res_class, (char *)classhint.res_name);
     if(size_hints) free(size_hints);
     //IswFree((char *) size_hints);
     //if (copied_wname)
