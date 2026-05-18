@@ -94,6 +94,7 @@ typedef struct _FormPart {
     Boolean	resize_in_layout;   /* should layout() do geom request?  */
     Dimension	preferred_width, preferred_height; /* cached from layout */
     Boolean     resize_is_no_op;    /* Causes resize to take not action. */
+    Dimension	base_width, base_height; /* dimensions at last layout	 */
 } FormPart;
 
 typedef struct _FormRec {
@@ -130,6 +131,10 @@ typedef struct _FormConstraintsPart {
  */
 
     Position new_x, new_y;
+
+/* Base positions/sizes from last Layout — Resize scales from these */
+    Position base_x, base_y;
+    short    base_width, base_height;
 
     LayoutState	layout_state;	/* temporary layout state		*/
     Boolean	deferred_resize; /* was resized while no_refigure is set */

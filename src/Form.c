@@ -108,6 +108,7 @@ static void ChangeManaged(Widget);
 static Boolean Layout(FormWidget, Dimension, Dimension, Boolean);
 static void LayoutChild(Widget);
 static void ResizeChildren(Widget);
+static void SaveBasePositions(FormWidget);
 
 FormClassRec formClassRec = {
   { /* core_class fields */
@@ -278,6 +279,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     fw->form.old_width = fw->core.width;
     fw->form.old_height = fw->core.height;
+    fw->form.base_width = fw->core.width;
+    fw->form.base_height = fw->core.height;
     fw->form.no_refigure = False;
     fw->form.needs_relayout = False;
     fw->form.resize_in_layout = True;
@@ -411,8 +414,10 @@ static Boolean Layout(FormWidget fw, Dimension width, Dimension height,
 	if (force_relayout)
 	    ret_val = TRUE;
 
-	if (ret_val)
+	if (ret_val) {
 	    ResizeChildren((Widget) fw);
+	    SaveBasePositions(fw);
+	}
     }
     else
 	ret_val = False;
@@ -458,6 +463,27 @@ ResizeChildren(Widget w)
     }
 }
 
+static void
+SaveBasePositions(FormWidget fw)
+{
+    int num_children = fw->composite.num_children;
+    WidgetList children = fw->composite.children;
+    Widget *childP;
+
+    fw->form.base_width = fw->core.width;
+    fw->form.base_height = fw->core.height;
+
+    for (childP = children; childP - children < num_children; childP++) {
+	FormConstraints form;
+	if (!IswIsManaged(*childP))
+	    continue;
+	form = (FormConstraints)(*childP)->core.constraints;
+	form->form.base_x = (*childP)->core.x;
+	form->form.base_y = (*childP)->core.y;
+	form->form.base_width = form->form.virtual_width;
+	form->form.base_height = form->form.virtual_height;
+    }
+}
 
 static void
 LayoutChild(Widget w)
@@ -538,24 +564,25 @@ Resize(Widget w)
 	for (childP = children; childP - children < num_children; childP++) {
 	    FormConstraints form= (FormConstraints)(*childP)->core.constraints;
 	    if (!IswIsManaged(*childP)) continue;
-	    x = TransformCoord( (*childP)->core.x, fw->form.old_width,
+
+	    x = TransformCoord( form->form.base_x, fw->form.base_width,
 			       fw->core.width, form->form.left );
-	    y = TransformCoord( (*childP)->core.y, fw->form.old_height,
+	    y = TransformCoord( form->form.base_y, fw->form.base_height,
 			       fw->core.height, form->form.top );
 
 	    form->form.virtual_width =
-		TransformCoord((Position)((*childP)->core.x
-					  + form->form.virtual_width
+		TransformCoord((Position)(form->form.base_x
+					  + form->form.base_width
 					  + 2 * (*childP)->core.border_width),
-			       fw->form.old_width, fw->core.width,
+			       fw->form.base_width, fw->core.width,
 			       form->form.right )
 		    - (x + 2 * (*childP)->core.border_width);
 
 	    form->form.virtual_height =
-		TransformCoord((Position)((*childP)->core.y
-					  + form->form.virtual_height
+		TransformCoord((Position)(form->form.base_y
+					  + form->form.base_height
 					  + 2 * (*childP)->core.border_width),
-			       fw->form.old_height, fw->core.height,
+			       fw->form.base_height, fw->core.height,
 			       form->form.bottom )
 		    - ( y + 2 * (*childP)->core.border_width);
 
@@ -670,6 +697,8 @@ GeometryManager(Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 	{
 	    form->form.virtual_width = w->core.width;   /* reset virtual */
 	    form->form.virtual_height = w->core.height; /* width and height. */
+	    form->form.base_width = w->core.width;
+	    form->form.base_height = w->core.height;
 	    if (fw->form.no_refigure) {
 /*
  * I am changing the widget wrapper w/o modifing the window.  This is
@@ -789,9 +818,10 @@ ChangeManaged(Widget w)
 	form->form.virtual_height = (int) child->core.height;
     }
   }
-  (*((FormWidgetClass)w->core.widget_class)->form_class.layout)
+  if (!(*((FormWidgetClass)w->core.widget_class)->form_class.layout)
   	                                 ((FormWidget) w, w->core.width,
-					  w->core.height, TRUE);
+					  w->core.height, TRUE))
+      SaveBasePositions(fw);
 }
 
 
