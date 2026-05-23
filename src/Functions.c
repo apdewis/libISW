@@ -206,26 +206,52 @@ IswUnmapWidget(Widget w)
 }
 
 static void
-ReloadSubtree(Widget w)
+ReloadSubtree(Widget w, xcb_xrm_database_t *db)
 {
-    _IswRefetchResources(w);
+    _IswRefetchResources(w, db);
 
     if (IswIsComposite(w)) {
         CompositeWidget cw = (CompositeWidget) w;
         Cardinal i;
         for (i = 0; i < cw->composite.num_children; i++)
-            ReloadSubtree(cw->composite.children[i]);
+            ReloadSubtree(cw->composite.children[i], db);
+    }
+}
+
+static void
+RedisplaySubtree(Widget w)
+{
+    if (IswIsRealized(w) && IswIsWidget(w)) {
+        IswExposeProc expose;
+
+        LOCK_PROCESS;
+        expose = IswClass(w)->core_class.expose;
+        UNLOCK_PROCESS;
+        if (expose)
+            (*expose)(w, NULL, 0);
+    }
+    if (IswIsComposite(w)) {
+        CompositeWidget cw = (CompositeWidget) w;
+        Cardinal i;
+        for (i = 0; i < cw->composite.num_children; i++)
+            RedisplaySubtree(cw->composite.children[i]);
     }
 }
 
 void
 IswReloadResources(Widget subtree_root)
 {
+    xcb_xrm_database_t *db;
+
     if (subtree_root == NULL)
         return;
 
-    IswReloadScreenDatabase(IswScreen(subtree_root));
-    ReloadSubtree(subtree_root);
+    IswReloadScreenDatabase(IswScreenOfObject(subtree_root));
+    db = IswScreenDatabase(IswScreenOfObject(subtree_root));
+    if (db == NULL)
+        return;
+    ReloadSubtree(subtree_root, db);
+    RedisplaySubtree(subtree_root);
     if (IswIsRealized(subtree_root))
         xcb_flush(IswDisplay(subtree_root));
 }

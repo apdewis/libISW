@@ -96,7 +96,8 @@ extern XrmResourceList* _IswCreateIndirectionTable(IswResourceList resources,
 extern void _IswResourceListInitialize(void);
 
 extern void _IswRefetchResources(
-    Widget	    /* w */
+    Widget	    /* w */,
+    xcb_xrm_database_t * /* db */
 );
 
 _XFUNCPROTOEND

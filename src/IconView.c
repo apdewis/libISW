@@ -301,6 +301,17 @@ GetItemRaster(IconViewWidget iw, int index)
     float sf = (float)ISWScaleFactor((Widget)iw);
     unsigned int phys_sz = (unsigned int)(icon_sz * sf + 0.5f);
 
+    /* Recolor existing image if foreground changed */
+    if (ic->image) {
+        char fg_hex[8];
+        snprintf(fg_hex, sizeof(fg_hex), "#%02x%02x%02x",
+                 (int)(iw->iconView.fg_r * 255.0),
+                 (int)(iw->iconView.fg_g * 255.0),
+                 (int)(iw->iconView.fg_b * 255.0));
+        ic->raster = NULL;
+        ISWImageRecolor(ic->image, fg_hex);
+    }
+
     /* Already rasterized at correct size? */
     if (ic->raster && ic->raster_w == phys_sz && ic->raster_h == phys_sz)
         return ic->raster;

@@ -334,6 +334,7 @@ CoreSetValues(Widget old,
     Boolean redisplay;
     uint32_t window_mask;
     uint32_t *values;
+    int vi;
     xcb_connection_t *conn;
     redisplay = FALSE;
     
@@ -346,23 +347,24 @@ CoreSetValues(Widget old,
     /* Check everything that depends upon window being realized */
     if (IswIsRealized(old)) {
         window_mask = 0;
+        vi = 0;
         conn = IswDisplay(new);
-        values = (uint32_t*)malloc(sizeof(uint32_t) * 32); // Allocate space for values
+        values = (uint32_t*)malloc(sizeof(uint32_t) * 32);
         
         /* Check window attributes */
         if (old->core.background_pixel != new->core.background_pixel
             && new->core.background_pixmap == IswUnspecifiedPixmap) {
-            values[0] = new->core.background_pixel;
+            values[vi++] = new->core.background_pixel;
             window_mask |= XCB_CW_BACK_PIXEL;
             redisplay = TRUE;
         }
         if (old->core.background_pixmap != new->core.background_pixmap) {
             if (new->core.background_pixmap == IswUnspecifiedPixmap) {
-                values[0] = new->core.background_pixel;
+                values[vi++] = new->core.background_pixel;
                 window_mask |= XCB_CW_BACK_PIXEL;
             }
             else {
-                values[0] = new->core.background_pixmap;
+                values[vi++] = new->core.background_pixmap;
                 window_mask &= ~(XCB_CW_BACK_PIXEL);
                 window_mask |= XCB_CW_BACK_PIXMAP;
             }
@@ -370,16 +372,16 @@ CoreSetValues(Widget old,
         }
         if (old->core.border_pixel != new->core.border_pixel
             && new->core.border_pixmap == IswUnspecifiedPixmap) {
-            values[0] = new->core.border_pixel;
+            values[vi++] = new->core.border_pixel;
             window_mask |= XCB_CW_BORDER_PIXEL;
         }
         if (old->core.border_pixmap != new->core.border_pixmap) {
             if (new->core.border_pixmap == IswUnspecifiedPixmap) {
-                values[0] = new->core.border_pixel;
+                values[vi++] = new->core.border_pixel;
                 window_mask |= XCB_CW_BORDER_PIXEL;
             }
             else {
-                values[0] = new->core.border_pixmap;
+                values[vi++] = new->core.border_pixmap;
                 window_mask &= ~(XCB_CW_BORDER_PIXEL);
                 window_mask |= XCB_CW_BORDER_PIXMAP;
             }
@@ -392,7 +394,7 @@ CoreSetValues(Widget old,
         }
         if (old->core.colormap != new->core.colormap) {
             window_mask |= XCB_CW_COLORMAP;
-            values[0] = new->core.colormap;
+            values[vi++] = new->core.colormap;
         }
         
         if (window_mask != 0) {

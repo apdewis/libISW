@@ -1123,6 +1123,109 @@ _IswGetResources(register Widget w,
 }                               /* _IswGetResources */
 
 void
+_IswRefetchResources(Widget w, xcb_xrm_database_t *db)
+{
+    XrmName names_s[50], *names;
+    XrmClass classes_s[50], *classes;
+    Cardinal count;
+    WidgetClass wc;
+    XrmQuark pixelQ = XrmStringToQuark(IswRPixel);
+    XrmQuark fontQ = XrmStringToQuark(IswRFontStruct);
+    Arg args[64];
+    IswArgVal saved[64];
+    Cardinal nargs = 0;
+
+    wc = IswClass(w);
+    if (db == NULL)
+        return;
+
+    count = CountTreeDepth(w);
+    names = (XrmName *) IswStackAlloc(count * sizeof(XrmName), names_s);
+    classes = (XrmClass *) IswStackAlloc(count * sizeof(XrmClass), classes_s);
+    if (names == NULL || classes == NULL) {
+        _IswAllocError(NULL);
+        return;
+    }
+    GetNamesAndClasses(w, names, classes);
+
+    LOCK_PROCESS;
+    {
+        XrmResourceList *res = (XrmResourceList *) wc->core_class.resources;
+        Cardinal i;
+        for (i = 0; i < wc->core_class.num_resources && nargs < 64; i++) {
+            XrmResource *rx = res[i];
+
+            if (rx->xrm_type != pixelQ && rx->xrm_type != fontQ)
+                continue;
+
+            args[nargs].name = (char *) XrmQuarkToString(rx->xrm_name);
+            args[nargs].value = (IswArgVal) &saved[nargs];
+            saved[nargs] = 0;
+            nargs++;
+        }
+    }
+    UNLOCK_PROCESS;
+
+    if (nargs == 0) {
+        IswStackFree((IswPointer) names, names_s);
+        IswStackFree((IswPointer) classes, classes_s);
+        return;
+    }
+
+    IswGetValues(w, args, nargs);
+
+    {
+        Cardinal nchanged = 0;
+        Arg changed[64];
+
+        LOCK_PROCESS;
+        {
+            XrmResourceList *res = (XrmResourceList *) wc->core_class.resources;
+            Cardinal ri, ai = 0;
+            for (ri = 0; ri < wc->core_class.num_resources && ai < nargs; ri++) {
+                XrmResource *rx = res[ri];
+                XrmValue dbval;
+
+                if (rx->xrm_type != pixelQ && rx->xrm_type != fontQ)
+                    continue;
+
+                if (_IswDbGetResource(db, names, classes,
+                                     (XrmName) rx->xrm_name,
+                                     (XrmClass) rx->xrm_class, &dbval)) {
+                    XrmValue convResult;
+                    IswArgVal converted = 0;
+
+                    convResult.size = rx->xrm_size;
+                    convResult.addr = (IswPointer) &converted;
+                    if (_IswConvert(w, QString, &dbval,
+                                   (XrmRepresentation) rx->xrm_type,
+                                   &convResult, NULL)) {
+                        if (converted != saved[ai]) {
+                            fprintf(stderr, "RefetchResources: %s.%s: 0x%lx -> 0x%lx\n",
+                                    IswName(w), args[ai].name,
+                                    (unsigned long) saved[ai],
+                                    (unsigned long) converted);
+                            changed[nchanged].name = args[ai].name;
+                            changed[nchanged].value = converted;
+                            nchanged++;
+                        }
+                    }
+                    free(dbval.addr);
+                }
+                ai++;
+            }
+        }
+        UNLOCK_PROCESS;
+
+        if (nchanged > 0)
+            IswSetValues(w, changed, nchanged);
+    }
+
+    IswStackFree((IswPointer) names, names_s);
+    IswStackFree((IswPointer) classes, classes_s);
+}
+
+void
 _IswGetSubresources(Widget w,                    /* Widget "parent" of subobject */
                    IswPointer base,              /* Base address to write to */
                    const char *name,            /* name of subobject        */
