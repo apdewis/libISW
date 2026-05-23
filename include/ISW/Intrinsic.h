@@ -1590,6 +1590,14 @@ extern void IswSetValues(
     Cardinal 		/* num_args */
 );
 
+extern void IswReloadResources(
+    Widget		/* subtree_root */
+);
+
+extern void IswReloadScreenDatabase(
+    xcb_screen_t*	/* screen */
+);
+
 extern void IswVaSetValues(
     Widget		/* widget */,
     ...

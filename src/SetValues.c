@@ -483,3 +483,54 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
     IswStackFree((IswPointer) reqw, reqwCache);
     UNLOCK_APP(app);
 }                               /* IswSetValues */
+
+void
+_IswRefetchResources(Widget w)
+{
+    Widget scratch;
+    double scratchCache[100];
+    Cardinal widgetSize;
+    WidgetClass wc;
+    Cardinal zero = 0;
+    Arg args[64];
+    Cardinal nargs = 0;
+    XrmQuark pixelQ = XrmStringToQuark(IswRPixel);
+    XrmQuark fontQ = XrmStringToQuark(IswRFontStruct);
+
+    wc = IswClass(w);
+
+    LOCK_PROCESS;
+    widgetSize = wc->core_class.widget_size;
+    UNLOCK_PROCESS;
+
+    scratch = (Widget) IswStackAlloc(widgetSize, scratchCache);
+    (void) memcpy(scratch, w, (size_t) widgetSize);
+
+    {
+        IswCacheRef *cache_refs = _IswGetResources(scratch, NULL, 0, NULL, &zero);
+        if (cache_refs)
+            IswFree((char *) cache_refs);
+    }
+
+    LOCK_PROCESS;
+    {
+        XrmResourceList *res = (XrmResourceList *) wc->core_class.resources;
+        Cardinal i;
+        for (i = 0; i < wc->core_class.num_resources && nargs < 64; i++) {
+            if (res[i]->xrm_type == pixelQ || res[i]->xrm_type == fontQ) {
+                char *src = (char *) scratch - res[i]->xrm_offset - 1;
+                IswArgVal val = 0;
+                _IswCopyToArg(src, &val, res[i]->xrm_size);
+                args[nargs].name = XrmQuarkToString(res[i]->xrm_name);
+                args[nargs].value = val;
+                nargs++;
+            }
+        }
+    }
+    UNLOCK_PROCESS;
+
+    IswStackFree((IswPointer) scratch, scratchCache);
+
+    if (nargs > 0)
+        IswSetValues(w, args, nargs);
+}

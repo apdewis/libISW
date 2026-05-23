@@ -53,6 +53,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ResourceI.h"
 #include <ISW/Shell.h>
 #include <ISW/Vendor.h>
 
@@ -202,6 +203,31 @@ IswUnmapWidget(Widget w)
                            (IswPointer) &call_data);
     }
     UNLOCK_APP(app);
+}
+
+static void
+ReloadSubtree(Widget w)
+{
+    _IswRefetchResources(w);
+
+    if (IswIsComposite(w)) {
+        CompositeWidget cw = (CompositeWidget) w;
+        Cardinal i;
+        for (i = 0; i < cw->composite.num_children; i++)
+            ReloadSubtree(cw->composite.children[i]);
+    }
+}
+
+void
+IswReloadResources(Widget subtree_root)
+{
+    if (subtree_root == NULL)
+        return;
+
+    IswReloadScreenDatabase(IswScreen(subtree_root));
+    ReloadSubtree(subtree_root);
+    if (IswIsRealized(subtree_root))
+        xcb_flush(IswDisplay(subtree_root));
 }
 
 #undef IswNewString

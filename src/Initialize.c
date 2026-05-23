@@ -632,6 +632,53 @@ IswScreenDatabase(xcb_screen_t *screen)
     }
 }
 
+void
+IswReloadScreenDatabase(xcb_screen_t *screen)
+{
+    xcb_connection_t *dpy = NULL;
+    int scrno = 0;
+    IswPerDisplay pd;
+
+    if (screen == NULL)
+        return;
+
+    {
+        PerDisplayTablePtr pdt;
+        LOCK_PROCESS;
+        for (pdt = _IswperDisplayList; pdt != NULL; pdt = pdt->next) {
+            xcb_screen_iterator_t iter =
+                xcb_setup_roots_iterator(xcb_get_setup(pdt->dpy));
+            int n = 0;
+            for (; iter.rem; xcb_screen_next(&iter), n++) {
+                if (iter.data == screen) {
+                    dpy = pdt->dpy;
+                    scrno = n;
+                    break;
+                }
+            }
+            if (dpy != NULL)
+                break;
+        }
+        UNLOCK_PROCESS;
+    }
+
+    if (dpy == NULL)
+        return;
+
+    {
+        DPY_TO_APPCON(dpy);
+        LOCK_APP(app);
+        LOCK_PROCESS;
+        pd = _IswGetPerDisplay(dpy);
+        if (pd->per_screen_db && pd->per_screen_db[scrno]) {
+            xcb_xrm_database_free(pd->per_screen_db[scrno]);
+            pd->per_screen_db[scrno] = NULL;
+        }
+        UNLOCK_PROCESS;
+        UNLOCK_APP(app);
+    }
+}
+
 /*
  * Merge two option tables, allowing the second to over-ride the first,
  * so that ambiguous abbreviations can be noticed.  The merge attempts

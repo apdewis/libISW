@@ -95,6 +95,10 @@ extern XrmResourceList* _IswCreateIndirectionTable(IswResourceList resources,
 						  Cardinal num_resources);
 extern void _IswResourceListInitialize(void);
 
+extern void _IswRefetchResources(
+    Widget	    /* w */
+);
+
 _XFUNCPROTOEND
 
 #endif /* _IswresourceI_h */
