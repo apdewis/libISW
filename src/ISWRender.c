@@ -1008,9 +1008,14 @@ _ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale)
 static cairo_surface_t *_measure_surf = NULL;
 static cairo_t *_measure_cr = NULL;
 
-/* Cached font state — re-queried only when font identity or size changes. */
+/* Cached font state — re-queried only when font identity or size changes.
+ * Font identity is tracked by properties, not pointer, because the resource
+ * system can free and reallocate an IswFontStruct at the same address
+ * during theme reload. */
 static double _cached_font_size = -1.0;
-static IswFontStruct *_cached_font_ptr = NULL;
+static const char *_cached_font_family = NULL;
+static int _cached_font_weight = -1;
+static int _cached_font_slant = -1;
 static cairo_font_extents_t _cached_font_extents;
 static double _measure_device_scale = 0.0;
 
@@ -1039,7 +1044,7 @@ _ISWGetMeasureCR(double device_scale)
             device_scale > 1.0 ? device_scale : 1.0);
         _measure_device_scale = device_scale;
         _cached_font_size = -1.0;  /* force re-query of font extents */
-        _cached_font_ptr = NULL;
+        _cached_font_family = NULL;
     }
     return _measure_cr;
 }
@@ -1061,16 +1066,30 @@ _ISWComputeFontSize(Widget widget, IswFontStruct *font)
  * Ensure the measurement context has the correct font face and size.
  * Only re-sets when the font identity or size actually changes.
  */
+static int
+_ISWMeasureFontChanged(IswFontStruct *font)
+{
+    const char *family = (font && font->font_family) ? font->font_family : "Sans";
+    int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
+    int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
+
+    if (weight != _cached_font_weight || slant != _cached_font_slant)
+        return 1;
+    if (!_cached_font_family || strcmp(family, _cached_font_family) != 0)
+        return 1;
+    return 0;
+}
+
 static void
 _ISWSyncMeasureFont(cairo_t *cr, Widget widget, IswFontStruct *font)
 {
     double size = _ISWComputeFontSize(widget, font);
 
-    if (font != _cached_font_ptr) {
-        /* Scale 1.0: the measurement surface has device_scale set,
-         * so Cairo handles physical magnification — same as render path. */
+    if (_ISWMeasureFontChanged(font)) {
         _ISWSetCairoFontFromXFont(cr, font, 1.0);
-        _cached_font_ptr = font;
+        _cached_font_family = (font && font->font_family) ? font->font_family : "Sans";
+        _cached_font_weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
+        _cached_font_slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
         cairo_font_extents(cr, &_cached_font_extents);
         _cached_font_size = size;
     } else if (size != _cached_font_size) {
