@@ -82,6 +82,7 @@ in this Software without prior written authorization from The Open Group.
 #include "Shell.h"
 #include "StringDefs.h"
 #include "FocusMgrI.h"
+#include "ShellI.h"
 
 typedef struct _IswEventRecExt {
     int type;
@@ -1581,6 +1582,7 @@ IswDispatchEvent(xcb_generic_event_t *event, xcb_connection_t *dpy)
     int starting_count;
     IswPerDisplay pd;
     xcb_timestamp_t time = 0;
+    Boolean is_user_input = False;
     IswEventDispatchProc dispatch = _IswDefaultDispatcher;
     IswAppContext app = IswDisplayToApplicationContext(dpy);
 
@@ -1591,12 +1593,14 @@ IswDispatchEvent(xcb_generic_event_t *event, xcb_connection_t *dpy)
     switch (event->response_type & ~0x80) {
     case XCB_INPUT_KEY_PRESS:
         time = ((xcb_input_key_press_event_t *)event)->time;
+        is_user_input = True;
         break;
     case XCB_INPUT_KEY_RELEASE:
         time = ((xcb_input_key_release_event_t *)event)->time;
         break;
     case XCB_INPUT_BUTTON_PRESS:
         time = ((xcb_input_button_press_event_t *)event)->time;
+        is_user_input = True;
         break;
     case XCB_INPUT_BUTTON_RELEASE:
         time = ((xcb_input_button_release_event_t *)event)->time;
@@ -1625,6 +1629,8 @@ IswDispatchEvent(xcb_generic_event_t *event, xcb_connection_t *dpy)
 
     if (time)
         pd->last_timestamp = time;
+    if (is_user_input)
+        _IswShellUpdateUserTime(dpy, get_event_window(event), time);
     pd->last_event = *event;
 
     if (pd->dispatcher_list) {

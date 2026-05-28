@@ -363,6 +363,8 @@ typedef struct _IswPerDisplayStruct {
     Widget hook_object;
     IswPerWidgetInput PerWidgetContext;
     double scale_factor;	       /* HiDPI scale factor (1.0 = 96 DPI) */
+    xcb_atom_t net_wm_user_time;       /* _NET_WM_USER_TIME atom (0 = not yet interned) */
+    xcb_atom_t net_wm_user_time_window; /* _NET_WM_USER_TIME_WINDOW atom */
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
     xcb_atom_t rcm_init;			/* ResConfig - initialize */
     xcb_atom_t rcm_data;			/* ResConfig - data xcb_atom_t */

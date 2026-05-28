@@ -447,5 +447,19 @@ externalref WidgetClass topLevelShellWidgetClass;
 externalref WidgetClass applicationShellWidgetClass;
 #endif
 
+void IswSetWindowIconRGBA(Widget shell, const unsigned char *rgba,
+                          unsigned int width, unsigned int height);
+
+void IswSetWindowIconARGB(Widget shell, const uint32_t *argb_data,
+                          unsigned int n_entries);
+
+void IswClearWindowIcon(Widget shell);
+
+void IswSetWindowName(Widget shell, const char *name);
+
+void IswSetWindowIconName(Widget shell, const char *name);
+
+void IswSetWindowState(Widget shell, const char *state, Boolean set);
+
 #endif /* _IswShell_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

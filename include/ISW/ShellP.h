@@ -211,6 +211,7 @@ typedef struct {
 	int base_width, base_height;
 	int win_gravity;
 	xcb_atom_t title_encoding;
+	xcb_window_t user_time_win;
 } WMShellPart;
 
 typedef  struct {

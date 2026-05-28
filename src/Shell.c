@@ -1552,6 +1552,86 @@ _popup_set_prop(ShellWidget w)
             free(atom_reply);
         }
     }
+
+    {
+        xcb_connection_t *conn = IswDisplay((Widget) w);
+        xcb_window_t win = IswWindow((Widget) w);
+
+        /* _NET_WM_PID */
+        {
+            xcb_intern_atom_cookie_t pid_cookie = xcb_intern_atom(conn, FALSE, 11, "_NET_WM_PID");
+            xcb_intern_atom_cookie_t cardinal_cookie = xcb_intern_atom(conn, FALSE, 8, "CARDINAL");
+            xcb_intern_atom_reply_t *pid_reply = xcb_intern_atom_reply(conn, pid_cookie, NULL);
+            xcb_intern_atom_reply_t *cardinal_reply = xcb_intern_atom_reply(conn, cardinal_cookie, NULL);
+            if (pid_reply && cardinal_reply) {
+                uint32_t pid = (uint32_t) getpid();
+                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, win,
+                                    pid_reply->atom, cardinal_reply->atom, 32,
+                                    1, &pid);
+            }
+            free(pid_reply);
+            free(cardinal_reply);
+        }
+
+        /* _NET_WM_WINDOW_TYPE */
+        {
+            const char *type_name;
+            unsigned int type_len;
+
+            if (IswIsTransientShell((Widget) w)) {
+                type_name = "_NET_WM_WINDOW_TYPE_DIALOG";
+                type_len = 26;
+            } else {
+                type_name = "_NET_WM_WINDOW_TYPE_NORMAL";
+                type_len = 26;
+            }
+
+            xcb_intern_atom_cookie_t wt_cookie = xcb_intern_atom(conn, FALSE, 19, "_NET_WM_WINDOW_TYPE");
+            xcb_intern_atom_cookie_t type_cookie = xcb_intern_atom(conn, FALSE, type_len, type_name);
+            xcb_intern_atom_reply_t *wt_reply = xcb_intern_atom_reply(conn, wt_cookie, NULL);
+            xcb_intern_atom_reply_t *type_reply = xcb_intern_atom_reply(conn, type_cookie, NULL);
+            if (wt_reply && type_reply) {
+                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, win,
+                                    wt_reply->atom, XCB_ATOM_ATOM, 32,
+                                    1, &type_reply->atom);
+            }
+            free(wt_reply);
+            free(type_reply);
+        }
+
+        /* _NET_WM_USER_TIME_WINDOW */
+        if (IswIsWMShell((Widget) w)) {
+            IswPerDisplay pd = _IswGetPerDisplay(conn);
+            if (!pd->net_wm_user_time) {
+                xcb_intern_atom_cookie_t c1 = xcb_intern_atom(conn, FALSE, 18, "_NET_WM_USER_TIME");
+                xcb_intern_atom_cookie_t c2 = xcb_intern_atom(conn, FALSE, 25, "_NET_WM_USER_TIME_WINDOW");
+                xcb_intern_atom_reply_t *r1 = xcb_intern_atom_reply(conn, c1, NULL);
+                xcb_intern_atom_reply_t *r2 = xcb_intern_atom_reply(conn, c2, NULL);
+                if (r1) pd->net_wm_user_time = r1->atom;
+                if (r2) pd->net_wm_user_time_window = r2->atom;
+                free(r1);
+                free(r2);
+            }
+
+            if (pd->net_wm_user_time && pd->net_wm_user_time_window) {
+                xcb_window_t utwin = xcb_generate_id(conn);
+                xcb_create_window(conn, XCB_COPY_FROM_PARENT, utwin, win,
+                                  -1, -1, 1, 1, 0,
+                                  XCB_WINDOW_CLASS_INPUT_ONLY,
+                                  XCB_COPY_FROM_PARENT, 0, NULL);
+                wmshell->wm.user_time_win = utwin;
+
+                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, win,
+                                    pd->net_wm_user_time_window, XCB_ATOM_WINDOW, 32,
+                                    1, &utwin);
+
+                uint32_t initial_time = pd->last_timestamp;
+                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, utwin,
+                                    pd->net_wm_user_time, XCB_ATOM_CARDINAL, 32,
+                                    1, &initial_time);
+            }
+        }
+    }
 }
 
 static void
@@ -1689,6 +1769,10 @@ WMDestroy(Widget wid)
 {
     WMShellWidget w = (WMShellWidget) wid;
 
+    if (w->wm.user_time_win) {
+        xcb_destroy_window(IswDisplay(wid), w->wm.user_time_win);
+        w->wm.user_time_win = 0;
+    }
     IswFree((char *) w->wm.title);
     IswFree((char *) w->wm.window_role);
 }
@@ -2984,4 +3068,189 @@ FreeStringArray(_IswString *str)
 {
     if (str)
         IswFree((_IswString) str);
+}
+
+void
+IswSetWindowIconRGBA(Widget shell, const unsigned char *rgba,
+                     unsigned int width, unsigned int height)
+{
+    uint32_t *data;
+    unsigned int npixels = width * height;
+    unsigned int n_entries = 2 + npixels;
+
+    if (!IswIsRealized(shell) || !rgba || width == 0 || height == 0)
+        return;
+
+    data = (uint32_t *)malloc(n_entries * sizeof(uint32_t));
+    if (!data)
+        return;
+
+    data[0] = width;
+    data[1] = height;
+
+    for (unsigned int i = 0; i < npixels; i++) {
+        unsigned int si = i * 4;
+        unsigned char r = rgba[si + 0];
+        unsigned char g = rgba[si + 1];
+        unsigned char b = rgba[si + 2];
+        unsigned char a = rgba[si + 3];
+        data[2 + i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) |
+                       ((uint32_t)g << 8) | (uint32_t)b;
+    }
+
+    IswSetWindowIconARGB(shell, data, n_entries);
+    free(data);
+}
+
+void
+IswSetWindowIconARGB(Widget shell, const uint32_t *argb_data,
+                     unsigned int n_entries)
+{
+    xcb_connection_t *conn;
+    xcb_intern_atom_cookie_t icon_cookie, cardinal_cookie;
+    xcb_intern_atom_reply_t *icon_reply, *cardinal_reply;
+
+    if (!IswIsRealized(shell) || !argb_data || n_entries == 0)
+        return;
+
+    conn = IswDisplay(shell);
+
+    icon_cookie = xcb_intern_atom(conn, FALSE, 15, "_NET_WM_ICON");
+    cardinal_cookie = xcb_intern_atom(conn, FALSE, 8, "CARDINAL");
+
+    icon_reply = xcb_intern_atom_reply(conn, icon_cookie, NULL);
+    cardinal_reply = xcb_intern_atom_reply(conn, cardinal_cookie, NULL);
+
+    if (icon_reply && cardinal_reply) {
+        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, IswWindow(shell),
+                            icon_reply->atom, cardinal_reply->atom, 32,
+                            n_entries, argb_data);
+    }
+
+    free(icon_reply);
+    free(cardinal_reply);
+}
+
+void
+IswClearWindowIcon(Widget shell)
+{
+    xcb_connection_t *conn;
+    xcb_intern_atom_cookie_t cookie;
+    xcb_intern_atom_reply_t *reply;
+
+    if (!IswIsRealized(shell))
+        return;
+
+    conn = IswDisplay(shell);
+    cookie = xcb_intern_atom(conn, FALSE, 15, "_NET_WM_ICON");
+    reply = xcb_intern_atom_reply(conn, cookie, NULL);
+
+    if (reply) {
+        xcb_delete_property(conn, IswWindow(shell), reply->atom);
+        free(reply);
+    }
+}
+
+static void
+SetNetWmString(Widget shell, const char *prop_name, unsigned int prop_len,
+               const char *value)
+{
+    xcb_connection_t *conn;
+    xcb_intern_atom_cookie_t prop_cookie, utf8_cookie;
+    xcb_intern_atom_reply_t *prop_reply, *utf8_reply;
+
+    if (!IswIsRealized(shell) || !value)
+        return;
+
+    conn = IswDisplay(shell);
+
+    prop_cookie = xcb_intern_atom(conn, FALSE, prop_len, prop_name);
+    utf8_cookie = xcb_intern_atom(conn, FALSE, 11, "UTF8_STRING");
+
+    prop_reply = xcb_intern_atom_reply(conn, prop_cookie, NULL);
+    utf8_reply = xcb_intern_atom_reply(conn, utf8_cookie, NULL);
+
+    if (prop_reply && utf8_reply) {
+        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, IswWindow(shell),
+                            prop_reply->atom, utf8_reply->atom, 8,
+                            strlen(value), value);
+    }
+
+    free(prop_reply);
+    free(utf8_reply);
+}
+
+void
+IswSetWindowName(Widget shell, const char *name)
+{
+    SetNetWmString(shell, "_NET_WM_NAME", 12, name);
+}
+
+void
+IswSetWindowIconName(Widget shell, const char *name)
+{
+    SetNetWmString(shell, "_NET_WM_ICON_NAME", 17, name);
+}
+
+void
+IswSetWindowState(Widget shell, const char *state, Boolean set)
+{
+    xcb_connection_t *conn;
+    xcb_intern_atom_cookie_t wm_state_cookie, state_cookie;
+    xcb_intern_atom_reply_t *wm_state_reply, *state_reply;
+
+    if (!IswIsRealized(shell) || !state)
+        return;
+
+    conn = IswDisplay(shell);
+
+    wm_state_cookie = xcb_intern_atom(conn, FALSE, 13, "_NET_WM_STATE");
+    state_cookie = xcb_intern_atom(conn, FALSE, strlen(state), state);
+
+    wm_state_reply = xcb_intern_atom_reply(conn, wm_state_cookie, NULL);
+    state_reply = xcb_intern_atom_reply(conn, state_cookie, NULL);
+
+    if (wm_state_reply && state_reply) {
+        xcb_client_message_event_t ev = {0};
+        ev.response_type = XCB_CLIENT_MESSAGE;
+        ev.format = 32;
+        ev.window = IswWindow(shell);
+        ev.type = wm_state_reply->atom;
+        ev.data.data32[0] = set ? 1 : 0;
+        ev.data.data32[1] = state_reply->atom;
+
+        xcb_send_event(conn, 0, shell->core.screen->root,
+                       XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
+                       XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
+                       (const char *) &ev);
+    }
+
+    free(wm_state_reply);
+    free(state_reply);
+}
+
+void
+_IswShellUpdateUserTime(xcb_connection_t *dpy, xcb_window_t event_window,
+                        xcb_timestamp_t time)
+{
+    Widget widget = IswWindowToWidget(dpy, event_window);
+    if (!widget)
+        return;
+
+    while (widget && !IswIsWMShell(widget))
+        widget = IswParent(widget);
+    if (!widget)
+        return;
+
+    WMShellWidget wmshell = (WMShellWidget) widget;
+    if (!wmshell->wm.user_time_win)
+        return;
+
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
+    if (!pd->net_wm_user_time)
+        return;
+
+    xcb_change_property(dpy, XCB_PROP_MODE_REPLACE, wmshell->wm.user_time_win,
+                        pd->net_wm_user_time, XCB_ATOM_CARDINAL, 32,
+                        1, &time);
 }
