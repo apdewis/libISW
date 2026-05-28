@@ -2121,6 +2121,21 @@ CreateDragIcon(XdndState *st)
                           XCB_COPY_FROM_PARENT, mask, vals);
     }
 
+    /* _NET_WM_WINDOW_TYPE */
+    {
+        xcb_intern_atom_cookie_t wt_cookie = xcb_intern_atom(conn, FALSE, 19, "_NET_WM_WINDOW_TYPE");
+        xcb_intern_atom_cookie_t type_cookie = xcb_intern_atom(conn, FALSE, 22, "_NET_WM_WINDOW_TYPE_DND");
+        xcb_intern_atom_reply_t *wt_reply = xcb_intern_atom_reply(conn, wt_cookie, NULL);
+        xcb_intern_atom_reply_t *type_reply = xcb_intern_atom_reply(conn, type_cookie, NULL);
+        if (wt_reply && type_reply) {
+            xcb_change_property(conn, XCB_PROP_MODE_REPLACE, st->drag_icon_win,
+                                wt_reply->atom, XCB_ATOM_ATOM, 32,
+                                1, &type_reply->atom);
+        }
+        free(wt_reply);
+        free(type_reply);
+    }
+
     xcb_map_window(conn, st->drag_icon_win);
     xcb_flush(conn);
 }
