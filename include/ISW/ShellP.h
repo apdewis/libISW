@@ -212,6 +212,7 @@ typedef struct {
 	int win_gravity;
 	xcb_atom_t title_encoding;
 	xcb_window_t user_time_win;
+	String startup_id;
 } WMShellPart;
 
 typedef  struct {

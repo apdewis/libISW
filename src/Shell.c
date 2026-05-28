@@ -947,6 +947,16 @@ WMInitialize(Widget req _X_UNUSED,
     w->wm.wm_hints.flags = 0;
     if (w->wm.window_role)
         w->wm.window_role = IswNewString(w->wm.window_role);
+
+    {
+        const char *sid = getenv("DESKTOP_STARTUP_ID");
+        if (sid && *sid) {
+            w->wm.startup_id = IswNewString(sid);
+            unsetenv("DESKTOP_STARTUP_ID");
+        } else {
+            w->wm.startup_id = NULL;
+        }
+    }
 }
 
 static void
@@ -1630,6 +1640,70 @@ _popup_set_prop(ShellWidget w)
                                     pd->net_wm_user_time, XCB_ATOM_CARDINAL, 32,
                                     1, &initial_time);
             }
+        }
+
+        /* _NET_STARTUP_ID — set property and send remove message */
+        if (wmshell->wm.startup_id) {
+            xcb_intern_atom_cookie_t sid_cookie =
+                xcb_intern_atom(conn, FALSE, 16, "_NET_STARTUP_ID");
+            xcb_intern_atom_cookie_t utf8_cookie =
+                xcb_intern_atom(conn, FALSE, 11, "UTF8_STRING");
+            xcb_intern_atom_cookie_t sib_cookie =
+                xcb_intern_atom(conn, FALSE, 24, "_NET_STARTUP_INFO_BEGIN");
+            xcb_intern_atom_cookie_t si_cookie =
+                xcb_intern_atom(conn, FALSE, 18, "_NET_STARTUP_INFO");
+            xcb_intern_atom_reply_t *sid_reply =
+                xcb_intern_atom_reply(conn, sid_cookie, NULL);
+            xcb_intern_atom_reply_t *utf8_reply =
+                xcb_intern_atom_reply(conn, utf8_cookie, NULL);
+            xcb_intern_atom_reply_t *sib_reply =
+                xcb_intern_atom_reply(conn, sib_cookie, NULL);
+            xcb_intern_atom_reply_t *si_reply =
+                xcb_intern_atom_reply(conn, si_cookie, NULL);
+
+            if (sid_reply && utf8_reply) {
+                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, win,
+                                    sid_reply->atom, utf8_reply->atom, 8,
+                                    strlen(wmshell->wm.startup_id),
+                                    wmshell->wm.startup_id);
+            }
+
+            if (sib_reply && si_reply) {
+                char msg[256];
+                int len = snprintf(msg, sizeof(msg), "remove: ID=%s",
+                                   wmshell->wm.startup_id);
+                if (len > 0 && (size_t)len < sizeof(msg)) {
+                    len++;  /* include NUL terminator */
+                    xcb_window_t root = w->core.screen->root;
+                    const char *mp = msg;
+                    int remaining = len;
+
+                    while (remaining > 0) {
+                        xcb_client_message_event_t ev;
+                        memset(&ev, 0, sizeof(ev));
+                        ev.response_type = XCB_CLIENT_MESSAGE;
+                        ev.format = 8;
+                        ev.window = win;
+                        ev.type = (mp == msg) ? sib_reply->atom : si_reply->atom;
+
+                        int chunk = remaining > 20 ? 20 : remaining;
+                        memcpy(ev.data.data8, mp, chunk);
+
+                        xcb_send_event(conn, FALSE, root,
+                                       XCB_EVENT_MASK_PROPERTY_CHANGE,
+                                       (const char *) &ev);
+                        mp += chunk;
+                        remaining -= chunk;
+                    }
+                }
+            }
+
+            free(sid_reply);
+            free(utf8_reply);
+            free(sib_reply);
+            free(si_reply);
+            IswFree(wmshell->wm.startup_id);
+            wmshell->wm.startup_id = NULL;
         }
     }
 }
