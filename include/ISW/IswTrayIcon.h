@@ -32,6 +32,27 @@ typedef void (*IswTrayIconClickProc)(
 );
 
 /*
+ * Resize callback — invoked when the tray manager changes the icon
+ * window's size (e.g. on dock, or a panel-height/DPI change).
+ *
+ * The icon's backing surface has already been recreated at the new
+ * size when this fires; the callback should re-rasterise its content
+ * at width x height and call IswTrayIconSetRGBA/SetPixmap.
+ *
+ * Parameters:
+ *   icon    - The tray icon handle
+ *   width   - New window width in physical pixels
+ *   height  - New window height in physical pixels
+ *   closure - Client data passed to IswTrayIconSetResizeCallback
+ */
+typedef void (*IswTrayIconResizeProc)(
+    IswTrayIcon     icon,
+    unsigned int    width,
+    unsigned int    height,
+    IswPointer      closure
+);
+
+/*
  * IswTrayIconCreate - Create and dock a system tray icon
  *
  * Parameters:
@@ -117,6 +138,22 @@ void IswTrayIconSetMenu(IswTrayIcon icon, Widget menu);
 void IswTrayIconAddClickCallback(IswTrayIcon icon,
                                  IswTrayIconClickProc proc,
                                  IswPointer closure);
+
+/*
+ * IswTrayIconSetResizeCallback - Register a resize callback
+ *
+ * Parameters:
+ *   icon    - Tray icon handle
+ *   proc    - Callback function (pass NULL to clear)
+ *   closure - Client data passed to proc
+ *
+ * Notes:
+ *   - Only one resize callback is held; a second call replaces it
+ *   - Fired on size changes only, after the surface is recreated
+ */
+void IswTrayIconSetResizeCallback(IswTrayIcon icon,
+                                  IswTrayIconResizeProc proc,
+                                  IswPointer closure);
 
 /*
  * IswTrayIconGetWindow - Get the underlying XCB window

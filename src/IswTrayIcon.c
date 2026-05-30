@@ -98,6 +98,10 @@ struct _IswTrayIcon {
     IswTrayClickCB       click_cbs[MAX_CLICK_CALLBACKS];
     int                  num_click_cbs;
 
+    /* Resize callback (single) */
+    IswTrayIconResizeProc resize_cb;
+    IswPointer            resize_closure;
+
     /* Tooltip (stored for future use) */
     char                *tooltip;
 };
@@ -690,7 +694,14 @@ tray_event_handler(Widget widget, IswPointer closure,
                 icon->width  = gr->width;
                 icon->height = gr->height;
                 create_surface(icon);
-                paint_icon(icon);
+                /* Let the app re-rasterise at the new size for a crisp
+                 * icon; fall back to upscaling the existing bitmap if no
+                 * resize callback is registered. */
+                if (icon->resize_cb)
+                    icon->resize_cb(icon, icon->width, icon->height,
+                                    icon->resize_closure);
+                else
+                    paint_icon(icon);
             }
             free(gr);
         }
@@ -943,6 +954,17 @@ IswTrayIconAddClickCallback(IswTrayIcon icon,
     icon->click_cbs[icon->num_click_cbs].proc = proc;
     icon->click_cbs[icon->num_click_cbs].closure = closure;
     icon->num_click_cbs++;
+}
+
+void
+IswTrayIconSetResizeCallback(IswTrayIcon icon,
+                             IswTrayIconResizeProc proc,
+                             IswPointer closure)
+{
+    if (!icon)
+        return;
+    icon->resize_cb = proc;
+    icon->resize_closure = closure;
 }
 
 xcb_window_t
