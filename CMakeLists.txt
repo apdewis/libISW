@@ -10,7 +10,13 @@ include(GNUInstallDirs)
 include(CheckIncludeFile)
 include(CheckFunctionExists)
 include(CheckTypeSize)
-include(FindPkgConfig)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    set(ISW_NO_PKGCONFIG TRUE)
+else()
+    set(ISW_NO_PKGCONFIG FALSE)
+    include(FindPkgConfig)
+endif()
 
 # ===========================================================================
 # Options
@@ -22,34 +28,117 @@ option(ISW_HAS_XIM "Enable X Input Method for CJK input (requires Xlib XIM APIs)
 option(ISW_GRAY_BLKWHT_STIPPLES "Enable gray stipple patterns" OFF)
 
 # ===========================================================================
-# Dependencies (pkg-config)
+# Dependencies
 # ===========================================================================
 
-pkg_check_modules(XT_DEPS REQUIRED IMPORTED_TARGET
-    xproto xcb xcb-xrm xcb-keysyms)
+if(NOT ISW_NO_PKGCONFIG)
+    # -----------------------------------------------------------------------
+    # Linux / other: pkg-config
+    # -----------------------------------------------------------------------
+    pkg_check_modules(XT_DEPS REQUIRED IMPORTED_TARGET
+        xproto xcb xcb-xrm xcb-keysyms)
 
-pkg_check_modules(ISW_DEPS REQUIRED IMPORTED_TARGET
-    xcb xcb-xfixes xcb-shape xcb-present xcb-cursor)
+    pkg_check_modules(ISW_DEPS REQUIRED IMPORTED_TARGET
+        xcb xcb-xfixes xcb-shape xcb-present xcb-cursor)
 
-pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig)
-pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
+    pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig)
+    pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
 
-pkg_check_modules(CAIRO REQUIRED IMPORTED_TARGET
-    cairo>=1.12.0 cairo-xcb>=1.12.0)
+    pkg_check_modules(CAIRO REQUIRED IMPORTED_TARGET
+        cairo>=1.12.0 cairo-xcb>=1.12.0)
 
-# Optional: Cairo-EGL
-pkg_check_modules(EGL IMPORTED_TARGET egl>=1.4)
-pkg_check_modules(CAIRO_GL IMPORTED_TARGET cairo-gl>=1.12.0)
+    # Optional: Cairo-EGL
+    pkg_check_modules(EGL IMPORTED_TARGET egl>=1.4)
+    pkg_check_modules(CAIRO_GL IMPORTED_TARGET cairo-gl>=1.12.0)
 
-if(EGL_FOUND AND CAIRO_GL_FOUND)
-    set(HAVE_CAIRO_EGL TRUE)
+    if(EGL_FOUND AND CAIRO_GL_FOUND)
+        set(HAVE_CAIRO_EGL TRUE)
+    else()
+        set(HAVE_CAIRO_EGL FALSE)
+        message(STATUS "Cairo-EGL not available (missing EGL or cairo-gl)")
+    endif()
+
+    # Optional: xkbcommon
+    pkg_check_modules(XKBCOMMON IMPORTED_TARGET xkbcommon)
 else()
-    set(HAVE_CAIRO_EGL FALSE)
-    message(STATUS "Cairo-EGL not available (missing EGL or cairo-gl)")
-endif()
+    # -----------------------------------------------------------------------
+    # FreeBSD: locate dependencies directly under ${CMAKE_INSTALL_PREFIX}
+    # (typically /usr/local) without pkg-config.
+    # -----------------------------------------------------------------------
+    find_path(ISW_BSD_INCLUDE_DIR xcb/xcb.h)
+    find_path(ISW_BSD_FREETYPE_INCLUDE_DIR ft2build.h PATH_SUFFIXES freetype2)
 
-# Optional: xkbcommon
-pkg_check_modules(XKBCOMMON IMPORTED_TARGET xkbcommon)
+    # Helper: find a library or fail with a clear message.
+    function(_isw_bsd_find_lib outvar libname)
+        find_library(${outvar} ${libname})
+        if(NOT ${outvar})
+            message(FATAL_ERROR "FreeBSD build: required library '${libname}' not found")
+        endif()
+    endfunction()
+
+    _isw_bsd_find_lib(ISW_BSD_XCB          xcb)
+    _isw_bsd_find_lib(ISW_BSD_XCB_XRM      xcb-xrm)
+    _isw_bsd_find_lib(ISW_BSD_XCB_KEYSYMS  xcb-keysyms)
+    _isw_bsd_find_lib(ISW_BSD_XCB_XFIXES   xcb-xfixes)
+    _isw_bsd_find_lib(ISW_BSD_XCB_SHAPE    xcb-shape)
+    _isw_bsd_find_lib(ISW_BSD_XCB_PRESENT  xcb-present)
+    _isw_bsd_find_lib(ISW_BSD_XCB_CURSOR   xcb-cursor)
+    _isw_bsd_find_lib(ISW_BSD_FONTCONFIG   fontconfig)
+    _isw_bsd_find_lib(ISW_BSD_FREETYPE     freetype)
+    _isw_bsd_find_lib(ISW_BSD_CAIRO        cairo)
+
+    # xproto / xcb-xrm headers live alongside xcb/xcb.h; freetype2 in its
+    # own suffixed dir.
+    add_library(PkgConfig::XT_DEPS INTERFACE IMPORTED)
+    target_include_directories(PkgConfig::XT_DEPS INTERFACE ${ISW_BSD_INCLUDE_DIR})
+    target_link_libraries(PkgConfig::XT_DEPS INTERFACE
+        ${ISW_BSD_XCB} ${ISW_BSD_XCB_XRM} ${ISW_BSD_XCB_KEYSYMS})
+
+    add_library(PkgConfig::ISW_DEPS INTERFACE IMPORTED)
+    target_include_directories(PkgConfig::ISW_DEPS INTERFACE ${ISW_BSD_INCLUDE_DIR})
+    target_link_libraries(PkgConfig::ISW_DEPS INTERFACE
+        ${ISW_BSD_XCB} ${ISW_BSD_XCB_XFIXES} ${ISW_BSD_XCB_SHAPE}
+        ${ISW_BSD_XCB_PRESENT} ${ISW_BSD_XCB_CURSOR})
+
+    add_library(PkgConfig::FONTCONFIG INTERFACE IMPORTED)
+    target_include_directories(PkgConfig::FONTCONFIG INTERFACE ${ISW_BSD_INCLUDE_DIR})
+    target_link_libraries(PkgConfig::FONTCONFIG INTERFACE ${ISW_BSD_FONTCONFIG})
+
+    add_library(PkgConfig::FREETYPE INTERFACE IMPORTED)
+    target_include_directories(PkgConfig::FREETYPE INTERFACE
+        ${ISW_BSD_INCLUDE_DIR} ${ISW_BSD_FREETYPE_INCLUDE_DIR})
+    target_link_libraries(PkgConfig::FREETYPE INTERFACE ${ISW_BSD_FREETYPE})
+
+    # cairo-xcb lives inside libcairo on FreeBSD.
+    add_library(PkgConfig::CAIRO INTERFACE IMPORTED)
+    target_include_directories(PkgConfig::CAIRO INTERFACE ${ISW_BSD_INCLUDE_DIR})
+    target_link_libraries(PkgConfig::CAIRO INTERFACE ${ISW_BSD_CAIRO})
+
+    # Optional: Cairo-EGL (cairo-gl lives inside libcairo on FreeBSD).
+    find_library(ISW_BSD_EGL EGL)
+    if(ISW_BSD_EGL)
+        set(EGL_FOUND TRUE)
+        set(CAIRO_GL_FOUND TRUE)
+        set(HAVE_CAIRO_EGL TRUE)
+        add_library(PkgConfig::EGL INTERFACE IMPORTED)
+        target_include_directories(PkgConfig::EGL INTERFACE ${ISW_BSD_INCLUDE_DIR})
+        target_link_libraries(PkgConfig::EGL INTERFACE ${ISW_BSD_EGL})
+        add_library(PkgConfig::CAIRO_GL INTERFACE IMPORTED)
+        target_link_libraries(PkgConfig::CAIRO_GL INTERFACE ${ISW_BSD_CAIRO})
+    else()
+        set(HAVE_CAIRO_EGL FALSE)
+        message(STATUS "Cairo-EGL not available (missing EGL)")
+    endif()
+
+    # Optional: xkbcommon
+    find_library(ISW_BSD_XKBCOMMON xkbcommon)
+    if(ISW_BSD_XKBCOMMON)
+        set(XKBCOMMON_FOUND TRUE)
+        add_library(PkgConfig::XKBCOMMON INTERFACE IMPORTED)
+        target_include_directories(PkgConfig::XKBCOMMON INTERFACE ${ISW_BSD_INCLUDE_DIR})
+        target_link_libraries(PkgConfig::XKBCOMMON INTERFACE ${ISW_BSD_XKBCOMMON})
+    endif()
+endif()
 
 
 # ===========================================================================
@@ -384,8 +473,18 @@ add_executable(isw_demo EXCLUDE_FROM_ALL
     examples/multi_stubs.c
 )
 
-pkg_check_modules(DEMO_DEPS REQUIRED IMPORTED_TARGET
-    xcb xcb-icccm xcb-xfixes xcb-render xcb-shape)
+if(NOT ISW_NO_PKGCONFIG)
+    pkg_check_modules(DEMO_DEPS REQUIRED IMPORTED_TARGET
+        xcb xcb-icccm xcb-xfixes xcb-render xcb-shape)
+else()
+    _isw_bsd_find_lib(ISW_BSD_XCB_ICCCM  xcb-icccm)
+    _isw_bsd_find_lib(ISW_BSD_XCB_RENDER xcb-render)
+    add_library(PkgConfig::DEMO_DEPS INTERFACE IMPORTED)
+    target_include_directories(PkgConfig::DEMO_DEPS INTERFACE ${ISW_BSD_INCLUDE_DIR})
+    target_link_libraries(PkgConfig::DEMO_DEPS INTERFACE
+        ${ISW_BSD_XCB} ${ISW_BSD_XCB_ICCCM} ${ISW_BSD_XCB_XFIXES}
+        ${ISW_BSD_XCB_RENDER} ${ISW_BSD_XCB_SHAPE})
+endif()
 
 target_link_libraries(isw_demo PRIVATE ISW PkgConfig::DEMO_DEPS m)
 
@@ -405,7 +504,13 @@ add_executable(focus_dispatch_test EXCLUDE_FROM_ALL
     examples/focus_dispatch_test.c
     examples/multi_stubs.c
 )
-pkg_check_modules(XCB_KEYSYMS REQUIRED IMPORTED_TARGET xcb-keysyms)
+if(NOT ISW_NO_PKGCONFIG)
+    pkg_check_modules(XCB_KEYSYMS REQUIRED IMPORTED_TARGET xcb-keysyms)
+else()
+    add_library(PkgConfig::XCB_KEYSYMS INTERFACE IMPORTED)
+    target_include_directories(PkgConfig::XCB_KEYSYMS INTERFACE ${ISW_BSD_INCLUDE_DIR})
+    target_link_libraries(PkgConfig::XCB_KEYSYMS INTERFACE ${ISW_BSD_XCB_KEYSYMS})
+endif()
 target_link_libraries(focus_dispatch_test PRIVATE ISW PkgConfig::DEMO_DEPS PkgConfig::XCB_KEYSYMS m)
 target_include_directories(focus_dispatch_test PRIVATE
     ${CMAKE_SOURCE_DIR}/include
