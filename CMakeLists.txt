@@ -47,17 +47,6 @@ if(NOT ISW_NO_PKGCONFIG)
     pkg_check_modules(CAIRO REQUIRED IMPORTED_TARGET
         cairo>=1.12.0 cairo-xcb>=1.12.0)
 
-    # Optional: Cairo-EGL
-    pkg_check_modules(EGL IMPORTED_TARGET egl>=1.4)
-    pkg_check_modules(CAIRO_GL IMPORTED_TARGET cairo-gl>=1.12.0)
-
-    if(EGL_FOUND AND CAIRO_GL_FOUND)
-        set(HAVE_CAIRO_EGL TRUE)
-    else()
-        set(HAVE_CAIRO_EGL FALSE)
-        message(STATUS "Cairo-EGL not available (missing EGL or cairo-gl)")
-    endif()
-
     # Optional: xkbcommon
     pkg_check_modules(XKBCOMMON IMPORTED_TARGET xkbcommon)
 else()
@@ -67,8 +56,8 @@ else()
     # -----------------------------------------------------------------------
     find_path(ISW_BSD_INCLUDE_DIR xcb/xcb.h)
     find_path(ISW_BSD_FREETYPE_INCLUDE_DIR ft2build.h PATH_SUFFIXES freetype2)
-    # Sources include <cairo.h> / <cairo-xcb.h> / <cairo-gl.h> directly, which
-    # live in the cairo/ subdir on FreeBSD.
+    # Sources include <cairo.h> / <cairo-xcb.h> directly, which live in the
+    # cairo/ subdir on FreeBSD.
     find_path(ISW_BSD_CAIRO_INCLUDE_DIR cairo.h PATH_SUFFIXES cairo)
 
     # Helper: find a library or fail with a clear message.
@@ -117,24 +106,6 @@ else()
     target_include_directories(PkgConfig::CAIRO INTERFACE
         ${ISW_BSD_INCLUDE_DIR} ${ISW_BSD_CAIRO_INCLUDE_DIR})
     target_link_libraries(PkgConfig::CAIRO INTERFACE ${ISW_BSD_CAIRO})
-
-    # Optional: Cairo-EGL (cairo-gl lives inside libcairo on FreeBSD).
-    find_library(ISW_BSD_EGL EGL)
-    if(ISW_BSD_EGL)
-        set(EGL_FOUND TRUE)
-        set(CAIRO_GL_FOUND TRUE)
-        set(HAVE_CAIRO_EGL TRUE)
-        add_library(PkgConfig::EGL INTERFACE IMPORTED)
-        target_include_directories(PkgConfig::EGL INTERFACE ${ISW_BSD_INCLUDE_DIR})
-        target_link_libraries(PkgConfig::EGL INTERFACE ${ISW_BSD_EGL})
-        add_library(PkgConfig::CAIRO_GL INTERFACE IMPORTED)
-        target_include_directories(PkgConfig::CAIRO_GL INTERFACE
-            ${ISW_BSD_INCLUDE_DIR} ${ISW_BSD_CAIRO_INCLUDE_DIR})
-        target_link_libraries(PkgConfig::CAIRO_GL INTERFACE ${ISW_BSD_CAIRO})
-    else()
-        set(HAVE_CAIRO_EGL FALSE)
-        message(STATUS "Cairo-EGL not available (missing EGL)")
-    endif()
 
     # Optional: xkbcommon
     find_library(ISW_BSD_XKBCOMMON xkbcommon)
@@ -324,10 +295,6 @@ set(RENDER_SOURCES
     src/ISWRenderCairoXCB.c
 )
 
-if(HAVE_CAIRO_EGL)
-    list(APPEND RENDER_SOURCES src/ISWRenderEGL.c)
-endif()
-
 set(SVG_SOURCES
     src/nanosvg_impl.c
     src/ISWSVG.c
@@ -412,10 +379,6 @@ if(ISW_GRAY_BLKWHT_STIPPLES)
     target_compile_definitions(ISW PRIVATE ISW_GRAY_BLKWHT_STIPPLES)
 endif()
 
-if(HAVE_CAIRO_EGL)
-    target_compile_definitions(ISW PRIVATE HAVE_CAIRO_EGL=1)
-endif()
-
 if(XKBCOMMON_FOUND)
     target_compile_definitions(ISW PRIVATE HAVE_XKBCOMMON=1)
 endif()
@@ -460,10 +423,6 @@ target_link_libraries(ISW PRIVATE
     PkgConfig::CAIRO
     m
 )
-
-if(HAVE_CAIRO_EGL)
-    target_link_libraries(ISW PRIVATE PkgConfig::EGL PkgConfig::CAIRO_GL)
-endif()
 
 if(XKBCOMMON_FOUND)
     target_link_libraries(ISW PRIVATE PkgConfig::XKBCOMMON)
@@ -619,7 +578,6 @@ message(STATUS "XIM support:             ${ISW_HAS_XIM}")
 message(STATUS "")
 message(STATUS "Rendering Backends:")
 message(STATUS "  Cairo-XCB:             yes")
-message(STATUS "  Cairo-EGL:             ${HAVE_CAIRO_EGL}")
 message(STATUS "")
 message(STATUS "Optional:")
 message(STATUS "  xkbcommon:             ${XKBCOMMON_FOUND}")
