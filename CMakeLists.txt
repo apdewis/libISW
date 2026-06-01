@@ -67,6 +67,9 @@ else()
     # -----------------------------------------------------------------------
     find_path(ISW_BSD_INCLUDE_DIR xcb/xcb.h)
     find_path(ISW_BSD_FREETYPE_INCLUDE_DIR ft2build.h PATH_SUFFIXES freetype2)
+    # Sources include <cairo.h> / <cairo-xcb.h> / <cairo-gl.h> directly, which
+    # live in the cairo/ subdir on FreeBSD.
+    find_path(ISW_BSD_CAIRO_INCLUDE_DIR cairo.h PATH_SUFFIXES cairo)
 
     # Helper: find a library or fail with a clear message.
     function(_isw_bsd_find_lib outvar libname)
@@ -111,7 +114,8 @@ else()
 
     # cairo-xcb lives inside libcairo on FreeBSD.
     add_library(PkgConfig::CAIRO INTERFACE IMPORTED)
-    target_include_directories(PkgConfig::CAIRO INTERFACE ${ISW_BSD_INCLUDE_DIR})
+    target_include_directories(PkgConfig::CAIRO INTERFACE
+        ${ISW_BSD_INCLUDE_DIR} ${ISW_BSD_CAIRO_INCLUDE_DIR})
     target_link_libraries(PkgConfig::CAIRO INTERFACE ${ISW_BSD_CAIRO})
 
     # Optional: Cairo-EGL (cairo-gl lives inside libcairo on FreeBSD).
@@ -124,6 +128,8 @@ else()
         target_include_directories(PkgConfig::EGL INTERFACE ${ISW_BSD_INCLUDE_DIR})
         target_link_libraries(PkgConfig::EGL INTERFACE ${ISW_BSD_EGL})
         add_library(PkgConfig::CAIRO_GL INTERFACE IMPORTED)
+        target_include_directories(PkgConfig::CAIRO_GL INTERFACE
+            ${ISW_BSD_INCLUDE_DIR} ${ISW_BSD_CAIRO_INCLUDE_DIR})
         target_link_libraries(PkgConfig::CAIRO_GL INTERFACE ${ISW_BSD_CAIRO})
     else()
         set(HAVE_CAIRO_EGL FALSE)
