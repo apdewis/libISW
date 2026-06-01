@@ -18,6 +18,11 @@
 #include <unistd.h>
 #include <limits.h>
 
+#ifdef __FreeBSD__
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 #include "nanosvg.h"
 #include "nanosvgrast.h"
 
@@ -128,7 +133,20 @@ ISWSVGResolvePath(const char *filename, char *resolved, unsigned int size)
     }
 
     /* 1. Relative to the executable's directory */
+#if defined(__linux__)
     len = readlink("/proc/self/exe", exe_dir, sizeof(exe_dir) - 1);
+#elif defined(__FreeBSD__)
+    {
+        int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
+        size_t cb = sizeof(exe_dir) - 1;
+        if (sysctl(mib, 4, exe_dir, &cb, NULL, 0) == 0)
+            len = (ssize_t)cb;
+        else
+            len = -1;
+    }
+#else
+    len = -1;
+#endif
     if (len > 0) {
         char *slash;
         exe_dir[len] = '\0';

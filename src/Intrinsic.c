@@ -1242,7 +1242,7 @@ static String
 ExtractLocaleName(String lang)
 {
 
-#if defined(CSRG_BASED) || defined(sun) || defined(SVR4) || defined(WIN32) || defined (linux)
+#if defined(CSRG_BASED) || defined(sun) || defined(SVR4) || defined(WIN32) || defined (linux) || defined(__FreeBSD__)
 #ifdef WIN32
 #define SKIPCOUNT 1
 #define STARTCHAR '='
