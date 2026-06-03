@@ -121,7 +121,8 @@ SimpleClassRec simpleClassRec = {
     /* extension		*/	NULL
   },
   { /* simple fields */
-    /* change_sensitive		*/	ChangeSensitive
+    /* change_sensitive		*/	ChangeSensitive,
+    /* hit_child		*/	NULL
   }
 };
 
@@ -157,6 +158,9 @@ ClassPartInitialize(WidgetClass class)
 
     if (c->simple_class.change_sensitive == IswInheritChangeSensitive)
 	c->simple_class.change_sensitive = super->simple_class.change_sensitive;
+
+    if (c->simple_class.hit_child == IswInheritHitChild)
+	c->simple_class.hit_child = super->simple_class.hit_child;
 }
 
 static void

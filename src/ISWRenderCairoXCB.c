@@ -16,6 +16,7 @@
 #include "ISWRenderPrivate.h"
 #include <ISW/IntrinsicP.h> /* For Xt private types */
 #include <ISW/CoreP.h>       /* For accessing widget->core fields */
+#include <ISW/CompositeP.h>  /* For clipping out windowless children */
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -365,8 +366,32 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         }
 
         cairo_translate(data->cairo_ctx, ctx->origin_x, ctx->origin_y);
+
+        /* Clip to this widget's own bounds MINUS the rectangles of its
+         * windowless children.  Children share this same window surface, so
+         * the parent's drawing must never reach into a child's area — this is
+         * what the X server enforced for free with child windows.  Build an
+         * even-odd path: widget rect as the outer boundary, each child rect as
+         * a hole.  cairo_clip with even-odd then admits only the region inside
+         * the widget but outside every child. */
+        cairo_set_fill_rule(data->cairo_ctx, CAIRO_FILL_RULE_EVEN_ODD);
         cairo_rectangle(data->cairo_ctx, 0, 0,
                         ctx->widget->core.width, ctx->widget->core.height);
+        if (IswIsComposite(ctx->widget)) {
+            CompositeWidget cwid = (CompositeWidget) ctx->widget;
+            Cardinal ci;
+            for (ci = 0; ci < cwid->composite.num_children; ci++) {
+                Widget ch = cwid->composite.children[ci];
+                if (!IswIsWidget(ch) || !ch->core.windowless)
+                    continue;
+                if (!ch->core.managed && !ch->core.mapped_when_managed)
+                    continue;
+                cairo_rectangle(data->cairo_ctx,
+                    ch->core.x, ch->core.y,
+                    ch->core.width + 2 * ch->core.border_width,
+                    ch->core.height + 2 * ch->core.border_width);
+            }
+        }
         cairo_clip(data->cairo_ctx);
         data->frame_depth = 1;
         return;

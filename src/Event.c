@@ -83,9 +83,7 @@ in this Software without prior written authorization from The Open Group.
 #include "StringDefs.h"
 #include "FocusMgrI.h"
 #include "ShellI.h"
-
-/* Simple.c: apply a windowless widget's cursor to its windowed ancestor. */
-extern void _IswSimpleApplyCursor(Widget /* pointer widget */);
+#include <ISW/SimpleP.h>
 
 typedef struct _IswEventRecExt {
     int type;
@@ -1077,7 +1075,12 @@ _IswExposeWindowlessChildren(Widget w, xcb_generic_event_t *event)
 
         if (!IswIsWidget(child) || !child->core.windowless)
             continue;
-        if (!child->core.managed || !IswIsRealized(child))
+        /* Paint realized windowless children that are shown.  Some widgets
+           (e.g. Text's scrollbars) map their children directly rather than
+           managing them, so gate on mapped_when_managed, not managed. */
+        if (!IswIsRealized(child))
+            continue;
+        if (!child->core.managed && !child->core.mapped_when_managed)
             continue;
 
         if (child->core.widget_class->core_class.expose != NULL)
@@ -1143,40 +1146,60 @@ _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
     Widget target = root;
     int ox = 0, oy = 0;
 
-    if (!IswIsComposite(root)) {
-        *dx = 0;
-        *dy = 0;
-        return root;
-    }
-
     for (;;) {
-        CompositeWidget cw = (CompositeWidget) target;
         Widget hit = NULL;
-        int i;
 
-        /* Reverse stacking order: last child is topmost. */
-        for (i = (int) cw->composite.num_children - 1; i >= 0; i--) {
-            Widget child = cw->composite.children[i];
-            int cx, cy, cw_, ch;
+        if (IswIsComposite(target)) {
+            CompositeWidget cw = (CompositeWidget) target;
+            int i;
 
-            if (!IswIsRectObj(child))
-                continue;
-            /* Only windowless children are hit-tested here; windowed
-               children receive their own events from the server. */
-            if (!IswIsWidget(child) || !child->core.windowless)
-                continue;
-            if (!child->core.managed)
-                continue;
+            /* Reverse stacking order: last child is topmost. */
+            for (i = (int) cw->composite.num_children - 1; i >= 0; i--) {
+                Widget child = cw->composite.children[i];
+                int cx, cy, cw_, ch;
 
-            cx = child->core.x;
-            cy = child->core.y;
-            cw_ = (int) child->core.width + 2 * (int) child->core.border_width;
-            ch = (int) child->core.height + 2 * (int) child->core.border_width;
+                if (!IswIsRectObj(child))
+                    continue;
+                /* Only windowless children are hit-tested here; windowed
+                   children receive their own events from the server. */
+                if (!IswIsWidget(child) || !child->core.windowless)
+                    continue;
+                /* Same "shown" rule as paint/clip: include children that are
+                   managed or directly mapped (e.g. Text's scrollbars). */
+                if (!child->core.managed && !child->core.mapped_when_managed)
+                    continue;
 
-            if (x >= ox + cx && x < ox + cx + cw_ &&
-                y >= oy + cy && y < oy + cy + ch) {
-                hit = child;
-                break;
+                cx = child->core.x;
+                cy = child->core.y;
+                cw_ = (int) child->core.width + 2 * (int) child->core.border_width;
+                ch = (int) child->core.height + 2 * (int) child->core.border_width;
+
+                if (x >= ox + cx && x < ox + cx + cw_ &&
+                    y >= oy + cy && y < oy + cy + ch) {
+                    hit = child;
+                    break;
+                }
+            }
+        }
+
+        /* Non-composite widgets that own windowless sub-widgets (e.g. Text's
+           scrollbars) expose them through the Simple class hit_child hook. */
+        if (hit == NULL && IswIsSubclass(target, simpleWidgetClass)) {
+            SimpleWidgetClass sc = (SimpleWidgetClass) target->core.widget_class;
+            if (sc->simple_class.hit_child != NULL) {
+                int cdx = 0, cdy = 0;
+                Widget child = (*sc->simple_class.hit_child)(target,
+                                                             x - ox, y - oy,
+                                                             &cdx, &cdy);
+                if (child != NULL) {
+                    target = child;
+                    ox += cdx;
+                    oy += cdy;
+                    if (!IswIsComposite(target) &&
+                        !IswIsSubclass(target, simpleWidgetClass))
+                        break;
+                    continue;
+                }
             }
         }
 
@@ -1188,7 +1211,8 @@ _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
         ox += hit->core.x + (int) hit->core.border_width;
         oy += hit->core.y + (int) hit->core.border_width;
 
-        if (!IswIsComposite(target))
+        if (!IswIsComposite(target) &&
+            !IswIsSubclass(target, simpleWidgetClass))
             break;
     }
 

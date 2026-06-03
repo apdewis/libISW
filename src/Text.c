@@ -128,6 +128,8 @@ static void HScroll(Widget, IswPointer, IswPointer);
 static void HJump(Widget, IswPointer, IswPointer);
 static void ClearWindow(Widget);
 static void DisplayTextWindow(Widget);
+static void PaintScrollbars(TextWidget);
+static Widget TextHitChild(Widget, int, int, int *, int *);
 static void ModifySelection(TextWidget, ISWTextPosition, ISWTextPosition);
 static void PushCopyQueue(TextWidget, int, int);
 static void UpdateTextInLine(TextWidget, int, Position, Position);
@@ -646,6 +648,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     else if (ctx->text.scroll_horiz == IswtextScrollAlways)
       CreateHScrollBar(ctx);
   }
+
+  /* Windowless: draw into the parent's window, no own X window.  Scrolling
+     is done by full repaint (not xcb_copy_area) so it works without a
+     dedicated window. */
+  new->core.windowless = True;
 }
 
 static void
@@ -1198,33 +1205,15 @@ _IswTextVScroll(TextWidget ctx, int n)
       top = ctx->text.lastPos;
 
     y = IsValidLine(ctx, n) ? lt->info[n].y : ctx->core.height - 2 * s;
+    (void) y;
+    (void) scroll_from_pos;
     _IswTextBuildLineTable(ctx, top, FALSE);
-    if (top >= ctx->text.lastPos)
-      DisplayTextWindow( (Widget) ctx);
-    else {
-      /* Use xcb_copy_area directly — the TextSink already owns a Cairo
-       * surface for this window, creating a second would corrupt it. */
-      xcb_connection_t *conn = IswDisplay(ctx);
-      xcb_copy_area(conn, IswWindow(ctx), IswWindow(ctx), ctx->text.gc,
-		    s, y, s, ctx->text.margin.top,
-		    (int)ctx->core.width - 2 * s, (int)ctx->core.height - y - s);
-      xcb_flush(conn);
-
-      PushCopyQueue(ctx, 0, (int) -y);
-      SinkClearToBG(ctx->text.sink,
-      (Position) s,
-      (Position) (ctx->text.margin.top + ctx->core.height - y - s),
-     (Dimension) ctx->core.width - 2 * s,
-     (Dimension) ctx->core.height - 2 * s);
-
-      if (n < lt->lines) n++; /* update descenders at bottom */
-      /* Clamp position to lastPos to avoid sentinel values */
-      scroll_from_pos = lt->info[lt->lines - n].position;
-      if (scroll_from_pos > ctx->text.lastPos)
-        scroll_from_pos = ctx->text.lastPos;
-      _IswTextNeedsUpdating(ctx, scroll_from_pos, ctx->text.lastPos);
-      _IswTextSetScrollBars(ctx);
-    }
+    /* Full repaint instead of xcb_copy_area: the windowless Text shares its
+       windowed ancestor's window, so an in-window blit would copy the wrong
+       region.  DisplayTextWindow clears the text area (excluding scrollbars)
+       and redraws via the ISWRender-backed sink. */
+    DisplayTextWindow( (Widget) ctx);
+    _IswTextSetScrollBars(ctx);
   }
   else {
 
@@ -1256,10 +1245,7 @@ static void
 HScroll(Widget w, IswPointer closure, IswPointer callData)
 {
   TextWidget ctx = (TextWidget) closure;
-  Widget tw = (Widget) ctx;
   Position old_left, pixels = (Position)(intptr_t) callData;
-  xcb_rectangle_t rect, t_rect;
-  int s = 0;
 
   _IswTextPrepareToUpdate(ctx);
 
@@ -1270,67 +1256,12 @@ HScroll(Widget w, IswPointer closure, IswPointer callData)
     pixels = old_left - ctx->text.margin.left;
   }
 
-  if (pixels > 0) {
-    rect.width = (unsigned short) pixels + ctx->text.margin.right;
-    rect.x = (short) ctx->core.width - (short) rect.width;
-    rect.y = (short) ctx->text.margin.top;
-    rect.height = (unsigned short) ctx->core.height - rect.y - 2 * s;
+  /* Full repaint instead of xcb_copy_area (see VScroll): windowless Text
+     can't blit within the shared ancestor window.  DisplayTextWindow clears
+     the text area (excluding scrollbar bands) and redraws via the sink. */
+  if ( pixels != 0 )
+    DisplayTextWindow( (Widget) ctx );
 
-    xcb_connection_t *conn = IswDisplay(tw);
-    xcb_copy_area(conn, IswWindow(tw), IswWindow(tw), ctx->text.gc,
-		  pixels + s, (int) rect.y,
-		  s, (int) rect.y,
-		  (unsigned int) rect.x, (unsigned int) ctx->core.height - 2 * s);
-    xcb_flush(conn);
-
-    PushCopyQueue(ctx, (int) -pixels, 0);
-  }
-  else if (pixels < 0) {
-    rect.x = s;
-
-    if (ctx->text.vbar != NULL)
-      rect.x += (short) (ctx->text.vbar->core.width +
-			 ctx->text.vbar->core.border_width);
-
-    rect.width = (Position) - pixels;
-    rect.y = ctx->text.margin.top;
-    rect.height = ctx->core.height - rect.y - 2 * s;
-
-    xcb_connection_t *conn = IswDisplay(tw);
-    xcb_copy_area(conn, IswWindow(tw), IswWindow(tw), ctx->text.gc,
-		  (int) rect.x, (int) rect.y,
-		  (int) rect.x + rect.width, (int) rect.y,
-		  (unsigned int) ctx->core.width - rect.width - 2 * s,
-		  (unsigned int) rect.height);
-    xcb_flush(conn);
-
-    PushCopyQueue(ctx, (int) rect.width, 0);
-
-/*
- * Redraw the line overflow marks.
- */
-
-    t_rect.x = ctx->core.width - ctx->text.margin.right - s;
-    t_rect.width = ctx->text.margin.right;
-    t_rect.y = rect.y;
-    t_rect.height = rect.height - 2 * s;
-
-    SinkClearToBG(ctx->text.sink, (Position) t_rect.x, (Position) t_rect.y,
-		  (Dimension) t_rect.width, (Dimension) t_rect.height);
-
-    UpdateTextInRectangle(ctx, &t_rect);
-  }
-
-/*
- * Put in the text that just became visible.
- */
-
-  if ( pixels != 0 ) {
-    SinkClearToBG(ctx->text.sink, (Position) rect.x, (Position) rect.y,
-		  (Dimension) rect.width, (Dimension) rect.height);
-
-    UpdateTextInRectangle(ctx, &rect);
-  }
   _IswTextExecuteUpdate(ctx);
   _IswTextSetScrollBars(ctx);
 }
@@ -2268,6 +2199,64 @@ DisplayTextWindow (Widget w)
   _IswTextBuildLineTable(ctx, ctx->text.lt.top, FALSE);
   _IswTextNeedsUpdating(ctx, zeroPosition, ctx->text.lastPos);
   _IswTextSetScrollBars(ctx);
+  PaintScrollbars(ctx);
+}
+
+/* Repaint the scrollbars.  They are windowless children but Text is not a
+   Composite, so they are not in composite.children and the generic expose
+   delegation never reaches them — Text paints them itself, on top of its
+   own content. */
+static void
+PaintScrollbars(TextWidget ctx)
+{
+  Widget bar;
+
+  if ((bar = ctx->text.vbar) != NULL && IswIsRealized(bar) &&
+      bar->core.widget_class->core_class.expose != NULL)
+    (*bar->core.widget_class->core_class.expose)(bar, NULL, 0);
+
+  if ((bar = ctx->text.hbar) != NULL && IswIsRealized(bar) &&
+      bar->core.widget_class->core_class.expose != NULL)
+    (*bar->core.widget_class->core_class.expose)(bar, NULL, 0);
+}
+
+/*
+ * Hit-test hook (Simple class) so the windowless event dispatcher can route
+ * pointer events to Text's scrollbars, which are not held in a composite
+ * child list.  (x,y) are relative to Text's content origin.  Returns the bar
+ * under the point with its content-origin offset, or NULL.
+ */
+static Widget
+TextHitChild(Widget w, int x, int y, int *dx, int *dy)
+{
+  TextWidget ctx = (TextWidget) w;
+  Widget bars[2];
+  int i;
+
+  bars[0] = ctx->text.vbar;
+  bars[1] = ctx->text.hbar;
+
+  for (i = 0; i < 2; i++) {
+    Widget bar = bars[i];
+    int bx, by, bw, bh;
+
+    if (bar == NULL || !bar->core.windowless)
+      continue;
+    if (!bar->core.managed && !bar->core.mapped_when_managed)
+      continue;
+
+    bx = bar->core.x;
+    by = bar->core.y;
+    bw = (int) bar->core.width + 2 * (int) bar->core.border_width;
+    bh = (int) bar->core.height + 2 * (int) bar->core.border_width;
+
+    if (x >= bx && x < bx + bw && y >= by && y < by + bh) {
+      *dx = bx + (int) bar->core.border_width;
+      *dy = by + (int) bar->core.border_width;
+      return bar;
+    }
+  }
+  return NULL;
 }
 
 /*
@@ -2520,6 +2509,8 @@ ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
     _IswTextExecuteUpdate(ctx);
 
       _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);
+
+  PaintScrollbars(ctx);
 }
 
 /*
@@ -2866,7 +2857,9 @@ FindGoodPosition(TextWidget ctx, ISWTextPosition pos)
  *	Returns: none
  */
 
-static void
+/* Retained for the copy-area scroll path, which the windowless conversion
+   replaced with full repaints; no current caller. */
+static void _X_UNUSED
 PushCopyQueue(TextWidget ctx, int h, int v)
 {
     struct text_move * offsets = IswNew(struct text_move);
@@ -3273,7 +3266,8 @@ TextClassRec textClassRec = {
     /* extension	*/	NULL
   },
   { /* Simple fields */
-    /* change_sensitive	*/	ChangeSensitive
+    /* change_sensitive	*/	ChangeSensitive,
+    /* hit_child	*/	TextHitChild
   },
   { /* text fields */
     /* empty            */	0

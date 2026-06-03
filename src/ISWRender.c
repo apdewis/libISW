@@ -630,7 +630,7 @@ ISWRenderSetClipRectangle(ISWRenderContext *ctx, int x, int y, int width, int he
     if (!ctx || !ctx->ops || !ctx->ops->set_clip_rectangle) {
         return;
     }
-    
+
     ctx->ops->set_clip_rectangle(ctx, x, y, width, height);
 }
 

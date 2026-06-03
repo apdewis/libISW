@@ -54,9 +54,16 @@ SOFTWARE.
 
 typedef struct {
     Boolean	(*change_sensitive)(Widget);
+    /* Optional: report a windowless child of this widget at content point
+       (x,y) for event hit-testing.  Used by non-composite widgets (e.g.
+       Text) that own windowless sub-widgets not held in composite.children.
+       Returns the child and sets *dx,*dy to its content origin offset, or
+       NULL if the point is not over a hit-child.  NULL hook = no children. */
+    Widget	(*hit_child)(Widget, int x, int y, int *dx, int *dy);
 } SimpleClassPart;
 
 #define IswInheritChangeSensitive ((Boolean (*)(Widget))_IswInherit)
+#define IswInheritHitChild ((Widget (*)(Widget,int,int,int*,int*))_IswInherit)
 
 typedef struct _SimpleClassRec {
     CoreClassPart	core_class;
