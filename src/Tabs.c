@@ -195,13 +195,19 @@ LayoutChildren(TabsWidget tw)
                           child->core.border_width);
 
         if (child == tw->tabs.top_widget) {
-            if (IswIsRealized(child)) {
+            if (IswIsRealized(child))
                 IswMapWidget(child);
-            }
+            else if (child->core.windowless)
+                child->core.mapped_when_managed = True;
         } else {
-            if (IswIsRealized(child)) {
+            /* Non-top page: must start hidden.  When already realized, unmap
+               (toggles the windowless shown flag + recomposites).  When not yet
+               realized, set the windowless shown flag directly — otherwise it
+               defaults True and every page would composite on init. */
+            if (IswIsRealized(child))
                 IswUnmapWidget(child);
-            }
+            else if (child->core.windowless)
+                child->core.mapped_when_managed = False;
         }
     }
 }

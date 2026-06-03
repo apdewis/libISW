@@ -56,6 +56,8 @@ in this Software without prior written authorization from The Open Group.
 #include "ResourceI.h"
 #include <ISW/Shell.h>
 #include <ISW/Vendor.h>
+#include <ISW/ISWRender.h>
+#include <ISW/EventI.h>
 
 /*
  * This file defines functional equivalents to all macros defined
@@ -166,7 +168,20 @@ IswMapWidget(Widget w)
     WIDGET_TO_APPCON(w);
 
     LOCK_APP(app);
-    xcb_map_window(IswDisplay(w), IswWindow(w)); 
+    /* Windowless widgets have no X window to map.  mapped_when_managed is their
+       live "is shown" flag (consulted by the composite/paint/hit-test walks):
+       set it and re-composite the windowed ancestor so the now-shown widget
+       appears.  Mapping the shared ancestor window here would be wrong. */
+    if (IswIsWidget(w) && w->core.windowless) {
+        w->core.mapped_when_managed = True;
+        /* Paint the now-shown subtree (it may never have been drawn while
+           hidden) and composite it up — the composite pass folds surfaces but
+           does not itself drive expose. */
+        _IswRepaintWindowless(w);
+        UNLOCK_APP(app);
+        return;
+    }
+    xcb_map_window(IswDisplay(w), IswWindow(w));
     xcb_flush(IswDisplay(w));
     hookobj = IswHooksOfDisplay(IswDisplay(w));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
@@ -190,7 +205,19 @@ IswUnmapWidget(Widget w)
     WIDGET_TO_APPCON(w);
 
     LOCK_APP(app);
-    xcb_unmap_window(IswDisplay(w), IswWindow(w)); 
+    /* Windowless: clear the live "is shown" flag and re-composite so the now-
+       hidden widget stops contributing pixels.  Unmapping the shared ancestor
+       window would hide the whole window. */
+    if (IswIsWidget(w) && w->core.windowless) {
+        Widget anc;
+        w->core.mapped_when_managed = False;
+        anc = _IswWindowedAncestor(w);
+        if (anc != NULL && IswIsRealized(anc))
+            ISWRenderRequestComposite(anc);
+        UNLOCK_APP(app);
+        return;
+    }
+    xcb_unmap_window(IswDisplay(w), IswWindow(w));
     xcb_flush(IswDisplay(w));
     hookobj = IswHooksOfDisplay(IswDisplay(w));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {

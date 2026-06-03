@@ -1245,13 +1245,17 @@ extern Widget IswParent(
 
 #endif /*_IswIntrinsicP_h*/
 
+/* Call the functions (Functions.c), which handle both windowed widgets and
+   windowless widgets.  The old inline macros called xcb_map_window on
+   IswWindow(), which for a windowless widget is the SHARED ancestor window —
+   wrong: it never hid/showed the widget itself and broke e.g. Tabs page
+   switching.  No inline fast path: map/unmap is not hot, and the macro can't
+   see core.windowless from the public header anyway. */
 #undef IswMapWidget
 extern void IswMapWidget(Widget /* w */);
-#define IswMapWidget(widget)	do { xcb_map_window(IswDisplay(widget), IswWindow(widget)); xcb_flush(IswDisplay(widget)); } while(0)
 
 #undef IswUnmapWidget
 extern void IswUnmapWidget(Widget /* w */);
-#define IswUnmapWidget(widget)	do { xcb_unmap_window(IswDisplay(widget), IswWindow(widget)); xcb_flush(IswDisplay(widget)); } while(0)
 
 extern void IswAddCallback(
     Widget 		/* widget */,

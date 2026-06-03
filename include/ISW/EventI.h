@@ -123,6 +123,9 @@ extern EventMask _IswConvertTypeToMask(
 extern Widget _IswFindWidgetAtPoint(Widget root, int x, int y,
 				    int *dx, int *dy);
 
+/* Paint a now-shown windowless widget (and descendants) and composite it. */
+extern void _IswRepaintWindowless(Widget w);
+
 /* EventUtil.c */
 extern Widget _IswFindRemapWidget(xcb_generic_event_t *event, Widget widget,
 				 xcb_event_mask_t mask, IswPerDisplayInput pdi);
