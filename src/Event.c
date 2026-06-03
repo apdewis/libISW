@@ -84,6 +84,9 @@ in this Software without prior written authorization from The Open Group.
 #include "FocusMgrI.h"
 #include "ShellI.h"
 
+/* Simple.c: apply a windowless widget's cursor to its windowed ancestor. */
+extern void _IswSimpleApplyCursor(Widget /* pointer widget */);
+
 typedef struct _IswEventRecExt {
     int type;
     IswPointer select_data[1];   /* actual dimension is [mask] */
@@ -1852,6 +1855,14 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
                 if (pdi->pointerWidget != NULL)
                     _IswSynthesizeCrossing(pdi->pointerWidget, event,
                                            XCB_ENTER_NOTIFY);
+
+                /* Update the windowed ancestor's cursor to match the widget
+                   now under the pointer (or restore it when leaving one). */
+                if (pdi->pointerWidget != NULL)
+                    _IswSimpleApplyCursor(pdi->pointerWidget);
+                else if (old_pw != NULL && IswIsWidget(old_pw)
+                         && !old_pw->core.being_destroyed)
+                    _IswSimpleApplyCursor(old_pw);
             }
 
             if (target != widget) {

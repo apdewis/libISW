@@ -86,4 +86,8 @@ typedef struct _SimpleRec {
     SimplePart	simple;
 } SimpleRec;
 
+/* Apply a windowless widget's cursor to its windowed ancestor's window;
+   called from the event dispatcher on pointer-widget change. */
+extern void _IswSimpleApplyCursor(Widget /* pointer widget */);
+
 #endif /* _ISW_SimpleP_h */

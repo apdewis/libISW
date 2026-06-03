@@ -164,7 +164,11 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
 {
     ConvertCursor(w);
 
-    if (((SimpleWidget)w)->simple.cursor != None &&
+    /* Windowless widgets have no window to attach a cursor to; the cursor is
+       applied to the windowed ancestor's window on pointer-enter (see
+       _IswSimpleApplyCursor).  Keep the resolved cursor in simple.cursor. */
+    if (!w->core.windowless &&
+        ((SimpleWidget)w)->simple.cursor != None &&
         ((SimpleWidget)w)->simple.cursor != (xcb_cursor_t)0xffffffff) {
 	*valueMask |= XCB_CW_CURSOR;
 	attributes[__builtin_popcount(*valueMask & (XCB_CW_CURSOR - 1))] = ((SimpleWidget)w)->simple.cursor;
@@ -172,6 +176,47 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
 
     IswCreateWindow(IswDisplay(w), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
                    (xcb_visualtype_t *)CopyFromParent, *valueMask, attributes);
+}
+
+/*
+ * _IswSimpleApplyCursor - apply the cursor for the windowless widget currently
+ * under the pointer onto its windowed ancestor's window.  Called from the
+ * event dispatcher when the pointer widget changes.  A NULL widget, or one
+ * with no cursor, clears the ancestor back to its own (windowed) cursor.
+ */
+void
+_IswSimpleApplyCursor(Widget w)
+{
+    Widget anc;
+    xcb_cursor_t cursor = XCB_NONE;
+
+    if (w == NULL || !IswIsWidget(w))
+        return;
+
+    anc = _IswWindowedAncestor(w);
+    if (anc == NULL || !IswIsRealized(anc) || anc->core.being_destroyed)
+        return;
+
+    /* Cursor of the windowless pointer widget, if it is a Simple subclass. */
+    if (IswIsSubclass(w, simpleWidgetClass)) {
+        xcb_cursor_t c = ((SimpleWidget) w)->simple.cursor;
+        if (c != None && c != (xcb_cursor_t) 0xffffffff)
+            cursor = c;
+    }
+
+    /* Fall back to the windowed ancestor's own cursor when the pointer widget
+       specifies none, so leaving a widget restores the container cursor. */
+    if (cursor == XCB_NONE && IswIsSubclass(anc, simpleWidgetClass)) {
+        xcb_cursor_t c = ((SimpleWidget) anc)->simple.cursor;
+        if (c != None && c != (xcb_cursor_t) 0xffffffff)
+            cursor = c;
+    }
+
+    {
+        uint32_t value = cursor;
+        xcb_change_window_attributes(IswDisplay(anc), anc->core.window,
+                                     XCB_CW_CURSOR, &value);
+    }
 }
 
 /*	Function Name: ConvertCursor
@@ -240,12 +285,15 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	new_cursor = TRUE;
     }
 
-    if (new_cursor && IswIsRealized(new)) {
+    if (new_cursor && IswIsRealized(new) && !new->core.windowless) {
         /* XDefineCursor → xcb_change_window_attributes */
         uint32_t value = s_new->simple.cursor;
         xcb_change_window_attributes(IswDisplay(new), IswWindow(new),
                                      XCB_CW_CURSOR, &value);
     }
+    /* Windowless: the new cursor is applied to the windowed ancestor on the
+       next pointer-enter (_IswSimpleApplyCursor); changing it while the
+       pointer is elsewhere must not alter the visible cursor. */
 
     return False;
 }
