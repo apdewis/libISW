@@ -335,6 +335,35 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         }
         data->cairo_ctx = data->window_ctx;
         cairo_save(data->cairo_ctx);
+
+        /* Software border: X drew window borders for free; windowless widgets
+         * have no window, so stroke the border ring here.  ctx->origin is the
+         * content origin (inside the border); the ring sits in the bw-thick
+         * band around it. */
+        {
+            int bw = (int) ctx->widget->core.border_width;
+            if (bw > 0) {
+                Pixel bp = ctx->widget->core.border_pixel;
+                int cw_ = ctx->widget->core.width;
+                int ch = ctx->widget->core.height;
+                cairo_save(data->cairo_ctx);
+                cairo_set_source_rgb(data->cairo_ctx,
+                    ((bp >> 16) & 0xff) / 255.0,
+                    ((bp >>  8) & 0xff) / 255.0,
+                    ((bp      ) & 0xff) / 255.0);
+                /* Outer rect (footprint) minus inner content rect, even-odd
+                   filled, paints just the border band. */
+                cairo_set_fill_rule(data->cairo_ctx, CAIRO_FILL_RULE_EVEN_ODD);
+                cairo_rectangle(data->cairo_ctx,
+                    ctx->origin_x - bw, ctx->origin_y - bw,
+                    cw_ + 2 * bw, ch + 2 * bw);
+                cairo_rectangle(data->cairo_ctx,
+                    ctx->origin_x, ctx->origin_y, cw_, ch);
+                cairo_fill(data->cairo_ctx);
+                cairo_restore(data->cairo_ctx);
+            }
+        }
+
         cairo_translate(data->cairo_ctx, ctx->origin_x, ctx->origin_y);
         cairo_rectangle(data->cairo_ctx, 0, 0,
                         ctx->widget->core.width, ctx->widget->core.height);

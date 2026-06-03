@@ -288,17 +288,19 @@ ISWRenderPrintBackendInfo(void)
  * =================================================================
  */
 
-/* Compute a windowless widget's drawing origin: its position relative to
-   the nearest windowed ancestor, summed across windowless parents.  Returns
-   (0,0) for windowed widgets. */
+/* Compute a windowless widget's content drawing origin: its position relative
+   to the nearest windowed ancestor, summed across windowless parents.  Each
+   level contributes its position plus its border width, because the widget's
+   content area sits inside its border ring (matching X's window+border model).
+   Returns (0,0) for windowed widgets. */
 static void
 _ISWRenderComputeOrigin(Widget w, int *ox, int *oy)
 {
     int x = 0, y = 0;
 
     while (w != NULL && IswIsWidget(w) && w->core.windowless) {
-        x += w->core.x;
-        y += w->core.y;
+        x += w->core.x + (int) w->core.border_width;
+        y += w->core.y + (int) w->core.border_width;
         w = w->core.parent;
     }
     *ox = x;

@@ -1043,8 +1043,8 @@ _IswWindowlessOffset(Widget w, int *dx, int *dy)
     int ox = 0, oy = 0;
 
     while (w != NULL && IswIsWidget(w) && w->core.windowless) {
-        ox += w->core.x;
-        oy += w->core.y;
+        ox += w->core.x + (int) w->core.border_width;
+        oy += w->core.y + (int) w->core.border_width;
         w = w->core.parent;
     }
     *dx = ox;
@@ -1184,8 +1184,9 @@ _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
             break;
 
         target = hit;
-        ox += hit->core.x;
-        oy += hit->core.y;
+        /* Descend into the hit child's content area (inside its border). */
+        ox += hit->core.x + (int) hit->core.border_width;
+        oy += hit->core.y + (int) hit->core.border_width;
 
         if (!IswIsComposite(target))
             break;

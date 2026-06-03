@@ -415,6 +415,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* Defer render_ctx creation to Realize — Cairo needs a window */
     sbw->scrollbar.render_ctx = NULL;
+
+    /* Windowless: draw into the parent's window, no own X window. */
+    new->core.windowless = True;
 }
 
 static void
