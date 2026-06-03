@@ -382,6 +382,61 @@ IswBuildEventMask(Widget widget)
     return mask;
 }
 
+/* Union of IswBuildEventMask over a widget's windowless descendants.
+   Windowless widgets have no window to select on, so the events they need
+   must be selected on their nearest windowed ancestor's window. */
+static EventMask
+_IswWindowlessDescendantMask(Widget w)
+{
+    EventMask mask = 0L;
+    CompositeWidget cw;
+    Cardinal i;
+
+    if (!IswIsComposite(w))
+        return 0L;
+
+    cw = (CompositeWidget) w;
+    for (i = 0; i < cw->composite.num_children; i++) {
+        Widget child = cw->composite.children[i];
+
+        if (!IswIsWidget(child) || !child->core.windowless)
+            continue;
+        mask |= IswBuildEventMask(child);
+        mask |= _IswWindowlessDescendantMask(child);
+    }
+    return mask;
+}
+
+/* Mask to actually select on a windowed widget's window: its own mask plus
+   the masks of all windowless descendants that share the window. */
+EventMask
+_IswWindowSelectMask(Widget widget)
+{
+    EventMask mask = IswBuildEventMask(widget);
+
+    if (widget != NULL && IswIsWidget(widget))
+        mask |= (_IswWindowlessDescendantMask(widget) & ~NonMaskableMask);
+    return mask;
+}
+
+/* Push the aggregate select mask onto the windowed ancestor's window after a
+   windowless widget's handlers or translations changed. */
+static void
+_IswUpdateWindowlessAncestorMask(Widget windowless)
+{
+    Widget anc;
+    EventMask mask;
+
+    if (!IswIsWidget(windowless))
+        return;
+    anc = _IswWindowedAncestor(windowless);
+    if (anc == NULL || !IswIsRealized(anc) || anc->core.being_destroyed)
+        return;
+    mask = _IswWindowSelectMask(anc);
+    xcb_change_window_attributes(IswDisplay(anc), anc->core.window,
+                                 XCB_CW_EVENT_MASK, &mask);
+}
+
 static void
 CallExtensionSelector(Widget widget, ExtSelectRec *rec, Boolean forceCall)
 {
@@ -480,8 +535,16 @@ RemoveEventHandler(Widget widget,
         EventMask mask = IswBuildEventMask(widget);
         xcb_connection_t *dpy = IswDisplay(widget);
 
-        if (oldMask != mask)
-            xcb_change_window_attributes(dpy, IswWindow(widget), XCB_CW_EVENT_MASK, &mask);
+        if (widget->core.windowless) {
+            /* No own window — fold this widget's mask into the windowed
+               ancestor's selection. */
+            _IswUpdateWindowlessAncestorMask(widget);
+        }
+        else if (oldMask != mask) {
+            EventMask sel = _IswWindowSelectMask(widget);
+            xcb_change_window_attributes(dpy, IswWindow(widget),
+                                         XCB_CW_EVENT_MASK, &sel);
+        }
 
         if (has_type_specifier) {
             IswPerDisplay pd = _IswGetPerDisplay(dpy);
@@ -625,8 +688,14 @@ AddEventHandler(Widget widget,
         EventMask mask = IswBuildEventMask(widget);
         xcb_connection_t *dpy = IswDisplay(widget);
 
-        if (oldMask != mask)
-            xcb_change_window_attributes(dpy, IswWindow(widget), XCB_CW_EVENT_MASK, &mask);
+        if (widget->core.windowless) {
+            _IswUpdateWindowlessAncestorMask(widget);
+        }
+        else if (oldMask != mask) {
+            EventMask sel = _IswWindowSelectMask(widget);
+            xcb_change_window_attributes(dpy, IswWindow(widget),
+                                         XCB_CW_EVENT_MASK, &sel);
+        }
 
         if (has_type_specifier) {
             IswPerDisplay pd = _IswGetPerDisplay(dpy);
@@ -975,6 +1044,43 @@ _IswWindowlessOffset(Widget w, int *dx, int *dy)
     *dy = oy;
 }
 
+/* Expose delegation for windowless widgets.
+ *
+ * Windowless widgets have no window, so the server never sends them Expose
+ * events.  When a windowed widget receives an Expose, walk its windowless
+ * descendants in stacking order (array order: earlier children first, i.e.
+ * bottom-to-top) and invoke each one's expose proc so it repaints.  Each
+ * widget's render context resolves to the windowed ancestor's window and
+ * offsets/clips itself (see ISWRenderBegin / the Cairo-XCB backend).
+ *
+ * Recurses into windowless composites.  Stops at windowed children: they own
+ * their own window and receive their own Expose from the server. */
+static void
+_IswExposeWindowlessChildren(Widget w, xcb_generic_event_t *event)
+{
+    CompositeWidget cw;
+    Cardinal i;
+
+    if (!IswIsComposite(w))
+        return;
+
+    cw = (CompositeWidget) w;
+    for (i = 0; i < cw->composite.num_children; i++) {
+        Widget child = cw->composite.children[i];
+
+        if (!IswIsWidget(child) || !child->core.windowless)
+            continue;
+        if (!child->core.managed || !IswIsRealized(child))
+            continue;
+
+        if (child->core.widget_class->core_class.expose != NULL)
+            (*child->core.widget_class->core_class.expose)(child, event, 0);
+
+        /* Recurse so windowless grandchildren paint on top. */
+        _IswExposeWindowlessChildren(child, event);
+    }
+}
+
 /* Dispatch a synthesized Enter/Leave crossing event to a windowless widget,
    derived from the triggering motion event (root coords preserved, window
    coords rebased to the target's windowed-ancestor frame). */
@@ -1267,6 +1373,9 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
                 if (ev->count == 0 || COMP_EXPOSE_TYPE == IswExposeNoCompress) {
                     (*widget->core.widget_class->core_class.expose)
                         (widget, event, 0);
+                    /* Repaint windowless descendants on top of this
+                       windowed widget's content. */
+                    _IswExposeWindowlessChildren(widget, event);
                     was_dispatched = True;
                 }
             }
@@ -1284,6 +1393,16 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
             else if (event_type == XCB_NO_EXPOSURE && NO_EXPOSE) {
                 (*widget->core.widget_class->core_class.expose)
                     (widget, event, 0);
+                was_dispatched = True;
+            }
+        }
+        else if ((event->response_type & ~0x80) == XCB_EXPOSE) {
+            /* Windowed widget has no expose proc of its own (e.g. a bare
+               shell or composite), but may host windowless children that
+               still need to repaint. */
+            xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
+            if (ev->count == 0 || COMP_EXPOSE_TYPE == IswExposeNoCompress) {
+                _IswExposeWindowlessChildren(widget, event);
                 was_dispatched = True;
             }
         }

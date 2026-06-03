@@ -219,10 +219,11 @@ ComputeWindowAttributes(Widget widget,
     mask |= XCB_CW_BIT_GRAVITY;
     values[value_index++] = XCB_GRAVITY_NORTH_WEST;
 
-    /* XCB_CW_EVENT_MASK (bit 11) */
+    /* XCB_CW_EVENT_MASK (bit 11) — include windowless descendants' masks so
+       events destined for windowless children are delivered to this window. */
     mask |= XCB_CW_EVENT_MASK;
     {
-        uint32_t evmask = IswBuildEventMask(widget);
+        uint32_t evmask = _IswWindowSelectMask(widget);
         values[value_index++] = evmask;
     }
 
@@ -400,8 +401,21 @@ RealizeWidget(Widget widget)
     /* Windowless widgets share their ancestor's window; do not register
        the ancestor window as mapping to this widget (the ancestor already
        owns that mapping).  Mark realized via the windowless flag instead. */
-    if (widget->core.windowless)
+    if (widget->core.windowless) {
         widget->core.windowless_realized = True;
+        /* Fold this widget's event mask (incl. its translations) into the
+           windowed ancestor's window selection so its events are delivered. */
+        if (IswIsRealized(widget)) {
+            Widget anc = _IswWindowedAncestor(widget);
+            if (anc != NULL && IswIsRealized(anc)
+                && !anc->core.being_destroyed) {
+                EventMask sel = _IswWindowSelectMask(anc);
+                xcb_change_window_attributes(IswDisplay(anc),
+                                             anc->core.window,
+                                             XCB_CW_EVENT_MASK, &sel);
+            }
+        }
+    }
     else
         IswRegisterDrawable(display, window, widget);
 

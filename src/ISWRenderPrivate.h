@@ -134,10 +134,17 @@ typedef struct _ISWRenderContext {
     Pixel current_color;
     double line_width;
     IswFontStruct *current_font;
-    
+
+    /* Windowless rendering: drawing origin within the target window.
+       A windowless widget shares its windowed ancestor's window; this is
+       the widget's position relative to that window, applied as a
+       coordinate translation at frame Begin so the widget draws in its own
+       local (0,0)-based coordinates.  Zero for windowed widgets. */
+    int origin_x, origin_y;
+
     /* Backend-specific data */
     void *backend_data;
-    
+
 } ISWRenderContext;
 
 /*

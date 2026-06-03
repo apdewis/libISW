@@ -437,6 +437,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     lw->label.label_x = lw->label.label_y = 0;
     (*IswClass(new)->core_class.resize) ((Widget)lw);
 
+    /* Windowless: Label and its leaf subclasses (Command, Toggle, Image,
+       ToggleButton) draw into the parent's window with no own X window.
+       Each already fills its full background in expose. */
+    new->core.windowless = True;
+
 } /* Initialize */
 
 static int

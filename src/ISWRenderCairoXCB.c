@@ -73,11 +73,26 @@ typedef struct {
  * (text measurement, etc.) even outside begin/end.
  * Returns True on success, False on failure.
  */
+/* Nearest windowed ancestor of a (possibly windowless) widget.  Returns the
+   widget itself if it is windowed. */
+static Widget
+_cairo_xcb_windowed_widget(Widget w)
+{
+    while (w != NULL && IswIsWidget(w) && w->core.windowless &&
+           w->core.parent != NULL)
+        w = w->core.parent;
+    return w;
+}
+
 static Boolean
 _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
 {
-    Dimension w = ctx->widget->core.width;
-    Dimension h = ctx->widget->core.height;
+    /* Windowless widgets share their windowed ancestor's window; the surface
+       must cover the whole window, not just the child's rectangle. */
+    Widget surf_w = ctx->widget->core.windowless
+                  ? _cairo_xcb_windowed_widget(ctx->widget) : ctx->widget;
+    Dimension w = surf_w->core.width;
+    Dimension h = surf_w->core.height;
 
     /* Clamp oversized dimensions — Cairo's XCB surface limit */
     if (w > 32767) w = 32767;
@@ -284,6 +299,50 @@ cairo_xcb_begin(ISWRenderContext *ctx)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
 
+    /* Windowless widgets draw directly onto the windowed ancestor's window
+     * surface — no per-widget back buffer, no present (the ancestor owns
+     * the frame and the buffering).  Translate to the widget's origin and
+     * clip to its bounds so it draws in local (0,0) coordinates. */
+    if (ctx->widget && ctx->widget->core.windowless) {
+        Widget surf_w;
+
+        if (data->frame_depth > 0) {
+            data->frame_depth++;
+            return;
+        }
+        surf_w = _cairo_xcb_windowed_widget(ctx->widget);
+        if (data->deferred) {
+            ctx->connection = (xcb_connection_t*)IswDisplay(ctx->widget);
+            ctx->window = IswWindow(ctx->widget);
+            if (surf_w == NULL || surf_w->core.width == 0 ||
+                surf_w->core.height == 0 || ctx->window == 0)
+                return;  /* ancestor not ready */
+            if (!_cairo_xcb_create_surface(ctx, data))
+                return;
+            data->deferred = False;
+        }
+        if (!data->window_ctx || surf_w == NULL) {
+            return;
+        }
+        /* Match the window surface to the windowed ancestor's PHYSICAL size.
+         * The cairo XCB surface tracks the physical drawable; device scale
+         * (set in create_surface) maps the logical coordinates below. */
+        {
+            double sf = _IswGetScaleFactor(ctx->connection);
+            Dimension pw = (Dimension)(surf_w->core.width * sf + 0.5);
+            Dimension ph = (Dimension)(surf_w->core.height * sf + 0.5);
+            cairo_xcb_surface_set_size(data->surface, pw, ph);
+        }
+        data->cairo_ctx = data->window_ctx;
+        cairo_save(data->cairo_ctx);
+        cairo_translate(data->cairo_ctx, ctx->origin_x, ctx->origin_y);
+        cairo_rectangle(data->cairo_ctx, 0, 0,
+                        ctx->widget->core.width, ctx->widget->core.height);
+        cairo_clip(data->cairo_ctx);
+        data->frame_depth = 1;
+        return;
+    }
+
     /* Nested begin: a parent widget already started the frame — just
      * keep drawing into the same back buffer without blitting. */
     if (data->frame_depth > 0) {
@@ -431,6 +490,19 @@ cairo_xcb_end(ISWRenderContext *ctx)
         data->frame_depth--;
         return;
     }
+
+    /* Windowless: drew directly onto the window surface.  Undo the
+     * origin/clip and flush — no back buffer to blit, no present. */
+    if (ctx->widget && ctx->widget->core.windowless) {
+        data->frame_depth = 0;
+        if (data->cairo_ctx)
+            cairo_restore(data->cairo_ctx);
+        if (data->surface)
+            cairo_surface_flush(data->surface);
+        xcb_flush(ctx->connection);
+        return;
+    }
+
     data->frame_depth = 0;
 
     if (!data->cairo_ctx)

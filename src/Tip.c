@@ -390,7 +390,8 @@ IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *va
         );
     }
     
-    IswWindow(w) = window;
+    w->core.window = window;	/* IswWindow() is read-only (resolves
+				   windowless widgets to ancestor) */
 
     /* _NET_WM_WINDOW_TYPE */
     {

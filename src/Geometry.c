@@ -706,7 +706,12 @@ IswConfigureWidget(Widget w,
     if (req.changeMask != 0) {
         Widget hookobj;
 
-        if (IswIsRealized(w)) {
+        if (IswIsRealized(w) && IswIsWidget(w) && w->core.windowless) {
+            /* Windowless widgets have no X window to configure; the fields
+               are already updated above.  Repaint happens via the windowed
+               ancestor's expose delegation. */
+        }
+        else if (IswIsRealized(w)) {
             if (IswIsWidget(w)) {
                 CALLGEOTAT(_IswGeoTrace(w,
                                        "XConfigure \"%s\"'s window\n",

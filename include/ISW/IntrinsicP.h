@@ -207,7 +207,12 @@ typedef struct _IswTMRec {
 
 #define IswDisplay(widget)	((widget)->core.display)
 #define IswScreen(widget)	((widget)->core.screen)
-#define IswWindow(widget)	((widget)->core.window)
+/* Windowless widgets have no own window; resolve to the nearest windowed
+   ancestor's window.  Read-only: assign w->core.window directly to set. */
+#define IswWindow(widget) \
+    ((IswIsWidget(widget) && (widget)->core.windowless) \
+     ? _IswWindowedAncestor((Widget)(widget))->core.window \
+     : (widget)->core.window)
 
 #define IswClass(widget)		((widget)->core.widget_class)
 #define IswSuperclass(widget)	(IswClass(widget)->core_class.superclass)
@@ -273,6 +278,12 @@ _XFUNCPROTOBEGIN
 
 extern Widget _IswWindowedAncestor( /* internal; implementation-dependent */
     Widget 		/* object */
+);
+
+/* Aggregate event mask to select on a windowed widget's window: its own
+   mask plus the masks of windowless descendants sharing the window. */
+extern EventMask _IswWindowSelectMask(
+    Widget 		/* windowed widget */
 );
 
 #if (defined(_WIN32) || defined(__CYGWIN__)) && !defined(LIBXT_COMPILATION)

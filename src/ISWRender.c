@@ -288,13 +288,40 @@ ISWRenderPrintBackendInfo(void)
  * =================================================================
  */
 
+/* Compute a windowless widget's drawing origin: its position relative to
+   the nearest windowed ancestor, summed across windowless parents.  Returns
+   (0,0) for windowed widgets. */
+static void
+_ISWRenderComputeOrigin(Widget w, int *ox, int *oy)
+{
+    int x = 0, y = 0;
+
+    while (w != NULL && IswIsWidget(w) && w->core.windowless) {
+        x += w->core.x;
+        y += w->core.y;
+        w = w->core.parent;
+    }
+    *ox = x;
+    *oy = y;
+}
+
 void
 ISWRenderBegin(ISWRenderContext *ctx)
 {
     if (!ctx || !ctx->ops || !ctx->ops->begin) {
         return;
     }
-    
+
+    /* Refresh the windowless drawing origin each frame: the widget's
+       position within its windowed ancestor may have changed since the
+       context was created (geometry updates don't recreate the context). */
+    if (ctx->widget && IswIsWidget(ctx->widget) && ctx->widget->core.windowless)
+        _ISWRenderComputeOrigin(ctx->widget, &ctx->origin_x, &ctx->origin_y);
+    else {
+        ctx->origin_x = 0;
+        ctx->origin_y = 0;
+    }
+
     ctx->ops->begin(ctx);
 }
 
