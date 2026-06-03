@@ -200,10 +200,15 @@ InsertChild(Widget child)
 {
     (*constraintClassRec.composite_class.insert_child)(child);
 
-    /* Style Label children for flat appearance */
+    /* Style Label children for flat appearance.  As windowless widgets the
+       labels fill their OWN background over their footprint; the stretch label
+       spans nearly the whole bar, so if its background differs from the bar it
+       paints over the bar's fill (the bar then looks like the window shows
+       through).  Match the child's background to the StatusBar's. */
     if (IswIsSubclass(child, labelWidgetClass)) {
         IswArgBuilder ab = IswArgBuilderInit();
         IswArgBorderWidth(&ab, 0);
+        IswArgBackground(&ab, IswParent(child)->core.background_pixel);
         IswSetValues(child, ab.args, ab.count);
     }
 }
@@ -212,6 +217,12 @@ static void
 Resize(Widget w)
 {
     DoLayout((StatusBarWidget) w);
+    /* A width/height change reallocates this windowless widget's surface to a
+       new (transparent) footprint.  The resize path composites straight to the
+       windowed ancestor without an Expose, so re-paint our background now —
+       otherwise the new surface stays transparent and the window shows through
+       the bar. */
+    Redisplay(w, NULL, 0);
 }
 
 static void

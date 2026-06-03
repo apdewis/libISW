@@ -723,8 +723,12 @@ cairo_xcb_fill_background(ISWRenderContext *ctx)
        must be invisible until the finished frame is blitted once by present().
        Painting directly to the window shows the cleared background and each
        child popping in — the flicker.  Ensure the back buffer here so the
-       lazy composite root (which never gets a begin()/end()) is buffered. */
-    if (data->back_ctx == NULL) {
+       lazy composite root (which never gets a begin()/end()) is buffered.
+       Re-ensure EVERY pass at the current window size: the window can grow
+       after the buffer's first allocation, and a too-small buffer would clip
+       away (leave transparent) widgets near the right/bottom edges — e.g. the
+       full-width status bar at the bottom. */
+    {
         Dimension pw = (Dimension)(ctx->widget->core.width * sf + 0.5);
         Dimension ph = (Dimension)(ctx->widget->core.height * sf + 0.5);
         _cairo_xcb_ensure_back(ctx, data, pw, ph, sf);
@@ -782,15 +786,42 @@ cairo_xcb_composite_onto(ISWRenderContext *dst, ISWRenderContext *src,
         cairo_clip(dctx);
     }
     /* Additional composite clip the parent imposed on this child (Viewport
-       confining its scrolled content to the clip region, in parent content
-       coords).  Keeps the child off the scrollbar bands. */
+       confining its scrolled content to the clip region).  The clip is given in
+       the PARENT's content coordinate frame.  The child composites at dst
+       position (x,y) = parent_origin + child.x/y, so the parent's content frame
+       sits at (x - child.x, y - child.y) within dst.  Offsetting the clip by
+       that frame origin is essential when the parent is context-less and folds
+       directly into the root (the clip would otherwise be applied at the root
+       origin instead of the parent's on-screen position, letting the child
+       overflow — e.g. scrolled Viewport content bleeding over the status bar). */
     if (src->clip_w > 0) {
+        int frame_x = x - (IswIsWidget(src->widget) ? (int) src->widget->core.x : 0);
+        int frame_y = y - (IswIsWidget(src->widget) ? (int) src->widget->core.y : 0);
         cairo_rectangle(dctx,
-                        dst_content_off + src->clip_x,
-                        dst_content_off + src->clip_y,
+                        dst_content_off + frame_x + src->clip_x,
+                        dst_content_off + frame_y + src->clip_y,
                         (double) src->clip_w, (double) src->clip_h);
         cairo_clip(dctx);
     }
+
+    /* Confine the source to ITS OWN widget footprint at its composited
+       position.  A widget's back surface is allocated with slack and may hold
+       pixels (scrollbars, scrolled content, AA bleed) beyond the widget's
+       logical rectangle; without this clip those pixels overflow into adjacent
+       siblings depending on composite (z) order — e.g. the content Viewport,
+       folded after the bottom status bar, bleeding over it.  Clipping each
+       source to its footprint makes adjacent widgets non-overlapping regardless
+       of fold order. */
+    if (IswIsWidget(src->widget)) {
+        int bw2 = (int) src->widget->core.border_width * 2;
+        cairo_rectangle(dctx,
+                        dst_content_off + x,
+                        dst_content_off + y,
+                        (double) (src->widget->core.width + bw2),
+                        (double) (src->widget->core.height + bw2));
+        cairo_clip(dctx);
+    }
+
     cairo_set_source_surface(dctx, sd->back_surface,
                              dst_content_off + x, dst_content_off + y);
     cairo_set_operator(dctx, CAIRO_OPERATOR_OVER);
@@ -1379,3 +1410,6 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .present = cairo_xcb_present,
     .fill_background = cairo_xcb_fill_background
 };
+
+
+
