@@ -345,7 +345,9 @@ RealizeWidget(Widget widget)
                                widget->core.width, widget->core.height));
         (*realize) (display, widget, &value_mask, values);
     }
-    window = IswWindow(widget);
+    /* Own window (None for windowless); used for drawable registration
+       and the optional window-identify property below. */
+    window = widget->core.window;
     hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
@@ -395,7 +397,13 @@ RealizeWidget(Widget widget)
     _IswRegisterGrabs(widget);
     /* reregister any grabs added with IswGrab{Button,Key} */
     _IswRegisterPassiveGrabs(widget);
-    IswRegisterDrawable(display, window, widget);
+    /* Windowless widgets share their ancestor's window; do not register
+       the ancestor window as mapping to this widget (the ancestor already
+       owns that mapping).  Mark realized via the windowless flag instead. */
+    if (widget->core.windowless)
+        widget->core.windowless_realized = True;
+    else
+        IswRegisterDrawable(display, window, widget);
 
     _IswExtensionSelect(widget);
 
@@ -472,14 +480,21 @@ UnrealizeWidget(Widget widget)
     if (IswHasCallbacks(widget, IswNunrealizeCallback) == IswCallbackHasSome)
         IswCallCallbacks(widget, IswNunrealizeCallback, NULL);
 
-    /* Unregister window */
-    IswUnregisterDrawable(IswDisplay(widget), IswWindow(widget));
+    /* Unregister window.  Windowless widgets never registered a drawable
+       (they share the ancestor's window), so skip both the unregister and
+       the window clear; just mark them unrealized. */
+    if (widget->core.windowless) {
+        widget->core.windowless_realized = False;
+    }
+    else {
+        IswUnregisterDrawable(IswDisplay(widget), IswWindow(widget));
 
-    /* Remove Event Handlers */
-    /* remove grabs. Happens automatically when window is destroyed. */
+        /* Remove Event Handlers */
+        /* remove grabs. Happens automatically when window is destroyed. */
 
-    /* Destroy X xcb_window_t, done at outer level with one request */
-    widget->core.window = None;
+        /* Destroy X xcb_window_t, done at outer level with one request */
+        widget->core.window = None;
+    }
 
     /* Removing the event handler here saves having to keep track if
      * the translation table is changed while the widget is unrealized.
@@ -496,7 +511,9 @@ IswUnrealizeWidget(Widget widget)
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    window = IswWindow(widget);
+    /* Use the widget's own window, not the resolved ancestor window:
+       windowless widgets must never destroy their ancestor's window. */
+    window = widget->core.windowless ? None : widget->core.window;
     if (!IswIsRealized(widget)) {
         UNLOCK_APP(app);
         return;
@@ -533,6 +550,11 @@ IswCreateWindow(xcb_connection_t *display,
     IswAppContext app = IswWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
+    if (widget->core.windowless) {
+        /* Windowless widgets never get an X window. */
+        UNLOCK_APP(app);
+        return;
+    }
     if (widget->core.window == None) {
         if (widget->core.width == 0 || widget->core.height == 0) {
             Cardinal count = 1;
@@ -812,6 +834,9 @@ IswWindowOfObject(Widget object)
 xcb_window_t
 IswWindow(Widget widget)
 {
+    /* Windowless widgets share their nearest windowed ancestor's window. */
+    if (widget->core.windowless)
+        return _IswWindowedAncestor(widget)->core.window;
     return widget->core.window;
 }
 
@@ -865,7 +890,10 @@ IswIsRealized(Widget object)
     WIDGET_TO_APPCON(object);
 
     LOCK_APP(app);
-    retval = IswWindowOfObject(object) != None;
+    if (IswIsWidget(object) && object->core.windowless)
+        retval = object->core.windowless_realized;
+    else
+        retval = IswWindowOfObject(object) != None;
     UNLOCK_APP(app);
     return retval;
 }                               /* IswIsRealized */
@@ -895,7 +923,8 @@ _IswWindowedAncestor(register Widget object)
 {
     Widget obj = object;
 
-    for (object = IswParent(object); object && !IswIsWidget(object);)
+    for (object = IswParent(object);
+         object && (!IswIsWidget(object) || object->core.windowless);)
         object = IswParent(object);
 
     if (object == NULL) {

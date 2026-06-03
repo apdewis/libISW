@@ -211,7 +211,10 @@ typedef struct _IswTMRec {
 
 #define IswClass(widget)		((widget)->core.widget_class)
 #define IswSuperclass(widget)	(IswClass(widget)->core_class.superclass)
-#define IswIsRealized(object)	(IswWindowOfObject(object) != None)
+#define IswIsRealized(object) \
+    ((IswIsWidget(object) && (object)->core.windowless) \
+     ? (object)->core.windowless_realized \
+     : (IswWindowOfObject(object) != None))
 #define IswParent(widget)	((widget)->core.parent)
 
 #undef IswIsRectObj

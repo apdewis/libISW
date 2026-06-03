@@ -100,6 +100,10 @@ typedef struct _CorePart {
     xcb_pixmap_t    background_pixmap;	/* window background pixmap or NULL  */
     Boolean         visible;		/* is window mapped and not occluded?*/
     Boolean	    mapped_when_managed;/* map window if it's managed?       */
+    Boolean         windowless;         /* no own X window; draws into
+                                           nearest windowed ancestor         */
+    Boolean         windowless_realized;/* windowless widget has been
+                                           realized (no window to test)      */
 } CorePart;
 
 typedef struct _WidgetRec {

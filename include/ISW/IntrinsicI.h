@@ -92,7 +92,8 @@ SOFTWARE.
     _IswWindowedAncestor(object)->core.screen)
 
 #define IswWindowOfObject(object) \
-    ((IswIsWidget(object) ? (object) : _IswWindowedAncestor(object)) \
+    ((IswIsWidget(object) && !(object)->core.windowless \
+      ? (object) : _IswWindowedAncestor(object)) \
      ->core.window)
 
 #define IswIsManaged(object) \

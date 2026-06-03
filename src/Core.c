@@ -95,6 +95,9 @@ extern String IswCIswToolkitError;        /* from IntrinsicI.h */
 static void
 IswCopyScreen(Widget, int, XrmValue *);
 
+#define IswNwindowless "windowless"
+#define IswCWindowless "Windowless"
+
 static IswResource resources[] = {
     {IswNscreen, IswCScreen, IswRScreen, sizeof(xcb_screen_t *),
      IswOffsetOf(CoreRec, core.screen), IswRCallProc, (IswPointer) IswCopyScreen},
@@ -121,6 +124,9 @@ parameter is not passed through to the IswRCallProc routines */
     {IswNmappedWhenManaged, IswCMappedWhenManaged, IswRBoolean, sizeof(Boolean),
      IswOffsetOf(CoreRec, core.mapped_when_managed),
      IswRImmediate, (IswPointer) True},
+    {IswNwindowless, IswCWindowless, IswRBoolean, sizeof(Boolean),
+     IswOffsetOf(CoreRec, core.windowless),
+     IswRImmediate, (IswPointer) False},
     {IswNtranslations, IswCTranslations, IswRTranslationTable,
      sizeof(IswTranslations), IswOffsetOf(CoreRec, core.tm.translations),
      IswRTranslationTable, (IswPointer) NULL},
@@ -307,6 +313,13 @@ CoreRealize(xcb_connection_t *display,
             IswValueMask *value_mask,
             uint32_t *attributes)
 {
+    if (widget->core.windowless) {
+        /* No own X window: draw into the nearest windowed ancestor.
+           Leave core.window == None; IswWindow() resolves through the
+           ancestor.  display/screen/depth/colormap already copy from
+           the parent via the Core resource defaults. */
+        return;
+    }
     IswCreateWindow(display, widget, (unsigned int) XCB_WINDOW_CLASS_INPUT_OUTPUT,
                    (xcb_visualtype_t *) CopyFromParent, *value_mask, attributes);
 }                               /* CoreRealize */
