@@ -28,6 +28,11 @@
 /* Defined in Initialize.c — avoids pulling in InitialI.h */
 extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
+/* Widget-tree access for the surface-tree composite pass. */
+#include <ISW/IntrinsicP.h>
+#include <ISW/CompositeP.h>
+#include <ISW/SimpleP.h>
+
 /*
  * =================================================================
  * Backend Availability Checks
@@ -93,6 +98,77 @@ ISWRenderDetectBackend(ISWRenderBackend preferred)
 #endif
 
     return ISW_RENDER_BACKEND_CAIRO_XCB;
+}
+
+/*
+ * =================================================================
+ * Widget -> context registry
+ * =================================================================
+ *
+ * Surface-per-widget compositing needs to find any widget's render context
+ * (hence its surface) generically — including a parent's, during the composite
+ * pass — without knowing the widget-specific instance-field offset where the
+ * widget caches its context.  Render contexts are created/destroyed through the
+ * two choke points below, so a simple Widget->context map kept in sync there
+ * gives the composite walk what it needs.
+ *
+ * A widget may legitimately have several contexts over its life (create/destroy
+ * cycles) but at most one live at a time; the map holds the most recent live
+ * one.  Lookups tolerate absence (widget never painted -> nothing to compose).
+ */
+typedef struct _CtxMapEntry {
+    Widget widget;
+    ISWRenderContext *ctx;
+    struct _CtxMapEntry *next;
+} CtxMapEntry;
+
+static CtxMapEntry *ctx_map_head = NULL;
+
+/* True while ISWRenderCompositeSubtree is running, so the auto-composite in
+   ISWRenderEnd does not re-enter the pass for each child's end(). */
+static Boolean _isw_in_composite = False;
+
+static void
+_ISWRenderRegister(Widget w, ISWRenderContext *ctx)
+{
+    CtxMapEntry *e;
+    for (e = ctx_map_head; e != NULL; e = e->next) {
+        if (e->widget == w) {           /* replace stale entry for this widget */
+            e->ctx = ctx;
+            return;
+        }
+    }
+    e = (CtxMapEntry *) calloc(1, sizeof(*e));
+    if (!e) return;
+    e->widget = w;
+    e->ctx = ctx;
+    e->next = ctx_map_head;
+    ctx_map_head = e;
+}
+
+static void
+_ISWRenderUnregister(ISWRenderContext *ctx)
+{
+    CtxMapEntry **pp = &ctx_map_head;
+    while (*pp != NULL) {
+        if ((*pp)->ctx == ctx) {
+            CtxMapEntry *dead = *pp;
+            *pp = dead->next;
+            free(dead);
+            return;
+        }
+        pp = &(*pp)->next;
+    }
+}
+
+static ISWRenderContext*
+_ISWRenderLookup(Widget w)
+{
+    CtxMapEntry *e;
+    for (e = ctx_map_head; e != NULL; e = e->next)
+        if (e->widget == w)
+            return e->ctx;
+    return NULL;
 }
 
 /*
@@ -180,7 +256,8 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
         fprintf(stderr, "\n");
         backend_logged = True;
     }
-    
+
+    _ISWRenderRegister(widget, ctx);
     return ctx;
 }
 
@@ -190,12 +267,14 @@ ISWRenderDestroy(ISWRenderContext *ctx)
     if (!ctx) {
         return;
     }
-    
+
+    _ISWRenderUnregister(ctx);
+
     /* Call backend destroy */
     if (ctx->ops && ctx->ops->destroy) {
         ctx->ops->destroy(ctx);
     }
-    
+
     /* Free context */
     free(ctx);
 }
@@ -335,6 +414,141 @@ ISWRenderEnd(ISWRenderContext *ctx)
     }
     
     ctx->ops->end(ctx);
+
+    /* Surface-per-widget: a windowless widget's end() paints into its own
+       surface but does not reach the screen.  When this is a top-level frame
+       (not nested inside a parent's begin/end) AND not already running inside a
+       composite pass, fold this widget's subtree up to its windowed ancestor
+       and blit.  This handles self-initiated repaints (button highlight, text
+       scroll) that bypass the expose walk. */
+    if (!_isw_in_composite && ctx->widget && IswIsWidget(ctx->widget) &&
+        ctx->widget->core.windowless) {
+        Widget root = ctx->widget;
+        while (root != NULL && IswIsWidget(root) && root->core.windowless)
+            root = root->core.parent;
+        if (root != NULL)
+            ISWRenderCompositeSubtree(root);
+    }
+}
+
+/* Same "shown" gate the paint walk and hit-test use. */
+static Boolean
+_isw_composite_shown(Widget child)
+{
+    if (!IswIsWidget(child) || !child->core.windowless)
+        return False;
+    if (!child->core.windowless_realized && !IswIsRealized(child))
+        return False;
+    if (!child->core.managed && !child->core.mapped_when_managed)
+        return False;
+    return True;
+}
+
+static void _isw_composite_children_into(Widget parent,
+                                         ISWRenderContext *parent_ctx);
+
+/* Fold one windowless child (and its descendants) into the parent surface. */
+static void
+_isw_composite_one(Widget child, Widget parent, ISWRenderContext *parent_ctx)
+{
+    ISWRenderContext *child_ctx;
+
+    if (!_isw_composite_shown(child))
+        return;
+
+    child_ctx = _ISWRenderLookup(child);
+    if (child_ctx == NULL)
+        return;  /* never painted — nothing to composite */
+
+    /* Fold this child's own descendants into its surface first (bottom-up). */
+    _isw_composite_children_into(child, child_ctx);
+
+    /* Then fold the child's surface into the parent at the child's position
+       (origin of the child's border ring within the parent's content). */
+    if (parent_ctx->ops && parent_ctx->ops->composite_onto)
+        parent_ctx->ops->composite_onto(parent_ctx, child_ctx,
+                                        child->core.x, child->core.y);
+}
+
+/* Recursively fold a parent's windowless children into the parent's surface.
+   Depth-first, in stacking order: composite.children plus any non-composite-
+   tracked windowless sub-widgets exposed via the Simple class hook. */
+static void
+_isw_composite_children_into(Widget parent, ISWRenderContext *parent_ctx)
+{
+    if (parent_ctx == NULL)
+        return;
+
+    if (IswIsComposite(parent)) {
+        CompositeWidget cw = (CompositeWidget) parent;
+        Cardinal i;
+        for (i = 0; i < cw->composite.num_children; i++)
+            _isw_composite_one(cw->composite.children[i], parent, parent_ctx);
+    }
+
+    if (IswIsSubclass(parent, simpleWidgetClass)) {
+        SimpleWidgetClass sc = (SimpleWidgetClass) parent->core.widget_class;
+        if (sc->simple_class.nth_windowless_child != NULL) {
+            int i = 0;
+            Widget child;
+            while ((child = (*sc->simple_class.nth_windowless_child)(parent, i++))
+                   != NULL)
+                _isw_composite_one(child, parent, parent_ctx);
+        }
+    }
+}
+
+void
+ISWRenderCompositeSubtree(Widget windowed_root)
+{
+    ISWRenderContext *root_ctx;
+    Boolean prev = _isw_in_composite;
+
+    if (windowed_root == NULL || !IswIsWidget(windowed_root))
+        return;
+
+    root_ctx = _ISWRenderLookup(windowed_root);
+    if (root_ctx == NULL) {
+        /* Bare windowed root (Box/Form/Shell with no expose proc that paints
+           its own content).  Create a context so children have a surface to
+           composite onto, and mark it so we background-fill it each pass —
+           nothing else paints this window's background. */
+        root_ctx = ISWRenderCreate(windowed_root, ISW_RENDER_BACKEND_AUTO);
+        if (root_ctx == NULL)
+            return;
+        root_ctx->lazy_composite_root = True;
+    }
+
+    _isw_in_composite = True;
+
+    /* Fill the background ONLY for a lazily-created root.  A widget-owned root
+       (SimpleMenu, IconView, ...) painted its own content via its expose proc
+       this frame; filling would wipe it.  The composite then folds the
+       windowless children on top of whatever the root drew. */
+    if (root_ctx->lazy_composite_root &&
+        root_ctx->ops && root_ctx->ops->fill_background)
+        root_ctx->ops->fill_background(root_ctx);
+    _isw_composite_children_into(windowed_root, root_ctx);
+
+    /* Blit the fully-composited root surface to its window once. */
+    if (root_ctx->ops && root_ctx->ops->present)
+        root_ctx->ops->present(root_ctx);
+    _isw_in_composite = prev;
+}
+
+/* Batch guard: while a caller is driving a paint walk that ends with an
+   explicit ISWRenderCompositeSubtree, suppress the per-end() auto-composite so
+   the subtree is folded once, not once per child. */
+void
+ISWRenderBeginCompositeBatch(void)
+{
+    _isw_in_composite = True;
+}
+
+void
+ISWRenderEndCompositeBatch(void)
+{
+    _isw_in_composite = False;
 }
 
 void

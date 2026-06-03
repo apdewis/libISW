@@ -167,6 +167,33 @@ void ISWRenderBegin(ISWRenderContext *ctx);
 void ISWRenderEnd(ISWRenderContext *ctx);
 
 /*
+ * ISWRenderCompositeSubtree - Composite a windowless subtree onto a window
+ *
+ * Parameters:
+ *   windowed_root - a windowed widget whose windowless descendants have just
+ *                   repainted into their own per-widget surfaces
+ *
+ * Notes:
+ *   - Surface-per-widget model: each windowless widget owns a back surface and
+ *     paints into it at local (0,0).  This pass folds those surfaces up the
+ *     tree (child onto parent, in stacking order) and blits the root once.
+ *   - Call after the paint walk at a windowed widget's expose.
+ *   - No-op if the root has no windowless children with live surfaces.
+ */
+void ISWRenderCompositeSubtree(Widget windowed_root);
+
+/*
+ * ISWRenderBeginCompositeBatch / ISWRenderEndCompositeBatch
+ *
+ * Bracket a paint walk that ends with an explicit ISWRenderCompositeSubtree.
+ * Between these calls, the per-widget auto-composite that ISWRenderEnd performs
+ * for self-initiated windowless repaints is suppressed, so the subtree is
+ * folded and blitted once at the end rather than once per child paint.
+ */
+void ISWRenderBeginCompositeBatch(void);
+void ISWRenderEndCompositeBatch(void);
+
+/*
  * ISWRenderSave - Save current graphics state
  *
  * Parameters:

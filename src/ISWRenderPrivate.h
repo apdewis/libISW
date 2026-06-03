@@ -106,6 +106,20 @@ typedef struct _ISWRenderOps {
                            Pixel c1, Pixel c2);
     void* (*get_cairo_context)(struct _ISWRenderContext *ctx);
 
+    /* Surface-tree compositing.
+     * composite_onto: paint src's back surface onto dst's back surface at
+     *   logical (x,y), clipped to dst's bounds.  Used by the composite pass to
+     *   fold a windowless child's surface into its parent's surface.
+     * present: blit a (windowed root) widget's back surface to its X window
+     *   once, after all descendants have been composited into it. */
+    void (*composite_onto)(struct _ISWRenderContext *dst,
+                           struct _ISWRenderContext *src, int x, int y);
+    void (*present)(struct _ISWRenderContext *ctx);
+    /* Fill the composite target's whole surface with the widget's background
+     * pixel.  Called on a windowed composite root before folding children, so
+     * gaps the children don't cover show the background, not a bare window. */
+    void (*fill_background)(struct _ISWRenderContext *ctx);
+
 } ISWRenderOps;
 
 /*
@@ -141,6 +155,13 @@ typedef struct _ISWRenderContext {
        coordinate translation at frame Begin so the widget draws in its own
        local (0,0)-based coordinates.  Zero for windowed widgets. */
     int origin_x, origin_y;
+
+    /* Composite root that the composite pass created itself, because the
+       windowed root has no expose proc that paints its own content (bare
+       Box/Form/Shell).  Such a root's window must be background-filled before
+       folding children.  A root owned by a widget that paints its own content
+       (SimpleMenu, IconView, ...) must NOT be filled — that would wipe it. */
+    Boolean lazy_composite_root;
 
     /* Backend-specific data */
     void *backend_data;

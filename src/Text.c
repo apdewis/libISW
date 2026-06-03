@@ -130,6 +130,7 @@ static void ClearWindow(Widget);
 static void DisplayTextWindow(Widget);
 static void PaintScrollbars(TextWidget);
 static Widget TextHitChild(Widget, int, int, int *, int *);
+static Widget TextNthWindowlessChild(Widget, int);
 static void ModifySelection(TextWidget, ISWTextPosition, ISWTextPosition);
 static void PushCopyQueue(TextWidget, int, int);
 static void UpdateTextInLine(TextWidget, int, Position, Position);
@@ -2260,6 +2261,26 @@ TextHitChild(Widget w, int x, int y, int *dx, int *dy)
 }
 
 /*
+ * Enumerate Text's windowless sub-widgets (its scrollbars) for the paint and
+ * composite passes — they are not held in composite.children (Text is not a
+ * composite).  Stacking order: vbar then hbar.  Returns NULL past the end.
+ */
+static Widget
+TextNthWindowlessChild(Widget w, int i)
+{
+  TextWidget ctx = (TextWidget) w;
+  Widget bars[2];
+  int n = 0;
+
+  if (ctx->text.vbar != NULL) bars[n++] = ctx->text.vbar;
+  if (ctx->text.hbar != NULL) bars[n++] = ctx->text.hbar;
+
+  if (i < 0 || i >= n)
+    return NULL;
+  return bars[i];
+}
+
+/*
  * This routine checks to see if the window should be resized (grown or
  * shrunk) when text to be painted overflows to the right or
  * the bottom of the window. It is used by the keyboard input routine.
@@ -3267,7 +3288,8 @@ TextClassRec textClassRec = {
   },
   { /* Simple fields */
     /* change_sensitive	*/	ChangeSensitive,
-    /* hit_child	*/	TextHitChild
+    /* hit_child	*/	TextHitChild,
+    /* nth_windowless_child */	TextNthWindowlessChild
   },
   { /* text fields */
     /* empty            */	0

@@ -43,6 +43,10 @@ typedef struct {
     cairo_t *window_ctx;           /* context on window surface (for queries) */
     Dimension back_w, back_h;      /* current back buffer dimensions */
     Dimension alloc_w, alloc_h;    /* allocated pixmap dimensions (>= back_w/h) */
+    Boolean back_is_image;         /* back buffer is a client-side ARGB32 image
+                                      surface (windowless) vs server pixmap */
+    Boolean back_needs_clear;      /* back surface freshly (re)allocated; clear
+                                      to transparent on next begin (once) */
 
     /* State for save/restore */
     int save_count;
@@ -306,10 +310,17 @@ static Boolean
 _cairo_xcb_ensure_back(ISWRenderContext *ctx, ISWRenderCairoXCBData *data,
                        Dimension w, Dimension h, double sf)
 {
+    /* Windowless widgets use a client-side ARGB32 IMAGE surface so transparent
+     * margins composite correctly onto the parent (a server pixmap at root
+     * depth 24 has no alpha).  Windowed widgets use a server pixmap so the
+     * Present extension can blit it. */
+    Boolean want_image = (ctx->widget && ctx->widget->core.windowless);
+
     if (w < 1) w = 1;
     if (h < 1) h = 1;
 
-    if (data->back_pixmap == 0 ||
+    if (data->back_surface == NULL ||
+        data->back_is_image != want_image ||
         w > data->alloc_w || h > data->alloc_h ||
         w < data->alloc_w / 2 || h < data->alloc_h / 2) {
         if (data->back_ctx) {
@@ -330,14 +341,19 @@ _cairo_xcb_ensure_back(ISWRenderContext *ctx, ISWRenderCairoXCBData *data,
         if (aw < 1) aw = 1;
         if (ah < 1) ah = 1;
 
-        uint8_t depth = (ctx->widget->core.depth != 0)
-                      ? ctx->widget->core.depth
-                      : ctx->screen->root_depth;
-        data->back_pixmap = xcb_generate_id(ctx->connection);
-        xcb_create_pixmap(ctx->connection, depth, data->back_pixmap,
-                          ctx->window, aw, ah);
-        data->back_surface = cairo_xcb_surface_create(
-            ctx->connection, data->back_pixmap, data->visual, aw, ah);
+        if (want_image) {
+            data->back_surface =
+                cairo_image_surface_create(CAIRO_FORMAT_ARGB32, aw, ah);
+        } else {
+            uint8_t depth = (ctx->widget->core.depth != 0)
+                          ? ctx->widget->core.depth
+                          : ctx->screen->root_depth;
+            data->back_pixmap = xcb_generate_id(ctx->connection);
+            xcb_create_pixmap(ctx->connection, depth, data->back_pixmap,
+                              ctx->window, aw, ah);
+            data->back_surface = cairo_xcb_surface_create(
+                ctx->connection, data->back_pixmap, data->visual, aw, ah);
+        }
         if (sf > 1.0)
             cairo_surface_set_device_scale(data->back_surface, sf, sf);
         data->back_ctx = cairo_create(data->back_surface);
@@ -345,10 +361,14 @@ _cairo_xcb_ensure_back(ISWRenderContext *ctx, ISWRenderCairoXCBData *data,
         cairo_set_line_width(data->back_ctx, 1.0);
         cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_OVER);
 
+        data->back_is_image = want_image;
+        data->back_needs_clear = True;  /* fresh pixmap has undefined contents */
         data->alloc_w = aw;
         data->alloc_h = ah;
-    } else if (data->back_surface &&
+    } else if (!want_image && data->back_surface &&
                (data->back_w != w || data->back_h != h)) {
+        /* XCB surfaces track a drawable; resize the view.  Image surfaces are
+         * fixed-size — the alloc slack covers small changes, so leave as is. */
         cairo_xcb_surface_set_size(data->back_surface, w, h);
     }
     data->back_w = w;
@@ -361,123 +381,93 @@ cairo_xcb_begin(ISWRenderContext *ctx)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
 
-    /* Windowless widgets draw directly onto the windowed ancestor's window
-     * surface — no per-widget back buffer, no present (the ancestor owns
-     * the frame and the buffering).  Translate to the widget's origin and
-     * clip to its bounds so it draws in local (0,0) coordinates. */
+    /* Windowless widgets (surface-per-widget model): each owns a back surface
+     * sized to its own footprint (content + border ring).  It draws at local
+     * (0,0); the border ring is painted at the surface edges and content is
+     * offset by the border width.  The composite pass later folds this surface
+     * into the parent's surface.  No origin translate, no clip-out-children,
+     * no ancestor-sized surface — the surface boundary IS the clip. */
     if (ctx->widget && ctx->widget->core.windowless) {
-        Widget surf_w;
+        double sf;
+        int bw;
+        Dimension pw, ph;
 
         if (data->frame_depth > 0) {
             data->frame_depth++;
             return;
         }
-        surf_w = _cairo_xcb_windowed_widget(ctx->widget);
         if (data->deferred) {
             ctx->connection = (xcb_connection_t*)IswDisplay(ctx->widget);
             ctx->window = IswWindow(ctx->widget);
-            if (surf_w == NULL || surf_w->core.width == 0 ||
-                surf_w->core.height == 0 || ctx->window == 0)
-                return;  /* ancestor not ready */
+            if (ctx->widget->core.width == 0 || ctx->widget->core.height == 0 ||
+                ctx->window == 0)
+                return;  /* not ready */
             if (!_cairo_xcb_create_surface(ctx, data))
                 return;
             data->deferred = False;
         }
-        if (!data->window_ctx || surf_w == NULL) {
+        if (!data->window_ctx)
+            return;
+
+        sf = _IswGetScaleFactor(ctx->connection);
+        bw = (int) ctx->widget->core.border_width;
+        /* Footprint = content + border ring, in physical pixels. */
+        pw = (Dimension)((ctx->widget->core.width + 2 * bw) * sf + 0.5);
+        ph = (Dimension)((ctx->widget->core.height + 2 * bw) * sf + 0.5);
+
+        if (!_cairo_xcb_ensure_back(ctx, data, pw, ph, sf)) {
+            data->cairo_ctx = data->window_ctx;  /* degraded: no buffer */
+            cairo_save(data->cairo_ctx);
+            data->frame_depth = 1;
             return;
         }
-        /* Match the window surface to the windowed ancestor's PHYSICAL size.
-         * The cairo XCB surface tracks the physical drawable; device scale
-         * (set in create_surface) maps the logical coordinates below. */
+
+        /* Font state from the always-present window ctx. */
         {
-            double sf = _IswGetScaleFactor(ctx->connection);
-            Dimension pw = (Dimension)(surf_w->core.width * sf + 0.5);
-            Dimension ph = (Dimension)(surf_w->core.height * sf + 0.5);
-            cairo_xcb_surface_set_size(data->surface, pw, ph);
-
-            /* Double-buffer: draw into a back pixmap sized to the ancestor
-             * window, then blit only this widget's rectangle in end().
-             * Drawing happens in ancestor logical coordinates (origin/clip
-             * below), so the back buffer mirrors the ancestor surface. */
-            if (_cairo_xcb_ensure_back(ctx, data, pw, ph, sf)) {
-                cairo_font_face_t *face = cairo_get_font_face(data->window_ctx);
-                cairo_matrix_t font_matrix;
-                cairo_get_font_matrix(data->window_ctx, &font_matrix);
-                cairo_set_font_face(data->back_ctx, face);
-                cairo_set_font_matrix(data->back_ctx, &font_matrix);
-
-                /* Seed the back buffer from the live window so regions this
-                 * widget doesn't paint (and the gaps around child holes) show
-                 * the existing pixels rather than garbage. */
-                cairo_surface_flush(data->surface);
-                cairo_save(data->back_ctx);
-                cairo_set_source_surface(data->back_ctx, data->surface, 0, 0);
-                cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_SOURCE);
-                cairo_paint(data->back_ctx);
-                cairo_restore(data->back_ctx);
-
-                data->cairo_ctx = data->back_ctx;
-            } else {
-                data->cairo_ctx = data->window_ctx;
-            }
+            cairo_font_face_t *face = cairo_get_font_face(data->window_ctx);
+            cairo_matrix_t font_matrix;
+            cairo_get_font_matrix(data->window_ctx, &font_matrix);
+            cairo_set_font_face(data->back_ctx, face);
+            cairo_set_font_matrix(data->back_ctx, &font_matrix);
         }
+
+        data->cairo_ctx = data->back_ctx;
         cairo_save(data->cairo_ctx);
 
-        /* Software border: X drew window borders for free; windowless widgets
-         * have no window, so stroke the border ring here.  ctx->origin is the
-         * content origin (inside the border); the ring sits in the bw-thick
-         * band around it. */
-        {
-            int bw = (int) ctx->widget->core.border_width;
-            if (bw > 0) {
-                Pixel bp = ctx->widget->core.border_pixel;
-                int cw_ = ctx->widget->core.width;
-                int ch = ctx->widget->core.height;
-                cairo_save(data->cairo_ctx);
-                cairo_set_source_rgb(data->cairo_ctx,
-                    ((bp >> 16) & 0xff) / 255.0,
-                    ((bp >>  8) & 0xff) / 255.0,
-                    ((bp      ) & 0xff) / 255.0);
-                /* Outer rect (footprint) minus inner content rect, even-odd
-                   filled, paints just the border band. */
-                cairo_set_fill_rule(data->cairo_ctx, CAIRO_FILL_RULE_EVEN_ODD);
-                cairo_rectangle(data->cairo_ctx,
-                    ctx->origin_x - bw, ctx->origin_y - bw,
-                    cw_ + 2 * bw, ch + 2 * bw);
-                cairo_rectangle(data->cairo_ctx,
-                    ctx->origin_x, ctx->origin_y, cw_, ch);
-                cairo_fill(data->cairo_ctx);
-                cairo_restore(data->cairo_ctx);
-            }
+        /* Clear the footprint to transparent ONLY on a freshly (re)allocated
+         * surface — so unpainted margins composite correctly.  Do NOT clear on
+         * every frame: widgets like Command paint in two separate begin/end
+         * passes (Label content, then pressed-border) into the same surface,
+         * and clearing each pass would wipe the first pass's content. */
+        if (data->back_needs_clear) {
+            cairo_save(data->cairo_ctx);
+            cairo_set_operator(data->cairo_ctx, CAIRO_OPERATOR_CLEAR);
+            cairo_paint(data->cairo_ctx);
+            cairo_restore(data->cairo_ctx);
+            data->back_needs_clear = False;
         }
 
-        cairo_translate(data->cairo_ctx, ctx->origin_x, ctx->origin_y);
+        /* Border ring: footprint rect minus content rect, even-odd filled. */
+        if (bw > 0) {
+            Pixel bp = ctx->widget->core.border_pixel;
+            int cw_ = ctx->widget->core.width;
+            int ch = ctx->widget->core.height;
+            cairo_save(data->cairo_ctx);
+            cairo_set_source_rgb(data->cairo_ctx,
+                ((bp >> 16) & 0xff) / 255.0,
+                ((bp >>  8) & 0xff) / 255.0,
+                ((bp      ) & 0xff) / 255.0);
+            cairo_set_fill_rule(data->cairo_ctx, CAIRO_FILL_RULE_EVEN_ODD);
+            cairo_rectangle(data->cairo_ctx, 0, 0, cw_ + 2 * bw, ch + 2 * bw);
+            cairo_rectangle(data->cairo_ctx, bw, bw, cw_, ch);
+            cairo_fill(data->cairo_ctx);
+            cairo_restore(data->cairo_ctx);
+        }
 
-        /* Clip to this widget's own bounds MINUS the rectangles of its
-         * windowless children.  Children share this same window surface, so
-         * the parent's drawing must never reach into a child's area — this is
-         * what the X server enforced for free with child windows.  Build an
-         * even-odd path: widget rect as the outer boundary, each child rect as
-         * a hole.  cairo_clip with even-odd then admits only the region inside
-         * the widget but outside every child. */
-        cairo_set_fill_rule(data->cairo_ctx, CAIRO_FILL_RULE_EVEN_ODD);
+        /* Content draws at local (0,0) = inside the border ring. */
+        cairo_translate(data->cairo_ctx, bw, bw);
         cairo_rectangle(data->cairo_ctx, 0, 0,
                         ctx->widget->core.width, ctx->widget->core.height);
-        if (IswIsComposite(ctx->widget)) {
-            CompositeWidget cwid = (CompositeWidget) ctx->widget;
-            Cardinal ci;
-            for (ci = 0; ci < cwid->composite.num_children; ci++) {
-                Widget ch = cwid->composite.children[ci];
-                if (!IswIsWidget(ch) || !ch->core.windowless)
-                    continue;
-                if (!ch->core.managed && !ch->core.mapped_when_managed)
-                    continue;
-                cairo_rectangle(data->cairo_ctx,
-                    ch->core.x, ch->core.y,
-                    ch->core.width + 2 * ch->core.border_width,
-                    ch->core.height + 2 * ch->core.border_width);
-            }
-        }
         cairo_clip(data->cairo_ctx);
         data->frame_depth = 1;
         return;
@@ -620,57 +610,10 @@ cairo_xcb_begin(ISWRenderContext *ctx)
     data->frame_depth = 1;
 }
 
+/* Blit a windowed widget's back surface to its X window (Present or cairo). */
 static void
-cairo_xcb_end(ISWRenderContext *ctx)
+_cairo_xcb_blit_to_window(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
-
-    /* Nested end: parent frame still active — don't blit yet. */
-    if (data->frame_depth > 1) {
-        data->frame_depth--;
-        return;
-    }
-
-    /* Windowless: drew into the back buffer (ancestor-sized).  Undo the
-     * origin/clip, then blit just this widget's footprint (content + border
-     * band) onto the live window in one operation — flicker-free. */
-    if (ctx->widget && ctx->widget->core.windowless) {
-        data->frame_depth = 0;
-        if (data->cairo_ctx)
-            cairo_restore(data->cairo_ctx);
-
-        if (data->back_surface && data->cairo_ctx == data->back_ctx &&
-            data->window_ctx) {
-            int bw = (int) ctx->widget->core.border_width;
-            double fx = ctx->origin_x - bw;
-            double fy = ctx->origin_y - bw;
-            double fw = (double) ctx->widget->core.width + 2 * bw;
-            double fh = (double) ctx->widget->core.height + 2 * bw;
-
-            cairo_surface_flush(data->back_surface);
-            cairo_save(data->window_ctx);
-            cairo_rectangle(data->window_ctx, fx, fy, fw, fh);
-            cairo_clip(data->window_ctx);
-            cairo_set_source_surface(data->window_ctx, data->back_surface, 0, 0);
-            cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_SOURCE);
-            cairo_paint(data->window_ctx);
-            cairo_restore(data->window_ctx);
-        }
-
-        if (data->surface)
-            cairo_surface_flush(data->surface);
-        xcb_flush(ctx->connection);
-        return;
-    }
-
-    data->frame_depth = 0;
-
-    if (!data->cairo_ctx)
-        return;
-
-    cairo_restore(data->cairo_ctx);
-
-    /* Blit back buffer to window. */
     if (data->back_surface) {
         cairo_surface_flush(data->back_surface);
 
@@ -701,6 +644,124 @@ cairo_xcb_end(ISWRenderContext *ctx)
     if (data->surface)
         cairo_surface_flush(data->surface);
     xcb_flush(ctx->connection);
+}
+
+static void
+cairo_xcb_end(ISWRenderContext *ctx)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+
+    /* Nested end: parent frame still active — don't blit yet. */
+    if (data->frame_depth > 1) {
+        data->frame_depth--;
+        return;
+    }
+
+    /* Windowless (surface-per-widget): the widget painted into its own back
+     * surface.  Just undo the begin() save and flush — the composite pass
+     * (ISWRenderCompositeSubtree) folds this surface up the tree and blits the
+     * windowed root once.  No blit here. */
+    if (ctx->widget && ctx->widget->core.windowless) {
+        data->frame_depth = 0;
+        if (data->cairo_ctx)
+            cairo_restore(data->cairo_ctx);
+        if (data->back_surface)
+            cairo_surface_flush(data->back_surface);
+        return;
+    }
+
+    data->frame_depth = 0;
+
+    if (!data->cairo_ctx)
+        return;
+
+    cairo_restore(data->cairo_ctx);
+
+    _cairo_xcb_blit_to_window(ctx, data);
+}
+
+/* present op: blit a windowed widget's (composited) back surface to its window.
+ * Called by ISWRenderCompositeSubtree after windowless children are folded in. */
+static void
+cairo_xcb_present(ISWRenderContext *ctx)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    if (!data) return;
+    _cairo_xcb_blit_to_window(ctx, data);
+}
+
+/* fill_background: paint the composite target's surface with the widget's
+ * background pixel.  Used on a windowed composite root before folding children
+ * so uncovered gaps show the background rather than a bare (black) window. */
+static void
+cairo_xcb_fill_background(ISWRenderContext *ctx)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    cairo_t *dctx;
+    Pixel bg;
+
+    if (!data) return;
+    dctx = data->back_ctx ? data->back_ctx : data->window_ctx;
+    if (dctx == NULL || ctx->widget == NULL) return;
+
+    /* The window surface was sized when the context was created — possibly
+       before the widget reached its final laid-out size.  Track the current
+       window size so children composite onto a full-size surface and are not
+       clipped to a stale (too-small) extent. */
+    if (data->surface && dctx == data->window_ctx) {
+        double sf = _IswGetScaleFactor(ctx->connection);
+        Dimension pw = (Dimension)(ctx->widget->core.width * sf + 0.5);
+        Dimension ph = (Dimension)(ctx->widget->core.height * sf + 0.5);
+        if (pw < 1) pw = 1;
+        if (ph < 1) ph = 1;
+        cairo_xcb_surface_set_size(data->surface, pw, ph);
+    }
+
+    bg = ctx->widget->core.background_pixel;
+    cairo_save(dctx);
+    cairo_set_operator(dctx, CAIRO_OPERATOR_SOURCE);
+    cairo_set_source_rgb(dctx,
+        ((bg >> 16) & 0xff) / 255.0,
+        ((bg >>  8) & 0xff) / 255.0,
+        ((bg      ) & 0xff) / 255.0);
+    cairo_paint(dctx);
+    cairo_restore(dctx);
+}
+
+/* composite_onto: paint src's (windowless) back surface onto dst's back surface
+ * at the child's position within dst's content area.  dst may be the windowed
+ * root (content at 0,0) or a windowless parent (content offset by its border).
+ * src's surface footprint already includes src's own border ring at (0,0). */
+static void
+cairo_xcb_composite_onto(ISWRenderContext *dst, ISWRenderContext *src,
+                         int x, int y)
+{
+    ISWRenderCairoXCBData *dd = (ISWRenderCairoXCBData*)dst->backend_data;
+    ISWRenderCairoXCBData *sd = (ISWRenderCairoXCBData*)src->backend_data;
+    cairo_t *dctx;
+    int dst_content_off;
+
+    if (!dd || !sd || sd->back_surface == NULL)
+        return;
+
+    /* Destination drawing context: a windowless parent composites into its own
+     * back_ctx; the windowed root composites into its back_ctx (or window). */
+    dctx = dd->back_ctx ? dd->back_ctx : dd->window_ctx;
+    if (dctx == NULL)
+        return;
+
+    /* dst content origin within dst's surface: windowless parents reserve a
+     * border ring at the top-left of their surface; windowed roots do not. */
+    dst_content_off = (dst->widget && dst->widget->core.windowless)
+                    ? (int) dst->widget->core.border_width : 0;
+
+    cairo_surface_flush(sd->back_surface);
+    cairo_save(dctx);
+    cairo_set_source_surface(dctx, sd->back_surface,
+                             dst_content_off + x, dst_content_off + y);
+    cairo_set_operator(dctx, CAIRO_OPERATOR_OVER);
+    cairo_paint(dctx);
+    cairo_restore(dctx);
 }
 
 
@@ -1279,5 +1340,8 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .draw_pixmap = cairo_xcb_draw_pixmap,
     .draw_image_rgba = cairo_xcb_draw_image_rgba,
     .set_gradient = cairo_xcb_set_gradient,
-    .get_cairo_context = cairo_xcb_get_cairo_context
+    .get_cairo_context = cairo_xcb_get_cairo_context,
+    .composite_onto = cairo_xcb_composite_onto,
+    .present = cairo_xcb_present,
+    .fill_background = cairo_xcb_fill_background
 };

@@ -122,7 +122,8 @@ SimpleClassRec simpleClassRec = {
   },
   { /* simple fields */
     /* change_sensitive		*/	ChangeSensitive,
-    /* hit_child		*/	NULL
+    /* hit_child		*/	NULL,
+    /* nth_windowless_child	*/	NULL
   }
 };
 
@@ -161,6 +162,10 @@ ClassPartInitialize(WidgetClass class)
 
     if (c->simple_class.hit_child == IswInheritHitChild)
 	c->simple_class.hit_child = super->simple_class.hit_child;
+
+    if (c->simple_class.nth_windowless_child == IswInheritNthWindowlessChild)
+	c->simple_class.nth_windowless_child =
+	    super->simple_class.nth_windowless_child;
 }
 
 static void

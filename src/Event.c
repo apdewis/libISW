@@ -84,6 +84,7 @@ in this Software without prior written authorization from The Open Group.
 #include "FocusMgrI.h"
 #include "ShellI.h"
 #include <ISW/SimpleP.h>
+#include <ISW/ISWRender.h>
 
 typedef struct _IswEventRecExt {
     int type;
@@ -1060,34 +1061,50 @@ _IswWindowlessOffset(Widget w, int *dx, int *dy)
  *
  * Recurses into windowless composites.  Stops at windowed children: they own
  * their own window and receive their own Expose from the server. */
+static void _IswExposeWindowlessChildren(Widget w, xcb_generic_event_t *event);
+
+/* Paint one windowless child (and recurse into its windowless descendants). */
+static void
+_IswPaintWindowlessChild(Widget child, xcb_generic_event_t *event)
+{
+    if (!IswIsWidget(child) || !child->core.windowless)
+        return;
+    /* Paint realized windowless children that are shown.  Some widgets
+       (e.g. Text's scrollbars) map their children directly rather than
+       managing them, so gate on mapped_when_managed, not managed. */
+    if (!IswIsRealized(child) && !child->core.windowless_realized)
+        return;
+    if (!child->core.managed && !child->core.mapped_when_managed)
+        return;
+
+    if (child->core.widget_class->core_class.expose != NULL)
+        (*child->core.widget_class->core_class.expose)(child, event, 0);
+
+    _IswExposeWindowlessChildren(child, event);
+}
+
 static void
 _IswExposeWindowlessChildren(Widget w, xcb_generic_event_t *event)
 {
-    CompositeWidget cw;
-    Cardinal i;
+    /* Composite children held in composite.children. */
+    if (IswIsComposite(w)) {
+        CompositeWidget cw = (CompositeWidget) w;
+        Cardinal i;
+        for (i = 0; i < cw->composite.num_children; i++)
+            _IswPaintWindowlessChild(cw->composite.children[i], event);
+    }
 
-    if (!IswIsComposite(w))
-        return;
-
-    cw = (CompositeWidget) w;
-    for (i = 0; i < cw->composite.num_children; i++) {
-        Widget child = cw->composite.children[i];
-
-        if (!IswIsWidget(child) || !child->core.windowless)
-            continue;
-        /* Paint realized windowless children that are shown.  Some widgets
-           (e.g. Text's scrollbars) map their children directly rather than
-           managing them, so gate on mapped_when_managed, not managed. */
-        if (!IswIsRealized(child))
-            continue;
-        if (!child->core.managed && !child->core.mapped_when_managed)
-            continue;
-
-        if (child->core.widget_class->core_class.expose != NULL)
-            (*child->core.widget_class->core_class.expose)(child, event, 0);
-
-        /* Recurse so windowless grandchildren paint on top. */
-        _IswExposeWindowlessChildren(child, event);
+    /* Non-composite-tracked windowless sub-widgets (e.g. Text's scrollbars),
+       enumerated via the Simple class hook. */
+    if (IswIsSubclass(w, simpleWidgetClass)) {
+        SimpleWidgetClass sc = (SimpleWidgetClass) w->core.widget_class;
+        if (sc->simple_class.nth_windowless_child != NULL) {
+            int i = 0;
+            Widget child;
+            while ((child = (*sc->simple_class.nth_windowless_child)(w, i++))
+                   != NULL)
+                _IswPaintWindowlessChild(child, event);
+        }
     }
 }
 
@@ -1405,9 +1422,12 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
                 if (ev->count == 0 || COMP_EXPOSE_TYPE == IswExposeNoCompress) {
                     (*widget->core.widget_class->core_class.expose)
                         (widget, event, 0);
-                    /* Repaint windowless descendants on top of this
-                       windowed widget's content. */
+                    /* Repaint windowless descendants into their own surfaces,
+                       then composite the subtree onto this window once. */
+                    ISWRenderBeginCompositeBatch();
                     _IswExposeWindowlessChildren(widget, event);
+                    ISWRenderEndCompositeBatch();
+                    ISWRenderCompositeSubtree(widget);
                     was_dispatched = True;
                 }
             }
@@ -1434,7 +1454,10 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
                still need to repaint. */
             xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
             if (ev->count == 0 || COMP_EXPOSE_TYPE == IswExposeNoCompress) {
+                ISWRenderBeginCompositeBatch();
                 _IswExposeWindowlessChildren(widget, event);
+                ISWRenderEndCompositeBatch();
+                ISWRenderCompositeSubtree(widget);
                 was_dispatched = True;
             }
         }

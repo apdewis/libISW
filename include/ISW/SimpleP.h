@@ -60,10 +60,16 @@ typedef struct {
        Returns the child and sets *dx,*dy to its content origin offset, or
        NULL if the point is not over a hit-child.  NULL hook = no children. */
     Widget	(*hit_child)(Widget, int x, int y, int *dx, int *dy);
+    /* Optional: enumerate this widget's windowless sub-widgets that are not in
+       composite.children (e.g. Text's scrollbars), for the paint/composite
+       passes.  Return the i-th such child (in stacking order) or NULL once past
+       the end.  NULL hook = no such children. */
+    Widget	(*nth_windowless_child)(Widget, int i);
 } SimpleClassPart;
 
 #define IswInheritChangeSensitive ((Boolean (*)(Widget))_IswInherit)
 #define IswInheritHitChild ((Widget (*)(Widget,int,int,int*,int*))_IswInherit)
+#define IswInheritNthWindowlessChild ((Widget (*)(Widget,int))_IswInherit)
 
 typedef struct _SimpleClassRec {
     CoreClassPart	core_class;
