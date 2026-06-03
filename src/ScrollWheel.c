@@ -30,6 +30,10 @@
 #include <ISW/ScrollbarP.h>
 #include <ISW/ViewportP.h>
 #include <ISW/TextP.h>
+#include <ISW/EventI.h>
+
+/* Defined in Initialize.c — avoids pulling in InitialI.h's heavy deps. */
+extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 #include <stdint.h>
 #include <xcb/xcb.h>
@@ -184,8 +188,22 @@ ScrollWheelPressDispatcher(xcb_generic_event_t *event, xcb_connection_t *conn)
                 (bev->time - sticky_timestamp) < ISW_SCROLL_STICKY_MS) {
                 ScrollTo(sticky_scrollbar, direction, bev->time);
             } else {
-                /* Fresh lookup via ancestor walk */
-                Widget target = IswWindowToWidget(conn, bev->event);
+                /* The event arrives on the windowed ancestor's window; the
+                   scrollable container under the pointer is a windowless
+                   descendant.  Hit-test the pointer to find the deepest
+                   windowless widget, then walk up to its Viewport/Text. */
+                Widget win_w = IswWindowToWidget(conn, bev->event);
+                Widget target = NULL;
+                if (win_w != NULL) {
+                    int dx = 0, dy = 0;
+                    /* This custom dispatcher runs before the default one
+                       descales event coords, so bev->event_x/y are physical;
+                       the hit-test works in logical pixels. */
+                    double sf = _IswGetScaleFactor(conn);
+                    int lx = (sf > 1.0) ? (int)(bev->event_x / sf) : bev->event_x;
+                    int ly = (sf > 1.0) ? (int)(bev->event_y / sf) : bev->event_y;
+                    target = _IswFindWidgetAtPoint(win_w, lx, ly, &dx, &dy);
+                }
                 if (target != NULL)
                     FindAndDispatchScroll(target, direction, horizontal,
                                           bev->time);

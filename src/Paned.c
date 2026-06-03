@@ -1392,6 +1392,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
+    new->core.windowless = True;
+
     pw->paned.recursively_called = False;
     pw->paned.stack = NULL;
     pw->paned.resize_children_to_pref = TRUE;
@@ -1551,7 +1553,25 @@ Resize(Widget w)
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
+    PanedWidget pw = (PanedWidget) w;
     (void)event; (void)region; /* unused parameters */
+
+    /* Windowless: fill the widget's own background first (no X window for the
+       server to fill); panes/grips composite on top. */
+    if (w->core.windowless && IswIsRealized(w) &&
+        w->core.width > 0 && w->core.height > 0) {
+        if (pw->paned.render_ctx == NULL)
+            pw->paned.render_ctx =
+                ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+        if (pw->paned.render_ctx != NULL) {
+            ISWRenderBegin(pw->paned.render_ctx);
+            ISWRenderSetColor(pw->paned.render_ctx, w->core.background_pixel);
+            ISWRenderFillRectangle(pw->paned.render_ctx, 0, 0,
+                                   w->core.width, w->core.height);
+            ISWRenderEnd(pw->paned.render_ctx);
+        }
+    }
+
     DrawInternalBorders( (PanedWidget) w);
 }
 

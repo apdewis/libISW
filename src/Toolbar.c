@@ -162,6 +162,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     ToolbarWidget tw = (ToolbarWidget) new;
     (void)request; (void)args; (void)num_args;
 
+    new->core.windowless = True;
+
     tw->toolbar.preferred_width = IswMax(tw->toolbar.h_space, 1);
     tw->toolbar.preferred_height = IswMax(tw->toolbar.v_space, 1);
 

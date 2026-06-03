@@ -194,6 +194,25 @@ void ISWRenderBeginCompositeBatch(void);
 void ISWRenderEndCompositeBatch(void);
 
 /*
+ * ISWRenderSetCompositeClip - confine a widget to a rectangle when composited
+ *
+ * Sets a clip rectangle (in the widget's PARENT content coordinates) applied
+ * when this widget is folded into its parent's surface.  Used by scrolling
+ * containers (Viewport) to keep a scrolled child within the clip region.
+ * Pass w<=0 to clear.  No-op if the widget has no render context yet.
+ */
+void ISWRenderSetCompositeClip(Widget widget, int x, int y, int w, int h);
+
+/*
+ * ISWRenderGetCompositeClip - read a widget's composite clip (parent coords)
+ *
+ * Returns True and fills *x,*y,*w,*h if the widget has a composite clip set
+ * (see ISWRenderSetCompositeClip); False otherwise.  Used by hit-testing to
+ * confine a scrolled child to the same region it is painted in.
+ */
+Boolean ISWRenderGetCompositeClip(Widget widget, int *x, int *y, int *w, int *h);
+
+/*
  * ISWRenderSave - Save current graphics state
  *
  * Parameters:

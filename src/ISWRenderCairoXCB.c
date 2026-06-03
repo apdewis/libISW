@@ -757,6 +757,25 @@ cairo_xcb_composite_onto(ISWRenderContext *dst, ISWRenderContext *src,
 
     cairo_surface_flush(sd->back_surface);
     cairo_save(dctx);
+    /* Clip to dst's content rectangle so a child larger than its parent (e.g. a
+       Viewport's scrolled content) does not overflow the parent's bounds — this
+       is the clipping the X server used to enforce via child windows. */
+    if (dst->widget != NULL) {
+        cairo_rectangle(dctx, dst_content_off, dst_content_off,
+                        (double) dst->widget->core.width,
+                        (double) dst->widget->core.height);
+        cairo_clip(dctx);
+    }
+    /* Additional composite clip the parent imposed on this child (Viewport
+       confining its scrolled content to the clip region, in parent content
+       coords).  Keeps the child off the scrollbar bands. */
+    if (src->clip_w > 0) {
+        cairo_rectangle(dctx,
+                        dst_content_off + src->clip_x,
+                        dst_content_off + src->clip_y,
+                        (double) src->clip_w, (double) src->clip_h);
+        cairo_clip(dctx);
+    }
     cairo_set_source_surface(dctx, sd->back_surface,
                              dst_content_off + x, dst_content_off + y);
     cairo_set_operator(dctx, CAIRO_OPERATOR_OVER);

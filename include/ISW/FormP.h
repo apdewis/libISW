@@ -52,6 +52,7 @@ SOFTWARE.
 #define _ISW_IswFormP_h
 
 #include <ISW/Form.h>
+#include <ISW/ISWRender.h>
 
 #define IswREdgeType "EdgeType"
 
@@ -94,6 +95,7 @@ typedef struct _FormPart {
     Boolean	resize_in_layout;   /* should layout() do geom request?  */
     Dimension	preferred_width, preferred_height; /* cached from layout */
     Boolean     resize_is_no_op;    /* Causes resize to take not action. */
+    ISWRenderContext *render_ctx;   /* cached, persistent render context */
 } FormPart;
 
 typedef struct _FormRec {

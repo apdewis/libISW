@@ -102,6 +102,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ProgressBarWidget pbw = (ProgressBarWidget) new;
 
+    new->core.windowless = True;
+
     ClampValue(pbw);
 
     /* Set default size if not specified (logical pixels) */

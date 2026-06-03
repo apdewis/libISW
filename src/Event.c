@@ -1157,7 +1157,7 @@ _IswSynthesizeCrossing(Widget w, xcb_generic_event_t *motion, uint8_t type)
  * On a match, dx and dy receive the origin of the returned widget relative
  * to root, so callers can rebase event coordinates to widget-local.
  */
-static Widget
+Widget
 _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
 {
     Widget target = root;
@@ -1193,6 +1193,16 @@ _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
 
                 if (x >= ox + cx && x < ox + cx + cw_ &&
                     y >= oy + cy && y < oy + cy + ch) {
+                    /* A composite-clipped child (e.g. a Viewport's scrolled
+                       content) only occupies its clip region — the area outside
+                       it (scrollbar bands) belongs to whatever is painted there.
+                       Skip the child when the point is outside its clip so the
+                       scrollbar (tested next) wins. */
+                    int clx, cly, clw, clh;
+                    if (ISWRenderGetCompositeClip(child, &clx, &cly, &clw, &clh) &&
+                        !(x >= ox + clx && x < ox + clx + clw &&
+                          y >= oy + cly && y < oy + cly + clh))
+                        continue;
                     hit = child;
                     break;
                 }

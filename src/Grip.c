@@ -138,6 +138,7 @@ static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     /* core.width / core.height are now scaled centrally in xtCreate() */
+    new->core.windowless = True;
 }
 
 static void

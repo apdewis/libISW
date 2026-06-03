@@ -587,9 +587,27 @@ IswCreateWindow(xcb_connection_t *display,
         }
         
         {
-            xcb_window_t parent_win = widget->core.parent ?
-                widget->core.parent->core.window :
-                widget->core.screen->root;
+            /* Resolve the parent window.  A windowed child of a windowless
+               parent (e.g. a windowed widget inside a windowless Box) must be
+               created under the parent's nearest WINDOWED ancestor, since the
+               windowless parent has no window.  Its x,y are relative to the
+               windowless parent, so accumulate the offset across the windowless
+               chain to position the window in the ancestor's coordinates. */
+            xcb_window_t parent_win;
+            int off_x = 0, off_y = 0;
+            if (widget->core.parent == NULL) {
+                parent_win = widget->core.screen->root;
+            } else if (widget->core.parent->core.windowless) {
+                Widget anc = widget->core.parent;
+                while (anc != NULL && IswIsWidget(anc) && anc->core.windowless) {
+                    off_x += anc->core.x + anc->core.border_width;
+                    off_y += anc->core.y + anc->core.border_width;
+                    anc = anc->core.parent;
+                }
+                parent_win = anc ? anc->core.window : widget->core.screen->root;
+            } else {
+                parent_win = widget->core.parent->core.window;
+            }
             /* HiDPI: create window at physical pixel geometry */
             double _sf = _IswGetScaleFactor(display);
             xcb_void_cookie_t cookie = xcb_create_window_checked(
@@ -597,8 +615,8 @@ IswCreateWindow(xcb_connection_t *display,
                 widget->core.depth,
                 widget->core.window,
                 parent_win,
-                (int16_t)(widget->core.x * _sf + 0.5),
-                (int16_t)(widget->core.y * _sf + 0.5),
+                (int16_t)((widget->core.x + off_x) * _sf + 0.5),
+                (int16_t)((widget->core.y + off_y) * _sf + 0.5),
                 (uint16_t)(widget->core.width * _sf + 0.5),
                 (uint16_t)(widget->core.height * _sf + 0.5),
                 (uint16_t)(widget->core.border_width * _sf + 0.5),

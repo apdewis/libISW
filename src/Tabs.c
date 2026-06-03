@@ -312,6 +312,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     TabsWidget tw = (TabsWidget)new;
 
+    new->core.windowless = True;
     tw->tabs.top_widget = NULL;
     tw->tabs.render_ctx = NULL;
 

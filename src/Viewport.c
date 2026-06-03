@@ -57,6 +57,7 @@ SOFTWARE.
 #include <ISW/Scrollbar.h>
 #include <ISW/ViewportP.h>
 #include <ISW/IswArgMacros.h>
+#include <ISW/ISWRender.h>
 
 /* Utility macro */
 #define AssignMax(x, y) ((x) = ((x) > (y) ? (x) : (y)))
@@ -89,6 +90,7 @@ static IswResource resources[] = {
 #undef offset
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
@@ -121,7 +123,7 @@ ViewportClassRec viewportClassRec = {
     /* visible_interest	  */	FALSE,
     /* destroy		  */	NULL,
     /* resize		  */	Resize,
-    /* expose		  */	IswInheritExpose,
+    /* expose		  */	Redisplay,
     /* set_values	  */	SetValues,
     /* set_values_hook    */    NULL,
     /* set_values_almost  */    IswInheritSetValuesAlmost,
@@ -214,6 +216,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     Dimension clip_height, clip_width;
     Dimension pad = 0, sw = 0;
 
+    /* Viewport is windowless (inherits the Form default).  It scrolls by
+       compositing its windowless child at a negative offset onto its own
+       surface, which clips overflow — no clip window, no reparenting. */
+
     w->form.default_spacing = 0;  /* Reset the default spacing to 0 pixels. */
 
 /*
@@ -222,6 +228,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     w->viewport.child = (Widget) NULL;
     w->viewport.horiz_bar = w->viewport.vert_bar = (Widget)NULL;
+    w->viewport.scroll_x = w->viewport.scroll_y = 0;
 
 /*3D Widget creation removed - ThreeD eliminated.
  * Viewport will function without 3D border effects.
@@ -243,6 +250,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     w->viewport.clip = IswCreateManagedWidget("clip", widgetClass, new,
 					     ab.args, ab.count);
+    /* The clip is a pure geometry rectangle now: the windowless Viewport clips
+       its scrolled child in software during compositing.  Windowless clip owns
+       no window (nothing reparents into it). */
+    w->viewport.clip->core.windowless = True;
 
     /*
      * Select XCB_EVENT_MASK_BUTTON_PRESS on the clip widget so that scroll wheel events
@@ -286,6 +297,25 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswArgWidth(&ab, clip_width);
     IswArgHeight(&ab, clip_height);
     IswSetValues(w->viewport.clip, ab.args, ab.count);
+}
+
+static void
+Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+{
+    ViewportWidget w = (ViewportWidget) gw;
+    Widget child = w->viewport.child;
+    Widget clip = w->viewport.clip;
+
+    /* Re-assert the scrolled child's composite clip every paint.  This runs in
+       the paint walk, after the child's render context exists, so the clip is
+       reliably applied even on the first paint (layout-time MoveChild may have
+       run before the child had a context). */
+    if (child != NULL && clip != NULL)
+        ISWRenderSetCompositeClip(child, clip->core.x, clip->core.y,
+                                  clip->core.width, clip->core.height);
+
+    /* Chain to the Form superclass to fill the background + border. */
+    (*formClassRec.core_class.expose)(gw, event, region);
 }
 
 /* ARGSUSED */
@@ -446,12 +476,13 @@ RedrawThumbs(ViewportWidget w)
     Widget child = w->viewport.child;
     Widget clip = w->viewport.clip;
 
+    (void) child;
     if (w->viewport.horiz_bar != (Widget)NULL)
-	SetBar( w->viewport.horiz_bar, -(child->core.x),
+	SetBar( w->viewport.horiz_bar, -(w->viewport.scroll_x),
 	        clip->core.width, child->core.width );
 
     if (w->viewport.vert_bar != (Widget)NULL)
-	SetBar( w->viewport.vert_bar, -(child->core.y),
+	SetBar( w->viewport.vert_bar, -(w->viewport.scroll_y),
 	        clip->core.height, child->core.height );
 }
 
@@ -467,8 +498,8 @@ SendReport (ViewportWidget w, unsigned int changed)
 	Widget clip = w->viewport.clip;
 
 	rep.changed = changed;
-	rep.slider_x = -child->core.x;	/* child is canvas */
-	rep.slider_y = -child->core.y;	/* clip is slider */
+	rep.slider_x = -w->viewport.scroll_x;	/* child is canvas */
+	rep.slider_y = -w->viewport.scroll_y;	/* clip is slider */
 	rep.slider_width = clip->core.width;
 	rep.slider_height = clip->core.height;
 	rep.canvas_width = child->core.width;
@@ -496,7 +527,20 @@ MoveChild(ViewportWidget w, Position x, Position y)
     if (x >= 0) x = 0;
     if (y >= 0) y = 0;
 
-    IswMoveWidget(child, x, y);
+    /* (x,y) is the pure scroll offset (<= 0).  The child is a tree-child of the
+       Viewport and composites at its own core.x/y, so position it at the clip's
+       origin (which the layout placed inside any left/top scrollbars) plus the
+       scroll offset.  Stash the scroll offset for RedrawThumbs/SendReport. */
+    w->viewport.scroll_x = x;
+    w->viewport.scroll_y = y;
+    IswMoveWidget(child, (Position)(clip->core.x + x),
+                         (Position)(clip->core.y + y));
+
+    /* Confine the (possibly oversized) scrolled child to the clip region so it
+       does not overflow into the scrollbar bands or past the viewport edges. */
+    ISWRenderSetCompositeClip(child, clip->core.x, clip->core.y,
+                              clip->core.width, clip->core.height);
+
     SendReport (w, (IswPRSliderX | IswPRSliderY));
 
     RedrawThumbs(w);
@@ -710,10 +754,10 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	    IswMoveWidget( bar,
 			  (Position)((needsvert && !w->viewport.useright)
 			   ? w->viewport.vert_bar->core.width + pad
-			   : -bw),
+			   : 0),
 			  (Position)(w->viewport.usebottom
 			    ? w->core.height - bar->core.height - bw
-			    : -bw) );
+			    : 0) );
 	    IswSetMappedWhenManaged( bar, True );
 	}
     }
@@ -735,10 +779,10 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	    IswMoveWidget( bar,
 			  (Position)(w->viewport.useright
 			   ? w->core.width - bar->core.width - bw
-			   : -bw),
+			   : 0),
 			  (Position)((needshoriz && !w->viewport.usebottom)
 			    ? w->viewport.horiz_bar->core.height + pad
-			    : -bw) );
+			    : 0) );
 	    IswSetMappedWhenManaged( bar, True );
 	}
     }
@@ -747,8 +791,8 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	IswResizeWidget( child, (Dimension)intended.width,
 		        (Dimension)intended.height, (Dimension)0 );
 	MoveChild(w,
-		  needshoriz ? child->core.x : 0,
-		  needsvert ? child->core.y : 0);
+		  needshoriz ? w->viewport.scroll_x : 0,
+		  needsvert ? w->viewport.scroll_y : 0);
     }
 
     SendReport (w, IswPRAll);
@@ -885,8 +929,8 @@ ScrollUpDownProc(Widget widget, IswPointer closure, IswPointer call_data)
 
     if (child == NULL) return;	/* no child to scroll. */
 
-    x = child->core.x - ((widget == w->viewport.horiz_bar) ? pix : 0);
-    y = child->core.y - ((widget == w->viewport.vert_bar) ? pix : 0);
+    x = w->viewport.scroll_x - ((widget == w->viewport.horiz_bar) ? pix : 0);
+    y = w->viewport.scroll_y - ((widget == w->viewport.vert_bar) ? pix : 0);
     MoveChild(w, x, y);
 }
 
@@ -909,7 +953,7 @@ ThumbProc(Widget widget, IswPointer closure, IswPointer call_data)
 	x = -(int)(*percent * child->core.width);
 #endif /* macII */
     else
-	x = child->core.x;
+	x = w->viewport.scroll_x;
 
     if (widget == w->viewport.vert_bar)
 #ifdef macII				/* bug in the macII A/UX 1.0 cc */
@@ -918,7 +962,7 @@ ThumbProc(Widget widget, IswPointer closure, IswPointer call_data)
 	y = -(int)(*percent * child->core.height);
 #endif /* macII */
     else
-	y = child->core.y;
+	y = w->viewport.scroll_y;
 
     MoveChild(w, x, y);
 }
@@ -1160,14 +1204,14 @@ IswViewportSetLocation (Widget gw,
     if (xoff > 1.0)			/* scroll to right */
        x = child->core.width;
     else if (xoff < 0.0)		/* if the offset is < 0.0 nothing */
-       x = child->core.x;
+       x = -w->viewport.scroll_x;
     else
        x = (Position) (((float) child->core.width) * xoff);
 
     if (yoff > 1.0)
        y = child->core.height;
     else if (yoff < 0.0)
-       y = child->core.y;
+       y = -w->viewport.scroll_y;
     else
        y = (Position) (((float) child->core.height) * yoff);
 
@@ -1188,12 +1232,12 @@ IswViewportSetCoordinates (Widget gw,
     if (x > (int)child->core.width)
       x = child->core.width;
     else if (x < 0)
-      x = child->core.x;
+      x = -w->viewport.scroll_x;
 
     if (y > (int)child->core.height)
       y = child->core.height;
     else if (y < 0)
-      y = child->core.y;
+      y = -w->viewport.scroll_y;
 
     MoveChild (w, -x, -y);
 }

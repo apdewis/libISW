@@ -62,6 +62,7 @@ SOFTWARE.
 
 /* Include XCB type compatibility layer before Xmu headers */
 #include <ISW/ISWP.h>
+#include <ISW/ISWRender.h>
 
 #include <ISW/Box.h>
 
@@ -87,6 +88,7 @@ typedef struct {
     Dimension	preferred_width, preferred_height;
     Dimension	last_query_width, last_query_height;
     IswGeometryMask last_query_mode;
+    ISWRenderContext *render_ctx;	/* cached, persistent render context */
 } BoxPart;
 
 

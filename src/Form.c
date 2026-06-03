@@ -97,6 +97,7 @@ static IswResource formConstraintResources[] = {
 static void ClassInitialize(void);
 static void ClassPartInitialize(WidgetClass);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
+static void Destroy(Widget);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
@@ -129,7 +130,7 @@ FormClassRec formClassRec = {
     /* compress_exposure  */    TRUE,
     /* compress_enterleave*/    TRUE,
     /* visible_interest   */    FALSE,
-    /* destroy            */    NULL,
+    /* destroy            */    Destroy,
     /* resize             */    Resize,
     /* expose             */    Redisplay,
     /* set_values         */    SetValues,
@@ -210,32 +211,47 @@ _CvtStringToEdgeType(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-    /* Only draw border if border_width is set */
-    if (w->core.border_width == 0 || !IswIsRealized(w))
+    FormWidget fw = (FormWidget) w;
+    ISWRenderContext *ctx;
+
+    if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
         return;
 
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-    if (ctx) {
+    /* Windowed Form subclass (Viewport, converted last): draw the border the
+       old way onto its own window; the server fills the background. */
+    if (!w->core.windowless) {
+        if (w->core.border_width == 0)
+            return;
+        ctx = fw->form.render_ctx;
+        if (ctx == NULL)
+            ctx = fw->form.render_ctx =
+                ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+        if (ctx == NULL)
+            return;
         ISWRenderBegin(ctx);
         ISWRenderSetColor(ctx, w->core.background_pixel);
-        ISWRenderSetLineWidth(ctx, (double)w->core.border_width);
+        ISWRenderSetLineWidth(ctx, (double) w->core.border_width);
         ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);
         ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
-    } else {
-        xcb_connection_t *conn = IswDisplay(w);
-        xcb_window_t win = (xcb_window_t) IswWindow(w);
-        xcb_gcontext_t gc = xcb_generate_id(conn);
-        uint32_t values[2];
-        values[0] = w->core.background_pixel;
-        values[1] = w->core.border_width;
-        xcb_create_gc(conn, gc, win,
-                      XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH, values);
-        xcb_rectangle_t rect = {0, 0, w->core.width, w->core.height};
-        xcb_poly_rectangle(conn, win, gc, 1, &rect);
-        xcb_free_gc(conn, gc);
-        xcb_flush(conn);
+        return;
     }
+
+    ctx = fw->form.render_ctx;
+    if (ctx == NULL)
+        ctx = fw->form.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    if (ctx == NULL)
+        return;
+
+    ISWRenderBegin(ctx);
+    /* Fill the Form's own background (windowless: no X window to background-
+       fill); children composite on top.  Then the optional border. */
+    ISWRenderSetColor(ctx, w->core.background_pixel);
+    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+    if (w->core.border_width > 0) {
+        ISWRenderSetLineWidth(ctx, (double) w->core.border_width);
+        ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);
+    }
+    ISWRenderEnd(ctx);
 }
 
 static void
@@ -276,6 +292,12 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     FormWidget fw = (FormWidget)new;
 
+    /* Windowless: Form draws into its own surface and composites onto its
+       parent.  Viewport (a Form subclass) resets this to False in its own
+       Initialize because it still owns a real clip window (converted last). */
+    new->core.windowless = True;
+    fw->form.render_ctx = NULL;
+
     fw->form.old_width = fw->core.width;
     fw->form.old_height = fw->core.height;
     fw->form.no_refigure = False;
@@ -284,6 +306,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     fw->form.resize_is_no_op = False;
 
     /* HiDPI: default_spacing stays in logical pixels; scaled at X boundary */
+}
+
+static void
+Destroy(Widget w)
+{
+    FormWidget fw = (FormWidget) w;
+    if (fw->form.render_ctx != NULL) {
+        ISWRenderDestroy(fw->form.render_ctx);
+        fw->form.render_ctx = NULL;
+    }
 }
 
 /*	Function Name: ChangeFormGeometry

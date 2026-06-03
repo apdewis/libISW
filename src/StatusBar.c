@@ -185,6 +185,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     StatusBarWidget sw = (StatusBarWidget) new;
     (void)request; (void)args; (void)num_args;
 
+    new->core.windowless = True;
+    sw->statusBar.render_ctx = NULL;
+
     sw->statusBar.h_space = (4);
 
     /* Default height so MainWindow can lay us out before children arrive */
@@ -234,13 +237,21 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
     if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
         return;
 
-    /* Draw top separator line */
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-    if (ctx) {
-        ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.border_pixel);
-        ISWRenderDrawLine(ctx, 0, 0, (int)w->core.width, 0);
-        ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
+    /* Fill background + draw top separator line (windowless: own surface). */
+    {
+        StatusBarWidget sw = (StatusBarWidget) w;
+        ISWRenderContext *ctx = sw->statusBar.render_ctx;
+        if (ctx == NULL)
+            ctx = sw->statusBar.render_ctx =
+                ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+        if (ctx) {
+            ISWRenderBegin(ctx);
+            ISWRenderSetColor(ctx, w->core.background_pixel);
+            ISWRenderFillRectangle(ctx, 0, 0, (int)w->core.width,
+                                   (int)w->core.height);
+            ISWRenderSetColor(ctx, w->core.border_pixel);
+            ISWRenderDrawLine(ctx, 0, 0, (int)w->core.width, 0);
+            ISWRenderEnd(ctx);
+        }
     }
 }

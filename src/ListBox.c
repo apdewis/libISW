@@ -521,6 +521,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     ListBoxWidget lbw = (ListBoxWidget)new;
     (void)request; (void)args; (void)num_args;
 
+    new->core.windowless = True;
     lbw->listBox.render_ctx = NULL;
     lbw->listBox.focused_index = -1;
     lbw->listBox.last_click_time = 0;

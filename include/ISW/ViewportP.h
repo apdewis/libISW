@@ -80,6 +80,9 @@ typedef struct _ViewportPart {
     /* private state */
     Widget clip, child;		/* The clipping and (scrolled) child widgets */
     Widget  horiz_bar, vert_bar;/* What scrollbars we currently have. */
+    Position scroll_x, scroll_y;/* current scroll offset (<= 0); child.core.x/y
+                                   is clip.x/y + this, so derive scroll from here
+                                   rather than from child.core.x/y. */
     /* ThreeDWidget threeD; -- ThreeD widget removed */
 } ViewportPart;
 

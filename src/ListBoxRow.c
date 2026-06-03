@@ -204,6 +204,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ListBoxRowWidget rw = (ListBoxRowWidget)new;
     (void)request; (void)args; (void)num_args;
+    new->core.windowless = True;
     rw->listBoxRow.render_ctx = NULL;
     if (new->core.height == 0)
         new->core.height = 20;

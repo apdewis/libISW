@@ -355,6 +355,8 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
     TreeWidget request = (TreeWidget) grequest, new = (TreeWidget) gnew;
     IswArgBuilder ab = IswArgBuilderInit();
 
+    gnew->core.windowless = True;
+
     /*
      * Make sure the widget's width and height are
      * greater than zero.

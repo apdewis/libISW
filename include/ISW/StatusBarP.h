@@ -8,6 +8,7 @@
 #include <ISW/ISWP.h>
 #include <ISW/StatusBar.h>
 #include <ISW/ConstrainP.h>
+#include <ISW/ISWRender.h>
 
 typedef struct {int empty;} StatusBarClassPart;
 
@@ -22,6 +23,7 @@ extern StatusBarClassRec statusBarClassRec;
 
 typedef struct {
     Dimension   h_space;    /* horizontal spacing between children */
+    ISWRenderContext *render_ctx;  /* cached, persistent render context */
 } StatusBarPart;
 
 typedef struct _StatusBarRec {

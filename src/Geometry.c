@@ -465,6 +465,22 @@ _IswMakeGeometryRequest(Widget widget,
                                    IswName(widget)));
         }
 #endif
+        /* A windowed widget whose parent is windowless has its X window
+           parented to the nearest WINDOWED ancestor (see IswCreateWindow), but
+           its core.x/y are relative to the windowless parent.  Accumulate the
+           windowless-parent offset so the window is configured in the
+           ancestor's coordinate space. */
+        int wl_off_x = 0, wl_off_y = 0;
+        {
+            Widget a;
+            for (a = IswParent(widget);
+                 a != NULL && IswIsWidget(a) && a->core.windowless;
+                 a = IswParent(a)) {
+                wl_off_x += a->core.x + a->core.border_width;
+                wl_off_y += a->core.y + a->core.border_width;
+            }
+        }
+
         /* HiDPI: convert logical pixels to physical for the X server.
          * Use lrint() for correct rounding of negative positions. */
         {
@@ -472,9 +488,9 @@ _IswMakeGeometryRequest(Widget widget,
             uint32_t values[5];
             int vi = 0;
             if (req.changeMask & XCB_CONFIG_WINDOW_X)
-                values[vi++] = (uint32_t)(int32_t)lrint((double)req.changes_x * sf);
+                values[vi++] = (uint32_t)(int32_t)lrint((double)(req.changes_x + wl_off_x) * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_Y)
-                values[vi++] = (uint32_t)(int32_t)lrint((double)req.changes_y * sf);
+                values[vi++] = (uint32_t)(int32_t)lrint((double)(req.changes_y + wl_off_y) * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH)
                 values[vi++] = (uint32_t)lrint((double)req.changes_w * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)

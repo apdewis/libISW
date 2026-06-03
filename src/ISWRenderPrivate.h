@@ -163,6 +163,13 @@ typedef struct _ISWRenderContext {
        (SimpleMenu, IconView, ...) must NOT be filled — that would wipe it. */
     Boolean lazy_composite_root;
 
+    /* Composite clip: when set, this widget is clipped to (clip_x,clip_y,
+       clip_w,clip_h) — in the PARENT's content coordinates — as it is folded
+       into its parent.  Used by scrolling containers (Viewport) to confine a
+       scrolled child to the clip region (excluding scrollbars) regardless of
+       the child's own size.  Width 0 means no composite clip. */
+    int clip_x, clip_y, clip_w, clip_h;
+
     /* Backend-specific data */
     void *backend_data;
 

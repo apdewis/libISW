@@ -88,6 +88,7 @@ static IswResource resources[] = {
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
+static void Destroy(Widget);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
@@ -117,7 +118,7 @@ BoxClassRec boxClassRec = {
     /* compress_exposure  */	TRUE,
     /* compress_enterleave*/	TRUE,
     /* visible_interest   */    FALSE,
-    /* destroy            */    NULL,
+    /* destroy            */    Destroy,
     /* resize             */    Resize,
     /* expose             */    Redisplay,
     /* set_values         */    SetValues,
@@ -579,32 +580,31 @@ ChangeManaged(Widget w)
 static void
 Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 {
-    /* Only draw border if border_width is set */
-    if (w->core.border_width == 0 || !IswIsRealized(w))
+    BoxWidget bbw = (BoxWidget) w;
+    ISWRenderContext *ctx;
+
+    if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
         return;
 
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-    if (ctx) {
-        ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.background_pixel);
-        ISWRenderSetLineWidth(ctx, (double)w->core.border_width);
+    /* Cache the context: with surface-per-widget the composite pass looks the
+       widget's context up in the registry, so it must persist (a transient
+       create/destroy would be gone by composite time). */
+    ctx = bbw->box.render_ctx;
+    if (ctx == NULL)
+        ctx = bbw->box.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    if (ctx == NULL)
+        return;
+
+    ISWRenderBegin(ctx);
+    /* Fill the Box's own background: as a windowless widget it has no X window
+       for the server to background-fill; children composite on top. */
+    ISWRenderSetColor(ctx, w->core.background_pixel);
+    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+    if (w->core.border_width > 0) {
+        ISWRenderSetLineWidth(ctx, (double) w->core.border_width);
         ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);
-        ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
-    } else {
-        xcb_connection_t *conn = IswDisplay(w);
-        xcb_window_t win = (xcb_window_t) IswWindow(w);
-        xcb_gcontext_t gc = xcb_generate_id(conn);
-        uint32_t values[2];
-        values[0] = w->core.background_pixel;
-        values[1] = w->core.border_width;
-        xcb_create_gc(conn, gc, win,
-                      XCB_GC_FOREGROUND | XCB_GC_LINE_WIDTH, values);
-        xcb_rectangle_t rect = {0, 0, w->core.width, w->core.height};
-        xcb_poly_rectangle(conn, win, gc, 1, &rect);
-        xcb_free_gc(conn, gc);
-        xcb_flush(conn);
     }
+    ISWRenderEnd(ctx);
 }
 
 static void
@@ -623,6 +623,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
+    new->core.windowless = True;
+    newbbw->box.render_ctx = NULL;
+
     newbbw->box.last_query_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
     newbbw->box.last_query_width = newbbw->box.last_query_height = 0;
     newbbw->box.preferred_width = IswMax(newbbw->box.h_space, 1);
@@ -635,6 +638,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 	newbbw->core.height = newbbw->box.preferred_height;
 
 } /* Initialize */
+
+static void
+Destroy(Widget w)
+{
+    BoxWidget bbw = (BoxWidget) w;
+    if (bbw->box.render_ctx != NULL) {
+        ISWRenderDestroy(bbw->box.render_ctx);
+        bbw->box.render_ctx = NULL;
+    }
+}
 
 static void
 Realize(xcb_connection_t *conn, Widget w, IswValueMask *valueMask, uint32_t *attributes)

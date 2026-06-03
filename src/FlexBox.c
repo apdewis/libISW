@@ -175,6 +175,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     (void)request; (void)args; (void)num_args;
     FlexBoxWidget fw = (FlexBoxWidget)new;
+    new->core.windowless = True;
     fw->flexBox.preferred_width = 0;
     fw->flexBox.preferred_height = 0;
     fw->flexBox.layout_in_progress = False;

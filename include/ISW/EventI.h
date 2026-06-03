@@ -117,6 +117,12 @@ extern EventMask _IswConvertTypeToMask(
     int		/* eventType */
 );
 
+/* Event.c: deepest windowless widget under (x,y) in a windowed widget's
+   window coords; *dx,*dy returns the accumulated origin offset.  Returns the
+   root itself if nothing windowless is under the point. */
+extern Widget _IswFindWidgetAtPoint(Widget root, int x, int y,
+				    int *dx, int *dy);
+
 /* EventUtil.c */
 extern Widget _IswFindRemapWidget(xcb_generic_event_t *event, Widget widget,
 				 xcb_event_mask_t mask, IswPerDisplayInput pdi);
