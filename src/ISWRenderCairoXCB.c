@@ -699,23 +699,38 @@ cairo_xcb_fill_background(ISWRenderContext *ctx)
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
     cairo_t *dctx;
     Pixel bg;
+    double sf;
 
     if (!data) return;
-    dctx = data->back_ctx ? data->back_ctx : data->window_ctx;
-    if (dctx == NULL || ctx->widget == NULL) return;
+    if (ctx->widget == NULL) return;
+
+    sf = _IswGetScaleFactor(ctx->connection);
 
     /* The window surface was sized when the context was created — possibly
        before the widget reached its final laid-out size.  Track the current
        window size so children composite onto a full-size surface and are not
        clipped to a stale (too-small) extent. */
-    if (data->surface && dctx == data->window_ctx) {
-        double sf = _IswGetScaleFactor(ctx->connection);
+    if (data->surface) {
         Dimension pw = (Dimension)(ctx->widget->core.width * sf + 0.5);
         Dimension ph = (Dimension)(ctx->widget->core.height * sf + 0.5);
         if (pw < 1) pw = 1;
         if (ph < 1) ph = 1;
         cairo_xcb_surface_set_size(data->surface, pw, ph);
     }
+
+    /* Composite into a server-pixmap BACK buffer, never straight into the
+       window: the whole pass (background fill + folding every child surface)
+       must be invisible until the finished frame is blitted once by present().
+       Painting directly to the window shows the cleared background and each
+       child popping in — the flicker.  Ensure the back buffer here so the
+       lazy composite root (which never gets a begin()/end()) is buffered. */
+    if (data->back_ctx == NULL) {
+        Dimension pw = (Dimension)(ctx->widget->core.width * sf + 0.5);
+        Dimension ph = (Dimension)(ctx->widget->core.height * sf + 0.5);
+        _cairo_xcb_ensure_back(ctx, data, pw, ph, sf);
+    }
+    dctx = data->back_ctx ? data->back_ctx : data->window_ctx;
+    if (dctx == NULL) return;
 
     bg = ctx->widget->core.background_pixel;
     cairo_save(dctx);
