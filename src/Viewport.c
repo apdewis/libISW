@@ -332,15 +332,14 @@ Realize(xcb_connection_t *conn, Widget widget, IswValueMask *value_mask, uint32_
 	IswMoveWidget( child, (Position)0, (Position)0 );
 	IswRealizeWidget( clip );
 	IswRealizeWidget( child );
-	/* IswRealizeWidget( threeD ); */
-	
-	/* Lower threeD window */
-	/* xcb_configure_window(conn, IswWindow(threeD), XCB_CONFIG_WINDOW_STACK_MODE, lower_values); */
 
-	/* Reparent child to clip */
-	xcb_reparent_window(conn, IswWindow(child), IswWindow(clip), 0, 0);
-	
-	IswMapWidget( child );
+	if (!child->core.windowless) {
+	    /* Windowed child: reparent its X window into the clip window so
+	       the server clips overflow.  A windowless child has no window to
+	       reparent — it is clipped in software during rendering. */
+	    xcb_reparent_window(conn, IswWindow(child), IswWindow(clip), 0, 0);
+	    IswMapWidget( child );
+	}
     }
 }
 
@@ -394,24 +393,25 @@ ChangeManaged(Widget widget)
 		ViewportConstraints constraints =
 		    (ViewportConstraints)child->core.constraints;
 		if (!IswIsRealized(child)) {
-		    xcb_window_t window = IswWindow(w);
 		    IswMoveWidget( child, (Position)0, (Position)0 );
-#ifdef notdef
-		    /* this is dirty, but it saves the following code: */
-		    IswRealizeWidget( child );
-		    xcb_connection_t *conn = IswDisplay(w);
-		    xcb_reparent_window(conn, IswWindow(child),
-				     IswWindow(w->viewport.clip), 0, 0);
-		    if (child->core.mapped_when_managed)
-			IswMapWidget( child );
-#else
-		    w->core.window = IswWindow(w->viewport.clip);
-		    IswRealizeWidget( child );
-		    w->core.window = window;
-#endif /* notdef */
+		    if (child->core.windowless) {
+			/* Windowless child: no window to parent into clip;
+			   realize it (no-op window-wise) and let software
+			   rendering/clipping handle it. */
+			IswRealizeWidget( child );
+		    }
+		    else {
+			xcb_window_t window = IswWindow(w);
+			/* this is dirty, but it saves the following code:
+			   temporarily make clip the child's parent window. */
+			w->core.window = IswWindow(w->viewport.clip);
+			IswRealizeWidget( child );
+			w->core.window = window;
+		    }
 		    constraints->viewport.reparented = True;
 		}
-		else if (!constraints->viewport.reparented) {
+		else if (!constraints->viewport.reparented
+			 && !child->core.windowless) {
 		    xcb_connection_t *conn = IswDisplay(w);
 		    xcb_reparent_window(conn, IswWindow(child),
 				     IswWindow(w->viewport.clip), 0, 0);
