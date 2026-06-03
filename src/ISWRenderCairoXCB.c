@@ -295,6 +295,67 @@ ISWRenderCairoXCBResize(ISWRenderContext *ctx, int width, int height)
  * =================================================================
  */
 
+/*
+ * Ensure data->back_{pixmap,surface,ctx} exist and can hold a (w x h)
+ * physical-pixel region.  Reallocates with 25% slack, matching the windowed
+ * path's hysteresis so interactive resize doesn't thrash the server pixmap.
+ * sf is the HiDPI scale factor for the back surface's device scale.
+ * Returns True if a usable back_ctx is available.
+ */
+static Boolean
+_cairo_xcb_ensure_back(ISWRenderContext *ctx, ISWRenderCairoXCBData *data,
+                       Dimension w, Dimension h, double sf)
+{
+    if (w < 1) w = 1;
+    if (h < 1) h = 1;
+
+    if (data->back_pixmap == 0 ||
+        w > data->alloc_w || h > data->alloc_h ||
+        w < data->alloc_w / 2 || h < data->alloc_h / 2) {
+        if (data->back_ctx) {
+            cairo_destroy(data->back_ctx);
+            data->back_ctx = NULL;
+        }
+        if (data->back_surface) {
+            cairo_surface_destroy(data->back_surface);
+            data->back_surface = NULL;
+        }
+        if (data->back_pixmap) {
+            xcb_free_pixmap(ctx->connection, data->back_pixmap);
+            data->back_pixmap = 0;
+        }
+
+        Dimension aw = w + w / 4;
+        Dimension ah = h + h / 4;
+        if (aw < 1) aw = 1;
+        if (ah < 1) ah = 1;
+
+        uint8_t depth = (ctx->widget->core.depth != 0)
+                      ? ctx->widget->core.depth
+                      : ctx->screen->root_depth;
+        data->back_pixmap = xcb_generate_id(ctx->connection);
+        xcb_create_pixmap(ctx->connection, depth, data->back_pixmap,
+                          ctx->window, aw, ah);
+        data->back_surface = cairo_xcb_surface_create(
+            ctx->connection, data->back_pixmap, data->visual, aw, ah);
+        if (sf > 1.0)
+            cairo_surface_set_device_scale(data->back_surface, sf, sf);
+        data->back_ctx = cairo_create(data->back_surface);
+        cairo_set_antialias(data->back_ctx, CAIRO_ANTIALIAS_GOOD);
+        cairo_set_line_width(data->back_ctx, 1.0);
+        cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_OVER);
+
+        data->alloc_w = aw;
+        data->alloc_h = ah;
+    } else if (data->back_surface &&
+               (data->back_w != w || data->back_h != h)) {
+        cairo_xcb_surface_set_size(data->back_surface, w, h);
+    }
+    data->back_w = w;
+    data->back_h = h;
+    return data->back_ctx != NULL;
+}
+
 static void
 cairo_xcb_begin(ISWRenderContext *ctx)
 {
@@ -333,8 +394,33 @@ cairo_xcb_begin(ISWRenderContext *ctx)
             Dimension pw = (Dimension)(surf_w->core.width * sf + 0.5);
             Dimension ph = (Dimension)(surf_w->core.height * sf + 0.5);
             cairo_xcb_surface_set_size(data->surface, pw, ph);
+
+            /* Double-buffer: draw into a back pixmap sized to the ancestor
+             * window, then blit only this widget's rectangle in end().
+             * Drawing happens in ancestor logical coordinates (origin/clip
+             * below), so the back buffer mirrors the ancestor surface. */
+            if (_cairo_xcb_ensure_back(ctx, data, pw, ph, sf)) {
+                cairo_font_face_t *face = cairo_get_font_face(data->window_ctx);
+                cairo_matrix_t font_matrix;
+                cairo_get_font_matrix(data->window_ctx, &font_matrix);
+                cairo_set_font_face(data->back_ctx, face);
+                cairo_set_font_matrix(data->back_ctx, &font_matrix);
+
+                /* Seed the back buffer from the live window so regions this
+                 * widget doesn't paint (and the gaps around child holes) show
+                 * the existing pixels rather than garbage. */
+                cairo_surface_flush(data->surface);
+                cairo_save(data->back_ctx);
+                cairo_set_source_surface(data->back_ctx, data->surface, 0, 0);
+                cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_SOURCE);
+                cairo_paint(data->back_ctx);
+                cairo_restore(data->back_ctx);
+
+                data->cairo_ctx = data->back_ctx;
+            } else {
+                data->cairo_ctx = data->window_ctx;
+            }
         }
-        data->cairo_ctx = data->window_ctx;
         cairo_save(data->cairo_ctx);
 
         /* Software border: X drew window borders for free; windowless widgets
@@ -545,12 +631,32 @@ cairo_xcb_end(ISWRenderContext *ctx)
         return;
     }
 
-    /* Windowless: drew directly onto the window surface.  Undo the
-     * origin/clip and flush — no back buffer to blit, no present. */
+    /* Windowless: drew into the back buffer (ancestor-sized).  Undo the
+     * origin/clip, then blit just this widget's footprint (content + border
+     * band) onto the live window in one operation — flicker-free. */
     if (ctx->widget && ctx->widget->core.windowless) {
         data->frame_depth = 0;
         if (data->cairo_ctx)
             cairo_restore(data->cairo_ctx);
+
+        if (data->back_surface && data->cairo_ctx == data->back_ctx &&
+            data->window_ctx) {
+            int bw = (int) ctx->widget->core.border_width;
+            double fx = ctx->origin_x - bw;
+            double fy = ctx->origin_y - bw;
+            double fw = (double) ctx->widget->core.width + 2 * bw;
+            double fh = (double) ctx->widget->core.height + 2 * bw;
+
+            cairo_surface_flush(data->back_surface);
+            cairo_save(data->window_ctx);
+            cairo_rectangle(data->window_ctx, fx, fy, fw, fh);
+            cairo_clip(data->window_ctx);
+            cairo_set_source_surface(data->window_ctx, data->back_surface, 0, 0);
+            cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_SOURCE);
+            cairo_paint(data->window_ctx);
+            cairo_restore(data->window_ctx);
+        }
+
         if (data->surface)
             cairo_surface_flush(data->surface);
         xcb_flush(ctx->connection);
