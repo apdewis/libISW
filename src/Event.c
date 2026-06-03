@@ -1006,12 +1006,16 @@ IswWindowToWidget(register xcb_connection_t *display, register xcb_window_t wind
     LOCK_PROCESS;
     tab = WWTABLE(display);
     idx = (int) WWHASH(tab, window);
-    if ((entry = tab->entries[idx]) && IswWindow(entry) != window) {
+    /* Compare the raw window field, not IswWindow(): table entries are
+       always windowed widgets, and the WWfake deletion sentinel is a zeroed
+       WidgetRec that must not be dereferenced as a widget (IswWindow() would
+       read its NULL widget_class). */
+    if ((entry = tab->entries[idx]) && entry->core.window != window) {
         int rehash = (int) WWREHASHVAL(tab, window);
 
         do {
             idx = (int) WWREHASH(tab, idx, rehash);
-        } while ((entry = tab->entries[idx]) && IswWindow(entry) != window);
+        } while ((entry = tab->entries[idx]) && entry->core.window != window);
     }
     if (entry) {
         UNLOCK_PROCESS;
