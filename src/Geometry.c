@@ -74,6 +74,7 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include "ShellP.h"
 #include "ShellI.h"
+#include <ISW/ISWRender.h>
 
 
 #include <math.h>
@@ -723,45 +724,20 @@ IswConfigureWidget(Widget w,
         Widget hookobj;
 
         if (IswIsRealized(w) && IswIsWidget(w) && w->core.windowless) {
-            /* Windowless widgets have no X window to configure.  Invalidate
-               the vacated and new regions on the windowed ancestor so the
-               server re-sends Expose, which redraws the windowless widget
-               (and siblings) via the ancestor's expose delegation. */
+            /* Windowless widgets have no X window to configure.  Re-composite
+               the windowed ancestor: the composite pass folds the whole
+               subtree (this widget at its new position, plus siblings) into the
+               ancestor's off-screen back buffer and blits the finished frame
+               once.  We must NOT xcb_clear_area the window to provoke an
+               Expose — that paints the window background on screen immediately,
+               and the content only reappears on the asynchronous Expose,
+               producing a clear→repaint flash on every move (scroll flicker).
+               The coalesced composite avoids the window ever showing a cleared
+               state. */
             Widget pw = _IswWindowedAncestor(w);
 
-            if (pw != NULL && IswIsRealized(pw) && !pw->core.being_destroyed) {
-                double sf = _IswGetScaleFactor(dpy);
-                int base_x = 0, base_y = 0;
-                Widget a;
-
-                /* Offset of this widget within the windowed ancestor:
-                   accumulate parent positions while parents are windowless. */
-                for (a = IswParent(w);
-                     a != NULL && IswIsWidget(a) && a->core.windowless;
-                     a = IswParent(a)) {
-                    base_x += a->core.x;
-                    base_y += a->core.y;
-                }
-
-                /* Old region (vacated) */
-                {
-                    int bw2 = (int) old_bw << 1;
-                    xcb_clear_area(dpy, 1, IswWindow(w),
-                        (int16_t)((base_x + (int) old_x) * sf),
-                        (int16_t)((base_y + (int) old_y) * sf),
-                        (uint16_t)(((int) old_w + bw2) * sf + 0.5),
-                        (uint16_t)(((int) old_h + bw2) * sf + 0.5));
-                }
-                /* New region */
-                {
-                    int bw2 = (int) w->core.border_width << 1;
-                    xcb_clear_area(dpy, 1, IswWindow(w),
-                        (int16_t)((base_x + (int) w->core.x) * sf),
-                        (int16_t)((base_y + (int) w->core.y) * sf),
-                        (uint16_t)(((int) w->core.width + bw2) * sf + 0.5),
-                        (uint16_t)(((int) w->core.height + bw2) * sf + 0.5));
-                }
-            }
+            if (pw != NULL && IswIsRealized(pw) && !pw->core.being_destroyed)
+                ISWRenderRequestComposite(pw);
         }
         else if (IswIsRealized(w)) {
             if (IswIsWidget(w)) {

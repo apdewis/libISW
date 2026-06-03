@@ -1437,7 +1437,7 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
                     ISWRenderBeginCompositeBatch();
                     _IswExposeWindowlessChildren(widget, event);
                     ISWRenderEndCompositeBatch();
-                    ISWRenderCompositeSubtree(widget);
+                    ISWRenderRequestComposite(widget);
                     was_dispatched = True;
                 }
             }
@@ -1467,7 +1467,7 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
                 ISWRenderBeginCompositeBatch();
                 _IswExposeWindowlessChildren(widget, event);
                 ISWRenderEndCompositeBatch();
-                ISWRenderCompositeSubtree(widget);
+                ISWRenderRequestComposite(widget);
                 was_dispatched = True;
             }
         }
@@ -2003,6 +2003,10 @@ IswDispatchEvent(xcb_generic_event_t *event, xcb_connection_t *dpy)
     dispatch_level = ++app->dispatch_level;
     starting_count = app->destroy_count;
 
+    /* Coalesce all widget repaints triggered by this dispatch (and any nested
+       dispatches) into a single composite+blit per affected window. */
+    ISWRenderBeginDeferComposite();
+
     switch (event->response_type & ~0x80) {
     case XCB_INPUT_KEY_PRESS:
         time = ((xcb_input_key_press_event_t *)event)->time;
@@ -2065,6 +2069,11 @@ IswDispatchEvent(xcb_generic_event_t *event, xcb_connection_t *dpy)
 
     if (app->destroy_count > starting_count)
         _IswDoPhase2Destroy(app, dispatch_level);
+
+    /* Fold the dirty roots once now that this dispatch is done.  Nested
+       dispatches decrement the defer depth here but only the outermost flush
+       actually composites. */
+    ISWRenderFlushComposites();
 
     app->dispatch_level = dispatch_level - 1;
 

@@ -194,6 +194,29 @@ void ISWRenderBeginCompositeBatch(void);
 void ISWRenderEndCompositeBatch(void);
 
 /*
+ * ISWRenderBeginDeferComposite / ISWRenderFlushComposites
+ *
+ * Coalesce composites across an event dispatch.  Between Begin and Flush, a
+ * windowless widget's self-initiated repaint (ISWRenderEnd) records its
+ * windowed root as "dirty" instead of immediately folding and blitting the
+ * whole tree.  Flush folds each dirty root exactly once.  Nestable: only the
+ * outermost Flush performs the composites.  The event dispatcher brackets each
+ * dispatch with these so a burst of widget repaints produces one frame.
+ */
+void ISWRenderBeginDeferComposite(void);
+void ISWRenderFlushComposites(void);
+
+/*
+ * ISWRenderRequestComposite - composite a windowed root, coalesced if possible
+ *
+ * If an event dispatch is in progress (between BeginDeferComposite and Flush),
+ * records the root as dirty for the single end-of-dispatch flush.  Otherwise
+ * composites immediately.  Use instead of ISWRenderCompositeSubtree for
+ * repaint requests so repeated requests in one dispatch collapse to one frame.
+ */
+void ISWRenderRequestComposite(Widget windowed_root);
+
+/*
  * ISWRenderSetCompositeClip - confine a widget to a rectangle when composited
  *
  * Sets a clip rectangle (in the widget's PARENT content coordinates) applied

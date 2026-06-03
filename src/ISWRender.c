@@ -128,9 +128,95 @@ typedef struct _CtxMapEntry {
 
 static CtxMapEntry *ctx_map_head = NULL;
 
+void _ISWRenderForgetDirtyRoot(Widget w);
+
 /* True while ISWRenderCompositeSubtree is running, so the auto-composite in
    ISWRenderEnd does not re-enter the pass for each child's end(). */
 static Boolean _isw_in_composite = False;
+
+/* Composite coalescing: during an event dispatch, many widgets may repaint
+   themselves (e.g. several buttons un/highlighting as the pointer crosses
+   them).  Each repaint's ISWRenderEnd would otherwise re-fold the ENTIRE tree
+   onto the windowed root and re-blit the whole window — once per widget.
+   Instead, while deferral is enabled we record each windowed root that needs a
+   composite and fold it exactly ONCE when the dispatch finishes
+   (ISWRenderFlushComposites). */
+#define ISW_MAX_DIRTY_ROOTS 16
+static Widget   _isw_dirty_roots[ISW_MAX_DIRTY_ROOTS];
+static int      _isw_dirty_count = 0;
+static int      _isw_defer_depth = 0;   /* >0 = coalesce instead of compositing */
+
+static void
+_isw_mark_dirty_root(Widget root)
+{
+    int i;
+    if (root == NULL)
+        return;
+    for (i = 0; i < _isw_dirty_count; i++)
+        if (_isw_dirty_roots[i] == root)
+            return;                      /* already pending */
+    if (_isw_dirty_count < ISW_MAX_DIRTY_ROOTS)
+        _isw_dirty_roots[_isw_dirty_count++] = root;
+    else
+        /* Overflow: composite immediately rather than dropping the update. */
+        ISWRenderCompositeSubtree(root);
+}
+
+void
+ISWRenderBeginDeferComposite(void)
+{
+    _isw_defer_depth++;
+}
+
+/* Request a composite of a windowed root: deferred (coalesced) if a dispatch
+   is in progress, otherwise immediate.  Callers that previously invoked
+   ISWRenderCompositeSubtree directly for a repaint should use this so the work
+   collapses into the per-dispatch flush. */
+void
+ISWRenderRequestComposite(Widget windowed_root)
+{
+    if (windowed_root == NULL)
+        return;
+    if (_isw_defer_depth > 0)
+        _isw_mark_dirty_root(windowed_root);
+    else
+        ISWRenderCompositeSubtree(windowed_root);
+}
+
+void
+ISWRenderFlushComposites(void)
+{
+    int i, n;
+    Widget roots[ISW_MAX_DIRTY_ROOTS];
+
+    if (_isw_defer_depth > 0)
+        _isw_defer_depth--;
+    if (_isw_defer_depth > 0)
+        return;                          /* still nested; flush at outermost */
+
+    /* Snapshot and clear first: compositing can itself trigger paints that
+       re-mark roots dirty, and we must not lose or infinitely chase them. */
+    n = _isw_dirty_count;
+    for (i = 0; i < n; i++)
+        roots[i] = _isw_dirty_roots[i];
+    _isw_dirty_count = 0;
+
+    for (i = 0; i < n; i++)
+        ISWRenderCompositeSubtree(roots[i]);
+}
+
+/* If a widget that's pending composite is being destroyed, drop it. */
+void
+_ISWRenderForgetDirtyRoot(Widget w)
+{
+    int i;
+    for (i = 0; i < _isw_dirty_count; i++) {
+        if (_isw_dirty_roots[i] == w) {
+            _isw_dirty_roots[i] = _isw_dirty_roots[--_isw_dirty_count];
+            return;
+        }
+    }
+}
 
 static void
 _ISWRenderRegister(Widget w, ISWRenderContext *ctx)
@@ -157,6 +243,9 @@ _ISWRenderUnregister(ISWRenderContext *ctx)
     while (*pp != NULL) {
         if ((*pp)->ctx == ctx) {
             CtxMapEntry *e = *pp;
+            /* Drop any pending coalesced composite for this widget so the
+               end-of-dispatch flush doesn't touch a destroyed widget. */
+            _ISWRenderForgetDirtyRoot(e->widget);
             if (e->has_clip) {
                 /* Keep the entry for its persisted composite clip; just drop
                    the (now-destroyed) context pointer. */
@@ -443,8 +532,15 @@ ISWRenderEnd(ISWRenderContext *ctx)
         Widget root = ctx->widget;
         while (root != NULL && IswIsWidget(root) && root->core.windowless)
             root = root->core.parent;
-        if (root != NULL)
-            ISWRenderCompositeSubtree(root);
+        if (root != NULL) {
+            /* During an event dispatch, coalesce: record the root and fold it
+               once when the dispatch unwinds.  Outside a dispatch (deferral
+               disabled), composite immediately as before. */
+            if (_isw_defer_depth > 0)
+                _isw_mark_dirty_root(root);
+            else
+                ISWRenderCompositeSubtree(root);
+        }
     }
 }
 
