@@ -121,6 +121,8 @@ typedef struct IswPerDisplayInputRec{
     Widget 	*trace;
     int		traceDepth, traceMax;
     Widget 	focusWidget;
+    Widget 	pointerWidget;	/* windowless widget under pointer, for
+				   synthesized Enter/Leave crossing events */
 }IswPerDisplayInputRec, *IswPerDisplayInput;
 
 #define IsServerGrab(g) ((g == IswPassiveServerGrab) ||\

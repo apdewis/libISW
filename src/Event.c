@@ -959,6 +959,196 @@ IswWindowToWidget(register xcb_connection_t *display, register xcb_window_t wind
     return NULL;
 }
 
+/* Accumulate a widget's origin relative to its nearest windowed ancestor by
+   walking up through windowless parents. */
+static void
+_IswWindowlessOffset(Widget w, int *dx, int *dy)
+{
+    int ox = 0, oy = 0;
+
+    while (w != NULL && IswIsWidget(w) && w->core.windowless) {
+        ox += w->core.x;
+        oy += w->core.y;
+        w = w->core.parent;
+    }
+    *dx = ox;
+    *dy = oy;
+}
+
+/* Dispatch a synthesized Enter/Leave crossing event to a windowless widget,
+   derived from the triggering motion event (root coords preserved, window
+   coords rebased to the target's windowed-ancestor frame). */
+static void
+_IswSynthesizeCrossing(Widget w, xcb_generic_event_t *motion, uint8_t type)
+{
+    xcb_motion_notify_event_t *m = (xcb_motion_notify_event_t *) motion;
+    xcb_enter_notify_event_t ev = {0};
+    int dx, dy;
+
+    if (!IswIsSensitive(w) || !IswIsRealized(w))
+        return;
+    if (!(IswBuildEventMask(w) &
+          (type == XCB_ENTER_NOTIFY ? XCB_EVENT_MASK_ENTER_WINDOW
+                                    : XCB_EVENT_MASK_LEAVE_WINDOW)))
+        return;
+
+    _IswWindowlessOffset(w, &dx, &dy);
+
+    ev.response_type = type;
+    ev.time = m->time;
+    ev.root = m->root;
+    ev.event = IswWindow(w);
+    ev.child = m->child;
+    ev.root_x = m->root_x;
+    ev.root_y = m->root_y;
+    ev.event_x = (int16_t) (m->event_x - dx);
+    ev.event_y = (int16_t) (m->event_y - dy);
+    ev.state = m->state;
+    ev.mode = XCB_NOTIFY_MODE_NORMAL;
+    ev.detail = XCB_NOTIFY_DETAIL_NONLINEAR;
+    ev.same_screen_focus = 1;
+
+    IswDispatchEventToWidget(w, (xcb_generic_event_t *) &ev);
+}
+
+/*
+ * Windowless hit-testing.
+ *
+ * Windowless widgets have no X window, so the server cannot route pointer
+ * events to them; the event is reported against the nearest windowed
+ * ancestor's window.  Given that ancestor (root) and a point in its
+ * coordinate space, descend the widget tree to find the deepest windowless
+ * widget under the point.  Descent stops at windowed children: the server
+ * delivers their events directly, so they are never redirected here.
+ *
+ * On a match, dx and dy receive the origin of the returned widget relative
+ * to root, so callers can rebase event coordinates to widget-local.
+ */
+static Widget
+_IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
+{
+    Widget target = root;
+    int ox = 0, oy = 0;
+
+    if (!IswIsComposite(root)) {
+        *dx = 0;
+        *dy = 0;
+        return root;
+    }
+
+    for (;;) {
+        CompositeWidget cw = (CompositeWidget) target;
+        Widget hit = NULL;
+        int i;
+
+        /* Reverse stacking order: last child is topmost. */
+        for (i = (int) cw->composite.num_children - 1; i >= 0; i--) {
+            Widget child = cw->composite.children[i];
+            int cx, cy, cw_, ch;
+
+            if (!IswIsRectObj(child))
+                continue;
+            /* Only windowless children are hit-tested here; windowed
+               children receive their own events from the server. */
+            if (!IswIsWidget(child) || !child->core.windowless)
+                continue;
+            if (!child->core.managed)
+                continue;
+
+            cx = child->core.x;
+            cy = child->core.y;
+            cw_ = (int) child->core.width + 2 * (int) child->core.border_width;
+            ch = (int) child->core.height + 2 * (int) child->core.border_width;
+
+            if (x >= ox + cx && x < ox + cx + cw_ &&
+                y >= oy + cy && y < oy + cy + ch) {
+                hit = child;
+                break;
+            }
+        }
+
+        if (hit == NULL)
+            break;
+
+        target = hit;
+        ox += hit->core.x;
+        oy += hit->core.y;
+
+        if (!IswIsComposite(target))
+            break;
+    }
+
+    *dx = ox;
+    *dy = oy;
+    return target;
+}
+
+/* Rebase a pointer/key/crossing event's window-local coordinates by
+   (-dx, -dy) so they are relative to a windowless target widget. */
+static void
+_IswRebaseEventCoords(xcb_generic_event_t *event, int dx, int dy)
+{
+    if (dx == 0 && dy == 0)
+        return;
+
+    switch (event->response_type & ~0x80) {
+    case XCB_KEY_PRESS:
+    case XCB_KEY_RELEASE:
+    case XCB_BUTTON_PRESS:
+    case XCB_BUTTON_RELEASE: {
+        xcb_button_press_event_t *e = (xcb_button_press_event_t *) event;
+        e->event_x = (int16_t) (e->event_x - dx);
+        e->event_y = (int16_t) (e->event_y - dy);
+        break;
+    }
+    case XCB_MOTION_NOTIFY: {
+        xcb_motion_notify_event_t *e = (xcb_motion_notify_event_t *) event;
+        e->event_x = (int16_t) (e->event_x - dx);
+        e->event_y = (int16_t) (e->event_y - dy);
+        break;
+    }
+    case XCB_ENTER_NOTIFY:
+    case XCB_LEAVE_NOTIFY: {
+        xcb_enter_notify_event_t *e = (xcb_enter_notify_event_t *) event;
+        e->event_x = (int16_t) (e->event_x - dx);
+        e->event_y = (int16_t) (e->event_y - dy);
+        break;
+    }
+    }
+}
+
+/* Extract window-local pointer coordinates from a pointer event.
+   Returns False for events without pointer coordinates. */
+static Boolean
+_IswEventPointerXY(xcb_generic_event_t *event, int *x, int *y)
+{
+    /* Keyboard events are intentionally excluded: they route to the focus
+       widget, not by pointer position. */
+    switch (event->response_type & ~0x80) {
+    case XCB_BUTTON_PRESS:
+    case XCB_BUTTON_RELEASE: {
+        xcb_button_press_event_t *e = (xcb_button_press_event_t *) event;
+        *x = e->event_x;
+        *y = e->event_y;
+        return True;
+    }
+    case XCB_MOTION_NOTIFY: {
+        xcb_motion_notify_event_t *e = (xcb_motion_notify_event_t *) event;
+        *x = e->event_x;
+        *y = e->event_y;
+        return True;
+    }
+    case XCB_ENTER_NOTIFY:
+    case XCB_LEAVE_NOTIFY: {
+        xcb_enter_notify_event_t *e = (xcb_enter_notify_event_t *) event;
+        *x = e->event_x;
+        *y = e->event_y;
+        return True;
+    }
+    }
+    return False;
+}
+
 void
 _IswAllocWWTable(IswPerDisplay pd)
 {
@@ -1520,6 +1710,37 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
 
     widget = IswWindowToWidget(dpy, get_event_window(event));
     pdi = _IswGetPerDisplayInput(dpy);
+
+    /* Windowless hit-testing: pointer events are reported against the
+       windowed ancestor's window.  Redirect to the deepest windowless
+       widget under the pointer and rebase the event coordinates to it.
+       Keyboard events are routed by focus, not position, so are excluded. */
+    if (widget != NULL) {
+        int px, py;
+        if (_IswEventPointerXY(event, &px, &py)) {
+            int dx, dy;
+            Widget target = _IswFindWidgetAtPoint(widget, px, py, &dx, &dy);
+
+            /* On motion, synthesize Enter/Leave when the windowless widget
+               under the pointer changes. */
+            if ((event->response_type & ~0x80) == XCB_MOTION_NOTIFY &&
+                target != pdi->pointerWidget) {
+                Widget old_pw = pdi->pointerWidget;
+                pdi->pointerWidget = (target != widget) ? target : NULL;
+                if (old_pw != NULL && IswIsWidget(old_pw)
+                    && old_pw->core.windowless && !old_pw->core.being_destroyed)
+                    _IswSynthesizeCrossing(old_pw, event, XCB_LEAVE_NOTIFY);
+                if (pdi->pointerWidget != NULL)
+                    _IswSynthesizeCrossing(pdi->pointerWidget, event,
+                                           XCB_ENTER_NOTIFY);
+            }
+
+            if (target != widget) {
+                _IswRebaseEventCoords(event, dx, dy);
+                widget = target;
+            }
+        }
+    }
 
     grabList = *_IswGetGrabList(pdi);
 
