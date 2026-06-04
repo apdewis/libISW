@@ -759,10 +759,10 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	    IswMoveWidget( bar,
 			  (Position)((needsvert && !w->viewport.useright)
 			   ? w->viewport.vert_bar->core.width + pad
-			   : 0),
+			   : - bw),
 			  (Position)(w->viewport.usebottom
 			    ? w->core.height - bar->core.height - bw
-			    : 0) );
+			    : - bw) );
 	    IswSetMappedWhenManaged( bar, True );
 	}
     }
@@ -784,10 +784,10 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	    IswMoveWidget( bar,
 			  (Position)(w->viewport.useright
 			   ? w->core.width - bar->core.width - bw
-			   : 0),
+			   : -bw),
 			  (Position)((needshoriz && !w->viewport.usebottom)
 			    ? w->viewport.horiz_bar->core.height + pad
-			    : 0) );
+			    : -bw) );
 	    IswSetMappedWhenManaged( bar, True );
 	}
     }
