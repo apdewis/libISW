@@ -104,6 +104,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     new->core.windowless = True;
 
+    /* ProgressBar strokes its own trough/border; suppress the windowless
+       backend's generic border ring to avoid a redundant border. */
+    ((SimpleWidget) new)->simple.self_border = True;
+
     ClampValue(pbw);
 
     /* Set default size if not specified (logical pixels) */
