@@ -75,6 +75,7 @@ in this Software without prior written authorization from The Open Group.
 #include <xcb/xcb.h>
 
 #include "IntrinsicI.h"
+#include <ISW/ISWRender.h>
 #include <stdio.h>
 #include <errno.h>
 
@@ -920,14 +921,27 @@ _IswWaitForSomething(IswAppContext app,
     }
 }
 
+/* Timer / alternate-input / signal callbacks run OUTSIDE IswDispatchEvent, so
+ * the composite coalescing that wraps event dispatch does not cover them.  A
+ * callback that repaints several widgets (e.g. a clock tick calling IswSetValues
+ * on multiple labels) would otherwise composite+blit once per widget, which
+ * reads as flicker.  Bracket each callback with defer/flush so all its repaints
+ * collapse into a single composite+blit per affected window, matching the
+ * event-dispatch path. */
 #define IeCallProc(ptr) \
-    (*ptr->ie_proc) (ptr->ie_closure, &ptr->ie_source, (IswInputId*)&ptr);
+    do { ISWRenderBeginDeferComposite(); \
+         (*ptr->ie_proc) (ptr->ie_closure, &ptr->ie_source, (IswInputId*)&ptr); \
+         ISWRenderFlushComposites(); } while (0);
 
 #define TeCallProc(ptr) \
-    (*ptr->te_proc) (ptr->te_closure, (IswIntervalId*)&ptr);
+    do { ISWRenderBeginDeferComposite(); \
+         (*ptr->te_proc) (ptr->te_closure, (IswIntervalId*)&ptr); \
+         ISWRenderFlushComposites(); } while (0);
 
 #define SeCallProc(ptr) \
-    (*ptr->se_proc) (ptr->se_closure, (IswSignalId*)&ptr);
+    do { ISWRenderBeginDeferComposite(); \
+         (*ptr->se_proc) (ptr->se_closure, (IswSignalId*)&ptr); \
+         ISWRenderFlushComposites(); } while (0);
 
 /*
  * Public Routines
@@ -1366,7 +1380,10 @@ CallWorkProc(IswAppContext app)
 
     app->workQueue = w->next;
 
+    /* Coalesce any repaints the work proc triggers (see IeCallProc). */
+    ISWRenderBeginDeferComposite();
     delete = (*(w->proc)) (w->closure);
+    ISWRenderFlushComposites();
 
     if (delete) {
         LOCK_PROCESS;
