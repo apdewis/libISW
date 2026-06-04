@@ -52,8 +52,11 @@ static IswResource resources[] = {
 /*
  * widget class methods used below
  */
+static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Destroy(Widget);
 static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void ChangeManaged(Widget);
 static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
@@ -66,7 +69,7 @@ PortholeClassRec portholeClassRec = {
     /* class_initialize		*/	IswInitializeWidgetSet,
     /* class_part_initialize	*/	NULL,
     /* class_inited		*/	FALSE,
-    /* initialize		*/	NULL,
+    /* initialize		*/	Initialize,
     /* initialize_hook		*/	NULL,
     /* realize			*/	Realize,
     /* actions			*/	NULL,
@@ -78,9 +81,9 @@ PortholeClassRec portholeClassRec = {
     /* compress_exposure	*/	TRUE,
     /* compress_enterleave	*/	TRUE,
     /* visible_interest		*/	FALSE,
-    /* destroy			*/	NULL,
+    /* destroy			*/	Destroy,
     /* resize			*/	Resize,
-    /* expose			*/	NULL,
+    /* expose			*/	Redisplay,
     /* set_values		*/	NULL,
     /* set_values_hook		*/	NULL,
     /* set_values_almost	*/	IswInheritSetValuesAlmost,
@@ -199,6 +202,58 @@ layout_child (PortholeWidget pw, Widget child, IswWidgetGeometry *geomp,
  *                                                                           *
  *****************************************************************************/
 
+
+/* ARGSUSED */
+static void
+Initialize (Widget request, Widget gw, ArgList args, Cardinal *num_args)
+{
+    PortholeWidget pw = (PortholeWidget) gw;
+    (void) request; (void) args; (void) num_args;
+
+    /* The porthole is windowless: it owns a back surface and composites its
+       (oversized, negatively-offset) child onto it, clipped to its own
+       bounds.  This replaces the real clip window the porthole used to own. */
+    gw->core.windowless = True;
+    pw->porthole.render_ctx = NULL;
+}
+
+/* Fill the porthole background and confine its child to the visible window.
+   Run from the windowless composite paint walk, after the child's render
+   context exists, so the clip is reliably applied even on the first paint. */
+static void
+Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+{
+    PortholeWidget pw = (PortholeWidget) gw;
+    Widget child = find_child (pw);
+    ISWRenderContext *ctx = pw->porthole.render_ctx;
+    (void) event; (void) region;
+
+    if (!ctx && gw->core.width > 0 && gw->core.height > 0 && IswIsRealized(gw))
+	ctx = pw->porthole.render_ctx = ISWRenderCreate(gw, ISW_RENDER_BACKEND_AUTO);
+    if (ctx) {
+	ISWRenderBegin(ctx);
+	ISWRenderSetColor(ctx, gw->core.background_pixel);
+	ISWRenderFillRectangle(ctx, 0, 0, gw->core.width, gw->core.height);
+	ISWRenderEnd(ctx);
+    }
+
+    /* Clip the child to the porthole's content rectangle (the "porthole"
+       through which the larger child is seen).  The child scrolls by being
+       positioned at negative x/y within this rectangle. */
+    if (child != NULL)
+	ISWRenderSetCompositeClip(child, 0, 0,
+				  gw->core.width, gw->core.height);
+}
+
+static void
+Destroy (Widget gw)
+{
+    PortholeWidget pw = (PortholeWidget) gw;
+    if (pw->porthole.render_ctx) {
+	ISWRenderDestroy(pw->porthole.render_ctx);
+	pw->porthole.render_ctx = NULL;
+    }
+}
 
 static void
 Realize (xcb_connection_t *dpy, Widget gw, IswValueMask *valueMask, uint32_t *attributes)

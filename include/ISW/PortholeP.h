@@ -29,6 +29,7 @@ in this Software without prior written authorization from the X Consortium.
 #define _ISW_IswPortholeP_h
 
 #include <ISW/Porthole.h>
+#include <ISW/ISWRender.h>
 
 typedef struct {			/* new fields in widget class */
     int dummy;
@@ -45,6 +46,7 @@ typedef struct {			/* new fields in widget */
     /* resources... */
     IswCallbackList report_callbacks;	/* callback/Callback */
     /* private data... */
+    ISWRenderContext *render_ctx;	/* windowless back surface */
 } PortholePart;
 
 typedef struct _PortholeRec {
