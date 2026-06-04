@@ -123,6 +123,13 @@ typedef struct IswPerDisplayInputRec{
     Widget 	focusWidget;
     Widget 	pointerWidget;	/* windowless widget under pointer, for
 				   synthesized Enter/Leave crossing events */
+    Widget 	windowlessButtonGrab;	/* windowless widget that received a
+				   button press; while a button is held, motion
+				   is routed here (implicit pointer grab) rather
+				   than re-hit-tested by position, so a drag
+				   (Paned sash, Slider thumb) keeps reaching the
+				   widget even when the pointer leaves it */
+    unsigned int buttonsDown;	/* bitmask of currently-pressed buttons */
 }IswPerDisplayInputRec, *IswPerDisplayInput;
 
 #define IsServerGrab(g) ((g == IswPassiveServerGrab) ||\

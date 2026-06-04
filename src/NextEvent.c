@@ -601,6 +601,39 @@ _IswFillEventQueue(IswAppContext app) {
                 }
             }
 
+            /* MotionNotify coalescing: while dragging (e.g. a Slider thumb or
+             * Paned sash) the server emits a MotionNotify per pixel.  Each
+             * one drives a repaint+composite, so processing every queued
+             * motion makes the dragged element trail the pointer.  When a new
+             * motion arrives and the queue already holds one for the same
+             * window, replace the stale position with the latest — the widget
+             * only ever needs the most recent pointer location.  Honours the
+             * compress_motion class flag's intent at the queue level. */
+            if (type == XCB_MOTION_NOTIFY) {
+                xcb_motion_notify_event_t *mne =
+                    (xcb_motion_notify_event_t *)e;
+                IswEventQueue *scan = app->event_front;
+                IswEventQueue *found = NULL;
+                while (scan) {
+                    uint8_t st = scan->event->response_type & ~0x80;
+                    if (st == XCB_MOTION_NOTIFY &&
+                        scan->display == app->list[dd]) {
+                        xcb_motion_notify_event_t *old =
+                            (xcb_motion_notify_event_t *)scan->event;
+                        if (old->event == mne->event) {
+                            found = scan;
+                            /* keep scanning — we want the last one */
+                        }
+                    }
+                    scan = scan->next;
+                }
+                if (found) {
+                    free(found->event);
+                    found->event = e;
+                    continue;  /* already queued — don't allocate a new node */
+                }
+            }
+
             IswEventQueue *q = IswNew(IswEventQueue);
             q->event = e;
             q->display = app->list[dd];

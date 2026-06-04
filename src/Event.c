@@ -1929,11 +1929,59 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
         int px, py;
         if (_IswEventPointerXY(event, &px, &py)) {
             int dx, dy;
+            uint8_t etype = event->response_type & ~0x80;
             Widget target = _IswFindWidgetAtPoint(widget, px, py, &dx, &dy);
+
+            /* Implicit windowless pointer grab: the first button press starts a
+               grab on the windowless widget hit; while any button stays down,
+               motion is routed to that widget instead of being re-hit-tested
+               by position.  Without this a drag (Paned sash, Slider thumb)
+               loses its target the moment the pointer slips off the widget. */
+            if (etype == XCB_BUTTON_PRESS) {
+                if (pdi->buttonsDown == 0)
+                    pdi->windowlessButtonGrab =
+                        (target != widget && IswIsWidget(target) &&
+                         target->core.windowless) ? target : NULL;
+                pdi->buttonsDown |=
+                    (1u << ((xcb_button_press_event_t *) event)->detail);
+            }
+
+            /* While the grab is held, redirect motion AND the button release
+               to the grabbed widget, rebasing coordinates to it (its offset
+               from the windowed root, same convention as
+               _IswFindWidgetAtPoint's dx,dy).  Routing the release here lets
+               the grab's <BtnUp> action fire even if the pointer has slipped
+               off the widget. */
+            if ((etype == XCB_MOTION_NOTIFY || etype == XCB_BUTTON_RELEASE) &&
+                pdi->buttonsDown != 0 &&
+                pdi->windowlessButtonGrab != NULL &&
+                IswIsWidget(pdi->windowlessButtonGrab) &&
+                !pdi->windowlessButtonGrab->core.being_destroyed) {
+                Widget g = pdi->windowlessButtonGrab;
+                int gx = 0, gy = 0;
+                Widget a;
+                for (a = g; a != NULL && IswIsWidget(a) && a->core.windowless;
+                     a = a->core.parent) {
+                    gx += a->core.x + (int) a->core.border_width;
+                    gy += a->core.y + (int) a->core.border_width;
+                }
+                target = g;
+                dx = gx;
+                dy = gy;
+            }
+
+            /* Release: clear the per-button bit; drop the grab when the last
+               button comes up. */
+            if (etype == XCB_BUTTON_RELEASE) {
+                pdi->buttonsDown &=
+                    ~(1u << ((xcb_button_release_event_t *) event)->detail);
+                if (pdi->buttonsDown == 0)
+                    pdi->windowlessButtonGrab = NULL;
+            }
 
             /* On motion, synthesize Enter/Leave when the windowless widget
                under the pointer changes. */
-            if ((event->response_type & ~0x80) == XCB_MOTION_NOTIFY &&
+            if (etype == XCB_MOTION_NOTIFY &&
                 target != pdi->pointerWidget) {
                 Widget old_pw = pdi->pointerWidget;
                 pdi->pointerWidget = (target != widget) ? target : NULL;
