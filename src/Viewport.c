@@ -359,17 +359,22 @@ Realize(xcb_connection_t *conn, Widget widget, IswValueMask *value_mask, uint32_
     (*w->core.widget_class->core_class.resize)(widget);	/* turn on bars */
 
     if (child != (Widget)NULL) {
-	IswMoveWidget( child, (Position)0, (Position)0 );
 	IswRealizeWidget( clip );
 	IswRealizeWidget( child );
 
 	if (!child->core.windowless) {
-	    /* Windowed child: reparent its X window into the clip window so
-	       the server clips overflow.  A windowless child has no window to
-	       reparent — it is clipped in software during rendering. */
+	    /* Windowed child: it is reparented into the clip window, so its
+	       position is relative to the clip's origin — move it to (0,0)
+	       within the clip, then reparent and map. */
+	    IswMoveWidget( child, (Position)0, (Position)0 );
 	    xcb_reparent_window(conn, IswWindow(child), IswWindow(clip), 0, 0);
 	    IswMapWidget( child );
 	}
+	/* Windowless child: NOT reparented — it composites in the Viewport's
+	   own coordinate frame, where the resize above (ComputeLayout/MoveChild)
+	   already positioned it at the clip origin (offset past any left/top
+	   scrollbar).  Moving it to (0,0) here would drop that scrollbar offset,
+	   shifting the content under the bar. */
     }
 }
 

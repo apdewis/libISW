@@ -79,6 +79,7 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
+static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
@@ -154,7 +155,7 @@ ListViewClassRec listViewClassRec = {
     IswVersion,
     NULL,
     defaultTranslations,
-    IswInheritQueryGeometry,
+    QueryGeometry,
     IswInheritDisplayAccelerator,
     NULL
   },
@@ -554,6 +555,36 @@ Resize(Widget w)
     ComputeMetrics(lv);
     if (IswIsRealized(w))
         Redisplay(w, NULL, 0);
+}
+
+/* Report the full content height (header + all rows) so the enclosing Viewport
+   reserves a vertical scrollbar from the first layout — not only after a
+   post-realize redraw.  Inheriting Simple's query_geometry returned
+   core.height, which at init is still the default and doesn't reflect the rows
+   of content, so the Viewport saw the list as fitting and reserved no bar. */
+static IswGeometryResult
+QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *reply)
+{
+    ListViewWidget lv = (ListViewWidget) w;
+    int fh = lv->listView.font ? ISWScaledFontHeight(w, lv->listView.font)
+                               : (int)14;
+    Dimension row_h = lv->listView.row_height > 0
+                    ? lv->listView.row_height
+                    : (Dimension)(fh + 2 * CELL_PAD_Y);
+    Dimension hdr_h = !lv->listView.show_header ? 0
+                    : (lv->listView.header_height > 0
+                       ? lv->listView.header_height
+                       : (Dimension)(fh + 2 * CELL_PAD_Y + 2));
+    Dimension content_h = hdr_h + (Dimension)(lv->listView.nrows * (int)row_h);
+    if (content_h < 1) content_h = 1;
+
+    reply->request_mode = XCB_CONFIG_WINDOW_HEIGHT;
+    reply->height = content_h;
+
+    if ((intended->request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
+        intended->height == reply->height)
+        return IswGeometryYes;
+    return IswGeometryAlmost;
 }
 
 /* ================================================================

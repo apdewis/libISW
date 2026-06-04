@@ -38,6 +38,7 @@ typedef struct {
     int             ncols;        /* computed columns */
     int             nrows;        /* computed rows */
     Dimension       cell_w;       /* computed cell width */
+    Dimension       content_h;    /* total content height (preferred height) */
     Dimension      *row_h;        /* per-row cell heights */
     int            *row_y;        /* cumulative Y offset per row */
     IconViewItemCache *cache;     /* per-item raster cache */
