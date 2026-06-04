@@ -17,6 +17,7 @@
 #include <ISW/IntrinsicP.h> /* For Xt private types */
 #include <ISW/CoreP.h>       /* For accessing widget->core fields */
 #include <ISW/CompositeP.h>  /* For clipping out windowless children */
+#include <ISW/SimpleP.h>     /* For simple.self_border (own-border widgets) */
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -447,8 +448,13 @@ cairo_xcb_begin(ISWRenderContext *ctx)
             data->back_needs_clear = False;
         }
 
-        /* Border ring: footprint rect minus content rect, even-odd filled. */
-        if (bw > 0) {
+        /* Border ring: footprint rect minus content rect, even-odd filled.
+         * Skipped for widgets that paint their own border (Command and its
+         * subclasses draw a rounded Cairo stroke from core.border_width) so
+         * the border is not rendered twice. */
+        if (bw > 0 &&
+            !(IswIsSubclass(ctx->widget, simpleWidgetClass) &&
+              ((SimpleWidget) ctx->widget)->simple.self_border)) {
             Pixel bp = ctx->widget->core.border_pixel;
             int cw_ = ctx->widget->core.width;
             int ch = ctx->widget->core.height;

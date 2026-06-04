@@ -92,6 +92,11 @@ typedef struct {
 
     /* private state */
     Boolean     has_focus;      /* runtime: drawn-focus state */
+
+    /* Widget renders its own border (e.g. Command's rounded Cairo stroke
+       driven by core.border_width).  Suppresses the windowless backend's
+       generic border ring so the border is not drawn twice. */
+    Boolean     self_border;
 } SimplePart;
 
 typedef struct _SimpleRec {

@@ -116,7 +116,6 @@ static void Unhighlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Destroy(Widget);
 static void PaintCommandWidget(Widget, xcb_generic_event_t *, Region, Boolean);
 static void ClassInitialize(void);
-static void Realize(xcb_connection_t *, Widget, Mask *, uint32_t *);
 
 static IswActionsRec actionsList[] = {
   {"set",		Set},
@@ -139,7 +138,7 @@ CommandClassRec commandClassRec = {
     FALSE,				/* class_inited		  */
     Initialize,				/* initialize		  */
     NULL,				/* initialize_hook	  */
-    Realize,				/* realize		  */
+    IswInheritRealize,			/* realize		  */
     actionsList,			/* actions		  */
     IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
@@ -197,6 +196,10 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   /* Opt this widget into Tab traversal (focus manager). */
   ((SimpleWidget) new)->simple.traversal_on = True;
+
+  /* Command paints its own (rounded) border in PaintCommandWidget; suppress
+     the windowless backend's generic border ring to avoid a double border. */
+  ((SimpleWidget) new)->simple.self_border = True;
 }
 
 static ISWRegionPtr
@@ -554,17 +557,3 @@ ClassInitialize(void)
     IswInitializeWidgetSet();
 }
 
-/*
- * Suppress the X server-drawn window border. borderWidth drives the
- * Cairo-rendered (rounded) stroke in Redisplay instead.
- */
-static void
-Realize(xcb_connection_t *conn, Widget w, Mask *valueMask, uint32_t *attributes)
-{
-    (*commandWidgetClass->core_class.superclass->core_class.realize)
-        (conn, w, valueMask, attributes);
-
-    uint32_t zero = 0;
-    xcb_configure_window(conn, IswWindow(w),
-                         XCB_CONFIG_WINDOW_BORDER_WIDTH, &zero);
-}
