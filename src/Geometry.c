@@ -499,7 +499,13 @@ _IswMakeGeometryRequest(Widget widget,
                 values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
                 values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
-            xcb_configure_window(IswDisplay(widget), IswWindow(widget), req.changeMask, values);
+            /* A windowless widget owns no X window: IswWindow() would resolve
+               to the nearest windowed ancestor (ultimately the shell), so
+               configuring it would resize that ancestor.  The parent's
+               geometry manager has already updated core.x/y/width/height and
+               is responsible for repainting the widget. */
+            if (!widget->core.windowless)
+                xcb_configure_window(IswDisplay(widget), IswWindow(widget), req.changeMask, values);
         }
     }
     else {                      /* RectObj child of realized Widget */
@@ -640,7 +646,9 @@ IswResizeWindow(Widget w)
                 values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
                 values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
-            xcb_configure_window(IswDisplay(w), IswWindow(w), req.changeMask, values);
+            /* Windowless widgets own no X window — see _IswMakeGeometryRequest. */
+            if (!w->core.windowless)
+                xcb_configure_window(IswDisplay(w), IswWindow(w), req.changeMask, values);
         }
         hookobj = IswHooksOfDisplay(IswDisplayOfObject(w));
         if (IswHasCallbacks(hookobj, IswNconfigureHook) == IswCallbackHasSome) {

@@ -883,7 +883,10 @@ IswFormDoLayout(Widget _fw,
 	     * my changes.
 	     */
 
-	    {
+	    /* Windowless children have no X window of their own —
+	       IswWindow(w) would resolve to the windowed ancestor, so
+	       configuring it would resize the ancestor's window. */
+	    if (!w->core.windowless) {
 		/* HiDPI: scale logical to physical for the X server */
 		double _sf = _IswGetScaleFactor(IswDisplay(w));
 		uint32_t values[4];
