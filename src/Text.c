@@ -2243,7 +2243,7 @@ TextHitChild(Widget w, int x, int y, int *dx, int *dy)
 
     if (bar == NULL || !bar->core.windowless)
       continue;
-    if (!bar->core.managed && !bar->core.mapped_when_managed)
+    if (!bar->core.windowless_mapped)   /* only mapped (shown) bars */
       continue;
 
     bx = bar->core.x;

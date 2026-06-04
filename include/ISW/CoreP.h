@@ -104,6 +104,12 @@ typedef struct _CorePart {
                                            nearest windowed ancestor         */
     Boolean         windowless_realized;/* windowless widget has been
                                            realized (no window to test)      */
+    Boolean         windowless_mapped;  /* windowless equivalent of "the X
+                                           window is mapped": the live shown
+                                           state, driven by Isw{Map,Unmap}Widget
+                                           exactly as map/unmap drive a real
+                                           window.  The composite/paint/hit-test
+                                           walks gate on this.                */
 } CorePart;
 
 typedef struct _WidgetRec {

@@ -552,12 +552,12 @@ _isw_composite_shown(Widget child)
         return False;
     if (!child->core.windowless_realized && !IswIsRealized(child))
         return False;
-    /* mapped_when_managed doubles as the live "is shown" flag for windowless
-       widgets (they have no X window to map/unmap).  A managed child that has
-       been explicitly unmapped — e.g. a non-current Tabs page — has this False
-       and must NOT composite, or every tab's content would stack on top of the
-       visible one.  Default is True, so unhidden widgets are unaffected. */
-    if (!child->core.mapped_when_managed)
+    /* windowless_mapped is the live "the window is mapped" equivalent for
+       windowless widgets — driven by Isw{Map,Unmap}Widget / manage / unmanage
+       exactly as map/unmap drive a real window.  A widget composites only while
+       mapped, just as a windowed widget is on screen only while its window is
+       mapped. */
+    if (!child->core.windowless_mapped)
         return False;
     return True;
 }

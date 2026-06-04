@@ -77,6 +77,8 @@ static IswResource resources[] = {
 
 static void GripAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
+static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Destroy(Widget);
 
 static IswActionsRec actionsList[] =
 {
@@ -106,9 +108,9 @@ GripClassRec gripClassRec = {
     /* compress_exposure  */   TRUE,
     /* compress_enterleave*/   TRUE,
     /* visible_interest   */   FALSE,
-    /* destroy            */   NULL,
+    /* destroy            */   Destroy,
     /* resize             */   NULL,
-    /* expose             */   IswInheritExpose,
+    /* expose             */   Redisplay,
     /* set_values         */   NULL,
     /* set_values_hook    */   NULL,
     /* set_values_almost  */   IswInheritSetValuesAlmost,
@@ -139,6 +141,40 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     /* core.width / core.height are now scaled centrally in xtCreate() */
     new->core.windowless = True;
+    ((GripWidget) new)->grip.render_ctx = NULL;
+}
+
+/* Windowless: the Grip has no X window for the server to background-fill, so
+   paint its own background into its surface.  Without this the grip is
+   invisible (its surface stays transparent) and Paned's drag handles vanish. */
+static void
+Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+{
+    GripWidget gw = (GripWidget) w;
+    (void) event; (void) region;
+
+    if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
+        return;
+
+    if (gw->grip.render_ctx == NULL)
+        gw->grip.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    if (gw->grip.render_ctx) {
+        ISWRenderBegin(gw->grip.render_ctx);
+        ISWRenderSetColor(gw->grip.render_ctx, w->core.background_pixel);
+        ISWRenderFillRectangle(gw->grip.render_ctx, 0, 0,
+                               (int) w->core.width, (int) w->core.height);
+        ISWRenderEnd(gw->grip.render_ctx);
+    }
+}
+
+static void
+Destroy(Widget w)
+{
+    GripWidget gw = (GripWidget) w;
+    if (gw->grip.render_ctx != NULL) {
+        ISWRenderDestroy(gw->grip.render_ctx);
+        gw->grip.render_ctx = NULL;
+    }
 }
 
 static void

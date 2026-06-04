@@ -75,6 +75,7 @@ in this Software without prior written authorization from The Open Group.
 #include "ShellP.h"
 #include "ShellI.h"
 #include <ISW/ISWRender.h>
+#include <ISW/EventI.h>
 
 
 #include <math.h>
@@ -724,18 +725,38 @@ IswConfigureWidget(Widget w,
         Widget hookobj;
 
         if (IswIsRealized(w) && IswIsWidget(w) && w->core.windowless) {
-            /* Windowless widgets have no X window to configure.  Re-composite
-               the windowed ancestor: the composite pass folds the whole
-               subtree (this widget at its new position, plus siblings) into the
-               ancestor's off-screen back buffer and blits the finished frame
-               once.  We must NOT xcb_clear_area the window to provoke an
-               Expose — that paints the window background on screen immediately,
-               and the content only reappears on the asynchronous Expose,
-               producing a clear→repaint flash on every move (scroll flicker).
-               The coalesced composite avoids the window ever showing a cleared
-               state. */
-            Widget pw = _IswWindowedAncestor(w);
+            /* Windowless widgets have no X window to configure, and the server
+               never sends them an Expose after a geometry change.
 
+               A SIZE change means the widget's own surface is now the wrong
+               size and its painted content is stale — it must be repainted at
+               the new size (the windowed equivalent's post-resize Expose).
+               _IswRepaintWindowless redraws the widget and its windowless
+               descendants into their surfaces, then composites the ancestor.
+
+               A position-only MOVE leaves the surface content valid; just
+               re-composite the ancestor so the widget lands at its new offset.
+               We must NOT xcb_clear_area the shared window to provoke an Expose
+               — that flashes the cleared background before the async repaint.
+               The coalesced composite avoids any cleared-state flicker. */
+            Widget pw = _IswWindowedAncestor(w);
+            Boolean size_changed =
+                (req.changeMask & (XCB_CONFIG_WINDOW_WIDTH |
+                                   XCB_CONFIG_WINDOW_HEIGHT |
+                                   XCB_CONFIG_WINDOW_BORDER_WIDTH)) != 0;
+
+            if (size_changed && !w->core.being_destroyed &&
+                w->core.widget_class->core_class.expose != NULL) {
+                /* Repaint THIS widget's surface at the new size by invoking its
+                   expose proc directly.  Do not walk descendants here: each
+                   descendant gets its own IswConfigureWidget during the resize
+                   relayout and repaints itself, so walking them too would repaint
+                   the subtree O(depth) times per resize.  Suppress the per-end()
+                   auto-composite; the request below folds the ancestor once. */
+                ISWRenderBeginCompositeBatch();
+                (*w->core.widget_class->core_class.expose)(w, NULL, 0);
+                ISWRenderEndCompositeBatch();
+            }
             if (pw != NULL && IswIsRealized(pw) && !pw->core.being_destroyed)
                 ISWRenderRequestComposite(pw);
         }

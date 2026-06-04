@@ -197,17 +197,15 @@ LayoutChildren(TabsWidget tw)
         if (child == tw->tabs.top_widget) {
             if (IswIsRealized(child))
                 IswMapWidget(child);
-            else if (child->core.windowless)
-                child->core.mapped_when_managed = True;
         } else {
-            /* Non-top page: must start hidden.  When already realized, unmap
-               (toggles the windowless shown flag + recomposites).  When not yet
-               realized, set the windowless shown flag directly — otherwise it
-               defaults True and every page would composite on init. */
+            /* Non-top page must be hidden.  When realized, unmap it.  When not
+               yet realized, the windowless "mapped" flag defaults unmapped, so
+               nothing to do — but a previously-shown page being switched away
+               from before realize still needs the flag cleared. */
             if (IswIsRealized(child))
                 IswUnmapWidget(child);
             else if (child->core.windowless)
-                child->core.mapped_when_managed = False;
+                child->core.windowless_mapped = False;
         }
     }
 }

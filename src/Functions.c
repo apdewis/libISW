@@ -168,12 +168,13 @@ IswMapWidget(Widget w)
     WIDGET_TO_APPCON(w);
 
     LOCK_APP(app);
-    /* Windowless widgets have no X window to map.  mapped_when_managed is their
-       live "is shown" flag (consulted by the composite/paint/hit-test walks):
-       set it and re-composite the windowed ancestor so the now-shown widget
-       appears.  Mapping the shared ancestor window here would be wrong. */
+    /* Windowless widgets have no X window to map.  windowless_mapped is the
+       live equivalent of "the window is mapped" — the shown state the
+       composite/paint/hit-test walks gate on.  Set it (mirroring xcb_map_window
+       on a real window) and re-composite the windowed ancestor so the now-shown
+       widget appears.  Mapping the shared ancestor window here would be wrong. */
     if (IswIsWidget(w) && w->core.windowless) {
-        w->core.mapped_when_managed = True;
+        w->core.windowless_mapped = True;
         /* Paint the now-shown subtree (it may never have been drawn while
            hidden) and composite it up — the composite pass folds surfaces but
            does not itself drive expose. */
@@ -205,12 +206,12 @@ IswUnmapWidget(Widget w)
     WIDGET_TO_APPCON(w);
 
     LOCK_APP(app);
-    /* Windowless: clear the live "is shown" flag and re-composite so the now-
-       hidden widget stops contributing pixels.  Unmapping the shared ancestor
-       window would hide the whole window. */
+    /* Windowless: clear the live shown flag (mirroring xcb_unmap_window) and
+       re-composite so the now-hidden widget stops contributing pixels.
+       Unmapping the shared ancestor window would hide the whole window. */
     if (IswIsWidget(w) && w->core.windowless) {
         Widget anc;
-        w->core.mapped_when_managed = False;
+        w->core.windowless_mapped = False;
         anc = _IswWindowedAncestor(w);
         if (anc != NULL && IswIsRealized(anc))
             ISWRenderRequestComposite(anc);

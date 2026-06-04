@@ -671,19 +671,28 @@ CommitNewLocations(PanedWidget pw)
  */
 
 	if (HasGrip(*childP)) {
-	    grip->core.x = grip_x;
-	    grip->core.y = grip_y;
+	    if (grip->core.windowless) {
+	        /* Windowless grip: no X window to configure (IswWindow would
+	           return the shared ancestor window — configuring it would move
+	           the whole Paned).  Position via the geometry path, which
+	           recomposites; stacking is implicit in composite order. */
+	        IswMoveWidget(grip, (Position) grip_x, (Position) grip_y);
+	    }
+	    else {
+	        grip->core.x = grip_x;
+	        grip->core.y = grip_y;
 
-	    if (IswIsRealized(pane->grip)) {
-	        /* HiDPI: scale logical to physical for the X server */
-	        double _sf = _IswGetScaleFactor(IswDisplay(pane->grip));
-	        uint32_t values[3];
-	        values[0] = (uint32_t)(int32_t)(grip_x * _sf + 0.5);
-	        values[1] = (uint32_t)(int32_t)(grip_y * _sf + 0.5);
-	        values[2] = XCB_STACK_MODE_ABOVE;
-	        xcb_configure_window(IswDisplay(pane->grip), IswWindow(pane->grip),
+	        if (IswIsRealized(pane->grip)) {
+	            /* HiDPI: scale logical to physical for the X server */
+	            double _sf = _IswGetScaleFactor(IswDisplay(pane->grip));
+	            uint32_t values[3];
+	            values[0] = (uint32_t)(int32_t)(grip_x * _sf + 0.5);
+	            values[1] = (uint32_t)(int32_t)(grip_y * _sf + 0.5);
+	            values[2] = XCB_STACK_MODE_ABOVE;
+	            xcb_configure_window(IswDisplay(pane->grip), IswWindow(pane->grip),
 				     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
 				     XCB_CONFIG_WINDOW_STACK_MODE, values);
+	        }
 	    }
 	}
     }
@@ -914,14 +923,20 @@ MoveGripAdjustment(PanedWidget pw, Widget grip, int loc)
     CommitNewLocations(pw);
     DrawInternalBorders(pw);
 
-    if (IswIsRealized(pw->paned.whichadd))
-        xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(pw->paned.whichadd), 0, 0, 0, 0);
-    if (IswIsRealized(pw->paned.whichsub))
-        xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(pw->paned.whichsub), 0, 0, 0, 0);
-    if (PaneInfo(pw->paned.whichadd)->grip &&
-        IswIsRealized(PaneInfo(pw->paned.whichadd)->grip))
-        xcb_clear_area(IswDisplay((Widget)pw), 1,
-                       IswWindow(PaneInfo(pw->paned.whichadd)->grip), 0, 0, 0, 0);
+    /* Repaint the adjusted panes.  Windowless panes have no own window to
+       clear-area; CommitNewLocations already moved/resized them (which queues a
+       recomposite of the windowed ancestor), so just flush.  For real windowed
+       panes, clear to provoke an Expose-driven repaint. */
+    if (!((Widget)pw)->core.windowless) {
+        if (IswIsRealized(pw->paned.whichadd))
+            xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(pw->paned.whichadd), 0, 0, 0, 0);
+        if (IswIsRealized(pw->paned.whichsub))
+            xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(pw->paned.whichsub), 0, 0, 0, 0);
+        if (PaneInfo(pw->paned.whichadd)->grip &&
+            IswIsRealized(PaneInfo(pw->paned.whichadd)->grip))
+            xcb_clear_area(IswDisplay((Widget)pw), 1,
+                           IswWindow(PaneInfo(pw->paned.whichadd)->grip), 0, 0, 0, 0);
+    }
     xcb_flush(IswDisplay((Widget)pw));
 }
 

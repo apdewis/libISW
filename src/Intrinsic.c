@@ -336,6 +336,24 @@ RealizeWidget(Widget widget)
     realize = widget->core.widget_class->core_class.realize;
     class_name = widget->core.widget_class->core_class.class_name;
     UNLOCK_PROCESS;
+    /* Mark windowless widgets realized BEFORE running the class realize proc.
+       A windowed widget's realize creates its window, so IswIsRealized() (which
+       tests window != None) becomes true mid-proc; a windowless widget has no
+       window, so without setting the flag first, any IswIsRealized() check the
+       realize proc makes (e.g. Paned's RefigureLocationsAndCommit, which lays
+       out and positions the panes) sees the widget as unrealized and bails —
+       leaving children unpositioned. */
+    if (widget->core.windowless) {
+        widget->core.windowless_realized = True;
+        /* Initialize the live shown flag: a windowless widget is shown when it
+           would have its window mapped — i.e. it is managed and maps-when-
+           managed.  An unmanaged-but-realized widget (e.g. Paned's suppressed
+           last grip) stays hidden, mirroring a windowed widget whose window is
+           realized but never mapped.  Isw{Map,Unmap}Widget and manage/unmanage
+           drive it live thereafter; composite/paint/hit-test gate on it. */
+        widget->core.windowless_mapped =
+            widget->core.managed && widget->core.mapped_when_managed;
+    }
     if (realize == NULL)
         IswAppErrorMsg(IswWidgetToApplicationContext(widget),
                       "invalidProcedure", "realizeProc", IswCIswToolkitError,

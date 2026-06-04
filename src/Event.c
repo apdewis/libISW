@@ -1069,13 +1069,13 @@ _IswPaintWindowlessChild(Widget child, xcb_generic_event_t *event)
 {
     if (!IswIsWidget(child) || !child->core.windowless)
         return;
-    /* Paint realized windowless children that are shown.  mapped_when_managed
-       is the live "is shown" flag for windowless widgets (no X window to
-       map/unmap); an unmapped page (e.g. a non-current Tabs child) has it False
-       and must not paint.  Default True, so normal children are unaffected. */
+    /* Paint realized windowless children that are mapped.  windowless_mapped is
+       the live "the window is mapped" equivalent (driven by map/unmap/manage);
+       an unmapped child (non-current Tabs page, last Paned grip) must not
+       paint. */
     if (!IswIsRealized(child) && !child->core.windowless_realized)
         return;
-    if (!child->core.mapped_when_managed)
+    if (!child->core.windowless_mapped)
         return;
 
     if (child->core.widget_class->core_class.expose != NULL)
@@ -1207,10 +1207,9 @@ _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
                    children receive their own events from the server. */
                 if (!IswIsWidget(child) || !child->core.windowless)
                     continue;
-                /* Same "shown" rule as paint/clip: mapped_when_managed is the
-                   live shown flag for windowless widgets; an unmapped page
-                   (non-current Tabs child) is not hit-tested. */
-                if (!child->core.mapped_when_managed)
+                /* Same "shown" rule as paint/clip: windowless_mapped is the
+                   live mapped flag; an unmapped child is not hit-tested. */
+                if (!child->core.windowless_mapped)
                     continue;
 
                 cx = child->core.x;

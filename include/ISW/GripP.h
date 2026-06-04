@@ -56,6 +56,7 @@ SOFTWARE.
 
 #include <ISW/Grip.h>
 #include <ISW/SimpleP.h>
+#include <ISW/ISWRender.h>
 
 /*****************************************************************************
  *
@@ -80,6 +81,7 @@ extern GripClassRec gripClassRec;
 /* New fields for the Grip widget record */
 typedef struct {
   IswCallbackList grip_action;
+  ISWRenderContext *render_ctx;   /* windowless: own draw surface */
 } GripPart;
 
 /*****************************************************************************
