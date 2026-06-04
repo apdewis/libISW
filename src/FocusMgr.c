@@ -232,10 +232,17 @@ redraw_widget(Widget w)
  * walking the shell list. */
 static Widget g_ring_widget = NULL;
 
+/* True only while keyboard traversal is the active input mode.  Set by the
+ * Tab / Shift+Tab path (advance_focus); cleared by any click or non-Tab key.
+ * The focus halo is painted ONLY while this is True, so the halo appears
+ * exclusively when key nav was actually used — never on click. */
+static Boolean g_keynav_active = False;
+
 void
 _IswFocusMgrClearRing(void)
 {
     Widget w = g_ring_widget;
+    g_keynav_active = False;
     if (!w) return;
     g_ring_widget = NULL;
     if (IswIsSubclass(w, simpleWidgetClass)) {
@@ -245,6 +252,38 @@ _IswFocusMgrClearRing(void)
             redraw_widget(w);
         }
     }
+}
+
+/* Click-to-focus: a pointer press on (or inside) a traversable widget makes
+ * that widget the keyboard-traversal anchor, so subsequent Tab / Shift+Tab
+ * continue from it.  The visible focus ring stays keyboard-only — it is not
+ * shown on click, only on the next Tab — so the ring still signals active
+ * keyboard navigation.  If the click is not on a traversable widget, the ring
+ * is simply dismissed (old behaviour). */
+void
+_IswFocusMgrFocusOnClick(Widget w)
+{
+    Widget shell;
+
+    /* Find the nearest traversable widget at or above the click target. */
+    while (w && !widget_is_traversable(w))
+        w = IswParent(w);
+
+    if (!w) {
+        _IswFocusMgrClearRing();
+        return;
+    }
+
+    shell = nearest_shell(w);
+    if (!shell) {
+        _IswFocusMgrClearRing();
+        return;
+    }
+
+    /* Dismiss any visible ring, then move the (invisible) keyboard-focus
+     * anchor to the clicked widget without lighting its ring. */
+    _IswFocusMgrClearRing();
+    IswSetKeyboardFocus(shell, w);
 }
 
 static void
@@ -265,7 +304,9 @@ set_focus(Widget shell, Widget new_focus)
 
     if (new_focus) {
         IswSetKeyboardFocus(shell, new_focus);
-        if (IswIsSubclass(new_focus, simpleWidgetClass)) {
+        /* Only light the halo when keyboard traversal is the active input
+         * mode.  A non-keynav focus change moves the anchor silently. */
+        if (g_keynav_active && IswIsSubclass(new_focus, simpleWidgetClass)) {
             SimpleWidget sw = (SimpleWidget) new_focus;
             sw->simple.has_focus = True;
             redraw_widget(new_focus);
@@ -282,6 +323,9 @@ advance_focus(Widget shell, int direction)
     Widget list[MAX_FOCUS_LIST];
     int n = build_focus_list(shell, list, MAX_FOCUS_LIST);
     if (n == 0) return;
+
+    /* Tab / Shift+Tab is keyboard traversal: enable the halo. */
+    g_keynav_active = True;
 
     Widget cur = IswGetKeyboardFocusWidget(shell);
     int cur_idx = -1;

@@ -1974,7 +1974,7 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
             }
         }
         else if (ftype == XCB_BUTTON_PRESS) {
-            _IswFocusMgrClearRing();
+            _IswFocusMgrFocusOnClick(widget);
         }
     }
 

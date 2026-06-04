@@ -62,4 +62,10 @@ extern void _IswFocusMgrRegisterMenu(Widget menu);
  * user is actively using keyboard traversal. */
 extern void _IswFocusMgrClearRing(void);
 
+/* Move the keyboard-traversal anchor to a clicked widget (or its nearest
+ * traversable ancestor) so Tab / Shift+Tab continue from it.  The focus ring
+ * stays keyboard-only and is not shown on click.  Falls back to clearing the
+ * ring when the click is not on a traversable widget. */
+extern void _IswFocusMgrFocusOnClick(Widget w);
+
 #endif /* _ISW_FocusMgrI_h */
