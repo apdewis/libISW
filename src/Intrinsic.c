@@ -82,6 +82,7 @@ in this Software without prior written authorization from The Open Group.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ISW/ISWRender.h>
 
 
 String IswCIswToolkitError = "IswToolkitError";
@@ -285,7 +286,9 @@ MapChildren(CompositePart *cwp)
         Widget child = children[i];
 
         if (IswIsWidget(child)) {
-            if (child->core.managed && child->core.mapped_when_managed) {
+            if (child->core.managed && child->core.mapped_when_managed &&
+                !(child->core.windowless &&
+                  child->core.windowless_unmapped_explicit)) {
                 IswMapWidget(children[i]);
             }
         }
@@ -345,14 +348,15 @@ RealizeWidget(Widget widget)
        leaving children unpositioned. */
     if (widget->core.windowless) {
         widget->core.windowless_realized = True;
-        /* Initialize the live shown flag: a windowless widget is shown when it
-           would have its window mapped — i.e. it is managed and maps-when-
-           managed.  An unmanaged-but-realized widget (e.g. Paned's suppressed
-           last grip) stays hidden, mirroring a windowed widget whose window is
-           realized but never mapped.  Isw{Map,Unmap}Widget and manage/unmanage
-           drive it live thereafter; composite/paint/hit-test gate on it. */
-        widget->core.windowless_mapped =
-            widget->core.managed && widget->core.mapped_when_managed;
+        /* Realize is the windowless equivalent of "create the window" — NOT
+           "map it".  A realized windowless widget is created-but-not-shown
+           (windowless_mapped stays False), exactly as a realized windowed
+           widget's window exists but shows nothing until mapped.  The separate
+           post-realize map pass (RealizeWidget's MapChildren/map-subtree below,
+           mirroring xcb_map_subwindows) is the sole thing that sets
+           windowless_mapped True, gated on managed && mapped_when_managed —
+           just as it gates the windowed map.  Asserting the shown flag here
+           would draw widgets the app deliberately created unmapped. */
     }
     if (realize == NULL)
         IswAppErrorMsg(IswWidgetToApplicationContext(widget),
@@ -448,11 +452,24 @@ RealizeWidget(Widget widget)
         for (i = cwp->num_children; i != 0; --i) {
             RealizeWidget(children[i - 1]);
         }
-        /* Map children that are managed and mapped_when_managed */
+        /* Map children that are managed and mapped_when_managed.
+           This is the windowless equivalent of mapping a window: it is the
+           sole writer of windowless_mapped True, and it runs only AFTER realize
+           — mirroring the windowed map happening after window creation. */
 
         if (cwp->num_children != 0) {
             if (ShouldMapAllChildren(cwp)) {
+                /* Fast path maps all real subwindows at once.  It is a no-op for
+                   windowless children (they have no X window), so they still
+                   need their shown flag set via the per-child map gate. */
                 xcb_map_subwindows(display, window);
+                for (i = 0; i < cwp->num_children; i++) {
+                    Widget child = children[i];
+                    if (IswIsWidget(child) && child->core.windowless &&
+                        child->core.managed && child->core.mapped_when_managed &&
+                        !child->core.windowless_unmapped_explicit)
+                        IswMapWidget(child);
+                }
             }
             else {
                 MapChildren(cwp);
@@ -516,7 +533,18 @@ UnrealizeWidget(Widget widget)
        (they share the ancestor's window), so skip both the unregister and
        the window clear; just mark them unrealized. */
     if (widget->core.windowless) {
+        /* Unrealizing a windowed widget destroys its window, which implicitly
+           removes it from the screen.  Mirror that for windowless widgets:
+           clear the shown flag and recomposite the windowed ancestor so the
+           now-gone widget's pixels are erased.  Capture the ancestor while the
+           widget is still realized (the lookup is valid either way, but do it
+           before we tear down state). */
+        Boolean was_shown = widget->core.windowless_mapped;
+        Widget anc = was_shown ? _IswWindowedAncestor(widget) : NULL;
         widget->core.windowless_realized = False;
+        widget->core.windowless_mapped = False;
+        if (anc != NULL && IswIsRealized(anc) && !anc->core.being_destroyed)
+            ISWRenderRequestComposite(anc);
     }
     else {
         IswUnregisterDrawable(IswDisplay(widget), IswWindow(widget));

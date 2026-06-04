@@ -127,7 +127,16 @@ UnmanageChildren(WidgetList children,
             CALLGEOTAT(_IswGeoTrace(child, "Child \"%s\" is marked unmanaged\n",
                                    IswName(child)));
             child->core.managed = FALSE;
-            if (IswIsWidget(child)
+            if (IswIsWidget(child) && child->core.windowless) {
+                /* Windowless: unmanaging hides the widget, mirroring how
+                   unmanaging a windowed widget unmaps its window.  IswUnmapWidget
+                   clears windowless_mapped and recomposites the ancestor so the
+                   widget's pixels are erased.  Unconditional (not gated on
+                   mapped_when_managed) — a shown widget must be hidden when
+                   unmanaged; if it was already hidden the unmap is a no-op. */
+                if (IswIsRealized(child))
+                    IswUnmapWidget(child);
+            } else if (IswIsWidget(child)
                 && IswIsRealized(child)
                 && child->core.mapped_when_managed) {
                 IswUnmapWidget(child);

@@ -2488,9 +2488,26 @@ ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
     TextWidget ctx = (TextWidget) w;
     xcb_rectangle_t expose, cursor;
     Boolean need_to_draw;
-    uint8_t type = event->response_type & ~0x80;
+    uint8_t type;
 
-    if (type == XCB_EXPOSE) {
+    /* A NULL event means "redraw the whole widget" — the convention used by
+       _IswRepaintWindowless / RedisplaySubtree / PaintScrollbars when driving a
+       full repaint outside server-delivered Expose.  Synthesize a full-widget
+       expose rectangle rather than dereferencing the (absent) event. */
+    if (event == NULL) {
+        expose.x = 0;
+        expose.y = 0;
+        expose.width = ctx->core.width;
+        expose.height = ctx->core.height;
+        type = XCB_EXPOSE;
+    }
+    else
+        type = event->response_type & ~0x80;
+
+    if (event == NULL) {
+        /* full-widget rect already set above */
+    }
+    else if (type == XCB_EXPOSE) {
 	xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
 	expose.x = ev->x;
 	expose.y = ev->y;

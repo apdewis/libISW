@@ -218,6 +218,15 @@ _ISWRenderForgetDirtyRoot(Widget w)
     }
 }
 
+/* Public: cancel a pending composite for a root whose window is being unmapped
+   (e.g. a shell popdown), so a composite queued earlier in this dispatch does
+   not re-present to the now-unmapped window. */
+void
+ISWRenderForgetRoot(Widget windowed_root)
+{
+    _ISWRenderForgetDirtyRoot(windowed_root);
+}
+
 static void
 _ISWRenderRegister(Widget w, ISWRenderContext *ctx)
 {
@@ -601,6 +610,23 @@ _isw_composite_one(Widget child, ISWRenderContext *dst_ctx, int ox, int oy)
                                         oy + child->core.y + child->core.border_width);
         return;
     }
+
+    /* Re-establish a CONTAINER's OWN surface before folding descendants.
+       A container surface persists between composites and accumulates the
+       pixels of children folded onto it on previous passes.  If a child has
+       since been unmapped, the composite below correctly skips it, but its old
+       pixels would remain on this surface.  Re-running the container's expose
+       proc repaints its background (Form fills, Viewport redraws its gutter,
+       etc.), erasing the vacated region; the still-mapped descendants are then
+       folded back on top.  Only composites accumulate child pixels — a leaf
+       widget's surface holds only its own content, blended fresh each pass, so
+       skip them (re-running a leaf's expose every composite is wasteful and
+       some leaves don't accept a NULL full-repaint event).  Safe during
+       composite: ISWRenderEnd suppresses its auto-composite while
+       _isw_in_composite. */
+    if (IswIsComposite(child) &&
+        child->core.widget_class->core_class.expose != NULL)
+        (*child->core.widget_class->core_class.expose)(child, NULL, 0);
 
     /* Fold this child's own descendants into its surface first (bottom-up). */
     _isw_composite_children_into(child, child_ctx);

@@ -110,6 +110,14 @@ typedef struct _CorePart {
                                            exactly as map/unmap drive a real
                                            window.  The composite/paint/hit-test
                                            walks gate on this.                */
+    Boolean         windowless_unmapped_explicit;
+                                        /* app called IswUnmapWidget on this
+                                           windowless widget while it was
+                                           unrealized.  The realize-time map
+                                           pass must honour it and leave the
+                                           widget hidden, exactly as a windowed
+                                           widget the app keeps unmapped stays
+                                           off-screen.  Cleared by IswMapWidget. */
 } CorePart;
 
 typedef struct _WidgetRec {

@@ -72,6 +72,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include <ISW/ISWRender.h>
 
 struct _DestroyRec {
     int dispatch_level;
@@ -211,6 +212,16 @@ IswPhase2Destroy(Widget widget)
     Widget outerInPhase2Destroy = app->in_phase2_destroy;
     int starting_count = app->destroy_count;
     Boolean isPopup = False;
+    /* For a windowed widget, destruction removes its window (and thus its
+       pixels) from the screen.  A windowless widget has no window — its pixels
+       live in the windowed ancestor's composite surface — so capture that
+       ancestor now (while the widget is still in the tree) and recomposite it
+       at the end to erase the destroyed widget.  Only meaningful if the widget
+       was actually shown. */
+    Widget windowless_anc =
+        (IswIsWidget(widget) && widget->core.windowless &&
+         widget->core.windowless_mapped)
+        ? _IswWindowedAncestor(widget) : NULL;
 
     /* invalidate focus trace cache for this xcb_connection_t */
     _IswGetPerDisplay(IswDisplayOfObject(widget))->pdi.traceDepth = 0;
@@ -317,6 +328,14 @@ IswPhase2Destroy(Widget widget)
     if (window && (parent == NULL || !parent->core.being_destroyed))
         xcb_destroy_window(display, window);
         //XDestroyWindow(display, window);
+
+    /* Erase a destroyed windowless widget from the ancestor's composite surface
+       (the windowless equivalent of the window destruction above removing a
+       windowed widget's pixels).  Skip if the ancestor is itself being
+       destroyed — its surface is going away too. */
+    if (windowless_anc != NULL && IswIsRealized(windowless_anc) &&
+        !windowless_anc->core.being_destroyed)
+        ISWRenderRequestComposite(windowless_anc);
 }                               /* IswPhase2Destroy */
 
 void

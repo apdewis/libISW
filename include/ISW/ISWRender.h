@@ -217,6 +217,16 @@ void ISWRenderFlushComposites(void);
 void ISWRenderRequestComposite(Widget windowed_root);
 
 /*
+ * ISWRenderForgetRoot - cancel any pending composite for a windowed root
+ *
+ * Drops the root from the coalesced dirty-root set so a queued composite does
+ * not blit to it.  Call when a windowed root's window is unmapped (e.g. a shell
+ * popdown): otherwise a composite requested earlier in the same event dispatch
+ * would re-present the surface to the now-unmapped window, leaving it visible.
+ */
+void ISWRenderForgetRoot(Widget windowed_root);
+
+/*
  * ISWRenderSetCompositeClip - confine a widget to a rectangle when composited
  *
  * Sets a clip rectangle (in the widget's PARENT content coordinates) applied

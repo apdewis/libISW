@@ -49,6 +49,7 @@ SOFTWARE.
 #endif
 #include "IntrinsicI.h"
 #include "ShellP.h"
+#include <ISW/ISWRender.h>
 
 void
 _IswPopup(Widget widget, IswGrabKind grab_kind)
@@ -177,6 +178,10 @@ IswPopdown(Widget widget)
     grab_kind = shell_widget->shell.grab_kind;
     xcb_unmap_window(IswDisplay(widget), IswWindow(widget));
     xcb_flush(IswDisplay(widget));
+    /* The shell's window is now unmapped.  Cancel any composite queued for this
+       windowed root earlier in the dispatch so it is not re-presented to the
+       hidden window, which would leave the popup visible after popdown. */
+    ISWRenderForgetRoot(widget);
     if (grab_kind != IswGrabNone)
         IswRemoveGrab(widget);
     shell_widget->shell.popped_up = FALSE;

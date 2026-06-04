@@ -175,6 +175,9 @@ IswMapWidget(Widget w)
        widget appears.  Mapping the shared ancestor window here would be wrong. */
     if (IswIsWidget(w) && w->core.windowless) {
         w->core.windowless_mapped = True;
+        /* The app has explicitly mapped this widget; clear any prior explicit
+           unmap so the realize-time map pass no longer suppresses it. */
+        w->core.windowless_unmapped_explicit = False;
         /* Paint the now-shown subtree (it may never have been drawn while
            hidden) and composite it up — the composite pass folds surfaces but
            does not itself drive expose. */
@@ -212,6 +215,13 @@ IswUnmapWidget(Widget w)
     if (IswIsWidget(w) && w->core.windowless) {
         Widget anc;
         w->core.windowless_mapped = False;
+        /* Record an explicit unmap so a later realize does not auto-map this
+           widget.  A windowed widget unmapped before realize is genuinely lost
+           (no window yet), but a windowless widget exists pre-realize, so the
+           app's intent to keep it hidden must survive realize — matching how a
+           windowed widget kept unmapped stays off-screen. */
+        if (!IswIsRealized(w))
+            w->core.windowless_unmapped_explicit = True;
         anc = _IswWindowedAncestor(w);
         if (anc != NULL && IswIsRealized(anc))
             ISWRenderRequestComposite(anc);
