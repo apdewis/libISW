@@ -18,6 +18,8 @@
 #include <ISW/Slider.h>
 #include <ISW/Label.h>
 #include <ISW/Simple.h>
+#include <ISW/DrawingArea.h>
+#include <ISW/EventI.h>
 #include <ISW/IswArgMacros.h>
 
 #include <stdio.h>
@@ -44,6 +46,7 @@ static IswResource resources[] = {
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void SliderChanged(Widget, IswPointer, IswPointer);
+static void SwatchExpose(Widget, IswPointer, IswPointer);
 static void UpdateSwatch(ColorPickerWidget);
 
 ColorPickerClassRec colorPickerClassRec = {
@@ -105,33 +108,33 @@ WidgetClass colorPickerWidgetClass = (WidgetClass)&colorPickerClassRec;
 
 /* --- Swatch expose callback --- */
 
+/* DrawingArea expose callback: fills the swatch with the selected colour.
+   Invoked by the swatch's class expose (DrawingArea Redisplay), which the
+   windowless composite machinery drives — so the preview survives every
+   recomposite, unlike an event-handler-based Expose (windowless widgets get
+   no server Expose events). The render context is created and Begin/End
+   bracketed by DrawingArea; draw straight into it. */
 static void
-SwatchExpose(Widget w, IswPointer client_data, xcb_generic_event_t *event, Boolean *cont)
+SwatchExpose(Widget w, IswPointer client_data, IswPointer call_data)
 {
     ColorPickerWidget cpw = (ColorPickerWidget) client_data;
-    (void)event; (void)cont;
+    ISWDrawingCallbackData *cb = (ISWDrawingCallbackData *) call_data;
+    ISWRenderContext *ctx = cb->render_ctx;
 
-    ISWRenderContext *ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-    if (ctx) {
-        ISWRenderBegin(ctx);
-        ISWRenderSetColorRGBA(ctx,
-            (double)cpw->colorPicker.red / 255.0,
-            (double)cpw->colorPicker.green / 255.0,
-            (double)cpw->colorPicker.blue / 255.0,
-            1.0);
-        ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
-        ISWRenderEnd(ctx);
-        ISWRenderDestroy(ctx);
-    }
+    ISWRenderSetColorRGBA(ctx,
+        (double)cpw->colorPicker.red / 255.0,
+        (double)cpw->colorPicker.green / 255.0,
+        (double)cpw->colorPicker.blue / 255.0,
+        1.0);
+    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
 }
 
 static void
 UpdateSwatch(ColorPickerWidget cpw)
 {
-    if (cpw->colorPicker.swatchW && IswIsRealized(cpw->colorPicker.swatchW)) {
-        /* Trigger a redraw by clearing and exposing */
-        SwatchExpose(cpw->colorPicker.swatchW, (IswPointer)cpw, NULL, NULL);
-    }
+    Widget sw = cpw->colorPicker.swatchW;
+    if (sw && (IswIsRealized(sw) || sw->core.windowless_realized))
+        _IswRepaintWindowless(sw);
 }
 
 /* --- Slider callback --- */
@@ -262,9 +265,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswArgBorderWidth(&ab, 1);
     IswArgFromHoriz(&ab, cpw->colorPicker.redSlider);
     cpw->colorPicker.swatchW = IswCreateManagedWidget(
-        "swatch", simpleWidgetClass, new, ab.args, ab.count);
-    IswAddEventHandler(cpw->colorPicker.swatchW, XCB_EVENT_MASK_EXPOSURE, False,
-                      SwatchExpose, (IswPointer)cpw);
+        "swatch", drawingAreaWidgetClass, new, ab.args, ab.count);
+    IswAddCallback(cpw->colorPicker.swatchW, IswNexposeCallback,
+                  SwatchExpose, (IswPointer)cpw);
 }
 
 static Boolean
