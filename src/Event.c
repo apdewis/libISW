@@ -1932,6 +1932,43 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, xcb_connection_t *dpy)
             uint8_t etype = event->response_type & ~0x80;
             Widget target = _IswFindWidgetAtPoint(widget, px, py, &dx, &dy);
 
+            /* Windowless event propagation: the X server used to deliver a
+               pointer event to the first ancestor *window* that had the event
+               selected, walking up the window tree.  With windowless widgets
+               sharing one window that propagation is lost — hit-testing returns
+               only the deepest widget under the pointer.  Restore the server's
+               behaviour for maskable button press+release by ascending from the
+               deepest windowless target to the first windowless ancestor whose
+               selected event mask includes this event, and treating that widget
+               as the recipient (so the implicit grab below pins it too, keeping
+               a press/drag/release on one widget).  Motion/crossing keep
+               targeting the deepest widget, matching how the server reported
+               those to the innermost window. */
+            if (target != widget &&
+                (etype == XCB_BUTTON_PRESS || etype == XCB_BUTTON_RELEASE)) {
+                EventMask emask = _IswConvertTypeToMask(event->response_type);
+                Widget a;
+                for (a = target;
+                     a != NULL && a != widget && IswIsWidget(a) &&
+                     a->core.windowless;
+                     a = a->core.parent) {
+                    if (IswBuildEventMask(a) & emask) {
+                        int ax = 0, ay = 0;
+                        Widget b;
+                        for (b = a;
+                             b != NULL && IswIsWidget(b) && b->core.windowless;
+                             b = b->core.parent) {
+                            ax += b->core.x + (int) b->core.border_width;
+                            ay += b->core.y + (int) b->core.border_width;
+                        }
+                        target = a;
+                        dx = ax;
+                        dy = ay;
+                        break;
+                    }
+                }
+            }
+
             /* Implicit windowless pointer grab: the first button press starts a
                grab on the windowless widget hit; while any button stays down,
                motion is routed to that widget instead of being re-hit-tested
