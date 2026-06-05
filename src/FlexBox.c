@@ -517,7 +517,23 @@ ConstraintSetValues(Widget current, Widget request, Widget new,
         cfc->flexBox.flex_basis != nfc->flexBox.flex_basis ||
         cfc->flexBox.flex_align != nfc->flexBox.flex_align)
     {
+        /* Relayout all children for the new constraints.  But DoLayout also
+           moves `new` (the child being set) to its new slot, and IswSetValues,
+           on return from here, turns any geometry change it sees on `new` into
+           a single geometry request back to our GeometryManager.  If that
+           request carries an X/Y move, GeometryManager rejects it wholesale
+           (we reject all position requests), and IswSetValues then reverts
+           `new` to its pre-SetValues geometry — leaving it frozen at its old
+           slot while its siblings reflow.
+
+           Restore `new`'s position after laying out so the request IswSetValues
+           emits is size-only (no X/Y): GeometryManager accepts it and the
+           ensuing ChangeManaged relayout places `new` at its correct slot. */
+        Position keep_x = new->core.x;
+        Position keep_y = new->core.y;
         DoLayout((FlexBoxWidget)IswParent(new), TRUE);
+        new->core.x = keep_x;
+        new->core.y = keep_y;
     }
     return FALSE;
 }

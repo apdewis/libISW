@@ -732,6 +732,25 @@ IswConfigureWidget(Widget w,
     if (req.changeMask != 0) {
         Widget hookobj;
 
+        /* Relayout BEFORE painting/compositing.  The resize proc updates layout
+           state the expose proc reads (a Label recenters label_x to the new
+           width; a container repositions children).  For a windowless widget
+           the size-change repaint below is the only paint this call performs,
+           so it must run after the resize proc, not before — otherwise the
+           surface is repainted from stale pre-resize state. */
+        {
+            IswWidgetProc resize;
+
+            LOCK_PROCESS;
+            resize = IswClass(w)->core_class.resize;
+            UNLOCK_PROCESS;
+            if ((req.changeMask & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
+                resize != (IswWidgetProc) NULL) {
+                CALLGEOTAT(_IswGeoTrace(w, "Resize proc is called.\n"));
+                (*resize) (w);
+            }
+        }
+
         if (IswIsRealized(w) && IswIsWidget(w) && w->core.windowless) {
             /* Windowless widgets have no X window to configure, and the server
                never sends them an Expose after a geometry change.
@@ -807,18 +826,6 @@ IswConfigureWidget(Widget w,
             IswCallCallbackList(hookobj,
                                ((HookObject) hookobj)->hooks.
                                confighook_callbacks, (IswPointer) &req);
-        }
-        {
-            IswWidgetProc resize;
-
-            LOCK_PROCESS;
-            resize = IswClass(w)->core_class.resize;
-            UNLOCK_PROCESS;
-            if ((req.changeMask & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
-                resize != (IswWidgetProc) NULL) {
-                CALLGEOTAT(_IswGeoTrace(w, "Resize proc is called.\n"));
-                (*resize) (w);
-            }
         }
     }
     else {
