@@ -52,6 +52,7 @@ in this Software without prior written authorization from the X Consortium.
 #include "config.h"
 #endif
 #include <ISW/IntrinsicP.h>
+#include <ISW/EventI.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWP.h>
 #include <ISW/ISWInit.h>
@@ -1026,11 +1027,17 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
                                    tw->core.width, tw->core.height);
             ISWRenderEnd(tw->tree.render_ctx);
         }
-        /* Also clear via X server to generate expose events (clear_area with
-           exposures=True triggers repainting of child widgets) */
-        xcb_connection_t *conn = IswDisplay(tw);
-        xcb_clear_area(conn, 1, IswWindow((Widget)tw), 0, 0, 0, 0);
-        xcb_flush(conn);
+        /* Repaint the tree lines (Redisplay) and the windowless child widgets,
+           then composite the ancestor once.  Tree is windowless, so
+           xcb_clear_area(IswWindow(tw)) would blank the shared ancestor window
+           instead of just this widget's area. */
+        if (tw->core.windowless) {
+            _IswRepaintWindowless((Widget)tw);
+        } else {
+            xcb_connection_t *conn = IswDisplay(tw);
+            xcb_clear_area(conn, 1, IswWindow((Widget)tw), 0, 0, 0, 0);
+            xcb_flush(conn);
+        }
     }
 }
 

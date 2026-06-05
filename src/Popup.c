@@ -48,6 +48,7 @@ SOFTWARE.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "EventI.h"
 #include "ShellP.h"
 #include <ISW/ISWRender.h>
 
@@ -103,8 +104,14 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
                     Widget child = cw->composite.children[i];
                     if (IswIsWidget(child) && IswIsRealized(child) &&
                         IswIsManaged(child)) {
-                        xcb_clear_area(IswDisplay(widget), 1,
-                                       IswWindow(child), 0, 0, 0, 0);
+                        if (child->core.windowless)
+                            /* Windowless child shares the shell's window:
+                               repaint its surface and composite the shell,
+                               rather than clearing the whole shell window. */
+                            _IswRepaintWindowless(child);
+                        else
+                            xcb_clear_area(IswDisplay(widget), 1,
+                                           IswWindow(child), 0, 0, 0, 0);
                     }
                 }
                 xcb_flush(IswDisplay(widget));

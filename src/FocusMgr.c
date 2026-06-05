@@ -19,6 +19,7 @@
 
 #include <ISW/IntrinsicP.h>
 #include <ISW/Intrinsic.h>
+#include <ISW/EventI.h>
 #include <ISW/StringDefs.h>
 #include <ISW/CompositeP.h>
 #include <ISW/Shell.h>
@@ -219,6 +220,15 @@ static void
 redraw_widget(Widget w)
 {
     if (!w || !IswIsRealized(w)) return;
+    if (w->core.windowless) {
+        /* Windowless: repaint our own surface and composite the ancestor.
+         * xcb_clear_area(IswWindow(w)) would resolve to the shared windowed
+         * ancestor and blank the whole panel.  The windowless paint path
+         * already drives expose with a NULL event safely (widgets that
+         * dereference it, e.g. Text, guard for event == NULL). */
+        _IswRepaintWindowless(w);
+        return;
+    }
     /* Ask the X server to generate a real Expose event for the whole
      * widget. Calling core_class.expose directly with a NULL event is
      * unsafe: some widgets (e.g. Text) dereference the event. */
@@ -424,8 +434,13 @@ repaint_menu_widgets(Widget w)
 {
     if (!w) return;
     if (IswIsSubclass(w, menuButtonWidgetClass) && IswIsRealized(w)) {
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
+        /* MenuButton is windowless (inherits Label): repaint its surface and
+         * composite the ancestor rather than clearing the shared window. */
+        if (w->core.windowless)
+            _IswRepaintWindowless(w);
+        else
+            xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
+                           0, 0, w->core.width, w->core.height);
     }
     if (IswIsComposite(w)) {
         CompositeWidget cw = (CompositeWidget) w;

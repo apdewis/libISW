@@ -11,6 +11,7 @@
 #endif
 
 #include <ISW/IntrinsicP.h>
+#include <ISW/EventI.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ListBoxP.h>
@@ -290,14 +291,11 @@ SwapFgBg(Widget w, Pixel fg, Pixel bg)
 static void
 ExposeTree(Widget w)
 {
+    /* Windowless: repaint the widget and its windowless descendants into their
+       own surfaces and composite the ancestor once.  xcb_clear_area(IswWindow(w))
+       would resolve to the shared windowed ancestor and blank the whole panel. */
     if (IswIsRealized(w))
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
-    if (IswIsComposite(w)) {
-        CompositeWidget cw = (CompositeWidget)w;
-        for (Cardinal i = 0; i < cw->composite.num_children; i++)
-            ExposeTree(cw->composite.children[i]);
-    }
+        _IswRepaintWindowless(w);
 }
 
 static Pixel
@@ -810,8 +808,7 @@ SelectAction(Widget w, xcb_generic_event_t *event,
     lbw->listBox.focused_index = idx;
 
     if (IswIsRealized(w)) {
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
+        _IswRepaintWindowless(w);
     }
 
     FireSelectCallback(lbw, child, idx);
@@ -859,8 +856,7 @@ MoveFocusAction(Widget w, xcb_generic_event_t *event,
     }
 
     if (IswIsRealized(w)) {
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
+        _IswRepaintWindowless(w);
     }
 }
 
@@ -888,8 +884,7 @@ ToggleAction(Widget w, xcb_generic_event_t *event,
     }
 
     if (IswIsRealized(w)) {
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
+        _IswRepaintWindowless(w);
     }
 
     FireSelectCallback(lbw, child, lbw->listBox.focused_index);
@@ -942,8 +937,7 @@ ExtendAction(Widget w, xcb_generic_event_t *event,
     lbw->listBox.focused_index = idx;
 
     if (IswIsRealized(w)) {
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
+        _IswRepaintWindowless(w);
     }
 
     if (child)
@@ -968,8 +962,7 @@ SelectAllAction(Widget w, xcb_generic_event_t *event,
     }
 
     if (IswIsRealized(w)) {
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
+        _IswRepaintWindowless(w);
     }
 }
 
@@ -989,8 +982,7 @@ FocusAction(Widget w, xcb_generic_event_t *event,
         lbw->listBox.focused_index = 0;
 
     if (IswIsRealized(w)) {
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
+        _IswRepaintWindowless(w);
     }
 }
 
@@ -1049,8 +1041,7 @@ IswListBoxClearSelection(Widget w)
     ClearAllSelections(lbw);
 
     if (IswIsRealized(w)) {
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
+        _IswRepaintWindowless(w);
     }
 }
 
@@ -1070,7 +1061,6 @@ IswListBoxSelectChild(Widget w, Widget child)
     ApplySelectionVisual(lbw, child, True);
 
     if (IswIsRealized(w)) {
-        xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
-                       0, 0, w->core.width, w->core.height);
+        _IswRepaintWindowless(w);
     }
 }

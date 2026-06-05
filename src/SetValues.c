@@ -73,6 +73,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 #include "ResourceI.h"
+#include "EventI.h"
 
 /*
  *      IswSetValues(), IswSetSubvalues()
@@ -434,7 +435,20 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
         /* Redisplay if needed.  No point in clearing if the window is
          * about to disappear, as the Expose event will just go straight
          * to the bit bucket. */
-        if (IswIsWidget(w)) {
+        if (IswIsWidget(w) && w->core.windowless) {
+            /* A windowless widget shares its windowed ancestor's window, so
+               xcb_clear_area(IswWindow(w), ...) would blank and re-expose the
+               whole ancestor — flashing the cleared background before the
+               async repaint.  Repaint just this widget's surface and composite
+               the ancestor, mirroring the windowless branch in Geometry.c. */
+            if (redisplay && IswIsRealized(w) && !w->core.being_destroyed) {
+                CALLGEOTAT(_IswGeoTrace(w,
+                                       "IswSetValues repaints windowless \"%s\".\n",
+                                       IswName(w)));
+                _IswRepaintWindowless(w);
+            }
+        }
+        else if (IswIsWidget(w)) {
             /* widgets can distinguish between redisplay and resize, since
                the server will cause an expose on resize */
             if (redisplay && IswIsRealized(w) && !w->core.being_destroyed) {

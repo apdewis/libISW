@@ -52,6 +52,7 @@ SOFTWARE.
 #include <ISW/ISWP.h>
 #include <stdio.h>
 #include <ISW/IntrinsicP.h>
+#include <ISW/EventI.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SimpleP.h>
@@ -311,7 +312,13 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 static Boolean
 ChangeSensitive(Widget w)
 {
-    if (IswIsRealized(w))
-	xcb_clear_area(IswDisplay(w), 1, IswWindow(w), 0, 0, 0, 0);
+    if (IswIsRealized(w)) {
+	if (w->core.windowless)
+	    /* Windowless: repaint our own surface and composite the ancestor.
+	       xcb_clear_area(IswWindow(w)) would blank the shared ancestor. */
+	    _IswRepaintWindowless(w);
+	else
+	    xcb_clear_area(IswDisplay(w), 1, IswWindow(w), 0, 0, 0, 0);
+    }
     return False;
 }
