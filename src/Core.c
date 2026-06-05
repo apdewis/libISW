@@ -358,12 +358,12 @@ CoreSetValues(Widget old,
     }
     
     /* Check everything that depends upon window being realized */
-    if (IswIsRealized(old)) {
+    if (IswIsRealized(old) && !new->core.windowless) {
         window_mask = 0;
         vi = 0;
         conn = IswDisplay(new);
         values = (uint32_t*)malloc(sizeof(uint32_t) * 32);
-        
+
         /* Check window attributes */
         if (old->core.background_pixel != new->core.background_pixel
             && new->core.background_pixmap == IswUnspecifiedPixmap) {
@@ -423,6 +423,17 @@ CoreSetValues(Widget old,
         
         free(values);
     }                           /* if realized */
+    else if (IswIsRealized(old) && new->core.windowless) {
+        /* No own X window: IswWindow() resolves to the windowed ancestor,
+           so writing window attributes here would repaint the ancestor.
+           Just request a repaint into the ancestor via the widget's own
+           expose.  Mirrors the windowless branch in CoreRealize. */
+        if ((old->core.background_pixel != new->core.background_pixel
+             && new->core.background_pixmap == IswUnspecifiedPixmap)
+            || old->core.background_pixmap != new->core.background_pixmap) {
+            redisplay = TRUE;
+        }
+    }
     return redisplay;
 }                               /* CoreSetValues */
 
