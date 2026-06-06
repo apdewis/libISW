@@ -550,6 +550,8 @@ UnrealizeWidget(Widget widget)
         Widget anc = was_shown ? _IswWindowedAncestor(widget) : NULL;
         widget->core.windowless_realized = False;
         widget->core.windowless_mapped = False;
+        if (was_shown)
+            _ISWRenderMarkDirtyChain(widget->core.parent);
         if (anc != NULL && IswIsRealized(anc) && !anc->core.being_destroyed)
             ISWRenderRequestComposite(anc);
     }

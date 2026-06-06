@@ -171,6 +171,19 @@ typedef struct _ISWRenderContext {
        un-mapping the last child correctly clears it. */
     Boolean presented_content;
 
+    /* Composite re-expose gate.  A composite container's surface persists
+       between composite passes and accumulates its folded children.  The fold
+       (ISWRenderCompositeSubtree) used to re-run every composite container's
+       expose proc each pass to erase pixels vacated by an unmapped/moved child
+       — but for the common case (one widget repainted, scroll, hover) nothing
+       in most containers changed, so regenerating their identical background
+       was the dominant compositing cost.  This flag is set whenever the
+       container (or something under it) actually changed since the last fold —
+       a paint into its surface (ISWRenderEnd), or a child un/map/geometry change
+       — and the fold re-runs the container's expose proc ONLY when it is set,
+       then clears it.  Starts True so the first composite always paints. */
+    Boolean composite_dirty;
+
     /* Composite clip: when set, this widget is clipped to (clip_x,clip_y,
        clip_w,clip_h) — in the PARENT's content coordinates — as it is folded
        into its parent.  Used by scrolling containers (Viewport) to confine a

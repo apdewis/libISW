@@ -784,6 +784,11 @@ IswConfigureWidget(Widget w,
                 (*w->core.widget_class->core_class.expose)(w, NULL, 0);
                 ISWRenderEndCompositeBatch();
             }
+            /* The widget moved/resized, so its old footprint in the parent's
+               persisted composite surface is stale.  Force the parent chain to
+               re-expose (a position-only move does no repaint of w, so nothing
+               else would mark it). */
+            _ISWRenderMarkDirtyChain(w->core.parent);
             if (pw != NULL && IswIsRealized(pw) && !pw->core.being_destroyed)
                 ISWRenderRequestComposite(pw);
         }

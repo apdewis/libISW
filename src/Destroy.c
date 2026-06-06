@@ -334,8 +334,11 @@ IswPhase2Destroy(Widget widget)
        windowed widget's pixels).  Skip if the ancestor is itself being
        destroyed — its surface is going away too. */
     if (windowless_anc != NULL && IswIsRealized(windowless_anc) &&
-        !windowless_anc->core.being_destroyed)
+        !windowless_anc->core.being_destroyed) {
+        if (parent != NULL && !parent->core.being_destroyed)
+            _ISWRenderMarkDirtyChain(parent);
         ISWRenderRequestComposite(windowless_anc);
+    }
 }                               /* IswPhase2Destroy */
 
 void

@@ -222,6 +222,10 @@ IswUnmapWidget(Widget w)
            windowed widget kept unmapped stays off-screen. */
         if (!IswIsRealized(w))
             w->core.windowless_unmapped_explicit = True;
+        /* The widget's pixels are now vacated from its parent's persisted
+           composite surface; force the parent chain to re-expose so the
+           background is repainted over the hole on the next fold. */
+        _ISWRenderMarkDirtyChain(w->core.parent);
         anc = _IswWindowedAncestor(w);
         if (anc != NULL && IswIsRealized(anc))
             ISWRenderRequestComposite(anc);

@@ -227,6 +227,18 @@ void ISWRenderRequestComposite(Widget windowed_root);
 void ISWRenderForgetRoot(Widget windowed_root);
 
 /*
+ * _ISWRenderMarkDirtyChain - force re-expose of a widget's container chain
+ *
+ * Marks `w` and its windowless ancestors (up to the windowed root) so the next
+ * composite fold re-runs their expose proc rather than reusing their persisted
+ * surface.  ISWRenderEnd does this automatically for self-initiated paints; call
+ * it explicitly at structural changes that vacate ancestor pixels WITHOUT a
+ * repaint — chiefly unmapping a windowless child (pass the child's parent), so
+ * the container repaints its background over the vacated region.
+ */
+void _ISWRenderMarkDirtyChain(Widget w);
+
+/*
  * ISWRenderSetCompositeClip - confine a widget to a rectangle when composited
  *
  * Sets a clip rectangle (in the widget's PARENT content coordinates) applied

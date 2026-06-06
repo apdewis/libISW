@@ -286,6 +286,27 @@ _ISWRenderLookup(Widget w)
     return e ? e->ctx : NULL;
 }
 
+/* Mark `w` and its windowless ancestors (up to and including the windowed
+   root) composite_dirty, so the next fold re-runs their expose proc instead of
+   reusing the persisted surface.  Called whenever something changes a widget's
+   contribution to its window: a self-initiated paint (ISWRenderEnd) or a
+   structural change — un/map, move, resize, destroy — that vacates pixels in
+   the ancestor surfaces (ISWRenderRequestComposite, the single funnel for
+   those). */
+void
+_ISWRenderMarkDirtyChain(Widget w)
+{
+    Widget a = w;
+    while (a != NULL && IswIsWidget(a)) {
+        CtxMapEntry *e = _ISWRenderEntry(a);
+        if (e && e->ctx)
+            e->ctx->composite_dirty = True;
+        if (!a->core.windowless)
+            break;                  /* stop at the windowed root (inclusive) */
+        a = a->core.parent;
+    }
+}
+
 /*
  * =================================================================
  * Context Lifecycle
@@ -310,6 +331,9 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
         return NULL;
     }
     
+    /* Start dirty so the first composite pass paints the container. */
+    ctx->composite_dirty = True;
+
     /* Get widget display and window info */
     ctx->widget = widget;
     ctx->connection = (xcb_connection_t*)IswDisplay(widget);
@@ -530,6 +554,15 @@ ISWRenderEnd(ISWRenderContext *ctx)
     
     ctx->ops->end(ctx);
 
+    /* This widget painted into its own surface this frame, so the fold must
+       re-expose it (if it is a container) and re-fold it onto its ancestors.
+       Mark the chain composite_dirty so the next fold does not skip their
+       re-expose.  Skip while inside a composite pass: the fold's own internal
+       re-exposes go through ISWRenderEnd too, and re-flagging there would keep
+       every container perpetually dirty and defeat the gate. */
+    if (!_isw_in_composite && ctx->widget && IswIsWidget(ctx->widget))
+        _ISWRenderMarkDirtyChain(ctx->widget);
+
     /* Surface-per-widget: a windowless widget's end() paints into its own
        surface but does not reach the screen.  When this is a top-level frame
        (not nested inside a parent's begin/end) AND not already running inside a
@@ -666,10 +699,22 @@ _isw_composite_one(Widget child, ISWRenderContext *dst_ctx, int ox, int oy)
        skip them (re-running a leaf's expose every composite is wasteful and
        some leaves don't accept a NULL full-repaint event).  Safe during
        composite: ISWRenderEnd suppresses its auto-composite while
-       _isw_in_composite. */
+       _isw_in_composite.
+
+       Gated on composite_dirty: a container whose surface is unchanged since
+       the last fold (nothing under it repainted, no child un/mapped or moved)
+       already holds the correct background + folded children, so regenerating
+       identical pixels is pure cost — the dominant cost of compositing a large
+       window for a localized change (a scroll, a hover).  A dirty descendant
+       re-exposes itself in its own _isw_composite_one and is re-folded onto
+       this (clean) surface below by composite_onto, so skipping the parent's
+       re-expose does not stale the descendant. */
     if (IswIsComposite(child) &&
-        child->core.widget_class->core_class.expose != NULL)
+        child->core.widget_class->core_class.expose != NULL &&
+        child_ctx->composite_dirty) {
         (*child->core.widget_class->core_class.expose)(child, NULL, 0);
+        child_ctx->composite_dirty = False;
+    }
 
     /* Fold this child's own descendants into its surface first (bottom-up). */
     _isw_composite_children_into(child, child_ctx);
