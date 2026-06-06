@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(libISW VERSION 0.8.0 LANGUAGES C)
+project(libISW VERSION 0.9.0 LANGUAGES C)
 
 # Default install prefix to /usr (overridable with -DCMAKE_INSTALL_PREFIX=...)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
