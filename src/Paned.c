@@ -922,22 +922,6 @@ MoveGripAdjustment(PanedWidget pw, Widget grip, int loc)
     RefigureLocations(pw, PaneIndex(grip), ThisBorderOnly);
     CommitNewLocations(pw);
     DrawInternalBorders(pw);
-
-    /* Repaint the adjusted panes.  Windowless panes have no own window to
-       clear-area; CommitNewLocations already moved/resized them (which queues a
-       recomposite of the windowed ancestor), so just flush.  For real windowed
-       panes, clear to provoke an Expose-driven repaint. */
-    if (!((Widget)pw)->core.windowless) {
-        if (IswIsRealized(pw->paned.whichadd))
-            xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(pw->paned.whichadd), 0, 0, 0, 0);
-        if (IswIsRealized(pw->paned.whichsub))
-            xcb_clear_area(IswDisplay((Widget)pw), 1, IswWindow(pw->paned.whichsub), 0, 0, 0, 0);
-        if (PaneInfo(pw->paned.whichadd)->grip &&
-            IswIsRealized(PaneInfo(pw->paned.whichadd)->grip))
-            xcb_clear_area(IswDisplay((Widget)pw), 1,
-                           IswWindow(PaneInfo(pw->paned.whichadd)->grip), 0, 0, 0, 0);
-    }
-    xcb_flush(IswDisplay((Widget)pw));
 }
 
 /*	Function Name: CommitGripAdjustment
@@ -969,7 +953,7 @@ HandleGrip(Widget grip, IswPointer junk, IswPointer callData)
     PanedWidget pw = (PanedWidget) IswParent(grip);
     int loc;
     char action_type;
-    xcb_cursor_t cursor;
+    //xcb_cursor_t cursor;
 
     action_type = toupper(*call_data->params[0]);
 
@@ -990,12 +974,6 @@ HandleGrip(Widget grip, IswPointer junk, IswPointer callData)
 	    break;
 
 	case 'C': {
-	    IswArgBuilder ab = IswArgBuilderInit();
-	    IswArgCursor(&ab, (IswArgVal)&cursor);
-	    IswGetValues(grip, ab.args, ab.count);
-	    uint32_t value = cursor;
-	    xcb_change_window_attributes(IswDisplay(grip), IswWindow(grip),
-					  XCB_CW_CURSOR, &value);
 	    CommitGripAdjustment(pw);
 	    break;
 	}
