@@ -358,20 +358,9 @@ FireCallback(ListViewWidget lv, int clicked_row, int clicked_col)
 static void
 ResolveForegroundRGB(ListViewWidget lv)
 {
-    xcb_connection_t *conn = ((Widget)lv)->core.display;
-    xcb_colormap_t cmap = ((Widget)lv)->core.colormap;
-    uint32_t pixel = (uint32_t)lv->listView.foreground;
-    xcb_query_colors_cookie_t cookie = xcb_query_colors(conn, cmap, 1, &pixel);
-    xcb_query_colors_reply_t *reply = xcb_query_colors_reply(conn, cookie, NULL);
-    if (reply) {
-        xcb_rgb_t *rgb = xcb_query_colors_colors(reply);
-        if (xcb_query_colors_colors_length(reply) > 0) {
-            lv->listView.fg_r = (double)(rgb[0].red >> 8) / 255.0;
-            lv->listView.fg_g = (double)(rgb[0].green >> 8) / 255.0;
-            lv->listView.fg_b = (double)(rgb[0].blue >> 8) / 255.0;
-        }
-        free(reply);
-    }
+    ISWRenderPixelToRGB(lv->listView.render_ctx, lv->listView.foreground,
+                        &lv->listView.fg_r, &lv->listView.fg_g,
+                        &lv->listView.fg_b);
 }
 
 static void
@@ -682,7 +671,26 @@ DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
         ? ISWScaledFontAscent(w, lv->listView.font)
         : (int)(11);
 
-    for (int row = 0; row < lv->listView.nrows; row++) {
+    /* Only paint rows intersecting the visible viewport.  The widget is
+       windowless and sized to its full content height inside a Viewport, so
+       nrows can be huge; the parent's height and our negative y give the
+       visible window. */
+    int first_row = 0;
+    int last_row = lv->listView.nrows - 1;
+    Widget parent = IswParent(w);
+    if (parent && row_h > 0) {
+        int vis_top = -(int)w->core.y;
+        int vis_bot = vis_top + (int)parent->core.height;
+        int rows_top = vis_top - (int)hdr_h;
+        first_row = rows_top / (int)row_h;
+        if (first_row < 0)
+            first_row = 0;
+        last_row = (vis_bot - (int)hdr_h) / (int)row_h;
+        if (last_row > lv->listView.nrows - 1)
+            last_row = lv->listView.nrows - 1;
+    }
+
+    for (int row = first_row; row <= last_row; row++) {
         int ry = (int)hdr_h + row * (int)row_h;
 
         /* Selection highlight */
@@ -914,16 +922,12 @@ UpdateResizeCursor(ListViewWidget lv, Boolean over_grip)
         return;
 
     if (over_grip && !lv->listView.resize_cursor_set) {
-        uint32_t value = lv->listView.resize_cursor;
-        xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
-                                     XCB_CW_CURSOR, &value);
-        xcb_flush(IswDisplay(w));
+        ((SimpleWidget)w)->simple.cursor = lv->listView.resize_cursor;
+        _IswSimpleApplyCursor(w);
         lv->listView.resize_cursor_set = True;
     } else if (!over_grip && lv->listView.resize_cursor_set) {
-        uint32_t value = lv->listView.default_cursor;
-        xcb_change_window_attributes(IswDisplay(w), IswWindow(w),
-                                     XCB_CW_CURSOR, &value);
-        xcb_flush(IswDisplay(w));
+        ((SimpleWidget)w)->simple.cursor = lv->listView.default_cursor;
+        _IswSimpleApplyCursor(w);
         lv->listView.resize_cursor_set = False;
     }
 }

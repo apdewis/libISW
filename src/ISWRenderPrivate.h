@@ -182,17 +182,6 @@ typedef struct _ISWRenderContext {
  */
 
 /*
- * ISWRenderPixelToRGB - Convert pixel value to RGB components
- *
- * Parameters:
- *   ctx   - Rendering context
- *   pixel - Pixel value
- *   r, g, b - Output RGB components (0.0-1.0)
- */
-void ISWRenderPixelToRGB(ISWRenderContext *ctx, Pixel pixel,
-                        double *r, double *g, double *b);
-
-/*
  * ISWRenderFindVisual - Find XCB visual for given depth
  *
  * Parameters:
