@@ -20,14 +20,14 @@ which phase is current, what is done, what is deferred and why.
 - Any future session reads this file first to know exactly where the
   abstraction stands.
 
-**Current phase:** 0 — scaffolding (in-progress)
+**Current phase:** 2 — `IswDisplay` + `IswWindow` (not started)
 
 ## Phase table
 
 | Phase | Scope | Status | Primary files |
 |---|---|---|---|
-| 0 | Scaffolding: vtable header skeleton + this status file | in-progress | `include/ISW/ISWPlatform.h`, `src/ISWPlatformPrivate.h`, `docs/ISWPLATFORM_PLAN.md` |
-| 1 | Portable event union + `IswEvent` (unblocks the rest) | todo | Event.c, NextEvent.c, Keyboard.c, Pointer.c |
+| 0 | Scaffolding: vtable header skeleton + this status file | done | `include/ISW/ISWPlatform.h`, `src/ISWPlatformPrivate.h`, `docs/ISWPLATFORM_PLAN.md` |
+| 1 | Portable event union + `IswEvent` (unblocks the rest) | done | `IswEvent.h`, `ISWPlatformEventXCB.c`, Event.c, TMstate.c, TMaction.c, +~30 widget files |
 | 2 | `IswDisplay` + `IswWindow` (core widget lifecycle) | todo | CoreP.h, Display.c, Initialize.c, Core.c, Shell.c, Geometry.c, Composite.c, Create.c, Popup.c |
 | 3 | `IswInput` + translation manager | todo | Keyboard.c, Pointer.c, XtTypes.h, TMparse.c, TMstate.c, TMaction.c, TMgrab.c |
 | 4 | `IswColor` + `IswFont` | todo | Converters.c, Core.c, Display.c, TextSink.c |
@@ -58,12 +58,82 @@ change: headers install via the `include/ISW/` glob and compile-check on first
 
 ### Phase 1 — Portable event union + `IswEvent`
 
-Define a backend-neutral event union the XCB backend populates from
-`xcb_generic_event_t` (and other backends from their native events), plus the
-poll/translate/modifier-state ops. Hardest piece — events flow into every
-widget action proc — so it goes first to unblock everything else.
+Define the toolkit's own event type, `IswEvent` (`include/ISW/IswEvent.h`),
+and decouple the toolkit core and widgets from `xcb_generic_event_t`.
 
-Files: Event.c (~2,500 lines), NextEvent.c, Keyboard.c, Pointer.c.
+**Decoupling principle (this is the point of the phase):** `IswEvent` carries
+ONLY events the toolkit consumes *semantically* — keyboard, pointer, crossing,
+focus, redraw, geometry, the few structure transitions widgets observe, and a
+window-close request. Everything that is X11 *protocol* stays entirely inside
+the platform backend and is NEVER surfaced as an `IswEvent`:
+
+| X11 protocol concern | Where it goes |
+|---|---|
+| Selection clear/request/notify, PropertyNotify (INCR) | inside Selection.c backend; exposed as the clipboard service API (`IswGetSelectionValue`/`IswOwnSelection`) — widgets already use these, never the events |
+| ClientMessage: XDND | inside ISWXdnd.c backend; exposed as the drag-drop service API |
+| ClientMessage: tray (`_NET_SYSTEM_TRAY`, `_XEMBED`) | inside IswTrayIcon.c backend |
+| ClientMessage: WM_DELETE_WINDOW | backend decodes → `IswCloseRequest` semantic event |
+| MappingNotify, keysym tables, raw keycodes | inside the keyboard/translation backend |
+| Atoms | never reach toolkit/widget code |
+
+Neutral vocabulary in `IswEvent`: `IswModMask` (Ctrl/Alt/Super… not X mod
+bits), `IswKey` + Unicode + UTF-8 text (no keysyms/keycodes), `IswNotifyMode`
++ `IswFocusSource` (collapsing X notify detail), `IswButton`, logical
+coordinates, opaque `IswEventTarget` (not a raw window id).
+
+**Work items:**
+1. `include/ISW/IswEvent.h` — the neutral union (done).
+2. Translator at the poll/dispatch seam: native `xcb_generic_event_t` →
+   `IswEvent` for the semantic kinds, folding in the keysym→IswKey/text
+   resolution and HiDPI descale that Event.c does today; protocol events are
+   routed to the backend's own handlers and never translated.
+3. Migrate the toolkit core (Event.c dispatch, TM matching) and widget action
+   procs / event handlers to read `IswEvent` fields instead of casting
+   `xcb_*_event_t`.
+4. Confirm `IswActionProc` / `IswEventHandler` public typedefs carry
+   `IswEvent *`.
+
+Files: IswEvent.h (new), Event.c (~2,500 lines), NextEvent.c, Keyboard.c,
+Pointer.c, TMstate.c/TMparse.c/TMkey.c/GetActKey.c (TM matching on neutral key
+identity + modifiers), plus every widget that reads event fields. Selection.c,
+ISWXdnd.c, IswTrayIcon.c are touched only to keep their protocol handling
+backend-internal, not to route IswEvents.
+
+**Status: done (build green).** What landed:
+
+- `include/ISW/IswEvent.h` — the neutral union: 17 toolkit-semantic kinds, the
+  `IswModMask` / `IswKey` / `IswNotifyMode` / `IswFocusSource` / `IswButton`
+  vocabularies, logical coordinates, opaque `IswEventTarget`. No xcb types,
+  atoms, keysyms or keycodes.
+- `src/ISWPlatformEventXCB.c` — `_IswEventFromXcb()` translates the native
+  `xcb_generic_event_t` into `IswEvent` for the semantic kinds (folding in
+  keysym→`IswKey`/UTF-8 resolution and HiDPI descale); returns False for X11
+  protocol events so the dispatch core routes them to backend handlers without
+  ever building an IswEvent. Moves behind the `IswPlatformEvent` sub-vtable in
+  Phase 2.
+- Public typedefs flipped to `IswEvent *`: `IswActionProc`, `IswEventHandler`,
+  `IswExposeProc`, `IswActionHookProc`. Dispatch core (`IswDispatchEventToWidget`,
+  `CallEventHandlers`) and the TM action path (`HandleActions`,
+  `IswCallActionProc`) translate once and hand `IswEvent *` to widgets.
+- **Widget bodies migrated to neutral fields.** Added neutral accessors
+  (`IswEventX/Y`, `IswEventModifiers`, `IswEventButton`) and rewrote the
+  widget action procs / handlers to read `iswev->kind` and neutral fields
+  instead of casting `xcb_*_event_t`. Bridge sites dropped from ~190 to ~35.
+- **Native-event escape hatch retained, by design** (`IswEventNative()` /
+  `ISW_NATIVE_EVENT()`, re-documented in IswEvent.h). It is no longer a
+  temporary shim — it is the deliberate seam for code that operates below the
+  neutral layer, and the ~35 remaining uses are all one of:
+  1. backend-internal X11 protocol handlers (Selection.c, Shell.c WM,
+     ISWXdnd.c, IswTrayIcon.c, ResConfig.c);
+  2. re-dispatch through `IswCallActionProc()` (still native — Scrollbar,
+     SimpleMenu, MenuBar); retires when the action API goes neutral;
+  3. X-only fields not yet abstracted — root coords, native event-window for
+     `IswWindowToWidget()`, EnterNotify INFERIOR detail, same_screen; these get
+     neutral forms in the Display/Window (Phase 2) and Input (Phase 3) phases;
+  4. public callback contracts still exposing the native event
+     (`ISWDrawingCallbackData`, Grip↔Paned).
+- Library builds green; demo (`isw_demo`) builds and runs; no direct libX11
+  NEEDED entry.
 
 ### Phase 2 — `IswDisplay` + `IswWindow`
 
@@ -121,5 +191,13 @@ Depends on Phases 1, 2, 5. Files: ISWXdnd.c, ISWXdnd.h.
 
 ## Changelog
 
-- Phase 0 started: created `ISWPlatform.h`, `ISWPlatformPrivate.h`, and this
-  status file.
+- Phase 0 done: created `ISWPlatform.h`, `ISWPlatformPrivate.h`, and this
+  status file. Handle/op types use the `Isw*` prefix.
+- Phase 1 done (build green): added neutral `IswEvent` (`IswEvent.h`) + the
+  XCB translator (`ISWPlatformEventXCB.c`); flipped the public action/handler/
+  expose/hook typedefs and the dispatch + TM core to `IswEvent *`; migrated
+  ~30 widget files (via the `IswEventNative` bridge). X11 protocol events
+  (selection / property / client-message / XDND / tray / mapping) stay
+  backend-internal and are never surfaced as IswEvents. `libISW.so` links;
+  no direct libX11 NEEDED entry. Follow-up: retire the native bridge by reading
+  neutral fields in widget procs.

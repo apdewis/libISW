@@ -68,8 +68,8 @@ static char defaultTranslations[] =
 /*
  * Actions added by this widget
  */
-static void ActionStart(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ActionStop(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void ActionStart(Widget, IswEvent *, String *, Cardinal *);
+static void ActionStop(Widget, IswEvent *, String *, Cardinal *);
 
 static IswActionsRec actions[] = {
     { "start", ActionStart },		/* trigger timers */
@@ -184,7 +184,7 @@ tic (IswPointer client_data, IswIntervalId *id)
      ISWRenderEnd(ctx);
  }
  rw->command.set = FALSE;
- (*expose) ((Widget) rw, (xcb_generic_event_t *) NULL, XCB_NONE);
+ (*expose) ((Widget) rw, (IswEvent *) NULL, XCB_NONE);
  if (ctx) {
      ISWRenderBegin(ctx);
      ISWRenderSetColor(ctx, rw->core.background_pixel);
@@ -192,7 +192,7 @@ tic (IswPointer client_data, IswIntervalId *id)
      ISWRenderEnd(ctx);
  }
  rw->command.set = TRUE;
- (*expose) ((Widget) rw, (xcb_generic_event_t *) NULL, XCB_NONE);
+ (*expose) ((Widget) rw, (IswEvent *) NULL, XCB_NONE);
     }
     DO_CALLBACK (rw);
 
@@ -253,7 +253,7 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 
 /* ARGSUSED */
 static void
-ActionStart (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+ActionStart (Widget gw, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     RepeaterWidget rw = (RepeaterWidget) gw;
 
@@ -269,7 +269,7 @@ ActionStart (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *nu
 
 /* ARGSUSED */
 static void
-ActionStop (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+ActionStop (Widget gw, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     RepeaterWidget rw = (RepeaterWidget) gw;
 

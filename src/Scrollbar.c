@@ -136,20 +136,20 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
-static void HandleThumb(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void MoveThumb(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void NotifyThumb(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void NotifyScroll(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void EndScroll(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ScrollLineForward(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ScrollLineBackward(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ScrollPageForward(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ScrollPageBackward(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ScrollToStart(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ScrollToEnd(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void HandleThumb(Widget, IswEvent *, String *, Cardinal *);
+static void MoveThumb(Widget, IswEvent *, String *, Cardinal *);
+static void NotifyThumb(Widget, IswEvent *, String *, Cardinal *);
+static void NotifyScroll(Widget, IswEvent *, String *, Cardinal *);
+static void EndScroll(Widget, IswEvent *, String *, Cardinal *);
+static void ScrollLineForward(Widget, IswEvent *, String *, Cardinal *);
+static void ScrollLineBackward(Widget, IswEvent *, String *, Cardinal *);
+static void ScrollPageForward(Widget, IswEvent *, String *, Cardinal *);
+static void ScrollPageBackward(Widget, IswEvent *, String *, Cardinal *);
+static void ScrollToStart(Widget, IswEvent *, String *, Cardinal *);
+static void ScrollToEnd(Widget, IswEvent *, String *, Cardinal *);
 
 static IswActionsRec actions[] = {
     {"HandleThumb",         HandleThumb},
@@ -284,8 +284,9 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
    erasing is done cleverly so that no flickering will occur. */
 
 static void
-PaintThumb (ScrollbarWidget sbw, xcb_generic_event_t *event)
+PaintThumb (ScrollbarWidget sbw, IswEvent *event)
 {
+    (void)event;
     Position  oldtop              = sbw->scrollbar.topLoc;
     Position  oldbot              = oldtop + sbw->scrollbar.shownLength;
     Dimension margin              = MARGIN (sbw);
@@ -484,7 +485,7 @@ Resize (Widget w)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
 
@@ -547,56 +548,27 @@ LookAhead (Widget w, xcb_generic_event_t *event)
 
 
 static void
-ExtractPosition(xcb_generic_event_t *event, Position *x, Position *y)
+ExtractPosition(IswEvent *event, Position *x, Position *y)
 {
-    uint8_t type = event->response_type & ~0x80;
-    
-    switch(type) {
-    case XCB_MOTION_NOTIFY: {
-	xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
-	*x = mev->event_x;
-	*y = mev->event_y;
-	break;
-    }
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE: {
-	xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-	*x = bev->event_x;
-	*y = bev->event_y;
-	break;
-    }
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE: {
-	xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
-	*x = kev->event_x;
-	*y = kev->event_y;
-	break;
-    }
-    case XCB_ENTER_NOTIFY:
-    case XCB_LEAVE_NOTIFY: {
-	xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
-	*x = cev->event_x;
-	*y = cev->event_y;
-	break;
-    }
-    default:
-	*x = 0; *y = 0;
-    }
+    *x = IswEventX(event);
+    *y = IswEventY(event);
 }
 
 /* ARGSUSED */
 static void
-HandleThumb(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+HandleThumb(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     Position x,y;
     ScrollbarWidget sbw = (ScrollbarWidget) w;
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
 
-    ExtractPosition( event, &x, &y );
+    ExtractPosition( iswev, &x, &y );
     /* if the motion event puts the pointer in thumb, call Move and Notify */
     /* also call Move and Notify if we're already in continuous scroll mode */
     if (sbw->scrollbar.scroll_mode == 2 ||
 	(PICKLENGTH (sbw,x,y) >= sbw->scrollbar.topLoc &&
 	PICKLENGTH (sbw,x,y) <= sbw->scrollbar.topLoc + sbw->scrollbar.shownLength)){
+	/* MoveThumb/NotifyThumb re-dispatch through the native-event API. */
 	IswCallActionProc(w, "MoveThumb", event, params, *num_params);
 	IswCallActionProc(w, "NotifyThumb", event, params, *num_params);
     }
@@ -640,17 +612,16 @@ FloatInRange(float num, float small, float big)
 
 
 static void
-NotifyScroll (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+NotifyScroll (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t call_data;
     Position x, y;
 
-    if (sbw->scrollbar.scroll_mode == 2  /* if scroll continuous */
-	|| LookAhead (w, event))
+    if (sbw->scrollbar.scroll_mode == 2)  /* if scroll continuous */
 	return;
 
-    ExtractPosition (event, &x, &y);
+    ExtractPosition (iswev, &x, &y);
 
     if (PICKLENGTH (sbw,x,y) < sbw->scrollbar.thickness) {
  /* handle first arrow zone */
@@ -687,7 +658,7 @@ NotifyScroll (Widget w, xcb_generic_event_t *event, String *params, Cardinal *nu
 
 /* ARGSUSED */
 static void
-EndScroll(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+EndScroll(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
 
@@ -712,48 +683,48 @@ PageDelta(ScrollbarWidget sbw)
 }
 
 static void
-ScrollLineForward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+ScrollLineForward(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t cd = LineDelta(sbw);
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
 }
 
 static void
-ScrollLineBackward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+ScrollLineBackward(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t cd = -LineDelta(sbw);
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
 }
 
 static void
-ScrollPageForward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+ScrollPageForward(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t cd = PageDelta(sbw);
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
 }
 
 static void
-ScrollPageBackward(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+ScrollPageBackward(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     intptr_t cd = -PageDelta(sbw);
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     IswCallCallbacks(w, IswNscrollProc, (IswPointer)cd);
 }
 
 static void
-ScrollToStart(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+ScrollToStart(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     float top = 0.0;
     union { IswPointer xtp; float xtf; } xtpf;
-    (void)e; (void)p; (void)np;
+    (void)iswev; (void)p; (void)np;
     sbw->scrollbar.top = top;
     xtpf.xtf = top + 0.0001f;
     IswCallCallbacks(w, IswNthumbProc, xtpf.xtp);
@@ -761,12 +732,12 @@ ScrollToStart(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
 }
 
 static void
-ScrollToEnd(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+ScrollToEnd(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     float top = 1.0f - sbw->scrollbar.shown;
     union { IswPointer xtp; float xtf; } xtpf;
-    (void)e; (void)p; (void)np;
+    (void)iswev; (void)p; (void)np;
     if (top < 0.0f) top = 0.0f;
     sbw->scrollbar.top = top;
     xtpf.xtf = top + 0.0001f;
@@ -792,8 +763,10 @@ FractionLoc (ScrollbarWidget sbw, int x, int y)
 
 
 static void
-MoveThumb (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+MoveThumb (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+    /* LookAhead still consumes the native event for queue inspection. */
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     Position x, y;
     float loc, s;
@@ -801,13 +774,7 @@ MoveThumb (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
 
     if (LookAhead (w, event)) return;
 
-    /* Check if event is on same screen - XCB motion events have same_screen field */
-    if (event) {
- xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
- if (!mev->same_screen) return;
-    }
-
-    ExtractPosition (event, &x, &y);
+    ExtractPosition (iswev, &x, &y);
     loc = FractionLoc (sbw, x, y);
     s = sbw->scrollbar.shown;
     t = sbw->scrollbar.top;
@@ -824,15 +791,17 @@ MoveThumb (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
     if (sbw->scrollbar.top + sbw->scrollbar.shown > 1.0)
       sbw->scrollbar.top = 1.0 - sbw->scrollbar.shown;
     sbw->scrollbar.scroll_mode = 2; /* indicate continuous scroll */
-    PaintThumb (sbw, event);
+    PaintThumb (sbw, iswev);
     xcb_flush(IswDisplay(w));	/* re-draw it before Notifying */
 }
 
 
 /* ARGSUSED */
 static void
-NotifyThumb (Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+NotifyThumb (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+    /* LookAhead still consumes the native event for queue inspection. */
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     register ScrollbarWidget sbw = (ScrollbarWidget) w;
     union {
         IswPointer xtp;

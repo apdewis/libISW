@@ -892,9 +892,10 @@ dump_widget_tree(Widget w, int indent)
 void
 _IswResourceConfigurationEH(Widget w,
                            IswPointer client_data _X_UNUSED,
-                           xcb_generic_event_t *event,
+                           IswEvent *iswev,
                            Boolean *continue_to_dispatch _X_UNUSED)
 {
+    ISW_NATIVE_EVENT(iswev);   /* PropertyNotify: X11 protocol, backend-internal */
     xcb_connection_t *dpy;
     IswPerDisplay pd;
     xcb_property_notify_event_t *pe = (xcb_property_notify_event_t *) event;

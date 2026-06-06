@@ -57,6 +57,7 @@ in this Software without prior written authorization from The Open Group.
 #include    <xcb/xkb.h>
 #include    <xcb/xcb_keysyms.h>
 #include	<ISW/IswTypes.h>
+#include	<ISW/IswEvent.h>	/* platform-neutral event union */
 /* Xresource.h replaced by custom IswQuark/IswValue/IswDatabase/IswOptions headers */
 #include	<ISW/IswFuncproto.h>
 #include <string.h>		/* for IswNewString, memcpy, etc. */
@@ -197,7 +198,7 @@ typedef uint16_t Modifiers;
 
 typedef void (*IswActionProc)(
     Widget 		/* widget */,
-    xcb_generic_event_t*		/* event */,
+    IswEvent*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
@@ -279,7 +280,7 @@ typedef void (*IswActionHookProc)(
     Widget		/* w */,
     IswPointer		/* client_data */,
     String		/* action_name */,
-    xcb_generic_event_t*		/* event */,
+    IswEvent*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
@@ -308,7 +309,7 @@ typedef void (*IswCaseProc)(
 typedef void (*IswEventHandler)(
     Widget 		/* widget */,
     IswPointer 		/* closure */,
-    xcb_generic_event_t*		/* event */,
+    IswEvent*		/* event */,
     Boolean*		/* continue_to_dispatch */
 );
 typedef unsigned long EventMask;
@@ -1375,7 +1376,7 @@ extern void IswCallbackPopdown(
 
 extern void IswMenuPopupAction(
     Widget 		/* widget */,
-    xcb_generic_event_t*		/* event */,
+    IswEvent*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );

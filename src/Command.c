@@ -106,15 +106,15 @@ static IswResource resources[] = {
 
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
-static void Set(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Reset(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Unset(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Highlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Unhighlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Set(Widget, IswEvent *, String *, Cardinal *);
+static void Reset(Widget, IswEvent *, String *, Cardinal *);
+static void Notify(Widget, IswEvent *, String *, Cardinal *);
+static void Unset(Widget, IswEvent *, String *, Cardinal *);
+static void Highlight(Widget, IswEvent *, String *, Cardinal *);
+static void Unhighlight(Widget, IswEvent *, String *, Cardinal *);
 static void Destroy(Widget);
-static void PaintCommandWidget(Widget, xcb_generic_event_t *, Region, Boolean);
+static void PaintCommandWidget(Widget, IswEvent *, Region, Boolean);
 static void ClassInitialize(void);
 
 static IswActionsRec actionsList[] = {
@@ -240,7 +240,7 @@ HighlightRegion(CommandWidget cbw)
 
 /* ARGSUSED */
 static void
-Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
@@ -249,12 +249,12 @@ Set(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 
   cbw->command.set= TRUE;
   if (IswIsRealized(w))
-    PaintCommandWidget(w, event, (Region) NULL, TRUE);
+    PaintCommandWidget(w, iswev, (Region) NULL, TRUE);
 }
 
 /* ARGSUSED */
 static void
-Unset(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Unset(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
@@ -263,25 +263,25 @@ Unset(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params
 
   cbw->command.set = FALSE;
   if (IswIsRealized(w))
-    PaintCommandWidget(w, event, (Region) NULL, TRUE);
+    PaintCommandWidget(w, iswev, (Region) NULL, TRUE);
 }
 
 /* ARGSUSED */
 static void
-Reset(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Reset(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
   if (cbw->command.set) {
     cbw->command.highlighted = HighlightNone;
-    Unset(w, event, params, num_params);
+    Unset(w, iswev, params, num_params);
   } else
-    Unhighlight(w, event, params, num_params);
+    Unhighlight(w, iswev, params, num_params);
 }
 
 /* ARGSUSED */
 static void
-Highlight(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Highlight(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
@@ -302,23 +302,23 @@ Highlight(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
   }
 
   if (IswIsRealized(w))
-    PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
+    PaintCommandWidget(w, iswev, HighlightRegion(cbw), TRUE);
 }
 
 /* ARGSUSED */
 static void
-Unhighlight(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Unhighlight(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
   cbw->command.highlighted = HighlightNone;
   if (IswIsRealized(w))
-    PaintCommandWidget(w, event, HighlightRegion(cbw), TRUE);
+    PaintCommandWidget(w, iswev, HighlightRegion(cbw), TRUE);
 }
 
 /* ARGSUSED */
 static void
-Notify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Notify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   CommandWidget cbw = (CommandWidget)w;
 
@@ -342,7 +342,7 @@ Notify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_param
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
   PaintCommandWidget(w, event, 0 /* FIXME: XCB region */, FALSE);
 }
@@ -356,7 +356,7 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
  */
 
 static void
-PaintCommandWidget(Widget w, xcb_generic_event_t *event, Region region, Boolean change)
+PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
 {
   CommandWidget cbw = (CommandWidget) w;
   Boolean very_thick;

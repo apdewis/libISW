@@ -357,7 +357,7 @@ advance_focus(Widget shell, int direction)
 /* --- Action procs --- */
 
 static void
-FocusNext(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+FocusNext(Widget w, IswEvent *e, String *p, Cardinal *np)
 {
     Widget shell = nearest_shell(w);
     (void)e; (void)p; (void)np;
@@ -365,7 +365,7 @@ FocusNext(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
 }
 
 static void
-FocusPrev(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+FocusPrev(Widget w, IswEvent *e, String *p, Cardinal *np)
 {
     Widget shell = nearest_shell(w);
     (void)e; (void)p; (void)np;
@@ -690,10 +690,11 @@ shell_destroy_cb(Widget shell, IswPointer closure, IswPointer call_data)
  * window so we can update the Alt-held state when the user lifts Alt. */
 static void
 shell_key_release_handler(Widget w, IswPointer closure,
-                          xcb_generic_event_t *event, Boolean *cont)
+                          IswEvent *iswev, Boolean *cont)
 {
+    ISW_NATIVE_EVENT(iswev);
     (void)closure; (void)cont;
-    if ((event->response_type & 0x7f) != XCB_KEY_RELEASE) return;
+    if (iswev->kind != IswKeyUp) return;
     /* Forward into the main intercept so Alt-release is processed. */
     _IswFocusMgrMaybeHandleKey(w, event);
 }

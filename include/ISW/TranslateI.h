@@ -445,21 +445,21 @@ extern void _IswBuildKeysymTables(xcb_connection_t *dpy, IswPerDisplay pd);
 #ifndef NO_MIT_HACKS
 extern void  _IswDisplayTranslations(
     Widget		/* widget */,
-   xcb_generic_event_t*		/* event */,
+   IswEvent*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
 
 extern void  _IswDisplayAccelerators(
     Widget		/* widget */,
-   xcb_generic_event_t*		/* event */,
+   IswEvent*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );
 
 extern void _IswDisplayInstalledAccelerators(
     Widget		/* widget */,
-   xcb_generic_event_t*		/* event */,
+   IswEvent*		/* event */,
     String*		/* params */,
     Cardinal*		/* num_params */
 );

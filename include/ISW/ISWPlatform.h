@@ -7,7 +7,7 @@
  * currently hardwired to X11/XCB: the display connection, shell windows,
  * top-level events, input, grabs, atoms, selections, colormaps, fonts and
  * cursors.  A platform backend (XCB today; Arcan/SHMIF or any EGL-providing
- * platform later) implements the ISWPlatformOps vtable; widget code talks only
+ * platform later) implements the IswPlatformOps vtable; widget code talks only
  * to the abstract handles and operations declared here.
  *
  * SCAFFOLDING ONLY (Phase 0).  This header declares the opaque handle types and
@@ -33,9 +33,9 @@
  * xcb_connection_t* / xcb_window_t / xcb_pixmap_t, etc.).  Widget code never
  * dereferences them.
  */
-typedef struct _ISWDisplay  *ISWDisplay;   /* display / server connection */
-typedef struct _ISWWindow   *ISWWindow;    /* a top-level / shell window  */
-typedef struct _ISWDrawable *ISWDrawable;  /* anything that can be drawn into */
+typedef struct _IswDisplay  *IswDisplay;   /* display / server connection */
+typedef struct _IswWindow   *IswWindow;    /* a top-level / shell window  */
+typedef struct _IswDrawable *IswDrawable;  /* anything that can be drawn into */
 
 /*
  * Portable integer point.  Replaces xcb_point_t in platform-neutral
@@ -43,7 +43,7 @@ typedef struct _ISWDrawable *ISWDrawable;  /* anything that can be drawn into */
  */
 typedef struct {
     int16_t x, y;
-} ISWPoint;
+} IswPoint;
 
 /*
  * Symbolic cursor shapes.  Backends map each to their native cursor; X11 maps
@@ -57,7 +57,7 @@ typedef enum {
     ISW_CURSOR_WATCH,
     ISW_CURSOR_SIZE_H,
     ISW_CURSOR_SIZE_V
-} ISWCursorShape;
+} IswCursorShape;
 
 /*
  * =================================================================
@@ -66,36 +66,36 @@ typedef enum {
  *
  * Phase 0 declares the grouping and the handle vocabulary only.  Operation
  * signatures are filled in per-phase as each category is abstracted; see the
- * phase plan.  Forward-declared here so ISWPlatformOps can reference them.
+ * phase plan.  Forward-declared here so IswPlatformOps can reference them.
  */
 
 /* Display / connection — open, close, screen info, event-loop fd.
  * Filled in Phase 2. */
-typedef struct _ISWPlatformDisplayOps   ISWPlatformDisplayOps;
+typedef struct _IswPlatformDisplayOps   IswPlatformDisplayOps;
 
 /* Window lifecycle — create, configure, map, destroy, reparent.
  * Filled in Phase 2. */
-typedef struct _ISWPlatformWindowOps    ISWPlatformWindowOps;
+typedef struct _IswPlatformWindowOps    IswPlatformWindowOps;
 
 /* Event loop + dispatch — poll, translate to a portable event union,
  * modifier state.  Filled in Phase 1 (unblocks the rest). */
-typedef struct _ISWPlatformEventOps     ISWPlatformEventOps;
+typedef struct _IswPlatformEventOps     IswPlatformEventOps;
 
 /* Input — keysym table, keyboard mapping, modifier set, grabs.
  * Filled in Phase 3. */
-typedef struct _ISWPlatformInputOps     ISWPlatformInputOps;
+typedef struct _IswPlatformInputOps     IswPlatformInputOps;
 
 /* Selections / clipboard — own, convert, paste.  Filled in Phase 5. */
-typedef struct _ISWPlatformSelectionOps ISWPlatformSelectionOps;
+typedef struct _IswPlatformSelectionOps IswPlatformSelectionOps;
 
 /* Colormap / visual — alloc by name / RGB, free.  Filled in Phase 4. */
-typedef struct _ISWPlatformColorOps     ISWPlatformColorOps;
+typedef struct _IswPlatformColorOps     IswPlatformColorOps;
 
 /* Fonts — open by pattern, metrics, close.  Filled in Phase 4. */
-typedef struct _ISWPlatformFontOps      ISWPlatformFontOps;
+typedef struct _IswPlatformFontOps      IswPlatformFontOps;
 
 /* Cursors — create from symbol, set on window, free.  Filled in Phase 5. */
-typedef struct _ISWPlatformCursorOps    ISWPlatformCursorOps;
+typedef struct _IswPlatformCursorOps    IswPlatformCursorOps;
 
 /*
  * =================================================================
@@ -107,15 +107,15 @@ typedef struct _ISWPlatformCursorOps    ISWPlatformCursorOps;
  * at init.  Sub-vtables are referenced by pointer so each category can be
  * populated independently as its phase lands.
  */
-typedef struct _ISWPlatformOps {
-    const ISWPlatformDisplayOps   *display;
-    const ISWPlatformWindowOps    *window;
-    const ISWPlatformEventOps     *event;
-    const ISWPlatformInputOps     *input;
-    const ISWPlatformSelectionOps *selection;
-    const ISWPlatformColorOps     *color;
-    const ISWPlatformFontOps      *font;
-    const ISWPlatformCursorOps    *cursor;
-} ISWPlatformOps;
+typedef struct _IswPlatformOps {
+    const IswPlatformDisplayOps   *display;
+    const IswPlatformWindowOps    *window;
+    const IswPlatformEventOps     *event;
+    const IswPlatformInputOps     *input;
+    const IswPlatformSelectionOps *selection;
+    const IswPlatformColorOps     *color;
+    const IswPlatformFontOps      *font;
+    const IswPlatformCursorOps    *cursor;
+} IswPlatformOps;
 
 #endif /* _ISWPlatform_h */

@@ -235,7 +235,7 @@ ClassInitialize(void)
 
 #ifdef MOTIF
 static void
-Redisplay (Widget gw, xcb_generic_event_t *event, Region region)
+Redisplay (Widget gw, IswEvent *event, Region region)
 {
    /*
     * If the Layout widget is visible, redraw gadgets.

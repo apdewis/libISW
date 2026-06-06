@@ -132,7 +132,7 @@ typedef void (*IswAlmostProc)(
 
 typedef void (*IswExposeProc)(
     Widget	/* widget */,
-    xcb_generic_event_t*	/* event */,
+    IswEvent*	/* event */,
     xcb_xfixes_region_t	/* region */
 );
 
@@ -298,7 +298,7 @@ void _IswInherit(
 extern void _IswHandleFocus(
     Widget		/* widget */,
     IswPointer		/* client_data */,
-   xcb_generic_event_t *		/* event */,
+   IswEvent *		/* event */,
     Boolean *		/* cont */);
 
 extern void IswCreateWindow(

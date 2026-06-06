@@ -247,6 +247,12 @@ extern char* __XtCalloc (
 #define __XtCalloc IswCalloc
 #endif
 
+/* XCB → neutral IswEvent translation (ISWPlatformEventXCB.c).  Fills *out and
+ * returns True for toolkit-semantic events; returns False for X11 protocol
+ * events the toolkit does not see as IswEvents (out->native is still set). */
+extern Boolean _IswEventFromXcb(xcb_connection_t *dpy,
+                                xcb_generic_event_t *xev, IswEvent *out);
+
 _XFUNCPROTOEND
 
 #endif /* _IswintrinsicI_h */

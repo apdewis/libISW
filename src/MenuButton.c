@@ -63,7 +63,7 @@ in this Software without prior written authorization from the X Consortium.
 extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
 static void ClassInitialize(void);
-static void PopupMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void PopupMenu(Widget, IswEvent *, String *, Cardinal *);
 
 #define superclass ((CommandWidgetClass)&commandClassRec)
 
@@ -98,7 +98,7 @@ static IswActionsRec actionsList[] =
   {"PopupMenu",	PopupMenu}
 };
 
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 
 MenuButtonClassRec menuButtonClassRec = {
   {
@@ -170,7 +170,7 @@ ClassInitialize(void)
 /* Chain to Command's expose, then draw a mnemonic underline if Alt is
  * held and a mnemonic_key is configured. */
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     MenuButtonWidget mbw = (MenuButtonWidget) w;
     (*superclass->core_class.expose)(w, event, region);
@@ -270,9 +270,9 @@ _IswMenuButtonPopup(Widget w)
 
 /* ARGSUSED */
 static void
-PopupMenu(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+PopupMenu(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-    (void)event; (void)params; (void)num_params;
+    (void)iswev; (void)params; (void)num_params;
     _IswMenuButtonPopup(w);
 }
 

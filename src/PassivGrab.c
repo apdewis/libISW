@@ -590,7 +590,7 @@ _IswCheckServerGrabsOnWidget(xcb_generic_event_t *event, Widget widget, _IswBool
 static void
 ActiveHandler(Widget widget _X_UNUSED,
               IswPointer pdi _X_UNUSED,
-             xcb_generic_event_t *event _X_UNUSED,
+             IswEvent *event _X_UNUSED,
               Boolean *cont _X_UNUSED)
 {
     /* nothing */
@@ -670,7 +670,7 @@ MakeGrabs(IswServerGrabPtr *passiveListPtr,
 static void
 RealizeHandler(Widget widget,
                IswPointer closure,
-              xcb_generic_event_t *event _X_UNUSED,
+              IswEvent *event _X_UNUSED,
                Boolean *cont _X_UNUSED)
 {
     IswPerWidgetInput pwi = (IswPerWidgetInput) closure;

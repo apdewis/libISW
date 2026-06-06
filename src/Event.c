@@ -1078,8 +1078,16 @@ _IswPaintWindowlessChild(Widget child, xcb_generic_event_t *event)
     if (!child->core.windowless_mapped)
         return;
 
-    if (child->core.widget_class->core_class.expose != NULL)
-        (*child->core.widget_class->core_class.expose)(child, event, 0);
+    if (child->core.widget_class->core_class.expose != NULL) {
+        IswEvent nev;
+        if (event)
+            (void) _IswEventFromXcb(IswDisplay(child), event, &nev);
+        else {
+            memset(&nev, 0, sizeof(nev));
+            nev.kind = IswRedraw;
+        }
+        (*child->core.widget_class->core_class.expose)(child, &nev, 0);
+    }
 
     _IswExposeWindowlessChildren(child, event);
 }
@@ -1099,8 +1107,12 @@ _IswRepaintWindowless(Widget w)
         return;
 
     ISWRenderBeginCompositeBatch();
-    if (w->core.widget_class->core_class.expose != NULL)
-        (*w->core.widget_class->core_class.expose)(w, NULL, 0);
+    if (w->core.widget_class->core_class.expose != NULL) {
+        IswEvent nev;
+        memset(&nev, 0, sizeof(nev));
+        nev.kind = IswRedraw;
+        (*w->core.widget_class->core_class.expose)(w, &nev, 0);
+    }
     _IswExposeWindowlessChildren(w, NULL);
     ISWRenderEndCompositeBatch();
 
@@ -1371,7 +1383,8 @@ _IswFreeWWTable(register IswPerDisplay pd)
 #define EHMAXSIZE 25            /* do not make whopping big */
 
 static Boolean
-CallEventHandlers(Widget widget,xcb_generic_event_t *event, EventMask mask)
+CallEventHandlers(Widget widget, xcb_generic_event_t *event,
+                  IswEvent *nev, EventMask mask)
 {
     register IswEventRec *p;
     IswEventHandler *proc;
@@ -1415,7 +1428,7 @@ CallEventHandlers(Widget widget,xcb_generic_event_t *event, EventMask mask)
        Selection.c:HandleSelectionEvents
      */
     for (i = 0; i < numprocs && cont_to_disp; i++)
-        (*(proc[i])) (widget, closure[i], event, &cont_to_disp);
+        (*(proc[i])) (widget, closure[i], nev, &cont_to_disp);
     IswFree((char *) proc);
     return cont_to_disp;
 }
@@ -1435,10 +1448,17 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
     Boolean call_tm = False;
     Boolean cont_to_disp;
     xcb_event_mask_t mask;
+    IswEvent nev;       /* neutral event handed to public procs/handlers */
 
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
+
+    /* Translate the native event into the toolkit-neutral form once.  Public
+       expose procs, event handlers and action procs receive &nev; protocol
+       handlers reach the native event via IswEventNative(&nev) (nev.native is
+       set even when the event is not a toolkit-semantic kind). */
+    (void) _IswEventFromXcb(IswDisplay(widget), event, &nev);
 
     mask = _IswConvertTypeToMask(event->response_type);
     if (event->response_type == XCB_INPUT_DEVICE_MOTION_NOTIFY)
@@ -1457,7 +1477,7 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
                  * when compression is disabled */
                 if (ev->count == 0 || COMP_EXPOSE_TYPE == IswExposeNoCompress) {
                     (*widget->core.widget_class->core_class.expose)
-                        (widget, event, 0);
+                        (widget, &nev, 0);
                     /* Repaint windowless descendants into their own surfaces,
                        then composite the subtree onto this window once. */
                     ISWRenderBeginCompositeBatch();
@@ -1475,12 +1495,12 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
              * mis-maps every subsequent real Expose rectangle. */
             else if (event_type == XCB_GRAPHICS_EXPOSURE && GRAPHICS_EXPOSE) {
                 (*widget->core.widget_class->core_class.expose)
-                    (widget, event, 0);
+                    (widget, &nev, 0);
                 was_dispatched = True;
             }
             else if (event_type == XCB_NO_EXPOSURE && NO_EXPOSE) {
                 (*widget->core.widget_class->core_class.expose)
-                    (widget, event, 0);
+                    (widget, &nev, 0);
                 was_dispatched = True;
             }
         }
@@ -1551,13 +1571,13 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
             }
             if (numprocs) {
                 if (p) {
-                    cont_to_disp = CallEventHandlers(widget, event, mask);
+                    cont_to_disp = CallEventHandlers(widget, event, &nev, mask);
                 }
                 else {
                     int i;
 
                     for (i = 0; i < numprocs && cont_to_disp; i++)
-                        (*(proc[i])) (widget, closure[i], event, &cont_to_disp);
+                        (*(proc[i])) (widget, closure[i], &nev, &cont_to_disp);
                     /* FUNCTIONS CALLED THROUGH POINTER proc:
                        Selection.c:ReqCleanup,
                        "Shell.c":EventHandler,
@@ -1577,7 +1597,7 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
         }
         else if ((!p->has_type_specifier && (mask & p->mask)) ||
                  (p->has_type_specifier && event->response_type == EXT_TYPE(p))) {
-            (*p->proc) (widget, p->closure, event, &cont_to_disp);
+            (*p->proc) (widget, p->closure, &nev, &cont_to_disp);
             was_dispatched = True;
         }
     }

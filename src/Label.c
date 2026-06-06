@@ -138,7 +138,7 @@ static IswResource resources[] = {
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void ClassInitialize(void);
 static void Destroy(Widget);
@@ -565,7 +565,7 @@ _EllipsizeText(Widget w, IswFontStruct *fs, const char *text, int text_len,
 
 /* ARGSUSED */
 static void
-Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget gw, IswEvent *event, xcb_xfixes_region_t region)
 {
     LabelWidget w = (LabelWidget) gw;
     ISWRenderContext *ctx = w->label.render_ctx;  /* Cairo rendering context */

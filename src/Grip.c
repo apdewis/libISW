@@ -75,9 +75,9 @@ static IswResource resources[] = {
       IswOffsetOf(GripRec, grip.grip_action), IswRCallback, NULL},
 };
 
-static void GripAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void GripAction(Widget, IswEvent *, String *, Cardinal *);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static void Destroy(Widget);
 
 static IswActionsRec actionsList[] =
@@ -148,7 +148,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
    paint its own background into its surface.  Without this the grip is
    invisible (its surface stays transparent) and Paned's drag handles vanish. */
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     GripWidget gw = (GripWidget) w;
     (void) event; (void) region;
@@ -178,8 +178,12 @@ Destroy(Widget w)
 }
 
 static void
-GripAction(Widget widget, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+GripAction(Widget widget, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+    /* Kept bridge: call_data.event carries the native event opaquely to the
+       grip callback; Paned's grip handler casts it back to xcb_generic_event_t*
+       (GetEventLocation), so a neutral read here would break that consumer. */
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     IswGripCallDataRec call_data;
 
     call_data.event = event;

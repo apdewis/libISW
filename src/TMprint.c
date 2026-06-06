@@ -773,7 +773,7 @@ _IswPrintXlations(Widget w,
 #ifndef NO_MIT_HACKS
 void
 _IswDisplayTranslations(Widget widget,
-                      xcb_generic_event_t *event _X_UNUSED,
+                      IswEvent *event _X_UNUSED,
                        String *params _X_UNUSED,
                        Cardinal *num_params _X_UNUSED)
 {
@@ -789,7 +789,7 @@ _IswDisplayTranslations(Widget widget,
 
 void
 _IswDisplayAccelerators(Widget widget,
-                      xcb_generic_event_t *event _X_UNUSED,
+                      IswEvent *event _X_UNUSED,
                        String *params _X_UNUSED,
                        Cardinal *num_params _X_UNUSED)
 {
@@ -804,11 +804,11 @@ _IswDisplayAccelerators(Widget widget,
 
 void
 _IswDisplayInstalledAccelerators(Widget widget,
-                                xcb_generic_event_t *event,
+                                IswEvent *iswev,
                                 String *params _X_UNUSED,
                                 Cardinal *num_params _X_UNUSED)
 {
-
+    ISW_NATIVE_EVENT(iswev);
     Widget eventWidget;
     xcb_connection_t *dpy = IswDisplay(widget);
     xcb_window_t window = get_event_window(event);

@@ -87,7 +87,7 @@ extern int errno;
 
 extern char *_IswTextGetText(TextWidget, ISWTextPosition, ISWTextPosition);
 
-static void CenterWidgetOnPoint(Widget, xcb_generic_event_t *);
+static void CenterWidgetOnPoint(Widget, IswEvent *);
 static void PopdownSearch(Widget, IswPointer, IswPointer);
 static void DoInsert(Widget, IswPointer, IswPointer);
 static void _SetField(Widget, Widget);
@@ -109,13 +109,13 @@ static void AddInsertFileChildren(Widget, String, Widget);
 static Boolean InsertFileNamed(Widget, const char *);
 static void AddSearchChildren(Widget, String, Widget);
 
-void _IswTextDoReplaceAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-void _IswTextDoSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-void _IswTextInsertFile(Widget, xcb_generic_event_t *, String *, Cardinal *);
-void _IswTextInsertFileAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-void _IswTextPopdownSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-void _IswTextSearch(Widget, xcb_generic_event_t *, String *, Cardinal *);
-void _IswTextSetField(Widget, xcb_generic_event_t *, String *, Cardinal *);
+void _IswTextDoReplaceAction(Widget, IswEvent *, String *, Cardinal *);
+void _IswTextDoSearchAction(Widget, IswEvent *, String *, Cardinal *);
+void _IswTextInsertFile(Widget, IswEvent *, String *, Cardinal *);
+void _IswTextInsertFileAction(Widget, IswEvent *, String *, Cardinal *);
+void _IswTextPopdownSearchAction(Widget, IswEvent *, String *, Cardinal *);
+void _IswTextSearch(Widget, IswEvent *, String *, Cardinal *);
+void _IswTextSetField(Widget, IswEvent *, String *, Cardinal *);
 
 
 static char radio_trans_string[] =
@@ -154,7 +154,7 @@ static char rep_text_trans[] =
 
 /* ARGSUSED */
 void
-_IswTextInsertFileAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+_IswTextInsertFileAction(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   DoInsert(w, (IswPointer) IswParent(IswParent(IswParent(w))), (IswPointer)NULL);
 }
@@ -176,7 +176,7 @@ _IswTextInsertFileAction(Widget w, xcb_generic_event_t *event, String *params, C
  */
 
 void
-_IswTextInsertFile(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+_IswTextInsertFile(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget)w;
   String ptr;
@@ -203,7 +203,7 @@ _IswTextInsertFile(Widget w, xcb_generic_event_t *event, String *params, Cardina
     SetWMProtocolTranslations(ctx->text.file_insert);
   }
 
-  CenterWidgetOnPoint(ctx->text.file_insert, event);
+  CenterWidgetOnPoint(ctx->text.file_insert, iswev);
   IswPopup(ctx->text.file_insert, IswGrabNone);
 }
 
@@ -398,7 +398,7 @@ AddInsertFileChildren(Widget form, String ptr, Widget tw)
 
 /* ARGSUSED */
 void
-_IswTextDoSearchAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+_IswTextDoSearchAction(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget tw = (TextWidget) IswParent(IswParent(IswParent(w)));
   Boolean popdown = FALSE;
@@ -420,7 +420,7 @@ _IswTextDoSearchAction(Widget w, xcb_generic_event_t *event, String *params, Car
 
 /* ARGSUSED */
 void
-_IswTextPopdownSearchAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+_IswTextPopdownSearchAction(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget tw = (TextWidget) IswParent(IswParent(IswParent(w)));
 
@@ -483,7 +483,7 @@ SearchButton(Widget w, IswPointer closure, IswPointer call_data)
 #define SEARCH_HEADER ("Text Widget - Search():")
 
 void
-_IswTextSearch(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+_IswTextSearch(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget)w;
   IswTextScanDirection dir;
@@ -547,7 +547,7 @@ _IswTextSearch(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
 
   InitializeSearchWidget(ctx->text.search, dir, (edit_mode == IswtextEdit));
 
-  CenterWidgetOnPoint(ctx->text.search->search_popup, event);
+  CenterWidgetOnPoint(ctx->text.search->search_popup, iswev);
   IswPopup(ctx->text.search->search_popup, IswGrabNone);
 }
 
@@ -828,7 +828,7 @@ DoSearch(struct SearchAndReplace * search)
 
 /* ARGSUSED */
 void
-_IswTextDoReplaceAction(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+_IswTextDoReplaceAction(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) IswParent(IswParent(IswParent(w)));
   Boolean popdown = FALSE;
@@ -1013,7 +1013,7 @@ SetSearchLabels(struct SearchAndReplace *search, String msg1, String msg2, Boole
 
 /* ARGSUSED */
 void
-_IswTextSetField(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+_IswTextSetField(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   struct SearchAndReplace * search;
   Widget new, old;
@@ -1161,26 +1161,25 @@ GetStringRaw(Widget tw)
  */
 
 static void
-CenterWidgetOnPoint(Widget w, xcb_generic_event_t *event)
+CenterWidgetOnPoint(Widget w, IswEvent *iswev)
 {
   Dimension width, height, b_width;
   Position x = 0, y = 0, max_x, max_y;
 
-  if (event != NULL) {
-    uint8_t type = event->response_type & ~0x80;
-    switch (type) {
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE:
-      {
-        xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-        x = bev->root_x;
-        y = bev->root_y;
-      }
+  if (iswev != NULL) {
+    switch (iswev->kind) {
+    case IswButtonDown:
+    case IswButtonUp:
+      x = iswev->button.root_x;
+      y = iswev->button.root_y;
       break;
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE:
+    case IswKeyDown:
+    case IswKeyUp:
       {
-        xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+        /* The neutral key event carries no root-window coordinate; read it
+         * from the native event for this case only. */
+        xcb_key_press_event_t *kev =
+            (xcb_key_press_event_t *) IswEventNative(iswev);
         x = kev->root_x;
         y = kev->root_y;
       }
@@ -1285,8 +1284,9 @@ InParams(String str, String *p, Cardinal n)
 static const char *WM_DELETE_WINDOW = "WM_DELETE_WINDOW";
 
 static void
-WMProtocols(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+WMProtocols(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+    ISW_NATIVE_EVENT(iswev);
     xcb_atom_t wm_delete_window;
     xcb_atom_t wm_protocols;
 

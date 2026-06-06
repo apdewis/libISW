@@ -42,7 +42,7 @@
  */
 typedef struct {
     ISWRenderContext     *render_ctx;   /* rendering context */
-    xcb_generic_event_t *event;        /* triggering event (NULL for resize) */
+    IswEvent            *event;        /* triggering event (NULL for resize) */
     xcb_window_t         window;       /* widget's window */
 } ISWDrawingCallbackData;
 

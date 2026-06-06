@@ -454,9 +454,10 @@ InActiveSubtree(Widget widget)
 void
 _IswHandleFocus(Widget widget,
                IswPointer client_data, /* child who wants focus */
-              xcb_generic_event_t *event,
+              IswEvent *iswev,
                Boolean *cont _X_UNUSED)
 {
+    ISW_NATIVE_EVENT(iswev);
     IswPerDisplayInput pdi = _IswGetPerDisplayInput(IswDisplay(widget));
     IswPerWidgetInput pwi = (IswPerWidgetInput) client_data;
     IswGeneology oldFocalPoint = pwi->focalPoint;
@@ -661,7 +662,7 @@ AddFocusHandler(Widget widget,
 static void
 QueryEventMask(Widget widget,           /* child who gets focus */
                IswPointer client_data,   /* ancestor giving it */
-              xcb_generic_event_t *event _X_UNUSED,
+              IswEvent *event _X_UNUSED,
                Boolean *cont _X_UNUSED)
 {
     /* widget was once the target of an IswSetKeyboardFocus but

@@ -68,7 +68,7 @@ _XFUNCPROTOBEGIN
 extern void _IswResourceConfigurationEH(
 	Widget 		/* w */,
 	IswPointer 	/* client_data */,
-	xcb_generic_event_t * 	/* event */,
+	IswEvent * 	/* event */,
 	Boolean *	/* continue_to_dispatch */
 );
 

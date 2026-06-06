@@ -7,7 +7,7 @@
  * split used by ISWRender.h / ISWRenderPrivate.h.  Concrete backends and the
  * platform dispatcher include this; widget code includes only the public
  * header.  This is where each backend's native handle structs, its exported
- * ISWPlatformOps instance, and the active-backend selection live.
+ * IswPlatformOps instance, and the active-backend selection live.
  *
  * SCAFFOLDING ONLY (Phase 0).  Declares the backend-extern hook and the
  * accessor for the active vtable; the XCB backend's concrete handle structs
@@ -28,11 +28,11 @@
  * Active platform backend
  * =================================================================
  *
- * The dispatcher resolves a single ISWPlatformOps for the process at startup
- * (XCB today).  _ISWPlatformGetOps returns it; widget-facing platform wrappers
+ * The dispatcher resolves a single IswPlatformOps for the process at startup
+ * (XCB today).  _IswPlatformGetOps returns it; widget-facing platform wrappers
  * dispatch through it.  Returns NULL before a backend is selected.
  */
-const ISWPlatformOps *_ISWPlatformGetOps(void);
+const IswPlatformOps *_IswPlatformGetOps(void);
 
 /*
  * =================================================================
@@ -43,6 +43,6 @@ const ISWPlatformOps *_ISWPlatformGetOps(void);
  * categories are abstracted; the sub-vtable members of this struct are filled
  * in their respective phases.
  */
-extern const ISWPlatformOps isw_platform_xcb_ops;
+extern const IswPlatformOps isw_platform_xcb_ops;
 
 #endif /* _ISWPlatformPrivate_h */

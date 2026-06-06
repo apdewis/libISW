@@ -572,9 +572,10 @@ dock_into_manager(IswTrayIcon icon)
 
 static void
 root_event_handler(Widget widget, IswPointer closure,
-                   xcb_generic_event_t *event,
+                   IswEvent *iswev,
                    Boolean *continue_to_dispatch)
 {
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev); (void)event;
     IswTrayIcon icon = (IswTrayIcon)closure;
     uint8_t type = event->response_type & 0x7f;
 
@@ -607,9 +608,10 @@ root_event_handler(Widget widget, IswPointer closure,
 
 static void
 tray_event_handler(Widget widget, IswPointer closure,
-                   xcb_generic_event_t *event,
+                   IswEvent *iswev,
                    Boolean *continue_to_dispatch)
 {
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev); (void)event;
     IswTrayIcon icon = (IswTrayIcon)closure;
     uint8_t type = event->response_type & 0x7f;
 

@@ -797,10 +797,11 @@ _IswFindPopup(Widget widget, String name)
 
 void
 IswMenuPopupAction(Widget widget,
-                  xcb_generic_event_t *event,
+                  IswEvent *iswev,
                   String *params,
                   Cardinal *num_params)
 {
+    ISW_NATIVE_EVENT(iswev);
     register Widget popup_shell;
     IswAppContext app = IswWidgetToApplicationContext(widget);
 
@@ -842,7 +843,7 @@ IswMenuPopupAction(Widget widget,
 
 static void
 _IswMenuPopdownAction(Widget widget,
-                    xcb_generic_event_t *event _X_UNUSED,
+                    IswEvent *event _X_UNUSED,
                      String *params,
                      Cardinal *num_params)
 {
@@ -922,6 +923,9 @@ IswCallActionProc(Widget widget,
 {
     CompiledAction *actionP;
     XrmQuark q = XrmStringToQuark(action);
+    /* Action procs and hooks receive the toolkit-neutral event. */
+    IswEvent nev;
+    (void) _IswEventFromXcb(IswDisplay(widget), event, &nev);
     Widget w = widget;
     IswAppContext app = IswWidgetToApplicationContext(widget);
     ActionList actionList;
@@ -945,13 +949,13 @@ IswCallActionProc(Widget widget,
                             (*hook->proc) (widget,
                                            hook->closure,
                                            (String) action,
-                                           event,
+                                           &nev,
                                            params,
                                            &num_params);
                             hook = hook->next;
                         }
                         (*(actionP->proc))
-                            (widget, event, params, &num_params);
+                            (widget, &nev, params, &num_params);
                         UNLOCK_PROCESS;
                         UNLOCK_APP(app);
                         return;
@@ -975,13 +979,13 @@ IswCallActionProc(Widget widget,
                     (*hook->proc) (widget,
                                    hook->closure,
                                    (String) action,
-                                   event,
+                                   &nev,
                                    params,
                                    &num_params);
                     hook = hook->next;
                 }
                 (*(actionP->proc))
-                    (widget, event, params, &num_params);
+                    (widget, &nev, params, &num_params);
                 UNLOCK_APP(app);
                 return;
             }

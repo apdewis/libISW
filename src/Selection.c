@@ -116,10 +116,10 @@ IswAppGetSelectionTimeout(IswAppContext app)
 
 /* General utilities */
 
-static void HandleSelectionReplies(Widget, IswPointer,xcb_generic_event_t *, Boolean *);
+static void HandleSelectionReplies(Widget, IswPointer,IswEvent *, Boolean *);
 static void ReqTimedOut(IswPointer, IswIntervalId *);
-static void HandlePropertyGone(Widget, IswPointer,xcb_generic_event_t *, Boolean *);
-static void HandleGetIncrement(Widget, IswPointer,xcb_generic_event_t *, Boolean *);
+static void HandlePropertyGone(Widget, IswPointer,IswEvent *, Boolean *);
+static void HandleGetIncrement(Widget, IswPointer,IswEvent *, Boolean *);
 static void HandleIncremental(xcb_connection_t *, Widget, xcb_atom_t, CallBackInfo,
                               unsigned long);
 
@@ -391,7 +391,7 @@ WidgetDestroyed(Widget widget, IswPointer closure, IswPointer data _X_UNUSED)
 
 /* Selection Owner code */
 
-static void HandleSelectionEvents(Widget, IswPointer,xcb_generic_event_t *, Boolean *);
+static void HandleSelectionEvents(Widget, IswPointer,IswEvent *, Boolean *);
 
 static Boolean
 LoseSelection(Select ctx, Widget widget, xcb_atom_t selection, xcb_timestamp_t time)
@@ -624,10 +624,10 @@ AllSent(Request req)
 static void
 HandlePropertyGone(Widget widget _X_UNUSED,
                    IswPointer closure,
-                  xcb_generic_event_t *ev,
+                  IswEvent *iswev,
                    Boolean *cont _X_UNUSED)
 {
-    xcb_property_notify_event_t *event = (xcb_property_notify_event_t *) ev;
+    xcb_property_notify_event_t *event = (xcb_property_notify_event_t *) IswEventNative(iswev);
     Request req = (Request) closure;
     Select ctx = req->ctx;
 
@@ -821,9 +821,10 @@ GetConversion(Select ctx,       /* logical owner */
 static void
 HandleSelectionEvents(Widget widget,
                       IswPointer closure,
-                      xcb_generic_event_t *event,
+                      IswEvent *iswev,
                       Boolean *cont _X_UNUSED)
 {
+    ISW_NATIVE_EVENT(iswev);   /* selection protocol: backend-internal */
     Select ctx;
     xcb_selection_notify_event_t ev;
     xcb_atom_t target = None;
@@ -1116,9 +1117,10 @@ IsINCRtype(CallBackInfo info, xcb_window_t window, xcb_atom_t prop)
 static void
 ReqCleanup(Widget widget,
            IswPointer closure,
-           xcb_generic_event_t *event,
+           IswEvent *iswev,
            Boolean *cont _X_UNUSED)
 {
+    ISW_NATIVE_EVENT(iswev);   /* selection protocol: backend-internal */
     CallBackInfo info = (CallBackInfo) closure;
     unsigned long length;
     //int format;
@@ -1235,10 +1237,10 @@ ReqTimedOut(IswPointer closure, IswIntervalId *id _X_UNUSED)
 static void
 HandleGetIncrement(Widget widget,
                    IswPointer closure,
-                   xcb_generic_event_t *ev,
+                   IswEvent *iswev,
                    Boolean *cont _X_UNUSED)
 {
-    xcb_property_notify_event_t *event = (xcb_property_notify_event_t *) ev;
+    xcb_property_notify_event_t *event = (xcb_property_notify_event_t *) IswEventNative(iswev);
     CallBackInfo info = (CallBackInfo) closure;
     Select ctx = info->ctx;
     char *value;
@@ -1454,9 +1456,9 @@ HandleIncremental(xcb_connection_t *dpy,
 static void
 HandleSelectionReplies(Widget widget,
                        IswPointer closure,
-                       xcb_generic_event_t *ev,
+                       IswEvent *iswev,
                        Boolean *cont _X_UNUSED) {
-    xcb_selection_notify_event_t *event = (xcb_selection_notify_event_t *) ev;
+    xcb_selection_notify_event_t *event = (xcb_selection_notify_event_t *) IswEventNative(iswev);
     xcb_connection_t *dpy = IswDisplay(widget);
     CallBackInfo info = (CallBackInfo) closure;
     Select ctx = info->ctx;

@@ -154,7 +154,7 @@ void quit_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void drop_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void drag_enter_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void drag_leave_callback(Widget w, IswPointer client_data, IswPointer call_data);
-void drag_start_action(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params);
+void drag_start_action(Widget w, IswEvent *event, String *params, Cardinal *num_params);
 
 /* Menu bar callbacks */
 void file_menu_callback(Widget w, IswPointer client_data, IswPointer call_data);
@@ -2425,7 +2425,7 @@ demo_drag_finished(Widget widget, IswDndAction performed_action,
            accepted ? "accepted" : "rejected", performed_action);
 }
 
-void drag_start_action(Widget w, xcb_generic_event_t *event,
+void drag_start_action(Widget w, IswEvent *event,
                        String *params, Cardinal *num_params)
 {
     (void) params;
@@ -2444,7 +2444,10 @@ void drag_start_action(Widget w, xcb_generic_event_t *event,
     desc.finished = demo_drag_finished;
     desc.client_data = NULL;
 
-    ISWXdndStartDrag(w, (xcb_button_press_event_t *) event, &desc);
+    /* ISWXdndStartDrag still takes the native button event (XDND moves behind
+       the platform DnD vtable only in a later phase).  Recover it from the
+       neutral event via the public IswEventNative() bridge. */
+    ISWXdndStartDrag(w, (xcb_button_press_event_t *) IswEventNative(event), &desc);
 }
 
 

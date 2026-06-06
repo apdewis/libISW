@@ -68,17 +68,17 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void SelectItem(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void BandDrag(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void BandFinish(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void MoveCursor(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ExtendSelection(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ActivateCursor(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ToggleCursor(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void SelectAll(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void HandleFocus(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void SelectItem(Widget, IswEvent *, String *, Cardinal *);
+static void BandDrag(Widget, IswEvent *, String *, Cardinal *);
+static void BandFinish(Widget, IswEvent *, String *, Cardinal *);
+static void MoveCursor(Widget, IswEvent *, String *, Cardinal *);
+static void ExtendSelection(Widget, IswEvent *, String *, Cardinal *);
+static void ActivateCursor(Widget, IswEvent *, String *, Cardinal *);
+static void ToggleCursor(Widget, IswEvent *, String *, Cardinal *);
+static void SelectAll(Widget, IswEvent *, String *, Cardinal *);
+static void HandleFocus(Widget, IswEvent *, String *, Cardinal *);
 static void ResolveForegroundRGB(IconViewWidget);
 static void BandUpdateSelection(IconViewWidget);
 static void ScrollToCursor(IconViewWidget);
@@ -574,7 +574,7 @@ DrawWrappedLabel(ISWRenderContext *ctx, const char *label, int max_w,
 }
 
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     IconViewWidget iw = (IconViewWidget) w;
     ISWRenderContext *ctx = iw->iconView.render_ctx;
@@ -852,16 +852,14 @@ HitTest(IconViewWidget iw, Position x, Position y)
 }
 
 static void
-SelectItem(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+SelectItem(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     Position x, y;
 
-    uint8_t type = event->response_type & ~0x80;
-    if (type == XCB_BUTTON_PRESS) {
-        xcb_button_press_event_t *ev = (xcb_button_press_event_t *)event;
-        x = ev->event_x;
-        y = ev->event_y;
+    if (iswev->kind == IswButtonDown) {
+        x = IswEventX(iswev);
+        y = IswEventY(iswev);
     } else {
         return;
     }
@@ -869,9 +867,9 @@ SelectItem(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
     int index = HitTest(iw, x, y);
 
     /* Detect modifiers from event state */
-    uint16_t state = ((xcb_button_press_event_t *)event)->state;
-    Boolean toggle = (state & XCB_MOD_MASK_CONTROL) != 0;
-    Boolean extend = (state & XCB_MOD_MASK_SHIFT) != 0;
+    uint16_t state = IswEventModifiers(iswev);
+    Boolean toggle = (state & IswModControl) != 0;
+    Boolean extend = (state & IswModShift) != 0;
 
     if (!iw->iconView.sel_flags)
         return;
@@ -1005,7 +1003,7 @@ BandRedrawWorkProc(IswPointer closure)
 }
 
 static void
-BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+BandDrag(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
     (void)params; (void)num_params;
@@ -1020,13 +1018,11 @@ BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
     if (!iw->iconView.band_active)
         return;
 
-    uint8_t type = event->response_type & ~0x80;
-    if (type != XCB_MOTION_NOTIFY)
+    if (iswev->kind != IswMotion)
         return;
 
-    xcb_motion_notify_event_t *ev = (xcb_motion_notify_event_t *)event;
-    Position new_x = ev->event_x;
-    Position new_y = ev->event_y;
+    Position new_x = IswEventX(iswev);
+    Position new_y = IswEventY(iswev);
 
     /* Skip if position unchanged */
     if (new_x == iw->iconView.band_cur_x && new_y == iw->iconView.band_cur_y)
@@ -1045,10 +1041,10 @@ BandDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_par
 }
 
 static void
-BandFinish(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+BandFinish(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
-    (void)event; (void)params; (void)num_params;
+    (void)iswev; (void)params; (void)num_params;
 
     if (ISWXdndIsDragging(w))
         return;
@@ -1148,10 +1144,10 @@ ScrollToCursor(IconViewWidget iw)
 }
 
 static void
-MoveCursor(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+MoveCursor(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
-    (void)event;
+    (void)iswev;
 
     if (!num_params || *num_params < 1 || iw->iconView.nitems <= 0)
         return;
@@ -1174,10 +1170,10 @@ MoveCursor(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
 }
 
 static void
-ExtendSelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+ExtendSelection(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
-    (void)event;
+    (void)iswev;
 
     if (!num_params || *num_params < 1 || iw->iconView.nitems <= 0)
         return;
@@ -1203,10 +1199,10 @@ ExtendSelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *
 }
 
 static void
-ActivateCursor(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+ActivateCursor(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
-    (void)event; (void)params; (void)num_params;
+    (void)iswev; (void)params; (void)num_params;
 
     if (iw->iconView.cursor < 0 || iw->iconView.cursor >= iw->iconView.nitems)
         return;
@@ -1222,10 +1218,10 @@ ActivateCursor(Widget w, xcb_generic_event_t *event, String *params, Cardinal *n
 }
 
 static void
-ToggleCursor(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+ToggleCursor(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
-    (void)event; (void)params; (void)num_params;
+    (void)iswev; (void)params; (void)num_params;
 
     if (iw->iconView.cursor < 0 || iw->iconView.cursor >= iw->iconView.nitems)
         return;
@@ -1244,10 +1240,10 @@ ToggleCursor(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
 }
 
 static void
-SelectAll(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+SelectAll(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
-    (void)event; (void)params; (void)num_params;
+    (void)iswev; (void)params; (void)num_params;
 
     if (!iw->iconView.multi_select || !iw->iconView.sel_flags)
         return;
@@ -1259,10 +1255,10 @@ SelectAll(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
 }
 
 static void
-HandleFocus(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+HandleFocus(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     IconViewWidget iw = (IconViewWidget) w;
-    (void)event;
+    (void)iswev;
 
     if (!num_params || *num_params < 1)
         return;

@@ -138,7 +138,7 @@ static char defaultTranslations[] =
  * Semi Public function definitions.
  */
 
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void ChangeManaged(Widget);
@@ -159,20 +159,20 @@ static void SchedulePopupSubMenu(SimpleMenuWidget);
  * Action Routine Definitions
  */
 
-static void Highlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Unhighlight(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Notify(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void PositionMenuAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Popdown(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void NextEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void PrevEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void FirstEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void LastEntry(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void EnterSubMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void LeaveSubMenu(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void AccelNotify(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ScrollUp(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ScrollDown(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void Highlight(Widget, IswEvent *, String *, Cardinal *);
+static void Unhighlight(Widget, IswEvent *, String *, Cardinal *);
+static void Notify(Widget, IswEvent *, String *, Cardinal *);
+static void PositionMenuAction(Widget, IswEvent *, String *, Cardinal *);
+static void Popdown(Widget, IswEvent *, String *, Cardinal *);
+static void NextEntry(Widget, IswEvent *, String *, Cardinal *);
+static void PrevEntry(Widget, IswEvent *, String *, Cardinal *);
+static void FirstEntry(Widget, IswEvent *, String *, Cardinal *);
+static void LastEntry(Widget, IswEvent *, String *, Cardinal *);
+static void EnterSubMenu(Widget, IswEvent *, String *, Cardinal *);
+static void LeaveSubMenu(Widget, IswEvent *, String *, Cardinal *);
+static void AccelNotify(Widget, IswEvent *, String *, Cardinal *);
+static void ScrollUp(Widget, IswEvent *, String *, Cardinal *);
+static void ScrollDown(Widget, IswEvent *, String *, Cardinal *);
 
 /*
  * Private Function Definitions.
@@ -188,7 +188,7 @@ static void SetMarginWidths(Widget);
 static Dimension GetMenuWidth(Widget, Widget);
 static Dimension GetMenuHeight(Widget);
 static Widget FindMenu(Widget, String);
-static SmeObject GetEventEntry(Widget, xcb_generic_event_t *);
+static SmeObject GetEventEntry(Widget, IswEvent *);
 static void MoveMenu(Widget, Position, Position);
 static void ScrollEntryVisible(SimpleMenuWidget, SmeObject);
 static void ScrollMenuTo(SimpleMenuWidget, int);
@@ -423,7 +423,7 @@ Destroy(Widget w)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
     SmeObject *entry;
@@ -879,7 +879,7 @@ ChangeManaged(Widget w)
 
 /* ARGSUSED */
 static void
-PositionMenuAction(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_params)
+PositionMenuAction(Widget w, IswEvent *iswev, String * params, Cardinal * num_params)
 {
   Widget menu;
   XPoint loc;
@@ -901,31 +901,29 @@ PositionMenuAction(Widget w, xcb_generic_event_t * event, String * params, Cardi
     return;
   }
 
-  uint8_t type = event->response_type & ~0x80;
-  switch (type) {
-  case XCB_BUTTON_PRESS:
-  case XCB_BUTTON_RELEASE: {
-    xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-    loc.x = bev->root_x;
-    loc.y = bev->root_y;
+  switch (iswev->kind) {
+  case IswButtonDown:
+  case IswButtonUp:
+    loc.x = iswev->button.root_x;
+    loc.y = iswev->button.root_y;
     PositionMenu(menu, &loc);
     break;
-  }
-  case XCB_ENTER_NOTIFY:
-  case XCB_LEAVE_NOTIFY: {
-    xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
+  case IswEnter:
+  case IswLeave: {
+    /* The neutral crossing event does not carry root coordinates, so read
+     * them from the native event. */
+    xcb_enter_notify_event_t *cev =
+        (xcb_enter_notify_event_t *) IswEventNative(iswev);
     loc.x = cev->root_x;
     loc.y = cev->root_y;
     PositionMenu(menu, &loc);
     break;
   }
-  case XCB_MOTION_NOTIFY: {
-    xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
-    loc.x = mev->root_x;
-    loc.y = mev->root_y;
+  case IswMotion:
+    loc.x = iswev->motion.root_x;
+    loc.y = iswev->motion.root_y;
     PositionMenu(menu, &loc);
     break;
-  }
   default:
     PositionMenu(menu, (XPoint *)NULL);
     break;
@@ -948,18 +946,17 @@ PositionMenuAction(Widget w, xcb_generic_event_t * event, String * params, Cardi
 
 /* ARGSUSED */
 static void
-Unhighlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_params)
+Unhighlight(Widget w, IswEvent *iswev, String * params, Cardinal * num_params)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SimpleMenuWidget sub = (SimpleMenuWidget) smw->simple_menu.sub_menu;
     SmeObject entry = smw->simple_menu.entry_set;
     SmeObjectClass class;
     int old_pos;
-    uint8_t etype = event ? (event->response_type & 0x7f) : 0;
     Boolean is_pointer_event =
-        (etype == XCB_ENTER_NOTIFY || etype == XCB_LEAVE_NOTIFY ||
-         etype == XCB_MOTION_NOTIFY || etype == XCB_BUTTON_PRESS ||
-         etype == XCB_BUTTON_RELEASE);
+        (iswev->kind == IswEnter || iswev->kind == IswLeave ||
+         iswev->kind == IswMotion || iswev->kind == IswButtonDown ||
+         iswev->kind == IswButtonUp);
 
     /* For non-pointer (e.g. key) events there are no coordinates to
      * compare against. Just unhighlight whatever is currently set. */
@@ -979,19 +976,18 @@ Unhighlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * n
         return;
     }
 
-    if (entry == NULL || entry == GetEventEntry(w, event)) {
+    if (entry == NULL || entry == GetEventEntry(w, iswev)) {
 	smw->simple_menu.entry_set = NULL;
 	PopdownSubMenu(smw);
 	return;
     }
 
-    xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
-    if (cev->event_y < 0 || cev->event_y >= (int)smw->core.height)
+    if (IswEventY(iswev) < 0 || IswEventY(iswev) >= (int)smw->core.height)
 	PopdownSubMenu(smw);
     else if (sub &&
-		((cev->event_x < 0 &&
+		((IswEventX(iswev) < 0 &&
 			!(sub->simple_menu.state & SMW_POPLEFT)) ||
-		(cev->event_x >= (int)smw->core.width &&
+		(IswEventX(iswev) >= (int)smw->core.width &&
 			(sub->simple_menu.state & SMW_POPLEFT))))
 	PopdownSubMenu(smw);
 
@@ -1026,7 +1022,7 @@ Unhighlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * n
 
 /* ARGSUSED */
 static void
-Highlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_params)
+Highlight(Widget w, IswEvent *iswev, String * params, Cardinal * num_params)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SmeObject entry;
@@ -1035,7 +1031,7 @@ Highlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num
 
     if (!IswIsSensitive(w)) return;
 
-    entry = GetEventEntry(w, event);
+    entry = GetEventEntry(w, iswev);
     if (entry == smw->simple_menu.entry_set)
 	return;
 
@@ -1046,7 +1042,7 @@ Highlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num
     }
 
     PopdownSubMenu(smw);
-    Unhighlight(w, event, params, num_params);
+    Unhighlight(w, iswev, params, num_params);
 
     if (entry == NULL) {
 	if (smw->simple_menu.render_ctx) {
@@ -1092,7 +1088,7 @@ Highlight(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num
 
 /* ARGSUSED */
 static void
-Notify(Widget w, xcb_generic_event_t * event, String * params, Cardinal * num_params)
+Notify(Widget w, IswEvent *iswev, String * params, Cardinal * num_params)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SmeObject entry = smw->simple_menu.entry_set;
@@ -1183,12 +1179,12 @@ FindFirstSelectable(SimpleMenuWidget smw, int from, int direction)
 }
 
 static void
-NextEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+NextEntry(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     int start;
     SmeObject next;
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     if (smw->composite.num_children == 0) return;
     if (smw->simple_menu.entry_set == NULL) {
         next = FindFirstSelectable(smw, 0, +1);
@@ -1204,13 +1200,13 @@ NextEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
 }
 
 static void
-PrevEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+PrevEntry(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     int start;
     SmeObject prev;
     int n = (int)smw->composite.num_children;
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     if (n == 0) return;
     if (smw->simple_menu.entry_set == NULL) {
         prev = FindFirstSelectable(smw, n - 1, -1);
@@ -1226,11 +1222,11 @@ PrevEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
 }
 
 static void
-FirstEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+FirstEntry(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SmeObject first;
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     first = FindFirstSelectable(smw, 0, +1);
     if (first) {
         if (smw->simple_menu.too_tall) ScrollEntryVisible(smw, first);
@@ -1239,12 +1235,12 @@ FirstEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
 }
 
 static void
-LastEntry(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+LastEntry(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SmeObject last;
     int n = (int)smw->composite.num_children;
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     if (n == 0) return;
     last = FindFirstSelectable(smw, n - 1, -1);
     if (last) {
@@ -1268,16 +1264,16 @@ ScrollMenuTo(SimpleMenuWidget smw, int direction)
 }
 
 static void
-ScrollUp(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+ScrollUp(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     ScrollMenuTo((SimpleMenuWidget)w, -1);
 }
 
 static void
-ScrollDown(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+ScrollDown(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
     ScrollMenuTo((SimpleMenuWidget)w, +1);
 }
 
@@ -1316,13 +1312,13 @@ ScrollEntryVisible(SimpleMenuWidget smw, SmeObject entry)
 }
 
 static void
-EnterSubMenu(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+EnterSubMenu(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SmeObject entry = smw->simple_menu.entry_set;
     SimpleMenuWidget sub;
     SmeObject first;
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
 
     if (entry == NULL) return;
     if (!IswIsSubclass((Widget)entry, smeBSBObjectClass)) return;
@@ -1349,13 +1345,13 @@ EnterSubMenu(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
 }
 
 static void
-LeaveSubMenu(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+LeaveSubMenu(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     Widget parent;
     SimpleMenuWidget psmw;
     SmeObject parent_entry;
-    (void)e; (void)p; (void)np;
+    (void)p; (void)np;
 
     /* Walk up: is this menu a submenu of a parent SimpleMenu? */
     parent = IswParent(w);
@@ -1920,7 +1916,7 @@ GetMenuHeight(Widget w)
  */
 
 static SmeObject
-GetEventEntry(Widget w, xcb_generic_event_t * event)
+GetEventEntry(Widget w, IswEvent * event)
 {
     Position x_loc = 0, y_loc = 0;
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
@@ -1928,28 +1924,15 @@ GetEventEntry(Widget w, xcb_generic_event_t * event)
     static Position last_y_loc;
     int s = 0;
 
-    uint8_t type = event->response_type & ~0x80;
-    switch (type) {
- case XCB_MOTION_NOTIFY: {
-     xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
-     x_loc = mev->event_x;
-     y_loc = mev->event_y;
+    switch (event->kind) {
+ case IswMotion:
+ case IswEnter:
+ case IswLeave:
+ case IswButtonDown:
+ case IswButtonUp:
+     x_loc = IswEventX(event);
+     y_loc = IswEventY(event);
      break;
- }
- case XCB_ENTER_NOTIFY:
- case XCB_LEAVE_NOTIFY: {
-     xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
-     x_loc = cev->event_x;
-     y_loc = cev->event_y;
-     break;
- }
- case XCB_BUTTON_PRESS:
- case XCB_BUTTON_RELEASE: {
-     xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-     x_loc = bev->event_x;
-     y_loc = bev->event_y;
-     break;
- }
 	default:
 	    IswAppError(IswWidgetToApplicationContext(w),
 		       "Unknown event type in GetEventEntry().");
@@ -2110,8 +2093,10 @@ PopupSubMenu(SimpleMenuWidget smw)
 }
 
 static void
-Popdown(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Popdown(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+    /* IswCallActionProc takes a native event, so keep the bridge. */
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
     SmeObject entry = smw->simple_menu.entry_set;
 
@@ -2168,13 +2153,11 @@ PopdownSubMenu(SimpleMenuWidget smw)
  */
 
 static void
-AccelNotify(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+AccelNotify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SmeObject *entry;
     SmeObjectClass class;
-
-    (void)event;
 
     if (*num_params < 1) return;
 

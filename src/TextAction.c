@@ -60,13 +60,13 @@ in this Software without prior written authorization from the X Consortium.
  * These are defined in TextPop.c
  */
 
-extern void _IswTextInsertFileAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-extern void _IswTextInsertFile(Widget, xcb_generic_event_t *, String *, Cardinal *);
-extern void _IswTextSearch(Widget, xcb_generic_event_t *, String *, Cardinal *);
-extern void _IswTextDoSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-extern void _IswTextDoReplaceAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-extern void _IswTextSetField(Widget, xcb_generic_event_t *, String *, Cardinal *);
-extern void _IswTextPopdownSearchAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+extern void _IswTextInsertFileAction(Widget, IswEvent *, String *, Cardinal *);
+extern void _IswTextInsertFile(Widget, IswEvent *, String *, Cardinal *);
+extern void _IswTextSearch(Widget, IswEvent *, String *, Cardinal *);
+extern void _IswTextDoSearchAction(Widget, IswEvent *, String *, Cardinal *);
+extern void _IswTextDoReplaceAction(Widget, IswEvent *, String *, Cardinal *);
+extern void _IswTextSetField(Widget, IswEvent *, String *, Cardinal *);
+extern void _IswTextPopdownSearchAction(Widget, IswEvent *, String *, Cardinal *);
 
 /*
  * These are defined in Text.c
@@ -91,62 +91,42 @@ extern int _IswTextReplace(TextWidget, ISWTextPosition, ISWTextPosition, ISWText
  */
 
 static void GetSelection(Widget, xcb_timestamp_t, String *, Cardinal);
-void _IswTextZapSelection(TextWidget, xcb_generic_event_t *, Boolean);
+void _IswTextZapSelection(TextWidget, IswEvent *, Boolean);
 
 
 static void
-StartAction(TextWidget ctx, xcb_generic_event_t *event)
+StartAction(TextWidget ctx, IswEvent *iswev)
 {
   _IswTextPrepareToUpdate(ctx);
-  if (event != NULL) {
-    uint8_t type = event->response_type & ~0x80;
-    switch (type) {
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE:
-      {
-        xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-        ctx->text.time = bev->time;
-      }
+  if (iswev != NULL) {
+    switch (iswev->kind) {
+    case IswButtonDown:
+    case IswButtonUp:
+      ctx->text.time = iswev->button.time;
       break;
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE:
-      {
-        xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
-        ctx->text.time = kev->time;
-      }
+    case IswKeyDown:
+    case IswKeyUp:
+      ctx->text.time = iswev->key.time;
       break;
-    case XCB_MOTION_NOTIFY:
-      {
-        xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
-        ctx->text.time = mev->time;
-      }
+    case IswMotion:
+      ctx->text.time = iswev->motion.time;
       break;
-    case XCB_ENTER_NOTIFY:
-    case XCB_LEAVE_NOTIFY:
-      {
-        xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
-        ctx->text.time = cev->time;
-      }
+    case IswEnter:
+    case IswLeave:
+      ctx->text.time = iswev->any.time;
+      break;
+    default:
       break;
     }
   }
 }
 
 static void
-NotePosition(TextWidget ctx, xcb_generic_event_t* event)
+NotePosition(TextWidget ctx, IswEvent *iswev)
 {
-  uint8_t type = event->response_type & ~0x80;
-  switch (type) {
-  case XCB_BUTTON_PRESS:
-  case XCB_BUTTON_RELEASE:
-    {
-      xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-      ctx->text.ev_x = bev->event_x;
-      ctx->text.ev_y = bev->event_y;
-    }
-    break;
-  case XCB_KEY_PRESS:
-  case XCB_KEY_RELEASE:
+  switch (iswev->kind) {
+  case IswKeyDown:
+  case IswKeyUp:
     {
       xcb_rectangle_t cursor;
       IswTextSinkGetCursorBounds(ctx->text.sink, &cursor);
@@ -154,20 +134,9 @@ NotePosition(TextWidget ctx, xcb_generic_event_t* event)
       ctx->text.ev_y = cursor.y + cursor.height / 2;
     }
     break;
-  case XCB_MOTION_NOTIFY:
-    {
-      xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
-      ctx->text.ev_x = mev->event_x;
-      ctx->text.ev_y = mev->event_y;
-    }
-    break;
-  case XCB_ENTER_NOTIFY:
-  case XCB_LEAVE_NOTIFY:
-    {
-      xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
-      ctx->text.ev_x = cev->event_x;
-      ctx->text.ev_y = cev->event_y;
-    }
+  default:
+    ctx->text.ev_x = IswEventX(iswev);
+    ctx->text.ev_y = IswEventY(iswev);
     break;
   }
 }
@@ -223,7 +192,7 @@ string is a legal multibyte string in our locale using a spooky heuristic :O
 and if it is we can only assume the sending client is using the same locale as
 we are, and convert it.  I also warn the user that the other client is evil. */
 
-  StartAction( ctx, (xcb_generic_event_t*) NULL );
+  StartAction( ctx, (IswEvent *) NULL );
       text.format = IswFmt8Bit;
   text.ptr = (char*)value;
   text.firstPos = 0;
@@ -264,9 +233,9 @@ GetSelection(Widget w, xcb_timestamp_t time, String *params, Cardinal num_params
 }
 
 static void
-InsertSelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+InsertSelection(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  StartAction((TextWidget)w, event); /* Get Time. */
+  StartAction((TextWidget)w, iswev); /* Get Time. */
   GetSelection(w, ((TextWidget)w)->text.time, params, *num_params);
   EndAction((TextWidget)w);
 }
@@ -278,10 +247,10 @@ InsertSelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *
  ************************************************************/
 
 static void
-Move(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection dir,
+Move(TextWidget ctx, IswEvent *iswev, IswTextScanDirection dir,
      IswTextScanType type, Boolean include)
 {
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   ctx->text.insertPos = SrcScan(ctx->text.source, ctx->text.insertPos,
 				type, dir, ctx->text.mult, include);
   EndAction(ctx);
@@ -289,68 +258,68 @@ Move(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection dir,
 
 /*ARGSUSED*/
 static void
-MoveForwardChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveForwardChar(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-   Move((TextWidget) w, event, IswsdRight, IswstPositions, TRUE);
+   Move((TextWidget) w, iswev, IswsdRight, IswstPositions, TRUE);
 }
 
 /*ARGSUSED*/
 static void
-MoveBackwardChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveBackwardChar(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Move((TextWidget) w, event, IswsdLeft, IswstPositions, TRUE);
+  Move((TextWidget) w, iswev, IswsdLeft, IswstPositions, TRUE);
 }
 
 /*ARGSUSED*/
 static void
-MoveForwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveForwardWord(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Move((TextWidget) w, event, IswsdRight, IswstWhiteSpace, FALSE);
+  Move((TextWidget) w, iswev, IswsdRight, IswstWhiteSpace, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveBackwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveBackwardWord(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Move((TextWidget) w, event, IswsdLeft, IswstWhiteSpace, FALSE);
+  Move((TextWidget) w, iswev, IswsdLeft, IswstWhiteSpace, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveForwardParagraph(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveForwardParagraph(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Move((TextWidget) w, event, IswsdRight, IswstParagraph, FALSE);
+  Move((TextWidget) w, iswev, IswsdRight, IswstParagraph, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveBackwardParagraph(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveBackwardParagraph(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Move((TextWidget) w, event, IswsdLeft, IswstParagraph, FALSE);
+  Move((TextWidget) w, iswev, IswsdLeft, IswstParagraph, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveToLineEnd(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveToLineEnd(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Move((TextWidget) w, event, IswsdRight, IswstEOL, FALSE);
+  Move((TextWidget) w, iswev, IswsdRight, IswstEOL, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-MoveToLineStart(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveToLineStart(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Move((TextWidget) w, event, IswsdLeft, IswstEOL, FALSE);
+  Move((TextWidget) w, iswev, IswsdLeft, IswstEOL, FALSE);
 }
 
 
 static void
-MoveLine(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection dir)
+MoveLine(TextWidget ctx, IswEvent *iswev, IswTextScanDirection dir)
 {
   ISWTextPosition new, next_line, junk;
   int from_left, garbage;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
 
   if (dir == IswsdLeft)
     ctx->text.mult++;
@@ -377,36 +346,36 @@ MoveLine(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection dir)
 
 /*ARGSUSED*/
 static void
-MoveNextLine(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveNextLine(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  MoveLine( (TextWidget) w, event, IswsdRight);
+  MoveLine( (TextWidget) w, iswev, IswsdRight);
 }
 
 /*ARGSUSED*/
 static void
-MovePreviousLine(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MovePreviousLine(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  MoveLine( (TextWidget) w, event, IswsdLeft);
+  MoveLine( (TextWidget) w, iswev, IswsdLeft);
 }
 
 /*ARGSUSED*/
 static void
-MoveBeginningOfFile(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveBeginningOfFile(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Move((TextWidget) w, event, IswsdLeft, IswstAll, TRUE);
+  Move((TextWidget) w, iswev, IswsdLeft, IswstAll, TRUE);
 }
 
 /*ARGSUSED*/
 static void
-MoveEndOfFile(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveEndOfFile(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Move((TextWidget) w, event, IswsdRight, IswstAll, TRUE);
+  Move((TextWidget) w, iswev, IswsdRight, IswstAll, TRUE);
 }
 
 static void
-Scroll(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection dir)
+Scroll(TextWidget ctx, IswEvent *iswev, IswTextScanDirection dir)
 {
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
 
   if (dir == IswsdLeft)
     _IswTextVScroll(ctx, ctx->text.mult);
@@ -418,27 +387,27 @@ Scroll(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection dir)
 
 /*ARGSUSED*/
 static void
-ScrollOneLineUp(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+ScrollOneLineUp(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Scroll( (TextWidget) w, event, IswsdLeft);
+  Scroll( (TextWidget) w, iswev, IswsdLeft);
 }
 
 /*ARGSUSED*/
 static void
-ScrollOneLineDown(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+ScrollOneLineDown(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  Scroll( (TextWidget) w, event, IswsdRight);
+  Scroll( (TextWidget) w, iswev, IswsdRight);
 }
 
 static void
-MovePage(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection dir)
+MovePage(TextWidget ctx, IswEvent *iswev, IswTextScanDirection dir)
 {
   int scroll_val = Max(1, ctx->text.lt.lines - 2);
 
   if (dir == IswsdLeft)
     scroll_val = -scroll_val;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   _IswTextVScroll(ctx, scroll_val);
   ctx->text.insertPos = ctx->text.lt.top;
   EndAction(ctx);
@@ -446,16 +415,16 @@ MovePage(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection dir)
 
 /*ARGSUSED*/
 static void
-MoveNextPage(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MoveNextPage(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  MovePage((TextWidget) w, event, IswsdRight);
+  MovePage((TextWidget) w, iswev, IswsdRight);
 }
 
 /*ARGSUSED*/
 static void
-MovePreviousPage(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+MovePreviousPage(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  MovePage((TextWidget) w, event, IswsdLeft);
+  MovePage((TextWidget) w, iswev, IswsdLeft);
 }
 
 /************************************************************
@@ -625,7 +594,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 
   if (*target == XCB_ATOM_DELETE(d)) {
     if (!salt)
-	_IswTextZapSelection( ctx, (xcb_generic_event_t *) NULL, TRUE);
+	_IswTextZapSelection( ctx, (IswEvent *) NULL, TRUE);
     *value = NULL;
     *type = XCB_ATOM_NONE;
     *length = 0;
@@ -745,12 +714,12 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
 }
 
 static void
-DeleteOrKill(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection dir,
+DeleteOrKill(TextWidget ctx, IswEvent *iswev, IswTextScanDirection dir,
              IswTextScanType type, Boolean include, Boolean kill)
 {
   ISWTextPosition from, to;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   to = SrcScan(ctx->text.source, ctx->text.insertPos,
 	       type, dir, ctx->text.mult, include);
 
@@ -778,58 +747,58 @@ DeleteOrKill(TextWidget ctx, xcb_generic_event_t *event, IswTextScanDirection di
 
 /*ARGSUSED*/
 static void
-DeleteForwardChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+DeleteForwardChar(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  DeleteOrKill((TextWidget) w, event, IswsdRight, IswstPositions, TRUE, FALSE);
+  DeleteOrKill((TextWidget) w, iswev, IswsdRight, IswstPositions, TRUE, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-DeleteBackwardChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+DeleteBackwardChar(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  DeleteOrKill((TextWidget) w, event, IswsdLeft, IswstPositions, TRUE, FALSE);
+  DeleteOrKill((TextWidget) w, iswev, IswsdLeft, IswstPositions, TRUE, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-DeleteForwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+DeleteForwardWord(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  DeleteOrKill((TextWidget) w, event,
+  DeleteOrKill((TextWidget) w, iswev,
 	       IswsdRight, IswstWhiteSpace, FALSE, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-DeleteBackwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+DeleteBackwardWord(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  DeleteOrKill((TextWidget) w, event,
+  DeleteOrKill((TextWidget) w, iswev,
 	       IswsdLeft, IswstWhiteSpace, FALSE, FALSE);
 }
 
 /*ARGSUSED*/
 static void
-KillForwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+KillForwardWord(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  DeleteOrKill((TextWidget) w, event,
+  DeleteOrKill((TextWidget) w, iswev,
 	       IswsdRight, IswstWhiteSpace, FALSE, TRUE);
 }
 
 /*ARGSUSED*/
 static void
-KillBackwardWord(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+KillBackwardWord(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  DeleteOrKill((TextWidget) w, event,
+  DeleteOrKill((TextWidget) w, iswev,
 	       IswsdLeft, IswstWhiteSpace, FALSE, TRUE);
 }
 
 /*ARGSUSED*/
 static void
-KillToEndOfLine(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+KillToEndOfLine(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
   ISWTextPosition end_of_line;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   end_of_line = SrcScan(ctx->text.source, ctx->text.insertPos, IswstEOL,
 			IswsdRight, ctx->text.mult, FALSE);
   if (end_of_line == ctx->text.insertPos)
@@ -843,15 +812,15 @@ KillToEndOfLine(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 
 /*ARGSUSED*/
 static void
-KillToEndOfParagraph(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+KillToEndOfParagraph(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  DeleteOrKill((TextWidget) w, event, IswsdRight, IswstParagraph, FALSE, TRUE);
+  DeleteOrKill((TextWidget) w, iswev, IswsdRight, IswstParagraph, FALSE, TRUE);
 }
 
 void
-_IswTextZapSelection(TextWidget ctx, xcb_generic_event_t *event, Boolean kill)
+_IswTextZapSelection(TextWidget ctx, IswEvent *iswev, Boolean kill)
 {
-   StartAction(ctx, event);
+   StartAction(ctx, iswev);
    _DeleteOrKill(ctx, ctx->text.s.left, ctx->text.s.right, kill);
   _IswTextSetScrollBars(ctx);
    EndAction(ctx);
@@ -859,11 +828,11 @@ _IswTextZapSelection(TextWidget ctx, xcb_generic_event_t *event, Boolean kill)
 
 /*ARGSUSED*/
 static void
-KillCurrentSelection(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+KillCurrentSelection(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   /* Snapshot selection to CLIPBOARD before deleting */
   if (ctx->text.s.left < ctx->text.s.right) {
     xcb_atom_t clip = XCB_ATOM_CLIPBOARD(IswDisplay(w));
@@ -876,9 +845,9 @@ KillCurrentSelection(Widget w, xcb_generic_event_t *event, String *p, Cardinal *
 
 /*ARGSUSED*/
 static void
-DeleteCurrentSelection(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+DeleteCurrentSelection(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  _IswTextZapSelection( (TextWidget) w, event, FALSE);
+  _IswTextZapSelection( (TextWidget) w, iswev, FALSE);
 }
 
 /************************************************************
@@ -917,18 +886,18 @@ InsertNewLineAndBackupInternal(TextWidget ctx)
 
 /*ARGSUSED*/
 static void
-InsertNewLineAndBackup(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+InsertNewLineAndBackup(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  StartAction( (TextWidget) w, event );
+  StartAction( (TextWidget) w, iswev );
   (void) InsertNewLineAndBackupInternal( (TextWidget) w );
   _IswTextSetScrollBars( (TextWidget) w);
   EndAction( (TextWidget) w );
 }
 
 static int
-LocalInsertNewLine(TextWidget ctx, xcb_generic_event_t *event)
+LocalInsertNewLine(TextWidget ctx, IswEvent *iswev)
 {
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   if (InsertNewLineAndBackupInternal(ctx) == IswEditError)
     return(IswEditError);
   ctx->text.insertPos = SrcScan(ctx->text.source, ctx->text.insertPos,
@@ -940,14 +909,14 @@ LocalInsertNewLine(TextWidget ctx, xcb_generic_event_t *event)
 
 /*ARGSUSED*/
 static void
-InsertNewLine(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+InsertNewLine(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  (void) LocalInsertNewLine( (TextWidget) w, event);
+  (void) LocalInsertNewLine( (TextWidget) w, iswev);
 }
 
 /*ARGSUSED*/
 static void
-InsertNewLineAndIndent(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+InsertNewLineAndIndent(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
   ISWTextBlock text;
   ISWTextPosition pos1;
@@ -955,7 +924,7 @@ InsertNewLineAndIndent(Widget w, xcb_generic_event_t *event, String *p, Cardinal
   TextWidget ctx = (TextWidget) w;
   String line_to_ip;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   pos1 = SrcScan(ctx->text.source, ctx->text.insertPos,
 		 IswstEOL, IswsdLeft, 1, FALSE);
 
@@ -1010,12 +979,12 @@ InsertNewLineAndIndent(Widget w, xcb_generic_event_t *event, String *p, Cardinal
  *************************************************************/
 
 static void
-SelectWord(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+SelectWord(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   ISWTextPosition l, r;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   l = SrcScan(ctx->text.source, ctx->text.insertPos,
 	      IswstWhiteSpace, IswsdLeft, 1, FALSE);
   r = SrcScan(ctx->text.source, l, IswstWhiteSpace, IswsdRight, 1, FALSE);
@@ -1024,85 +993,85 @@ SelectWord(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
 }
 
 static void
-SelectAll(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+SelectAll(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   _IswTextSetSelection(ctx,zeroPosition,ctx->text.lastPos,params,*num_params);
   EndAction(ctx);
 }
 
 static void
-ModifySelection(TextWidget ctx, xcb_generic_event_t *event, IswTextSelectionMode mode,
+ModifySelection(TextWidget ctx, IswEvent *iswev, IswTextSelectionMode mode,
                 IswTextSelectionAction action, String *params, Cardinal *num_params)
 {
-  StartAction(ctx, event);
-  NotePosition(ctx, event);
+  StartAction(ctx, iswev);
+  NotePosition(ctx, iswev);
   _IswTextAlterSelection(ctx, mode, action, params, num_params);
   EndAction(ctx);
 }
 
 /* ARGSUSED */
 static void
-SelectStart(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+SelectStart(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   Widget shell;
 
   for (shell = w; !IswIsShell(shell); shell = IswParent(shell))
     ;
   IswSetKeyboardFocus(shell, w);
-  ModifySelection((TextWidget) w, event,
+  ModifySelection((TextWidget) w, iswev,
 		  IswsmTextSelect, IswactionStart, params, num_params);
 }
 
 /* ARGSUSED */
 static void
-SelectAdjust(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+SelectAdjust(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  ModifySelection((TextWidget) w, event,
+  ModifySelection((TextWidget) w, iswev,
 		  IswsmTextSelect, IswactionAdjust, params, num_params);
 }
 
 static void
-SelectEnd(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+SelectEnd(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  ModifySelection((TextWidget) w, event,
+  ModifySelection((TextWidget) w, iswev,
 		  IswsmTextSelect, IswactionEnd, params, num_params);
 }
 
 /* ARGSUSED */
 static void
-ExtendStart(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+ExtendStart(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  ModifySelection((TextWidget) w, event,
+  ModifySelection((TextWidget) w, iswev,
 		  IswsmTextExtend, IswactionStart, params, num_params);
 }
 
 /* ARGSUSED */
 static void
-ExtendAdjust(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+ExtendAdjust(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  ModifySelection((TextWidget) w, event,
+  ModifySelection((TextWidget) w, iswev,
 		  IswsmTextExtend, IswactionAdjust, params, num_params);
 }
 
 static void
-ExtendEnd(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+ExtendEnd(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  ModifySelection((TextWidget) w, event,
+  ModifySelection((TextWidget) w, iswev,
 		  IswsmTextExtend, IswactionEnd, params, num_params);
 }
 
 static void
-SelectSave(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+SelectSave(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     int	    num_atoms;
     xcb_atom_t*   sel;
     xcb_connection_t* dpy = IswDisplay(w);
     xcb_atom_t    selections[256];
 
-    StartAction(  (TextWidget) w, event );
+    StartAction(  (TextWidget) w, iswev );
     num_atoms = *num_params;
     if (num_atoms > 256) num_atoms = 256;
     for (sel=selections; --num_atoms >= 0; sel++, params++)
@@ -1113,7 +1082,7 @@ SelectSave(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_p
 }
 
 static void
-CopySelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+CopySelection(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   int num_atoms;
@@ -1121,7 +1090,7 @@ CopySelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *nu
   xcb_connection_t *dpy = IswDisplay(w);
   xcb_atom_t selections[256];
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   if (ctx->text.s.left < ctx->text.s.right) {
     num_atoms = *num_params;
     if (num_atoms > 256) num_atoms = 256;
@@ -1141,27 +1110,26 @@ CopySelection(Widget w, xcb_generic_event_t *event, String *params, Cardinal *nu
 
 /* ARGSUSED */
 static void
-RedrawDisplay(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+RedrawDisplay(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
-  StartAction( (TextWidget) w, event);
+  StartAction( (TextWidget) w, iswev);
   _IswTextClearAndCenterDisplay((TextWidget) w);
   EndAction( (TextWidget) w);
 }
 
 /*ARGSUSED*/
 static void
-TextFocusIn (Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+TextFocusIn (Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
 
-  if ((event->response_type & ~0x80) != XCB_FOCUS_IN) {
+  if (iswev->kind != IswFocusIn) {
     return;
   }
-  xcb_focus_in_event_t *fev = (xcb_focus_in_event_t *)event;
 
   /* Let the input method know focus has arrived. */
   _IswImSetFocusValues (w, NULL, 0);
-  if (fev->detail == XCB_NOTIFY_DETAIL_POINTER) {
+  if (iswev->focus.source == IswFocusByPointer) {
       return;
   }
 
@@ -1172,18 +1140,17 @@ TextFocusIn (Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 
 /*ARGSUSED*/
 static void
-TextFocusOut(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+TextFocusOut(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
 
-  if ((event->response_type & ~0x80) != XCB_FOCUS_OUT) {
+  if (iswev->kind != IswFocusOut) {
     return;
   }
-  xcb_focus_out_event_t *fev = (xcb_focus_out_event_t *)event;
 
   /* Let the input method know focus has left.*/
   _IswImUnsetFocus(w);
-  if (fev->detail == XCB_NOTIFY_DETAIL_POINTER) {
+  if (iswev->focus.source == IswFocusByPointer) {
       return;
   }
   _IswTextPrepareToUpdate(ctx);
@@ -1193,8 +1160,11 @@ TextFocusOut(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
 
 /*ARGSUSED*/
 static void
-TextEnterWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+TextEnterWindow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+  /* INFERIOR-crossing distinction has no neutral equivalent; reach the
+     native crossing event just for the detail field. */
+  ISW_NATIVE_EVENT(iswev);
   TextWidget ctx = (TextWidget) w;
   xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
@@ -1204,8 +1174,11 @@ TextEnterWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *
 
 /*ARGSUSED*/
 static void
-TextLeaveWindow(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+TextLeaveWindow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+  /* INFERIOR-crossing distinction has no neutral equivalent; reach the
+     native crossing event just for the detail field. */
+  ISW_NATIVE_EVENT(iswev);
   TextWidget ctx = (TextWidget) w;
   xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
@@ -1259,7 +1232,7 @@ AutoFill(TextWidget ctx)
 
 /*ARGSUSED*/
 static void
-InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
+InsertChar(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 {
   TextWidget ctx = (TextWidget) w;
   char *ptr, strbuf[BUFSIZ];
@@ -1267,68 +1240,19 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   ISWTextBlock text;
 
   {
-    /* Convert XCB key event to character using XCB keysyms */
-    xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
-    xcb_connection_t *conn = IswDisplay(w);
-    static xcb_key_symbols_t *keysyms = NULL;
-    
-    /* Initialize key symbols context if needed */
-    if (keysyms == NULL) {
-      keysyms = xcb_key_symbols_alloc(conn);
-    }
-    
-    if (keysyms != NULL) {
-      /* Determine shift state from modifier mask */
-      int col = 0;
-      if (kev->state & XCB_MOD_MASK_SHIFT)
-        col = 1;
-
-      /* Get keysym from keycode, using shift column */
-      xcb_keysym_t sym = xcb_key_symbols_get_keysym(keysyms, kev->detail, col);
-
-      /* Fall back to unshifted if shifted column has no symbol */
-      if (sym == XCB_NO_SYMBOL && col == 1)
-        sym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 0);
-
-      /* Handle CapsLock: toggle case for alphabetic keys */
-      if ((kev->state & XCB_MOD_MASK_LOCK) && !(kev->state & XCB_MOD_MASK_SHIFT)) {
-        /* CapsLock without Shift: get shifted (uppercase) for letters */
-        if (sym >= 'a' && sym <= 'z') {
-          xcb_keysym_t usym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 1);
-          if (usym != XCB_NO_SYMBOL)
-            sym = usym;
-        }
-      } else if ((kev->state & XCB_MOD_MASK_LOCK) && (kev->state & XCB_MOD_MASK_SHIFT)) {
-        /* CapsLock with Shift: get unshifted (lowercase) for letters */
-        if (sym >= 'A' && sym <= 'Z') {
-          xcb_keysym_t lsym = xcb_key_symbols_get_keysym(keysyms, kev->detail, 0);
-          if (lsym != XCB_NO_SYMBOL)
-            sym = lsym;
-        }
-      }
-
-      /* Convert keysym to character */
-      if (sym >= 0x20 && sym <= 0x7E) {
-        /* Printable ASCII */
-        strbuf[0] = (char)sym;
-        text.length = 1;
-      } else if (sym >= 0xA0 && sym <= 0xFF) {
-        /* Latin-1 supplement */
-        strbuf[0] = (char)sym;
-        text.length = 1;
-      } else if (sym == 0xFF0D || sym == 0xFF8D) {
-        /* Return/Enter key */
-        strbuf[0] = '\r';
-        text.length = 1;
-      } else if (sym == 0xFF09) {
-        /* Tab key */
-        strbuf[0] = '\t';
-        text.length = 1;
-      } else {
-        /* Non-printable or special key */
-        text.length = 0;
-      }
+    /* The neutral translator already resolved the key identity and the
+       UTF-8 text it produced; read those instead of decoding keysyms. */
+    if (iswev->key.key == IswKeyReturn) {
+      strbuf[0] = '\r';
+      text.length = 1;
+    } else if (iswev->key.key == IswKeyTab) {
+      strbuf[0] = '\t';
+      text.length = 1;
+    } else if (iswev->key.text[0] != '\0') {
+      text.length = strlen(iswev->key.text);
+      memcpy(strbuf, iswev->key.text, text.length);
     } else {
+      /* Non-printable or special key */
       text.length = 0;
     }
   }
@@ -1348,7 +1272,7 @@ InsertChar(Widget w, xcb_generic_event_t *event, String *p, Cardinal *n)
   text.length = text.length * ctx->text.mult;
   text.firstPos = 0;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
 
   error = _IswTextReplace(ctx, ctx->text.insertPos,ctx->text.insertPos, &text);
 
@@ -1461,7 +1385,7 @@ IfHexConvertHexElseReturnParam(const char *param, int *len_return)
 
 /*ARGSUSED*/
 static void
-InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+InsertString(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   ISWTextBlock text;
@@ -1470,7 +1394,7 @@ InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
   text.firstPos = 0;
   text.format = _IswTextFormat( ctx );
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   for ( i = *num_params; i; i--, params++ ) { /* DO FOR EACH PARAMETER */
 
       text.ptr = IfHexConvertHexElseReturnParam( *params, &text.length );
@@ -1505,13 +1429,15 @@ InsertString(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
  * is only affected if the focus member of the event is true.	*/
 
 static void
-DisplayCaret(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+DisplayCaret(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+  /* The crossing event's focus flag (same_screen_focus) has no neutral
+     equivalent; reach the native event just for that read. */
+  ISW_NATIVE_EVENT(iswev);
   TextWidget ctx = (TextWidget)w;
   Boolean display_caret = True;
-  uint32_t eventType = event->response_type & ~0x80;
 
-  if  ( ( eventType == XCB_ENTER_NOTIFY || eventType == XCB_LEAVE_NOTIFY ) &&
+  if  ( ( iswev->kind == IswEnter || iswev->kind == IswLeave ) &&
         ( ( *num_params >= 2 ) && ( strcmp( params[1], "always" ) == 0 ) ) &&
         ( ((xcb_enter_notify_event_t *)event)->same_screen_focus) )
       return;
@@ -1528,7 +1454,7 @@ DisplayCaret(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
       if ( ctx->text.display_caret == display_caret )
           return;
   }
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
   ctx->text.display_caret = display_caret;
   EndAction(ctx);
 }
@@ -1546,7 +1472,7 @@ DisplayCaret(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
 
 /* ARGSUSED */
 static void
-Multiply(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Multiply(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   int mult;
@@ -1746,12 +1672,12 @@ FormRegion(TextWidget ctx, ISWTextPosition from, ISWTextPosition to)
 
 /* ARGSUSED */
 static void
-FormParagraph(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+FormParagraph(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   ISWTextPosition from, to;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
 
   from =  SrcScan( ctx->text.source, ctx->text.insertPos,
 		  IswstParagraph, IswsdLeft, 1, FALSE );
@@ -1774,7 +1700,7 @@ FormParagraph(Widget w, xcb_generic_event_t *event, String *params, Cardinal *nu
 
 /* ARGSUSED */
 static void
-TransposeCharacters(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+TransposeCharacters(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
   ISWTextPosition start, end;
@@ -1782,7 +1708,7 @@ TransposeCharacters(Widget w, xcb_generic_event_t *event, String *params, Cardin
   char* buf;
   int i;
 
-  StartAction(ctx, event);
+  StartAction(ctx, iswev);
 
   /* Get bounds. */
 
@@ -1841,7 +1767,7 @@ TransposeCharacters(Widget w, xcb_generic_event_t *event, String *params, Cardin
 
 /*ARGSUSED*/
 static void
-NoOp(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+NoOp(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     if (*num_params != 1)
 	return;
@@ -1864,7 +1790,7 @@ NoOp(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
 
 /*ARGSUSED*/
 static void
-Reconnect(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Reconnect(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     _IswImReconnect( w );
 }

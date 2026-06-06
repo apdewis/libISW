@@ -173,7 +173,7 @@ static void CreateCursors(XdndState *st, xcb_connection_t *conn,
 
 /* Drop target handlers */
 static void HandleXdndEvent(Widget w, IswPointer closure,
-                            xcb_generic_event_t *event, Boolean *cont);
+                            IswEvent *event, Boolean *cont);
 static void HandleTargetEnter(XdndState *st, xcb_client_message_event_t *cm);
 static void HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm);
 static void HandleTargetDrop(XdndState *st, xcb_client_message_event_t *cm);
@@ -200,7 +200,7 @@ static Widget FindDropChild(XdndState *st, Widget composite, int wx, int wy);
 
 /* Drag source */
 static void HandleDragEvent(Widget w, IswPointer closure,
-                            xcb_generic_event_t *event, Boolean *cont);
+                            IswEvent *event, Boolean *cont);
 static void DragMotion(XdndState *st, int root_x, int root_y);
 static void DragDrop(XdndState *st);
 static void DragCancel(XdndState *st);
@@ -804,9 +804,10 @@ ISWXdndIsDragging(Widget w)
 /* ================================================================== */
 
 static void
-HandleXdndEvent(Widget w, IswPointer closure, xcb_generic_event_t *event,
+HandleXdndEvent(Widget w, IswPointer closure, IswEvent *iswev,
                 Boolean *cont)
 {
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev); (void)event;
     XdndState *st = (XdndState *) closure;
     uint8_t type = event->response_type & ~0x80;
 
@@ -1399,9 +1400,10 @@ ISWXdndStartDrag(Widget source_widget,
 /* ------------------------------------------------------------------ */
 
 static void
-HandleDragEvent(Widget w, IswPointer closure, xcb_generic_event_t *event,
+HandleDragEvent(Widget w, IswPointer closure, IswEvent *iswev,
                 Boolean *cont)
 {
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev); (void)event;
     XdndState *st = (XdndState *) closure;
     uint8_t type = event->response_type & ~0x80;
 

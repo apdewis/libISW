@@ -109,15 +109,15 @@ typedef struct {
 static void IswTipClassInitialize(void);
 static void IswTipInitialize(Widget, Widget, ArgList, Cardinal *);
 static void IswTipDestroy(Widget);
-static void IswTipExpose(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void IswTipExpose(Widget, IswEvent *, xcb_xfixes_region_t);
 static void IswTipRealize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static Boolean IswTipSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 /*
  * Prototypes
  */
-static void TipEventHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
-static void TipShellEventHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
+static void TipEventHandler(Widget, IswPointer, IswEvent *, Boolean *);
+static void TipShellEventHandler(Widget, IswPointer, IswEvent *, Boolean *);
 static WidgetInfo *CreateWidgetInfo(Widget);
 static WidgetInfo *FindWidgetInfo(IswTipInfo *, Widget);
 static IswTipInfo *CreateTipInfo(Widget);
@@ -410,7 +410,7 @@ IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *va
 }
 
 static void
-IswTipExpose(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+IswTipExpose(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     TipWidget tip = (TipWidget)w;
     const char *nl, *label = tip->tip.label;
@@ -692,7 +692,7 @@ TipTimeoutCallback(IswPointer closure, IswIntervalId *id)
 
 /*ARGSUSED*/
 static void
-TipShellEventHandler(Widget w, IswPointer client_data, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
+TipShellEventHandler(Widget w, IswPointer client_data, IswEvent *iswev, Boolean *continue_to_dispatch)
 {
     IswTipInfo *info = FindTipInfo(w);
 
@@ -701,16 +701,16 @@ TipShellEventHandler(Widget w, IswPointer client_data, xcb_generic_event_t *even
 
 /*ARGSUSED*/
 static void
-TipEventHandler(Widget w, IswPointer client_data, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
+TipEventHandler(Widget w, IswPointer client_data, IswEvent *iswev, Boolean *continue_to_dispatch)
 {
     IswTipInfo *info = FindTipInfo(w);
     Boolean add_timeout;
 
-    switch (event->response_type & ~0x80) {
- case XCB_ENTER_NOTIFY:
+    switch (iswev->kind) {
+ case IswEnter:
      add_timeout = True;
      break;
- case XCB_MOTION_NOTIFY:
+ case IswMotion:
      /* If any button is pressed, timer is 0 */
      if (info->mapped)
   return;

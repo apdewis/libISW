@@ -72,19 +72,19 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
-static void StartDrag(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Drag(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void EndDrag(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void JumpToPosition(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Increment(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void Decrement(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void PageIncrement(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void PageDecrement(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void SetMin(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void SetMax(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void StartDrag(Widget, IswEvent *, String *, Cardinal *);
+static void Drag(Widget, IswEvent *, String *, Cardinal *);
+static void EndDrag(Widget, IswEvent *, String *, Cardinal *);
+static void JumpToPosition(Widget, IswEvent *, String *, Cardinal *);
+static void Increment(Widget, IswEvent *, String *, Cardinal *);
+static void Decrement(Widget, IswEvent *, String *, Cardinal *);
+static void PageIncrement(Widget, IswEvent *, String *, Cardinal *);
+static void PageDecrement(Widget, IswEvent *, String *, Cardinal *);
+static void SetMin(Widget, IswEvent *, String *, Cardinal *);
+static void SetMax(Widget, IswEvent *, String *, Cardinal *);
 static int ValueZoneHeight(SliderWidget sw);
 static int ValueZoneWidth(SliderWidget sw);
 
@@ -250,24 +250,17 @@ UpdateThumbPos(SliderWidget sw)
     sw->slider.thumb_pos = ValueToPixel(sw, sw->slider.value);
 }
 
-/* --- Extract position from XCB events --- */
+/* --- Extract position from events --- */
 
 static void
-ExtractPosition(xcb_generic_event_t *event, Position *x, Position *y)
+ExtractPosition(IswEvent *iswev, Position *x, Position *y)
 {
-    uint8_t type = event->response_type & ~0x80;
-    switch (type) {
-        case XCB_MOTION_NOTIFY: {
-            xcb_motion_notify_event_t *ev = (xcb_motion_notify_event_t *)event;
-            *x = ev->event_x; *y = ev->event_y;
+    switch (iswev->kind) {
+        case IswMotion:
+        case IswButtonDown:
+        case IswButtonUp:
+            *x = IswEventX(iswev); *y = IswEventY(iswev);
             break;
-        }
-        case XCB_BUTTON_PRESS:
-        case XCB_BUTTON_RELEASE: {
-            xcb_button_press_event_t *ev = (xcb_button_press_event_t *)event;
-            *x = ev->event_x; *y = ev->event_y;
-            break;
-        }
         default:
             *x = 0; *y = 0;
     }
@@ -454,7 +447,7 @@ DrawValueLabel(Widget w, SliderWidget sw, ISWRenderContext *ctx,
 }
 
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     SliderWidget sw = (SliderWidget) w;
     ISWRenderContext *ctx = sw->slider.render_ctx;
@@ -617,13 +610,13 @@ SetValueAndNotify(SliderWidget sw, int new_value)
 }
 
 static void
-StartDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+StartDrag(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     SliderWidget sw = (SliderWidget) w;
     Position x, y;
     (void)params; (void)num_params;
 
-    ExtractPosition(event, &x, &y);
+    ExtractPosition(iswev, &x, &y);
 
     Position pick = (sw->slider.orientation == IswOrientHorizontal) ? x : y;
     Dimension half_thumb = THUMB_SIZE / 2;
@@ -642,7 +635,7 @@ StartDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_pa
 }
 
 static void
-Drag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+Drag(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     SliderWidget sw = (SliderWidget) w;
     Position x, y;
@@ -651,27 +644,27 @@ Drag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
     if (!sw->slider.dragging)
         return;
 
-    ExtractPosition(event, &x, &y);
+    ExtractPosition(iswev, &x, &y);
     Position pick = (sw->slider.orientation == IswOrientHorizontal) ? x : y;
     SetValueAndNotify(sw, PixelToValue(sw, pick - sw->slider.drag_offset));
 }
 
 static void
-EndDrag(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+EndDrag(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     SliderWidget sw = (SliderWidget) w;
-    (void)event; (void)params; (void)num_params;
+    (void)iswev; (void)params; (void)num_params;
     sw->slider.dragging = False;
 }
 
 static void
-JumpToPosition(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+JumpToPosition(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     SliderWidget sw = (SliderWidget) w;
     Position x, y;
     (void)params; (void)num_params;
 
-    ExtractPosition(event, &x, &y);
+    ExtractPosition(iswev, &x, &y);
     Position pick = (sw->slider.orientation == IswOrientHorizontal) ? x : y;
     sw->slider.dragging = False;
     SetValueAndNotify(sw, PixelToValue(sw, pick));
@@ -686,50 +679,50 @@ PageStep(SliderWidget sw)
 }
 
 static void
-Increment(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+Increment(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SliderWidget sw = (SliderWidget) w;
-    (void)e; (void)p; (void)np;
+    (void)iswev; (void)p; (void)np;
     SetValueAndNotify(sw, sw->slider.value + 1);
 }
 
 static void
-Decrement(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+Decrement(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SliderWidget sw = (SliderWidget) w;
-    (void)e; (void)p; (void)np;
+    (void)iswev; (void)p; (void)np;
     SetValueAndNotify(sw, sw->slider.value - 1);
 }
 
 static void
-PageIncrement(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+PageIncrement(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SliderWidget sw = (SliderWidget) w;
-    (void)e; (void)p; (void)np;
+    (void)iswev; (void)p; (void)np;
     SetValueAndNotify(sw, sw->slider.value + PageStep(sw));
 }
 
 static void
-PageDecrement(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+PageDecrement(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SliderWidget sw = (SliderWidget) w;
-    (void)e; (void)p; (void)np;
+    (void)iswev; (void)p; (void)np;
     SetValueAndNotify(sw, sw->slider.value - PageStep(sw));
 }
 
 static void
-SetMin(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+SetMin(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SliderWidget sw = (SliderWidget) w;
-    (void)e; (void)p; (void)np;
+    (void)iswev; (void)p; (void)np;
     SetValueAndNotify(sw, sw->slider.minimum);
 }
 
 static void
-SetMax(Widget w, xcb_generic_event_t *e, String *p, Cardinal *np)
+SetMax(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 {
     SliderWidget sw = (SliderWidget) w;
-    (void)e; (void)p; (void)np;
+    (void)iswev; (void)p; (void)np;
     SetValueAndNotify(sw, sw->slider.maximum);
 }
 

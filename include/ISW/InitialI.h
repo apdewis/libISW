@@ -478,6 +478,12 @@ extern xcb_xrm_database_t *_IswPreparseCommandLine(XrmOptionDescRec *urlist,
 
 extern double _IswGetScaleFactor(xcb_connection_t *dpy);
 
+/* XCB → neutral IswEvent translation (ISWPlatformEventXCB.c).  Fills *out and
+ * returns True for toolkit-semantic events; returns False for X11 protocol
+ * events the toolkit does not see as IswEvents. */
+extern Boolean _IswEventFromXcb(xcb_connection_t *dpy,
+                                xcb_generic_event_t *xev, IswEvent *out);
+
 _XFUNCPROTOEND
 
 #endif /* _IswinitialI_h */

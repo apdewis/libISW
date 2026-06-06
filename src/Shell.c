@@ -891,7 +891,7 @@ ClassPartInitialize(WidgetClass widget_class)
     }
 }
 
-static void EventHandler(Widget wid, IswPointer closure,xcb_generic_event_t *event,
+static void EventHandler(Widget wid, IswPointer closure,IswEvent *event,
                          Boolean *continue_to_dispatch);
 static void _popup_set_prop(ShellWidget);
 
@@ -1020,9 +1020,10 @@ static void GetGeometry(Widget, Widget);
  */
 /* ARGSUSED */
 static void
-ShellWMDeleteWindow(Widget w, xcb_generic_event_t *event, String *params,
+ShellWMDeleteWindow(Widget w, IswEvent *iswev, String *params,
 		    Cardinal *num_params)
 {
+    ISW_NATIVE_EVENT(iswev);   /* WM_DELETE client-message: backend-internal */
     xcb_atom_t wm_protocols;
     xcb_atom_t wm_delete_window;
 
@@ -1709,9 +1710,10 @@ _popup_set_prop(ShellWidget w)
 static void
 EventHandler(Widget wid,
              IswPointer closure _X_UNUSED,
-             xcb_generic_event_t *event,
+             IswEvent *iswev,
              Boolean *continue_to_dispatch _X_UNUSED)
 {
+    ISW_NATIVE_EVENT(iswev);   /* WM configure/client-message: backend-internal */
     register ShellWidget w = (ShellWidget) wid;
     WMShellWidget wmshell = (WMShellWidget) w;
     Boolean sizechanged = FALSE;

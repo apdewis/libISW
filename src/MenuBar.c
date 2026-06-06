@@ -53,15 +53,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static void Destroy(Widget);
 static void InsertChild(Widget);
 
 /* Action procedures - registered globally so MenuButton children can use them */
-static void MenuBarEnter(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void MenuBarLeave(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void MenuBarClick(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void MenuBarDismiss(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void MenuBarEnter(Widget, IswEvent *, String *, Cardinal *);
+static void MenuBarLeave(Widget, IswEvent *, String *, Cardinal *);
+static void MenuBarClick(Widget, IswEvent *, String *, Cardinal *);
+static void MenuBarDismiss(Widget, IswEvent *, String *, Cardinal *);
 
 /* Private functions */
 static void OpenMenu(MenuBarWidget, Widget);
@@ -69,7 +69,7 @@ static void CloseMenu(MenuBarWidget);
 static void SwitchMenu(MenuBarWidget, Widget);
 static Widget FindMenuForButton(Widget);
 static void MenuPopdownCB(Widget, IswPointer, IswPointer);
-static void OutsideClickHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
+static void OutsideClickHandler(Widget, IswPointer, IswEvent *, Boolean *);
 static Widget FindToplevelShell(Widget);
 
 /* Override SimpleMenu translations for menubar-owned menus.
@@ -164,7 +164,7 @@ WidgetClass menuBarWidgetClass = (WidgetClass) &menuBarClassRec;
  ****************************************************************/
 
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     (void)event; (void)region;
 
@@ -257,8 +257,9 @@ InsertChild(Widget child)
  * If a menu is already open and this is a different button, switch menus.
  */
 static void
-MenuBarEnter(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+MenuBarEnter(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     MenuBarWidget mbw;
 
     if (!IswIsSubclass(w, menuButtonWidgetClass))
@@ -280,8 +281,9 @@ MenuBarEnter(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
  * Don't unhighlight the active button while its menu is open.
  */
 static void
-MenuBarLeave(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+MenuBarLeave(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
+    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     MenuBarWidget mbw;
 
     if (!IswIsSubclass(w, menuButtonWidgetClass))
@@ -302,9 +304,11 @@ MenuBarLeave(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
  * Toggle: if this button's menu is open, close it; otherwise open it.
  */
 static void
-MenuBarClick(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+MenuBarClick(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     MenuBarWidget mbw;
+
+    (void)iswev;
 
     if (!IswIsSubclass(w, menuButtonWidgetClass))
         return;
@@ -330,9 +334,11 @@ MenuBarClick(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num
  * Called on Escape key to dismiss any open menu.
  */
 static void
-MenuBarDismiss(Widget w, xcb_generic_event_t *event, String *params, Cardinal *num_params)
+MenuBarDismiss(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     MenuBarWidget mbw = (MenuBarWidget) w;
+
+    (void)iswev;
 
     if (!IswIsSubclass(w, menuBarWidgetClass))
         return;
@@ -581,28 +587,28 @@ MenuPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
  * clicks, focus loss, minimize, or visibility changes.
  */
 static void
-OutsideClickHandler(Widget w, IswPointer client_data, xcb_generic_event_t *event, Boolean *cont)
+OutsideClickHandler(Widget w, IswPointer client_data, IswEvent *iswev, Boolean *cont)
 {
     MenuBarWidget mbw = (MenuBarWidget) client_data;
-    uint8_t type;
 
     if (!mbw->menu_bar.menu_is_open)
         return;
 
-    type = event->response_type & 0x7f;
-
     /* Focus loss, minimize, or visibility change — always dismiss */
-    if (type == XCB_FOCUS_OUT || type == XCB_UNMAP_NOTIFY ||
-        type == XCB_VISIBILITY_NOTIFY || type == XCB_CONFIGURE_NOTIFY) {
+    if (iswev->kind == IswFocusOut || iswev->kind == IswUnmap ||
+        iswev->kind == IswVisibility || iswev->kind == IswGeometry) {
         CloseMenu(mbw);
         return;
     }
 
-    if (type != XCB_BUTTON_PRESS)
+    if (iswev->kind != IswButtonDown)
         return;
 
     {
-        xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+        /* Keep the bridge: we need the native event's reported window
+         * (X-only field) to map it back to the clicked widget. */
+        xcb_button_press_event_t *bev =
+            (xcb_button_press_event_t *) IswEventNative(iswev);
         Widget target;
 
         /* Check if the click is on the menubar itself or any of its children */

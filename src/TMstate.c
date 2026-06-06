@@ -638,6 +638,12 @@ HandleActions(Widget w,
 
     actionHookList = IswWidgetToApplicationContext(w)->action_hook_list;
 
+    /* Action procs and action hooks receive the toolkit-neutral event; the
+       native event is reachable through IswEventNative(&nev) for code not yet
+       migrated. */
+    IswEvent nev;
+    (void) _IswEventFromXcb(IswDisplay(w), event, &nev);
+
     while (actions != NULL) {
         /* perform any actions */
         if (procs[actions->idx] != NULL) {
@@ -657,13 +663,13 @@ HandleActions(Widget w,
                     (*hook->proc) (bindWidget,
                                    hook->closure,
                                    procName,
-                                   event,
+                                   &nev,
                                    actions->params, &actions->num_params);
                     hook = next_hook;
                 }
             }
             (*(procs[actions->idx]))
-                (bindWidget, event, actions->params, &actions->num_params);
+                (bindWidget, &nev, actions->params, &actions->num_params);
         }
         actions = actions->next;
     }

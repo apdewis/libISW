@@ -68,7 +68,7 @@ SOFTWARE.
 
 static void ScrollUpDownProc(Widget, IswPointer, IswPointer);
 static void ThumbProc(Widget, IswPointer, IswPointer);
-static void ScrollWheelSink(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
+static void ScrollWheelSink(Widget, IswPointer, IswEvent *, Boolean *);
 static Boolean GetGeometry(Widget, Dimension, Dimension);
 static void ComputeWithForceBars(Widget, Boolean, IswWidgetGeometry *, int *, int *);
 
@@ -90,7 +90,7 @@ static IswResource resources[] = {
 #undef offset
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
@@ -300,7 +300,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Redisplay(Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget gw, IswEvent *event, xcb_xfixes_region_t region)
 {
     ViewportWidget w = (ViewportWidget) gw;
     Widget child = w->viewport.child;
@@ -918,7 +918,7 @@ Layout(FormWidget w, Dimension width, Dimension height, Boolean junk)
  */
 /* ARGSUSED */
 static void
-ScrollWheelSink(Widget w, IswPointer closure, xcb_generic_event_t *event, Boolean *continue_to_dispatch)
+ScrollWheelSink(Widget w, IswPointer closure, IswEvent *iswev, Boolean *continue_to_dispatch)
 {
     /* Intentionally empty — the ScrollWheel event dispatcher handles
        scroll wheel events before they reach this handler. */

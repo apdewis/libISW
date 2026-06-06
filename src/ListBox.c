@@ -33,7 +33,7 @@ static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Resize(Widget);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *,
                                          IswWidgetGeometry *);
@@ -43,16 +43,16 @@ static void ChangeManaged(Widget);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
-static void ChildEventHandler(Widget, IswPointer, xcb_generic_event_t *, Boolean *);
+static void ChildEventHandler(Widget, IswPointer, IswEvent *, Boolean *);
 static void InstallChildHandlers(Widget, Widget);
 
-static void SelectAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void MoveFocusAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ToggleAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ActivateAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void ExtendAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void SelectAllAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
-static void FocusAction(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void SelectAction(Widget, IswEvent *, String *, Cardinal *);
+static void MoveFocusAction(Widget, IswEvent *, String *, Cardinal *);
+static void ToggleAction(Widget, IswEvent *, String *, Cardinal *);
+static void ActivateAction(Widget, IswEvent *, String *, Cardinal *);
+static void ExtendAction(Widget, IswEvent *, String *, Cardinal *);
+static void SelectAllAction(Widget, IswEvent *, String *, Cardinal *);
+static void FocusAction(Widget, IswEvent *, String *, Cardinal *);
 
 /* ================================================================
  * Resources
@@ -227,33 +227,32 @@ HitTest(ListBoxWidget lbw, int y)
  */
 static void
 ChildEventHandler(Widget child, IswPointer closure,
-                  xcb_generic_event_t *event, Boolean *continue_to_dispatch)
+                  IswEvent *iswev, Boolean *continue_to_dispatch)
 {
     (void)continue_to_dispatch;
     Widget listbox = (Widget)closure;
-    uint8_t type = event->response_type & ~0x80;
 
-    if (type != XCB_BUTTON_PRESS)
+    if (iswev->kind != IswButtonDown)
         return;
 
-    xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-    if (bev->detail != 1)
+    if (IswEventButton(iswev) != IswButtonLeft)
         return;
 
     /* Translate event coordinates from child frame to ListBox frame */
     Position rx, ry, lx, ly;
-    IswTranslateCoords(child, (Position)bev->event_x,
-                       (Position)bev->event_y, &rx, &ry);
+    IswTranslateCoords(child, (Position)IswEventX(iswev),
+                       (Position)IswEventY(iswev), &rx, &ry);
     IswTranslateCoords(listbox, 0, 0, &lx, &ly);
 
-    xcb_button_press_event_t synth = *bev;
-    synth.event_x = (int16_t)(rx - lx);
-    synth.event_y = (int16_t)(ry - ly);
-    synth.event = IswWindow(listbox);
+    /* Synthetic button event in the ListBox frame, with neutral fields
+       carried over so SelectAction reads them directly. */
+    IswEvent nev = *iswev;
+    nev.button.x = (int16_t)(rx - lx);
+    nev.button.y = (int16_t)(ry - ly);
 
     String action = "ListBoxSelect";
     Cardinal one = 1;
-    SelectAction(listbox, (xcb_generic_event_t *)&synth, &action, &one);
+    SelectAction(listbox, &nev, &action, &one);
 }
 
 static void
@@ -610,7 +609,7 @@ PreferredGeometry(Widget w, IswWidgetGeometry *request,
 }
 
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
     (void)event; (void)region;
@@ -747,7 +746,7 @@ ConstraintSetValues(Widget current, Widget request, Widget new,
  * ================================================================ */
 
 static void
-SelectAction(Widget w, xcb_generic_event_t *event,
+SelectAction(Widget w, IswEvent *iswev,
              String *params, Cardinal *num_params)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
@@ -756,8 +755,7 @@ SelectAction(Widget w, xcb_generic_event_t *event,
     if (lbw->listBox.selection_mode == IswListBoxSelectNone)
         return;
 
-    xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-    int idx = HitTest(lbw, bev->event_y);
+    int idx = HitTest(lbw, IswEventY(iswev));
     if (idx < 0) return;
 
     Widget child = ManagedChild(lbw, idx);
@@ -767,7 +765,7 @@ SelectAction(Widget w, xcb_generic_event_t *event,
     if (!lbc->listBox.selectable) return;
 
     /* Double-click detection */
-    xcb_timestamp_t now = bev->time;
+    IswTime now = iswev->button.time;
     if (idx == lbw->listBox.last_click_index &&
         (now - lbw->listBox.last_click_time) < DOUBLE_CLICK_MS) {
         FireActivateCallback(lbw, child, idx);
@@ -782,9 +780,9 @@ SelectAction(Widget w, xcb_generic_event_t *event,
         ApplySelectionVisual(lbw, child, True);
     } else {
         /* Multi mode: Ctrl toggles, plain click selects only this one */
-        if (bev->state & XCB_MOD_MASK_CONTROL) {
+        if (IswEventModifiers(iswev) & IswModControl) {
             ApplySelectionVisual(lbw, child, !lbc->listBox.selected);
-        } else if (bev->state & XCB_MOD_MASK_SHIFT) {
+        } else if (IswEventModifiers(iswev) & IswModShift) {
             /* Extend from focused_index to idx */
             int anchor = lbw->listBox.focused_index >= 0
                 ? lbw->listBox.focused_index : 0;
@@ -815,11 +813,11 @@ SelectAction(Widget w, xcb_generic_event_t *event,
 }
 
 static void
-MoveFocusAction(Widget w, xcb_generic_event_t *event,
+MoveFocusAction(Widget w, IswEvent *iswev,
                 String *params, Cardinal *num_params)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
-    (void)event;
+    (void)iswev;
 
     if (!num_params || *num_params < 1) return;
 
@@ -861,11 +859,11 @@ MoveFocusAction(Widget w, xcb_generic_event_t *event,
 }
 
 static void
-ToggleAction(Widget w, xcb_generic_event_t *event,
+ToggleAction(Widget w, IswEvent *iswev,
              String *params, Cardinal *num_params)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
-    (void)event; (void)params; (void)num_params;
+    (void)iswev; (void)params; (void)num_params;
 
     if (lbw->listBox.selection_mode == IswListBoxSelectNone) return;
     if (lbw->listBox.focused_index < 0) return;
@@ -891,11 +889,11 @@ ToggleAction(Widget w, xcb_generic_event_t *event,
 }
 
 static void
-ActivateAction(Widget w, xcb_generic_event_t *event,
+ActivateAction(Widget w, IswEvent *iswev,
                String *params, Cardinal *num_params)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
-    (void)event; (void)params; (void)num_params;
+    (void)iswev; (void)params; (void)num_params;
 
     if (lbw->listBox.focused_index < 0) return;
 
@@ -906,11 +904,11 @@ ActivateAction(Widget w, xcb_generic_event_t *event,
 }
 
 static void
-ExtendAction(Widget w, xcb_generic_event_t *event,
+ExtendAction(Widget w, IswEvent *iswev,
              String *params, Cardinal *num_params)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
-    (void)event;
+    (void)iswev;
 
     if (lbw->listBox.selection_mode != IswListBoxSelectMulti) return;
     if (!num_params || *num_params < 1) return;
@@ -945,11 +943,11 @@ ExtendAction(Widget w, xcb_generic_event_t *event,
 }
 
 static void
-SelectAllAction(Widget w, xcb_generic_event_t *event,
+SelectAllAction(Widget w, IswEvent *iswev,
                 String *params, Cardinal *num_params)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
-    (void)event; (void)params; (void)num_params;
+    (void)iswev; (void)params; (void)num_params;
 
     if (lbw->listBox.selection_mode != IswListBoxSelectMulti) return;
 
@@ -967,11 +965,11 @@ SelectAllAction(Widget w, xcb_generic_event_t *event,
 }
 
 static void
-FocusAction(Widget w, xcb_generic_event_t *event,
+FocusAction(Widget w, IswEvent *iswev,
             String *params, Cardinal *num_params)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
-    (void)event;
+    (void)iswev;
 
     if (!num_params || *num_params < 1) return;
 

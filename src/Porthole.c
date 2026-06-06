@@ -55,7 +55,7 @@ static IswResource resources[] = {
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static void Destroy(Widget);
 static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void ChangeManaged(Widget);
@@ -221,7 +221,7 @@ Initialize (Widget request, Widget gw, ArgList args, Cardinal *num_args)
    Run from the windowless composite paint walk, after the child's render
    context exists, so the clip is reliably applied even on the first paint. */
 static void
-Redisplay (Widget gw, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay (Widget gw, IswEvent *event, xcb_xfixes_region_t region)
 {
     PortholeWidget pw = (PortholeWidget) gw;
     Widget child = find_child (pw);

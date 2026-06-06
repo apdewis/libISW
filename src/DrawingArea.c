@@ -31,9 +31,9 @@ static IswResource resources[] = {
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Resize(Widget);
-static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void DrawingAreaInput(Widget, xcb_generic_event_t *, String *, Cardinal *);
+static void DrawingAreaInput(Widget, IswEvent *, String *, Cardinal *);
 
 static IswActionsRec actionsList[] = {
     {"DrawingAreaInput", DrawingAreaInput},
@@ -138,7 +138,7 @@ Resize(Widget w)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
 {
     DrawingAreaWidget daw = (DrawingAreaWidget) w;
     ISWRenderContext *ctx = daw->drawing_area.render_ctx;
@@ -162,14 +162,14 @@ Redisplay(Widget w, xcb_generic_event_t *event, xcb_xfixes_region_t region)
 }
 
 static void
-DrawingAreaInput(Widget w, xcb_generic_event_t *event,
+DrawingAreaInput(Widget w, IswEvent *iswev,
 		 String *params, Cardinal *num_params)
 {
     DrawingAreaWidget daw = (DrawingAreaWidget) w;
     ISWDrawingCallbackData call_data;
 
     call_data.render_ctx = daw->drawing_area.render_ctx;
-    call_data.event = event;
+    call_data.event = iswev;
     call_data.window = IswIsRealized(w) ? IswWindow(w) : 0;
 
     IswCallCallbackList(w, daw->drawing_area.input_callbacks,
