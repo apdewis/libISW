@@ -134,8 +134,20 @@ keysym_to_key(xcb_keysym_t ks, uint32_t *unicode, char text[8])
 Boolean
 _IswEventFromXcb(xcb_connection_t *dpy, xcb_generic_event_t *xev, IswEvent *out)
 {
-    uint8_t type = xev->response_type & ~0x80;
-    uint8_t synthetic = (xev->response_type & 0x80) ? 1 : 0;
+    uint8_t type;
+    uint8_t synthetic;
+
+    /* A synthetic action invocation (e.g. IswCallActionProc from MenuBar's
+       OpenMenu) has no triggering native event.  Produce a zeroed neutral
+       event with no kind and no native backing rather than dereferencing
+       NULL — the toolkit-neutral equivalent of "no event". */
+    if (xev == NULL) {
+        memset(out, 0, sizeof(*out));
+        return False;
+    }
+
+    type = xev->response_type & ~0x80;
+    synthetic = (xev->response_type & 0x80) ? 1 : 0;
 
     memset(out, 0, sizeof(*out));
     out->any.synthetic = synthetic;

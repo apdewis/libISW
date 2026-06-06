@@ -75,6 +75,7 @@ in this Software without prior written authorization from The Open Group.
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <string.h>
 #include "IntrinsicI.h"
 #include "StringDefs.h"
 
@@ -923,9 +924,16 @@ IswCallActionProc(Widget widget,
 {
     CompiledAction *actionP;
     XrmQuark q = XrmStringToQuark(action);
-    /* Action procs and hooks receive the toolkit-neutral event. */
+    /* Action procs and hooks receive the toolkit-neutral event.  A synthetic
+       invocation (e.g. MenuBar OpenMenu calling "set") passes a NULL native
+       event — there is no triggering event to translate, so hand the proc a
+       zeroed neutral event (no kind, no native backing) rather than
+       dereferencing NULL in the translator. */
     IswEvent nev;
-    (void) _IswEventFromXcb(IswDisplay(widget), event, &nev);
+    if (event != NULL)
+        (void) _IswEventFromXcb(IswDisplay(widget), event, &nev);
+    else
+        memset(&nev, 0, sizeof(nev));
     Widget w = widget;
     IswAppContext app = IswWidgetToApplicationContext(widget);
     ActionList actionList;
