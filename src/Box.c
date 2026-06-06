@@ -89,7 +89,6 @@ static IswResource resources[] = {
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, xcb_generic_event_t *, xcb_xfixes_region_t);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -108,7 +107,7 @@ BoxClassRec boxClassRec = {
     /* class_inited       */	FALSE,
     /* initialize         */    Initialize,
     /* initialize_hook    */	NULL,
-    /* realize            */    Realize,
+    /* realize            */    IswInheritRealize,
     /* actions            */    NULL,
     /* num_actions	  */	0,
     /* resources          */    resources,
@@ -230,11 +229,7 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
 		 * perform the moves from the correct end so we don't
 		 * force extra exposures as children occlude each other.
 		 */
-		if (IswIsRealized(widget) && widget->core.mapped_when_managed) {
-		    xcb_connection_t *conn = IswDisplay(widget);
-		    xcb_unmap_window(conn, IswWindow(widget));
-		    xcb_flush(conn);
-		}
+		
 		IswMoveWidget(widget, (int)lw, (int)h);
 	    }
 	    lw += bw;
@@ -267,18 +262,12 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
         return;
     }
     if (position && IswIsRealized((Widget)bbw)) {
- if (bbw->composite.num_children == num_mapped_children) {
-     xcb_connection_t *conn = IswDisplay((Widget)bbw);
-     xcb_map_subwindows(conn, IswWindow((Widget)bbw));
-     xcb_flush(conn);
- } else {
 	    int j = bbw->composite.num_children;
 	    Widget *childP = bbw->composite.children;
 	    for (; j > 0; childP++, j--)
 		if (IswIsRealized(*childP) && IswIsManaged(*childP) &&
 		    (*childP)->core.mapped_when_managed)
 		    IswMapWidget(*childP);
-	}
     }
 
     /* Finish off last line */
@@ -648,45 +637,6 @@ Destroy(Widget w)
         bbw->box.render_ctx = NULL;
     }
 }
-
-static void
-Realize(xcb_connection_t *conn, Widget w, IswValueMask *valueMask, uint32_t *attributes)
-{
-    /* XCB Migration: attributes is a uint32_t array in ascending mask bit order.
-     * We need to INSERT the XCB_CW_BIT_GRAVITY value at the correct position,
-     * shifting subsequent values to make room. XCB_CW_BIT_GRAVITY = XCB_CW_BIT_GRAVITY
-     * is bit 4. We count how many values exist for bits 0-3 (BACK_PIXMAP,
-     * BACK_PIXEL, BORDER_PIXMAP, BORDER_PIXEL) to find the insertion index. */
-    if (!(*valueMask & XCB_CW_BIT_GRAVITY)) {
-        int insert_idx = 0;
-        int total_values = 0;
-        int i;
-        uint32_t bit;
-
-        /* Count values for bits below XCB_CW_BIT_GRAVITY (bits 0-3) */
-        for (bit = 1; bit < XCB_CW_BIT_GRAVITY; bit <<= 1) {
-            if (*valueMask & bit)
-                insert_idx++;
-        }
-
-        /* Count total values in current attributes array */
-        for (bit = 1; bit <= XCB_CW_CURSOR; bit <<= 1) {
-            if (*valueMask & bit)
-                total_values++;
-        }
-
-        /* Shift values from insert_idx onward to make room */
-        for (i = total_values; i > insert_idx; i--)
-            attributes[i] = attributes[i - 1];
-
-        /* Insert XCB_GRAVITY_NORTH_WEST at the correct position */
-        attributes[insert_idx] = XCB_GRAVITY_NORTH_WEST;
-        *valueMask |= XCB_CW_BIT_GRAVITY;
-    }
-    
-    IswCreateWindow(conn, w, (unsigned)XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                   (xcb_visualtype_t *)CopyFromParent, *valueMask, attributes);
-} /* Realize */
 
 /* ARGSUSED */
 static Boolean
