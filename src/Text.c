@@ -2483,39 +2483,35 @@ UpdateTextInRectangle(TextWidget ctx, xcb_rectangle_t * rect)
 
 /* ARGSUSED */
 static void
-ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
+ProcessExposeRegion(Widget w, IswEvent *iswev, Region region)
 {
     TextWidget ctx = (TextWidget) w;
     xcb_rectangle_t expose, cursor;
     Boolean need_to_draw;
-    uint8_t type;
+    /* GraphicsExpose / NoExpose have no neutral IswEvent kind (they are tied to
+       the xcb_copy_area scroll optimisation, abstracted in a later phase), so
+       distinguish them through the native escape hatch.  A real damage event
+       arrives as IswRedraw; a NULL event is the "repaint whole widget"
+       convention used by _IswRepaintWindowless / PaintScrollbars. */
+    xcb_generic_event_t *native =
+        (xcb_generic_event_t *) (iswev ? IswEventNative(iswev) : NULL);
+    uint8_t type = native ? (native->response_type & ~0x80) : XCB_EXPOSE;
 
-    /* A NULL event means "redraw the whole widget" — the convention used by
-       _IswRepaintWindowless / RedisplaySubtree / PaintScrollbars when driving a
-       full repaint outside server-delivered Expose.  Synthesize a full-widget
-       expose rectangle rather than dereferencing the (absent) event. */
-    if (event == NULL) {
+    if (iswev == NULL) {
+        /* redraw the whole widget */
         expose.x = 0;
         expose.y = 0;
         expose.width = ctx->core.width;
         expose.height = ctx->core.height;
-        type = XCB_EXPOSE;
     }
-    else
-        type = event->response_type & ~0x80;
-
-    if (event == NULL) {
-        /* full-widget rect already set above */
-    }
-    else if (type == XCB_EXPOSE) {
-	xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
-	expose.x = ev->x;
-	expose.y = ev->y;
-	expose.width = ev->width;
-	expose.height = ev->height;
+    else if (iswev->kind == IswRedraw && type != XCB_GRAPHICS_EXPOSURE) {
+	expose.x = iswev->redraw.x;
+	expose.y = iswev->redraw.y;
+	expose.width = iswev->redraw.width;
+	expose.height = iswev->redraw.height;
     }
     else if (type == XCB_GRAPHICS_EXPOSURE) {
-	xcb_graphics_exposure_event_t *gev = (xcb_graphics_exposure_event_t *)event;
+	xcb_graphics_exposure_event_t *gev = (xcb_graphics_exposure_event_t *)native;
 	expose.x = gev->x;
 	expose.y = gev->y;
 	expose.width = gev->width;
@@ -2528,7 +2524,7 @@ ProcessExposeRegion(Widget w, xcb_generic_event_t *event, Region region)
 
     need_to_draw = TranslateExposeRegion(ctx, &expose);
     if (type == XCB_GRAPHICS_EXPOSURE) {
-	xcb_graphics_exposure_event_t *gev = (xcb_graphics_exposure_event_t *)event;
+	xcb_graphics_exposure_event_t *gev = (xcb_graphics_exposure_event_t *)native;
 	if (gev->count == 0)
 	    PopCopyQueue(ctx);
     }

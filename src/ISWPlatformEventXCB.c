@@ -11,7 +11,8 @@
  * ISWXdnd.c, IswTrayIcon.c, keyboard mapping) and never become an IswEvent.
  *
  * Folds in, at the translation boundary, the work the dispatch core used to do
- * inline: HiDPI coordinate descale and keysym → neutral key identity + UTF-8.
+ * inline: keysym → neutral key identity + UTF-8.  (HiDPI descale stays in the
+ * dispatch core; coordinates arrive already-logical — see _IswEventFromXcb.)
  *
  * Phase 1 of the ISWPlatform vtable work (docs/ISWPLATFORM_PLAN.md).  Lives in
  * src/ for now; moves behind the ISWPlatformEvent sub-vtable in Phase 2.
@@ -114,29 +115,27 @@ keysym_to_key(xcb_keysym_t ks, uint32_t *unicode, char text[8])
     return IswKeyNone;
 }
 
-/* ---- coordinate descale --------------------------------------------------- */
-
-static int16_t
-descale(int16_t v, double sf)
-{
-    return (sf > 1.0) ? (int16_t) (v / sf) : v;
-}
-
 /*
  * _IswEventFromXcb - translate a native XCB event into a neutral IswEvent.
  *
  * Returns True and fills `out` for toolkit-semantic events; returns False for
  * X11 protocol events the toolkit must not see as events (caller routes those
  * to the backend's protocol handlers).  `out->native` is set to `xev` so the
- * migration bridge (IswEventNative) and backend-internal paths can still reach
- * the native event during the abstraction work.
+ * native-event escape hatch (IswEventNative) and backend-internal paths can
+ * still reach the native event.
+ *
+ * Coordinates are copied straight through: the dispatch core
+ * (_IswDescaleEventCoords in Event.c) has already converted the native event's
+ * coordinates from physical to logical pixels (and, for windowless widgets,
+ * rebased them to widget-local) BEFORE this runs.  Descaling here too would
+ * double-apply the scale factor.  Translation is format-only; coordinate
+ * scaling stays the dispatch core's responsibility.
  */
 Boolean
 _IswEventFromXcb(xcb_connection_t *dpy, xcb_generic_event_t *xev, IswEvent *out)
 {
     uint8_t type = xev->response_type & ~0x80;
     uint8_t synthetic = (xev->response_type & 0x80) ? 1 : 0;
-    double sf = _IswGetScaleFactor(dpy);
 
     memset(out, 0, sizeof(*out));
     out->any.synthetic = synthetic;
@@ -152,8 +151,8 @@ _IswEventFromXcb(xcb_connection_t *dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->key.target = e->event;
         out->key.time = e->time;
         out->key.modifiers = xcb_state_to_modmask(e->state);
-        out->key.x = descale(e->event_x, sf);
-        out->key.y = descale(e->event_y, sf);
+        out->key.x = e->event_x;
+        out->key.y = e->event_y;
         IswTranslateKeycode(dpy, (_IswKeyCode) e->detail, e->state,
                             &mods_ret, &ks);
         out->key.key = keysym_to_key(ks, &out->key.unicode, out->key.text);
@@ -167,10 +166,10 @@ _IswEventFromXcb(xcb_connection_t *dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->button.time = e->time;
         out->button.button = (uint8_t) e->detail;
         out->button.modifiers = xcb_state_to_modmask(e->state);
-        out->button.x = descale(e->event_x, sf);
-        out->button.y = descale(e->event_y, sf);
-        out->button.root_x = descale(e->root_x, sf);
-        out->button.root_y = descale(e->root_y, sf);
+        out->button.x = e->event_x;
+        out->button.y = e->event_y;
+        out->button.root_x = e->root_x;
+        out->button.root_y = e->root_y;
         return True;
     }
     case XCB_MOTION_NOTIFY: {
@@ -179,10 +178,10 @@ _IswEventFromXcb(xcb_connection_t *dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->motion.target = e->event;
         out->motion.time = e->time;
         out->motion.modifiers = xcb_state_to_modmask(e->state);
-        out->motion.x = descale(e->event_x, sf);
-        out->motion.y = descale(e->event_y, sf);
-        out->motion.root_x = descale(e->root_x, sf);
-        out->motion.root_y = descale(e->root_y, sf);
+        out->motion.x = e->event_x;
+        out->motion.y = e->event_y;
+        out->motion.root_x = e->root_x;
+        out->motion.root_y = e->root_y;
         return True;
     }
     case XCB_ENTER_NOTIFY:
@@ -197,8 +196,8 @@ _IswEventFromXcb(xcb_connection_t *dpy, xcb_generic_event_t *xev, IswEvent *out)
         case XCB_NOTIFY_MODE_UNGRAB: out->crossing.mode = IswNotifyUngrab; break;
         default:                     out->crossing.mode = IswNotifyNormal; break;
         }
-        out->crossing.x = descale(e->event_x, sf);
-        out->crossing.y = descale(e->event_y, sf);
+        out->crossing.x = e->event_x;
+        out->crossing.y = e->event_y;
         return True;
     }
     case XCB_FOCUS_IN:
@@ -219,10 +218,10 @@ _IswEventFromXcb(xcb_connection_t *dpy, xcb_generic_event_t *xev, IswEvent *out)
         xcb_expose_event_t *e = (xcb_expose_event_t *) xev;
         out->kind = IswRedraw;
         out->redraw.target = e->window;
-        out->redraw.x = descale((int16_t) e->x, sf);
-        out->redraw.y = descale((int16_t) e->y, sf);
-        out->redraw.width = (uint16_t) descale((int16_t) e->width, sf);
-        out->redraw.height = (uint16_t) descale((int16_t) e->height, sf);
+        out->redraw.x = (int16_t) e->x;
+        out->redraw.y = (int16_t) e->y;
+        out->redraw.width = (uint16_t) (int16_t) e->width;
+        out->redraw.height = (uint16_t) (int16_t) e->height;
         out->redraw.count = e->count;
         return True;
     }
@@ -230,10 +229,10 @@ _IswEventFromXcb(xcb_connection_t *dpy, xcb_generic_event_t *xev, IswEvent *out)
         xcb_configure_notify_event_t *e = (xcb_configure_notify_event_t *) xev;
         out->kind = IswGeometry;
         out->geometry.target = e->window;
-        out->geometry.x = descale(e->x, sf);
-        out->geometry.y = descale(e->y, sf);
-        out->geometry.width = (uint16_t) descale((int16_t) e->width, sf);
-        out->geometry.height = (uint16_t) descale((int16_t) e->height, sf);
+        out->geometry.x = e->x;
+        out->geometry.y = e->y;
+        out->geometry.width = (uint16_t) (int16_t) e->width;
+        out->geometry.height = (uint16_t) (int16_t) e->height;
         return True;
     }
     case XCB_MAP_NOTIFY: {
