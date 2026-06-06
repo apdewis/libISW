@@ -181,6 +181,17 @@ typedef struct _ISWRenderContext {
     /* Backend-specific data */
     void *backend_data;
 
+    /* Pixel->RGB decode cache.  ISWRenderPixelToRGB is called once per
+       colour set on the draw path; resolving a pixel to RGB must not
+       round-trip to the server (a synchronous QueryColors per draw was a
+       major source of latency under a busy X server).  visual is the
+       colormap's visual, resolved lazily and cached; for TrueColor/
+       DirectColor it lets us decode pixels directly from the channel masks
+       with zero server traffic.  visual_resolved guards the one-time lookup
+       (a NULL visual is a valid "not found, use fallback" result). */
+    xcb_visualtype_t *visual;
+    Boolean visual_resolved;
+
 } ISWRenderContext;
 
 /*

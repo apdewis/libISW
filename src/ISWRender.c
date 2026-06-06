@@ -1273,26 +1273,97 @@ ISWRenderGetCairoContext(ISWRenderContext *ctx)
  * =================================================================
  */
 
+/*
+ * Resolve the visual that backs this context's colormap (i.e. the root
+ * visual of its screen), caching it on the context.  Returns NULL if it
+ * can't be found, which is itself cached so the lookup runs at most once.
+ */
+static xcb_visualtype_t *
+ISWRenderContextVisual(ISWRenderContext *ctx)
+{
+    xcb_depth_iterator_t depth_iter;
+    xcb_visualtype_iterator_t visual_iter;
+    xcb_visualid_t want;
+
+    if (ctx->visual_resolved) {
+        return ctx->visual;
+    }
+    ctx->visual_resolved = True;
+    ctx->visual = NULL;
+
+    if (!ctx->screen) {
+        return NULL;
+    }
+
+    want = ctx->screen->root_visual;
+    for (depth_iter = xcb_screen_allowed_depths_iterator(ctx->screen);
+         depth_iter.rem;
+         xcb_depth_next(&depth_iter)) {
+        for (visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+             visual_iter.rem;
+             xcb_visualtype_next(&visual_iter)) {
+            if (visual_iter.data->visual_id == want) {
+                ctx->visual = visual_iter.data;
+                return ctx->visual;
+            }
+        }
+    }
+    return NULL;
+}
+
+/*
+ * Decode a single channel: extract the masked bits and scale to 0.0-1.0.
+ */
+static double
+ISWRenderChannel(Pixel pixel, uint32_t mask)
+{
+    if (mask == 0) {
+        return 0.0;
+    }
+    /* Shift the masked value down to the low bits, then normalise by the
+       mask's own width so any channel position/width works (8/10-bit, BGR
+       ordering, etc.) rather than assuming a fixed 0xRRGGBB layout. */
+    while (!(mask & 1)) {
+        pixel >>= 1;
+        mask >>= 1;
+    }
+    return (pixel & mask) / (double)mask;
+}
+
 void
 ISWRenderPixelToRGB(ISWRenderContext *ctx, Pixel pixel,
                    double *r, double *g, double *b)
 {
+    xcb_visualtype_t *visual;
     IswColor color;
-    
+
     if (!ctx || !r || !g || !b) {
         return;
     }
-    
-    /* Query color from X server using the context's colormap */
+
+    /* Fast path: for TrueColor/DirectColor visuals the pixel value already
+       encodes RGB in the visual's channel masks, so decode it locally with
+       no server traffic.  This is the common case on modern displays and
+       avoids a synchronous QueryColors round-trip on every colour set. */
+    visual = ISWRenderContextVisual(ctx);
+    if (visual &&
+        (visual->_class == XCB_VISUAL_CLASS_TRUE_COLOR ||
+         visual->_class == XCB_VISUAL_CLASS_DIRECT_COLOR)) {
+        *r = ISWRenderChannel(pixel, visual->red_mask);
+        *g = ISWRenderChannel(pixel, visual->green_mask);
+        *b = ISWRenderChannel(pixel, visual->blue_mask);
+        return;
+    }
+
+    /* Palette visual (PseudoColor/GrayScale/StaticColor): the pixel is an
+       index into the colormap, so we must ask the server for its RGB. */
     color.pixel = pixel;
-    
     if (ctx->colormap && ISWQueryColor(ctx->connection, ctx->colormap, &color)) {
-        /* Convert from 16-bit to 0.0-1.0 range */
         *r = color.red / 65535.0;
         *g = color.green / 65535.0;
         *b = color.blue / 65535.0;
     } else {
-        /* Fallback: extract RGB from pixel assuming XCB_VISUAL_CLASS_TRUE_COLOR format */
+        /* Last-resort fallback: assume packed 0xRRGGBB. */
         *r = ((pixel >> 16) & 0xFF) / 255.0;
         *g = ((pixel >> 8) & 0xFF) / 255.0;
         *b = (pixel & 0xFF) / 255.0;
