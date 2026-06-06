@@ -623,13 +623,6 @@ ActionStart (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *nu
     PannerWidget pw = (PannerWidget) gw;
     int x, y;
 
-    if (!get_event_xy (pw, event, &x, &y)) {
- xcb_connection_t *conn = IswDisplay(gw);
- xcb_bell(conn, 0);
- xcb_flush(conn);
- return;
-    }
-
     pw->panner.tmp.doing = TRUE;
     pw->panner.tmp.startx = pw->panner.knob_x;
     pw->panner.tmp.starty = pw->panner.knob_y;
@@ -684,13 +677,6 @@ ActionMove (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num
 
     if (!pw->panner.tmp.doing) return;
 
-    if (!get_event_xy (pw, event, &x, &y)) {
-	xcb_connection_t *conn = IswDisplay(gw);
-	xcb_bell(conn, 0);
-	xcb_flush(conn);
-	return;
-    }
-
     if (pw->panner.rubber_band) UNDRAW_TMP (pw);
     pw->panner.tmp.x = ((Position) x) - pw->panner.tmp.dx;
     pw->panner.tmp.y = ((Position) y) - pw->panner.tmp.dy;
@@ -714,13 +700,6 @@ ActionPage (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num
     int x, y;
     Boolean relx, rely;
     int pad = pw->panner.internal_border * 2;
-
-    if (*num_params != 2) {
-	xcb_connection_t *conn = IswDisplay(gw);
-	xcb_bell(conn, 0);
-	xcb_flush(conn);
-	return;
-    }
 
     x = parse_page_string (params[0], (int) pw->panner.knob_width,
 			   ((int) pw->core.width) - pad, &relx);
@@ -801,25 +780,12 @@ ActionSet (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_
     PannerWidget pw = (PannerWidget) gw;
     Boolean rb;
 
-    if (*num_params < 2 ||
-	ISWCompareISOLatin1 (params[0], "rubberband") != 0) {
-	xcb_connection_t *conn = IswDisplay(gw);
-	xcb_bell(conn, 0);
-	xcb_flush(conn);
-	return;
-    }
-
     if (ISWCompareISOLatin1 (params[1], "on") == 0) {
 	rb = TRUE;
     } else if (ISWCompareISOLatin1 (params[1], "off") == 0) {
 	rb = FALSE;
     } else if (ISWCompareISOLatin1 (params[1], "toggle") == 0) {
 	rb = !pw->panner.rubber_band;
-    } else {
-	xcb_connection_t *conn = IswDisplay(gw);
-	xcb_bell(conn, 0);
-	xcb_flush(conn);
-	return;
     }
 
     if (rb != pw->panner.rubber_band) {
