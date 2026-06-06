@@ -163,6 +163,14 @@ typedef struct _ISWRenderContext {
        (SimpleMenu, IconView, ...) must NOT be filled — that would wipe it. */
     Boolean lazy_composite_root;
 
+    /* Set once this root has presented a pass that actually folded child
+       content.  Until then, a pass that would fold nothing is skipped entirely
+       (no fill, no blit): a lazy root with no mapped children yet has nothing to
+       show, and re-filling+blitting the full-window background is pure overhead.
+       Once content has appeared, later empty passes still present so that
+       un-mapping the last child correctly clears it. */
+    Boolean presented_content;
+
     /* Composite clip: when set, this widget is clipped to (clip_x,clip_y,
        clip_w,clip_h) — in the PARENT's content coordinates — as it is folded
        into its parent.  Used by scrolling containers (Viewport) to confine a

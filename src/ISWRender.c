@@ -577,6 +577,49 @@ static void _isw_composite_children_into_at(Widget parent,
                                             ISWRenderContext *dst_ctx,
                                             int ox, int oy);
 
+/* Number of child surfaces folded by composite passes, total.  Always
+   maintained (not trace-gated) so ISWRenderCompositeSubtree can detect a
+   no-op pass and skip the redundant present() blit. */
+static long _isw_fold_count = 0;
+
+/* True if any descendant of `parent` is a composite-shown windowless widget,
+   i.e. the fold walk would touch at least one surface.  Mirrors the descent in
+   _isw_composite_children_into_at without painting.  Used to short-circuit a
+   composite pass that would fold nothing: during startup, every windowless
+   widget's ISWRenderEnd triggers a composite of its windowed root before any
+   child is mapped, producing hundreds of passes that fill+blit a full-window
+   background with no content on it. */
+static Boolean
+_isw_subtree_has_shown_child(Widget parent)
+{
+    if (IswIsComposite(parent)) {
+        CompositeWidget cw = (CompositeWidget) parent;
+        Cardinal i;
+        for (i = 0; i < cw->composite.num_children; i++) {
+            Widget c = cw->composite.children[i];
+            if (_isw_composite_shown(c))
+                return True;
+            /* A context-less container is not itself shown but may hold shown
+               descendants. */
+            if (IswIsWidget(c) && c->core.windowless &&
+                _isw_subtree_has_shown_child(c))
+                return True;
+        }
+    }
+    if (IswIsSubclass(parent, simpleWidgetClass)) {
+        SimpleWidgetClass sc = (SimpleWidgetClass) parent->core.widget_class;
+        if (sc->simple_class.nth_windowless_child != NULL) {
+            int i = 0;
+            Widget child;
+            while ((child = (*sc->simple_class.nth_windowless_child)(parent, i++))
+                   != NULL)
+                if (_isw_composite_shown(child))
+                    return True;
+        }
+    }
+    return False;
+}
+
 /* Fold one windowless child (and its descendants) into a destination surface
    (dst_ctx) at accumulated logical offset (ox, oy) within dst's content. */
 static void
@@ -632,9 +675,11 @@ _isw_composite_one(Widget child, ISWRenderContext *dst_ctx, int ox, int oy)
     _isw_composite_children_into(child, child_ctx);
 
     /* Then fold the child's surface into dst at the child's position. */
-    if (dst_ctx->ops && dst_ctx->ops->composite_onto)
+    if (dst_ctx->ops && dst_ctx->ops->composite_onto) {
+        _isw_fold_count++;
         dst_ctx->ops->composite_onto(dst_ctx, child_ctx,
                                      ox + child->core.x, oy + child->core.y);
+    }
 }
 
 /* Recursively fold a parent's windowless children into a destination surface
@@ -694,20 +739,43 @@ ISWRenderCompositeSubtree(Widget windowed_root)
         root_ctx->lazy_composite_root = True;
     }
 
+    /* Short-circuit a pass that would fold nothing onto a lazy root that has
+       never shown content.  During startup each windowless widget's
+       ISWRenderEnd composites the windowed root before any child is mapped;
+       without this guard that produces hundreds of full-window background
+       fill+blit passes with no content on them. */
+    if (root_ctx->lazy_composite_root && !root_ctx->presented_content &&
+        !_isw_subtree_has_shown_child(windowed_root))
+        return;
+
     _isw_in_composite = True;
+
+    long fold0 = _isw_fold_count;
+    Boolean filled_bg = False;
 
     /* Fill the background ONLY for a lazily-created root.  A widget-owned root
        (SimpleMenu, IconView, ...) painted its own content via its expose proc
        this frame; filling would wipe it.  The composite then folds the
        windowless children on top of whatever the root drew. */
     if (root_ctx->lazy_composite_root &&
-        root_ctx->ops && root_ctx->ops->fill_background)
+        root_ctx->ops && root_ctx->ops->fill_background) {
         root_ctx->ops->fill_background(root_ctx);
+        filled_bg = True;
+    }
     _isw_composite_children_into(windowed_root, root_ctx);
 
-    /* Blit the fully-composited root surface to its window once. */
-    if (root_ctx->ops && root_ctx->ops->present)
+    /* Blit the composited root surface to its window — but only if this pass
+       actually changed the surface.  A pass that folded no children and did no
+       background fill (common during startup, when widgets paint before being
+       mapped) leaves the surface identical to what is already on screen, so the
+       present() is a pure-overhead full-window blit.  Skipping those collapses a
+       startup storm of hundreds of redundant blits. */
+    Boolean folded_now = (_isw_fold_count != fold0);
+    if ((filled_bg || folded_now) &&
+        root_ctx->ops && root_ctx->ops->present)
         root_ctx->ops->present(root_ctx);
+    if (folded_now)
+        root_ctx->presented_content = True;
     _isw_in_composite = prev;
 }
 

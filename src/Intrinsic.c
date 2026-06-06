@@ -494,7 +494,14 @@ IswRealizeWidget(Widget widget)
         return;
     }
     CallChangeManaged(widget);
+    /* Coalesce the composites triggered while the subtree realizes and paints
+       itself.  Each windowless widget's ISWRenderEnd would otherwise composite
+       the windowed root immediately (we are outside any event dispatch here),
+       producing one full-window fill+blit per widget — hundreds of redundant
+       passes before the first real frame.  Defer them and fold once. */
+    ISWRenderBeginDeferComposite();
     RealizeWidget(widget);
+    ISWRenderFlushComposites();
     UNLOCK_APP(app);
 }                               /* IswRealizeWidget */
 
