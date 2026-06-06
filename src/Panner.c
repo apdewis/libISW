@@ -231,11 +231,11 @@ check_knob (PannerWidget pw, Boolean knob)
     if (*y > maxy) *y = maxy;
 
     if (knob) {
-	pw->panner.slider_x = (Position) (((double) pw->panner.knob_x) /
-					  pw->panner.haspect + 0.5);
-	pw->panner.slider_y = (Position) (((double) pw->panner.knob_y) /
-					  pw->panner.vaspect + 0.5);
-	pw->panner.last_x = pw->panner.last_y = PANNER_OUTOFRANGE;
+	    pw->panner.slider_x = (Position) (((double) pw->panner.knob_x) /
+	    				  pw->panner.haspect + 0.5);
+	    pw->panner.slider_y = (Position) (((double) pw->panner.knob_y) /
+	    				  pw->panner.vaspect + 0.5);
+	    pw->panner.last_x = pw->panner.last_y = PANNER_OUTOFRANGE;
     }
 }
 
@@ -248,19 +248,19 @@ scale_knob (PannerWidget pw, Boolean location, Boolean size)  /* set knob size a
 	pw->panner.knob_y = (Position) PANNER_VSCALE (pw, pw->panner.slider_y);
     }
     if (size) {
-	Dimension width, height;
+	    Dimension width, height;
 
-	if (pw->panner.slider_width < 1) {
-	    pw->panner.slider_width = pw->panner.canvas_width;
-	}
-	if (pw->panner.slider_height < 1) {
-	    pw->panner.slider_height = pw->panner.canvas_height;
-	}
-	width = Min (pw->panner.slider_width, pw->panner.canvas_width);
-	height = Min (pw->panner.slider_height, pw->panner.canvas_height);
+	    if (pw->panner.slider_width < 1) {
+	        pw->panner.slider_width = pw->panner.canvas_width;
+	    }
+	    if (pw->panner.slider_height < 1) {
+	        pw->panner.slider_height = pw->panner.canvas_height;
+	    }
+	    width = Min (pw->panner.slider_width, pw->panner.canvas_width);
+	    height = Min (pw->panner.slider_height, pw->panner.canvas_height);
 
-	pw->panner.knob_width = (Dimension) PANNER_HSCALE (pw, width);
-	pw->panner.knob_height = (Dimension) PANNER_VSCALE (pw, height);
+	    pw->panner.knob_width = (Dimension) PANNER_HSCALE (pw, width);
+	    pw->panner.knob_height = (Dimension) PANNER_VSCALE (pw, height);
     }
     if (!pw->panner.allow_off) check_knob (pw, TRUE);
 }
@@ -304,33 +304,33 @@ get_event_xy (PannerWidget pw, xcb_generic_event_t *event, int *x, int *y)
     switch (event->response_type & ~0x80) {
       case XCB_BUTTON_PRESS:
       case XCB_BUTTON_RELEASE: {
-	xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-	*x = bev->event_x - pad;
-	*y = bev->event_y - pad;
-	return TRUE;
+	    xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+	    *x = bev->event_x - pad;
+	    *y = bev->event_y - pad;
+	    return TRUE;
       }
 
       case XCB_KEY_PRESS:
       case XCB_KEY_RELEASE: {
-	xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
-	*x = kev->event_x - pad;
-	*y = kev->event_y - pad;
-	return TRUE;
+	    xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
+	    *x = kev->event_x - pad;
+	    *y = kev->event_y - pad;
+	    return TRUE;
       }
 
       case XCB_ENTER_NOTIFY:
       case XCB_LEAVE_NOTIFY: {
-	xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
-	*x = cev->event_x - pad;
-	*y = cev->event_y - pad;
-	return TRUE;
+	    xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
+	    *x = cev->event_x - pad;
+	    *y = cev->event_y - pad;
+	    return TRUE;
       }
 
       case XCB_MOTION_NOTIFY: {
-	xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
-	*x = mev->event_x - pad;
-	*y = mev->event_y - pad;
-	return TRUE;
+	    xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
+	    *x = mev->event_x - pad;
+	    *y = mev->event_y - pad;
+	    return TRUE;
       }
     }
 
@@ -538,7 +538,7 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
     if (cur->panner.foreground != new->panner.foreground ||
 	cur->panner.line_width != new->panner.line_width ||
 	cur->core.background_pixel != new->core.background_pixel) {
-	redisplay = TRUE;
+	    redisplay = TRUE;
     }
     if (cur->panner.rubber_band != new->panner.rubber_band) {
 	if (new->panner.tmp.doing) redisplay = TRUE;
@@ -546,24 +546,24 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 
     if (cur->core.background_pixel != new->core.background_pixel &&
 	IswIsRealized(gnew)) {
-	xcb_connection_t *conn = IswDisplay(new);
-	uint32_t pixel_val = new->core.background_pixel;
-	xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_BACK_PIXEL, &pixel_val);
-	xcb_flush(conn);
-	redisplay = TRUE;
+	    xcb_connection_t *conn = IswDisplay(new);
+	    uint32_t pixel_val = new->core.background_pixel;
+	    xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_BACK_PIXEL, &pixel_val);
+	    xcb_flush(conn);
+	    redisplay = TRUE;
     }
 
     if (new->panner.resize_to_pref &&
 	(cur->panner.canvas_width != new->panner.canvas_width ||
 	 cur->panner.canvas_height != new->panner.canvas_height ||
 	 cur->panner.resize_to_pref != new->panner.resize_to_pref)) {
-	get_default_size (new, &new->core.width, &new->core.height);
-	redisplay = TRUE;
+	    get_default_size (new, &new->core.width, &new->core.height);
+	    redisplay = TRUE;
     } else if (cur->panner.canvas_width != new->panner.canvas_width ||
-	cur->panner.canvas_height != new->panner.canvas_height ||
-	cur->panner.internal_border != new->panner.internal_border) {
-	rescale (new);			/* does a scale_knob as well */
-	redisplay = TRUE;
+	    cur->panner.canvas_height != new->panner.canvas_height ||
+	    cur->panner.internal_border != new->panner.internal_border) {
+	    rescale (new);			/* does a scale_knob as well */
+	    redisplay = TRUE;
     } else {
 	Boolean loc = (cur->panner.slider_x != new->panner.slider_x ||
 		       cur->panner.slider_y != new->panner.slider_y);
@@ -584,7 +584,7 @@ static void
 SetValuesAlmost (Widget gold, Widget gnew, IswWidgetGeometry *req, IswWidgetGeometry *reply)
 {
     if (reply->request_mode == 0) {	/* got turned down, so cope */
-	Resize (gnew);
+	    Resize (gnew);
     }
     (*pannerWidgetClass->core_class.superclass->core_class.set_values_almost)
 	(gold, gnew, req, reply);
@@ -641,9 +641,9 @@ ActionStop (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num
     int x, y;
 
     if (get_event_xy (pw, event, &x, &y)) {
-	pw->panner.tmp.x = ((Position) x) - pw->panner.tmp.dx;
-	pw->panner.tmp.y = ((Position) y) - pw->panner.tmp.dy;
-	if (!pw->panner.allow_off) check_knob (pw, FALSE);
+	    pw->panner.tmp.x = ((Position) x) - pw->panner.tmp.dx;
+	    pw->panner.tmp.y = ((Position) y) - pw->panner.tmp.dy;
+	    if (!pw->panner.allow_off) check_knob (pw, FALSE);
     }
     if (pw->panner.rubber_band) UNDRAW_TMP (pw);
     pw->panner.tmp.doing = FALSE;
@@ -660,9 +660,9 @@ ActionAbort (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *nu
     if (pw->panner.rubber_band) UNDRAW_TMP (pw);
 
     if (!pw->panner.rubber_band) {		/* restore old position */
-	pw->panner.tmp.x = pw->panner.tmp.startx;
-	pw->panner.tmp.y = pw->panner.tmp.starty;
-	ActionNotify (gw, event, params, num_params);
+	    pw->panner.tmp.x = pw->panner.tmp.startx;
+	    pw->panner.tmp.y = pw->panner.tmp.starty;
+	    ActionNotify (gw, event, params, num_params);
     }
     pw->panner.tmp.doing = FALSE;
 }
@@ -682,10 +682,10 @@ ActionMove (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num
     pw->panner.tmp.y = ((Position) y) - pw->panner.tmp.dy;
 
     if (!pw->panner.rubber_band) {
-	ActionNotify (gw, event, params, num_params);  /* does a check */
+	    ActionNotify (gw, event, params, num_params);  /* does a check */
     } else {
-	if (!pw->panner.allow_off) check_knob (pw, FALSE);
-	DRAW_TMP (pw);
+	    if (!pw->panner.allow_off) check_knob (pw, FALSE);
+	    DRAW_TMP (pw);
     }
 }
 
@@ -710,18 +710,18 @@ ActionPage (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num
     if (rely) y += pw->panner.knob_y;
 
     if (isin) {				/* if in, then use move */
- xcb_button_press_event_t ev;
- memset(&ev, 0, sizeof(ev));
- ev.response_type = XCB_BUTTON_PRESS;
- ev.event_x = x;
- ev.event_y = y;
- ActionMove (gw, (xcb_generic_event_t*)&ev, (String *) NULL, &zero);
+        xcb_button_press_event_t ev;
+        memset(&ev, 0, sizeof(ev));
+        ev.response_type = XCB_BUTTON_PRESS;
+        ev.event_x = x;
+        ev.event_y = y;
+        ActionMove (gw, (xcb_generic_event_t*)&ev, (String *) NULL, &zero);
     } else {				/* else just do it */
-	pw->panner.tmp.doing = TRUE;
-	pw->panner.tmp.x = x;
-	pw->panner.tmp.y = y;
-	ActionNotify (gw, event, (String *) NULL, &zero);
-	pw->panner.tmp.doing = FALSE;
+	    pw->panner.tmp.doing = TRUE;
+	    pw->panner.tmp.x = x;
+	    pw->panner.tmp.y = y;
+	    ActionNotify (gw, event, (String *) NULL, &zero);
+	    pw->panner.tmp.doing = FALSE;
     }
 }
 
@@ -759,17 +759,17 @@ ActionNotify (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *n
 
     if (pw->panner.last_x != pw->panner.knob_x ||
 	pw->panner.last_y != pw->panner.knob_y) {
-	IswPannerReport rep;
+	    IswPannerReport rep;
 
-	Redisplay (gw, NULL, 0);
-	rep.changed = (IswPRSliderX | IswPRSliderY);
-	rep.slider_x = pw->panner.slider_x;
-	rep.slider_y = pw->panner.slider_y;
-	rep.slider_width = pw->panner.slider_width;
-	rep.slider_height = pw->panner.slider_height;
-	rep.canvas_width = pw->panner.canvas_width;
-	rep.canvas_height = pw->panner.canvas_height;
-	IswCallCallbackList (gw, pw->panner.report_callbacks, (IswPointer) &rep);
+	    Redisplay (gw, NULL, 0);
+	    rep.changed = (IswPRSliderX | IswPRSliderY);
+	    rep.slider_x = pw->panner.slider_x;
+	    rep.slider_y = pw->panner.slider_y;
+	    rep.slider_width = pw->panner.slider_width;
+	    rep.slider_height = pw->panner.slider_height;
+	    rep.canvas_width = pw->panner.canvas_width;
+	    rep.canvas_height = pw->panner.canvas_height;
+	    IswCallCallbackList (gw, pw->panner.report_callbacks, (IswPointer) &rep);
     }
 }
 
@@ -781,16 +781,16 @@ ActionSet (Widget gw, xcb_generic_event_t *event, String *params, Cardinal *num_
     Boolean rb;
 
     if (ISWCompareISOLatin1 (params[1], "on") == 0) {
-	rb = TRUE;
+	    rb = TRUE;
     } else if (ISWCompareISOLatin1 (params[1], "off") == 0) {
-	rb = FALSE;
+	    rb = FALSE;
     } else if (ISWCompareISOLatin1 (params[1], "toggle") == 0) {
-	rb = !pw->panner.rubber_band;
+	    rb = !pw->panner.rubber_band;
     }
 
     if (rb != pw->panner.rubber_band) {
-	IswArgBuilder ab = IswArgBuilderInit();
-	IswArgRubberBand(&ab, rb);
-	IswSetValues (gw, ab.args, ab.count);
+	    IswArgBuilder ab = IswArgBuilderInit();
+	    IswArgRubberBand(&ab, rb);
+	    IswSetValues (gw, ab.args, ab.count);
     }
 }
