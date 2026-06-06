@@ -12,6 +12,7 @@
 
 #include <ISW/ISWP.h>
 #include <ISW/IntrinsicP.h>
+#include <ISW/IntrinsicI.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
@@ -25,10 +26,8 @@
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <xcb/xcb_cursor.h>
 
 #define XC_sb_h_double_arrow 108
-#define XC_left_ptr          68
 
 #define CELL_PAD_X   6
 #define CELL_PAD_Y   2
@@ -452,41 +451,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     ComputeMetrics(lv);
 }
 
-static xcb_cursor_t
-CreateGlyphCursor(xcb_connection_t *conn, unsigned int shape)
-{
-    static xcb_font_t cursor_font = XCB_NONE;
-
-    if (cursor_font == XCB_NONE) {
-        cursor_font = xcb_generate_id(conn);
-        xcb_open_font(conn, cursor_font, 6, "cursor");
-    }
-    xcb_cursor_t cursor = xcb_generate_id(conn);
-    xcb_create_glyph_cursor(conn, cursor,
-                            cursor_font, cursor_font,
-                            shape, shape + 1,
-                            0, 0, 0,
-                            65535, 65535, 65535);
-    return cursor;
-}
-
-static xcb_cursor_t
-LoadCursor(xcb_connection_t *conn, xcb_screen_t *screen,
-           const char *name, unsigned int shape)
-{
-    xcb_cursor_context_t *ctx;
-    if (xcb_cursor_context_new(conn, screen, &ctx) < 0)
-        return CreateGlyphCursor(conn, shape);
-
-    xcb_cursor_t cursor = xcb_cursor_load_cursor(ctx, name);
-    xcb_cursor_context_free(ctx);
-
-    if (cursor == XCB_CURSOR_NONE)
-        return CreateGlyphCursor(conn, shape);
-
-    return cursor;
-}
-
 static void
 Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
@@ -500,7 +464,7 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
     ResolveForegroundRGB(lv);
 
     xcb_screen_t *screen = w->core.screen;
-    lv->listView.resize_cursor = LoadCursor(dpy, screen,
+    lv->listView.resize_cursor = _IswLoadThemedCursor(dpy, screen,
         "sb_h_double_arrow", XC_sb_h_double_arrow);
     lv->listView.default_cursor = ((SimpleWidget)w)->simple.cursor;
 }
