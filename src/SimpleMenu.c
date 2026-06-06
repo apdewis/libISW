@@ -46,6 +46,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/SimpleMenP.h>
+#include <ISW/SimpleP.h>
 #include <ISW/SmeBSBP.h>
 #include <ISW/FocusMgrI.h>
 #include <ISW/SmeLine.h>
@@ -690,9 +691,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
     }
 
     if (smw_old->simple_menu.cursor != smw_new->simple_menu.cursor) {
- xcb_connection_t *conn = IswDisplay(new);
- uint32_t value = smw_new->simple_menu.cursor;
- xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_CURSOR, &value);
+ _IswSetWindowCursor(new, smw_new->simple_menu.cursor);
     }
 
     if (smw_old->simple_menu.label_string !=smw_new->simple_menu.label_string) {
@@ -1751,7 +1750,7 @@ ChangeCursorOnGrab(Widget w, IswPointer junk, IswPointer garbage)
      * of the toolkit (CDP 5/26/89).
      */
 
-    xcb_change_active_pointer_grab(IswDisplay(w),
+    _IswChangeActivePointerGrabCursor(w,
        smw->simple_menu.cursor,
        IswLastTimestampProcessed(IswDisplay(w)),
        XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |

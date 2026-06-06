@@ -468,8 +468,7 @@ Destroy(Widget w)
     FreeSelFlags(lv);
     if (lv->listView.render_ctx)
         ISWRenderDestroy(lv->listView.render_ctx);
-    if (lv->listView.resize_cursor != XCB_CURSOR_NONE)
-        xcb_free_cursor(IswDisplay(w), lv->listView.resize_cursor);
+    _IswFreeCursor(w, lv->listView.resize_cursor);
 }
 
 static void

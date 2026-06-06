@@ -83,6 +83,7 @@ in this Software without prior written authorization from The Open Group.
 #include "Vendor.h"
 #include "VendorP.h"
 #include <ISW/FocusMgrI.h>
+#include <ISW/SimpleP.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
@@ -1228,11 +1229,8 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
         {
             xcb_cursor_t cursor = _IswLoadThemedCursor(
                 IswDisplay(wid), wid->core.screen, "left_ptr", XC_left_ptr);
-            if (cursor != XCB_NONE) {
-                uint32_t val = cursor;
-                xcb_change_window_attributes(IswDisplay(wid), wid->core.window,
-                                             XCB_CW_CURSOR, &val);
-            }
+            if (cursor != XCB_NONE)
+                _IswSetWindowCursor(wid, cursor);
         }
     }
     xcb_flush(IswDisplay(wid));

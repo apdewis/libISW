@@ -189,6 +189,51 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
 }
 
 /*
+ * _IswSetWindowCursor - set the pointer cursor on a windowed target's window.
+ * The single owner of the XCB_CW_CURSOR window-attribute change; widgets call
+ * this instead of issuing xcb_change_window_attributes directly.
+ */
+void
+_IswSetWindowCursor(Widget anc, xcb_cursor_t cursor)
+{
+    uint32_t value;
+
+    /* Gate on the window itself, not IswIsRealized: a shell sets its cursor
+       inside its own realize method, before the realized flag is set. */
+    if (anc == NULL || !IswIsWidget(anc) || anc->core.window == XCB_NONE ||
+        anc->core.being_destroyed)
+        return;
+
+    value = cursor;
+    xcb_change_window_attributes(IswDisplay(anc), anc->core.window,
+                                 XCB_CW_CURSOR, &value);
+}
+
+/*
+ * _IswFreeCursor - release a server cursor allocated for a widget.  The single
+ * owner of xcb_free_cursor for widget code.
+ */
+void
+_IswFreeCursor(Widget w, xcb_cursor_t cursor)
+{
+    if (cursor == None || cursor == XCB_CURSOR_NONE)
+        return;
+
+    xcb_free_cursor(IswDisplay(w), cursor);
+}
+
+/*
+ * _IswChangeActivePointerGrabCursor - change the cursor of the active pointer
+ * grab.  The single owner of xcb_change_active_pointer_grab for widget code.
+ */
+void
+_IswChangeActivePointerGrabCursor(Widget w, xcb_cursor_t cursor,
+                                  xcb_timestamp_t time, uint16_t event_mask)
+{
+    xcb_change_active_pointer_grab(IswDisplay(w), cursor, time, event_mask);
+}
+
+/*
  * _IswSimpleApplyCursor - apply the cursor for the windowless widget currently
  * under the pointer onto its windowed ancestor's window.  Called from the
  * event dispatcher when the pointer widget changes.  A NULL widget, or one
@@ -222,11 +267,7 @@ _IswSimpleApplyCursor(Widget w)
             cursor = c;
     }
 
-    {
-        uint32_t value = cursor;
-        xcb_change_window_attributes(IswDisplay(anc), anc->core.window,
-                                     XCB_CW_CURSOR, &value);
-    }
+    _IswSetWindowCursor(anc, cursor);
 }
 
 /*	Function Name: ConvertCursor
@@ -295,12 +336,8 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	new_cursor = TRUE;
     }
 
-    if (new_cursor && IswIsRealized(new) && !new->core.windowless) {
-        /* XDefineCursor → xcb_change_window_attributes */
-        uint32_t value = s_new->simple.cursor;
-        xcb_change_window_attributes(IswDisplay(new), IswWindow(new),
-                                     XCB_CW_CURSOR, &value);
-    }
+    if (new_cursor && IswIsRealized(new) && !new->core.windowless)
+        _IswSetWindowCursor(new, s_new->simple.cursor);
     /* Windowless: the new cursor is applied to the windowed ancestor on the
        next pointer-enter (_IswSimpleApplyCursor); changing it while the
        pointer is elsewhere must not alter the visible cursor. */

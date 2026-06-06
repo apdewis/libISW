@@ -108,4 +108,21 @@ typedef struct _SimpleRec {
    called from the event dispatcher on pointer-widget change. */
 extern void _IswSimpleApplyCursor(Widget /* pointer widget */);
 
+/* Top-level cursor primitives.  Widgets must not issue XCB cursor calls
+   directly; these own the underlying XCB operations.
+
+   _IswSetWindowCursor  - set the pointer cursor on a windowed target's
+                          window (owns xcb_change_window_attributes/CURSOR).
+   _IswFreeCursor       - release a server cursor (owns xcb_free_cursor).
+   _IswChangeActivePointerGrabCursor
+                        - change the cursor of the active pointer grab
+                          (owns xcb_change_active_pointer_grab). */
+extern void _IswSetWindowCursor(Widget /* windowed target */,
+                                xcb_cursor_t /* cursor */);
+extern void _IswFreeCursor(Widget /* widget */, xcb_cursor_t /* cursor */);
+extern void _IswChangeActivePointerGrabCursor(Widget /* widget */,
+                                              xcb_cursor_t /* cursor */,
+                                              xcb_timestamp_t /* time */,
+                                              uint16_t /* event_mask */);
+
 #endif /* _ISW_SimpleP_h */

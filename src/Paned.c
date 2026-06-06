@@ -68,6 +68,7 @@ SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/Grip.h>
 #include <ISW/PanedP.h>
+#include <ISW/SimpleP.h>
 #include <ISW/ISWRender.h>
 #include <ISW/IswArgMacros.h>
 #include <ctype.h>
@@ -880,9 +881,7 @@ StartGripAdjustment(PanedWidget pw, Widget grip)
                 cursor = pw->paned.adjust_this_cursor;
         }
 
-        uint32_t value = cursor;
-        xcb_change_window_attributes(IswDisplay(grip), IswWindow(grip),
-                                     XCB_CW_CURSOR, &value);
+        _IswSetWindowCursor(grip, cursor);
     }
 
     pw->paned.start_add_size = PaneSize(pw->paned.whichadd, IsVert(pw));
@@ -1577,11 +1576,8 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
     Boolean redisplay = FALSE;
 
     if ( (old_pw->paned.cursor != new_pw->paned.cursor) && IswIsRealized(new)) {
-        xcb_connection_t *conn = IswDisplay(new);
-        uint32_t values[1];
-        values[0] = new_pw->paned.cursor;
-        xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_CURSOR, values);
-        xcb_flush(conn);
+        _IswSetWindowCursor(new, new_pw->paned.cursor);
+        xcb_flush(IswDisplay(new));
     }
 
     if ( (old_pw->paned.internal_bp != new_pw->paned.internal_bp) ||
