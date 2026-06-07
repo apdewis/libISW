@@ -123,6 +123,14 @@ typedef struct _WidgetRec *Widget;
 typedef Widget *WidgetList;
 typedef struct _WidgetClassRec *WidgetClass;
 typedef struct _CompositeRec *CompositeWidget;
+
+/* Opaque platform handles (the ops vtables live in ISW/ISWPlatform.h).
+   Declared here so the public Display/Screen/Window accessors below can use
+   them without a circular include.  A platform backend maps these to its
+   native types; toolkit and application code never dereference them. */
+typedef struct _IswDisplay *IswDisplay;   /* display / server connection */
+typedef struct _IswScreen  *IswScreen;    /* a screen on a display       */
+typedef struct _IswWindow  *IswWindow;    /* a window                    */
 typedef struct _IswActionsRec *IswActionList;
 typedef struct _IswEventRec *IswEventTable;
 
@@ -256,7 +264,7 @@ typedef void (*IswConverter)( /* obsolete */
 );
 
 typedef Boolean (*IswTypeConverter)(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     XrmValue*		/* args */,
     Cardinal*		/* num_args */,
     XrmValue*		/* from */,
@@ -292,7 +300,7 @@ typedef void (*IswBlockHookProc)(
 );
 
 typedef void (*IswKeyProc)(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     _IswKeyCode 		/* keycode */,
     Modifiers		/* modifiers */,
     Modifiers*		/* modifiers_return */,
@@ -300,7 +308,7 @@ typedef void (*IswKeyProc)(
 );
 
 typedef void (*IswCaseProc)(
-    xcb_connection_t*		/* xcb_connection_t */,
+    IswDisplay 		/* dpy */,
     xcb_keysym_t		/* keysym */,
     xcb_keysym_t*		/* lower_return */,
     xcb_keysym_t*		/* upper_return */
@@ -393,7 +401,7 @@ typedef void (*IswResourceDefaultProc)(
 );
 
 typedef String (*IswLanguageProc)(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     String	/* xnl */,
     IswPointer	/* client_data */
 );
@@ -498,7 +506,7 @@ typedef void (*IswCancelConvertSelectionProc)(
 
 typedef Boolean (*IswEventDispatchProc)(
     xcb_generic_event_t*		/* event */,
-    xcb_connection_t*           /* connection */
+    IswDisplay            /* connection */
 );
 
 typedef void (*IswExtensionSelectProc)(
@@ -526,7 +534,7 @@ extern Boolean IswConvertAndStore(
 );
 
 extern Boolean IswCallConverter(
-    xcb_connection_t*		/* dpy */,
+    IswDisplay 		/* dpy */,
     IswTypeConverter 	/* converter */,
     XrmValuePtr 	/* args */,
     Cardinal 		/* num_args */,
@@ -537,7 +545,7 @@ extern Boolean IswCallConverter(
 
 extern Boolean IswDispatchEvent(
     xcb_generic_event_t*, 
-    xcb_connection_t *
+    IswDisplay 
 );
 
 extern Boolean IswCallAcceptFocus(
@@ -620,20 +628,20 @@ extern void IswTranslateCoords(
 );
 
 extern xcb_key_symbols_t* IswGetKeysymTable(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     xcb_keycode_t *		/* min_keycode_return */,
     int*		/* keysyms_per_keycode_return */
 );
 
 extern void IswKeysymToKeycodeList(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     xcb_keysym_t 		/* keysym */,
     xcb_keycode_t**		/* keycodes_return */,
     Cardinal*		/* keycount_return */
 );
 
 extern void IswDisplayStringConversionWarning(
-    xcb_connection_t *	 	/* dpy */,
+    IswDisplay 	 	/* dpy */,
     _Xconst _IswString	/* from_value */,
     _Xconst _IswString	/* to_type */
 );
@@ -772,18 +780,18 @@ extern void IswRegisterGrabAction(
 );
 
 extern void IswSetMultiClickTime(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     int 		/* milliseconds */
 );
 
 extern int IswGetMultiClickTime(
-    xcb_connection_t *		/* dpy */
+    IswDisplay 		/* dpy */
 );
 
 extern xcb_keysym_t IswGetActionKeysym(
     xcb_generic_event_t*		/* event */,
     Modifiers*		/* modifiers_return */,
-    xcb_connection_t *
+    IswDisplay 
 );
 
 /***************************************************************
@@ -793,7 +801,7 @@ extern xcb_keysym_t IswGetActionKeysym(
  ****************************************************************/
 
 extern void IswTranslateKeycode(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     _IswKeyCode 		/* keycode */,
     Modifiers 		/* modifiers */,
     Modifiers*		/* modifiers_return */,
@@ -801,7 +809,7 @@ extern void IswTranslateKeycode(
 );
 
 extern void IswTranslateKey(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     _IswKeyCode		/* keycode */,
     Modifiers		/* modifiers */,
     Modifiers*		/* modifiers_return */,
@@ -809,19 +817,19 @@ extern void IswTranslateKey(
 );
 
 extern void IswSetKeyTranslator(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     IswKeyProc 		/* proc */
 );
 
 extern void IswRegisterCaseConverter(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     IswCaseProc 		/* proc */,
     xcb_keysym_t 		/* start */,
     xcb_keysym_t 		/* stop */
 );
 
 extern void IswConvertCase(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     xcb_keysym_t 		/* keysym */,
     xcb_keysym_t*		/* lower_return */,
     xcb_keysym_t*		/* upper_return */
@@ -889,7 +897,7 @@ extern void IswInsertRawEventHandler(
 );
 
 extern IswEventDispatchProc IswSetEventDispatcher(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     int			/* event_type */,
     IswEventDispatchProc	/* proc */
 );
@@ -921,7 +929,7 @@ extern EventMask IswBuildEventMask(
 );
 
 extern void IswRegisterExtensionSelector(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     int			/* min_event_type */,
     int			/* max_event_type */,
     IswExtensionSelectProc /* proc */,
@@ -947,13 +955,13 @@ extern void IswAppMainLoop(
 );
 
 void get_region_bounding_box(
-    xcb_connection_t*, 
+    IswDisplay , 
     xcb_xfixes_region_t, 
     xcb_rectangle_t*
 );
 
 extern void IswAddExposureToRegion(
-    xcb_connection_t *, 
+    IswDisplay , 
     xcb_generic_event_t *, 
     xcb_xfixes_region_t
 );
@@ -968,11 +976,11 @@ extern Widget IswGetKeyboardFocusWidget(
 );
 
 extern xcb_generic_event_t* IswLastEventProcessed(
-    xcb_connection_t *		/* dpy */
+    IswDisplay 		/* dpy */
 );
 
 extern xcb_timestamp_t IswLastTimestampProcessed(
-    xcb_connection_t *		/* dpy */
+    IswDisplay 		/* dpy */
 );
 
 /****************************************************************
@@ -1122,8 +1130,8 @@ extern Widget IswNameToWidget(
 );
 
 extern Widget IswWindowToWidget(
-    xcb_connection_t*		/* xcb_connection_t */,
-    xcb_window_t 		/* window */
+    IswDisplay 		/* dpy */,
+    IswWindow 		/* window */
 );
 
 extern IswPointer IswGetClassExtension(
@@ -1204,27 +1212,27 @@ extern IswVarArgsList IswVaCreateArgsList(
 
 /* We're not included from the private file, so define these */
 
-extern xcb_connection_t *IswDisplay(
+extern IswDisplay IswDisplayOf(
     Widget 		/* widget */
 );
 
-extern xcb_connection_t *IswDisplayOfObject(
+extern IswDisplay IswDisplayOfObject(
     Widget 		/* object */
 );
 
-extern xcb_screen_t *IswScreen(
+extern IswScreen IswScreenOf(
     Widget 		/* widget */
 );
 
-extern xcb_screen_t *IswScreenOfObject(
+extern IswScreen IswScreenOfObject(
     Widget 		/* object */
 );
 
-extern xcb_window_t IswWindow(
+extern IswWindow IswWindowOf(
     Widget 		/* widget */
 );
 
-extern xcb_window_t IswWindowOfObject(
+extern IswWindow IswWindowOfObject(
     Widget 		/* object */
 );
 
@@ -1415,7 +1423,7 @@ extern Widget IswAppCreateShell(
     _Xconst _IswString	/* application_name */,
     _Xconst _IswString	/* application_class */,
     WidgetClass 	/* widget_class */,
-    xcb_connection_t*		/* xcb_connection_t */,
+    IswDisplay 		/* dpy */,
     ArgList 		/* args */,
     Cardinal 		/* num_args */
 );
@@ -1424,7 +1432,7 @@ extern Widget IswVaAppCreateShell(
     _Xconst _IswString	/* application_name */,
     _Xconst _IswString	/* application_class */,
     WidgetClass		/* widget_class */,
-    xcb_connection_t*		/* xcb_connection_t */,
+    IswDisplay 		/* dpy */,
     ...
 ) _X_SENTINEL(0);
 
@@ -1446,7 +1454,7 @@ extern IswLanguageProc IswSetLanguageProc(
 
 extern void IswDisplayInitialize(
     IswAppContext 	/* app_context */,
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     _Xconst _IswString	/* application_name */,
     _Xconst _IswString	/* application_class */,
     //XrmOptionDescRec* 	/* options */,
@@ -1503,7 +1511,7 @@ extern Widget IswVaAppInitialize( /* obsolete */
     ...
 ) _X_SENTINEL(0);
 
-extern xcb_connection_t *IswOpenDisplay(
+extern IswDisplay IswOpenDisplay(
     IswAppContext 	/* app_context */,
     _Xconst _IswString	/* display_string */,
     _Xconst _IswString	/* application_name */,
@@ -1536,19 +1544,19 @@ extern IswAppContext IswWidgetToApplicationContext(
 );
 
 extern IswAppContext IswDisplayToApplicationContext(
-    xcb_connection_t *		/* dpy */
+    IswDisplay 		/* dpy */
 );
 
 extern XrmDatabase IswDatabase(
-    xcb_connection_t *		/* dpy */
+    IswDisplay 		/* dpy */
 );
 
 extern XrmDatabase IswScreenDatabase(
-    xcb_screen_t*		/* xcb_screen_t */
+    IswScreen 		/* screen */
 );
 
 extern void IswCloseDisplay(
-    xcb_connection_t *		/* dpy */
+    IswDisplay 		/* dpy */
 );
 
 extern void IswGetApplicationResources(
@@ -1600,7 +1608,7 @@ extern void IswReloadResources(
 );
 
 extern void IswReloadScreenDatabase(
-    xcb_screen_t*	/* screen */
+    IswScreen 	/* screen */
 );
 
 extern void IswVaSetValues(
@@ -1663,8 +1671,8 @@ extern void IswGetConstraintResourceList(
 
 #define IswUnspecifiedPixmap	((xcb_pixmap_t)2)
 #define IswUnspecifiedShellInt	(-1)
-#define IswUnspecifiedWindow	((xcb_window_t)2)
-#define IswUnspecifiedWindowGroup ((xcb_window_t)3)
+#define IswUnspecifiedWindow	((IswWindow)(uintptr_t)2)
+#define IswUnspecifiedWindowGroup ((IswWindow)(uintptr_t)3)
 #define IswCurrentDirectory	((IswPointer)"IswCurrentDirectory")
 #define IswDefaultForeground	((IswPointer)"IswDefaultForeground")
 #define IswDefaultBackground	((IswPointer)"IswDefaultBackground")
@@ -1952,7 +1960,7 @@ extern _IswString IswFindFile(
 );
 
 extern _IswString IswResolvePathname(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     _Xconst _IswString	/* type */,
     _Xconst _IswString	/* filename */,
     _Xconst _IswString	/* suffix */,
@@ -2117,7 +2125,7 @@ extern void IswGrabButton(
     unsigned int	/* event_mask */,
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
-    xcb_window_t 		/* confine_to */,
+    IswWindow 		/* confine_to */,
     xcb_cursor_t 		/* cursor */
 );
 
@@ -2133,7 +2141,7 @@ extern int IswGrabPointer(
     unsigned int	/* event_mask */,
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
-    xcb_window_t 		/* confine_to */,
+    IswWindow 		/* confine_to */,
     xcb_cursor_t 		/* cursor */,
     xcb_timestamp_t 		/* time */
 );
@@ -2144,24 +2152,24 @@ extern void IswUngrabPointer(
 );
 
 extern void IswGetApplicationNameAndClass(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     String*		/* name_return */,
     String*		/* class_return */
 );
 
 extern void IswRegisterDrawable(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     xcb_drawable_t		/* drawable */,
     Widget		/* widget */
 );
 
 extern void IswUnregisterDrawable(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay 		/* dpy */,
     xcb_drawable_t		/* drawable */
 );
 
 extern Widget IswHooksOfDisplay(
-    xcb_connection_t *		/* dpy */
+    IswDisplay 		/* dpy */
 );
 
 typedef struct {
@@ -2212,7 +2220,7 @@ typedef struct {
 
 extern void IswGetDisplays(
     IswAppContext	/* app_context */,
-    xcb_connection_t ***		/* dpy_return */,
+    IswDisplay **		/* dpy_return */,
     Cardinal*		/* num_dpy_return */
 );
 
@@ -2244,7 +2252,7 @@ extern void IswAppUnlock(
 /* String converters */
 
 extern Boolean IswCvtStringToAcceleratorTable(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2253,7 +2261,7 @@ extern Boolean IswCvtStringToAcceleratorTable(
 );
 
 extern Boolean IswCvtStringToAtom(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2262,7 +2270,7 @@ extern Boolean IswCvtStringToAtom(
 );
 
 extern Boolean IswCvtStringToBool(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2271,7 +2279,7 @@ extern Boolean IswCvtStringToBool(
 );
 
 extern Boolean IswCvtStringToBoolean(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2280,7 +2288,7 @@ extern Boolean IswCvtStringToBoolean(
 );
 
 extern Boolean IswCvtStringToCommandArgArray(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2289,7 +2297,7 @@ extern Boolean IswCvtStringToCommandArgArray(
 );
 
 extern Boolean IswCvtStringToCursor(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2298,7 +2306,7 @@ extern Boolean IswCvtStringToCursor(
 );
 
 extern Boolean IswCvtStringToDimension(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2307,7 +2315,7 @@ extern Boolean IswCvtStringToDimension(
 );
 
 extern Boolean IswCvtStringToDirectoryString(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2316,7 +2324,7 @@ extern Boolean IswCvtStringToDirectoryString(
 );
 
 extern Boolean IswCvtStringToDisplay(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2325,7 +2333,7 @@ extern Boolean IswCvtStringToDisplay(
 );
 
 extern Boolean IswCvtStringToFile(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2334,7 +2342,7 @@ extern Boolean IswCvtStringToFile(
 );
 
 extern Boolean IswCvtStringToFloat(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2343,7 +2351,7 @@ extern Boolean IswCvtStringToFloat(
 );
 
 extern Boolean IswCvtStringToFont(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2352,7 +2360,7 @@ extern Boolean IswCvtStringToFont(
 );
 
 extern Boolean IswCvtStringToFontStruct(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2361,7 +2369,7 @@ extern Boolean IswCvtStringToFontStruct(
 );
 
 extern Boolean IswCvtStringToGravity(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2370,7 +2378,7 @@ extern Boolean IswCvtStringToGravity(
 );
 
 extern Boolean IswCvtStringToInitialState(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2379,7 +2387,7 @@ extern Boolean IswCvtStringToInitialState(
 );
 
 extern Boolean IswCvtStringToInt(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2388,7 +2396,7 @@ extern Boolean IswCvtStringToInt(
 );
 
 extern Boolean IswCvtStringToPixel(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* Screen, Colormap */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2400,7 +2408,7 @@ extern Boolean IswCvtStringToPixel(
 
 
 extern Boolean IswCvtStringToShort(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2409,7 +2417,7 @@ extern Boolean IswCvtStringToShort(
 );
 
 extern Boolean IswCvtStringToTranslationTable(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2418,7 +2426,7 @@ extern Boolean IswCvtStringToTranslationTable(
 );
 
 extern Boolean IswCvtStringToUnsignedChar(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2427,7 +2435,7 @@ extern Boolean IswCvtStringToUnsignedChar(
 );
 
 extern Boolean IswCvtStringToVisual(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* Screen, depth */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2438,7 +2446,7 @@ extern Boolean IswCvtStringToVisual(
 /* int converters */
 
 extern Boolean IswCvtIntToBool(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2447,7 +2455,7 @@ extern Boolean IswCvtIntToBool(
 );
 
 extern Boolean IswCvtIntToBoolean(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2456,7 +2464,7 @@ extern Boolean IswCvtIntToBoolean(
 );
 
 extern Boolean IswCvtIntToColor(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* Screen, Colormap */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2467,7 +2475,7 @@ extern Boolean IswCvtIntToColor(
 #define IswCvtIntToDimension IswCvtIntToShort
 
 extern Boolean IswCvtIntToFloat(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2476,7 +2484,7 @@ extern Boolean IswCvtIntToFloat(
 );
 
 extern Boolean IswCvtIntToFont(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2485,7 +2493,7 @@ extern Boolean IswCvtIntToFont(
 );
 
 extern Boolean IswCvtIntToPixel(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2494,7 +2502,7 @@ extern Boolean IswCvtIntToPixel(
 );
 
 extern Boolean IswCvtIntToPixmap(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2505,7 +2513,7 @@ extern Boolean IswCvtIntToPixmap(
 #define IswCvtIntToPosition IswCvtIntToShort
 
 extern Boolean IswCvtIntToShort(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2514,7 +2522,7 @@ extern Boolean IswCvtIntToShort(
 );
 
 extern Boolean IswCvtIntToUnsignedChar(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
@@ -2525,7 +2533,7 @@ extern Boolean IswCvtIntToUnsignedChar(
 /* Color converter */
 
 extern Boolean IswCvtColorToPixel(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,

@@ -250,8 +250,12 @@ extern char* __XtCalloc (
 /* XCB → neutral IswEvent translation (ISWPlatformEventXCB.c).  Fills *out and
  * returns True for toolkit-semantic events; returns False for X11 protocol
  * events the toolkit does not see as IswEvents (out->native is still set). */
-extern Boolean _IswEventFromXcb(xcb_connection_t *dpy,
+extern Boolean _IswEventFromXcb(IswDisplay dpy,
                                 xcb_generic_event_t *xev, IswEvent *out);
+
+/* Event-loop file descriptor for a display, via the ISWPlatform display vtable.
+   Neutral replacement for the old ConnectionNumber() XCB macro. */
+extern int _IswPlatformConnectionFd(IswDisplay dpy);
 
 _XFUNCPROTOEND
 

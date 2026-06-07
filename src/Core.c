@@ -82,6 +82,7 @@ in this Software without prior written authorization from The Open Group.
 #include "RectObjP.h"
 #include "ThreadsI.h"
 #include "StringDefs.h"
+#include "ISWPlatformPrivate.h"
 
 /******************************************************************
  *
@@ -315,7 +316,7 @@ CoreRealize(xcb_connection_t *display,
 {
     if (widget->core.windowless) {
         /* No own X window: draw into the nearest windowed ancestor.
-           Leave core.window == None; IswWindow() resolves through the
+           Leave core.window == None; IswWindowOf() resolves through the
            ancestor.  display/screen/depth/colormap already copy from
            the parent via the Core resource defaults. */
         return;
@@ -329,7 +330,7 @@ CoreDestroy(Widget widget)
 {
     _IswFreeEventTable(&widget->core.event_table);
     _IswDestroyTMData(widget);
-    IswUnregisterDrawable(IswDisplay(widget), widget->core.window);
+    IswUnregisterDrawable(IswDisplayOf(widget), _IswXcbWindow(widget->core.window));
 
     if (widget->core.popup_list != NULL)
         IswFree((char *) widget->core.popup_list);
@@ -361,7 +362,7 @@ CoreSetValues(Widget old,
     if (IswIsRealized(old) && !new->core.windowless) {
         window_mask = 0;
         vi = 0;
-        conn = IswDisplay(new);
+        conn = _IswXcbConn(IswDisplayOf(new));
         values = (uint32_t*)malloc(sizeof(uint32_t) * 32);
 
         /* Check window attributes */
@@ -412,7 +413,7 @@ CoreSetValues(Widget old,
         
         if (window_mask != 0) {
             /* Actually change XCB window attributes */
-            xcb_change_window_attributes(conn, IswWindow(new), window_mask, values);
+            xcb_change_window_attributes(conn, _IswXcbWindow(IswWindowOf(new)), window_mask, values);
             //#TODO batching/error handling here?
         }
         if (old->core.mapped_when_managed != new->core.mapped_when_managed) {
@@ -424,7 +425,7 @@ CoreSetValues(Widget old,
         free(values);
     }                           /* if realized */
     else if (IswIsRealized(old) && new->core.windowless) {
-        /* No own X window: IswWindow() resolves to the windowed ancestor,
+        /* No own X window: IswWindowOf() resolves to the windowed ancestor,
            so writing window attributes here would repaint the ancestor.
            Just request a repaint into the ancestor via the widget's own
            expose.  Mirrors the windowless branch in CoreRealize. */

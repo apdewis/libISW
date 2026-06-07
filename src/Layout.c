@@ -205,7 +205,7 @@ WidgetClass layoutWidgetClass = (WidgetClass) &layoutClassRec;
 
 /*ARGSUSED*/
 static Boolean
-CvtStringToLayout (xcb_connection_t *dpy, XrmValue *args, Cardinal *num_args,
+CvtStringToLayout (IswDisplay dpy, XrmValue *args, Cardinal *num_args,
                    XrmValue *from, XrmValue *to, IswPointer *converter_data)
 {
     static BoxPtr tmp;

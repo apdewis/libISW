@@ -183,7 +183,7 @@ WidgetClass toggleWidgetClass = (WidgetClass) &toggleClassRec;
  */
 /*ARGSUSED*/
 static Boolean
-ISWCvtStringToWidget(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+ISWCvtStringToWidget(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
                      XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
 {
     Widget widget;

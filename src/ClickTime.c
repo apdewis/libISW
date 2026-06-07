@@ -78,7 +78,7 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 
 void
-IswSetMultiClickTime(xcb_connection_t *dpy, int time)
+IswSetMultiClickTime(IswDisplay dpy, int time)
 {
     DPY_TO_APPCON(dpy);
 
@@ -88,7 +88,7 @@ IswSetMultiClickTime(xcb_connection_t *dpy, int time)
 }
 
 int
-IswGetMultiClickTime(xcb_connection_t *dpy)
+IswGetMultiClickTime(IswDisplay dpy)
 {
     int retval;
 

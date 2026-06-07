@@ -51,9 +51,9 @@ typedef struct {
 
 /* Function prototypes */
 extern IswContext IswUniqueContext(void);
-extern int IswSaveContext(xcb_connection_t *dpy, XID key, IswContext context, const void *data);
-extern int IswFindContext(xcb_connection_t *dpy, XID key, IswContext context, void **data);
-extern int IswDeleteContext(xcb_connection_t *dpy, XID key, IswContext context);
+extern int IswSaveContext(IswDisplay dpy, XID key, IswContext context, const void *data);
+extern int IswFindContext(IswDisplay dpy, XID key, IswContext context, void **data);
+extern int IswDeleteContext(IswDisplay dpy, XID key, IswContext context);
 
 /* Return codes */
 #define ISW_CONTEXT_SUCCESS      0

@@ -56,6 +56,7 @@ SOFTWARE.
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SimpleP.h>
+#include "ISWPlatformPrivate.h"
 
 #define offset(field) IswOffsetOf(SimpleRec, simple.field)
 
@@ -184,7 +185,7 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
 	attributes[__builtin_popcount(*valueMask & (XCB_CW_CURSOR - 1))] = ((SimpleWidget)w)->simple.cursor;
     }
 
-    IswCreateWindow(IswDisplay(w), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
+    IswCreateWindow(_IswXcbConn(IswDisplayOf(w)), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
                    (xcb_visualtype_t *)CopyFromParent, *valueMask, attributes);
 }
 
@@ -200,12 +201,12 @@ _IswSetWindowCursor(Widget anc, xcb_cursor_t cursor)
 
     /* Gate on the window itself, not IswIsRealized: a shell sets its cursor
        inside its own realize method, before the realized flag is set. */
-    if (anc == NULL || !IswIsWidget(anc) || anc->core.window == XCB_NONE ||
+    if (anc == NULL || !IswIsWidget(anc) || _IswXcbWindow(anc->core.window) == XCB_NONE ||
         anc->core.being_destroyed)
         return;
 
     value = cursor;
-    xcb_change_window_attributes(IswDisplay(anc), anc->core.window,
+    xcb_change_window_attributes(_IswXcbConn(IswDisplayOf(anc)), _IswXcbWindow(anc->core.window),
                                  XCB_CW_CURSOR, &value);
 }
 
@@ -219,7 +220,7 @@ _IswFreeCursor(Widget w, xcb_cursor_t cursor)
     if (cursor == None || cursor == XCB_CURSOR_NONE)
         return;
 
-    xcb_free_cursor(IswDisplay(w), cursor);
+    xcb_free_cursor(_IswXcbConn(IswDisplayOf(w)), cursor);
 }
 
 /*
@@ -230,7 +231,7 @@ void
 _IswChangeActivePointerGrabCursor(Widget w, xcb_cursor_t cursor,
                                   xcb_timestamp_t time, uint16_t event_mask)
 {
-    xcb_change_active_pointer_grab(IswDisplay(w), cursor, time, event_mask);
+    xcb_change_active_pointer_grab(_IswXcbConn(IswDisplayOf(w)), cursor, time, event_mask);
 }
 
 /*
@@ -352,10 +353,10 @@ ChangeSensitive(Widget w)
     if (IswIsRealized(w)) {
 	if (w->core.windowless)
 	    /* Windowless: repaint our own surface and composite the ancestor.
-	       xcb_clear_area(IswWindow(w)) would blank the shared ancestor. */
+	       xcb_clear_area(IswWindowOf(w)) would blank the shared ancestor. */
 	    _IswRepaintWindowless(w);
 	else
-	    xcb_clear_area(IswDisplay(w), 1, IswWindow(w), 0, 0, 0, 0);
+	    xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1, _IswXcbWindow(IswWindowOf(w)), 0, 0, 0, 0);
     }
     return False;
 }

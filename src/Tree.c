@@ -60,6 +60,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/TreeP.h>
 #include <ISW/ISWRender.h>
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
@@ -308,7 +309,7 @@ check_gravity (TreeWidget tw, IswGravity grav)
  */
 /*ARGSUSED*/
 static Boolean
-XmuCvtStringToGravity(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+XmuCvtStringToGravity(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
                       XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
 {
     static IswGravity gravity;
@@ -605,7 +606,7 @@ Redisplay (Widget gw, IswEvent *event, xcb_xfixes_region_t region)
      */
     if (tw->core.visible) {
 	int i, j;
-	xcb_connection_t *dpy = IswDisplay (tw);
+	xcb_connection_t *dpy = _IswXcbConn(IswDisplayOf (tw));
 
 	/* Create render context lazily with dimension validation */
 	if (!tw->tree.render_ctx && tw->core.width > 0 && tw->core.height > 0) {
@@ -1029,13 +1030,13 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
         }
         /* Repaint the tree lines (Redisplay) and the windowless child widgets,
            then composite the ancestor once.  Tree is windowless, so
-           xcb_clear_area(IswWindow(tw)) would blank the shared ancestor window
+           xcb_clear_area(IswWindowOf(tw)) would blank the shared ancestor window
            instead of just this widget's area. */
         if (tw->core.windowless) {
             _IswRepaintWindowless((Widget)tw);
         } else {
-            xcb_connection_t *conn = IswDisplay(tw);
-            xcb_clear_area(conn, 1, IswWindow((Widget)tw), 0, 0, 0, 0);
+            xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(tw));
+            xcb_clear_area(conn, 1, _IswXcbWindow(IswWindowOf((Widget)tw)), 0, 0, 0, 0);
             xcb_flush(conn);
         }
     }

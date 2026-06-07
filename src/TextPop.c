@@ -60,6 +60,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Form.h>
 #include <ISW/Toggle.h>
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <X11/Xos.h>		/* for O_RDONLY */
@@ -187,7 +188,7 @@ _IswTextInsertFile(Widget w, IswEvent *iswev, String *params, Cardinal *num_para
 
   if (edit_mode != IswtextEdit) {
     /* XCB equivalent of XBell */
-    xcb_bell(IswDisplay(w), 0);
+    xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0);
     return;
   }
 
@@ -260,7 +261,7 @@ DoInsert(Widget w, IswPointer closure, IswPointer call_data)
   (void)SetResourceByName(ctx->text.file_insert,
 			  LABEL_NAME, IswNlabel, (IswArgVal) msg);
   /* XCB equivalent of XBell */
-  xcb_bell(IswDisplay(w), 0);
+  xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0);
 }
 
 /*	Function Name: InsertFileNamed
@@ -493,7 +494,7 @@ _IswTextSearch(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
 #ifdef notdef
   if (ctx->text.source->Search == NULL) {
-      xcb_bell(IswDisplay(w), 0);
+      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0);
       return;
   }
 #endif
@@ -993,7 +994,7 @@ SetSearchLabels(struct SearchAndReplace *search, String msg1, String msg2, Boole
   (void) SetResource( search->label1, IswNlabel, (IswArgVal) msg1);
   (void) SetResource( search->label2, IswNlabel, (IswArgVal) msg2);
   if (bell)
-    xcb_bell(IswDisplay(search->search_popup), 0);
+    xcb_bell(_IswXcbConn(IswDisplayOf(search->search_popup)), 0);
 }
 
 /************************************************************
@@ -1057,7 +1058,7 @@ _SetField(Widget new, Widget old)
   IswArgBuilder ab = IswArgBuilderInit();
 
   if (!IswIsSensitive(new)) {
-    xcb_bell(IswDisplay(old), 0);	/* Don't set field to an inactive Widget. */
+    xcb_bell(_IswXcbConn(IswDisplayOf(old)), 0);	/* Don't set field to an inactive Widget. */
     return;
   }
 
@@ -1202,11 +1203,11 @@ CenterWidgetOnPoint(Widget w, IswEvent *iswev)
 
   x -= ( (Position) width/2 );
   if (x < 0) x = 0;
-  if ( x > (max_x = (Position) (IswScreen(w)->width_in_pixels - width)) ) x = max_x;
+  if ( x > (max_x = (Position) (_IswXcbScreen(IswScreenOf(w))->width_in_pixels - width)) ) x = max_x;
 
   y -= ( (Position) height/2 );
   if (y < 0) y = 0;
-  if ( y > (max_y = (Position) (IswScreen(w)->height_in_pixels - height)) ) y = max_y;
+  if ( y > (max_y = (Position) (_IswXcbScreen(IswScreenOf(w))->height_in_pixels - height)) ) y = max_y;
 
   {
     IswArgBuilder ab = IswArgBuilderInit();
@@ -1290,8 +1291,8 @@ WMProtocols(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     xcb_atom_t wm_delete_window;
     xcb_atom_t wm_protocols;
 
-    wm_delete_window = IswXcbInternAtom(IswDisplay(w), WM_DELETE_WINDOW, True);
-    wm_protocols = IswXcbInternAtom(IswDisplay(w), "WM_PROTOCOLS", True);
+    wm_delete_window = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), WM_DELETE_WINDOW, True);
+    wm_protocols = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_PROTOCOLS", True);
 
     /* Respond to a recognized WM protocol request iff
      * event type is ClientMessage and no parameters are passed, or
@@ -1360,9 +1361,9 @@ SetWMProtocolTranslations(Widget w)
 
     /* establish communication between the window manager and each shell */
     IswAugmentTranslations(w, compiled_table);
-    wm_delete_window = IswXcbInternAtom(IswDisplay(w), WM_DELETE_WINDOW, False);
+    wm_delete_window = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), WM_DELETE_WINDOW, False);
     /* XCB equivalent of XSetWMProtocols */
-    xcb_icccm_set_wm_protocols(IswDisplay(w), IswWindow(w), 
-                               IswXcbInternAtom(IswDisplay(w), "WM_PROTOCOLS", False),
+    xcb_icccm_set_wm_protocols(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)),
+                               IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_PROTOCOLS", False),
                                1, &wm_delete_window);
 }

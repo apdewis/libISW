@@ -44,6 +44,7 @@ in this Software without prior written authorization from the X Consortium.
 #endif
 #include "ISWXcbDraw.h"
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 
 #if defined(ISC) && __STDC__ && !defined(ISC30)
 extern double atof(char *);
@@ -528,9 +529,9 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 
     if (cur->core.background_pixel != new->core.background_pixel &&
 	IswIsRealized(gnew)) {
-	    xcb_connection_t *conn = IswDisplay(new);
+	    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(new));
 	    uint32_t pixel_val = new->core.background_pixel;
-	    xcb_change_window_attributes(conn, IswWindow(new), XCB_CW_BACK_PIXEL, &pixel_val);
+	    xcb_change_window_attributes(conn, _IswXcbWindow(IswWindowOf(new)), XCB_CW_BACK_PIXEL, &pixel_val);
 	    xcb_flush(conn);
 	    redisplay = TRUE;
     }

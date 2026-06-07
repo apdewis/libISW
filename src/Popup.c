@@ -51,6 +51,7 @@ SOFTWARE.
 #include "EventI.h"
 #include "ShellP.h"
 #include <ISW/ISWRender.h>
+#include "ISWPlatformPrivate.h"
 
 void
 _IswPopup(Widget widget, IswGrabKind grab_kind)
@@ -80,9 +81,9 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
             IswAddGrab(widget, FALSE);
         }
         IswRealizeWidget(widget);
-        xcb_map_window(IswDisplay(widget), IswWindow(widget));
-        xcb_configure_window(IswDisplay(widget), IswWindow(widget), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
-        xcb_flush(IswDisplay(widget));
+        xcb_map_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)));
+        xcb_configure_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
+        xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
 
         /* Synchronize with the server so the map is fully processed,
          * then force Expose on every managed child.  Without this,
@@ -93,8 +94,8 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
         {
             /* Round-trip to ensure the map has been processed */
             xcb_get_input_focus_reply_t *sync =
-                xcb_get_input_focus_reply(IswDisplay(widget),
-                    xcb_get_input_focus(IswDisplay(widget)), NULL);
+                xcb_get_input_focus_reply(_IswXcbConn(IswDisplayOf(widget)),
+                    xcb_get_input_focus(_IswXcbConn(IswDisplayOf(widget))), NULL);
             free(sync);
 
             if (IswIsComposite(widget)) {
@@ -110,19 +111,19 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
                                rather than clearing the whole shell window. */
                             _IswRepaintWindowless(child);
                         else
-                            xcb_clear_area(IswDisplay(widget), 1,
-                                           IswWindow(child), 0, 0, 0, 0);
+                            xcb_clear_area(_IswXcbConn(IswDisplayOf(widget)), 1,
+                                           _IswXcbWindow(IswWindowOf(child)), 0, 0, 0, 0);
                     }
                 }
-                xcb_flush(IswDisplay(widget));
+                xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
             }
         }
 
     }
     else {
-        //XRaiseWindow(IswDisplay(widget), IswWindow(widget));
-        xcb_configure_window(IswDisplay(widget), IswWindow(widget), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
-        xcb_flush(IswDisplay(widget));
+        //XRaiseWindow(IswDisplayOf(widget), IswWindowOf(widget));
+        xcb_configure_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
+        xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
     }
 
 }                               /* _IswPopup */
@@ -149,7 +150,7 @@ IswPopup(Widget widget, IswGrabKind grab_kind)
 
     _IswPopup(widget, grab_kind);
 
-    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    hookobj = IswHooksOfDisplay(IswDisplayOf(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
 
@@ -183,8 +184,8 @@ IswPopdown(Widget widget)
 #endif
 
     grab_kind = shell_widget->shell.grab_kind;
-    xcb_unmap_window(IswDisplay(widget), IswWindow(widget));
-    xcb_flush(IswDisplay(widget));
+    xcb_unmap_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)));
+    xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
     /* The shell's window is now unmapped.  Cancel any composite queued for this
        windowed root earlier in the dispatch so it is not re-presented to the
        hidden window, which would leave the popup visible after popdown. */
@@ -194,7 +195,7 @@ IswPopdown(Widget widget)
     shell_widget->shell.popped_up = FALSE;
     IswCallCallbacks(widget, IswNpopdownCallback, (IswPointer) &grab_kind);
 
-    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    hookobj = IswHooksOfDisplay(IswDisplayOf(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
 

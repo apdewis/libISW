@@ -68,6 +68,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ResourceI.h>
 #include <ISW/VarargsI.h>
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 #include <ctype.h>
 
 # include <stdarg.h>
@@ -154,7 +155,7 @@ SetExtPart(VendorShellWidget w, IswVendorShellExtWidget vew)
     contextData = IswNew(contextDataRec);
     contextData->parent = (Widget)w;
     contextData->ve = (Widget)vew;
-    if (XSaveContext(IswDisplay(w), (Window)w, extContext, (char *)contextData)) {
+    if (XSaveContext(IswDisplayOf(w), (Window)w, extContext, (char *)contextData)) {
 	return(NULL);
     }
     return(&(vew->vendor_ext));
@@ -166,7 +167,7 @@ GetExtPart(VendorShellWidget w)
     contextDataRec *contextData;
     IswVendorShellExtWidget vew;
 
-    if (XFindContext(IswDisplay(w), (Window)w, extContext,
+    if (XFindContext(IswDisplayOf(w), (Window)w, extContext,
 		      (IswPointer*)&contextData)) {
 	return(NULL);
     }
@@ -265,7 +266,7 @@ SetErrCnxt(Widget w, XIM xim)
     contextErrData = IswNew(contextErrDataRec);
     contextErrData->widget = w;
     contextErrData->xim = xim;
-    if (XSaveContext(IswDisplay(w), (Window)xim, errContext,
+    if (XSaveContext(IswDisplayOf(w), (Window)xim, errContext,
 	(char *)contextErrData)) {
 	return(NULL);
     }
@@ -344,11 +345,11 @@ FreeAllDataOfVendorShell(IswVendorShellExtPart *ve, VendorShellWidget vw)
     IswIcTableList       p, next;
     contextErrDataRec *contextErrData;
 
-    if (!XFindContext(IswDisplay(vw), (Window)vw, extContext,
+    if (!XFindContext(IswDisplayOf(vw), (Window)vw, extContext,
 		      (IswPointer*)&contextErrData)) {
 	if (contextErrData) IswFree((char *)contextErrData);
     }
-    XDeleteContext(IswDisplay(vw), (Window)vw, extContext);
+    XDeleteContext(IswDisplayOf(vw), (Window)vw, extContext);
     if (ve->ic.shared_ic_table)
         IswFree((char *)ve->ic.shared_ic_table);
     if (ve->im.resources) IswFree((char *)ve->im.resources);
@@ -387,7 +388,7 @@ OpenIM(IswVendorShellExtPart *ve)
     ve->im.xim = NULL;
     if (ve->im.input_method == NULL) {
 	if ((p = XSetLocaleModifiers("@im=none")) != NULL && *p)
-	    xim = XOpenIM(IswDisplay(ve->parent), NULL, NULL, NULL);
+	    xim = XOpenIM(IswDisplayOf(ve->parent), NULL, NULL, NULL);
     } else {
 	/* no fragment can be longer than the whole string */
 	int	len = strlen (ve->im.input_method) + 5;
@@ -411,7 +412,7 @@ OpenIM(IswVendorShellExtPart *ve)
 	    pbuf[end - s + 4] = '\0';
 
 	    if ((p = XSetLocaleModifiers(pbuf)) != NULL && *p
-		&& (xim = XOpenIM(IswDisplay(ve->parent), NULL, NULL, NULL)) != NULL)
+		&& (xim = XOpenIM(IswDisplayOf(ve->parent), NULL, NULL, NULL)) != NULL)
 		break;
 
 	    s = ns + 1;
@@ -421,7 +422,7 @@ OpenIM(IswVendorShellExtPart *ve)
     }
     if (xim == NULL) {
 	if ((p = XSetLocaleModifiers("")) != NULL) {
-	    xim = XOpenIM(IswDisplay(ve->parent), NULL, NULL, NULL);
+	    xim = XOpenIM(IswDisplayOf(ve->parent), NULL, NULL, NULL);
 	}
     }
     if (xim == NULL) {
@@ -719,7 +720,7 @@ CreateIC(Widget w, IswVendorShellExtPart *ve)
     p->input_style = GetInputStyleOfIC(ve);
 
     if (IsSharedIC(ve)) SetICValuesShared(w, ve, p, FALSE);
-    xcb_flush(IswDisplay(w));
+    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
 
     if (p->input_style & (XIMPreeditArea|XIMPreeditPosition|XIMStatusArea)) {
 	if (p->flg & CIFontSet) {
@@ -796,9 +797,9 @@ CreateIC(Widget w, IswVendorShellExtPart *ve)
     SetVaArg( &ic_a[ic_cnt], (IswPointer) XNInputStyle); ic_cnt++;
     SetVaArg( &ic_a[ic_cnt], (IswPointer) p->input_style); ic_cnt++;
     SetVaArg( &ic_a[ic_cnt], (IswPointer) XNClientWindow); ic_cnt++;
-    SetVaArg( &ic_a[ic_cnt], (IswPointer) IswWindow(ve->parent)); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (IswPointer) _IswXcbWindow(IswWindowOf(ve->parent))); ic_cnt++;
     SetVaArg( &ic_a[ic_cnt], (IswPointer) XNFocusWindow); ic_cnt++;
-    SetVaArg( &ic_a[ic_cnt], (IswPointer) IswWindow(w)); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (IswPointer) _IswXcbWindow(IswWindowOf(w))); ic_cnt++;
 
     if (pe_cnt > 0) {
 	SetVaArg( &pe_a[pe_cnt], (IswPointer) NULL);
@@ -863,7 +864,7 @@ SetICValues(Widget w, IswVendorShellExtPart *ve, Boolean focus)
 	(p->xic == NULL)) return;
 
     if (IsSharedIC(ve)) SetICValuesShared(w, ve, p, TRUE);
-    xcb_flush(IswDisplay(w));
+    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
     if (focus == FALSE &&
 	!(p->flg & (CIFontSet | CIFg | CIBg |
 		    CIBgPixmap | CICursorP | CILineS))) return;
@@ -958,7 +959,7 @@ SetICValues(Widget w, IswVendorShellExtPart *ve, Boolean focus)
     }
     if (focus == TRUE) {
 	SetVaArg( &ic_a[ic_cnt], (IswPointer) XNFocusWindow); ic_cnt++;
-	SetVaArg( &ic_a[ic_cnt], (IswPointer) IswWindow(w)); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (IswPointer) _IswXcbWindow(IswWindowOf(w))); ic_cnt++;
     }
     if (ic_cnt > 0) {
 	SetVaArg( &ic_a[ic_cnt], (IswPointer) NULL);

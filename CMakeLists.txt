@@ -187,6 +187,7 @@ set(LIBXT_SOURCES
     src/Error.c
     src/Event.c
     src/ISWPlatformEventXCB.c
+    src/ISWPlatformDisplayXCB.c
     src/EventUtil.c
     src/Functions.c
     src/Geometry.c

@@ -23,6 +23,30 @@
 
 #include "../include/ISW/ISWPlatform.h"
 
+#include <xcb/xcb.h>
+
+/*
+ * =================================================================
+ * Internal backend seam (Phase 2, temporary, src-only)
+ * =================================================================
+ *
+ * NOT a public escape hatch.  Declared here in the src/-internal header and
+ * never in any include/ISW/ header, so application code cannot reach native
+ * XCB.  Toolkit/widget .c files for categories not yet abstracted (atoms→6,
+ * color/font→4, selection/cursor/grab→5, input→3, resources, plus the XCB
+ * drawing/XDND/tray backends) include this header and use these to convert an
+ * opaque IswDisplay/IswScreen/IswWindow to the native XCB handle while they
+ * await their phase.  The set of users shrinks phase by phase; the seam is
+ * deleted after Phase 6.
+ *
+ * Implemented in src/ISWPlatformDisplayXCB.c.
+ */
+xcb_connection_t *_IswXcbConn(IswDisplay dpy);
+xcb_screen_t     *_IswXcbScreen(IswScreen screen);
+xcb_screen_t     *_IswXcbDefaultScreen(IswDisplay dpy);
+xcb_window_t      _IswXcbWindow(IswWindow win);
+IswWindow         _IswXcbWindowWrap(xcb_window_t id);
+
 /*
  * =================================================================
  * Active platform backend

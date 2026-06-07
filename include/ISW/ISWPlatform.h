@@ -33,9 +33,38 @@
  * xcb_connection_t* / xcb_window_t / xcb_pixmap_t, etc.).  Widget code never
  * dereferences them.
  */
-typedef struct _IswDisplay  *IswDisplay;   /* display / server connection */
-typedef struct _IswWindow   *IswWindow;    /* a top-level / shell window  */
+/* IswDisplay / IswScreen / IswWindow are declared in ISW/Intrinsic.h (included
+   above) so the public accessors there can reference them without a cycle. */
 typedef struct _IswDrawable *IswDrawable;  /* anything that can be drawn into */
+
+/* Window id as a portable value.  A window handle (IswWindow) is one of these
+   reinterpreted by the backend; this is the on-the-wire/identity form used in
+   neutral structs and where a bare id is needed (e.g. event targets). */
+typedef uint32_t IswWindowId;
+
+/* Geometry request for window create/configure, in physical pixels. */
+typedef struct {
+    int32_t  x, y;
+    uint32_t width, height;
+    uint32_t border_width;
+} IswWindowGeometry;
+
+/* Window-creation attributes the lifecycle needs.  Neutral subset; colormap,
+   visual and pixmaps are added when Phase 4 abstracts them. */
+typedef struct {
+    uint32_t background_pixel;
+    uint32_t border_pixel;
+    uint32_t event_mask;        /* neutral IswEvent mask, backend-translated */
+    Boolean  override_redirect;
+    Boolean  save_under;
+} IswWindowAttributes;
+
+/* Window stacking for configure. */
+typedef enum {
+    ISW_STACK_NONE = 0,
+    ISW_STACK_ABOVE,
+    ISW_STACK_BELOW
+} IswStackMode;
 
 /*
  * Portable integer point.  Replaces xcb_point_t in platform-neutral
@@ -96,6 +125,97 @@ typedef struct _IswPlatformFontOps      IswPlatformFontOps;
 
 /* Cursors — create from symbol, set on window, free.  Filled in Phase 5. */
 typedef struct _IswPlatformCursorOps    IswPlatformCursorOps;
+
+/*
+ * =================================================================
+ * Display ops (Phase 2)
+ * =================================================================
+ *
+ * Open/close the server connection, enumerate screens, expose the event-loop
+ * file descriptor, flush, and report connection health.  All platform-neutral:
+ * the XCB backend maps IswDisplay/IswScreen to xcb_connection_t/xcb_screen_t.
+ */
+struct _IswPlatformDisplayOps {
+    /* Open a connection to `display_name` (NULL = default).  Returns a backend
+       display handle, or NULL on failure.  *default_screen receives the
+       preferred screen index. */
+    IswDisplay (*open)(const char *display_name, int *default_screen);
+    /* Flush pending requests, then close and free the handle. */
+    void       (*close)(IswDisplay dpy);
+    /* True if the connection has gone into an error/closed state. */
+    Boolean    (*has_error)(IswDisplay dpy);
+    /* Flush buffered requests to the server. */
+    void       (*flush)(IswDisplay dpy);
+    /* Event-loop file descriptor for select()/poll(). */
+    int        (*connection_fd)(IswDisplay dpy);
+    /* Number of screens, and the i-th screen handle. */
+    int        (*screen_count)(IswDisplay dpy);
+    IswScreen  (*screen)(IswDisplay dpy, int index);
+    /* Root window of a screen. */
+    IswWindow  (*root_window)(IswScreen screen);
+    /* Screen geometry in physical pixels. */
+    uint32_t   (*screen_width)(IswScreen screen);
+    uint32_t   (*screen_height)(IswScreen screen);
+    /* Ring the server bell (percent -100..100). */
+    void       (*bell)(IswDisplay dpy, int percent);
+};
+
+/*
+ * =================================================================
+ * Window ops (Phase 2)
+ * =================================================================
+ *
+ * Window lifecycle: create, configure (move/resize/restack), map, unmap,
+ * reparent, destroy, attribute changes, and the localized repaint primitive
+ * (clear-area) the toolkit uses to provoke a redraw.
+ */
+struct _IswPlatformWindowOps {
+    /* Allocate a new window id (deferred creation backends may no-op). */
+    IswWindow (*alloc_id)(IswDisplay dpy);
+    /* Create a child window of `parent` with geometry + attributes; `depth`
+       and a backend-resolved visual are taken from the screen default for now
+       (Phase 4 generalises visual/depth).  Returns the created window. */
+    IswWindow (*create)(IswDisplay dpy, IswWindow parent,
+                        const IswWindowGeometry *geom,
+                        const IswWindowAttributes *attrs);
+    void (*destroy)(IswDisplay dpy, IswWindow win);
+    void (*map)(IswDisplay dpy, IswWindow win);
+    void (*unmap)(IswDisplay dpy, IswWindow win);
+    void (*reparent)(IswDisplay dpy, IswWindow win, IswWindow new_parent,
+                     int32_t x, int32_t y);
+    /* Configure: move/resize and optional restack.  `mask` selects which of
+       geom's fields apply (bitwise ISW_CONFIG_*). */
+    void (*configure)(IswDisplay dpy, IswWindow win,
+                      const IswWindowGeometry *geom, unsigned int mask,
+                      IswStackMode stack, IswWindow sibling);
+    /* Change the mutable attribute subset (event mask, bg pixel, …). */
+    void (*change_attributes)(IswDisplay dpy, IswWindow win,
+                              const IswWindowAttributes *attrs,
+                              unsigned int mask);
+    /* Clear a rectangle (0,0,0,0 = whole window), optionally generating an
+       Expose for the toolkit's redraw path. */
+    void (*clear_area)(IswDisplay dpy, IswWindow win,
+                       int16_t x, int16_t y, uint16_t w, uint16_t h,
+                       Boolean generate_expose);
+    /* Window id <-> handle, for neutral structs / event targets. */
+    IswWindowId (*window_id)(IswWindow win);
+    IswWindow   (*window_from_id)(IswWindowId id);
+};
+
+/* configure() mask bits. */
+#define ISW_CONFIG_X            (1u << 0)
+#define ISW_CONFIG_Y            (1u << 1)
+#define ISW_CONFIG_WIDTH        (1u << 2)
+#define ISW_CONFIG_HEIGHT       (1u << 3)
+#define ISW_CONFIG_BORDER       (1u << 4)
+#define ISW_CONFIG_STACK        (1u << 5)
+
+/* change_attributes() mask bits. */
+#define ISW_ATTR_BACK_PIXEL     (1u << 0)
+#define ISW_ATTR_BORDER_PIXEL   (1u << 1)
+#define ISW_ATTR_EVENT_MASK     (1u << 2)
+#define ISW_ATTR_OVERRIDE       (1u << 3)
+#define ISW_ATTR_SAVE_UNDER     (1u << 4)
 
 /*
  * =================================================================

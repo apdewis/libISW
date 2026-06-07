@@ -931,7 +931,7 @@ IswCallActionProc(Widget widget,
        dereferencing NULL in the translator. */
     IswEvent nev;
     if (event != NULL)
-        (void) _IswEventFromXcb(IswDisplay(widget), event, &nev);
+        (void) _IswEventFromXcb(IswDisplayOf(widget), event, &nev);
     else
         memset(&nev, 0, sizeof(nev));
     Widget w = widget;

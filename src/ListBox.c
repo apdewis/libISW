@@ -291,7 +291,7 @@ static void
 ExposeTree(Widget w)
 {
     /* Windowless: repaint the widget and its windowless descendants into their
-       own surfaces and composite the ancestor once.  xcb_clear_area(IswWindow(w))
+       own surfaces and composite the ancestor once.  xcb_clear_area(IswWindowOf(w))
        would resolve to the shared windowed ancestor and blank the whole panel. */
     if (IswIsRealized(w))
         _IswRepaintWindowless(w);
@@ -463,7 +463,7 @@ DoLayout(ListBoxWidget lbw, Boolean position)
  * ================================================================ */
 
 static Boolean
-CvtStringToSelectionMode(xcb_connection_t *dpy, XrmValuePtr args,
+CvtStringToSelectionMode(IswDisplay dpy, XrmValuePtr args,
     Cardinal *num_args, XrmValuePtr from, XrmValuePtr to,
     IswPointer *converter_data)
 {

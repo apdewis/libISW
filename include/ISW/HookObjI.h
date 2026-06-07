@@ -47,8 +47,8 @@ typedef struct _HookObjPart {
     Cardinal num_shells;
     /* private data */
     Cardinal max_shells;
-    xcb_connection_t *display;      /* window's display (XCB doesnt store a pointer in screen type like xlib does)*/
-    xcb_screen_t* screen;
+    IswDisplay display;             /* display (opaque handle)            */
+    IswScreen  screen;              /* screen (opaque handle)             */
 }HookObjPart;
 
 typedef struct _HookObjRec {

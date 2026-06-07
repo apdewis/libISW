@@ -89,9 +89,9 @@ void
 _IswFreePerWidgetInput(Widget w, IswPerWidgetInput pwi)
 {
     LOCK_PROCESS;
-    xcb_connection_t *dpy = w->core.display;
+    IswDisplay dpy = w->core.display;
     IswPerDisplay pd = _IswGetPerDisplay(dpy);
-    //XDeleteContext(IswDisplay(w), (Window) w, perWidgetInputContext);
+    //XDeleteContext(IswDisplayOf(w), (Window) w, perWidgetInputContext);
     HASH_DEL(pd->PerWidgetContext, pwi);
 
     IswFree((char *) pwi);
@@ -106,7 +106,7 @@ IswPerWidgetInput
 _IswGetPerWidgetInput(Widget widget, _IswBoolean create)
 {
     IswPerWidgetInput pwi = NULL;
-    xcb_connection_t *dpy = widget->core.display;
+    IswDisplay dpy = widget->core.display;
     IswPerDisplay pd = _IswGetPerDisplay(dpy);
 
     LOCK_PROCESS;

@@ -2060,7 +2060,7 @@ ParseTranslationTable(String source,
 /*** public procedures ***/
 
 Boolean
-IswCvtStringToAcceleratorTable(xcb_connection_t *dpy,
+IswCvtStringToAcceleratorTable(IswDisplay dpy,
                               XrmValuePtr args _X_UNUSED,
                               Cardinal *num_args,
                               XrmValuePtr from,
@@ -2113,7 +2113,7 @@ IswCvtStringToAcceleratorTable(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToTranslationTable(xcb_connection_t *dpy,
+IswCvtStringToTranslationTable(IswDisplay dpy,
                               XrmValuePtr args _X_UNUSED,
                               Cardinal *num_args,
                               XrmValuePtr from,

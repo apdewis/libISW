@@ -31,9 +31,10 @@
 #include <ISW/ViewportP.h>
 #include <ISW/TextP.h>
 #include <ISW/EventI.h>
+#include "ISWPlatformPrivate.h"
 
 /* Defined in Initialize.c — avoids pulling in InitialI.h's heavy deps. */
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(IswDisplay dpy);
 
 #include <stdint.h>
 #include <xcb/xcb.h>
@@ -173,7 +174,7 @@ FindAndDispatchScroll(Widget start, int direction, Boolean horizontal,
  * All other button events are passed to the original dispatcher.
  */
 static Boolean
-ScrollWheelPressDispatcher(xcb_generic_event_t *event, xcb_connection_t *conn)
+ScrollWheelPressDispatcher(xcb_generic_event_t *event, IswDisplay conn)
 {
     uint8_t response_type = event->response_type & ~0x80;
 
@@ -192,7 +193,7 @@ ScrollWheelPressDispatcher(xcb_generic_event_t *event, xcb_connection_t *conn)
                    scrollable container under the pointer is a windowless
                    descendant.  Hit-test the pointer to find the deepest
                    windowless widget, then walk up to its Viewport/Text. */
-                Widget win_w = IswWindowToWidget(conn, bev->event);
+                Widget win_w = IswWindowToWidget(conn, _IswXcbWindowWrap(bev->event));
                 Widget target = NULL;
                 if (win_w != NULL) {
                     int dx = 0, dy = 0;
@@ -225,7 +226,7 @@ ScrollWheelPressDispatcher(xcb_generic_event_t *event, xcb_connection_t *conn)
  * triggering EndScroll or other unintended actions on scrollbar widgets.
  */
 static Boolean
-ScrollWheelReleaseDispatcher(xcb_generic_event_t *event, xcb_connection_t *conn)
+ScrollWheelReleaseDispatcher(xcb_generic_event_t *event, IswDisplay conn)
 {
     uint8_t response_type = event->response_type & ~0x80;
 
@@ -243,7 +244,7 @@ ScrollWheelReleaseDispatcher(xcb_generic_event_t *event, xcb_connection_t *conn)
  * Safe to call multiple times; only the first call has any effect.
  */
 void
-ISWScrollWheelInit(xcb_connection_t *conn)
+ISWScrollWheelInit(IswDisplay conn)
 {
     if (scroll_wheel_initialized)
         return;

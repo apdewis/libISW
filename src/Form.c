@@ -55,8 +55,9 @@ SOFTWARE.
 #include <ISW/FormP.h>
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
+#include "ISWPlatformPrivate.h"
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(IswDisplay dpy);
 
 /* Private Definitions */
 
@@ -884,21 +885,21 @@ IswFormDoLayout(Widget _fw,
 	     */
 
 	    /* Windowless children have no X window of their own —
-	       IswWindow(w) would resolve to the windowed ancestor, so
+	       IswWindowOf(w) would resolve to the windowed ancestor, so
 	       configuring it would resize the ancestor's window. */
 	    if (!w->core.windowless) {
 		/* HiDPI: scale logical to physical for the X server */
-		double _sf = _IswGetScaleFactor(IswDisplay(w));
+		double _sf = _IswGetScaleFactor(IswDisplayOf(w));
 		uint32_t values[4];
 		values[0] = (uint32_t)(int32_t)(w->core.x * _sf + 0.5);
 		values[1] = (uint32_t)(int32_t)(w->core.y * _sf + 0.5);
 		values[2] = (uint32_t)(w->core.width * _sf + 0.5);
 		values[3] = (uint32_t)(w->core.height * _sf + 0.5);
-		xcb_configure_window(IswDisplay(w), IswWindow(w),
+		xcb_configure_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)),
 		    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
 		    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
 		    values);
-		xcb_flush(IswDisplay(w));
+		xcb_flush(_IswXcbConn(IswDisplayOf(w)));
 	    }
 
 	    if (form->form.deferred_resize &&

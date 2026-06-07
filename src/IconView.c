@@ -21,6 +21,7 @@
 #include <ISW/ISWXdnd.h>
 #include <ISW/Viewport.h>
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -936,7 +937,7 @@ SelectItem(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 static void
 ResolveForegroundRGB(IconViewWidget iw)
 {
-    xcb_connection_t *conn = ((Widget)iw)->core.display;
+    xcb_connection_t *conn = _IswXcbConn(((Widget)iw)->core.display);
     xcb_colormap_t cmap = ((Widget)iw)->core.colormap;
     uint32_t pixel = (uint32_t)iw->iconView.foreground;
     xcb_query_colors_cookie_t cookie = xcb_query_colors(conn, cmap, 1, &pixel);

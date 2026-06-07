@@ -161,8 +161,8 @@ void IswTrayIconSetResizeCallback(IswTrayIcon icon,
  * Parameters:
  *   icon - Tray icon handle
  *
- * Returns: The tray icon's xcb_window_t, or XCB_NONE if icon is NULL
+ * Returns: The tray icon's IswWindow, or XCB_NONE if icon is NULL
  */
-xcb_window_t IswTrayIconGetWindow(IswTrayIcon icon);
+IswWindow IswTrayIconGetWindow(IswTrayIcon icon);
 
 #endif /* _IswTrayIcon_h */

@@ -76,6 +76,7 @@ in this Software without prior written authorization from The Open Group.
 #include        "IntrinsicI.h"
 #include        "StringDefs.h"
 #include        "Shell.h"
+#include        "ISWPlatformPrivate.h"
 #include        <stdio.h>
 #include        <X11/cursorfont.h>
 #include        <xcb/xcb_cursor.h>
@@ -177,7 +178,7 @@ _IswConvertInitialize(void)
         done_typed(type, (type) (value))
 
 void
-IswDisplayStringConversionWarning(xcb_connection_t *dpy,
+IswDisplayStringConversionWarning(IswDisplay dpy,
                                  _Xconst char *from,
                                  _Xconst char *toType)
 {
@@ -291,7 +292,7 @@ IsInteger(String string, int *value)
 }
 
 Boolean
-IswCvtIntToBoolean(xcb_connection_t *dpy,
+IswCvtIntToBoolean(IswDisplay dpy,
                   XrmValuePtr args _X_UNUSED,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
@@ -308,7 +309,7 @@ IswCvtIntToBoolean(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtIntToShort(xcb_connection_t *dpy,
+IswCvtIntToShort(IswDisplay dpy,
                 XrmValuePtr args _X_UNUSED,
                 Cardinal *num_args,
                 XrmValuePtr fromVal,
@@ -324,7 +325,7 @@ IswCvtIntToShort(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToBoolean(xcb_connection_t *dpy,
+IswCvtStringToBoolean(IswDisplay dpy,
                      XrmValuePtr args _X_UNUSED,
                      Cardinal *num_args,
                      XrmValuePtr fromVal,
@@ -357,7 +358,7 @@ IswCvtStringToBoolean(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtIntToBool(xcb_connection_t *dpy,
+IswCvtIntToBool(IswDisplay dpy,
                XrmValuePtr args _X_UNUSED,
                Cardinal *num_args,
                XrmValuePtr fromVal,
@@ -373,7 +374,7 @@ IswCvtIntToBool(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToBool(xcb_connection_t *dpy,
+IswCvtStringToBool(IswDisplay dpy,
                   XrmValuePtr args _X_UNUSED,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
@@ -415,13 +416,14 @@ IswConvertArgRec const colorConvertArgs[] = {
 /* *INDENT-ON* */
 
 Boolean
-IswCvtIntToColor(xcb_connection_t *dpy,
+IswCvtIntToColor(IswDisplay dpy,
                 XrmValuePtr args,
                 Cardinal *num_args,
                 XrmValuePtr fromVal,
                 XrmValuePtr toVal,
                 IswPointer *closure_ret _X_UNUSED)
 {
+    xcb_connection_t *conn = _IswXcbConn(dpy);
     xcb_colormap_t colormap;
 
     if (*num_args != 2) {
@@ -440,8 +442,8 @@ IswCvtIntToColor(xcb_connection_t *dpy,
         uint32_t pixel = (uint32_t) (*(int *) fromVal->addr);
         IswColor c;
 
-        qc_cookie = xcb_query_colors(dpy, colormap, 1, &pixel);
-        qc_reply = xcb_query_colors_reply(dpy, qc_cookie, NULL);
+        qc_cookie = xcb_query_colors(conn, colormap, 1, &pixel);
+        qc_reply = xcb_query_colors_reply(conn, qc_cookie, NULL);
         if (qc_reply == NULL) return False;
 
         xcb_rgb_t *rgb = xcb_query_colors_colors(qc_reply);
@@ -456,13 +458,14 @@ IswCvtIntToColor(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToPixel(xcb_connection_t *dpy,
+IswCvtStringToPixel(IswDisplay dpy,
                    XrmValuePtr args,
                    Cardinal *num_args,
                    XrmValuePtr fromVal,
                    XrmValuePtr toVal,
                    IswPointer *closure_ret)
 {
+    xcb_connection_t *conn = _IswXcbConn(dpy);
     String str = (String) fromVal->addr;
     xcb_screen_t *screen;
     IswPerDisplay pd = _IswGetPerDisplay(dpy);
@@ -532,9 +535,9 @@ IswCvtStringToPixel(xcb_connection_t *dpy,
         }
 
         xcb_alloc_color_cookie_t ac_cookie =
-            xcb_alloc_color(dpy, colormap, red, green, blue);
+            xcb_alloc_color(conn, colormap, red, green, blue);
         xcb_alloc_color_reply_t *ac_reply =
-            xcb_alloc_color_reply(dpy, ac_cookie, NULL);
+            xcb_alloc_color_reply(conn, ac_cookie, NULL);
 
         if (ac_reply != NULL) {
             *closure_ret = (char *) True;
@@ -556,9 +559,9 @@ IswCvtStringToPixel(xcb_connection_t *dpy,
     {
         size_t name_len = strlen(str);
         xcb_alloc_named_color_cookie_t anc_cookie =
-            xcb_alloc_named_color(dpy, colormap, (uint16_t) name_len, str);
+            xcb_alloc_named_color(conn, colormap, (uint16_t) name_len, str);
         xcb_alloc_named_color_reply_t *anc_reply =
-            xcb_alloc_named_color_reply(dpy, anc_cookie, NULL);
+            xcb_alloc_named_color_reply(conn, anc_cookie, NULL);
 
         if (anc_reply != NULL) {
             *closure_ret = (char *) True;
@@ -569,9 +572,9 @@ IswCvtStringToPixel(xcb_connection_t *dpy,
 
         /* Allocation failed — check if name is valid */
         xcb_lookup_color_cookie_t lc_cookie =
-            xcb_lookup_color(dpy, colormap, (uint16_t) name_len, str);
+            xcb_lookup_color(conn, colormap, (uint16_t) name_len, str);
         xcb_lookup_color_reply_t *lc_reply =
-            xcb_lookup_color_reply(dpy, lc_cookie, NULL);
+            xcb_lookup_color_reply(conn, lc_cookie, NULL);
 
         _Xconst _IswString msg;
         _Xconst _IswString type;
@@ -648,7 +651,7 @@ FetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED, XrmValue *value)
             }
         } else {
         }
-        _fetch_dpy = IswDisplayOfObject(widget);
+        _fetch_dpy = _IswXcbConn(IswDisplayOfObject(widget));
         value->size = sizeof(xcb_connection_t *);
         value->addr = (IswPointer) &_fetch_dpy;
     }
@@ -851,7 +854,7 @@ _IswMatchVisualInfo(xcb_connection_t *dpy _X_UNUSED,
 }
 
 Boolean
-IswCvtStringToCursor(xcb_connection_t *dpy,
+IswCvtStringToCursor(IswDisplay dpy,
                     XrmValuePtr args,
                     Cardinal *num_args,
                     XrmValuePtr fromVal,
@@ -990,7 +993,7 @@ FreeCursor(IswAppContext app,
 }
 
 Boolean
-IswCvtStringToDisplay(xcb_connection_t *dpy,
+IswCvtStringToDisplay(IswDisplay dpy,
                      XrmValuePtr args _X_UNUSED,
                      Cardinal *num_args,
                      XrmValuePtr fromVal,
@@ -1020,7 +1023,7 @@ IswCvtStringToDisplay(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToFile(xcb_connection_t *dpy,
+IswCvtStringToFile(IswDisplay dpy,
                   XrmValuePtr args _X_UNUSED,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
@@ -1060,7 +1063,7 @@ FreeFile(IswAppContext app,
 }
 
 Boolean
-IswCvtIntToFloat(xcb_connection_t *dpy,
+IswCvtIntToFloat(IswDisplay dpy,
                 XrmValuePtr args _X_UNUSED,
                 Cardinal *num_args,
                 XrmValuePtr fromVal,
@@ -1076,7 +1079,7 @@ IswCvtIntToFloat(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToFloat(xcb_connection_t *dpy,
+IswCvtStringToFloat(IswDisplay dpy,
                    XrmValuePtr args _X_UNUSED,
                    Cardinal *num_args,
                    XrmValuePtr fromVal,
@@ -1107,7 +1110,7 @@ IswCvtStringToFloat(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToFont(xcb_connection_t *dpy,
+IswCvtStringToFont(IswDisplay dpy,
                   XrmValuePtr args,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
@@ -1150,7 +1153,7 @@ IswCvtStringToFont(xcb_connection_t *dpy,
         xrm_name[1] = 0;
         xrm_class[0] = XrmPermStringToQuark("IswDefaultFont");
         xrm_class[1] = 0;
-        if (XrmQGetResource(IswDatabase(display), xrm_name, xrm_class,
+        if (XrmQGetResource(IswDatabase((IswDisplay) display), xrm_name, xrm_class,
                             &rep_type, &value)) {
             if (rep_type == _IswQString) {
                 f = _IswLoadFont(display, (char *) value.addr);
@@ -1207,7 +1210,7 @@ FreeFont(IswAppContext app,
 }
 
 Boolean
-IswCvtIntToFont(xcb_connection_t *dpy,
+IswCvtIntToFont(IswDisplay dpy,
                XrmValuePtr args _X_UNUSED,
                Cardinal *num_args,
                XrmValuePtr fromVal,
@@ -1223,7 +1226,7 @@ IswCvtIntToFont(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToFontStruct(xcb_connection_t *dpy,
+IswCvtStringToFontStruct(IswDisplay dpy,
                         XrmValuePtr args,
                         Cardinal *num_args,
                         XrmValuePtr fromVal,
@@ -1264,7 +1267,7 @@ IswCvtStringToFontStruct(xcb_connection_t *dpy,
         xrm_name[1] = 0;
         xrm_class[0] = XrmPermStringToQuark("IswDefaultFont");
         xrm_class[1] = 0;
-        if (XrmQGetResource(IswDatabase(display), xrm_name, xrm_class,
+        if (XrmQGetResource(IswDatabase((IswDisplay) display), xrm_name, xrm_class,
                             &rep_type, &value)) {
             if (rep_type == _IswQString) {
                 f = _IswLoadFontconfigFont((const char *) value.addr);
@@ -1313,7 +1316,7 @@ FreeFontStruct(IswAppContext app,
 }
 
 Boolean
-IswCvtStringToInt(xcb_connection_t *dpy,
+IswCvtStringToInt(IswDisplay dpy,
                  XrmValuePtr args _X_UNUSED,
                  Cardinal *num_args,
                  XrmValuePtr fromVal,
@@ -1335,7 +1338,7 @@ IswCvtStringToInt(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToShort(xcb_connection_t *dpy,
+IswCvtStringToShort(IswDisplay dpy,
                    XrmValuePtr args _X_UNUSED,
                    Cardinal *num_args,
                    XrmValuePtr fromVal,
@@ -1358,7 +1361,7 @@ IswCvtStringToShort(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToDimension(xcb_connection_t *dpy,
+IswCvtStringToDimension(IswDisplay dpy,
                        XrmValuePtr args _X_UNUSED,
                        Cardinal *num_args,
                        XrmValuePtr fromVal,
@@ -1384,7 +1387,7 @@ IswCvtStringToDimension(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtIntToUnsignedChar(xcb_connection_t *dpy,
+IswCvtIntToUnsignedChar(IswDisplay dpy,
                        XrmValuePtr args _X_UNUSED,
                        Cardinal *num_args,
                        XrmValuePtr fromVal,
@@ -1401,7 +1404,7 @@ IswCvtIntToUnsignedChar(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtStringToUnsignedChar(xcb_connection_t *dpy,
+IswCvtStringToUnsignedChar(IswDisplay dpy,
                           XrmValuePtr args _X_UNUSED,
                           Cardinal *num_args,
                           XrmValuePtr fromVal,
@@ -1428,7 +1431,7 @@ IswCvtStringToUnsignedChar(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtColorToPixel(xcb_connection_t *dpy,
+IswCvtColorToPixel(IswDisplay dpy,
                   XrmValuePtr args _X_UNUSED,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
@@ -1445,7 +1448,7 @@ IswCvtColorToPixel(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtIntToPixel(xcb_connection_t *dpy,
+IswCvtIntToPixel(IswDisplay dpy,
                 XrmValuePtr args _X_UNUSED,
                 Cardinal *num_args,
                 XrmValuePtr fromVal,
@@ -1461,7 +1464,7 @@ IswCvtIntToPixel(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCvtIntToPixmap(xcb_connection_t *dpy,
+IswCvtIntToPixmap(IswDisplay dpy,
                  XrmValuePtr args _X_UNUSED,
                  Cardinal *num_args,
                  XrmValuePtr fromVal,
@@ -1546,7 +1549,7 @@ CopyISOLatin1Lowered(char *dst, const char *src)
 }
 
 Boolean
-IswCvtStringToInitialState(xcb_connection_t *dpy,
+IswCvtStringToInitialState(IswDisplay dpy,
                           XrmValuePtr args _X_UNUSED,
                           Cardinal *num_args,
                           XrmValuePtr fromVal,
@@ -1588,12 +1591,13 @@ static IswConvertArgRec const visualConvertArgs[] = {
 /* *INDENT-ON* */
 
 Boolean
-IswCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, depth */
+IswCvtStringToVisual(IswDisplay dpy, XrmValuePtr args,     /* Screen, depth */
                     Cardinal *num_args,        /* 2 */
                     XrmValuePtr fromVal,
                     XrmValuePtr toVal,
                     IswPointer *closure_ret _X_UNUSED)
 {
+    xcb_connection_t *conn = _IswXcbConn(dpy);
     String str = (String) fromVal->addr;
     int vc;
     IswVisualInfo vinfo;
@@ -1626,14 +1630,14 @@ IswCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, dep
 
     {
         xcb_screen_t *screen = *(xcb_screen_t **) args[0].addr;
-        if (_IswMatchVisualInfo(dpy, screen,
+        if (_IswMatchVisualInfo(conn, screen,
                                (int) *(int *) args[1].addr, vc, &vinfo)) {
             done_string(xcb_visualtype_t *, vinfo.visual, IswRVisual);
         }
         else {
             String params[2];
             Cardinal num_params = 2;
-            const xcb_setup_t *setup = xcb_get_setup(dpy);
+            const xcb_setup_t *setup = xcb_get_setup(conn);
             const char *vendor = (setup != NULL)
                 ? xcb_setup_vendor(setup) : "";
 
@@ -1649,7 +1653,7 @@ IswCvtStringToVisual(xcb_connection_t *dpy, XrmValuePtr args,     /* Screen, dep
 }
 
 Boolean
-IswCvtStringToAtom(xcb_connection_t *dpy,
+IswCvtStringToAtom(IswDisplay dpy,
                   XrmValuePtr args,
                   Cardinal *num_args,
                   XrmValuePtr fromVal,
@@ -1685,7 +1689,7 @@ IswCvtStringToAtom(xcb_connection_t *dpy,
 
 
 Boolean
-IswCvtStringToGravity(xcb_connection_t *dpy,
+IswCvtStringToGravity(IswDisplay dpy,
                      XrmValuePtr args _X_UNUSED,
                      Cardinal *num_args,
                      XrmValuePtr fromVal,

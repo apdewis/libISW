@@ -162,7 +162,7 @@ typedef struct {
     (65536 << 2) : (xcb_get_maximum_request_length(connection) << 2)) - 100)
 
 #define MATCH_SELECT(event, info) ((event->time == info->time) && \
-	    (event->requestor == IswWindow(info->widget)) && \
+	    (event->requestor == IswWindowOf(info->widget)) && \
 	    (event->selection == info->ctx->selection) && \
 	    (event->target == *info->target))
 

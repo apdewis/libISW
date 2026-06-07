@@ -58,6 +58,7 @@ in this Software without prior written authorization from The Open Group.
 #include <ISW/Vendor.h>
 #include <ISW/ISWRender.h>
 #include <ISW/EventI.h>
+#include "ISWPlatformPrivate.h"
 
 /*
  * This file defines functional equivalents to all macros defined
@@ -185,9 +186,9 @@ IswMapWidget(Widget w)
         UNLOCK_APP(app);
         return;
     }
-    xcb_map_window(IswDisplay(w), IswWindow(w));
-    xcb_flush(IswDisplay(w));
-    hookobj = IswHooksOfDisplay(IswDisplay(w));
+    xcb_map_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)));
+    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+    hookobj = IswHooksOfDisplay(IswDisplayOf(w));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
 
@@ -232,9 +233,9 @@ IswUnmapWidget(Widget w)
         UNLOCK_APP(app);
         return;
     }
-    xcb_unmap_window(IswDisplay(w), IswWindow(w));
-    xcb_flush(IswDisplay(w));
-    hookobj = IswHooksOfDisplay(IswDisplay(w));
+    xcb_unmap_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)));
+    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+    hookobj = IswHooksOfDisplay(IswDisplayOf(w));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
 
@@ -295,7 +296,7 @@ IswReloadResources(Widget subtree_root)
     ReloadSubtree(subtree_root, db);
     RedisplaySubtree(subtree_root);
     if (IswIsRealized(subtree_root))
-        xcb_flush(IswDisplay(subtree_root));
+        xcb_flush(_IswXcbConn(IswDisplayOf(subtree_root)));
 }
 
 #undef IswNewString

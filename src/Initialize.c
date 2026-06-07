@@ -74,6 +74,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 #include "StringDefs.h"
 #include "CoreP.h"
 #include "ShellP.h"
@@ -370,7 +371,7 @@ CombineAppUserDefaults(xcb_connection_t *dpy, xcb_xrm_database_t **pdb)
 #endif
     }
 
-    filename = IswResolvePathname(dpy, NULL, NULL, NULL, path, NULL, 0, NULL);
+    filename = IswResolvePathname((IswDisplay) dpy, NULL, NULL, NULL, path, NULL, 0, NULL);
     if (filename) {
         xcb_xrm_database_t *fdb = xcb_xrm_database_from_file(filename);
         if (fdb)
@@ -423,7 +424,7 @@ CopyDB(xcb_xrm_database_t *db)
 }
 
 static String
-_IswDefaultLanguageProc(xcb_connection_t *dpy _X_UNUSED,
+_IswDefaultLanguageProc(IswDisplay dpy _X_UNUSED,
                        String xnl,
                        IswPointer closure _X_UNUSED)
 {
@@ -492,8 +493,9 @@ IswSetLanguageProc(IswAppContext app, IswLanguageProc proc, IswPointer closure)
 }
 
 XrmDatabase
-IswScreenDatabase(xcb_screen_t *screen)
+IswScreenDatabase(IswScreen screen_handle)
 {
+    xcb_screen_t *screen = _IswXcbScreen(screen_handle);
     int scrno;
     xcb_xrm_database_t *db;
     IswPerDisplay pd;
@@ -542,7 +544,7 @@ IswScreenDatabase(xcb_screen_t *screen)
         LOCK_APP(app);
         LOCK_PROCESS;
 
-        pd = _IswGetPerDisplay(dpy);
+        pd = _IswGetPerDisplay((IswDisplay) dpy);
         nscreens = xcb_setup_roots_length(xcb_get_setup(dpy));
 
         /* Return cached database if available */
@@ -609,7 +611,7 @@ IswScreenDatabase(xcb_screen_t *screen)
         /* App user defaults and system app-defaults */
         CombineAppUserDefaults(dpy, &db);
         {
-            char *filename = IswResolvePathname(dpy, "app-defaults",
+            char *filename = IswResolvePathname((IswDisplay) dpy, "app-defaults",
                                                NULL, NULL, NULL, NULL, 0, NULL);
             if (filename) {
                 xcb_xrm_database_t *fdb = xcb_xrm_database_from_file(filename);
@@ -633,8 +635,9 @@ IswScreenDatabase(xcb_screen_t *screen)
 }
 
 void
-IswReloadScreenDatabase(xcb_screen_t *screen)
+IswReloadScreenDatabase(IswScreen screen_handle)
 {
+    xcb_screen_t *screen = _IswXcbScreen(screen_handle);
     xcb_connection_t *dpy = NULL;
     int scrno = 0;
     IswPerDisplay pd;
@@ -669,7 +672,7 @@ IswReloadScreenDatabase(xcb_screen_t *screen)
         DPY_TO_APPCON(dpy);
         LOCK_APP(app);
         LOCK_PROCESS;
-        pd = _IswGetPerDisplay(dpy);
+        pd = _IswGetPerDisplay((IswDisplay) dpy);
         if (pd->per_screen_db && pd->per_screen_db[scrno]) {
             xcb_xrm_database_free(pd->per_screen_db[scrno]);
             pd->per_screen_db[scrno] = NULL;
@@ -1034,7 +1037,7 @@ GetLanguage(xcb_connection_t *dpy, IswPerDisplay pd)
         if (!pd->language)
             pd->language = "";
         pd->language = (*pd->appContext->langProcRec.proc)
-            (dpy, pd->language, pd->appContext->langProcRec.closure);
+            ((IswDisplay) dpy, pd->language, pd->appContext->langProcRec.closure);
     }
     else if (!pd->language || pd->language[0] == '\0')  /* R4 compatibility */
         pd->language = getenv("LANG");
@@ -1077,9 +1080,10 @@ GetLanguage(xcb_connection_t *dpy, IswPerDisplay pd)
 //}
 
 double
-_IswGetScaleFactor(xcb_connection_t *dpy)
+_IswGetScaleFactor(IswDisplay display)
 {
     PerDisplayTablePtr pdt;
+    xcb_connection_t *dpy = _IswXcbConn(display);
 
     if (!dpy)
         return 1.0;
@@ -1274,7 +1278,7 @@ IswOpenApplication(IswAppContext *app_context_return,
     merged_args = IswMergeArgLists(args_in, num_args_in, ab.args, ab.count);
     Cardinal num = ab.count + num_args_in;
 
-    root = IswAppCreateShell(NULL, application_class, widget_class, dpy,
+    root = IswAppCreateShell(NULL, application_class, widget_class, (IswDisplay) dpy,
                             merged_args, num);
 
     if (app_context_return)

@@ -57,6 +57,7 @@ in this Software without prior written authorization from The Open Group.
 #include "Shell.h"
 #include "VarargsI.h"
 #include "CreateI.h"
+#include "ISWPlatformPrivate.h"
 
 static Widget
 _IswVaCreateWidget(String name,
@@ -134,7 +135,7 @@ Widget
 IswVaAppCreateShell(_Xconst char *name,
                    _Xconst char *class,
                    WidgetClass widget_class,
-                   xcb_connection_t *display,
+                   IswDisplay display,
                    ...)
 {
     va_list var;
@@ -154,7 +155,7 @@ IswVaAppCreateShell(_Xconst char *name,
 
     _IswVaToTypedArgList(var, total_count, &typed_args, &num_args);
     widget = _IswAppCreateShell((String) name, (String) class, widget_class,
-                               display, (ArgList) NULL, (Cardinal) 0,
+                               _IswXcbConn(display), (ArgList) NULL, (Cardinal) 0,
                                typed_args, num_args);
 
     IswFree((IswPointer) typed_args);
@@ -304,7 +305,7 @@ _IswVaOpenApplication(IswAppContext *app_context_return,
         xcb_screen_t *def_screen = _IswGetDefaultScreen(dpy);
         root =
             IswVaAppCreateShell(NULL, application_class,
-                               widget_class, dpy,
+                               widget_class, (IswDisplay) dpy,
                                IswNscreen, (IswArgVal) def_screen,
                                IswNargc, (IswArgVal) saved_argc,
                                IswNargv, (IswArgVal) argv_in_out,

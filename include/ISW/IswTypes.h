@@ -49,9 +49,10 @@ typedef int XContext;
  * -----------------------------------------------------------------------
  */
 
-#ifndef ConnectionNumber
-#define ConnectionNumber(dpy) xcb_get_file_descriptor((xcb_connection_t*)(dpy))
-#endif
+/* Event-loop file descriptor for a display: use the platform display op
+   _IswPlatformConnectionFd(dpy) (declared in IntrinsicI.h, implemented over the
+   ISWPlatform display vtable).  No XCB type appears in this public header.
+   (Phase 2: ISWPlatform display ops.) */
 
 #ifndef DefaultRootWindow
 #define DefaultRootWindow(dpy) \

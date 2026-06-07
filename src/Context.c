@@ -25,6 +25,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #endif
 #include "IntrinsicI.h"
 #include "ContextI.h"
+#include "ISWPlatformPrivate.h"
 #include <stdlib.h>
 
 /* Global context ID counter */
@@ -55,7 +56,7 @@ IswUniqueContext(void)
  * Returns: ISW_CONTEXT_SUCCESS on success, error code on failure
  */
 int
-IswSaveContext(xcb_connection_t *dpy, XID key, IswContext context, const void *data)
+IswSaveContext(IswDisplay dpy, XID key, IswContext context, const void *data)
 {
     IswContextEntry *entry;
 
@@ -76,7 +77,7 @@ IswSaveContext(xcb_connection_t *dpy, XID key, IswContext context, const void *d
         if (!entry)
             return ISW_CONTEXT_BAD_DATA;
         
-        entry->dpy = dpy;
+        entry->dpy = _IswXcbConn(dpy);
         entry->key = key;
         entry->data = (void *)data;
         HASH_ADD(hh, context->entries, key, sizeof(key), entry);
@@ -95,7 +96,7 @@ IswSaveContext(xcb_connection_t *dpy, XID key, IswContext context, const void *d
  * Returns: ISW_CONTEXT_SUCCESS on success, error code on failure
  */
 int
-IswFindContext(xcb_connection_t *dpy, XID key, IswContext context, void **data)
+IswFindContext(IswDisplay dpy, XID key, IswContext context, void **data)
 {
     IswContextEntry *entry;
 
@@ -123,7 +124,7 @@ IswFindContext(xcb_connection_t *dpy, XID key, IswContext context, void **data)
  * Returns: ISW_CONTEXT_SUCCESS on success, error code on failure
  */
 int
-IswDeleteContext(xcb_connection_t *dpy, XID key, IswContext context)
+IswDeleteContext(IswDisplay dpy, XID key, IswContext context)
 {
     IswContextEntry *entry;
 

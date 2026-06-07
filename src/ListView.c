@@ -19,6 +19,7 @@
 #include <ISW/ListViewP.h>
 #include <ISW/Viewport.h>
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -452,7 +453,7 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
 
     ResolveForegroundRGB(lv);
 
-    xcb_screen_t *screen = w->core.screen;
+    xcb_screen_t *screen = _IswXcbScreen(w->core.screen);
     lv->listView.resize_cursor = _IswLoadThemedCursor(dpy, screen,
         "sb_h_double_arrow", XC_sb_h_double_arrow);
     lv->listView.default_cursor = ((SimpleWidget)w)->simple.cursor;

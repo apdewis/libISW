@@ -75,8 +75,9 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xfixes.h>
 #include "ISWXcbDraw.h"
+#include "ISWPlatformPrivate.h"
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(IswDisplay dpy);
 
 typedef enum {UpLeftPane = 'U', LowRightPane = 'L',
 	      ThisBorderOnly = 'T', AnyPane = 'A' } Direction;
@@ -685,12 +686,12 @@ CommitNewLocations(PanedWidget pw)
 
 	        if (IswIsRealized(pane->grip)) {
 	            /* HiDPI: scale logical to physical for the X server */
-	            double _sf = _IswGetScaleFactor(IswDisplay(pane->grip));
+	            double _sf = _IswGetScaleFactor(IswDisplayOf(pane->grip));
 	            uint32_t values[3];
 	            values[0] = (uint32_t)(int32_t)(grip_x * _sf + 0.5);
 	            values[1] = (uint32_t)(int32_t)(grip_y * _sf + 0.5);
 	            values[2] = XCB_STACK_MODE_ABOVE;
-	            xcb_configure_window(IswDisplay(pane->grip), IswWindow(pane->grip),
+	            xcb_configure_window(_IswXcbConn(IswDisplayOf(pane->grip)), _IswXcbWindow(IswWindowOf(pane->grip)),
 				     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
 				     XCB_CONFIG_WINDOW_STACK_MODE, values);
 	        }
@@ -1577,7 +1578,7 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
 
     if ( (old_pw->paned.cursor != new_pw->paned.cursor) && IswIsRealized(new)) {
         _IswSetWindowCursor(new, new_pw->paned.cursor);
-        xcb_flush(IswDisplay(new));
+        xcb_flush(_IswXcbConn(IswDisplayOf(new)));
     }
 
     if ( (old_pw->paned.internal_bp != new_pw->paned.internal_bp) ||

@@ -29,7 +29,7 @@ extern XContext IswUniqueContext(
 
 /* Save data associated with a window/ID and context */
 extern int IswSaveContext(
-    xcb_connection_t*     /* display (unused, for API compatibility) */,
+    IswDisplay      /* display (unused, for API compatibility) */,
     XID       /* window or resource ID */,
     XContext     /* context identifier */,
     void*        /* data pointer */
@@ -37,7 +37,7 @@ extern int IswSaveContext(
 
 /* Retrieve data associated with a window/ID and context */
 extern int IswFindContext(
-    xcb_connection_t*     /* display (unused, for API compatibility) */,
+    IswDisplay      /* display (unused, for API compatibility) */,
     XID       /* window or resource ID */,
     XContext     /* context identifier */,
     void**       /* data_return */
@@ -45,7 +45,7 @@ extern int IswFindContext(
 
 /* Delete context association */
 extern int IswDeleteContext(
-    xcb_connection_t*     /* display (unused, for API compatibility) */,
+    IswDisplay      /* display (unused, for API compatibility) */,
     XID       /* window or resource ID */,
     XContext     /* context identifier */
 );

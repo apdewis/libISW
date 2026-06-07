@@ -81,6 +81,7 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include "StringDefs.h"
 #include "PassivGraI.h"
+#include "ISWPlatformPrivate.h"
 
 /* typedef unsigned long Mask; */
 #define BITMASK(i) (((Mask)1) << ((i) & 31))
@@ -171,7 +172,7 @@ CreateGrab(Widget widget,
     IswSetBit(grab->keyboardMode, keyboard_mode);
     grab->eventMask = (unsigned short) event_mask;
     IswSetBit(grab->hasExt, need_ext);
-    grab->confineToIsWidgetWin = (IswWindow(widget) == confine_to);
+    grab->confineToIsWidgetWin = (_IswXcbWindow(IswWindowOf(widget)) == confine_to);
     grab->modifiers = (unsigned short) modifiers;
     grab->keybut = keybut;
     if (need_ext) {
@@ -516,7 +517,7 @@ _IswDestroyServerGrabs(Widget w,
     IswPerDisplayInput pdi;
 
     LOCK_PROCESS;
-    pdi = _IswGetPerDisplayInput(IswDisplay(w));
+    pdi = _IswGetPerDisplayInput(IswDisplayOf(w));
     _IswClearAncestorCache(w);
     UNLOCK_PROCESS;
 
@@ -613,7 +614,7 @@ MakeGrab(IswServerGrabPtr grab,
     }
 
     if (isKeyboard) {
-        xcb_grab_key(pDisplay(grab), (uint8_t)grab->pointerMode, pWindow(grab), grab->modifiers, grab->keybut, (uint16_t)grab->pointerMode, (uint8_t)grab->keyboardMode);
+        xcb_grab_key(_IswXcbConn(pDisplay(grab)), (uint8_t)grab->pointerMode, _IswXcbWindow(pWindow(grab)), grab->modifiers, grab->keybut, (uint16_t)grab->pointerMode, (uint8_t)grab->keyboardMode);
     }
     else {
         xcb_window_t confineTo = None;
@@ -621,12 +622,12 @@ MakeGrab(IswServerGrabPtr grab,
 
         if (grab->hasExt) {
             if (grab->confineToIsWidgetWin)
-                confineTo = IswWindow(grab->widget);
+                confineTo = _IswXcbWindow(IswWindowOf(grab->widget));
             else
                 confineTo = GRABEXT(grab)->confineTo;
             cursor = GRABEXT(grab)->cursor;
         }
-        xcb_grab_button(pDisplay(grab), (uint8_t)grab->ownerEvents, pWindow(grab), grab->eventMask, (uint16_t)grab->pointerMode, (uint8_t)grab->keyboardMode, confineTo, cursor, grab->keybut, grab->modifiers);
+        xcb_grab_button(_IswXcbConn(pDisplay(grab)), (uint8_t)grab->ownerEvents, _IswXcbWindow(pWindow(grab)), grab->eventMask, (uint16_t)grab->pointerMode, (uint8_t)grab->keyboardMode, confineTo, cursor, grab->keybut, grab->modifiers);
     }
 
     /* Add the new grab entry to the passive key grab list */
@@ -677,7 +678,7 @@ RealizeHandler(Widget widget,
     IswPerDisplayInput pdi;
 
     LOCK_PROCESS;
-    pdi = _IswGetPerDisplayInput(IswDisplay(widget));
+    pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     UNLOCK_PROCESS;
     MakeGrabs(&pwi->keyList, KEYBOARD, pdi);
     MakeGrabs(&pwi->ptrList, POINTER, pdi);
@@ -720,7 +721,7 @@ GrabKeyOrButton(Widget widget,
         passiveListPtr = &pwi->keyList;
     else
         passiveListPtr = &pwi->ptrList;
-    pdi = _IswGetPerDisplayInput(IswDisplay(widget));
+    pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     UNLOCK_PROCESS;
     newGrab = CreateGrab(widget, owner_events, modifiers,
                          keyOrButton, pointer_mode, keyboard_mode,
@@ -780,9 +781,9 @@ UngrabKeyOrButton(Widget widget,
 
     if (IswIsRealized(widget)) {
         if (isKeyboard)
-            xcb_ungrab_key(IswDisplay(widget), (uint8_t)modifiers, widget->core.window, keyOrButton);
+            xcb_ungrab_key(_IswXcbConn(IswDisplayOf(widget)), (uint8_t)modifiers, _IswXcbWindow(widget->core.window), keyOrButton);
         else
-            xcb_ungrab_button(IswDisplay(widget), (uint16_t)modifiers, widget->core.window, keyOrButton);
+            xcb_ungrab_button(_IswXcbConn(IswDisplayOf(widget)), (uint16_t)modifiers, _IswXcbWindow(widget->core.window), keyOrButton);
     }
 
     /* Delete all entries which are encompassed by the specified grab. */
@@ -815,9 +816,10 @@ IswGrabButton(Widget widget,
              unsigned int event_mask,
              int pointer_mode,
              int keyboard_mode,
-             xcb_window_t confine_to,
+             IswWindow confine_to_w,
              xcb_cursor_t cursor)
 {
+    xcb_window_t confine_to = _IswXcbWindow(confine_to_w);
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
@@ -874,26 +876,26 @@ GrabDevice(Widget widget,
     if (!IswIsRealized(widget))
         return XCB_GRAB_STATUS_NOT_VIEWABLE;
     LOCK_PROCESS;
-    pdi = _IswGetPerDisplayInput(IswDisplay(widget));
+    pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     UNLOCK_PROCESS;
     if (!isKeyboard) {
         xcb_grab_pointer_cookie_t cookie = xcb_grab_pointer(
-            IswDisplay(widget), owner_events, IswWindow(widget),
+            _IswXcbConn(IswDisplayOf(widget)), owner_events, _IswXcbWindow(IswWindowOf(widget)),
             (uint16_t)event_mask,
             pointer_mode, keyboard_mode,
             confine_to, cursor, time);
         xcb_grab_pointer_reply_t *reply = xcb_grab_pointer_reply(
-            IswDisplay(widget), cookie, NULL);
+            _IswXcbConn(IswDisplayOf(widget)), cookie, NULL);
         if (reply) {
             returnVal = reply->status;
             free(reply);
         }
     } else {
         xcb_grab_keyboard_cookie_t cookie = xcb_grab_keyboard(
-            IswDisplay(widget), owner_events, IswWindow(widget),
+            _IswXcbConn(IswDisplayOf(widget)), owner_events, _IswXcbWindow(IswWindowOf(widget)),
             time, pointer_mode, keyboard_mode);
         xcb_grab_keyboard_reply_t *reply = xcb_grab_keyboard_reply(
-            IswDisplay(widget), cookie, NULL);
+            _IswXcbConn(IswDisplayOf(widget)), cookie, NULL);
         if (reply) {
             returnVal = reply->status;
             free(reply);
@@ -925,10 +927,10 @@ UngrabDevice(Widget widget, xcb_timestamp_t time, Boolean isKeyboard)
     IswPerDisplayInput pdi;
     IswDevice device;
     xcb_void_cookie_t cookie;
-    xcb_connection_t *display = IswDisplay(widget);
+    xcb_connection_t *display = _IswXcbConn(IswDisplayOf(widget));
 
     LOCK_PROCESS;
-    pdi = _IswGetPerDisplayInput(display);
+    pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     UNLOCK_PROCESS;
     device = isKeyboard ? &pdi->keyboard : &pdi->pointer;
 
@@ -999,11 +1001,12 @@ IswGrabPointer(Widget widget,
               unsigned int event_mask,
               int pointer_mode,
               int keyboard_mode,
-              xcb_window_t confine_to,
+              IswWindow confine_to_w,
               xcb_cursor_t cursor,
               xcb_timestamp_t time)
 {
     int retval;
+    xcb_window_t confine_to = _IswXcbWindow(confine_to_w);
 
     WIDGET_TO_APPCON(widget);
 

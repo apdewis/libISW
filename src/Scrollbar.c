@@ -74,6 +74,7 @@ SOFTWARE.
 #include <xcb/xproto.h>
 #include "ISWXcbDraw.h"
 #include <ISW/FocusMgrI.h>
+#include "ISWPlatformPrivate.h"
 
 /* Private definitions. */
 
@@ -393,7 +394,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ScrollbarWidget sbw = (ScrollbarWidget) new;
     /* Install scroll wheel event dispatcher (once per connection) */
-    ISWScrollWheelInit(IswDisplay(new));
+    ISWScrollWheelInit(IswDisplayOf(new));
 
     /* Scrollbars are not Tab stops — users drive them indirectly via the
      * widget they scroll (keyboard nav on the focused List/Text etc.). */
@@ -792,7 +793,7 @@ MoveThumb (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
       sbw->scrollbar.top = 1.0 - sbw->scrollbar.shown;
     sbw->scrollbar.scroll_mode = 2; /* indicate continuous scroll */
     PaintThumb (sbw, iswev);
-    xcb_flush(IswDisplay(w));	/* re-draw it before Notifying */
+    xcb_flush(_IswXcbConn(IswDisplayOf(w)));	/* re-draw it before Notifying */
 }
 
 

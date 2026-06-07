@@ -30,6 +30,7 @@
 #include "IntrinsicI.h"
 #include "InitialI.h"
 #include <ISW/IswEvent.h>
+#include "ISWPlatformPrivate.h"
 
 /* ---- modifier mapping: X mod bits → neutral IswModMask -------------------- */
 
@@ -132,7 +133,7 @@ keysym_to_key(xcb_keysym_t ks, uint32_t *unicode, char text[8])
  * scaling stays the dispatch core's responsibility.
  */
 Boolean
-_IswEventFromXcb(xcb_connection_t *dpy, xcb_generic_event_t *xev, IswEvent *out)
+_IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
 {
     uint8_t type;
     uint8_t synthetic;

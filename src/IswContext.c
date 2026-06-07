@@ -107,7 +107,7 @@ context_key_equal(IswContextKey *key1, IswContextKey *key2)
  *   0 on success, non-zero on failure
  */
 int
-IswSaveContext(xcb_connection_t *dpy _X_UNUSED,
+IswSaveContext(IswDisplay dpy _X_UNUSED,
                XID id,
                XContext context,
                IswPointer data)
@@ -155,7 +155,7 @@ IswSaveContext(xcb_connection_t *dpy _X_UNUSED,
  *   0 if found, non-zero if not found
  */
 int
-IswFindContext(xcb_connection_t *dpy _X_UNUSED,
+IswFindContext(IswDisplay dpy _X_UNUSED,
                XID id,
                XContext context,
                IswPointer *data_return)
@@ -189,7 +189,7 @@ IswFindContext(xcb_connection_t *dpy _X_UNUSED,
  *   0 if deleted, non-zero if not found
  */
 int
-IswDeleteContext(xcb_connection_t *dpy _X_UNUSED,
+IswDeleteContext(IswDisplay dpy _X_UNUSED,
                  XID id,
                  XContext context)
 {

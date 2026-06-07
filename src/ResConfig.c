@@ -62,6 +62,7 @@ Corporation.
 #include "ShellP.h"
 #include "StringDefs.h"
 #include "ResConfigP.h"
+#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -109,7 +110,7 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
     Cardinal num_resources_return = 0;
     Cardinal res_index;
     Boolean found_resource = False;
-    xcb_connection_t *dpy;
+    IswDisplay dpy;
     xcb_xrm_database_t *tmp_db;
 
     if (last_part == NULL)
@@ -118,10 +119,10 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
     if (!IswIsWidget(w)) {
         if (w == 0 || w->core.parent == 0)
             return;
-        dpy = IswDisplay(w->core.parent);
+        dpy = IswDisplayOf(w->core.parent);
     }
     else {
-        dpy = IswDisplay(w);
+        dpy = IswDisplayOf(w);
     }
     tmp_db = IswDatabase(dpy);
 
@@ -905,14 +906,14 @@ _IswResourceConfigurationEH(Widget w,
 
     fprintf(stderr, "in _IswResourceConfigurationEH atom = %u\n",
             (unsigned) pe->atom);
-    fprintf(stderr, "    window = %x\n", (unsigned) IswWindow(w));
+    fprintf(stderr, "    window = %x\n", (unsigned) _IswXcbWindow(IswWindowOf(w)));
     if (IswIsWidget(w))
         fprintf(stderr, "    widget = %zx   name = %s\n", (size_t) w,
                 w->core.name);
 #endif
 
-    dpy = IswDisplay(w);
-    pd = _IswGetPerDisplay(dpy);
+    dpy = _IswXcbConn(IswDisplayOf(w));
+    pd = _IswGetPerDisplay(IswDisplayOf(w));
 
     /*
      * A customizing tool sends a "ping" to the application on
@@ -920,7 +921,7 @@ _IswResourceConfigurationEH(Widget w,
      * by deleting the property.
      */
     if (pe->atom == pd->rcm_init) {
-        xcb_delete_property(dpy, IswWindow(w), pd->rcm_init);
+        xcb_delete_property(dpy, _IswXcbWindow(IswWindowOf(w)), pd->rcm_init);
         xcb_flush(dpy);
 
 #ifdef DEBUG
@@ -948,7 +949,7 @@ _IswResourceConfigurationEH(Widget w,
     {
         xcb_get_property_cookie_t cookie =
             xcb_get_property(dpy, True, /* delete after read */
-                             IswWindow(w), pd->rcm_data,
+                             _IswXcbWindow(IswWindowOf(w)), pd->rcm_data,
                              XCB_ATOM_STRING, 0, 8192);
         xcb_get_property_reply_t *reply =
             xcb_get_property_reply(dpy, cookie, NULL);

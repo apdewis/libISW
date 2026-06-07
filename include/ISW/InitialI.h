@@ -384,7 +384,7 @@ extern IswPerDisplay _IswSortPerDisplayList(
 );
 
 extern IswPerDisplay _IswGetPerDisplay(
-    xcb_connection_t *		/* dpy */
+    IswDisplay		/* dpy */
 );
 
 /*
@@ -403,7 +403,7 @@ extern xcb_screen_t *_IswGetDefaultScreen(
 extern xcb_connection_t *_IswConnectionOfScreen(xcb_screen_t *screen);
 
 extern IswPerDisplayInputRec* _IswGetPerDisplayInput(
-    xcb_connection_t * 		/* dpy */
+    IswDisplay 		/* dpy */
 );
 
 #if 0
@@ -476,12 +476,12 @@ extern xcb_xrm_database_t *_IswPreparseCommandLine(XrmOptionDescRec *urlist,
 			String *applName, String *displayName,
 			String *language);
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(IswDisplay dpy);
 
 /* XCB → neutral IswEvent translation (ISWPlatformEventXCB.c).  Fills *out and
  * returns True for toolkit-semantic events; returns False for X11 protocol
  * events the toolkit does not see as IswEvents. */
-extern Boolean _IswEventFromXcb(xcb_connection_t *dpy,
+extern Boolean _IswEventFromXcb(IswDisplay dpy,
                                 xcb_generic_event_t *xev, IswEvent *out);
 
 _XFUNCPROTOEND

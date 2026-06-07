@@ -29,6 +29,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 #include "CreateI.h"
+#include "ISWPlatformPrivate.h"
 
 static void
 FreeBlockHookList(Widget widget _X_UNUSED,
@@ -113,7 +114,7 @@ void
 _IswAddShellToHookObj(Widget shell)
 {
     /* app_con is locked when this function is called */
-    HookObject ho = (HookObject) IswHooksOfDisplay(IswDisplay(shell));
+    HookObject ho = (HookObject) IswHooksOfDisplay(IswDisplayOf(shell));
 
     if (ho->hooks.num_shells == ho->hooks.max_shells) {
         ho->hooks.max_shells += SHELL_INCR;
@@ -134,12 +135,13 @@ _IswIsHookObject(Widget widget)
 }
 
 Widget
-IswHooksOfDisplay(xcb_connection_t *dpy)
+IswHooksOfDisplay(IswDisplay dpy)
 {
     Widget retval;
     IswPerDisplay pd;
+    xcb_connection_t *conn = _IswXcbConn(dpy);
 
-    DPY_TO_APPCON(dpy);
+    DPY_TO_APPCON(conn);
 
     LOCK_APP(app);
     pd = _IswGetPerDisplay(dpy);
@@ -147,7 +149,7 @@ IswHooksOfDisplay(xcb_connection_t *dpy)
         /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
          * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
         pd->hook_object =
-            _IswCreateHookObj(_IswGetDefaultScreen(dpy), dpy);
+            _IswCreateHookObj(_IswGetDefaultScreen(conn), conn);
     retval = pd->hook_object;
     UNLOCK_APP(app);
     return retval;

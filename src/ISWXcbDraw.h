@@ -556,7 +556,7 @@ void ISWCopyISOLatin1Lowered(char *dst, const char *src);
  * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
  */
 Boolean ISWCvtStringToOrientation(
-    xcb_connection_t *display,
+    IswDisplay display,
     XrmValuePtr args,
     Cardinal *num_args,
     XrmValuePtr from,
@@ -574,7 +574,7 @@ Boolean ISWCvtStringToOrientation(
  * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
  */
 Boolean ISWCvtStringToJustify(
-    xcb_connection_t *display,
+    IswDisplay display,
     XrmValuePtr args,
     Cardinal *num_args,
     XrmValuePtr from,
@@ -592,7 +592,7 @@ Boolean ISWCvtStringToJustify(
  * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
  */
 Boolean ISWCvtStringToEdgeType(
-    xcb_connection_t *display,
+    IswDisplay display,
     XrmValuePtr args,
     Cardinal *num_args,
     XrmValuePtr from,
@@ -612,7 +612,7 @@ Boolean ISWCvtStringToEdgeType(
  * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
  */
 Boolean ISWCvtStringToWidget(
-    xcb_connection_t *display,
+    IswDisplay display,
     XrmValuePtr args,
     Cardinal *num_args,
     XrmValuePtr from,

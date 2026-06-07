@@ -58,6 +58,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 /*      Function Name: IswSetWMColormapWindows
  *
  *      Description: Sets the value of the WM_COLORMAP_WINDOWS
@@ -137,19 +138,19 @@ IswSetWMColormapWindows(Widget widget, Widget *list, Cardinal count)
     data = IswMallocArray(checked_count, (Cardinal) sizeof(xcb_window_t));
 
     for (i = 0; i < checked_count; i++)
-        data[i] = IswWindow(top[i]);
+        data[i] = _IswXcbWindow(IswWindowOf(top[i]));
 
-    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(IswDisplay(widget), FALSE, strlen("WM_COLORMAP_WINDOWS"), "WM_COLORMAP_WINDOWS");
-    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(IswDisplay(widget), cookie, NULL);
+    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(widget)), FALSE, strlen("WM_COLORMAP_WINDOWS"), "WM_COLORMAP_WINDOWS");
+    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(widget)), cookie, NULL);
     if (reply) {
         xa_wm_colormap_windows = reply->atom;
         free(reply);
     }
 
-    xcb_change_property(IswDisplay(widget), XCB_PROP_MODE_REPLACE, IswWindow(widget),
+    xcb_change_property(_IswXcbConn(IswDisplayOf(widget)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(widget)),
                     xa_wm_colormap_windows, XCB_ATOM_WINDOW, 32, i, data);
 
-    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    hookobj = IswHooksOfDisplay(IswDisplayOf(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
 

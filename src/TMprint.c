@@ -72,6 +72,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #ifdef HAVE_XKBCOMMON
 #include <xkbcommon/xkbcommon.h>
@@ -764,7 +765,7 @@ _IswPrintXlations(Widget w,
         }
 #endif                          /* TRACE_TM */
         PrintState(sb, (TMStateTree) stateTree, branchHead,
-                   (Boolean) includeRHS, accelWidget, IswDisplay(w));
+                   (Boolean) includeRHS, accelWidget, _IswXcbConn(IswDisplayOf(w)));
     }
     IswStackFree((IswPointer) prints, (IswPointer) stackPrints);
     return (sb->start);
@@ -810,9 +811,9 @@ _IswDisplayInstalledAccelerators(Widget widget,
 {
     ISW_NATIVE_EVENT(iswev);
     Widget eventWidget;
-    xcb_connection_t *dpy = IswDisplay(widget);
-    xcb_window_t window = get_event_window(event);
-    eventWidget = IswWindowToWidget(dpy, window);
+    IswDisplay dpy = IswDisplayOf(widget);
+    IswWindow window = _IswXcbWindowWrap(get_event_window(event));
+    eventWidget = IswWindowToWidget((IswDisplay)dpy, window);
     register Cardinal i;
     TMStringBufRec sbRec, *sb = &sbRec;
     IswTranslations xlations;
@@ -860,7 +861,7 @@ _IswDisplayInstalledAccelerators(Widget widget,
 
         PrintState(sb, (TMStateTree) stateTree, branchHead, True,
                    complexBindProcs[prints[i].tIndex].widget,
-                   IswDisplay(widget));
+                   _IswXcbConn(IswDisplayOf(widget)));
     }
     IswStackFree((IswPointer) prints, (IswPointer) stackPrints);
     printf("%s\n", sb->start);

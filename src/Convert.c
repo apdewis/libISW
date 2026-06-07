@@ -74,6 +74,7 @@ in this Software without prior written authorization from The Open Group.
 #include        "IntrinsicI.h"
 #include        "StringDefs.h"
 #include        "Intrinsic.h"
+#include        "ISWPlatformPrivate.h"
 
 /* Conversion procedure hash table */
 
@@ -728,7 +729,7 @@ GetConverterEntry(IswAppContext app, IswTypeConverter converter)
 }
 
 static Boolean
-CallConverter(xcb_connection_t *dpy,
+CallConverter(IswDisplay dpy,
               IswTypeConverter converter,
               XrmValuePtr args,
               Cardinal num_args,
@@ -853,7 +854,7 @@ CallConverter(xcb_connection_t *dpy,
             do_free = True;
         }
         else if (cP->cache_type == IswCacheByDisplay)
-            heap = &_IswGetPerDisplay(dpy)->heap;
+            heap = &_IswGetPerDisplay((IswDisplay) dpy)->heap;
         else if (cP->global)
             heap = &globalHeap;
         else
@@ -871,7 +872,7 @@ CallConverter(xcb_connection_t *dpy,
 }
 
 Boolean
-IswCallConverter(xcb_connection_t *dpy,
+IswCallConverter(IswDisplay dpy,
                 IswTypeConverter converter,
                 XrmValuePtr args,
                 Cardinal num_args,

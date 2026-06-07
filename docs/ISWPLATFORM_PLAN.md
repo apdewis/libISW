@@ -20,7 +20,7 @@ which phase is current, what is done, what is deferred and why.
 - Any future session reads this file first to know exactly where the
   abstraction stands.
 
-**Current phase:** 2 — `IswDisplay` + `IswWindow` (not started)
+**Current phase:** 3 — `IswInput` + translation manager (not started)
 
 ## Phase table
 
@@ -28,7 +28,7 @@ which phase is current, what is done, what is deferred and why.
 |---|---|---|---|
 | 0 | Scaffolding: vtable header skeleton + this status file | done | `include/ISW/ISWPlatform.h`, `src/ISWPlatformPrivate.h`, `docs/ISWPLATFORM_PLAN.md` |
 | 1 | Portable event union + `IswEvent` (unblocks the rest) | done | `IswEvent.h`, `ISWPlatformEventXCB.c`, Event.c, TMstate.c, TMaction.c, +~30 widget files |
-| 2 | `IswDisplay` + `IswWindow` (core widget lifecycle) | todo | CoreP.h, Display.c, Initialize.c, Core.c, Shell.c, Geometry.c, Composite.c, Create.c, Popup.c |
+| 2 | `IswDisplay` + `IswWindow` (core widget lifecycle) | done | ISWPlatform.h, ISWPlatformDisplayXCB.c, ISWPlatformPrivate.h, CoreP.h, Intrinsic.h + ~80 files |
 | 3 | `IswInput` + translation manager | todo | Keyboard.c, Pointer.c, XtTypes.h, TMparse.c, TMstate.c, TMaction.c, TMgrab.c |
 | 4 | `IswColor` + `IswFont` | todo | Converters.c, Core.c, Display.c, TextSink.c |
 | 5 | `IswSelection`, `IswCursor`, grabs | todo | Selection.c, PassivGrab.c, TMgrab.c, Tip.c, Panner.c, Simple.c |
@@ -137,13 +137,49 @@ backend-internal, not to route IswEvents.
 
 ### Phase 2 — `IswDisplay` + `IswWindow`
 
-Wrap the display connection (`xcb_connection_t` / `xcb_screen_t` embedded in
-`core.display` / `core.screen`) behind `ISWDisplay`, and window lifecycle
-(create/configure/map/destroy/reparent) behind `ISWWindow`. Largest single
-surface area.
+Wrap the display connection and window identity behind the opaque handles
+`IswDisplay` / `IswScreen` / `IswWindow`, and the display + window lifecycle
+behind the `IswPlatformDisplayOps` / `IswPlatformWindowOps` sub-vtables.
+Full breaking change (per user direction): NO public escape hatch — the public
+API is XCB-free.
 
-Files: CoreP.h, Display.c, Initialize.c, Core.c, Shell.c, Geometry.c,
-Composite.c, Create.c, Popup.c.
+**Status: done (build green, demo verified).** What landed:
+
+- **Opaque handles** `IswDisplay` / `IswScreen` / `IswWindow` (typedef'd in
+  `Intrinsic.h`).  In the XCB backend each is the native value reinterpreted —
+  `IswDisplay` *is* `xcb_connection_t*`, `IswScreen` *is* `xcb_screen_t*`,
+  `IswWindow` *is* the `xcb_window_t` id — so the seam conversions are plain
+  casts (no wrapper alloc, no lookup, can't crash on a stale value) and
+  `core.display` is interchangeable with the conn the dispatch/per-display
+  layers carry.
+- **Vtable + backend**: `IswPlatformDisplayOps` (open/close/has_error/flush/
+  connection_fd/screen enumeration/root/bell) and `IswPlatformWindowOps`
+  (alloc_id/create/destroy/map/unmap/reparent/configure/change_attributes/
+  clear_area/id↔handle) in `ISWPlatform.h`, implemented over XCB in
+  `src/ISWPlatformDisplayXCB.c`; `isw_platform_xcb_ops` + `_IswPlatformGetOps`.
+- **Accessors renamed** `IswDisplay()`→`IswDisplayOf()`, `IswScreen()`→
+  `IswScreenOf()`, `IswWindow()`→`IswWindowOf()` (a typedef and a same-named
+  function-like macro cannot coexist); `…OfObject` variants kept their names,
+  now returning opaque handles.  `core.display/screen/window` and
+  `hooks.display/screen` fields are opaque handles.
+- **Public headers are XCB-free**: Intrinsic.h, DrawingArea.h, IswTrayIcon.h,
+  ISWContext.h, ScrollWheel.h carry only the opaque handles.  The old
+  `ConnectionNumber()` XCB macro is retired in favour of
+  `_IswPlatformConnectionFd()` (a display-op wrapper).  `libISW.so` has no
+  direct libX11 NEEDED entry.
+- **Internal seam** (`_IswXcbConn`/`_IswXcbScreen`/`_IswXcbDefaultScreen`/
+  `_IswXcbWindow`/`_IswXcbWindowWrap`), declared ONLY in
+  `src/ISWPlatformPrivate.h` (never a public header).  Used by ~57 src files
+  whose categories await their own phase (atoms→6, color/font→4, selection/
+  cursor/grab→5, input/keysym→3, resources, plus the XCB drawing/XDND/tray
+  backends).  This is the Phase-2 seam: it shrinks phase by phase and is
+  deleted after Phase 6.  See `docs/PHASE2_MIGRATION_SPEC.md`.
+
+Verified: demo starts, renders, and survives menu-bar / scroll / combobox
+open-close / resize / button interactions; rendering correct after resize+scroll.
+
+Files: ISWPlatform.h, ISWPlatformDisplayXCB.c (new), ISWPlatformPrivate.h,
+CoreP.h, HookObjI.h, Intrinsic.h + ~80 src files (accessor rename + seam).
 
 ### Phase 3 — `IswInput` + translation manager
 
@@ -201,3 +237,10 @@ Depends on Phases 1, 2, 5. Files: ISWXdnd.c, ISWXdnd.h.
   backend-internal and are never surfaced as IswEvents. `libISW.so` links;
   no direct libX11 NEEDED entry. Follow-up: retire the native bridge by reading
   neutral fields in widget procs.
+- Phase 2 done (build green, demo verified): opaque `IswDisplay`/`IswScreen`/
+  `IswWindow` handles + `IswPlatformDisplayOps`/`IswPlatformWindowOps` vtables
+  (`ISWPlatformDisplayXCB.c`).  Accessors renamed to `…Of`; `core`/`hooks`
+  display/screen/window fields opaque.  Public headers XCB-free; `ConnectionNumber`
+  retired for `_IswPlatformConnectionFd`.  Internal seam (`_IswXcb*`, src-only)
+  carries the not-yet-abstracted categories (~57 files) and is retired through
+  Phases 3–6.  No public escape hatch.  No direct libX11 NEEDED entry.

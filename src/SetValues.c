@@ -74,6 +74,7 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include "ResourceI.h"
 #include "EventI.h"
+#include "ISWPlatformPrivate.h"
 
 /*
  *      IswSetValues(), IswSetSubvalues()
@@ -437,7 +438,7 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
          * to the bit bucket. */
         if (IswIsWidget(w) && w->core.windowless) {
             /* A windowless widget shares its windowed ancestor's window, so
-               xcb_clear_area(IswWindow(w), ...) would blank and re-expose the
+               xcb_clear_area(IswWindowOf(w), ...) would blank and re-expose the
                whole ancestor — flashing the cleared background before the
                async repaint.  Repaint just this widget's surface and composite
                the ancestor, mirroring the windowless branch in Geometry.c. */
@@ -456,9 +457,9 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
                                        "IswSetValues calls ClearArea on \"%s\".\n",
                                        IswName(w)));
                 xcb_clear_area(
-                        IswDisplay(w), 1, IswWindow(w), 0, 0, 0, 0
+                        _IswXcbConn(IswDisplayOf(w)), 1, _IswXcbWindow(IswWindowOf(w)), 0, 0, 0, 0
                     );
-                xcb_flush(IswDisplay(w));
+                xcb_flush(_IswXcbConn(IswDisplayOf(w)));
             }
         }
         else {                  /*non-window object */
@@ -474,15 +475,15 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
                                            IswName(w), IswName(pw)));
 
                     xcb_clear_area(
-                        IswDisplay(pw),
+                        _IswXcbConn(IswDisplayOf(pw)),
                         1,  /* generate Expose event */
-                        IswWindow(pw),
-                        r->rectangle.x, 
+                        _IswXcbWindow(IswWindowOf(pw)),
+                        r->rectangle.x,
                         r->rectangle.y,
                         (unsigned) (r->rectangle.width + bw2),
                         (unsigned) (r->rectangle.height + bw2)
                     );
-                    xcb_flush(IswDisplay(pw));
+                    xcb_flush(_IswXcbConn(IswDisplayOf(pw)));
                 }
             }
         }

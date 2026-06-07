@@ -300,7 +300,7 @@ InitFds(IswAppContext app,
 
         if (!ignoreEvents)
             for (ii = 0; ii < wf->num_dpys; ii++, fdlp++) {
-                fdlp->fd = ConnectionNumber(app->list[ii]);
+                fdlp->fd = _IswPlatformConnectionFd((IswDisplay)app->list[ii]);
                 fdlp->events = POLLIN;
             }
         if (!ignoreInputs && app->input_list != NULL)
@@ -332,7 +332,7 @@ InitFds(IswAppContext app,
 
     if (!ignoreEvents)
         for (ii = 0; ii < app->count; ii++) {
-            FD_SET(ConnectionNumber(app->list[ii]), &wf->rmask);
+            FD_SET(_IswPlatformConnectionFd((IswDisplay)app->list[ii]), &wf->rmask);
         }
 #endif
 }
@@ -466,7 +466,7 @@ FindInputs(IswAppContext app,
 #ifdef XTHREADS
     rmask = app->fds.rmask;
     for (dd = app->count; dd-- > 0;)
-        FD_SET(ConnectionNumber(app->list[dd]), &rmask);
+        FD_SET(_IswPlatformConnectionFd((IswDisplay)app->list[dd]), &rmask);
 #endif
 
     for (ii = 0; ii < wf->nfds && nfds > 0; ii++) {
@@ -480,7 +480,7 @@ FindInputs(IswAppContext app,
             nfds--;
             if (!ignoreEvents) {
                 for (dd = 0; dd < app->count; dd++) {
-                    if (ii == ConnectionNumber(app->list[dd])) {
+                    if (ii == _IswPlatformConnectionFd((IswDisplay)app->list[dd])) {
                         if (*dpy_no == -1) {
                             /* XCB port: Check for pending events using xcb_poll_for_queued_event()
                              * instead of XEventsQueued(). The XCB connection maintains an
@@ -1416,7 +1416,7 @@ _IswRefreshMapping(xcb_connection_t *display, xcb_generic_event_t *event, _IswBo
     xcb_mapping_notify_event_t *mapping_event = (xcb_mapping_notify_event_t*)event;
 
     LOCK_PROCESS;
-    pd = _IswGetPerDisplay(display);
+    pd = _IswGetPerDisplay((IswDisplay) display);
 
     if (mapping_event->request != XCB_MAPPING_POINTER &&
         pd && pd->keysyms && (event->sequence >= pd->keysyms_serial))
@@ -1595,7 +1595,7 @@ IswAppProcessEvent(IswAppContext app, IswInputMask mask)
                 if (event->response_type == XCB_MAPPING_NOTIFY)
                     _IswRefreshMapping(disp, event, False);
 
-                IswDispatchEvent(event, disp);
+                IswDispatchEvent(event, (IswDisplay) disp);
 
                 free(event);
             }

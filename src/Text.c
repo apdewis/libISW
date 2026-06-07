@@ -69,6 +69,7 @@ SOFTWARE.
 #include <ISW/TextP.h>
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWImP.h>
+#include "ISWPlatformPrivate.h"
 #include "ISWXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
 
@@ -466,7 +467,7 @@ CreateVScrollBar(TextWidget ctx)
   if (IswIsRealized((Widget)ctx)) {
     IswRealizeWidget(vbar);
     IswMapWidget(vbar);
-    xcb_flush(IswDisplay((Widget)ctx));
+    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)ctx)));
   }
 }
 
@@ -667,12 +668,12 @@ Realize(xcb_connection_t *conn, Widget w, IswValueMask *valueMask, uint32_t *att
 
   /* Create the GC now that the window exists */
   {
-    xcb_screen_t *screen = IswScreen(w);
+    xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(w));
     uint32_t gc_values[2];
     gc_values[0] = BlackPixelOfScreen(screen);
     gc_values[1] = WhitePixelOfScreen(screen);
     ctx->text.gc = xcb_generate_id(conn);
-    xcb_create_gc(conn, ctx->text.gc, IswWindow(w),
+    xcb_create_gc(conn, ctx->text.gc, _IswXcbWindow(IswWindowOf(w)),
                   XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
   }
 
@@ -1447,7 +1448,7 @@ static Boolean
 ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
                  IswPointer *value, unsigned long *length, int *format)
 {
-  xcb_connection_t* d = IswDisplay(w);
+  xcb_connection_t* d = _IswXcbConn(IswDisplayOf(w));
   TextWidget ctx = (TextWidget)w;
   Widget src = ctx->text.source;
   IswTextEditType edit_mode;
@@ -2346,7 +2347,7 @@ xcb_atom_t*
 _IswTextSelectionList(TextWidget ctx, String *list, Cardinal nelems)
 {
   xcb_atom_t * sel = ctx->text.s.selections;
-  xcb_connection_t *dpy = IswDisplay((Widget) ctx);
+  xcb_connection_t *dpy = _IswXcbConn(IswDisplayOf((Widget) ctx));
   int n;
 
   if (nelems > ctx->text.s.array_size) {
@@ -3133,7 +3134,7 @@ void
 IswTextUnsetSelection(Widget w)
 {
   TextWidget ctx = (TextWidget)w;
-  xcb_atom_t clipboard = XCB_ATOM_CLIPBOARD(IswDisplay(w));
+  xcb_atom_t clipboard = XCB_ATOM_CLIPBOARD(_IswXcbConn(IswDisplayOf(w)));
 
   while (ctx->text.s.atom_count != 0) {
     xcb_atom_t sel = ctx->text.s.selections[ctx->text.s.atom_count - 1];

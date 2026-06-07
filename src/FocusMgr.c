@@ -35,6 +35,7 @@
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSB.h>
 #include <ISW/SmeBSBP.h>
+#include "ISWPlatformPrivate.h"
 #include <cairo/cairo.h>
 
 #include <stdlib.h>
@@ -222,7 +223,7 @@ redraw_widget(Widget w)
     if (!w || !IswIsRealized(w)) return;
     if (w->core.windowless) {
         /* Windowless: repaint our own surface and composite the ancestor.
-         * xcb_clear_area(IswWindow(w)) would resolve to the shared windowed
+         * xcb_clear_area(IswWindowOf(w)) would resolve to the shared windowed
          * ancestor and blank the whole panel.  The windowless paint path
          * already drives expose with a NULL event safely (widgets that
          * dereference it, e.g. Text, guard for event == NULL). */
@@ -232,9 +233,10 @@ redraw_widget(Widget w)
     /* Ask the X server to generate a real Expose event for the whole
      * widget. Calling core_class.expose directly with a NULL event is
      * unsafe: some widgets (e.g. Text) dereference the event. */
-    xcb_clear_area(IswDisplay(w), 1 /* exposures */, IswWindow(w),
+    xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1 /* exposures */,
+                   _IswXcbWindow(IswWindowOf(w)),
                    0, 0, w->core.width, w->core.height);
-    xcb_flush(IswDisplay(w));
+    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
 }
 
 /* The widget currently displaying the Tab-cycle focus ring, if any.
@@ -439,7 +441,8 @@ repaint_menu_widgets(Widget w)
         if (w->core.windowless)
             _IswRepaintWindowless(w);
         else
-            xcb_clear_area(IswDisplay(w), 1, IswWindow(w),
+            xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1,
+                           _IswXcbWindow(IswWindowOf(w)),
                            0, 0, w->core.width, w->core.height);
     }
     if (IswIsComposite(w)) {
@@ -460,7 +463,7 @@ repaint_for_alt_change(xcb_connection_t *c)
         /* SimpleMenu shells need their window cleared so the SmeBSB
          * entries redraw their underlines. */
         if (IswIsSubclass(shell, simpleMenuWidgetClass)) {
-            xcb_clear_area(c, 1, IswWindow(shell),
+            xcb_clear_area(c, 1, _IswXcbWindow(IswWindowOf(shell)),
                            0, 0, shell->core.width, shell->core.height);
         }
     }
@@ -564,7 +567,7 @@ _IswFocusMgrMaybeHandleKey(Widget widget, xcb_generic_event_t *event)
     if (type != XCB_KEY_PRESS && type != XCB_KEY_RELEASE) return False;
 
     xcb_key_press_event_t *ke = (xcb_key_press_event_t *)event;
-    xcb_connection_t *c = IswDisplay(widget);
+    xcb_connection_t *c = _IswXcbConn(IswDisplayOf(widget));
     xcb_key_symbols_t *syms = get_keysyms(c);
     if (!syms) return False;
 

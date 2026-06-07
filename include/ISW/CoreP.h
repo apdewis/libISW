@@ -91,10 +91,10 @@ typedef struct _CorePart {
     WidgetList      popup_list;         /* list of popups                    */
     Cardinal        num_popups;         /* how many popups                   */
     String          name;		/* widget resource name		     */
-    xcb_screen_t	*screen;		/* window's screen		     */
-    xcb_connection_t *display;      /* window's display (XCB doesnt store a pointer in screen type like xlib does)*/
-    xcb_colormap_t  colormap;           /* colormap                          */
-    xcb_window_t	    window;		/* window ID			     */
+    IswScreen	    screen;		/* window's screen (opaque handle)   */
+    IswDisplay      display;        /* window's display (opaque handle)  */
+    xcb_colormap_t  colormap;           /* colormap (Phase 4)                */
+    IswWindow	    window;		/* window (opaque handle)	     */
     Cardinal        depth;		/* number of planes in window        */
     Pixel	    background_pixel;	/* window background pixel	     */
     xcb_pixmap_t    background_pixmap;	/* window background pixmap or NULL  */

@@ -49,6 +49,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <cairo-xcb.h>
 #endif
 #include "ISWXcbDraw.h"
+#include "ISWPlatformPrivate.h"
 
 /* HiDPI helpers: return Cairo-matched scaled font metrics */
 static int ScaledAscent(TextSinkObject sink) {
@@ -408,8 +409,8 @@ static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
 static xcb_pixmap_t
 CreateInsertCursor(Widget w)
 {
-    xcb_connection_t *conn = IswDisplayOfObject(w);
-    xcb_screen_t *s = IswScreenOfObject(w);
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOfObject(w));
+    xcb_screen_t *s = _IswXcbScreen(IswScreenOfObject(w));
     xcb_drawable_t root = RootWindowOfScreen(s);
     return IswCreateBitmapFromData(conn, root,
             insertCursor_bits, insertCursor_width, insertCursor_height);
@@ -665,7 +666,7 @@ Destroy(Widget w)
         sink->text_sink.render_ctx = NULL;
     }
 
-    ISWFreePixmap(IswDisplayOfObject(w), sink->text_sink.insertCursorOn);
+    ISWFreePixmap(_IswXcbConn(IswDisplayOfObject(w)), sink->text_sink.insertCursorOn);
 }
 
 /* ARGSUSED */

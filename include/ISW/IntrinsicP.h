@@ -205,11 +205,11 @@ typedef struct _IswTMRec {
 #include <ISW/ObjectP.h>
 #include <ISW/RectObjP.h>
 
-#define IswDisplay(widget)	((widget)->core.display)
-#define IswScreen(widget)	((widget)->core.screen)
+#define IswDisplayOf(widget)	((widget)->core.display)
+#define IswScreenOf(widget)	((widget)->core.screen)
 /* Windowless widgets have no own window; resolve to the nearest windowed
    ancestor's window.  Read-only: assign w->core.window directly to set. */
-#define IswWindow(widget) \
+#define IswWindowOf(widget) \
     ((IswIsWidget(widget) && (widget)->core.windowless) \
      ? _IswWindowedAncestor((Widget)(widget))->core.window \
      : (widget)->core.window)

@@ -489,7 +489,7 @@ extern IswTranslations _IswCreateXlations(
 );
 
 extern Boolean _IswCvtMergeTranslations(
-    xcb_connection_t *	/* dpy */,
+    IswDisplay	/* dpy */,
     XrmValuePtr	/* args */,
     Cardinal*	/* num_args */,
     XrmValuePtr	/* from */,

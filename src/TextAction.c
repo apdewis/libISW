@@ -40,6 +40,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/TextP.h>
 #include <ISW/ISWImP.h>
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -198,8 +199,8 @@ we are, and convert it.  I also warn the user that the other client is evil. */
   text.firstPos = 0;
   text.length = *length;
   if (_IswTextReplace(ctx, ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(IswDisplay(ctx));
+    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
+    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
     return;
   }
   ctx->text.insertPos = SrcScan(ctx->text.source, ctx->text.insertPos,
@@ -218,7 +219,7 @@ GetSelection(Widget w, xcb_timestamp_t time, String *params, Cardinal num_params
     xcb_atom_t selection;
     struct _SelectionList* list;
 
-    selection = IswXcbInternAtom(IswDisplay(w), *params, False);
+    selection = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), *params, False);
 
     if (--num_params) {
 	list = IswNew(struct _SelectionList);
@@ -228,7 +229,7 @@ GetSelection(Widget w, xcb_timestamp_t time, String *params, Cardinal num_params
 	list->CT_asked = True;
 	list->selection = selection;
     } else list = NULL;
-    IswGetSelectionValue(w, selection, XCB_ATOM_COMPOUND_TEXT(IswDisplay(w)),
+    IswGetSelectionValue(w, selection, XCB_ATOM_COMPOUND_TEXT(_IswXcbConn(IswDisplayOf(w))),
 			_SelectionReceived, (IswPointer)list, time);
 }
 
@@ -472,7 +473,7 @@ static Boolean
 ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
                  IswPointer* value, unsigned long *length, int *format)
 {
-  xcb_connection_t* d = IswDisplay(w);
+  xcb_connection_t* d = _IswXcbConn(IswDisplayOf(w));
   TextWidget ctx = (TextWidget)w;
   Widget src = ctx->text.source;
   IswTextEditType edit_mode;
@@ -671,7 +672,7 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
 
   if (kill && from < to) {
     IswTextSelectionSalt    *salt;
-    xcb_atom_t selection = IswXcbInternAtom(IswDisplay(ctx), "SECONDARY", False);
+    xcb_atom_t selection = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(ctx)), "SECONDARY", False);
 
     LoseSelection ((Widget) ctx, &selection);
     salt = (IswTextSelectionSalt *) IswMalloc (sizeof (IswTextSelectionSalt));
@@ -694,7 +695,7 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
 		    ConvertSelection, LoseSelection, NULL);
     salt->s.atom_count = 1;
 /*
-    XStoreBuffer(IswDisplay(ctx), ptr, strlen(ptr), 1);
+    XStoreBuffer(IswDisplayOf(ctx), ptr, strlen(ptr), 1);
     IswFree(ptr);
 */
   }
@@ -705,8 +706,8 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
   text.ptr = (char *)"";	/* These two lines needed to make legal TextBlock */
 
   if (_IswTextReplace(ctx, from, to, &text)) {
-    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(IswDisplay(ctx));
+    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
+    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
     return;
   }
   ctx->text.insertPos = from;
@@ -835,7 +836,7 @@ KillCurrentSelection(Widget w, IswEvent *iswev, String *p, Cardinal *n)
   StartAction(ctx, iswev);
   /* Snapshot selection to CLIPBOARD before deleting */
   if (ctx->text.s.left < ctx->text.s.right) {
-    xcb_atom_t clip = XCB_ATOM_CLIPBOARD(IswDisplay(w));
+    xcb_atom_t clip = XCB_ATOM_CLIPBOARD(_IswXcbConn(IswDisplayOf(w)));
     _IswTextSaltAwaySelection(ctx, &clip, 1);
   }
   _DeleteOrKill(ctx, ctx->text.s.left, ctx->text.s.right, TRUE);
@@ -873,8 +874,8 @@ InsertNewLineAndBackupInternal(TextWidget ctx)
   }
 
   if (_IswTextReplace(ctx, ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(IswDisplay(ctx));
+    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
+    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
     error = IswEditError;
   }
   else
@@ -959,8 +960,8 @@ InsertNewLineAndIndent(Widget w, IswEvent *iswev, String *p, Cardinal *n)
   IswFree( line_to_ip );
 
   if (_IswTextReplace(ctx,ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(IswDisplay(ctx));
+    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
+    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
     IswFree(text.ptr);
     EndAction(ctx);
     return;
@@ -1068,7 +1069,7 @@ SelectSave(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     int	    num_atoms;
     xcb_atom_t*   sel;
-    xcb_connection_t* dpy = IswDisplay(w);
+    xcb_connection_t* dpy = _IswXcbConn(IswDisplayOf(w));
     xcb_atom_t    selections[256];
 
     StartAction(  (TextWidget) w, iswev );
@@ -1087,7 +1088,7 @@ CopySelection(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
   TextWidget ctx = (TextWidget) w;
   int num_atoms;
   xcb_atom_t *sel;
-  xcb_connection_t *dpy = IswDisplay(w);
+  xcb_connection_t *dpy = _IswXcbConn(IswDisplayOf(w));
   xcb_atom_t selections[256];
 
   StartAction(ctx, iswev);
@@ -1225,8 +1226,8 @@ AutoFill(TextWidget ctx)
   text.firstPos = 0;
 
   if (_IswTextReplace(ctx, ret_pos - 1, ret_pos, &text)) {
-      xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
-      xcb_flush(IswDisplay(ctx));
+      xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
+      xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
   }
 }
 
@@ -1282,8 +1283,8 @@ InsertChar(Widget w, IswEvent *iswev, String *p, Cardinal *n)
       AutoFill(ctx);
   }
   else {
-      xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
-      xcb_flush(IswDisplay(ctx));
+      xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
+      xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
   }
 
   IswFree(text.ptr);
@@ -1403,8 +1404,8 @@ InsertString(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
       if ( _IswTextReplace( ctx, ctx->text.insertPos,
 			    ctx->text.insertPos, &text ) ) {
-          xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
-          xcb_flush(IswDisplay(ctx));
+          xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
+          xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
           EndAction( ctx );
           return;
       }
@@ -1480,14 +1481,14 @@ Multiply(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
   if (*num_params != 1) {
       IswAppError( IswWidgetToApplicationContext( w ),
 	       "Isw Text Widget: multiply() takes exactly one argument.");
-      xcb_bell(IswDisplay(w), 0); // 0 = default volume
-      xcb_flush(IswDisplay(w));
+      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
+      xcb_flush(_IswXcbConn(IswDisplayOf(w)));
       return;
   }
 
   if ( ( params[0][0] == 'r' ) || ( params[0][0] == 'R' ) ) {
-      xcb_bell(IswDisplay(w), 0); // 0 = default volume
-      xcb_flush(IswDisplay(w));
+      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
+      xcb_flush(_IswXcbConn(IswDisplayOf(w)));
       ctx->text.mult = 1;
       return;
   }
@@ -1497,8 +1498,8 @@ Multiply(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
       sprintf(buf, "%s %s", "Isw Text Widget: multiply() argument",
 	    "must be a number greater than zero, or 'Reset'." );
       IswAppError( IswWidgetToApplicationContext( w ), buf );
-      xcb_bell(IswDisplay(w), 0); // 0 = default volume
-      xcb_flush(IswDisplay(w));
+      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
+      xcb_flush(_IswXcbConn(IswDisplayOf(w)));
       return;
   }
 
@@ -1685,8 +1686,8 @@ FormParagraph(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 		 IswstParagraph, IswsdRight, 1, FALSE );
 
   if ( FormRegion( ctx, from, to ) == IswReplaceError ) {
-      xcb_bell(IswDisplay(w), 0); // 0 = default volume
-      xcb_flush(IswDisplay(w));
+      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
+      xcb_flush(_IswXcbConn(IswDisplayOf(w)));
   }
   _IswTextSetScrollBars( ctx );
   EndAction( ctx );
@@ -1720,8 +1721,8 @@ TransposeCharacters(Widget w, IswEvent *iswev, String *params, Cardinal *num_par
   /* Make sure we aren't at the very beginning or end of the buffer. */
 
   if ( ( start == ctx->text.insertPos ) || ( end == ctx->text.insertPos ) ) {
-      xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
-      xcb_flush(IswDisplay(ctx));
+      xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
+      xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
       EndAction( ctx );
       return;
   }
@@ -1748,8 +1749,8 @@ TransposeCharacters(Widget w, IswEvent *iswev, String *params, Cardinal *num_par
   /* Store new text in source. */
 
   if (_IswTextReplace (ctx, start, end, &text))	{/* Unable to edit, complain. */
-    xcb_bell(IswDisplay(ctx), 0); // 0 = default volume
-    xcb_flush(IswDisplay(ctx));
+    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
+    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
   }
 
   IswFree((char *) buf);
@@ -1775,8 +1776,8 @@ NoOp(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     switch(params[0][0]) {
     case 'R':
     case 'r':
-	xcb_bell(IswDisplay(w), 0); // 0 = default volume
-  xcb_flush(IswDisplay(w));
+	xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
+  xcb_flush(_IswXcbConn(IswDisplayOf(w)));
     default:			/* Fall Through */
 	break;
     }

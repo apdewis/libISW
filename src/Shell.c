@@ -90,6 +90,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/cursorfont.h>
 #include <ISW/ISWXdnd.h>
 #include "ISWXcbDraw.h"
+#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -720,10 +721,10 @@ static void SetWMProperties(Widget w, char *window_name, char *icon_name,
     
     // Set WM_NAME property
     if (window_name != NULL) {
-        xcb_intern_atom_cookie_t name_atom_cookie = xcb_intern_atom(IswDisplay(w), FALSE, strlen("WM_NAME"), "WM_NAME");
-        xcb_intern_atom_reply_t *name_atom_reply = xcb_intern_atom_reply(IswDisplay(w), name_atom_cookie, NULL);
+        xcb_intern_atom_cookie_t name_atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(w)), FALSE, strlen("WM_NAME"), "WM_NAME");
+        xcb_intern_atom_reply_t *name_atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(w)), name_atom_cookie, NULL);
         if (name_atom_reply) {
-            xcb_change_property(IswDisplay(w), XCB_PROP_MODE_REPLACE, IswWindow(w),
+            xcb_change_property(_IswXcbConn(IswDisplayOf(w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
                                 name_atom_reply->atom, XCB_ATOM_STRING, 8,
                                 strlen(window_name), window_name);
             free(name_atom_reply);
@@ -732,10 +733,10 @@ static void SetWMProperties(Widget w, char *window_name, char *icon_name,
 
     // Set WM_ICON_NAME property (if needed)
     if (IswIsTopLevelShell((Widget) w) && icon_name != NULL) {
-        xcb_intern_atom_cookie_t icon_atom_cookie = xcb_intern_atom(IswDisplay(w), FALSE, strlen("WM_ICON_NAME"), "WM_ICON_NAME");
-        xcb_intern_atom_reply_t *icon_atom_reply = xcb_intern_atom_reply(IswDisplay(w), icon_atom_cookie, NULL);
+        xcb_intern_atom_cookie_t icon_atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(w)), FALSE, strlen("WM_ICON_NAME"), "WM_ICON_NAME");
+        xcb_intern_atom_reply_t *icon_atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(w)), icon_atom_cookie, NULL);
         if (icon_atom_reply) {
-            xcb_change_property(IswDisplay(w), XCB_PROP_MODE_REPLACE, IswWindow(w),
+            xcb_change_property(_IswXcbConn(IswDisplayOf(w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
                                 icon_atom_reply->atom, XCB_ATOM_STRING, 8,
                                 strlen(icon_name), icon_name);
             free(icon_atom_reply);
@@ -744,10 +745,10 @@ static void SetWMProperties(Widget w, char *window_name, char *icon_name,
 
     // Set WM_COMMAND property (if argv/argc are provided)
     if (argc > 0 && argv != NULL) {
-        xcb_intern_atom_cookie_t cmd_atom_cookie = xcb_intern_atom(IswDisplay(w), FALSE, strlen("WM_COMMAND"), "WM_COMMAND");
-        xcb_intern_atom_reply_t *cmd_atom_reply = xcb_intern_atom_reply(IswDisplay(w), cmd_atom_cookie, NULL);
+        xcb_intern_atom_cookie_t cmd_atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(w)), FALSE, strlen("WM_COMMAND"), "WM_COMMAND");
+        xcb_intern_atom_reply_t *cmd_atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(w)), cmd_atom_cookie, NULL);
         if (cmd_atom_reply) {
-            xcb_change_property(IswDisplay(w), XCB_PROP_MODE_REPLACE, IswWindow(w),
+            xcb_change_property(_IswXcbConn(IswDisplayOf(w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
                                 cmd_atom_reply->atom, XCB_ATOM_STRING, 8,
                                 argc, argv);
             free(cmd_atom_reply);
@@ -766,7 +767,7 @@ static void SetWMProperties(Widget w, char *window_name, char *icon_name,
         if (wm_class) {
             memcpy(wm_class, classhint_name, name_len + 1);
             memcpy(wm_class + name_len + 1, classhint_class, class_len + 1);
-            xcb_change_property(IswDisplay(w), XCB_PROP_MODE_REPLACE, IswWindow(w),
+            xcb_change_property(_IswXcbConn(IswDisplayOf(w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
                                 XCB_ATOM_WM_CLASS, XCB_ATOM_STRING, 8,
                                 total, wm_class);
             free(wm_class);
@@ -831,7 +832,7 @@ _SetWMSizeHints(WMShellWidget w)
         _IswAllocError("xcb_size_hints_t");
 
     ComputeWMSizeHints(w, size_hints);
-    xcb_icccm_set_wm_normal_hints(IswDisplay((Widget) w), IswWindow((Widget) w), size_hints);
+    xcb_icccm_set_wm_normal_hints(_IswXcbConn(IswDisplayOf((Widget) w)), _IswXcbWindow(IswWindowOf((Widget) w)), size_hints);
     free(size_hints);
 }
 
@@ -1030,8 +1031,8 @@ ShellWMDeleteWindow(Widget w, IswEvent *iswev, String *params,
     if ((event->response_type & ~0x80) != XCB_CLIENT_MESSAGE)
 	return;
 
-    wm_protocols = IswXcbInternAtom(IswDisplay(w), "WM_PROTOCOLS", True);
-    wm_delete_window = IswXcbInternAtom(IswDisplay(w), "WM_DELETE_WINDOW", True);
+    wm_protocols = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_PROTOCOLS", True);
+    wm_delete_window = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_DELETE_WINDOW", True);
 
     if (wm_protocols == 0 || wm_delete_window == 0)
 	return;
@@ -1081,9 +1082,9 @@ SetShellWMProtocolTranslations(Widget w)
     IswAugmentTranslations(w, compiled_table);
 
     /* advertise WM_DELETE_WINDOW to the window manager */
-    wm_delete_window = IswXcbInternAtom(IswDisplay(w), "WM_DELETE_WINDOW", False);
-    xcb_icccm_set_wm_protocols(IswDisplay(w), IswWindow(w),
-			       IswXcbInternAtom(IswDisplay(w), "WM_PROTOCOLS", False),
+    wm_delete_window = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_DELETE_WINDOW", False);
+    xcb_icccm_set_wm_protocols(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)),
+			       IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_PROTOCOLS", False),
 			       1, &wm_delete_window);
 }
 
@@ -1188,13 +1189,13 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
 
         /* HiDPI: create window at physical pixel geometry */
         {
-            double sf = _IswGetScaleFactor(IswDisplay(wid));
-            wid->core.window = xcb_generate_id(IswDisplay(wid));
+            double sf = _IswGetScaleFactor(IswDisplayOf(wid));
+            wid->core.window = _IswXcbWindowWrap(xcb_generate_id(_IswXcbConn(IswDisplayOf(wid))));
             xcb_create_window(
-                IswDisplay(wid),
+                _IswXcbConn(IswDisplayOf(wid)),
                 wid->core.depth,
-                wid->core.window,
-                wid->core.screen->root,
+                _IswXcbWindow(wid->core.window),
+                _IswXcbScreen(wid->core.screen)->root,
                 (int16_t)(wid->core.x * sf + 0.5),
                 (int16_t)(wid->core.y * sf + 0.5),
                 (uint16_t)(wid->core.width * sf + 0.5),
@@ -1221,7 +1222,7 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
                 post_vals[pi++] = 1;
             }
             if (post_mask)
-                xcb_change_window_attributes(IswDisplay(wid), wid->core.window,
+                xcb_change_window_attributes(_IswXcbConn(IswDisplayOf(wid)), _IswXcbWindow(wid->core.window),
                                              post_mask, post_vals);
         }
         /* Set a themed default cursor on the shell window so child
@@ -1229,12 +1230,12 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
            left_ptr instead of the X server's default glyph cursor. */
         {
             xcb_cursor_t cursor = _IswLoadThemedCursor(
-                IswDisplay(wid), wid->core.screen, "left_ptr", XC_left_ptr);
+                _IswXcbConn(IswDisplayOf(wid)), _IswXcbScreen(wid->core.screen), "left_ptr", XC_left_ptr);
             if (cursor != XCB_NONE)
                 _IswSetWindowCursor(wid, cursor);
         }
     }
-    xcb_flush(IswDisplay(wid));
+    xcb_flush(_IswXcbConn(IswDisplayOf(wid)));
 
     _popup_set_prop(w);
 
@@ -1258,30 +1259,30 @@ _SetTransientForHint(TransientShellWidget w, Boolean delete)
     if (w->wm.transient) {
         if (w->transient.transient_for != NULL
             && IswIsRealized(w->transient.transient_for))
-            window_group = IswWindow(w->transient.transient_for);
+            window_group = _IswXcbWindow(IswWindowOf(w->transient.transient_for));
         else if ((window_group = w->wm.wm_hints.window_group)
                  == IswUnspecifiedWindowGroup) {
             if (delete) {
                 // Get atom for WM_TRANSIENT_FOR
-                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay((Widget) w), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay((Widget) w), atom_cookie, NULL);
+                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
+                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
                 if (atom_reply) {
-                    xcb_delete_property(IswDisplay((Widget) w), IswWindow((Widget) w), atom_reply->atom);
+                    xcb_delete_property(_IswXcbConn(IswDisplayOf((Widget) w)), _IswXcbWindow(IswWindowOf((Widget) w)), atom_reply->atom);
                     free(atom_reply);
                 }
             }
-                //XDeleteProperty(IswDisplay((Widget) w),
-                //                IswWindow((Widget) w), XCB_ATOM_WM_TRANSIENT_FOR);
+                //XDeleteProperty(IswDisplayOf((Widget) w),
+                //                IswWindowOf((Widget) w), XCB_ATOM_WM_TRANSIENT_FOR);
             return;
         }
 
-        //XSetTransientForHint(IswDisplay((Widget) w),
-        //                     IswWindow((Widget) w), window_group);
+        //XSetTransientForHint(IswDisplayOf((Widget) w),
+        //                     IswWindowOf((Widget) w), window_group);
         // Get atom for WM_TRANSIENT_FOR
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay((Widget) w), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay((Widget) w), atom_cookie, NULL);
+        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
+        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
         if (atom_reply) {
-            xcb_change_property(IswDisplay((Widget) w), XCB_PROP_MODE_REPLACE, IswWindow((Widget) w),
+            xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf((Widget) w)),
                                 atom_reply->atom, XCB_ATOM_WINDOW, 32,
                                 1, &window_group);
             free(atom_reply);
@@ -1298,7 +1299,7 @@ TransientRealize(xcb_connection_t *dpy, Widget w, Mask *vmask, uint32_t *attr)
     realize =
         transientShellWidgetClass->core_class.superclass->core_class.realize;
     UNLOCK_PROCESS;
-    (*realize) (IswDisplay(w), w, vmask, attr);
+    (*realize) (_IswXcbConn(IswDisplayOf(w)), w, vmask, attr);
 
     _SetTransientForHint((TransientShellWidget) w, False);
 }
@@ -1347,7 +1348,7 @@ EvaluateWMHints(WMShellWidget w)
 
             for (p = w->core.parent; p->core.parent; p = p->core.parent);
             if (IswIsRealized(p)) {
-                hintp->window_group = IswWindow(p);
+                hintp->window_group = _IswXcbWindow(IswWindowOf(p));
                 hintp->flags |= XCB_ICCCM_WM_HINT_WINDOW_GROUP;
             }
         }
@@ -1466,12 +1467,12 @@ _popup_set_prop(ShellWidget w)
         && (window_group = wmshell->wm.wm_hints.window_group)
         != IswUnspecifiedWindowGroup) {
 
-        //XSetTransientForHint(IswDisplay((Widget) w),
-        //                     IswWindow((Widget) w), window_group);
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay((Widget) w), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay((Widget) w), atom_cookie, NULL);
+        //XSetTransientForHint(IswDisplayOf((Widget) w),
+        //                     IswWindowOf((Widget) w), window_group);
+        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
+        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
         if (atom_reply) {
-            xcb_change_property(IswDisplay((Widget) w), XCB_PROP_MODE_REPLACE, IswWindow(w),
+            xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
                                 atom_reply->atom, XCB_ATOM_WINDOW, 32,
                                 1, &window_group);
             free(atom_reply);
@@ -1515,17 +1516,17 @@ _popup_set_prop(ShellWidget w)
 
         if (locale) {
             // Get atom for WM_LOCALE_NAME
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay((Widget) w), FALSE, strlen("WM_LOCALE_NAME"), "WM_LOCALE_NAME");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay((Widget) w), atom_cookie, NULL);
+            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_LOCALE_NAME"), "WM_LOCALE_NAME");
+            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
             if (atom_reply) {
-                xcb_change_property(IswDisplay((Widget) w), XCB_PROP_MODE_REPLACE, IswWindow((Widget) w),
+                xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf((Widget) w)),
                                     atom_reply->atom, XCB_ATOM_STRING, 8,
                                     strlen(locale), locale);
                 free(atom_reply);
             }
         }
-            //XChangeProperty(IswDisplay((Widget) w), IswWindow((Widget) w),
-            //                XInternAtom(IswDisplay((Widget) w),
+            //XChangeProperty(IswDisplayOf((Widget) w), IswWindowOf((Widget) w),
+            //                XInternAtom(IswDisplayOf((Widget) w),
             //                            "WM_LOCALE_NAME", False),
             //                XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
             //                (unsigned char *) locale, (int) strlen(locale));
@@ -1533,28 +1534,29 @@ _popup_set_prop(ShellWidget w)
     UNLOCK_PROCESS;
 
     p = GetClientLeader((Widget) w);
-    if (IswWindow(p)) {
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay((Widget) w), FALSE, strlen("WM_CLIENT_LEADER"), "WM_CLIENT_LEADER");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay((Widget) w), atom_cookie, NULL);
+    if (_IswXcbWindow(IswWindowOf(p))) {
+        xcb_window_t leader_win = _IswXcbWindow(p->core.window);
+        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_CLIENT_LEADER"), "WM_CLIENT_LEADER");
+        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
         if (atom_reply) {
-            xcb_change_property(IswDisplay((Widget) w), XCB_PROP_MODE_REPLACE, IswWindow((Widget) w),
+            xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf((Widget) w)),
                                 atom_reply->atom, XCB_ATOM_WINDOW, 32,
-                                1, &(p->core.window));
+                                1, &leader_win);
             free(atom_reply);
         }
     }
     if (wmshell->wm.window_role) {
-        //XChangeProperty(IswDisplay((Widget) w), IswWindow((Widget) w),
-        //                XInternAtom(IswDisplay((Widget) w),
+        //XChangeProperty(IswDisplayOf((Widget) w), IswWindowOf((Widget) w),
+        //                XInternAtom(IswDisplayOf((Widget) w),
         //                            "WM_WINDOW_ROLE", False),
         //                XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
         //                (unsigned char *) wmshell->wm.window_role,
         //                (int) strlen(wmshell->wm.window_role));
         // Get atom for WM_WINDOW_ROLE
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay((Widget) w), FALSE, strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay((Widget) w), atom_cookie, NULL);
+        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
+        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
         if (atom_reply) {
-            xcb_change_property(IswDisplay((Widget) w), XCB_PROP_MODE_REPLACE, IswWindow((Widget) w),
+            xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf((Widget) w)),
                                 atom_reply->atom, XCB_ATOM_STRING, 8,
                                 strlen(wmshell->wm.window_role),
                                 wmshell->wm.window_role);
@@ -1563,8 +1565,8 @@ _popup_set_prop(ShellWidget w)
     }
 
     {
-        xcb_connection_t *conn = IswDisplay((Widget) w);
-        xcb_window_t win = IswWindow((Widget) w);
+        xcb_connection_t *conn = _IswXcbConn(IswDisplayOf((Widget) w));
+        xcb_window_t win = _IswXcbWindow(IswWindowOf((Widget) w));
 
         /* _NET_WM_PID */
         {
@@ -1610,7 +1612,7 @@ _popup_set_prop(ShellWidget w)
 
         /* _NET_WM_USER_TIME_WINDOW */
         if (IswIsWMShell((Widget) w)) {
-            IswPerDisplay pd = _IswGetPerDisplay(conn);
+            IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf((Widget) w));
             if (!pd->net_wm_user_time) {
                 xcb_intern_atom_cookie_t c1 = xcb_intern_atom(conn, FALSE, 18, "_NET_WM_USER_TIME");
                 xcb_intern_atom_cookie_t c2 = xcb_intern_atom(conn, FALSE, 25, "_NET_WM_USER_TIME_WINDOW");
@@ -1673,7 +1675,7 @@ _popup_set_prop(ShellWidget w)
                                    wmshell->wm.startup_id);
                 if (len > 0 && (size_t)len < sizeof(msg)) {
                     len++;  /* include NUL terminator */
-                    xcb_window_t root = w->core.screen->root;
+                    xcb_window_t root = _IswXcbScreen(w->core.screen)->root;
                     const char *mp = msg;
                     int remaining = len;
 
@@ -1721,7 +1723,7 @@ EventHandler(Widget wid,
     switch (event->response_type) {
     case XCB_CONFIGURE_NOTIFY: {
         xcb_configure_notify_event_t * cne = (xcb_configure_notify_event_t *)event;
-        if (w->core.window != cne->window)
+        if (_IswXcbWindow(w->core.window) != cne->window)
             return;             /* in case of SubstructureNotify */
         /* ConfigureNotify values are already descaled to logical pixels
          * by _IswDescaleEventCoords in the event dispatcher. */
@@ -1754,8 +1756,8 @@ EventHandler(Widget wid,
 
     case XCB_REPARENT_NOTIFY:
         xcb_reparent_notify_event_t *rne = (xcb_reparent_notify_event_t *)event;
-        if (rne->window == IswWindow(w)) {
-            if (rne->parent != RootWindowOfScreen(IswScreen(w)))
+        if (rne->window == _IswXcbWindow(IswWindowOf(w))) {
+            if (rne->parent != RootWindowOfScreen(_IswXcbScreen(IswScreenOf(w))))
                 w->shell.client_specified &=
                     ~(_IswShellNotReparented | _IswShellPositionValid);
             else {
@@ -1786,7 +1788,7 @@ EventHandler(Widget wid,
         //doesn't carry the pointer in XCB
         //presumably a shellwidget per display and the events are routed appropriately
         //otherwise this may break
-        pdi = _IswGetPerDisplayInput(IswDisplay(w));
+        pdi = _IswGetPerDisplayInput(IswDisplayOf(w));
 
         device = &pdi->pointer;
 
@@ -1835,7 +1837,7 @@ static void
 Destroy(Widget wid)
 {
     if (IswIsRealized(wid))
-        xcb_destroy_window(IswDisplay(wid), IswWindow(wid));
+        xcb_destroy_window(_IswXcbConn(IswDisplayOf(wid)), _IswXcbWindow(IswWindowOf(wid)));
 }
 
 static void
@@ -1844,7 +1846,7 @@ WMDestroy(Widget wid)
     WMShellWidget w = (WMShellWidget) wid;
 
     if (w->wm.user_time_win) {
-        xcb_destroy_window(IswDisplay(wid), w->wm.user_time_win);
+        xcb_destroy_window(_IswXcbConn(IswDisplayOf(wid)), w->wm.user_time_win);
         w->wm.user_time_win = 0;
     }
     IswFree((char *) w->wm.title);
@@ -2060,7 +2062,7 @@ GetGeometry(Widget W, Widget child)
 
         snprintf(def_geom, sizeof(def_geom), "%dx%d+%d+%d",
                  width, height, x, y);
-        flag = _IswWMGeometry(IswScreen(W),
+        flag = _IswWMGeometry(_IswXcbScreen(IswScreenOf(W)),
                              w->shell.geometry, def_geom,
                              (unsigned int) w->core.border_width,
                              &hints, &x, &y, &width, &height, &win_gravity);
@@ -2202,7 +2204,7 @@ typedef struct {
 //    QueryStruct *q = (QueryStruct *) arg;
 //    register Widget w = q->w;
 //
-//    if ((dpy != IswDisplay(w)) || (rne->window != IswWindow(w))) {
+//    if ((dpy != IswDisplayOf(w)) || (rne->window != IswWindowOf(w))) {
 //        return FALSE;
 //    }
 //
@@ -2217,13 +2219,13 @@ typedef struct {
 //
 //    if (event->response_type == XCB_REPARENT_NOTIFY) {
 //        xcb_reparent_notify_event_t * rne = (xcb_reparent_notify_event_t *)event;
-//        if (rne->window == IswWindow(w)) {
+//        if (rne->window == IswWindowOf(w)) {
 //        /* we might get ahead of this event, so just in case someone
 //         * asks for coordinates before this event is dispatched...
 //         */
 //        register ShellWidget s = (ShellWidget) w;
 //
-//        if (rne->parent != RootWindowOfScreen(IswScreen(w)))
+//        if (rne->parent != RootWindowOfScreen(IswScreenOf(w)))
 //            s->shell.client_specified &= ~_IswShellNotReparented;
 //        else
 //            s->shell.client_specified |= _IswShellNotReparented;
@@ -2237,8 +2239,8 @@ static Boolean
 _wait_for_response(ShellWidget w, xcb_generic_event_t **event_out,
                    unsigned long request_num)
 {
-    xcb_connection_t *conn = IswDisplay(w);
-    xcb_window_t win = IswWindow(w);
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(w));
+    xcb_window_t win = _IswXcbWindow(IswWindowOf(w));
     unsigned long timeout;
     struct timespec start, now;
 
@@ -2269,7 +2271,7 @@ _wait_for_response(ShellWidget w, xcb_generic_event_t **event_out,
                 xcb_reparent_notify_event_t *rne =
                     (xcb_reparent_notify_event_t *) ev;
                 if (rne->window == win) {
-                    if (rne->parent != RootWindowOfScreen(IswScreen(w)))
+                    if (rne->parent != RootWindowOfScreen(_IswXcbScreen(IswScreenOf(w))))
                         w->shell.client_specified &= ~_IswShellNotReparented;
                     else
                         w->shell.client_specified |= _IswShellNotReparented;
@@ -2393,7 +2395,7 @@ RootGeometryManager(Widget gw,
     if (mask & XCB_CONFIG_WINDOW_STACK_MODE) {
         values.stack_mode = request->stack_mode;
         if (mask & XCB_CONFIG_WINDOW_SIBLING)
-            values.sibling = IswWindow(request->sibling);
+            values.sibling = _IswXcbWindow(IswWindowOf(request->sibling));
     }
 
     if (!IswIsRealized((Widget) w)) {
@@ -2427,7 +2429,7 @@ RootGeometryManager(Widget gw,
     CALLGEOTAT(_IswGeoTab(-1));
     /* HiDPI: scale logical values to physical for the X server */
     {
-        double sf = _IswGetScaleFactor(IswDisplay((Widget)w));
+        double sf = _IswGetScaleFactor(IswDisplayOf((Widget)w));
         if (sf > 1.0) {
             if (mask & XCB_CONFIG_WINDOW_X)
                 values.x = (int32_t)(values.x * sf + 0.5);
@@ -2441,8 +2443,8 @@ RootGeometryManager(Widget gw,
                 values.border_width = (uint32_t)(values.border_width * sf + 0.5);
         }
     }
-    xcb_void_cookie_t cookie = xcb_configure_window_aux(IswDisplay((Widget) w),
-        IswWindow((Widget) w), mask, &values);
+    xcb_void_cookie_t cookie = xcb_configure_window_aux(_IswXcbConn(IswDisplayOf((Widget) w)),
+        _IswXcbWindow(IswWindowOf((Widget) w)), mask, &values);
     request_num = cookie.sequence;
     
     if (wm && !w->shell.override_redirect
@@ -2523,7 +2525,7 @@ RootGeometryManager(Widget gw,
 #endif
 #undef NEQ
                 //#TODO just push the event back into the AppContext queue
-                //XPutBackEvent(IswDisplay(w), &event);
+                //XPutBackEvent(IswDisplayOf(w), &event);
                 PutBackGeometry();
                 /*
                  * We just potentially re-ordered the event queue
@@ -2541,7 +2543,7 @@ RootGeometryManager(Widget gw,
             else {
                 /* HiDPI: ConfigureNotify values are physical pixels;
                  * convert back to logical for widget internals. */
-                double inv = 1.0 / _IswGetScaleFactor(IswDisplay((Widget)w));
+                double inv = 1.0 / _IswGetScaleFactor(IswDisplayOf((Widget)w));
                 w->core.width = (Dimension)(cne->width * inv + 0.5);
                 w->core.height = (Dimension)(cne->height * inv + 0.5);
                 w->core.border_width =
@@ -2612,8 +2614,8 @@ SetValues(Widget old,
     }
 
     if (mask) {
-        //XChangeWindowAttributes(IswDisplay(new), IswWindow(new), mask, &attr);
-        xcb_change_window_attributes(IswDisplay(new), IswWindow(new), mask, &attr);
+        //XChangeWindowAttributes(IswDisplayOf(new), IswWindowOf(new), mask, &attr);
+        xcb_change_window_attributes(_IswXcbConn(IswDisplayOf(new)), _IswXcbWindow(IswWindowOf(new)), mask, &attr);
         if ((mask & XCB_CW_OVERRIDE_REDIRECT) && !nw->shell.override_redirect)
             _popup_set_prop(nw);
     }
@@ -2679,7 +2681,7 @@ WMSetValues(Widget old,
         //XTextProperty title;
 
         //if (nwmshell->wm.title_encoding == None &&
-        //    XmbTextListToTextProperty(IswDisplay(new),
+        //    XmbTextListToTextProperty(IswDisplayOf(new),
         //                              (char **) &nwmshell->wm.title,
         //                              1, XStdICCTextStyle, &title) >= Success) {
         //    copied = True;
@@ -2691,12 +2693,12 @@ WMSetValues(Widget old,
         //    title.format = 8;
         //    title.nitems = strlen(nwmshell->wm.title);
         //}
-        //XSetWMName(IswDisplay(new), IswWindow(new), &title);
+        //XSetWMName(IswDisplayOf(new), IswWindowOf(new), &title);
         // First, get the atom for WM_NAME
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(new), FALSE, strlen("WM_NAME"), "WM_NAME");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(new), atom_cookie, NULL);
+        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_NAME"), "WM_NAME");
+        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
         if (atom_reply) {
-            xcb_change_property(IswDisplay(new), XCB_PROP_MODE_REPLACE, IswWindow(new),
+            xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
                                 atom_reply->atom, XCB_ATOM_STRING, 8,
                                 strlen((const char *) nwmshell->wm.title), (unsigned char *) nwmshell->wm.title);
             free(atom_reply);
@@ -2714,11 +2716,11 @@ WMSetValues(Widget old,
                      || NEQ(icon_pixmap) || NEQ(icon_mask) || NEQ(icon_window)
                      || NEQ(window_group))) {
 
-        //XSetWMHints(IswDisplay(new), IswWindow(new), &nwmshell->wm.wm_hints);
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(new), FALSE, strlen("WM_HINTS"), "WM_HINTS");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(new), atom_cookie, NULL);
+        //XSetWMHints(IswDisplayOf(new), IswWindowOf(new), &nwmshell->wm.wm_hints);
+        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_HINTS"), "WM_HINTS");
+        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
         if (atom_reply) {
-            xcb_icccm_set_wm_hints(IswDisplay(new), IswWindow(new), &nwmshell->wm.wm_hints);
+            xcb_icccm_set_wm_hints(_IswXcbConn(IswDisplayOf(new)), _IswXcbWindow(IswWindowOf(new)), &nwmshell->wm.wm_hints);
 
             free(atom_reply);
         }
@@ -2730,11 +2732,11 @@ WMSetValues(Widget old,
     //        if (!IswIsTransientShell(new) &&
     //            !nwmshell->shell.override_redirect &&
     //            nwmshell->wm.wm_hints.window_group != IswUnspecifiedWindowGroup)
-    //            XSetTransientForHint(IswDisplay(new), IswWindow(new),
+    //            XSetTransientForHint(IswDisplayOf(new), IswWindowOf(new),
     //                                 nwmshell->wm.wm_hints.window_group);
     //    }
     //    else
-    //        XDeleteProperty(IswDisplay(new), IswWindow(new), XCB_ATOM_WM_TRANSIENT_FOR);
+    //        XDeleteProperty(IswDisplayOf(new), IswWindowOf(new), XCB_ATOM_WM_TRANSIENT_FOR);
     //}
 
     if (IswIsRealized(new) && nwmshell->wm.transient != owmshell->wm.transient) {
@@ -2744,10 +2746,10 @@ WMSetValues(Widget old,
                 nwmshell->wm.wm_hints.window_group != IswUnspecifiedWindowGroup) {
                 
                 // Set WM_TRANSIENT_FOR property
-                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(new), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(new), atom_cookie, NULL);
+                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
+                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
                 if (atom_reply) {
-                    xcb_change_property(IswDisplay(new), XCB_PROP_MODE_REPLACE, IswWindow(new),
+                    xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
                                         atom_reply->atom, XCB_ATOM_WINDOW, 32,
                                         1, &nwmshell->wm.wm_hints.window_group);
                     free(atom_reply);
@@ -2756,32 +2758,33 @@ WMSetValues(Widget old,
         }
         else {
             // Delete WM_TRANSIENT_FOR property
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(new), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(new), atom_cookie, NULL);
+            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
+            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
             if (atom_reply) {
-                xcb_delete_property(IswDisplay(new), IswWindow(new), atom_reply->atom);
+                xcb_delete_property(_IswXcbConn(IswDisplayOf(new)), _IswXcbWindow(IswWindowOf(new)), atom_reply->atom);
                 free(atom_reply);
             }
         }
     }
 
     if (nwmshell->wm.client_leader != owmshell->wm.client_leader
-        && IswWindow(new) && !nwmshell->shell.override_redirect) {
+        && _IswXcbWindow(IswWindowOf(new)) && !nwmshell->shell.override_redirect) {
         Widget leader = GetClientLeader(new);
 
-        if (IswWindow(leader)) {
+        if (_IswXcbWindow(IswWindowOf(leader))) {
+            xcb_window_t leader_win = _IswXcbWindow(leader->core.window);
             // Get atom for WM_CLIENT_LEADER
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(new), FALSE, strlen("WM_CLIENT_LEADER"), "WM_CLIENT_LEADER");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(new), atom_cookie, NULL);
+            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_CLIENT_LEADER"), "WM_CLIENT_LEADER");
+            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
             if (atom_reply) {
-                xcb_change_property(IswDisplay(new), XCB_PROP_MODE_REPLACE, IswWindow(new),
+                xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
                                     atom_reply->atom, XCB_ATOM_WINDOW, 32,
-                                    1, &(leader->core.window));
+                                    1, &leader_win);
                 free(atom_reply);
             }
         }
-            //XChangeProperty(IswDisplay(new), IswWindow(new),
-            //                XInternAtom(IswDisplay(new),
+            //XChangeProperty(IswDisplayOf(new), IswWindowOf(new),
+            //                XInternAtom(IswDisplayOf(new),
             //                            "WM_CLIENT_LEADER", False),
             //                XCB_ATOM_WINDOW, 32, XCB_PROP_MODE_REPLACE,
             //                (unsigned char *) &(leader->core.window), 1);
@@ -2790,16 +2793,16 @@ WMSetValues(Widget old,
     //if (nwmshell->wm.window_role != owmshell->wm.window_role) {
     //    IswFree((_IswString) owmshell->wm.window_role);
     //    if (set_prop && nwmshell->wm.window_role) {
-    //        XChangeProperty(IswDisplay(new), IswWindow(new),
-    //                        XInternAtom(IswDisplay(new), "WM_WINDOW_ROLE",
+    //        XChangeProperty(IswDisplayOf(new), IswWindowOf(new),
+    //                        XInternAtom(IswDisplayOf(new), "WM_WINDOW_ROLE",
     //                                    False),
     //                        XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
     //                        (unsigned char *) nwmshell->wm.window_role,
     //                        (int) strlen(nwmshell->wm.window_role));
     //    }
     //    else if (IswIsRealized(new) && !nwmshell->wm.window_role) {
-    //        XDeleteProperty(IswDisplay(new), IswWindow(new),
-    //                        XInternAtom(IswDisplay(new), "WM_WINDOW_ROLE",
+    //        XDeleteProperty(IswDisplayOf(new), IswWindowOf(new),
+    //                        XInternAtom(IswDisplayOf(new), "WM_WINDOW_ROLE",
     //                                    False));
     //    }
     //}
@@ -2808,10 +2811,10 @@ WMSetValues(Widget old,
 
         if (set_prop && nwmshell->wm.window_role) {
             // Get atom for WM_WINDOW_ROLE
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(new), FALSE, strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(new), atom_cookie, NULL);
+            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
+            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
             if (atom_reply) {
-                xcb_change_property(IswDisplay(new), XCB_PROP_MODE_REPLACE, IswWindow(new),
+                xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
                                     atom_reply->atom, XCB_ATOM_STRING, 8,
                                     strlen(nwmshell->wm.window_role),
                                     nwmshell->wm.window_role);
@@ -2820,10 +2823,10 @@ WMSetValues(Widget old,
         }
         else if (IswIsRealized(new) && !nwmshell->wm.window_role) {
             // Get atom for WM_WINDOW_ROLE
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(new), FALSE, strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(new), atom_cookie, NULL);
+            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
+            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
             if (atom_reply) {
-                xcb_delete_property(IswDisplay(new), IswWindow(new), atom_reply->atom);
+                xcb_delete_property(_IswXcbConn(IswDisplayOf(new)), _IswXcbWindow(IswWindowOf(new)), atom_reply->atom);
                 free(atom_reply);
             }
         }
@@ -2877,25 +2880,25 @@ TopLevelSetValues(Widget oldW,
     if (IswIsRealized(newW)) {
         if (new->topLevel.iconic != old->topLevel.iconic) {
             if (new->topLevel.iconic) {
-                //XIconifyWindow(IswDisplay(newW),
-                //               IswWindow(newW),
-                //               XScreenNumberOfScreen(IswScreen(newW))
+                //XIconifyWindow(IswDisplayOf(newW),
+                //               IswWindowOf(newW),
+                //               XScreenNumberOfScreen(IswScreenOf(newW))
                 //    );
                 // XCB doesn't have a direct equivalent to XIconifyWindow
 
                 // First, get the necessary atoms
-                xcb_intern_atom_cookie_t net_wm_state_cookie = xcb_intern_atom(IswDisplay(newW), FALSE, strlen("_NET_WM_STATE"), "_NET_WM_STATE");
-                xcb_intern_atom_cookie_t net_wm_state_hidden_cookie = xcb_intern_atom(IswDisplay(newW), FALSE, strlen("_NET_WM_STATE_HIDDEN"), "_NET_WM_STATE_HIDDEN");
+                xcb_intern_atom_cookie_t net_wm_state_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(newW)), FALSE, strlen("_NET_WM_STATE"), "_NET_WM_STATE");
+                xcb_intern_atom_cookie_t net_wm_state_hidden_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(newW)), FALSE, strlen("_NET_WM_STATE_HIDDEN"), "_NET_WM_STATE_HIDDEN");
 
-                xcb_intern_atom_reply_t *net_wm_state_reply = xcb_intern_atom_reply(IswDisplay(newW), net_wm_state_cookie, NULL);
-                xcb_intern_atom_reply_t *net_wm_state_hidden_reply = xcb_intern_atom_reply(IswDisplay(newW), net_wm_state_hidden_cookie, NULL);
+                xcb_intern_atom_reply_t *net_wm_state_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(newW)), net_wm_state_cookie, NULL);
+                xcb_intern_atom_reply_t *net_wm_state_hidden_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(newW)), net_wm_state_hidden_cookie, NULL);
 
                 if (net_wm_state_reply && net_wm_state_hidden_reply) {
                     // Send the client message
                     xcb_client_message_event_t *event = malloc(sizeof(xcb_client_message_event_t));
                     event->response_type = XCB_CLIENT_MESSAGE;
                     event->format = 32;
-                    event->window = IswWindow(newW);
+                    event->window = _IswXcbWindow(IswWindowOf(newW));
                     event->type = net_wm_state_reply->atom;
                     event->data.data32[0] = 1; // _NET_WM_STATE_ADD
                     event->data.data32[1] = net_wm_state_hidden_reply->atom;
@@ -2903,7 +2906,7 @@ TopLevelSetValues(Widget oldW,
                     event->data.data32[3] = 0;
                     event->data.data32[4] = 0;
 
-                    xcb_send_event(IswDisplay(newW), 0, IswWindow(newW), XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (char*)event);
+                    xcb_send_event(_IswXcbConn(IswDisplayOf(newW)), 0, _IswXcbWindow(IswWindowOf(newW)), XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (char*)event);
                     free(event);
                 }
 
@@ -2915,8 +2918,8 @@ TopLevelSetValues(Widget oldW,
 
                 IswPopup(newW, IswGrabNone);
                 if (map) {
-                    xcb_map_window(IswDisplay(newW), IswWindow(newW)); 
-                    xcb_flush(IswDisplay(newW));
+                    xcb_map_window(_IswXcbConn(IswDisplayOf(newW)), _IswXcbWindow(IswWindowOf(newW)));
+                    xcb_flush(_IswXcbConn(IswDisplayOf(newW)));
                 }
             }
         }
@@ -2929,7 +2932,7 @@ TopLevelSetValues(Widget oldW,
             //XTextProperty icon_name;
 
             //if (new->topLevel.icon_name_encoding == None &&
-            //    XmbTextListToTextProperty(IswDisplay(newW),
+            //    XmbTextListToTextProperty(IswDisplayOf(newW),
             //                              (char **) &new->topLevel.icon_name,
             //                              1, XStdICCTextStyle,
             //                              &icon_name) >= Success) {
@@ -2943,11 +2946,11 @@ TopLevelSetValues(Widget oldW,
                 //icon_name.nitems = strlen((char *) icon_name.value);
             //}
             // First, get the atom ID for WM_ICON_NAME
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(newW), FALSE, strlen("WM_ICON_NAME"), "WM_ICON_NAME");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(newW), atom_cookie, NULL);
+            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(newW)), FALSE, strlen("WM_ICON_NAME"), "WM_ICON_NAME");
+            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(newW)), atom_cookie, NULL);
             if (atom_reply) {
                 // Set the icon name property
-                xcb_change_property(IswDisplay(newW), XCB_PROP_MODE_REPLACE, IswWindow(newW),
+                xcb_change_property(_IswXcbConn(IswDisplayOf(newW)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(newW)),
                                     atom_reply->atom, XCB_ATOM_STRING, 8,
                                     strlen((const char *) new->topLevel.icon_name), (unsigned char *) new->topLevel.icon_name);
                 free(atom_reply);
@@ -3018,30 +3021,30 @@ ApplicationSetValues(Widget current,
 
         //if (IswIsRealized(new) && !nw->shell.override_redirect) {
         //    if (nw->application.argc >= 0 && nw->application.argv)
-        //        XSetCommand(IswDisplay(new), IswWindow(new),
+        //        XSetCommand(IswDisplayOf(new), IswWindowOf(new),
         //                    nw->application.argv, nw->application.argc);
         //    else
-        //        XDeleteProperty(IswDisplay(new), IswWindow(new), XCB_ATOM_WM_COMMAND);
+        //        XDeleteProperty(IswDisplayOf(new), IswWindowOf(new), XCB_ATOM_WM_COMMAND);
         //}
         if (IswIsRealized(new) && !nw->shell.override_redirect) {
             if (nw->application.argc >= 0 && nw->application.argv) {
                 // First, get the atom ID for WM_COMMAND
-                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(new), FALSE, strlen("WM_COMMAND"), "WM_COMMAND");
-                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(new), atom_cookie, NULL);
+                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_COMMAND"), "WM_COMMAND");
+                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
                 if (atom_reply) {
                     // Set the command property
-                    xcb_change_property(IswDisplay(new), XCB_PROP_MODE_REPLACE, IswWindow(new),
+                    xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
                                         atom_reply->atom, XCB_ATOM_STRING, 8,
                                         nw->application.argc, nw->application.argv);
                     free(atom_reply);
                 }
             } else {
                 // First, get the atom ID for WM_COMMAND
-                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(IswDisplay(new), FALSE, strlen("WM_COMMAND"), "WM_COMMAND");
-                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(IswDisplay(new), atom_cookie, NULL);
+                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_COMMAND"), "WM_COMMAND");
+                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
                 if (atom_reply) {
                     // Delete the property
-                    xcb_delete_property(IswDisplay(new), IswWindow(new), atom_reply->atom);
+                    xcb_delete_property(_IswXcbConn(IswDisplayOf(new)), _IswXcbWindow(IswWindowOf(new)), atom_reply->atom);
                     free(atom_reply);
                 }
             }
@@ -3059,16 +3062,16 @@ _IswShellGetCoordinates(Widget widget, Position *x, Position *y)
         int tmpx, tmpy;
 
         /* HiDPI: border_width is logical; X server expects physical pixels. */
-        double sf = _IswGetScaleFactor(IswDisplay(widget));
+        double sf = _IswGetScaleFactor(IswDisplayOf(widget));
         int bw_phys = (int)lrint((double)w->core.border_width * sf);
 
-        xcb_translate_coordinates_cookie_t cookie = xcb_translate_coordinates(IswDisplay(w),
-            IswWindow(w),
-            RootWindowOfScreen(IswScreen(w)),
+        xcb_translate_coordinates_cookie_t cookie = xcb_translate_coordinates(_IswXcbConn(IswDisplayOf(w)),
+            _IswXcbWindow(IswWindowOf(w)),
+            RootWindowOfScreen(_IswXcbScreen(IswScreenOf(w))),
             -bw_phys,
             -bw_phys);
 
-        xcb_translate_coordinates_reply_t *reply = xcb_translate_coordinates_reply(IswDisplay(w), cookie, NULL);
+        xcb_translate_coordinates_reply_t *reply = xcb_translate_coordinates_reply(_IswXcbConn(IswDisplayOf(w)), cookie, NULL);
         if (reply) {
             tmpx = reply->dst_x;
             tmpy = reply->dst_y;
@@ -3187,7 +3190,7 @@ IswSetWindowIconARGB(Widget shell, const uint32_t *argb_data,
     if (!IswIsRealized(shell) || !argb_data || n_entries == 0)
         return;
 
-    conn = IswDisplay(shell);
+    conn = _IswXcbConn(IswDisplayOf(shell));
 
     icon_cookie = xcb_intern_atom(conn, FALSE, 15, "_NET_WM_ICON");
     cardinal_cookie = xcb_intern_atom(conn, FALSE, 8, "CARDINAL");
@@ -3196,7 +3199,7 @@ IswSetWindowIconARGB(Widget shell, const uint32_t *argb_data,
     cardinal_reply = xcb_intern_atom_reply(conn, cardinal_cookie, NULL);
 
     if (icon_reply && cardinal_reply) {
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, IswWindow(shell),
+        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(shell)),
                             icon_reply->atom, cardinal_reply->atom, 32,
                             n_entries, argb_data);
     }
@@ -3215,12 +3218,12 @@ IswClearWindowIcon(Widget shell)
     if (!IswIsRealized(shell))
         return;
 
-    conn = IswDisplay(shell);
+    conn = _IswXcbConn(IswDisplayOf(shell));
     cookie = xcb_intern_atom(conn, FALSE, 15, "_NET_WM_ICON");
     reply = xcb_intern_atom_reply(conn, cookie, NULL);
 
     if (reply) {
-        xcb_delete_property(conn, IswWindow(shell), reply->atom);
+        xcb_delete_property(conn, _IswXcbWindow(IswWindowOf(shell)), reply->atom);
         free(reply);
     }
 }
@@ -3236,7 +3239,7 @@ SetNetWmString(Widget shell, const char *prop_name, unsigned int prop_len,
     if (!IswIsRealized(shell) || !value)
         return;
 
-    conn = IswDisplay(shell);
+    conn = _IswXcbConn(IswDisplayOf(shell));
 
     prop_cookie = xcb_intern_atom(conn, FALSE, prop_len, prop_name);
     utf8_cookie = xcb_intern_atom(conn, FALSE, 11, "UTF8_STRING");
@@ -3245,7 +3248,7 @@ SetNetWmString(Widget shell, const char *prop_name, unsigned int prop_len,
     utf8_reply = xcb_intern_atom_reply(conn, utf8_cookie, NULL);
 
     if (prop_reply && utf8_reply) {
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, IswWindow(shell),
+        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(shell)),
                             prop_reply->atom, utf8_reply->atom, 8,
                             strlen(value), value);
     }
@@ -3276,7 +3279,7 @@ IswSetWindowState(Widget shell, const char *state, Boolean set)
     if (!IswIsRealized(shell) || !state)
         return;
 
-    conn = IswDisplay(shell);
+    conn = _IswXcbConn(IswDisplayOf(shell));
 
     wm_state_cookie = xcb_intern_atom(conn, FALSE, 13, "_NET_WM_STATE");
     state_cookie = xcb_intern_atom(conn, FALSE, strlen(state), state);
@@ -3288,12 +3291,12 @@ IswSetWindowState(Widget shell, const char *state, Boolean set)
         xcb_client_message_event_t ev = {0};
         ev.response_type = XCB_CLIENT_MESSAGE;
         ev.format = 32;
-        ev.window = IswWindow(shell);
+        ev.window = _IswXcbWindow(IswWindowOf(shell));
         ev.type = wm_state_reply->atom;
         ev.data.data32[0] = set ? 1 : 0;
         ev.data.data32[1] = state_reply->atom;
 
-        xcb_send_event(conn, 0, shell->core.screen->root,
+        xcb_send_event(conn, 0, _IswXcbScreen(shell->core.screen)->root,
                        XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
                        XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
                        (const char *) &ev);
@@ -3307,7 +3310,7 @@ void
 _IswShellUpdateUserTime(xcb_connection_t *dpy, xcb_window_t event_window,
                         xcb_timestamp_t time)
 {
-    Widget widget = IswWindowToWidget(dpy, event_window);
+    Widget widget = IswWindowToWidget((IswDisplay) dpy, _IswXcbWindowWrap(event_window));
     if (!widget)
         return;
 
@@ -3320,7 +3323,7 @@ _IswShellUpdateUserTime(xcb_connection_t *dpy, xcb_window_t event_window,
     if (!wmshell->wm.user_time_win)
         return;
 
-    IswPerDisplay pd = _IswGetPerDisplay(dpy);
+    IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf(widget));
     if (!pd->net_wm_user_time)
         return;
 

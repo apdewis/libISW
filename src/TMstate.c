@@ -75,6 +75,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 #ifndef TM_NO_MATCH
 #define TM_NO_MATCH (-2)
 #endif                          /* TM_NO_MATCH */
@@ -492,9 +493,9 @@ Ignore(Widget widget, TMEventPtr event)
     if (!(event->event.eventType == XCB_KEY_PRESS ||
           event->event.eventType == XCB_KEY_RELEASE))
         return FALSE;
-    dpy = IswDisplay(widget);
+    dpy = _IswXcbConn(IswDisplayOf(widget));
 
-    pd = _IswGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay(IswDisplayOf(widget));
     _InitializeKeysymTables(dpy, pd);
     return IsOn(pd->isModifier, event->event.eventCode) ? TRUE : FALSE;
 }
@@ -642,7 +643,7 @@ HandleActions(Widget w,
        native event is reachable through IswEventNative(&nev) for code not yet
        migrated. */
     IswEvent nev;
-    (void) _IswEventFromXcb(IswDisplay(w), event, &nev);
+    (void) _IswEventFromXcb(IswDisplayOf(w), event, &nev);
 
     while (actions != NULL) {
         /* perform any actions */
@@ -988,7 +989,7 @@ TryCurrentTree(Widget widget,
                                            nextTypeMatch, nextModMatch)) {
                         xcb_generic_event_t *xev = curEventPtr->xev;
                         unsigned long time = GetTime(tmRecPtr, xev);
-                        IswPerDisplay pd = _IswGetPerDisplay(IswDisplay(widget));
+                        IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf(widget));
                         unsigned long delta =
                             (unsigned long) pd->multi_click_time;
 
@@ -1084,7 +1085,7 @@ _IswTranslateEvent(Widget w, xcb_generic_event_t *event)
     StatePtr current_state = tmRecPtr->current_state;
 
     XEventToTMEvent(event, &curEvent);
-    curEvent.dpy = IswDisplay(w);  /* dpy not set by XEventToTMEvent; needed by _IswMatchUsingStandardMods */
+    curEvent.dpy = _IswXcbConn(IswDisplayOf(w));  /* dpy not set by XEventToTMEvent; needed by _IswMatchUsingStandardMods */
 
     if (!tmRecPtr->translations) {
         IswAppWarningMsg(IswWidgetToApplicationContext(w),
@@ -1217,7 +1218,7 @@ RemoveFromMappingCallbacks(Widget widget,
                            IswPointer closure,    /* target widget */
                            IswPointer call_data _X_UNUSED)
 {
-    _IswRemoveCallback(&_IswGetPerDisplay(IswDisplay(widget))->mapping_callbacks,
+    _IswRemoveCallback(&_IswGetPerDisplay(IswDisplayOf(widget))->mapping_callbacks,
                       DispatchMappingNotify, closure);
 }
 
@@ -1278,7 +1279,7 @@ _IswInstallTranslations(Widget widget)
 
 
     if (mappingNotifyInterest) {
-        IswPerDisplay pd = _IswGetPerDisplay(IswDisplay(widget));
+        IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf(widget));
 
         if (pd->mapping_callbacks)
             _IswAddCallbackOnce(&(pd->mapping_callbacks),
@@ -1374,8 +1375,8 @@ IswUninstallTranslations(Widget widget)
     if (IswIsRealized(widget) && oldMask) {
         uint32_t event_mask = (uint32_t) IswBuildEventMask(widget);
         (void)xcb_change_window_attributes(
-            IswDisplay(widget),  /* your XCB connection */
-            IswWindow(widget),  /* window XID */
+            _IswXcbConn(IswDisplayOf(widget)),  /* your XCB connection */
+            _IswXcbWindow(IswWindowOf(widget)),  /* window XID */
             XCB_CW_EVENT_MASK,
             &event_mask
         );
@@ -1622,7 +1623,7 @@ _IswAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
  * Internal Converter for merging. Old and New must both be valid xlations
  */
 Boolean
-_IswCvtMergeTranslations(xcb_connection_t *dpy _X_UNUSED,
+_IswCvtMergeTranslations(IswDisplay dpy _X_UNUSED,
                         XrmValuePtr args _X_UNUSED,
                         Cardinal *num_args,
                         XrmValuePtr from,
@@ -2055,13 +2056,13 @@ ComposeTranslations(Widget dest,
         if (mask != oldMask){
             uint32_t event_mask = (uint32_t) IswBuildEventMask(dest);
             (void)xcb_change_window_attributes(
-                IswDisplay(dest),  /* your XCB connection */
-                IswWindow(dest),  /* window XID */
+                _IswXcbConn(IswDisplayOf(dest)),  /* your XCB connection */
+                _IswXcbWindow(IswWindowOf(dest)),  /* window XID */
                 XCB_CW_EVENT_MASK,
                 &event_mask
             );
         }
-            //XSelectInput(IswDisplay(dest), IswWindow(dest),
+            //XSelectInput(IswDisplayOf(dest), IswWindowOf(dest),
             //             (long) IswBuildEventMask(dest));
     }
     IswStackFree((IswPointer) newBindings, (IswPointer) stackBindings);

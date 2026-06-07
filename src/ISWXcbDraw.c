@@ -627,7 +627,7 @@ ISWCopyISOLatin1Lowered(char *dst, const char *src)
  */
 Boolean
 ISWCvtStringToOrientation(
-    xcb_connection_t *display,
+    IswDisplay display,
     XrmValuePtr args,
     Cardinal *num_args,
     XrmValuePtr from,
@@ -676,7 +676,7 @@ ISWCvtStringToOrientation(
  */
 Boolean
 ISWCvtStringToJustify(
-    xcb_connection_t *display,
+    IswDisplay display,
     XrmValuePtr args,
     Cardinal *num_args,
     XrmValuePtr from,
@@ -728,7 +728,7 @@ ISWCvtStringToJustify(
  */
 Boolean
 ISWCvtStringToEdgeType(
-    xcb_connection_t *display,
+    IswDisplay display,
     XrmValuePtr args,
     Cardinal *num_args,
     XrmValuePtr from,
@@ -786,7 +786,7 @@ ISWCvtStringToEdgeType(
  */
 Boolean
 ISWCvtStringToWidget(
-    xcb_connection_t *display,
+    IswDisplay display,
     XrmValuePtr args,
     Cardinal *num_args,
     XrmValuePtr from,

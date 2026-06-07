@@ -72,6 +72,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 
 static _Xconst _IswString IswNinvalidChild = "invalidChild";
 static _Xconst _IswString IswNxtUnmanageChildren = "xtUnmanageChildren";
@@ -150,15 +151,15 @@ UnmanageChildren(WidgetList children,
 
                 if ((pw != NULL) && IswIsRealized(pw)) {
                     xcb_clear_area(
-                        IswDisplay(pw), 
+                        _IswXcbConn(IswDisplayOf(pw)),
                         0,  // exposure flag (0 = no exposure)
-                        IswWindow(pw),
-                        r->rectangle.x, 
+                        _IswXcbWindow(IswWindowOf(pw)),
+                        r->rectangle.x,
                         r->rectangle.y,
                         r->rectangle.width + (r->rectangle.border_width << 1),
                         r->rectangle.height + (r->rectangle.border_width << 1)
                     );
-                    xcb_flush(IswDisplay(pw));
+                    xcb_flush(_IswXcbConn(IswDisplayOf(pw)));
                 }
             }
 
@@ -329,15 +330,15 @@ ManageChildren(WidgetList children,
                     pw = pw->core.parent;
                 if (pw != NULL) {
                     xcb_clear_area(
-                        IswDisplay(pw), 
+                        _IswXcbConn(IswDisplayOf(pw)),
                         0,  // exposure flag (0 = no exposure)
-                        IswWindow(pw),
-                        r->rectangle.x, 
+                        _IswXcbWindow(IswWindowOf(pw)),
+                        r->rectangle.x,
                         r->rectangle.y,
                         r->rectangle.width + (r->rectangle.border_width << 1),
                         r->rectangle.height + (r->rectangle.border_width << 1)
                     );
-                    xcb_flush(IswDisplay(pw));
+                    xcb_flush(_IswXcbConn(IswDisplayOf(pw)));
                 }
             }
         }
@@ -409,7 +410,7 @@ IswSetMappedWhenManaged(Widget widget, _IswBoolean mapped_when_managed)
     }
     widget->core.mapped_when_managed = (Boolean) mapped_when_managed;
 
-    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    hookobj = IswHooksOfDisplay(IswDisplayOf(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
 
@@ -506,7 +507,7 @@ IswChangeManagedSet(WidgetList unmanage_children,
     UnmanageChildren(unmanage_children, num_unmanage, parent,
                      &some_unmanaged, call_out, IswNxtChangeManagedSet);
 
-    hookobj = IswHooksOfDisplay(IswDisplay(parent));
+    hookobj = IswHooksOfDisplay(IswDisplayOf(parent));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         call_data.type = IswHunmanageSet;
         call_data.widget = parent;

@@ -72,6 +72,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 
 typedef struct _GrabActionRec {
     struct _GrabActionRec *next;
@@ -88,7 +89,7 @@ GrabAllCorrectKeys(Widget widget,
                    TMTypeMatch typeMatch,
                    TMModifierMatch modMatch, GrabActionRec * grabP)
 {
-    xcb_connection_t *dpy = IswDisplay(widget);
+    IswDisplay dpy = IswDisplayOf(widget);
     xcb_keycode_t *keycodes, *keycodeP;
     Cardinal keycount;
     Modifiers careOn = 0;
@@ -97,7 +98,7 @@ GrabAllCorrectKeys(Widget widget,
     if (modMatch->lateModifiers) {
         Boolean resolved;
 
-        resolved = _IswComputeLateBindings(dpy, modMatch->lateModifiers,
+        resolved = _IswComputeLateBindings(_IswXcbConn(dpy), modMatch->lateModifiers,
                                           &careOn, &careMask);
         if (!resolved)
             return;
@@ -197,7 +198,7 @@ DoGrab(StatePtr state, IswPointer data)
     case XCB_BUTTON_PRESS:
     case XCB_BUTTON_RELEASE:
         if (modMatch->lateModifiers) {
-            Boolean resolved = _IswComputeLateBindings(IswDisplay(widget),
+            Boolean resolved = _IswComputeLateBindings(_IswXcbConn(IswDisplayOf(widget)),
                                                       modMatch->lateModifiers,
                                                       &careOn, &careMask);
 

@@ -83,6 +83,7 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include <stdlib.h>
 #include <ISW/ISWRender.h>
+#include "ISWPlatformPrivate.h"
 
 
 String IswCIswToolkitError = "IswToolkitError";
@@ -330,7 +331,7 @@ RealizeWidget(Widget widget)
 
     if (!IswIsWidget(widget) || IswIsRealized(widget))
         return;
-    display = IswDisplay(widget);
+    display = _IswXcbConn(IswDisplayOf(widget));
 
     _IswInstallTranslations(widget);
 
@@ -370,7 +371,7 @@ RealizeWidget(Widget widget)
     }
     /* Own window (None for windowless); used for drawable registration
        and the optional window-identify property below. */
-    window = widget->core.window;
+    window = _IswXcbWindow(widget->core.window);
     hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
@@ -382,7 +383,7 @@ RealizeWidget(Widget widget)
                            (IswPointer) &call_data);
     }
 #ifndef NO_IDENTIFY_WINDOWS
-    if (_IswGetPerDisplay(display)->appContext->identify_windows) {
+    if (_IswGetPerDisplay(IswDisplayOf(widget))->appContext->identify_windows) {
         int len_nm, len_cl;
         char *s;
         xcb_intern_atom_cookie_t cookie;
@@ -432,14 +433,14 @@ RealizeWidget(Widget widget)
             if (anc != NULL && IswIsRealized(anc)
                 && !anc->core.being_destroyed) {
                 EventMask sel = _IswWindowSelectMask(anc);
-                xcb_change_window_attributes(IswDisplay(anc),
-                                             anc->core.window,
+                xcb_change_window_attributes(_IswXcbConn(IswDisplayOf(anc)),
+                                             _IswXcbWindow(anc->core.window),
                                              XCB_CW_EVENT_MASK, &sel);
             }
         }
     }
     else
-        IswRegisterDrawable(display, window, widget);
+        IswRegisterDrawable((IswDisplay) display, window, widget);
 
     _IswExtensionSelect(widget);
 
@@ -556,13 +557,13 @@ UnrealizeWidget(Widget widget)
             ISWRenderRequestComposite(anc);
     }
     else {
-        IswUnregisterDrawable(IswDisplay(widget), IswWindow(widget));
+        IswUnregisterDrawable(IswDisplayOf(widget), _IswXcbWindow(IswWindowOf(widget)));
 
         /* Remove Event Handlers */
         /* remove grabs. Happens automatically when window is destroyed. */
 
         /* Destroy X xcb_window_t, done at outer level with one request */
-        widget->core.window = None;
+        widget->core.window = _IswXcbWindowWrap(None);
     }
 
     /* Removing the event handler here saves having to keep track if
@@ -582,7 +583,7 @@ IswUnrealizeWidget(Widget widget)
     LOCK_APP(app);
     /* Use the widget's own window, not the resolved ancestor window:
        windowless widgets must never destroy their ancestor's window. */
-    window = widget->core.windowless ? None : widget->core.window;
+    window = widget->core.windowless ? None : _IswXcbWindow(widget->core.window);
     if (!IswIsRealized(widget)) {
         UNLOCK_APP(app);
         return;
@@ -591,9 +592,9 @@ IswUnrealizeWidget(Widget widget)
         IswUnmanageChild(widget);
     UnrealizeWidget(widget);
     if (window != None) {
-        //XDestroyWindow(IswDisplay(widget), window);
-        xcb_destroy_window(IswDisplay(widget), window);
-        xcb_flush(IswDisplay(widget));
+        //XDestroyWindow(IswDisplayOf(widget), window);
+        xcb_destroy_window(_IswXcbConn(IswDisplayOf(widget)), window);
+        xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
     }
     hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
@@ -624,7 +625,7 @@ IswCreateWindow(xcb_connection_t *display,
         UNLOCK_APP(app);
         return;
     }
-    if (widget->core.window == None) {
+    if (_IswXcbWindow(widget->core.window) == None) {
         if (widget->core.width == 0 || widget->core.height == 0) {
             Cardinal count = 1;
 
@@ -634,7 +635,7 @@ IswCreateWindow(xcb_connection_t *display,
                           "Widget %s has zero width and/or height",
                           &widget->core.name, &count);
         }
-        widget->core.window = xcb_generate_id(display);
+        widget->core.window = _IswXcbWindowWrap(xcb_generate_id(display));
         
         /* DIAGNOSTIC: Log visual pointer value */
         if (visual) {
@@ -651,7 +652,7 @@ IswCreateWindow(xcb_connection_t *display,
             xcb_window_t parent_win;
             int off_x = 0, off_y = 0;
             if (widget->core.parent == NULL) {
-                parent_win = widget->core.screen->root;
+                parent_win = _IswXcbScreen(widget->core.screen)->root;
             } else if (widget->core.parent->core.windowless) {
                 Widget anc = widget->core.parent;
                 while (anc != NULL && IswIsWidget(anc) && anc->core.windowless) {
@@ -659,16 +660,16 @@ IswCreateWindow(xcb_connection_t *display,
                     off_y += anc->core.y + anc->core.border_width;
                     anc = anc->core.parent;
                 }
-                parent_win = anc ? anc->core.window : widget->core.screen->root;
+                parent_win = anc ? _IswXcbWindow(anc->core.window) : _IswXcbScreen(widget->core.screen)->root;
             } else {
-                parent_win = widget->core.parent->core.window;
+                parent_win = _IswXcbWindow(widget->core.parent->core.window);
             }
             /* HiDPI: create window at physical pixel geometry */
-            double _sf = _IswGetScaleFactor(display);
+            double _sf = _IswGetScaleFactor((IswDisplay) display);
             xcb_void_cookie_t cookie = xcb_create_window_checked(
                 display,
                 widget->core.depth,
-                widget->core.window,
+                _IswXcbWindow(widget->core.window),
                 parent_win,
                 (int16_t)((widget->core.x + off_x) * _sf + 0.5),
                 (int16_t)((widget->core.y + off_y) * _sf + 0.5),
@@ -689,7 +690,7 @@ IswCreateWindow(xcb_connection_t *display,
             } else {
             }
         }
-            //XCreateWindow(IswDisplay(widget),
+            //XCreateWindow(IswDisplayOf(widget),
             //              (widget->core.parent ?
             //               widget->core.parent->core.window :
             //               widget->core.screen->root),
@@ -875,51 +876,51 @@ IswNameToWidget(Widget root, _Xconst char *name)
 /* Define user versions of intrinsics macros */
 
 #undef IswDisplayOfObject
-xcb_connection_t *
+IswDisplay
 IswDisplayOfObject(Widget object)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     if (IswIsSubclass(object, hookObjectClass))
         return ((HookObject) object)->hooks.display;
-    return IswDisplay(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
+    return IswDisplayOf(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
 }
 
-#undef IswDisplay
-xcb_connection_t *
-IswDisplay(Widget widget)
+#undef IswDisplayOf
+IswDisplay
+IswDisplayOf(Widget widget)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return widget->core.display;
 }
 
 #undef IswScreenOfObject
-xcb_screen_t *
+IswScreen
 IswScreenOfObject(Widget object)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     if (IswIsSubclass(object, hookObjectClass))
         return ((HookObject) object)->hooks.screen;
-    return IswScreen(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
+    return IswScreenOf(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
 }
 
-#undef IswScreen
-xcb_screen_t *
-IswScreen(Widget widget)
+#undef IswScreenOf
+IswScreen
+IswScreenOf(Widget widget)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return widget->core.screen;
 }
 
 #undef IswWindowOfObject
-xcb_window_t
+IswWindow
 IswWindowOfObject(Widget object)
 {
-    return IswWindow(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
+    return IswWindowOf(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
 }
 
-#undef IswWindow
-xcb_window_t
-IswWindow(Widget widget)
+#undef IswWindowOf
+IswWindow
+IswWindowOf(Widget widget)
 {
     /* Windowless widgets share their nearest windowed ancestor's window. */
     if (widget->core.windowless)
@@ -1536,7 +1537,7 @@ static SubstitutionRec defaultSubs[] = {
 /* *INDENT-ON* */
 
 _IswString
-IswResolvePathname(xcb_connection_t *dpy,
+IswResolvePathname(IswDisplay dpy,
                   _Xconst char *type,
                   _Xconst char *filename,
                   _Xconst char *suffix,

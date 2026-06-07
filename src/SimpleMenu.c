@@ -52,6 +52,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeLine.h>
 #include <ISW/Cardinals.h>
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
@@ -59,7 +60,7 @@ in this Software without prior written authorization from the X Consortium.
 #include "ISWXcbDraw.h"
 #include <math.h>
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(IswDisplay dpy);
 
 /* XPoint typedef for XCB */
 typedef xcb_point_t XPoint;
@@ -610,8 +611,8 @@ Realize(xcb_connection_t *conn, Widget w, IswValueMask * mask, uint32_t * values
 
      /* check if the menu is too big */
      {
-         double sf = _IswGetScaleFactor(conn);
-         int logical_scr_h = (int)lrint(HeightOfScreen(IswScreen(w)) / sf);
+         double sf = _IswGetScaleFactor((IswDisplay) conn);
+         int logical_scr_h = (int)lrint(HeightOfScreen(_IswXcbScreen(IswScreenOf(w))) / sf);
          if (smw->core.height >= logical_scr_h) {
              smw->simple_menu.too_tall = TRUE;
              smw->core.height = logical_scr_h;
@@ -627,7 +628,7 @@ Realize(xcb_connection_t *conn, Widget w, IswValueMask * mask, uint32_t * values
         xcb_intern_atom_reply_t *wt_reply = xcb_intern_atom_reply(conn, wt_cookie, NULL);
         xcb_intern_atom_reply_t *type_reply = xcb_intern_atom_reply(conn, type_cookie, NULL);
         if (wt_reply && type_reply) {
-            xcb_change_property(conn, XCB_PROP_MODE_REPLACE, IswWindow(w),
+            xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
                                 wt_reply->atom, XCB_ATOM_ATOM, 32,
                                 1, &type_reply->atom);
         }
@@ -1335,13 +1336,13 @@ EnterSubMenu(Widget w, IswEvent *iswev, String *p, Cardinal *np)
     }
 
     /* Warp pointer into submenu so its translations receive events */
-    xcb_warp_pointer(IswDisplay(w), XCB_NONE, IswWindow((Widget)sub),
+    xcb_warp_pointer(_IswXcbConn(IswDisplayOf(w)), XCB_NONE, _IswXcbWindow(IswWindowOf((Widget)sub)),
 		     0, 0, 0, 0,
 		     (int16_t)(IswWidth((Widget)sub) / 2),
 		     (int16_t)(first ? first->rectangle.y +
 		     first->rectangle.height / 2 -
 		     sub->simple_menu.first_y : 10));
-    xcb_flush(IswDisplay(w));
+    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
 }
 
 static void
@@ -1391,13 +1392,13 @@ LeaveSubMenu(Widget w, IswEvent *iswev, String *p, Cardinal *np)
     }
 
     /* Warp pointer back to parent menu */
-    xcb_warp_pointer(IswDisplay(w), XCB_NONE, IswWindow(parent),
+    xcb_warp_pointer(_IswXcbConn(IswDisplayOf(w)), XCB_NONE, _IswXcbWindow(IswWindowOf(parent)),
 		     0, 0, 0, 0,
 		     (int16_t)(IswWidth(parent) / 2),
 		     (int16_t)(parent_entry ? parent_entry->rectangle.y +
 		     parent_entry->rectangle.height / 2 -
 		     psmw->simple_menu.first_y : 10));
-    xcb_flush(IswDisplay(w));
+    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
 }
 
 /************************************************************
@@ -1647,12 +1648,12 @@ PositionMenu(Widget w, XPoint * location)
     XPoint t_point;
 
     if (location == NULL) {
- xcb_connection_t *conn = IswDisplay(w);
+ xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(w));
  xcb_query_pointer_cookie_t cookie;
  xcb_query_pointer_reply_t *reply;
 
  location = &t_point;
- cookie = xcb_query_pointer(conn, IswWindow(w));
+ cookie = xcb_query_pointer(conn, _IswXcbWindow(IswWindowOf(w)));
  reply = xcb_query_pointer_reply(conn, cookie, NULL);
  if (reply == NULL) {
      char error_buf[BUFSIZ];
@@ -1700,12 +1701,12 @@ MoveMenu(Widget w, Position x, Position y)
     IswArgBuilder ab = IswArgBuilderInit();
 
     if (smw->simple_menu.menu_on_screen) {
-	double sf = _IswGetScaleFactor(IswDisplay(w));
+	double sf = _IswGetScaleFactor(IswDisplayOf(w));
 	int width = w->core.width + 2 * w->core.border_width;
 	int height = w->core.height + 2 * w->core.border_width;
 
 	if (x >= 0) {
-	    int scr_width = (int)lrint(WidthOfScreen(IswScreen(w)) / sf);
+	    int scr_width = (int)lrint(WidthOfScreen(_IswXcbScreen(IswScreenOf(w))) / sf);
 	    if (x + width > scr_width)
 		x = scr_width - width;
 	}
@@ -1713,7 +1714,7 @@ MoveMenu(Widget w, Position x, Position y)
 	    x = 0;
 
 	if (y >= 0) {
-	    int scr_height = (int)lrint(HeightOfScreen(IswScreen(w)) / sf);
+	    int scr_height = (int)lrint(HeightOfScreen(_IswXcbScreen(IswScreenOf(w))) / sf);
 	    if (y + height > scr_height)
 		y = scr_height - height;
 	}
@@ -1748,7 +1749,7 @@ ChangeCursorOnGrab(Widget w, IswPointer junk, IswPointer garbage)
 
     _IswChangeActivePointerGrabCursor(w,
        smw->simple_menu.cursor,
-       IswLastTimestampProcessed(IswDisplay(w)),
+       IswLastTimestampProcessed(IswDisplayOf(w)),
        XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
        XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
        XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW);
@@ -2054,10 +2055,10 @@ PopupSubMenu(SimpleMenuWidget smw)
 			  - IswBorderWidth(menu), &menu_x, &menu_y);
 
     {
-	double sf = _IswGetScaleFactor(IswDisplay(menu));
+	double sf = _IswGetScaleFactor(IswDisplayOf(menu));
 
 	if (!popleft && menu_x >= 0) {
-	    int scr_width = (int)lrint(WidthOfScreen(IswScreen(menu)) / sf);
+	    int scr_width = (int)lrint(WidthOfScreen(_IswXcbScreen(IswScreenOf(menu))) / sf);
 
 	    if (menu_x + IswWidth(menu) > scr_width) {
 		menu_x -= IswWidth(menu) + IswWidth(smw);
@@ -2070,7 +2071,7 @@ PopupSubMenu(SimpleMenuWidget smw)
 	}
 
 	if (menu_y >= 0) {
-	    int scr_height = (int)lrint(HeightOfScreen(IswScreen(menu)) / sf);
+	    int scr_height = (int)lrint(HeightOfScreen(_IswXcbScreen(IswScreenOf(menu))) / sf);
 
 	    if (menu_y + IswHeight(menu) > scr_height)
 		menu_y = scr_height - IswHeight(menu) - IswBorderWidth(menu);

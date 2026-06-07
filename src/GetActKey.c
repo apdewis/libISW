@@ -74,7 +74,7 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 
 xcb_keysym_t
-IswGetActionKeysym(xcb_generic_event_t *event, Modifiers *modifiers_return, xcb_connection_t *dpy)
+IswGetActionKeysym(xcb_generic_event_t *event, Modifiers *modifiers_return, IswDisplay dpy)
 {
     TMKeyContext tm_context;
     Modifiers modifiers;
@@ -94,7 +94,7 @@ IswGetActionKeysym(xcb_generic_event_t *event, Modifiers *modifiers_return, xcb_
             return NoSymbol;
     }
 
-    tm_context = _IswGetPerDisplay(dpy)->tm_context;
+    tm_context = _IswGetPerDisplay((IswDisplay) dpy)->tm_context;
     if (tm_context != NULL
         && event == tm_context->event
         && event->full_sequence == tm_context->serial) {

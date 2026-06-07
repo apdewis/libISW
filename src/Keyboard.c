@@ -79,6 +79,7 @@ in this Software without prior written authorization from The Open Group.
 
 #include "PassivGraI.h"
 #include "EventI.h"
+#include "ISWPlatformPrivate.h"
 
 #define _GetWindowedAncestor(w) (IswIsWidget(w) ? w : _IswWindowedAncestor(w))
 
@@ -213,7 +214,7 @@ IswGetKeyboardFocusWidget(Widget widget)
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    pdi = _IswGetPerDisplayInput(IswDisplay(widget));
+    pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     retval = FindFocusWidget(widget, pdi);
     UNLOCK_APP(app);
     return retval;
@@ -384,7 +385,7 @@ _IswProcessKeyboardEvent(xcb_key_press_event_t *event, Widget widget, IswPerDisp
              * unlocking keyboard. Not Xt Unlock !
              */
             if (IsPseudoGrab(prevGrabType))
-                xcb_ungrab_keyboard(IswDisplay(widget), keypress_event->time);
+                xcb_ungrab_keyboard(_IswXcbConn(IswDisplayOf(widget)), keypress_event->time);
             else {
                 /* Activate the grab */
                 device->grab = *newGrab;
@@ -458,7 +459,7 @@ _IswHandleFocus(Widget widget,
                Boolean *cont _X_UNUSED)
 {
     ISW_NATIVE_EVENT(iswev);
-    IswPerDisplayInput pdi = _IswGetPerDisplayInput(IswDisplay(widget));
+    IswPerDisplayInput pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     IswPerWidgetInput pwi = (IswPerWidgetInput) client_data;
     IswGeneology oldFocalPoint = pwi->focalPoint;
     IswGeneology newFocalPoint = pwi->focalPoint;
@@ -636,8 +637,8 @@ AddFocusHandler(Widget widget,
                  * contains the pointer, then source has the focus.
                  */
                 //#TODO another LLM rework to verify
-                xcb_query_pointer_cookie_t cookie = xcb_query_pointer(IswDisplay(widget), IswWindow(widget));
-                xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(IswDisplay(widget), cookie, NULL);
+                xcb_query_pointer_cookie_t cookie = xcb_query_pointer(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)));
+                xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(_IswXcbConn(IswDisplayOf(widget)), cookie, NULL);
                 if (reply) {
                     /* We need to take borders into consideration */
                     left = top = -((int) widget->core.border_width);
@@ -681,7 +682,7 @@ QueryEventMask(Widget widget,           /* child who gets focus */
         if (pwi->focusKid == target) {
             AddFocusHandler(ancestor, target, pwi,
                             _IswGetPerWidgetInput(GetShell(ancestor), TRUE),
-                            _IswGetPerDisplayInput(IswDisplay(ancestor)),
+                            _IswGetPerDisplayInput(IswDisplayOf(ancestor)),
                             (EventMask) 0);
         }
         IswRemoveEventHandler(widget, IswAllEvents, True,
@@ -709,7 +710,7 @@ IswSetKeyboardFocus(Widget widget, Widget descendant)
 
     LOCK_APP(app);
     LOCK_PROCESS;
-    pdi = _IswGetPerDisplayInput(IswDisplay(widget));
+    pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     pwi = _IswGetPerWidgetInput(widget, TRUE);
     oldDesc = pwi->focusKid;
 
@@ -791,7 +792,7 @@ IswSetKeyboardFocus(Widget widget, Widget descendant)
             }
         }
     }
-    hookobj = IswHooksOfDisplay(IswDisplay(widget));
+    hookobj = IswHooksOfDisplay(IswDisplayOf(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
 

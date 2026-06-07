@@ -57,10 +57,11 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeBSB.h>
 #include <ISW/Shell.h>
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 #include "ISWXcbDraw.h"
 #include <math.h>
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(IswDisplay dpy);
 
 /* These added so widget knows whether its height, width are user selected.
 I also added the freedoms member of the list widget part. */
@@ -888,9 +889,9 @@ ListConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
 {
     ListWidget lw = (ListWidget) w;
 
-    if (*target == XCB_ATOM_TARGETS(IswDisplay(w))) {
+    if (*target == XCB_ATOM_TARGETS(_IswXcbConn(IswDisplayOf(w)))) {
 	xcb_atom_t *targets = (xcb_atom_t *) IswMalloc(2 * sizeof(xcb_atom_t));
-	targets[0] = XCB_ATOM_TARGETS(IswDisplay(w));
+	targets[0] = XCB_ATOM_TARGETS(_IswXcbConn(IswDisplayOf(w)));
 	targets[1] = XCB_ATOM_STRING;
 	*type = XCB_ATOM_ATOM;
 	*value = (IswPointer) targets;
@@ -953,8 +954,8 @@ Notify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 	if (lw->list.clip_contents)
 	    IswFree(lw->list.clip_contents);
 	lw->list.clip_contents = IswNewString(lw->list.list[item]);
-	IswOwnSelection(w, XCB_ATOM_CLIPBOARD(IswDisplay(w)),
-			IswLastTimestampProcessed(IswDisplay(w)),
+	IswOwnSelection(w, XCB_ATOM_CLIPBOARD(_IswXcbConn(IswDisplayOf(w))),
+			IswLastTimestampProcessed(IswDisplayOf(w)),
 			ListConvertSelection, ListLoseSelection, NULL);
     }
 
@@ -1205,8 +1206,8 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
     /* Compute available space and pick direction */
     {
-        double sf = _IswGetScaleFactor(IswDisplay(w));
-        int scr_height = (int)lrint(HeightOfScreen(IswScreen(w)) / sf);
+        double sf = _IswGetScaleFactor(IswDisplayOf(w));
+        int scr_height = (int)lrint(HeightOfScreen(_IswXcbScreen(IswScreenOf(w))) / sf);
         int space_below = scr_height - below_y;
         int space_above = abs_y;
         Position popup_y = below_y;
@@ -1243,7 +1244,7 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
     /* X server pointer grab — all button events (scroll, outside clicks)
      * delivered to popup window. Same technique as GTK/Motif popups. */
-    xcb_grab_pointer(IswDisplay(w), False, IswWindow(lw->list.popup_shell),
+    xcb_grab_pointer(_IswXcbConn(IswDisplayOf(w)), False, _IswXcbWindow(IswWindowOf(lw->list.popup_shell)),
         XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
         XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
         XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
@@ -1251,10 +1252,10 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
         XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
 
     /* Keyboard grab so arrow / Return / Escape route to the popup */
-    xcb_grab_keyboard(IswDisplay(w), False, IswWindow(lw->list.popup_shell),
+    xcb_grab_keyboard(_IswXcbConn(IswDisplayOf(w)), False, _IswXcbWindow(IswWindowOf(lw->list.popup_shell)),
         XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
-    xcb_flush(IswDisplay(w));
+    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
 
     /* Dismiss on focus loss, minimize, or visibility change */
     {
@@ -1467,9 +1468,9 @@ IswListChange(Widget w, String* list, int nitems, int longest,
        * repaint; calling Redisplay here would be wasted work that
        * races with the map and can leave the window blank. */
       xcb_get_window_attributes_cookie_t ac =
-          xcb_get_window_attributes(IswDisplay(w), IswWindow(w));
+          xcb_get_window_attributes(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)));
       xcb_get_window_attributes_reply_t *ar =
-          xcb_get_window_attributes_reply(IswDisplay(w), ac, NULL);
+          xcb_get_window_attributes_reply(_IswXcbConn(IswDisplayOf(w)), ac, NULL);
       int viewable = ar && ar->map_state == XCB_MAP_STATE_VIEWABLE;
       free(ar);
       if (viewable)
@@ -1611,9 +1612,9 @@ DropdownPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
     ListWidget lw = (ListWidget) client_data;
     Widget shell = (Widget)lw;
 
-    xcb_ungrab_pointer(IswDisplay((Widget)lw), XCB_CURRENT_TIME);
-    xcb_ungrab_keyboard(IswDisplay((Widget)lw), XCB_CURRENT_TIME);
-    xcb_flush(IswDisplay((Widget)lw));
+    xcb_ungrab_pointer(_IswXcbConn(IswDisplayOf((Widget)lw)), XCB_CURRENT_TIME);
+    xcb_ungrab_keyboard(_IswXcbConn(IswDisplayOf((Widget)lw)), XCB_CURRENT_TIME);
+    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)lw)));
 
     while (shell && !IswIsShell(shell))
         shell = IswParent(shell);

@@ -67,6 +67,7 @@ SOFTWARE.
 #include <cairo/cairo.h>
 #include <ISW/Command.h>
 #include <ISW/LabelP.h>
+#include "ISWPlatformPrivate.h"
 /* NO XFT - using pure XCB rendering */
 #include <stdio.h>
 #include <ctype.h>
@@ -255,7 +256,7 @@ ClassInitialize(void)
 static Boolean
 _LabelForegroundHex(LabelWidget lw, char *hex, size_t hex_size)
 {
-    xcb_connection_t *conn = ((Widget)lw)->core.display;
+    xcb_connection_t *conn = _IswXcbConn(((Widget)lw)->core.display);
     xcb_colormap_t cmap = ((Widget)lw)->core.colormap;
     uint32_t pixel = (uint32_t)lw->label.foreground;
     xcb_query_colors_cookie_t cookie;
@@ -401,7 +402,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
              IswName(new));
      fprintf(stderr, "         Attempting to load fallback font...\n");
 
-     lw->label.font = ISWLoadFallbackFont(IswDisplay(new));
+     lw->label.font = ISWLoadFallbackFont(_IswXcbConn(IswDisplayOf(new)));
      
      if (lw->label.font == NULL) {
          fprintf(stderr, "FATAL Label.c: Fallback font loading failed for widget '%s'\n",

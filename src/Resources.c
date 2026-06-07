@@ -76,6 +76,7 @@ in this Software without prior written authorization from The Open Group.
 #include "Shell.h"
 #include "ShellP.h"
 #include "StringDefs.h"
+#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #include <xcb/xcb_xrm.h>
 
@@ -113,12 +114,12 @@ _IswCopyFromParent(Widget widget, int offset, XrmValue *value)
         int depth_offset = (int) IswOffsetOf(CoreRec, core.depth);
 
         if (offset == colormap_offset && widget->core.screen != NULL) {
-            default_colormap = widget->core.screen->default_colormap;
+            default_colormap = _IswXcbScreen(widget->core.screen)->default_colormap;
             value->addr = (IswPointer) &default_colormap;
             return;
         }
         if (offset == depth_offset && widget->core.screen != NULL) {
-            default_depth = (int) widget->core.screen->root_depth;
+            default_depth = (int) _IswXcbScreen(widget->core.screen)->root_depth;
             value->addr = (IswPointer) &default_depth;
             return;
         }
@@ -700,7 +701,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
     if (IswIsShell(widget)) {
         register XrmResourceList *res;
         register Cardinal j;
-        xcb_screen_t *oldscreen = widget->core.screen;
+        xcb_screen_t *oldscreen = _IswXcbScreen(widget->core.screen);
 
         /* look up screen resource first, since real rdb depends on it */
         for (res = table, j = 0; j < num_resources; j++, res++) {
@@ -742,7 +743,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
             break;
         }
         /* now get the database to use for the rest of the resources */
-        if (widget->core.screen != oldscreen) {
+        if (_IswXcbScreen(widget->core.screen) != oldscreen) {
             db = IswScreenDatabase(widget->core.screen);
         }
     }
@@ -1107,7 +1108,7 @@ _IswGetResources(register Widget w,
     }
     /* Check if core.display was corrupted by resource processing */
     if (IswIsWidget(w)) {
-        xcb_connection_t *dpy_check = w->core.display;
+        xcb_connection_t *dpy_check = _IswXcbConn(w->core.display);
         if ((uintptr_t)dpy_check < 0x1000) {
             /* Check if constraint resources caused the corruption */
             if (w->core.constraints != NULL && w->core.parent != NULL) {
@@ -1341,7 +1342,7 @@ _IswGetApplicationResources(Widget w,            /* Application shell widget */
     /* Get full name, class of application */
     if (w == NULL) {
         /* hack for R2 compatibility */
-        IswPerDisplay pd = _IswGetPerDisplay(_IswDefaultAppContext()->list[0]);
+        IswPerDisplay pd = _IswGetPerDisplay((IswDisplay) _IswDefaultAppContext()->list[0]);
 
         names = (XrmName *) IswStackAlloc(2 * sizeof(XrmName), names_s);
         classes = (XrmClass *) IswStackAlloc(2 * sizeof(XrmClass), classes_s);

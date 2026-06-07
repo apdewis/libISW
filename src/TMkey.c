@@ -78,6 +78,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 #include <X11/keysymdef.h>
 
 
@@ -148,7 +149,7 @@ FM(0x1e), FM(0x9e), FM(0x5e), FM(0xde), FM(0x3e), FM(0xbe), FM(0x7e), FM(0xfe)
         mod_ret = MOD_RETURN(ctx, key); \
         sym_ret = (ctx)->keycache.keysym[_i_]; \
     } else { \
-        IswTranslateKeycode(dpy, (xcb_keycode_t) key, mod, &mod_ret, &sym_ret); \
+        IswTranslateKeycode((IswDisplay) (dpy), (xcb_keycode_t) key, mod, &mod_ret, &sym_ret); \
         (ctx)->keycache.keycode[_i_] = (xcb_keycode_t) (key); \
         (ctx)->keycache.modifiers[_i_] = (unsigned char)(mod); \
         (ctx)->keycache.keysym[_i_] = sym_ret; \
@@ -180,9 +181,9 @@ _IswComputeLateBindings(xcb_connection_t *dpy,
     IswPerDisplay perDisplay;
     xcb_keysym_t tempKeysym = NoSymbol;
 
-    perDisplay = _IswGetPerDisplay(dpy);
+    perDisplay = _IswGetPerDisplay((IswDisplay) dpy);
     if (perDisplay == NULL) {
-        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext((IswDisplay) dpy),
                         "displayError", "invalidDisplay", IswCIswToolkitError,
                         "Can't find display structure", NULL, NULL);
         return FALSE;
@@ -275,12 +276,12 @@ _IswMatchUsingDontCareMods(TMTypeMatch typeMatch,
         int i;
         xcb_keysym_t lower, upper;
 
-        pd = _IswGetPerDisplay(dpy);
+        pd = _IswGetPerDisplay((IswDisplay) dpy);
         tm_context = pd->tm_context;
         TRANSLATE(tm_context, pd, dpy, (xcb_keycode_t) eventSeq->event.eventCode,
                   (unsigned) 0, modifiers_return, keysym_return);
 
-        IswConvertCase(dpy, keysym_return, &lower, &upper);
+        IswConvertCase((IswDisplay) dpy, keysym_return, &lower, &upper);
         if ((upper & typeMatch->eventCodeMask) == typeMatch->eventCode
             || (lower & typeMatch->eventCodeMask) == typeMatch->eventCode) {
             tm_context->event = eventSeq->xev;
@@ -309,7 +310,7 @@ _IswMatchUsingDontCareMods(TMTypeMatch typeMatch,
             for (i = (int) useful_mods; i > 0; i--) {
                 TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
                           (Modifiers) i, modifiers_return, keysym_return);
-                IswConvertCase(dpy, keysym_return, &lower, &upper);
+                IswConvertCase((IswDisplay) dpy, keysym_return, &lower, &upper);
                 if ((upper & typeMatch->eventCodeMask) ==
                         (typeMatch->eventCode & typeMatch->eventCodeMask)
                     || (lower & typeMatch->eventCodeMask) ==
@@ -342,7 +343,7 @@ _IswMatchUsingDontCareMods(TMTypeMatch typeMatch,
                         tmod |= mod_masks[i];
                 TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
                           tmod, modifiers_return, keysym_return);
-                IswConvertCase(dpy, keysym_return, &lower, &upper);
+                IswConvertCase((IswDisplay) dpy, keysym_return, &lower, &upper);
                 if ((upper & typeMatch->eventCodeMask) ==
                         (typeMatch->eventCode & typeMatch->eventCodeMask)
                     || (lower & typeMatch->eventCodeMask) ==
@@ -362,7 +363,7 @@ _IswMatchUsingDontCareMods(TMTypeMatch typeMatch,
 }
 
 void
-IswConvertCase(xcb_connection_t *dpy,
+IswConvertCase(IswDisplay dpy,
               xcb_keysym_t keysym,
               xcb_keysym_t *lower_return,
               xcb_keysym_t *upper_return)
@@ -373,7 +374,7 @@ IswConvertCase(xcb_connection_t *dpy,
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    pd = _IswGetPerDisplay(dpy);
+    pd = _IswGetPerDisplay((IswDisplay) dpy);
 
     *lower_return = *upper_return = keysym;
     for (ptr = pd->case_cvt; ptr; ptr = ptr->next)
@@ -402,7 +403,7 @@ _IswMatchUsingStandardMods(TMTypeMatch typeMatch,
     uint16_t computed = 0;
     uint16_t computedMask = 0;
     xcb_connection_t *dpy = eventSeq->dpy;
-    IswPerDisplay pd = _IswGetPerDisplay(dpy);
+    IswPerDisplay pd = _IswGetPerDisplay((IswDisplay) dpy);
     TMKeyContext tm_context = pd->tm_context;
     uint16_t translateModifiers;
 
@@ -414,7 +415,7 @@ _IswMatchUsingStandardMods(TMTypeMatch typeMatch,
 
     modifiers_return = MOD_RETURN(tm_context, eventSeq->event.eventCode);
     if (!modifiers_return) {
-        IswTranslateKeycode(dpy, (xcb_keycode_t) eventSeq->event.eventCode,
+        IswTranslateKeycode((IswDisplay) dpy, (xcb_keycode_t) eventSeq->event.eventCode,
                            (Modifiers) eventSeq->event.modifiers,
                            &modifiers_return, &keysym_return);
         translateModifiers =
@@ -431,7 +432,7 @@ _IswMatchUsingStandardMods(TMTypeMatch typeMatch,
 
     {
         xcb_keysym_t lower, upper;
-        IswConvertCase(dpy, keysym_return, &lower, &upper);
+        IswConvertCase((IswDisplay) dpy, keysym_return, &lower, &upper);
         if ((typeMatch->eventCode & typeMatch->eventCodeMask) ==
                 (upper & typeMatch->eventCodeMask)
             || (typeMatch->eventCode & typeMatch->eventCodeMask) ==
@@ -527,10 +528,11 @@ _IswBuildKeysymTables(xcb_connection_t *dpy, register IswPerDisplay pd)
 }
 
 void
-IswTranslateKey(xcb_connection_t *dpy, _IswKeyCode keycode,
+IswTranslateKey(IswDisplay dpy, _IswKeyCode keycode,
                Modifiers modifiers, Modifiers *modifiers_return,
                xcb_keysym_t *keysym_return)
 {
+    xcb_connection_t *conn = _IswXcbConn(dpy);
     IswPerDisplay pd;
     xcb_keysym_t sym;
     int col;
@@ -539,7 +541,7 @@ IswTranslateKey(xcb_connection_t *dpy, _IswKeyCode keycode,
     DPY_TO_APPCON(dpy);
     LOCK_APP(app);
     pd = _IswGetPerDisplay(dpy);
-    _InitializeKeysymTables(dpy, pd);
+    _InitializeKeysymTables(conn, pd);
 
     if (pd->keysyms == NULL) {
         *modifiers_return = 0;
@@ -578,26 +580,27 @@ IswTranslateKey(xcb_connection_t *dpy, _IswKeyCode keycode,
 }
 
 void
-IswTranslateKeycode(xcb_connection_t *dpy,
+IswTranslateKeycode(IswDisplay dpy,
                    _IswKeyCode keycode,
                    Modifiers modifiers,
                    Modifiers *modifiers_return,
                    xcb_keysym_t *keysym_return)
 {
+    xcb_connection_t *conn = _IswXcbConn(dpy);
     IswPerDisplay pd;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
     pd = _IswGetPerDisplay(dpy);
-    _InitializeKeysymTables(dpy, pd);
+    _InitializeKeysymTables(conn, pd);
     (*pd->defaultKeycodeTranslator) (dpy, keycode, modifiers, modifiers_return,
                                      keysym_return);
     UNLOCK_APP(app);
 }
 
 void
-IswSetKeyTranslator(xcb_connection_t *dpy, IswKeyProc translator)
+IswSetKeyTranslator(IswDisplay dpy, IswKeyProc translator)
 {
     IswPerDisplay pd;
 
@@ -613,7 +616,7 @@ IswSetKeyTranslator(xcb_connection_t *dpy, IswKeyProc translator)
 }
 
 void
-IswRegisterCaseConverter(xcb_connection_t *dpy,
+IswRegisterCaseConverter(IswDisplay dpy,
                         IswCaseProc proc,
                         xcb_keysym_t start,
                         xcb_keysym_t stop)
@@ -649,10 +652,11 @@ IswRegisterCaseConverter(xcb_connection_t *dpy,
 }
 
 xcb_key_symbols_t *
-IswGetKeysymTable(xcb_connection_t *dpy,
+IswGetKeysymTable(IswDisplay dpy,
                  xcb_keycode_t *min_keycode_return,
                  int *keysyms_per_keycode_return)
 {
+    xcb_connection_t *conn = _IswXcbConn(dpy);
     IswPerDisplay pd;
     xcb_key_symbols_t *retval;
 
@@ -660,7 +664,7 @@ IswGetKeysymTable(xcb_connection_t *dpy,
 
     LOCK_APP(app);
     pd = _IswGetPerDisplay(dpy);
-    _InitializeKeysymTables(dpy, pd);
+    _InitializeKeysymTables(conn, pd);
     *min_keycode_return = (xcb_keycode_t) pd->min_keycode;    /* %%% */
     *keysyms_per_keycode_return = pd->keysyms_per_keycode;
     retval = pd->keysyms;
@@ -669,11 +673,12 @@ IswGetKeysymTable(xcb_connection_t *dpy,
 }
 
 void
-IswKeysymToKeycodeList(xcb_connection_t *dpy,
+IswKeysymToKeycodeList(IswDisplay dpy,
                       xcb_keysym_t keysym,
                       xcb_keycode_t **keycodes_return,
                       unsigned int *keycount_return)
 {
+    xcb_connection_t *conn = _IswXcbConn(dpy);
     IswPerDisplay pd;
     unsigned int keycode;
     int per;
@@ -690,14 +695,14 @@ IswKeysymToKeycodeList(xcb_connection_t *dpy,
     LOCK_APP(app);
     
     pd = _IswGetPerDisplay(dpy);
-    _InitializeKeysymTables(dpy, pd);
-    
+    _InitializeKeysymTables(conn, pd);
+
     keycodes = NULL;
-    
+
     // Get keyboard mapping using XCB
-    cookie = xcb_get_keyboard_mapping(dpy, pd->min_keycode, 
+    cookie = xcb_get_keyboard_mapping(conn, pd->min_keycode,
                                        pd->max_keycode - pd->min_keycode + 1);
-    reply = xcb_get_keyboard_mapping_reply(dpy, cookie, NULL);
+    reply = xcb_get_keyboard_mapping_reply(conn, cookie, NULL);
     
     if (!reply) {
         *keycodes_return = NULL;

@@ -44,10 +44,11 @@
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 
 #include <stdlib.h>
 
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(IswDisplay dpy);
 
 /* BackingStore resource definitions (stub - limited XCB support) */
 #ifndef IswNbackingStore
@@ -209,7 +210,7 @@ static TimeoutInfo TimeoutData;
  */
 /*ARGSUSED*/
 static Boolean
-XmuCvtStringToBackingStore(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+XmuCvtStringToBackingStore(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
                            XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
 {
   static int backingStore = XCB_BACKING_STORE_NOT_USEFUL;
@@ -238,7 +239,7 @@ XmuCvtStringToBackingStore(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 
 /*ARGSUSED*/
 static Boolean
-IswCvtBackingStoreToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+IswCvtBackingStoreToString(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
                            XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
 {
   static String buffer;
@@ -354,7 +355,7 @@ IswTipDestroy(Widget w)
 static void
 IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *values)
 {
-    xcb_screen_t *screen = IswScreen(w);
+    xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(w));
     xcb_window_t window;
     uint32_t value_mask = 0;
     uint32_t value_list[32];
@@ -372,7 +373,7 @@ IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *va
 
     /* HiDPI: create window at physical pixel geometry */
     {
-        double _sf = _IswGetScaleFactor(conn);
+        double _sf = _IswGetScaleFactor((IswDisplay) conn);
         xcb_create_window(
             conn,
             screen->root_depth,
@@ -390,7 +391,7 @@ IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *va
         );
     }
     
-    w->core.window = window;	/* IswWindow() is read-only (resolves
+    w->core.window = _IswXcbWindowWrap(window);	/* IswWindowOf() is read-only (resolves
 				   windowless widgets to ancestor) */
 
     /* _NET_WM_WINDOW_TYPE */
@@ -527,13 +528,13 @@ TipPosition(IswTipInfo *info)
     unsigned mask;
     Position x, y;
     int bw2 = IswBorderWidth(info->tip) * 2;
-    int scr_width = WidthOfScreen(IswScreen(info->tip));
-    int scr_height = HeightOfScreen(IswScreen(info->tip));
+    int scr_width = WidthOfScreen(_IswXcbScreen(IswScreenOf(info->tip)));
+    int scr_height = HeightOfScreen(_IswXcbScreen(IswScreenOf(info->tip)));
     int win_width = IswWidth(info->tip) + bw2;
     int win_height = IswHeight(info->tip) + bw2;
 
-    XQueryPointer(IswDisplay((Widget)info->tip),
-		  IswScreen(info->tip)->root,
+    XQueryPointer(_IswXcbConn(IswDisplayOf((Widget)info->tip)),
+		  _IswXcbScreen(IswScreenOf(info->tip))->root,
 		  &r, &c, &rx, &ry, &wx, &wy, &mask);
     x = rx + DEFAULT_TIP_OFFSET;
     y = ry + DEFAULT_TIP_OFFSET;
@@ -549,7 +550,7 @@ TipPosition(IswTipInfo *info)
 	y = 0;
 
     {
-        double _sf = _IswGetScaleFactor(IswDisplay(info->tip));
+        double _sf = _IswGetScaleFactor(IswDisplayOf(info->tip));
         IswX(info->tip) = x;
         IswY(info->tip) = y;
         uint32_t mv[4];
@@ -557,7 +558,7 @@ TipPosition(IswTipInfo *info)
         mv[1] = (uint32_t)(int32_t)(y * _sf + 0.5);
         mv[2] = (uint32_t)(IswWidth(info->tip) * _sf + 0.5);
         mv[3] = (uint32_t)(IswHeight(info->tip) * _sf + 0.5);
-        xcb_configure_window(IswDisplay(info->tip), IswWindow(info->tip),
+        xcb_configure_window(_IswXcbConn(IswDisplayOf(info->tip)), _IswXcbWindow(IswWindowOf(info->tip)),
             XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
             XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT, mv);
     }
@@ -602,7 +603,7 @@ CreateTipInfo(Widget w)
     info->tip = (TipWidget)IswCreateWidget("tip", tipWidgetClass,
 					  shell, NULL, 0);
     IswRealizeWidget((Widget)info->tip);
-    info->screen = IswScreen(w);
+    info->screen = _IswXcbScreen(IswScreenOf(w));
     info->mapped = False;
     info->widgets = NULL;
     info->next = NULL;
@@ -621,7 +622,7 @@ FindTipInfo(Widget w)
     if (list == NULL)
 	return (TipInfoList = CreateTipInfo(w));
 
-    screen = IswScreen(w);
+    screen = _IswXcbScreen(IswScreenOf(w));
     for (info = list; list; info = list, list = list->next)
 	if (list->screen == screen)
 	    return (list);
@@ -638,8 +639,8 @@ ResetTip(IswTipInfo *info, WidgetInfo *winfo, Bool add_timeout)
     }
     if (info->mapped) {
 	IswRemoveGrab(IswParent((Widget)info->tip));
-	xcb_unmap_window(IswDisplay((Widget)info->tip), IswWindow((Widget)info->tip));
-	xcb_flush(IswDisplay((Widget)info->tip));
+	xcb_unmap_window(_IswXcbConn(IswDisplayOf((Widget)info->tip)), _IswXcbWindow(IswWindowOf((Widget)info->tip)));
+	xcb_flush(_IswXcbConn(IswDisplayOf((Widget)info->tip)));
 	info->mapped = False;
     }
     if (add_timeout) {
@@ -678,8 +679,8 @@ TipTimeoutCallback(IswPointer closure, IswIntervalId *id)
     }
 
     {
-	xcb_connection_t *conn = IswDisplay((Widget)info->tip);
-	xcb_window_t win = IswWindow((Widget)info->tip);
+	xcb_connection_t *conn = _IswXcbConn(IswDisplayOf((Widget)info->tip));
+	xcb_window_t win = _IswXcbWindow(IswWindowOf((Widget)info->tip));
 	uint32_t stack_above = XCB_STACK_MODE_ABOVE;
 
 	xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_STACK_MODE, &stack_above);

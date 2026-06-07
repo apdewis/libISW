@@ -78,6 +78,7 @@ in this Software without prior written authorization from The Open Group.
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
 #include "ResConfigP.h"
 #endif
+#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 
 static _Xconst _IswString IswNxtCreateWidget = "xtCreateWidget";
@@ -342,8 +343,8 @@ xtCreate(String name,
          String class,
          WidgetClass widget_class,
          Widget parent,
-         xcb_screen_t *default_screen,    /* undefined when creating a nonwidget */
-         xcb_connection_t *conn, /* connection for use with provided screen */
+         IswScreen default_screen,    /* undefined when creating a nonwidget */
+         IswDisplay conn, /* connection for use with provided screen */
          ArgList args,          /* must be NULL if typed_args is non-NULL */
          Cardinal num_args,
          IswTypedArgList typed_args,  /* must be NULL if args is non-NULL */
@@ -372,7 +373,7 @@ xtCreate(String name,
         widget->core.screen = default_screen;
         widget->core.display = conn;
         widget->core.tm.translations = NULL;
-        widget->core.window = (xcb_window_t) 0;
+        widget->core.window = _IswXcbWindowWrap((xcb_window_t) 0);
         widget->core.visible = TRUE;
         widget->core.popup_list = NULL;
         widget->core.num_popups = 0;
@@ -456,7 +457,7 @@ xtCreate(String name,
 
         (*post_proc) (widget);
 
-        hookobj = IswHooksOfDisplay((default_screen != (xcb_screen_t *) NULL) ?
+        hookobj = IswHooksOfDisplay((default_screen != (IswScreen) NULL) ?
                                    conn :
                                    IswDisplayOfObject(parent));
         if (IswHasCallbacks(hookobj, IswNcreateHook) == IswCallbackHasSome) {
@@ -530,8 +531,8 @@ _IswCreateWidget(String name,
 {
     register Widget widget;
     ConstraintWidgetClass cwc;
-    xcb_connection_t *conn;
-    xcb_screen_t *default_screen;
+    IswDisplay conn;
+    IswScreen default_screen;
     IswEnum class_inited;
     String params[3];
     Cardinal num_params;
@@ -666,7 +667,7 @@ _IswCreatePopupShell(String name,
                     Cardinal num_typed_args)
 {
     register Widget widget;
-    xcb_screen_t *default_screen;
+    IswScreen default_screen;
 
     if (parent == NULL) {
         IswErrorMsg("invalidParent", IswNxtCreatePopupShell, IswCIswToolkitError,
@@ -723,13 +724,13 @@ _IswAppCreateShell(String name,
     Widget shell;
 
     if (widget_class == NULL) {
-        IswAppErrorMsg(IswDisplayToApplicationContext(display),
+        IswAppErrorMsg(IswDisplayToApplicationContext((IswDisplay) display),
                       "invalidClass", "xtAppCreateShell", IswCIswToolkitError,
                       "IswAppCreateShell requires non-NULL widget class",
                       NULL, NULL);
     }
     if (name == NULL) {
-        IswPerDisplay pd = _IswGetPerDisplay(display);
+        IswPerDisplay pd = _IswGetPerDisplay((IswDisplay) display);
         name = pd ? pd->name : "main";
     }
     
@@ -741,8 +742,8 @@ _IswAppCreateShell(String name,
      * stored in IswPerDisplay (set from xcb_connect's output) and walks
      * xcb_setup_roots_iterator() to return the correct xcb_screen_t*. */
     shell = xtCreate(name, class, widget_class, (Widget) NULL,
-                     _IswGetDefaultScreen(display),
-                     display,
+                     (IswScreen) _IswGetDefaultScreen(display),
+                     (IswDisplay) display,
                      args, num_args, typed_args, num_typed_args,
                      (ConstraintWidgetClass) NULL, _IswAddShellToHookObj);
 
@@ -758,14 +759,14 @@ Widget
 IswAppCreateShell(_Xconst char *name,
                  _Xconst char *class,
                  WidgetClass widget_class,
-                 xcb_connection_t *display, ArgList args, Cardinal num_args)
+                 IswDisplay display, ArgList args, Cardinal num_args)
 {
     Widget retval;
     DPY_TO_APPCON(display);
 
     LOCK_APP(app);
     retval = _IswAppCreateShell((String) name, (String) class, widget_class,
-                               display, args, num_args, (IswTypedArgList) NULL,
+                               _IswXcbConn(display), args, num_args, (IswTypedArgList) NULL,
                                (Cardinal) 0);
     UNLOCK_APP(app);
     return retval;
@@ -783,8 +784,8 @@ _IswCreateHookObj(xcb_screen_t *screen, xcb_connection_t *dpy)
                                    (ArgList) NULL, (Cardinal) 0,
                                    (IswTypedArgList) NULL, (Cardinal) 0);
 
-    ((HookObject) hookobj)->hooks.screen = screen;
-    ((HookObject) hookobj)->hooks.display = dpy;
+    ((HookObject) hookobj)->hooks.screen = (IswScreen) screen;
+    ((HookObject) hookobj)->hooks.display = (IswDisplay) dpy;
     /* NOTE: Resource system is NOT Xrm-specific - it's core functionality */
     (void) _IswGetResources(hookobj, (ArgList) NULL, 0,
                            (IswTypedArgList) NULL, &wsize);

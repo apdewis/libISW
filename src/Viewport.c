@@ -65,6 +65,7 @@ SOFTWARE.
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include "ISWXcbDraw.h"
+#include "ISWPlatformPrivate.h"
 
 static void ScrollUpDownProc(Widget, IswPointer, IswPointer);
 static void ThumbProc(Widget, IswPointer, IswPointer);
@@ -367,7 +368,7 @@ Realize(xcb_connection_t *conn, Widget widget, IswValueMask *value_mask, uint32_
 	       position is relative to the clip's origin — move it to (0,0)
 	       within the clip, then reparent and map. */
 	    IswMoveWidget( child, (Position)0, (Position)0 );
-	    xcb_reparent_window(conn, IswWindow(child), IswWindow(clip), 0, 0);
+	    xcb_reparent_window(conn, _IswXcbWindow(IswWindowOf(child)), _IswXcbWindow(IswWindowOf(clip)), 0, 0);
 	    IswMapWidget( child );
 	}
 	/* Windowless child: NOT reparented — it composites in the Viewport's
@@ -436,20 +437,20 @@ ChangeManaged(Widget widget)
 			IswRealizeWidget( child );
 		    }
 		    else {
-			xcb_window_t window = IswWindow(w);
+			xcb_window_t window = _IswXcbWindow(IswWindowOf(w));
 			/* this is dirty, but it saves the following code:
 			   temporarily make clip the child's parent window. */
-			w->core.window = IswWindow(w->viewport.clip);
+			w->core.window = IswWindowOf(w->viewport.clip);
 			IswRealizeWidget( child );
-			w->core.window = window;
+			w->core.window = _IswXcbWindowWrap(window);
 		    }
 		    constraints->viewport.reparented = True;
 		}
 		else if (!constraints->viewport.reparented
 			 && !child->core.windowless) {
-		    xcb_connection_t *conn = IswDisplay(w);
-		    xcb_reparent_window(conn, IswWindow(child),
-				     IswWindow(w->viewport.clip), 0, 0);
+		    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(w));
+		    xcb_reparent_window(conn, _IswXcbWindow(IswWindowOf(child)),
+				     _IswXcbWindow(IswWindowOf(w->viewport.clip)), 0, 0);
 		    constraints->viewport.reparented = True;
 		    if (child->core.mapped_when_managed)
 			IswMapWidget( child );
@@ -720,7 +721,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		     w->viewport.horiz_bar->core.border_width + pad;
 
     if (0 /* IswIsRealized(threeD) */ )
-	/* XLowerWindow( IswDisplay(threeD), IswWindow(threeD) ); */
+	/* XLowerWindow( IswDisplayOf(threeD), IswWindowOf(threeD) ); */
 
     /* IswMoveWidget( threeD,
 		  (Position)(!needsvert ? 0 :
@@ -731,7 +732,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		    (Dimension)(w->core.height - bar_height), (Dimension)0 ); */
 
     if (IswIsRealized(clip))
-	xcb_configure_window(IswDisplay(clip), IswWindow(clip),
+	xcb_configure_window(_IswXcbConn(IswDisplayOf(clip)), _IswXcbWindow(IswWindowOf(clip)),
 	    XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
 
     IswMoveWidget( clip,

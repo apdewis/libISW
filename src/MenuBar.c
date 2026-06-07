@@ -44,6 +44,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <ISW/Command.h>
 #include <ISW/IswArgMacros.h>
+#include "ISWPlatformPrivate.h"
 
 #define superclass (&boxClassRec)
 
@@ -408,7 +409,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
 
     /* Clamp to screen edges */
     if (menu_x >= 0) {
-        int scr_width = WidthOfScreen(IswScreen(menu));
+        int scr_width = WidthOfScreen(_IswXcbScreen(IswScreenOf(menu)));
         if (menu_x + menu_width > scr_width)
             menu_x = scr_width - menu_width;
     }
@@ -416,7 +417,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
         menu_x = 0;
 
     if (menu_y >= 0) {
-        int scr_height = HeightOfScreen(IswScreen(menu));
+        int scr_height = HeightOfScreen(_IswXcbScreen(IswScreenOf(menu)));
         if (menu_y + menu_height > scr_height)
             menu_y = scr_height - menu_height;
     }
@@ -439,13 +440,13 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     /* X server pointer grab — delivers all button events (scroll, outside
      * clicks) to the menu window. Same technique as GTK/Motif popups. */
     if (IswIsRealized(menu)) {
-        xcb_grab_pointer(IswDisplay(menu), True, IswWindow(menu),
+        xcb_grab_pointer(_IswXcbConn(IswDisplayOf(menu)), True, _IswXcbWindow(IswWindowOf(menu)),
             XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
             XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
             XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
             XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
-        xcb_flush(IswDisplay(menu));
+        xcb_flush(_IswXcbConn(IswDisplayOf(menu)));
     }
 
     /* Visually activate the button (inverted/set state) */
@@ -482,8 +483,8 @@ CloseMenu(MenuBarWidget mbw)
     menu = mbw->menu_bar.active_menu;
     button = mbw->menu_bar.active_button;
 
-    xcb_ungrab_pointer(IswDisplay((Widget)mbw), XCB_CURRENT_TIME);
-    xcb_flush(IswDisplay((Widget)mbw));
+    xcb_ungrab_pointer(_IswXcbConn(IswDisplayOf((Widget)mbw)), XCB_CURRENT_TIME);
+    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)mbw)));
 
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);
@@ -517,8 +518,8 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
     Widget old_menu = mbw->menu_bar.active_menu;
     Widget toplevel;
 
-    xcb_ungrab_pointer(IswDisplay((Widget)mbw), XCB_CURRENT_TIME);
-    xcb_flush(IswDisplay((Widget)mbw));
+    xcb_ungrab_pointer(_IswXcbConn(IswDisplayOf((Widget)mbw)), XCB_CURRENT_TIME);
+    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)mbw)));
 
     /* Remove popdown callback and click-outside handler from old menu */
     toplevel = FindToplevelShell((Widget)mbw);
@@ -560,8 +561,8 @@ MenuPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
 
     button = mbw->menu_bar.active_button;
 
-    xcb_ungrab_pointer(IswDisplay((Widget)mbw), XCB_CURRENT_TIME);
-    xcb_flush(IswDisplay((Widget)mbw));
+    xcb_ungrab_pointer(_IswXcbConn(IswDisplayOf((Widget)mbw)), XCB_CURRENT_TIME);
+    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)mbw)));
 
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);
@@ -612,7 +613,7 @@ OutsideClickHandler(Widget w, IswPointer client_data, IswEvent *iswev, Boolean *
         Widget target;
 
         /* Check if the click is on the menubar itself or any of its children */
-        target = IswWindowToWidget(IswDisplay((Widget)mbw), bev->event);
+        target = IswWindowToWidget(IswDisplayOf((Widget)mbw), _IswXcbWindowWrap(bev->event));
         if (target == NULL) {
             CloseMenu(mbw);
             return;

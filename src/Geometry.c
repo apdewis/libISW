@@ -76,6 +76,7 @@ in this Software without prior written authorization from The Open Group.
 #include "ShellI.h"
 #include <ISW/ISWRender.h>
 #include <ISW/EventI.h>
+#include "ISWPlatformPrivate.h"
 
 
 #include <math.h>
@@ -87,13 +88,13 @@ ClearRectObjAreas(RectObj r, uint32_t old_x, uint32_t old_y, uint32_t old_w, uin
     int bw2;
 
     bw2 = old_bw << 1;
-    (void)xcb_clear_area_checked(IswDisplay(pw), 0, IswWindow(pw),
+    (void)xcb_clear_area_checked(_IswXcbConn(IswDisplayOf(pw)), 0, _IswXcbWindow(IswWindowOf(pw)),
         old_x, old_y,
         (unsigned) (old_w + bw2), (unsigned) (old_h + bw2)
     );
 
     bw2 = r->rectangle.border_width << 1;
-    (void)xcb_clear_area_checked(IswDisplay(pw), 0, IswWindow(pw),
+    (void)xcb_clear_area_checked(_IswXcbConn(IswDisplayOf(pw)), 0, _IswXcbWindow(IswWindowOf(pw)),
                (int) r->rectangle.x, (int) r->rectangle.y,
                (unsigned int) (r->rectangle.width + bw2),
                (unsigned int) (r->rectangle.height + bw2));
@@ -447,7 +448,7 @@ _IswMakeGeometryRequest(Widget widget,
             CALLGEOTAT(_IswGeoTrace(widget, "stack_mode changing\n"));
             if (req.changeMask & XCB_CONFIG_WINDOW_SIBLING) {
                 if (IswIsWidget(request->sibling))
-                    req.changes_sb = IswWindow(request->sibling);
+                    req.changes_sb = _IswXcbWindow(IswWindowOf(request->sibling));
                 else
                     req.changeMask =
                         (IswGeometryMask) (req.changeMask & (unsigned long)
@@ -486,7 +487,7 @@ _IswMakeGeometryRequest(Widget widget,
         /* HiDPI: convert logical pixels to physical for the X server.
          * Use lrint() for correct rounding of negative positions. */
         {
-            double sf = _IswGetScaleFactor(IswDisplay(widget));
+            double sf = _IswGetScaleFactor(IswDisplayOf(widget));
             uint32_t values[5];
             int vi = 0;
             if (req.changeMask & XCB_CONFIG_WINDOW_X)
@@ -499,13 +500,13 @@ _IswMakeGeometryRequest(Widget widget,
                 values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
             if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
                 values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
-            /* A windowless widget owns no X window: IswWindow() would resolve
+            /* A windowless widget owns no X window: IswWindowOf() would resolve
                to the nearest windowed ancestor (ultimately the shell), so
                configuring it would resize that ancestor.  The parent's
                geometry manager has already updated core.x/y/width/height and
                is responsible for repainting the widget. */
             if (!widget->core.windowless)
-                xcb_configure_window(IswDisplay(widget), IswWindow(widget), req.changeMask, values);
+                xcb_configure_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)), req.changeMask, values);
         }
     }
     else {                      /* RectObj child of realized Widget */
@@ -637,7 +638,7 @@ IswResizeWindow(Widget w)
         req.changeMask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
         /* HiDPI: convert logical pixels to physical for the X server. */
         {
-            double sf = _IswGetScaleFactor(IswDisplay(w));
+            double sf = _IswGetScaleFactor(IswDisplayOf(w));
             uint32_t values[3];
             int vi = 0;
             if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH)
@@ -648,7 +649,7 @@ IswResizeWindow(Widget w)
                 values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
             /* Windowless widgets own no X window — see _IswMakeGeometryRequest. */
             if (!w->core.windowless)
-                xcb_configure_window(IswDisplay(w), IswWindow(w), req.changeMask, values);
+                xcb_configure_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)), req.changeMask, values);
         }
         hookobj = IswHooksOfDisplay(IswDisplayOfObject(w));
         if (IswHasCallbacks(hookobj, IswNconfigureHook) == IswCallbackHasSome) {
@@ -681,7 +682,7 @@ IswConfigureWidget(Widget w,
 {
     IswConfigureHookDataRec req;
     uint32_t old_x, old_y, old_h, old_w, old_bw;
-    xcb_connection_t *dpy = w->core.display;
+    xcb_connection_t *dpy = _IswXcbConn(w->core.display);
 
     WIDGET_TO_APPCON(w);
 
@@ -801,7 +802,7 @@ IswConfigureWidget(Widget w,
                 /* HiDPI: convert logical pixels to physical for the X server.
                  * Use lrint() for correct rounding of negative positions. */
                 {
-                    double sf = _IswGetScaleFactor(dpy);
+                    double sf = _IswGetScaleFactor(IswDisplayOf(w));
                     uint32_t values[5];
                     int vi = 0;
                     if (req.changeMask & XCB_CONFIG_WINDOW_X)
@@ -814,7 +815,7 @@ IswConfigureWidget(Widget w,
                         values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
                     if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
                         values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
-                    xcb_configure_window(dpy, IswWindow(w), req.changeMask, values);
+                    xcb_configure_window(dpy, _IswXcbWindow(IswWindowOf(w)), req.changeMask, values);
                 }
             }
             else {

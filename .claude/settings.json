@@ -76,7 +76,9 @@
       "Bash(ls -la /home/adam/libISW/src/*.c)",
       "Skill(update-config)",
       "Skill(update-config:*)",
-      "Read(//home/adam/.claude/**)"
+      "Read(//home/adam/.claude/**)",
+      "Bash(ldd *)",
+      "Bash(pkg-config *)"
     ]
   },
   "spinnerTipsEnabled": false,

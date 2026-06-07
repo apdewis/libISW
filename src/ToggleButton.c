@@ -8,6 +8,7 @@
 #include <ISW/ISWRender.h>
 #include <ISW/ToggleButtonP.h>
 #include <xcb/xcb.h>
+#include "ISWPlatformPrivate.h"
 
 static char defaultTranslations[] =
     "<Btn1Down>,<Btn1Up>:   toggle() notify()\n\
@@ -90,7 +91,7 @@ LoadImage(Widget w, const char *source)
     LabelWidget lw = (LabelWidget) w;
     float dpi = (float)(96.0 * ISWScaleFactor(w));
     char fg_hex[8];
-    xcb_connection_t *conn = w->core.display;
+    xcb_connection_t *conn = _IswXcbConn(w->core.display);
     xcb_colormap_t cmap = w->core.colormap;
     uint32_t pixel = (uint32_t)lw->label.foreground;
     const char *color = NULL;

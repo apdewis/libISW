@@ -83,6 +83,7 @@ SOFTWARE.
 /* The following two headers are for the input method. */
 #include <ISW/VendorEP.h>
 #include <ISW/ISWImP.h>
+#include "ISWPlatformPrivate.h"
 
 
 static IswResource resources[] = {
@@ -290,7 +291,7 @@ externaldef(xawvendorshellwidgetclass) WidgetClass
 #if 0
 /*ARGSUSED*/
 static Boolean
-IswCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *num_args,
+IswCvtCompoundTextToString(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
                            XrmValue *fromVal, XrmValue *toVal, IswPointer *cvt_data)
 {
     XTextProperty prop;
@@ -305,7 +306,7 @@ IswCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
     prop.nitems = fromVal->size;
 
     if(XmbTextPropertyToTextList(dpy, &prop, &list, &count) < Success) {
-	IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+	IswAppWarningMsg(IswDisplayToApplicationContext((IswDisplay) dpy),
 	"converter", "XmbTextPropertyToTextList", "IswError",
 	"conversion from CT to MB failed.", NULL, 0);
 	return False;
@@ -329,7 +330,7 @@ IswCvtCompoundTextToString(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nu
 
 /* ARGSUSED */
 static Boolean
-_IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
+_IswCvtStringToPixmap(IswDisplay dpy, XrmValuePtr args, Cardinal *nargs,
                       XrmValuePtr from, XrmValuePtr to, IswPointer *data)
 {
     static xcb_pixmap_t pixmap;
@@ -339,7 +340,7 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     const unsigned char *rgba;
 
     if (*nargs != 3)
-	IswAppErrorMsg(IswDisplayToApplicationContext(dpy),
+	IswAppErrorMsg(IswDisplayToApplicationContext((IswDisplay) dpy),
 		"_IswCvtStringToPixmap", "wrongParameters", "IswToolkitError",
 	"_IswCvtStringToPixmap needs screen, colormap, and background_pixel",
 		      (String *) NULL, (Cardinal *) NULL);
@@ -360,7 +361,7 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     /* Load PNG via lodepng (with ISW path resolution) */
     png = ISWPNGLoadFile((String) from->addr);
     if (!png) {
-	IswDisplayStringConversionWarning(dpy, (String) from->addr, IswRPixmap);
+	IswDisplayStringConversionWarning((IswDisplay) dpy, (String) from->addr, IswRPixmap);
 	return (False);
     }
 
@@ -371,15 +372,15 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
     screen = *((xcb_screen_t **) args[0].addr);
 
     /* Create a server-side pixmap and paint the RGBA data onto it via Cairo */
-    pixmap = xcb_generate_id(dpy);
-    xcb_create_pixmap(dpy, screen->root_depth, pixmap,
+    pixmap = xcb_generate_id(_IswXcbConn(dpy));
+    xcb_create_pixmap(_IswXcbConn(dpy), screen->root_depth, pixmap,
 		      screen->root, w, h);
     {
 	cairo_surface_t *target, *source;
 	cairo_t *cr;
 	int stride;
 
-	target = cairo_xcb_surface_create(dpy, pixmap,
+	target = cairo_xcb_surface_create(_IswXcbConn(dpy), pixmap,
 		    ISWRenderFindVisual(screen, screen->root_depth),
 		    w, h);
 	stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w);
@@ -420,7 +421,7 @@ _IswCvtStringToPixmap(xcb_connection_t *dpy, XrmValuePtr args, Cardinal *nargs,
 	if (to->size < sizeof(xcb_pixmap_t))
 	{
 	    to->size = sizeof(xcb_pixmap_t);
-	    IswDisplayStringConversionWarning(dpy, (String) from->addr,
+	    IswDisplayStringConversionWarning((IswDisplay) dpy, (String) from->addr,
 					     IswRPixmap);
 	    return (False);
 	}
@@ -436,7 +437,7 @@ _VendorFetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED,
                        XrmValue *value)
 {
     static xcb_connection_t *_fetch_dpy;
-    _fetch_dpy = IswDisplayOfObject(widget);
+    _fetch_dpy = _IswXcbConn(IswDisplayOfObject(widget));
     value->size = sizeof(xcb_connection_t *);
     value->addr = (IswPointer) &_fetch_dpy;
 }

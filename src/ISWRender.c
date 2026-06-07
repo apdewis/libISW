@@ -15,6 +15,7 @@
 #endif
 
 #include "ISWRenderPrivate.h"
+#include "ISWPlatformPrivate.h"
 #include "ISWXcbDraw.h"
 #include <stdlib.h>
 #include <string.h>
@@ -26,7 +27,7 @@
 #include FT_FREETYPE_H
 
 /* Defined in Initialize.c — avoids pulling in InitialI.h */
-extern double _IswGetScaleFactor(xcb_connection_t *dpy);
+extern double _IswGetScaleFactor(IswDisplay dpy);
 
 /* Widget-tree access for the surface-tree composite pass. */
 #include <ISW/IntrinsicP.h>
@@ -336,9 +337,9 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
 
     /* Get widget display and window info */
     ctx->widget = widget;
-    ctx->connection = (xcb_connection_t*)IswDisplay(widget);
-    ctx->window = IswWindow(widget);
-    ctx->screen = (xcb_screen_t*)IswScreen(widget);
+    ctx->connection = _IswXcbConn(IswDisplayOf(widget));
+    ctx->window = _IswXcbWindow(IswWindowOf(widget));
+    ctx->screen = _IswXcbScreen(IswScreenOf(widget));
     
     /* Get colormap from screen - we'll use the screen's default colormap */
     ctx->colormap = ctx->screen ? ctx->screen->default_colormap : 0;

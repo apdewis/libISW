@@ -32,7 +32,7 @@ _XFUNCPROTOBEGIN
  * Install the scroll wheel event dispatcher. Call once per connection.
  * Safe to call multiple times; subsequent calls are no-ops.
  */
-extern void ISWScrollWheelInit(xcb_connection_t *conn);
+extern void ISWScrollWheelInit(IswDisplay conn);
 
 _XFUNCPROTOEND
 
