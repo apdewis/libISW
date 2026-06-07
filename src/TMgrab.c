@@ -90,7 +90,7 @@ GrabAllCorrectKeys(Widget widget,
                    TMModifierMatch modMatch, GrabActionRec * grabP)
 {
     IswDisplay dpy = IswDisplayOf(widget);
-    xcb_keycode_t *keycodes, *keycodeP;
+    IswKeyCode *keycodes, *keycodeP;
     Cardinal keycount;
     Modifiers careOn = 0;
     Modifiers careMask = 0;
@@ -108,7 +108,7 @@ GrabAllCorrectKeys(Widget widget,
 
     keycodes = NULL;
     IswKeysymToKeycodeList(dpy,
-                          (xcb_keysym_t) typeMatch->eventCode, &keycodes, &keycount);
+                          (IswKeySym) typeMatch->eventCode, &keycodes, &keycount);
     if (keycount == 0) {
         IswFree((char *) keycodes);
         return;

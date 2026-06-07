@@ -394,11 +394,13 @@ static const IswPlatformWindowOps xcb_window_ops = {
 
 /* ---- backend vtable + dispatcher ----------------------------------------- */
 
+extern const IswPlatformInputOps isw_platform_xcb_input_ops; /* ISWPlatformInputXCB.c */
+
 const IswPlatformOps isw_platform_xcb_ops = {
     .display   = &xcb_display_ops,
     .window    = &xcb_window_ops,
     .event     = NULL,   /* Phase 1 translator is standalone for now */
-    .input     = NULL,
+    .input     = &isw_platform_xcb_input_ops,
     .selection = NULL,
     .color     = NULL,
     .font      = NULL,

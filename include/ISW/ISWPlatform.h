@@ -66,6 +66,9 @@ typedef enum {
     ISW_STACK_BELOW
 } IswStackMode;
 
+/* IswKeyCode / IswKeySym / IswNoSymbol are declared in ISW/Intrinsic.h
+   (included above) so the public key APIs there can use them without a cycle. */
+
 /*
  * Portable integer point.  Replaces xcb_point_t in platform-neutral
  * signatures (e.g. polygon vertex lists).
@@ -216,6 +219,43 @@ struct _IswPlatformWindowOps {
 #define ISW_ATTR_EVENT_MASK     (1u << 2)
 #define ISW_ATTR_OVERRIDE       (1u << 3)
 #define ISW_ATTR_SAVE_UNDER     (1u << 4)
+
+/*
+ * =================================================================
+ * Input ops (Phase 3)
+ * =================================================================
+ *
+ * Keysym table, keyboard mapping, modifier set, keycode<->keysym translation,
+ * keysym-by-name (for the translation parser), case folding, mapping refresh,
+ * and pointer query.  The backend owns a per-display keysym/modifier cache.
+ * All neutral: IswKeyCode / IswKeySym / IswModMask, no xcb key types.
+ */
+struct _IswPlatformInputOps {
+    /* keycode -> keysym for column `col` (0 = unshifted, 1 = shifted, ...). */
+    IswKeySym (*keycode_to_keysym)(IswDisplay dpy, IswKeyCode kc, int col);
+    /* All keycodes that produce `ks`.  Caller frees *out via free(). */
+    void (*keysym_to_keycodes)(IswDisplay dpy, IswKeySym ks,
+                               IswKeyCode **out, int *count);
+    /* Resolve a keysym name ("Left", "a", "Escape") to a key identity, or
+       IswNoSymbol.  Used by the "Ctrl<Key>a" translation parser. */
+    IswKeySym (*keysym_from_name)(const char *name);
+    /* Keysym -> its name (static buffer), or NULL. */
+    const char *(*keysym_to_name)(IswKeySym ks);
+    /* Lower/upper case forms of a keysym (either out pointer may be NULL). */
+    void (*convert_case)(IswKeySym ks, IswKeySym *lower, IswKeySym *upper);
+    /* Full translate: keycode + neutral modifier state -> keysym (+ the
+       modifiers that were consumed).  Mirrors X's keycode translation. */
+    void (*translate_keycode)(IswDisplay dpy, IswKeyCode kc, IswModMask state,
+                              IswModMask *mods_return, IswKeySym *keysym_return);
+    /* Rebuild the keysym/modifier cache after a mapping change
+       (XCB_MAPPING_NOTIFY). */
+    void (*refresh_mapping)(IswDisplay dpy);
+    /* Query the pointer relative to `win`.  Returns False if unavailable. */
+    Boolean (*query_pointer)(IswDisplay dpy, IswWindow win,
+                             int *root_x, int *root_y,
+                             int *win_x, int *win_y,
+                             IswModMask *mods, IswWindow *child);
+};
 
 /*
  * =================================================================

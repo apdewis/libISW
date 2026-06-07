@@ -793,7 +793,7 @@ UngrabKeyOrButton(Widget widget,
 
 void
 IswGrabKey(Widget widget,
-          _IswKeyCode keycode,
+          IswKeyCode keycode,
           Modifiers modifiers,
           _IswBoolean owner_events,
           int pointer_mode,
@@ -835,7 +835,7 @@ IswGrabButton(Widget widget,
  */
 
 void
-IswUngrabKey(Widget widget, _IswKeyCode keycode, Modifiers modifiers)
+IswUngrabKey(Widget widget, IswKeyCode keycode, Modifiers modifiers)
 {
     WIDGET_TO_APPCON(widget);
 

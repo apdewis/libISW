@@ -166,7 +166,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->key.modifiers = xcb_state_to_modmask(e->state);
         out->key.x = e->event_x;
         out->key.y = e->event_y;
-        IswTranslateKeycode(dpy, (_IswKeyCode) e->detail, e->state,
+        IswTranslateKeycode(dpy, (IswKeyCode) e->detail, e->state,
                             &mods_ret, &ks);
         out->key.key = keysym_to_key(ks, &out->key.unicode, out->key.text);
         return True;

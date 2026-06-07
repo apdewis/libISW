@@ -371,6 +371,9 @@ extern TMGlobalRec _IswGlobalTM;
     if (pd->keysyms == NULL) \
         _IswBuildKeysymTables(dpy, pd)
 
+/* Backend-internal: the native keysym table (moved out of the public API). */
+extern xcb_key_symbols_t* IswGetKeysymTable(IswDisplay dpy, xcb_keycode_t *min_keycode_return, int *keysyms_per_keycode_return);
+
 /*
  * Internal Functions
  */

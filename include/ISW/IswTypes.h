@@ -30,6 +30,16 @@ typedef int Bool;
 typedef uint32_t XID;
 #endif
 
+/* Neutral input vocabulary (full ops in ISW/ISWPlatform.h).  Numerically
+   X11-keysym/keycode compatible; carry no xcb dependency.  Defined here (the
+   earliest-included types header) so KeySym below and the public key APIs can
+   use them. */
+typedef uint32_t IswKeyCode;
+typedef uint32_t IswKeySym;
+#ifndef IswNoSymbol
+#define IswNoSymbol ((IswKeySym) 0)
+#endif
+
 /* Must match IswValueMask (unsigned long) to avoid pointer type conflicts. */
 #ifndef Mask
 typedef unsigned long Mask;
@@ -86,11 +96,12 @@ typedef int XContext;
 
 /*
  * -----------------------------------------------------------------------
- * KeySym — mapped to xcb_keysym_t
+ * KeySym — neutral key identity (IswKeySym).  Numerically X11-keysym
+ * compatible; the type carries no xcb dependency.  Phase 3.
  * -----------------------------------------------------------------------
  */
 #ifndef KeySym
-typedef xcb_keysym_t KeySym;
+typedef IswKeySym KeySym;
 #endif
 
 #ifndef NoSymbol

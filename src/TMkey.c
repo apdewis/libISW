@@ -528,7 +528,7 @@ _IswBuildKeysymTables(xcb_connection_t *dpy, register IswPerDisplay pd)
 }
 
 void
-IswTranslateKey(IswDisplay dpy, _IswKeyCode keycode,
+IswTranslateKey(IswDisplay dpy, IswKeyCode keycode,
                Modifiers modifiers, Modifiers *modifiers_return,
                xcb_keysym_t *keysym_return)
 {
@@ -581,7 +581,7 @@ IswTranslateKey(IswDisplay dpy, _IswKeyCode keycode,
 
 void
 IswTranslateKeycode(IswDisplay dpy,
-                   _IswKeyCode keycode,
+                   IswKeyCode keycode,
                    Modifiers modifiers,
                    Modifiers *modifiers_return,
                    xcb_keysym_t *keysym_return)
@@ -672,10 +672,42 @@ IswGetKeysymTable(IswDisplay dpy,
     return retval;
 }
 
+/* Backend bridge for the input ops (ISWPlatformInputXCB.c): hand back the
+   per-display keysym cache (building it on demand), and force a rebuild on a
+   mapping change.  Keeps the single keysym-table implementation here. */
+xcb_key_symbols_t *
+_IswXcbKeysyms(IswDisplay dpy)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    IswPerDisplay pd;
+    xcb_key_symbols_t *retval;
+
+    DPY_TO_APPCON(dpy);
+    LOCK_APP(app);
+    pd = _IswGetPerDisplay(dpy);
+    _InitializeKeysymTables(conn, pd);
+    retval = pd->keysyms;
+    UNLOCK_APP(app);
+    return retval;
+}
+
+void
+_IswXcbRefreshKeysyms(IswDisplay dpy)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    IswPerDisplay pd;
+
+    DPY_TO_APPCON(dpy);
+    LOCK_APP(app);
+    pd = _IswGetPerDisplay(dpy);
+    _IswBuildKeysymTables(conn, pd);
+    UNLOCK_APP(app);
+}
+
 void
 IswKeysymToKeycodeList(IswDisplay dpy,
-                      xcb_keysym_t keysym,
-                      xcb_keycode_t **keycodes_return,
+                      IswKeySym keysym,
+                      IswKeyCode **keycodes_return,
                       unsigned int *keycount_return)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
@@ -687,7 +719,7 @@ IswKeysymToKeycodeList(IswDisplay dpy,
     xcb_keysym_t lsym, usym;
     unsigned int maxcodes = 0;
     unsigned int ncodes = 0;
-    xcb_keycode_t *keycodes, *codeP = NULL;
+    IswKeyCode *keycodes, *codeP = NULL;
     xcb_get_keyboard_mapping_cookie_t cookie;
     xcb_get_keyboard_mapping_reply_t *reply;
     
@@ -740,16 +772,16 @@ IswKeysymToKeycodeList(IswDisplay dpy,
         
         if (match) {
             if (ncodes == maxcodes) {
-                xcb_keycode_t *old = keycodes;
+                IswKeyCode *old = keycodes;
                 maxcodes += KEYCODE_ARRAY_SIZE;
-                keycodes = IswMallocArray(maxcodes, sizeof(xcb_keycode_t));
+                keycodes = IswMallocArray(maxcodes, sizeof(IswKeyCode));
                 if (ncodes) {
-                    (void) memcpy(keycodes, old, ncodes * sizeof(xcb_keycode_t));
+                    (void) memcpy(keycodes, old, ncodes * sizeof(IswKeyCode));
                     IswFree((char *) old);
                 }
                 codeP = &keycodes[ncodes];
             }
-            *codeP++ = (xcb_keycode_t) keycode;
+            *codeP++ = (IswKeyCode) keycode;
             ncodes++;
         }
     }

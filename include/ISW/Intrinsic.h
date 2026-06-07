@@ -87,13 +87,11 @@ typedef char *String;
 #if NeedWidePrototypes
 #define _IswBoolean	int
 #define _IswDimension	unsigned int
-#define _IswKeyCode	unsigned int
 #define _IswPosition	int
 #define _IswEnum	unsigned int
 #else
 #define _IswBoolean	Boolean
 #define _IswDimension	Dimension
-#define _IswKeyCode	xcb_keycode_t
 #define _IswPosition	Position
 #define _IswEnum	IswEnum
 #endif /* NeedWidePrototypes */
@@ -301,17 +299,17 @@ typedef void (*IswBlockHookProc)(
 
 typedef void (*IswKeyProc)(
     IswDisplay 		/* dpy */,
-    _IswKeyCode 		/* keycode */,
+    IswKeyCode 		/* keycode */,
     Modifiers		/* modifiers */,
     Modifiers*		/* modifiers_return */,
-    xcb_keysym_t*		/* keysym_return */
+    IswKeySym *		/* keysym_return */
 );
 
 typedef void (*IswCaseProc)(
     IswDisplay 		/* dpy */,
-    xcb_keysym_t		/* keysym */,
-    xcb_keysym_t*		/* lower_return */,
-    xcb_keysym_t*		/* upper_return */
+    IswKeySym		/* keysym */,
+    IswKeySym *		/* lower_return */,
+    IswKeySym *		/* upper_return */
 );
 
 typedef void (*IswEventHandler)(
@@ -627,16 +625,12 @@ extern void IswTranslateCoords(
     Position*		/* rooty_return */
 );
 
-extern xcb_key_symbols_t* IswGetKeysymTable(
-    IswDisplay 		/* dpy */,
-    xcb_keycode_t *		/* min_keycode_return */,
-    int*		/* keysyms_per_keycode_return */
-);
+/* IswGetKeysymTable is backend-internal (returns the native keysym table); declared in TranslateI.h, not in the public API. */
 
 extern void IswKeysymToKeycodeList(
     IswDisplay 		/* dpy */,
-    xcb_keysym_t 		/* keysym */,
-    xcb_keycode_t**		/* keycodes_return */,
+    IswKeySym 		/* keysym */,
+    IswKeyCode **		/* keycodes_return */,
     Cardinal*		/* keycount_return */
 );
 
@@ -788,7 +782,7 @@ extern int IswGetMultiClickTime(
     IswDisplay 		/* dpy */
 );
 
-extern xcb_keysym_t IswGetActionKeysym(
+extern IswKeySym IswGetActionKeysym(
     xcb_generic_event_t*		/* event */,
     Modifiers*		/* modifiers_return */,
     IswDisplay 
@@ -802,18 +796,18 @@ extern xcb_keysym_t IswGetActionKeysym(
 
 extern void IswTranslateKeycode(
     IswDisplay 		/* dpy */,
-    _IswKeyCode 		/* keycode */,
+    IswKeyCode 		/* keycode */,
     Modifiers 		/* modifiers */,
     Modifiers*		/* modifiers_return */,
-    xcb_keysym_t*		/* keysym_return */
+    IswKeySym *		/* keysym_return */
 );
 
 extern void IswTranslateKey(
     IswDisplay 		/* dpy */,
-    _IswKeyCode		/* keycode */,
+    IswKeyCode		/* keycode */,
     Modifiers		/* modifiers */,
     Modifiers*		/* modifiers_return */,
-    xcb_keysym_t*		/* keysym_return */
+    IswKeySym *		/* keysym_return */
 );
 
 extern void IswSetKeyTranslator(
@@ -824,15 +818,15 @@ extern void IswSetKeyTranslator(
 extern void IswRegisterCaseConverter(
     IswDisplay 		/* dpy */,
     IswCaseProc 		/* proc */,
-    xcb_keysym_t 		/* start */,
-    xcb_keysym_t 		/* stop */
+    IswKeySym 		/* start */,
+    IswKeySym 		/* stop */
 );
 
 extern void IswConvertCase(
     IswDisplay 		/* dpy */,
-    xcb_keysym_t 		/* keysym */,
-    xcb_keysym_t*		/* lower_return */,
-    xcb_keysym_t*		/* upper_return */
+    IswKeySym 		/* keysym */,
+    IswKeySym *		/* lower_return */,
+    IswKeySym *		/* upper_return */
 );
 
 /****************************************************************
@@ -2091,7 +2085,7 @@ extern void IswReleasePropertyAtom(
 
 extern void IswGrabKey(
     Widget 		/* widget */,
-    _IswKeyCode 		/* keycode */,
+    IswKeyCode 		/* keycode */,
     Modifiers	 	/* modifiers */,
     _IswBoolean 		/* owner_events */,
     int 		/* pointer_mode */,
@@ -2100,7 +2094,7 @@ extern void IswGrabKey(
 
 extern void IswUngrabKey(
     Widget 		/* widget */,
-    _IswKeyCode 		/* keycode */,
+    IswKeyCode 		/* keycode */,
     Modifiers	 	/* modifiers */
 );
 

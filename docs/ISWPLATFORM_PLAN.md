@@ -20,7 +20,7 @@ which phase is current, what is done, what is deferred and why.
 - Any future session reads this file first to know exactly where the
   abstraction stands.
 
-**Current phase:** 3 — `IswInput` + translation manager (not started)
+**Current phase:** 4 — `IswColor` + `IswFont` (not started)
 
 ## Phase table
 
@@ -29,7 +29,7 @@ which phase is current, what is done, what is deferred and why.
 | 0 | Scaffolding: vtable header skeleton + this status file | done | `include/ISW/ISWPlatform.h`, `src/ISWPlatformPrivate.h`, `docs/ISWPLATFORM_PLAN.md` |
 | 1 | Portable event union + `IswEvent` (unblocks the rest) | done | `IswEvent.h`, `ISWPlatformEventXCB.c`, Event.c, TMstate.c, TMaction.c, +~30 widget files |
 | 2 | `IswDisplay` + `IswWindow` (core widget lifecycle) | done | ISWPlatform.h, ISWPlatformDisplayXCB.c, ISWPlatformPrivate.h, CoreP.h, Intrinsic.h + ~80 files |
-| 3 | `IswInput` + translation manager | todo | Keyboard.c, Pointer.c, XtTypes.h, TMparse.c, TMstate.c, TMaction.c, TMgrab.c |
+| 3 | `IswInput` + translation manager | done | Keyboard.c, Pointer.c, XtTypes.h, TMparse.c, TMstate.c, TMaction.c, TMgrab.c |
 | 4 | `IswColor` + `IswFont` | todo | Converters.c, Core.c, Display.c, TextSink.c |
 | 5 | `IswSelection`, `IswCursor`, grabs | todo | Selection.c, PassivGrab.c, TMgrab.c, Tip.c, Panner.c, Simple.c |
 | 6 | Atoms + properties | todo | ISWAtoms.c, Shell.c, Vendor.c, SetWMCW.c |
@@ -183,12 +183,43 @@ CoreP.h, HookObjI.h, Intrinsic.h + ~80 src files (accessor rename + seam).
 
 ### Phase 3 — `IswInput` + translation manager
 
-Abstract the keysym table, keyboard mapping, modifier set, and the
-`"Ctrl<Key>a"` parser's event-type/keysym vocabulary behind a backend-neutral
-input interface.
+Abstract the keysym table, keyboard mapping, modifier set, keycode↔keysym
+translation, keysym-by-name, case folding, mapping refresh and pointer query
+behind a backend-neutral input interface. Same contract as Phases 1–2: no
+public escape hatch; public headers carry no xcb keysym/keycode types.
 
-Files: Keyboard.c, Pointer.c, XtTypes.h, TMparse.c, TMstate.c, TMaction.c,
-TMgrab.c.
+**Status: done (build green, demo verified).** What landed:
+
+- **Neutral vocabulary**: `IswKeyCode` / `IswKeySym` (uint32_t, numerically
+  X11-keysym/keycode compatible — existing 0xff.. constants and the TM tables
+  keep working — but carrying NO xcb dependency), defined in IswTypes.h.
+  `KeySym` is now `IswKeySym`, not `xcb_keysym_t`.  The obsolete `_IswKeyCode`
+  widening macro is removed.
+- **`IswPlatformInputOps`** (ISWPlatform.h) implemented over XCB in
+  `src/ISWPlatformInputXCB.c`: keycode_to_keysym, keysym_to_keycodes,
+  keysym_from_name, keysym_to_name, convert_case, translate_keycode,
+  refresh_mapping, query_pointer.  Wired into `isw_platform_xcb_ops.input`.
+  The per-display keysym/modifier cache stays in TMkey.c (single
+  implementation); the backend reaches it via `_IswXcbKeysyms` /
+  `_IswXcbRefreshKeysyms` bridges.
+- **Public key APIs neutralised**: `IswTranslateKeycode` / `IswTranslateKey` /
+  `IswKeysymToKeycodeList` / `IswConvertCase` / `IswRegisterCaseConverter` flip
+  their xcb keysym/keycode params to `IswKeySym` / `IswKeyCode`.
+  `IswGetKeysymTable` (returns the native table) moved OUT of the public API to
+  TranslateI.h — it is backend-internal.
+- **Public headers XCB-free** for input: no `xcb_keysym_t` / `xcb_keycode_t` /
+  `xcb_key_symbols_t` in Intrinsic.h / IswTypes.h / the widget headers.
+- Verified: demo starts, renders, and survives typing into fields, Tab focus
+  traversal, arrow/Escape/Return keys, plus scroll + menu.  No direct libX11.
+- **Seam users (Phase 3 retire list)**: ~16 src files still use xcb key types
+  internally (TMkey/TMparse/TMstate/TMgrab/TMprint/GetActKey, Keyboard,
+  PassivGrab, FocusMgr, SimpleMenu, MenuButton, SmeBSB, the XCB draw/XDND
+  backends, plus the two platform backend TUs).  These are toolkit-internal /
+  backend; the TYPE no longer leaves the public surface.  They shrink as later
+  phases (grabs→5, XDND→7) land.
+
+Files: ISWPlatform.h, ISWPlatformInputXCB.c (new), IswTypes.h, Intrinsic.h,
+TranslateI.h, TMkey.c, TMgrab.c + the input/keysym src files.
 
 ### Phase 4 — `IswColor` + `IswFont`
 
@@ -244,3 +275,10 @@ Depends on Phases 1, 2, 5. Files: ISWXdnd.c, ISWXdnd.h.
   retired for `_IswPlatformConnectionFd`.  Internal seam (`_IswXcb*`, src-only)
   carries the not-yet-abstracted categories (~57 files) and is retired through
   Phases 3–6.  No public escape hatch.  No direct libX11 NEEDED entry.
+- Phase 3 done (build green, demo verified): neutral `IswKeyCode`/`IswKeySym`
+  vocabulary + `IswPlatformInputOps` (`ISWPlatformInputXCB.c`).  Public key APIs
+  (`IswTranslateKeycode`/`IswTranslateKey`/`IswKeysymToKeycodeList`/
+  `IswConvertCase`) neutralised; `KeySym` is `IswKeySym`; `IswGetKeysymTable`
+  moved to TranslateI.h (backend-internal).  No xcb keysym/keycode types in
+  public headers.  Keysym cache stays in TMkey.c.  Typing/Tab/special-keys
+  verified.  No direct libX11 NEEDED entry.
