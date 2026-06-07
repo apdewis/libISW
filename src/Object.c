@@ -199,6 +199,12 @@ ConstructCallbackOffsets(WidgetClass myWidgetClass)
             newTable[i++] = *superTable;
 
     myObjectClass->object_class.callback_private = (IswPointer) newTable;
+    {
+        const char *cn = myObjectClass->object_class.class_name;
+        fprintf(stderr, "DBG cbtable %s: %d\n", cn ? cn : "?",
+                (int)(long)newTable[0]);
+        fflush(stderr);
+    }
 }
 
 static void

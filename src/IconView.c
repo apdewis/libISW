@@ -18,7 +18,7 @@
 #include <ISW/ISWImage.h>
 #include <ISW/IconViewP.h>
 #include <ISW/FocusMgrI.h>
-#include <ISW/ISWXdnd.h>
+#include <ISW/IswDragDrop.h>
 #include <ISW/Viewport.h>
 #include <ISW/IswArgMacros.h>
 #include "ISWPlatformPrivate.h"
@@ -1004,7 +1004,7 @@ BandDrag(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     IconViewWidget iw = (IconViewWidget) w;
     (void)params; (void)num_params;
 
-    if (ISWXdndIsDragging(w))
+    if (IswDndIsDragging(w))
         return;
 
     /* Motion after clicking a selected item — cancel deferred deselect
@@ -1042,7 +1042,7 @@ BandFinish(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     IconViewWidget iw = (IconViewWidget) w;
     (void)iswev; (void)params; (void)num_params;
 
-    if (ISWXdndIsDragging(w))
+    if (IswDndIsDragging(w))
         return;
 
     /* Resolve deferred deselect: user clicked a selected item and released

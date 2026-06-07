@@ -20,9 +20,8 @@ which phase is current, what is done, what is deferred and why.
 - Any future session reads this file first to know exactly where the
   abstraction stands.
 
-**Current phase:** 8 — Dependency-inject the ops table (then 7 — XDND).  Phase 8
-(kill the singleton) is best done before Phase 7 adds more dispatch sites; see
-the Phase 8 note.
+**Current phase:** 8 — Dependency-inject the ops table (kill the singleton).
+Phase 7 is done.
 
 ## Phase table
 
@@ -35,7 +34,7 @@ the Phase 8 note.
 | 4 | `IswColor` + `IswFont` | done | ISWPlatform.h, ISWPlatformColorFontXCB.c, Converters.c, IswTypes.h, CoreP.h, Core.c |
 | 5 | `IswSelection`, `IswCursor`, grabs | done | ISWPlatform.h, ISWPlatformGrabCursorXCB.c, PassivGrab.c, Simple.c, Converters.c, MenuBar.c, List.c, Selection.c |
 | 6 | Atoms + properties | done | ISWPlatform.h, ISWPlatformAtomPropXCB.c, ISWAtoms.c, Shell.c, Selection.c, ResConfig.c, SetWMCW.c, Tip.c, SimpleMenu.c, Intrinsic.c, TMprint.c, TMstate.c, TextAction.c, Display.c, Converters.c |
-| 7 | `IswDragDrop` (XDND refactor) | todo | ISWXdnd.c, ISWXdnd.h |
+| 7 | `IswDragDrop` — generic DnD service; XDND becomes the X11 backend | done | ISWPlatform.h, ISWPlatformDndXCB.c (new, from ISWXdnd.c), IswDragDrop.h (new), IswTypes.h, ISWPlatformPrivate.h, ISWPlatformDisplayXCB.c, CMakeLists.txt, Shell.c, IconView.c, isw_demo.c |
 | 8 | Dependency-inject the ops table (kill the singleton) | todo | ISWPlatformPrivate.h, ISWPlatformDisplayXCB.c + every `_IswPlatform*` wrapper + the per-display init path |
 
 > Each phase, when started, gets its own scope manifest before edits. Approval
@@ -355,14 +354,103 @@ Decisions (with the user): **generic property ops; XDND/tray stay seam**, and
   selection-conversion path exercised without crash. No `xcb_atom_t` in any
   `include/ISW/` header; no direct libX11 NEEDED.
 
-### Phase 7 — `IswDragDrop` (XDND refactor)
+### Phase 7 — `IswDragDrop` — generic DnD service; XDND becomes the X11 backend
 
-Refactor the ~2,100-line XDND v5 implementation behind a semantic
-drag/drop vtable (`drag_start`, `drag_set_actions`, `drag_set_icon`,
-`drop_register`, `drop_unregister`, enter/leave/motion/drop routing). XCB
-backend implements it via XDND atoms + client messages + selection transfers.
+**The correction.** Earlier drafts of this phase treated XDND as a thing to
+*wrap*: keep `ISWXdnd.c` as the home, keep the public API XDND-shaped
+(`ISWXdndStartDrag`, `XdndAware`, XDND action atoms), and expose a few entry
+points through a vtable. That is wrong. XDND is **not** a neutral drag-and-drop
+abstraction that happens to run on X — it *is* an X11 wire protocol: a fixed set
+of `Xdnd*` atoms, a ClientMessage state machine (Enter/Position/Status/Leave/
+Drop/Finished), ownership of `XdndSelection`, foreign-window discovery via the
+`XdndAware` property, X cursors and an override-redirect drag-icon window. None
+of that survives on Wayland (which has its own `wl_data_device` DnD) or on any
+non-X target. So XDND belongs **inside the platform backend**, exactly like the
+selection, atom, and grab machinery did — and the widget-/application-facing
+surface must become a **generic, transport-agnostic drag-and-drop service** that
+names nothing X-specific.
 
-Depends on Phases 1, 2, 5. Files: ISWXdnd.c, ISWXdnd.h.
+**The split.**
+
+1. **Generic public service — `include/ISW/IswDragDrop.h` (new).** A
+   protocol-neutral DnD API. Renames the `ISWXdnd*` entry points to `IswDnd*`
+   and strips every XDND-ism from the *vocabulary*:
+   - `IswDndEnableSource` / `IswDndStartDrag` — begin a drag from a widget,
+     given a transport-neutral `IswDragSourceDesc`.
+   - `IswDndRegisterDropTarget` / `IswDndUnregisterDropTarget`,
+     `IswDndSetAcceptedTypes` / `IswDndSetAcceptedActions`, the drop / enter /
+     motion / leave callbacks, `IswDndIsDragging`.
+   - MIME types stay as the neutral `Atom` (an intern token, *not* an X concept
+     by the time it reaches the backend — Phase 6 already neutralised `Atom`).
+     `IswDndAction` (copy/move/link/ask/private) is already protocol-neutral and
+     is kept. The drag-icon field flips `xcb_pixmap_t icon_pixmap` →
+     a neutral handle (`IswPixmap`/`IswImage`) so the struct carries no xcb type.
+   - No `XdndAware`, no `XdndSelection`, no XDND version, no ClientMessage in any
+     public type or doc comment.
+
+2. **X11 backend — `src/ISWPlatformDndXCB.c` (new, the body of ISWXdnd.c).** The
+   entire ~2,100-line protocol engine moves here essentially intact: `InternAtoms`
+   for the `Xdnd*` set, the source/target state machines, `XdndSelection`
+   ownership, `FindXdndAwareWindow`, the drag cursors and the drag-icon window,
+   URI-list parsing. It is reached through a `IswPlatformDndOps` sub-vtable on
+   `IswPlatformOps`, wired into `isw_platform_xcb_ops` and called via thin
+   `_IswPlatformDnd*` dispatch wrappers (the same convention as Phases 2/6). The
+   generic service in (1) is a thin shim over those wrappers — it holds the
+   per-shell DnD registration/callback bookkeeping (the part that *is* portable)
+   and delegates all wire work to the backend.
+
+3. **`include/ISW/ISWXdnd.h` — transitional compat shim, since removed.** Shipped
+   as a thin header aliasing the old `ISWXdnd*` names to `IswDnd*` to keep the
+   structural move reviewable, then deleted once all callers (Shell.c, IconView.c,
+   the demo) were migrated to `IswDnd*`. The final state has no shim.
+
+**`IswPlatformDndOps` (semantic, transport-neutral).** Verbs mirroring the
+public service one-for-one: `enable`, `widget_accept_drops`,
+`start_drag(widget, trigger_event, desc)`, `set_accepted_types`,
+`set_accepted_actions`, `set_drop_callback`, `set_drag_motion_callback`,
+`set_drag_leave_callback`, `intern_type`, `is_dragging`. The XCB backend maps
+each to XDND; a future Wayland backend maps them to `wl_data_device` /
+`wl_data_source`.
+
+**Correction to the earlier draft — the engine moves whole.** This section once
+proposed splitting "portable bookkeeping" (drop-target registration, type/action
+filters, callback dispatch) into the service and leaving only the wire protocol
+in the backend. The code does not support a clean split: that bookkeeping is
+interwoven with the XDND state machine through one shared `XdndState` struct and
+is driven from inside the XDND handlers (e.g. `FindDropTarget` itself calls
+`xcb_translate_coordinates`). Splitting mid-protocol was judged unjustified
+surgery on a working 2,100-line implementation. So the **whole engine moved into
+the backend** (`ISWPlatformDndXCB.c`) behind `IswPlatformDndOps`; the generic
+`IswDnd*` service is a thin dispatcher. The goal is met regardless — X11 DnD is
+platform-specific code, the public surface is transport-neutral, a non-X backend
+supplies its own ops. See `docs/PHASE7_SCOPE.md`.
+
+Depends on Phases 1, 2, 5, 6.
+
+Files: ISWPlatform.h, ISWPlatformDndXCB.c (new), IswDragDrop.h (new), IswTypes.h,
+ISWPlatformPrivate.h, ISWPlatformDisplayXCB.c, CMakeLists.txt, Shell.c,
+IconView.c, isw_demo.c.
+
+**Done** (build green, demo verified). Scope manifest: `docs/PHASE7_SCOPE.md`.
+
+- `src/ISWXdnd.c` → `src/ISWPlatformDndXCB.c`: the XDND v5 engine intact; public
+  `ISWXdnd*` entry points became static `xcb_dnd_*` ops feeding the new
+  `isw_platform_xcb_dnd_ops`. `start_drag` takes the neutral `IswEvent *` and
+  recovers the native button event via `IswEventNative()` (the backend tracks
+  drags in physical coords — threshold/icon/hit-test all want raw geometry).
+- New public `include/ISW/IswDragDrop.h`: `IswDnd*` names, neutral `Atom` MIME
+  types, new `IswPixmap` handle for the icon, `IswDndStartDrag(Widget, IswEvent*,
+  desc)`. No `xcb_*` / `Xdnd*` in it.
+- Shim removal completed (was the Phase-7 follow-on): the internal callers
+  (Shell.c `IswDndEnable`, IconView.c `IswDndIsDragging`) and the demo now call
+  `IswDnd*` directly; `include/ISW/ISWXdnd.h` is **deleted**. No `ISWXdnd*`
+  references remain in any source. The app guide was updated to the new API.
+- `IswPlatformDndOps *dnd` added to `IswPlatformOps`, reached via thin
+  `_IswPlatformDnd*` wrappers (Phase-2/6 convention).
+- Verified live: the demo shell advertises `XdndAware` — the drop-target path
+  runs through the new vtable (`IswDndEnable → _IswPlatformDndEnable →
+  ops->dnd->enable → xcb_dnd_enable`); demo runs without crashing. No
+  `xcb_atom_t` in any `include/ISW/` header; no **direct** libX11 NEEDED.
 
 ### Phase 8 — Dependency-inject the ops table (kill the singleton)
 
@@ -472,3 +560,16 @@ Phase 6/7 add more dispatch sites that would otherwise also need rework.
   `xcb_icccm_set_wm_hints` stay on the seam by scope; XDND (Phase 7) + tray keep
   raw use.  WM title/PID/protocols/WM_DELETE verified live.  No `xcb_atom_t` in
   public headers.  No direct libX11 NEEDED entry.
+- Phase 7 done (build green, demo verified): XDND recognised as an X11 wire
+  protocol and moved whole into the platform backend.  `src/ISWXdnd.c` →
+  `src/ISWPlatformDndXCB.c` behind a new `IswPlatformDndOps` vtable
+  (`isw_platform_xcb_dnd_ops`, reached via thin `_IswPlatformDnd*` wrappers).
+  New transport-neutral public service `include/ISW/IswDragDrop.h` (`IswDnd*`
+  names, neutral `Atom` MIME types, new `IswPixmap` icon handle, `IswEvent *`
+  trigger).  Earlier draft's service/backend bookkeeping split abandoned as
+  unjustified mid-protocol surgery — the engine moves intact (see
+  PHASE7_SCOPE.md).  Drop-target path verified live (demo advertises `XdndAware`
+  through the new vtable).  Shim fully removed in the same phase: internal
+  callers (Shell.c, IconView.c), the demo, and the app guide all use `IswDnd*`
+  directly; `include/ISW/ISWXdnd.h` deleted; no `ISWXdnd*` left in any source.
+  No `xcb_*`/`Xdnd*` in the public DnD header.  No direct libX11 NEEDED entry.

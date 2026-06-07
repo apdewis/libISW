@@ -56,6 +56,7 @@ SOFTWARE.
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SimpleP.h>
+#include <ISW/IswDragDrop.h>   /* IswNdropCallback / IswNdrag*Callback names */
 #include "ISWPlatformPrivate.h"
 
 #define offset(field) IswOffsetOf(SimpleRec, simple.field)
@@ -77,6 +78,14 @@ static IswResource resources[] = {
      offset(traversal_on), IswRImmediate, (IswPointer) FALSE},
   {IswNtabIndex, IswCTabIndex, IswRInt, sizeof(int),
      offset(tab_index), IswRImmediate, (IswPointer) 0},
+  {IswNdropCallback, IswCDropCallback, IswRCallback, sizeof(IswPointer),
+     offset(drop_callbacks), IswRCallback, NULL},
+  {IswNdragEnterCallback, IswCDragEnterCallback, IswRCallback, sizeof(IswPointer),
+     offset(drag_enter_callbacks), IswRCallback, NULL},
+  {IswNdragMotionCallback, IswCDragMotionCallback, IswRCallback, sizeof(IswPointer),
+     offset(drag_motion_callbacks), IswRCallback, NULL},
+  {IswNdragLeaveCallback, IswCDragLeaveCallback, IswRCallback, sizeof(IswPointer),
+     offset(drag_leave_callbacks), IswRCallback, NULL},
 #undef offset
 };
 

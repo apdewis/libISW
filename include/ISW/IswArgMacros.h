@@ -388,7 +388,7 @@
 #define IswArgOpenIm(ab, v)                     ISW_ARG((ab), IswNopenIm, (v))
 #define IswArgSharedIc(ab, v)                   ISW_ARG((ab), IswNsharedIc, (v))
 
-/* ISWXdnd */
+/* IswDragDrop */
 #define IswArgDropCallback(ab, v)               ISW_ARG((ab), IswNdropCallback, (v))
 #define IswArgDragEnterCallback(ab, v)          ISW_ARG((ab), IswNdragEnterCallback, (v))
 #define IswArgDragMotionCallback(ab, v)         ISW_ARG((ab), IswNdragMotionCallback, (v))

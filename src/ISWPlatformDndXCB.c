@@ -32,7 +32,6 @@
 #include <ISW/StringDefs.h>
 #include <ISW/IswDragDrop.h>
 #include <ISW/ISWPlatform.h>
-#include <ISW/ISWXdnd.h>   /* compat ISWXdndStartDrag prototype (defined below) */
 #include <ISW/ISWContext.h>
 #include <ISW/IconView.h>
 #include <ISW/ViewportP.h>
@@ -1087,7 +1086,7 @@ TargetSelectionCallback(Widget w, IswPointer closure,
 
     if (!value || !length || *length == 0) {
         /* Selection transfer failed — read the data directly from the
-         * source window property (set eagerly by ISWXdndStartDrag).
+         * source window property (set eagerly by IswDndStartDrag).
          * This bypasses the Xt selection mechanism which is unreliable
          * for cross-client transfers in XCB-based Xt. */
         xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
@@ -2237,22 +2236,4 @@ Boolean
 IswDndIsDragging(Widget w)
 {
     return _IswPlatformDndIsDragging(w);
-}
-
-/* ------------------------------------------------------------------ */
-/* Backward-compatibility: ISWXdndStartDrag kept its original native   */
-/* button-event signature (see include/ISW/ISWXdnd.h).  Wrap the native */
-/* event into a neutral IswEvent and dispatch to the service.           */
-/* ------------------------------------------------------------------ */
-
-void
-ISWXdndStartDrag(Widget source_widget,
-                 xcb_button_press_event_t *trigger_event,
-                 IswDragSourceDesc *desc)
-{
-    IswEvent ev;
-    memset(&ev, 0, sizeof(ev));
-    ev.any.kind   = IswButtonDown;
-    ev.any.native = (void *) trigger_event;
-    IswDndStartDrag(source_widget, &ev, desc);
 }

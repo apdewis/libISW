@@ -97,6 +97,15 @@ typedef struct {
        driven by core.border_width).  Suppresses the windowless backend's
        generic border ring so the border is not drawn twice. */
     Boolean     self_border;
+
+    /* Drag-and-drop callbacks (IswDragDrop service).  Declared here, on the
+       common DnD-aware base, so any Simple-derived widget can register them
+       via IswAddCallback(w, IswNdropCallback, ...).  Non-Simple widgets use
+       IswDndSetDropCallback() etc. instead (the DropConfig path). */
+    IswCallbackList drop_callbacks;
+    IswCallbackList drag_enter_callbacks;
+    IswCallbackList drag_motion_callbacks;
+    IswCallbackList drag_leave_callbacks;
 } SimplePart;
 
 typedef struct _SimpleRec {

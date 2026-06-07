@@ -315,7 +315,7 @@ static inline uint8_t IswEventButton(const IswEvent *e)
  * design, only for code that genuinely operates below the neutral layer:
  *
  *   1. Backend-internal X11 protocol handlers (Selection.c, Shell.c WM,
- *      ISWXdnd.c, IswTrayIcon.c, ResConfig.c) — they decode atoms / client
+ *      ISWPlatformDndXCB.c, IswTrayIcon.c, ResConfig.c) — they decode atoms / client
  *      messages / selection transfers the neutral event deliberately omits.
  *   2. Re-dispatch through the native-event API: IswCallActionProc() still
  *      takes a native event, so a proc that re-invokes an action passes

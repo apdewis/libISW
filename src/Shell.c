@@ -88,7 +88,7 @@ in this Software without prior written authorization from The Open Group.
 #include <xcb/xcb_icccm.h>
 
 #include <X11/cursorfont.h>
-#include <ISW/ISWXdnd.h>
+#include <ISW/IswDragDrop.h>
 #include "ISWXcbDraw.h"
 #include "ISWPlatformPrivate.h"
 #include <stdio.h>
@@ -1225,7 +1225,7 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
      * advertise XdndAware — otherwise drag sources target the frame
      * instead of the client window inside it. */
     if (!w->shell.override_redirect)
-        ISWXdndEnable(wid);
+        IswDndEnable(wid);
 
     /* Set up default WM_DELETE_WINDOW handling for WM-managed shells */
     if (!w->shell.override_redirect)

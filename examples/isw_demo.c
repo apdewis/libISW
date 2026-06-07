@@ -72,7 +72,7 @@
 #include <ISW/ProgressBar.h>
 #include <ISW/DrawingArea.h>
 #include <ISW/Tabs.h>
-#include <ISW/ISWXdnd.h>
+#include <ISW/IswDragDrop.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1928,7 +1928,7 @@ Widget create_specialized_section(Widget parent) {
     IswAddCallback(drop_label, IswNdropCallback, drop_callback, NULL);
     IswAddCallback(drop_label, IswNdragEnterCallback, drag_enter_callback, NULL);
     IswAddCallback(drop_label, IswNdragLeaveCallback, drag_leave_callback, NULL);
-    ISWXdndWidgetAcceptDrops(drop_label);
+    IswDndWidgetAcceptDrops(drop_label);
 
     /* Drag source demo — drag text to any XDND app */
     static IswActionsRec drag_actions[] = {
@@ -2379,7 +2379,7 @@ void drag_leave_callback(Widget w, IswPointer client_data, IswPointer call_data)
 
 /* Drag source convert proc — provides text/plain data */
 static Boolean
-demo_drag_convert(Widget widget, xcb_atom_t target_type,
+demo_drag_convert(Widget widget, Atom target_type,
                   IswPointer *data_return, unsigned long *length_return,
                   int *format_return, IswPointer client_data)
 {
@@ -2387,8 +2387,8 @@ demo_drag_convert(Widget widget, xcb_atom_t target_type,
     (void) client_data;
 
     /* Check if the target is text/plain */
-    xcb_atom_t text_plain = ISWXdndInternType(widget, "text/plain");
-    xcb_atom_t text_uri = ISWXdndInternType(widget, "text/uri-list");
+    Atom text_plain = IswDndInternType(widget, "text/plain");
+    Atom text_uri = IswDndInternType(widget, "text/uri-list");
 
     if (target_type == text_plain) {
         const char *msg = "Hello from ISW drag source!";
@@ -2431,9 +2431,9 @@ void drag_start_action(Widget w, IswEvent *event,
     (void) params;
     (void) num_params;
 
-    xcb_atom_t types[2];
-    types[0] = ISWXdndInternType(w, "text/plain");
-    types[1] = ISWXdndInternType(w, "text/uri-list");
+    Atom types[2];
+    types[0] = IswDndInternType(w, "text/plain");
+    types[1] = IswDndInternType(w, "text/uri-list");
 
     IswDragSourceDesc desc;
     memset(&desc, 0, sizeof(desc));
@@ -2444,10 +2444,7 @@ void drag_start_action(Widget w, IswEvent *event,
     desc.finished = demo_drag_finished;
     desc.client_data = NULL;
 
-    /* ISWXdndStartDrag still takes the native button event (XDND moves behind
-       the platform DnD vtable only in a later phase).  Recover it from the
-       neutral event via the public IswEventNative() bridge. */
-    ISWXdndStartDrag(w, (xcb_button_press_event_t *) IswEventNative(event), &desc);
+    IswDndStartDrag(w, event, &desc);
 }
 
 
