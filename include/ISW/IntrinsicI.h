@@ -201,7 +201,7 @@ extern Boolean _IswIsHookObject(
     Widget      /* widget */
 );
 
-extern xcb_cursor_t _IswLoadThemedCursor(
+extern IswCursor _IswLoadThemedCursor(
     xcb_connection_t *	/* dpy */,
     xcb_screen_t *	/* screen */,
     const char *	/* name */,

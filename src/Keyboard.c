@@ -385,7 +385,8 @@ _IswProcessKeyboardEvent(xcb_key_press_event_t *event, Widget widget, IswPerDisp
              * unlocking keyboard. Not Xt Unlock !
              */
             if (IsPseudoGrab(prevGrabType))
-                xcb_ungrab_keyboard(_IswXcbConn(IswDisplayOf(widget)), keypress_event->time);
+                _IswPlatformGetOps()->grab->ungrab_keyboard(
+                    IswDisplayOf(widget), keypress_event->time);
             else {
                 /* Activate the grab */
                 device->grab = *newGrab;

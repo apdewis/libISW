@@ -56,6 +56,11 @@ IswFontId         _IswXcbFontIdWrap(xcb_font_t fid);
 xcb_visualtype_t *_IswXcbVisual(IswVisual vis);
 IswVisual         _IswXcbVisualWrap(xcb_visualtype_t *vis);
 
+/* Cursor value handle (Phase 5).  Plain cast: the handle IS the native id.
+   Implemented in src/ISWPlatformGrabCursorXCB.c. */
+xcb_cursor_t      _IswXcbCursor(IswCursor cursor);
+IswCursor         _IswXcbCursorWrap(xcb_cursor_t cursor);
+
 /*
  * =================================================================
  * Active platform backend

@@ -1244,16 +1244,18 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
     /* X server pointer grab — all button events (scroll, outside clicks)
      * delivered to popup window. Same technique as GTK/Motif popups. */
-    xcb_grab_pointer(_IswXcbConn(IswDisplayOf(w)), False, _IswXcbWindow(IswWindowOf(lw->list.popup_shell)),
+    _IswPlatformGetOps()->grab->grab_pointer(
+        IswDisplayOf(w), IswWindowOf(lw->list.popup_shell), False,
         XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
         XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
         XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
         XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
-        XCB_NONE, XCB_NONE, XCB_CURRENT_TIME);
+        None, None, ISW_CURRENT_TIME);
 
     /* Keyboard grab so arrow / Return / Escape route to the popup */
-    xcb_grab_keyboard(_IswXcbConn(IswDisplayOf(w)), False, _IswXcbWindow(IswWindowOf(lw->list.popup_shell)),
-        XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+    _IswPlatformGetOps()->grab->grab_keyboard(
+        IswDisplayOf(w), IswWindowOf(lw->list.popup_shell), False,
+        XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, ISW_CURRENT_TIME);
 
     xcb_flush(_IswXcbConn(IswDisplayOf(w)));
 
@@ -1612,8 +1614,8 @@ DropdownPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
     ListWidget lw = (ListWidget) client_data;
     Widget shell = (Widget)lw;
 
-    xcb_ungrab_pointer(_IswXcbConn(IswDisplayOf((Widget)lw)), XCB_CURRENT_TIME);
-    xcb_ungrab_keyboard(_IswXcbConn(IswDisplayOf((Widget)lw)), XCB_CURRENT_TIME);
+    _IswPlatformGetOps()->grab->ungrab_pointer(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
+    _IswPlatformGetOps()->grab->ungrab_keyboard(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
     xcb_flush(_IswXcbConn(IswDisplayOf((Widget)lw)));
 
     while (shell && !IswIsShell(shell))

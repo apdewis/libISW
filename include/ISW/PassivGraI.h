@@ -83,7 +83,7 @@ typedef struct _IswGrabExtRec {
     Mask			*pKeyButMask;
     Mask			*pModifiersMask;
     xcb_window_t			confineTo;
-    xcb_cursor_t			cursor;
+    IswCursor			cursor;
 } IswServerGrabExtRec, *IswServerGrabExtPtr;
 
 #define GRABEXT(p) ((IswServerGrabExtPtr)((p)+1))

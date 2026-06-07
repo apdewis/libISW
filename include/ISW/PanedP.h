@@ -142,13 +142,13 @@ typedef struct {
     Dimension   internal_bw;	           /* internal border width. */
     IswOrientation orientation;	           /* Orientation of paned widget. */
 
-    xcb_cursor_t	cursor;		           /* Cursor for paned window */
-    xcb_cursor_t	grip_cursor;               /* inactive grip cursor */
-    xcb_cursor_t	v_grip_cursor;             /* inactive vert grip cursor */
-    xcb_cursor_t	h_grip_cursor;             /* inactive horiz grip cursor */
-    xcb_cursor_t	adjust_this_cursor;        /* active grip cursor: T */
-    xcb_cursor_t	v_adjust_this_cursor;      /* active vert grip cursor: T */
-    xcb_cursor_t	h_adjust_this_cursor;      /* active horiz grip cursor: T */
+    IswCursor	cursor;		           /* Cursor for paned window */
+    IswCursor	grip_cursor;               /* inactive grip cursor */
+    IswCursor	v_grip_cursor;             /* inactive vert grip cursor */
+    IswCursor	h_grip_cursor;             /* inactive horiz grip cursor */
+    IswCursor	adjust_this_cursor;        /* active grip cursor: T */
+    IswCursor	v_adjust_this_cursor;      /* active vert grip cursor: T */
+    IswCursor	h_adjust_this_cursor;      /* active horiz grip cursor: T */
 
     /* private */
     Boolean	recursively_called;        /* for ChangeManaged */

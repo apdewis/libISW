@@ -20,7 +20,7 @@ which phase is current, what is done, what is deferred and why.
 - Any future session reads this file first to know exactly where the
   abstraction stands.
 
-**Current phase:** 5 — `IswSelection`, `IswCursor`, grabs (not started)
+**Current phase:** 6 — Atoms + properties (not started)
 
 ## Phase table
 
@@ -31,7 +31,7 @@ which phase is current, what is done, what is deferred and why.
 | 2 | `IswDisplay` + `IswWindow` (core widget lifecycle) | done | ISWPlatform.h, ISWPlatformDisplayXCB.c, ISWPlatformPrivate.h, CoreP.h, Intrinsic.h + ~80 files |
 | 3 | `IswInput` + translation manager | done | Keyboard.c, Pointer.c, XtTypes.h, TMparse.c, TMstate.c, TMaction.c, TMgrab.c |
 | 4 | `IswColor` + `IswFont` | done | ISWPlatform.h, ISWPlatformColorFontXCB.c, Converters.c, IswTypes.h, CoreP.h, Core.c |
-| 5 | `IswSelection`, `IswCursor`, grabs | todo | Selection.c, PassivGrab.c, TMgrab.c, Tip.c, Panner.c, Simple.c |
+| 5 | `IswSelection`, `IswCursor`, grabs | done | ISWPlatform.h, ISWPlatformGrabCursorXCB.c, PassivGrab.c, Simple.c, Converters.c, MenuBar.c, List.c, Selection.c |
 | 6 | Atoms + properties | todo | ISWAtoms.c, Shell.c, Vendor.c, SetWMCW.c |
 | 7 | `IswDragDrop` (XDND refactor) | todo | ISWXdnd.c, ISWXdnd.h |
 
@@ -268,6 +268,45 @@ passive/active grabs (stubbable on backends without grab support).
 Files: Selection.c (~2,460 lines), PassivGrab.c, TMgrab.c, Tip.c, Panner.c,
 Simple.c.
 
+**Done** (build green, demo verified). Scope manifest: `docs/PHASE5_SCOPE.md`.
+
+> **Scope boundary (decided with the user):** selections are atom-typed and
+> `Selection.c` is property-exchange-heavy; **atoms + properties are Phase 6**.
+> Phase 5 abstracted only the three pure-selection verbs (`set_owner`,
+> `get_owner`, `convert`) — they keep `xcb_atom_t` params, which Phase 6 retypes
+> to the neutral `Atom`. Selection.c's property plumbing, `xcb_send_event`, and
+> `xcb_selection_request_event_t*` stay on the seam until Phase 6.
+
+- Neutral handles in `IswTypes.h`: `IswCursor` (value handle over
+  `xcb_cursor_t`, 0 = none) and `IswTime` (server timestamp; `ISW_CURRENT_TIME`
+  = 0). `IswCursorShape` already existed.
+- Three sub-vtables added to `ISWPlatform.h` and implemented in the new
+  `src/ISWPlatformGrabCursorXCB.c`, wired into `isw_platform_xcb_ops`:
+  - `IswPlatformCursorOps` — `create_glyph` / `load_named` (theme-aware, glyph
+    fallback) / `set_window_cursor` / `free_cursor`. The glyph + themed cursor
+    creation moved out of Converters.c into the backend.
+  - `IswPlatformGrabOps` — pointer/keyboard/button/key grab + ungrab +
+    `allow_events`.
+  - `IswPlatformSelectionOps` — `set_owner` / `get_owner` / `convert`.
+  - `_IswXcbCursor`/`_IswXcbCursorWrap` value-cast seam helpers added.
+- Routing: `PassivGrab.c` active+passive grabs through the grab ops;
+  `Keyboard.c`, `MenuBar.c` (menubar popup grab), `List.c` (combo/list popup
+  grab) ungrab/grab via ops; `Simple.c` `_IswSetWindowCursor`/`_IswFreeCursor`
+  via cursor ops (`_IswChangeActivePointerGrabCursor` stays seam — a narrow
+  active-grab-cursor refresh); `Converters.c` cursor converter +
+  `_IswLoadThemedCursor` delegate to the cursor op; `Selection.c` the three
+  selection verbs via the selection ops.
+- Type-only flips across the public surface: `xcb_cursor_t` → `IswCursor`
+  (SimpleP/PanedP/ListViewP/SimpleMenP/PassivGraI/Scrollbar + grab APIs) and
+  `xcb_timestamp_t` → `IswTime` (Intrinsic.h grab/selection APIs +
+  IntrinsicP/ShellI/SelectionI/ListBoxP/TextP/InitialI). Cursor resource sizes
+  (`Simple.c`) flipped to `sizeof(IswCursor)` in lockstep with the field.
+- Verified live: pointer/menu grab (Edit menu opens under the menubar grab,
+  renders, closes cleanly on item-click — the Phase-3 crash spot), combo/list
+  popup grab, and widget rendering all work. XDND (Phase 7) and the tray icon
+  keep their seam grab/selection use. No `xcb_cursor_t`/`xcb_timestamp_t` TYPE in
+  any `include/ISW/` header; libISW.so keeps no direct libX11 NEEDED.
+
 ### Phase 6 — Atoms + properties
 
 `xcb_atom_t`, `xcb_change_property`, ICCCM/EWMH hints behind a metadata
@@ -321,3 +360,15 @@ Depends on Phases 1, 2, 5. Files: ISWXdnd.c, ISWXdnd.h.
   (already XCB-free).  Cursors + `xcb_create_colormap` (tray/XDND) stay on the
   seam (Phases 5/7); pixmaps stay xcb (render layer).  No xcb color/font/visual
   types in public headers.  No direct libX11 NEEDED entry.
+- Phase 5 done (build green, demo verified): neutral `IswCursor`/`IswTime`
+  (`ISW_CURRENT_TIME`) + `IswPlatformCursorOps`/`IswPlatformGrabOps`/
+  `IswPlatformSelectionOps` (`ISWPlatformGrabCursorXCB.c`).  Glyph/themed cursor
+  creation moved into the backend; grabs (PassivGrab active+passive, MenuBar/
+  List popup grabs, Keyboard ungrab) and the three selection verbs (set/get
+  owner, convert) route through the ops.  Public surface flipped
+  `xcb_cursor_t`→`IswCursor` (10 headers + grab APIs) and
+  `xcb_timestamp_t`→`IswTime` (selection/grab/event time).  Scope cut at the
+  user's choice: selection atoms + property exchange stay Phase 6 (selection
+  verbs keep `xcb_atom_t`).  XDND (Phase 7) + tray keep seam grab/selection use.
+  No xcb cursor/timestamp types in public headers.  No direct libX11 NEEDED
+  entry.

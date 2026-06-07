@@ -190,6 +190,7 @@ set(LIBXT_SOURCES
     src/ISWPlatformDisplayXCB.c
     src/ISWPlatformInputXCB.c
     src/ISWPlatformColorFontXCB.c
+    src/ISWPlatformGrabCursorXCB.c
     src/EventUtil.c
     src/Functions.c
     src/Geometry.c

@@ -548,7 +548,7 @@ extern Boolean IswDispatchEvent(
 
 extern Boolean IswCallAcceptFocus(
     Widget 		/* widget */,
-    xcb_timestamp_t*		/* time */
+    IswTime*		/* time */
 );
 
 extern Boolean IswAppPeekEvent(
@@ -592,7 +592,7 @@ extern Boolean IswIsSensitive(
 extern Boolean IswOwnSelection(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
-    xcb_timestamp_t 		/* time */,
+    IswTime 		/* time */,
     IswConvertSelectionProc /* convert */,
     IswLoseSelectionProc	/* lose */,
     IswSelectionDoneProc /* done */
@@ -601,7 +601,7 @@ extern Boolean IswOwnSelection(
 extern Boolean IswOwnSelectionIncremental(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
-    xcb_timestamp_t 		/* time */,
+    IswTime 		/* time */,
     IswConvertSelectionIncrProc	/* convert_callback */,
     IswLoseSelectionIncrProc	/* lose_callback */,
     IswSelectionDoneIncrProc	/* done_callback */,
@@ -973,7 +973,7 @@ extern xcb_generic_event_t* IswLastEventProcessed(
     IswDisplay 		/* dpy */
 );
 
-extern xcb_timestamp_t IswLastTimestampProcessed(
+extern IswTime IswLastTimestampProcessed(
     IswDisplay 		/* dpy */
 );
 
@@ -1975,7 +1975,7 @@ extern _IswString IswResolvePathname(
 extern void IswDisownSelection(
     Widget 		/* widget */,
     xcb_atom_t 		/* selection */,
-    xcb_timestamp_t 		/* time */
+    IswTime 		/* time */
 );
 
 extern void IswGetSelectionValue(
@@ -1984,7 +1984,7 @@ extern void IswGetSelectionValue(
     xcb_atom_t 		/* target */,
     IswSelectionCallbackProc /* callback */,
     IswPointer 		/* closure */,
-    xcb_timestamp_t 		/* time */
+    IswTime 		/* time */
 );
 
 extern void IswGetSelectionValues(
@@ -1994,7 +1994,7 @@ extern void IswGetSelectionValues(
     int 		/* count */,
     IswSelectionCallbackProc /* callback */,
     IswPointer*		/* closures */,
-    xcb_timestamp_t 		/* time */
+    IswTime 		/* time */
 );
 
 extern void IswAppSetSelectionTimeout(
@@ -2026,7 +2026,7 @@ extern void IswGetSelectionValueIncremental(
     xcb_atom_t 		/* target */,
     IswSelectionCallbackProc /* selection_callback */,
     IswPointer 		/* client_data */,
-    xcb_timestamp_t 		/* time */
+    IswTime 		/* time */
 );
 
 extern void IswGetSelectionValuesIncremental(
@@ -2036,7 +2036,7 @@ extern void IswGetSelectionValuesIncremental(
     int 		/* count */,
     IswSelectionCallbackProc /* callback */,
     IswPointer*		/* client_data */,
-    xcb_timestamp_t 		/* time */
+    IswTime 		/* time */
 );
 
 extern void IswSetSelectionParameters(
@@ -2066,7 +2066,7 @@ extern void IswCreateSelectionRequest(
 extern void IswSendSelectionRequest(
     Widget		/* requestor */,
     xcb_atom_t		/* selection */,
-    xcb_timestamp_t		/* time */
+    IswTime		/* time */
 );
 
 extern void IswCancelSelectionRequest(
@@ -2103,12 +2103,12 @@ extern int IswGrabKeyboard(
     _IswBoolean 		/* owner_events */,
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
-    xcb_timestamp_t 		/* time */
+    IswTime 		/* time */
 );
 
 extern void IswUngrabKeyboard(
     Widget 		/* widget */,
-    xcb_timestamp_t 		/* time */
+    IswTime 		/* time */
 );
 
 extern void IswGrabButton(
@@ -2120,7 +2120,7 @@ extern void IswGrabButton(
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
     IswWindow 		/* confine_to */,
-    xcb_cursor_t 		/* cursor */
+    IswCursor 		/* cursor */
 );
 
 extern void IswUngrabButton(
@@ -2136,13 +2136,13 @@ extern int IswGrabPointer(
     int 		/* pointer_mode */,
     int 		/* keyboard_mode */,
     IswWindow 		/* confine_to */,
-    xcb_cursor_t 		/* cursor */,
-    xcb_timestamp_t 		/* time */
+    IswCursor 		/* cursor */,
+    IswTime 		/* time */
 );
 
 extern void IswUngrabPointer(
     Widget 		/* widget */,
-    xcb_timestamp_t 		/* time */
+    IswTime 		/* time */
 );
 
 extern void IswGetApplicationNameAndClass(

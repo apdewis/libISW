@@ -339,7 +339,9 @@ RequestSelectionValue(CallBackInfo info, xcb_atom_t selection, xcb_atom_t target
     IswAddEventHandler(info->widget, (EventMask) 0, TRUE,
                       HandleSelectionReplies, (IswPointer) info);
 
-    xcb_convert_selection(info->ctx->dpy, _IswXcbWindow(IswWindowOf(info->widget)), selection, target, info->property, info->time);
+    _IswPlatformGetOps()->selection->convert(
+        (IswDisplay) info->ctx->dpy, IswWindowOf(info->widget),
+        selection, target, info->property, info->time);
 }
 
 static IswContext selectContext = NULL;
@@ -940,19 +942,13 @@ OwnSelection(Widget widget,
     if (ctx->widget != widget || ctx->time != time ||
         ctx->ref_count || ctx->was_disowned) {
         Boolean replacement = FALSE;
-        xcb_window_t window = _IswXcbWindow(IswWindowOf(widget));
-        //uint32_t serial = xcb_get_serial(ctx->dpy);
+        IswWindow window = IswWindowOf(widget);
+        const IswPlatformSelectionOps *sel = _IswPlatformGetOps()->selection;
 
-        xcb_set_selection_owner(ctx->dpy, window, selection, time);
-        xcb_get_selection_owner_cookie_t cookie = xcb_get_selection_owner(ctx->dpy, selection);
-        xcb_get_selection_owner_reply_t *reply = xcb_get_selection_owner_reply(ctx->dpy, cookie, NULL);
-        if(!reply) return FALSE;
-        if (reply->owner != window) {
-            free(reply);
+        sel->set_owner((IswDisplay) ctx->dpy, window, selection, time);
+        if (sel->get_owner((IswDisplay) ctx->dpy, selection) != window) {
             return FALSE;
         }
-
-        free(reply);
 
         if (ctx->ref_count) {   /* exchange is in-progress */
 #ifdef DEBUG_ACTIVE
@@ -1077,8 +1073,8 @@ IswDisownSelection(Widget widget, xcb_atom_t selection, xcb_timestamp_t time)
     LOCK_APP(app);
     ctx = FindCtx(_IswXcbConn(IswDisplayOf(widget)), selection);
     if (LoseSelection(ctx, widget, selection, time))
-        xcb_set_selection_owner(_IswXcbConn(IswDisplayOf(widget)), XCB_NONE, selection, time);
-        //XSetSelectionOwner(IswDisplayOf(widget), selection, None, time);
+        _IswPlatformGetOps()->selection->set_owner(
+            IswDisplayOf(widget), None, selection, time);
     UNLOCK_APP(app);
 }
 

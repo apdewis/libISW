@@ -80,7 +80,7 @@ extern SimpleClassRec simpleClassRec;
 
 typedef struct {
     /* resources */
-    xcb_cursor_t	cursor;
+    IswCursor	cursor;
     String      cursor_name;	/* cursor specified by name. */
 
     Pixel       pointer_fg, pointer_bg;	/* Pointer colors. */
@@ -118,11 +118,11 @@ extern void _IswSimpleApplyCursor(Widget /* pointer widget */);
                         - change the cursor of the active pointer grab
                           (owns xcb_change_active_pointer_grab). */
 extern void _IswSetWindowCursor(Widget /* windowed target */,
-                                xcb_cursor_t /* cursor */);
-extern void _IswFreeCursor(Widget /* widget */, xcb_cursor_t /* cursor */);
+                                IswCursor /* cursor */);
+extern void _IswFreeCursor(Widget /* widget */, IswCursor /* cursor */);
 extern void _IswChangeActivePointerGrabCursor(Widget /* widget */,
-                                              xcb_cursor_t /* cursor */,
-                                              xcb_timestamp_t /* time */,
+                                              IswCursor /* cursor */,
+                                              IswTime /* time */,
                                               uint16_t /* event_mask */);
 
 #endif /* _ISW_SimpleP_h */

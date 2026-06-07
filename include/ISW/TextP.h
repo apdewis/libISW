@@ -194,8 +194,8 @@ typedef struct _TextPart {
     IswTextLineTable	lt;
     IswTextScanDirection extendDir;
     IswTextSelection	origSel;    /* the selection being modified */
-    xcb_timestamp_t lasttime;	    /* timestamp of last processed action */
-    xcb_timestamp_t time;	    /* time of last key or button action */
+    IswTime lasttime;	    /* timestamp of last processed action */
+    IswTime time;	    /* time of last key or button action */
     Position	    ev_x, ev_y;	    /* x, y coords for key or button action */
     Widget	    vbar, hbar;	    /* The scroll bars (none = NULL). */
     struct SearchAndReplace * search;/* Search and replace structure. */

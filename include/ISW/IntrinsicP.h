@@ -93,7 +93,7 @@ typedef void (*IswWidgetProc)(
 
 typedef Boolean (*IswAcceptFocusProc)(
     Widget	/* widget */,
-    xcb_timestamp_t*	/* time */
+    IswTime*	/* time */
 );
 
 typedef void (*IswArgsProc)(

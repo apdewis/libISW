@@ -51,6 +51,16 @@ typedef void     *IswVisual;     /* a visual (value handle over the native
                                     visual type)                          */
 typedef uint32_t  IswVisualId;   /* a visual id                           */
 
+/* Neutral cursor handle + server time (full ops in ISW/ISWPlatform.h).  Value
+   handles; numerically X11-compatible; carry no xcb dependency.  Defined here
+   (the earliest types header) so IswSetWindowAttributes below and the public
+   grab/selection APIs can use them.  Phase 5. */
+typedef uintptr_t IswCursor;     /* cursor id (value handle), 0 = none    */
+typedef uint32_t  IswTime;       /* server timestamp                      */
+#ifndef ISW_CURRENT_TIME
+#define ISW_CURRENT_TIME ((IswTime) 0)
+#endif
+
 /* Must match IswValueMask (unsigned long) to avoid pointer type conflicts. */
 #ifndef Mask
 typedef unsigned long Mask;
@@ -159,7 +169,7 @@ typedef struct {
     long          do_not_propagate_mask;
     Bool          override_redirect;
     IswColormap   colormap;
-    xcb_cursor_t  cursor;           /* cursor handle: Phase 5 */
+    IswCursor     cursor;
 } IswSetWindowAttributes;
 #endif
 

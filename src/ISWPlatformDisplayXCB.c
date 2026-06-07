@@ -397,16 +397,20 @@ static const IswPlatformWindowOps xcb_window_ops = {
 extern const IswPlatformInputOps isw_platform_xcb_input_ops; /* ISWPlatformInputXCB.c */
 extern const IswPlatformColorOps isw_platform_xcb_color_ops; /* ISWPlatformColorFontXCB.c */
 extern const IswPlatformFontOps  isw_platform_xcb_font_ops;  /* ISWPlatformColorFontXCB.c */
+extern const IswPlatformCursorOps    isw_platform_xcb_cursor_ops;    /* ISWPlatformGrabCursorXCB.c */
+extern const IswPlatformGrabOps      isw_platform_xcb_grab_ops;      /* ISWPlatformGrabCursorXCB.c */
+extern const IswPlatformSelectionOps isw_platform_xcb_selection_ops; /* ISWPlatformGrabCursorXCB.c */
 
 const IswPlatformOps isw_platform_xcb_ops = {
     .display   = &xcb_display_ops,
     .window    = &xcb_window_ops,
     .event     = NULL,   /* Phase 1 translator is standalone for now */
     .input     = &isw_platform_xcb_input_ops,
-    .selection = NULL,
+    .selection = &isw_platform_xcb_selection_ops,
     .color     = &isw_platform_xcb_color_ops,
     .font      = &isw_platform_xcb_font_ops,
-    .cursor    = NULL,
+    .cursor    = &isw_platform_xcb_cursor_ops,
+    .grab      = &isw_platform_xcb_grab_ops,
 };
 
 const IswPlatformOps *

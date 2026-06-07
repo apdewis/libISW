@@ -77,8 +77,8 @@ typedef struct {
     Dimension       col_resize_start_w;
 
     /* column resize cursors */
-    xcb_cursor_t    resize_cursor;     /* sb_h_double_arrow */
-    xcb_cursor_t    default_cursor;    /* widget's normal cursor */
+    IswCursor    resize_cursor;     /* sb_h_double_arrow */
+    IswCursor    default_cursor;    /* widget's normal cursor */
     Boolean         resize_cursor_set; /* True when resize cursor is active */
 } ListViewPart;
 

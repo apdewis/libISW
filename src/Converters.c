@@ -639,47 +639,17 @@ static IswConvertArgRec const cursorConvertArgs[] = {
 /* *INDENT-ON* */
 
 /* -----------------------------------------------------------------------
- * Create a glyph cursor from the built-in X cursor font (fallback).
+ * Load a theme-aware named cursor (glyph fallback).  Thin wrapper over the
+ * platform cursor op; the glyph/themed creation now lives in the backend
+ * (ISWPlatformGrabCursorXCB.c).  The raw conn/screen params are seam-internal
+ * (this is an internal header, not a public ISW/ widget header).
  * ----------------------------------------------------------------------- */
-static xcb_cursor_t
-_IswCreateFontCursor(xcb_connection_t *dpy, unsigned int shape)
-{
-    static xcb_font_t cursor_font = XCB_NONE;
-    xcb_cursor_t cursor;
-
-    if (cursor_font == XCB_NONE) {
-        cursor_font = xcb_generate_id(dpy);
-        xcb_open_font(dpy, cursor_font, strlen("cursor"), "cursor");
-    }
-    cursor = xcb_generate_id(dpy);
-    xcb_create_glyph_cursor(dpy, cursor,
-                            cursor_font, cursor_font,
-                            shape,          /* source char */
-                            shape + 1,      /* mask char */
-                            0, 0, 0,        /* foreground RGB (black) */
-                            65535, 65535, 65535); /* background RGB (white) */
-    return cursor;
-}
-
-/* -----------------------------------------------------------------------
- * Load a cursor by name via xcb-cursor (Xcursor theme-aware).
- * Falls back to glyph cursor if xcb-cursor fails.
- * ----------------------------------------------------------------------- */
-xcb_cursor_t
+IswCursor
 _IswLoadThemedCursor(xcb_connection_t *dpy, xcb_screen_t *screen,
                     const char *name, unsigned int shape)
 {
-    xcb_cursor_context_t *ctx;
-    if (xcb_cursor_context_new(dpy, screen, &ctx) < 0)
-        return _IswCreateFontCursor(dpy, shape);
-
-    xcb_cursor_t cursor = xcb_cursor_load_cursor(ctx, name);
-    xcb_cursor_context_free(ctx);
-
-    if (cursor == XCB_CURSOR_NONE)
-        return _IswCreateFontCursor(dpy, shape);
-
-    return cursor;
+    return _IswPlatformGetOps()->cursor->load_named(
+        (IswDisplay) dpy, (IswScreen) screen, name, shape);
 }
 
 /* -----------------------------------------------------------------------
@@ -892,10 +862,10 @@ IswCvtStringToCursor(IswDisplay dpy,
         if (strcmp(name, nP->name) == 0) {
             xcb_connection_t *display = *(xcb_connection_t **) args[0].addr;
             xcb_screen_t *screen = *(xcb_screen_t **) args[1].addr;
-            xcb_cursor_t cursor = _IswLoadThemedCursor(display, screen,
-                                                      nP->name, nP->shape);
+            IswCursor cursor = _IswLoadThemedCursor(display, screen,
+                                                    nP->name, nP->shape);
 
-            done_string(xcb_cursor_t, cursor, IswRCursor);
+            done_string(IswCursor, cursor, IswRCursor);
         }
     }
     IswDisplayStringConversionWarning(dpy, name, IswRCursor);
@@ -909,7 +879,7 @@ FreeCursor(IswAppContext app,
            XrmValuePtr args,
            Cardinal *num_args)
 {
-    xcb_connection_t *display;
+    IswDisplay display;
 
     if (*num_args != 1) {
         IswAppWarningMsg(app,
@@ -918,8 +888,8 @@ FreeCursor(IswAppContext app,
         return;
     }
 
-    display = *(xcb_connection_t **) args[0].addr;
-    xcb_free_cursor(display, *(xcb_cursor_t *) toVal->addr);
+    display = *(IswDisplay *) args[0].addr;
+    _IswPlatformGetOps()->cursor->free_cursor(display, *(IswCursor *) toVal->addr);
 }
 
 Boolean

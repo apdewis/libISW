@@ -120,6 +120,9 @@ typedef struct _IswPlatformInputOps     IswPlatformInputOps;
 /* Selections / clipboard — own, convert, paste.  Filled in Phase 5. */
 typedef struct _IswPlatformSelectionOps IswPlatformSelectionOps;
 
+/* Grabs — passive/active pointer/keyboard/button/key grabs.  Filled in Phase 5. */
+typedef struct _IswPlatformGrabOps      IswPlatformGrabOps;
+
 /* Colormap / visual — alloc by name / RGB, free.  Filled in Phase 4. */
 typedef struct _IswPlatformColorOps     IswPlatformColorOps;
 
@@ -310,6 +313,83 @@ struct _IswPlatformFontOps {
 
 /*
  * =================================================================
+ * Cursor ops (Phase 5)
+ * =================================================================
+ *
+ * Symbolic / themed cursor creation, application to a window, and release.
+ * Neutral: IswCursor handle; the `shape` is the standard X cursor-font glyph
+ * index (numerically compatible), so widgets keep using the XC_* values.
+ */
+struct _IswPlatformCursorOps {
+    /* Glyph cursor from the standard cursor font for `shape`. */
+    IswCursor (*create_glyph)(IswDisplay dpy, unsigned int shape);
+    /* Theme-aware named cursor ("hand2", "watch", …); falls back to the glyph
+       cursor for `fallback_shape` if the theme lookup fails. */
+    IswCursor (*load_named)(IswDisplay dpy, IswScreen screen,
+                            const char *name, unsigned int fallback_shape);
+    /* Set the pointer cursor on a window (0 = revert to parent's). */
+    void (*set_window_cursor)(IswDisplay dpy, IswWindow win, IswCursor cursor);
+    /* Release a cursor (no-op for 0). */
+    void (*free_cursor)(IswDisplay dpy, IswCursor cursor);
+};
+
+/*
+ * =================================================================
+ * Grab ops (Phase 5)
+ * =================================================================
+ *
+ * Passive and active pointer / keyboard / button / key grabs.  Backends without
+ * a grab concept may stub these (return failure / no-op).  pointer_mode /
+ * keyboard_mode are the numeric async/sync constants; event_mask / modifiers are
+ * the neutral mask values.
+ */
+struct _IswPlatformGrabOps {
+    int  (*grab_pointer)(IswDisplay dpy, IswWindow grab_window,
+                         Boolean owner_events, unsigned int event_mask,
+                         int pointer_mode, int keyboard_mode,
+                         IswWindow confine_to, IswCursor cursor, IswTime time);
+    void (*ungrab_pointer)(IswDisplay dpy, IswTime time);
+    int  (*grab_keyboard)(IswDisplay dpy, IswWindow grab_window,
+                          Boolean owner_events, int pointer_mode,
+                          int keyboard_mode, IswTime time);
+    void (*ungrab_keyboard)(IswDisplay dpy, IswTime time);
+    void (*grab_button)(IswDisplay dpy, IswWindow grab_window, int button,
+                        unsigned int modifiers, Boolean owner_events,
+                        unsigned int event_mask, int pointer_mode,
+                        int keyboard_mode, IswWindow confine_to,
+                        IswCursor cursor);
+    void (*ungrab_button)(IswDisplay dpy, IswWindow grab_window, int button,
+                          unsigned int modifiers);
+    void (*grab_key)(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
+                     unsigned int modifiers, Boolean owner_events,
+                     int pointer_mode, int keyboard_mode);
+    void (*ungrab_key)(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
+                       unsigned int modifiers);
+    void (*allow_events)(IswDisplay dpy, int mode, IswTime time);
+};
+
+/*
+ * =================================================================
+ * Selection ops (Phase 5)
+ * =================================================================
+ *
+ * The three pure-selection protocol verbs: take/release ownership, query the
+ * owner, and request a conversion.  The selection/target/property identifiers
+ * are atoms, which Phase 6 abstracts; until then they stay xcb_atom_t.  The
+ * property-exchange machinery the convert drives stays in Selection.c on the
+ * seam until Phase 6.
+ */
+struct _IswPlatformSelectionOps {
+    void      (*set_owner)(IswDisplay dpy, IswWindow owner,
+                           xcb_atom_t selection, IswTime time);
+    IswWindow (*get_owner)(IswDisplay dpy, xcb_atom_t selection);
+    void      (*convert)(IswDisplay dpy, IswWindow requestor,
+                         xcb_atom_t selection, xcb_atom_t target,
+                         xcb_atom_t property, IswTime time);
+};
+
+/*
+ * =================================================================
  * Platform operations vtable
  * =================================================================
  *
@@ -327,6 +407,7 @@ typedef struct _IswPlatformOps {
     const IswPlatformColorOps     *color;
     const IswPlatformFontOps      *font;
     const IswPlatformCursorOps    *cursor;
+    const IswPlatformGrabOps      *grab;
 } IswPlatformOps;
 
 #endif /* _ISWPlatform_h */

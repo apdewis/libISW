@@ -348,7 +348,7 @@ typedef struct _IswPerDisplayStruct {
     IswScreenPixmapStructPtr pixmap_tab;   /* pixmap cache */
     String language;		       /* XPG language string */
     xcb_generic_event_t last_event;		       /* last event dispatched */
-    xcb_timestamp_t last_timestamp;	       /* from last event dispatched */
+    IswTime last_timestamp;	       /* from last event dispatched */
     int multi_click_time;	       /* for IswSetMultiClickTime */
     struct _TMKeyContextRec* tm_context;     /* for IswGetActionKeysym */
     InternalCallbackList mapping_callbacks;  /* special case for TM */

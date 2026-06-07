@@ -34,7 +34,7 @@ typedef struct {
     /* private state */
     ISWRenderContext        *render_ctx;
     int                     focused_index;
-    xcb_timestamp_t         last_click_time;
+    IswTime         last_click_time;
     int                     last_click_index;
     Boolean                 has_focus;
 } ListBoxPart;

@@ -87,7 +87,7 @@ typedef struct _SelectRec {
     xcb_atom_t selection; 			/* constant */
     xcb_connection_t *dpy; 			/* constant */
     Widget widget;
-    xcb_timestamp_t time;
+    IswTime time;
     unsigned long serial;
     IswConvertSelectionProc convert;
     IswLoseSelectionProc loses;
@@ -118,7 +118,7 @@ typedef struct _QueuedRequestRec {
     xcb_atom_t param;
     IswSelectionCallbackProc callback;
     IswPointer closure;
-    xcb_timestamp_t time;
+    IswTime time;
     Boolean incremental;
 } QueuedRequestRec, *QueuedRequest;
 
@@ -141,7 +141,7 @@ typedef struct {
     IswIntervalId timeout;
     IswEventHandler proc;
     Widget widget;
-    xcb_timestamp_t time;
+    IswTime time;
     Select ctx;
     Boolean *incremental;
     int current;

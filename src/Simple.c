@@ -61,7 +61,7 @@ SOFTWARE.
 #define offset(field) IswOffsetOf(SimpleRec, simple.field)
 
 static IswResource resources[] = {
-  {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+  {IswNcursor, IswCCursor, IswRCursor, sizeof(IswCursor),
      offset(cursor), IswRImmediate, (IswPointer) None},
   /* Color cursor resources removed - not available in XCB
   {IswNpointerColor, IswCForeground, IswRPixel, sizeof(Pixel),
@@ -180,9 +180,9 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
        _IswSimpleApplyCursor).  Keep the resolved cursor in simple.cursor. */
     if (!w->core.windowless &&
         ((SimpleWidget)w)->simple.cursor != None &&
-        ((SimpleWidget)w)->simple.cursor != (xcb_cursor_t)0xffffffff) {
+        ((SimpleWidget)w)->simple.cursor != (IswCursor)0xffffffff) {
 	*valueMask |= XCB_CW_CURSOR;
-	attributes[__builtin_popcount(*valueMask & (XCB_CW_CURSOR - 1))] = ((SimpleWidget)w)->simple.cursor;
+	attributes[__builtin_popcount(*valueMask & (XCB_CW_CURSOR - 1))] = _IswXcbCursor(((SimpleWidget)w)->simple.cursor);
     }
 
     IswCreateWindow(_IswXcbConn(IswDisplayOf(w)), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
@@ -195,43 +195,43 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
  * this instead of issuing xcb_change_window_attributes directly.
  */
 void
-_IswSetWindowCursor(Widget anc, xcb_cursor_t cursor)
+_IswSetWindowCursor(Widget anc, IswCursor cursor)
 {
-    uint32_t value;
-
     /* Gate on the window itself, not IswIsRealized: a shell sets its cursor
        inside its own realize method, before the realized flag is set. */
     if (anc == NULL || !IswIsWidget(anc) || _IswXcbWindow(anc->core.window) == XCB_NONE ||
         anc->core.being_destroyed)
         return;
 
-    value = cursor;
-    xcb_change_window_attributes(_IswXcbConn(IswDisplayOf(anc)), _IswXcbWindow(anc->core.window),
-                                 XCB_CW_CURSOR, &value);
+    _IswPlatformGetOps()->cursor->set_window_cursor(
+        IswDisplayOf(anc), anc->core.window, cursor);
 }
 
 /*
  * _IswFreeCursor - release a server cursor allocated for a widget.  The single
- * owner of xcb_free_cursor for widget code.
+ * owner of cursor release for widget code.
  */
 void
-_IswFreeCursor(Widget w, xcb_cursor_t cursor)
+_IswFreeCursor(Widget w, IswCursor cursor)
 {
-    if (cursor == None || cursor == XCB_CURSOR_NONE)
+    if (cursor == None || (xcb_cursor_t) cursor == XCB_CURSOR_NONE)
         return;
 
-    xcb_free_cursor(_IswXcbConn(IswDisplayOf(w)), cursor);
+    _IswPlatformGetOps()->cursor->free_cursor(IswDisplayOf(w), cursor);
 }
 
 /*
  * _IswChangeActivePointerGrabCursor - change the cursor of the active pointer
- * grab.  The single owner of xcb_change_active_pointer_grab for widget code.
+ * grab.  The single owner of xcb_change_active_pointer_grab for widget code
+ * (a narrow grab-cursor refresh that stays on the seam).
  */
 void
-_IswChangeActivePointerGrabCursor(Widget w, xcb_cursor_t cursor,
-                                  xcb_timestamp_t time, uint16_t event_mask)
+_IswChangeActivePointerGrabCursor(Widget w, IswCursor cursor,
+                                  IswTime time, uint16_t event_mask)
 {
-    xcb_change_active_pointer_grab(_IswXcbConn(IswDisplayOf(w)), cursor, time, event_mask);
+    xcb_change_active_pointer_grab(_IswXcbConn(IswDisplayOf(w)),
+                                   _IswXcbCursor(cursor),
+                                   (xcb_timestamp_t) time, event_mask);
 }
 
 /*
@@ -244,7 +244,7 @@ void
 _IswSimpleApplyCursor(Widget w)
 {
     Widget anc;
-    xcb_cursor_t cursor = XCB_NONE;
+    IswCursor cursor = None;
 
     if (w == NULL || !IswIsWidget(w))
         return;
@@ -255,16 +255,16 @@ _IswSimpleApplyCursor(Widget w)
 
     /* Cursor of the windowless pointer widget, if it is a Simple subclass. */
     if (IswIsSubclass(w, simpleWidgetClass)) {
-        xcb_cursor_t c = ((SimpleWidget) w)->simple.cursor;
-        if (c != None && c != (xcb_cursor_t) 0xffffffff)
+        IswCursor c = ((SimpleWidget) w)->simple.cursor;
+        if (c != None && c != (IswCursor) 0xffffffff)
             cursor = c;
     }
 
     /* Fall back to the windowed ancestor's own cursor when the pointer widget
        specifies none, so leaving a widget restores the container cursor. */
-    if (cursor == XCB_NONE && IswIsSubclass(anc, simpleWidgetClass)) {
-        xcb_cursor_t c = ((SimpleWidget) anc)->simple.cursor;
-        if (c != None && c != (xcb_cursor_t) 0xffffffff)
+    if (cursor == None && IswIsSubclass(anc, simpleWidgetClass)) {
+        IswCursor c = ((SimpleWidget) anc)->simple.cursor;
+        if (c != None && c != (IswCursor) 0xffffffff)
             cursor = c;
     }
 
@@ -282,7 +282,7 @@ ConvertCursor(Widget w)
 {
     SimpleWidget simple = (SimpleWidget) w;
     XrmValue from, to;
-    xcb_cursor_t cursor;
+    IswCursor cursor;
 
     if (simple->simple.cursor_name == NULL)
 	return;
@@ -290,7 +290,7 @@ ConvertCursor(Widget w)
     from.addr = (IswPointer) simple->simple.cursor_name;
     from.size = strlen((char *) from.addr) + 1;
 
-    to.size = sizeof(xcb_cursor_t);
+    to.size = sizeof(IswCursor);
     to.addr = (IswPointer) &cursor;
 
     /* Changed IswRColorCursor to IswRCursor for XCB compatibility */
