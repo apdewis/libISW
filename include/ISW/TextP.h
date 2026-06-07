@@ -92,7 +92,7 @@ typedef struct {
 typedef struct {
     ISWTextPosition   left, right;
     IswTextSelectType type;
-    xcb_atom_t*	     selections;
+    Atom*	     selections;
     int		     atom_count;
     int		     array_size;
 } IswTextSelection;
@@ -262,7 +262,7 @@ extern char* _IswTextGetSTRING(
 
 extern void _IswTextSaltAwaySelection(
     TextWidget /*ctx*/,
-    xcb_atom_t* /*selections*/,
+    Atom* /*selections*/,
     int /*num_atoms*/
 );
 

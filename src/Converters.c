@@ -1570,17 +1570,13 @@ IswCvtStringToAtom(IswDisplay dpy,
     }
 
     {
-        xcb_connection_t *conn = *(xcb_connection_t **) args->addr;
+        IswDisplay adpy = *(IswDisplay *) args->addr;
         const char *name = (char *) fromVal->addr;
-        xcb_intern_atom_cookie_t ia_cookie = xcb_intern_atom(conn, 0,
-                                                              (uint16_t) strlen(name), name);
-        xcb_intern_atom_reply_t *ia_reply = xcb_intern_atom_reply(conn, ia_cookie, NULL);
-        if (ia_reply == NULL) {
+        atom = _IswPlatformInternAtomOp(adpy, name, False);
+        if (atom == ISW_ATOM_NONE) {
             IswDisplayStringConversionWarning(dpy, name, IswRAtom);
             return False;
         }
-        atom = ia_reply->atom;
-        free(ia_reply);
     }
     done_string(Atom, atom, IswRAtom);
 }

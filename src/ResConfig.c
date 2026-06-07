@@ -921,7 +921,7 @@ _IswResourceConfigurationEH(Widget w,
      * by deleting the property.
      */
     if (pe->atom == pd->rcm_init) {
-        xcb_delete_property(dpy, _IswXcbWindow(IswWindowOf(w)), pd->rcm_init);
+        _IswPlatformDeleteProperty((IswDisplay) dpy, IswWindowOf(w), pd->rcm_init);
         xcb_flush(dpy);
 
 #ifdef DEBUG
@@ -947,16 +947,16 @@ _IswResourceConfigurationEH(Widget w,
     fprintf(stderr, "receiving RCM_DATA property\n");
 #endif
     {
-        xcb_get_property_cookie_t cookie =
-            xcb_get_property(dpy, True, /* delete after read */
-                             _IswXcbWindow(IswWindowOf(w)), pd->rcm_data,
-                             XCB_ATOM_STRING, 0, 8192);
-        xcb_get_property_reply_t *reply =
-            xcb_get_property_reply(dpy, cookie, NULL);
+        IswProperty prop;
+        Boolean got = _IswPlatformGetProperty((IswDisplay) dpy, IswWindowOf(w),
+                                              pd->rcm_data, ISW_ATOM_STRING,
+                                              0, 8192, &prop);
+        /* delete-after-read (the get used to pass delete=True) */
+        _IswPlatformDeleteProperty((IswDisplay) dpy, IswWindowOf(w), pd->rcm_data);
 
-        if (reply && reply->type == XCB_ATOM_STRING && reply->format == 8) {
-            char *data = (char *) xcb_get_property_value(reply);
-            int nitems = xcb_get_property_value_length(reply);
+        if (got && prop.type == ISW_ATOM_STRING && prop.format == 8) {
+            char *data = (char *) prop.value;
+            int nitems = (int) prop.num_items;
 
             /*
              *  data format is:
@@ -1004,6 +1004,6 @@ _IswResourceConfigurationEH(Widget w,
             }
         }
 
-        free(reply);
+        _IswPlatformFreeProperty(&prop);
     }
 }

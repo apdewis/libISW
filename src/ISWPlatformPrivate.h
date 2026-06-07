@@ -132,13 +132,47 @@ void _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keyco
                          unsigned int modifiers, Boolean owner_events,
                          int pointer_mode, int keyboard_mode);
 
-/* Selection (Phase 5) */
+/* Selection (Phase 5; atoms neutralised in Phase 6) */
 void      _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
-                                        xcb_atom_t selection, IswTime time);
-IswWindow _IswPlatformGetSelectionOwner(IswDisplay dpy, xcb_atom_t selection);
+                                        Atom selection, IswTime time);
+IswWindow _IswPlatformGetSelectionOwner(IswDisplay dpy, Atom selection);
 void      _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
-                                       xcb_atom_t selection, xcb_atom_t target,
-                                       xcb_atom_t property, IswTime time);
+                                       Atom selection, Atom target,
+                                       Atom property, IswTime time);
+
+/* Atom (Phase 6) */
+Atom    _IswPlatformInternAtomOp(IswDisplay dpy, const char *name,
+                                 Boolean only_if_exists);
+Boolean _IswPlatformGetAtomName(IswDisplay dpy, Atom atom,
+                                char *buf, size_t buflen);
+
+/* Property (Phase 6) */
+void    _IswPlatformChangeProperty(IswDisplay dpy, IswWindow win, Atom property,
+                                   Atom type, int format, IswPropMode mode,
+                                   const void *data, uint32_t num_elements);
+Boolean _IswPlatformGetProperty(IswDisplay dpy, IswWindow win, Atom property,
+                                Atom type, uint32_t long_offset,
+                                uint32_t long_length, IswProperty *out);
+void    _IswPlatformDeleteProperty(IswDisplay dpy, IswWindow win, Atom property);
+
+/* WM hints (Phase 6) */
+void _IswPlatformSetWindowTitle(IswDisplay dpy, IswWindow win, const char *utf8);
+void _IswPlatformSetIconTitle(IswDisplay dpy, IswWindow win, const char *utf8);
+void _IswPlatformSetWmClass(IswDisplay dpy, IswWindow win,
+                            const char *name, const char *class_name);
+void _IswPlatformSetWmProtocols(IswDisplay dpy, IswWindow win,
+                                const Atom *protocols, int num_protocols);
+void _IswPlatformSetTransientFor(IswDisplay dpy, IswWindow win, IswWindow leader);
+void _IswPlatformSetWindowType(IswDisplay dpy, IswWindow win, IswWindowType type);
+void _IswPlatformSetPid(IswDisplay dpy, IswWindow win, uint32_t pid);
+void _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t flags,
+                                int x, int y, int width, int height,
+                                int min_width, int min_height,
+                                int max_width, int max_height,
+                                int width_inc, int height_inc,
+                                int min_aspect_num, int min_aspect_den,
+                                int max_aspect_num, int max_aspect_den,
+                                int base_width, int base_height, int win_gravity);
 
 /*
  * =================================================================

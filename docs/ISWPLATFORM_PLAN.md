@@ -20,7 +20,9 @@ which phase is current, what is done, what is deferred and why.
 - Any future session reads this file first to know exactly where the
   abstraction stands.
 
-**Current phase:** 6 — Atoms + properties (not started)
+**Current phase:** 8 — Dependency-inject the ops table (then 7 — XDND).  Phase 8
+(kill the singleton) is best done before Phase 7 adds more dispatch sites; see
+the Phase 8 note.
 
 ## Phase table
 
@@ -32,7 +34,7 @@ which phase is current, what is done, what is deferred and why.
 | 3 | `IswInput` + translation manager | done | Keyboard.c, Pointer.c, XtTypes.h, TMparse.c, TMstate.c, TMaction.c, TMgrab.c |
 | 4 | `IswColor` + `IswFont` | done | ISWPlatform.h, ISWPlatformColorFontXCB.c, Converters.c, IswTypes.h, CoreP.h, Core.c |
 | 5 | `IswSelection`, `IswCursor`, grabs | done | ISWPlatform.h, ISWPlatformGrabCursorXCB.c, PassivGrab.c, Simple.c, Converters.c, MenuBar.c, List.c, Selection.c |
-| 6 | Atoms + properties | todo | ISWAtoms.c, Shell.c, Vendor.c, SetWMCW.c |
+| 6 | Atoms + properties | done | ISWPlatform.h, ISWPlatformAtomPropXCB.c, ISWAtoms.c, Shell.c, Selection.c, ResConfig.c, SetWMCW.c, Tip.c, SimpleMenu.c, Intrinsic.c, TMprint.c, TMstate.c, TextAction.c, Display.c, Converters.c |
 | 7 | `IswDragDrop` (XDND refactor) | todo | ISWXdnd.c, ISWXdnd.h |
 | 8 | Dependency-inject the ops table (kill the singleton) | todo | ISWPlatformPrivate.h, ISWPlatformDisplayXCB.c + every `_IswPlatform*` wrapper + the per-display init path |
 
@@ -315,6 +317,44 @@ mechanism other platforms can implement their own way.
 
 Files: ISWAtoms.c, Shell.c, Vendor.c, SetWMCW.c.
 
+**Done** (build green, demo verified). Scope manifest: `docs/PHASE6_SCOPE.md`.
+
+Decisions (with the user): **generic property ops; XDND/tray stay seam**, and
+**semantic hint ops** for the cross-platform-meaningful WM hints.
+
+- `Atom` was already a neutral `uint32_t`; flipped the 85 `xcb_atom_t`
+  occurrences across 12 public headers to `Atom` (incl. the Phase-5 selection
+  verbs). Added `IswPropMode`, `IswProperty` (+ `_IswPlatformFreeProperty`),
+  `IswWindowType`, `ISW_ATOM_*` to ISWPlatform.h.
+- Three sub-vtables in the new `src/ISWPlatformAtomPropXCB.c`, wired into
+  `isw_platform_xcb_ops`, reached via thin `_IswPlatform*` dispatch wrappers
+  (the Phase-8 convention, not `_IswPlatformGetOps()` at call sites):
+  - `IswPlatformAtomOps` — `intern` / `get_name`.
+  - `IswPlatformPropertyOps` — `change` / `get` (returns neutral `IswProperty`,
+    no xcb reply structs leak) / `delete`.
+  - `IswPlatformHintOps` — semantic `set_window_title` (WM_NAME + _NET_WM_NAME),
+    `set_icon_title`, `set_wm_class`, `set_wm_protocols`, `set_transient_for`,
+    `set_window_type` (incl. POPUP_MENU/TOOLTIP/DIALOG), `set_pid`,
+    `set_normal_hints` (carries aspect — widened mid-phase so it isn't lossy).
+- Routed: ISWAtoms (now delegates to the op), Shell.c (all ~120 sites: title/
+  icon/class/protocols/transient/window-type/pid/normal-hints semantic; locale/
+  client-leader/role/command/state/icon/user-time/startup-id generic),
+  Selection.c (the Phase-5-deferred transfer machinery — change/get/delete +
+  interns; fixed a latent use-after-free and avoided malloc-vs-IswFree
+  allocator mismatches by copying into `__XtMalloc` where downstream `IswFree`s),
+  ResConfig/Tip/SimpleMenu/Intrinsic/TMprint/TMstate/TextAction/Display/
+  Converters.
+- **On the seam by design / scope:** `xcb_send_event` client-messages (startup-id
+  remove, _NET_WM_STATE, iconify), `xcb_create_window` for the user-time helper
+  window, and `xcb_icccm_set_wm_hints` (reads a private xcb_icccm struct field
+  the toolkit hasn't neutralised — not atom/property work). XDND (Phase 7) +
+  tray + render backends keep their raw atom/property use.
+- Verified live: window title in the WM (WM_NAME + _NET_WM_NAME), _NET_WM_PID,
+  WM_PROTOCOLS=WM_DELETE_WINDOW, and a graceful WM_DELETE close (full atom
+  round-trip: intern → advertise → match incoming → handle). Clipboard
+  selection-conversion path exercised without crash. No `xcb_atom_t` in any
+  `include/ISW/` header; no direct libX11 NEEDED.
+
 ### Phase 7 — `IswDragDrop` (XDND refactor)
 
 Refactor the ~2,100-line XDND v5 implementation behind a semantic
@@ -420,3 +460,15 @@ Phase 6/7 add more dispatch sites that would otherwise also need rework.
   verbs keep `xcb_atom_t`).  XDND (Phase 7) + tray keep seam grab/selection use.
   No xcb cursor/timestamp types in public headers.  No direct libX11 NEEDED
   entry.
+- Phase 6 done (build green, demo verified): neutral `Atom` (already a typedef)
+  flipped across 12 public headers + `IswPlatformAtomOps`/`IswPlatformPropertyOps`/
+  `IswPlatformHintOps` (`ISWPlatformAtomPropXCB.c`).  Generic property verbs
+  (intern/get_name/change/get→`IswProperty`/delete) + semantic ICCCM/EWMH hints
+  (title/icon/class/protocols/transient/window-type/pid/normal-hints).  Routed
+  ISWAtoms/Shell/Selection/ResConfig/Tip/SimpleMenu/Intrinsic/TMprint/TMstate/
+  TextAction/Display/Converters through the dispatch wrappers.  Selection.c's
+  Phase-5-deferred transfer machinery now off raw xcb (fixed a latent UAF +
+  allocator mismatches).  `xcb_send_event`/`xcb_create_window`/
+  `xcb_icccm_set_wm_hints` stay on the seam by scope; XDND (Phase 7) + tray keep
+  raw use.  WM title/PID/protocols/WM_DELETE verified live.  No `xcb_atom_t` in
+  public headers.  No direct libX11 NEEDED entry.

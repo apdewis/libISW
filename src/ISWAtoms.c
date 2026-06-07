@@ -17,10 +17,8 @@
 #include <string.h>
 #include <stdint.h>
 
-/* Type definitions for Xlib compatibility - XCB native types */
-typedef uint8_t Bool;
-typedef char *String;
-typedef unsigned int Cardinal;
+#include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 
 #ifndef False
 #define False 0
@@ -124,27 +122,10 @@ static AtomTableEntry predefined_atoms[] = {
 xcb_atom_t
 IswInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists)
 {
-    xcb_connection_t *conn = (xcb_connection_t *)dpy;
-    xcb_intern_atom_cookie_t cookie;
-    xcb_intern_atom_reply_t *reply;
-    xcb_atom_t atom = XCB_NONE;
-    
-    if (!conn || !name)
-        return XCB_NONE;
-    
-    /* Send intern atom request */
-    cookie = xcb_intern_atom(conn, only_if_exists ? 1 : 0, 
-                              strlen(name), name);
-    
-    /* Get reply (synchronous) */
-    reply = xcb_intern_atom_reply(conn, cookie, NULL);
-    
-    if (reply) {
-        atom = reply->atom;
-        free(reply);
-    }
-    
-    return atom;
+    /* Single atom implementation lives behind the platform atom op
+       (ISWPlatformAtomPropXCB.c); this is the toolkit-facing wrapper. */
+    return (xcb_atom_t) _IswPlatformInternAtomOp((IswDisplay) dpy, name,
+                                                 only_if_exists ? True : False);
 }
 
 /*
@@ -190,36 +171,12 @@ IswInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, xcb_atom_
 char*
 IswNameOfAtom(xcb_connection_t *dpy, xcb_atom_t atom)
 {
-    xcb_connection_t *conn = (xcb_connection_t *)dpy;
-    xcb_get_atom_name_cookie_t cookie;
-    xcb_get_atom_name_reply_t *reply;
-    char *name = NULL;
-    int name_len;
-    
-    if (!conn || atom == XCB_NONE)
+    /* Routed through the platform atom op; returns a malloc'd copy. */
+    char buf[256];
+    if (!_IswPlatformGetAtomName((IswDisplay) dpy, (Atom) atom,
+                                 buf, sizeof(buf)))
         return NULL;
-    
-    /* Send get atom name request */
-    cookie = xcb_get_atom_name(conn, atom);
-    
-    /* Get reply (synchronous) */
-    reply = xcb_get_atom_name_reply(conn, cookie, NULL);
-    
-    if (reply) {
-        name_len = xcb_get_atom_name_name_length(reply);
-        const char *atom_name = xcb_get_atom_name_name(reply);
-        
-        /* Allocate and copy the name */
-        name = (char *)malloc(name_len + 1);
-        if (name) {
-            memcpy(name, atom_name, name_len);
-            name[name_len] = '\0';
-        }
-        
-        free(reply);
-    }
-    
-    return name;
+    return strdup(buf);
 }
 
 /*

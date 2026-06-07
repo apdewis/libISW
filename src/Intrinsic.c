@@ -386,9 +386,7 @@ RealizeWidget(Widget widget)
     if (_IswGetPerDisplay(IswDisplayOf(widget))->appContext->identify_windows) {
         int len_nm, len_cl;
         char *s;
-        xcb_intern_atom_cookie_t cookie;
-        xcb_intern_atom_reply_t *reply;
-        xcb_atom_t xa_string;
+        Atom obj_class;
 
         len_nm = widget->core.name ? (int) strlen(widget->core.name) : 0;
         len_cl = (int) strlen(class_name);
@@ -397,19 +395,15 @@ RealizeWidget(Widget widget)
         if (len_nm)
             strcpy(s, widget->core.name);
         strcpy(s + len_nm + 1, class_name);
-        
-        /* Get the _MIT_OBJ_CLASS atom */
-        cookie = xcb_intern_atom(display, 0, strlen("_MIT_OBJ_CLASS"), "_MIT_OBJ_CLASS");
-        reply = xcb_intern_atom_reply(display, cookie, NULL);
-        
-        /* Get XCB_ATOM_STRING atom (predefined as 31 in X11) */
-        xa_string = 31;
-        
-        if (reply) {
-            xcb_change_property(display, XCB_PROP_MODE_REPLACE, window,
-                              reply->atom, xa_string, 8,
-                              len_nm + len_cl + 2, (const void *) s);
-            free(reply);
+
+        obj_class = _IswPlatformInternAtomOp((IswDisplay) display,
+                                             "_MIT_OBJ_CLASS", False);
+        if (obj_class != ISW_ATOM_NONE) {
+            _IswPlatformChangeProperty((IswDisplay) display,
+                                       _IswXcbWindowWrap(window),
+                                       obj_class, ISW_ATOM_STRING, 8,
+                                       ISW_PROP_MODE_REPLACE, s,
+                                       (uint32_t) (len_nm + len_cl + 2));
         }
         IswFree(s);
     }

@@ -56,7 +56,7 @@ typedef enum {
  */
 typedef Boolean (*IswDragConvertProc)(
     Widget          widget,
-    xcb_atom_t      target_type,
+    Atom      target_type,
     IswPointer      *data_return,
     unsigned long  *length_return,
     int            *format_return,
@@ -77,7 +77,7 @@ typedef void (*IswDragFinishedProc)(
  * IswDragSourceDesc - Configuration for initiating a drag.
  */
 typedef struct {
-    xcb_atom_t         *types;          /* offered MIME type atoms */
+    Atom         *types;          /* offered MIME type atoms */
     int                 num_types;
     IswDndAction        actions;        /* bitmask of offered actions */
     IswDragConvertProc  convert;        /* data provider */
@@ -111,7 +111,7 @@ typedef struct {
     /* Extended fields */
     IswPointer       data;               /* raw data from source */
     unsigned long   data_length;        /* data length in bytes */
-    xcb_atom_t      data_type;          /* MIME type atom of the data */
+    Atom      data_type;          /* MIME type atom of the data */
     int             data_format;        /* 8, 16, or 32 */
     IswDndAction    action;             /* negotiated action */
 } IswDropCallbackData;
@@ -125,13 +125,13 @@ typedef struct {
  */
 typedef struct {
     int             x, y;               /* position relative to widget */
-    xcb_atom_t     *offered_types;      /* types the source offers */
+    Atom     *offered_types;      /* types the source offers */
     int             num_offered_types;
     IswDndAction    offered_actions;    /* actions the source supports */
     IswDndAction    proposed_action;    /* action proposed for this position */
 
     /* Set by callback to accept/reject */
-    xcb_atom_t      accepted_type;      /* set nonzero to accept */
+    Atom      accepted_type;      /* set nonzero to accept */
     IswDndAction    accepted_action;    /* set nonzero to accept */
 } IswDragOverCallbackData;
 
@@ -176,7 +176,7 @@ void ISWXdndStartDrag(
  */
 void ISWXdndSetAcceptedTypes(
     Widget          w,
-    xcb_atom_t     *types,
+    Atom     *types,
     int             num_types
 );
 
@@ -224,7 +224,7 @@ void ISWXdndSetDragLeaveCallback(
 /*
  * ISWXdndInternType - Convenience: intern a MIME type string as an atom.
  */
-xcb_atom_t ISWXdndInternType(Widget w, const char *mime_type);
+Atom ISWXdndInternType(Widget w, const char *mime_type);
 
 /*
  * ISWXdndIsDragging - Return True if a drag operation is active.

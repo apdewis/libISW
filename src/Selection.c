@@ -183,8 +183,7 @@ GetPropList(xcb_connection_t *dpy)
         selectPropertyContext = IswUniqueContext();
     if (IswFindContext((IswDisplay) dpy, DefaultRootWindow(dpy), selectPropertyContext,
                      (void *) &sarray)) {
-        xcb_atom_t atoms[4];
-        xcb_intern_atom_cookie_t cookies[4];
+        Atom atoms[4];
 
         static const char *names[] = {
             "INCR",
@@ -198,16 +197,9 @@ GetPropList(xcb_connection_t *dpy)
         sarray = (PropList) __XtMalloc((unsigned) sizeof(PropListRec));
         sarray->dpy = dpy;
         for(uint8_t i = 0; i < 4; i++) {
-            cookies[i] = xcb_intern_atom(dpy, FALSE, strlen(names[i]), names[i]);
+            atoms[i] = _IswPlatformInternAtomOp((IswDisplay) dpy, names[i], False);
         }
-        for(uint8_t i = 0; i < 4; i++) {
-            xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(dpy, cookies[i], NULL);
-            if (reply) {
-                atoms[i] = reply->atom;
-                free(reply);
-            }
-        }
-        
+
         sarray->incr_atom = atoms[0];
         sarray->indirect_atom = atoms[1];
         sarray->timestamp_atom = atoms[2];
@@ -244,9 +236,8 @@ GetSelectionProperty(xcb_connection_t *dpy)
     sarray->list = IswReallocArray(sarray->list, (Cardinal) sarray->propCount,
                                   (Cardinal) sizeof(SelectionPropRec));
     (void) snprintf(propname, sizeof(propname), "_XT_SELECTION_%d", propCount);
-    //sarray->list[propCount].prop = XInternAtom(dpy, propname, FALSE);
-    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(dpy, 0, strlen(propname), propname);
-    sarray->list[propCount].prop = xcb_intern_atom_reply(dpy, cookie, NULL)->atom;
+    sarray->list[propCount].prop =
+        _IswPlatformInternAtomOp((IswDisplay) dpy, propname, False);
     sarray->list[propCount].avail = FALSE;
     return (sarray->list[propCount].prop);
 }
@@ -312,7 +303,7 @@ MakeInfo(Select ctx,
         info->property = properties[0];
     else {
         info->property = GetSelectionProperty(_IswXcbConn(IswDisplayOf(widget)));
-        xcb_delete_property(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)), info->property);
+        _IswPlatformDeleteProperty(IswDisplayOf(widget), IswWindowOf(widget), info->property);
     }
     info->proc = HandleSelectionReplies;
     info->widget = widget;
@@ -598,10 +589,11 @@ SendIncrement(Request incr)
     if (incrSize > incr->bytelength - incr->offset)
         incrSize = incr->bytelength - incr->offset;
     //StartProtectedSection(dpy, incr->requestor);
-    xcb_change_property(dpy, XCB_PROP_MODE_REPLACE, incr->requestor, incr->property,
-                    incr->type, incr->format,
-                    NUMELEM((int) incrSize, incr->format),
-                    (unsigned char *) incr->value + incr->offset);
+    _IswPlatformChangeProperty((IswDisplay) dpy, _IswXcbWindowWrap(incr->requestor),
+                    incr->property, incr->type, incr->format,
+                    ISW_PROP_MODE_REPLACE,
+                    (unsigned char *) incr->value + incr->offset,
+                    (uint32_t) NUMELEM((int) incrSize, incr->format));
     xcb_flush(dpy);
     //EndProtectedSection(dpy);
     incr->offset += incrSize;
@@ -613,9 +605,9 @@ AllSent(Request req)
     Select ctx = req->ctx;
 
     //StartProtectedSection(ctx->dpy, req->requestor);
-    xcb_change_property(ctx->dpy, XCB_PROP_MODE_REPLACE, req->requestor,
+    _IswPlatformChangeProperty((IswDisplay) ctx->dpy, _IswXcbWindowWrap(req->requestor),
                     req->property, req->type, req->format,
-                    0, (unsigned char *) NULL);
+                    ISW_PROP_MODE_REPLACE, NULL, 0);
     xcb_flush(ctx->dpy);
     //EndProtectedSection(ctx->dpy);
     req->allSent = TRUE;
@@ -724,8 +716,9 @@ PrepareIncremental(Request req,
     AddHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                HandlePropertyGone, (IswPointer) req);
 /* now send client INCR property */
-    xcb_change_property(req->ctx->dpy, XCB_PROP_MODE_REPLACE, window, req->property,
-                   req->ctx->prop_list->incr_atom, 32, 1, &req->bytelength);
+    _IswPlatformChangeProperty((IswDisplay) req->ctx->dpy, _IswXcbWindowWrap(window),
+                   req->property, req->ctx->prop_list->incr_atom, 32,
+                   ISW_PROP_MODE_REPLACE, &req->bytelength, 1);
 }
 
 static Boolean
@@ -806,8 +799,10 @@ GetConversion(Select ctx,       /* logical owner */
             else
                 ctx->ref_count--;
         }
-        xcb_change_property(ctx->dpy, XCB_PROP_MODE_REPLACE, event->requestor, property,
-                   targetType, format, length, value);
+        _IswPlatformChangeProperty((IswDisplay) ctx->dpy,
+                   _IswXcbWindowWrap(event->requestor), property,
+                   targetType, format, ISW_PROP_MODE_REPLACE,
+                   value, (uint32_t) length);
         /* free storage for client if no notify proc */
         if (timestamp_target || ctx->notify == NULL) {
             IswFree((char *) value);
@@ -876,12 +871,11 @@ HandleSelectionEvents(Widget widget,
 
                 ev.property = sre->property;
                 //StartProtectedSection(ctx->dpy, ev.requestor);
-                xcb_get_property_cookie_t cookie = xcb_get_property(
-                    ctx->dpy, 0, ev.requestor, sre->property, XCB_ATOM_ATOM, 0, 1000000);
-                xcb_get_property_reply_t *reply = xcb_get_property_reply(ctx->dpy, cookie, NULL);
-
-                if (reply != NULL) {
-                    count = (int) (BYTELENGTH(reply->value_len, reply->type) / sizeof(IndirectPair));
+                IswProperty prop;
+                if (_IswPlatformGetProperty((IswDisplay) ctx->dpy,
+                        _IswXcbWindowWrap(ev.requestor), sre->property,
+                        ISW_ATOM_ATOM, 0, 1000000, &prop)) {
+                    count = (int) (BYTELENGTH(prop.num_items, prop.type) / sizeof(IndirectPair));
                 } else {
                     count = 0;
                 }
@@ -896,9 +890,10 @@ HandleSelectionEvents(Widget widget,
                     }
                 }
                 if (writeback)
-                    xcb_change_property(ctx->dpy, XCB_PROP_MODE_REPLACE, ev.requestor,
-                        sre->property, target,
-                        format, length, value);
+                    _IswPlatformChangeProperty((IswDisplay) ctx->dpy,
+                        _IswXcbWindowWrap(ev.requestor), sre->property, target,
+                        format, ISW_PROP_MODE_REPLACE, value, (uint32_t) length);
+                _IswPlatformFreeProperty(&prop);
                 IswFree((char *) value);
             }
             else {              /* not multiple */
@@ -1090,24 +1085,15 @@ IsINCRtype(CallBackInfo info, xcb_window_t window, xcb_atom_t prop)
     if (prop == None)
         return False;
 
-    xcb_get_property_cookie_t cookie = xcb_get_property(
-        _IswXcbConn(IswDisplayOf(info->widget)),
-        0,  // delete
-        window,
-        prop,
-        info->type,
-        0,  // offset
-        0   // length
-    );
-
-    xcb_get_property_reply_t *reply = xcb_get_property_reply(_IswXcbConn(IswDisplayOf(info->widget)), cookie, NULL);
-
-    if (!reply) {
+    IswProperty propr;
+    if (!_IswPlatformGetProperty(IswDisplayOf(info->widget),
+                                 _IswXcbWindowWrap(window), prop, info->type,
+                                 0, 0, &propr)) {
         return False;
     }
 
-    type = reply->type;
-    free(reply);
+    type = propr.type;
+    _IswPlatformFreeProperty(&propr);
 
     return (type == info->ctx->prop_list->incr_atom);
 }
@@ -1138,7 +1124,7 @@ ReqCleanup(Widget widget,
         }
         else {
             if (ev->property != None)
-                xcb_delete_property(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)),
+                _IswPlatformDeleteProperty(IswDisplayOf(widget), IswWindowOf(widget),
                                 ev->property);
             FreeSelectionProperty(_IswXcbConn(IswDisplayOf(widget)), info->property);
             FreeInfo(info);
@@ -1149,25 +1135,16 @@ ReqCleanup(Widget widget,
         if ((ev->state == XCB_PROPERTY_NEW_VALUE) &&
              (ev->atom == info->property)) {
                 char *value = NULL;
-                xcb_get_property_cookie_t cookie = xcb_get_property(
-                    _IswXcbConn(IswDisplayOf(widget)),
-                    0,
-                    _IswXcbWindow(IswWindowOf(widget)),
-                    ev->atom,
-                    XCB_ATOM_ATOM,
-                    0L,
-                    1000000
-                );
-
-                xcb_get_property_reply_t *reply = xcb_get_property_reply(_IswXcbConn(IswDisplayOf(widget)), cookie, NULL);
-
-                if (reply) {
-                    value = xcb_get_property_value(reply);
-                    length = reply->value_len;
-                    free(reply);
-                    free(value);
+                IswProperty propr;
+                if (_IswPlatformGetProperty(IswDisplayOf(widget),
+                        IswWindowOf(widget), ev->atom, ISW_ATOM_ATOM,
+                        0L, 1000000, &propr)) {
+                    value = propr.value;
+                    length = propr.num_items;
+                    _IswPlatformFreeProperty(&propr);
+                    value = NULL;   /* freed above; not used past here */
                 }
-                
+
             if (length == 0) {
                 IswRemoveEventHandler(widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                                      FALSE, ReqCleanup, (IswPointer) info);
@@ -1190,16 +1167,14 @@ ReqTimedOut(IswPointer closure, IswIntervalId *id _X_UNUSED)
     unsigned long proplength;
 
     if (*info->target == info->ctx->prop_list->indirect_atom) {
-        xcb_get_property_cookie_t cookie = xcb_get_property(
-            _IswXcbConn(IswDisplayOf(info->widget)), 0, _IswXcbWindow(IswWindowOf(info->widget)), info->property, XCB_ATOM_ATOM, 0, 10000000);
-        xcb_get_property_reply_t *reply = xcb_get_property_reply(_IswXcbConn(IswDisplayOf(info->widget)), cookie, NULL);
+        IswProperty propr;
+        if (_IswPlatformGetProperty(IswDisplayOf(info->widget),
+                IswWindowOf(info->widget), info->property, ISW_ATOM_ATOM,
+                0, 10000000, &propr)) {
+            format = propr.format;
+            proplength = propr.num_items;
+            _IswPlatformFreeProperty(&propr);
 
-        if (reply) {
-            format = reply->format;
-            proplength = reply->value_len;
-            //pairs = (XprotoAtomPair *)xcb_get_property_value(reply);
-            free(reply);
-        
             IswPointer *c;
             int i;
 
@@ -1248,15 +1223,22 @@ HandleGetIncrement(Widget widget,
     if ((event->state != XCB_PROPERTY_NEW_VALUE) || (event->atom != info->property))
         return;
 
-    xcb_get_property_cookie_t cookie = xcb_get_property(
-        _IswXcbConn(IswDisplayOf(widget)), 0, _IswXcbWindow(IswWindowOf(widget)), event->atom, XCB_ATOM_ATOM, 0, 10000000);
-    xcb_get_property_reply_t *reply = xcb_get_property_reply(_IswXcbConn(IswDisplayOf(widget)), cookie, NULL);
-        
-    if (reply) {
-        info->type = reply->type;
-        info->format = reply->format;
-        length = reply->value_len;
-        value = xcb_get_property_value(reply);
+    IswProperty propr;
+    if (_IswPlatformGetProperty(IswDisplayOf(widget), IswWindowOf(widget),
+                               event->atom, ISW_ATOM_ATOM, 0, 10000000, &propr)) {
+        info->type = propr.type;
+        info->format = propr.format;
+        length = propr.num_items;
+        /* Copy into an Isw-allocated buffer: downstream frees via IswFree,
+           which is not free()-compatible with the backend's malloc'd payload. */
+        if (propr.value && length > 0) {
+            size_t nbytes = (size_t) BYTELENGTH(length, propr.format);
+            value = __XtMalloc((Cardinal) nbytes);
+            memcpy(value, propr.value, nbytes);
+        } else {
+            value = NULL;
+        }
+        _IswPlatformFreeProperty(&propr);
     } else {
         return;
     }
@@ -1367,12 +1349,12 @@ HandleNormal(xcb_connection_t *dpy,
     unsigned char *value = NULL;
     int number = info->current;
 
-    xcb_get_property_cookie_t cookie = xcb_get_property(dpy, 0, _IswXcbWindow(IswWindowOf(widget)), property, XCB_ATOM_ATOM, 0, 10000000);
-    xcb_get_property_reply_t *reply = xcb_get_property_reply(dpy, cookie, NULL);
-
-    if (reply == NULL) {
+    IswProperty propr;
+    if (!_IswPlatformGetProperty((IswDisplay) dpy, IswWindowOf(widget),
+                                 property, ISW_ATOM_ATOM, 0, 10000000, &propr)) {
         return FALSE;
     }
+    _IswPlatformFreeProperty(&propr);
 
     if (type == info->ctx->prop_list->incr_atom) {
         unsigned long size = IncrPropSize(widget, value, format, length);
@@ -1393,7 +1375,7 @@ HandleNormal(xcb_connection_t *dpy,
         return FALSE;
     }
 
-    xcb_delete_property(dpy, _IswXcbWindow(IswWindowOf(widget)), property);
+    _IswPlatformDeleteProperty((IswDisplay) dpy, IswWindowOf(widget), property);
 #ifdef ISW_COPY_SELECTION
     if (value) {                /* it could have been deleted after the SelectionNotify */
         int size = (int) BYTELENGTH(length, info->format) + 1;
@@ -1428,7 +1410,7 @@ HandleIncremental(xcb_connection_t *dpy,
                       HandleGetIncrement, (IswPointer) info);
 
     /* now start the transfer */
-    xcb_delete_property(dpy, _IswXcbWindow(IswWindowOf(widget)), property);
+    _IswPlatformDeleteProperty((IswDisplay) dpy, IswWindowOf(widget), property);
     xcb_flush(dpy);
     
     info->bytelength = (int) size;
@@ -1476,11 +1458,15 @@ HandleSelectionReplies(Widget widget,
         IndirectPair *pairs = NULL, *p;
         IswPointer *c;
 
-        xcb_get_property_cookie_t cookie = xcb_get_property(
-        dpy, 1, _IswXcbWindow(IswWindowOf(widget)), info->property, XCB_ATOM_ATOM, 0, 10000000);
-        xcb_get_property_reply_t *reply = xcb_get_property_reply(dpy, cookie, NULL);
+        IswProperty propr;
+        Boolean got = _IswPlatformGetProperty((IswDisplay) dpy, IswWindowOf(widget),
+                          info->property, ISW_ATOM_ATOM, 0, 10000000, &propr);
+        /* original used delete=1 (delete after read) */
+        _IswPlatformDeleteProperty((IswDisplay) dpy, IswWindowOf(widget), info->property);
+        if (got)
+            _IswPlatformFreeProperty(&propr);
 
-        if (reply == NULL) {
+        if (!got) {
             length = 0;
         for (length = length / IndirectPairWordSize, p = pairs,
              c = info->req_closure;
@@ -1811,15 +1797,16 @@ GetSelectionValues(Widget widget,
             p->target = *t;
             if (properties == NULL || properties[i] == None) {
                 p->property = GetSelectionProperty(_IswXcbConn(IswDisplayOf(widget)));
-                xcb_delete_property(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)),
+                _IswPlatformDeleteProperty(IswDisplayOf(widget), IswWindowOf(widget),
                                 p->property);
             }
             else {
                 p->property = properties[i];
             }
         }
-        xcb_change_property(_IswXcbConn(IswDisplayOf(widget)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(widget)), info->property,
-                   info->property, 32, count * IndirectPairWordSize, pairs);
+        _IswPlatformChangeProperty(IswDisplayOf(widget), IswWindowOf(widget), info->property,
+                   info->property, 32, ISW_PROP_MODE_REPLACE, pairs,
+                   (uint32_t) (count * IndirectPairWordSize));
         IswFree((char *) pairs);
         RequestSelectionValue(info, selection, ctx->prop_list->indirect_atom);
     }
@@ -2003,7 +1990,8 @@ AddSelectionRequests(Widget wid,
                 newreq->param = properties[i];
             else {
                 newreq->param = GetSelectionProperty(dpy);
-                xcb_delete_property(dpy, window, newreq->param);
+                _IswPlatformDeleteProperty((IswDisplay) dpy,
+                                           _IswXcbWindowWrap(window), newreq->param);
             }
             newreq->callback = callbacks[j];
             newreq->closure = closures[i];
@@ -2276,19 +2264,9 @@ IswSetSelectionParameters(Widget requestor,
         AddParamInfo(requestor, selection, property);
     }
 
-    //XChangeProperty(dpy, window, property,
-    //                type, format, XCB_PROP_MODE_REPLACE,
-    //                (unsigned char *) value, (int) length);
-    xcb_change_property(
-        dpy, 
-        XCB_PROP_MODE_REPLACE,  // mode
-        window,                 // window
-        property,               // property
-        type,                   // type
-        format,                 // format
-        length,                 // data_len
-        value                   // data
-    );
+    _IswPlatformChangeProperty((IswDisplay) dpy, _IswXcbWindowWrap(window),
+                               property, type, format, ISW_PROP_MODE_REPLACE,
+                               value, (uint32_t) length);
 }
 
 /* Retrieves data passed in a parameter. Data for this is stored
@@ -2317,29 +2295,21 @@ IswGetSelectionParameters(Widget owner,
 
     if (req && req->property) {
         //StartProtectedSection(dpy, req->requestor);
-        xcb_get_property_cookie_t cookie = xcb_get_property(
-            dpy, 
-            0,                           // delete
-            req->requestor,              // window
-            req->property,               // property
-            AnyPropertyType,             // type
-            0L,                          // long_offset
-            10000000                     // long_length
-        );
+        IswProperty propr;
+        if (_IswPlatformGetProperty((IswDisplay) dpy,
+                _IswXcbWindowWrap(req->requestor), req->property,
+                AnyPropertyType, 0L, 10000000, &propr)) {
+            *type_return = propr.type;
+            *format_return = propr.format;
+            *length_return = propr.num_items;
 
-        xcb_get_property_reply_t *reply = xcb_get_property_reply(dpy, cookie, NULL);
-
-        if (reply) {
-            *type_return = reply->type;
-            *format_return = reply->format;
-            *length_return = reply->value_len;
-            
-            if (reply->value_len > 0) {
-                *value_return = malloc(reply->value_len);
-                memcpy(*value_return, xcb_get_property_value(reply), reply->value_len);
+            if (propr.value && propr.num_items > 0) {
+                size_t nbytes = (size_t) BYTELENGTH(propr.num_items, propr.format);
+                *value_return = malloc(nbytes);
+                if (*value_return)
+                    memcpy(*value_return, propr.value, nbytes);
             }
-            
-            free(reply);
+            _IswPlatformFreeProperty(&propr);
         }
         //EndProtectedSection(dpy);
 #ifdef ISW_COPY_SELECTION

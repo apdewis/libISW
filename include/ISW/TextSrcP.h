@@ -48,10 +48,10 @@ typedef ISWTextPosition (*_IswSrcSearchProc)
      (Widget, ISWTextPosition, IswTextScanDirection, ISWTextBlock*);
 
 typedef void (*_IswSrcSetSelectionProc)
-     (Widget, ISWTextPosition, ISWTextPosition, xcb_atom_t);
+     (Widget, ISWTextPosition, ISWTextPosition, Atom);
 
 typedef Boolean (*_IswSrcConvertSelectionProc)
-     (Widget, xcb_atom_t*, xcb_atom_t*, xcb_atom_t*, IswPointer*, unsigned long*, int*);
+     (Widget, Atom*, Atom*, Atom*, IswPointer*, unsigned long*, int*);
 
 typedef struct _TextSrcClassPart {
     _IswSrcReadProc Read;

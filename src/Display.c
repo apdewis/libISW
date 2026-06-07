@@ -283,17 +283,8 @@ InitPerDisplay(xcb_connection_t *dpy,
 
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
     {
-        xcb_intern_atom_cookie_t c_init =
-            xcb_intern_atom(dpy, False, strlen(RCM_INIT), RCM_INIT);
-        xcb_intern_atom_cookie_t c_data =
-            xcb_intern_atom(dpy, False, strlen(RCM_DATA), RCM_DATA);
-        xcb_intern_atom_reply_t *r;
-
-        r = xcb_intern_atom_reply(dpy, c_init, NULL);
-        if (r) { pd->rcm_init = r->atom; free(r); }
-
-        r = xcb_intern_atom_reply(dpy, c_data, NULL);
-        if (r) { pd->rcm_data = r->atom; free(r); }
+        pd->rcm_init = _IswPlatformInternAtomOp((IswDisplay) dpy, RCM_INIT, False);
+        pd->rcm_data = _IswPlatformInternAtomOp((IswDisplay) dpy, RCM_DATA, False);
     }
 #endif
 

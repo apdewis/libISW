@@ -38,7 +38,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /* Context data structure for hash table */
 typedef struct {
     xcb_connection_t *dpy;      /* Display connection */
-    XID key;                    /* Key: window ID or xcb_atom_t */
+    XID key;                    /* Key: window ID or Atom */
     void *data;                 /* Value: context data */
     UT_hash_handle hh;          /* Hash handle for uthash */
 } IswContextEntry;

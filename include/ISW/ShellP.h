@@ -210,7 +210,7 @@ typedef struct {
 	xcb_icccm_wm_hints_t wm_hints;
 	int base_width, base_height;
 	int win_gravity;
-	xcb_atom_t title_encoding;
+	Atom title_encoding;
 	xcb_window_t user_time_win;
 	String startup_id;
 } WMShellPart;
@@ -294,7 +294,7 @@ externalref TopLevelShellClassRec topLevelShellClassRec;
 typedef struct {
 	char	   *icon_name;
 	Boolean	    iconic;
-	xcb_atom_t	    icon_name_encoding;
+	Atom	    icon_name_encoding;
 } TopLevelShellPart;
 
 typedef  struct {

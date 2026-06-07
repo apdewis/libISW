@@ -438,9 +438,9 @@ typedef IswPointer IswRequestId;
 
 typedef Boolean (*IswConvertSelectionProc)(
     Widget 		/* widget */,
-    xcb_atom_t*		/* selection */,
-    xcb_atom_t*		/* target */,
-    xcb_atom_t*		/* type_return */,
+    Atom*		/* selection */,
+    Atom*		/* target */,
+    Atom*		/* type_return */,
     IswPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
@@ -448,20 +448,20 @@ typedef Boolean (*IswConvertSelectionProc)(
 
 typedef void (*IswLoseSelectionProc)(
     Widget 		/* widget */,
-    xcb_atom_t*		/* selection */
+    Atom*		/* selection */
 );
 
 typedef void (*IswSelectionDoneProc)(
     Widget 		/* widget */,
-    xcb_atom_t*		/* selection */,
-    xcb_atom_t*		/* target */
+    Atom*		/* selection */,
+    Atom*		/* target */
 );
 
 typedef void (*IswSelectionCallbackProc)(
     Widget 		/* widget */,
     IswPointer 		/* closure */,
-    xcb_atom_t*		/* selection */,
-    xcb_atom_t*		/* type */,
+    Atom*		/* selection */,
+    Atom*		/* type */,
     IswPointer 		/* value */,
     unsigned long*	/* length */,
     int*		/* format */
@@ -469,23 +469,23 @@ typedef void (*IswSelectionCallbackProc)(
 
 typedef void (*IswLoseSelectionIncrProc)(
     Widget 		/* widget */,
-    xcb_atom_t*		/* selection */,
+    Atom*		/* selection */,
     IswPointer 		/* client_data */
 );
 
 typedef void (*IswSelectionDoneIncrProc)(
     Widget 		/* widget */,
-    xcb_atom_t*		/* selection */,
-    xcb_atom_t*		/* target */,
+    Atom*		/* selection */,
+    Atom*		/* target */,
     IswRequestId*	/* receiver_id */,
     IswPointer 		/* client_data */
 );
 
 typedef Boolean (*IswConvertSelectionIncrProc)(
     Widget 		/* widget */,
-    xcb_atom_t*		/* selection */,
-    xcb_atom_t*		/* target */,
-    xcb_atom_t*		/* type */,
+    Atom*		/* selection */,
+    Atom*		/* target */,
+    Atom*		/* type */,
     IswPointer*		/* value */,
     unsigned long*	/* length */,
     int*		/* format */,
@@ -496,8 +496,8 @@ typedef Boolean (*IswConvertSelectionIncrProc)(
 
 typedef void (*IswCancelConvertSelectionProc)(
     Widget 		/* widget */,
-    xcb_atom_t*		/* selection */,
-    xcb_atom_t*		/* target */,
+    Atom*		/* selection */,
+    Atom*		/* target */,
     IswRequestId*	/* receiver_id */,
     IswPointer 		/* client_data */
 );
@@ -591,7 +591,7 @@ extern Boolean IswIsSensitive(
 
 extern Boolean IswOwnSelection(
     Widget 		/* widget */,
-    xcb_atom_t 		/* selection */,
+    Atom 		/* selection */,
     IswTime 		/* time */,
     IswConvertSelectionProc /* convert */,
     IswLoseSelectionProc	/* lose */,
@@ -600,7 +600,7 @@ extern Boolean IswOwnSelection(
 
 extern Boolean IswOwnSelectionIncremental(
     Widget 		/* widget */,
-    xcb_atom_t 		/* selection */,
+    Atom 		/* selection */,
     IswTime 		/* time */,
     IswConvertSelectionIncrProc	/* convert_callback */,
     IswLoseSelectionIncrProc	/* lose_callback */,
@@ -1970,18 +1970,18 @@ extern _IswString IswResolvePathname(
  *
  *****************************************************************/
 
-#define ISW_CONVERT_FAIL (xcb_atom_t)0x80000001
+#define ISW_CONVERT_FAIL (Atom)0x80000001
 
 extern void IswDisownSelection(
     Widget 		/* widget */,
-    xcb_atom_t 		/* selection */,
+    Atom 		/* selection */,
     IswTime 		/* time */
 );
 
 extern void IswGetSelectionValue(
     Widget 		/* widget */,
-    xcb_atom_t 		/* selection */,
-    xcb_atom_t 		/* target */,
+    Atom 		/* selection */,
+    Atom 		/* target */,
     IswSelectionCallbackProc /* callback */,
     IswPointer 		/* closure */,
     IswTime 		/* time */
@@ -1989,8 +1989,8 @@ extern void IswGetSelectionValue(
 
 extern void IswGetSelectionValues(
     Widget 		/* widget */,
-    xcb_atom_t 		/* selection */,
-    xcb_atom_t*		/* targets */,
+    Atom 		/* selection */,
+    Atom*		/* targets */,
     int 		/* count */,
     IswSelectionCallbackProc /* callback */,
     IswPointer*		/* closures */,
@@ -2016,14 +2016,14 @@ extern unsigned long IswGetSelectionTimeout( /* obsolete */
 
 extern xcb_selection_request_event_t *IswGetSelectionRequest(
     Widget 		/* widget */,
-    xcb_atom_t 		/* selection */,
+    Atom 		/* selection */,
     IswRequestId 	/* request_id */
 );
 
 extern void IswGetSelectionValueIncremental(
     Widget 		/* widget */,
-    xcb_atom_t 		/* selection */,
-    xcb_atom_t 		/* target */,
+    Atom 		/* selection */,
+    Atom 		/* target */,
     IswSelectionCallbackProc /* selection_callback */,
     IswPointer 		/* client_data */,
     IswTime 		/* time */
@@ -2031,8 +2031,8 @@ extern void IswGetSelectionValueIncremental(
 
 extern void IswGetSelectionValuesIncremental(
     Widget 		/* widget */,
-    xcb_atom_t 		/* selection */,
-    xcb_atom_t*		/* targets */,
+    Atom 		/* selection */,
+    Atom*		/* targets */,
     int 		/* count */,
     IswSelectionCallbackProc /* callback */,
     IswPointer*		/* client_data */,
@@ -2041,8 +2041,8 @@ extern void IswGetSelectionValuesIncremental(
 
 extern void IswSetSelectionParameters(
     Widget		/* requestor */,
-    xcb_atom_t		/* selection */,
-    xcb_atom_t		/* type */,
+    Atom		/* selection */,
+    Atom		/* type */,
     IswPointer		/* value */,
     unsigned long	/* length */,
     int			/* format */
@@ -2050,9 +2050,9 @@ extern void IswSetSelectionParameters(
 
 extern void IswGetSelectionParameters(
     Widget		/* owner */,
-    xcb_atom_t		/* selection */,
+    Atom		/* selection */,
     IswRequestId		/* request_id */,
-    xcb_atom_t*		/* type_return */,
+    Atom*		/* type_return */,
     IswPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
@@ -2060,27 +2060,27 @@ extern void IswGetSelectionParameters(
 
 extern void IswCreateSelectionRequest(
     Widget		/* requestor */,
-    xcb_atom_t		/* selection */
+    Atom		/* selection */
 );
 
 extern void IswSendSelectionRequest(
     Widget		/* requestor */,
-    xcb_atom_t		/* selection */,
+    Atom		/* selection */,
     IswTime		/* time */
 );
 
 extern void IswCancelSelectionRequest(
     Widget		/* requestor */,
-    xcb_atom_t		/* selection */
+    Atom		/* selection */
 );
 
-extern xcb_atom_t IswReservePropertyAtom(
+extern Atom IswReservePropertyAtom(
     Widget		/* widget */
 );
 
 extern void IswReleasePropertyAtom(
     Widget		/* widget */,
-    xcb_atom_t		/* selection */
+    Atom		/* selection */
 );
 
 extern void IswGrabKey(

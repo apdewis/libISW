@@ -580,14 +580,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
     temp[0] = (long) (s->left + 1);
     temp[1] = s->right;
     *value = (IswPointer) temp;
-    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(d, 0, 5, "SPAN");
-    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(d, cookie, NULL);
-    if(reply) {
-      *type = reply->atom;
-      free(reply);
-    } else {
-      *type = XCB_ATOM_NONE;
-    }
+    *type = _IswPlatformInternAtomOp((IswDisplay) d, "SPAN", False);
     *length = 2L;
     *format = 32;
     return True;

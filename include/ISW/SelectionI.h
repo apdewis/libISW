@@ -57,9 +57,9 @@ typedef struct _RequestRec {
    Select ctx;		      /* logical owner */
    Widget widget;	      /* widget actually receiving Selection events */
    xcb_window_t requestor;
-   xcb_atom_t property;
-   xcb_atom_t target;
-   xcb_atom_t type;
+   Atom property;
+   Atom target;
+   Atom type;
    int format;
    IswPointer value;
    unsigned long bytelength;
@@ -70,21 +70,21 @@ typedef struct _RequestRec {
 } RequestRec;
 
 typedef struct {
-  xcb_atom_t prop;
+  Atom prop;
   Boolean avail;
 } SelectionPropRec, *SelectionProp;
 
 typedef struct {
     xcb_connection_t *dpy;
-    xcb_atom_t incr_atom;
-    xcb_atom_t indirect_atom;
-    xcb_atom_t timestamp_atom;
+    Atom incr_atom;
+    Atom indirect_atom;
+    Atom timestamp_atom;
     int propCount;
     SelectionProp list;
 } PropListRec, *PropList;
 
 typedef struct _SelectRec {
-    xcb_atom_t selection; 			/* constant */
+    Atom selection; 			/* constant */
     xcb_connection_t *dpy; 			/* constant */
     Widget widget;
     IswTime time;
@@ -103,8 +103,8 @@ typedef struct _SelectRec {
 } SelectRec;
 
 typedef struct _ParamRec {
-  xcb_atom_t selection;
-  xcb_atom_t param;
+  Atom selection;
+  Atom param;
 } ParamRec, *Param;
 
 typedef struct _ParamInfoRec {
@@ -113,9 +113,9 @@ typedef struct _ParamInfoRec {
 } ParamInfoRec, *ParamInfo;
 
 typedef struct _QueuedRequestRec {
-    xcb_atom_t selection;
-    xcb_atom_t target;
-    xcb_atom_t param;
+    Atom selection;
+    Atom target;
+    Atom param;
     IswSelectionCallbackProc callback;
     IswPointer closure;
     IswTime time;
@@ -124,16 +124,16 @@ typedef struct _QueuedRequestRec {
 
 typedef struct _QueuedRequestInfoRec {
     int count;
-    xcb_atom_t *selections;
+    Atom *selections;
     QueuedRequest *requests;
 } QueuedRequestInfoRec, *QueuedRequestInfo;
 
 typedef struct {
     IswSelectionCallbackProc *callbacks;
     IswPointer *req_closure;
-    xcb_atom_t property;
-    xcb_atom_t *target;
-    xcb_atom_t type;
+    Atom property;
+    Atom *target;
+    Atom type;
     int format;
     char *value;
     int bytelength;
@@ -148,8 +148,8 @@ typedef struct {
 } CallBackInfoRec, *CallBackInfo;
 
 typedef struct {
-  xcb_atom_t target;
-  xcb_atom_t property;
+  Atom target;
+  Atom property;
 } IndirectPair;
 
 #define IndirectPairWordSize 2

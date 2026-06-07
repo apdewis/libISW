@@ -140,15 +140,12 @@ IswSetWMColormapWindows(Widget widget, Widget *list, Cardinal count)
     for (i = 0; i < checked_count; i++)
         data[i] = _IswXcbWindow(IswWindowOf(top[i]));
 
-    xcb_intern_atom_cookie_t cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(widget)), FALSE, strlen("WM_COLORMAP_WINDOWS"), "WM_COLORMAP_WINDOWS");
-    xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(widget)), cookie, NULL);
-    if (reply) {
-        xa_wm_colormap_windows = reply->atom;
-        free(reply);
-    }
+    xa_wm_colormap_windows = _IswPlatformInternAtomOp(IswDisplayOf(widget),
+                                                      "WM_COLORMAP_WINDOWS", False);
 
-    xcb_change_property(_IswXcbConn(IswDisplayOf(widget)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(widget)),
-                    xa_wm_colormap_windows, XCB_ATOM_WINDOW, 32, i, data);
+    _IswPlatformChangeProperty(IswDisplayOf(widget), IswWindowOf(widget),
+                               xa_wm_colormap_windows, ISW_ATOM_WINDOW, 32,
+                               ISW_PROP_MODE_REPLACE, data, (uint32_t) i);
 
     hookobj = IswHooksOfDisplay(IswDisplayOf(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {

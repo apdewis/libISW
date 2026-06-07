@@ -458,21 +458,15 @@ _IswMatchAtom(TMTypeMatch typeMatch,
              TMModifierMatch modMatch _X_UNUSED,
              TMEventPtr eventSeq)
 {
-    xcb_atom_t atom;
+    Atom atom;
     const char *atom_name;
-    xcb_intern_atom_cookie_t cookie;
-    xcb_intern_atom_reply_t *reply;
 
     atom_name = XrmQuarkToString((XrmQuark) (typeMatch->eventCode));
-    cookie = xcb_intern_atom(eventSeq->dpy, False, strlen(atom_name), atom_name);
-    reply = xcb_intern_atom_reply(eventSeq->dpy, cookie, NULL);
-    
-    if (reply == NULL)
+    atom = _IswPlatformInternAtomOp((IswDisplay) eventSeq->dpy, atom_name, False);
+
+    if (atom == ISW_ATOM_NONE)
         return False;
-    
-    atom = reply->atom;
-    free(reply);
-    
+
     return (atom == eventSeq->event.eventCode);
 }
 

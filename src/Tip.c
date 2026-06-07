@@ -394,20 +394,9 @@ IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *va
     w->core.window = _IswXcbWindowWrap(window);	/* IswWindowOf() is read-only (resolves
 				   windowless widgets to ancestor) */
 
-    /* _NET_WM_WINDOW_TYPE */
-    {
-        xcb_intern_atom_cookie_t wt_cookie = xcb_intern_atom(conn, FALSE, 19, "_NET_WM_WINDOW_TYPE");
-        xcb_intern_atom_cookie_t type_cookie = xcb_intern_atom(conn, FALSE, 25, "_NET_WM_WINDOW_TYPE_TOOLTIP");
-        xcb_intern_atom_reply_t *wt_reply = xcb_intern_atom_reply(conn, wt_cookie, NULL);
-        xcb_intern_atom_reply_t *type_reply = xcb_intern_atom_reply(conn, type_cookie, NULL);
-        if (wt_reply && type_reply) {
-            xcb_change_property(conn, XCB_PROP_MODE_REPLACE, window,
-                                wt_reply->atom, XCB_ATOM_ATOM, 32,
-                                1, &type_reply->atom);
-        }
-        free(wt_reply);
-        free(type_reply);
-    }
+    /* _NET_WM_WINDOW_TYPE = TOOLTIP */
+    _IswPlatformSetWindowType(IswDisplayOf(w), w->core.window,
+                              ISW_WINDOW_TYPE_TOOLTIP);
 }
 
 static void

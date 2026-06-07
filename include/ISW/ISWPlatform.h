@@ -66,6 +66,42 @@ typedef enum {
     ISW_STACK_BELOW
 } IswStackMode;
 
+/* Property change mode (Phase 6).  Numerically the XCB_PROP_MODE_* values. */
+typedef enum {
+    ISW_PROP_MODE_REPLACE = 0,
+    ISW_PROP_MODE_PREPEND = 1,
+    ISW_PROP_MODE_APPEND  = 2
+} IswPropMode;
+
+/* Standard atom values (Phase 6).  Numerically X11-compatible; a neutral name
+   for the common predefined atoms callers pass as a property TYPE. */
+#define ISW_ATOM_NONE     ((Atom) 0)
+#define ISW_ATOM_ATOM     ((Atom) 4)
+#define ISW_ATOM_CARDINAL ((Atom) 6)
+#define ISW_ATOM_STRING   ((Atom) 31)
+#define ISW_ATOM_WINDOW   ((Atom) 33)
+
+/* Result of a property fetch (Phase 6).  Backends fill this from their native
+   query so callers never touch xcb reply structs.  `value` is malloc'd; release
+   with _IswPlatformFreeProperty (or free(value)). */
+typedef struct {
+    Atom          type;          /* actual type atom of the stored property   */
+    int           format;        /* 8 / 16 / 32                               */
+    uint32_t      num_items;     /* element count (in `format`-bit units)     */
+    uint32_t      bytes_after;   /* remaining unread bytes (for INCR/chunking) */
+    void         *value;         /* malloc'd payload, num_items*format/8 bytes */
+} IswProperty;
+
+/* Window-type hint (Phase 6).  Maps to _NET_WM_WINDOW_TYPE_* on X. */
+typedef enum {
+    ISW_WINDOW_TYPE_NORMAL = 0,
+    ISW_WINDOW_TYPE_DIALOG,
+    ISW_WINDOW_TYPE_TOOLTIP,
+    ISW_WINDOW_TYPE_MENU,
+    ISW_WINDOW_TYPE_POPUP_MENU,
+    ISW_WINDOW_TYPE_UTILITY
+} IswWindowType;
+
 /* IswKeyCode / IswKeySym / IswNoSymbol are declared in ISW/Intrinsic.h
    (included above) so the public key APIs there can use them without a cycle. */
 
@@ -131,6 +167,17 @@ typedef struct _IswPlatformFontOps      IswPlatformFontOps;
 
 /* Cursors — create from symbol, set on window, free.  Filled in Phase 5. */
 typedef struct _IswPlatformCursorOps    IswPlatformCursorOps;
+
+/* Atoms — intern by name, name by atom.  Filled in Phase 6. */
+typedef struct _IswPlatformAtomOps      IswPlatformAtomOps;
+
+/* Properties — change/get/delete window properties.  Filled in Phase 6. */
+typedef struct _IswPlatformPropertyOps  IswPlatformPropertyOps;
+
+/* Window-manager hints — title, class, protocols, transient, type, size hints.
+ * A backend maps each to its own mechanism (X properties; Wayland xdg_*).
+ * Filled in Phase 6. */
+typedef struct _IswPlatformHintOps      IswPlatformHintOps;
 
 /*
  * =================================================================
@@ -375,17 +422,90 @@ struct _IswPlatformGrabOps {
  *
  * The three pure-selection protocol verbs: take/release ownership, query the
  * owner, and request a conversion.  The selection/target/property identifiers
- * are atoms, which Phase 6 abstracts; until then they stay xcb_atom_t.  The
+ * are atoms, which Phase 6 abstracts; until then they stay Atom.  The
  * property-exchange machinery the convert drives stays in Selection.c on the
  * seam until Phase 6.
  */
 struct _IswPlatformSelectionOps {
     void      (*set_owner)(IswDisplay dpy, IswWindow owner,
-                           xcb_atom_t selection, IswTime time);
-    IswWindow (*get_owner)(IswDisplay dpy, xcb_atom_t selection);
+                           Atom selection, IswTime time);
+    IswWindow (*get_owner)(IswDisplay dpy, Atom selection);
     void      (*convert)(IswDisplay dpy, IswWindow requestor,
-                         xcb_atom_t selection, xcb_atom_t target,
-                         xcb_atom_t property, IswTime time);
+                         Atom selection, Atom target,
+                         Atom property, IswTime time);
+};
+
+/*
+ * =================================================================
+ * Atom ops (Phase 6)
+ * =================================================================
+ *
+ * Intern a name to an atom and recover a name from an atom.  The backend owns
+ * the per-display atom cache.  Atoms are neutral (Atom == uint32_t,
+ * X11-compatible); a non-X backend assigns its own stable ids.
+ */
+struct _IswPlatformAtomOps {
+    /* Intern `name`; if only_if_exists and unknown, returns ISW_ATOM_NONE. */
+    Atom    (*intern)(IswDisplay dpy, const char *name, Boolean only_if_exists);
+    /* Copy the atom's name into buf (NUL-terminated, truncated to buflen).
+       Returns False if the atom is unknown. */
+    Boolean (*get_name)(IswDisplay dpy, Atom atom, char *buf, size_t buflen);
+};
+
+/*
+ * =================================================================
+ * Property ops (Phase 6)
+ * =================================================================
+ *
+ * Generic window-property change/get/delete.  The toolkit builds the bytes; the
+ * backend transfers them.  get() returns a neutral IswProperty (no xcb reply
+ * structs leak out).
+ */
+struct _IswPlatformPropertyOps {
+    void (*change)(IswDisplay dpy, IswWindow win, Atom property, Atom type,
+                   int format, IswPropMode mode,
+                   const void *data, uint32_t num_elements);
+    /* Fetch up to long_length 32-bit words starting at long_offset.  Fills
+       `out` (out->value malloc'd, may be NULL/0-length).  Returns False on
+       failure. */
+    Boolean (*get)(IswDisplay dpy, IswWindow win, Atom property, Atom type,
+                   uint32_t long_offset, uint32_t long_length,
+                   IswProperty *out);
+    void (*delete_)(IswDisplay dpy, IswWindow win, Atom property);
+};
+
+/*
+ * =================================================================
+ * Window-manager hint ops (Phase 6)
+ * =================================================================
+ *
+ * Semantic ICCCM/EWMH hints.  A backend maps each to its own mechanism — X sets
+ * the corresponding properties; a Wayland backend would drive xdg_toplevel etc.
+ * The niche EWMH long tail stays on the generic property ops (see
+ * docs/PHASE6_SCOPE.md), so only the cross-platform-meaningful hints are here.
+ */
+struct _IswPlatformHintOps {
+    void (*set_window_title)(IswDisplay dpy, IswWindow win, const char *utf8);
+    void (*set_icon_title)(IswDisplay dpy, IswWindow win, const char *utf8);
+    void (*set_wm_class)(IswDisplay dpy, IswWindow win,
+                         const char *name, const char *class_name);
+    void (*set_wm_protocols)(IswDisplay dpy, IswWindow win,
+                             const Atom *protocols, int num_protocols);
+    void (*set_transient_for)(IswDisplay dpy, IswWindow win, IswWindow leader);
+    void (*set_window_type)(IswDisplay dpy, IswWindow win, IswWindowType type);
+    void (*set_pid)(IswDisplay dpy, IswWindow win, uint32_t pid);
+    /* Normal (size) hints the toolkit actually sets.  flags mirrors the ICCCM
+       size-hint flag bits the caller populates; a backend honours what it can. */
+    void (*set_normal_hints)(IswDisplay dpy, IswWindow win,
+                             uint32_t flags,
+                             int x, int y, int width, int height,
+                             int min_width, int min_height,
+                             int max_width, int max_height,
+                             int width_inc, int height_inc,
+                             int min_aspect_num, int min_aspect_den,
+                             int max_aspect_num, int max_aspect_den,
+                             int base_width, int base_height,
+                             int win_gravity);
 };
 
 /*
@@ -408,6 +528,12 @@ typedef struct _IswPlatformOps {
     const IswPlatformFontOps      *font;
     const IswPlatformCursorOps    *cursor;
     const IswPlatformGrabOps      *grab;
+    const IswPlatformAtomOps      *atom;
+    const IswPlatformPropertyOps  *property;
+    const IswPlatformHintOps      *hint;
 } IswPlatformOps;
+
+/* Release the malloc'd payload of an IswProperty (safe on a zeroed struct). */
+extern void _IswPlatformFreeProperty(IswProperty *prop);
 
 #endif /* _ISWPlatform_h */

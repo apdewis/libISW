@@ -218,9 +218,9 @@ extern ISWTextPosition IswTextSourceSearch(
 
 extern Boolean IswTextSourceConvertSelection(
     Widget		/* w */,
-    xcb_atom_t*		/* selection */,
-    xcb_atom_t*		/* target */,
-    xcb_atom_t*		/* type */,
+    Atom*		/* selection */,
+    Atom*		/* target */,
+    Atom*		/* type */,
     IswPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
@@ -238,7 +238,7 @@ extern void IswTextSourceSetSelection(
     Widget		/* w */,
     ISWTextPosition	/* start */,
     ISWTextPosition	/* end */,
-    xcb_atom_t		/* selection */
+    Atom		/* selection */
 );
 
 /*	Function Name: IswTextSourceFreeString

@@ -254,31 +254,15 @@ PrintAtom(TMStringBuf sb, xcb_connection_t *dpy, Atom atom)
         return;
 
     if (dpy) {
-        xcb_get_atom_name_cookie_t cookie;
-        xcb_get_atom_name_reply_t *reply;
-        xcb_generic_error_t *error = NULL;
-        
-        cookie = xcb_get_atom_name(dpy, atom);
-        reply = xcb_get_atom_name_reply(dpy, cookie, &error);
-        
-        if (error) {
-            free(error);
-            PrintCode(sb, ~0UL, (unsigned long) atom);
-        }
-        else if (reply) {
-            int name_len = xcb_get_atom_name_name_length(reply);
-            char *atom_name = xcb_get_atom_name_name(reply);
-            
-            if (atom_name && name_len > 0) {
-                ExpandForChars(sb, name_len + 1);
-                memcpy(sb->current, atom_name, name_len);
-                sb->current[name_len] = '\0';
-                sb->current += name_len;
-            }
-            else {
-                PrintCode(sb, ~0UL, (unsigned long) atom);
-            }
-            free(reply);
+        char _isw_atom_name[256];
+
+        if (_IswPlatformGetAtomName((IswDisplay) dpy, atom,
+                                    _isw_atom_name, sizeof(_isw_atom_name))) {
+            int name_len = (int) strlen(_isw_atom_name);
+            ExpandForChars(sb, name_len + 1);
+            memcpy(sb->current, _isw_atom_name, name_len);
+            sb->current[name_len] = '\0';
+            sb->current += name_len;
         }
         else {
             PrintCode(sb, ~0UL, (unsigned long) atom);

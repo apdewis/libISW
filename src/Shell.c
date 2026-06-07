@@ -719,59 +719,29 @@ static void SetWMProperties(Widget w, char *window_name, char *icon_name,
                      xcb_icccm_wm_hints_t *wm_hints,
                      char *classhint_class, char *classhint_name) {
     
-    // Set WM_NAME property
+    // Set WM_NAME / _NET_WM_NAME (semantic title hint)
     if (window_name != NULL) {
-        xcb_intern_atom_cookie_t name_atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(w)), FALSE, strlen("WM_NAME"), "WM_NAME");
-        xcb_intern_atom_reply_t *name_atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(w)), name_atom_cookie, NULL);
-        if (name_atom_reply) {
-            xcb_change_property(_IswXcbConn(IswDisplayOf(w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
-                                name_atom_reply->atom, XCB_ATOM_STRING, 8,
-                                strlen(window_name), window_name);
-            free(name_atom_reply);
-        }
+        _IswPlatformSetWindowTitle(IswDisplayOf(w), IswWindowOf(w), window_name);
     }
 
-    // Set WM_ICON_NAME property (if needed)
+    // Set WM_ICON_NAME / _NET_WM_ICON_NAME (semantic icon-title hint)
     if (IswIsTopLevelShell((Widget) w) && icon_name != NULL) {
-        xcb_intern_atom_cookie_t icon_atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(w)), FALSE, strlen("WM_ICON_NAME"), "WM_ICON_NAME");
-        xcb_intern_atom_reply_t *icon_atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(w)), icon_atom_cookie, NULL);
-        if (icon_atom_reply) {
-            xcb_change_property(_IswXcbConn(IswDisplayOf(w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
-                                icon_atom_reply->atom, XCB_ATOM_STRING, 8,
-                                strlen(icon_name), icon_name);
-            free(icon_atom_reply);
-        }
+        _IswPlatformSetIconTitle(IswDisplayOf(w), IswWindowOf(w), icon_name);
     }
 
-    // Set WM_COMMAND property (if argv/argc are provided)
+    // Set WM_COMMAND property (niche ICCCM; generic property op)
     if (argc > 0 && argv != NULL) {
-        xcb_intern_atom_cookie_t cmd_atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(w)), FALSE, strlen("WM_COMMAND"), "WM_COMMAND");
-        xcb_intern_atom_reply_t *cmd_atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(w)), cmd_atom_cookie, NULL);
-        if (cmd_atom_reply) {
-            xcb_change_property(_IswXcbConn(IswDisplayOf(w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
-                                cmd_atom_reply->atom, XCB_ATOM_STRING, 8,
-                                argc, argv);
-            free(cmd_atom_reply);
-        }
+        Atom wm_command = _IswPlatformInternAtomOp(IswDisplayOf(w),
+                                                   "WM_COMMAND", False);
+        _IswPlatformChangeProperty(IswDisplayOf(w), IswWindowOf(w),
+                                   wm_command, ISW_ATOM_STRING, 8,
+                                   ISW_PROP_MODE_REPLACE, argv, (uint32_t) argc);
     }
 
-    // Set WM_HINTS property (wm_hints)
-    // Note: This requires proper packing of the WM hints structure
-    // Implementation depends on your specific wm_hints structure
-    
+    // Set WM_CLASS (semantic class hint)
     if (classhint_name != NULL && classhint_class != NULL) {
-        size_t name_len = strlen(classhint_name);
-        size_t class_len = strlen(classhint_class);
-        size_t total = name_len + 1 + class_len + 1;
-        char *wm_class = malloc(total);
-        if (wm_class) {
-            memcpy(wm_class, classhint_name, name_len + 1);
-            memcpy(wm_class + name_len + 1, classhint_class, class_len + 1);
-            xcb_change_property(_IswXcbConn(IswDisplayOf(w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
-                                XCB_ATOM_WM_CLASS, XCB_ATOM_STRING, 8,
-                                total, wm_class);
-            free(wm_class);
-        }
+        _IswPlatformSetWmClass(IswDisplayOf(w), IswWindowOf(w),
+                               classhint_name, classhint_class);
     }
 }
 
@@ -832,7 +802,17 @@ _SetWMSizeHints(WMShellWidget w)
         _IswAllocError("xcb_size_hints_t");
 
     ComputeWMSizeHints(w, size_hints);
-    xcb_icccm_set_wm_normal_hints(_IswXcbConn(IswDisplayOf((Widget) w)), _IswXcbWindow(IswWindowOf((Widget) w)), size_hints);
+    _IswPlatformSetNormalHints(IswDisplayOf((Widget) w), IswWindowOf((Widget) w),
+                               size_hints->flags,
+                               size_hints->x, size_hints->y,
+                               size_hints->width, size_hints->height,
+                               size_hints->min_width, size_hints->min_height,
+                               size_hints->max_width, size_hints->max_height,
+                               size_hints->width_inc, size_hints->height_inc,
+                               size_hints->min_aspect_num, size_hints->min_aspect_den,
+                               size_hints->max_aspect_num, size_hints->max_aspect_den,
+                               size_hints->base_width, size_hints->base_height,
+                               (int) size_hints->win_gravity);
     free(size_hints);
 }
 
@@ -1082,10 +1062,11 @@ SetShellWMProtocolTranslations(Widget w)
     IswAugmentTranslations(w, compiled_table);
 
     /* advertise WM_DELETE_WINDOW to the window manager */
-    wm_delete_window = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_DELETE_WINDOW", False);
-    xcb_icccm_set_wm_protocols(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)),
-			       IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_PROTOCOLS", False),
-			       1, &wm_delete_window);
+    wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_DELETE_WINDOW", False);
+    {
+        Atom protocols[1] = { wm_delete_window };
+        _IswPlatformSetWmProtocols(IswDisplayOf(w), IswWindowOf(w), protocols, 1);
+    }
 }
 
 static void
@@ -1263,30 +1244,17 @@ _SetTransientForHint(TransientShellWidget w, Boolean delete)
         else if ((window_group = w->wm.wm_hints.window_group)
                  == IswUnspecifiedWindowGroup) {
             if (delete) {
-                // Get atom for WM_TRANSIENT_FOR
-                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
-                if (atom_reply) {
-                    xcb_delete_property(_IswXcbConn(IswDisplayOf((Widget) w)), _IswXcbWindow(IswWindowOf((Widget) w)), atom_reply->atom);
-                    free(atom_reply);
-                }
+                Atom transient_for = _IswPlatformInternAtomOp(
+                    IswDisplayOf((Widget) w), "WM_TRANSIENT_FOR", False);
+                _IswPlatformDeleteProperty(IswDisplayOf((Widget) w),
+                                           IswWindowOf((Widget) w), transient_for);
             }
-                //XDeleteProperty(IswDisplayOf((Widget) w),
-                //                IswWindowOf((Widget) w), XCB_ATOM_WM_TRANSIENT_FOR);
             return;
         }
 
-        //XSetTransientForHint(IswDisplayOf((Widget) w),
-        //                     IswWindowOf((Widget) w), window_group);
-        // Get atom for WM_TRANSIENT_FOR
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
-        if (atom_reply) {
-            xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf((Widget) w)),
-                                atom_reply->atom, XCB_ATOM_WINDOW, 32,
-                                1, &window_group);
-            free(atom_reply);
-        }
+        _IswPlatformSetTransientFor(IswDisplayOf((Widget) w),
+                                    IswWindowOf((Widget) w),
+                                    _IswXcbWindowWrap(window_group));
     }
 }
 
@@ -1467,16 +1435,8 @@ _popup_set_prop(ShellWidget w)
         && (window_group = wmshell->wm.wm_hints.window_group)
         != IswUnspecifiedWindowGroup) {
 
-        //XSetTransientForHint(IswDisplayOf((Widget) w),
-        //                     IswWindowOf((Widget) w), window_group);
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
-        if (atom_reply) {
-            xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(w)),
-                                atom_reply->atom, XCB_ATOM_WINDOW, 32,
-                                1, &window_group);
-            free(atom_reply);
-        }
+        _IswPlatformSetTransientFor(IswDisplayOf((Widget) w), IswWindowOf(w),
+                                    _IswXcbWindowWrap(window_group));
     }
 
     XClassHint classhint;
@@ -1515,15 +1475,12 @@ _popup_set_prop(ShellWidget w)
         const char *locale = "C"; //setlocale(LC_CTYPE, (char *) NULL);
 
         if (locale) {
-            // Get atom for WM_LOCALE_NAME
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_LOCALE_NAME"), "WM_LOCALE_NAME");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
-            if (atom_reply) {
-                xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf((Widget) w)),
-                                    atom_reply->atom, XCB_ATOM_STRING, 8,
-                                    strlen(locale), locale);
-                free(atom_reply);
-            }
+            Atom wm_locale = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
+                                                      "WM_LOCALE_NAME", False);
+            _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
+                                       IswWindowOf((Widget) w), wm_locale,
+                                       ISW_ATOM_STRING, 8, ISW_PROP_MODE_REPLACE,
+                                       locale, (uint32_t) strlen(locale));
         }
             //XChangeProperty(IswDisplayOf((Widget) w), IswWindowOf((Widget) w),
             //                XInternAtom(IswDisplayOf((Widget) w),
@@ -1536,32 +1493,21 @@ _popup_set_prop(ShellWidget w)
     p = GetClientLeader((Widget) w);
     if (_IswXcbWindow(IswWindowOf(p))) {
         xcb_window_t leader_win = _IswXcbWindow(p->core.window);
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_CLIENT_LEADER"), "WM_CLIENT_LEADER");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
-        if (atom_reply) {
-            xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf((Widget) w)),
-                                atom_reply->atom, XCB_ATOM_WINDOW, 32,
-                                1, &leader_win);
-            free(atom_reply);
-        }
+        Atom client_leader = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
+                                                      "WM_CLIENT_LEADER", False);
+        _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
+                                   IswWindowOf((Widget) w), client_leader,
+                                   ISW_ATOM_WINDOW, 32, ISW_PROP_MODE_REPLACE,
+                                   &leader_win, 1);
     }
     if (wmshell->wm.window_role) {
-        //XChangeProperty(IswDisplayOf((Widget) w), IswWindowOf((Widget) w),
-        //                XInternAtom(IswDisplayOf((Widget) w),
-        //                            "WM_WINDOW_ROLE", False),
-        //                XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
-        //                (unsigned char *) wmshell->wm.window_role,
-        //                (int) strlen(wmshell->wm.window_role));
-        // Get atom for WM_WINDOW_ROLE
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf((Widget) w)), FALSE, strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf((Widget) w)), atom_cookie, NULL);
-        if (atom_reply) {
-            xcb_change_property(_IswXcbConn(IswDisplayOf((Widget) w)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf((Widget) w)),
-                                atom_reply->atom, XCB_ATOM_STRING, 8,
-                                strlen(wmshell->wm.window_role),
-                                wmshell->wm.window_role);
-            free(atom_reply);
-        }
+        Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
+                                                    "WM_WINDOW_ROLE", False);
+        _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
+                                   IswWindowOf((Widget) w), window_role,
+                                   ISW_ATOM_STRING, 8, ISW_PROP_MODE_REPLACE,
+                                   wmshell->wm.window_role,
+                                   (uint32_t) strlen(wmshell->wm.window_role));
     }
 
     {
@@ -1569,59 +1515,24 @@ _popup_set_prop(ShellWidget w)
         xcb_window_t win = _IswXcbWindow(IswWindowOf((Widget) w));
 
         /* _NET_WM_PID */
-        {
-            xcb_intern_atom_cookie_t pid_cookie = xcb_intern_atom(conn, FALSE, 11, "_NET_WM_PID");
-            xcb_intern_atom_cookie_t cardinal_cookie = xcb_intern_atom(conn, FALSE, 8, "CARDINAL");
-            xcb_intern_atom_reply_t *pid_reply = xcb_intern_atom_reply(conn, pid_cookie, NULL);
-            xcb_intern_atom_reply_t *cardinal_reply = xcb_intern_atom_reply(conn, cardinal_cookie, NULL);
-            if (pid_reply && cardinal_reply) {
-                uint32_t pid = (uint32_t) getpid();
-                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, win,
-                                    pid_reply->atom, cardinal_reply->atom, 32,
-                                    1, &pid);
-            }
-            free(pid_reply);
-            free(cardinal_reply);
-        }
+        _IswPlatformSetPid(IswDisplayOf((Widget) w), IswWindowOf((Widget) w),
+                           (uint32_t) getpid());
 
         /* _NET_WM_WINDOW_TYPE */
-        {
-            const char *type_name;
-            unsigned int type_len;
-
-            if (IswIsTransientShell((Widget) w)) {
-                type_name = "_NET_WM_WINDOW_TYPE_DIALOG";
-                type_len = 26;
-            } else {
-                type_name = "_NET_WM_WINDOW_TYPE_NORMAL";
-                type_len = 26;
-            }
-
-            xcb_intern_atom_cookie_t wt_cookie = xcb_intern_atom(conn, FALSE, 19, "_NET_WM_WINDOW_TYPE");
-            xcb_intern_atom_cookie_t type_cookie = xcb_intern_atom(conn, FALSE, type_len, type_name);
-            xcb_intern_atom_reply_t *wt_reply = xcb_intern_atom_reply(conn, wt_cookie, NULL);
-            xcb_intern_atom_reply_t *type_reply = xcb_intern_atom_reply(conn, type_cookie, NULL);
-            if (wt_reply && type_reply) {
-                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, win,
-                                    wt_reply->atom, XCB_ATOM_ATOM, 32,
-                                    1, &type_reply->atom);
-            }
-            free(wt_reply);
-            free(type_reply);
-        }
+        _IswPlatformSetWindowType(IswDisplayOf((Widget) w),
+                                  IswWindowOf((Widget) w),
+                                  IswIsTransientShell((Widget) w)
+                                      ? ISW_WINDOW_TYPE_DIALOG
+                                      : ISW_WINDOW_TYPE_NORMAL);
 
         /* _NET_WM_USER_TIME_WINDOW */
         if (IswIsWMShell((Widget) w)) {
             IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf((Widget) w));
             if (!pd->net_wm_user_time) {
-                xcb_intern_atom_cookie_t c1 = xcb_intern_atom(conn, FALSE, 18, "_NET_WM_USER_TIME");
-                xcb_intern_atom_cookie_t c2 = xcb_intern_atom(conn, FALSE, 25, "_NET_WM_USER_TIME_WINDOW");
-                xcb_intern_atom_reply_t *r1 = xcb_intern_atom_reply(conn, c1, NULL);
-                xcb_intern_atom_reply_t *r2 = xcb_intern_atom_reply(conn, c2, NULL);
-                if (r1) pd->net_wm_user_time = r1->atom;
-                if (r2) pd->net_wm_user_time_window = r2->atom;
-                free(r1);
-                free(r2);
+                pd->net_wm_user_time = _IswPlatformInternAtomOp(
+                    IswDisplayOf((Widget) w), "_NET_WM_USER_TIME", False);
+                pd->net_wm_user_time_window = _IswPlatformInternAtomOp(
+                    IswDisplayOf((Widget) w), "_NET_WM_USER_TIME_WINDOW", False);
             }
 
             if (pd->net_wm_user_time && pd->net_wm_user_time_window) {
@@ -1632,44 +1543,37 @@ _popup_set_prop(ShellWidget w)
                                   XCB_COPY_FROM_PARENT, 0, NULL);
                 wmshell->wm.user_time_win = utwin;
 
-                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, win,
-                                    pd->net_wm_user_time_window, XCB_ATOM_WINDOW, 32,
-                                    1, &utwin);
+                _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
+                                    IswWindowOf((Widget) w),
+                                    pd->net_wm_user_time_window, ISW_ATOM_WINDOW, 32,
+                                    ISW_PROP_MODE_REPLACE, &utwin, 1);
 
                 uint32_t initial_time = pd->last_timestamp;
-                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, utwin,
-                                    pd->net_wm_user_time, XCB_ATOM_CARDINAL, 32,
-                                    1, &initial_time);
+                _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
+                                    _IswXcbWindowWrap(utwin),
+                                    pd->net_wm_user_time, ISW_ATOM_CARDINAL, 32,
+                                    ISW_PROP_MODE_REPLACE, &initial_time, 1);
             }
         }
 
-        /* _NET_STARTUP_ID — set property and send remove message */
+        /* _NET_STARTUP_ID — set property and send remove message.  The atoms
+           come from the atom op + the property via the generic op; the
+           broadcast client-message loop (xcb_send_event) stays on the seam. */
         if (wmshell->wm.startup_id) {
-            xcb_intern_atom_cookie_t sid_cookie =
-                xcb_intern_atom(conn, FALSE, 16, "_NET_STARTUP_ID");
-            xcb_intern_atom_cookie_t utf8_cookie =
-                xcb_intern_atom(conn, FALSE, 11, "UTF8_STRING");
-            xcb_intern_atom_cookie_t sib_cookie =
-                xcb_intern_atom(conn, FALSE, 24, "_NET_STARTUP_INFO_BEGIN");
-            xcb_intern_atom_cookie_t si_cookie =
-                xcb_intern_atom(conn, FALSE, 18, "_NET_STARTUP_INFO");
-            xcb_intern_atom_reply_t *sid_reply =
-                xcb_intern_atom_reply(conn, sid_cookie, NULL);
-            xcb_intern_atom_reply_t *utf8_reply =
-                xcb_intern_atom_reply(conn, utf8_cookie, NULL);
-            xcb_intern_atom_reply_t *sib_reply =
-                xcb_intern_atom_reply(conn, sib_cookie, NULL);
-            xcb_intern_atom_reply_t *si_reply =
-                xcb_intern_atom_reply(conn, si_cookie, NULL);
+            IswDisplay sdpy = IswDisplayOf((Widget) w);
+            Atom sid_atom  = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_ID", False);
+            Atom utf8_atom = _IswPlatformInternAtomOp(sdpy, "UTF8_STRING", False);
+            Atom sib_atom  = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_INFO_BEGIN", False);
+            Atom si_atom   = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_INFO", False);
 
-            if (sid_reply && utf8_reply) {
-                xcb_change_property(conn, XCB_PROP_MODE_REPLACE, win,
-                                    sid_reply->atom, utf8_reply->atom, 8,
-                                    strlen(wmshell->wm.startup_id),
-                                    wmshell->wm.startup_id);
+            if (sid_atom && utf8_atom) {
+                _IswPlatformChangeProperty(sdpy, IswWindowOf((Widget) w),
+                                    sid_atom, utf8_atom, 8, ISW_PROP_MODE_REPLACE,
+                                    wmshell->wm.startup_id,
+                                    (uint32_t) strlen(wmshell->wm.startup_id));
             }
 
-            if (sib_reply && si_reply) {
+            if (sib_atom && si_atom) {
                 char msg[256];
                 int len = snprintf(msg, sizeof(msg), "remove: ID=%s",
                                    wmshell->wm.startup_id);
@@ -1685,7 +1589,8 @@ _popup_set_prop(ShellWidget w)
                         ev.response_type = XCB_CLIENT_MESSAGE;
                         ev.format = 8;
                         ev.window = win;
-                        ev.type = (mp == msg) ? sib_reply->atom : si_reply->atom;
+                        ev.type = (mp == msg) ? (xcb_atom_t) sib_atom
+                                              : (xcb_atom_t) si_atom;
 
                         int chunk = remaining > 20 ? 20 : remaining;
                         memcpy(ev.data.data8, mp, chunk);
@@ -1699,10 +1604,6 @@ _popup_set_prop(ShellWidget w)
                 }
             }
 
-            free(sid_reply);
-            free(utf8_reply);
-            free(sib_reply);
-            free(si_reply);
             IswFree(wmshell->wm.startup_id);
             wmshell->wm.startup_id = NULL;
         }
@@ -2694,17 +2595,8 @@ WMSetValues(Widget old,
         //    title.nitems = strlen(nwmshell->wm.title);
         //}
         //XSetWMName(IswDisplayOf(new), IswWindowOf(new), &title);
-        // First, get the atom for WM_NAME
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_NAME"), "WM_NAME");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
-        if (atom_reply) {
-            xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
-                                atom_reply->atom, XCB_ATOM_STRING, 8,
-                                strlen((const char *) nwmshell->wm.title), (unsigned char *) nwmshell->wm.title);
-            free(atom_reply);
-        }
-        //if (copied)
-        //    IswFree((IswPointer) title.value);
+        _IswPlatformSetWindowTitle(IswDisplayOf(new), IswWindowOf(new),
+                                   (const char *) nwmshell->wm.title);
     }
 
     EvaluateWMHints(nwmshell);
@@ -2716,14 +2608,13 @@ WMSetValues(Widget old,
                      || NEQ(icon_pixmap) || NEQ(icon_mask) || NEQ(icon_window)
                      || NEQ(window_group))) {
 
-        //XSetWMHints(IswDisplayOf(new), IswWindowOf(new), &nwmshell->wm.wm_hints);
-        xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_HINTS"), "WM_HINTS");
-        xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
-        if (atom_reply) {
-            xcb_icccm_set_wm_hints(_IswXcbConn(IswDisplayOf(new)), _IswXcbWindow(IswWindowOf(new)), &nwmshell->wm.wm_hints);
-
-            free(atom_reply);
-        }
+        /* WM_HINTS carries icon pixmap/mask/urgency in a private xcb_icccm
+           struct field (WMShellPart.wm_hints) the toolkit has not neutralised;
+           a lossy semantic op would drop those.  Stays on the seam until that
+           struct is abstracted (not part of Phase 6's atom/property scope). */
+        xcb_icccm_set_wm_hints(_IswXcbConn(IswDisplayOf(new)),
+                               _IswXcbWindow(IswWindowOf(new)),
+                               &nwmshell->wm.wm_hints);
     }
 #undef NEQ
 
@@ -2745,25 +2636,15 @@ WMSetValues(Widget old,
                 !nwmshell->shell.override_redirect &&
                 nwmshell->wm.wm_hints.window_group != IswUnspecifiedWindowGroup) {
                 
-                // Set WM_TRANSIENT_FOR property
-                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
-                if (atom_reply) {
-                    xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
-                                        atom_reply->atom, XCB_ATOM_WINDOW, 32,
-                                        1, &nwmshell->wm.wm_hints.window_group);
-                    free(atom_reply);
-                }
+                _IswPlatformSetTransientFor(IswDisplayOf(new), IswWindowOf(new),
+                    _IswXcbWindowWrap(nwmshell->wm.wm_hints.window_group));
             }
         }
         else {
-            // Delete WM_TRANSIENT_FOR property
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_TRANSIENT_FOR"), "WM_TRANSIENT_FOR");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
-            if (atom_reply) {
-                xcb_delete_property(_IswXcbConn(IswDisplayOf(new)), _IswXcbWindow(IswWindowOf(new)), atom_reply->atom);
-                free(atom_reply);
-            }
+            Atom transient_for = _IswPlatformInternAtomOp(IswDisplayOf(new),
+                                                          "WM_TRANSIENT_FOR", False);
+            _IswPlatformDeleteProperty(IswDisplayOf(new), IswWindowOf(new),
+                                       transient_for);
         }
     }
 
@@ -2773,15 +2654,11 @@ WMSetValues(Widget old,
 
         if (_IswXcbWindow(IswWindowOf(leader))) {
             xcb_window_t leader_win = _IswXcbWindow(leader->core.window);
-            // Get atom for WM_CLIENT_LEADER
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_CLIENT_LEADER"), "WM_CLIENT_LEADER");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
-            if (atom_reply) {
-                xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
-                                    atom_reply->atom, XCB_ATOM_WINDOW, 32,
-                                    1, &leader_win);
-                free(atom_reply);
-            }
+            Atom client_leader = _IswPlatformInternAtomOp(IswDisplayOf(new),
+                                                          "WM_CLIENT_LEADER", False);
+            _IswPlatformChangeProperty(IswDisplayOf(new), IswWindowOf(new),
+                                       client_leader, ISW_ATOM_WINDOW, 32,
+                                       ISW_PROP_MODE_REPLACE, &leader_win, 1);
         }
             //XChangeProperty(IswDisplayOf(new), IswWindowOf(new),
             //                XInternAtom(IswDisplayOf(new),
@@ -2810,25 +2687,19 @@ WMSetValues(Widget old,
         IswFree((_IswString) owmshell->wm.window_role);
 
         if (set_prop && nwmshell->wm.window_role) {
-            // Get atom for WM_WINDOW_ROLE
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
-            if (atom_reply) {
-                xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
-                                    atom_reply->atom, XCB_ATOM_STRING, 8,
-                                    strlen(nwmshell->wm.window_role),
-                                    nwmshell->wm.window_role);
-                free(atom_reply);
-            }
+            Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf(new),
+                                                        "WM_WINDOW_ROLE", False);
+            _IswPlatformChangeProperty(IswDisplayOf(new), IswWindowOf(new),
+                                       window_role, ISW_ATOM_STRING, 8,
+                                       ISW_PROP_MODE_REPLACE,
+                                       nwmshell->wm.window_role,
+                                       (uint32_t) strlen(nwmshell->wm.window_role));
         }
         else if (IswIsRealized(new) && !nwmshell->wm.window_role) {
-            // Get atom for WM_WINDOW_ROLE
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_WINDOW_ROLE"), "WM_WINDOW_ROLE");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
-            if (atom_reply) {
-                xcb_delete_property(_IswXcbConn(IswDisplayOf(new)), _IswXcbWindow(IswWindowOf(new)), atom_reply->atom);
-                free(atom_reply);
-            }
+            Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf(new),
+                                                        "WM_WINDOW_ROLE", False);
+            _IswPlatformDeleteProperty(IswDisplayOf(new), IswWindowOf(new),
+                                       window_role);
         }
     }
     return FALSE;
@@ -2886,22 +2757,22 @@ TopLevelSetValues(Widget oldW,
                 //    );
                 // XCB doesn't have a direct equivalent to XIconifyWindow
 
-                // First, get the necessary atoms
-                xcb_intern_atom_cookie_t net_wm_state_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(newW)), FALSE, strlen("_NET_WM_STATE"), "_NET_WM_STATE");
-                xcb_intern_atom_cookie_t net_wm_state_hidden_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(newW)), FALSE, strlen("_NET_WM_STATE_HIDDEN"), "_NET_WM_STATE_HIDDEN");
+                /* Atoms via the atom op; the iconify request is a broadcast
+                   client-message (xcb_send_event), which stays on the seam. */
+                Atom net_wm_state = _IswPlatformInternAtomOp(IswDisplayOf(newW),
+                                                             "_NET_WM_STATE", False);
+                Atom net_wm_state_hidden = _IswPlatformInternAtomOp(
+                    IswDisplayOf(newW), "_NET_WM_STATE_HIDDEN", False);
 
-                xcb_intern_atom_reply_t *net_wm_state_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(newW)), net_wm_state_cookie, NULL);
-                xcb_intern_atom_reply_t *net_wm_state_hidden_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(newW)), net_wm_state_hidden_cookie, NULL);
-
-                if (net_wm_state_reply && net_wm_state_hidden_reply) {
+                if (net_wm_state && net_wm_state_hidden) {
                     // Send the client message
                     xcb_client_message_event_t *event = malloc(sizeof(xcb_client_message_event_t));
                     event->response_type = XCB_CLIENT_MESSAGE;
                     event->format = 32;
                     event->window = _IswXcbWindow(IswWindowOf(newW));
-                    event->type = net_wm_state_reply->atom;
+                    event->type = (xcb_atom_t) net_wm_state;
                     event->data.data32[0] = 1; // _NET_WM_STATE_ADD
-                    event->data.data32[1] = net_wm_state_hidden_reply->atom;
+                    event->data.data32[1] = (xcb_atom_t) net_wm_state_hidden;
                     event->data.data32[2] = 0;
                     event->data.data32[3] = 0;
                     event->data.data32[4] = 0;
@@ -2909,9 +2780,6 @@ TopLevelSetValues(Widget oldW,
                     xcb_send_event(_IswXcbConn(IswDisplayOf(newW)), 0, _IswXcbWindow(IswWindowOf(newW)), XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (char*)event);
                     free(event);
                 }
-
-                free(net_wm_state_reply);
-                free(net_wm_state_hidden_reply);
             }
             else {
                 Boolean map = new->shell.popped_up;
@@ -2946,18 +2814,8 @@ TopLevelSetValues(Widget oldW,
                 //icon_name.nitems = strlen((char *) icon_name.value);
             //}
             // First, get the atom ID for WM_ICON_NAME
-            xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(newW)), FALSE, strlen("WM_ICON_NAME"), "WM_ICON_NAME");
-            xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(newW)), atom_cookie, NULL);
-            if (atom_reply) {
-                // Set the icon name property
-                xcb_change_property(_IswXcbConn(IswDisplayOf(newW)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(newW)),
-                                    atom_reply->atom, XCB_ATOM_STRING, 8,
-                                    strlen((const char *) new->topLevel.icon_name), (unsigned char *) new->topLevel.icon_name);
-                free(atom_reply);
-            }
-
-            //if (copied)
-            //    IswFree((IswPointer) icon_name.value);
+            _IswPlatformSetIconTitle(IswDisplayOf(newW), IswWindowOf(newW),
+                                     (const char *) new->topLevel.icon_name);
         }
     }
     else if (new->topLevel.iconic != old->topLevel.iconic) {
@@ -3027,26 +2885,17 @@ ApplicationSetValues(Widget current,
         //        XDeleteProperty(IswDisplayOf(new), IswWindowOf(new), XCB_ATOM_WM_COMMAND);
         //}
         if (IswIsRealized(new) && !nw->shell.override_redirect) {
+            Atom wm_command = _IswPlatformInternAtomOp(IswDisplayOf(new),
+                                                       "WM_COMMAND", False);
             if (nw->application.argc >= 0 && nw->application.argv) {
-                // First, get the atom ID for WM_COMMAND
-                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_COMMAND"), "WM_COMMAND");
-                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
-                if (atom_reply) {
-                    // Set the command property
-                    xcb_change_property(_IswXcbConn(IswDisplayOf(new)), XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(new)),
-                                        atom_reply->atom, XCB_ATOM_STRING, 8,
-                                        nw->application.argc, nw->application.argv);
-                    free(atom_reply);
-                }
+                _IswPlatformChangeProperty(IswDisplayOf(new), IswWindowOf(new),
+                                           wm_command, ISW_ATOM_STRING, 8,
+                                           ISW_PROP_MODE_REPLACE,
+                                           nw->application.argv,
+                                           (uint32_t) nw->application.argc);
             } else {
-                // First, get the atom ID for WM_COMMAND
-                xcb_intern_atom_cookie_t atom_cookie = xcb_intern_atom(_IswXcbConn(IswDisplayOf(new)), FALSE, strlen("WM_COMMAND"), "WM_COMMAND");
-                xcb_intern_atom_reply_t *atom_reply = xcb_intern_atom_reply(_IswXcbConn(IswDisplayOf(new)), atom_cookie, NULL);
-                if (atom_reply) {
-                    // Delete the property
-                    xcb_delete_property(_IswXcbConn(IswDisplayOf(new)), _IswXcbWindow(IswWindowOf(new)), atom_reply->atom);
-                    free(atom_reply);
-                }
+                _IswPlatformDeleteProperty(IswDisplayOf(new), IswWindowOf(new),
+                                           wm_command);
             }
         }
     }
@@ -3183,78 +3032,44 @@ void
 IswSetWindowIconARGB(Widget shell, const uint32_t *argb_data,
                      unsigned int n_entries)
 {
-    xcb_connection_t *conn;
-    xcb_intern_atom_cookie_t icon_cookie, cardinal_cookie;
-    xcb_intern_atom_reply_t *icon_reply, *cardinal_reply;
+    Atom icon_atom;
 
     if (!IswIsRealized(shell) || !argb_data || n_entries == 0)
         return;
 
-    conn = _IswXcbConn(IswDisplayOf(shell));
-
-    icon_cookie = xcb_intern_atom(conn, FALSE, 15, "_NET_WM_ICON");
-    cardinal_cookie = xcb_intern_atom(conn, FALSE, 8, "CARDINAL");
-
-    icon_reply = xcb_intern_atom_reply(conn, icon_cookie, NULL);
-    cardinal_reply = xcb_intern_atom_reply(conn, cardinal_cookie, NULL);
-
-    if (icon_reply && cardinal_reply) {
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(shell)),
-                            icon_reply->atom, cardinal_reply->atom, 32,
-                            n_entries, argb_data);
-    }
-
-    free(icon_reply);
-    free(cardinal_reply);
+    icon_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), "_NET_WM_ICON", False);
+    _IswPlatformChangeProperty(IswDisplayOf(shell), IswWindowOf(shell),
+                               icon_atom, ISW_ATOM_CARDINAL, 32,
+                               ISW_PROP_MODE_REPLACE, argb_data, n_entries);
 }
 
 void
 IswClearWindowIcon(Widget shell)
 {
-    xcb_connection_t *conn;
-    xcb_intern_atom_cookie_t cookie;
-    xcb_intern_atom_reply_t *reply;
+    Atom icon_atom;
 
     if (!IswIsRealized(shell))
         return;
 
-    conn = _IswXcbConn(IswDisplayOf(shell));
-    cookie = xcb_intern_atom(conn, FALSE, 15, "_NET_WM_ICON");
-    reply = xcb_intern_atom_reply(conn, cookie, NULL);
-
-    if (reply) {
-        xcb_delete_property(conn, _IswXcbWindow(IswWindowOf(shell)), reply->atom);
-        free(reply);
-    }
+    icon_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), "_NET_WM_ICON", False);
+    _IswPlatformDeleteProperty(IswDisplayOf(shell), IswWindowOf(shell), icon_atom);
 }
 
 static void
 SetNetWmString(Widget shell, const char *prop_name, unsigned int prop_len,
                const char *value)
 {
-    xcb_connection_t *conn;
-    xcb_intern_atom_cookie_t prop_cookie, utf8_cookie;
-    xcb_intern_atom_reply_t *prop_reply, *utf8_reply;
+    Atom prop_atom, utf8_atom;
 
     if (!IswIsRealized(shell) || !value)
         return;
 
-    conn = _IswXcbConn(IswDisplayOf(shell));
-
-    prop_cookie = xcb_intern_atom(conn, FALSE, prop_len, prop_name);
-    utf8_cookie = xcb_intern_atom(conn, FALSE, 11, "UTF8_STRING");
-
-    prop_reply = xcb_intern_atom_reply(conn, prop_cookie, NULL);
-    utf8_reply = xcb_intern_atom_reply(conn, utf8_cookie, NULL);
-
-    if (prop_reply && utf8_reply) {
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(shell)),
-                            prop_reply->atom, utf8_reply->atom, 8,
-                            strlen(value), value);
-    }
-
-    free(prop_reply);
-    free(utf8_reply);
+    (void) prop_len;
+    prop_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), prop_name, False);
+    utf8_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), "UTF8_STRING", False);
+    _IswPlatformChangeProperty(IswDisplayOf(shell), IswWindowOf(shell),
+                               prop_atom, utf8_atom, 8, ISW_PROP_MODE_REPLACE,
+                               value, (uint32_t) strlen(value));
 }
 
 void
@@ -3273,37 +3088,32 @@ void
 IswSetWindowState(Widget shell, const char *state, Boolean set)
 {
     xcb_connection_t *conn;
-    xcb_intern_atom_cookie_t wm_state_cookie, state_cookie;
-    xcb_intern_atom_reply_t *wm_state_reply, *state_reply;
+    Atom wm_state, state_atom;
 
     if (!IswIsRealized(shell) || !state)
         return;
 
     conn = _IswXcbConn(IswDisplayOf(shell));
 
-    wm_state_cookie = xcb_intern_atom(conn, FALSE, 13, "_NET_WM_STATE");
-    state_cookie = xcb_intern_atom(conn, FALSE, strlen(state), state);
+    /* Atoms via the atom op; the state-change is a broadcast client-message
+       (xcb_send_event), which stays on the seam. */
+    wm_state = _IswPlatformInternAtomOp(IswDisplayOf(shell), "_NET_WM_STATE", False);
+    state_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), state, False);
 
-    wm_state_reply = xcb_intern_atom_reply(conn, wm_state_cookie, NULL);
-    state_reply = xcb_intern_atom_reply(conn, state_cookie, NULL);
-
-    if (wm_state_reply && state_reply) {
+    if (wm_state && state_atom) {
         xcb_client_message_event_t ev = {0};
         ev.response_type = XCB_CLIENT_MESSAGE;
         ev.format = 32;
         ev.window = _IswXcbWindow(IswWindowOf(shell));
-        ev.type = wm_state_reply->atom;
+        ev.type = (xcb_atom_t) wm_state;
         ev.data.data32[0] = set ? 1 : 0;
-        ev.data.data32[1] = state_reply->atom;
+        ev.data.data32[1] = (xcb_atom_t) state_atom;
 
         xcb_send_event(conn, 0, _IswXcbScreen(shell->core.screen)->root,
                        XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
                        XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
                        (const char *) &ev);
     }
-
-    free(wm_state_reply);
-    free(state_reply);
 }
 
 void
@@ -3327,7 +3137,8 @@ _IswShellUpdateUserTime(xcb_connection_t *dpy, xcb_window_t event_window,
     if (!pd->net_wm_user_time)
         return;
 
-    xcb_change_property(dpy, XCB_PROP_MODE_REPLACE, wmshell->wm.user_time_win,
-                        pd->net_wm_user_time, XCB_ATOM_CARDINAL, 32,
-                        1, &time);
+    _IswPlatformChangeProperty((IswDisplay) dpy,
+                               _IswXcbWindowWrap(wmshell->wm.user_time_win),
+                               pd->net_wm_user_time, ISW_ATOM_CARDINAL, 32,
+                               ISW_PROP_MODE_REPLACE, &time, 1);
 }

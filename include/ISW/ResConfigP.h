@@ -60,7 +60,7 @@ Corporation.
 _XFUNCPROTOBEGIN
 
 /*
- * xcb_atom_t names for resource configuration management customization tool.
+ * Atom names for resource configuration management customization tool.
  */
 #define RCM_DATA "Custom Data"
 #define RCM_INIT "Custom Init"
