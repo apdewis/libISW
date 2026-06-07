@@ -34,6 +34,7 @@ which phase is current, what is done, what is deferred and why.
 | 5 | `IswSelection`, `IswCursor`, grabs | done | ISWPlatform.h, ISWPlatformGrabCursorXCB.c, PassivGrab.c, Simple.c, Converters.c, MenuBar.c, List.c, Selection.c |
 | 6 | Atoms + properties | todo | ISWAtoms.c, Shell.c, Vendor.c, SetWMCW.c |
 | 7 | `IswDragDrop` (XDND refactor) | todo | ISWXdnd.c, ISWXdnd.h |
+| 8 | Dependency-inject the ops table (kill the singleton) | todo | ISWPlatformPrivate.h, ISWPlatformDisplayXCB.c + every `_IswPlatform*` wrapper + the per-display init path |
 
 > Each phase, when started, gets its own scope manifest before edits. Approval
 > of one phase is not approval of the next.
@@ -322,6 +323,53 @@ drag/drop vtable (`drag_start`, `drag_set_actions`, `drag_set_icon`,
 backend implements it via XDND atoms + client messages + selection transfers.
 
 Depends on Phases 1, 2, 5. Files: ISWXdnd.c, ISWXdnd.h.
+
+### Phase 8 — Dependency-inject the ops table (kill the singleton)
+
+**Why this phase exists.** Phases 0–5 reached the backend through
+`_IswPlatformGetOps(void)` — a no-argument accessor returning a single,
+process-global, compile-time-fixed `&isw_platform_xcb_ops`. That is a
+**singleton**, and it defeats the stated goal of modular server targets: a
+per-process global backend means one binary can host exactly one target, chosen
+at build time, with no way to be told *which* backend at the call site. It was
+introduced in Phase 2 scaffolding without being asked for and was never
+surfaced as a decision. This phase removes it.
+
+**The model: dependency injection.** The active `IswPlatformOps *` is
+**established once at the injection point and passed where it is needed** —
+never fetched from a global. Concretely:
+
+- `_IswPlatformGetOps(void)` is **deleted**. No global accessor survives.
+- The ops table is injected at display/connection setup (the one place a
+  backend is actually selected) and **threaded down the call chain** to the
+  toolkit/widget code that needs it. Every `_IswPlatform*` dispatch wrapper
+  (the ~20 added in Phases 4–5 plus `_IswPlatformConnectionFd`) takes the ops
+  table — or a handle that carries it — as an explicit input, and forwards it.
+- Call sites obtain the ops from **what they already hold** (the `Widget` /
+  `IswDisplay` already passed into the wrapper), not from process state. Because
+  the backend now travels with the connection, two connections can carry two
+  different backends — the actual definition of "modular server targets".
+- A handful of ops have no display in hand at the call (`keysym_from_name`,
+  `convert_case`): decide per-op whether to route them through an injected ops
+  param too, or treat them as pure/stateless. No silent fallback to a global.
+
+**Acceptance.**
+- `grep -r _IswPlatformGetOps src/ include/` returns nothing. The singleton is
+  gone, not merely hidden.
+- The ops table reaches every dispatch site via parameter/handle passing, from a
+  single injection point — verifiably no process-global backend state.
+- Selecting a backend is data: a second (even stub) backend can be injected at
+  init and exercised without recompiling the toolkit.
+- Build green; demo verified (cursors, grabs, menu, clipboard, rendering) with
+  the XCB ops injected exactly as the singleton used to supply them.
+
+> NOTE (LLM accountability): this phase is remediation for an
+> abstraction-defeating pattern introduced by an earlier automated pass. The
+> design constraint was explicit — **pass the ops table where needed
+> (dependency injection); do not reach for a global accessor.** Honour it.
+
+Depends on Phases 0–5 (the wrappers + handles being in place). Best done before
+Phase 6/7 add more dispatch sites that would otherwise also need rework.
 
 ## Changelog
 
