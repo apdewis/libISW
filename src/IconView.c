@@ -941,7 +941,7 @@ ResolveForegroundRGB(IconViewWidget iw)
     IswColormap cmap = ((Widget)iw)->core.colormap;
     unsigned long pixel = (unsigned long)iw->iconView.foreground;
     IswColor c;
-    if (_IswPlatformGetOps()->color->query_color(dpy, cmap, pixel, &c)) {
+    if (_IswPlatformQueryColor(dpy, cmap, pixel, &c)) {
         iw->iconView.fg_r = (double)(c.red >> 8) / 255.0;
         iw->iconView.fg_g = (double)(c.green >> 8) / 255.0;
         iw->iconView.fg_b = (double)(c.blue >> 8) / 255.0;

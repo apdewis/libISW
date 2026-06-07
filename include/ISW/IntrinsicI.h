@@ -254,7 +254,9 @@ extern Boolean _IswEventFromXcb(IswDisplay dpy,
                                 xcb_generic_event_t *xev, IswEvent *out);
 
 /* Event-loop file descriptor for a display, via the ISWPlatform display vtable.
-   Neutral replacement for the old ConnectionNumber() XCB macro. */
+   Neutral replacement for the old ConnectionNumber() XCB macro.  (Other
+   per-category dispatch wrappers live in src/ISWPlatformPrivate.h, alongside
+   _IswPlatformGetOps, since the widget TUs that call them include that header.) */
 extern int _IswPlatformConnectionFd(IswDisplay dpy);
 
 _XFUNCPROTOEND

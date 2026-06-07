@@ -97,7 +97,7 @@ LoadImage(Widget w, const char *source)
     const char *color = NULL;
     IswColor c;
 
-    if (_IswPlatformGetOps()->color->query_color(dpy, cmap, pixel, &c)) {
+    if (_IswPlatformQueryColor(dpy, cmap, pixel, &c)) {
         snprintf(fg_hex, sizeof(fg_hex), "#%02X%02X%02X",
                  c.red >> 8, c.green >> 8, c.blue >> 8);
         color = fg_hex;

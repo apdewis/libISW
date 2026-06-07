@@ -74,6 +74,74 @@ const IswPlatformOps *_IswPlatformGetOps(void);
 
 /*
  * =================================================================
+ * Per-category dispatch wrappers
+ * =================================================================
+ *
+ * Toolkit and widget code calls these thin wrappers instead of walking
+ * _IswPlatformGetOps()->cat->op at the call site.  Each hides the lookup and
+ * null-guards a backend that hasn't filled the op (so a missing op degrades to
+ * a no-op / failure rather than a crash).  Same convention as
+ * _IswPlatformConnectionFd (IntrinsicI.h).  Implemented in
+ * src/ISWPlatformDisplayXCB.c.
+ */
+
+/* Color (Phase 4) */
+Boolean   _IswPlatformQueryColor(IswDisplay dpy, IswColormap cmap,
+                                 unsigned long pixel, IswColor *out);
+Boolean   _IswPlatformAllocColor(IswDisplay dpy, IswColormap cmap,
+                                 unsigned short red, unsigned short green,
+                                 unsigned short blue, unsigned long *pixel_out);
+Boolean   _IswPlatformAllocNamedColor(IswDisplay dpy, IswColormap cmap,
+                                      const char *name, unsigned long *pixel_out);
+Boolean   _IswPlatformLookupColor(IswDisplay dpy, IswColormap cmap,
+                                  const char *name);
+void      _IswPlatformFreeColors(IswDisplay dpy, IswColormap cmap,
+                                 unsigned long pixel);
+Boolean   _IswPlatformMatchVisualInfo(IswDisplay dpy, IswScreen screen,
+                                      int depth, int visual_class,
+                                      IswVisualInfo *out);
+
+/* Font (Phase 4) */
+IswFontId _IswPlatformLoadFont(IswDisplay dpy, const char *name);
+void      _IswPlatformFreeFont(IswDisplay dpy, IswFontId fid);
+
+/* Cursor (Phase 5) */
+IswCursor _IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,
+                                      const char *name,
+                                      unsigned int fallback_shape);
+void      _IswPlatformSetWindowCursor(IswDisplay dpy, IswWindow win,
+                                      IswCursor cursor);
+void      _IswPlatformFreeCursor(IswDisplay dpy, IswCursor cursor);
+
+/* Grabs (Phase 5) */
+int  _IswPlatformGrabPointer(IswDisplay dpy, IswWindow grab_window,
+                             Boolean owner_events, unsigned int event_mask,
+                             int pointer_mode, int keyboard_mode,
+                             IswWindow confine_to, IswCursor cursor, IswTime time);
+void _IswPlatformUngrabPointer(IswDisplay dpy, IswTime time);
+int  _IswPlatformGrabKeyboard(IswDisplay dpy, IswWindow grab_window,
+                              Boolean owner_events, int pointer_mode,
+                              int keyboard_mode, IswTime time);
+void _IswPlatformUngrabKeyboard(IswDisplay dpy, IswTime time);
+void _IswPlatformGrabButton(IswDisplay dpy, IswWindow grab_window, int button,
+                            unsigned int modifiers, Boolean owner_events,
+                            unsigned int event_mask, int pointer_mode,
+                            int keyboard_mode, IswWindow confine_to,
+                            IswCursor cursor);
+void _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
+                         unsigned int modifiers, Boolean owner_events,
+                         int pointer_mode, int keyboard_mode);
+
+/* Selection (Phase 5) */
+void      _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
+                                        xcb_atom_t selection, IswTime time);
+IswWindow _IswPlatformGetSelectionOwner(IswDisplay dpy, xcb_atom_t selection);
+void      _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
+                                       xcb_atom_t selection, xcb_atom_t target,
+                                       xcb_atom_t property, IswTime time);
+
+/*
+ * =================================================================
  * XCB backend
  * =================================================================
  *

@@ -339,7 +339,7 @@ RequestSelectionValue(CallBackInfo info, xcb_atom_t selection, xcb_atom_t target
     IswAddEventHandler(info->widget, (EventMask) 0, TRUE,
                       HandleSelectionReplies, (IswPointer) info);
 
-    _IswPlatformGetOps()->selection->convert(
+    _IswPlatformConvertSelection(
         (IswDisplay) info->ctx->dpy, IswWindowOf(info->widget),
         selection, target, info->property, info->time);
 }
@@ -943,10 +943,11 @@ OwnSelection(Widget widget,
         ctx->ref_count || ctx->was_disowned) {
         Boolean replacement = FALSE;
         IswWindow window = IswWindowOf(widget);
-        const IswPlatformSelectionOps *sel = _IswPlatformGetOps()->selection;
 
-        sel->set_owner((IswDisplay) ctx->dpy, window, selection, time);
-        if (sel->get_owner((IswDisplay) ctx->dpy, selection) != window) {
+        _IswPlatformSetSelectionOwner((IswDisplay) ctx->dpy, window,
+                                      selection, time);
+        if (_IswPlatformGetSelectionOwner((IswDisplay) ctx->dpy, selection)
+            != window) {
             return FALSE;
         }
 
@@ -1073,7 +1074,7 @@ IswDisownSelection(Widget widget, xcb_atom_t selection, xcb_timestamp_t time)
     LOCK_APP(app);
     ctx = FindCtx(_IswXcbConn(IswDisplayOf(widget)), selection);
     if (LoseSelection(ctx, widget, selection, time))
-        _IswPlatformGetOps()->selection->set_owner(
+        _IswPlatformSetSelectionOwner(
             IswDisplayOf(widget), None, selection, time);
     UNLOCK_APP(app);
 }

@@ -1244,7 +1244,7 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
     /* X server pointer grab — all button events (scroll, outside clicks)
      * delivered to popup window. Same technique as GTK/Motif popups. */
-    _IswPlatformGetOps()->grab->grab_pointer(
+    _IswPlatformGrabPointer(
         IswDisplayOf(w), IswWindowOf(lw->list.popup_shell), False,
         XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
         XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
@@ -1253,7 +1253,7 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
         None, None, ISW_CURRENT_TIME);
 
     /* Keyboard grab so arrow / Return / Escape route to the popup */
-    _IswPlatformGetOps()->grab->grab_keyboard(
+    _IswPlatformGrabKeyboard(
         IswDisplayOf(w), IswWindowOf(lw->list.popup_shell), False,
         XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, ISW_CURRENT_TIME);
 
@@ -1614,8 +1614,8 @@ DropdownPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
     ListWidget lw = (ListWidget) client_data;
     Widget shell = (Widget)lw;
 
-    _IswPlatformGetOps()->grab->ungrab_pointer(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
-    _IswPlatformGetOps()->grab->ungrab_keyboard(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
+    _IswPlatformUngrabPointer(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
+    _IswPlatformUngrabKeyboard(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
     xcb_flush(_IswXcbConn(IswDisplayOf((Widget)lw)));
 
     while (shell && !IswIsShell(shell))

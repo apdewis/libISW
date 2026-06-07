@@ -423,7 +423,6 @@ IswCvtIntToColor(IswDisplay dpy,
                 XrmValuePtr toVal,
                 IswPointer *closure_ret _X_UNUSED)
 {
-    const IswPlatformColorOps *color = _IswPlatformGetOps()->color;
     IswColormap colormap;
 
     if (*num_args != 2) {
@@ -440,7 +439,7 @@ IswCvtIntToColor(IswDisplay dpy,
         unsigned long pixel = (unsigned long) (uint32_t) (*(int *) fromVal->addr);
         IswColor c;
 
-        if (!color->query_color(dpy, colormap, pixel, &c))
+        if (!_IswPlatformQueryColor(dpy, colormap, pixel, &c))
             return False;
         done_typed(IswColor, c);
     }
@@ -454,7 +453,6 @@ IswCvtStringToPixel(IswDisplay dpy,
                    XrmValuePtr toVal,
                    IswPointer *closure_ret)
 {
-    const IswPlatformColorOps *color = _IswPlatformGetOps()->color;
     String str = (String) fromVal->addr;
     xcb_screen_t *screen;
     IswPerDisplay pd = _IswGetPerDisplay(dpy);
@@ -524,8 +522,8 @@ IswCvtStringToPixel(IswDisplay dpy,
         }
 
         unsigned long result_pixel;
-        if (color->alloc_color(dpy, colormap, red, green, blue,
-                               &result_pixel)) {
+        if (_IswPlatformAllocColor(dpy, colormap, red, green, blue,
+                                   &result_pixel)) {
             *closure_ret = (char *) True;
             done_string(Pixel, (Pixel) result_pixel, IswRPixel);
         }
@@ -542,7 +540,7 @@ IswCvtStringToPixel(IswDisplay dpy,
 
     {
         unsigned long result_pixel;
-        if (color->alloc_named_color(dpy, colormap, str, &result_pixel)) {
+        if (_IswPlatformAllocNamedColor(dpy, colormap, str, &result_pixel)) {
             *closure_ret = (char *) True;
             done_string(Pixel, (Pixel) result_pixel, IswRPixel);
         }
@@ -553,7 +551,7 @@ IswCvtStringToPixel(IswDisplay dpy,
         String params[1];
 
         params[0] = str;
-        if (color->lookup_color(dpy, colormap, str)) {
+        if (_IswPlatformLookupColor(dpy, colormap, str)) {
             type = "noColormap";
             msg = "Cannot allocate colormap entry for \"%s\"";
         } else {
@@ -591,7 +589,7 @@ FreePixel(IswAppContext app,
     if (closure) {
         IswDisplay dpy = (IswDisplay) _IswConnectionOfScreen(screen);
         unsigned long pixel = *(uint32_t *) toVal->addr;
-        _IswPlatformGetOps()->color->free_colors(dpy, colormap, pixel);
+        _IswPlatformFreeColors(dpy, colormap, pixel);
     }
 }
 
@@ -648,7 +646,7 @@ IswCursor
 _IswLoadThemedCursor(xcb_connection_t *dpy, xcb_screen_t *screen,
                     const char *name, unsigned int shape)
 {
-    return _IswPlatformGetOps()->cursor->load_named(
+    return _IswPlatformLoadNamedCursor(
         (IswDisplay) dpy, (IswScreen) screen, name, shape);
 }
 
@@ -733,7 +731,7 @@ cleanup:
 static IswFontId
 _IswLoadFont(IswDisplay dpy, const char *name)
 {
-    return _IswPlatformGetOps()->font->load_font(dpy, name);
+    return _IswPlatformLoadFont(dpy, name);
 }
 
 /* -----------------------------------------------------------------------
@@ -744,7 +742,7 @@ _IswFreeFont(IswDisplay dpy, IswFontStruct *fs)
 {
     if (fs == NULL) return;
     if (fs->fid != 0)
-        _IswPlatformGetOps()->font->free_font(dpy, fs->fid);
+        _IswPlatformFreeFont(dpy, fs->fid);
     if (fs->font_family)
         IswFree(fs->font_family);
     IswFree((char *) fs);
@@ -889,7 +887,7 @@ FreeCursor(IswAppContext app,
     }
 
     display = *(IswDisplay *) args[0].addr;
-    _IswPlatformGetOps()->cursor->free_cursor(display, *(IswCursor *) toVal->addr);
+    _IswPlatformFreeCursor(display, *(IswCursor *) toVal->addr);
 }
 
 Boolean
@@ -1106,7 +1104,7 @@ FreeFont(IswAppContext app,
     }
 
     display = *(IswDisplay *) args[0].addr;
-    _IswPlatformGetOps()->font->free_font(display, *(IswFontId *) toVal->addr);
+    _IswPlatformFreeFont(display, *(IswFontId *) toVal->addr);
 }
 
 Boolean
@@ -1530,7 +1528,7 @@ IswCvtStringToVisual(IswDisplay dpy, XrmValuePtr args,     /* Screen, depth */
 
     {
         IswScreen screen = *(IswScreen *) args[0].addr;
-        if (_IswPlatformGetOps()->color->match_visual_info(
+        if (_IswPlatformMatchVisualInfo(
                 dpy, screen, (int) *(int *) args[1].addr, vc, &vinfo)) {
             done_string(IswVisual, vinfo.visual, IswRVisual);
         }

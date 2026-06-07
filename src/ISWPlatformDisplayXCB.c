@@ -429,3 +429,210 @@ _IswPlatformConnectionFd(IswDisplay dpy)
         return ops->display->connection_fd(dpy);
     return -1;
 }
+
+/* ---- thin dispatch wrappers (color / font / cursor / grab / selection) ----
+   Toolkit/widget code calls these instead of walking the ops vtable.  Each
+   null-guards the sub-vtable + op (a backend that hasn't filled it degrades to
+   no-op / failure).  Same convention as _IswPlatformConnectionFd. */
+
+/* Color (Phase 4) */
+Boolean
+_IswPlatformQueryColor(IswDisplay dpy, IswColormap cmap,
+                       unsigned long pixel, IswColor *out)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->color && ops->color->query_color)
+        return ops->color->query_color(dpy, cmap, pixel, out);
+    return False;
+}
+
+Boolean
+_IswPlatformAllocColor(IswDisplay dpy, IswColormap cmap,
+                       unsigned short red, unsigned short green,
+                       unsigned short blue, unsigned long *pixel_out)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->color && ops->color->alloc_color)
+        return ops->color->alloc_color(dpy, cmap, red, green, blue, pixel_out);
+    return False;
+}
+
+Boolean
+_IswPlatformAllocNamedColor(IswDisplay dpy, IswColormap cmap,
+                            const char *name, unsigned long *pixel_out)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->color && ops->color->alloc_named_color)
+        return ops->color->alloc_named_color(dpy, cmap, name, pixel_out);
+    return False;
+}
+
+Boolean
+_IswPlatformLookupColor(IswDisplay dpy, IswColormap cmap, const char *name)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->color && ops->color->lookup_color)
+        return ops->color->lookup_color(dpy, cmap, name);
+    return False;
+}
+
+void
+_IswPlatformFreeColors(IswDisplay dpy, IswColormap cmap, unsigned long pixel)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->color && ops->color->free_colors)
+        ops->color->free_colors(dpy, cmap, pixel);
+}
+
+Boolean
+_IswPlatformMatchVisualInfo(IswDisplay dpy, IswScreen screen,
+                            int depth, int visual_class, IswVisualInfo *out)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->color && ops->color->match_visual_info)
+        return ops->color->match_visual_info(dpy, screen, depth,
+                                             visual_class, out);
+    return False;
+}
+
+/* Font (Phase 4) */
+IswFontId
+_IswPlatformLoadFont(IswDisplay dpy, const char *name)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->font && ops->font->load_font)
+        return ops->font->load_font(dpy, name);
+    return 0;
+}
+
+void
+_IswPlatformFreeFont(IswDisplay dpy, IswFontId fid)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->font && ops->font->free_font)
+        ops->font->free_font(dpy, fid);
+}
+
+/* Cursor (Phase 5) */
+IswCursor
+_IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,
+                            const char *name, unsigned int fallback_shape)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->cursor && ops->cursor->load_named)
+        return ops->cursor->load_named(dpy, screen, name, fallback_shape);
+    return 0;
+}
+
+void
+_IswPlatformSetWindowCursor(IswDisplay dpy, IswWindow win, IswCursor cursor)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->cursor && ops->cursor->set_window_cursor)
+        ops->cursor->set_window_cursor(dpy, win, cursor);
+}
+
+void
+_IswPlatformFreeCursor(IswDisplay dpy, IswCursor cursor)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->cursor && ops->cursor->free_cursor)
+        ops->cursor->free_cursor(dpy, cursor);
+}
+
+/* Grabs (Phase 5) */
+int
+_IswPlatformGrabPointer(IswDisplay dpy, IswWindow grab_window,
+                        Boolean owner_events, unsigned int event_mask,
+                        int pointer_mode, int keyboard_mode,
+                        IswWindow confine_to, IswCursor cursor, IswTime time)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->grab && ops->grab->grab_pointer)
+        return ops->grab->grab_pointer(dpy, grab_window, owner_events,
+                                       event_mask, pointer_mode, keyboard_mode,
+                                       confine_to, cursor, time);
+    return -1;
+}
+
+void
+_IswPlatformUngrabPointer(IswDisplay dpy, IswTime time)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->grab && ops->grab->ungrab_pointer)
+        ops->grab->ungrab_pointer(dpy, time);
+}
+
+int
+_IswPlatformGrabKeyboard(IswDisplay dpy, IswWindow grab_window,
+                         Boolean owner_events, int pointer_mode,
+                         int keyboard_mode, IswTime time)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->grab && ops->grab->grab_keyboard)
+        return ops->grab->grab_keyboard(dpy, grab_window, owner_events,
+                                        pointer_mode, keyboard_mode, time);
+    return -1;
+}
+
+void
+_IswPlatformUngrabKeyboard(IswDisplay dpy, IswTime time)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->grab && ops->grab->ungrab_keyboard)
+        ops->grab->ungrab_keyboard(dpy, time);
+}
+
+void
+_IswPlatformGrabButton(IswDisplay dpy, IswWindow grab_window, int button,
+                       unsigned int modifiers, Boolean owner_events,
+                       unsigned int event_mask, int pointer_mode,
+                       int keyboard_mode, IswWindow confine_to, IswCursor cursor)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->grab && ops->grab->grab_button)
+        ops->grab->grab_button(dpy, grab_window, button, modifiers,
+                               owner_events, event_mask, pointer_mode,
+                               keyboard_mode, confine_to, cursor);
+}
+
+void
+_IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
+                    unsigned int modifiers, Boolean owner_events,
+                    int pointer_mode, int keyboard_mode)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->grab && ops->grab->grab_key)
+        ops->grab->grab_key(dpy, grab_window, keycode, modifiers,
+                            owner_events, pointer_mode, keyboard_mode);
+}
+
+/* Selection (Phase 5) */
+void
+_IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
+                              xcb_atom_t selection, IswTime time)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->selection && ops->selection->set_owner)
+        ops->selection->set_owner(dpy, owner, selection, time);
+}
+
+IswWindow
+_IswPlatformGetSelectionOwner(IswDisplay dpy, xcb_atom_t selection)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->selection && ops->selection->get_owner)
+        return ops->selection->get_owner(dpy, selection);
+    return _IswXcbWindowWrap(XCB_NONE);
+}
+
+void
+_IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
+                             xcb_atom_t selection, xcb_atom_t target,
+                             xcb_atom_t property, IswTime time)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->selection && ops->selection->convert)
+        ops->selection->convert(dpy, requestor, selection, target,
+                                property, time);
+}

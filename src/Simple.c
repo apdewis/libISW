@@ -203,7 +203,7 @@ _IswSetWindowCursor(Widget anc, IswCursor cursor)
         anc->core.being_destroyed)
         return;
 
-    _IswPlatformGetOps()->cursor->set_window_cursor(
+    _IswPlatformSetWindowCursor(
         IswDisplayOf(anc), anc->core.window, cursor);
 }
 
@@ -217,7 +217,7 @@ _IswFreeCursor(Widget w, IswCursor cursor)
     if (cursor == None || (xcb_cursor_t) cursor == XCB_CURSOR_NONE)
         return;
 
-    _IswPlatformGetOps()->cursor->free_cursor(IswDisplayOf(w), cursor);
+    _IswPlatformFreeCursor(IswDisplayOf(w), cursor);
 }
 
 /*

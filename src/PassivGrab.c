@@ -614,7 +614,7 @@ MakeGrab(IswServerGrabPtr grab,
     }
 
     if (isKeyboard) {
-        _IswPlatformGetOps()->grab->grab_key(
+        _IswPlatformGrabKey(
             pDisplay(grab), pWindow(grab), (IswKeyCode) grab->keybut,
             grab->modifiers, grab->ownerEvents,
             grab->pointerMode, grab->keyboardMode);
@@ -630,7 +630,7 @@ MakeGrab(IswServerGrabPtr grab,
                 confineTo = _IswXcbWindowWrap(GRABEXT(grab)->confineTo);
             cursor = GRABEXT(grab)->cursor;
         }
-        _IswPlatformGetOps()->grab->grab_button(
+        _IswPlatformGrabButton(
             pDisplay(grab), pWindow(grab), grab->keybut, grab->modifiers,
             grab->ownerEvents, grab->eventMask,
             grab->pointerMode, grab->keyboardMode, confineTo, cursor);
@@ -876,7 +876,6 @@ GrabDevice(Widget widget,
 {
     IswPerDisplayInput pdi;
     int returnVal;
-    const IswPlatformGrabOps *grab = _IswPlatformGetOps()->grab;
 
     IswCheckSubclass(widget, coreWidgetClass,
                     "in IswGrabKeyboard or IswGrabPointer");
@@ -886,12 +885,12 @@ GrabDevice(Widget widget,
     pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     UNLOCK_PROCESS;
     if (!isKeyboard) {
-        returnVal = grab->grab_pointer(
+        returnVal = _IswPlatformGrabPointer(
             IswDisplayOf(widget), IswWindowOf(widget), owner_events,
             (unsigned int) event_mask, pointer_mode, keyboard_mode,
             confine_to, cursor, time);
     } else {
-        returnVal = grab->grab_keyboard(
+        returnVal = _IswPlatformGrabKeyboard(
             IswDisplayOf(widget), IswWindowOf(widget), owner_events,
             pointer_mode, keyboard_mode, time);
     }
@@ -920,7 +919,6 @@ UngrabDevice(Widget widget, IswTime time, Boolean isKeyboard)
 {
     IswPerDisplayInput pdi;
     IswDevice device;
-    const IswPlatformGrabOps *grab = _IswPlatformGetOps()->grab;
     IswDisplay display = IswDisplayOf(widget);
 
     LOCK_PROCESS;
@@ -936,9 +934,9 @@ UngrabDevice(Widget widget, IswTime time, Boolean isKeyboard)
         if (device->grabType != IswPseudoPassiveServerGrab
             && IswIsRealized(widget)) {
             if (isKeyboard)
-                grab->ungrab_keyboard(display, ISW_CURRENT_TIME);
+                _IswPlatformUngrabKeyboard(display, ISW_CURRENT_TIME);
             else
-                grab->ungrab_pointer(display, ISW_CURRENT_TIME);
+                _IswPlatformUngrabPointer(display, ISW_CURRENT_TIME);
         }
         device->grabType = IswNoServerGrab;
         pdi->activatingKey = (xcb_keycode_t) 0;

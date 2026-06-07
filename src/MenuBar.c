@@ -440,7 +440,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     /* X server pointer grab — delivers all button events (scroll, outside
      * clicks) to the menu window. Same technique as GTK/Motif popups. */
     if (IswIsRealized(menu)) {
-        _IswPlatformGetOps()->grab->grab_pointer(
+        _IswPlatformGrabPointer(
             IswDisplayOf(menu), IswWindowOf(menu), True,
             XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
             XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
@@ -484,7 +484,7 @@ CloseMenu(MenuBarWidget mbw)
     menu = mbw->menu_bar.active_menu;
     button = mbw->menu_bar.active_button;
 
-    _IswPlatformGetOps()->grab->ungrab_pointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
+    _IswPlatformUngrabPointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
     xcb_flush(_IswXcbConn(IswDisplayOf((Widget)mbw)));
 
     /* Remove click-outside handler */
@@ -519,7 +519,7 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
     Widget old_menu = mbw->menu_bar.active_menu;
     Widget toplevel;
 
-    _IswPlatformGetOps()->grab->ungrab_pointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
+    _IswPlatformUngrabPointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
     xcb_flush(_IswXcbConn(IswDisplayOf((Widget)mbw)));
 
     /* Remove popdown callback and click-outside handler from old menu */
@@ -562,7 +562,7 @@ MenuPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
 
     button = mbw->menu_bar.active_button;
 
-    _IswPlatformGetOps()->grab->ungrab_pointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
+    _IswPlatformUngrabPointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
     xcb_flush(_IswXcbConn(IswDisplayOf((Widget)mbw)));
 
     /* Remove click-outside handler */

@@ -262,7 +262,7 @@ _LabelForegroundHex(LabelWidget lw, char *hex, size_t hex_size)
     IswColor c;
 
     hex[0] = '\0';
-    if (_IswPlatformGetOps()->color->query_color(dpy, cmap, pixel, &c)) {
+    if (_IswPlatformQueryColor(dpy, cmap, pixel, &c)) {
 	snprintf(hex, hex_size, "#%02X%02X%02X",
 		 c.red >> 8, c.green >> 8, c.blue >> 8);
     }
