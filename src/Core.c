@@ -107,7 +107,7 @@ parameter is not passed through to the IswRCallProc routines */
     {IswNdepth, IswCDepth, IswRInt, sizeof(int),
      IswOffsetOf(CoreRec, core.depth),
      IswRCallProc, (IswPointer) _IswCopyFromParent},
-    {IswNcolormap, IswCColormap, IswRColormap, sizeof(xcb_colormap_t),
+    {IswNcolormap, IswCColormap, IswRColormap, sizeof(IswColormap),
      IswOffsetOf(CoreRec, core.colormap),
      IswRCallProc, (IswPointer) _IswCopyFromParent},
     {IswNbackground, IswCBackground, IswRPixel, sizeof(Pixel),
@@ -322,7 +322,7 @@ CoreRealize(xcb_connection_t *display,
         return;
     }
     IswCreateWindow(display, widget, (unsigned int) XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                   (xcb_visualtype_t *) CopyFromParent, *value_mask, attributes);
+                   (IswVisual) CopyFromParent, *value_mask, attributes);
 }                               /* CoreRealize */
 
 static void
@@ -408,7 +408,7 @@ CoreSetValues(Widget old,
         }
         if (old->core.colormap != new->core.colormap) {
             window_mask |= XCB_CW_COLORMAP;
-            values[vi++] = new->core.colormap;
+            values[vi++] = _IswXcbColormap(new->core.colormap);
         }
         
         if (window_mask != 0) {

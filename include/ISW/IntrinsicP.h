@@ -305,7 +305,7 @@ extern void IswCreateWindow(
     xcb_connection_t *,
     Widget 		/* widget */,
     unsigned int 	/* window_class */,
-    xcb_visualtype_t*		/* visual */,
+    IswVisual		/* visual */,
     IswValueMask		/* value_mask */,
     uint32_t* /* attributes */
 );

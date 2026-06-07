@@ -91,21 +91,16 @@ LoadImage(Widget w, const char *source)
     LabelWidget lw = (LabelWidget) w;
     float dpi = (float)(96.0 * ISWScaleFactor(w));
     char fg_hex[8];
-    xcb_connection_t *conn = _IswXcbConn(w->core.display);
-    xcb_colormap_t cmap = w->core.colormap;
-    uint32_t pixel = (uint32_t)lw->label.foreground;
+    IswDisplay dpy = w->core.display;
+    IswColormap cmap = w->core.colormap;
+    unsigned long pixel = (unsigned long)lw->label.foreground;
     const char *color = NULL;
+    IswColor c;
 
-    xcb_query_colors_cookie_t cookie = xcb_query_colors(conn, cmap, 1, &pixel);
-    xcb_query_colors_reply_t *reply = xcb_query_colors_reply(conn, cookie, NULL);
-    if (reply) {
-        xcb_rgb_t *colors = xcb_query_colors_colors(reply);
-        if (xcb_query_colors_colors_length(reply) > 0) {
-            snprintf(fg_hex, sizeof(fg_hex), "#%02X%02X%02X",
-                     colors[0].red >> 8, colors[0].green >> 8, colors[0].blue >> 8);
-            color = fg_hex;
-        }
-        free(reply);
+    if (_IswPlatformGetOps()->color->query_color(dpy, cmap, pixel, &c)) {
+        snprintf(fg_hex, sizeof(fg_hex), "#%02X%02X%02X",
+                 c.red >> 8, c.green >> 8, c.blue >> 8);
+        color = fg_hex;
     }
     return ISWImageLoad(source, (double)dpi, color);
 }

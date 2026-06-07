@@ -259,6 +259,57 @@ struct _IswPlatformInputOps {
 
 /*
  * =================================================================
+ * Color ops (Phase 4)
+ * =================================================================
+ *
+ * Colormap-based pixel<->RGB allocation, named-color allocation/lookup, pixel
+ * release, and visual matching.  Neutral: IswColormap / IswColor /
+ * IswVisualInfo, no xcb color/visual types.  Pixel values are the server's
+ * numeric pixel (unsigned long), X11-compatible, carried opaquely.
+ */
+struct _IswPlatformColorOps {
+    /* Pixel -> RGB via the colormap.  Fills out->{pixel,red,green,blue,flags}.
+       Returns False if the query fails. */
+    Boolean (*query_color)(IswDisplay dpy, IswColormap cmap,
+                           unsigned long pixel, IswColor *out);
+    /* Allocate the closest available cell for an RGB triple (16-bit each).
+       *pixel_out receives the allocated pixel.  Returns False on failure. */
+    Boolean (*alloc_color)(IswDisplay dpy, IswColormap cmap,
+                           unsigned short red, unsigned short green,
+                           unsigned short blue, unsigned long *pixel_out);
+    /* Allocate a cell for a named color.  Returns False on failure. */
+    Boolean (*alloc_named_color)(IswDisplay dpy, IswColormap cmap,
+                                 const char *name, unsigned long *pixel_out);
+    /* Is `name` a color the server knows (independent of allocation success)? */
+    Boolean (*lookup_color)(IswDisplay dpy, IswColormap cmap, const char *name);
+    /* Release a previously allocated pixel. */
+    void (*free_colors)(IswDisplay dpy, IswColormap cmap, unsigned long pixel);
+    /* Find a visual of `depth` and `visual_class` on `screen`.  Fills `out`.
+       Returns False if none matches. */
+    Boolean (*match_visual_info)(IswDisplay dpy, IswScreen screen,
+                                 int depth, int visual_class,
+                                 IswVisualInfo *out);
+};
+
+/*
+ * =================================================================
+ * Font ops (Phase 4)
+ * =================================================================
+ *
+ * Core server-font open/close by name (the legacy IswRFont representation).
+ * The toolkit's real text path is fontconfig/FreeType metrics (no server
+ * coupling) and lives in the converters; these ops cover only the core
+ * xcb_font_t handle still carried by IswFontStruct.fid.
+ */
+struct _IswPlatformFontOps {
+    /* Open a core server font by name; returns 0 if not found. */
+    IswFontId (*load_font)(IswDisplay dpy, const char *name);
+    /* Close a core server font id (no-op for 0). */
+    void (*free_font)(IswDisplay dpy, IswFontId fid);
+};
+
+/*
+ * =================================================================
  * Platform operations vtable
  * =================================================================
  *

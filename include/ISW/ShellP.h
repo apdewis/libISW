@@ -117,7 +117,7 @@ typedef struct {
 
 	IswCallbackList popup_callback;
 	IswCallbackList popdown_callback;
-	xcb_visualid_t visual;
+	IswVisualId visual;
 } ShellPart;
 
 typedef  struct {

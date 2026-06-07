@@ -186,7 +186,7 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
     }
 
     IswCreateWindow(_IswXcbConn(IswDisplayOf(w)), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                   (xcb_visualtype_t *)CopyFromParent, *valueMask, attributes);
+                   (IswVisual)CopyFromParent, *valueMask, attributes);
 }
 
 /*

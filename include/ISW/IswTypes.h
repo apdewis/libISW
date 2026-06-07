@@ -40,6 +40,17 @@ typedef uint32_t IswKeySym;
 #define IswNoSymbol ((IswKeySym) 0)
 #endif
 
+/* Neutral color/font/visual handles (full ops in ISW/ISWPlatform.h).  Value
+   handles: each IS the native id/pointer reinterpreted by the backend (like
+   IswWindow), so seam conversions are plain casts.  Carry no xcb dependency.
+   Defined here (the earliest-included types header) so the IswColor /
+   IswVisualInfo / IswFontStruct structs below can embed them.  Phase 4. */
+typedef uintptr_t IswColormap;   /* colormap id (value handle)            */
+typedef uintptr_t IswFontId;     /* core font id (value handle), 0 = none */
+typedef void     *IswVisual;     /* a visual (value handle over the native
+                                    visual type)                          */
+typedef uint32_t  IswVisualId;   /* a visual id                           */
+
 /* Must match IswValueMask (unsigned long) to avoid pointer type conflicts. */
 #ifndef Mask
 typedef unsigned long Mask;
@@ -147,8 +158,8 @@ typedef struct {
     long          event_mask;
     long          do_not_propagate_mask;
     Bool          override_redirect;
-    xcb_colormap_t colormap;
-    xcb_cursor_t  cursor;
+    IswColormap   colormap;
+    xcb_cursor_t  cursor;           /* cursor handle: Phase 5 */
 } IswSetWindowAttributes;
 #endif
 
@@ -240,8 +251,8 @@ typedef struct {
 typedef IswColor IswColor;
 
 typedef struct {
-    xcb_visualtype_t *visual;
-    xcb_visualid_t    visualid;
+    IswVisual         visual;
+    IswVisualId       visualid;
     int               screen;
     int               depth;
     int               class;
@@ -254,7 +265,7 @@ typedef struct {
 typedef IswVisualInfo IswVisualInfo;
 
 typedef struct _IswFontStruct {
-    xcb_font_t      fid;
+    IswFontId       fid;
     unsigned        direction;
     unsigned        min_char_or_byte2;
     unsigned        max_char_or_byte2;

@@ -20,7 +20,7 @@ which phase is current, what is done, what is deferred and why.
 - Any future session reads this file first to know exactly where the
   abstraction stands.
 
-**Current phase:** 4 — `IswColor` + `IswFont` (not started)
+**Current phase:** 5 — `IswSelection`, `IswCursor`, grabs (not started)
 
 ## Phase table
 
@@ -30,7 +30,7 @@ which phase is current, what is done, what is deferred and why.
 | 1 | Portable event union + `IswEvent` (unblocks the rest) | done | `IswEvent.h`, `ISWPlatformEventXCB.c`, Event.c, TMstate.c, TMaction.c, +~30 widget files |
 | 2 | `IswDisplay` + `IswWindow` (core widget lifecycle) | done | ISWPlatform.h, ISWPlatformDisplayXCB.c, ISWPlatformPrivate.h, CoreP.h, Intrinsic.h + ~80 files |
 | 3 | `IswInput` + translation manager | done | Keyboard.c, Pointer.c, XtTypes.h, TMparse.c, TMstate.c, TMaction.c, TMgrab.c |
-| 4 | `IswColor` + `IswFont` | todo | Converters.c, Core.c, Display.c, TextSink.c |
+| 4 | `IswColor` + `IswFont` | done | ISWPlatform.h, ISWPlatformColorFontXCB.c, Converters.c, IswTypes.h, CoreP.h, Core.c |
 | 5 | `IswSelection`, `IswCursor`, grabs | todo | Selection.c, PassivGrab.c, TMgrab.c, Tip.c, Panner.c, Simple.c |
 | 6 | Atoms + properties | todo | ISWAtoms.c, Shell.c, Vendor.c, SetWMCW.c |
 | 7 | `IswDragDrop` (XDND refactor) | todo | ISWXdnd.c, ISWXdnd.h |
@@ -232,6 +232,34 @@ Color alloc/free by name/RGB and colormap/visual handling behind
 
 Files: Converters.c, Core.c, Display.c, TextSink.c.
 
+**Done** (build green, demo verified). Scope manifest: `docs/PHASE4_SCOPE.md`.
+
+- Neutral handles in `IswTypes.h`: `IswColormap`/`IswFontId` (value handles
+  over the native id) and `IswVisual`/`IswVisualId`. `IswColor`/`IswVisualInfo`/
+  `IswFontStruct` struct names were already neutral; their embedded xcb field
+  types (`xcb_visualtype_t*`, `xcb_visualid_t`, `xcb_font_t`, `xcb_colormap_t`)
+  are now the handles.
+- `IswPlatformColorOps` (query/alloc/alloc-named/lookup/free color +
+  match_visual_info) and `IswPlatformFontOps` (load/free core font) added to
+  `ISWPlatform.h`; backend `src/ISWPlatformColorFontXCB.c` implements them and
+  is wired into `isw_platform_xcb_ops.color`/`.font`. The
+  `_IswXcbColormap`/`_IswXcbFontId`/`_IswXcbVisual` value-cast seam helpers join
+  the internal seam.
+- `Converters.c` color/named-color/visual/font converters route through the ops;
+  `_IswMatchVisualInfo` moved into the backend. Pixel→RGB inline queries in
+  `Label.c`/`ToggleButton.c`/`IconView.c` now call `color->query_color`.
+- Type-only flips: `CoreP.h core.colormap` → `IswColormap` (with matching
+  resource `sizeof` in `Core.c`/`Vendor.c`/`Converters.c` — these MUST move
+  together or the resource copy corrupts the field), `ShellP.h visual` →
+  `IswVisualId`, `IswCreateWindow` visual param → `IswVisual`
+  (`IntrinsicP.h`/`Intrinsic.c`/`Core.c`/`Simple.c`), `Resources.c` default
+  colormap.
+- The fontconfig/FreeType metrics path (the real text loader) was already
+  XCB-free and is unchanged. Cursor-font path and `xcb_create_colormap` in the
+  tray/XDND backends stay on the seam (Phases 5/7). Pixmaps stay xcb (render
+  layer). No xcb color/font/visual TYPE remains in any `include/ISW/` header;
+  libISW.so keeps no direct libX11 NEEDED.
+
 ### Phase 5 — `IswSelection`, `IswCursor`, grabs
 
 Clipboard/selection transfer, symbolic-cursor creation/set/free, and
@@ -282,3 +310,14 @@ Depends on Phases 1, 2, 5. Files: ISWXdnd.c, ISWXdnd.h.
   moved to TranslateI.h (backend-internal).  No xcb keysym/keycode types in
   public headers.  Keysym cache stays in TMkey.c.  Typing/Tab/special-keys
   verified.  No direct libX11 NEEDED entry.
+- Phase 4 done (build green, demo verified): neutral `IswColormap`/`IswFontId`/
+  `IswVisual`/`IswVisualId` value handles + `IswPlatformColorOps`/
+  `IswPlatformFontOps` (`ISWPlatformColorFontXCB.c`).  Converters.c color/
+  named-color/visual/font paths and the `Label`/`Toggle`/`IconView` pixel→RGB
+  queries route through the ops; `_IswMatchVisualInfo` moved into the backend.
+  `core.colormap` and resource sizes flipped together (`CoreP.h`/`Core.c`/
+  `Vendor.c`/`Converters.c`); `ShellP.h visual` → `IswVisualId`; `IswCreateWindow`
+  visual param → `IswVisual`.  Fontconfig/FreeType metrics path unchanged
+  (already XCB-free).  Cursors + `xcb_create_colormap` (tray/XDND) stay on the
+  seam (Phases 5/7); pixmaps stay xcb (render layer).  No xcb color/font/visual
+  types in public headers.  No direct libX11 NEEDED entry.

@@ -256,24 +256,15 @@ ClassInitialize(void)
 static Boolean
 _LabelForegroundHex(LabelWidget lw, char *hex, size_t hex_size)
 {
-    xcb_connection_t *conn = _IswXcbConn(((Widget)lw)->core.display);
-    xcb_colormap_t cmap = ((Widget)lw)->core.colormap;
-    uint32_t pixel = (uint32_t)lw->label.foreground;
-    xcb_query_colors_cookie_t cookie;
-    xcb_query_colors_reply_t *reply;
+    IswDisplay dpy = ((Widget)lw)->core.display;
+    IswColormap cmap = ((Widget)lw)->core.colormap;
+    unsigned long pixel = (unsigned long)lw->label.foreground;
+    IswColor c;
 
     hex[0] = '\0';
-    cookie = xcb_query_colors(conn, cmap, 1, &pixel);
-    reply = xcb_query_colors_reply(conn, cookie, NULL);
-    if (reply) {
-	xcb_rgb_t *colors = xcb_query_colors_colors(reply);
-	if (xcb_query_colors_colors_length(reply) > 0) {
-	    snprintf(hex, hex_size, "#%02X%02X%02X",
-		     colors[0].red >> 8,
-		     colors[0].green >> 8,
-		     colors[0].blue >> 8);
-	}
-	free(reply);
+    if (_IswPlatformGetOps()->color->query_color(dpy, cmap, pixel, &c)) {
+	snprintf(hex, hex_size, "#%02X%02X%02X",
+		 c.red >> 8, c.green >> 8, c.blue >> 8);
     }
     return hex[0] != '\0';
 }

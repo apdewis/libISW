@@ -395,6 +395,8 @@ static const IswPlatformWindowOps xcb_window_ops = {
 /* ---- backend vtable + dispatcher ----------------------------------------- */
 
 extern const IswPlatformInputOps isw_platform_xcb_input_ops; /* ISWPlatformInputXCB.c */
+extern const IswPlatformColorOps isw_platform_xcb_color_ops; /* ISWPlatformColorFontXCB.c */
+extern const IswPlatformFontOps  isw_platform_xcb_font_ops;  /* ISWPlatformColorFontXCB.c */
 
 const IswPlatformOps isw_platform_xcb_ops = {
     .display   = &xcb_display_ops,
@@ -402,8 +404,8 @@ const IswPlatformOps isw_platform_xcb_ops = {
     .event     = NULL,   /* Phase 1 translator is standalone for now */
     .input     = &isw_platform_xcb_input_ops,
     .selection = NULL,
-    .color     = NULL,
-    .font      = NULL,
+    .color     = &isw_platform_xcb_color_ops,
+    .font      = &isw_platform_xcb_font_ops,
     .cursor    = NULL,
 };
 

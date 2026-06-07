@@ -231,7 +231,7 @@ ComputeWindowAttributes(Widget widget,
 
     /* XCB_CW_COLORMAP (bit 13) */
     mask |= XCB_CW_COLORMAP;
-    values[value_index++] = widget->core.colormap;
+    values[value_index++] = _IswXcbColormap(widget->core.colormap);
 
     *value_mask = mask;
 }                               /* ComputeWindowAttributes */
@@ -613,10 +613,11 @@ void
 IswCreateWindow(xcb_connection_t *display,
                Widget widget,
                unsigned int window_class,
-               xcb_visualtype_t *visual,
+               IswVisual visual,
                IswValueMask value_mask,
                uint32_t *attributes)
 {
+    xcb_visualtype_t *vis = _IswXcbVisual(visual);
     IswAppContext app = IswWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
@@ -677,7 +678,7 @@ IswCreateWindow(xcb_connection_t *display,
                 (uint16_t)(widget->core.height * _sf + 0.5),
                 (uint16_t)(widget->core.border_width * _sf + 0.5),
                 window_class,
-                visual ? visual->visual_id : XCB_COPY_FROM_PARENT,
+                vis ? vis->visual_id : XCB_COPY_FROM_PARENT,
                 value_mask,
                 (const uint32_t*)attributes);
             xcb_generic_error_t *err = xcb_request_check(display, cookie);

@@ -411,7 +411,7 @@ IswConvertArgRec const colorConvertArgs[] = {
     {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
      sizeof(xcb_screen_t *)},
     {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.colormap),
-     sizeof(xcb_colormap_t)}
+     sizeof(IswColormap)}
 };
 /* *INDENT-ON* */
 
@@ -423,8 +423,8 @@ IswCvtIntToColor(IswDisplay dpy,
                 XrmValuePtr toVal,
                 IswPointer *closure_ret _X_UNUSED)
 {
-    xcb_connection_t *conn = _IswXcbConn(dpy);
-    xcb_colormap_t colormap;
+    const IswPlatformColorOps *color = _IswPlatformGetOps()->color;
+    IswColormap colormap;
 
     if (*num_args != 2) {
         IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
@@ -434,25 +434,14 @@ IswCvtIntToColor(IswDisplay dpy,
                         NULL, NULL);
         return False;
     }
-    colormap = *((xcb_colormap_t *) args[1].addr);
+    colormap = *((IswColormap *) args[1].addr);
 
     {
-        xcb_query_colors_cookie_t qc_cookie;
-        xcb_query_colors_reply_t *qc_reply;
-        uint32_t pixel = (uint32_t) (*(int *) fromVal->addr);
+        unsigned long pixel = (unsigned long) (uint32_t) (*(int *) fromVal->addr);
         IswColor c;
 
-        qc_cookie = xcb_query_colors(conn, colormap, 1, &pixel);
-        qc_reply = xcb_query_colors_reply(conn, qc_cookie, NULL);
-        if (qc_reply == NULL) return False;
-
-        xcb_rgb_t *rgb = xcb_query_colors_colors(qc_reply);
-        c.pixel = pixel;
-        c.red   = rgb[0].red;
-        c.green = rgb[0].green;
-        c.blue  = rgb[0].blue;
-        c.flags = DoRed | DoGreen | DoBlue;
-        free(qc_reply);
+        if (!color->query_color(dpy, colormap, pixel, &c))
+            return False;
         done_typed(IswColor, c);
     }
 }
@@ -465,11 +454,11 @@ IswCvtStringToPixel(IswDisplay dpy,
                    XrmValuePtr toVal,
                    IswPointer *closure_ret)
 {
-    xcb_connection_t *conn = _IswXcbConn(dpy);
+    const IswPlatformColorOps *color = _IswPlatformGetOps()->color;
     String str = (String) fromVal->addr;
     xcb_screen_t *screen;
     IswPerDisplay pd = _IswGetPerDisplay(dpy);
-    xcb_colormap_t colormap;
+    IswColormap colormap;
     Cardinal num_params = 1;
 
     if (*num_args != 2) {
@@ -481,7 +470,7 @@ IswCvtStringToPixel(IswDisplay dpy,
     }
 
     screen = *((xcb_screen_t **) args[0].addr);
-    colormap = *((xcb_colormap_t *) args[1].addr);
+    colormap = *((IswColormap *) args[1].addr);
 
     if (CompareISOLatin1(str, IswDefaultBackground) == 0) {
         *closure_ret = NULL;
@@ -534,16 +523,11 @@ IswCvtStringToPixel(IswDisplay dpy,
             return False;
         }
 
-        xcb_alloc_color_cookie_t ac_cookie =
-            xcb_alloc_color(conn, colormap, red, green, blue);
-        xcb_alloc_color_reply_t *ac_reply =
-            xcb_alloc_color_reply(conn, ac_cookie, NULL);
-
-        if (ac_reply != NULL) {
+        unsigned long result_pixel;
+        if (color->alloc_color(dpy, colormap, red, green, blue,
+                               &result_pixel)) {
             *closure_ret = (char *) True;
-            Pixel result_pixel = ac_reply->pixel;
-            free(ac_reply);
-            done_string(Pixel, result_pixel, IswRPixel);
+            done_string(Pixel, (Pixel) result_pixel, IswRPixel);
         }
 
         String params[1];
@@ -557,32 +541,19 @@ IswCvtStringToPixel(IswDisplay dpy,
     }
 
     {
-        size_t name_len = strlen(str);
-        xcb_alloc_named_color_cookie_t anc_cookie =
-            xcb_alloc_named_color(conn, colormap, (uint16_t) name_len, str);
-        xcb_alloc_named_color_reply_t *anc_reply =
-            xcb_alloc_named_color_reply(conn, anc_cookie, NULL);
-
-        if (anc_reply != NULL) {
+        unsigned long result_pixel;
+        if (color->alloc_named_color(dpy, colormap, str, &result_pixel)) {
             *closure_ret = (char *) True;
-            Pixel result_pixel = anc_reply->pixel;
-            free(anc_reply);
-            done_string(Pixel, result_pixel, IswRPixel);
+            done_string(Pixel, (Pixel) result_pixel, IswRPixel);
         }
 
         /* Allocation failed — check if name is valid */
-        xcb_lookup_color_cookie_t lc_cookie =
-            xcb_lookup_color(conn, colormap, (uint16_t) name_len, str);
-        xcb_lookup_color_reply_t *lc_reply =
-            xcb_lookup_color_reply(conn, lc_cookie, NULL);
-
         _Xconst _IswString msg;
         _Xconst _IswString type;
         String params[1];
 
         params[0] = str;
-        if (lc_reply != NULL) {
-            free(lc_reply);
+        if (color->lookup_color(dpy, colormap, str)) {
             type = "noColormap";
             msg = "Cannot allocate colormap entry for \"%s\"";
         } else {
@@ -605,7 +576,7 @@ FreePixel(IswAppContext app,
           Cardinal *num_args)
 {
     xcb_screen_t *screen;
-    xcb_colormap_t colormap;
+    IswColormap colormap;
 
     if (*num_args != 2) {
         IswAppWarningMsg(app, IswNwrongParameters, "freePixel", IswCIswToolkitError,
@@ -615,14 +586,12 @@ FreePixel(IswAppContext app,
     }
 
     screen = *((xcb_screen_t **) args[0].addr);
-    colormap = *((xcb_colormap_t *) args[1].addr);
+    colormap = *((IswColormap *) args[1].addr);
 
     if (closure) {
-        xcb_connection_t *dpy = _IswConnectionOfScreen(screen);
-        if (dpy != NULL && xcb_connection_has_error(dpy) == 0) {
-            uint32_t pixel = *(uint32_t *) toVal->addr;
-            xcb_free_colors(dpy, colormap, 0, 1, &pixel);
-        }
+        IswDisplay dpy = (IswDisplay) _IswConnectionOfScreen(screen);
+        unsigned long pixel = *(uint32_t *) toVal->addr;
+        _IswPlatformGetOps()->color->free_colors(dpy, colormap, pixel);
     }
 }
 
@@ -643,7 +612,7 @@ FetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED, XrmValue *value)
            so aborting is the only useful option */
     }
     else {
-        static xcb_connection_t *_fetch_dpy;
+        static IswDisplay _fetch_dpy;
         Boolean isWidget = IswIsWidget(widget);
         if (!isWidget) {
             Widget parent = IswParent(widget);
@@ -651,8 +620,8 @@ FetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED, XrmValue *value)
             }
         } else {
         }
-        _fetch_dpy = _IswXcbConn(IswDisplayOfObject(widget));
-        value->size = sizeof(xcb_connection_t *);
+        _fetch_dpy = IswDisplayOfObject(widget);
+        value->size = sizeof(IswDisplay);
         value->addr = (IswPointer) &_fetch_dpy;
     }
 }
@@ -791,67 +760,28 @@ cleanup:
 /* -----------------------------------------------------------------------
  * XCB replacement for XLoadFont(display, name)
  * ----------------------------------------------------------------------- */
-static xcb_font_t
-_IswLoadFont(xcb_connection_t *dpy, const char *name)
+static IswFontId
+_IswLoadFont(IswDisplay dpy, const char *name)
 {
-    
-    xcb_font_t fid = xcb_generate_id(dpy);
-    xcb_void_cookie_t cookie = xcb_open_font_checked(dpy, fid,
-                                                      (uint16_t) strlen(name), name);
-    xcb_generic_error_t *err = xcb_request_check(dpy, cookie);
-    if (err != NULL) {
-        free(err);
-        return 0; /* font not found */
-    }
-    return (xcb_font_t) fid;
+    return _IswPlatformGetOps()->font->load_font(dpy, name);
 }
 
 /* -----------------------------------------------------------------------
  * XCB replacement for XFreeFont(display, fontstruct)
  * ----------------------------------------------------------------------- */
 static void
-_IswFreeFont(xcb_connection_t *dpy, IswFontStruct *fs)
+_IswFreeFont(IswDisplay dpy, IswFontStruct *fs)
 {
     if (fs == NULL) return;
     if (fs->fid != 0)
-        xcb_close_font(dpy, fs->fid);
+        _IswPlatformGetOps()->font->free_font(dpy, fs->fid);
     if (fs->font_family)
         IswFree(fs->font_family);
     IswFree((char *) fs);
 }
 
-/* -----------------------------------------------------------------------
- * XCB replacement for XMatchVisualInfo(display, screen_num, depth, class, vinfo)
- * Iterates the screen's allowed depths/visuals to find a matching visual.
- * ----------------------------------------------------------------------- */
-static Bool
-_IswMatchVisualInfo(xcb_connection_t *dpy _X_UNUSED,
-                   xcb_screen_t *screen,
-                   int depth, int class,
-                   IswVisualInfo *vinfo_return)
-{
-    xcb_depth_iterator_t depth_iter = xcb_screen_allowed_depths_iterator(screen);
-    for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
-        if (depth_iter.data->depth != depth) continue;
-        xcb_visualtype_iterator_t vis_iter =
-            xcb_depth_visuals_iterator(depth_iter.data);
-        for (; vis_iter.rem; xcb_visualtype_next(&vis_iter)) {
-            if (vis_iter.data->_class == class) {
-                vinfo_return->visual    = vis_iter.data;
-                vinfo_return->visualid  = vis_iter.data->visual_id;
-                vinfo_return->depth     = depth;
-                vinfo_return->class     = class;
-                vinfo_return->red_mask  = vis_iter.data->red_mask;
-                vinfo_return->green_mask = vis_iter.data->green_mask;
-                vinfo_return->blue_mask = vis_iter.data->blue_mask;
-                vinfo_return->colormap_size = vis_iter.data->colormap_entries;
-                vinfo_return->bits_per_rgb  = vis_iter.data->bits_per_rgb_value;
-                return True;
-            }
-        }
-    }
-    return False;
-}
+/* XMatchVisualInfo equivalent now lives in the color/font backend
+   (ISWPlatformColorFontXCB.c) behind the match_visual_info op.  Phase 4. */
 
 Boolean
 IswCvtStringToCursor(IswDisplay dpy,
@@ -1117,8 +1047,8 @@ IswCvtStringToFont(IswDisplay dpy,
                   XrmValuePtr toVal,
                   IswPointer *closure_ret _X_UNUSED)
 {
-    xcb_font_t f;
-    xcb_connection_t *display;
+    IswFontId f;
+    IswDisplay display;
 
     if (*num_args != 1) {
         IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
@@ -1129,14 +1059,14 @@ IswCvtStringToFont(IswDisplay dpy,
         return False;
     }
 
-    display = *(xcb_connection_t **) args[0].addr;
+    display = *(IswDisplay *) args[0].addr;
 
 
     if (CompareISOLatin1((String) fromVal->addr, IswDefaultFont) != 0) {
         f = _IswLoadFont(display, (char *) fromVal->addr);
 
         if (f != 0) {
- Done:     done_string(xcb_font_t, f, IswRFont);
+ Done:     done_string(IswFontId, f, IswRFont);
         }
         IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRFont);
     } else {
@@ -1165,7 +1095,7 @@ IswCvtStringToFont(IswDisplay dpy,
                                                      IswRFont);
             }
             else if (rep_type == IswQFont) {
-                f = *(xcb_font_t *) value.addr;
+                f = *(IswFontId *) value.addr;
                 goto Done;
             }
             else if (rep_type == IswQFontStruct) {
@@ -1196,7 +1126,7 @@ FreeFont(IswAppContext app,
          XrmValuePtr args,
          Cardinal *num_args)
 {
-    xcb_connection_t *display;
+    IswDisplay display;
 
     if (*num_args != 1) {
         IswAppWarningMsg(app,
@@ -1205,8 +1135,8 @@ FreeFont(IswAppContext app,
         return;
     }
 
-    display = *(xcb_connection_t **) args[0].addr;
-    xcb_close_font(display, (xcb_font_t) *(xcb_font_t *) toVal->addr);
+    display = *(IswDisplay *) args[0].addr;
+    _IswPlatformGetOps()->font->free_font(display, *(IswFontId *) toVal->addr);
 }
 
 Boolean
@@ -1222,7 +1152,7 @@ IswCvtIntToFont(IswDisplay dpy,
                         IswNwrongParameters, "cvtIntToFont", IswCIswToolkitError,
                         "Integer to Font conversion needs no extra arguments",
                         NULL, NULL);
-    done(xcb_font_t, *(int *) fromVal->addr);
+    done(IswFontId, *(int *) fromVal->addr);
 }
 
 Boolean
@@ -1234,7 +1164,7 @@ IswCvtStringToFontStruct(IswDisplay dpy,
                         IswPointer *closure_ret _X_UNUSED)
 {
     IswFontStruct *f;
-    xcb_connection_t *display;
+    IswDisplay display;
 
     if (*num_args != 1) {
         IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
@@ -1245,7 +1175,7 @@ IswCvtStringToFontStruct(IswDisplay dpy,
         return False;
     }
 
-    display = *(xcb_connection_t **) args[0].addr;
+    display = *(IswDisplay *) args[0].addr;
 
     if (CompareISOLatin1((String) fromVal->addr, IswDefaultFont) != 0) {
         f = _IswLoadFontconfigFont((const char *) fromVal->addr);
@@ -1301,7 +1231,7 @@ FreeFontStruct(IswAppContext app,
                XrmValuePtr args,
                Cardinal *num_args)
 {
-    xcb_connection_t *display;
+    IswDisplay display;
 
     if (*num_args != 1) {
         IswAppWarningMsg(app,
@@ -1311,7 +1241,7 @@ FreeFontStruct(IswAppContext app,
         return;
     }
 
-    display = *(xcb_connection_t **) args[0].addr;
+    display = *(IswDisplay *) args[0].addr;
     _IswFreeFont(display, *(IswFontStruct **) toVal->addr);
 }
 
@@ -1629,10 +1559,10 @@ IswCvtStringToVisual(IswDisplay dpy, XrmValuePtr args,     /* Screen, depth */
     }
 
     {
-        xcb_screen_t *screen = *(xcb_screen_t **) args[0].addr;
-        if (_IswMatchVisualInfo(conn, screen,
-                               (int) *(int *) args[1].addr, vc, &vinfo)) {
-            done_string(xcb_visualtype_t *, vinfo.visual, IswRVisual);
+        IswScreen screen = *(IswScreen *) args[0].addr;
+        if (_IswPlatformGetOps()->color->match_visual_info(
+                dpy, screen, (int) *(int *) args[1].addr, vc, &vinfo)) {
+            done_string(IswVisual, vinfo.visual, IswRVisual);
         }
         else {
             String params[2];

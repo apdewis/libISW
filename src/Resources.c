@@ -109,12 +109,13 @@ _IswCopyFromParent(Widget widget, int offset, XrmValue *value)
         /* Toplevel shell — no parent to copy from.
          * Supply screen defaults for depth and colormap. */
         static int default_depth;
-        static xcb_colormap_t default_colormap;
+        static IswColormap default_colormap;
         int colormap_offset = (int) IswOffsetOf(CoreRec, core.colormap);
         int depth_offset = (int) IswOffsetOf(CoreRec, core.depth);
 
         if (offset == colormap_offset && widget->core.screen != NULL) {
-            default_colormap = _IswXcbScreen(widget->core.screen)->default_colormap;
+            default_colormap = _IswXcbColormapWrap(
+                _IswXcbScreen(widget->core.screen)->default_colormap);
             value->addr = (IswPointer) &default_colormap;
             return;
         }

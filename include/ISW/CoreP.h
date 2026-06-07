@@ -93,7 +93,7 @@ typedef struct _CorePart {
     String          name;		/* widget resource name		     */
     IswScreen	    screen;		/* window's screen (opaque handle)   */
     IswDisplay      display;        /* window's display (opaque handle)  */
-    xcb_colormap_t  colormap;           /* colormap (Phase 4)                */
+    IswColormap     colormap;           /* colormap (opaque handle)          */
     IswWindow	    window;		/* window (opaque handle)	     */
     Cardinal        depth;		/* number of planes in window        */
     Pixel	    background_pixel;	/* window background pixel	     */

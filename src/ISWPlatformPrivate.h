@@ -47,6 +47,15 @@ xcb_screen_t     *_IswXcbDefaultScreen(IswDisplay dpy);
 xcb_window_t      _IswXcbWindow(IswWindow win);
 IswWindow         _IswXcbWindowWrap(xcb_window_t id);
 
+/* Color/font/visual value handles (Phase 4).  Plain casts: each handle IS the
+   native id/pointer.  Implemented in src/ISWPlatformColorFontXCB.c. */
+xcb_colormap_t    _IswXcbColormap(IswColormap cmap);
+IswColormap       _IswXcbColormapWrap(xcb_colormap_t cmap);
+xcb_font_t        _IswXcbFontId(IswFontId fid);
+IswFontId         _IswXcbFontIdWrap(xcb_font_t fid);
+xcb_visualtype_t *_IswXcbVisual(IswVisual vis);
+IswVisual         _IswXcbVisualWrap(xcb_visualtype_t *vis);
+
 /*
  * =================================================================
  * Active platform backend

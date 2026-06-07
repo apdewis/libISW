@@ -454,7 +454,7 @@ IswVendorShellClassInitialize(void)
 	{IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
 	     sizeof(xcb_screen_t *)},
 	{IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.colormap),
-	     sizeof(xcb_colormap_t)},
+	     sizeof(IswColormap)},
 	{IswWidgetBaseOffset,
 	     (IswPointer)IswOffsetOf(WidgetRec, core.background_pixel),
 	     sizeof(Pixel)}

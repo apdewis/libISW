@@ -937,19 +937,14 @@ SelectItem(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 static void
 ResolveForegroundRGB(IconViewWidget iw)
 {
-    xcb_connection_t *conn = _IswXcbConn(((Widget)iw)->core.display);
-    xcb_colormap_t cmap = ((Widget)iw)->core.colormap;
-    uint32_t pixel = (uint32_t)iw->iconView.foreground;
-    xcb_query_colors_cookie_t cookie = xcb_query_colors(conn, cmap, 1, &pixel);
-    xcb_query_colors_reply_t *reply = xcb_query_colors_reply(conn, cookie, NULL);
-    if (reply) {
-        xcb_rgb_t *rgb = xcb_query_colors_colors(reply);
-        if (xcb_query_colors_colors_length(reply) > 0) {
-            iw->iconView.fg_r = (double)(rgb[0].red >> 8) / 255.0;
-            iw->iconView.fg_g = (double)(rgb[0].green >> 8) / 255.0;
-            iw->iconView.fg_b = (double)(rgb[0].blue >> 8) / 255.0;
-        }
-        free(reply);
+    IswDisplay dpy = ((Widget)iw)->core.display;
+    IswColormap cmap = ((Widget)iw)->core.colormap;
+    unsigned long pixel = (unsigned long)iw->iconView.foreground;
+    IswColor c;
+    if (_IswPlatformGetOps()->color->query_color(dpy, cmap, pixel, &c)) {
+        iw->iconView.fg_r = (double)(c.red >> 8) / 255.0;
+        iw->iconView.fg_g = (double)(c.green >> 8) / 255.0;
+        iw->iconView.fg_b = (double)(c.blue >> 8) / 255.0;
     }
 }
 

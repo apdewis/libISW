@@ -1185,7 +1185,7 @@ Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
         /* CW_DONT_PROPAGATE (bit 12) — not used */
         /* CW_COLORMAP (bit 13) */
         if (create_mask & XCB_CW_COLORMAP)
-            vals[vi++] = wid->core.colormap;
+            vals[vi++] = _IswXcbColormap(wid->core.colormap);
 
         /* HiDPI: create window at physical pixel geometry */
         {
