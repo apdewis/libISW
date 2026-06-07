@@ -1,16 +1,23 @@
 /*
- * ISWXdnd.c - XDND version 5 drag-and-drop implementation
+ * ISWPlatformDndXCB.c - X11 drag-and-drop backend (XDND version 5)
  *
- * Full drag source and drop target support implementing the XDND v5
- * protocol. Interoperates with any XDND-aware application (GTK, Qt,
- * Firefox, etc.).
+ * The X11 implementation of the generic IswDragDrop service: a full XDND v5
+ * drag source and drop target.  Interoperates with any XDND-aware application
+ * (GTK, Qt, Firefox, etc.).
  *
- * Drop target: shell windows advertise XdndAware and handle the
- * protocol messages, routing drop data to the widget under the cursor.
- * Widgets register callbacks for drop, dragEnter, dragMotion, dragLeave.
+ * This is platform-specific code by design — XDND *is* an X11 wire protocol
+ * (the Xdnd* atoms, ClientMessage state machine, XdndSelection ownership,
+ * XdndAware discovery).  It is reached only through the IswPlatformDndOps
+ * vtable (isw_platform_xcb_dnd_ops, below); widget/application code talks to
+ * the transport-neutral IswDnd* service in <ISW/IswDragDrop.h>, never to XDND.
+ * A non-X backend implements the same ops over its own DnD mechanism.
  *
- * Drag source: widgets initiate drags via ISWXdndStartDrag. The library
- * grabs the pointer, tracks motion, sends XDND protocol messages to
+ * Drop target: shell windows advertise XdndAware and handle the protocol
+ * messages, routing drop data to the widget under the cursor.  Widgets register
+ * callbacks for drop, dragEnter, dragMotion, dragLeave.
+ *
+ * Drag source: widgets initiate drags via the service's IswDndStartDrag.  The
+ * library grabs the pointer, tracks motion, sends XDND protocol messages to
  * foreign windows, and owns XdndSelection to provide data.
  *
  * Pure XCB — no Xlib dependencies.
@@ -23,7 +30,9 @@
 #include <ISW/IntrinsicP.h>
 #include <ISW/IntrinsicI.h>
 #include <ISW/StringDefs.h>
-#include <ISW/ISWXdnd.h>
+#include <ISW/IswDragDrop.h>
+#include <ISW/ISWPlatform.h>
+#include <ISW/ISWXdnd.h>   /* compat ISWXdndStartDrag prototype (defined below) */
 #include <ISW/ISWContext.h>
 #include <ISW/IconView.h>
 #include <ISW/ViewportP.h>
@@ -666,10 +675,17 @@ GetXdndStateForWidget(Widget w)
     return GetXdndState(shell);
 }
 
-/* ------------------------------------------------------------------ */
+/* ================================================================== */
+/*                                                                    */
+/* BACKEND OPS — the IswPlatformDndOps implementation                 */
+/*                                                                    */
+/* These are the X11 backend's drag-and-drop verbs.  The generic       */
+/* IswDnd* service (bottom of this file) dispatches to them through    */
+/* the _IswPlatformDnd* wrappers and the platform ops table.           */
+/* ================================================================== */
 
-void
-ISWXdndEnable(Widget shell)
+static void
+xcb_dnd_enable(Widget shell)
 {
     xcb_connection_t *conn;
     XdndState *st;
@@ -706,8 +722,8 @@ ISWXdndEnable(Widget shell)
     xcb_flush(conn);
 }
 
-void
-ISWXdndWidgetAcceptDrops(Widget w)
+static void
+xcb_dnd_widget_accept_drops(Widget w)
 {
     XdndState *st = GetXdndStateForWidget(w);
     if (!st)
@@ -716,8 +732,8 @@ ISWXdndWidgetAcceptDrops(Widget w)
     GetOrCreateDropConfig(st, w);
 }
 
-void
-ISWXdndSetAcceptedTypes(Widget w, xcb_atom_t *types, int num_types)
+static void
+xcb_dnd_set_accepted_types(Widget w, Atom *types, int num_types)
 {
     XdndState *st = GetXdndStateForWidget(w);
     if (!st)
@@ -738,8 +754,8 @@ ISWXdndSetAcceptedTypes(Widget w, xcb_atom_t *types, int num_types)
     }
 }
 
-void
-ISWXdndSetAcceptedActions(Widget w, IswDndAction actions)
+static void
+xcb_dnd_set_accepted_actions(Widget w, IswDndAction actions)
 {
     XdndState *st = GetXdndStateForWidget(w);
     if (!st)
@@ -749,8 +765,8 @@ ISWXdndSetAcceptedActions(Widget w, IswDndAction actions)
     dc->accepted_actions = actions;
 }
 
-void
-ISWXdndSetDropCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+static void
+xcb_dnd_set_drop_callback(Widget w, IswCallbackProc proc, IswPointer closure)
 {
     XdndState *st = GetXdndStateForWidget(w);
     if (!st)
@@ -761,8 +777,8 @@ ISWXdndSetDropCallback(Widget w, IswCallbackProc proc, IswPointer closure)
     dc->drop_closure = closure;
 }
 
-void
-ISWXdndSetDragMotionCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+static void
+xcb_dnd_set_drag_motion_callback(Widget w, IswCallbackProc proc, IswPointer closure)
 {
     XdndState *st = GetXdndStateForWidget(w);
     if (!st)
@@ -773,8 +789,8 @@ ISWXdndSetDragMotionCallback(Widget w, IswCallbackProc proc, IswPointer closure)
     dc->motion_closure = closure;
 }
 
-void
-ISWXdndSetDragLeaveCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+static void
+xcb_dnd_set_drag_leave_callback(Widget w, IswCallbackProc proc, IswPointer closure)
 {
     XdndState *st = GetXdndStateForWidget(w);
     if (!st)
@@ -785,14 +801,14 @@ ISWXdndSetDragLeaveCallback(Widget w, IswCallbackProc proc, IswPointer closure)
     dc->leave_closure = closure;
 }
 
-xcb_atom_t
-ISWXdndInternType(Widget w, const char *mime_type)
+static Atom
+xcb_dnd_intern_type(Widget w, const char *mime_type)
 {
-    return IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), mime_type, False);
+    return (Atom) IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), mime_type, False);
 }
 
-Boolean
-ISWXdndIsDragging(Widget w)
+static Boolean
+xcb_dnd_is_dragging(Widget w)
 {
     XdndState *st = GetXdndStateForWidget(w);
     return st && st->dragging;
@@ -1264,13 +1280,21 @@ SendXdndFinished(XdndState *st, Boolean accept, xcb_atom_t action_atom)
 /*                                                                    */
 /* ================================================================== */
 
-void
-ISWXdndStartDrag(Widget source_widget,
-                 xcb_button_press_event_t *trigger_event,
-                 IswDragSourceDesc *desc)
+static void
+xcb_dnd_start_drag(Widget source_widget,
+                   IswEvent *trigger,
+                   IswDragSourceDesc *desc)
 {
+    /* The XDND backend tracks drags in the X server's native (physical)
+     * coordinate space — drag-threshold math, the drag-icon window, and
+     * IconView hit-testing all expect the raw event geometry.  Recover the
+     * native button event via the documented IswEventNative() bridge rather
+     * than the descaled logical fields of the neutral event. */
+    xcb_button_press_event_t *trigger_event =
+        (xcb_button_press_event_t *) IswEventNative(trigger);
+
     XdndState *st = GetXdndStateForWidget(source_widget);
-    if (!st || st->dragging)
+    if (!st || st->dragging || !trigger_event)
         return;
 
     /* Don't start a drag if the source widget has an active rubber band */
@@ -1305,10 +1329,10 @@ ISWXdndStartDrag(Widget source_widget,
 
     /* Copy the type list (caller's array may be transient) */
     if (desc->num_types > 0) {
-        st->drag_desc.types = (xcb_atom_t *) IswMalloc(
-            desc->num_types * sizeof(xcb_atom_t));
+        st->drag_desc.types = (Atom *) IswMalloc(
+            desc->num_types * sizeof(Atom));
         memcpy(st->drag_desc.types, desc->types,
-               desc->num_types * sizeof(xcb_atom_t));
+               desc->num_types * sizeof(Atom));
     }
 
     /* Own XdndSelection */
@@ -1855,7 +1879,7 @@ DragCleanup(XdndState *st)
     /* Clean up icon */
     DestroyDragIcon(st);
     if (st->drag_icon_owned && st->drag_desc.icon_pixmap != 0) {
-        xcb_free_pixmap(conn, st->drag_desc.icon_pixmap);
+        xcb_free_pixmap(conn, (xcb_pixmap_t) st->drag_desc.icon_pixmap);
         st->drag_desc.icon_pixmap = 0;
         st->drag_icon_owned = False;
     }
@@ -2047,7 +2071,7 @@ CreateDragIcon(XdndState *st)
         uint32_t vals[4];
         uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_BORDER_PIXEL |
                         XCB_CW_OVERRIDE_REDIRECT | XCB_CW_COLORMAP;
-        vals[0] = st->drag_desc.icon_pixmap;
+        vals[0] = (uint32_t) st->drag_desc.icon_pixmap;
         vals[1] = 0;
         vals[2] = True;
         vals[3] = st->drag_icon_cmap;
@@ -2063,7 +2087,7 @@ CreateDragIcon(XdndState *st)
     } else {
         uint32_t vals[2];
         uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_OVERRIDE_REDIRECT;
-        vals[0] = st->drag_desc.icon_pixmap;
+        vals[0] = (uint32_t) st->drag_desc.icon_pixmap;
         vals[1] = True;
 
         xcb_create_window(conn, XCB_COPY_FROM_PARENT,
@@ -2124,4 +2148,111 @@ DestroyDragIcon(XdndState *st)
     xcb_destroy_window(conn, st->drag_icon_win);
     st->drag_icon_win = XCB_NONE;
     xcb_flush(conn);
+}
+
+/* ================================================================== */
+/*                                                                    */
+/* Backend vtable                                                     */
+/*                                                                    */
+/* ================================================================== */
+
+const IswPlatformDndOps isw_platform_xcb_dnd_ops = {
+    .enable                  = xcb_dnd_enable,
+    .widget_accept_drops     = xcb_dnd_widget_accept_drops,
+    .start_drag              = xcb_dnd_start_drag,
+    .set_accepted_types      = xcb_dnd_set_accepted_types,
+    .set_accepted_actions    = xcb_dnd_set_accepted_actions,
+    .set_drop_callback       = xcb_dnd_set_drop_callback,
+    .set_drag_motion_callback = xcb_dnd_set_drag_motion_callback,
+    .set_drag_leave_callback = xcb_dnd_set_drag_leave_callback,
+    .intern_type             = xcb_dnd_intern_type,
+    .is_dragging             = xcb_dnd_is_dragging,
+};
+
+/* ================================================================== */
+/*                                                                    */
+/* GENERIC SERVICE — transport-neutral IswDnd* public entry points    */
+/*                                                                    */
+/* Thin dispatchers over the platform DnD ops (via the _IswPlatformDnd* */
+/* wrappers).  Application/widget code calls these; the active backend  */
+/* supplies the implementation.                                         */
+/* ================================================================== */
+
+void
+IswDndEnable(Widget shell)
+{
+    _IswPlatformDndEnable(shell);
+}
+
+void
+IswDndWidgetAcceptDrops(Widget w)
+{
+    _IswPlatformDndWidgetAcceptDrops(w);
+}
+
+void
+IswDndStartDrag(Widget source_widget, IswEvent *trigger_event,
+                IswDragSourceDesc *desc)
+{
+    _IswPlatformDndStartDrag(source_widget, trigger_event, desc);
+}
+
+void
+IswDndSetAcceptedTypes(Widget w, Atom *types, int num_types)
+{
+    _IswPlatformDndSetAcceptedTypes(w, types, num_types);
+}
+
+void
+IswDndSetAcceptedActions(Widget w, IswDndAction actions)
+{
+    _IswPlatformDndSetAcceptedActions(w, actions);
+}
+
+void
+IswDndSetDropCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+{
+    _IswPlatformDndSetDropCallback(w, proc, closure);
+}
+
+void
+IswDndSetDragMotionCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+{
+    _IswPlatformDndSetDragMotionCallback(w, proc, closure);
+}
+
+void
+IswDndSetDragLeaveCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+{
+    _IswPlatformDndSetDragLeaveCallback(w, proc, closure);
+}
+
+Atom
+IswDndInternType(Widget w, const char *mime_type)
+{
+    return _IswPlatformDndInternType(w, mime_type);
+}
+
+Boolean
+IswDndIsDragging(Widget w)
+{
+    return _IswPlatformDndIsDragging(w);
+}
+
+/* ------------------------------------------------------------------ */
+/* Backward-compatibility: ISWXdndStartDrag kept its original native   */
+/* button-event signature (see include/ISW/ISWXdnd.h).  Wrap the native */
+/* event into a neutral IswEvent and dispatch to the service.           */
+/* ------------------------------------------------------------------ */
+
+void
+ISWXdndStartDrag(Widget source_widget,
+                 xcb_button_press_event_t *trigger_event,
+                 IswDragSourceDesc *desc)
+{
+    IswEvent ev;
+    memset(&ev, 0, sizeof(ev));
+    ev.any.kind   = IswButtonDown;
+    ev.any.native = (void *) trigger_event;
+    IswDndStartDrag(source_widget, &ev, desc);
 }

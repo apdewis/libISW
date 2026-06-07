@@ -8,7 +8,8 @@
  * path: only the toolkit-semantic event kinds are produced here.  X11 protocol
  * events (selection, property, client-message, mapping, ...) are NOT translated
  * — they are handled inside their respective backend modules (Selection.c,
- * ISWXdnd.c, IswTrayIcon.c, keyboard mapping) and never become an IswEvent.
+ * ISWPlatformDndXCB.c, IswTrayIcon.c, keyboard mapping) and never become an
+ * IswEvent.
  *
  * Folds in, at the translation boundary, the work the dispatch core used to do
  * inline: keysym → neutral key identity + UTF-8.  (HiDPI descale stays in the

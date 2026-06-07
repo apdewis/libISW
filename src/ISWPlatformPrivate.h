@@ -174,6 +174,24 @@ void _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t flags,
                                 int max_aspect_num, int max_aspect_den,
                                 int base_width, int base_height, int win_gravity);
 
+/* Drag-and-drop (Phase 7).  Thin dispatchers over the platform DnD ops; the
+ * generic IswDnd* service calls these.  The whole DnD engine lives in the
+ * backend (X11: ISWPlatformDndXCB.c). */
+void    _IswPlatformDndEnable(Widget shell);
+void    _IswPlatformDndWidgetAcceptDrops(Widget w);
+void    _IswPlatformDndStartDrag(Widget source, IswEvent *trigger,
+                                 IswDragSourceDesc *desc);
+void    _IswPlatformDndSetAcceptedTypes(Widget w, Atom *types, int num_types);
+void    _IswPlatformDndSetAcceptedActions(Widget w, IswDndAction actions);
+void    _IswPlatformDndSetDropCallback(Widget w, IswCallbackProc proc,
+                                       IswPointer closure);
+void    _IswPlatformDndSetDragMotionCallback(Widget w, IswCallbackProc proc,
+                                             IswPointer closure);
+void    _IswPlatformDndSetDragLeaveCallback(Widget w, IswCallbackProc proc,
+                                            IswPointer closure);
+Atom    _IswPlatformDndInternType(Widget w, const char *mime_type);
+Boolean _IswPlatformDndIsDragging(Widget w);
+
 /*
  * =================================================================
  * XCB backend

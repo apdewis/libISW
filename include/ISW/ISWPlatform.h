@@ -23,6 +23,7 @@
 #define _ISWPlatform_h
 
 #include <ISW/Intrinsic.h>
+#include <ISW/IswDragDrop.h>   /* IswDragSourceDesc / IswDndAction for the DnD ops */
 
 /*
  * =================================================================
@@ -178,6 +179,11 @@ typedef struct _IswPlatformPropertyOps  IswPlatformPropertyOps;
  * A backend maps each to its own mechanism (X properties; Wayland xdg_*).
  * Filled in Phase 6. */
 typedef struct _IswPlatformHintOps      IswPlatformHintOps;
+
+/* Drag-and-drop — the whole DnD engine. A backend implements the protocol its
+ * own way (X11: XDND v5 client messages + selection transfers; Wayland:
+ * wl_data_device).  Filled in Phase 7. */
+typedef struct _IswPlatformDndOps       IswPlatformDndOps;
 
 /*
  * =================================================================
@@ -510,6 +516,38 @@ struct _IswPlatformHintOps {
 
 /*
  * =================================================================
+ * Drag-and-drop ops (Phase 7)
+ * =================================================================
+ *
+ * The whole drag-and-drop engine lives behind these verbs.  On X11 the backend
+ * implements them via the XDND v5 protocol (client messages + a selection
+ * transfer of XdndSelection) in ISWPlatformDndXCB.c; a Wayland backend would
+ * drive wl_data_device/wl_data_source instead.  The verbs mirror the public
+ * IswDragDrop service one-for-one — the service entry points are thin
+ * dispatchers over these — so nothing XDND-specific reaches widget code.
+ *
+ * Types come from <ISW/IswDragDrop.h>, included for that purpose; it pulls in
+ * only Intrinsic.h + IswEvent.h, so there is no include cycle.
+ */
+struct _IswPlatformDndOps {
+    void    (*enable)(Widget shell);
+    void    (*widget_accept_drops)(Widget w);
+    void    (*start_drag)(Widget source, IswEvent *trigger,
+                          IswDragSourceDesc *desc);
+    void    (*set_accepted_types)(Widget w, Atom *types, int num_types);
+    void    (*set_accepted_actions)(Widget w, IswDndAction actions);
+    void    (*set_drop_callback)(Widget w, IswCallbackProc proc,
+                                 IswPointer closure);
+    void    (*set_drag_motion_callback)(Widget w, IswCallbackProc proc,
+                                        IswPointer closure);
+    void    (*set_drag_leave_callback)(Widget w, IswCallbackProc proc,
+                                        IswPointer closure);
+    Atom    (*intern_type)(Widget w, const char *mime_type);
+    Boolean (*is_dragging)(Widget w);
+};
+
+/*
+ * =================================================================
  * Platform operations vtable
  * =================================================================
  *
@@ -531,6 +569,7 @@ typedef struct _IswPlatformOps {
     const IswPlatformAtomOps      *atom;
     const IswPlatformPropertyOps  *property;
     const IswPlatformHintOps      *hint;
+    const IswPlatformDndOps       *dnd;
 } IswPlatformOps;
 
 /* Release the malloc'd payload of an IswProperty (safe on a zeroed struct). */

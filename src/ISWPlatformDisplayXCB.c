@@ -403,6 +403,7 @@ extern const IswPlatformSelectionOps isw_platform_xcb_selection_ops; /* ISWPlatf
 extern const IswPlatformAtomOps      isw_platform_xcb_atom_ops;      /* ISWPlatformAtomPropXCB.c */
 extern const IswPlatformPropertyOps  isw_platform_xcb_property_ops;  /* ISWPlatformAtomPropXCB.c */
 extern const IswPlatformHintOps      isw_platform_xcb_hint_ops;      /* ISWPlatformAtomPropXCB.c */
+extern const IswPlatformDndOps       isw_platform_xcb_dnd_ops;       /* ISWPlatformDndXCB.c */
 
 const IswPlatformOps isw_platform_xcb_ops = {
     .display   = &xcb_display_ops,
@@ -417,6 +418,7 @@ const IswPlatformOps isw_platform_xcb_ops = {
     .atom      = &isw_platform_xcb_atom_ops,
     .property  = &isw_platform_xcb_property_ops,
     .hint      = &isw_platform_xcb_hint_ops,
+    .dnd       = &isw_platform_xcb_dnd_ops,
 };
 
 const IswPlatformOps *
@@ -772,4 +774,88 @@ _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t flags,
                                     min_aspect_num, min_aspect_den,
                                     max_aspect_num, max_aspect_den,
                                     base_width, base_height, win_gravity);
+}
+
+/* Drag-and-drop (Phase 7) */
+void
+_IswPlatformDndEnable(Widget shell)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->enable)
+        ops->dnd->enable(shell);
+}
+
+void
+_IswPlatformDndWidgetAcceptDrops(Widget w)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->widget_accept_drops)
+        ops->dnd->widget_accept_drops(w);
+}
+
+void
+_IswPlatformDndStartDrag(Widget source, IswEvent *trigger,
+                         IswDragSourceDesc *desc)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->start_drag)
+        ops->dnd->start_drag(source, trigger, desc);
+}
+
+void
+_IswPlatformDndSetAcceptedTypes(Widget w, Atom *types, int num_types)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->set_accepted_types)
+        ops->dnd->set_accepted_types(w, types, num_types);
+}
+
+void
+_IswPlatformDndSetAcceptedActions(Widget w, IswDndAction actions)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->set_accepted_actions)
+        ops->dnd->set_accepted_actions(w, actions);
+}
+
+void
+_IswPlatformDndSetDropCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->set_drop_callback)
+        ops->dnd->set_drop_callback(w, proc, closure);
+}
+
+void
+_IswPlatformDndSetDragMotionCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->set_drag_motion_callback)
+        ops->dnd->set_drag_motion_callback(w, proc, closure);
+}
+
+void
+_IswPlatformDndSetDragLeaveCallback(Widget w, IswCallbackProc proc, IswPointer closure)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->set_drag_leave_callback)
+        ops->dnd->set_drag_leave_callback(w, proc, closure);
+}
+
+Atom
+_IswPlatformDndInternType(Widget w, const char *mime_type)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->intern_type)
+        return ops->dnd->intern_type(w, mime_type);
+    return ISW_ATOM_NONE;
+}
+
+Boolean
+_IswPlatformDndIsDragging(Widget w)
+{
+    const IswPlatformOps *ops = _IswPlatformGetOps();
+    if (ops && ops->dnd && ops->dnd->is_dragging)
+        return ops->dnd->is_dragging(w);
+    return False;
 }

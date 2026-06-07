@@ -192,6 +192,7 @@ set(LIBXT_SOURCES
     src/ISWPlatformColorFontXCB.c
     src/ISWPlatformGrabCursorXCB.c
     src/ISWPlatformAtomPropXCB.c
+    src/ISWPlatformDndXCB.c
     src/EventUtil.c
     src/Functions.c
     src/Geometry.c
@@ -290,7 +291,6 @@ set(ISW_WIDGET_SOURCES
     src/ISWInit.c
     src/ISWXcbDraw.c
     src/ISWUtf8.c
-    src/ISWXdnd.c
     src/IswTrayIcon.c
     src/Image.c
     src/ISWImage.c

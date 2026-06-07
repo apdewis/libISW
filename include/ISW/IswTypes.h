@@ -56,6 +56,7 @@ typedef uint32_t  IswVisualId;   /* a visual id                           */
    (the earliest types header) so IswSetWindowAttributes below and the public
    grab/selection APIs can use them.  Phase 5. */
 typedef uintptr_t IswCursor;     /* cursor id (value handle), 0 = none    */
+typedef uintptr_t IswPixmap;     /* pixmap id (value handle), 0 = none    */
 typedef uint32_t  IswTime;       /* server timestamp                      */
 #ifndef ISW_CURRENT_TIME
 #define ISW_CURRENT_TIME ((IswTime) 0)
