@@ -22,6 +22,8 @@
 
 #include <ISW/IntrinsicP.h>
 #include <ISW/IntrinsicI.h>
+#include <ISW/InitialI.h>
+#include <ISW/PassivGraI.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWXdnd.h>
 #include <ISW/ISWContext.h>
@@ -1375,6 +1377,17 @@ ISWXdndStartDrag(Widget source_widget,
     }
     free(gr);
 
+    /* The xcb_grab_pointer above now owns the pointer, so motion events
+     * report against the shell window and must reach HandleDragEvent.  The
+     * source widget is windowless, so its button press armed the windowless
+     * implicit grab; flag the drag so the dispatcher yields that grab and
+     * lets motion fall through to the shell. */
+    {
+        IswPerDisplayInput pdi = _IswGetPerDisplayInput(conn);
+        if (pdi)
+            pdi->xdndDragActive = True;
+    }
+
     /* Grab the keyboard through Xt so key events dispatch to the shell,
      * where HandleDragEvent is registered.  Raw xcb_grab_keyboard does
      * the X grab but skips Xt's input dispatch bookkeeping, so key
@@ -1838,6 +1851,13 @@ DragCleanup(XdndState *st)
     /* Ungrab pointer and keyboard */
     xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
     IswUngrabKeyboard(st->shell, XCB_CURRENT_TIME);
+
+    /* Drag-source grab released; restore the windowless implicit grab. */
+    {
+        IswPerDisplayInput pdi = _IswGetPerDisplayInput(conn);
+        if (pdi)
+            pdi->xdndDragActive = False;
+    }
 
     /* Remove drag event handler */
     IswRemoveEventHandler(st->shell,

@@ -130,6 +130,10 @@ typedef struct IswPerDisplayInputRec{
 				   (Paned sash, Slider thumb) keeps reaching the
 				   widget even when the pointer leaves it */
     unsigned int buttonsDown;	/* bitmask of currently-pressed buttons */
+    Boolean	xdndDragActive;	/* an XDnd drag-source xcb_grab_pointer owns the
+				   pointer; while set, the windowless implicit
+				   grab yields so motion reaches the real grab
+				   window (the shell's HandleDragEvent) */
 }IswPerDisplayInputRec, *IswPerDisplayInput;
 
 #define IsServerGrab(g) ((g == IswPassiveServerGrab) ||\
