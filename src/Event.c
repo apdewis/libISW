@@ -1949,8 +1949,15 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
     /* Windowless hit-testing: pointer events are reported against the
        windowed ancestor's window.  Redirect to the deepest windowless
        widget under the pointer and rebase the event coordinates to it.
-       Keyboard events are routed by focus, not position, so are excluded. */
-    if (widget != NULL) {
+       Keyboard events are routed by focus, not position, so are excluded.
+
+       Suppressed entirely during an XDnd drag: a real xcb_grab_pointer on the
+       shell owns the pointer, so every pointer event must pass straight
+       through to the shell's HandleDragEvent (which tracks the target and
+       moves the drag icon).  Redirecting/hit-testing them to a windowless
+       child under the pointer would freeze the drag while the cursor is still
+       over this app's own window. */
+    if (widget != NULL && !pdi->xdndDragActive) {
         int px, py;
         if (_IswEventPointerXY(event, &px, &py)) {
             int dx, dy;
