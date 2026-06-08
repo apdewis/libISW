@@ -66,11 +66,11 @@ IswCursor         _IswXcbCursorWrap(xcb_cursor_t cursor);
  * Active platform backend
  * =================================================================
  *
- * The dispatcher resolves a single IswPlatformOps for the process at startup
- * (XCB today).  _IswPlatformGetOps returns it; widget-facing platform wrappers
- * dispatch through it.  Returns NULL before a backend is selected.
+ * The backend ops table is injected once per connection at display setup
+ * (Display.c: InitPerDisplay sets IswPerDisplay->ops) and recovered from the
+ * per-display record by each wrapper — there is no process-global accessor.
+ * The concrete table for the XCB backend is isw_platform_xcb_ops (below).
  */
-const IswPlatformOps *_IswPlatformGetOps(void);
 
 /*
  * =================================================================
@@ -78,11 +78,11 @@ const IswPlatformOps *_IswPlatformGetOps(void);
  * =================================================================
  *
  * Toolkit and widget code calls these thin wrappers instead of walking
- * _IswPlatformGetOps()->cat->op at the call site.  Each hides the lookup and
- * null-guards a backend that hasn't filled the op (so a missing op degrades to
- * a no-op / failure rather than a crash).  Same convention as
- * _IswPlatformConnectionFd (IntrinsicI.h).  Implemented in
- * src/ISWPlatformDisplayXCB.c.
+ * the ops vtable at the call site.  Each recovers the injected ops from the
+ * display/widget it is handed, hides the lookup, and null-guards a backend
+ * that hasn't filled the op (so a missing op degrades to a no-op / failure
+ * rather than a crash).  Same convention as _IswPlatformConnectionFd
+ * (IntrinsicI.h).  Implemented in src/ISWPlatformDisplayXCB.c.
  */
 
 /* Color (Phase 4) */

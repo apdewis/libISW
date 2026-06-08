@@ -35,6 +35,7 @@
 #include <xcb/xproto.h>
 
 #include "IntrinsicI.h"
+#include <ISW/InitialI.h>
 #include "ISWPlatformPrivate.h"
 
 /* ---- handle representation ------------------------------------------------
@@ -421,18 +422,12 @@ const IswPlatformOps isw_platform_xcb_ops = {
     .dnd       = &isw_platform_xcb_dnd_ops,
 };
 
-const IswPlatformOps *
-_IswPlatformGetOps(void)
-{
-    return &isw_platform_xcb_ops;
-}
-
 /* Neutral event-loop fd accessor (replaces the ConnectionNumber XCB macro),
    dispatched through the active backend's display vtable. */
 int
 _IswPlatformConnectionFd(IswDisplay dpy)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->display && ops->display->connection_fd)
         return ops->display->connection_fd(dpy);
     return -1;
@@ -448,7 +443,7 @@ Boolean
 _IswPlatformQueryColor(IswDisplay dpy, IswColormap cmap,
                        unsigned long pixel, IswColor *out)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->color && ops->color->query_color)
         return ops->color->query_color(dpy, cmap, pixel, out);
     return False;
@@ -459,7 +454,7 @@ _IswPlatformAllocColor(IswDisplay dpy, IswColormap cmap,
                        unsigned short red, unsigned short green,
                        unsigned short blue, unsigned long *pixel_out)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->color && ops->color->alloc_color)
         return ops->color->alloc_color(dpy, cmap, red, green, blue, pixel_out);
     return False;
@@ -469,7 +464,7 @@ Boolean
 _IswPlatformAllocNamedColor(IswDisplay dpy, IswColormap cmap,
                             const char *name, unsigned long *pixel_out)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->color && ops->color->alloc_named_color)
         return ops->color->alloc_named_color(dpy, cmap, name, pixel_out);
     return False;
@@ -478,7 +473,7 @@ _IswPlatformAllocNamedColor(IswDisplay dpy, IswColormap cmap,
 Boolean
 _IswPlatformLookupColor(IswDisplay dpy, IswColormap cmap, const char *name)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->color && ops->color->lookup_color)
         return ops->color->lookup_color(dpy, cmap, name);
     return False;
@@ -487,7 +482,7 @@ _IswPlatformLookupColor(IswDisplay dpy, IswColormap cmap, const char *name)
 void
 _IswPlatformFreeColors(IswDisplay dpy, IswColormap cmap, unsigned long pixel)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->color && ops->color->free_colors)
         ops->color->free_colors(dpy, cmap, pixel);
 }
@@ -496,7 +491,7 @@ Boolean
 _IswPlatformMatchVisualInfo(IswDisplay dpy, IswScreen screen,
                             int depth, int visual_class, IswVisualInfo *out)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->color && ops->color->match_visual_info)
         return ops->color->match_visual_info(dpy, screen, depth,
                                              visual_class, out);
@@ -507,7 +502,7 @@ _IswPlatformMatchVisualInfo(IswDisplay dpy, IswScreen screen,
 IswFontId
 _IswPlatformLoadFont(IswDisplay dpy, const char *name)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->font && ops->font->load_font)
         return ops->font->load_font(dpy, name);
     return 0;
@@ -516,7 +511,7 @@ _IswPlatformLoadFont(IswDisplay dpy, const char *name)
 void
 _IswPlatformFreeFont(IswDisplay dpy, IswFontId fid)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->font && ops->font->free_font)
         ops->font->free_font(dpy, fid);
 }
@@ -526,7 +521,7 @@ IswCursor
 _IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,
                             const char *name, unsigned int fallback_shape)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->cursor && ops->cursor->load_named)
         return ops->cursor->load_named(dpy, screen, name, fallback_shape);
     return 0;
@@ -535,7 +530,7 @@ _IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,
 void
 _IswPlatformSetWindowCursor(IswDisplay dpy, IswWindow win, IswCursor cursor)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->cursor && ops->cursor->set_window_cursor)
         ops->cursor->set_window_cursor(dpy, win, cursor);
 }
@@ -543,7 +538,7 @@ _IswPlatformSetWindowCursor(IswDisplay dpy, IswWindow win, IswCursor cursor)
 void
 _IswPlatformFreeCursor(IswDisplay dpy, IswCursor cursor)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->cursor && ops->cursor->free_cursor)
         ops->cursor->free_cursor(dpy, cursor);
 }
@@ -555,7 +550,7 @@ _IswPlatformGrabPointer(IswDisplay dpy, IswWindow grab_window,
                         int pointer_mode, int keyboard_mode,
                         IswWindow confine_to, IswCursor cursor, IswTime time)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->grab && ops->grab->grab_pointer)
         return ops->grab->grab_pointer(dpy, grab_window, owner_events,
                                        event_mask, pointer_mode, keyboard_mode,
@@ -566,7 +561,7 @@ _IswPlatformGrabPointer(IswDisplay dpy, IswWindow grab_window,
 void
 _IswPlatformUngrabPointer(IswDisplay dpy, IswTime time)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->grab && ops->grab->ungrab_pointer)
         ops->grab->ungrab_pointer(dpy, time);
 }
@@ -576,7 +571,7 @@ _IswPlatformGrabKeyboard(IswDisplay dpy, IswWindow grab_window,
                          Boolean owner_events, int pointer_mode,
                          int keyboard_mode, IswTime time)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->grab && ops->grab->grab_keyboard)
         return ops->grab->grab_keyboard(dpy, grab_window, owner_events,
                                         pointer_mode, keyboard_mode, time);
@@ -586,7 +581,7 @@ _IswPlatformGrabKeyboard(IswDisplay dpy, IswWindow grab_window,
 void
 _IswPlatformUngrabKeyboard(IswDisplay dpy, IswTime time)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->grab && ops->grab->ungrab_keyboard)
         ops->grab->ungrab_keyboard(dpy, time);
 }
@@ -597,7 +592,7 @@ _IswPlatformGrabButton(IswDisplay dpy, IswWindow grab_window, int button,
                        unsigned int event_mask, int pointer_mode,
                        int keyboard_mode, IswWindow confine_to, IswCursor cursor)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->grab && ops->grab->grab_button)
         ops->grab->grab_button(dpy, grab_window, button, modifiers,
                                owner_events, event_mask, pointer_mode,
@@ -609,7 +604,7 @@ _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
                     unsigned int modifiers, Boolean owner_events,
                     int pointer_mode, int keyboard_mode)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->grab && ops->grab->grab_key)
         ops->grab->grab_key(dpy, grab_window, keycode, modifiers,
                             owner_events, pointer_mode, keyboard_mode);
@@ -620,7 +615,7 @@ void
 _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
                               Atom selection, IswTime time)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->selection && ops->selection->set_owner)
         ops->selection->set_owner(dpy, owner, selection, time);
 }
@@ -628,7 +623,7 @@ _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
 IswWindow
 _IswPlatformGetSelectionOwner(IswDisplay dpy, Atom selection)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->selection && ops->selection->get_owner)
         return ops->selection->get_owner(dpy, selection);
     return _IswXcbWindowWrap(XCB_NONE);
@@ -639,7 +634,7 @@ _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
                              Atom selection, Atom target,
                              Atom property, IswTime time)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->selection && ops->selection->convert)
         ops->selection->convert(dpy, requestor, selection, target,
                                 property, time);
@@ -649,7 +644,7 @@ _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
 Atom
 _IswPlatformInternAtomOp(IswDisplay dpy, const char *name, Boolean only_if_exists)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->atom && ops->atom->intern)
         return ops->atom->intern(dpy, name, only_if_exists);
     return ISW_ATOM_NONE;
@@ -658,7 +653,7 @@ _IswPlatformInternAtomOp(IswDisplay dpy, const char *name, Boolean only_if_exist
 Boolean
 _IswPlatformGetAtomName(IswDisplay dpy, Atom atom, char *buf, size_t buflen)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->atom && ops->atom->get_name)
         return ops->atom->get_name(dpy, atom, buf, buflen);
     return False;
@@ -670,7 +665,7 @@ _IswPlatformChangeProperty(IswDisplay dpy, IswWindow win, Atom property,
                            Atom type, int format, IswPropMode mode,
                            const void *data, uint32_t num_elements)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->property && ops->property->change)
         ops->property->change(dpy, win, property, type, format, mode,
                               data, num_elements);
@@ -681,7 +676,7 @@ _IswPlatformGetProperty(IswDisplay dpy, IswWindow win, Atom property, Atom type,
                         uint32_t long_offset, uint32_t long_length,
                         IswProperty *out)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->property && ops->property->get)
         return ops->property->get(dpy, win, property, type,
                                   long_offset, long_length, out);
@@ -692,7 +687,7 @@ _IswPlatformGetProperty(IswDisplay dpy, IswWindow win, Atom property, Atom type,
 void
 _IswPlatformDeleteProperty(IswDisplay dpy, IswWindow win, Atom property)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->property && ops->property->delete_)
         ops->property->delete_(dpy, win, property);
 }
@@ -701,7 +696,7 @@ _IswPlatformDeleteProperty(IswDisplay dpy, IswWindow win, Atom property)
 void
 _IswPlatformSetWindowTitle(IswDisplay dpy, IswWindow win, const char *utf8)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_window_title)
         ops->hint->set_window_title(dpy, win, utf8);
 }
@@ -709,7 +704,7 @@ _IswPlatformSetWindowTitle(IswDisplay dpy, IswWindow win, const char *utf8)
 void
 _IswPlatformSetIconTitle(IswDisplay dpy, IswWindow win, const char *utf8)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_icon_title)
         ops->hint->set_icon_title(dpy, win, utf8);
 }
@@ -718,7 +713,7 @@ void
 _IswPlatformSetWmClass(IswDisplay dpy, IswWindow win,
                        const char *name, const char *class_name)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_wm_class)
         ops->hint->set_wm_class(dpy, win, name, class_name);
 }
@@ -727,7 +722,7 @@ void
 _IswPlatformSetWmProtocols(IswDisplay dpy, IswWindow win,
                            const Atom *protocols, int num_protocols)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_wm_protocols)
         ops->hint->set_wm_protocols(dpy, win, protocols, num_protocols);
 }
@@ -735,7 +730,7 @@ _IswPlatformSetWmProtocols(IswDisplay dpy, IswWindow win,
 void
 _IswPlatformSetTransientFor(IswDisplay dpy, IswWindow win, IswWindow leader)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_transient_for)
         ops->hint->set_transient_for(dpy, win, leader);
 }
@@ -743,7 +738,7 @@ _IswPlatformSetTransientFor(IswDisplay dpy, IswWindow win, IswWindow leader)
 void
 _IswPlatformSetWindowType(IswDisplay dpy, IswWindow win, IswWindowType type)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_window_type)
         ops->hint->set_window_type(dpy, win, type);
 }
@@ -751,7 +746,7 @@ _IswPlatformSetWindowType(IswDisplay dpy, IswWindow win, IswWindowType type)
 void
 _IswPlatformSetPid(IswDisplay dpy, IswWindow win, uint32_t pid)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_pid)
         ops->hint->set_pid(dpy, win, pid);
 }
@@ -766,7 +761,7 @@ _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t flags,
                            int max_aspect_num, int max_aspect_den,
                            int base_width, int base_height, int win_gravity)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_normal_hints)
         ops->hint->set_normal_hints(dpy, win, flags, x, y, width, height,
                                     min_width, min_height, max_width, max_height,
@@ -780,7 +775,7 @@ _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t flags,
 void
 _IswPlatformDndEnable(Widget shell)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(shell))->ops;
     if (ops && ops->dnd && ops->dnd->enable)
         ops->dnd->enable(shell);
 }
@@ -788,7 +783,7 @@ _IswPlatformDndEnable(Widget shell)
 void
 _IswPlatformDndWidgetAcceptDrops(Widget w)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
     if (ops && ops->dnd && ops->dnd->widget_accept_drops)
         ops->dnd->widget_accept_drops(w);
 }
@@ -797,7 +792,7 @@ void
 _IswPlatformDndStartDrag(Widget source, IswEvent *trigger,
                          IswDragSourceDesc *desc)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(source))->ops;
     if (ops && ops->dnd && ops->dnd->start_drag)
         ops->dnd->start_drag(source, trigger, desc);
 }
@@ -805,7 +800,7 @@ _IswPlatformDndStartDrag(Widget source, IswEvent *trigger,
 void
 _IswPlatformDndSetAcceptedTypes(Widget w, Atom *types, int num_types)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
     if (ops && ops->dnd && ops->dnd->set_accepted_types)
         ops->dnd->set_accepted_types(w, types, num_types);
 }
@@ -813,7 +808,7 @@ _IswPlatformDndSetAcceptedTypes(Widget w, Atom *types, int num_types)
 void
 _IswPlatformDndSetAcceptedActions(Widget w, IswDndAction actions)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
     if (ops && ops->dnd && ops->dnd->set_accepted_actions)
         ops->dnd->set_accepted_actions(w, actions);
 }
@@ -821,7 +816,7 @@ _IswPlatformDndSetAcceptedActions(Widget w, IswDndAction actions)
 void
 _IswPlatformDndSetDropCallback(Widget w, IswCallbackProc proc, IswPointer closure)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
     if (ops && ops->dnd && ops->dnd->set_drop_callback)
         ops->dnd->set_drop_callback(w, proc, closure);
 }
@@ -829,7 +824,7 @@ _IswPlatformDndSetDropCallback(Widget w, IswCallbackProc proc, IswPointer closur
 void
 _IswPlatformDndSetDragMotionCallback(Widget w, IswCallbackProc proc, IswPointer closure)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
     if (ops && ops->dnd && ops->dnd->set_drag_motion_callback)
         ops->dnd->set_drag_motion_callback(w, proc, closure);
 }
@@ -837,7 +832,7 @@ _IswPlatformDndSetDragMotionCallback(Widget w, IswCallbackProc proc, IswPointer 
 void
 _IswPlatformDndSetDragLeaveCallback(Widget w, IswCallbackProc proc, IswPointer closure)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
     if (ops && ops->dnd && ops->dnd->set_drag_leave_callback)
         ops->dnd->set_drag_leave_callback(w, proc, closure);
 }
@@ -845,7 +840,7 @@ _IswPlatformDndSetDragLeaveCallback(Widget w, IswCallbackProc proc, IswPointer c
 Atom
 _IswPlatformDndInternType(Widget w, const char *mime_type)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
     if (ops && ops->dnd && ops->dnd->intern_type)
         return ops->dnd->intern_type(w, mime_type);
     return ISW_ATOM_NONE;
@@ -854,7 +849,7 @@ _IswPlatformDndInternType(Widget w, const char *mime_type)
 Boolean
 _IswPlatformDndIsDragging(Widget w)
 {
-    const IswPlatformOps *ops = _IswPlatformGetOps();
+    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
     if (ops && ops->dnd && ops->dnd->is_dragging)
         return ops->dnd->is_dragging(w);
     return False;

@@ -199,6 +199,10 @@ InitPerDisplay(xcb_connection_t *dpy,
     AddToAppContext(dpy, app);
 
     pd = NewPerDisplay(dpy);
+    /* Inject the backend ops table for this connection.  This is the single
+     * backend-selection point; every _IswPlatform* wrapper recovers the ops
+     * from the per-display record rather than a process-global accessor. */
+    pd->ops = &isw_platform_xcb_ops;
     _IswHeapInit(&pd->heap);
     pd->destroy_callbacks = NULL;
     /* Store the default screen number from xcb_connect() so that
