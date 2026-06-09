@@ -332,10 +332,10 @@ typedef struct _IswPerDisplayStruct {
     xcb_key_symbols_t *keysyms;                   /* keycode to keysym table */
     int keysyms_per_keycode;           /* number of keysyms for each keycode*/
     int min_keycode, max_keycode;      /* range of keycodes */
-    xcb_keysym_t *modKeysyms;                     /* keysym values for modToKeysysm */
+    IswKeySym *modKeysyms;                     /* keysym values for modToKeysysm */
     ModToKeysymTable *modsToKeysyms;   /* modifiers to Keysysms index table*/
     unsigned char isModifier[32];      /* key-is-modifier-p bit table */
-    xcb_keysym_t lock_meaning;	       /* Lock modifier meaning */
+    IswKeySym lock_meaning;	       /* Lock modifier meaning */
     Modifiers mode_switch;	       /* keyboard group modifiers */
     Modifiers num_lock;		       /* keyboard numlock modifiers */
     Boolean being_destroyed;
@@ -402,9 +402,10 @@ extern xcb_screen_t *_IswGetDefaultScreen(
     xcb_connection_t *		/* dpy */
 );
 
-/* Look up the xcb_connection_t* for a given xcb_screen_t*.
- * Searches the per-display table. Returns NULL if not found. */
-extern xcb_connection_t *_IswConnectionOfScreen(xcb_screen_t *screen);
+/* Look up the display owning a given screen.  Searches the per-display table.
+ * Returns NULL if not found.  (Phase 12a: neutral handles; the backend resolves
+ * them to xcb_connection_t/xcb_screen_t internally.) */
+extern IswDisplay _IswConnectionOfScreen(IswScreen screen);
 
 extern IswPerDisplayInputRec* _IswGetPerDisplayInput(
     IswDisplay 		/* dpy */

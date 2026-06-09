@@ -620,17 +620,39 @@ the thing Phase 8 injected ops into — still stores raw xcb resources:
 (`:326-327`, addressed structurally in Phase 14), `xcb_xrm_database_t*`
 (`:358-360`, addressed in Phase 13), and the keysym/modifier tables.
 
-**Scope.**
-- Replace the remaining raw-xcb fields with neutral handles dispatched through
-  ops (keysyms/modifier tables behind the Phase-3 input ops; regions/DB deferred
-  to Phases 13/14 which own those subsystems).
-- `_IswConnectionOfScreen` and the screen→connection lookups return the opaque
-  display, not `xcb_connection_t *`.
+**Audit finding (surfaced before edits).** Most of the struct's raw-xcb fields
+are owned by other phases: `region`/`null_region` → 14, `per_screen_db`/`cmd_db`/
+`server_db` → 15, `native` → the 10b seam, `last_event` (`xcb_generic_event_t`)
+→ the 11b event bridge. What is *uniquely* Phase 12 is the keysym/modifier state
+— and that is not a field rename: the keysym-table machinery (`xcb_key_symbols_t
+keysyms`, `xcb_get_modifier_mapping`, `xcb_key_symbols_get_keysym`) lives in
+toolkit `TMkey.c` across ~48 raw-xcb sites (`_IswBuildKeysymTables`,
+`IswTranslateKey`, `_IswComputeLateBindings`, `_IswXcbKeysyms`). Neutralizing it
+means relocating that keyboard-mapping logic into the input backend — a
+Phase-7-DnD-scale move, not a typedef swap. The phase is therefore split:
 
-**Acceptance.** No `xcb_*` resource type in `IswPerDisplayStruct` except those
-explicitly owned by Phases 13/14 at that point; build green + demo verified.
+#### Phase 12a — trivial field retypes (no behaviour change)
+- `xcb_keysym_t modKeysyms`/`lock_meaning` (both `uint32`) → `IswKeySym`.
+- `_IswConnectionOfScreen` and screen→connection lookups return `IswDisplay`
+  rather than `xcb_connection_t *`.
+- Acceptance: those fields/signatures carry neutral types; build green + demo
+  verified. (`xcb_key_symbols_t* keysyms` stays — it's 12b.)
 
-**Depends on** Phase 11.
+#### Phase 12b — relocate the keysym/modifier machinery into the input backend
+- Move `_IswBuildKeysymTables` / `_IswXcbKeysyms` / the raw
+  `xcb_key_symbols_*` + modifier-mapping calls out of `TMkey.c` into
+  `ISWPlatformInputXCB.c`, behind input ops (the table becomes an opaque
+  `IswKeysymTable` handle or stays backend-internal state reached only via ops).
+  Route `FocusMgr.c`'s independent `xcb_key_symbols` cache through the same ops.
+- Acceptance: no raw `xcb_key_symbols_*` / `xcb_get_modifier_mapping` outside
+  the input backend; `pd->keysyms` opaque to the toolkit; keyboard input +
+  translations verified live.
+
+**Acceptance (phase overall).** No `xcb_*` resource type in
+`IswPerDisplayStruct` except those owned by Phases 13/14/15, the 10b `native`
+seam, and the 11b `last_event` bridge; build green + demo verified.
+
+**Depends on** Phase 11 (12a). 12b is unfinished Phase-3 input work.
 
 ### Phase 13 — Abstract selection / property exchange and the tray
 

@@ -587,7 +587,7 @@ FreePixel(IswAppContext app,
     colormap = *((IswColormap *) args[1].addr);
 
     if (closure) {
-        IswDisplay dpy = (IswDisplay) _IswConnectionOfScreen(screen);
+        IswDisplay dpy = _IswConnectionOfScreen((IswScreen) screen);
         unsigned long pixel = *(uint32_t *) toVal->addr;
         _IswPlatformFreeColors(dpy, colormap, pixel);
     }

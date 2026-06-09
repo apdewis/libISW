@@ -961,10 +961,12 @@ IswGetDisplays(IswAppContext app_context,
     UNLOCK_APP(app_context);
 }
 
-xcb_connection_t *
-_IswConnectionOfScreen(xcb_screen_t *screen)
+IswDisplay
+_IswConnectionOfScreen(IswScreen screen)
 {
     IswAppContext app;
+    /* Backend boundary: the per-display table and screen walk are native. */
+    xcb_screen_t *native_screen = (xcb_screen_t *) screen;
 
     LOCK_PROCESS;
     /* Walk the process-level display list */
@@ -977,9 +979,9 @@ _IswConnectionOfScreen(xcb_screen_t *screen)
             const xcb_setup_t *setup = xcb_get_setup(dpy);
             xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
             for (; iter.rem; xcb_screen_next(&iter)) {
-                if (iter.data == screen) {
+                if (iter.data == native_screen) {
                     UNLOCK_PROCESS;
-                    return dpy;
+                    return (IswDisplay) dpy;
                 }
             }
         }
