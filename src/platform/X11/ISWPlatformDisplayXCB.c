@@ -37,6 +37,7 @@
 #include "IntrinsicI.h"
 #include <ISW/InitialI.h>
 #include "ISWPlatformPrivate.h"
+#include "ISWPlatformDisplayXCB.h"
 
 /* ---- handle representation ------------------------------------------------
  *
@@ -65,14 +66,8 @@
 xcb_connection_t *
 _IswXcbConn(IswDisplay dpy)
 {
-    xcb_connection_t *conn = (xcb_connection_t *) dpy;
-    PerDisplayTablePtr pd;
-
-    for (pd = _IswperDisplayList; pd != NULL; pd = pd->next) {
-        if (pd->dpy == conn)
-            return pd->perDpy.native;
-    }
-    return conn;
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy->priv; //convert opaque handle type to backend specific
+    return idx->conn;
 }
 
 xcb_screen_t *
