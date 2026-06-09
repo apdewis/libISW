@@ -193,6 +193,7 @@ set(LIBXT_SOURCES
     src/ISWPlatformGrabCursorXCB.c
     src/ISWPlatformAtomPropXCB.c
     src/ISWPlatformDndXCB.c
+    src/ISWPlatformResourceXCB.c
     src/EventUtil.c
     src/Functions.c
     src/Geometry.c

@@ -762,32 +762,90 @@ no new stderr.
 
 **Depends on** Phase 11 (expose flows through the abstracted event path).
 
-### Phase 15 — Neutral resource database (alternative to Xrm)
+### Phase 15 — Resource resolution behind ops (Xrm demoted to an X11-backend detail) — **DONE**
 
-**Why.** The resource subsystem — how every widget gets every value — is the X
-Resource Manager, bound to X11 in both type and source: `IswDatabaseHandle` /
-`XrmDatabase` are `typedef xcb_xrm_database_t *` (`IswDatabase.h:39,46`), and
-the database is populated from the X server's `RESOURCE_MANAGER` property and
-`.Xdefaults`/`XENVIRONMENT` (`Initialize.c:391,399,567`). ~39 `Xrm*` symbols
-span 7 public headers; the core resolution code is `Converters.c` (152),
-`Resources.c` (140), `Initialize.c` (109), `Convert.c` (66). (CLAUDE.md's "Xrm
-types keep their original names" is a *naming* rule — it does not exempt the
-subsystem from abstraction.)
+**Outcome (what shipped).** A coarse resource-resolution ops seam now sits
+between the toolkit and Xrm. `IswDatabaseHandle` / `XrmDatabase` are the neutral
+opaque `struct _IswResourceDb *` (IswDatabase.h, no xcb include); a new
+`IswPlatformResourceOps` sub-vtable (from_string / from_file /
+from_resource_manager / combine / put_resource / put_resource_line / to_string /
+free / get_string) is wired into `isw_platform_xcb_ops.resource`. The XCB
+backend's implementation (`ISWPlatformResourceXCB.c`, the only TU including
+`<xcb/xcb_xrm.h>`) casts the handle to `xcb_xrm_database_t*` and delegates to
+libxcb-util-xrm. All ~83 toolkit call sites across Initialize.c, Resources.c,
+ResConfig.c, Intrinsic.c, Error.c, Display.c, Functions.c now call the
+`_IswPlatformResource*` wrappers; per-display DB fields (`server_db`, `cmd_db`,
+`per_screen_db`, `errorDB`) and `_IswPreparseCommandLine` / `_IswRefetchResources`
+retyped off `xcb_xrm_database_t`. The portable quark interning (Quark.c) was left
+untouched (not X11-specific). Resource ops use `_IswPlatformSelectBackend()`, not
+the per-display record — the database is a free-standing store, and several calls
+run before any per-display record exists (same rationale as
+`_IswPlatformConnectionFd`).
+
+**Proof (Xrm demoted, not renamed).** `nm` over every toolkit `.o`: exactly one
+object — `ISWPlatformResourceXCB.c.o` — references `xcb_xrm_*` symbols (all 9);
+zero elsewhere. No `xcb_xrm_database_t` or `<xcb/xcb_xrm.h>` in toolkit code or
+public headers (comment mentions only). Live: demo ran with
+`-xrm '*background: #112233'` (exercises the command-line parser →
+put_resource_line/put_resource/from_string/combine path) and survived full
+interaction with zero new stderr; an instrumented `get_string` showed **846 real
+resolution hits** (e.g. resolved value `#D8D8E8`) flowing through the neutral op,
+confirming the seam is the live resolution path, not a bypass. Instrumentation
+reverted; build green.
+
+**Why.** The resource subsystem — how every widget gets every value — is X11's
+Resource Manager, and the toolkit is bound to it in both *type* and *engine*.
+`IswDatabaseHandle` / `XrmDatabase` are `typedef xcb_xrm_database_t *`
+(`IswDatabase.h:39,46`), and resolution is delegated wholesale to
+**libxcb-util-xrm**: the database store, the `.Xdefaults`/string parser
+(`xcb_xrm_database_from_string`/`_from_file`), merge/override
+(`xcb_xrm_database_combine`), and — the genuine engine — the tight/loose
+name-class wildcard precedence matcher (`xcb_xrm_resource_get_string`).
+`Resources.c:1451` (`XrmQGetResource`) is explicitly "a compatibility wrapper
+around `xcb_xrm_resource_get_string`". 10 distinct `xcb_xrm_*` functions across
+~83 call sites in 8 files (`Initialize.c`, `Resources.c`, `ResConfig.c`,
+`Intrinsic.c`, `Error.c`, `Display.c`, `Convert.c`/`Converters.c`).
+
+**Reframing (corrected from the original plan).** Xrm is *X11's particular
+answer* to a general question — "what is the configured value of this resource
+for this widget?" — drawn from some source (on X11: `RESOURCE_MANAGER` /
+`.Xdefaults` / `XENVIRONMENT`, matched by Xrm's precedence rules). The
+platform-independence boundary therefore belongs at that **general question**,
+not at Xrm's mechanics. The original scope ("keep the matching logic, swap the
+type") was wrong: the matching logic is *not* the toolkit's to keep — it lives
+inside libxcb-util-xrm, i.e. it *is* X11's approach. Reimplementing it in-repo
+would just be rebuilding X11's resource manager inside the toolkit, which is
+pointless. Instead, **confine Xrm to the XCB backend behind a resource-ops
+seam**, exactly as XFixes (14), selection/property (5/6), and event-poll (11)
+were confined.
 
 **Scope.**
-- Make the database type toolkit-owned (not `xcb_xrm_database_t`). The portable
-  quark / name / class / binding matching logic stays; only the database type
-  and its population path change.
-- Move the population path (`RESOURCE_MANAGER` property / `.Xdefaults` /
-  app-supplied string/file) behind the backend / platform ops; a non-X backend
-  supplies resources from its own source (config file / app-provided), with no
-  `RESOURCE_MANAGER`.
-- Keep the `Xrm*` *names* per CLAUDE.md, but back them with the neutral type.
+- Define a **coarse resource-resolution ops interface** (the abstracted
+  *question*, not Xrm's mechanism): an opaque `IswResourceDb` handle the toolkit
+  never inspects, plus ops to (a) build/load the platform resource source
+  (X11: `RESOURCE_MANAGER` + `.Xdefaults`/`XENVIRONMENT`; another backend:
+  config file / app-supplied / nothing), (b) merge an app- or command-line-
+  supplied source into it, and (c) resolve a full name/class path to a string
+  value or "none". The interface abstracts *resolve a resource*, never
+  `combine`/`put`/`get_string` as such, so a non-X backend answers lookups
+  without mimicking Xrm's operational model.
+- Retype `IswDatabaseHandle` / `XrmDatabase` off `xcb_xrm_database_t *` to the
+  neutral opaque handle. Route all ~83 `xcb_xrm_*` call sites through the ops
+  (or through the thin toolkit wrappers over them).
+- The **XCB backend's** resource-ops implementation keeps using libxcb-util-xrm
+  internally — Xrm becomes a private detail of one translation unit, the only
+  place `xcb_xrm_*` / `<xcb/xcb_xrm.h>` appears, and the only thing that pulls
+  the `xcb-xrm` link. The portable quark interning (`Quark.c`) stays in the
+  toolkit unchanged (it is not X11-specific).
+- Keep the `Xrm*` *names* per CLAUDE.md, but back them with the neutral handle.
 
-**Acceptance.** No `xcb_xrm_database_t` in toolkit code or public headers
-(name aliases may remain, backed by the neutral type); resource resolution and
-command-line option parsing verified; build green + demo verified. A phase on
-the scale of the event-loop work.
+**Acceptance.** No `xcb_xrm_database_t` (and no `<xcb/xcb_xrm.h>`) in toolkit
+code or public headers — confined to the XCB backend TU; toolkit resource code
+names no X11 resource concept and reaches resolution only through the ops seam;
+resource resolution and command-line option parsing verified live; build green +
+demo verified. (Goal proven the way 14 was: `xcb-xrm` no longer a link
+dependency of toolkit objects outside the backend — Xrm is demoted, not
+renamed.) One phase.
 
 **Depends on** Phase 10 (DB lookups keyed off the opaque display).
 

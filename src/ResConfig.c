@@ -100,7 +100,7 @@ static int _locate_children(Widget, Widget **);
 static void
 _set_resource_values(Widget w, char *resource, char *value, char *last_part)
 {
-    xcb_xrm_database_t *db = NULL;
+    IswDatabaseHandle db = NULL;
     char *resource_name = NULL;
     char *resource_class = NULL;
     char *resource_value;
@@ -111,7 +111,7 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
     Cardinal res_index;
     Boolean found_resource = False;
     IswDisplay dpy;
-    xcb_xrm_database_t *tmp_db;
+    IswDatabaseHandle tmp_db;
 
     if (last_part == NULL)
         return;
@@ -243,17 +243,17 @@ _set_resource_values(Widget w, char *resource, char *value, char *last_part)
      * necessary to maintain a precedence similar to the .Xdefaults
      * file
      */
-    db = xcb_xrm_database_from_string("");
+    db = _IswPlatformResourceFromString("");
     if (db != NULL) {
         char *queried_value = NULL;
 
-        xcb_xrm_database_put_resource(&db, resource, value);
+        _IswPlatformResourcePut(&db, resource, value);
         if (tmp_db != NULL) {
-            xcb_xrm_database_combine(db, &tmp_db, False);
-            xcb_xrm_database_free(db);
+            _IswPlatformResourceCombine(db, &tmp_db, False);
+            _IswPlatformResourceFree(db);
             db = NULL;
         }
-        if (xcb_xrm_resource_get_string(tmp_db, resource_name,
+        if (_IswPlatformResourceGetString(tmp_db, resource_name,
                                          resource_class,
                                          &queried_value) >= 0
             && queried_value != NULL) {

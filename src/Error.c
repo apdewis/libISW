@@ -72,6 +72,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -83,10 +84,10 @@ in this Software without prior written authorization from The Open Group.
 #define GLOBALERRORS 1
 #endif
 
-static void InitErrorHandling(xcb_xrm_database_t **);
+static void InitErrorHandling(IswDatabaseHandle *);
 
 #if GLOBALERRORS
-static xcb_xrm_database_t *errorDB = NULL;
+static IswDatabaseHandle errorDB = NULL;
 static Boolean error_inited = FALSE;
 void _IswDefaultErrorMsg(String, String, String, String, String *, Cardinal *);
 void _IswDefaultWarningMsg(String, String, String, String, String *, Cardinal *);
@@ -195,7 +196,7 @@ IswAppGetErrorDatabaseText(IswAppContext app _X_UNUSED,
         str_class = temp;
     }
     {
-        xcb_xrm_database_t *lookup_db = db;
+        IswDatabaseHandle lookup_db = db;
         char *value = NULL;
 
         if (lookup_db == NULL) {
@@ -206,7 +207,7 @@ IswAppGetErrorDatabaseText(IswAppContext app _X_UNUSED,
 #endif
         }
         if (lookup_db != NULL) {
-            (void) xcb_xrm_resource_get_string(lookup_db,
+            (void) _IswPlatformResourceGetString(lookup_db,
                                                 str_name, str_class, &value);
         }
         if (value != NULL) {
@@ -218,7 +219,7 @@ IswAppGetErrorDatabaseText(IswAppContext app _X_UNUSED,
         (void) strncpy(buffer, result.addr, (size_t) nbytes);
         if (result.size > (unsigned) nbytes)
             buffer[nbytes - 1] = 0;
-        free(result.addr);  /* xcb_xrm_resource_get_string allocates with malloc */
+        free(result.addr);  /* _IswPlatformResourceGetString allocates with malloc */
         result.addr = NULL;
     }
     else {
@@ -241,15 +242,15 @@ IswAppGetErrorDatabaseText(IswAppContext app _X_UNUSED,
 }
 
 static void
-InitErrorHandling(xcb_xrm_database_t **db)
+InitErrorHandling(IswDatabaseHandle *db)
 {
-    xcb_xrm_database_t *errordb;
+    IswDatabaseHandle errordb;
 
-    errordb = xcb_xrm_database_from_file(ERRORDB);
+    errordb = _IswPlatformResourceFromFile(ERRORDB);
     if (errordb != NULL) {
         if (*db != NULL) {
-            xcb_xrm_database_combine(errordb, db, False);
-            xcb_xrm_database_free(errordb);
+            _IswPlatformResourceCombine(errordb, db, False);
+            _IswPlatformResourceFree(errordb);
         } else {
             *db = errordb;
         }

@@ -29,28 +29,30 @@
 #ifndef _IswDatabase_h
 #define _IswDatabase_h
 
-#include <xcb/xcb_xrm.h>
-
 /*
- * The resource database type.
- * xcb-util-xrm provides xcb_xrm_database_t as an opaque type.
- * We use a pointer to it as our database handle.
+ * The resource database type — a neutral, opaque toolkit handle.
+ *
+ * Phase 15: the database is no longer typed on xcb-util-xrm's
+ * xcb_xrm_database_t.  Resource resolution is X11's particular answer to a
+ * general question ("what is the configured value of this resource for this
+ * widget?"), so the toolkit holds only an opaque handle and reaches the
+ * store/parser/matcher through the platform resource ops (ISW/ISWPlatform.h).
+ * The XCB backend's resource-ops implementation casts this handle to
+ * xcb_xrm_database_t* internally — Xrm is confined to that one translation
+ * unit; this header carries no xcb dependency.
  */
-typedef xcb_xrm_database_t *IswDatabaseHandle;
+typedef struct _IswResourceDb *IswDatabaseHandle;
 
 /*
- * Backward compatibility - map old XrmDatabase to new type.
- * XrmDatabase was an opaque pointer in Xlib; xcb_xrm_database_t*
- * serves the same role.
+ * Backward compatibility - the Xlib XrmDatabase name, per CLAUDE.md, backed by
+ * the same neutral handle.
  */
-typedef xcb_xrm_database_t *XrmDatabase;
+typedef struct _IswResourceDb *XrmDatabase;
 
 /*
- * XrmHashTable and XrmSearchList are no longer needed.
- * xcb-util-xrm does not use search lists; instead, full resource
- * name/class strings are passed to xcb_xrm_resource_get_string().
- * These are defined as void* to allow commented-out code to compile
- * without errors, but they should not be used in new code.
+ * XrmHashTable and XrmSearchList are no longer used: resolution passes a full
+ * name/class path string to the resource-resolution ops, not a search list.
+ * Kept as void* so legacy/commented-out code still compiles; not for new use.
  */
 typedef void *XrmHashTable;
 typedef XrmHashTable *XrmSearchList;

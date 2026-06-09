@@ -97,7 +97,7 @@ extern void _IswResourceListInitialize(void);
 
 extern void _IswRefetchResources(
     Widget	    /* w */,
-    xcb_xrm_database_t * /* db */
+    IswDatabaseHandle /* db */
 );
 
 _XFUNCPROTOEND

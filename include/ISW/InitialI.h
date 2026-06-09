@@ -174,7 +174,7 @@ typedef struct _IswAppStruct {
     InputEvent **input_list;
     InputEvent *outstandingQueue;
     SignalEventRec *signalQueue;
-    xcb_xrm_database_t *errorDB;
+    IswDatabaseHandle errorDB;
     IswErrorMsgHandler errorMsgHandler, warningMsgHandler;
     IswErrorHandler errorHandler, warningHandler;
     struct _ActionListRec *action_table;
@@ -356,9 +356,9 @@ typedef struct _IswPerDisplayStruct {
 					  _IswXcbConn resolves this rather than
 					  casting the handle */
     struct _WWTable *WWtable;	       /* window to widget table */
-    xcb_xrm_database_t **per_screen_db;  /* per screen resource databases */
-    xcb_xrm_database_t *cmd_db;	       /* db from command line, if needed */
-    xcb_xrm_database_t *server_db;       /* resource property else .Xdefaults */
+    IswDatabaseHandle *per_screen_db;  /* per screen resource databases */
+    IswDatabaseHandle cmd_db;	       /* db from command line, if needed */
+    IswDatabaseHandle server_db;       /* resource property else .Xdefaults */
     IswEventDispatchProc* dispatcher_list;
     ExtSelectRec* ext_select_list;
     int ext_select_count;
@@ -474,7 +474,7 @@ extern void _IswFreeWWTable(
 );
 
 extern String _IswGetUserName(_IswString dest, int len);
-extern xcb_xrm_database_t *_IswPreparseCommandLine(XrmOptionDescRec *urlist,
+extern IswDatabaseHandle _IswPreparseCommandLine(XrmOptionDescRec *urlist,
 			Cardinal num_urs, int argc, _IswString *argv,
 			String *applName, String *displayName,
 			String *language);

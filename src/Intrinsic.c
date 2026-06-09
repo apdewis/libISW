@@ -1660,7 +1660,7 @@ IswResolvePathname(IswDisplay dpy,
      * Build the resource name as "appname.customization" and class as
      * "AppClass.Customization". */
     {
-        xcb_xrm_database_t *db = NULL;
+        IswDatabaseHandle db = NULL;
         /* Use the default screen's database if available */
         if (pd->per_screen_db) {
             db = pd->per_screen_db[0];
@@ -1670,7 +1670,7 @@ IswResolvePathname(IswDisplay dpy,
             char *res_class = NULL;
             IswAsprintf(&res_name, "%s.customization", pd->name);
             IswAsprintf(&res_class, "%s.Customization", pd->class);
-            if (xcb_xrm_resource_get_string(db, res_name, res_class,
+            if (_IswPlatformResourceGetString(db, res_name, res_class,
                                             &customization) < 0)
                 customization = NULL;
             IswFree(res_name);
@@ -1695,7 +1695,7 @@ IswResolvePathname(IswDisplay dpy,
         DEALLOCATE_LOCAL(massagedPath);
 
     if (customization != NULL)
-        free(customization);  /* xcb_xrm_resource_get_string allocates with malloc */
+        free(customization);  /* _IswPlatformResourceGetString allocates with malloc */
 
     UNLOCK_PROCESS;
     return result;

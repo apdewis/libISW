@@ -439,6 +439,7 @@ const IswPlatformOps isw_platform_xcb_ops = {
     .property  = &isw_platform_xcb_property_ops,
     .hint      = &isw_platform_xcb_hint_ops,
     .dnd       = &isw_platform_xcb_dnd_ops,
+    .resource  = &isw_platform_xcb_resource_ops,   /* Phase 15 */
 };
 
 /* Backend selection (Phase 9): chosen as the first act of init, before any
@@ -516,6 +517,93 @@ _IswPlatformChangeAttributes(IswDisplay dpy, IswWindow win,
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->window && ops->window->change_attributes)
         ops->window->change_attributes(dpy, win, attrs, mask);
+}
+
+/* ---- resource-resolution wrappers (Phase 15) -----------------------------
+   Toolkit resource code (Initialize.c / Resources.c / Intrinsic.c / Error.c /
+   ResConfig.c / Display.c) calls these instead of any xcb_xrm_* function, so no
+   toolkit TU names Xrm.  Resource-database ops are NOT keyed on a connection
+   (the database is a free-standing store; several calls happen before a
+   per-display record exists), so ops come from the selected backend — same
+   rationale as _IswPlatformConnectionFd, not the per-display record. */
+IswDatabaseHandle
+_IswPlatformResourceFromString(const char *str)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->resource && ops->resource->from_string)
+        return ops->resource->from_string(str);
+    return NULL;
+}
+
+IswDatabaseHandle
+_IswPlatformResourceFromFile(const char *filename)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->resource && ops->resource->from_file)
+        return ops->resource->from_file(filename);
+    return NULL;
+}
+
+IswDatabaseHandle
+_IswPlatformResourceFromManager(IswDisplay dpy, IswScreen screen)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->resource && ops->resource->from_resource_manager)
+        return ops->resource->from_resource_manager(dpy, screen);
+    return NULL;
+}
+
+void
+_IswPlatformResourceCombine(IswDatabaseHandle source, IswDatabaseHandle *target,
+                            Boolean override)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->resource && ops->resource->combine)
+        ops->resource->combine(source, target, override);
+}
+
+void
+_IswPlatformResourcePut(IswDatabaseHandle *db, const char *resource,
+                        const char *value)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->resource && ops->resource->put_resource)
+        ops->resource->put_resource(db, resource, value);
+}
+
+void
+_IswPlatformResourcePutLine(IswDatabaseHandle *db, const char *line)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->resource && ops->resource->put_resource_line)
+        ops->resource->put_resource_line(db, line);
+}
+
+char *
+_IswPlatformResourceToString(IswDatabaseHandle db)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->resource && ops->resource->to_string)
+        return ops->resource->to_string(db);
+    return NULL;
+}
+
+void
+_IswPlatformResourceFree(IswDatabaseHandle db)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->resource && ops->resource->free)
+        ops->resource->free(db);
+}
+
+int
+_IswPlatformResourceGetString(IswDatabaseHandle db, const char *res_name,
+                              const char *res_class, char **out)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->resource && ops->resource->get_string)
+        return ops->resource->get_string(db, res_name, res_class, out);
+    return -1;
 }
 
 /* ---- thin dispatch wrappers (color / font / cursor / grab / selection) ----

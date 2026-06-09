@@ -249,7 +249,7 @@ IswUnmapWidget(Widget w)
 }
 
 static void
-ReloadSubtree(Widget w, xcb_xrm_database_t *db)
+ReloadSubtree(Widget w, IswDatabaseHandle db)
 {
     _IswRefetchResources(w, db);
 
@@ -284,7 +284,7 @@ RedisplaySubtree(Widget w)
 void
 IswReloadResources(Widget subtree_root)
 {
-    xcb_xrm_database_t *db;
+    IswDatabaseHandle db;
 
     if (subtree_root == NULL)
         return;

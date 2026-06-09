@@ -168,6 +168,23 @@ void    _IswPlatformChangeAttributes(IswDisplay dpy, IswWindow win,
                                      const IswWindowAttributes *attrs,
                                      unsigned int mask);
 
+/* Resource resolution (Phase 15).  Toolkit resource code calls these instead of
+   any xcb_xrm_* function; the XCB backend's resource ops implement them over
+   libxcb-util-xrm (the only TU that names Xrm). */
+IswDatabaseHandle _IswPlatformResourceFromString(const char *str);
+IswDatabaseHandle _IswPlatformResourceFromFile(const char *filename);
+IswDatabaseHandle _IswPlatformResourceFromManager(IswDisplay dpy,
+                                                  IswScreen screen);
+void _IswPlatformResourceCombine(IswDatabaseHandle source,
+                                 IswDatabaseHandle *target, Boolean override);
+void _IswPlatformResourcePut(IswDatabaseHandle *db, const char *resource,
+                             const char *value);
+void _IswPlatformResourcePutLine(IswDatabaseHandle *db, const char *line);
+char *_IswPlatformResourceToString(IswDatabaseHandle db);
+void _IswPlatformResourceFree(IswDatabaseHandle db);
+int  _IswPlatformResourceGetString(IswDatabaseHandle db, const char *res_name,
+                                   const char *res_class, char **out);
+
 /* WM hints (Phase 6) */
 void _IswPlatformSetWindowTitle(IswDisplay dpy, IswWindow win, const char *utf8);
 void _IswPlatformSetIconTitle(IswDisplay dpy, IswWindow win, const char *utf8);
@@ -215,5 +232,10 @@ Boolean _IswPlatformDndIsDragging(Widget w);
  * in their respective phases.
  */
 extern const IswPlatformOps isw_platform_xcb_ops;
+
+/* The XCB backend's resource-resolution ops (Phase 15), wired into
+   isw_platform_xcb_ops.resource.  Implemented in ISWPlatformResourceXCB.c —
+   the only TU that includes <xcb/xcb_xrm.h>. */
+extern const IswPlatformResourceOps isw_platform_xcb_resource_ops;
 
 #endif /* _ISWPlatformPrivate_h */

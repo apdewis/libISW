@@ -344,7 +344,7 @@ GetRootDirName(_IswString dest, int len)
 }
 
 static void
-CombineAppUserDefaults(xcb_connection_t *dpy, xcb_xrm_database_t **pdb)
+CombineAppUserDefaults(xcb_connection_t *dpy, IswDatabaseHandle *pdb)
 {
     char *filename;
     char *path = NULL;
@@ -373,9 +373,9 @@ CombineAppUserDefaults(xcb_connection_t *dpy, xcb_xrm_database_t **pdb)
 
     filename = IswResolvePathname((IswDisplay) dpy, NULL, NULL, NULL, path, NULL, 0, NULL);
     if (filename) {
-        xcb_xrm_database_t *fdb = xcb_xrm_database_from_file(filename);
+        IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename);
         if (fdb)
-            xcb_xrm_database_combine(fdb, pdb, False);
+            _IswPlatformResourceCombine(fdb, pdb, False);
         IswFree(filename);
     }
 
@@ -385,12 +385,13 @@ CombineAppUserDefaults(xcb_connection_t *dpy, xcb_xrm_database_t **pdb)
 
 static void
 CombineUserDefaults(xcb_connection_t *dpy, xcb_screen_t *screen,
-                    xcb_xrm_database_t **pdb)
+                    IswDatabaseHandle *pdb)
 {
     /* Try RESOURCE_MANAGER property first */
-    xcb_xrm_database_t *rdb = xcb_xrm_database_from_resource_manager(dpy, screen);
+    IswDatabaseHandle rdb =
+        _IswPlatformResourceFromManager((IswDisplay) dpy, (IswScreen) screen);
     if (rdb) {
-        xcb_xrm_database_combine(rdb, pdb, False);
+        _IswPlatformResourceCombine(rdb, pdb, False);
     }
     else {
 #ifdef __MINGW32__
@@ -403,20 +404,20 @@ CombineUserDefaults(xcb_connection_t *dpy, xcb_screen_t *screen,
         (void) GetRootDirName(filename,
                               PATH_MAX - (int) strlen(slashDotXdefaults) - 1);
         (void) strcat(filename, slashDotXdefaults);
-        xcb_xrm_database_t *fdb = xcb_xrm_database_from_file(filename);
+        IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename);
         if (fdb)
-            xcb_xrm_database_combine(fdb, pdb, False);
+            _IswPlatformResourceCombine(fdb, pdb, False);
     }
 }
 
-static xcb_xrm_database_t *
-CopyDB(xcb_xrm_database_t *db)
+static IswDatabaseHandle
+CopyDB(IswDatabaseHandle db)
 {
-    xcb_xrm_database_t *copy = NULL;
+    IswDatabaseHandle copy = NULL;
     if (db) {
-        char *str = xcb_xrm_database_to_string(db);
+        char *str = _IswPlatformResourceToString(db);
         if (str) {
-            copy = xcb_xrm_database_from_string(str);
+            copy = _IswPlatformResourceFromString(str);
             free(str);
         }
     }
@@ -497,7 +498,7 @@ IswScreenDatabase(IswScreen screen_handle)
 {
     xcb_screen_t *screen = _IswXcbScreen(screen_handle);
     int scrno;
-    xcb_xrm_database_t *db;
+    IswDatabaseHandle db;
     IswPerDisplay pd;
     xcb_connection_t *dpy = NULL;
     int nscreens;
@@ -585,9 +586,9 @@ IswScreenDatabase(IswScreen screen_handle)
                 GetHostname(filename + len, PATH_MAX - len);
             }
             {
-                xcb_xrm_database_t *envdb = xcb_xrm_database_from_file(filename);
+                IswDatabaseHandle envdb = _IswPlatformResourceFromFile(filename);
                 if (envdb)
-                    xcb_xrm_database_combine(envdb, &db, False);
+                    _IswPlatformResourceCombine(envdb, &db, False);
             }
         }
 
@@ -596,13 +597,13 @@ IswScreenDatabase(IswScreen screen_handle)
             CombineUserDefaults(dpy, screen, &db);
         }
         else {
-            xcb_xrm_database_combine(pd->server_db, &db, False);
+            _IswPlatformResourceCombine(pd->server_db, &db, False);
             pd->server_db = NULL;
         }
 
         /* Ensure we have at least an empty database */
         if (!db)
-            db = xcb_xrm_database_from_string("");
+            db = _IswPlatformResourceFromString("");
 
         /* Cache the database for this screen */
         if (pd->per_screen_db)
@@ -614,9 +615,9 @@ IswScreenDatabase(IswScreen screen_handle)
             char *filename = IswResolvePathname((IswDisplay) dpy, "app-defaults",
                                                NULL, NULL, NULL, NULL, 0, NULL);
             if (filename) {
-                xcb_xrm_database_t *fdb = xcb_xrm_database_from_file(filename);
+                IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename);
                 if (fdb)
-                    xcb_xrm_database_combine(fdb, &db, False);
+                    _IswPlatformResourceCombine(fdb, &db, False);
                 IswFree(filename);
             }
         }
@@ -625,7 +626,7 @@ IswScreenDatabase(IswScreen screen_handle)
         if (pd->appContext->fallback_resources) {
             String *res;
             for (res = pd->appContext->fallback_resources; *res; res++)
-                xcb_xrm_database_put_resource_line(&db, *res);
+                _IswPlatformResourcePutLine(&db, *res);
         }
 
         UNLOCK_PROCESS;
@@ -674,7 +675,7 @@ IswReloadScreenDatabase(IswScreen screen_handle)
         LOCK_PROCESS;
         pd = _IswGetPerDisplay((IswDisplay) dpy);
         if (pd->per_screen_db && pd->per_screen_db[scrno]) {
-            xcb_xrm_database_free(pd->per_screen_db[scrno]);
+            _IswPlatformResourceFree(pd->per_screen_db[scrno]);
             pd->per_screen_db[scrno] = NULL;
         }
         UNLOCK_PROCESS;
@@ -764,20 +765,20 @@ _MergeOptionTables(const XrmOptionDescRec *src1,
 /* Helper: put a resource into the database, using put_resource_line for
  * entries with wildcards (* or ?) so xcb-util-xrm parses them correctly. */
 static void
-_IswDbPutResource(xcb_xrm_database_t **db, const char *resource, const char *value)
+_IswDbPutResource(IswDatabaseHandle *db, const char *resource, const char *value)
 {
     char line_buf[1024];
 
     if (strchr(resource, '*') || strchr(resource, '?')) {
         snprintf(line_buf, sizeof(line_buf), "%s: %s", resource, value);
-        xcb_xrm_database_put_resource_line(db, line_buf);
+        _IswPlatformResourcePutLine(db, line_buf);
     } else {
-        xcb_xrm_database_put_resource(db, resource, value);
+        _IswPlatformResourcePut(db, resource, value);
     }
 }
 
 static void
-_IswParseCommand(xcb_xrm_database_t **db,
+_IswParseCommand(IswDatabaseHandle *db,
                 XrmOptionDescRec *options,
                 int num_options,
                 _Xconst char *prefix,
@@ -818,7 +819,7 @@ _IswParseCommand(xcb_xrm_database_t **db,
                     snprintf(resource_buf, sizeof(resource_buf),
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
-                        *db = xcb_xrm_database_from_string("");
+                        *db = _IswPlatformResourceFromString("");
                     _IswDbPutResource(db, resource_buf,
                                      (char *) options[i].value);
                 }
@@ -831,7 +832,7 @@ _IswParseCommand(xcb_xrm_database_t **db,
                     snprintf(resource_buf, sizeof(resource_buf),
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
-                        *db = xcb_xrm_database_from_string("");
+                        *db = _IswPlatformResourceFromString("");
                     _IswDbPutResource(db, resource_buf, *src);
                 }
                 src++;
@@ -843,7 +844,7 @@ _IswParseCommand(xcb_xrm_database_t **db,
                     snprintf(resource_buf, sizeof(resource_buf),
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
-                        *db = xcb_xrm_database_from_string("");
+                        *db = _IswPlatformResourceFromString("");
                     _IswDbPutResource(db, resource_buf, *src + optlen);
                 }
                 src++;
@@ -857,7 +858,7 @@ _IswParseCommand(xcb_xrm_database_t **db,
                     snprintf(resource_buf, sizeof(resource_buf),
                              "%s%s", prefix, options[i].specifier);
                     if (*db == NULL)
-                        *db = xcb_xrm_database_from_string("");
+                        *db = _IswPlatformResourceFromString("");
                     _IswDbPutResource(db, resource_buf, *src);
                     src++;
                     remaining--;
@@ -869,8 +870,8 @@ _IswParseCommand(xcb_xrm_database_t **db,
                 remaining--;
                 if (remaining > 0) {
                     if (*db == NULL)
-                        *db = xcb_xrm_database_from_string("");
-                    xcb_xrm_database_put_resource_line(db, *src);
+                        *db = _IswPlatformResourceFromString("");
+                    _IswPlatformResourcePutLine(db, *src);
                     src++;
                     remaining--;
                 }
@@ -957,7 +958,7 @@ _IswParseCommand(xcb_xrm_database_t **db,
 //    return False;
 //}
 
-xcb_xrm_database_t *
+IswDatabaseHandle 
 _IswPreparseCommandLine(XrmOptionDescRec *urlist,
                        Cardinal num_urs,
                        int argc,
@@ -966,7 +967,7 @@ _IswPreparseCommandLine(XrmOptionDescRec *urlist,
                        String *displayName,
                        String *language)
 {
-    xcb_xrm_database_t *db = NULL;
+    IswDatabaseHandle db = NULL;
     XrmOptionDescRec *options;
     Cardinal num_options;
     _IswString *targv;
@@ -981,21 +982,21 @@ _IswPreparseCommandLine(XrmOptionDescRec *urlist,
 
     if (db != NULL) {
         if (applName) {
-            if (xcb_xrm_resource_get_string(db, "..name", "..name",
+            if (_IswPlatformResourceGetString(db, "..name", "..name",
                                              &value) >= 0 && value != NULL) {
                 *applName = value;
                 value = NULL;
             }
         }
         if (displayName) {
-            if (xcb_xrm_resource_get_string(db, "..display", "..display",
+            if (_IswPlatformResourceGetString(db, "..display", "..display",
                                              &value) >= 0 && value != NULL) {
                 *displayName = value;
                 value = NULL;
             }
         }
         if (language) {
-            if (xcb_xrm_resource_get_string(db, "..xnlLanguage",
+            if (_IswPlatformResourceGetString(db, "..xnlLanguage",
                                              "..XnlLanguage",
                                              &value) >= 0 && value != NULL) {
                 *language = value;
@@ -1025,7 +1026,7 @@ GetLanguage(xcb_connection_t *dpy, IswPerDisplay pd)
             IswAsprintf(&class_str, "%s.XnlLanguage", pd->class);
 
         if (name_str && class_str &&
-            xcb_xrm_resource_get_string(pd->server_db, name_str, class_str,
+            _IswPlatformResourceGetString(pd->server_db, name_str, class_str,
                                          &value) >= 0 && value != NULL) {
             pd->language = value;  /* takes ownership */
         }
@@ -1200,7 +1201,7 @@ _IswDisplayInitialize(xcb_connection_t *dpy,
 
         if (scale <= 0.0 && pd->server_db) {
             char *value = NULL;
-            if (xcb_xrm_resource_get_string(pd->server_db,
+            if (_IswPlatformResourceGetString(pd->server_db,
                                              "Xft.dpi", "Xft.Dpi",
                                              &value) >= 0 && value) {
                 double dpi = atof(value);

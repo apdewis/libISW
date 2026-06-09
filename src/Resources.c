@@ -78,7 +78,6 @@ in this Software without prior written authorization from The Open Group.
 #include "StringDefs.h"
 #include "ISWPlatformPrivate.h"
 #include <stdio.h>
-#include <xcb/xcb_xrm.h>
 
 /* Static quarks used for resource lookup */
 static XrmClass QBoolean, QString, QCallProc, QImmediate;
@@ -94,7 +93,7 @@ static XrmClass QScreen;
 /*
  * Structure to hold widget hierarchy path strings for resource lookup.
  * Instead of using quark lists and XrmQGetSearchList/XrmQGetSearchResource,
- * we build full resource name/class strings for xcb_xrm_resource_get_string().
+ * we build full resource name/class strings for _IswPlatformResourceGetString().
  */
 typedef struct {
     String *names;      /* Array of widget name strings */
@@ -361,7 +360,7 @@ _IswBuildResourcePath(XrmQuarkList quarks, XrmQuark resource_quark)
  * The caller must free value->addr when done.
  */
 static Boolean
-_IswDbGetResource(xcb_xrm_database_t *db,
+_IswDbGetResource(IswDatabaseHandle db,
                  XrmNameList names, XrmClassList classes,
                  XrmName res_name, XrmClass res_class,
                  XrmValue *value)
@@ -376,7 +375,7 @@ _IswDbGetResource(xcb_xrm_database_t *db,
     name_path = _IswBuildResourcePath(names, res_name);
     class_path = _IswBuildResourcePath(classes, res_class);
 
-    if (xcb_xrm_resource_get_string(db, name_path, class_path,
+    if (_IswPlatformResourceGetString(db, name_path, class_path,
                                      &result) >= 0 && result != NULL) {
         value->addr = (IswPointer) result;
         value->size = (unsigned int) strlen(result) + 1;
@@ -603,7 +602,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
     Boolean persistent_resources = True;
     Boolean found_persistence = False;
     int num_typed_args = (int) *pNumTypedArgs;
-    xcb_xrm_database_t *db;
+    IswDatabaseHandle db;
     Boolean do_tm_hack = False;
 
     if ((args == NULL) && (num_args != 0)) {
@@ -1125,7 +1124,7 @@ _IswGetResources(register Widget w,
 }                               /* _IswGetResources */
 
 void
-_IswRefetchResources(Widget w, xcb_xrm_database_t *db)
+_IswRefetchResources(Widget w, IswDatabaseHandle db)
 {
     XrmName names_s[50], *names;
     XrmClass classes_s[50], *classes;
@@ -1439,7 +1438,7 @@ _IswResourceListInitialize(void)
 /*
  * XrmQGetResource - Query the resource database using quark name/class arrays.
  *
- * This is a compatibility wrapper around xcb_xrm_resource_get_string().
+ * This is a compatibility wrapper around _IswPlatformResourceGetString().
  * It converts the quark arrays to dot-separated name and class strings,
  * then queries the xcb-util-xrm database.
  *
@@ -1498,7 +1497,7 @@ XrmQGetResource(XrmDatabase db,
     *cp = '\0';
 
     /* Query xcb-util-xrm */
-    if (xcb_xrm_resource_get_string(db, name_buf, class_buf, &value_str) < 0)
+    if (_IswPlatformResourceGetString(db, name_buf, class_buf, &value_str) < 0)
         return False;
 
     /* Return as string type */

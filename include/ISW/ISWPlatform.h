@@ -185,6 +185,11 @@ typedef struct _IswPlatformHintOps      IswPlatformHintOps;
  * wl_data_device).  Filled in Phase 7. */
 typedef struct _IswPlatformDndOps       IswPlatformDndOps;
 
+/* Resource resolution — the configured-value lookup the toolkit asks for. A
+ * backend supplies it from its own source (X11: Xrm over RESOURCE_MANAGER /
+ * .Xdefaults; another: config file / app-supplied).  Filled in Phase 15. */
+typedef struct _IswPlatformResourceOps  IswPlatformResourceOps;
+
 /*
  * =================================================================
  * Display ops (Phase 2)
@@ -568,6 +573,45 @@ struct _IswPlatformDndOps {
 
 /*
  * =================================================================
+ * Resource-resolution ops (Phase 15)
+ * =================================================================
+ *
+ * The resource subsystem abstracted at the *question* it answers — "what is the
+ * configured value of this resource (by full name/class path) for this widget?"
+ * — not at any one platform's mechanism.  On X11 the backend implements these
+ * over libxcb-util-xrm (RESOURCE_MANAGER / .Xdefaults / XENVIRONMENT, matched by
+ * Xrm's tight/loose precedence rules), in ISWPlatformResourceXCB.c; Xrm is a
+ * private detail of that TU.  Another backend supplies resources from its own
+ * source (config file / app-supplied / none) with no RESOURCE_MANAGER.
+ *
+ * IswDatabaseHandle (ISW/IswDatabase.h) is the neutral opaque database handle;
+ * the toolkit never inspects it.  combine/put take IswDatabaseHandle* because a
+ * backend may reallocate the store on mutation.  The portable quark interning
+ * (Quark.c) stays in the toolkit and is not part of this seam.
+ */
+struct _IswPlatformResourceOps {
+    /* Build a database from a source. */
+    IswDatabaseHandle (*from_string)(const char *str);
+    IswDatabaseHandle (*from_file)(const char *filename);
+    IswDatabaseHandle (*from_resource_manager)(IswDisplay dpy, IswScreen screen);
+    /* Merge source into *target (override decides precedence on collision). */
+    void (*combine)(IswDatabaseHandle source, IswDatabaseHandle *target,
+                    Boolean override);
+    /* Add a single "name: value" resource / one resource line to *db. */
+    void (*put_resource)(IswDatabaseHandle *db, const char *resource,
+                         const char *value);
+    void (*put_resource_line)(IswDatabaseHandle *db, const char *line);
+    /* Serialise the whole database (malloc'd string the caller frees). */
+    char *(*to_string)(IswDatabaseHandle db);
+    void (*free)(IswDatabaseHandle db);
+    /* Resolve a fully-qualified name/class path to a string value.  Returns >= 0
+       and sets *out (malloc'd) on a hit, < 0 on miss — mirrors Xrm's contract. */
+    int (*get_string)(IswDatabaseHandle db, const char *res_name,
+                      const char *res_class, char **out);
+};
+
+/*
+ * =================================================================
  * Platform operations vtable
  * =================================================================
  *
@@ -590,6 +634,7 @@ typedef struct _IswPlatformOps {
     const IswPlatformPropertyOps  *property;
     const IswPlatformHintOps      *hint;
     const IswPlatformDndOps       *dnd;
+    const IswPlatformResourceOps  *resource;
 } IswPlatformOps;
 
 /* Release the malloc'd payload of an IswProperty (safe on a zeroed struct). */

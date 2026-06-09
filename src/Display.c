@@ -254,11 +254,11 @@ InitPerDisplay(xcb_connection_t *dpy,
     pd->pdi.xdndDragActive = False;
 
     _IswAllocWWTable(pd);
-    pd->per_screen_db = (xcb_xrm_database_t **) __XtCalloc(
+    pd->per_screen_db = (IswDatabaseHandle *) __XtCalloc(
         (Cardinal) xcb_setup_roots_length(xcb_get_setup(dpy)),
-        (Cardinal) sizeof(xcb_xrm_database_t *));
-    pd->cmd_db = (xcb_xrm_database_t *) NULL;
-    pd->server_db = (xcb_xrm_database_t *) NULL;
+        (Cardinal) sizeof(IswDatabaseHandle ));
+    pd->cmd_db = (IswDatabaseHandle ) NULL;
+    pd->server_db = (IswDatabaseHandle ) NULL;
     pd->dispatcher_list = NULL;
     pd->ext_select_list = NULL;
     pd->ext_select_count = 0;
@@ -297,7 +297,7 @@ IswOpenDisplay(IswAppContext app,
     xcb_connection_t *d;
     IswDisplay disp;
     int defaultScreen = 0;
-    xcb_xrm_database_t *db = NULL;
+    IswDatabaseHandle db = NULL;
     String language = NULL;
 
     /* Select the backend as the first act of init — before any connection
@@ -378,7 +378,7 @@ IswOpenDisplay(IswAppContext app,
         app->display_name_tried[len] = '\0';
     }
     if (db)
-        xcb_xrm_database_free(db);
+        _IswPlatformResourceFree(db);
     UNLOCK_APP(app);
     return (IswDisplay) d;
 }
@@ -678,7 +678,7 @@ XrmDatabase
 IswDatabase(IswDisplay dpy_opaque)
 {
     xcb_connection_t *dpy = _IswXcbConn(dpy_opaque);
-    xcb_xrm_database_t *db;
+    IswDatabaseHandle db;
     xcb_screen_t *screen;
 
     DPY_TO_APPCON(dpy);
@@ -803,17 +803,17 @@ CloseDisplay(xcb_connection_t *dpy)
             int nscreens = xcb_setup_roots_length(xcb_get_setup(dpy));
             for (i = 0; i < nscreens; i++) {
                 if (xtpd->per_screen_db[i])
-                    xcb_xrm_database_free(xtpd->per_screen_db[i]);
+                    _IswPlatformResourceFree(xtpd->per_screen_db[i]);
             }
             IswFree((char *) xtpd->per_screen_db);
             xtpd->per_screen_db = NULL;
         }
         if (xtpd->cmd_db) {
-            xcb_xrm_database_free(xtpd->cmd_db);
+            _IswPlatformResourceFree(xtpd->cmd_db);
             xtpd->cmd_db = NULL;
         }
         if (xtpd->server_db) {
-            xcb_xrm_database_free(xtpd->server_db);
+            _IswPlatformResourceFree(xtpd->server_db);
             xtpd->server_db = NULL;
         }
         IswFree((_IswString) xtpd->language);
