@@ -21,7 +21,7 @@
 #ifndef _ISWPlatformPrivate_h
 #define _ISWPlatformPrivate_h
 
-#include "../include/ISW/ISWPlatform.h"
+#include <ISW/ISWPlatform.h>
 
 #include <xcb/xcb.h>
 

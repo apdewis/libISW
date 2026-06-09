@@ -8,7 +8,7 @@
  */
 
 #include "ISWXcbDraw.h"
-#include "../include/ISW/Form.h"  /* For IswEdgeType definition */
+#include <ISW/Form.h>  /* For IswEdgeType definition */
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

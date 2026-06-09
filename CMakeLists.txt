@@ -186,14 +186,14 @@ set(LIBXT_SOURCES
     src/Display.c
     src/Error.c
     src/Event.c
-    src/ISWPlatformEventXCB.c
-    src/ISWPlatformDisplayXCB.c
-    src/ISWPlatformInputXCB.c
-    src/ISWPlatformColorFontXCB.c
-    src/ISWPlatformGrabCursorXCB.c
-    src/ISWPlatformAtomPropXCB.c
-    src/ISWPlatformDndXCB.c
-    src/ISWPlatformResourceXCB.c
+    src/platform/X11/ISWPlatformEventXCB.c
+    src/platform/X11/ISWPlatformDisplayXCB.c
+    src/platform/X11/ISWPlatformInputXCB.c
+    src/platform/X11/ISWPlatformColorFontXCB.c
+    src/platform/X11/ISWPlatformGrabCursorXCB.c
+    src/platform/X11/ISWPlatformAtomPropXCB.c
+    src/platform/X11/ISWPlatformDndXCB.c
+    src/platform/X11/ISWPlatformResourceXCB.c
     src/EventUtil.c
     src/Functions.c
     src/Geometry.c
@@ -290,7 +290,7 @@ set(ISW_WIDGET_SOURCES
     src/ISWContext.c
     src/ISWDrawing.c
     src/ISWInit.c
-    src/ISWXcbDraw.c
+    src/platform/X11/ISWXcbDraw.c
     src/ISWUtf8.c
     src/IswTrayIcon.c
     src/Image.c
@@ -299,7 +299,7 @@ set(ISW_WIDGET_SOURCES
 
 set(RENDER_SOURCES
     src/ISWRender.c
-    src/ISWRenderCairoXCB.c
+    src/platform/X11/ISWRenderCairoXCB.c
 )
 
 set(SVG_SOURCES
@@ -355,6 +355,7 @@ target_include_directories(ISW
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/platform/X11
         ${CMAKE_SOURCE_DIR}/include/ISW
         ${CMAKE_CURRENT_BINARY_DIR}/include/ISW
         ${CMAKE_CURRENT_BINARY_DIR}/src
