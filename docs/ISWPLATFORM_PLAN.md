@@ -499,6 +499,243 @@ never fetched from a global. Concretely:
 Depends on Phases 0–5 (the wrappers + handles being in place). Best done before
 Phase 6/7 add more dispatch sites that would otherwise also need rework.
 
+---
+
+# Phases 9–17 — finishing the abstraction (planned)
+
+**Why these phases exist.** Phases 0–8 abstracted the per-category *calls*
+behind a vtable and removed the ops singleton, but an audit
+(`docs/PLATFORM_ABSTRACTION_GAP.md`) found the display *technology* itself is
+still XCB: the connection entry points hardcode `xcb_connect`, the display
+handle *is* the XCB connection, the event loop / resource manager / region-damage
+layer were never abstracted, and the public API still names `xcb_*`. These
+phases close that gap. They are sequenced so each rests on the last; Phase 9 is
+the prerequisite for everything (until the entry points go through the vtable,
+no second backend can ever be selected, so nothing downstream is testable).
+
+Each phase keeps the established conventions: opaque `Isw*` handles, semantic
+ops sub-vtables in the backend reached through thin `_IswPlatform*` wrappers,
+ops recovered from the injected per-display table (Phase 8), no `xcb_*` in
+public `include/ISW/` headers. Each ends **build green + demo verified**, and a
+phase that touches the public API says so explicitly (it is an ABI/API break).
+
+### Phase 9 — Route connection setup through the vtable (`open`/`close`)
+
+**Why.** The vtable already has `display->open` (`xcb_disp_open`) and
+`display->close` (`xcb_disp_close`), but they are **dead code**: `IswOpenDisplay`
+calls `xcb_connect()` inline (`Display.c:324`, plus inline
+`xcb_setup_roots_length` / `xcb_get_setup` / `xcb_connection_has_error`) and
+`CloseDisplay` calls `xcb_disconnect()` inline (`Display.c:825`). The one seam
+where a backend is *selected* is the one seam the entry points skip. Phase 8
+even injects `pd->ops` *inside* `InitPerDisplay` — downstream of the hardcoded
+`xcb_connect`. This is the prerequisite for every later phase.
+
+**Scope.**
+- Choose the ops table as the **first act of init**, before any connection
+  exists (a backend-selection step: env var / build default → `IswPlatformOps *`).
+- `IswOpenDisplay` / `_IswAppInit` call `ops->display->open`; `CloseDisplay`
+  calls `ops->display->close`. Remove the inline `xcb_connect`/`xcb_disconnect`
+  and the inline `xcb_setup_*` screen probing (move the screen-count/default
+  validation behind `display->screen_count` / `display->screen`).
+- `InitPerDisplay` receives the already-selected ops and the opaque display,
+  not a raw `xcb_connection_t *` (signature change; full retype is Phase 10).
+
+**Acceptance.** `grep -n 'xcb_connect\|xcb_disconnect' src/Display.c` → empty;
+`ops->display->open`/`->close` are actually invoked; demo opens/closes its
+display through the vtable; build green + demo verified.
+
+**Depends on** Phase 8 (ops injection point exists).
+
+### Phase 10 — Break the `IswDisplay == xcb_connection_t*` identity
+
+**Why.** `IswDisplay` is documented as "the `xcb_connection_t*` reinterpreted"
+(`ISWPlatformDisplayXCB.c:18-20`), so `_IswXcbConn` is a bare cast
+(`:54-58`) relied on in 59 files. While the handle's *identity* is the XCB
+connection, no other backend can supply a display object and every holder of an
+`IswDisplay` may cast it back to xcb.
+
+**Scope.**
+- Define `struct _IswDisplay` as a real toolkit-owned object: `{ const
+  IswPlatformOps *ops; void *native; <per-display state> }`. The native
+  connection becomes a field reached **only inside the backend**, via the
+  display ops — not by casting the handle.
+- Retype `InitPerDisplay` / `NewPerDisplay` / the per-display table key off
+  `xcb_connection_t *` to the opaque display. `_IswXcbConn` becomes
+  `display->native` lookup inside the backend; callers outside the backend stop
+  using it.
+- Fold the Phase-8 `ops` field and the per-display record into (or alongside)
+  this owned object so ops + native + state travel together.
+
+**Acceptance.** `struct _IswDisplay` has a real definition; no
+`(xcb_connection_t *) dpy` cast outside the backend; `_IswXcbConn` callers
+outside `ISWPlatform*` removed; build green + demo verified.
+
+**Depends on** Phase 9.
+
+### Phase 11 — Abstract the event loop (`IswPlatformEventOps`)
+
+**Why.** The biggest single coupling. `NextEvent.c` polls raw xcb
+(`xcb_poll_for_event`, `:570`), dispatch consumes `xcb_generic_event_t`
+throughout `Event.c`, and the vtable's `.event` slot is literally `NULL`
+(`ISWPlatformDisplayXCB.c:411`). Phase 1's `IswEvent` is only a *translation
+bridge* with a `native` xcb pointer, not a replacement for the loop.
+
+**Scope.**
+- Add `IswPlatformEventOps`: `wait` (blocking next-event), `poll` (non-blocking),
+  `translate` (native → `IswEvent`), `flush`. Implement in the XCB backend over
+  `xcb_wait_for_event` / `xcb_poll_for_event[_queued]`.
+- Move the loop bodies in `NextEvent.c` / `Event.c` onto the ops; the toolkit
+  enqueues/dispatches `IswEvent`, never `xcb_generic_event_t`.
+- Retire the `IswEvent.native` migration bridge: widget procs read neutral
+  fields only (the Phase-1 follow-up that was deferred).
+
+**Acceptance.** No `xcb_poll_for_event` / `xcb_wait_for_event` /
+`xcb_generic_event_t` outside the backend; `IswEvent.native` no longer read by
+widget/toolkit code; `.event` op non-NULL and driving the loop; build green +
+demo verified (keyboard, mouse, expose, focus).
+
+**Depends on** Phase 10 (events carry the opaque display).
+
+### Phase 12 — Neutralize the per-display state object
+
+**Why.** The per-display record (`InitialI.h:323`) — the toolkit's core state,
+the thing Phase 8 injected ops into — still stores raw xcb resources:
+`xcb_key_symbols_t* keysyms` (`:332`), `xcb_xfixes_region_t region/null_region`
+(`:326-327`, addressed structurally in Phase 14), `xcb_xrm_database_t*`
+(`:358-360`, addressed in Phase 13), and the keysym/modifier tables.
+
+**Scope.**
+- Replace the remaining raw-xcb fields with neutral handles dispatched through
+  ops (keysyms/modifier tables behind the Phase-3 input ops; regions/DB deferred
+  to Phases 13/14 which own those subsystems).
+- `_IswConnectionOfScreen` and the screen→connection lookups return the opaque
+  display, not `xcb_connection_t *`.
+
+**Acceptance.** No `xcb_*` resource type in `IswPerDisplayStruct` except those
+explicitly owned by Phases 13/14 at that point; build green + demo verified.
+
+**Depends on** Phase 11.
+
+### Phase 13 — Abstract selection / property exchange and the tray
+
+**Why.** The largest *unphased* protocol surfaces. Phase 5 cut selection at the
+verb level but left the property exchange XCB; `Selection.c` still has 148 raw
+`xcb_*` references (INCR transfers, property round-trips), and `IswTrayIcon.c`
+(99) implements XEMBED directly.
+
+**Scope.**
+- Extend the Phase-6 property/atom ops (or add a selection-transfer op set) to
+  cover the INCR / property-exchange state machine in `Selection.c`; the toolkit
+  selection code drives it through ops.
+- Move the XEMBED tray protocol behind a tray op set (or document it as an
+  X11-only optional module that a non-X backend omits — a deliberate decision to
+  surface, not a silent gap).
+
+**Acceptance.** No raw `xcb_*` in `Selection.c` outside the backend; tray either
+abstracted or explicitly backend-optional; clipboard copy/paste verified live;
+build green.
+
+**Depends on** Phase 11.
+
+### Phase 14 — Replace XFixes damage regions with a client-side region type
+
+**Why.** Damage/redraw accounting is built on the XFixes *server* extension:
+`IswAddExposureToRegion` round-trips `xcb_xfixes_create_region` +
+`union_region` per expose (`Event.c:1730-1755`), `pd->region`/`null_region` are
+XFixes scratch regions, and — worst — the **`IswExpose` class method itself is
+typed `xcb_xfixes_region_t`** (`IntrinsicP.h:136`), so every widget's expose
+contract names an X extension. A second `_IswRegion` exists client-side
+(`ISWP.h:40`) but is defined twice (`ISWXcbDraw.c:851`, `IswXcbDraw.c:974`).
+
+**Scope.**
+- Provide one toolkit-owned region type (portable rectangle-set:
+  union/intersect/subtract/bounding-box, no server round-trip) by
+  de-duplicating `_IswRegion` into a single TU.
+- Use it for expose/damage accumulation; retype the `IswExpose` method
+  parameter off `xcb_xfixes_region_t` to the neutral region (touches every
+  widget's expose proc).
+- Confine XFixes to the backend, used only where the server genuinely needs a
+  region (window shape/clip), reached through ops — not for expose math.
+
+**Acceptance.** `IswExpose` no longer names `xcb_xfixes_region_t`; one
+`_IswRegion` definition; damage accumulation does no server round-trip; XFixes
+confined to the backend; build green + demo verified (correct repaint on
+overlap/resize/scroll).
+
+**Depends on** Phase 11 (expose flows through the abstracted event path).
+
+### Phase 15 — Neutral resource database (alternative to Xrm)
+
+**Why.** The resource subsystem — how every widget gets every value — is the X
+Resource Manager, bound to X11 in both type and source: `IswDatabaseHandle` /
+`XrmDatabase` are `typedef xcb_xrm_database_t *` (`IswDatabase.h:39,46`), and
+the database is populated from the X server's `RESOURCE_MANAGER` property and
+`.Xdefaults`/`XENVIRONMENT` (`Initialize.c:391,399,567`). ~39 `Xrm*` symbols
+span 7 public headers; the core resolution code is `Converters.c` (152),
+`Resources.c` (140), `Initialize.c` (109), `Convert.c` (66). (CLAUDE.md's "Xrm
+types keep their original names" is a *naming* rule — it does not exempt the
+subsystem from abstraction.)
+
+**Scope.**
+- Make the database type toolkit-owned (not `xcb_xrm_database_t`). The portable
+  quark / name / class / binding matching logic stays; only the database type
+  and its population path change.
+- Move the population path (`RESOURCE_MANAGER` property / `.Xdefaults` /
+  app-supplied string/file) behind the backend / platform ops; a non-X backend
+  supplies resources from its own source (config file / app-provided), with no
+  `RESOURCE_MANAGER`.
+- Keep the `Xrm*` *names* per CLAUDE.md, but back them with the neutral type.
+
+**Acceptance.** No `xcb_xrm_database_t` in toolkit code or public headers
+(name aliases may remain, backed by the neutral type); resource resolution and
+command-line option parsing verified; build green + demo verified. A phase on
+the scale of the event-loop work.
+
+**Depends on** Phase 10 (DB lookups keyed off the opaque display).
+
+### Phase 16 — Purge `xcb_*` from the public API
+
+**Why.** The abstraction never reached the API boundary: `xcb_*` appears in 8
+public headers, and `Intrinsic.h` types ~10 entry points on
+`xcb_generic_event_t *` (`IswLastEventProcessed`, the next-event / dispatch /
+peek / handler signatures). An application must include and name XCB types.
+
+**Scope.**
+- Flip the remaining public signatures to neutral types: `xcb_generic_event_t *`
+  → `IswEvent *` (Phase 11 makes this real), the `Xrm*`/`xcb_xrm_database_t`
+  surface (Phase 15), the `xcb_xfixes_region_t` expose contract (Phase 14), and
+  any residual `xcb_*` in `IswEvent.h` / `ISWRender.h` / `IswTrayIcon.h` /
+  `IswTypes.h` / `TextSink.h`.
+- This is an explicit **ABI/API break**; update the app guide and the X11
+  compat shim headers (`include/X11/`).
+
+**Acceptance.** `grep -rl 'xcb_' include/ISW/*.h | grep -vE 'I\.h$|P\.h$'` →
+empty; the demo and downstream guide compile against the neutral API; build
+green.
+
+**Depends on** Phases 11, 14, 15 (the neutral types those phases introduce).
+
+### Phase 17 — Prove it: a second (stub/null) backend
+
+**Why.** The abstraction is unproven until a non-XCB backend can be selected and
+the toolkit links without pulling `xcb_*` from non-backend TUs. This phase is
+the falsification test for all prior work.
+
+**Scope.**
+- Add a stub/null `IswPlatformOps` (every sub-vtable filled with minimal/no-op
+  implementations) selectable at init via the Phase-9 backend-selection step.
+- Build a variant that links the toolkit against the stub backend only; any
+  `xcb_*` symbol pulled from a non-backend TU is a residual leak to fix.
+- Run the demo (or a headless smoke harness) on the stub backend far enough to
+  exercise init, resource resolution, event dispatch, and expose.
+
+**Acceptance.** Toolkit links with the stub backend and **zero `xcb_*` symbols
+from non-backend translation units** (verified via `nm`/link); a non-XCB backend
+is selectable at init without recompiling the toolkit; the XCB backend remains
+the default and demo-verified.
+
+**Depends on** Phases 9–16.
+
 ## Changelog
 
 - Phase 0 done: created `ISWPlatform.h`, `ISWPlatformPrivate.h`, and this
