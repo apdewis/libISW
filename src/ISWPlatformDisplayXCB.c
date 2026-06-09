@@ -507,6 +507,17 @@ _IswPlatformPollQueuedEvent(IswDisplay dpy)
     return NULL;
 }
 
+/* Window attribute change (Phase 13a) — used by the selection code to toggle
+   a requestor window's event mask during a transfer. */
+void
+_IswPlatformChangeAttributes(IswDisplay dpy, IswWindow win,
+                             const IswWindowAttributes *attrs, unsigned int mask)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->change_attributes)
+        ops->window->change_attributes(dpy, win, attrs, mask);
+}
+
 /* ---- thin dispatch wrappers (color / font / cursor / grab / selection) ----
    Toolkit/widget code calls these instead of walking the ops vtable.  Each
    null-guards the sub-vtable + op (a backend that hasn't filled it degrades to

@@ -163,6 +163,11 @@ Boolean _IswPlatformGetProperty(IswDisplay dpy, IswWindow win, Atom property,
                                 uint32_t long_length, IswProperty *out);
 void    _IswPlatformDeleteProperty(IswDisplay dpy, IswWindow win, Atom property);
 
+/* Window attributes (Phase 13a) */
+void    _IswPlatformChangeAttributes(IswDisplay dpy, IswWindow win,
+                                     const IswWindowAttributes *attrs,
+                                     unsigned int mask);
+
 /* WM hints (Phase 6) */
 void _IswPlatformSetWindowTitle(IswDisplay dpy, IswWindow win, const char *utf8);
 void _IswPlatformSetIconTitle(IswDisplay dpy, IswWindow win, const char *utf8);

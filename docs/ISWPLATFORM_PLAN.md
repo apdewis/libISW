@@ -669,11 +669,42 @@ verb level but left the property exchange XCB; `Selection.c` still has 148 raw
   X11-only optional module that a non-X backend omits — a deliberate decision to
   surface, not a silent gap).
 
-**Acceptance.** No raw `xcb_*` in `Selection.c` outside the backend; tray either
-abstracted or explicitly backend-optional; clipboard copy/paste verified live;
-build green.
+**Audit finding (surfaced before edits).** The hard part is already done:
+`Selection.c`'s INCR / property-exchange state machine runs on the Phase-5/6
+selection + property ops (`_IswPlatformChangeProperty`/`GetProperty`/selection
+verbs). Of its "148 raw xcb", ~130 are *type mentions* (`xcb_atom_t`,
+`xcb_timestamp_t`, `xcb_window_t`, `xcb_connection_t` locals/params) and the rest
+are: 3 `xcb_flush`, 2 `xcb_change_window_attributes`, 1 `xcb_send_event`, and
+event-struct casts (`xcb_selection_request_event_t`, `property_notify`, …). The
+event-struct casts and the `send_event` that builds a native event are the 11b
+native-bridge, not selection-protocol work. The phase therefore splits, and the
+"no raw xcb in Selection.c" acceptance is met across 13a + 11b, not 13a alone.
 
-**Depends on** Phase 11.
+#### Phase 13a — neutralize the selection residuals
+- Route the residual direct calls through ops: 3 `xcb_flush` →
+  `_IswPlatformFlush`; 2 `xcb_change_window_attributes` → a new
+  `_IswPlatformChangeAttributes` wrapper over the existing `change_attributes`
+  window op (event-mask only).
+- Neutralize the trivially-1:1 types (`xcb_atom_t` → `Atom`, `xcb_timestamp_t` →
+  `IswTime`; identical underlying types, zero behaviour change).
+- Defer to 11b: `xcb_send_event` (builds a native selection-notify event) and
+  every `xcb_*_event_t` cast; the `xcb_connection_t`/`xcb_window_t` *local
+  plumbing* retype rides along with those.
+- Acceptance: no residual `xcb_flush`/`xcb_change_window_attributes` and no
+  `xcb_atom_t`/`xcb_timestamp_t` in `Selection.c`; clipboard copy/paste verified
+  live; build green.
+
+#### Phase 13b — the tray (`IswTrayIcon.c`)
+- Self-contained XEMBED widget (~99 xcb: client messages, reparent, visual
+  selection, expose). Decide: abstract behind a tray op set, OR declare it an
+  explicitly X11-only optional module a non-X backend omits (the plan's offered
+  shortcut). A separate decision, not blocking 13a.
+
+**Acceptance (phase overall).** No raw `xcb_*` in `Selection.c` outside the
+backend (13a + 11b); tray either abstracted or explicitly backend-optional
+(13b); clipboard copy/paste verified live; build green.
+
+**Depends on** Phase 11 (13a). Full `Selection.c` purge also depends on 11b.
 
 ### Phase 14 — Replace XFixes damage regions with a client-side region type
 
