@@ -115,7 +115,7 @@ static IswActionsRec actionsList[] =
 #define SuperClass ((CommandWidgetClass)&commandClassRec)
 
 /* Forward declaration for Redisplay */
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 
 ToggleClassRec toggleClassRec = {
   {
@@ -690,7 +690,7 @@ DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
  */
 
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     ToggleWidget tw = (ToggleWidget) w;
     ISWRenderContext *ctx;

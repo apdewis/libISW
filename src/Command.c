@@ -106,7 +106,7 @@ static IswResource resources[] = {
 
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void Set(Widget, IswEvent *, String *, Cardinal *);
 static void Reset(Widget, IswEvent *, String *, Cardinal *);
 static void Notify(Widget, IswEvent *, String *, Cardinal *);
@@ -342,7 +342,7 @@ Notify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
   PaintCommandWidget(w, event, 0 /* FIXME: XCB region */, FALSE);
 }

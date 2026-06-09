@@ -78,7 +78,7 @@ static void Destroy(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void ChangeManaged(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static IswGeometryResult	QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 
 					/* utility routines */
@@ -597,7 +597,7 @@ Destroy (Widget gw)
 
 /* ARGSUSED */
 static void
-Redisplay (Widget gw, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay (Widget gw, IswEvent *event, IswRegion region)
 {
     TreeWidget tw = (TreeWidget) gw;
 

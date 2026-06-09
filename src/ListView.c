@@ -80,7 +80,7 @@ static void Destroy(Widget);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 static void SelectRow(Widget, IswEvent *, String *, Cardinal *);
@@ -810,7 +810,7 @@ DrawBand(ListViewWidget lv, ISWRenderContext *ctx)
 }
 
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     ListViewWidget lv = (ListViewWidget) w;
     ISWRenderContext *ctx = lv->listView.render_ctx;

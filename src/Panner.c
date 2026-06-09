@@ -153,7 +153,7 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Destroy(Widget);
 static void Resize(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void SetValuesAlmost(Widget, Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
@@ -469,7 +469,7 @@ Resize (Widget gw)
 
 /* ARGSUSED */
 static void
-Redisplay (Widget gw, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay (Widget gw, IswEvent *event, IswRegion region)
 {
     PannerWidget pw = (PannerWidget) gw;
     int pad = pw->panner.internal_border;

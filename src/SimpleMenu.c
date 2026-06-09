@@ -139,7 +139,7 @@ static char defaultTranslations[] =
  * Semi Public function definitions.
  */
 
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void ChangeManaged(Widget);
@@ -424,7 +424,7 @@ Destroy(Widget w)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
     SmeObject *entry;

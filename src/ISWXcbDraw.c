@@ -847,12 +847,15 @@ ISWCvtStringToWidget(
 /* Maximum number of rectangles in a region (can be expanded if needed) */
 #define XAWREGION_MAXRECTS 64
 
-/* Internal region structure */
-typedef struct _IswRegion {
+/* Internal region structure.  Its pointer form is the neutral IswRegion handle
+   (ISW/IswTypes.h) and the ISWRegionPtr / Region aliases; the struct tag stays
+   _IswRegion.  No value typedef named IswRegion here, so it does not collide
+   with the IswRegion handle typedef. */
+struct _IswRegion {
     int numRects;
     xcb_rectangle_t rects[XAWREGION_MAXRECTS];
     xcb_rectangle_t extents;  /* Bounding box */
-} IswRegion;
+};
 
 /*
  * ISWCreateRegion - Create an empty region
@@ -860,7 +863,7 @@ typedef struct _IswRegion {
 ISWRegionPtr
 ISWCreateRegion(void)
 {
-    ISWRegionPtr region = (ISWRegionPtr)calloc(1, sizeof(IswRegion));
+    ISWRegionPtr region = (ISWRegionPtr)calloc(1, sizeof(struct _IswRegion));
     return region;
 }
 

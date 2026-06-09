@@ -32,7 +32,6 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include <ISW/IntrinsicP.h>
 #include <xcb/xcb.h>
-#include <xcb/xfixes.h>
 
 /* Forward declare Region type - full definition in src/IswRegion.h */
 /* We define it here to avoid include path issues */

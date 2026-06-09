@@ -48,7 +48,7 @@ static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void InsertChild(Widget);
 static void Resize(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void ChangeManaged(Widget);
@@ -552,7 +552,7 @@ ConstraintSetValues(Widget current, Widget request, Widget new,
 }
 
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     (void)w; (void)event; (void)region;
 }

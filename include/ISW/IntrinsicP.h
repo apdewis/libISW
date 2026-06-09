@@ -133,7 +133,7 @@ typedef void (*IswAlmostProc)(
 typedef void (*IswExposeProc)(
     Widget	/* widget */,
     IswEvent*	/* event */,
-    xcb_xfixes_region_t	/* region */
+    IswRegion	/* region */
 );
 
 /* compress_exposure options*/

@@ -54,7 +54,7 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Destroy(Widget);
 static void Resize(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void GetValuesHook(Widget, ArgList, Cardinal *);
 
@@ -384,7 +384,7 @@ Resize(Widget w)
 }
 
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     SpinBoxWidget sbw = (SpinBoxWidget) w;
     ISWRenderContext *ctx = sbw->spinBox.render_ctx;

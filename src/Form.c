@@ -100,7 +100,7 @@ static void ClassPartInitialize(WidgetClass);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Resize(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -210,7 +210,7 @@ _CvtStringToEdgeType(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
 }
 
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     FormWidget fw = (FormWidget) w;
     ISWRenderContext *ctx;

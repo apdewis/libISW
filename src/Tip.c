@@ -110,7 +110,7 @@ typedef struct {
 static void IswTipClassInitialize(void);
 static void IswTipInitialize(Widget, Widget, ArgList, Cardinal *);
 static void IswTipDestroy(Widget);
-static void IswTipExpose(Widget, IswEvent *, xcb_xfixes_region_t);
+static void IswTipExpose(Widget, IswEvent *, IswRegion);
 static void IswTipRealize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static Boolean IswTipSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
@@ -400,7 +400,7 @@ IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *va
 }
 
 static void
-IswTipExpose(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+IswTipExpose(Widget w, IswEvent *event, IswRegion region)
 {
     TipWidget tip = (TipWidget)w;
     const char *nl, *label = tip->tip.label;

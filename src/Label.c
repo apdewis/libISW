@@ -74,7 +74,6 @@ SOFTWARE.
 #include <string.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <xcb/xfixes.h>
 #include "ISWXcbDraw.h"
 
 
@@ -139,7 +138,7 @@ static IswResource resources[] = {
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void ClassInitialize(void);
 static void Destroy(Widget);
@@ -557,7 +556,7 @@ _EllipsizeText(Widget w, IswFontStruct *fs, const char *text, int text_len,
 
 /* ARGSUSED */
 static void
-Redisplay(Widget gw, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget gw, IswEvent *event, IswRegion region)
 {
     LabelWidget w = (LabelWidget) gw;
     ISWRenderContext *ctx = w->label.render_ctx;  /* Cairo rendering context */
@@ -582,16 +581,16 @@ Redisplay(Widget gw, IswEvent *event, xcb_xfixes_region_t region)
     /*
      * now we'll see if we need to draw the rest of the label
      */
-    /* Region handling: xcb_xfixes_region_t is a scalar (0 = no region) */
-    if (region != 0) {
+    /* Region handling: IswRegion is the toolkit's client-side damage region
+     * (NULL = no region, repaint everything). */
+    if (region != NULL) {
 	int x = w->label.label_x;
 	unsigned int width = w->label.label_width;
 	if (w->label.lbm_width) {
 	    if (w->label.label_x > (x = w->label.internal_width))
 		width += w->label.label_x - x;
 	}
-	/* XRectInRegion not available in XCB - would need xcb_xfixes_fetch_region
-	 * For now, always redraw (no early return optimization) */
+	/* No rectangle-in-region early-out yet; always redraw. */
 	(void)x; (void)width; (void)region; /* suppress warnings */
     }
 

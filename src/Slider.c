@@ -72,7 +72,7 @@ static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 static void StartDrag(Widget, IswEvent *, String *, Cardinal *);
@@ -447,7 +447,7 @@ DrawValueLabel(Widget w, SliderWidget sw, ISWRenderContext *ctx,
 }
 
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     SliderWidget sw = (SliderWidget) w;
     ISWRenderContext *ctx = sw->slider.render_ctx;

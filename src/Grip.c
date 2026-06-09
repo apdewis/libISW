@@ -77,7 +77,7 @@ static IswResource resources[] = {
 
 static void GripAction(Widget, IswEvent *, String *, Cardinal *);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void Destroy(Widget);
 
 static IswActionsRec actionsList[] =
@@ -148,7 +148,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
    paint its own background into its surface.  Without this the grip is
    invisible (its surface stays transparent) and Paned's drag handles vanish. */
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     GripWidget gw = (GripWidget) w;
     (void) event; (void) region;

@@ -706,30 +706,59 @@ backend (13a + 11b); tray either abstracted or explicitly backend-optional
 
 **Depends on** Phase 11 (13a). Full `Selection.c` purge also depends on 11b.
 
-### Phase 14 — Replace XFixes damage regions with a client-side region type
+### Phase 14 — Replace XFixes damage regions with a client-side region type — **DONE**
 
-**Why.** Damage/redraw accounting is built on the XFixes *server* extension:
-`IswAddExposureToRegion` round-trips `xcb_xfixes_create_region` +
-`union_region` per expose (`Event.c:1730-1755`), `pd->region`/`null_region` are
-XFixes scratch regions, and — worst — the **`IswExpose` class method itself is
-typed `xcb_xfixes_region_t`** (`IntrinsicP.h:136`), so every widget's expose
-contract names an X extension. A second `_IswRegion` exists client-side
-(`ISWP.h:40`) but is defined twice (`ISWXcbDraw.c:851`, `IswXcbDraw.c:974`).
+**Why (as written).** Damage/redraw accounting was assumed to be built on the
+XFixes *server* extension: `IswAddExposureToRegion` round-tripping
+`xcb_xfixes_create_region` + `union_region` per expose, `pd->region`/
+`null_region` as XFixes scratch regions, and — worst — the **`IswExpose` class
+method typed `xcb_xfixes_region_t`** (`IntrinsicP.h:136`), so every widget's
+expose contract named an X extension. A second `_IswRegion` existed client-side
+(`ISWP.h:40`), defined twice (`ISWXcbDraw.c:851`, `IswXcbDraw.c:974`).
 
-**Scope.**
-- Provide one toolkit-owned region type (portable rectangle-set:
-  union/intersect/subtract/bounding-box, no server round-trip) by
-  de-duplicating `_IswRegion` into a single TU.
-- Use it for expose/damage accumulation; retype the `IswExpose` method
-  parameter off `xcb_xfixes_region_t` to the neutral region (touches every
-  widget's expose proc).
-- Confine XFixes to the backend, used only where the server genuinely needs a
-  region (window shape/clip), reached through ops — not for expose math.
+**Audit finding (before implementing).** The XFixes damage machinery was
+**entirely vestigial**, not live:
+- Every `core_class.expose` call site passed region `0`/`NULL` (Event.c, Geometry.c,
+  ISWRender.c, Text.c) — widgets never received a real region.
+- `IswAddExposureToRegion` and `get_region_bounding_box` (the only code making
+  real `xcb_xfixes_*` server calls) had **zero live callers** — invoked only
+  from commented-out lines (`Event.c:1710-1712`).
+- `pd->region`/`null_region` were created in `Display.c` and **never read** by
+  any live path, then destroyed at close.
+- The "defined twice" `_IswRegion` was a dead, **uncompiled** orphan file
+  (`IswXcbDraw.c`/`.h`, lowercase — only the uppercase pair is in CMake); the
+  live client-side rectangle-set region (`struct _IswRegion` / `Region` /
+  `ISWRegionPtr`) already existed and worked (Command.c, Text.c, Layout.c).
 
-**Acceptance.** `IswExpose` no longer names `xcb_xfixes_region_t`; one
-`_IswRegion` definition; damage accumulation does no server round-trip; XFixes
-confined to the backend; build green + demo verified (correct repaint on
-overlap/resize/scroll).
+So the real work was a **dead-code removal + type swap**, not building a region
+engine: the portable region type already existed; the X extension was doing no
+real work.
+
+**What was done (full phase, one pass — option "14 full").**
+- Added the neutral handle `typedef struct _IswRegion *IswRegion;` in
+  `IswTypes.h` (the value-handles home, "carry no xcb dependency"). Retyped the
+  `IswExposeProc` contract (`IntrinsicP.h:133`) off `xcb_xfixes_region_t` → `IswRegion`.
+- Renamed `xcb_xfixes_region_t` → `IswRegion` across all ~32 widget Redisplay
+  signatures + the casts in `SmeBSB.c`/`Text.c` (value was always 0/NULL, so
+  byte-identical behavior).
+- Deleted the dead `IswAddExposureToRegion` + `get_region_bounding_box` (and
+  their orphan `MAX`/`MIN` macros) from `Event.c`; deleted their public decls
+  from `Intrinsic.h`; removed `pd->region`/`null_region` from `InitialI.h` and
+  their create/destroy in `Display.c`.
+- De-duplicated `_IswRegion` to one TU: dropped the value-typedef in
+  `ISWXcbDraw.c` (struct tag only, so it no longer collides with the `IswRegion`
+  handle) and **git-rm'd the orphan `IswXcbDraw.c`/`.h`**.
+- Stripped now-unused `<xcb/xfixes.h>` from all 6 files; removed `xcb-xfixes`
+  from the library's CMake deps (pkg-config + BSD fallback). The demo's
+  `DEMO_DEPS` keeps it (the demo executable, not the library).
+
+**Acceptance — met.** `IswExpose` no longer names `xcb_xfixes_region_t` (zero
+in `IntrinsicP.h`); one `struct _IswRegion` definition; **zero `xcb_xfixes`
+anywhere in `src`/`include`**; build green; **`xcb-xfixes` no longer a linked
+dependency of `libISW.so`** (`ldd` clean) — the strongest proof the extension
+was confined out, not merely renamed. Demo verified live: survived a resize
+cycle, unmap/map full-window damage, and scroll-wheel expose with no crash and
+no new stderr.
 
 **Depends on** Phase 11 (expose flows through the abstracted event path).
 

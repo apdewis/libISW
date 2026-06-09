@@ -58,6 +58,13 @@ typedef uint32_t  IswVisualId;   /* a visual id                           */
 typedef uintptr_t IswCursor;     /* cursor id (value handle), 0 = none    */
 typedef uintptr_t IswPixmap;     /* pixmap id (value handle), 0 = none    */
 typedef uint32_t  IswTime;       /* server timestamp                      */
+
+/* Neutral damage/expose region handle.  A client-side, toolkit-owned
+   rectangle-set (struct _IswRegion, defined in the XCB draw backend) — NOT an
+   X server object.  Replaces the XFixes server-region type in the IswExpose
+   contract so no widget's expose proc names an X extension.  0/NULL means "no
+   region; repaint everything".  Phase 14. */
+typedef struct _IswRegion *IswRegion;
 #ifndef ISW_CURRENT_TIME
 #define ISW_CURRENT_TIME ((IswTime) 0)
 #endif

@@ -29,7 +29,7 @@ static IswResource resources[] = {
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void Toggle(Widget, IswEvent *, String *, Cardinal *);
 static void Notify(Widget, IswEvent *, String *, Cardinal *);
@@ -213,7 +213,7 @@ Notify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 }
 
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     ToggleButtonWidget tbw = (ToggleButtonWidget) w;
 

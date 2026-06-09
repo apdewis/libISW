@@ -91,7 +91,7 @@ static IswResource resources[] = {
 #undef offset
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
@@ -301,7 +301,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Redisplay(Widget gw, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget gw, IswEvent *event, IswRegion region)
 {
     ViewportWidget w = (ViewportWidget) gw;
     Widget child = w->viewport.child;

@@ -52,7 +52,6 @@ in this Software without prior written authorization from The Open Group.
 
 //#include	<X11/Xlib.h>
 #include    <xcb/xcb.h>
-#include    <xcb/xfixes.h>
 #include    <xcb/xcbext.h>
 #include    <xcb/xkb.h>
 #include    <xcb/xcb_keysyms.h>
@@ -946,18 +945,6 @@ extern void IswAppProcessEvent(
 
 extern void IswAppMainLoop(
     IswAppContext 		/* app_context */
-);
-
-void get_region_bounding_box(
-    IswDisplay , 
-    xcb_xfixes_region_t, 
-    xcb_rectangle_t*
-);
-
-extern void IswAddExposureToRegion(
-    IswDisplay , 
-    xcb_generic_event_t *, 
-    xcb_xfixes_region_t
 );
 
 extern void IswSetKeyboardFocus(

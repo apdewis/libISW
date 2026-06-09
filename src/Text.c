@@ -3287,7 +3287,7 @@ TextClassRec textClassRec = {
     /* visible_interest */      FALSE,
     /* destroy          */      TextDestroy,
     /* resize           */      Resize,
-    /* expose           */      (void (*)(Widget, IswEvent *, xcb_xfixes_region_t))ProcessExposeRegion,
+    /* expose           */      (void (*)(Widget, IswEvent *, IswRegion))ProcessExposeRegion,
     /* set_values       */      SetValues,
     /* set_values_hook  */	NULL,
     /* set_values_almost*/	IswInheritSetValuesAlmost,

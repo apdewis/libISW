@@ -46,7 +46,7 @@ static IswResource constraintResources[] = {
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Resize(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void InsertChild(Widget);
 static void ChangeManaged(Widget);
 static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
@@ -241,7 +241,7 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
 }
 
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     (void)event; (void)region;
 

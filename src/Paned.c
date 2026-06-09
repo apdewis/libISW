@@ -73,7 +73,6 @@ SOFTWARE.
 #include <ISW/IswArgMacros.h>
 #include <ctype.h>
 #include <xcb/xcb.h>
-#include <xcb/xfixes.h>
 #include "ISWXcbDraw.h"
 #include "ISWPlatformPrivate.h"
 
@@ -180,7 +179,7 @@ static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void ReleaseGCs(Widget);
 static void RefigureLocationsAndCommit(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -1544,7 +1543,7 @@ Resize(Widget w)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     PanedWidget pw = (PanedWidget) w;
     (void)event; (void)region; /* unused parameters */

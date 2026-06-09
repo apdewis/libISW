@@ -323,8 +323,6 @@ typedef struct _IswScreenPixmapStruct {
 typedef struct _IswPerDisplayStruct {
     InternalCallbackList destroy_callbacks;
     int defaultScreen;             /* default screen number from xcb_connect() */
-    xcb_xfixes_region_t region;
-    xcb_xfixes_region_t null_region;  /* empty region for clearing operations */
     CaseConverterPtr case_cvt;		/* user-registered case converters */
     IswKeyProc defaultKeycodeTranslator;
     IswAppContext appContext;

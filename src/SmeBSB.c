@@ -107,7 +107,7 @@ static IswResource resources[] = {
  * Semi Public function definitions.
  */
 
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void Destroy(Widget);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Highlight(Widget);
@@ -296,7 +296,7 @@ Destroy(Widget w)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     Boolean highlighted_active = False;
     SmeBSBObject entry = (SmeBSBObject) w;
@@ -636,13 +636,13 @@ QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *return_v
 static void
 Highlight(Widget w)
 {
-    Redisplay(w, NULL, (xcb_xfixes_region_t)0);
+    Redisplay(w, NULL, (IswRegion)0);
 }
 
 static void
 Unhighlight(Widget w)
 {
-    Redisplay(w, NULL, (xcb_xfixes_region_t)0);
+    Redisplay(w, NULL, (IswRegion)0);
 }
 
 /************************************************************

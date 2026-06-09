@@ -82,7 +82,6 @@ in this Software without prior written authorization from The Open Group.
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/xproto.h>
-#include <xcb/xfixes.h>
 
 
 #ifdef XTHREADS
@@ -215,28 +214,6 @@ InitPerDisplay(xcb_connection_t *dpy,
      * reads ((Display*)dpy)->default_screen which is meaningless for an
      * xcb_connection_t* and returns NULL/garbage. */
     pd->defaultScreen = defaultScreen;
-    //pd->region = XCreateRegion();
-    pd->region = xcb_generate_id(dpy);
-    
-    // Create the empty region
-    xcb_void_cookie_t cookie = xcb_xfixes_create_region(dpy, pd->region, 0, 0);
-    
-    // Check for errors
-    xcb_generic_error_t *error = xcb_request_check(dpy, cookie);
-    if (error) {
-        fprintf(stderr, "Error creating region: %d\n", error->error_code);
-        free(error);
-    }
-
-    // Initialize null_region (empty region for clearing operations)
-    pd->null_region = xcb_generate_id(dpy);
-    cookie = xcb_xfixes_create_region(dpy, pd->null_region, 0, 0);
-    error = xcb_request_check(dpy, cookie);
-    if (error) {
-        fprintf(stderr, "Error creating null_region: %d\n", error->error_code);
-        free(error);
-    }
-
     pd->case_cvt = NULL;
     pd->defaultKeycodeTranslator = IswTranslateKey;
     pd->keysyms_serial = 0;
@@ -819,8 +796,6 @@ CloseDisplay(xcb_connection_t *dpy)
         xtpd->keysyms = NULL;
         xtpd->modKeysyms = NULL;
         xtpd->modsToKeysyms = NULL;
-        //XDestroyRegion(xtpd->region);
-        xcb_xfixes_destroy_region(dpy, xtpd->region);
         IswFree((char *) xtpd->pdi.trace);
         _IswHeapFree(&xtpd->heap);
         _IswFreeWWTable(xtpd);

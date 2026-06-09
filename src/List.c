@@ -45,7 +45,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/StringDefs.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <xcb/xfixes.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ListP.h>
 #include <ISW/FocusMgrI.h>
@@ -138,7 +137,7 @@ static IswResource resources[] = {
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void ChangeSize(Widget, Dimension, Dimension);
 static void Resize(Widget);
-static void Redisplay(Widget, IswEvent *, xcb_xfixes_region_t);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void Destroy(Widget);
 static Boolean Layout(Widget, Boolean, Boolean, Dimension *, Dimension *);
 static IswGeometryResult PreferredGeom(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
@@ -632,7 +631,7 @@ PaintItemName(Widget w, int item)
 
 /* ARGSUSED */
 static void
-Redisplay(Widget w, IswEvent *event, xcb_xfixes_region_t region)
+Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     int item;			/* an item to work with. */
     int ul_item, lr_item;       /* corners of items we need to paint. */
