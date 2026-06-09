@@ -192,17 +192,18 @@ InitPerDisplay(xcb_connection_t *dpy,
                int defaultScreen,
                IswAppContext app,
                _Xconst char *name,
-               _Xconst char *classname)
+               _Xconst char *classname,
+               const IswPlatformOps *ops)
 {
     IswPerDisplay pd;
 
     AddToAppContext(dpy, app);
 
     pd = NewPerDisplay(dpy);
-    /* Inject the backend ops table for this connection.  This is the single
-     * backend-selection point; every _IswPlatform* wrapper recovers the ops
-     * from the per-display record rather than a process-global accessor. */
-    pd->ops = &isw_platform_xcb_ops;
+    /* Carry the backend ops (selected at IswOpenDisplay, before the connection
+     * existed) on the per-display record; every _IswPlatform* wrapper recovers
+     * the ops from here rather than a process-global accessor. */
+    pd->ops = ops;
     _IswHeapInit(&pd->heap);
     pd->destroy_callbacks = NULL;
     /* Store the default screen number from xcb_connect() so that
@@ -264,6 +265,13 @@ InitPerDisplay(xcb_connection_t *dpy,
     pd->pdi.activatingKey = 0;
     pd->pdi.keyboard.grabType = IswNoServerGrab;
     pd->pdi.pointer.grabType = IswNoServerGrab;
+    /* Windowless dispatch state: the per-display record is malloc'd (IswNew),
+       not zeroed, so these must be initialised — otherwise the first motion
+       event reads a garbage pointerWidget and crashes. */
+    pd->pdi.pointerWidget = NULL;
+    pd->pdi.windowlessButtonGrab = NULL;
+    pd->pdi.buttonsDown = 0;
+    pd->pdi.xdndDragActive = False;
 
     _IswAllocWWTable(pd);
     pd->per_screen_db = (xcb_xrm_database_t **) __XtCalloc(
@@ -307,9 +315,15 @@ IswOpenDisplay(IswAppContext app,
               _IswString *argv)
 {
     xcb_connection_t *d;
+    IswDisplay disp;
     int defaultScreen = 0;
     xcb_xrm_database_t *db = NULL;
     String language = NULL;
+
+    /* Select the backend as the first act of init — before any connection
+     * exists — so connection setup (open/screen probing/close) goes through
+     * the vtable rather than calling xcb_connect directly here. */
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
 
     LOCK_APP(app);
     LOCK_PROCESS;
@@ -321,9 +335,9 @@ IswOpenDisplay(IswAppContext app,
                                 (app->process->globalLangProcRec.proc ?
                                  &language : NULL));
     UNLOCK_PROCESS;
-    d = xcb_connect(displayName, &defaultScreen); //XOpenDisplay(displayName);
-    if (xcb_connection_has_error(d) == 0) {
-        int numScr = xcb_setup_roots_length(xcb_get_setup(d));
+    disp = ops->display->open(displayName, &defaultScreen);
+    if (disp != NULL && !ops->display->has_error(disp)) {
+        int numScr = ops->display->screen_count(disp);
         if (numScr <= 0) {
             IswErrorMsg("nullDisplay",
                        THIS_FUNC, IswCIswToolkitError,
@@ -343,6 +357,9 @@ IswOpenDisplay(IswAppContext app,
         printf("Display connection error \n");
         exit(-1);
     }
+    /* Transitional bridge: downstream init (InitPerDisplay / per-display table)
+     * is still typed on xcb_connection_t* until Phase 10 retypes it. */
+    d = _IswXcbConn(disp);
 
     if (!applName && !(applName = getenv("RESOURCE_NAME"))) {
         if (*argc > 0 && argv[0] && *argv[0]) {
@@ -364,7 +381,7 @@ IswOpenDisplay(IswAppContext app,
     if (d) {
         IswPerDisplay pd;
 
-        pd = InitPerDisplay(d, defaultScreen, app, applName, className);
+        pd = InitPerDisplay(d, defaultScreen, app, applName, className, ops);
         pd->language = language;
         _IswDisplayInitialize(d, pd, applName, num_urs, argc, argv);
     }
@@ -478,7 +495,8 @@ IswDisplayInitialize(IswAppContext app,
     /* IswDisplayInitialize doesn't receive a screen number; default to 0.
      * If the caller needs a specific screen, they should use IswOpenDisplay
      * which captures the screen number from xcb_connect(). */
-    pd = InitPerDisplay(dpy, 0, app, name, classname);
+    pd = InitPerDisplay(dpy, 0, app, name, classname,
+                        _IswPlatformSelectBackend());
     LOCK_PROCESS;
     //if (app->process->globalLangProcRec.proc)
     //    /* pre-parse the command line for the language resource */
@@ -741,6 +759,10 @@ CloseDisplay(xcb_connection_t *dpy)
 {
     register IswPerDisplay xtpd = NULL;
     register PerDisplayTablePtr pd, opd = NULL;
+    /* The display's own backend ops, captured from the per-display record while
+     * it is still valid; used to close the connection through the vtable after
+     * the record is freed. */
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
     //XrmDatabase db;
 
     IswDestroyWidget(IswHooksOfDisplay((IswDisplay) dpy));
@@ -766,6 +788,9 @@ CloseDisplay(xcb_connection_t *dpy)
 
     if (xtpd != NULL) {
         int i;
+
+        if (xtpd->ops != NULL)
+            ops = xtpd->ops;
 
         if (xtpd->destroy_callbacks != NULL) {
             IswCallCallbackList((Widget) NULL,
@@ -821,8 +846,8 @@ CloseDisplay(xcb_connection_t *dpy)
     }
     IswFree((char *) pd);
     /* No need to clear database on connection - we manage our own databases */
-    xcb_flush(dpy);
-    xcb_disconnect(dpy);
+    /* Close the connection through the vtable (flush + disconnect). */
+    ops->display->close((IswDisplay) dpy);
     UNLOCK_PROCESS;
 }
 

@@ -70,7 +70,15 @@ IswCursor         _IswXcbCursorWrap(xcb_cursor_t cursor);
  * (Display.c: InitPerDisplay sets IswPerDisplay->ops) and recovered from the
  * per-display record by each wrapper — there is no process-global accessor.
  * The concrete table for the XCB backend is isw_platform_xcb_ops (below).
+ *
+ * Backend selection: the active ops table is chosen here, as the first act of
+ * init, BEFORE any connection exists — so that connection setup itself
+ * (open/close) goes through the vtable.  This is not a global accessor: it is
+ * called once at IswOpenDisplay and the result is carried on the per-display
+ * record.  With a single backend it returns isw_platform_xcb_ops; a future
+ * build/env selector would resolve a different table here.
  */
+const IswPlatformOps *_IswPlatformSelectBackend(void);
 
 /*
  * =================================================================

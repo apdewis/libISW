@@ -422,12 +422,27 @@ const IswPlatformOps isw_platform_xcb_ops = {
     .dnd       = &isw_platform_xcb_dnd_ops,
 };
 
+/* Backend selection (Phase 9): chosen as the first act of init, before any
+   connection exists, so connection setup goes through the vtable.  Single
+   backend today → always the XCB ops; a build/env selector slots in here. */
+const IswPlatformOps *
+_IswPlatformSelectBackend(void)
+{
+    return &isw_platform_xcb_ops;
+}
+
 /* Neutral event-loop fd accessor (replaces the ConnectionNumber XCB macro),
-   dispatched through the active backend's display vtable. */
+   dispatched through the active backend's display vtable.
+
+   Uses the selected backend rather than the per-display record's ops: this is
+   called during display setup (AddToAppContext) BEFORE the per-display record
+   is registered, so _IswGetPerDisplay(dpy) would miss.  Connection-fd access is
+   connection-setup-adjacent (same category as open/close), so the selected
+   backend is the right source — consistent with Phase 9. */
 int
 _IswPlatformConnectionFd(IswDisplay dpy)
 {
-    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
     if (ops && ops->display && ops->display->connection_fd)
         return ops->display->connection_fd(dpy);
     return -1;
