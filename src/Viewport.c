@@ -93,7 +93,7 @@ static IswResource resources[] = {
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Redisplay(Widget, IswEvent *, IswRegion);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void Realize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void ChangeManaged(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
@@ -327,7 +327,7 @@ ConstraintInitialize(Widget request, Widget new, ArgList args, Cardinal *num_arg
 }
 
 static void
-Realize(xcb_connection_t *conn, Widget widget, IswValueMask *value_mask, uint32_t *values)
+Realize(IswDisplay conn, Widget widget, IswValueMask *value_mask, uint32_t *values)
 {
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
@@ -368,7 +368,9 @@ Realize(xcb_connection_t *conn, Widget widget, IswValueMask *value_mask, uint32_
 	       position is relative to the clip's origin — move it to (0,0)
 	       within the clip, then reparent and map. */
 	    IswMoveWidget( child, (Position)0, (Position)0 );
-	    xcb_reparent_window(conn, _IswXcbWindow(IswWindowOf(child)), _IswXcbWindow(IswWindowOf(clip)), 0, 0);
+	    /* Raw reparent stays here for now (Phase 13c routes it through the
+	       reparent window op); reach the connection via the seam. */
+	    xcb_reparent_window(_IswXcbConn(conn), _IswXcbWindow(IswWindowOf(child)), _IswXcbWindow(IswWindowOf(clip)), 0, 0);
 	    IswMapWidget( child );
 	}
 	/* Windowless child: NOT reparented — it composites in the Viewport's

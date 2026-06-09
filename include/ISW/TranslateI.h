@@ -570,7 +570,7 @@ extern String _IswPrintState(
 
 extern String _IswPrintEventSeq(
     EventSeqPtr	/* eventSeq */,
-    xcb_connection_t *	/* dpy */
+    IswDisplay	/* dpy */
 );
 
 typedef Boolean (*_IswTraversalProc)(

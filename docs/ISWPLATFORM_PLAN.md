@@ -20,8 +20,11 @@ which phase is current, what is done, what is deferred and why.
 - Any future session reads this file first to know exactly where the
   abstraction stands.
 
-**Current phase:** 8 — Dependency-inject the ops table (kill the singleton).
-Phase 7 is done.
+**Current phase:** 10b — retype the display off the connection. Phases 0–9, 11a,
+12a, 13a, 14, 15 are done. **The real objective is a core `xcb_*` census of 0**
+(see "The actual goal" below); as of 2026-06-09 the core still holds **1350**
+`xcb_*` refs, so every remaining phase is measured against that number, not a
+public-header grep.
 
 ## Phase table
 
@@ -35,10 +38,21 @@ Phase 7 is done.
 | 5 | `IswSelection`, `IswCursor`, grabs | done | ISWPlatform.h, ISWPlatformGrabCursorXCB.c, PassivGrab.c, Simple.c, Converters.c, MenuBar.c, List.c, Selection.c |
 | 6 | Atoms + properties | done | ISWPlatform.h, ISWPlatformAtomPropXCB.c, ISWAtoms.c, Shell.c, Selection.c, ResConfig.c, SetWMCW.c, Tip.c, SimpleMenu.c, Intrinsic.c, TMprint.c, TMstate.c, TextAction.c, Display.c, Converters.c |
 | 7 | `IswDragDrop` — generic DnD service; XDND becomes the X11 backend | done | ISWPlatform.h, ISWPlatformDndXCB.c (new, from ISWXdnd.c), IswDragDrop.h (new), IswTypes.h, ISWPlatformPrivate.h, ISWPlatformDisplayXCB.c, CMakeLists.txt, Shell.c, IconView.c, isw_demo.c |
-| 8 | Dependency-inject the ops table (kill the singleton) | todo | ISWPlatformPrivate.h, ISWPlatformDisplayXCB.c + every `_IswPlatform*` wrapper + the per-display init path |
+| 8 | Dependency-inject the ops table (kill the singleton) | done | ISWPlatformPrivate.h, ISWPlatformDisplayXCB.c + every `_IswPlatform*` wrapper + the per-display init path |
+| 9 | Route connection setup through the vtable (open/close) | done | Display.c, ISWPlatformDisplayXCB.c |
+| 10 | Break `IswDisplay == xcb_connection_t*` — 10a native seam done; **10b** retype display off the connection (census `xcb_connection_t` 189→0) | 10a done, 10b todo | InitialI.h, Display.c, Selection.c, TMkey.c, the I-headers, ISWPlatformDisplayXCB.c |
+| 11 | Event loop + retire native-event bridge (census event-struct 342→0) — 11a poll ops done | 11a done, 11 todo | ISWPlatformEventXCB.c, NextEvent.c, Event.c, EventUtil.c, TMstate.c, +widgets |
+| 12 | Per-display state — 12a field retypes done; **12b** relocate keysym machinery (census keysym 18→0) | 12a done, 12b todo | TMkey.c, FocusMgr.c, ISWPlatformInputXCB.c |
+| 13 | Selection/property + tray + **13c** raw draw/window-call routing (census 168→0) — 13a done | 13a done, 13b/13c todo | Selection.c, IswTrayIcon.c, +widgets, ISWPlatform.h |
+| 14 | Replace XFixes damage regions with client-side region | done | IswTypes.h, IntrinsicP.h, Event.c, Display.c, +~32 widgets |
+| 15 | Resource resolution behind ops (Xrm → X11-backend detail) | done | IswDatabase.h, ISWPlatform.h, ISWPlatformResourceXCB.c, Initialize.c, Resources.c, +6 files |
+| 16 | Purge `xcb_*` from the public API | todo | Intrinsic.h, IswEvent.h, IswTypes.h, ISWRender.h, IswTrayIcon.h, TextSink.h |
+| 17 | Prove it: a second (stub/null) backend; **core census must be 0** | todo | new stub backend TU, CMakeLists.txt |
 
 > Each phase, when started, gets its own scope manifest before edits. Approval
-> of one phase is not approval of the next.
+> of one phase is not approval of the next. **Every phase ends by re-running the
+> core `xcb_*` census and recording before→after; the branch is done when it is
+> 0.**
 
 ## Phases
 
@@ -503,21 +517,87 @@ Phase 6/7 add more dispatch sites that would otherwise also need rework.
 
 # Phases 9–17 — finishing the abstraction (planned)
 
-**Why these phases exist.** Phases 0–8 abstracted the per-category *calls*
-behind a vtable and removed the ops singleton, but an audit
-(`docs/PLATFORM_ABSTRACTION_GAP.md`) found the display *technology* itself is
-still XCB: the connection entry points hardcode `xcb_connect`, the display
-handle *is* the XCB connection, the event loop / resource manager / region-damage
-layer were never abstracted, and the public API still names `xcb_*`. These
-phases close that gap. They are sequenced so each rests on the last; Phase 9 is
-the prerequisite for everything (until the entry points go through the vtable,
-no second backend can ever be selected, so nothing downstream is testable).
+## The actual goal (read this before scoping any remaining phase)
 
-Each phase keeps the established conventions: opaque `Isw*` handles, semantic
-ops sub-vtables in the backend reached through thin `_IswPlatform*` wrappers,
-ops recovered from the injected per-display table (Phase 8), no `xcb_*` in
-public `include/ISW/` headers. Each ends **build green + demo verified**, and a
-phase that touches the public API says so explicitly (it is an ABI/API break).
+**Zero `xcb_*` in core.** The branch exists to get *all X11 specifics out of the
+core* — the toolkit/widget `.c` files. "Core" = every `src/*.c` that is **not** a
+designated backend translation unit. The backend TUs, where X11 is allowed and
+expected to live, are:
+
+```
+ISWPlatformDisplayXCB  ISWPlatformEventXCB    ISWPlatformInputXCB
+ISWPlatformColorFontXCB ISWPlatformGrabCursorXCB ISWPlatformAtomPropXCB
+ISWPlatformDndXCB      ISWPlatformResourceXCB
+ISWRender  ISWRenderCairoXCB  ISWXcbDraw   (the render/draw backend)
+```
+
+The single objective metric is the count of `xcb_*` tokens in core `.c` files.
+**It must reach 0.** Every remaining phase is defined as "drive category X of
+that count to zero," and its acceptance is the census number for that category,
+measured the same way each time:
+
+```sh
+# core xcb_* census — run from repo root.
+# Uses `command grep` (not any grep alias/ugrep) and a case filter for the
+# backend TUs, so it is reproducible regardless of shell grep wrapping.
+census() {
+  local f b n
+  for f in src/*.c; do
+    b=$(basename "$f" .c)
+    case "$b" in ISWPlatform*XCB|ISWRender*|ISWXcbDraw) continue;; esac
+    n=$(command grep -oE 'xcb_[a-z_]+' "$f" | wc -l)
+    [ "$n" -gt 0 ] && printf '%5d  %s\n' "$n" "$b"
+  done | sort -rn
+  # total (computed outside the pipe so it isn't lost to a subshell):
+  local total=0
+  for f in src/*.c; do
+    b=$(basename "$f" .c)
+    case "$b" in ISWPlatform*XCB|ISWRender*|ISWXcbDraw) continue;; esac
+    total=$((total + $(command grep -oE 'xcb_[a-z_]+' "$f" | wc -l)))
+  done
+  echo "TOTAL core xcb_* = $total"
+}
+# per-symbol breakdown:
+for f in src/*.c; do b=$(basename "$f" .c); case "$b" in ISWPlatform*XCB|ISWRender*|ISWXcbDraw) continue;; esac; command grep -oE 'xcb_[a-z_]+' "$f"; done | sort | uniq -c | sort -rn
+```
+
+Baseline 2026-06-09: **TOTAL core `xcb_*` = 1350**.
+
+**Why the earlier phases didn't get us here.** Phases 0–15 each accepted on "no
+`xcb_*` in *public headers*" and "this category's *verbs* go through ops" — never
+on the core-`.c` census. So every phase passed green while the core stayed
+saturated. As of the 2026-06-09 census the core still holds **1350 `xcb_*`
+references across ~60 files** (Event 149, IswTrayIcon 119, Shell 99, TextAction
+71, Text 64, TMkey 60, Selection 57, IswDrawing 57, Display 48, …). That number,
+not a public-header grep, is the truth. The remaining phases below are rewritten
+to attack it head-on.
+
+### Census by category (2026-06-09) — what the 1350 actually are
+
+| Category | Count | What it is | How it leaves core |
+|---|---|---|---|
+| Native event structs | 342 | `xcb_generic_event_t` (84) + every `xcb_*_event_t` cast — core still **decodes native events** | neutral `IswEvent` must carry every field core reads; then the casts delete. The `IswEventNative` bridge is retired. **(Phase 11)** |
+| `xcb_connection_t` | 189 | core functions hold the display **as a connection** | retype to `IswDisplay`; the few real connection uses (`DefaultRootWindow`→`xcb_get_setup`) go behind a setup/root op. Productions vanish as a side effect, not by casting. **(Phase 10)** |
+| 1:1 value types | 318 | `xcb_atom_t`(114) `window_t`(58) `keysym_t`(51) `pixmap_t`(31) `keycode_t`(25) `cursor_t`(21) `timestamp_t`(16) `colormap_t`(3) — all have `Isw*`/`Atom` equivalents | mechanical type-name swap; cheap, but only after the call using them is itself off raw xcb |
+| Raw draw/window calls | 168 | `xcb_flush`(60) `clear_area`(19) `bell`(19) `change_window_attributes`(13) `configure_window`(13) `copy_area`(6) `create/destroy/map/unmap_window` `generate_id` `*_pixmap` `put_image` | **the window ops already exist** (create/destroy/map/unmap/reparent/configure/change_attributes/clear_area/alloc_id) — core is **bypassing** them. Route through existing ops; add a `bell` op and a setup/root op; pixmap/copy_area/put_image go through the render/draw backend. **(Phase 13c — drawing/window routing)** |
+| `xcb_screen_t`+iter | 65 | `screen_t`(54) `screen_iterator_t`(5) `screen_next`(5) | `IswScreen` + a screen-enumeration/root op |
+| Geometry value structs | 52 | `xcb_point_t`(23) `rectangle_t`(19) `size_hints_t`(10) | neutral POD structs (`IswPoint`/`IswRect`/size-hint fields already on the hint op) |
+| setup/root access | 21 | `xcb_get_setup`(9) `setup_roots_iterator`(7) `screen_next`(5) | one setup/screen-root op (kills the `DefaultRootWindow`/`xcb_get_setup` idiom everywhere) |
+| keysym machinery | 18 | `xcb_key_symbols_*` in TMkey.c/FocusMgr.c | relocate into the input backend behind input ops **(Phase 12)** |
+| visual types | 12 | `xcb_visualtype_t`/`visualid_t` | `IswVisual`/`IswVisualId` (mostly exist) |
+
+The categories are not independent passes to "complete" in isolation — a single
+core file (e.g. `Event.c`) usually mixes event-decode, raw calls, and value
+types, and is only *done* when its census line hits 0. Phases below are ordered
+so the enabling ops/types land first, then files are swept to zero.
+
+**Conventions (unchanged).** Opaque `Isw*` handles; semantic ops sub-vtables in
+the backend reached through thin `_IswPlatform*` wrappers; ops recovered from the
+injected per-display table (Phase 8); no `xcb_*` in public `include/ISW/`
+headers. Each phase ends **build green + demo verified**; a phase touching the
+public API says so (ABI/API break). **Additionally, each phase now ends by
+re-running the census and recording the before/after core count** — a phase that
+does not reduce the number did not accomplish its purpose.
 
 ### Phase 9 — Route connection setup through the vtable (`open`/`close`)
 
@@ -554,16 +634,19 @@ display through the vtable; build green + demo verified.
 connection, no other backend can supply a display object and every holder of an
 `IswDisplay` may cast it back to xcb.
 
-**Audit finding (surfaced before edits).** The identity is load-bearing in ~370
-interlocked sites: ~82 that *produce* an `IswDisplay` by casting a connection,
-~290 `_IswXcbConn` consumers across 54 files, plus the per-display table key,
-`core.display`, `hooks.display`, the WWtable, `DPY_TO_APPCON`, and `app->list`.
-The consumers cannot stop calling `_IswXcbConn` until their *own* raw-xcb usage
-(event attrs → 11, regions → 14, resource DB → 15) is abstracted — so the
-original "no `_IswXcbConn` callers outside the backend" acceptance contradicts
-the phase order. Breaking the handle's representation in one shot would be a
-370-site lockstep flip where any mismatch compiles and then crashes on a bad
-handle. The phase is therefore split:
+**Audit finding (surfaced before edits, refined 2026-06-09).** The identity
+touches ~370 interlocked sites: ~86 that *produce* an `IswDisplay` by casting a
+connection (`(IswDisplay) dpy`), ~283 `_IswXcbConn` consumers across 56 files,
+plus the per-display table key, `core.display`, `hooks.display`, the WWtable,
+`DPY_TO_APPCON`, and `app->list`. **Key correction:** the consumers continuing to
+call `_IswXcbConn` is *fine* — that is the backend seam, and a core function may
+legitimately resolve the native connection through it. What actually blocks the
+representation flip is narrower: the ~86 productions exist only because those
+functions are *typed* on `xcb_connection_t *` and cast at each neutral-API call.
+The original "no `_IswXcbConn` callers outside the backend" acceptance was the
+wrong target (it conflated the seam with the leak); the right target is the
+**`xcb_connection_t` census category → 0**, which removes the productions, after
+which the handle-representation flip is small. Split accordingly:
 
 #### Phase 10a — introduce the native seam (no representation change)
 - Add `xcb_connection_t *native` to the per-display record
@@ -576,17 +659,80 @@ handle. The phase is therefore split:
 - Acceptance: `_IswXcbConn` no longer casts; demo builds + runs + takes events
   without crashing; handle value still equals the connection (transitional).
 
-#### Phase 10b — flip the handle representation (deferred until after 11–15)
-- Once the raw-xcb consumers are abstracted by Phases 11–15, the seam has few
-  callers and breaking the representation is small. Make `IswDisplay` the
-  per-display record pointer (carrying `{ ops, native, state }`); retype
-  `InitPerDisplay`/`NewPerDisplay`/the table key/`core.display` off the
-  connection; `_IswXcbConn` reads `native` from the record the handle now *is*.
-- Acceptance: `struct _IswDisplay` is a real owned object; no
-  `(xcb_connection_t *) dpy` cast or `(IswDisplay) conn` production outside the
-  backend; build green + demo verified.
+#### Phase 10b — retype the display off the connection (kills the 189 `xcb_connection_t` + the productions)
 
-**Depends on** Phase 9 (10a). 10b depends on Phases 11–15 (seam shrunk first).
+**Corrected understanding (2026-06-09).** The earlier framing (split into a
+"handle representation flip" gated on shrinking `_IswXcbConn`'s consumers, then
+deferred behind 11b/12b/13b) was wrong. The real content of 10b is the
+**`xcb_connection_t` census category (189)**: ~40 core functions hold their
+display *as a connection* and cast `(IswDisplay) dpy` at every neutral-API call
+(86 such productions). They make almost **no raw `xcb_*(dpy,…)` calls** — e.g.
+`Selection.c` (36 productions) makes zero; its only real connection use is
+`DefaultRootWindow(dpy)` → `xcb_get_setup`. So:
+
+- Retype `xcb_connection_t *dpy` → `IswDisplay dpy` across those core
+  functions/params/locals **and the connection-typed fields in the I-headers**
+  (`SelectionI.h`, `TranslateI.h`, `ContextI.h`, `IswPerDisplayStruct`'s nested
+  state). The `(IswDisplay)` casts then delete themselves — productions vanish as
+  a *side effect* of the field/param being the right type, not by cast-renaming.
+- The few genuine raw-connection idioms (`DefaultRootWindow`/`xcb_get_setup`/
+  `setup_roots_iterator`, census "setup/root access" = 21) go behind **one new
+  setup/screen-root op** so no core file calls `xcb_get_setup` either.
+- This does **not** require 11b/12b first: a function can hold `IswDisplay` while
+  its body still decodes a native event or touches keysyms — those are different
+  census categories (event structs / keysym machinery), on a different axis.
+- Once no core file is typed on the connection, finish the representation flip:
+  make `IswDisplay` the per-display record pointer (`{ ops, native, state }`);
+  retype `InitPerDisplay`/`NewPerDisplay`/the table key/`core.display`;
+  `_IswXcbConn` reads `native` from the record the handle now *is*. With the
+  productions already gone, this last step is small and safe.
+
+**Progress (2026-06-09): census `xcb_connection_t` 189 → 101, build green, demo
+smoke-verified.** Done so far, by connected component:
+- **Realize chain**: `IswRealizeProc` + `IswCreateWindow` retyped to `IswDisplay`
+  (IntrinsicP.h); all ~18 widget/Shell/Vendor/Core `Realize` procs + the
+  `RealizeWidget` dispatch in Intrinsic.c. Raw window creation inside
+  `IswCreateWindow`/`CoreRealize`/`IswTipRealize`/Text-GC reaches the connection
+  via a `_IswXcbConn` seam local (those raw calls are Phase 13c).
+- **Selection component**: `SelectionI.h` `dpy` fields → `IswDisplay`; all
+  Selection.c internal fns/locals retyped; `DefaultRootWindow(dpy)` →
+  `_IswXcbWindow(_IswDefaultRootWindow(dpy))`; `MAX_SELECTION_INCR` + the lone
+  `xcb_send_event` seam-localised (13c). **Selection.c connection refs → 0.**
+- **Atoms**: deleted dead orphan `IswAtoms.c`; `ISWAtoms.c` legacy wrappers
+  retyped (refs → comments only).
+- **Event-queue / mapping**: `IswEventQueue.display` + `_IswRefreshMapping`
+  (EventI.h) → `IswDisplay`; NextEvent.c/Event.c callers fixed.
+- **Resource/print/create consumers**: TMprint.c (all print fns), `_IswPrintEventSeq`
+  (TranslateI.h), `_IswAppCreateShell`/`_IswCreateHookObj` (CreateI.h) + Hooks.c,
+  `_IswAppInit` now returns `IswDisplay`, VarCreate/Initialize entry points.
+- **New neutral helpers** (`_IswDefaultScreenOf` / `_IswDefaultRootWindow`, over
+  the existing display screen/root ops) replace `_IswGetDefaultScreen(conn)` /
+  `DefaultRootWindow` in the consumer paths.
+
+**Remaining 101, partitioned (verified):**
+- **~36 are Phase 13c, not 10b**: `_IswXcbConn(...)` *seam locals that feed raw
+  draw/clear/copy/gc calls* (Event, TextAction, Text, Tree, Tip, Viewport,
+  Panner, SimpleMenu, Geometry, Resources, TextSink). Retyping them now only
+  moves `_IswXcbConn` up a line; they leave when their raw call becomes an op.
+- **~14 are Phase 12b**: TMkey.c (10) + FocusMgr.c (4) — the connection feeds
+  `xcb_key_symbols_*` / modifier-mapping.
+- **~32 are the representation-flip core**: Display.c (20) + Initialize.c (12) —
+  the per-display table key (`_PerDisplayTable.dpy`), `AddToAppContext`/
+  `NewPerDisplay`/`InitPerDisplay`/`app->list`, and the `xcb_setup_roots_iterator`
+  screen-enum loops. Best done as the focused final flip (make `IswDisplay` the
+  record pointer; point `_IswXcbConn` at `native`), not piecemeal.
+- A few true stragglers: Converters `_IswLoadThemedCursor` param, IswDrawing
+  `GetDisplayFromScreen`, Vendor's `IswRDisplay` resource-size, and 3
+  comment-only mentions in ISWAtoms.
+
+**Acceptance.** Census `xcb_connection_t` in core → **0** (achieved jointly with
+12b for the keysym share and 13c for the seam-local share); setup/root access in
+core → **0** (behind the op); no `(IswDisplay) conn` production outside the
+backend; `struct _IswDisplay` is a real owned object; build green + demo
+verified. Record before/after core census.
+
+**Depends on** Phase 9. The keysym share rides with 12b and the draw-seam share
+with 13c; the representation flip is 10b's own final step.
 
 ### Phase 11 — Abstract the event loop (`IswPlatformEventOps`)
 
@@ -596,19 +742,30 @@ throughout `Event.c`, and the vtable's `.event` slot is literally `NULL`
 (`ISWPlatformDisplayXCB.c:411`). Phase 1's `IswEvent` is only a *translation
 bridge* with a `native` xcb pointer, not a replacement for the loop.
 
-**Scope.**
-- Add `IswPlatformEventOps`: `wait` (blocking next-event), `poll` (non-blocking),
-  `translate` (native → `IswEvent`), `flush`. Implement in the XCB backend over
-  `xcb_wait_for_event` / `xcb_poll_for_event[_queued]`.
-- Move the loop bodies in `NextEvent.c` / `Event.c` onto the ops; the toolkit
-  enqueues/dispatches `IswEvent`, never `xcb_generic_event_t`.
-- Retire the `IswEvent.native` migration bridge: widget procs read neutral
-  fields only (the Phase-1 follow-up that was deferred).
+**Census target.** This phase owns the **native event-struct category = 342** (
+`xcb_generic_event_t` 84 + every `xcb_*_event_t` cast) — the largest single
+category, spread across `Event.c`, `NextEvent.c`, `EventUtil.c`, `TMstate.c`,
+`Keyboard.c`, `Selection.c`, `Shell.c`, `PassivGrab.c`, `FocusMgr.c`, and ~10
+widget files that still reach native fields through the `IswEventNative` bridge.
 
-**Acceptance.** No `xcb_poll_for_event` / `xcb_wait_for_event` /
-`xcb_generic_event_t` outside the backend; `IswEvent.native` no longer read by
-widget/toolkit code; `.event` op non-NULL and driving the loop; build green +
-demo verified (keyboard, mouse, expose, focus).
+**Scope.**
+- `IswPlatformEventOps`: `wait` (blocking), `poll`/`poll_queued` (non-blocking,
+  done in 11a), `translate` (native → `IswEvent`), `flush`. The loop bodies in
+  `NextEvent.c` move onto the ops; the toolkit enqueues/dispatches `IswEvent`.
+- Make `IswEvent` carry **every field core code currently reads off a native
+  struct** (the reason the bridge persists) — audit the 342 sites for any field
+  the neutral union lacks and add it. Then delete the `xcb_*_event_t` casts in
+  core and **retire `IswEventNative`** for widget/toolkit code (it survives only
+  inside backend protocol handlers, which are being moved out by 13/14 anyway).
+- X11 protocol *sends* that aren't event-decode (`xcb_send_event` ICCCM
+  client-messages in `Shell.c`) are not this category — they belong to the
+  draw/window-call routing (Phase 13c) via a messaging op, and are tracked there,
+  not hidden here.
+
+**Acceptance.** Census native-event-struct category in core → **0**;
+`IswEventNative` no longer called by core; `.event` op drives the loop; build
+green + demo verified (keyboard, mouse, expose, focus). Record before/after core
+census.
 
 **Depends on** Phase 10 (events carry the opaque display).
 
@@ -623,7 +780,7 @@ the thing Phase 8 injected ops into — still stores raw xcb resources:
 **Audit finding (surfaced before edits).** Most of the struct's raw-xcb fields
 are owned by other phases: `region`/`null_region` → 14, `per_screen_db`/`cmd_db`/
 `server_db` → 15, `native` → the 10b seam, `last_event` (`xcb_generic_event_t`)
-→ the 11b event bridge. What is *uniquely* Phase 12 is the keysym/modifier state
+→ Phase 11 (event-struct category). What is *uniquely* Phase 12 is the keysym/modifier state
 — and that is not a field rename: the keysym-table machinery (`xcb_key_symbols_t
 keysyms`, `xcb_get_modifier_mapping`, `xcb_key_symbols_get_keysym`) lives in
 toolkit `TMkey.c` across ~48 raw-xcb sites (`_IswBuildKeysymTables`,
@@ -639,18 +796,25 @@ Phase-7-DnD-scale move, not a typedef swap. The phase is therefore split:
   verified. (`xcb_key_symbols_t* keysyms` stays — it's 12b.)
 
 #### Phase 12b — relocate the keysym/modifier machinery into the input backend
-- Move `_IswBuildKeysymTables` / `_IswXcbKeysyms` / the raw
-  `xcb_key_symbols_*` + modifier-mapping calls out of `TMkey.c` into
-  `ISWPlatformInputXCB.c`, behind input ops (the table becomes an opaque
-  `IswKeysymTable` handle or stays backend-internal state reached only via ops).
-  Route `FocusMgr.c`'s independent `xcb_key_symbols` cache through the same ops.
-- Acceptance: no raw `xcb_key_symbols_*` / `xcb_get_modifier_mapping` outside
-  the input backend; `pd->keysyms` opaque to the toolkit; keyboard input +
-  translations verified live.
+Owns the **keysym-machinery census category = 18** (`xcb_key_symbols_t`,
+`xcb_key_symbols_alloc/free/get_keysym`, `xcb_get_modifier_mapping`) plus the
+`xcb_keysym_t`/`xcb_keycode_t` value types riding with it (census 51 + 25, which
+neutralize to `IswKeySym`/`IswKeyCode` once the calls move).
+- Move `_IswBuildKeysymTables` / `_IswXcbKeysyms` / the raw `xcb_key_symbols_*` +
+  modifier-mapping calls out of `TMkey.c` into `ISWPlatformInputXCB.c`, behind
+  input ops (the table becomes an opaque `IswKeysymTable` handle or stays
+  backend-internal state reached only via ops). Route `FocusMgr.c`'s independent
+  `xcb_key_symbols` cache through the same ops.
+- Acceptance: census keysym-machinery category in core → **0** (no
+  `xcb_key_symbols_*` / `xcb_get_modifier_mapping` outside the input backend);
+  `pd->keysyms` opaque to the toolkit; `TMkey.c`/`FocusMgr.c`/`Keyboard.c` census
+  lines for keysym/keycode types → 0; keyboard input + translations verified
+  live. Record before/after core census.
 
-**Acceptance (phase overall).** No `xcb_*` resource type in
-`IswPerDisplayStruct` except those owned by Phases 13/14/15, the 10b `native`
-seam, and the 11b `last_event` bridge; build green + demo verified.
+**Acceptance (phase overall).** `IswPerDisplayStruct` holds no `xcb_*` resource
+type (the remaining ones are owned by Phases 13/14/15 and the 10b `native` seam,
+all of which also end at census 0 for their category); build green + demo
+verified.
 
 **Depends on** Phase 11 (12a). 12b is unfinished Phase-3 input work.
 
@@ -672,13 +836,14 @@ verb level but left the property exchange XCB; `Selection.c` still has 148 raw
 **Audit finding (surfaced before edits).** The hard part is already done:
 `Selection.c`'s INCR / property-exchange state machine runs on the Phase-5/6
 selection + property ops (`_IswPlatformChangeProperty`/`GetProperty`/selection
-verbs). Of its "148 raw xcb", ~130 are *type mentions* (`xcb_atom_t`,
+verbs). Of its raw-xcb refs, most are *type mentions* (`xcb_atom_t`,
 `xcb_timestamp_t`, `xcb_window_t`, `xcb_connection_t` locals/params) and the rest
 are: 3 `xcb_flush`, 2 `xcb_change_window_attributes`, 1 `xcb_send_event`, and
-event-struct casts (`xcb_selection_request_event_t`, `property_notify`, …). The
-event-struct casts and the `send_event` that builds a native event are the 11b
-native-bridge, not selection-protocol work. The phase therefore splits, and the
-"no raw xcb in Selection.c" acceptance is met across 13a + 11b, not 13a alone.
+event-struct casts (`xcb_selection_request_event_t`, `property_notify`, …). These
+split across census categories owned by other phases: the event-struct casts →
+**Phase 11** (event-struct category), the `xcb_connection_t` locals → **Phase
+10b**, `xcb_send_event` → **Phase 13c** (messaging op). So `Selection.c`'s core
+census reaches 0 only across 13a + 11 + 10b + 13c — not 13a alone.
 
 #### Phase 13a — neutralize the selection residuals
 - Route the residual direct calls through ops: 3 `xcb_flush` →
@@ -687,24 +852,61 @@ native-bridge, not selection-protocol work. The phase therefore splits, and the
   window op (event-mask only).
 - Neutralize the trivially-1:1 types (`xcb_atom_t` → `Atom`, `xcb_timestamp_t` →
   `IswTime`; identical underlying types, zero behaviour change).
-- Defer to 11b: `xcb_send_event` (builds a native selection-notify event) and
-  every `xcb_*_event_t` cast; the `xcb_connection_t`/`xcb_window_t` *local
-  plumbing* retype rides along with those.
+- Deferred to their owning phases (not 13a): every `xcb_*_event_t` cast → Phase
+  11; `xcb_send_event` (builds a native selection-notify event) → Phase 13c
+  (messaging op); the `xcb_connection_t` local-plumbing retype → Phase 10b.
 - Acceptance: no residual `xcb_flush`/`xcb_change_window_attributes` and no
   `xcb_atom_t`/`xcb_timestamp_t` in `Selection.c`; clipboard copy/paste verified
-  live; build green.
+  live; build green. (Done.)
 
 #### Phase 13b — the tray (`IswTrayIcon.c`)
-- Self-contained XEMBED widget (~99 xcb: client messages, reparent, visual
-  selection, expose). Decide: abstract behind a tray op set, OR declare it an
-  explicitly X11-only optional module a non-X backend omits (the plan's offered
-  shortcut). A separate decision, not blocking 13a.
+- Self-contained XEMBED widget — census **119** (the single biggest core file
+  after `Event.c`): client messages, reparent, visual selection, expose. Decide:
+  abstract behind a tray op set, OR declare it an explicitly X11-only optional
+  module a non-X backend omits (the plan's offered shortcut). **If declared
+  X11-optional, the file is reclassified as a backend TU** and its 119 leave the
+  *core* census legitimately (it is no longer core) — that decision must be
+  recorded, not used as a silent census dodge. A separate decision, not blocking
+  13a.
 
-**Acceptance (phase overall).** No raw `xcb_*` in `Selection.c` outside the
-backend (13a + 11b); tray either abstracted or explicitly backend-optional
-(13b); clipboard copy/paste verified live; build green.
+#### Phase 13c — route core's raw drawing/window calls through the ops
 
-**Depends on** Phase 11 (13a). Full `Selection.c` purge also depends on 11b.
+**Census target.** The **raw draw/window-call category = 168** —
+`xcb_flush`(60), `xcb_clear_area`(19), `xcb_bell`(19),
+`xcb_change_window_attributes`(13), `xcb_configure_window`(13),
+`xcb_copy_area`(6), `xcb_create/destroy/map/unmap_window`,
+`xcb_generate_id`(10), `xcb_*_pixmap`, `xcb_put_image` — scattered across core
+widget/toolkit files that call raw xcb **even though the window ops already
+exist** (`create`/`destroy`/`map`/`unmap`/`reparent`/`configure`/
+`change_attributes`/`clear_area`/`alloc_id` are all in `ISWPlatform.h`). Plus the
+setup/root and screen-enum access (census 21 + 65) and the geometry value structs
+(`xcb_point_t`/`rectangle_t`, census 42).
+
+- Route every core raw window/draw call through the **existing** window ops via
+  `_IswPlatform*` wrappers (most need only a wrapper, the op exists). `xcb_flush`
+  → `_IswPlatformFlush` (exists). 
+- Add the **few genuinely missing ops**: a `bell` op; a `copy_area`/`put_image`/
+  pixmap path through the **render/draw backend** (`ISWRender*`/`ISWXcbDraw` are
+  backend TUs, so core calls them through `ISWRender*`/`_IswPlatform*`, never raw
+  xcb); the setup/screen-root op shared with Phase 10b (`DefaultRootWindow`/
+  `xcb_get_setup`/`setup_roots_iterator`/`screen_next`).
+- Neutralize the geometry value structs to toolkit PODs (`IswPoint`/`IswRect`)
+  or pass primitive fields.
+- `xcb_send_event` ICCCM client-message *sends* in `Shell.c` go behind a
+  messaging op here (this is where Phase 11 said they belong).
+
+**Acceptance.** Census draw/window-call category, setup/root, screen-enum, and
+geometry-struct categories in core → **0**; build green + demo verified (repaint,
+resize, map/unmap, bell). Record before/after core census.
+
+**Acceptance (phase overall).** `Selection.c` core census → 0 (13a + Phase 11's
+event-struct removal + 10b's connection retype + 13c's `xcb_send_event`); tray
+abstracted or explicitly reclassified backend-optional (13b); core raw
+draw/window calls → 0 (13c); clipboard copy/paste + repaint verified live; build
+green.
+
+**Depends on** Phase 11 (13a, event-struct removal). 13c shares the setup/root op
+with Phase 10b.
 
 ### Phase 14 — Replace XFixes damage regions with a client-side region type — **DONE**
 
@@ -866,31 +1068,36 @@ peek / handler signatures). An application must include and name XCB types.
   compat shim headers (`include/X11/`).
 
 **Acceptance.** `grep -rl 'xcb_' include/ISW/*.h | grep -vE 'I\.h$|P\.h$'` →
-empty; the demo and downstream guide compile against the neutral API; build
-green.
+empty (the *header* half of the goal — note this is necessary but **not
+sufficient**; the core `.c` census is the real gate, owned by 10–13); the demo
+and downstream guide compile against the neutral API; build green.
 
 **Depends on** Phases 11, 14, 15 (the neutral types those phases introduce).
 
-### Phase 17 — Prove it: a second (stub/null) backend
+### Phase 17 — Prove it: a second (stub/null) backend — the final census gate
 
 **Why.** The abstraction is unproven until a non-XCB backend can be selected and
 the toolkit links without pulling `xcb_*` from non-backend TUs. This phase is
-the falsification test for all prior work.
+the falsification test for all prior work, and the **executable form of the core
+census**: a non-backend TU that still names `xcb_*` shows up as an undefined
+`xcb_*` symbol when linking against the stub instead of the XCB backend.
 
 **Scope.**
 - Add a stub/null `IswPlatformOps` (every sub-vtable filled with minimal/no-op
   implementations) selectable at init via the Phase-9 backend-selection step.
 - Build a variant that links the toolkit against the stub backend only; any
-  `xcb_*` symbol pulled from a non-backend TU is a residual leak to fix.
+  `xcb_*` symbol pulled from a non-backend TU is a residual leak — i.e. a nonzero
+  core census line that 10–16 missed — to fix.
 - Run the demo (or a headless smoke harness) on the stub backend far enough to
   exercise init, resource resolution, event dispatch, and expose.
 
-**Acceptance.** Toolkit links with the stub backend and **zero `xcb_*` symbols
-from non-backend translation units** (verified via `nm`/link); a non-XCB backend
-is selectable at init without recompiling the toolkit; the XCB backend remains
-the default and demo-verified.
+**Acceptance.** Core `xcb_*` census = **0** (the whole-branch goal); toolkit
+links with the stub backend and **zero `xcb_*` symbols from non-backend
+translation units** (verified via `nm`/link — the census made executable); a
+non-XCB backend is selectable at init without recompiling the toolkit; the XCB
+backend remains the default and demo-verified.
 
-**Depends on** Phases 9–16.
+**Depends on** Phases 9–16 (every category driven to 0).
 
 ## Changelog
 
@@ -966,3 +1173,40 @@ the default and demo-verified.
   callers (Shell.c, IconView.c), the demo, and the app guide all use `IswDnd*`
   directly; `include/ISW/ISWXdnd.h` deleted; no `ISWXdnd*` left in any source.
   No `xcb_*`/`Xdnd*` in the public DnD header.  No direct libX11 NEEDED entry.
+- Phase 8 done: ops table dependency-injected onto the per-display record
+  (`pd->ops`), the process-global ops accessor removed; every `_IswPlatform*`
+  wrapper recovers ops from the display/widget it is handed.
+- Phase 9 done: `IswOpenDisplay`/`CloseDisplay` route through
+  `display->open`/`close` via `_IswPlatformSelectBackend()`; connection setup is
+  itself behind the vtable.
+- Phase 10a done: `xcb_connection_t *native` on the per-display record;
+  `_IswXcbConn` is a field lookup, not a cast (handle value unchanged).
+- Phase 11a done: poll ops (`xcb_poll_for_event[_queued]`) +
+  `_IswPlatformPollEvent`/`PollQueued`/`DisplayHasError`/`Flush`; `NextEvent.c`/
+  `Shell.c` poll through them.
+- Phase 12a done: `modKeysyms`/`lock_meaning` → `IswKeySym`;
+  `_IswConnectionOfScreen` returns `IswDisplay`.
+- Phase 13a done: selection residuals neutralized (`xcb_flush`→`_IswPlatformFlush`,
+  `xcb_change_window_attributes`→`_IswPlatformChangeAttributes`,
+  `xcb_atom_t`/`xcb_timestamp_t`→`Atom`/`IswTime` in `Selection.c`); clipboard
+  round-trip verified live.
+- Phase 14 done (build green, demo verified): XFixes damage machinery was
+  vestigial (every expose passed region 0; the XFixes functions had no live
+  callers); retyped `IswExpose` off `xcb_xfixes_region_t` to the neutral
+  `IswRegion`, deleted the dead XFixes code + orphan draw file, **`xcb-xfixes`
+  no longer a link dependency of `libISW.so`**.
+- Phase 15 done (build green, demo verified): resource resolution behind a
+  coarse ops seam; `IswDatabaseHandle`/`XrmDatabase` neutral opaque handle; all
+  ~83 `xcb_xrm_*` sites routed through `_IswPlatformResource*`; Xrm confined to
+  `ISWPlatformResourceXCB.c` (proven by `nm`: only that one object references
+  `xcb_xrm_*`). 846 live resolution hits verified through the neutral op.
+- **Plan rewrite 2026-06-09:** reanchored the whole 9–17 tail to the *real*
+  objective — **core `xcb_*` census → 0** — after a 10b attempt exposed that
+  prior phases accepted on public-header greps while the core still held **1350**
+  `xcb_*` refs. Added the reproducible census command + baseline, a
+  by-category census table, corrected Phase 10b (it is the `xcb_connection_t`
+  category retype, not a 11b/12b-gated handle flip), re-anchored 11/12b/13's
+  acceptance to census numbers, and added **Phase 13c** (route core's 168 raw
+  draw/window calls through the already-existing window ops). Phase 17 is now the
+  executable census gate (`nm`: zero `xcb_*` from non-backend TUs). No code
+  changed in this rewrite — plan only.

@@ -150,7 +150,7 @@ static IswResource resources[] = {
  * widget class methods used below
  */
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void Realize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static void Destroy(Widget);
 static void Resize(Widget);
 static void Redisplay(Widget, IswEvent *, IswRegion);
@@ -438,7 +438,7 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
 
 
 static void
-Realize (xcb_connection_t *conn, Widget gw, IswValueMask *valuemaskp, uint32_t *values)
+Realize (IswDisplay conn, Widget gw, IswValueMask *valuemaskp, uint32_t *values)
 {
     (*pannerWidgetClass->core_class.superclass->core_class.realize)
       (conn, gw, valuemaskp, values);

@@ -111,7 +111,7 @@ static void IswTipClassInitialize(void);
 static void IswTipInitialize(Widget, Widget, ArgList, Cardinal *);
 static void IswTipDestroy(Widget);
 static void IswTipExpose(Widget, IswEvent *, IswRegion);
-static void IswTipRealize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void IswTipRealize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static Boolean IswTipSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 /*
@@ -353,8 +353,11 @@ IswTipDestroy(Widget w)
 }
 
 static void
-IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *values)
+IswTipRealize(IswDisplay conn, Widget w, IswValueMask *mask, uint32_t *values)
 {
+    /* Raw window creation still lives in the widget (Phase 13c will route it
+       through the window ops); reach the native connection through the seam. */
+    xcb_connection_t *c = _IswXcbConn(conn);
     xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(w));
     xcb_window_t window;
     uint32_t value_mask = 0;
@@ -369,13 +372,13 @@ IswTipRealize(xcb_connection_t *conn, Widget w, IswValueMask *mask, uint32_t *va
     value_list[value_idx++] = 1;                           /* override_redirect */
     value_list[value_idx++] = XCB_EVENT_MASK_EXPOSURE;     /* event_mask */
 
-    window = xcb_generate_id(conn);
+    window = xcb_generate_id(c);
 
     /* HiDPI: create window at physical pixel geometry */
     {
-        double _sf = _IswGetScaleFactor((IswDisplay) conn);
+        double _sf = _IswGetScaleFactor(conn);
         xcb_create_window(
-            conn,
+            c,
             screen->root_depth,
             window,
             screen->root,

@@ -325,13 +325,13 @@ RealizeWidget(Widget widget)
     uint32_t values[32];
     IswRealizeProc realize;
     xcb_window_t window;
-    xcb_connection_t *display;
+    IswDisplay display;
     String class_name;
     Widget hookobj;
 
     if (!IswIsWidget(widget) || IswIsRealized(widget))
         return;
-    display = _IswXcbConn(IswDisplayOf(widget));
+    display = IswDisplayOf(widget);
 
     _IswInstallTranslations(widget);
 
@@ -396,10 +396,10 @@ RealizeWidget(Widget widget)
             strcpy(s, widget->core.name);
         strcpy(s + len_nm + 1, class_name);
 
-        obj_class = _IswPlatformInternAtomOp((IswDisplay) display,
+        obj_class = _IswPlatformInternAtomOp(display,
                                              "_MIT_OBJ_CLASS", False);
         if (obj_class != ISW_ATOM_NONE) {
-            _IswPlatformChangeProperty((IswDisplay) display,
+            _IswPlatformChangeProperty(display,
                                        _IswXcbWindowWrap(window),
                                        obj_class, ISW_ATOM_STRING, 8,
                                        ISW_PROP_MODE_REPLACE, s,
@@ -457,7 +457,7 @@ RealizeWidget(Widget widget)
                 /* Fast path maps all real subwindows at once.  It is a no-op for
                    windowless children (they have no X window), so they still
                    need their shown flag set via the per-child map gate. */
-                xcb_map_subwindows(display, window);
+                xcb_map_subwindows(_IswXcbConn(display), window);
                 for (i = 0; i < cwp->num_children; i++) {
                     Widget child = children[i];
                     if (IswIsWidget(child) && child->core.windowless &&
@@ -604,13 +604,16 @@ IswUnrealizeWidget(Widget widget)
 }                               /* IswUnrealizeWidget */
 
 void
-IswCreateWindow(xcb_connection_t *display,
+IswCreateWindow(IswDisplay display,
                Widget widget,
                unsigned int window_class,
                IswVisual visual,
                IswValueMask value_mask,
                uint32_t *attributes)
 {
+    /* Raw window creation still lives here (Phase 13c will route it through the
+       window create op); reach the native connection through the seam. */
+    xcb_connection_t *c = _IswXcbConn(display);
     xcb_visualtype_t *vis = _IswXcbVisual(visual);
     IswAppContext app = IswWidgetToApplicationContext(widget);
 
@@ -630,7 +633,7 @@ IswCreateWindow(xcb_connection_t *display,
                           "Widget %s has zero width and/or height",
                           &widget->core.name, &count);
         }
-        widget->core.window = _IswXcbWindowWrap(xcb_generate_id(display));
+        widget->core.window = _IswXcbWindowWrap(xcb_generate_id(c));
         
         /* DIAGNOSTIC: Log visual pointer value */
         if (visual) {
@@ -660,9 +663,9 @@ IswCreateWindow(xcb_connection_t *display,
                 parent_win = _IswXcbWindow(widget->core.parent->core.window);
             }
             /* HiDPI: create window at physical pixel geometry */
-            double _sf = _IswGetScaleFactor((IswDisplay) display);
+            double _sf = _IswGetScaleFactor(display);
             xcb_void_cookie_t cookie = xcb_create_window_checked(
-                display,
+                c,
                 widget->core.depth,
                 _IswXcbWindow(widget->core.window),
                 parent_win,
@@ -675,7 +678,7 @@ IswCreateWindow(xcb_connection_t *display,
                 vis ? vis->visual_id : XCB_COPY_FROM_PARENT,
                 value_mask,
                 (const uint32_t*)attributes);
-            xcb_generic_error_t *err = xcb_request_check(display, cookie);
+            xcb_generic_error_t *err = xcb_request_check(c, cookie);
             if (err) {
                 fprintf(stderr, "ERROR IswCreateWindow: xcb_create_window FAILED for widget=%s! "
                         "error_code=%d, resource_id=0x%x\n",

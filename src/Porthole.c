@@ -53,7 +53,7 @@ static IswResource resources[] = {
  * widget class methods used below
  */
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void Realize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, IswEvent *, IswRegion);
 static void Destroy(Widget);
@@ -256,7 +256,7 @@ Destroy (Widget gw)
 }
 
 static void
-Realize (xcb_connection_t *dpy, Widget gw, IswValueMask *valueMask, uint32_t *attributes)
+Realize (IswDisplay dpy, Widget gw, IswValueMask *valueMask, uint32_t *attributes)
 {
     if (!(*valueMask & XCB_CW_BIT_GRAVITY)) {
         int insert_idx = 0;

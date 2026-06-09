@@ -101,7 +101,7 @@ static IswResource resources[] = {
 static void IswVendorShellClassInitialize(void);
 static void IswVendorShellInitialize(Widget, Widget, ArgList, Cardinal *);
 static Boolean IswVendorShellSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void Realize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static void ChangeManaged(Widget);
 static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void IswVendorShellClassPartInit(WidgetClass);
@@ -532,7 +532,7 @@ IswVendorShellSetValues(Widget old, Widget ref, Widget new, ArgList args, Cardin
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget wid, IswValueMask *vmask, uint32_t *attr)
+Realize(IswDisplay dpy, Widget wid, IswValueMask *vmask, uint32_t *attr)
 {
 	WidgetClass super = wmShellWidgetClass;
 

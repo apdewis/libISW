@@ -77,7 +77,7 @@ static IswResource resources[] = {
 /* Forward declarations */
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void Realize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static IswGeometryResult QueryGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void Redisplay(Widget, IswEvent *, IswRegion);
@@ -442,7 +442,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
+Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     ListViewWidget lv = (ListViewWidget) w;
 
@@ -454,7 +454,7 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
     ResolveForegroundRGB(lv);
 
     xcb_screen_t *screen = _IswXcbScreen(w->core.screen);
-    lv->listView.resize_cursor = _IswLoadThemedCursor(dpy, screen,
+    lv->listView.resize_cursor = _IswLoadThemedCursor(_IswXcbConn(dpy), screen,
         "sb_h_double_arrow", XC_sb_h_double_arrow);
     lv->listView.default_cursor = ((SimpleWidget)w)->simple.cursor;
 }

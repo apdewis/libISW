@@ -159,7 +159,7 @@ static IswResource shellResources[]=
 
 static void ClassPartInitialize(WidgetClass);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, Mask *, uint32_t *); //IswSetWindowAttributes *);
+static void Realize(IswDisplay, Widget, Mask *, uint32_t *); //IswSetWindowAttributes *);
 static void Resize(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void GetValuesHook(Widget, ArgList, Cardinal *);
@@ -474,7 +474,7 @@ static IswResource transientResources[]=
 /* *INDENT-ON* */
 
 static void
-TransientRealize(xcb_connection_t *, Widget, Mask *, uint32_t *);
+TransientRealize(IswDisplay, Widget, Mask *, uint32_t *);
 static Boolean
 TransientSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
@@ -1070,7 +1070,7 @@ SetShellWMProtocolTranslations(Widget w)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget wid, Mask *vmask, uint32_t *attr)
+Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
 {
     ShellWidget w = (ShellWidget) wid;
     Mask mask = *vmask;
@@ -1259,7 +1259,7 @@ _SetTransientForHint(TransientShellWidget w, Boolean delete)
 }
 
 static void
-TransientRealize(xcb_connection_t *dpy, Widget w, Mask *vmask, uint32_t *attr)
+TransientRealize(IswDisplay dpy, Widget w, Mask *vmask, uint32_t *attr)
 {
     IswRealizeProc realize;
 
@@ -1267,7 +1267,7 @@ TransientRealize(xcb_connection_t *dpy, Widget w, Mask *vmask, uint32_t *attr)
     realize =
         transientShellWidgetClass->core_class.superclass->core_class.realize;
     UNLOCK_PROCESS;
-    (*realize) (_IswXcbConn(IswDisplayOf(w)), w, vmask, attr);
+    (*realize) (IswDisplayOf(w), w, vmask, attr);
 
     _SetTransientForHint((TransientShellWidget) w, False);
 }

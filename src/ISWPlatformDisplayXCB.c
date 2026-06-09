@@ -468,6 +468,34 @@ _IswPlatformConnectionFd(IswDisplay dpy)
     return -1;
 }
 
+/* Default screen / default-root-window resolution (Phase 10b).  Neutral
+   replacements for the `DefaultRootWindow(conn)` / `_IswGetDefaultScreen(conn)`
+   idioms that did raw `xcb_get_setup` + iterator walks in core: resolve through
+   the display screen ops + the per-display default-screen index, so no core file
+   touches xcb_get_setup/setup_roots_iterator/screen_next.  Ops recovered from
+   the per-display record (these run post-registration). */
+IswScreen
+_IswDefaultScreenOf(IswDisplay dpy)
+{
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
+    const IswPlatformOps *ops = pd ? pd->ops : _IswPlatformSelectBackend();
+    int index = pd ? pd->defaultScreen : 0;
+    if (ops && ops->display && ops->display->screen)
+        return ops->display->screen(dpy, index);
+    return NULL;
+}
+
+IswWindow
+_IswDefaultRootWindow(IswDisplay dpy)
+{
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
+    const IswPlatformOps *ops = pd ? pd->ops : _IswPlatformSelectBackend();
+    IswScreen screen = _IswDefaultScreenOf(dpy);
+    if (ops && ops->display && ops->display->root_window)
+        return ops->display->root_window(screen);
+    return _IswXcbWindowWrap(0);
+}
+
 /* Connection health + flush wrappers (Phase 11a) — used by the event loop.
    Recover ops from the per-display record (loop runs post-registration). */
 Boolean

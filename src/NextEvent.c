@@ -75,6 +75,7 @@ in this Software without prior written authorization from The Open Group.
 #include <xcb/xcb.h>
 
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 #include <ISW/ISWRender.h>
 #include <stdio.h>
 #include <errno.h>
@@ -639,7 +640,7 @@ _IswFillEventQueue(IswAppContext app) {
 
             IswEventQueue *q = IswNew(IswEventQueue);
             q->event = e;
-            q->display = app->list[dd];
+            q->display = (IswDisplay) app->list[dd];
             q->next = NULL;
             /* Correct FIFO enqueue: new node goes at the back */
             if (app->event_back == NULL) {
@@ -1412,17 +1413,17 @@ IswNextEvent(xcb_generic_event_t *event)
 }
 
 void
-_IswRefreshMapping(xcb_connection_t *display, xcb_generic_event_t *event, _IswBoolean dispatch)
+_IswRefreshMapping(IswDisplay display, xcb_generic_event_t *event, _IswBoolean dispatch)
 {
     IswPerDisplay pd;
     xcb_mapping_notify_event_t *mapping_event = (xcb_mapping_notify_event_t*)event;
 
     LOCK_PROCESS;
-    pd = _IswGetPerDisplay((IswDisplay) display);
+    pd = _IswGetPerDisplay(display);
 
     if (mapping_event->request != XCB_MAPPING_POINTER &&
         pd && pd->keysyms && (event->sequence >= pd->keysyms_serial))
-        _IswBuildKeysymTables(display, pd);
+        _IswBuildKeysymTables(_IswXcbConn(display), pd);  /* 12b retypes this */
 
     if (dispatch && pd && pd->mapping_callbacks)
         IswCallCallbackList((Widget) NULL,
@@ -1581,7 +1582,7 @@ IswAppProcessEvent(IswAppContext app, IswInputMask mask)
         GotEvent:
             if (app->event_front != NULL) {
                 IswEventQueue *node = app->event_front;
-                xcb_connection_t *disp = node->display;
+                IswDisplay disp = node->display;
                 event = node->event;
 
                 /* Dequeue before dispatch so reentrant calls see a
@@ -1597,7 +1598,7 @@ IswAppProcessEvent(IswAppContext app, IswInputMask mask)
                 if (event->response_type == XCB_MAPPING_NOTIFY)
                     _IswRefreshMapping(disp, event, False);
 
-                IswDispatchEvent(event, (IswDisplay) disp);
+                IswDispatchEvent(event, disp);
 
                 free(event);
             }

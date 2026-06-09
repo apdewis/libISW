@@ -28,9 +28,9 @@
 #endif
 
 /* Forward declarations */
-xcb_atom_t IswInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists);
-void IswInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, xcb_atom_t *atoms_return);
-char* IswNameOfAtom(xcb_connection_t *dpy, xcb_atom_t atom);
+xcb_atom_t IswInternAtom(IswDisplay dpy, const char *name, Bool only_if_exists);
+void IswInternStrings(IswDisplay dpy, String *names, Cardinal count, xcb_atom_t *atoms_return);
+char* IswNameOfAtom(IswDisplay dpy, xcb_atom_t atom);
 xcb_atom_t IswMakeAtom(const char *name);
 
 /*
@@ -120,11 +120,11 @@ static AtomTableEntry predefined_atoms[] = {
  * Returns: The Atom value, or XCB_NONE if the atom doesn't exist and only_if_exists is True
  */
 xcb_atom_t
-IswInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists)
+IswInternAtom(IswDisplay dpy, const char *name, Bool only_if_exists)
 {
     /* Single atom implementation lives behind the platform atom op
        (ISWPlatformAtomPropXCB.c); this is the toolkit-facing wrapper. */
-    return (xcb_atom_t) _IswPlatformInternAtomOp((IswDisplay) dpy, name,
+    return (xcb_atom_t) _IswPlatformInternAtomOp(dpy, name,
                                                  only_if_exists ? True : False);
 }
 
@@ -143,7 +143,7 @@ IswInternAtom(xcb_connection_t *dpy, const char *name, Bool only_if_exists)
  * A more efficient implementation could pipeline the requests.
  */
 void
-IswInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, xcb_atom_t *atoms_return)
+IswInternStrings(IswDisplay dpy, String *names, Cardinal count, xcb_atom_t *atoms_return)
 {
     Cardinal i;
     
@@ -169,11 +169,11 @@ IswInternStrings(xcb_connection_t *dpy, String *names, Cardinal count, xcb_atom_
  *          or NULL on error
  */
 char*
-IswNameOfAtom(xcb_connection_t *dpy, xcb_atom_t atom)
+IswNameOfAtom(IswDisplay dpy, xcb_atom_t atom)
 {
     /* Routed through the platform atom op; returns a malloc'd copy. */
     char buf[256];
-    if (!_IswPlatformGetAtomName((IswDisplay) dpy, (Atom) atom,
+    if (!_IswPlatformGetAtomName(dpy, (Atom) atom,
                                  buf, sizeof(buf)))
         return NULL;
     return strdup(buf);

@@ -82,7 +82,7 @@ static IswResource resources[] = {
 
 static void ClassPartInitialize(WidgetClass);
 static void ClassInitialize(void);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void Realize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static void ConvertCursor(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static Boolean ChangeSensitive(Widget);
@@ -171,7 +171,7 @@ ClassPartInitialize(WidgetClass class)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
+Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     ConvertCursor(w);
 
@@ -185,7 +185,7 @@ Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attr
 	attributes[__builtin_popcount(*valueMask & (XCB_CW_CURSOR - 1))] = _IswXcbCursor(((SimpleWidget)w)->simple.cursor);
     }
 
-    IswCreateWindow(_IswXcbConn(IswDisplayOf(w)), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
+    IswCreateWindow(IswDisplayOf(w), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
                    (IswVisual)CopyFromParent, *valueMask, attributes);
 }
 

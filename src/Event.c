@@ -2092,7 +2092,7 @@ IswDispatchEvent(xcb_generic_event_t *event, IswDisplay dpy)
         break;
 
     case XCB_INPUT_DEVICE_MAPPING_NOTIFY:
-        _IswRefreshMapping(conn, event, True);
+        _IswRefreshMapping(dpy, event, True);
         break;
     }
     pd = _IswGetPerDisplay(dpy);

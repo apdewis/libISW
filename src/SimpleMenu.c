@@ -140,7 +140,7 @@ static char defaultTranslations[] =
  */
 
 static void Redisplay(Widget, IswEvent *, IswRegion);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void Realize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void ChangeManaged(Widget);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
@@ -591,7 +591,7 @@ dy = SMW_ARROW_SIZE;
  */
 
 static void
-Realize(xcb_connection_t *conn, Widget w, IswValueMask * mask, uint32_t * values)
+Realize(IswDisplay conn, Widget w, IswValueMask * mask, uint32_t * values)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     int value_index = 0;
@@ -611,7 +611,7 @@ Realize(xcb_connection_t *conn, Widget w, IswValueMask * mask, uint32_t * values
 
      /* check if the menu is too big */
      {
-         double sf = _IswGetScaleFactor((IswDisplay) conn);
+         double sf = _IswGetScaleFactor(conn);
          int logical_scr_h = (int)lrint(HeightOfScreen(_IswXcbScreen(IswScreenOf(w))) / sf);
          if (smw->core.height >= logical_scr_h) {
              smw->simple_menu.too_tall = TRUE;

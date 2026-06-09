@@ -75,7 +75,7 @@ typedef struct {
 } SelectionPropRec, *SelectionProp;
 
 typedef struct {
-    xcb_connection_t *dpy;
+    IswDisplay dpy;
     Atom incr_atom;
     Atom indirect_atom;
     Atom timestamp_atom;
@@ -85,7 +85,7 @@ typedef struct {
 
 typedef struct _SelectRec {
     Atom selection; 			/* constant */
-    xcb_connection_t *dpy; 			/* constant */
+    IswDisplay dpy; 			/* constant */
     Widget widget;
     IswTime time;
     unsigned long serial;
@@ -158,8 +158,10 @@ typedef struct {
   int active_transfer_count;
 } RequestWindowRec;
 
-#define MAX_SELECTION_INCR(connection) (((65536 < xcb_get_maximum_request_length(connection)) ? \
-    (65536 << 2) : (xcb_get_maximum_request_length(connection) << 2)) - 100)
+/* `dpy` is an IswDisplay; the maximum-request-length query is a native-connection
+   detail reached through the seam (a later phase can route it through an op). */
+#define MAX_SELECTION_INCR(dpy) (((65536 < xcb_get_maximum_request_length(_IswXcbConn(dpy))) ? \
+    (65536 << 2) : (xcb_get_maximum_request_length(_IswXcbConn(dpy)) << 2)) - 100)
 
 #define MATCH_SELECT(event, info) ((event->time == info->time) && \
 	    (event->requestor == IswWindowOf(info->widget)) && \

@@ -658,7 +658,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *conn, Widget w, IswValueMask *valueMask, uint32_t *attributes)
+Realize(IswDisplay conn, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
   TextWidget ctx = (TextWidget)w;
 
@@ -666,14 +666,16 @@ Realize(xcb_connection_t *conn, Widget w, IswValueMask *valueMask, uint32_t *att
   (*textClassRec.core_class.superclass->core_class.realize)
     (conn, w, valueMask, attributes);
 
-  /* Create the GC now that the window exists */
+  /* Create the GC now that the window exists.  Raw GC creation still lives here
+     (Phase 13c / render layer will move it); reach the connection via the seam. */
   {
+    xcb_connection_t *c = _IswXcbConn(conn);
     xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(w));
     uint32_t gc_values[2];
     gc_values[0] = BlackPixelOfScreen(screen);
     gc_values[1] = WhitePixelOfScreen(screen);
-    ctx->text.gc = xcb_generate_id(conn);
-    xcb_create_gc(conn, ctx->text.gc, _IswXcbWindow(IswWindowOf(w)),
+    ctx->text.gc = xcb_generate_id(c);
+    xcb_create_gc(c, ctx->text.gc, _IswXcbWindow(IswWindowOf(w)),
                   XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
   }
 
@@ -685,7 +687,7 @@ Realize(xcb_connection_t *conn, Widget w, IswValueMask *valueMask, uint32_t *att
   if (ctx->text.vbar != NULL) {	        /* Put up Vbar. */
     IswRealizeWidget(ctx->text.vbar);
     IswMapWidget(ctx->text.vbar);
-    xcb_flush(conn);
+    xcb_flush(_IswXcbConn(conn));
   }
 
   _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);

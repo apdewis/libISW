@@ -248,7 +248,7 @@ PrintKeysym(TMStringBuf sb, xcb_keysym_t keysym)
 }
 
 static void
-PrintAtom(TMStringBuf sb, xcb_connection_t *dpy, Atom atom)
+PrintAtom(TMStringBuf sb, IswDisplay dpy, Atom atom)
 {
     if (atom == 0)
         return;
@@ -256,7 +256,7 @@ PrintAtom(TMStringBuf sb, xcb_connection_t *dpy, Atom atom)
     if (dpy) {
         char _isw_atom_name[256];
 
-        if (_IswPlatformGetAtomName((IswDisplay) dpy, atom,
+        if (_IswPlatformGetAtomName(dpy, atom,
                                     _isw_atom_name, sizeof(_isw_atom_name))) {
             int name_len = (int) strlen(_isw_atom_name);
             ExpandForChars(sb, name_len + 1);
@@ -308,7 +308,7 @@ static void
 PrintEvent(TMStringBuf sb,
            register TMTypeMatch typeMatch,
            register TMModifierMatch modMatch,
-           xcb_connection_t *dpy)
+           IswDisplay dpy)
 {
     if (modMatch->standard)
         *sb->current++ = ':';
@@ -458,7 +458,7 @@ PrintComplexState(TMStringBuf sb,
                   StatePtr state,
                   TMStateTree stateTree,
                   Widget accelWidget,
-                  xcb_connection_t *dpy)
+                  IswDisplay dpy)
 {
     int clickCount = 0;
     Boolean cycle;
@@ -657,7 +657,7 @@ PrintState(TMStringBuf sb,
            TMBranchHead branchHead,
            Boolean includeRHS,
            Widget accelWidget,
-           xcb_connection_t *dpy)
+           IswDisplay dpy)
 {
     TMComplexStateTree stateTree = (TMComplexStateTree) tree;
 
@@ -690,7 +690,7 @@ PrintState(TMStringBuf sb,
 
         PrintComplexState(sb,
                           includeRHS,
-                          state, tree, accelWidget, (xcb_connection_t *) NULL);
+                          state, tree, accelWidget, (IswDisplay) NULL);
     }
     *sb->current = '\0';
     UNLOCK_PROCESS;
@@ -749,7 +749,7 @@ _IswPrintXlations(Widget w,
         }
 #endif                          /* TRACE_TM */
         PrintState(sb, (TMStateTree) stateTree, branchHead,
-                   (Boolean) includeRHS, accelWidget, _IswXcbConn(IswDisplayOf(w)));
+                   (Boolean) includeRHS, accelWidget, IswDisplayOf(w));
     }
     IswStackFree((IswPointer) prints, (IswPointer) stackPrints);
     return (sb->start);
@@ -797,7 +797,7 @@ _IswDisplayInstalledAccelerators(Widget widget,
     Widget eventWidget;
     IswDisplay dpy = IswDisplayOf(widget);
     IswWindow window = _IswXcbWindowWrap(get_event_window(event));
-    eventWidget = IswWindowToWidget((IswDisplay)dpy, window);
+    eventWidget = IswWindowToWidget(dpy, window);
     register Cardinal i;
     TMStringBufRec sbRec, *sb = &sbRec;
     IswTranslations xlations;
@@ -845,7 +845,7 @@ _IswDisplayInstalledAccelerators(Widget widget,
 
         PrintState(sb, (TMStateTree) stateTree, branchHead, True,
                    complexBindProcs[prints[i].tIndex].widget,
-                   _IswXcbConn(IswDisplayOf(widget)));
+                   IswDisplayOf(widget));
     }
     IswStackFree((IswPointer) prints, (IswPointer) stackPrints);
     printf("%s\n", sb->start);
@@ -872,12 +872,12 @@ _IswPrintState(TMStateTree stateTree, TMBranchHead branchHead)
     sb->current = sb->start = __XtMalloc((Cardinal) 1000);
     sb->max = 1000;
     PrintState(sb, stateTree, branchHead,
-               True, (Widget) NULL, (xcb_connection_t *) NULL);
+               True, (Widget) NULL, (IswDisplay) NULL);
     return sb->start;
 }
 
 String
-_IswPrintEventSeq(register EventSeqPtr eventSeq, xcb_connection_t *dpy)
+_IswPrintEventSeq(register EventSeqPtr eventSeq, IswDisplay dpy)
 {
     TMStringBufRec sbRec, *sb = &sbRec;
 

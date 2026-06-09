@@ -160,7 +160,7 @@ typedef struct _DestroyRec DestroyRec;
 typedef struct _IswEventQueue  IswEventQueue;
 typedef struct _IswEventQueue {
     xcb_generic_event_t *event;
-    xcb_connection_t *display;
+    IswDisplay display;
     IswEventQueue *next;
 } IswEventQueue;
 

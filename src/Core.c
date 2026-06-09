@@ -139,7 +139,7 @@ parameter is not passed through to the IswRCallProc routines */
 static void CoreInitialize(Widget, Widget, ArgList, Cardinal *);
 static void CoreClassPartInitialize(WidgetClass);
 static void CoreDestroy(Widget);
-static void CoreRealize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void CoreRealize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static Boolean CoreSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 static void CoreSetValuesAlmost(Widget, Widget, IswWidgetGeometry *,
                                 IswWidgetGeometry *);
@@ -309,7 +309,7 @@ CoreInitialize(Widget requested_widget _X_UNUSED,
 }
 
 static void
-CoreRealize(xcb_connection_t *display,
+CoreRealize(IswDisplay display,
             Widget widget,
             IswValueMask *value_mask,
             uint32_t *attributes)

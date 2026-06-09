@@ -149,7 +149,7 @@ typedef void (*IswExposeProc)(
 #define IswExposeNoRegion		0x80
 
 typedef void (*IswRealizeProc)(
-    xcb_connection_t *,
+    IswDisplay		  /* display */,
     Widget 		  /* widget */,
     IswValueMask* 	  /* mask */,
     uint32_t* /* attributes */
@@ -302,7 +302,7 @@ extern void _IswHandleFocus(
     Boolean *		/* cont */);
 
 extern void IswCreateWindow(
-    xcb_connection_t *,
+    IswDisplay,
     Widget 		/* widget */,
     unsigned int 	/* window_class */,
     IswVisual		/* visual */,

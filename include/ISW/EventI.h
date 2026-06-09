@@ -104,7 +104,7 @@ extern void _IswRemoveAllInputs(
 );
 
 extern void _IswRefreshMapping(
-    xcb_connection_t*,
+    IswDisplay,
     xcb_generic_event_t*	/* event */,
     _IswBoolean	/* dispatch */
 );

@@ -73,7 +73,7 @@ static IswResource subresources[] = {
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void Realize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static void Resize(Widget);
 static void Redisplay(Widget, IswEvent *, IswRegion);
 static void Destroy(Widget);
@@ -330,7 +330,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
+Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     TabsWidget tw = (TabsWidget)w;
 

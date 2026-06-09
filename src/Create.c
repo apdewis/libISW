@@ -733,14 +733,7 @@ _IswAppCreateShell(String name,
         IswPerDisplay pd = _IswGetPerDisplay((IswDisplay) display);
         name = pd ? pd->name : "main";
     }
-    
-    /* NOTE: Do NOT use DefaultScreenOfDisplay(display) here.
-     * DefaultScreenOfDisplay is an Xlib macro that reads
-     * ((Display*)dpy)->default_screen, which is meaningless for an
-     * xcb_connection_t* and returns NULL/garbage, causing a SIGSEGV.
-     * Use _IswGetDefaultScreen() instead, which reads the screen number
-     * stored in IswPerDisplay (set from xcb_connect's output) and walks
-     * xcb_setup_roots_iterator() to return the correct xcb_screen_t*. */
+
     shell = xtCreate(name, class, widget_class, (Widget) NULL,
                      (IswScreen) _IswGetDefaultScreen(display),
                      (IswDisplay) display,

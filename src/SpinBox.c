@@ -51,7 +51,7 @@ static IswResource resources[] = {
 
 /* Forward declarations */
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
-static void Realize(xcb_connection_t *, Widget, IswValueMask *, uint32_t *);
+static void Realize(IswDisplay, Widget, IswValueMask *, uint32_t *);
 static void Destroy(Widget);
 static void Resize(Widget);
 static void Redisplay(Widget, IswEvent *, IswRegion);
@@ -324,7 +324,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 }
 
 static void
-Realize(xcb_connection_t *dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
+Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 {
     SpinBoxWidget sbw = (SpinBoxWidget) w;
 
