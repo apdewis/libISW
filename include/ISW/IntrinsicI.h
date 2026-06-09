@@ -259,6 +259,18 @@ extern Boolean _IswEventFromXcb(IswDisplay dpy,
    the injected backend ops from the display/widget it is handed.) */
 extern int _IswPlatformConnectionFd(IswDisplay dpy);
 
+/* Event-loop poll, via the ISWPlatform event vtable (Phase 11a).  Return the
+   next native event (caller frees) or NULL; _Queued reads only the client-side
+   queue without touching the socket.  Declared here so the toolkit event loop
+   (NextEvent.c) reaches them without ISWPlatformPrivate.h, like ConnectionFd. */
+extern void *_IswPlatformPollEvent(IswDisplay dpy);
+extern void *_IswPlatformPollQueuedEvent(IswDisplay dpy);
+
+/* Connection health + flush, via the display vtable (Phase 11a) — used by the
+   event loop alongside the poll wrappers. */
+extern Boolean _IswPlatformDisplayHasError(IswDisplay dpy);
+extern void    _IswPlatformFlush(IswDisplay dpy);
+
 _XFUNCPROTOEND
 
 #endif /* _IswintrinsicI_h */

@@ -413,6 +413,7 @@ static const IswPlatformWindowOps xcb_window_ops = {
 
 /* ---- backend vtable + dispatcher ----------------------------------------- */
 
+extern const IswPlatformEventOps isw_platform_xcb_event_ops; /* ISWPlatformEventXCB.c */
 extern const IswPlatformInputOps isw_platform_xcb_input_ops; /* ISWPlatformInputXCB.c */
 extern const IswPlatformColorOps isw_platform_xcb_color_ops; /* ISWPlatformColorFontXCB.c */
 extern const IswPlatformFontOps  isw_platform_xcb_font_ops;  /* ISWPlatformColorFontXCB.c */
@@ -427,7 +428,7 @@ extern const IswPlatformDndOps       isw_platform_xcb_dnd_ops;       /* ISWPlatf
 const IswPlatformOps isw_platform_xcb_ops = {
     .display   = &xcb_display_ops,
     .window    = &xcb_window_ops,
-    .event     = NULL,   /* Phase 1 translator is standalone for now */
+    .event     = &isw_platform_xcb_event_ops,   /* Phase 11a */
     .input     = &isw_platform_xcb_input_ops,
     .selection = &isw_platform_xcb_selection_ops,
     .color     = &isw_platform_xcb_color_ops,
@@ -464,6 +465,46 @@ _IswPlatformConnectionFd(IswDisplay dpy)
     if (ops && ops->display && ops->display->connection_fd)
         return ops->display->connection_fd(dpy);
     return -1;
+}
+
+/* Connection health + flush wrappers (Phase 11a) — used by the event loop.
+   Recover ops from the per-display record (loop runs post-registration). */
+Boolean
+_IswPlatformDisplayHasError(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->has_error)
+        return ops->display->has_error(dpy);
+    return True;
+}
+
+void
+_IswPlatformFlush(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->flush)
+        ops->display->flush(dpy);
+}
+
+/* Event-loop poll (Phase 11a).  Returns the next native event (caller frees),
+   or NULL.  Recovers ops from the per-display record — the loop runs after the
+   display is registered. */
+void *
+_IswPlatformPollEvent(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->event && ops->event->poll)
+        return ops->event->poll(dpy);
+    return NULL;
+}
+
+void *
+_IswPlatformPollQueuedEvent(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->event && ops->event->poll_queued)
+        return ops->event->poll_queued(dpy);
+    return NULL;
 }
 
 /* ---- thin dispatch wrappers (color / font / cursor / grab / selection) ----

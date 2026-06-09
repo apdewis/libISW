@@ -2156,7 +2156,8 @@ _wait_for_response(ShellWidget w, xcb_generic_event_t **event_out,
     *event_out = NULL;
 
     for (;;) {
-        xcb_generic_event_t *ev = xcb_poll_for_event(conn);
+        xcb_generic_event_t *ev = (xcb_generic_event_t *)
+            _IswPlatformPollEvent((IswDisplay) conn);
         if (ev) {
             uint8_t type = ev->response_type & ~0x80;
             if (type == XCB_CONFIGURE_NOTIFY) {

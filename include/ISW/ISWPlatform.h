@@ -261,6 +261,26 @@ struct _IswPlatformWindowOps {
     IswWindow   (*window_from_id)(IswWindowId id);
 };
 
+/*
+ * =================================================================
+ * Event ops (Phase 11a)
+ * =================================================================
+ *
+ * Non-blocking event fetch for the toolkit's poll-based loop (the toolkit
+ * selects/polls on the connection fd, never blocks on a single event, so no
+ * wait() op).  Events are returned as opaque `void *` (the backend's native
+ * event) to keep this public header xcb-free; the toolkit-internal loop casts
+ * them while the IswEvent translation bridge is retired (Phase 11b / 13).
+ */
+struct _IswPlatformEventOps {
+    /* Next pending event, reading the socket if needed; NULL if none.
+       Caller frees with free(). */
+    void *(*poll)(IswDisplay dpy);
+    /* Next event already in the client-side queue WITHOUT reading the socket;
+       NULL if the queue is empty.  Caller frees with free(). */
+    void *(*poll_queued)(IswDisplay dpy);
+};
+
 /* configure() mask bits. */
 #define ISW_CONFIG_X            (1u << 0)
 #define ISW_CONFIG_Y            (1u << 1)

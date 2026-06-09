@@ -486,7 +486,8 @@ FindInputs(IswAppContext app,
                              * instead of XEventsQueued(). The XCB connection maintains an
                              * internal event queue that can be checked without reading from
                              * the socket. */
-                            xcb_generic_event_t *event = xcb_poll_for_queued_event(app->list[dd]);
+                            xcb_generic_event_t *event = (xcb_generic_event_t *)
+                                _IswPlatformPollQueuedEvent((IswDisplay) app->list[dd]);
                             if (event) {
                                 *dpy_no = dd;
                                 /* Put the event back or handle it appropriately */
@@ -559,15 +560,16 @@ _IswFillEventQueue(IswAppContext app) {
 
         /* If the connection is broken, set exit flag so the app
          * doesn't spin at 100% CPU polling a dead fd. */
-        if (xcb_connection_has_error(app->list[dd])) {
+        if (_IswPlatformDisplayHasError((IswDisplay) app->list[dd])) {
             app->exit_flag = TRUE;
             continue;
         }
 
         /* Flush pending requests before polling for events.
          * XCB does not auto-flush like Xlib's XNextEvent did. */
-        xcb_flush(app->list[dd]);
-        while ((e = xcb_poll_for_event(app->list[dd])) != NULL) {
+        _IswPlatformFlush((IswDisplay) app->list[dd]);
+        while ((e = (xcb_generic_event_t *)
+                    _IswPlatformPollEvent((IswDisplay) app->list[dd])) != NULL) {
             uint8_t type = e->response_type & ~0x80;
 
             /* ConfigureNotify coalescing: during interactive resize the
