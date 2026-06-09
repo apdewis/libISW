@@ -354,6 +354,9 @@ typedef struct _IswPerDisplayStruct {
     InternalCallbackList mapping_callbacks;  /* special case for TM */
     IswPerDisplayInputRec pdi;	       /* state for modal grabs & kbd focus */
     const struct _IswPlatformOps *ops; /* injected backend ops table for this connection */
+    xcb_connection_t *native;	       /* owned native connection (Phase 10a seam);
+					  _IswXcbConn resolves this rather than
+					  casting the handle */
     struct _WWTable *WWtable;	       /* window to widget table */
     xcb_xrm_database_t **per_screen_db;  /* per screen resource databases */
     xcb_xrm_database_t *cmd_db;	       /* db from command line, if needed */

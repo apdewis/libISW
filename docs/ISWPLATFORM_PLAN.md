@@ -554,23 +554,39 @@ display through the vtable; build green + demo verified.
 connection, no other backend can supply a display object and every holder of an
 `IswDisplay` may cast it back to xcb.
 
-**Scope.**
-- Define `struct _IswDisplay` as a real toolkit-owned object: `{ const
-  IswPlatformOps *ops; void *native; <per-display state> }`. The native
-  connection becomes a field reached **only inside the backend**, via the
-  display ops — not by casting the handle.
-- Retype `InitPerDisplay` / `NewPerDisplay` / the per-display table key off
-  `xcb_connection_t *` to the opaque display. `_IswXcbConn` becomes
-  `display->native` lookup inside the backend; callers outside the backend stop
-  using it.
-- Fold the Phase-8 `ops` field and the per-display record into (or alongside)
-  this owned object so ops + native + state travel together.
+**Audit finding (surfaced before edits).** The identity is load-bearing in ~370
+interlocked sites: ~82 that *produce* an `IswDisplay` by casting a connection,
+~290 `_IswXcbConn` consumers across 54 files, plus the per-display table key,
+`core.display`, `hooks.display`, the WWtable, `DPY_TO_APPCON`, and `app->list`.
+The consumers cannot stop calling `_IswXcbConn` until their *own* raw-xcb usage
+(event attrs → 11, regions → 14, resource DB → 15) is abstracted — so the
+original "no `_IswXcbConn` callers outside the backend" acceptance contradicts
+the phase order. Breaking the handle's representation in one shot would be a
+370-site lockstep flip where any mismatch compiles and then crashes on a bad
+handle. The phase is therefore split:
 
-**Acceptance.** `struct _IswDisplay` has a real definition; no
-`(xcb_connection_t *) dpy` cast outside the backend; `_IswXcbConn` callers
-outside `ISWPlatform*` removed; build green + demo verified.
+#### Phase 10a — introduce the native seam (no representation change)
+- Add `xcb_connection_t *native` to the per-display record
+  (`IswPerDisplayStruct`); set it at `InitPerDisplay` to the connection that
+  opened the display.
+- `_IswXcbConn` becomes a **field lookup** (`_IswGetPerDisplay(dpy)->native`)
+  instead of a bare `(xcb_connection_t *) dpy` cast — **the handle's value is
+  unchanged** (still equals the connection), so all ~370 sites keep working
+  untouched; only the *mechanism* of the seam changes, proving the indirection.
+- Acceptance: `_IswXcbConn` no longer casts; demo builds + runs + takes events
+  without crashing; handle value still equals the connection (transitional).
 
-**Depends on** Phase 9.
+#### Phase 10b — flip the handle representation (deferred until after 11–15)
+- Once the raw-xcb consumers are abstracted by Phases 11–15, the seam has few
+  callers and breaking the representation is small. Make `IswDisplay` the
+  per-display record pointer (carrying `{ ops, native, state }`); retype
+  `InitPerDisplay`/`NewPerDisplay`/the table key/`core.display` off the
+  connection; `_IswXcbConn` reads `native` from the record the handle now *is*.
+- Acceptance: `struct _IswDisplay` is a real owned object; no
+  `(xcb_connection_t *) dpy` cast or `(IswDisplay) conn` production outside the
+  backend; build green + demo verified.
+
+**Depends on** Phase 9 (10a). 10b depends on Phases 11–15 (seam shrunk first).
 
 ### Phase 11 — Abstract the event loop (`IswPlatformEventOps`)
 

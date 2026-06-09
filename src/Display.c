@@ -204,6 +204,9 @@ InitPerDisplay(xcb_connection_t *dpy,
      * existed) on the per-display record; every _IswPlatform* wrapper recovers
      * the ops from here rather than a process-global accessor. */
     pd->ops = ops;
+    /* Phase 10a: own the native connection on the record; _IswXcbConn resolves
+     * this rather than casting the handle. */
+    pd->native = dpy;
     _IswHeapInit(&pd->heap);
     pd->destroy_callbacks = NULL;
     /* Store the default screen number from xcb_connect() so that

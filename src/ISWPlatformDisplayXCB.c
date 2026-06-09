@@ -51,10 +51,28 @@
 
 /* ---- handle <-> native conversions (the internal seam) ------------------- */
 
+/* Phase 10a: resolve the native connection from the per-display record's
+   `native` field rather than casting the handle.  The handle's value still
+   equals the connection in 10a, so the lookup is provably equivalent to the
+   old cast — its purpose is to break the *mechanism* (a real field read, not
+   a reinterpret) ahead of 10b flipping the handle representation.
+
+   Walks _IswperDisplayList read-only without LOCK_PROCESS: this is called from
+   inside already-locked sections (e.g. _IswGetPerDisplay), so re-locking would
+   deadlock, and the list is stable for the duration of a seam call.  Falls back
+   to the cast when no record matches (early init before InitPerDisplay, or
+   after CloseDisplay frees the record) — correct because native == handle. */
 xcb_connection_t *
 _IswXcbConn(IswDisplay dpy)
 {
-    return (xcb_connection_t *) dpy;
+    xcb_connection_t *conn = (xcb_connection_t *) dpy;
+    PerDisplayTablePtr pd;
+
+    for (pd = _IswperDisplayList; pd != NULL; pd = pd->next) {
+        if (pd->dpy == conn)
+            return pd->perDpy.native;
+    }
+    return conn;
 }
 
 xcb_screen_t *
