@@ -429,7 +429,7 @@ extern IswPerDisplayInputRec* _IswGetPerDisplayInput(
 #endif
 
 extern void _IswDisplayInitialize(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay		/* dpy */,
     IswPerDisplay	/* pd */,
     _Xconst char*	/* name */,
     //XrmOptionDescRec*	/* urlist */,

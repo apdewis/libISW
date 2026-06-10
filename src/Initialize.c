@@ -1011,7 +1011,7 @@ _IswPreparseCommandLine(XrmOptionDescRec *urlist,
 }
 
 static void
-GetLanguage(xcb_connection_t *dpy, IswPerDisplay pd)
+GetLanguage(IswDisplay dpy, IswPerDisplay pd)
 {
     LOCK_PROCESS;
     if (!pd->language && pd->server_db != NULL) {
@@ -1102,7 +1102,7 @@ _IswGetScaleFactor(IswDisplay display)
 }
 
 void
-_IswDisplayInitialize(xcb_connection_t *dpy,
+_IswDisplayInitialize(IswDisplay dpy,
                      IswPerDisplay pd,
                      _Xconst char *name,
                      //XrmOptionDescRec *urlist,
