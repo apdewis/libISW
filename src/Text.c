@@ -166,7 +166,7 @@ static Dimension defHeight = DEFAULT_TEXT_HEIGHT;
 static IswResource resources[] = {
   {IswNwidth, IswCWidth, IswRDimension, sizeof(Dimension),
      offset(core.width), IswRDimension, (IswPointer)&defWidth},
-  {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+  {IswNcursor, IswCCursor, IswRCursor, sizeof(IswCursor),
      offset(simple.cursor), IswRString, (IswPointer)"xterm"},
   {IswNheight, IswCHeight, IswRDimension, sizeof(Dimension),
      offset(core.height), IswRDimension, (IswPointer)&defHeight},
