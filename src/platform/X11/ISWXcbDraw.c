@@ -13,36 +13,6 @@
 #include <string.h>
 #include <stdio.h>
 
-/*
- * =================================================================
- * WINDOW MANAGEMENT HELPERS
- * =================================================================
- */
-
-/*
- * ISWQueryPointer - XCB wrapper for querying pointer position
- */
-int
-ISWQueryPointer(xcb_connection_t *dpy, xcb_window_t win,
-                xcb_window_t *root_ret, xcb_window_t *child_ret,
-                int *root_x, int *root_y, int *win_x, int *win_y,
-                unsigned *mask)
-{
-    xcb_query_pointer_cookie_t cookie = xcb_query_pointer(dpy, win);
-    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(dpy, cookie, NULL);
-    if (reply) {
-        if (root_ret) *root_ret = reply->root;
-        if (child_ret) *child_ret = reply->child;
-        if (root_x) *root_x = reply->root_x;
-        if (root_y) *root_y = reply->root_y;
-        if (win_x) *win_x = reply->win_x;
-        if (win_y) *win_y = reply->win_y;
-        if (mask) *mask = reply->mask;
-        free(reply);
-        return 1;
-    }
-    return 0;
-}
 
 /*
  * =================================================================
@@ -137,59 +107,6 @@ ISWFreePixmap(xcb_connection_t *conn, xcb_pixmap_t pixmap)
 }
 
 /*
- * IswCreatePixmapFromBitmapData - Create a colored pixmap from bitmap data
- *
- * This is the XCB replacement for XCreatePixmapFromBitmapData.
- * Creates a pixmap at the specified depth and renders the bitmap data
- * using the provided foreground and background colors.
- */
-xcb_pixmap_t
-IswCreatePixmapFromBitmapData(xcb_connection_t *conn,
-                              xcb_drawable_t drawable,
-                              const char *data,
-                              unsigned int width,
-                              unsigned int height,
-                              unsigned long fg,
-                              unsigned long bg,
-                              unsigned int depth)
-{
-    xcb_pixmap_t pixmap, bitmap;
-    xcb_gcontext_t gc;
-    
-    if (!conn || !data || width == 0 || height == 0 || depth == 0)
-        return 0;
-    
-    /* First create the depth-1 bitmap from the data */
-    bitmap = IswCreateBitmapFromData(conn, drawable, data, width, height);
-    if (bitmap == 0)
-        return 0;
-    
-    /* Create the output pixmap at the specified depth */
-    pixmap = xcb_generate_id(conn);
-    xcb_create_pixmap(conn, depth, pixmap, drawable, width, height);
-    
-    /* Create a xcb_gcontext_t with foreground and background colors */
-    gc = xcb_generate_id(conn);
-    {
-        uint32_t values[2];
-        uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND;
-        values[0] = fg;
-        values[1] = bg;
-        xcb_create_gc(conn, gc, pixmap, mask, values);
-    }
-    
-    /* Copy the bitmap to the pixmap with color conversion */
-    xcb_copy_plane(conn, bitmap, pixmap, gc, 0, 0, 0, 0, width, height, 1);
-    
-    /* Clean up */
-    xcb_free_gc(conn, gc);
-    ISWFreePixmap(conn, bitmap);
-    xcb_flush(conn);
-    
-    return pixmap;
-}
-
-/*
  * ISWQueryColor - Query RGB values for a pixel
  */
 int
@@ -222,201 +139,6 @@ ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color)
 }
 
 /*
- * ISWAllocColor - Allocate a read-only color cell
- */
-int
-ISWAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color)
-{
-    xcb_alloc_color_cookie_t cookie;
-    xcb_alloc_color_reply_t *reply;
-    
-    if (!conn || !color)
-        return 0;
-    
-    cookie = xcb_alloc_color(conn, cmap, color->red, color->green, color->blue);
-    reply = xcb_alloc_color_reply(conn, cookie, NULL);
-    
-    if (!reply)
-        return 0;
-    
-    color->pixel = reply->pixel;
-    color->red = reply->red;
-    color->green = reply->green;
-    color->blue = reply->blue;
-    
-    free(reply);
-    return 1;
-}
-
-
-/*
- * ISWFontStructTextWidth - Convenience wrapper that works with IswFontStruct
- *
- * This function is provided for backward compatibility with code that
- * used XTextWidth. It requires a connection context, so it gets it from
- * a global or per-widget state.
- */
-int
-ISWFontStructTextWidth(IswFontStruct *font, const char *text, int len)
-{
-    /* Note: This is a stub - in actual use, the widget should call
-     * ISWXcbTextWidth directly with the connection.
-     * For now, return an estimate based on character count.
-     */
-    if (!font || !text || len <= 0)
-        return 0;
-    /* Rough estimate - should use actual font metrics */
-    return len * 8;  /* Assume 8 pixels per character as fallback */
-}
-
-/*
- * =================================================================
- * xcb_gcontext_t VALUE HELPERS
- * =================================================================
- */
-
-void
-ISWInitGCValues(xcb_create_gc_value_list_t *values)
-{
-    if (values)
-        memset(values, 0, sizeof(*values));
-}
-
-void
-ISWSetGCFont(xcb_create_gc_value_list_t *values, xcb_font_t font)
-{
-    if (values)
-        values->font = font;
-}
-
-void
-ISWSetGCForeground(xcb_create_gc_value_list_t *values, uint32_t pixel)
-{
-    if (values)
-        values->foreground = pixel;
-}
-
-void
-ISWSetGCBackground(xcb_create_gc_value_list_t *values, uint32_t pixel)
-{
-    if (values)
-        values->background = pixel;
-}
-
-void
-ISWSetGCGraphicsExposures(xcb_create_gc_value_list_t *values, int exposures)
-{
-    if (values)
-        values->graphics_exposures = exposures ? 1 : 0;
-}
-
-void
-ISWSetGCFunction(xcb_create_gc_value_list_t *values, uint32_t function)
-{
-    if (values)
-        values->function = function;
-}
-
-/*
- * =================================================================
- * FONT METRICS
- * =================================================================
- */
-
-/*
- * ISWFontTextWidth - Calculate text width using XCB
- *
- * Uses xcb_query_text_extents to get the width of a text string.
- */
-int
-ISWFontTextWidth(xcb_connection_t *conn, xcb_font_t font,
-                 const char *text, int len)
-{
-    xcb_query_text_extents_cookie_t cookie;
-    xcb_query_text_extents_reply_t *reply;
-    xcb_char2b_t *chars;
-    int i, width = 0;
-    
-    if (!conn || !text || len <= 0)
-        return 0;
-    
-    /* Convert text to char2b format (required by XCB) */
-    chars = (xcb_char2b_t *)malloc(len * sizeof(xcb_char2b_t));
-    if (!chars)
-        return 0;
-    
-    for (i = 0; i < len; i++) {
-        chars[i].byte1 = 0;
-        chars[i].byte2 = (uint8_t)text[i];
-    }
-    
-    /* Query text extents */
-    cookie = xcb_query_text_extents(conn, font, len, chars);
-    reply = xcb_query_text_extents_reply(conn, cookie, NULL);
-    
-    free(chars);
-    
-    if (reply) {
-        width = reply->overall_width;
-        free(reply);
-    }
-    
-    return width;
-}
-
-/*
- * ISWFontCharWidth - Get width of a single character
- */
-int
-ISWFontCharWidth(xcb_connection_t *conn, xcb_font_t font, unsigned char c)
-{
-    char text[1];
-    text[0] = (char)c;
-    return ISWFontTextWidth(conn, font, text, 1);
-}
-
-/*
- * IswGetFontProperty - Get a font property
- *
- * Queries the font for a specific property atom.
- */
-Bool
-IswGetFontProperty(xcb_connection_t *conn, IswFontStruct *font,
-                   xcb_atom_t atom, unsigned long *value)
-{
-    xcb_query_font_cookie_t cookie;
-    xcb_query_font_reply_t *reply;
-    xcb_fontprop_t *props;
-    int num_props, i;
-    Bool found = False;
-    
-    if (!conn || !font || !value)
-        return False;
-    
-    /* Query font properties */
-    cookie = xcb_query_font(conn, font->fid);
-    reply = xcb_query_font_reply(conn, cookie, NULL);
-    
-    if (!reply)
-        return False;
-    
-    /* Search for the property */
-    props = xcb_query_font_properties(reply);
-    num_props = xcb_query_font_properties_length(reply);
-    
-    for (i = 0; i < num_props; i++) {
-        if (props[i].name == (xcb_atom_t)atom) {
-            *value = props[i].value;
-            found = True;
-            break;
-        }
-    }
-    
-    free(reply);
-    return found;
-}
-
-/*
  * =================================================================
  * ATOM OPERATIONS
  * =================================================================
@@ -446,85 +168,10 @@ IswXcbInternAtom(xcb_connection_t *conn, const char *name, Bool only_if_exists)
 
 /*
  * =================================================================
- * TEXT DRAWING
- * =================================================================
- */
-
-/*
- * ISWXcbDrawImageString - Draw text with background
- *
- * Uses xcb_image_text_8 for 8-bit text drawing.
- */
-void
-ISWXcbDrawImageString(xcb_connection_t *conn, xcb_drawable_t d,
-                      xcb_gcontext_t gc, int x, int y,
-                      const char *text, int len)
-{
-    if (!conn || !text || len <= 0)
-        return;
-    
-    /* XCB limits text to 255 characters per request */
-    while (len > 0) {
-        int chunk = (len > 255) ? 255 : len;
-        xcb_image_text_8(conn, chunk, d, gc, x, y, text);
-        text += chunk;
-        len -= chunk;
-        /* Note: for multiple chunks, x position would need adjustment */
-        /* This is a simplified implementation for typical use cases */
-    }
-    
-    xcb_flush(conn);
-}
-
-/*
- * ISWXcbDrawString - Draw text without background
- *
- * Note: XCB doesn't have a direct equivalent to XDrawString that
- * draws only foreground without background. We use poly_text_8
- * which draws text over existing background.
- */
-void
-ISWXcbDrawString(xcb_connection_t *conn, xcb_drawable_t d,
-                 xcb_gcontext_t gc, int x, int y,
-                 const char *text, int len)
-{
-    if (!conn || !text || len <= 0)
-        return;
-    
-    /* Use poly_text_8 for transparent background text */
-    /* Build text item with delta=0 */
-    while (len > 0) {
-        int chunk = (len > 254) ? 254 : len;  /* poly_text allows 254 chars max */
-        
-        /* For simplicity, use image_text but caller should set
-         * xcb_gcontext_t fill style appropriately for transparent effect.
-         * A full implementation would use poly_text_8 with proper items. */
-        xcb_image_text_8(conn, chunk, d, gc, x, y, text);
-        text += chunk;
-        len -= chunk;
-    }
-    
-    xcb_flush(conn);
-}
-
-/*
- * =================================================================
  * XCB CORE FONT HELPERS (Phase 2: Non-Xft implementations)
  * =================================================================
  */
 
-/*
- * ISWXcbTextWidth - Calculate text width
- *
- * This is an alias/wrapper for ISWFontTextWidth for consistency
- * with the function naming in the header.
- */
-int
-ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
-                const char *text, int len)
-{
-    return ISWFontTextWidth(conn, font, text, len);
-}
 
 /*
  * ISWXcbQueryFontMetrics - Query font ascent, descent, and max width
@@ -556,24 +203,6 @@ ISWXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
         metrics->max_char_width = reply->max_bounds.character_width;
         free(reply);
     }
-}
-
-/*
- * ISWXcbDrawText - Draw text using xcb_image_text_8
- *
- * Replacement for XDrawString. Draws text with background fill.
- */
-void
-ISWXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
-               xcb_gcontext_t gc, int16_t x, int16_t y,
-               const char *text, uint8_t len)
-{
-    if (!conn || !text || len == 0)
-        return;
-    
-    /* XCB image_text_8 draws text with background */
-    xcb_image_text_8(conn, len, d, gc, x, y, text);
-    xcb_flush(conn);
 }
 
 /*
@@ -678,63 +307,6 @@ ISWCvtStringToJustify(
         *(IswJustify *)to->addr = justify;
     }
     to->size = sizeof(IswJustify);
-    
-    return True;
-}
-
-/*
- * ISWCvtStringToEdgeType - Convert string to IswEdgeType
- *
- * Converts "ChainTop", "ChainBottom", "ChainLeft", "ChainRight", "Rubber"
- * (case-insensitive) to IswEdgeType values for Form widget constraints.
- */
-Boolean
-ISWCvtStringToEdgeType(
-    IswDisplay display,
-    XrmValuePtr args,
-    Cardinal *num_args,
-    XrmValuePtr from,
-    XrmValuePtr to,
-    IswPointer *converter_data)
-{
-    static IswEdgeType edge;  /* Use IswEdgeType from Form.h */
-    char lowerName[64];
-    const char *str = (const char *)from->addr;
-    
-    (void)display;     /* unused */
-    (void)args;        /* unused */
-    (void)num_args;    /* unused */
-    (void)converter_data;  /* unused */
-    
-    if (str == NULL || strlen(str) >= sizeof(lowerName))
-        return False;
-    
-    ISWCopyISOLatin1Lowered(lowerName, str);
-    
-    /* Use IswChain* values from Form.h (Form.h maps IswChain* to IswChain* via defines) */
-    if (strcmp(lowerName, "chaintop") == 0) {
-        edge = IswChainTop;
-    } else if (strcmp(lowerName, "chainbottom") == 0) {
-        edge = IswChainBottom;
-    } else if (strcmp(lowerName, "chainleft") == 0) {
-        edge = IswChainLeft;
-    } else if (strcmp(lowerName, "chainright") == 0) {
-        edge = IswChainRight;
-    } else if (strcmp(lowerName, "rubber") == 0) {
-        edge = IswRubber;
-    } else {
-        return False;
-    }
-    
-    if (to->addr == NULL) {
-        to->addr = (IswPointer)&edge;
-    } else if (to->size < sizeof(IswEdgeType)) {
-        to->size = sizeof(IswEdgeType);
-        return False;
-    } else {
-        *(IswEdgeType *)to->addr = edge;
-    }
-    to->size = sizeof(IswEdgeType);
     
     return True;
 }
@@ -983,84 +555,10 @@ ISWSubtractRegion(ISWRegionPtr regM, ISWRegionPtr regS, ISWRegionPtr regD)
 }
 
 /*
- * ISWReshapeWidget - Shape a widget using the X Shape extension
- *
- * This is a stub implementation. Full shape support requires:
- * - xcb-shape library
- * - Proper shape pixmap creation
- * - For now, just returns True (rectangular shape)
- */
-Boolean
-ISWReshapeWidget(Widget w, int shape_style, int corner_width, int corner_height)
-{
-    (void)w;
-    (void)shape_style;
-    (void)corner_width;
-    (void)corner_height;
-    
-    /*
-     * TODO: Implement proper shape extension support using xcb-shape.
-     * For now, return True indicating rectangular (default) shape.
-     * This allows the code to compile and run, but shaped buttons
-     * will appear rectangular.
-     */
-    return True;
-}
-
-/*
  * =================================================================
  * COLOR UTILITIES
  * =================================================================
  */
-
-/*
- * ISWDistinguishablePixels - Check if pixels are visually distinguishable
- *
- * Simplified implementation for XCB. A full implementation would use
- * xcb_query_colors to get the RGB values and compare them with a threshold.
- * For now, we use a simple comparison - if pixels are identical, they're
- * not distinguishable; otherwise assume they are.
- */
-Boolean
-ISWDistinguishablePixels(
-    xcb_connection_t *conn,
-    xcb_colormap_t colormap,
-    unsigned long *pixels,
-    int count)
-{
-    int i, j;
-    
-    (void)conn;       /* Unused for simplified version */
-    (void)colormap;   /* Unused for simplified version */
-    
-    /* Check if all pixels are different from each other */
-    for (i = 0; i < count - 1; i++) {
-        for (j = i + 1; j < count; j++) {
-            if (pixels[i] == pixels[j]) {
-                /* Two pixels are identical - not distinguishable */
-                return False;
-            }
-        }
-    }
-    
-    /*
-     * All pixels have different values, so assume they're distinguishable.
-     *
-     * TODO: Full implementation should use xcb_query_colors to get actual
-     * RGB values and compare with a perceptual threshold, like:
-     *
-     * xcb_query_colors_cookie_t cookie;
-     * xcb_query_colors_reply_t *reply;
-     * cookie = xcb_query_colors(conn, colormap, count, pixels);
-     * reply = xcb_query_colors_reply(conn, cookie, NULL);
-     * if (reply) {
-     *     xcb_rgb_iterator_t iter = xcb_query_colors_colors_iterator(reply);
-     *     // Compare RGB values with threshold
-     *     free(reply);
-     * }
-     */
-    return True;
-}
 
 /*
  * ISWCompareISOLatin1 - Case-insensitive string comparison for ISO Latin-1
@@ -1089,49 +587,6 @@ int ISWCompareISOLatin1(const char *first, const char *second)
     }
     
     return *p1 - *p2;
-}
-
-/*
- * IswLocatePixmapFile - Stub implementation
- *
- * This is a stub that always returns None. Full implementation would require
- * XPM library support or other image format handling.
- */
-xcb_pixmap_t IswLocatePixmapFile(
-    xcb_screen_t *screen,
-    const char *name,
-    unsigned long fore,
-    unsigned long back,
-    unsigned int depth,
-    char *srcname,
-    size_t srcnamelen,
-    int *widthp,
-    int *heightp,
-    int *xhotp,
-    int *yhotp)
-{
-    /* Suppress unused parameter warnings */
-    (void)screen;
-    (void)name;
-    (void)fore;
-    (void)back;
-    (void)depth;
-    (void)srcname;
-    (void)srcnamelen;
-    (void)widthp;
-    (void)heightp;
-    (void)xhotp;
-    (void)yhotp;
-    
-    /* TODO: Implement pixmap file loading
-     * This would require:
-     * - XPM library integration for XPM files
-     * - XBM parsing for bitmap files
-     * - File path resolution
-     * - Pixmap creation from file data
-     */
-    
-    return None;
 }
 
 /*
@@ -1206,18 +661,4 @@ ISWLoadFallbackFont(xcb_connection_t *conn)
     
     fprintf(stderr, "ISWLoadFallbackFont: All fallback fonts failed\n");
     return NULL;
-}
-
-/*
- * ISWFreeFallbackFont - Free a fallback font created by ISWLoadFallbackFont
- */
-void
-ISWFreeFallbackFont(xcb_connection_t *conn, IswFontStruct *font)
-{
-    if (font) {
-        if (conn && font->fid) {
-            xcb_close_font(conn, font->fid);
-        }
-        free(font);
-    }
 }

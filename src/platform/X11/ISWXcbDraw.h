@@ -425,23 +425,6 @@ void ISWXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
                             ISWFontMetrics *metrics);
 
 /*
- * ISWXcbDrawText - Draw text using xcb_image_text_8
- *
- * Replacement for XDrawString (draws text with background)
- *
- * Parameters:
- *   conn - XCB connection
- *   d    - Drawable (window or pixmap)
- *   gc   - Graphics context (must have font set)
- *   x, y - Text position (baseline)
- *   text - Text string
- *   len  - Length of text (max 255)
- */
-void ISWXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
-                    xcb_gcontext_t gc, int16_t x, int16_t y,
-                    const char *text, uint8_t len);
-
-/*
  * =================================================================
  * REGION OPERATIONS
  * =================================================================
