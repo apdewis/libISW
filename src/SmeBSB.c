@@ -58,8 +58,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
-#include "ISWXcbDraw.h"
-
 /* needed for abs() */
 #ifndef X_NOT_STDC_ENV
 #include <stdlib.h>

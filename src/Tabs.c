@@ -20,7 +20,6 @@
 #include <cairo/cairo.h>
 #include <math.h>
 #include <string.h>
-#include "ISWXcbDraw.h"
 
 #define TabInfo(w) ((TabsConstraints)(w)->core.constraints)
 

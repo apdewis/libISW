@@ -225,6 +225,16 @@ typedef struct _IswTMRec {
      : (IswWindowOfObject(object) != None))
 #define IswParent(widget)	((widget)->core.parent)
 
+//#TODO remove this when XCB bridge finally factored out of core widgets
+#ifndef WidthOfScreen
+#define WidthOfScreen(s)  ((s)->width_in_pixels)
+#endif
+
+//#TODO remove this when XCB bridge finally factored out of core widgets
+#ifndef HeightOfScreen
+#define HeightOfScreen(s) ((s)->height_in_pixels)
+#endif
+
 #undef IswIsRectObj
 extern Boolean IswIsRectObj(Widget);
 #define IswIsRectObj(obj) \

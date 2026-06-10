@@ -60,7 +60,6 @@ SOFTWARE.
 #include	<ISW/ISWInit.h>
 #include	<ISW/BoxP.h>
 #include	<ISW/ISWRender.h>
-#include	"ISWXcbDraw.h"
 
 /****************************************************************
  *

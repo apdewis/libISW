@@ -40,7 +40,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/SmeBSBP.h>
 #include <xcb/xcb.h>
 #include <ISW/ISWRender.h>
-#include "ISWXcbDraw.h"
 
 #include <ISW/Command.h>
 #include <ISW/IswArgMacros.h>

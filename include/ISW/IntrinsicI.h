@@ -103,7 +103,6 @@ SOFTWARE.
     (IswIsRectObj(object) ? ((object)->core.sensitive && \
 			    (object)->core.ancestor_sensitive) : False)
 
-
 /****************************************************************
  *
  * Bit utilities

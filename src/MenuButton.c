@@ -57,7 +57,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWRender.h>
 #include <ISW/FocusMgrI.h>
 #include <ISW/IswArgMacros.h>
-#include "ISWXcbDraw.h"
 #include "ISWPlatformPrivate.h"
 #include <math.h>
 

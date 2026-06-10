@@ -56,8 +56,6 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-
-#include "ISWXcbDraw.h"
 #include <math.h>
 
 extern double _IswGetScaleFactor(IswDisplay dpy);

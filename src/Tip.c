@@ -42,7 +42,6 @@
 #include <ISW/TipP.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
-#include "ISWXcbDraw.h"
 #include <ISW/IswArgMacros.h>
 #include "IntrinsicI.h"
 #include "ISWPlatformPrivate.h"
