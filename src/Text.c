@@ -74,27 +74,6 @@ SOFTWARE.
 #include "ISWXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
 
-/* XCB: Missing Xlib constants for text property conversions */
-#ifndef Success
-#define Success 0
-#endif
-
-#ifndef XCompoundTextStyle
-#define XCompoundTextStyle 1
-#endif
-
-#ifndef XStringStyle
-#define XStringStyle 0
-#endif
-
-#ifndef XTextStyle
-#define XTextStyle XStringStyle
-#endif
-
-#ifndef MAX_LEN_CT
-#define MAX_LEN_CT 6		/* for sequence: ESC $ ( A \xx \xx */
-#endif
-
 unsigned long FMT8BIT = 0L;
 unsigned long IswFmt8Bit = 0L;
 
@@ -134,14 +113,11 @@ static void PaintScrollbars(TextWidget);
 static Widget TextHitChild(Widget, int, int, int *, int *);
 static Widget TextNthWindowlessChild(Widget, int);
 static void ModifySelection(TextWidget, ISWTextPosition, ISWTextPosition);
-static void PushCopyQueue(TextWidget, int, int);
 static void UpdateTextInLine(TextWidget, int, Position, Position);
 static void UpdateTextInRectangle(TextWidget, IswRectangle *);
-static void PopCopyQueue(TextWidget);
 static void FlushUpdate(TextWidget);
 static Boolean LineAndXYForPosition(TextWidget, ISWTextPosition, int *,
                                     Position *, Position *);
-static Boolean TranslateExposeRegion(TextWidget, IswRectangle *);
 static ISWTextPosition FindGoodPosition(TextWidget, ISWTextPosition);
 static ISWTextPosition _BuildLineTable(TextWidget, ISWTextPosition,
                                        ISWTextPosition, int);
@@ -601,7 +577,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.old_insert = -1;
   ctx->text.mult = 1;
   ctx->text.single_char = FALSE;
-  ctx->text.copy_area_offsets = NULL;
   ctx->text.salt2 = NULL;
 
   if (ctx->core.height == DEFAULT_TEXT_HEIGHT)
@@ -662,7 +637,6 @@ Realize(IswDisplay conn, Widget w, IswValueMask *valueMask, uint32_t *attributes
 {
   TextWidget ctx = (TextWidget)w;
 
-  /* XCB-based libXt realize function requires 4 arguments */
   (*textClassRec.core_class.superclass->core_class.realize)
     (conn, w, valueMask, attributes);
 
@@ -2474,15 +2448,10 @@ UpdateTextInRectangle(TextWidget ctx, IswRectangle * rect)
 
 /* ARGSUSED */
 static void
-ProcessExposeRegion(Widget w, IswEvent *iswev, Region region)
+ProcessExposeRegion(Widget w, IswEvent *iswev, IswRegion region _X_UNUSED)
 {
     TextWidget ctx = (TextWidget) w;
     IswRectangle expose, cursor;
-    Boolean need_to_draw;
-
-    xcb_generic_event_t *native =
-        (xcb_generic_event_t *) (iswev ? IswEventNative(iswev) : NULL);
-    uint8_t type = native ? (native->response_type & ~0x80) : XCB_EXPOSE;
 
     if (iswev == NULL) {
         /* redraw the whole widget */
@@ -2491,33 +2460,15 @@ ProcessExposeRegion(Widget w, IswEvent *iswev, Region region)
         expose.width = ctx->core.width;
         expose.height = ctx->core.height;
     }
-    else if (iswev->kind == IswRedraw && type != XCB_GRAPHICS_EXPOSURE) {
+    else if (iswev->kind == IswRedraw) {
 	expose.x = iswev->redraw.x;
 	expose.y = iswev->redraw.y;
 	expose.width = iswev->redraw.width;
 	expose.height = iswev->redraw.height;
     }
-    else if (type == XCB_GRAPHICS_EXPOSURE) {
-	xcb_graphics_exposure_event_t *gev = (xcb_graphics_exposure_event_t *)native;
-	expose.x = gev->x;
-	expose.y = gev->y;
-	expose.width = gev->width;
-	expose.height = gev->height;
+    else {
+	return;			/* not an expose; nothing to do. */
     }
-    else { /* No Expose */
-	PopCopyQueue(ctx);
-	return;			/* no more processing necessary. */
-    }
-
-    need_to_draw = TranslateExposeRegion(ctx, &expose);
-    if (type == XCB_GRAPHICS_EXPOSURE) {
-	xcb_graphics_exposure_event_t *gev = (xcb_graphics_exposure_event_t *)native;
-	if (gev->count == 0)
-	    PopCopyQueue(ctx);
-    }
-
-    if (!need_to_draw)
-	return;			/* don't draw if we don't need to. */
 
     _IswTextPrepareToUpdate(ctx);
     UpdateTextInRectangle(ctx, &expose);
@@ -2865,134 +2816,6 @@ FindGoodPosition(TextWidget ctx, ISWTextPosition pos)
   return ( ((pos > ctx->text.lastPos) ? ctx->text.lastPos : pos) );
 }
 
-/************************************************************
- *
- * Routines for handling the copy area expose queue.
- *
- ************************************************************/
-
-/*	Function Name: PushCopyQueue
- *	Description: Pushes a value onto the copy queue.
- *	Arguments: ctx - the text widget.
- *                 h, v - amount of offset in the horiz and vert directions.
- *	Returns: none
- */
-
-/* Retained for the copy-area scroll path, which the windowless conversion
-   replaced with full repaints; no current caller. */
-static void _X_UNUSED
-PushCopyQueue(TextWidget ctx, int h, int v)
-{
-    struct text_move * offsets = IswNew(struct text_move);
-
-    offsets->h = h;
-    offsets->v = v;
-    offsets->next = NULL;
-
-    if (ctx->text.copy_area_offsets == NULL)
-	ctx->text.copy_area_offsets = offsets;
-    else {
-	struct text_move * end = ctx->text.copy_area_offsets;
-	for ( ; end->next != NULL; end = end->next) {}
-	end->next = offsets;
-    }
-}
-
-/*	Function Name: PopCopyQueue
- *	Description: Pops the top value off of the copy queue.
- *	Arguments: ctx - the text widget.
- *	Returns: none.
- */
-
-static void
-PopCopyQueue(TextWidget ctx)
-{
-    struct text_move * offsets = ctx->text.copy_area_offsets;
-
-    if (offsets == NULL)
-	(void) printf( "Isw Text widget %s: empty copy queue\n",
-		       IswName( (Widget) ctx ) );
-    else {
-	ctx->text.copy_area_offsets = offsets->next;
-	IswFree((char *) offsets);	/* free what you allocate. */
-    }
-}
-
-/*	Function Name:  TranslateExposeRegion
- *	Description: Translates the expose that came into
- *                   the cordinates that now exist in the Text widget.
- *	Arguments: ctx - the text widget.
- *                 expose - a Rectangle, who's region currently
- *                          contains the expose event location.
- *                          this region will be returned containing
- *                          the new rectangle.
- *	Returns: True if there is drawing that needs to be done.
- */
-
-static Boolean
-TranslateExposeRegion(TextWidget ctx, IswRectangle *expose)
-{
-    struct text_move * offsets = ctx->text.copy_area_offsets;
-    int value;
-    int x, y, width, height;
-
-    /*
-     * Skip over the first one, this has already been taken into account.
-     */
-
-    if (!offsets || !(offsets = offsets->next))
-	return(TRUE);
-
-    x = expose->x;
-    y = expose->y;
-    width = expose->width;
-    height = expose->height;
-
-    while (offsets) {
-	x += offsets->h;
-	y += offsets->v;
-	offsets = offsets->next;
-    }
-
-    /*
-     * remove that area of the region that is now outside the window.
-     */
-
-    if (y < 0) {
-	height += y;
-	y = 0;
-    }
-
-    value = y + height - ctx->core.height;
-    if (value > 0)
-	height -= value;
-
-    if (height <= 0)
-	return(FALSE);		/* no need to draw outside the window. */
-
-    /*
-     * and now in the horiz direction...
-     */
-
-    if (x < 0) {
-	width += x;
-	x = 0;
-    }
-
-    value = x + width - ctx->core.width;
-    if (value > 0)
-	width -= value;
-
-    if (width <= 0)
-	return(FALSE);		/* no need to draw outside the window. */
-
-    expose->x = x;
-    expose->y = y;
-    expose->width = width;
-    expose->height = height;
-    return(TRUE);
-}
-
 /* Li wrote this so the IM can find a given text position's screen position. */
 
 void
@@ -3268,7 +3091,7 @@ TextClassRec textClassRec = {
     /* num_ resource    */      IswNumber(resources),
     /* xrm_class        */      NULLQUARK,
     /* compress_motion  */      TRUE,
-    /* compress_exposure*/      IswExposeGraphicsExpose | IswExposeNoExpose,
+    /* compress_exposure*/      TRUE,
     /* compress_enterleave*/	TRUE,
     /* visible_interest */      FALSE,
     /* destroy          */      TextDestroy,

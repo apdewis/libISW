@@ -152,11 +152,6 @@ struct SearchAndReplace {
 
 typedef struct {int empty;} TextClassPart;
 
-struct text_move {
-    int h, v;
-    struct text_move * next;
-};
-
 /* Full class record declaration */
 typedef struct _TextClassRec {
     CoreClassPart	core_class;
@@ -211,7 +206,6 @@ typedef struct _TextPart {
     Boolean         single_char;    /* Single character replaced. */
     ISWTextPosition  old_insert;    /* Last insertPos for batched updates */
     short           mult;	    /* Multiplier. */
-    struct text_move * copy_area_offsets; /* Text offset area (linked list) */
 
     /* private state, shared w/Source and Sink */
     Boolean	    redisplay_needed; /* in SetValues */
