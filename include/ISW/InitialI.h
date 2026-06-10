@@ -168,7 +168,7 @@ typedef struct _IswAppStruct {
     IswAppContext next;		/* link to next app in process context */
     ProcessContext process;	/* back pointer to our process context */
     InternalCallbackList destroy_callbacks;
-    IswDisplay **list;
+    IswDisplay *list;
     TimerEventRec *timerQueue;
     WorkProcRec *workQueue;
     InputEvent **input_list;
@@ -202,7 +202,7 @@ typedef struct _IswAppStruct {
     LangProcRec langProcRec;
     struct _TMBindCacheRec * free_bindings;
     _IswString display_name_tried;
-    xcb_connection_t **dpy_destroy_list;
+    IswDisplay *dpy_destroy_list;
     IswEventQueue *event_front, *event_back;
     int dpy_destroy_count;
     Boolean exit_flag;

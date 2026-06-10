@@ -132,7 +132,7 @@ AddToAppContext(IswDisplay dpy, IswAppContext app)
                                    (Cardinal) sizeof(IswDisplay));
     }
 
-    app->list[app->count++] = &dpy;
+    app->list[app->count++] = dpy;
     app->rebuild_fdlist = TRUE;
 #ifdef USE_POLL
     app->fds.nfds++;
@@ -145,7 +145,7 @@ AddToAppContext(IswDisplay dpy, IswAppContext app)
 }
 
 static void
-IswDeleteFromAppContext(const xcb_connection_t *d, register IswAppContext app)
+IswDeleteFromAppContext(IswDisplay d, register IswAppContext app)
 {
     register int i;
 
@@ -727,7 +727,7 @@ IswDisplayToApplicationContext(IswDisplay dpy)
 }
 
 static void
-CloseDisplay(xcb_connection_t *dpy)
+CloseDisplay(IswDisplay dpy)
 {
     register IswPerDisplay xtpd = NULL;
     register PerDisplayTablePtr pd, opd = NULL;
@@ -792,7 +792,7 @@ CloseDisplay(xcb_connection_t *dpy)
         _IswHeapFree(&xtpd->heap);
         _IswFreeWWTable(xtpd);
         if (xtpd->per_screen_db) {
-            int nscreens = xcb_setup_roots_length(xcb_get_setup(dpy));
+            int nscreens = ops->display->screen_count(dpy);
             for (i = 0; i < nscreens; i++) {
                 if (xtpd->per_screen_db[i])
                     _IswPlatformResourceFree(xtpd->per_screen_db[i]);
@@ -822,14 +822,14 @@ CloseDisplay(xcb_connection_t *dpy)
 }
 
 void
-IswCloseDisplay(IswDisplay dpy_opaque)
+IswCloseDisplay(IswDisplay dpy)
 {
-    xcb_connection_t *dpy = _IswXcbConn(dpy_opaque);
+    
     IswPerDisplay pd;
-    IswAppContext app = IswDisplayToApplicationContext(dpy_opaque);
+    IswAppContext app = IswDisplayToApplicationContext(dpy);
 
     LOCK_APP(app);
-    pd = _IswGetPerDisplay(dpy_opaque);
+    pd = _IswGetPerDisplay(dpy);
     if (pd->being_destroyed) {
         UNLOCK_APP(app);
         return;
@@ -842,7 +842,7 @@ IswCloseDisplay(IswDisplay dpy_opaque)
         app->dpy_destroy_count++;
         app->dpy_destroy_list = IswReallocArray(app->dpy_destroy_list,
                                                (Cardinal) app->dpy_destroy_count,
-                                               (Cardinal) sizeof(xcb_connection_t *));
+                                               (Cardinal) sizeof(IswDisplay));
         app->dpy_destroy_list[app->dpy_destroy_count - 1] = dpy;
     }
     UNLOCK_APP(app);
@@ -938,7 +938,7 @@ _IswConnectionOfScreen(IswScreen screen)
     if (app != NULL) {
         int i;
         for (i = 0; i < app->count; i++) {
-            IswDisplay dpy = *app->list[i];
+            IswDisplay dpy = app->list[i];
             /* Check each screen of this connection */
             int nscreens = ops->display->screen_count(dpy);
             int s;
