@@ -172,7 +172,7 @@ IswDeleteFromAppContext(const xcb_connection_t *d, register IswAppContext app)
 }
 
 static IswPerDisplay
-NewPerDisplay(xcb_connection_t *dpy)
+NewPerDisplay(IswDisplay dpy)
 {
     PerDisplayTablePtr pd;
 
@@ -187,7 +187,7 @@ NewPerDisplay(xcb_connection_t *dpy)
 }
 
 static IswPerDisplay
-InitPerDisplay(xcb_connection_t *dpy,
+InitPerDisplay(IswDisplay dpy,
                int defaultScreen,
                IswAppContext app,
                _Xconst char *name,
@@ -203,9 +203,6 @@ InitPerDisplay(xcb_connection_t *dpy,
      * existed) on the per-display record; every _IswPlatform* wrapper recovers
      * the ops from here rather than a process-global accessor. */
     pd->ops = ops;
-    /* Phase 10a: own the native connection on the record; _IswXcbConn resolves
-     * this rather than casting the handle. */
-    pd->native = dpy;
     _IswHeapInit(&pd->heap);
     pd->destroy_callbacks = NULL;
     /* Store the default screen number from xcb_connect() so that
@@ -294,8 +291,7 @@ IswOpenDisplay(IswAppContext app,
               int *argc,
               _IswString *argv)
 {
-    xcb_connection_t *d;
-    IswDisplay disp;
+    IswDisplay dpy;
     int defaultScreen = 0;
     IswDatabaseHandle db = NULL;
     String language = NULL;
@@ -315,9 +311,9 @@ IswOpenDisplay(IswAppContext app,
                                 (app->process->globalLangProcRec.proc ?
                                  &language : NULL));
     UNLOCK_PROCESS;
-    disp = ops->display->open(displayName, &defaultScreen);
-    if (disp != NULL && !ops->display->has_error(disp)) {
-        int numScr = ops->display->screen_count(disp);
+    dpy = ops->display->open(displayName, &defaultScreen);
+    if (dpy != NULL && !ops->display->has_error(dpy)) {
+        int numScr = ops->display->screen_count(dpy);
         if (numScr <= 0) {
             IswErrorMsg("nullDisplay",
                        THIS_FUNC, IswCIswToolkitError,
@@ -337,9 +333,6 @@ IswOpenDisplay(IswAppContext app,
         printf("Display connection error \n");
         exit(-1);
     }
-    /* Transitional bridge: downstream init (InitPerDisplay / per-display table)
-     * is still typed on xcb_connection_t* until Phase 10 retypes it. */
-    d = _IswXcbConn(disp);
 
     if (!applName && !(applName = getenv("RESOURCE_NAME"))) {
         if (*argc > 0 && argv[0] && *argv[0]) {
@@ -358,12 +351,12 @@ IswOpenDisplay(IswAppContext app,
             applName = "main";
     }
 
-    if (d) {
+    if (dpy) {
         IswPerDisplay pd;
 
-        pd = InitPerDisplay(d, defaultScreen, app, applName, className, ops);
+        pd = InitPerDisplay(dpy, defaultScreen, app, applName, className, ops);
         pd->language = language;
-        _IswDisplayInitialize(d, pd, applName, num_urs, argc, argv);
+        _IswDisplayInitialize(dpy, pd, applName, num_urs, argc, argv);
     }
     else {
         int len;
@@ -380,7 +373,7 @@ IswOpenDisplay(IswAppContext app,
     if (db)
         _IswPlatformResourceFree(db);
     UNLOCK_APP(app);
-    return (IswDisplay) d;
+    return dpy;
 }
 
 /*
@@ -459,7 +452,7 @@ _IswAppInit(IswAppContext *app_context_return,
 
 void
 IswDisplayInitialize(IswAppContext app,
-                    IswDisplay dpy_opaque,
+                    IswDisplay dpy,
                     _Xconst _IswString name,
                     _Xconst _IswString classname,
                     //XrmOptionDescRec *urlist,
@@ -467,7 +460,6 @@ IswDisplayInitialize(IswAppContext app,
                     int *argc,
                     _IswString *argv)
 {
-    xcb_connection_t *dpy = _IswXcbConn(dpy_opaque);
     IswPerDisplay pd;
     //XrmDatabase db = NULL;
 
@@ -697,7 +689,7 @@ IswDatabase(IswDisplay dpy_opaque)
 PerDisplayTablePtr _IswperDisplayList = NULL;
 
 IswPerDisplay
-_IswSortPerDisplayList(xcb_connection_t *dpy)
+_IswSortPerDisplayList(IswDisplay dpy)
 {
     register PerDisplayTablePtr pd, opd = NULL;
     IswPerDisplay result = NULL;
@@ -896,26 +888,24 @@ IswPerDisplay
 _IswGetPerDisplay(IswDisplay display)
 {
     IswPerDisplay retval;
-    xcb_connection_t *conn = _IswXcbConn(display);
 
     LOCK_PROCESS;
-    retval = ((_IswperDisplayList != NULL && _IswperDisplayList->dpy == conn)
-              ? &_IswperDisplayList->perDpy : _IswSortPerDisplayList(conn));
+    retval = ((_IswperDisplayList != NULL && _IswperDisplayList->dpy == display)
+              ? &_IswperDisplayList->perDpy : _IswSortPerDisplayList(display));
 
     UNLOCK_PROCESS;
     return retval;
 }
 
 IswPerDisplayInputRec *
-_IswGetPerDisplayInput(IswDisplay display)
+_IswGetPerDisplayInput(IswDisplay dpy)
 {
     IswPerDisplayInputRec *retval;
-    xcb_connection_t *conn = _IswXcbConn(display);
 
     LOCK_PROCESS;
-    retval = ((_IswperDisplayList != NULL && _IswperDisplayList->dpy == conn)
+    retval = ((_IswperDisplayList != NULL && _IswperDisplayList->dpy == dpy)
               ? &_IswperDisplayList->perDpy.pdi
-              : &_IswSortPerDisplayList(conn)->pdi);
+              : &_IswSortPerDisplayList(dpy)->pdi);
     UNLOCK_PROCESS;
     return retval;
 }

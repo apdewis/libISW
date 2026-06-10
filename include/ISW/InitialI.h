@@ -352,9 +352,6 @@ typedef struct _IswPerDisplayStruct {
     InternalCallbackList mapping_callbacks;  /* special case for TM */
     IswPerDisplayInputRec pdi;	       /* state for modal grabs & kbd focus */
     const struct _IswPlatformOps *ops; /* injected backend ops table for this connection */
-    xcb_connection_t *native;	       /* owned native connection (Phase 10a seam);
-					  _IswXcbConn resolves this rather than
-					  casting the handle */
     struct _WWTable *WWtable;	       /* window to widget table */
     IswDatabaseHandle *per_screen_db;  /* per screen resource databases */
     IswDatabaseHandle cmd_db;	       /* db from command line, if needed */
@@ -374,7 +371,7 @@ typedef struct _IswPerDisplayStruct {
 } IswPerDisplayStruct, *IswPerDisplay;
 
 typedef struct _PerDisplayTable {
-	xcb_connection_t *dpy;
+	IswDisplay dpy;
 	IswPerDisplayStruct perDpy;
 	struct _PerDisplayTable *next;
 } PerDisplayTable, *PerDisplayTablePtr;
@@ -382,7 +379,7 @@ typedef struct _PerDisplayTable {
 extern PerDisplayTablePtr _IswperDisplayList;
 
 extern IswPerDisplay _IswSortPerDisplayList(
-    xcb_connection_t * /* dpy */
+    IswDisplay /* dpy */
 );
 
 extern IswPerDisplay _IswGetPerDisplay(
