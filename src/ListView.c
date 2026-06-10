@@ -453,8 +453,7 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 
     ResolveForegroundRGB(lv);
 
-    xcb_screen_t *screen = _IswXcbScreen(w->core.screen);
-    lv->listView.resize_cursor = _IswLoadThemedCursor(_IswXcbConn(dpy), screen,
+    lv->listView.resize_cursor = _IswLoadThemedCursor(dpy, w->core.screen,
         "sb_h_double_arrow", XC_sb_h_double_arrow);
     lv->listView.default_cursor = ((SimpleWidget)w)->simple.cursor;
 }

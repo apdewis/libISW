@@ -662,9 +662,9 @@ IswDatabase(IswDisplay dpy_opaque)
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
-    
-    screen = _IswGetDefaultScreen(dpy);
-    
+
+    screen = _IswXcbScreen(_IswDefaultScreenOf(dpy_opaque));
+
     /* Return the merged database for the default screen */
     db = IswScreenDatabase((IswScreen) screen);
     

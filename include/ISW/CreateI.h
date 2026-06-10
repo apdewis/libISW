@@ -16,7 +16,7 @@ extern Widget _IswAppCreateShell(String name, String class,
 				ArgList args, Cardinal num_args,
 				IswTypedArgList typed_args,
 				Cardinal num_typed_args);
-extern Widget _IswCreateHookObj(xcb_screen_t *screen, xcb_connection_t *dpy);
+extern Widget _IswCreateHookObj(IswScreen screen, IswDisplay dpy);
 
 _XFUNCPROTOEND
 

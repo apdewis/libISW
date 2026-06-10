@@ -202,8 +202,8 @@ extern Boolean _IswIsHookObject(
 );
 
 extern IswCursor _IswLoadThemedCursor(
-    xcb_connection_t *	/* dpy */,
-    xcb_screen_t *	/* screen */,
+    IswDisplay		/* dpy */,
+    IswScreen		/* screen */,
     const char *	/* name */,
     unsigned int	/* shape (fallback glyph) */
 );

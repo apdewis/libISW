@@ -643,11 +643,10 @@ static IswConvertArgRec const cursorConvertArgs[] = {
  * (this is an internal header, not a public ISW/ widget header).
  * ----------------------------------------------------------------------- */
 IswCursor
-_IswLoadThemedCursor(xcb_connection_t *dpy, xcb_screen_t *screen,
+_IswLoadThemedCursor(IswDisplay dpy, IswScreen screen,
                     const char *name, unsigned int shape)
 {
-    return _IswPlatformLoadNamedCursor(
-        (IswDisplay) dpy, (IswScreen) screen, name, shape);
+    return _IswPlatformLoadNamedCursor(dpy, screen, name, shape);
 }
 
 /* -----------------------------------------------------------------------
@@ -858,9 +857,8 @@ IswCvtStringToCursor(IswDisplay dpy,
 
     for (i = 0, nP = cursor_names; i < IswNumber(cursor_names); i++, nP++) {
         if (strcmp(name, nP->name) == 0) {
-            xcb_connection_t *display = *(xcb_connection_t **) args[0].addr;
-            xcb_screen_t *screen = *(xcb_screen_t **) args[1].addr;
-            IswCursor cursor = _IswLoadThemedCursor(display, screen,
+            IswScreen screen = *(IswScreen *) args[1].addr;
+            IswCursor cursor = _IswLoadThemedCursor(dpy, screen,
                                                     nP->name, nP->shape);
 
             done_string(IswCursor, cursor, IswRCursor);

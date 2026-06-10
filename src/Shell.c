@@ -1211,7 +1211,7 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
            left_ptr instead of the X server's default glyph cursor. */
         {
             xcb_cursor_t cursor = _IswLoadThemedCursor(
-                _IswXcbConn(IswDisplayOf(wid)), _IswXcbScreen(wid->core.screen), "left_ptr", XC_left_ptr);
+                IswDisplayOf(wid), wid->core.screen, "left_ptr", XC_left_ptr);
             if (cursor != XCB_NONE)
                 _IswSetWindowCursor(wid, cursor);
         }

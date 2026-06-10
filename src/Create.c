@@ -766,7 +766,7 @@ IswAppCreateShell(_Xconst char *name,
 }
 
 Widget
-_IswCreateHookObj(xcb_screen_t *screen, xcb_connection_t *dpy)
+_IswCreateHookObj(IswScreen screen, IswDisplay dpy)
 {
     Widget req_widget;
     double widget_cache[100];
@@ -777,8 +777,8 @@ _IswCreateHookObj(xcb_screen_t *screen, xcb_connection_t *dpy)
                                    (ArgList) NULL, (Cardinal) 0,
                                    (IswTypedArgList) NULL, (Cardinal) 0);
 
-    ((HookObject) hookobj)->hooks.screen = (IswScreen) screen;
-    ((HookObject) hookobj)->hooks.display = (IswDisplay) dpy;
+    ((HookObject) hookobj)->hooks.screen = screen;
+    ((HookObject) hookobj)->hooks.display = dpy;
     /* NOTE: Resource system is NOT Xrm-specific - it's core functionality */
     (void) _IswGetResources(hookobj, (ArgList) NULL, 0,
                            (IswTypedArgList) NULL, &wsize);

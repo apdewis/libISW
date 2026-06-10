@@ -146,10 +146,8 @@ IswHooksOfDisplay(IswDisplay dpy)
     LOCK_APP(app);
     pd = _IswGetPerDisplay(dpy);
     if (pd->hook_object == NULL)
-        /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
-         * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
         pd->hook_object =
-            _IswCreateHookObj(_IswGetDefaultScreen(conn), conn);
+            _IswCreateHookObj(_IswDefaultScreenOf(dpy), dpy);
     retval = pd->hook_object;
     UNLOCK_APP(app);
     return retval;
