@@ -291,7 +291,6 @@ set(ISW_WIDGET_SOURCES
     src/ISWContext.c
     src/ISWDrawing.c
     src/ISWInit.c
-    src/platform/X11/ISWXcbDraw.c
     src/ISWUtf8.c
     src/IswTrayIcon.c
     src/Image.c
