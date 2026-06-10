@@ -16,7 +16,6 @@
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ToolbarP.h>
-#include "ISWXcbDraw.h"
 #include <ISW/Command.h>
 #include <ISW/CommandP.h>
 

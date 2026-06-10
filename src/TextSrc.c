@@ -48,7 +48,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWInit.h>
 #include <ISW/TextSrcP.h>
 #include <ISW/ISWUtf8.h>
-#include "ISWXcbDraw.h"
 #include <string.h>
 
 #define TMPSIZ 64

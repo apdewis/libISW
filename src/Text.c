@@ -55,7 +55,6 @@ SOFTWARE.
 #include <ISW/StringDefs.h>
 #include <ISW/Shell.h>
 #include <ISW/ISWRender.h>
-#include "ISWXcbDraw.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

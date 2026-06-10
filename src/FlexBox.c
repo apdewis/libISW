@@ -27,7 +27,6 @@
 #include <ISW/ISWInit.h>
 #include <ISW/FlexBoxP.h>
 #include <ISW/ISWRender.h>
-#include "ISWXcbDraw.h"
 
 /* --- Forward declarations --- */
 

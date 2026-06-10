@@ -308,3 +308,29 @@ IswNewString(String str)
 
     return strdup(str);
 }
+
+/*
+ * ISWCopyISOLatin1Lowered - copy `src` to `dst`, lowercasing ISO Latin-1.
+ *
+ * Neutral string utility (replacement for libXmu's XmuCopyISOLatin1Lowered);
+ * pure character arithmetic, no platform coupling.  Uppercase ranges:
+ *   0x41-0x5A (A-Z)          -> 0x61-0x7A (a-z)
+ *   0xC0-0xDE accented       -> 0xE0-0xFE   (except 0xD7, the multiply sign)
+ */
+void
+ISWCopyISOLatin1Lowered(char *dst, const char *src)
+{
+    unsigned char c;
+
+    if (!dst || !src)
+        return;
+
+    while ((c = (unsigned char) *src++) != '\0') {
+        if (c >= 0x41 && c <= 0x5A)
+            c += 0x20;
+        else if (c >= 0xC0 && c <= 0xDE && c != 0xD7)
+            c += 0x20;
+        *dst++ = (char) c;
+    }
+    *dst = '\0';
+}

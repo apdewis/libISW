@@ -578,44 +578,6 @@ ISWXcbDrawText(xcb_connection_t *conn, xcb_drawable_t d,
 
 /*
  * =================================================================
- * STRING UTILITIES (libXmu replacements)
- * =================================================================
- */
-
-/*
- * ISWCopyISOLatin1Lowered - Copy string converting to lowercase
- *
- * This is a replacement for XmuCopyISOLatin1Lowered from libXmu.
- * Copies source to dest, converting ISO Latin-1 characters to lowercase.
- * The ISO Latin-1 character set has uppercase letters at:
- *   0x41-0x5A (A-Z) -> 0x61-0x7A (a-z)
- *   0xC0-0xDE (uppercase accented) -> 0xE0-0xFE (lowercase accented)
- *   Exception: 0xD7 (multiplication sign) has no lowercase
- */
-void
-ISWCopyISOLatin1Lowered(char *dst, const char *src)
-{
-    unsigned char c;
-    
-    if (!dst || !src)
-        return;
-    
-    while ((c = (unsigned char)*src++) != '\0') {
-        /* ASCII uppercase A-Z */
-        if (c >= 0x41 && c <= 0x5A) {
-            c += 0x20;  /* Convert to lowercase */
-        }
-        /* ISO Latin-1 uppercase accented (except multiplication sign at 0xD7) */
-        else if (c >= 0xC0 && c <= 0xDE && c != 0xD7) {
-            c += 0x20;  /* Convert to lowercase */
-        }
-        *dst++ = (char)c;
-    }
-    *dst = '\0';
-}
-
-/*
- * =================================================================
  * TYPE CONVERTERS (libXmu replacements)
  * =================================================================
  */

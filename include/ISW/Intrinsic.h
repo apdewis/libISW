@@ -1964,6 +1964,10 @@ extern String IswNewString(String /* str */);
 #define IswNewString(str) \
     ((str) != NULL ? (strcpy(IswMalloc((unsigned)strlen(str) + 1), str)) : NULL)
 
+/* Copy `src` to `dst`, lowercasing ISO Latin-1 (neutral string utility,
+   replacement for libXmu's XmuCopyISOLatin1Lowered). */
+extern void ISWCopyISOLatin1Lowered(char * /* dst */, const char * /* src */);
+
 /*************************************************************
  *
  *  Work procs

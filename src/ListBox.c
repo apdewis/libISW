@@ -17,7 +17,6 @@
 #include <ISW/ListBoxP.h>
 #include <ISW/LabelP.h>
 #include <ISW/ISWRender.h>
-#include "ISWXcbDraw.h"
 
 #include <stdio.h>
 #include <stdlib.h>

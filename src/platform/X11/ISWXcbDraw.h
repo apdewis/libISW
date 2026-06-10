@@ -512,17 +512,6 @@ Boolean ISWReshapeWidget(Widget w, int shape_style, int corner_width, int corner
  * =================================================================
  */
 
-/*
- * ISWCopyISOLatin1Lowered - Copy string converting to lowercase
- *
- * Replacement for XmuCopyISOLatin1Lowered from libXmu
- * Copies source to dest, converting ISO Latin-1 characters to lowercase.
- *
- * Parameters:
- *   dst - Destination buffer (must be large enough)
- *   src - Source string
- */
-void ISWCopyISOLatin1Lowered(char *dst, const char *src);
 
 /*
  * =================================================================
