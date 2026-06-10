@@ -33,7 +33,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #endif
 #include <stdio.h>
 
-#include <X11/Xatom.h>
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
@@ -42,14 +41,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/TextSrcP.h>
 #include <ISW/TextP.h>
 #include <ISW/ISWRender.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
-#ifdef HAVE_CAIRO
-#include <cairo.h>
-#include <cairo-xcb.h>
-#endif
-#include "ISWXcbDraw.h"
-#include "ISWPlatformPrivate.h"
 
 /* HiDPI helpers: return Cairo-matched scaled font metrics */
 static int ScaledAscent(TextSinkObject sink) {
@@ -404,17 +395,6 @@ ClearToBackground(Widget w, Position x, Position y,
 
 #define insertCursor_width 6
 #define insertCursor_height 3
-static char insertCursor_bits[] = {0x0c, 0x1e, 0x33};
-
-static xcb_pixmap_t
-CreateInsertCursor(Widget w)
-{
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOfObject(w));
-    xcb_screen_t *s = _IswXcbScreen(IswScreenOfObject(w));
-    xcb_drawable_t root = RootWindowOfScreen(s);
-    return IswCreateBitmapFromData(conn, root,
-            insertCursor_bits, insertCursor_width, insertCursor_height);
-}
 
 static void
 GetCursorBounds(Widget w, IswRectangle *rect)
@@ -647,7 +627,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
                       "TextSink widget: font is NULL - text rendering will fail");
     }
 
-    sink->text_sink.insertCursorOn = CreateInsertCursor(new);
     sink->text_sink.laststate = IswisOff;
     sink->text_sink.cursor_x = sink->text_sink.cursor_y = 0;
     sink->text_sink.render_ctx = NULL;
@@ -665,8 +644,6 @@ Destroy(Widget w)
         ISWRenderDestroy(sink->text_sink.render_ctx);
         sink->text_sink.render_ctx = NULL;
     }
-
-    ISWFreePixmap(_IswXcbConn(IswDisplayOfObject(w)), sink->text_sink.insertCursorOn);
 }
 
 /* ARGSUSED */

@@ -30,8 +30,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _ISW_IswTextSinkP_h
 #define _ISW_IswTextSinkP_h
 
-#include <xcb/xcb.h>
-
 #include <ISW/TextSink.h>
 #include <ISW/TextP.h>
 #include <ISW/TextSrcP.h>
@@ -106,7 +104,6 @@ typedef struct {
     short    *char_tabs;
     int       tab_count;
 
-    xcb_pixmap_t insertCursorOn;
     IswTextInsertState laststate;
     short cursor_x, cursor_y;
     ISWRenderContext *render_ctx;
