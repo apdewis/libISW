@@ -123,7 +123,7 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
     /* HiDPI: set device scale so Cairo maps logical drawing coordinates
      * to physical surface pixels transparently. */
     {
-        double sf = _IswGetScaleFactor((IswDisplay) ctx->connection);
+        double sf = _IswGetScaleFactor(IswDisplayOf(ctx->widget));
         if (sf > 1.0)
             cairo_surface_set_device_scale(data->surface, sf, sf);
     }
@@ -411,7 +411,7 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         if (!data->window_ctx)
             return;
 
-        sf = _IswGetScaleFactor((IswDisplay) ctx->connection);
+        sf = _IswGetScaleFactor(IswDisplayOf(ctx->widget));
         bw = (int) ctx->widget->core.border_width;
         /* Footprint = content + border ring, in physical pixels. */
         pw = (Dimension)((ctx->widget->core.width + 2 * bw) * sf + 0.5);
@@ -507,7 +507,7 @@ cairo_xcb_begin(ISWRenderContext *ctx)
     /* Update window surface size — use physical pixels for surfaces
      * since the X window is at physical size. */
     if (ctx->widget && data->surface) {
-        double sf = _IswGetScaleFactor((IswDisplay) ctx->connection);
+        double sf = _IswGetScaleFactor(IswDisplayOf(ctx->widget));
         Dimension w = (Dimension)(ctx->widget->core.width * sf + 0.5);
         Dimension h = (Dimension)(ctx->widget->core.height * sf + 0.5);
         cairo_xcb_surface_set_size(data->surface, w, h);
@@ -711,7 +711,7 @@ cairo_xcb_fill_background(ISWRenderContext *ctx)
     if (!data) return;
     if (ctx->widget == NULL) return;
 
-    sf = _IswGetScaleFactor((IswDisplay) ctx->connection);
+    sf = _IswGetScaleFactor(IswDisplayOf(ctx->widget));
 
     /* The window surface was sized when the context was created — possibly
        before the widget reached its final laid-out size.  Track the current
