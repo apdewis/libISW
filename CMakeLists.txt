@@ -289,7 +289,6 @@ set(ISW_WIDGET_SOURCES
     src/ISWP.c
     src/ISWAtoms.c
     src/ISWContext.c
-    src/ISWDrawing.c
     src/ISWInit.c
     src/ISWUtf8.c
     src/IswTrayIcon.c
