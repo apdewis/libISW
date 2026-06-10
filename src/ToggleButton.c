@@ -7,8 +7,7 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ToggleButtonP.h>
-#include <xcb/xcb.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 static char defaultTranslations[] =
     "<Btn1Down>,<Btn1Up>:   toggle() notify()\n\

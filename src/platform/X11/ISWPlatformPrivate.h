@@ -78,159 +78,16 @@ IswCursor         _IswXcbCursorWrap(xcb_cursor_t cursor);
  * called once at IswOpenDisplay and the result is carried on the per-display
  * record.  With a single backend it returns isw_platform_xcb_ops; a future
  * build/env selector would resolve a different table here.
- */
-const IswPlatformOps *_IswPlatformSelectBackend(void);
-
-/*
- * =================================================================
- * Per-category dispatch wrappers
- * =================================================================
  *
- * Toolkit and widget code calls these thin wrappers instead of walking
- * the ops vtable at the call site.  Each recovers the injected ops from the
- * display/widget it is handed, hides the lookup, and null-guards a backend
- * that hasn't filled the op (so a missing op degrades to a no-op / failure
- * rather than a crash).  Same convention as _IswPlatformConnectionFd
- * (IntrinsicI.h).  Implemented in src/ISWPlatformDisplayXCB.c.
+ * All the neutral per-category dispatch wrappers (_IswPlatformSelectBackend,
+ * color/font/cursor/grab/pointer, atom/property, window lifecycle/attributes,
+ * root surface, resources, WM hints, and the selection wrappers) are declared
+ * in the public neutral header ISW/ISWPlatform.h beside the ops vtable they
+ * dispatch through — toolkit and widget code reaches them there, never via this
+ * backend-private header.  Only the raw _IswXcb* seam bridges (above), the DnD
+ * wrappers (below, used solely by the X11 DnD backend), and the backend vtable
+ * externs remain backend private.
  */
-
-/* Color (Phase 4) */
-Boolean   _IswPlatformQueryColor(IswDisplay dpy, IswColormap cmap,
-                                 unsigned long pixel, IswColor *out);
-Boolean   _IswPlatformAllocColor(IswDisplay dpy, IswColormap cmap,
-                                 unsigned short red, unsigned short green,
-                                 unsigned short blue, unsigned long *pixel_out);
-Boolean   _IswPlatformAllocNamedColor(IswDisplay dpy, IswColormap cmap,
-                                      const char *name, unsigned long *pixel_out);
-Boolean   _IswPlatformLookupColor(IswDisplay dpy, IswColormap cmap,
-                                  const char *name);
-void      _IswPlatformFreeColors(IswDisplay dpy, IswColormap cmap,
-                                 unsigned long pixel);
-Boolean   _IswPlatformMatchVisualInfo(IswDisplay dpy, IswScreen screen,
-                                      int depth, int visual_class,
-                                      IswVisualInfo *out);
-
-/* Font (Phase 4) */
-IswFontId _IswPlatformLoadFont(IswDisplay dpy, const char *name);
-void      _IswPlatformFreeFont(IswDisplay dpy, IswFontId fid);
-
-/* Cursor (Phase 5) */
-IswCursor _IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,
-                                      const char *name,
-                                      unsigned int fallback_shape);
-void      _IswPlatformSetWindowCursor(IswDisplay dpy, IswWindow win,
-                                      IswCursor cursor);
-void      _IswPlatformFreeCursor(IswDisplay dpy, IswCursor cursor);
-
-/* Grabs (Phase 5) */
-int  _IswPlatformGrabPointer(IswDisplay dpy, IswWindow grab_window,
-                             Boolean owner_events, unsigned int event_mask,
-                             int pointer_mode, int keyboard_mode,
-                             IswWindow confine_to, IswCursor cursor, IswTime time);
-void _IswPlatformUngrabPointer(IswDisplay dpy, IswTime time);
-int  _IswPlatformGrabKeyboard(IswDisplay dpy, IswWindow grab_window,
-                              Boolean owner_events, int pointer_mode,
-                              int keyboard_mode, IswTime time);
-void _IswPlatformUngrabKeyboard(IswDisplay dpy, IswTime time);
-void _IswPlatformGrabButton(IswDisplay dpy, IswWindow grab_window, int button,
-                            unsigned int modifiers, Boolean owner_events,
-                            unsigned int event_mask, int pointer_mode,
-                            int keyboard_mode, IswWindow confine_to,
-                            IswCursor cursor);
-void _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
-                         unsigned int modifiers, Boolean owner_events,
-                         int pointer_mode, int keyboard_mode);
-
-/* The neutral selection dispatch wrappers (_IswPlatformSelection*,
-   _IswPlatform{Set,Get}SelectionOwner, _IswPlatformConvertSelection) are
-   declared in ISW/IntrinsicI.h with the other neutral platform wrappers, so
-   widget/engine code reaches them without this backend-private header.  Their
-   XCB implementations live in ISWPlatformDisplayXCB.c. */
-
-/* Atom (Phase 6) */
-Atom    _IswPlatformInternAtomOp(IswDisplay dpy, const char *name,
-                                 Boolean only_if_exists);
-Boolean _IswPlatformGetAtomName(IswDisplay dpy, Atom atom,
-                                char *buf, size_t buflen);
-
-/* Property (Phase 6) */
-void    _IswPlatformChangeProperty(IswDisplay dpy, IswWindow win, Atom property,
-                                   Atom type, int format, IswPropMode mode,
-                                   const void *data, uint32_t num_elements);
-Boolean _IswPlatformGetProperty(IswDisplay dpy, IswWindow win, Atom property,
-                                Atom type, uint32_t long_offset,
-                                uint32_t long_length, IswProperty *out);
-void    _IswPlatformDeleteProperty(IswDisplay dpy, IswWindow win, Atom property);
-
-/* Window lifecycle (Phase 13c) — thin dispatchers over the window ops, so the
-   toolkit never calls xcb_* window functions directly. */
-IswWindow _IswPlatformAllocWindowId(IswDisplay dpy);
-IswWindow _IswPlatformCreateWindow(IswDisplay dpy, IswWindow parent,
-                                   const IswWindowGeometry *geom,
-                                   const IswWindowAttributes *attrs,
-                                   unsigned int window_class);
-void    _IswPlatformDestroyWindow(IswDisplay dpy, IswWindow win);
-void    _IswPlatformMapWindow(IswDisplay dpy, IswWindow win);
-void    _IswPlatformUnmapWindow(IswDisplay dpy, IswWindow win);
-void    _IswPlatformReparentWindow(IswDisplay dpy, IswWindow win,
-                                   IswWindow new_parent, int32_t x, int32_t y);
-void    _IswPlatformConfigureWindow(IswDisplay dpy, IswWindow win,
-                                    const IswWindowGeometry *geom,
-                                    unsigned int mask, IswStackMode stack,
-                                    IswWindow sibling);
-void    _IswPlatformClearArea(IswDisplay dpy, IswWindow win,
-                              int16_t x, int16_t y, uint16_t w, uint16_t h,
-                              Boolean generate_expose);
-IswWindowId _IswPlatformWindowId(IswWindow win);
-IswWindow   _IswPlatformWindowFromId(IswDisplay dpy, IswWindowId id);
-
-/* Window attributes (Phase 13a) */
-void    _IswPlatformChangeAttributes(IswDisplay dpy, IswWindow win,
-                                     const IswWindowAttributes *attrs,
-                                     unsigned int mask);
-
-/* Root surface (Phase 13c) — the shell's WM-managed top-level window + present. */
-IswWindow _IswPlatformCreateRoot(IswDisplay dpy, IswScreen screen,
-                                 const IswWindowGeometry *geom,
-                                 const IswWindowAttributes *attrs);
-void    _IswPlatformPresentRoot(IswDisplay dpy, IswWindow win,
-                                IswSurface surface, int width, int height);
-
-/* Resource resolution (Phase 15).  Toolkit resource code calls these instead of
-   any xcb_xrm_* function; the XCB backend's resource ops implement them over
-   libxcb-util-xrm (the only TU that names Xrm). */
-IswDatabaseHandle _IswPlatformResourceFromString(const char *str);
-IswDatabaseHandle _IswPlatformResourceFromFile(const char *filename);
-IswDatabaseHandle _IswPlatformResourceFromManager(IswDisplay dpy,
-                                                  IswScreen screen);
-void _IswPlatformResourceCombine(IswDatabaseHandle source,
-                                 IswDatabaseHandle *target, Boolean override);
-void _IswPlatformResourcePut(IswDatabaseHandle *db, const char *resource,
-                             const char *value);
-void _IswPlatformResourcePutLine(IswDatabaseHandle *db, const char *line);
-char *_IswPlatformResourceToString(IswDatabaseHandle db);
-void _IswPlatformResourceFree(IswDatabaseHandle db);
-int  _IswPlatformResourceGetString(IswDatabaseHandle db, const char *res_name,
-                                   const char *res_class, char **out);
-
-/* WM hints (Phase 6) */
-void _IswPlatformSetWindowTitle(IswDisplay dpy, IswWindow win, const char *utf8);
-void _IswPlatformSetIconTitle(IswDisplay dpy, IswWindow win, const char *utf8);
-void _IswPlatformSetWmClass(IswDisplay dpy, IswWindow win,
-                            const char *name, const char *class_name);
-void _IswPlatformSetWmProtocols(IswDisplay dpy, IswWindow win,
-                                const Atom *protocols, int num_protocols);
-void _IswPlatformSetTransientFor(IswDisplay dpy, IswWindow win, IswWindow leader);
-void _IswPlatformSetWindowType(IswDisplay dpy, IswWindow win, IswWindowType type);
-void _IswPlatformSetPid(IswDisplay dpy, IswWindow win, uint32_t pid);
-void _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t flags,
-                                int x, int y, int width, int height,
-                                int min_width, int min_height,
-                                int max_width, int max_height,
-                                int width_inc, int height_inc,
-                                int min_aspect_num, int min_aspect_den,
-                                int max_aspect_num, int max_aspect_den,
-                                int base_width, int base_height, int win_gravity);
 
 /* Drag-and-drop (Phase 7).  Thin dispatchers over the platform DnD ops; the
  * generic IswDnd* service calls these.  The whole DnD engine lives in the

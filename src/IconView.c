@@ -21,7 +21,7 @@
 #include <ISW/IswDragDrop.h>
 #include <ISW/Viewport.h>
 #include <ISW/IswArgMacros.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 #include <stdio.h>
 #include <string.h>

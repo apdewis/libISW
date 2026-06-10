@@ -57,7 +57,8 @@ in this Software without prior written authorization from The Open Group.
 #include "Shell.h"
 #include "VarargsI.h"
 #include "CreateI.h"
-#include "ISWPlatformPrivate.h"
+
+#include <ISW/ISWPlatform.h>
 
 static Widget
 _IswVaCreateWidget(String name,

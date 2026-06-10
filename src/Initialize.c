@@ -74,7 +74,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 #include "StringDefs.h"
 #include "CoreP.h"
 #include "ShellP.h"
@@ -91,6 +91,7 @@ in this Software without prior written authorization from The Open Group.
 
 #include <stdlib.h>
 #include <ISW/IswArgMacros.h>
+#include <ISW/ISWPlatform.h>
 
 /* some unspecified magic number of expected search levels for Xrm */
 #define SEARCH_LIST_SIZE 1000

@@ -68,13 +68,13 @@ SOFTWARE.
 #include <cairo/cairo.h>
 #include <ISW/Command.h>
 #include <ISW/LabelP.h>
-#include "ISWPlatformPrivate.h"
 /* NO XFT - using pure XCB rendering */
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#include <ISW/ISWPlatform.h>
 
 
 /* Forward declarations for Xmu functions that need XCB replacements */

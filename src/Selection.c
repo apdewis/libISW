@@ -75,8 +75,8 @@ in this Software without prior written authorization from The Open Group.
 #include "StringDefs.h"
 #include "SelectionI.h"
 #include "ContextI.h"
-#include "ISWPlatformPrivate.h"
 #include <stdio.h>
+#include <ISW/ISWPlatform.h>
 
 void
 _IswSetDefaultSelectionTimeout(unsigned long *timeout)

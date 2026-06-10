@@ -253,69 +253,6 @@ extern char* __XtCalloc (
 extern Boolean _IswEventFromXcb(IswDisplay dpy,
                                 xcb_generic_event_t *xev, IswEvent *out);
 
-/* Event-loop file descriptor for a display, via the ISWPlatform display vtable.
-   Neutral replacement for the old ConnectionNumber() XCB macro.  (Other
-   per-category dispatch wrappers live in src/ISWPlatformPrivate.h; each recovers
-   the injected backend ops from the display/widget it is handed.) */
-extern int _IswPlatformConnectionFd(IswDisplay dpy);
-
-extern IswScreen _IswDefaultScreenOf(IswDisplay dpy);
-extern IswWindow _IswDefaultRootWindow(IswDisplay dpy);
-
-/* Event-loop poll, via the ISWPlatform event vtable (Phase 11a).  Return the
-   next native event (caller frees) or NULL; _Queued reads only the client-side
-   queue without touching the socket.  Declared here so the toolkit event loop
-   (NextEvent.c) reaches them without ISWPlatformPrivate.h, like ConnectionFd. */
-extern void *_IswPlatformPollEvent(IswDisplay dpy);
-extern void *_IswPlatformPollQueuedEvent(IswDisplay dpy);
-
-/* Connection health + flush, via the display vtable (Phase 11a) — used by the
-   event loop alongside the poll wrappers. */
-extern Boolean _IswPlatformDisplayHasError(IswDisplay dpy);
-extern void    _IswPlatformFlush(IswDisplay dpy);
-
-/* Selection dispatch wrappers, via the ISWPlatform selection vtable.  Neutral
-   in and out (IswSelectionId / IswSelectionEvent / IswSelectionRequest); each
-   recovers the injected backend ops from the display.  Declared here so the
-   selection engine (Selection.c) and selection-owning widgets (Text, List)
-   reach them without ISWPlatformPrivate.h, like the poll/flush wrappers. */
-extern IswSelectionId _IswPlatformSelectionInternName(IswDisplay dpy,
-                                                      const char *name,
-                                                      Boolean only_if_exists);
-extern Boolean   _IswPlatformSelectionName(IswDisplay dpy, IswSelectionId id,
-                                           char *buf, size_t buflen);
-extern void      _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
-                                              IswSelectionId selection,
-                                              IswTime time);
-extern IswWindow _IswPlatformGetSelectionOwner(IswDisplay dpy,
-                                              IswSelectionId selection);
-extern void      _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
-                                             IswSelectionId selection,
-                                             IswSelectionId target,
-                                             IswSelectionId property,
-                                             IswTime time);
-extern Boolean   _IswPlatformSelectionDecodeEvent(IswDisplay dpy,
-                                                 const void *native,
-                                                 IswSelectionEvent *out);
-extern void      _IswPlatformSelectionSendNotify(IswDisplay dpy,
-                                                const IswSelectionRequest *req,
-                                                IswSelectionId property);
-extern unsigned long _IswPlatformSelectionMaxTransfer(IswDisplay dpy);
-extern IswSelectionId _IswPlatformSelectionStdType(IswDisplay dpy,
-                                                   IswSelectionStdType which);
-
-/* Last-resort fallback font, via the font vtable.  Returns a populated
-   IswFontStruct (caller frees) or NULL.  Declared here so widgets whose font
-   converters failed (Label) reach it without ISWPlatformPrivate.h. */
-extern IswFontStruct *_IswPlatformLoadFallbackFont(IswDisplay dpy);
-
-/* Query the pointer relative to `win`, via the input vtable.  Any out-param
-   may be NULL.  Returns False if unavailable. */
-extern Boolean _IswPlatformQueryPointer(IswDisplay dpy, IswWindow win,
-                                        int *root_x, int *root_y,
-                                        int *win_x, int *win_y,
-                                        IswModMask *mods, IswWindow *child);
-
 _XFUNCPROTOEND
 
 #endif /* _IswintrinsicI_h */

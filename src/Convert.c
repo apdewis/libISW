@@ -74,8 +74,7 @@ in this Software without prior written authorization from The Open Group.
 #include        "IntrinsicI.h"
 #include        "StringDefs.h"
 #include        "Intrinsic.h"
-#include        "ISWPlatformPrivate.h"
-
+#include <ISW/ISWPlatform.h>
 /* Conversion procedure hash table */
 
 #define CONVERTHASHSIZE ((unsigned)256)

@@ -18,8 +18,7 @@
 #include <stdint.h>
 
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
-
+#include <ISW/ISWPlatform.h>
 #ifndef False
 #define False 0
 #endif

@@ -72,7 +72,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 typedef struct _GrabActionRec {
     struct _GrabActionRec *next;

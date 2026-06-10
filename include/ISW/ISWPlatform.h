@@ -725,4 +725,191 @@ typedef struct _IswPlatformOps {
 /* Release the malloc'd payload of an IswProperty (safe on a zeroed struct). */
 extern void _IswPlatformFreeProperty(IswProperty *prop);
 
+/*
+ * =================================================================
+ * Per-category dispatch wrappers
+ * =================================================================
+ *
+ * Thin neutral wrappers over the ops vtable above.  Each recovers the injected
+ * backend ops from the display/widget it is handed, hides the vtable lookup,
+ * and null-guards a missing op (degrading to a no-op / failure rather than a
+ * crash).  Toolkit and widget code calls these instead of walking the vtable
+ * or reaching into any backend-private header.  Implemented in the backend
+ * dispatch TU (X11: ISWPlatformDisplayXCB.c and the per-category backend TUs).
+ */
+
+/* Backend selection (called once at IswOpenDisplay, before any connection). */
+extern const IswPlatformOps *_IswPlatformSelectBackend(void);
+
+/* Display / event loop */
+extern int       _IswPlatformConnectionFd(IswDisplay dpy);
+extern IswScreen _IswDefaultScreenOf(IswDisplay dpy);
+extern IswWindow _IswDefaultRootWindow(IswDisplay dpy);
+extern void     *_IswPlatformPollEvent(IswDisplay dpy);
+extern void     *_IswPlatformPollQueuedEvent(IswDisplay dpy);
+extern Boolean   _IswPlatformDisplayHasError(IswDisplay dpy);
+extern void      _IswPlatformFlush(IswDisplay dpy);
+
+/* Selection */
+extern IswSelectionId _IswPlatformSelectionInternName(IswDisplay dpy,
+                                                      const char *name,
+                                                      Boolean only_if_exists);
+extern Boolean   _IswPlatformSelectionName(IswDisplay dpy, IswSelectionId id,
+                                           char *buf, size_t buflen);
+extern void      _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
+                                              IswSelectionId selection,
+                                              IswTime time);
+extern IswWindow _IswPlatformGetSelectionOwner(IswDisplay dpy,
+                                              IswSelectionId selection);
+extern void      _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
+                                             IswSelectionId selection,
+                                             IswSelectionId target,
+                                             IswSelectionId property,
+                                             IswTime time);
+extern Boolean   _IswPlatformSelectionDecodeEvent(IswDisplay dpy,
+                                                 const void *native,
+                                                 IswSelectionEvent *out);
+extern void      _IswPlatformSelectionSendNotify(IswDisplay dpy,
+                                                const IswSelectionRequest *req,
+                                                IswSelectionId property);
+extern unsigned long _IswPlatformSelectionMaxTransfer(IswDisplay dpy);
+extern IswSelectionId _IswPlatformSelectionStdType(IswDisplay dpy,
+                                                   IswSelectionStdType which);
+
+/* Color */
+extern Boolean   _IswPlatformQueryColor(IswDisplay dpy, IswColormap cmap,
+                                        unsigned long pixel, IswColor *out);
+extern Boolean   _IswPlatformAllocColor(IswDisplay dpy, IswColormap cmap,
+                                        unsigned short red, unsigned short green,
+                                        unsigned short blue, unsigned long *pixel_out);
+extern Boolean   _IswPlatformAllocNamedColor(IswDisplay dpy, IswColormap cmap,
+                                             const char *name, unsigned long *pixel_out);
+extern Boolean   _IswPlatformLookupColor(IswDisplay dpy, IswColormap cmap,
+                                         const char *name);
+extern void      _IswPlatformFreeColors(IswDisplay dpy, IswColormap cmap,
+                                        unsigned long pixel);
+extern Boolean   _IswPlatformMatchVisualInfo(IswDisplay dpy, IswScreen screen,
+                                             int depth, int visual_class,
+                                             IswVisualInfo *out);
+
+/* Font */
+extern IswFontId _IswPlatformLoadFont(IswDisplay dpy, const char *name);
+extern void      _IswPlatformFreeFont(IswDisplay dpy, IswFontId fid);
+extern IswFontStruct *_IswPlatformLoadFallbackFont(IswDisplay dpy);
+
+/* Cursor */
+extern IswCursor _IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,
+                                             const char *name,
+                                             unsigned int fallback_shape);
+extern void      _IswPlatformSetWindowCursor(IswDisplay dpy, IswWindow win,
+                                             IswCursor cursor);
+extern void      _IswPlatformFreeCursor(IswDisplay dpy, IswCursor cursor);
+
+/* Grabs */
+extern int  _IswPlatformGrabPointer(IswDisplay dpy, IswWindow grab_window,
+                                    Boolean owner_events, unsigned int event_mask,
+                                    int pointer_mode, int keyboard_mode,
+                                    IswWindow confine_to, IswCursor cursor, IswTime time);
+extern void _IswPlatformUngrabPointer(IswDisplay dpy, IswTime time);
+extern int  _IswPlatformGrabKeyboard(IswDisplay dpy, IswWindow grab_window,
+                                     Boolean owner_events, int pointer_mode,
+                                     int keyboard_mode, IswTime time);
+extern void _IswPlatformUngrabKeyboard(IswDisplay dpy, IswTime time);
+extern void _IswPlatformGrabButton(IswDisplay dpy, IswWindow grab_window, int button,
+                                   unsigned int modifiers, Boolean owner_events,
+                                   unsigned int event_mask, int pointer_mode,
+                                   int keyboard_mode, IswWindow confine_to,
+                                   IswCursor cursor);
+extern void _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
+                                unsigned int modifiers, Boolean owner_events,
+                                int pointer_mode, int keyboard_mode);
+
+/* Pointer query */
+extern Boolean _IswPlatformQueryPointer(IswDisplay dpy, IswWindow win,
+                                        int *root_x, int *root_y,
+                                        int *win_x, int *win_y,
+                                        IswModMask *mods, IswWindow *child);
+
+/* Atom */
+extern Atom    _IswPlatformInternAtomOp(IswDisplay dpy, const char *name,
+                                        Boolean only_if_exists);
+extern Boolean _IswPlatformGetAtomName(IswDisplay dpy, Atom atom,
+                                       char *buf, size_t buflen);
+
+/* Property */
+extern void    _IswPlatformChangeProperty(IswDisplay dpy, IswWindow win, Atom property,
+                                          Atom type, int format, IswPropMode mode,
+                                          const void *data, uint32_t num_elements);
+extern Boolean _IswPlatformGetProperty(IswDisplay dpy, IswWindow win, Atom property,
+                                       Atom type, uint32_t long_offset,
+                                       uint32_t long_length, IswProperty *out);
+extern void    _IswPlatformDeleteProperty(IswDisplay dpy, IswWindow win, Atom property);
+
+/* Window lifecycle */
+extern IswWindow _IswPlatformAllocWindowId(IswDisplay dpy);
+extern IswWindow _IswPlatformCreateWindow(IswDisplay dpy, IswWindow parent,
+                                          const IswWindowGeometry *geom,
+                                          const IswWindowAttributes *attrs,
+                                          unsigned int window_class);
+extern void    _IswPlatformDestroyWindow(IswDisplay dpy, IswWindow win);
+extern void    _IswPlatformMapWindow(IswDisplay dpy, IswWindow win);
+extern void    _IswPlatformUnmapWindow(IswDisplay dpy, IswWindow win);
+extern void    _IswPlatformReparentWindow(IswDisplay dpy, IswWindow win,
+                                          IswWindow new_parent, int32_t x, int32_t y);
+extern void    _IswPlatformConfigureWindow(IswDisplay dpy, IswWindow win,
+                                           const IswWindowGeometry *geom,
+                                           unsigned int mask, IswStackMode stack,
+                                           IswWindow sibling);
+extern void    _IswPlatformClearArea(IswDisplay dpy, IswWindow win,
+                                     int16_t x, int16_t y, uint16_t w, uint16_t h,
+                                     Boolean generate_expose);
+extern IswWindowId _IswPlatformWindowId(IswWindow win);
+extern IswWindow   _IswPlatformWindowFromId(IswDisplay dpy, IswWindowId id);
+
+/* Window attributes */
+extern void    _IswPlatformChangeAttributes(IswDisplay dpy, IswWindow win,
+                                            const IswWindowAttributes *attrs,
+                                            unsigned int mask);
+
+/* Root surface */
+extern IswWindow _IswPlatformCreateRoot(IswDisplay dpy, IswScreen screen,
+                                        const IswWindowGeometry *geom,
+                                        const IswWindowAttributes *attrs);
+extern void    _IswPlatformPresentRoot(IswDisplay dpy, IswWindow win,
+                                       IswSurface surface, int width, int height);
+
+/* Resource resolution */
+extern IswDatabaseHandle _IswPlatformResourceFromString(const char *str);
+extern IswDatabaseHandle _IswPlatformResourceFromFile(const char *filename);
+extern IswDatabaseHandle _IswPlatformResourceFromManager(IswDisplay dpy,
+                                                         IswScreen screen);
+extern void _IswPlatformResourceCombine(IswDatabaseHandle source,
+                                        IswDatabaseHandle *target, Boolean override);
+extern void _IswPlatformResourcePut(IswDatabaseHandle *db, const char *resource,
+                                    const char *value);
+extern void _IswPlatformResourcePutLine(IswDatabaseHandle *db, const char *line);
+extern char *_IswPlatformResourceToString(IswDatabaseHandle db);
+extern void _IswPlatformResourceFree(IswDatabaseHandle db);
+extern int  _IswPlatformResourceGetString(IswDatabaseHandle db, const char *res_name,
+                                          const char *res_class, char **out);
+
+/* WM hints */
+extern void _IswPlatformSetWindowTitle(IswDisplay dpy, IswWindow win, const char *utf8);
+extern void _IswPlatformSetIconTitle(IswDisplay dpy, IswWindow win, const char *utf8);
+extern void _IswPlatformSetWmClass(IswDisplay dpy, IswWindow win,
+                                   const char *name, const char *class_name);
+extern void _IswPlatformSetWmProtocols(IswDisplay dpy, IswWindow win,
+                                       const Atom *protocols, int num_protocols);
+extern void _IswPlatformSetTransientFor(IswDisplay dpy, IswWindow win, IswWindow leader);
+extern void _IswPlatformSetWindowType(IswDisplay dpy, IswWindow win, IswWindowType type);
+extern void _IswPlatformSetPid(IswDisplay dpy, IswWindow win, uint32_t pid);
+extern void _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t flags,
+                                       int x, int y, int width, int height,
+                                       int min_width, int min_height,
+                                       int max_width, int max_height,
+                                       int width_inc, int height_inc,
+                                       int min_aspect_num, int min_aspect_den,
+                                       int max_aspect_num, int max_aspect_den,
+                                       int base_width, int base_height, int win_gravity);
+
 #endif /* _ISWPlatform_h */
