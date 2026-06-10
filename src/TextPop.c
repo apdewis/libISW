@@ -186,8 +186,7 @@ _IswTextInsertFile(Widget w, IswEvent *iswev, String *params, Cardinal *num_para
   IswGetValues(ctx->text.source, ab.args, ab.count);
 
   if (edit_mode != IswtextEdit) {
-    /* XCB equivalent of XBell */
-    xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0);
+    //#TODO non bell error indication
     return;
   }
 
@@ -259,8 +258,7 @@ DoInsert(Widget w, IswPointer closure, IswPointer call_data)
 
   (void)SetResourceByName(ctx->text.file_insert,
 			  LABEL_NAME, IswNlabel, (IswArgVal) msg);
-  /* XCB equivalent of XBell */
-  xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0);
+  //#TODO non bell error indication
 }
 
 /*	Function Name: InsertFileNamed
@@ -493,7 +491,7 @@ _IswTextSearch(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
 #ifdef notdef
   if (ctx->text.source->Search == NULL) {
-      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0);
+      //#TODO non bell error indication
       return;
   }
 #endif
@@ -992,8 +990,7 @@ SetSearchLabels(struct SearchAndReplace *search, String msg1, String msg2, Boole
 {
   (void) SetResource( search->label1, IswNlabel, (IswArgVal) msg1);
   (void) SetResource( search->label2, IswNlabel, (IswArgVal) msg2);
-  if (bell)
-    xcb_bell(_IswXcbConn(IswDisplayOf(search->search_popup)), 0);
+  //#TODO non bell error indication
 }
 
 /************************************************************
@@ -1057,7 +1054,7 @@ _SetField(Widget new, Widget old)
   IswArgBuilder ab = IswArgBuilderInit();
 
   if (!IswIsSensitive(new)) {
-    xcb_bell(_IswXcbConn(IswDisplayOf(old)), 0);	/* Don't set field to an inactive Widget. */
+    //#TODO non bell error indication
     return;
   }
 

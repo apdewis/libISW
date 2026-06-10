@@ -183,8 +183,7 @@ xcb_disp_bell(IswDisplay dpy, int percent)
 {
    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
     if (priv->conn) {
-        xcb_bell(priv->conn, (int8_t) percent);
-        xcb_flush(priv->conn);
+        //#TODO non bell error indication
     }
 }
 

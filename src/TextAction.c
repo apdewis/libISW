@@ -199,8 +199,6 @@ we are, and convert it.  I also warn the user that the other client is evil. */
   text.firstPos = 0;
   text.length = *length;
   if (_IswTextReplace(ctx, ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
-    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
     return;
   }
   ctx->text.insertPos = SrcScan(ctx->text.source, ctx->text.insertPos,
@@ -711,8 +709,6 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
   text.ptr = (char *)"";	/* These two lines needed to make legal TextBlock */
 
   if (_IswTextReplace(ctx, from, to, &text)) {
-    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
-    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
     return;
   }
   ctx->text.insertPos = from;
@@ -879,8 +875,6 @@ InsertNewLineAndBackupInternal(TextWidget ctx)
   }
 
   if (_IswTextReplace(ctx, ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
-    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
     error = IswEditError;
   }
   else
@@ -965,8 +959,6 @@ InsertNewLineAndIndent(Widget w, IswEvent *iswev, String *p, Cardinal *n)
   IswFree( line_to_ip );
 
   if (_IswTextReplace(ctx,ctx->text.insertPos, ctx->text.insertPos, &text)) {
-    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
-    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
     IswFree(text.ptr);
     EndAction(ctx);
     return;
@@ -1231,8 +1223,7 @@ AutoFill(TextWidget ctx)
   text.firstPos = 0;
 
   if (_IswTextReplace(ctx, ret_pos - 1, ret_pos, &text)) {
-      xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
-      xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
+      //#TODO non bell error indication
   }
 }
 
@@ -1288,8 +1279,7 @@ InsertChar(Widget w, IswEvent *iswev, String *p, Cardinal *n)
       AutoFill(ctx);
   }
   else {
-      xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
-      xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
+      //#TODO non bell error indication
   }
 
   IswFree(text.ptr);
@@ -1409,8 +1399,7 @@ InsertString(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
       if ( _IswTextReplace( ctx, ctx->text.insertPos,
 			    ctx->text.insertPos, &text ) ) {
-          xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
-          xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
+          //#TODO non bell error indication
           EndAction( ctx );
           return;
       }
@@ -1486,14 +1475,12 @@ Multiply(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
   if (*num_params != 1) {
       IswAppError( IswWidgetToApplicationContext( w ),
 	       "Isw Text Widget: multiply() takes exactly one argument.");
-      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
-      xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+      //#TODO non bell error indication
       return;
   }
 
   if ( ( params[0][0] == 'r' ) || ( params[0][0] == 'R' ) ) {
-      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
-      xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+      //#TODO non bell error indication
       ctx->text.mult = 1;
       return;
   }
@@ -1503,8 +1490,7 @@ Multiply(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
       sprintf(buf, "%s %s", "Isw Text Widget: multiply() argument",
 	    "must be a number greater than zero, or 'Reset'." );
       IswAppError( IswWidgetToApplicationContext( w ), buf );
-      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
-      xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+      //#TODO non bell error indication
       return;
   }
 
@@ -1691,8 +1677,7 @@ FormParagraph(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 		 IswstParagraph, IswsdRight, 1, FALSE );
 
   if ( FormRegion( ctx, from, to ) == IswReplaceError ) {
-      xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
-      xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+      //#TODO non bell error indication
   }
   _IswTextSetScrollBars( ctx );
   EndAction( ctx );
@@ -1726,8 +1711,7 @@ TransposeCharacters(Widget w, IswEvent *iswev, String *params, Cardinal *num_par
   /* Make sure we aren't at the very beginning or end of the buffer. */
 
   if ( ( start == ctx->text.insertPos ) || ( end == ctx->text.insertPos ) ) {
-      xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
-      xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
+      //#TODO non bell error indication
       EndAction( ctx );
       return;
   }
@@ -1754,8 +1738,7 @@ TransposeCharacters(Widget w, IswEvent *iswev, String *params, Cardinal *num_par
   /* Store new text in source. */
 
   if (_IswTextReplace (ctx, start, end, &text))	{/* Unable to edit, complain. */
-    xcb_bell(_IswXcbConn(IswDisplayOf(ctx)), 0); // 0 = default volume
-    xcb_flush(_IswXcbConn(IswDisplayOf(ctx)));
+    //#TODO non bell error indication
   }
 
   IswFree((char *) buf);
@@ -1781,8 +1764,7 @@ NoOp(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     switch(params[0][0]) {
     case 'R':
     case 'r':
-	xcb_bell(_IswXcbConn(IswDisplayOf(w)), 0); // 0 = default volume
-  xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+      //#TODO non bell error indication
     default:			/* Fall Through */
 	break;
     }
