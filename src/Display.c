@@ -252,7 +252,7 @@ InitPerDisplay(IswDisplay dpy,
 
     _IswAllocWWTable(pd);
     pd->per_screen_db = (IswDatabaseHandle *) __XtCalloc(
-        (Cardinal) xcb_setup_roots_length(xcb_get_setup(dpy)),
+        (Cardinal) ops->display->screen_count(dpy),
         (Cardinal) sizeof(IswDatabaseHandle ));
     pd->cmd_db = (IswDatabaseHandle ) NULL;
     pd->server_db = (IswDatabaseHandle ) NULL;
