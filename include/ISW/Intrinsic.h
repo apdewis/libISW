@@ -249,6 +249,19 @@ typedef struct {
     int stack_mode;   /* Above, Below, TopIf, BottomIf, Opposite, DontChange */
 } IswWidgetGeometry;
 
+/* Geometry-request field selectors for IswWidgetGeometry.request_mode.  Each
+   bit selects one field of the request the backend should honour.  Values are
+   platform-neutral (a backend maps them to its own configure mechanism); they
+   are numerically X11-compatible so the geometry engine and any X11 backend
+   agree on the bit layout. */
+#define IswCWX		(1 << 0)
+#define IswCWY		(1 << 1)
+#define IswCWWidth	(1 << 2)
+#define IswCWHeight	(1 << 3)
+#define IswCWBorderWidth (1 << 4)
+#define IswCWSibling	(1 << 5)
+#define IswCWStackMode	(1 << 6)
+
 /* Additions to Xlib geometry requests: ask what would happen, don't do it */
 #define IswCWQueryOnly	(1 << 7)
 

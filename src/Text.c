@@ -626,9 +626,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       CreateHScrollBar(ctx);
   }
 
-  /* Windowless: draw into the parent's window, no own X window.  Scrolling
-     is done by full repaint (not xcb_copy_area) so it works without a
-     dedicated window. */
   new->core.windowless = True;
 }
 
@@ -2272,7 +2269,7 @@ _IswTextCheckResize(TextWidget ctx)
 
     rbox.width += ctx->text.margin.right;
     if (rbox.width > ctx->core.width) { /* Only get wider. */
-      rbox.request_mode = XCB_CONFIG_WINDOW_WIDTH;
+      rbox.request_mode = IswCWWidth;
       if (IswMakeGeometryRequest(w, &rbox, &return_geom) == IswGeometryAlmost)
 	(void) IswMakeGeometryRequest(w, &return_geom, (IswWidgetGeometry*) NULL);
     }
@@ -2290,7 +2287,7 @@ _IswTextCheckResize(TextWidget ctx)
   if ( (line + 1) == ctx->text.lt.lines ) return;
 
   old_height = ctx->core.height;
-  rbox.request_mode = XCB_CONFIG_WINDOW_HEIGHT;
+  rbox.request_mode = IswCWHeight;
   rbox.height = IswTextSinkMaxHeight(ctx->text.sink, line + 1) + VMargins(ctx);
 
   if ((int)rbox.height < old_height) return; /* It will only get taller. */
