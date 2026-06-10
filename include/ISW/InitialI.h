@@ -168,7 +168,7 @@ typedef struct _IswAppStruct {
     IswAppContext next;		/* link to next app in process context */
     ProcessContext process;	/* back pointer to our process context */
     InternalCallbackList destroy_callbacks;
-    xcb_connection_t **list;
+    IswDisplay **list;
     TimerEventRec *timerQueue;
     WorkProcRec *workQueue;
     InputEvent **input_list;

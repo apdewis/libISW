@@ -344,7 +344,7 @@ GetRootDirName(_IswString dest, int len)
 }
 
 static void
-CombineAppUserDefaults(xcb_connection_t *dpy, IswDatabaseHandle *pdb)
+CombineAppUserDefaults(IswDisplay dpy, IswDatabaseHandle *pdb)
 {
     char *filename;
     char *path = NULL;
@@ -384,12 +384,12 @@ CombineAppUserDefaults(xcb_connection_t *dpy, IswDatabaseHandle *pdb)
 }
 
 static void
-CombineUserDefaults(xcb_connection_t *dpy, xcb_screen_t *screen,
+CombineUserDefaults(IswDisplay dpy, IswScreen screen,
                     IswDatabaseHandle *pdb)
 {
     /* Try RESOURCE_MANAGER property first */
     IswDatabaseHandle rdb =
-        _IswPlatformResourceFromManager((IswDisplay) dpy, (IswScreen) screen);
+        _IswPlatformResourceFromManager(dpy, screen);
     if (rdb) {
         _IswPlatformResourceCombine(rdb, pdb, False);
     }
@@ -494,13 +494,13 @@ IswSetLanguageProc(IswAppContext app, IswLanguageProc proc, IswPointer closure)
 }
 
 XrmDatabase
-IswScreenDatabase(IswScreen screen_handle)
+IswScreenDatabase(IswScreen screen)
 {
-    xcb_screen_t *screen = _IswXcbScreen(screen_handle);
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
     int scrno;
     IswDatabaseHandle db;
     IswPerDisplay pd;
-    xcb_connection_t *dpy = NULL;
+    IswDisplay dpy = NULL;
     int nscreens;
 
     if (screen == NULL) {
@@ -516,11 +516,10 @@ IswScreenDatabase(IswScreen screen_handle)
         PerDisplayTablePtr pdt;
         LOCK_PROCESS;
         for (pdt = _IswperDisplayList; pdt != NULL; pdt = pdt->next) {
-            xcb_screen_iterator_t iter =
-                xcb_setup_roots_iterator(xcb_get_setup(pdt->dpy));
-            int n = 0;
-            for (; iter.rem; xcb_screen_next(&iter), n++) {
-                if (iter.data == screen) {
+            int n_pdt = ops->display->screen_count(pdt->dpy);
+            int n;
+            for (n = 0; n < n_pdt; n++) {
+                if (ops->display->screen(pdt->dpy, n) == screen) {
                     dpy = pdt->dpy;
                     scrno = n;
                     break;
@@ -540,13 +539,13 @@ IswScreenDatabase(IswScreen screen_handle)
         return NULL;
     }
 
-    {
+    
         DPY_TO_APPCON(dpy);
         LOCK_APP(app);
         LOCK_PROCESS;
 
         pd = _IswGetPerDisplay((IswDisplay) dpy);
-        nscreens = xcb_setup_roots_length(xcb_get_setup(dpy));
+        nscreens = ops->display->screen_count(dpy);
 
         /* Return cached database if available */
         if (pd->per_screen_db && pd->per_screen_db[scrno]) {
@@ -590,7 +589,7 @@ IswScreenDatabase(IswScreen screen_handle)
                 if (envdb)
                     _IswPlatformResourceCombine(envdb, &db, False);
             }
-        }
+        
 
         /* Server or host defaults (RESOURCE_MANAGER property or ~/.Xdefaults) */
         if (!pd->server_db) {
@@ -638,23 +637,22 @@ IswScreenDatabase(IswScreen screen_handle)
 void
 IswReloadScreenDatabase(IswScreen screen_handle)
 {
-    xcb_screen_t *screen = _IswXcbScreen(screen_handle);
-    xcb_connection_t *dpy = NULL;
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    IswDisplay dpy = NULL;
     int scrno = 0;
     IswPerDisplay pd;
 
-    if (screen == NULL)
+    if (screen_handle == NULL)
         return;
 
     {
         PerDisplayTablePtr pdt;
         LOCK_PROCESS;
         for (pdt = _IswperDisplayList; pdt != NULL; pdt = pdt->next) {
-            xcb_screen_iterator_t iter =
-                xcb_setup_roots_iterator(xcb_get_setup(pdt->dpy));
-            int n = 0;
-            for (; iter.rem; xcb_screen_next(&iter), n++) {
-                if (iter.data == screen) {
+            int nscreens = ops->display->screen_count(pdt->dpy);
+            int n;
+            for (n = 0; n < nscreens; n++) {
+                if (ops->display->screen(pdt->dpy, n) == screen_handle) {
                     dpy = pdt->dpy;
                     scrno = n;
                     break;

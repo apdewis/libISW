@@ -132,7 +132,7 @@ AddToAppContext(IswDisplay dpy, IswAppContext app)
                                    (Cardinal) sizeof(IswDisplay));
     }
 
-    app->list[app->count++] = dpy;
+    app->list[app->count++] = &dpy;
     app->rebuild_fdlist = TRUE;
 #ifdef USE_POLL
     app->fds.nfds++;
@@ -930,8 +930,7 @@ IswDisplay
 _IswConnectionOfScreen(IswScreen screen)
 {
     IswAppContext app;
-    /* Backend boundary: the per-display table and screen walk are native. */
-    xcb_screen_t *native_screen = (xcb_screen_t *) screen;
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
 
     LOCK_PROCESS;
     /* Walk the process-level display list */
@@ -939,14 +938,14 @@ _IswConnectionOfScreen(IswScreen screen)
     if (app != NULL) {
         int i;
         for (i = 0; i < app->count; i++) {
-            xcb_connection_t *dpy = app->list[i];
+            IswDisplay dpy = *app->list[i];
             /* Check each screen of this connection */
-            const xcb_setup_t *setup = xcb_get_setup(dpy);
-            xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-            for (; iter.rem; xcb_screen_next(&iter)) {
-                if (iter.data == native_screen) {
+            int nscreens = ops->display->screen_count(dpy);
+            int s;
+            for (s = 0; s < nscreens; s++) {
+                if (ops->display->screen(dpy, s) == screen) {
                     UNLOCK_PROCESS;
-                    return (IswDisplay) dpy;
+                    return dpy;
                 }
             }
         }
