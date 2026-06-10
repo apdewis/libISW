@@ -1079,7 +1079,7 @@ _IswTranslateEvent(Widget w, xcb_generic_event_t *event)
     StatePtr current_state = tmRecPtr->current_state;
 
     XEventToTMEvent(event, &curEvent);
-    curEvent.dpy = _IswXcbConn(IswDisplayOf(w));  /* dpy not set by XEventToTMEvent; needed by _IswMatchUsingStandardMods */
+    curEvent.dpy = IswDisplayOf(w);  /* dpy not set by XEventToTMEvent; needed by _IswMatchUsingStandardMods */
 
     if (!tmRecPtr->translations) {
         IswAppWarningMsg(IswWidgetToApplicationContext(w),

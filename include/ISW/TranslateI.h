@@ -285,7 +285,7 @@ typedef EventSeqRec EventRec;
 typedef EventSeqPtr EventPtr;
 
 typedef struct _TMEventRec {
-    xcb_connection_t *dpy; //adding this as the xcb event types don't diplay pointers unlike xlib
+    IswDisplay dpy;
     xcb_generic_event_t *xev;
     Event event;
 }TMEventRec;
@@ -478,7 +478,7 @@ extern void _IswBindActions(
 );
 
 extern Boolean _IswComputeLateBindings(
-    xcb_connection_t *		/* dpy */,
+    IswDisplay		/* dpy */,
     LateBindingsPtr	/* lateModifiers */,
     Modifiers*		/* computed */,
     Modifiers*		/* computedMask */

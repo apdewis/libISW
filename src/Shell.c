@@ -3118,10 +3118,10 @@ IswSetWindowState(Widget shell, const char *state, Boolean set)
 }
 
 void
-_IswShellUpdateUserTime(xcb_connection_t *dpy, xcb_window_t event_window,
+_IswShellUpdateUserTime(IswDisplay dpy, xcb_window_t event_window,
                         xcb_timestamp_t time)
 {
-    Widget widget = IswWindowToWidget((IswDisplay) dpy, _IswXcbWindowWrap(event_window));
+    Widget widget = IswWindowToWidget(dpy, _IswXcbWindowWrap(event_window));
     if (!widget)
         return;
 

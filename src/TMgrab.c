@@ -98,7 +98,7 @@ GrabAllCorrectKeys(Widget widget,
     if (modMatch->lateModifiers) {
         Boolean resolved;
 
-        resolved = _IswComputeLateBindings(_IswXcbConn(dpy), modMatch->lateModifiers,
+        resolved = _IswComputeLateBindings(dpy, modMatch->lateModifiers,
                                           &careOn, &careMask);
         if (!resolved)
             return;
@@ -198,7 +198,7 @@ DoGrab(StatePtr state, IswPointer data)
     case XCB_BUTTON_PRESS:
     case XCB_BUTTON_RELEASE:
         if (modMatch->lateModifiers) {
-            Boolean resolved = _IswComputeLateBindings(_IswXcbConn(IswDisplayOf(widget)),
+            Boolean resolved = _IswComputeLateBindings(IswDisplayOf(widget),
                                                       modMatch->lateModifiers,
                                                       &careOn, &careMask);
 

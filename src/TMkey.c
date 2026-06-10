@@ -171,7 +171,7 @@ FM(0x1e), FM(0x9e), FM(0x5e), FM(0xde), FM(0x3e), FM(0xbe), FM(0x7e), FM(0xfe)
 #define KEYCODE_ARRAY_SIZE 10
 
 Boolean
-_IswComputeLateBindings(xcb_connection_t *dpy,
+_IswComputeLateBindings(IswDisplay dpy,
                        LateBindingsPtr lateModifiers,
                        uint16_t *computed,
                        uint16_t *computedMask)
@@ -180,15 +180,16 @@ _IswComputeLateBindings(xcb_connection_t *dpy,
     ModToKeysymTable *temp;
     IswPerDisplay perDisplay;
     xcb_keysym_t tempKeysym = NoSymbol;
+    xcb_connection_t *conn = _IswXcbConn(dpy);
 
-    perDisplay = _IswGetPerDisplay((IswDisplay) dpy);
+    perDisplay = _IswGetPerDisplay(dpy);
     if (perDisplay == NULL) {
-        IswAppWarningMsg(IswDisplayToApplicationContext((IswDisplay) dpy),
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
                         "displayError", "invalidDisplay", IswCIswToolkitError,
                         "Can't find display structure", NULL, NULL);
         return FALSE;
     }
-    _InitializeKeysymTables(dpy, perDisplay);
+    _InitializeKeysymTables(conn, perDisplay);
     
     for (ref = 0; lateModifiers[ref].keysym; ref++) {
         Boolean found = FALSE;
@@ -259,7 +260,7 @@ _IswMatchUsingDontCareMods(TMTypeMatch typeMatch,
     Modifiers computed = 0;
     Modifiers computedMask = 0;
     Boolean resolved = TRUE;
-    xcb_connection_t *dpy = eventSeq->dpy;
+    IswDisplay dpy = eventSeq->dpy;
     IswPerDisplay pd;
 
     if (modMatch->lateModifiers != NULL)
@@ -402,8 +403,8 @@ _IswMatchUsingStandardMods(TMTypeMatch typeMatch,
     xcb_keysym_t keysym_return;
     uint16_t computed = 0;
     uint16_t computedMask = 0;
-    xcb_connection_t *dpy = eventSeq->dpy;
-    IswPerDisplay pd = _IswGetPerDisplay((IswDisplay) dpy);
+    IswDisplay dpy = eventSeq->dpy;
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
     TMKeyContext tm_context = pd->tm_context;
     uint16_t translateModifiers;
 

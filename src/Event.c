@@ -2100,7 +2100,7 @@ IswDispatchEvent(xcb_generic_event_t *event, IswDisplay dpy)
     if (time)
         pd->last_timestamp = time;
     if (is_user_input)
-        _IswShellUpdateUserTime(conn, get_event_window(event), time);
+        _IswShellUpdateUserTime(dpy, get_event_window(event), time);
     pd->last_event = *event;
 
     if (pd->dispatcher_list) {
