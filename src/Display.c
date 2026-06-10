@@ -376,20 +376,6 @@ IswOpenDisplay(IswAppContext app,
     return dpy;
 }
 
-/*
- * _IswGetDefaultScreen - XCB replacement for the Xlib DefaultScreenOfDisplay()
- * macro.
- *
- * DefaultScreenOfDisplay() is an Xlib macro defined as:
- *   ScreenOfDisplay(dpy, DefaultScreen(dpy))
- * which reads ((Display*)dpy)->default_screen — meaningless for an
- * xcb_connection_t* and returns NULL/garbage, causing a SIGSEGV when the
- * result is dereferenced.
- *
- * This function retrieves the default screen number stored in IswPerDisplay
- * (set from the screen-number output of xcb_connect()) and walks
- * xcb_setup_roots_iterator() to return the correct xcb_screen_t*.
- */
 xcb_screen_t *
 _IswGetDefaultScreen(xcb_connection_t *dpy)
 {
@@ -404,7 +390,7 @@ _IswGetDefaultScreen(xcb_connection_t *dpy)
     return iter.data;
 }
 
-xcb_connection_t *
+IswDisplay
 _IswAppInit(IswAppContext *app_context_return,
            String application_class,
            XrmOptionDescRec *options,
@@ -415,7 +401,7 @@ _IswAppInit(IswAppContext *app_context_return,
 {
     _IswString *saved_argv;
     int i;
-    xcb_connection_t *dpy;
+    IswDisplay dpy;
 
     /*
      * Save away argv and argc so we can set the properties later
@@ -433,9 +419,9 @@ _IswAppInit(IswAppContext *app_context_return,
     if (fallback_resources)     /* save a procedure call */
         IswAppSetFallbackResources(*app_context_return, fallback_resources);
 
-    dpy = _IswXcbConn(IswOpenDisplay(*app_context_return, NULL, NULL,
+    dpy = IswOpenDisplay(*app_context_return, NULL, NULL,
                         application_class,
-                        options, num_options, argc_in_out, *argv_in_out));
+                        options, num_options, argc_in_out, *argv_in_out);
 
     if (!dpy) {
         String param = (*app_context_return)->display_name_tried;

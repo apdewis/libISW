@@ -155,7 +155,7 @@ IswVaAppCreateShell(_Xconst char *name,
 
     _IswVaToTypedArgList(var, total_count, &typed_args, &num_args);
     widget = _IswAppCreateShell((String) name, (String) class, widget_class,
-                               _IswXcbConn(display), (ArgList) NULL, (Cardinal) 0,
+                               display, (ArgList) NULL, (Cardinal) 0,
                                typed_args, num_args);
 
     IswFree((IswPointer) typed_args);
@@ -264,7 +264,7 @@ _IswVaOpenApplication(IswAppContext *app_context_return,
                      va_list var_args)
 {
     IswAppContext app_con;
-    xcb_connection_t *dpy;
+    IswDisplay dpy;
     register int saved_argc = *argc_in_out;
     Widget root;
     String attr;
@@ -299,19 +299,15 @@ _IswVaOpenApplication(IswAppContext *app_context_return,
 
     va_end(var_args);
 
-    /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
-     * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
-    {
-        xcb_screen_t *def_screen = _IswGetDefaultScreen(dpy);
-        root =
-            IswVaAppCreateShell(NULL, application_class,
-                               widget_class, (IswDisplay) dpy,
-                               IswNscreen, (IswArgVal) def_screen,
-                               IswNargc, (IswArgVal) saved_argc,
-                               IswNargv, (IswArgVal) argv_in_out,
-                               IswVaNestedList, (IswVarArgsList) typed_args, NULL);
-    }
-
+    IswScreen def_screen = _IswDefaultScreenOf(dpy);
+    root =
+        IswVaAppCreateShell(NULL, application_class,
+                           widget_class, (IswDisplay) dpy,
+                           IswNscreen, (IswArgVal) def_screen,
+                           IswNargc, (IswArgVal) saved_argc,
+                           IswNargv, (IswArgVal) argv_in_out,
+                           IswVaNestedList, (IswVarArgsList) typed_args, NULL);
+    
     if (app_context_return != NULL)
         *app_context_return = app_con;
 

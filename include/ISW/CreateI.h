@@ -12,7 +12,7 @@ extern Widget _IswCreatePopupShell(String name, WidgetClass widget_class,
 				  Cardinal num_args, IswTypedArgList typed_args,
 				  Cardinal num_typed_args);
 extern Widget _IswAppCreateShell(String name, String class,
-				WidgetClass widget_class, xcb_connection_t *display,
+				WidgetClass widget_class, IswDisplay display,
 				ArgList args, Cardinal num_args,
 				IswTypedArgList typed_args,
 				Cardinal num_typed_args);

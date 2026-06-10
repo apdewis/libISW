@@ -260,7 +260,7 @@ extern ProcessContext _IswGetProcessContext(
     void
 );
 
-xcb_connection_t *
+IswDisplay
 _IswAppInit(
     IswAppContext*	/* app_context_return */,
     String		/* application_class */,

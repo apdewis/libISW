@@ -611,13 +611,13 @@ IswScreenDatabase(IswScreen screen)
         /* App user defaults and system app-defaults */
         CombineAppUserDefaults(dpy, &db);
         {
-            char *filename = IswResolvePathname((IswDisplay) dpy, "app-defaults",
+            char *filename2 = IswResolvePathname((IswDisplay) dpy, "app-defaults",
                                                NULL, NULL, NULL, NULL, 0, NULL);
-            if (filename) {
-                IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename);
+            if (filename2) {
+                IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename2);
                 if (fdb)
                     _IswPlatformResourceCombine(fdb, &db, False);
-                IswFree(filename);
+                IswFree(filename2);
             }
         }
 
@@ -1256,7 +1256,7 @@ IswOpenApplication(IswAppContext *app_context_return,
                   Cardinal num_args_in)
 {
     IswAppContext app_con;
-    xcb_connection_t *dpy;
+    IswDisplay dpy;
     register int saved_argc = *argc_in_out;
     Widget root;
     IswArgBuilder ab = IswArgBuilderInit();
@@ -1268,16 +1268,14 @@ IswOpenApplication(IswAppContext *app_context_return,
                      argc_in_out, &argv_in_out, fallback_resources);
 
     LOCK_APP(app_con);
-    /* NOTE: DefaultScreenOfDisplay(dpy) must NOT be used with xcb_connection_t*.
-     * Use _IswGetDefaultScreen(dpy) instead. See _IswGetDefaultScreen() for details. */
-    IswArgScreen(&ab, _IswGetDefaultScreen(dpy));
+    IswArgScreen(&ab, _IswDefaultScreenOf(dpy));
     IswArgArgc(&ab, saved_argc);
     IswArgArgv(&ab, argv_in_out);
 
     merged_args = IswMergeArgLists(args_in, num_args_in, ab.args, ab.count);
     Cardinal num = ab.count + num_args_in;
 
-    root = IswAppCreateShell(NULL, application_class, widget_class, (IswDisplay) dpy,
+    root = IswAppCreateShell(NULL, application_class, widget_class, dpy,
                             merged_args, num);
 
     if (app_context_return)

@@ -715,7 +715,7 @@ Widget
 _IswAppCreateShell(String name,
                   String class,
                   WidgetClass widget_class,
-                  xcb_connection_t *display,
+                  IswDisplay display,
                   ArgList args,
                   Cardinal num_args,
                   IswTypedArgList typed_args,
@@ -724,19 +724,19 @@ _IswAppCreateShell(String name,
     Widget shell;
 
     if (widget_class == NULL) {
-        IswAppErrorMsg(IswDisplayToApplicationContext((IswDisplay) display),
+        IswAppErrorMsg(IswDisplayToApplicationContext(display),
                       "invalidClass", "xtAppCreateShell", IswCIswToolkitError,
                       "IswAppCreateShell requires non-NULL widget class",
                       NULL, NULL);
     }
     if (name == NULL) {
-        IswPerDisplay pd = _IswGetPerDisplay((IswDisplay) display);
+        IswPerDisplay pd = _IswGetPerDisplay(display);
         name = pd ? pd->name : "main";
     }
 
     shell = xtCreate(name, class, widget_class, (Widget) NULL,
-                     (IswScreen) _IswGetDefaultScreen(display),
-                     (IswDisplay) display,
+                     _IswDefaultScreenOf(display),
+                     display,
                      args, num_args, typed_args, num_typed_args,
                      (ConstraintWidgetClass) NULL, _IswAddShellToHookObj);
 
@@ -759,7 +759,7 @@ IswAppCreateShell(_Xconst char *name,
 
     LOCK_APP(app);
     retval = _IswAppCreateShell((String) name, (String) class, widget_class,
-                               _IswXcbConn(display), args, num_args, (IswTypedArgList) NULL,
+                               display, args, num_args, (IswTypedArgList) NULL,
                                (Cardinal) 0);
     UNLOCK_APP(app);
     return retval;
