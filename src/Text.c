@@ -1199,10 +1199,6 @@ _IswTextVScroll(TextWidget ctx, int n)
     (void) y;
     (void) scroll_from_pos;
     _IswTextBuildLineTable(ctx, top, FALSE);
-    /* Full repaint instead of xcb_copy_area: the windowless Text shares its
-       windowed ancestor's window, so an in-window blit would copy the wrong
-       region.  DisplayTextWindow clears the text area (excluding scrollbars)
-       and redraws via the ISWRender-backed sink. */
     DisplayTextWindow( (Widget) ctx);
     _IswTextSetScrollBars(ctx);
   }
@@ -1216,9 +1212,6 @@ _IswTextVScroll(TextWidget ctx, int n)
     _IswTextBuildLineTable(ctx, top, FALSE);
     y = IsValidLine(ctx, n) ? lt->info[n].y : ctx->core.height - 2 * s;
 
-    /* XCB's xcb_copy_area has issues with overlapping regions for backward
-     * scrolling, so we do a full redraw instead. This is simpler and more
-     * reliable than trying to copy overlapping regions. */
     DisplayTextWindow((Widget)ctx);
     _IswTextSetScrollBars(ctx);
   }
@@ -1247,9 +1240,6 @@ HScroll(Widget w, IswPointer closure, IswPointer callData)
     pixels = old_left - ctx->text.margin.left;
   }
 
-  /* Full repaint instead of xcb_copy_area (see VScroll): windowless Text
-     can't blit within the shared ancestor window.  DisplayTextWindow clears
-     the text area (excluding scrollbar bands) and redraws via the sink. */
   if ( pixels != 0 )
     DisplayTextWindow( (Widget) ctx );
 
@@ -1406,7 +1396,6 @@ VJump(Widget w, IswPointer closure, IswPointer callData)
   _IswTextExecuteUpdate(ctx);
 }
 
-/* Stub for IswConvertStandardSelection - simplified for XCB port */
 static Boolean
 IswConvertStandardSelection(Widget w, xcb_timestamp_t time, xcb_atom_t *selection,
                            xcb_atom_t *target, xcb_atom_t *type, IswPointer *value,
@@ -2478,11 +2467,7 @@ ProcessExposeRegion(Widget w, IswEvent *iswev, Region region)
     TextWidget ctx = (TextWidget) w;
     xcb_rectangle_t expose, cursor;
     Boolean need_to_draw;
-    /* GraphicsExpose / NoExpose have no neutral IswEvent kind (they are tied to
-       the xcb_copy_area scroll optimisation, abstracted in a later phase), so
-       distinguish them through the native escape hatch.  A real damage event
-       arrives as IswRedraw; a NULL event is the "repaint whole widget"
-       convention used by _IswRepaintWindowless / PaintScrollbars. */
+
     xcb_generic_event_t *native =
         (xcb_generic_event_t *) (iswev ? IswEventNative(iswev) : NULL);
     uint8_t type = native ? (native->response_type & ~0x80) : XCB_EXPOSE;
