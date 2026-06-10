@@ -31,9 +31,20 @@ extern double _IswGetScaleFactor(IswDisplay dpy);
 /* _ISWSetCairoFontFromXFont declared in ISWRenderPrivate.h */
 
 /*
- * Cairo-XCB Backend Data
+ * Cairo-XCB surface — the concrete struct _IswSurface for this backend.
+ *
+ * Holds the per-widget back buffer, its window-target surface, and the Present
+ * state.  Self-contained: it carries the connection / screen / window / visual
+ * it needs so the surface ops operate on the handle alone, without a render
+ * context.  `cairo_ctx` is the surface's current drawing target (window ctx
+ * outside a frame, back ctx during one); the render context mirrors it in
+ * ctx->draw for the drawing primitives.
  */
-typedef struct {
+struct _IswSurface {
+    xcb_connection_t *connection;  /* server connection (from the widget) */
+    xcb_screen_t *screen;          /* screen (for bitmap surfaces) */
+    xcb_window_t window;           /* target window (windowed widget / ancestor) */
+
     cairo_surface_t *surface;      /* window surface (blit target) */
     cairo_t *cairo_ctx;            /* active drawing context (swapped in begin/end) */
     xcb_visualtype_t *visual;
@@ -66,7 +77,11 @@ typedef struct {
      * a parent widget can wrap the entire paint in one frame while child
      * widgets keep their own begin/end calls without causing extra blits. */
     int frame_depth;
-} ISWRenderCairoXCBData;
+};
+
+/* The backend's data IS its IswSurface; keep the historical name as an alias so
+   the body below reads unchanged. */
+typedef struct _IswSurface ISWRenderCairoXCBData;
 
 /*
  * =================================================================
@@ -92,12 +107,12 @@ _cairo_xcb_windowed_widget(Widget w)
 }
 
 static Boolean
-_cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
+_cairo_xcb_create_surface(IswSurface data, Widget widget)
 {
     /* Windowless widgets share their windowed ancestor's window; the surface
        must cover the whole window, not just the child's rectangle. */
-    Widget surf_w = ctx->widget->core.windowless
-                  ? _cairo_xcb_windowed_widget(ctx->widget) : ctx->widget;
+    Widget surf_w = widget->core.windowless
+                  ? _cairo_xcb_windowed_widget(widget) : widget;
     Dimension w = surf_w->core.width;
     Dimension h = surf_w->core.height;
 
@@ -106,8 +121,8 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
     if (h > 32767) h = 32767;
 
     data->surface = cairo_xcb_surface_create(
-        ctx->connection,
-        ctx->window,
+        data->connection,
+        data->window,
         data->visual,
         w, h
     );
@@ -123,7 +138,7 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
     /* HiDPI: set device scale so Cairo maps logical drawing coordinates
      * to physical surface pixels transparently. */
     {
-        double sf = _IswGetScaleFactor(IswDisplayOf(ctx->widget));
+        double sf = _IswGetScaleFactor(IswDisplayOf(widget));
         if (sf > 1.0)
             cairo_surface_set_device_scale(data->surface, sf, sf);
     }
@@ -154,9 +169,9 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
         if (!present_probed) {
             present_probed = 1;
             xcb_present_query_version_cookie_t vc =
-                xcb_present_query_version(ctx->connection, 1, 0);
+                xcb_present_query_version(data->connection, 1, 0);
             xcb_present_query_version_reply_t *vr =
-                xcb_present_query_version_reply(ctx->connection, vc, NULL);
+                xcb_present_query_version_reply(data->connection, vc, NULL);
             if (vr) {
                 present_available = 1;
                 free(vr);
@@ -164,9 +179,9 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
         }
 
         if (present_available) {
-            data->present_eid = xcb_generate_id(ctx->connection);
-            xcb_present_select_input(ctx->connection,
-                                     data->present_eid, ctx->window,
+            data->present_eid = xcb_generate_id(data->connection);
+            xcb_present_select_input(data->connection,
+                                     data->present_eid, data->window,
                                      XCB_PRESENT_EVENT_MASK_COMPLETE_NOTIFY);
 
             /* Present blits are deferred and race with the next frame's
@@ -181,75 +196,68 @@ _cairo_xcb_create_surface(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
     return True;
 }
 
-Boolean
-ISWRenderCairoXCBInit(ISWRenderContext *ctx)
+static IswSurface
+cairo_xcb_surface_init(Widget widget)
 {
-    ISWRenderCairoXCBData *data;
+    IswSurface data;
+    xcb_screen_t *screen;
+    xcb_window_t window;
     uint8_t depth;
 
-    /* Allocate backend data */
-    data = (ISWRenderCairoXCBData*)calloc(1, sizeof(*data));
+    screen = _IswXcbScreen(IswScreenOf(widget));
+    window = _IswXcbWindow(IswWindowOf(widget));
+
+    /* Allocate surface state */
+    data = (IswSurface)calloc(1, sizeof(*data));
     if (!data) {
-        return False;
+        return NULL;
     }
 
+    data->connection = _IswXcbConn(IswDisplayOf(widget));
+    data->screen = screen;
+    data->window = window;
+
     /* Use widget depth if set, otherwise use screen's root depth */
-    depth = (ctx->widget->core.depth != 0) ? ctx->widget->core.depth : ctx->screen->root_depth;
+    depth = (widget->core.depth != 0) ? widget->core.depth : screen->root_depth;
 
     /* Find visual for depth, fall back to root depth visual */
-    data->visual = ISWRenderFindVisual(ctx->screen, depth);
-    if (!data->visual && depth != ctx->screen->root_depth) {
-        data->visual = ISWRenderFindVisual(ctx->screen, ctx->screen->root_depth);
+    data->visual = ISWRenderFindVisual(screen, depth);
+    if (!data->visual && depth != screen->root_depth) {
+        data->visual = ISWRenderFindVisual(screen, screen->root_depth);
     }
     if (!data->visual) {
         fprintf(stderr, "ISWRenderCairoXCB: No usable visual found\n");
         free(data);
-        return False;
+        return NULL;
     }
-
-    /* Set capabilities early — available even while deferred */
-    ctx->capabilities = ISW_RENDER_CAP_BASIC |
-                       ISW_RENDER_CAP_ANTIALIASING |
-                       ISW_RENDER_CAP_GRADIENTS |
-                       ISW_RENDER_CAP_ALPHA |
-                       ISW_RENDER_CAP_TRANSFORMS |
-                       ISW_RENDER_CAP_TEXT_ADVANCED;
 
     data->save_count = 0;
 
     /* Defer surface creation if widget has no dimensions yet */
-    if (ctx->widget->core.width == 0 || ctx->widget->core.height == 0 ||
-        ctx->window == 0) {
+    if (widget->core.width == 0 || widget->core.height == 0 || window == 0) {
         data->deferred = True;
         data->surface = NULL;
         data->cairo_ctx = NULL;
-        ctx->backend_data = data;
-        return True;
+        return data;
     }
 
     data->deferred = False;
-    ctx->backend_data = data;
 
-    if (!_cairo_xcb_create_surface(ctx, data)) {
-        ctx->backend_data = NULL;
+    if (!_cairo_xcb_create_surface(data, widget)) {
         free(data);
-        return False;
+        return NULL;
     }
 
-    return True;
+    return data;
 }
 
-void
-ISWRenderCairoXCBDestroy(ISWRenderContext *ctx)
+static void
+cairo_xcb_surface_destroy(IswSurface data)
 {
-    ISWRenderCairoXCBData *data;
-    
-    if (!ctx || !ctx->backend_data) {
+    if (!data) {
         return;
     }
-    
-    data = (ISWRenderCairoXCBData*)ctx->backend_data;
-    
+
     /* Destroy back buffer */
     if (data->back_ctx) {
         cairo_destroy(data->back_ctx);
@@ -257,14 +265,14 @@ ISWRenderCairoXCBDestroy(ISWRenderContext *ctx)
     if (data->back_surface) {
         cairo_surface_destroy(data->back_surface);
     }
-    if (data->back_pixmap && ctx->connection) {
-        xcb_free_pixmap(ctx->connection, data->back_pixmap);
+    if (data->back_pixmap && data->connection) {
+        xcb_free_pixmap(data->connection, data->back_pixmap);
     }
 
     /* Release Present event context */
-    if (data->present_ok && ctx->connection) {
-        xcb_present_select_input(ctx->connection,
-                                 data->present_eid, ctx->window,
+    if (data->present_ok && data->connection) {
+        xcb_present_select_input(data->connection,
+                                 data->present_eid, data->window,
                                  XCB_PRESENT_EVENT_MASK_NO_EVENT);
     }
 
@@ -277,22 +285,6 @@ ISWRenderCairoXCBDestroy(ISWRenderContext *ctx)
     }
 
     free(data);
-    ctx->backend_data = NULL;
-}
-
-void
-ISWRenderCairoXCBResize(ISWRenderContext *ctx, int width, int height)
-{
-    ISWRenderCairoXCBData *data;
-    
-    if (!ctx || !ctx->backend_data) {
-        return;
-    }
-    
-    data = (ISWRenderCairoXCBData*)ctx->backend_data;
-    
-    /* Update surface size */
-    cairo_xcb_surface_set_size(data->surface, width, height);
 }
 
 /*
@@ -309,14 +301,14 @@ ISWRenderCairoXCBResize(ISWRenderContext *ctx, int width, int height)
  * Returns True if a usable back_ctx is available.
  */
 static Boolean
-_cairo_xcb_ensure_back(ISWRenderContext *ctx, ISWRenderCairoXCBData *data,
+_cairo_xcb_ensure_back(IswSurface data, Widget widget,
                        Dimension w, Dimension h, double sf)
 {
     /* Windowless widgets use a client-side ARGB32 IMAGE surface so transparent
      * margins composite correctly onto the parent (a server pixmap at root
      * depth 24 has no alpha).  Windowed widgets use a server pixmap so the
      * Present extension can blit it. */
-    Boolean want_image = (ctx->widget && ctx->widget->core.windowless);
+    Boolean want_image = (widget && widget->core.windowless);
 
     if (w < 1) w = 1;
     if (h < 1) h = 1;
@@ -334,7 +326,7 @@ _cairo_xcb_ensure_back(ISWRenderContext *ctx, ISWRenderCairoXCBData *data,
             data->back_surface = NULL;
         }
         if (data->back_pixmap) {
-            xcb_free_pixmap(ctx->connection, data->back_pixmap);
+            xcb_free_pixmap(data->connection, data->back_pixmap);
             data->back_pixmap = 0;
         }
 
@@ -347,14 +339,14 @@ _cairo_xcb_ensure_back(ISWRenderContext *ctx, ISWRenderCairoXCBData *data,
             data->back_surface =
                 cairo_image_surface_create(CAIRO_FORMAT_ARGB32, aw, ah);
         } else {
-            uint8_t depth = (ctx->widget->core.depth != 0)
-                          ? ctx->widget->core.depth
-                          : ctx->screen->root_depth;
-            data->back_pixmap = xcb_generate_id(ctx->connection);
-            xcb_create_pixmap(ctx->connection, depth, data->back_pixmap,
-                              ctx->window, aw, ah);
+            uint8_t depth = (widget->core.depth != 0)
+                          ? widget->core.depth
+                          : data->screen->root_depth;
+            data->back_pixmap = xcb_generate_id(data->connection);
+            xcb_create_pixmap(data->connection, depth, data->back_pixmap,
+                              data->window, aw, ah);
             data->back_surface = cairo_xcb_surface_create(
-                ctx->connection, data->back_pixmap, data->visual, aw, ah);
+                data->connection, data->back_pixmap, data->visual, aw, ah);
         }
         if (sf > 1.0)
             cairo_surface_set_device_scale(data->back_surface, sf, sf);
@@ -378,50 +370,48 @@ _cairo_xcb_ensure_back(ISWRenderContext *ctx, ISWRenderCairoXCBData *data,
     return data->back_ctx != NULL;
 }
 
-static void
-cairo_xcb_begin(ISWRenderContext *ctx)
+static void *
+cairo_xcb_surface_begin(IswSurface data, Widget widget)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
-
     /* Windowless widgets (surface-per-widget model): each owns a back surface
      * sized to its own footprint (content + border ring).  It draws at local
      * (0,0); the border ring is painted at the surface edges and content is
      * offset by the border width.  The composite pass later folds this surface
      * into the parent's surface.  No origin translate, no clip-out-children,
      * no ancestor-sized surface — the surface boundary IS the clip. */
-    if (ctx->widget && ctx->widget->core.windowless) {
+    if (widget && widget->core.windowless) {
         double sf;
         int bw;
         Dimension pw, ph;
 
         if (data->frame_depth > 0) {
             data->frame_depth++;
-            return;
+            return data->cairo_ctx;
         }
         if (data->deferred) {
-            ctx->connection = _IswXcbConn(IswDisplayOf(ctx->widget));
-            ctx->window = _IswXcbWindow(IswWindowOf(ctx->widget));
-            if (ctx->widget->core.width == 0 || ctx->widget->core.height == 0 ||
-                ctx->window == 0)
-                return;  /* not ready */
-            if (!_cairo_xcb_create_surface(ctx, data))
-                return;
+            data->connection = _IswXcbConn(IswDisplayOf(widget));
+            data->window = _IswXcbWindow(IswWindowOf(widget));
+            if (widget->core.width == 0 || widget->core.height == 0 ||
+                data->window == 0)
+                return NULL;  /* not ready */
+            if (!_cairo_xcb_create_surface(data, widget))
+                return NULL;
             data->deferred = False;
         }
         if (!data->window_ctx)
-            return;
+            return NULL;
 
-        sf = _IswGetScaleFactor(IswDisplayOf(ctx->widget));
-        bw = (int) ctx->widget->core.border_width;
+        sf = _IswGetScaleFactor(IswDisplayOf(widget));
+        bw = (int) widget->core.border_width;
         /* Footprint = content + border ring, in physical pixels. */
-        pw = (Dimension)((ctx->widget->core.width + 2 * bw) * sf + 0.5);
-        ph = (Dimension)((ctx->widget->core.height + 2 * bw) * sf + 0.5);
+        pw = (Dimension)((widget->core.width + 2 * bw) * sf + 0.5);
+        ph = (Dimension)((widget->core.height + 2 * bw) * sf + 0.5);
 
-        if (!_cairo_xcb_ensure_back(ctx, data, pw, ph, sf)) {
+        if (!_cairo_xcb_ensure_back(data, widget, pw, ph, sf)) {
             data->cairo_ctx = data->window_ctx;  /* degraded: no buffer */
             cairo_save(data->cairo_ctx);
             data->frame_depth = 1;
-            return;
+            return data->cairo_ctx;
         }
 
         /* Font state from the always-present window ctx. */
@@ -454,11 +444,11 @@ cairo_xcb_begin(ISWRenderContext *ctx)
          * subclasses draw a rounded Cairo stroke from core.border_width) so
          * the border is not rendered twice. */
         if (bw > 0 &&
-            !(IswIsSubclass(ctx->widget, simpleWidgetClass) &&
-              ((SimpleWidget) ctx->widget)->simple.self_border)) {
-            Pixel bp = ctx->widget->core.border_pixel;
-            int cw_ = ctx->widget->core.width;
-            int ch = ctx->widget->core.height;
+            !(IswIsSubclass(widget, simpleWidgetClass) &&
+              ((SimpleWidget) widget)->simple.self_border)) {
+            Pixel bp = widget->core.border_pixel;
+            int cw_ = widget->core.width;
+            int ch = widget->core.height;
             cairo_save(data->cairo_ctx);
             cairo_set_source_rgb(data->cairo_ctx,
                 ((bp >> 16) & 0xff) / 255.0,
@@ -474,42 +464,42 @@ cairo_xcb_begin(ISWRenderContext *ctx)
         /* Content draws at local (0,0) = inside the border ring. */
         cairo_translate(data->cairo_ctx, bw, bw);
         cairo_rectangle(data->cairo_ctx, 0, 0,
-                        ctx->widget->core.width, ctx->widget->core.height);
+                        widget->core.width, widget->core.height);
         cairo_clip(data->cairo_ctx);
         data->frame_depth = 1;
-        return;
+        return data->cairo_ctx;
     }
 
     /* Nested begin: a parent widget already started the frame — just
      * keep drawing into the same back buffer without blitting. */
     if (data->frame_depth > 0) {
         data->frame_depth++;
-        return;
+        return data->cairo_ctx;
     }
 
     /* Complete deferred initialization now that the widget has a window */
     if (data->deferred) {
-        if (ctx->widget->core.width == 0 || ctx->widget->core.height == 0 ||
-            ctx->window == 0) {
-            return;  /* Still not ready */
+        data->window = _IswXcbWindow(IswWindowOf(widget));
+        if (widget->core.width == 0 || widget->core.height == 0 ||
+            data->window == 0) {
+            return NULL;  /* Still not ready */
         }
         /* Pick up the window that wasn't available at init time */
-        if (ctx->window != 0 && ctx->window != (xcb_window_t)-1) {
-            ctx->connection = _IswXcbConn(IswDisplayOf(ctx->widget));
-            ctx->window = _IswXcbWindow(IswWindowOf(ctx->widget));
+        if (data->window != 0 && data->window != (xcb_window_t)-1) {
+            data->connection = _IswXcbConn(IswDisplayOf(widget));
         }
-        if (!_cairo_xcb_create_surface(ctx, data)) {
-            return;  /* Surface creation failed — skip this frame */
+        if (!_cairo_xcb_create_surface(data, widget)) {
+            return NULL;  /* Surface creation failed — skip this frame */
         }
         data->deferred = False;
     }
 
     /* Update window surface size — use physical pixels for surfaces
      * since the X window is at physical size. */
-    if (ctx->widget && data->surface) {
-        double sf = _IswGetScaleFactor(IswDisplayOf(ctx->widget));
-        Dimension w = (Dimension)(ctx->widget->core.width * sf + 0.5);
-        Dimension h = (Dimension)(ctx->widget->core.height * sf + 0.5);
+    if (widget && data->surface) {
+        double sf = _IswGetScaleFactor(IswDisplayOf(widget));
+        Dimension w = (Dimension)(widget->core.width * sf + 0.5);
+        Dimension h = (Dimension)(widget->core.height * sf + 0.5);
         cairo_xcb_surface_set_size(data->surface, w, h);
 
         /* Ensure back buffer can hold widget dimensions (physical).
@@ -531,7 +521,7 @@ cairo_xcb_begin(ISWRenderContext *ctx)
                 data->back_surface = NULL;
             }
             if (data->back_pixmap) {
-                xcb_free_pixmap(ctx->connection, data->back_pixmap);
+                xcb_free_pixmap(data->connection, data->back_pixmap);
                 data->back_pixmap = 0;
             }
 
@@ -542,14 +532,14 @@ cairo_xcb_begin(ISWRenderContext *ctx)
             if (ah < 1) ah = 1;
 
             /* Create new back buffer */
-            uint8_t depth = (ctx->widget->core.depth != 0)
-                          ? ctx->widget->core.depth
-                          : ctx->screen->root_depth;
-            data->back_pixmap = xcb_generate_id(ctx->connection);
-            xcb_create_pixmap(ctx->connection, depth, data->back_pixmap,
-                              ctx->window, aw, ah);
+            uint8_t depth = (widget->core.depth != 0)
+                          ? widget->core.depth
+                          : data->screen->root_depth;
+            data->back_pixmap = xcb_generate_id(data->connection);
+            xcb_create_pixmap(data->connection, depth, data->back_pixmap,
+                              data->window, aw, ah);
             data->back_surface = cairo_xcb_surface_create(
-                ctx->connection, data->back_pixmap, data->visual, aw, ah);
+                data->connection, data->back_pixmap, data->visual, aw, ah);
             /* HiDPI: device scale for logical→physical mapping */
             if (sf > 1.0)
                 cairo_surface_set_device_scale(data->back_surface, sf, sf);
@@ -565,7 +555,7 @@ cairo_xcb_begin(ISWRenderContext *ctx)
              * the Present path uses the back buffer as authoritative,
              * so we must initialize it ourselves. */
             {
-                uint32_t bg = ctx->widget->core.background_pixel;
+                uint32_t bg = widget->core.background_pixel;
                 cairo_save(data->back_ctx);
                 cairo_set_operator(data->back_ctx, CAIRO_OPERATOR_SOURCE);
                 cairo_set_source_rgb(data->back_ctx,
@@ -615,18 +605,19 @@ cairo_xcb_begin(ISWRenderContext *ctx)
     }
 
     data->frame_depth = 1;
+    return data->cairo_ctx;
 }
 
 /* Blit a windowed widget's back surface to its X window (Present or cairo). */
 static void
-_cairo_xcb_blit_to_window(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
+_cairo_xcb_blit_to_window(IswSurface data, xcb_window_t window)
 {
     if (data->back_surface) {
         cairo_surface_flush(data->back_surface);
 
         if (data->present_ok && data->back_pixmap) {
-            xcb_present_pixmap(ctx->connection,
-                               ctx->window,
+            xcb_present_pixmap(data->connection,
+                               window,
                                data->back_pixmap,
                                ++data->present_serial,
                                XCB_NONE,       /* valid region (whole) */
@@ -650,14 +641,12 @@ _cairo_xcb_blit_to_window(ISWRenderContext *ctx, ISWRenderCairoXCBData *data)
 
     if (data->surface)
         cairo_surface_flush(data->surface);
-    xcb_flush(ctx->connection);
+    xcb_flush(data->connection);
 }
 
 static void
-cairo_xcb_end(ISWRenderContext *ctx)
+cairo_xcb_surface_end(IswSurface data, Widget widget, IswWindow window)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
-
     /* Nested end: parent frame still active — don't blit yet. */
     if (data->frame_depth > 1) {
         data->frame_depth--;
@@ -668,7 +657,7 @@ cairo_xcb_end(ISWRenderContext *ctx)
      * surface.  Just undo the begin() save and flush — the composite pass
      * (ISWRenderCompositeSubtree) folds this surface up the tree and blits the
      * windowed root once.  No blit here. */
-    if (ctx->widget && ctx->widget->core.windowless) {
+    if (widget && widget->core.windowless) {
         data->frame_depth = 0;
         if (data->cairo_ctx)
             cairo_restore(data->cairo_ctx);
@@ -684,42 +673,41 @@ cairo_xcb_end(ISWRenderContext *ctx)
 
     cairo_restore(data->cairo_ctx);
 
-    _cairo_xcb_blit_to_window(ctx, data);
+    _cairo_xcb_blit_to_window(data, _IswXcbWindow(window));
 }
 
 /* present op: blit a windowed widget's (composited) back surface to its window.
  * Called by ISWRenderCompositeSubtree after windowless children are folded in. */
 static void
-cairo_xcb_present(ISWRenderContext *ctx)
+cairo_xcb_surface_present(IswSurface data, Widget widget, IswWindow window)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    (void) widget;
     if (!data) return;
-    _cairo_xcb_blit_to_window(ctx, data);
+    _cairo_xcb_blit_to_window(data, _IswXcbWindow(window));
 }
 
 /* fill_background: paint the composite target's surface with the widget's
  * background pixel.  Used on a windowed composite root before folding children
  * so uncovered gaps show the background rather than a bare (black) window. */
 static void
-cairo_xcb_fill_background(ISWRenderContext *ctx)
+cairo_xcb_fill_background(IswSurface data, Widget widget)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
     cairo_t *dctx;
     Pixel bg;
     double sf;
 
     if (!data) return;
-    if (ctx->widget == NULL) return;
+    if (widget == NULL) return;
 
-    sf = _IswGetScaleFactor(IswDisplayOf(ctx->widget));
+    sf = _IswGetScaleFactor(IswDisplayOf(widget));
 
-    /* The window surface was sized when the context was created — possibly
+    /* The window surface was sized when the surface was created — possibly
        before the widget reached its final laid-out size.  Track the current
        window size so children composite onto a full-size surface and are not
        clipped to a stale (too-small) extent. */
     if (data->surface) {
-        Dimension pw = (Dimension)(ctx->widget->core.width * sf + 0.5);
-        Dimension ph = (Dimension)(ctx->widget->core.height * sf + 0.5);
+        Dimension pw = (Dimension)(widget->core.width * sf + 0.5);
+        Dimension ph = (Dimension)(widget->core.height * sf + 0.5);
         if (pw < 1) pw = 1;
         if (ph < 1) ph = 1;
         cairo_xcb_surface_set_size(data->surface, pw, ph);
@@ -736,14 +724,14 @@ cairo_xcb_fill_background(ISWRenderContext *ctx)
        away (leave transparent) widgets near the right/bottom edges — e.g. the
        full-width status bar at the bottom. */
     {
-        Dimension pw = (Dimension)(ctx->widget->core.width * sf + 0.5);
-        Dimension ph = (Dimension)(ctx->widget->core.height * sf + 0.5);
-        _cairo_xcb_ensure_back(ctx, data, pw, ph, sf);
+        Dimension pw = (Dimension)(widget->core.width * sf + 0.5);
+        Dimension ph = (Dimension)(widget->core.height * sf + 0.5);
+        _cairo_xcb_ensure_back(data, widget, pw, ph, sf);
     }
     dctx = data->back_ctx ? data->back_ctx : data->window_ctx;
     if (dctx == NULL) return;
 
-    bg = ctx->widget->core.background_pixel;
+    bg = widget->core.background_pixel;
     cairo_save(dctx);
     cairo_set_operator(dctx, CAIRO_OPERATOR_SOURCE);
     cairo_set_source_rgb(dctx,
@@ -759,11 +747,9 @@ cairo_xcb_fill_background(ISWRenderContext *ctx)
  * root (content at 0,0) or a windowless parent (content offset by its border).
  * src's surface footprint already includes src's own border ring at (0,0). */
 static void
-cairo_xcb_composite_onto(ISWRenderContext *dst, ISWRenderContext *src,
-                         int x, int y)
+cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
+                         IswSurface sd, Widget src_widget, int x, int y)
 {
-    ISWRenderCairoXCBData *dd = (ISWRenderCairoXCBData*)dst->backend_data;
-    ISWRenderCairoXCBData *sd = (ISWRenderCairoXCBData*)src->backend_data;
     cairo_t *dctx;
     int dst_content_off;
 
@@ -778,18 +764,18 @@ cairo_xcb_composite_onto(ISWRenderContext *dst, ISWRenderContext *src,
 
     /* dst content origin within dst's surface: windowless parents reserve a
      * border ring at the top-left of their surface; windowed roots do not. */
-    dst_content_off = (dst->widget && dst->widget->core.windowless)
-                    ? (int) dst->widget->core.border_width : 0;
+    dst_content_off = (dst_widget && dst_widget->core.windowless)
+                    ? (int) dst_widget->core.border_width : 0;
 
     cairo_surface_flush(sd->back_surface);
     cairo_save(dctx);
     /* Clip to dst's content rectangle so a child larger than its parent (e.g. a
        Viewport's scrolled content) does not overflow the parent's bounds — this
        is the clipping the X server used to enforce via child windows. */
-    if (dst->widget != NULL) {
+    if (dst_widget != NULL) {
         cairo_rectangle(dctx, dst_content_off, dst_content_off,
-                        (double) dst->widget->core.width,
-                        (double) dst->widget->core.height);
+                        (double) dst_widget->core.width,
+                        (double) dst_widget->core.height);
         cairo_clip(dctx);
     }
     /* Additional composite clip the parent imposed on this child (Viewport
@@ -801,13 +787,15 @@ cairo_xcb_composite_onto(ISWRenderContext *dst, ISWRenderContext *src,
        directly into the root (the clip would otherwise be applied at the root
        origin instead of the parent's on-screen position, letting the child
        overflow — e.g. scrolled Viewport content bleeding over the status bar). */
-    if (src->clip_w > 0) {
-        int frame_x = x - (IswIsWidget(src->widget) ? (int) src->widget->core.x : 0);
-        int frame_y = y - (IswIsWidget(src->widget) ? (int) src->widget->core.y : 0);
+    if (IswIsWidget(src_widget) && src_widget->core.composite_clip &&
+        src_widget->core.composite_clip_w > 0) {
+        int frame_x = x - (int) src_widget->core.x;
+        int frame_y = y - (int) src_widget->core.y;
         cairo_rectangle(dctx,
-                        dst_content_off + frame_x + src->clip_x,
-                        dst_content_off + frame_y + src->clip_y,
-                        (double) src->clip_w, (double) src->clip_h);
+                        dst_content_off + frame_x + src_widget->core.composite_clip_x,
+                        dst_content_off + frame_y + src_widget->core.composite_clip_y,
+                        (double) src_widget->core.composite_clip_w,
+                        (double) src_widget->core.composite_clip_h);
         cairo_clip(dctx);
     }
 
@@ -819,13 +807,13 @@ cairo_xcb_composite_onto(ISWRenderContext *dst, ISWRenderContext *src,
        folded after the bottom status bar, bleeding over it.  Clipping each
        source to its footprint makes adjacent widgets non-overlapping regardless
        of fold order. */
-    if (IswIsWidget(src->widget)) {
-        int bw2 = (int) src->widget->core.border_width * 2;
+    if (IswIsWidget(src_widget)) {
+        int bw2 = (int) src_widget->core.border_width * 2;
         cairo_rectangle(dctx,
                         dst_content_off + x,
                         dst_content_off + y,
-                        (double) (src->widget->core.width + bw2),
-                        (double) (src->widget->core.height + bw2));
+                        (double) (src_widget->core.width + bw2),
+                        (double) (src_widget->core.height + bw2));
         cairo_clip(dctx);
     }
 
@@ -846,7 +834,7 @@ cairo_xcb_composite_onto(ISWRenderContext *dst, ISWRenderContext *src,
 static void
 cairo_xcb_save(ISWRenderContext *ctx)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
     cairo_save(data->cairo_ctx);
@@ -856,7 +844,7 @@ cairo_xcb_save(ISWRenderContext *ctx)
 static void
 cairo_xcb_restore(ISWRenderContext *ctx)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
     if (data->save_count > 0) {
@@ -874,7 +862,7 @@ cairo_xcb_restore(ISWRenderContext *ctx)
 static void
 cairo_xcb_set_color(ISWRenderContext *ctx, Pixel pixel)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     double r, g, b;
 
     ctx->current_color = pixel;
@@ -886,7 +874,7 @@ cairo_xcb_set_color(ISWRenderContext *ctx, Pixel pixel)
 static void
 cairo_xcb_set_color_rgba(ISWRenderContext *ctx, double r, double g, double b, double a)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
     cairo_set_source_rgba(data->cairo_ctx, r, g, b, a);
@@ -895,7 +883,7 @@ cairo_xcb_set_color_rgba(ISWRenderContext *ctx, double r, double g, double b, do
 static void
 cairo_xcb_set_line_width(ISWRenderContext *ctx, double width)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     ctx->line_width = width;
     if (!data->cairo_ctx) return;
@@ -911,7 +899,7 @@ cairo_xcb_set_line_width(ISWRenderContext *ctx, double width)
 static void
 cairo_xcb_fill_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
     cairo_rectangle(data->cairo_ctx, x, y, w, h);
@@ -921,7 +909,7 @@ cairo_xcb_fill_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h)
 static void
 cairo_xcb_stroke_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
     /* Draw four individual lines to form the rectangle.
@@ -951,7 +939,7 @@ cairo_xcb_stroke_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h)
 static void
 cairo_xcb_fill_polygon(ISWRenderContext *ctx, xcb_point_t *points, int num)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     int i;
 
     if (!data->cairo_ctx || num < 3) {
@@ -969,7 +957,7 @@ cairo_xcb_fill_polygon(ISWRenderContext *ctx, xcb_point_t *points, int num)
 static void
 cairo_xcb_stroke_polygon(ISWRenderContext *ctx, xcb_point_t *points, int num)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     int i;
 
     if (!data->cairo_ctx || num < 2) {
@@ -987,7 +975,7 @@ cairo_xcb_stroke_polygon(ISWRenderContext *ctx, xcb_point_t *points, int num)
 static void
 cairo_xcb_draw_line(ISWRenderContext *ctx, int x1, int y1, int x2, int y2)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
     cairo_move_to(data->cairo_ctx, x1, y1);
@@ -999,7 +987,7 @@ static void
 cairo_xcb_draw_arc(ISWRenderContext *ctx, int x, int y, int w, int h,
                   double angle1, double angle2)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     if (!data->cairo_ctx) return;
     double cx = x + w / 2.0;
     double cy = y + h / 2.0;
@@ -1031,7 +1019,7 @@ static void
 cairo_xcb_draw_string(ISWRenderContext *ctx, const char *text, int len,
                      int x, int y)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     char *null_term;
 
     if (!data->cairo_ctx) return;
@@ -1054,7 +1042,7 @@ cairo_xcb_draw_string(ISWRenderContext *ctx, const char *text, int len,
 static int
 cairo_xcb_text_width(ISWRenderContext *ctx, const char *text, int len)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     cairo_text_extents_t extents;
     char *null_term;
     int width;
@@ -1082,7 +1070,7 @@ cairo_xcb_text_width(ISWRenderContext *ctx, const char *text, int len)
 static int
 cairo_xcb_text_height(ISWRenderContext *ctx)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     cairo_font_extents_t extents;
 
     if (!data->cairo_ctx) return 12;
@@ -1094,7 +1082,7 @@ cairo_xcb_text_height(ISWRenderContext *ctx)
 static void
 cairo_xcb_set_font(ISWRenderContext *ctx, IswFontStruct *font)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
 
@@ -1118,7 +1106,7 @@ cairo_xcb_set_font(ISWRenderContext *ctx, IswFontStruct *font)
 static void
 cairo_xcb_set_clip_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
     cairo_reset_clip(data->cairo_ctx);
@@ -1129,7 +1117,7 @@ cairo_xcb_set_clip_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h)
 static void
 cairo_xcb_clear_clip(ISWRenderContext *ctx)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
     cairo_reset_clip(data->cairo_ctx);
@@ -1147,7 +1135,7 @@ cairo_xcb_copy_area(ISWRenderContext *ctx,
                     int dst_x, int dst_y,
                     unsigned int width, unsigned int height)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->surface) return;
     /*
@@ -1182,7 +1170,7 @@ cairo_xcb_draw_pixmap(ISWRenderContext *ctx,
                       unsigned int width, unsigned int height,
                       unsigned int depth)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
 
     if (!data->cairo_ctx) return;
     if (depth == 1) {
@@ -1267,7 +1255,7 @@ cairo_xcb_draw_image_rgba(ISWRenderContext *ctx,
                           int dst_x, int dst_y,
                           unsigned int dst_w, unsigned int dst_h)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     cairo_surface_t *img_surface;
     unsigned char *cairo_buf;
     unsigned int stride, i;
@@ -1346,7 +1334,7 @@ static Boolean
 cairo_xcb_set_gradient(ISWRenderContext *ctx, double x1, double y1, double x2, double y2,
                       Pixel color1, Pixel color2)
 {
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->backend_data;
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     cairo_pattern_t *gradient;
     if (!data->cairo_ctx) return False;
     double r1, g1, b1, r2, g2, b2;
@@ -1371,26 +1359,23 @@ static void*
 cairo_xcb_get_cairo_context(ISWRenderContext *ctx)
 {
     ISWRenderCairoXCBData *data;
-    
-    if (!ctx || !ctx->backend_data) {
+
+    if (!ctx || !ctx->surface) {
         return NULL;
     }
-    
-    data = (ISWRenderCairoXCBData*)ctx->backend_data;
+
+    data = (ISWRenderCairoXCBData*)ctx->surface;
     return (void*)data->cairo_ctx;
 }
 
 /*
  * =================================================================
- * Operations Vtable
+ * Operations Vtables
  * =================================================================
  */
 
+/* Drawing primitives — operate on the active draw target of ctx->surface. */
 const ISWRenderOps isw_render_cairo_xcb_ops = {
-    .init = ISWRenderCairoXCBInit,
-    .destroy = ISWRenderCairoXCBDestroy,
-    .begin = cairo_xcb_begin,
-    .end = cairo_xcb_end,
     .save = cairo_xcb_save,
     .restore = cairo_xcb_restore,
     .set_color = cairo_xcb_set_color,
@@ -1412,9 +1397,17 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .draw_pixmap = cairo_xcb_draw_pixmap,
     .draw_image_rgba = cairo_xcb_draw_image_rgba,
     .set_gradient = cairo_xcb_set_gradient,
-    .get_cairo_context = cairo_xcb_get_cairo_context,
+    .get_cairo_context = cairo_xcb_get_cairo_context
+};
+
+/* Surface backend — per-widget surface lifecycle, frame, and compositing. */
+const IswSurfaceOps isw_surface_cairo_xcb_ops = {
+    .create = cairo_xcb_surface_init,
+    .destroy = cairo_xcb_surface_destroy,
+    .begin = cairo_xcb_surface_begin,
+    .end = cairo_xcb_surface_end,
     .composite_onto = cairo_xcb_composite_onto,
-    .present = cairo_xcb_present,
+    .present = cairo_xcb_surface_present,
     .fill_background = cairo_xcb_fill_background
 };
 

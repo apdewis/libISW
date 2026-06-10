@@ -95,6 +95,10 @@ typedef struct _CorePart {
     IswDisplay      display;        /* window's display (opaque handle)  */
     IswColormap     colormap;           /* colormap (opaque handle)          */
     IswWindow	    window;		/* window (opaque handle)	     */
+    IswSurface	    surface;		/* per-widget render surface (opaque
+					   handle); the surface-tree analogue
+					   of `window`.  Created at realize,
+					   destroyed with the widget.          */
     Cardinal        depth;		/* number of planes in window        */
     Pixel	    background_pixel;	/* window background pixel	     */
     xcb_pixmap_t    background_pixmap;	/* window background pixmap or NULL  */
@@ -118,6 +122,27 @@ typedef struct _CorePart {
                                            widget hidden, exactly as a windowed
                                            widget the app keeps unmapped stays
                                            off-screen.  Cleared by IswMapWidget. */
+    Boolean         composite_clip;     /* a composite clip is set (below)    */
+    int             composite_clip_x, composite_clip_y,
+                    composite_clip_w, composite_clip_h;
+                                        /* when composite_clip: confine this
+                                           widget to this rect (PARENT content
+                                           coords) as it folds into its parent.
+                                           Used by scrolling containers
+                                           (Viewport).  Persists across the
+                                           surface's create/destroy, so it lives
+                                           on the widget, not the surface.       */
+    Boolean         composite_dirty;    /* surface changed since last fold:
+                                           re-run this container's expose proc
+                                           on the next composite pass.  Starts
+                                           True so the first pass paints.        */
+    Boolean         composite_lazy_root;/* windowed root the composite pass
+                                           created a surface for itself (bare
+                                           Box/Form/Shell with no own-content
+                                           expose): background-fill it each pass. */
+    Boolean         composite_presented;/* this root has presented a pass that
+                                           folded real child content (gates the
+                                           startup no-op-pass skip).             */
 } CorePart;
 
 typedef struct _WidgetRec {

@@ -926,6 +926,16 @@ IswWindowOf(Widget widget)
     return widget->core.window;
 }
 
+#undef IswSurfaceOf
+IswSurface
+IswSurfaceOf(Widget widget)
+{
+    /* Every widget owns its own surface — windowed or windowless.  Unlike
+       IswWindowOf, there is no ancestor resolution: the surface IS the
+       per-widget drawable. */
+    return widget->core.surface;
+}
+
 #undef IswSuperclass
 WidgetClass
 IswSuperclass(Widget widget)

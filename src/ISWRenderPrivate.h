@@ -27,6 +27,59 @@
 
 /*
  * =================================================================
+ * Surface Backend Operations Vtable
+ * =================================================================
+ *
+ * An IswSurface (declared opaque in ISW/Intrinsic.h) is the per-widget render
+ * target — the surface-tree analogue of a window.  Every widget owns one
+ * (core.surface); a windowless widget paints into its own surface at local
+ * (0,0), and the composite pass folds child surfaces into parent surfaces up to
+ * the windowed root, which presents to its window.
+ *
+ * This table abstracts the surface itself: its lifecycle, the per-frame target
+ * switch, and the surface-to-surface compositing/presentation.  It is keyed on
+ * IswSurface handles (and the owning Widget for geometry/background), NOT on a
+ * render context, so the composite walk operates on surfaces reached generically
+ * via IswSurfaceOf — no Widget->context registry.  The drawing primitives that
+ * mark a surface stay in ISWRenderOps; a render context draws into the surface
+ * its widget owns.
+ *
+ * The concrete struct _IswSurface is defined by the backend (the cairo-xcb
+ * backend's holds the cairo back buffer / pixmap / present state).
+ */
+typedef struct _IswSurfaceOps {
+    /* Create the per-widget surface for `widget` (windowed or windowless),
+       sized from the widget's current geometry.  Returns NULL on failure or if
+       the widget is not yet sized (caller retries at first paint). */
+    IswSurface (*create)(Widget widget);
+    /* Destroy a surface and free its buffers. */
+    void (*destroy)(IswSurface surface);
+
+    /* Begin a frame: ensure the back buffer matches the widget's current size,
+       target it, and return the render-layer drawing handle (cairo_t*) the
+       ISWRenderOps primitives draw with — or NULL if not ready this frame. */
+    void *(*begin)(IswSurface surface, Widget widget);
+    /* End a frame: flush the back buffer.  For a windowed widget, blit it to
+       `window`; for a windowless widget this is just a flush (the composite pass
+       presents).  `window` is the widget's own window (windowed) or 0. */
+    void (*end)(IswSurface surface, Widget widget, IswWindow window);
+
+    /* Fold src's surface onto dst's surface at logical (x,y) in dst's content
+       frame, clipped to dst's bounds.  `dst_widget`/`src_widget` supply
+       geometry/border/clip for the fold. */
+    void (*composite_onto)(IswSurface dst, Widget dst_widget,
+                           IswSurface src, Widget src_widget, int x, int y);
+    /* Blit a (windowed root) surface to `window` once, after all descendants
+       have been composited into it. */
+    void (*present)(IswSurface surface, Widget widget, IswWindow window);
+    /* Fill `surface` with `widget`'s background pixel, sizing it to the widget's
+       current window size.  Called on a windowed composite root before folding
+       children so uncovered gaps show the background, not a bare window. */
+    void (*fill_background)(IswSurface surface, Widget widget);
+} IswSurfaceOps;
+
+/*
+ * =================================================================
  * Backend Operations Vtable
  * =================================================================
  *
@@ -35,14 +88,6 @@
  */
 
 typedef struct _ISWRenderOps {
-    /* Lifecycle */
-    Boolean (*init)(struct _ISWRenderContext *ctx);
-    void (*destroy)(struct _ISWRenderContext *ctx);
-    
-    /* Frame operations */
-    void (*begin)(struct _ISWRenderContext *ctx);
-    void (*end)(struct _ISWRenderContext *ctx);
-    
     /* State management */
     void (*save)(struct _ISWRenderContext *ctx);
     void (*restore)(struct _ISWRenderContext *ctx);
@@ -106,20 +151,6 @@ typedef struct _ISWRenderOps {
                            Pixel c1, Pixel c2);
     void* (*get_cairo_context)(struct _ISWRenderContext *ctx);
 
-    /* Surface-tree compositing.
-     * composite_onto: paint src's back surface onto dst's back surface at
-     *   logical (x,y), clipped to dst's bounds.  Used by the composite pass to
-     *   fold a windowless child's surface into its parent's surface.
-     * present: blit a (windowed root) widget's back surface to its X window
-     *   once, after all descendants have been composited into it. */
-    void (*composite_onto)(struct _ISWRenderContext *dst,
-                           struct _ISWRenderContext *src, int x, int y);
-    void (*present)(struct _ISWRenderContext *ctx);
-    /* Fill the composite target's whole surface with the widget's background
-     * pixel.  Called on a windowed composite root before folding children, so
-     * gaps the children don't cover show the background, not a bare window. */
-    void (*fill_background)(struct _ISWRenderContext *ctx);
-
 } ISWRenderOps;
 
 /*
@@ -142,8 +173,15 @@ typedef struct _ISWRenderContext {
     /* Backend information */
     ISWRenderBackend backend;
     ISWRenderCaps capabilities;
-    const ISWRenderOps *ops;
-    
+    const ISWRenderOps *ops;            /* stateless drawing primitives */
+    const IswSurfaceOps *surface_ops;   /* surface lifecycle + compositing */
+
+    /* The surface this context draws into — the widget's own (core.surface).
+       Cached here so the drawing primitives reach it without a widget lookup.
+       It also holds the active draw target (set by surface_ops->begin), which
+       the ISWRenderOps primitives use. */
+    IswSurface surface;
+
     /* Current state */
     Pixel current_color;
     double line_width;
@@ -183,16 +221,6 @@ typedef struct _ISWRenderContext {
        — and the fold re-runs the container's expose proc ONLY when it is set,
        then clears it.  Starts True so the first composite always paints. */
     Boolean composite_dirty;
-
-    /* Composite clip: when set, this widget is clipped to (clip_x,clip_y,
-       clip_w,clip_h) — in the PARENT's content coordinates — as it is folded
-       into its parent.  Used by scrolling containers (Viewport) to confine a
-       scrolled child to the clip region (excluding scrollbars) regardless of
-       the child's own size.  Width 0 means no composite clip. */
-    int clip_x, clip_y, clip_w, clip_h;
-
-    /* Backend-specific data */
-    void *backend_data;
 
     /* Pixel->RGB decode cache.  ISWRenderPixelToRGB is called once per
        colour set on the draw path; resolving a pixel to RGB must not
@@ -234,12 +262,7 @@ xcb_visualtype_t* ISWRenderFindVisual(xcb_screen_t *screen, uint8_t depth);
  */
 
 extern const ISWRenderOps isw_render_cairo_xcb_ops;
-
-Boolean ISWRenderCairoXCBInit(ISWRenderContext *ctx);
-void ISWRenderCairoXCBDestroy(ISWRenderContext *ctx);
-
-/* Resize handler for window size changes */
-void ISWRenderCairoXCBResize(ISWRenderContext *ctx, int width, int height);
+extern const IswSurfaceOps isw_surface_cairo_xcb_ops;
 
 /*
  * =================================================================
@@ -255,15 +278,10 @@ void ISWRenderCairoXCBResize(ISWRenderContext *ctx, int width, int height);
 
 #ifdef HAVE_CAIRO_EGL
 extern const ISWRenderOps isw_render_cairo_egl_ops;
-
-Boolean ISWRenderEGLInit(ISWRenderContext *ctx);
-void ISWRenderEGLDestroy(ISWRenderContext *ctx);
+extern const IswSurfaceOps isw_surface_cairo_egl_ops;
 
 /* Check if EGL platform XCB is available */
 Boolean ISWRenderEGLAvailable(void);
-
-/* Resize handler for window size changes */
-void ISWRenderEGLResize(ISWRenderContext *ctx, int width, int height);
 #endif
 
 /*

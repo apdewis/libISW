@@ -103,33 +103,21 @@ ISWRenderDetectBackend(ISWRenderBackend preferred)
 
 /*
  * =================================================================
- * Widget -> context registry
+ * Surface tree access
  * =================================================================
  *
- * Surface-per-widget compositing needs to find any widget's render context
- * (hence its surface) generically — including a parent's, during the composite
- * pass — without knowing the widget-specific instance-field offset where the
- * widget caches its context.  Render contexts are created/destroyed through the
- * two choke points below, so a simple Widget->context map kept in sync there
- * gives the composite walk what it needs.
- *
- * A widget may legitimately have several contexts over its life (create/destroy
- * cycles) but at most one live at a time; the map holds the most recent live
- * one.  Lookups tolerate absence (widget never painted -> nothing to compose).
+ * Surface-per-widget compositing finds any widget's surface generically through
+ * core.surface (IswSurfaceOf) — the surface-tree analogue of core.window — so
+ * the composite walk operates on surfaces and the per-widget composite state
+ * that lives on Core (composite_dirty / composite_clip*), with no separate
+ * Widget->context registry.
  */
-typedef struct _CtxMapEntry {
-    Widget widget;
-    ISWRenderContext *ctx;
-    /* Composite clip persisted per-widget (survives context create/destroy), so
-       a container can set it before the child's context exists. */
-    Boolean has_clip;
-    int clip_x, clip_y, clip_w, clip_h;
-    struct _CtxMapEntry *next;
-} CtxMapEntry;
-
-static CtxMapEntry *ctx_map_head = NULL;
 
 void _ISWRenderForgetDirtyRoot(Widget w);
+
+/* The active surface backend ops, published at the first ISWRenderCreate and
+   used by the context-less composite walk (defined below). */
+static const IswSurfaceOps *_isw_surface_ops;
 
 /* True while ISWRenderCompositeSubtree is running, so the auto-composite in
    ISWRenderEnd does not re-enter the pass for each child's end(). */
@@ -228,65 +216,6 @@ ISWRenderForgetRoot(Widget windowed_root)
     _ISWRenderForgetDirtyRoot(windowed_root);
 }
 
-static void
-_ISWRenderRegister(Widget w, ISWRenderContext *ctx)
-{
-    CtxMapEntry *e;
-    for (e = ctx_map_head; e != NULL; e = e->next) {
-        if (e->widget == w) {           /* replace stale entry for this widget */
-            e->ctx = ctx;
-            return;
-        }
-    }
-    e = (CtxMapEntry *) calloc(1, sizeof(*e));
-    if (!e) return;
-    e->widget = w;
-    e->ctx = ctx;
-    e->next = ctx_map_head;
-    ctx_map_head = e;
-}
-
-static void
-_ISWRenderUnregister(ISWRenderContext *ctx)
-{
-    CtxMapEntry **pp = &ctx_map_head;
-    while (*pp != NULL) {
-        if ((*pp)->ctx == ctx) {
-            CtxMapEntry *e = *pp;
-            /* Drop any pending coalesced composite for this widget so the
-               end-of-dispatch flush doesn't touch a destroyed widget. */
-            _ISWRenderForgetDirtyRoot(e->widget);
-            if (e->has_clip) {
-                /* Keep the entry for its persisted composite clip; just drop
-                   the (now-destroyed) context pointer. */
-                e->ctx = NULL;
-                return;
-            }
-            *pp = e->next;
-            free(e);
-            return;
-        }
-        pp = &(*pp)->next;
-    }
-}
-
-static CtxMapEntry*
-_ISWRenderEntry(Widget w)
-{
-    CtxMapEntry *e;
-    for (e = ctx_map_head; e != NULL; e = e->next)
-        if (e->widget == w)
-            return e;
-    return NULL;
-}
-
-static ISWRenderContext*
-_ISWRenderLookup(Widget w)
-{
-    CtxMapEntry *e = _ISWRenderEntry(w);
-    return e ? e->ctx : NULL;
-}
-
 /* Mark `w` and its windowless ancestors (up to and including the windowed
    root) composite_dirty, so the next fold re-runs their expose proc instead of
    reusing the persisted surface.  Called whenever something changes a widget's
@@ -299,9 +228,7 @@ _ISWRenderMarkDirtyChain(Widget w)
 {
     Widget a = w;
     while (a != NULL && IswIsWidget(a)) {
-        CtxMapEntry *e = _ISWRenderEntry(a);
-        if (e && e->ctx)
-            e->ctx->composite_dirty = True;
+        a->core.composite_dirty = True;
         if (!a->core.windowless)
             break;                  /* stop at the windowed root (inclusive) */
         a = a->core.parent;
@@ -331,31 +258,34 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
         fprintf(stderr, "ISWRender: Failed to allocate context\n");
         return NULL;
     }
-    
-    /* Start dirty so the first composite pass paints the container. */
-    ctx->composite_dirty = True;
+
+    /* Start dirty so the first composite pass paints the container.  The
+       per-widget composite state lives on Core (survives context lifecycle). */
+    widget->core.composite_dirty = True;
 
     /* Get widget display and window info */
     ctx->widget = widget;
     ctx->connection = _IswXcbConn(IswDisplayOf(widget));
     ctx->window = _IswXcbWindow(IswWindowOf(widget));
     ctx->screen = _IswXcbScreen(IswScreenOf(widget));
-    
+
     /* Get colormap from screen - we'll use the screen's default colormap */
     ctx->colormap = ctx->screen ? ctx->screen->default_colormap : 0;
-    
+
     /* Detect and select backend */
     ctx->backend = ISWRenderDetectBackend(preferred);
-    
+
     /* Initialize backend */
     switch (ctx->backend) {
         case ISW_RENDER_BACKEND_CAIRO_XCB:
             ctx->ops = &isw_render_cairo_xcb_ops;
+            ctx->surface_ops = &isw_surface_cairo_xcb_ops;
             break;
 
 #ifdef HAVE_CAIRO_EGL
         case ISW_RENDER_BACKEND_CAIRO_EGL:
             ctx->ops = &isw_render_cairo_egl_ops;
+            ctx->surface_ops = &isw_surface_cairo_egl_ops;
             break;
 #endif
 
@@ -365,13 +295,29 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
             return NULL;
     }
 
-    /* Call backend init */
-    if (!ctx->ops->init(ctx)) {
-        fprintf(stderr, "ISWRender: Backend %d init failed\n", ctx->backend);
+    /* Create the widget's surface (the draw target) and publish it on Core, so
+       the composite walk reaches it generically via IswSurfaceOf. */
+    ctx->surface = ctx->surface_ops->create(widget);
+    if (ctx->surface == NULL) {
+        fprintf(stderr, "ISWRender: Backend %d surface create failed\n",
+                ctx->backend);
         free(ctx);
         return NULL;
     }
-    
+    widget->core.surface = ctx->surface;
+
+    /* Publish the surface backend for the composite walk (which sees only
+       widgets + their surfaces, not contexts). */
+    _isw_surface_ops = ctx->surface_ops;
+
+    /* All cairo backends provide the same capability set. */
+    ctx->capabilities = ISW_RENDER_CAP_BASIC |
+                        ISW_RENDER_CAP_ANTIALIASING |
+                        ISW_RENDER_CAP_GRADIENTS |
+                        ISW_RENDER_CAP_ALPHA |
+                        ISW_RENDER_CAP_TRANSFORMS |
+                        ISW_RENDER_CAP_TEXT_ADVANCED;
+
     /* Initialize state */
     ctx->current_color = 0;
     ctx->line_width = 1.0;
@@ -397,7 +343,6 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
         backend_logged = True;
     }
 
-    _ISWRenderRegister(widget, ctx);
     return ctx;
 }
 
@@ -408,12 +353,18 @@ ISWRenderDestroy(ISWRenderContext *ctx)
         return;
     }
 
-    _ISWRenderUnregister(ctx);
+    /* Drop any pending coalesced composite for this widget so the
+       end-of-dispatch flush doesn't touch a destroyed widget. */
+    if (ctx->widget && IswIsWidget(ctx->widget))
+        _ISWRenderForgetDirtyRoot(ctx->widget);
 
-    /* Call backend destroy */
-    if (ctx->ops && ctx->ops->destroy) {
-        ctx->ops->destroy(ctx);
+    /* Destroy the surface and clear it from Core. */
+    if (ctx->surface_ops && ctx->surface_ops->destroy) {
+        ctx->surface_ops->destroy(ctx->surface);
     }
+    if (ctx->widget && IswIsWidget(ctx->widget) &&
+        ctx->widget->core.surface == ctx->surface)
+        ctx->widget->core.surface = NULL;
 
     /* Free context */
     free(ctx);
@@ -529,7 +480,7 @@ _ISWRenderComputeOrigin(Widget w, int *ox, int *oy)
 void
 ISWRenderBegin(ISWRenderContext *ctx)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->begin) {
+    if (!ctx || !ctx->surface_ops || !ctx->surface_ops->begin) {
         return;
     }
 
@@ -543,17 +494,17 @@ ISWRenderBegin(ISWRenderContext *ctx)
         ctx->origin_y = 0;
     }
 
-    ctx->ops->begin(ctx);
+    ctx->surface_ops->begin(ctx->surface, ctx->widget);
 }
 
 void
 ISWRenderEnd(ISWRenderContext *ctx)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->end) {
+    if (!ctx || !ctx->surface_ops || !ctx->surface_ops->end) {
         return;
     }
-    
-    ctx->ops->end(ctx);
+
+    ctx->surface_ops->end(ctx->surface, ctx->widget, IswWindowOf(ctx->widget));
 
     /* This widget painted into its own surface this frame, so the fold must
        re-expose it (if it is a container) and re-fold it onto its ancestors.
@@ -606,10 +557,9 @@ _isw_composite_shown(Widget child)
 }
 
 static void _isw_composite_children_into(Widget parent,
-                                         ISWRenderContext *parent_ctx);
-static void _isw_composite_children_into_at(Widget parent,
-                                            ISWRenderContext *dst_ctx,
-                                            int ox, int oy);
+                                         IswSurface parent_surface);
+static void _isw_composite_children_into_at(Widget parent, IswSurface dst,
+                                            Widget dst_widget, int ox, int oy);
 
 /* Number of child surfaces folded by composite passes, total.  Always
    maintained (not trace-gated) so ISWRenderCompositeSubtree can detect a
@@ -655,34 +605,24 @@ _isw_subtree_has_shown_child(Widget parent)
 }
 
 /* Fold one windowless child (and its descendants) into a destination surface
-   (dst_ctx) at accumulated logical offset (ox, oy) within dst's content. */
+   (dst at dst_widget) at accumulated logical offset (ox, oy) within dst's
+   content. */
 static void
-_isw_composite_one(Widget child, ISWRenderContext *dst_ctx, int ox, int oy)
+_isw_composite_one(Widget child, IswSurface dst, Widget dst_widget,
+                   int ox, int oy)
 {
-    ISWRenderContext *child_ctx;
+    IswSurface child_surface;
 
     if (!_isw_composite_shown(child))
         return;
 
-    {
-        CtxMapEntry *e = _ISWRenderEntry(child);
-        child_ctx = e ? e->ctx : NULL;
-        if (child_ctx != NULL && e->has_clip) {
-            /* Apply the persisted composite clip to the live context. */
-            child_ctx->clip_x = e->clip_x;
-            child_ctx->clip_y = e->clip_y;
-            child_ctx->clip_w = e->clip_w;
-            child_ctx->clip_h = e->clip_h;
-        } else if (child_ctx != NULL) {
-            child_ctx->clip_w = 0;
-        }
-    }
-    if (child_ctx == NULL) {
-        /* Context-less windowless container (e.g. a pure layout container with
+    child_surface = IswSurfaceOf(child);
+    if (child_surface == NULL) {
+        /* Surface-less windowless container (e.g. a pure layout container with
            no expose proc, so it never created a surface).  It contributes no
            pixels of its own, but its descendants still must be composited —
            fold them directly onto dst, accumulating this child's offset. */
-        _isw_composite_children_into_at(child, dst_ctx,
+        _isw_composite_children_into_at(child, dst, dst_widget,
                                         ox + child->core.x + child->core.border_width,
                                         oy + child->core.y + child->core.border_width);
         return;
@@ -702,29 +642,30 @@ _isw_composite_one(Widget child, ISWRenderContext *dst_ctx, int ox, int oy)
        composite: ISWRenderEnd suppresses its auto-composite while
        _isw_in_composite.
 
-       Gated on composite_dirty: a container whose surface is unchanged since
-       the last fold (nothing under it repainted, no child un/mapped or moved)
-       already holds the correct background + folded children, so regenerating
-       identical pixels is pure cost — the dominant cost of compositing a large
-       window for a localized change (a scroll, a hover).  A dirty descendant
-       re-exposes itself in its own _isw_composite_one and is re-folded onto
-       this (clean) surface below by composite_onto, so skipping the parent's
-       re-expose does not stale the descendant. */
+       Gated on composite_dirty (on Core): a container whose surface is
+       unchanged since the last fold (nothing under it repainted, no child
+       un/mapped or moved) already holds the correct background + folded
+       children, so regenerating identical pixels is pure cost — the dominant
+       cost of compositing a large window for a localized change (a scroll, a
+       hover).  A dirty descendant re-exposes itself in its own
+       _isw_composite_one and is re-folded onto this (clean) surface below by
+       composite_onto, so skipping the parent's re-expose does not stale the
+       descendant. */
     if (IswIsComposite(child) &&
         child->core.widget_class->core_class.expose != NULL &&
-        child_ctx->composite_dirty) {
+        child->core.composite_dirty) {
         (*child->core.widget_class->core_class.expose)(child, NULL, 0);
-        child_ctx->composite_dirty = False;
+        child->core.composite_dirty = False;
     }
 
     /* Fold this child's own descendants into its surface first (bottom-up). */
-    _isw_composite_children_into(child, child_ctx);
+    _isw_composite_children_into(child, child_surface);
 
     /* Then fold the child's surface into dst at the child's position. */
-    if (dst_ctx->ops && dst_ctx->ops->composite_onto) {
+    if (_isw_surface_ops && _isw_surface_ops->composite_onto) {
         _isw_fold_count++;
-        dst_ctx->ops->composite_onto(dst_ctx, child_ctx,
-                                     ox + child->core.x, oy + child->core.y);
+        _isw_surface_ops->composite_onto(dst, dst_widget, child_surface, child,
+                                         ox + child->core.x, oy + child->core.y);
     }
 }
 
@@ -732,17 +673,17 @@ _isw_composite_one(Widget child, ISWRenderContext *dst_ctx, int ox, int oy)
    at logical offset (ox, oy).  Depth-first, in stacking order: composite
    children plus non-composite-tracked sub-widgets via the Simple hook. */
 static void
-_isw_composite_children_into_at(Widget parent, ISWRenderContext *dst_ctx,
-                                int ox, int oy)
+_isw_composite_children_into_at(Widget parent, IswSurface dst,
+                                Widget dst_widget, int ox, int oy)
 {
-    if (dst_ctx == NULL)
+    if (dst == NULL)
         return;
 
     if (IswIsComposite(parent)) {
         CompositeWidget cw = (CompositeWidget) parent;
         Cardinal i;
         for (i = 0; i < cw->composite.num_children; i++)
-            _isw_composite_one(cw->composite.children[i], dst_ctx, ox, oy);
+            _isw_composite_one(cw->composite.children[i], dst, dst_widget, ox, oy);
     }
 
     if (IswIsSubclass(parent, simpleWidgetClass)) {
@@ -752,37 +693,41 @@ _isw_composite_children_into_at(Widget parent, ISWRenderContext *dst_ctx,
             Widget child;
             while ((child = (*sc->simple_class.nth_windowless_child)(parent, i++))
                    != NULL)
-                _isw_composite_one(child, dst_ctx, ox, oy);
+                _isw_composite_one(child, dst, dst_widget, ox, oy);
         }
     }
 }
 
 /* Fold a parent's windowless children into the parent's OWN surface. */
 static void
-_isw_composite_children_into(Widget parent, ISWRenderContext *parent_ctx)
+_isw_composite_children_into(Widget parent, IswSurface parent_surface)
 {
-    _isw_composite_children_into_at(parent, parent_ctx, 0, 0);
+    _isw_composite_children_into_at(parent, parent_surface, parent, 0, 0);
 }
 
 void
 ISWRenderCompositeSubtree(Widget windowed_root)
 {
-    ISWRenderContext *root_ctx;
+    IswSurface root_surface;
     Boolean prev = _isw_in_composite;
 
     if (windowed_root == NULL || !IswIsWidget(windowed_root))
         return;
 
-    root_ctx = _ISWRenderLookup(windowed_root);
-    if (root_ctx == NULL) {
+    root_surface = IswSurfaceOf(windowed_root);
+    if (root_surface == NULL) {
         /* Bare windowed root (Box/Form/Shell with no expose proc that paints
-           its own content).  Create a context so children have a surface to
+           its own content).  Create a surface so children have somewhere to
            composite onto, and mark it so we background-fill it each pass —
            nothing else paints this window's background. */
-        root_ctx = ISWRenderCreate(windowed_root, ISW_RENDER_BACKEND_AUTO);
+        ISWRenderContext *root_ctx =
+            ISWRenderCreate(windowed_root, ISW_RENDER_BACKEND_AUTO);
         if (root_ctx == NULL)
             return;
-        root_ctx->lazy_composite_root = True;
+        windowed_root->core.composite_lazy_root = True;
+        root_surface = IswSurfaceOf(windowed_root);
+        if (root_surface == NULL)
+            return;
     }
 
     /* Short-circuit a pass that would fold nothing onto a lazy root that has
@@ -790,7 +735,8 @@ ISWRenderCompositeSubtree(Widget windowed_root)
        ISWRenderEnd composites the windowed root before any child is mapped;
        without this guard that produces hundreds of full-window background
        fill+blit passes with no content on them. */
-    if (root_ctx->lazy_composite_root && !root_ctx->presented_content &&
+    if (windowed_root->core.composite_lazy_root &&
+        !windowed_root->core.composite_presented &&
         !_isw_subtree_has_shown_child(windowed_root))
         return;
 
@@ -803,12 +749,12 @@ ISWRenderCompositeSubtree(Widget windowed_root)
        (SimpleMenu, IconView, ...) painted its own content via its expose proc
        this frame; filling would wipe it.  The composite then folds the
        windowless children on top of whatever the root drew. */
-    if (root_ctx->lazy_composite_root &&
-        root_ctx->ops && root_ctx->ops->fill_background) {
-        root_ctx->ops->fill_background(root_ctx);
+    if (windowed_root->core.composite_lazy_root &&
+        _isw_surface_ops && _isw_surface_ops->fill_background) {
+        _isw_surface_ops->fill_background(root_surface, windowed_root);
         filled_bg = True;
     }
-    _isw_composite_children_into(windowed_root, root_ctx);
+    _isw_composite_children_into(windowed_root, root_surface);
 
     /* Blit the composited root surface to its window — but only if this pass
        actually changed the surface.  A pass that folded no children and did no
@@ -818,10 +764,11 @@ ISWRenderCompositeSubtree(Widget windowed_root)
        startup storm of hundreds of redundant blits. */
     Boolean folded_now = (_isw_fold_count != fold0);
     if ((filled_bg || folded_now) &&
-        root_ctx->ops && root_ctx->ops->present)
-        root_ctx->ops->present(root_ctx);
+        _isw_surface_ops && _isw_surface_ops->present)
+        _isw_surface_ops->present(root_surface, windowed_root,
+                                  IswWindowOf(windowed_root));
     if (folded_now)
-        root_ctx->presented_content = True;
+        windowed_root->core.composite_presented = True;
     _isw_in_composite = prev;
 }
 
@@ -843,34 +790,27 @@ ISWRenderEndCompositeBatch(void)
 void
 ISWRenderSetCompositeClip(Widget widget, int x, int y, int w, int h)
 {
-    /* Store on the persistent registry entry (creating one if the widget has no
-       context yet), so the clip survives until the child paints and is applied
-       in the composite pass regardless of paint/layout ordering. */
-    CtxMapEntry *e = _ISWRenderEntry(widget);
-    if (e == NULL) {
-        e = (CtxMapEntry *) calloc(1, sizeof(*e));
-        if (!e) return;
-        e->widget = widget;
-        e->next = ctx_map_head;
-        ctx_map_head = e;
-    }
-    e->has_clip = (w > 0 && h > 0);
-    e->clip_x = x;
-    e->clip_y = y;
-    e->clip_w = (w > 0) ? w : 0;
-    e->clip_h = (h > 0) ? h : 0;
+    /* Store on Core, where it survives the surface's create/destroy and is
+       applied in the composite pass (composite_onto) regardless of
+       paint/layout ordering. */
+    if (widget == NULL || !IswIsWidget(widget))
+        return;
+    widget->core.composite_clip = (w > 0 && h > 0);
+    widget->core.composite_clip_x = x;
+    widget->core.composite_clip_y = y;
+    widget->core.composite_clip_w = (w > 0) ? w : 0;
+    widget->core.composite_clip_h = (h > 0) ? h : 0;
 }
 
 Boolean
 ISWRenderGetCompositeClip(Widget widget, int *x, int *y, int *w, int *h)
 {
-    CtxMapEntry *e = _ISWRenderEntry(widget);
-    if (e == NULL || !e->has_clip)
+    if (widget == NULL || !IswIsWidget(widget) || !widget->core.composite_clip)
         return False;
-    if (x) *x = e->clip_x;
-    if (y) *y = e->clip_y;
-    if (w) *w = e->clip_w;
-    if (h) *h = e->clip_h;
+    if (x) *x = widget->core.composite_clip_x;
+    if (y) *y = widget->core.composite_clip_y;
+    if (w) *w = widget->core.composite_clip_w;
+    if (h) *h = widget->core.composite_clip_h;
     return True;
 }
 

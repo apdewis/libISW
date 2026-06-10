@@ -129,6 +129,7 @@ typedef struct _CompositeRec *CompositeWidget;
 typedef struct _IswDisplay *IswDisplay;
 typedef struct _IswScreen  *IswScreen;    /* a screen on a display       */
 typedef struct _IswWindow  *IswWindow;    /* a window                    */
+typedef struct _IswSurface *IswSurface;   /* a per-widget render surface */
 typedef struct _IswActionsRec *IswActionList;
 typedef struct _IswEventRec *IswEventTable;
 
@@ -1216,6 +1217,14 @@ extern IswWindow IswWindowOf(
 
 extern IswWindow IswWindowOfObject(
     Widget 		/* object */
+);
+
+/* The widget's own render surface (core.surface).  Unlike IswWindowOf, which
+   for a windowless widget returns the SHARED ancestor window, every widget owns
+   its own surface, so this is always the widget's own.  May be NULL before the
+   surface is created (unrealized / zero-sized). */
+extern IswSurface IswSurfaceOf(
+    Widget 		/* widget */
 );
 
 extern String IswName(

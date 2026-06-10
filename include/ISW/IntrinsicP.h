@@ -213,6 +213,9 @@ typedef struct _IswTMRec {
     ((IswIsWidget(widget) && (widget)->core.windowless) \
      ? _IswWindowedAncestor((Widget)(widget))->core.window \
      : (widget)->core.window)
+/* Every widget owns its own surface; no ancestor resolution.  Read-only:
+   assign w->core.surface directly to set. */
+#define IswSurfaceOf(widget)	((widget)->core.surface)
 
 #define IswClass(widget)		((widget)->core.widget_class)
 #define IswSuperclass(widget)	(IswClass(widget)->core_class.superclass)
