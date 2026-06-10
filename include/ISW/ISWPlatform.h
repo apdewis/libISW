@@ -121,6 +121,16 @@ typedef struct {
 } IswPoint;
 
 /*
+ * Portable integer rectangle.  Replaces xcb_rectangle_t in platform-neutral
+ * geometry (region-overlap math, expose/clip areas, cursor bounds).  Field
+ * layout matches xcb_rectangle_t so the value semantics are identical.
+ */
+typedef struct {
+    int16_t  x, y;
+    uint16_t width, height;
+} IswRectangle;
+
+/*
  * Symbolic cursor shapes.  Backends map each to their native cursor; X11 maps
  * to glyph cursors from the standard cursor font.
  */

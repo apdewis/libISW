@@ -50,6 +50,7 @@ SOFTWARE.
 #define _ISW_IswTextSink_h
 
 #include <xcb/xcb.h>
+#include <ISW/ISWPlatform.h>
 #include <ISW/Text.h>
 
 /***********************************************************************
@@ -293,13 +294,13 @@ extern void IswTextSinkSetTabs(
 /*	Function Name: IswTextSinkGetCursorBounds
  *	Description: Finds the bounding box for the insert curor (caret).
  *	Arguments: w - the TextSinkObject.
- *                 rect - an XCB rectangle containing the cursor bounds.
+ *                 rect - a rectangle containing the cursor bounds.
  *	Returns: none (fills in rect).
  */
 
 extern void IswTextSinkGetCursorBounds(
     Widget		/* w */,
-    xcb_rectangle_t*	/* rect_return */
+    IswRectangle*	/* rect_return */
 );
 
 _XFUNCPROTOEND

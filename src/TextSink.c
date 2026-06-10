@@ -83,7 +83,7 @@ static void FindPosition(Widget, ISWTextPosition, int, int, Boolean,
 static void FindDistance(Widget, ISWTextPosition, int, ISWTextPosition, int *,
                          ISWTextPosition *, int *);
 static void Resolve(Widget, ISWTextPosition, int, int, ISWTextPosition *);
-static void GetCursorBounds(Widget, xcb_rectangle_t *);
+static void GetCursorBounds(Widget, IswRectangle *);
 
 #define offset(field) IswOffsetOf(TextSinkRec, text_sink.field)
 
@@ -417,7 +417,7 @@ CreateInsertCursor(Widget w)
 }
 
 static void
-GetCursorBounds(Widget w, xcb_rectangle_t *rect)
+GetCursorBounds(Widget w, IswRectangle *rect)
 {
     TextSinkObject sink = (TextSinkObject) w;
 
@@ -432,7 +432,7 @@ InsertCursor(Widget w, Position x, Position y, IswTextInsertState state)
 {
     TextSinkObject sink = (TextSinkObject) w;
     Widget text_widget = IswParent(w);
-    xcb_rectangle_t rect;
+    IswRectangle rect;
 
     sink->text_sink.cursor_x = x;
     sink->text_sink.cursor_y = y;
@@ -871,7 +871,7 @@ IswTextSinkSetTabs(Widget w, int tab_count, int *tabs)
 }
 
 void
-IswTextSinkGetCursorBounds(Widget w, xcb_rectangle_t *rect)
+IswTextSinkGetCursorBounds(Widget w, IswRectangle *rect)
 {
     TextSinkObjectClass class = (TextSinkObjectClass) w->core.widget_class;
     (*class->text_sink_class.GetCursorBounds)(w, rect);

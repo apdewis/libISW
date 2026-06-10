@@ -593,7 +593,7 @@ PaintItemName(Widget w, int item)
     /* Use Cairo rendering for text if available */
     if (lw->list.render_ctx) {
         /* Set clip for Cairo */
-        xcb_rectangle_t clip_rect;
+        IswRectangle clip_rect;
         clip_rect.x = x;
         clip_rect.y = lw->list.internal_height;
         clip_rect.height = lw->core.height - lw->list.internal_height * 2;

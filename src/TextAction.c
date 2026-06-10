@@ -129,7 +129,7 @@ NotePosition(TextWidget ctx, IswEvent *iswev)
   case IswKeyDown:
   case IswKeyUp:
     {
-      xcb_rectangle_t cursor;
+      IswRectangle cursor;
       IswTextSinkGetCursorBounds(ctx->text.sink, &cursor);
       ctx->text.ev_x = cursor.x + cursor.width / 2;
       ctx->text.ev_y = cursor.y + cursor.height / 2;

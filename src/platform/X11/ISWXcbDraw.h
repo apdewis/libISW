@@ -14,6 +14,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <ISW/Intrinsic.h>
+#include <ISW/ISWPlatform.h>
 #include <ISW/ISWP.h>
 
 /*
@@ -476,11 +477,11 @@ void ISWDestroyRegion(ISWRegionPtr region);
  * ISWUnionRectWithRegion - Add a rectangle to a region
  *
  * Parameters:
- *   rect   - Rectangle to add (xcb_rectangle_t*)
+ *   rect   - Rectangle to add (IswRectangle*)
  *   source - Source region
  *   dest   - Destination region (may be same as source)
  */
-void ISWUnionRectWithRegion(xcb_rectangle_t *rect, ISWRegionPtr source, ISWRegionPtr dest);
+void ISWUnionRectWithRegion(IswRectangle *rect, ISWRegionPtr source, ISWRegionPtr dest);
 
 /*
  * ISWSubtractRegion - Subtract one region from another

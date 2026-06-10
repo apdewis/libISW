@@ -136,12 +136,12 @@ static Widget TextNthWindowlessChild(Widget, int);
 static void ModifySelection(TextWidget, ISWTextPosition, ISWTextPosition);
 static void PushCopyQueue(TextWidget, int, int);
 static void UpdateTextInLine(TextWidget, int, Position, Position);
-static void UpdateTextInRectangle(TextWidget, xcb_rectangle_t *);
+static void UpdateTextInRectangle(TextWidget, IswRectangle *);
 static void PopCopyQueue(TextWidget);
 static void FlushUpdate(TextWidget);
 static Boolean LineAndXYForPosition(TextWidget, ISWTextPosition, int *,
                                     Position *, Position *);
-static Boolean TranslateExposeRegion(TextWidget, xcb_rectangle_t *);
+static Boolean TranslateExposeRegion(TextWidget, IswRectangle *);
 static ISWTextPosition FindGoodPosition(TextWidget, ISWTextPosition);
 static ISWTextPosition _BuildLineTable(TextWidget, ISWTextPosition,
                                        ISWTextPosition, int);
@@ -2438,7 +2438,7 @@ _IswTextAlterSelection (TextWidget ctx, IswTextSelectionMode mode,
  */
 
 static Boolean
-RectanglesOverlap(xcb_rectangle_t *rect1, xcb_rectangle_t *rect2)
+RectanglesOverlap(IswRectangle *rect1, IswRectangle *rect2)
 {
   return ( (rect1->x < rect2->x + (short) rect2->width) &&
 	   (rect2->x < rect1->x + (short) rect1->width) &&
@@ -2454,7 +2454,7 @@ RectanglesOverlap(xcb_rectangle_t *rect1, xcb_rectangle_t *rect2)
  */
 
 static void
-UpdateTextInRectangle(TextWidget ctx, xcb_rectangle_t * rect)
+UpdateTextInRectangle(TextWidget ctx, IswRectangle * rect)
 {
   IswTextLineTableEntry *info = ctx->text.lt.info;
   int line, x = rect->x, y = rect->y;
@@ -2477,7 +2477,7 @@ static void
 ProcessExposeRegion(Widget w, IswEvent *iswev, Region region)
 {
     TextWidget ctx = (TextWidget) w;
-    xcb_rectangle_t expose, cursor;
+    IswRectangle expose, cursor;
     Boolean need_to_draw;
 
     xcb_generic_event_t *native =
@@ -2930,7 +2930,7 @@ PopCopyQueue(TextWidget ctx)
  */
 
 static Boolean
-TranslateExposeRegion(TextWidget ctx, xcb_rectangle_t *expose)
+TranslateExposeRegion(TextWidget ctx, IswRectangle *expose)
 {
     struct text_move * offsets = ctx->text.copy_area_offsets;
     int value;

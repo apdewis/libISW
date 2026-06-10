@@ -921,26 +921,31 @@ UpdateRegionExtents(ISWRegionPtr region)
  * A full implementation would merge overlapping rectangles.
  */
 void
-ISWUnionRectWithRegion(xcb_rectangle_t *rect, ISWRegionPtr source, ISWRegionPtr dest)
+ISWUnionRectWithRegion(IswRectangle *rect, ISWRegionPtr source, ISWRegionPtr dest)
 {
     int i;
-    
+
     if (!rect || !source || !dest)
         return;
-    
+
     /* Copy source to dest if different */
     if (source != dest) {
         dest->numRects = source->numRects;
         for (i = 0; i < source->numRects; i++)
             dest->rects[i] = source->rects[i];
     }
-    
-    /* Add the new rectangle if there's room */
+
+    /* Add the new rectangle if there's room.  The region stores rectangles in
+       its own (backend) representation; copy field-by-field from the neutral
+       IswRectangle the caller passed. */
     if (dest->numRects < XAWREGION_MAXRECTS) {
-        dest->rects[dest->numRects] = *rect;
+        dest->rects[dest->numRects].x      = rect->x;
+        dest->rects[dest->numRects].y      = rect->y;
+        dest->rects[dest->numRects].width  = rect->width;
+        dest->rects[dest->numRects].height = rect->height;
         dest->numRects++;
     }
-    
+
     UpdateRegionExtents(dest);
 }
 

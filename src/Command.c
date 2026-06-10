@@ -62,6 +62,7 @@ SOFTWARE.
 /* #include <X11/Xmu/Converters.h> */
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
+#include <ISW/ISWPlatform.h>
 #include <ISW/CommandP.h>
 /* XCB Migration: Use XCB shape extension instead of Xlib */
 #include <xcb/xcb.h>
@@ -206,7 +207,7 @@ static ISWRegionPtr
 HighlightRegion(CommandWidget cbw)
 {
   static ISWRegionPtr outerRegion = NULL, innerRegion, emptyRegion;
-  xcb_rectangle_t rect;
+  IswRectangle rect;
 
   if (cbw->core.border_width == 0 ||
       cbw->core.border_width >

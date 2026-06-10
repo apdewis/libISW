@@ -69,7 +69,7 @@ typedef void (*_IswSinkSetTabsProc)
      (Widget, int, short*);
 
 typedef void (*_IswSinkGetCursorBoundsProc)
-     (Widget, xcb_rectangle_t*);
+     (Widget, IswRectangle*);
 
 typedef struct _TextSinkClassPart {
     _IswSinkDisplayTextProc DisplayText;
