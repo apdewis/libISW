@@ -1079,10 +1079,9 @@ GetLanguage(IswDisplay dpy, IswPerDisplay pd)
 //}
 
 double
-_IswGetScaleFactor(IswDisplay display)
+_IswGetScaleFactor(IswDisplay dpy)
 {
     PerDisplayTablePtr pdt;
-    xcb_connection_t *dpy = _IswXcbConn(display);
 
     if (!dpy)
         return 1.0;
