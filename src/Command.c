@@ -57,17 +57,12 @@ SOFTWARE.
 #include <stdio.h>
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
-/* XCB Migration: Removed Xmu includes - not compatible with XCB */
-/* #include <X11/Xmu/Misc.h> */
-/* #include <X11/Xmu/Converters.h> */
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWPlatform.h>
 #include <ISW/CommandP.h>
-/* XCB Migration: Use XCB shape extension instead of Xlib */
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <xcb/shape.h>
 #include <cairo/cairo.h>
 #include <math.h>
 #include <ISW/Region.h>     /* region API for highlight frame */

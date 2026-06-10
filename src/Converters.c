@@ -725,9 +725,6 @@ cleanup:
     return fs;
 }
 
-/* -----------------------------------------------------------------------
- * XCB replacement for XLoadFont(display, name)
- * ----------------------------------------------------------------------- */
 static IswFontId
 _IswLoadFont(IswDisplay dpy, const char *name)
 {
@@ -747,9 +744,6 @@ _IswFreeFont(IswDisplay dpy, IswFontStruct *fs)
         IswFree(fs->font_family);
     IswFree((char *) fs);
 }
-
-/* XMatchVisualInfo equivalent now lives in the color/font backend
-   (ISWPlatformColorFontXCB.c) behind the match_visual_info op.  Phase 4. */
 
 Boolean
 IswCvtStringToCursor(IswDisplay dpy,
