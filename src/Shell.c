@@ -1127,85 +1127,38 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
                    &wid->core.name, &count);
     }
 
-    /* Rebuild the XCB value list from scratch.  Subclass Realize methods
-       (e.g. SimpleMenu) may have corrupted the packed array inherited from
-       ComputeWindowAttributes, because the original Xlib code used an
-       IswSetWindowAttributes struct with named fields, while XCB requires
-       values packed in ascending bit order.  Rebuilding here is the only
-       safe approach. */
+    /* Create the WM-managed top-level window through the platform root op —
+       the shell no longer calls xcb_create_window directly.  The root surface
+       (window + presentation) is owned by the platform layer; the shell holds
+       the returned opaque IswWindow in core.window and never dereferences it.
+       (We do NOT set core.windowless: that flag means "no window, fold into a
+       windowed ancestor" — wrong for a root, which IS the present target.) */
     {
-        uint32_t vals[16];
-        int vi = 0;
+        double sf = _IswGetScaleFactor(IswDisplayOf(wid));
+        IswWindowGeometry geom;
+        IswWindowAttributes attrs;
 
-        /* CW_BACK_PIXMAP (bit 0) */
-        if (mask & XCB_CW_BACK_PIXMAP)
-            vals[vi++] = wid->core.background_pixmap;
-        /* CW_BACK_PIXEL (bit 1) */
-        if (mask & XCB_CW_BACK_PIXEL)
-            vals[vi++] = wid->core.background_pixel;
-        /* CW_BORDER_PIXMAP (bit 2) */
-        if (mask & XCB_CW_BORDER_PIXMAP)
-            vals[vi++] = wid->core.border_pixmap;
-        /* CW_BORDER_PIXEL (bit 3) */
-        if (mask & XCB_CW_BORDER_PIXEL)
-            vals[vi++] = wid->core.border_pixel;
-        /* CW_BIT_GRAVITY (bit 4) */
-        if (mask & XCB_CW_BIT_GRAVITY)
-            vals[vi++] = XCB_GRAVITY_NORTH_WEST;
-        /* CW_WIN_GRAVITY (bit 5) */
-        if (mask & XCB_CW_WIN_GRAVITY)
-            vals[vi++] = XCB_GRAVITY_NORTH_WEST;
-        /* Bits 6-10 and 14 (backing_store, override_redirect, save_under,
-           cursor) are applied via xcb_change_window_attributes after
-           creation — strip them from the create mask to keep things simple. */
-        Mask create_mask = mask & ~(XCB_CW_BACKING_STORE | XCB_CW_OVERRIDE_REDIRECT
-                                    | XCB_CW_SAVE_UNDER | XCB_CW_CURSOR);
-        /* CW_EVENT_MASK (bit 11) */
-        if (create_mask & XCB_CW_EVENT_MASK)
-            vals[vi++] = IswBuildEventMask(wid);
-        /* CW_DONT_PROPAGATE (bit 12) — not used */
-        /* CW_COLORMAP (bit 13) */
-        if (create_mask & XCB_CW_COLORMAP)
-            vals[vi++] = _IswXcbColormap(wid->core.colormap);
+        geom.x = (int32_t)(wid->core.x * sf + 0.5);
+        geom.y = (int32_t)(wid->core.y * sf + 0.5);
+        geom.width = (uint32_t)(wid->core.width * sf + 0.5);
+        geom.height = (uint32_t)(wid->core.height * sf + 0.5);
+        geom.border_width = (uint32_t)(wid->core.border_width * sf + 0.5);
 
-        /* HiDPI: create window at physical pixel geometry */
-        {
-            double sf = _IswGetScaleFactor(IswDisplayOf(wid));
-            wid->core.window = _IswXcbWindowWrap(xcb_generate_id(_IswXcbConn(IswDisplayOf(wid))));
-            xcb_create_window(
-                _IswXcbConn(IswDisplayOf(wid)),
-                wid->core.depth,
-                _IswXcbWindow(wid->core.window),
-                _IswXcbScreen(wid->core.screen)->root,
-                (int16_t)(wid->core.x * sf + 0.5),
-                (int16_t)(wid->core.y * sf + 0.5),
-                (uint16_t)(wid->core.width * sf + 0.5),
-                (uint16_t)(wid->core.height * sf + 0.5),
-                (uint16_t)(wid->core.border_width * sf + 0.5),
-                XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                w->shell.visual,
-                create_mask,
-                vals
-            );
-        }
+        memset(&attrs, 0, sizeof(attrs));
+        attrs.background_pixel = wid->core.background_pixel;
+        attrs.border_pixel = wid->core.border_pixel;
+        attrs.event_mask = IswBuildEventMask(wid);
+        attrs.override_redirect = w->shell.override_redirect;
+        attrs.save_under = w->shell.save_under;
+        attrs.bit_gravity_nw = (mask & XCB_CW_BIT_GRAVITY) ? True : False;
+        attrs.colormap = wid->core.colormap;
+        attrs.depth = wid->core.depth;
+        attrs.visual = w->shell.visual;
 
-        /* Apply shell attributes that were stripped from the create mask */
-        {
-            uint32_t post_mask = 0;
-            uint32_t post_vals[2];
-            int pi = 0;
-            if (w->shell.override_redirect) {
-                post_mask |= XCB_CW_OVERRIDE_REDIRECT;
-                post_vals[pi++] = 1;
-            }
-            if (w->shell.save_under) {
-                post_mask |= XCB_CW_SAVE_UNDER;
-                post_vals[pi++] = 1;
-            }
-            if (post_mask)
-                xcb_change_window_attributes(_IswXcbConn(IswDisplayOf(wid)), _IswXcbWindow(wid->core.window),
-                                             post_mask, post_vals);
-        }
+        wid->core.window = _IswPlatformCreateRoot(IswDisplayOf(wid),
+                                                  wid->core.screen,
+                                                  &geom, &attrs);
+
         /* Set a themed default cursor on the shell window so child
            widgets that don't set their own cursor inherit the theme's
            left_ptr instead of the X server's default glyph cursor. */
@@ -1216,7 +1169,7 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
                 _IswSetWindowCursor(wid, cursor);
         }
     }
-    xcb_flush(_IswXcbConn(IswDisplayOf(wid)));
+    _IswPlatformFlush(IswDisplayOf(wid));
 
     _popup_set_prop(w);
 
@@ -1738,7 +1691,7 @@ static void
 Destroy(Widget wid)
 {
     if (IswIsRealized(wid))
-        xcb_destroy_window(_IswXcbConn(IswDisplayOf(wid)), _IswXcbWindow(IswWindowOf(wid)));
+        _IswPlatformDestroyWindow(IswDisplayOf(wid), IswWindowOf(wid));
 }
 
 static void
@@ -1747,7 +1700,8 @@ WMDestroy(Widget wid)
     WMShellWidget w = (WMShellWidget) wid;
 
     if (w->wm.user_time_win) {
-        xcb_destroy_window(_IswXcbConn(IswDisplayOf(wid)), w->wm.user_time_win);
+        _IswPlatformDestroyWindow(IswDisplayOf(wid),
+                                  _IswXcbWindowWrap(w->wm.user_time_win));
         w->wm.user_time_win = 0;
     }
     IswFree((char *) w->wm.title);
@@ -2787,8 +2741,8 @@ TopLevelSetValues(Widget oldW,
 
                 IswPopup(newW, IswGrabNone);
                 if (map) {
-                    xcb_map_window(_IswXcbConn(IswDisplayOf(newW)), _IswXcbWindow(IswWindowOf(newW)));
-                    xcb_flush(_IswXcbConn(IswDisplayOf(newW)));
+                    _IswPlatformMapWindow(IswDisplayOf(newW), IswWindowOf(newW));
+                    _IswPlatformFlush(IswDisplayOf(newW));
                 }
             }
         }

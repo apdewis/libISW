@@ -488,25 +488,48 @@ _IswMakeGeometryRequest(Widget widget,
          * Use lrint() for correct rounding of negative positions. */
         {
             double sf = _IswGetScaleFactor(IswDisplayOf(widget));
-            uint32_t values[5];
-            int vi = 0;
-            if (req.changeMask & XCB_CONFIG_WINDOW_X)
-                values[vi++] = (uint32_t)(int32_t)lrint((double)(req.changes_x + wl_off_x) * sf);
-            if (req.changeMask & XCB_CONFIG_WINDOW_Y)
-                values[vi++] = (uint32_t)(int32_t)lrint((double)(req.changes_y + wl_off_y) * sf);
-            if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH)
-                values[vi++] = (uint32_t)lrint((double)req.changes_w * sf);
-            if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)
-                values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
-            if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
-                values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
+            IswWindowGeometry g;
+            unsigned int cmask = 0;
+            memset(&g, 0, sizeof(g));
+            if (req.changeMask & XCB_CONFIG_WINDOW_X) {
+                g.x = (int32_t)lrint((double)(req.changes_x + wl_off_x) * sf);
+                cmask |= ISW_CONFIG_X;
+            }
+            if (req.changeMask & XCB_CONFIG_WINDOW_Y) {
+                g.y = (int32_t)lrint((double)(req.changes_y + wl_off_y) * sf);
+                cmask |= ISW_CONFIG_Y;
+            }
+            if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH) {
+                g.width = (uint32_t)lrint((double)req.changes_w * sf);
+                cmask |= ISW_CONFIG_WIDTH;
+            }
+            if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT) {
+                g.height = (uint32_t)lrint((double)req.changes_h * sf);
+                cmask |= ISW_CONFIG_HEIGHT;
+            }
+            if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+                g.border_width = (uint32_t)lrint((double)req.changes_bw * sf);
+                cmask |= ISW_CONFIG_BORDER;
+            }
+            IswStackMode stack = ISW_STACK_NONE;
+            IswWindow sibling = NULL;
+            if (req.changeMask & XCB_CONFIG_WINDOW_STACK_MODE) {
+                cmask |= ISW_CONFIG_STACK;
+                stack = (req.changes_sm == XCB_STACK_MODE_BELOW)
+                      ? ISW_STACK_BELOW : ISW_STACK_ABOVE;
+                if ((req.changeMask & XCB_CONFIG_WINDOW_SIBLING) &&
+                    IswIsWidget(request->sibling))
+                    sibling = request->sibling->core.window;
+            }
             /* A windowless widget owns no X window: IswWindowOf() would resolve
                to the nearest windowed ancestor (ultimately the shell), so
                configuring it would resize that ancestor.  The parent's
                geometry manager has already updated core.x/y/width/height and
                is responsible for repainting the widget. */
             if (!widget->core.windowless)
-                xcb_configure_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)), req.changeMask, values);
+                _IswPlatformConfigureWindow(IswDisplayOf(widget),
+                                            IswWindowOf(widget), &g, cmask,
+                                            stack, sibling);
         }
     }
     else {                      /* RectObj child of realized Widget */
@@ -639,17 +662,17 @@ IswResizeWindow(Widget w)
         /* HiDPI: convert logical pixels to physical for the X server. */
         {
             double sf = _IswGetScaleFactor(IswDisplayOf(w));
-            uint32_t values[3];
-            int vi = 0;
-            if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH)
-                values[vi++] = (uint32_t)lrint((double)req.changes_w * sf);
-            if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)
-                values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
-            if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
-                values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
+            IswWindowGeometry g;
+            memset(&g, 0, sizeof(g));
+            g.width = (uint32_t)lrint((double)req.changes_w * sf);
+            g.height = (uint32_t)lrint((double)req.changes_h * sf);
+            g.border_width = (uint32_t)lrint((double)req.changes_bw * sf);
             /* Windowless widgets own no X window — see _IswMakeGeometryRequest. */
             if (!w->core.windowless)
-                xcb_configure_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)), req.changeMask, values);
+                _IswPlatformConfigureWindow(IswDisplayOf(w), IswWindowOf(w), &g,
+                                            ISW_CONFIG_WIDTH | ISW_CONFIG_HEIGHT |
+                                            ISW_CONFIG_BORDER,
+                                            ISW_STACK_NONE, NULL);
         }
         hookobj = IswHooksOfDisplay(IswDisplayOfObject(w));
         if (IswHasCallbacks(hookobj, IswNconfigureHook) == IswCallbackHasSome) {
@@ -682,7 +705,6 @@ IswConfigureWidget(Widget w,
 {
     IswConfigureHookDataRec req;
     uint32_t old_x, old_y, old_h, old_w, old_bw;
-    xcb_connection_t *dpy = _IswXcbConn(w->core.display);
 
     WIDGET_TO_APPCON(w);
 
@@ -803,19 +825,32 @@ IswConfigureWidget(Widget w,
                  * Use lrint() for correct rounding of negative positions. */
                 {
                     double sf = _IswGetScaleFactor(IswDisplayOf(w));
-                    uint32_t values[5];
-                    int vi = 0;
-                    if (req.changeMask & XCB_CONFIG_WINDOW_X)
-                        values[vi++] = (uint32_t)(int32_t)lrint((double)req.changes_x * sf);
-                    if (req.changeMask & XCB_CONFIG_WINDOW_Y)
-                        values[vi++] = (uint32_t)(int32_t)lrint((double)req.changes_y * sf);
-                    if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH)
-                        values[vi++] = (uint32_t)lrint((double)req.changes_w * sf);
-                    if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT)
-                        values[vi++] = (uint32_t)lrint((double)req.changes_h * sf);
-                    if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH)
-                        values[vi++] = (uint32_t)lrint((double)req.changes_bw * sf);
-                    xcb_configure_window(dpy, _IswXcbWindow(IswWindowOf(w)), req.changeMask, values);
+                    IswWindowGeometry g;
+                    unsigned int cmask = 0;
+                    memset(&g, 0, sizeof(g));
+                    if (req.changeMask & XCB_CONFIG_WINDOW_X) {
+                        g.x = (int32_t)lrint((double)req.changes_x * sf);
+                        cmask |= ISW_CONFIG_X;
+                    }
+                    if (req.changeMask & XCB_CONFIG_WINDOW_Y) {
+                        g.y = (int32_t)lrint((double)req.changes_y * sf);
+                        cmask |= ISW_CONFIG_Y;
+                    }
+                    if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH) {
+                        g.width = (uint32_t)lrint((double)req.changes_w * sf);
+                        cmask |= ISW_CONFIG_WIDTH;
+                    }
+                    if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT) {
+                        g.height = (uint32_t)lrint((double)req.changes_h * sf);
+                        cmask |= ISW_CONFIG_HEIGHT;
+                    }
+                    if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+                        g.border_width = (uint32_t)lrint((double)req.changes_bw * sf);
+                        cmask |= ISW_CONFIG_BORDER;
+                    }
+                    _IswPlatformConfigureWindow(w->core.display,
+                                                IswWindowOf(w), &g, cmask,
+                                                ISW_STACK_NONE, NULL);
                 }
             }
             else {

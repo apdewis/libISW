@@ -60,7 +60,7 @@ typedef struct {
     uint32_t event_mask;        /* neutral IswEvent mask, backend-translated */
     Boolean  override_redirect;
     Boolean  save_under;
-    IswVisual   visual;         /* opaque; 0 = COPY_FROM_PARENT */
+    IswVisualId visual;         /* visual id; 0 = COPY_FROM_PARENT */
     IswColormap colormap;       /* opaque; 0 = none */
     uint32_t    depth;          /* 0 = COPY_FROM_PARENT */
     Boolean     bit_gravity_nw; /* set NorthWest bit gravity */

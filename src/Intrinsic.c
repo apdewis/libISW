@@ -569,7 +569,7 @@ UnrealizeWidget(Widget widget)
 void
 IswUnrealizeWidget(Widget widget)
 {
-    xcb_window_t window;
+    IswWindow window;
     Widget hookobj;
 
     WIDGET_TO_APPCON(widget);
@@ -577,7 +577,8 @@ IswUnrealizeWidget(Widget widget)
     LOCK_APP(app);
     /* Use the widget's own window, not the resolved ancestor window:
        windowless widgets must never destroy their ancestor's window. */
-    window = widget->core.windowless ? None : _IswXcbWindow(widget->core.window);
+    window = widget->core.windowless ? _IswXcbWindowWrap(None)
+                                     : widget->core.window;
     if (!IswIsRealized(widget)) {
         UNLOCK_APP(app);
         return;
@@ -585,10 +586,9 @@ IswUnrealizeWidget(Widget widget)
     if (widget->core.managed && widget->core.parent != NULL)
         IswUnmanageChild(widget);
     UnrealizeWidget(widget);
-    if (window != None) {
-        //XDestroyWindow(IswDisplayOf(widget), window);
-        xcb_destroy_window(_IswXcbConn(IswDisplayOf(widget)), window);
-        xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
+    if (_IswXcbWindow(window) != None) {
+        _IswPlatformDestroyWindow(IswDisplayOf(widget), window);
+        _IswPlatformFlush(IswDisplayOf(widget));
     }
     hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
@@ -611,11 +611,9 @@ IswCreateWindow(IswDisplay display,
                IswValueMask value_mask,
                uint32_t *attributes)
 {
-    /* Raw window creation still lives here (Phase 13c will route it through the
-       window create op); reach the native connection through the seam. */
-    xcb_connection_t *c = _IswXcbConn(display);
-    xcb_visualtype_t *vis = _IswXcbVisual(visual);
     IswAppContext app = IswWidgetToApplicationContext(widget);
+    (void) value_mask;
+    (void) attributes;  /* attributes now derived from core fields below */
 
     LOCK_APP(app);
     if (widget->core.windowless) {
@@ -624,6 +622,12 @@ IswCreateWindow(IswDisplay display,
         return;
     }
     if (_IswXcbWindow(widget->core.window) == None) {
+        IswWindow parent;
+        IswWindowGeometry geom;
+        IswWindowAttributes attrs;
+        double _sf = _IswGetScaleFactor(display);
+        int off_x = 0, off_y = 0;
+
         if (widget->core.width == 0 || widget->core.height == 0) {
             Cardinal count = 1;
 
@@ -633,71 +637,52 @@ IswCreateWindow(IswDisplay display,
                           "Widget %s has zero width and/or height",
                           &widget->core.name, &count);
         }
-        widget->core.window = _IswXcbWindowWrap(xcb_generate_id(c));
-        
-        /* DIAGNOSTIC: Log visual pointer value */
-        if (visual) {
+
+        /* Resolve the parent window.  A windowed child of a windowless parent
+           (e.g. a windowed widget inside a windowless Box) must be created under
+           the parent's nearest WINDOWED ancestor, since the windowless parent
+           has no window.  Its x,y are relative to the windowless parent, so
+           accumulate the offset across the windowless chain to position the
+           window in the ancestor's coordinates. */
+        if (widget->core.parent == NULL) {
+            parent = _IswDefaultRootWindow(display);
+        } else if (widget->core.parent->core.windowless) {
+            Widget anc = widget->core.parent;
+            while (anc != NULL && IswIsWidget(anc) && anc->core.windowless) {
+                off_x += anc->core.x + anc->core.border_width;
+                off_y += anc->core.y + anc->core.border_width;
+                anc = anc->core.parent;
+            }
+            parent = anc ? anc->core.window
+                         : _IswDefaultRootWindow(display);
         } else {
+            parent = widget->core.parent->core.window;
         }
-        
+
+        /* HiDPI: create window at physical pixel geometry */
+        geom.x = (int32_t)((widget->core.x + off_x) * _sf + 0.5);
+        geom.y = (int32_t)((widget->core.y + off_y) * _sf + 0.5);
+        geom.width = (uint32_t)(widget->core.width * _sf + 0.5);
+        geom.height = (uint32_t)(widget->core.height * _sf + 0.5);
+        geom.border_width = (uint32_t)(widget->core.border_width * _sf + 0.5);
+
+        /* Attributes derived from the widget (same values ComputeWindowAttributes
+           packs): background/border pixel, NorthWest bit gravity, event mask,
+           colormap, plus visual/depth from the create call. */
+        memset(&attrs, 0, sizeof(attrs));
+        attrs.background_pixel = widget->core.background_pixel;
+        attrs.border_pixel = widget->core.border_pixel;
+        attrs.event_mask = _IswWindowSelectMask(widget);
+        attrs.bit_gravity_nw = True;
+        attrs.colormap = widget->core.colormap;
+        attrs.depth = widget->core.depth;
         {
-            /* Resolve the parent window.  A windowed child of a windowless
-               parent (e.g. a windowed widget inside a windowless Box) must be
-               created under the parent's nearest WINDOWED ancestor, since the
-               windowless parent has no window.  Its x,y are relative to the
-               windowless parent, so accumulate the offset across the windowless
-               chain to position the window in the ancestor's coordinates. */
-            xcb_window_t parent_win;
-            int off_x = 0, off_y = 0;
-            if (widget->core.parent == NULL) {
-                parent_win = _IswXcbScreen(widget->core.screen)->root;
-            } else if (widget->core.parent->core.windowless) {
-                Widget anc = widget->core.parent;
-                while (anc != NULL && IswIsWidget(anc) && anc->core.windowless) {
-                    off_x += anc->core.x + anc->core.border_width;
-                    off_y += anc->core.y + anc->core.border_width;
-                    anc = anc->core.parent;
-                }
-                parent_win = anc ? _IswXcbWindow(anc->core.window) : _IswXcbScreen(widget->core.screen)->root;
-            } else {
-                parent_win = _IswXcbWindow(widget->core.parent->core.window);
-            }
-            /* HiDPI: create window at physical pixel geometry */
-            double _sf = _IswGetScaleFactor(display);
-            xcb_void_cookie_t cookie = xcb_create_window_checked(
-                c,
-                widget->core.depth,
-                _IswXcbWindow(widget->core.window),
-                parent_win,
-                (int16_t)((widget->core.x + off_x) * _sf + 0.5),
-                (int16_t)((widget->core.y + off_y) * _sf + 0.5),
-                (uint16_t)(widget->core.width * _sf + 0.5),
-                (uint16_t)(widget->core.height * _sf + 0.5),
-                (uint16_t)(widget->core.border_width * _sf + 0.5),
-                window_class,
-                vis ? vis->visual_id : XCB_COPY_FROM_PARENT,
-                value_mask,
-                (const uint32_t*)attributes);
-            xcb_generic_error_t *err = xcb_request_check(c, cookie);
-            if (err) {
-                fprintf(stderr, "ERROR IswCreateWindow: xcb_create_window FAILED for widget=%s! "
-                        "error_code=%d, resource_id=0x%x\n",
-                        widget->core.name ? widget->core.name : "(null)",
-                        (int)err->error_code, (unsigned)err->resource_id);
-                free(err);
-            } else {
-            }
+            xcb_visualtype_t *vt = _IswXcbVisual(visual);
+            attrs.visual = vt ? vt->visual_id : 0;
         }
-            //XCreateWindow(IswDisplayOf(widget),
-            //              (widget->core.parent ?
-            //               widget->core.parent->core.window :
-            //               widget->core.screen->root),
-            //              (int) widget->core.x, (int) widget->core.y,
-            //              (unsigned) widget->core.width,
-            //              (unsigned) widget->core.height,
-            //              (unsigned) widget->core.border_width,
-            //              (int) widget->core.depth, window_class, visual,
-            //              value_mask, attributes);
+
+        widget->core.window = _IswPlatformCreateWindow(display, parent, &geom,
+                                                       &attrs, window_class);
     }
     UNLOCK_APP(app);
 }                               /* IswCreateWindow */

@@ -41,6 +41,7 @@
  *
  * Implemented in src/ISWPlatformDisplayXCB.c.
  */
+ 
 xcb_connection_t *_IswXcbConn(IswDisplay dpy);
 xcb_screen_t     *_IswXcbScreen(IswScreen screen);
 xcb_screen_t     *_IswXcbDefaultScreen(IswDisplay dpy);

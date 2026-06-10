@@ -81,9 +81,15 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
             IswAddGrab(widget, FALSE);
         }
         IswRealizeWidget(widget);
-        xcb_map_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)));
-        xcb_configure_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
-        xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
+        {
+            IswWindowGeometry g;
+            memset(&g, 0, sizeof(g));
+            _IswPlatformMapWindow(IswDisplayOf(widget), IswWindowOf(widget));
+            _IswPlatformConfigureWindow(IswDisplayOf(widget), IswWindowOf(widget),
+                                        &g, ISW_CONFIG_STACK,
+                                        ISW_STACK_ABOVE, NULL);
+            _IswPlatformFlush(IswDisplayOf(widget));
+        }
 
         /* Synchronize with the server so the map is fully processed,
          * then force Expose on every managed child.  Without this,
@@ -111,19 +117,22 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
                                rather than clearing the whole shell window. */
                             _IswRepaintWindowless(child);
                         else
-                            xcb_clear_area(_IswXcbConn(IswDisplayOf(widget)), 1,
-                                           _IswXcbWindow(IswWindowOf(child)), 0, 0, 0, 0);
+                            _IswPlatformClearArea(IswDisplayOf(widget),
+                                                  IswWindowOf(child),
+                                                  0, 0, 0, 0, True);
                     }
                 }
-                xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
+                _IswPlatformFlush(IswDisplayOf(widget));
             }
         }
 
     }
     else {
-        //XRaiseWindow(IswDisplayOf(widget), IswWindowOf(widget));
-        xcb_configure_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)), XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
-        xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
+        IswWindowGeometry g;
+        memset(&g, 0, sizeof(g));
+        _IswPlatformConfigureWindow(IswDisplayOf(widget), IswWindowOf(widget),
+                                    &g, ISW_CONFIG_STACK, ISW_STACK_ABOVE, NULL);
+        _IswPlatformFlush(IswDisplayOf(widget));
     }
 
 }                               /* _IswPopup */
@@ -184,8 +193,8 @@ IswPopdown(Widget widget)
 #endif
 
     grab_kind = shell_widget->shell.grab_kind;
-    xcb_unmap_window(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)));
-    xcb_flush(_IswXcbConn(IswDisplayOf(widget)));
+    _IswPlatformUnmapWindow(IswDisplayOf(widget), IswWindowOf(widget));
+    _IswPlatformFlush(IswDisplayOf(widget));
     /* The shell's window is now unmapped.  Cancel any composite queued for this
        windowed root earlier in the dispatch so it is not re-presented to the
        hidden window, which would leave the popup visible after popdown. */

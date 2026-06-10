@@ -186,8 +186,8 @@ IswMapWidget(Widget w)
         UNLOCK_APP(app);
         return;
     }
-    xcb_map_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)));
-    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+    _IswPlatformMapWindow(IswDisplayOf(w), IswWindowOf(w));
+    _IswPlatformFlush(IswDisplayOf(w));
     hookobj = IswHooksOfDisplay(IswDisplayOf(w));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
@@ -233,8 +233,8 @@ IswUnmapWidget(Widget w)
         UNLOCK_APP(app);
         return;
     }
-    xcb_unmap_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)));
-    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+    _IswPlatformUnmapWindow(IswDisplayOf(w), IswWindowOf(w));
+    _IswPlatformFlush(IswDisplayOf(w));
     hookobj = IswHooksOfDisplay(IswDisplayOf(w));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;

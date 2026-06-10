@@ -41,32 +41,8 @@
 #include <ISW/InitialI.h>
 #include "ISWPlatformPrivate.h"
 #include "ISWPlatformDisplayXCB.h"
-#include "ISWRenderPrivate.h"   /* _ISWRenderSurfacePresentSource + ISWRenderFindVisual */
+#include "ISWRenderPrivate.h" 
 
-/* ---- handle representation ------------------------------------------------
- *
- * Like IswWindow (the window id reinterpreted) and IswScreen (an xcb_screen_t*
- * reinterpreted), IswDisplay IS the xcb_connection_t* reinterpreted — there is
- * no separate wrapper struct.  This keeps the handle a single word, makes
- * core.display interchangeable with the connection the dispatch/per-display
- * layers carry, and turns the seam conversions into plain casts (no
- * dereference, so a stale/mis-sourced value can never crash).  A non-XCB
- * backend would map IswDisplay to its own connection object the same way.
- */
-
-/* ---- handle <-> native conversions (the internal seam) ------------------- */
-
-/* Phase 10a: resolve the native connection from the per-display record's
-   `native` field rather than casting the handle.  The handle's value still
-   equals the connection in 10a, so the lookup is provably equivalent to the
-   old cast — its purpose is to break the *mechanism* (a real field read, not
-   a reinterpret) ahead of 10b flipping the handle representation.
-
-   Walks _IswperDisplayList read-only without LOCK_PROCESS: this is called from
-   inside already-locked sections (e.g. _IswGetPerDisplay), so re-locking would
-   deadlock, and the list is stable for the duration of a seam call.  Falls back
-   to the cast when no record matches (early init before InitPerDisplay, or
-   after CloseDisplay frees the record) — correct because native == handle. */
 xcb_connection_t *
 _IswXcbConn(IswDisplay dpy)
 {
@@ -83,10 +59,10 @@ _IswXcbScreen(IswScreen screen)
 xcb_screen_t *
 _IswXcbDefaultScreen(IswDisplay dpy)
 {
-    xcb_connection_t *conn = (xcb_connection_t *) dpy;
-    if (!conn)
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy;
+    if (!idx->conn)
         return NULL;
-    return xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
+    return xcb_setup_roots_iterator(xcb_get_setup(idx->conn)).data;
 }
 
 xcb_window_t
@@ -297,10 +273,7 @@ xcb_create_window_full(xcb_connection_t *conn, xcb_screen_t *s,
         if (attrs->colormap) amask |= ISW_ATTR_COLORMAP;
         attrs_to_values(attrs, amask, &value_mask, values);
         if (attrs->depth) depth = (uint8_t) attrs->depth;
-        if (attrs->visual) {
-            xcb_visualtype_t *vt = _IswXcbVisual(attrs->visual);
-            if (vt) visual = vt->visual_id;
-        }
+        if (attrs->visual) visual = (xcb_visualid_t) attrs->visual;
     }
     xcb_create_window(conn, depth, id, parent_win,
                       (int16_t) geom->x, (int16_t) geom->y,
@@ -399,13 +372,13 @@ static void
 xcb_win_change_attributes(IswDisplay dpy, IswWindow win,
                           const IswWindowAttributes *attrs, unsigned int mask)
 {
-    xcb_connection_t *c = _IswXcbConn(dpy);
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy;
     uint32_t value_mask = 0, values[8];
-    if (!c || !attrs)
+    if (!idx->conn || !attrs)
         return;
     attrs_to_values(attrs, mask, &value_mask, values);
     if (value_mask)
-        xcb_change_window_attributes(c, _IswXcbWindow(win), value_mask, values);
+        xcb_change_window_attributes(idx->conn, _IswXcbWindow(win), value_mask, values);
 }
 
 static void
