@@ -337,23 +337,6 @@ xcb_atom_t IswXcbInternAtom(xcb_connection_t *conn, const char *name,
                             Bool only_if_exists);
 
 /*
- * Standard X Selection Atoms - Runtime interning macros
- *
- * In Xlib, these were predefined constants (XCB_ATOM_STRING, XA_TEXT, etc.).
- * In XCB, we must intern them at runtime.
- */
-#define XCB_ATOM_TARGETS(d)             IswXcbInternAtom((d), "TARGETS", False)
-#define XCB_ATOM_TEXT(d)                IswXcbInternAtom((d), "TEXT", False)
-#define XCB_ATOM_COMPOUND_TEXT(d)       IswXcbInternAtom((d), "COMPOUND_TEXT", False)
-#define XCB_ATOM_LENGTH(d)              IswXcbInternAtom((d), "LENGTH", False)
-#define XCB_ATOM_LIST_LENGTH(d)         IswXcbInternAtom((d), "LIST_LENGTH", False)
-#define XCB_ATOM_CHARACTER_POSITION(d)  IswXcbInternAtom((d), "CHARACTER_POSITION", False)
-#define XCB_ATOM_DELETE(d)              IswXcbInternAtom((d), "DELETE", False)
-#define XCB_ATOM_SPAN(d)                IswXcbInternAtom((d), "SPAN", False)
-#define XCB_ATOM_NULL(d)                IswXcbInternAtom((d), "NULL", False)
-#define XCB_ATOM_CLIPBOARD(d)           IswXcbInternAtom((d), "CLIPBOARD", False)
-
-/*
  * =================================================================
  * TEXT DRAWING (Server fonts - for compatibility)
  * =================================================================

@@ -887,10 +887,11 @@ ListConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
 		     unsigned long *length, int *format)
 {
     ListWidget lw = (ListWidget) w;
+    xcb_atom_t a_targets = _IswPlatformInternAtomOp(IswDisplayOf(w), "TARGETS", False);
 
-    if (*target == XCB_ATOM_TARGETS(_IswXcbConn(IswDisplayOf(w)))) {
+    if (*target == a_targets) {
 	xcb_atom_t *targets = (xcb_atom_t *) IswMalloc(2 * sizeof(xcb_atom_t));
-	targets[0] = XCB_ATOM_TARGETS(_IswXcbConn(IswDisplayOf(w)));
+	targets[0] = a_targets;
 	targets[1] = XCB_ATOM_STRING;
 	*type = XCB_ATOM_ATOM;
 	*value = (IswPointer) targets;
@@ -953,7 +954,7 @@ Notify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 	if (lw->list.clip_contents)
 	    IswFree(lw->list.clip_contents);
 	lw->list.clip_contents = IswNewString(lw->list.list[item]);
-	IswOwnSelection(w, XCB_ATOM_CLIPBOARD(_IswXcbConn(IswDisplayOf(w))),
+	IswOwnSelection(w, _IswPlatformInternAtomOp(IswDisplayOf(w), "CLIPBOARD", False),
 			IswLastTimestampProcessed(IswDisplayOf(w)),
 			ListConvertSelection, ListLoseSelection, NULL);
     }

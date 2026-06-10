@@ -219,7 +219,7 @@ GetSelection(Widget w, xcb_timestamp_t time, String *params, Cardinal num_params
     xcb_atom_t selection;
     struct _SelectionList* list;
 
-    selection = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), *params, False);
+    selection = _IswPlatformInternAtomOp(IswDisplayOf(w), *params, False);
 
     if (--num_params) {
 	list = IswNew(struct _SelectionList);
@@ -229,7 +229,8 @@ GetSelection(Widget w, xcb_timestamp_t time, String *params, Cardinal num_params
 	list->CT_asked = True;
 	list->selection = selection;
     } else list = NULL;
-    IswGetSelectionValue(w, selection, XCB_ATOM_COMPOUND_TEXT(_IswXcbConn(IswDisplayOf(w))),
+    IswGetSelectionValue(w, selection,
+			_IswPlatformInternAtomOp(IswDisplayOf(w), "COMPOUND_TEXT", False),
 			_SelectionReceived, (IswPointer)list, time);
 }
 
@@ -473,14 +474,23 @@ static Boolean
 ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
                  IswPointer* value, unsigned long *length, int *format)
 {
-  xcb_connection_t* d = _IswXcbConn(IswDisplayOf(w));
+  IswDisplay d = IswDisplayOf(w);
   TextWidget ctx = (TextWidget)w;
   Widget src = ctx->text.source;
   IswTextEditType edit_mode;
   IswTextSelectionSalt	*salt = NULL;
   IswTextSelection  *s;
 
-  if (*target == XCB_ATOM_TARGETS(d)) {
+  /* Intern the selection-target atoms once through the platform atom op. */
+  xcb_atom_t a_targets  = _IswPlatformInternAtomOp(d, "TARGETS", False);
+  xcb_atom_t a_text     = _IswPlatformInternAtomOp(d, "TEXT", False);
+  xcb_atom_t a_ctext    = _IswPlatformInternAtomOp(d, "COMPOUND_TEXT", False);
+  xcb_atom_t a_length   = _IswPlatformInternAtomOp(d, "LENGTH", False);
+  xcb_atom_t a_listlen  = _IswPlatformInternAtomOp(d, "LIST_LENGTH", False);
+  xcb_atom_t a_charpos  = _IswPlatformInternAtomOp(d, "CHARACTER_POSITION", False);
+  xcb_atom_t a_delete   = _IswPlatformInternAtomOp(d, "DELETE", False);
+
+  if (*target == a_targets) {
     xcb_atom_t* targetP, * std_targets;
     unsigned long std_length;
 
@@ -496,11 +506,11 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 
     *length = std_length + 6;
     *targetP++ = XCB_ATOM_STRING;
-    *targetP++ = XCB_ATOM_TEXT(d);
-    *targetP++ = XCB_ATOM_COMPOUND_TEXT(d);
-    *targetP++ = XCB_ATOM_LENGTH(d);
-    *targetP++ = XCB_ATOM_LIST_LENGTH(d);
-    *targetP++ = XCB_ATOM_CHARACTER_POSITION(d);
+    *targetP++ = a_text;
+    *targetP++ = a_ctext;
+    *targetP++ = a_length;
+    *targetP++ = a_listlen;
+    *targetP++ = a_charpos;
 
     {
       IswArgBuilder ab = IswArgBuilderInit();
@@ -509,7 +519,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
     }
 
     if (edit_mode == IswtextEdit) {
-      *targetP++ = XCB_ATOM_DELETE(d);
+      *targetP++ = a_delete;
       (*length)++;
     }
     memcpy((char*)targetP, (char*)std_targets, sizeof(xcb_atom_t)*std_length);
@@ -529,9 +539,9 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
     return False;
   s = &salt->s;
   if (*target == XCB_ATOM_STRING ||
-      *target == XCB_ATOM_TEXT(d) ||
-      *target == XCB_ATOM_COMPOUND_TEXT(d)) {
-	if (*target == XCB_ATOM_TEXT(d)) {
+      *target == a_text ||
+      *target == a_ctext) {
+	if (*target == a_text) {
 		*type = XCB_ATOM_STRING;
 	} else {
 	    *type = *target;
@@ -557,13 +567,13 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	return True;
   }
 
-  if ( (*target == XCB_ATOM_LIST_LENGTH(d)) || (*target == XCB_ATOM_LENGTH(d)) ) {
+  if ( (*target == a_listlen) || (*target == a_length) ) {
     long * temp;
 
     temp = (long *) IswMalloc(sizeof(long));
-    if (*target == XCB_ATOM_LIST_LENGTH(d))
+    if (*target == a_listlen)
       *temp = 1L;
-    else			/* *target == XCB_ATOM_LENGTH(d) */
+    else			/* *target == a_length */
       *temp = (long) (s->right - s->left);
 
     *value = (IswPointer) temp;
@@ -573,20 +583,20 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
     return True;
   }
 
-  if (*target == XCB_ATOM_CHARACTER_POSITION(d)) {
+  if (*target == a_charpos) {
     long * temp;
 
     temp = (long *) IswMalloc(2 * sizeof(long));
     temp[0] = (long) (s->left + 1);
     temp[1] = s->right;
     *value = (IswPointer) temp;
-    *type = _IswPlatformInternAtomOp((IswDisplay) d, "SPAN", False);
+    *type = _IswPlatformInternAtomOp(d, "SPAN", False);
     *length = 2L;
     *format = 32;
     return True;
   }
 
-  if (*target == XCB_ATOM_DELETE(d)) {
+  if (*target == a_delete) {
     if (!salt)
 	_IswTextZapSelection( ctx, (IswEvent *) NULL, TRUE);
     *value = NULL;
@@ -665,7 +675,7 @@ _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	
 
   if (kill && from < to) {
     IswTextSelectionSalt    *salt;
-    xcb_atom_t selection = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(ctx)), "SECONDARY", False);
+    xcb_atom_t selection = _IswPlatformInternAtomOp(IswDisplayOf(ctx), "SECONDARY", False);
 
     LoseSelection ((Widget) ctx, &selection);
     salt = (IswTextSelectionSalt *) IswMalloc (sizeof (IswTextSelectionSalt));
@@ -829,7 +839,7 @@ KillCurrentSelection(Widget w, IswEvent *iswev, String *p, Cardinal *n)
   StartAction(ctx, iswev);
   /* Snapshot selection to CLIPBOARD before deleting */
   if (ctx->text.s.left < ctx->text.s.right) {
-    xcb_atom_t clip = XCB_ATOM_CLIPBOARD(_IswXcbConn(IswDisplayOf(w)));
+    xcb_atom_t clip = _IswPlatformInternAtomOp(IswDisplayOf(w), "CLIPBOARD", False);
     _IswTextSaltAwaySelection(ctx, &clip, 1);
   }
   _DeleteOrKill(ctx, ctx->text.s.left, ctx->text.s.right, TRUE);
@@ -1062,14 +1072,14 @@ SelectSave(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     int	    num_atoms;
     xcb_atom_t*   sel;
-    xcb_connection_t* dpy = _IswXcbConn(IswDisplayOf(w));
+    IswDisplay dpy = IswDisplayOf(w);
     xcb_atom_t    selections[256];
 
     StartAction(  (TextWidget) w, iswev );
     num_atoms = *num_params;
     if (num_atoms > 256) num_atoms = 256;
     for (sel=selections; --num_atoms >= 0; sel++, params++)
-	    *sel = IswXcbInternAtom(dpy, *params, False);// XInternAtom(dpy, *params, False);
+	    *sel = _IswPlatformInternAtomOp(dpy, *params, False);
     num_atoms = *num_params;
     _IswTextSaltAwaySelection( (TextWidget) w, selections, num_atoms );
     EndAction(  (TextWidget) w );
@@ -1081,7 +1091,7 @@ CopySelection(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
   TextWidget ctx = (TextWidget) w;
   int num_atoms;
   xcb_atom_t *sel;
-  xcb_connection_t *dpy = _IswXcbConn(IswDisplayOf(w));
+  IswDisplay dpy = IswDisplayOf(w);
   xcb_atom_t selections[256];
 
   StartAction(ctx, iswev);
@@ -1089,7 +1099,7 @@ CopySelection(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     num_atoms = *num_params;
     if (num_atoms > 256) num_atoms = 256;
     for (sel = selections; --num_atoms >= 0; sel++, params++)
-      *sel = IswXcbInternAtom(dpy, *params, False);
+      *sel = _IswPlatformInternAtomOp(dpy, *params, False);
     num_atoms = *num_params;
     _IswTextSaltAwaySelection(ctx, selections, num_atoms);
   }
