@@ -121,7 +121,7 @@ _IswDefaultAppContext(void)
 }
 
 static void
-AddToAppContext(xcb_connection_t *d, IswAppContext app)
+AddToAppContext(IswDisplay dpy, IswAppContext app)
 {
 #define DISPLAYS_TO_ADD 4
 
@@ -129,16 +129,16 @@ AddToAppContext(xcb_connection_t *d, IswAppContext app)
         app->max = (short) (app->max + DISPLAYS_TO_ADD);
         app->list = IswReallocArray(app->list,
                                    (Cardinal) app->max,
-                                   (Cardinal) sizeof(xcb_connection_t *));
+                                   (Cardinal) sizeof(IswDisplay));
     }
 
-    app->list[app->count++] = d;
+    app->list[app->count++] = dpy;
     app->rebuild_fdlist = TRUE;
 #ifdef USE_POLL
     app->fds.nfds++;
 #else
-    if (_IswPlatformConnectionFd((IswDisplay)d) + 1 > app->fds.nfds) {
-        app->fds.nfds = _IswPlatformConnectionFd((IswDisplay)d) + 1;
+    if (_IswPlatformConnectionFd((IswDisplay)dpy) + 1 > app->fds.nfds) {
+        app->fds.nfds = _IswPlatformConnectionFd((IswDisplay)dpy) + 1;
     }
 #endif
 #undef DISPLAYS_TO_ADD
