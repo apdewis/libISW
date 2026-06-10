@@ -141,36 +141,11 @@ void _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keyco
                          unsigned int modifiers, Boolean owner_events,
                          int pointer_mode, int keyboard_mode);
 
-/* Selection — neutral IswSelectionId throughout; no Atom in the engine seam. */
-IswSelectionId _IswPlatformSelectionInternName(IswDisplay dpy, const char *name,
-                                               Boolean only_if_exists);
-Boolean   _IswPlatformSelectionName(IswDisplay dpy, IswSelectionId id,
-                                    char *buf, size_t buflen);
-void      _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
-                                        IswSelectionId selection, IswTime time);
-IswWindow _IswPlatformGetSelectionOwner(IswDisplay dpy, IswSelectionId selection);
-void      _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
-                                       IswSelectionId selection,
-                                       IswSelectionId target,
-                                       IswSelectionId property, IswTime time);
-Boolean   _IswPlatformSelectionDecodeEvent(IswDisplay dpy, const void *native,
-                                           IswSelectionEvent *out);
-void      _IswPlatformSelectionSendNotify(IswDisplay dpy,
-                                          const IswSelectionRequest *req,
-                                          IswSelectionId property);
-unsigned long _IswPlatformSelectionMaxTransfer(IswDisplay dpy);
-
-/* Standard selection value-types the engine and widgets name by role, never by
-   the backend's wire name.  The backend resolves each to its own id (on X11:
-   the predefined ATOM / STRING / INTEGER atoms). */
-typedef enum {
-    ISW_SEL_STDTYPE_ID_LIST = 0,   /* a list of selection ids (X11: ATOM)   */
-    ISW_SEL_STDTYPE_STRING,        /* a text string           (X11: STRING) */
-    ISW_SEL_STDTYPE_INTEGER        /* an integer              (X11: INTEGER)*/
-} IswSelectionStdType;
-
-IswSelectionId _IswPlatformSelectionStdType(IswDisplay dpy,
-                                            IswSelectionStdType which);
+/* The neutral selection dispatch wrappers (_IswPlatformSelection*,
+   _IswPlatform{Set,Get}SelectionOwner, _IswPlatformConvertSelection) are
+   declared in ISW/IntrinsicI.h with the other neutral platform wrappers, so
+   widget/engine code reaches them without this backend-private header.  Their
+   XCB implementations live in ISWPlatformDisplayXCB.c. */
 
 /* Atom (Phase 6) */
 Atom    _IswPlatformInternAtomOp(IswDisplay dpy, const char *name,

@@ -496,6 +496,15 @@ typedef struct {
     IswSelectionRequest   request;
 } IswSelectionEvent;
 
+/* Standard selection value-types the engine and widgets name by role rather
+   than by any backend's wire name.  The backend resolves each to its own id
+   (on X11: the predefined ATOM / STRING / INTEGER atoms). */
+typedef enum {
+    ISW_SEL_STDTYPE_ID_LIST = 0,   /* a list of selection ids (X11: ATOM)    */
+    ISW_SEL_STDTYPE_STRING,        /* a text string           (X11: STRING)  */
+    ISW_SEL_STDTYPE_INTEGER        /* an integer              (X11: INTEGER) */
+} IswSelectionStdType;
+
 typedef Boolean (*IswConvertSelectionProc)(
     Widget 		/* widget */,
     IswSelectionId*	/* selection */,

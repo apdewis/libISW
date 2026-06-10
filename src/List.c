@@ -56,6 +56,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SmeBSB.h>
 #include <ISW/Shell.h>
 #include <ISW/IswArgMacros.h>
+#include "IntrinsicI.h"
 #include "ISWPlatformPrivate.h"
 #include "ISWXcbDraw.h"
 #include <math.h>

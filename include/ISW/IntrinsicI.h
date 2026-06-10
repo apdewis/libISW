@@ -274,6 +274,36 @@ extern void *_IswPlatformPollQueuedEvent(IswDisplay dpy);
 extern Boolean _IswPlatformDisplayHasError(IswDisplay dpy);
 extern void    _IswPlatformFlush(IswDisplay dpy);
 
+/* Selection dispatch wrappers, via the ISWPlatform selection vtable.  Neutral
+   in and out (IswSelectionId / IswSelectionEvent / IswSelectionRequest); each
+   recovers the injected backend ops from the display.  Declared here so the
+   selection engine (Selection.c) and selection-owning widgets (Text, List)
+   reach them without ISWPlatformPrivate.h, like the poll/flush wrappers. */
+extern IswSelectionId _IswPlatformSelectionInternName(IswDisplay dpy,
+                                                      const char *name,
+                                                      Boolean only_if_exists);
+extern Boolean   _IswPlatformSelectionName(IswDisplay dpy, IswSelectionId id,
+                                           char *buf, size_t buflen);
+extern void      _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
+                                              IswSelectionId selection,
+                                              IswTime time);
+extern IswWindow _IswPlatformGetSelectionOwner(IswDisplay dpy,
+                                              IswSelectionId selection);
+extern void      _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
+                                             IswSelectionId selection,
+                                             IswSelectionId target,
+                                             IswSelectionId property,
+                                             IswTime time);
+extern Boolean   _IswPlatformSelectionDecodeEvent(IswDisplay dpy,
+                                                 const void *native,
+                                                 IswSelectionEvent *out);
+extern void      _IswPlatformSelectionSendNotify(IswDisplay dpy,
+                                                const IswSelectionRequest *req,
+                                                IswSelectionId property);
+extern unsigned long _IswPlatformSelectionMaxTransfer(IswDisplay dpy);
+extern IswSelectionId _IswPlatformSelectionStdType(IswDisplay dpy,
+                                                   IswSelectionStdType which);
+
 _XFUNCPROTOEND
 
 #endif /* _IswintrinsicI_h */

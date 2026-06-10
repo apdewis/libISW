@@ -40,6 +40,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/TextP.h>
 #include <ISW/ISWImP.h>
 #include <ISW/IswArgMacros.h>
+#include "IntrinsicI.h"
 #include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #include <stdlib.h>

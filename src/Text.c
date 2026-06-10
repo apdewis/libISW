@@ -66,7 +66,6 @@ SOFTWARE.
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWImP.h>
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
 #include <ctype.h>		/* for isprint() */
 
 unsigned long FMT8BIT = 0L;
