@@ -205,7 +205,6 @@ typedef struct _TextPart {
     int		    numranges;	    /* How many update ranges there are. */
     int		    maxranges;	    /* How many ranges we have space for */
     ISWTextPosition  lastPos;	    /* Last position of source. */
-    xcb_gcontext_t  gc;
     Boolean	    showposition;   /* True if we need to show the position. */
     Boolean         hasfocus;       /* TRUE if we currently have input focus.*/
     Boolean	    update_disabled; /* TRUE if display updating turned off */

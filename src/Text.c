@@ -69,6 +69,7 @@ SOFTWARE.
 #include <ISW/TextP.h>
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWImP.h>
+#include "IntrinsicI.h"
 #include "ISWPlatformPrivate.h"
 #include "ISWXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
@@ -467,7 +468,7 @@ CreateVScrollBar(TextWidget ctx)
   if (IswIsRealized((Widget)ctx)) {
     IswRealizeWidget(vbar);
     IswMapWidget(vbar);
-    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)ctx)));
+    _IswPlatformFlush(IswDisplayOf((Widget)ctx));
   }
 }
 
@@ -593,8 +594,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   ctx->text.updateFrom = (ISWTextPosition *) IswMalloc((unsigned) ONE);
   ctx->text.updateTo = (ISWTextPosition *) IswMalloc((unsigned) ONE);
   ctx->text.numranges = ctx->text.maxranges = 0;
-  
-  ctx->text.gc = 0;  /* created in Realize once window exists */
+
   ctx->text.hasfocus = FALSE;
   ctx->text.margin = ctx->text.r_margin; /* Strucure copy. */
   ctx->text.update_disabled = FALSE;
@@ -666,19 +666,6 @@ Realize(IswDisplay conn, Widget w, IswValueMask *valueMask, uint32_t *attributes
   (*textClassRec.core_class.superclass->core_class.realize)
     (conn, w, valueMask, attributes);
 
-  /* Create the GC now that the window exists.  Raw GC creation still lives here
-     (Phase 13c / render layer will move it); reach the connection via the seam. */
-  {
-    xcb_connection_t *c = _IswXcbConn(conn);
-    xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(w));
-    uint32_t gc_values[2];
-    gc_values[0] = BlackPixelOfScreen(screen);
-    gc_values[1] = WhitePixelOfScreen(screen);
-    ctx->text.gc = xcb_generate_id(c);
-    xcb_create_gc(c, ctx->text.gc, _IswXcbWindow(IswWindowOf(w)),
-                  XCB_GC_FOREGROUND | XCB_GC_BACKGROUND, gc_values);
-  }
-
   if (ctx->text.hbar != NULL) {	        /* Put up Hbar -- Must be first. */
     IswRealizeWidget(ctx->text.hbar);
     IswMapWidget(ctx->text.hbar);
@@ -687,7 +674,7 @@ Realize(IswDisplay conn, Widget w, IswValueMask *valueMask, uint32_t *attributes
   if (ctx->text.vbar != NULL) {	        /* Put up Vbar. */
     IswRealizeWidget(ctx->text.vbar);
     IswMapWidget(ctx->text.vbar);
-    xcb_flush(_IswXcbConn(conn));
+    _IswPlatformFlush(conn);
   }
 
   _IswTextBuildLineTable(ctx, ctx->text.lt.top, TRUE);
