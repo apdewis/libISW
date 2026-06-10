@@ -33,11 +33,15 @@
 #include <string.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
+#include <xcb/present.h>
+#include <cairo/cairo.h>
+#include <cairo/cairo-xcb.h>
 
 #include "IntrinsicI.h"
 #include <ISW/InitialI.h>
 #include "ISWPlatformPrivate.h"
 #include "ISWPlatformDisplayXCB.h"
+#include "ISWRenderPrivate.h"   /* _ISWRenderSurfacePresentSource + ISWRenderFindVisual */
 
 /* ---- handle representation ------------------------------------------------
  *
@@ -232,12 +236,19 @@ attrs_to_values(const IswWindowAttributes *a, unsigned int mask,
 {
     uint32_t vm = 0;
     int n = 0;
-    /* XCB requires values in increasing CW_* bit order. */
+    /* XCB requires values in increasing CW_* bit order:
+       BACK_PIXEL(1) < BORDER_PIXEL(3) < BIT_GRAVITY(4) < OVERRIDE_REDIRECT(9)
+       < SAVE_UNDER(10) < EVENT_MASK(11) < COLORMAP(13). */
     if (mask & ISW_ATTR_BACK_PIXEL) {
         vm |= XCB_CW_BACK_PIXEL;        values[n++] = a->background_pixel;
     }
     if (mask & ISW_ATTR_BORDER_PIXEL) {
         vm |= XCB_CW_BORDER_PIXEL;      values[n++] = a->border_pixel;
+    }
+    if (mask & ISW_ATTR_BIT_GRAVITY) {
+        vm |= XCB_CW_BIT_GRAVITY;       values[n++] = a->bit_gravity_nw
+                                                     ? XCB_GRAVITY_NORTH_WEST
+                                                     : XCB_GRAVITY_BIT_FORGET;
     }
     if (mask & ISW_ATTR_OVERRIDE) {
         vm |= XCB_CW_OVERRIDE_REDIRECT; values[n++] = a->override_redirect ? 1 : 0;
@@ -247,6 +258,9 @@ attrs_to_values(const IswWindowAttributes *a, unsigned int mask,
     }
     if (mask & ISW_ATTR_EVENT_MASK) {
         vm |= XCB_CW_EVENT_MASK;        values[n++] = a->event_mask;
+    }
+    if (mask & ISW_ATTR_COLORMAP) {
+        vm |= XCB_CW_COLORMAP;          values[n++] = (uint32_t) _IswXcbColormap(a->colormap);
     }
     *out_value_mask = vm;
     return (uint32_t) n;
@@ -261,34 +275,56 @@ xcb_win_alloc_id(IswDisplay dpy)
     return _IswXcbWindowWrap(xcb_generate_id(priv->conn));
 }
 
+/* Shared window create: honors visual/colormap/depth/bit-gravity from attrs.
+   OVERRIDE_REDIRECT and SAVE_UNDER are applied here too (no post-create change
+   needed).  parent_win is the native parent. */
+static xcb_window_t
+xcb_create_window_full(xcb_connection_t *conn, xcb_screen_t *s,
+                       xcb_window_t parent_win,
+                       const IswWindowGeometry *geom,
+                       const IswWindowAttributes *attrs,
+                       unsigned int window_class)
+{
+    xcb_window_t id = xcb_generate_id(conn);
+    uint32_t value_mask = 0, values[8];
+    uint8_t depth = XCB_COPY_FROM_PARENT;
+    xcb_visualid_t visual = s ? s->root_visual : XCB_COPY_FROM_PARENT;
+
+    if (attrs) {
+        unsigned int amask = ISW_ATTR_BACK_PIXEL | ISW_ATTR_BORDER_PIXEL |
+                             ISW_ATTR_OVERRIDE | ISW_ATTR_SAVE_UNDER |
+                             ISW_ATTR_EVENT_MASK | ISW_ATTR_BIT_GRAVITY;
+        if (attrs->colormap) amask |= ISW_ATTR_COLORMAP;
+        attrs_to_values(attrs, amask, &value_mask, values);
+        if (attrs->depth) depth = (uint8_t) attrs->depth;
+        if (attrs->visual) {
+            xcb_visualtype_t *vt = _IswXcbVisual(attrs->visual);
+            if (vt) visual = vt->visual_id;
+        }
+    }
+    xcb_create_window(conn, depth, id, parent_win,
+                      (int16_t) geom->x, (int16_t) geom->y,
+                      (uint16_t) geom->width, (uint16_t) geom->height,
+                      (uint16_t) geom->border_width,
+                      (uint16_t) window_class, visual, value_mask, values);
+    return id;
+}
+
 static IswWindow
 xcb_win_create(IswDisplay dpy, IswWindow parent,
                const IswWindowGeometry *geom,
-               const IswWindowAttributes *attrs)
+               const IswWindowAttributes *attrs,
+               unsigned int window_class)
 {
     IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
     xcb_screen_t *s = _IswXcbDefaultScreen(dpy);
-    xcb_window_t id;
-    uint32_t value_mask = 0, values[8];
-    uint32_t nv;
 
     if (!priv->conn || !s)
         return _IswXcbWindowWrap(0);
 
-    id = xcb_generate_id(priv->conn);
-    nv = attrs ? attrs_to_values(attrs, ISW_ATTR_BACK_PIXEL |
-                                 ISW_ATTR_BORDER_PIXEL | ISW_ATTR_OVERRIDE |
-                                 ISW_ATTR_SAVE_UNDER | ISW_ATTR_EVENT_MASK,
-                                 &value_mask, values)
-                : 0;
-    (void) nv;
-    xcb_create_window(priv->conn, XCB_COPY_FROM_PARENT, id, _IswXcbWindow(parent),
-                      (int16_t) geom->x, (int16_t) geom->y,
-                      (uint16_t) geom->width, (uint16_t) geom->height,
-                      (uint16_t) geom->border_width,
-                      XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                      s->root_visual, value_mask, values);
-    return _IswXcbWindowWrap(id);
+    return _IswXcbWindowWrap(
+        xcb_create_window_full(priv->conn, s, _IswXcbWindow(parent),
+                               geom, attrs, window_class));
 }
 
 static void
@@ -409,6 +445,70 @@ static const IswPlatformWindowOps xcb_window_ops = {
     .window_from_id     = xcb_win_window_from_id,
 };
 
+/* ---- root surface ops ---------------------------------------------------- */
+
+/* Create the WM-managed top-level window for a (windowless) shell: a child of
+   the screen root with the shell's visual/colormap/depth/event-mask. */
+static IswWindow
+xcb_root_create(IswDisplay dpy, IswScreen screen,
+                const IswWindowGeometry *geom, const IswWindowAttributes *attrs)
+{
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    xcb_screen_t *s = _IswXcbScreen(screen);
+    if (!priv->conn || !s)
+        return _IswXcbWindowWrap(0);
+    return _IswXcbWindowWrap(
+        xcb_create_window_full(priv->conn, s, s->root, geom, attrs,
+                               XCB_WINDOW_CLASS_INPUT_OUTPUT));
+}
+
+/* Blit a finished composite surface to the root window.  The window blit lives
+   here (the render backend hands us its back buffer through the accessor and no
+   longer names a window): Present path when usable, else cairo source-paint
+   onto the surface's cached window context. */
+static void
+xcb_root_present(IswDisplay dpy, IswWindow win, IswSurface surface,
+                 int width, int height)
+{
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    cairo_surface_t *back = NULL;
+    void *window_cr = NULL;
+    xcb_pixmap_t back_pixmap = 0;
+    uint32_t serial = 0;
+    (void) width; (void) height;
+
+    if (!priv->conn)
+        return;
+    if (!_ISWRenderSurfacePresentSource(surface, &back, &window_cr,
+                                        &back_pixmap, &serial))
+        return;
+
+    if (back_pixmap) {
+        xcb_present_pixmap(priv->conn, _IswXcbWindow(win), back_pixmap, serial,
+                           XCB_NONE,  /* valid region (whole) */
+                           XCB_NONE,  /* update region (whole) */
+                           0, 0,      /* x/y offset */
+                           XCB_NONE,  /* target_crtc (auto) */
+                           XCB_NONE,  /* wait_fence */
+                           XCB_NONE,  /* idle_fence */
+                           XCB_PRESENT_OPTION_COPY,
+                           0, 0, 0,   /* target_msc / divisor / remainder */
+                           0, NULL);  /* notifies */
+    } else if (window_cr && back) {
+        cairo_t *cr = (cairo_t *) window_cr;
+        cairo_set_source_surface(cr, back, 0, 0);
+        cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+        cairo_paint(cr);
+        cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+    }
+    xcb_flush(priv->conn);
+}
+
+static const IswPlatformRootOps xcb_root_ops = {
+    .create_root  = xcb_root_create,
+    .present_root = xcb_root_present,
+};
+
 /* ---- backend vtable + dispatcher ----------------------------------------- */
 
 extern const IswPlatformEventOps isw_platform_xcb_event_ops; /* ISWPlatformEventXCB.c */
@@ -426,6 +526,7 @@ extern const IswPlatformDndOps       isw_platform_xcb_dnd_ops;       /* ISWPlatf
 const IswPlatformOps isw_platform_xcb_ops = {
     .display   = &xcb_display_ops,
     .window    = &xcb_window_ops,
+    .root      = &xcb_root_ops,
     .event     = &isw_platform_xcb_event_ops,   /* Phase 11a */
     .input     = &isw_platform_xcb_input_ops,
     .selection = &isw_platform_xcb_selection_ops,
@@ -537,6 +638,121 @@ _IswPlatformChangeAttributes(IswDisplay dpy, IswWindow win,
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->window && ops->window->change_attributes)
         ops->window->change_attributes(dpy, win, attrs, mask);
+}
+
+/* Window lifecycle dispatchers (Phase 13c) — the toolkit calls these instead of
+   xcb_* window functions; each recovers the injected ops and null-guards. */
+IswWindow
+_IswPlatformAllocWindowId(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->alloc_id)
+        return ops->window->alloc_id(dpy);
+    return _IswXcbWindowWrap(0);
+}
+
+IswWindow
+_IswPlatformCreateWindow(IswDisplay dpy, IswWindow parent,
+                         const IswWindowGeometry *geom,
+                         const IswWindowAttributes *attrs,
+                         unsigned int window_class)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->create)
+        return ops->window->create(dpy, parent, geom, attrs, window_class);
+    return _IswXcbWindowWrap(0);
+}
+
+void
+_IswPlatformDestroyWindow(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->destroy)
+        ops->window->destroy(dpy, win);
+}
+
+void
+_IswPlatformMapWindow(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->map)
+        ops->window->map(dpy, win);
+}
+
+void
+_IswPlatformUnmapWindow(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->unmap)
+        ops->window->unmap(dpy, win);
+}
+
+void
+_IswPlatformReparentWindow(IswDisplay dpy, IswWindow win, IswWindow new_parent,
+                           int32_t x, int32_t y)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->reparent)
+        ops->window->reparent(dpy, win, new_parent, x, y);
+}
+
+void
+_IswPlatformConfigureWindow(IswDisplay dpy, IswWindow win,
+                            const IswWindowGeometry *geom, unsigned int mask,
+                            IswStackMode stack, IswWindow sibling)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->configure)
+        ops->window->configure(dpy, win, geom, mask, stack, sibling);
+}
+
+void
+_IswPlatformClearArea(IswDisplay dpy, IswWindow win,
+                      int16_t x, int16_t y, uint16_t w, uint16_t h,
+                      Boolean generate_expose)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->clear_area)
+        ops->window->clear_area(dpy, win, x, y, w, h, generate_expose);
+}
+
+IswWindowId
+_IswPlatformWindowId(IswWindow win)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->window && ops->window->window_id)
+        return ops->window->window_id(win);
+    return 0;
+}
+
+IswWindow
+_IswPlatformWindowFromId(IswDisplay dpy, IswWindowId id)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->window_from_id)
+        return ops->window->window_from_id(id);
+    return _IswXcbWindowWrap((xcb_window_t) id);
+}
+
+/* Root surface dispatchers (Phase 13c). */
+IswWindow
+_IswPlatformCreateRoot(IswDisplay dpy, IswScreen screen,
+                       const IswWindowGeometry *geom,
+                       const IswWindowAttributes *attrs)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->root && ops->root->create_root)
+        return ops->root->create_root(dpy, screen, geom, attrs);
+    return _IswXcbWindowWrap(0);
+}
+
+void
+_IswPlatformPresentRoot(IswDisplay dpy, IswWindow win, IswSurface surface,
+                        int width, int height)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->root && ops->root->present_root)
+        ops->root->present_root(dpy, win, surface, width, height);
 }
 
 /* ---- resource-resolution wrappers (Phase 15) -----------------------------

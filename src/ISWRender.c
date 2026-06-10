@@ -756,17 +756,23 @@ ISWRenderCompositeSubtree(Widget windowed_root)
     }
     _isw_composite_children_into(windowed_root, root_surface);
 
-    /* Blit the composited root surface to its window — but only if this pass
+    /* Present the composited root surface to its window — but only if this pass
        actually changed the surface.  A pass that folded no children and did no
        background fill (common during startup, when widgets paint before being
        mapped) leaves the surface identical to what is already on screen, so the
-       present() is a pure-overhead full-window blit.  Skipping those collapses a
-       startup storm of hundreds of redundant blits. */
+       present is a pure-overhead full-window blit.  Skipping those collapses a
+       startup storm of hundreds of redundant blits.  The window blit lives in
+       the platform layer now (present_root), so the render layer hands it the
+       opaque root window + surface and never names the native window. */
     Boolean folded_now = (_isw_fold_count != fold0);
-    if ((filled_bg || folded_now) &&
-        _isw_surface_ops && _isw_surface_ops->present)
-        _isw_surface_ops->present(root_surface, windowed_root,
-                                  IswWindowOf(windowed_root));
+    if (filled_bg || folded_now) {
+        double sf = _IswGetScaleFactor(IswDisplayOf(windowed_root));
+        int pw = (int)(windowed_root->core.width * sf + 0.5);
+        int ph = (int)(windowed_root->core.height * sf + 0.5);
+        _IswPlatformPresentRoot(IswDisplayOf(windowed_root),
+                                IswWindowOf(windowed_root),
+                                root_surface, pw, ph);
+    }
     if (folded_now)
         windowed_root->core.composite_presented = True;
     _isw_in_composite = prev;

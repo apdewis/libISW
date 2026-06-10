@@ -50,14 +50,20 @@ typedef struct {
     uint32_t border_width;
 } IswWindowGeometry;
 
-/* Window-creation attributes the lifecycle needs.  Neutral subset; colormap,
-   visual and pixmaps are added when Phase 4 abstracts them. */
+/* Window-creation attributes the lifecycle needs.  visual/colormap/depth carry
+   the (opaque) rendering target selection a window create needs; bit_gravity_nw
+   requests NorthWest bit gravity (shells set it).  A zero visual/colormap/depth
+   means "inherit from parent / screen default". */
 typedef struct {
     uint32_t background_pixel;
     uint32_t border_pixel;
     uint32_t event_mask;        /* neutral IswEvent mask, backend-translated */
     Boolean  override_redirect;
     Boolean  save_under;
+    IswVisual   visual;         /* opaque; 0 = COPY_FROM_PARENT */
+    IswColormap colormap;       /* opaque; 0 = none */
+    uint32_t    depth;          /* 0 = COPY_FROM_PARENT */
+    Boolean     bit_gravity_nw; /* set NorthWest bit gravity */
 } IswWindowAttributes;
 
 /* Window stacking for configure. */
@@ -145,6 +151,12 @@ typedef struct _IswPlatformDisplayOps   IswPlatformDisplayOps;
 /* Window lifecycle — create, configure, map, destroy, reparent.
  * Filled in Phase 2. */
 typedef struct _IswPlatformWindowOps    IswPlatformWindowOps;
+
+/* Root surface — the OS/WM-managed top-level window that owns a shell's render
+ * surface and presents it.  A windowless shell holds the root window handle but
+ * never touches it directly; the toolkit maps/configures it through the window
+ * ops and presents through these. */
+typedef struct _IswPlatformRootOps      IswPlatformRootOps;
 
 /* Event loop + dispatch — poll, translate to a portable event union,
  * modifier state.  Filled in Phase 1 (unblocks the rest). */
@@ -236,12 +248,13 @@ struct _IswPlatformDisplayOps {
 struct _IswPlatformWindowOps {
     /* Allocate a new window id (deferred creation backends may no-op). */
     IswWindow (*alloc_id)(IswDisplay dpy);
-    /* Create a child window of `parent` with geometry + attributes; `depth`
-       and a backend-resolved visual are taken from the screen default for now
-       (Phase 4 generalises visual/depth).  Returns the created window. */
+    /* Create a child window of `parent` with geometry + attributes.  `attrs`
+       carries visual/colormap/depth (0 = inherit from parent/screen) and the
+       window_class.  Returns the created window. */
     IswWindow (*create)(IswDisplay dpy, IswWindow parent,
                         const IswWindowGeometry *geom,
-                        const IswWindowAttributes *attrs);
+                        const IswWindowAttributes *attrs,
+                        unsigned int window_class);
     void (*destroy)(IswDisplay dpy, IswWindow win);
     void (*map)(IswDisplay dpy, IswWindow win);
     void (*unmap)(IswDisplay dpy, IswWindow win);
@@ -264,6 +277,28 @@ struct _IswPlatformWindowOps {
     /* Window id <-> handle, for neutral structs / event targets. */
     IswWindowId (*window_id)(IswWindow win);
     IswWindow   (*window_from_id)(IswWindowId id);
+};
+
+/*
+ * =================================================================
+ * Root surface ops
+ * =================================================================
+ *
+ * The OS/WM-managed top-level window that backs a (now windowless) shell.
+ * create_root makes the top-level window — a child of the screen root, with the
+ * shell's visual/colormap/depth/event-mask — and returns its opaque handle.
+ * The shell maps/configures/destroys it through the generic window ops; only
+ * presentation is here, since it couples the render surface to the window:
+ * present_root blits a finished composite IswSurface to the root window.  The
+ * IswSurface argument is the opaque render surface (ISW/Intrinsic.h); the
+ * backend reads its back buffer through the render layer's accessors.
+ */
+struct _IswPlatformRootOps {
+    IswWindow (*create_root)(IswDisplay dpy, IswScreen screen,
+                             const IswWindowGeometry *geom,
+                             const IswWindowAttributes *attrs);
+    void      (*present_root)(IswDisplay dpy, IswWindow win,
+                              IswSurface surface, int width, int height);
 };
 
 /*
@@ -300,6 +335,8 @@ struct _IswPlatformEventOps {
 #define ISW_ATTR_EVENT_MASK     (1u << 2)
 #define ISW_ATTR_OVERRIDE       (1u << 3)
 #define ISW_ATTR_SAVE_UNDER     (1u << 4)
+#define ISW_ATTR_COLORMAP       (1u << 5)
+#define ISW_ATTR_BIT_GRAVITY    (1u << 6)
 
 /*
  * =================================================================
@@ -623,6 +660,7 @@ struct _IswPlatformResourceOps {
 typedef struct _IswPlatformOps {
     const IswPlatformDisplayOps   *display;
     const IswPlatformWindowOps    *window;
+    const IswPlatformRootOps      *root;
     const IswPlatformEventOps     *event;
     const IswPlatformInputOps     *input;
     const IswPlatformSelectionOps *selection;

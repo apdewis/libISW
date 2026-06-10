@@ -608,46 +608,35 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
     return data->cairo_ctx;
 }
 
-/* Blit a windowed widget's back surface to its X window (Present or cairo). */
-static void
-_cairo_xcb_blit_to_window(IswSurface data, xcb_window_t window)
+/* Present-source accessor: hand the platform present_root the back buffer it
+ * needs to blit, so the window blit itself lives in the platform layer (the
+ * render backend no longer names a window).  Flushes the back surface and bumps
+ * the present serial.  See ISWRenderPrivate.h. */
+Boolean
+_ISWRenderSurfacePresentSource(IswSurface data,
+                               cairo_surface_t **back_cairo,
+                               void **window_cr,
+                               xcb_pixmap_t *back_pixmap,
+                               uint32_t *present_serial)
 {
-    if (data->back_surface) {
-        cairo_surface_flush(data->back_surface);
-
-        if (data->present_ok && data->back_pixmap) {
-            xcb_present_pixmap(data->connection,
-                               window,
-                               data->back_pixmap,
-                               ++data->present_serial,
-                               XCB_NONE,       /* valid region (whole) */
-                               XCB_NONE,       /* update region (whole) */
-                               0, 0,           /* x/y offset */
-                               XCB_NONE,       /* target_crtc (auto) */
-                               XCB_NONE,       /* wait_fence */
-                               XCB_NONE,       /* idle_fence */
-                               XCB_PRESENT_OPTION_COPY, /* copy, don't flip */
-                               0,              /* target_msc (immediate) */
-                               0,              /* divisor */
-                               0,              /* remainder */
-                               0, NULL);       /* notifies */
-        } else if (data->window_ctx) {
-            cairo_set_source_surface(data->window_ctx, data->back_surface, 0, 0);
-            cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_SOURCE);
-            cairo_paint(data->window_ctx);
-            cairo_set_operator(data->window_ctx, CAIRO_OPERATOR_OVER);
-        }
-    }
-
+    if (!data || !data->back_surface)
+        return False;
+    cairo_surface_flush(data->back_surface);
     if (data->surface)
         cairo_surface_flush(data->surface);
-    xcb_flush(data->connection);
+    if (back_cairo)     *back_cairo = data->back_surface;
+    if (window_cr)      *window_cr = data->window_ctx;
+    /* Present path only when the back buffer is a server pixmap and Present is
+       usable; otherwise 0 tells the caller to use the cairo source path. */
+    if (back_pixmap)    *back_pixmap = (data->present_ok ? data->back_pixmap : 0);
+    if (present_serial) *present_serial = ++data->present_serial;
+    return True;
 }
 
 static void
 cairo_xcb_surface_end(IswSurface data, Widget widget, IswWindow window)
 {
-    /* Nested end: parent frame still active — don't blit yet. */
+    /* Nested end: parent frame still active — don't present yet. */
     if (data->frame_depth > 1) {
         data->frame_depth--;
         return;
@@ -655,8 +644,8 @@ cairo_xcb_surface_end(IswSurface data, Widget widget, IswWindow window)
 
     /* Windowless (surface-per-widget): the widget painted into its own back
      * surface.  Just undo the begin() save and flush — the composite pass
-     * (ISWRenderCompositeSubtree) folds this surface up the tree and blits the
-     * windowed root once.  No blit here. */
+     * (ISWRenderCompositeSubtree) folds this surface up the tree and presents
+     * the windowed root once.  No present here. */
     if (widget && widget->core.windowless) {
         data->frame_depth = 0;
         if (data->cairo_ctx)
@@ -673,17 +662,16 @@ cairo_xcb_surface_end(IswSurface data, Widget widget, IswWindow window)
 
     cairo_restore(data->cairo_ctx);
 
-    _cairo_xcb_blit_to_window(data, _IswXcbWindow(window));
-}
-
-/* present op: blit a windowed widget's (composited) back surface to its window.
- * Called by ISWRenderCompositeSubtree after windowless children are folded in. */
-static void
-cairo_xcb_surface_present(IswSurface data, Widget widget, IswWindow window)
-{
-    (void) widget;
-    if (!data) return;
-    _cairo_xcb_blit_to_window(data, _IswXcbWindow(window));
+    /* Present this windowed widget's back surface to its window via the platform
+       root-present op (the blit lives in the platform layer now). */
+    if (data->back_surface) {
+        cairo_surface_flush(data->back_surface);
+        if (data->surface)
+            cairo_surface_flush(data->surface);
+        _IswPlatformPresentRoot(IswDisplayOf(widget), window,
+                                (IswSurface) data,
+                                (int) data->back_w, (int) data->back_h);
+    }
 }
 
 /* fill_background: paint the composite target's surface with the widget's
@@ -1407,7 +1395,6 @@ const IswSurfaceOps isw_surface_cairo_xcb_ops = {
     .begin = cairo_xcb_surface_begin,
     .end = cairo_xcb_surface_end,
     .composite_onto = cairo_xcb_composite_onto,
-    .present = cairo_xcb_surface_present,
     .fill_background = cairo_xcb_fill_background
 };
 

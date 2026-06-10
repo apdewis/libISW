@@ -163,10 +163,39 @@ Boolean _IswPlatformGetProperty(IswDisplay dpy, IswWindow win, Atom property,
                                 uint32_t long_length, IswProperty *out);
 void    _IswPlatformDeleteProperty(IswDisplay dpy, IswWindow win, Atom property);
 
+/* Window lifecycle (Phase 13c) — thin dispatchers over the window ops, so the
+   toolkit never calls xcb_* window functions directly. */
+IswWindow _IswPlatformAllocWindowId(IswDisplay dpy);
+IswWindow _IswPlatformCreateWindow(IswDisplay dpy, IswWindow parent,
+                                   const IswWindowGeometry *geom,
+                                   const IswWindowAttributes *attrs,
+                                   unsigned int window_class);
+void    _IswPlatformDestroyWindow(IswDisplay dpy, IswWindow win);
+void    _IswPlatformMapWindow(IswDisplay dpy, IswWindow win);
+void    _IswPlatformUnmapWindow(IswDisplay dpy, IswWindow win);
+void    _IswPlatformReparentWindow(IswDisplay dpy, IswWindow win,
+                                   IswWindow new_parent, int32_t x, int32_t y);
+void    _IswPlatformConfigureWindow(IswDisplay dpy, IswWindow win,
+                                    const IswWindowGeometry *geom,
+                                    unsigned int mask, IswStackMode stack,
+                                    IswWindow sibling);
+void    _IswPlatformClearArea(IswDisplay dpy, IswWindow win,
+                              int16_t x, int16_t y, uint16_t w, uint16_t h,
+                              Boolean generate_expose);
+IswWindowId _IswPlatformWindowId(IswWindow win);
+IswWindow   _IswPlatformWindowFromId(IswDisplay dpy, IswWindowId id);
+
 /* Window attributes (Phase 13a) */
 void    _IswPlatformChangeAttributes(IswDisplay dpy, IswWindow win,
                                      const IswWindowAttributes *attrs,
                                      unsigned int mask);
+
+/* Root surface (Phase 13c) — the shell's WM-managed top-level window + present. */
+IswWindow _IswPlatformCreateRoot(IswDisplay dpy, IswScreen screen,
+                                 const IswWindowGeometry *geom,
+                                 const IswWindowAttributes *attrs);
+void    _IswPlatformPresentRoot(IswDisplay dpy, IswWindow win,
+                                IswSurface surface, int width, int height);
 
 /* Resource resolution (Phase 15).  Toolkit resource code calls these instead of
    any xcb_xrm_* function; the XCB backend's resource ops implement them over
