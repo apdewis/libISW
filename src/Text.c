@@ -54,15 +54,11 @@ SOFTWARE.
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
 #include <ISW/Shell.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 #include <ISW/ISWInit.h>
 #include <ISW/Cardinals.h>
 #include <ISW/Scrollbar.h>
@@ -71,7 +67,6 @@ SOFTWARE.
 #include <ISW/ISWImP.h>
 #include "IntrinsicI.h"
 #include "ISWPlatformPrivate.h"
-#include "ISWXcbDraw.h"
 #include <ctype.h>		/* for isprint() */
 
 unsigned long FMT8BIT = 0L;
