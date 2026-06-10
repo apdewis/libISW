@@ -76,11 +76,6 @@ _IswXcbScreen(IswScreen screen)
     return (xcb_screen_t *) screen;
 }
 
-/* Default screen of a display, as a native xcb_screen_t.  The authoritative
-   default-screen INDEX lives in the per-display table (set from xcb_connect's
-   screen-number output); the toolkit's _IswGetDefaultScreen consults it.  This
-   backend helper, used only to pick a root_visual at window-create, returns the
-   first root, which is correct for the common single-screen case. */
 xcb_screen_t *
 _IswXcbDefaultScreen(IswDisplay dpy)
 {
@@ -471,12 +466,6 @@ _IswPlatformConnectionFd(IswDisplay dpy)
     return -1;
 }
 
-/* Default screen / default-root-window resolution (Phase 10b).  Neutral
-   replacements for the `DefaultRootWindow(conn)` / `_IswGetDefaultScreen(conn)`
-   idioms that did raw `xcb_get_setup` + iterator walks in core: resolve through
-   the display screen ops + the per-display default-screen index, so no core file
-   touches xcb_get_setup/setup_roots_iterator/screen_next.  Ops recovered from
-   the per-display record (these run post-registration). */
 IswScreen
 _IswDefaultScreenOf(IswDisplay dpy)
 {

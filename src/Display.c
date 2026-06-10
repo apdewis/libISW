@@ -205,11 +205,6 @@ InitPerDisplay(IswDisplay dpy,
     pd->ops = ops;
     _IswHeapInit(&pd->heap);
     pd->destroy_callbacks = NULL;
-    /* Store the default screen number from xcb_connect() so that
-     * _IswGetDefaultScreen() can later retrieve the correct xcb_screen_t*.
-     * NOTE: Do NOT use the Xlib DefaultScreenOfDisplay() macro here — it
-     * reads ((Display*)dpy)->default_screen which is meaningless for an
-     * xcb_connection_t* and returns NULL/garbage. */
     pd->defaultScreen = defaultScreen;
     pd->case_cvt = NULL;
     pd->defaultKeycodeTranslator = IswTranslateKey;
@@ -374,20 +369,6 @@ IswOpenDisplay(IswAppContext app,
         _IswPlatformResourceFree(db);
     UNLOCK_APP(app);
     return dpy;
-}
-
-xcb_screen_t *
-_IswGetDefaultScreen(xcb_connection_t *dpy)
-{
-    IswPerDisplay pd = _IswGetPerDisplay((IswDisplay) dpy);
-    int screen_num = pd ? pd->defaultScreen : 0;
-    xcb_screen_iterator_t iter = xcb_setup_roots_iterator(xcb_get_setup(dpy));
-    for (int i = 0; i < screen_num; i++) {
-        if (iter.rem == 0)
-            break;
-        xcb_screen_next(&iter);
-    }
-    return iter.data;
 }
 
 IswDisplay

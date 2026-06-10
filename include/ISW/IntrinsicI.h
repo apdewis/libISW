@@ -259,9 +259,6 @@ extern Boolean _IswEventFromXcb(IswDisplay dpy,
    the injected backend ops from the display/widget it is handed.) */
 extern int _IswPlatformConnectionFd(IswDisplay dpy);
 
-/* Default screen / default-root-window of a display (Phase 10b), via the display
-   screen ops + the per-display default-screen index.  Neutral replacements for
-   the raw `DefaultRootWindow(conn)` / `_IswGetDefaultScreen(conn)` idioms. */
 extern IswScreen _IswDefaultScreenOf(IswDisplay dpy);
 extern IswWindow _IswDefaultRootWindow(IswDisplay dpy);
 

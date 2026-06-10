@@ -386,17 +386,6 @@ extern IswPerDisplay _IswGetPerDisplay(
     IswDisplay		/* dpy */
 );
 
-/*
- * _IswGetDefaultScreen - XCB replacement for the Xlib DefaultScreenOfDisplay()
- * macro.  DefaultScreenOfDisplay() reads ((Display*)dpy)->default_screen which
- * is meaningless for an xcb_connection_t*.  This function uses the screen
- * number stored in IswPerDisplay (set from xcb_connect's screen-number output)
- * and walks xcb_setup_roots_iterator() to return the correct xcb_screen_t*.
- */
-extern xcb_screen_t *_IswGetDefaultScreen(
-    xcb_connection_t *		/* dpy */
-);
-
 /* Look up the display owning a given screen.  Searches the per-display table.
  * Returns NULL if not found.  (Phase 12a: neutral handles; the backend resolves
  * them to xcb_connection_t/xcb_screen_t internally.) */
