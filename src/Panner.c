@@ -42,7 +42,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <cairo.h>
 #include <cairo-xcb.h>
 #endif
-#include "ISWXcbDraw.h"
 #include <ISW/IswArgMacros.h>
 #include "ISWPlatformPrivate.h"
 

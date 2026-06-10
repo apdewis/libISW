@@ -1086,6 +1086,19 @@ _IswPlatformSelectionMaxTransfer(IswDisplay dpy)
     return 0;
 }
 
+/* Input — query the pointer relative to `win`, via the input vtable. */
+Boolean
+_IswPlatformQueryPointer(IswDisplay dpy, IswWindow win,
+                         int *root_x, int *root_y, int *win_x, int *win_y,
+                         IswModMask *mods, IswWindow *child)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->input && ops->input->query_pointer)
+        return ops->input->query_pointer(dpy, win, root_x, root_y,
+                                         win_x, win_y, mods, child);
+    return False;
+}
+
 /* Atom (Phase 6) */
 Atom
 _IswPlatformInternAtomOp(IswDisplay dpy, const char *name, Boolean only_if_exists)

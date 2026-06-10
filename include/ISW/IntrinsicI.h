@@ -304,6 +304,13 @@ extern unsigned long _IswPlatformSelectionMaxTransfer(IswDisplay dpy);
 extern IswSelectionId _IswPlatformSelectionStdType(IswDisplay dpy,
                                                    IswSelectionStdType which);
 
+/* Query the pointer relative to `win`, via the input vtable.  Any out-param
+   may be NULL.  Returns False if unavailable. */
+extern Boolean _IswPlatformQueryPointer(IswDisplay dpy, IswWindow win,
+                                        int *root_x, int *root_y,
+                                        int *win_x, int *win_y,
+                                        IswModMask *mods, IswWindow *child);
+
 _XFUNCPROTOEND
 
 #endif /* _IswintrinsicI_h */

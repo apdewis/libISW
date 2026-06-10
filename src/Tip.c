@@ -44,6 +44,7 @@
 #include <ISW/ISWRender.h>
 #include "ISWXcbDraw.h"
 #include <ISW/IswArgMacros.h>
+#include "IntrinsicI.h"
 #include "ISWPlatformPrivate.h"
 
 #include <stdlib.h>
@@ -515,9 +516,8 @@ TipLayout(IswTipInfo *info)
 static void
 TipPosition(IswTipInfo *info)
 {
-    xcb_window_t r, c;
-    int rx, ry, wx, wy;
-    unsigned mask;
+    IswDisplay dpy = IswDisplayOf((Widget)info->tip);
+    int rx = 0, ry = 0;
     Position x, y;
     int bw2 = IswBorderWidth(info->tip) * 2;
     int scr_width = WidthOfScreen(_IswXcbScreen(IswScreenOf(info->tip)));
@@ -525,9 +525,8 @@ TipPosition(IswTipInfo *info)
     int win_width = IswWidth(info->tip) + bw2;
     int win_height = IswHeight(info->tip) + bw2;
 
-    XQueryPointer(_IswXcbConn(IswDisplayOf((Widget)info->tip)),
-		  _IswXcbScreen(IswScreenOf(info->tip))->root,
-		  &r, &c, &rx, &ry, &wx, &wy, &mask);
+    (void) _IswPlatformQueryPointer(dpy, _IswDefaultRootWindow(dpy),
+				    &rx, &ry, NULL, NULL, NULL, NULL);
     x = rx + DEFAULT_TIP_OFFSET;
     y = ry + DEFAULT_TIP_OFFSET;
 

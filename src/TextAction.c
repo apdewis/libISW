@@ -25,7 +25,6 @@ in this Software without prior written authorization from the X Consortium.
 
 */
 
-#include "ISWXcbDraw.h"
 #include <ISW/Intrinsic.h>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -36,7 +35,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_keysyms.h>
-#include "ISWXcbDraw.h"
 #include <ISW/TextP.h>
 #include <ISW/ISWImP.h>
 #include <ISW/IswArgMacros.h>

@@ -131,20 +131,6 @@ xcb_pixmap_t IswCreatePixmapFromBitmapData(xcb_connection_t *conn,
  */
 int ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color);
 
-/*
- * ISWAllocColor - Allocate a color cell
- *
- * XCB replacement for XAllocColor. Allocates a read-only color cell
- * with the closest available RGB values.
- *
- * Parameters:
- *   conn  - XCB connection
- *   cmap  - Colormap to allocate from
- *   color - IswColor structure with RGB values, pixel filled in on success
- *
- * Returns: 1 on success, 0 on failure
- */
-int ISWAllocColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color);
 
 
 /*
@@ -318,27 +304,6 @@ Bool IswGetFontProperty(xcb_connection_t *conn, IswFontStruct *font,
 
 /*
  * =================================================================
- * ATOM OPERATIONS
- * =================================================================
- */
-
-/*
- * IswXcbInternAtom - Intern an atom using XCB
- *
- * Replacement for XInternAtom
- *
- * Parameters:
- *   conn           - XCB connection
- *   name           - Atom name string
- *   only_if_exists - If true, return None for non-existent atoms
- *
- * Returns: Atom (xcb_atom_t), or None (0) if not found
- */
-xcb_atom_t IswXcbInternAtom(xcb_connection_t *conn, const char *name,
-                            Bool only_if_exists);
-
-/*
- * =================================================================
  * TEXT DRAWING (Server fonts - for compatibility)
  * =================================================================
  *
@@ -425,58 +390,6 @@ void ISWXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
                             ISWFontMetrics *metrics);
 
 /*
- * =================================================================
- * REGION OPERATIONS
- * =================================================================
- *
- * These functions replace Xlib region operations.
- * Region in this implementation is a pointer to an IswRegion structure
- * containing an array of rectangles.
- */
-
-/* Forward declare Region type - opaque pointer */
-#ifndef _XAWREGION_DEFINED
-#define _XAWREGION_DEFINED
-typedef struct _IswRegion *ISWRegionPtr;
-/* Use the Region type from Isw3dP.h if available */
-#endif
-
-/*
- * ISWCreateRegion - Create an empty region
- *
- * Returns: Newly allocated region (caller must free with ISWDestroyRegion)
- */
-ISWRegionPtr ISWCreateRegion(void);
-
-/*
- * ISWDestroyRegion - Free a region
- *
- * Parameters:
- *   region - Region to destroy
- */
-void ISWDestroyRegion(ISWRegionPtr region);
-
-/*
- * ISWUnionRectWithRegion - Add a rectangle to a region
- *
- * Parameters:
- *   rect   - Rectangle to add (IswRectangle*)
- *   source - Source region
- *   dest   - Destination region (may be same as source)
- */
-void ISWUnionRectWithRegion(IswRectangle *rect, ISWRegionPtr source, ISWRegionPtr dest);
-
-/*
- * ISWSubtractRegion - Subtract one region from another
- *
- * Parameters:
- *   regM   - Region to subtract from
- *   regS   - Region to subtract
- *   regD   - Destination region for result
- */
-void ISWSubtractRegion(ISWRegionPtr regM, ISWRegionPtr regS, ISWRegionPtr regD);
-
-/*
  * ISWReshapeWidget - Shape a widget using the X Shape extension
  *
  * Parameters:
@@ -495,86 +408,6 @@ Boolean ISWReshapeWidget(Widget w, int shape_style, int corner_width, int corner
  * =================================================================
  */
 
-
-/*
- * =================================================================
- * TYPE CONVERTERS (libXmu replacements)
- * =================================================================
- */
-
-/*
- * ISWCvtStringToOrientation - Convert string to IswOrientation
- *
- * Replacement for the converter that was in libXmu/Converters.c
- * Converts "horizontal" or "vertical" to IswOrientation values.
- *
- * This is an IswTypeConverter for use with IswSetTypeConverter().
- * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
- */
-Boolean ISWCvtStringToOrientation(
-    IswDisplay display,
-    XrmValuePtr args,
-    Cardinal *num_args,
-    XrmValuePtr from,
-    XrmValuePtr to,
-    IswPointer *converter_data
-);
-
-/*
- * ISWCvtStringToJustify - Convert string to IswJustify
- *
- * Replacement for the converter that was in libXmu/Converters.c
- * Converts "left", "center", or "right" to IswJustify values.
- *
- * This is an IswTypeConverter for use with IswSetTypeConverter().
- * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
- */
-Boolean ISWCvtStringToJustify(
-    IswDisplay display,
-    XrmValuePtr args,
-    Cardinal *num_args,
-    XrmValuePtr from,
-    XrmValuePtr to,
-    IswPointer *converter_data
-);
-
-/*
- * ISWCvtStringToEdgeType - Convert string to IswEdgeType
- *
- * Converts "ChainTop", "ChainBottom", "ChainLeft", "ChainRight", "Rubber"
- * to IswEdgeType values for Form widget constraints.
- *
- * This is an IswTypeConverter for use with IswSetTypeConverter().
- * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
- */
-Boolean ISWCvtStringToEdgeType(
-    IswDisplay display,
-    XrmValuePtr args,
-    Cardinal *num_args,
-    XrmValuePtr from,
-    XrmValuePtr to,
-    IswPointer *converter_data
-);
-
-/*
- * ISWCvtStringToWidget - Convert string to Widget
- *
- * Replacement for XmuCvtStringToWidget from libXmu.
- * Converts a widget name string to a Widget reference by searching
- * the widget tree starting from the parent widget.
- *
- * This is an IswTypeConverter for use with IswSetTypeConverter().
- * Requires parentCvtArgs to provide the parent widget.
- * Note: In XCB-based libXt, Display* is actually xcb_connection_t*
- */
-Boolean ISWCvtStringToWidget(
-    IswDisplay display,
-    XrmValuePtr args,
-    Cardinal *num_args,
-    XrmValuePtr from,
-    XrmValuePtr to,
-    IswPointer *converter_data
-);
 
 /*
  * =================================================================
@@ -605,19 +438,6 @@ Boolean ISWDistinguishablePixels(
     unsigned long *pixels,
     int count
 );
-
-/*
- * ISWCompareISOLatin1 - Case-insensitive string comparison for ISO Latin-1
- *
- * Parameters:
- *   first  - First string
- *   second - Second string
- *
- * Returns:
- *   0 if strings match (case-insensitive)
- *   non-zero if strings differ
- */
-int ISWCompareISOLatin1(const char *first, const char *second);
 
 /*
  * IswLocatePixmapFile - Locate and load a pixmap file
@@ -680,16 +500,6 @@ xcb_pixmap_t IswLocatePixmapFile(
  */
 
 /* Xlib-named window operation macros removed — use xcb_* calls directly. */
-
-/* XQueryPointer - simple wrapper function declared once */
-int ISWQueryPointer(xcb_connection_t *dpy, xcb_window_t win,
-                    xcb_window_t *root_ret, xcb_window_t *child_ret,
-                    int *root_x, int *root_y, int *win_x, int *win_y,
-                    unsigned *mask);
-
-#ifndef XQueryPointer
-#define XQueryPointer ISWQueryPointer
-#endif
 
 /*
  * =================================================================

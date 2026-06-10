@@ -1968,6 +1968,9 @@ extern String IswNewString(String /* str */);
    replacement for libXmu's XmuCopyISOLatin1Lowered). */
 extern void ISWCopyISOLatin1Lowered(char * /* dst */, const char * /* src */);
 
+/* Case-insensitive string compare (ASCII case folding), strcmp-like result. */
+extern int ISWCompareISOLatin1(const char * /* first */, const char * /* second */);
+
 /*************************************************************
  *
  *  Work procs
@@ -2500,6 +2503,34 @@ extern Boolean IswCvtStringToUnsignedChar(
 extern Boolean IswCvtStringToVisual(
     IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* Screen, depth */
+    Cardinal*   /* num_args */,
+    XrmValuePtr	/* fromVal */,
+    XrmValuePtr	/* toVal */,
+    IswPointer*	/* closure_ret */
+);
+
+/* Widget-set value converters (neutral; libXmu replacements). */
+extern Boolean ISWCvtStringToOrientation(
+    IswDisplay 	/* dpy */,
+    XrmValuePtr /* args */,
+    Cardinal*   /* num_args */,
+    XrmValuePtr	/* fromVal */,
+    XrmValuePtr	/* toVal */,
+    IswPointer*	/* closure_ret */
+);
+
+extern Boolean ISWCvtStringToJustify(
+    IswDisplay 	/* dpy */,
+    XrmValuePtr /* args */,
+    Cardinal*   /* num_args */,
+    XrmValuePtr	/* fromVal */,
+    XrmValuePtr	/* toVal */,
+    IswPointer*	/* closure_ret */
+);
+
+extern Boolean ISWCvtStringToWidget(
+    IswDisplay 	/* dpy */,
+    XrmValuePtr /* args */,	/* parent widget */
     Cardinal*   /* num_args */,
     XrmValuePtr	/* fromVal */,
     XrmValuePtr	/* toVal */,

@@ -70,7 +70,7 @@ SOFTWARE.
 #include <xcb/shape.h>
 #include <cairo/cairo.h>
 #include <math.h>
-#include "ISWXcbDraw.h"     /* For XCB xcb_gcontext_t helpers */
+#include <ISW/Region.h>     /* region API for highlight frame */
 
 #define MULTI_LINE_LABEL 32767
 #define DEFAULT_HIGHLIGHT_THICKNESS 1

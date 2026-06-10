@@ -89,7 +89,6 @@ in this Software without prior written authorization from The Open Group.
 
 #include <X11/cursorfont.h>
 #include <ISW/IswDragDrop.h>
-#include "ISWXcbDraw.h"
 #include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #include <math.h>
@@ -1011,8 +1010,8 @@ ShellWMDeleteWindow(Widget w, IswEvent *iswev, String *params,
     if ((event->response_type & ~0x80) != XCB_CLIENT_MESSAGE)
 	return;
 
-    wm_protocols = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_PROTOCOLS", True);
-    wm_delete_window = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_DELETE_WINDOW", True);
+    wm_protocols = _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_PROTOCOLS", True);
+    wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_DELETE_WINDOW", True);
 
     if (wm_protocols == 0 || wm_delete_window == 0)
 	return;

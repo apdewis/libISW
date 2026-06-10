@@ -68,7 +68,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_icccm.h>
-#include "ISWXcbDraw.h"
 
 #ifdef X_NOT_STDC_ENV
 extern int errno;
@@ -1291,8 +1290,8 @@ WMProtocols(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     xcb_atom_t wm_delete_window;
     xcb_atom_t wm_protocols;
 
-    wm_delete_window = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), WM_DELETE_WINDOW, True);
-    wm_protocols = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_PROTOCOLS", True);
+    wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), WM_DELETE_WINDOW, True);
+    wm_protocols = _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_PROTOCOLS", True);
 
     /* Respond to a recognized WM protocol request iff
      * event type is ClientMessage and no parameters are passed, or
@@ -1361,9 +1360,9 @@ SetWMProtocolTranslations(Widget w)
 
     /* establish communication between the window manager and each shell */
     IswAugmentTranslations(w, compiled_table);
-    wm_delete_window = IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), WM_DELETE_WINDOW, False);
+    wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), WM_DELETE_WINDOW, False);
     /* XCB equivalent of XSetWMProtocols */
     xcb_icccm_set_wm_protocols(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)),
-                               IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), "WM_PROTOCOLS", False),
+                               _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_PROTOCOLS", False),
                                1, &wm_delete_window);
 }

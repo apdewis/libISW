@@ -52,6 +52,7 @@ SOFTWARE.
 #endif
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
+#include <ISW/ISWP.h>		/* IswOrientation */
 
 #include <ISW/ISWInit.h>
 #include <ISW/Scrollbar.h>
@@ -64,7 +65,6 @@ SOFTWARE.
 
 #include <stdint.h>
 #include <xcb/xcb.h>
-#include "ISWXcbDraw.h"
 #include "ISWPlatformPrivate.h"
 
 static void ScrollUpDownProc(Widget, IswPointer, IswPointer);

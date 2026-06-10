@@ -334,3 +334,31 @@ ISWCopyISOLatin1Lowered(char *dst, const char *src)
     }
     *dst = '\0';
 }
+
+/*
+ * ISWCompareISOLatin1 - case-insensitive comparison of two strings.
+ *
+ * Neutral string utility (ASCII case folding); returns <0/0/>0 like strcmp.
+ */
+int
+ISWCompareISOLatin1(const char *first, const char *second)
+{
+    const unsigned char *p1 = (const unsigned char *) first;
+    const unsigned char *p2 = (const unsigned char *) second;
+    unsigned char c1, c2;
+
+    while (*p1 && *p2) {
+        c1 = *p1;
+        c2 = *p2;
+        if (c1 >= 'A' && c1 <= 'Z')
+            c1 += 'a' - 'A';
+        if (c2 >= 'A' && c2 <= 'Z')
+            c2 += 'a' - 'A';
+        if (c1 != c2)
+            return c1 - c2;
+        p1++;
+        p2++;
+    }
+
+    return *p1 - *p2;
+}

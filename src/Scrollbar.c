@@ -72,7 +72,6 @@ SOFTWARE.
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "ISWXcbDraw.h"
 #include <ISW/FocusMgrI.h>
 #include "ISWPlatformPrivate.h"
 

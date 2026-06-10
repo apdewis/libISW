@@ -197,6 +197,7 @@ set(LIBXT_SOURCES
     src/EventUtil.c
     src/Functions.c
     src/Geometry.c
+    src/Region.c
     src/GetActKey.c
     src/GetResList.c
     src/GetValues.c

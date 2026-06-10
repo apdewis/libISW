@@ -178,12 +178,12 @@ WidgetClass toggleWidgetClass = (WidgetClass) &toggleClassRec;
  ****************************************************************/
 
 /*
- * ISWCvtStringToWidget - Convert string widget name to Widget
+ * ToggleCvtStringToWidget - Convert string widget name to Widget
  * Used for radioGroup resource conversion
  */
 /*ARGSUSED*/
 static Boolean
-ISWCvtStringToWidget(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
+ToggleCvtStringToWidget(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
                      XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
 {
     Widget widget;
@@ -241,7 +241,7 @@ ClassInit(void)
   };
 
   IswInitializeWidgetSet();
-  IswSetTypeConverter(IswRString, IswRWidget, ISWCvtStringToWidget,
+  IswSetTypeConverter(IswRString, IswRWidget, ToggleCvtStringToWidget,
 		     parentCvtArgs, IswNumber(parentCvtArgs), IswCacheNone,
 		     (IswDestructor)NULL);
 /*

@@ -40,7 +40,6 @@
 #include <ISW/ISWRender.h>
 #include "ISWRenderPrivate.h"
 #include "ISWPlatformPrivate.h"
-#include "ISWXcbDraw.h"
 #include <xcb/xcb_cursor.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-xcb.h>
@@ -248,6 +247,29 @@ static IswDndAction ModifiersToAction(XdndState *st, unsigned int state);
 /* ------------------------------------------------------------------ */
 /* Atom internment                                                    */
 /* ------------------------------------------------------------------ */
+
+/* Intern an atom by name on a raw connection.  Backend-local: the XDND engine
+   works directly on the xcb connection, so it interns its protocol atoms here
+   rather than through the display-keyed selection/atom ops. */
+static xcb_atom_t
+IswXcbInternAtom(xcb_connection_t *conn, const char *name, Bool only_if_exists)
+{
+    xcb_intern_atom_cookie_t cookie;
+    xcb_intern_atom_reply_t *reply;
+    xcb_atom_t atom = 0;
+
+    if (!conn || !name)
+        return 0;
+
+    cookie = xcb_intern_atom(conn, only_if_exists ? 1 : 0,
+                             (uint16_t) strlen(name), name);
+    reply = xcb_intern_atom_reply(conn, cookie, NULL);
+    if (reply) {
+        atom = reply->atom;
+        free(reply);
+    }
+    return atom;
+}
 
 static void
 InternAtoms(XdndState *st, xcb_connection_t *conn)

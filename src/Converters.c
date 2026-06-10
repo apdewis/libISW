@@ -76,6 +76,7 @@ in this Software without prior written authorization from The Open Group.
 #include        "IntrinsicI.h"
 #include        "StringDefs.h"
 #include        "Shell.h"
+#include        <ISW/ISWP.h>          /* IswOrientation / IswJustify */
 #include        "ISWPlatformPrivate.h"
 #include        <stdio.h>
 #include        <X11/cursorfont.h>
@@ -1721,4 +1722,148 @@ _IswAddDefaultConverters(ConverterTable table)
          IswCacheByDisplay, NULL);
 
     _IswAddTMConverters(table);
+}
+
+/*
+ * Widget-set value converters (libXmu replacements).  Pure neutral resource
+ * conversions; no windowing-system dependency.
+ */
+
+/* String -> IswOrientation ("horizontal" / "vertical", case-insensitive). */
+Boolean
+ISWCvtStringToOrientation(
+    IswDisplay display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    IswPointer *converter_data)
+{
+    static IswOrientation orientation;
+    char lowerName[64];
+    const char *str = (const char *)from->addr;
+
+    (void)display; (void)args; (void)num_args; (void)converter_data;
+
+    if (str == NULL || strlen(str) >= sizeof(lowerName))
+        return False;
+
+    ISWCopyISOLatin1Lowered(lowerName, str);
+
+    if (strcmp(lowerName, "horizontal") == 0) {
+        orientation = IswOrientHorizontal;
+    } else if (strcmp(lowerName, "vertical") == 0) {
+        orientation = IswOrientVertical;
+    } else {
+        return False;
+    }
+
+    if (to->addr == NULL) {
+        to->addr = (IswPointer)&orientation;
+    } else if (to->size < sizeof(IswOrientation)) {
+        to->size = sizeof(IswOrientation);
+        return False;
+    } else {
+        *(IswOrientation *)to->addr = orientation;
+    }
+    to->size = sizeof(IswOrientation);
+
+    return True;
+}
+
+/* String -> IswJustify ("left" / "center" / "right", case-insensitive). */
+Boolean
+ISWCvtStringToJustify(
+    IswDisplay display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    IswPointer *converter_data)
+{
+    static IswJustify justify;
+    char lowerName[64];
+    const char *str = (const char *)from->addr;
+
+    (void)display; (void)args; (void)num_args; (void)converter_data;
+
+    if (str == NULL || strlen(str) >= sizeof(lowerName))
+        return False;
+
+    ISWCopyISOLatin1Lowered(lowerName, str);
+
+    if (strcmp(lowerName, "left") == 0) {
+        justify = IswJustifyLeft;
+    } else if (strcmp(lowerName, "center") == 0) {
+        justify = IswJustifyCenter;
+    } else if (strcmp(lowerName, "right") == 0) {
+        justify = IswJustifyRight;
+    } else {
+        return False;
+    }
+
+    if (to->addr == NULL) {
+        to->addr = (IswPointer)&justify;
+    } else if (to->size < sizeof(IswJustify)) {
+        to->size = sizeof(IswJustify);
+        return False;
+    } else {
+        *(IswJustify *)to->addr = justify;
+    }
+    to->size = sizeof(IswJustify);
+
+    return True;
+}
+
+/* String -> Widget by name, searching from the parent widget passed in args. */
+Boolean
+ISWCvtStringToWidget(
+    IswDisplay display,
+    XrmValuePtr args,
+    Cardinal *num_args,
+    XrmValuePtr from,
+    XrmValuePtr to,
+    IswPointer *converter_data)
+{
+    static Widget widget;
+    Widget parent;
+    const char *name;
+
+    (void)display; (void)converter_data;
+
+    /* Need exactly one argument: the parent widget */
+    if (*num_args != 1) {
+        IswAppWarningMsg(
+            IswWidgetToApplicationContext(*((Widget *)args[0].addr)),
+            "wrongParameters", "cvtStringToWidget", "IswToolkitError",
+            "String to Widget conversion requires parent argument",
+            (String *)NULL, (Cardinal *)NULL);
+        return False;
+    }
+
+    parent = *((Widget *)args[0].addr);
+    name = (const char *)from->addr;
+
+    if (name == NULL || *name == '\0') {
+        return False;
+    }
+
+    widget = IswNameToWidget(parent, (String)name);
+
+    if (widget == (Widget)NULL) {
+        /* Widget not found - not an error, may be created later */
+        return False;
+    }
+
+    if (to->addr == NULL) {
+        to->addr = (IswPointer)&widget;
+    } else if (to->size < sizeof(Widget)) {
+        to->size = sizeof(Widget);
+        return False;
+    } else {
+        *(Widget *)to->addr = widget;
+    }
+    to->size = sizeof(Widget);
+
+    return True;
 }
