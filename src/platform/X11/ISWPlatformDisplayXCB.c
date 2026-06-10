@@ -898,6 +898,15 @@ _IswPlatformFreeFont(IswDisplay dpy, IswFontId fid)
         ops->font->free_font(dpy, fid);
 }
 
+IswFontStruct *
+_IswPlatformLoadFallbackFont(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->font && ops->font->load_fallback_font)
+        return ops->font->load_fallback_font(dpy);
+    return NULL;
+}
+
 /* Cursor (Phase 5) */
 IswCursor
 _IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,

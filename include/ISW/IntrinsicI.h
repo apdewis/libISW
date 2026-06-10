@@ -304,6 +304,11 @@ extern unsigned long _IswPlatformSelectionMaxTransfer(IswDisplay dpy);
 extern IswSelectionId _IswPlatformSelectionStdType(IswDisplay dpy,
                                                    IswSelectionStdType which);
 
+/* Last-resort fallback font, via the font vtable.  Returns a populated
+   IswFontStruct (caller frees) or NULL.  Declared here so widgets whose font
+   converters failed (Label) reach it without ISWPlatformPrivate.h. */
+extern IswFontStruct *_IswPlatformLoadFallbackFont(IswDisplay dpy);
+
 /* Query the pointer relative to `win`, via the input vtable.  Any out-param
    may be NULL.  Returns False if unavailable. */
 extern Boolean _IswPlatformQueryPointer(IswDisplay dpy, IswWindow win,

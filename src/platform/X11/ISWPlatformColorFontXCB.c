@@ -227,6 +227,59 @@ xcb_font_free_font(IswDisplay dpy, IswFontId fid)
     xcb_close_font(conn, _IswXcbFontId(fid));
 }
 
+/* Last-resort font: open a hardcoded core font and populate an IswFontStruct
+   with real server metrics, so Cairo text rendering gets a valid font size.
+   Used when the IswRFontStruct/IswRFontSet resource converters yield no font. */
+static IswFontStruct *
+xcb_font_load_fallback_font(IswDisplay dpy)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    static const char *const fallback_names[] = { "fixed", "6x13", "cursor", NULL };
+    int i;
+
+    if (!conn)
+        return NULL;
+
+    for (i = 0; fallback_names[i] != NULL; i++) {
+        xcb_font_t fid = xcb_generate_id(conn);
+        xcb_void_cookie_t cookie =
+            xcb_open_font_checked(conn, fid,
+                                  (uint16_t) strlen(fallback_names[i]),
+                                  fallback_names[i]);
+        xcb_generic_error_t *error = xcb_request_check(conn, cookie);
+
+        if (!error) {
+            IswFontStruct *font = (IswFontStruct *) calloc(1, sizeof(IswFontStruct));
+            xcb_query_font_reply_t *reply;
+
+            if (!font) {
+                xcb_close_font(conn, fid);
+                return NULL;
+            }
+
+            font->fid = _IswXcbFontIdWrap(fid);
+            font->min_char_or_byte2 = 0;
+            font->max_char_or_byte2 = 255;
+
+            /* Default metrics in case the query fails. */
+            font->ascent  = 10;
+            font->descent = 2;
+
+            reply = xcb_query_font_reply(conn, xcb_query_font(conn, fid), NULL);
+            if (reply) {
+                font->ascent  = reply->font_ascent;
+                font->descent = reply->font_descent;
+                free(reply);
+            }
+
+            return font;
+        }
+        free(error);
+    }
+
+    return NULL;
+}
+
 /* ---- vtables ------------------------------------------------------------- */
 
 const IswPlatformColorOps isw_platform_xcb_color_ops = {
@@ -239,6 +292,7 @@ const IswPlatformColorOps isw_platform_xcb_color_ops = {
 };
 
 const IswPlatformFontOps isw_platform_xcb_font_ops = {
-    .load_font = xcb_font_load_font,
-    .free_font = xcb_font_free_font,
+    .load_font          = xcb_font_load_font,
+    .free_font          = xcb_font_free_font,
+    .load_fallback_font = xcb_font_load_fallback_font,
 };

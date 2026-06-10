@@ -434,6 +434,10 @@ struct _IswPlatformFontOps {
     IswFontId (*load_font)(IswDisplay dpy, const char *name);
     /* Close a core server font id (no-op for 0). */
     void (*free_font)(IswDisplay dpy, IswFontId fid);
+    /* Last-resort font when the resource converters yield no font: open a
+       platform default and return a populated IswFontStruct (caller frees),
+       or NULL if even the fallback is unavailable. */
+    IswFontStruct *(*load_fallback_font)(IswDisplay dpy);
 };
 
 /*

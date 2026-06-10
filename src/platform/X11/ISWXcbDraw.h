@@ -368,28 +368,6 @@ int ISWXcbTextWidth(xcb_connection_t *conn, xcb_font_t font,
                     const char *text, int len);
 
 /*
- * ISWFontMetrics - Font metrics structure
- */
-typedef struct {
-    int ascent;
-    int descent;
-    int max_char_width;
-} ISWFontMetrics;
-
-/*
- * ISWXcbQueryFontMetrics - Query font metrics using xcb_query_font
- *
- * Replacement for accessing IswFontStruct->max_bounds
- *
- * Parameters:
- *   conn    - XCB connection
- *   font    - XCB font ID
- *   metrics - Output metrics structure
- */
-void ISWXcbQueryFontMetrics(xcb_connection_t *conn, xcb_font_t font,
-                            ISWFontMetrics *metrics);
-
-/*
  * ISWReshapeWidget - Shape a widget using the X Shape extension
  *
  * Parameters:
@@ -500,17 +478,5 @@ xcb_pixmap_t IswLocatePixmapFile(
  */
 
 /* Xlib-named window operation macros removed — use xcb_* calls directly. */
-
-/*
- * =================================================================
- * FONT FALLBACK HANDLING
- * =================================================================
- */
-
-/* Load a fallback font when resource converters fail */
-IswFontStruct *ISWLoadFallbackFont(xcb_connection_t *conn);
-
-/* Free a fallback font created by ISWLoadFallbackFont */
-void ISWFreeFallbackFont(xcb_connection_t *conn, IswFontStruct *font);
 
 #endif /* _IswXcbDraw_h */

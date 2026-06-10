@@ -56,6 +56,7 @@ SOFTWARE.
 
 #include <ISW/ISWP.h>
 #include <ISW/IntrinsicP.h>
+#include "IntrinsicI.h"
 #include <ISW/StringDefs.h>
 #include <X11/Xos.h>
 /* REMOVED: Xmu headers include Xlib.h which conflicts with XCB-only approach */
@@ -74,7 +75,6 @@ SOFTWARE.
 #include <string.h>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "ISWXcbDraw.h"
 
 
 /* Forward declarations for Xmu functions that need XCB replacements */
@@ -392,7 +392,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
              IswName(new));
      fprintf(stderr, "         Attempting to load fallback font...\n");
 
-     lw->label.font = ISWLoadFallbackFont(_IswXcbConn(IswDisplayOf(new)));
+     lw->label.font = _IswPlatformLoadFallbackFont(IswDisplayOf(new));
      
      if (lw->label.font == NULL) {
          fprintf(stderr, "FATAL Label.c: Fallback font loading failed for widget '%s'\n",
