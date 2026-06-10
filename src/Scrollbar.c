@@ -100,7 +100,7 @@ static float floatZero = 0.0;
 #define Offset(field) IswOffsetOf(ScrollbarRec, field)
 
 static IswResource resources[] = {
-/*  {IswNscrollCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+/*  {IswNscrollCursor, IswCCursor, IswRCursor, sizeof(IswCursor),
        Offset(scrollbar.cursor), IswRString, "crosshair"},*/
   {IswNlength, IswCLength, IswRDimension, sizeof(Dimension),
        Offset(scrollbar.length), IswRImmediate, (IswPointer) 1},

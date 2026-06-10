@@ -131,20 +131,20 @@ static IswResource resources[] = {
 
     /* Cursors - both horiz and vertical have to work. */
 
-    {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+    {IswNcursor, IswCCursor, IswRCursor, sizeof(IswCursor),
          offset(cursor), IswRImmediate, None},
-    {IswNgripCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+    {IswNgripCursor, IswCCursor, IswRCursor, sizeof(IswCursor),
          offset(grip_cursor), IswRImmediate, None},
-    {IswNverticalGripCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+    {IswNverticalGripCursor, IswCCursor, IswRCursor, sizeof(IswCursor),
          offset(v_grip_cursor), IswRString, (IswPointer)"sb_v_double_arrow"},
-    {IswNhorizontalGripCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+    {IswNhorizontalGripCursor, IswCCursor, IswRCursor, sizeof(IswCursor),
          offset(h_grip_cursor), IswRString, (IswPointer)"sb_h_double_arrow"},
 
-    {IswNbetweenCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+    {IswNbetweenCursor, IswCCursor, IswRCursor, sizeof(IswCursor),
          offset(adjust_this_cursor), IswRString, None},
-    {IswNverticalBetweenCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+    {IswNverticalBetweenCursor, IswCCursor, IswRCursor, sizeof(IswCursor),
          offset(v_adjust_this_cursor), IswRString, (IswPointer)"sb_left_arrow"},
-    {IswNhorizontalBetweenCursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+    {IswNhorizontalBetweenCursor, IswCCursor, IswRCursor, sizeof(IswCursor),
          offset(h_adjust_this_cursor), IswRString, (IswPointer)"sb_up_arrow"},
 
 };
@@ -863,7 +863,7 @@ GetEventLocation(PanedWidget pw, xcb_generic_event_t *event)
 static void
 StartGripAdjustment(PanedWidget pw, Widget grip)
 {
-    xcb_cursor_t cursor;
+    IswCursor cursor;
 
     pw->paned.whichadd = pw->composite.children[PaneIndex(grip)];
     pw->paned.whichsub = pw->composite.children[PaneIndex(grip) + 1];
@@ -952,7 +952,7 @@ HandleGrip(Widget grip, IswPointer junk, IswPointer callData)
     PanedWidget pw = (PanedWidget) IswParent(grip);
     int loc;
     char action_type;
-    //xcb_cursor_t cursor;
+    //IswCursor cursor;
 
     action_type = toupper(*call_data->params[0]);
 
@@ -1068,7 +1068,7 @@ CreateGrip(Widget child)
 {
     PanedWidget pw = (PanedWidget) IswParent(child);
     IswArgBuilder ab = IswArgBuilderInit();
-    xcb_cursor_t cursor;
+    IswCursor cursor;
 
     IswArgTranslations(&ab, pw->paned.grip_translations);
     if ( (cursor = pw->paned.grip_cursor) == None ) {
@@ -1141,7 +1141,7 @@ ChangeAllGripCursors(PanedWidget pw)
 
     ForAllPanes(pw, childP) {
 	IswArgBuilder ab = IswArgBuilderInit();
-	xcb_cursor_t cursor;
+	IswCursor cursor;
 
 	if ( (cursor = pw->paned.grip_cursor) == None ) {
 	    if ( IsVert(pw) )

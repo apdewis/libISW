@@ -102,7 +102,7 @@ static IswResource resources[] = {
   { IswNallowShellResize, IswCAllowShellResize, IswRBoolean, sizeof(Boolean),
       IswOffsetOf(SimpleMenuRec, shell.allow_shell_resize),
       IswRImmediate, (IswPointer) TRUE },
-  {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+  {IswNcursor, IswCCursor, IswRCursor, sizeof(IswCursor),
       offset(cursor), IswRImmediate, (IswPointer) None},
   {IswNmenuOnScreen,  IswCMenuOnScreen, IswRBoolean, sizeof(Boolean),
       offset(menu_on_screen), IswRImmediate, (IswPointer) TRUE},

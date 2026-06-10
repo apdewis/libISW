@@ -102,7 +102,7 @@ static char defaultTranslations[] =
 static IswResource resources[] = {
     {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
 	offset(list.foreground), IswRString, IswDefaultForeground},
-    {IswNcursor, IswCCursor, IswRCursor, sizeof(xcb_cursor_t),
+    {IswNcursor, IswCCursor, IswRCursor, sizeof(IswCursor),
        offset(simple.cursor), IswRString, (IswPointer)"left_ptr"},
     {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
 	offset(list.font),IswRString, IswDefaultFont},
