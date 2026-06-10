@@ -56,35 +56,36 @@ typedef struct _SelectRec *Select;
 typedef struct _RequestRec {
    Select ctx;		      /* logical owner */
    Widget widget;	      /* widget actually receiving Selection events */
-   xcb_window_t requestor;
-   Atom property;
-   Atom target;
-   Atom type;
+   IswWindow requestor;
+   IswSelectionId property;
+   IswSelectionId target;
+   IswSelectionId type;
    int format;
    IswPointer value;
    unsigned long bytelength;
    unsigned long offset;
    IswIntervalId timeout;
-   xcb_selection_request_event_t event; /* for IswGetSelectionRequest */
+   IswSelectionRequest request; /* for IswGetSelectionRequest */
    Boolean allSent;
 } RequestRec;
 
 typedef struct {
-  Atom prop;
+  IswSelectionId prop;
   Boolean avail;
 } SelectionPropRec, *SelectionProp;
 
 typedef struct {
     IswDisplay dpy;
-    Atom incr_atom;
-    Atom indirect_atom;
-    Atom timestamp_atom;
+    IswSelectionId incr_id;
+    IswSelectionId indirect_id;
+    IswSelectionId timestamp_id;
+    IswSelectionId id_list_type;   /* value-type for a list of selection ids */
     int propCount;
     SelectionProp list;
 } PropListRec, *PropList;
 
 typedef struct _SelectRec {
-    Atom selection; 			/* constant */
+    IswSelectionId selection; 		/* constant */
     IswDisplay dpy; 			/* constant */
     Widget widget;
     IswTime time;
@@ -103,8 +104,8 @@ typedef struct _SelectRec {
 } SelectRec;
 
 typedef struct _ParamRec {
-  Atom selection;
-  Atom param;
+  IswSelectionId selection;
+  IswSelectionId param;
 } ParamRec, *Param;
 
 typedef struct _ParamInfoRec {
@@ -113,9 +114,9 @@ typedef struct _ParamInfoRec {
 } ParamInfoRec, *ParamInfo;
 
 typedef struct _QueuedRequestRec {
-    Atom selection;
-    Atom target;
-    Atom param;
+    IswSelectionId selection;
+    IswSelectionId target;
+    IswSelectionId param;
     IswSelectionCallbackProc callback;
     IswPointer closure;
     IswTime time;
@@ -124,16 +125,16 @@ typedef struct _QueuedRequestRec {
 
 typedef struct _QueuedRequestInfoRec {
     int count;
-    Atom *selections;
+    IswSelectionId *selections;
     QueuedRequest *requests;
 } QueuedRequestInfoRec, *QueuedRequestInfo;
 
 typedef struct {
     IswSelectionCallbackProc *callbacks;
     IswPointer *req_closure;
-    Atom property;
-    Atom *target;
-    Atom type;
+    IswSelectionId property;
+    IswSelectionId *target;
+    IswSelectionId type;
     int format;
     char *value;
     int bytelength;
@@ -148,8 +149,8 @@ typedef struct {
 } CallBackInfoRec, *CallBackInfo;
 
 typedef struct {
-  Atom target;
-  Atom property;
+  IswSelectionId target;
+  IswSelectionId property;
 } IndirectPair;
 
 #define IndirectPairWordSize 2
@@ -158,15 +159,16 @@ typedef struct {
   int active_transfer_count;
 } RequestWindowRec;
 
-/* `dpy` is an IswDisplay; the maximum-request-length query is a native-connection
-   detail reached through the seam (a later phase can route it through an op). */
-#define MAX_SELECTION_INCR(dpy) (((65536 < xcb_get_maximum_request_length(_IswXcbConn(dpy))) ? \
-    (65536 << 2) : (xcb_get_maximum_request_length(_IswXcbConn(dpy)) << 2)) - 100)
+/* Largest single-property payload the transport accepts; drives INCR chunking. */
+#define MAX_SELECTION_INCR(dpy) (_IswPlatformSelectionMaxTransfer(dpy))
 
-#define MATCH_SELECT(event, info) ((event->time == info->time) && \
-	    (event->requestor == IswWindowOf(info->widget)) && \
-	    (event->selection == info->ctx->selection) && \
-	    (event->target == *info->target))
+/* `selev` is a decoded IswSelectionEvent; matches a reply against an in-flight
+   request.  Window identity is compared as IswWindowId (neutral). */
+#define MATCH_SELECT(selev, info) (((selev)->time == (info)->time) && \
+	    (_IswPlatformWindowId((selev)->requestor) == \
+	         _IswPlatformWindowId(IswWindowOf((info)->widget))) && \
+	    ((selev)->selection == (info)->ctx->selection) && \
+	    ((selev)->target == *(info)->target))
 
 #endif /* _IswselectionI_h */
 /* DON'T ADD STUFF AFTER THIS #endif */

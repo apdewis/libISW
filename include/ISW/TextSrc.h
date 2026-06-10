@@ -207,8 +207,8 @@ extern ISWTextPosition IswTextSourceSearch(
 /*	Function Name: IswTextSourceConvertSelection
  *	Description: Dummy selection converter.
  *	Arguments: w - the TextSrc object.
- *                 selection - the current selection atom.
- *                 target    - the current target atom.
+ *                 selection - the current selection id.
+ *                 target    - the current target id.
  *                 type      - the type to conver the selection to.
  * RETURNED        value, length - the return value that has been converted.
  * RETURNED        format    - the format of the returned value.
@@ -218,9 +218,9 @@ extern ISWTextPosition IswTextSourceSearch(
 
 extern Boolean IswTextSourceConvertSelection(
     Widget		/* w */,
-    Atom*		/* selection */,
-    Atom*		/* target */,
-    Atom*		/* type */,
+    IswSelectionId*	/* selection */,
+    IswSelectionId*	/* target */,
+    IswSelectionId*	/* type */,
     IswPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
@@ -230,7 +230,7 @@ extern Boolean IswTextSourceConvertSelection(
  *	Description: allows special setting of the selection.
  *	Arguments: w - the TextSrc object.
  *                 left, right - bounds of the selection.
- *                 selection - the selection atom.
+ *                 selection - the selection id.
  *	Returns: none
  */
 
@@ -238,7 +238,7 @@ extern void IswTextSourceSetSelection(
     Widget		/* w */,
     ISWTextPosition	/* start */,
     ISWTextPosition	/* end */,
-    Atom		/* selection */
+    IswSelectionId	/* selection */
 );
 
 /*	Function Name: IswTextSourceFreeString

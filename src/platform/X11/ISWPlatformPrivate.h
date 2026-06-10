@@ -141,13 +141,36 @@ void _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keyco
                          unsigned int modifiers, Boolean owner_events,
                          int pointer_mode, int keyboard_mode);
 
-/* Selection (Phase 5; atoms neutralised in Phase 6) */
+/* Selection — neutral IswSelectionId throughout; no Atom in the engine seam. */
+IswSelectionId _IswPlatformSelectionInternName(IswDisplay dpy, const char *name,
+                                               Boolean only_if_exists);
+Boolean   _IswPlatformSelectionName(IswDisplay dpy, IswSelectionId id,
+                                    char *buf, size_t buflen);
 void      _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
-                                        Atom selection, IswTime time);
-IswWindow _IswPlatformGetSelectionOwner(IswDisplay dpy, Atom selection);
+                                        IswSelectionId selection, IswTime time);
+IswWindow _IswPlatformGetSelectionOwner(IswDisplay dpy, IswSelectionId selection);
 void      _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
-                                       Atom selection, Atom target,
-                                       Atom property, IswTime time);
+                                       IswSelectionId selection,
+                                       IswSelectionId target,
+                                       IswSelectionId property, IswTime time);
+Boolean   _IswPlatformSelectionDecodeEvent(IswDisplay dpy, const void *native,
+                                           IswSelectionEvent *out);
+void      _IswPlatformSelectionSendNotify(IswDisplay dpy,
+                                          const IswSelectionRequest *req,
+                                          IswSelectionId property);
+unsigned long _IswPlatformSelectionMaxTransfer(IswDisplay dpy);
+
+/* Standard selection value-types the engine and widgets name by role, never by
+   the backend's wire name.  The backend resolves each to its own id (on X11:
+   the predefined ATOM / STRING / INTEGER atoms). */
+typedef enum {
+    ISW_SEL_STDTYPE_ID_LIST = 0,   /* a list of selection ids (X11: ATOM)   */
+    ISW_SEL_STDTYPE_STRING,        /* a text string           (X11: STRING) */
+    ISW_SEL_STDTYPE_INTEGER        /* an integer              (X11: INTEGER)*/
+} IswSelectionStdType;
+
+IswSelectionId _IswPlatformSelectionStdType(IswDisplay dpy,
+                                            IswSelectionStdType which);
 
 /* Atom (Phase 6) */
 Atom    _IswPlatformInternAtomOp(IswDisplay dpy, const char *name,

@@ -882,28 +882,31 @@ Layout(Widget w, Boolean xfree, Boolean yfree, Dimension *width, Dimension *heig
 
 
 static Boolean
-ListConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
-		     xcb_atom_t *type, IswPointer *value,
+ListConvertSelection(Widget w, IswSelectionId *selection, IswSelectionId *target,
+		     IswSelectionId *type, IswPointer *value,
 		     unsigned long *length, int *format)
 {
     ListWidget lw = (ListWidget) w;
-    xcb_atom_t a_targets = _IswPlatformInternAtomOp(IswDisplayOf(w), "TARGETS", False);
+    IswDisplay d = IswDisplayOf(w);
+    IswSelectionId a_targets = _IswPlatformSelectionInternName(d, "TARGETS", False);
+    IswSelectionId str_type  = _IswPlatformSelectionStdType(d, ISW_SEL_STDTYPE_STRING);
 
     if (*target == a_targets) {
-	xcb_atom_t *targets = (xcb_atom_t *) IswMalloc(2 * sizeof(xcb_atom_t));
+	IswSelectionId idlist_type = _IswPlatformSelectionStdType(d, ISW_SEL_STDTYPE_ID_LIST);
+	IswSelectionId *targets = (IswSelectionId *) IswMalloc(2 * sizeof(IswSelectionId));
 	targets[0] = a_targets;
-	targets[1] = XCB_ATOM_STRING;
-	*type = XCB_ATOM_ATOM;
+	targets[1] = str_type;
+	*type = idlist_type;
 	*value = (IswPointer) targets;
 	*length = 2;
 	*format = 32;
 	return True;
     }
 
-    if (*target == XCB_ATOM_STRING) {
+    if (*target == str_type) {
 	if (lw->list.clip_contents == NULL)
 	    return False;
-	*type = XCB_ATOM_STRING;
+	*type = str_type;
 	*value = IswNewString(lw->list.clip_contents);
 	*length = strlen(lw->list.clip_contents);
 	*format = 8;
@@ -914,7 +917,7 @@ ListConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
 }
 
 static void
-ListLoseSelection(Widget w, xcb_atom_t *selection)
+ListLoseSelection(Widget w, IswSelectionId *selection)
 {
     ListWidget lw = (ListWidget) w;
     if (lw->list.clip_contents) {
@@ -954,7 +957,7 @@ Notify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 	if (lw->list.clip_contents)
 	    IswFree(lw->list.clip_contents);
 	lw->list.clip_contents = IswNewString(lw->list.list[item]);
-	IswOwnSelection(w, _IswPlatformInternAtomOp(IswDisplayOf(w), "CLIPBOARD", False),
+	IswOwnSelection(w, _IswPlatformSelectionInternName(IswDisplayOf(w), "CLIPBOARD", False),
 			IswLastTimestampProcessed(IswDisplayOf(w)),
 			ListConvertSelection, ListLoseSelection, NULL);
     }

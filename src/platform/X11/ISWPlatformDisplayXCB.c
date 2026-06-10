@@ -992,10 +992,30 @@ _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
                             owner_events, pointer_mode, keyboard_mode);
 }
 
-/* Selection (Phase 5) */
+/* Selection */
+IswSelectionId
+_IswPlatformSelectionInternName(IswDisplay dpy, const char *name,
+                                Boolean only_if_exists)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->selection && ops->selection->intern_name)
+        return ops->selection->intern_name(dpy, name, only_if_exists);
+    return ISW_SELECTION_NONE;
+}
+
+Boolean
+_IswPlatformSelectionName(IswDisplay dpy, IswSelectionId id,
+                          char *buf, size_t buflen)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->selection && ops->selection->name_of)
+        return ops->selection->name_of(dpy, id, buf, buflen);
+    return False;
+}
+
 void
 _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
-                              Atom selection, IswTime time)
+                              IswSelectionId selection, IswTime time)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->selection && ops->selection->set_owner)
@@ -1003,7 +1023,7 @@ _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
 }
 
 IswWindow
-_IswPlatformGetSelectionOwner(IswDisplay dpy, Atom selection)
+_IswPlatformGetSelectionOwner(IswDisplay dpy, IswSelectionId selection)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->selection && ops->selection->get_owner)
@@ -1013,13 +1033,57 @@ _IswPlatformGetSelectionOwner(IswDisplay dpy, Atom selection)
 
 void
 _IswPlatformConvertSelection(IswDisplay dpy, IswWindow requestor,
-                             Atom selection, Atom target,
-                             Atom property, IswTime time)
+                             IswSelectionId selection, IswSelectionId target,
+                             IswSelectionId property, IswTime time)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->selection && ops->selection->convert)
         ops->selection->convert(dpy, requestor, selection, target,
                                 property, time);
+}
+
+Boolean
+_IswPlatformSelectionDecodeEvent(IswDisplay dpy, const void *native,
+                                 IswSelectionEvent *out)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->selection && ops->selection->decode_event)
+        return ops->selection->decode_event(dpy, native, out);
+    if (out)
+        out->kind = ISW_SEL_EVENT_OTHER;
+    return False;
+}
+
+void
+_IswPlatformSelectionSendNotify(IswDisplay dpy, const IswSelectionRequest *req,
+                                IswSelectionId property)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->selection && ops->selection->send_notify)
+        ops->selection->send_notify(dpy, req, property);
+}
+
+IswSelectionId
+_IswPlatformSelectionStdType(IswDisplay dpy, IswSelectionStdType which)
+{
+    const char *name;
+
+    switch (which) {
+    case ISW_SEL_STDTYPE_STRING:  name = "STRING";  break;
+    case ISW_SEL_STDTYPE_INTEGER: name = "INTEGER"; break;
+    case ISW_SEL_STDTYPE_ID_LIST:
+    default:                      name = "ATOM";    break;
+    }
+    return _IswPlatformSelectionInternName(dpy, name, False);
+}
+
+unsigned long
+_IswPlatformSelectionMaxTransfer(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->selection && ops->selection->max_transfer_bytes)
+        return ops->selection->max_transfer_bytes(dpy);
+    return 0;
 }
 
 /* Atom (Phase 6) */

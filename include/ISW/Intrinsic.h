@@ -437,11 +437,57 @@ typedef Boolean (*IswFilePredicate)(
 
 typedef IswPointer IswRequestId;
 
+/*
+ * Neutral selection vocabulary.  A selection, a conversion target, a conversion
+ * type and an exchange property are all named by an opaque IswSelectionId — the
+ * selection engine and its consumers never name them with an X11 atom.  A
+ * backend maps a name to an IswSelectionId (IswInternSelection) and back; on X11
+ * the id is numerically an interned atom, but a non-X11 backend assigns its own.
+ * The full ops live in ISW/ISWPlatform.h; these types are declared here because
+ * the public selection API and its callbacks use them.
+ */
+typedef uint32_t IswSelectionId;
+#define ISW_SELECTION_NONE ((IswSelectionId) 0)
+
+typedef enum {
+    ISW_SEL_EVENT_OTHER = 0,     /* not a selection-protocol event           */
+    ISW_SEL_EVENT_CLEAR,         /* ownership lost (another client took over) */
+    ISW_SEL_EVENT_REQUEST,       /* a requestor asks us to convert            */
+    ISW_SEL_EVENT_NOTIFY,        /* a conversion we requested is ready/refused*/
+    ISW_SEL_EVENT_PROP_NEW,      /* exchange property got a new value (INCR)  */
+    ISW_SEL_EVENT_PROP_DELETE    /* exchange property was deleted (INCR)      */
+} IswSelectionEventKind;
+
+/* A requestor's conversion request, in neutral terms.  Carries the identity an
+   owner needs to answer (and that IswGetSelectionRequest hands to owner procs).
+   `property` is ISW_SELECTION_NONE for an obsolete requestor. */
+typedef struct {
+    IswWindow      requestor;
+    IswWindow      owner;
+    IswSelectionId selection;
+    IswSelectionId target;
+    IswSelectionId property;
+    IswTime        time;
+} IswSelectionRequest;
+
+/* A decoded selection-protocol event.  The backend fills the fields meaningful
+   for `kind`; the rest are ISW_SELECTION_NONE / 0. */
+typedef struct {
+    IswSelectionEventKind kind;
+    IswWindow             requestor;
+    IswSelectionId        selection;
+    IswSelectionId        target;
+    IswSelectionId        property;
+    IswTime               time;
+    unsigned long         serial;
+    IswSelectionRequest   request;
+} IswSelectionEvent;
+
 typedef Boolean (*IswConvertSelectionProc)(
     Widget 		/* widget */,
-    Atom*		/* selection */,
-    Atom*		/* target */,
-    Atom*		/* type_return */,
+    IswSelectionId*	/* selection */,
+    IswSelectionId*	/* target */,
+    IswSelectionId*	/* type_return */,
     IswPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
@@ -449,20 +495,20 @@ typedef Boolean (*IswConvertSelectionProc)(
 
 typedef void (*IswLoseSelectionProc)(
     Widget 		/* widget */,
-    Atom*		/* selection */
+    IswSelectionId*	/* selection */
 );
 
 typedef void (*IswSelectionDoneProc)(
     Widget 		/* widget */,
-    Atom*		/* selection */,
-    Atom*		/* target */
+    IswSelectionId*	/* selection */,
+    IswSelectionId*	/* target */
 );
 
 typedef void (*IswSelectionCallbackProc)(
     Widget 		/* widget */,
     IswPointer 		/* closure */,
-    Atom*		/* selection */,
-    Atom*		/* type */,
+    IswSelectionId*	/* selection */,
+    IswSelectionId*	/* type */,
     IswPointer 		/* value */,
     unsigned long*	/* length */,
     int*		/* format */
@@ -470,23 +516,23 @@ typedef void (*IswSelectionCallbackProc)(
 
 typedef void (*IswLoseSelectionIncrProc)(
     Widget 		/* widget */,
-    Atom*		/* selection */,
+    IswSelectionId*	/* selection */,
     IswPointer 		/* client_data */
 );
 
 typedef void (*IswSelectionDoneIncrProc)(
     Widget 		/* widget */,
-    Atom*		/* selection */,
-    Atom*		/* target */,
+    IswSelectionId*	/* selection */,
+    IswSelectionId*	/* target */,
     IswRequestId*	/* receiver_id */,
     IswPointer 		/* client_data */
 );
 
 typedef Boolean (*IswConvertSelectionIncrProc)(
     Widget 		/* widget */,
-    Atom*		/* selection */,
-    Atom*		/* target */,
-    Atom*		/* type */,
+    IswSelectionId*	/* selection */,
+    IswSelectionId*	/* target */,
+    IswSelectionId*	/* type */,
     IswPointer*		/* value */,
     unsigned long*	/* length */,
     int*		/* format */,
@@ -497,8 +543,8 @@ typedef Boolean (*IswConvertSelectionIncrProc)(
 
 typedef void (*IswCancelConvertSelectionProc)(
     Widget 		/* widget */,
-    Atom*		/* selection */,
-    Atom*		/* target */,
+    IswSelectionId*	/* selection */,
+    IswSelectionId*	/* target */,
     IswRequestId*	/* receiver_id */,
     IswPointer 		/* client_data */
 );
@@ -592,7 +638,7 @@ extern Boolean IswIsSensitive(
 
 extern Boolean IswOwnSelection(
     Widget 		/* widget */,
-    Atom 		/* selection */,
+    IswSelectionId 	/* selection */,
     IswTime 		/* time */,
     IswConvertSelectionProc /* convert */,
     IswLoseSelectionProc	/* lose */,
@@ -601,7 +647,7 @@ extern Boolean IswOwnSelection(
 
 extern Boolean IswOwnSelectionIncremental(
     Widget 		/* widget */,
-    Atom 		/* selection */,
+    IswSelectionId 	/* selection */,
     IswTime 		/* time */,
     IswConvertSelectionIncrProc	/* convert_callback */,
     IswLoseSelectionIncrProc	/* lose_callback */,
@@ -1971,14 +2017,14 @@ extern _IswString IswResolvePathname(
 
 extern void IswDisownSelection(
     Widget 		/* widget */,
-    Atom 		/* selection */,
+    IswSelectionId 	/* selection */,
     IswTime 		/* time */
 );
 
 extern void IswGetSelectionValue(
     Widget 		/* widget */,
-    Atom 		/* selection */,
-    Atom 		/* target */,
+    IswSelectionId 	/* selection */,
+    IswSelectionId 	/* target */,
     IswSelectionCallbackProc /* callback */,
     IswPointer 		/* closure */,
     IswTime 		/* time */
@@ -1986,8 +2032,8 @@ extern void IswGetSelectionValue(
 
 extern void IswGetSelectionValues(
     Widget 		/* widget */,
-    Atom 		/* selection */,
-    Atom*		/* targets */,
+    IswSelectionId 	/* selection */,
+    IswSelectionId*	/* targets */,
     int 		/* count */,
     IswSelectionCallbackProc /* callback */,
     IswPointer*		/* closures */,
@@ -2011,16 +2057,16 @@ extern unsigned long IswGetSelectionTimeout( /* obsolete */
     void
 );
 
-extern xcb_selection_request_event_t *IswGetSelectionRequest(
+extern IswSelectionRequest *IswGetSelectionRequest(
     Widget 		/* widget */,
-    Atom 		/* selection */,
+    IswSelectionId 	/* selection */,
     IswRequestId 	/* request_id */
 );
 
 extern void IswGetSelectionValueIncremental(
     Widget 		/* widget */,
-    Atom 		/* selection */,
-    Atom 		/* target */,
+    IswSelectionId 	/* selection */,
+    IswSelectionId 	/* target */,
     IswSelectionCallbackProc /* selection_callback */,
     IswPointer 		/* client_data */,
     IswTime 		/* time */
@@ -2028,8 +2074,8 @@ extern void IswGetSelectionValueIncremental(
 
 extern void IswGetSelectionValuesIncremental(
     Widget 		/* widget */,
-    Atom 		/* selection */,
-    Atom*		/* targets */,
+    IswSelectionId 	/* selection */,
+    IswSelectionId*	/* targets */,
     int 		/* count */,
     IswSelectionCallbackProc /* callback */,
     IswPointer*		/* client_data */,
@@ -2038,8 +2084,8 @@ extern void IswGetSelectionValuesIncremental(
 
 extern void IswSetSelectionParameters(
     Widget		/* requestor */,
-    Atom		/* selection */,
-    Atom		/* type */,
+    IswSelectionId	/* selection */,
+    IswSelectionId	/* type */,
     IswPointer		/* value */,
     unsigned long	/* length */,
     int			/* format */
@@ -2047,9 +2093,9 @@ extern void IswSetSelectionParameters(
 
 extern void IswGetSelectionParameters(
     Widget		/* owner */,
-    Atom		/* selection */,
+    IswSelectionId	/* selection */,
     IswRequestId		/* request_id */,
-    Atom*		/* type_return */,
+    IswSelectionId*	/* type_return */,
     IswPointer*		/* value_return */,
     unsigned long*	/* length_return */,
     int*		/* format_return */
@@ -2057,18 +2103,18 @@ extern void IswGetSelectionParameters(
 
 extern void IswCreateSelectionRequest(
     Widget		/* requestor */,
-    Atom		/* selection */
+    IswSelectionId	/* selection */
 );
 
 extern void IswSendSelectionRequest(
     Widget		/* requestor */,
-    Atom		/* selection */,
+    IswSelectionId	/* selection */,
     IswTime		/* time */
 );
 
 extern void IswCancelSelectionRequest(
     Widget		/* requestor */,
-    Atom		/* selection */
+    IswSelectionId	/* selection */
 );
 
 extern Atom IswReservePropertyAtom(

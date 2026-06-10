@@ -121,7 +121,7 @@ static void HandleSelectionReplies(Widget, IswPointer,IswEvent *, Boolean *);
 static void ReqTimedOut(IswPointer, IswIntervalId *);
 static void HandlePropertyGone(Widget, IswPointer,IswEvent *, Boolean *);
 static void HandleGetIncrement(Widget, IswPointer,IswEvent *, Boolean *);
-static void HandleIncremental(IswDisplay, Widget, Atom, CallBackInfo,
+static void HandleIncremental(IswDisplay, Widget, IswSelectionId, CallBackInfo,
                               unsigned long);
 
 static IswContext selectPropertyContext = NULL;
@@ -129,17 +129,17 @@ static IswContext paramPropertyContext = NULL;
 static IswContext multipleContext = NULL;
 
 /* Multiple utilities */
-static void AddSelectionRequests(Widget, Atom, int, Atom *,
+static void AddSelectionRequests(Widget, IswSelectionId, int, IswSelectionId *,
                                  IswSelectionCallbackProc *, int, IswPointer *,
-                                 Boolean *, Atom *);
-static Boolean IsGatheringRequest(Widget, Atom);
+                                 Boolean *, IswSelectionId *);
+static Boolean IsGatheringRequest(Widget, IswSelectionId);
 
 #define PREALLOCED 32
 
 /* Parameter utilities */
-static void AddParamInfo(Widget, Atom, Atom);
-static void RemoveParamInfo(Widget, Atom);
-static Atom GetParamInfo(Widget, Atom);
+static void AddParamInfo(Widget, IswSelectionId, IswSelectionId);
+static void RemoveParamInfo(Widget, IswSelectionId);
+static IswSelectionId GetParamInfo(Widget, IswSelectionId);
 
 static int StorageSize[3] = { 1, sizeof(short), sizeof(long) };
 
@@ -166,7 +166,8 @@ FreePropList(Widget w _X_UNUSED,
     PropList sarray = (PropList) closure;
 
     LOCK_PROCESS;
-    IswDeleteContext(sarray->dpy, _IswXcbWindow(_IswDefaultRootWindow(sarray->dpy)),
+    IswDeleteContext(sarray->dpy,
+                   _IswPlatformWindowId(_IswDefaultRootWindow(sarray->dpy)),
                    selectPropertyContext);
     UNLOCK_PROCESS;
     IswFree((char *) sarray->list);
@@ -181,9 +182,9 @@ GetPropList(IswDisplay dpy)
     LOCK_PROCESS;
     if (selectPropertyContext == 0)
         selectPropertyContext = IswUniqueContext();
-    if (IswFindContext(dpy, _IswXcbWindow(_IswDefaultRootWindow(dpy)), selectPropertyContext,
-                     (void *) &sarray)) {
-        Atom atoms[4];
+    if (IswFindContext(dpy, _IswPlatformWindowId(_IswDefaultRootWindow(dpy)),
+                     selectPropertyContext, (void *) &sarray)) {
+        IswSelectionId ids[4];
 
         static const char *names[] = {
             "INCR",
@@ -197,19 +198,21 @@ GetPropList(IswDisplay dpy)
         sarray = (PropList) __XtMalloc((unsigned) sizeof(PropListRec));
         sarray->dpy = dpy;
         for(uint8_t i = 0; i < 4; i++) {
-            atoms[i] = _IswPlatformInternAtomOp(dpy, names[i], False);
+            ids[i] = _IswPlatformSelectionInternName(dpy, names[i], False);
         }
 
-        sarray->incr_atom = atoms[0];
-        sarray->indirect_atom = atoms[1];
-        sarray->timestamp_atom = atoms[2];
+        sarray->incr_id = ids[0];
+        sarray->indirect_id = ids[1];
+        sarray->timestamp_id = ids[2];
+        sarray->id_list_type = _IswPlatformSelectionStdType(dpy, ISW_SEL_STDTYPE_ID_LIST);
         sarray->propCount = 1;
         sarray->list =
             (SelectionProp) __XtMalloc((unsigned) sizeof(SelectionPropRec));
-        sarray->list[0].prop = atoms[3];
+        sarray->list[0].prop = ids[3];
         sarray->list[0].avail = TRUE;
-        (void) IswSaveContext(dpy, _IswXcbWindow(_IswDefaultRootWindow(dpy)), selectPropertyContext,
-                            (char *) sarray);
+        (void) IswSaveContext(dpy,
+                            _IswPlatformWindowId(_IswDefaultRootWindow(dpy)),
+                            selectPropertyContext, (char *) sarray);
         _IswAddCallback(&pd->destroy_callbacks,
                        FreePropList, (IswPointer) sarray);
     }
@@ -217,7 +220,7 @@ GetPropList(IswDisplay dpy)
     return sarray;
 }
 
-static Atom
+static IswSelectionId
 GetSelectionProperty(IswDisplay dpy)
 {
     SelectionProp p;
@@ -237,23 +240,23 @@ GetSelectionProperty(IswDisplay dpy)
                                   (Cardinal) sizeof(SelectionPropRec));
     (void) snprintf(propname, sizeof(propname), "_XT_SELECTION_%d", propCount);
     sarray->list[propCount].prop =
-        _IswPlatformInternAtomOp(dpy, propname, False);
+        _IswPlatformSelectionInternName(dpy, propname, False);
     sarray->list[propCount].avail = FALSE;
     return (sarray->list[propCount].prop);
 }
 
 static void
-FreeSelectionProperty(IswDisplay dpy, Atom prop)
+FreeSelectionProperty(IswDisplay dpy, IswSelectionId prop)
 {
     SelectionProp p;
     int propCount;
     PropList sarray;
 
-    if (prop == None)
+    if (prop == ISW_SELECTION_NONE)
         return;
     LOCK_PROCESS;
-    if (IswFindContext(dpy, _IswXcbWindow(_IswDefaultRootWindow(dpy)), selectPropertyContext,
-                     (void *) &sarray))
+    if (IswFindContext(dpy, _IswPlatformWindowId(_IswDefaultRootWindow(dpy)),
+                     selectPropertyContext, (void *) &sarray))
         IswAppErrorMsg(IswDisplayToApplicationContext(dpy),
                       "noSelectionProperties", "freeSelectionProperty",
                       IswCIswToolkitError,
@@ -286,7 +289,7 @@ MakeInfo(Select ctx,
          Widget widget,
          IswTime time,
          Boolean *incremental,
-         Atom *properties)
+         IswSelectionId *properties)
 {
     CallBackInfo info = IswNew(CallBackInfoRec);
 
@@ -299,7 +302,7 @@ MakeInfo(Select ctx,
                                       (Cardinal) sizeof(IswPointer));
     (void) memcpy(info->req_closure, closures,
                   (size_t) count * sizeof(IswPointer));
-    if (count == 1 && properties != NULL && properties[0] != None)
+    if (count == 1 && properties != NULL && properties[0] != ISW_SELECTION_NONE)
         info->property = properties[0];
     else {
         info->property = GetSelectionProperty(IswDisplayOf(widget));
@@ -318,7 +321,8 @@ MakeInfo(Select ctx,
 }
 
 static void
-RequestSelectionValue(CallBackInfo info, Atom selection, Atom target)
+RequestSelectionValue(CallBackInfo info, IswSelectionId selection,
+                      IswSelectionId target)
 {
 #ifndef DEBUG_WO_TIMERS
     IswAppContext app = IswWidgetToApplicationContext(info->widget);
@@ -338,7 +342,7 @@ RequestSelectionValue(CallBackInfo info, Atom selection, Atom target)
 static IswContext selectContext = NULL;
 
 static Select
-NewContext(IswDisplay dpy, Atom selection)
+NewContext(IswDisplay dpy, IswSelectionId selection)
 {
     /* assert(selectContext != 0) */
     Select ctx = IswNew(SelectRec);
@@ -351,20 +355,20 @@ NewContext(IswDisplay dpy, Atom selection)
     ctx->free_when_done = FALSE;
     ctx->was_disowned = FALSE;
     LOCK_PROCESS;
-    (void) IswSaveContext(dpy, (xcb_window_t) selection, selectContext, (char *) ctx);
+    (void) IswSaveContext(dpy, (XID) selection, selectContext, (char *) ctx);
     UNLOCK_PROCESS;
     return ctx;
 }
 
 static Select
-FindCtx(IswDisplay dpy, Atom selection)
+FindCtx(IswDisplay dpy, IswSelectionId selection)
 {
     Select ctx;
 
     LOCK_PROCESS;
     if (selectContext == 0)
         selectContext = IswUniqueContext();
-    if (IswFindContext(dpy, (xcb_window_t) selection, selectContext, (void *) &ctx))
+    if (IswFindContext(dpy, (XID) selection, selectContext, (void *) &ctx))
         ctx = NewContext(dpy, selection);
     UNLOCK_PROCESS;
     return ctx;
@@ -388,7 +392,7 @@ WidgetDestroyed(Widget widget, IswPointer closure, IswPointer data _X_UNUSED)
 static void HandleSelectionEvents(Widget, IswPointer,IswEvent *, Boolean *);
 
 static Boolean
-LoseSelection(Select ctx, Widget widget, Atom selection, IswTime time)
+LoseSelection(Select ctx, Widget widget, IswSelectionId selection, IswTime time)
 {
     if ((ctx->widget == widget) && (ctx->selection == selection) &&     /* paranoia */
         !ctx->was_disowned && ((time == CurrentTime) || (time >= ctx->time))) {
@@ -477,15 +481,16 @@ static void
 AddHandler(Request req, EventMask mask, IswEventHandler proc, IswPointer closure)
 {
     IswDisplay dpy = req->ctx->dpy;
-    xcb_window_t window = req->requestor;
-    Widget widget = IswWindowToWidget(dpy, _IswXcbWindowWrap(window));
+    IswWindow window = req->requestor;
+    IswWindowId window_id = _IswPlatformWindowId(window);
+    Widget widget = IswWindowToWidget(dpy, window);
 
     if (widget != NULL)
         req->widget = widget;
     else
         widget = req->widget;
 
-    if (_IswXcbWindow(IswWindowOf(widget)) == window)
+    if (_IswPlatformWindowId(IswWindowOf(widget)) == window_id)
         IswAddEventHandler(widget, mask, False, proc, closure);
     else {
         RequestWindowRec *requestWindowRec;
@@ -493,20 +498,19 @@ AddHandler(Request req, EventMask mask, IswEventHandler proc, IswPointer closure
         LOCK_PROCESS;
         if (selectWindowContext == 0)
             selectWindowContext = IswUniqueContext();
-        if (IswFindContext(dpy, window, selectWindowContext,
+        if (IswFindContext(dpy, window_id, selectWindowContext,
                          (void *) &requestWindowRec)) {
             requestWindowRec = IswNew(RequestWindowRec);
             requestWindowRec->active_transfer_count = 0;
-            (void) IswSaveContext(dpy, window, selectWindowContext,
+            (void) IswSaveContext(dpy, window_id, selectWindowContext,
                                 (char *) requestWindowRec);
         }
         UNLOCK_PROCESS;
         if (requestWindowRec->active_transfer_count++ == 0) {
-            IswRegisterDrawable(dpy, window, widget);
+            IswRegisterDrawable(dpy, window_id, widget);
             IswWindowAttributes attrs = { 0 };
             attrs.event_mask = mask;
-            _IswPlatformChangeAttributes(dpy,
-                                         _IswXcbWindowWrap(window),
+            _IswPlatformChangeAttributes(dpy, window,
                                          &attrs, ISW_ATTR_EVENT_MASK);
         }
         IswAddRawEventHandler(widget, mask, FALSE, proc, closure);
@@ -520,30 +524,28 @@ RemoveHandler(Request req,
               IswPointer closure)
 {
     IswDisplay dpy = req->ctx->dpy;
-    xcb_window_t window = req->requestor;
+    IswWindow window = req->requestor;
+    IswWindowId window_id = _IswPlatformWindowId(window);
     Widget widget = req->widget;
 
-    if ((IswWindowToWidget(dpy, _IswXcbWindowWrap(window)) == widget) &&
-        (_IswXcbWindow(IswWindowOf(widget)) != window)) {
+    if ((IswWindowToWidget(dpy, window) == widget) &&
+        (_IswPlatformWindowId(IswWindowOf(widget)) != window_id)) {
         /* we had to hang this window onto our widget; take it off */
         RequestWindowRec *requestWindowRec;
 
         IswRemoveRawEventHandler(widget, mask, TRUE, proc, closure);
         LOCK_PROCESS;
-        (void) IswFindContext(dpy, window, selectWindowContext,
+        (void) IswFindContext(dpy, window_id, selectWindowContext,
                             (void *) &requestWindowRec);
         UNLOCK_PROCESS;
         if (--requestWindowRec->active_transfer_count == 0) {
-            IswUnregisterDrawable(dpy, window);
-            //StartProtectedSection(dpy, window);
+            IswUnregisterDrawable(dpy, window_id);
             IswWindowAttributes attrs = { 0 };
             attrs.event_mask = 0;
-            _IswPlatformChangeAttributes(dpy,
-                                         _IswXcbWindowWrap(window),
+            _IswPlatformChangeAttributes(dpy, window,
                                          &attrs, ISW_ATTR_EVENT_MASK);
-            //EndProtectedSection(dpy);
             LOCK_PROCESS;
-            (void) IswDeleteContext(dpy, window, selectWindowContext);
+            (void) IswDeleteContext(dpy, window_id, selectWindowContext);
             UNLOCK_PROCESS;
             IswFree((char *) requestWindowRec);
         }
@@ -596,14 +598,12 @@ SendIncrement(Request incr)
 
     if (incrSize > incr->bytelength - incr->offset)
         incrSize = incr->bytelength - incr->offset;
-    //StartProtectedSection(dpy, incr->requestor);
-    _IswPlatformChangeProperty(dpy, _IswXcbWindowWrap(incr->requestor),
+    _IswPlatformChangeProperty(dpy, incr->requestor,
                     incr->property, incr->type, incr->format,
                     ISW_PROP_MODE_REPLACE,
                     (unsigned char *) incr->value + incr->offset,
                     (uint32_t) NUMELEM((int) incrSize, incr->format));
     _IswPlatformFlush(dpy);
-    //EndProtectedSection(dpy);
     incr->offset += incrSize;
 }
 
@@ -612,12 +612,10 @@ AllSent(Request req)
 {
     Select ctx = req->ctx;
 
-    //StartProtectedSection(ctx->dpy, req->requestor);
-    _IswPlatformChangeProperty(ctx->dpy, _IswXcbWindowWrap(req->requestor),
+    _IswPlatformChangeProperty(ctx->dpy, req->requestor,
                     req->property, req->type, req->format,
                     ISW_PROP_MODE_REPLACE, NULL, 0);
     _IswPlatformFlush(ctx->dpy);
-    //EndProtectedSection(ctx->dpy);
     req->allSent = TRUE;
 
     if (ctx->notify == NULL)
@@ -630,13 +628,17 @@ HandlePropertyGone(Widget widget _X_UNUSED,
                   IswEvent *iswev,
                    Boolean *cont _X_UNUSED)
 {
-    xcb_property_notify_event_t *event = (xcb_property_notify_event_t *) IswEventNative(iswev);
     Request req = (Request) closure;
     Select ctx = req->ctx;
+    IswSelectionEvent selev;
 
-    if (((event->response_type & ~0x80) != XCB_PROPERTY_NOTIFY) ||
-        (event->state != XCB_PROPERTY_DELETE) ||
-        (event->atom != req->property) || (event->window != req->requestor))
+    if (!_IswPlatformSelectionDecodeEvent(ctx->dpy, IswEventNative(iswev),
+                                          &selev))
+        return;
+    if ((selev.kind != ISW_SEL_EVENT_PROP_DELETE) ||
+        (selev.property != req->property) ||
+        (_IswPlatformWindowId(selev.requestor) !=
+         _IswPlatformWindowId(req->requestor)))
         return;
 #ifndef DEBUG_WO_TIMERS
     IswRemoveTimeOut(req->timeout);
@@ -696,10 +698,10 @@ HandlePropertyGone(Widget widget _X_UNUSED,
 static void
 PrepareIncremental(Request req,
                    Widget widget,
-                   xcb_window_t window,
-                   Atom property _X_UNUSED,
-                   Atom target,
-                   Atom targetType,
+                   IswWindow window,
+                   IswSelectionId property _X_UNUSED,
+                   IswSelectionId target,
+                   IswSelectionId targetType,
                    IswPointer value,
                    unsigned long length,
                    int format)
@@ -724,34 +726,36 @@ PrepareIncremental(Request req,
     AddHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                HandlePropertyGone, (IswPointer) req);
 /* now send client INCR property */
-    _IswPlatformChangeProperty(req->ctx->dpy, _IswXcbWindowWrap(window),
-                   req->property, req->ctx->prop_list->incr_atom, 32,
+    _IswPlatformChangeProperty(req->ctx->dpy, window,
+                   req->property, req->ctx->prop_list->incr_id, 32,
                    ISW_PROP_MODE_REPLACE, &req->bytelength, 1);
 }
 
 static Boolean
 GetConversion(Select ctx,       /* logical owner */
-              xcb_selection_request_event_t *event,
-              Atom target,
-              Atom property,    /* requestor's property */
+              const IswSelectionRequest *request,
+              IswSelectionId target,
+              IswSelectionId property,  /* requestor's property */
               Widget widget)    /* physical owner (receives events) */
-{                  
+{
     IswPointer value = NULL;
     unsigned long length;
     int format;
-    Atom targetType;
+    IswSelectionId targetType;
+    IswSelectionId selection = request->selection;
+    IswWindow requestor = request->requestor;
     Request req = IswNew(RequestRec);
-    Boolean timestamp_target = (target == ctx->prop_list->timestamp_atom);
+    Boolean timestamp_target = (target == ctx->prop_list->timestamp_id);
 
     req->ctx = ctx;
-    req->event = *event;
+    req->request = *request;
     req->property = property;
-    req->requestor = event->requestor;
+    req->requestor = requestor;
 
     if (timestamp_target) {
         value = __XtMalloc(sizeof(long));
         *(long *) value = (long) ctx->time;
-        targetType = XCB_ATOM_INTEGER;
+        targetType = _IswPlatformSelectionInternName(ctx->dpy, "INTEGER", False);
         length = 1;
         format = 32;
     }
@@ -761,7 +765,7 @@ GetConversion(Select ctx,       /* logical owner */
             unsigned long size = (unsigned long) MAX_SELECTION_INCR(ctx->dpy);
 
             if ((*(IswConvertSelectionIncrProc) ctx->convert)
-                (ctx->widget, &event->selection, &target,
+                (ctx->widget, &selection, &target,
                  &targetType, &value, &length, &format,
                  &size, ctx->owner_closure, (IswRequestId *) &req)
                 == FALSE) {
@@ -769,13 +773,12 @@ GetConversion(Select ctx,       /* logical owner */
                 ctx->ref_count--;
                 return (FALSE);
             }
-            //StartProtectedSection(ctx->dpy, event->requestor);
-            PrepareIncremental(req, widget, event->requestor, property,
+            PrepareIncremental(req, widget, requestor, property,
                                target, targetType, value, length, format);
             return (TRUE);
         }
         ctx->req = req;
-        if ((*ctx->convert) (ctx->widget, &event->selection, &target,
+        if ((*ctx->convert) (ctx->widget, &selection, &target,
                              &targetType, &value, &length, &format) == FALSE) {
             IswFree((char *) req);
             ctx->req = NULL;
@@ -784,7 +787,6 @@ GetConversion(Select ctx,       /* logical owner */
         }
         ctx->req = NULL;
     }
-    //StartProtectedSection(ctx->dpy, event->requestor);
     if (BYTELENGTH(length, format) <=
         (unsigned long) MAX_SELECTION_INCR(ctx->dpy)) {
         if (!timestamp_target) {
@@ -807,8 +809,7 @@ GetConversion(Select ctx,       /* logical owner */
             else
                 ctx->ref_count--;
         }
-        _IswPlatformChangeProperty(ctx->dpy,
-                   _IswXcbWindowWrap(event->requestor), property,
+        _IswPlatformChangeProperty(ctx->dpy, requestor, property,
                    targetType, format, ISW_PROP_MODE_REPLACE,
                    value, (uint32_t) length);
         /* free storage for client if no notify proc */
@@ -818,7 +819,7 @@ GetConversion(Select ctx,       /* logical owner */
         }
     }
     else {
-        PrepareIncremental(req, widget, event->requestor, property,
+        PrepareIncremental(req, widget, requestor, property,
                            target, targetType, value, length, format);
     }
     return (TRUE);
@@ -830,105 +831,84 @@ HandleSelectionEvents(Widget widget,
                       IswEvent *iswev,
                       Boolean *cont _X_UNUSED)
 {
-    ISW_NATIVE_EVENT(iswev);   /* selection protocol: backend-internal */
-    Select ctx;
-    xcb_selection_notify_event_t ev;
-    Atom target = None;
+    Select ctx = (Select) closure;
+    IswSelectionEvent selev;
+    IswSelectionRequest request;
+    IswSelectionId notify_property;
 
-    ctx = (Select) closure;
-    switch (event->response_type) {
-    case XCB_SELECTION_CLEAR:
-        xcb_selection_clear_event_t *sce = (xcb_selection_clear_event_t *)event;
+    if (!_IswPlatformSelectionDecodeEvent(ctx->dpy, IswEventNative(iswev),
+                                          &selev))
+        return;
+
+    switch (selev.kind) {
+    case ISW_SEL_EVENT_CLEAR:
         /* if this event is not for the selection we registered for,
          * don't do anything */
-        if (ctx->selection != sce->selection ||
-            ctx->serial > sce->sequence)
+        if (ctx->selection != selev.selection ||
+            ctx->serial > selev.serial)
             break;
-        (void) LoseSelection(ctx, widget, sce->selection,
-                             sce->time);
+        (void) LoseSelection(ctx, widget, selev.selection, selev.time);
         break;
-    case XCB_SELECTION_REQUEST:
-        xcb_selection_request_event_t *sre = (xcb_selection_request_event_t *)event;
+    case ISW_SEL_EVENT_REQUEST:
         /* if this event is not for the selection we registered for,
          * don't do anything */
-        if (ctx->selection != sre->selection)
+        if (ctx->selection != selev.selection)
             break;
-        ev.response_type = XCB_SELECTION_NOTIFY;
-        //ev.display = widget->display;
-
-        ev.requestor = sre->requestor;
-        ev.selection = sre->selection;
-        ev.time = sre->time;
-        ev.target = sre->target;
-        if (sre->property == None)  /* obsolete requestor */
-            sre->property = sre->target;
+        request = selev.request;
+        if (request.property == ISW_SELECTION_NONE)  /* obsolete requestor */
+            request.property = request.target;
         if (ctx->widget != widget || ctx->was_disowned
-            || ((sre->time != XCB_CURRENT_TIME)
-                && (sre->time < ctx->time))) {
-            ev.property = None;
-            //StartProtectedSection(ctx->dpy, ev.requestor);
+            || ((request.time != ISW_CURRENT_TIME)
+                && (request.time < ctx->time))) {
+            notify_property = ISW_SELECTION_NONE;
         }
-        else {
-            if (ev.target == ctx->prop_list->indirect_atom) {
-                IndirectPair *p;
-                int format = 0;
-                unsigned long length = 0;
-                unsigned char *value = NULL;
-                int count;
-                Boolean writeback = FALSE;
+        else if (request.target == ctx->prop_list->indirect_id) {
+            IndirectPair *p;
+            int format = 0;
+            unsigned long length = 0;
+            unsigned char *value = NULL;
+            int count;
+            Boolean writeback = FALSE;
 
-                ev.property = sre->property;
-                //StartProtectedSection(ctx->dpy, ev.requestor);
-                IswProperty prop;
-                if (_IswPlatformGetProperty(ctx->dpy,
-                        _IswXcbWindowWrap(ev.requestor), sre->property,
-                        ISW_ATOM_ATOM, 0, 1000000, &prop)) {
-                    count = (int) (BYTELENGTH(prop.num_items, prop.type) / sizeof(IndirectPair));
-                } else {
-                    count = 0;
-                }
-                for (p = (IndirectPair *) value; count; p++, count--) {
-                    //EndProtectedSection(ctx->dpy);
-                    if (!GetConversion(ctx, (xcb_selection_request_event_t *) event,
-                                       p->target, p->property, widget)) {
-
-                        p->target = None;
-                        writeback = TRUE;
-                        //StartProtectedSection(ctx->dpy, ev.requestor);
-                    }
-                }
-                if (writeback)
-                    _IswPlatformChangeProperty(ctx->dpy,
-                        _IswXcbWindowWrap(ev.requestor), sre->property, target,
-                        format, ISW_PROP_MODE_REPLACE, value, (uint32_t) length);
-                _IswPlatformFreeProperty(&prop);
-                IswFree((char *) value);
+            notify_property = request.property;
+            IswProperty prop;
+            if (_IswPlatformGetProperty(ctx->dpy, request.requestor,
+                    request.property, ctx->prop_list->id_list_type, 0, 1000000, &prop)) {
+                count = (int) (BYTELENGTH(prop.num_items, prop.type) / sizeof(IndirectPair));
+            } else {
+                count = 0;
             }
-            else {              /* not multiple */
-
-                if (GetConversion(ctx, sre,
-                                  sre->target,
-                                  sre->property, widget))
-                    ev.property = sre->property;
-                else {
-                    ev.property = None;
-                    //StartProtectedSection(ctx->dpy, ev.requestor);
+            for (p = (IndirectPair *) value; count; p++, count--) {
+                if (!GetConversion(ctx, &request, p->target, p->property,
+                                   widget)) {
+                    p->target = ISW_SELECTION_NONE;
+                    writeback = TRUE;
                 }
             }
+            if (writeback)
+                _IswPlatformChangeProperty(ctx->dpy, request.requestor,
+                    request.property, ISW_SELECTION_NONE,
+                    format, ISW_PROP_MODE_REPLACE, value, (uint32_t) length);
+            _IswPlatformFreeProperty(&prop);
+            IswFree((char *) value);
         }
-        /* Sends a native SelectionNotify (Phase 13c will route this through a
-           messaging op); reach the connection via the seam. */
-        xcb_send_event(_IswXcbConn(ctx->dpy), 0, ev.requestor, 0, (char *)&ev);
-
-        //EndProtectedSection(ctx->dpy);
-
+        else {              /* not multiple */
+            if (GetConversion(ctx, &request, request.target,
+                              request.property, widget))
+                notify_property = request.property;
+            else
+                notify_property = ISW_SELECTION_NONE;
+        }
+        _IswPlatformSelectionSendNotify(ctx->dpy, &request, notify_property);
+        break;
+    default:
         break;
     }
 }
 
 static Boolean
 OwnSelection(Widget widget,
-             Atom selection,
+             IswSelectionId selection,
              IswTime time,
              IswConvertSelectionProc convert,
              IswLoseSelectionProc lose,
@@ -1028,7 +1008,7 @@ OwnSelection(Widget widget,
 
 Boolean
 IswOwnSelection(Widget widget,
-               Atom selection,
+               IswSelectionId selection,
                IswTime time,
                IswConvertSelectionProc convert,
                IswLoseSelectionProc lose,
@@ -1048,7 +1028,7 @@ IswOwnSelection(Widget widget,
 
 Boolean
 IswOwnSelectionIncremental(Widget widget,
-                          Atom selection,
+                          IswSelectionId selection,
                           IswTime time,
                           IswConvertSelectionIncrProc convert,
                           IswLoseSelectionIncrProc lose,
@@ -1070,7 +1050,7 @@ IswOwnSelectionIncremental(Widget widget,
 }
 
 void
-IswDisownSelection(Widget widget, Atom selection, IswTime time)
+IswDisownSelection(Widget widget, IswSelectionId selection, IswTime time)
 {
     Select ctx;
 
@@ -1080,24 +1060,23 @@ IswDisownSelection(Widget widget, Atom selection, IswTime time)
     ctx = FindCtx(IswDisplayOf(widget), selection);
     if (LoseSelection(ctx, widget, selection, time))
         _IswPlatformSetSelectionOwner(
-            IswDisplayOf(widget), None, selection, time);
+            IswDisplayOf(widget), NULL, selection, time);
     UNLOCK_APP(app);
 }
 
 /* Selection Requestor code */
 
 static Boolean
-IsINCRtype(CallBackInfo info, xcb_window_t window, Atom prop)
+IsINCRtype(CallBackInfo info, IswWindow window, IswSelectionId prop)
 {
-    //unsigned char *value;
-    Atom type;
+    IswSelectionId type;
 
-    if (prop == None)
+    if (prop == ISW_SELECTION_NONE)
         return False;
 
     IswProperty propr;
     if (!_IswPlatformGetProperty(IswDisplayOf(info->widget),
-                                 _IswXcbWindowWrap(window), prop, info->type,
+                                 window, prop, info->type,
                                  0, 0, &propr)) {
         return False;
     }
@@ -1105,7 +1084,7 @@ IsINCRtype(CallBackInfo info, xcb_window_t window, Atom prop)
     type = propr.type;
     _IswPlatformFreeProperty(&propr);
 
-    return (type == info->ctx->prop_list->incr_atom);
+    return (type == info->ctx->prop_list->incr_id);
 }
 
 static void
@@ -1114,45 +1093,41 @@ ReqCleanup(Widget widget,
            IswEvent *iswev,
            Boolean *cont _X_UNUSED)
 {
-    ISW_NATIVE_EVENT(iswev);   /* selection protocol: backend-internal */
     CallBackInfo info = (CallBackInfo) closure;
     unsigned long length;
-    //int format;
-    //Atom target;
+    IswSelectionEvent selev;
 
-    if (event->response_type == XCB_SELECTION_REQUEST) {
-        xcb_selection_request_event_t *ev = (xcb_selection_request_event_t *) event;
+    if (!_IswPlatformSelectionDecodeEvent(IswDisplayOf(widget),
+                                          IswEventNative(iswev), &selev))
+        return;
 
-        if (!MATCH_SELECT(ev, info))
+    if (selev.kind == ISW_SEL_EVENT_REQUEST) {
+        if (!MATCH_SELECT(&selev, info))
             return;             /* not really for us */
         IswRemoveEventHandler(widget, (EventMask) 0, TRUE,
                              ReqCleanup, (IswPointer) info);
-        if (IsINCRtype(info, _IswXcbWindow(IswWindowOf(widget)), ev->property)) {
+        if (IsINCRtype(info, IswWindowOf(widget), selev.property)) {
             info->proc = HandleGetIncrement;
             IswAddEventHandler(info->widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                               FALSE, ReqCleanup, (IswPointer) info);
         }
         else {
-            if (ev->property != None)
+            if (selev.property != ISW_SELECTION_NONE)
                 _IswPlatformDeleteProperty(IswDisplayOf(widget), IswWindowOf(widget),
-                                ev->property);
+                                selev.property);
             FreeSelectionProperty(IswDisplayOf(widget), info->property);
             FreeInfo(info);
         }
     }
-    else if ((event->response_type == XCB_SELECTION_NOTIFY)) {
-        xcb_property_notify_event_t *ev = (xcb_property_notify_event_t *) event;
-        if ((ev->state == XCB_PROPERTY_NEW_VALUE) &&
-             (ev->atom == info->property)) {
-                char *value = NULL;
+    else if (selev.kind == ISW_SEL_EVENT_PROP_NEW) {
+        if (selev.property == info->property) {
                 IswProperty propr;
+                length = 0;
                 if (_IswPlatformGetProperty(IswDisplayOf(widget),
-                        IswWindowOf(widget), ev->atom, ISW_ATOM_ATOM,
+                        IswWindowOf(widget), selev.property, info->ctx->prop_list->id_list_type,
                         0L, 1000000, &propr)) {
-                    value = propr.value;
                     length = propr.num_items;
                     _IswPlatformFreeProperty(&propr);
-                    value = NULL;   /* freed above; not used past here */
                 }
 
             if (length == 0) {
@@ -1172,14 +1147,14 @@ ReqTimedOut(IswPointer closure, IswIntervalId *id _X_UNUSED)
     IswPointer value = NULL;
     unsigned long length = 0;
     int format = 8;
-    Atom resulttype = ISW_CONVERT_FAIL;
+    IswSelectionId resulttype = (IswSelectionId) ISW_CONVERT_FAIL;
     CallBackInfo info = (CallBackInfo) closure;
     unsigned long proplength;
 
-    if (*info->target == info->ctx->prop_list->indirect_atom) {
+    if (*info->target == info->ctx->prop_list->indirect_id) {
         IswProperty propr;
         if (_IswPlatformGetProperty(IswDisplayOf(info->widget),
-                IswWindowOf(info->widget), info->property, ISW_ATOM_ATOM,
+                IswWindowOf(info->widget), info->property, info->ctx->prop_list->id_list_type,
                 0, 10000000, &propr)) {
             format = propr.format;
             proplength = propr.num_items;
@@ -1223,19 +1198,23 @@ HandleGetIncrement(Widget widget,
                    IswEvent *iswev,
                    Boolean *cont _X_UNUSED)
 {
-    xcb_property_notify_event_t *event = (xcb_property_notify_event_t *) IswEventNative(iswev);
     CallBackInfo info = (CallBackInfo) closure;
     Select ctx = info->ctx;
     char *value;
     unsigned long length;
     int n = info->current;
+    IswSelectionEvent selev;
 
-    if ((event->state != XCB_PROPERTY_NEW_VALUE) || (event->atom != info->property))
+    if (!_IswPlatformSelectionDecodeEvent(IswDisplayOf(widget),
+                                          IswEventNative(iswev), &selev))
+        return;
+    if ((selev.kind != ISW_SEL_EVENT_PROP_NEW) ||
+        (selev.property != info->property))
         return;
 
     IswProperty propr;
     if (_IswPlatformGetProperty(IswDisplayOf(widget), IswWindowOf(widget),
-                               event->atom, ISW_ATOM_ATOM, 0, 10000000, &propr)) {
+                               selev.property, ctx->prop_list->id_list_type, 0, 10000000, &propr)) {
         info->type = propr.type;
         info->format = propr.format;
         length = propr.num_items;
@@ -1314,11 +1293,11 @@ static void
 HandleNone(Widget widget,
            IswSelectionCallbackProc callback,
            IswPointer closure,
-           Atom selection)
+           IswSelectionId selection)
 {
     unsigned long length = 0;
     int format = 8;
-    Atom type = None;
+    IswSelectionId type = ISW_SELECTION_NONE;
 
     (*callback) (widget, closure, &selection, &type, NULL, &length, &format);
 }
@@ -1348,25 +1327,25 @@ static
     Boolean
 HandleNormal(IswDisplay dpy,
              Widget widget,
-             Atom property,
+             IswSelectionId property,
              CallBackInfo info,
              IswPointer closure,
-             Atom selection)
+             IswSelectionId selection)
 {
     unsigned long length;
     int format;
-    Atom type;
+    IswSelectionId type;
     unsigned char *value = NULL;
     int number = info->current;
 
     IswProperty propr;
     if (!_IswPlatformGetProperty(dpy, IswWindowOf(widget),
-                                 property, ISW_ATOM_ATOM, 0, 10000000, &propr)) {
+                                 property, info->ctx->prop_list->id_list_type, 0, 10000000, &propr)) {
         return FALSE;
     }
     _IswPlatformFreeProperty(&propr);
 
-    if (type == info->ctx->prop_list->incr_atom) {
+    if (type == info->ctx->prop_list->incr_id) {
         unsigned long size = IncrPropSize(widget, value, format, length);
 
         IswFree((char *) value);
@@ -1377,7 +1356,7 @@ HandleNormal(IswDisplay dpy,
             ninfo = MakeInfo(info->ctx, &info->callbacks[number],
                              &info->req_closure[number], 1, widget,
                              info->time, &info->incremental[number], &property);
-            ninfo->target = (Atom *) __XtMalloc((unsigned) sizeof(Atom));
+            ninfo->target = (IswSelectionId *) __XtMalloc((unsigned) sizeof(IswSelectionId));
             *ninfo->target = info->target[number + 1];
             info = ninfo;
         }
@@ -1412,7 +1391,7 @@ HandleNormal(IswDisplay dpy,
 static void
 HandleIncremental(IswDisplay dpy,
                   Widget widget,
-                  Atom property,
+                  IswSelectionId property,
                   CallBackInfo info,
                   unsigned long size)
 {
@@ -1448,29 +1427,31 @@ HandleSelectionReplies(Widget widget,
                        IswPointer closure,
                        IswEvent *iswev,
                        Boolean *cont _X_UNUSED) {
-    xcb_selection_notify_event_t *event = (xcb_selection_notify_event_t *) IswEventNative(iswev);
     IswDisplay dpy = IswDisplayOf(widget);
     CallBackInfo info = (CallBackInfo) closure;
     Select ctx = info->ctx;
     unsigned long length = 0;
     int format = 0;
+    IswSelectionEvent selev;
 
-    if (event->response_type != XCB_SELECTION_NOTIFY)
+    if (!_IswPlatformSelectionDecodeEvent(dpy, IswEventNative(iswev), &selev))
         return;
-    if (!MATCH_SELECT(event, info))
+    if (selev.kind != ISW_SEL_EVENT_NOTIFY)
+        return;
+    if (!MATCH_SELECT(&selev, info))
         return;                 /* not really for us */
 #ifndef DEBUG_WO_TIMERS
     IswRemoveTimeOut(info->timeout);
 #endif
     IswRemoveEventHandler(widget, (EventMask) 0, TRUE,
                          HandleSelectionReplies, (IswPointer) info);
-    if (event->target == ctx->prop_list->indirect_atom) {
+    if (selev.target == ctx->prop_list->indirect_id) {
         IndirectPair *pairs = NULL, *p;
         IswPointer *c;
 
         IswProperty propr;
         Boolean got = _IswPlatformGetProperty(dpy, IswWindowOf(widget),
-                          info->property, ISW_ATOM_ATOM, 0, 10000000, &propr);
+                          info->property, ctx->prop_list->id_list_type, 0, 10000000, &propr);
         /* original used delete=1 (delete after read) */
         _IswPlatformDeleteProperty(dpy, IswWindowOf(widget), info->property);
         if (got)
@@ -1481,16 +1462,17 @@ HandleSelectionReplies(Widget widget,
         for (length = length / IndirectPairWordSize, p = pairs,
              c = info->req_closure;
              length; length--, p++, c++, info->current++) {
-                if (event->property == None || format != 32 || p->target == None
-                    || /* bug compatibility */ p->property == None) {
+                if (selev.property == ISW_SELECTION_NONE || format != 32
+                    || p->target == ISW_SELECTION_NONE
+                    || /* bug compatibility */ p->property == ISW_SELECTION_NONE) {
                     HandleNone(widget, info->callbacks[info->current],
-                               *c, event->selection);
-                    if (p->property != None)
+                               *c, selev.selection);
+                    if (p->property != ISW_SELECTION_NONE)
                         FreeSelectionProperty(IswDisplayOf(widget), p->property);
                 }
                 else {
                     if (HandleNormal(dpy, widget, p->property, info, *c,
-                                     event->selection)) {
+                                     selev.selection)) {
                         FreeSelectionProperty(IswDisplayOf(widget), p->property);
                     }
                 }
@@ -1500,15 +1482,15 @@ HandleSelectionReplies(Widget widget,
         FreeSelectionProperty(dpy, info->property);
         FreeInfo(info);
     }
-    else if (event->property == None) {
+    else if (selev.property == ISW_SELECTION_NONE) {
         HandleNone(widget, info->callbacks[0], *info->req_closure,
-                   event->selection);
+                   selev.selection);
         FreeSelectionProperty(IswDisplayOf(widget), info->property);
         FreeInfo(info);
     }
     else {
-        if (HandleNormal(dpy, widget, event->property, info,
-                         *info->req_closure, event->selection)) {
+        if (HandleNormal(dpy, widget, selev.property, info,
+                         *info->req_closure, selev.selection)) {
             FreeSelectionProperty(IswDisplayOf(widget), info->property);
             FreeInfo(info);
         }
@@ -1517,24 +1499,24 @@ HandleSelectionReplies(Widget widget,
 
 static void
 DoLocalTransfer(Request req,
-                Atom selection,
-                Atom target,
+                IswSelectionId selection,
+                IswSelectionId target,
                 Widget widget, /* The widget requesting the value. */
                 IswSelectionCallbackProc callback,
                 IswPointer closure,    /* the closure for the callback, not the conversion */
-                Boolean incremental, Atom property)
+                Boolean incremental, IswSelectionId property)
 {
     Select ctx = req->ctx;
     IswPointer value = NULL, temp, total = NULL;
     unsigned long length;
     int format;
-    Atom resulttype;
+    IswSelectionId resulttype;
     unsigned long totallength = 0;
 
-    req->event.response_type = 0;
-    req->event.target = target;
-    req->event.property = req->property = property;
-    req->event.requestor = req->requestor = _IswXcbWindow(IswWindowOf(widget));
+    req->request.selection = selection;
+    req->request.target = target;
+    req->request.property = req->property = property;
+    req->request.requestor = req->requestor = IswWindowOf(widget);
 
     if (ctx->incremental) {
         unsigned long size = (unsigned long) MAX_SELECTION_INCR(ctx->dpy);
@@ -1633,16 +1615,16 @@ DoLocalTransfer(Request req,
 
 static void
 GetSelectionValue(Widget widget,
-                  Atom selection,
-                  Atom target,
+                  IswSelectionId selection,
+                  IswSelectionId target,
                   IswSelectionCallbackProc callback,
                   IswPointer closure,
                   IswTime time,
                   Boolean incremental,
-                  Atom property)
+                  IswSelectionId property)
 {
     Select ctx;
-    Atom properties[1];
+    IswSelectionId properties[1];
 
     properties[0] = property;
 
@@ -1653,7 +1635,7 @@ GetSelectionValue(Widget widget,
         ctx->req = &req;
         memset(&req, 0, sizeof(req));
         req.ctx = ctx;
-        req.event.time = time;
+        req.request.time = time;
         ctx->ref_count++;
         DoLocalTransfer(&req, selection, target, widget,
                         callback, closure, incremental, property);
@@ -1667,7 +1649,7 @@ GetSelectionValue(Widget widget,
 
         info = MakeInfo(ctx, &callback, &closure, 1, widget,
                         time, &incremental, properties);
-        info->target = (Atom *) __XtMalloc((unsigned) sizeof(Atom));
+        info->target = (IswSelectionId *) __XtMalloc((unsigned) sizeof(IswSelectionId));
         *(info->target) = target;
         RequestSelectionValue(info, selection, target);
     }
@@ -1675,13 +1657,13 @@ GetSelectionValue(Widget widget,
 
 void
 IswGetSelectionValue(Widget widget,
-                    Atom selection,
-                    Atom target,
+                    IswSelectionId selection,
+                    IswSelectionId target,
                     IswSelectionCallbackProc callback,
                     IswPointer closure,
                     IswTime time)
 {
-    Atom property;
+    IswSelectionId property;
     Boolean incr = False;
 
     WIDGET_TO_APPCON(widget);
@@ -1703,13 +1685,13 @@ IswGetSelectionValue(Widget widget,
 
 void
 IswGetSelectionValueIncremental(Widget widget,
-                               Atom selection,
-                               Atom target,
+                               IswSelectionId selection,
+                               IswSelectionId target,
                                IswSelectionCallbackProc callback,
                                IswPointer closure,
                                IswTime time)
 {
-    Atom property;
+    IswSelectionId property;
     Boolean incr = TRUE;
 
     WIDGET_TO_APPCON(widget);
@@ -1732,15 +1714,15 @@ IswGetSelectionValueIncremental(Widget widget,
 
 static void
 GetSelectionValues(Widget widget,
-                   Atom selection,
-                   Atom *targets,
+                   IswSelectionId selection,
+                   IswSelectionId *targets,
                    int count,
                    IswSelectionCallbackProc *callbacks,
                    int num_callbacks,
                    IswPointer *closures,
                    IswTime time,
                    Boolean *incremental,
-                   Atom *properties)
+                   IswSelectionId *properties)
 {
     Select ctx;
     IndirectPair *pairs;
@@ -1754,7 +1736,7 @@ GetSelectionValues(Widget widget,
 
         ctx->req = &req;
         req.ctx = ctx;
-        req.event.time = time;
+        req.request.time = time;
         ctx->ref_count++;
         for (i = 0, j = 0; count > 0; count--, i++, j++) {
             if (j >= num_callbacks)
@@ -1762,7 +1744,7 @@ GetSelectionValues(Widget widget,
 
             DoLocalTransfer(&req, selection, targets[i], widget,
                             callbacks[j], closures[i], incremental[i],
-                            properties ? properties[i] : None);
+                            properties ? properties[i] : ISW_SELECTION_NONE);
 
         }
         if (--ctx->ref_count == 0 && ctx->free_when_done)
@@ -1775,7 +1757,7 @@ GetSelectionValues(Widget widget,
         IswSelectionCallbackProc stack_cbs[32];
         CallBackInfo info;
         IndirectPair *p;
-        Atom *t;
+        IswSelectionId *t;
         int i = 0, j = 0;
 
         passed_callbacks = (IswSelectionCallbackProc *)
@@ -1796,16 +1778,16 @@ GetSelectionValues(Widget widget,
         IswStackFree((IswPointer) passed_callbacks, stack_cbs);
 
         info->target = IswMallocArray ((Cardinal) count + 1,
-                                      (Cardinal) sizeof(Atom));
-        (*info->target) = ctx->prop_list->indirect_atom;
-        (void) memcpy((char *) info->target + sizeof(Atom), targets,
-                       (size_t) count * sizeof(Atom));
+                                      (Cardinal) sizeof(IswSelectionId));
+        (*info->target) = ctx->prop_list->indirect_id;
+        (void) memcpy((char *) info->target + sizeof(IswSelectionId), targets,
+                       (size_t) count * sizeof(IswSelectionId));
         pairs = IswMallocArray ((Cardinal) count + 1,
                                (Cardinal) sizeof(IndirectPair));
         for (p = &pairs[count - 1], t = &targets[count - 1], i = count - 1;
              p >= pairs; p--, t--, i--) {
             p->target = *t;
-            if (properties == NULL || properties[i] == None) {
+            if (properties == NULL || properties[i] == ISW_SELECTION_NONE) {
                 p->property = GetSelectionProperty(IswDisplayOf(widget));
                 _IswPlatformDeleteProperty(IswDisplayOf(widget), IswWindowOf(widget),
                                 p->property);
@@ -1818,14 +1800,14 @@ GetSelectionValues(Widget widget,
                    info->property, 32, ISW_PROP_MODE_REPLACE, pairs,
                    (uint32_t) (count * IndirectPairWordSize));
         IswFree((char *) pairs);
-        RequestSelectionValue(info, selection, ctx->prop_list->indirect_atom);
+        RequestSelectionValue(info, selection, ctx->prop_list->indirect_id);
     }
 }
 
 void
 IswGetSelectionValues(Widget widget,
-                     Atom selection,
-                     Atom *targets,
+                     IswSelectionId selection,
+                     IswSelectionId *targets,
                      int count,
                      IswSelectionCallbackProc callback,
                      IswPointer *closures,
@@ -1856,8 +1838,8 @@ IswGetSelectionValues(Widget widget,
 
 void
 IswGetSelectionValuesIncremental(Widget widget,
-                                Atom selection,
-                                Atom *targets,
+                                IswSelectionId selection,
+                                IswSelectionId *targets,
                                 int count,
                                 IswSelectionCallbackProc callback,
                                 IswPointer *closures,
@@ -1887,7 +1869,7 @@ IswGetSelectionValuesIncremental(Widget widget,
 }
 
 static Request
-GetRequestRecord(Widget widget, Atom selection, IswRequestId id)
+GetRequestRecord(Widget widget, IswSelectionId selection, IswRequestId id)
 {
     Request req = (Request) id;
     Select ctx = NULL;
@@ -1920,8 +1902,8 @@ GetRequestRecord(Widget widget, Atom selection, IswRequestId id)
 }
 
    
-xcb_selection_request_event_t *
-IswGetSelectionRequest(Widget widget, Atom selection, IswRequestId id)
+IswSelectionRequest *
+IswGetSelectionRequest(Widget widget, IswSelectionId selection, IswRequestId id)
 {
     Request req = (Request) id;
 
@@ -1933,21 +1915,16 @@ IswGetSelectionRequest(Widget widget, Atom selection, IswRequestId id)
 
     if (!req) {
         UNLOCK_APP(app);
-        return (xcb_selection_request_event_t *) NULL;
+        return (IswSelectionRequest *) NULL;
     }
 
     if (req->type == 0) {
-        /* owner is local; construct the remainder of the event */
-        req->event.response_type = XCB_SELECTION_REQUEST;
-        //req->event.serial = LastKnownRequestProcessed(IswDisplayOf(widget));
-        //req->event.send_event = True;
-        //req->event.display = IswDisplayOf(widget);
-
-        req->event.owner = _IswXcbWindow(IswWindowOf(req->ctx->widget));
-        req->event.selection = selection;
+        /* owner is local; fill in the remainder of the request identity */
+        req->request.owner = IswWindowOf(req->ctx->widget);
+        req->request.selection = selection;
     }
     UNLOCK_APP(app);
-    return &req->event;
+    return &req->request;
 }
 
 
@@ -1961,17 +1938,18 @@ IswGetSelectionRequest(Widget widget, Atom selection, IswRequestId id)
 /* Queue one or more requests to the one we're gathering */
 void
 AddSelectionRequests(Widget wid,
-                     Atom sel,
+                     IswSelectionId sel,
                      int count,
-                     Atom *targets,
+                     IswSelectionId *targets,
                      IswSelectionCallbackProc *callbacks,
                      int num_cb,
                      IswPointer *closures,
                      Boolean *incrementals,
-                     Atom *properties)
+                     IswSelectionId *properties)
 {
     QueuedRequestInfo qi;
-    xcb_window_t window = _IswXcbWindow(IswWindowOf(wid));
+    IswWindow window = IswWindowOf(wid);
+    IswWindowId window_id = _IswPlatformWindowId(window);
     IswDisplay dpy = IswDisplayOf(wid);
 
     LOCK_PROCESS;
@@ -1979,7 +1957,7 @@ AddSelectionRequests(Widget wid,
         multipleContext = IswUniqueContext();
 
     qi = NULL;
-    (void) IswFindContext(dpy, window, multipleContext, (void *) &qi);
+    (void) IswFindContext(dpy, window_id, multipleContext, (void *) &qi);
 
     if (qi != NULL) {
         QueuedRequest *req = qi->requests;
@@ -2000,8 +1978,7 @@ AddSelectionRequests(Widget wid,
                 newreq->param = properties[i];
             else {
                 newreq->param = GetSelectionProperty(dpy);
-                _IswPlatformDeleteProperty(dpy,
-                                           _IswXcbWindowWrap(window), newreq->param);
+                _IswPlatformDeleteProperty(dpy, window, newreq->param);
             }
             newreq->callback = callbacks[j];
             newreq->closure = closures[i];
@@ -2027,10 +2004,10 @@ AddSelectionRequests(Widget wid,
 /* Only call IsGatheringRequest when we have a lock already */
 
 static Boolean
-IsGatheringRequest(Widget wid, Atom sel)
+IsGatheringRequest(Widget wid, IswSelectionId sel)
 {
     QueuedRequestInfo qi;
-    xcb_window_t window = _IswXcbWindow(IswWindowOf(wid));
+    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(wid));
     IswDisplay dpy = IswDisplayOf(wid);
     Boolean found = False;
 
@@ -2038,12 +2015,12 @@ IsGatheringRequest(Widget wid, Atom sel)
         multipleContext = IswUniqueContext();
 
     qi = NULL;
-    (void) IswFindContext(dpy, window, multipleContext, (void *) &qi);
+    (void) IswFindContext(dpy, window_id, multipleContext, (void *) &qi);
 
     if (qi != NULL) {
         int i = 0;
 
-        while (qi->selections[i] != None) {
+        while (qi->selections[i] != ISW_SELECTION_NONE) {
             if (qi->selections[i] == sel) {
                 found = True;
                 break;
@@ -2058,7 +2035,7 @@ IsGatheringRequest(Widget wid, Atom sel)
 /* Cleanup request scans the request queue and releases any
    properties queued, and removes any requests queued */
 static void
-CleanupRequest(IswDisplay dpy, QueuedRequestInfo qi, Atom sel)
+CleanupRequest(IswDisplay dpy, QueuedRequestInfo qi, IswSelectionId sel)
 {
     int i, j, n;
 
@@ -2069,10 +2046,10 @@ CleanupRequest(IswDisplay dpy, QueuedRequestInfo qi, Atom sel)
 
     /* Remove this selection from the list */
     n = 0;
-    while (qi->selections[n] != sel && qi->selections[n] != None)
+    while (qi->selections[n] != sel && qi->selections[n] != ISW_SELECTION_NONE)
         n++;
     if (qi->selections[n] == sel) {
-        while (qi->selections[n] != None) {
+        while (qi->selections[n] != ISW_SELECTION_NONE) {
             qi->selections[n] = qi->selections[n + 1];
             n++;
         }
@@ -2083,7 +2060,7 @@ CleanupRequest(IswDisplay dpy, QueuedRequestInfo qi, Atom sel)
 
         if (req->selection == sel) {
             /* Match */
-            if (req->param != None)
+            if (req->param != ISW_SELECTION_NONE)
                 FreeSelectionProperty(dpy, req->param);
             qi->count--;
 
@@ -2099,10 +2076,10 @@ CleanupRequest(IswDisplay dpy, QueuedRequestInfo qi, Atom sel)
 }
 
 void
-IswCreateSelectionRequest(Widget widget, Atom selection)
+IswCreateSelectionRequest(Widget widget, IswSelectionId selection)
 {
     QueuedRequestInfo queueInfo;
-    xcb_window_t window = _IswXcbWindow(IswWindowOf(widget));
+    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(widget));
     IswDisplay dpy = IswDisplayOf(widget);
     Cardinal n;
 
@@ -2111,7 +2088,7 @@ IswCreateSelectionRequest(Widget widget, Atom selection)
         multipleContext = IswUniqueContext();
 
     queueInfo = NULL;
-    (void) IswFindContext(dpy, window, multipleContext, (void *) &queueInfo);
+    (void) IswFindContext(dpy, window_id, multipleContext, (void *) &queueInfo);
 
     /* If there is one,  then cancel it */
     if (queueInfo != NULL)
@@ -2121,30 +2098,30 @@ IswCreateSelectionRequest(Widget widget, Atom selection)
         queueInfo =
             (QueuedRequestInfo) __XtMalloc(sizeof(QueuedRequestInfoRec));
         queueInfo->count = 0;
-        queueInfo->selections = IswMallocArray(2, (Cardinal) sizeof(Atom));
-        queueInfo->selections[0] = None;
+        queueInfo->selections = IswMallocArray(2, (Cardinal) sizeof(IswSelectionId));
+        queueInfo->selections[0] = ISW_SELECTION_NONE;
         queueInfo->requests = (QueuedRequest *)
             __XtMalloc(sizeof(QueuedRequest));
     }
 
     /* Append this selection to list */
     n = 0;
-    while (queueInfo->selections[n] != None)
+    while (queueInfo->selections[n] != ISW_SELECTION_NONE)
         n++;
     queueInfo->selections = IswReallocArray(queueInfo->selections, (n + 2),
-                                           (Cardinal) sizeof(Atom));
+                                           (Cardinal) sizeof(IswSelectionId));
     queueInfo->selections[n] = selection;
-    queueInfo->selections[n + 1] = None;
+    queueInfo->selections[n + 1] = ISW_SELECTION_NONE;
 
-    (void) IswSaveContext(dpy, window, multipleContext, (char *) queueInfo);
+    (void) IswSaveContext(dpy, window_id, multipleContext, (char *) queueInfo);
     UNLOCK_PROCESS;
 }
 
 void
-IswSendSelectionRequest(Widget widget, Atom selection, IswTime time)
+IswSendSelectionRequest(Widget widget, IswSelectionId selection, IswTime time)
 {
     QueuedRequestInfo queueInfo;
-    xcb_window_t window = _IswXcbWindow(IswWindowOf(widget));
+    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(widget));
     IswDisplay dpy = IswDisplayOf(widget);
 
     LOCK_PROCESS;
@@ -2152,7 +2129,7 @@ IswSendSelectionRequest(Widget widget, Atom selection, IswTime time)
         multipleContext = IswUniqueContext();
 
     queueInfo = NULL;
-    (void) IswFindContext(dpy, window, multipleContext, (void *) &queueInfo);
+    (void) IswFindContext(dpy, window_id, multipleContext, (void *) &queueInfo);
     if (queueInfo != NULL) {
         int i;
         int count = 0;
@@ -2176,21 +2153,21 @@ IswSendSelectionRequest(Widget widget, Atom selection, IswTime time)
                                   req[i]->incremental, req[i]->param);
             }
             else {
-                Atom *targets;
-                Atom t[PREALLOCED];
+                IswSelectionId *targets;
+                IswSelectionId t[PREALLOCED];
                 IswSelectionCallbackProc *cbs;
                 IswSelectionCallbackProc c[PREALLOCED];
                 IswPointer *closures;
                 IswPointer cs[PREALLOCED];
                 Boolean *incrs;
                 Boolean ins[PREALLOCED];
-                Atom *props;
-                Atom p[PREALLOCED];
+                IswSelectionId *props;
+                IswSelectionId p[PREALLOCED];
                 int j = 0;
 
                 /* Allocate */
                 targets =
-                    (Atom *) IswStackAlloc((size_t) count * sizeof(Atom), t);
+                    (IswSelectionId *) IswStackAlloc((size_t) count * sizeof(IswSelectionId), t);
                 cbs = (IswSelectionCallbackProc *)
                     IswStackAlloc((size_t) count *
                                  sizeof(IswSelectionCallbackProc), c);
@@ -2200,7 +2177,7 @@ IswSendSelectionRequest(Widget widget, Atom selection, IswTime time)
                 incrs =
                     (Boolean *) IswStackAlloc((size_t) count * sizeof(Boolean),
                                              ins);
-                props = (Atom *) IswStackAlloc((size_t) count * sizeof(Atom), p);
+                props = (IswSelectionId *) IswStackAlloc((size_t) count * sizeof(IswSelectionId), p);
 
                 /* Copy */
                 for (i = 0; i < queueInfo->count; i++) {
@@ -2233,10 +2210,10 @@ IswSendSelectionRequest(Widget widget, Atom selection, IswTime time)
 }
 
 void
-IswCancelSelectionRequest(Widget widget, Atom selection)
+IswCancelSelectionRequest(Widget widget, IswSelectionId selection)
 {
     QueuedRequestInfo queueInfo;
-    xcb_window_t window = _IswXcbWindow(IswWindowOf(widget));
+    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(widget));
     IswDisplay dpy = IswDisplayOf(widget);
 
     LOCK_PROCESS;
@@ -2244,7 +2221,7 @@ IswCancelSelectionRequest(Widget widget, Atom selection)
         multipleContext = IswUniqueContext();
 
     queueInfo = NULL;
-    (void) IswFindContext(dpy, window, multipleContext, (void *) &queueInfo);
+    (void) IswFindContext(dpy, window_id, multipleContext, (void *) &queueInfo);
     /* If there is one,  then cancel it */
     if (queueInfo != NULL)
         CleanupRequest(dpy, queueInfo, selection);
@@ -2254,27 +2231,27 @@ IswCancelSelectionRequest(Widget widget, Atom selection)
 /* Parameter utilities */
 
 /* Parameters on a selection request */
-/* Places data on allocated parameter atom,  then records the
-   parameter atom data for use in the next call to one of
+/* Places data on an allocated parameter property,  then records the
+   parameter id for use in the next call to one of
    the IswGetSelectionValue functions. */
 void
 IswSetSelectionParameters(Widget requestor,
-                         Atom selection,
-                         Atom type,
+                         IswSelectionId selection,
+                         IswSelectionId type,
                          IswPointer value,
                          unsigned long length,
                          int format)
 {
     IswDisplay dpy = IswDisplayOf(requestor);
-    xcb_window_t window = _IswXcbWindow(IswWindowOf(requestor));
-    Atom property = GetParamInfo(requestor, selection);
+    IswWindow window = IswWindowOf(requestor);
+    IswSelectionId property = GetParamInfo(requestor, selection);
 
-    if (property == None) {
+    if (property == ISW_SELECTION_NONE) {
         property = GetSelectionProperty(dpy);
         AddParamInfo(requestor, selection, property);
     }
 
-    _IswPlatformChangeProperty(dpy, _IswXcbWindowWrap(window),
+    _IswPlatformChangeProperty(dpy, window,
                                property, type, format, ISW_PROP_MODE_REPLACE,
                                value, (uint32_t) length);
 }
@@ -2283,9 +2260,9 @@ IswSetSelectionParameters(Widget requestor,
    on the originator's window */
 void
 IswGetSelectionParameters(Widget owner,
-                         Atom selection,
+                         IswSelectionId selection,
                          IswRequestId request_id,
-                         Atom *type_return,
+                         IswSelectionId *type_return,
                          IswPointer *value_return,
                          unsigned long *length_return,
                          int *format_return)
@@ -2297,17 +2274,16 @@ IswGetSelectionParameters(Widget owner,
 
     *value_return = NULL;
     *length_return = (unsigned long) (*format_return = 0);
-    *type_return = None;
+    *type_return = ISW_SELECTION_NONE;
 
     LOCK_APP(app);
 
     req = GetRequestRecord(owner, selection, request_id);
 
     if (req && req->property) {
-        //StartProtectedSection(dpy, req->requestor);
         IswProperty propr;
         if (_IswPlatformGetProperty(dpy,
-                _IswXcbWindowWrap(req->requestor), req->property,
+                req->requestor, req->property,
                 AnyPropertyType, 0L, 10000000, &propr)) {
             *type_return = propr.type;
             *format_return = propr.format;
@@ -2343,29 +2319,30 @@ IswGetSelectionParameters(Widget owner,
  */
 
 void
-AddParamInfo(Widget w, Atom selection, Atom param_atom)
+AddParamInfo(Widget w, IswSelectionId selection, IswSelectionId param_id)
 {
     Param p;
     ParamInfo pinfo;
+    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(w));
 
     LOCK_PROCESS;
     if (paramPropertyContext == 0)
         paramPropertyContext = IswUniqueContext();
 
-    if (IswFindContext(IswDisplayOf(w), _IswXcbWindow(IswWindowOf(w)), paramPropertyContext,
+    if (IswFindContext(IswDisplayOf(w), window_id, paramPropertyContext,
                      (void *) &pinfo)) {
         pinfo = (ParamInfo) __XtMalloc(sizeof(ParamInfoRec));
         pinfo->count = 1;
         pinfo->paramlist = IswNew(ParamRec);
         p = pinfo->paramlist;
-        (void) IswSaveContext(IswDisplayOf(w), _IswXcbWindow(IswWindowOf(w)), paramPropertyContext,
+        (void) IswSaveContext(IswDisplayOf(w), window_id, paramPropertyContext,
                             (char *) pinfo);
     }
     else {
         int n;
 
         for (n = (int) pinfo->count, p = pinfo->paramlist; n; n--, p++) {
-            if (p->selection == None || p->selection == selection)
+            if (p->selection == ISW_SELECTION_NONE || p->selection == selection)
                 break;
         }
         if (n == 0) {
@@ -2373,33 +2350,34 @@ AddParamInfo(Widget w, Atom selection, Atom param_atom)
             pinfo->paramlist = IswReallocArray(pinfo->paramlist, pinfo->count,
                                               (Cardinal) sizeof(ParamRec));
             p = &pinfo->paramlist[pinfo->count - 1];
-            (void) IswSaveContext(IswDisplayOf(w), _IswXcbWindow(IswWindowOf(w)),
+            (void) IswSaveContext(IswDisplayOf(w), window_id,
                                 paramPropertyContext, (char *) pinfo);
         }
     }
     p->selection = selection;
-    p->param = param_atom;
+    p->param = param_id;
     UNLOCK_PROCESS;
 }
 
 void
-RemoveParamInfo(Widget w, Atom selection)
+RemoveParamInfo(Widget w, IswSelectionId selection)
 {
     ParamInfo pinfo;
     Boolean retain = False;
+    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(w));
 
     LOCK_PROCESS;
     if (paramPropertyContext
-        && (IswFindContext(IswDisplayOf(w), _IswXcbWindow(IswWindowOf(w)), paramPropertyContext,
+        && (IswFindContext(IswDisplayOf(w), window_id, paramPropertyContext,
                          (void *) &pinfo) == 0)) {
         Param p;
         int n;
 
         /* Find and invalidate the parameter data. */
         for (n = (int) pinfo->count, p = pinfo->paramlist; n; n--, p++) {
-            if (p->selection != None) {
+            if (p->selection != ISW_SELECTION_NONE) {
                 if (p->selection == selection)
-                    p->selection = None;
+                    p->selection = ISW_SELECTION_NONE;
                 else
                     retain = True;
             }
@@ -2408,31 +2386,32 @@ RemoveParamInfo(Widget w, Atom selection)
         if (!retain) {
             IswFree((char *) pinfo->paramlist);
             IswFree((char *) pinfo);
-            IswDeleteContext(IswDisplayOf(w), _IswXcbWindow(IswWindowOf(w)), paramPropertyContext);
+            IswDeleteContext(IswDisplayOf(w), window_id, paramPropertyContext);
         }
     }
     UNLOCK_PROCESS;
 }
 
-Atom
-GetParamInfo(Widget w, Atom selection)
+IswSelectionId
+GetParamInfo(Widget w, IswSelectionId selection)
 {
     ParamInfo pinfo;
-    Atom atom = None;
+    IswSelectionId param_id = ISW_SELECTION_NONE;
+    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(w));
 
     LOCK_PROCESS;
     if (paramPropertyContext
-        && (IswFindContext(IswDisplayOf(w), _IswXcbWindow(IswWindowOf(w)), paramPropertyContext,
+        && (IswFindContext(IswDisplayOf(w), window_id, paramPropertyContext,
                          (void *) &pinfo) == 0)) {
         Param p;
         int n;
 
         for (n = (int) pinfo->count, p = pinfo->paramlist; n; n--, p++)
             if (p->selection == selection) {
-                atom = p->param;
+                param_id = p->param;
                 break;
             }
     }
     UNLOCK_PROCESS;
-    return atom;
+    return param_id;
 }

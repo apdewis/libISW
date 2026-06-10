@@ -117,7 +117,7 @@ unsigned long IswFmt8Bit = 0L;
 /*
  * Defined in TextAction.c
  */
-extern void _IswTextZapSelection(TextWidget, xcb_generic_event_t *, Boolean);
+extern void _IswTextZapSelection(TextWidget, IswEvent *, Boolean);
 
 
 /*
@@ -153,7 +153,7 @@ void _IswTextClearAndCenterDisplay(TextWidget);
 void _IswTextExecuteUpdate(TextWidget);
 char *_IswTextGetText(TextWidget, ISWTextPosition, ISWTextPosition);
 void _IswTextNeedsUpdating(TextWidget, ISWTextPosition, ISWTextPosition);
-xcb_atom_t * _IswTextSelectionList(TextWidget, String *, Cardinal);
+IswSelectionId * _IswTextSelectionList(TextWidget, String *, Cardinal);
 void _IswTextSetScrollBars(TextWidget);
 void _IswTextSetSelection(TextWidget, ISWTextPosition, ISWTextPosition,
                           String *, Cardinal);
@@ -1397,8 +1397,8 @@ VJump(Widget w, IswPointer closure, IswPointer callData)
 }
 
 static Boolean
-IswConvertStandardSelection(Widget w, xcb_timestamp_t time, xcb_atom_t *selection,
-                           xcb_atom_t *target, xcb_atom_t *type, IswPointer *value,
+IswConvertStandardSelection(Widget w, IswTime time, IswSelectionId *selection,
+                           IswSelectionId *target, IswSelectionId *type, IswPointer *value,
                            unsigned long *length, int *format)
 {
     /* Minimal stub - returns empty targets list */
@@ -1406,24 +1406,24 @@ IswConvertStandardSelection(Widget w, xcb_timestamp_t time, xcb_atom_t *selectio
     *length = 0;
     *format = 32;
     if (type)
-        *type = XCB_ATOM_ATOM;
+        *type = _IswPlatformSelectionStdType(IswDisplayOf(w), ISW_SEL_STDTYPE_ID_LIST);
     return False;  /* Indicate no conversion performed */
 }
 
 static Boolean
-MatchSelection(xcb_atom_t selection, IswTextSelection *s)
+MatchSelection(IswSelectionId selection, IswTextSelection *s)
 {
-    xcb_atom_t    *match;
+    IswSelectionId    *match;
     int	    count;
 
-    for (count = 0, match = s->selections; count < s->atom_count; match++, count++)
+    for (count = 0, match = s->selections; count < s->id_count; match++, count++)
 	if (*match == selection)
 	    return True;
     return False;
 }
 
 static Boolean
-ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t *type,
+ConvertSelection(Widget w, IswSelectionId *selection, IswSelectionId *target, IswSelectionId *type,
                  IswPointer *value, unsigned long *length, int *format)
 {
   IswDisplay d = IswDisplayOf(w);
@@ -1434,18 +1434,20 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
   IswTextSelectionSalt	*salt = NULL;
   IswTextSelection	*s;
 
-  /* Intern the selection-target atoms once through the platform atom op
+  /* Intern the selection-target ids once through the platform selection op
      (cached, no per-comparison server round-trip). */
-  xcb_atom_t a_targets  = _IswPlatformInternAtomOp(d, "TARGETS", False);
-  xcb_atom_t a_text     = _IswPlatformInternAtomOp(d, "TEXT", False);
-  xcb_atom_t a_ctext    = _IswPlatformInternAtomOp(d, "COMPOUND_TEXT", False);
-  xcb_atom_t a_length   = _IswPlatformInternAtomOp(d, "LENGTH", False);
-  xcb_atom_t a_listlen  = _IswPlatformInternAtomOp(d, "LIST_LENGTH", False);
-  xcb_atom_t a_charpos  = _IswPlatformInternAtomOp(d, "CHARACTER_POSITION", False);
-  xcb_atom_t a_delete   = _IswPlatformInternAtomOp(d, "DELETE", False);
+  IswSelectionId a_targets  = _IswPlatformSelectionInternName(d, "TARGETS", False);
+  IswSelectionId a_text     = _IswPlatformSelectionInternName(d, "TEXT", False);
+  IswSelectionId a_ctext    = _IswPlatformSelectionInternName(d, "COMPOUND_TEXT", False);
+  IswSelectionId a_length   = _IswPlatformSelectionInternName(d, "LENGTH", False);
+  IswSelectionId a_listlen  = _IswPlatformSelectionInternName(d, "LIST_LENGTH", False);
+  IswSelectionId a_charpos  = _IswPlatformSelectionInternName(d, "CHARACTER_POSITION", False);
+  IswSelectionId a_delete   = _IswPlatformSelectionInternName(d, "DELETE", False);
+  IswSelectionId str_type   = _IswPlatformSelectionStdType(d, ISW_SEL_STDTYPE_STRING);
 
   if (*target == a_targets) {
-    xcb_atom_t* targetP, * std_targets;
+    IswSelectionId  idlist_type = _IswPlatformSelectionStdType(d, ISW_SEL_STDTYPE_ID_LIST);
+    IswSelectionId* targetP, * std_targets;
     unsigned long std_length;
 
     if ( SrcCvtSel(src, selection, target, type, value, length, format) )
@@ -1455,10 +1457,10 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 				target, type, (IswPointer*)&std_targets,
 				&std_length, format);
 
-    *value = IswMalloc((unsigned) sizeof(xcb_atom_t)*(std_length + 7));
-    targetP = *(xcb_atom_t**)value;
+    *value = IswMalloc((unsigned) sizeof(IswSelectionId)*(std_length + 7));
+    targetP = *(IswSelectionId**)value;
     *length = std_length + 6;
-    *targetP++ = XCB_ATOM_STRING;
+    *targetP++ = str_type;
     *targetP++ = a_text;
     *targetP++ = a_ctext;
     *targetP++ = a_length;
@@ -1475,9 +1477,9 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
       *targetP++ = a_delete;
       (*length)++;
     }
-    (void) memmove((char*)targetP, (char*)std_targets, sizeof(xcb_atom_t)*std_length);
+    (void) memmove((char*)targetP, (char*)std_targets, sizeof(IswSelectionId)*std_length);
     IswFree((char*)std_targets);
-    *type = XCB_ATOM_ATOM;
+    *type = idlist_type;
     *format = 32;
     return True;
   }
@@ -1496,11 +1498,11 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 	return False;
     s = &salt->s;
   }
-  if (*target == XCB_ATOM_STRING ||
+  if (*target == str_type ||
       *target == a_text ||
       *target == a_ctext) {
 	if (*target == a_text) {
-		*type = XCB_ATOM_STRING;
+		*type = str_type;
 	} else {
 	    *type = *target;
 	}
@@ -1533,7 +1535,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
       *temp = (long) (s->right - s->left);
 
     *value = (IswPointer) temp;
-    *type = XCB_ATOM_INTEGER;
+    *type = _IswPlatformSelectionInternName(d, "INTEGER", False);
     *length = 1L;
     *format = 32;
     return True;
@@ -1546,7 +1548,7 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
     temp[0] = (long) (s->left + 1);
     temp[1] = s->right;
     *value = (IswPointer) temp;
-    *type = _IswPlatformInternAtomOp(d, "SPAN", False);
+    *type = _IswPlatformSelectionInternName(d, "SPAN", False);
     *length = 2L;
     *format = 32;
     return True;
@@ -1554,9 +1556,9 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 
   if (*target == a_delete) {
     if (!salt)
-	_IswTextZapSelection( ctx, (xcb_generic_event_t *) NULL, TRUE);
+	_IswTextZapSelection( ctx, (IswEvent *) NULL, TRUE);
     *value = NULL;
-    *type = _IswPlatformInternAtomOp(d, "NULL", False);
+    *type = _IswPlatformSelectionInternName(d, "NULL", False);
     *length = 0;
     *format = 32;
     return True;
@@ -1572,38 +1574,38 @@ ConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target, xcb_atom_t
 
 
 static void
-LoseSelection(Widget w, xcb_atom_t *selection)
+LoseSelection(Widget w, IswSelectionId *selection)
 {
   TextWidget ctx = (TextWidget) w;
-  xcb_atom_t* atomP;
+  IswSelectionId* idP;
   int i;
   IswTextSelectionSalt	*salt, *prevSalt, *nextSalt;
 
   _IswTextPrepareToUpdate(ctx);
 
-  atomP = ctx->text.s.selections;
-  for (i = 0 ; i < ctx->text.s.atom_count; i++, atomP++)
-    if (*selection == *atomP)
-      *atomP = (xcb_atom_t)0;
+  idP = ctx->text.s.selections;
+  for (i = 0 ; i < ctx->text.s.id_count; i++, idP++)
+    if (*selection == *idP)
+      *idP = ISW_SELECTION_NONE;
 
-  while (ctx->text.s.atom_count &&
-	 ctx->text.s.selections[ctx->text.s.atom_count-1] == 0)
-    ctx->text.s.atom_count--;
+  while (ctx->text.s.id_count &&
+	 ctx->text.s.selections[ctx->text.s.id_count-1] == 0)
+    ctx->text.s.id_count--;
 
 /*
  * Must walk the selection list in opposite order from UnsetSelection.
  */
 
-  atomP = ctx->text.s.selections;
-  for (i = 0 ; i < ctx->text.s.atom_count; i++, atomP++)
-    if (*atomP == (xcb_atom_t)0) {
-      *atomP = ctx->text.s.selections[--ctx->text.s.atom_count];
-      while (ctx->text.s.atom_count &&
-	     ctx->text.s.selections[ctx->text.s.atom_count-1] == 0)
-	ctx->text.s.atom_count--;
+  idP = ctx->text.s.selections;
+  for (i = 0 ; i < ctx->text.s.id_count; i++, idP++)
+    if (*idP == ISW_SELECTION_NONE) {
+      *idP = ctx->text.s.selections[--ctx->text.s.id_count];
+      while (ctx->text.s.id_count &&
+	     ctx->text.s.selections[ctx->text.s.id_count-1] == 0)
+	ctx->text.s.id_count--;
     }
 
-  if (ctx->text.s.atom_count == 0)
+  if (ctx->text.s.id_count == 0)
     ModifySelection(ctx, ctx->text.insertPos, ctx->text.insertPos);
 
   if (ctx->text.old_insert >= 0) /* Update in progress. */
@@ -1612,32 +1614,32 @@ LoseSelection(Widget w, xcb_atom_t *selection)
   prevSalt = 0;
   for (salt = ctx->text.salt; salt; salt = nextSalt)
     {
-    	atomP = salt->s.selections;
+    	idP = salt->s.selections;
 	nextSalt = salt->next;
-    	for (i = 0 ; i < salt->s.atom_count; i++, atomP++)
-	    if (*selection == *atomP)
-		*atomP = (xcb_atom_t)0;
+    	for (i = 0 ; i < salt->s.id_count; i++, idP++)
+	    if (*selection == *idP)
+		*idP = ISW_SELECTION_NONE;
 
-    	while (salt->s.atom_count &&
-	       salt->s.selections[salt->s.atom_count-1] == 0)
+    	while (salt->s.id_count &&
+	       salt->s.selections[salt->s.id_count-1] == 0)
 	{
-	    salt->s.atom_count--;
+	    salt->s.id_count--;
 	}
 
     	/*
     	 * Must walk the selection list in opposite order from UnsetSelection.
     	 */
 
-    	atomP = salt->s.selections;
-    	for (i = 0 ; i < salt->s.atom_count; i++, atomP++)
-    	    if (*atomP == (xcb_atom_t)0)
+    	idP = salt->s.selections;
+    	for (i = 0 ; i < salt->s.id_count; i++, idP++)
+    	    if (*idP == ISW_SELECTION_NONE)
  	    {
-      	      *atomP = salt->s.selections[--salt->s.atom_count];
-      	      while (salt->s.atom_count &&
-	     	     salt->s.selections[salt->s.atom_count-1] == 0)
-    	    	salt->s.atom_count--;
+      	      *idP = salt->s.selections[--salt->s.id_count];
+      	      while (salt->s.id_count &&
+	     	     salt->s.selections[salt->s.id_count-1] == 0)
+    	    	salt->s.id_count--;
     	    }
-	if (salt->s.atom_count == 0)
+	if (salt->s.id_count == 0)
 	{
 	    IswFree ((char *) salt->s.selections);
 	    IswFree (salt->contents);
@@ -1653,21 +1655,21 @@ LoseSelection(Widget w, xcb_atom_t *selection)
 }
 
 void
-_IswTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
+_IswTextSaltAwaySelection(TextWidget ctx, IswSelectionId *selections, int num_ids)
 {
     IswTextSelectionSalt    *salt;
     int			    i;
 
-    for (i = 0; i < num_atoms; i++)
+    for (i = 0; i < num_ids; i++)
 	LoseSelection ((Widget) ctx, selections + i);
-    if (num_atoms == 0)
+    if (num_ids == 0)
 	return;
     salt = (IswTextSelectionSalt *)
 		IswMalloc( (unsigned) sizeof(IswTextSelectionSalt) );
     if (!salt)
 	return;
-    salt->s.selections = (xcb_atom_t *)
-	 IswMalloc( (unsigned) ( num_atoms * sizeof (xcb_atom_t) ) );
+    salt->s.selections = (IswSelectionId *)
+	 IswMalloc( (unsigned) ( num_ids * sizeof (IswSelectionId) ) );
     if (!salt->s.selections)
     {
 	IswFree ((char *) salt);
@@ -1680,18 +1682,18 @@ _IswTextSaltAwaySelection(TextWidget ctx, xcb_atom_t *selections, int num_atoms)
     salt->length = strlen (salt->contents);
     salt->next = ctx->text.salt;
     ctx->text.salt = salt;
-    for (i = 0; i < num_atoms; i++)
+    for (i = 0; i < num_ids; i++)
     {
 	salt->s.selections[i] = selections[i];
 	IswOwnSelection ((Widget) ctx, selections[i], ctx->text.time,
 		ConvertSelection, LoseSelection, (IswSelectionDoneProc)NULL);
     }
-    salt->s.atom_count = num_atoms;
+    salt->s.id_count = num_ids;
 }
 
 static void
 _SetSelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right,
-              xcb_atom_t *selections, Cardinal count)
+              IswSelectionId *selections, Cardinal count)
 {
   ISWTextPosition pos;
 
@@ -1722,7 +1724,7 @@ _SetSelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right,
     Widget w = (Widget) ctx;
 
     while (count) {
-      xcb_atom_t selection = selections[--count];
+      IswSelectionId selection = selections[--count];
       IswOwnSelection(w, selection, ctx->text.time, ConvertSelection,
 		     LoseSelection, (IswSelectionDoneProc)NULL);
     }
@@ -1945,7 +1947,7 @@ DisplayText(Widget w, ISWTextPosition pos1, ISWTextPosition pos2)
  */
 
 static void
-DoSelection (TextWidget ctx, ISWTextPosition pos, xcb_timestamp_t time, Boolean motion)
+DoSelection (TextWidget ctx, ISWTextPosition pos, IswTime time, Boolean motion)
 {
   ISWTextPosition newLeft, newRight;
   IswTextSelectType newType, *sarray;
@@ -2327,26 +2329,26 @@ _IswTextCheckResize(TextWidget ctx)
 }
 
 /*
- * Converts (params, num_params) to a list of atoms & caches the
+ * Converts (params, num_params) to a list of selection ids & caches the
  * list in the TextWidget instance.
  */
 
-xcb_atom_t*
+IswSelectionId*
 _IswTextSelectionList(TextWidget ctx, String *list, Cardinal nelems)
 {
-  xcb_atom_t * sel = ctx->text.s.selections;
+  IswSelectionId * sel = ctx->text.s.selections;
   IswDisplay dpy = IswDisplayOf((Widget) ctx);
   int n;
 
   if (nelems > ctx->text.s.array_size) {
-    sel = (xcb_atom_t *) IswRealloc((char *) sel, sizeof(xcb_atom_t) * nelems);
+    sel = (IswSelectionId *) IswRealloc((char *) sel, sizeof(IswSelectionId) * nelems);
     ctx->text.s.array_size = nelems;
     ctx->text.s.selections = sel;
   }
   for (n=nelems; --n >= 0; sel++, list++)
-    *sel = _IswPlatformInternAtomOp(dpy, *list, False);
+    *sel = _IswPlatformSelectionInternName(dpy, *list, False);
 
-  ctx->text.s.atom_count = nelems;
+  ctx->text.s.id_count = nelems;
   return ctx->text.s.selections;
 }
 
@@ -2392,7 +2394,7 @@ ModifySelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
 {
   if (left == right)
     ctx->text.insertPos = left;
-  _SetSelection( ctx, left, right, (xcb_atom_t*) NULL, ZERO );
+  _SetSelection( ctx, left, right, (IswSelectionId*) NULL, ZERO );
 }
 
 /*
@@ -3118,19 +3120,19 @@ void
 IswTextUnsetSelection(Widget w)
 {
   TextWidget ctx = (TextWidget)w;
-  xcb_atom_t clipboard = _IswPlatformInternAtomOp(IswDisplayOf(w), "CLIPBOARD", False);
+  IswSelectionId clipboard = _IswPlatformSelectionInternName(IswDisplayOf(w), "CLIPBOARD", False);
 
-  while (ctx->text.s.atom_count != 0) {
-    xcb_atom_t sel = ctx->text.s.selections[ctx->text.s.atom_count - 1];
-    if ( sel != (xcb_atom_t) 0 ) {
+  while (ctx->text.s.id_count != 0) {
+    IswSelectionId sel = ctx->text.s.selections[ctx->text.s.id_count - 1];
+    if ( sel != ISW_SELECTION_NONE ) {
 /*
- * As selections are lost the atom_count will decrement.
+ * As selections are lost the id_count will decrement.
  * Keep CLIPBOARD ownership — it persists beyond the visible highlight.
  */
       if (sel == clipboard) {
-	ctx->text.s.selections[ctx->text.s.atom_count - 1] = (xcb_atom_t)0;
-	ctx->text.s.atom_count--;
-	continue;
+	      ctx->text.s.selections[ctx->text.s.id_count - 1] = ISW_SELECTION_NONE;
+	      ctx->text.s.id_count--;
+	      continue;
       }
       IswDisownSelection(w, sel, ctx->text.time);
       LoseSelection(w, &sel); /* In case IswDisownSelection failed to call us. */

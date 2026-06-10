@@ -485,22 +485,55 @@ struct _IswPlatformGrabOps {
 
 /*
  * =================================================================
- * Selection ops (Phase 5)
+ * Selection ops
  * =================================================================
  *
- * The three pure-selection protocol verbs: take/release ownership, query the
- * owner, and request a conversion.  The selection/target/property identifiers
- * are atoms, which Phase 6 abstracts; until then they stay Atom.  The
- * property-exchange machinery the convert drives stays in Selection.c on the
- * seam until Phase 6.
+ * The selection engine (Selection.c) and its consumers are platform-neutral by
+ * construction: a selection, a conversion target, a conversion type and an
+ * exchange property are all named by an opaque IswSelectionId, never an X11
+ * atom.  The backend owns the name<->id mapping and the id<->native identifier
+ * mapping; on X11 an IswSelectionId maps numerically to an interned atom, but a
+ * non-X11 backend assigns its own stable ids.
+ *
+ * The ops cover the whole selection protocol seam the engine needs:
+ *   - intern_name / name_of: the name<->id mapping;
+ *   - set_owner / get_owner / convert: the ownership + conversion-request verbs;
+ *   - decode_event: turn an opaque native event into a neutral IswSelectionEvent
+ *     so the engine never inspects a backend event struct;
+ *   - send_notify: emit the protocol's "conversion ready / refused" reply;
+ *   - max_transfer_bytes: the largest single-property payload the transport
+ *     accepts (drives INCR chunking).
+ *
+ * The neutral selection types (IswSelectionId, IswSelectionRequest,
+ * IswSelectionEvent and IswSelectionEventKind) are declared in ISW/Intrinsic.h
+ * — the public selection API and its callbacks use them too — so they are
+ * available here via the include above.
  */
 struct _IswPlatformSelectionOps {
+    /* name <-> id mapping. intern_name returns ISW_SELECTION_NONE when
+       only_if_exists and the name is unknown; name_of copies the id's name into
+       buf (NUL-terminated, truncated) and returns False if the id is unknown. */
+    IswSelectionId (*intern_name)(IswDisplay dpy, const char *name,
+                                  Boolean only_if_exists);
+    Boolean        (*name_of)(IswDisplay dpy, IswSelectionId id,
+                              char *buf, size_t buflen);
     void      (*set_owner)(IswDisplay dpy, IswWindow owner,
-                           Atom selection, IswTime time);
-    IswWindow (*get_owner)(IswDisplay dpy, Atom selection);
+                           IswSelectionId selection, IswTime time);
+    IswWindow (*get_owner)(IswDisplay dpy, IswSelectionId selection);
     void      (*convert)(IswDisplay dpy, IswWindow requestor,
-                         Atom selection, Atom target,
-                         Atom property, IswTime time);
+                         IswSelectionId selection, IswSelectionId target,
+                         IswSelectionId property, IswTime time);
+    /* Decode an opaque native event into *out.  Returns False (and sets
+       out->kind = ISW_SEL_EVENT_OTHER) for events that are not selection
+       protocol events. */
+    Boolean   (*decode_event)(IswDisplay dpy, const void *native,
+                              IswSelectionEvent *out);
+    /* Send the "conversion ready" reply for `req`; property == ISW_SELECTION_NONE
+       signals refusal. */
+    void      (*send_notify)(IswDisplay dpy, const IswSelectionRequest *req,
+                             IswSelectionId property);
+    /* Largest single-property payload (in bytes) the transport accepts. */
+    unsigned long (*max_transfer_bytes)(IswDisplay dpy);
 };
 
 /*

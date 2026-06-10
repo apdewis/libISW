@@ -247,19 +247,64 @@ xcb_grb_allow_events(IswDisplay dpy, int mode, IswTime time)
 
 /* ---- selection ops ------------------------------------------------------- */
 
+/* On X11 an IswSelectionId is numerically an interned atom. */
+
+static IswSelectionId
+xcb_sel_intern_name(IswDisplay dpy, const char *name, Boolean only_if_exists)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_intern_atom_cookie_t cookie;
+    xcb_intern_atom_reply_t *reply;
+    IswSelectionId id = ISW_SELECTION_NONE;
+
+    if (!conn || !name)
+        return ISW_SELECTION_NONE;
+    cookie = xcb_intern_atom(conn, only_if_exists ? 1 : 0,
+                             (uint16_t) strlen(name), name);
+    reply = xcb_intern_atom_reply(conn, cookie, NULL);
+    if (reply) {
+        id = (IswSelectionId) reply->atom;
+        free(reply);
+    }
+    return id;
+}
+
+static Boolean
+xcb_sel_name_of(IswDisplay dpy, IswSelectionId id, char *buf, size_t buflen)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_get_atom_name_cookie_t cookie;
+    xcb_get_atom_name_reply_t *reply;
+    int len;
+
+    if (!conn || id == ISW_SELECTION_NONE || !buf || buflen == 0)
+        return False;
+    cookie = xcb_get_atom_name(conn, (xcb_atom_t) id);
+    reply = xcb_get_atom_name_reply(conn, cookie, NULL);
+    if (!reply)
+        return False;
+    len = xcb_get_atom_name_name_length(reply);
+    if ((size_t) len >= buflen)
+        len = (int) buflen - 1;
+    memcpy(buf, xcb_get_atom_name_name(reply), (size_t) len);
+    buf[len] = '\0';
+    free(reply);
+    return True;
+}
+
 static void
-xcb_sel_set_owner(IswDisplay dpy, IswWindow owner, xcb_atom_t selection,
+xcb_sel_set_owner(IswDisplay dpy, IswWindow owner, IswSelectionId selection,
                   IswTime time)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     if (!conn)
         return;
-    xcb_set_selection_owner(conn, _IswXcbWindow(owner), selection,
+    xcb_set_selection_owner(conn, _IswXcbWindow(owner), (xcb_atom_t) selection,
                             (xcb_timestamp_t) time);
 }
 
 static IswWindow
-xcb_sel_get_owner(IswDisplay dpy, xcb_atom_t selection)
+xcb_sel_get_owner(IswDisplay dpy, IswSelectionId selection)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     xcb_get_selection_owner_cookie_t cookie;
@@ -268,7 +313,7 @@ xcb_sel_get_owner(IswDisplay dpy, xcb_atom_t selection)
 
     if (!conn)
         return _IswXcbWindowWrap(XCB_NONE);
-    cookie = xcb_get_selection_owner(conn, selection);
+    cookie = xcb_get_selection_owner(conn, (xcb_atom_t) selection);
     reply = xcb_get_selection_owner_reply(conn, cookie, NULL);
     if (reply) {
         owner = reply->owner;
@@ -278,14 +323,115 @@ xcb_sel_get_owner(IswDisplay dpy, xcb_atom_t selection)
 }
 
 static void
-xcb_sel_convert(IswDisplay dpy, IswWindow requestor, xcb_atom_t selection,
-                xcb_atom_t target, xcb_atom_t property, IswTime time)
+xcb_sel_convert(IswDisplay dpy, IswWindow requestor, IswSelectionId selection,
+                IswSelectionId target, IswSelectionId property, IswTime time)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     if (!conn)
         return;
-    xcb_convert_selection(conn, _IswXcbWindow(requestor), selection, target,
-                          property, (xcb_timestamp_t) time);
+    xcb_convert_selection(conn, _IswXcbWindow(requestor),
+                          (xcb_atom_t) selection, (xcb_atom_t) target,
+                          (xcb_atom_t) property, (xcb_timestamp_t) time);
+}
+
+static Boolean
+xcb_sel_decode_event(IswDisplay dpy, const void *native, IswSelectionEvent *out)
+{
+    const xcb_generic_event_t *ev = (const xcb_generic_event_t *) native;
+
+    (void) dpy;
+    if (!out)
+        return False;
+    memset(out, 0, sizeof(*out));
+    out->kind = ISW_SEL_EVENT_OTHER;
+    if (!ev)
+        return False;
+
+    switch (ev->response_type & ~0x80) {
+    case XCB_SELECTION_CLEAR: {
+        const xcb_selection_clear_event_t *e =
+            (const xcb_selection_clear_event_t *) ev;
+        out->kind      = ISW_SEL_EVENT_CLEAR;
+        out->selection = (IswSelectionId) e->selection;
+        out->time      = (IswTime) e->time;
+        out->serial    = e->sequence;
+        return True;
+    }
+    case XCB_SELECTION_REQUEST: {
+        const xcb_selection_request_event_t *e =
+            (const xcb_selection_request_event_t *) ev;
+        out->kind             = ISW_SEL_EVENT_REQUEST;
+        out->selection        = (IswSelectionId) e->selection;
+        out->target           = (IswSelectionId) e->target;
+        out->property         = (IswSelectionId) e->property;
+        out->requestor        = _IswXcbWindowWrap(e->requestor);
+        out->time             = (IswTime) e->time;
+        out->request.requestor = _IswXcbWindowWrap(e->requestor);
+        out->request.owner     = _IswXcbWindowWrap(e->owner);
+        out->request.selection = (IswSelectionId) e->selection;
+        out->request.target    = (IswSelectionId) e->target;
+        out->request.property  = (IswSelectionId) e->property;
+        out->request.time      = (IswTime) e->time;
+        return True;
+    }
+    case XCB_SELECTION_NOTIFY: {
+        const xcb_selection_notify_event_t *e =
+            (const xcb_selection_notify_event_t *) ev;
+        out->kind      = ISW_SEL_EVENT_NOTIFY;
+        out->selection = (IswSelectionId) e->selection;
+        out->target    = (IswSelectionId) e->target;
+        out->property  = (IswSelectionId) e->property;
+        out->requestor = _IswXcbWindowWrap(e->requestor);
+        out->time      = (IswTime) e->time;
+        return True;
+    }
+    case XCB_PROPERTY_NOTIFY: {
+        const xcb_property_notify_event_t *e =
+            (const xcb_property_notify_event_t *) ev;
+        out->kind      = (e->state == XCB_PROPERTY_DELETE)
+                             ? ISW_SEL_EVENT_PROP_DELETE
+                             : ISW_SEL_EVENT_PROP_NEW;
+        out->property  = (IswSelectionId) e->atom;
+        out->requestor = _IswXcbWindowWrap(e->window);
+        out->time      = (IswTime) e->time;
+        return True;
+    }
+    default:
+        return False;
+    }
+}
+
+static void
+xcb_sel_send_notify(IswDisplay dpy, const IswSelectionRequest *req,
+                    IswSelectionId property)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_selection_notify_event_t ev;
+
+    if (!conn || !req)
+        return;
+    memset(&ev, 0, sizeof(ev));
+    ev.response_type = XCB_SELECTION_NOTIFY;
+    ev.requestor     = _IswXcbWindow(req->requestor);
+    ev.selection     = (xcb_atom_t) req->selection;
+    ev.target        = (xcb_atom_t) req->target;
+    ev.property      = (xcb_atom_t) property;
+    ev.time          = (xcb_timestamp_t) req->time;
+    xcb_send_event(conn, 0, _IswXcbWindow(req->requestor), 0, (const char *) &ev);
+}
+
+static unsigned long
+xcb_sel_max_transfer_bytes(IswDisplay dpy)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    unsigned long maxreq;
+
+    if (!conn)
+        return 0;
+    maxreq = (unsigned long) xcb_get_maximum_request_length(conn);
+    if (65536 < maxreq)
+        maxreq = 65536;
+    return (maxreq << 2) - 100;
 }
 
 /* ---- vtables ------------------------------------------------------------- */
@@ -310,7 +456,12 @@ const IswPlatformGrabOps isw_platform_xcb_grab_ops = {
 };
 
 const IswPlatformSelectionOps isw_platform_xcb_selection_ops = {
-    .set_owner = xcb_sel_set_owner,
-    .get_owner = xcb_sel_get_owner,
-    .convert   = xcb_sel_convert,
+    .intern_name        = xcb_sel_intern_name,
+    .name_of            = xcb_sel_name_of,
+    .set_owner          = xcb_sel_set_owner,
+    .get_owner          = xcb_sel_get_owner,
+    .convert            = xcb_sel_convert,
+    .decode_event       = xcb_sel_decode_event,
+    .send_notify        = xcb_sel_send_notify,
+    .max_transfer_bytes = xcb_sel_max_transfer_bytes,
 };
