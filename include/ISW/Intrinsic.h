@@ -59,7 +59,7 @@ in this Software without prior written authorization from The Open Group.
 #include	<ISW/IswEvent.h>	/* platform-neutral event union */
 /* Xresource.h replaced by custom IswQuark/IswValue/IswDatabase/IswOptions headers */
 #include	<ISW/IswFuncproto.h>
-#include    "ISWPlatform.h"
+//#include    "ISWPlatform.h"
 #include <string.h>		/* for IswNewString, memcpy, etc. */
 #include <stdlib.h>		/* for malloc, free */
 
@@ -126,15 +126,11 @@ typedef struct _CompositeRec *CompositeWidget;
    Declared here so the public Display/Screen/Window accessors below can use
    them without a circular include.  A platform backend maps these to its
    native types; toolkit and application code never dereference them. */
+typedef struct _IswDisplay *IswDisplay;
 typedef struct _IswScreen  *IswScreen;    /* a screen on a display       */
 typedef struct _IswWindow  *IswWindow;    /* a window                    */
 typedef struct _IswActionsRec *IswActionList;
 typedef struct _IswEventRec *IswEventTable;
-
-typedef struct _IswDisplay {
-   IswPlatformDisplayOps *platformOps;
-   void *priv;
-} IswDisplay;
 
 typedef struct _IswAppStruct *IswAppContext;
 typedef unsigned long	IswValueMask;

@@ -66,7 +66,7 @@
 xcb_connection_t *
 _IswXcbConn(IswDisplay dpy)
 {
-    IswDisplayXCB *idx = (IswDisplayXCB *) dpy->priv; //convert opaque handle type to backend specific
+    IswDisplayXCB *idx = (IswDisplayXCB *) dpy; //convert opaque handle type to backend specific
     return idx->conn;
 }
 
@@ -108,6 +108,7 @@ static IswDisplay
 xcb_disp_open(const char *display_name, int *default_screen)
 {
     int scr = 0;
+    IswDisplayXCB *xcbDisplay;
     xcb_connection_t *conn;
 
     conn = xcb_connect(display_name, &scr);
@@ -118,57 +119,64 @@ xcb_disp_open(const char *display_name, int *default_screen)
     }
     if (default_screen)
         *default_screen = scr;
-    return (IswDisplay) conn;
+
+    xcbDisplay = (IswDisplayXCB *)IswMalloc(sizeof(IswDisplayXCB));
+    if(xcbDisplay != NULL) {
+        xcbDisplay->conn = conn;
+        return (IswDisplay) xcbDisplay;
+    } else {
+        return (IswDisplay) NULL;
+    }
 }
 
 static void
 xcb_disp_close(IswDisplay dpy)
 {
-    xcb_connection_t *conn = (xcb_connection_t *) dpy;
-    if (conn) {
-        xcb_flush(conn);
-        xcb_disconnect(conn);
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (priv->conn) {
+        xcb_flush(priv->conn);
+        xcb_disconnect(priv->conn);
     }
 }
 
 static Boolean
 xcb_disp_has_error(IswDisplay dpy)
 {
-    xcb_connection_t *conn = (xcb_connection_t *) dpy;
-    return conn ? (xcb_connection_has_error(conn) != 0) : True;
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    return priv->conn ? (xcb_connection_has_error(priv->conn) != 0) : True;
 }
 
 static void
 xcb_disp_flush(IswDisplay dpy)
 {
-    xcb_connection_t *conn = (xcb_connection_t *) dpy;
-    if (conn)
-        xcb_flush(conn);
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (priv->conn)
+        xcb_flush(priv->conn);
 }
 
 static int
 xcb_disp_connection_fd(IswDisplay dpy)
 {
-    xcb_connection_t *conn = (xcb_connection_t *) dpy;
-    return conn ? xcb_get_file_descriptor(conn) : -1;
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    return priv->conn ? xcb_get_file_descriptor(priv->conn) : -1;
 }
 
 static int
 xcb_disp_screen_count(IswDisplay dpy)
 {
-    xcb_connection_t *conn = (xcb_connection_t *) dpy;
-    return conn ? xcb_setup_roots_length(xcb_get_setup(conn)) : 0;
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    return priv->conn ? xcb_setup_roots_length(xcb_get_setup(priv->conn)) : 0;
 }
 
 static IswScreen
 xcb_disp_screen(IswDisplay dpy, int index)
 {
-    xcb_connection_t *conn = (xcb_connection_t *) dpy;
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
     xcb_screen_iterator_t it;
     int i;
-    if (!conn || index < 0)
+    if (!priv->conn || index < 0)
         return NULL;
-    it = xcb_setup_roots_iterator(xcb_get_setup(conn));
+    it = xcb_setup_roots_iterator(xcb_get_setup(priv->conn));
     for (i = 0; i < index && it.rem; i++)
         xcb_screen_next(&it);
     return it.rem ? (IswScreen) it.data : NULL;
@@ -198,10 +206,10 @@ xcb_disp_screen_height(IswScreen screen)
 static void
 xcb_disp_bell(IswDisplay dpy, int percent)
 {
-    xcb_connection_t *conn = (xcb_connection_t *) dpy;
-    if (conn) {
-        xcb_bell(conn, (int8_t) percent);
-        xcb_flush(conn);
+   IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (priv->conn) {
+        xcb_bell(priv->conn, (int8_t) percent);
+        xcb_flush(priv->conn);
     }
 }
 
@@ -252,10 +260,10 @@ attrs_to_values(const IswWindowAttributes *a, unsigned int mask,
 static IswWindow
 xcb_win_alloc_id(IswDisplay dpy)
 {
-    xcb_connection_t *conn = _IswXcbConn(dpy);
-    if (!conn)
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (!priv->conn)
         return _IswXcbWindowWrap(0);
-    return _IswXcbWindowWrap(xcb_generate_id(conn));
+    return _IswXcbWindowWrap(xcb_generate_id(priv->conn));
 }
 
 static IswWindow
@@ -263,23 +271,23 @@ xcb_win_create(IswDisplay dpy, IswWindow parent,
                const IswWindowGeometry *geom,
                const IswWindowAttributes *attrs)
 {
-    xcb_connection_t *c = _IswXcbConn(dpy);
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
     xcb_screen_t *s = _IswXcbDefaultScreen(dpy);
     xcb_window_t id;
     uint32_t value_mask = 0, values[8];
     uint32_t nv;
 
-    if (!c || !s)
+    if (!priv->conn || !s)
         return _IswXcbWindowWrap(0);
 
-    id = xcb_generate_id(c);
+    id = xcb_generate_id(priv->conn);
     nv = attrs ? attrs_to_values(attrs, ISW_ATTR_BACK_PIXEL |
                                  ISW_ATTR_BORDER_PIXEL | ISW_ATTR_OVERRIDE |
                                  ISW_ATTR_SAVE_UNDER | ISW_ATTR_EVENT_MASK,
                                  &value_mask, values)
                 : 0;
     (void) nv;
-    xcb_create_window(c, XCB_COPY_FROM_PARENT, id, _IswXcbWindow(parent),
+    xcb_create_window(priv->conn, XCB_COPY_FROM_PARENT, id, _IswXcbWindow(parent),
                       (int16_t) geom->x, (int16_t) geom->y,
                       (uint16_t) geom->width, (uint16_t) geom->height,
                       (uint16_t) geom->border_width,
@@ -291,34 +299,34 @@ xcb_win_create(IswDisplay dpy, IswWindow parent,
 static void
 xcb_win_destroy(IswDisplay dpy, IswWindow win)
 {
-    xcb_connection_t *c = _IswXcbConn(dpy);
-    if (c)
-        xcb_destroy_window(c, _IswXcbWindow(win));
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (priv->conn)
+        xcb_destroy_window(priv->conn, _IswXcbWindow(win));
 }
 
 static void
 xcb_win_map(IswDisplay dpy, IswWindow win)
 {
-    xcb_connection_t *c = _IswXcbConn(dpy);
-    if (c)
-        xcb_map_window(c, _IswXcbWindow(win));
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (priv->conn)
+        xcb_map_window(priv->conn, _IswXcbWindow(win));
 }
 
 static void
 xcb_win_unmap(IswDisplay dpy, IswWindow win)
 {
-    xcb_connection_t *c = _IswXcbConn(dpy);
-    if (c)
-        xcb_unmap_window(c, _IswXcbWindow(win));
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (priv->conn)
+        xcb_unmap_window(priv->conn, _IswXcbWindow(win));
 }
 
 static void
 xcb_win_reparent(IswDisplay dpy, IswWindow win, IswWindow new_parent,
                  int32_t x, int32_t y)
 {
-    xcb_connection_t *c = _IswXcbConn(dpy);
-    if (c)
-        xcb_reparent_window(c, _IswXcbWindow(win), _IswXcbWindow(new_parent),
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (priv->conn)
+        xcb_reparent_window(priv->conn, _IswXcbWindow(win), _IswXcbWindow(new_parent),
                             (int16_t) x, (int16_t) y);
 }
 
@@ -327,11 +335,11 @@ xcb_win_configure(IswDisplay dpy, IswWindow win,
                   const IswWindowGeometry *geom, unsigned int mask,
                   IswStackMode stack, IswWindow sibling)
 {
-    xcb_connection_t *c = _IswXcbConn(dpy);
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
     uint32_t cm = 0, values[7];
     int n = 0;
 
-    if (!c)
+    if (!priv->conn)
         return;
     /* XCB requires values in increasing CONFIG_WINDOW_* bit order. */
     if (mask & ISW_CONFIG_X)      { cm |= XCB_CONFIG_WINDOW_X;
@@ -353,7 +361,7 @@ xcb_win_configure(IswDisplay dpy, IswWindow win,
                                                   : XCB_STACK_MODE_BELOW;
     }
     if (cm)
-        xcb_configure_window(c, _IswXcbWindow(win), (uint16_t) cm, values);
+        xcb_configure_window(priv->conn, _IswXcbWindow(win), (uint16_t) cm, values);
 }
 
 static void
@@ -374,9 +382,9 @@ xcb_win_clear_area(IswDisplay dpy, IswWindow win,
                    int16_t x, int16_t y, uint16_t w, uint16_t h,
                    Boolean generate_expose)
 {
-    xcb_connection_t *c = _IswXcbConn(dpy);
-    if (c)
-        xcb_clear_area(c, generate_expose ? 1 : 0, _IswXcbWindow(win),
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (priv->conn)
+        xcb_clear_area(priv->conn, generate_expose ? 1 : 0, _IswXcbWindow(win),
                        x, y, w, h);
 }
 
