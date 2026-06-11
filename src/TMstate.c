@@ -453,6 +453,57 @@ _IswRegularMatch(TMTypeMatch typeMatch,
             (eventSeq->event.modifiers & computedMask));
 }
 
+/* Case-fold an ASCII letter code point so "<Key>A" in a translation table
+   matches a lowercase 'a' key event and vice versa — the neutral equivalent of
+   the keycode/keysym case folding the X standard-mods matcher used to do.  The
+   neutral key identity is already resolved (IswEvent.key.key), so matching is a
+   direct code-point compare with letter folding; no keymap permutation. */
+static unsigned long
+_IswFoldKey(unsigned long key)
+{
+    if (key >= 'A' && key <= 'Z')
+        return key - 'A' + 'a';
+    return key;
+}
+
+/* Key match: modifier check identical to _IswRegularMatch, plus a case-folded
+   key comparison.  Used for <Key>/<KeyUp> bindings. */
+Boolean
+_IswMatchUsingStandardMods(TMTypeMatch typeMatch,
+                          TMModifierMatch modMatch,
+                          TMEventPtr eventSeq)
+{
+    Modifiers computed = 0;
+    Modifiers computedMask = 0;
+    Boolean resolved = TRUE;
+    unsigned long want = typeMatch->eventCode & typeMatch->eventCodeMask;
+    unsigned long got  = eventSeq->event.eventCode & typeMatch->eventCodeMask;
+
+    if (_IswFoldKey(want) != _IswFoldKey(got))
+        return FALSE;
+    if (modMatch->lateModifiers != NULL)
+        resolved = _IswComputeLateBindings(eventSeq->dpy,
+                                          modMatch->lateModifiers,
+                                          &computed, &computedMask);
+    if (!resolved)
+        return FALSE;
+    computed = (Modifiers) (computed | modMatch->modifiers);
+    computedMask = (Modifiers) (computedMask | modMatch->modifierMask);
+
+    return ((computed & computedMask) ==
+            (eventSeq->event.modifiers & computedMask));
+}
+
+/* "Don't care" mods variant folds case the same way; the modifier semantics
+   already collapse to the regular check in the neutral model. */
+Boolean
+_IswMatchUsingDontCareMods(TMTypeMatch typeMatch,
+                          TMModifierMatch modMatch,
+                          TMEventPtr eventSeq)
+{
+    return _IswMatchUsingStandardMods(typeMatch, modMatch, eventSeq);
+}
+
 Boolean
 _IswMatchAtom(TMTypeMatch typeMatch,
              TMModifierMatch modMatch _X_UNUSED,
@@ -477,115 +528,73 @@ _IswMatchAtom(TMTypeMatch typeMatch,
  * in the same state.
  */
 static Boolean
-Ignore(Widget widget, TMEventPtr event)
+Ignore(Widget widget _X_UNUSED, TMEventPtr event)
 {
-    xcb_connection_t *dpy;
-    IswPerDisplay pd;
-
-    if (event->event.eventType == XCB_MOTION_NOTIFY)
+    if (event->event.eventType == IswMotion)
         return TRUE;
-    if (!(event->event.eventType == XCB_KEY_PRESS ||
-          event->event.eventType == XCB_KEY_RELEASE))
+    if (!(event->event.eventType == IswKeyDown ||
+          event->event.eventType == IswKeyUp))
         return FALSE;
-    dpy = _IswXcbConn(IswDisplayOf(widget));
 
-    pd = _IswGetPerDisplay(IswDisplayOf(widget));
-    _InitializeKeysymTables(dpy, pd);
-    return IsOn(pd->isModifier, event->event.eventCode) ? TRUE : FALSE;
+    /* In the neutral model the key identity is already resolved, so a
+       modifier-only key event is recognized directly by its IswKey. */
+    switch (event->event.eventCode) {
+    case IswKeyShift:
+    case IswKeyControl:
+    case IswKeyAlt:
+    case IswKeySuper:
+    case IswKeyMeta:
+    case IswKeyCapsLock:
+    case IswKeyNumLock:
+        return TRUE;
+    default:
+        return FALSE;
+    }
 }
 
 static void
-XEventToTMEvent(xcb_generic_event_t *event, TMEventPtr tmEvent)
+IswEventToTMEvent(IswEvent *ev, TMEventPtr tmEvent)
 {
-    tmEvent->xev = event;
+    tmEvent->iswev = ev;
     tmEvent->event.eventCodeMask = 0;
     tmEvent->event.modifierMask = 0;
-    tmEvent->event.eventType = (TMLongCard) (event->response_type & ~0x80);
+    /* The neutral event kind IS the translation manager's event-type
+       vocabulary; tables are parsed into the same IswEventKind values. */
+    tmEvent->event.eventType = (TMLongCard) ev->kind;
     tmEvent->event.lateModifiers = NULL;
     tmEvent->event.matchEvent = NULL;
     tmEvent->event.standard = FALSE;
 
-    switch (event->response_type & ~0x80) {
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE:
-        {
-            xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
-            tmEvent->event.eventCode = key_event->detail;
-            tmEvent->event.modifiers = key_event->state;
-        }
+    switch (ev->kind) {
+    case IswKeyDown:
+    case IswKeyUp:
+        tmEvent->event.eventCode = ev->key.key;
+        tmEvent->event.modifiers = ev->key.modifiers;
         break;
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE:
-        {
-            xcb_button_press_event_t *button_event = (xcb_button_press_event_t *)event;
-            tmEvent->event.eventCode = button_event->detail;
-            tmEvent->event.modifiers = button_event->state;
-        }
+    case IswButtonDown:
+    case IswButtonUp:
+        tmEvent->event.eventCode = ev->button.button;
+        tmEvent->event.modifiers = ev->button.modifiers;
         break;
-    case XCB_MOTION_NOTIFY:
-        {
-            xcb_motion_notify_event_t *motion_event = (xcb_motion_notify_event_t *)event;
-            tmEvent->event.eventCode = (TMLongCard) motion_event->detail; /* XCB_NOTIFY_MODE_NORMAL or NotifyHint */
-            tmEvent->event.modifiers = motion_event->state;
-        }
+    case IswMotion:
+        /* No Hint distinction in the neutral model — motion detail is
+           always "Normal". */
+        tmEvent->event.eventCode = 0;
+        tmEvent->event.modifiers = ev->motion.modifiers;
         break;
-    case XCB_ENTER_NOTIFY:
-    case XCB_LEAVE_NOTIFY:
-        {
-            xcb_enter_notify_event_t *crossing_event = (xcb_enter_notify_event_t *)event;
-            tmEvent->event.eventCode = (TMLongCard) crossing_event->mode;
-            tmEvent->event.modifiers = crossing_event->state;
-        }
+    case IswEnter:
+    case IswLeave:
+        tmEvent->event.eventCode = (TMLongCard) ev->crossing.mode;
+        tmEvent->event.modifiers = ev->crossing.modifiers;
         break;
-    case XCB_PROPERTY_NOTIFY:
-        {
-            xcb_property_notify_event_t *prop_event = (xcb_property_notify_event_t *)event;
-            tmEvent->event.eventCode = prop_event->atom;
-            tmEvent->event.modifiers = 0;
-        }
+    case IswFocusIn:
+    case IswFocusOut:
+        tmEvent->event.eventCode = (TMLongCard) ev->focus.mode;
+        tmEvent->event.modifiers = 0;
         break;
-    case XCB_SELECTION_CLEAR:
-        {
-            xcb_selection_clear_event_t *sel_clear_event = (xcb_selection_clear_event_t *)event;
-            tmEvent->event.eventCode = sel_clear_event->selection;
-            tmEvent->event.modifiers = 0;
-        }
-        break;
-    case XCB_SELECTION_REQUEST:
-        {
-            xcb_selection_request_event_t *sel_req_event = (xcb_selection_request_event_t *)event;
-            tmEvent->event.eventCode = sel_req_event->selection;
-            tmEvent->event.modifiers = 0;
-        }
-        break;
-    case XCB_SELECTION_NOTIFY:
-        {
-            xcb_selection_notify_event_t *sel_notify_event = (xcb_selection_notify_event_t *)event;
-            tmEvent->event.eventCode = sel_notify_event->selection;
-            tmEvent->event.modifiers = 0;
-        }
-        break;
-    case XCB_CLIENT_MESSAGE:
-        {
-            xcb_client_message_event_t *client_event = (xcb_client_message_event_t *)event;
-            tmEvent->event.eventCode = client_event->type;
-            tmEvent->event.modifiers = 0;
-        }
-        break;
-    case XCB_MAPPING_NOTIFY:
-        {
-            xcb_mapping_notify_event_t *mapping_event = (xcb_mapping_notify_event_t *)event;
-            tmEvent->event.eventCode = (TMLongCard) mapping_event->request;
-            tmEvent->event.modifiers = 0;
-        }
-        break;
-    case XCB_FOCUS_IN:
-    case XCB_FOCUS_OUT:
-        {
-            xcb_focus_in_event_t *focus_event = (xcb_focus_in_event_t *)event;
-            tmEvent->event.eventCode = (TMLongCard) focus_event->mode;
-            tmEvent->event.modifiers = 0;
-        }
+    case IswProtocol:
+        tmEvent->event.eventCode = ev->protocol.message_type;
+        tmEvent->event.modifiers = 0;
         break;
     default:
         tmEvent->event.eventCode = 0;
@@ -595,25 +604,22 @@ XEventToTMEvent(xcb_generic_event_t *event, TMEventPtr tmEvent)
 }
 
 static unsigned long
-GetTime(IswTM tm, xcb_generic_event_t *event)
+GetTime(IswTM tm, IswEvent *ev)
 {
-    switch (event->response_type & 0x7f) {  // Mask out the "reply" bit
-        case XCB_KEY_PRESS:
-        case XCB_KEY_RELEASE:
-            xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
-            return key_event->time;
-        case XCB_BUTTON_PRESS:
-        case XCB_BUTTON_RELEASE:
-            xcb_button_press_event_t *button_event = (xcb_button_press_event_t *)event;
-            return button_event->time;
-        default:
-            return tm->lastEventTime;
+    switch (ev->kind) {
+    case IswKeyDown:
+    case IswKeyUp:
+    case IswButtonDown:
+    case IswButtonUp:
+        return ev->any.time;
+    default:
+        return tm->lastEventTime;
     }
 }
 
 static void
 HandleActions(Widget w,
-              xcb_generic_event_t *event,
+              IswEvent *event,
               TMSimpleStateTree stateTree,
               Widget accelWidget,
               IswActionProc *procs,
@@ -621,23 +627,18 @@ HandleActions(Widget w,
 {
     ActionHook actionHookList;
     Widget bindWidget;
+    IswEvent *nev = event;
 
     bindWidget = accelWidget ? accelWidget : w;
     if (accelWidget && !IswIsSensitive(accelWidget) &&
-    (event->response_type == XCB_KEY_PRESS || event->response_type == XCB_KEY_RELEASE ||
-     event->response_type == XCB_BUTTON_PRESS || event->response_type == XCB_BUTTON_RELEASE ||
-     event->response_type == XCB_MOTION_NOTIFY || event->response_type == XCB_ENTER_NOTIFY ||
-     event->response_type == XCB_LEAVE_NOTIFY || event->response_type == XCB_FOCUS_IN ||
-     event->response_type == XCB_FOCUS_OUT))
+    (event->kind == IswKeyDown || event->kind == IswKeyUp ||
+     event->kind == IswButtonDown || event->kind == IswButtonUp ||
+     event->kind == IswMotion || event->kind == IswEnter ||
+     event->kind == IswLeave || event->kind == IswFocusIn ||
+     event->kind == IswFocusOut))
     return;
 
     actionHookList = IswWidgetToApplicationContext(w)->action_hook_list;
-
-    /* Action procs and action hooks receive the toolkit-neutral event; the
-       native event is reachable through IswEventNative(&nev) for code not yet
-       migrated. */
-    IswEvent nev;
-    (void) _IswEventFromXcb(IswDisplayOf(w), event, &nev);
 
     while (actions != NULL) {
         /* perform any actions */
@@ -658,13 +659,13 @@ HandleActions(Widget w,
                     (*hook->proc) (bindWidget,
                                    hook->closure,
                                    procName,
-                                   &nev,
+                                   nev,
                                    actions->params, &actions->num_params);
                     hook = next_hook;
                 }
             }
             (*(procs[actions->idx]))
-                (bindWidget, &nev, actions->params, &actions->num_params);
+                (bindWidget, nev, actions->params, &actions->num_params);
         }
         actions = actions->next;
     }
@@ -845,7 +846,7 @@ HandleSimpleState(Widget w, IswTM tmRecPtr, TMEventRec *curEventPtr)
                         else
                             actions = currState->actions;
                         tmRecPtr->lastEventTime =
-                            GetTime(tmRecPtr, curEventPtr->xev);
+                            GetTime(tmRecPtr, curEventPtr->iswev);
                         FreeContext((TMContext *) &tmRecPtr->current_state);
                         match = True;
                         matchTreeIndex = i;
@@ -890,7 +891,7 @@ HandleSimpleState(Widget w, IswTM tmRecPtr, TMEventRec *curEventPtr)
         }
         HandleActions
             (w,
-             curEventPtr->xev,
+             curEventPtr->iswev,
              (TMSimpleStateTree) xlations->stateTreeTbl[matchTreeIndex],
              accelWidget, procs, actions);
     }
@@ -981,8 +982,8 @@ TryCurrentTree(Widget widget,
                     /* is it within the timeout? */
                     if (MatchIncomingEvent(curEventPtr,
                                            nextTypeMatch, nextModMatch)) {
-                        xcb_generic_event_t *xev = curEventPtr->xev;
-                        unsigned long time = GetTime(tmRecPtr, xev);
+                        IswEvent *iswev = curEventPtr->iswev;
+                        unsigned long time = GetTime(tmRecPtr, iswev);
                         IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf(widget));
                         unsigned long delta =
                             (unsigned long) pd->multi_click_time;
@@ -1050,7 +1051,7 @@ HandleComplexState(Widget w, IswTM tmRecPtr, TMEventRec *curEventPtr)
             matchState = matchState->nextLevel;
             PushContext(contextPtr, matchState);
         }
-        tmRecPtr->lastEventTime = GetTime(tmRecPtr, curEventPtr->xev);
+        tmRecPtr->lastEventTime = GetTime(tmRecPtr, curEventPtr->iswev);
 
         if (bindData->simple.isComplex) {
             TMComplexBindProcs bindProcs =
@@ -1064,7 +1065,7 @@ HandleComplexState(Widget w, IswTM tmRecPtr, TMEventRec *curEventPtr)
             procs = bindProcs->procs;
             accelWidget = NULL;
         }
-        HandleActions(w, curEventPtr->xev, (TMSimpleStateTree)
+        HandleActions(w, curEventPtr->iswev, (TMSimpleStateTree)
                       xlations->stateTreeTbl[matchTreeIndex],
                       accelWidget, procs, matchState->actions);
     }
@@ -1072,14 +1073,14 @@ HandleComplexState(Widget w, IswTM tmRecPtr, TMEventRec *curEventPtr)
 }
 
 void
-_IswTranslateEvent(Widget w, xcb_generic_event_t *event)
+_IswTranslateEvent(Widget w, IswEvent *event)
 {
     IswTM tmRecPtr = &w->core.tm;
     TMEventRec curEvent;
     StatePtr current_state = tmRecPtr->current_state;
 
-    XEventToTMEvent(event, &curEvent);
-    curEvent.dpy = IswDisplayOf(w);  /* dpy not set by XEventToTMEvent; needed by _IswMatchUsingStandardMods */
+    IswEventToTMEvent(event, &curEvent);
+    curEvent.dpy = IswDisplayOf(w);  /* dpy not set by IswEventToTMEvent; used by match procs */
 
     if (!tmRecPtr->translations) {
         IswAppWarningMsg(IswWidgetToApplicationContext(w),
@@ -1202,9 +1203,9 @@ EventToMask(TMTypeMatch typeMatch, TMModifierMatch modMatch)
 static void
 DispatchMappingNotify(Widget widget _X_UNUSED,  /* will be NULL from _RefreshMapping */
                       IswPointer closure,        /* real Widget */
-                      IswPointer call_data)      /* xcb_generic_event_t* */
+                      IswPointer call_data)      /* IswEvent* */
 {
-    _IswTranslateEvent((Widget) closure, (xcb_generic_event_t *) call_data);
+    _IswTranslateEvent((Widget) closure, (IswEvent *) call_data);
 }
 
 static void
@@ -1551,7 +1552,7 @@ _IswAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
     if (!eventSeq->next &&
         eventSeq->actions &&
         !eventSeq->actions->next && !eventSeq->actions->num_params) {
-        if (eventSeq->event.eventType == XCB_MAPPING_NOTIFY)
+        if (eventSeq->event.eventType == IswMappingChanged)
             stateTree->mappingNotifyInterest = True;
         branchHead->hasActions = True;
         IswSetBits(branchHead->more, eventSeq->actions->idx, 13);
@@ -1570,7 +1571,7 @@ _IswAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
     for (;;) {
         *state = NewState(stateTree, typeIndex, modIndex);
 
-        if (eventSeq->event.eventType == XCB_MAPPING_NOTIFY)
+        if (eventSeq->event.eventType == IswMappingChanged)
             stateTree->mappingNotifyInterest = True;
 
         /* *state now points at state record matching event */

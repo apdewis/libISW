@@ -72,17 +72,10 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "ISWPlatformPrivate.h"
 #include "StringDefs.h"
 #include <ctype.h>
 #include <stdlib.h>
-#ifdef HAVE_XKBCOMMON
-#include <xkbcommon/xkbcommon.h>
-#endif
-#ifndef NOTASCII
-#define XK_LATIN1
-#endif
-#define XK_MISCELLANY
-#include <X11/keysymdef.h>
 
 #ifdef CACHE_TRANSLATIONS
 #ifdef REFCNT_TRANSLATIONS
@@ -103,6 +96,12 @@ in this Software without prior written authorization from The Open Group.
 #endif
 
 static _Xconst char *IswNtranslationParseError = "translationParseError";
+
+/* The "Any" modifier wildcard ("Any<Btn1Down>") matches regardless of the
+   modifier state.  It is a translation-manager-private sentinel that must not
+   collide with the real IswModMask bits (0..12) or the other TM-private bits
+   (KeysymModMask 1<<27, AnyButtonMask 1<<28); bit 15 is free. */
+#define TM_ANY_MODIFIER (1L << 15)
 
 typedef int EventType;
 
@@ -138,91 +137,50 @@ typedef struct {
 } NameValueRec, *NameValueTable;
 
 static void ParseModImmed(Value, LateBindingsPtr *, Boolean, Value *);
-static void ParseModSym(Value, LateBindingsPtr *, Boolean, Value *);
+static Boolean _IswLookupModifier(XrmQuark, LateBindingsPtr *, Boolean, Value *, Bool);
 static String PanicModeRecovery(String);
 static String CheckForPoundSign(String, _IswTranslateOp, _IswTranslateOp *);
-static xcb_keysym_t StringToKeySym(String, Boolean *);
+static uint32_t StringToKeySym(String, Boolean *);
 /* *INDENT-OFF* */
 static ModifierRec modifiers[] = {
-    {"Shift",   0,      ParseModImmed, XCB_MOD_MASK_SHIFT},
-    {"Lock",    0,      ParseModImmed, XCB_MOD_MASK_LOCK},
-    {"Ctrl",    0,      ParseModImmed, XCB_MOD_MASK_CONTROL},
-    {"Mod1",    0,      ParseModImmed, XCB_MOD_MASK_1},
-    {"Mod2",    0,      ParseModImmed, XCB_MOD_MASK_2},
-    {"Mod3",    0,      ParseModImmed, XCB_MOD_MASK_3},
-    {"Mod4",    0,      ParseModImmed, XCB_MOD_MASK_4},
-    {"Mod5",    0,      ParseModImmed, XCB_MOD_MASK_5},
-    {"Meta",    0,      ParseModSym,   XK_Meta_L},
-    {"m",       0,      ParseModSym,   XK_Meta_L},
-    {"h",       0,      ParseModSym,   XK_Hyper_L},
-    {"su",      0,      ParseModSym,   XK_Super_L},
-    {"a",       0,      ParseModSym,   XK_Alt_L},
-    {"Hyper",   0,      ParseModSym,   XK_Hyper_L},
-    {"Super",   0,      ParseModSym,   XK_Super_L},
-    {"Alt",     0,      ParseModSym,   XK_Alt_L},
-    {"Button1", 0,      ParseModImmed, XCB_BUTTON_MASK_1},
-    {"Button2", 0,      ParseModImmed, XCB_BUTTON_MASK_2},
-    {"Button3", 0,      ParseModImmed, XCB_BUTTON_MASK_3},
-    {"Button4", 0,      ParseModImmed, XCB_BUTTON_MASK_4},
-    {"Button5", 0,      ParseModImmed, XCB_BUTTON_MASK_5},
-    {"c",       0,      ParseModImmed, XCB_MOD_MASK_CONTROL},
-    {"s",       0,      ParseModImmed, XCB_MOD_MASK_SHIFT},
-    {"l",       0,      ParseModImmed, XCB_MOD_MASK_LOCK},
+    {"Shift",   0,      ParseModImmed, IswModShift},
+    {"Lock",    0,      ParseModImmed, IswModLock},
+    {"Ctrl",    0,      ParseModImmed, IswModControl},
+    {"Mod1",    0,      ParseModImmed, IswModMod1},
+    {"Mod2",    0,      ParseModImmed, IswModMod2},
+    {"Mod3",    0,      ParseModImmed, IswModMod3},
+    {"Mod4",    0,      ParseModImmed, IswModMod4},
+    {"Mod5",    0,      ParseModImmed, IswModMod5},
+    {"Meta",    0,      ParseModImmed, IswModMeta},
+    {"m",       0,      ParseModImmed, IswModMeta},
+    {"h",       0,      ParseModImmed, IswModHyper},
+    {"su",      0,      ParseModImmed, IswModSuper},
+    {"a",       0,      ParseModImmed, IswModAlt},
+    {"Hyper",   0,      ParseModImmed, IswModHyper},
+    {"Super",   0,      ParseModImmed, IswModSuper},
+    {"Alt",     0,      ParseModImmed, IswModAlt},
+    {"Button1", 0,      ParseModImmed, IswModButton1},
+    {"Button2", 0,      ParseModImmed, IswModButton2},
+    {"Button3", 0,      ParseModImmed, IswModButton3},
+    {"Button4", 0,      ParseModImmed, IswModButton4},
+    {"Button5", 0,      ParseModImmed, IswModButton5},
+    {"c",       0,      ParseModImmed, IswModControl},
+    {"s",       0,      ParseModImmed, IswModShift},
+    {"l",       0,      ParseModImmed, IswModLock},
 };
 
 static NameValueRec motionDetails[] = {
-    {"Normal",              0,         XCB_NOTIFY_MODE_NORMAL},
-    {"Hint",                0,         NotifyHint},
+    {"Normal",              0,         0}, /* neutral motion has no Hint detail */
     {NULL,                  NULLQUARK, 0},
 };
 
 static NameValueRec notifyModes[] = {
-    {"Normal",              0,         XCB_NOTIFY_MODE_NORMAL},
-    {"Grab",                0,         XCB_NOTIFY_MODE_GRAB},
-    {"Ungrab",              0,         XCB_NOTIFY_MODE_UNGRAB},
-    {"WhileGrabbed",        0,         XCB_NOTIFY_MODE_WHILE_GRABBED},
+    {"Normal",              0,         IswNotifyNormal},
+    {"Grab",                0,         IswNotifyGrab},
+    {"Ungrab",              0,         IswNotifyUngrab},
     {NULL,                  NULLQUARK, 0},
 };
 
-#if 0
-static NameValueRec notifyDetail[] = {
-    {"Ancestor",            0,         XCB_NOTIFY_DETAIL_ANCESTOR},
-    {"Virtual",             0,         XCB_NOTIFY_DETAIL_VIRTUAL},
-    {"Inferior",            0,         XCB_NOTIFY_DETAIL_INFERIOR},
-    {"Nonlinear",           0,         XCB_NOTIFY_DETAIL_NONLINEAR},
-    {"NonlinearVirtual",    0,         XCB_NOTIFY_DETAIL_NONLINEAR_VIRTUAL},
-    {"Pointer",             0,         XCB_NOTIFY_DETAIL_POINTER},
-    {"PointerRoot",         0,         XCB_NOTIFY_DETAIL_POINTER_ROOT},
-    {"DetailNone",          0,         XCB_NOTIFY_DETAIL_NONE},
-    {NULL,                  NULLQUARK, 0},
-};
-
-static NameValueRec visibilityNotify[] = {
-    {"Unobscured",          0,         XCB_VISIBILITY_UNOBSCURED},
-    {"PartiallyObscured",   0,         XCB_VISIBILITY_PARTIALLY_OBSCURED},
-    {"FullyObscured",       0,         XCB_VISIBILITY_FULLY_OBSCURED},
-    {NULL,                  NULLQUARK, 0},
-};
-
-static NameValueRec circulation[] = {
-    {"OnTop",               0,         XCB_PLACE_ON_TOP},
-    {"OnBottom",            0,         XCB_PLACE_ON_BOTTOM},
-    {NULL,                  NULLQUARK, 0},
-};
-
-static NameValueRec propertyChanged[] = {
-    {"NewValue",            0,         XCB_PROPERTY_NEW_VALUE},
-    {"Delete",              0,         XCB_PROPERTY_DELETE},
-    {NULL,                  NULLQUARK, 0},
-};
-#endif /*0*/
-
-static NameValueRec mappingNotify[] = {
-    {"Modifier",            0,         XCB_MAPPING_MODIFIER},
-    {"Keyboard",            0,         XCB_MAPPING_KEYBOARD},
-    {"Pointer",             0,         XCB_MAPPING_POINTER},
-    {NULL,                  NULLQUARK, 0},
-};
 /* *INDENT-ON* */
 
 static String ParseKeySym(PARSE_PROC_DECL);
@@ -239,134 +197,90 @@ static EventKey events[] = {
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"KeyPress",        NULLQUARK, XCB_KEY_PRESS,        ParseKeySym,    NULL},
-{"Key",             NULLQUARK, XCB_KEY_PRESS,        ParseKeySym,    NULL},
-{"KeyDown",         NULLQUARK, XCB_KEY_PRESS,        ParseKeySym,    NULL},
-{"Ctrl",            NULLQUARK, XCB_KEY_PRESS,        ParseKeyAndModifiers, (Opaque)XCB_MOD_MASK_CONTROL},
-{"Shift",           NULLQUARK, XCB_KEY_PRESS,        ParseKeyAndModifiers, (Opaque)XCB_MOD_MASK_SHIFT},
-{"Meta",            NULLQUARK, XCB_KEY_PRESS,        ParseKeyAndModifiers, (Opaque)NULL},
-{"KeyUp",           NULLQUARK, XCB_KEY_RELEASE,      ParseKeySym,    NULL},
-{"KeyRelease",      NULLQUARK, XCB_KEY_RELEASE,      ParseKeySym,    NULL},
+{"KeyPress",        NULLQUARK, IswKeyDown,          ParseKeySym,    NULL},
+{"Key",             NULLQUARK, IswKeyDown,          ParseKeySym,    NULL},
+{"KeyDown",         NULLQUARK, IswKeyDown,          ParseKeySym,    NULL},
+{"Ctrl",            NULLQUARK, IswKeyDown,          ParseKeyAndModifiers, (Opaque)IswModControl},
+{"Shift",           NULLQUARK, IswKeyDown,          ParseKeyAndModifiers, (Opaque)IswModShift},
+{"Meta",            NULLQUARK, IswKeyDown,          ParseKeyAndModifiers, (Opaque)NULL},
+{"KeyUp",           NULLQUARK, IswKeyUp,            ParseKeySym,    NULL},
+{"KeyRelease",      NULLQUARK, IswKeyUp,            ParseKeySym,    NULL},
 
-{"ButtonPress",     NULLQUARK, XCB_BUTTON_PRESS,     ParseButton, NULL },
-{"BtnDown",         NULLQUARK, XCB_BUTTON_PRESS,     ParseButton, NULL },
-{"Btn1Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_1},
-{"Btn2Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_2},
-{"Btn3Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_3},
-{"Btn4Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_4},
-{"Btn5Down",        NULLQUARK, XCB_BUTTON_PRESS,     ParseImmed, (Opaque)XCB_BUTTON_INDEX_5},
-
-/* Event Name,    Quark, Event Type,    Detail Parser, Closure */
-
-{"ButtonRelease",   NULLQUARK, XCB_BUTTON_RELEASE,   ParseButton, NULL },
-{"BtnUp",           NULLQUARK, XCB_BUTTON_RELEASE,   ParseButton, NULL },
-{"Btn1Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_1},
-{"Btn2Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_2},
-{"Btn3Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_3},
-{"Btn4Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_4},
-{"Btn5Up",          NULLQUARK, XCB_BUTTON_RELEASE,   ParseImmed, (Opaque)XCB_BUTTON_INDEX_5},
-
-{"MotionNotify",    NULLQUARK, XCB_MOTION_NOTIFY,    ParseTable, (Opaque)motionDetails},
-{"PtrMoved",        NULLQUARK, XCB_MOTION_NOTIFY,    ParseTable, (Opaque)motionDetails},
-{"Motion",          NULLQUARK, XCB_MOTION_NOTIFY,    ParseTable, (Opaque)motionDetails},
-{"MouseMoved",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseTable, (Opaque)motionDetails},
-{"BtnMotion",       NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)AnyButtonMask},
-{"Btn1Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_1},
-{"Btn2Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_2},
-{"Btn3Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_3},
-{"Btn4Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_4},
-{"Btn5Motion",      NULLQUARK, XCB_MOTION_NOTIFY,    ParseAddModifier, (Opaque)XCB_BUTTON_MASK_5},
-
-{"EnterNotify",     NULLQUARK, XCB_ENTER_NOTIFY,     ParseTable, (Opaque)notifyModes},
-{"Enter",           NULLQUARK, XCB_ENTER_NOTIFY,     ParseTable, (Opaque)notifyModes},
-{"EnterWindow",     NULLQUARK, XCB_ENTER_NOTIFY,     ParseTable, (Opaque)notifyModes},
-
-{"LeaveNotify",     NULLQUARK, XCB_LEAVE_NOTIFY,     ParseTable, (Opaque)notifyModes},
-{"LeaveWindow",     NULLQUARK, XCB_LEAVE_NOTIFY,     ParseTable, (Opaque)notifyModes},
-{"Leave",           NULLQUARK, XCB_LEAVE_NOTIFY,     ParseTable, (Opaque)notifyModes},
+{"ButtonPress",     NULLQUARK, IswButtonDown,       ParseButton, NULL },
+{"BtnDown",         NULLQUARK, IswButtonDown,       ParseButton, NULL },
+{"Btn1Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonLeft},
+{"Btn2Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonMiddle},
+{"Btn3Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonRight},
+{"Btn4Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonWheelUp},
+{"Btn5Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonWheelDown},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"FocusIn",         NULLQUARK, XCB_FOCUS_IN,         ParseTable, (Opaque)notifyModes},
+{"ButtonRelease",   NULLQUARK, IswButtonUp,         ParseButton, NULL },
+{"BtnUp",           NULLQUARK, IswButtonUp,         ParseButton, NULL },
+{"Btn1Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonLeft},
+{"Btn2Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonMiddle},
+{"Btn3Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonRight},
+{"Btn4Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonWheelUp},
+{"Btn5Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonWheelDown},
 
-{"FocusOut",        NULLQUARK, XCB_FOCUS_OUT,        ParseTable, (Opaque)notifyModes},
+{"MotionNotify",    NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
+{"PtrMoved",        NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
+{"Motion",          NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
+{"MouseMoved",      NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
+{"BtnMotion",       NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)AnyButtonMask},
+{"Btn1Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton1},
+{"Btn2Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton2},
+{"Btn3Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton3},
+{"Btn4Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton4},
+{"Btn5Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton5},
 
-{"KeymapNotify",    NULLQUARK, XCB_KEYMAP_NOTIFY,    ParseNone,      NULL},
-{"Keymap",          NULLQUARK, XCB_KEYMAP_NOTIFY,    ParseNone,      NULL},
+{"EnterNotify",     NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
+{"Enter",           NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
+{"EnterWindow",     NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
 
-{"Expose",          NULLQUARK, XCB_EXPOSE,          ParseNone,      NULL},
-
-{"GraphicsExpose",  NULLQUARK, XCB_GRAPHICS_EXPOSURE,  ParseNone,      NULL},
-{"GrExp",           NULLQUARK, XCB_GRAPHICS_EXPOSURE,  ParseNone,      NULL},
-
-{"NoExpose",        NULLQUARK, NoExpose,        ParseNone,      NULL},
-{"NoExp",           NULLQUARK, NoExpose,        ParseNone,      NULL},
-
-{"VisibilityNotify",NULLQUARK, XCB_VISIBILITY_NOTIFY,ParseNone,      NULL},
-{"Visible",         NULLQUARK, XCB_VISIBILITY_NOTIFY,ParseNone,      NULL},
-
-{"CreateNotify",    NULLQUARK, XCB_CREATE_NOTIFY,    ParseNone,      NULL},
-{"Create",          NULLQUARK, XCB_CREATE_NOTIFY,    ParseNone,      NULL},
-
-/* Event Name,    Quark, Event Type,    Detail Parser, Closure */
-
-{"DestroyNotify",   NULLQUARK, XCB_DESTROY_NOTIFY,   ParseNone,      NULL},
-{"Destroy",         NULLQUARK, XCB_DESTROY_NOTIFY,   ParseNone,      NULL},
-
-{"UnmapNotify",     NULLQUARK, XCB_UNMAP_NOTIFY,     ParseNone,      NULL},
-{"Unmap",           NULLQUARK, XCB_UNMAP_NOTIFY,     ParseNone,      NULL},
-
-{"MapNotify",       NULLQUARK, XCB_MAP_NOTIFY,       ParseNone,      NULL},
-{"Map",             NULLQUARK, XCB_MAP_NOTIFY,       ParseNone,      NULL},
-
-{"MapRequest",      NULLQUARK, XCB_MAP_REQUEST,      ParseNone,      NULL},
-{"MapReq",          NULLQUARK, XCB_MAP_REQUEST,      ParseNone,      NULL},
-
-{"ReparentNotify",  NULLQUARK, XCB_REPARENT_NOTIFY,  ParseNone,      NULL},
-{"Reparent",        NULLQUARK, XCB_REPARENT_NOTIFY,  ParseNone,      NULL},
-
-{"ConfigureNotify", NULLQUARK, XCB_CONFIGURE_NOTIFY, ParseNone,      NULL},
-{"Configure",       NULLQUARK, XCB_CONFIGURE_NOTIFY, ParseNone,      NULL},
-
-{"ConfigureRequest",NULLQUARK, XCB_CONFIGURE_REQUEST,ParseNone,      NULL},
-{"ConfigureReq",    NULLQUARK, XCB_CONFIGURE_REQUEST,ParseNone,      NULL},
+{"LeaveNotify",     NULLQUARK, IswLeave,            ParseTable, (Opaque)notifyModes},
+{"LeaveWindow",     NULLQUARK, IswLeave,            ParseTable, (Opaque)notifyModes},
+{"Leave",           NULLQUARK, IswLeave,            ParseTable, (Opaque)notifyModes},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"GravityNotify",   NULLQUARK, XCB_GRAVITY_NOTIFY,   ParseNone,      NULL},
-{"Grav",            NULLQUARK, XCB_GRAVITY_NOTIFY,   ParseNone,      NULL},
+{"FocusIn",         NULLQUARK, IswFocusIn,          ParseTable, (Opaque)notifyModes},
 
-{"ResizeRequest",   NULLQUARK, XCB_RESIZE_REQUEST,   ParseNone,      NULL},
-{"ResReq",          NULLQUARK, XCB_RESIZE_REQUEST,   ParseNone,      NULL},
+{"FocusOut",        NULLQUARK, IswFocusOut,         ParseTable, (Opaque)notifyModes},
 
-{"CirculateNotify", NULLQUARK, XCB_CIRCULATE_NOTIFY, ParseNone,      NULL},
-{"Circ",            NULLQUARK, XCB_CIRCULATE_NOTIFY, ParseNone,      NULL},
+{"Expose",          NULLQUARK, IswRedraw,           ParseNone,      NULL},
 
-{"CirculateRequest",NULLQUARK, XCB_CIRCULATE_REQUEST,ParseNone,      NULL},
-{"CircReq",         NULLQUARK, XCB_CIRCULATE_REQUEST,ParseNone,      NULL},
-
-{"PropertyNotify",  NULLQUARK, XCB_PROPERTY_NOTIFY,  ParseAtom,      NULL},
-{"Prop",            NULLQUARK, XCB_PROPERTY_NOTIFY,  ParseAtom,      NULL},
-
-{"SelectionClear",  NULLQUARK, XCB_SELECTION_CLEAR,  ParseAtom,      NULL},
-{"SelClr",          NULLQUARK, XCB_SELECTION_CLEAR,  ParseAtom,      NULL},
-
-{"SelectionRequest",NULLQUARK, XCB_SELECTION_REQUEST,ParseAtom,      NULL},
-{"SelReq",          NULLQUARK, XCB_SELECTION_REQUEST,ParseAtom,      NULL},
+{"VisibilityNotify",NULLQUARK, IswVisibility,       ParseNone,      NULL},
+{"Visible",         NULLQUARK, IswVisibility,       ParseNone,      NULL},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"SelectionNotify", NULLQUARK, XCB_SELECTION_NOTIFY, ParseAtom,      NULL},
-{"Select",          NULLQUARK, XCB_SELECTION_NOTIFY, ParseAtom,      NULL},
+{"DestroyNotify",   NULLQUARK, IswDestroy,          ParseNone,      NULL},
+{"Destroy",         NULLQUARK, IswDestroy,          ParseNone,      NULL},
 
-{"ColormapNotify",  NULLQUARK, XCB_COLORMAP_NOTIFY,  ParseNone,      NULL},
-{"Clrmap",          NULLQUARK, XCB_COLORMAP_NOTIFY,  ParseNone,      NULL},
+{"UnmapNotify",     NULLQUARK, IswUnmap,            ParseNone,      NULL},
+{"Unmap",           NULLQUARK, IswUnmap,            ParseNone,      NULL},
 
-{"ClientMessage",   NULLQUARK, XCB_CLIENT_MESSAGE,   ParseAtom,      NULL},
-{"Message",         NULLQUARK, XCB_CLIENT_MESSAGE,   ParseAtom,      NULL},
+{"MapNotify",       NULLQUARK, IswMap,              ParseNone,      NULL},
+{"Map",             NULLQUARK, IswMap,              ParseNone,      NULL},
 
-{"MappingNotify",   NULLQUARK, XCB_MAPPING_NOTIFY,   ParseTable, (Opaque)mappingNotify},
-{"Mapping",         NULLQUARK, XCB_MAPPING_NOTIFY,   ParseTable, (Opaque)mappingNotify},
+{"ReparentNotify",  NULLQUARK, IswReparent,         ParseNone,      NULL},
+{"Reparent",        NULLQUARK, IswReparent,         ParseNone,      NULL},
+
+{"ConfigureNotify", NULLQUARK, IswGeometry,         ParseNone,      NULL},
+{"Configure",       NULLQUARK, IswGeometry,         ParseNone,      NULL},
+
+/* Event Name,    Quark, Event Type,    Detail Parser, Closure */
+
+{"ClientMessage",   NULLQUARK, IswProtocol,         ParseAtom,      NULL},
+{"Message",         NULLQUARK, IswProtocol,         ParseAtom,      NULL},
+
+{"MappingNotify",   NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
+{"Mapping",         NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
+
+{"Close",           NULLQUARK, IswCloseRequest,     ParseNone,      NULL},
+{"WMClose",         NULLQUARK, IswCloseRequest,     ParseNone,      NULL},
 
 #ifdef DEBUG
 # ifdef notdef
@@ -525,57 +439,16 @@ LookupTMEventType(String eventStr, Boolean *error)
     return (Cardinal) i;
 }
 
-static void
-StoreLateBindings(xcb_keysym_t keysymL,
-                  Boolean notL,
-                  xcb_keysym_t keysymR,
-                  Boolean notR,
-                  LateBindingsPtr *lateBindings)
-{
-    LateBindingsPtr temp;
-
-    if (lateBindings != NULL) {
-        Boolean pair = FALSE;
-        unsigned long count;
-        unsigned long number;
-
-        temp = *lateBindings;
-        if (temp != NULL) {
-            for (count = 0; temp[count].keysym; count++) {
-                /*EMPTY*/
-            }
-        }
-        else
-            count = 0;
-        if (!keysymR) {
-            number = 1;
-            pair = FALSE;
-        }
-        else {
-            number = 2;
-            pair = TRUE;
-        }
-
-        temp = IswReallocArray(temp, (Cardinal) (count + number + 1),
-                              (Cardinal) sizeof(LateBindings));
-        *lateBindings = temp;
-        IswSetBit(temp[count].knot, notL);
-        IswSetBit(temp[count].pair, pair);
-        if (count == 0)
-            temp[count].ref_count = 1;
-        temp[count++].keysym = keysymL;
-        if (keysymR) {
-            IswSetBit(temp[count].knot, notR);
-            temp[count].pair = FALSE;
-            temp[count].ref_count = 0;
-            temp[count++].keysym = keysymR;
-        }
-        temp[count].knot = temp[count].pair = FALSE;
-        temp[count].ref_count = 0;
-        temp[count].keysym = 0;
-    }
-}
-
+/*
+ * The "@keysym" modifier syntax historically resolved an arbitrary keysym to
+ * a modifier mask at match time via the keyboard map (late bindings).  In the
+ * neutral model the toolkit no longer carries keysyms, and the late-binding
+ * resolver (_IswComputeLateBindings) has no neutral keysym to map.  We
+ * therefore resolve "@name" directly to its IswModMask bit through the
+ * modifiers[] table, the same way a bare modifier name resolves; an unknown
+ * name is a parse error.  (This drops the rarely-used ability to name a raw
+ * keysym that is not one of the known modifier names.)
+ */
 static void
 _IswParseKeysymMod(String name,
                   LateBindingsPtr *lateBindings,
@@ -583,12 +456,12 @@ _IswParseKeysymMod(String name,
                   Value *valueP,
                   Boolean *error)
 {
-    xcb_keysym_t keySym;
+    XrmQuark signature = XrmStringToQuark(name);
 
-    keySym = StringToKeySym(name, error);
     *valueP = 0;
-    if (keySym != NoSymbol) {
-        StoreLateBindings(keySym, notFlag, (xcb_keysym_t) 0, FALSE, lateBindings);
+    if (!_IswLookupModifier(signature, lateBindings, notFlag, valueP, FALSE)) {
+        Syntax("Unknown modifier keysym name:  ", name);
+        *error = TRUE;
     }
 }
 
@@ -704,7 +577,7 @@ ParseModifiers(register String str, EventPtr event, Boolean *error)
         }
         else if (Qmod == QAny) {        /*backward compatibility */
             event->event.modifierMask = 0;
-            event->event.modifiers = XCB_MOD_MASK_ANY;
+            event->event.modifiers = TM_ANY_MODIFIER;
             ScanWhitespace(str);
             return str;
         }
@@ -858,45 +731,28 @@ StrToNum(String str)
     return val;
 }
 
-static xcb_keysym_t
+/* Resolve a key name to its neutral key identity (IswKey enum value or a
+   Unicode code point for printable keys) — the same vocabulary a dispatched
+   IswEvent carries in key.key.  Leading-digit names stay numeric for
+   backward-compatible "<Key>0x..." forms. */
+static uint32_t
 StringToKeySym(String str, Boolean *error)
 {
-    if (str == NULL || *str == '\0')
-        return (xcb_keysym_t) 0;
+    uint32_t key;
 
-#ifndef NOTASCII
-    /* special case single character ASCII, for speed */
-    if (*(str + 1) == '\0') {
-        if (' ' <= *str && *str <= '~')
-            return (xcb_keysym_t) (XK_space + (*str - ' '));
-    }
-#endif
+    if (str == NULL || *str == '\0')
+        return IswKeyNone;
 
     if ('0' <= *str && *str <= '9')
-        return (xcb_keysym_t) StrToNum(str);
-#ifdef HAVE_XKBCOMMON
-    {
-        xkb_keysym_t xkb_k = xkb_keysym_from_name(str, XKB_KEYSYM_NO_FLAGS);
-        if (xkb_k != XKB_KEY_NoSymbol)
-            return (xcb_keysym_t) xkb_k;
-        /* Also try case-insensitive match */
-        xkb_k = xkb_keysym_from_name(str, XKB_KEYSYM_CASE_INSENSITIVE);
-        if (xkb_k != XKB_KEY_NoSymbol)
-            return (xcb_keysym_t) xkb_k;
+        return (uint32_t) StrToNum(str);
+
+    key = _IswPlatformKeyFromName(str);
+    if (key == IswKeyNone) {
+        Syntax("Unknown keysym name: ", str);
+        *error = TRUE;
+        return IswKeyNone;
     }
-#endif
-
-#ifdef NOTASCII
-    /* fall-back case to preserve backwards compatibility; no-one
-     * should be relying upon this!
-     */
-    if (*(str + 1) == '\0')
-        return (xcb_keysym_t) * str;
-#endif
-
-    Syntax("Unknown keysym name: ", str);
-    *error = TRUE;
-    return NoSymbol;
+    return key;
 }
 
 static void
@@ -906,20 +762,6 @@ ParseModImmed(Value value,
               Value *valueP)
 {
     *valueP = value;
-}
-
-/* is only valid with keysyms that have an _L and _R in their name;
- * and ignores keysym lookup errors (i.e. assumes only valid keysyms)
- */
-static void
-ParseModSym(Value value,
-            LateBindingsPtr *lateBindings, Boolean notFlag, Value *valueP)
-{
-    register xcb_keysym_t keysymL = (xcb_keysym_t) value;
-    register xcb_keysym_t keysymR = keysymL + 1;      /* valid for supported keysyms */
-
-    StoreLateBindings(keysymL, notFlag, keysymR, notFlag, lateBindings);
-    *valueP = 0;
 }
 
 #ifdef sparc
@@ -970,10 +812,14 @@ ParseKeyAndModifiers(String str,
 {
     str = ParseKeySym(str, closure, event, error);
     if ((unsigned long) closure == 0) {
-        Value metaMask;         /* unused */
+        /* "Meta<Key>..." — resolve Meta to its neutral modifier bit. */
+        Value metaMask = 0;
 
-        (void) _IswLookupModifier(QMeta, &event->event.lateModifiers, FALSE,
-                                 &metaMask, FALSE);
+        if (_IswLookupModifier(QMeta, &event->event.lateModifiers, FALSE,
+                              &metaMask, FALSE)) {
+            event->event.modifiers |= metaMask;
+            event->event.modifierMask |= metaMask;
+        }
     }
     else {
         event->event.modifiers |= (unsigned long) closure;
@@ -1040,10 +886,11 @@ ParseKeySym(register String str,
         IswStackFree(keySymName, keySymNamebuf);
         return PanicModeRecovery(str);
     }
-    if (event->event.standard)
-        event->event.matchEvent = _IswMatchUsingStandardMods;
-    else
-        event->event.matchEvent = _IswMatchUsingDontCareMods;
+    /* Neutral key identity is already resolved at translate time, so there is
+       no keycode->keysym resolution to do at match time.  The key matcher still
+       case-folds letters so "<Key>A" matches a lowercase 'a' key event, the way
+       the X standard-mods matcher did. */
+    event->event.matchEvent = _IswMatchUsingStandardMods;
 
     IswStackFree(keySymName, keySymNamebuf);
 
@@ -1170,7 +1017,7 @@ ParseAtom(String str, Opaque closure _X_UNUSED, EventPtr event, Boolean *error)
 }
 
 static ModifierMask buttonModifierMasks[] = {
-    0, XCB_BUTTON_MASK_1, XCB_BUTTON_MASK_2, XCB_BUTTON_MASK_3, XCB_BUTTON_MASK_4, XCB_BUTTON_MASK_5
+    0, IswModButton1, IswModButton2, IswModButton3, IswModButton4, IswModButton5
 };
 
 static String ParseRepeat(String, int *, Boolean *, Boolean *);
@@ -1217,9 +1064,9 @@ ParseEvent(register String str,
 /* gross hack! ||| this kludge is related to the X11 protocol deficiency w.r.t.
  * modifiers in grabs.
  */
-    if ((event->event.eventType == XCB_BUTTON_RELEASE)
+    if ((event->event.eventType == IswButtonUp)
         && (event->event.modifiers | event->event.modifierMask) /* any */
-        &&(event->event.modifiers != XCB_MOD_MASK_ANY)) {
+        &&(event->event.modifiers != TM_ANY_MODIFIER)) {
         event->event.modifiers = (event->event.modifiers
                                   | (TMLongCard) buttonModifierMasks[event->
                                                                      event.
@@ -1240,12 +1087,15 @@ ParseQuotedStringEvent(register String str,
 
     if (*str == '^') {
         str++;
-        event->event.modifiers = XCB_MOD_MASK_CONTROL;
+        event->event.modifiers = IswModControl;
     }
     else if (*str == '$') {
         str++;
-        (void) _IswLookupModifier(QMeta, &event->event.lateModifiers, FALSE,
-                                 &metaMask, FALSE);
+        if (_IswLookupModifier(QMeta, &event->event.lateModifiers, FALSE,
+                              &metaMask, FALSE)) {
+            event->event.modifiers |= metaMask;
+            event->event.modifierMask |= metaMask;
+        }
     }
     if (*str == '\\')
         str++;
@@ -1253,7 +1103,7 @@ ParseQuotedStringEvent(register String str,
     s[1] = '\0';
     if (*str != '\0' && !IsNewline(*str))
         str++;
-    event->event.eventType = XCB_KEY_PRESS;
+    event->event.eventType = IswKeyDown;
     event->event.eventCode = StringToKeySym(s, error);
     if (*error)
         return PanicModeRecovery(str);
@@ -1281,10 +1131,10 @@ RepeatDown(EventPtr *eventP, int reps, ActionPtr **actionsP)
 
     downEvent = event = *eventP;
     *upEvent = *downEvent;
-    upEvent->event.eventType = ((event->event.eventType == XCB_BUTTON_PRESS) ?
-                                XCB_BUTTON_RELEASE : XCB_KEY_RELEASE);
-    if ((upEvent->event.eventType == XCB_BUTTON_RELEASE)
-        && (upEvent->event.modifiers != XCB_MOD_MASK_ANY)
+    upEvent->event.eventType = ((event->event.eventType == IswButtonDown) ?
+                                IswButtonUp : IswKeyUp);
+    if ((upEvent->event.eventType == IswButtonUp)
+        && (upEvent->event.modifiers != TM_ANY_MODIFIER)
         && (upEvent->event.modifiers | upEvent->event.modifierMask))
         upEvent->event.modifiers = (upEvent->event.modifiers
                                     | (TMLongCard) buttonModifierMasks[event->
@@ -1330,10 +1180,10 @@ RepeatDownPlus(EventPtr *eventP, int reps, ActionPtr **actionsP)
 
     downEvent = event = *eventP;
     *upEvent = *downEvent;
-    upEvent->event.eventType = ((event->event.eventType == XCB_BUTTON_PRESS) ?
-                                XCB_BUTTON_RELEASE : XCB_KEY_RELEASE);
-    if ((upEvent->event.eventType == XCB_BUTTON_RELEASE)
-        && (upEvent->event.modifiers != XCB_MOD_MASK_ANY)
+    upEvent->event.eventType = ((event->event.eventType == IswButtonDown) ?
+                                IswButtonUp : IswKeyUp);
+    if ((upEvent->event.eventType == IswButtonUp)
+        && (upEvent->event.modifiers != TM_ANY_MODIFIER)
         && (upEvent->event.modifiers | upEvent->event.modifierMask))
         upEvent->event.modifiers = (upEvent->event.modifiers
                                     | (TMLongCard) buttonModifierMasks[event->
@@ -1386,10 +1236,10 @@ RepeatUp(EventPtr *eventP, int reps, ActionPtr **actionsP)
 
     downEvent = event = *eventP;
     *upEvent = *downEvent;
-    downEvent->event.eventType = ((event->event.eventType == XCB_BUTTON_RELEASE) ?
-                                  XCB_BUTTON_PRESS : XCB_KEY_PRESS);
-    if ((downEvent->event.eventType == XCB_BUTTON_PRESS)
-        && (downEvent->event.modifiers != XCB_MOD_MASK_ANY)
+    downEvent->event.eventType = ((event->event.eventType == IswButtonUp) ?
+                                  IswButtonDown : IswKeyDown);
+    if ((downEvent->event.eventType == IswButtonDown)
+        && (downEvent->event.modifiers != TM_ANY_MODIFIER)
         && (downEvent->event.modifiers | downEvent->event.modifierMask))
         downEvent->event.modifiers = (downEvent->event.modifiers
                                       &
@@ -1444,10 +1294,10 @@ RepeatUpPlus(EventPtr *eventP, int reps, ActionPtr **actionsP)
 
     downEvent = event = *eventP;
     *upEvent = *downEvent;
-    downEvent->event.eventType = ((event->event.eventType == XCB_BUTTON_RELEASE) ?
-                                  XCB_BUTTON_PRESS : XCB_KEY_PRESS);
-    if ((downEvent->event.eventType == XCB_BUTTON_PRESS)
-        && (downEvent->event.modifiers != XCB_MOD_MASK_ANY)
+    downEvent->event.eventType = ((event->event.eventType == IswButtonUp) ?
+                                  IswButtonDown : IswKeyDown);
+    if ((downEvent->event.eventType == IswButtonDown)
+        && (downEvent->event.modifiers != TM_ANY_MODIFIER)
         && (downEvent->event.modifiers | downEvent->event.modifierMask))
         downEvent->event.modifiers = (downEvent->event.modifiers
                                       &
@@ -1532,16 +1382,16 @@ RepeatEvent(EventPtr *eventP, int reps, Boolean plus, ActionPtr **actionsP)
 {
     switch ((*eventP)->event.eventType) {
 
-    case XCB_BUTTON_PRESS:
-    case XCB_KEY_PRESS:
+    case IswButtonDown:
+    case IswKeyDown:
         if (plus)
             RepeatDownPlus(eventP, reps, actionsP);
         else
             RepeatDown(eventP, reps, actionsP);
         break;
 
-    case XCB_BUTTON_RELEASE:
-    case XCB_KEY_RELEASE:
+    case IswButtonUp:
+    case IswKeyUp:
         if (plus)
             RepeatUpPlus(eventP, reps, actionsP);
         else
@@ -2220,13 +2070,6 @@ _IswTranslateInitialize(void)
     Compile_XtModifierTable(modifiers, IswNumber(modifiers));
     CompileNameValueTable(notifyModes);
     CompileNameValueTable(motionDetails);
-#if 0
-    CompileNameValueTable(notifyDetail);
-    CompileNameValueTable(visibilityNotify);
-    CompileNameValueTable(circulation);
-    CompileNameValueTable(propertyChanged);
-#endif
-    CompileNameValueTable(mappingNotify);
 }
 
 void

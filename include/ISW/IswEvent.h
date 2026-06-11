@@ -44,6 +44,12 @@ typedef uint32_t IswEventTarget;
 /* Event timestamp in milliseconds, monotonic per backend. */
 typedef uint32_t IswTime;
 
+/* Neutral identity of a protocol-message type (the interned name's id).  The
+ * translation manager matches a parsed message name against this; widgets and
+ * shells compare it to a known interned id.  Numerically equal to the backend
+ * atom on X11, but carried as a neutral id so this header stays type-pure. */
+typedef uint32_t IswProtocolId;
+
 /*
  * -----------------------------------------------------------------------
  * Event kinds — the categories the toolkit dispatches on
@@ -62,10 +68,13 @@ typedef enum {
     IswFocusOut,
     IswRedraw,          /* damage / expose                          */
     IswGeometry,        /* position/size changed (configure)        */
+    IswReparent,        /* window re-parented (position validity)   */
     IswMap,
     IswUnmap,
     IswVisibility,
     IswDestroy,
+    IswMappingChanged,  /* keyboard mapping changed (refresh maps)  */
+    IswProtocol,        /* generic protocol message (client message) */
     IswCloseRequest     /* user asked to close the window           */
 } IswEventKind;
 
@@ -74,16 +83,35 @@ typedef enum {
  * Modifier mask — neutral names the translation manager matches against
  * -----------------------------------------------------------------------
  */
+/*
+ * Bit positions match the X11 wire modifier/button layout (Shift=0, Lock=1,
+ * Control=2, Mod1..Mod5 = 3..7, Button1..Button5 = 8..12) so the backend copies
+ * the native modifier word straight through with no remap and the translation
+ * manager preserves every distinction a table can express (<Mod3>, <Button4>).
+ * The semantic names (Alt/Super/Meta/Hyper) are aliases onto the raw Mod bits
+ * the backend's keymap assigns them to; widget code branches on the semantic
+ * names, translation tables may use either.
+ */
 typedef enum {
     IswModShift   = 1u << 0,
     IswModLock    = 1u << 1,   /* caps lock */
     IswModControl = 1u << 2,
-    IswModAlt     = 1u << 3,
-    IswModSuper   = 1u << 4,   /* "windows" / command */
-    IswModMeta    = 1u << 5,
+    IswModMod1    = 1u << 3,
+    IswModMod2    = 1u << 4,
+    IswModMod3    = 1u << 5,
+    IswModMod4    = 1u << 6,
+    IswModMod5    = 1u << 7,
     IswModButton1 = 1u << 8,
     IswModButton2 = 1u << 9,
-    IswModButton3 = 1u << 10
+    IswModButton3 = 1u << 10,
+    IswModButton4 = 1u << 11,
+    IswModButton5 = 1u << 12,
+
+    /* Semantic aliases (mapped onto raw Mod bits by the backend keymap). */
+    IswModAlt     = IswModMod1, /* typically Mod1 */
+    IswModMeta    = IswModMod2,
+    IswModSuper   = IswModMod4, /* "windows" / command, typically Mod4 */
+    IswModHyper   = IswModMod3
 } IswModMask;
 
 /* How a crossing/focus transition was caused — X's
@@ -218,13 +246,36 @@ typedef struct {
     ISW_EVENT_HEADER;
     int16_t     x, y;
     uint16_t    width, height;
+    uint16_t    border_width;
 } IswGeometryEvent;
+
+/* Reparent: the window's parent changed.  x,y are the new origin in logical
+ * px; to_root is true when re-parented directly to the screen root (the only
+ * distinction shells make for position-validity tracking). */
+typedef struct {
+    ISW_EVENT_HEADER;
+    int16_t     x, y;
+    uint8_t     to_root;
+} IswReparentEvent;
 
 /* Structure: map / unmap / destroy / visibility. */
 typedef struct {
     ISW_EVENT_HEADER;
     uint8_t     visibility;  /* 0 unobscured, 1 partial, 2 fully obscured */
 } IswStructureEvent;
+
+/* Generic protocol message (X11 client message and equivalents).  message_type
+ * is the neutral id of the message-type name the translation manager matches
+ * against; data carries the message's payload words (XdndPosition coords, tray
+ * opcodes, WM_PROTOCOLS protocol atom, ...).  Pure protocol the toolkit core
+ * does not interpret — widgets/shells/backend services decode data by
+ * message_type. */
+typedef struct {
+    ISW_EVENT_HEADER;
+    IswProtocolId message_type;
+    uint8_t       format;       /* 8, 16 or 32: width of each data word */
+    uint32_t      data[5];      /* up to 5 32-bit words (X client-message data) */
+} IswProtocolEvent;
 
 /* ClientMessage / protocol close request carries no neutral payload beyond
  * the header — the backend has already decided it is a close request. */
@@ -252,7 +303,9 @@ typedef union _IswEvent {
     IswFocusEvent     focus;
     IswRedrawEvent    redraw;
     IswGeometryEvent  geometry;
+    IswReparentEvent  reparent;
     IswStructureEvent structure;
+    IswProtocolEvent  protocol;
 } IswEvent;
 
 /*

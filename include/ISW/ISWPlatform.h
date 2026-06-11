@@ -838,6 +838,13 @@ extern Boolean _IswPlatformQueryPointer(IswDisplay dpy, IswWindow win,
                                         int *win_x, int *win_y,
                                         IswModMask *mods, IswWindow *child);
 
+/* Resolve a key name ("a", "Return", "Escape") to a neutral key identity:
+   an IswKey enum value, or a Unicode code point for printable keys — the same
+   vocabulary carried in IswKeyEvent.key.  Returns IswKeyNone (0) if unknown.
+   Used by the translation-table parser so "<Key>Return" matches the neutral
+   key identity in a dispatched IswEvent. */
+extern uint32_t _IswPlatformKeyFromName(const char *name);
+
 /* Atom */
 extern Atom    _IswPlatformInternAtomOp(IswDisplay dpy, const char *name,
                                         Boolean only_if_exists);

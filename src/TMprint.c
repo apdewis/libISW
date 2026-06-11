@@ -74,9 +74,6 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include "ISWPlatformPrivate.h"
 #include <stdio.h>
-#ifdef HAVE_XKBCOMMON
-#include <xkbcommon/xkbcommon.h>
-#endif
 
 typedef struct _TMStringBufRec {
     _IswString start;
@@ -135,22 +132,22 @@ PrintModifiers(TMStringBuf sb, unsigned long mask, unsigned long mod)
         sb->current += strlen(sb->current);             \
     }
 
-    PRINTMOD(XCB_MOD_MASK_SHIFT, "Shift");
-    PRINTMOD(XCB_MOD_MASK_CONTROL, "Ctrl");      /* name is not CtrlMask... */
-    PRINTMOD(XCB_MOD_MASK_LOCK, "Lock");
-    PRINTMOD(XCB_MOD_MASK_1, "Mod1");
+    PRINTMOD(IswModShift, "Shift");
+    PRINTMOD(IswModControl, "Ctrl");      /* name is not CtrlMask... */
+    PRINTMOD(IswModLock, "Lock");
+    PRINTMOD(IswModMod1, "Mod1");
     CHECK_STR_OVERFLOW(sb);
-    PRINTMOD(XCB_MOD_MASK_2, "Mod2");
-    PRINTMOD(XCB_MOD_MASK_3, "Mod3");
-    PRINTMOD(XCB_MOD_MASK_4, "Mod4");
-    PRINTMOD(XCB_MOD_MASK_5, "Mod5");
+    PRINTMOD(IswModMod2, "Mod2");
+    PRINTMOD(IswModMod3, "Mod3");
+    PRINTMOD(IswModMod4, "Mod4");
+    PRINTMOD(IswModMod5, "Mod5");
     CHECK_STR_OVERFLOW(sb);
-    PRINTMOD(XCB_BUTTON_MASK_1, "Button1");
-    PRINTMOD(XCB_BUTTON_MASK_2, "Button2");
-    PRINTMOD(XCB_BUTTON_MASK_3, "Button3");
+    PRINTMOD(IswModButton1, "Button1");
+    PRINTMOD(IswModButton2, "Button2");
+    PRINTMOD(IswModButton3, "Button3");
     CHECK_STR_OVERFLOW(sb);
-    PRINTMOD(XCB_BUTTON_MASK_4, "Button4");
-    PRINTMOD(XCB_BUTTON_MASK_5, "Button5");
+    PRINTMOD(IswModButton4, "Button4");
+    PRINTMOD(IswModButton5, "Button5");
     (void) notfirst;
 
 #undef PRINTMOD
@@ -162,38 +159,25 @@ PrintEventType(TMStringBuf sb, unsigned long event)
     CHECK_STR_OVERFLOW(sb);
     switch (event) {
 #define PRINTEVENT(event, name) case event: (void) strcpy(sb->current, name); break;
-        PRINTEVENT(XCB_KEY_PRESS, "<KeyPress>")
-            PRINTEVENT(XCB_KEY_RELEASE, "<KeyRelease>")
-            PRINTEVENT(XCB_BUTTON_PRESS, "<ButtonPress>")
-            PRINTEVENT(XCB_BUTTON_RELEASE, "<ButtonRelease>")
-            PRINTEVENT(XCB_MOTION_NOTIFY, "<MotionNotify>")
-            PRINTEVENT(XCB_ENTER_NOTIFY, "<EnterNotify>")
-            PRINTEVENT(XCB_LEAVE_NOTIFY, "<LeaveNotify>")
-            PRINTEVENT(XCB_FOCUS_IN, "<FocusIn>")
-            PRINTEVENT(XCB_FOCUS_OUT, "<FocusOut>")
-            PRINTEVENT(XCB_KEYMAP_NOTIFY, "<KeymapNotify>")
-            PRINTEVENT(XCB_EXPOSE, "<Expose>")
-            PRINTEVENT(XCB_GRAPHICS_EXPOSURE, "<GraphicsExpose>")
-            PRINTEVENT(NoExpose, "<NoExpose>")
-            PRINTEVENT(XCB_VISIBILITY_NOTIFY, "<VisibilityNotify>")
-            PRINTEVENT(XCB_CREATE_NOTIFY, "<CreateNotify>")
-            PRINTEVENT(XCB_DESTROY_NOTIFY, "<DestroyNotify>")
-            PRINTEVENT(XCB_UNMAP_NOTIFY, "<UnmapNotify>")
-            PRINTEVENT(XCB_MAP_NOTIFY, "<MapNotify>")
-            PRINTEVENT(XCB_MAP_REQUEST, "<MapRequest>")
-            PRINTEVENT(XCB_REPARENT_NOTIFY, "<ReparentNotify>")
-            PRINTEVENT(XCB_CONFIGURE_NOTIFY, "<ConfigureNotify>")
-            PRINTEVENT(XCB_CONFIGURE_REQUEST, "<ConfigureRequest>")
-            PRINTEVENT(XCB_GRAVITY_NOTIFY, "<GravityNotify>")
-            PRINTEVENT(XCB_RESIZE_REQUEST, "<ResizeRequest>")
-            PRINTEVENT(XCB_CIRCULATE_NOTIFY, "<CirculateNotify>")
-            PRINTEVENT(XCB_CIRCULATE_REQUEST, "<CirculateRequest>")
-            PRINTEVENT(XCB_PROPERTY_NOTIFY, "<PropertyNotify>")
-            PRINTEVENT(XCB_SELECTION_CLEAR, "<SelectionClear>")
-            PRINTEVENT(XCB_SELECTION_REQUEST, "<SelectionRequest>")
-            PRINTEVENT(XCB_SELECTION_NOTIFY, "<SelectionNotify>")
-            PRINTEVENT(XCB_COLORMAP_NOTIFY, "<ColormapNotify>")
-            PRINTEVENT(XCB_CLIENT_MESSAGE, "<ClientMessage>")
+        PRINTEVENT(IswKeyDown, "<KeyPress>")
+            PRINTEVENT(IswKeyUp, "<KeyRelease>")
+            PRINTEVENT(IswButtonDown, "<ButtonPress>")
+            PRINTEVENT(IswButtonUp, "<ButtonRelease>")
+            PRINTEVENT(IswMotion, "<MotionNotify>")
+            PRINTEVENT(IswEnter, "<EnterNotify>")
+            PRINTEVENT(IswLeave, "<LeaveNotify>")
+            PRINTEVENT(IswFocusIn, "<FocusIn>")
+            PRINTEVENT(IswFocusOut, "<FocusOut>")
+            PRINTEVENT(IswRedraw, "<Expose>")
+            PRINTEVENT(IswVisibility, "<VisibilityNotify>")
+            PRINTEVENT(IswDestroy, "<DestroyNotify>")
+            PRINTEVENT(IswUnmap, "<UnmapNotify>")
+            PRINTEVENT(IswMap, "<MapNotify>")
+            PRINTEVENT(IswReparent, "<ReparentNotify>")
+            PRINTEVENT(IswGeometry, "<ConfigureNotify>")
+            PRINTEVENT(IswMappingChanged, "<MappingNotify>")
+            PRINTEVENT(IswProtocol, "<ClientMessage>")
+            PRINTEVENT(IswCloseRequest, "<Close>")
     case _IswEventTimerEventType:
         (void) strcpy(sb->current, "<EventTimer>");
         break;
@@ -218,28 +202,29 @@ PrintCode(TMStringBuf sb, unsigned long mask, unsigned long code)
 }
 
 static void
-PrintKeysym(TMStringBuf sb, xcb_keysym_t keysym)
+PrintKeysym(TMStringBuf sb, uint32_t key)
 {
-    String keysymName;
+    String keysymName = NULL;
 
-    if (keysym == 0)
+    if (key == 0)
         return;
 
     CHECK_STR_OVERFLOW(sb);
-#ifdef HAVE_XKBCOMMON
+    /* key is a neutral IswKey / Unicode code point.  A printable ASCII code
+       point prints as the character itself; everything else (non-ASCII code
+       points and the non-printable IswKey enum values above the Unicode range)
+       prints as a numeric code. */
     {
-        static char keysym_name_buf[64];
-        if (xkb_keysym_get_name((xkb_keysym_t) keysym,
-                                keysym_name_buf, sizeof(keysym_name_buf)) > 0)
-            keysymName = keysym_name_buf;
-        else
-            keysymName = NULL;
+        static char keyNameBuf[2];
+
+        if (key >= ' ' && key <= '~') {
+            keyNameBuf[0] = (char) key;
+            keyNameBuf[1] = '\0';
+            keysymName = keyNameBuf;
+        }
     }
-#else
-    keysymName = NULL; /* fallback: no keysym name available */
-#endif
     if (keysymName == NULL)
-        PrintCode(sb, ~0UL, (unsigned long) keysym);
+        PrintCode(sb, ~0UL, (unsigned long) key);
     else {
         ExpandToFit(sb, keysymName);
         strcpy(sb->current, keysymName);
@@ -284,18 +269,10 @@ PrintLateModifiers(TMStringBuf sb, LateBindingsPtr lateModifiers)
         else {
             *sb->current++ = ' ';
         }
-#ifdef HAVE_XKBCOMMON
-        {
-            char keysym_name_buf[64];
-            if (xkb_keysym_get_name((xkb_keysym_t) lateModifiers->keysym,
-                                    keysym_name_buf, sizeof(keysym_name_buf)) > 0)
-                strcpy(sb->current, keysym_name_buf);
-            else
-                strcpy(sb->current, "?");
-        }
-#else
+        /* Late-bound keysym modifiers are no longer produced in the neutral
+           model (the @keysym path resolves to a direct modifier bit); if any
+           legacy binding is present its raw value is shown numerically. */
         strcpy(sb->current, "?");
-#endif
         sb->current += strlen(sb->current);
         if (lateModifiers->pair) {
             *(sb->current -= 2) = '\0'; /* strip "_L" */
@@ -318,16 +295,12 @@ PrintEvent(TMStringBuf sb,
         PrintLateModifiers(sb, modMatch->lateModifiers);
     PrintEventType(sb, typeMatch->eventType);
     switch (typeMatch->eventType) {
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE:
-        PrintKeysym(sb, (xcb_keysym_t) typeMatch->eventCode);
+    case IswKeyDown:
+    case IswKeyUp:
+        PrintKeysym(sb, (uint32_t) typeMatch->eventCode);
         break;
 
-    case XCB_PROPERTY_NOTIFY:
-    case XCB_SELECTION_CLEAR:
-    case XCB_SELECTION_REQUEST:
-    case XCB_SELECTION_NOTIFY:
-    case XCB_CLIENT_MESSAGE:
+    case IswProtocol:
         PrintAtom(sb, dpy, (Atom) typeMatch->eventCode);
         break;
 
@@ -432,10 +405,10 @@ LookAheadForCycleOrMulticlick(register StatePtr state,
             unsigned int type = (unsigned) sTypeMatch->eventType;
             unsigned int t = (unsigned) typeMatch->eventType;
 
-            if ((type == XCB_BUTTON_PRESS && t != XCB_BUTTON_RELEASE)
-                || (type == XCB_BUTTON_RELEASE && t != XCB_BUTTON_PRESS)
-                || (type == XCB_KEY_PRESS && t != XCB_KEY_RELEASE)
-                || (type == XCB_KEY_RELEASE && t != XCB_KEY_PRESS)
+            if ((type == IswButtonDown && t != IswButtonUp)
+                || (type == IswButtonUp && t != IswButtonDown)
+                || (type == IswKeyDown && t != IswKeyUp)
+                || (type == IswKeyUp && t != IswKeyDown)
                 || typeMatch->eventCode != sTypeMatch->eventCode
                 || modMatch->modifiers != sModMatch->modifiers
                 || modMatch->modifierMask != sModMatch->modifierMask
@@ -793,10 +766,10 @@ _IswDisplayInstalledAccelerators(Widget widget,
                                 String *params _X_UNUSED,
                                 Cardinal *num_params _X_UNUSED)
 {
-    ISW_NATIVE_EVENT(iswev);
     Widget eventWidget;
     IswDisplay dpy = IswDisplayOf(widget);
-    IswWindow window = _IswXcbWindowWrap(get_event_window(event));
+    IswWindow window =
+        _IswPlatformWindowFromId(dpy, (IswWindowId) iswev->any.target);
     eventWidget = IswWindowToWidget(dpy, window);
     register Cardinal i;
     TMStringBufRec sbRec, *sb = &sbRec;

@@ -5,11 +5,14 @@
  *
  * Translates native xcb_generic_event_t into the toolkit's platform-neutral
  * IswEvent (include/ISW/IswEvent.h).  This is the XCB platform backend's event
- * path: only the toolkit-semantic event kinds are produced here.  X11 protocol
- * events (selection, property, client-message, mapping, ...) are NOT translated
- * — they are handled inside their respective backend modules (Selection.c,
- * ISWPlatformDndXCB.c, IswTrayIcon.c, keyboard mapping) and never become an
- * IswEvent.
+ * path: the toolkit-semantic event kinds are produced here, including the few
+ * protocol events the toolkit branches on once given a neutral form — keyboard
+ * mapping change (IswMappingChanged), window re-parent (IswReparent) and the
+ * WM close request (IswCloseRequest, decoded from the WM_DELETE_WINDOW client
+ * message).  Pure protocol events (selection, property, drag-and-drop, tray
+ * docking, and any non-close client message) are NOT translated — they are
+ * handled inside their respective backend modules (Selection.c,
+ * ISWPlatformDndXCB.c, IswTrayIcon.c) and never become an IswEvent.
  *
  * Folds in, at the translation boundary, the work the dispatch core used to do
  * inline: keysym → neutral key identity + UTF-8.  (HiDPI descale stays in the
@@ -38,17 +41,11 @@
 static uint16_t
 xcb_state_to_modmask(uint16_t state)
 {
-    uint16_t m = 0;
-    if (state & XCB_MOD_MASK_SHIFT)   m |= IswModShift;
-    if (state & XCB_MOD_MASK_LOCK)    m |= IswModLock;
-    if (state & XCB_MOD_MASK_CONTROL) m |= IswModControl;
-    if (state & XCB_MOD_MASK_1)       m |= IswModAlt;
-    if (state & XCB_MOD_MASK_4)       m |= IswModSuper;
-    if (state & XCB_MOD_MASK_2)       m |= IswModMeta;  /* commonly numlock; see note */
-    if (state & XCB_BUTTON_MASK_1)    m |= IswModButton1;
-    if (state & XCB_BUTTON_MASK_2)    m |= IswModButton2;
-    if (state & XCB_BUTTON_MASK_3)    m |= IswModButton3;
-    return m;
+    /* IswModMask bit positions match the X11 wire layout (Shift=0 .. Button5=12),
+       so the modifier/button portion of the native state word copies straight
+       through.  Mask to the 13 defined bits; higher X state bits are not
+       toolkit modifiers. */
+    return (uint16_t) (state & 0x1FFF);
 }
 
 /* ---- keysym → neutral key identity ---------------------------------------- */
@@ -115,6 +112,33 @@ keysym_to_key(xcb_keysym_t ks, uint32_t *unicode, char text[8])
         return cp;
     }
     return IswKeyNone;
+}
+
+/* Resolve a key name to a neutral key identity (IswKey / Unicode code point),
+   matching the vocabulary keysym_to_key produces for dispatched events.  The
+   translation-table parser calls this so "<Key>Return" matches IswKeyReturn. */
+uint32_t
+_IswPlatformKeyFromName(const char *name)
+{
+    xkb_keysym_t ks;
+    uint32_t unicode;
+    char text[8];
+
+    if (name == NULL || name[0] == '\0')
+        return IswKeyNone;
+
+    /* Single printable ASCII char: its code point is its identity. */
+    if (name[1] == '\0' && (unsigned char) name[0] >= ' ' &&
+        (unsigned char) name[0] <= '~')
+        return (uint32_t) (unsigned char) name[0];
+
+    ks = xkb_keysym_from_name(name, XKB_KEYSYM_NO_FLAGS);
+    if (ks == XKB_KEY_NoSymbol)
+        ks = xkb_keysym_from_name(name, XKB_KEYSYM_CASE_INSENSITIVE);
+    if (ks == XKB_KEY_NoSymbol)
+        return IswKeyNone;
+
+    return keysym_to_key((xcb_keysym_t) ks, &unicode, text);
 }
 
 /*
@@ -247,6 +271,22 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->geometry.y = e->y;
         out->geometry.width = (uint16_t) (int16_t) e->width;
         out->geometry.height = (uint16_t) (int16_t) e->height;
+        out->geometry.border_width = (uint16_t) e->border_width;
+        return True;
+    }
+    case XCB_REPARENT_NOTIFY: {
+        xcb_reparent_notify_event_t *e = (xcb_reparent_notify_event_t *) xev;
+        xcb_screen_t *screen = _IswXcbScreen(_IswDefaultScreenOf(dpy));
+        out->kind = IswReparent;
+        out->reparent.target = e->window;
+        out->reparent.x = e->x;
+        out->reparent.y = e->y;
+        out->reparent.to_root =
+            (screen != NULL && e->parent == screen->root) ? 1 : 0;
+        return True;
+    }
+    case XCB_MAPPING_NOTIFY: {
+        out->kind = IswMappingChanged;
         return True;
     }
     case XCB_MAP_NOTIFY: {
@@ -272,6 +312,32 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->kind = IswVisibility;
         out->structure.target = e->window;
         out->structure.visibility = e->state;
+        return True;
+    }
+    case XCB_CLIENT_MESSAGE: {
+        xcb_client_message_event_t *e = (xcb_client_message_event_t *) xev;
+        xcb_atom_t wm_protocols =
+            _IswPlatformInternAtomOp(dpy, "WM_PROTOCOLS", True);
+        xcb_atom_t wm_delete_window =
+            _IswPlatformInternAtomOp(dpy, "WM_DELETE_WINDOW", True);
+        int i;
+        /* The WM close request is its own toolkit-semantic kind. */
+        if (wm_protocols != 0 && wm_delete_window != 0 &&
+            e->type == wm_protocols &&
+            e->data.data32[0] == wm_delete_window) {
+            out->kind = IswCloseRequest;
+            out->any.target = e->window;
+            return True;
+        }
+        /* Every other client message becomes a generic protocol event so the
+           translation manager can match it by message-type name and widgets /
+           shells / backend services can decode its payload. */
+        out->kind = IswProtocol;
+        out->protocol.target = e->window;
+        out->protocol.message_type = (IswProtocolId) e->type;
+        out->protocol.format = e->format;
+        for (i = 0; i < 5; i++)
+            out->protocol.data[i] = e->data.data32[i];
         return True;
     }
     default:

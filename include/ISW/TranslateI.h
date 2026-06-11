@@ -286,7 +286,7 @@ typedef EventSeqPtr EventPtr;
 
 typedef struct _TMEventRec {
     IswDisplay dpy;
-    xcb_generic_event_t *xev;
+    IswEvent *iswev;
     Event event;
 }TMEventRec;
 
@@ -431,7 +431,7 @@ extern Boolean _IswMatchAtom(
 
 extern void _IswTranslateEvent(
     Widget		/* widget */,
-    xcb_generic_event_t*		/* event */
+    IswEvent*		/* event */
 );
 
 #include "CallbackI.h"
