@@ -257,7 +257,7 @@ ChildEventHandler(Widget child, IswPointer closure,
 static void
 InstallChildHandlers(Widget child, Widget listbox)
 {
-    IswAddEventHandler(child, XCB_EVENT_MASK_BUTTON_PRESS, False,
+    IswAddEventHandler(child, IswButtonPressMask, False,
                        ChildEventHandler, (IswPointer)listbox);
 
     if (IswIsComposite(child)) {
@@ -568,14 +568,14 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
     ListBoxWidget lbw = (ListBoxWidget)IswParent(child);
     (void)reply;
 
-    if ((request->request_mode & XCB_CONFIG_WINDOW_X) ||
-        (request->request_mode & XCB_CONFIG_WINDOW_Y))
+    if ((request->request_mode & IswCWX) ||
+        (request->request_mode & IswCWY))
         return IswGeometryNo;
 
-    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
+    if (request->request_mode & IswCWWidth)
         request->width = child->core.width;
 
-    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+    if (request->request_mode & IswCWHeight)
         child->core.height = request->height;
 
     DoLayout(lbw, False);
@@ -593,11 +593,11 @@ PreferredGeometry(Widget w, IswWidgetGeometry *request,
 
     reply->width = w->core.width;
     reply->height = pref_h;
-    reply->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    reply->request_mode = IswCWWidth | IswCWHeight;
 
     if ((request->request_mode &
-         (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) ==
-        (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT) &&
+         (IswCWWidth | IswCWHeight)) ==
+        (IswCWWidth | IswCWHeight) &&
         request->width == reply->width && request->height == reply->height)
         return IswGeometryYes;
 

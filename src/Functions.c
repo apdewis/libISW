@@ -304,7 +304,7 @@ IswReloadResources(Widget subtree_root)
     ReloadSubtree(subtree_root, db);
     RedisplaySubtree(subtree_root);
     if (IswIsRealized(subtree_root))
-        xcb_flush(_IswXcbConn(IswDisplayOf(subtree_root)));
+        _IswPlatformFlush(IswDisplayOf(subtree_root));
 }
 
 #undef IswNewString

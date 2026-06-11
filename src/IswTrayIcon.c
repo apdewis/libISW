@@ -291,7 +291,7 @@ send_dock_request(IswTrayIcon icon)
     event.data.data32[2] = icon->window;
 
     xcb_send_event(icon->conn, 0, icon->manager_window,
-                   XCB_EVENT_MASK_NO_EVENT,
+                   IswNoEventMask,
                    (const char *)&event);
     xcb_flush(icon->conn);
 }
@@ -478,9 +478,9 @@ create_icon_window(IswTrayIcon icon)
                          XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
         vals[0] = 0;           /* back_pixel — transparent black */
         vals[1] = 0;           /* border_pixel */
-        vals[2] = XCB_EVENT_MASK_EXPOSURE |
-                  XCB_EVENT_MASK_BUTTON_PRESS |
-                  XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+        vals[2] = IswExposureMask |
+                  IswButtonPressMask |
+                  IswStructureNotifyMask;
         vals[3] = cmap;
 
         xcb_create_window(icon->conn,
@@ -497,9 +497,9 @@ create_icon_window(IswTrayIcon icon)
         uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_EVENT_MASK;
         uint32_t values[2];
         values[0] = XCB_BACK_PIXMAP_PARENT_RELATIVE;
-        values[1] = XCB_EVENT_MASK_EXPOSURE |
-                    XCB_EVENT_MASK_BUTTON_PRESS |
-                    XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+        values[1] = IswExposureMask |
+                    IswButtonPressMask |
+                    IswStructureNotifyMask;
 
         xcb_create_window(icon->conn,
                           icon->depth,
@@ -809,9 +809,9 @@ IswTrayIconCreate(Widget shell, const char *tooltip)
     /* Add raw event handler on the shell — it receives events for all
      * drawables registered to it, including our tray window. */
     IswAddRawEventHandler(shell,
-                          XCB_EVENT_MASK_EXPOSURE |
-                          XCB_EVENT_MASK_BUTTON_PRESS |
-                          XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                          IswExposureMask |
+                          IswButtonPressMask |
+                          IswStructureNotifyMask,
                           True,  /* nonmaskable — for client messages */
                           tray_event_handler,
                           (IswPointer)icon);
@@ -819,13 +819,13 @@ IswTrayIconCreate(Widget shell, const char *tooltip)
     /* Monitor root window for MANAGER announcements so we can
      * (re-)dock when a tray manager appears or restarts. */
     {
-        uint32_t emask = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+        uint32_t emask = IswStructureNotifyMask;
         xcb_change_window_attributes(icon->conn, icon->screen->root,
                                      XCB_CW_EVENT_MASK, &emask);
     }
     IswRegisterDrawable((IswDisplay) icon->conn, _IswXcbWindowWrap(icon->screen->root), shell);
     IswAddRawEventHandler(shell,
-                          XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                          IswStructureNotifyMask,
                           True,  /* nonmaskable — for MANAGER client messages */
                           root_event_handler,
                           (IswPointer)icon);
@@ -857,14 +857,14 @@ IswTrayIconDestroy(IswTrayIcon icon)
 
     /* Remove event handlers */
     IswRemoveRawEventHandler(icon->shell,
-                             XCB_EVENT_MASK_EXPOSURE |
-                             XCB_EVENT_MASK_BUTTON_PRESS |
-                             XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                             IswExposureMask |
+                             IswButtonPressMask |
+                             IswStructureNotifyMask,
                              True,
                              tray_event_handler,
                              (IswPointer)icon);
     IswRemoveRawEventHandler(icon->shell,
-                             XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                             IswStructureNotifyMask,
                              True,
                              root_event_handler,
                              (IswPointer)icon);

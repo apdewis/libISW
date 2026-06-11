@@ -119,12 +119,9 @@ typedef enum {
    (included above) so the public key APIs there can use them without a cycle. */
 
 /*
- * Portable integer point.  Replaces xcb_point_t in platform-neutral
- * signatures (e.g. polygon vertex lists).
+ * Portable integer point (IswPoint) is defined in ISW/IswTypes.h, shared by the
+ * render and platform headers.
  */
-typedef struct {
-    int16_t x, y;
-} IswPoint;
 
 /*
  * Portable integer rectangle.  Replaces xcb_rectangle_t in platform-neutral
@@ -389,6 +386,8 @@ struct _IswPlatformInputOps {
                              int *root_x, int *root_y,
                              int *win_x, int *win_y,
                              IswModMask *mods, IswWindow *child);
+    /* Warp the pointer to (x, y) relative to the origin of `dst_win`. */
+    void (*warp_pointer)(IswDisplay dpy, IswWindow dst_win, int x, int y);
 };
 
 /*
@@ -852,6 +851,10 @@ extern uint32_t _IswPlatformKeyFromName(const char *name);
 
 /* Rebuild the backend keymap/modifier cache after a keyboard mapping change. */
 extern void _IswPlatformRefreshMapping(IswDisplay dpy);
+
+/* Warp the pointer to (x, y) relative to the origin of dst_win. */
+extern void _IswPlatformWarpPointer(IswDisplay dpy, IswWindow dst_win,
+                                    int x, int y);
 
 /* Atom */
 extern Atom    _IswPlatformInternAtomOp(IswDisplay dpy, const char *name,

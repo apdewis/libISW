@@ -261,7 +261,7 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
     bw = p->naturalBw;
     changed = FALSE;
     bwChanged = FALSE;
-    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH &&
+    if (request->request_mode & IswCWBorderWidth &&
 	request->border_width != child->core.border_width)
     {
 	p->naturalBw = bw;
@@ -269,13 +269,13 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
 	changed = TRUE;
 	bwChanged = TRUE;
     }
-    if (bwChanged || ((request->request_mode & XCB_CONFIG_WINDOW_WIDTH) &&
+    if (bwChanged || ((request->request_mode & IswCWWidth) &&
 	request->width != child->core.width))
     {
 	p->naturalSize[LayoutHorizontal] = request->width + bw * 2;
 	changed = TRUE;
     }
-    if (bwChanged || ((request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
+    if (bwChanged || ((request->request_mode & IswCWHeight) &&
 	request->height != child->core.height))
     {
 	p->naturalSize[LayoutVertical] = request->height + bw * 2;
@@ -355,7 +355,7 @@ QueryGeometry (Widget gw, IswWidgetGeometry *request, IswWidgetGeometry *prefere
     IswGeometryResult	result;
     IswWidgetGeometry	prefered_size;
 
-    if (request && !(request->request_mode & (XCB_CONFIG_WINDOW_WIDTH|XCB_CONFIG_WINDOW_HEIGHT)))
+    if (request && !(request->request_mode & (IswCWWidth|IswCWHeight)))
 	return IswGeometryYes;
     LayoutGetNaturalSize (w, &prefered_size.width, &prefered_size.height);
     prefered_return->request_mode = 0;
@@ -364,34 +364,34 @@ QueryGeometry (Widget gw, IswWidgetGeometry *request, IswWidgetGeometry *prefere
 	prefered_return->width = prefered_size.width;
 	prefered_return->height= prefered_size.height;
 	if (prefered_size.width != w->core.width) {
-	    prefered_return->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+	    prefered_return->request_mode |= IswCWWidth;
 	    result = IswGeometryAlmost;
 	}
 	if (prefered_size.height != w->core.height) {
-	    prefered_return->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+	    prefered_return->request_mode |= IswCWHeight;
 	    result = IswGeometryAlmost;
 	}
     } else {
-    	if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) {
+    	if (request->request_mode & IswCWWidth) {
 	    if (prefered_size.width > request->width)
 	    {
 	    	if (prefered_size.width == w->core.width)
 		    result = IswGeometryNo;
 	    	else if (result != IswGeometryNo) {
 		    result = IswGeometryAlmost;
-		    prefered_return->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+		    prefered_return->request_mode |= IswCWWidth;
 		    prefered_return->width = prefered_size.width;
 	    	}
 	    }
     	}
-    	if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) {
+    	if (request->request_mode & IswCWHeight) {
 	    if (prefered_size.height > request->height)
 	    {
 	    	if (prefered_size.height == w->core.height)
 		    result = IswGeometryNo;
 	    	else if (result != IswGeometryNo) {
 		    result = IswGeometryAlmost;
-		    prefered_return->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+		    prefered_return->request_mode |= IswCWHeight;
 		    prefered_return->height = prefered_size.height;
 	    	}
 	    }

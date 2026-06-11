@@ -191,7 +191,7 @@ _IswSetWindowCursor(Widget anc, IswCursor cursor)
         return;
     {
         IswWindow win = _IswPlatformWidgetWindow(IswDisplayOf(anc), anc);
-        if (_IswXcbWindow(win) == XCB_NONE)
+        if (win == NULL)
             return;
         _IswPlatformSetWindowCursor(IswDisplayOf(anc), win, cursor);
     }

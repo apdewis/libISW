@@ -167,10 +167,10 @@ layout_child (PortholeWidget pw, Widget child, IswWidgetGeometry *geomp,
     *widthp = child->core.width;
     *heightp = child->core.height;
     if (geomp) {			/* mix in any requested changes */
-	if (geomp->request_mode & XCB_CONFIG_WINDOW_X) *xp = geomp->x;
-	if (geomp->request_mode & XCB_CONFIG_WINDOW_Y) *yp = geomp->y;
-	if (geomp->request_mode & XCB_CONFIG_WINDOW_WIDTH) *widthp = geomp->width;
-	if (geomp->request_mode & XCB_CONFIG_WINDOW_HEIGHT) *heightp = geomp->height;
+	if (geomp->request_mode & IswCWX) *xp = geomp->x;
+	if (geomp->request_mode & IswCWY) *yp = geomp->y;
+	if (geomp->request_mode & IswCWWidth) *widthp = geomp->width;
+	if (geomp->request_mode & IswCWHeight) *heightp = geomp->height;
     }
 
     /*
@@ -319,7 +319,7 @@ QueryGeometry (Widget gw, IswWidgetGeometry *intended, IswWidgetGeometry *prefer
     Widget child = find_child (pw);
 
     if (child) {
-#define SIZEONLY (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)
+#define SIZEONLY (IswCWWidth | IswCWHeight)
 	preferred->request_mode = SIZEONLY;
 	preferred->width = child->core.width;
 	preferred->height = child->core.height;
@@ -350,7 +350,7 @@ GeometryManager (Widget w, IswWidgetGeometry *req, IswWidgetGeometry *reply)
 
     *reply = *req;			/* assume we'll grant everything */
 
-    if ((req->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) && req->border_width != 0) {
+    if ((req->request_mode & IswCWBorderWidth) && req->border_width != 0) {
 	reply->border_width = 0;	/* require border width of 0 */
 	okay = FALSE;
     }
@@ -358,11 +358,11 @@ GeometryManager (Widget w, IswWidgetGeometry *req, IswWidgetGeometry *reply)
     layout_child (pw, child, req, &reply->x, &reply->y,
 		  &reply->width, &reply->height);
 
-    if ((req->request_mode & XCB_CONFIG_WINDOW_X) && req->x != reply->x) okay = FALSE;
-    if ((req->request_mode & XCB_CONFIG_WINDOW_Y) && req->x != reply->x) okay = FALSE;
-    if ((req->request_mode & XCB_CONFIG_WINDOW_WIDTH) && req->width != reply->width)
+    if ((req->request_mode & IswCWX) && req->x != reply->x) okay = FALSE;
+    if ((req->request_mode & IswCWY) && req->x != reply->x) okay = FALSE;
+    if ((req->request_mode & IswCWWidth) && req->width != reply->width)
       okay = FALSE;
-    if ((req->request_mode & XCB_CONFIG_WINDOW_HEIGHT) && req->height != reply->height)
+    if ((req->request_mode & IswCWHeight) && req->height != reply->height)
       okay = FALSE;
 
 
@@ -415,11 +415,11 @@ ChangeManaged (Widget gw)
 	    geom.request_mode = 0;
 	    if (pw->core.width == 0) {
 		geom.width = child->core.width;
-		geom.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+		geom.request_mode |= IswCWWidth;
 	    }
 	    if (pw->core.height == 0) {
 		geom.height = child->core.height;
-		geom.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+		geom.request_mode |= IswCWHeight;
 	    }
 	    if (geom.request_mode &&
 		IswMakeGeometryRequest (gw, &geom, &retgeom) == IswGeometryAlmost) {

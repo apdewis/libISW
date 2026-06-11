@@ -149,6 +149,16 @@ xcb_in_query_pointer(IswDisplay dpy, IswWindow win,
     return True;
 }
 
+static void
+xcb_in_warp_pointer(IswDisplay dpy, IswWindow dst_win, int x, int y)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn)
+        return;
+    xcb_warp_pointer(conn, XCB_NONE, _IswXcbWindow(dst_win), 0, 0, 0, 0,
+                     (int16_t) x, (int16_t) y);
+}
+
 const IswPlatformInputOps isw_platform_xcb_input_ops = {
     .keycode_to_keysym  = xcb_in_keycode_to_keysym,
     .keysym_to_keycodes = xcb_in_keysym_to_keycodes,
@@ -158,4 +168,5 @@ const IswPlatformInputOps isw_platform_xcb_input_ops = {
     .translate_keycode  = xcb_in_translate_keycode,
     .refresh_mapping    = xcb_in_refresh_mapping,
     .query_pointer      = xcb_in_query_pointer,
+    .warp_pointer       = xcb_in_warp_pointer,
 };

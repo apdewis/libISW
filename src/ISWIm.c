@@ -719,7 +719,7 @@ CreateIC(Widget w, IswVendorShellExtPart *ve)
     p->input_style = GetInputStyleOfIC(ve);
 
     if (IsSharedIC(ve)) SetICValuesShared(w, ve, p, FALSE);
-    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+    _IswPlatformFlush(IswDisplayOf(w));
 
     if (p->input_style & (XIMPreeditArea|XIMPreeditPosition|XIMStatusArea)) {
 	if (p->flg & CIFontSet) {
@@ -841,7 +841,7 @@ CreateIC(Widget w, IswVendorShellExtPart *ve)
 
     if (!IsSharedIC(ve)) {
 	if (p->input_style & XIMPreeditPosition) {
-	    IswAddEventHandler(w, (EventMask)XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
+	    IswAddEventHandler(w, (EventMask)IswStructureNotifyMask, FALSE,
 			      (IswEventHandler)ConfigureCB, (Opaque)NULL);
 	}
     }
@@ -863,7 +863,7 @@ SetICValues(Widget w, IswVendorShellExtPart *ve, Boolean focus)
 	(p->xic == NULL)) return;
 
     if (IsSharedIC(ve)) SetICValuesShared(w, ve, p, TRUE);
-    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+    _IswPlatformFlush(IswDisplayOf(w));
     if (focus == FALSE &&
 	!(p->flg & (CIFontSet | CIFg | CIBg |
 		    CIBgPixmap | CICursorP | CILineS))) return;
@@ -1112,7 +1112,7 @@ DestroyIC(Widget w, IswVendorShellExtPart *ve)
     XDestroyIC(p->xic);
     if (!IsSharedIC(ve)) {
 	if (p->input_style & XIMPreeditPosition) {
-	    IswRemoveEventHandler(w, (EventMask)XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
+	    IswRemoveEventHandler(w, (EventMask)IswStructureNotifyMask, FALSE,
 				 (IswEventHandler)ConfigureCB, (Opaque)NULL);
 	}
     }
@@ -1372,7 +1372,7 @@ _IswImRealize(
 
     if ( !IswIsRealized( w ) || !IswIsVendorShell( w ) ) return;
     if ((ve = GetExtPart( (VendorShellWidget) w ))) {
-	IswAddEventHandler( w, (EventMask)XCB_EVENT_MASK_STRUCTURE_NOTIFY, FALSE,
+	IswAddEventHandler( w, (EventMask)IswStructureNotifyMask, FALSE,
 			  IswVendorShellExtResize, (IswPointer)NULL );
 	AllCreateIC(ve);
     }

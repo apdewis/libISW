@@ -396,7 +396,7 @@ void ISWRenderFillStrokeRoundedRectangle(ISWRenderContext *ctx,
  *   num_points - Number of points
  */
 void ISWRenderStrokePolygon(ISWRenderContext *ctx,
-                           xcb_point_t *points,
+                           IswPoint *points,
                            int num_points);
 
 /*
@@ -408,7 +408,7 @@ void ISWRenderStrokePolygon(ISWRenderContext *ctx,
  *   num_points - Number of points
  */
 void ISWRenderFillPolygon(ISWRenderContext *ctx,
-                         xcb_point_t *points,
+                         IswPoint *points,
                          int num_points);
 
 /*

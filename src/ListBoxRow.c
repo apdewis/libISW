@@ -250,9 +250,9 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
                 IswWidgetGeometry *reply)
 {
     (void)reply;
-    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
+    if (request->request_mode & IswCWWidth)
         child->core.width = request->width;
-    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+    if (request->request_mode & IswCWHeight)
         child->core.height = request->height;
     DoLayout((ListBoxRowWidget)IswParent(child));
     return IswGeometryYes;

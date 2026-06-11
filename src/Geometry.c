@@ -88,16 +88,16 @@ ClearRectObjAreas(RectObj r, uint32_t old_x, uint32_t old_y, uint32_t old_w, uin
     int bw2;
 
     bw2 = old_bw << 1;
-    (void)xcb_clear_area_checked(_IswXcbConn(IswDisplayOf(pw)), 0, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
-        old_x, old_y,
-        (unsigned) (old_w + bw2), (unsigned) (old_h + bw2)
+    _IswPlatformClearArea(IswDisplayOf(pw), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw)),
+        (int16_t) old_x, (int16_t) old_y,
+        (uint16_t) (old_w + bw2), (uint16_t) (old_h + bw2), False
     );
 
     bw2 = r->rectangle.border_width << 1;
-    (void)xcb_clear_area_checked(_IswXcbConn(IswDisplayOf(pw)), 0, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
-               (int) r->rectangle.x, (int) r->rectangle.y,
-               (unsigned int) (r->rectangle.width + bw2),
-               (unsigned int) (r->rectangle.height + bw2));
+    _IswPlatformClearArea(IswDisplayOf(pw), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw)),
+               (int16_t) r->rectangle.x, (int16_t) r->rectangle.y,
+               (uint16_t) (r->rectangle.width + bw2),
+               (uint16_t) (r->rectangle.height + bw2), False);
 }
 
 /*
@@ -238,48 +238,48 @@ _IswMakeGeometryRequest(Widget widget,
 
     /* see if requesting anything to change */
     req.changeMask = 0;
-    if (request->request_mode &XCB_CONFIG_WINDOW_STACK_MODE
+    if (request->request_mode &IswCWStackMode
         && request->stack_mode != IswSMDontChange) {
-        req.changeMask |=XCB_CONFIG_WINDOW_STACK_MODE;
+        req.changeMask |=IswCWStackMode;
         CALLGEOTAT(_IswGeoTrace(widget, "Asking for a change in StackMode!\n"));
-        if (request->request_mode & XCB_CONFIG_WINDOW_SIBLING) {
+        if (request->request_mode & IswCWSibling) {
             IswCheckSubclass(request->sibling, rectObjClass,
                             "IswMakeGeometryRequest");
-            req.changeMask |= XCB_CONFIG_WINDOW_SIBLING;
+            req.changeMask |= IswCWSibling;
         }
     }
-    if (request->request_mode & XCB_CONFIG_WINDOW_X && widget->core.x != request->x) {
+    if (request->request_mode & IswCWX && widget->core.x != request->x) {
         CALLGEOTAT(_IswGeoTrace(widget,
                                "Asking for a change in x: from %d to %d.\n",
                                widget->core.x, request->x));
-        req.changeMask |= XCB_CONFIG_WINDOW_X;
+        req.changeMask |= IswCWX;
     }
-    if (request->request_mode & XCB_CONFIG_WINDOW_Y && widget->core.y != request->y) {
+    if (request->request_mode & IswCWY && widget->core.y != request->y) {
         CALLGEOTAT(_IswGeoTrace(widget,
                                "Asking for a change in y: from %d to %d.\n",
                                widget->core.y, request->y));
-        req.changeMask |= XCB_CONFIG_WINDOW_Y;
+        req.changeMask |= IswCWY;
     }
-    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH  && widget->core.width != request->width) {
+    if (request->request_mode & IswCWWidth  && widget->core.width != request->width) {
         CALLGEOTAT(_IswGeoTrace
                    (widget, "Asking for a change in width: from %d to %d.\n",
                     widget->core.width, request->width));
-        req.changeMask |= XCB_CONFIG_WINDOW_WIDTH ;
+        req.changeMask |= IswCWWidth ;
     }
-    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT
+    if (request->request_mode & IswCWHeight
         && widget->core.height != request->height) {
         CALLGEOTAT(_IswGeoTrace(widget,
                                "Asking for a change in height: from %d to %d.\n",
                                widget->core.height, request->height));
-        req.changeMask |= XCB_CONFIG_WINDOW_HEIGHT;
+        req.changeMask |= IswCWHeight;
     }
-    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH
+    if (request->request_mode & IswCWBorderWidth
         && widget->core.border_width != request->border_width) {
         CALLGEOTAT(_IswGeoTrace(widget,
                                "Asking for a change in border_width: from %d to %d.\n",
                                widget->core.border_width,
                                request->border_width));
-        req.changeMask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        req.changeMask |= IswCWBorderWidth;
     }
     if (!req.changeMask) {
         CALLGEOTAT(_IswGeoTrace(widget, "Asking for nothing new,\n"));
@@ -313,15 +313,15 @@ _IswMakeGeometryRequest(Widget widget,
             CALLGEOTAT(_IswGeoTrace(widget,
                                    "Copy values from request to widget.\n"));
             /* copy values from request to widget */
-            if (request->request_mode & XCB_CONFIG_WINDOW_X)
+            if (request->request_mode & IswCWX)
                 widget->core.x = request->x;
-            if (request->request_mode & XCB_CONFIG_WINDOW_Y)
+            if (request->request_mode & IswCWY)
                 widget->core.y = request->y;
-            if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH )
+            if (request->request_mode & IswCWWidth )
                 widget->core.width = request->width;
-            if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+            if (request->request_mode & IswCWHeight)
                 widget->core.height = request->height;
-            if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
+            if (request->request_mode & IswCWBorderWidth)
                 widget->core.border_width = request->border_width;
             if (!parentRealized) {
                 CALLGEOTAT(_IswGeoTab(-1));
@@ -411,48 +411,48 @@ _IswMakeGeometryRequest(Widget widget,
             return returnCode;
 
         if (req.changes_x != widget->core.x) {
-            req.changeMask |= XCB_CONFIG_WINDOW_X;
+            req.changeMask |= IswCWX;
             req.changes_x = widget->core.x;
             CALLGEOTAT(_IswGeoTrace(widget,
                                    "x changing to %d\n", widget->core.x));
         }
         if (req.changes_y != widget->core.y) {
-            req.changeMask |= XCB_CONFIG_WINDOW_Y;
+            req.changeMask |= IswCWY;
             req.changes_y = widget->core.y;
             CALLGEOTAT(_IswGeoTrace(widget,
                                    "y changing to %d\n", widget->core.y));
         }
         if (req.changes_w != widget->core.width) {
-            req.changeMask |= XCB_CONFIG_WINDOW_WIDTH;
+            req.changeMask |= IswCWWidth;
             req.changes_w = widget->core.width;
             CALLGEOTAT(_IswGeoTrace(widget,
                                    "width changing to %d\n",
                                    widget->core.width));
         }
         if (req.changes_h != widget->core.height) {
-            req.changeMask |= XCB_CONFIG_WINDOW_HEIGHT;
+            req.changeMask |= IswCWHeight;
             req.changes_h = widget->core.height;
             CALLGEOTAT(_IswGeoTrace(widget,
                                    "height changing to %d\n",
                                    widget->core.height));
         }
         if (req.changes_bw != widget->core.border_width) {
-            req.changeMask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+            req.changeMask |= IswCWBorderWidth;
             req.changes_bw = widget->core.border_width;
             CALLGEOTAT(_IswGeoTrace(widget,
                                    "border_width changing to %d\n",
                                    widget->core.border_width));
         }
-        if (req.changeMask & XCB_CONFIG_WINDOW_STACK_MODE) {
+        if (req.changeMask & IswCWStackMode) {
             req.changes_sm = request->stack_mode;
             CALLGEOTAT(_IswGeoTrace(widget, "stack_mode changing\n"));
-            if (req.changeMask & XCB_CONFIG_WINDOW_SIBLING) {
+            if (req.changeMask & IswCWSibling) {
                 if (IswIsWidget(request->sibling))
-                    req.changes_sb = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(request->sibling)), (Widget)(request->sibling)));
+                    req.changes_sb = (int32_t) _IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(request->sibling)), (Widget)(request->sibling)));
                 else
                     req.changeMask =
                         (IswGeometryMask) (req.changeMask & (unsigned long)
-                                          (~(XCB_CONFIG_WINDOW_STACK_MODE | XCB_CONFIG_WINDOW_SIBLING)));
+                                          (~(IswCWStackMode | IswCWSibling)));
             }
         }
 
@@ -546,7 +546,7 @@ IswMakeResizeRequest(Widget widget,
 
     LOCK_APP(app);
     memset(&request, 0, sizeof(request));
-    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    request.request_mode = IswCWWidth | IswCWHeight;
     request.width = (Dimension) width;
     request.height = (Dimension) height;
 
@@ -569,13 +569,13 @@ IswMakeResizeRequest(Widget widget,
         r = _IswMakeGeometryRequest(widget, &request, &reply, &junk);
     }
     if (replyWidth != NULL) {
-        if (r == IswGeometryAlmost && reply.request_mode & XCB_CONFIG_WINDOW_WIDTH )
+        if (r == IswGeometryAlmost && reply.request_mode & IswCWWidth )
             *replyWidth = reply.width;
         else
             *replyWidth = (Dimension) width;
     }
     if (replyHeight != NULL) {
-        if (r == IswGeometryAlmost && reply.request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+        if (r == IswGeometryAlmost && reply.request_mode & IswCWHeight)
             *replyHeight = reply.height;
         else
             *replyHeight = (Dimension) height;
@@ -598,7 +598,7 @@ IswResizeWindow(Widget w)
         req.changes_w = w->core.width;
         req.changes_h = w->core.height;
         req.changes_bw = w->core.border_width;
-        req.changeMask = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        req.changeMask = IswCWWidth | IswCWHeight | IswCWBorderWidth;
         /* HiDPI: convert logical pixels to physical for the X server. */
         {
             double sf = _IswGetScaleFactor(IswDisplayOf(w));
@@ -659,13 +659,13 @@ IswConfigureWidget(Widget w,
     if ((old_x = w->core.x) != x) {
         CALLGEOTAT(_IswGeoTrace(w, "x move from %d to %d\n", w->core.x, x));
         req.changes_x = w->core.x = (Position) x;
-        req.changeMask |= XCB_CONFIG_WINDOW_X;
+        req.changeMask |= IswCWX;
     }
 
     if ((old_y = w->core.y) != y) {
         CALLGEOTAT(_IswGeoTrace(w, "y move from %d to %d\n", w->core.y, y));
         req.changes_y = w->core.y = (Position) y;
-        req.changeMask |= XCB_CONFIG_WINDOW_Y;
+        req.changeMask |= IswCWY;
     }
 
     if ((old_w = w->core.width) != width) {
@@ -673,7 +673,7 @@ IswConfigureWidget(Widget w,
                                "width move from %d to %d\n", w->core.width,
                                width));
         req.changes_w = w->core.width = (Dimension) width;
-        req.changeMask |= XCB_CONFIG_WINDOW_WIDTH;
+        req.changeMask |= IswCWWidth;
     }
 
     if ((old_h = w->core.height) != height) {
@@ -681,7 +681,7 @@ IswConfigureWidget(Widget w,
                                "height move from %d to %d\n", w->core.height,
                                height));
         req.changes_h = w->core.height = (Dimension) height;
-        req.changeMask |= XCB_CONFIG_WINDOW_HEIGHT;
+        req.changeMask |= IswCWHeight;
     }
 
     if ((old_bw = w->core.border_width) != borderWidth) {
@@ -689,7 +689,7 @@ IswConfigureWidget(Widget w,
                                w->core.border_width, borderWidth));
         req.changes_bw = w->core.border_width =
             (Dimension) borderWidth;
-        req.changeMask |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        req.changeMask |= IswCWBorderWidth;
     }
 
     if (req.changeMask != 0) {
@@ -707,7 +707,7 @@ IswConfigureWidget(Widget w,
             LOCK_PROCESS;
             resize = IswClass(w)->core_class.resize;
             UNLOCK_PROCESS;
-            if ((req.changeMask & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
+            if ((req.changeMask & (IswCWWidth | IswCWHeight)) &&
                 resize != (IswWidgetProc) NULL) {
                 CALLGEOTAT(_IswGeoTrace(w, "Resize proc is called.\n"));
                 (*resize) (w);
@@ -731,9 +731,9 @@ IswConfigureWidget(Widget w,
                The coalesced composite avoids any cleared-state flicker. */
             Widget pw = _IswWidgetAncestor(w);
             Boolean size_changed =
-                (req.changeMask & (XCB_CONFIG_WINDOW_WIDTH |
-                                   XCB_CONFIG_WINDOW_HEIGHT |
-                                   XCB_CONFIG_WINDOW_BORDER_WIDTH)) != 0;
+                (req.changeMask & (IswCWWidth |
+                                   IswCWHeight |
+                                   IswCWBorderWidth)) != 0;
 
             if (size_changed && !w->core.being_destroyed &&
                 w->core.widget_class->core_class.expose != NULL) {
@@ -768,23 +768,23 @@ IswConfigureWidget(Widget w,
                     IswWindowGeometry g;
                     unsigned int cmask = 0;
                     memset(&g, 0, sizeof(g));
-                    if (req.changeMask & XCB_CONFIG_WINDOW_X) {
+                    if (req.changeMask & IswCWX) {
                         g.x = (int32_t)lrint((double)req.changes_x * sf);
                         cmask |= ISW_CONFIG_X;
                     }
-                    if (req.changeMask & XCB_CONFIG_WINDOW_Y) {
+                    if (req.changeMask & IswCWY) {
                         g.y = (int32_t)lrint((double)req.changes_y * sf);
                         cmask |= ISW_CONFIG_Y;
                     }
-                    if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH) {
+                    if (req.changeMask & IswCWWidth) {
                         g.width = (uint32_t)lrint((double)req.changes_w * sf);
                         cmask |= ISW_CONFIG_WIDTH;
                     }
-                    if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT) {
+                    if (req.changeMask & IswCWHeight) {
                         g.height = (uint32_t)lrint((double)req.changes_h * sf);
                         cmask |= ISW_CONFIG_HEIGHT;
                     }
-                    if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+                    if (req.changeMask & IswCWBorderWidth) {
                         g.border_width = (uint32_t)lrint((double)req.changes_bw * sf);
                         cmask |= ISW_CONFIG_BORDER;
                     }
@@ -893,21 +893,21 @@ IswGeometryResult IswQueryGeometry(Widget widget,
             CALLGEOTAT(_IswGeoTrace(widget,
                                    "with the following constraints:\n"));
 
-            if (intended->request_mode & XCB_CONFIG_WINDOW_X) {
+            if (intended->request_mode & IswCWX) {
                 CALLGEOTAT(_IswGeoTrace(widget, " x = %d\n", intended->x));
             }
-            if (intended->request_mode & XCB_CONFIG_WINDOW_Y) {
+            if (intended->request_mode & IswCWY) {
                 CALLGEOTAT(_IswGeoTrace(widget, " y = %d\n", intended->y));
             }
-            if (intended->request_mode & XCB_CONFIG_WINDOW_WIDTH ) {
+            if (intended->request_mode & IswCWWidth ) {
                 CALLGEOTAT(_IswGeoTrace(widget,
                                        " width = %d\n", intended->width));
             }
-            if (intended->request_mode & XCB_CONFIG_WINDOW_HEIGHT) {
+            if (intended->request_mode & IswCWHeight) {
                 CALLGEOTAT(_IswGeoTrace(widget,
                                        " height = %d\n", intended->height));
             }
-            if (intended->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+            if (intended->request_mode & IswCWBorderWidth) {
                 CALLGEOTAT(_IswGeoTrace(widget,
                                        " border_width = %d\n",
                                        intended->border_width));
@@ -941,16 +941,16 @@ IswGeometryResult IswQueryGeometry(Widget widget,
         if (!(reply->request_mode & mask)) reply->field = widget->core.field;
 #endif
 
-    FillIn(XCB_CONFIG_WINDOW_X, x);
-    FillIn(XCB_CONFIG_WINDOW_Y, y);
-    FillIn(XCB_CONFIG_WINDOW_WIDTH , width);
-    FillIn(XCB_CONFIG_WINDOW_HEIGHT, height);
-    FillIn(XCB_CONFIG_WINDOW_BORDER_WIDTH, border_width);
+    FillIn(IswCWX, x);
+    FillIn(IswCWY, y);
+    FillIn(IswCWWidth , width);
+    FillIn(IswCWHeight, height);
+    FillIn(IswCWBorderWidth, border_width);
 
     CALLGEOTAT(_IswGeoTab(-1));
 #undef FillIn
 
-    if (!(reply->request_mode &XCB_CONFIG_WINDOW_STACK_MODE))
+    if (!(reply->request_mode &IswCWStackMode))
         reply->stack_mode = IswSMDontChange;
     UNLOCK_APP(app);
     return result;

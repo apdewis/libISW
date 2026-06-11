@@ -686,7 +686,7 @@ _IswCreatePopupShell(String name,
                       popupPostProc);
 
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-    IswAddEventHandler(widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE, FALSE,
+    IswAddEventHandler(widget, (EventMask) IswPropertyChangeMask, FALSE,
                       _IswResourceConfigurationEH, NULL);
 #endif
     return (widget);
@@ -740,7 +740,7 @@ _IswAppCreateShell(String name,
                      (ConstraintWidgetClass) NULL, _IswAddShellToHookObj);
 
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-    IswAddEventHandler(shell, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE, FALSE,
+    IswAddEventHandler(shell, (EventMask) IswPropertyChangeMask, FALSE,
                       _IswResourceConfigurationEH, NULL);
 #endif
 

@@ -528,10 +528,12 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 
     if (cur->core.background_pixel != new->core.background_pixel &&
 	IswIsRealized(gnew)) {
-	    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(new));
-	    uint32_t pixel_val = new->core.background_pixel;
-	    xcb_change_window_attributes(conn, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new))), XCB_CW_BACK_PIXEL, &pixel_val);
-	    xcb_flush(conn);
+	    IswWindowAttributes attrs;
+	    attrs.background_pixel = new->core.background_pixel;
+	    _IswPlatformChangeAttributes(IswDisplayOf(new),
+		_IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
+		&attrs, ISW_ATTR_BACK_PIXEL);
+	    _IswPlatformFlush(IswDisplayOf(new));
 	    redisplay = TRUE;
     }
 
@@ -577,11 +579,11 @@ QueryGeometry (Widget gw, IswWidgetGeometry *intended, IswWidgetGeometry *pref)
 {
     PannerWidget pw = (PannerWidget) gw;
 
-    pref->request_mode = (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT);
+    pref->request_mode = (IswCWWidth | IswCWHeight);
     get_default_size (pw, &pref->width, &pref->height);
 
-    if (((intended->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) ==
-	 (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
+    if (((intended->request_mode & (IswCWWidth | IswCWHeight)) ==
+	 (IswCWWidth | IswCWHeight)) &&
 	intended->width == pref->width &&
 	intended->height == pref->height)
       return IswGeometryYes;

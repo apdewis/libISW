@@ -1172,14 +1172,8 @@ CenterWidgetOnPoint(Widget w, IswEvent *iswev)
       break;
     case IswKeyDown:
     case IswKeyUp:
-      {
-        /* The neutral key event carries no root-window coordinate; read it
-         * from the native event for this case only. */
-        xcb_key_press_event_t *kev =
-            (xcb_key_press_event_t *) IswEventNative(iswev);
-        x = kev->root_x;
-        y = kev->root_y;
-      }
+      x = iswev->key.root_x;
+      y = iswev->key.root_y;
       break;
     default:
       return;

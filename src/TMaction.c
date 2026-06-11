@@ -802,7 +802,6 @@ IswMenuPopupAction(Widget widget,
                   String *params,
                   Cardinal *num_params)
 {
-    ISW_NATIVE_EVENT(iswev);
     register Widget popup_shell;
     IswAppContext app = IswWidgetToApplicationContext(widget);
 
@@ -816,9 +815,9 @@ IswMenuPopupAction(Widget widget,
         return;
     }
 
-    if (event->response_type != XCB_BUTTON_PRESS
-        && event->response_type != XCB_KEY_PRESS
-        && event->response_type != XCB_ENTER_NOTIFY) {
+    if (iswev->kind != IswButtonDown
+        && iswev->kind != IswKeyDown
+        && iswev->kind != IswEnter) {
         IswAppWarningMsg(app,
                         "invalidPopup", "unsupportedOperation",
                         IswCIswToolkitError,

@@ -1128,6 +1128,14 @@ _IswPlatformRefreshMapping(IswDisplay dpy)
         ops->input->refresh_mapping(dpy);
 }
 
+void
+_IswPlatformWarpPointer(IswDisplay dpy, IswWindow dst_win, int x, int y)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->input && ops->input->warp_pointer)
+        ops->input->warp_pointer(dpy, dst_win, x, y);
+}
+
 /* Selection */
 IswSelectionId
 _IswPlatformSelectionInternName(IswDisplay dpy, const char *name,

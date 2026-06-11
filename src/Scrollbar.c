@@ -318,7 +318,7 @@ PaintThumb (ScrollbarWidget sbw, IswEvent *event)
 static void
 PaintArrows (ScrollbarWidget sbw)
 {
-    xcb_point_t    pt[20];
+    IswPoint    pt[20];
     Dimension t   = sbw->scrollbar.thickness;
     Dimension l   = sbw->scrollbar.length;
     Dimension tm1 = t - 1;
@@ -352,8 +352,8 @@ PaintArrows (ScrollbarWidget sbw)
 	    ISWRenderContext *ctx = sbw->scrollbar.render_ctx;
 	    ISWRenderBegin(ctx);
 	    ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-	    ISWRenderFillPolygon(ctx, (xcb_point_t *)pt, 3);
-	    ISWRenderFillPolygon(ctx, (xcb_point_t *)(pt+3), 3);
+	    ISWRenderFillPolygon(ctx, (IswPoint *)pt, 3);
+	    ISWRenderFillPolygon(ctx, (IswPoint *)(pt+3), 3);
 	    ISWRenderEnd(ctx);
     }
 }
@@ -529,7 +529,7 @@ PeekNotifyEvent(xcb_connection_t *dpy, xcb_generic_event_t *event, char *args)
 */
 
 static Boolean
-LookAhead (Widget w, xcb_generic_event_t *event)
+LookAhead (Widget w, IswEvent *event)
 {
     /* TODO: XCB doesn't have direct QLength/XPeekIfEvent equivalents
      * This function was used to look ahead in the event queue and skip
@@ -560,6 +560,9 @@ HandleThumb(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     Position x,y;
     ScrollbarWidget sbw = (ScrollbarWidget) w;
+    /* FLAGGED SEAM: action re-dispatch.  IswCallActionProc() still takes a
+       native event, so MoveThumb/NotifyThumb are re-invoked with the native
+       event here.  Retires when the action API goes neutral. */
     xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
 
     ExtractPosition( iswev, &x, &y );
@@ -765,14 +768,12 @@ FractionLoc (ScrollbarWidget sbw, int x, int y)
 static void
 MoveThumb (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-    /* LookAhead still consumes the native event for queue inspection. */
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     Position x, y;
     float loc, s;
     float t;
 
-    if (LookAhead (w, event)) return;
+    if (LookAhead (w, iswev)) return;
 
     ExtractPosition (iswev, &x, &y);
     loc = FractionLoc (sbw, x, y);
@@ -792,7 +793,7 @@ MoveThumb (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
       sbw->scrollbar.top = 1.0 - sbw->scrollbar.shown;
     sbw->scrollbar.scroll_mode = 2; /* indicate continuous scroll */
     PaintThumb (sbw, iswev);
-    xcb_flush(_IswXcbConn(IswDisplayOf(w)));	/* re-draw it before Notifying */
+    _IswPlatformFlush(IswDisplayOf(w));	/* re-draw it before Notifying */
 }
 
 
@@ -800,15 +801,13 @@ MoveThumb (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 static void
 NotifyThumb (Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-    /* LookAhead still consumes the native event for queue inspection. */
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     register ScrollbarWidget sbw = (ScrollbarWidget) w;
     union {
         IswPointer xtp;
         float xtf;
     } xtpf;
 
-    if (LookAhead (w, event)) return;
+    if (LookAhead (w, iswev)) return;
 
     /* thumbProc is not pretty, but is necessary for backwards
        compatibility on those architectures for which it work{s,ed};

@@ -1160,13 +1160,9 @@ TextFocusOut(Widget w, IswEvent *iswev, String *p, Cardinal *n)
 static void
 TextEnterWindow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  /* INFERIOR-crossing distinction has no neutral equivalent; reach the
-     native crossing event just for the detail field. */
-  ISW_NATIVE_EVENT(iswev);
   TextWidget ctx = (TextWidget) w;
-  xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
-  if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && !ctx->text.hasfocus)
+  if ((iswev->crossing.detail != IswNotifyInferior) && !ctx->text.hasfocus)
     _IswImSetFocusValues(w, NULL, 0);
 }
 
@@ -1174,13 +1170,9 @@ TextEnterWindow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 static void
 TextLeaveWindow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  /* INFERIOR-crossing distinction has no neutral equivalent; reach the
-     native crossing event just for the detail field. */
-  ISW_NATIVE_EVENT(iswev);
   TextWidget ctx = (TextWidget) w;
-  xcb_enter_notify_event_t *cev = (xcb_enter_notify_event_t *)event;
 
-  if ((cev->detail != XCB_NOTIFY_DETAIL_INFERIOR) && !ctx->text.hasfocus)
+  if ((iswev->crossing.detail != IswNotifyInferior) && !ctx->text.hasfocus)
     _IswImUnsetFocus(w);
 }
 
@@ -1426,8 +1418,10 @@ InsertString(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 static void
 DisplayCaret(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  /* The crossing event's focus flag (same_screen_focus) has no neutral
-     equivalent; reach the native event just for that read. */
+  /* FLAGGED SEAM: the X crossing event's focus flag (same_screen_focus) has no
+     neutral IswCrossingEvent field — IswEvent carries only mode/detail/
+     modifiers/x/y for crossings.  This native read stays until the crossing
+     event grows a neutral focus bit. */
   ISW_NATIVE_EVENT(iswev);
   TextWidget ctx = (TextWidget)w;
   Boolean display_caret = True;

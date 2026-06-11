@@ -163,8 +163,8 @@ ClassInitialize(void)
 {
     IswInitializeWidgetSet();
     IswRegisterGrabAction(PopupMenu, True,
-			 (unsigned int)(XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE),
-			 XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+			 (unsigned int)(IswButtonPressMask | IswButtonReleaseMask),
+			 1, 1);
 }
 
 /* Chain to Command's expose, then draw a mnemonic underline if Alt is

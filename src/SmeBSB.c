@@ -457,7 +457,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	int sz = SME_SUBMENU_ARROW_SIZE;
 	int ax = entry->rectangle.width - entry->sme_bsb.right_margin / 2 - sz;
 	int ay = entry->rectangle.y + entry->rectangle.height / 2;
-	xcb_point_t tri[3];
+	IswPoint tri[3];
 	Pixel arrow_color = highlighted_active
 	    ? IswParent(w)->core.background_pixel
 	    : entry->sme_bsb.foreground;
@@ -603,16 +603,16 @@ QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *return_v
 
     GetDefaultSize(w, &width, &height );
 
-    if ( ((mode & XCB_CONFIG_WINDOW_WIDTH) && (intended->width != width)) ||
-	 !(mode & XCB_CONFIG_WINDOW_WIDTH) ) {
-	return_val->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+    if ( ((mode & IswCWWidth) && (intended->width != width)) ||
+	 !(mode & IswCWWidth) ) {
+	return_val->request_mode |= IswCWWidth;
 	return_val->width = width;
 	ret_val = IswGeometryAlmost;
     }
 
-    if ( ((mode & XCB_CONFIG_WINDOW_HEIGHT) && (intended->height != height)) ||
-	 !(mode & XCB_CONFIG_WINDOW_HEIGHT) ) {
-	return_val->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+    if ( ((mode & IswCWHeight) && (intended->height != height)) ||
+	 !(mode & IswCWHeight) ) {
+	return_val->request_mode |= IswCWHeight;
 	return_val->height = height;
 	ret_val = IswGeometryAlmost;
     }
@@ -620,8 +620,8 @@ QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *return_v
     if (ret_val == IswGeometryAlmost) {
 	mode = return_val->request_mode;
 
-	if ( ((mode & XCB_CONFIG_WINDOW_WIDTH) && (width == entry->rectangle.width)) &&
-	     ((mode & XCB_CONFIG_WINDOW_HEIGHT) && (height == entry->rectangle.height)) )
+	if ( ((mode & IswCWWidth) && (width == entry->rectangle.width)) &&
+	     ((mode & IswCWHeight) && (height == entry->rectangle.height)) )
 	    return(IswGeometryNo);
     }
 

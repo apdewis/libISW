@@ -190,9 +190,9 @@ ChildPreferredSize(Widget child, Dimension *w_out, Dimension *h_out)
     IswWidgetGeometry preferred;
     IswQueryGeometry(child, NULL, &preferred);
 
-    Dimension pw = (preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH)
+    Dimension pw = (preferred.request_mode & IswCWWidth)
                    ? preferred.width : child->core.width;
-    Dimension ph = (preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+    Dimension ph = (preferred.request_mode & IswCWHeight)
                    ? preferred.height : child->core.height;
 
     *w_out = IswMax(pw, child->core.width);
@@ -430,7 +430,7 @@ ChangeManaged(Widget w)
         tw->toolbar.preferred_height != tw->core.height)
     {
         IswWidgetGeometry req, reply;
-        req.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        req.request_mode = IswCWWidth | IswCWHeight;
         req.width = tw->toolbar.preferred_width;
         req.height = tw->toolbar.preferred_height;
         IswGeometryResult result = IswMakeGeometryRequest(w, &req, &reply);
@@ -452,7 +452,7 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
     (void)reply;
 
     /* Strip position bits — we control placement */
-    request->request_mode &= ~(XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y);
+    request->request_mode &= ~(IswCWX | IswCWY);
     if (request->request_mode == 0)
         return IswGeometryNo;
 
@@ -463,11 +463,11 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
     Dimension save_h = child->core.height;
     Dimension save_bw = child->core.border_width;
 
-    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
+    if (request->request_mode & IswCWWidth)
         child->core.width = request->width;
-    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+    if (request->request_mode & IswCWHeight)
         child->core.height = request->height;
-    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
+    if (request->request_mode & IswCWBorderWidth)
         child->core.border_width = request->border_width;
 
     /* Recompute preferred toolbar size and negotiate with parent */
@@ -476,7 +476,7 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
         tw->toolbar.preferred_height != tw->core.height)
     {
         IswWidgetGeometry req, rep;
-        req.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        req.request_mode = IswCWWidth | IswCWHeight;
         req.width = tw->toolbar.preferred_width;
         req.height = tw->toolbar.preferred_height;
         IswGeometryResult result = IswMakeGeometryRequest((Widget)tw, &req, &rep);
@@ -508,10 +508,10 @@ PreferredSize(Widget widget, IswWidgetGeometry *constraint,
 
     preferred->width = tw->toolbar.preferred_width;
     preferred->height = tw->toolbar.preferred_height;
-    preferred->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    preferred->request_mode = IswCWWidth | IswCWHeight;
 
-    if ((constraint->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT))
-        == (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)
+    if ((constraint->request_mode & (IswCWWidth | IswCWHeight))
+        == (IswCWWidth | IswCWHeight)
         && constraint->width == preferred->width
         && constraint->height == preferred->height)
         return IswGeometryYes;

@@ -64,8 +64,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
-#define IsHorizontal(tw) ((tw)->tree.gravity == XCB_GRAVITY_WEST || \
-			  (tw)->tree.gravity == XCB_GRAVITY_EAST)
+#define IsHorizontal(tw) ((tw)->tree.gravity == IswGravityWest || \
+			  (tw)->tree.gravity == IswGravityEast)
 
 
 					/* widget class method */
@@ -106,7 +106,7 @@ static IswResource resources[] = {
 	IswOffsetOf(TreeRec, tree.line_width), IswRImmediate, (IswPointer) 0 },
     { IswNgravity, IswCGravity, IswRGravity, sizeof (IswGravity),
 	IswOffsetOf(TreeRec, tree.gravity), IswRImmediate,
-	(IswPointer) XCB_GRAVITY_WEST },
+	(IswPointer) IswGravityWest },
 };
 
 
@@ -289,7 +289,7 @@ static void
 check_gravity (TreeWidget tw, IswGravity grav)
 {
     switch (tw->tree.gravity) {
-      case XCB_GRAVITY_WEST: case XCB_GRAVITY_NORTH: case XCB_GRAVITY_EAST: case XCB_GRAVITY_SOUTH:
+      case IswGravityWest: case IswGravityNorth: case IswGravityEast: case IswGravitySouth:
 	break;
       default:
 	tw->tree.gravity = grav;
@@ -317,15 +317,15 @@ XmuCvtStringToGravity(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
     
     /* Simple string matching for gravity values */
     if (strcmp(str, "west") == 0 || strcmp(str, "West") == 0)
-        gravity = XCB_GRAVITY_WEST;
+        gravity = IswGravityWest;
     else if (strcmp(str, "north") == 0 || strcmp(str, "North") == 0)
-        gravity = XCB_GRAVITY_NORTH;
+        gravity = IswGravityNorth;
     else if (strcmp(str, "east") == 0 || strcmp(str, "East") == 0)
-        gravity = XCB_GRAVITY_EAST;
+        gravity = IswGravityEast;
     else if (strcmp(str, "south") == 0 || strcmp(str, "South") == 0)
-        gravity = XCB_GRAVITY_SOUTH;
+        gravity = IswGravitySouth;
     else
-        gravity = XCB_GRAVITY_WEST; /* default */
+        gravity = IswGravityWest; /* default */
     
     if (toVal->addr != NULL) {
         if (toVal->size < sizeof(IswGravity)) {
@@ -412,7 +412,7 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
     /*
      * make sure that our gravity is one of the acceptable values
      */
-    check_gravity (new, XCB_GRAVITY_WEST);
+    check_gravity (new, IswGravityWest);
 }
 
 
@@ -555,19 +555,19 @@ GeometryManager (Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
     /*
      * No position changes allowed!.
      */
-    if ((request->request_mode & XCB_CONFIG_WINDOW_X && request->x!=w->core.x)
-	||(request->request_mode & XCB_CONFIG_WINDOW_Y && request->y!=w->core.y))
+    if ((request->request_mode & IswCWX && request->x!=w->core.x)
+	||(request->request_mode & IswCWY && request->y!=w->core.y))
       return (IswGeometryNo);
 
     /*
      * Allow all resize requests.
      */
 
-    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
+    if (request->request_mode & IswCWWidth)
       w->core.width = request->width;
-    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+    if (request->request_mode & IswCWHeight)
       w->core.height = request->height;
-    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
+    if (request->request_mode & IswCWBorderWidth)
       w->core.border_width = request->border_width;
 
     if (tw->tree.auto_reconfigure) layout_tree (tw, FALSE);
@@ -606,7 +606,7 @@ Redisplay (Widget gw, IswEvent *event, IswRegion region)
      */
     if (tw->core.visible) {
 	int i, j;
-	xcb_connection_t *dpy = _IswXcbConn(IswDisplayOf (tw));
+	IswDisplay dpy = IswDisplayOf (tw);
 
 	/* Create render context lazily with dimension validation */
 	if (!tw->tree.render_ctx && tw->core.width > 0 && tw->core.height > 0) {
@@ -628,17 +628,17 @@ Redisplay (Widget gw, IswEvent *event, IswRegion region)
 		int srcy = child->core.y + child->core.border_width;
 
 		switch (tw->tree.gravity) {
-		  case XCB_GRAVITY_WEST:
+		  case IswGravityWest:
 		    srcx += child->core.width + child->core.border_width;
 		    /* fall through */
-		  case XCB_GRAVITY_EAST:
+		  case IswGravityEast:
 		    srcy += child->core.height / 2;
 		    break;
 
-		  case XCB_GRAVITY_NORTH:
+		  case IswGravityNorth:
 		    srcy += child->core.height + child->core.border_width;
 		    /* fall through */
-		  case XCB_GRAVITY_SOUTH:
+		  case IswGravitySouth:
 		    srcx += child->core.width / 2;
 		    break;
 		}
@@ -649,7 +649,7 @@ Redisplay (Widget gw, IswEvent *event, IswRegion region)
 		    int x1, y1, x2, y2;
 
 		    switch (tw->tree.gravity) {
-		      case XCB_GRAVITY_WEST:
+		      case IswGravityWest:
 		 /*
 		  * right center to left center
 		  */
@@ -660,7 +660,7 @@ Redisplay (Widget gw, IswEvent *event, IswRegion region)
 		      ((int) k->core.height) / 2);
 		 break;
 
-		      case XCB_GRAVITY_NORTH:
+		      case IswGravityNorth:
 		 /*
 		  * bottom center to top center
 		  */
@@ -671,7 +671,7 @@ Redisplay (Widget gw, IswEvent *event, IswRegion region)
 		 y2 = (int) k->core.y;
 		 break;
 
-		      case XCB_GRAVITY_EAST:
+		      case IswGravityEast:
 		 /*
 		  * left center to right center
 		  */
@@ -684,7 +684,7 @@ Redisplay (Widget gw, IswEvent *event, IswRegion region)
 		      ((int) k->core.height) / 2);
 		 break;
 
-		      case XCB_GRAVITY_SOUTH:
+		      case IswGravitySouth:
 		 /*
 		  * top center to bottom center
 		  */
@@ -709,7 +709,7 @@ Redisplay (Widget gw, IswEvent *event, IswRegion region)
 	if (tw->tree.render_ctx)
 	    ISWRenderEnd(tw->tree.render_ctx);
 
-	xcb_flush(dpy);
+	_IswPlatformFlush(dpy);
     }
 }
 
@@ -718,12 +718,12 @@ QueryGeometry (Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *preferr
 {
     TreeWidget tw = (TreeWidget) w;
 
-    preferred->request_mode = (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT);
+    preferred->request_mode = (IswCWWidth | IswCWHeight);
     preferred->width = tw->tree.maxwidth;
     preferred->height = tw->tree.maxheight;
 
-    if (((intended->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) ==
-	 (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) &&
+    if (((intended->request_mode & (IswCWWidth | IswCWHeight)) ==
+	 (IswCWWidth | IswCWHeight)) &&
 	intended->width == preferred->width &&
 	intended->height == preferred->height)
       return IswGeometryYes;
@@ -830,12 +830,12 @@ set_positions (TreeWidget tw, Widget w, int level)
 	     * mirror if necessary
 	     */
 	    switch (tw->tree.gravity) {
-	      case XCB_GRAVITY_EAST:
+	      case IswGravityEast:
 		tc->tree.x = (((Position) tw->tree.maxwidth) -
 			      ((Position) w->core.width) - tc->tree.x);
 		break;
 
-	      case XCB_GRAVITY_SOUTH:
+	      case IswGravitySouth:
 		tc->tree.y = (((Position) tw->tree.maxheight) -
 			      ((Position) w->core.height) - tc->tree.y);
 		break;
@@ -1035,9 +1035,8 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
         if (tw->core.windowless) {
             _IswRepaintWindowless((Widget)tw);
         } else {
-            xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(tw));
-            xcb_clear_area(conn, 1, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(tw)), (Widget)(tw))), 0, 0, 0, 0);
-            xcb_flush(conn);
+            _IswPlatformClearArea(IswDisplayOf(tw), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(tw)), (Widget)(tw)), 0, 0, 0, 0, True);
+            _IswPlatformFlush(IswDisplayOf(tw));
         }
     }
 }

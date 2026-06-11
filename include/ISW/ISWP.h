@@ -106,6 +106,12 @@ typedef enum {
 #ifndef _IswGravity_defined
 #define _IswGravity_defined
 typedef unsigned int IswGravity;
+/* Neutral compass gravity values (numerically X11-compatible so resource
+   string<->value mapping and any X11 backend agree). */
+#define IswGravityNorth	2
+#define IswGravityWest	4
+#define IswGravityEast	6
+#define IswGravitySouth	8
 #endif
 
 #ifdef ISW_GRAY_BLKWHT_STIPPLES

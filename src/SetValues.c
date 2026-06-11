@@ -304,27 +304,27 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
         if (oldw->core.x != w->core.x) {
             geoReq.x = w->core.x;
             w->core.x = oldw->core.x;
-            geoReq.request_mode |= XCB_CONFIG_WINDOW_X;
+            geoReq.request_mode |= IswCWX;
         }
         if (oldw->core.y != w->core.y) {
             geoReq.y = w->core.y;
             w->core.y = oldw->core.y;
-            geoReq.request_mode |= XCB_CONFIG_WINDOW_Y;
+            geoReq.request_mode |= IswCWY;
         }
         if (oldw->core.width != w->core.width) {
             geoReq.width = w->core.width;
             w->core.width = oldw->core.width;
-            geoReq.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+            geoReq.request_mode |= IswCWWidth;
         }
         if (oldw->core.height != w->core.height) {
             geoReq.height = w->core.height;
             w->core.height = oldw->core.height;
-            geoReq.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+            geoReq.request_mode |= IswCWHeight;
         }
         if (oldw->core.border_width != w->core.border_width) {
             geoReq.border_width = w->core.border_width;
             w->core.border_width = oldw->core.border_width;
-            geoReq.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+            geoReq.request_mode |= IswCWBorderWidth;
         }
 
         if (geoReq.request_mode != 0) {
@@ -332,32 +332,32 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
 
             /* Pass on any requests for unchanged geometry values */
             if (geoReq.request_mode !=
-                (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
+                (IswCWX | IswCWY | IswCWWidth | IswCWHeight | IswCWBorderWidth)) {
                 for (; num_args != 0; num_args--, args++) {
-                    if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_X) &&
+                    if (!(geoReq.request_mode & IswCWX) &&
                         strcmp(IswNx, args->name) == 0) {
                         geoReq.x = w->core.x;
-                        geoReq.request_mode |= XCB_CONFIG_WINDOW_X;
+                        geoReq.request_mode |= IswCWX;
                     }
-                    else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_Y) &&
+                    else if (!(geoReq.request_mode & IswCWY) &&
                              strcmp(IswNy, args->name) == 0) {
                         geoReq.y = w->core.y;
-                        geoReq.request_mode |= XCB_CONFIG_WINDOW_Y;
+                        geoReq.request_mode |= IswCWY;
                     }
-                    else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_WIDTH) &&
+                    else if (!(geoReq.request_mode & IswCWWidth) &&
                              strcmp(IswNwidth, args->name) == 0) {
                         geoReq.width = w->core.width;
-                        geoReq.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+                        geoReq.request_mode |= IswCWWidth;
                     }
-                    else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
+                    else if (!(geoReq.request_mode & IswCWHeight) &&
                              strcmp(IswNheight, args->name) == 0) {
                         geoReq.height = w->core.height;
-                        geoReq.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+                        geoReq.request_mode |= IswCWHeight;
                     }
-                    else if (!(geoReq.request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) &&
+                    else if (!(geoReq.request_mode & IswCWBorderWidth) &&
                              strcmp(IswNborderWidth, args->name) == 0) {
                         geoReq.border_width = w->core.border_width;
-                        geoReq.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+                        geoReq.request_mode |= IswCWBorderWidth;
                     }
                 }
             }
@@ -456,10 +456,10 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
                 CALLGEOTAT(_IswGeoTrace(w,
                                        "IswSetValues calls ClearArea on \"%s\".\n",
                                        IswName(w)));
-                xcb_clear_area(
-                        _IswXcbConn(IswDisplayOf(w)), 1, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))), 0, 0, 0, 0
+                _IswPlatformClearArea(
+                        IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), 0, 0, 0, 0, True
                     );
-                xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+                _IswPlatformFlush(IswDisplayOf(w));
             }
         }
         else {                  /*non-window object */
@@ -474,16 +474,16 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
                                            "IswSetValues calls ClearArea on \"%s\"'s parent \"%s\".\n",
                                            IswName(w), IswName(pw)));
 
-                    xcb_clear_area(
-                        _IswXcbConn(IswDisplayOf(pw)),
-                        1,  /* generate Expose event */
-                        _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
-                        r->rectangle.x,
-                        r->rectangle.y,
-                        (unsigned) (r->rectangle.width + bw2),
-                        (unsigned) (r->rectangle.height + bw2)
+                    _IswPlatformClearArea(
+                        IswDisplayOf(pw),
+                        _IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw)),
+                        (int16_t) r->rectangle.x,
+                        (int16_t) r->rectangle.y,
+                        (uint16_t) (r->rectangle.width + bw2),
+                        (uint16_t) (r->rectangle.height + bw2),
+                        True  /* generate Expose event */
                     );
-                    xcb_flush(_IswXcbConn(IswDisplayOf(pw)));
+                    _IswPlatformFlush(IswDisplayOf(pw));
                 }
             }
         }

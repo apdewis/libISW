@@ -225,13 +225,13 @@ QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *return_v
 
     width = 1;			/* we can be really small. */
 
-    if ( ((mode & XCB_CONFIG_WINDOW_WIDTH) && (intended->width != width)) ||
-	 !(mode & XCB_CONFIG_WINDOW_WIDTH) ) {
-	return_val->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+    if ( ((mode & IswCWWidth) && (intended->width != width)) ||
+	 !(mode & IswCWWidth) ) {
+	return_val->request_mode |= IswCWWidth;
 	return_val->width = width;
 	mode = return_val->request_mode;
 
-	if ( (mode & XCB_CONFIG_WINDOW_WIDTH) && (width == entry->rectangle.width) )
+	if ( (mode & IswCWWidth) && (width == entry->rectangle.width) )
 	    return(IswGeometryNo);
 	return(IswGeometryAlmost);
     }

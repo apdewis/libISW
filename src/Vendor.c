@@ -605,30 +605,30 @@ GeometryManager(Widget wid, IswWidgetGeometry *request, IswWidgetGeometry *reply
 	if(shell->shell.allow_shell_resize == FALSE && IswIsRealized(wid))
 		return(IswGeometryNo);
 
-	if (request->request_mode & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y))
+	if (request->request_mode & (IswCWX | IswCWY))
 	    return(IswGeometryNo);
 
 	/* %%% worry about IswCWQueryOnly */
 	my_request.request_mode = 0;
-	if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) {
+	if (request->request_mode & IswCWWidth) {
 	    my_request.width = request->width;
-	    my_request.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+	    my_request.request_mode |= IswCWWidth;
 	}
-	if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) {
+	if (request->request_mode & IswCWHeight) {
 	    my_request.height = request->height
 			      + _IswImGetImAreaHeight( wid )
 			      ;
-	    my_request.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+	    my_request.request_mode |= IswCWHeight;
 	}
-	if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+	if (request->request_mode & IswCWBorderWidth) {
 	    my_request.border_width = request->border_width;
-	    my_request.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+	    my_request.request_mode |= IswCWBorderWidth;
 	}
 	if (IswMakeGeometryRequest((Widget)shell, &my_request, NULL)
 		== IswGeometryYes) {
-	    /* assert: if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) then
+	    /* assert: if (request->request_mode & IswCWWidth) then
 	     * 		  shell->core.width == request->width
-	     * assert: if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) then
+	     * assert: if (request->request_mode & IswCWHeight) then
 	     * 		  shell->core.height == request->height
 	     *
 	     * so, whatever the WM sized us to (if the Shell requested
@@ -637,7 +637,7 @@ GeometryManager(Widget wid, IswWidgetGeometry *request, IswWidgetGeometry *reply
 
 	    wid->core.width = shell->core.width;
 	    wid->core.height = shell->core.height;
-	    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+	    if (request->request_mode & IswCWBorderWidth) {
 		wid->core.x = wid->core.y = -request->border_width;
 	    }
 	    _IswImCallVendorShellExtResize(wid);

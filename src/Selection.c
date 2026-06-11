@@ -582,7 +582,7 @@ OwnerTimedOut(IswPointer closure, IswIntervalId *id _X_UNUSED)
         }
     }
 
-    RemoveHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
+    RemoveHandler(req, (EventMask) IswPropertyChangeMask,
                   HandlePropertyGone, closure);
     IswFree((char *) req);
     if (--ctx->ref_count == 0 && ctx->free_when_done)
@@ -653,7 +653,7 @@ HandlePropertyGone(Widget widget _X_UNUSED,
             else
                 (*ctx->notify) (ctx->widget, &ctx->selection, &req->target);
         }
-        RemoveHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
+        RemoveHandler(req, (EventMask) IswPropertyChangeMask,
                       HandlePropertyGone, closure);
         IswFree((char *) req);
         if (--ctx->ref_count == 0 && ctx->free_when_done)
@@ -723,7 +723,7 @@ PrepareIncremental(Request req,
                                        (IswPointer) req);
     }
 #endif
-    AddHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
+    AddHandler(req, (EventMask) IswPropertyChangeMask,
                HandlePropertyGone, (IswPointer) req);
 /* now send client INCR property */
     _IswPlatformChangeProperty(req->ctx->dpy, window,
@@ -803,7 +803,7 @@ GetConversion(Select ctx,       /* logical owner */
                                         OwnerTimedOut, (IswPointer) req);
                 }
 #endif
-                AddHandler(req, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
+                AddHandler(req, (EventMask) IswPropertyChangeMask,
                            HandlePropertyGone, (IswPointer) req);
             }
             else
@@ -1108,7 +1108,7 @@ ReqCleanup(Widget widget,
                              ReqCleanup, (IswPointer) info);
         if (IsINCRtype(info, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), selev.property)) {
             info->proc = HandleGetIncrement;
-            IswAddEventHandler(info->widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
+            IswAddEventHandler(info->widget, (EventMask) IswPropertyChangeMask,
                               FALSE, ReqCleanup, (IswPointer) info);
         }
         else {
@@ -1131,7 +1131,7 @@ ReqCleanup(Widget widget,
                 }
 
             if (length == 0) {
-                IswRemoveEventHandler(widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
+                IswRemoveEventHandler(widget, (EventMask) IswPropertyChangeMask,
                                      FALSE, ReqCleanup, (IswPointer) info);
                 FreeSelectionProperty(IswDisplayOf(widget), info->property);
                 IswFree(info->value);    /* requestor never got this, so free now */
@@ -1184,9 +1184,9 @@ ReqTimedOut(IswPointer closure, IswIntervalId *id _X_UNUSED)
                           ReqCleanup, (IswPointer) info);
     }
     else {
-        IswRemoveEventHandler(info->widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
+        IswRemoveEventHandler(info->widget, (EventMask) IswPropertyChangeMask,
                              FALSE, info->proc, (IswPointer) info);
-        IswAddEventHandler(info->widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
+        IswAddEventHandler(info->widget, (EventMask) IswPropertyChangeMask,
                           FALSE, ReqCleanup, (IswPointer) info);
     }
 
@@ -1244,7 +1244,7 @@ HandleGetIncrement(Widget widget,
         /* assert ((info->offset != 0) == (info->incremental[n]) */
         if (info->offset != 0)
             IswFree(value);
-        IswRemoveEventHandler(widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE, FALSE,
+        IswRemoveEventHandler(widget, (EventMask) IswPropertyChangeMask, FALSE,
                              HandleGetIncrement, (IswPointer) info);
         FreeSelectionProperty(IswDisplayOf(widget), info->property);
 
@@ -1395,7 +1395,7 @@ HandleIncremental(IswDisplay dpy,
                   CallBackInfo info,
                   unsigned long size)
 {
-    IswAddEventHandler(widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE, FALSE,
+    IswAddEventHandler(widget, (EventMask) IswPropertyChangeMask, FALSE,
                       HandleGetIncrement, (IswPointer) info);
 
     /* now start the transfer */

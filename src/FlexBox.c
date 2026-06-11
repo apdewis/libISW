@@ -200,11 +200,11 @@ ChildBasis(FlexBoxWidget fw, Widget child, Boolean is_horizontal)
     IswQueryGeometry(child, NULL, &preferred);
 
     if (is_horizontal) {
-        if (preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH)
+        if (preferred.request_mode & IswCWWidth)
             return preferred.width;
         return child->core.width;
     } else {
-        if (preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+        if (preferred.request_mode & IswCWHeight)
             return preferred.height;
         return child->core.height;
     }
@@ -217,11 +217,11 @@ ChildCrossPreferred(Widget child, Boolean is_horizontal)
     IswQueryGeometry(child, NULL, &preferred);
 
     if (is_horizontal) {
-        if (preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+        if (preferred.request_mode & IswCWHeight)
             return preferred.height;
         return child->core.height;
     } else {
-        if (preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH)
+        if (preferred.request_mode & IswCWWidth)
             return preferred.width;
         return child->core.width;
     }
@@ -427,7 +427,7 @@ ChangeManaged(Widget w)
         fw->flexBox.preferred_height != fw->core.height)
     {
         IswWidgetGeometry req, reply;
-        req.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+        req.request_mode = IswCWWidth | IswCWHeight;
         req.width = fw->flexBox.preferred_width;
         req.height = fw->flexBox.preferred_height;
         IswGeometryResult result = IswMakeGeometryRequest(w, &req, &reply);
@@ -451,15 +451,15 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
     (void)reply;
 
     /* Reject position requests — we control placement */
-    if (request->request_mode & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y))
+    if (request->request_mode & (IswCWX | IswCWY))
         return IswGeometryNo;
 
     /* Accept size requests, then re-layout */
-    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
+    if (request->request_mode & IswCWWidth)
         child->core.width = request->width;
-    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+    if (request->request_mode & IswCWHeight)
         child->core.height = request->height;
-    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
+    if (request->request_mode & IswCWBorderWidth)
         child->core.border_width = request->border_width;
 
     ChangeManaged((Widget)fw);
@@ -477,9 +477,9 @@ PreferredGeometry(Widget widget, IswWidgetGeometry *request,
 
     reply->width = fw->flexBox.preferred_width;
     reply->height = fw->flexBox.preferred_height;
-    reply->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    reply->request_mode = IswCWWidth | IswCWHeight;
 
-    if ((request->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) == (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)
+    if ((request->request_mode & (IswCWWidth | IswCWHeight)) == (IswCWWidth | IswCWHeight)
         && request->width == reply->width
         && request->height == reply->height)
         return IswGeometryYes;

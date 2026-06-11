@@ -40,6 +40,16 @@ typedef uint32_t IswKeySym;
 #define IswNoSymbol ((IswKeySym) 0)
 #endif
 
+/* Portable integer point — neutral replacement for xcb_point_t in
+   platform-neutral signatures (polygon vertex lists, etc.).  Defined here so
+   the render and platform headers share one definition with no xcb dependency. */
+#ifndef ISW_POINT_DEFINED
+#define ISW_POINT_DEFINED
+typedef struct {
+    int16_t x, y;
+} IswPoint;
+#endif
+
 /* Neutral color/font/visual handles (full ops in ISW/ISWPlatform.h).  Value
    handles: each IS the native id/pointer reinterpreted by the backend (like
    IswWindow), so seam conversions are plain casts.  Carry no xcb dependency.

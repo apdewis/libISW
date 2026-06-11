@@ -257,13 +257,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     w->viewport.clip->core.windowless = True;
 
     /*
-     * Select XCB_EVENT_MASK_BUTTON_PRESS on the clip widget so that scroll wheel events
+     * Select IswButtonPressMask on the clip widget so that scroll wheel events
      * (buttons 4-7) propagate from non-interactive children (Labels, Boxes)
      * to the clip window instead of being discarded by the X server.
      * The actual scroll handling is done by the ScrollWheel event dispatcher.
      */
     IswAddEventHandler(w->viewport.clip,
-                      XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
+                      IswButtonPressMask | IswButtonReleaseMask,
                       False, ScrollWheelSink, NULL);
 
     if (!w->viewport.forcebars)
@@ -368,9 +368,7 @@ Realize(IswDisplay conn, Widget widget, IswValueMask *value_mask, uint32_t *valu
 	       position is relative to the clip's origin — move it to (0,0)
 	       within the clip, then reparent and map. */
 	    IswMoveWidget( child, (Position)0, (Position)0 );
-	    /* Raw reparent stays here for now (Phase 13c routes it through the
-	       reparent window op); reach the connection via the seam. */
-	    xcb_reparent_window(_IswXcbConn(conn), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child))), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(clip)), (Widget)(clip))), 0, 0);
+	    _IswPlatformReparentWindow(IswDisplayOf(child), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child)), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(clip)), (Widget)(clip)), 0, 0);
 	    IswMapWidget( child );
 	}
 	/* Windowless child: NOT reparented — it composites in the Viewport's
@@ -569,7 +567,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 
     clip_width = w->core.width - 2 * sw;
     clip_height = w->core.height - 2 * sw;
-    intended.request_mode = XCB_CONFIG_WINDOW_BORDER_WIDTH;
+    intended.request_mode = IswCWBorderWidth;
     intended.border_width = 0;
 
     if (w->viewport.forcebars) {
@@ -597,9 +595,9 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	intended.height = clip_height;
 
 	if (!w->viewport.allowhoriz)
-	    intended.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+	    intended.request_mode |= IswCWWidth;
 	if (!w->viewport.allowvert)
-	    intended.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+	    intended.request_mode |= IswCWHeight;
 
 	if (!query) {
 	    preferred.width = child->core.width;
@@ -614,9 +612,9 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		 * only when scrolling is not allowed on that axis, so the
 		 * child reports its natural size on scrollable axes. */
 		(void) IswQueryGeometry( child, &intended, &preferred );
-		if ( !(preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH) )
+		if ( !(preferred.request_mode & IswCWWidth) )
 		    preferred.width = intended.width;
-		if ( !(preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT) )
+		if ( !(preferred.request_mode & IswCWHeight) )
 		    preferred.height = intended.height;
 	    }
 
@@ -667,19 +665,19 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	    if (!w->viewport.allowhoriz ||
 		    (int)preferred.width < clip_width) {
 	        intended.width = clip_width;
-		intended.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+		intended.request_mode |= IswCWWidth;
 	    }
 	    if (!w->viewport.allowvert ||
 		    (int)preferred.height < clip_height) {
 	        intended.height = clip_height;
-		intended.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+		intended.request_mode |= IswCWHeight;
 	    }
 #endif
 #ifdef NEED_LAYOUT_LOOP
 	} while ( intended.request_mode != prev_mode ||
-		  (intended.request_mode & XCB_CONFIG_WINDOW_WIDTH &&
+		  (intended.request_mode & IswCWWidth &&
 			intended.width != prev_width) ||
-		  (intended.request_mode & XCB_CONFIG_WINDOW_HEIGHT &&
+		  (intended.request_mode & IswCWHeight &&
 			intended.height != prev_height) );
 #endif
 
@@ -687,12 +685,12 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 	if (!w->viewport.allowhoriz ||
 		(int)preferred.width < clip_width) {
 	    intended.width = clip_width;
-	    intended.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+	    intended.request_mode |= IswCWWidth;
 	}
 	if (!w->viewport.allowvert ||
 		(int)preferred.height < clip_height) {
 	    intended.height = clip_height;
-	    intended.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+	    intended.request_mode |= IswCWHeight;
 	}
 #endif
     }
@@ -716,9 +714,12 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
     /* IswResizeWidget( threeD, (Dimension)(w->core.width - bar_width),
 		    (Dimension)(w->core.height - bar_height), (Dimension)0 ); */
 
-    if (IswIsRealized(clip))
-	xcb_configure_window(_IswXcbConn(IswDisplayOf(clip)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(clip)), (Widget)(clip))),
-	    XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
+    if (IswIsRealized(clip)) {
+	IswWindowGeometry _g;
+	memset(&_g, 0, sizeof(_g));
+	_IswPlatformConfigureWindow(IswDisplayOf(clip), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(clip)), (Widget)(clip)), &_g,
+	    ISW_CONFIG_STACK, ISW_STACK_ABOVE, NULL);
+    }
 
     IswMoveWidget( clip,
 		  (Position)(!needsvert ? sw :
@@ -838,26 +839,26 @@ ComputeWithForceBars(Widget widget, Boolean query, IswWidgetGeometry *intended,
 
     if (!w->viewport.allowvert) {
         intended->height = *clip_height;
-        intended->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+        intended->request_mode |= IswCWHeight;
     }
     if (!w->viewport.allowhoriz) {
         intended->width = *clip_width;
-        intended->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+        intended->request_mode |= IswCWWidth;
     }
 
     if ( query ) {
         if ( (w->viewport.allowvert || w->viewport.allowhoriz) ) {
 	    IswQueryGeometry( child, intended, &preferred );
 
-	    if ( !(intended->request_mode & XCB_CONFIG_WINDOW_WIDTH) ) {
-	        if ( preferred.request_mode & XCB_CONFIG_WINDOW_WIDTH )
+	    if ( !(intended->request_mode & IswCWWidth) ) {
+	        if ( preferred.request_mode & IswCWWidth )
 		    intended->width = preferred.width;
 		else
 		    intended->width = child->core.width;
 	    }
 
-	    if ( !(intended->request_mode & XCB_CONFIG_WINDOW_HEIGHT) ) {
-	        if ( preferred.request_mode & XCB_CONFIG_WINDOW_HEIGHT )
+	    if ( !(intended->request_mode & IswCWHeight) ) {
+	        if ( preferred.request_mode & IswCWHeight )
 		    intended->height = preferred.height;
 		else
 		    intended->height = child->core.height;
@@ -897,9 +898,9 @@ Layout(FormWidget w, Dimension width, Dimension height, Boolean junk)
 
 /*
  * No-op event handler registered on the clip widget to ensure
- * XCB_EVENT_MASK_BUTTON_PRESS is set on the clip window.  This causes X11 to
+ * IswButtonPressMask is set on the clip window.  This causes X11 to
  * propagate button events (including scroll wheel) from children
- * that don't select XCB_EVENT_MASK_BUTTON_PRESS.  The actual scroll wheel
+ * that don't select IswButtonPressMask.  The actual scroll wheel
  * handling is done by the ScrollWheel event dispatcher.
  */
 /* ARGSUSED */
@@ -1027,8 +1028,8 @@ static IswGeometryResult
 GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 {
     ViewportWidget w = (ViewportWidget)child->core.parent;
-    Boolean rWidth = (Boolean)(request->request_mode & XCB_CONFIG_WINDOW_WIDTH);
-    Boolean rHeight = (Boolean)(request->request_mode & XCB_CONFIG_WINDOW_HEIGHT);
+    Boolean rWidth = (Boolean)(request->request_mode & IswCWWidth);
+    Boolean rHeight = (Boolean)(request->request_mode & IswCWHeight);
     IswWidgetGeometry allowed;
     IswGeometryResult result;
     Boolean reconfigured;
@@ -1040,9 +1041,9 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
       return QueryGeometry(w, request, reply);
 
     if (child != w->viewport.child
-        || request->request_mode & ~(XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT
-				     | XCB_CONFIG_WINDOW_BORDER_WIDTH)
-	|| ((request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH)
+        || request->request_mode & ~(IswCWWidth | IswCWHeight
+				     | IswCWBorderWidth)
+	|| ((request->request_mode & IswCWBorderWidth)
 	    && request->border_width > 0))
 	return IswGeometryNo;
 
@@ -1081,7 +1082,7 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
 	    if (!w->viewport.allowhoriz || request->width < w->core.width) {
 		if (!rWidth) {
 		    allowed.width = w->core.width;
-		    allowed.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+		    allowed.request_mode |= IswCWWidth;
 		}
 		if (w->viewport.vert_bar == (Widget)NULL) {
 		    Widget bar = CreateScrollbar( w, False );
@@ -1128,7 +1129,7 @@ GetGeometry(Widget w, Dimension width, Dimension height)
     if (width == w->core.width && height == w->core.height)
 	return False;
 
-    geometry.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    geometry.request_mode = IswCWWidth | IswCWHeight;
     geometry.width = width;
     geometry.height = height;
 
@@ -1161,13 +1162,13 @@ PreferredGeometry(Widget w, IswWidgetGeometry *constraints, IswWidgetGeometry *r
        child causes the parent to expand the viewport to fit all content,
        which defeats the purpose of having a scrollable viewport. */
     if (w->core.width != 0 && w->core.height != 0) {
-	reply->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+	reply->request_mode = IswCWWidth | IswCWHeight;
 	reply->width = w->core.width;
 	reply->height = w->core.height;
 	if (constraints != NULL &&
-	    (constraints->request_mode & XCB_CONFIG_WINDOW_WIDTH) &&
+	    (constraints->request_mode & IswCWWidth) &&
 	    constraints->width == w->core.width &&
-	    (constraints->request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
+	    (constraints->request_mode & IswCWHeight) &&
 	    constraints->height == w->core.height)
 	    return IswGeometryYes;
 	return IswGeometryAlmost;

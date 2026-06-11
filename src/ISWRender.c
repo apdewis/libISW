@@ -1017,23 +1017,22 @@ ISWRenderFillStrokeRoundedRectangle(ISWRenderContext *ctx,
 }
 
 void
-ISWRenderStrokePolygon(ISWRenderContext *ctx, xcb_point_t *points, int num_points)
+ISWRenderStrokePolygon(ISWRenderContext *ctx, IswPoint *points, int num_points)
 {
     if (!ctx || !ctx->ops || !ctx->ops->stroke_polygon) {
         return;
     }
-    
-    ctx->ops->stroke_polygon(ctx, points, num_points);
+    /* IswPoint and the backend point type are layout-identical (int16_t x,y). */
+    ctx->ops->stroke_polygon(ctx, (xcb_point_t *) points, num_points);
 }
 
 void
-ISWRenderFillPolygon(ISWRenderContext *ctx, xcb_point_t *points, int num_points)
+ISWRenderFillPolygon(ISWRenderContext *ctx, IswPoint *points, int num_points)
 {
     if (!ctx || !ctx->ops || !ctx->ops->fill_polygon) {
         return;
     }
-    
-    ctx->ops->fill_polygon(ctx, points, num_points);
+    ctx->ops->fill_polygon(ctx, (xcb_point_t *) points, num_points);
 }
 
 void

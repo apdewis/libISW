@@ -286,7 +286,7 @@ AdjustPanedSize(PanedWidget pw, Dimension off_size, IswGeometryResult * result_r
     Dimension newsize = 0;
     Widget * childP;
     IswWidgetGeometry request, reply;
-    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    request.request_mode = IswCWWidth | IswCWHeight;
 
     ForAllPanes(pw, childP) {
         int size = IswMax(PaneInfo(*childP)->size, (int)PaneInfo(*childP)->min);
@@ -685,13 +685,13 @@ CommitNewLocations(PanedWidget pw)
 	        if (IswIsRealized(pane->grip)) {
 	            /* HiDPI: scale logical to physical for the X server */
 	            double _sf = _IswGetScaleFactor(IswDisplayOf(pane->grip));
-	            uint32_t values[3];
-	            values[0] = (uint32_t)(int32_t)(grip_x * _sf + 0.5);
-	            values[1] = (uint32_t)(int32_t)(grip_y * _sf + 0.5);
-	            values[2] = XCB_STACK_MODE_ABOVE;
-	            xcb_configure_window(_IswXcbConn(IswDisplayOf(pane->grip)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pane->grip)), (Widget)(pane->grip))),
-				     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-				     XCB_CONFIG_WINDOW_STACK_MODE, values);
+	            IswWindowGeometry _g;
+	            memset(&_g, 0, sizeof(_g));
+	            _g.x = (int32_t)(grip_x * _sf + 0.5);
+	            _g.y = (int32_t)(grip_y * _sf + 0.5);
+	            _IswPlatformConfigureWindow(IswDisplayOf(pane->grip), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(pane->grip)), (Widget)(pane->grip)), &_g,
+				     ISW_CONFIG_X | ISW_CONFIG_Y |
+				     ISW_CONFIG_STACK, ISW_STACK_ABOVE, NULL);
 	        }
 	    }
 	}
@@ -1107,17 +1107,17 @@ SetChildrenPrefSizes(PanedWidget pw, Dimension off_size)
 	        PaneInfo(*childP)->wp_size=PaneInfo(*childP)->preferred_size;
 	    else {
 	        if( vert ) {
-		    request.request_mode = XCB_CONFIG_WINDOW_WIDTH;
+		    request.request_mode = IswCWWidth;
 		    request.width = off_size;
 		}
 		else {
-		    request.request_mode = XCB_CONFIG_WINDOW_HEIGHT;
+		    request.request_mode = IswCWHeight;
 		    request.height = off_size;
 		}
 
 		if ((IswQueryGeometry( *childP, &request, &reply )
 	                                         == IswGeometryAlmost) &&
-		    (reply.request_mode = (vert ? XCB_CONFIG_WINDOW_HEIGHT : XCB_CONFIG_WINDOW_WIDTH)))
+		    (reply.request_mode = (vert ? IswCWHeight : IswCWWidth)))
 		    PaneInfo(*childP)->wp_size = GetRequestInfo(&reply, vert);
 		else
 		    PaneInfo(*childP)->wp_size = PaneSize(*childP, vert);
@@ -1293,8 +1293,8 @@ GeometryManager(Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
  */
 
     if ( (IswIsRealized((Widget)pw) && !pane->allow_resize)        ||
-	 !(mask & ((vert) ? XCB_CONFIG_WINDOW_HEIGHT : XCB_CONFIG_WINDOW_WIDTH))                  ||
-         (mask & ~(XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT))                           ||
+	 !(mask & ((vert) ? IswCWHeight : IswCWWidth))                  ||
+         (mask & ~(IswCWWidth | IswCWHeight))                           ||
          (GetRequestInfo(request, vert) ==  PaneSize(w, vert)) ) {
         return IswGeometryNo;
     }
@@ -1349,7 +1349,7 @@ GeometryManager(Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
  * THEN: set almost
  */
 
-    if ( !((vert ? XCB_CONFIG_WINDOW_WIDTH : XCB_CONFIG_WINDOW_HEIGHT) & mask)) {
+    if ( !((vert ? IswCWWidth : IswCWHeight) & mask)) {
         if (vert)
 	    request->width = w->core.width;
 	else
@@ -1363,7 +1363,7 @@ GeometryManager(Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 	pane->wp_size = old_wpsize;
 	pane->size = old_size;
 	RefigureLocations(pw, PaneIndex(w), AnyPane);
-	reply->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+	reply->request_mode = IswCWWidth | IswCWHeight;
 	if (almost) return IswGeometryAlmost;
     }
     else {
@@ -1576,7 +1576,7 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
 
     if ( (old_pw->paned.cursor != new_pw->paned.cursor) && IswIsRealized(new)) {
         _IswSetWindowCursor(new, new_pw->paned.cursor);
-        xcb_flush(_IswXcbConn(IswDisplayOf(new)));
+        _IswPlatformFlush(IswDisplayOf(new));
     }
 
     if ( (old_pw->paned.internal_bp != new_pw->paned.internal_bp) ||

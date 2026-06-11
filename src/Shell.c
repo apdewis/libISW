@@ -1556,7 +1556,7 @@ _popup_set_prop(ShellWidget w)
                         memcpy(ev.data.data8, mp, chunk);
 
                         xcb_send_event(conn, FALSE, root,
-                                       XCB_EVENT_MASK_PROPERTY_CHANGE,
+                                       IswPropertyChangeMask,
                                        (const char *) &ev);
                         mp += chunk;
                         remaining -= chunk;
@@ -2013,27 +2013,27 @@ GeometryManager(Widget wid,
     if (shell->shell.allow_shell_resize == FALSE && IswIsRealized(wid))
         return (IswGeometryNo);
 
-    if (request->request_mode & (XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y))
+    if (request->request_mode & (IswCWX | IswCWY))
         return (IswGeometryNo);
 
     my_request.request_mode = (request->request_mode & IswCWQueryOnly);
-    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) {
+    if (request->request_mode & IswCWWidth) {
         my_request.width = request->width;
-        my_request.request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+        my_request.request_mode |= IswCWWidth;
     }
-    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) {
+    if (request->request_mode & IswCWHeight) {
         my_request.height = request->height;
-        my_request.request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+        my_request.request_mode |= IswCWHeight;
     }
-    if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+    if (request->request_mode & IswCWBorderWidth) {
         my_request.border_width = request->border_width;
-        my_request.request_mode |= XCB_CONFIG_WINDOW_BORDER_WIDTH;
+        my_request.request_mode |= IswCWBorderWidth;
     }
     if (IswMakeGeometryRequest((Widget) shell, &my_request, NULL)
         == IswGeometryYes) {
-        /* assert: if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH) then
+        /* assert: if (request->request_mode & IswCWWidth) then
          *            shell->core.width == request->width
-         * assert: if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) then
+         * assert: if (request->request_mode & IswCWHeight) then
          *            shell->core.height == request->height
          *
          * so, whatever the WM sized us to (if the Shell requested
@@ -2043,7 +2043,7 @@ GeometryManager(Widget wid,
         if (!(request->request_mode & IswCWQueryOnly)) {
             wid->core.width = shell->core.width;
             wid->core.height = shell->core.height;
-            if (request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+            if (request->request_mode & IswCWBorderWidth) {
                 wid->core.x = wid->core.y = (Position) (-request->border_width);
             }
         }
@@ -2273,19 +2273,19 @@ RootGeometryManager(Widget gw,
     CALLGEOTAT(_IswGeoTrace((Widget) w, "XConfiguring the Shell X window :\n"));
     CALLGEOTAT(_IswGeoTab(1));
 #ifdef ISW_GEO_TATTLER
-    if (mask & XCB_CONFIG_WINDOW_X) {
+    if (mask & IswCWX) {
         CALLGEOTAT(_IswGeoTrace((Widget) w, "x = %d\n", values.x));
     }
-    if (mask & XCB_CONFIG_WINDOW_Y) {
+    if (mask & IswCWY) {
         CALLGEOTAT(_IswGeoTrace((Widget) w, "y = %d\n", values.y));
     }
-    if (mask & XCB_CONFIG_WINDOW_WIDTH) {
+    if (mask & IswCWWidth) {
         CALLGEOTAT(_IswGeoTrace((Widget) w, "width = %d\n", values.width));
     }
-    if (mask & XCB_CONFIG_WINDOW_HEIGHT) {
+    if (mask & IswCWHeight) {
         CALLGEOTAT(_IswGeoTrace((Widget) w, "height = %d\n", values.height));
     }
-    if (mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+    if (mask & IswCWBorderWidth) {
         CALLGEOTAT(_IswGeoTrace((Widget) w,
                                "border_width = %d\n", values.border_width));
     }
@@ -2751,7 +2751,7 @@ TopLevelSetValues(Widget oldW,
                     event->data.data32[3] = 0;
                     event->data.data32[4] = 0;
 
-                    xcb_send_event(_IswXcbConn(IswDisplayOf(newW)), 0, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW))), XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (char*)event);
+                    xcb_send_event(_IswXcbConn(IswDisplayOf(newW)), 0, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW))), IswSubstructureNotifyMask, (char*)event);
                     free(event);
                 }
             }
@@ -3085,8 +3085,8 @@ IswSetWindowState(Widget shell, const char *state, Boolean set)
         ev.data.data32[1] = (xcb_atom_t) state_atom;
 
         xcb_send_event(conn, 0, _IswXcbScreen(shell->core.screen)->root,
-                       XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
-                       XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
+                       IswSubstructureNotifyMask |
+                       IswSubstructureRedirectMask,
                        (const char *) &ev);
     }
 }

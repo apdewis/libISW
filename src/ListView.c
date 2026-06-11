@@ -530,10 +530,10 @@ QueryGeometry(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *reply)
     Dimension content_h = hdr_h + (Dimension)(lv->listView.nrows * (int)row_h);
     if (content_h < 1) content_h = 1;
 
-    reply->request_mode = XCB_CONFIG_WINDOW_HEIGHT;
+    reply->request_mode = IswCWHeight;
     reply->height = content_h;
 
-    if ((intended->request_mode & XCB_CONFIG_WINDOW_HEIGHT) &&
+    if ((intended->request_mode & IswCWHeight) &&
         intended->height == reply->height)
         return IswGeometryYes;
     return IswGeometryAlmost;
@@ -616,17 +616,17 @@ DrawHeader(ListViewWidget lv, ISWRenderContext *ctx)
 
                     ISWRenderSetColor(ctx, lv->listView.foreground);
 
-                    xcb_point_t pts[3];
+                    IswPoint pts[3];
                     if (lv->listView.sort_direction == IswListViewSortAscending) {
                         /* Up arrow: triangle pointing up */
-                        pts[0] = (xcb_point_t){ax + arrow_w_scaled / 2, ay};
-                        pts[1] = (xcb_point_t){ax, ay + arrow_h_scaled};
-                        pts[2] = (xcb_point_t){ax + arrow_w_scaled, ay + arrow_h_scaled};
+                        pts[0] = (IswPoint){ax + arrow_w_scaled / 2, ay};
+                        pts[1] = (IswPoint){ax, ay + arrow_h_scaled};
+                        pts[2] = (IswPoint){ax + arrow_w_scaled, ay + arrow_h_scaled};
                     } else {
                         /* Down arrow: triangle pointing down */
-                        pts[0] = (xcb_point_t){ax, ay};
-                        pts[1] = (xcb_point_t){ax + arrow_w_scaled, ay};
-                        pts[2] = (xcb_point_t){ax + arrow_w_scaled / 2, ay + arrow_h_scaled};
+                        pts[0] = (IswPoint){ax, ay};
+                        pts[1] = (IswPoint){ax + arrow_w_scaled, ay};
+                        pts[2] = (IswPoint){ax + arrow_w_scaled / 2, ay + arrow_h_scaled};
                     }
                     ISWRenderFillPolygon(ctx, pts, 3);
                 }
@@ -637,15 +637,15 @@ DrawHeader(ListViewWidget lv, ISWRenderContext *ctx)
 
                 ISWRenderSetColor(ctx, lv->listView.foreground);
 
-                xcb_point_t pts[3];
+                IswPoint pts[3];
                 if (lv->listView.sort_direction == IswListViewSortAscending) {
-                    pts[0] = (xcb_point_t){ax + arrow_w_scaled / 2, ay};
-                    pts[1] = (xcb_point_t){ax, ay + arrow_h_scaled};
-                    pts[2] = (xcb_point_t){ax + arrow_w_scaled, ay + arrow_h_scaled};
+                    pts[0] = (IswPoint){ax + arrow_w_scaled / 2, ay};
+                    pts[1] = (IswPoint){ax, ay + arrow_h_scaled};
+                    pts[2] = (IswPoint){ax + arrow_w_scaled, ay + arrow_h_scaled};
                 } else {
-                    pts[0] = (xcb_point_t){ax, ay};
-                    pts[1] = (xcb_point_t){ax + arrow_w_scaled, ay};
-                    pts[2] = (xcb_point_t){ax + arrow_w_scaled / 2, ay + arrow_h_scaled};
+                    pts[0] = (IswPoint){ax, ay};
+                    pts[1] = (IswPoint){ax + arrow_w_scaled, ay};
+                    pts[2] = (IswPoint){ax + arrow_w_scaled / 2, ay + arrow_h_scaled};
                 }
                 ISWRenderFillPolygon(ctx, pts, 3);
             }

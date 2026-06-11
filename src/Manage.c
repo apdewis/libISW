@@ -150,16 +150,16 @@ UnmanageChildren(WidgetList children,
                 }
 
                 if ((pw != NULL) && IswIsRealized(pw)) {
-                    xcb_clear_area(
-                        _IswXcbConn(IswDisplayOf(pw)),
-                        0,  // exposure flag (0 = no exposure)
-                        _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
-                        r->rectangle.x,
-                        r->rectangle.y,
-                        r->rectangle.width + (r->rectangle.border_width << 1),
-                        r->rectangle.height + (r->rectangle.border_width << 1)
+                    _IswPlatformClearArea(
+                        IswDisplayOf(pw),
+                        _IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw)),
+                        (int16_t) r->rectangle.x,
+                        (int16_t) r->rectangle.y,
+                        (uint16_t) (r->rectangle.width + (r->rectangle.border_width << 1)),
+                        (uint16_t) (r->rectangle.height + (r->rectangle.border_width << 1)),
+                        False  /* no exposure */
                     );
-                    xcb_flush(_IswXcbConn(IswDisplayOf(pw)));
+                    _IswPlatformFlush(IswDisplayOf(pw));
                 }
             }
 
@@ -329,16 +329,16 @@ ManageChildren(WidgetList children,
                 while ((pw != NULL) && (!IswIsWidget(pw)))
                     pw = pw->core.parent;
                 if (pw != NULL) {
-                    xcb_clear_area(
-                        _IswXcbConn(IswDisplayOf(pw)),
-                        0,  // exposure flag (0 = no exposure)
-                        _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
-                        r->rectangle.x,
-                        r->rectangle.y,
-                        r->rectangle.width + (r->rectangle.border_width << 1),
-                        r->rectangle.height + (r->rectangle.border_width << 1)
+                    _IswPlatformClearArea(
+                        IswDisplayOf(pw),
+                        _IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw)),
+                        (int16_t) r->rectangle.x,
+                        (int16_t) r->rectangle.y,
+                        (uint16_t) (r->rectangle.width + (r->rectangle.border_width << 1)),
+                        (uint16_t) (r->rectangle.height + (r->rectangle.border_width << 1)),
+                        False  /* no exposure */
                     );
-                    xcb_flush(_IswXcbConn(IswDisplayOf(pw)));
+                    _IswPlatformFlush(IswDisplayOf(pw));
                 }
             }
         }

@@ -48,8 +48,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define superclass (&boxClassRec)
 
 /* Event mask for the toplevel shell dismiss handler */
-#define DISMISS_MASK (XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_FOCUS_CHANGE | \
-                      XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_VISIBILITY_CHANGE)
+#define DISMISS_MASK (IswButtonPressMask | IswFocusChangeMask | \
+                      IswStructureNotifyMask | IswVisibilityChangeMask)
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
@@ -408,7 +408,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
 
     /* Clamp to screen edges */
     if (menu_x >= 0) {
-        int scr_width = WidthOfScreen(_IswXcbScreen(IswScreenOf(menu)));
+        int scr_width = _IswPlatformScreenWidth(IswDisplayOf(menu), IswScreenOf(menu));
         if (menu_x + menu_width > scr_width)
             menu_x = scr_width - menu_width;
     }
@@ -416,7 +416,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
         menu_x = 0;
 
     if (menu_y >= 0) {
-        int scr_height = HeightOfScreen(_IswXcbScreen(IswScreenOf(menu)));
+        int scr_height = _IswPlatformScreenHeight(IswDisplayOf(menu), IswScreenOf(menu));
         if (menu_y + menu_height > scr_height)
             menu_y = scr_height - menu_height;
     }
@@ -441,12 +441,12 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     if (IswIsRealized(menu)) {
         _IswPlatformGrabPointer(
             IswDisplayOf(menu), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(menu)), (Widget)(menu)), True,
-            XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
-            XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
-            XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
-            XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+            IswButtonPressMask | IswButtonReleaseMask |
+            IswPointerMotionMask | IswButtonMotionMask |
+            IswEnterWindowMask | IswLeaveWindowMask,
+            1, 1,
             None, None, ISW_CURRENT_TIME);
-        xcb_flush(_IswXcbConn(IswDisplayOf(menu)));
+        _IswPlatformFlush(IswDisplayOf(menu));
     }
 
     /* Visually activate the button (inverted/set state) */
@@ -484,7 +484,7 @@ CloseMenu(MenuBarWidget mbw)
     button = mbw->menu_bar.active_button;
 
     _IswPlatformUngrabPointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
-    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)mbw)));
+    _IswPlatformFlush(IswDisplayOf((Widget)mbw));
 
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);
@@ -519,7 +519,7 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
     Widget toplevel;
 
     _IswPlatformUngrabPointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
-    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)mbw)));
+    _IswPlatformFlush(IswDisplayOf((Widget)mbw));
 
     /* Remove popdown callback and click-outside handler from old menu */
     toplevel = FindToplevelShell((Widget)mbw);
@@ -562,7 +562,7 @@ MenuPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
     button = mbw->menu_bar.active_button;
 
     _IswPlatformUngrabPointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
-    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)mbw)));
+    _IswPlatformFlush(IswDisplayOf((Widget)mbw));
 
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);

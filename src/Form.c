@@ -347,7 +347,7 @@ ChangeFormGeometry(Widget w, Boolean query_only, Dimension width, Dimension heig
 
     request.width = width;
     request.height = height;
-    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    request.request_mode = IswCWWidth | IswCWHeight;
     if (query_only)
 	request.request_mode |= IswCWQueryOnly;
 
@@ -618,7 +618,7 @@ GeometryManager(Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
     IswWidgetGeometry allowed;
     IswGeometryResult ret_val;
 
-    if ((request->request_mode & ~(IswCWQueryOnly | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) ||
+    if ((request->request_mode & ~(IswCWQueryOnly | IswCWWidth | IswCWHeight)) ||
 	!form->form.allow_resize) {
 
 	/* If GeometryManager is invoked during a SetValues call on a child
@@ -631,12 +631,12 @@ GeometryManager(Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
 	return(IswGeometryNo);
     }
 
-    if (request->request_mode & XCB_CONFIG_WINDOW_WIDTH)
+    if (request->request_mode & IswCWWidth)
 	allowed.width = request->width;
     else
 	allowed.width = w->core.width;
 
-    if (request->request_mode & XCB_CONFIG_WINDOW_HEIGHT)
+    if (request->request_mode & IswCWHeight)
 	allowed.height = request->height;
     else
 	allowed.height = w->core.height;
@@ -834,9 +834,9 @@ PreferredGeometry(Widget widget, IswWidgetGeometry *request, IswWidgetGeometry *
 
     reply->width = w->form.preferred_width;
     reply->height = w->form.preferred_height;
-    reply->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
-    if (  (request->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)) ==
-	    (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT)
+    reply->request_mode = IswCWWidth | IswCWHeight;
+    if (  (request->request_mode & (IswCWWidth | IswCWHeight)) ==
+	    (IswCWWidth | IswCWHeight)
 	  && request->width == reply->width
 	  && request->height == reply->height)
 	return IswGeometryYes;
@@ -889,16 +889,17 @@ IswFormDoLayout(Widget _fw,
 	    if (!w->core.windowless) {
 		/* HiDPI: scale logical to physical for the X server */
 		double _sf = _IswGetScaleFactor(IswDisplayOf(w));
-		uint32_t values[4];
-		values[0] = (uint32_t)(int32_t)(w->core.x * _sf + 0.5);
-		values[1] = (uint32_t)(int32_t)(w->core.y * _sf + 0.5);
-		values[2] = (uint32_t)(w->core.width * _sf + 0.5);
-		values[3] = (uint32_t)(w->core.height * _sf + 0.5);
-		xcb_configure_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
-		    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
-		    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-		    values);
-		xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+		IswWindowGeometry _g;
+		memset(&_g, 0, sizeof(_g));
+		_g.x = (int32_t)(w->core.x * _sf + 0.5);
+		_g.y = (int32_t)(w->core.y * _sf + 0.5);
+		_g.width = (uint32_t)(w->core.width * _sf + 0.5);
+		_g.height = (uint32_t)(w->core.height * _sf + 0.5);
+		_IswPlatformConfigureWindow(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), &_g,
+		    ISW_CONFIG_X | ISW_CONFIG_Y |
+		    ISW_CONFIG_WIDTH | ISW_CONFIG_HEIGHT,
+		    ISW_STACK_NONE, NULL);
+		_IswPlatformFlush(IswDisplayOf(w));
 	    }
 
 	    if (form->form.deferred_resize &&

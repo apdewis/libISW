@@ -299,7 +299,7 @@ ChangeSize(Widget w, Dimension width, Dimension height)
 {
     IswWidgetGeometry request, reply;
 
-    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    request.request_mode = IswCWWidth | IswCWHeight;
     request.width = width;
     request.height = height;
 
@@ -320,7 +320,7 @@ ChangeSize(Widget w, Dimension width, Dimension height)
 	case IswGeometryAlmost:
 	    request = reply;
 	    Layout(w, FALSE, FALSE, &(request.width), &(request.height));
-	    request.request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+	    request.request_mode = IswCWWidth | IswCWHeight;
 	    IswMakeGeometryRequest(w, &request, &reply);
 	    break;
 	default:
@@ -731,8 +731,8 @@ PreferredGeom(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *requeste
     Dimension new_width, new_height;
     Boolean change, width_req, height_req;
 
-    width_req = intended->request_mode & XCB_CONFIG_WINDOW_WIDTH;
-    height_req = intended->request_mode & XCB_CONFIG_WINDOW_HEIGHT;
+    width_req = intended->request_mode & IswCWWidth;
+    height_req = intended->request_mode & IswCWHeight;
 
     if (width_req)
       new_width = intended->width;
@@ -755,9 +755,9 @@ PreferredGeom(Widget w, IswWidgetGeometry *intended, IswWidgetGeometry *requeste
 
     change = Layout(w, !width_req, !height_req, &new_width, &new_height);
 
-    requested->request_mode |= XCB_CONFIG_WINDOW_WIDTH;
+    requested->request_mode |= IswCWWidth;
     requested->width = new_width;
-    requested->request_mode |= XCB_CONFIG_WINDOW_HEIGHT;
+    requested->request_mode |= IswCWHeight;
     requested->height = new_height;
 
     if (change)
@@ -1210,7 +1210,7 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     /* Compute available space and pick direction */
     {
         double sf = _IswGetScaleFactor(IswDisplayOf(w));
-        int scr_height = (int)lrint(HeightOfScreen(_IswXcbScreen(IswScreenOf(w))) / sf);
+        int scr_height = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w)) / sf);
         int space_below = scr_height - below_y;
         int space_above = abs_y;
         Position popup_y = below_y;
@@ -1249,18 +1249,18 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
      * delivered to popup window. Same technique as GTK/Motif popups. */
     _IswPlatformGrabPointer(
         IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(lw->list.popup_shell)), (Widget)(lw->list.popup_shell)), False,
-        XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
-        XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
-        XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
-        XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+        IswButtonPressMask | IswButtonReleaseMask |
+        IswPointerMotionMask | IswButtonMotionMask |
+        IswEnterWindowMask | IswLeaveWindowMask,
+        1, 1,
         None, None, ISW_CURRENT_TIME);
 
     /* Keyboard grab so arrow / Return / Escape route to the popup */
     _IswPlatformGrabKeyboard(
         IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(lw->list.popup_shell)), (Widget)(lw->list.popup_shell)), False,
-        XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, ISW_CURRENT_TIME);
+        1, 1, ISW_CURRENT_TIME);
 
-    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+    _IswPlatformFlush(IswDisplayOf(w));
 
     /* Dismiss on focus loss, minimize, or visibility change */
     {
@@ -1269,8 +1269,8 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
             shell = IswParent(shell);
         if (shell)
             IswAddEventHandler(shell,
-                              XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-                              XCB_EVENT_MASK_VISIBILITY_CHANGE,
+                              IswFocusChangeMask | IswStructureNotifyMask |
+                              IswVisibilityChangeMask,
                               False, DropdownDismissHandler, (IswPointer)lw);
     }
 
@@ -1279,7 +1279,7 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     {
         Widget ancestor = IswParent(w);
         while (ancestor && !IswIsShell(ancestor)) {
-            IswAddEventHandler(ancestor, XCB_EVENT_MASK_STRUCTURE_NOTIFY, False,
+            IswAddEventHandler(ancestor, IswStructureNotifyMask, False,
                               DropdownDismissHandler, (IswPointer)lw);
             ancestor = IswParent(ancestor);
         }
@@ -1619,21 +1619,21 @@ DropdownPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
 
     _IswPlatformUngrabPointer(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
     _IswPlatformUngrabKeyboard(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
-    xcb_flush(_IswXcbConn(IswDisplayOf((Widget)lw)));
+    _IswPlatformFlush(IswDisplayOf((Widget)lw));
 
     while (shell && !IswIsShell(shell))
         shell = IswParent(shell);
     if (shell)
         IswRemoveEventHandler(shell,
-                             XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-                             XCB_EVENT_MASK_VISIBILITY_CHANGE,
+                             IswFocusChangeMask | IswStructureNotifyMask |
+                             IswVisibilityChangeMask,
                              False, DropdownDismissHandler, (IswPointer)lw);
 
     /* Remove ancestor-move handlers */
     {
         Widget ancestor = IswParent((Widget)lw);
         while (ancestor && !IswIsShell(ancestor)) {
-            IswRemoveEventHandler(ancestor, XCB_EVENT_MASK_STRUCTURE_NOTIFY, False,
+            IswRemoveEventHandler(ancestor, IswStructureNotifyMask, False,
                                  DropdownDismissHandler, (IswPointer)lw);
             ancestor = IswParent(ancestor);
         }

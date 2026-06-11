@@ -149,8 +149,8 @@ DoGrab(StatePtr state, IswPointer data)
     }
 
     switch (typeMatch->eventType) {
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE:
+    case IswButtonDown:
+    case IswButtonUp:
         if (modMatch->lateModifiers) {
             Boolean resolved = _IswComputeLateBindings(IswDisplayOf(widget),
                                                       modMatch->lateModifiers,
@@ -171,12 +171,12 @@ DoGrab(StatePtr state, IswPointer data)
                      None);
         break;
 
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE:
+    case IswKeyDown:
+    case IswKeyUp:
         GrabAllCorrectKeys(widget, typeMatch, modMatch, grabP);
         break;
 
-    case XCB_ENTER_NOTIFY:
+    case IswEnter:
         break;
 
     default:
@@ -287,7 +287,7 @@ _IswGrabInitialize(IswAppContext app _X_UNUSED)
     LOCK_PROCESS;
     if (grabActionList == NULL)
         IswRegisterGrabAction(IswMenuPopupAction, True,
-                             (unsigned) (XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE),
+                             (unsigned) (IswButtonPressMask | IswButtonReleaseMask),
                              XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     UNLOCK_PROCESS;
 
