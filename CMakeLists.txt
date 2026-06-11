@@ -296,7 +296,7 @@ set(ISW_WIDGET_SOURCES
 )
 
 set(RENDER_SOURCES
-    src/ISWRender.c
+    src/platform/X11/ISWRender.c
     src/platform/X11/ISWRenderCairoXCB.c
 )
 

@@ -102,6 +102,53 @@ ISWRenderDetectBackend(ISWRenderBackend preferred)
 
 /*
  * =================================================================
+ * Platform render ops (IswPlatformOps.render)
+ * =================================================================
+ *
+ * The render system's entry in the platform ops table.  The drawing/surface
+ * sub-vtables and backend detection are selected here per concrete backend;
+ * ISWRenderCreate reaches them via _IswPlatformRenderOpsActive() rather than
+ * naming a backend vtable directly.
+ */
+static const ISWRenderOps *
+isw_render_draw_ops(ISWRenderBackend backend)
+{
+    switch (backend) {
+        case ISW_RENDER_BACKEND_CAIRO_XCB:
+            return &isw_render_cairo_xcb_ops;
+#ifdef HAVE_CAIRO_EGL
+        case ISW_RENDER_BACKEND_CAIRO_EGL:
+            return &isw_render_cairo_egl_ops;
+#endif
+        default:
+            return NULL;
+    }
+}
+
+static const IswSurfaceOps *
+isw_render_surface_ops(ISWRenderBackend backend)
+{
+    switch (backend) {
+        case ISW_RENDER_BACKEND_CAIRO_XCB:
+            return &isw_surface_cairo_xcb_ops;
+#ifdef HAVE_CAIRO_EGL
+        case ISW_RENDER_BACKEND_CAIRO_EGL:
+            return &isw_surface_cairo_egl_ops;
+#endif
+        default:
+            return NULL;
+    }
+}
+
+const struct _IswPlatformRenderOps isw_platform_xcb_render_ops = {
+    .available   = ISWRenderBackendAvailable,
+    .detect      = ISWRenderDetectBackend,
+    .draw_ops    = isw_render_draw_ops,
+    .surface_ops = isw_render_surface_ops,
+};
+
+/*
+ * =================================================================
  * Surface tree access
  * =================================================================
  *
@@ -271,27 +318,22 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
     /* Get colormap from screen - we'll use the screen's default colormap */
     ctx->colormap = ctx->screen ? ctx->screen->default_colormap : 0;
 
-    /* Detect and select backend */
-    ctx->backend = ISWRenderDetectBackend(preferred);
-
-    /* Initialize backend */
-    switch (ctx->backend) {
-        case ISW_RENDER_BACKEND_CAIRO_XCB:
-            ctx->ops = &isw_render_cairo_xcb_ops;
-            ctx->surface_ops = &isw_surface_cairo_xcb_ops;
-            break;
-
-#ifdef HAVE_CAIRO_EGL
-        case ISW_RENDER_BACKEND_CAIRO_EGL:
-            ctx->ops = &isw_render_cairo_egl_ops;
-            ctx->surface_ops = &isw_surface_cairo_egl_ops;
-            break;
-#endif
-
-        default:
+    /* Detect and select the backend through the platform render ops. */
+    {
+        const IswPlatformRenderOps *rops = _IswPlatformRenderOpsActive();
+        if (!rops) {
+            fprintf(stderr, "ISWRender: no render ops in active platform backend\n");
+            free(ctx);
+            return NULL;
+        }
+        ctx->backend = rops->detect(preferred);
+        ctx->ops = rops->draw_ops(ctx->backend);
+        ctx->surface_ops = rops->surface_ops(ctx->backend);
+        if (ctx->ops == NULL || ctx->surface_ops == NULL) {
             fprintf(stderr, "ISWRender: Unknown backend %d\n", ctx->backend);
             free(ctx);
             return NULL;
+        }
     }
 
     /* Create the widget's surface (the draw target) and publish it on Core, so

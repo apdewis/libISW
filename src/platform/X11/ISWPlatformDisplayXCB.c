@@ -684,6 +684,7 @@ const IswPlatformOps isw_platform_xcb_ops = {
     .hint      = &isw_platform_xcb_hint_ops,
     .dnd       = &isw_platform_xcb_dnd_ops,
     .resource  = &isw_platform_xcb_resource_ops,   /* Phase 15 */
+    .render    = &isw_platform_xcb_render_ops,
 };
 
 /* Backend selection (Phase 9): chosen as the first act of init, before any
@@ -693,6 +694,12 @@ const IswPlatformOps *
 _IswPlatformSelectBackend(void)
 {
     return &isw_platform_xcb_ops;
+}
+
+const IswPlatformRenderOps *
+_IswPlatformRenderOpsActive(void)
+{
+    return _IswPlatformSelectBackend()->render;
 }
 
 /* Neutral event-loop fd accessor (replaces the ConnectionNumber XCB macro),

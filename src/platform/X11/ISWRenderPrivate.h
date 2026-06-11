@@ -12,7 +12,7 @@
 #ifndef _ISWRenderPrivate_h
 #define _ISWRenderPrivate_h
 
-#include "../include/ISW/ISWRender.h"
+#include <ISW/ISWRender.h>
 #include <xcb/xcb.h>
 
 /* Cairo is a mandatory dependency */
@@ -260,6 +260,34 @@ xcb_visualtype_t* ISWRenderFindVisual(xcb_screen_t *screen, uint8_t depth);
 
 extern const ISWRenderOps isw_render_cairo_xcb_ops;
 extern const IswSurfaceOps isw_surface_cairo_xcb_ops;
+
+/*
+ * =================================================================
+ * Platform render ops (member of IswPlatformOps.render)
+ * =================================================================
+ *
+ * The render system's slot in the platform ops table.  The platform header
+ * (ISW/ISWPlatform.h) forward-declares this struct opaquely and holds it by
+ * pointer in IswPlatformOps so it pulls in no cairo/xcb render types; the
+ * concrete layout is defined here, in render-backend-internal scope.
+ *
+ * It carries the per-backend drawing + surface sub-vtables and the backend
+ * detection hooks the render dispatcher (ISWRender.c) uses to pick a backend
+ * for a context.  ISWRender.c reaches these through the active platform ops
+ * (IswDisplay -> ops -> render) instead of naming a backend vtable directly.
+ */
+struct _IswPlatformRenderOps {
+    /* True if `backend` can be used on this platform. */
+    Boolean (*available)(ISWRenderBackend backend);
+    /* Resolve a (possibly AUTO) preference to a concrete usable backend. */
+    ISWRenderBackend (*detect)(ISWRenderBackend preferred);
+    /* Drawing + surface sub-vtables for a concrete backend (NULL if that
+       backend is unavailable in this build). */
+    const ISWRenderOps  *(*draw_ops)(ISWRenderBackend backend);
+    const IswSurfaceOps *(*surface_ops)(ISWRenderBackend backend);
+};
+
+extern const struct _IswPlatformRenderOps isw_platform_xcb_render_ops;
 
 /*
  * Present source accessor — the inputs a platform present_root needs to blit a

@@ -746,6 +746,14 @@ struct _IswPlatformResourceOps {
  * at init.  Sub-vtables are referenced by pointer so each category can be
  * populated independently as its phase lands.
  */
+/* Rendering — the render system is platform-variant (cairo-on-xcb today,
+   cairo-egl / a Wayland renderer tomorrow), so the backend's render vtable is a
+   member of the platform ops table like every other capability.  Its concrete
+   layout (the drawing + surface sub-vtables and backend detection) is render-
+   internal and lives in ISWRenderPrivate.h; the platform table holds it by
+   opaque pointer so this header pulls in no cairo/xcb render types. */
+typedef struct _IswPlatformRenderOps IswPlatformRenderOps;
+
 typedef struct _IswPlatformOps {
     const IswPlatformDisplayOps   *display;
     const IswPlatformWindowOps    *window;
@@ -762,6 +770,7 @@ typedef struct _IswPlatformOps {
     const IswPlatformHintOps      *hint;
     const IswPlatformDndOps       *dnd;
     const IswPlatformResourceOps  *resource;
+    const IswPlatformRenderOps    *render;
 } IswPlatformOps;
 
 /* Release the malloc'd payload of an IswProperty (safe on a zeroed struct). */
@@ -782,6 +791,11 @@ extern void _IswPlatformFreeProperty(IswProperty *prop);
 
 /* Backend selection (called once at IswOpenDisplay, before any connection). */
 extern const IswPlatformOps *_IswPlatformSelectBackend(void);
+
+/* The active backend's render ops (IswPlatformOps.render).  Opaque to non-render
+   code; the render dispatcher casts it to the concrete IswPlatformRenderOps in
+   ISWRenderPrivate.h.  Returns NULL if the backend exports no render ops. */
+extern const IswPlatformRenderOps *_IswPlatformRenderOpsActive(void);
 
 /* Display / event loop */
 extern int       _IswPlatformConnectionFd(IswDisplay dpy);
