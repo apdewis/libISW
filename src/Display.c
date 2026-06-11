@@ -72,7 +72,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
+#include "ISWPlatform.h"
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
 #include "ResConfigP.h"
 #endif
@@ -633,20 +633,14 @@ _IswDestroyAppContexts(void)
 }
 
 XrmDatabase
-IswDatabase(IswDisplay dpy_opaque)
-{
-    xcb_connection_t *dpy = _IswXcbConn(dpy_opaque);
+IswDatabase(IswDisplay dpy)
+{    
     IswDatabaseHandle db;
-    xcb_screen_t *screen;
-
     DPY_TO_APPCON(dpy);
-
     LOCK_APP(app);
 
-    screen = _IswXcbScreen(_IswDefaultScreenOf(dpy_opaque));
-
     /* Return the merged database for the default screen */
-    db = IswScreenDatabase((IswScreen) screen);
+    db = IswScreenDatabase(_IswDefaultScreenOf(dpy));
     
     UNLOCK_APP(app);
     return db;
