@@ -52,7 +52,6 @@ typedef struct _TipPart {
     Dimension internal_width;
     Dimension internal_height;
     String label;
-    int backing_store;
     int timeout;
 
     /* private */
