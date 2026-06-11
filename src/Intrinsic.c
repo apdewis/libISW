@@ -83,8 +83,7 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include <stdlib.h>
 #include <ISW/ISWRender.h>
-#include "ISWPlatformPrivate.h"
-
+#include "ISWPlatform.h"
 
 String IswCIswToolkitError = "IswToolkitError";
 
@@ -231,7 +230,7 @@ ComputeWindowAttributes(Widget widget,
 
     /* IswCWColormap (bit 13) */
     mask |= IswCWColormap;
-    values[value_index++] = _IswXcbColormap(widget->core.colormap);
+    values[value_index++] = widget->core.colormap;
 
     *value_mask = mask;
 }                               /* ComputeWindowAttributes */
