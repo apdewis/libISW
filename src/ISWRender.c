@@ -522,13 +522,10 @@ ISWRenderEnd(ISWRenderContext *ctx)
        scroll) that bypass the expose walk. */
     if (!_isw_in_composite && ctx->widget && IswIsWidget(ctx->widget) &&
         ctx->widget->core.windowless) {
-        /* The composite root is the topmost widget (the shell, which owns the
-           persisted root surface the platform blits).  Every widget is
-           windowless, so walk to the highest widget rather than the first
-           non-windowless one. */
-        Widget root = ctx->widget;
-        while (root->core.parent != NULL && IswIsWidget(root->core.parent))
-            root = root->core.parent;
+        /* The composite root is the nearest enclosing shell — the widget that
+           owns the persisted root surface the platform blits to its window.
+           Must stop at a popup shell, not walk into the main tree above it. */
+        Widget root = _IswWidgetAncestor(ctx->widget);
         if (root != NULL) {
             /* During an event dispatch, coalesce: record the root and fold it
                once when the dispatch unwinds.  Outside a dispatch (deferral
@@ -768,7 +765,13 @@ ISWRenderCompositeSubtree(Widget windowed_root)
        the platform layer now (present_root), so the render layer hands it the
        opaque root window + surface and never names the native window. */
     Boolean folded_now = (_isw_fold_count != fold0);
-    if (filled_bg || folded_now) {
+    /* A widget-owned (non-lazy) root painted its own content into root_surface
+       via its expose proc before this composite — present it even though the
+       fold itself touched nothing, otherwise self-painting roots (SimpleMenu,
+       IconView, ...) never reach the screen.  Lazy roots only present when they
+       filled or folded something. */
+    Boolean self_painted = !windowed_root->core.composite_lazy_root;
+    if (filled_bg || folded_now || self_painted) {
         double sf = _IswGetScaleFactor(IswDisplayOf(windowed_root));
         int pw = (int)(windowed_root->core.width * sf + 0.5);
         int ph = (int)(windowed_root->core.height * sf + 0.5);

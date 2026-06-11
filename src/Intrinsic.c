@@ -815,24 +815,30 @@ IswIsSensitive(Widget object)
 }
 
 /*
- * The widget that owns the surface `object` composites into: the topmost widget
- * at or above `object` (the shell, which holds the persisted root surface).
- * Also used to read display/screen for non-widget objects.  No window
- * semantics — core widgets are surface-based.
+ * The widget that owns the surface `object` composites into: the nearest shell
+ * at or above `object`.  A shell holds the persisted root surface the platform
+ * blits to its window, so compositing must stop at the enclosing shell — NOT
+ * walk past a popup shell into its parent in the main tree.  Also used to read
+ * display/screen for non-widget objects (uniform across the tree).
  *
- * If `object` is itself the root widget, it is its own composite root.  A
- * non-widget object always has a widget ancestor, so the walk never returns
- * NULL for one; only a parent-less non-widget (never constructed) would.
+ * If `object` is itself a shell, it is its own composite root.  Falls back to
+ * the topmost widget if no shell is found (should not happen in a realized
+ * tree, which is always rooted at a shell).
  */
 Widget
 _IswWidgetAncestor(register Widget object)
 {
     Widget obj = object;
-    Widget top = IswIsWidget(object) ? object : NULL;
+    Widget top = NULL;
+    Widget o;
 
-    for (object = IswParent(object); object; object = IswParent(object))
-        if (IswIsWidget(object))
-            top = object;
+    for (o = object; o != NULL; o = IswParent(o)) {
+        if (!IswIsWidget(o))
+            continue;
+        top = o;                /* remember topmost widget as fallback */
+        if (IswIsShell(o))
+            return o;           /* nearest enclosing shell — the composite root */
+    }
 
     if (top == NULL) {
         String params = IswName(obj);
