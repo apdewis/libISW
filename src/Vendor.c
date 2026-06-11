@@ -405,26 +405,23 @@ IswVendorShellExtSetValues(Widget old, Widget ref, Widget new, ArgList args, Car
 void
 IswVendorShellExtResize(Widget w)
 {
-	//ShellWidget sw = (ShellWidget) w;
-	//Widget childwid;
-	//int i;
-	//int core_height;
-//
-	//_IswImResizeVendorShell( w );
-	//core_height = _IswImGetShellHeight( w );
-	//
-	///* Check if children array is allocated before accessing it */
-	//if (sw->composite.children == NULL) {
-	//	return;
-	//}
-	//
-	//for( i = 0; i < sw->composite.num_children; i++ ) {
-	//    if( IswIsManaged( sw->composite.children[ i ] ) ) {
-	//	childwid = sw->composite.children[ i ];
-	//	IswResizeWidget( childwid, sw->core.width, core_height,
-	//		       childwid->core.border_width );
-	//    }
-	//}
+	ShellWidget sw = (ShellWidget) w;
+	Widget childwid;
+	Cardinal i;
+
+	/* Check if children array is allocated before accessing it */
+	if (sw->composite.children == NULL) {
+		return;
+	}
+
+	for( i = 0; i < sw->composite.num_children; i++ ) {
+	    if( IswIsManaged( sw->composite.children[ i ] ) ) {
+		childwid = sw->composite.children[ i ];
+		IswResizeWidget( childwid, sw->core.width, sw->core.height,
+			       childwid->core.border_width );
+		break;
+	    }
+	}
 }
 
 /*ARGSUSED*/

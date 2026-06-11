@@ -241,6 +241,22 @@ CoreClassPartInitialize(register WidgetClass wc)
         wc->core_class.realize = super->core_class.realize;
     }
 
+    if (wc->core_class.resize == IswInheritResize) {
+        wc->core_class.resize = super->core_class.resize;
+    }
+
+    if (wc->core_class.expose == IswInheritExpose) {
+        wc->core_class.expose = super->core_class.expose;
+    }
+
+    if (wc->core_class.set_values_almost == IswInheritSetValuesAlmost) {
+        wc->core_class.set_values_almost = super->core_class.set_values_almost;
+    }
+
+    if (wc->core_class.query_geometry == IswInheritQueryGeometry) {
+        wc->core_class.query_geometry = super->core_class.query_geometry;
+    }
+
     if (wc->core_class.accept_focus == IswInheritAcceptFocus) {
         wc->core_class.accept_focus = super->core_class.accept_focus;
     }
