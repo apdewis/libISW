@@ -141,6 +141,15 @@ _IswPlatformKeyFromName(const char *name)
     return keysym_to_key((xcb_keysym_t) ks, &unicode, text);
 }
 
+/* Event dispatch target: the root widget of the window the event hit, as an
+   opaque IswEventTarget.  The core casts it back to a Widget; it never sees the
+   window.  NULL window/widget yields target 0. */
+static IswEventTarget
+target_for_window(IswDisplay dpy, xcb_window_t window)
+{
+    return (IswEventTarget) (void *) _IswXcbWidgetForWindow(dpy, window);
+}
+
 /*
  * _IswEventFromXcb - translate a native XCB event into a neutral IswEvent.
  *
@@ -186,7 +195,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         Modifiers mods_ret = 0;
         xcb_keysym_t ks = 0;
         out->kind = (type == XCB_KEY_PRESS) ? IswKeyDown : IswKeyUp;
-        out->key.target = e->event;
+        out->key.target = target_for_window(dpy, e->event);
         out->key.time = e->time;
         out->key.modifiers = xcb_state_to_modmask(e->state);
         out->key.x = e->event_x;
@@ -200,7 +209,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     case XCB_BUTTON_RELEASE: {
         xcb_button_press_event_t *e = (xcb_button_press_event_t *) xev;
         out->kind = (type == XCB_BUTTON_PRESS) ? IswButtonDown : IswButtonUp;
-        out->button.target = e->event;
+        out->button.target = target_for_window(dpy, e->event);
         out->button.time = e->time;
         out->button.button = (uint8_t) e->detail;
         out->button.modifiers = xcb_state_to_modmask(e->state);
@@ -213,7 +222,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     case XCB_MOTION_NOTIFY: {
         xcb_motion_notify_event_t *e = (xcb_motion_notify_event_t *) xev;
         out->kind = IswMotion;
-        out->motion.target = e->event;
+        out->motion.target = target_for_window(dpy, e->event);
         out->motion.time = e->time;
         out->motion.modifiers = xcb_state_to_modmask(e->state);
         out->motion.x = e->event_x;
@@ -226,7 +235,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     case XCB_LEAVE_NOTIFY: {
         xcb_enter_notify_event_t *e = (xcb_enter_notify_event_t *) xev;
         out->kind = (type == XCB_ENTER_NOTIFY) ? IswEnter : IswLeave;
-        out->crossing.target = e->event;
+        out->crossing.target = target_for_window(dpy, e->event);
         out->crossing.time = e->time;
         out->crossing.modifiers = xcb_state_to_modmask(e->state);
         switch (e->mode) {
@@ -242,7 +251,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     case XCB_FOCUS_OUT: {
         xcb_focus_in_event_t *e = (xcb_focus_in_event_t *) xev;
         out->kind = (type == XCB_FOCUS_IN) ? IswFocusIn : IswFocusOut;
-        out->focus.target = e->event;
+        out->focus.target = target_for_window(dpy, e->event);
         switch (e->mode) {
         case XCB_NOTIFY_MODE_GRAB:   out->focus.mode = IswNotifyGrab;   break;
         case XCB_NOTIFY_MODE_UNGRAB: out->focus.mode = IswNotifyUngrab; break;
@@ -255,7 +264,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     case XCB_EXPOSE: {
         xcb_expose_event_t *e = (xcb_expose_event_t *) xev;
         out->kind = IswRedraw;
-        out->redraw.target = e->window;
+        out->redraw.target = target_for_window(dpy, e->window);
         out->redraw.x = (int16_t) e->x;
         out->redraw.y = (int16_t) e->y;
         out->redraw.width = (uint16_t) (int16_t) e->width;
@@ -266,7 +275,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     case XCB_CONFIGURE_NOTIFY: {
         xcb_configure_notify_event_t *e = (xcb_configure_notify_event_t *) xev;
         out->kind = IswGeometry;
-        out->geometry.target = e->window;
+        out->geometry.target = target_for_window(dpy, e->window);
         out->geometry.x = e->x;
         out->geometry.y = e->y;
         out->geometry.width = (uint16_t) (int16_t) e->width;
@@ -278,7 +287,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         xcb_reparent_notify_event_t *e = (xcb_reparent_notify_event_t *) xev;
         xcb_screen_t *screen = _IswXcbScreen(_IswDefaultScreenOf(dpy));
         out->kind = IswReparent;
-        out->reparent.target = e->window;
+        out->reparent.target = target_for_window(dpy, e->window);
         out->reparent.x = e->x;
         out->reparent.y = e->y;
         out->reparent.to_root =
@@ -292,25 +301,25 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     case XCB_MAP_NOTIFY: {
         xcb_map_notify_event_t *e = (xcb_map_notify_event_t *) xev;
         out->kind = IswMap;
-        out->structure.target = e->window;
+        out->structure.target = target_for_window(dpy, e->window);
         return True;
     }
     case XCB_UNMAP_NOTIFY: {
         xcb_unmap_notify_event_t *e = (xcb_unmap_notify_event_t *) xev;
         out->kind = IswUnmap;
-        out->structure.target = e->window;
+        out->structure.target = target_for_window(dpy, e->window);
         return True;
     }
     case XCB_DESTROY_NOTIFY: {
         xcb_destroy_notify_event_t *e = (xcb_destroy_notify_event_t *) xev;
         out->kind = IswDestroy;
-        out->structure.target = e->window;
+        out->structure.target = target_for_window(dpy, e->window);
         return True;
     }
     case XCB_VISIBILITY_NOTIFY: {
         xcb_visibility_notify_event_t *e = (xcb_visibility_notify_event_t *) xev;
         out->kind = IswVisibility;
-        out->structure.target = e->window;
+        out->structure.target = target_for_window(dpy, e->window);
         out->structure.visibility = e->state;
         return True;
     }
@@ -326,14 +335,14 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
             e->type == wm_protocols &&
             e->data.data32[0] == wm_delete_window) {
             out->kind = IswCloseRequest;
-            out->any.target = e->window;
+            out->any.target = target_for_window(dpy, e->window);
             return True;
         }
         /* Every other client message becomes a generic protocol event so the
            translation manager can match it by message-type name and widgets /
            shells / backend services can decode its payload. */
         out->kind = IswProtocol;
-        out->protocol.target = e->window;
+        out->protocol.target = target_for_window(dpy, e->window);
         out->protocol.message_type = (IswProtocolId) e->type;
         out->protocol.format = e->format;
         for (i = 0; i < 5; i++)

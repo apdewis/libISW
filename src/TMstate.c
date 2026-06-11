@@ -1166,37 +1166,37 @@ EventToMask(TMTypeMatch typeMatch, TMModifierMatch modMatch)
     EventMask returnMask;
     unsigned long eventType = typeMatch->eventType;
 
-    if (eventType == XCB_MOTION_NOTIFY) {
+    if (eventType == IswMotion) {
         Modifiers modifierMask = (Modifiers) modMatch->modifierMask;
         Modifiers tempMask;
 
         returnMask = 0;
         if (modifierMask == 0) {
             if (modMatch->modifiers == AnyButtonMask)
-                return XCB_EVENT_MASK_BUTTON_MOTION;
+                return IswButtonMotionMask;
             else
-                return XCB_EVENT_MASK_POINTER_MOTION;
+                return IswPointerMotionMask;
         }
         tempMask = modifierMask &
-            (XCB_BUTTON_MASK_1 | XCB_BUTTON_MASK_2 | XCB_BUTTON_MASK_3
-             | XCB_BUTTON_MASK_4 | XCB_BUTTON_MASK_5);
+            (IswModButton1 | IswModButton2 | IswModButton3
+             | IswModButton4 | IswModButton5);
         if (tempMask == 0)
-            return XCB_EVENT_MASK_POINTER_MOTION;
-        if (tempMask & XCB_BUTTON_MASK_1)
-            returnMask |= XCB_EVENT_MASK_BUTTON_1_MOTION;
-        if (tempMask & XCB_BUTTON_MASK_2)
-            returnMask |= XCB_EVENT_MASK_BUTTON_2_MOTION;
-        if (tempMask & XCB_BUTTON_MASK_3)
-            returnMask |= XCB_EVENT_MASK_BUTTON_3_MOTION;
-        if (tempMask & XCB_BUTTON_MASK_4)
-            returnMask |= XCB_EVENT_MASK_BUTTON_4_MOTION;
-        if (tempMask & XCB_BUTTON_MASK_5)
-            returnMask |= XCB_EVENT_MASK_BUTTON_5_MOTION;
+            return IswPointerMotionMask;
+        if (tempMask & IswModButton1)
+            returnMask |= IswButton1MotionMask;
+        if (tempMask & IswModButton2)
+            returnMask |= IswButton2MotionMask;
+        if (tempMask & IswModButton3)
+            returnMask |= IswButton3MotionMask;
+        if (tempMask & IswModButton4)
+            returnMask |= IswButton4MotionMask;
+        if (tempMask & IswModButton5)
+            returnMask |= IswButton5MotionMask;
         return returnMask;
     }
-    returnMask = _IswConvertTypeToMask((int) eventType);
-    if (returnMask == (XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY))
-        returnMask = XCB_EVENT_MASK_STRUCTURE_NOTIFY;
+    returnMask = _IswConvertKindToMask((IswEventKind) eventType);
+    if (returnMask == (IswStructureNotifyMask | IswSubstructureNotifyMask))
+        returnMask = IswStructureNotifyMask;
     return returnMask;
 }
 
@@ -1267,10 +1267,10 @@ _IswInstallTranslations(Widget widget)
     /* double click needs to make sure that you have selected on both
        button down and up. */
 
-    if (xlations->eventMask & XCB_EVENT_MASK_BUTTON_PRESS)
-        xlations->eventMask |= XCB_EVENT_MASK_BUTTON_RELEASE;
-    if (xlations->eventMask & XCB_EVENT_MASK_BUTTON_RELEASE)
-        xlations->eventMask |= XCB_EVENT_MASK_BUTTON_PRESS;
+    if (xlations->eventMask & IswButtonPressMask)
+        xlations->eventMask |= IswButtonReleaseMask;
+    if (xlations->eventMask & IswButtonReleaseMask)
+        xlations->eventMask |= IswButtonPressMask;
 
 
     if (mappingNotifyInterest) {
@@ -1368,13 +1368,13 @@ IswUninstallTranslations(Widget widget)
     oldMask = widget->core.tm.translations->eventMask;
     _IswUninstallTranslations(widget);
     if (IswIsRealized(widget) && oldMask) {
-        uint32_t event_mask = (uint32_t) IswBuildEventMask(widget);
-        (void)xcb_change_window_attributes(
-            _IswXcbConn(IswDisplayOf(widget)),  /* your XCB connection */
-            _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))),  /* window XID */
-            XCB_CW_EVENT_MASK,
-            &event_mask
-        );
+        IswWindowAttributes attrs;
+        memset(&attrs, 0, sizeof(attrs));
+        attrs.event_mask = (uint32_t) IswBuildEventMask(widget);
+        _IswPlatformChangeAttributes(IswDisplayOf(widget),
+                                     _IswPlatformWidgetWindow(IswDisplayOf(widget),
+                                                              widget),
+                                     &attrs, ISW_ATTR_EVENT_MASK);
     }
     hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
@@ -2049,16 +2049,14 @@ ComposeTranslations(Widget dest,
         if (newTable)
             mask = newTable->eventMask;
         if (mask != oldMask){
-            uint32_t event_mask = (uint32_t) IswBuildEventMask(dest);
-            (void)xcb_change_window_attributes(
-                _IswXcbConn(IswDisplayOf(dest)),  /* your XCB connection */
-                _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(dest)), (Widget)(dest))),  /* window XID */
-                XCB_CW_EVENT_MASK,
-                &event_mask
-            );
+            IswWindowAttributes attrs;
+            memset(&attrs, 0, sizeof(attrs));
+            attrs.event_mask = (uint32_t) IswBuildEventMask(dest);
+            _IswPlatformChangeAttributes(IswDisplayOf(dest),
+                                         _IswPlatformWidgetWindow(IswDisplayOf(dest),
+                                                                  dest),
+                                         &attrs, ISW_ATTR_EVENT_MASK);
         }
-            //XSelectInput(IswDisplayOf(dest), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(dest)), (Widget)(dest)),
-            //             (long) IswBuildEventMask(dest));
     }
     IswStackFree((IswPointer) newBindings, (IswPointer) stackBindings);
     return (newTable != NULL);

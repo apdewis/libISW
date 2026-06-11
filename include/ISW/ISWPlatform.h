@@ -888,6 +888,12 @@ extern IswWindow _IswPlatformWidgetWindow(IswDisplay dpy, Widget w);
    The toolkit holds no window handle; the association lives in the platform. */
 extern void _IswPlatformSetWidgetWindow(IswDisplay dpy, Widget w, IswWindow win);
 
+/* Reverse of _IswPlatformWidgetWindow: the widget associated with a window, or
+   NULL.  Backend-protocol code (selections, tray, menu/scroll native paths)
+   that must resolve a raw window to its widget uses this; core dispatch never
+   does — events arrive already carrying their target widget. */
+extern Widget   _IswPlatformWidgetForWindow(IswDisplay dpy, IswWindow win);
+
 extern IswWindowId _IswPlatformWindowId(IswWindow win);
 extern IswWindow   _IswPlatformWindowFromId(IswDisplay dpy, IswWindowId id);
 

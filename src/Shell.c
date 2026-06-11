@@ -1164,7 +1164,7 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
                                                    wid->core.screen,
                                                    &geom, &attrs);
             _IswPlatformSetWidgetWindow(IswDisplayOf(wid), wid, win);
-            IswRegisterDrawable(IswDisplayOf(wid), _IswXcbWindow(win), wid);
+            IswRegisterDrawable(IswDisplayOf(wid), win, wid);
         }
 
         /* Set a themed default cursor on the shell window so child

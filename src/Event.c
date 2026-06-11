@@ -72,8 +72,6 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 
-#include <xcb/xinput.h>
-#include <xcb/xproto.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -108,233 +106,57 @@ typedef struct _IswEventRecExt {
 #define COMP_EXPOSE   (widget->core.widget_class->core_class.compress_exposure)
 #define COMP_EXPOSE_TYPE (COMP_EXPOSE & 0x0f)
 
-/* HiDPI: convert physical pixel event coordinates to logical pixels */
+/* HiDPI: convert physical pixel event coordinates to logical pixels.
+   The backend translation deliberately copies coordinates straight through;
+   this dispatch-core pass descales them before routing. */
 static void
-_IswDescaleEventCoords(xcb_generic_event_t *event, double sf)
+_IswDescaleEventCoords(IswEvent *event, double sf)
 {
     if (sf <= 1.0)
         return;
     float inv = 1.0f / (float)sf;
 
-    switch (event->response_type & ~0x80) {
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE: {
-        xcb_key_press_event_t *e = (xcb_key_press_event_t *)event;
-        e->event_x = (int16_t)(e->event_x * inv);
-        e->event_y = (int16_t)(e->event_y * inv);
-        e->root_x = (int16_t)(e->root_x * inv);
-        e->root_y = (int16_t)(e->root_y * inv);
+    switch (event->kind) {
+    case IswKeyDown:
+    case IswKeyUp:
+        event->key.x = (int16_t)(event->key.x * inv);
+        event->key.y = (int16_t)(event->key.y * inv);
+        break;
+    case IswButtonDown:
+    case IswButtonUp:
+        event->button.x = (int16_t)(event->button.x * inv);
+        event->button.y = (int16_t)(event->button.y * inv);
+        event->button.root_x = (int16_t)(event->button.root_x * inv);
+        event->button.root_y = (int16_t)(event->button.root_y * inv);
+        break;
+    case IswMotion:
+        event->motion.x = (int16_t)(event->motion.x * inv);
+        event->motion.y = (int16_t)(event->motion.y * inv);
+        event->motion.root_x = (int16_t)(event->motion.root_x * inv);
+        event->motion.root_y = (int16_t)(event->motion.root_y * inv);
+        break;
+    case IswEnter:
+    case IswLeave:
+        event->crossing.x = (int16_t)(event->crossing.x * inv);
+        event->crossing.y = (int16_t)(event->crossing.y * inv);
+        break;
+    case IswRedraw:
+        event->redraw.x = (int16_t)(event->redraw.x * inv);
+        event->redraw.y = (int16_t)(event->redraw.y * inv);
+        event->redraw.width = (uint16_t)(event->redraw.width * inv + 0.5f);
+        event->redraw.height = (uint16_t)(event->redraw.height * inv + 0.5f);
+        break;
+    case IswGeometry:
+        event->geometry.x = (int16_t)(event->geometry.x * inv);
+        event->geometry.y = (int16_t)(event->geometry.y * inv);
+        event->geometry.width = (uint16_t)(event->geometry.width * inv + 0.5f);
+        event->geometry.height = (uint16_t)(event->geometry.height * inv + 0.5f);
+        event->geometry.border_width =
+            (uint16_t)(event->geometry.border_width * inv + 0.5f);
+        break;
+    default:
         break;
     }
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE: {
-        xcb_button_press_event_t *e = (xcb_button_press_event_t *)event;
-        e->event_x = (int16_t)(e->event_x * inv);
-        e->event_y = (int16_t)(e->event_y * inv);
-        e->root_x = (int16_t)(e->root_x * inv);
-        e->root_y = (int16_t)(e->root_y * inv);
-        break;
-    }
-    case XCB_MOTION_NOTIFY: {
-        xcb_motion_notify_event_t *e = (xcb_motion_notify_event_t *)event;
-        e->event_x = (int16_t)(e->event_x * inv);
-        e->event_y = (int16_t)(e->event_y * inv);
-        e->root_x = (int16_t)(e->root_x * inv);
-        e->root_y = (int16_t)(e->root_y * inv);
-        break;
-    }
-    case XCB_ENTER_NOTIFY:
-    case XCB_LEAVE_NOTIFY: {
-        xcb_enter_notify_event_t *e = (xcb_enter_notify_event_t *)event;
-        e->event_x = (int16_t)(e->event_x * inv);
-        e->event_y = (int16_t)(e->event_y * inv);
-        e->root_x = (int16_t)(e->root_x * inv);
-        e->root_y = (int16_t)(e->root_y * inv);
-        break;
-    }
-    case XCB_EXPOSE: {
-        xcb_expose_event_t *e = (xcb_expose_event_t *)event;
-        e->x = (uint16_t)(e->x * inv);
-        e->y = (uint16_t)(e->y * inv);
-        e->width = (uint16_t)(e->width * inv + 0.5f);
-        e->height = (uint16_t)(e->height * inv + 0.5f);
-        break;
-    }
-    case XCB_GRAPHICS_EXPOSURE: {
-        xcb_graphics_exposure_event_t *e = (xcb_graphics_exposure_event_t *)event;
-        e->x = (uint16_t)(e->x * inv);
-        e->y = (uint16_t)(e->y * inv);
-        e->width = (uint16_t)(e->width * inv + 0.5f);
-        e->height = (uint16_t)(e->height * inv + 0.5f);
-        break;
-    }
-    case XCB_CONFIGURE_NOTIFY: {
-        xcb_configure_notify_event_t *e = (xcb_configure_notify_event_t *)event;
-        e->x = (int16_t)(e->x * inv);
-        e->y = (int16_t)(e->y * inv);
-        e->width = (uint16_t)(e->width * inv + 0.5f);
-        e->height = (uint16_t)(e->height * inv + 0.5f);
-        e->border_width = (uint16_t)(e->border_width * inv + 0.5f);
-        break;
-    }
-    }
-}
-
-xcb_window_t get_event_window(xcb_generic_event_t *event) {
-    uint32_t window_id = 0;
-
-    switch (event->response_type & ~0x80) {
-        case XCB_KEY_PRESS:
-        case XCB_KEY_RELEASE: {
-            xcb_key_press_event_t *key_event = (xcb_key_press_event_t *)event;
-            window_id = key_event->event;
-            break;
-        }
-        case XCB_BUTTON_PRESS:
-        case XCB_BUTTON_RELEASE: {
-            xcb_button_press_event_t *button_event = (xcb_button_press_event_t*)event;
-            window_id = button_event->event;
-            break;
-        }
-        case XCB_ENTER_NOTIFY:
-        case XCB_LEAVE_NOTIFY: {
-            xcb_enter_notify_event_t *enter_event = (xcb_enter_notify_event_t*)event;
-            window_id = enter_event->event;
-            break;
-        }
-        case XCB_MOTION_NOTIFY: {
-            xcb_motion_notify_event_t *motion_event = (xcb_motion_notify_event_t*)event;
-            window_id = motion_event->event;
-            break;
-        }
-        case XCB_KEYMAP_NOTIFY:
-            /* No window field in this event */
-            break;
-        case XCB_EXPOSE: {
-            xcb_expose_event_t *expose_event = (xcb_expose_event_t*)event;
-            window_id = expose_event->window;
-            break;
-        }
-        case XCB_GRAPHICS_EXPOSURE: {
-            xcb_graphics_exposure_event_t *g_expose_event = (xcb_graphics_exposure_event_t*)event;
-            window_id = g_expose_event->drawable;
-            break;
-        }
-        case XCB_NO_EXPOSURE: {
-            xcb_no_exposure_event_t *no_expose_event = (xcb_no_exposure_event_t*)event;
-            window_id = no_expose_event->drawable;
-            break;
-        }
-        case XCB_VISIBILITY_NOTIFY: {
-            xcb_visibility_notify_event_t *vis_event = (xcb_visibility_notify_event_t*)event;
-            window_id = vis_event->window;
-            break;
-        }
-        case XCB_CREATE_NOTIFY: {
-            xcb_create_notify_event_t *create_event = (xcb_create_notify_event_t*)event;
-            window_id = create_event->window;
-            break;
-        }
-        case XCB_DESTROY_NOTIFY: {
-            xcb_destroy_notify_event_t *dn_event = (xcb_destroy_notify_event_t*)event;
-            window_id = dn_event->window;
-            break;
-        }
-        case XCB_UNMAP_NOTIFY: {
-            xcb_unmap_notify_event_t *un_event = (xcb_unmap_notify_event_t*)event;
-            window_id = un_event->window;
-            break;
-        }
-        case XCB_MAP_NOTIFY: {
-            xcb_map_notify_event_t *mn_event = (xcb_map_notify_event_t*)event;
-            window_id = mn_event->window;
-            break;
-        }
-        case XCB_MAP_REQUEST: {
-            xcb_map_request_event_t *mr_event = (xcb_map_request_event_t*)event;
-            window_id = mr_event->window;
-            break;
-        }
-        case XCB_REPARENT_NOTIFY: {
-            xcb_reparent_notify_event_t *rn_event = (xcb_reparent_notify_event_t*)event;
-            window_id = rn_event->window;
-            break;
-        }
-        case XCB_CONFIGURE_NOTIFY: {
-            xcb_configure_notify_event_t *cn_event = (xcb_configure_notify_event_t*)event;
-            window_id = cn_event->window;
-            break;
-        }
-        case XCB_CONFIGURE_REQUEST: {
-            xcb_configure_request_event_t *cr_event = (xcb_configure_request_event_t*)event;
-            window_id = cr_event->window;
-            break;
-        }
-        case XCB_GRAVITY_NOTIFY: {
-            xcb_gravity_notify_event_t *gn_event = (xcb_gravity_notify_event_t*)event;
-            window_id = gn_event->window;
-            break;
-        }
-        case XCB_RESIZE_REQUEST: {
-            xcb_resize_request_event_t *rr_event = (xcb_resize_request_event_t*)event;
-            window_id = rr_event->window;
-            break;
-        }
-        case XCB_CIRCULATE_NOTIFY: {
-            xcb_circulate_notify_event_t *circ_event = (xcb_circulate_notify_event_t*)event;
-            window_id = circ_event->window;
-            break;
-        }
-        case XCB_CIRCULATE_REQUEST: {
-            xcb_circulate_request_event_t *circr_event = (xcb_circulate_request_event_t*)event;
-            window_id = circr_event->window;
-            break;
-        }
-        case XCB_PROPERTY_NOTIFY: {
-            xcb_property_notify_event_t *prop_event = (xcb_property_notify_event_t*)event;
-            window_id = prop_event->window;
-            break;
-        }
-        case XCB_SELECTION_CLEAR: {
-            xcb_selection_clear_event_t *sc_event = (xcb_selection_clear_event_t*)event;
-            window_id = sc_event->owner;
-            break;
-        }
-        case XCB_SELECTION_REQUEST: {
-            xcb_selection_request_event_t *sr_event = (xcb_selection_request_event_t*)event;
-            window_id = sr_event->owner;
-            break;
-        }
-        case XCB_SELECTION_NOTIFY: {
-            xcb_selection_notify_event_t *sn_event = (xcb_selection_notify_event_t*)event;
-            window_id = sn_event->requestor;
-            break;
-        }
-        case XCB_COLORMAP_NOTIFY: {
-            xcb_colormap_notify_event_t *cm_event = (xcb_colormap_notify_event_t*)event;
-            window_id = cm_event->window;
-            break;
-        }
-        case XCB_CLIENT_MESSAGE: {
-            xcb_client_message_event_t *client_event = (xcb_client_message_event_t*)event;
-            window_id = client_event->window;
-            break;
-        }
-        case XCB_MAPPING_NOTIFY:
-            /* MappingNotify doesn't have a window field */
-            break;
-        case XCB_FOCUS_IN:
-        case XCB_FOCUS_OUT: {
-            xcb_focus_in_event_t *focus_event = (xcb_focus_in_event_t*)event;
-            window_id = focus_event->event;
-            break;
-        }
-        default:
-            /* Unknown event type - return 0 */
-            break;
-    }
-
-    return window_id;
 }
 
 EventMask
@@ -366,9 +188,9 @@ IswBuildEventMask(Widget widget)
         }
         LOCK_PROCESS;
         if (widget->core.widget_class->core_class.expose != NULL)
-            mask |= XCB_EVENT_MASK_EXPOSURE;
+            mask |= IswExposureMask;
         if (widget->core.widget_class->core_class.visible_interest)
-            mask |= XCB_EVENT_MASK_VISIBILITY_CHANGE;
+            mask |= IswVisibilityChangeMask;
         UNLOCK_PROCESS;
         if (widget->core.tm.translations)
             mask |= widget->core.tm.translations->eventMask;
@@ -536,7 +358,6 @@ RemoveEventHandler(Widget widget,
     /* Reset select mask if realized and not raw. */
     if (!raw && IswIsRealized(widget) && !widget->core.being_destroyed) {
         EventMask mask = IswBuildEventMask(widget);
-        xcb_connection_t *dpy = _IswXcbConn(IswDisplayOf(widget));
 
         if (widget->core.windowless) {
             /* No own window — fold this widget's mask into the windowed
@@ -545,8 +366,12 @@ RemoveEventHandler(Widget widget,
         }
         else if (oldMask != mask) {
             EventMask sel = _IswWindowSelectMask(widget);
-            xcb_change_window_attributes(dpy, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))),
-                                         XCB_CW_EVENT_MASK, &sel);
+            IswWindowAttributes attrs;
+            memset(&attrs, 0, sizeof(attrs));
+            attrs.event_mask = sel;
+            _IswPlatformChangeAttributes(IswDisplayOf(widget),
+                                         _IswPlatformWidgetWindow(IswDisplayOf(widget), widget),
+                                         &attrs, ISW_ATTR_EVENT_MASK);
         }
 
         if (has_type_specifier) {
@@ -689,15 +514,18 @@ AddEventHandler(Widget widget,
 
     if (IswIsRealized(widget) && !raw) {
         EventMask mask = IswBuildEventMask(widget);
-        xcb_connection_t *dpy = _IswXcbConn(IswDisplayOf(widget));
 
         if (widget->core.windowless) {
             _IswUpdateWindowlessAncestorMask(widget);
         }
         else if (oldMask != mask) {
             EventMask sel = _IswWindowSelectMask(widget);
-            xcb_change_window_attributes(dpy, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))),
-                                         XCB_CW_EVENT_MASK, &sel);
+            IswWindowAttributes attrs;
+            memset(&attrs, 0, sizeof(attrs));
+            attrs.event_mask = sel;
+            _IswPlatformChangeAttributes(IswDisplayOf(widget),
+                                         _IswPlatformWidgetWindow(IswDisplayOf(widget), widget),
+                                         &attrs, ISW_ATTR_EVENT_MASK);
         }
 
         if (has_type_specifier) {
@@ -833,211 +661,6 @@ IswInsertEventTypeHandler(Widget widget,
     UNLOCK_APP(app);
 }
 
-typedef struct _WWPair {
-    struct _WWPair *next;
-    xcb_window_t window;
-    Widget widget;
-} *WWPair;
-
-typedef struct _WWTable {
-    unsigned int mask;          /* size of hash table - 1 */
-    unsigned int rehash;        /* mask - 2 */
-    unsigned int occupied;      /* number of occupied entries */
-    unsigned int fakes;         /* number occupied by WWfake */
-    Widget *entries;            /* the entries */
-    WWPair pairs;               /* bogus entries */
-} *WWTable;
-
-static const WidgetRec WWfake;  /* placeholder for deletions */
-
-#define WWHASH(tab,win) ((win) & tab->mask)
-#define WWREHASHVAL(tab,win) ((((win) % tab->rehash) + 2) | 1)
-#define WWREHASH(tab,idx,rehash) ((unsigned)(idx + rehash) & (tab->mask))
-#define WWTABLE(display) (_IswGetPerDisplay((IswDisplay)(display))->WWtable)
-
-static void ExpandWWTable(WWTable);
-
-void
-IswRegisterDrawable(IswDisplay display, xcb_drawable_t drawable, Widget widget)
-{
-    WWTable tab;
-    int idx;
-    Widget entry;
-    xcb_window_t window = (xcb_window_t) drawable;
-
-
-    WIDGET_TO_APPCON(widget);
-
-    LOCK_APP(app);
-    LOCK_PROCESS;
-    tab = WWTABLE(display);
-
-    if (window != _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)))) {
-        WWPair pair;
-        pair = IswNew(struct _WWPair);
-
-        pair->next = tab->pairs;
-        pair->window = window;
-        pair->widget = widget;
-        tab->pairs = pair;
-        UNLOCK_PROCESS;
-        UNLOCK_APP(app);
-        return;
-    }
-    if ((tab->occupied + (tab->occupied >> 2)) > tab->mask)
-        ExpandWWTable(tab);
-
-    idx = (int) WWHASH(tab, window);
-    if ((entry = tab->entries[idx]) && entry != &WWfake) {
-        int rehash = (int) WWREHASHVAL(tab, window);
-
-        do {
-            idx = (int) WWREHASH(tab, idx, rehash);
-        } while ((entry = tab->entries[idx]) && entry != &WWfake);
-    }
-    if (!entry)
-        tab->occupied++;
-    else if (entry == &WWfake)
-        tab->fakes--;
-    tab->entries[idx] = widget;
-    UNLOCK_PROCESS;
-    UNLOCK_APP(app);
-}
-
-void
-IswUnregisterDrawable(IswDisplay display, xcb_drawable_t drawable)
-{
-    WWTable tab;
-    int idx;
-    Widget entry;
-    xcb_window_t window = (xcb_window_t) drawable;
-    Widget widget = IswWindowToWidget(display, _IswXcbWindowWrap(window));
-    DPY_TO_APPCON(display);
-
-    if (widget == NULL)
-        return;
-
-    LOCK_APP(app);
-    LOCK_PROCESS;
-    tab = WWTABLE(display);
-    if (window != _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)))) {
-        WWPair *prev, pair;
-
-        prev = &tab->pairs;
-        while ((pair = *prev) && pair->window != window)
-            prev = &pair->next;
-        if (pair) {
-            *prev = pair->next;
-            IswFree((char *) pair);
-        }
-        UNLOCK_PROCESS;
-        UNLOCK_APP(app);
-        return;
-    }
-    idx = (int) WWHASH(tab, window);
-    if ((entry = tab->entries[idx])) {
-        if (entry != widget) {
-            int rehash = (int) WWREHASHVAL(tab, window);
-
-            do {
-                idx = (int) WWREHASH(tab, idx, rehash);
-                if (!(entry = tab->entries[idx])) {
-                    UNLOCK_PROCESS;
-                    UNLOCK_APP(app);
-                    return;
-                }
-            } while (entry != widget);
-        }
-        tab->entries[idx] = (Widget) &WWfake;
-        tab->fakes++;
-    }
-    UNLOCK_PROCESS;
-    UNLOCK_APP(app);
-}
-
-static void
-ExpandWWTable(register WWTable tab)
-{
-    unsigned int oldmask;
-    register Widget *oldentries, *entries;
-    register Cardinal oldidx, newidx, rehash;
-    register Widget entry;
-
-    LOCK_PROCESS;
-    oldmask = tab->mask;
-    oldentries = tab->entries;
-    tab->occupied -= tab->fakes;
-    tab->fakes = 0;
-    if ((tab->occupied + (tab->occupied >> 2)) > tab->mask) {
-        tab->mask = (tab->mask << 1) + 1;
-        tab->rehash = tab->mask - 2;
-    }
-    entries = tab->entries =
-        (Widget *) __XtCalloc(tab->mask + 1, sizeof(Widget));
-    for (oldidx = 0; oldidx <= oldmask; oldidx++) {
-        if ((entry = oldentries[oldidx]) && entry != &WWfake) {
-            newidx = (Cardinal) WWHASH(tab, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(entry)), (Widget)(entry))));
-            if (entries[newidx]) {
-                rehash = (Cardinal) WWREHASHVAL(tab, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(entry)), (Widget)(entry))));
-                do {
-                    newidx = (Cardinal) WWREHASH(tab, newidx, rehash);
-                } while (entries[newidx]);
-            }
-            entries[newidx] = entry;
-        }
-    }
-    IswFree((char *) oldentries);
-    UNLOCK_PROCESS;
-}
-
-Widget
-IswWindowToWidget(IswDisplay display, IswWindow window_opaque)
-{
-    WWTable tab;
-    int idx;
-    Widget entry;
-    WWPair pair;
-    register xcb_window_t window = _IswXcbWindow(window_opaque);
-    DPY_TO_APPCON(display);
-
-    if (!window)
-        return NULL;
-
-    LOCK_APP(app);
-    LOCK_PROCESS;
-    tab = WWTABLE(display);
-    idx = (int) WWHASH(tab, window);
-    /* Compare against the entry's platform window.  The WWfake deletion
-       sentinel is a zeroed WidgetRec that must not be dereferenced as a real
-       widget; _IswPlatformWidgetWindow tolerates it (returns the display root)
-       which simply won't match a live window. */
-    if ((entry = tab->entries[idx]) &&
-        _IswXcbWindow(_IswPlatformWidgetWindow(display, entry)) != window) {
-        int rehash = (int) WWREHASHVAL(tab, window);
-
-        do {
-            idx = (int) WWREHASH(tab, idx, rehash);
-        } while ((entry = tab->entries[idx]) &&
-                 _IswXcbWindow(_IswPlatformWidgetWindow(display, entry)) != window);
-    }
-    if (entry) {
-        UNLOCK_PROCESS;
-        UNLOCK_APP(app);
-        return entry;
-    }
-    for (pair = tab->pairs; pair; pair = pair->next) {
-        if (pair->window == window) {
-            entry = pair->widget;
-            UNLOCK_PROCESS;
-            UNLOCK_APP(app);
-            return entry;
-        }
-    }
-    UNLOCK_PROCESS;
-    UNLOCK_APP(app);
-    return NULL;
-}
-
 /* Accumulate a widget's origin relative to its nearest windowed ancestor by
    walking up through windowless parents. */
 static void
@@ -1061,15 +684,15 @@ _IswWindowlessOffset(Widget w, int *dx, int *dy)
  * descendants in stacking order (array order: earlier children first, i.e.
  * bottom-to-top) and invoke each one's expose proc so it repaints.  Each
  * widget's render context resolves to the windowed ancestor's window and
- * offsets/clips itself (see ISWRenderBegin / the Cairo-XCB backend).
+ * offsets/clips itself (see ISWRenderBegin / the render backend).
  *
  * Recurses into windowless composites.  Stops at windowed children: they own
  * their own window and receive their own Expose from the server. */
-static void _IswExposeWindowlessChildren(Widget w, xcb_generic_event_t *event);
+static void _IswExposeWindowlessChildren(Widget w, IswEvent *event);
 
 /* Paint one windowless child (and recurse into its windowless descendants). */
 static void
-_IswPaintWindowlessChild(Widget child, xcb_generic_event_t *event)
+_IswPaintWindowlessChild(Widget child, IswEvent *event)
 {
     if (!IswIsWidget(child) || !child->core.windowless)
         return;
@@ -1083,14 +706,14 @@ _IswPaintWindowlessChild(Widget child, xcb_generic_event_t *event)
         return;
 
     if (child->core.widget_class->core_class.expose != NULL) {
-        IswEvent nev;
         if (event)
-            (void) _IswEventFromXcb(IswDisplayOf(child), event, &nev);
+            (*child->core.widget_class->core_class.expose)(child, event, 0);
         else {
+            IswEvent nev;
             memset(&nev, 0, sizeof(nev));
             nev.kind = IswRedraw;
+            (*child->core.widget_class->core_class.expose)(child, &nev, 0);
         }
-        (*child->core.widget_class->core_class.expose)(child, &nev, 0);
     }
 
     _IswExposeWindowlessChildren(child, event);
@@ -1126,7 +749,7 @@ _IswRepaintWindowless(Widget w)
 }
 
 static void
-_IswExposeWindowlessChildren(Widget w, xcb_generic_event_t *event)
+_IswExposeWindowlessChildren(Widget w, IswEvent *event)
 {
     /* Composite children held in composite.children. */
     if (IswIsComposite(w)) {
@@ -1154,36 +777,29 @@ _IswExposeWindowlessChildren(Widget w, xcb_generic_event_t *event)
    derived from the triggering motion event (root coords preserved, window
    coords rebased to the target's windowed-ancestor frame). */
 static void
-_IswSynthesizeCrossing(Widget w, xcb_generic_event_t *motion, uint8_t type)
+_IswSynthesizeCrossing(Widget w, IswEvent *motion, IswEventKind kind)
 {
-    xcb_motion_notify_event_t *m = (xcb_motion_notify_event_t *) motion;
-    xcb_enter_notify_event_t ev = {0};
+    IswEvent ev;
     int dx, dy;
 
     if (!IswIsSensitive(w) || !IswIsRealized(w))
         return;
     if (!(IswBuildEventMask(w) &
-          (type == XCB_ENTER_NOTIFY ? XCB_EVENT_MASK_ENTER_WINDOW
-                                    : XCB_EVENT_MASK_LEAVE_WINDOW)))
+          (kind == IswEnter ? IswEnterWindowMask : IswLeaveWindowMask)))
         return;
 
     _IswWindowlessOffset(w, &dx, &dy);
 
-    ev.response_type = type;
-    ev.time = m->time;
-    ev.root = m->root;
-    ev.event = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
-    ev.child = m->child;
-    ev.root_x = m->root_x;
-    ev.root_y = m->root_y;
-    ev.event_x = (int16_t) (m->event_x - dx);
-    ev.event_y = (int16_t) (m->event_y - dy);
-    ev.state = m->state;
-    ev.mode = XCB_NOTIFY_MODE_NORMAL;
-    ev.detail = XCB_NOTIFY_DETAIL_NONLINEAR;
-    ev.same_screen_focus = 1;
+    memset(&ev, 0, sizeof(ev));
+    ev.kind = kind;
+    ev.crossing.mode = IswNotifyNormal;
+    ev.crossing.modifiers = motion->motion.modifiers;
+    ev.crossing.x = (int16_t) (motion->motion.x - dx);
+    ev.crossing.y = (int16_t) (motion->motion.y - dy);
+    ev.any.time = motion->any.time;
+    ev.any.target = (IswEventTarget) (void *) w;
 
-    IswDispatchEventToWidget(w, (xcb_generic_event_t *) &ev);
+    IswDispatchEventToWidget(w, &ev);
 }
 
 /*
@@ -1293,101 +909,67 @@ _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
 /* Rebase a pointer/key/crossing event's window-local coordinates by
    (-dx, -dy) so they are relative to a windowless target widget. */
 static void
-_IswRebaseEventCoords(xcb_generic_event_t *event, int dx, int dy)
+_IswRebaseEventCoords(IswEvent *event, int dx, int dy)
 {
     if (dx == 0 && dy == 0)
         return;
 
-    switch (event->response_type & ~0x80) {
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE:
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE: {
-        xcb_button_press_event_t *e = (xcb_button_press_event_t *) event;
-        e->event_x = (int16_t) (e->event_x - dx);
-        e->event_y = (int16_t) (e->event_y - dy);
+    switch (event->kind) {
+    case IswKeyDown:
+    case IswKeyUp:
+        event->key.x = (int16_t) (event->key.x - dx);
+        event->key.y = (int16_t) (event->key.y - dy);
         break;
-    }
-    case XCB_MOTION_NOTIFY: {
-        xcb_motion_notify_event_t *e = (xcb_motion_notify_event_t *) event;
-        e->event_x = (int16_t) (e->event_x - dx);
-        e->event_y = (int16_t) (e->event_y - dy);
+    case IswButtonDown:
+    case IswButtonUp:
+        event->button.x = (int16_t) (event->button.x - dx);
+        event->button.y = (int16_t) (event->button.y - dy);
         break;
-    }
-    case XCB_ENTER_NOTIFY:
-    case XCB_LEAVE_NOTIFY: {
-        xcb_enter_notify_event_t *e = (xcb_enter_notify_event_t *) event;
-        e->event_x = (int16_t) (e->event_x - dx);
-        e->event_y = (int16_t) (e->event_y - dy);
+    case IswMotion:
+        event->motion.x = (int16_t) (event->motion.x - dx);
+        event->motion.y = (int16_t) (event->motion.y - dy);
         break;
-    }
+    case IswEnter:
+    case IswLeave:
+        event->crossing.x = (int16_t) (event->crossing.x - dx);
+        event->crossing.y = (int16_t) (event->crossing.y - dy);
+        break;
+    default:
+        break;
     }
 }
 
 /* Extract window-local pointer coordinates from a pointer event.
    Returns False for events without pointer coordinates. */
 static Boolean
-_IswEventPointerXY(xcb_generic_event_t *event, int *x, int *y)
+_IswEventPointerXY(IswEvent *event, int *x, int *y)
 {
     /* Keyboard events are intentionally excluded: they route to the focus
        widget, not by pointer position. */
-    switch (event->response_type & ~0x80) {
-    case XCB_BUTTON_PRESS:
-    case XCB_BUTTON_RELEASE: {
-        xcb_button_press_event_t *e = (xcb_button_press_event_t *) event;
-        *x = e->event_x;
-        *y = e->event_y;
+    switch (event->kind) {
+    case IswButtonDown:
+    case IswButtonUp:
+        *x = event->button.x;
+        *y = event->button.y;
         return True;
-    }
-    case XCB_MOTION_NOTIFY: {
-        xcb_motion_notify_event_t *e = (xcb_motion_notify_event_t *) event;
-        *x = e->event_x;
-        *y = e->event_y;
+    case IswMotion:
+        *x = event->motion.x;
+        *y = event->motion.y;
         return True;
-    }
-    case XCB_ENTER_NOTIFY:
-    case XCB_LEAVE_NOTIFY: {
-        xcb_enter_notify_event_t *e = (xcb_enter_notify_event_t *) event;
-        *x = e->event_x;
-        *y = e->event_y;
+    case IswEnter:
+    case IswLeave:
+        *x = event->crossing.x;
+        *y = event->crossing.y;
         return True;
+    default:
+        return False;
     }
-    }
-    return False;
-}
-
-void
-_IswAllocWWTable(IswPerDisplay pd)
-{
-    register WWTable tab;
-
-    tab = (WWTable) __XtMalloc(sizeof(struct _WWTable));
-    tab->mask = 0x7f;
-    tab->rehash = tab->mask - 2;
-    tab->entries = (Widget *) __XtCalloc(tab->mask + 1, sizeof(Widget));
-    tab->occupied = 0;
-    tab->fakes = 0;
-    tab->pairs = NULL;
-    pd->WWtable = tab;
-}
-
-void
-_IswFreeWWTable(register IswPerDisplay pd)
-{
-    register WWPair pair, next;
-
-    for (pair = pd->WWtable->pairs; pair; pair = next) {
-        next = pair->next;
-        IswFree((char *) pair);
-    }
-    IswFree((char *) pd->WWtable->entries);
-    IswFree((char *) pd->WWtable);
 }
 
 #define EHMAXSIZE 25            /* do not make whopping big */
 
 static Boolean
-CallEventHandlers(Widget widget, xcb_generic_event_t *event,
+CallEventHandlers(Widget widget, IswEvent *event,
                   IswEvent *nev, EventMask mask)
 {
     register IswEventRec *p;
@@ -1396,13 +978,15 @@ CallEventHandlers(Widget widget, xcb_generic_event_t *event,
     Boolean cont_to_disp = True;
     int i, numprocs;
 
+    (void) event;
+
     /* Have to copy the procs into an array, because one of them might
      * call IswRemoveEventHandler, which would break our linked list. */
 
     numprocs = 0;
     for (p = widget->core.event_table; p; p = p->next) {
         if ((!p->has_type_specifier && (mask & p->mask)) ||
-            (p->has_type_specifier && event->response_type == EXT_TYPE(p)))
+            (p->has_type_specifier && False))
             numprocs++;
     }
     proc = IswMallocArray((Cardinal) numprocs, (Cardinal)
@@ -1412,7 +996,7 @@ CallEventHandlers(Widget widget, xcb_generic_event_t *event,
     numprocs = 0;
     for (p = widget->core.event_table; p; p = p->next) {
         if ((!p->has_type_specifier && (mask & p->mask)) ||
-            (p->has_type_specifier && event->response_type == EXT_TYPE(p))) {
+            (p->has_type_specifier && False)) {
             proc[numprocs] = p->proc;
             closure[numprocs] = p->closure;
             numprocs++;
@@ -1437,51 +1021,38 @@ CallEventHandlers(Widget widget, xcb_generic_event_t *event,
     return cont_to_disp;
 }
 
-#define KnownButtons (XCB_EVENT_MASK_BUTTON_1_MOTION|XCB_EVENT_MASK_BUTTON_2_MOTION|XCB_EVENT_MASK_BUTTON_3_MOTION|\
-                      XCB_EVENT_MASK_BUTTON_4_MOTION|XCB_EVENT_MASK_BUTTON_5_MOTION)
-
 /* keep this SMALL to avoid blowing stack cache! */
 /* because some compilers allocate all local locals on procedure entry */
 #define EHSIZE 4
 
 Boolean
-IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
+IswDispatchEventToWidget(Widget widget, IswEvent *event)
 {
     register IswEventRec *p;
     Boolean was_dispatched = False;
     Boolean call_tm = False;
     Boolean cont_to_disp;
-    xcb_event_mask_t mask;
-    IswEvent nev;       /* neutral event handed to public procs/handlers */
+    EventMask mask;
+    IswEvent *nev = event; /* neutral event handed to public procs/handlers */
 
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
 
-    /* Translate the native event into the toolkit-neutral form once.  Public
-       expose procs, event handlers and action procs receive &nev; protocol
-       handlers reach the native event via IswEventNative(&nev) (nev.native is
-       set even when the event is not a toolkit-semantic kind). */
-    (void) _IswEventFromXcb(IswDisplayOf(widget), event, &nev);
-
-    mask = _IswConvertTypeToMask(event->response_type);
-    if (event->response_type == XCB_INPUT_DEVICE_MOTION_NOTIFY)
-        mask |= (((xcb_input_device_motion_notify_event_t *)event)->state & KnownButtons);
+    mask = _IswConvertKindToMask(event->kind);
 
     LOCK_PROCESS;
-    if ((mask == XCB_EVENT_MASK_EXPOSURE)) {
+    if ((mask == IswExposureMask)) {
 
         if (widget->core.widget_class->core_class.expose != NULL) {
-            uint8_t event_type = event->response_type & ~0x80;
-
-            /* For Expose events, check if this is the last in the series */
-            if (event_type == XCB_EXPOSE) {
-                xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
+            /* For redraw events, check if this is the last in the series */
+            if (event->kind == IswRedraw) {
                 /* Only dispatch when count == 0 (last event in series) or
                  * when compression is disabled */
-                if (ev->count == 0 || COMP_EXPOSE_TYPE == IswExposeNoCompress) {
+                if (event->redraw.count == 0 ||
+                    COMP_EXPOSE_TYPE == IswExposeNoCompress) {
                     (*widget->core.widget_class->core_class.expose)
-                        (widget, &nev, 0);
+                        (widget, nev, 0);
                     /* Repaint windowless descendants into their own surfaces,
                        then composite the subtree onto this window once. */
                     ISWRenderBeginCompositeBatch();
@@ -1492,12 +1063,12 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
                 }
             }
         }
-        else if ((event->response_type & ~0x80) == XCB_EXPOSE) {
+        else if (event->kind == IswRedraw) {
             /* Windowed widget has no expose proc of its own (e.g. a bare
                shell or composite), but may host windowless children that
                still need to repaint. */
-            xcb_expose_event_t *ev = (xcb_expose_event_t *)event;
-            if (ev->count == 0 || COMP_EXPOSE_TYPE == IswExposeNoCompress) {
+            if (event->redraw.count == 0 ||
+                COMP_EXPOSE_TYPE == IswExposeNoCompress) {
                 ISWRenderBeginCompositeBatch();
                 _IswExposeWindowlessChildren(widget, event);
                 ISWRenderEndCompositeBatch();
@@ -1507,22 +1078,21 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
         }
     }
 
-    if ((mask == XCB_EVENT_MASK_VISIBILITY_CHANGE) &&
+    if ((event->kind == IswVisibility) &&
         IswClass(widget)->core_class.visible_interest) {
         was_dispatched = True;
         /* our visibility just changed... */
-        switch (((xcb_visibility_notify_event_t *) event)->state) {
-        case XCB_VISIBILITY_UNOBSCURED:
+        switch (event->structure.visibility) {
+        case 0:                 /* unobscured */
             widget->core.visible = TRUE;
             break;
 
-        case XCB_VISIBILITY_PARTIALLY_OBSCURED:
-            /* what do we want to say here? */
+        case 1:                 /* partially obscured */
             /* well... some of us is visible */
             widget->core.visible = TRUE;
             break;
 
-        case XCB_VISIBILITY_FULLY_OBSCURED:
+        case 2:                 /* fully obscured */
             widget->core.visible = FALSE;
             /* do we want to mark our children obscured? */
             break;
@@ -1549,7 +1119,7 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
 
             for (; p; p = p->next) {
                 if ((!p->has_type_specifier && (mask & p->mask)) ||
-                    (p->has_type_specifier && event->response_type == EXT_TYPE(p))) {
+                    (p->has_type_specifier && False)) {
                     if (numprocs >= EHSIZE)
                         break;
                     proc[numprocs] = p->proc;
@@ -1559,13 +1129,13 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
             }
             if (numprocs) {
                 if (p) {
-                    cont_to_disp = CallEventHandlers(widget, event, &nev, mask);
+                    cont_to_disp = CallEventHandlers(widget, event, nev, mask);
                 }
                 else {
                     int i;
 
                     for (i = 0; i < numprocs && cont_to_disp; i++)
-                        (*(proc[i])) (widget, closure[i], &nev, &cont_to_disp);
+                        (*(proc[i])) (widget, closure[i], nev, &cont_to_disp);
                     /* FUNCTIONS CALLED THROUGH POINTER proc:
                        Selection.c:ReqCleanup,
                        "Shell.c":EventHandler,
@@ -1584,8 +1154,8 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
             }
         }
         else if ((!p->has_type_specifier && (mask & p->mask)) ||
-                 (p->has_type_specifier && event->response_type == EXT_TYPE(p))) {
-            (*p->proc) (widget, p->closure, &nev, &cont_to_disp);
+                 (p->has_type_specifier && False)) {
+            (*p->proc) (widget, p->closure, nev, &cont_to_disp);
             was_dispatched = True;
         }
     }
@@ -1595,121 +1165,6 @@ IswDispatchEventToWidget(Widget widget, xcb_generic_event_t *event)
     return (was_dispatched | call_tm);
 }
 
-/*
- * This structure is passed into the check exposure proc.
- */
-
-typedef struct _CheckExposeInfo {
-    int type1, type2;           /* Types of events to check for. */
-    Boolean maximal;            /* Ignore non-exposure events? */
-    Boolean non_matching;       /* Was there an event that did not
-                                   match either type? */
-    xcb_window_t window;              /* xcb_window_t to match. */
-} CheckExposeInfo;
-
-#define GetCount(ev) (((XExposeEvent *)(ev))->count)
-
-/*      Function Name: CompressExposures
- *      Description: Handles all exposure compression
- *      Arguments: event - the xevent that is to be dispatched
- *                 widget - the widget that this event occurred in.
- *      Returns: none.
- *
- *      NOTE: Event must be of type Expose or GraphicsExpose.
- *      PORTING NOTE: this seems to depend on blocking behaviour of Xlib somewhat, and
- *                    the equivalents seem to be better placed in the man XCB loop as events come in
- *                    #FIXME, analyze and implement event compression in event handling loop
- */
-
-//static void
-//CompressExposures(xcb_connection_t *dpy, xcb_generic_event_t *event, Widget widget)
-//{
-//    CheckExposeInfo info;
-//    int count;
-//    xcb_connection_t *dpy = IswDisplayOf(widget);
-//    IswPerDisplay pd = _IswGetPerDisplay(dpy);
-//    IswEnum comp_expose;
-//    IswEnum comp_expose_type;
-//    Boolean no_region;
-//
-//    LOCK_PROCESS;
-//    comp_expose = COMP_EXPOSE;
-//    UNLOCK_PROCESS;
-//    comp_expose_type = comp_expose & 0x0f;
-//    no_region = ((comp_expose & IswExposeNoRegion) ? True : False);
-//
-//    if (no_region)
-//        AddExposureToRectangularRegion(event, pd->region);
-//    else
-//        IswAddExposureToRegion(event, pd->region);
-//
-//    if (GetCount(event) != 0)
-//        return;
-//
-//    if ((comp_expose_type == IswExposeCompressSeries) ||
-//        (XEventsQueued(dpy, QueuedAfterReading) == 0)) {
-//        SendExposureEvent(event, widget, pd);
-//        return;
-//    }
-//
-//    if (comp_expose & IswExposeGraphicsExposeMerged) {
-//        info.type1 = Expose;
-//        info.type2 = GraphicsExpose;
-//    }
-//    else {
-//        info.type1 = event->response_type;
-//        info.type2 = 0;
-//    }
-//    info.maximal = (comp_expose_type == IswExposeCompressMaximal);
-//    info.non_matching = FALSE;
-//    info.window = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget));
-//
-//    /*
-//     * We have to be very careful here not to hose down the processor
-//     * when blocking until count gets to zero.
-//     *
-//     * First, check to see if there are any events in the queue for this
-//     * widget, and of the correct type.
-//     *
-//     * Once we cannot find any more events, check to see that count is zero.
-//     * If it is not then block until we get another exposure event.
-//     *
-//     * If we find no more events, and count on the last one we saw was zero we
-//     * we can be sure that all events have been processed.
-//     *
-//     * Unfortunately, we wind up having to look at the entire queue
-//     * event if we're not doing Maximal compression, due to the
-//     * semantics of XCheckIfEvent (we can't abort without re-ordering
-//     * the event queue as a side-effect).
-//     */
-//
-//    count = 0;
-//    while (TRUE) {
-//        xcb_generic_event_t event_return;
-//
-//        if (XCheckIfEvent(dpy, &event_return,
-//                          CheckExposureEvent, (char *) &info)) {
-//
-//            count = GetCount(&event_return);
-//            if (no_region)
-//                AddExposureToRectangularRegion(&event_return, pd->region);
-//            else
-//                IswAddExposureToRegion(&event_return, pd->region);
-//        }
-//        else if (count != 0) {
-//            XIfEvent(dpy, &event_return, CheckExposureEvent, (char *) &info);
-//            count = GetCount(&event_return);
-//            if (no_region)
-//                AddExposureToRectangularRegion(&event_return, pd->region);
-//            else
-//                IswAddExposureToRegion(&event_return, pd->region);
-//        }
-//        else                    /* count == 0 && XCheckIfEvent Failed. */
-//            break;
-//    }
-//
-//    SendExposureEvent(dpy, event, widget, pd);
-//}
 
 void
 _IswEventInitialize(void)
@@ -1717,59 +1172,38 @@ _IswEventInitialize(void)
     /* No-op: null_region is now initialized per-display in Display.c */
 }
 
-static uint32_t const masks[] = {
-    0,                          /* 0 - Error, should never see  */
-    0,                          /* 1 - Reply, should never see  */
-    XCB_EVENT_MASK_KEY_PRESS,               /* 2 - KeyPress                 */
-    XCB_EVENT_MASK_KEY_RELEASE,             /* 3 - KeyRelease               */
-    XCB_EVENT_MASK_BUTTON_PRESS,            /* 4 - ButtonPress              */
-    XCB_EVENT_MASK_BUTTON_RELEASE,          /* 5 - ButtonRelease            */
-    XCB_EVENT_MASK_POINTER_MOTION |
-        XCB_EVENT_MASK_POINTER_MOTION_HINT |
-        XCB_EVENT_MASK_BUTTON_1_MOTION |
-        XCB_EVENT_MASK_BUTTON_2_MOTION |
-        XCB_EVENT_MASK_BUTTON_3_MOTION |
-        XCB_EVENT_MASK_BUTTON_4_MOTION |
-        XCB_EVENT_MASK_BUTTON_5_MOTION |
-        XCB_EVENT_MASK_BUTTON_MOTION,       /* 6 - MotionNotify             */
-    XCB_EVENT_MASK_ENTER_WINDOW,            /* 7 - EnterNotify              */
-    XCB_EVENT_MASK_LEAVE_WINDOW,            /* 8 - LeaveNotify              */
-    XCB_EVENT_MASK_FOCUS_CHANGE,            /* 9 - FocusIn                  */
-    XCB_EVENT_MASK_FOCUS_CHANGE,            /* 10 - FocusOut                 */
-    XCB_EVENT_MASK_KEYMAP_STATE,            /* 11 - KeymapNotify             */
-    XCB_EVENT_MASK_EXPOSURE,                  /* 12 - Expose                   */
-    XCB_EVENT_MASK_EXPOSURE,                  /* 13 - GraphicsExpose, in xcb_gcontext_t    */
-    XCB_EVENT_MASK_EXPOSURE,                  /* 14 - NoExpose, in xcb_gcontext_t          */
-    XCB_EVENT_MASK_VISIBILITY_CHANGE,       /* 15 - VisibilityNotify         */
-    XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,     /* 16 - CreateNotify             */
-    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 17 - DestroyNotify            */
-    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 18 - UnmapNotify              */
-    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 19 - MapNotify                */
-    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,   /* 20 - MapRequest               */
-    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 21 - ReparentNotify           */
-    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 22 - ConfigureNotify          */
-    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,   /* 23 - ConfigureRequest         */
-    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 24 - GravityNotify            */
-    XCB_EVENT_MASK_RESIZE_REDIRECT,         /* 25 - ResizeRequest            */
-    XCB_EVENT_MASK_STRUCTURE_NOTIFY,        /* 26 - CirculateNotify          */
-    XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,   /* 27 - CirculateRequest         */
-    XCB_EVENT_MASK_PROPERTY_CHANGE,         /* 28 - PropertyNotify           */
-    NonMaskableMask,                        /* 29 - SelectionClear           */
-    NonMaskableMask,                        /* 30 - SelectionRequest         */
-    NonMaskableMask,                        /* 31 - SelectionNotify          */
-    XCB_EVENT_MASK_COLOR_MAP_CHANGE,        /* 32 - ColormapNotify           */
-    NonMaskableMask,                        /* 33 - ClientMessage            */
-    NonMaskableMask                         /* 34 - MappingNotify            */
-};
-
+/* Map a neutral event kind to the select mask a widget's window uses to receive
+   it.  Mask values are the neutral Isw*Mask constants (Intrinsic.h).  Kinds the
+   toolkit never selects on (protocol/close) map to NonMaskableMask. */
 EventMask
-_IswConvertTypeToMask(int eventType)
+_IswConvertKindToMask(IswEventKind kind)
 {
-    eventType &= ~0x80; /* strip SendEvent (synthetic) bit */
-    if ((Cardinal) eventType < IswNumber(masks))
-        return masks[eventType];
-    else
-        return XCB_EVENT_MASK_NO_EVENT;
+    switch (kind) {
+    case IswKeyDown:        return IswKeyPressMask;
+    case IswKeyUp:          return IswKeyReleaseMask;
+    case IswButtonDown:     return IswButtonPressMask;
+    case IswButtonUp:       return IswButtonReleaseMask;
+    case IswMotion:         return IswPointerMotionMask |
+                                   IswPointerMotionHintMask |
+                                   IswButton1MotionMask | IswButton2MotionMask |
+                                   IswButton3MotionMask | IswButton4MotionMask |
+                                   IswButton5MotionMask | IswButtonMotionMask;
+    case IswEnter:          return IswEnterWindowMask;
+    case IswLeave:          return IswLeaveWindowMask;
+    case IswFocusIn:
+    case IswFocusOut:       return IswFocusChangeMask;
+    case IswRedraw:         return IswExposureMask;
+    case IswVisibility:     return IswVisibilityChangeMask;
+    case IswGeometry:
+    case IswReparent:
+    case IswMap:
+    case IswUnmap:
+    case IswDestroy:        return IswStructureNotifyMask;
+    case IswMappingChanged:
+    case IswProtocol:
+    case IswCloseRequest:
+    default:                return NonMaskableMask;
+    }
 }
 
 Boolean
@@ -1789,10 +1223,10 @@ _IswOnGrabList(register Widget widget, IswGrabRec *grabList)
 }
 
 static Boolean
-DispatchEvent(xcb_generic_event_t *event, Widget widget)
+DispatchEvent(IswEvent *event, Widget widget)
 {
-    //#FIXME, the code previously here was doing event compression/coalescing in 
-    //a way that is not replicatable using XCB, however can be done at the connection level.
+    //#FIXME, the code previously here was doing event compression/coalescing in
+    //a way that is not replicatable here, however can be done at the connection level.
 
     return IswDispatchEventToWidget(widget, event);
 }
@@ -1800,7 +1234,7 @@ DispatchEvent(xcb_generic_event_t *event, Widget widget)
 typedef enum _GrabType { pass, ignore, remap } GrabType;
 
 static Boolean
-_IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
+_IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
 {
     register Widget widget;
     GrabType grabType;
@@ -1812,24 +1246,22 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
     /* HiDPI: convert physical event coordinates to logical pixels */
     _IswDescaleEventCoords(event, _IswGetScaleFactor(dpy));
 
-    int raw_type = event->response_type;
-    int type = raw_type & ~0x80;
-    /* the default dispatcher discards all extension events */
-    if (type >= LASTEvent) {
+    LOCK_APP(app);
+
+    if (event->kind == IswNoEvent) {
+        UNLOCK_APP(app);
         return False;
     }
 
-    LOCK_APP(app);
-
-    switch (event->response_type) {
-    case XCB_INPUT_KEY_PRESS:
-    case XCB_INPUT_KEY_RELEASE:
-    case XCB_INPUT_BUTTON_PRESS:
-    case XCB_INPUT_BUTTON_RELEASE:
+    switch (event->kind) {
+    case IswKeyDown:
+    case IswKeyUp:
+    case IswButtonDown:
+    case IswButtonUp:
         grabType = remap;
         break;
-    case XCB_INPUT_MOTION:
-    case XCB_INPUT_ENTER:
+    case IswMotion:
+    case IswEnter:
         grabType = ignore;
         break;
     default:
@@ -1837,7 +1269,7 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
         break;
     }
 
-    widget = IswWindowToWidget(dpy, _IswXcbWindowWrap(get_event_window(event)));
+    widget = (Widget) (void *) event->any.target;
     pdi = _IswGetPerDisplayInput(dpy);
 
     /* Windowless hit-testing: pointer events are reported against the
@@ -1845,7 +1277,7 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
        widget under the pointer and rebase the event coordinates to it.
        Keyboard events are routed by focus, not position, so are excluded.
 
-       Suppressed entirely during an XDnd drag: a real xcb_grab_pointer on the
+       Suppressed entirely during an XDnd drag: a real pointer grab on the
        shell owns the pointer, so every pointer event must pass straight
        through to the shell's HandleDragEvent (which tracks the target and
        moves the drag icon).  Redirecting/hit-testing them to a windowless
@@ -1855,7 +1287,7 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
         int px, py;
         if (_IswEventPointerXY(event, &px, &py)) {
             int dx, dy;
-            uint8_t etype = event->response_type & ~0x80;
+            IswEventKind etype = event->kind;
             Widget target = _IswFindWidgetAtPoint(widget, px, py, &dx, &dy);
 
             /* Windowless event propagation: the X server used to deliver a
@@ -1871,8 +1303,8 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
                targeting the deepest widget, matching how the server reported
                those to the innermost window. */
             if (target != widget &&
-                (etype == XCB_BUTTON_PRESS || etype == XCB_BUTTON_RELEASE)) {
-                EventMask emask = _IswConvertTypeToMask(event->response_type);
+                (etype == IswButtonDown || etype == IswButtonUp)) {
+                EventMask emask = _IswConvertKindToMask(event->kind);
                 Widget a;
                 for (a = target;
                      a != NULL && a != widget && IswIsWidget(a) &&
@@ -1900,13 +1332,12 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
                motion is routed to that widget instead of being re-hit-tested
                by position.  Without this a drag (Paned sash, Slider thumb)
                loses its target the moment the pointer slips off the widget. */
-            if (etype == XCB_BUTTON_PRESS) {
+            if (etype == IswButtonDown) {
                 if (pdi->buttonsDown == 0)
                     pdi->windowlessButtonGrab =
                         (target != widget && IswIsWidget(target) &&
                          target->core.windowless) ? target : NULL;
-                pdi->buttonsDown |=
-                    (1u << ((xcb_button_press_event_t *) event)->detail);
+                pdi->buttonsDown |= (1u << event->button.button);
             }
 
             /* While the grab is held, redirect motion AND the button release
@@ -1915,7 +1346,7 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
                _IswFindWidgetAtPoint's dx,dy).  Routing the release here lets
                the grab's <BtnUp> action fire even if the pointer has slipped
                off the widget. */
-            if ((etype == XCB_MOTION_NOTIFY || etype == XCB_BUTTON_RELEASE) &&
+            if ((etype == IswMotion || etype == IswButtonUp) &&
                 pdi->buttonsDown != 0 &&
                 pdi->windowlessButtonGrab != NULL &&
                 IswIsWidget(pdi->windowlessButtonGrab) &&
@@ -1935,25 +1366,24 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
 
             /* Release: clear the per-button bit; drop the grab when the last
                button comes up. */
-            if (etype == XCB_BUTTON_RELEASE) {
-                pdi->buttonsDown &=
-                    ~(1u << ((xcb_button_release_event_t *) event)->detail);
+            if (etype == IswButtonUp) {
+                pdi->buttonsDown &= ~(1u << event->button.button);
                 if (pdi->buttonsDown == 0)
                     pdi->windowlessButtonGrab = NULL;
             }
 
             /* On motion, synthesize Enter/Leave when the windowless widget
                under the pointer changes. */
-            if (etype == XCB_MOTION_NOTIFY &&
+            if (etype == IswMotion &&
                 target != pdi->pointerWidget) {
                 Widget old_pw = pdi->pointerWidget;
                 pdi->pointerWidget = (target != widget) ? target : NULL;
                 if (old_pw != NULL && IswIsWidget(old_pw)
                     && old_pw->core.windowless && !old_pw->core.being_destroyed)
-                    _IswSynthesizeCrossing(old_pw, event, XCB_LEAVE_NOTIFY);
+                    _IswSynthesizeCrossing(old_pw, event, IswLeave);
                 if (pdi->pointerWidget != NULL)
                     _IswSynthesizeCrossing(pdi->pointerWidget, event,
-                                           XCB_ENTER_NOTIFY);
+                                           IswEnter);
 
                 /* Update the windowed ancestor's cursor to match the widget
                    now under the pointer (or restore it when leaving one). */
@@ -1977,14 +1407,13 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
      * so traversal works regardless of which widget currently holds the
      * Xt focus descendant (it may not bind Tab). */
     if (widget != NULL) {
-        uint8_t ftype = event->response_type & 0x7f;
-        if (ftype == XCB_KEY_PRESS || ftype == XCB_KEY_RELEASE) {
+        if (event->kind == IswKeyDown || event->kind == IswKeyUp) {
             if (_IswFocusMgrMaybeHandleKey(widget, event)) {
                 UNLOCK_APP(app);
                 return True;
             }
         }
-        else if (ftype == XCB_BUTTON_PRESS) {
+        else if (event->kind == IswButtonDown) {
             _IswFocusMgrFocusOnClick(widget);
         }
     }
@@ -1993,8 +1422,8 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
         /* event occurred in a non-widget window -- drop it */
     }
     else if (grabType == pass) {
-        if (event->response_type == XCB_LEAVE_NOTIFY ||
-            event->response_type == XCB_FOCUS_IN || event->response_type == XCB_FOCUS_OUT) {
+        if (event->kind == IswLeave ||
+            event->kind == IswFocusIn || event->kind == IswFocusOut) {
             if (IswIsSensitive(widget))
                 was_dispatched = IswDispatchEventToWidget(widget, event);
         }
@@ -2008,7 +1437,7 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
         }
     }
     else if (grabType == remap) {
-        EventMask mask = _IswConvertTypeToMask(event->response_type);
+        EventMask mask = _IswConvertKindToMask(event->kind);
         Widget dspWidget;
 
         dspWidget = _IswFindRemapWidget(event, widget, mask, pdi);
@@ -2025,14 +1454,13 @@ _IswDefaultDispatcher(xcb_generic_event_t *event, IswDisplay dpy)
 }
 
 Boolean
-IswDispatchEvent(xcb_generic_event_t *event, IswDisplay dpy)
+IswDispatchEvent(IswEvent *event, IswDisplay dpy)
 {
-    xcb_connection_t *conn = _IswXcbConn(dpy);
     Boolean was_dispatched, safe;
     int dispatch_level;
     int starting_count;
     IswPerDisplay pd;
-    xcb_timestamp_t time = 0;
+    IswTime time = 0;
     Boolean is_user_input = False;
     IswEventDispatchProc dispatch = _IswDefaultDispatcher;
     IswAppContext app = IswDisplayToApplicationContext(dpy);
@@ -2045,57 +1473,29 @@ IswDispatchEvent(xcb_generic_event_t *event, IswDisplay dpy)
        dispatches) into a single composite+blit per affected window. */
     ISWRenderBeginDeferComposite();
 
-    switch (event->response_type & ~0x80) {
-    case XCB_INPUT_KEY_PRESS:
-        time = ((xcb_input_key_press_event_t *)event)->time;
-        is_user_input = True;
-        break;
-    case XCB_INPUT_KEY_RELEASE:
-        time = ((xcb_input_key_release_event_t *)event)->time;
-        break;
-    case XCB_INPUT_BUTTON_PRESS:
-        time = ((xcb_input_button_press_event_t *)event)->time;
-        is_user_input = True;
-        break;
-    case XCB_INPUT_BUTTON_RELEASE:
-        time = ((xcb_input_button_release_event_t *)event)->time;
-        break;
-    case XCB_INPUT_MOTION:
-        time = ((xcb_input_motion_event_t *)event)->time;
-        break;
-    case XCB_INPUT_ENTER:
-        time = ((xcb_input_enter_event_t *)event)->time;
-        break;
-    case XCB_INPUT_LEAVE:
-        time = ((xcb_input_leave_event_t *)event)->time;
-        break;
-    case XCB_INPUT_PROPERTY:
-        time = ((xcb_input_property_event_t *)event)->time;
-        break;
-    case XCB_SELECTION_CLEAR:
-        time = ((xcb_selection_clear_event_t *)event)->time;
-        break;
-
-    case XCB_INPUT_DEVICE_MAPPING_NOTIFY:
+    time = event->any.time;
+    is_user_input = (event->kind == IswKeyDown || event->kind == IswButtonDown);
+    if (event->kind == IswMappingChanged)
         _IswRefreshMapping(dpy, event, True);
-        break;
-    }
     pd = _IswGetPerDisplay(dpy);
 
     if (time)
         pd->last_timestamp = time;
     if (is_user_input)
-        _IswShellUpdateUserTime(dpy, get_event_window(event), time);
+        /* RIPPLE: _IswShellUpdateUserTime still takes a window (shell/WM code);
+           its signature must change to take the event's target widget.  Until
+           then pass 0 so the user-time update is a no-op for this event. */
+        _IswShellUpdateUserTime(dpy, 0 /* FIXME: widget target */, time);
     pd->last_event = *event;
 
     if (pd->dispatcher_list) {
-        /* Mask off the "sent" bit (0x80) to stay within the 128-entry
-           dispatcher_list.  Bit 7 indicates SendEvent origin and must
-           not be used as an array index. */
-        int dispatch_type = event->response_type & 0x7f;
-        dispatch = pd->dispatcher_list[dispatch_type];
-        if (dispatch == NULL)
-            dispatch = _IswDefaultDispatcher;
+        /* Index by neutral kind; clamp to the 128-entry dispatcher_list. */
+        int dispatch_type = (int) event->kind;
+        if (dispatch_type >= 0 && dispatch_type < 128) {
+            dispatch = pd->dispatcher_list[dispatch_type];
+            if (dispatch == NULL)
+                dispatch = _IswDefaultDispatcher;
+        }
     }
     was_dispatched = (*dispatch) (event, dpy);
 
@@ -2250,10 +1650,10 @@ _IswFreeEventTable(IswEventTable *event_table)
     }
 }
 
-xcb_timestamp_t
+IswTime
 IswLastTimestampProcessed(IswDisplay dpy)
 {
-    xcb_timestamp_t time;
+    IswTime time;
 
     DPY_TO_APPCON(dpy);
 
@@ -2265,43 +1665,36 @@ IswLastTimestampProcessed(IswDisplay dpy)
     return (time);
 }
 
-xcb_generic_event_t *
+IswEvent *
 IswLastEventProcessed(IswDisplay dpy)
 {
-    xcb_generic_event_t *le = NULL;
+    IswEvent *le = NULL;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
     le = &_IswGetPerDisplay(dpy)->last_event;
-    if (!le->full_sequence)
+    if (le->kind == IswNoEvent)
         le = NULL;
     UNLOCK_APP(app);
     return le;
 }
 
 void
-_IswSendFocusEvent(Widget child, int type)
+_IswSendFocusEvent(Widget child, IswEventKind kind)
 {
     child = IswIsWidget(child) ? child : _IswWidgetAncestor(child);
     if (IswIsSensitive(child) && !child->core.being_destroyed
         && IswIsRealized(child)
-        && (IswBuildEventMask(child) & XCB_EVENT_MASK_FOCUS_CHANGE)) {
-        
-        if(type == XCB_FOCUS_IN) {
-            xcb_focus_in_event_t event = {0};
-            event.response_type = XCB_FOCUS_IN;
-            event.event = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child)));
-            event.mode = XCB_NOTIFY_MODE_NORMAL;
-            event.detail = XCB_NOTIFY_DETAIL_ANCESTOR;
-            IswDispatchEventToWidget(child, (xcb_generic_event_t *) &event);
-        } else if (type == XCB_FOCUS_OUT) {
-            xcb_focus_out_event_t event = {0};
-            event.response_type = XCB_FOCUS_OUT;
-            event.event = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child)));
-            event.mode = XCB_NOTIFY_MODE_NORMAL;
-            event.detail = XCB_NOTIFY_DETAIL_ANCESTOR;
-            IswDispatchEventToWidget(child, (xcb_generic_event_t *) &event);
+        && (IswBuildEventMask(child) & IswFocusChangeMask)) {
+
+        if (kind == IswFocusIn || kind == IswFocusOut) {
+            IswEvent event;
+            memset(&event, 0, sizeof(event));
+            event.kind = kind;
+            event.focus.mode = IswNotifyNormal;
+            event.any.target = (IswEventTarget) (void *) child;
+            IswDispatchEventToWidget(child, &event);
         } else {
             return;
         }

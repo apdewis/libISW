@@ -507,7 +507,7 @@ AddHandler(Request req, EventMask mask, IswEventHandler proc, IswPointer closure
         }
         UNLOCK_PROCESS;
         if (requestWindowRec->active_transfer_count++ == 0) {
-            IswRegisterDrawable(dpy, window_id, widget);
+            IswRegisterDrawable(dpy, window, widget);
             IswWindowAttributes attrs = { 0 };
             attrs.event_mask = mask;
             _IswPlatformChangeAttributes(dpy, window,
@@ -539,7 +539,7 @@ RemoveHandler(Request req,
                             (void *) &requestWindowRec);
         UNLOCK_PROCESS;
         if (--requestWindowRec->active_transfer_count == 0) {
-            IswUnregisterDrawable(dpy, window_id);
+            IswUnregisterDrawable(dpy, window);
             IswWindowAttributes attrs = { 0 };
             attrs.event_mask = 0;
             _IswPlatformChangeAttributes(dpy, window,

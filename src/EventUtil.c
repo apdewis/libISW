@@ -180,9 +180,9 @@ _IswFillAncestorList(Widget **listPtr,
 }
 
 Widget
-_IswFindRemapWidget(xcb_generic_event_t *event,
+_IswFindRemapWidget(IswEvent *event,
                    Widget widget,
-                   xcb_event_mask_t mask,
+                   EventMask mask,
                    IswPerDisplayInput pdi)
 {
     Widget dspWidget = widget;
@@ -193,35 +193,29 @@ _IswFindRemapWidget(xcb_generic_event_t *event,
         pdi->focusWidget = NULL;        /* invalidate the focus
                                            cache */
     }
-    if (mask & (XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE))
-        dspWidget = _IswProcessKeyboardEvent((xcb_key_press_event_t *)event, widget, pdi);
-    else if (mask & (XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE))
-        dspWidget = _IswProcessPointerEvent((xcb_button_press_event_t *)event, widget, pdi);
+    if (mask & (IswKeyPressMask | IswKeyReleaseMask))
+        dspWidget = _IswProcessKeyboardEvent(event, widget, pdi);
+    else if (mask & (IswButtonPressMask | IswButtonReleaseMask))
+        dspWidget = _IswProcessPointerEvent(event, widget, pdi);
 
     return dspWidget;
 }
 
 void
-_IswUngrabBadGrabs(xcb_generic_event_t *event,
+_IswUngrabBadGrabs(IswEvent *event,
                   Widget widget,
-                  xcb_event_mask_t mask,
+                  EventMask mask,
                   IswPerDisplayInput pdi)
 {
+    (void) mask;
 
-    if (event->response_type == XCB_INPUT_DEVICE_KEY_PRESS) {
-        xcb_input_key_press_event_t *ke = (xcb_input_key_press_event_t *) event;
+    if (event->kind == IswKeyDown || event->kind == IswKeyUp) {
         if (IsServerGrab(pdi->keyboard.grabType) &&
             !_IswOnGrabList(pdi->keyboard.grab.widget, pdi->grabList))
-            IswUngrabKeyboard(widget, ke->time);
-    } else if (event->response_type == XCB_INPUT_DEVICE_KEY_RELEASE) {
-        xcb_input_key_release_event_t *ke = (xcb_input_key_press_event_t *) event;
-        if (IsServerGrab(pdi->keyboard.grabType) &&
-            !_IswOnGrabList(pdi->keyboard.grab.widget, pdi->grabList))
-            IswUngrabKeyboard(widget, ke->time);
+            IswUngrabKeyboard(widget, event->any.time);
     } else {
-        xcb_input_button_press_event_t *ke = (xcb_input_button_press_event_t *) event;
         if (IsServerGrab(pdi->pointer.grabType) &&
             !_IswOnGrabList(pdi->pointer.grab.widget, pdi->grabList))
-             IswUngrabPointer(widget, ke->time);
+             IswUngrabPointer(widget, event->any.time);
     }
 }

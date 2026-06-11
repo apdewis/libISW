@@ -223,7 +223,7 @@ InitPerDisplay(IswDisplay dpy,
     pd->pixmap_tab = NULL;
     pd->language = NULL;
     pd->rv = False;
-    pd->last_event.full_sequence = 0;
+    pd->last_event.kind = IswNoEvent;
     pd->last_timestamp = 0;
     _IswAllocTMContext(pd);
     pd->mapping_callbacks = NULL;
@@ -245,7 +245,6 @@ InitPerDisplay(IswDisplay dpy,
     pd->pdi.buttonsDown = 0;
     pd->pdi.xdndDragActive = False;
 
-    _IswAllocWWTable(pd);
     pd->per_screen_db = (IswDatabaseHandle *) __XtCalloc(
         (Cardinal) ops->display->screen_count(dpy),
         (Cardinal) sizeof(IswDatabaseHandle ));
@@ -757,7 +756,6 @@ CloseDisplay(IswDisplay dpy)
         xtpd->modsToKeysyms = NULL;
         IswFree((char *) xtpd->pdi.trace);
         _IswHeapFree(&xtpd->heap);
-        _IswFreeWWTable(xtpd);
         if (xtpd->per_screen_db) {
             int nscreens = ops->display->screen_count(dpy);
             for (i = 0; i < nscreens; i++) {

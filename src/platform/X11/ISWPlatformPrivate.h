@@ -48,6 +48,10 @@ xcb_screen_t     *_IswXcbDefaultScreen(IswDisplay dpy);
 xcb_window_t      _IswXcbWindow(IswWindow win);
 IswWindow         _IswXcbWindowWrap(xcb_window_t id);
 
+/* Reverse widget<->window lookup (window -> owning widget), used by event
+   translation to resolve an event's dispatch target to its root widget. */
+Widget            _IswXcbWidgetForWindow(IswDisplay dpy, xcb_window_t window);
+
 /* Color/font/visual value handles (Phase 4).  Plain casts: each handle IS the
    native id/pointer.  Implemented in src/ISWPlatformColorFontXCB.c. */
 xcb_colormap_t    _IswXcbColormap(IswColormap cmap);

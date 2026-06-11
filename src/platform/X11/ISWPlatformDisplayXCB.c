@@ -99,6 +99,7 @@ xcb_disp_open(const char *display_name, int *default_screen)
     if(xcbDisplay != NULL) {
         memset(xcbDisplay, 0, sizeof(*xcbDisplay));
         xcbDisplay->conn = conn;
+        _IswXcbAllocWWTable((IswDisplay) xcbDisplay);
         return (IswDisplay) xcbDisplay;
     } else {
         return (IswDisplay) NULL;
@@ -109,6 +110,7 @@ static void
 xcb_disp_close(IswDisplay dpy)
 {
     IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    _IswXcbFreeWWTable(dpy);
     if (priv->conn) {
         xcb_flush(priv->conn);
         xcb_disconnect(priv->conn);
@@ -455,6 +457,30 @@ _IswPlatformWidgetWindow(IswDisplay dpy, Widget w)
         if (priv->wmap[i].widget == (void *) w)
             return _IswXcbWindowWrap(priv->wmap[i].window);
     return _IswXcbWindowWrap(priv->root_window);
+}
+
+/* Reverse of _IswPlatformWidgetWindow: the widget that owns a given native
+   window, or the shell root's widget for the display's top-level window.  Used
+   by the backend's event translation to stamp an event's dispatch target with
+   the root widget of the window that received it — the toolkit core never does
+   this resolution itself. */
+Widget
+_IswXcbWidgetForWindow(IswDisplay dpy, xcb_window_t window)
+{
+    /* The window→widget table (ISWPlatformWWTableXCB.c) resolves both a
+       widget's own window and the foreign/extra windows registered onto it
+       (selection requestor, tray screen-root); event target resolution must
+       see all of them, so go through it rather than scanning wmap. */
+    if (window == 0)
+        return NULL;
+    return IswWindowToWidget(dpy, _IswXcbWindowWrap(window));
+}
+
+/* Neutral reverse lookup (declared in ISW/ISWPlatform.h). */
+Widget
+_IswPlatformWidgetForWindow(IswDisplay dpy, IswWindow win)
+{
+    return IswWindowToWidget(dpy, win);
 }
 
 /* Register (or clear, with win==0) the window backing a specific widget. */

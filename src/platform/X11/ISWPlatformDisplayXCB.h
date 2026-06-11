@@ -17,6 +17,11 @@ typedef struct _IswDisplayXCB {
     IswWidgetWindowMap *wmap;         /* widget→window associations */
     int                 wmap_count;
     int                 wmap_cap;
+    struct _WWTable    *wwtable;      /* window→widget table (incl. foreign) */
 } IswDisplayXCB;
+
+/* window→widget table lifecycle (ISWPlatformWWTableXCB.c) */
+extern void _IswXcbAllocWWTable(IswDisplay display);
+extern void _IswXcbFreeWWTable(IswDisplay display);
 
 #endif /* _ISWPlatformPrivateXCB_h */

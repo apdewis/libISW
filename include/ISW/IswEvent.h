@@ -36,10 +36,12 @@
 
 #include <stdint.h>
 
-/* Opaque dispatch target — the widget/surface the event is for.  The backend
- * sets it during translation; the toolkit uses it only to route, never to
- * decode. */
-typedef uint32_t IswEventTarget;
+/* Opaque dispatch target — the root widget the event belongs to.  The platform
+ * backend owns the OS windows; during translation it resolves the event to the
+ * root widget of the window that received it and stores that widget here.  The
+ * toolkit core casts this back to a Widget to begin hit-testing; it never sees
+ * a window.  Pointer-width so it can carry the widget handle directly. */
+typedef uintptr_t IswEventTarget;
 
 /* Event timestamp in milliseconds, monotonic per backend. */
 typedef uint32_t IswTime;

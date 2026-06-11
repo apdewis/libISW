@@ -610,7 +610,7 @@ typedef void (*IswCancelConvertSelectionProc)(
 );
 
 typedef Boolean (*IswEventDispatchProc)(
-    xcb_generic_event_t*		/* event */,
+    IswEvent*		/* event */,
     IswDisplay            /* connection */
 );
 
@@ -649,8 +649,8 @@ extern Boolean IswCallConverter(
 );
 
 extern Boolean IswDispatchEvent(
-    xcb_generic_event_t*, 
-    IswDisplay 
+    IswEvent*,
+    IswDisplay
 );
 
 extern Boolean IswCallAcceptFocus(
@@ -1005,7 +1005,7 @@ extern IswEventDispatchProc IswSetEventDispatcher(
 
 extern Boolean IswDispatchEventToWidget(
     Widget		                /* widget */,
-    xcb_generic_event_t*		/* event */
+    IswEvent*		/* event */
 );
 
 extern void IswInsertEventTypeHandler(
@@ -1064,7 +1064,7 @@ extern Widget IswGetKeyboardFocusWidget(
     Widget		/* widget */
 );
 
-extern xcb_generic_event_t* IswLastEventProcessed(
+extern IswEvent* IswLastEventProcessed(
     IswDisplay 		/* dpy */
 );
 
@@ -1218,6 +1218,9 @@ extern Widget IswNameToWidget(
     _Xconst _IswString	/* names */
 );
 
+/* Window→widget association table (X11 backend; window-facing API used by
+   backend protocol code — selections, tray, shell.  The toolkit core is
+   windowless and does not use these). */
 extern Widget IswWindowToWidget(
     IswDisplay 		/* dpy */,
     IswWindow 		/* window */
@@ -2255,13 +2258,13 @@ extern void IswGetApplicationNameAndClass(
 
 extern void IswRegisterDrawable(
     IswDisplay 		/* dpy */,
-    xcb_drawable_t		/* drawable */,
+    IswWindow		/* drawable */,
     Widget		/* widget */
 );
 
 extern void IswUnregisterDrawable(
     IswDisplay 		/* dpy */,
-    xcb_drawable_t		/* drawable */
+    IswWindow		/* drawable */
 );
 
 extern Widget IswHooksOfDisplay(

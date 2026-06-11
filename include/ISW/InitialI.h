@@ -345,14 +345,13 @@ typedef struct _IswPerDisplayStruct {
     Heap heap;
     IswScreenPixmapStructPtr pixmap_tab;   /* pixmap cache */
     String language;		       /* XPG language string */
-    xcb_generic_event_t last_event;		       /* last event dispatched */
+    IswEvent last_event;		       /* last event dispatched */
     IswTime last_timestamp;	       /* from last event dispatched */
     int multi_click_time;	       /* for IswSetMultiClickTime */
     struct _TMKeyContextRec* tm_context;     /* for IswGetActionKeysym */
     InternalCallbackList mapping_callbacks;  /* special case for TM */
     IswPerDisplayInputRec pdi;	       /* state for modal grabs & kbd focus */
     const struct _IswPlatformOps *ops; /* injected backend ops table for this connection */
-    struct _WWTable *WWtable;	       /* window to widget table */
     IswDatabaseHandle *per_screen_db;  /* per screen resource databases */
     IswDatabaseHandle cmd_db;	       /* db from command line, if needed */
     IswDatabaseHandle server_db;       /* resource property else .Xdefaults */
@@ -450,14 +449,6 @@ extern void _IswExtensionSelect(
 );
 
 #define _IswSafeToDestroy(app) ((app)->dispatch_level == 0)
-
-extern void _IswAllocWWTable(
-    IswPerDisplay pd
-);
-
-extern void _IswFreeWWTable(
-    IswPerDisplay pd
-);
 
 extern String _IswGetUserName(_IswString dest, int len);
 extern IswDatabaseHandle _IswPreparseCommandLine(XrmOptionDescRec *urlist,

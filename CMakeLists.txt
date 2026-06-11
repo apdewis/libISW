@@ -188,6 +188,7 @@ set(LIBXT_SOURCES
     src/Event.c
     src/platform/X11/ISWPlatformEventXCB.c
     src/platform/X11/ISWPlatformDisplayXCB.c
+    src/platform/X11/ISWPlatformWWTableXCB.c
     src/platform/X11/ISWPlatformInputXCB.c
     src/platform/X11/ISWPlatformColorFontXCB.c
     src/platform/X11/ISWPlatformGrabCursorXCB.c
