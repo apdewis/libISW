@@ -217,7 +217,6 @@ set(LIBXT_SOURCES
     src/PopupCB.c
     src/Quark.c
     src/RectObj.c
-    src/ResConfig.c
     src/Resources.c
     src/Selection.c
     src/SetSens.c

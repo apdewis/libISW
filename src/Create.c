@@ -76,9 +76,6 @@ in this Software without prior written authorization from The Open Group.
 #include "VarargsI.h"
 #include "ShellP.h"
 #include "CreateI.h"
-#ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-#include "ResConfigP.h"
-#endif
 #include <stdio.h>
 
 static _Xconst _IswString IswNxtCreateWidget = "xtCreateWidget";
@@ -685,10 +682,6 @@ _IswCreatePopupShell(String name,
                       num_typed_args, (ConstraintWidgetClass) NULL,
                       popupPostProc);
 
-#ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-    IswAddEventHandler(widget, (EventMask) IswPropertyChangeMask, FALSE,
-                      _IswResourceConfigurationEH, NULL);
-#endif
     return (widget);
 }
 
@@ -738,11 +731,6 @@ _IswAppCreateShell(String name,
                      display,
                      args, num_args, typed_args, num_typed_args,
                      (ConstraintWidgetClass) NULL, _IswAddShellToHookObj);
-
-#ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-    IswAddEventHandler(shell, (EventMask) IswPropertyChangeMask, FALSE,
-                      _IswResourceConfigurationEH, NULL);
-#endif
 
     return shell;
 }

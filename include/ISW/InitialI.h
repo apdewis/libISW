@@ -363,10 +363,6 @@ typedef struct _IswPerDisplayStruct {
     double scale_factor;	       /* HiDPI scale factor (1.0 = 96 DPI) */
     Atom net_wm_user_time;       /* _NET_WM_USER_TIME atom (0 = not yet interned) */
     Atom net_wm_user_time_window; /* _NET_WM_USER_TIME_WINDOW atom */
-#ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-    Atom rcm_init;			/* ResConfig - initialize */
-    Atom rcm_data;			/* ResConfig - data Atom */
-#endif
 } IswPerDisplayStruct, *IswPerDisplay;
 
 typedef struct _PerDisplayTable {

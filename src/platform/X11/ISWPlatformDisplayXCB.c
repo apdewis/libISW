@@ -1006,7 +1006,7 @@ _IswPlatformPresentRoot(IswDisplay dpy, IswWindow win, IswSurface surface,
 
 /* ---- resource-resolution wrappers (Phase 15) -----------------------------
    Toolkit resource code (Initialize.c / Resources.c / Intrinsic.c / Error.c /
-   ResConfig.c / Display.c) calls these instead of any xcb_xrm_* function, so no
+   Display.c) calls these instead of any xcb_xrm_* function, so no
    toolkit TU names Xrm.  Resource-database ops are NOT keyed on a connection
    (the database is a free-standing store; several calls happen before a
    per-display record exists), so ops come from the selected backend — same

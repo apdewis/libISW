@@ -73,9 +73,6 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 #include "ISWPlatform.h"
-#ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-#include "ResConfigP.h"
-#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -258,13 +255,6 @@ InitPerDisplay(IswDisplay dpy,
                                 _IswGetDefaultScreen(dpy),
                                 (ArgList) NULL, 0, (IswTypedArgList) NULL, 0,
                                 (ConstraintWidgetClass) NULL);
-#endif
-
-#ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
-    {
-        pd->rcm_init = _IswPlatformInternAtomOp((IswDisplay) dpy, RCM_INIT, False);
-        pd->rcm_data = _IswPlatformInternAtomOp((IswDisplay) dpy, RCM_DATA, False);
-    }
 #endif
 
     return pd;
