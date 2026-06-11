@@ -158,7 +158,7 @@ typedef struct _DestroyRec DestroyRec;
 
 typedef struct _IswEventQueue  IswEventQueue;
 typedef struct _IswEventQueue {
-    xcb_generic_event_t *event;
+    IswEvent *event;            /* neutral event; native translated at enqueue */
     IswDisplay display;
     IswEventQueue *next;
 } IswEventQueue;

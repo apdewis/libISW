@@ -715,7 +715,7 @@ extern Boolean IswCallAcceptFocus(
 
 extern Boolean IswAppPeekEvent(
     IswAppContext 	/* app_context */,
-    xcb_generic_event_t*		/* event_return */
+    IswEvent*		/* event_return */
 );
 
 extern Boolean IswIsSubclass(
@@ -1173,12 +1173,12 @@ extern void IswNoticeSignal(
 );
 
 extern void IswNextEvent( /* obsolete */
-    xcb_generic_event_t* 		/* event */
+    IswEvent* 		/* event */
 );
 
 extern void IswAppNextEvent(
     IswAppContext 	/* app_context */,
-    xcb_generic_event_t*		/* event_return */
+    IswEvent*		/* event_return */
 );
 
 #define IswIMXEvent		1

@@ -483,7 +483,7 @@ FindInputs(IswAppContext app,
                 for (dd = 0; dd < app->count; dd++) {
                     if (ii == _IswPlatformConnectionFd((IswDisplay)app->list[dd])) {
                         if (*dpy_no == -1) {
-                            xcb_generic_event_t *event = (xcb_generic_event_t *)
+                            void *event =
                                 _IswPlatformPollQueuedEvent((IswDisplay) app->list[dd]);
                             if (event) {
                                 *dpy_no = dd;
@@ -545,102 +545,92 @@ FindInputs(IswAppContext app,
 
 /*
  * Routine to fill the app context event queue from all displays.
- * Calls xcb_poll_for_event (non-blocking) for each display and enqueues
- * any pending events into the app's FIFO event queue (event_front/event_back).
- * This is the single authoritative place where XCB events enter the toolkit.
+ * Polls each display (non-blocking) for pending native events, translates each
+ * to a neutral IswEvent at the poll boundary, and enqueues the neutral events
+ * into the app's FIFO queue (event_front/event_back).  This is the single
+ * authoritative place where platform events enter the toolkit; past this point
+ * the toolkit handles only neutral IswEvents.
  */
 void
 _IswFillEventQueue(IswAppContext app) {
     int dd;
     for (dd = 0; dd < app->count; dd++) {
-        xcb_generic_event_t *e;
+        IswDisplay disp = (IswDisplay) app->list[dd];
+        void *native;
 
         /* If the connection is broken, set exit flag so the app
          * doesn't spin at 100% CPU polling a dead fd. */
-        if (_IswPlatformDisplayHasError((IswDisplay) app->list[dd])) {
+        if (_IswPlatformDisplayHasError(disp)) {
             app->exit_flag = TRUE;
             continue;
         }
 
-        /* Flush pending requests before polling for events.
-         * XCB does not auto-flush like Xlib's XNextEvent did. */
-        _IswPlatformFlush((IswDisplay) app->list[dd]);
-        while ((e = (xcb_generic_event_t *)
-                    _IswPlatformPollEvent((IswDisplay) app->list[dd])) != NULL) {
-            uint8_t type = e->response_type & ~0x80;
+        /* Flush pending requests before polling for events (the backend does
+         * not auto-flush the way Xlib's XNextEvent did). */
+        _IswPlatformFlush(disp);
+        while ((native = _IswPlatformPollEvent(disp)) != NULL) {
+            IswEvent *iev;
 
-            /* ConfigureNotify coalescing: during interactive resize the
-             * X server sends a ConfigureNotify per pixel of mouse
-             * movement.  Processing every one causes a full widget-tree
-             * resize+redraw cascade each time, which is the dominant
-             * source of resize lag.  When we see a ConfigureNotify and
-             * the queue already has one for the same window, replace the
-             * stale event with the latest dimensions. */
-            if (type == XCB_CONFIGURE_NOTIFY) {
-                xcb_configure_notify_event_t *cne =
-                    (xcb_configure_notify_event_t *)e;
+            /* Translate to neutral at the boundary, then drop the native
+             * event — it never enters the queue or the toolkit. */
+            iev = IswNew(IswEvent);
+            if (!_IswEventFromXcb(disp, native, iev)) {
+                /* Untranslatable / filtered event (e.g. an extension event the
+                 * toolkit ignores): discard both buffers. */
+                IswFree((char *) iev);
+                free(native);
+                continue;
+            }
+            free(native);
+
+            /* Geometry (ConfigureNotify) coalescing: during interactive resize
+             * the server sends one per pixel of motion; processing each drives
+             * a full widget-tree resize+redraw.  If the queue already holds a
+             * geometry event for the same target, replace it with the latest. */
+            if (iev->kind == IswGeometry) {
                 IswEventQueue *scan = app->event_front;
                 IswEventQueue *found = NULL;
                 while (scan) {
-                    uint8_t st = scan->event->response_type & ~0x80;
-                    if (st == XCB_CONFIGURE_NOTIFY &&
-                        scan->display == app->list[dd]) {
-                        xcb_configure_notify_event_t *old =
-                            (xcb_configure_notify_event_t *)scan->event;
-                        if (old->window == cne->window) {
-                            found = scan;
-                            /* keep scanning — we want the last one */
-                        }
-                    }
+                    if (scan->event->kind == IswGeometry &&
+                        scan->display == disp &&
+                        scan->event->any.target == iev->any.target)
+                        found = scan;          /* keep last */
                     scan = scan->next;
                 }
                 if (found) {
-                    free(found->event);
-                    found->event = e;
-                    continue;  /* already queued — don't allocate a new node */
+                    IswFree((char *) found->event);
+                    found->event = iev;
+                    continue;
                 }
             }
 
-            /* MotionNotify coalescing: while dragging (e.g. a Slider thumb or
-             * Paned sash) the server emits a MotionNotify per pixel.  Each
-             * one drives a repaint+composite, so processing every queued
-             * motion makes the dragged element trail the pointer.  When a new
-             * motion arrives and the queue already holds one for the same
-             * window, replace the stale position with the latest — the widget
-             * only ever needs the most recent pointer location.  Honours the
-             * compress_motion class flag's intent at the queue level. */
-            if (type == XCB_MOTION_NOTIFY) {
-                xcb_motion_notify_event_t *mne =
-                    (xcb_motion_notify_event_t *)e;
+            /* Motion coalescing: while dragging (Slider thumb, Paned sash) the
+             * server emits a MotionNotify per pixel; the widget only ever needs
+             * the most recent position.  If the queue already holds a motion
+             * event for the same target, replace it with the latest. */
+            if (iev->kind == IswMotion) {
                 IswEventQueue *scan = app->event_front;
                 IswEventQueue *found = NULL;
                 while (scan) {
-                    uint8_t st = scan->event->response_type & ~0x80;
-                    if (st == XCB_MOTION_NOTIFY &&
-                        scan->display == app->list[dd]) {
-                        xcb_motion_notify_event_t *old =
-                            (xcb_motion_notify_event_t *)scan->event;
-                        if (old->event == mne->event) {
-                            found = scan;
-                            /* keep scanning — we want the last one */
-                        }
-                    }
+                    if (scan->event->kind == IswMotion &&
+                        scan->display == disp &&
+                        scan->event->any.target == iev->any.target)
+                        found = scan;          /* keep last */
                     scan = scan->next;
                 }
                 if (found) {
-                    free(found->event);
-                    found->event = e;
-                    continue;  /* already queued — don't allocate a new node */
+                    IswFree((char *) found->event);
+                    found->event = iev;
+                    continue;
                 }
             }
 
             IswEventQueue *q = IswNew(IswEventQueue);
-            q->event = e;
-            q->display = (IswDisplay) app->list[dd];
+            q->event = iev;
+            q->display = disp;
             q->next = NULL;
-            /* Correct FIFO enqueue: new node goes at the back */
+            /* FIFO: new node goes at the back. */
             if (app->event_back == NULL) {
-                /* Queue was empty */
                 app->event_front = q;
                 app->event_back = q;
             } else {
@@ -1403,7 +1393,7 @@ CallWorkProc(IswAppContext app)
  */
 
 void
-IswNextEvent(xcb_generic_event_t *event)
+IswNextEvent(IswEvent *event)
 {
     IswAppNextEvent(_IswDefaultAppContext(), event);
 }
@@ -1427,7 +1417,7 @@ _IswRefreshMapping(IswDisplay display, IswEvent *event, _IswBoolean dispatch)
 }
 
 void
-IswAppNextEvent(IswAppContext app, xcb_generic_event_t *event)
+IswAppNextEvent(IswAppContext app, IswEvent *event)
 {
     int d;
 
@@ -1457,23 +1447,23 @@ IswAppNextEvent(IswAppContext app, xcb_generic_event_t *event)
  GotEvent:
             if (app->event_front != NULL) {
                 IswEventQueue *node = app->event_front;
-                xcb_generic_event_t *ev = node->event;
+                IswEvent *ev = node->event;
 
-                /* Fix: assign event before inspecting it */
-                if (ev->response_type == XCB_MAPPING_NOTIFY)
+                /* A keyboard-mapping change must refresh the backend keymap. */
+                if (ev->kind == IswMappingChanged)
                     _IswPlatformRefreshMapping(node->display);
 
                 /* Copy event data to caller's buffer */
                 *event = *ev;
 
-                /* Dequeue and free both the XCB event and the queue node */
+                /* Dequeue and free both the neutral event and the queue node */
                 if (app->event_front == app->event_back) {
                     app->event_front = NULL;
                     app->event_back = NULL;
                 } else {
                     app->event_front = node->next;
                 }
-                free(ev);       /* free XCB-allocated event */
+                IswFree((char *) ev);   /* free the neutral event */
                 IswFree((char *) node); /* free Xt-allocated queue node */
             }
             UNLOCK_APP(app);
@@ -1486,7 +1476,7 @@ void
 IswAppProcessEvent(IswAppContext app, IswInputMask mask)
 {
     int d;
-    xcb_generic_event_t *event;
+    IswEvent *event;
     struct timeval cur_time;
 
     LOCK_APP(app);
@@ -1589,13 +1579,11 @@ IswAppProcessEvent(IswAppContext app, IswInputMask mask)
                 }
                 IswFree((char *) node);
 
-                {
-                    IswEvent iev;
-                    if (_IswEventFromXcb(disp, event, &iev))
-                        IswDispatchEvent(&iev, disp);
-                }
+                /* The queue already holds a neutral event (translated at the
+                 * poll boundary in _IswFillEventQueue) — dispatch it directly. */
+                IswDispatchEvent(event, disp);
 
-                free(event);
+                IswFree((char *) event);
             }
 
             UNLOCK_APP(app);
@@ -1705,7 +1693,7 @@ PeekOtherSources(IswAppContext app)
 Boolean IswAppPeekEvent_SkipTimer;
 
 Boolean
-IswAppPeekEvent(IswAppContext app, xcb_generic_event_t *event)
+IswAppPeekEvent(IswAppContext app, IswEvent *event)
 {
     int d;
 
@@ -1774,7 +1762,7 @@ IswAppPeekEvent(IswAppContext app, xcb_generic_event_t *event)
              * Spec is vague here; return FALSE for non-X-event wakeups
              * (signals, alternate inputs).
              */
-            event->response_type = 0;
+            memset(event, 0, sizeof(*event));   /* kind = IswNoEvent (0) */
             UNLOCK_APP(app);
             return FALSE;
         }
