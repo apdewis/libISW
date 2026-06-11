@@ -78,7 +78,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 #include <X11/keysymdef.h>
 
 
@@ -149,8 +149,8 @@ FM(0x1e), FM(0x9e), FM(0x5e), FM(0xde), FM(0x3e), FM(0xbe), FM(0x7e), FM(0xfe)
         mod_ret = MOD_RETURN(ctx, key); \
         sym_ret = (ctx)->keycache.keysym[_i_]; \
     } else { \
-        IswTranslateKeycode((IswDisplay) (dpy), (xcb_keycode_t) key, mod, &mod_ret, &sym_ret); \
-        (ctx)->keycache.keycode[_i_] = (xcb_keycode_t) (key); \
+        IswTranslateKeycode((IswDisplay) (dpy), (IswKeyCode) key, mod, &mod_ret, &sym_ret); \
+        (ctx)->keycache.keycode[_i_] = (IswKeyCode) (key); \
         (ctx)->keycache.modifiers[_i_] = (unsigned char)(mod); \
         (ctx)->keycache.keysym[_i_] = sym_ret; \
         MOD_RETURN(ctx, key) = (unsigned char)mod_ret; \
@@ -161,7 +161,7 @@ FM(0x1e), FM(0x9e), FM(0x5e), FM(0xde), FM(0x3e), FM(0xbe), FM(0x7e), FM(0xfe)
 { \
     int _i_ = (((key) - (TMLongCard) (pd)->min_keycode + modmix[(mod) & 0xff]) & \
                (TMKEYCACHESIZE-1)); \
-    (ctx)->keycache.keycode[_i_] = (xcb_keycode_t) (key); \
+    (ctx)->keycache.keycode[_i_] = (IswKeyCode) (key); \
     (ctx)->keycache.modifiers[_i_] = (unsigned char)(mod); \
     (ctx)->keycache.keysym[_i_] = sym_ret; \
     MOD_RETURN(ctx, key) = (unsigned char)(mod_ret); \
@@ -179,8 +179,7 @@ _IswComputeLateBindings(IswDisplay dpy,
     int i, j, ref;
     ModToKeysymTable *temp;
     IswPerDisplay perDisplay;
-    xcb_keysym_t tempKeysym = NoSymbol;
-    xcb_connection_t *conn = _IswXcbConn(dpy);
+    IswKeySym tempKeysym = NoSymbol;
 
     perDisplay = _IswGetPerDisplay(dpy);
     if (perDisplay == NULL) {
@@ -189,7 +188,7 @@ _IswComputeLateBindings(IswDisplay dpy,
                         "Can't find display structure", NULL, NULL);
         return FALSE;
     }
-    _InitializeKeysymTables(conn, perDisplay);
+    _InitializeKeysymTables(dpy, perDisplay);
     
     for (ref = 0; lateModifiers[ref].keysym; ref++) {
         Boolean found = FALSE;
@@ -243,9 +242,9 @@ _IswAllocTMContext(IswPerDisplay pd)
 
 void
 IswConvertCase(IswDisplay dpy,
-              xcb_keysym_t keysym,
-              xcb_keysym_t *lower_return,
-              xcb_keysym_t *upper_return)
+              IswKeySym keysym,
+              IswKeySym *lower_return,
+              IswKeySym *upper_return)
 {
     IswPerDisplay pd;
     CaseConverterPtr ptr;
@@ -273,118 +272,68 @@ IswConvertCase(IswDisplay dpy,
 }
 
 
+/* Build the modifier->keysym late-binding tables on demand.  The native read
+   of the server's modifier mapping lives in the platform input backend
+   (_IswPlatformBuildModMap); this just owns the per-display table storage. */
 void
-_IswBuildKeysymTables(xcb_connection_t *dpy, register IswPerDisplay pd)
+_IswInitKeysymTables(IswDisplay dpy, register IswPerDisplay pd)
 {
-    xcb_get_modifier_mapping_cookie_t mod_cookie;
-    xcb_get_modifier_mapping_reply_t *mod_mapping;
-    xcb_keycode_t *modmap;
-    int i, j, k;
-    int max_keys_per_mod;
-    int keysyms_count = 0;
-    
-    if (pd->keysyms == NULL)
-        pd->keysyms = xcb_key_symbols_alloc(dpy);
-    
-    /* Build modifier to keysym mapping tables if not already built */
+    IswModKeysymEntry mods[8];
+    IswKeySym *pool = NULL;
+    int count = 0;
+    int i;
+
     if (pd->modsToKeysyms != NULL)
         return;  /* Already initialized */
-    
-    /* Get modifier mapping from X server */
-    mod_cookie = xcb_get_modifier_mapping(dpy);
-    mod_mapping = xcb_get_modifier_mapping_reply(dpy, mod_cookie, NULL);
-    
-    if (mod_mapping == NULL)
-        return;  /* Failed to get modifier mapping */
-    
-    max_keys_per_mod = mod_mapping->keycodes_per_modifier;
-    modmap = xcb_get_modifier_mapping_keycodes(mod_mapping);
-    
-    /* Allocate the modsToKeysyms table (8 modifiers) */
+
+    _IswPlatformBuildModMap(dpy, mods, &pool, &count);
+
     pd->modsToKeysyms = (ModToKeysymTable *) __XtCalloc(8, sizeof(ModToKeysymTable));
-    
-    /* Count total keysyms needed across all modifiers */
     for (i = 0; i < 8; i++) {
-        for (j = 0; j < max_keys_per_mod; j++) {
-            xcb_keycode_t keycode = modmap[i * max_keys_per_mod + j];
-            if (keycode != 0)
-                keysyms_count++;
-        }
+        pd->modsToKeysyms[i].mask  = mods[i].mask;
+        pd->modsToKeysyms[i].idx   = mods[i].idx;
+        pd->modsToKeysyms[i].count = mods[i].count;
     }
-    
-    /* Allocate array for all modifier keysyms */
-    if (keysyms_count > 0) {
-        pd->modKeysyms = (xcb_keysym_t *) __XtMalloc(keysyms_count * sizeof(xcb_keysym_t));
-        
-        /* Build the tables */
-        k = 0;  /* Index into modKeysyms array */
-        for (i = 0; i < 8; i++) {
-            pd->modsToKeysyms[i].mask = (1 << i);
-            pd->modsToKeysyms[i].idx = k;
-            pd->modsToKeysyms[i].count = 0;
-            
-            for (j = 0; j < max_keys_per_mod; j++) {
-                xcb_keycode_t keycode = modmap[i * max_keys_per_mod + j];
-                if (keycode != 0 && pd->keysyms != NULL) {
-                    /* Get the keysym for this keycode (column 0) */
-                    xcb_keysym_t keysym = xcb_key_symbols_get_keysym(pd->keysyms, keycode, 0);
-                    if (keysym != XCB_NO_SYMBOL) {
-                        pd->modKeysyms[k++] = keysym;
-                        pd->modsToKeysyms[i].count++;
-                    }
-                }
-            }
-        }
-    }
-    
-    free(mod_mapping);
+    pd->modKeysyms = pool;   /* malloc'd by the backend; freed in Display.c */
 }
 
 void
 IswTranslateKey(IswDisplay dpy, IswKeyCode keycode,
                Modifiers modifiers, Modifiers *modifiers_return,
-               xcb_keysym_t *keysym_return)
+               IswKeySym *keysym_return)
 {
-    xcb_connection_t *conn = _IswXcbConn(dpy);
     IswPerDisplay pd;
-    xcb_keysym_t sym;
+    IswKeySym sym;
     int col;
     Modifiers mods_consumed = 0;
 
     DPY_TO_APPCON(dpy);
     LOCK_APP(app);
     pd = _IswGetPerDisplay(dpy);
-    _InitializeKeysymTables(conn, pd);
-
-    if (pd->keysyms == NULL) {
-        *modifiers_return = 0;
-        *keysym_return = XK_VoidSymbol;
-        UNLOCK_APP(app);
-        return;
-    }
+    _InitializeKeysymTables(dpy, pd);
 
     /* col 0 = unshifted, col 1 = shifted */
-    col = (modifiers & XCB_MOD_MASK_SHIFT) ? 1 : 0;
+    col = (modifiers & IswModShift) ? 1 : 0;
     if (col == 1)
-        mods_consumed |= XCB_MOD_MASK_SHIFT;
-    
-    sym = xcb_key_symbols_get_keysym(pd->keysyms, keycode, col);
+        mods_consumed |= IswModShift;
+
+    sym = _IswPlatformKeycodeToKeysym(dpy, keycode, col);
 
     /* CapsLock: for lowercase alphabetic keys, return uppercase */
-    if ((modifiers & XCB_MOD_MASK_LOCK) && col == 0 && sym >= XK_a && sym <= XK_z) {
-        xcb_keysym_t usym = xcb_key_symbols_get_keysym(pd->keysyms, keycode, 1);
-        if (usym != XCB_NO_SYMBOL) {
+    if ((modifiers & IswModLock) && col == 0 && sym >= XK_a && sym <= XK_z) {
+        IswKeySym usym = _IswPlatformKeycodeToKeysym(dpy, keycode, 1);
+        if (usym != IswNoSymbol) {
             sym = usym;
-            mods_consumed |= XCB_MOD_MASK_LOCK;
+            mods_consumed |= IswModLock;
         }
     }
 
     /* Fall back to unshifted if the selected column has no symbol */
-    if (sym == XCB_NO_SYMBOL) {
-        sym = xcb_key_symbols_get_keysym(pd->keysyms, keycode, 0);
-        mods_consumed &= ~XCB_MOD_MASK_SHIFT;  /* Shift wasn't actually used */
+    if (sym == IswNoSymbol) {
+        sym = _IswPlatformKeycodeToKeysym(dpy, keycode, 0);
+        mods_consumed &= ~IswModShift;  /* Shift wasn't actually used */
     }
-    if (sym == XCB_NO_SYMBOL)
+    if (sym == IswNoSymbol)
         sym = XK_VoidSymbol;
 
     *modifiers_return = mods_consumed;
@@ -397,16 +346,15 @@ IswTranslateKeycode(IswDisplay dpy,
                    IswKeyCode keycode,
                    Modifiers modifiers,
                    Modifiers *modifiers_return,
-                   xcb_keysym_t *keysym_return)
+                   IswKeySym *keysym_return)
 {
-    xcb_connection_t *conn = _IswXcbConn(dpy);
     IswPerDisplay pd;
 
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
     pd = _IswGetPerDisplay(dpy);
-    _InitializeKeysymTables(conn, pd);
+    _InitializeKeysymTables(dpy, pd);
     (*pd->defaultKeycodeTranslator) (dpy, keycode, modifiers, modifiers_return,
                                      keysym_return);
     UNLOCK_APP(app);
@@ -431,8 +379,8 @@ IswSetKeyTranslator(IswDisplay dpy, IswKeyProc translator)
 void
 IswRegisterCaseConverter(IswDisplay dpy,
                         IswCaseProc proc,
-                        xcb_keysym_t start,
-                        xcb_keysym_t stop)
+                        IswKeySym start,
+                        IswKeySym stop)
 {
     IswPerDisplay pd;
     CaseConverterPtr ptr, prev;
@@ -464,144 +412,18 @@ IswRegisterCaseConverter(IswDisplay dpy,
     UNLOCK_APP(app);
 }
 
-xcb_key_symbols_t *
-IswGetKeysymTable(IswDisplay dpy,
-                 xcb_keycode_t *min_keycode_return,
-                 int *keysyms_per_keycode_return)
-{
-    xcb_connection_t *conn = _IswXcbConn(dpy);
-    IswPerDisplay pd;
-    xcb_key_symbols_t *retval;
-
-    DPY_TO_APPCON(dpy);
-
-    LOCK_APP(app);
-    pd = _IswGetPerDisplay(dpy);
-    _InitializeKeysymTables(conn, pd);
-    *min_keycode_return = (xcb_keycode_t) pd->min_keycode;    /* %%% */
-    *keysyms_per_keycode_return = pd->keysyms_per_keycode;
-    retval = pd->keysyms;
-    UNLOCK_APP(app);
-    return retval;
-}
-
-/* Backend bridge for the input ops (ISWPlatformInputXCB.c): hand back the
-   per-display keysym cache (building it on demand), and force a rebuild on a
-   mapping change.  Keeps the single keysym-table implementation here. */
-xcb_key_symbols_t *
-_IswXcbKeysyms(IswDisplay dpy)
-{
-    xcb_connection_t *conn = _IswXcbConn(dpy);
-    IswPerDisplay pd;
-    xcb_key_symbols_t *retval;
-
-    DPY_TO_APPCON(dpy);
-    LOCK_APP(app);
-    pd = _IswGetPerDisplay(dpy);
-    _InitializeKeysymTables(conn, pd);
-    retval = pd->keysyms;
-    UNLOCK_APP(app);
-    return retval;
-}
-
-void
-_IswXcbRefreshKeysyms(IswDisplay dpy)
-{
-    xcb_connection_t *conn = _IswXcbConn(dpy);
-    IswPerDisplay pd;
-
-    DPY_TO_APPCON(dpy);
-    LOCK_APP(app);
-    pd = _IswGetPerDisplay(dpy);
-    _IswBuildKeysymTables(conn, pd);
-    UNLOCK_APP(app);
-}
-
 void
 IswKeysymToKeycodeList(IswDisplay dpy,
                       IswKeySym keysym,
                       IswKeyCode **keycodes_return,
                       unsigned int *keycount_return)
 {
-    xcb_connection_t *conn = _IswXcbConn(dpy);
-    IswPerDisplay pd;
-    unsigned int keycode;
-    int per;
-    register xcb_keysym_t *syms;
-    register int i, j;
-    xcb_keysym_t lsym, usym;
-    unsigned int maxcodes = 0;
-    unsigned int ncodes = 0;
-    IswKeyCode *keycodes, *codeP = NULL;
-    xcb_get_keyboard_mapping_cookie_t cookie;
-    xcb_get_keyboard_mapping_reply_t *reply;
-    
-    DPY_TO_APPCON(dpy);
-    LOCK_APP(app);
-    
-    pd = _IswGetPerDisplay(dpy);
-    _InitializeKeysymTables(conn, pd);
+    IswKeyCode *codes = NULL;
+    int count = 0;
 
-    keycodes = NULL;
+    /* The case-folding keycode lookup is keymap work; the backend owns it. */
+    _IswPlatformKeysymToKeycodes(dpy, keysym, &codes, &count);
 
-    // Get keyboard mapping using XCB
-    cookie = xcb_get_keyboard_mapping(conn, pd->min_keycode,
-                                       pd->max_keycode - pd->min_keycode + 1);
-    reply = xcb_get_keyboard_mapping_reply(conn, cookie, NULL);
-    
-    if (!reply) {
-        *keycodes_return = NULL;
-        *keycount_return = 0;
-        UNLOCK_APP(app);
-        return;
-    }
-    
-    syms = xcb_get_keyboard_mapping_keysyms(reply);
-    per = reply->keysyms_per_keycode;
-    
-    for (keycode = (unsigned int) pd->min_keycode;
-         (int) keycode <= pd->max_keycode; 
-         syms += per, keycode++) {
-        int match = 0;
-        
-        for (j = 0; j < per; j++) {
-            if (syms[j] == keysym) {
-                match = 1;
-                break;
-            }
-        }
-        
-        if (!match) {
-            for (i = 1; i < 5; i += 2) {
-                if ((per == i) || ((per > i) && (syms[i] == XCB_NO_SYMBOL))) {
-                    IswConvertCase(dpy, syms[i - 1], &lsym, &usym);
-                    if ((lsym == keysym) || (usym == keysym)) {
-                        match = 1;
-                        break;
-                    }
-                }
-            }
-        }
-        
-        if (match) {
-            if (ncodes == maxcodes) {
-                IswKeyCode *old = keycodes;
-                maxcodes += KEYCODE_ARRAY_SIZE;
-                keycodes = IswMallocArray(maxcodes, sizeof(IswKeyCode));
-                if (ncodes) {
-                    (void) memcpy(keycodes, old, ncodes * sizeof(IswKeyCode));
-                    IswFree((char *) old);
-                }
-                codeP = &keycodes[ncodes];
-            }
-            *codeP++ = (IswKeyCode) keycode;
-            ncodes++;
-        }
-    }
-    
-    free(reply);  // Free the XCB reply
-    
-    *keycodes_return = keycodes;
-    *keycount_return = ncodes;
-    UNLOCK_APP(app);
+    *keycodes_return = codes;
+    *keycount_return = (unsigned int) count;
 }

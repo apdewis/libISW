@@ -70,10 +70,8 @@ SOFTWARE.
 #include <ISW/ScrollWheel.h>
 
 #include <stdint.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 #include <ISW/FocusMgrI.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 /* Private definitions. */
 

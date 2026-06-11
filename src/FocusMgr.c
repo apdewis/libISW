@@ -35,7 +35,7 @@
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSB.h>
 #include <ISW/SmeBSBP.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 #include <cairo/cairo.h>
 
 #include <stdlib.h>

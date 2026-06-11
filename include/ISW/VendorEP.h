@@ -54,8 +54,6 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef _ISW_VendorEP_h
 #define _ISW_VendorEP_h
 
-#include <ISW/ISWImP.h>
-
 typedef struct {
     IswPointer	extension;
 } IswVendorShellExtClassPart;
@@ -67,8 +65,6 @@ typedef	struct _VendorShellExtClassRec {
 
 typedef struct {
     Widget	parent;
-    IswImPart	im;
-    IswIcPart	ic;
 } IswVendorShellExtPart;
 
 typedef	struct IswVendorShellExtRec {

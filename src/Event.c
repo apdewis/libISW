@@ -83,7 +83,7 @@ in this Software without prior written authorization from The Open Group.
 #include "ShellI.h"
 #include <ISW/SimpleP.h>
 #include <ISW/ISWRender.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 typedef struct _IswEventRecExt {
     int type;

@@ -311,13 +311,6 @@ set(SVG_SOURCES
 set_source_files_properties(src/lodepng.c PROPERTIES
     COMPILE_OPTIONS "-Wno-missing-prototypes;-Wno-missing-declarations")
 
-set(I18N_SOURCES)
-if(ISW_INTERNATIONALIZATION)
-    set(I18N_SOURCES
-        src/ISWIm.c
-    )
-endif()
-
 # ===========================================================================
 # Library target
 # ===========================================================================
@@ -569,7 +562,6 @@ if(NOT ISW_INTERNATIONALIZATION)
             \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/isw/ISW/MultiSink.h\"
             \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/isw/ISW/MultiSinkP.h\"
             \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/isw/ISW/VendorEP.h\"
-            \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/isw/ISW/ISWImP.h\"
         )
     ")
 endif()

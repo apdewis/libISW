@@ -86,7 +86,7 @@ typedef struct _LateBindings {
     unsigned int knot:1;
     unsigned int pair:1;
     unsigned short ref_count;	/* garbage collection */
-    xcb_keysym_t keysym;
+    IswKeySym keysym;
 } LateBindings, *LateBindingsPtr;
 
 typedef short ModifierMask;
@@ -368,11 +368,7 @@ extern TMGlobalRec _IswGlobalTM;
 
 
 #define _InitializeKeysymTables(dpy, pd) \
-    if (pd->keysyms == NULL) \
-        _IswBuildKeysymTables(dpy, pd)
-
-/* Backend-internal: the native keysym table (moved out of the public API). */
-extern xcb_key_symbols_t* IswGetKeysymTable(IswDisplay dpy, xcb_keycode_t *min_keycode_return, int *keysyms_per_keycode_return);
+    do { if ((pd)->modsToKeysyms == NULL) _IswInitKeysymTables(dpy, pd); } while (0)
 
 /*
  * Internal Functions
@@ -443,7 +439,7 @@ extern void _IswTranslateEvent(
 #include "ResourceI.h"
 #include "StringDefs.h"
 
-extern void _IswBuildKeysymTables(xcb_connection_t *dpy, IswPerDisplay pd);
+extern void _IswInitKeysymTables(IswDisplay dpy, IswPerDisplay pd);
 
 #ifndef NO_MIT_HACKS
 extern void  _IswDisplayTranslations(

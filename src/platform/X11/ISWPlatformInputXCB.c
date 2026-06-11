@@ -5,11 +5,11 @@
  *
  * Implements IswPlatformInputOps over XCB: keycode<->keysym translation, the
  * keysym-by-name resolver used by the translation parser, case folding, mapping
- * refresh, and pointer query.  The per-display keysym/modifier cache itself
- * lives in IswPerDisplay (managed by TMkey.c's _IswBuildKeysymTables); this
- * backend reaches the native xcb_key_symbols_t through that cache and the
- * internal seam.  Keysym VALUES remain numerically X11-compatible
- * (IswKeySym == the keysym number); only the toolkit-facing TYPE is neutral.
+ * refresh, and pointer query.  This backend OWNS the native keysym table: it
+ * allocates xcb_key_symbols_t on demand and stores it as an opaque handle in
+ * IswPerDisplay->keysyms (only this TU dereferences it).  The toolkit reaches
+ * keysyms exclusively through these ops.  Keysym VALUES remain numerically
+ * X11-compatible (IswKeySym == the keysym number); only the TYPE is neutral.
  *
  * Phase 3 of the ISWPlatform vtable (docs/ISWPLATFORM_PLAN.md).  The only TU
  * (besides the other backend TUs) that includes <xcb/xcb_keysyms.h> for the
@@ -31,17 +31,31 @@
 #include "InitialI.h"
 #include "ISWPlatformPrivate.h"
 
-/* The keysym cache + the neutral keycode translator live in TMkey.c; reuse
-   them so there is a single keysym-table implementation. */
-extern xcb_key_symbols_t *_IswXcbKeysyms(IswDisplay dpy);   /* TMkey.c */
-extern void _IswXcbRefreshKeysyms(IswDisplay dpy);          /* TMkey.c */
+/* ---- keysym table ownership (the native xcb_key_symbols_t lives here) -----
+   The per-display record carries an opaque keysym-table handle in pd->keysyms;
+   only this backend TU dereferences it as xcb_key_symbols_t.  The toolkit
+   (TMkey.c) reaches keysyms exclusively through the input ops below. */
+
+static xcb_key_symbols_t *
+backend_keysyms(IswDisplay dpy)
+{
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
+    if (pd == NULL)
+        return NULL;
+    if (pd->keysyms == NULL) {
+        xcb_connection_t *conn = _IswXcbConn(dpy);
+        if (conn)
+            pd->keysyms = (void *) xcb_key_symbols_alloc(conn);
+    }
+    return (xcb_key_symbols_t *) pd->keysyms;
+}
 
 /* ---- input ops ----------------------------------------------------------- */
 
 static IswKeySym
 xcb_in_keycode_to_keysym(IswDisplay dpy, IswKeyCode kc, int col)
 {
-    xcb_key_symbols_t *ks = _IswXcbKeysyms(dpy);
+    xcb_key_symbols_t *ks = backend_keysyms(dpy);
     if (!ks)
         return IswNoSymbol;
     return (IswKeySym) xcb_key_symbols_get_keysym(ks, (xcb_keycode_t) kc, col);
@@ -51,7 +65,7 @@ static void
 xcb_in_keysym_to_keycodes(IswDisplay dpy, IswKeySym sym,
                           IswKeyCode **out, int *count)
 {
-    xcb_key_symbols_t *ks = _IswXcbKeysyms(dpy);
+    xcb_key_symbols_t *ks = backend_keysyms(dpy);
     xcb_keycode_t *kcs;
     int n = 0;
 
@@ -121,7 +135,80 @@ xcb_in_translate_keycode(IswDisplay dpy, IswKeyCode kc, IswModMask state,
 static void
 xcb_in_refresh_mapping(IswDisplay dpy)
 {
-    _IswXcbRefreshKeysyms(dpy);
+    xcb_key_symbols_t *ks = backend_keysyms(dpy);
+    if (ks)
+        xcb_refresh_keyboard_mapping(ks, NULL);
+}
+
+/* Read the server's modifier mapping and build the late-binding tables: for
+   each of the 8 modifiers, the keysyms its keycodes produce.  Fills the
+   caller's 8-entry `mods_return` and a freshly-malloc'd keysym pool. */
+static void
+xcb_in_build_mod_map(IswDisplay dpy, IswModKeysymEntry *mods_return,
+                     IswKeySym **keysyms_return, int *count_return)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_key_symbols_t *ks = backend_keysyms(dpy);
+    xcb_get_modifier_mapping_cookie_t mod_cookie;
+    xcb_get_modifier_mapping_reply_t *mod_mapping;
+    xcb_keycode_t *modmap;
+    int i, j, k;
+    int max_keys_per_mod;
+    int keysyms_count = 0;
+    IswKeySym *pool = NULL;
+
+    if (keysyms_return) *keysyms_return = NULL;
+    if (count_return)   *count_return = 0;
+    if (!conn || !ks || !mods_return)
+        return;
+
+    mod_cookie = xcb_get_modifier_mapping(conn);
+    mod_mapping = xcb_get_modifier_mapping_reply(conn, mod_cookie, NULL);
+    if (mod_mapping == NULL)
+        return;
+
+    max_keys_per_mod = mod_mapping->keycodes_per_modifier;
+    modmap = xcb_get_modifier_mapping_keycodes(mod_mapping);
+
+    for (i = 0; i < 8; i++)
+        for (j = 0; j < max_keys_per_mod; j++)
+            if (modmap[i * max_keys_per_mod + j] != 0)
+                keysyms_count++;
+
+    if (keysyms_count > 0)
+        pool = (IswKeySym *) malloc((size_t) keysyms_count * sizeof(IswKeySym));
+
+    k = 0;
+    for (i = 0; i < 8; i++) {
+        mods_return[i].mask = (Modifiers) (1 << i);
+        mods_return[i].idx = k;
+        mods_return[i].count = 0;
+        for (j = 0; pool && j < max_keys_per_mod; j++) {
+            xcb_keycode_t keycode = modmap[i * max_keys_per_mod + j];
+            if (keycode != 0) {
+                xcb_keysym_t keysym =
+                    xcb_key_symbols_get_keysym(ks, keycode, 0);
+                if (keysym != XCB_NO_SYMBOL) {
+                    pool[k++] = (IswKeySym) keysym;
+                    mods_return[i].count++;
+                }
+            }
+        }
+    }
+
+    free(mod_mapping);
+    if (keysyms_return) *keysyms_return = pool;
+    if (count_return)   *count_return = keysyms_count;
+}
+
+static void
+xcb_in_free_keysyms(IswDisplay dpy)
+{
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
+    if (pd && pd->keysyms) {
+        xcb_key_symbols_free((xcb_key_symbols_t *) pd->keysyms);
+        pd->keysyms = NULL;
+    }
 }
 
 static Boolean
@@ -167,6 +254,8 @@ const IswPlatformInputOps isw_platform_xcb_input_ops = {
     .convert_case       = xcb_in_convert_case,
     .translate_keycode  = xcb_in_translate_keycode,
     .refresh_mapping    = xcb_in_refresh_mapping,
+    .build_mod_map      = xcb_in_build_mod_map,
+    .free_keysyms       = xcb_in_free_keysyms,
     .query_pointer      = xcb_in_query_pointer,
     .warp_pointer       = xcb_in_warp_pointer,
 };

@@ -163,6 +163,21 @@ typedef unsigned long	IswValueMask;
 
 /* "no cursor" value for IswCWCursor. */
 #define IswCursorNone		0
+
+/* Visual class values (X11-compatible) for the String->Visual resource
+   converter and _IswPlatformMatchVisualInfo. */
+#define IswVisualStaticGray	0
+#define IswVisualGrayScale	1
+#define IswVisualStaticColor	2
+#define IswVisualPseudoColor	3
+#define IswVisualTrueColor	4
+#define IswVisualDirectColor	5
+
+/* WM initial-state values (ICCCM WM_STATE) for the String->InitialState
+   converter. */
+#define IswWmStateNormal	1
+#define IswWmStateIconic	3
+
 typedef IswUIntPtr	IswIntervalId;
 typedef IswUIntPtr	IswInputId;
 typedef IswUIntPtr	IswWorkProcId;
@@ -771,8 +786,6 @@ extern void IswTranslateCoords(
     Position*		/* rootx_return */,
     Position*		/* rooty_return */
 );
-
-/* IswGetKeysymTable is backend-internal (returns the native keysym table); declared in TranslateI.h, not in the public API. */
 
 extern void IswKeysymToKeycodeList(
     IswDisplay 		/* dpy */,

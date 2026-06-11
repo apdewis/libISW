@@ -77,10 +77,9 @@ in this Software without prior written authorization from The Open Group.
 #include        "StringDefs.h"
 #include        "Shell.h"
 #include        <ISW/ISWP.h>          /* IswOrientation / IswJustify */
-#include        "ISWPlatformPrivate.h"
+#include        <ISW/ISWPlatform.h>
 #include        <stdio.h>
 #include        <X11/cursorfont.h>
-#include        <xcb/xcb_cursor.h>
 #include        <X11/keysym.h>
 #include        <X11/Xlocale.h>
 #include        <fontconfig/fontconfig.h>
@@ -410,7 +409,7 @@ IswCvtStringToBool(IswDisplay dpy,
 /* *INDENT-OFF* */
 IswConvertArgRec const colorConvertArgs[] = {
     {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
-     sizeof(xcb_screen_t *)},
+     sizeof(IswScreen)},
     {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.colormap),
      sizeof(IswColormap)}
 };
@@ -455,7 +454,7 @@ IswCvtStringToPixel(IswDisplay dpy,
                    IswPointer *closure_ret)
 {
     String str = (String) fromVal->addr;
-    xcb_screen_t *screen;
+    IswScreen screen;
     IswPerDisplay pd = _IswGetPerDisplay(dpy);
     IswColormap colormap;
     Cardinal num_params = 1;
@@ -468,25 +467,25 @@ IswCvtStringToPixel(IswDisplay dpy,
         return False;
     }
 
-    screen = *((xcb_screen_t **) args[0].addr);
+    screen = *((IswScreen *) args[0].addr);
     colormap = *((IswColormap *) args[1].addr);
 
     if (CompareISOLatin1(str, IswDefaultBackground) == 0) {
         *closure_ret = NULL;
         if (pd->rv) {
-            done_string(Pixel, BlackPixelOfScreen(screen), IswRPixel);
+            done_string(Pixel, _IswPlatformScreenBlackPixel(dpy, screen), IswRPixel);
         }
         else {
-            done_string(Pixel, WhitePixelOfScreen(screen), IswRPixel);
+            done_string(Pixel, _IswPlatformScreenWhitePixel(dpy, screen), IswRPixel);
         }
     }
     if (CompareISOLatin1(str, IswDefaultForeground) == 0) {
         *closure_ret = NULL;
         if (pd->rv) {
-            done_string(Pixel, WhitePixelOfScreen(screen), IswRPixel);
+            done_string(Pixel, _IswPlatformScreenWhitePixel(dpy, screen), IswRPixel);
         }
         else {
-            done_string(Pixel, BlackPixelOfScreen(screen), IswRPixel);
+            done_string(Pixel, _IswPlatformScreenBlackPixel(dpy, screen), IswRPixel);
         }
     }
 
@@ -574,7 +573,7 @@ FreePixel(IswAppContext app,
           XrmValuePtr args,
           Cardinal *num_args)
 {
-    xcb_screen_t *screen;
+    IswScreen screen;
     IswColormap colormap;
 
     if (*num_args != 2) {
@@ -584,11 +583,11 @@ FreePixel(IswAppContext app,
         return;
     }
 
-    screen = *((xcb_screen_t **) args[0].addr);
+    screen = *((IswScreen *) args[0].addr);
     colormap = *((IswColormap *) args[1].addr);
 
     if (closure) {
-        IswDisplay dpy = _IswConnectionOfScreen((IswScreen) screen);
+        IswDisplay dpy = _IswConnectionOfScreen(screen);
         unsigned long pixel = *(uint32_t *) toVal->addr;
         _IswPlatformFreeColors(dpy, colormap, pixel);
     }
@@ -597,7 +596,7 @@ FreePixel(IswAppContext app,
 /* no longer used by Xt, but it's in the spec */
 IswConvertArgRec const screenConvertArg[] = {
     {IswWidgetBaseOffset, (IswPointer) IswOffsetOf(WidgetRec, core.screen),
-     sizeof(xcb_screen_t *)}
+     sizeof(IswScreen)}
 };
 
 static void
@@ -633,7 +632,7 @@ static IswConvertArgRec const displayConvertArg[] = {
 static IswConvertArgRec const cursorConvertArgs[] = {
     {IswProcedureArg, (IswPointer)FetchDisplayArg, 0},
     {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
-     sizeof(xcb_screen_t *)},
+     sizeof(IswScreen)},
 };
 /* *INDENT-ON* */
 
@@ -891,7 +890,7 @@ IswCvtStringToDisplay(IswDisplay dpy,
                      XrmValuePtr toVal,
                      IswPointer *closure_ret _X_UNUSED)
 {
-    xcb_connection_t *d;
+    IswDisplay d;
 
     if (*num_args != 0)
         IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
@@ -902,11 +901,11 @@ IswCvtStringToDisplay(IswDisplay dpy,
 
     {
         int screen_num = 0;
-        d = xcb_connect((char *) fromVal->addr, &screen_num);
-        if (d != NULL && xcb_connection_has_error(d) == 0)
-            done_string(xcb_connection_t *, d, IswRDisplay);
+        d = _IswPlatformOpenDisplay((char *) fromVal->addr, &screen_num);
+        if (d != NULL && !_IswPlatformDisplayHasError(d))
+            done_string(IswDisplay, d, IswRDisplay);
         if (d != NULL)
-            xcb_disconnect(d);
+            _IswPlatformCloseDisplay(d);
     }
 
     IswDisplayStringConversionWarning(dpy, (char *) fromVal->addr, IswRDisplay);
@@ -1367,7 +1366,7 @@ IswCvtIntToPixmap(IswDisplay dpy,
                         IswNwrongParameters, "cvtIntToPixmap", IswCIswToolkitError,
                         "Integer to Pixmap conversion needs no extra arguments",
                         NULL, NULL);
-    done(xcb_pixmap_t, *(int *) fromVal->addr);
+    done(IswPixmap, *(int *) fromVal->addr);
 }
 
 #ifdef MOTIFBC
@@ -1457,10 +1456,10 @@ IswCvtStringToInitialState(IswDisplay dpy,
                         NULL, NULL);
 
     if (CompareISOLatin1(str, "NormalState") == 0)
-        done_string(int, XCB_ICCCM_WM_STATE_NORMAL, IswRInitialState);
+        done_string(int, IswWmStateNormal, IswRInitialState);
 
     if (CompareISOLatin1(str, "IconicState") == 0)
-        done_string(int, XCB_ICCCM_WM_STATE_ICONIC, IswRInitialState);
+        done_string(int, IswWmStateIconic, IswRInitialState);
 
     {
         int val;
@@ -1475,7 +1474,7 @@ IswCvtStringToInitialState(IswDisplay dpy,
 /* *INDENT-OFF* */
 static IswConvertArgRec const visualConvertArgs[] = {
     {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
-     sizeof(xcb_screen_t *)},
+     sizeof(IswScreen)},
     {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.depth),
      sizeof(Cardinal)}
 };
@@ -1488,7 +1487,6 @@ IswCvtStringToVisual(IswDisplay dpy, XrmValuePtr args,     /* Screen, depth */
                     XrmValuePtr toVal,
                     IswPointer *closure_ret _X_UNUSED)
 {
-    xcb_connection_t *conn = _IswXcbConn(dpy);
     String str = (String) fromVal->addr;
     int vc;
     IswVisualInfo vinfo;
@@ -1503,17 +1501,17 @@ IswCvtStringToVisual(IswDisplay dpy, XrmValuePtr args,     /* Screen, depth */
     }
 
     if (CompareISOLatin1(str, "StaticGray") == 0)
-        vc = XCB_VISUAL_CLASS_STATIC_GRAY;
+        vc = IswVisualStaticGray;
     else if (CompareISOLatin1(str, "StaticColor") == 0)
-        vc = XCB_VISUAL_CLASS_STATIC_COLOR;
+        vc = IswVisualStaticColor;
     else if (CompareISOLatin1(str, "TrueColor") == 0)
-        vc = XCB_VISUAL_CLASS_TRUE_COLOR;
+        vc = IswVisualTrueColor;
     else if (CompareISOLatin1(str, "GrayScale") == 0)
-        vc = XCB_VISUAL_CLASS_GRAY_SCALE;
+        vc = IswVisualGrayScale;
     else if (CompareISOLatin1(str, "PseudoColor") == 0)
-        vc = XCB_VISUAL_CLASS_PSEUDO_COLOR;
+        vc = IswVisualPseudoColor;
     else if (CompareISOLatin1(str, "DirectColor") == 0)
-        vc = XCB_VISUAL_CLASS_DIRECT_COLOR;
+        vc = IswVisualDirectColor;
     else if (!IsInteger(str, &vc)) {
         IswDisplayStringConversionWarning(dpy, str, "Visual class name");
         return False;
@@ -1528,9 +1526,7 @@ IswCvtStringToVisual(IswDisplay dpy, XrmValuePtr args,     /* Screen, depth */
         else {
             String params[2];
             Cardinal num_params = 2;
-            const xcb_setup_t *setup = xcb_get_setup(conn);
-            const char *vendor = (setup != NULL)
-                ? xcb_setup_vendor(setup) : "";
+            const char *vendor = _IswPlatformDisplayVendor(dpy);
 
             params[0] = str;
             params[1] = (String) vendor;
@@ -1589,30 +1585,30 @@ IswCvtStringToGravity(IswDisplay dpy,
         const char *name;
         int gravity;
     } names[] = {
-        { NULLQUARK, "forget",          XCB_GRAVITY_BIT_FORGET },
+        { NULLQUARK, "forget",          IswGravityForget },
         { NULLQUARK, "northwest",       IswGravityNorthWest },
-        { NULLQUARK, "north",           XCB_GRAVITY_NORTH },
-        { NULLQUARK, "northeast",       XCB_GRAVITY_NORTH_EAST },
-        { NULLQUARK, "west",            XCB_GRAVITY_WEST },
-        { NULLQUARK, "center",          XCB_GRAVITY_CENTER },
-        { NULLQUARK, "east",            XCB_GRAVITY_EAST },
-        { NULLQUARK, "southwest",       XCB_GRAVITY_SOUTH_WEST },
-        { NULLQUARK, "south",           XCB_GRAVITY_SOUTH },
-        { NULLQUARK, "southeast",       XCB_GRAVITY_SOUTH_EAST },
-        { NULLQUARK, "static",          XCB_GRAVITY_STATIC },
-        { NULLQUARK, "unmap",           XCB_GRAVITY_WIN_UNMAP },
-        { NULLQUARK, "0",               XCB_GRAVITY_BIT_FORGET },
+        { NULLQUARK, "north",           IswGravityNorth },
+        { NULLQUARK, "northeast",       IswGravityNorthEast },
+        { NULLQUARK, "west",            IswGravityWest },
+        { NULLQUARK, "center",          IswGravityCenter },
+        { NULLQUARK, "east",            IswGravityEast },
+        { NULLQUARK, "southwest",       IswGravitySouthWest },
+        { NULLQUARK, "south",           IswGravitySouth },
+        { NULLQUARK, "southeast",       IswGravitySouthEast },
+        { NULLQUARK, "static",          IswGravityStatic },
+        { NULLQUARK, "unmap",           IswGravityUnmap },
+        { NULLQUARK, "0",               IswGravityForget },
         { NULLQUARK, "1",               IswGravityNorthWest },
-        { NULLQUARK, "2",               XCB_GRAVITY_NORTH },
-        { NULLQUARK, "3",               XCB_GRAVITY_NORTH_EAST },
-        { NULLQUARK, "4",               XCB_GRAVITY_WEST },
-        { NULLQUARK, "5",               XCB_GRAVITY_CENTER },
-        { NULLQUARK, "6",               XCB_GRAVITY_EAST },
-        { NULLQUARK, "7",               XCB_GRAVITY_SOUTH_WEST },
-        { NULLQUARK, "8",               XCB_GRAVITY_SOUTH },
-        { NULLQUARK, "9",               XCB_GRAVITY_SOUTH_EAST },
-        { NULLQUARK, "10",              XCB_GRAVITY_STATIC },
-        { NULLQUARK, NULL,              XCB_GRAVITY_BIT_FORGET }
+        { NULLQUARK, "2",               IswGravityNorth },
+        { NULLQUARK, "3",               IswGravityNorthEast },
+        { NULLQUARK, "4",               IswGravityWest },
+        { NULLQUARK, "5",               IswGravityCenter },
+        { NULLQUARK, "6",               IswGravityEast },
+        { NULLQUARK, "7",               IswGravitySouthWest },
+        { NULLQUARK, "8",               IswGravitySouth },
+        { NULLQUARK, "9",               IswGravitySouthEast },
+        { NULLQUARK, "10",              IswGravityStatic },
+        { NULLQUARK, NULL,              IswGravityForget }
     };
     /* *INDENT-ON* */
     static Boolean haveQuarks = FALSE;

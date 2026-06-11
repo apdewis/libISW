@@ -72,9 +72,9 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include <ISW/ISWPlatform.h>
 #include "ResourceI.h"
 #include "EventI.h"
-#include "ISWPlatformPrivate.h"
 
 /*
  *      IswSetValues(), IswSetSubvalues()

@@ -80,8 +80,6 @@ SOFTWARE.
 
 /* The following two headers are for the input method. */
 #include <ISW/VendorEP.h>
-#include <ISW/ISWImP.h>
-
 
 static IswResource resources[] = {
   {IswNinput, IswCInput, IswRBool, sizeof(Bool),
@@ -220,18 +218,6 @@ externaldef(vendorshellwidgetclass) WidgetClass vendorShellWidgetClass =
  ***************************************************************************/
 
 static IswResource ext_resources[] = {
-  {IswNinputMethod, IswCInputMethod, IswRString, sizeof(String),
-		IswOffsetOf(IswVendorShellExtRec, vendor_ext.im.input_method),
-		IswRString, (IswPointer)NULL},
-  {IswNpreeditType, IswCPreeditType, IswRString, sizeof(String),
-		IswOffsetOf(IswVendorShellExtRec, vendor_ext.im.preedit_type),
-		IswRString, (IswPointer)"OverTheSpot,OffTheSpot,Root"},
-  {IswNopenIm, IswCOpenIm, IswRBoolean, sizeof(Boolean),
-		IswOffsetOf(IswVendorShellExtRec, vendor_ext.im.open_im),
-		IswRImmediate, (IswPointer)TRUE},
-  {IswNsharedIc, IswCSharedIc, IswRBoolean, sizeof(Boolean),
-		IswOffsetOf(IswVendorShellExtRec, vendor_ext.ic.shared_ic),
-		IswRImmediate, (IswPointer)FALSE}
 };
 
 static void IswVendorShellExtClassInitialize(void);
@@ -428,7 +414,6 @@ Realize(IswDisplay dpy, Widget wid, IswValueMask *vmask, uint32_t *attr)
 
 	/* Call superclass realize - XCB custom libXt uses 4-parameter signature */
 	(*super->core_class.realize) (dpy, wid, vmask, attr);
-	_IswImRealize(wid);
 }
 
 
@@ -441,14 +426,12 @@ IswVendorShellExtClassInitialize(void)
 static void
 IswVendorShellExtInitialize(Widget req, Widget new, ArgList args, Cardinal *num_args)
 {
-    _IswImInitialize(new->core.parent, new);
 }
 
 /* ARGSUSED */
 static void
 IswVendorShellExtDestroy(Widget w)
 {
-    _IswImDestroy( w->core.parent, w );
 }
 
 /* ARGSUSED */
@@ -458,29 +441,30 @@ IswVendorShellExtSetValues(Widget old, Widget ref, Widget new, ArgList args, Car
 	return FALSE;
 }
 
+//#TODO does this even have a need to exist without XIM?
 void
 IswVendorShellExtResize(Widget w)
 {
-	ShellWidget sw = (ShellWidget) w;
-	Widget childwid;
-	int i;
-	int core_height;
-
-	_IswImResizeVendorShell( w );
-	core_height = _IswImGetShellHeight( w );
-	
-	/* Check if children array is allocated before accessing it */
-	if (sw->composite.children == NULL) {
-		return;
-	}
-	
-	for( i = 0; i < sw->composite.num_children; i++ ) {
-	    if( IswIsManaged( sw->composite.children[ i ] ) ) {
-		childwid = sw->composite.children[ i ];
-		IswResizeWidget( childwid, sw->core.width, core_height,
-			       childwid->core.border_width );
-	    }
-	}
+	//ShellWidget sw = (ShellWidget) w;
+	//Widget childwid;
+	//int i;
+	//int core_height;
+//
+	//_IswImResizeVendorShell( w );
+	//core_height = _IswImGetShellHeight( w );
+	//
+	///* Check if children array is allocated before accessing it */
+	//if (sw->composite.children == NULL) {
+	//	return;
+	//}
+	//
+	//for( i = 0; i < sw->composite.num_children; i++ ) {
+	//    if( IswIsManaged( sw->composite.children[ i ] ) ) {
+	//	childwid = sw->composite.children[ i ];
+	//	IswResizeWidget( childwid, sw->core.width, core_height,
+	//		       childwid->core.border_width );
+	//    }
+	//}
 }
 
 /*ARGSUSED*/
@@ -503,9 +487,7 @@ GeometryManager(Widget wid, IswWidgetGeometry *request, IswWidgetGeometry *reply
 	    my_request.request_mode |= IswCWWidth;
 	}
 	if (request->request_mode & IswCWHeight) {
-	    my_request.height = request->height
-			      + _IswImGetImAreaHeight( wid )
-			      ;
+	    my_request.height = request->height;
 	    my_request.request_mode |= IswCWHeight;
 	}
 	if (request->request_mode & IswCWBorderWidth) {
@@ -528,7 +510,6 @@ GeometryManager(Widget wid, IswWidgetGeometry *request, IswWidgetGeometry *reply
 	    if (request->request_mode & IswCWBorderWidth) {
 		wid->core.x = wid->core.y = -request->border_width;
 	    }
-	    _IswImCallVendorShellExtResize(wid);
 	    return IswGeometryYes;
 	} else return IswGeometryNo;
 }

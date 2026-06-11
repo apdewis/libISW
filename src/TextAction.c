@@ -32,12 +32,11 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWP.h>
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
-#include <xcb/xproto.h>
 #include <ISW/TextP.h>
-#include <ISW/ISWImP.h>
+//#include <ISW/ISWImP.h>
 #include <ISW/IswArgMacros.h>
+#include <ISW/ISWPlatform.h>
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -1123,8 +1122,6 @@ TextFocusIn (Widget w, IswEvent *iswev, String *p, Cardinal *n)
     return;
   }
 
-  /* Let the input method know focus has arrived. */
-  _IswImSetFocusValues (w, NULL, 0);
   if (iswev->focus.source == IswFocusByPointer) {
       return;
   }
@@ -1144,11 +1141,6 @@ TextFocusOut(Widget w, IswEvent *iswev, String *p, Cardinal *n)
     return;
   }
 
-  /* Let the input method know focus has left.*/
-  _IswImUnsetFocus(w);
-  if (iswev->focus.source == IswFocusByPointer) {
-      return;
-  }
   _IswTextPrepareToUpdate(ctx);
   ctx->text.hasfocus = FALSE;
   _IswTextExecuteUpdate(ctx);
@@ -1159,9 +1151,6 @@ static void
 TextEnterWindow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
-
-  if ((iswev->crossing.detail != IswNotifyInferior) && !ctx->text.hasfocus)
-    _IswImSetFocusValues(w, NULL, 0);
 }
 
 /*ARGSUSED*/
@@ -1169,9 +1158,6 @@ static void
 TextLeaveWindow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
   TextWidget ctx = (TextWidget) w;
-
-  if ((iswev->crossing.detail != IswNotifyInferior) && !ctx->text.hasfocus)
-    _IswImUnsetFocus(w);
 }
 
 /* XComposeStatus removed - not available in XCB */
@@ -1757,20 +1743,6 @@ NoOp(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     }
 }
 
-/* Reconnect() - action
- * This reconnects to the input method.  The user will typically call
- * this action if/when connection has been severed, or when the app
- * was started up before an IM was started up.
- */
-
-/*ARGSUSED*/
-static void
-Reconnect(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
-{
-    _IswImReconnect( w );
-}
-
-
 IswActionsRec _IswTextActionsTable[] = {
 
 /* motion bindings */
@@ -1851,10 +1823,7 @@ IswActionsRec _IswTextActionsTable[] = {
   {"DoSearchAction",            _IswTextDoSearchAction},
   {"DoReplaceAction",           _IswTextDoReplaceAction},
   {"SetField",                  _IswTextSetField},
-  {"PopdownSearchAction",       _IswTextPopdownSearchAction},
-
-/* Reconnect to Input Method */
-  {"reconnect-im",       Reconnect} /* Li Yuhong, Omron KK, 1991 */
+  {"PopdownSearchAction",       _IswTextPopdownSearchAction}
 };
 
 Cardinal _IswTextActionsTableCount = IswNumber(_IswTextActionsTable);

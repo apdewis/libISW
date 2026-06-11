@@ -31,7 +31,6 @@
 #include <ISW/ViewportP.h>
 #include <ISW/TextP.h>
 #include <ISW/EventI.h>
-#include "ISWPlatformPrivate.h"
 
 /* Defined in Initialize.c — avoids pulling in InitialI.h's heavy deps. */
 extern double _IswGetScaleFactor(IswDisplay dpy);

@@ -250,8 +250,14 @@ struct _IswPlatformDisplayOps {
     uint32_t   (*screen_height)(IswScreen screen);
     IswColormap (*screen_default_colormap)(IswScreen screen);
     int        (*screen_depth)(IswScreen screen);
+    /* Default black/white pixel values of a screen. */
+    unsigned long (*screen_black_pixel)(IswScreen screen);
+    unsigned long (*screen_white_pixel)(IswScreen screen);
     /* Ring the server bell (percent -100..100). */
     void       (*bell)(IswDisplay dpy, int percent);
+    /* Server vendor string (static storage), or "" if unavailable.  Used only
+       for diagnostic messages. */
+    const char *(*vendor)(IswDisplay dpy);
 };
 
 /*
@@ -369,6 +375,17 @@ struct _IswPlatformEventOps {
  * and pointer query.  The backend owns a per-display keysym/modifier cache.
  * All neutral: IswKeyCode / IswKeySym / IswModMask, no xcb key types.
  */
+
+/* One modifier's slice of the late-binding keysym pool: which modifier bit
+   (`mask`), how many keysyms map to it (`count`), and the offset (`idx`) into
+   the keysym pool returned alongside.  Layout-compatible with the translation
+   manager's internal ModToKeysymTable. */
+typedef struct _IswModKeysymEntry {
+    Modifiers mask;
+    int       count;
+    int       idx;
+} IswModKeysymEntry;
+
 struct _IswPlatformInputOps {
     /* keycode -> keysym for column `col` (0 = unshifted, 1 = shifted, ...). */
     IswKeySym (*keycode_to_keysym)(IswDisplay dpy, IswKeyCode kc, int col);
@@ -389,6 +406,16 @@ struct _IswPlatformInputOps {
     /* Rebuild the keysym/modifier cache after a mapping change
        (XCB_MAPPING_NOTIFY). */
     void (*refresh_mapping)(IswDisplay dpy);
+    /* Build the modifier->keysym late-binding tables for `dpy`.  The backend
+       reads the server's modifier mapping and fills `mods_return` (8 entries,
+       caller-allocated) and a freshly-malloc'd keysym pool in `*keysyms_return`
+       (caller frees via free()); `*count_return` receives the pool size.  Used
+       by the translation manager's late-binding resolver. */
+    void (*build_mod_map)(IswDisplay dpy, IswModKeysymEntry *mods_return,
+                          IswKeySym **keysyms_return, int *count_return);
+    /* Release the backend-owned keysym table held in the per-display record
+       (called at display teardown). */
+    void (*free_keysyms)(IswDisplay dpy);
     /* Query the pointer relative to `win`.  Returns False if unavailable. */
     Boolean (*query_pointer)(IswDisplay dpy, IswWindow win,
                              int *root_x, int *root_y,
@@ -758,12 +785,20 @@ extern const IswPlatformOps *_IswPlatformSelectBackend(void);
 
 /* Display / event loop */
 extern int       _IswPlatformConnectionFd(IswDisplay dpy);
+/* Open/close a server connection by display-name (NULL = default). */
+extern IswDisplay _IswPlatformOpenDisplay(const char *display_name,
+                                          int *default_screen);
+extern void      _IswPlatformCloseDisplay(IswDisplay dpy);
+/* Server vendor string (diagnostic use), or "". */
+extern const char *_IswPlatformDisplayVendor(IswDisplay dpy);
 extern IswScreen _IswDefaultScreenOf(IswDisplay dpy);
 extern IswWindow _IswDefaultRootWindow(IswDisplay dpy);
 extern uint32_t  _IswPlatformScreenWidth(IswDisplay dpy, IswScreen screen);
 extern uint32_t  _IswPlatformScreenHeight(IswDisplay dpy, IswScreen screen);
 extern IswColormap _IswPlatformScreenDefaultColormap(IswDisplay dpy, IswScreen screen);
 extern int       _IswPlatformScreenDepth(IswDisplay dpy, IswScreen screen);
+extern unsigned long _IswPlatformScreenBlackPixel(IswDisplay dpy, IswScreen screen);
+extern unsigned long _IswPlatformScreenWhitePixel(IswDisplay dpy, IswScreen screen);
 extern void     *_IswPlatformPollEvent(IswDisplay dpy);
 extern void     *_IswPlatformPollQueuedEvent(IswDisplay dpy);
 extern Boolean   _IswPlatformDisplayHasError(IswDisplay dpy);
@@ -868,6 +903,28 @@ extern uint32_t _IswPlatformKeyFromName(const char *name);
 
 /* Rebuild the backend keymap/modifier cache after a keyboard mapping change. */
 extern void _IswPlatformRefreshMapping(IswDisplay dpy);
+
+/* keycode -> keysym for column `col` (0 = unshifted, 1 = shifted). */
+extern IswKeySym _IswPlatformKeycodeToKeysym(IswDisplay dpy, IswKeyCode kc,
+                                             int col);
+/* All keycodes producing `ks` (caller frees *out via free()). */
+extern void _IswPlatformKeysymToKeycodes(IswDisplay dpy, IswKeySym ks,
+                                         IswKeyCode **out, int *count);
+/* Lower/upper case forms of `ks` (either out pointer may be NULL). */
+extern void _IswPlatformConvertCase(IswKeySym ks, IswKeySym *lower,
+                                    IswKeySym *upper);
+/* keycode + neutral modifier state -> keysym (+ consumed modifiers). */
+extern void _IswPlatformTranslateKeycode(IswDisplay dpy, IswKeyCode kc,
+                                         IswModMask state,
+                                         IswModMask *mods_return,
+                                         IswKeySym *keysym_return);
+/* Build the modifier->keysym late-binding tables (see input op). */
+extern void _IswPlatformBuildModMap(IswDisplay dpy,
+                                    IswModKeysymEntry *mods_return,
+                                    IswKeySym **keysyms_return,
+                                    int *count_return);
+/* Release the backend-owned keysym table (display teardown). */
+extern void _IswPlatformFreeKeysyms(IswDisplay dpy);
 
 /* Warp the pointer to (x, y) relative to the origin of dst_win. */
 extern void _IswPlatformWarpPointer(IswDisplay dpy, IswWindow dst_win,

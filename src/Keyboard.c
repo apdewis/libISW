@@ -76,10 +76,10 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include <ISW/ISWPlatform.h>
 
 #include "PassivGraI.h"
 #include "EventI.h"
-#include "ISWPlatformPrivate.h"
 
 #define _GetWindowedAncestor(w) (IswIsWidget(w) ? w : _IswWidgetAncestor(w))
 

@@ -71,9 +71,8 @@ SOFTWARE.
 #include <ISW/SimpleP.h>
 #include <ISW/ISWRender.h>
 #include <ISW/IswArgMacros.h>
+#include <ISW/ISWPlatform.h>
 #include <ctype.h>
-#include <xcb/xcb.h>
-#include "ISWPlatformPrivate.h"
 
 extern double _IswGetScaleFactor(IswDisplay dpy);
 

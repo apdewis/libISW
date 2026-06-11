@@ -60,9 +60,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/TreeP.h>
 #include <ISW/ISWRender.h>
 #include <ISW/IswArgMacros.h>
-#include "ISWPlatformPrivate.h"
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
+#include <ISW/ISWPlatform.h>
 
 #define IsHorizontal(tw) ((tw)->tree.gravity == IswGravityWest || \
 			  (tw)->tree.gravity == IswGravityEast)

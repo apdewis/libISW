@@ -73,7 +73,6 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 #include <ISW/ISWRender.h>
-#include "ISWPlatformPrivate.h"
 
 struct _DestroyRec {
     int dispatch_level;

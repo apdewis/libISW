@@ -56,7 +56,7 @@ SOFTWARE.
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SimpleP.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 #define offset(field) IswOffsetOf(SimpleRec, simple.field)
 

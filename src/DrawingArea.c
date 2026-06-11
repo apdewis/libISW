@@ -15,7 +15,7 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/DrawingAreaP.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 #define offset(field) IswOffsetOf(DrawingAreaRec, field)
 

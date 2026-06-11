@@ -72,11 +72,11 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include <ISW/ISWPlatform.h>
 #include "VarargsI.h"
 #include "Shell.h"
 #include "ShellP.h"
 #include "StringDefs.h"
-#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 
 /* Static quarks used for resource lookup */

@@ -738,9 +738,7 @@ CloseDisplay(IswDisplay dpy)
          * app->list[] — the display must still be in that list. */
         _IswCacheFlushTag(xtpd->appContext, (IswPointer) &xtpd->heap);
         IswDeleteFromAppContext(dpy, xtpd->appContext);
-        //if (xtpd->keysyms)
-        //    xcb_key_symbols_free(xtpd->keysyms); //causes linker error even with xcb-xkb linked
-            //IswFree((char *) xtpd->keysyms);
+        _IswPlatformFreeKeysyms(dpy);
         IswFree((char *) xtpd->modKeysyms);
         IswFree((char *) xtpd->modsToKeysyms);
         xtpd->keysyms_per_keycode = 0;

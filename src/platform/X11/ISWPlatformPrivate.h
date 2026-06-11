@@ -52,8 +52,6 @@ IswWindow         _IswXcbWindowWrap(xcb_window_t id);
    translation to resolve an event's dispatch target to its root widget. */
 Widget            _IswXcbWidgetForWindow(IswDisplay dpy, xcb_window_t window);
 
-/* Color/font/visual value handles (Phase 4).  Plain casts: each handle IS the
-   native id/pointer.  Implemented in src/ISWPlatformColorFontXCB.c. */
 xcb_colormap_t    _IswXcbColormap(IswColormap cmap);
 IswColormap       _IswXcbColormapWrap(xcb_colormap_t cmap);
 xcb_font_t        _IswXcbFontId(IswFontId fid);

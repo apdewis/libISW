@@ -62,7 +62,7 @@ Corporation.
 #include "ShellP.h"
 #include "StringDefs.h"
 #include "ResConfigP.h"
-#include "ISWPlatformPrivate.h"
+#include "ISWPlatform.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -897,7 +897,7 @@ _IswResourceConfigurationEH(Widget w,
                            Boolean *continue_to_dispatch _X_UNUSED)
 {
     ISW_NATIVE_EVENT(iswev);   /* PropertyNotify: X11 protocol, backend-internal */
-    xcb_connection_t *dpy;
+    IswDisplay dpy;
     IswPerDisplay pd;
     xcb_property_notify_event_t *pe = (xcb_property_notify_event_t *) event;
 
@@ -912,7 +912,7 @@ _IswResourceConfigurationEH(Widget w,
                 w->core.name);
 #endif
 
-    dpy = _IswXcbConn(IswDisplayOf(w));
+    dpy = IswDisplayOf(w);
     pd = _IswGetPerDisplay(IswDisplayOf(w));
 
     /*
@@ -922,7 +922,7 @@ _IswResourceConfigurationEH(Widget w,
      */
     if (pe->atom == pd->rcm_init) {
         _IswPlatformDeleteProperty((IswDisplay) dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), pd->rcm_init);
-        xcb_flush(dpy);
+        _IswPlatformFlush(dpy);
 
 #ifdef DEBUG
         if (IswIsWidget(w))
@@ -948,11 +948,11 @@ _IswResourceConfigurationEH(Widget w,
 #endif
     {
         IswProperty prop;
-        Boolean got = _IswPlatformGetProperty((IswDisplay) dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+        Boolean got = _IswPlatformGetProperty(dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                               pd->rcm_data, ISW_ATOM_STRING,
                                               0, 8192, &prop);
         /* delete-after-read (the get used to pass delete=True) */
-        _IswPlatformDeleteProperty((IswDisplay) dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), pd->rcm_data);
+        _IswPlatformDeleteProperty(dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), pd->rcm_data);
 
         if (got && prop.type == ISW_ATOM_STRING && prop.format == 8) {
             char *data = (char *) prop.value;

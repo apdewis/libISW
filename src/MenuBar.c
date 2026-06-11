@@ -38,13 +38,12 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/MenuButtoP.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSBP.h>
-#include <xcb/xcb.h>
 #include <ISW/ISWRender.h>
 
 #include <ISW/Command.h>
 #include <ISW/IswArgMacros.h>
 #include <ISW/EventI.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 #define superclass (&boxClassRec)
 

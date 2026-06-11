@@ -54,7 +54,7 @@ SOFTWARE.
 #include <ISW/ISWInit.h>
 #include <ISW/FormP.h>
 #include <ISW/ISWRender.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 extern double _IswGetScaleFactor(IswDisplay dpy);
 

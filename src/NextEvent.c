@@ -75,7 +75,7 @@ in this Software without prior written authorization from The Open Group.
 #include <xcb/xcb.h>
 
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
+#include "ISWPlatform.h"
 #include <ISW/ISWRender.h>
 #include <stdio.h>
 #include <errno.h>

@@ -209,6 +209,20 @@ xcb_disp_screen_depth(IswScreen screen)
     return s ? (int) s->root_depth : 0;
 }
 
+static unsigned long
+xcb_disp_screen_black_pixel(IswScreen screen)
+{
+    xcb_screen_t *s = (xcb_screen_t *) screen;
+    return s ? (unsigned long) s->black_pixel : 0;
+}
+
+static unsigned long
+xcb_disp_screen_white_pixel(IswScreen screen)
+{
+    xcb_screen_t *s = (xcb_screen_t *) screen;
+    return s ? (unsigned long) s->white_pixel : 0;
+}
+
 static void
 xcb_disp_bell(IswDisplay dpy, int percent)
 {
@@ -216,6 +230,30 @@ xcb_disp_bell(IswDisplay dpy, int percent)
     if (priv->conn) {
         //#TODO non bell error indication
     }
+}
+
+static const char *
+xcb_disp_vendor(IswDisplay dpy)
+{
+    static char buf[256];
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    const xcb_setup_t *setup;
+    int len;
+    const char *v;
+
+    if (!priv || !priv->conn)
+        return "";
+    setup = xcb_get_setup(priv->conn);
+    if (!setup)
+        return "";
+    /* xcb_setup_vendor is length-prefixed, not NUL-terminated. */
+    len = xcb_setup_vendor_length(setup);
+    v = xcb_setup_vendor(setup);
+    if (len >= (int) sizeof(buf))
+        len = (int) sizeof(buf) - 1;
+    memcpy(buf, v, (size_t) len);
+    buf[len] = '\0';
+    return buf;
 }
 
 static const IswPlatformDisplayOps xcb_display_ops = {
@@ -232,7 +270,10 @@ static const IswPlatformDisplayOps xcb_display_ops = {
     .screen_height  = xcb_disp_screen_height,
     .screen_default_colormap = xcb_disp_screen_default_colormap,
     .screen_depth   = xcb_disp_screen_depth,
+    .screen_black_pixel = xcb_disp_screen_black_pixel,
+    .screen_white_pixel = xcb_disp_screen_white_pixel,
     .bell           = xcb_disp_bell,
+    .vendor         = xcb_disp_vendor,
 };
 
 /* ---- window ops ---------------------------------------------------------- */
@@ -671,6 +712,32 @@ _IswPlatformConnectionFd(IswDisplay dpy)
     return -1;
 }
 
+IswDisplay
+_IswPlatformOpenDisplay(const char *display_name, int *default_screen)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->display && ops->display->open)
+        return ops->display->open(display_name, default_screen);
+    return NULL;
+}
+
+void
+_IswPlatformCloseDisplay(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->display && ops->display->close)
+        ops->display->close(dpy);
+}
+
+const char *
+_IswPlatformDisplayVendor(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->vendor)
+        return ops->display->vendor(dpy);
+    return "";
+}
+
 IswScreen
 _IswDefaultScreenOf(IswDisplay dpy)
 {
@@ -726,6 +793,24 @@ _IswPlatformScreenDepth(IswDisplay dpy, IswScreen screen)
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->display && ops->display->screen_depth)
         return ops->display->screen_depth(screen);
+    return 0;
+}
+
+unsigned long
+_IswPlatformScreenBlackPixel(IswDisplay dpy, IswScreen screen)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->screen_black_pixel)
+        return ops->display->screen_black_pixel(screen);
+    return 0;
+}
+
+unsigned long
+_IswPlatformScreenWhitePixel(IswDisplay dpy, IswScreen screen)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->screen_white_pixel)
+        return ops->display->screen_white_pixel(screen);
     return 0;
 }
 
@@ -1217,6 +1302,72 @@ _IswPlatformWarpPointer(IswDisplay dpy, IswWindow dst_win, int x, int y)
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->input && ops->input->warp_pointer)
         ops->input->warp_pointer(dpy, dst_win, x, y);
+}
+
+IswKeySym
+_IswPlatformKeycodeToKeysym(IswDisplay dpy, IswKeyCode kc, int col)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->input && ops->input->keycode_to_keysym)
+        return ops->input->keycode_to_keysym(dpy, kc, col);
+    return IswNoSymbol;
+}
+
+void
+_IswPlatformKeysymToKeycodes(IswDisplay dpy, IswKeySym ks,
+                             IswKeyCode **out, int *count)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (out) *out = NULL;
+    if (count) *count = 0;
+    if (ops && ops->input && ops->input->keysym_to_keycodes)
+        ops->input->keysym_to_keycodes(dpy, ks, out, count);
+}
+
+void
+_IswPlatformConvertCase(IswKeySym ks, IswKeySym *lower, IswKeySym *upper)
+{
+    /* convert_case takes no display; reach the active backend's input ops
+       directly.  All displays share the backend ops table. */
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->input && ops->input->convert_case) {
+        ops->input->convert_case(ks, lower, upper);
+        return;
+    }
+    if (lower) *lower = ks;
+    if (upper) *upper = ks;
+}
+
+void
+_IswPlatformTranslateKeycode(IswDisplay dpy, IswKeyCode kc, IswModMask state,
+                             IswModMask *mods_return, IswKeySym *keysym_return)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->input && ops->input->translate_keycode) {
+        ops->input->translate_keycode(dpy, kc, state, mods_return, keysym_return);
+        return;
+    }
+    if (mods_return) *mods_return = 0;
+    if (keysym_return) *keysym_return = IswNoSymbol;
+}
+
+void
+_IswPlatformBuildModMap(IswDisplay dpy, IswModKeysymEntry *mods_return,
+                        IswKeySym **keysyms_return, int *count_return)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (keysyms_return) *keysyms_return = NULL;
+    if (count_return) *count_return = 0;
+    if (ops && ops->input && ops->input->build_mod_map)
+        ops->input->build_mod_map(dpy, mods_return, keysyms_return, count_return);
+}
+
+void
+_IswPlatformFreeKeysyms(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->input && ops->input->free_keysyms)
+        ops->input->free_keysyms(dpy);
 }
 
 void

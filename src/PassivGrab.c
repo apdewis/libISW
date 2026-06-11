@@ -79,9 +79,9 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 
 #include "IntrinsicI.h"
+#include <ISW/ISWPlatform.h>
 #include "StringDefs.h"
 #include "PassivGraI.h"
-#include "ISWPlatformPrivate.h"
 
 /* typedef unsigned long Mask; */
 #define BITMASK(i) (((Mask)1) << ((i) & 31))

@@ -36,14 +36,12 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xos.h>
 #include <ctype.h>			/* for isascii() etc. */
 #include <stdlib.h>			/* for atof() */
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 #ifdef HAVE_CAIRO
 #include <cairo.h>
 #include <cairo-xcb.h>
 #endif
 #include <ISW/IswArgMacros.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 #if defined(ISC) && __STDC__ && !defined(ISC30)
 extern double atof(char *);

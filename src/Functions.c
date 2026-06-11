@@ -58,7 +58,7 @@ in this Software without prior written authorization from The Open Group.
 #include <ISW/Vendor.h>
 #include <ISW/ISWRender.h>
 #include <ISW/EventI.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 /*
  * This file defines functional equivalents to all macros defined

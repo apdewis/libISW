@@ -75,7 +75,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 #ifndef TM_NO_MATCH
 #define TM_NO_MATCH (-2)
 #endif                          /* TM_NO_MATCH */

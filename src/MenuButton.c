@@ -57,7 +57,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWRender.h>
 #include <ISW/FocusMgrI.h>
 #include <ISW/IswArgMacros.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 #include <math.h>
 
 extern double _IswGetScaleFactor(IswDisplay dpy);

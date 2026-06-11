@@ -75,8 +75,8 @@ in this Software without prior written authorization from The Open Group.
 #include "ShellP.h"
 #include "ShellI.h"
 #include <ISW/ISWRender.h>
+#include <ISW/ISWPlatform.h>
 #include <ISW/EventI.h>
-#include "ISWPlatformPrivate.h"
 
 
 #include <math.h>

@@ -51,7 +51,7 @@ SOFTWARE.
 #include "EventI.h"
 #include "ShellP.h"
 #include <ISW/ISWRender.h>
-#include "ISWPlatformPrivate.h"
+#include <ISW/ISWPlatform.h>
 
 void
 _IswPopup(Widget widget, IswGrabKind grab_kind)

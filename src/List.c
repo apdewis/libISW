@@ -43,12 +43,11 @@ in this Software without prior written authorization from the X Consortium.
 #include <ctype.h>
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 #include <ISW/ISWInit.h>
 #include <ISW/ListP.h>
 #include <ISW/FocusMgrI.h>
 #include <ISW/ISWRender.h>
+#include <ISW/ISWPlatform.h>
 #include <ISW/Viewport.h>
 #include <ISW/ViewportP.h>
 #include <ISW/SimpleMenu.h>
@@ -57,7 +56,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Shell.h>
 #include <ISW/IswArgMacros.h>
 #include "IntrinsicI.h"
-#include "ISWPlatformPrivate.h"
 #include <math.h>
 
 extern double _IswGetScaleFactor(IswDisplay dpy);

@@ -63,7 +63,6 @@ SOFTWARE.
 #include <ISW/Scrollbar.h>
 #include <ISW/TextP.h>
 #include <ISW/IswArgMacros.h>
-#include <ISW/ISWImP.h>
 #include "IntrinsicI.h"
 #include <ctype.h>		/* for isprint() */
 
@@ -694,7 +693,6 @@ InsertCursor (Widget w, IswTextInsertState state)
     IswArgBuilder ab = IswArgBuilderInit();
 
     IswArgInsertPosition(&ab, ctx->text.insertPos);
-    _IswImSetValues (w, ab.args, ab.count);
   }
 }
 
@@ -1182,7 +1180,6 @@ _IswTextVScroll(TextWidget ctx, int n)
   {
     IswArgBuilder ab = IswArgBuilderInit();
     IswArgInsertPosition(&ab, ctx->text.lt.top+ctx->text.lt.lines);
-    _IswImSetValues ((Widget) ctx, ab.args, ab.count);
   }
 
     _TextDrawShadows(ctx, 0, 0, ctx->core.width, ctx->core.height, False);

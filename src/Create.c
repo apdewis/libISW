@@ -72,13 +72,13 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include <ISW/ISWPlatform.h>
 #include "VarargsI.h"
 #include "ShellP.h"
 #include "CreateI.h"
 #ifndef X_NO_RESOURCE_CONFIGURATION_MANAGEMENT
 #include "ResConfigP.h"
 #endif
-#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 
 static _Xconst _IswString IswNxtCreateWidget = "xtCreateWidget";

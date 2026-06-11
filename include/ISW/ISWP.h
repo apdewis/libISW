@@ -112,6 +112,15 @@ typedef unsigned int IswGravity;
 #define IswGravityWest	4
 #define IswGravityEast	6
 #define IswGravitySouth	8
+/* Remaining compass/special gravities (X11-compatible values; NorthWest=1 is
+   defined in Intrinsic.h). */
+#define IswGravityForget	0
+#define IswGravityNorthEast	3
+#define IswGravityCenter	5
+#define IswGravitySouthWest	7
+#define IswGravitySouthEast	9
+#define IswGravityStatic	10
+#define IswGravityUnmap		0
 #endif
 
 #ifdef ISW_GRAY_BLKWHT_STIPPLES

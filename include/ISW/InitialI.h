@@ -88,7 +88,6 @@ SOFTWARE.
 #endif
 #include <xcb/xcb.h>
 #include <xcb/xcbext.h>
-#include <xcb/xcb_keysyms.h>
 
 #include "uthash.h"
 _XFUNCPROTOBEGIN
@@ -296,8 +295,8 @@ extern int _IswWaitForSomething(
 
 typedef struct _CaseConverterRec *CaseConverterPtr;
 typedef struct _CaseConverterRec {
-    xcb_keysym_t		start;		/* first xcb_keysym_t valid in converter */
-    xcb_keysym_t		stop;		/* last xcb_keysym_t valid in converter */
+    IswKeySym		start;		/* first keysym valid in converter */
+    IswKeySym		stop;		/* last keysym valid in converter */
     IswCaseProc		proc;		/* case converter function */
     CaseConverterPtr	next;		/* next converter record */
 } CaseConverterRec;
@@ -327,7 +326,8 @@ typedef struct _IswPerDisplayStruct {
     IswKeyProc defaultKeycodeTranslator;
     IswAppContext appContext;
     unsigned long keysyms_serial;      /* for tracking MappingNotify events */
-    xcb_key_symbols_t *keysyms;                   /* keycode to keysym table */
+    void *keysyms;                /* opaque keysym table (backend-owned;
+                                     xcb_key_symbols_t* in the XCB backend) */
     int keysyms_per_keycode;           /* number of keysyms for each keycode*/
     int min_keycode, max_keycode;      /* range of keycodes */
     IswKeySym *modKeysyms;                     /* keysym values for modToKeysysm */

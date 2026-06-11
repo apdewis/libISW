@@ -59,13 +59,12 @@ SOFTWARE.
 #include <ISW/ViewportP.h>
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWRender.h>
+#include <ISW/ISWPlatform.h>
 
 /* Utility macro */
 #define AssignMax(x, y) ((x) = ((x) > (y) ? (x) : (y)))
 
 #include <stdint.h>
-#include <xcb/xcb.h>
-#include "ISWPlatformPrivate.h"
 
 static void ScrollUpDownProc(Widget, IswPointer, IswPointer);
 static void ThumbProc(Widget, IswPointer, IswPointer);
