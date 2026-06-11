@@ -293,22 +293,22 @@ PreferredSize(Widget widget, IswWidgetGeometry *constraint, IswWidgetGeometry *p
     Dimension preferred_width = w->box.preferred_width;
     Dimension preferred_height = w->box.preferred_height;
 
-    constraint->request_mode &= XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    constraint->request_mode &= IswCWWidth | IswCWHeight;
 
     if (constraint->request_mode == 0)
 	/* parent isn't going to change w or h, so nothing to re-compute */
 	return IswGeometryYes;
 
     if (constraint->request_mode == w->box.last_query_mode &&
-	(!(constraint->request_mode & XCB_CONFIG_WINDOW_WIDTH) ||
+	(!(constraint->request_mode & IswCWWidth) ||
 	 constraint->width == w->box.last_query_width) &&
-	(!(constraint->request_mode & XCB_CONFIG_WINDOW_HEIGHT) ||
+	(!(constraint->request_mode & IswCWHeight) ||
 	 constraint->height == w->box.last_query_height)) {
 	/* same query; current preferences are still valid */
-	preferred->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+	preferred->request_mode = IswCWWidth | IswCWHeight;
 	preferred->width = preferred_width;
 	preferred->height = preferred_height;
-	if (constraint->request_mode == (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT) &&
+	if (constraint->request_mode == (IswCWWidth | IswCWHeight) &&
 	    constraint->width == preferred_width &&
 	    constraint->height == preferred_height)
 	    return IswGeometryYes;
@@ -325,22 +325,22 @@ PreferredSize(Widget widget, IswWidgetGeometry *constraint, IswWidgetGeometry *p
     w->box.last_query_width = constraint->width;
     w->box.last_query_height= constraint->height;
 
-    if (constraint->request_mode & XCB_CONFIG_WINDOW_WIDTH)
+    if (constraint->request_mode & IswCWWidth)
 	width = constraint->width;
-    else /* if (constraint->request_mode & XCB_CONFIG_WINDOW_HEIGHT) */ {
+    else /* if (constraint->request_mode & IswCWHeight) */ {
 	 /* let's see if I can become any narrower */
 	width = 0;
 	constraint->width = 65535;
     }
 
     /* height is currently ignored by DoLayout.
-       height = (constraint->request_mode & XCB_CONFIG_WINDOW_HEIGHT) ? constraint->height
+       height = (constraint->request_mode & IswCWHeight) ? constraint->height
 		       : *preferred_height;
      */
     DoLayout(w, width, (Dimension)0,
 	     &preferred_width, &preferred_height, FALSE);
 
-    if (constraint->request_mode & XCB_CONFIG_WINDOW_HEIGHT &&
+    if (constraint->request_mode & IswCWHeight &&
 	preferred_height > constraint->height) {
 	/* find minimum width for this height */
 	if (preferred_width > constraint->width) {
@@ -368,11 +368,11 @@ PreferredSize(Widget widget, IswWidgetGeometry *constraint, IswWidgetGeometry *p
 	}
     }
 
-    preferred->request_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    preferred->request_mode = IswCWWidth | IswCWHeight;
     preferred->width = w->box.preferred_width = preferred_width;
     preferred->height = w->box.preferred_height = preferred_height;
 
-    if (constraint->request_mode == (XCB_CONFIG_WINDOW_WIDTH|XCB_CONFIG_WINDOW_HEIGHT)
+    if (constraint->request_mode == (IswCWWidth|IswCWHeight)
 	&& constraint->width == preferred_width
 	&& constraint->height == preferred_height)
 	return IswGeometryYes;
@@ -471,7 +471,7 @@ TryNewLayout(BoxWidget bbw)
 		}
 		else { /* proposed_height != preferred_height */
 		    IswWidgetGeometry constraints, reply;
-		    constraints.request_mode = XCB_CONFIG_WINDOW_HEIGHT;
+		    constraints.request_mode = IswCWHeight;
 		    constraints.height = proposed_height;
 		    (void)PreferredSize((Widget)bbw, &constraints, &reply);
 		    proposed_width = preferred_width;
@@ -503,19 +503,19 @@ GeometryManager(Widget w, IswWidgetGeometry *request, IswWidgetGeometry *reply)
     BoxWidget bbw;
 
     /* Position request always denied */
-    if ((request->request_mode & XCB_CONFIG_WINDOW_X && request->x != w->core.x) ||
-	(request->request_mode & XCB_CONFIG_WINDOW_Y && request->y != w->core.y))
+    if ((request->request_mode & IswCWX && request->x != w->core.x) ||
+	(request->request_mode & IswCWY && request->y != w->core.y))
         return (IswGeometryNo);
 
     /* Size changes must see if the new size can be accomodated */
-    if (request->request_mode & (XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH)) {
+    if (request->request_mode & (IswCWWidth | IswCWHeight | IswCWBorderWidth)) {
 
 	/* Make all three fields in the request valid */
-	if ((request->request_mode & XCB_CONFIG_WINDOW_WIDTH) == 0)
+	if ((request->request_mode & IswCWWidth) == 0)
 	    request->width = w->core.width;
-	if ((request->request_mode & XCB_CONFIG_WINDOW_HEIGHT) == 0)
+	if ((request->request_mode & IswCWHeight) == 0)
 	    request->height = w->core.height;
-        if ((request->request_mode & XCB_CONFIG_WINDOW_BORDER_WIDTH) == 0)
+        if ((request->request_mode & IswCWBorderWidth) == 0)
 	    request->border_width = w->core.border_width;
 
 	/* Save current size and set to new size */
@@ -614,7 +614,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     new->core.windowless = True;
     newbbw->box.render_ctx = NULL;
 
-    newbbw->box.last_query_mode = XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT;
+    newbbw->box.last_query_mode = IswCWWidth | IswCWHeight;
     newbbw->box.last_query_width = newbbw->box.last_query_height = 0;
     newbbw->box.preferred_width = IswMax(newbbw->box.h_space, 1);
     newbbw->box.preferred_height = IswMax(newbbw->box.v_space, 1);
