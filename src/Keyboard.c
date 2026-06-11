@@ -102,7 +102,7 @@ _IswClearAncestorCache(Widget widget)
 }
 
 static IswServerGrabPtr
-CheckServerGrabs(xcb_generic_event_t *event, Widget *trace, Cardinal traceDepth)
+CheckServerGrabs(IswEvent *event, Widget *trace, Cardinal traceDepth)
 {
     Cardinal i;
 
@@ -221,7 +221,7 @@ IswGetKeyboardFocusWidget(Widget widget)
 }
 
 static Boolean
-IsOutside(xcb_key_press_event_t *e, Widget w)
+IsOutside(IswEvent *e, Widget w)
 {
     Position left, right, top, bottom;
 
@@ -237,16 +237,16 @@ IsOutside(xcb_key_press_event_t *e, Widget w)
     right = (Position) (left + w->core.width + w->core.border_width);
     bottom = (Position) (top + w->core.height + w->core.border_width);
 
-    if ((e->root_x < left) || (e->root_y < top) ||
-        (e->root_x > right) || (e->root_y > bottom))
+    if ((e->key.root_x < left) || (e->key.root_y < top) ||
+        (e->key.root_x > right) || (e->key.root_y > bottom))
         return TRUE;
-    
+
     return FALSE;
 }
 
 static Widget
 FindKeyDestination(Widget widget,
-                   xcb_key_press_event_t *event,
+                   IswEvent *event,
                    IswServerGrabPtr prevGrab,
                    IswServerGrabType prevGrabType,
                    IswServerGrabPtr devGrab,
@@ -294,7 +294,7 @@ FindKeyDestination(Widget widget,
              */
             if ((ewRelFw == IswMyAncestor) &&
                 (devGrabType == IswPassiveServerGrab)) {
-                if (IsOutside(event, widget) || event->response_type == XCB_KEY_PRESS)
+                if (IsOutside(event, widget) || event->kind == IswKeyDown)
                     dspWidget = devGrab->widget;
             }
             else {
@@ -309,7 +309,7 @@ FindKeyDestination(Widget widget,
                     && (devGrabType == IswPassiveServerGrab)
                     && (!IsAnyGrab(prevGrabType))
                     ) {
-                    IswUngrabKeyboard(devGrab->widget, ((xcb_key_press_event_t *)event)->time);
+                    IswUngrabKeyboard(devGrab->widget, event->any.time);
                 }
                 /*
                  * if there isn't a grab with then check
@@ -317,8 +317,7 @@ FindKeyDestination(Widget widget,
                  * if the server was using Xt focus instead of server
                  * focus
                  */
-                if ((event->response_type != XCB_KEY_PRESS) || (((xcb_key_press_event_t *)event)->detail == 0)  /* Xlib XIM composed input */
-                    )
+                if ((event->kind != IswKeyDown) || (event->key.key == 0))
                     dspWidget = focusWidget;
                 else {
                     IswServerGrabPtr grab;
@@ -338,14 +337,14 @@ FindKeyDestination(Widget widget,
                         /* ignore lca */
                         pseudoTraceDepth--;
                     }
-                    if ((grab = CheckServerGrabs((xcb_generic_event_t *) event,
+                    if ((grab = CheckServerGrabs(event,
                                                  pseudoTrace,
                                                  (Cardinal) pseudoTraceDepth)))
                     {
                         IswDevice device = &pdi->keyboard;
 
                         device->grabType = IswPseudoPassiveServerGrab;
-                        pdi->activatingKey = (xcb_keycode_t) ((xcb_key_release_event_t *)event)->detail;
+                        pdi->activatingKey = event->key.key;
                         device->grab = *grab;
                         dspWidget = grab->widget;
                     }
@@ -358,7 +357,7 @@ FindKeyDestination(Widget widget,
 }
 
 Widget
-_IswProcessKeyboardEvent(xcb_key_press_event_t *event, Widget widget, IswPerDisplayInput pdi)
+_IswProcessKeyboardEvent(IswEvent *event, Widget widget, IswPerDisplayInput pdi)
 {
     IswDevice device = &pdi->keyboard;
     IswServerGrabPtr devGrab = &device->grab;
@@ -369,41 +368,41 @@ _IswProcessKeyboardEvent(xcb_key_press_event_t *event, Widget widget, IswPerDisp
 
     prevGrabRec = *devGrab;
 
-    switch (event->response_type) {
-    case XCB_KEY_PRESS:
+    switch (event->kind) {
+    case IswKeyDown:
     {
-        xcb_key_press_event_t *keypress_event = (xcb_key_press_event_t *)event;
         IswServerGrabPtr newGrab;
 
-        if (keypress_event->detail != 0 &&      /* Xlib XIM composed input */
+        if (event->key.key != 0 &&      /* composed/dead-key input */
             !IsServerGrab(device->grabType) &&
-            (newGrab = CheckServerGrabs((xcb_generic_event_t *) event,
+            (newGrab = CheckServerGrabs(event,
                                         pdi->trace,
                                         (Cardinal) pdi->traceDepth))) {
             /*
-             * honor pseudo-grab from prior event by X
-             * unlocking keyboard. Not Xt Unlock !
+             * honor pseudo-grab from prior event by
+             * unlocking keyboard.
              */
             if (IsPseudoGrab(prevGrabType))
                 _IswPlatformUngrabKeyboard(
-                    IswDisplayOf(widget), keypress_event->time);
+                    IswDisplayOf(widget), event->any.time);
             else {
                 /* Activate the grab */
                 device->grab = *newGrab;
-                pdi->activatingKey = (xcb_keycode_t) keypress_event->detail;
+                pdi->activatingKey = event->key.key;
                 device->grabType = IswPassiveServerGrab;
             }
         }
     }
         break;
 
-    case XCB_KEY_RELEASE:
+    case IswKeyUp:
     {
-        xcb_key_release_event_t *keyrelease_event = (xcb_key_release_event_t *)event;
         if (IsEitherPassiveGrab(device->grabType) &&
-            (keyrelease_event->detail == pdi->activatingKey))
+            (event->key.key == pdi->activatingKey))
             deactivateGrab = TRUE;
     }
+        break;
+    default:
         break;
     }
     dspWidget = FindKeyDestination(widget, event,
@@ -459,35 +458,32 @@ _IswHandleFocus(Widget widget,
               IswEvent *iswev,
                Boolean *cont _X_UNUSED)
 {
-    ISW_NATIVE_EVENT(iswev);
+    IswEvent *event = iswev;
     IswPerDisplayInput pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     IswPerWidgetInput pwi = (IswPerWidgetInput) client_data;
     IswGeneology oldFocalPoint = pwi->focalPoint;
     IswGeneology newFocalPoint = pwi->focalPoint;
 
-    //#TODO verify this LLM output as well
-    switch (event->response_type) {
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE:
+    switch (event->kind) {
+    case IswKeyDown:
+    case IswKeyUp:
         /*
          * We're getting the keyevents used to guarantee propagating
          * child interest ala ForwardEvent in R3
          */
         return;
-    case XCB_ENTER_NOTIFY:
-    case XCB_LEAVE_NOTIFY:
+    case IswEnter:
+    case IswLeave:
         /*
          * If operating in a focus driven model, then enter and
          * leave events do not affect the keyboard focus.
          */
         {
-            const xcb_enter_notify_event_t *enter_event = 
-                (const xcb_enter_notify_event_t *)event;
-            if ((enter_event->detail != XCB_NOTIFY_DETAIL_INFERIOR)
-                && (enter_event->mode == XCB_NOTIFY_MODE_NORMAL)) {
+            if ((event->crossing.detail != IswNotifyInferior)
+                && (event->crossing.mode == IswNotifyNormal)) {
                 switch (oldFocalPoint) {
                 case IswMyAncestor:
-                    if (event->response_type == XCB_LEAVE_NOTIFY)
+                    if (event->kind == IswLeave)
                         newFocalPoint = IswUnrelated;
                     break;
                 case IswUnrelated:
@@ -500,42 +496,44 @@ _IswHandleFocus(Widget widget,
             }
         }
         break;
-    case XCB_FOCUS_IN:
+    case IswFocusIn:
         {
-            const xcb_focus_in_event_t *focus_event = 
-                (const xcb_focus_in_event_t *)event;
-            switch (focus_event->detail) {
-            case XCB_NOTIFY_DETAIL_NONLINEAR:
-            case XCB_NOTIFY_DETAIL_ANCESTOR:
-            case XCB_NOTIFY_DETAIL_INFERIOR:
+            switch (event->focus.detail) {
+            case IswNotifyNonlinear:
+            case IswNotifyAncestor:
+            case IswNotifyInferior:
                 newFocalPoint = IswMySelf;
                 break;
-            case XCB_NOTIFY_DETAIL_NONLINEAR_VIRTUAL:
-            case XCB_NOTIFY_DETAIL_VIRTUAL:
+            case IswNotifyNonlinearVirtual:
+            case IswNotifyVirtual:
                 newFocalPoint = IswMyDescendant;
                 break;
-            case XCB_NOTIFY_DETAIL_POINTER:
+            case IswNotifyPointer:
                 newFocalPoint = IswMyAncestor;
+                break;
+            default:
                 break;
             }
         }
         break;
-    case XCB_FOCUS_OUT:
+    case IswFocusOut:
         {
-            const xcb_focus_out_event_t *focus_event = 
-                (const xcb_focus_out_event_t *)event;
-            switch (focus_event->detail) {
-            case XCB_NOTIFY_DETAIL_POINTER:
-            case XCB_NOTIFY_DETAIL_NONLINEAR:
-            case XCB_NOTIFY_DETAIL_ANCESTOR:
-            case XCB_NOTIFY_DETAIL_NONLINEAR_VIRTUAL:
-            case XCB_NOTIFY_DETAIL_VIRTUAL:
+            switch (event->focus.detail) {
+            case IswNotifyPointer:
+            case IswNotifyNonlinear:
+            case IswNotifyAncestor:
+            case IswNotifyNonlinearVirtual:
+            case IswNotifyVirtual:
                 newFocalPoint = IswUnrelated;
                 break;
-            case XCB_NOTIFY_DETAIL_INFERIOR:
+            case IswNotifyInferior:
                 return;
+            default:
+                break;
             }
         }
+        break;
+    default:
         break;
     }
 
@@ -561,10 +559,10 @@ _IswHandleFocus(Widget widget,
 
         if (descendant) {
             if (add) {
-                _IswSendFocusEvent(descendant, XCB_FOCUS_IN);
+                _IswSendFocusEvent(descendant, IswFocusIn);
             }
             else {
-                _IswSendFocusEvent(descendant, XCB_FOCUS_OUT);
+                _IswSendFocusEvent(descendant, IswFocusOut);
             }
         }
     }
@@ -590,12 +588,12 @@ AddFocusHandler(Widget widget,
      */
     target = descendant ? _GetWindowedAncestor(descendant) : NULL;
     targetEventMask = IswBuildEventMask(target);
-    eventMask = targetEventMask & (XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE);
-    eventMask |= XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW;
+    eventMask = targetEventMask & (IswKeyPressMask | IswKeyReleaseMask);
+    eventMask |= IswFocusChangeMask | IswEnterWindowMask | IswLeaveWindowMask;
 
     if (oldEventMask) {
-        oldEventMask &= XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
-        oldEventMask |= XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW;
+        oldEventMask &= IswKeyPressMask | IswKeyReleaseMask;
+        oldEventMask |= IswFocusChangeMask | IswEnterWindowMask | IswLeaveWindowMask;
 
         if (oldEventMask != eventMask)
             IswRemoveEventHandler(widget, (oldEventMask & ~eventMask),
@@ -612,7 +610,7 @@ AddFocusHandler(Widget widget,
      * the next input event actually arrives.
      */
 
-    if (!(targetEventMask & XCB_EVENT_MASK_FOCUS_CHANGE)) {
+    if (!(targetEventMask & IswFocusChangeMask)) {
         pdi->focusWidget = NULL;
         return;
     }
@@ -637,27 +635,28 @@ AddFocusHandler(Widget widget,
                  * An ancestor contains the focus, so if source
                  * contains the pointer, then source has the focus.
                  */
-                //#TODO another LLM rework to verify
-                xcb_query_pointer_cookie_t cookie = xcb_query_pointer(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))));
-                xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(_IswXcbConn(IswDisplayOf(widget)), cookie, NULL);
-                if (reply) {
+                int root_x, root_y, win_x, win_y;
+                IswModMask mods;
+                IswWindow child;
+                if (_IswPlatformQueryPointer(
+                        IswDisplayOf(widget),
+                        _IswPlatformWidgetWindow(IswDisplayOf(widget), widget),
+                        &root_x, &root_y, &win_x, &win_y, &mods, &child)) {
                     /* We need to take borders into consideration */
                     left = top = -((int) widget->core.border_width);
                     right = (int) (widget->core.width + (widget->core.border_width << 1));
                     bottom = (int) (widget->core.height + (widget->core.border_width << 1));
 
-                    if (reply->win_x >= left && reply->win_x < right &&
-                        reply->win_y >= top && reply->win_y < bottom)
+                    if (win_x >= left && win_x < right &&
+                        win_y >= top && win_y < bottom)
                         pwi->haveFocus = TRUE;
-                    
-                    free(reply);
                 }
             }
         }
     }
     if (pwi->haveFocus) {
         pdi->focusWidget = NULL;        /* invalidate the cache */
-        _IswSendFocusEvent(target, XCB_FOCUS_IN);
+        _IswSendFocusEvent(target, IswFocusIn);
     }
 }
 
@@ -743,7 +742,7 @@ IswSetKeyboardFocus(Widget widget, Widget descendant)
                     pwi->map_handler_added = FALSE;
                 }
                 if (pwi->haveFocus) {
-                    _IswSendFocusEvent(oldTarget, XCB_FOCUS_OUT);
+                    _IswSendFocusEvent(oldTarget, IswFocusOut);
                 }
             }
             else if (pwi->map_handler_added) {
@@ -781,12 +780,12 @@ IswSetKeyboardFocus(Widget widget, Widget descendant)
 
             if (widget != shell)
                 IswAddEventHandler(shell,
-                                  XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_ENTER_WINDOW |
-                                  XCB_EVENT_MASK_LEAVE_WINDOW, False, _IswHandleFocus,
+                                  IswFocusChangeMask | IswEnterWindowMask |
+                                  IswLeaveWindowMask, False, _IswHandleFocus,
                                   (IswPointer) psi);
 
             if (!IswIsRealized(target)) {
-                IswAddEventHandler(target, (EventMask) XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+                IswAddEventHandler(target, (EventMask) IswStructureNotifyMask,
                                   False, QueryEventMask, (IswPointer) widget);
                 pwi->map_handler_added = TRUE;
                 pwi->queryEventDescendant = descendant;

@@ -130,6 +130,21 @@ typedef enum {
     IswFocusByPointer
 } IswFocusSource;
 
+/* Relationship of the event window to the focus/crossing target — the neutral
+ * form of X's NotifyAncestor/Virtual/Inferior/Nonlinear[Virtual]/Pointer detail.
+ * The focus manager uses this to track whether focus is on the widget itself, a
+ * descendant, or an ancestor. */
+typedef enum {
+    IswNotifyDetailNone = 0,
+    IswNotifyAncestor,
+    IswNotifyVirtual,
+    IswNotifyInferior,
+    IswNotifyNonlinear,
+    IswNotifyNonlinearVirtual,
+    IswNotifyPointer,
+    IswNotifyPointerRoot
+} IswNotifyDetail;
+
 /* Logical button identity. */
 typedef enum {
     IswButtonNone   = 0,
@@ -200,6 +215,7 @@ typedef struct {
     char        text[8];     /* UTF-8 + NUL */
     uint16_t    modifiers;   /* IswModMask */
     int16_t     x, y;        /* pointer position, widget-local logical px */
+    int16_t     root_x, root_y; /* pointer position, screen-relative */
 } IswKeyEvent;
 
 /* Button down / up. */
@@ -222,16 +238,18 @@ typedef struct {
 /* Enter / leave. */
 typedef struct {
     ISW_EVENT_HEADER;
-    IswNotifyMode mode;
-    uint16_t      modifiers;
-    int16_t       x, y;
+    IswNotifyMode   mode;
+    IswNotifyDetail detail;
+    uint16_t        modifiers;
+    int16_t         x, y;
 } IswCrossingEvent;
 
 /* Focus in / out. */
 typedef struct {
     ISW_EVENT_HEADER;
-    IswNotifyMode  mode;
-    IswFocusSource source;
+    IswNotifyMode   mode;
+    IswNotifyDetail detail;
+    IswFocusSource  source;
 } IswFocusEvent;
 
 /* Redraw (expose).  Damaged rect in widget-local logical px; count is how

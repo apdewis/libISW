@@ -141,6 +141,22 @@ _IswPlatformKeyFromName(const char *name)
     return keysym_to_key((xcb_keysym_t) ks, &unicode, text);
 }
 
+/* X crossing/focus detail -> neutral IswNotifyDetail. */
+static IswNotifyDetail
+xcb_notify_detail(uint8_t detail)
+{
+    switch (detail) {
+    case XCB_NOTIFY_DETAIL_ANCESTOR:           return IswNotifyAncestor;
+    case XCB_NOTIFY_DETAIL_VIRTUAL:            return IswNotifyVirtual;
+    case XCB_NOTIFY_DETAIL_INFERIOR:          return IswNotifyInferior;
+    case XCB_NOTIFY_DETAIL_NONLINEAR:         return IswNotifyNonlinear;
+    case XCB_NOTIFY_DETAIL_NONLINEAR_VIRTUAL: return IswNotifyNonlinearVirtual;
+    case XCB_NOTIFY_DETAIL_POINTER:           return IswNotifyPointer;
+    case XCB_NOTIFY_DETAIL_POINTER_ROOT:      return IswNotifyPointerRoot;
+    default:                                  return IswNotifyDetailNone;
+    }
+}
+
 /* Event dispatch target: the root widget of the window the event hit, as an
    opaque IswEventTarget.  The core casts it back to a Widget; it never sees the
    window.  NULL window/widget yields target 0. */
@@ -200,6 +216,8 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->key.modifiers = xcb_state_to_modmask(e->state);
         out->key.x = e->event_x;
         out->key.y = e->event_y;
+        out->key.root_x = e->root_x;
+        out->key.root_y = e->root_y;
         IswTranslateKeycode(dpy, (IswKeyCode) e->detail, e->state,
                             &mods_ret, &ks);
         out->key.key = keysym_to_key(ks, &out->key.unicode, out->key.text);
@@ -243,6 +261,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         case XCB_NOTIFY_MODE_UNGRAB: out->crossing.mode = IswNotifyUngrab; break;
         default:                     out->crossing.mode = IswNotifyNormal; break;
         }
+        out->crossing.detail = xcb_notify_detail(e->detail);
         out->crossing.x = e->event_x;
         out->crossing.y = e->event_y;
         return True;
@@ -257,6 +276,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         case XCB_NOTIFY_MODE_UNGRAB: out->focus.mode = IswNotifyUngrab; break;
         default:                     out->focus.mode = IswNotifyNormal; break;
         }
+        out->focus.detail = xcb_notify_detail(e->detail);
         out->focus.source = (e->detail == XCB_NOTIFY_DETAIL_POINTER)
                             ? IswFocusByPointer : IswFocusByKeyboard;
         return True;

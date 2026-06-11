@@ -831,6 +831,11 @@ extern void _IswPlatformGrabButton(IswDisplay dpy, IswWindow grab_window, int bu
 extern void _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
                                 unsigned int modifiers, Boolean owner_events,
                                 int pointer_mode, int keyboard_mode);
+/* Release a passive key/button grab installed with the above. */
+extern void _IswPlatformUngrabKey(IswDisplay dpy, IswWindow grab_window,
+                                  IswKeyCode keycode, unsigned int modifiers);
+extern void _IswPlatformUngrabButton(IswDisplay dpy, IswWindow grab_window,
+                                     int button, unsigned int modifiers);
 
 /* Pointer query */
 extern Boolean _IswPlatformQueryPointer(IswDisplay dpy, IswWindow win,
@@ -844,6 +849,9 @@ extern Boolean _IswPlatformQueryPointer(IswDisplay dpy, IswWindow win,
    Used by the translation-table parser so "<Key>Return" matches the neutral
    key identity in a dispatched IswEvent. */
 extern uint32_t _IswPlatformKeyFromName(const char *name);
+
+/* Rebuild the backend keymap/modifier cache after a keyboard mapping change. */
+extern void _IswPlatformRefreshMapping(IswDisplay dpy);
 
 /* Atom */
 extern Atom    _IswPlatformInternAtomOp(IswDisplay dpy, const char *name,

@@ -76,9 +76,6 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
-#include <xcb/xinput.h>
 #include "IntrinsicI.h"
 #include "PassivGraI.h"
 #include "StringDefs.h"

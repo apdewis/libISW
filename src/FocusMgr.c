@@ -84,7 +84,7 @@ _IswFocusMgrAltHeld(void)
 }
 
 int
-_IswFocusMgrFindMnemonicIndex(const char *label, xcb_keysym_t mnemonic)
+_IswFocusMgrFindMnemonicIndex(const char *label, uint32_t mnemonic)
 {
     if (!label || mnemonic == 0) return -1;
     /* Lowercase printable-letter mnemonic */
@@ -230,13 +230,13 @@ redraw_widget(Widget w)
         _IswRepaintWindowless(w);
         return;
     }
-    /* Ask the X server to generate a real Expose event for the whole
+    /* Ask the platform to generate a real Expose event for the whole
      * widget. Calling core_class.expose directly with a NULL event is
      * unsafe: some widgets (e.g. Text) dereference the event. */
-    xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1 /* exposures */,
-                   _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
-                   0, 0, w->core.width, w->core.height);
-    xcb_flush(_IswXcbConn(IswDisplayOf(w)));
+    _IswPlatformClearArea(IswDisplayOf(w),
+                          _IswPlatformWidgetWindow(IswDisplayOf(w), w),
+                          0, 0, w->core.width, w->core.height, True);
+    _IswPlatformFlush(IswDisplayOf(w));
 }
 
 /* The widget currently displaying the Tab-cycle focus ring, if any.
@@ -417,18 +417,6 @@ _IswFocusMgrDrawRing(Widget w, void *ctx_void, unsigned long color, double pad)
 
 /* --- Early-dispatch Tab intercept --- */
 
-static xcb_key_symbols_t *
-get_keysyms(xcb_connection_t *c)
-{
-    static xcb_key_symbols_t *cached = NULL;
-    static xcb_connection_t  *cached_for = NULL;
-    if (cached && cached_for == c) return cached;
-    if (cached) xcb_key_symbols_free(cached);
-    cached_for = c;
-    cached = xcb_key_symbols_alloc(c);
-    return cached;
-}
-
 /* Walk a subtree, repainting MenuButton + SimpleMenu (via clear-with-expose)
  * so their mnemonic underlines redraw when Alt state changes. */
 static void
@@ -441,9 +429,9 @@ repaint_menu_widgets(Widget w)
         if (w->core.windowless)
             _IswRepaintWindowless(w);
         else
-            xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1,
-                           _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
-                           0, 0, w->core.width, w->core.height);
+            _IswPlatformClearArea(IswDisplayOf(w),
+                                  _IswPlatformWidgetWindow(IswDisplayOf(w), w),
+                                  0, 0, w->core.width, w->core.height, True);
     }
     if (IswIsComposite(w)) {
         CompositeWidget cw = (CompositeWidget) w;
@@ -454,7 +442,7 @@ repaint_menu_widgets(Widget w)
 
 /* Also walk all registered shells and currently-popped-up SimpleMenus. */
 static void
-repaint_for_alt_change(xcb_connection_t *c)
+repaint_for_alt_change(IswDisplay dpy)
 {
     for (int i = 0; i < g_slot_count; i++) {
         Widget shell = g_slots[i].shell;
@@ -463,11 +451,13 @@ repaint_for_alt_change(xcb_connection_t *c)
         /* SimpleMenu shells need their window cleared so the SmeBSB
          * entries redraw their underlines. */
         if (IswIsSubclass(shell, simpleMenuWidgetClass)) {
-            xcb_clear_area(c, 1, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell))),
-                           0, 0, shell->core.width, shell->core.height);
+            _IswPlatformClearArea(dpy,
+                                  _IswPlatformWidgetWindow(dpy, shell),
+                                  0, 0, shell->core.width, shell->core.height,
+                                  True);
         }
     }
-    xcb_flush(c);
+    _IswPlatformFlush(dpy);
 }
 
 static void shell_destroy_cb(Widget, IswPointer, IswPointer);
@@ -510,14 +500,14 @@ _IswFocusMgrRegisterMenu(Widget menu)
 
 /* Find a MenuButton anywhere in the tree whose mnemonic_key matches. */
 static Widget
-find_menubutton_mnemonic(Widget w, xcb_keysym_t target)
+find_menubutton_mnemonic(Widget w, uint32_t target)
 {
     if (!w) return NULL;
     if (IswIsSubclass(w, menuButtonWidgetClass)) {
         MenuButtonWidget mbw = (MenuButtonWidget) w;
         if (mbw->menu_button.mnemonic_key != 0) {
-            xcb_keysym_t a = mbw->menu_button.mnemonic_key;
-            xcb_keysym_t b = target;
+            uint32_t a = mbw->menu_button.mnemonic_key;
+            uint32_t b = target;
             if (a >= 'A' && a <= 'Z') a += ('a' - 'A');
             if (b >= 'A' && b <= 'Z') b += ('a' - 'A');
             if (a == b) return w;
@@ -535,7 +525,7 @@ find_menubutton_mnemonic(Widget w, xcb_keysym_t target)
 
 /* Within a SimpleMenu, find an SmeBSB entry whose mnemonic_key matches. */
 static Widget
-find_menu_entry_mnemonic(Widget menu, xcb_keysym_t target)
+find_menu_entry_mnemonic(Widget menu, uint32_t target)
 {
     if (!IswIsSubclass(menu, simpleMenuWidgetClass)) return NULL;
     CompositeWidget cw = (CompositeWidget) menu;
@@ -543,8 +533,8 @@ find_menu_entry_mnemonic(Widget menu, xcb_keysym_t target)
         Widget child = cw->composite.children[i];
         if (!IswIsSubclass(child, smeBSBObjectClass)) continue;
         SmeBSBObject sme = (SmeBSBObject) child;
-        xcb_keysym_t a = sme->sme_bsb.mnemonic_key;
-        xcb_keysym_t b = target;
+        uint32_t a = sme->sme_bsb.mnemonic_key;
+        uint32_t b = target;
         if (a == 0) continue;
         if (a >= 'A' && a <= 'Z') a += ('a' - 'A');
         if (b >= 'A' && b <= 'Z') b += ('a' - 'A');
@@ -559,42 +549,46 @@ trigger_menu_button(Widget mb)
     _IswMenuButtonPopup(mb);
 }
 
+/* Case-fold a letter code point so mnemonic matching is case-insensitive. */
+static uint32_t
+fold_key(uint32_t k)
+{
+    if (k >= 'A' && k <= 'Z')
+        return k - 'A' + 'a';
+    return k;
+}
+
 Boolean
-_IswFocusMgrMaybeHandleKey(Widget widget, xcb_generic_event_t *event)
+_IswFocusMgrMaybeHandleKey(Widget widget, IswEvent *event)
 {
     if (!widget || !event) return False;
-    uint8_t type = event->response_type & 0x7f;
-    if (type != XCB_KEY_PRESS && type != XCB_KEY_RELEASE) return False;
+    if (event->kind != IswKeyDown && event->kind != IswKeyUp) return False;
 
-    xcb_key_press_event_t *ke = (xcb_key_press_event_t *)event;
-    xcb_connection_t *c = _IswXcbConn(IswDisplayOf(widget));
-    xcb_key_symbols_t *syms = get_keysyms(c);
-    if (!syms) return False;
-
-    Boolean shift = (ke->state & XCB_MOD_MASK_SHIFT) != 0;
-    xcb_keysym_t sym = xcb_key_symbols_get_keysym(syms, ke->detail, shift ? 1 : 0);
+    IswDisplay dpy = IswDisplayOf(widget);
+    Boolean shift = (event->key.modifiers & IswModShift) != 0;
+    uint32_t sym = event->key.key;     /* neutral key identity / code point */
 
     /* --- Track Alt press/release so mnemonic underlines show/hide. ----- */
-    if (sym == XK_Alt_L || sym == XK_Alt_R) {
-        Boolean new_state = (type == XCB_KEY_PRESS);
+    if (sym == IswKeyAlt) {
+        Boolean new_state = (event->kind == IswKeyDown);
         if (new_state != g_alt_held) {
             g_alt_held = new_state;
-            repaint_for_alt_change(c);
+            repaint_for_alt_change(dpy);
         }
         return False;  /* don't swallow; let it propagate normally */
     }
 
-    if (type != XCB_KEY_PRESS) return False;
+    if (event->kind != IswKeyDown) return False;
 
-    Boolean alt_held = (ke->state & XCB_MOD_MASK_1) != 0;
-    Boolean ctrl_held = (ke->state & XCB_MOD_MASK_CONTROL) != 0;
+    Boolean alt_held = (event->key.modifiers & IswModAlt) != 0;
+    Boolean ctrl_held = (event->key.modifiers & IswModControl) != 0;
 
     /* --- Menubar mnemonic: Alt + letter, anywhere in the shell. ---
      *     This takes priority over in-menu letter matching so Alt+E
      *     always switches to the Edit menu rather than activating an
      *     entry called "Export" in whatever menu happens to be open. */
     if (alt_held && !ctrl_held) {
-        xcb_keysym_t base = xcb_key_symbols_get_keysym(syms, ke->detail, 0);
+        uint32_t base = fold_key(sym);
         Widget shell = nearest_shell(widget);
         if (shell) {
             Widget hit = find_menubutton_mnemonic(shell, base);
@@ -619,13 +613,13 @@ _IswFocusMgrMaybeHandleKey(Widget widget, xcb_generic_event_t *event)
     if (g_open_menu != NULL &&
         IswIsSubclass(g_open_menu, simpleMenuWidgetClass) &&
         !ctrl_held && !alt_held) {
-        if (sym == XK_Escape) {
+        if (sym == IswKeyEscape) {
             Widget menu = g_open_menu;
             g_open_menu = NULL;
             IswPopdown(menu);
             return True;
         }
-        xcb_keysym_t base = xcb_key_symbols_get_keysym(syms, ke->detail, 0);
+        uint32_t base = fold_key(sym);
         Widget entry = find_menu_entry_mnemonic(g_open_menu, base);
         if (entry) {
             SmeObjectClass sc = (SmeObjectClass) entry->core.widget_class;
@@ -640,20 +634,16 @@ _IswFocusMgrMaybeHandleKey(Widget widget, xcb_generic_event_t *event)
 
     /* --- Tab / Shift+Tab focus traversal --- */
     int direction;
-    if (sym == XK_Tab && !shift)               direction = +1;
-    else if (sym == XK_Tab && shift)           direction = -1;
-    else if (sym == XK_ISO_Left_Tab)           direction = -1;
+    if (sym == IswKeyTab && !shift)            direction = +1;
+    else if (sym == IswKeyTab && shift)        direction = -1;
     else {
         /* Any other key press (that isn't a bare modifier) dismisses the
          * Tab-cycle focus ring. Bare modifiers are left alone so e.g.
          * pressing Shift before Shift+Tab doesn't kill the ring. */
-        if (sym != XK_Shift_L && sym != XK_Shift_R &&
-            sym != XK_Control_L && sym != XK_Control_R &&
-            sym != XK_Alt_L && sym != XK_Alt_R &&
-            sym != XK_Meta_L && sym != XK_Meta_R &&
-            sym != XK_Super_L && sym != XK_Super_R &&
-            sym != XK_Hyper_L && sym != XK_Hyper_R &&
-            sym != XK_Caps_Lock && sym != XK_Num_Lock) {
+        if (sym != IswKeyShift && sym != IswKeyControl &&
+            sym != IswKeyAlt && sym != IswKeyMeta &&
+            sym != IswKeySuper && sym != IswKeyCapsLock &&
+            sym != IswKeyNumLock) {
             _IswFocusMgrClearRing();
         }
         return False;
@@ -695,11 +685,10 @@ static void
 shell_key_release_handler(Widget w, IswPointer closure,
                           IswEvent *iswev, Boolean *cont)
 {
-    ISW_NATIVE_EVENT(iswev);
     (void)closure; (void)cont;
     if (iswev->kind != IswKeyUp) return;
     /* Forward into the main intercept so Alt-release is processed. */
-    _IswFocusMgrMaybeHandleKey(w, event);
+    _IswFocusMgrMaybeHandleKey(w, iswev);
 }
 
 void
@@ -727,7 +716,7 @@ _IswFocusMgrEnsureInstalled(Widget shell)
     /* Select KEY_RELEASE on the shell window so we see Alt-release. Widgets
      * normally only request KEY_PRESS, and the default dispatcher wouldn't
      * otherwise have a chance to update our g_alt_held flag. */
-    IswAddEventHandler(shell, XCB_EVENT_MASK_KEY_RELEASE, False,
+    IswAddEventHandler(shell, IswKeyReleaseMask, False,
                        shell_key_release_handler, NULL);
 
     /* Track when a SimpleMenu opens/closes so mnemonic dispatch can find

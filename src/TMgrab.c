@@ -90,8 +90,6 @@ GrabAllCorrectKeys(Widget widget,
                    TMModifierMatch modMatch, GrabActionRec * grabP)
 {
     IswDisplay dpy = IswDisplayOf(widget);
-    IswKeyCode *keycodes, *keycodeP;
-    Cardinal keycount;
     Modifiers careOn = 0;
     Modifiers careMask = 0;
 
@@ -106,58 +104,14 @@ GrabAllCorrectKeys(Widget widget,
     careOn = (careOn | (Modifiers) modMatch->modifiers);
     careMask = (careMask | (Modifiers) modMatch->modifierMask);
 
-    keycodes = NULL;
-    IswKeysymToKeycodeList(dpy,
-                          (IswKeySym) typeMatch->eventCode, &keycodes, &keycount);
-    if (keycount == 0) {
-        IswFree((char *) keycodes);
-        return;
-    }
-    for (keycodeP = keycodes; keycount--; keycodeP++) {
-        if (modMatch->standard) {
-            /* find standard modifiers that produce this keysym */
-            xcb_keysym_t keysym = XCB_NO_SYMBOL;
-            int std_mods, least_mod;
-            Modifiers modifiers_return = 0;
-
-            if (careOn & modifiers_return) {
-                IswFree((char *) keycodes);
-                return;
-            }
-            if (keysym == typeMatch->eventCode) {
-                IswGrabKey(widget, *keycodeP, careOn,
-                          grabP->owner_events,
-                          grabP->pointer_mode, grabP->keyboard_mode);
-                /* continue; *//* grab all modifier combinations */
-            }
-            least_mod = (int) (modifiers_return & (~modifiers_return + 1));
-            for (std_mods = (int) modifiers_return;
-                 std_mods >= least_mod; std_mods--) {
-                Modifiers dummy;
-
-                /* check all useful combinations of modifier bits */
-                if ((modifiers_return & (Modifiers) std_mods) &&
-                    !(~modifiers_return & (Modifiers) std_mods)) {
-                    IswTranslateKeycode(dpy, *keycodeP,
-                                       (Modifiers) std_mods, &dummy, &keysym);
-                    if (keysym == typeMatch->eventCode) {
-                        IswGrabKey(widget, *keycodeP,
-                                  careOn | (Modifiers) std_mods,
-                                  grabP->owner_events,
-                                  grabP->pointer_mode, grabP->keyboard_mode);
-                        /* break; *//* grab all modifier combinations */
-                    }
-                }
-            }
-        }
-        else {                  /* !event->standard */
-
-            IswGrabKey(widget, *keycodeP, careOn,
-                      grabP->owner_events,
-                      grabP->pointer_mode, grabP->keyboard_mode);
-        }
-    }
-    IswFree((char *) keycodes);
+    /* The grab matches on the neutral key identity (typeMatch->eventCode is the
+       resolved IswKey/codepoint, the same value a dispatched key event carries
+       in key.key).  No keysym->keycode resolution and no standard-modifier
+       permutation: case folding is handled by the translation matcher, so one
+       grab on the neutral identity covers it. */
+    IswGrabKey(widget, (IswKeyCode) typeMatch->eventCode, careOn,
+               grabP->owner_events,
+               grabP->pointer_mode, grabP->keyboard_mode);
 }
 
 typedef struct {

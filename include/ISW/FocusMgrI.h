@@ -29,7 +29,7 @@ extern void _IswFocusMgrDestroyShell(Widget shell);
  * traversable widgets), advances focus and returns True so the
  * dispatcher skips normal delivery. Otherwise returns False. */
 extern Boolean _IswFocusMgrMaybeHandleKey(Widget widget,
-                                          xcb_generic_event_t *event);
+                                          IswEvent *event);
 
 /* Draw a dashed focus ring inset 'pad' pixels from the widget's border,
  * using 'color' as the stroke color. No-ops if the widget doesn't own
@@ -51,7 +51,7 @@ extern Boolean _IswFocusMgrShowMnemonicsForMenu(Widget menu);
  * the lowercase letter of 'mnemonic' keysym. Returns -1 if no match or
  * mnemonic is 0 / not a printable letter. */
 extern int _IswFocusMgrFindMnemonicIndex(const char *label,
-                                         xcb_keysym_t mnemonic);
+                                         uint32_t mnemonic);
 
 /* Register a SimpleMenu shell so mnemonic dispatch knows when it opens
  * and closes. Safe to call multiple times. */

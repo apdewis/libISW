@@ -97,17 +97,18 @@ ScrollTo(Widget bar, int direction, xcb_timestamp_t time)
  * Returns True if this is a scroll wheel event, False otherwise.
  */
 static Boolean
-DecodeScrollWheel(xcb_button_press_event_t *bev,
+DecodeScrollWheel(IswEvent *event,
                   int *direction_out, Boolean *horizontal_out)
 {
-    switch (bev->detail) {
+    Boolean shift = (event->button.modifiers & IswModShift) != 0;
+    switch (event->button.button) {
     case 4: /* scroll up */
         *direction_out = -1;
-        *horizontal_out = (bev->state & XCB_MOD_MASK_SHIFT) != 0;
+        *horizontal_out = shift;
         return True;
     case 5: /* scroll down */
         *direction_out = 1;
-        *horizontal_out = (bev->state & XCB_MOD_MASK_SHIFT) != 0;
+        *horizontal_out = shift;
         return True;
     case 6: /* scroll left (horizontal wheel) */
         *direction_out = -1;
@@ -174,40 +175,39 @@ FindAndDispatchScroll(Widget start, int direction, Boolean horizontal,
  * All other button events are passed to the original dispatcher.
  */
 static Boolean
-ScrollWheelPressDispatcher(xcb_generic_event_t *event, IswDisplay conn)
+ScrollWheelPressDispatcher(IswEvent *event, IswDisplay conn)
 {
-    uint8_t response_type = event->response_type & ~0x80;
-
-    if (response_type == XCB_BUTTON_PRESS) {
-        xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
+    if (event->kind == IswButtonDown) {
         int direction;
         Boolean horizontal;
 
-        if (DecodeScrollWheel(bev, &direction, &horizontal)) {
+        if (DecodeScrollWheel(event, &direction, &horizontal)) {
+            IswTime time = event->any.time;
             /* If we have a recent sticky target, keep using it */
             if (sticky_scrollbar != NULL &&
-                (bev->time - sticky_timestamp) < ISW_SCROLL_STICKY_MS) {
-                ScrollTo(sticky_scrollbar, direction, bev->time);
+                (time - sticky_timestamp) < ISW_SCROLL_STICKY_MS) {
+                ScrollTo(sticky_scrollbar, direction, time);
             } else {
-                /* The event arrives on the windowed ancestor's window; the
-                   scrollable container under the pointer is a windowless
-                   descendant.  Hit-test the pointer to find the deepest
-                   windowless widget, then walk up to its Viewport/Text. */
-                Widget win_w = IswWindowToWidget(conn, _IswXcbWindowWrap(bev->event));
+                /* The event's target is the root widget; the scrollable
+                   container under the pointer is a windowless descendant.
+                   Hit-test the pointer to find the deepest windowless widget,
+                   then walk up to its Viewport/Text. */
+                Widget root = (Widget) (void *) event->any.target;
                 Widget target = NULL;
-                if (win_w != NULL) {
+                if (root != NULL) {
                     int dx = 0, dy = 0;
                     /* This custom dispatcher runs before the default one
-                       descales event coords, so bev->event_x/y are physical;
-                       the hit-test works in logical pixels. */
+                       descales event coords, so x/y are physical; the hit-test
+                       works in logical pixels. */
                     double sf = _IswGetScaleFactor(conn);
-                    int lx = (sf > 1.0) ? (int)(bev->event_x / sf) : bev->event_x;
-                    int ly = (sf > 1.0) ? (int)(bev->event_y / sf) : bev->event_y;
-                    target = _IswFindWidgetAtPoint(win_w, lx, ly, &dx, &dy);
+                    int lx = (sf > 1.0) ? (int)(event->button.x / sf)
+                                        : event->button.x;
+                    int ly = (sf > 1.0) ? (int)(event->button.y / sf)
+                                        : event->button.y;
+                    target = _IswFindWidgetAtPoint(root, lx, ly, &dx, &dy);
                 }
                 if (target != NULL)
-                    FindAndDispatchScroll(target, direction, horizontal,
-                                          bev->time);
+                    FindAndDispatchScroll(target, direction, horizontal, time);
                 else
                     SetStickyTarget(NULL, 0);
             }
@@ -226,13 +226,10 @@ ScrollWheelPressDispatcher(xcb_generic_event_t *event, IswDisplay conn)
  * triggering EndScroll or other unintended actions on scrollbar widgets.
  */
 static Boolean
-ScrollWheelReleaseDispatcher(xcb_generic_event_t *event, IswDisplay conn)
+ScrollWheelReleaseDispatcher(IswEvent *event, IswDisplay conn)
 {
-    uint8_t response_type = event->response_type & ~0x80;
-
-    if (response_type == XCB_BUTTON_RELEASE) {
-        xcb_button_release_event_t *bev = (xcb_button_release_event_t *)event;
-        if (bev->detail >= 4 && bev->detail <= 7)
+    if (event->kind == IswButtonUp) {
+        if (event->button.button >= 4 && event->button.button <= 7)
             return True; /* consume silently */
     }
 
@@ -251,8 +248,8 @@ ISWScrollWheelInit(IswDisplay conn)
     scroll_wheel_initialized = True;
 
     original_press_dispatcher = IswSetEventDispatcher(
-        conn, XCB_BUTTON_PRESS, ScrollWheelPressDispatcher);
+        conn, IswButtonDown, ScrollWheelPressDispatcher);
 
     original_release_dispatcher = IswSetEventDispatcher(
-        conn, XCB_BUTTON_RELEASE, ScrollWheelReleaseDispatcher);
+        conn, IswButtonUp, ScrollWheelReleaseDispatcher);
 }

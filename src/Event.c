@@ -121,6 +121,8 @@ _IswDescaleEventCoords(IswEvent *event, double sf)
     case IswKeyUp:
         event->key.x = (int16_t)(event->key.x * inv);
         event->key.y = (int16_t)(event->key.y * inv);
+        event->key.root_x = (int16_t)(event->key.root_x * inv);
+        event->key.root_y = (int16_t)(event->key.root_y * inv);
         break;
     case IswButtonDown:
     case IswButtonUp:
@@ -1482,10 +1484,7 @@ IswDispatchEvent(IswEvent *event, IswDisplay dpy)
     if (time)
         pd->last_timestamp = time;
     if (is_user_input)
-        /* RIPPLE: _IswShellUpdateUserTime still takes a window (shell/WM code);
-           its signature must change to take the event's target widget.  Until
-           then pass 0 so the user-time update is a no-op for this event. */
-        _IswShellUpdateUserTime(dpy, 0 /* FIXME: widget target */, time);
+        _IswShellUpdateUserTime(dpy, (Widget) (void *) event->any.target, time);
     pd->last_event = *event;
 
     if (pd->dispatcher_list) {

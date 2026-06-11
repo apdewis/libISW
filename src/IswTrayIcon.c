@@ -515,7 +515,7 @@ create_icon_window(IswTrayIcon icon)
 
     set_xembed_info(icon, 1);
 
-    IswRegisterDrawable((IswDisplay) icon->conn, icon->window, icon->shell);
+    IswRegisterDrawable((IswDisplay) icon->conn, _IswXcbWindowWrap(icon->window), icon->shell);
 
     create_surface(icon);
 
@@ -545,7 +545,7 @@ dock_into_manager(IswTrayIcon icon)
 
         if (icon->visual != old_visual || icon->depth != old_depth) {
             /* Visual changed — destroy and recreate */
-            IswUnregisterDrawable((IswDisplay) icon->conn, icon->window);
+            IswUnregisterDrawable((IswDisplay) icon->conn, _IswXcbWindowWrap(icon->window));
             xcb_destroy_window(icon->conn, icon->window);
             icon->window = XCB_NONE;
 
@@ -723,7 +723,7 @@ tray_event_handler(Widget widget, IswPointer closure,
             cairo_surface_destroy(icon->surface);
             icon->surface = NULL;
         }
-        IswUnregisterDrawable((IswDisplay) icon->conn, icon->window);
+        IswUnregisterDrawable((IswDisplay) icon->conn, _IswXcbWindowWrap(icon->window));
         icon->window = XCB_NONE;
         icon->manager_window = XCB_NONE;
         break;
@@ -823,7 +823,7 @@ IswTrayIconCreate(Widget shell, const char *tooltip)
         xcb_change_window_attributes(icon->conn, icon->screen->root,
                                      XCB_CW_EVENT_MASK, &emask);
     }
-    IswRegisterDrawable((IswDisplay) icon->conn, icon->screen->root, shell);
+    IswRegisterDrawable((IswDisplay) icon->conn, _IswXcbWindowWrap(icon->screen->root), shell);
     IswAddRawEventHandler(shell,
                           XCB_EVENT_MASK_STRUCTURE_NOTIFY,
                           True,  /* nonmaskable — for MANAGER client messages */
@@ -877,7 +877,7 @@ IswTrayIconDestroy(IswTrayIcon icon)
 
     /* Unregister and destroy the window */
     if (icon->window != XCB_NONE) {
-        IswUnregisterDrawable((IswDisplay) icon->conn, icon->window);
+        IswUnregisterDrawable((IswDisplay) icon->conn, _IswXcbWindowWrap(icon->window));
         xcb_destroy_window(icon->conn, icon->window);
         xcb_flush(icon->conn);
     }

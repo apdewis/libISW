@@ -1102,6 +1102,32 @@ _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
                             owner_events, pointer_mode, keyboard_mode);
 }
 
+void
+_IswPlatformUngrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
+                      unsigned int modifiers)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->grab && ops->grab->ungrab_key)
+        ops->grab->ungrab_key(dpy, grab_window, keycode, modifiers);
+}
+
+void
+_IswPlatformUngrabButton(IswDisplay dpy, IswWindow grab_window, int button,
+                         unsigned int modifiers)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->grab && ops->grab->ungrab_button)
+        ops->grab->ungrab_button(dpy, grab_window, button, modifiers);
+}
+
+void
+_IswPlatformRefreshMapping(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->input && ops->input->refresh_mapping)
+        ops->input->refresh_mapping(dpy);
+}
+
 /* Selection */
 IswSelectionId
 _IswPlatformSelectionInternName(IswDisplay dpy, const char *name,

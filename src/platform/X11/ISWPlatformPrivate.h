@@ -93,6 +93,7 @@ IswCursor         _IswXcbCursorWrap(xcb_cursor_t cursor);
  * externs remain backend private.
  */
 
+ /* this file is to NEVER be included in core widget code */
 /* Drag-and-drop (Phase 7).  Thin dispatchers over the platform DnD ops; the
  * generic IswDnd* service calls these.  The whole DnD engine lives in the
  * backend (X11: ISWPlatformDndXCB.c). */

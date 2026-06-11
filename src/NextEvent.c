@@ -1413,17 +1413,15 @@ IswNextEvent(xcb_generic_event_t *event)
 }
 
 void
-_IswRefreshMapping(IswDisplay display, xcb_generic_event_t *event, _IswBoolean dispatch)
+_IswRefreshMapping(IswDisplay display, IswEvent *event, _IswBoolean dispatch)
 {
     IswPerDisplay pd;
-    xcb_mapping_notify_event_t *mapping_event = (xcb_mapping_notify_event_t*)event;
 
     LOCK_PROCESS;
     pd = _IswGetPerDisplay(display);
 
-    if (mapping_event->request != XCB_MAPPING_POINTER &&
-        pd && pd->keysyms && (event->sequence >= pd->keysyms_serial))
-        _IswBuildKeysymTables(_IswXcbConn(display), pd);  /* 12b retypes this */
+    /* Rebuild the backend keymap/modifier cache (the backend owns it). */
+    _IswPlatformRefreshMapping(display);
 
     if (dispatch && pd && pd->mapping_callbacks)
         IswCallCallbackList((Widget) NULL,
@@ -1467,7 +1465,7 @@ IswAppNextEvent(IswAppContext app, xcb_generic_event_t *event)
 
                 /* Fix: assign event before inspecting it */
                 if (ev->response_type == XCB_MAPPING_NOTIFY)
-                    _IswRefreshMapping(node->display, ev, False);
+                    _IswPlatformRefreshMapping(node->display);
 
                 /* Copy event data to caller's buffer */
                 *event = *ev;
@@ -1595,10 +1593,11 @@ IswAppProcessEvent(IswAppContext app, IswInputMask mask)
                 }
                 IswFree((char *) node);
 
-                if (event->response_type == XCB_MAPPING_NOTIFY)
-                    _IswRefreshMapping(disp, event, False);
-
-                IswDispatchEvent(event, disp);
+                {
+                    IswEvent iev;
+                    if (_IswEventFromXcb(disp, event, &iev))
+                        IswDispatchEvent(&iev, disp);
+                }
 
                 free(event);
             }

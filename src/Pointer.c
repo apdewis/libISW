@@ -54,10 +54,10 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include "PassivGraI.h"
 
-#define AllButtonsMask (XCB_BUTTON_MASK_1 | XCB_BUTTON_MASK_2 | XCB_BUTTON_MASK_3 | XCB_BUTTON_MASK_4 | XCB_BUTTON_MASK_5)
+#define AllButtonsMask (IswModButton1 | IswModButton2 | IswModButton3 | IswModButton4 | IswModButton5)
 
 Widget
-_IswProcessPointerEvent(xcb_button_press_event_t *event,
+_IswProcessPointerEvent(IswEvent *event,
                        Widget widget,
                        IswPerDisplayInput pdi)
 {
@@ -66,14 +66,14 @@ _IswProcessPointerEvent(xcb_button_press_event_t *event,
     Widget dspWidget = NULL;
     Boolean deactivateGrab = FALSE;
 
-    switch (event->response_type) {
-    case XCB_BUTTON_PRESS:
+    switch (event->kind) {
+    case IswButtonDown:
     {
         if (!IsServerGrab(device->grabType)) {
             Cardinal i;
 
             for (i = (Cardinal) pdi->traceDepth; i > 0 && !newGrab; i--)
-                newGrab = _IswCheckServerGrabsOnWidget((xcb_generic_event_t *)event,
+                newGrab = _IswCheckServerGrabsOnWidget(event,
                                                       pdi->trace[i - 1],
                                                       POINTER);
         }
@@ -85,13 +85,19 @@ _IswProcessPointerEvent(xcb_button_press_event_t *event,
     }
         break;
 
-    case XCB_BUTTON_RELEASE:
+    case IswButtonUp:
     {
+        /* Deactivate when no OTHER button remains down: the modifier mask
+           carries the buttons held, minus this one (IswModButton1 is for
+           button 1, so shift by button-1). */
         if ((device->grabType == IswPassiveServerGrab) &&
-            !(event->state & (unsigned) (~(XCB_BUTTON_MASK_1 << (event->detail - 1)))
+            !(event->button.modifiers &
+              (unsigned) (~(IswModButton1 << (event->button.button - 1)))
               & AllButtonsMask))
             deactivateGrab = TRUE;
     }
+        break;
+    default:
         break;
     }
 

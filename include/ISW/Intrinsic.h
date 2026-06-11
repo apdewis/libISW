@@ -372,6 +372,18 @@ typedef unsigned long EventMask;
 #define IswColormapChangeMask		(1L<<23)
 #define IswOwnerGrabButtonMask		(1L<<24)
 
+/* "Any modifier" wildcard for passive grab registration (matches the X
+   AnyModifier value so the backend passes it through unchanged). */
+#define IswAnyModifier			(1L<<15)
+
+/* Neutral grab-attempt status (returned by IswGrabKeyboard / IswGrabPointer;
+   values match the X grab-status wire codes the backend passes through). */
+#define IswGrabSuccess			0
+#define IswGrabAlreadyGrabbed		1
+#define IswGrabInvalidTime		2
+#define IswGrabNotViewable		3
+#define IswGrabFrozen			4
+
 typedef enum {IswListHead, IswListTail } IswListPosition;
 
 typedef unsigned long	IswInputMask;

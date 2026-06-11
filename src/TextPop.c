@@ -1283,38 +1283,18 @@ static const char *WM_DELETE_WINDOW = "WM_DELETE_WINDOW";
 static void
 WMProtocols(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-    ISW_NATIVE_EVENT(iswev);
-    xcb_atom_t wm_delete_window;
-    xcb_atom_t wm_protocols;
-
-    wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), WM_DELETE_WINDOW, True);
-    wm_protocols = _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_PROTOCOLS", True);
-
-    /* Respond to a recognized WM protocol request iff
-     * event type is ClientMessage and no parameters are passed, or
-     * event type is ClientMessage and event data is matched to parameters, or
-     * event type isn't ClientMessage and parameters make a request.
+    /* Respond to a window-close request: either the neutral IswCloseRequest the
+     * backend decoded from WM_DELETE_WINDOW (bound via <Close>), or a direct
+     * action invocation naming WM_DELETE_WINDOW in its parameters.  The protocol
+     * decode lives in the backend; nothing native is examined here.
      */
 #define DO_DELETE_WINDOW InParams(WM_DELETE_WINDOW, params, *num_params)
 
-    /* XCB event handling */
-    uint8_t type = event->response_type & ~0x80;
-    Boolean is_client_message = (type == XCB_CLIENT_MESSAGE);
-    xcb_atom_t message_type = 0;
-    xcb_atom_t data0 = 0;
-    
-    if (is_client_message) {
-        xcb_client_message_event_t *cm = (xcb_client_message_event_t *)event;
-        message_type = cm->type;
-        data0 = cm->data.data32[0];
-    }
+    Boolean is_close = (iswev->kind == IswCloseRequest);
 
-    if ((is_client_message &&
-	 message_type == wm_protocols &&
-	 data0 == wm_delete_window &&
-	 (*num_params == 0 || DO_DELETE_WINDOW))
+    if ((is_close && (*num_params == 0 || DO_DELETE_WINDOW))
 	||
-	(!is_client_message && DO_DELETE_WINDOW)) {
+	(!is_close && DO_DELETE_WINDOW)) {
 
 #undef DO_DELETE_WINDOW
 
@@ -1340,7 +1320,7 @@ SetWMProtocolTranslations(Widget w)
 
     /* parse translation table once */
     if (! compiled_table) compiled_table = IswParseTranslationTable
-	("<Message>WM_PROTOCOLS: IswWMProtocols()\n");
+	("<Close>: IswWMProtocols()\n");
 
     /* add actions once per application context */
     for (i=0; i < list_size && app_context_list[i] != app_context; i++) ;

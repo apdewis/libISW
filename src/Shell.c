@@ -1003,28 +1003,18 @@ static void
 ShellWMDeleteWindow(Widget w, IswEvent *iswev, String *params,
 		    Cardinal *num_params)
 {
-    ISW_NATIVE_EVENT(iswev);   /* WM_DELETE client-message: backend-internal */
-    xcb_atom_t wm_protocols;
-    xcb_atom_t wm_delete_window;
+    /* Bound to <Close>: the backend already decoded the WM_DELETE_WINDOW
+       protocol message into a neutral IswCloseRequest, so there is nothing to
+       decode here — just honor the close. */
+    (void) iswev; (void) params; (void) num_params;
 
-    if ((event->response_type & ~0x80) != XCB_CLIENT_MESSAGE)
+    if (iswev->kind != IswCloseRequest)
 	return;
 
-    wm_protocols = _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_PROTOCOLS", True);
-    wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_DELETE_WINDOW", True);
-
-    if (wm_protocols == 0 || wm_delete_window == 0)
-	return;
-
-    {
-	xcb_client_message_event_t *cm = (xcb_client_message_event_t *)event;
-	if (cm->type == wm_protocols && cm->data.data32[0] == wm_delete_window) {
-	    if (IswIsApplicationShell(w))
-		IswAppSetExitFlag(IswWidgetToApplicationContext(w));
-	    else
-		IswDestroyWidget(w);
-	}
-    }
+    if (IswIsApplicationShell(w))
+	IswAppSetExitFlag(IswWidgetToApplicationContext(w));
+    else
+	IswDestroyWidget(w);
 }
 
 static void
@@ -1034,7 +1024,7 @@ SetShellWMProtocolTranslations(Widget w)
     static IswAppContext *app_context_list;	/* initially 0 */
     static Cardinal list_size;			/* initially 0 */
     IswAppContext app_context;
-    xcb_atom_t wm_delete_window;
+    Atom wm_delete_window;
     int i;
 
     app_context = IswWidgetToApplicationContext(w);
@@ -1042,7 +1032,7 @@ SetShellWMProtocolTranslations(Widget w)
     /* parse translation table once */
     if (!compiled_table)
 	compiled_table = IswParseTranslationTable(
-	    "<Message>WM_PROTOCOLS: IswShellDeleteWindow()\n");
+	    "<Close>: IswShellDeleteWindow()\n");
 
     /* add actions once per application context */
     for (i = 0; i < list_size && app_context_list[i] != app_context; i++) ;
@@ -3094,10 +3084,8 @@ IswSetWindowState(Widget shell, const char *state, Boolean set)
 }
 
 void
-_IswShellUpdateUserTime(IswDisplay dpy, xcb_window_t event_window,
-                        xcb_timestamp_t time)
+_IswShellUpdateUserTime(IswDisplay dpy, Widget widget, IswTime time)
 {
-    Widget widget = IswWindowToWidget(dpy, _IswXcbWindowWrap(event_window));
     if (!widget)
         return;
 

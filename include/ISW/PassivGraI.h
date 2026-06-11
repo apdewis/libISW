@@ -74,7 +74,9 @@ typedef struct _IswServerGrabRec {
     unsigned int		keyboardMode:1;
     unsigned int		hasExt:1;
     unsigned int		confineToIsWidgetWin:1;
-    xcb_keycode_t			keybut;
+    uint32_t			keybut;	/* neutral key identity (IswKey/codepoint)
+					   for key grabs, button number for
+					   pointer grabs; AnyKey/AnyButton = 0 */
     unsigned short		modifiers;
     unsigned short		eventMask;
 } IswServerGrabRec, *IswServerGrabPtr;
@@ -82,7 +84,7 @@ typedef struct _IswServerGrabRec {
 typedef struct _IswGrabExtRec {
     Mask			*pKeyButMask;
     Mask			*pModifiersMask;
-    xcb_window_t			confineTo;
+    IswWindow			confineTo;
     IswCursor			cursor;
 } IswServerGrabExtRec, *IswServerGrabExtPtr;
 
@@ -117,7 +119,7 @@ typedef struct {
 typedef struct IswPerDisplayInputRec{
     IswGrabList 	grabList;
     IswDeviceRec keyboard, pointer;
-    xcb_keycode_t	activatingKey;
+    uint32_t	activatingKey;	/* neutral key identity of the activating key */
     Widget 	*trace;
     int		traceDepth, traceMax;
     Widget 	focusWidget;
@@ -160,7 +162,7 @@ extern IswPerWidgetInput _IswGetPerWidgetInput(
 );
 
 extern IswServerGrabPtr _IswCheckServerGrabsOnWidget(
-   xcb_generic_event_t*		/* event */,
+   IswEvent*		/* event */,
     Widget		/* widget */,
     _IswBoolean		/* isKeyboard */
 );
@@ -177,13 +179,13 @@ extern void _IswFreePerWidgetInput(
 );
 
 extern Widget _IswProcessKeyboardEvent(
-    xcb_key_press_event_t*		/* event */,
+    IswEvent*		/* event */,
     Widget		/* widget */,
     IswPerDisplayInput	/* pdi */
 );
 
 extern Widget _IswProcessPointerEvent(
-    xcb_button_press_event_t*	/* event */,
+    IswEvent*	/* event */,
     Widget		/* widget */,
     IswPerDisplayInput	/* pdi */
 );
