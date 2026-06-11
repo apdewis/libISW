@@ -77,13 +77,10 @@ SOFTWARE.
 #endif
 #include <ISW/VendorP.h>
 #include <ISW/FocusMgrI.h>
-#include <ISW/ISWPNG.h>
-#include "ISWRenderPrivate.h"
 
 /* The following two headers are for the input method. */
 #include <ISW/VendorEP.h>
 #include <ISW/ISWImP.h>
-#include "ISWPlatformPrivate.h"
 
 
 static IswResource resources[] = {
@@ -328,117 +325,13 @@ IswCvtCompoundTextToString(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
 #define DONE(type, address) \
 	{to->size = sizeof(type); to->addr = (IswPointer)address;}
 
-/* ARGSUSED */
-static Boolean
-_IswCvtStringToPixmap(IswDisplay dpy, XrmValuePtr args, Cardinal *nargs,
-                      XrmValuePtr from, XrmValuePtr to, IswPointer *data)
-{
-    static xcb_pixmap_t pixmap;
-    ISWPNGImage *png;
-    xcb_screen_t *screen;
-    unsigned int w, h;
-    const unsigned char *rgba;
-
-    if (*nargs != 3)
-	IswAppErrorMsg(IswDisplayToApplicationContext((IswDisplay) dpy),
-		"_IswCvtStringToPixmap", "wrongParameters", "IswToolkitError",
-	"_IswCvtStringToPixmap needs screen, colormap, and background_pixel",
-		      (String *) NULL, (Cardinal *) NULL);
-
-    if (strcmp(from->addr, "None") == 0)
-    {
-	pixmap = None;
-	DONE(xcb_pixmap_t, &pixmap);
-	return (True);
-    }
-    if (strcmp(from->addr, "ParentRelative") == 0)
-    {
-	pixmap = ParentRelative;
-	DONE(xcb_pixmap_t, &pixmap);
-	return (True);
-    }
-
-    /* Load PNG via lodepng (with ISW path resolution) */
-    png = ISWPNGLoadFile((String) from->addr);
-    if (!png) {
-	IswDisplayStringConversionWarning((IswDisplay) dpy, (String) from->addr, IswRPixmap);
-	return (False);
-    }
-
-    w = ISWPNGGetWidth(png);
-    h = ISWPNGGetHeight(png);
-    rgba = ISWPNGGetRGBA(png);
-
-    screen = *((xcb_screen_t **) args[0].addr);
-
-    /* Create a server-side pixmap and paint the RGBA data onto it via Cairo */
-    pixmap = xcb_generate_id(_IswXcbConn(dpy));
-    xcb_create_pixmap(_IswXcbConn(dpy), screen->root_depth, pixmap,
-		      screen->root, w, h);
-    {
-	cairo_surface_t *target, *source;
-	cairo_t *cr;
-	int stride;
-
-	target = cairo_xcb_surface_create(_IswXcbConn(dpy), pixmap,
-		    ISWRenderFindVisual(screen, screen->root_depth),
-		    w, h);
-	stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, w);
-	source = cairo_image_surface_create_for_data(
-		    (unsigned char *)rgba, CAIRO_FORMAT_ARGB32, w, h, stride);
-	/* lodepng gives RGBA, but Cairo wants pre-multiplied ARGB in native
-	 * byte order.  Swizzle in-place before painting. */
-	{
-	    unsigned char *px = (unsigned char *)rgba;
-	    unsigned int i, npx = w * h;
-	    for (i = 0; i < npx; i++) {
-		unsigned char r = px[0], g = px[1], b = px[2], a = px[3];
-		float af = a / 255.0f;
-		/* Cairo native order is BGRA on little-endian (ARGB32) */
-		px[0] = (unsigned char)(b * af + 0.5f);
-		px[1] = (unsigned char)(g * af + 0.5f);
-		px[2] = (unsigned char)(r * af + 0.5f);
-		px[3] = a;
-		px += 4;
-	    }
-	}
-	cairo_surface_mark_dirty(source);
-	cr = cairo_create(target);
-	cairo_set_source_surface(cr, source, 0, 0);
-	cairo_paint(cr);
-	cairo_destroy(cr);
-	cairo_surface_destroy(source);
-	cairo_surface_flush(target);
-	cairo_surface_destroy(target);
-    }
-
-    ISWPNGDestroy(png);
-
-    if (to->addr == NULL)
-	to->addr = (IswPointer) & pixmap;
-    else
-    {
-	if (to->size < sizeof(xcb_pixmap_t))
-	{
-	    to->size = sizeof(xcb_pixmap_t);
-	    IswDisplayStringConversionWarning((IswDisplay) dpy, (String) from->addr,
-					     IswRPixmap);
-	    return (False);
-	}
-
-	*((xcb_pixmap_t *) to->addr) = pixmap;
-    }
-    to->size = sizeof(xcb_pixmap_t);
-    return (True);
-}
-
 static void
 _VendorFetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED,
                        XrmValue *value)
 {
-    static xcb_connection_t *_fetch_dpy;
-    _fetch_dpy = _IswXcbConn(IswDisplayOfObject(widget));
-    value->size = sizeof(xcb_connection_t *);
+    static IswDisplay _fetch_dpy;
+    _fetch_dpy = IswDisplayOfObject(widget);
+    value->size = sizeof(IswDisplay);
     value->addr = (IswPointer) &_fetch_dpy;
 }
 
@@ -464,11 +357,6 @@ IswVendorShellClassInitialize(void)
     IswSetTypeConverter(IswRString, IswRCursor, IswCvtStringToCursor,
      cursorConvertArgs, IswNumber(cursorConvertArgs),
      IswCacheNone, NULL);
-
-    IswSetTypeConverter(IswRString, IswRBitmap,
-		       (IswTypeConverter)_IswCvtStringToPixmap,
-		       _IswCvtStrToPix, IswNumber(_IswCvtStrToPix),
-		       IswCacheByDisplay, (IswDestructor)NULL);
 
     /* IswCvtCompoundTextToString commented out - complex text conversion not ported yet */
     /* IswSetTypeConverter("CompoundText", IswRString, IswCvtCompoundTextToString,
