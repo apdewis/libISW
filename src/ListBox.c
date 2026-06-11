@@ -289,9 +289,6 @@ SwapFgBg(Widget w, Pixel fg, Pixel bg)
 static void
 ExposeTree(Widget w)
 {
-    /* Windowless: repaint the widget and its windowless descendants into their
-       own surfaces and composite the ancestor once.  xcb_clear_area(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)))
-       would resolve to the shared windowed ancestor and blank the whole panel. */
     if (IswIsRealized(w))
         _IswRepaintWindowless(w);
 }

@@ -514,16 +514,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 static Boolean
 LookAhead (Widget w, IswEvent *event)
 {
-    /* TODO: XCB doesn't have direct QLength/XPeekIfEvent equivalents
-     * This function was used to look ahead in the event queue and skip
-     * redundant motion events. For now, stub it to always return False
-     * (don't skip). This is conservative and correct, just potentially
-     * less efficient.
-     *
-     * Full implementation would require:
-     * - Maintaining our own event queue or using xcb_poll_for_event
-     * - Implementing event comparison and filtering
-     */
     (void)w;
     (void)event;
     return False;

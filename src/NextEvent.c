@@ -483,10 +483,6 @@ FindInputs(IswAppContext app,
                 for (dd = 0; dd < app->count; dd++) {
                     if (ii == _IswPlatformConnectionFd((IswDisplay)app->list[dd])) {
                         if (*dpy_no == -1) {
-                            /* XCB port: Check for pending events using xcb_poll_for_queued_event()
-                             * instead of XEventsQueued(). The XCB connection maintains an
-                             * internal event queue that can be checked without reading from
-                             * the socket. */
                             xcb_generic_event_t *event = (xcb_generic_event_t *)
                                 _IswPlatformPollQueuedEvent((IswDisplay) app->list[dd]);
                             if (event) {

@@ -1442,11 +1442,6 @@ _popup_set_prop(ShellWidget w)
                                        ISW_ATOM_STRING, 8, ISW_PROP_MODE_REPLACE,
                                        locale, (uint32_t) strlen(locale));
         }
-            //XChangeProperty(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-            //                XInternAtom(IswDisplayOf((Widget) w),
-            //                            "WM_LOCALE_NAME", False),
-            //                XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
-            //                (unsigned char *) locale, (int) strlen(locale));
     }
     UNLOCK_PROCESS;
 
@@ -2059,43 +2054,6 @@ typedef struct {
     Boolean done;
 } QueryStruct;
 
-//static Bool
-//isMine(xcb_connection_t *dpy, register xcb_generic_event_t *event, char *arg)
-//{
-//    QueryStruct *q = (QueryStruct *) arg;
-//    register Widget w = q->w;
-//
-//    if ((dpy != IswDisplayOf(w)) || (rne->window != _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)))) {
-//        return FALSE;
-//    }
-//
-//    if (event->sequence >= q->request_num) {
-//        if (event->response_type == XCB_CONFIGURE_NOTIFY) {
-//            q->done = TRUE;
-//            return TRUE;
-//        }
-//    }
-//    else if (event->response_type == XCB_CONFIGURE_NOTIFY)
-//        return TRUE;            /* flush old events */
-//
-//    if (event->response_type == XCB_REPARENT_NOTIFY) {
-//        xcb_reparent_notify_event_t * rne = (xcb_reparent_notify_event_t *)event;
-//        if (rne->window == _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))) {
-//        /* we might get ahead of this event, so just in case someone
-//         * asks for coordinates before this event is dispatched...
-//         */
-//        register ShellWidget s = (ShellWidget) w;
-//
-//        if (rne->parent != RootWindowOfScreen(IswScreenOf(w)))
-//            s->shell.client_specified &= ~_IswShellNotReparented;
-//        else
-//            s->shell.client_specified |= _IswShellNotReparented;
-//        }
-//    }
-//
-//    return FALSE;
-//}
-
 static Boolean
 _wait_for_response(ShellWidget w, xcb_generic_event_t **event_out)
 {
@@ -2634,12 +2592,7 @@ WMSetValues(Widget old,
                                        client_leader, ISW_ATOM_WINDOW, 32,
                                        ISW_PROP_MODE_REPLACE, &leader_win, 1);
         }
-            //XChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-            //                XInternAtom(IswDisplayOf(new),
-            //                            "WM_CLIENT_LEADER", False),
-            //                XCB_ATOM_WINDOW, 32, XCB_PROP_MODE_REPLACE,
-            //                (unsigned char *) &(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(leader)), (Widget)(leader))), 1);
-    }//
+    }
 
     //if (nwmshell->wm.window_role != owmshell->wm.window_role) {
     //    IswFree((_IswString) owmshell->wm.window_role);
@@ -2731,8 +2684,6 @@ TopLevelSetValues(Widget oldW,
                 //    );
                 // XCB doesn't have a direct equivalent to XIconifyWindow
 
-                /* Atoms via the atom op; the iconify request is a broadcast
-                   client-message (xcb_send_event), which stays on the seam. */
                 Atom net_wm_state = _IswPlatformInternAtomOp(IswDisplayOf(newW),
                                                              "_NET_WM_STATE", False);
                 Atom net_wm_state_hidden = _IswPlatformInternAtomOp(

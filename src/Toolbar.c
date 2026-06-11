@@ -456,9 +456,6 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
     if (request->request_mode == 0)
         return IswGeometryNo;
 
-    /* Save requested sizes, then let Xt apply them.
-     * We must NOT pre-set core fields — DoLayout calls IswConfigureWidget,
-     * which skips the xcb_configure_window if it sees no delta. */
     Dimension save_w = child->core.width;
     Dimension save_h = child->core.height;
     Dimension save_bw = child->core.border_width;

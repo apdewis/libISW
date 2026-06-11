@@ -1047,38 +1047,6 @@ GetLanguage(IswDisplay dpy, IswPerDisplay pd)
     UNLOCK_PROCESS;
 }
 
-//
-//static void
-//ProcessInternalConnection(IswPointer client_data,
-//                          int *fd,
-//                          IswInputId *id _X_UNUSED)
-//{
-//    XProcessInternalConnection((xcb_connection_t *) client_data, *fd);
-//}
-
-//static void
-//ConnectionWatch(xcb_connection_t *dpy,
-//                IswPointer client_data,
-//                int fd,
-//                Bool opening,
-//                IswPointer *watch_data)
-//{
-//    IswInputId *iptr;
-//    IswAppContext app = IswDisplayToApplicationContext(dpy);
-//
-//    if (opening) {
-//        iptr = (IswInputId *) __XtMalloc(sizeof(IswInputId));
-//        *iptr = IswAppAddInput(app, fd, (IswPointer) IswInputReadMask,
-//                              ProcessInternalConnection, client_data);
-//        *watch_data = (IswPointer) iptr;
-//    }
-//    else {
-//        iptr = (IswInputId *) *watch_data;
-//        IswRemoveInput(*iptr);
-//        (void) IswFree(*watch_data);
-//    }
-//}
-
 double
 _IswGetScaleFactor(IswDisplay dpy)
 {

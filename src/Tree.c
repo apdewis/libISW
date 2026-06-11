@@ -1026,10 +1026,6 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
                                    tw->core.width, tw->core.height);
             ISWRenderEnd(tw->tree.render_ctx);
         }
-        /* Repaint the tree lines (Redisplay) and the windowless child widgets,
-           then composite the ancestor once.  Tree is windowless, so
-           xcb_clear_area(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(tw)), (Widget)(tw))) would blank the shared ancestor window
-           instead of just this widget's area. */
         if (tw->core.windowless) {
             _IswRepaintWindowless((Widget)tw);
         } else {

@@ -72,10 +72,6 @@ static void MenuPopdownCB(Widget, IswPointer, IswPointer);
 static void OutsideClickHandler(Widget, IswPointer, IswEvent *, Boolean *);
 static Widget FindToplevelShell(Widget);
 
-/* Override SimpleMenu translations for menubar-owned menus.
- * <Motion> is needed because menubar menus run under our own xcb_grab_pointer
- * (IswGrabNone at popup time); <BtnMotion> only fires while a button is held.
- * <Btn4Down>/<Btn5Down> make the scroll wheel dismiss the menu. */
 static char menuBarMenuTranslations[] =
     "<EnterWindow>:     highlight()             \n\
      <LeaveWindow>:     unhighlight()           \n\

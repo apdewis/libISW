@@ -219,11 +219,6 @@ redraw_widget(Widget w)
 {
     if (!w || !IswIsRealized(w)) return;
     if (w->core.windowless) {
-        /* Windowless: repaint our own surface and composite the ancestor.
-         * xcb_clear_area(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))) would resolve to the shared windowed
-         * ancestor and blank the whole panel.  The windowless paint path
-         * already drives expose with a NULL event safely (widgets that
-         * dereference it, e.g. Text, guard for event == NULL). */
         _IswRepaintWindowless(w);
         return;
     }

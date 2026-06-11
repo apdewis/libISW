@@ -76,13 +76,6 @@ SOFTWARE.
 #include <xcb/xproto.h>
 #include <ISW/ISWPlatform.h>
 
-
-/* Forward declarations for Xmu functions that need XCB replacements */
-/* XmuCvtStringToJustify signature must match IswConverter */
-//extern void XmuCvtStringToJustify(XrmValue*, Cardinal*, XrmValue*, XrmValue*);
-//extern xcb_pixmap_t XmuCreateStippledPixmap(xcb_screen_t*, Pixel, Pixel, unsigned int);
-//extern void XmuReleaseStippledPixmap(Screen*, xcb_pixmap_t);
-
 /* needed for abs() */
 #ifndef X_NOT_STDC_ENV
 #include <stdlib.h>

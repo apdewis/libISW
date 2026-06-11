@@ -79,10 +79,6 @@ in this Software without prior written authorization from The Open Group.
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
-#include <xcb/xproto.h>
-
 
 #ifdef XTHREADS
 void (*_IswProcessLock) (void) = NULL;
@@ -290,9 +286,6 @@ IswOpenDisplay(IswAppContext app,
     IswDatabaseHandle db = NULL;
     String language = NULL;
 
-    /* Select the backend as the first act of init — before any connection
-     * exists — so connection setup (open/screen probing/close) goes through
-     * the vtable rather than calling xcb_connect directly here. */
     const IswPlatformOps *ops = _IswPlatformSelectBackend();
 
     LOCK_APP(app);
@@ -432,7 +425,7 @@ IswDisplayInitialize(IswAppContext app,
     LOCK_APP(app);
     /* IswDisplayInitialize doesn't receive a screen number; default to 0.
      * If the caller needs a specific screen, they should use IswOpenDisplay
-     * which captures the screen number from xcb_connect(). */
+     * which captures the screen number */
     pd = InitPerDisplay(dpy, 0, app, name, classname,
                         _IswPlatformSelectBackend());
     LOCK_PROCESS;

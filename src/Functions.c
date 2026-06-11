@@ -169,11 +169,6 @@ IswMapWidget(Widget w)
     WIDGET_TO_APPCON(w);
 
     LOCK_APP(app);
-    /* Windowless widgets have no X window to map.  windowless_mapped is the
-       live equivalent of "the window is mapped" — the shown state the
-       composite/paint/hit-test walks gate on.  Set it (mirroring xcb_map_window
-       on a real window) and re-composite the windowed ancestor so the now-shown
-       widget appears.  Mapping the shared ancestor window here would be wrong. */
     if (IswIsWidget(w)) {
         w->core.windowless_mapped = True;
         /* The app has explicitly mapped this widget; clear any prior explicit

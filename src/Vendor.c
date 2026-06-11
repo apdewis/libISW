@@ -71,10 +71,6 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
-/* XCB_ATOM_COMPOUND_TEXT stub - simple atom value for compound text */
-#ifndef XCB_ATOM_COMPOUND_TEXT
-#define XCB_ATOM_COMPOUND_TEXT(dpy) XCB_ATOM_STRING
-#endif
 #include <ISW/VendorP.h>
 #include <ISW/FocusMgrI.h>
 
@@ -267,42 +263,6 @@ externaldef(vendorshellextclassrec) IswVendorShellExtClassRec
 
 externaldef(xawvendorshellwidgetclass) WidgetClass
      xawvendorShellExtWidgetClass = (WidgetClass) (&xawvendorShellExtClassRec);
-
-
-/* IswCvtCompoundTextToString - commented out for XCB port
- * Text property conversion is complex in XCB and rarely used */
-#if 0
-/*ARGSUSED*/
-static Boolean
-IswCvtCompoundTextToString(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
-                           XrmValue *fromVal, XrmValue *toVal, IswPointer *cvt_data)
-{
-    XTextProperty prop;
-    char **list;
-    int count;
-    static char *mbs = NULL;
-    int len;
-
-    prop.value = (unsigned char *)fromVal->addr;
-    prop.encoding = XCB_ATOM_COMPOUND_TEXT(dpy);
-    prop.format = 8;
-    prop.nitems = fromVal->size;
-
-    if(XmbTextPropertyToTextList(dpy, &prop, &list, &count) < Success) {
-	IswAppWarningMsg(IswDisplayToApplicationContext((IswDisplay) dpy),
-	"converter", "XmbTextPropertyToTextList", "IswError",
-	"conversion from CT to MB failed.", NULL, 0);
-	return False;
-    }
-    len = strlen(*list);
-    toVal->size = len;
-    mbs = IswRealloc(mbs, len + 1); /* keep buffer because no one call free :( */
-    strcpy(mbs, *list);
-    XFreeStringList(list);
-    toVal->addr = (IswPointer)mbs;
-    return True;
-}
-#endif /* 0 */
 
 #ifndef ParentRelative
 #define ParentRelative 1L

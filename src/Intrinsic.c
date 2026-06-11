@@ -175,10 +175,6 @@ ComputeWindowAttributes(Widget widget,
     uint32_t mask = 0;
     uint32_t value_index = 0;
 
-    /* IMPORTANT: XCB requires value_list entries to be in ascending bit-order
-     * of the value_mask (lowest bit first).  The order here must match the
-     * XCB_CW_* bit positions exactly. */
-
     /* IswCWBackPixmap (bit 0) or IswCWBackPixel (bit 1) */
     if (widget->core.background_pixmap != IswUnspecifiedPixmap) {
         mask |= IswCWBackPixmap;
