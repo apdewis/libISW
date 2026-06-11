@@ -943,9 +943,9 @@ extern int IswGetMultiClickTime(
 );
 
 extern IswKeySym IswGetActionKeysym(
-    xcb_generic_event_t*		/* event */,
+    IswEvent*		/* event */,
     Modifiers*		/* modifiers_return */,
-    IswDisplay 
+    IswDisplay
 );
 
 /***************************************************************

@@ -73,46 +73,23 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 
-xcb_keysym_t
-IswGetActionKeysym(xcb_generic_event_t *event, Modifiers *modifiers_return, IswDisplay dpy)
+IswKeySym
+IswGetActionKeysym(IswEvent *event, Modifiers *modifiers_return,
+                   IswDisplay dpy _X_UNUSED)
 {
-    TMKeyContext tm_context;
-    Modifiers modifiers;
-    xcb_keysym_t keysym, retval;
-    xcb_key_press_event_t *kp_event;
-
-    LOCK_PROCESS;
-    
-    switch(event->response_type & ~0x80) {
-        case XCB_KEY_PRESS:
-        case XCB_KEY_RELEASE:
-            kp_event = (xcb_key_press_event_t *) event; //cast event to the right type
-            break;
-        default:
-            UNLOCK_PROCESS;
-            free(event);
-            return NoSymbol;
-    }
-
-    tm_context = _IswGetPerDisplay((IswDisplay) dpy)->tm_context;
-    if (tm_context != NULL
-        && event == tm_context->event
-        && event->full_sequence == tm_context->serial) {
+    if (event == NULL ||
+        (event->kind != IswKeyDown && event->kind != IswKeyUp)) {
         if (modifiers_return != NULL)
-            *modifiers_return = tm_context->modifiers;
-        retval = tm_context->keysym;
-        free(event);
-        UNLOCK_PROCESS;
-        return retval;
+            *modifiers_return = 0;
+        return NoSymbol;
     }
 
-    IswTranslateKeycode(dpy, (xcb_keycode_t)kp_event->detail,
-                       kp_event->state, &modifiers, &keysym);
-
+    /* The backend already translated keycode+state into the neutral key
+       identity and effective modifiers when it built the event, so the
+       keysym the action saw is simply the event's key field — no second
+       translation (and no per-display keysym cache) is needed here. */
     if (modifiers_return != NULL)
-        *modifiers_return = kp_event->state & modifiers;
+        *modifiers_return = event->key.modifiers;
 
-    free(event);
-    UNLOCK_PROCESS;
-    return keysym;
+    return (IswKeySym) event->key.key;
 }
