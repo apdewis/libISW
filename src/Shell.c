@@ -898,7 +898,7 @@ Initialize(Widget req _X_UNUSED,
             w->shell.client_specified |= _IswShellPPositionOK;
     }
 
-    IswAddEventHandler(new, (EventMask) XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+    IswAddEventHandler(new, (EventMask) IswStructureNotifyMask,
                       TRUE, EventHandler, (IswPointer) NULL);
 }
 
@@ -1576,28 +1576,28 @@ EventHandler(Widget wid,
              IswEvent *iswev,
              Boolean *continue_to_dispatch _X_UNUSED)
 {
-    ISW_NATIVE_EVENT(iswev);   /* WM configure/client-message: backend-internal */
     register ShellWidget w = (ShellWidget) wid;
     WMShellWidget wmshell = (WMShellWidget) w;
     Boolean sizechanged = FALSE;
 
-    switch (event->response_type) {
-    case XCB_CONFIGURE_NOTIFY: {
-        xcb_configure_notify_event_t * cne = (xcb_configure_notify_event_t *)event;
-        if (_IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))) != cne->window)
-            return;             /* in case of SubstructureNotify */
-        /* ConfigureNotify values are already descaled to logical pixels
-         * by _IswDescaleEventCoords in the event dispatcher. */
-        if (w->core.width != cne->width || w->core.height != cne->height ||
-            w->core.border_width != cne->border_width) {
+    switch (iswev->kind) {
+    case IswGeometry: {
+        /* The event is routed to this shell; its target is this widget.  Guard
+           against a configure for some other widget (substructure). */
+        if (iswev->any.target != (IswEventTarget) (void *) wid)
+            return;
+        /* geometry.* are logical pixels (already descaled by the dispatcher). */
+        if (w->core.width != iswev->geometry.width ||
+            w->core.height != iswev->geometry.height ||
+            w->core.border_width != iswev->geometry.border_width) {
             sizechanged = TRUE;
-            w->core.width = (Dimension) cne->width;
-            w->core.height = (Dimension) cne->height;
-            w->core.border_width = (Dimension) cne->border_width;
+            w->core.width = (Dimension) iswev->geometry.width;
+            w->core.height = (Dimension) iswev->geometry.height;
+            w->core.border_width = (Dimension) iswev->geometry.border_width;
         }
         if (w->shell.client_specified & _IswShellNotReparented) {
-            w->core.x = (Position) cne->x;
-            w->core.y = (Position) cne->y;
+            w->core.x = (Position) iswev->geometry.x;
+            w->core.y = (Position) iswev->geometry.y;
             w->shell.client_specified |= _IswShellPositionValid;
         }
         else
@@ -1615,28 +1615,27 @@ EventHandler(Widget wid,
         break;
     }
 
-    case XCB_REPARENT_NOTIFY:
-        xcb_reparent_notify_event_t *rne = (xcb_reparent_notify_event_t *)event;
-        if (rne->window == _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)))) {
-            if (rne->parent != RootWindowOfScreen(_IswXcbScreen(IswScreenOf(w))))
+    case IswReparent:
+        if (iswev->any.target == (IswEventTarget) (void *) wid) {
+            if (!iswev->reparent.to_root)
                 w->shell.client_specified &=
                     ~(_IswShellNotReparented | _IswShellPositionValid);
             else {
-                w->core.x = (Position) rne->x;
-                w->core.y = (Position) rne->y;
+                w->core.x = (Position) iswev->reparent.x;
+                w->core.y = (Position) iswev->reparent.y;
                 w->shell.client_specified |=
                     (_IswShellNotReparented | _IswShellPositionValid);
             }
         }
         return;
 
-    case XCB_MAP_NOTIFY:
+    case IswMap:
         if (IswIsTopLevelShell(wid)) {
             ((TopLevelShellWidget) wid)->topLevel.iconic = FALSE;
         }
         return;
 
-    case XCB_UNMAP_NOTIFY:
+    case IswUnmap:
     {
         IswPerDisplayInput pdi;
         IswDevice device;
