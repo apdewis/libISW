@@ -73,6 +73,12 @@ typedef enum {
     ISW_STACK_BELOW
 } IswStackMode;
 
+/* Window class passed to the window-create op (values match the X11 wire
+   protocol so the XCB backend forwards them directly). */
+#define ISW_WINDOW_CLASS_COPY_FROM_PARENT  0u
+#define ISW_WINDOW_CLASS_INPUT_OUTPUT      1u
+#define ISW_WINDOW_CLASS_INPUT_ONLY        2u
+
 /* Property change mode (Phase 6).  Numerically the XCB_PROP_MODE_* values. */
 typedef enum {
     ISW_PROP_MODE_REPLACE = 0,
@@ -745,6 +751,8 @@ extern const IswPlatformOps *_IswPlatformSelectBackend(void);
 extern int       _IswPlatformConnectionFd(IswDisplay dpy);
 extern IswScreen _IswDefaultScreenOf(IswDisplay dpy);
 extern IswWindow _IswDefaultRootWindow(IswDisplay dpy);
+extern uint32_t  _IswPlatformScreenWidth(IswDisplay dpy, IswScreen screen);
+extern uint32_t  _IswPlatformScreenHeight(IswDisplay dpy, IswScreen screen);
 extern void     *_IswPlatformPollEvent(IswDisplay dpy);
 extern void     *_IswPlatformPollQueuedEvent(IswDisplay dpy);
 extern Boolean   _IswPlatformDisplayHasError(IswDisplay dpy);

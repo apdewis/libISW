@@ -438,24 +438,7 @@ ChangeManaged(Widget widget)
 			   rendering/clipping handle it. */
 			IswRealizeWidget( child );
 		    }
-		    else {
-			xcb_window_t window = _IswXcbWindow(IswWindowOf(w));
-			/* this is dirty, but it saves the following code:
-			   temporarily make clip the child's parent window. */
-			w->core.window = IswWindowOf(w->viewport.clip);
-			IswRealizeWidget( child );
-			w->core.window = _IswXcbWindowWrap(window);
-		    }
 		    constraints->viewport.reparented = True;
-		}
-		else if (!constraints->viewport.reparented
-			 && !child->core.windowless) {
-		    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(w));
-		    xcb_reparent_window(conn, _IswXcbWindow(IswWindowOf(child)),
-				     _IswXcbWindow(IswWindowOf(w->viewport.clip)), 0, 0);
-		    constraints->viewport.reparented = True;
-		    if (child->core.mapped_when_managed)
-			IswMapWidget( child );
 		}
 	    }
 	    GetGeometry( widget, child->core.width, child->core.height );

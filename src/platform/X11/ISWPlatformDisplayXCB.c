@@ -561,6 +561,24 @@ _IswDefaultRootWindow(IswDisplay dpy)
     return _IswXcbWindowWrap(0);
 }
 
+uint32_t
+_IswPlatformScreenWidth(IswDisplay dpy, IswScreen screen)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->screen_width)
+        return ops->display->screen_width(screen);
+    return 0;
+}
+
+uint32_t
+_IswPlatformScreenHeight(IswDisplay dpy, IswScreen screen)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->screen_height)
+        return ops->display->screen_height(screen);
+    return 0;
+}
+
 /* Connection health + flush wrappers (Phase 11a) — used by the event loop.
    Recover ops from the per-display record (loop runs post-registration). */
 Boolean

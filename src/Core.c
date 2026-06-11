@@ -82,7 +82,6 @@ in this Software without prior written authorization from The Open Group.
 #include "RectObjP.h"
 #include "ThreadsI.h"
 #include "StringDefs.h"
-#include "ISWPlatformPrivate.h"
 
 /******************************************************************
  *
@@ -95,9 +94,6 @@ int _IswInheritTranslations = 0;
 extern String IswCIswToolkitError;        /* from IntrinsicI.h */
 static void
 IswCopyScreen(Widget, int, XrmValue *);
-
-#define IswNwindowless "windowless"
-#define IswCWindowless "Windowless"
 
 static IswResource resources[] = {
     {IswNscreen, IswCScreen, IswRScreen, sizeof(xcb_screen_t *),
@@ -125,9 +121,6 @@ parameter is not passed through to the IswRCallProc routines */
     {IswNmappedWhenManaged, IswCMappedWhenManaged, IswRBoolean, sizeof(Boolean),
      IswOffsetOf(CoreRec, core.mapped_when_managed),
      IswRImmediate, (IswPointer) True},
-    {IswNwindowless, IswCWindowless, IswRBoolean, sizeof(Boolean),
-     IswOffsetOf(CoreRec, core.windowless),
-     IswRImmediate, (IswPointer) False},
     {IswNtranslations, IswCTranslations, IswRTranslationTable,
      sizeof(IswTranslations), IswOffsetOf(CoreRec, core.tm.translations),
      IswRTranslationTable, (IswPointer) NULL},
@@ -291,6 +284,11 @@ CoreInitialize(Widget requested_widget _X_UNUSED,
 {
     IswTranslations save1, save2;
 
+    /* Every widget is windowless: it draws into its nearest windowed ancestor
+       (a shell's root surface) and never owns an X window.  This is the only
+       supported model, so it is set unconditionally rather than via a resource. */
+    new_widget->core.windowless = True;
+
     new_widget->core.event_table = NULL;
     new_widget->core.tm.proc_table = NULL;
     new_widget->core.tm.lastEventTime = 0;
@@ -309,20 +307,11 @@ CoreInitialize(Widget requested_widget _X_UNUSED,
 }
 
 static void
-CoreRealize(IswDisplay display,
-            Widget widget,
-            IswValueMask *value_mask,
-            uint32_t *attributes)
+CoreRealize(IswDisplay display _X_UNUSED,
+            Widget widget _X_UNUSED,
+            IswValueMask *value_mask _X_UNUSED,
+            uint32_t *attributes _X_UNUSED)
 {
-    if (widget->core.windowless) {
-        /* No own X window: draw into the nearest windowed ancestor.
-           Leave core.window == None; IswWindowOf() resolves through the
-           ancestor.  display/screen/depth/colormap already copy from
-           the parent via the Core resource defaults. */
-        return;
-    }
-    IswCreateWindow(display, widget, (unsigned int) XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                   (IswVisual) CopyFromParent, *value_mask, attributes);
 }                               /* CoreRealize */
 
 static void
@@ -330,14 +319,12 @@ CoreDestroy(Widget widget)
 {
     _IswFreeEventTable(&widget->core.event_table);
     _IswDestroyTMData(widget);
-    IswUnregisterDrawable(IswDisplayOf(widget), _IswXcbWindow(widget->core.window));
 
     if (widget->core.popup_list != NULL)
         IswFree((char *) widget->core.popup_list);
 
 }                               /* CoreDestroy */
 
-//#TODO LLM rewrite, human review required
 static Boolean
 CoreSetValues(Widget old,
               Widget reference _X_UNUSED,
@@ -345,96 +332,38 @@ CoreSetValues(Widget old,
               ArgList args _X_UNUSED,
               Cardinal *num_args _X_UNUSED)
 {
-    Boolean redisplay;
-    uint32_t window_mask;
-    uint32_t *values;
-    int vi;
-    xcb_connection_t *conn;
-    redisplay = FALSE;
-    
+    Boolean redisplay = FALSE;
+
     if (old->core.tm.translations != new->core.tm.translations) {
         IswTranslations save = new->core.tm.translations;
         new->core.tm.translations = old->core.tm.translations;
         _IswMergeTranslations(new, save, IswTableReplace);
     }
-    
-    /* Check everything that depends upon window being realized */
-    if (IswIsRealized(old) && !new->core.windowless) {
-        window_mask = 0;
-        vi = 0;
-        conn = _IswXcbConn(IswDisplayOf(new));
-        values = (uint32_t*)malloc(sizeof(uint32_t) * 32);
 
-        /* Check window attributes */
-        if (old->core.background_pixel != new->core.background_pixel
-            && new->core.background_pixmap == IswUnspecifiedPixmap) {
-            values[vi++] = new->core.background_pixel;
-            window_mask |= XCB_CW_BACK_PIXEL;
+    /* Widgets are windowless: there is no X window whose attributes to change.
+       The widget draws into its windowed ancestor, so a background change just
+       needs a repaint via the widget's own expose. */
+    if (IswIsRealized(old)) {
+        if ((old->core.background_pixel != new->core.background_pixel
+             && new->core.background_pixmap == IswUnspecifiedPixmap)
+            || old->core.background_pixmap != new->core.background_pixmap) {
             redisplay = TRUE;
         }
-        if (old->core.background_pixmap != new->core.background_pixmap) {
-            if (new->core.background_pixmap == IswUnspecifiedPixmap) {
-                values[vi++] = new->core.background_pixel;
-                window_mask |= XCB_CW_BACK_PIXEL;
-            }
-            else {
-                values[vi++] = new->core.background_pixmap;
-                window_mask &= ~(XCB_CW_BACK_PIXEL);
-                window_mask |= XCB_CW_BACK_PIXMAP;
-            }
-            redisplay = TRUE;
-        }
-        if (old->core.border_pixel != new->core.border_pixel
-            && new->core.border_pixmap == IswUnspecifiedPixmap) {
-            values[vi++] = new->core.border_pixel;
-            window_mask |= XCB_CW_BORDER_PIXEL;
-        }
-        if (old->core.border_pixmap != new->core.border_pixmap) {
-            if (new->core.border_pixmap == IswUnspecifiedPixmap) {
-                values[vi++] = new->core.border_pixel;
-                window_mask |= XCB_CW_BORDER_PIXEL;
-            }
-            else {
-                values[vi++] = new->core.border_pixmap;
-                window_mask &= ~(XCB_CW_BORDER_PIXEL);
-                window_mask |= XCB_CW_BORDER_PIXMAP;
-            }
-        }
+
         if (old->core.depth != new->core.depth) {
             IswAppWarningMsg(IswWidgetToApplicationContext(old),
                             "invalidDepth", "setValues", IswCIswToolkitError,
                             "Can't change widget depth", NULL, NULL);
             new->core.depth = old->core.depth;
         }
-        if (old->core.colormap != new->core.colormap) {
-            window_mask |= XCB_CW_COLORMAP;
-            values[vi++] = _IswXcbColormap(new->core.colormap);
-        }
-        
-        if (window_mask != 0) {
-            /* Actually change XCB window attributes */
-            xcb_change_window_attributes(conn, _IswXcbWindow(IswWindowOf(new)), window_mask, values);
-            //#TODO batching/error handling here?
-        }
+
         if (old->core.mapped_when_managed != new->core.mapped_when_managed) {
             Boolean mapped_when_managed = new->core.mapped_when_managed;
             new->core.mapped_when_managed = !mapped_when_managed;
             IswSetMappedWhenManaged(new, mapped_when_managed);
         }
-        
-        free(values);
-    }                           /* if realized */
-    else if (IswIsRealized(old) && new->core.windowless) {
-        /* No own X window: IswWindowOf() resolves to the windowed ancestor,
-           so writing window attributes here would repaint the ancestor.
-           Just request a repaint into the ancestor via the widget's own
-           expose.  Mirrors the windowless branch in CoreRealize. */
-        if ((old->core.background_pixel != new->core.background_pixel
-             && new->core.background_pixmap == IswUnspecifiedPixmap)
-            || old->core.background_pixmap != new->core.background_pixmap) {
-            redisplay = TRUE;
-        }
     }
+
     return redisplay;
 }                               /* CoreSetValues */
 

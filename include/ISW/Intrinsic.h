@@ -265,6 +265,13 @@ typedef struct {
 /* Additions to Xlib geometry requests: ask what would happen, don't do it */
 #define IswCWQueryOnly	(1 << 7)
 
+/* Stack modes for IswWidgetGeometry.stack_mode (values match the X11 wire
+   protocol so the backend forwards them directly). */
+#define IswSMAbove	0
+#define IswSMBelow	1
+#define IswSMTopIf	2
+#define IswSMBottomIf	3
+#define IswSMOpposite	4
 /* Additions to Xlib stack modes: don't change stack order */
 #define IswSMDontChange	5
 
@@ -333,6 +340,37 @@ typedef void (*IswEventHandler)(
     Boolean*		/* continue_to_dispatch */
 );
 typedef unsigned long EventMask;
+
+/* Neutral event-selection mask bits for IswAddEventHandler / window event
+   masks.  Values match the X11 wire protocol so the XCB backend forwards them
+   directly; toolkit and widget code names these instead of any XCB_EVENT_MASK_*
+   symbol. */
+#define IswNoEventMask			0L
+#define IswKeyPressMask			(1L<<0)
+#define IswKeyReleaseMask		(1L<<1)
+#define IswButtonPressMask		(1L<<2)
+#define IswButtonReleaseMask		(1L<<3)
+#define IswEnterWindowMask		(1L<<4)
+#define IswLeaveWindowMask		(1L<<5)
+#define IswPointerMotionMask		(1L<<6)
+#define IswPointerMotionHintMask	(1L<<7)
+#define IswButton1MotionMask		(1L<<8)
+#define IswButton2MotionMask		(1L<<9)
+#define IswButton3MotionMask		(1L<<10)
+#define IswButton4MotionMask		(1L<<11)
+#define IswButton5MotionMask		(1L<<12)
+#define IswButtonMotionMask		(1L<<13)
+#define IswKeymapStateMask		(1L<<14)
+#define IswExposureMask			(1L<<15)
+#define IswVisibilityChangeMask		(1L<<16)
+#define IswStructureNotifyMask		(1L<<17)
+#define IswResizeRedirectMask		(1L<<18)
+#define IswSubstructureNotifyMask	(1L<<19)
+#define IswSubstructureRedirectMask	(1L<<20)
+#define IswFocusChangeMask		(1L<<21)
+#define IswPropertyChangeMask		(1L<<22)
+#define IswColormapChangeMask		(1L<<23)
+#define IswOwnerGrabButtonMask		(1L<<24)
 
 typedef enum {IswListHead, IswListTail } IswListPosition;
 
