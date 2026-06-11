@@ -222,7 +222,6 @@ set(LIBXT_SOURCES
     src/Selection.c
     src/SetSens.c
     src/SetValues.c
-    src/SetWMCW.c
     src/Shell.c
     src/Threads.c
     src/TMaction.c

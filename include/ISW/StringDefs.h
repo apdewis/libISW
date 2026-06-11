@@ -296,7 +296,6 @@ SOFTWARE.
 #define IswHoverrideTranslations "IswoverrideTranslations"
 #define IswHuninstallTranslations "IswuninstallTranslations"
 #define IswHsetKeyboardFocus "IswsetKeyboardFocus"
-#define IswHsetWMColormapWindows "IswsetWMColormapWindows"
 #define IswHsetMappedWhenManaged "IswsetMappedWhenManaged"
 #define IswHmapWidget "IswmapWidget"
 #define IswHunmapWidget "IswunmapWidget"

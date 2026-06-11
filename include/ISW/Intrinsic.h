@@ -2085,12 +2085,6 @@ extern void IswCallbackReleaseCacheRefList(
     IswPointer 		/* call_data */
 );
 
-extern void IswSetWMColormapWindows(
-    Widget 		/* widget */,
-    Widget*		/* list */,
-    Cardinal		/* count */
-);
-
 extern _IswString IswFindFile(
     _Xconst _IswString	/* path */,
     Substitution	/* substitutions */,
