@@ -74,7 +74,7 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include "StringDefs.h"
 #include "SelectionI.h"
-#include "ContextI.h"
+#include "ISWContextI.h"
 #include <stdio.h>
 #include <ISW/ISWPlatform.h>
 
@@ -124,9 +124,9 @@ static void HandleGetIncrement(Widget, IswPointer,IswEvent *, Boolean *);
 static void HandleIncremental(IswDisplay, Widget, IswSelectionId, CallBackInfo,
                               unsigned long);
 
-static IswContext selectPropertyContext = NULL;
-static IswContext paramPropertyContext = NULL;
-static IswContext multipleContext = NULL;
+static XContext selectPropertyContext = 0;
+static XContext paramPropertyContext = 0;
+static XContext multipleContext = 0;
 
 /* Multiple utilities */
 static void AddSelectionRequests(Widget, IswSelectionId, int, IswSelectionId *,
@@ -339,7 +339,7 @@ RequestSelectionValue(CallBackInfo info, IswSelectionId selection,
         selection, target, info->property, info->time);
 }
 
-static IswContext selectContext = NULL;
+static XContext selectContext = 0;
 
 static Select
 NewContext(IswDisplay dpy, IswSelectionId selection)
@@ -415,7 +415,7 @@ LoseSelection(Select ctx, Widget widget, IswSelectionId selection, IswTime time)
         return (FALSE);
 }
 
-static IswContext selectWindowContext = NULL;
+static XContext selectWindowContext = 0;
 
 /* %%% Xlib.h should make this public! */
 //typedef int (*xErrorHandler) (xcb_connection_t *, XErrorEvent *);

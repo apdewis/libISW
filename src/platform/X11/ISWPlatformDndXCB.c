@@ -34,7 +34,7 @@
 #include <ISW/StringDefs.h>
 #include <ISW/IswDragDrop.h>
 #include <ISW/ISWPlatform.h>
-#include <ISW/ISWContext.h>
+#include "ISWContextI.h"
 #include <ISW/IconView.h>
 #include <ISW/ViewportP.h>
 #include <ISW/ISWRender.h>

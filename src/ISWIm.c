@@ -64,7 +64,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/TextP.h>
 #include <ISW/ISWImP.h>
 #include <ISW/VendorEP.h>
-#include <ISW/ISWContext.h>
 #include <ISW/ResourceI.h>
 #include <ISW/VarargsI.h>
 #include <ISW/IswArgMacros.h>

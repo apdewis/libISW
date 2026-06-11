@@ -27,6 +27,8 @@
 
 #include "IntrinsicI.h"
 #include "ISWPlatformPrivate.h"
+#include "ISWContextI.h"
+#include "uthash.h"
 
 /* ---- cursor value handle (the internal seam) ----------------------------- */
 
@@ -465,3 +467,95 @@ const IswPlatformSelectionOps isw_platform_xcb_selection_ops = {
     .send_notify        = xcb_sel_send_notify,
     .max_transfer_bytes = xcb_sel_max_transfer_bytes,
 };
+
+/* ---- resource-id → data context table ------------------------------------ *
+ *
+ * XCB replacement for Xlib's XSaveContext/XFindContext/XDeleteContext: a
+ * generic {resource-id, context} → data side table (uthash).  It lives here
+ * because its only users are the X11 selection-transfer bookkeeping in
+ * Selection.c (state attached to foreign requestor windows/atoms the toolkit
+ * does not own) and the X11 XDND backend — both X11-protocol concerns.  The
+ * IswDisplay parameter is carried only for Xlib API shape; the table is keyed
+ * purely on {id, context}.
+ */
+
+typedef struct _IswContextKey {
+    XID      id;         /* window or resource id */
+    XContext context;    /* context identifier    */
+} IswContextKey;
+
+typedef struct _IswContextEntry {
+    IswContextKey  key;  /* composite key (must be first for HASH_FIND) */
+    IswPointer     data;
+    UT_hash_handle hh;
+} IswContextEntry;
+
+static IswContextEntry *context_table = NULL;
+static XContext         next_context_id = 1;
+
+XContext
+IswUniqueContext(void)
+{
+    return next_context_id++;
+}
+
+int
+IswSaveContext(IswDisplay dpy _X_UNUSED, XID id, XContext context, IswPointer data)
+{
+    IswContextEntry *entry;
+    IswContextKey key;
+
+    key.id = id;
+    key.context = context;
+
+    HASH_FIND(hh, context_table, &key, sizeof(IswContextKey), entry);
+    if (entry != NULL) {
+        entry->data = data;
+        return 0;
+    }
+
+    entry = (IswContextEntry *) malloc(sizeof(IswContextEntry));
+    if (entry == NULL)
+        return 1;
+
+    entry->key = key;
+    entry->data = data;
+    HASH_ADD(hh, context_table, key, sizeof(IswContextKey), entry);
+    return 0;
+}
+
+int
+IswFindContext(IswDisplay dpy _X_UNUSED, XID id, XContext context,
+               IswPointer *data_return)
+{
+    IswContextEntry *entry;
+    IswContextKey key;
+
+    key.id = id;
+    key.context = context;
+
+    HASH_FIND(hh, context_table, &key, sizeof(IswContextKey), entry);
+    if (entry != NULL) {
+        *data_return = entry->data;
+        return 0;
+    }
+    return 1;
+}
+
+int
+IswDeleteContext(IswDisplay dpy _X_UNUSED, XID id, XContext context)
+{
+    IswContextEntry *entry;
+    IswContextKey key;
+
+    key.id = id;
+    key.context = context;
+
+    HASH_FIND(hh, context_table, &key, sizeof(IswContextKey), entry);
+    if (entry != NULL) {
+        HASH_DEL(context_table, entry);
+        free(entry);
+        return 0;
+    }
+    return 1;
+}
