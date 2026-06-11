@@ -84,8 +84,6 @@ in this Software without prior written authorization from The Open Group.
 #include "VendorP.h"
 #include <ISW/FocusMgrI.h>
 #include <ISW/SimpleP.h>
-#include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 
 #include <X11/cursorfont.h>
 #include <ISW/IswDragDrop.h>
@@ -151,7 +149,7 @@ static IswResource shellResources[]=
     { IswNoverrideRedirect, IswCOverrideRedirect,
         IswRBoolean, sizeof(Boolean), Offset(shell.override_redirect),
         IswRImmediate, (IswPointer)False},
-    { IswNvisual, IswCVisual, IswRVisual, sizeof(xcb_visualtype_t*),
+    { IswNvisual, IswCVisual, IswRVisual, sizeof(IswVisualId),
         Offset(shell.visual), IswRImmediate, (IswPointer)CopyFromParent}
 };
 /* *INDENT-ON* */
@@ -367,10 +365,10 @@ static IswResource wmResources[] =
         Offset(wm.wm_hints.input), IswRImmediate, (IswPointer)False},
     { IswNinitialState, IswCInitialState, IswRInitialState, sizeof(int),
         Offset(wm.wm_hints.initial_state),
-        IswRImmediate, (IswPointer)XCB_ICCCM_WM_STATE_NORMAL},
-    { IswNiconPixmap, IswCIconPixmap, IswRBitmap, sizeof(xcb_pixmap_t),
+        IswRImmediate, (IswPointer)IswWmStateNormalState},
+    { IswNiconPixmap, IswCIconPixmap, IswRBitmap, sizeof(IswPixmap),
         Offset(wm.wm_hints.icon_pixmap), IswRPixmap, NULL},
-    { IswNiconWindow, IswCIconWindow, IswRWindow, sizeof(xcb_window_t),
+    { IswNiconWindow, IswCIconWindow, IswRWindow, sizeof(IswWindow),
         Offset(wm.wm_hints.icon_window), IswRWindow,   (IswPointer) NULL},
     { IswNiconX, IswCIconX, IswRInt, sizeof(int),
         Offset(wm.wm_hints.icon_x),
@@ -378,9 +376,9 @@ static IswResource wmResources[] =
     { IswNiconY, IswCIconY, IswRInt, sizeof(int),
         Offset(wm.wm_hints.icon_y),
         IswRInt, (IswPointer) &default_unspecified_shell_int},
-    { IswNiconMask, IswCIconMask, IswRBitmap, sizeof(xcb_pixmap_t),
+    { IswNiconMask, IswCIconMask, IswRBitmap, sizeof(IswPixmap),
         Offset(wm.wm_hints.icon_mask), IswRPixmap, NULL},
-    { IswNwindowGroup, IswCWindowGroup, IswRWindow, sizeof(xcb_window_t),
+    { IswNwindowGroup, IswCWindowGroup, IswRWindow, sizeof(IswWindow),
         Offset(wm.wm_hints.window_group),
         IswRImmediate, (IswPointer)IswUnspecifiedWindow},
     { IswNclientLeader, IswCClientLeader, IswRWidget, sizeof(Widget),
@@ -714,8 +712,8 @@ WidgetClass applicationShellWidgetClass =
 
 static void SetWMProperties(Widget w, char *window_name, char *icon_name,
                      char **argv, int argc,
-                     xcb_size_hints_t *size_hints,
-                     xcb_icccm_wm_hints_t *wm_hints,
+                     IswSizeHints *size_hints,
+                     IswWmHints *wm_hints,
                      char *classhint_class, char *classhint_name) {
     
     // Set WM_NAME / _NET_WM_NAME (semantic title hint)
@@ -749,33 +747,33 @@ static void SetWMProperties(Widget w, char *window_name, char *icon_name,
  ****************************************************************************/
 
 static void
-ComputeWMSizeHints(WMShellWidget w, xcb_size_hints_t *hints)
+ComputeWMSizeHints(WMShellWidget w, IswSizeHints *hints)
 {
     register long flags;
     hints->flags = flags = w->wm.size_hints.flags;
     
 #define copy(field) hints->field = w->wm.size_hints.field
-    if (flags & (XCB_ICCCM_SIZE_HINT_US_POSITION | XCB_ICCCM_SIZE_HINT_P_POSITION)) {
+    if (flags & (IswSizeHintUSPosition | IswSizeHintPPosition)) {
         copy(x);
         copy(y);
     }
-    if (flags & (XCB_ICCCM_SIZE_HINT_US_SIZE | XCB_ICCCM_SIZE_HINT_P_SIZE)) {
+    if (flags & (IswSizeHintUSSize | IswSizeHintPSize)) {
         copy(width);
         copy(height);
     }
-    if (flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
+    if (flags & IswSizeHintPMinSize) {
         copy(min_width);
         copy(min_height);
     }
-    if (flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
+    if (flags & IswSizeHintPMaxSize) {
         copy(max_width);
         copy(max_height);
     }
-    if (flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) {
+    if (flags & IswSizeHintPResizeInc) {
         copy(width_inc);
         copy(height_inc);
     }
-    if (flags & XCB_ICCCM_SIZE_HINT_P_ASPECT) {
+    if (flags & IswSizeHintPAspect) {
         hints->min_aspect_num = w->wm.size_hints.min_aspect.x;
         hints->min_aspect_den = w->wm.size_hints.min_aspect.y;
         hints->max_aspect_num = w->wm.size_hints.max_aspect.x;
@@ -783,11 +781,11 @@ ComputeWMSizeHints(WMShellWidget w, xcb_size_hints_t *hints)
     }
 #undef copy
 #define copy(field) hints->field = w->wm.field
-    if (flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) {
+    if (flags & IswSizeHintBaseSize) {
         copy(base_width);
         copy(base_height);
     }
-    if (flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY)
+    if (flags & IswSizeHintPWinGravity)
         copy(win_gravity);
 #undef copy
 }
@@ -795,10 +793,10 @@ ComputeWMSizeHints(WMShellWidget w, xcb_size_hints_t *hints)
 static void
 _SetWMSizeHints(WMShellWidget w)
 {
-    xcb_size_hints_t *size_hints;
-    size_hints = calloc(1, sizeof(xcb_size_hints_t));
+    IswSizeHints *size_hints;
+    size_hints = calloc(1, sizeof(IswSizeHints));
     if (size_hints == NULL)
-        _IswAllocError("xcb_size_hints_t");
+        _IswAllocError("IswSizeHints");
 
     ComputeWMSizeHints(w, size_hints);
     _IswPlatformSetNormalHints(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
@@ -956,7 +954,7 @@ TopLevelInitialize(Widget req _X_UNUSED,
     }
 
     if (w->topLevel.iconic)
-        w->wm.wm_hints.initial_state = XCB_ICCCM_WM_STATE_ICONIC;
+        w->wm.wm_hints.initial_state = IswWmStateIconicState;
 }
 
 static _IswString *NewArgv(int, _IswString *);
@@ -1170,9 +1168,9 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
            widgets that don't set their own cursor inherit the theme's
            left_ptr instead of the X server's default glyph cursor. */
         {
-            xcb_cursor_t cursor = _IswLoadThemedCursor(
+            IswCursor cursor = _IswLoadThemedCursor(
                 IswDisplayOf(wid), wid->core.screen, "left_ptr", XC_left_ptr);
-            if (cursor != XCB_NONE)
+            if (cursor != IswCursorNone)
                 _IswSetWindowCursor(wid, cursor);
         }
     }
@@ -1195,12 +1193,12 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
 static void
 _SetTransientForHint(TransientShellWidget w, Boolean delete)
 {
-    xcb_window_t window_group;
+    IswWindow window_group;
 
     if (w->wm.transient) {
         if (w->transient.transient_for != NULL
             && IswIsRealized(w->transient.transient_for))
-            window_group = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w->transient.transient_for)), (Widget)(w->transient.transient_for)));
+            window_group = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w->transient.transient_for)), (Widget)(w->transient.transient_for));
         else if ((window_group = w->wm.wm_hints.window_group)
                  == IswUnspecifiedWindowGroup) {
             if (delete) {
@@ -1214,7 +1212,7 @@ _SetTransientForHint(TransientShellWidget w, Boolean delete)
 
         _IswPlatformSetTransientFor(IswDisplayOf((Widget) w),
                                     _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-                                    _IswXcbWindowWrap(window_group));
+                                    window_group);
     }
 }
 
@@ -1249,26 +1247,26 @@ GetClientLeader(Widget w)
 static void
 EvaluateWMHints(WMShellWidget w)
 {
-    xcb_icccm_wm_hints_t *hintp = &w->wm.wm_hints;
+    IswWmHints *hintp = &w->wm.wm_hints;
 
-    hintp->flags = XCB_ICCCM_WM_HINT_STATE | XCB_ICCCM_WM_HINT_INPUT;
+    hintp->flags = IswWmHintState | IswWmHintInput;
 
     if (hintp->icon_x == IswUnspecifiedShellInt)
         hintp->icon_x = -1;
     else
-        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_POSITION;
+        hintp->flags |= IswWmHintIconPosition;
 
     if (hintp->icon_y == IswUnspecifiedShellInt)
         hintp->icon_y = -1;
     else
-        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_POSITION;
+        hintp->flags |= IswWmHintIconPosition;
 
     if (hintp->icon_pixmap != None)
-        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_PIXMAP;
+        hintp->flags |= IswWmHintIconPixmap;
     if (hintp->icon_mask != None)
-        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_MASK;
+        hintp->flags |= IswWmHintIconMask;
     if (hintp->icon_window != None)
-        hintp->flags |= XCB_ICCCM_WM_HINT_ICON_WINDOW;
+        hintp->flags |= IswWmHintIconWindow;
 
     if (hintp->window_group == IswUnspecifiedWindow) {
         if (w->core.parent) {
@@ -1276,16 +1274,16 @@ EvaluateWMHints(WMShellWidget w)
 
             for (p = w->core.parent; p->core.parent; p = p->core.parent);
             if (IswIsRealized(p)) {
-                hintp->window_group = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p)));
-                hintp->flags |= XCB_ICCCM_WM_HINT_WINDOW_GROUP;
+                hintp->window_group = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p));
+                hintp->flags |= IswWmHintWindowGroup;
             }
         }
     }
     else if (hintp->window_group != IswUnspecifiedWindowGroup)
-        hintp->flags |= XCB_ICCCM_WM_HINT_WINDOW_GROUP;
+        hintp->flags |= IswWmHintWindowGroup;
 
     if (w->wm.urgency)
-        hintp->flags |= XCB_ICCCM_WM_HINT_X_URGENCY;
+        hintp->flags |= IswWmHintUrgency;
 }
 
 static void
@@ -1298,57 +1296,57 @@ EvaluateSizeHints(WMShellWidget w)
     sizep->width = w->core.width;
     sizep->height = w->core.height;
 
-    if (sizep->flags & XCB_ICCCM_SIZE_HINT_US_SIZE) {
-        if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_SIZE)
-            sizep->flags &= ~XCB_ICCCM_SIZE_HINT_P_SIZE;
+    if (sizep->flags & IswSizeHintUSSize) {
+        if (sizep->flags & IswSizeHintPSize)
+            sizep->flags &= ~IswSizeHintPSize;
     }
     else
-        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_SIZE;
+        sizep->flags |= IswSizeHintPSize;
 
-    if (sizep->flags & XCB_ICCCM_SIZE_HINT_US_POSITION) {
-        if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_POSITION)
-            sizep->flags &= ~XCB_ICCCM_SIZE_HINT_P_POSITION;
+    if (sizep->flags & IswSizeHintUSPosition) {
+        if (sizep->flags & IswSizeHintPPosition)
+            sizep->flags &= ~IswSizeHintPPosition;
     }
     else if (w->shell.client_specified & _IswShellPPositionOK)
-        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_POSITION;
+        sizep->flags |= IswSizeHintPPosition;
 
     if (sizep->min_aspect.x != IswUnspecifiedShellInt
         || sizep->min_aspect.y != IswUnspecifiedShellInt
         || sizep->max_aspect.x != IswUnspecifiedShellInt
         || sizep->max_aspect.y != IswUnspecifiedShellInt) {
-        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_ASPECT;
+        sizep->flags |= IswSizeHintPAspect;
     }
-    if (sizep->flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE
+    if (sizep->flags & IswSizeHintBaseSize
         || w->wm.base_width != IswUnspecifiedShellInt
         || w->wm.base_height != IswUnspecifiedShellInt) {
-        sizep->flags |= XCB_ICCCM_SIZE_HINT_BASE_SIZE;
+        sizep->flags |= IswSizeHintBaseSize;
         if (w->wm.base_width == IswUnspecifiedShellInt)
             w->wm.base_width = 0;
         if (w->wm.base_height == IswUnspecifiedShellInt)
             w->wm.base_height = 0;
     }
-    if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC
+    if (sizep->flags & IswSizeHintPResizeInc
         || sizep->width_inc != IswUnspecifiedShellInt
         || sizep->height_inc != IswUnspecifiedShellInt) {
         if (sizep->width_inc < 1)
             sizep->width_inc = 1;
         if (sizep->height_inc < 1)
             sizep->height_inc = 1;
-        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_RESIZE_INC;
+        sizep->flags |= IswSizeHintPResizeInc;
     }
-    if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE
+    if (sizep->flags & IswSizeHintPMaxSize
         || sizep->max_width != IswUnspecifiedShellInt
         || sizep->max_height != IswUnspecifiedShellInt) {
-        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_MAX_SIZE;
+        sizep->flags |= IswSizeHintPMaxSize;
         if (sizep->max_width == IswUnspecifiedShellInt)
             sizep->max_width = BIGSIZE;
         if (sizep->max_height == IswUnspecifiedShellInt)
             sizep->max_height = BIGSIZE;
     }
-    if (sizep->flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE
+    if (sizep->flags & IswSizeHintPMinSize
         || sizep->min_width != IswUnspecifiedShellInt
         || sizep->min_height != IswUnspecifiedShellInt) {
-        sizep->flags |= XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
+        sizep->flags |= IswSizeHintPMinSize;
         if (sizep->min_width == IswUnspecifiedShellInt)
             sizep->min_width = 1;
         if (sizep->min_height == IswUnspecifiedShellInt)
@@ -1367,15 +1365,15 @@ _popup_set_prop(ShellWidget w)
     char * window_name;
     char **argv;
     int argc;
-    xcb_size_hints_t *size_hints;
-    xcb_window_t window_group;
+    IswSizeHints *size_hints;
+    IswWindow window_group;
 
     if (!IswIsWMShell((Widget) w) || w->shell.override_redirect)
         return;
 
-    size_hints = calloc(1, sizeof(xcb_size_hints_t));
+    size_hints = calloc(1, sizeof(IswSizeHints));
     if (size_hints == NULL)
-        _IswAllocError("xcb_size_hints_t");
+        _IswAllocError("IswSizeHints");
 
     /* Use the title/icon_name strings directly.
      * The original code used XmbTextListToTextProperty for locale-aware
@@ -1396,7 +1394,7 @@ _popup_set_prop(ShellWidget w)
         != IswUnspecifiedWindowGroup) {
 
         _IswPlatformSetTransientFor(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-                                    _IswXcbWindowWrap(window_group));
+                                    window_group);
     }
 
     XClassHint classhint;
@@ -1446,14 +1444,17 @@ _popup_set_prop(ShellWidget w)
     UNLOCK_PROCESS;
 
     p = GetClientLeader((Widget) w);
-    if (_IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p)))) {
-        xcb_window_t leader_win = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p)));
-        Atom client_leader = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
-                                                      "WM_CLIENT_LEADER", False);
-        _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                   _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), client_leader,
-                                   ISW_ATOM_WINDOW, 32, ISW_PROP_MODE_REPLACE,
-                                   &leader_win, 1);
+    {
+        IswWindow leader = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p));
+        if (leader) {
+            IswWindowId leader_id = _IswPlatformWindowId(leader);
+            Atom client_leader = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
+                                                          "WM_CLIENT_LEADER", False);
+            _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
+                                       _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), client_leader,
+                                       ISW_ATOM_WINDOW, 32, ISW_PROP_MODE_REPLACE,
+                                       &leader_id, 1);
+        }
     }
     if (wmshell->wm.window_role) {
         Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
@@ -1466,8 +1467,8 @@ _popup_set_prop(ShellWidget w)
     }
 
     {
-        xcb_connection_t *conn = _IswXcbConn(IswDisplayOf((Widget) w));
-        xcb_window_t win = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
+        IswDisplay wdpy = IswDisplayOf((Widget) w);
+        IswWindow win = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w));
 
         /* _NET_WM_PID */
         _IswPlatformSetPid(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
@@ -1491,21 +1492,16 @@ _popup_set_prop(ShellWidget w)
             }
 
             if (pd->net_wm_user_time && pd->net_wm_user_time_window) {
-                xcb_window_t utwin = xcb_generate_id(conn);
-                xcb_create_window(conn, XCB_COPY_FROM_PARENT, utwin, win,
-                                  -1, -1, 1, 1, 0,
-                                  XCB_WINDOW_CLASS_INPUT_ONLY,
-                                  XCB_COPY_FROM_PARENT, 0, NULL);
+                IswWindow utwin = _IswPlatformCreateInputOnly(wdpy, win);
+                IswWindowId utwin_id = _IswPlatformWindowId(utwin);
                 wmshell->wm.user_time_win = utwin;
 
-                _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                    _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+                _IswPlatformChangeProperty(wdpy, win,
                                     pd->net_wm_user_time_window, ISW_ATOM_WINDOW, 32,
-                                    ISW_PROP_MODE_REPLACE, &utwin, 1);
+                                    ISW_PROP_MODE_REPLACE, &utwin_id, 1);
 
                 uint32_t initial_time = pd->last_timestamp;
-                _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                    _IswXcbWindowWrap(utwin),
+                _IswPlatformChangeProperty(wdpy, utwin,
                                     pd->net_wm_user_time, ISW_ATOM_CARDINAL, 32,
                                     ISW_PROP_MODE_REPLACE, &initial_time, 1);
             }
@@ -1534,25 +1530,20 @@ _popup_set_prop(ShellWidget w)
                                    wmshell->wm.startup_id);
                 if (len > 0 && (size_t)len < sizeof(msg)) {
                     len++;  /* include NUL terminator */
-                    xcb_window_t root = _IswXcbScreen(w->core.screen)->root;
+                    IswWindow root = _IswDefaultRootWindow(wdpy);
                     const char *mp = msg;
                     int remaining = len;
 
                     while (remaining > 0) {
-                        xcb_client_message_event_t ev;
-                        memset(&ev, 0, sizeof(ev));
-                        ev.response_type = XCB_CLIENT_MESSAGE;
-                        ev.format = 8;
-                        ev.window = win;
-                        ev.type = (mp == msg) ? (xcb_atom_t) sib_atom
-                                              : (xcb_atom_t) si_atom;
-
+                        char chunk_buf[20];
                         int chunk = remaining > 20 ? 20 : remaining;
-                        memcpy(ev.data.data8, mp, chunk);
+                        memset(chunk_buf, 0, sizeof(chunk_buf));
+                        memcpy(chunk_buf, mp, chunk);
 
-                        xcb_send_event(conn, FALSE, root,
-                                       IswPropertyChangeMask,
-                                       (const char *) &ev);
+                        _IswPlatformSendMessage(wdpy, root, win,
+                                                (mp == msg) ? sib_atom : si_atom,
+                                                8, chunk_buf,
+                                                False, IswPropertyChangeMask);
                         mp += chunk;
                         remaining -= chunk;
                     }
@@ -1701,8 +1692,7 @@ WMDestroy(Widget wid)
     WMShellWidget w = (WMShellWidget) wid;
 
     if (w->wm.user_time_win) {
-        _IswPlatformDestroyWindow(IswDisplayOf(wid),
-                                  _IswXcbWindowWrap(w->wm.user_time_win));
+        _IswPlatformDestroyWindow(IswDisplayOf(wid), w->wm.user_time_win);
         w->wm.user_time_win = 0;
     }
     IswFree((char *) w->wm.title);
@@ -1809,11 +1799,11 @@ _IswParseGeometry(const char *string,
  * Parses geometry strings and applies size hints.
  * ----------------------------------------------------------------------- */
 static int
-_IswWMGeometry(xcb_screen_t *screen _X_UNUSED,
+_IswWMGeometry(IswScreen screen _X_UNUSED,
               const char *user_geom,
               const char *def_geom,
               unsigned int border_width _X_UNUSED,
-              xcb_size_hints_t *hints,
+              IswSizeHints *hints,
               int *x_return, int *y_return,
               int *width_return, int *height_return,
               int *gravity_return)
@@ -1839,14 +1829,14 @@ _IswWMGeometry(xcb_screen_t *screen _X_UNUSED,
     }
 
     /* Apply size hints increments */
-    if (hints != NULL && (hints->flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC)) {
+    if (hints != NULL && (hints->flags & IswSizeHintPResizeInc)) {
         width  *= hints->width_inc;
         height *= hints->height_inc;
     }
-    if (hints != NULL && (hints->flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE)) {
+    if (hints != NULL && (hints->flags & IswSizeHintBaseSize)) {
         width  += hints->base_width;
         height += hints->base_height;
-    } else if (hints != NULL && (hints->flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE)) {
+    } else if (hints != NULL && (hints->flags & IswSizeHintPMinSize)) {
         width  += hints->min_width;
         height += hints->min_height;
     }
@@ -1855,7 +1845,7 @@ _IswWMGeometry(xcb_screen_t *screen _X_UNUSED,
     *y_return = y;
     *width_return  = (int) width;
     *height_return = (int) height;
-    *gravity_return = (hints != NULL && (hints->flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY))
+    *gravity_return = (hints != NULL && (hints->flags & IswSizeHintPWinGravity))
                       ? hints->win_gravity : IswGravityNorthWest;
 
     return mask;
@@ -1873,12 +1863,12 @@ GetGeometry(Widget W, Widget child)
     register ShellWidget w = (ShellWidget) W;
     Boolean is_wmshell = IswIsWMShell(W);
     int x, y, width, height, win_gravity = -1, flag;
-    xcb_size_hints_t hints;
+    IswSizeHints hints;
 
     if (child != NULL) {
         /* we default to our child's size */
         if (is_wmshell && (w->core.width == 0 || w->core.height == 0))
-            ((WMShellWidget) W)->wm.size_hints.flags |= XCB_ICCCM_SIZE_HINT_P_SIZE;
+            ((WMShellWidget) W)->wm.size_hints.flags |= IswSizeHintPSize;
         if (w->core.width == 0)
             w->core.width = child->core.width;
         if (w->core.height == 0)
@@ -1898,17 +1888,17 @@ GetGeometry(Widget W, Widget child)
             (void) memcpy(&hints, &wm->size_hints,
                           sizeof(struct _OldXSizeHints));
             hints.win_gravity = wm->win_gravity;
-            if (wm->size_hints.flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE) {
+            if (wm->size_hints.flags & IswSizeHintBaseSize) {
                 width -= wm->base_width;
                 height -= wm->base_height;
                 hints.base_width = wm->base_width;
                 hints.base_height = wm->base_height;
             }
-            else if (wm->size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
+            else if (wm->size_hints.flags & IswSizeHintPMinSize) {
                 width -= wm->size_hints.min_width;
                 height -= wm->size_hints.min_height;
             }
-            if (wm->size_hints.flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC) {
+            if (wm->size_hints.flags & IswSizeHintPResizeInc) {
                 width /= wm->size_hints.width_inc;
                 height /= wm->size_hints.height_inc;
             }
@@ -1918,7 +1908,7 @@ GetGeometry(Widget W, Widget child)
 
         snprintf(def_geom, sizeof(def_geom), "%dx%d+%d+%d",
                  width, height, x, y);
-        flag = _IswWMGeometry(_IswXcbScreen(IswScreenOf(W)),
+        flag = _IswWMGeometry(IswScreenOf(W),
                              w->shell.geometry, def_geom,
                              (unsigned int) w->core.border_width,
                              &hints, &x, &y, &width, &height, &win_gravity);
@@ -1956,11 +1946,11 @@ GetGeometry(Widget W, Widget child)
             else
                 wmshell->wm.win_gravity = IswGravityNorthWest;
         }
-        wmshell->wm.size_hints.flags |= XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY;
+        wmshell->wm.size_hints.flags |= IswSizeHintPWinGravity;
         if ((flag & (XValue | YValue)) == (XValue | YValue))
-            wmshell->wm.size_hints.flags |= XCB_ICCCM_SIZE_HINT_US_POSITION;
+            wmshell->wm.size_hints.flags |= IswSizeHintUSPosition;
         if ((flag & (WidthValue | HeightValue)) == (WidthValue | HeightValue))
-            wmshell->wm.size_hints.flags |= XCB_ICCCM_SIZE_HINT_US_SIZE;
+            wmshell->wm.size_hints.flags |= IswSizeHintUSSize;
     }
     w->shell.client_specified |= _IswShellGeometryParsed;
 }
@@ -2054,63 +2044,6 @@ typedef struct {
     Boolean done;
 } QueryStruct;
 
-static Boolean
-_wait_for_response(ShellWidget w, xcb_generic_event_t **event_out)
-{
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(w));
-    xcb_window_t win = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
-    unsigned long timeout;
-    struct timespec start, now;
-
-    if (IswIsWMShell((Widget) w))
-        timeout = (unsigned long) ((WMShellWidget) w)->wm.wm_timeout;
-    else
-        timeout = DEFAULT_WM_TIMEOUT;
-
-    xcb_flush(conn);
-    clock_gettime(CLOCK_MONOTONIC, &start);
-
-    *event_out = NULL;
-
-    for (;;) {
-        xcb_generic_event_t *ev = (xcb_generic_event_t *)
-            _IswPlatformPollEvent((IswDisplay) conn);
-        if (ev) {
-            uint8_t type = ev->response_type & ~0x80;
-            if (type == XCB_CONFIGURE_NOTIFY) {
-                xcb_configure_notify_event_t *cne =
-                    (xcb_configure_notify_event_t *) ev;
-                if (cne->window == win) {
-                    *event_out = ev;
-                    return TRUE;
-                }
-            }
-            /* Handle reparent events inline — track reparenting state */
-            if (type == XCB_REPARENT_NOTIFY) {
-                xcb_reparent_notify_event_t *rne =
-                    (xcb_reparent_notify_event_t *) ev;
-                if (rne->window == win) {
-                    if (rne->parent != RootWindowOfScreen(_IswXcbScreen(IswScreenOf(w))))
-                        w->shell.client_specified &= ~_IswShellNotReparented;
-                    else
-                        w->shell.client_specified |= _IswShellNotReparented;
-                }
-            }
-            free(ev);
-        }
-
-        clock_gettime(CLOCK_MONOTONIC, &now);
-        unsigned long elapsed_ms =
-            (unsigned long)(now.tv_sec - start.tv_sec) * 1000 +
-            (unsigned long)(now.tv_nsec - start.tv_nsec) / 1000000;
-        if (elapsed_ms >= timeout)
-            return FALSE;
-
-        /* Brief sleep to avoid busy-spinning */
-        struct timespec sleep_ts = { 0, 1000000 }; /* 1ms */
-        nanosleep(&sleep_ts, NULL);
-    }
-}
 
 static IswGeometryResult
 RootGeometryManager(Widget gw,
@@ -2122,7 +2055,8 @@ RootGeometryManager(Widget gw,
     IswStackMode stack = ISW_STACK_NONE;
     IswWindow sibling = NULL;
     unsigned int mask = request->request_mode;
-    xcb_generic_event_t *event = NULL;
+    int cfg_x = 0, cfg_y = 0, cfg_w = 0, cfg_h = 0, cfg_border = 0;
+    Boolean reparented = (w->shell.client_specified & _IswShellNotReparented) == 0;
     Boolean wm;
     register struct _OldXSizeHints *hintp = NULL;
     int oldx, oldy, oldwidth, oldheight, oldborder_width;
@@ -2162,8 +2096,8 @@ RootGeometryManager(Widget gw,
         else {
             w->core.x = (Position) (values.x = request->x);
             if (wm) {
-                hintp->flags &= ~XCB_ICCCM_SIZE_HINT_US_POSITION;
-                hintp->flags |= XCB_ICCCM_SIZE_HINT_P_POSITION;
+                hintp->flags &= ~IswSizeHintUSPosition;
+                hintp->flags |= IswSizeHintPPosition;
                 hintp->x = values.x;
             }
         }
@@ -2174,8 +2108,8 @@ RootGeometryManager(Widget gw,
         else {
             w->core.y = (Position) (values.y = request->y);
             if (wm) {
-                hintp->flags &= ~XCB_ICCCM_SIZE_HINT_US_POSITION;
-                hintp->flags |= XCB_ICCCM_SIZE_HINT_P_POSITION;
+                hintp->flags &= ~IswSizeHintUSPosition;
+                hintp->flags |= IswSizeHintPPosition;
                 hintp->y = values.y;
             }
         }
@@ -2194,8 +2128,8 @@ RootGeometryManager(Widget gw,
         else {
             w->core.width = (Dimension) (values.width = request->width);
             if (wm) {
-                hintp->flags &= ~XCB_ICCCM_SIZE_HINT_US_SIZE;
-                hintp->flags |= XCB_ICCCM_SIZE_HINT_P_SIZE;
+                hintp->flags &= ~IswSizeHintUSSize;
+                hintp->flags |= IswSizeHintPSize;
                 hintp->width = values.width;
             }
         }
@@ -2206,8 +2140,8 @@ RootGeometryManager(Widget gw,
         else {
             w->core.height = (Dimension) (values.height = request->height);
             if (wm) {
-                hintp->flags &= ~XCB_ICCCM_SIZE_HINT_US_SIZE;
-                hintp->flags |= XCB_ICCCM_SIZE_HINT_P_SIZE;
+                hintp->flags &= ~IswSizeHintUSSize;
+                hintp->flags |= IswSizeHintPSize;
                 hintp->height = values.height;
             }
         }
@@ -2317,99 +2251,49 @@ RootGeometryManager(Widget gw,
 
 
     //#TODO this seems like it would be better served with a callback mechanism in XCB
-    if (_wait_for_response(w, &event)) {
-        /* got an event */
-        if (event->response_type == XCB_CONFIGURE_NOTIFY) {
-            xcb_configure_notify_event_t * cne = (xcb_configure_notify_event_t *)event;
+    {
+        unsigned long wm_timeout = IswIsWMShell((Widget) w)
+            ? (unsigned long) ((WMShellWidget) w)->wm.wm_timeout
+            : (unsigned long) DEFAULT_WM_TIMEOUT;
+        Boolean got = _IswPlatformWaitForConfigure(
+            IswDisplayOf((Widget) w),
+            _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+            wm_timeout, &cfg_x, &cfg_y, &cfg_w, &cfg_h, &cfg_border, &reparented);
 
-#define NEQ(x, msk) ((mask & msk) && (values.x != cne->x))
-            if (NEQ(x, IswCWX) ||
-                NEQ(y, IswCWY) ||
-                NEQ(width, IswCWWidth) ||
-                NEQ(height, IswCWHeight) || NEQ(border_width, IswCWBorderWidth)) {
-#ifdef ISW_GEO_TATTLER
-                if (NEQ(x, IswCWX)) {
-                    CALLGEOTAT(_IswGeoTrace((Widget) w,
-                                           "received Configure X %d\n",
-                                           event.xconfigure.x));
-                }
-                if (NEQ(y, IswCWY)) {
-                    CALLGEOTAT(_IswGeoTrace((Widget) w,
-                                           "received Configure Y %d\n",
-                                           event.xconfigure.y));
-                }
-                if (NEQ(width, IswCWWidth)) {
-                    CALLGEOTAT(_IswGeoTrace((Widget) w,
-                                           "received Configure Width %d\n",
-                                           event.xconfigure.width));
-                }
-                if (NEQ(height, IswCWHeight)) {
-                    CALLGEOTAT(_IswGeoTrace((Widget) w,
-                                           "received Configure Height %d\n",
-                                           event.xconfigure.height));
-                }
-                if (NEQ(border_width, IswCWBorderWidth)) {
-                    CALLGEOTAT(_IswGeoTrace((Widget) w,
-                                           "received Configure BorderWidth %d\n",
-                                           event.xconfigure.border_width));
-                }
-#endif
-#undef NEQ
-                //#TODO just push the event back into the AppContext queue
-                //XPutBackEvent(IswDisplayOf(w), &event);
-                PutBackGeometry();
-                /*
-                 * We just potentially re-ordered the event queue
-                 * w.r.t. ConfigureNotifies with some trepidation.
-                 * But this is probably a Good Thing because we
-                 * will know the new true state of the world sooner
-                 * this way.
-                 */
-                CALLGEOTAT(_IswGeoTrace((Widget) w,
-                                       "ConfigureNotify failed, return IswGeometryNo.\n"));
-                CALLGEOTAT(_IswGeoTab(-1));
-                free(event);
-                return IswGeometryNo;
-            }
-            else {
-                /* HiDPI: ConfigureNotify values are physical pixels;
-                 * convert back to logical for widget internals. */
-                double inv = 1.0 / _IswGetScaleFactor(IswDisplayOf((Widget)w));
-                w->core.width = (Dimension)(cne->width * inv + 0.5);
-                w->core.height = (Dimension)(cne->height * inv + 0.5);
-                w->core.border_width =
-                    (Dimension)(cne->border_width * inv + 0.5);
-                if (w->shell.client_specified & _IswShellNotReparented) {
+        /* Track reparent state observed during the wait. */
+        if (reparented)
+            w->shell.client_specified &= ~_IswShellNotReparented;
+        else
+            w->shell.client_specified |= _IswShellNotReparented;
 
-                    w->core.x = (Position)(cne->x * inv + 0.5);
-                    w->core.y = (Position)(cne->y * inv + 0.5);
-                    w->shell.client_specified |= _IswShellPositionValid;
-                }
-                else
-                    w->shell.client_specified &= ~_IswShellPositionValid;
-                CALLGEOTAT(_IswGeoTrace((Widget) w,
-                                       "ConfigureNotify succeed, return IswGeometryYes.\n"));
-                CALLGEOTAT(_IswGeoTab(-1));
-                free(event);
-                return IswGeometryYes;
-            }
-        }
-        else if (!wm) {
-            PutBackGeometry();
-            CALLGEOTAT(_IswGeoTrace((Widget) w,
-                                   "Not wm, return IswGeometryNo.\n"));
-            CALLGEOTAT(_IswGeoTab(-1));
-            free(event);
-            return IswGeometryNo;
+    if (got) {
+        /* The WM acknowledged with a ConfigureNotify.  Adopt the ACTUAL window
+         * geometry it reports (which may differ from the request due to WM
+         * rounding, size increments, or decorations) and report success so the
+         * shell's child layout runs against the real window size — this is what
+         * makes the top-level viewport fill/shrink to the resized window.
+         *
+         * HiDPI: ConfigureNotify values are physical pixels; convert back to
+         * logical for widget internals. */
+        double inv = 1.0 / _IswGetScaleFactor(IswDisplayOf((Widget)w));
+        w->core.width = (Dimension)(cfg_w * inv + 0.5);
+        w->core.height = (Dimension)(cfg_h * inv + 0.5);
+        w->core.border_width = (Dimension)(cfg_border * inv + 0.5);
+        if (w->shell.client_specified & _IswShellNotReparented) {
+            w->core.x = (Position)(cfg_x * inv + 0.5);
+            w->core.y = (Position)(cfg_y * inv + 0.5);
+            w->shell.client_specified |= _IswShellPositionValid;
         }
         else
-            IswAppWarningMsg(IswWidgetToApplicationContext((Widget) w),
-                            "internalError", "shell", IswCIswToolkitError,
-                            "Shell's window manager interaction is broken",
-                            NULL, NULL);
+            w->shell.client_specified &= ~_IswShellPositionValid;
+        CALLGEOTAT(_IswGeoTrace((Widget) w,
+                               "ConfigureNotify succeed, return IswGeometryYes.\n"));
+        CALLGEOTAT(_IswGeoTab(-1));
+        return IswGeometryYes;
     }
-    else if (wm) {              /* no event */
+    else if (wm) {              /* no response */
         ((WMShellWidget) w)->wm.wait_for_wm = FALSE;    /* timed out; must be broken */
+    }
     }
     PutBackGeometry();
 #undef PutBackGeometry
@@ -2540,12 +2424,8 @@ WMSetValues(Widget old,
                      || NEQ(icon_pixmap) || NEQ(icon_mask) || NEQ(icon_window)
                      || NEQ(window_group))) {
 
-        /* WM_HINTS carries icon pixmap/mask/urgency in a private xcb_icccm
-           struct field (WMShellPart.wm_hints) the toolkit has not neutralised;
-           a lossy semantic op would drop those.  Stays on the seam until that
-           struct is abstracted (not part of Phase 6's atom/property scope). */
-        xcb_icccm_set_wm_hints(_IswXcbConn(IswDisplayOf(new)),
-                               _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new))),
+        _IswPlatformSetWmHints(IswDisplayOf(new),
+                               _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                &nwmshell->wm.wm_hints);
     }
 #undef NEQ
@@ -2569,7 +2449,7 @@ WMSetValues(Widget old,
                 nwmshell->wm.wm_hints.window_group != IswUnspecifiedWindowGroup) {
                 
                 _IswPlatformSetTransientFor(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-                    _IswXcbWindowWrap(nwmshell->wm.wm_hints.window_group));
+                    nwmshell->wm.wm_hints.window_group);
             }
         }
         else {
@@ -2581,16 +2461,17 @@ WMSetValues(Widget old,
     }
 
     if (nwmshell->wm.client_leader != owmshell->wm.client_leader
-        && _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new))) && !nwmshell->shell.override_redirect) {
+        && _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)) && !nwmshell->shell.override_redirect) {
         Widget leader = GetClientLeader(new);
+        IswWindow leader_win = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(leader)), (Widget)(leader));
 
-        if (_IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(leader)), (Widget)(leader)))) {
-            xcb_window_t leader_win = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(leader)), (Widget)(leader)));
+        if (leader_win) {
+            IswWindowId leader_id = _IswPlatformWindowId(leader_win);
             Atom client_leader = _IswPlatformInternAtomOp(IswDisplayOf(new),
                                                           "WM_CLIENT_LEADER", False);
             _IswPlatformChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                        client_leader, ISW_ATOM_WINDOW, 32,
-                                       ISW_PROP_MODE_REPLACE, &leader_win, 1);
+                                       ISW_PROP_MODE_REPLACE, &leader_id, 1);
         }
     }
 
@@ -2690,20 +2571,13 @@ TopLevelSetValues(Widget oldW,
                     IswDisplayOf(newW), "_NET_WM_STATE_HIDDEN", False);
 
                 if (net_wm_state && net_wm_state_hidden) {
-                    // Send the client message
-                    xcb_client_message_event_t *event = malloc(sizeof(xcb_client_message_event_t));
-                    event->response_type = XCB_CLIENT_MESSAGE;
-                    event->format = 32;
-                    event->window = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW)));
-                    event->type = (xcb_atom_t) net_wm_state;
-                    event->data.data32[0] = 1; // _NET_WM_STATE_ADD
-                    event->data.data32[1] = (xcb_atom_t) net_wm_state_hidden;
-                    event->data.data32[2] = 0;
-                    event->data.data32[3] = 0;
-                    event->data.data32[4] = 0;
-
-                    xcb_send_event(_IswXcbConn(IswDisplayOf(newW)), 0, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW))), IswSubstructureNotifyMask, (char*)event);
-                    free(event);
+                    IswWindow nwin = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW));
+                    uint32_t data[5] = { 1 /* _NET_WM_STATE_ADD */,
+                                         (uint32_t) net_wm_state_hidden,
+                                         0, 0, 0 };
+                    _IswPlatformSendMessage(IswDisplayOf(newW), nwin, nwin,
+                                            net_wm_state, 32, data,
+                                            False, IswSubstructureNotifyMask);
                 }
             }
             else {
@@ -2745,7 +2619,7 @@ TopLevelSetValues(Widget oldW,
     }
     else if (new->topLevel.iconic != old->topLevel.iconic) {
         if (new->topLevel.iconic)
-            new->wm.wm_hints.initial_state = XCB_ICCCM_WM_STATE_ICONIC;
+            new->wm.wm_hints.initial_state = IswWmStateIconicState;
     }
     return False;
 }
@@ -2833,24 +2707,16 @@ _IswShellGetCoordinates(Widget widget, Position *x, Position *y)
     ShellWidget w = (ShellWidget) widget;
 
     if (IswIsRealized(widget)) {
-        int tmpx, tmpy;
+        int tmpx = 0, tmpy = 0;
 
         /* HiDPI: border_width is logical; X server expects physical pixels. */
         double sf = _IswGetScaleFactor(IswDisplayOf(widget));
         int bw_phys = (int)lrint((double)w->core.border_width * sf);
 
-        xcb_translate_coordinates_cookie_t cookie = xcb_translate_coordinates(_IswXcbConn(IswDisplayOf(w)),
-            _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
-            RootWindowOfScreen(_IswXcbScreen(IswScreenOf(w))),
-            -bw_phys,
-            -bw_phys);
+        _IswPlatformTranslateToRoot(IswDisplayOf(w),
+            _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+            -bw_phys, -bw_phys, &tmpx, &tmpy);
 
-        xcb_translate_coordinates_reply_t *reply = xcb_translate_coordinates_reply(_IswXcbConn(IswDisplayOf(w)), cookie, NULL);
-        if (reply) {
-            tmpx = reply->dst_x;
-            tmpy = reply->dst_y;
-            free(reply);
-        }
         /* HiDPI: X server returns physical pixels; convert to logical. */
         double inv = 1.0 / sf;
         w->core.x = (Position)lrint((double)tmpx * inv);
@@ -3013,32 +2879,26 @@ IswSetWindowIconName(Widget shell, const char *name)
 void
 IswSetWindowState(Widget shell, const char *state, Boolean set)
 {
-    xcb_connection_t *conn;
+    IswDisplay dpy;
     Atom wm_state, state_atom;
 
     if (!IswIsRealized(shell) || !state)
         return;
 
-    conn = _IswXcbConn(IswDisplayOf(shell));
+    dpy = IswDisplayOf(shell);
 
-    /* Atoms via the atom op; the state-change is a broadcast client-message
-       (xcb_send_event), which stays on the seam. */
-    wm_state = _IswPlatformInternAtomOp(IswDisplayOf(shell), "_NET_WM_STATE", False);
-    state_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), state, False);
+    wm_state = _IswPlatformInternAtomOp(dpy, "_NET_WM_STATE", False);
+    state_atom = _IswPlatformInternAtomOp(dpy, state, False);
 
     if (wm_state && state_atom) {
-        xcb_client_message_event_t ev = {0};
-        ev.response_type = XCB_CLIENT_MESSAGE;
-        ev.format = 32;
-        //ev.window = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)));
-        ev.type = (xcb_atom_t) wm_state;
-        ev.data.data32[0] = set ? 1 : 0;
-        ev.data.data32[1] = (xcb_atom_t) state_atom;
-
-        xcb_send_event(conn, 0, _IswXcbScreen(shell->core.screen)->root,
-                       IswSubstructureNotifyMask |
-                       IswSubstructureRedirectMask,
-                       (const char *) &ev);
+        /* EWMH: client-message to the root, naming the client window. */
+        IswWindow swin = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell));
+        IswWindow root = _IswDefaultRootWindow(dpy);
+        uint32_t data[5] = { set ? 1u : 0u, (uint32_t) state_atom, 0, 0, 0 };
+        _IswPlatformSendMessage(dpy, root, swin, wm_state, 32, data,
+                                False,
+                                IswSubstructureNotifyMask |
+                                IswSubstructureRedirectMask);
     }
 }
 
@@ -3062,7 +2922,7 @@ _IswShellUpdateUserTime(IswDisplay dpy, Widget widget, IswTime time)
         return;
 
     _IswPlatformChangeProperty((IswDisplay) dpy,
-                               _IswXcbWindowWrap(wmshell->wm.user_time_win),
+                               wmshell->wm.user_time_win,
                                pd->net_wm_user_time, ISW_ATOM_CARDINAL, 32,
                                ISW_PROP_MODE_REPLACE, &time, 1);
 }

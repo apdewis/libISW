@@ -1624,6 +1624,135 @@ _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t flags,
                                     base_width, base_height, win_gravity);
 }
 
+void
+_IswPlatformSetWmHints(IswDisplay dpy, IswWindow win, const IswWmHints *hints)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_wm_hints)
+        ops->hint->set_wm_hints(dpy, win, hints);
+}
+
+/* ---- WM-protocol primitives (Shell) -------------------------------------- */
+
+void
+_IswPlatformSendMessage(IswDisplay dpy, IswWindow target, IswWindow win,
+                        Atom type, int format, const void *data,
+                        Boolean propagate, unsigned int event_mask)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_client_message_event_t ev;
+
+    if (!conn)
+        return;
+    memset(&ev, 0, sizeof(ev));
+    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.format        = (uint8_t) format;
+    ev.window        = _IswXcbWindow(win);
+    ev.type          = (xcb_atom_t) type;
+    if (data)
+        memcpy(ev.data.data8, data, 20);   /* 5x32 / 10x16 / 20x8 union */
+    xcb_send_event(conn, propagate ? 1 : 0, _IswXcbWindow(target),
+                   event_mask, (const char *) &ev);
+}
+
+Boolean
+_IswPlatformTranslateToRoot(IswDisplay dpy, IswWindow src, int x, int y,
+                            int *root_x, int *root_y)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_screen_t *screen;
+    xcb_translate_coordinates_cookie_t cookie;
+    xcb_translate_coordinates_reply_t *reply;
+
+    if (!conn)
+        return False;
+    screen = _IswXcbDefaultScreen(dpy);
+    if (!screen)
+        return False;
+    cookie = xcb_translate_coordinates(conn, _IswXcbWindow(src), screen->root,
+                                       (int16_t) x, (int16_t) y);
+    reply = xcb_translate_coordinates_reply(conn, cookie, NULL);
+    if (!reply)
+        return False;
+    if (root_x) *root_x = reply->dst_x;
+    if (root_y) *root_y = reply->dst_y;
+    free(reply);
+    return True;
+}
+
+IswWindow
+_IswPlatformCreateInputOnly(IswDisplay dpy, IswWindow parent)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_window_t id;
+
+    if (!conn)
+        return (IswWindow) 0;
+    id = xcb_generate_id(conn);
+    xcb_create_window(conn, XCB_COPY_FROM_PARENT, id, _IswXcbWindow(parent),
+                      0, 0, 1, 1, 0, XCB_WINDOW_CLASS_INPUT_ONLY,
+                      XCB_COPY_FROM_PARENT, 0, NULL);
+    return _IswXcbWindowWrap(id);
+}
+
+Boolean
+_IswPlatformWaitForConfigure(IswDisplay dpy, IswWindow win,
+                             unsigned long timeout_ms,
+                             int *new_x, int *new_y, int *new_w, int *new_h,
+                             int *new_border, Boolean *reparented)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_window_t w = _IswXcbWindow(win);
+    xcb_screen_t *screen = _IswXcbDefaultScreen(dpy);
+    xcb_window_t root = screen ? screen->root : 0;
+    struct timespec start, now;
+
+    if (!conn)
+        return False;
+    xcb_flush(conn);
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    for (;;) {
+        xcb_generic_event_t *ev = xcb_poll_for_event(conn);
+        if (ev) {
+            uint8_t type = ev->response_type & ~0x80;
+            if (type == XCB_CONFIGURE_NOTIFY) {
+                xcb_configure_notify_event_t *cne =
+                    (xcb_configure_notify_event_t *) ev;
+                if (cne->window == w) {
+                    if (new_x) *new_x = cne->x;
+                    if (new_y) *new_y = cne->y;
+                    if (new_w) *new_w = cne->width;
+                    if (new_h) *new_h = cne->height;
+                    if (new_border) *new_border = cne->border_width;
+                    free(ev);
+                    return True;
+                }
+            }
+            if (type == XCB_REPARENT_NOTIFY && reparented) {
+                xcb_reparent_notify_event_t *rne =
+                    (xcb_reparent_notify_event_t *) ev;
+                if (rne->window == w)
+                    *reparented = (rne->parent != root);
+            }
+            free(ev);
+        }
+
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        {
+            unsigned long elapsed_ms =
+                (unsigned long)(now.tv_sec - start.tv_sec) * 1000 +
+                (unsigned long)(now.tv_nsec - start.tv_nsec) / 1000000;
+            if (elapsed_ms >= timeout_ms)
+                return False;
+        }
+        {
+            struct timespec sleep_ts = { 0, 1000000 }; /* 1ms */
+            nanosleep(&sleep_ts, NULL);
+        }
+    }
+}
+
 /* Drag-and-drop (Phase 7) */
 void
 _IswPlatformDndEnable(Widget shell)

@@ -57,7 +57,7 @@ SOFTWARE.
 #ifndef _IswShellPrivate_h
 #define _IswShellPrivate_h
 
-#include <xcb/xcb_icccm.h>
+#include <ISW/ISWPlatform.h>   /* IswWmHints + WM/size-hint flag vocabulary */
 #include <ISW/Shell.h>
 
 /* *****
@@ -207,11 +207,11 @@ typedef struct {
 		    int y;
 	    } min_aspect, max_aspect;
 	} size_hints;
-	xcb_icccm_wm_hints_t wm_hints;
+	IswWmHints wm_hints;
 	int base_width, base_height;
 	int win_gravity;
 	Atom title_encoding;
-	xcb_window_t user_time_win;
+	IswWindow user_time_win;
 	String startup_id;
 } WMShellPart;
 

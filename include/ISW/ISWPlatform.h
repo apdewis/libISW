@@ -115,6 +115,64 @@ typedef enum {
     ISW_WINDOW_TYPE_UTILITY
 } IswWindowType;
 
+/*
+ * Neutral WM-hints vocabulary.  The flag bit values and the WM_HINTS / size-hint
+ * struct layout are numerically X11-compatible (ICCCM), so an X backend forwards
+ * them unchanged and the toolkit (Shell) names no xcb type.  A non-X backend maps
+ * the meaningful fields to its own surface-role mechanism.
+ */
+
+/* WM_HINTS flag bits (ICCCM values). */
+#define IswWmHintInput          (1u << 0)
+#define IswWmHintState          (1u << 1)
+#define IswWmHintIconPixmap     (1u << 2)
+#define IswWmHintIconWindow     (1u << 3)
+#define IswWmHintIconPosition   (1u << 4)
+#define IswWmHintIconMask       (1u << 5)
+#define IswWmHintWindowGroup    (1u << 6)
+#define IswWmHintUrgency        (1u << 8)
+
+/* WM_NORMAL_HINTS (size-hint) flag bits (ICCCM values). */
+#define IswSizeHintUSPosition   (1u << 0)
+#define IswSizeHintUSSize       (1u << 1)
+#define IswSizeHintPPosition    (1u << 2)
+#define IswSizeHintPSize        (1u << 3)
+#define IswSizeHintPMinSize     (1u << 4)
+#define IswSizeHintPMaxSize     (1u << 5)
+#define IswSizeHintPResizeInc   (1u << 6)
+#define IswSizeHintPAspect      (1u << 7)
+#define IswSizeHintBaseSize     (1u << 8)
+#define IswSizeHintPWinGravity  (1u << 9)
+
+/* WM initial-state values (ICCCM WM_STATE). */
+#define IswWmStateWithdrawn     0
+#define IswWmStateNormalState   1
+#define IswWmStateIconicState   3
+
+/* Neutral WM_NORMAL_HINTS scratch record (flat ICCCM size-hints layout).  Used
+   by the toolkit to assemble size hints before handing them to set_normal_hints. */
+typedef struct _IswSizeHints {
+    int32_t flags;            /* IswSizeHint* bits */
+    int32_t x, y, width, height;
+    int32_t min_width, min_height, max_width, max_height;
+    int32_t width_inc, height_inc;
+    int32_t min_aspect_num, min_aspect_den, max_aspect_num, max_aspect_den;
+    int32_t base_width, base_height;
+    int32_t win_gravity;
+} IswSizeHints;
+
+/* Neutral WM_HINTS record (mirrors ICCCM WM_HINTS; handle fields are neutral). */
+typedef struct _IswWmHints {
+    int32_t   flags;          /* IswWmHint* bits */
+    uint32_t  input;          /* app relies on the WM for keyboard focus */
+    int32_t   initial_state;  /* IswWmState* */
+    IswPixmap icon_pixmap;
+    IswWindow icon_window;
+    int32_t   icon_x, icon_y;
+    IswPixmap icon_mask;
+    IswWindow window_group;
+} IswWmHints;
+
 /* IswKeyCode / IswKeySym / IswNoSymbol are declared in ISW/Intrinsic.h
    (included above) so the public key APIs there can use them without a cycle. */
 
@@ -663,6 +721,9 @@ struct _IswPlatformHintOps {
                              int max_aspect_num, int max_aspect_den,
                              int base_width, int base_height,
                              int win_gravity);
+    /* The full WM_HINTS record (focus model, initial state, icon, group,
+       urgency).  The backend marshals it to its native representation. */
+    void (*set_wm_hints)(IswDisplay dpy, IswWindow win, const IswWmHints *hints);
 };
 
 /*
@@ -1042,5 +1103,38 @@ extern void _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t f
                                        int min_aspect_num, int min_aspect_den,
                                        int max_aspect_num, int max_aspect_den,
                                        int base_width, int base_height, int win_gravity);
+extern void _IswPlatformSetWmHints(IswDisplay dpy, IswWindow win,
+                                   const IswWmHints *hints);
+
+/* Send a protocol/client message about `win` (X ClientMessage and equivalents).
+   `type` is the message-type atom; `format` is 8/16/32; `data` points at the
+   message payload (up to 20 bytes — five 32-bit words, or 20 bytes for format 8)
+   and is copied into the message.  The message is delivered to `target` (often
+   the root for EWMH _NET_WM_STATE / restack / startup broadcasts) with
+   `event_mask`; `propagate` follows the window tree. */
+extern void _IswPlatformSendMessage(IswDisplay dpy, IswWindow target,
+                                    IswWindow win, Atom type, int format,
+                                    const void *data,
+                                    Boolean propagate, unsigned int event_mask);
+
+/* Translate (x,y) in `src`'s coordinate space to the root window.  Returns
+   False if the translation fails. */
+extern Boolean _IswPlatformTranslateToRoot(IswDisplay dpy, IswWindow src,
+                                           int x, int y,
+                                           int *root_x, int *root_y);
+
+/* Create a 1x1 input-only child of `parent` (used for the focus-proxy /
+   user-time window).  Returns the new window. */
+extern IswWindow _IswPlatformCreateInputOnly(IswDisplay dpy, IswWindow parent);
+
+/* Block (up to `timeout_ms`) for the WM's response to a geometry/map request on
+   `win`: returns when a ConfigureNotify for `win` arrives (fills *new_x/y/w/h),
+   tracking ReparentNotify into `*reparented`.  Returns False on timeout. */
+extern Boolean _IswPlatformWaitForConfigure(IswDisplay dpy, IswWindow win,
+                                            unsigned long timeout_ms,
+                                            int *new_x, int *new_y,
+                                            int *new_w, int *new_h,
+                                            int *new_border,
+                                            Boolean *reparented);
 
 #endif /* _ISWPlatform_h */

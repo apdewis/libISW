@@ -316,6 +316,29 @@ xcb_hint_set_normal_hints(IswDisplay dpy, IswWindow win, uint32_t flags,
     xcb_icccm_set_wm_normal_hints(conn, _IswXcbWindow(win), &hints);
 }
 
+/* Full WM_HINTS.  The neutral IswWmHints mirrors xcb_icccm_wm_hints_t field for
+   field with X-compatible flag bits, so it copies straight across. */
+static void
+xcb_hint_set_wm_hints(IswDisplay dpy, IswWindow win, const IswWmHints *h)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_icccm_wm_hints_t x;
+
+    if (!conn || !h)
+        return;
+    memset(&x, 0, sizeof(x));
+    x.flags         = h->flags;
+    x.input         = h->input;
+    x.initial_state = h->initial_state;
+    x.icon_pixmap   = (xcb_pixmap_t) h->icon_pixmap;
+    x.icon_window   = _IswXcbWindow(h->icon_window);
+    x.icon_x        = h->icon_x;
+    x.icon_y        = h->icon_y;
+    x.icon_mask     = (xcb_pixmap_t) h->icon_mask;
+    x.window_group  = _IswXcbWindow(h->window_group);
+    xcb_icccm_set_wm_hints(conn, _IswXcbWindow(win), &x);
+}
+
 /* ---- IswProperty release (backend-neutral; payload is plain malloc) ------- */
 
 void
@@ -349,4 +372,5 @@ const IswPlatformHintOps isw_platform_xcb_hint_ops = {
     .set_window_type   = xcb_hint_set_window_type,
     .set_pid           = xcb_hint_set_pid,
     .set_normal_hints  = xcb_hint_set_normal_hints,
+    .set_wm_hints      = xcb_hint_set_wm_hints,
 };
