@@ -620,7 +620,7 @@ Realize(IswDisplay conn, Widget w, IswValueMask * mask, uint32_t * values)
     (*superclass->core_class.realize) (conn, w, mask, values);
 
     /* _NET_WM_WINDOW_TYPE = POPUP_MENU */
-    _IswPlatformSetWindowType(IswDisplayOf(w), IswWindowOf(w),
+    _IswPlatformSetWindowType(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                               ISW_WINDOW_TYPE_POPUP_MENU);
 }
 
@@ -1323,7 +1323,7 @@ EnterSubMenu(Widget w, IswEvent *iswev, String *p, Cardinal *np)
     }
 
     /* Warp pointer into submenu so its translations receive events */
-    xcb_warp_pointer(_IswXcbConn(IswDisplayOf(w)), XCB_NONE, _IswXcbWindow(IswWindowOf((Widget)sub)),
+    xcb_warp_pointer(_IswXcbConn(IswDisplayOf(w)), XCB_NONE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(sub)), (Widget)(sub))),
 		     0, 0, 0, 0,
 		     (int16_t)(IswWidth((Widget)sub) / 2),
 		     (int16_t)(first ? first->rectangle.y +
@@ -1379,7 +1379,7 @@ LeaveSubMenu(Widget w, IswEvent *iswev, String *p, Cardinal *np)
     }
 
     /* Warp pointer back to parent menu */
-    xcb_warp_pointer(_IswXcbConn(IswDisplayOf(w)), XCB_NONE, _IswXcbWindow(IswWindowOf(parent)),
+    xcb_warp_pointer(_IswXcbConn(IswDisplayOf(w)), XCB_NONE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(parent)), (Widget)(parent))),
 		     0, 0, 0, 0,
 		     (int16_t)(IswWidth(parent) / 2),
 		     (int16_t)(parent_entry ? parent_entry->rectangle.y +
@@ -1640,7 +1640,7 @@ PositionMenu(Widget w, XPoint * location)
  xcb_query_pointer_reply_t *reply;
 
  location = &t_point;
- cookie = xcb_query_pointer(conn, _IswXcbWindow(IswWindowOf(w)));
+ cookie = xcb_query_pointer(conn, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))));
  reply = xcb_query_pointer_reply(conn, cookie, NULL);
  if (reply == NULL) {
      char error_buf[BUFSIZ];

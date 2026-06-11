@@ -265,7 +265,7 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
     /* Get widget display and window info */
     ctx->widget = widget;
     ctx->connection = _IswXcbConn(IswDisplayOf(widget));
-    ctx->window = _IswXcbWindow(IswWindowOf(widget));
+    ctx->window = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
     ctx->screen = _IswXcbScreen(IswScreenOf(widget));
 
     /* Get colormap from screen - we'll use the screen's default colormap */
@@ -503,7 +503,7 @@ ISWRenderEnd(ISWRenderContext *ctx)
         return;
     }
 
-    ctx->surface_ops->end(ctx->surface, ctx->widget, IswWindowOf(ctx->widget));
+    ctx->surface_ops->end(ctx->surface, ctx->widget, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(ctx->widget)), (Widget)(ctx->widget)));
 
     /* This widget painted into its own surface this frame, so the fold must
        re-expose it (if it is a container) and re-fold it onto its ancestors.
@@ -522,8 +522,12 @@ ISWRenderEnd(ISWRenderContext *ctx)
        scroll) that bypass the expose walk. */
     if (!_isw_in_composite && ctx->widget && IswIsWidget(ctx->widget) &&
         ctx->widget->core.windowless) {
+        /* The composite root is the topmost widget (the shell, which owns the
+           persisted root surface the platform blits).  Every widget is
+           windowless, so walk to the highest widget rather than the first
+           non-windowless one. */
         Widget root = ctx->widget;
-        while (root != NULL && IswIsWidget(root) && root->core.windowless)
+        while (root->core.parent != NULL && IswIsWidget(root->core.parent))
             root = root->core.parent;
         if (root != NULL) {
             /* During an event dispatch, coalesce: record the root and fold it
@@ -769,7 +773,7 @@ ISWRenderCompositeSubtree(Widget windowed_root)
         int pw = (int)(windowed_root->core.width * sf + 0.5);
         int ph = (int)(windowed_root->core.height * sf + 0.5);
         _IswPlatformPresentRoot(IswDisplayOf(windowed_root),
-                                IswWindowOf(windowed_root),
+                                _IswPlatformWidgetWindow(IswDisplayOf((Widget)(windowed_root)), (Widget)(windowed_root)),
                                 root_surface, pw, ph);
     }
     if (folded_now)

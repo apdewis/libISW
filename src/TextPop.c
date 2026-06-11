@@ -1359,7 +1359,7 @@ SetWMProtocolTranslations(Widget w)
     IswAugmentTranslations(w, compiled_table);
     wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), WM_DELETE_WINDOW, False);
     /* XCB equivalent of XSetWMProtocols */
-    xcb_icccm_set_wm_protocols(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)),
+    xcb_icccm_set_wm_protocols(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
                                _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_PROTOCOLS", False),
                                1, &wm_delete_window);
 }

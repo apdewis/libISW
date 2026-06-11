@@ -81,7 +81,7 @@ in this Software without prior written authorization from The Open Group.
 #include "EventI.h"
 #include "ISWPlatformPrivate.h"
 
-#define _GetWindowedAncestor(w) (IswIsWidget(w) ? w : _IswWindowedAncestor(w))
+#define _GetWindowedAncestor(w) (IswIsWidget(w) ? w : _IswWidgetAncestor(w))
 
 /* InActiveSubtree cache of the current focus source and its ancestors */
 static Widget *pathTrace = NULL;
@@ -638,7 +638,7 @@ AddFocusHandler(Widget widget,
                  * contains the pointer, then source has the focus.
                  */
                 //#TODO another LLM rework to verify
-                xcb_query_pointer_cookie_t cookie = xcb_query_pointer(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(IswWindowOf(widget)));
+                xcb_query_pointer_cookie_t cookie = xcb_query_pointer(_IswXcbConn(IswDisplayOf(widget)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))));
                 xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(_IswXcbConn(IswDisplayOf(widget)), cookie, NULL);
                 if (reply) {
                     /* We need to take borders into consideration */

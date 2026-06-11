@@ -84,17 +84,17 @@ in this Software without prior written authorization from The Open Group.
 static void
 ClearRectObjAreas(RectObj r, uint32_t old_x, uint32_t old_y, uint32_t old_w, uint32_t old_h, uint32_t old_bw)
 {
-    Widget pw = _IswWindowedAncestor((Widget) r);
+    Widget pw = _IswWidgetAncestor((Widget) r);
     int bw2;
 
     bw2 = old_bw << 1;
-    (void)xcb_clear_area_checked(_IswXcbConn(IswDisplayOf(pw)), 0, _IswXcbWindow(IswWindowOf(pw)),
+    (void)xcb_clear_area_checked(_IswXcbConn(IswDisplayOf(pw)), 0, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
         old_x, old_y,
         (unsigned) (old_w + bw2), (unsigned) (old_h + bw2)
     );
 
     bw2 = r->rectangle.border_width << 1;
-    (void)xcb_clear_area_checked(_IswXcbConn(IswDisplayOf(pw)), 0, _IswXcbWindow(IswWindowOf(pw)),
+    (void)xcb_clear_area_checked(_IswXcbConn(IswDisplayOf(pw)), 0, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
                (int) r->rectangle.x, (int) r->rectangle.y,
                (unsigned int) (r->rectangle.width + bw2),
                (unsigned int) (r->rectangle.height + bw2));
@@ -448,7 +448,7 @@ _IswMakeGeometryRequest(Widget widget,
             CALLGEOTAT(_IswGeoTrace(widget, "stack_mode changing\n"));
             if (req.changeMask & XCB_CONFIG_WINDOW_SIBLING) {
                 if (IswIsWidget(request->sibling))
-                    req.changes_sb = _IswXcbWindow(IswWindowOf(request->sibling));
+                    req.changes_sb = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(request->sibling)), (Widget)(request->sibling)));
                 else
                     req.changeMask =
                         (IswGeometryMask) (req.changeMask & (unsigned long)
@@ -468,69 +468,9 @@ _IswMakeGeometryRequest(Widget widget,
                                    IswName(widget)));
         }
 #endif
-        /* A windowed widget whose parent is windowless has its X window
-           parented to the nearest WINDOWED ancestor (see IswCreateWindow), but
-           its core.x/y are relative to the windowless parent.  Accumulate the
-           windowless-parent offset so the window is configured in the
-           ancestor's coordinate space. */
-        int wl_off_x = 0, wl_off_y = 0;
-        {
-            Widget a;
-            for (a = IswParent(widget);
-                 a != NULL && IswIsWidget(a) && a->core.windowless;
-                 a = IswParent(a)) {
-                wl_off_x += a->core.x + a->core.border_width;
-                wl_off_y += a->core.y + a->core.border_width;
-            }
-        }
-
-        /* HiDPI: convert logical pixels to physical for the X server.
-         * Use lrint() for correct rounding of negative positions. */
-        {
-            double sf = _IswGetScaleFactor(IswDisplayOf(widget));
-            IswWindowGeometry g;
-            unsigned int cmask = 0;
-            memset(&g, 0, sizeof(g));
-            if (req.changeMask & XCB_CONFIG_WINDOW_X) {
-                g.x = (int32_t)lrint((double)(req.changes_x + wl_off_x) * sf);
-                cmask |= ISW_CONFIG_X;
-            }
-            if (req.changeMask & XCB_CONFIG_WINDOW_Y) {
-                g.y = (int32_t)lrint((double)(req.changes_y + wl_off_y) * sf);
-                cmask |= ISW_CONFIG_Y;
-            }
-            if (req.changeMask & XCB_CONFIG_WINDOW_WIDTH) {
-                g.width = (uint32_t)lrint((double)req.changes_w * sf);
-                cmask |= ISW_CONFIG_WIDTH;
-            }
-            if (req.changeMask & XCB_CONFIG_WINDOW_HEIGHT) {
-                g.height = (uint32_t)lrint((double)req.changes_h * sf);
-                cmask |= ISW_CONFIG_HEIGHT;
-            }
-            if (req.changeMask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
-                g.border_width = (uint32_t)lrint((double)req.changes_bw * sf);
-                cmask |= ISW_CONFIG_BORDER;
-            }
-            IswStackMode stack = ISW_STACK_NONE;
-            IswWindow sibling = NULL;
-            if (req.changeMask & XCB_CONFIG_WINDOW_STACK_MODE) {
-                cmask |= ISW_CONFIG_STACK;
-                stack = (req.changes_sm == XCB_STACK_MODE_BELOW)
-                      ? ISW_STACK_BELOW : ISW_STACK_ABOVE;
-                if ((req.changeMask & XCB_CONFIG_WINDOW_SIBLING) &&
-                    IswIsWidget(request->sibling))
-                    sibling = request->sibling->core.window;
-            }
-            /* A windowless widget owns no X window: IswWindowOf() would resolve
-               to the nearest windowed ancestor (ultimately the shell), so
-               configuring it would resize that ancestor.  The parent's
-               geometry manager has already updated core.x/y/width/height and
-               is responsible for repainting the widget. */
-            if (!widget->core.windowless)
-                _IswPlatformConfigureWindow(IswDisplayOf(widget),
-                                            IswWindowOf(widget), &g, cmask,
-                                            stack, sibling);
-        }
+        /* A widget owns no window — geometry is applied to core.x/y/width/
+           height (done above) and the parent's geometry manager repaints the
+           widget's surface.  There is no window to configure. */
     }
     else {                      /* RectObj child of realized Widget */
         *clear_rect_obj = TRUE;
@@ -669,7 +609,7 @@ IswResizeWindow(Widget w)
             g.border_width = (uint32_t)lrint((double)req.changes_bw * sf);
             /* Windowless widgets own no X window — see _IswMakeGeometryRequest. */
             if (!w->core.windowless)
-                _IswPlatformConfigureWindow(IswDisplayOf(w), IswWindowOf(w), &g,
+                _IswPlatformConfigureWindow(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), &g,
                                             ISW_CONFIG_WIDTH | ISW_CONFIG_HEIGHT |
                                             ISW_CONFIG_BORDER,
                                             ISW_STACK_NONE, NULL);
@@ -789,7 +729,7 @@ IswConfigureWidget(Widget w,
                We must NOT xcb_clear_area the shared window to provoke an Expose
                — that flashes the cleared background before the async repaint.
                The coalesced composite avoids any cleared-state flicker. */
-            Widget pw = _IswWindowedAncestor(w);
+            Widget pw = _IswWidgetAncestor(w);
             Boolean size_changed =
                 (req.changeMask & (XCB_CONFIG_WINDOW_WIDTH |
                                    XCB_CONFIG_WINDOW_HEIGHT |
@@ -849,7 +789,7 @@ IswConfigureWidget(Widget w,
                         cmask |= ISW_CONFIG_BORDER;
                     }
                     _IswPlatformConfigureWindow(w->core.display,
-                                                IswWindowOf(w), &g, cmask,
+                                                _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), &g, cmask,
                                                 ISW_STACK_NONE, NULL);
                 }
             }

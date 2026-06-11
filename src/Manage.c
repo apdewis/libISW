@@ -153,7 +153,7 @@ UnmanageChildren(WidgetList children,
                     xcb_clear_area(
                         _IswXcbConn(IswDisplayOf(pw)),
                         0,  // exposure flag (0 = no exposure)
-                        _IswXcbWindow(IswWindowOf(pw)),
+                        _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
                         r->rectangle.x,
                         r->rectangle.y,
                         r->rectangle.width + (r->rectangle.border_width << 1),
@@ -332,7 +332,7 @@ ManageChildren(WidgetList children,
                     xcb_clear_area(
                         _IswXcbConn(IswDisplayOf(pw)),
                         0,  // exposure flag (0 = no exposure)
-                        _IswXcbWindow(IswWindowOf(pw)),
+                        _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
                         r->rectangle.x,
                         r->rectangle.y,
                         r->rectangle.width + (r->rectangle.border_width << 1),

@@ -588,7 +588,7 @@ ComputeArgs(Widget widget,
                 if (IswIsWidget(widget))
                     ancestor = widget;
                 else
-                    ancestor = _IswWindowedAncestor(widget);
+                    ancestor = _IswWidgetAncestor(widget);
             }
 
             args[i].addr =

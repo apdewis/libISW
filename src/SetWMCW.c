@@ -138,12 +138,12 @@ IswSetWMColormapWindows(Widget widget, Widget *list, Cardinal count)
     data = IswMallocArray(checked_count, (Cardinal) sizeof(xcb_window_t));
 
     for (i = 0; i < checked_count; i++)
-        data[i] = _IswXcbWindow(IswWindowOf(top[i]));
+        data[i] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(top[i])), (Widget)(top[i])));
 
     xa_wm_colormap_windows = _IswPlatformInternAtomOp(IswDisplayOf(widget),
                                                       "WM_COLORMAP_WINDOWS", False);
 
-    _IswPlatformChangeProperty(IswDisplayOf(widget), IswWindowOf(widget),
+    _IswPlatformChangeProperty(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)),
                                xa_wm_colormap_windows, ISW_ATOM_WINDOW, 32,
                                ISW_PROP_MODE_REPLACE, data, (uint32_t) i);
 

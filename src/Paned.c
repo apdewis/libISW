@@ -689,7 +689,7 @@ CommitNewLocations(PanedWidget pw)
 	            values[0] = (uint32_t)(int32_t)(grip_x * _sf + 0.5);
 	            values[1] = (uint32_t)(int32_t)(grip_y * _sf + 0.5);
 	            values[2] = XCB_STACK_MODE_ABOVE;
-	            xcb_configure_window(_IswXcbConn(IswDisplayOf(pane->grip)), _IswXcbWindow(IswWindowOf(pane->grip)),
+	            xcb_configure_window(_IswXcbConn(IswDisplayOf(pane->grip)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pane->grip)), (Widget)(pane->grip))),
 				     XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
 				     XCB_CONFIG_WINDOW_STACK_MODE, values);
 	        }

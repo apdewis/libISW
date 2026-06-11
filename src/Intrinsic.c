@@ -324,9 +324,7 @@ RealizeWidget(Widget widget)
     IswValueMask value_mask;
     uint32_t values[32];
     IswRealizeProc realize;
-    xcb_window_t window;
     IswDisplay display;
-    String class_name;
     Widget hookobj;
 
     if (!IswIsWidget(widget) || IswIsRealized(widget))
@@ -338,7 +336,6 @@ RealizeWidget(Widget widget)
     ComputeWindowAttributes(widget, &value_mask, values);
     LOCK_PROCESS;
     realize = widget->core.widget_class->core_class.realize;
-    class_name = widget->core.widget_class->core_class.class_name;
     UNLOCK_PROCESS;
     /* Mark windowless widgets realized BEFORE running the class realize proc.
        A windowed widget's realize creates its window, so IswIsRealized() (which
@@ -369,9 +366,6 @@ RealizeWidget(Widget widget)
                                widget->core.width, widget->core.height));
         (*realize) (display, widget, &value_mask, values);
     }
-    /* Own window (None for windowless); used for drawable registration
-       and the optional window-identify property below. */
-    window = _IswXcbWindow(widget->core.window);
     hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
@@ -382,32 +376,6 @@ RealizeWidget(Widget widget)
                            ((HookObject) hookobj)->hooks.changehook_callbacks,
                            (IswPointer) &call_data);
     }
-#ifndef NO_IDENTIFY_WINDOWS
-    if (_IswGetPerDisplay(IswDisplayOf(widget))->appContext->identify_windows) {
-        int len_nm, len_cl;
-        char *s;
-        Atom obj_class;
-
-        len_nm = widget->core.name ? (int) strlen(widget->core.name) : 0;
-        len_cl = (int) strlen(class_name);
-        s = __XtMalloc((unsigned) (len_nm + len_cl + 2));
-        s[0] = '\0';
-        if (len_nm)
-            strcpy(s, widget->core.name);
-        strcpy(s + len_nm + 1, class_name);
-
-        obj_class = _IswPlatformInternAtomOp(display,
-                                             "_MIT_OBJ_CLASS", False);
-        if (obj_class != ISW_ATOM_NONE) {
-            _IswPlatformChangeProperty(display,
-                                       _IswXcbWindowWrap(window),
-                                       obj_class, ISW_ATOM_STRING, 8,
-                                       ISW_PROP_MODE_REPLACE, s,
-                                       (uint32_t) (len_nm + len_cl + 2));
-        }
-        IswFree(s);
-    }
-#endif
 #ifdef notdef
     _IswRegisterAsyncHandlers(widget);
 #endif
@@ -415,26 +383,11 @@ RealizeWidget(Widget widget)
     _IswRegisterGrabs(widget);
     /* reregister any grabs added with IswGrab{Button,Key} */
     _IswRegisterPassiveGrabs(widget);
-    /* Windowless widgets share their ancestor's window; do not register
-       the ancestor window as mapping to this widget (the ancestor already
-       owns that mapping).  Mark realized via the windowless flag instead. */
-    if (widget->core.windowless) {
-        widget->core.windowless_realized = True;
-        /* Fold this widget's event mask (incl. its translations) into the
-           windowed ancestor's window selection so its events are delivered. */
-        if (IswIsRealized(widget)) {
-            Widget anc = _IswWindowedAncestor(widget);
-            if (anc != NULL && IswIsRealized(anc)
-                && !anc->core.being_destroyed) {
-                EventMask sel = _IswWindowSelectMask(anc);
-                xcb_change_window_attributes(_IswXcbConn(IswDisplayOf(anc)),
-                                             _IswXcbWindow(anc->core.window),
-                                             XCB_CW_EVENT_MASK, &sel);
-            }
-        }
-    }
-    else
-        IswRegisterDrawable((IswDisplay) display, window, widget);
+
+    /* Surface-based realize: the widget has no window.  Mark it realized; the
+       shell folds the full subtree's event interest into its root window's
+       selection, and rendering goes to the per-widget surface. */
+    widget->core.windowless_realized = True;
 
     _IswExtensionSelect(widget);
 
@@ -447,27 +400,15 @@ RealizeWidget(Widget widget)
         for (i = cwp->num_children; i != 0; --i) {
             RealizeWidget(children[i - 1]);
         }
-        /* Map children that are managed and mapped_when_managed.
-           This is the windowless equivalent of mapping a window: it is the
-           sole writer of windowless_mapped True, and it runs only AFTER realize
-           — mirroring the windowed map happening after window creation. */
-
+        /* Map children that are managed and mapped_when_managed — the
+           surface-tree equivalent of mapping windows. */
         if (cwp->num_children != 0) {
-            if (ShouldMapAllChildren(cwp)) {
-                /* Fast path maps all real subwindows at once.  It is a no-op for
-                   windowless children (they have no X window), so they still
-                   need their shown flag set via the per-child map gate. */
-                xcb_map_subwindows(_IswXcbConn(display), window);
-                for (i = 0; i < cwp->num_children; i++) {
-                    Widget child = children[i];
-                    if (IswIsWidget(child) && child->core.windowless &&
-                        child->core.managed && child->core.mapped_when_managed &&
-                        !child->core.windowless_unmapped_explicit)
-                        IswMapWidget(child);
-                }
-            }
-            else {
-                MapChildren(cwp);
+            for (i = 0; i < cwp->num_children; i++) {
+                Widget child = children[i];
+                if (IswIsWidget(child) &&
+                    child->core.managed && child->core.mapped_when_managed &&
+                    !child->core.windowless_unmapped_explicit)
+                    IswMapWidget(child);
             }
         }
     }
@@ -534,30 +475,18 @@ UnrealizeWidget(Widget widget)
     /* Unregister window.  Windowless widgets never registered a drawable
        (they share the ancestor's window), so skip both the unregister and
        the window clear; just mark them unrealized. */
-    if (widget->core.windowless) {
-        /* Unrealizing a windowed widget destroys its window, which implicitly
-           removes it from the screen.  Mirror that for windowless widgets:
-           clear the shown flag and recomposite the windowed ancestor so the
-           now-gone widget's pixels are erased.  Capture the ancestor while the
-           widget is still realized (the lookup is valid either way, but do it
-           before we tear down state). */
+    /* Surface-based unrealize: the widget owns no window.  Clear the shown
+       flag and recomposite the ancestor so the now-gone widget's pixels are
+       erased.  Capture the ancestor while the widget is still realized. */
+    {
         Boolean was_shown = widget->core.windowless_mapped;
-        Widget anc = was_shown ? _IswWindowedAncestor(widget) : NULL;
+        Widget anc = was_shown ? _IswWidgetAncestor(widget) : NULL;
         widget->core.windowless_realized = False;
         widget->core.windowless_mapped = False;
         if (was_shown)
             _ISWRenderMarkDirtyChain(widget->core.parent);
         if (anc != NULL && IswIsRealized(anc) && !anc->core.being_destroyed)
             ISWRenderRequestComposite(anc);
-    }
-    else {
-        IswUnregisterDrawable(IswDisplayOf(widget), _IswXcbWindow(IswWindowOf(widget)));
-
-        /* Remove Event Handlers */
-        /* remove grabs. Happens automatically when window is destroyed. */
-
-        /* Destroy X xcb_window_t, done at outer level with one request */
-        widget->core.window = _IswXcbWindowWrap(None);
     }
 
     /* Removing the event handler here saves having to keep track if
@@ -569,16 +498,11 @@ UnrealizeWidget(Widget widget)
 void
 IswUnrealizeWidget(Widget widget)
 {
-    IswWindow window;
     Widget hookobj;
 
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    /* Use the widget's own window, not the resolved ancestor window:
-       windowless widgets must never destroy their ancestor's window. */
-    window = widget->core.windowless ? _IswXcbWindowWrap(None)
-                                     : widget->core.window;
     if (!IswIsRealized(widget)) {
         UNLOCK_APP(app);
         return;
@@ -586,10 +510,6 @@ IswUnrealizeWidget(Widget widget)
     if (widget->core.managed && widget->core.parent != NULL)
         IswUnmanageChild(widget);
     UnrealizeWidget(widget);
-    if (_IswXcbWindow(window) != None) {
-        _IswPlatformDestroyWindow(IswDisplayOf(widget), window);
-        _IswPlatformFlush(IswDisplayOf(widget));
-    }
     hookobj = IswHooksOfDisplay(IswDisplayOfObject(widget));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
@@ -603,89 +523,6 @@ IswUnrealizeWidget(Widget widget)
     UNLOCK_APP(app);
 }                               /* IswUnrealizeWidget */
 
-void
-IswCreateWindow(IswDisplay display,
-               Widget widget,
-               unsigned int window_class,
-               IswVisual visual,
-               IswValueMask value_mask,
-               uint32_t *attributes)
-{
-    IswAppContext app = IswWidgetToApplicationContext(widget);
-    (void) value_mask;
-    (void) attributes;  /* attributes now derived from core fields below */
-
-    LOCK_APP(app);
-    if (widget->core.windowless) {
-        /* Windowless widgets never get an X window. */
-        UNLOCK_APP(app);
-        return;
-    }
-    if (_IswXcbWindow(widget->core.window) == None) {
-        IswWindow parent;
-        IswWindowGeometry geom;
-        IswWindowAttributes attrs;
-        double _sf = _IswGetScaleFactor(display);
-        int off_x = 0, off_y = 0;
-
-        if (widget->core.width == 0 || widget->core.height == 0) {
-            Cardinal count = 1;
-
-            IswAppErrorMsg(app,
-                          "invalidDimension", "xtCreateWindow",
-                          IswCIswToolkitError,
-                          "Widget %s has zero width and/or height",
-                          &widget->core.name, &count);
-        }
-
-        /* Resolve the parent window.  A windowed child of a windowless parent
-           (e.g. a windowed widget inside a windowless Box) must be created under
-           the parent's nearest WINDOWED ancestor, since the windowless parent
-           has no window.  Its x,y are relative to the windowless parent, so
-           accumulate the offset across the windowless chain to position the
-           window in the ancestor's coordinates. */
-        if (widget->core.parent == NULL) {
-            parent = _IswDefaultRootWindow(display);
-        } else if (widget->core.parent->core.windowless) {
-            Widget anc = widget->core.parent;
-            while (anc != NULL && IswIsWidget(anc) && anc->core.windowless) {
-                off_x += anc->core.x + anc->core.border_width;
-                off_y += anc->core.y + anc->core.border_width;
-                anc = anc->core.parent;
-            }
-            parent = anc ? anc->core.window
-                         : _IswDefaultRootWindow(display);
-        } else {
-            parent = widget->core.parent->core.window;
-        }
-
-        /* HiDPI: create window at physical pixel geometry */
-        geom.x = (int32_t)((widget->core.x + off_x) * _sf + 0.5);
-        geom.y = (int32_t)((widget->core.y + off_y) * _sf + 0.5);
-        geom.width = (uint32_t)(widget->core.width * _sf + 0.5);
-        geom.height = (uint32_t)(widget->core.height * _sf + 0.5);
-        geom.border_width = (uint32_t)(widget->core.border_width * _sf + 0.5);
-
-        /* Attributes derived from the widget (same values ComputeWindowAttributes
-           packs): background/border pixel, NorthWest bit gravity, event mask,
-           colormap, plus visual/depth from the create call. */
-        memset(&attrs, 0, sizeof(attrs));
-        attrs.background_pixel = widget->core.background_pixel;
-        attrs.border_pixel = widget->core.border_pixel;
-        attrs.event_mask = _IswWindowSelectMask(widget);
-        attrs.bit_gravity_nw = True;
-        attrs.colormap = widget->core.colormap;
-        attrs.depth = widget->core.depth;
-        {
-            xcb_visualtype_t *vt = _IswXcbVisual(visual);
-            attrs.visual = vt ? vt->visual_id : 0;
-        }
-
-        widget->core.window = _IswPlatformCreateWindow(display, parent, &geom,
-                                                       &attrs, window_class);
-    }
-    UNLOCK_APP(app);
-}                               /* IswCreateWindow */
 
 /* ---------------- IswNameToWidget ----------------- */
 
@@ -865,7 +702,7 @@ IswDisplayOfObject(Widget object)
     /* Attempts to LockApp() here will generate endless recursive loops */
     if (IswIsSubclass(object, hookObjectClass))
         return ((HookObject) object)->hooks.display;
-    return IswDisplayOf(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
+    return IswDisplayOf(IswIsWidget(object) ? object : _IswWidgetAncestor(object));
 }
 
 #undef IswDisplayOf
@@ -883,7 +720,7 @@ IswScreenOfObject(Widget object)
     /* Attempts to LockApp() here will generate endless recursive loops */
     if (IswIsSubclass(object, hookObjectClass))
         return ((HookObject) object)->hooks.screen;
-    return IswScreenOf(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
+    return IswScreenOf(IswIsWidget(object) ? object : _IswWidgetAncestor(object));
 }
 
 #undef IswScreenOf
@@ -894,30 +731,12 @@ IswScreenOf(Widget widget)
     return widget->core.screen;
 }
 
-#undef IswWindowOfObject
-IswWindow
-IswWindowOfObject(Widget object)
-{
-    return IswWindowOf(IswIsWidget(object) ? object : _IswWindowedAncestor(object));
-}
-
-#undef IswWindowOf
-IswWindow
-IswWindowOf(Widget widget)
-{
-    /* Windowless widgets share their nearest windowed ancestor's window. */
-    if (widget->core.windowless)
-        return _IswWindowedAncestor(widget)->core.window;
-    return widget->core.window;
-}
-
 #undef IswSurfaceOf
 IswSurface
 IswSurfaceOf(Widget widget)
 {
-    /* Every widget owns its own surface — windowed or windowless.  Unlike
-       IswWindowOf, there is no ancestor resolution: the surface IS the
-       per-widget drawable. */
+    /* Every widget owns its own render surface.  The core has no window — the
+       platform layer owns the single top-level window and blits surfaces. */
     return widget->core.surface;
 }
 
@@ -971,10 +790,9 @@ IswIsRealized(Widget object)
     WIDGET_TO_APPCON(object);
 
     LOCK_APP(app);
-    if (IswIsWidget(object) && object->core.windowless)
-        retval = object->core.windowless_realized;
-    else
-        retval = IswWindowOfObject(object) != None;
+    /* Surface-based: a realized widget has been created (surface + geometry
+       valid).  No window is consulted. */
+    retval = IswIsRectObj(object) ? object->core.windowless_realized : False;
     UNLOCK_APP(app);
     return retval;
 }                               /* IswIsRealized */
@@ -997,27 +815,35 @@ IswIsSensitive(Widget object)
 }
 
 /*
- * Internal routine; must be called only after IswIsWidget returns false
+ * The widget that owns the surface `object` composites into: the topmost widget
+ * at or above `object` (the shell, which holds the persisted root surface).
+ * Also used to read display/screen for non-widget objects.  No window
+ * semantics — core widgets are surface-based.
+ *
+ * If `object` is itself the root widget, it is its own composite root.  A
+ * non-widget object always has a widget ancestor, so the walk never returns
+ * NULL for one; only a parent-less non-widget (never constructed) would.
  */
 Widget
-_IswWindowedAncestor(register Widget object)
+_IswWidgetAncestor(register Widget object)
 {
     Widget obj = object;
+    Widget top = IswIsWidget(object) ? object : NULL;
 
-    for (object = IswParent(object);
-         object && (!IswIsWidget(object) || object->core.windowless);)
-        object = IswParent(object);
+    for (object = IswParent(object); object; object = IswParent(object))
+        if (IswIsWidget(object))
+            top = object;
 
-    if (object == NULL) {
+    if (top == NULL) {
         String params = IswName(obj);
         Cardinal num_params = 1;
 
-        IswErrorMsg("noWidgetAncestor", "windowedAncestor", IswCIswToolkitError,
-                   "Object \"%s\" does not have windowed ancestor",
+        IswErrorMsg("noWidgetAncestor", "widgetAncestor", IswCIswToolkitError,
+                   "Object \"%s\" does not have a widget ancestor",
                    &params, &num_params);
     }
 
-    return object;
+    return top;
 }
 
 #undef IswParent

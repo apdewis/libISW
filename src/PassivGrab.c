@@ -93,7 +93,7 @@ in this Software without prior written authorization from The Open Group.
 #define MasksPerDetailMask 8
 
 #define pDisplay(grabPtr) (((grabPtr)->widget)->core.display)
-#define pWindow(grabPtr) (((grabPtr)->widget)->core.window)
+#define pWindow(grabPtr) (_IswPlatformWidgetWindow(pDisplay(grabPtr), (grabPtr)->widget))
 
 /***************************************************************************/
 /*********************** Internal Support Routines *************************/
@@ -172,7 +172,7 @@ CreateGrab(Widget widget,
     IswSetBit(grab->keyboardMode, keyboard_mode);
     grab->eventMask = (unsigned short) event_mask;
     IswSetBit(grab->hasExt, need_ext);
-    grab->confineToIsWidgetWin = (_IswXcbWindow(IswWindowOf(widget)) == confine_to);
+    grab->confineToIsWidgetWin = (_IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))) == confine_to);
     grab->modifiers = (unsigned short) modifiers;
     grab->keybut = keybut;
     if (need_ext) {
@@ -625,7 +625,7 @@ MakeGrab(IswServerGrabPtr grab,
 
         if (grab->hasExt) {
             if (grab->confineToIsWidgetWin)
-                confineTo = IswWindowOf(grab->widget);
+                confineTo = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(grab->widget)), (Widget)(grab->widget));
             else
                 confineTo = _IswXcbWindowWrap(GRABEXT(grab)->confineTo);
             cursor = GRABEXT(grab)->cursor;
@@ -787,9 +787,9 @@ UngrabKeyOrButton(Widget widget,
 
     if (IswIsRealized(widget)) {
         if (isKeyboard)
-            xcb_ungrab_key(_IswXcbConn(IswDisplayOf(widget)), (uint8_t)modifiers, _IswXcbWindow(widget->core.window), keyOrButton);
+            xcb_ungrab_key(_IswXcbConn(IswDisplayOf(widget)), (uint8_t)modifiers, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf(widget), widget)), keyOrButton);
         else
-            xcb_ungrab_button(_IswXcbConn(IswDisplayOf(widget)), (uint16_t)modifiers, _IswXcbWindow(widget->core.window), keyOrButton);
+            xcb_ungrab_button(_IswXcbConn(IswDisplayOf(widget)), (uint16_t)modifiers, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf(widget), widget)), keyOrButton);
     }
 
     /* Delete all entries which are encompassed by the specified grab. */
@@ -886,12 +886,12 @@ GrabDevice(Widget widget,
     UNLOCK_PROCESS;
     if (!isKeyboard) {
         returnVal = _IswPlatformGrabPointer(
-            IswDisplayOf(widget), IswWindowOf(widget), owner_events,
+            IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), owner_events,
             (unsigned int) event_mask, pointer_mode, keyboard_mode,
             confine_to, cursor, time);
     } else {
         returnVal = _IswPlatformGrabKeyboard(
-            IswDisplayOf(widget), IswWindowOf(widget), owner_events,
+            IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), owner_events,
             pointer_mode, keyboard_mode, time);
     }
 

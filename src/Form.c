@@ -884,7 +884,7 @@ IswFormDoLayout(Widget _fw,
 	     */
 
 	    /* Windowless children have no X window of their own —
-	       IswWindowOf(w) would resolve to the windowed ancestor, so
+	       _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)) would resolve to the windowed ancestor, so
 	       configuring it would resize the ancestor's window. */
 	    if (!w->core.windowless) {
 		/* HiDPI: scale logical to physical for the X server */
@@ -894,7 +894,7 @@ IswFormDoLayout(Widget _fw,
 		values[1] = (uint32_t)(int32_t)(w->core.y * _sf + 0.5);
 		values[2] = (uint32_t)(w->core.width * _sf + 0.5);
 		values[3] = (uint32_t)(w->core.height * _sf + 0.5);
-		xcb_configure_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)),
+		xcb_configure_window(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
 		    XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y |
 		    XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
 		    values);

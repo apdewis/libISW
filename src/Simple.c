@@ -171,22 +171,12 @@ ClassPartInitialize(WidgetClass class)
 }
 
 static void
-Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
+Realize(IswDisplay dpy _X_UNUSED, Widget w, IswValueMask *valueMask _X_UNUSED,
+        uint32_t *attributes _X_UNUSED)
 {
+    /* Surface-based: no window is created.  Resolve the cursor; it is applied
+       to the shell's window on pointer-enter (see _IswSimpleApplyCursor). */
     ConvertCursor(w);
-
-    /* Windowless widgets have no window to attach a cursor to; the cursor is
-       applied to the windowed ancestor's window on pointer-enter (see
-       _IswSimpleApplyCursor).  Keep the resolved cursor in simple.cursor. */
-    if (!w->core.windowless &&
-        ((SimpleWidget)w)->simple.cursor != None &&
-        ((SimpleWidget)w)->simple.cursor != (IswCursor)0xffffffff) {
-	*valueMask |= XCB_CW_CURSOR;
-	attributes[__builtin_popcount(*valueMask & (XCB_CW_CURSOR - 1))] = _IswXcbCursor(((SimpleWidget)w)->simple.cursor);
-    }
-
-    IswCreateWindow(IswDisplayOf(w), w, (unsigned int)XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                   (IswVisual)CopyFromParent, *valueMask, attributes);
 }
 
 /*
@@ -197,14 +187,14 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 void
 _IswSetWindowCursor(Widget anc, IswCursor cursor)
 {
-    /* Gate on the window itself, not IswIsRealized: a shell sets its cursor
-       inside its own realize method, before the realized flag is set. */
-    if (anc == NULL || !IswIsWidget(anc) || _IswXcbWindow(anc->core.window) == XCB_NONE ||
-        anc->core.being_destroyed)
+    if (anc == NULL || !IswIsWidget(anc) || anc->core.being_destroyed)
         return;
-
-    _IswPlatformSetWindowCursor(
-        IswDisplayOf(anc), anc->core.window, cursor);
+    {
+        IswWindow win = _IswPlatformWidgetWindow(IswDisplayOf(anc), anc);
+        if (_IswXcbWindow(win) == XCB_NONE)
+            return;
+        _IswPlatformSetWindowCursor(IswDisplayOf(anc), win, cursor);
+    }
 }
 
 /*
@@ -249,7 +239,7 @@ _IswSimpleApplyCursor(Widget w)
     if (w == NULL || !IswIsWidget(w))
         return;
 
-    anc = _IswWindowedAncestor(w);
+    anc = _IswWidgetAncestor(w);
     if (anc == NULL || !IswIsRealized(anc) || anc->core.being_destroyed)
         return;
 
@@ -353,10 +343,10 @@ ChangeSensitive(Widget w)
     if (IswIsRealized(w)) {
 	if (w->core.windowless)
 	    /* Windowless: repaint our own surface and composite the ancestor.
-	       xcb_clear_area(IswWindowOf(w)) would blank the shared ancestor. */
+	       xcb_clear_area(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))) would blank the shared ancestor. */
 	    _IswRepaintWindowless(w);
 	else
-	    xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1, _IswXcbWindow(IswWindowOf(w)), 0, 0, 0, 0);
+	    xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))), 0, 0, 0, 0);
     }
     return False;
 }

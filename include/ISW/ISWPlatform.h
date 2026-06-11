@@ -871,6 +871,16 @@ extern void    _IswPlatformConfigureWindow(IswDisplay dpy, IswWindow win,
 extern void    _IswPlatformClearArea(IswDisplay dpy, IswWindow win,
                                      int16_t x, int16_t y, uint16_t w, uint16_t h,
                                      Boolean generate_expose);
+/* The single top-level window the platform owns for a widget's display.  The
+   toolkit holds no window handle; boundary code (event routing, grabs, DnD)
+   that must name a window resolves it here from the widget. */
+extern IswWindow _IswPlatformWidgetWindow(IswDisplay dpy, Widget w);
+
+/* Register (win) or clear (win==0) the platform window backing a specific
+   widget — used by widgets that own a distinct top-level (tooltip popups).
+   The toolkit holds no window handle; the association lives in the platform. */
+extern void _IswPlatformSetWidgetWindow(IswDisplay dpy, Widget w, IswWindow win);
+
 extern IswWindowId _IswPlatformWindowId(IswWindow win);
 extern IswWindow   _IswPlatformWindowFromId(IswDisplay dpy, IswWindowId id);
 

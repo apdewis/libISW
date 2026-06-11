@@ -373,7 +373,6 @@ xtCreate(String name,
         widget->core.screen = default_screen;
         widget->core.display = conn;
         widget->core.tm.translations = NULL;
-        widget->core.window = _IswXcbWindowWrap((xcb_window_t) 0);
         widget->core.visible = TRUE;
         widget->core.popup_list = NULL;
         widget->core.num_popups = 0;

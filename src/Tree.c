@@ -1030,13 +1030,13 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
         }
         /* Repaint the tree lines (Redisplay) and the windowless child widgets,
            then composite the ancestor once.  Tree is windowless, so
-           xcb_clear_area(IswWindowOf(tw)) would blank the shared ancestor window
+           xcb_clear_area(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(tw)), (Widget)(tw))) would blank the shared ancestor window
            instead of just this widget's area. */
         if (tw->core.windowless) {
             _IswRepaintWindowless((Widget)tw);
         } else {
             xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(tw));
-            xcb_clear_area(conn, 1, _IswXcbWindow(IswWindowOf((Widget)tw)), 0, 0, 0, 0);
+            xcb_clear_area(conn, 1, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(tw)), (Widget)(tw))), 0, 0, 0, 0);
             xcb_flush(conn);
         }
     }

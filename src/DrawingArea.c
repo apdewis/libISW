@@ -131,7 +131,7 @@ Resize(Widget w)
 
     call_data.render_ctx = NULL;
     call_data.event = NULL;
-    call_data.window = IswIsRealized(w) ? IswWindowOf(w) : _IswXcbWindowWrap(None);
+    call_data.window = IswIsRealized(w) ? _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)) : _IswXcbWindowWrap(None);
 
     IswCallCallbackList(w, daw->drawing_area.resize_callbacks,
 		       (IswPointer)&call_data);
@@ -154,7 +154,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 
     call_data.render_ctx = ctx;
     call_data.event = event;
-    call_data.window = IswWindowOf(w);
+    call_data.window = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w));
 
     ISWRenderBegin(ctx);
     IswCallCallbackList(w, daw->drawing_area.expose_callbacks,
@@ -171,7 +171,7 @@ DrawingAreaInput(Widget w, IswEvent *iswev,
 
     call_data.render_ctx = daw->drawing_area.render_ctx;
     call_data.event = iswev;
-    call_data.window = IswIsRealized(w) ? IswWindowOf(w) : _IswXcbWindowWrap(None);
+    call_data.window = IswIsRealized(w) ? _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)) : _IswXcbWindowWrap(None);
 
     IswCallCallbackList(w, daw->drawing_area.input_callbacks,
 		       (IswPointer)&call_data);

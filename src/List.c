@@ -1248,7 +1248,7 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     /* X server pointer grab — all button events (scroll, outside clicks)
      * delivered to popup window. Same technique as GTK/Motif popups. */
     _IswPlatformGrabPointer(
-        IswDisplayOf(w), IswWindowOf(lw->list.popup_shell), False,
+        IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(lw->list.popup_shell)), (Widget)(lw->list.popup_shell)), False,
         XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE |
         XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION |
         XCB_EVENT_MASK_ENTER_WINDOW | XCB_EVENT_MASK_LEAVE_WINDOW,
@@ -1257,7 +1257,7 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
     /* Keyboard grab so arrow / Return / Escape route to the popup */
     _IswPlatformGrabKeyboard(
-        IswDisplayOf(w), IswWindowOf(lw->list.popup_shell), False,
+        IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(lw->list.popup_shell)), (Widget)(lw->list.popup_shell)), False,
         XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, ISW_CURRENT_TIME);
 
     xcb_flush(_IswXcbConn(IswDisplayOf(w)));
@@ -1473,7 +1473,7 @@ IswListChange(Widget w, String* list, int nitems, int longest,
        * repaint; calling Redisplay here would be wasted work that
        * races with the map and can leave the window blank. */
       xcb_get_window_attributes_cookie_t ac =
-          xcb_get_window_attributes(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(IswWindowOf(w)));
+          xcb_get_window_attributes(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))));
       xcb_get_window_attributes_reply_t *ar =
           xcb_get_window_attributes_reply(_IswXcbConn(IswDisplayOf(w)), ac, NULL);
       int viewable = ar && ar->map_state == XCB_MAP_STATE_VIEWABLE;

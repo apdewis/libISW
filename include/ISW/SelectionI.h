@@ -166,7 +166,8 @@ typedef struct {
    request.  Window identity is compared as IswWindowId (neutral). */
 #define MATCH_SELECT(selev, info) (((selev)->time == (info)->time) && \
 	    (_IswPlatformWindowId((selev)->requestor) == \
-	         _IswPlatformWindowId(IswWindowOf((info)->widget))) && \
+	         _IswPlatformWindowId(_IswPlatformWidgetWindow( \
+	             IswDisplayOf((info)->widget), (info)->widget))) && \
 	    ((selev)->selection == (info)->ctx->selection) && \
 	    ((selev)->target == *(info)->target))
 

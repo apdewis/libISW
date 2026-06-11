@@ -1317,18 +1317,10 @@ extern IswScreen IswScreenOfObject(
     Widget 		/* object */
 );
 
-extern IswWindow IswWindowOf(
-    Widget 		/* widget */
-);
-
-extern IswWindow IswWindowOfObject(
-    Widget 		/* object */
-);
-
-/* The widget's own render surface (core.surface).  Unlike IswWindowOf, which
-   for a windowless widget returns the SHARED ancestor window, every widget owns
-   its own surface, so this is always the widget's own.  May be NULL before the
-   surface is created (unrealized / zero-sized). */
+/* The widget's own render surface (core.surface).  Core widgets have no window
+   — they render to this surface, which the platform composites and blits to the
+   single top-level window it owns.  May be NULL before the surface is created
+   (unrealized / zero-sized). */
 extern IswSurface IswSurfaceOf(
     Widget 		/* widget */
 );

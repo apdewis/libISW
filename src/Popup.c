@@ -84,8 +84,8 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
         {
             IswWindowGeometry g;
             memset(&g, 0, sizeof(g));
-            _IswPlatformMapWindow(IswDisplayOf(widget), IswWindowOf(widget));
-            _IswPlatformConfigureWindow(IswDisplayOf(widget), IswWindowOf(widget),
+            _IswPlatformMapWindow(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
+            _IswPlatformConfigureWindow(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)),
                                         &g, ISW_CONFIG_STACK,
                                         ISW_STACK_ABOVE, NULL);
             _IswPlatformFlush(IswDisplayOf(widget));
@@ -118,7 +118,7 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
                             _IswRepaintWindowless(child);
                         else
                             _IswPlatformClearArea(IswDisplayOf(widget),
-                                                  IswWindowOf(child),
+                                                  _IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child)),
                                                   0, 0, 0, 0, True);
                     }
                 }
@@ -130,7 +130,7 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
     else {
         IswWindowGeometry g;
         memset(&g, 0, sizeof(g));
-        _IswPlatformConfigureWindow(IswDisplayOf(widget), IswWindowOf(widget),
+        _IswPlatformConfigureWindow(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)),
                                     &g, ISW_CONFIG_STACK, ISW_STACK_ABOVE, NULL);
         _IswPlatformFlush(IswDisplayOf(widget));
     }
@@ -193,7 +193,7 @@ IswPopdown(Widget widget)
 #endif
 
     grab_kind = shell_widget->shell.grab_kind;
-    _IswPlatformUnmapWindow(IswDisplayOf(widget), IswWindowOf(widget));
+    _IswPlatformUnmapWindow(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
     _IswPlatformFlush(IswDisplayOf(widget));
     /* The shell's window is now unmapped.  Cancel any composite queued for this
        windowed root earlier in the dispatch so it is not re-presented to the

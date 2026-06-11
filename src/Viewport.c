@@ -370,7 +370,7 @@ Realize(IswDisplay conn, Widget widget, IswValueMask *value_mask, uint32_t *valu
 	    IswMoveWidget( child, (Position)0, (Position)0 );
 	    /* Raw reparent stays here for now (Phase 13c routes it through the
 	       reparent window op); reach the connection via the seam. */
-	    xcb_reparent_window(_IswXcbConn(conn), _IswXcbWindow(IswWindowOf(child)), _IswXcbWindow(IswWindowOf(clip)), 0, 0);
+	    xcb_reparent_window(_IswXcbConn(conn), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child))), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(clip)), (Widget)(clip))), 0, 0);
 	    IswMapWidget( child );
 	}
 	/* Windowless child: NOT reparented — it composites in the Viewport's
@@ -706,7 +706,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		     w->viewport.horiz_bar->core.border_width + pad;
 
     if (0 /* IswIsRealized(threeD) */ )
-	/* XLowerWindow( IswDisplayOf(threeD), IswWindowOf(threeD) ); */
+	/* XLowerWindow( IswDisplayOf(threeD), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(threeD)), (Widget)(threeD)) ); */
 
     /* IswMoveWidget( threeD,
 		  (Position)(!needsvert ? 0 :
@@ -717,7 +717,7 @@ ComputeLayout(Widget widget, Boolean query, Boolean destroy_scrollbars)
 		    (Dimension)(w->core.height - bar_height), (Dimension)0 ); */
 
     if (IswIsRealized(clip))
-	xcb_configure_window(_IswXcbConn(IswDisplayOf(clip)), _IswXcbWindow(IswWindowOf(clip)),
+	xcb_configure_window(_IswXcbConn(IswDisplayOf(clip)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(clip)), (Widget)(clip))),
 	    XCB_CONFIG_WINDOW_STACK_MODE, (uint32_t[]){XCB_STACK_MODE_ABOVE});
 
     IswMoveWidget( clip,

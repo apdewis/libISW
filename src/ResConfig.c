@@ -906,7 +906,7 @@ _IswResourceConfigurationEH(Widget w,
 
     fprintf(stderr, "in _IswResourceConfigurationEH atom = %u\n",
             (unsigned) pe->atom);
-    fprintf(stderr, "    window = %x\n", (unsigned) _IswXcbWindow(IswWindowOf(w)));
+    fprintf(stderr, "    window = %x\n", (unsigned) _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))));
     if (IswIsWidget(w))
         fprintf(stderr, "    widget = %zx   name = %s\n", (size_t) w,
                 w->core.name);
@@ -921,7 +921,7 @@ _IswResourceConfigurationEH(Widget w,
      * by deleting the property.
      */
     if (pe->atom == pd->rcm_init) {
-        _IswPlatformDeleteProperty((IswDisplay) dpy, IswWindowOf(w), pd->rcm_init);
+        _IswPlatformDeleteProperty((IswDisplay) dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), pd->rcm_init);
         xcb_flush(dpy);
 
 #ifdef DEBUG
@@ -948,11 +948,11 @@ _IswResourceConfigurationEH(Widget w,
 #endif
     {
         IswProperty prop;
-        Boolean got = _IswPlatformGetProperty((IswDisplay) dpy, IswWindowOf(w),
+        Boolean got = _IswPlatformGetProperty((IswDisplay) dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                               pd->rcm_data, ISW_ATOM_STRING,
                                               0, 8192, &prop);
         /* delete-after-read (the get used to pass delete=True) */
-        _IswPlatformDeleteProperty((IswDisplay) dpy, IswWindowOf(w), pd->rcm_data);
+        _IswPlatformDeleteProperty((IswDisplay) dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), pd->rcm_data);
 
         if (got && prop.type == ISW_ATOM_STRING && prop.format == 8) {
             char *data = (char *) prop.value;

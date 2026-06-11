@@ -539,7 +539,7 @@ FindDropTarget(XdndState *st, int root_x, int root_y)
 
     xcb_translate_coordinates_cookie_t cookie =
         xcb_translate_coordinates(conn,
-            _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(IswWindowOf(st->shell)),
+            _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
             (int16_t) root_x, (int16_t) root_y);
     xcb_translate_coordinates_reply_t *reply =
         xcb_translate_coordinates_reply(conn, cookie, NULL);
@@ -589,7 +589,7 @@ FindDropTarget(XdndState *st, int root_x, int root_y)
                descale to logical to match core geometry. */
             xcb_translate_coordinates_cookie_t tc =
                 xcb_translate_coordinates(conn,
-                    _IswXcbWindow(IswWindowOf(bounds_widget)), _IswXcbScreen(IswScreenOf(st->shell))->root,
+                    _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(bounds_widget)), (Widget)(bounds_widget))), _IswXcbScreen(IswScreenOf(st->shell))->root,
                     0, 0);
             xcb_translate_coordinates_reply_t *tr =
                 xcb_translate_coordinates_reply(conn, tc, NULL);
@@ -680,7 +680,7 @@ GetXdndState(Widget shell)
     XdndState *st = NULL;
     if (xdnd_context == 0)
         return NULL;
-    if (IswFindContext(IswDisplayOf(shell), _IswXcbWindow(IswWindowOf(shell)),
+    if (IswFindContext(IswDisplayOf(shell), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell))),
                        xdnd_context, (void **) &st) != 0)
         return NULL;
     return st;
@@ -731,11 +731,11 @@ xcb_dnd_enable(Widget shell)
     CreateCursors(st, conn, _IswXcbScreen(IswScreenOf(shell)));
 
     /* Store state on the shell window */
-    IswSaveContext(IswDisplayOf(shell), _IswXcbWindow(IswWindowOf(shell)),
+    IswSaveContext(IswDisplayOf(shell), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell))),
                    xdnd_context, (void *) st);
 
     /* Advertise XdndAware */
-    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(shell)),
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell))),
                         st->XdndAware, XCB_ATOM_ATOM, 32, 1, &version);
 
     /* Register non-maskable event handler for ClientMessage and SelectionNotify */
@@ -1006,7 +1006,7 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
             double sf = ISWScaleFactor(st->shell);
             xcb_translate_coordinates_cookie_t tc =
                 xcb_translate_coordinates(conn,
-                    _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(IswWindowOf(target)),
+                    _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(target)), (Widget)(target))),
                     (int16_t) st->drop_x, (int16_t) st->drop_y);
             xcb_translate_coordinates_reply_t *tr =
                 xcb_translate_coordinates_reply(conn, tc, NULL);
@@ -1034,7 +1034,7 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
                 double sf = ISWScaleFactor(st->shell);
                 xcb_translate_coordinates_cookie_t tc =
                     xcb_translate_coordinates(conn,
-                        _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(IswWindowOf(target)),
+                        _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(target)), (Widget)(target))),
                         (int16_t) st->drop_x, (int16_t) st->drop_y);
                 xcb_translate_coordinates_reply_t *tr =
                     xcb_translate_coordinates_reply(conn, tc, NULL);
@@ -1154,7 +1154,7 @@ TargetSelectionCallback(Widget w, IswPointer closure,
         xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
         xcb_translate_coordinates_cookie_t tc =
             xcb_translate_coordinates(conn,
-                _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(IswWindowOf(target)),
+                _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(target)), (Widget)(target))),
                 (int16_t) st->drop_x, (int16_t) st->drop_y);
         xcb_translate_coordinates_reply_t *tr =
             xcb_translate_coordinates_reply(conn, tc, NULL);
@@ -1268,7 +1268,7 @@ SendXdndStatus(XdndState *st, Boolean accept, xcb_atom_t action_atom)
     reply.window = st->src_window;
     reply.type = st->XdndStatus;
     reply.format = 32;
-    reply.data.data32[0] = _IswXcbWindow(IswWindowOf(st->shell));
+    reply.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
     reply.data.data32[1] = accept ? 1 : 0;
     reply.data.data32[2] = 0;  /* empty rectangle */
     reply.data.data32[3] = 0;
@@ -1289,7 +1289,7 @@ SendXdndFinished(XdndState *st, Boolean accept, xcb_atom_t action_atom)
     reply.window = st->src_window;
     reply.type = st->XdndFinished;
     reply.format = 32;
-    reply.data.data32[0] = _IswXcbWindow(IswWindowOf(st->shell));
+    reply.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
     reply.data.data32[1] = accept ? 1 : 0;
     reply.data.data32[2] = accept ? action_atom : XCB_ATOM_NONE;
 
@@ -1363,7 +1363,7 @@ xcb_dnd_start_drag(Widget source_widget,
                     DragConvertSelection, DragLoseSelection, NULL);
     /* Set XdndTypeList property on our window if >3 types */
     if (desc->num_types > 3) {
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(st->shell)),
+        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
                             st->XdndTypeList, XCB_ATOM_ATOM, 32,
                             desc->num_types, st->drag_desc.types);
     }
@@ -1380,7 +1380,7 @@ xcb_dnd_start_drag(Widget source_widget,
             if (desc->convert(st->drag_source, desc->types[i],
                               &data, &length, &format, desc->client_data)) {
                 xcb_change_property(conn, XCB_PROP_MODE_REPLACE,
-                                    _IswXcbWindow(IswWindowOf(st->shell)),
+                                    _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
                                     desc->types[i], desc->types[i],
                                     format, length, data);
                 IswFree(data);
@@ -1399,7 +1399,7 @@ xcb_dnd_start_drag(Widget source_widget,
         if (desc->actions & ISW_DND_ACTION_ASK)     actions[n++] = st->action_ask;
         if (desc->actions & ISW_DND_ACTION_PRIVATE) actions[n++] = st->action_private;
         if (n > 0) {
-            xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(IswWindowOf(st->shell)),
+            xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
                                 st->XdndActionList, XCB_ATOM_ATOM, 32, n, actions);
         }
     }
@@ -1409,7 +1409,7 @@ xcb_dnd_start_drag(Widget source_widget,
      * cursor is, so we still track movement over foreign apps.  Using
      * the shell (not root) ensures Xt dispatches events to our handler. */
     xcb_grab_pointer_cookie_t gc =
-        xcb_grab_pointer(conn, False, _IswXcbWindow(IswWindowOf(st->shell)),
+        xcb_grab_pointer(conn, False, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
                          XCB_EVENT_MASK_BUTTON_RELEASE |
                          XCB_EVENT_MASK_POINTER_MOTION |
                          XCB_EVENT_MASK_BUTTON_MOTION,
@@ -1687,7 +1687,7 @@ SendDragEnter(XdndState *st, xcb_window_t target)
     cm.window = target;
     cm.type = st->XdndEnter;
     cm.format = 32;
-    cm.data.data32[0] = _IswXcbWindow(IswWindowOf(st->shell));
+    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
     cm.data.data32[1] = (XDND_VERSION << 24);
 
     if (st->drag_desc.num_types > 3) {
@@ -1736,7 +1736,7 @@ SendDragPosition(XdndState *st, int root_x, int root_y)
     cm.window = st->drag_target_win;
     cm.type = st->XdndPosition;
     cm.format = 32;
-    cm.data.data32[0] = _IswXcbWindow(IswWindowOf(st->shell));
+    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
     cm.data.data32[1] = 0;  /* reserved */
     cm.data.data32[2] = ((uint32_t) phys_x << 16) | ((uint32_t) phys_y & 0xFFFF);
     cm.data.data32[3] = st->drag_timestamp;
@@ -1762,7 +1762,7 @@ SendDragLeave(XdndState *st)
     cm.window = st->drag_target_win;
     cm.type = st->XdndLeave;
     cm.format = 32;
-    cm.data.data32[0] = _IswXcbWindow(IswWindowOf(st->shell));
+    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
 
     xcb_send_event(conn, False, st->drag_target_win, 0, (const char *) &cm);
     xcb_flush(conn);
@@ -1779,7 +1779,7 @@ SendDragDrop(XdndState *st)
     cm.window = st->drag_target_win;
     cm.type = st->XdndDrop;
     cm.format = 32;
-    cm.data.data32[0] = _IswXcbWindow(IswWindowOf(st->shell));
+    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
     cm.data.data32[1] = 0;  /* reserved */
     cm.data.data32[2] = st->drag_timestamp;
 

@@ -306,7 +306,7 @@ MakeInfo(Select ctx,
         info->property = properties[0];
     else {
         info->property = GetSelectionProperty(IswDisplayOf(widget));
-        _IswPlatformDeleteProperty(IswDisplayOf(widget), IswWindowOf(widget), info->property);
+        _IswPlatformDeleteProperty(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), info->property);
     }
     info->proc = HandleSelectionReplies;
     info->widget = widget;
@@ -335,7 +335,7 @@ RequestSelectionValue(CallBackInfo info, IswSelectionId selection,
                       HandleSelectionReplies, (IswPointer) info);
 
     _IswPlatformConvertSelection(
-        info->ctx->dpy, IswWindowOf(info->widget),
+        info->ctx->dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(info->widget)), (Widget)(info->widget)),
         selection, target, info->property, info->time);
 }
 
@@ -490,7 +490,7 @@ AddHandler(Request req, EventMask mask, IswEventHandler proc, IswPointer closure
     else
         widget = req->widget;
 
-    if (_IswPlatformWindowId(IswWindowOf(widget)) == window_id)
+    if (_IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))) == window_id)
         IswAddEventHandler(widget, mask, False, proc, closure);
     else {
         RequestWindowRec *requestWindowRec;
@@ -529,7 +529,7 @@ RemoveHandler(Request req,
     Widget widget = req->widget;
 
     if ((IswWindowToWidget(dpy, window) == widget) &&
-        (_IswPlatformWindowId(IswWindowOf(widget)) != window_id)) {
+        (_IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))) != window_id)) {
         /* we had to hang this window onto our widget; take it off */
         RequestWindowRec *requestWindowRec;
 
@@ -927,7 +927,7 @@ OwnSelection(Widget widget,
     if (ctx->widget != widget || ctx->time != time ||
         ctx->ref_count || ctx->was_disowned) {
         Boolean replacement = FALSE;
-        IswWindow window = IswWindowOf(widget);
+        IswWindow window = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget));
 
         _IswPlatformSetSelectionOwner(ctx->dpy, window,
                                       selection, time);
@@ -1106,14 +1106,14 @@ ReqCleanup(Widget widget,
             return;             /* not really for us */
         IswRemoveEventHandler(widget, (EventMask) 0, TRUE,
                              ReqCleanup, (IswPointer) info);
-        if (IsINCRtype(info, IswWindowOf(widget), selev.property)) {
+        if (IsINCRtype(info, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), selev.property)) {
             info->proc = HandleGetIncrement;
             IswAddEventHandler(info->widget, (EventMask) XCB_EVENT_MASK_PROPERTY_CHANGE,
                               FALSE, ReqCleanup, (IswPointer) info);
         }
         else {
             if (selev.property != ISW_SELECTION_NONE)
-                _IswPlatformDeleteProperty(IswDisplayOf(widget), IswWindowOf(widget),
+                _IswPlatformDeleteProperty(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)),
                                 selev.property);
             FreeSelectionProperty(IswDisplayOf(widget), info->property);
             FreeInfo(info);
@@ -1124,7 +1124,7 @@ ReqCleanup(Widget widget,
                 IswProperty propr;
                 length = 0;
                 if (_IswPlatformGetProperty(IswDisplayOf(widget),
-                        IswWindowOf(widget), selev.property, info->ctx->prop_list->id_list_type,
+                        _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), selev.property, info->ctx->prop_list->id_list_type,
                         0L, 1000000, &propr)) {
                     length = propr.num_items;
                     _IswPlatformFreeProperty(&propr);
@@ -1154,7 +1154,7 @@ ReqTimedOut(IswPointer closure, IswIntervalId *id _X_UNUSED)
     if (*info->target == info->ctx->prop_list->indirect_id) {
         IswProperty propr;
         if (_IswPlatformGetProperty(IswDisplayOf(info->widget),
-                IswWindowOf(info->widget), info->property, info->ctx->prop_list->id_list_type,
+                _IswPlatformWidgetWindow(IswDisplayOf((Widget)(info->widget)), (Widget)(info->widget)), info->property, info->ctx->prop_list->id_list_type,
                 0, 10000000, &propr)) {
             format = propr.format;
             proplength = propr.num_items;
@@ -1213,7 +1213,7 @@ HandleGetIncrement(Widget widget,
         return;
 
     IswProperty propr;
-    if (_IswPlatformGetProperty(IswDisplayOf(widget), IswWindowOf(widget),
+    if (_IswPlatformGetProperty(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)),
                                selev.property, ctx->prop_list->id_list_type, 0, 10000000, &propr)) {
         info->type = propr.type;
         info->format = propr.format;
@@ -1339,7 +1339,7 @@ HandleNormal(IswDisplay dpy,
     int number = info->current;
 
     IswProperty propr;
-    if (!_IswPlatformGetProperty(dpy, IswWindowOf(widget),
+    if (!_IswPlatformGetProperty(dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)),
                                  property, info->ctx->prop_list->id_list_type, 0, 10000000, &propr)) {
         return FALSE;
     }
@@ -1364,7 +1364,7 @@ HandleNormal(IswDisplay dpy,
         return FALSE;
     }
 
-    _IswPlatformDeleteProperty(dpy, IswWindowOf(widget), property);
+    _IswPlatformDeleteProperty(dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), property);
 #ifdef ISW_COPY_SELECTION
     if (value) {                /* it could have been deleted after the SelectionNotify */
         int size = (int) BYTELENGTH(length, info->format) + 1;
@@ -1399,7 +1399,7 @@ HandleIncremental(IswDisplay dpy,
                       HandleGetIncrement, (IswPointer) info);
 
     /* now start the transfer */
-    _IswPlatformDeleteProperty(dpy, IswWindowOf(widget), property);
+    _IswPlatformDeleteProperty(dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), property);
     _IswPlatformFlush(dpy);
 
     info->bytelength = (int) size;
@@ -1450,10 +1450,10 @@ HandleSelectionReplies(Widget widget,
         IswPointer *c;
 
         IswProperty propr;
-        Boolean got = _IswPlatformGetProperty(dpy, IswWindowOf(widget),
+        Boolean got = _IswPlatformGetProperty(dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)),
                           info->property, ctx->prop_list->id_list_type, 0, 10000000, &propr);
         /* original used delete=1 (delete after read) */
-        _IswPlatformDeleteProperty(dpy, IswWindowOf(widget), info->property);
+        _IswPlatformDeleteProperty(dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), info->property);
         if (got)
             _IswPlatformFreeProperty(&propr);
 
@@ -1516,7 +1516,7 @@ DoLocalTransfer(Request req,
     req->request.selection = selection;
     req->request.target = target;
     req->request.property = req->property = property;
-    req->request.requestor = req->requestor = IswWindowOf(widget);
+    req->request.requestor = req->requestor = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget));
 
     if (ctx->incremental) {
         unsigned long size = (unsigned long) MAX_SELECTION_INCR(ctx->dpy);
@@ -1789,14 +1789,14 @@ GetSelectionValues(Widget widget,
             p->target = *t;
             if (properties == NULL || properties[i] == ISW_SELECTION_NONE) {
                 p->property = GetSelectionProperty(IswDisplayOf(widget));
-                _IswPlatformDeleteProperty(IswDisplayOf(widget), IswWindowOf(widget),
+                _IswPlatformDeleteProperty(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)),
                                 p->property);
             }
             else {
                 p->property = properties[i];
             }
         }
-        _IswPlatformChangeProperty(IswDisplayOf(widget), IswWindowOf(widget), info->property,
+        _IswPlatformChangeProperty(IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), info->property,
                    info->property, 32, ISW_PROP_MODE_REPLACE, pairs,
                    (uint32_t) (count * IndirectPairWordSize));
         IswFree((char *) pairs);
@@ -1920,7 +1920,7 @@ IswGetSelectionRequest(Widget widget, IswSelectionId selection, IswRequestId id)
 
     if (req->type == 0) {
         /* owner is local; fill in the remainder of the request identity */
-        req->request.owner = IswWindowOf(req->ctx->widget);
+        req->request.owner = _IswPlatformWidgetWindow(IswDisplayOf(req->ctx->widget), req->ctx->widget);
         req->request.selection = selection;
     }
     UNLOCK_APP(app);
@@ -1948,7 +1948,7 @@ AddSelectionRequests(Widget wid,
                      IswSelectionId *properties)
 {
     QueuedRequestInfo qi;
-    IswWindow window = IswWindowOf(wid);
+    IswWindow window = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(wid)), (Widget)(wid));
     IswWindowId window_id = _IswPlatformWindowId(window);
     IswDisplay dpy = IswDisplayOf(wid);
 
@@ -2007,7 +2007,7 @@ static Boolean
 IsGatheringRequest(Widget wid, IswSelectionId sel)
 {
     QueuedRequestInfo qi;
-    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(wid));
+    IswWindowId window_id = _IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(wid)), (Widget)(wid)));
     IswDisplay dpy = IswDisplayOf(wid);
     Boolean found = False;
 
@@ -2079,7 +2079,7 @@ void
 IswCreateSelectionRequest(Widget widget, IswSelectionId selection)
 {
     QueuedRequestInfo queueInfo;
-    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(widget));
+    IswWindowId window_id = _IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
     IswDisplay dpy = IswDisplayOf(widget);
     Cardinal n;
 
@@ -2121,7 +2121,7 @@ void
 IswSendSelectionRequest(Widget widget, IswSelectionId selection, IswTime time)
 {
     QueuedRequestInfo queueInfo;
-    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(widget));
+    IswWindowId window_id = _IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
     IswDisplay dpy = IswDisplayOf(widget);
 
     LOCK_PROCESS;
@@ -2213,7 +2213,7 @@ void
 IswCancelSelectionRequest(Widget widget, IswSelectionId selection)
 {
     QueuedRequestInfo queueInfo;
-    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(widget));
+    IswWindowId window_id = _IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
     IswDisplay dpy = IswDisplayOf(widget);
 
     LOCK_PROCESS;
@@ -2243,7 +2243,7 @@ IswSetSelectionParameters(Widget requestor,
                          int format)
 {
     IswDisplay dpy = IswDisplayOf(requestor);
-    IswWindow window = IswWindowOf(requestor);
+    IswWindow window = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(requestor)), (Widget)(requestor));
     IswSelectionId property = GetParamInfo(requestor, selection);
 
     if (property == ISW_SELECTION_NONE) {
@@ -2323,7 +2323,7 @@ AddParamInfo(Widget w, IswSelectionId selection, IswSelectionId param_id)
 {
     Param p;
     ParamInfo pinfo;
-    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(w));
+    IswWindowId window_id = _IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
 
     LOCK_PROCESS;
     if (paramPropertyContext == 0)
@@ -2364,7 +2364,7 @@ RemoveParamInfo(Widget w, IswSelectionId selection)
 {
     ParamInfo pinfo;
     Boolean retain = False;
-    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(w));
+    IswWindowId window_id = _IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
 
     LOCK_PROCESS;
     if (paramPropertyContext
@@ -2397,7 +2397,7 @@ GetParamInfo(Widget w, IswSelectionId selection)
 {
     ParamInfo pinfo;
     IswSelectionId param_id = ISW_SELECTION_NONE;
-    IswWindowId window_id = _IswPlatformWindowId(IswWindowOf(w));
+    IswWindowId window_id = _IswPlatformWindowId(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
 
     LOCK_PROCESS;
     if (paramPropertyContext

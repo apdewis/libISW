@@ -253,13 +253,18 @@ IswTipRealize(IswDisplay dpy, Widget w, IswValueMask *mask _X_UNUSED,
     attrs.override_redirect = True;
     attrs.event_mask = IswBuildEventMask(w);
 
-    w->core.window = _IswPlatformCreateWindow(dpy, _IswDefaultRootWindow(dpy),
-                                              &geom, &attrs,
-                                              ISW_WINDOW_CLASS_INPUT_OUTPUT);
+    {
+        IswWindow win = _IswPlatformCreateWindow(dpy, _IswDefaultRootWindow(dpy),
+                                                 &geom, &attrs,
+                                                 ISW_WINDOW_CLASS_INPUT_OUTPUT);
+        /* The tooltip backs its own override-redirect popup window; register
+           it with the platform so IswWindowOf-style resolution finds it.  The
+           toolkit stores no window handle. */
+        _IswPlatformSetWidgetWindow(dpy, w, win);
 
-    /* _NET_WM_WINDOW_TYPE = TOOLTIP */
-    _IswPlatformSetWindowType(IswDisplayOf(w), w->core.window,
-                              ISW_WINDOW_TYPE_TOOLTIP);
+        /* _NET_WM_WINDOW_TYPE = TOOLTIP */
+        _IswPlatformSetWindowType(IswDisplayOf(w), win, ISW_WINDOW_TYPE_TOOLTIP);
+    }
 }
 
 static void
@@ -409,7 +414,7 @@ TipPosition(IswTipInfo *info)
         geom.width = (uint32_t)(IswWidth(info->tip) * _sf + 0.5);
         geom.height = (uint32_t)(IswHeight(info->tip) * _sf + 0.5);
         geom.border_width = 0;
-        _IswPlatformConfigureWindow(dpy, IswWindowOf(info->tip), &geom,
+        _IswPlatformConfigureWindow(dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(info->tip)), (Widget)(info->tip)), &geom,
                                     ISW_CONFIG_X | ISW_CONFIG_Y |
                                     ISW_CONFIG_WIDTH | ISW_CONFIG_HEIGHT,
                                     ISW_STACK_NONE, NULL);
@@ -492,7 +497,7 @@ ResetTip(IswTipInfo *info, WidgetInfo *winfo, Bool add_timeout)
     if (info->mapped) {
 	IswDisplay dpy = IswDisplayOf((Widget)info->tip);
 	IswRemoveGrab(IswParent((Widget)info->tip));
-	_IswPlatformUnmapWindow(dpy, IswWindowOf((Widget)info->tip));
+	_IswPlatformUnmapWindow(dpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)info->tip), (Widget)info->tip));
 	_IswPlatformFlush(dpy);
 	info->mapped = False;
     }
@@ -533,7 +538,7 @@ TipTimeoutCallback(IswPointer closure, IswIntervalId *id)
 
     {
 	IswDisplay dpy = IswDisplayOf((Widget)info->tip);
-	IswWindow win = IswWindowOf((Widget)info->tip);
+	IswWindow win = _IswPlatformWidgetWindow(IswDisplayOf((Widget)info->tip), (Widget)info->tip);
 	IswWindowGeometry geom;
 
 	memset(&geom, 0, sizeof(geom));

@@ -206,23 +206,18 @@ IsDescendant(Widget widget, const Widget root)
 static void
 IswPhase2Destroy(Widget widget)
 {
-    xcb_connection_t *display = NULL;
-    xcb_window_t window;
     Widget parent;
     IswAppContext app = IswWidgetToApplicationContext(widget);
     Widget outerInPhase2Destroy = app->in_phase2_destroy;
     int starting_count = app->destroy_count;
     Boolean isPopup = False;
-    /* For a windowed widget, destruction removes its window (and thus its
-       pixels) from the screen.  A windowless widget has no window — its pixels
-       live in the windowed ancestor's composite surface — so capture that
-       ancestor now (while the widget is still in the tree) and recomposite it
-       at the end to erase the destroyed widget.  Only meaningful if the widget
-       was actually shown. */
+    /* A widget has no window — its pixels live in the ancestor's composite
+       surface.  Capture that ancestor now (while the widget is still in the
+       tree) and recomposite it at the end to erase the destroyed widget.  Only
+       meaningful if the widget was actually shown. */
     Widget windowless_anc =
-        (IswIsWidget(widget) && widget->core.windowless &&
-         widget->core.windowless_mapped)
-        ? _IswWindowedAncestor(widget) : NULL;
+        (IswIsWidget(widget) && widget->core.windowless_mapped)
+        ? _IswWidgetAncestor(widget) : NULL;
 
     /* invalidate focus trace cache for this xcb_connection_t */
     _IswGetPerDisplay(IswDisplayOfObject(widget))->pdi.traceDepth = 0;
@@ -269,19 +264,6 @@ IswPhase2Destroy(Widget widget)
         }
     }
 
-    /* widget is freed in Phase2Destroy, so retrieve window now.
-     * Shells destroy their own windows, to prevent window leaks in
-     * popups; this test is practical only when IswIsShell() is cheap.
-     */
-    if (IswIsShell(widget) || !IswIsWidget(widget)) {
-        window = 0;
-    }
-    else {
-        display = _IswXcbConn(IswDisplayOf(widget));
-
-        window = _IswXcbWindow(widget->core.window);
-    }
-
     Recursive(widget, Phase2Callbacks);
     if (app->destroy_count > starting_count) {
         int i = starting_count;
@@ -326,14 +308,8 @@ IswPhase2Destroy(Widget widget)
        but it avoids breaking those who depended on the old bug
        until we have time to fix it properly. */
 
-    if (window && (parent == NULL || !parent->core.being_destroyed))
-        xcb_destroy_window(display, window);
-        //XDestroyWindow(display, window);
-
-    /* Erase a destroyed windowless widget from the ancestor's composite surface
-       (the windowless equivalent of the window destruction above removing a
-       windowed widget's pixels).  Skip if the ancestor is itself being
-       destroyed — its surface is going away too. */
+    /* Erase a destroyed widget from the ancestor's composite surface.  Skip if
+       the ancestor is itself being destroyed — its surface is going away too. */
     if (windowless_anc != NULL && IswIsRealized(windowless_anc) &&
         !windowless_anc->core.being_destroyed) {
         if (parent != NULL && !parent->core.being_destroyed)

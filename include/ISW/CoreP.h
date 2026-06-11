@@ -94,11 +94,14 @@ typedef struct _CorePart {
     IswScreen	    screen;		/* window's screen (opaque handle)   */
     IswDisplay      display;        /* window's display (opaque handle)  */
     IswColormap     colormap;           /* colormap (opaque handle)          */
-    IswWindow	    window;		/* window (opaque handle)	     */
     IswSurface	    surface;		/* per-widget render surface (opaque
-					   handle); the surface-tree analogue
-					   of `window`.  Created at realize,
-					   destroyed with the widget.          */
+					   handle).  The core has no window —
+					   widgets render to this surface and the
+					   platform layer blits the composited
+					   result to the real top-level window,
+					   which the platform alone owns.
+					   Created at realize, destroyed with the
+					   widget.                             */
     Cardinal        depth;		/* number of planes in window        */
     Pixel	    background_pixel;	/* window background pixel	     */
     xcb_pixmap_t    background_pixmap;	/* window background pixmap or NULL  */

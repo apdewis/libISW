@@ -426,13 +426,18 @@ _IswUpdateWindowlessAncestorMask(Widget windowless)
 
     if (!IswIsWidget(windowless))
         return;
-    anc = _IswWindowedAncestor(windowless);
+    anc = _IswWidgetAncestor(windowless);
     if (anc == NULL || !IswIsRealized(anc) || anc->core.being_destroyed)
         return;
     mask = _IswWindowSelectMask(anc);
-    xcb_change_window_attributes(_IswXcbConn(IswDisplayOf(anc)),
-                                 _IswXcbWindow(anc->core.window),
-                                 XCB_CW_EVENT_MASK, &mask);
+    {
+        IswWindowAttributes attrs;
+        memset(&attrs, 0, sizeof(attrs));
+        attrs.event_mask = mask;
+        _IswPlatformChangeAttributes(IswDisplayOf(anc),
+                                     _IswPlatformWidgetWindow(IswDisplayOf(anc), anc),
+                                     &attrs, ISW_ATTR_EVENT_MASK);
+    }
 }
 
 static void
@@ -540,7 +545,7 @@ RemoveEventHandler(Widget widget,
         }
         else if (oldMask != mask) {
             EventMask sel = _IswWindowSelectMask(widget);
-            xcb_change_window_attributes(dpy, _IswXcbWindow(IswWindowOf(widget)),
+            xcb_change_window_attributes(dpy, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))),
                                          XCB_CW_EVENT_MASK, &sel);
         }
 
@@ -691,7 +696,7 @@ AddEventHandler(Widget widget,
         }
         else if (oldMask != mask) {
             EventMask sel = _IswWindowSelectMask(widget);
-            xcb_change_window_attributes(dpy, _IswXcbWindow(IswWindowOf(widget)),
+            xcb_change_window_attributes(dpy, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))),
                                          XCB_CW_EVENT_MASK, &sel);
         }
 
@@ -867,7 +872,7 @@ IswRegisterDrawable(IswDisplay display, xcb_drawable_t drawable, Widget widget)
     LOCK_PROCESS;
     tab = WWTABLE(display);
 
-    if (window != _IswXcbWindow(IswWindowOf(widget))) {
+    if (window != _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)))) {
         WWPair pair;
         pair = IswNew(struct _WWPair);
 
@@ -915,7 +920,7 @@ IswUnregisterDrawable(IswDisplay display, xcb_drawable_t drawable)
     LOCK_APP(app);
     LOCK_PROCESS;
     tab = WWTABLE(display);
-    if (window != _IswXcbWindow(IswWindowOf(widget))) {
+    if (window != _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)))) {
         WWPair *prev, pair;
 
         prev = &tab->pairs;
@@ -971,9 +976,9 @@ ExpandWWTable(register WWTable tab)
         (Widget *) __XtCalloc(tab->mask + 1, sizeof(Widget));
     for (oldidx = 0; oldidx <= oldmask; oldidx++) {
         if ((entry = oldentries[oldidx]) && entry != &WWfake) {
-            newidx = (Cardinal) WWHASH(tab, _IswXcbWindow(IswWindowOf(entry)));
+            newidx = (Cardinal) WWHASH(tab, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(entry)), (Widget)(entry))));
             if (entries[newidx]) {
-                rehash = (Cardinal) WWREHASHVAL(tab, _IswXcbWindow(IswWindowOf(entry)));
+                rehash = (Cardinal) WWREHASHVAL(tab, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(entry)), (Widget)(entry))));
                 do {
                     newidx = (Cardinal) WWREHASH(tab, newidx, rehash);
                 } while (entries[newidx]);
@@ -1002,16 +1007,18 @@ IswWindowToWidget(IswDisplay display, IswWindow window_opaque)
     LOCK_PROCESS;
     tab = WWTABLE(display);
     idx = (int) WWHASH(tab, window);
-    /* Compare the raw window field, not IswWindowOf(): table entries are
-       always windowed widgets, and the WWfake deletion sentinel is a zeroed
-       WidgetRec that must not be dereferenced as a widget (IswWindowOf() would
-       read its NULL widget_class). */
-    if ((entry = tab->entries[idx]) && _IswXcbWindow(entry->core.window) != window) {
+    /* Compare against the entry's platform window.  The WWfake deletion
+       sentinel is a zeroed WidgetRec that must not be dereferenced as a real
+       widget; _IswPlatformWidgetWindow tolerates it (returns the display root)
+       which simply won't match a live window. */
+    if ((entry = tab->entries[idx]) &&
+        _IswXcbWindow(_IswPlatformWidgetWindow(display, entry)) != window) {
         int rehash = (int) WWREHASHVAL(tab, window);
 
         do {
             idx = (int) WWREHASH(tab, idx, rehash);
-        } while ((entry = tab->entries[idx]) && _IswXcbWindow(entry->core.window) != window);
+        } while ((entry = tab->entries[idx]) &&
+                 _IswXcbWindow(_IswPlatformWidgetWindow(display, entry)) != window);
     }
     if (entry) {
         UNLOCK_PROCESS;
@@ -1113,7 +1120,7 @@ _IswRepaintWindowless(Widget w)
     _IswExposeWindowlessChildren(w, NULL);
     ISWRenderEndCompositeBatch();
 
-    anc = _IswWindowedAncestor(w);
+    anc = _IswWidgetAncestor(w);
     if (anc != NULL && IswIsRealized(anc))
         ISWRenderRequestComposite(anc);
 }
@@ -1165,7 +1172,7 @@ _IswSynthesizeCrossing(Widget w, xcb_generic_event_t *motion, uint8_t type)
     ev.response_type = type;
     ev.time = m->time;
     ev.root = m->root;
-    ev.event = _IswXcbWindow(IswWindowOf(w));
+    ev.event = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
     ev.child = m->child;
     ev.root_x = m->root_x;
     ev.root_y = m->root_y;
@@ -1655,7 +1662,7 @@ typedef struct _CheckExposeInfo {
 //    }
 //    info.maximal = (comp_expose_type == IswExposeCompressMaximal);
 //    info.non_matching = FALSE;
-//    info.window = IswWindowOf(widget);
+//    info.window = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget));
 //
 //    /*
 //     * We have to be very careful here not to hose down the processor
@@ -2276,7 +2283,7 @@ IswLastEventProcessed(IswDisplay dpy)
 void
 _IswSendFocusEvent(Widget child, int type)
 {
-    child = IswIsWidget(child) ? child : _IswWindowedAncestor(child);
+    child = IswIsWidget(child) ? child : _IswWidgetAncestor(child);
     if (IswIsSensitive(child) && !child->core.being_destroyed
         && IswIsRealized(child)
         && (IswBuildEventMask(child) & XCB_EVENT_MASK_FOCUS_CHANGE)) {
@@ -2284,14 +2291,14 @@ _IswSendFocusEvent(Widget child, int type)
         if(type == XCB_FOCUS_IN) {
             xcb_focus_in_event_t event = {0};
             event.response_type = XCB_FOCUS_IN;
-            event.event = _IswXcbWindow(IswWindowOf(child));
+            event.event = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child)));
             event.mode = XCB_NOTIFY_MODE_NORMAL;
             event.detail = XCB_NOTIFY_DETAIL_ANCESTOR;
             IswDispatchEventToWidget(child, (xcb_generic_event_t *) &event);
         } else if (type == XCB_FOCUS_OUT) {
             xcb_focus_out_event_t event = {0};
             event.response_type = XCB_FOCUS_OUT;
-            event.event = _IswXcbWindow(IswWindowOf(child));
+            event.event = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child)));
             event.mode = XCB_NOTIFY_MODE_NORMAL;
             event.detail = XCB_NOTIFY_DETAIL_ANCESTOR;
             IswDispatchEventToWidget(child, (xcb_generic_event_t *) &event);

@@ -796,9 +796,9 @@ CreateIC(Widget w, IswVendorShellExtPart *ve)
     SetVaArg( &ic_a[ic_cnt], (IswPointer) XNInputStyle); ic_cnt++;
     SetVaArg( &ic_a[ic_cnt], (IswPointer) p->input_style); ic_cnt++;
     SetVaArg( &ic_a[ic_cnt], (IswPointer) XNClientWindow); ic_cnt++;
-    SetVaArg( &ic_a[ic_cnt], (IswPointer) _IswXcbWindow(IswWindowOf(ve->parent))); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (IswPointer) _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(ve->parent)), (Widget)(ve->parent)))); ic_cnt++;
     SetVaArg( &ic_a[ic_cnt], (IswPointer) XNFocusWindow); ic_cnt++;
-    SetVaArg( &ic_a[ic_cnt], (IswPointer) _IswXcbWindow(IswWindowOf(w))); ic_cnt++;
+    SetVaArg( &ic_a[ic_cnt], (IswPointer) _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)))); ic_cnt++;
 
     if (pe_cnt > 0) {
 	SetVaArg( &pe_a[pe_cnt], (IswPointer) NULL);
@@ -958,7 +958,7 @@ SetICValues(Widget w, IswVendorShellExtPart *ve, Boolean focus)
     }
     if (focus == TRUE) {
 	SetVaArg( &ic_a[ic_cnt], (IswPointer) XNFocusWindow); ic_cnt++;
-	SetVaArg( &ic_a[ic_cnt], (IswPointer) _IswXcbWindow(IswWindowOf(w))); ic_cnt++;
+	SetVaArg( &ic_a[ic_cnt], (IswPointer) _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)))); ic_cnt++;
     }
     if (ic_cnt > 0) {
 	SetVaArg( &ic_a[ic_cnt], (IswPointer) NULL);

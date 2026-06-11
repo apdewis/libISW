@@ -223,7 +223,7 @@ redraw_widget(Widget w)
     if (!w || !IswIsRealized(w)) return;
     if (w->core.windowless) {
         /* Windowless: repaint our own surface and composite the ancestor.
-         * xcb_clear_area(IswWindowOf(w)) would resolve to the shared windowed
+         * xcb_clear_area(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))) would resolve to the shared windowed
          * ancestor and blank the whole panel.  The windowless paint path
          * already drives expose with a NULL event safely (widgets that
          * dereference it, e.g. Text, guard for event == NULL). */
@@ -234,7 +234,7 @@ redraw_widget(Widget w)
      * widget. Calling core_class.expose directly with a NULL event is
      * unsafe: some widgets (e.g. Text) dereference the event. */
     xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1 /* exposures */,
-                   _IswXcbWindow(IswWindowOf(w)),
+                   _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
                    0, 0, w->core.width, w->core.height);
     xcb_flush(_IswXcbConn(IswDisplayOf(w)));
 }
@@ -442,7 +442,7 @@ repaint_menu_widgets(Widget w)
             _IswRepaintWindowless(w);
         else
             xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1,
-                           _IswXcbWindow(IswWindowOf(w)),
+                           _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
                            0, 0, w->core.width, w->core.height);
     }
     if (IswIsComposite(w)) {
@@ -463,7 +463,7 @@ repaint_for_alt_change(xcb_connection_t *c)
         /* SimpleMenu shells need their window cleared so the SmeBSB
          * entries redraw their underlines. */
         if (IswIsSubclass(shell, simpleMenuWidgetClass)) {
-            xcb_clear_area(c, 1, _IswXcbWindow(IswWindowOf(shell)),
+            xcb_clear_area(c, 1, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell))),
                            0, 0, shell->core.width, shell->core.height);
         }
     }

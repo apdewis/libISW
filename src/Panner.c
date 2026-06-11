@@ -530,7 +530,7 @@ SetValues (Widget gcur, Widget greq, Widget gnew, ArgList args, Cardinal *num_ar
 	IswIsRealized(gnew)) {
 	    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(new));
 	    uint32_t pixel_val = new->core.background_pixel;
-	    xcb_change_window_attributes(conn, _IswXcbWindow(IswWindowOf(new)), XCB_CW_BACK_PIXEL, &pixel_val);
+	    xcb_change_window_attributes(conn, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new))), XCB_CW_BACK_PIXEL, &pixel_val);
 	    xcb_flush(conn);
 	    redisplay = TRUE;
     }

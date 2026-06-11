@@ -207,22 +207,18 @@ typedef struct _IswTMRec {
 
 #define IswDisplayOf(widget)	((widget)->core.display)
 #define IswScreenOf(widget)	((widget)->core.screen)
-/* Windowless widgets have no own window; resolve to the nearest windowed
-   ancestor's window.  Read-only: assign w->core.window directly to set. */
-#define IswWindowOf(widget) \
-    ((IswIsWidget(widget) && (widget)->core.windowless) \
-     ? _IswWindowedAncestor((Widget)(widget))->core.window \
-     : (widget)->core.window)
-/* Every widget owns its own surface; no ancestor resolution.  Read-only:
-   assign w->core.surface directly to set. */
+/* Every widget owns its own render surface — core widgets never reference a
+   window.  The single real top-level window is owned by the platform layer
+   (the shell's root surface); the platform blits composited surfaces to it.
+   Read-only: assign w->core.surface directly to set. */
 #define IswSurfaceOf(widget)	((widget)->core.surface)
 
 #define IswClass(widget)		((widget)->core.widget_class)
 #define IswSuperclass(widget)	(IswClass(widget)->core_class.superclass)
+/* Realization is surface-based, not window-based: a realized widget has been
+   created (its surface and geometry are valid) but not necessarily shown. */
 #define IswIsRealized(object) \
-    ((IswIsWidget(object) && (object)->core.windowless) \
-     ? (object)->core.windowless_realized \
-     : (IswWindowOfObject(object) != None))
+    (IswIsRectObj(object) ? (object)->core.windowless_realized : False)
 #define IswParent(widget)	((widget)->core.parent)
 
 //#TODO remove this when XCB bridge finally factored out of core widgets
@@ -289,7 +285,9 @@ extern Boolean IswIsTopLevelShell(Widget);
 
 _XFUNCPROTOBEGIN
 
-extern Widget _IswWindowedAncestor( /* internal; implementation-dependent */
+/* Nearest widget ancestor of a non-widget object (used to read display/screen).
+   No window semantics — core widgets are surface-based. */
+extern Widget _IswWidgetAncestor(
     Widget 		/* object */
 );
 
@@ -313,15 +311,6 @@ extern void _IswHandleFocus(
     IswPointer		/* client_data */,
    IswEvent *		/* event */,
     Boolean *		/* cont */);
-
-extern void IswCreateWindow(
-    IswDisplay,
-    Widget 		/* widget */,
-    unsigned int 	/* window_class */,
-    IswVisual		/* visual */,
-    IswValueMask		/* value_mask */,
-    uint32_t* /* attributes */
-);
 
 extern void IswResizeWidget(
     Widget 		/* widget */,

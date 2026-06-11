@@ -1370,7 +1370,7 @@ IswUninstallTranslations(Widget widget)
         uint32_t event_mask = (uint32_t) IswBuildEventMask(widget);
         (void)xcb_change_window_attributes(
             _IswXcbConn(IswDisplayOf(widget)),  /* your XCB connection */
-            _IswXcbWindow(IswWindowOf(widget)),  /* window XID */
+            _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget))),  /* window XID */
             XCB_CW_EVENT_MASK,
             &event_mask
         );
@@ -2051,12 +2051,12 @@ ComposeTranslations(Widget dest,
             uint32_t event_mask = (uint32_t) IswBuildEventMask(dest);
             (void)xcb_change_window_attributes(
                 _IswXcbConn(IswDisplayOf(dest)),  /* your XCB connection */
-                _IswXcbWindow(IswWindowOf(dest)),  /* window XID */
+                _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(dest)), (Widget)(dest))),  /* window XID */
                 XCB_CW_EVENT_MASK,
                 &event_mask
             );
         }
-            //XSelectInput(IswDisplayOf(dest), IswWindowOf(dest),
+            //XSelectInput(IswDisplayOf(dest), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(dest)), (Widget)(dest)),
             //             (long) IswBuildEventMask(dest));
     }
     IswStackFree((IswPointer) newBindings, (IswPointer) stackBindings);

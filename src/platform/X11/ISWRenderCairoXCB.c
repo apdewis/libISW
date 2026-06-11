@@ -205,7 +205,7 @@ cairo_xcb_surface_init(Widget widget)
     uint8_t depth;
 
     screen = _IswXcbScreen(IswScreenOf(widget));
-    window = _IswXcbWindow(IswWindowOf(widget));
+    window = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
 
     /* Allocate surface state */
     data = (IswSurface)calloc(1, sizeof(*data));
@@ -390,7 +390,7 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
         }
         if (data->deferred) {
             data->connection = _IswXcbConn(IswDisplayOf(widget));
-            data->window = _IswXcbWindow(IswWindowOf(widget));
+            data->window = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
             if (widget->core.width == 0 || widget->core.height == 0 ||
                 data->window == 0)
                 return NULL;  /* not ready */
@@ -479,7 +479,7 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
 
     /* Complete deferred initialization now that the widget has a window */
     if (data->deferred) {
-        data->window = _IswXcbWindow(IswWindowOf(widget));
+        data->window = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
         if (widget->core.width == 0 || widget->core.height == 0 ||
             data->window == 0) {
             return NULL;  /* Still not ready */

@@ -97,6 +97,7 @@ xcb_disp_open(const char *display_name, int *default_screen)
 
     xcbDisplay = (IswDisplayXCB *)IswMalloc(sizeof(IswDisplayXCB));
     if(xcbDisplay != NULL) {
+        memset(xcbDisplay, 0, sizeof(*xcbDisplay));
         xcbDisplay->conn = conn;
         return (IswDisplay) xcbDisplay;
     } else {
@@ -427,11 +428,68 @@ xcb_root_create(IswDisplay dpy, IswScreen screen,
 {
     IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
     xcb_screen_t *s = _IswXcbScreen(screen);
+    xcb_window_t win;
     if (!priv->conn || !s)
         return _IswXcbWindowWrap(0);
-    return _IswXcbWindowWrap(
-        xcb_create_window_full(priv->conn, s, s->root, geom, attrs,
-                               XCB_WINDOW_CLASS_INPUT_OUTPUT));
+    win = xcb_create_window_full(priv->conn, s, s->root, geom, attrs,
+                                 XCB_WINDOW_CLASS_INPUT_OUTPUT);
+    /* The platform owns this window; remember it as the display's top-level so
+       boundary code can resolve any widget to it without the toolkit holding a
+       window handle. */
+    priv->root_window = win;
+    return _IswXcbWindowWrap(win);
+}
+
+/* Resolve the platform-owned window backing a widget.  Most widgets have none
+   and map to the display's shell root; widgets that back a distinct window
+   (tooltip popups) are registered via _IswPlatformSetWidgetWindow.  The toolkit
+   itself stores no window handle. */
+IswWindow
+_IswPlatformWidgetWindow(IswDisplay dpy, Widget w)
+{
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    int i;
+    if (!priv)
+        return _IswXcbWindowWrap(0);
+    for (i = 0; i < priv->wmap_count; i++)
+        if (priv->wmap[i].widget == (void *) w)
+            return _IswXcbWindowWrap(priv->wmap[i].window);
+    return _IswXcbWindowWrap(priv->root_window);
+}
+
+/* Register (or clear, with win==0) the window backing a specific widget. */
+void
+_IswPlatformSetWidgetWindow(IswDisplay dpy, Widget w, IswWindow win)
+{
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    xcb_window_t xw = _IswXcbWindow(win);
+    int i;
+    if (!priv || !w)
+        return;
+    for (i = 0; i < priv->wmap_count; i++) {
+        if (priv->wmap[i].widget == (void *) w) {
+            if (xw == 0) {       /* remove */
+                priv->wmap[i] = priv->wmap[--priv->wmap_count];
+            } else {
+                priv->wmap[i].window = xw;
+            }
+            return;
+        }
+    }
+    if (xw == 0)
+        return;
+    if (priv->wmap_count == priv->wmap_cap) {
+        int ncap = priv->wmap_cap ? priv->wmap_cap * 2 : 4;
+        IswWidgetWindowMap *n = (IswWidgetWindowMap *)
+            realloc(priv->wmap, (size_t) ncap * sizeof(*n));
+        if (!n)
+            return;
+        priv->wmap = n;
+        priv->wmap_cap = ncap;
+    }
+    priv->wmap[priv->wmap_count].widget = (void *) w;
+    priv->wmap[priv->wmap_count].window = xw;
+    priv->wmap_count++;
 }
 
 /* Blit a finished composite surface to the root window.  The window blit lives

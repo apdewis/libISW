@@ -174,7 +174,7 @@ IswMapWidget(Widget w)
        composite/paint/hit-test walks gate on.  Set it (mirroring xcb_map_window
        on a real window) and re-composite the windowed ancestor so the now-shown
        widget appears.  Mapping the shared ancestor window here would be wrong. */
-    if (IswIsWidget(w) && w->core.windowless) {
+    if (IswIsWidget(w)) {
         w->core.windowless_mapped = True;
         /* The app has explicitly mapped this widget; clear any prior explicit
            unmap so the realize-time map pass no longer suppresses it. */
@@ -183,11 +183,18 @@ IswMapWidget(Widget w)
            hidden) and composite it up — the composite pass folds surfaces but
            does not itself drive expose. */
         _IswRepaintWindowless(w);
+
+        /* A shell backs the platform's real top-level window: map it so the
+           composited surface becomes visible.  Pure-surface widgets have no
+           window of their own — the flag above is all they need. */
+        if (IswIsShell(w)) {
+            _IswPlatformMapWindow(IswDisplayOf(w),
+                                  _IswPlatformWidgetWindow(IswDisplayOf(w), w));
+            _IswPlatformFlush(IswDisplayOf(w));
+        }
         UNLOCK_APP(app);
         return;
     }
-    _IswPlatformMapWindow(IswDisplayOf(w), IswWindowOf(w));
-    _IswPlatformFlush(IswDisplayOf(w));
     hookobj = IswHooksOfDisplay(IswDisplayOf(w));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
         IswChangeHookDataRec call_data;
@@ -227,13 +234,14 @@ IswUnmapWidget(Widget w)
            composite surface; force the parent chain to re-expose so the
            background is repainted over the hole on the next fold. */
         _ISWRenderMarkDirtyChain(w->core.parent);
-        anc = _IswWindowedAncestor(w);
+        anc = _IswWidgetAncestor(w);
         if (anc != NULL && IswIsRealized(anc))
             ISWRenderRequestComposite(anc);
         UNLOCK_APP(app);
         return;
     }
-    _IswPlatformUnmapWindow(IswDisplayOf(w), IswWindowOf(w));
+    _IswPlatformUnmapWindow(IswDisplayOf(w),
+                            _IswPlatformWidgetWindow(IswDisplayOf(w), w));
     _IswPlatformFlush(IswDisplayOf(w));
     hookobj = IswHooksOfDisplay(IswDisplayOf(w));
     if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {

@@ -438,7 +438,7 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
          * to the bit bucket. */
         if (IswIsWidget(w) && w->core.windowless) {
             /* A windowless widget shares its windowed ancestor's window, so
-               xcb_clear_area(IswWindowOf(w), ...) would blank and re-expose the
+               xcb_clear_area(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), ...) would blank and re-expose the
                whole ancestor — flashing the cleared background before the
                async repaint.  Repaint just this widget's surface and composite
                the ancestor, mirroring the windowless branch in Geometry.c. */
@@ -457,14 +457,14 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
                                        "IswSetValues calls ClearArea on \"%s\".\n",
                                        IswName(w)));
                 xcb_clear_area(
-                        _IswXcbConn(IswDisplayOf(w)), 1, _IswXcbWindow(IswWindowOf(w)), 0, 0, 0, 0
+                        _IswXcbConn(IswDisplayOf(w)), 1, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))), 0, 0, 0, 0
                     );
                 xcb_flush(_IswXcbConn(IswDisplayOf(w)));
             }
         }
         else {                  /*non-window object */
             if (redisplay && !cleared_rect_obj) {
-                Widget pw = _IswWindowedAncestor(w);
+                Widget pw = _IswWidgetAncestor(w);
 
                 if (IswIsRealized(pw) && !pw->core.being_destroyed) {
                     RectObj r = (RectObj) w;
@@ -477,7 +477,7 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
                     xcb_clear_area(
                         _IswXcbConn(IswDisplayOf(pw)),
                         1,  /* generate Expose event */
-                        _IswXcbWindow(IswWindowOf(pw)),
+                        _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw))),
                         r->rectangle.x,
                         r->rectangle.y,
                         (unsigned) (r->rectangle.width + bw2),

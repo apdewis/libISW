@@ -720,26 +720,26 @@ static void SetWMProperties(Widget w, char *window_name, char *icon_name,
     
     // Set WM_NAME / _NET_WM_NAME (semantic title hint)
     if (window_name != NULL) {
-        _IswPlatformSetWindowTitle(IswDisplayOf(w), ((Widget)w)->core.window, window_name);
+        _IswPlatformSetWindowTitle(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), window_name);
     }
 
     // Set WM_ICON_NAME / _NET_WM_ICON_NAME (semantic icon-title hint)
     if (IswIsTopLevelShell((Widget) w) && icon_name != NULL) {
-        _IswPlatformSetIconTitle(IswDisplayOf(w), ((Widget)w)->core.window, icon_name);
+        _IswPlatformSetIconTitle(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), icon_name);
     }
 
     // Set WM_COMMAND property (niche ICCCM; generic property op)
     if (argc > 0 && argv != NULL) {
         Atom wm_command = _IswPlatformInternAtomOp(IswDisplayOf(w),
                                                    "WM_COMMAND", False);
-        _IswPlatformChangeProperty(IswDisplayOf(w), ((Widget)w)->core.window,
+        _IswPlatformChangeProperty(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                    wm_command, ISW_ATOM_STRING, 8,
                                    ISW_PROP_MODE_REPLACE, argv, (uint32_t) argc);
     }
 
     // Set WM_CLASS (semantic class hint)
     if (classhint_name != NULL && classhint_class != NULL) {
-        _IswPlatformSetWmClass(IswDisplayOf(w), ((Widget)w)->core.window,
+        _IswPlatformSetWmClass(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                classhint_name, classhint_class);
     }
 }
@@ -801,7 +801,7 @@ _SetWMSizeHints(WMShellWidget w)
         _IswAllocError("xcb_size_hints_t");
 
     ComputeWMSizeHints(w, size_hints);
-    _IswPlatformSetNormalHints(IswDisplayOf((Widget) w), ((Widget)w)->core.window,
+    _IswPlatformSetNormalHints(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                size_hints->flags,
                                size_hints->x, size_hints->y,
                                size_hints->width, size_hints->height,
@@ -1064,7 +1064,7 @@ SetShellWMProtocolTranslations(Widget w)
     wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_DELETE_WINDOW", False);
     {
         Atom protocols[1] = { wm_delete_window };
-        _IswPlatformSetWmProtocols(IswDisplayOf(w), ((Widget)w)->core.window, protocols, 1);
+        _IswPlatformSetWmProtocols(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), protocols, 1);
     }
 }
 
@@ -1154,9 +1154,18 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
         attrs.depth = wid->core.depth;
         attrs.visual = w->shell.visual;
 
-        //wid->core.window = _IswPlatformCreateRoot(IswDisplayOf(wid),
-        //                                          wid->core.screen,
-        //                                          &geom, &attrs);
+        /* Create the platform-owned top-level window and register the
+           widget→window association.  The toolkit holds no window handle; the
+           platform tracks it, and event routing resolves it back via
+           _IswPlatformWidgetWindow.  Also register the window in the
+           window→widget dispatch table so server events on it reach the shell. */
+        {
+            IswWindow win = _IswPlatformCreateRoot(IswDisplayOf(wid),
+                                                   wid->core.screen,
+                                                   &geom, &attrs);
+            _IswPlatformSetWidgetWindow(IswDisplayOf(wid), wid, win);
+            IswRegisterDrawable(IswDisplayOf(wid), _IswXcbWindow(win), wid);
+        }
 
         /* Set a themed default cursor on the shell window so child
            widgets that don't set their own cursor inherit the theme's
@@ -1192,20 +1201,20 @@ _SetTransientForHint(TransientShellWidget w, Boolean delete)
     if (w->wm.transient) {
         if (w->transient.transient_for != NULL
             && IswIsRealized(w->transient.transient_for))
-            window_group = _IswXcbWindow(IswWindowOf(w->transient.transient_for));
+            window_group = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w->transient.transient_for)), (Widget)(w->transient.transient_for)));
         else if ((window_group = w->wm.wm_hints.window_group)
                  == IswUnspecifiedWindowGroup) {
             if (delete) {
                 Atom transient_for = _IswPlatformInternAtomOp(
                     IswDisplayOf((Widget) w), "WM_TRANSIENT_FOR", False);
                 _IswPlatformDeleteProperty(IswDisplayOf((Widget) w),
-                                           ((Widget)w)->core.window, transient_for);
+                                           _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), transient_for);
             }
             return;
         }
 
         _IswPlatformSetTransientFor(IswDisplayOf((Widget) w),
-                                    ((Widget)w)->core.window,
+                                    _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                     _IswXcbWindowWrap(window_group));
     }
 }
@@ -1268,7 +1277,7 @@ EvaluateWMHints(WMShellWidget w)
 
             for (p = w->core.parent; p->core.parent; p = p->core.parent);
             if (IswIsRealized(p)) {
-                hintp->window_group = _IswXcbWindow(IswWindowOf(p));
+                hintp->window_group = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p)));
                 hintp->flags |= XCB_ICCCM_WM_HINT_WINDOW_GROUP;
             }
         }
@@ -1387,7 +1396,7 @@ _popup_set_prop(ShellWidget w)
         && (window_group = wmshell->wm.wm_hints.window_group)
         != IswUnspecifiedWindowGroup) {
 
-        _IswPlatformSetTransientFor(IswDisplayOf((Widget) w), ((Widget)w)->core.window,
+        _IswPlatformSetTransientFor(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                     _IswXcbWindowWrap(window_group));
     }
 
@@ -1430,11 +1439,11 @@ _popup_set_prop(ShellWidget w)
             Atom wm_locale = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
                                                       "WM_LOCALE_NAME", False);
             _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                       ((Widget)w)->core.window, wm_locale,
+                                       _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), wm_locale,
                                        ISW_ATOM_STRING, 8, ISW_PROP_MODE_REPLACE,
                                        locale, (uint32_t) strlen(locale));
         }
-            //XChangeProperty(IswDisplayOf((Widget) w), ((Widget)w)->core.window,
+            //XChangeProperty(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
             //                XInternAtom(IswDisplayOf((Widget) w),
             //                            "WM_LOCALE_NAME", False),
             //                XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
@@ -1443,12 +1452,12 @@ _popup_set_prop(ShellWidget w)
     UNLOCK_PROCESS;
 
     p = GetClientLeader((Widget) w);
-    if (_IswXcbWindow(IswWindowOf(p))) {
-        xcb_window_t leader_win = _IswXcbWindow(p->core.window);
+    if (_IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p)))) {
+        xcb_window_t leader_win = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p)));
         Atom client_leader = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
                                                       "WM_CLIENT_LEADER", False);
         _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                   ((Widget)w)->core.window, client_leader,
+                                   _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), client_leader,
                                    ISW_ATOM_WINDOW, 32, ISW_PROP_MODE_REPLACE,
                                    &leader_win, 1);
     }
@@ -1456,7 +1465,7 @@ _popup_set_prop(ShellWidget w)
         Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
                                                     "WM_WINDOW_ROLE", False);
         _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                   ((Widget)w)->core.window, window_role,
+                                   _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), window_role,
                                    ISW_ATOM_STRING, 8, ISW_PROP_MODE_REPLACE,
                                    wmshell->wm.window_role,
                                    (uint32_t) strlen(wmshell->wm.window_role));
@@ -1464,15 +1473,15 @@ _popup_set_prop(ShellWidget w)
 
     {
         xcb_connection_t *conn = _IswXcbConn(IswDisplayOf((Widget) w));
-        xcb_window_t win = _IswXcbWindow(((Widget)w)->core.window);
+        xcb_window_t win = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
 
         /* _NET_WM_PID */
-        _IswPlatformSetPid(IswDisplayOf((Widget) w), ((Widget)w)->core.window,
+        _IswPlatformSetPid(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                            (uint32_t) getpid());
 
         /* _NET_WM_WINDOW_TYPE */
         _IswPlatformSetWindowType(IswDisplayOf((Widget) w),
-                                  ((Widget)w)->core.window,
+                                  _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                   IswIsTransientShell((Widget) w)
                                       ? ISW_WINDOW_TYPE_DIALOG
                                       : ISW_WINDOW_TYPE_NORMAL);
@@ -1496,7 +1505,7 @@ _popup_set_prop(ShellWidget w)
                 wmshell->wm.user_time_win = utwin;
 
                 _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                    ((Widget)w)->core.window,
+                                    _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                     pd->net_wm_user_time_window, ISW_ATOM_WINDOW, 32,
                                     ISW_PROP_MODE_REPLACE, &utwin, 1);
 
@@ -1519,7 +1528,7 @@ _popup_set_prop(ShellWidget w)
             Atom si_atom   = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_INFO", False);
 
             if (sid_atom && utf8_atom) {
-                _IswPlatformChangeProperty(sdpy, ((Widget)w)->core.window,
+                _IswPlatformChangeProperty(sdpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
                                     sid_atom, utf8_atom, 8, ISW_PROP_MODE_REPLACE,
                                     wmshell->wm.startup_id,
                                     (uint32_t) strlen(wmshell->wm.startup_id));
@@ -1576,7 +1585,7 @@ EventHandler(Widget wid,
     switch (event->response_type) {
     case XCB_CONFIGURE_NOTIFY: {
         xcb_configure_notify_event_t * cne = (xcb_configure_notify_event_t *)event;
-        if (_IswXcbWindow(w->core.window) != cne->window)
+        if (_IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))) != cne->window)
             return;             /* in case of SubstructureNotify */
         /* ConfigureNotify values are already descaled to logical pixels
          * by _IswDescaleEventCoords in the event dispatcher. */
@@ -1609,7 +1618,7 @@ EventHandler(Widget wid,
 
     case XCB_REPARENT_NOTIFY:
         xcb_reparent_notify_event_t *rne = (xcb_reparent_notify_event_t *)event;
-        if (rne->window == _IswXcbWindow(((Widget)w)->core.window)) {
+        if (rne->window == _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)))) {
             if (rne->parent != RootWindowOfScreen(_IswXcbScreen(IswScreenOf(w))))
                 w->shell.client_specified &=
                     ~(_IswShellNotReparented | _IswShellPositionValid);
@@ -1690,7 +1699,7 @@ static void
 Destroy(Widget wid)
 {
     if (IswIsRealized(wid))
-        _IswPlatformDestroyWindow(IswDisplayOf(wid), ((Widget)wid)->core.window);
+        _IswPlatformDestroyWindow(IswDisplayOf(wid), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(wid)), (Widget)(wid)));
 }
 
 static void
@@ -2058,7 +2067,7 @@ typedef struct {
 //    QueryStruct *q = (QueryStruct *) arg;
 //    register Widget w = q->w;
 //
-//    if ((dpy != IswDisplayOf(w)) || (rne->window != ((Widget)w)->core.window)) {
+//    if ((dpy != IswDisplayOf(w)) || (rne->window != _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)))) {
 //        return FALSE;
 //    }
 //
@@ -2073,7 +2082,7 @@ typedef struct {
 //
 //    if (event->response_type == XCB_REPARENT_NOTIFY) {
 //        xcb_reparent_notify_event_t * rne = (xcb_reparent_notify_event_t *)event;
-//        if (rne->window == ((Widget)w)->core.window) {
+//        if (rne->window == _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))) {
 //        /* we might get ahead of this event, so just in case someone
 //         * asks for coordinates before this event is dispatched...
 //         */
@@ -2093,7 +2102,7 @@ static Boolean
 _wait_for_response(ShellWidget w, xcb_generic_event_t **event_out)
 {
     xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(w));
-    xcb_window_t win = _IswXcbWindow(((Widget) w)->core.window);
+    xcb_window_t win = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
     unsigned long timeout;
     struct timespec start, now;
 
@@ -2252,7 +2261,7 @@ RootGeometryManager(Widget gw,
               : (request->stack_mode == IswSMBelow) ? ISW_STACK_BELOW
               : ISW_STACK_NONE;
         if (mask & IswCWSibling)
-            sibling = request->sibling->core.window;
+            sibling = _IswPlatformWidgetWindow(IswDisplayOf((Widget)request->sibling), (Widget)request->sibling);
     }
 
     if (!IswIsRealized((Widget) w)) {
@@ -2309,7 +2318,7 @@ RootGeometryManager(Widget gw,
         if (mask & IswCWBorderWidth) cmask |= ISW_CONFIG_BORDER;
         if (mask & IswCWStackMode)   cmask |= ISW_CONFIG_STACK;
         _IswPlatformConfigureWindow(IswDisplayOf((Widget) w),
-                                    ((Widget) w)->core.window, &values,
+                                    _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), &values,
                                     cmask, stack, sibling);
     }
 
@@ -2483,7 +2492,7 @@ SetValues(Widget old,
 
     if (mask) {
         _IswPlatformChangeAttributes(IswDisplayOf(new),
-                                     ((Widget)new)->core.window, &attr, mask);
+                                     _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)), &attr, mask);
         if ((mask & ISW_ATTR_OVERRIDE) && !nw->shell.override_redirect)
             _popup_set_prop(nw);
     }
@@ -2561,8 +2570,8 @@ WMSetValues(Widget old,
         //    title.format = 8;
         //    title.nitems = strlen(nwmshell->wm.title);
         //}
-        //XSetWMName(IswDisplayOf(new), ((Widget)new)->core.window, &title);
-        _IswPlatformSetWindowTitle(IswDisplayOf(new), ((Widget)new)->core.window,
+        //XSetWMName(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)), &title);
+        _IswPlatformSetWindowTitle(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                    (const char *) nwmshell->wm.title);
     }
 
@@ -2580,7 +2589,7 @@ WMSetValues(Widget old,
            a lossy semantic op would drop those.  Stays on the seam until that
            struct is abstracted (not part of Phase 6's atom/property scope). */
         xcb_icccm_set_wm_hints(_IswXcbConn(IswDisplayOf(new)),
-                               _IswXcbWindow(((Widget)new)->core.window),
+                               _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new))),
                                &nwmshell->wm.wm_hints);
     }
 #undef NEQ
@@ -2590,11 +2599,11 @@ WMSetValues(Widget old,
     //        if (!IswIsTransientShell(new) &&
     //            !nwmshell->shell.override_redirect &&
     //            nwmshell->wm.wm_hints.window_group != IswUnspecifiedWindowGroup)
-    //            XSetTransientForHint(IswDisplayOf(new), ((Widget)new)->core.window,
+    //            XSetTransientForHint(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
     //                                 nwmshell->wm.wm_hints.window_group);
     //    }
     //    else
-    //        XDeleteProperty(IswDisplayOf(new), ((Widget)new)->core.window, XCB_ATOM_WM_TRANSIENT_FOR);
+    //        XDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)), XCB_ATOM_WM_TRANSIENT_FOR);
     //}
 
     if (IswIsRealized(new) && nwmshell->wm.transient != owmshell->wm.transient) {
@@ -2603,41 +2612,41 @@ WMSetValues(Widget old,
                 !nwmshell->shell.override_redirect &&
                 nwmshell->wm.wm_hints.window_group != IswUnspecifiedWindowGroup) {
                 
-                _IswPlatformSetTransientFor(IswDisplayOf(new), ((Widget)new)->core.window,
+                _IswPlatformSetTransientFor(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                     _IswXcbWindowWrap(nwmshell->wm.wm_hints.window_group));
             }
         }
         else {
             Atom transient_for = _IswPlatformInternAtomOp(IswDisplayOf(new),
                                                           "WM_TRANSIENT_FOR", False);
-            _IswPlatformDeleteProperty(IswDisplayOf(new), ((Widget)new)->core.window,
+            _IswPlatformDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                        transient_for);
         }
     }
 
     if (nwmshell->wm.client_leader != owmshell->wm.client_leader
-        && _IswXcbWindow(((Widget)new)->core.window) && !nwmshell->shell.override_redirect) {
+        && _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new))) && !nwmshell->shell.override_redirect) {
         Widget leader = GetClientLeader(new);
 
-        if (_IswXcbWindow(IswWindowOf(leader))) {
-            xcb_window_t leader_win = _IswXcbWindow(leader->core.window);
+        if (_IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(leader)), (Widget)(leader)))) {
+            xcb_window_t leader_win = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(leader)), (Widget)(leader)));
             Atom client_leader = _IswPlatformInternAtomOp(IswDisplayOf(new),
                                                           "WM_CLIENT_LEADER", False);
-            _IswPlatformChangeProperty(IswDisplayOf(new), ((Widget)new)->core.window,
+            _IswPlatformChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                        client_leader, ISW_ATOM_WINDOW, 32,
                                        ISW_PROP_MODE_REPLACE, &leader_win, 1);
         }
-            //XChangeProperty(IswDisplayOf(new), ((Widget)new)->core.window,
+            //XChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
             //                XInternAtom(IswDisplayOf(new),
             //                            "WM_CLIENT_LEADER", False),
             //                XCB_ATOM_WINDOW, 32, XCB_PROP_MODE_REPLACE,
-            //                (unsigned char *) &(leader->core.window), 1);
+            //                (unsigned char *) &(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(leader)), (Widget)(leader))), 1);
     }//
 
     //if (nwmshell->wm.window_role != owmshell->wm.window_role) {
     //    IswFree((_IswString) owmshell->wm.window_role);
     //    if (set_prop && nwmshell->wm.window_role) {
-    //        XChangeProperty(IswDisplayOf(new), ((Widget)new)->core.window,
+    //        XChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
     //                        XInternAtom(IswDisplayOf(new), "WM_WINDOW_ROLE",
     //                                    False),
     //                        XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
@@ -2645,7 +2654,7 @@ WMSetValues(Widget old,
     //                        (int) strlen(nwmshell->wm.window_role));
     //    }
     //    else if (IswIsRealized(new) && !nwmshell->wm.window_role) {
-    //        XDeleteProperty(IswDisplayOf(new), ((Widget)new)->core.window,
+    //        XDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
     //                        XInternAtom(IswDisplayOf(new), "WM_WINDOW_ROLE",
     //                                    False));
     //    }
@@ -2656,7 +2665,7 @@ WMSetValues(Widget old,
         if (set_prop && nwmshell->wm.window_role) {
             Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf(new),
                                                         "WM_WINDOW_ROLE", False);
-            _IswPlatformChangeProperty(IswDisplayOf(new), ((Widget)new)->core.window,
+            _IswPlatformChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                        window_role, ISW_ATOM_STRING, 8,
                                        ISW_PROP_MODE_REPLACE,
                                        nwmshell->wm.window_role,
@@ -2665,7 +2674,7 @@ WMSetValues(Widget old,
         else if (IswIsRealized(new) && !nwmshell->wm.window_role) {
             Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf(new),
                                                         "WM_WINDOW_ROLE", False);
-            _IswPlatformDeleteProperty(IswDisplayOf(new), ((Widget)new)->core.window,
+            _IswPlatformDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                        window_role);
         }
     }
@@ -2719,7 +2728,7 @@ TopLevelSetValues(Widget oldW,
         if (new->topLevel.iconic != old->topLevel.iconic) {
             if (new->topLevel.iconic) {
                 //XIconifyWindow(IswDisplayOf(newW),
-                //               ((Widget)newW)->core.window,
+                //               _IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW)),
                 //               XScreenNumberOfScreen(IswScreenOf(newW))
                 //    );
                 // XCB doesn't have a direct equivalent to XIconifyWindow
@@ -2736,7 +2745,7 @@ TopLevelSetValues(Widget oldW,
                     xcb_client_message_event_t *event = malloc(sizeof(xcb_client_message_event_t));
                     event->response_type = XCB_CLIENT_MESSAGE;
                     event->format = 32;
-                    event->window = _IswXcbWindow(((Widget)newW)->core.window);
+                    event->window = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW)));
                     event->type = (xcb_atom_t) net_wm_state;
                     event->data.data32[0] = 1; // _NET_WM_STATE_ADD
                     event->data.data32[1] = (xcb_atom_t) net_wm_state_hidden;
@@ -2744,7 +2753,7 @@ TopLevelSetValues(Widget oldW,
                     event->data.data32[3] = 0;
                     event->data.data32[4] = 0;
 
-                    xcb_send_event(_IswXcbConn(IswDisplayOf(newW)), 0, _IswXcbWindow(((Widget)newW)->core.window), XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (char*)event);
+                    xcb_send_event(_IswXcbConn(IswDisplayOf(newW)), 0, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW))), XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (char*)event);
                     free(event);
                 }
             }
@@ -2753,7 +2762,7 @@ TopLevelSetValues(Widget oldW,
 
                 IswPopup(newW, IswGrabNone);
                 if (map) {
-                    _IswPlatformMapWindow(IswDisplayOf(newW), ((Widget)newW)->core.window);
+                    _IswPlatformMapWindow(IswDisplayOf(newW), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW)));
                     _IswPlatformFlush(IswDisplayOf(newW));
                 }
             }
@@ -2781,7 +2790,7 @@ TopLevelSetValues(Widget oldW,
                 //icon_name.nitems = strlen((char *) icon_name.value);
             //}
             // First, get the atom ID for WM_ICON_NAME
-            _IswPlatformSetIconTitle(IswDisplayOf(newW), ((Widget)newW)->core.window,
+            _IswPlatformSetIconTitle(IswDisplayOf(newW), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW)),
                                      (const char *) new->topLevel.icon_name);
         }
     }
@@ -2846,22 +2855,22 @@ ApplicationSetValues(Widget current,
 
         //if (IswIsRealized(new) && !nw->shell.override_redirect) {
         //    if (nw->application.argc >= 0 && nw->application.argv)
-        //        XSetCommand(IswDisplayOf(new), ((Widget)new)->core.window,
+        //        XSetCommand(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
         //                    nw->application.argv, nw->application.argc);
         //    else
-        //        XDeleteProperty(IswDisplayOf(new), ((Widget)new)->core.window, XCB_ATOM_WM_COMMAND);
+        //        XDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)), XCB_ATOM_WM_COMMAND);
         //}
         if (IswIsRealized(new) && !nw->shell.override_redirect) {
             Atom wm_command = _IswPlatformInternAtomOp(IswDisplayOf(new),
                                                        "WM_COMMAND", False);
             if (nw->application.argc >= 0 && nw->application.argv) {
-                _IswPlatformChangeProperty(IswDisplayOf(new), ((Widget)new)->core.window,
+                _IswPlatformChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                            wm_command, ISW_ATOM_STRING, 8,
                                            ISW_PROP_MODE_REPLACE,
                                            nw->application.argv,
                                            (uint32_t) nw->application.argc);
             } else {
-                _IswPlatformDeleteProperty(IswDisplayOf(new), ((Widget)new)->core.window,
+                _IswPlatformDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                            wm_command);
             }
         }
@@ -2882,7 +2891,7 @@ _IswShellGetCoordinates(Widget widget, Position *x, Position *y)
         int bw_phys = (int)lrint((double)w->core.border_width * sf);
 
         xcb_translate_coordinates_cookie_t cookie = xcb_translate_coordinates(_IswXcbConn(IswDisplayOf(w)),
-            _IswXcbWindow(((Widget)w)->core.window),
+            _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
             RootWindowOfScreen(_IswXcbScreen(IswScreenOf(w))),
             -bw_phys,
             -bw_phys);
@@ -3005,7 +3014,7 @@ IswSetWindowIconARGB(Widget shell, const uint32_t *argb_data,
         return;
 
     icon_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), "_NET_WM_ICON", False);
-    _IswPlatformChangeProperty(IswDisplayOf(shell), ((Widget)shell)->core.window,
+    _IswPlatformChangeProperty(IswDisplayOf(shell), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)),
                                icon_atom, ISW_ATOM_CARDINAL, 32,
                                ISW_PROP_MODE_REPLACE, argb_data, n_entries);
 }
@@ -3019,7 +3028,7 @@ IswClearWindowIcon(Widget shell)
         return;
 
     icon_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), "_NET_WM_ICON", False);
-    _IswPlatformDeleteProperty(IswDisplayOf(shell), ((Widget)shell)->core.window, icon_atom);
+    _IswPlatformDeleteProperty(IswDisplayOf(shell), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)), icon_atom);
 }
 
 static void
@@ -3035,7 +3044,7 @@ SetNetWmString(Widget shell, const char *prop_name, unsigned int prop_len,
     prop_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), prop_name, False);
     utf8_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), "UTF8_STRING", False);
     //#FIXME window related changes go in the platform code
-    //_IswPlatformChangeProperty(IswDisplayOf(shell), ((Widget)shell)->core.window,
+    //_IswPlatformChangeProperty(IswDisplayOf(shell), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)),
     //                           prop_atom, utf8_atom, 8, ISW_PROP_MODE_REPLACE,
     //                           value, (uint32_t) strlen(value));
 }
@@ -3072,7 +3081,7 @@ IswSetWindowState(Widget shell, const char *state, Boolean set)
         xcb_client_message_event_t ev = {0};
         ev.response_type = XCB_CLIENT_MESSAGE;
         ev.format = 32;
-        //ev.window = _IswXcbWindow(((Widget)shell)->core.window);
+        //ev.window = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)));
         ev.type = (xcb_atom_t) wm_state;
         ev.data.data32[0] = set ? 1 : 0;
         ev.data.data32[1] = (xcb_atom_t) state_atom;

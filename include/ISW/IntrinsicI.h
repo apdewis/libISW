@@ -81,20 +81,18 @@ SOFTWARE.
  * be evaluated exactly once.
  */
 
+/* For a non-widget object (e.g. a shell extension), resolve display/screen
+   through its nearest widget ancestor.  Core never resolves a *window* this
+   way — widgets render to surfaces, not windows. */
 #define IswDisplayOfObject(object) \
     (IswIsWidget(object) ? (object)->core.display : \
     _IswIsHookObject(object) ? ((HookObject)(object))->hooks.display : \
-    _IswWindowedAncestor(object)->core.display)
+    _IswWidgetAncestor(object)->core.display)
 
 #define IswScreenOfObject(object) \
     (IswIsWidget(object) ? (object)->core.screen : \
     _IswIsHookObject(object) ? ((HookObject)(object))->hooks.screen : \
-    _IswWindowedAncestor(object)->core.screen)
-
-#define IswWindowOfObject(object) \
-    ((IswIsWidget(object) && !(object)->core.windowless \
-      ? (object) : _IswWindowedAncestor(object)) \
-     ->core.window)
+    _IswWidgetAncestor(object)->core.screen)
 
 #define IswIsManaged(object) \
     (IswIsRectObj(object) ? (object)->core.managed : False)
