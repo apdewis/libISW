@@ -61,8 +61,6 @@ SOFTWARE.
 #include <ISW/ISWRender.h>
 #include <ISW/ISWPlatform.h>
 #include <ISW/CommandP.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 #include <cairo/cairo.h>
 #include <math.h>
 #include <ISW/Region.h>     /* region API for highlight frame */
@@ -340,7 +338,7 @@ Notify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 static void
 Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
-  PaintCommandWidget(w, event, 0 /* FIXME: XCB region */, FALSE);
+  PaintCommandWidget(w, event, 0 /* FIXME: region */, FALSE);
 }
 
 /*	Function Name: PaintCommandWidget
