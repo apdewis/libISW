@@ -287,11 +287,11 @@ IswVendorShellClassInitialize(void)
     static IswConvertArgRec cursorConvertArgs[] = {
         {IswProcedureArg, (IswPointer)_VendorFetchDisplayArg, 0},
         {IswWidgetBaseOffset, (IswPointer) IswOffsetOf(WidgetRec, core.screen),
-	     sizeof(xcb_screen_t *)}
+	     sizeof(IswScreen)}
     };
     static IswConvertArgRec _IswCvtStrToPix[] = {
 	{IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
-	     sizeof(xcb_screen_t *)},
+	     sizeof(IswScreen)},
 	{IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.colormap),
 	     sizeof(IswColormap)},
 	{IswWidgetBaseOffset,
