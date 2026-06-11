@@ -76,8 +76,9 @@ typedef enum {
     IswVisibility,
     IswDestroy,
     IswMappingChanged,  /* keyboard mapping changed (refresh maps)  */
-    IswProtocol,        /* generic protocol message (client message) */
-    IswCloseRequest     /* user asked to close the window           */
+    IswProtocol         /* generic protocol message (client message);
+                           a WM close request is a WM_PROTOCOLS message
+                           whose data[0] is WM_DELETE_WINDOW              */
 } IswEventKind;
 
 /*

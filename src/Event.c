@@ -1203,7 +1203,6 @@ _IswConvertKindToMask(IswEventKind kind)
     case IswDestroy:        return IswStructureNotifyMask;
     case IswMappingChanged:
     case IswProtocol:
-    case IswCloseRequest:
     default:                return NonMaskableMask;
     }
 }

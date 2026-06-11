@@ -177,7 +177,6 @@ PrintEventType(TMStringBuf sb, unsigned long event)
             PRINTEVENT(IswGeometry, "<ConfigureNotify>")
             PRINTEVENT(IswMappingChanged, "<MappingNotify>")
             PRINTEVENT(IswProtocol, "<ClientMessage>")
-            PRINTEVENT(IswCloseRequest, "<Close>")
     case _IswEventTimerEventType:
         (void) strcpy(sb->current, "<EventTimer>");
         break;

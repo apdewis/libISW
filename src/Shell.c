@@ -1003,12 +1003,21 @@ static void
 ShellWMDeleteWindow(Widget w, IswEvent *iswev, String *params,
 		    Cardinal *num_params)
 {
-    /* Bound to <Close>: the backend already decoded the WM_DELETE_WINDOW
-       protocol message into a neutral IswCloseRequest, so there is nothing to
-       decode here — just honor the close. */
-    (void) iswev; (void) params; (void) num_params;
+    /* Bound to <Message>WM_PROTOCOLS: the event is a generic protocol message
+       (IswProtocol) carrying the protocol atom in data[0].  Act only on
+       WM_DELETE_WINDOW; other WM_PROTOCOLS messages (WM_TAKE_FOCUS, _NET_WM_PING,
+       ...) fall through untouched. */
+    Atom wm_delete_window;
 
-    if (iswev->kind != IswCloseRequest)
+    (void) params; (void) num_params;
+
+    if (iswev->kind != IswProtocol)
+	return;
+
+    wm_delete_window =
+	_IswPlatformInternAtomOp(IswDisplayOf(w), "WM_DELETE_WINDOW", True);
+    if (wm_delete_window == 0 ||
+	(Atom) iswev->protocol.data[0] != wm_delete_window)
 	return;
 
     if (IswIsApplicationShell(w))
@@ -1032,7 +1041,7 @@ SetShellWMProtocolTranslations(Widget w)
     /* parse translation table once */
     if (!compiled_table)
 	compiled_table = IswParseTranslationTable(
-	    "<Close>: IswShellDeleteWindow()\n");
+	    "<Message>WM_PROTOCOLS: IswShellDeleteWindow()\n");
 
     /* add actions once per application context */
     for (i = 0; i < list_size && app_context_list[i] != app_context; i++) ;

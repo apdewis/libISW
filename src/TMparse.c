@@ -279,8 +279,6 @@ static EventKey events[] = {
 {"MappingNotify",   NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
 {"Mapping",         NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
 
-{"Close",           NULLQUARK, IswCloseRequest,     ParseNone,      NULL},
-{"WMClose",         NULLQUARK, IswCloseRequest,     ParseNone,      NULL},
 
 #ifdef DEBUG
 # ifdef notdef

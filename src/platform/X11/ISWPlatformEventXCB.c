@@ -7,12 +7,13 @@
  * IswEvent (include/ISW/IswEvent.h).  This is the XCB platform backend's event
  * path: the toolkit-semantic event kinds are produced here, including the few
  * protocol events the toolkit branches on once given a neutral form — keyboard
- * mapping change (IswMappingChanged), window re-parent (IswReparent) and the
- * WM close request (IswCloseRequest, decoded from the WM_DELETE_WINDOW client
- * message).  Pure protocol events (selection, property, drag-and-drop, tray
- * docking, and any non-close client message) are NOT translated — they are
- * handled inside their respective backend modules (Selection.c,
- * ISWPlatformDndXCB.c, IswTrayIcon.c) and never become an IswEvent.
+ * mapping change (IswMappingChanged), window re-parent (IswReparent) and client
+ * messages (IswProtocol, carrying the message-type atom + data; a WM close
+ * request is a WM_PROTOCOLS message whose data[0] is WM_DELETE_WINDOW, decoded
+ * by the handler, not special-cased here).  Pure protocol events (selection,
+ * property, drag-and-drop, tray docking) are NOT translated — they are handled
+ * inside their respective backend modules (Selection.c, ISWPlatformDndXCB.c,
+ * IswTrayIcon.c) and never become an IswEvent.
  *
  * Folds in, at the translation boundary, the work the dispatch core used to do
  * inline: keysym → neutral key identity + UTF-8.  (HiDPI descale stays in the
@@ -345,22 +346,14 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     }
     case XCB_CLIENT_MESSAGE: {
         xcb_client_message_event_t *e = (xcb_client_message_event_t *) xev;
-        xcb_atom_t wm_protocols =
-            _IswPlatformInternAtomOp(dpy, "WM_PROTOCOLS", True);
-        xcb_atom_t wm_delete_window =
-            _IswPlatformInternAtomOp(dpy, "WM_DELETE_WINDOW", True);
         int i;
-        /* The WM close request is its own toolkit-semantic kind. */
-        if (wm_protocols != 0 && wm_delete_window != 0 &&
-            e->type == wm_protocols &&
-            e->data.data32[0] == wm_delete_window) {
-            out->kind = IswCloseRequest;
-            out->any.target = target_for_window(dpy, e->window);
-            return True;
-        }
-        /* Every other client message becomes a generic protocol event so the
-           translation manager can match it by message-type name and widgets /
-           shells / backend services can decode its payload. */
+        /* Every client message becomes a generic protocol event carrying the
+           message-type atom and its data words.  The translation manager matches
+           it by message-type name (e.g. <Message>WM_PROTOCOLS) and the handler
+           decodes data[0] to branch on the specific protocol (WM_DELETE_WINDOW,
+           WM_TAKE_FOCUS, _NET_WM_PING, ...).  No protocol is special-cased here:
+           collapsing one into its own kind would prevent the others from ever
+           reaching a handler bound to the same message type. */
         out->kind = IswProtocol;
         out->protocol.target = target_for_window(dpy, e->window);
         out->protocol.message_type = (IswProtocolId) e->type;
