@@ -1527,7 +1527,7 @@ IswResolvePathname(IswDisplay dpy,
 }
 
 Boolean
-IswCallAcceptFocus(Widget widget, xcb_timestamp_t *time)
+IswCallAcceptFocus(Widget widget, IswTime *time)
 {
     IswAcceptFocusProc ac;
     Boolean retval;
