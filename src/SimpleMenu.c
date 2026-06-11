@@ -109,7 +109,7 @@ static IswResource resources[] = {
   /* Backing store not supported in XCB */
   /*{IswNbackingStore, IswCBackingStore, IswRBackingStore, sizeof (int),
       offset(backing_store),
-      IswRImmediate, (IswPointer) (XCB_BACKING_STORE_ALWAYS + XCB_BACKING_STORE_WHEN_MAPPED + XCB_BACKING_STORE_NOT_USEFUL)},*/
+      IswRImmediate, (IswPointer) (IswBackingAlways + IswBackingWhenMapped + IswBackingNotUseful)},*/
   {IswNjumpScroll,  IswCJumpScroll, IswRInt, sizeof(int),
       offset(jump_val), IswRImmediate, (IswPointer)1},
 
@@ -557,7 +557,7 @@ dy = SMW_ARROW_SIZE;
 	class = (SmeObjectClass)(*entry)->object.widget_class;
 
 	if (class->rect_class.expose != NULL)
-	    (class->rect_class.expose)((Widget)*entry, NULL, XCB_NONE);
+	    (class->rect_class.expose)((Widget)*entry, NULL, 0);
 
 	if (smw->simple_menu.too_tall) (*entry)->rectangle = old_pos;
 
@@ -595,17 +595,17 @@ Realize(IswDisplay conn, Widget w, IswValueMask * mask, uint32_t * values)
     int value_index = 0;
 
     values[value_index++] = smw->simple_menu.cursor;  /* cursor */
-    *mask |= XCB_CW_CURSOR;
-    if ((smw->simple_menu.backing_store == XCB_BACKING_STORE_ALWAYS) ||
-	(smw->simple_menu.backing_store == XCB_BACKING_STORE_NOT_USEFUL) ||
-	(smw->simple_menu.backing_store == XCB_BACKING_STORE_WHEN_MAPPED) ) {
-	*mask |= XCB_CW_BACKING_STORE;
+    *mask |= IswCWCursor;
+    if ((smw->simple_menu.backing_store == IswBackingAlways) ||
+	(smw->simple_menu.backing_store == IswBackingNotUseful) ||
+	(smw->simple_menu.backing_store == IswBackingWhenMapped) ) {
+	*mask |= IswCWBackingStore;
 	values[value_index++] = smw->simple_menu.backing_store;  /* backing_store */
     }
     else
-	*mask &= ~XCB_CW_BACKING_STORE;
+	*mask &= ~IswCWBackingStore;
 
-    *mask |= XCB_CW_BORDER_PIXEL;
+    *mask |= IswCWBorderPixel;
 
      /* check if the menu is too big */
      {
@@ -897,16 +897,11 @@ PositionMenuAction(Widget w, IswEvent *iswev, String * params, Cardinal * num_pa
     PositionMenu(menu, &loc);
     break;
   case IswEnter:
-  case IswLeave: {
-    /* The neutral crossing event does not carry root coordinates, so read
-     * them from the native event. */
-    xcb_enter_notify_event_t *cev =
-        (xcb_enter_notify_event_t *) IswEventNative(iswev);
-    loc.x = cev->root_x;
-    loc.y = cev->root_y;
+  case IswLeave:
+    loc.x = iswev->crossing.root_x;
+    loc.y = iswev->crossing.root_y;
     PositionMenu(menu, &loc);
     break;
-  }
   case IswMotion:
     loc.x = iswev->motion.root_x;
     loc.y = iswev->motion.root_y;
@@ -2082,8 +2077,6 @@ PopupSubMenu(SimpleMenuWidget smw)
 static void
 Popdown(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-    /* IswCallActionProc takes a native event, so keep the bridge. */
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
     SmeObject entry = smw->simple_menu.entry_set;
 
@@ -2109,7 +2102,7 @@ Popdown(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     smw->simple_menu.state |= SMW_UNMAPPING;
     PopdownSubMenu(smw);
 
-    IswCallActionProc(w, "IswMenuPopdown", event, params, *num_params);
+    IswCallActionProc(w, "IswMenuPopdown", iswev, params, *num_params);
 }
 
 static void

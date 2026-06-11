@@ -184,7 +184,7 @@ tic (IswPointer client_data, IswIntervalId *id)
      ISWRenderEnd(ctx);
  }
  rw->command.set = FALSE;
- (*expose) ((Widget) rw, (IswEvent *) NULL, XCB_NONE);
+ (*expose) ((Widget) rw, (IswEvent *) NULL, 0);
  if (ctx) {
      ISWRenderBegin(ctx);
      ISWRenderSetColor(ctx, rw->core.background_pixel);
@@ -192,7 +192,7 @@ tic (IswPointer client_data, IswIntervalId *id)
      ISWRenderEnd(ctx);
  }
  rw->command.set = TRUE;
- (*expose) ((Widget) rw, (IswEvent *) NULL, XCB_NONE);
+ (*expose) ((Widget) rw, (IswEvent *) NULL, 0);
     }
     DO_CALLBACK (rw);
 

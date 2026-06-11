@@ -113,7 +113,7 @@ static IswResource resources[] = {
        Offset(scrollbar.thumbProc), IswRCallback, NULL},
   {IswNjumpProc, IswCCallback, IswRCallback, sizeof(IswPointer),
        Offset(scrollbar.jumpProc), IswRCallback, NULL},
-  {IswNthumb, IswCThumb, IswRBitmap, sizeof(xcb_pixmap_t),
+  {IswNthumb, IswCThumb, IswRBitmap, sizeof(IswPixmap),
        Offset(scrollbar.thumb), IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
   {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
        Offset(scrollbar.foreground), IswRString, IswDefaultForeground},
@@ -428,7 +428,7 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
     if(sbw->simple.cursor_name == NULL)
 	IswVaSetValues(w, IswNcursorName, "crosshair", NULL);
     /* dont set the cursor of the window to anything */
-    *valueMask &= ~XCB_CW_CURSOR;
+    *valueMask &= ~IswCWCursor;
     /*
      * The Simple widget actually stuffs the value in the valuemask.
      */
@@ -512,21 +512,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 }
 
 
-/* Unused - LookAhead is stubbed out for XCB compatibility
-struct EventData {
-    xcb_generic_event_t *oldEvent;
-    int count;
-};
-
-static Bool
-PeekNotifyEvent(xcb_connection_t *dpy, xcb_generic_event_t *event, char *args)
-{
-    struct EventData *eventData = (struct EventData*)args;
-
-    return ((++eventData->count == QLength(dpy))
-	    || CompareEvents(event, eventData->oldEvent));
-}
-*/
 
 static Boolean
 LookAhead (Widget w, IswEvent *event)
@@ -560,10 +545,6 @@ HandleThumb(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
     Position x,y;
     ScrollbarWidget sbw = (ScrollbarWidget) w;
-    /* FLAGGED SEAM: action re-dispatch.  IswCallActionProc() still takes a
-       native event, so MoveThumb/NotifyThumb are re-invoked with the native
-       event here.  Retires when the action API goes neutral. */
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
 
     ExtractPosition( iswev, &x, &y );
     /* if the motion event puts the pointer in thumb, call Move and Notify */
@@ -571,9 +552,8 @@ HandleThumb(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     if (sbw->scrollbar.scroll_mode == 2 ||
 	(PICKLENGTH (sbw,x,y) >= sbw->scrollbar.topLoc &&
 	PICKLENGTH (sbw,x,y) <= sbw->scrollbar.topLoc + sbw->scrollbar.shownLength)){
-	/* MoveThumb/NotifyThumb re-dispatch through the native-event API. */
-	IswCallActionProc(w, "MoveThumb", event, params, *num_params);
-	IswCallActionProc(w, "NotifyThumb", event, params, *num_params);
+	IswCallActionProc(w, "MoveThumb", iswev, params, *num_params);
+	IswCallActionProc(w, "NotifyThumb", iswev, params, *num_params);
     }
 }
 

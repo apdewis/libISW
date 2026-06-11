@@ -32,9 +32,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWP.h>
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
-#include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include <xcb/xcb_keysyms.h>
 #include <ISW/TextP.h>
 #include <ISW/ISWImP.h>
 #include <ISW/IswArgMacros.h>
@@ -1418,17 +1416,12 @@ InsertString(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 static void
 DisplayCaret(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-  /* FLAGGED SEAM: the X crossing event's focus flag (same_screen_focus) has no
-     neutral IswCrossingEvent field — IswEvent carries only mode/detail/
-     modifiers/x/y for crossings.  This native read stays until the crossing
-     event grows a neutral focus bit. */
-  ISW_NATIVE_EVENT(iswev);
   TextWidget ctx = (TextWidget)w;
   Boolean display_caret = True;
 
   if  ( ( iswev->kind == IswEnter || iswev->kind == IswLeave ) &&
         ( ( *num_params >= 2 ) && ( strcmp( params[1], "always" ) == 0 ) ) &&
-        ( ((xcb_enter_notify_event_t *)event)->same_screen_focus) )
+        ( iswev->crossing.same_screen ) )
       return;
 
   if (*num_params > 0) {	/* default arg is "True" */

@@ -41,9 +41,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
-#include <X11/keysym.h>
 
 #define MAX_FOCUS_LIST 256
 

@@ -288,7 +288,7 @@ _IswGrabInitialize(IswAppContext app _X_UNUSED)
     if (grabActionList == NULL)
         IswRegisterGrabAction(IswMenuPopupAction, True,
                              (unsigned) (IswButtonPressMask | IswButtonReleaseMask),
-                             XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+                             1, 1);
     UNLOCK_PROCESS;
 
 }

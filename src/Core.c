@@ -96,7 +96,7 @@ static void
 IswCopyScreen(Widget, int, XrmValue *);
 
 static IswResource resources[] = {
-    {IswNscreen, IswCScreen, IswRScreen, sizeof(xcb_screen_t *),
+    {IswNscreen, IswCScreen, IswRScreen, sizeof(IswScreen),
      IswOffsetOf(CoreRec, core.screen), IswRCallProc, (IswPointer) IswCopyScreen},
 /*_IswCopyFromParent does not work for screen because the Display
 parameter is not passed through to the IswRCallProc routines */
@@ -109,13 +109,13 @@ parameter is not passed through to the IswRCallProc routines */
     {IswNbackground, IswCBackground, IswRPixel, sizeof(Pixel),
      IswOffsetOf(CoreRec, core.background_pixel),
      IswRString, (IswPointer) "IswDefaultBackground"},
-    {IswNbackgroundPixmap, IswCPixmap, IswRPixmap, sizeof(xcb_pixmap_t),
+    {IswNbackgroundPixmap, IswCPixmap, IswRPixmap, sizeof(IswPixmap),
      IswOffsetOf(CoreRec, core.background_pixmap),
      IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
     {IswNborderColor, IswCBorderColor, IswRPixel, sizeof(Pixel),
      IswOffsetOf(CoreRec, core.border_pixel),
      IswRString, (IswPointer) "IswDefaultForeground"},
-    {IswNborderPixmap, IswCPixmap, IswRPixmap, sizeof(xcb_pixmap_t),
+    {IswNborderPixmap, IswCPixmap, IswRPixmap, sizeof(IswPixmap),
      IswOffsetOf(CoreRec, core.border_pixmap),
      IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
     {IswNmappedWhenManaged, IswCMappedWhenManaged, IswRBoolean, sizeof(Boolean),

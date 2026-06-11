@@ -247,6 +247,18 @@ xcb_grb_allow_events(IswDisplay dpy, int mode, IswTime time)
     xcb_allow_events(conn, (uint8_t) mode, (xcb_timestamp_t) time);
 }
 
+static void
+xcb_grb_change_active_pointer_grab(IswDisplay dpy, IswCursor cursor,
+                                   IswTime time, unsigned int event_mask)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn)
+        return;
+    xcb_change_active_pointer_grab(conn, _IswXcbCursor(cursor),
+                                   (xcb_timestamp_t) time,
+                                   (uint16_t) event_mask);
+}
+
 /* ---- selection ops ------------------------------------------------------- */
 
 /* On X11 an IswSelectionId is numerically an interned atom. */
@@ -455,6 +467,7 @@ const IswPlatformGrabOps isw_platform_xcb_grab_ops = {
     .grab_key        = xcb_grb_grab_key,
     .ungrab_key      = xcb_grb_ungrab_key,
     .allow_events    = xcb_grb_allow_events,
+    .change_active_pointer_grab = xcb_grb_change_active_pointer_grab,
 };
 
 const IswPlatformSelectionOps isw_platform_xcb_selection_ops = {

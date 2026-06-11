@@ -243,6 +243,8 @@ typedef struct {
     IswNotifyDetail detail;
     uint16_t        modifiers;
     int16_t         x, y;
+    int16_t         root_x, root_y;
+    uint8_t         same_screen; /* pointer on same screen + window focused */
 } IswCrossingEvent;
 
 /* Focus in / out. */

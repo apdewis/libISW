@@ -139,9 +139,8 @@ IswHooksOfDisplay(IswDisplay dpy)
 {
     Widget retval;
     IswPerDisplay pd;
-    xcb_connection_t *conn = _IswXcbConn(dpy);
 
-    DPY_TO_APPCON(conn);
+    DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
     pd = _IswGetPerDisplay(dpy);

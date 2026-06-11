@@ -181,7 +181,7 @@ Realize(IswDisplay dpy _X_UNUSED, Widget w, IswValueMask *valueMask _X_UNUSED,
 
 /*
  * _IswSetWindowCursor - set the pointer cursor on a windowed target's window.
- * The single owner of the XCB_CW_CURSOR window-attribute change; widgets call
+ * The single owner of the IswCWCursor window-attribute change; widgets call
  * this instead of issuing xcb_change_window_attributes directly.
  */
 void
@@ -204,7 +204,7 @@ _IswSetWindowCursor(Widget anc, IswCursor cursor)
 void
 _IswFreeCursor(Widget w, IswCursor cursor)
 {
-    if (cursor == None || (xcb_cursor_t) cursor == XCB_CURSOR_NONE)
+    if (cursor == None)
         return;
 
     _IswPlatformFreeCursor(IswDisplayOf(w), cursor);
@@ -219,9 +219,8 @@ void
 _IswChangeActivePointerGrabCursor(Widget w, IswCursor cursor,
                                   IswTime time, uint16_t event_mask)
 {
-    xcb_change_active_pointer_grab(_IswXcbConn(IswDisplayOf(w)),
-                                   _IswXcbCursor(cursor),
-                                   (xcb_timestamp_t) time, event_mask);
+    _IswPlatformChangeActivePointerGrab(IswDisplayOf(w), cursor, time,
+                                        event_mask);
 }
 
 /*
@@ -342,11 +341,13 @@ ChangeSensitive(Widget w)
 {
     if (IswIsRealized(w)) {
 	if (w->core.windowless)
-	    /* Windowless: repaint our own surface and composite the ancestor.
-	       xcb_clear_area(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))) would blank the shared ancestor. */
+	    /* Windowless: repaint our own surface and composite the ancestor;
+	       clearing would blank the shared ancestor window. */
 	    _IswRepaintWindowless(w);
 	else
-	    xcb_clear_area(_IswXcbConn(IswDisplayOf(w)), 1, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))), 0, 0, 0, 0);
+	    _IswPlatformClearArea(IswDisplayOf(w),
+	                          _IswPlatformWidgetWindow(IswDisplayOf(w), w),
+	                          0, 0, 0, 0, True);
     }
     return False;
 }

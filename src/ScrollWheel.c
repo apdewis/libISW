@@ -37,7 +37,6 @@
 extern double _IswGetScaleFactor(IswDisplay dpy);
 
 #include <stdint.h>
-#include <xcb/xcb.h>
 
 /* Saved original dispatchers so we can chain to them */
 static IswEventDispatchProc original_press_dispatcher = NULL;
@@ -47,7 +46,7 @@ static Boolean scroll_wheel_initialized = False;
 /* Scroll stickiness state */
 #define ISW_SCROLL_STICKY_MS 250
 static Widget         sticky_scrollbar = NULL;
-static xcb_timestamp_t sticky_timestamp = 0;
+static IswTime sticky_timestamp = 0;
 
 /*
  * Called when the sticky scrollbar widget is destroyed, so we don't
@@ -65,7 +64,7 @@ StickyDestroyCallback(Widget w, IswPointer closure, IswPointer call_data)
  * the pointer is cleared if the widget goes away.
  */
 static void
-SetStickyTarget(Widget bar, xcb_timestamp_t time)
+SetStickyTarget(Widget bar, IswTime time)
 {
     if (bar != sticky_scrollbar) {
         if (sticky_scrollbar != NULL)
@@ -83,7 +82,7 @@ SetStickyTarget(Widget bar, xcb_timestamp_t time)
  * Dispatch a scroll to the given scrollbar widget and update stickiness.
  */
 static void
-ScrollTo(Widget bar, int direction, xcb_timestamp_t time)
+ScrollTo(Widget bar, int direction, IswTime time)
 {
     ScrollbarWidget sbw = (ScrollbarWidget)bar;
     intptr_t increment = direction *
@@ -129,7 +128,7 @@ DecodeScrollWheel(IswEvent *event,
  */
 static Widget
 FindAndDispatchScroll(Widget start, int direction, Boolean horizontal,
-                      xcb_timestamp_t time)
+                      IswTime time)
 {
     Widget w;
     Widget scrollbar_found = NULL;

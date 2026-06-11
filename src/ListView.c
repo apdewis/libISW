@@ -423,8 +423,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     lv->listView.col_resize_active = False;
     lv->listView.col_resize_index = -1;
     lv->listView.total_col_w = 0;
-    lv->listView.resize_cursor = XCB_CURSOR_NONE;
-    lv->listView.default_cursor = XCB_CURSOR_NONE;
+    lv->listView.resize_cursor = IswCursorNone;
+    lv->listView.default_cursor = IswCursorNone;
     lv->listView.resize_cursor_set = False;
     lv->listView.sort_column = -1;
     lv->listView.sort_direction = IswListViewSortNone;

@@ -78,7 +78,7 @@ static IswResource resources[] = {
      IswOffsetOf(DialogRec, dialog.label), IswRString, NULL},
   {IswNvalue, IswCValue, IswRString, sizeof(String),
      IswOffsetOf(DialogRec, dialog.value), IswRString, NULL},
-  {IswNicon, IswCIcon, IswRBitmap, sizeof(xcb_pixmap_t),
+  {IswNicon, IswCIcon, IswRBitmap, sizeof(IswPixmap),
      IswOffsetOf(DialogRec, dialog.icon), IswRImmediate, 0},
 };
 
@@ -159,7 +159,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswArgBorderWidth(&ab, 0);
     IswArgLeft(&ab, IswChainLeft);
 
-    if (dw->dialog.icon != (xcb_pixmap_t)0) {
+    if (dw->dialog.icon != (IswPixmap)0) {
 	IswArgBitmap(&ab, dw->dialog.icon);
 	IswArgRight(&ab, IswChainLeft);
 	dw->dialog.iconW =
@@ -246,7 +246,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList in_args, Cardinal 
     }
 
     if (checks[ICON]) {
-	if (w->dialog.icon != (xcb_pixmap_t)0) {
+	if (w->dialog.icon != (IswPixmap)0) {
 	    IswArgBitmap(&ab, w->dialog.icon);
 	    if (old->dialog.iconW != (Widget)NULL) {
 		IswSetValues( old->dialog.iconW, ab.args, ab.count );
@@ -261,7 +261,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList in_args, Cardinal 
 		    form.horiz_base = w->dialog.iconW;
 		IswManageChild(w->dialog.iconW);
 	    }
-	} else if (old->dialog.icon != (xcb_pixmap_t)0) {
+	} else if (old->dialog.icon != (IswPixmap)0) {
 	    ((DialogConstraints)w->dialog.labelW->core.constraints)->
 		    form.horiz_base = (Widget)NULL;
 	    IswDestroyWidget(old->dialog.iconW);

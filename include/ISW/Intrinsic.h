@@ -135,6 +135,34 @@ typedef struct _IswEventRec *IswEventTable;
 
 typedef struct _IswAppStruct *IswAppContext;
 typedef unsigned long	IswValueMask;
+
+/* Window-creation attribute selectors for the IswValueMask passed to a Realize
+   proc (and the positional values[] array beside it).  Numerically X11-compatible
+   so the geometry engine and any X11 backend agree on the bit layout; the
+   backend translates them at the actual window-create call. */
+#define IswCWBackPixmap		(1u << 0)
+#define IswCWBackPixel		(1u << 1)
+#define IswCWBorderPixmap	(1u << 2)
+#define IswCWBorderPixel	(1u << 3)
+#define IswCWBitGravity		(1u << 4)
+#define IswCWWinGravity		(1u << 5)
+#define IswCWBackingStore	(1u << 6)
+#define IswCWOverrideRedirect	(1u << 9)
+#define IswCWSaveUnder		(1u << 10)
+#define IswCWAttrEventMask	(1u << 11)
+#define IswCWColormap		(1u << 13)
+#define IswCWCursor		(1u << 14)
+
+/* bit_gravity / win_gravity value: preserve content on geometry change. */
+#define IswGravityNorthWest	1
+
+/* backing_store values. */
+#define IswBackingNotUseful	0
+#define IswBackingWhenMapped	1
+#define IswBackingAlways	2
+
+/* "no cursor" value for IswCWCursor. */
+#define IswCursorNone		0
 typedef IswUIntPtr	IswIntervalId;
 typedef IswUIntPtr	IswInputId;
 typedef IswUIntPtr	IswWorkProcId;
@@ -879,7 +907,7 @@ extern void IswGetActionList(
 extern void IswCallActionProc(
     Widget		/* widget */,
     _Xconst _IswString	/* action */,
-    xcb_generic_event_t*		/* event */,
+    IswEvent*		/* event */,
     String*		/* params */,
     Cardinal		/* num_params */
 );

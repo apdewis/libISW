@@ -694,19 +694,12 @@ ActionPage (Widget gw, IswEvent *iswev, String *params, Cardinal *num_params)
     if (rely) y += pw->panner.knob_y;
 
     if (isin) {				/* if in, then use move */
-        xcb_button_press_event_t ev;
+        /* Synthesize a neutral button event for the action proc. */
         IswEvent nev;
-        memset(&ev, 0, sizeof(ev));
-        ev.response_type = XCB_BUTTON_PRESS;
-        ev.event_x = x;
-        ev.event_y = y;
-        /* Synthetic button event for the action proc; carry it as the neutral
-           event's native backing so the proc's IswEventNative() resolves. */
         memset(&nev, 0, sizeof(nev));
         nev.kind = IswButtonDown;
         nev.button.x = x;
         nev.button.y = y;
-        nev.any.native = &ev;
         ActionMove (gw, &nev, (String *) NULL, &zero);
     } else {				/* else just do it */
 	    pw->panner.tmp.doing = TRUE;

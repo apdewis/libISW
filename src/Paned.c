@@ -816,32 +816,25 @@ _DrawInternalBorders(PanedWidget pw, Pixel pixel)
  */
 
 static int
-GetEventLocation(PanedWidget pw, xcb_generic_event_t *event)
+GetEventLocation(PanedWidget pw, IswEvent *event)
 {
     int x, y;
 
-    /* XCB: Cast generic event to specific event types */
-    switch (event->response_type & ~0x80) {
-        case XCB_BUTTON_PRESS:
-	case XCB_BUTTON_RELEASE: {
-	    xcb_button_press_event_t *bev = (xcb_button_press_event_t *)event;
-            x = bev->root_x;
-	    y = bev->root_y;
+    switch (event->kind) {
+        case IswButtonDown:
+	case IswButtonUp:
+            x = event->button.root_x;
+	    y = event->button.root_y;
 	    break;
-	}
-	case XCB_KEY_PRESS:
-	case XCB_KEY_RELEASE: {
-	    xcb_key_press_event_t *kev = (xcb_key_press_event_t *)event;
-	    x = kev->root_x;
-	    y = kev->root_y;
+	case IswKeyDown:
+	case IswKeyUp:
+	    x = event->key.root_x;
+	    y = event->key.root_y;
 	    break;
-	}
-        case XCB_MOTION_NOTIFY: {
-	    xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)event;
-	    x = mev->root_x;
-	    y = mev->root_y;
+        case IswMotion:
+	    x = event->motion.root_x;
+	    y = event->motion.root_y;
 	    break;
-	}
 	default:
 	    x = pw->paned.start_loc;
 	    y = pw->paned.start_loc;
@@ -958,7 +951,7 @@ HandleGrip(Widget grip, IswPointer junk, IswPointer callData)
     if (call_data->num_params != 1)
       	IswError( "Paned GripAction has been passed incorrect parameters." );
 
-    loc = GetEventLocation(pw, (xcb_generic_event_t *) (call_data->event));
+    loc = GetEventLocation(pw, (IswEvent *) (call_data->event));
 
     switch (action_type) {
 	case 'S':
@@ -1400,7 +1393,7 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
 
     /* FIXME: XCB cursor handling - attributes is now uint32_t array, not IswSetWindowAttributes struct */
     /* if ((attributes->cursor = (pw)->paned.cursor) != None)
-	*valueMask |= XCB_CW_CURSOR; */
+	*valueMask |= IswCWCursor; */
 
     (*SuperClass->core_class.realize) (dpy, w, valueMask, attributes);
 

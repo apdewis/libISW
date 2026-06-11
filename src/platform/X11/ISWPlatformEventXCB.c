@@ -265,6 +265,9 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         out->crossing.detail = xcb_notify_detail(e->detail);
         out->crossing.x = e->event_x;
         out->crossing.y = e->event_y;
+        out->crossing.root_x = e->root_x;
+        out->crossing.root_y = e->root_y;
+        out->crossing.same_screen = (e->same_screen_focus & 0x01) ? 1 : 0;
         return True;
     }
     case XCB_FOCUS_IN:

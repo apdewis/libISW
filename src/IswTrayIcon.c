@@ -474,8 +474,8 @@ create_icon_window(IswTrayIcon icon)
                             icon->visual->visual_id);
 
         uint32_t vals[4];
-        uint32_t wmask = XCB_CW_BACK_PIXEL | XCB_CW_BORDER_PIXEL |
-                         XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
+        uint32_t wmask = IswCWBackPixel | IswCWBorderPixel |
+                         IswCWAttrEventMask | IswCWColormap;
         vals[0] = 0;           /* back_pixel — transparent black */
         vals[1] = 0;           /* border_pixel */
         vals[2] = IswExposureMask |
@@ -494,7 +494,7 @@ create_icon_window(IswTrayIcon icon)
                           icon->visual->visual_id,
                           wmask, vals);
     } else {
-        uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_EVENT_MASK;
+        uint32_t mask = IswCWBackPixmap | IswCWAttrEventMask;
         uint32_t values[2];
         values[0] = XCB_BACK_PIXMAP_PARENT_RELATIVE;
         values[1] = IswExposureMask |
@@ -821,7 +821,7 @@ IswTrayIconCreate(Widget shell, const char *tooltip)
     {
         uint32_t emask = IswStructureNotifyMask;
         xcb_change_window_attributes(icon->conn, icon->screen->root,
-                                     XCB_CW_EVENT_MASK, &emask);
+                                     IswCWAttrEventMask, &emask);
     }
     IswRegisterDrawable((IswDisplay) icon->conn, _IswXcbWindowWrap(icon->screen->root), shell);
     IswAddRawEventHandler(shell,

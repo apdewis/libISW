@@ -332,19 +332,19 @@ Realize(IswDisplay conn, Widget widget, IswValueMask *value_mask, uint32_t *valu
     ViewportWidget w = (ViewportWidget)widget;
     Widget child = w->viewport.child;
     Widget clip = w->viewport.clip;
-    if (!(*value_mask & XCB_CW_BIT_GRAVITY)) {
+    if (!(*value_mask & IswCWBitGravity)) {
         int insert_idx = 0;
         int total_values = 0;
         int i;
         uint32_t bit;
 
-        /* Count values for bits below XCB_CW_BIT_GRAVITY (bits 0-3) */
-        for (bit = 1; bit < XCB_CW_BIT_GRAVITY; bit <<= 1) {
+        /* Count values for bits below IswCWBitGravity (bits 0-3) */
+        for (bit = 1; bit < IswCWBitGravity; bit <<= 1) {
             if (*value_mask & bit)
                 insert_idx++;
         }
         /* Count total values in current attributes array */
-        for (bit = 1; bit <= XCB_CW_CURSOR; bit <<= 1) {
+        for (bit = 1; bit <= IswCWCursor; bit <<= 1) {
             if (*value_mask & bit)
                 total_values++;
         }
@@ -352,8 +352,8 @@ Realize(IswDisplay conn, Widget widget, IswValueMask *value_mask, uint32_t *valu
         for (i = total_values; i > insert_idx; i--)
             values[i] = values[i - 1];
 
-        values[insert_idx] = XCB_GRAVITY_NORTH_WEST;
-        *value_mask |= XCB_CW_BIT_GRAVITY;
+        values[insert_idx] = IswGravityNorthWest;
+        *value_mask |= IswCWBitGravity;
     }
     (*superclass->core_class.realize)(conn, widget, value_mask, values);
 

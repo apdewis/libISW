@@ -917,20 +917,19 @@ _IswPopupInitialize(IswAppContext app)
 void
 IswCallActionProc(Widget widget,
                  _Xconst char *action,
-                xcb_generic_event_t *event,
+                 IswEvent *event,
                  String *params,
                  Cardinal num_params)
 {
     CompiledAction *actionP;
     XrmQuark q = XrmStringToQuark(action);
     /* Action procs and hooks receive the toolkit-neutral event.  A synthetic
-       invocation (e.g. MenuBar OpenMenu calling "set") passes a NULL native
-       event — there is no triggering event to translate, so hand the proc a
-       zeroed neutral event (no kind, no native backing) rather than
-       dereferencing NULL in the translator. */
+       invocation (e.g. MenuBar OpenMenu calling "set") passes a NULL event —
+       hand the proc a zeroed neutral event (no kind) rather than dereferencing
+       NULL. */
     IswEvent nev;
     if (event != NULL)
-        (void) _IswEventFromXcb(IswDisplayOf(widget), event, &nev);
+        nev = *event;
     else
         memset(&nev, 0, sizeof(nev));
     Widget w = widget;

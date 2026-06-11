@@ -132,6 +132,20 @@ xcb_disp_flush(IswDisplay dpy)
         xcb_flush(priv->conn);
 }
 
+static void
+xcb_disp_sync(IswDisplay dpy)
+{
+    IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+    if (priv->conn) {
+        /* A round-trip request blocks until the server has processed all
+           prior requests. */
+        xcb_get_input_focus_reply_t *r =
+            xcb_get_input_focus_reply(priv->conn,
+                                      xcb_get_input_focus(priv->conn), NULL);
+        free(r);
+    }
+}
+
 static int
 xcb_disp_connection_fd(IswDisplay dpy)
 {
@@ -181,6 +195,20 @@ xcb_disp_screen_height(IswScreen screen)
     return s ? s->height_in_pixels : 0;
 }
 
+static IswColormap
+xcb_disp_screen_default_colormap(IswScreen screen)
+{
+    xcb_screen_t *s = (xcb_screen_t *) screen;
+    return _IswXcbColormapWrap(s ? s->default_colormap : 0);
+}
+
+static int
+xcb_disp_screen_depth(IswScreen screen)
+{
+    xcb_screen_t *s = (xcb_screen_t *) screen;
+    return s ? (int) s->root_depth : 0;
+}
+
 static void
 xcb_disp_bell(IswDisplay dpy, int percent)
 {
@@ -195,12 +223,15 @@ static const IswPlatformDisplayOps xcb_display_ops = {
     .close          = xcb_disp_close,
     .has_error      = xcb_disp_has_error,
     .flush          = xcb_disp_flush,
+    .sync           = xcb_disp_sync,
     .connection_fd  = xcb_disp_connection_fd,
     .screen_count   = xcb_disp_screen_count,
     .screen         = xcb_disp_screen,
     .root_window    = xcb_disp_root_window,
     .screen_width   = xcb_disp_screen_width,
     .screen_height  = xcb_disp_screen_height,
+    .screen_default_colormap = xcb_disp_screen_default_colormap,
+    .screen_depth   = xcb_disp_screen_depth,
     .bell           = xcb_disp_bell,
 };
 
@@ -406,6 +437,22 @@ xcb_win_window_from_id(IswWindowId id)
     return _IswXcbWindowWrap((xcb_window_t) id);
 }
 
+static Boolean
+xcb_win_window_viewable(IswDisplay dpy, IswWindow win)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    xcb_get_window_attributes_cookie_t c;
+    xcb_get_window_attributes_reply_t *r;
+    Boolean viewable;
+    if (!conn)
+        return False;
+    c = xcb_get_window_attributes(conn, _IswXcbWindow(win));
+    r = xcb_get_window_attributes_reply(conn, c, NULL);
+    viewable = (r && r->map_state == XCB_MAP_STATE_VIEWABLE);
+    free(r);
+    return viewable;
+}
+
 static const IswPlatformWindowOps xcb_window_ops = {
     .alloc_id           = xcb_win_alloc_id,
     .create             = xcb_win_create,
@@ -418,6 +465,7 @@ static const IswPlatformWindowOps xcb_window_ops = {
     .clear_area         = xcb_win_clear_area,
     .window_id          = xcb_win_window_id,
     .window_from_id     = xcb_win_window_from_id,
+    .window_viewable    = xcb_win_window_viewable,
 };
 
 /* ---- root surface ops ---------------------------------------------------- */
@@ -663,6 +711,24 @@ _IswPlatformScreenHeight(IswDisplay dpy, IswScreen screen)
     return 0;
 }
 
+IswColormap
+_IswPlatformScreenDefaultColormap(IswDisplay dpy, IswScreen screen)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->screen_default_colormap)
+        return ops->display->screen_default_colormap(screen);
+    return (IswColormap) 0;
+}
+
+int
+_IswPlatformScreenDepth(IswDisplay dpy, IswScreen screen)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->screen_depth)
+        return ops->display->screen_depth(screen);
+    return 0;
+}
+
 /* Connection health + flush wrappers (Phase 11a) — used by the event loop.
    Recover ops from the per-display record (loop runs post-registration). */
 Boolean
@@ -680,6 +746,14 @@ _IswPlatformFlush(IswDisplay dpy)
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->display && ops->display->flush)
         ops->display->flush(dpy);
+}
+
+void
+_IswPlatformSync(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->sync)
+        ops->display->sync(dpy);
 }
 
 /* Event-loop poll (Phase 11a).  Returns the next native event (caller frees),
@@ -797,6 +871,15 @@ _IswPlatformWindowId(IswWindow win)
     if (ops && ops->window && ops->window->window_id)
         return ops->window->window_id(win);
     return 0;
+}
+
+Boolean
+_IswPlatformWindowViewable(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->window && ops->window->window_viewable)
+        return ops->window->window_viewable(dpy, win);
+    return False;
 }
 
 IswWindow
@@ -1134,6 +1217,15 @@ _IswPlatformWarpPointer(IswDisplay dpy, IswWindow dst_win, int x, int y)
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->input && ops->input->warp_pointer)
         ops->input->warp_pointer(dpy, dst_win, x, y);
+}
+
+void
+_IswPlatformChangeActivePointerGrab(IswDisplay dpy, IswCursor cursor,
+                                    IswTime time, unsigned int event_mask)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->grab && ops->grab->change_active_pointer_grab)
+        ops->grab->change_active_pointer_grab(dpy, cursor, time, event_mask);
 }
 
 /* Selection */

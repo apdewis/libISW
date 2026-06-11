@@ -235,6 +235,9 @@ struct _IswPlatformDisplayOps {
     Boolean    (*has_error)(IswDisplay dpy);
     /* Flush buffered requests to the server. */
     void       (*flush)(IswDisplay dpy);
+    /* Flush and round-trip: block until the server has processed all prior
+       requests (used as a barrier, e.g. after mapping a shell). */
+    void       (*sync)(IswDisplay dpy);
     /* Event-loop file descriptor for select()/poll(). */
     int        (*connection_fd)(IswDisplay dpy);
     /* Number of screens, and the i-th screen handle. */
@@ -245,6 +248,8 @@ struct _IswPlatformDisplayOps {
     /* Screen geometry in physical pixels. */
     uint32_t   (*screen_width)(IswScreen screen);
     uint32_t   (*screen_height)(IswScreen screen);
+    IswColormap (*screen_default_colormap)(IswScreen screen);
+    int        (*screen_depth)(IswScreen screen);
     /* Ring the server bell (percent -100..100). */
     void       (*bell)(IswDisplay dpy, int percent);
 };
@@ -290,6 +295,9 @@ struct _IswPlatformWindowOps {
     /* Window id <-> handle, for neutral structs / event targets. */
     IswWindowId (*window_id)(IswWindow win);
     IswWindow   (*window_from_id)(IswWindowId id);
+    /* True if the window is currently viewable (mapped and all ancestors
+       mapped) — the toolkit skips repainting a not-yet-viewable window. */
+    Boolean     (*window_viewable)(IswDisplay dpy, IswWindow win);
 };
 
 /*
@@ -500,6 +508,8 @@ struct _IswPlatformGrabOps {
     void (*ungrab_key)(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
                        unsigned int modifiers);
     void (*allow_events)(IswDisplay dpy, int mode, IswTime time);
+    void (*change_active_pointer_grab)(IswDisplay dpy, IswCursor cursor,
+                                       IswTime time, unsigned int event_mask);
 };
 
 /*
@@ -752,10 +762,13 @@ extern IswScreen _IswDefaultScreenOf(IswDisplay dpy);
 extern IswWindow _IswDefaultRootWindow(IswDisplay dpy);
 extern uint32_t  _IswPlatformScreenWidth(IswDisplay dpy, IswScreen screen);
 extern uint32_t  _IswPlatformScreenHeight(IswDisplay dpy, IswScreen screen);
+extern IswColormap _IswPlatformScreenDefaultColormap(IswDisplay dpy, IswScreen screen);
+extern int       _IswPlatformScreenDepth(IswDisplay dpy, IswScreen screen);
 extern void     *_IswPlatformPollEvent(IswDisplay dpy);
 extern void     *_IswPlatformPollQueuedEvent(IswDisplay dpy);
 extern Boolean   _IswPlatformDisplayHasError(IswDisplay dpy);
 extern void      _IswPlatformFlush(IswDisplay dpy);
+extern void      _IswPlatformSync(IswDisplay dpy);
 
 /* Selection */
 extern IswSelectionId _IswPlatformSelectionInternName(IswDisplay dpy,
@@ -835,6 +848,10 @@ extern void _IswPlatformUngrabKey(IswDisplay dpy, IswWindow grab_window,
                                   IswKeyCode keycode, unsigned int modifiers);
 extern void _IswPlatformUngrabButton(IswDisplay dpy, IswWindow grab_window,
                                      int button, unsigned int modifiers);
+/* Change the cursor / event mask of the active pointer grab in place. */
+extern void _IswPlatformChangeActivePointerGrab(IswDisplay dpy, IswCursor cursor,
+                                                IswTime time,
+                                                unsigned int event_mask);
 
 /* Pointer query */
 extern Boolean _IswPlatformQueryPointer(IswDisplay dpy, IswWindow win,
@@ -905,6 +922,7 @@ extern void _IswPlatformSetWidgetWindow(IswDisplay dpy, Widget w, IswWindow win)
    does — events arrive already carrying their target widget. */
 extern Widget   _IswPlatformWidgetForWindow(IswDisplay dpy, IswWindow win);
 
+extern Boolean   _IswPlatformWindowViewable(IswDisplay dpy, IswWindow win);
 extern IswWindowId _IswPlatformWindowId(IswWindow win);
 extern IswWindow   _IswPlatformWindowFromId(IswDisplay dpy, IswWindowId id);
 

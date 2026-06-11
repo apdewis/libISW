@@ -92,7 +92,7 @@ static IswResource resources[] = {
      offset(menu_name), IswRImmediate, (IswPointer) NULL},
   {IswNunderline,  IswCIndex, IswRInt, sizeof(int),
      offset(underline), IswRImmediate, (IswPointer) -1},
-  {IswNmnemonicKey, IswCMnemonicKey, IswRInt, sizeof(xcb_keysym_t),
+  {IswNmnemonicKey, IswCMnemonicKey, IswRInt, sizeof(IswKeySym),
      offset(mnemonic_key), IswRImmediate, (IswPointer) 0},
   {IswNaccelerator, IswCAccelerator, IswRString, sizeof(String),
      offset(accelerator), IswRString, NULL},

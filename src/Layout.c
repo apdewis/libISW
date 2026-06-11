@@ -94,7 +94,7 @@ static void InsertChild(Widget);
 static IswGeometryResult QueryGeometry (Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static void GetDesiredSize (Widget);
 #ifdef MOTIF
-static void Redisplay (Widget, xcb_generic_event_t *, Region);
+static void Redisplay (Widget, IswEvent *, Region);
 #endif
 
 static void LayoutLayout (LayoutWidget, Bool);

@@ -180,27 +180,27 @@ ComputeWindowAttributes(Widget widget,
      * of the value_mask (lowest bit first).  The order here must match the
      * XCB_CW_* bit positions exactly. */
 
-    /* XCB_CW_BACK_PIXMAP (bit 0) or XCB_CW_BACK_PIXEL (bit 1) */
+    /* IswCWBackPixmap (bit 0) or IswCWBackPixel (bit 1) */
     if (widget->core.background_pixmap != IswUnspecifiedPixmap) {
-        mask |= XCB_CW_BACK_PIXMAP;
+        mask |= IswCWBackPixmap;
         values[value_index++] = widget->core.background_pixmap;
     }
     else {
-        mask |= XCB_CW_BACK_PIXEL;
+        mask |= IswCWBackPixel;
         values[value_index++] = widget->core.background_pixel;
     }
 
-    /* XCB_CW_BORDER_PIXMAP (bit 2) or XCB_CW_BORDER_PIXEL (bit 3) */
+    /* IswCWBorderPixmap (bit 2) or IswCWBorderPixel (bit 3) */
     if (widget->core.border_pixmap != IswUnspecifiedPixmap) {
-        mask |= XCB_CW_BORDER_PIXMAP;
+        mask |= IswCWBorderPixmap;
         values[value_index++] = widget->core.border_pixmap;
     }
     else {
-        mask |= XCB_CW_BORDER_PIXEL;
+        mask |= IswCWBorderPixel;
         values[value_index++] = widget->core.border_pixel;
     }
 
-    /* XCB_CW_BIT_GRAVITY (bit 4)
+    /* IswCWBitGravity (bit 4)
      *
      * Original Xt only set NorthWest gravity for widgets without an expose
      * handler, leaving widgets with expose handlers at ForgetGravity (the
@@ -218,19 +218,19 @@ ComputeWindowAttributes(Widget widget,
      * correctly by ISWRender's back-buffer seeding (cairo_xcb_begin copies
      * the current window surface into the back buffer before drawing).
      */
-    mask |= XCB_CW_BIT_GRAVITY;
-    values[value_index++] = XCB_GRAVITY_NORTH_WEST;
+    mask |= IswCWBitGravity;
+    values[value_index++] = IswGravityNorthWest;
 
-    /* XCB_CW_EVENT_MASK (bit 11) — include windowless descendants' masks so
+    /* IswCWAttrEventMask (bit 11) — include windowless descendants' masks so
        events destined for windowless children are delivered to this window. */
-    mask |= XCB_CW_EVENT_MASK;
+    mask |= IswCWAttrEventMask;
     {
         uint32_t evmask = _IswWindowSelectMask(widget);
         values[value_index++] = evmask;
     }
 
-    /* XCB_CW_COLORMAP (bit 13) */
-    mask |= XCB_CW_COLORMAP;
+    /* IswCWColormap (bit 13) */
+    mask |= IswCWColormap;
     values[value_index++] = _IswXcbColormap(widget->core.colormap);
 
     *value_mask = mask;

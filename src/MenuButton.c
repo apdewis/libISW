@@ -88,7 +88,7 @@ static IswResource resources[] = {
     IswNmenuName, IswCMenuName, IswRString, sizeof(String),
     offset(menu_button.menu_name), IswRString, (IswPointer)"menu"},
   {
-    IswNmnemonicKey, IswCMnemonicKey, IswRInt, sizeof(xcb_keysym_t),
+    IswNmnemonicKey, IswCMnemonicKey, IswRInt, sizeof(IswKeySym),
     offset(menu_button.mnemonic_key), IswRImmediate, (IswPointer) 0},
 };
 #undef offset
@@ -244,7 +244,7 @@ _IswMenuButtonPopup(Widget w)
     double sf = _IswGetScaleFactor(IswDisplayOf(w));
 
     if (menu_x >= 0) {
-      int scr_width = (int)lrint(WidthOfScreen(_IswXcbScreen(IswScreenOf(menu))) / sf);
+      int scr_width = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
       if (menu_x + menu_width > scr_width)
         menu_x = scr_width - menu_width;
     }
@@ -252,7 +252,7 @@ _IswMenuButtonPopup(Widget w)
       menu_x = 0;
 
     if (menu_y >= 0) {
-      int scr_height = (int)lrint(HeightOfScreen(_IswXcbScreen(IswScreenOf(menu))) / sf);
+      int scr_height = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
       if (menu_y + menu_height > scr_height)
         menu_y = scr_height - menu_height;
     }

@@ -1472,13 +1472,9 @@ IswListChange(Widget w, String* list, int nitems, int longest,
        * map time.  The server's Expose after mapping handles the
        * repaint; calling Redisplay here would be wasted work that
        * races with the map and can leave the window blank. */
-      xcb_get_window_attributes_cookie_t ac =
-          xcb_get_window_attributes(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))));
-      xcb_get_window_attributes_reply_t *ar =
-          xcb_get_window_attributes_reply(_IswXcbConn(IswDisplayOf(w)), ac, NULL);
-      int viewable = ar && ar->map_state == XCB_MAP_STATE_VIEWABLE;
-      free(ar);
-      if (viewable)
+      if (_IswPlatformWindowViewable(
+              IswDisplayOf(w),
+              _IswPlatformWidgetWindow(IswDisplayOf(w), w)))
           Redisplay( w, NULL, 0 );
     }
 }

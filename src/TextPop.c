@@ -65,9 +65,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <stdio.h>
 #include <X11/Xos.h>		/* for O_RDONLY */
 #include <errno.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
-#include <xcb/xcb_icccm.h>
 
 #ifdef X_NOT_STDC_ENV
 extern int errno;
@@ -1193,11 +1190,11 @@ CenterWidgetOnPoint(Widget w, IswEvent *iswev)
 
   x -= ( (Position) width/2 );
   if (x < 0) x = 0;
-  if ( x > (max_x = (Position) (_IswXcbScreen(IswScreenOf(w))->width_in_pixels - width)) ) x = max_x;
+  if ( x > (max_x = (Position) (_IswPlatformScreenWidth(IswDisplayOf(w), IswScreenOf(w)) - width)) ) x = max_x;
 
   y -= ( (Position) height/2 );
   if (y < 0) y = 0;
-  if ( y > (max_y = (Position) (_IswXcbScreen(IswScreenOf(w))->height_in_pixels - height)) ) y = max_y;
+  if ( y > (max_y = (Position) (_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w)) - height)) ) y = max_y;
 
   {
     IswArgBuilder ab = IswArgBuilderInit();
@@ -1319,7 +1316,7 @@ SetWMProtocolTranslations(Widget w)
 {
     int i;
     IswAppContext app_context;
-    xcb_atom_t wm_delete_window;
+    Atom wm_delete_window;
     static IswTranslations compiled_table;	/* initially 0 */
     static IswAppContext *app_context_list;	/* initially 0 */
     static Cardinal list_size;			/* initially 0 */
@@ -1346,8 +1343,10 @@ SetWMProtocolTranslations(Widget w)
     /* establish communication between the window manager and each shell */
     IswAugmentTranslations(w, compiled_table);
     wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), WM_DELETE_WINDOW, False);
-    /* XCB equivalent of XSetWMProtocols */
-    xcb_icccm_set_wm_protocols(_IswXcbConn(IswDisplayOf(w)), _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w))),
-                               _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_PROTOCOLS", False),
-                               1, &wm_delete_window);
+    {
+        Atom protocols[1] = { wm_delete_window };
+        _IswPlatformSetWmProtocols(IswDisplayOf(w),
+                                   _IswPlatformWidgetWindow(IswDisplayOf(w), w),
+                                   protocols, 1);
+    }
 }

@@ -113,13 +113,14 @@ _IswCopyFromParent(Widget widget, int offset, XrmValue *value)
         int depth_offset = (int) IswOffsetOf(CoreRec, core.depth);
 
         if (offset == colormap_offset && widget->core.screen != NULL) {
-            default_colormap = _IswXcbColormapWrap(
-                _IswXcbScreen(widget->core.screen)->default_colormap);
+            default_colormap = _IswPlatformScreenDefaultColormap(
+                IswDisplayOfObject(widget), widget->core.screen);
             value->addr = (IswPointer) &default_colormap;
             return;
         }
         if (offset == depth_offset && widget->core.screen != NULL) {
-            default_depth = (int) _IswXcbScreen(widget->core.screen)->root_depth;
+            default_depth = _IswPlatformScreenDepth(
+                IswDisplayOfObject(widget), widget->core.screen);
             value->addr = (IswPointer) &default_depth;
             return;
         }
@@ -701,7 +702,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
     if (IswIsShell(widget)) {
         register XrmResourceList *res;
         register Cardinal j;
-        xcb_screen_t *oldscreen = _IswXcbScreen(widget->core.screen);
+        IswScreen oldscreen = widget->core.screen;
 
         /* look up screen resource first, since real rdb depends on it */
         for (res = table, j = 0; j < num_resources; j++, res++) {
@@ -719,7 +720,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                     from_val.addr = (IswPointer) arg->value;
                 else
                     from_val.addr = (IswPointer) &arg->value;
-                to_val.size = sizeof(xcb_screen_t *);
+                to_val.size = sizeof(IswScreen);
                 to_val.addr = (IswPointer) &widget->core.screen;
                 found[j] = _IswConvert(widget, from_type, &from_val,
                                       QScreen, &to_val, cache_base);
@@ -731,7 +732,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                                      &value)) {
                     /* xcb-util-xrm returns strings; need conversion */
                     rawType = QString;
-                    convValue.size = sizeof(xcb_screen_t *);
+                    convValue.size = sizeof(IswScreen);
                     convValue.addr = (IswPointer) &widget->core.screen;
                     (void) _IswConvert(widget, rawType, &value,
                                       QScreen, &convValue, cache_base);
@@ -743,7 +744,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
             break;
         }
         /* now get the database to use for the rest of the resources */
-        if (_IswXcbScreen(widget->core.screen) != oldscreen) {
+        if (widget->core.screen != oldscreen) {
             db = IswScreenDatabase(widget->core.screen);
         }
     }
@@ -1108,8 +1109,7 @@ _IswGetResources(register Widget w,
     }
     /* Check if core.display was corrupted by resource processing */
     if (IswIsWidget(w)) {
-        xcb_connection_t *dpy_check = _IswXcbConn(w->core.display);
-        if ((uintptr_t)dpy_check < 0x1000) {
+        if ((uintptr_t) w->core.display < 0x1000) {
             /* Check if constraint resources caused the corruption */
             if (w->core.constraints != NULL && w->core.parent != NULL) {
                 ConstraintWidgetClass cwc2 = (ConstraintWidgetClass) IswClass(w->core.parent);

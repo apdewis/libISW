@@ -258,19 +258,19 @@ Destroy (Widget gw)
 static void
 Realize (IswDisplay dpy, Widget gw, IswValueMask *valueMask, uint32_t *attributes)
 {
-    if (!(*valueMask & XCB_CW_BIT_GRAVITY)) {
+    if (!(*valueMask & IswCWBitGravity)) {
         int insert_idx = 0;
         int total_values = 0;
         int i;
         uint32_t bit;
 
-        /* Count values for bits below XCB_CW_BIT_GRAVITY (bits 0-3) */
-        for (bit = 1; bit < XCB_CW_BIT_GRAVITY; bit <<= 1) {
+        /* Count values for bits below IswCWBitGravity (bits 0-3) */
+        for (bit = 1; bit < IswCWBitGravity; bit <<= 1) {
             if (*valueMask & bit)
                 insert_idx++;
         }
         /* Count total values in current attributes array */
-        for (bit = 1; bit <= XCB_CW_CURSOR; bit <<= 1) {
+        for (bit = 1; bit <= IswCWCursor; bit <<= 1) {
             if (*valueMask & bit)
                 total_values++;
         }
@@ -278,8 +278,8 @@ Realize (IswDisplay dpy, Widget gw, IswValueMask *valueMask, uint32_t *attribute
         for (i = total_values; i > insert_idx; i--)
             attributes[i] = attributes[i - 1];
 
-        attributes[insert_idx] = XCB_GRAVITY_NORTH_WEST;
-        *valueMask |= XCB_CW_BIT_GRAVITY;
+        attributes[insert_idx] = IswGravityNorthWest;
+        *valueMask |= IswCWBitGravity;
     }
 
     if (gw->core.width < 1) gw->core.width = 1;

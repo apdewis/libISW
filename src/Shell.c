@@ -1096,8 +1096,8 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
         for (i = (int) w->composite.num_children; i; i--, childP++) {
             if (IswIsWidget(*childP) && IswIsManaged(*childP)) {
                 if ((*childP)->core.background_pixmap != IswUnspecifiedPixmap) {
-                    mask &= (unsigned long) (~(XCB_CW_BACK_PIXEL));
-                    mask |= XCB_CW_BACK_PIXMAP;
+                    mask &= (unsigned long) (~(IswCWBackPixel));
+                    mask |= IswCWBackPixmap;
                     //attr->background_pixmap =
                     //    w->core.background_pixmap =
                     //    (*childP)->core.background_pixmap;
@@ -1113,9 +1113,9 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
     }
 
     if (w->shell.save_under)
-        mask |= XCB_CW_SAVE_UNDER;
+        mask |= IswCWSaveUnder;
     if (w->shell.override_redirect)
-        mask |= XCB_CW_OVERRIDE_REDIRECT;
+        mask |= IswCWOverrideRedirect;
 
     if (wid->core.width == 0 || wid->core.height == 0) {
         Cardinal count = 1;
@@ -1148,7 +1148,7 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
         attrs.event_mask = IswBuildEventMask(wid);
         attrs.override_redirect = w->shell.override_redirect;
         attrs.save_under = w->shell.save_under;
-        attrs.bit_gravity_nw = (mask & XCB_CW_BIT_GRAVITY) ? True : False;
+        attrs.bit_gravity_nw = (mask & IswCWBitGravity) ? True : False;
         attrs.colormap = wid->core.colormap;
         attrs.depth = wid->core.depth;
         attrs.visual = w->shell.visual;
@@ -1861,7 +1861,7 @@ _IswWMGeometry(xcb_screen_t *screen _X_UNUSED,
     *width_return  = (int) width;
     *height_return = (int) height;
     *gravity_return = (hints != NULL && (hints->flags & XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY))
-                      ? hints->win_gravity : XCB_GRAVITY_NORTH_WEST;
+                      ? hints->win_gravity : IswGravityNorthWest;
 
     return mask;
 }
@@ -1959,7 +1959,7 @@ GetGeometry(Widget W, Widget child)
             if (win_gravity != -1)
                 wmshell->wm.win_gravity = win_gravity;
             else
-                wmshell->wm.win_gravity = XCB_GRAVITY_NORTH_WEST;
+                wmshell->wm.win_gravity = IswGravityNorthWest;
         }
         wmshell->wm.size_hints.flags |= XCB_ICCCM_SIZE_HINT_P_WIN_GRAVITY;
         if ((flag & (XValue | YValue)) == (XValue | YValue))

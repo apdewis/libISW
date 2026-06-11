@@ -180,13 +180,11 @@ Destroy(Widget w)
 static void
 GripAction(Widget widget, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-    /* Kept bridge: call_data.event carries the native event opaquely to the
-       grip callback; Paned's grip handler casts it back to xcb_generic_event_t*
-       (GetEventLocation), so a neutral read here would break that consumer. */
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
+    /* call_data.event carries the neutral IswEvent to the grip callback (Paned's
+       grip handler reads its neutral fields via GetEventLocation). */
     IswGripCallDataRec call_data;
 
-    call_data.event = event;
+    call_data.event = (IswPointer) iswev;
     call_data.params = params;
     call_data.num_params = *num_params;
 

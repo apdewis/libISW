@@ -43,6 +43,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <ISW/Command.h>
 #include <ISW/IswArgMacros.h>
+#include <ISW/EventI.h>
 #include "ISWPlatformPrivate.h"
 
 #define superclass (&boxClassRec)
@@ -259,7 +260,6 @@ InsertChild(Widget child)
 static void
 MenuBarEnter(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     MenuBarWidget mbw;
 
     if (!IswIsSubclass(w, menuButtonWidgetClass))
@@ -269,7 +269,7 @@ MenuBarEnter(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
         return;
 
     /* Highlight the button on hover */
-    IswCallActionProc(w, "highlight", event, NULL, 0);
+    IswCallActionProc(w, "highlight", iswev, NULL, 0);
 
     /* If a menu is open and we entered a different button, switch */
     if (mbw->menu_bar.menu_is_open && w != mbw->menu_bar.active_button)
@@ -283,7 +283,6 @@ MenuBarEnter(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 static void
 MenuBarLeave(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev);
     MenuBarWidget mbw;
 
     if (!IswIsSubclass(w, menuButtonWidgetClass))
@@ -296,7 +295,7 @@ MenuBarLeave(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     if (mbw->menu_bar.menu_is_open && w == mbw->menu_bar.active_button)
         return;
 
-    IswCallActionProc(w, "reset", event, NULL, 0);
+    IswCallActionProc(w, "reset", iswev, NULL, 0);
 }
 
 /*
@@ -606,14 +605,18 @@ OutsideClickHandler(Widget w, IswPointer client_data, IswEvent *iswev, Boolean *
         return;
 
     {
-        /* Keep the bridge: we need the native event's reported window
-         * (X-only field) to map it back to the clicked widget. */
-        xcb_button_press_event_t *bev =
-            (xcb_button_press_event_t *) IswEventNative(iswev);
         Widget target;
+        Widget root = (Widget) (void *) iswev->any.target;
+        int dx = 0, dy = 0;
 
-        /* Check if the click is on the menubar itself or any of its children */
-        target = IswWindowToWidget(IswDisplayOf((Widget)mbw), _IswXcbWindowWrap(bev->event));
+        /* The event's target is the root widget; hit-test the click position to
+         * find the deepest windowless widget under the pointer. */
+        if (root != NULL)
+            target = _IswFindWidgetAtPoint(root, iswev->button.x, iswev->button.y,
+                                           &dx, &dy);
+        else
+            target = NULL;
+
         if (target == NULL) {
             CloseMenu(mbw);
             return;

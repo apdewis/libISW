@@ -99,10 +99,7 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
          * trigger a repaint doesn't always arrive. */
         {
             /* Round-trip to ensure the map has been processed */
-            xcb_get_input_focus_reply_t *sync =
-                xcb_get_input_focus_reply(_IswXcbConn(IswDisplayOf(widget)),
-                    xcb_get_input_focus(_IswXcbConn(IswDisplayOf(widget))), NULL);
-            free(sync);
+            _IswPlatformSync(IswDisplayOf(widget));
 
             if (IswIsComposite(widget)) {
                 CompositeWidget cw = (CompositeWidget)widget;

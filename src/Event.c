@@ -141,6 +141,8 @@ _IswDescaleEventCoords(IswEvent *event, double sf)
     case IswLeave:
         event->crossing.x = (int16_t)(event->crossing.x * inv);
         event->crossing.y = (int16_t)(event->crossing.y * inv);
+        event->crossing.root_x = (int16_t)(event->crossing.root_x * inv);
+        event->crossing.root_y = (int16_t)(event->crossing.root_y * inv);
         break;
     case IswRedraw:
         event->redraw.x = (int16_t)(event->redraw.x * inv);
