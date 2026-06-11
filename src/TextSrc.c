@@ -40,8 +40,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <ISW/StringDefs.h>
-#include <X11/Xos.h>
 #ifndef X_NOT_STDC_ENV
 #include <stdlib.h>
 #endif
@@ -131,15 +132,15 @@ extern int errno;
 /* ARGSUSED */
 static void
 DefaultSetSelection(Widget w, ISWTextPosition left, ISWTextPosition right,
-                    xcb_atom_t selection)
+                    IswSelectionId selection)
 {
   /* no-op */
 }
 
 /* ARGSUSED */
 static Boolean
-DefaultConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
-                        xcb_atom_t *type, IswPointer *value,
+DefaultConvertSelection(Widget w, IswSelectionId *selection, IswSelectionId *target,
+                        IswSelectionId *type, IswPointer *value,
                         unsigned long *length, int *format)
 {
   return FALSE;
@@ -1036,8 +1037,8 @@ IswTextSourceSearch(Widget w, ISWTextPosition position,
 }
 
 Boolean
-IswTextSourceConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
-                              xcb_atom_t *type, IswPointer *value,
+IswTextSourceConvertSelection(Widget w, IswSelectionId *selection, IswSelectionId *target,
+                              IswSelectionId *type, IswPointer *value,
                               unsigned long *length, int *format)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
@@ -1053,7 +1054,7 @@ IswTextSourceConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *targe
 
 void
 IswTextSourceSetSelection(Widget w, ISWTextPosition left,
-                          ISWTextPosition right, xcb_atom_t selection)
+                          ISWTextPosition right, IswSelectionId selection)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
