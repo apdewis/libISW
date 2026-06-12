@@ -600,6 +600,8 @@ ActionStart (Widget gw, IswEvent *iswev, String *params, Cardinal *num_params)
     PannerWidget pw = (PannerWidget) gw;
     int x, y;
 
+    if (!get_event_xy (pw, iswev, &x, &y)) return;
+
     pw->panner.tmp.doing = TRUE;
     pw->panner.tmp.startx = pw->panner.knob_x;
     pw->panner.tmp.starty = pw->panner.knob_y;
@@ -653,6 +655,8 @@ ActionMove (Widget gw, IswEvent *iswev, String *params, Cardinal *num_params)
     int x, y;
 
     if (!pw->panner.tmp.doing) return;
+
+    if (!get_event_xy (pw, iswev, &x, &y)) return;
 
     if (pw->panner.rubber_band) UNDRAW_TMP (pw);
     pw->panner.tmp.x = ((Position) x) - pw->panner.tmp.dx;
