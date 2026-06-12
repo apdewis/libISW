@@ -101,6 +101,16 @@ egl_flush_pending_images(void)
     g_egl.n_pending = 0;
 }
 
+/* Backend-local save stack for the context state the draw ops read
+   (current_color / line_width / current_font).  NanoVG's own save/restore does
+   NOT cover these — they live on ISWRenderContext — so a widget that does
+   Save / SetColor(bg) / FillRect / Restore / DrawString (e.g. the Text sink
+   painting a line background then the glyphs) would otherwise draw the string in
+   the un-restored colour (the background) and the text would be invisible. */
+typedef struct { Pixel color; double line_width; IswFontStruct *font; } EglSaved;
+static EglSaved g_save_stack[64];
+static int      g_save_top = 0;
+
 /*
  * Per-widget surface — the concrete struct _IswSurface for this backend.
  */
@@ -469,6 +479,7 @@ egl_surface_begin(IswSurface s, Widget widget)
     g_active_surface = s;
     s->frame_depth = 1;
     s->save_count = 0;
+    g_save_top = 0;   /* reset the colour/line/font save stack for this frame */
     return g_egl.vg;
 }
 
@@ -675,10 +686,26 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
 #define VG (g_egl.vg)
 
 static void egl_save(ISWRenderContext *ctx)
-{ (void) ctx; if (VG) { nvgSave(VG); } }
+{
+    if (VG) nvgSave(VG);
+    if (g_save_top < (int)(sizeof(g_save_stack)/sizeof(g_save_stack[0]))) {
+        g_save_stack[g_save_top].color      = ctx->current_color;
+        g_save_stack[g_save_top].line_width = ctx->line_width;
+        g_save_stack[g_save_top].font       = ctx->current_font;
+    }
+    g_save_top++;
+}
 
 static void egl_restore(ISWRenderContext *ctx)
-{ (void) ctx; if (VG) { nvgRestore(VG); } }
+{
+    if (VG) nvgRestore(VG);
+    if (g_save_top > 0) g_save_top--;
+    if (g_save_top < (int)(sizeof(g_save_stack)/sizeof(g_save_stack[0]))) {
+        ctx->current_color = g_save_stack[g_save_top].color;
+        ctx->line_width    = g_save_stack[g_save_top].line_width;
+        ctx->current_font  = g_save_stack[g_save_top].font;
+    }
+}
 
 static void egl_set_color(ISWRenderContext *ctx, Pixel pixel)
 {
