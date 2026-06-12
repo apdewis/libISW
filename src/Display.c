@@ -213,7 +213,6 @@ InitPerDisplay(IswDisplay dpy,
     pd->name = (String)name;
     pd->class = (String)classname;
     pd->being_destroyed = False;
-    pd->pixmap_tab = NULL;
     pd->language = NULL;
     pd->rv = False;
     pd->last_event.kind = IswNoEvent;

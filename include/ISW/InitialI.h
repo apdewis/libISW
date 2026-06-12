@@ -89,7 +89,6 @@ SOFTWARE.
 #include <xcb/xcb.h>
 #include <xcb/xcbext.h>
 
-#include "uthash.h"
 _XFUNCPROTOBEGIN
 
 typedef struct _TimerEventRec {
@@ -307,18 +306,6 @@ typedef struct _ExtensionSelectorRec {
     IswPointer client_data;
 } ExtSelectRec;
 
-typedef struct _IswPixmapStruct {
-    unsigned char depth;
-    xcb_pixmap_t pixmap;
-    UT_hash_handle hh;
-} IswPixmapStruct, *IswPixmapStructPtr;
-
-typedef struct _IswScreenPixmapStruct {
-    xcb_screen_t *screen;
-    IswPixmapStructPtr pixmaps;
-    UT_hash_handle hh;
-} IswScreenPixmapStruct, *IswScreenPixmapStructPtr;
-
 typedef struct _IswPerDisplayStruct {
     InternalCallbackList destroy_callbacks;
     int defaultScreen;             /* default screen number from xcb_connect() */
@@ -343,7 +330,6 @@ typedef struct _IswPerDisplayStruct {
     //XrmClass class;		       /* application class */
     String class;
     Heap heap;
-    IswScreenPixmapStructPtr pixmap_tab;   /* pixmap cache */
     String language;		       /* XPG language string */
     IswEvent last_event;		       /* last event dispatched */
     IswTime last_timestamp;	       /* from last event dispatched */
