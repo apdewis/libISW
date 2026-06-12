@@ -16,7 +16,6 @@
 #define _ISWRender_h
 
 #include <ISW/Intrinsic.h>
-#include <xcb/xcb.h>
 
 /*
  * Relief types for 3D shadows (shared with ThreeD.h)
@@ -546,32 +545,6 @@ void ISWRenderCopyArea(ISWRenderContext *ctx,
                        int src_x, int src_y,
                        int dst_x, int dst_y,
                        unsigned int width, unsigned int height);
-
-/*
- * ISWRenderDrawPixmap - Draw a pixmap onto the rendering surface
- *
- * Parameters:
- *   ctx          - Rendering context
- *   pixmap       - Source pixmap
- *   src_x, src_y - Source position within pixmap
- *   dst_x, dst_y - Destination position on surface
- *   width        - Region width
- *   height       - Region height
- *   depth        - Depth of the source pixmap
- *
- * Notes:
- *   - For depth == 1 (bitmaps): uses current foreground color for set bits,
- *     draws transparently (only foreground bits) in Cairo mode
- *   - For depth > 1: copies pixel values directly
- *   - Set foreground color with ISWRenderSetColor() before calling
- *     for depth == 1 bitmaps
- */
-void ISWRenderDrawPixmap(ISWRenderContext *ctx,
-                         xcb_pixmap_t pixmap,
-                         int src_x, int src_y,
-                         int dst_x, int dst_y,
-                         unsigned int width, unsigned int height,
-                         unsigned int depth);
 
 /*
  * =================================================================

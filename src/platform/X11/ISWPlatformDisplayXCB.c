@@ -41,7 +41,7 @@
 #include <ISW/InitialI.h>
 #include "ISWPlatformPrivate.h"
 #include "ISWPlatformDisplayXCB.h"
-#include "ISWRenderPrivate.h" 
+#include "ISWRenderCairoXCB.h" 
 
 xcb_connection_t *
 _IswXcbConn(IswDisplay dpy)

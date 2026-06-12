@@ -13,7 +13,7 @@
 #include "config.h"
 #endif
 
-#include "ISWRenderPrivate.h"
+#include "ISWRenderCairoXCB.h"
 #include "ISWPlatformPrivate.h"
 #include <ISW/IntrinsicP.h> /* For Xt private types */
 #include <ISW/CoreP.h>       /* For accessing widget->core fields */
@@ -23,6 +23,9 @@
 #include <string.h>
 #include <math.h>
 #include <cairo/cairo-ft.h>
+#include <fontconfig/fontconfig.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include <xcb/present.h>
 
 /* Defined in Initialize.c */
@@ -221,9 +224,9 @@ cairo_xcb_surface_init(Widget widget)
     depth = (widget->core.depth != 0) ? widget->core.depth : screen->root_depth;
 
     /* Find visual for depth, fall back to root depth visual */
-    data->visual = ISWRenderFindVisual(screen, depth);
+    data->visual = _IswXcbFindVisual(screen, depth);
     if (!data->visual && depth != screen->root_depth) {
-        data->visual = ISWRenderFindVisual(screen, screen->root_depth);
+        data->visual = _IswXcbFindVisual(screen, screen->root_depth);
     }
     if (!data->visual) {
         fprintf(stderr, "ISWRenderCairoXCB: No usable visual found\n");
@@ -925,7 +928,7 @@ cairo_xcb_stroke_rectangle(ISWRenderContext *ctx, int x, int y, int w, int h)
 }
 
 static void
-cairo_xcb_fill_polygon(ISWRenderContext *ctx, xcb_point_t *points, int num)
+cairo_xcb_fill_polygon(ISWRenderContext *ctx, IswPoint *points, int num)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     int i;
@@ -943,7 +946,7 @@ cairo_xcb_fill_polygon(ISWRenderContext *ctx, xcb_point_t *points, int num)
 }
 
 static void
-cairo_xcb_stroke_polygon(ISWRenderContext *ctx, xcb_point_t *points, int num)
+cairo_xcb_stroke_polygon(ISWRenderContext *ctx, IswPoint *points, int num)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     int i;
@@ -995,6 +998,116 @@ cairo_xcb_draw_arc(ISWRenderContext *ctx, int x, int y, int w, int h,
     /* Restore and stroke */
     cairo_restore(data->cairo_ctx);
     cairo_stroke(data->cairo_ctx);
+}
+
+/* Append a rounded-rectangle path to cr. */
+static void
+cairo_xcb_rounded_path(cairo_t *cr, int x, int y, int w, int h, double radius)
+{
+    double max_r = (w < h ? w : h) / 2.0;
+    double x0 = x, y0 = y, r = radius;
+
+    if (r > max_r) r = max_r;
+
+    cairo_new_sub_path(cr);
+    cairo_arc(cr, x0 + w - r, y0 + r,     r, -M_PI/2, 0);
+    cairo_arc(cr, x0 + w - r, y0 + h - r, r, 0,        M_PI/2);
+    cairo_arc(cr, x0 + r,     y0 + h - r, r, M_PI/2,   M_PI);
+    cairo_arc(cr, x0 + r,     y0 + r,     r, M_PI,      3*M_PI/2);
+    cairo_close_path(cr);
+}
+
+static void
+cairo_xcb_fill_rounded_rect(ISWRenderContext *ctx,
+                            int x, int y, int w, int h, double radius)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_xcb_rounded_path(data->cairo_ctx, x, y, w, h, radius);
+    cairo_fill(data->cairo_ctx);
+}
+
+static void
+cairo_xcb_stroke_rounded_rect(ISWRenderContext *ctx,
+                              int x, int y, int w, int h, double radius,
+                              double stroke_width)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_xcb_rounded_path(data->cairo_ctx, x, y, w, h, radius);
+    cairo_set_line_width(data->cairo_ctx, stroke_width);
+    cairo_stroke(data->cairo_ctx);
+}
+
+static void
+cairo_xcb_fill_stroke_rounded_rect(ISWRenderContext *ctx,
+                                   int x, int y, int w, int h, double radius,
+                                   double fill_alpha, double stroke_width)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    double r, g, b;
+
+    if (!data->cairo_ctx) return;
+    ISWRenderPixelToRGB(ctx, ctx->current_color, &r, &g, &b);
+
+    cairo_xcb_rounded_path(data->cairo_ctx, x, y, w, h, radius);
+    cairo_set_source_rgba(data->cairo_ctx, r, g, b, fill_alpha);
+    cairo_fill_preserve(data->cairo_ctx);
+
+    cairo_set_source_rgb(data->cairo_ctx, r, g, b);
+    cairo_set_line_width(data->cairo_ctx, stroke_width);
+    cairo_stroke(data->cairo_ctx);
+}
+
+/* Paint an RGBA image's alpha as a mask in the current foreground colour. */
+static void
+cairo_xcb_draw_image_masked(ISWRenderContext *ctx, Pixel foreground,
+                            const unsigned char *rgba,
+                            unsigned int img_w, unsigned int img_h,
+                            int dst_x, int dst_y,
+                            unsigned int dst_w, unsigned int dst_h)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    cairo_t *cr;
+    unsigned int stride, i;
+    unsigned char *a8_buf;
+    cairo_surface_t *mask_surface;
+
+    if (!data->cairo_ctx || !rgba || img_w == 0 || img_h == 0)
+        return;
+    cr = data->cairo_ctx;
+
+    stride = cairo_format_stride_for_width(CAIRO_FORMAT_A8, (int)img_w);
+    a8_buf = (unsigned char *)calloc(stride * img_h, 1);
+    if (!a8_buf)
+        return;
+
+    for (i = 0; i < img_w * img_h; i++) {
+        unsigned int row = i / img_w;
+        unsigned int col = i % img_w;
+        a8_buf[row * stride + col] = rgba[i * 4 + 3];
+    }
+
+    mask_surface = cairo_image_surface_create_for_data(
+        a8_buf, CAIRO_FORMAT_A8, (int)img_w, (int)img_h, (int)stride);
+
+    if (cairo_surface_status(mask_surface) == CAIRO_STATUS_SUCCESS) {
+        cairo_xcb_set_color(ctx, foreground);
+        cairo_save(cr);
+        if (dst_w != img_w || dst_h != img_h) {
+            cairo_translate(cr, dst_x, dst_y);
+            cairo_scale(cr,
+                        (double)dst_w / (double)img_w,
+                        (double)dst_h / (double)img_h);
+            cairo_mask_surface(cr, mask_surface, 0, 0);
+        } else {
+            cairo_mask_surface(cr, mask_surface, dst_x, dst_y);
+        }
+        cairo_restore(cr);
+    }
+
+    cairo_surface_destroy(mask_surface);
+    free(a8_buf);
 }
 
 /*
@@ -1132,102 +1245,22 @@ cairo_xcb_copy_area(ISWRenderContext *ctx,
      * server-side pixel copy, then mark the surface dirty so Cairo re-reads.
      */
     cairo_surface_flush(data->surface);
-    xcb_flush(ctx->connection);
+    xcb_flush(data->connection);
 
     /* Create a temporary xcb_gcontext_t for the copy */
-    xcb_gcontext_t gc = xcb_generate_id(ctx->connection);
+    xcb_gcontext_t gc = xcb_generate_id(data->connection);
     uint32_t gc_mask = XCB_GC_GRAPHICS_EXPOSURES;
     uint32_t gc_vals[] = { 0 };
-    xcb_create_gc(ctx->connection, gc, ctx->window, gc_mask, gc_vals);
+    xcb_create_gc(data->connection, gc, data->window, gc_mask, gc_vals);
 
-    xcb_copy_area(ctx->connection, ctx->window, ctx->window,
+    xcb_copy_area(data->connection, data->window, data->window,
                   gc, src_x, src_y, dst_x, dst_y, width, height);
-    xcb_flush(ctx->connection);
+    xcb_flush(data->connection);
 
-    xcb_free_gc(ctx->connection, gc);
+    xcb_free_gc(data->connection, gc);
 
     /* Tell Cairo the surface contents changed underneath it */
     cairo_surface_mark_dirty(data->surface);
-}
-
-static void
-cairo_xcb_draw_pixmap(ISWRenderContext *ctx,
-                      xcb_pixmap_t pixmap,
-                      int src_x, int src_y,
-                      int dst_x, int dst_y,
-                      unsigned int width, unsigned int height,
-                      unsigned int depth)
-{
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
-
-    if (!data->cairo_ctx) return;
-    if (depth == 1) {
-        /*
-         * 1-bit bitmap: create a Cairo surface for the bitmap and use it
-         * as a mask with the current source color (foreground).
-         */
-        cairo_surface_t *bitmap_surface;
-
-        bitmap_surface = cairo_xcb_surface_create_for_bitmap(
-            ctx->connection, ctx->screen, pixmap, width, height);
-
-        if (cairo_surface_status(bitmap_surface) != CAIRO_STATUS_SUCCESS) {
-            cairo_surface_destroy(bitmap_surface);
-            /* Fallback to XCB */
-            cairo_surface_flush(data->surface);
-            xcb_gcontext_t gc = xcb_generate_id(ctx->connection);
-            uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_GRAPHICS_EXPOSURES;
-            uint32_t vals[] = { (uint32_t)ctx->current_color, 0 };
-            xcb_create_gc(ctx->connection, gc, ctx->window, mask, vals);
-            xcb_copy_plane(ctx->connection, pixmap, ctx->window, gc,
-                           src_x, src_y, dst_x, dst_y, width, height, 1);
-            xcb_free_gc(ctx->connection, gc);
-            xcb_flush(ctx->connection);
-            cairo_surface_mark_dirty(data->surface);
-            return;
-        }
-
-        /* The current source color is already set — use bitmap as mask */
-        cairo_mask_surface(data->cairo_ctx, bitmap_surface,
-                           dst_x - src_x, dst_y - src_y);
-
-        cairo_surface_destroy(bitmap_surface);
-    } else {
-        /*
-         * Multi-plane pixmap: create a Cairo surface and paint it
-         * onto the window surface.
-         */
-        cairo_surface_t *pixmap_surface;
-
-        pixmap_surface = cairo_xcb_surface_create(
-            ctx->connection, pixmap, data->visual, width, height);
-
-        if (cairo_surface_status(pixmap_surface) != CAIRO_STATUS_SUCCESS) {
-            cairo_surface_destroy(pixmap_surface);
-            /* Fallback to XCB */
-            cairo_surface_flush(data->surface);
-            xcb_gcontext_t gc = xcb_generate_id(ctx->connection);
-            uint32_t mask = XCB_GC_GRAPHICS_EXPOSURES;
-            uint32_t vals[] = { 0 };
-            xcb_create_gc(ctx->connection, gc, ctx->window, mask, vals);
-            xcb_copy_area(ctx->connection, pixmap, ctx->window, gc,
-                          src_x, src_y, dst_x, dst_y, width, height);
-            xcb_free_gc(ctx->connection, gc);
-            xcb_flush(ctx->connection);
-            cairo_surface_mark_dirty(data->surface);
-            return;
-        }
-
-        cairo_set_source_surface(data->cairo_ctx, pixmap_surface,
-                                 dst_x - src_x, dst_y - src_y);
-        cairo_rectangle(data->cairo_ctx, dst_x, dst_y, width, height);
-        cairo_fill(data->cairo_ctx);
-
-        cairo_surface_destroy(pixmap_surface);
-
-        /* Restore the previous source color */
-        cairo_xcb_set_color(ctx, ctx->current_color);
-    }
 }
 
 /*
@@ -1362,6 +1395,394 @@ cairo_xcb_get_cairo_context(ISWRenderContext *ctx)
  * =================================================================
  */
 
+/*
+ * =================================================================
+ * Visual / Pixel -> RGB  (backend-private; was in the neutral dispatcher)
+ * =================================================================
+ *
+ * The neutral ISWRenderContext no longer carries any native display handle.
+ * The backend owns the connection/screen/visual in its IswSurface and decodes
+ * pixels here; ISWRenderPixelToRGB forwards to the .pixel_to_rgb op below.
+ */
+
+/* Find the XCB visual for a given depth on a screen (first visual at depth). */
+xcb_visualtype_t *
+_IswXcbFindVisual(xcb_screen_t *screen, uint8_t depth)
+{
+    xcb_depth_iterator_t depth_iter;
+    xcb_visualtype_iterator_t visual_iter;
+
+    if (!screen)
+        return NULL;
+
+    for (depth_iter = xcb_screen_allowed_depths_iterator(screen);
+         depth_iter.rem;
+         xcb_depth_next(&depth_iter)) {
+        if (depth_iter.data->depth == depth) {
+            visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+            if (visual_iter.rem)
+                return visual_iter.data;
+        }
+    }
+    return NULL;
+}
+
+/* Decode one channel: extract the masked bits and scale to 0.0-1.0. */
+static double
+cairo_xcb_channel(Pixel pixel, uint32_t mask)
+{
+    if (mask == 0)
+        return 0.0;
+    while (!(mask & 1)) {
+        pixel >>= 1;
+        mask >>= 1;
+    }
+    return (pixel & mask) / (double)mask;
+}
+
+/* Synchronous server query for a palette (non-TrueColor) pixel's RGB. */
+static int
+cairo_xcb_query_color(xcb_connection_t *conn, xcb_colormap_t cmap,
+                      IswColor *color)
+{
+    xcb_query_colors_cookie_t cookie;
+    xcb_query_colors_reply_t *reply;
+    xcb_rgb_t *rgb;
+    uint32_t pixel;
+
+    if (!conn || !color)
+        return 0;
+
+    pixel = color->pixel;
+    cookie = xcb_query_colors(conn, cmap, 1, &pixel);
+    reply = xcb_query_colors_reply(conn, cookie, NULL);
+    if (!reply)
+        return 0;
+
+    rgb = xcb_query_colors_colors(reply);
+    if (rgb) {
+        color->red = rgb->red;
+        color->green = rgb->green;
+        color->blue = rgb->blue;
+    }
+    free(reply);
+    return 1;
+}
+
+/* .pixel_to_rgb op: decode a pixel using the surface's own visual. */
+static void
+cairo_xcb_pixel_to_rgb(ISWRenderContext *ctx, Pixel pixel,
+                       double *r, double *g, double *b)
+{
+    ISWRenderCairoXCBData *data;
+    xcb_visualtype_t *visual;
+
+    if (!ctx || !r || !g || !b)
+        return;
+
+    data = (ISWRenderCairoXCBData *) ctx->surface;
+    visual = data ? data->visual : NULL;
+
+    /* Fast path: TrueColor/DirectColor pixels encode RGB in the channel masks,
+       decoded locally with no server traffic. */
+    if (visual &&
+        (visual->_class == XCB_VISUAL_CLASS_TRUE_COLOR ||
+         visual->_class == XCB_VISUAL_CLASS_DIRECT_COLOR)) {
+        *r = cairo_xcb_channel(pixel, visual->red_mask);
+        *g = cairo_xcb_channel(pixel, visual->green_mask);
+        *b = cairo_xcb_channel(pixel, visual->blue_mask);
+        return;
+    }
+
+    /* Palette visual: ask the server for the colormap entry's RGB. */
+    if (data && data->connection && data->screen) {
+        IswColor color;
+        color.pixel = pixel;
+        if (cairo_xcb_query_color(data->connection,
+                                  data->screen->default_colormap, &color)) {
+            *r = color.red / 65535.0;
+            *g = color.green / 65535.0;
+            *b = color.blue / 65535.0;
+            return;
+        }
+    }
+
+    /* Last-resort fallback: assume packed 0xRRGGBB. */
+    *r = ((pixel >> 16) & 0xFF) / 255.0;
+    *g = ((pixel >> 8) & 0xFF) / 255.0;
+    *b = (pixel & 0xFF) / 255.0;
+}
+
+/*
+ * =================================================================
+ * Fonts (fontconfig + FreeType + cairo-ft) — backend-private.
+ * Discovery via fontconfig, loading via FreeType, Cairo via cairo-ft.
+ * The widget-keyed measurement entry points are published on the platform
+ * render ops; the neutral ISWScaled* wrappers forward to them.
+ * =================================================================
+ */
+
+static FT_Library _ft_library = NULL;
+
+typedef struct _ISWFontCacheEntry {
+    struct _ISWFontCacheEntry *next;
+    char *pattern_key;          /* "family:weight:slant" */
+    cairo_font_face_t *cr_face;
+    FT_Face ft_face;
+} _ISWFontCacheEntry;
+
+static _ISWFontCacheEntry *_font_cache = NULL;
+
+static void
+_ISWInitFreeType(void)
+{
+    if (!_ft_library)
+        FT_Init_FreeType(&_ft_library);
+}
+
+/* Resolve a font description to a (cached) Cairo font face. */
+static cairo_font_face_t *
+_ISWResolveFontFace(const char *family, int weight, int slant)
+{
+    char key[256];
+    _ISWFontCacheEntry *entry;
+    FcPattern *pattern = NULL, *match = NULL;
+    FcResult result;
+    FcChar8 *font_file = NULL;
+    FT_Face ft_face = NULL;
+    cairo_font_face_t *cr_face;
+
+    snprintf(key, sizeof(key), "%s:%d:%d", family ? family : "Sans",
+             weight, slant);
+
+    for (entry = _font_cache; entry; entry = entry->next)
+        if (strcmp(entry->pattern_key, key) == 0)
+            return entry->cr_face;
+
+    _ISWInitFreeType();
+
+    pattern = FcPatternCreate();
+    FcPatternAddString(pattern, FC_FAMILY,
+                       (const FcChar8 *)(family ? family : "Sans"));
+    FcPatternAddInteger(pattern, FC_WEIGHT, weight);
+    FcPatternAddInteger(pattern, FC_SLANT, slant);
+    FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
+    FcConfigSubstitute(NULL, pattern, FcMatchPattern);
+    FcDefaultSubstitute(pattern);
+
+    match = FcFontMatch(NULL, pattern, &result);
+    if (!match) {
+        FcPatternDestroy(pattern);
+        return NULL;
+    }
+    if (FcPatternGetString(match, FC_FILE, 0, &font_file) != FcResultMatch) {
+        FcPatternDestroy(match);
+        FcPatternDestroy(pattern);
+        return NULL;
+    }
+    if (FT_New_Face(_ft_library, (const char *)font_file, 0, &ft_face) != 0) {
+        FcPatternDestroy(match);
+        FcPatternDestroy(pattern);
+        return NULL;
+    }
+
+    cr_face = cairo_ft_font_face_create_for_ft_face(ft_face, 0);
+
+    entry = (_ISWFontCacheEntry *)malloc(sizeof(_ISWFontCacheEntry));
+    entry->pattern_key = strdup(key);
+    entry->cr_face = cr_face;
+    entry->ft_face = ft_face;  /* kept alive — Cairo references it */
+    entry->next = _font_cache;
+    _font_cache = entry;
+
+    FcPatternDestroy(match);
+    FcPatternDestroy(pattern);
+    return cr_face;
+}
+
+/* Configure a Cairo context with the TTF face + size from an IswFontStruct.
+   Declared in ISWRenderPrivate.h; used by the backend's draw/text path too. */
+void
+_ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale)
+{
+    cairo_font_face_t *face;
+    double size;
+
+    const char *family = (font && font->font_family) ? font->font_family : "Sans";
+    int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
+    int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
+
+    face = _ISWResolveFontFace(family, weight, slant);
+    if (face)
+        cairo_set_font_face(cr, face);
+
+    if (font && font->pt_size > 0)
+        size = font->pt_size * (96.0 / 72.0) * scale;
+    else if (font)
+        size = (double)(font->ascent + font->descent) * scale;
+    else
+        size = 12.0 * scale;
+
+    if (size < 1.0)
+        size = 12.0 * scale;
+
+    cairo_set_font_size(cr, size);
+}
+
+/* Persistent process-wide measurement context (avoids per-call surface churn). */
+static cairo_surface_t *_measure_surf = NULL;
+static cairo_t *_measure_cr = NULL;
+static double _cached_font_size = -1.0;
+static const char *_cached_font_family = NULL;
+static int _cached_font_weight = -1;
+static int _cached_font_slant = -1;
+static cairo_font_extents_t _cached_font_extents;
+static double _measure_device_scale = 0.0;
+
+static cairo_t *
+_ISWGetMeasureCR(double device_scale)
+{
+    if (!_measure_cr) {
+        cairo_font_face_t *face;
+
+        _measure_surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
+        if (device_scale > 1.0)
+            cairo_surface_set_device_scale(_measure_surf, device_scale, device_scale);
+        _measure_device_scale = device_scale;
+        _measure_cr = cairo_create(_measure_surf);
+
+        face = _ISWResolveFontFace("Sans", FC_WEIGHT_NORMAL, FC_SLANT_ROMAN);
+        if (face)
+            cairo_set_font_face(_measure_cr, face);
+        else
+            cairo_select_font_face(_measure_cr, "Sans",
+                                   CAIRO_FONT_SLANT_NORMAL,
+                                   CAIRO_FONT_WEIGHT_NORMAL);
+    } else if (device_scale != _measure_device_scale) {
+        cairo_surface_set_device_scale(_measure_surf,
+            device_scale > 1.0 ? device_scale : 1.0,
+            device_scale > 1.0 ? device_scale : 1.0);
+        _measure_device_scale = device_scale;
+        _cached_font_size = -1.0;
+        _cached_font_family = NULL;
+    }
+    return _measure_cr;
+}
+
+static double
+_ISWComputeFontSize(Widget widget, IswFontStruct *font)
+{
+    (void)widget;
+    if (font) {
+        if (font->pt_size > 0)
+            return font->pt_size * (96.0 / 72.0);
+        double s = (double)(font->ascent + font->descent);
+        return s >= 1.0 ? s : 10.0;
+    }
+    return 10.0;
+}
+
+static int
+_ISWMeasureFontChanged(IswFontStruct *font)
+{
+    const char *family = (font && font->font_family) ? font->font_family : "Sans";
+    int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
+    int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
+
+    if (weight != _cached_font_weight || slant != _cached_font_slant)
+        return 1;
+    if (!_cached_font_family || strcmp(family, _cached_font_family) != 0)
+        return 1;
+    return 0;
+}
+
+static void
+_ISWSyncMeasureFont(cairo_t *cr, Widget widget, IswFontStruct *font)
+{
+    double size = _ISWComputeFontSize(widget, font);
+
+    if (_ISWMeasureFontChanged(font)) {
+        _ISWSetCairoFontFromXFont(cr, font, 1.0);
+        _cached_font_family = (font && font->font_family) ? font->font_family : "Sans";
+        _cached_font_weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
+        _cached_font_slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
+        cairo_font_extents(cr, &_cached_font_extents);
+        _cached_font_size = size;
+    } else if (size != _cached_font_size) {
+        cairo_set_font_size(cr, size);
+        cairo_font_extents(cr, &_cached_font_extents);
+        _cached_font_size = size;
+    }
+}
+
+static void
+_ISWGetCairoFontExtents(Widget widget, IswFontStruct *font,
+                        cairo_font_extents_t *extents)
+{
+    cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
+    _ISWSyncMeasureFont(cr, widget, font);
+    *extents = _cached_font_extents;
+}
+
+/* .scaled_text_width op */
+int
+cairo_xcb_scaled_text_width(Widget widget, IswFontStruct *font,
+                            const char *text, int len)
+{
+    cairo_text_extents_t extents;
+    char *null_term;
+    int width;
+    cairo_t *cr;
+
+    if (!text || len <= 0)
+        return 0;
+
+    cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
+    _ISWSyncMeasureFont(cr, widget, font);
+
+    null_term = (char *)malloc(len + 1);
+    if (!null_term)
+        return len * 8;
+    memcpy(null_term, text, len);
+    null_term[len] = '\0';
+
+    cairo_text_extents(cr, null_term, &extents);
+    width = (int)ceil(extents.x_advance);
+
+    free(null_term);
+    return width;
+}
+
+/* .scaled_font_height op */
+int
+cairo_xcb_scaled_font_height(Widget widget, IswFontStruct *font)
+{
+    cairo_font_extents_t extents;
+    _ISWGetCairoFontExtents(widget, font, &extents);
+    return (int)ceil(extents.ascent + extents.descent);
+}
+
+/* .scaled_font_ascent op */
+int
+cairo_xcb_scaled_font_ascent(Widget widget, IswFontStruct *font)
+{
+    cairo_font_extents_t extents;
+    _ISWGetCairoFontExtents(widget, font, &extents);
+    return (int)ceil(extents.ascent);
+}
+
+/* .scaled_font_cap_height op */
+int
+cairo_xcb_scaled_font_cap_height(Widget widget, IswFontStruct *font)
+{
+    cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
+    cairo_text_extents_t text_ext;
+
+    _ISWSyncMeasureFont(cr, widget, font);
+    cairo_text_extents(cr, "X", &text_ext);
+    return (int)ceil(-text_ext.y_bearing);
+}
+
 /* Drawing primitives — operate on the active draw target of ctx->surface. */
 const ISWRenderOps isw_render_cairo_xcb_ops = {
     .save = cairo_xcb_save,
@@ -1375,6 +1796,9 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .stroke_polygon = cairo_xcb_stroke_polygon,
     .draw_line = cairo_xcb_draw_line,
     .draw_arc = cairo_xcb_draw_arc,
+    .fill_rounded_rect = cairo_xcb_fill_rounded_rect,
+    .stroke_rounded_rect = cairo_xcb_stroke_rounded_rect,
+    .fill_stroke_rounded_rect = cairo_xcb_fill_stroke_rounded_rect,
     .draw_string = cairo_xcb_draw_string,
     .text_width = cairo_xcb_text_width,
     .text_height = cairo_xcb_text_height,
@@ -1382,10 +1806,11 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .set_clip_rectangle = cairo_xcb_set_clip_rectangle,
     .clear_clip = cairo_xcb_clear_clip,
     .copy_area = cairo_xcb_copy_area,
-    .draw_pixmap = cairo_xcb_draw_pixmap,
     .draw_image_rgba = cairo_xcb_draw_image_rgba,
+    .draw_image_masked = cairo_xcb_draw_image_masked,
     .set_gradient = cairo_xcb_set_gradient,
-    .get_cairo_context = cairo_xcb_get_cairo_context
+    .get_cairo_context = cairo_xcb_get_cairo_context,
+    .pixel_to_rgb = cairo_xcb_pixel_to_rgb
 };
 
 /* Surface backend — per-widget surface lifecycle, frame, and compositing. */
@@ -1396,6 +1821,108 @@ const IswSurfaceOps isw_surface_cairo_xcb_ops = {
     .end = cairo_xcb_surface_end,
     .composite_onto = cairo_xcb_composite_onto,
     .fill_background = cairo_xcb_fill_background
+};
+
+/*
+ * =================================================================
+ * Backend Availability / Detection / Selection
+ * =================================================================
+ *
+ * The render system's entry in the platform ops table.  Selection of the
+ * concrete drawing/surface sub-vtables and backend detection live here, in the
+ * X11 backend — the neutral dispatcher reaches them only via
+ * _IswPlatformRenderOpsActive() and never names a backend vtable.
+ */
+
+Boolean
+ISWRenderBackendAvailable(ISWRenderBackend backend)
+{
+    switch (backend) {
+        case ISW_RENDER_BACKEND_CAIRO_XCB:
+            return True;
+
+#ifdef HAVE_CAIRO_EGL
+        case ISW_RENDER_BACKEND_CAIRO_EGL:
+            return ISWRenderEGLAvailable();
+#endif
+
+        case ISW_RENDER_BACKEND_AUTO:
+        default:
+            return False;
+    }
+}
+
+static ISWRenderBackend
+ISWRenderDetectBackend(ISWRenderBackend preferred)
+{
+    /* Honor explicit request if available */
+    if (preferred != ISW_RENDER_BACKEND_AUTO) {
+        if (ISWRenderBackendAvailable(preferred))
+            return preferred;
+        /* Fall through to auto-detection if unavailable */
+    }
+
+    /* Check environment variable */
+    const char *env = getenv("ISW_RENDER_BACKEND");
+    if (env) {
+        if (strcmp(env, "cairo-egl") == 0) {
+#ifdef HAVE_CAIRO_EGL
+            if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_CAIRO_EGL))
+                return ISW_RENDER_BACKEND_CAIRO_EGL;
+#endif
+        } else if (strcmp(env, "cairo") == 0) {
+            return ISW_RENDER_BACKEND_CAIRO_XCB;
+        }
+    }
+
+    /* Auto-detect: prefer best available */
+#ifdef HAVE_CAIRO_EGL
+    if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_CAIRO_EGL))
+        return ISW_RENDER_BACKEND_CAIRO_EGL;
+#endif
+
+    return ISW_RENDER_BACKEND_CAIRO_XCB;
+}
+
+static const ISWRenderOps *
+isw_render_draw_ops(ISWRenderBackend backend)
+{
+    switch (backend) {
+        case ISW_RENDER_BACKEND_CAIRO_XCB:
+            return &isw_render_cairo_xcb_ops;
+#ifdef HAVE_CAIRO_EGL
+        case ISW_RENDER_BACKEND_CAIRO_EGL:
+            return &isw_render_cairo_egl_ops;
+#endif
+        default:
+            return NULL;
+    }
+}
+
+static const IswSurfaceOps *
+isw_render_surface_ops(ISWRenderBackend backend)
+{
+    switch (backend) {
+        case ISW_RENDER_BACKEND_CAIRO_XCB:
+            return &isw_surface_cairo_xcb_ops;
+#ifdef HAVE_CAIRO_EGL
+        case ISW_RENDER_BACKEND_CAIRO_EGL:
+            return &isw_surface_cairo_egl_ops;
+#endif
+        default:
+            return NULL;
+    }
+}
+
+const struct _IswPlatformRenderOps isw_platform_xcb_render_ops = {
+    .available   = ISWRenderBackendAvailable,
+    .detect      = ISWRenderDetectBackend,
+    .draw_ops    = isw_render_draw_ops,
+    .surface_ops = isw_render_surface_ops,
+    .scaled_text_width      = cairo_xcb_scaled_text_width,
+    .scaled_font_height     = cairo_xcb_scaled_font_height,
+    .scaled_font_ascent     = cairo_xcb_scaled_font_ascent,
+    .scaled_font_cap_height = cairo_xcb_scaled_font_cap_height,
 };
 
 

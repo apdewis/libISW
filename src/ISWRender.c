@@ -7,23 +7,18 @@
  * Handles backend detection, context lifecycle, and dispatching
  * to backend-specific implementations.
  *
- * CRITICAL: All backends use pure XCB - NO XLIB DEPENDENCIES.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include "ISWRenderPrivate.h"
-#include "ISWPlatformPrivate.h"
+#include "ISWRenderOps.h"   
+#include <ISW/ISWPlatform.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-#include <cairo/cairo-ft.h>
-#include <fontconfig/fontconfig.h>
-#include <ft2build.h>
-#include FT_FREETYPE_H
 
 /* Defined in Initialize.c — avoids pulling in InitialI.h */
 extern double _IswGetScaleFactor(IswDisplay dpy);
@@ -32,120 +27,6 @@ extern double _IswGetScaleFactor(IswDisplay dpy);
 #include <ISW/IntrinsicP.h>
 #include <ISW/CompositeP.h>
 #include <ISW/SimpleP.h>
-
-/*
- * =================================================================
- * Backend Availability Checks
- * =================================================================
- */
-
-Boolean
-ISWRenderBackendAvailable(ISWRenderBackend backend)
-{
-    switch (backend) {
-        case ISW_RENDER_BACKEND_CAIRO_XCB:
-            return True;
-
-#ifdef HAVE_CAIRO_EGL
-        case ISW_RENDER_BACKEND_CAIRO_EGL:
-            return ISWRenderEGLAvailable();
-#endif
-
-        case ISW_RENDER_BACKEND_AUTO:
-        default:
-            return False;
-    }
-
-    return False;
-}
-
-/*
- * =================================================================
- * Backend Detection and Selection
- * =================================================================
- */
-
-static ISWRenderBackend
-ISWRenderDetectBackend(ISWRenderBackend preferred)
-{
-    /* Honor explicit request if available */
-    if (preferred != ISW_RENDER_BACKEND_AUTO) {
-        if (ISWRenderBackendAvailable(preferred)) {
-            return preferred;
-        }
-        /* Fall through to auto-detection if unavailable */
-    }
-
-    /* Check environment variable */
-    const char *env = getenv("ISW_RENDER_BACKEND");
-    if (env) {
-        if (strcmp(env, "cairo-egl") == 0) {
-#ifdef HAVE_CAIRO_EGL
-            if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_CAIRO_EGL)) {
-                return ISW_RENDER_BACKEND_CAIRO_EGL;
-            }
-#endif
-        } else if (strcmp(env, "cairo") == 0) {
-            return ISW_RENDER_BACKEND_CAIRO_XCB;
-        }
-    }
-
-    /* Auto-detect: prefer best available */
-#ifdef HAVE_CAIRO_EGL
-    if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_CAIRO_EGL)) {
-        return ISW_RENDER_BACKEND_CAIRO_EGL;
-    }
-#endif
-
-    return ISW_RENDER_BACKEND_CAIRO_XCB;
-}
-
-/*
- * =================================================================
- * Platform render ops (IswPlatformOps.render)
- * =================================================================
- *
- * The render system's entry in the platform ops table.  The drawing/surface
- * sub-vtables and backend detection are selected here per concrete backend;
- * ISWRenderCreate reaches them via _IswPlatformRenderOpsActive() rather than
- * naming a backend vtable directly.
- */
-static const ISWRenderOps *
-isw_render_draw_ops(ISWRenderBackend backend)
-{
-    switch (backend) {
-        case ISW_RENDER_BACKEND_CAIRO_XCB:
-            return &isw_render_cairo_xcb_ops;
-#ifdef HAVE_CAIRO_EGL
-        case ISW_RENDER_BACKEND_CAIRO_EGL:
-            return &isw_render_cairo_egl_ops;
-#endif
-        default:
-            return NULL;
-    }
-}
-
-static const IswSurfaceOps *
-isw_render_surface_ops(ISWRenderBackend backend)
-{
-    switch (backend) {
-        case ISW_RENDER_BACKEND_CAIRO_XCB:
-            return &isw_surface_cairo_xcb_ops;
-#ifdef HAVE_CAIRO_EGL
-        case ISW_RENDER_BACKEND_CAIRO_EGL:
-            return &isw_surface_cairo_egl_ops;
-#endif
-        default:
-            return NULL;
-    }
-}
-
-const struct _IswPlatformRenderOps isw_platform_xcb_render_ops = {
-    .available   = ISWRenderBackendAvailable,
-    .detect      = ISWRenderDetectBackend,
-    .draw_ops    = isw_render_draw_ops,
-    .surface_ops = isw_render_surface_ops,
-};
 
 /*
  * =================================================================
@@ -309,14 +190,10 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
        per-widget composite state lives on Core (survives context lifecycle). */
     widget->core.composite_dirty = True;
 
-    /* Get widget display and window info */
+    /* The neutral context holds no native display handle: the backend resolves
+       the connection/window/screen/visual it needs from the display ops when it
+       creates the widget's surface. */
     ctx->widget = widget;
-    ctx->connection = _IswXcbConn(IswDisplayOf(widget));
-    ctx->window = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)));
-    ctx->screen = _IswXcbScreen(IswScreenOf(widget));
-
-    /* Get colormap from screen - we'll use the screen's default colormap */
-    ctx->colormap = ctx->screen ? ctx->screen->default_colormap : 0;
 
     /* Detect and select the backend through the platform render ops. */
     {
@@ -453,7 +330,9 @@ ISWRenderGetBackendName(ISWRenderContext *ctx)
 void
 ISWRenderPrintBackendInfo(void)
 {
-    ISWRenderBackend backend = ISWRenderDetectBackend(ISW_RENDER_BACKEND_AUTO);
+    const IswPlatformRenderOps *rops = _IswPlatformRenderOpsActive();
+    ISWRenderBackend backend = rops ? rops->detect(ISW_RENDER_BACKEND_AUTO)
+                                    : ISW_RENDER_BACKEND_CAIRO_XCB;
     ISWRenderCaps caps;
     const char *backend_name;
     
@@ -960,30 +839,10 @@ ISWRenderFillRoundedRectangle(ISWRenderContext *ctx,
                               int x, int y, int width, int height,
                               double radius)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->get_cairo_context) {
-        /* Fall back to plain rectangle */
-        ISWRenderFillRectangle(ctx, x, y, width, height);
+    if (!ctx || !ctx->ops)
         return;
-    }
-
-    cairo_t *cr = (cairo_t *)ctx->ops->get_cairo_context(ctx);
-    if (!cr) {
-        ISWRenderFillRectangle(ctx, x, y, width, height);
-        return;
-    }
-
-    /* Clamp radius to half the smallest dimension */
-    double max_r = (width < height ? width : height) / 2.0;
-    if (radius > max_r) radius = max_r;
-
-    double x0 = x, y0 = y, w = width, h = height, r = radius;
-    cairo_new_sub_path(cr);
-    cairo_arc(cr, x0 + w - r, y0 + r,     r, -M_PI/2, 0);
-    cairo_arc(cr, x0 + w - r, y0 + h - r, r, 0,        M_PI/2);
-    cairo_arc(cr, x0 + r,     y0 + h - r, r, M_PI/2,   M_PI);
-    cairo_arc(cr, x0 + r,     y0 + r,     r, M_PI,      3*M_PI/2);
-    cairo_close_path(cr);
-    cairo_fill(cr);
+    if (ctx->ops->fill_rounded_rect)
+        ctx->ops->fill_rounded_rect(ctx, x, y, width, height, radius);
 }
 
 void
@@ -992,30 +851,11 @@ ISWRenderStrokeRoundedRectangle(ISWRenderContext *ctx,
                                 double radius,
                                 double stroke_width)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->get_cairo_context) {
-        ISWRenderStrokeRectangle(ctx, x, y, width, height);
+    if (!ctx || !ctx->ops)
         return;
-    }
-
-    cairo_t *cr = (cairo_t *)ctx->ops->get_cairo_context(ctx);
-    if (!cr) {
-        ISWRenderStrokeRectangle(ctx, x, y, width, height);
-        return;
-    }
-
-    double max_r = (width < height ? width : height) / 2.0;
-    if (radius > max_r) radius = max_r;
-
-    double x0 = x, y0 = y, w = width, h = height, rad = radius;
-    cairo_new_sub_path(cr);
-    cairo_arc(cr, x0 + w - rad, y0 + rad,     rad, -M_PI/2, 0);
-    cairo_arc(cr, x0 + w - rad, y0 + h - rad, rad, 0,        M_PI/2);
-    cairo_arc(cr, x0 + rad,     y0 + h - rad, rad, M_PI/2,   M_PI);
-    cairo_arc(cr, x0 + rad,     y0 + rad,     rad, M_PI,      3*M_PI/2);
-    cairo_close_path(cr);
-
-    cairo_set_line_width(cr, stroke_width);
-    cairo_stroke(cr);
+    if (ctx->ops->stroke_rounded_rect)
+        ctx->ops->stroke_rounded_rect(ctx, x, y, width, height, radius,
+                                      stroke_width);
 }
 
 void
@@ -1025,56 +865,27 @@ ISWRenderFillStrokeRoundedRectangle(ISWRenderContext *ctx,
                                     double fill_alpha,
                                     double stroke_width)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->get_cairo_context) {
-        ISWRenderFillRectangle(ctx, x, y, width, height);
+    if (!ctx || !ctx->ops)
         return;
-    }
-
-    cairo_t *cr = (cairo_t *)ctx->ops->get_cairo_context(ctx);
-    if (!cr) {
-        ISWRenderFillRectangle(ctx, x, y, width, height);
-        return;
-    }
-
-    double max_r = (width < height ? width : height) / 2.0;
-    if (radius > max_r) radius = max_r;
-
-    double r, g, b;
-    ISWRenderPixelToRGB(ctx, ctx->current_color, &r, &g, &b);
-
-    double x0 = x, y0 = y, w = width, h = height, rad = radius;
-    cairo_new_sub_path(cr);
-    cairo_arc(cr, x0 + w - rad, y0 + rad,     rad, -M_PI/2, 0);
-    cairo_arc(cr, x0 + w - rad, y0 + h - rad, rad, 0,        M_PI/2);
-    cairo_arc(cr, x0 + rad,     y0 + h - rad, rad, M_PI/2,   M_PI);
-    cairo_arc(cr, x0 + rad,     y0 + rad,     rad, M_PI,      3*M_PI/2);
-    cairo_close_path(cr);
-
-    cairo_set_source_rgba(cr, r, g, b, fill_alpha);
-    cairo_fill_preserve(cr);
-
-    cairo_set_source_rgb(cr, r, g, b);
-    cairo_set_line_width(cr, stroke_width);
-    cairo_stroke(cr);
+    if (ctx->ops->fill_stroke_rounded_rect)
+        ctx->ops->fill_stroke_rounded_rect(ctx, x, y, width, height, radius,
+                                           fill_alpha, stroke_width);
 }
 
 void
 ISWRenderStrokePolygon(ISWRenderContext *ctx, IswPoint *points, int num_points)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->stroke_polygon) {
+    if (!ctx || !ctx->ops || !ctx->ops->stroke_polygon)
         return;
-    }
-    /* IswPoint and the backend point type are layout-identical (int16_t x,y). */
-    ctx->ops->stroke_polygon(ctx, (xcb_point_t *) points, num_points);
+    ctx->ops->stroke_polygon(ctx, points, num_points);
 }
 
 void
 ISWRenderFillPolygon(ISWRenderContext *ctx, IswPoint *points, int num_points)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->fill_polygon) {
+    if (!ctx || !ctx->ops || !ctx->ops->fill_polygon)
         return;
-    }
-    ctx->ops->fill_polygon(ctx, (xcb_point_t *) points, num_points);
+    ctx->ops->fill_polygon(ctx, points, num_points);
 }
 
 void
@@ -1193,22 +1004,6 @@ ISWRenderCopyArea(ISWRenderContext *ctx,
     ctx->ops->copy_area(ctx, src_x, src_y, dst_x, dst_y, width, height);
 }
 
-void
-ISWRenderDrawPixmap(ISWRenderContext *ctx,
-                    xcb_pixmap_t pixmap,
-                    int src_x, int src_y,
-                    int dst_x, int dst_y,
-                    unsigned int width, unsigned int height,
-                    unsigned int depth)
-{
-    if (!ctx || !ctx->ops || !ctx->ops->draw_pixmap || !pixmap) {
-        return;
-    }
-
-    ctx->ops->draw_pixmap(ctx, pixmap, src_x, src_y, dst_x, dst_y,
-                          width, height, depth);
-}
-
 /*
  * =================================================================
  * RGBA Image Rendering
@@ -1236,47 +1031,10 @@ ISWRenderDrawImageMasked(ISWRenderContext *ctx, Pixel foreground,
                          int dst_x, int dst_y,
                          unsigned int dst_w, unsigned int dst_h)
 {
-    cairo_t *cr;
-    unsigned int stride, i;
-    unsigned char *a8_buf;
-    cairo_surface_t *mask_surface;
-
-    cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
-    if (!cr || !rgba || img_w == 0 || img_h == 0)
+    if (!ctx || !ctx->ops || !ctx->ops->draw_image_masked || !rgba)
         return;
-
-    /* Build an A8 surface from the RGBA alpha channel */
-    stride = cairo_format_stride_for_width(CAIRO_FORMAT_A8, (int)img_w);
-    a8_buf = (unsigned char *)calloc(stride * img_h, 1);
-    if (!a8_buf)
-        return;
-
-    for (i = 0; i < img_w * img_h; i++) {
-        unsigned int row = i / img_w;
-        unsigned int col = i % img_w;
-        a8_buf[row * stride + col] = rgba[i * 4 + 3];
-    }
-
-    mask_surface = cairo_image_surface_create_for_data(
-        a8_buf, CAIRO_FORMAT_A8, (int)img_w, (int)img_h, (int)stride);
-
-    if (cairo_surface_status(mask_surface) == CAIRO_STATUS_SUCCESS) {
-        ISWRenderSetColor(ctx, foreground);
-        cairo_save(cr);
-        if (dst_w != img_w || dst_h != img_h) {
-            cairo_translate(cr, dst_x, dst_y);
-            cairo_scale(cr,
-                        (double)dst_w / (double)img_w,
-                        (double)dst_h / (double)img_h);
-            cairo_mask_surface(cr, mask_surface, 0, 0);
-        } else {
-            cairo_mask_surface(cr, mask_surface, dst_x, dst_y);
-        }
-        cairo_restore(cr);
-    }
-
-    cairo_surface_destroy(mask_surface);
-    free(a8_buf);
+    ctx->ops->draw_image_masked(ctx, foreground, rgba, img_w, img_h,
+                                dst_x, dst_y, dst_w, dst_h);
 }
 
 /*
@@ -1313,159 +1071,25 @@ ISWRenderGetCairoContext(ISWRenderContext *ctx)
  */
 
 /*
- * Resolve the visual that backs this context's colormap (i.e. the root
- * visual of its screen), caching it on the context.  Returns NULL if it
- * can't be found, which is itself cached so the lookup runs at most once.
+ * Decode a pixel to 0..1 RGB.  The neutral context holds no visual/colormap;
+ * forward to the backend's .pixel_to_rgb op, which decodes using the backend's
+ * own visual.  Fallback to packed 0xRRGGBB if the backend can't decode.
  */
-static xcb_visualtype_t *
-ISWRenderContextVisual(ISWRenderContext *ctx)
-{
-    xcb_depth_iterator_t depth_iter;
-    xcb_visualtype_iterator_t visual_iter;
-    xcb_visualid_t want;
-
-    if (ctx->visual_resolved) {
-        return ctx->visual;
-    }
-    ctx->visual_resolved = True;
-    ctx->visual = NULL;
-
-    if (!ctx->screen) {
-        return NULL;
-    }
-
-    want = ctx->screen->root_visual;
-    for (depth_iter = xcb_screen_allowed_depths_iterator(ctx->screen);
-         depth_iter.rem;
-         xcb_depth_next(&depth_iter)) {
-        for (visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
-             visual_iter.rem;
-             xcb_visualtype_next(&visual_iter)) {
-            if (visual_iter.data->visual_id == want) {
-                ctx->visual = visual_iter.data;
-                return ctx->visual;
-            }
-        }
-    }
-    return NULL;
-}
-
-/*
- * Decode a single channel: extract the masked bits and scale to 0.0-1.0.
- */
-static double
-ISWRenderChannel(Pixel pixel, uint32_t mask)
-{
-    if (mask == 0) {
-        return 0.0;
-    }
-    /* Shift the masked value down to the low bits, then normalise by the
-       mask's own width so any channel position/width works (8/10-bit, BGR
-       ordering, etc.) rather than assuming a fixed 0xRRGGBB layout. */
-    while (!(mask & 1)) {
-        pixel >>= 1;
-        mask >>= 1;
-    }
-    return (pixel & mask) / (double)mask;
-}
-
-/*
- * ISWQueryColor - Query RGB values for a pixel
- */
-int
-ISWQueryColor(xcb_connection_t *conn, xcb_colormap_t cmap, IswColor *color)
-{
-    xcb_query_colors_cookie_t cookie;
-    xcb_query_colors_reply_t *reply;
-    xcb_rgb_t *rgb;
-    uint32_t pixel;
-    
-    if (!conn || !color)
-        return 0;
-    
-    pixel = color->pixel;
-    cookie = xcb_query_colors(conn, cmap, 1, &pixel);
-    reply = xcb_query_colors_reply(conn, cookie, NULL);
-    
-    if (!reply)
-        return 0;
-    
-    rgb = xcb_query_colors_colors(reply);
-    if (rgb) {
-        color->red = rgb->red;
-        color->green = rgb->green;
-        color->blue = rgb->blue;
-    }
-    
-    free(reply);
-    return 1;
-}
-
 void
 ISWRenderPixelToRGB(ISWRenderContext *ctx, Pixel pixel,
                    double *r, double *g, double *b)
 {
-    xcb_visualtype_t *visual;
-    IswColor color;
+    if (!ctx || !r || !g || !b)
+        return;
 
-    if (!ctx || !r || !g || !b) {
+    if (ctx->ops && ctx->ops->pixel_to_rgb) {
+        ctx->ops->pixel_to_rgb(ctx, pixel, r, g, b);
         return;
     }
 
-    /* Fast path: for TrueColor/DirectColor visuals the pixel value already
-       encodes RGB in the visual's channel masks, so decode it locally with
-       no server traffic.  This is the common case on modern displays and
-       avoids a synchronous QueryColors round-trip on every colour set. */
-    visual = ISWRenderContextVisual(ctx);
-    if (visual &&
-        (visual->_class == XCB_VISUAL_CLASS_TRUE_COLOR ||
-         visual->_class == XCB_VISUAL_CLASS_DIRECT_COLOR)) {
-        *r = ISWRenderChannel(pixel, visual->red_mask);
-        *g = ISWRenderChannel(pixel, visual->green_mask);
-        *b = ISWRenderChannel(pixel, visual->blue_mask);
-        return;
-    }
-
-    /* Palette visual (PseudoColor/GrayScale/StaticColor): the pixel is an
-       index into the colormap, so we must ask the server for its RGB. */
-    color.pixel = pixel;
-    if (ctx->colormap && ISWQueryColor(ctx->connection, ctx->colormap, &color)) {
-        *r = color.red / 65535.0;
-        *g = color.green / 65535.0;
-        *b = color.blue / 65535.0;
-    } else {
-        /* Last-resort fallback: assume packed 0xRRGGBB. */
-        *r = ((pixel >> 16) & 0xFF) / 255.0;
-        *g = ((pixel >> 8) & 0xFF) / 255.0;
-        *b = (pixel & 0xFF) / 255.0;
-    }
-}
-
-xcb_visualtype_t*
-ISWRenderFindVisual(xcb_screen_t *screen, uint8_t depth)
-{
-    xcb_depth_iterator_t depth_iter;
-    xcb_visualtype_iterator_t visual_iter;
-    
-    if (!screen) {
-        return NULL;
-    }
-    
-    /* Iterate through screen depths */
-    for (depth_iter = xcb_screen_allowed_depths_iterator(screen);
-         depth_iter.rem;
-         xcb_depth_next(&depth_iter)) {
-        
-        if (depth_iter.data->depth == depth) {
-            /* Found matching depth, return first visual */
-            visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
-            if (visual_iter.rem) {
-                return visual_iter.data;
-            }
-        }
-    }
-    
-    return NULL;
+    *r = ((pixel >> 16) & 0xFF) / 255.0;
+    *g = ((pixel >> 8) & 0xFF) / 255.0;
+    *b = (pixel & 0xFF) / 255.0;
 }
 
 /*
@@ -1516,325 +1140,49 @@ ISWUnscalePos(Widget widget, int value)
     return (Position)lrint((double)value / scale);
 }
 
-#include <cairo.h>
-#include <math.h>
-
 /*
  * =================================================================
- * FreeType / Fontconfig Font Resolution
- *
- * Provides TTF/OTF font support via fontconfig (font discovery) +
- * FreeType (font loading) + cairo-ft (Cairo integration).
- * No Xlib dependencies in this path.
+ * Text / Font Measurement (neutral wrappers)
  * =================================================================
- */
-
-static FT_Library _ft_library = NULL;
-
-/* Cache for resolved font faces — avoids repeated fontconfig lookups */
-typedef struct _ISWFontCacheEntry {
-    struct _ISWFontCacheEntry *next;
-    char *pattern_key;          /* "family:size:weight:slant" */
-    cairo_font_face_t *cr_face;
-    FT_Face ft_face;
-} _ISWFontCacheEntry;
-
-static _ISWFontCacheEntry *_font_cache = NULL;
-
-static void
-_ISWInitFreeType(void)
-{
-    if (!_ft_library) {
-        FT_Init_FreeType(&_ft_library);
-    }
-}
-
-/*
- * _ISWResolveFontFace - Resolve a font description to a Cairo font face.
  *
- * Uses fontconfig to find a matching font file, FreeType to load it,
- * and cairo-ft to create a Cairo font face. Results are cached.
- *
- * Parameters:
- *   family - font family name (e.g., "Sans", "Monospace", "Serif")
- *   weight - FC_WEIGHT_NORMAL, FC_WEIGHT_BOLD, etc.
- *   slant  - FC_SLANT_ROMAN, FC_SLANT_ITALIC, etc.
- *
- * Returns a cairo_font_face_t* (cached, do NOT destroy).
+ * The actual measurement (cairo/FreeType/fontconfig) lives in the render
+ * backend.  These widget-keyed wrappers forward to the active backend's
+ * platform render ops, so the neutral dispatcher carries no font toolkit.
  */
-cairo_font_face_t *
-_ISWResolveFontFace(const char *family, int weight, int slant)
-{
-    char key[256];
-    _ISWFontCacheEntry *entry;
-    FcPattern *pattern = NULL, *match = NULL;
-    FcResult result;
-    FcChar8 *font_file = NULL;
-    FT_Face ft_face = NULL;
 
-    snprintf(key, sizeof(key), "%s:%d:%d", family ? family : "Sans",
-             weight, slant);
 
-    /* Check cache */
-    for (entry = _font_cache; entry; entry = entry->next) {
-        if (strcmp(entry->pattern_key, key) == 0)
-            return entry->cr_face;
-    }
-
-    _ISWInitFreeType();
-
-    /* Use fontconfig to find a matching font file.
-     * Prefer scalable (outline) fonts — bitmap fonts like "fixed" become
-     * fuzzy when scaled to non-native sizes under HiDPI. */
-    pattern = FcPatternCreate();
-    FcPatternAddString(pattern, FC_FAMILY,
-                       (const FcChar8 *)(family ? family : "Sans"));
-    FcPatternAddInteger(pattern, FC_WEIGHT, weight);
-    FcPatternAddInteger(pattern, FC_SLANT, slant);
-    FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
-    FcConfigSubstitute(NULL, pattern, FcMatchPattern);
-    FcDefaultSubstitute(pattern);
-
-    match = FcFontMatch(NULL, pattern, &result);
-    if (!match) {
-        FcPatternDestroy(pattern);
-        return NULL;
-    }
-
-    if (FcPatternGetString(match, FC_FILE, 0, &font_file) != FcResultMatch) {
-        FcPatternDestroy(match);
-        FcPatternDestroy(pattern);
-        return NULL;
-    }
-
-    /* Load with FreeType */
-    if (FT_New_Face(_ft_library, (const char *)font_file, 0, &ft_face) != 0) {
-        FcPatternDestroy(match);
-        FcPatternDestroy(pattern);
-        return NULL;
-    }
-
-    /* Create Cairo font face */
-    cairo_font_face_t *cr_face =
-        cairo_ft_font_face_create_for_ft_face(ft_face, 0);
-
-    /* Cache it */
-    entry = (_ISWFontCacheEntry *)malloc(sizeof(_ISWFontCacheEntry));
-    entry->pattern_key = strdup(key);
-    entry->cr_face = cr_face;
-    entry->ft_face = ft_face;  /* kept alive — Cairo references it */
-    entry->next = _font_cache;
-    _font_cache = entry;
-
-    FcPatternDestroy(match);
-    FcPatternDestroy(pattern);
-
-    return cr_face;
-}
-
-/*
- * _ISWSetCairoFontFromXFont - Configure a Cairo context with a proper
- * TTF font face resolved via fontconfig, sized from IswFontStruct metrics.
- */
-void
-_ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale)
-{
-    cairo_font_face_t *face;
-    double size;
-
-    const char *family = (font && font->font_family) ? font->font_family : "Sans";
-    int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
-    int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
-    face = _ISWResolveFontFace(family, weight, slant);
-    if (face)
-        cairo_set_font_face(cr, face);
-
-    if (font && font->pt_size > 0)
-        size = font->pt_size * (96.0 / 72.0) * scale;
-    else if (font)
-        size = (double)(font->ascent + font->descent) * scale;
-    else
-        size = 12.0 * scale;
-
-    if (size < 1.0)
-        size = 12.0 * scale;
-
-    cairo_set_font_size(cr, size);
-}
-
-/*
- * Persistent measurement context — avoids creating/destroying a Cairo
- * surface + context on every text measurement or font extents query.
- * Lazily created on first use, lives for the process lifetime.
- */
-static cairo_surface_t *_measure_surf = NULL;
-static cairo_t *_measure_cr = NULL;
-
-/* Cached font state — re-queried only when font identity or size changes.
- * Font identity is tracked by properties, not pointer, because the resource
- * system can free and reallocate an IswFontStruct at the same address
- * during theme reload. */
-static double _cached_font_size = -1.0;
-static const char *_cached_font_family = NULL;
-static int _cached_font_weight = -1;
-static int _cached_font_slant = -1;
-static cairo_font_extents_t _cached_font_extents;
-static double _measure_device_scale = 0.0;
-
-static cairo_t *
-_ISWGetMeasureCR(double device_scale)
-{
-    if (!_measure_cr) {
-        cairo_font_face_t *face;
-
-        _measure_surf = cairo_image_surface_create(CAIRO_FORMAT_A8, 1, 1);
-        if (device_scale > 1.0)
-            cairo_surface_set_device_scale(_measure_surf, device_scale, device_scale);
-        _measure_device_scale = device_scale;
-        _measure_cr = cairo_create(_measure_surf);
-
-        face = _ISWResolveFontFace("Sans", FC_WEIGHT_NORMAL, FC_SLANT_ROMAN);
-        if (face)
-            cairo_set_font_face(_measure_cr, face);
-        else
-            cairo_select_font_face(_measure_cr, "Sans",
-                                   CAIRO_FONT_SLANT_NORMAL,
-                                   CAIRO_FONT_WEIGHT_NORMAL);
-    } else if (device_scale != _measure_device_scale) {
-        cairo_surface_set_device_scale(_measure_surf,
-            device_scale > 1.0 ? device_scale : 1.0,
-            device_scale > 1.0 ? device_scale : 1.0);
-        _measure_device_scale = device_scale;
-        _cached_font_size = -1.0;  /* force re-query of font extents */
-        _cached_font_family = NULL;
-    }
-    return _measure_cr;
-}
-
-static double
-_ISWComputeFontSize(Widget widget, IswFontStruct *font)
-{
-    (void)widget;
-    if (font) {
-        if (font->pt_size > 0)
-            return font->pt_size * (96.0 / 72.0);
-        double s = (double)(font->ascent + font->descent);
-        return s >= 1.0 ? s : 10.0;
-    }
-    return 10.0;
-}
-
-/*
- * Ensure the measurement context has the correct font face and size.
- * Only re-sets when the font identity or size actually changes.
- */
-static int
-_ISWMeasureFontChanged(IswFontStruct *font)
-{
-    const char *family = (font && font->font_family) ? font->font_family : "Sans";
-    int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
-    int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
-
-    if (weight != _cached_font_weight || slant != _cached_font_slant)
-        return 1;
-    if (!_cached_font_family || strcmp(family, _cached_font_family) != 0)
-        return 1;
-    return 0;
-}
-
-static void
-_ISWSyncMeasureFont(cairo_t *cr, Widget widget, IswFontStruct *font)
-{
-    double size = _ISWComputeFontSize(widget, font);
-
-    if (_ISWMeasureFontChanged(font)) {
-        _ISWSetCairoFontFromXFont(cr, font, 1.0);
-        _cached_font_family = (font && font->font_family) ? font->font_family : "Sans";
-        _cached_font_weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
-        _cached_font_slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
-        cairo_font_extents(cr, &_cached_font_extents);
-        _cached_font_size = size;
-    } else if (size != _cached_font_size) {
-        cairo_set_font_size(cr, size);
-        cairo_font_extents(cr, &_cached_font_extents);
-        _cached_font_size = size;
-    }
-}
-
-/*
- * Get cached Cairo font extents. Only re-queries Cairo when the
- * effective font size changes (different font or different scale).
- */
-static void
-_ISWGetCairoFontExtents(Widget widget, IswFontStruct *font, cairo_font_extents_t *extents)
-{
-    cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
-
-    _ISWSyncMeasureFont(cr, widget, font);
-    *extents = _cached_font_extents;
-}
-
-/*
- * Measure text using the persistent Cairo context with the same font face
- * and size that the render path uses. This ensures layout matches rendering.
- */
 int
 ISWScaledTextWidth(Widget widget, IswFontStruct *font, const char *text, int len)
 {
-    cairo_text_extents_t extents;
-    char *null_term;
-    int width;
-    cairo_t *cr;
-
-    if (!text || len <= 0)
-        return 0;
-
-    cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
-    _ISWSyncMeasureFont(cr, widget, font);
-
-    null_term = (char *)malloc(len + 1);
-    if (!null_term)
-        return len * 8;
-    memcpy(null_term, text, len);
-    null_term[len] = '\0';
-
-    cairo_text_extents(cr, null_term, &extents);
-    double adv = ceil(extents.x_advance);
-    width = (int)adv;
-
-    free(null_term);
-    return width;
+    const IswPlatformRenderOps *rops = _IswPlatformRenderOpsActive();
+    if (rops && rops->scaled_text_width)
+        return rops->scaled_text_width(widget, font, text, len);
+    return 0;
 }
 
 int
 ISWScaledFontHeight(Widget widget, IswFontStruct *font)
 {
-    cairo_font_extents_t extents;
-    _ISWGetCairoFontExtents(widget, font, &extents);
-    double h = ceil(extents.ascent + extents.descent);
-    return (int)h;
+    const IswPlatformRenderOps *rops = _IswPlatformRenderOpsActive();
+    if (rops && rops->scaled_font_height)
+        return rops->scaled_font_height(widget, font);
+    return 0;
 }
 
 int
 ISWScaledFontAscent(Widget widget, IswFontStruct *font)
 {
-    cairo_font_extents_t extents;
-    _ISWGetCairoFontExtents(widget, font, &extents);
-    double a = ceil(extents.ascent);
-    return (int)a;
+    const IswPlatformRenderOps *rops = _IswPlatformRenderOpsActive();
+    if (rops && rops->scaled_font_ascent)
+        return rops->scaled_font_ascent(widget, font);
+    return 0;
 }
 
 int
 ISWScaledFontCapHeight(Widget widget, IswFontStruct *font)
 {
-    cairo_t *cr = _ISWGetMeasureCR(ISWScaleFactor(widget));
-    cairo_text_extents_t text_ext;
-
-    _ISWSyncMeasureFont(cr, widget, font);
-
-    cairo_text_extents(cr, "X", &text_ext);
-    double cap = ceil(-text_ext.y_bearing);
-    return (int)cap;
+    const IswPlatformRenderOps *rops = _IswPlatformRenderOpsActive();
+    if (rops && rops->scaled_font_cap_height)
+        return rops->scaled_font_cap_height(widget, font);
+    return 0;
 }
-
-/* Cairo is now a mandatory dependency — no non-Cairo fallback needed */

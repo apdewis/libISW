@@ -232,6 +232,8 @@ set(LIBXT_SOURCES
     src/VarCreate.c
     src/VarGet.c
     src/Varargs.c
+    src/ISWRender.c
+    src/platform/X11/ISWRenderCairoXCB.c
 )
 
 set(ISW_WIDGET_SOURCES
@@ -294,11 +296,6 @@ set(ISW_WIDGET_SOURCES
     src/ISWImage.c
 )
 
-set(RENDER_SOURCES
-    src/platform/X11/ISWRender.c
-    src/platform/X11/ISWRenderCairoXCB.c
-)
-
 set(SVG_SOURCES
     src/nanosvg_impl.c
     src/ISWSVG.c
@@ -317,7 +314,6 @@ set_source_files_properties(src/lodepng.c PROPERTIES
 add_library(ISW SHARED
     ${LIBXT_SOURCES}
     ${ISW_WIDGET_SOURCES}
-    ${RENDER_SOURCES}
     ${SVG_SOURCES}
     ${I18N_SOURCES}
     ${STRINGDEFS_C}

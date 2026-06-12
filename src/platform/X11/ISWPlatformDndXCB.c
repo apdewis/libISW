@@ -38,7 +38,7 @@
 #include <ISW/IconView.h>
 #include <ISW/ViewportP.h>
 #include <ISW/ISWRender.h>
-#include "ISWRenderPrivate.h"
+#include "ISWRenderCairoXCB.h"
 #include "ISWPlatformPrivate.h"
 #include <xcb/xcb_cursor.h>
 #include <cairo/cairo.h>
@@ -2017,7 +2017,7 @@ CreateDragIconFromRaster(XdndState *st, const unsigned char *rgba,
     xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(st->shell));
 
     /* Find a 32-bit visual for alpha transparency */
-    xcb_visualtype_t *visual32 = ISWRenderFindVisual(screen, 32);
+    xcb_visualtype_t *visual32 = _IswXcbFindVisual(screen, 32);
     if (!visual32)
         return;
 

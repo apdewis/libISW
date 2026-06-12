@@ -1,29 +1,22 @@
 /*
- * ISWRenderPrivate.h - Internal structures for ISW rendering backends
+ * ISWRenderOps.h - Neutral render dispatcher structures (no xcb/cairo)
  *
  * Copyright (c) 2026 ISW Project
  *
- * This file contains internal structures and function declarations
- * for the ISWRender backend implementations. Not part of public API.
+ * The backend-agnostic dispatcher (ISWRender.c) needs the render context, the
+ * drawing/surface op vtables, and the platform render-ops struct — but NONE of
+ * the native (xcb) or cairo types.  Those vtable members are expressed in
+ * neutral terms (IswPoint, void* draw handles), so this header pulls in no
+ * xcb/cairo headers and the neutral translation unit stays free of them.
  *
- * CRITICAL: All backends use pure XCB - NO XLIB DEPENDENCIES.
+ * The X11/cairo backend includes ISWRenderPrivate.h, which includes THIS header
+ * plus the xcb/cairo headers and the backend-private declarations.
  */
 
-#ifndef _ISWRenderPrivate_h
-#define _ISWRenderPrivate_h
+#ifndef _ISWRenderOps_h
+#define _ISWRenderOps_h
 
-#include <ISW/ISWRender.h>
-#include <xcb/xcb.h>
-
-/* Cairo is a mandatory dependency */
-#include <cairo.h>
-#include <cairo-xcb.h>
-
-#ifdef HAVE_CAIRO_EGL
-#include <cairo-gl.h>
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#endif
+#include <ISW/ISWRender.h>   /* public render API + IswPoint, IswFontStruct, Pixel */
 
 /*
  * =================================================================
@@ -36,16 +29,11 @@
  * (0,0), and the composite pass folds child surfaces into parent surfaces up to
  * the windowed root, which presents to its window.
  *
- * This table abstracts the surface itself: its lifecycle, the per-frame target
- * switch, and the surface-to-surface compositing/presentation.  It is keyed on
- * IswSurface handles (and the owning Widget for geometry/background), NOT on a
- * render context, so the composite walk operates on surfaces reached generically
- * via IswSurfaceOf — no Widget->context registry.  The drawing primitives that
- * mark a surface stay in ISWRenderOps; a render context draws into the surface
- * its widget owns.
+ * Keyed on IswSurface handles (and the owning Widget for geometry/background),
+ * NOT on a render context, so the composite walk operates on surfaces reached
+ * generically via IswSurfaceOf — no Widget->context registry.
  *
- * The concrete struct _IswSurface is defined by the backend (the cairo-xcb
- * backend's holds the cairo back buffer / pixmap / present state).
+ * The concrete struct _IswSurface is defined by the backend.
  */
 typedef struct _IswSurfaceOps {
     /* Create the per-widget surface for `widget` (windowed or windowless),
@@ -56,8 +44,9 @@ typedef struct _IswSurfaceOps {
     void (*destroy)(IswSurface surface);
 
     /* Begin a frame: ensure the back buffer matches the widget's current size,
-       target it, and return the render-layer drawing handle (cairo_t*) the
-       ISWRenderOps primitives draw with — or NULL if not ready this frame. */
+       target it, and return the render-layer drawing handle (an opaque void*,
+       a cairo_t* in the cairo backend) the ISWRenderOps primitives draw with —
+       or NULL if not ready this frame. */
     void *(*begin)(IswSurface surface, Widget widget);
     /* End a frame: flush the back buffer.  For a windowed widget, blit it to
        `window`; for a windowless widget this is just a flush (the composite pass
@@ -77,39 +66,52 @@ typedef struct _IswSurfaceOps {
 
 /*
  * =================================================================
- * Backend Operations Vtable
+ * Backend Drawing Operations Vtable
  * =================================================================
  *
- * Each backend implements this interface. The core renderer
- * dispatches to the appropriate backend via function pointers.
+ * Each backend implements this interface.  The neutral dispatcher dispatches to
+ * the active backend via these function pointers.  All members are expressed in
+ * neutral types: points are IswPoint, the cairo handle is an opaque void*.
  */
+typedef struct _ISWRenderContext ISWRenderContextStruct; /* fwd for members */
 
 typedef struct _ISWRenderOps {
     /* State management */
     void (*save)(struct _ISWRenderContext *ctx);
     void (*restore)(struct _ISWRenderContext *ctx);
-    
+
     /* Color */
     void (*set_color)(struct _ISWRenderContext *ctx, Pixel pixel);
     void (*set_color_rgba)(struct _ISWRenderContext *ctx,
                           double r, double g, double b, double a);
     void (*set_line_width)(struct _ISWRenderContext *ctx, double width);
-    
+
     /* Drawing primitives */
     void (*fill_rectangle)(struct _ISWRenderContext *ctx,
                           int x, int y, int w, int h);
     void (*stroke_rectangle)(struct _ISWRenderContext *ctx,
                             int x, int y, int w, int h);
     void (*fill_polygon)(struct _ISWRenderContext *ctx,
-                        xcb_point_t *pts, int num);
+                        IswPoint *pts, int num);
     void (*stroke_polygon)(struct _ISWRenderContext *ctx,
-                          xcb_point_t *pts, int num);
+                          IswPoint *pts, int num);
     void (*draw_line)(struct _ISWRenderContext *ctx,
                      int x1, int y1, int x2, int y2);
     void (*draw_arc)(struct _ISWRenderContext *ctx,
                     int x, int y, int w, int h,
                     double angle1, double angle2);
-    
+
+    /* Rounded rectangles (backend draws the path; neutral layer no longer
+       reaches for a cairo context to do it itself). */
+    void (*fill_rounded_rect)(struct _ISWRenderContext *ctx,
+                              int x, int y, int w, int h, double radius);
+    void (*stroke_rounded_rect)(struct _ISWRenderContext *ctx,
+                                int x, int y, int w, int h, double radius,
+                                double stroke_width);
+    void (*fill_stroke_rounded_rect)(struct _ISWRenderContext *ctx,
+                                     int x, int y, int w, int h, double radius,
+                                     double fill_alpha, double stroke_width);
+
     /* Text */
     void (*draw_string)(struct _ISWRenderContext *ctx,
                        const char *text, int len, int x, int y);
@@ -117,23 +119,17 @@ typedef struct _ISWRenderOps {
                      const char *text, int len);
     int (*text_height)(struct _ISWRenderContext *ctx);
     void (*set_font)(struct _ISWRenderContext *ctx, IswFontStruct *font);
-    
+
     /* Clipping */
     void (*set_clip_rectangle)(struct _ISWRenderContext *ctx,
                               int x, int y, int w, int h);
     void (*clear_clip)(struct _ISWRenderContext *ctx);
-    
+
     /* Pixmap/Bitmap rendering */
     void (*copy_area)(struct _ISWRenderContext *ctx,
                       int src_x, int src_y,
                       int dst_x, int dst_y,
                       unsigned int width, unsigned int height);
-    void (*draw_pixmap)(struct _ISWRenderContext *ctx,
-                        xcb_pixmap_t pixmap,
-                        int src_x, int src_y,
-                        int dst_x, int dst_y,
-                        unsigned int width, unsigned int height,
-                        unsigned int depth);
 
     /* RGBA image rendering */
     void (*draw_image_rgba)(struct _ISWRenderContext *ctx,
@@ -141,12 +137,27 @@ typedef struct _ISWRenderOps {
                             unsigned int img_w, unsigned int img_h,
                             int dst_x, int dst_y,
                             unsigned int dst_w, unsigned int dst_h);
+    /* Paint an RGBA image's alpha as a mask in the current foreground colour
+       (used for recoloured glyph/icon bitmaps). */
+    void (*draw_image_masked)(struct _ISWRenderContext *ctx, Pixel foreground,
+                              const unsigned char *rgba,
+                              unsigned int img_w, unsigned int img_h,
+                              int dst_x, int dst_y,
+                              unsigned int dst_w, unsigned int dst_h);
 
-    /* Advanced (Cairo only) */
+    /* Advanced */
     Boolean (*set_gradient)(struct _ISWRenderContext *ctx,
                            double x1, double y1, double x2, double y2,
                            Pixel c1, Pixel c2);
+    /* Opaque backend draw handle (cairo_t* in the cairo backend), for callers
+       that still need direct access.  void* keeps cairo out of this header. */
     void* (*get_cairo_context)(struct _ISWRenderContext *ctx);
+
+    /* Decode a pixel to 0..1 RGB using the backend's own visual/colormap
+       (the backend owns these privately; the neutral ctx holds no native
+       display handle).  ISWRenderPixelToRGB forwards here. */
+    void (*pixel_to_rgb)(struct _ISWRenderContext *ctx, Pixel pixel,
+                         double *r, double *g, double *b);
 
 } ISWRenderOps;
 
@@ -155,18 +166,14 @@ typedef struct _ISWRenderOps {
  * Base Rendering Context
  * =================================================================
  *
- * Shared by all backends. Backend-specific data stored in
- * backend_data pointer.
+ * Shared by all backends.  Carries NO native (xcb) display handle: the backend
+ * owns the connection/window/screen/visual privately (in its IswSurface) and
+ * resolves them from the display ops.  The neutral dispatcher reaches platform
+ * capabilities only through ops.
  */
-
 typedef struct _ISWRenderContext {
-    /* Widget and display info */
     Widget widget;
-    xcb_connection_t *connection;  /* Pure XCB connection, NOT Display* */
-    xcb_window_t window;
-    xcb_screen_t *screen;
-    xcb_colormap_t colormap;
-    
+
     /* Backend information */
     ISWRenderBackend backend;
     ISWRenderCaps capabilities;
@@ -207,59 +214,13 @@ typedef struct _ISWRenderContext {
     Boolean presented_content;
 
     /* Composite re-expose gate.  A composite container's surface persists
-       between composite passes and accumulates its folded children.  The fold
-       (ISWRenderCompositeSubtree) used to re-run every composite container's
-       expose proc each pass to erase pixels vacated by an unmapped/moved child
-       — but for the common case (one widget repainted, scroll, hover) nothing
-       in most containers changed, so regenerating their identical background
-       was the dominant compositing cost.  This flag is set whenever the
-       container (or something under it) actually changed since the last fold —
-       a paint into its surface (ISWRenderEnd), or a child un/map/geometry change
-       — and the fold re-runs the container's expose proc ONLY when it is set,
+       between composite passes and accumulates its folded children.  Set
+       whenever the container (or something under it) actually changed since the
+       last fold; the fold re-runs the container's expose proc ONLY when set,
        then clears it.  Starts True so the first composite always paints. */
     Boolean composite_dirty;
 
-    /* Pixel->RGB decode cache.  ISWRenderPixelToRGB is called once per
-       colour set on the draw path; resolving a pixel to RGB must not
-       round-trip to the server (a synchronous QueryColors per draw was a
-       major source of latency under a busy X server).  visual is the
-       colormap's visual, resolved lazily and cached; for TrueColor/
-       DirectColor it lets us decode pixels directly from the channel masks
-       with zero server traffic.  visual_resolved guards the one-time lookup
-       (a NULL visual is a valid "not found, use fallback" result). */
-    xcb_visualtype_t *visual;
-    Boolean visual_resolved;
-
 } ISWRenderContext;
-
-/*
- * =================================================================
- * Helper Functions
- * =================================================================
- */
-
-/*
- * ISWRenderFindVisual - Find XCB visual for given depth
- *
- * Parameters:
- *   screen - XCB screen
- *   depth  - Depth to find visual for
- *
- * Returns: xcb_visualtype_t* or NULL if not found
- */
-xcb_visualtype_t* ISWRenderFindVisual(xcb_screen_t *screen, uint8_t depth);
-
-/*
- * =================================================================
- * Cairo-XCB Backend
- * =================================================================
- *
- * Cairo with XCB surface - NO XLIB.
- * Provides anti-aliasing, gradients, alpha blending.
- */
-
-extern const ISWRenderOps isw_render_cairo_xcb_ops;
-extern const IswSurfaceOps isw_surface_cairo_xcb_ops;
 
 /*
  * =================================================================
@@ -269,12 +230,12 @@ extern const IswSurfaceOps isw_surface_cairo_xcb_ops;
  * The render system's slot in the platform ops table.  The platform header
  * (ISW/ISWPlatform.h) forward-declares this struct opaquely and holds it by
  * pointer in IswPlatformOps so it pulls in no cairo/xcb render types; the
- * concrete layout is defined here, in render-backend-internal scope.
+ * concrete layout is defined here, in render-internal (but still neutral) scope.
  *
- * It carries the per-backend drawing + surface sub-vtables and the backend
- * detection hooks the render dispatcher (ISWRender.c) uses to pick a backend
- * for a context.  ISWRender.c reaches these through the active platform ops
- * (IswDisplay -> ops -> render) instead of naming a backend vtable directly.
+ * Carries the per-backend drawing + surface sub-vtables, the backend-detection
+ * hooks the dispatcher uses to pick a backend, and the widget-keyed font
+ * measurement entry points.  ISWRender.c reaches these through the active
+ * platform ops (IswDisplay -> ops -> render).
  */
 struct _IswPlatformRenderOps {
     /* True if `backend` can be used on this platform. */
@@ -285,73 +246,19 @@ struct _IswPlatformRenderOps {
        backend is unavailable in this build). */
     const ISWRenderOps  *(*draw_ops)(ISWRenderBackend backend);
     const IswSurfaceOps *(*surface_ops)(ISWRenderBackend backend);
+
+    /* Widget-keyed text/font measurement.  Backend-global (a process-wide
+       measurement context), not per-surface, so they hang off the platform
+       render ops rather than a draw context.  The neutral ISWScaled* wrappers
+       reach them via _IswPlatformRenderOpsActive(). */
+    int (*scaled_text_width)(Widget widget, IswFontStruct *font,
+                             const char *text, int len);
+    int (*scaled_font_height)(Widget widget, IswFontStruct *font);
+    int (*scaled_font_ascent)(Widget widget, IswFontStruct *font);
+    int (*scaled_font_cap_height)(Widget widget, IswFontStruct *font);
 };
 
-extern const struct _IswPlatformRenderOps isw_platform_xcb_render_ops;
-
-/*
- * Present source accessor — the inputs a platform present_root needs to blit a
- * finished composite surface to its window, without reaching into the private
- * struct _IswSurface.  Fills the out params from `surface`'s back buffer and
- * (for the Present path) bumps the present serial.  Returns False if the
- * surface has no back buffer yet (nothing to present).
- *
- *   back_cairo  — the back buffer as a cairo surface (the blit source).
- *   window_cr   — the surface's cached cairo context on the window-target
- *                 surface (the cairo blit destination); NULL if unavailable.
- *   back_pixmap — the server pixmap for the Present path, or 0 when Present is
- *                 unusable / the back buffer is a client image (use the cairo
- *                 path instead).
- *   present_serial — next Present serial (only meaningful when back_pixmap != 0).
- *
- * Defined in ISWRenderCairoXCB.c.
- */
-Boolean _ISWRenderSurfacePresentSource(IswSurface surface,
-                                       cairo_surface_t **back_cairo,
-                                       void **window_cr,
-                                       xcb_pixmap_t *back_pixmap,
-                                       uint32_t *present_serial);
-
-/*
- * =================================================================
- * Cairo-EGL Backend (Hardware Accelerated)
- * =================================================================
- *
- * Cairo with EGL - NO XLIB, NO GLX!
- * Uses EGL platform XCB extension for pure XCB compatibility.
- * Provides hardware-accelerated rendering via OpenGL.
- *
- * CRITICAL: Uses EGL, NOT GLX, to avoid Xlib dependency.
- */
-
-#ifdef HAVE_CAIRO_EGL
-extern const ISWRenderOps isw_render_cairo_egl_ops;
-extern const IswSurfaceOps isw_surface_cairo_egl_ops;
-
-/* Check if EGL platform XCB is available */
-Boolean ISWRenderEGLAvailable(void);
-#endif
-
-/*
- * =================================================================
- * Backend Availability Checks
- * =================================================================
- */
-
-/*
- * ISWRenderBackendAvailable - Check if backend is available
- *
- * Parameters:
- *   backend - Backend to check
- *
- * Returns: True if backend can be used, False otherwise
- */
+/* ISWRenderBackendAvailable - Check if a backend is available (neutral). */
 Boolean ISWRenderBackendAvailable(ISWRenderBackend backend);
 
-/*
- * Font resolution — ISWRender.c
- */
-cairo_font_face_t *_ISWResolveFontFace(const char *family, int weight, int slant);
-void _ISWSetCairoFontFromXFont(cairo_t *cr, IswFontStruct *font, double scale);
-
-#endif /* _ISWRenderPrivate_h */
+#endif /* _ISWRenderOps_h */
