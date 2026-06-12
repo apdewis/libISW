@@ -27,6 +27,8 @@ option(ISW_HAS_XIM "Enable X Input Method for CJK input (requires Xlib XIM APIs)
 
 option(ISW_GRAY_BLKWHT_STIPPLES "Enable gray stipple patterns" OFF)
 
+option(ISW_RENDER_EGL "Enable the pure EGL/OpenGL ES render backend (NanoVG-based)" OFF)
+
 # ===========================================================================
 # Dependencies
 # ===========================================================================
@@ -46,6 +48,11 @@ if(NOT ISW_NO_PKGCONFIG)
 
     pkg_check_modules(CAIRO REQUIRED IMPORTED_TARGET
         cairo>=1.12.0 cairo-xcb>=1.12.0)
+
+    # Optional: pure EGL/OpenGL ES render backend (NanoVG)
+    if(ISW_RENDER_EGL)
+        pkg_check_modules(EGL REQUIRED IMPORTED_TARGET egl glesv2)
+    endif()
 
     # Optional: xkbcommon
     pkg_check_modules(XKBCOMMON IMPORTED_TARGET xkbcommon)
@@ -237,6 +244,13 @@ set(LIBXT_SOURCES
     src/platform/X11/ISWRenderCairoXCB.c
 )
 
+if(ISW_RENDER_EGL)
+    list(APPEND LIBXT_SOURCES
+        src/platform/X11/ISWRenderEGL.c
+        src/platform/X11/ISWNanoVGImpl.c
+    )
+endif()
+
 set(ISW_WIDGET_SOURCES
     src/AllWidgets.c
     src/Box.c
@@ -369,6 +383,11 @@ if(ISW_HAS_XIM)
 endif()
 
 
+if(ISW_RENDER_EGL)
+    target_compile_definitions(ISW PRIVATE HAVE_EGL=1 HAVE_FREETYPE=1)
+    target_include_directories(ISW PRIVATE ${CMAKE_SOURCE_DIR}/src/nanovg)
+endif()
+
 if(ISW_GRAY_BLKWHT_STIPPLES)
     target_compile_definitions(ISW PRIVATE ISW_GRAY_BLKWHT_STIPPLES)
 endif()
@@ -420,6 +439,10 @@ target_link_libraries(ISW PRIVATE
 
 if(XKBCOMMON_FOUND)
     target_link_libraries(ISW PRIVATE PkgConfig::XKBCOMMON)
+endif()
+
+if(ISW_RENDER_EGL)
+    target_link_libraries(ISW PRIVATE PkgConfig::EGL)
 endif()
 
 
@@ -590,6 +613,7 @@ message(STATUS "XIM support:             ${ISW_HAS_XIM}")
 message(STATUS "")
 message(STATUS "Rendering Backends:")
 message(STATUS "  Cairo-XCB:             yes")
+message(STATUS "  EGL (NanoVG):          ${ISW_RENDER_EGL}")
 message(STATUS "")
 message(STATUS "Optional:")
 message(STATUS "  xkbcommon:             ${XKBCOMMON_FOUND}")

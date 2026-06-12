@@ -51,6 +51,14 @@ typedef struct _IswSurfaceOps {
        current window size.  Called on a windowed composite root before folding
        children so uncovered gaps show the background, not a bare window. */
     void (*fill_background)(IswSurface surface, Widget widget);
+
+    /* Present a finished composite root surface to its window.  Called by the
+       composite pass after folding all children into `surface` (the windowed
+       root's surface).  Backend-specific: the Cairo backend blits its back
+       buffer to the window; the EGL backend blits its FBO and swaps buffers.
+       `window` is the root's window; width/height are physical-pixel extent. */
+    void (*present_root)(IswSurface surface, Widget widget, IswWindow window,
+                         int width, int height);
 } IswSurfaceOps;
 
 /*

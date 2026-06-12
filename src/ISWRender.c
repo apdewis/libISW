@@ -317,6 +317,8 @@ ISWRenderGetBackendName(ISWRenderContext *ctx)
             return "Cairo-XCB";
         case ISW_RENDER_BACKEND_CAIRO_EGL:
             return "Cairo-EGL (Hardware Accelerated)";
+        case ISW_RENDER_BACKEND_EGL:
+            return "EGL (NanoVG/OpenGL ES)";
         case ISW_RENDER_BACKEND_AUTO:
             return "Auto-detect";
         default:
@@ -343,6 +345,13 @@ ISWRenderPrintBackendInfo(void)
             break;
         case ISW_RENDER_BACKEND_CAIRO_EGL:
             backend_name = "Cairo-EGL (Hardware Accelerated)";
+            caps = ISW_RENDER_CAP_BASIC | ISW_RENDER_CAP_ANTIALIASING |
+                   ISW_RENDER_CAP_GRADIENTS | ISW_RENDER_CAP_ALPHA |
+                   ISW_RENDER_CAP_TRANSFORMS | ISW_RENDER_CAP_TEXT_ADVANCED |
+                   ISW_RENDER_CAP_HW_ACCEL;
+            break;
+        case ISW_RENDER_BACKEND_EGL:
+            backend_name = "EGL (NanoVG/OpenGL ES)";
             caps = ISW_RENDER_CAP_BASIC | ISW_RENDER_CAP_ANTIALIASING |
                    ISW_RENDER_CAP_GRADIENTS | ISW_RENDER_CAP_ALPHA |
                    ISW_RENDER_CAP_TRANSFORMS | ISW_RENDER_CAP_TEXT_ADVANCED |
@@ -693,9 +702,17 @@ ISWRenderCompositeSubtree(Widget windowed_root)
         double sf = _IswGetScaleFactor(IswDisplayOf(windowed_root));
         int pw = (int)(windowed_root->core.width * sf + 0.5);
         int ph = (int)(windowed_root->core.height * sf + 0.5);
-        _IswPlatformPresentRoot(IswDisplayOf(windowed_root),
-                                _IswPlatformWidgetWindow(IswDisplayOf((Widget)(windowed_root)), (Widget)(windowed_root)),
-                                root_surface, pw, ph);
+        IswWindow win = _IswPlatformWidgetWindow(
+            IswDisplayOf((Widget)(windowed_root)), (Widget)(windowed_root));
+        /* Presentation of the folded root is backend-specific (Cairo blits its
+           back buffer; EGL blits its FBO and swaps), so it goes through the
+           active surface ops, not a Cairo-specific platform op. */
+        if (_isw_surface_ops && _isw_surface_ops->present_root)
+            _isw_surface_ops->present_root(root_surface, windowed_root,
+                                           win, pw, ph);
+        else
+            _IswPlatformPresentRoot(IswDisplayOf(windowed_root), win,
+                                    root_surface, pw, ph);
     }
     if (folded_now)
         windowed_root->core.composite_presented = True;

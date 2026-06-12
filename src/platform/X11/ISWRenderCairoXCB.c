@@ -14,6 +14,7 @@
 #endif
 
 #include "ISWRenderCairoXCB.h"
+#include "ISWRenderEGL.h"
 #include "ISWPlatformPrivate.h"
 #include <ISW/IntrinsicP.h> /* For Xt private types */
 #include <ISW/CoreP.h>       /* For accessing widget->core fields */
@@ -753,6 +754,23 @@ cairo_xcb_fill_background(IswSurface data, Widget widget)
         ((bg      ) & 0xff) / 255.0);
     cairo_paint(dctx);
     cairo_restore(dctx);
+}
+
+/* present_root: blit the folded composite root surface to its window.  Routes
+ * to the platform present op exactly as cairo_xcb_surface_end does for a
+ * windowed root, so the composite-pass present path is bit-identical to the
+ * self-paint present path. */
+static void
+cairo_xcb_present_root(IswSurface data, Widget widget, IswWindow window,
+                       int width, int height)
+{
+    if (!data || !data->back_surface)
+        return;
+    cairo_surface_flush(data->back_surface);
+    if (data->surface)
+        cairo_surface_flush(data->surface);
+    _IswPlatformPresentRoot(IswDisplayOf(widget), window,
+                            (IswSurface) data, width, height);
 }
 
 /* composite_onto: paint src's (windowless) back surface onto dst's back surface
@@ -2058,7 +2076,8 @@ const IswSurfaceOps isw_surface_cairo_xcb_ops = {
     .begin = cairo_xcb_surface_begin,
     .end = cairo_xcb_surface_end,
     .composite_onto = cairo_xcb_composite_onto,
-    .fill_background = cairo_xcb_fill_background
+    .fill_background = cairo_xcb_fill_background,
+    .present_root = cairo_xcb_present_root
 };
 
 /*
@@ -2082,6 +2101,11 @@ ISWRenderBackendAvailable(ISWRenderBackend backend)
 #ifdef HAVE_CAIRO_EGL
         case ISW_RENDER_BACKEND_CAIRO_EGL:
             return ISWRenderEGLAvailable();
+#endif
+
+#ifdef HAVE_EGL
+        case ISW_RENDER_BACKEND_EGL:
+            return ISWRenderGLAvailable();
 #endif
 
         case ISW_RENDER_BACKEND_AUTO:
@@ -2108,6 +2132,11 @@ ISWRenderDetectBackend(ISWRenderBackend preferred)
             if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_CAIRO_EGL))
                 return ISW_RENDER_BACKEND_CAIRO_EGL;
 #endif
+        } else if (strcmp(env, "egl") == 0) {
+#ifdef HAVE_EGL
+            if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_EGL))
+                return ISW_RENDER_BACKEND_EGL;
+#endif
         } else if (strcmp(env, "cairo") == 0) {
             return ISW_RENDER_BACKEND_CAIRO_XCB;
         }
@@ -2132,6 +2161,10 @@ isw_render_draw_ops(ISWRenderBackend backend)
         case ISW_RENDER_BACKEND_CAIRO_EGL:
             return &isw_render_cairo_egl_ops;
 #endif
+#ifdef HAVE_EGL
+        case ISW_RENDER_BACKEND_EGL:
+            return &isw_render_egl_ops;
+#endif
         default:
             return NULL;
     }
@@ -2146,6 +2179,10 @@ isw_render_surface_ops(ISWRenderBackend backend)
 #ifdef HAVE_CAIRO_EGL
         case ISW_RENDER_BACKEND_CAIRO_EGL:
             return &isw_surface_cairo_egl_ops;
+#endif
+#ifdef HAVE_EGL
+        case ISW_RENDER_BACKEND_EGL:
+            return &isw_surface_egl_ops;
 #endif
         default:
             return NULL;

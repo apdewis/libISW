@@ -42,7 +42,8 @@ typedef struct _ISWRenderContext ISWRenderContext;
 typedef enum {
     ISW_RENDER_BACKEND_AUTO = 0,      /* Auto-detect best available */
     ISW_RENDER_BACKEND_CAIRO_XCB,     /* Cairo with XCB surface */
-    ISW_RENDER_BACKEND_CAIRO_EGL      /* Cairo with EGL (NOT GLX!) */
+    ISW_RENDER_BACKEND_CAIRO_EGL,     /* Cairo with EGL (NOT GLX!) */
+    ISW_RENDER_BACKEND_EGL            /* Pure EGL/OpenGL ES via NanoVG (no Cairo) */
 } ISWRenderBackend;
 
 /*
