@@ -87,7 +87,6 @@ typedef struct _CorePart {
     IswTMRec	    tm;                 /* translation management            */
     IswTranslations  accelerators;       /* accelerator translations          */
     Pixel	    border_pixel;	/* window border pixel		     */
-    xcb_pixmap_t    border_pixmap;	/* window border pixmap or NULL      */
     WidgetList      popup_list;         /* list of popups                    */
     Cardinal        num_popups;         /* how many popups                   */
     String          name;		/* widget resource name		     */
@@ -104,7 +103,6 @@ typedef struct _CorePart {
 					   widget.                             */
     Cardinal        depth;		/* number of planes in window        */
     Pixel	    background_pixel;	/* window background pixel	     */
-    xcb_pixmap_t    background_pixmap;	/* window background pixmap or NULL  */
     Boolean         visible;		/* is window mapped and not occluded?*/
     Boolean	    mapped_when_managed;/* map window if it's managed?       */
     Boolean         windowless;         /* no own X window; draws into

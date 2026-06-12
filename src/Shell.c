@@ -1079,36 +1079,6 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
          */
         GetGeometry(wid, (Widget) NULL);
     }
-    else if (w->core.background_pixmap == IswUnspecifiedPixmap) {
-        /* I attempt to inherit my child's background to avoid screen flash
-         * if there is latency between when I get resized and when my child
-         * is resized.  Background=None is not satisfactory, as I want the
-         * user to get immediate feedback on the new dimensions (most
-         * particularly in the case of a non-reparenting wm).  It is
-         * especially important to have the server clear any old cruft
-         * from the display when I am resized larger.
-         */
-        register Widget *childP = w->composite.children;
-        int i;
-
-        for (i = (int) w->composite.num_children; i; i--, childP++) {
-            if (IswIsWidget(*childP) && IswIsManaged(*childP)) {
-                if ((*childP)->core.background_pixmap != IswUnspecifiedPixmap) {
-                    mask &= (unsigned long) (~(IswCWBackPixel));
-                    mask |= IswCWBackPixmap;
-                    //attr->background_pixmap =
-                    //    w->core.background_pixmap =
-                    //    (*childP)->core.background_pixmap;
-                }
-                else {
-                    //attr->background_pixel =
-                    //    w->core.background_pixel =
-                    //    (*childP)->core.background_pixel;
-                }
-                break;
-            }
-        }
-    }
 
     if (w->shell.save_under)
         mask |= IswCWSaveUnder;

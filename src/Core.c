@@ -109,15 +109,9 @@ parameter is not passed through to the IswRCallProc routines */
     {IswNbackground, IswCBackground, IswRPixel, sizeof(Pixel),
      IswOffsetOf(CoreRec, core.background_pixel),
      IswRString, (IswPointer) "IswDefaultBackground"},
-    {IswNbackgroundPixmap, IswCPixmap, IswRPixmap, sizeof(IswPixmap),
-     IswOffsetOf(CoreRec, core.background_pixmap),
-     IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
     {IswNborderColor, IswCBorderColor, IswRPixel, sizeof(Pixel),
      IswOffsetOf(CoreRec, core.border_pixel),
      IswRString, (IswPointer) "IswDefaultForeground"},
-    {IswNborderPixmap, IswCPixmap, IswRPixmap, sizeof(IswPixmap),
-     IswOffsetOf(CoreRec, core.border_pixmap),
-     IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
     {IswNmappedWhenManaged, IswCMappedWhenManaged, IswRBoolean, sizeof(Boolean),
      IswOffsetOf(CoreRec, core.mapped_when_managed),
      IswRImmediate, (IswPointer) True},
@@ -360,9 +354,7 @@ CoreSetValues(Widget old,
        The widget draws into its windowed ancestor, so a background change just
        needs a repaint via the widget's own expose. */
     if (IswIsRealized(old)) {
-        if ((old->core.background_pixel != new->core.background_pixel
-             && new->core.background_pixmap == IswUnspecifiedPixmap)
-            || old->core.background_pixmap != new->core.background_pixmap) {
+        if (old->core.background_pixel != new->core.background_pixel) {
             redisplay = TRUE;
         }
 

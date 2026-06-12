@@ -175,25 +175,13 @@ ComputeWindowAttributes(Widget widget,
     uint32_t mask = 0;
     uint32_t value_index = 0;
 
-    /* IswCWBackPixmap (bit 0) or IswCWBackPixel (bit 1) */
-    if (widget->core.background_pixmap != IswUnspecifiedPixmap) {
-        mask |= IswCWBackPixmap;
-        values[value_index++] = widget->core.background_pixmap;
-    }
-    else {
-        mask |= IswCWBackPixel;
-        values[value_index++] = widget->core.background_pixel;
-    }
+    /* IswCWBackPixel (bit 1) */
+    mask |= IswCWBackPixel;
+    values[value_index++] = widget->core.background_pixel;
 
-    /* IswCWBorderPixmap (bit 2) or IswCWBorderPixel (bit 3) */
-    if (widget->core.border_pixmap != IswUnspecifiedPixmap) {
-        mask |= IswCWBorderPixmap;
-        values[value_index++] = widget->core.border_pixmap;
-    }
-    else {
-        mask |= IswCWBorderPixel;
-        values[value_index++] = widget->core.border_pixel;
-    }
+    /* IswCWBorderPixel (bit 3) */
+    mask |= IswCWBorderPixel;
+    values[value_index++] = widget->core.border_pixel;
 
     /* IswCWBitGravity (bit 4)
      *

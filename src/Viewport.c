@@ -239,7 +239,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
  * Create Clip Widget.
  */
 
-    IswArgBackgroundPixmap(&ab, None);
     IswArgBorderWidth(&ab, 0);
     IswArgLeft(&ab, IswChainLeft);
     IswArgRight(&ab, IswChainRight);

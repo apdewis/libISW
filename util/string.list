@@ -20,11 +20,9 @@ NallowHoriz
 NallowVert
 NancestorSensitive
 Nbackground
-NbackgroundPixmap
 Nbitmap
 NborderColor
 Nborder borderColor
-NborderPixmap
 NborderWidth
 Ncallback
 Nchildren
