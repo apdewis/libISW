@@ -86,8 +86,6 @@ SOFTWARE.
 #else
 #include <sys/select.h>
 #endif
-#include <xcb/xcb.h>
-#include <xcb/xcbext.h>
 
 _XFUNCPROTOBEGIN
 
