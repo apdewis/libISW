@@ -31,7 +31,6 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define _ISW_Isw3dP_h
 
 #include <ISW/IntrinsicP.h>
-#include <xcb/xcb.h>
 
 /* Forward declare Region type - full definition in src/IswRegion.h */
 /* We define it here to avoid include path issues */

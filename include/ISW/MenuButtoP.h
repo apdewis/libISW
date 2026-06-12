@@ -82,7 +82,7 @@ extern MenuButtonClassRec menuButtonClassRec;
 typedef struct {
   /* resources */
   String menu_name;
-  xcb_keysym_t mnemonic_key;  /* Alt+key that opens this menu */
+  IswKeySym mnemonic_key;  /* Alt+key that opens this menu */
 
 } MenuButtonPart;
 

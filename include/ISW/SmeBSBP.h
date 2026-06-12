@@ -88,7 +88,7 @@ typedef struct {
     IswFontStruct * font;		/* The font to show label in. */
     IswJustify justify;		/* Justification for the label. */
     int underline;		/* index of letter to underline in label. */
-    xcb_keysym_t mnemonic_key;  /* mnemonic keysym (NoSymbol = none) */
+    IswKeySym mnemonic_key;  /* mnemonic keysym (NoSymbol = none) */
     String accelerator;		/* Xt translation string, e.g. "Ctrl<Key>s" */
     String accelerator_text;	/* display string, e.g. "Ctrl+S" */
 
