@@ -453,21 +453,36 @@ egl_surface_begin(IswSurface s, Widget widget)
                   (float) s->scale);
 
     /* Border ring: footprint rect minus content rect, even-odd filled.  Skipped
-       for widgets that paint their own border (Command etc. with self_border),
-       matching the Cairo backend so the border is not drawn twice. */
+       for widgets that paint their own border (self_border, e.g. ProgressBar),
+       matching the Cairo backend so the border is not drawn twice.  A corner
+       radius rounds both edges of the ring. */
+    Dimension ring_r = (IswIsSubclass(widget, simpleWidgetClass))
+                       ? ((SimpleWidget) widget)->simple.corner_radius : 0;
     if (bw > 0 &&
         !(IswIsSubclass(widget, simpleWidgetClass) &&
           ((SimpleWidget) widget)->simple.self_border)) {
-        Pixel bp = widget->core.border_pixel;
+        Pixel bp = (IswIsSubclass(widget, simpleWidgetClass) &&
+                    ((SimpleWidget) widget)->simple.use_border_color)
+                   ? ((SimpleWidget) widget)->simple.border_color
+                   : widget->core.border_pixel;
+        /* Stroke the border centerline so thickness matches the Cairo
+           backend exactly (an even-odd outer-minus-inner fill renders a
+           differently feathered width under NanoVG's AA). */
+        float half = (float) bw / 2.0f;
         nvgBeginPath(g_egl.vg);
-        nvgRect(g_egl.vg, 0, 0, (float) (widget->core.width + 2 * bw),
-                (float) (widget->core.height + 2 * bw));
-        nvgPathWinding(g_egl.vg, NVG_HOLE);
-        nvgRect(g_egl.vg, (float) bw, (float) bw,
-                (float) widget->core.width, (float) widget->core.height);
-        nvgFillColor(g_egl.vg, nvgRGBA((bp >> 16) & 0xff, (bp >> 8) & 0xff,
-                                       bp & 0xff, 255));
-        nvgFill(g_egl.vg);
+        if (ring_r > 0)
+            nvgRoundedRect(g_egl.vg, half, half,
+                           (float) (widget->core.width + bw),
+                           (float) (widget->core.height + bw),
+                           (float) ring_r + half);
+        else
+            nvgRect(g_egl.vg, half, half,
+                    (float) (widget->core.width + bw),
+                    (float) (widget->core.height + bw));
+        nvgStrokeColor(g_egl.vg, nvgRGBA((bp >> 16) & 0xff, (bp >> 8) & 0xff,
+                                         bp & 0xff, 255));
+        nvgStrokeWidth(g_egl.vg, (float) bw);
+        nvgStroke(g_egl.vg);
     }
 
     /* Content draws at local (0,0) = inside the border ring. */

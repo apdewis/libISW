@@ -86,7 +86,7 @@ static IswResource resources[] = {
    {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
       offset(command.callbacks), IswRCallback, (IswPointer)NULL},
    {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
-      offset(command.corner_radius), IswRImmediate, (IswPointer) 5},
+      offset(simple.corner_radius), IswRImmediate, (IswPointer) 5},
    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
       IswOffsetOf(RectObjRec,rectangle.border_width), IswRImmediate,
       (IswPointer) DEFAULT_HIGHLIGHT_THICKNESS},
@@ -189,10 +189,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
   /* Opt this widget into Tab traversal (focus manager). */
   ((SimpleWidget) new)->simple.traversal_on = True;
-
-  /* Command paints its own (rounded) border in PaintCommandWidget; suppress
-     the windowless backend's generic border ring to avoid a double border. */
-  ((SimpleWidget) new)->simple.self_border = True;
 }
 
 static ISWRegionPtr
@@ -352,7 +348,6 @@ static void
 PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
 {
   CommandWidget cbw = (CommandWidget) w;
-  Boolean very_thick;
   ISWRenderContext *ctx = cbw->label.render_ctx;
 
   /* Create render context on first use (Command bypasses Label.Redisplay) */
@@ -360,17 +355,24 @@ PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
     ctx = cbw->label.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
   }
 
-  very_thick = cbw->core.border_width >
-               (Dimension)((Dimension) Min(cbw->core.width, cbw->core.height)/2);
-
   /* Save original colors for later restoration */
   Pixel saved_foreground = cbw->label.foreground;
   Pixel saved_background = w->core.background_pixel;
 
-  /* Let Label draw normal background + text */
+  /* Pressed: invert colors so Label draws the whole rounded shape with the
+   * foreground as the fill.  Label owns all the rounded-rect drawing. */
+  if (cbw->command.set) {
+    cbw->label.foreground = saved_background;
+    w->core.background_pixel = saved_foreground;
+  }
+
+  /* Let Label draw the rounded background + border + text */
   (*SuperClass->core_class.expose)(w, event, 0);
 
-  /* Now draw pressed-state fill (if set) and border on top */
+  cbw->label.foreground = saved_foreground;
+  w->core.background_pixel = saved_background;
+
+  /* Draw the focus ring on top */
   ISWRenderBegin(ctx);
 
   {
@@ -382,85 +384,9 @@ PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
     double by = off;
     double bw = cbw->core.width - lw;
     double bh = cbw->core.height - lw;
-    double r = cbw->command.corner_radius;
+    double r = cbw->simple.corner_radius;
 
     ISWRenderSave(ctx);
-
-    /* Mask out the corner regions outside the rounded shape using the
-     * parent's background, so corner_radius is honored even when the
-     * border stroke is thin or absent. Even-odd fill of outer rect +
-     * inner rounded rect paints only the four corner slivers. */
-    if (r > 0) {
-      Pixel corner_fill = saved_background;
-      if (IswParent(w) && IswIsWidget(IswParent(w))) {
-        corner_fill = IswParent(w)->core.background_pixel;
-      }
-      double iw = cbw->core.width;
-      double ih = cbw->core.height;
-      ISWRenderPathBegin(ctx);
-      ISWRenderPathRectangle(ctx, 0, 0, iw, ih);
-      ISWRenderPathNewSubPath(ctx);
-      ISWRenderPathArc(ctx, iw - r, r, r, -M_PI/2, 0);
-      ISWRenderPathArc(ctx, iw - r, ih - r, r, 0, M_PI/2);
-      ISWRenderPathArc(ctx, r, ih - r, r, M_PI/2, M_PI);
-      ISWRenderPathArc(ctx, r, r, r, M_PI, 3*M_PI/2);
-      ISWRenderPathClose(ctx);
-      ISWRenderSetFillRule(ctx, ISW_FILL_RULE_EVEN_ODD);
-      ISWRenderSetColor(ctx, corner_fill);
-      ISWRenderFill(ctx);
-      ISWRenderSetFillRule(ctx, ISW_FILL_RULE_WINDING);
-    }
-
-    if (cbw->command.set) {
-      /* Pressed: fill with foreground, redraw content in background.
-       * Clip to the border shape so the fill respects corner_radius. */
-      ISWRenderPathBegin(ctx);
-      if (r > 0) {
-        ISWRenderPathArc(ctx, bx + bw - r, by + r, r, -M_PI/2, 0);
-        ISWRenderPathArc(ctx, bx + bw - r, by + bh - r, r, 0, M_PI/2);
-        ISWRenderPathArc(ctx, bx + r, by + bh - r, r, M_PI/2, M_PI);
-        ISWRenderPathArc(ctx, bx + r, by + r, r, M_PI, 3*M_PI/2);
-        ISWRenderPathClose(ctx);
-      } else {
-        ISWRenderPathRectangle(ctx, bx, by, bw, bh);
-      }
-      ISWRenderSave(ctx);
-      ISWRenderClip(ctx);
-
-      /* Fill background */
-      ISWRenderSetColor(ctx, saved_foreground);
-      ISWRenderPaint(ctx);
-
-      /* Redraw content with inverted colors */
-      cbw->label.foreground = saved_background;
-      w->core.background_pixel = saved_foreground;
-      (*SuperClass->core_class.expose)(w, event, 0);
-      cbw->label.foreground = saved_foreground;
-      w->core.background_pixel = saved_background;
-
-      ISWRenderRestore(ctx);
-    }
-
-    /* Build border path */
-    ISWRenderPathBegin(ctx);
-    if (r > 0) {
-      ISWRenderPathArc(ctx, bx + bw - r, by + r, r, -M_PI/2, 0);
-      ISWRenderPathArc(ctx, bx + bw - r, by + bh - r, r, 0, M_PI/2);
-      ISWRenderPathArc(ctx, bx + r, by + bh - r, r, M_PI/2, M_PI);
-      ISWRenderPathArc(ctx, bx + r, by + r, r, M_PI, 3*M_PI/2);
-      ISWRenderPathClose(ctx);
-    } else {
-      ISWRenderPathRectangle(ctx, bx, by, bw, bh);
-    }
-
-    /* Stroke the border */
-    if (lw > 0 && !very_thick) {
-      ISWRenderSetColor(ctx, saved_foreground);
-      ISWRenderSetLineWidth(ctx, lw);
-      ISWRenderStroke(ctx);
-    } else {
-      ISWRenderPathBegin(ctx);
-    }
 
     /* Focus ring: dashed inset rectangle, drawn when this widget owns
      * keyboard focus (set by the Tab traversal focus manager). */

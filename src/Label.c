@@ -115,6 +115,8 @@ static IswResource resources[] = {
 	offset(label.resize), IswRImmediate, (IswPointer)True},
     {IswNellipsize, IswCEllipsize, IswREllipsize, sizeof(IswEllipsize),
 	offset(label.ellipsize), IswRImmediate, (IswPointer)IswEllipsizeNone},
+    {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
+	offset(simple.corner_radius), IswRImmediate, (IswPointer)0},
     {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
          IswOffsetOf(RectObjRec,rectangle.border_width), IswRImmediate,
          (IswPointer)1},
@@ -386,6 +388,11 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      }
     }
 
+    /* Border tracks the label foreground (theme-driven); expose it to the
+     * windowless backend's ring via the Simple border-color override. */
+    lw->simple.border_color = lw->label.foreground;
+    lw->simple.use_border_color = True;
+
     /* Initialize render context to NULL (will be created on first use) */
     lw->label.render_ctx = NULL;
 
@@ -530,6 +537,23 @@ _EllipsizeText(Widget w, IswFontStruct *fs, const char *text, int text_len,
     return copy;
 }
 
+/*
+ * Paint the label background.  With a corner radius, fill a rounded
+ * rectangle; otherwise a plain rectangle.  The border itself is the
+ * backend's rounded ring (driven by simple.corner_radius + border_width).
+ */
+static void
+DrawBackground(LabelWidget w, ISWRenderContext *ctx)
+{
+    ISWRenderSetColor(ctx, w->core.background_pixel);
+    if (w->simple.corner_radius > 0)
+	ISWRenderFillRoundedRectangle(ctx, 0, 0,
+				      w->core.width, w->core.height,
+				      w->simple.corner_radius);
+    else
+	ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+}
+
 /* ARGSUSED */
 static void
 Redisplay(Widget gw, IswEvent *event, IswRegion region)
@@ -611,8 +635,7 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
             if (draw_y < 0) draw_y = 0;
             ISWRenderBegin(ctx);
             if (insensitive) ISWRenderPushGroup(ctx);
-            ISWRenderSetColor(ctx, w->core.background_pixel);
-            ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+            DrawBackground(w, ctx);
             if (ISWImageIsMonochrome(w->label.image))
                 ISWRenderDrawImageMasked(ctx, w->label.foreground,
                                          pixels, rw, rh,
@@ -676,9 +699,7 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
             if (ctx) {
                 ISWRenderBegin(ctx);
                 if (insensitive) ISWRenderPushGroup(ctx);
-                ISWRenderSetColor(ctx, w->core.background_pixel);
-                ISWRenderFillRectangle(ctx, 0, 0,
-                                       w->core.width, w->core.height);
+                DrawBackground(w, ctx);
                 ISWRenderSetFont(ctx, w->label.font);
                 ISWRenderSetColor(ctx, w->label.foreground);
 
@@ -922,6 +943,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
  redisplay = True;
  /* Recolor SVG images if foreground changed */
  if (curlw->label.foreground != newlw->label.foreground) {
+     newlw->simple.border_color = newlw->label.foreground;
      char fg_hex[8];
      const char *color = _LabelForegroundHex(newlw, fg_hex, sizeof(fg_hex))
                          ? fg_hex : NULL;

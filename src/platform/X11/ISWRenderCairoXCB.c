@@ -375,6 +375,9 @@ _cairo_xcb_ensure_back(IswSurface data, Widget widget,
     return data->back_ctx != NULL;
 }
 
+static void
+cairo_xcb_rounded_path(cairo_t *cr, int x, int y, int w, int h, double radius);
+
 static void *
 cairo_xcb_surface_begin(IswSurface data, Widget widget)
 {
@@ -444,25 +447,47 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
             data->back_needs_clear = False;
         }
 
-        /* Border ring: footprint rect minus content rect, even-odd filled.
-         * Skipped for widgets that paint their own border (Command and its
-         * subclasses draw a rounded Cairo stroke from core.border_width) so
-         * the border is not rendered twice. */
+        /* Border: stroke the centerline of the border ring.  Skipped for
+         * widgets that paint their own border (self_border, e.g. ProgressBar).
+         * A corner radius rounds the stroke.  Stroking the centerline (rather
+         * than even-odd filling outer-minus-inner) gives a thickness that
+         * matches the EGL backend exactly. */
+        Dimension ring_r = (IswIsSubclass(widget, simpleWidgetClass))
+                           ? ((SimpleWidget) widget)->simple.corner_radius : 0;
+        fprintf(stderr, "RINGDBG %s bw=%d w=%d h=%d ring_r=%d sf=%.2f\n",
+                IswName(widget), bw, widget->core.width, widget->core.height,
+                (int)ring_r, sf);
         if (bw > 0 &&
             !(IswIsSubclass(widget, simpleWidgetClass) &&
               ((SimpleWidget) widget)->simple.self_border)) {
-            Pixel bp = widget->core.border_pixel;
-            int cw_ = widget->core.width;
-            int ch = widget->core.height;
+            Pixel bp = (IswIsSubclass(widget, simpleWidgetClass) &&
+                        ((SimpleWidget) widget)->simple.use_border_color)
+                       ? ((SimpleWidget) widget)->simple.border_color
+                       : widget->core.border_pixel;
+            double cw_ = widget->core.width;
+            double ch = widget->core.height;
+            double half = bw / 2.0;
+            double rx = half, ry = half;
+            double rw = cw_ + bw, rh = ch + bw;
             cairo_save(data->cairo_ctx);
             cairo_set_source_rgb(data->cairo_ctx,
                 ((bp >> 16) & 0xff) / 255.0,
                 ((bp >>  8) & 0xff) / 255.0,
                 ((bp      ) & 0xff) / 255.0);
-            cairo_set_fill_rule(data->cairo_ctx, CAIRO_FILL_RULE_EVEN_ODD);
-            cairo_rectangle(data->cairo_ctx, 0, 0, cw_ + 2 * bw, ch + 2 * bw);
-            cairo_rectangle(data->cairo_ctx, bw, bw, cw_, ch);
-            cairo_fill(data->cairo_ctx);
+            cairo_new_path(data->cairo_ctx);
+            if (ring_r > 0) {
+                double r = ring_r + half;
+                cairo_new_sub_path(data->cairo_ctx);
+                cairo_arc(data->cairo_ctx, rx + rw - r, ry + r,      r, -M_PI/2, 0);
+                cairo_arc(data->cairo_ctx, rx + rw - r, ry + rh - r, r, 0,       M_PI/2);
+                cairo_arc(data->cairo_ctx, rx + r,      ry + rh - r, r, M_PI/2,  M_PI);
+                cairo_arc(data->cairo_ctx, rx + r,      ry + r,      r, M_PI,    3*M_PI/2);
+                cairo_close_path(data->cairo_ctx);
+            } else {
+                cairo_rectangle(data->cairo_ctx, rx, ry, rw, rh);
+            }
+            cairo_set_line_width(data->cairo_ctx, bw);
+            cairo_stroke(data->cairo_ctx);
             cairo_restore(data->cairo_ctx);
         }
 
@@ -855,13 +880,15 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
        (background-filled, then painted over), so the blend is wasted: SOURCE is a
        straight copy (no destination read, often a blit) and produces an identical
        result.  Keep OVER only where the source genuinely carries alpha inside its
-       footprint: self_border widgets (Command et al.) draw rounded corners with
-       transparent gaps, and a composite clip narrower than the footprint means we
-       are folding a sub-region that must let the destination show through. */
+       footprint: self_border widgets and rounded-corner widgets (Command et al.)
+       leave transparent corner gaps, and a composite clip narrower than the
+       footprint means we are folding a sub-region that must let the destination
+       show through. */
     {
         Boolean has_alpha =
             (IswIsSubclass(src_widget, simpleWidgetClass) &&
-             ((SimpleWidget) src_widget)->simple.self_border) ||
+             (((SimpleWidget) src_widget)->simple.self_border ||
+              ((SimpleWidget) src_widget)->simple.corner_radius > 0)) ||
             (IswIsWidget(src_widget) && src_widget->core.composite_clip &&
              src_widget->core.composite_clip_w > 0);
         cairo_set_operator(dctx,

@@ -109,8 +109,6 @@ typedef struct {
     /* private state */
     Boolean     	set;
     IswCommandHighlight	highlighted;
-    /* more resources */
-    Dimension		corner_radius;
 } CommandPart;
 
 

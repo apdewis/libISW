@@ -66,6 +66,7 @@ SOFTWARE.
  bitmap		     Pixmap		Pixmap		None
  border		     BorderColor	Pixel		IswDefaultForeground
  borderWidth	     BorderWidth	Dimension	1
+ cornerRadius	     CornerRadius	Dimension	0
  cursor		     Cursor		Cursor		None
  cursorName	     Cursor		String		NULL
  destroyCallback     Callback		IswCallbackList	NULL
@@ -107,6 +108,11 @@ typedef enum {
 
 #define IswNencoding "encoding"
 #define IswCEncoding "Encoding"
+
+#ifndef IswNcornerRadius
+#define IswNcornerRadius "cornerRadius"
+#define IswCCornerRadius "CornerRadius"
+#endif
 
 #define IswNimage "image"
 #define IswCImage "Image"
