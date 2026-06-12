@@ -690,9 +690,20 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
     {
         float ox = (float) (content_off + x);
         float oy = (float) (content_off + y);
+        Dimension cr = (IswIsWidget(src_widget) &&
+                        IswIsSubclass(src_widget, simpleWidgetClass))
+                       ? ((SimpleWidget) src_widget)->simple.corner_radius : 0;
         NVGpaint p = nvgImagePattern(g_egl.vg, ox, oy, fw, fh, 0.0f, img, 1.0f);
         nvgBeginPath(g_egl.vg);
-        nvgRect(g_egl.vg, ox, oy, fw, fh);
+        if (cr > 0) {
+            /* Fold through a rounded path matching the border's outer curve so
+               the corner is clipped to the same rounded shape as Cairo (NanoVG
+               has no rounded scissor; the fill path does the rounding). */
+            int bw = (int) src_widget->core.border_width;
+            nvgRoundedRect(g_egl.vg, ox, oy, fw, fh, (float) cr + bw);
+        } else {
+            nvgRect(g_egl.vg, ox, oy, fw, fh);
+        }
         nvgFillPaint(g_egl.vg, p);
         nvgFill(g_egl.vg);
     }

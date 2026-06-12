@@ -864,12 +864,22 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
        source to its footprint makes adjacent widgets non-overlapping regardless
        of fold order. */
     if (IswIsWidget(src_widget)) {
-        int bw2 = (int) src_widget->core.border_width * 2;
-        cairo_rectangle(dctx,
-                        dst_content_off + x,
-                        dst_content_off + y,
-                        (double) (src_widget->core.width + bw2),
-                        (double) (src_widget->core.height + bw2));
+        int bw = (int) src_widget->core.border_width;
+        int bw2 = bw * 2;
+        double fx = dst_content_off + x;
+        double fy = dst_content_off + y;
+        double fw = src_widget->core.width + bw2;
+        double fh = src_widget->core.height + bw2;
+        Dimension cr = (IswIsSubclass(src_widget, simpleWidgetClass))
+                       ? ((SimpleWidget) src_widget)->simple.corner_radius : 0;
+        if (cr > 0) {
+            /* Match the rounded border's outer curve so the corner AA is not
+               chopped flat by a square footprint clip. */
+            cairo_xcb_rounded_path(dctx, (int) fx, (int) fy,
+                                   (int) fw, (int) fh, (double) cr + bw);
+        } else {
+            cairo_rectangle(dctx, fx, fy, fw, fh);
+        }
         cairo_clip(dctx);
     }
 
