@@ -318,25 +318,21 @@ RealizeWidget(Widget widget)
     LOCK_PROCESS;
     realize = widget->core.widget_class->core_class.realize;
     UNLOCK_PROCESS;
-    /* Mark windowless widgets realized BEFORE running the class realize proc.
-       A windowed widget's realize creates its window, so IswIsRealized() (which
-       tests window != None) becomes true mid-proc; a windowless widget has no
-       window, so without setting the flag first, any IswIsRealized() check the
-       realize proc makes (e.g. Paned's RefigureLocationsAndCommit, which lays
-       out and positions the panes) sees the widget as unrealized and bails —
-       leaving children unpositioned. */
-    if (!IswIsShell(widget)) {
-        widget->core.windowless_realized = True;
-        /* Realize is the windowless equivalent of "create the window" — NOT
-           "map it".  A realized windowless widget is created-but-not-shown
-           (windowless_mapped stays False), exactly as a realized windowed
-           widget's window exists but shows nothing until mapped.  The separate
-           post-realize map pass (RealizeWidget's MapChildren/map-subtree below,
-           mirroring xcb_map_subwindows) is the sole thing that sets
-           windowless_mapped True, gated on managed && mapped_when_managed —
-           just as it gates the windowed map.  Asserting the shown flag here
-           would draw widgets the app deliberately created unmapped. */
-    }
+    /* Mark the widget realized BEFORE running the class realize proc.  Every
+       widget (shells included) is windowless and owns no window to test, so
+       IswIsRealized() reads windowless_realized; without setting the flag first,
+       any IswIsRealized() check the realize proc makes (e.g. Paned's
+       RefigureLocationsAndCommit, which lays out and positions the panes) sees
+       the widget as unrealized and bails — leaving children unpositioned. */
+    widget->core.windowless_realized = True;
+    /* Realize is the equivalent of "create the window" — NOT "map it".  A
+       realized widget is created-but-not-shown (windowless_mapped stays False),
+       exactly as a realized window exists but shows nothing until mapped.  The
+       separate post-realize map pass (RealizeWidget's MapChildren/map-subtree
+       below, mirroring xcb_map_subwindows) is the sole thing that sets
+       windowless_mapped True, gated on managed && mapped_when_managed.
+       Asserting the shown flag here would draw widgets the app deliberately
+       created unmapped. */
     if (realize == NULL)
         IswAppErrorMsg(IswWidgetToApplicationContext(widget),
                       "invalidProcedure", "realizeProc", IswCIswToolkitError,
