@@ -111,6 +111,17 @@ typedef struct { Pixel color; double line_width; IswFontStruct *font; } EglSaved
 static EglSaved g_save_stack[64];
 static int      g_save_top = 0;
 
+/* Bounding box of the rectangles added to the current path, so egl_clip_path can
+   apply a real rectangular nvgScissor (NanoVG's only clip).  Reset at path_begin;
+   updated by egl_path_rectangle. */
+static double  g_rect_minx, g_rect_miny, g_rect_maxx, g_rect_maxy;
+static Boolean g_rect_seen = False;
+
+/* Current point set by egl_path_move_to, so egl_show_text draws at it (it honours
+   the active transform).  ProgressBar centres its text by PathMoveTo(tx,ty) then
+   ShowText — without this the text would draw at (0,0) and be mis-placed. */
+static double g_cur_x = 0, g_cur_y = 0;
+
 /*
  * Per-widget surface — the concrete struct _IswSurface for this backend.
  */
@@ -1052,13 +1063,13 @@ static void egl_pop_group_alpha(ISWRenderContext *ctx, double alpha)
 /* ---- Path construction ---- */
 
 static void egl_path_begin(ISWRenderContext *ctx)
-{ (void) ctx; if (VG) nvgBeginPath(VG); }
+{ (void) ctx; g_rect_seen = False; if (VG) nvgBeginPath(VG); }
 
 static void egl_path_new_sub_path(ISWRenderContext *ctx)
 { (void) ctx; /* NanoVG starts a new sub-path on the next moveTo */ }
 
 static void egl_path_move_to(ISWRenderContext *ctx, double x, double y)
-{ (void) ctx; if (VG) nvgMoveTo(VG, (float) x, (float) y); }
+{ (void) ctx; g_cur_x = x; g_cur_y = y; if (VG) nvgMoveTo(VG, (float) x, (float) y); }
 
 static void egl_path_line_to(ISWRenderContext *ctx, double x, double y)
 { (void) ctx; if (VG) nvgLineTo(VG, (float) x, (float) y); }
@@ -1075,7 +1086,19 @@ static void egl_path_arc(ISWRenderContext *ctx, double cx, double cy,
 
 static void egl_path_rectangle(ISWRenderContext *ctx,
                                double x, double y, double w, double h)
-{ (void) ctx; if (VG) nvgRect(VG, (float) x, (float) y, (float) w, (float) h); }
+{
+    (void) ctx;
+    if (!g_rect_seen) {
+        g_rect_minx = x; g_rect_miny = y; g_rect_maxx = x + w; g_rect_maxy = y + h;
+        g_rect_seen = True;
+    } else {
+        if (x < g_rect_minx) g_rect_minx = x;
+        if (y < g_rect_miny) g_rect_miny = y;
+        if (x + w > g_rect_maxx) g_rect_maxx = x + w;
+        if (y + h > g_rect_maxy) g_rect_maxy = y + h;
+    }
+    if (VG) nvgRect(VG, (float) x, (float) y, (float) w, (float) h);
+}
 
 static void egl_path_close(ISWRenderContext *ctx)
 { (void) ctx; if (VG) nvgClosePath(VG); }
@@ -1088,9 +1111,17 @@ static void egl_stroke_path(ISWRenderContext *ctx, Boolean preserve)
 
 static void egl_clip_path(ISWRenderContext *ctx)
 {
-    /* NanoVG clips only to rectangular scissors; a path clip falls back to the
-       path's bounding scissor.  Documented limitation (see backend README). */
+    /* NanoVG clips only to rectangular scissors.  Apply the bounding rectangle
+       of the rectangles added to the current path as a real scissor (intersected
+       with any existing one), so a rectangular path-clip actually confines later
+       draws — e.g. ProgressBar clipping its split-colour value text to the
+       filled / unfilled halves.  Non-rectangular path clips degrade to this
+       bounding scissor (documented limitation). */
     (void) ctx;
+    if (VG && g_rect_seen)
+        nvgIntersectScissor(VG, (float) g_rect_minx, (float) g_rect_miny,
+                            (float) (g_rect_maxx - g_rect_minx),
+                            (float) (g_rect_maxy - g_rect_miny));
 }
 
 static void egl_paint(ISWRenderContext *ctx)
@@ -1145,7 +1176,9 @@ static void egl_show_text(ISWRenderContext *ctx, const char *text)
     egl_apply_font(ctx);
     nvgTextAlign(VG, NVG_ALIGN_LEFT | NVG_ALIGN_BASELINE);
     nvgFillColor(VG, egl_pixel_to_nvg(ctx->surface, ctx->current_color));
-    nvgText(VG, 0, 0, text, NULL);
+    /* Draw at the path's current point (set by ISWRenderPathMoveTo); honours the
+       active transform.  ProgressBar positions its centred value text this way. */
+    nvgText(VG, (float) g_cur_x, (float) g_cur_y, text, NULL);
 }
 
 static void egl_pixel_to_rgb(ISWRenderContext *ctx, Pixel pixel,
