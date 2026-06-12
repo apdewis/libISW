@@ -603,12 +603,13 @@ DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
     /* Rounded rect outline (always visible) */
     ISWRenderStrokeRoundedRectangle(ctx, x, y, size, size, r, 1.5 * scale);
 
-    /* Solid pip if checked */
+    /* Solid pip if checked, centered in the box */
     if (checked) {
-        double inset = 2.5 * scale;
+        int inset = (int)(2.5 * scale);
+        int pip = size - 2 * inset;
         ISWRenderFillRoundedRectangle(ctx,
-            (int)(x + inset), (int)(y + inset),
-            (int)(size - 2 * inset), (int)(size - 2 * inset), r * 0.5);
+            x + (size - pip) / 2, y + (size - pip) / 2,
+            pip, pip, r * 0.5);
     }
 
     ISWRenderRestore(ctx);
