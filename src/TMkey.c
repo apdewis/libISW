@@ -68,19 +68,11 @@ in this Software without prior written authorization from The Open Group.
 
 */
 
-#define XK_MISCELLANY
-#define XK_LATIN1
-#define XK_LATIN2
-#define XK_LATIN3
-#define XK_LATIN4
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
 #include <ISW/ISWPlatform.h>
-#include <X11/keysymdef.h>
-
 
 #include <ctype.h>
 
@@ -230,7 +222,7 @@ _IswAllocTMContext(IswPerDisplay pd)
     TMKeyContext ctx;
 
     ctx = (TMKeyContext) _IswHeapAlloc(&pd->heap, sizeof(TMKeyContextRec));
-    ctx->event = NULL;
+    //ctx->event = NULL;
     ctx->serial = 0;
     ctx->keysym = NoSymbol;
     ctx->modifiers = 0;
@@ -320,7 +312,7 @@ IswTranslateKey(IswDisplay dpy, IswKeyCode keycode,
     sym = _IswPlatformKeycodeToKeysym(dpy, keycode, col);
 
     /* CapsLock: for lowercase alphabetic keys, return uppercase */
-    if ((modifiers & IswModLock) && col == 0 && sym >= XK_a && sym <= XK_z) {
+    if ((modifiers & IswModLock) && col == 0 && sym >= IswKey_a && sym <= IswKey_z) {
         IswKeySym usym = _IswPlatformKeycodeToKeysym(dpy, keycode, 1);
         if (usym != IswNoSymbol) {
             sym = usym;
@@ -334,7 +326,7 @@ IswTranslateKey(IswDisplay dpy, IswKeyCode keycode,
         mods_consumed &= ~IswModShift;  /* Shift wasn't actually used */
     }
     if (sym == IswNoSymbol)
-        sym = XK_VoidSymbol;
+        sym = IswKeyVoidSymbol;
 
     *modifiers_return = mods_consumed;
     *keysym_return = sym;

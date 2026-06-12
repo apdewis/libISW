@@ -1097,9 +1097,6 @@ ReqCleanup(Widget widget,
     unsigned long length;
     IswSelectionEvent selev;
 
-    if (!_IswPlatformSelectionDecodeEvent(IswDisplayOf(widget),
-                                          IswEventNative(iswev), &selev))
-        return;
 
     if (selev.kind == ISW_SEL_EVENT_REQUEST) {
         if (!MATCH_SELECT(&selev, info))

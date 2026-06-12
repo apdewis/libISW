@@ -203,7 +203,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
 
     memset(out, 0, sizeof(*out));
     out->any.synthetic = synthetic;
-    out->any.native = xev;
+    //out->any.native = xev;
 
     switch (type) {
     case XCB_KEY_PRESS:
@@ -378,18 +378,32 @@ IswEventNative(const IswEvent *event)
     return event ? event->any.native : NULL;
 }
 
-/* ---- event ops (Phase 11a): non-blocking native-event fetch -------------- */
-
-static void *
+static IswEvent *
 xcb_event_poll(IswDisplay dpy)
 {
-    return (void *) xcb_poll_for_event(_IswXcbConn(dpy));
+    xcb_generic_event_t *xev = xcb_poll_for_event(_IswXcbConn(dpy));
+    IswEvent *event = IswNew(IswEvent);
+    Boolean ok = _IswEventFromXcb(dpy, xev, event);
+    free(xev);                      /* native buffer is never retained */
+    if (!ok) {
+        IswFree((char *) event);
+        return NULL;
+    }
+    return event;
 }
 
-static void *
+static IswEvent *
 xcb_event_poll_queued(IswDisplay dpy)
 {
-    return (void *) xcb_poll_for_queued_event(_IswXcbConn(dpy));
+    xcb_generic_event_t *xev = xcb_poll_for_queued_event(_IswXcbConn(dpy));
+    IswEvent *event = IswNew(IswEvent);
+    Boolean ok = _IswEventFromXcb(dpy, xev, event);
+    free(xev);                      /* native buffer is never retained */
+    if (!ok) {
+        IswFree((char *) event);
+        return NULL;
+    }
+    return event;
 }
 
 const IswPlatformEventOps isw_platform_xcb_event_ops = {

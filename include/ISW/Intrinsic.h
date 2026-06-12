@@ -51,10 +51,6 @@ in this Software without prior written authorization from The Open Group.
 #define _IswIntrinsic_h
 
 //#include	<X11/Xlib.h>
-#include    <xcb/xcb.h>
-#include    <xcb/xcbext.h>
-#include    <xcb/xkb.h>
-#include    <xcb/xcb_keysyms.h>
 #include	<ISW/IswTypes.h>
 #include	<ISW/IswEvent.h>	/* platform-neutral event union */
 /* Xresource.h replaced by custom IswQuark/IswValue/IswDatabase/IswOptions headers */
@@ -1814,7 +1810,7 @@ extern void IswGetConstraintResourceList(
     Cardinal*		/* num_resources_return */
 );
 
-#define IswUnspecifiedPixmap	((xcb_pixmap_t)2)
+#define IswUnspecifiedPixmap	((IswPixmap)2)
 #define IswUnspecifiedShellInt	(-1)
 #define IswUnspecifiedWindow	((IswWindow)(uintptr_t)2)
 #define IswUnspecifiedWindowGroup ((IswWindow)(uintptr_t)3)

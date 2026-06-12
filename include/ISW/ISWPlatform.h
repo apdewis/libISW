@@ -400,10 +400,10 @@ struct _IswPlatformRootOps {
 struct _IswPlatformEventOps {
     /* Next pending event, reading the socket if needed; NULL if none.
        Caller frees with free(). */
-    void *(*poll)(IswDisplay dpy);
+    IswEvent *(*poll)(IswDisplay dpy);
     /* Next event already in the client-side queue WITHOUT reading the socket;
        NULL if the queue is empty.  Caller frees with free(). */
-    void *(*poll_queued)(IswDisplay dpy);
+    IswEvent *(*poll_queued)(IswDisplay dpy);
 };
 
 /* configure() mask bits. */
@@ -874,8 +874,8 @@ extern IswColormap _IswPlatformScreenDefaultColormap(IswDisplay dpy, IswScreen s
 extern int       _IswPlatformScreenDepth(IswDisplay dpy, IswScreen screen);
 extern unsigned long _IswPlatformScreenBlackPixel(IswDisplay dpy, IswScreen screen);
 extern unsigned long _IswPlatformScreenWhitePixel(IswDisplay dpy, IswScreen screen);
-extern void     *_IswPlatformPollEvent(IswDisplay dpy);
-extern void     *_IswPlatformPollQueuedEvent(IswDisplay dpy);
+extern IswEvent     *_IswPlatformPollEvent(IswDisplay dpy);
+extern IswEvent     *_IswPlatformPollQueuedEvent(IswDisplay dpy);
 extern Boolean   _IswPlatformDisplayHasError(IswDisplay dpy);
 extern void      _IswPlatformFlush(IswDisplay dpy);
 extern void      _IswPlatformSync(IswDisplay dpy);

@@ -43,6 +43,10 @@
 #include <xcb/xcb_cursor.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-xcb.h>
+#include <xcb/xcb.h>
+#include <xcb/xcbext.h>
+#include <xcb/xkb.h>
+#include <xcb/xcb_keysyms.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -64,6 +68,12 @@
 #define XC_hand1        58
 #define XC_X_cursor     0
 #define XC_crosshair    34
+
+/* XCB → neutral IswEvent translation (ISWPlatformEventXCB.c).  Fills *out and
+ * returns True for toolkit-semantic events; returns False for X11 protocol
+ * events the toolkit does not see as IswEvents. */
+extern Boolean _IswEventFromXcb(IswDisplay dpy,
+                                xcb_generic_event_t *xev, IswEvent *out);
 
 /* ------------------------------------------------------------------ */
 /* Per-widget drop configuration                                      */

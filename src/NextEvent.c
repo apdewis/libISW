@@ -556,7 +556,7 @@ _IswFillEventQueue(IswAppContext app) {
     int dd;
     for (dd = 0; dd < app->count; dd++) {
         IswDisplay disp = (IswDisplay) app->list[dd];
-        void *native;
+        IswEvent *event = NULL;
 
         /* If the connection is broken, set exit flag so the app
          * doesn't spin at 100% CPU polling a dead fd. */
@@ -568,38 +568,24 @@ _IswFillEventQueue(IswAppContext app) {
         /* Flush pending requests before polling for events (the backend does
          * not auto-flush the way Xlib's XNextEvent did). */
         _IswPlatformFlush(disp);
-        while ((native = _IswPlatformPollEvent(disp)) != NULL) {
-            IswEvent *iev;
-
-            /* Translate to neutral at the boundary, then drop the native
-             * event — it never enters the queue or the toolkit. */
-            iev = IswNew(IswEvent);
-            if (!_IswEventFromXcb(disp, native, iev)) {
-                /* Untranslatable / filtered event (e.g. an extension event the
-                 * toolkit ignores): discard both buffers. */
-                IswFree((char *) iev);
-                free(native);
-                continue;
-            }
-            free(native);
-
+        while ((event = _IswPlatformPollEvent(disp)) != NULL) {
             /* Geometry (ConfigureNotify) coalescing: during interactive resize
              * the server sends one per pixel of motion; processing each drives
              * a full widget-tree resize+redraw.  If the queue already holds a
              * geometry event for the same target, replace it with the latest. */
-            if (iev->kind == IswGeometry) {
+            if (event->kind == IswGeometry) {
                 IswEventQueue *scan = app->event_front;
                 IswEventQueue *found = NULL;
                 while (scan) {
                     if (scan->event->kind == IswGeometry &&
                         scan->display == disp &&
-                        scan->event->any.target == iev->any.target)
+                        scan->event->any.target == event->any.target)
                         found = scan;          /* keep last */
                     scan = scan->next;
                 }
                 if (found) {
                     IswFree((char *) found->event);
-                    found->event = iev;
+                    found->event = event;
                     continue;
                 }
             }
@@ -608,25 +594,25 @@ _IswFillEventQueue(IswAppContext app) {
              * server emits a MotionNotify per pixel; the widget only ever needs
              * the most recent position.  If the queue already holds a motion
              * event for the same target, replace it with the latest. */
-            if (iev->kind == IswMotion) {
+            if (event->kind == IswMotion) {
                 IswEventQueue *scan = app->event_front;
                 IswEventQueue *found = NULL;
                 while (scan) {
                     if (scan->event->kind == IswMotion &&
                         scan->display == disp &&
-                        scan->event->any.target == iev->any.target)
+                        scan->event->any.target == event->any.target)
                         found = scan;          /* keep last */
                     scan = scan->next;
                 }
                 if (found) {
                     IswFree((char *) found->event);
-                    found->event = iev;
+                    found->event = event;
                     continue;
                 }
             }
 
             IswEventQueue *q = IswNew(IswEventQueue);
-            q->event = iev;
+            q->event = event;
             q->display = disp;
             q->next = NULL;
             /* FIFO: new node goes at the back. */

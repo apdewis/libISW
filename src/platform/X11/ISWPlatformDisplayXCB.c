@@ -681,7 +681,9 @@ extern const IswPlatformSelectionOps isw_platform_xcb_selection_ops; /* ISWPlatf
 extern const IswPlatformAtomOps      isw_platform_xcb_atom_ops;      /* ISWPlatformAtomPropXCB.c */
 extern const IswPlatformPropertyOps  isw_platform_xcb_property_ops;  /* ISWPlatformAtomPropXCB.c */
 extern const IswPlatformHintOps      isw_platform_xcb_hint_ops;      /* ISWPlatformAtomPropXCB.c */
-extern const IswPlatformDndOps       isw_platform_xcb_dnd_ops;       /* ISWPlatformDndXCB.c */
+/* XDnd temporarily disabled (native-event dependency); .dnd is NULL and the
+   _IswPlatformDnd* wrappers no-op on the missing sub-vtable.  Re-add the extern
+   and ISWPlatformDndXCB.c to restore. */
 
 const IswPlatformOps isw_platform_xcb_ops = {
     .display   = &xcb_display_ops,
@@ -697,7 +699,7 @@ const IswPlatformOps isw_platform_xcb_ops = {
     .atom      = &isw_platform_xcb_atom_ops,
     .property  = &isw_platform_xcb_property_ops,
     .hint      = &isw_platform_xcb_hint_ops,
-    .dnd       = &isw_platform_xcb_dnd_ops,
+    .dnd       = NULL,                              /* XDnd temporarily disabled */
     .resource  = &isw_platform_xcb_resource_ops,   /* Phase 15 */
     .render    = &isw_platform_xcb_render_ops,
 };
@@ -866,7 +868,7 @@ _IswPlatformSync(IswDisplay dpy)
 /* Event-loop poll (Phase 11a).  Returns the next native event (caller frees),
    or NULL.  Recovers ops from the per-display record — the loop runs after the
    display is registered. */
-void *
+IswEvent *
 _IswPlatformPollEvent(IswDisplay dpy)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
@@ -875,7 +877,7 @@ _IswPlatformPollEvent(IswDisplay dpy)
     return NULL;
 }
 
-void *
+IswEvent *
 _IswPlatformPollQueuedEvent(IswDisplay dpy)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;

@@ -193,7 +193,9 @@ set(LIBXT_SOURCES
     src/platform/X11/ISWPlatformColorFontXCB.c
     src/platform/X11/ISWPlatformGrabCursorXCB.c
     src/platform/X11/ISWPlatformAtomPropXCB.c
-    src/platform/X11/ISWPlatformDndXCB.c
+    # XDnd temporarily disabled (native-event dependency) — no-op stub:
+    # src/platform/X11/ISWPlatformDndXCB.c
+    src/ISWDndStub.c
     src/platform/X11/ISWPlatformResourceXCB.c
     src/EventUtil.c
     src/Functions.c
@@ -474,23 +476,24 @@ target_include_directories(focus_dispatch_test PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 
-# Focused XDND drag-and-drop test app
-add_executable(xdnd_test EXCLUDE_FROM_ALL
-    examples/xdnd_test.c
-    examples/multi_stubs.c
-)
-target_link_libraries(xdnd_test PRIVATE ISW PkgConfig::DEMO_DEPS m)
-target_include_directories(xdnd_test PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
-)
-
-add_custom_target(run_xdnd_test
-    COMMAND ${CMAKE_COMMAND} -E env
-        "LD_LIBRARY_PATH=$<TARGET_FILE_DIR:ISW>:$ENV{LD_LIBRARY_PATH}"
-        $<TARGET_FILE:xdnd_test>
-    DEPENDS xdnd_test
-    COMMENT "Running ISW XDND test"
-)
+# Focused XDND drag-and-drop test app — temporarily disabled while XDnd is off
+# (depends on the native-event DnD engine).  Re-add with ISWPlatformDndXCB.c.
+# add_executable(xdnd_test EXCLUDE_FROM_ALL
+#     examples/xdnd_test.c
+#     examples/multi_stubs.c
+# )
+# target_link_libraries(xdnd_test PRIVATE ISW PkgConfig::DEMO_DEPS m)
+# target_include_directories(xdnd_test PRIVATE
+#     ${CMAKE_SOURCE_DIR}/include
+# )
+#
+# add_custom_target(run_xdnd_test
+#     COMMAND ${CMAKE_COMMAND} -E env
+#         "LD_LIBRARY_PATH=$<TARGET_FILE_DIR:ISW>:$ENV{LD_LIBRARY_PATH}"
+#         $<TARGET_FILE:xdnd_test>
+#     DEPENDS xdnd_test
+#     COMMENT "Running ISW XDND test"
+# )
 
 # ===========================================================================
 # pkg-config

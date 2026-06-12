@@ -303,15 +303,15 @@ typedef struct _ActionHookRec {
 
 typedef struct _KeyCacheRec {
     unsigned char modifiers_return[256]; /* constant per xcb_keycode_t, key proc */
-    xcb_keycode_t keycode[TMKEYCACHESIZE];
+    IswKeyCode keycode[TMKEYCACHESIZE];
     unsigned char modifiers[TMKEYCACHESIZE];
-    xcb_keysym_t keysym[TMKEYCACHESIZE];
+    IswKeySym keysym[TMKEYCACHESIZE];
 } TMKeyCache;
 
 typedef struct _TMKeyContextRec {
-    xcb_generic_event_t *event;
+   IswEvent event;
     unsigned long serial;
-    xcb_keysym_t keysym;
+    IswKeySym keysym;
     Modifiers modifiers;
     TMKeyCache keycache;  /* keep this last, to keep offsets to others small */
 } TMKeyContextRec, *TMKeyContext;

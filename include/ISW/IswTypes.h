@@ -38,6 +38,14 @@ typedef uint32_t IswKeySym;
 #define IswNoSymbol ((IswKeySym) 0)
 #endif
 
+/* Neutral keysym constants (values are the fixed X11-protocol keysym codes,
+   which IswKeySym is numerically compatible with — carry no xcb/X11 type or
+   header dependency).  Add more here as the neutral core needs them, rather
+   than pulling in <X11/keysymdef.h>. */
+#define IswKey_a          ((IswKeySym) 0x0061)
+#define IswKey_z          ((IswKeySym) 0x007a)
+#define IswKeyVoidSymbol  ((IswKeySym) 0xffffff)
+
 /* Portable integer point — neutral replacement for xcb_point_t in
    platform-neutral signatures (polygon vertex lists, etc.).  Defined here so
    the render and platform headers share one definition with no xcb dependency. */
