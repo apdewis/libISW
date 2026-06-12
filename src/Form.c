@@ -217,25 +217,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
         return;
 
-    /* Windowed Form subclass (Viewport, converted last): draw the border the
-       old way onto its own window; the server fills the background. */
-    if (!w->core.windowless) {
-        if (w->core.border_width == 0)
-            return;
-        ctx = fw->form.render_ctx;
-        if (ctx == NULL)
-            ctx = fw->form.render_ctx =
-                ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-        if (ctx == NULL)
-            return;
-        ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, w->core.background_pixel);
-        ISWRenderSetLineWidth(ctx, (double) w->core.border_width);
-        ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);
-        ISWRenderEnd(ctx);
-        return;
-    }
-
     ctx = fw->form.render_ctx;
     if (ctx == NULL)
         ctx = fw->form.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
@@ -292,10 +273,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     FormWidget fw = (FormWidget)new;
 
-    /* Windowless: Form draws into its own surface and composites onto its
-       parent.  Viewport (a Form subclass) resets this to False in its own
-       Initialize because it still owns a real clip window (converted last). */
-    new->core.windowless = True;
     fw->form.render_ctx = NULL;
 
     fw->form.old_width = fw->core.width;
@@ -886,7 +863,7 @@ IswFormDoLayout(Widget _fw,
 	    /* Windowless children have no X window of their own —
 	       _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)) would resolve to the windowed ancestor, so
 	       configuring it would resize the ancestor's window. */
-	    if (!w->core.windowless) {
+	    if (IswIsShell(w)) {
 		/* HiDPI: scale logical to physical for the X server */
 		double _sf = _IswGetScaleFactor(IswDisplayOf(w));
 		IswWindowGeometry _g;

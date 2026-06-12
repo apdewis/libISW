@@ -212,10 +212,8 @@ IswUnmapWidget(Widget w)
     WIDGET_TO_APPCON(w);
 
     LOCK_APP(app);
-    /* Windowless: clear the live shown flag (mirroring xcb_unmap_window) and
-       re-composite so the now-hidden widget stops contributing pixels.
-       Unmapping the shared ancestor window would hide the whole window. */
-    if (IswIsWidget(w) && w->core.windowless) {
+
+    if (IswIsWidget(w)) {
         Widget anc;
         w->core.windowless_mapped = False;
         /* Record an explicit unmap so a later realize does not auto-map this
@@ -232,23 +230,18 @@ IswUnmapWidget(Widget w)
         anc = _IswWidgetAncestor(w);
         if (anc != NULL && IswIsRealized(anc))
             ISWRenderRequestComposite(anc);
+        hookobj = IswHooksOfDisplay(IswDisplayOf(w));
+        if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
+            IswChangeHookDataRec call_data;
+        
+            call_data.type = IswHunmapWidget;
+            call_data.widget = w;
+            IswCallCallbackList(hookobj,
+                               ((HookObject) hookobj)->hooks.changehook_callbacks,
+                               (IswPointer) &call_data);
+        }
         UNLOCK_APP(app);
-        return;
     }
-    _IswPlatformUnmapWindow(IswDisplayOf(w),
-                            _IswPlatformWidgetWindow(IswDisplayOf(w), w));
-    _IswPlatformFlush(IswDisplayOf(w));
-    hookobj = IswHooksOfDisplay(IswDisplayOf(w));
-    if (IswHasCallbacks(hookobj, IswNchangeHook) == IswCallbackHasSome) {
-        IswChangeHookDataRec call_data;
-
-        call_data.type = IswHunmapWidget;
-        call_data.widget = w;
-        IswCallCallbackList(hookobj,
-                           ((HookObject) hookobj)->hooks.changehook_callbacks,
-                           (IswPointer) &call_data);
-    }
-    UNLOCK_APP(app);
 }
 
 static void

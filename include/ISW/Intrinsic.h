@@ -1400,7 +1400,7 @@ extern Widget IswParent(
    IswWindow(), which for a windowless widget is the SHARED ancestor window —
    wrong: it never hid/showed the widget itself and broke e.g. Tabs page
    switching.  No inline fast path: map/unmap is not hot, and the macro can't
-   see core.windowless from the public header anyway. */
+   tell a shell from a windowless widget from the public header anyway. */
 #undef IswMapWidget
 extern void IswMapWidget(Widget /* w */);
 

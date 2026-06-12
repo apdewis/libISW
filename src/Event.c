@@ -222,7 +222,7 @@ _IswWindowlessDescendantMask(Widget w)
     for (i = 0; i < cw->composite.num_children; i++) {
         Widget child = cw->composite.children[i];
 
-        if (!IswIsWidget(child) || !child->core.windowless)
+        if (!IswIsWidget(child))
             continue;
         mask |= IswBuildEventMask(child);
         mask |= _IswWindowlessDescendantMask(child);
@@ -363,7 +363,7 @@ RemoveEventHandler(Widget widget,
     if (!raw && IswIsRealized(widget) && !widget->core.being_destroyed) {
         EventMask mask = IswBuildEventMask(widget);
 
-        if (widget->core.windowless) {
+        if (!IswIsShell(widget)) {
             /* No own window — fold this widget's mask into the windowed
                ancestor's selection. */
             _IswUpdateWindowlessAncestorMask(widget);
@@ -519,7 +519,7 @@ AddEventHandler(Widget widget,
     if (IswIsRealized(widget) && !raw) {
         EventMask mask = IswBuildEventMask(widget);
 
-        if (widget->core.windowless) {
+        if (!IswIsShell(widget)) {
             _IswUpdateWindowlessAncestorMask(widget);
         }
         else if (oldMask != mask) {
@@ -672,7 +672,7 @@ _IswWindowlessOffset(Widget w, int *dx, int *dy)
 {
     int ox = 0, oy = 0;
 
-    while (w != NULL && IswIsWidget(w) && w->core.windowless) {
+    while (w != NULL && IswIsWidget(w) && !IswIsShell(w)) {
         ox += w->core.x + (int) w->core.border_width;
         oy += w->core.y + (int) w->core.border_width;
         w = w->core.parent;
@@ -698,7 +698,7 @@ static void _IswExposeWindowlessChildren(Widget w, IswEvent *event);
 static void
 _IswPaintWindowlessChild(Widget child, IswEvent *event)
 {
-    if (!IswIsWidget(child) || !child->core.windowless)
+    if (!IswIsWidget(child) || IswIsShell(child))
         return;
     /* Paint realized windowless children that are mapped.  windowless_mapped is
        the live "the window is mapped" equivalent (driven by map/unmap/manage);
@@ -732,7 +732,7 @@ void
 _IswRepaintWindowless(Widget w)
 {
     Widget anc;
-    if (!IswIsWidget(w) || !w->core.windowless)
+    if (!IswIsWidget(w) || IswIsShell(w))
         return;
     if (!IswIsRealized(w) && !w->core.windowless_realized)
         return;
@@ -841,7 +841,7 @@ _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
                     continue;
                 /* Only windowless children are hit-tested here; windowed
                    children receive their own events from the server. */
-                if (!IswIsWidget(child) || !child->core.windowless)
+                if (!IswIsWidget(child) || IswIsShell(child))
                     continue;
                 /* Same "shown" rule as paint/clip: windowless_mapped is the
                    live mapped flag; an unmapped child is not hit-tested. */
@@ -1311,13 +1311,13 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                 Widget a;
                 for (a = target;
                      a != NULL && a != widget && IswIsWidget(a) &&
-                     a->core.windowless;
+                     !IswIsShell(a);
                      a = a->core.parent) {
                     if (IswBuildEventMask(a) & emask) {
                         int ax = 0, ay = 0;
                         Widget b;
                         for (b = a;
-                             b != NULL && IswIsWidget(b) && b->core.windowless;
+                             b != NULL && IswIsWidget(b) && !IswIsShell(b);
                              b = b->core.parent) {
                             ax += b->core.x + (int) b->core.border_width;
                             ay += b->core.y + (int) b->core.border_width;
@@ -1339,7 +1339,7 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                 if (pdi->buttonsDown == 0)
                     pdi->windowlessButtonGrab =
                         (target != widget && IswIsWidget(target) &&
-                         target->core.windowless) ? target : NULL;
+                         !IswIsShell(target)) ? target : NULL;
                 pdi->buttonsDown |= (1u << event->button.button);
             }
 
@@ -1357,7 +1357,7 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                 Widget g = pdi->windowlessButtonGrab;
                 int gx = 0, gy = 0;
                 Widget a;
-                for (a = g; a != NULL && IswIsWidget(a) && a->core.windowless;
+                for (a = g; a != NULL && IswIsWidget(a) && !IswIsShell(a);
                      a = a->core.parent) {
                     gx += a->core.x + (int) a->core.border_width;
                     gy += a->core.y + (int) a->core.border_width;
@@ -1382,7 +1382,7 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                 Widget old_pw = pdi->pointerWidget;
                 pdi->pointerWidget = (target != widget) ? target : NULL;
                 if (old_pw != NULL && IswIsWidget(old_pw)
-                    && old_pw->core.windowless && !old_pw->core.being_destroyed)
+                    && !IswIsShell(old_pw) && !old_pw->core.being_destroyed)
                     _IswSynthesizeCrossing(old_pw, event, IswLeave);
                 if (pdi->pointerWidget != NULL)
                     _IswSynthesizeCrossing(pdi->pointerWidget, event,

@@ -217,17 +217,8 @@ static void
 redraw_widget(Widget w)
 {
     if (!w || !IswIsRealized(w)) return;
-    if (w->core.windowless) {
-        _IswRepaintWindowless(w);
-        return;
-    }
-    /* Ask the platform to generate a real Expose event for the whole
-     * widget. Calling core_class.expose directly with a NULL event is
-     * unsafe: some widgets (e.g. Text) dereference the event. */
-    _IswPlatformClearArea(IswDisplayOf(w),
-                          _IswPlatformWidgetWindow(IswDisplayOf(w), w),
-                          0, 0, w->core.width, w->core.height, True);
-    _IswPlatformFlush(IswDisplayOf(w));
+    _IswRepaintWindowless(w);
+
 }
 
 /* The widget currently displaying the Tab-cycle focus ring, if any.
@@ -416,7 +407,7 @@ repaint_menu_widgets(Widget w)
     if (IswIsSubclass(w, menuButtonWidgetClass) && IswIsRealized(w)) {
         /* MenuButton is windowless (inherits Label): repaint its surface and
          * composite the ancestor rather than clearing the shared window. */
-        if (w->core.windowless)
+        if (!IswIsShell(w))
             _IswRepaintWindowless(w);
         else
             _IswPlatformClearArea(IswDisplayOf(w),

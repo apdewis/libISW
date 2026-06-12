@@ -108,15 +108,7 @@ _IswPopup(Widget widget, IswGrabKind grab_kind)
                     Widget child = cw->composite.children[i];
                     if (IswIsWidget(child) && IswIsRealized(child) &&
                         IswIsManaged(child)) {
-                        if (child->core.windowless)
-                            /* Windowless child shares the shell's window:
-                               repaint its surface and composite the shell,
-                               rather than clearing the whole shell window. */
                             _IswRepaintWindowless(child);
-                        else
-                            _IswPlatformClearArea(IswDisplayOf(widget),
-                                                  _IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child)),
-                                                  0, 0, 0, 0, True);
                     }
                 }
                 _IswPlatformFlush(IswDisplayOf(widget));

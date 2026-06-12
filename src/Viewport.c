@@ -252,7 +252,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* The clip is a pure geometry rectangle now: the windowless Viewport clips
        its scrolled child in software during compositing.  Windowless clip owns
        no window (nothing reparents into it). */
-    w->viewport.clip->core.windowless = True;
 
     /*
      * Select IswButtonPressMask on the clip widget so that scroll wheel events
@@ -361,14 +360,6 @@ Realize(IswDisplay conn, Widget widget, IswValueMask *value_mask, uint32_t *valu
 	IswRealizeWidget( clip );
 	IswRealizeWidget( child );
 
-	if (!child->core.windowless) {
-	    /* Windowed child: it is reparented into the clip window, so its
-	       position is relative to the clip's origin — move it to (0,0)
-	       within the clip, then reparent and map. */
-	    IswMoveWidget( child, (Position)0, (Position)0 );
-	    _IswPlatformReparentWindow(IswDisplayOf(child), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(child)), (Widget)(child)), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(clip)), (Widget)(clip)), 0, 0);
-	    IswMapWidget( child );
-	}
 	/* Windowless child: NOT reparented — it composites in the Viewport's
 	   own coordinate frame, where the resize above (ComputeLayout/MoveChild)
 	   already positioned it at the clip origin (offset past any left/top
@@ -428,7 +419,7 @@ ChangeManaged(Widget widget)
 		    (ViewportConstraints)child->core.constraints;
 		if (!IswIsRealized(child)) {
 		    IswMoveWidget( child, (Position)0, (Position)0 );
-		    if (child->core.windowless) {
+		    if (!IswIsShell(child)) {
 			/* Windowless child: no window to parent into clip;
 			   realize it (no-op window-wise) and let software
 			   rendering/clipping handle it. */

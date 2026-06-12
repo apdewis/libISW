@@ -436,25 +436,12 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
         /* Redisplay if needed.  No point in clearing if the window is
          * about to disappear, as the Expose event will just go straight
          * to the bit bucket. */
-        if (IswIsWidget(w) && w->core.windowless) {
+        if (IswIsWidget(w)) {
             if (redisplay && IswIsRealized(w) && !w->core.being_destroyed) {
                 CALLGEOTAT(_IswGeoTrace(w,
                                        "IswSetValues repaints windowless \"%s\".\n",
                                        IswName(w)));
                 _IswRepaintWindowless(w);
-            }
-        }
-        else if (IswIsWidget(w)) {
-            /* widgets can distinguish between redisplay and resize, since
-               the server will cause an expose on resize */
-            if (redisplay && IswIsRealized(w) && !w->core.being_destroyed) {
-                CALLGEOTAT(_IswGeoTrace(w,
-                                       "IswSetValues calls ClearArea on \"%s\".\n",
-                                       IswName(w)));
-                _IswPlatformClearArea(
-                        IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), 0, 0, 0, 0, True
-                    );
-                _IswPlatformFlush(IswDisplayOf(w));
             }
         }
         else {                  /*non-window object */

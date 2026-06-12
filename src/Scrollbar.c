@@ -409,7 +409,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     sbw->scrollbar.topLoc = 0;
     sbw->scrollbar.shownLength = sbw->scrollbar.min_thumb;
     sbw->scrollbar.render_ctx = NULL;
-    new->core.windowless = True;
 }
 
 static void

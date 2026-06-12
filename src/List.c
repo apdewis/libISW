@@ -394,10 +394,6 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
         lw->core.height = lw->list.collapsed_height;
     }
 
-    /* Windowless: draw into the parent's window, no own X window.  The
-       dropdown popup shell (if any) stays windowed — shells never convert. */
-    new->core.windowless = True;
-
 } /* Initialize */
 
 /*	Function Name: CvtToItem

@@ -611,7 +611,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
-    new->core.windowless = True;
     newbbw->box.render_ctx = NULL;
 
     newbbw->box.last_query_mode = IswCWWidth | IswCWHeight;

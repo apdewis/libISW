@@ -409,7 +409,6 @@ Initialize (Widget greq, Widget gnew, ArgList args, Cardinal *num_args)
     PannerWidget req = (PannerWidget) greq, new = (PannerWidget) gnew;
     Dimension defwidth, defheight;
 
-    gnew->core.windowless = True;
 
     /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
     if (req->panner.canvas_width < 1) new->panner.canvas_width = 1;

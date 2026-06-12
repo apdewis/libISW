@@ -1096,9 +1096,7 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
     /* Create the WM-managed top-level window through the platform root op —
        the shell no longer calls xcb_create_window directly.  The root surface
        (window + presentation) is owned by the platform layer; the shell holds
-       the returned opaque IswWindow in core.window and never dereferences it.
-       (We do NOT set core.windowless: that flag means "no window, fold into a
-       windowed ancestor" — wrong for a root, which IS the present target.) */
+       the returned opaque IswWindow in core.window and never dereferences it.*/
     {
         double sf = _IswGetScaleFactor(IswDisplayOf(wid));
         IswWindowGeometry geom;

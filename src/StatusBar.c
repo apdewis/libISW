@@ -185,7 +185,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     StatusBarWidget sw = (StatusBarWidget) new;
     (void)request; (void)args; (void)num_args;
 
-    new->core.windowless = True;
     sw->statusBar.render_ctx = NULL;
 
     sw->statusBar.h_space = (4);

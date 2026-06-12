@@ -355,7 +355,6 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
     TreeWidget request = (TreeWidget) grequest, new = (TreeWidget) gnew;
     IswArgBuilder ab = IswArgBuilderInit();
 
-    gnew->core.windowless = True;
 
     /*
      * Make sure the widget's width and height are
@@ -1022,12 +1021,8 @@ layout_tree (TreeWidget tw, Boolean insetvalues)
                                    tw->core.width, tw->core.height);
             ISWRenderEnd(tw->tree.render_ctx);
         }
-        if (tw->core.windowless) {
-            _IswRepaintWindowless((Widget)tw);
-        } else {
-            _IswPlatformClearArea(IswDisplayOf(tw), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(tw)), (Widget)(tw)), 0, 0, 0, 0, True);
-            _IswPlatformFlush(IswDisplayOf(tw));
-        }
+      
+        _IswRepaintWindowless((Widget)tw);
     }
 }
 

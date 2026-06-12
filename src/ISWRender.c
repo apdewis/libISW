@@ -156,8 +156,6 @@ _ISWRenderMarkDirtyChain(Widget w)
     Widget a = w;
     while (a != NULL && IswIsWidget(a)) {
         a->core.composite_dirty = True;
-        if (!a->core.windowless)
-            break;                  /* stop at the windowed root (inclusive) */
         a = a->core.parent;
     }
 }
@@ -387,7 +385,7 @@ _ISWRenderComputeOrigin(Widget w, int *ox, int *oy)
 {
     int x = 0, y = 0;
 
-    while (w != NULL && IswIsWidget(w) && w->core.windowless) {
+    while (w != NULL && IswIsWidget(w) && !IswIsShell(w)) {
         x += w->core.x + (int) w->core.border_width;
         y += w->core.y + (int) w->core.border_width;
         w = w->core.parent;
@@ -406,7 +404,7 @@ ISWRenderBegin(ISWRenderContext *ctx)
     /* Refresh the windowless drawing origin each frame: the widget's
        position within its windowed ancestor may have changed since the
        context was created (geometry updates don't recreate the context). */
-    if (ctx->widget && IswIsWidget(ctx->widget) && ctx->widget->core.windowless)
+    if (ctx->widget && IswIsWidget(ctx->widget) && !IswIsShell(ctx->widget))
         _ISWRenderComputeOrigin(ctx->widget, &ctx->origin_x, &ctx->origin_y);
     else {
         ctx->origin_x = 0;
@@ -441,7 +439,7 @@ ISWRenderEnd(ISWRenderContext *ctx)
        and blit.  This handles self-initiated repaints (button highlight, text
        scroll) that bypass the expose walk. */
     if (!_isw_in_composite && ctx->widget && IswIsWidget(ctx->widget) &&
-        ctx->widget->core.windowless) {
+        !IswIsShell(ctx->widget)) {
         /* The composite root is the nearest enclosing shell — the widget that
            owns the persisted root surface the platform blits to its window.
            Must stop at a popup shell, not walk into the main tree above it. */
@@ -462,7 +460,7 @@ ISWRenderEnd(ISWRenderContext *ctx)
 static Boolean
 _isw_composite_shown(Widget child)
 {
-    if (!IswIsWidget(child) || !child->core.windowless)
+    if (!IswIsWidget(child) || IswIsShell(child))
         return False;
     if (!child->core.windowless_realized && !IswIsRealized(child))
         return False;
@@ -505,7 +503,7 @@ _isw_subtree_has_shown_child(Widget parent)
                 return True;
             /* A context-less container is not itself shown but may hold shown
                descendants. */
-            if (IswIsWidget(c) && c->core.windowless &&
+            if (IswIsWidget(c) && !IswIsShell(c) &&
                 _isw_subtree_has_shown_child(c))
                 return True;
         }

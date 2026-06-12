@@ -203,7 +203,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     (void)request; (void)args; (void)num_args;
 
-    new->core.windowless = True;
 
     IswArgBorderWidth(&ab, 0);
     mw->main_window.menubar = IswCreateManagedWidget(

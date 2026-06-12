@@ -348,7 +348,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IconViewWidget iw = (IconViewWidget) new;
     (void)request; (void)args; (void)num_args;
 
-    new->core.windowless = True;
 
     iw->iconView.sel_flags = NULL;
     iw->iconView.band_saved = NULL;

@@ -326,7 +326,7 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	new_cursor = TRUE;
     }
 
-    if (new_cursor && IswIsRealized(new) && !new->core.windowless)
+    if (new_cursor && IswIsRealized(new) && IswIsShell(new))
         _IswSetWindowCursor(new, s_new->simple.cursor);
     /* Windowless: the new cursor is applied to the windowed ancestor on the
        next pointer-enter (_IswSimpleApplyCursor); changing it while the
@@ -340,7 +340,7 @@ static Boolean
 ChangeSensitive(Widget w)
 {
     if (IswIsRealized(w)) {
-	if (w->core.windowless)
+	if (!IswIsShell(w))
 	    /* Windowless: repaint our own surface and composite the ancestor;
 	       clearing would blank the shared ancestor window. */
 	    _IswRepaintWindowless(w);

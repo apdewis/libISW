@@ -670,29 +670,7 @@ CommitNewLocations(PanedWidget pw)
  */
 
 	if (HasGrip(*childP)) {
-	    if (grip->core.windowless) {
-	        /* Windowless grip: no X window to configure (IswWindow would
-	           return the shared ancestor window — configuring it would move
-	           the whole Paned).  Position via the geometry path, which
-	           recomposites; stacking is implicit in composite order. */
-	        IswMoveWidget(grip, (Position) grip_x, (Position) grip_y);
-	    }
-	    else {
-	        grip->core.x = grip_x;
-	        grip->core.y = grip_y;
-
-	        if (IswIsRealized(pane->grip)) {
-	            /* HiDPI: scale logical to physical for the X server */
-	            double _sf = _IswGetScaleFactor(IswDisplayOf(pane->grip));
-	            IswWindowGeometry _g;
-	            memset(&_g, 0, sizeof(_g));
-	            _g.x = (int32_t)(grip_x * _sf + 0.5);
-	            _g.y = (int32_t)(grip_y * _sf + 0.5);
-	            _IswPlatformConfigureWindow(IswDisplayOf(pane->grip), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(pane->grip)), (Widget)(pane->grip)), &_g,
-				     ISW_CONFIG_X | ISW_CONFIG_Y |
-				     ISW_CONFIG_STACK, ISW_STACK_ABOVE, NULL);
-	        }
-	    }
+        IswMoveWidget(grip, (Position) grip_x, (Position) grip_y);
 	}
     }
     ClearPaneStack(pw);
@@ -1375,7 +1353,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     /* HiDPI: dimensions stay in logical pixels; scaled at X boundary */
 
-    new->core.windowless = True;
 
     pw->paned.recursively_called = False;
     pw->paned.stack = NULL;
@@ -1541,7 +1518,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 
     /* Windowless: fill the widget's own background first (no X window for the
        server to fill); panes/grips composite on top. */
-    if (w->core.windowless && IswIsRealized(w) &&
+    if (IswIsRealized(w) &&
         w->core.width > 0 && w->core.height > 0) {
         if (pw->paned.render_ctx == NULL)
             pw->paned.render_ctx =

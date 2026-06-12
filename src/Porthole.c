@@ -210,10 +210,6 @@ Initialize (Widget request, Widget gw, ArgList args, Cardinal *num_args)
     PortholeWidget pw = (PortholeWidget) gw;
     (void) request; (void) args; (void) num_args;
 
-    /* The porthole is windowless: it owns a back surface and composites its
-       (oversized, negatively-offset) child onto it, clipped to its own
-       bounds.  This replaces the real clip window the porthole used to own. */
-    gw->core.windowless = True;
     pw->porthole.render_ctx = NULL;
 }
 

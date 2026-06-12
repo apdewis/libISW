@@ -100,7 +100,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ProgressBarWidget pbw = (ProgressBarWidget) new;
 
-    new->core.windowless = True;
 
     /* ProgressBar strokes its own trough/border; suppress the windowless
        backend's generic border ring to avoid a redundant border. */

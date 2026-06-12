@@ -104,7 +104,7 @@ typedef struct _IswSurface ISWRenderCairoXCBData;
 static Widget
 _cairo_xcb_windowed_widget(Widget w)
 {
-    while (w != NULL && IswIsWidget(w) && w->core.windowless &&
+    while (w != NULL && IswIsWidget(w) && !IswIsShell(w) &&
            w->core.parent != NULL)
         w = w->core.parent;
     return w;
@@ -115,7 +115,7 @@ _cairo_xcb_create_surface(IswSurface data, Widget widget)
 {
     /* Windowless widgets share their windowed ancestor's window; the surface
        must cover the whole window, not just the child's rectangle. */
-    Widget surf_w = widget->core.windowless
+    Widget surf_w = !IswIsShell(widget)
                   ? _cairo_xcb_windowed_widget(widget) : widget;
     Dimension w = surf_w->core.width;
     Dimension h = surf_w->core.height;
@@ -312,7 +312,7 @@ _cairo_xcb_ensure_back(IswSurface data, Widget widget,
      * margins composite correctly onto the parent (a server pixmap at root
      * depth 24 has no alpha).  Windowed widgets use a server pixmap so the
      * Present extension can blit it. */
-    Boolean want_image = (widget && widget->core.windowless);
+    Boolean want_image = (widget && !IswIsShell(widget));
 
     if (w < 1) w = 1;
     if (h < 1) h = 1;
@@ -383,7 +383,7 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
      * offset by the border width.  The composite pass later folds this surface
      * into the parent's surface.  No origin translate, no clip-out-children,
      * no ancestor-sized surface — the surface boundary IS the clip. */
-    if (widget && widget->core.windowless) {
+    if (widget && !IswIsShell(widget)) {
         double sf;
         int bw;
         Dimension pw, ph;
@@ -650,7 +650,7 @@ cairo_xcb_surface_end(IswSurface data, Widget widget, IswWindow window)
      * surface.  Just undo the begin() save and flush — the composite pass
      * (ISWRenderCompositeSubtree) folds this surface up the tree and presents
      * the windowed root once.  No present here. */
-    if (widget && widget->core.windowless) {
+    if (widget && !IswIsShell(widget)) {
         data->frame_depth = 0;
         if (data->cairo_ctx)
             cairo_restore(data->cairo_ctx);
@@ -756,7 +756,7 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
 
     /* dst content origin within dst's surface: windowless parents reserve a
      * border ring at the top-left of their surface; windowed roots do not. */
-    dst_content_off = (dst_widget && dst_widget->core.windowless)
+    dst_content_off = (dst_widget && !IswIsShell(dst_widget))
                     ? (int) dst_widget->core.border_width : 0;
 
     cairo_surface_flush(sd->back_surface);

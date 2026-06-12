@@ -194,7 +194,7 @@ LayoutChildren(TabsWidget tw)
         if (child == tw->tabs.top_widget) {
             if (IswIsRealized(child))
                 IswMapWidget(child);
-            else if (child->core.windowless)
+            else if (!IswIsShell(child))
                 child->core.mapped_when_managed = True;
         } else {
             /* Non-top page: must start hidden.  When already realized, unmap
@@ -204,7 +204,7 @@ LayoutChildren(TabsWidget tw)
                is set, so leaving it True would composite every page on init. */
             if (IswIsRealized(child))
                 IswUnmapWidget(child);
-            else if (child->core.windowless)
+            else if (!IswIsShell(child))
                 child->core.mapped_when_managed = False;
         }
     }
@@ -316,7 +316,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     TabsWidget tw = (TabsWidget)new;
 
-    new->core.windowless = True;
     tw->tabs.top_widget = NULL;
     tw->tabs.render_ctx = NULL;
 

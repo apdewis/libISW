@@ -608,7 +608,7 @@ IswResizeWindow(Widget w)
             g.height = (uint32_t)lrint((double)req.changes_h * sf);
             g.border_width = (uint32_t)lrint((double)req.changes_bw * sf);
             /* Windowless widgets own no X window — see _IswMakeGeometryRequest. */
-            if (!w->core.windowless)
+            if (IswIsShell(w))
                 _IswPlatformConfigureWindow(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), &g,
                                             ISW_CONFIG_WIDTH | ISW_CONFIG_HEIGHT |
                                             ISW_CONFIG_BORDER,
@@ -714,7 +714,7 @@ IswConfigureWidget(Widget w,
             }
         }
 
-        if (IswIsRealized(w) && IswIsWidget(w) && w->core.windowless) {
+        if (IswIsRealized(w) && IswIsWidget(w)) {
             /* Windowless widgets have no X window to configure, and the server
                never sends them an Expose after a geometry change.
 
@@ -754,51 +754,6 @@ IswConfigureWidget(Widget w,
             _ISWRenderMarkDirtyChain(w->core.parent);
             if (pw != NULL && IswIsRealized(pw) && !pw->core.being_destroyed)
                 ISWRenderRequestComposite(pw);
-        }
-        else if (IswIsRealized(w)) {
-            if (IswIsWidget(w)) {
-                CALLGEOTAT(_IswGeoTrace(w,
-                                       "XConfigure \"%s\"'s window\n",
-                                       IswName(w)));
-
-                /* HiDPI: convert logical pixels to physical for the X server.
-                 * Use lrint() for correct rounding of negative positions. */
-                {
-                    double sf = _IswGetScaleFactor(IswDisplayOf(w));
-                    IswWindowGeometry g;
-                    unsigned int cmask = 0;
-                    memset(&g, 0, sizeof(g));
-                    if (req.changeMask & IswCWX) {
-                        g.x = (int32_t)lrint((double)req.changes_x * sf);
-                        cmask |= ISW_CONFIG_X;
-                    }
-                    if (req.changeMask & IswCWY) {
-                        g.y = (int32_t)lrint((double)req.changes_y * sf);
-                        cmask |= ISW_CONFIG_Y;
-                    }
-                    if (req.changeMask & IswCWWidth) {
-                        g.width = (uint32_t)lrint((double)req.changes_w * sf);
-                        cmask |= ISW_CONFIG_WIDTH;
-                    }
-                    if (req.changeMask & IswCWHeight) {
-                        g.height = (uint32_t)lrint((double)req.changes_h * sf);
-                        cmask |= ISW_CONFIG_HEIGHT;
-                    }
-                    if (req.changeMask & IswCWBorderWidth) {
-                        g.border_width = (uint32_t)lrint((double)req.changes_bw * sf);
-                        cmask |= ISW_CONFIG_BORDER;
-                    }
-                    _IswPlatformConfigureWindow(w->core.display,
-                                                _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), &g, cmask,
-                                                ISW_STACK_NONE, NULL);
-                }
-            }
-            else {
-                CALLGEOTAT(_IswGeoTrace(w,
-                                       "ClearRectObj called on \"%s\"\n",
-                                       IswName(w)));
-                ClearRectObjAreas((RectObj) w, old_x,old_y,old_w,old_h,old_bw);
-            }
         }
         hookobj = IswHooksOfDisplay(IswDisplayOfObject(w));
         if (IswHasCallbacks(hookobj, IswNconfigureHook) == IswCallbackHasSome) {

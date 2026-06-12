@@ -277,7 +277,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     SliderWidget sw = (SliderWidget) new;
     (void)request; (void)args; (void)num_args;
 
-    new->core.windowless = True;
 
     ((SimpleWidget) new)->simple.traversal_on = True;
 

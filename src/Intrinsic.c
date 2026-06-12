@@ -270,8 +270,7 @@ MapChildren(CompositePart *cwp)
 
         if (IswIsWidget(child)) {
             if (child->core.managed && child->core.mapped_when_managed &&
-                !(child->core.windowless &&
-                  child->core.windowless_unmapped_explicit)) {
+                !child->core.windowless_unmapped_explicit) {
                 IswMapWidget(children[i]);
             }
         }
@@ -326,7 +325,7 @@ RealizeWidget(Widget widget)
        realize proc makes (e.g. Paned's RefigureLocationsAndCommit, which lays
        out and positions the panes) sees the widget as unrealized and bails —
        leaving children unpositioned. */
-    if (widget->core.windowless) {
+    if (!IswIsShell(widget)) {
         widget->core.windowless_realized = True;
         /* Realize is the windowless equivalent of "create the window" — NOT
            "map it".  A realized windowless widget is created-but-not-shown

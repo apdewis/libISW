@@ -100,7 +100,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     DrawingAreaWidget daw = (DrawingAreaWidget) new;
 
-    new->core.windowless = True;
     daw->drawing_area.render_ctx = NULL;
 
     if (daw->core.width == 0)  daw->core.width = 1;

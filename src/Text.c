@@ -618,7 +618,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       CreateHScrollBar(ctx);
   }
 
-  new->core.windowless = True;
 }
 
 static void
@@ -2193,7 +2192,7 @@ TextHitChild(Widget w, int x, int y, int *dx, int *dy)
     Widget bar = bars[i];
     int bx, by, bw, bh;
 
-    if (bar == NULL || !bar->core.windowless)
+    if (bar == NULL || IswIsShell(bar))
       continue;
     if (!bar->core.windowless_mapped)   /* only mapped (shown) bars */
       continue;

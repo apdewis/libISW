@@ -294,11 +294,6 @@ CoreInitialize(Widget requested_widget _X_UNUSED,
 {
     IswTranslations save1, save2;
 
-    /* Every widget is windowless: it draws into its nearest windowed ancestor
-       (a shell's root surface) and never owns an X window.  This is the only
-       supported model, so it is set unconditionally rather than via a resource. */
-    new_widget->core.windowless = True;
-
     new_widget->core.event_table = NULL;
     new_widget->core.tm.proc_table = NULL;
     new_widget->core.tm.lastEventTime = 0;
