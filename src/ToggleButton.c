@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>

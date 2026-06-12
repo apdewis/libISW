@@ -1,14 +1,12 @@
-/* include/X11/IswTypes.h
- * Local definitions for types and constants not provided by XCB headers.
- * Only contains types/constants that have NO XCB equivalent.
- * Everything else should be used directly from xcb/xproto.h or xcb/xcb_icccm.h.
+/* include/ISW/IswTypes.h
+ * Neutral primitive types and constants for the platform-independent core.
+ * No XCB/cairo dependency: handles are opaque value/pointer types the active
+ * backend reinterprets; X11-derived constant values are kept only where they
+ * are numerically protocol-compatible and carry no native type.
  */
 #ifndef _IswTypes_h
 #define _IswTypes_h
 
-#include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
-#include <xkbcommon/xkbcommon.h>
 #include <stdint.h>
 
 /*
@@ -94,32 +92,6 @@ typedef int XContext;
 
 /*
  * -----------------------------------------------------------------------
- * Accessor macros wrapping XCB calls
- * -----------------------------------------------------------------------
- */
-
-/* Event-loop file descriptor for a display: use the platform display op
-   _IswPlatformConnectionFd(dpy) (declared in IntrinsicI.h, implemented over the
-   ISWPlatform display vtable).  No XCB type appears in this public header.
-   (Phase 2: ISWPlatform display ops.) */
-
-#ifndef DefaultRootWindow
-#define DefaultRootWindow(dpy) \
-    (xcb_setup_roots_iterator(xcb_get_setup(dpy)).data->root)
-#endif
-
-#ifndef RootWindowOfScreen
-#define RootWindowOfScreen(s) ((s)->root)
-#endif
-
-#ifndef BlackPixelOfScreen
-#define BlackPixelOfScreen(s) ((s)->black_pixel)
-#define WhitePixelOfScreen(s) ((s)->white_pixel)
-#endif
-
-
-/*
- * -----------------------------------------------------------------------
  * Geometry parse flags — no XCB equivalent
  * -----------------------------------------------------------------------
  */
@@ -128,9 +100,6 @@ typedef int XContext;
 #define YValue      0x0002
 #define WidthValue  0x0004
 #define HeightValue 0x0008
-#define AllValues   0x000F
-#define XNegative   0x0010
-#define YNegative   0x0020
 #endif
 
 /*
@@ -147,49 +116,6 @@ typedef IswKeySym KeySym;
 #define NoSymbol 0L
 #endif
 
-#ifndef XStringToKeysym
-#define XStringToKeysym(str) \
-    ((KeySym) xkb_keysym_from_name((str), XKB_KEYSYM_NO_FLAGS))
-#endif
-
-#ifndef XKeysymToString
-#include <string.h>
-static inline const char *XKeysymToString(KeySym keysym) {
-    static char _isw_keysym_buf[64];
-    int n = xkb_keysym_get_name((xkb_keysym_t) keysym,
-                                 _isw_keysym_buf, sizeof(_isw_keysym_buf));
-    if (n < 0) return NULL;
-    return _isw_keysym_buf;
-}
-#endif
-
-
-/*
- * -----------------------------------------------------------------------
- * IswSetWindowAttributes — no XCB struct equivalent
- * (XCB uses uint32_t value lists instead)
- * -----------------------------------------------------------------------
- */
-#ifndef _XSetWindowAttributes_defined
-#define _XSetWindowAttributes_defined
-typedef struct {
-    xcb_pixmap_t  background_pixmap;
-    unsigned long background_pixel;
-    xcb_pixmap_t  border_pixmap;
-    unsigned long border_pixel;
-    int           bit_gravity;
-    int           win_gravity;
-    int           backing_store;
-    unsigned long backing_planes;
-    unsigned long backing_pixel;
-    Bool          save_under;
-    long          event_mask;
-    long          do_not_propagate_mask;
-    Bool          override_redirect;
-    IswColormap   colormap;
-    IswCursor     cursor;
-} IswSetWindowAttributes;
-#endif
 
 /*
  * -----------------------------------------------------------------------
@@ -219,10 +145,6 @@ typedef struct {
 #define AnyPropertyType 0L
 #endif
 
-#ifndef AllTemporary
-#define AllTemporary 0L
-#endif
-
 #ifndef CurrentTime
 #define CurrentTime 0L
 #endif
@@ -232,25 +154,8 @@ typedef struct {
 #define AnyButton 0L
 #endif
 
-#ifndef AllPlanes
-#define AllPlanes ((unsigned long)~0L)
-#endif
-
 #ifndef PointerRoot
 #define PointerRoot 1L
-#endif
-
-#ifndef InputFocus
-#define InputFocus 1L
-#endif
-
-#ifndef PointerWindow
-#define PointerWindow 0L
-#endif
-
-/* NotifyHint — not a mode/detail enum, standalone constant */
-#ifndef NotifyHint
-#define NotifyHint 1
 #endif
 
 /*
@@ -276,7 +181,6 @@ typedef struct {
     char flags;
     char pad;
 } IswColor;
-typedef IswColor IswColor;
 
 typedef struct {
     IswVisual         visual;
@@ -290,7 +194,6 @@ typedef struct {
     int               colormap_size;
     int               bits_per_rgb;
 } IswVisualInfo;
-typedef IswVisualInfo IswVisualInfo;
 
 typedef struct _IswFontStruct {
     IswFontId       fid;
@@ -306,7 +209,6 @@ typedef struct _IswFontStruct {
     int             font_slant;
     double          pt_size;
 } IswFontStruct;
-typedef IswFontStruct IswFontStruct;
 
 #ifndef XrmString
 typedef char *XrmString;

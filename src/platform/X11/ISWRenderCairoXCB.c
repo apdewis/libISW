@@ -19,6 +19,7 @@
 #include <ISW/CoreP.h>       /* For accessing widget->core fields */
 #include <ISW/CompositeP.h>  /* For clipping out windowless children */
 #include <ISW/SimpleP.h>     /* For simple.self_border (own-border widgets) */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
