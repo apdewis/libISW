@@ -16,9 +16,6 @@
 #ifndef _ISW_ScrollWheel_h
 #define _ISW_ScrollWheel_h
 
-#include <X11/Xfuncproto.h>
-#include <xcb/xcb.h>
-
 /* Resource names for scroll wheel configuration */
 #define IswNscrollWheelIncrement "scrollWheelIncrement"
 #define IswCScrollWheelIncrement "ScrollWheelIncrement"

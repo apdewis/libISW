@@ -49,7 +49,6 @@ SOFTWARE.
 #ifndef _ISW_IswTextSink_h
 #define _ISW_IswTextSink_h
 
-#include <xcb/xcb.h>
 #include <ISW/ISWPlatform.h>
 #include <ISW/Text.h>
 

@@ -31,7 +31,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Panner.h>
 #include <ISW/SimpleP.h>		/* parent */
 #include <ISW/ISWRender.h>		/* Cairo rendering context */
-#include <xcb/xproto.h>
 
 typedef struct {			/* new fields in widget class */
     int dummy;

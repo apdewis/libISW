@@ -122,16 +122,6 @@ typedef unsigned int IswGravity;
 #define IswGravityUnmap		0
 #endif
 
-#ifdef ISW_GRAY_BLKWHT_STIPPLES
-extern unsigned long
-grayPixel(
-    unsigned long,
-    xcb_connection_t *,  /* XCB connection (was Display*) */
-    xcb_screen_t *
-);
-#else
 #define grayPixel(p, dpy, scn)	(p)
-#endif
-
 
 #endif /* _ISW_Isw3dP_h */

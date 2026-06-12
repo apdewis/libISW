@@ -49,7 +49,6 @@ SOFTWARE.
 #ifndef _ISW_IswTextP_h
 #define _ISW_IswTextP_h
 
-#include <xcb/xcb.h>
 #include <ISW/Text.h>
 #include <ISW/SimpleP.h>
 #include <ISW/ISWRender.h>  /* for IswRelief type */

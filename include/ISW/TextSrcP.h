@@ -30,7 +30,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _ISW_IswTextSrcP_h
 #define _ISW_IswTextSrcP_h
 
-#include <xcb/xcb.h>
+
 #include <ISW/TextSrc.h>
 #include <ISW/TextP.h>
 
