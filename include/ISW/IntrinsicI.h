@@ -56,8 +56,6 @@ SOFTWARE.
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
 
 #include "Object.h"
 #include "RectObj.h"
