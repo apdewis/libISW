@@ -278,9 +278,6 @@ SetTextWidthAndHeight(LabelWidget lw)
 
     /* image resource takes priority over text */
     if (lw->label.image) {
-        /* Image dimensions are in logical pixels; Cairo scale transform
-         * handles physical rendering.  SVG is rasterized at physical DPI
-         * for quality but dimensions are divided back to logical. */
         double sf = ISWImageIsVector(lw->label.image)
                        ? ISWScaleFactor((Widget)lw) : 1.0;
         lw->label.label_width  = (Dimension)(ISWImageGetWidth(lw->label.image)  / sf + 0.5);
@@ -289,8 +286,7 @@ SetTextWidthAndHeight(LabelWidget lw)
         return;
     }
     /*
-     * Use ISWScaledTextWidth/ISWScaledFontHeight to measure text the way
-     * Cairo will actually render it, so layout matches rendering on HiDPI.
+     * Use ISWScaledTextWidth/ISWScaledFontHeight to measure text so layout matches rendering on HiDPI.
      */
     {
 	int line_height = ISWScaledFontHeight((Widget)lw, fs);
@@ -544,7 +540,7 @@ static void
 Redisplay(Widget gw, IswEvent *event, IswRegion region)
 {
     LabelWidget w = (LabelWidget) gw;
-    ISWRenderContext *ctx = w->label.render_ctx;  /* Cairo rendering context */
+    ISWRenderContext *ctx = w->label.render_ctx;  /* rendering context */
     
     /* Create render context on first use (lazy initialization) */
     if (!ctx && gw->core.width > 0 && gw->core.height > 0) {
@@ -607,9 +603,6 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
             if (disp_h == 0) disp_h = 1;
         }
 
-        /* Rasterize at physical resolution for sharp HiDPI rendering.
-         * Device scale on the Cairo surface maps the logical draw area
-         * to physical pixels 1:1 with the rasterized image. */
         float sf = (float)ISWScaleFactor((Widget)w);
         unsigned int raster_w = (unsigned int)(disp_w * sf + 0.5f);
         unsigned int raster_h = (unsigned int)(disp_h * sf + 0.5f);
@@ -649,11 +642,6 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
      return;
  }
 
- /* Use Cairo's actual font metrics for baseline and line height.
-  * Single-line text is centered on visual cap height rather than
-  * full font extents, since Cairo's ascent includes line-gap padding
-  * that pushes glyphs visually below center. Multi-line text falls
-  * back to metric-box centering via label_y. */
  int line_height = ISWScaledFontHeight((Widget)w, fs);
  if (len != MULTI_LINE_LABEL) {
      int cap = ISWScaledFontCapHeight((Widget)w, fs);
@@ -690,8 +678,6 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
 	}
 
         {
-
-            /* Use Cairo rendering if available */
             if (ctx) {
                 ISWRenderBegin(ctx);
                 if (insensitive) ISWRenderPushGroup(ctx);
@@ -985,7 +971,6 @@ Destroy(Widget w)
 	ISWImageDestroy(lw->label.left_image);
 	lw->label.left_image = NULL;
     }
-    /* Free Cairo render context if allocated */
     if (lw->label.render_ctx != NULL) {
 	ISWRenderDestroy(lw->label.render_ctx);
 	lw->label.render_ctx = NULL;

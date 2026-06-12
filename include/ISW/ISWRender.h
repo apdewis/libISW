@@ -646,19 +646,6 @@ Boolean ISWRenderSetGradient(ISWRenderContext *ctx,
                              Pixel color1, Pixel color2);
 
 /*
- * ISWRenderGetCairoContext - Get direct Cairo context
- *
- * Parameters:
- *   ctx - Rendering context
- *
- * Returns: cairo_t* (cast from void*)
- *
- * Notes:
- *   - For advanced Cairo operations beyond the ISWRender API
- */
-void* ISWRenderGetCairoContext(ISWRenderContext *ctx);
-
-/*
  * ISWRenderPushGroup - Begin an offscreen compositing group
  *
  * Subsequent draw calls accumulate into a group rather than painting

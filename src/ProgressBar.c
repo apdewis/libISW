@@ -166,7 +166,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     ProgressBarWidget pbw = (ProgressBarWidget) w;
     ISWRenderContext *ctx = pbw->progress_bar.render_ctx;
-    /* Drawing in logical pixels; Cairo scale transform handles physical */
     double r = 2.0;
     double pad = 2.0;
 

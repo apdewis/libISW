@@ -367,7 +367,6 @@ Destroy (Widget w)
     ScrollbarWidget sbw = (ScrollbarWidget) w;
     if(sbw->scrollbar.timer_id != (IswIntervalId) 0)
 	IswRemoveTimeOut (sbw->scrollbar.timer_id);
-    /* Destroy Cairo rendering context */
     if (sbw->scrollbar.render_ctx)
         ISWRenderDestroy(sbw->scrollbar.render_ctx);
 }
@@ -411,11 +410,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     sbw->scrollbar.timer_id = (IswIntervalId)0;
     sbw->scrollbar.topLoc = 0;
     sbw->scrollbar.shownLength = sbw->scrollbar.min_thumb;
-
-    /* Defer render_ctx creation to Realize — Cairo needs a window */
     sbw->scrollbar.render_ctx = NULL;
-
-    /* Windowless: draw into the parent's window, no own X window. */
     new->core.windowless = True;
 }
 
@@ -434,7 +429,6 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
     (*scrollbarWidgetClass->core_class.superclass->core_class.realize)
 	(dpy, w, valueMask, attributes);
 
-    /* Create Cairo rendering context now that we have a window */
     sbw->scrollbar.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
 }
 

@@ -359,9 +359,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
   smw->simple_menu.too_tall = FALSE;
   smw->simple_menu.sub_menu = NULL;
   smw->simple_menu.state = 0;
-  smw->simple_menu.submenu_timer = (IswIntervalId)0;
-  
-  /* Initialize Cairo rendering context to NULL - will be created when first drawn */
+  smw->simple_menu.submenu_timer = (IswIntervalId)0;  
   smw->simple_menu.render_ctx = NULL;
 
   IswAddCallback(new, IswNpopupCallback, PopupCB, NULL);
@@ -403,7 +401,6 @@ Destroy(Widget w)
 
     CancelSubMenuTimer(smw);
 
-    /* Free Cairo rendering context */
     if (smw->simple_menu.render_ctx) {
         ISWRenderDestroy(smw->simple_menu.render_ctx);
         smw->simple_menu.render_ctx = NULL;
@@ -430,7 +427,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     Boolean can_paint;
     XPoint point[3];
 
-    /* Try to create Cairo rendering context if not yet created */
     if (!smw->simple_menu.render_ctx && IswIsRealized(w)) {
         if (smw->core.width > 0 && smw->core.height > 0 &&
             smw->core.width < 32767 && smw->core.height < 32767) {
@@ -492,7 +488,6 @@ point[1].y = s + SMW_ARROW_SIZE;
 point[2].x = (*entry)->rectangle.width / 2 + SMW_ARROW_SIZE / 2;
 point[2].y = s + SMW_ARROW_SIZE;
 
-/* Use Cairo rendering for up arrow if available */
 if (smw->simple_menu.render_ctx) {
 		 ISWRenderBegin(smw->simple_menu.render_ctx);
 		 ISWRenderSetColor(smw->simple_menu.render_ctx, smw->core.border_pixel);
@@ -523,7 +518,6 @@ dy = SMW_ARROW_SIZE;
 	 point[2].x = (*entry)->rectangle.width / 2 + SMW_ARROW_SIZE / 2;
 	 point[2].y = max_y - SMW_ARROW_SIZE;
 	 
-	 /* Use Cairo rendering for down arrow if available */
 	 if (smw->simple_menu.render_ctx) {
 	     ISWRenderBegin(smw->simple_menu.render_ctx);
 	     ISWRenderSetColor(smw->simple_menu.render_ctx, smw->core.border_pixel);

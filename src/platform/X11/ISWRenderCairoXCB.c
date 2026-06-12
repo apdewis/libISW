@@ -1376,19 +1376,6 @@ cairo_xcb_set_gradient(ISWRenderContext *ctx, double x1, double y1, double x2, d
     return True;
 }
 
-static void*
-cairo_xcb_get_cairo_context(ISWRenderContext *ctx)
-{
-    ISWRenderCairoXCBData *data;
-
-    if (!ctx || !ctx->surface) {
-        return NULL;
-    }
-
-    data = (ISWRenderCairoXCBData*)ctx->surface;
-    return (void*)data->cairo_ctx;
-}
-
 static void
 cairo_xcb_push_group(ISWRenderContext *ctx)
 {
@@ -2002,7 +1989,6 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .draw_image_rgba = cairo_xcb_draw_image_rgba,
     .draw_image_masked = cairo_xcb_draw_image_masked,
     .set_gradient = cairo_xcb_set_gradient,
-    .get_cairo_context = cairo_xcb_get_cairo_context,
     .push_group = cairo_xcb_push_group,
     .pop_group_alpha = cairo_xcb_pop_group_alpha,
     .path_begin = cairo_xcb_path_begin,

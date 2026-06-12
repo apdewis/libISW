@@ -42,7 +42,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/TextP.h>
 #include <ISW/ISWRender.h>
 
-/* HiDPI helpers: return Cairo-matched scaled font metrics */
 static int ScaledAscent(TextSinkObject sink) {
     return ISWScaledFontAscent(IswParent((Widget)sink), sink->text_sink.font);
 }

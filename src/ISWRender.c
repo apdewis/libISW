@@ -228,7 +228,6 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
        widgets + their surfaces, not contexts). */
     _isw_surface_ops = ctx->surface_ops;
 
-    /* All cairo backends provide the same capability set. */
     ctx->capabilities = ISW_RENDER_CAP_BASIC |
                         ISW_RENDER_CAP_ANTIALIASING |
                         ISW_RENDER_CAP_GRADIENTS |
@@ -1037,11 +1036,6 @@ ISWRenderDrawImageMasked(ISWRenderContext *ctx, Pixel foreground,
                                 dst_x, dst_y, dst_w, dst_h);
 }
 
-/*
- * =================================================================
- * Advanced Features (Cairo-only)
- * =================================================================
- */
 
 Boolean
 ISWRenderSetGradient(ISWRenderContext *ctx, double x1, double y1, double x2, double y2,
@@ -1052,16 +1046,6 @@ ISWRenderSetGradient(ISWRenderContext *ctx, double x1, double y1, double x2, dou
     }
     
     return ctx->ops->set_gradient(ctx, x1, y1, x2, y2, color1, color2);
-}
-
-void*
-ISWRenderGetCairoContext(ISWRenderContext *ctx)
-{
-    if (!ctx || !ctx->ops || !ctx->ops->get_cairo_context) {
-        return NULL;
-    }
-
-    return ctx->ops->get_cairo_context(ctx);
 }
 
 void
@@ -1302,17 +1286,6 @@ ISWUnscalePos(Widget widget, int value)
     double scale = ISWScaleFactor(widget);
     return (Position)lrint((double)value / scale);
 }
-
-/*
- * =================================================================
- * Text / Font Measurement (neutral wrappers)
- * =================================================================
- *
- * The actual measurement (cairo/FreeType/fontconfig) lives in the render
- * backend.  These widget-keyed wrappers forward to the active backend's
- * platform render ops, so the neutral dispatcher carries no font toolkit.
- */
-
 
 int
 ISWScaledTextWidth(Widget widget, IswFontStruct *font, const char *text, int len)

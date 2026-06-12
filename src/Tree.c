@@ -384,10 +384,6 @@ Initialize (Widget grequest, Widget gnew, ArgList args, Cardinal *num_args)
 
     if (new->tree.line_width > 0)
 	new->tree.line_width = (new->tree.line_width);
-
-    /*
-     * Initialize the Cairo rendering context
-     */
     new->tree.render_ctx = NULL;
 
     /*

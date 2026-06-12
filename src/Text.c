@@ -2503,7 +2503,7 @@ void FlushUpdate(TextWidget ctx)
   if (ctx->text.numranges > 0) {
     ctx->text.numranges = 0;
     /* Full redraw: clear entire text area and repaint all visible lines.
-     * Cairo text rendering requires explicit background clearing (unlike
+     * text rendering requires explicit background clearing (unlike
      * XDrawImageString which fills behind glyphs), so incremental updates
      * cause artifacts. A full redraw is simple and reliable. */
     ClearWindow((Widget)ctx);

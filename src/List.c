@@ -372,7 +372,6 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
                         (lw->core.height != 0) * HeightLock +
                         (lw->list.longest != 0) * LongestLock;
 
-    /* Set row height using Cairo-matched metrics for correct HiDPI sizing */
     lw->list.row_height = ISWScaledFontHeight(new, lw->list.font)
                           + lw->list.row_space;
 
@@ -380,7 +379,6 @@ Initialize(Widget junk, Widget new, ArgList args, Cardinal *num_args)
 
     lw->list.highlight = lw->list.is_highlighted = NO_HIGHLIGHT;
 
-    /* Initialize Cairo rendering context */
     lw->list.render_ctx = NULL;
 
     /* Dropdown mode initialization */
@@ -588,9 +586,7 @@ PaintItemName(Widget w, int item)
 
     str =  lw->list.list[item];	/* draw it */
 
-    /* Use Cairo rendering for text if available */
     if (lw->list.render_ctx) {
-        /* Set clip for Cairo */
         IswRectangle clip_rect;
         clip_rect.x = x;
         clip_rect.y = lw->list.internal_height;
@@ -643,19 +639,18 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         }
     }
 
-    /* Begin Cairo rendering if available */
     if (lw->list.render_ctx) {
         ISWRenderBegin(lw->list.render_ctx);
     }
 
-    /* Always repaint all items: the Cairo back buffer is cleared above on
+    /* Always repaint all items: the back buffer is cleared above on
      * every expose, so limiting paint to the expose rectangle would leave
      * items outside it blank. */
     ul_item = 0;
     lr_item = lw->list.nrows * lw->list.ncols - 1;
     (void)event;
 
-    /* Always fill background: the Cairo back buffer persists across frames,
+    /* Always fill background: the back buffer persists across frames,
      * so partial expose-driven repaints would otherwise leave stale content
      * (e.g. a dismissed focus ring) visible. */
     if (lw->list.render_ctx) {
@@ -708,7 +703,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     if (lw->list.render_ctx)
         _IswFocusMgrDrawRing(w, lw->list.render_ctx, lw->list.foreground, 2.0);
 
-    /* End Cairo rendering if available */
     if (lw->list.render_ctx) {
         ISWRenderEnd(lw->list.render_ctx);
     }
@@ -1391,7 +1385,6 @@ Destroy(Widget w)
 {
     ListWidget lw = (ListWidget) w;
 
-    /* Cleanup Cairo render context */
     if (lw->list.render_ctx) {
         ISWRenderDestroy(lw->list.render_ctx);
         lw->list.render_ctx = NULL;

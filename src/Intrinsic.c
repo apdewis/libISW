@@ -210,8 +210,7 @@ ComputeWindowAttributes(Widget widget,
      * position-only moves (scrolling) this eliminates the
      * clear-then-redraw flash entirely.  For resizes, the resize proc
      * already handles the layout update, and partial exposes are handled
-     * correctly by ISWRender's back-buffer seeding (cairo_xcb_begin copies
-     * the current window surface into the back buffer before drawing).
+     * correctly by ISWRender's back-buffer seeding
      */
     mask |= IswCWBitGravity;
     values[value_index++] = IswGravityNorthWest;

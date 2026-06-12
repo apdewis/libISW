@@ -32,12 +32,10 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/StringDefs.h>		/* for IswN and IswC defines */
 #include <ISW/ISWInit.h>		/* for IswInitializeWidgetSet */
 #include <ISW/PannerP.h>		/* us */
-#include <ISW/ISWRender.h>		/* Cairo rendering */
+#include <ISW/ISWRender.h>
 #include <X11/Xos.h>
 #include <ctype.h>			/* for isascii() etc. */
 #include <stdlib.h>			/* for atof() */
-#ifdef HAVE_CAIRO
-#endif
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWPlatform.h>
 

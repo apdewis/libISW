@@ -228,7 +228,7 @@ xcb_font_free_font(IswDisplay dpy, IswFontId fid)
 }
 
 /* Last-resort font: open a hardcoded core font and populate an IswFontStruct
-   with real server metrics, so Cairo text rendering gets a valid font size.
+   with real server metrics, so text rendering gets a valid font size.
    Used when the IswRFontStruct/IswRFontSet resource converters yield no font. */
 static IswFontStruct *
 xcb_font_load_fallback_font(IswDisplay dpy)

@@ -1,16 +1,9 @@
 /*
- * ISWRenderOps.h - Neutral render dispatcher structures (no xcb/cairo)
+ * ISWRenderOps.h - Neutral render dispatcher structures
  *
  * Copyright (c) 2026 ISW Project
  *
- * The backend-agnostic dispatcher (ISWRender.c) needs the render context, the
- * drawing/surface op vtables, and the platform render-ops struct — but NONE of
- * the native (xcb) or cairo types.  Those vtable members are expressed in
- * neutral terms (IswPoint, void* draw handles), so this header pulls in no
- * xcb/cairo headers and the neutral translation unit stays free of them.
- *
- * The X11/cairo backend includes ISWRenderPrivate.h, which includes THIS header
- * plus the xcb/cairo headers and the backend-private declarations.
+ * The backend-agnostic dispatcher (ISWRender.c)
  */
 
 #ifndef _ISWRenderOps_h
@@ -43,10 +36,6 @@ typedef struct _IswSurfaceOps {
     /* Destroy a surface and free its buffers. */
     void (*destroy)(IswSurface surface);
 
-    /* Begin a frame: ensure the back buffer matches the widget's current size,
-       target it, and return the render-layer drawing handle (an opaque void*,
-       a cairo_t* in the cairo backend) the ISWRenderOps primitives draw with —
-       or NULL if not ready this frame. */
     void *(*begin)(IswSurface surface, Widget widget);
     /* End a frame: flush the back buffer.  For a windowed widget, blit it to
        `window`; for a windowless widget this is just a flush (the composite pass
@@ -71,7 +60,7 @@ typedef struct _IswSurfaceOps {
  *
  * Each backend implements this interface.  The neutral dispatcher dispatches to
  * the active backend via these function pointers.  All members are expressed in
- * neutral types: points are IswPoint, the cairo handle is an opaque void*.
+ * neutral types.
  */
 typedef struct _ISWRenderContext ISWRenderContextStruct; /* fwd for members */
 
@@ -101,8 +90,6 @@ typedef struct _ISWRenderOps {
                     int x, int y, int w, int h,
                     double angle1, double angle2);
 
-    /* Rounded rectangles (backend draws the path; neutral layer no longer
-       reaches for a cairo context to do it itself). */
     void (*fill_rounded_rect)(struct _ISWRenderContext *ctx,
                               int x, int y, int w, int h, double radius);
     void (*stroke_rounded_rect)(struct _ISWRenderContext *ctx,
@@ -149,10 +136,6 @@ typedef struct _ISWRenderOps {
     Boolean (*set_gradient)(struct _ISWRenderContext *ctx,
                            double x1, double y1, double x2, double y2,
                            Pixel c1, Pixel c2);
-    /* Opaque backend draw handle (cairo_t* in the cairo backend), for callers
-       that still need direct access.  void* keeps cairo out of this header. */
-    void* (*get_cairo_context)(struct _ISWRenderContext *ctx);
-
     /* Begin a compositing group: subsequent draws accumulate into an offscreen
        group instead of the surface.  Pair with pop_group_alpha. */
     void (*push_group)(struct _ISWRenderContext *ctx);
@@ -266,11 +249,7 @@ typedef struct _ISWRenderContext {
  * Platform render ops (member of IswPlatformOps.render)
  * =================================================================
  *
- * The render system's slot in the platform ops table.  The platform header
- * (ISW/ISWPlatform.h) forward-declares this struct opaquely and holds it by
- * pointer in IswPlatformOps so it pulls in no cairo/xcb render types; the
- * concrete layout is defined here, in render-internal (but still neutral) scope.
- *
+ * The render system's slot in the platform ops table.
  * Carries the per-backend drawing + surface sub-vtables, the backend-detection
  * hooks the dispatcher uses to pick a backend, and the widget-keyed font
  * measurement entry points.  ISWRender.c reaches these through the active

@@ -649,11 +649,6 @@ _IswLoadThemedCursor(IswDisplay dpy, IswScreen screen,
     return _IswPlatformLoadNamedCursor(dpy, screen, name, shape);
 }
 
-/* -----------------------------------------------------------------------
- * Resolve a fontconfig family name (optionally with "-size" suffix) into
- * an IswFontStruct with font_family set for Cairo rendering.  fid is 0
- * since rendering goes through Cairo, not core X11 fonts.
- * ----------------------------------------------------------------------- */
 static IswFontStruct *
 _IswLoadFontconfigFont(const char *name)
 {
