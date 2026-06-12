@@ -614,11 +614,41 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
                   (float) sf);
 
     /* Clip to dst's content rectangle (the clipping the X server used to
-       enforce via child windows). */
+       enforce via child windows).  nvgScissor sets the base region; the further
+       clips below intersect into it (nvgIntersectScissor), matching the Cairo
+       backend's stacked cairo_clip calls. */
     if (dst_widget != NULL)
         nvgScissor(g_egl.vg, (float) content_off, (float) content_off,
                    (float) dst_widget->core.width,
                    (float) dst_widget->core.height);
+
+    /* Composite clip the parent imposed on this child (Viewport confining its
+       scrolled content to the clip region so it does not overflow the viewport
+       and overdraw the scrollbars).  Given in the parent's content frame; the
+       child folds at (x,y) = parent_origin + child.x/y, so the parent frame sits
+       at (x - child.x, y - child.y).  Without this, scrolled content bleeds over
+       the scrollbars (which then appear to scroll with the content). */
+    if (IswIsWidget(src_widget) && src_widget->core.composite_clip &&
+        src_widget->core.composite_clip_w > 0) {
+        int frame_x = x - (int) src_widget->core.x;
+        int frame_y = y - (int) src_widget->core.y;
+        nvgIntersectScissor(g_egl.vg,
+                            (float) (content_off + frame_x + src_widget->core.composite_clip_x),
+                            (float) (content_off + frame_y + src_widget->core.composite_clip_y),
+                            (float) src_widget->core.composite_clip_w,
+                            (float) src_widget->core.composite_clip_h);
+    }
+
+    /* Confine the source to its own widget footprint at its composited position,
+       so surface slack (scrollbars, AA bleed) beyond the widget rectangle does
+       not overflow into adjacent siblings regardless of fold order. */
+    if (IswIsWidget(src_widget)) {
+        int bw2 = (int) src_widget->core.border_width * 2;
+        nvgIntersectScissor(g_egl.vg,
+                            (float) (content_off + x), (float) (content_off + y),
+                            (float) (src_widget->core.width + bw2),
+                            (float) (src_widget->core.height + bw2));
+    }
 
     {
         float ox = (float) (content_off + x);
