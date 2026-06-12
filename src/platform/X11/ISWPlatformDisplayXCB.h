@@ -24,4 +24,8 @@ typedef struct _IswDisplayXCB {
 extern void _IswXcbAllocWWTable(IswDisplay display);
 extern void _IswXcbFreeWWTable(IswDisplay display);
 
+/* True if `widget` is still registered in the window→widget table (its window
+   has not been destroyed) — backs _IswPlatformWidgetIsLive. */
+extern Boolean _IswXcbWidgetRegistered(IswDisplay display, Widget widget);
+
 #endif /* _ISWPlatformPrivateXCB_h */

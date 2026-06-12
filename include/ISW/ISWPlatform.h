@@ -1054,6 +1054,13 @@ extern void _IswPlatformSetWidgetWindow(IswDisplay dpy, Widget w, IswWindow win)
    does — events arrive already carrying their target widget. */
 extern Widget   _IswPlatformWidgetForWindow(IswDisplay dpy, IswWindow win);
 
+/* True if `widget` is still registered with the platform (its window has not
+   been destroyed).  A liveness test for a Widget pointer carried in a queued
+   event: events are stamped with their target widget at enqueue, so a widget
+   destroyed before its event is dispatched leaves a dangling target.  Core
+   dispatch checks this at dequeue and discards events for dead widgets. */
+extern Boolean   _IswPlatformWidgetIsLive(IswDisplay dpy, Widget widget);
+
 extern Boolean   _IswPlatformWindowViewable(IswDisplay dpy, IswWindow win);
 extern IswWindowId _IswPlatformWindowId(IswWindow win);
 extern IswWindow   _IswPlatformWindowFromId(IswDisplay dpy, IswWindowId id);

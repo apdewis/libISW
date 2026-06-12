@@ -1579,9 +1579,17 @@ IswAppProcessEvent(IswAppContext app, IswInputMask mask)
                 }
                 IswFree((char *) node);
 
-                /* The queue already holds a neutral event (translated at the
-                 * poll boundary in _IswFillEventQueue) — dispatch it directly. */
-                IswDispatchEvent(event, disp);
+                /* The event was stamped with its target widget at enqueue.  If
+                 * that widget was destroyed before we got here (e.g. a ComboBox
+                 * dropdown popup destroyed on selection while its grab events
+                 * are still queued), the target now dangles — dispatching would
+                 * hit-test freed memory.  Discard such events. */
+                if (event->any.target == 0 ||
+                    _IswPlatformWidgetIsLive(disp, (Widget)(void *)event->any.target)) {
+                    /* The queue already holds a neutral event (translated at the
+                     * poll boundary in _IswFillEventQueue) — dispatch it. */
+                    IswDispatchEvent(event, disp);
+                }
 
                 IswFree((char *) event);
             }

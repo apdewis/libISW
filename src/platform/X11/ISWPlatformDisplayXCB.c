@@ -378,6 +378,14 @@ static void
 xcb_win_destroy(IswDisplay dpy, IswWindow win)
 {
     IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
+
+    /* Drop the window->widget association before destroying the server window.
+       Otherwise the entry lingers pointing at a widget about to be freed, so
+       event translation (IswWindowToWidget) and the queued-event liveness check
+       can hand back a dangling widget.  Must run while the widget is still
+       alive: IswUnregisterDrawable dereferences it to locate the table slot. */
+    IswUnregisterDrawable(dpy, win);
+
     if (priv->conn)
         xcb_destroy_window(priv->conn, _IswXcbWindow(win));
 }
@@ -570,6 +578,13 @@ Widget
 _IswPlatformWidgetForWindow(IswDisplay dpy, IswWindow win)
 {
     return IswWindowToWidget(dpy, win);
+}
+
+/* Neutral widget-liveness test (declared in ISW/ISWPlatform.h). */
+Boolean
+_IswPlatformWidgetIsLive(IswDisplay dpy, Widget widget)
+{
+    return _IswXcbWidgetRegistered(dpy, widget);
 }
 
 /* Register (or clear, with win==0) the window backing a specific widget. */

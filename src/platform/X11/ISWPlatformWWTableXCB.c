@@ -203,24 +203,28 @@ IswWindowToWidget(IswDisplay display, IswWindow window_opaque)
     LOCK_PROCESS;
     tab = WWTABLE(display);
     idx = (int) WWHASH(tab, window);
-    /* Compare against the entry's platform window.  The WWfake deletion
-       sentinel is a zeroed WidgetRec that must not be dereferenced as a real
-       widget; _IswPlatformWidgetWindow tolerates it (returns the display root)
-       which simply won't match a live window. */
-    if ((entry = tab->entries[idx]) &&
-        _IswXcbWindow(_IswPlatformWidgetWindow(display, entry)) != window) {
+    /* Probe the open-addressed table.  The WWfake deletion sentinel is a zeroed
+       WidgetRec that is NOT a real widget: it must never be returned, and it
+       must never terminate the probe (it marks a slot vacated by a deletion,
+       past which a live entry may still hash).  Treat it as "occupied but not a
+       match" — keep probing — and only a genuine window match wins. */
+#define WWMATCH(e) ((e) != NULL && (e) != &WWfake && \
+                    _IswXcbWindow(_IswPlatformWidgetWindow(display, (e))) == window)
+    entry = tab->entries[idx];
+    if (entry != NULL && !WWMATCH(entry)) {
         int rehash = (int) WWREHASHVAL(tab, window);
 
         do {
             idx = (int) WWREHASH(tab, idx, rehash);
-        } while ((entry = tab->entries[idx]) &&
-                 _IswXcbWindow(_IswPlatformWidgetWindow(display, entry)) != window);
+            entry = tab->entries[idx];
+        } while (entry != NULL && !WWMATCH(entry));
     }
-    if (entry) {
+    if (entry != NULL && entry != &WWfake) {
         UNLOCK_PROCESS;
         UNLOCK_APP(app);
         return entry;
     }
+#undef WWMATCH
     for (pair = tab->pairs; pair; pair = pair->next) {
         if (pair->window == window) {
             entry = pair->widget;
@@ -232,6 +236,49 @@ IswWindowToWidget(IswDisplay display, IswWindow window_opaque)
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
     return NULL;
+}
+
+/* True if `widget` is still registered in this display's window->widget table
+   (as a window owner or an extra/foreign window).  A widget is unregistered
+   when its window is destroyed (Phase 2 destroy), so this is a liveness test
+   for a Widget pointer that survives in a queued event: a dangling target whose
+   widget was freed since the event was enqueued is no longer registered and the
+   event must be discarded rather than dispatched into freed memory. */
+Boolean
+_IswXcbWidgetRegistered(IswDisplay display, Widget widget)
+{
+    WWTable tab;
+    WWPair pair;
+    unsigned int i;
+    Boolean found = FALSE;
+    DPY_TO_APPCON(display);
+
+    if (widget == NULL)
+        return FALSE;
+
+    LOCK_APP(app);
+    LOCK_PROCESS;
+    tab = WWTABLE(display);
+    if (tab != NULL) {
+        for (i = 0; i <= tab->mask; i++) {
+            Widget entry = tab->entries[i];
+            if (entry == widget) {     /* &WWfake never equals a real widget */
+                found = TRUE;
+                break;
+            }
+        }
+        if (!found) {
+            for (pair = tab->pairs; pair; pair = pair->next) {
+                if (pair->widget == widget) {
+                    found = TRUE;
+                    break;
+                }
+            }
+        }
+    }
+    UNLOCK_PROCESS;
+    UNLOCK_APP(app);
+    return found;
 }
 
 /* Allocate / free the table; called from display open/close. */
