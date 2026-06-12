@@ -67,10 +67,39 @@ typedef struct {
     EGLSurface   pbuffer;        /* 1x1 placeholder for off-screen rendering */
     NVGcontext  *vg;
     int          font_default;   /* NanoVG font handle, -1 until loaded */
+
+    /* Images created during the current frame are queued here and deleted only
+       after nvgEndFrame flushes the batch.  NanoVG batches draws until
+       nvgEndFrame, and nvgDeleteImage deletes the GL texture immediately, so a
+       per-draw delete would destroy the texture before the batched draw that
+       samples it (icons would render as nothing). */
+    int          pending_imgs[64];
+    int          n_pending;
 } EglShared;
 
 static EglShared g_egl = { False, False, EGL_NO_DISPLAY, NULL,
-                           EGL_NO_CONTEXT, EGL_NO_SURFACE, NULL, -1 };
+                           EGL_NO_CONTEXT, EGL_NO_SURFACE, NULL, -1,
+                           { 0 }, 0 };
+
+/* Queue an image for deletion after the current frame's nvgEndFrame. */
+static void
+egl_defer_delete_image(int img)
+{
+    if (img <= 0) return;
+    if (g_egl.n_pending < (int)(sizeof(g_egl.pending_imgs)/sizeof(int)))
+        g_egl.pending_imgs[g_egl.n_pending++] = img;
+    else
+        nvgDeleteImage(g_egl.vg, img);  /* overflow: delete now (rare) */
+}
+
+/* Delete all images queued during the frame.  Called after nvgEndFrame. */
+static void
+egl_flush_pending_images(void)
+{
+    for (int i = 0; i < g_egl.n_pending; i++)
+        nvgDeleteImage(g_egl.vg, g_egl.pending_imgs[i]);
+    g_egl.n_pending = 0;
+}
 
 /*
  * Per-widget surface — the concrete struct _IswSurface for this backend.
@@ -91,6 +120,12 @@ struct _IswSurface {
 
     int               back_w, back_h;   /* physical-pixel FBO extent */
     Boolean           deferred;         /* created unsized; build on first begin */
+    Boolean           back_needs_clear; /* FBO freshly (re)allocated: clear to
+                                           transparent on next begin, ONCE.  Not
+                                           every begin — widgets like Command
+                                           paint in two begin/end passes into the
+                                           same FBO and clearing each pass would
+                                           wipe the first pass's content. */
     int               frame_depth;      /* nested begin/end guard */
     double            scale;            /* HiDPI device scale */
 
@@ -243,6 +278,7 @@ egl_ensure_fbo(IswSurface s, int pw, int ph)
     }
     s->back_w = pw;
     s->back_h = ph;
+    s->back_needs_clear = True;   /* fresh buffer: begin() clears it once */
     return True;
 }
 
@@ -386,8 +422,18 @@ egl_surface_begin(IswSurface s, Widget widget)
 
     glBindFramebuffer(GL_FRAMEBUFFER, s->fbo);
     glViewport(0, 0, s->back_w, s->back_h);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    /* Clear to transparent ONLY on a freshly (re)allocated FBO, so unpainted
+       margins composite correctly.  Do NOT clear every frame: a widget like
+       Command paints in two separate begin/end passes (Label content, then
+       pressed border) into the same FBO, and clearing each pass would wipe the
+       first pass's content (the label text). */
+    if (s->back_needs_clear) {
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        s->back_needs_clear = False;
+    } else {
+        glClear(GL_STENCIL_BUFFER_BIT);   /* stencil must be fresh each frame */
+    }
 
     /* NanoVG works in logical pixels; pass the device-pixel-ratio so its AA and
        line widths match the FBO's physical resolution. */
@@ -485,8 +531,12 @@ egl_surface_end(IswSurface s, Widget widget, IswWindow window)
     s->frame_depth = 0;
 
     /* Finish NanoVG drawing into the bound FBO. */
-    if (g_active_surface == s)
+    if (g_active_surface == s) {
         nvgEndFrame(g_egl.vg);
+        /* Now that the batch has flushed, it is safe to delete images created
+           during this frame's draws (icons, etc.). */
+        egl_flush_pending_images();
+    }
 
     /* Windowless: leave the painted FBO for the composite pass to fold. */
     if (widget && !IswIsShell(widget))
@@ -855,7 +905,8 @@ static void egl_draw_image_rgba(ISWRenderContext *ctx,
     nvgRect(VG, (float) dst_x, (float) dst_y, (float) dst_w, (float) dst_h);
     nvgFillPaint(VG, p);
     nvgFill(VG);
-    nvgDeleteImage(VG, img);
+    /* Delete only after the frame flushes — the draw above is batched. */
+    egl_defer_delete_image(img);
 }
 
 static void egl_draw_image_masked(ISWRenderContext *ctx, Pixel foreground,
@@ -890,7 +941,7 @@ static void egl_draw_image_masked(ISWRenderContext *ctx, Pixel foreground,
     nvgRect(VG, (float) dst_x, (float) dst_y, (float) dst_w, (float) dst_h);
     nvgFillPaint(VG, p);
     nvgFill(VG);
-    nvgDeleteImage(VG, img);
+    egl_defer_delete_image(img);   /* delete after frame flush (batched draw) */
     (void) ctx;
 }
 
