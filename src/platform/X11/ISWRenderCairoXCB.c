@@ -811,7 +811,24 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
 
     cairo_set_source_surface(dctx, sd->back_surface,
                              dst_content_off + x, dst_content_off + y);
-    cairo_set_operator(dctx, CAIRO_OPERATOR_OVER);
+    /* OVER reads the destination and blends per pixel — the dominant CPU cost of
+       the composite pass.  Most widget surfaces are opaque across their footprint
+       (background-filled, then painted over), so the blend is wasted: SOURCE is a
+       straight copy (no destination read, often a blit) and produces an identical
+       result.  Keep OVER only where the source genuinely carries alpha inside its
+       footprint: self_border widgets (Command et al.) draw rounded corners with
+       transparent gaps, and a composite clip narrower than the footprint means we
+       are folding a sub-region that must let the destination show through. */
+    {
+        Boolean has_alpha =
+            (IswIsSubclass(src_widget, simpleWidgetClass) &&
+             ((SimpleWidget) src_widget)->simple.self_border) ||
+            (IswIsWidget(src_widget) && src_widget->core.composite_clip &&
+             src_widget->core.composite_clip_w > 0);
+        cairo_set_operator(dctx,
+                           has_alpha ? CAIRO_OPERATOR_OVER
+                                     : CAIRO_OPERATOR_SOURCE);
+    }
     cairo_paint(dctx);
     cairo_restore(dctx);
 }
