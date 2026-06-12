@@ -395,11 +395,7 @@ CombineUserDefaults(IswDisplay dpy, IswScreen screen,
         _IswPlatformResourceCombine(rdb, pdb, False);
     }
     else {
-#ifdef __MINGW32__
-        const char *slashDotXdefaults = "/Xdefaults";
-#else
         const char *slashDotXdefaults = "/.Xdefaults";
-#endif
         char filename[PATH_MAX];
 
         (void) GetRootDirName(filename,
@@ -513,24 +509,23 @@ IswScreenDatabase(IswScreen screen)
     }
 
     /* Find the connection that owns this screen by iterating per-display list */
-    {
-        PerDisplayTablePtr pdt;
-        LOCK_PROCESS;
-        for (pdt = _IswperDisplayList; pdt != NULL; pdt = pdt->next) {
-            int n_pdt = ops->display->screen_count(pdt->dpy);
-            int n;
-            for (n = 0; n < n_pdt; n++) {
-                if (ops->display->screen(pdt->dpy, n) == screen) {
-                    dpy = pdt->dpy;
-                    scrno = n;
-                    break;
-                }
-            }
-            if (dpy != NULL)
+    PerDisplayTablePtr pdt;
+    LOCK_PROCESS;
+    for (pdt = _IswperDisplayList; pdt != NULL; pdt = pdt->next) {
+        int n_pdt = ops->display->screen_count(pdt->dpy);
+        int n;
+        for (n = 0; n < n_pdt; n++) {
+            if (ops->display->screen(pdt->dpy, n) == screen) {
+                dpy = pdt->dpy;
+                scrno = n;
+                pd = &pdt->perDpy;
                 break;
+            }
         }
-        UNLOCK_PROCESS;
+        if (dpy != NULL)
+            break;
     }
+    UNLOCK_PROCESS;
 
     if (dpy == NULL) {
         IswErrorMsg("nullDisplay",
@@ -540,99 +535,88 @@ IswScreenDatabase(IswScreen screen)
         return NULL;
     }
 
-    
-        DPY_TO_APPCON(dpy);
-        LOCK_APP(app);
-        LOCK_PROCESS;
+    DPY_TO_APPCON(dpy);
+    LOCK_APP(app);
+    LOCK_PROCESS;
 
-        pd = _IswGetPerDisplay((IswDisplay) dpy);
-        nscreens = ops->display->screen_count(dpy);
+    nscreens = ops->display->screen_count(dpy);
 
-        /* Return cached database if available */
-        if (pd->per_screen_db && pd->per_screen_db[scrno]) {
-            db = pd->per_screen_db[scrno];
-            UNLOCK_PROCESS;
-            UNLOCK_APP(app);
-            return db;
-        }
-
-        /* Start with command-line database */
-        if (nscreens == 1) {
-            db = pd->cmd_db;
-            pd->cmd_db = NULL;
-        }
-        else {
-            db = CopyDB(pd->cmd_db);
-        }
-
-        /* Environment-specific defaults (~/.Xdefaults-hostname or XENVIRONMENT) */
-        {
-            char filenamebuf[PATH_MAX];
-            char *filename;
-
-            if (!(filename = getenv("XENVIRONMENT"))) {
-#ifdef __MINGW32__
-                const char *slashDotXdefaultsDash = "/Xdefaults-";
-#else
-                const char *slashDotXdefaultsDash = "/.Xdefaults-";
-#endif
-                int len;
-
-                (void) GetRootDirName(filename = filenamebuf,
-                                      PATH_MAX -
-                                      (int) strlen(slashDotXdefaultsDash) - 1);
-                (void) strcat(filename, slashDotXdefaultsDash);
-                len = (int) strlen(filename);
-                GetHostname(filename + len, PATH_MAX - len);
-            }
-            {
-                IswDatabaseHandle envdb = _IswPlatformResourceFromFile(filename);
-                if (envdb)
-                    _IswPlatformResourceCombine(envdb, &db, False);
-            }
-        
-
-        /* Server or host defaults (RESOURCE_MANAGER property or ~/.Xdefaults) */
-        if (!pd->server_db) {
-            CombineUserDefaults(dpy, screen, &db);
-        }
-        else {
-            _IswPlatformResourceCombine(pd->server_db, &db, False);
-            pd->server_db = NULL;
-        }
-
-        /* Ensure we have at least an empty database */
-        if (!db)
-            db = _IswPlatformResourceFromString("");
-
-        /* Cache the database for this screen */
-        if (pd->per_screen_db)
-            pd->per_screen_db[scrno] = db;
-
-        /* App user defaults and system app-defaults */
-        CombineAppUserDefaults(dpy, &db);
-        {
-            char *filename2 = IswResolvePathname((IswDisplay) dpy, "app-defaults",
-                                               NULL, NULL, NULL, NULL, 0, NULL);
-            if (filename2) {
-                IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename2);
-                if (fdb)
-                    _IswPlatformResourceCombine(fdb, &db, False);
-                IswFree(filename2);
-            }
-        }
-
-        /* Fallback resources */
-        if (pd->appContext->fallback_resources) {
-            String *res;
-            for (res = pd->appContext->fallback_resources; *res; res++)
-                _IswPlatformResourcePutLine(&db, *res);
-        }
-
+    /* Return cached database if available */
+    if (pd->per_screen_db && pd->per_screen_db[scrno]) {
+        db = pd->per_screen_db[scrno];
         UNLOCK_PROCESS;
         UNLOCK_APP(app);
         return db;
     }
+
+    /* Start with command-line database */
+    if (nscreens == 1) {
+        db = pd->cmd_db;
+        pd->cmd_db = NULL;
+    }
+    else {
+        db = CopyDB(pd->cmd_db);
+    }
+
+    /* Environment-specific defaults (~/.Xdefaults-hostname or XENVIRONMENT) */
+    char filenamebuf[PATH_MAX];
+    char *filename;
+    IswDatabaseHandle envdb;
+
+    if (!(filename = getenv("XENVIRONMENT"))) {
+        const char *slashDotXdefaultsDash = "/.Xdefaults-";
+        int len;
+
+        (void) GetRootDirName(filename = filenamebuf,
+                                PATH_MAX -
+                                (int) strlen(slashDotXdefaultsDash) - 1);
+        (void) strcat(filename, slashDotXdefaultsDash);
+        len = (int) strlen(filename);
+        GetHostname(filename + len, PATH_MAX - len);
+    }
+    envdb = _IswPlatformResourceFromFile(filename);
+    if (envdb)
+        _IswPlatformResourceCombine(envdb, &db, False);
+    
+    /* Server or host defaults (RESOURCE_MANAGER property or ~/.Xdefaults) */
+    if (!pd->server_db) {
+        CombineUserDefaults(dpy, screen, &db);
+    }
+    else {
+        _IswPlatformResourceCombine(pd->server_db, &db, False);
+        pd->server_db = NULL;
+    }
+
+    /* Ensure we have at least an empty database */
+    if (!db)
+        db = _IswPlatformResourceFromString("");
+
+    /* Cache the database for this screen */
+    if (pd->per_screen_db)
+        pd->per_screen_db[scrno] = db;
+
+    /* App user defaults and system app-defaults */
+    CombineAppUserDefaults(dpy, &db);
+    
+    char *filename2 = IswResolvePathname((IswDisplay) dpy, "app-defaults",
+                                       NULL, NULL, NULL, NULL, 0, NULL);
+    if (filename2) {
+        IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename2);
+        if (fdb)
+            _IswPlatformResourceCombine(fdb, &db, False);
+        IswFree(filename2);
+    }
+    
+    /* Fallback resources */
+    if (pd->appContext->fallback_resources) {
+        String *res;
+        for (res = pd->appContext->fallback_resources; *res; res++)
+            _IswPlatformResourcePutLine(&db, *res);
+    }
+
+    UNLOCK_PROCESS;
+    UNLOCK_APP(app);
+    return db;
 }
 
 void
@@ -646,40 +630,36 @@ IswReloadScreenDatabase(IswScreen screen_handle)
     if (screen_handle == NULL)
         return;
 
-    {
-        PerDisplayTablePtr pdt;
-        LOCK_PROCESS;
-        for (pdt = _IswperDisplayList; pdt != NULL; pdt = pdt->next) {
-            int nscreens = ops->display->screen_count(pdt->dpy);
-            int n;
-            for (n = 0; n < nscreens; n++) {
-                if (ops->display->screen(pdt->dpy, n) == screen_handle) {
-                    dpy = pdt->dpy;
-                    scrno = n;
-                    break;
-                }
-            }
-            if (dpy != NULL)
+    PerDisplayTablePtr pdt;
+    LOCK_PROCESS;
+    for (pdt = _IswperDisplayList; pdt != NULL; pdt = pdt->next) {
+        int nscreens = ops->display->screen_count(pdt->dpy);
+        int n;
+        for (n = 0; n < nscreens; n++) {
+            if (ops->display->screen(pdt->dpy, n) == screen_handle) {
+                dpy = pdt->dpy;
+                scrno = n;
+                pd = &pdt->perDpy;
                 break;
+            }
         }
-        UNLOCK_PROCESS;
+        if (dpy != NULL)
+            break;
     }
-
+    UNLOCK_PROCESS;
+    
     if (dpy == NULL)
         return;
-
-    {
-        DPY_TO_APPCON(dpy);
-        LOCK_APP(app);
-        LOCK_PROCESS;
-        pd = _IswGetPerDisplay((IswDisplay) dpy);
-        if (pd->per_screen_db && pd->per_screen_db[scrno]) {
-            _IswPlatformResourceFree(pd->per_screen_db[scrno]);
-            pd->per_screen_db[scrno] = NULL;
-        }
-        UNLOCK_PROCESS;
-        UNLOCK_APP(app);
+    
+    DPY_TO_APPCON(dpy);
+    LOCK_APP(app);
+    LOCK_PROCESS;
+    if (pd->per_screen_db && pd->per_screen_db[scrno]) {
+        _IswPlatformResourceFree(pd->per_screen_db[scrno]);
+        pd->per_screen_db[scrno] = NULL;
     }
+    UNLOCK_PROCESS;
+    UNLOCK_APP(app);
 }
 
 /*
