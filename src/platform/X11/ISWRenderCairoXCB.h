@@ -46,6 +46,10 @@ extern const struct _IswPlatformRenderOps isw_platform_xcb_render_ops;
  *                 unusable / the back buffer is a client image (use the cairo
  *                 path instead).
  *   present_serial — next Present serial (only meaningful when back_pixmap != 0).
+ *   copy_pixmap — the back buffer's server pixmap for a straight xcb_copy_area
+ *                 blit to the window (any time the back buffer is a server pixmap,
+ *                 independent of Present); 0 for client image surfaces.
+ *   copy_w / copy_h — physical-pixel extent to copy (device scale folded in).
  *
  * Defined in ISWRenderCairoXCB.c.
  */
@@ -53,7 +57,10 @@ Boolean _ISWRenderSurfacePresentSource(IswSurface surface,
                                        cairo_surface_t **back_cairo,
                                        void **window_cr,
                                        xcb_pixmap_t *back_pixmap,
-                                       uint32_t *present_serial);
+                                       uint32_t *present_serial,
+                                       xcb_pixmap_t *copy_pixmap,
+                                       unsigned int *copy_w,
+                                       unsigned int *copy_h);
 
 /*
  * =================================================================

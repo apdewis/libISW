@@ -621,7 +621,10 @@ _ISWRenderSurfacePresentSource(IswSurface data,
                                cairo_surface_t **back_cairo,
                                void **window_cr,
                                xcb_pixmap_t *back_pixmap,
-                               uint32_t *present_serial)
+                               uint32_t *present_serial,
+                               xcb_pixmap_t *copy_pixmap,
+                               unsigned int *copy_w,
+                               unsigned int *copy_h)
 {
     if (!data || !data->back_surface)
         return False;
@@ -634,6 +637,24 @@ _ISWRenderSurfacePresentSource(IswSurface data,
        usable; otherwise 0 tells the caller to use the cairo source path. */
     if (back_pixmap)    *back_pixmap = (data->present_ok ? data->back_pixmap : 0);
     if (present_serial) *present_serial = ++data->present_serial;
+    /* Server-side copy_area path: available whenever the back buffer is a real
+       server pixmap (shell/root surfaces) — independent of Present.  A straight
+       pixmap-to-window blit moves the final full-window copy off the CPU.  Client
+       image surfaces (windowless widgets, which carry alpha) have no drawable, so
+       report 0 and let the caller fall back to the cairo source-paint. */
+    if (copy_pixmap)
+        *copy_pixmap = data->back_is_image ? 0 : data->back_pixmap;
+    /* Physical-pixel extent to copy (device scale already folded in). */
+    {
+        double sf = 1.0;
+        if (data->back_surface) {
+            double dx, dy;
+            cairo_surface_get_device_scale(data->back_surface, &dx, &dy);
+            if (dx > 0) sf = dx;
+        }
+        if (copy_w) *copy_w = (unsigned int)(data->back_w * sf + 0.5);
+        if (copy_h) *copy_h = (unsigned int)(data->back_h * sf + 0.5);
+    }
     return True;
 }
 

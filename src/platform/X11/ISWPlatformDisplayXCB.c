@@ -112,6 +112,8 @@ xcb_disp_close(IswDisplay dpy)
     IswDisplayXCB *priv = (IswDisplayXCB*)dpy;
     _IswXcbFreeWWTable(dpy);
     if (priv->conn) {
+        if (priv->blit_gc)
+            xcb_free_gc(priv->conn, priv->blit_gc);
         xcb_flush(priv->conn);
         xcb_disconnect(priv->conn);
     }
@@ -634,13 +636,16 @@ xcb_root_present(IswDisplay dpy, IswWindow win, IswSurface surface,
     cairo_surface_t *back = NULL;
     void *window_cr = NULL;
     xcb_pixmap_t back_pixmap = 0;
+    xcb_pixmap_t copy_pixmap = 0;
+    unsigned int copy_w = 0, copy_h = 0;
     uint32_t serial = 0;
     (void) width; (void) height;
 
     if (!priv->conn)
         return;
     if (!_ISWRenderSurfacePresentSource(surface, &back, &window_cr,
-                                        &back_pixmap, &serial))
+                                        &back_pixmap, &serial,
+                                        &copy_pixmap, &copy_w, &copy_h))
         return;
 
     if (back_pixmap) {
@@ -654,6 +659,16 @@ xcb_root_present(IswDisplay dpy, IswWindow win, IswSurface surface,
                            XCB_PRESENT_OPTION_COPY,
                            0, 0, 0,   /* target_msc / divisor / remainder */
                            0, NULL);  /* notifies */
+    } else if (copy_pixmap && copy_w > 0 && copy_h > 0) {
+        /* Straight server-side blit: pixmap→window CopyArea moves the final
+           full-window copy off the CPU entirely (no destination read, no Cairo
+           per-pixel pass).  The opaque root composite needs no blend. */
+        if (priv->blit_gc == 0) {
+            priv->blit_gc = xcb_generate_id(priv->conn);
+            xcb_create_gc(priv->conn, priv->blit_gc, _IswXcbWindow(win), 0, NULL);
+        }
+        xcb_copy_area(priv->conn, copy_pixmap, _IswXcbWindow(win), priv->blit_gc,
+                      0, 0, 0, 0, (uint16_t) copy_w, (uint16_t) copy_h);
     } else if (window_cr && back) {
         cairo_t *cr = (cairo_t *) window_cr;
         cairo_set_source_surface(cr, back, 0, 0);

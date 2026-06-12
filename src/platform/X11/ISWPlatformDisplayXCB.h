@@ -18,6 +18,7 @@ typedef struct _IswDisplayXCB {
     int                 wmap_count;
     int                 wmap_cap;
     struct _WWTable    *wwtable;      /* window→widget table (incl. foreign) */
+    xcb_gcontext_t      blit_gc;      /* lazy GC for back-pixmap→window copy_area */
 } IswDisplayXCB;
 
 /* window→widget table lifecycle (ISWPlatformWWTableXCB.c) */
