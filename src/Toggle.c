@@ -49,7 +49,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Label.h>
 #include <ISW/ToggleP.h>
 #include <ISW/FocusMgrI.h>
-#include <xcb/xcb.h>
 #include <cairo/cairo.h>
 
 /****************************************************************

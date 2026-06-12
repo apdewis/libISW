@@ -35,8 +35,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWInit.h>		/* for IswInitializeWidgetSet() */
 #include <ISW/RepeaterP.h>		/* us */
 #include <ISW/ISWRender.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 
 static void tic(IswPointer, IswIntervalId *);	/* clock timeout */
 

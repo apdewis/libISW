@@ -31,8 +31,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWP.h>
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 #include <ISW/TemplateP.h>
 
 static IswResource resources[] = {

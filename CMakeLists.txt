@@ -288,7 +288,6 @@ set(ISW_WIDGET_SOURCES
     src/Vendor.c
     src/Viewport.c
     src/ISWP.c
-    src/ISWAtoms.c
     src/ISWInit.c
     src/ISWUtf8.c
     src/IswTrayIcon.c

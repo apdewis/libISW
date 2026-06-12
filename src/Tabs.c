@@ -16,7 +16,6 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/TabsP.h>
-#include <xcb/xcb.h>
 #include <cairo/cairo.h>
 #include <math.h>
 #include <string.h>

@@ -72,8 +72,6 @@ SOFTWARE.
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 #include <ISW/ISWPlatform.h>
 
 /* needed for abs() */

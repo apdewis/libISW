@@ -21,8 +21,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 
 /* Thumb dimensions (before HiDPI scaling) */
 #define THUMB_SIZE 14

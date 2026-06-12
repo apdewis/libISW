@@ -25,8 +25,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 
 #define XC_sb_h_double_arrow 108
 

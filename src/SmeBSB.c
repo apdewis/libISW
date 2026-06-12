@@ -55,8 +55,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWImage.h>
 #include <cairo.h>
 #include <stdio.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 
 /* needed for abs() */
 #ifndef X_NOT_STDC_ENV

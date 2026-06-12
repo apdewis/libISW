@@ -15,7 +15,6 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ProgressBarP.h>
-#include <xcb/xcb.h>
 #include <cairo/cairo.h>
 
 #define offset(field) IswOffsetOf(ProgressBarRec, field)
