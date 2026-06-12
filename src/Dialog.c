@@ -78,8 +78,6 @@ static IswResource resources[] = {
      IswOffsetOf(DialogRec, dialog.label), IswRString, NULL},
   {IswNvalue, IswCValue, IswRString, sizeof(String),
      IswOffsetOf(DialogRec, dialog.value), IswRString, NULL},
-  {IswNicon, IswCIcon, IswRBitmap, sizeof(IswPixmap),
-     IswOffsetOf(DialogRec, dialog.icon), IswRImmediate, 0},
 };
 
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
@@ -159,30 +157,12 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswArgBorderWidth(&ab, 0);
     IswArgLeft(&ab, IswChainLeft);
 
-    if (dw->dialog.icon != (IswPixmap)0) {
-	IswArgBitmap(&ab, dw->dialog.icon);
-	IswArgRight(&ab, IswChainLeft);
-	dw->dialog.iconW =
-	    IswCreateManagedWidget( "icon", labelWidgetClass,
-				   new, ab.args, ab.count );
-	IswArgBuilderReset(&ab);
-	IswArgBorderWidth(&ab, 0);
-	IswArgLeft(&ab, IswChainLeft);
-	IswArgFromHoriz(&ab, dw->dialog.iconW);
-    } else dw->dialog.iconW = (Widget)NULL;
-
     IswArgLabel(&ab, dw->dialog.label);
     IswArgRight(&ab, IswChainRight);
 
     dw->dialog.labelW = IswCreateManagedWidget( "label", labelWidgetClass,
 					      new, ab.args, ab.count);
 
-    if (dw->dialog.iconW != (Widget)NULL &&
-	(dw->dialog.labelW->core.height < dw->dialog.iconW->core.height)) {
-	IswArgBuilderReset(&ab);
-	IswArgHeight(&ab, dw->dialog.iconW->core.height);
-	IswSetValues( dw->dialog.labelW, ab.args, ab.count );
-    }
     if (dw->dialog.value != NULL)
         CreateDialogValueWidget( (Widget) dw);
     else
@@ -221,10 +201,6 @@ ConstraintInitialize(Widget request, Widget new, ArgList args, Cardinal *num_arg
     }
 }
 
-#define ICON 0
-#define LABEL 1
-#define NUM_CHECKS 2
-
 /* ARGSUSED */
 static Boolean
 SetValues(Widget current, Widget request, Widget new, ArgList in_args, Cardinal *in_num_args)
@@ -232,50 +208,17 @@ SetValues(Widget current, Widget request, Widget new, ArgList in_args, Cardinal 
     DialogWidget w = (DialogWidget)new;
     DialogWidget old = (DialogWidget)current;
     IswArgBuilder ab = IswArgBuilderInit();
-    int i;
-    Boolean checks[NUM_CHECKS];
-
-    for (i = 0; i < NUM_CHECKS; i++)
-	checks[i] = FALSE;
+    Cardinal i;
+    Boolean label_changed = FALSE;
 
     for (i = 0; i < *in_num_args; i++) {
-	if (streq(IswNicon, in_args[i].name))
-	    checks[ICON] = TRUE;
 	if (streq(IswNlabel, in_args[i].name))
-	    checks[LABEL] = TRUE;
+	    label_changed = TRUE;
     }
 
-    if (checks[ICON]) {
-	if (w->dialog.icon != (IswPixmap)0) {
-	    IswArgBitmap(&ab, w->dialog.icon);
-	    if (old->dialog.iconW != (Widget)NULL) {
-		IswSetValues( old->dialog.iconW, ab.args, ab.count );
-	    } else {
-		IswArgBorderWidth(&ab, 0);
-		IswArgLeft(&ab, IswChainLeft);
-		IswArgRight(&ab, IswChainLeft);
-		w->dialog.iconW =
-		    IswCreateWidget( "icon", labelWidgetClass,
-				    new, ab.args, ab.count );
-		((DialogConstraints)w->dialog.labelW->core.constraints)->
-		    form.horiz_base = w->dialog.iconW;
-		IswManageChild(w->dialog.iconW);
-	    }
-	} else if (old->dialog.icon != (IswPixmap)0) {
-	    ((DialogConstraints)w->dialog.labelW->core.constraints)->
-		    form.horiz_base = (Widget)NULL;
-	    IswDestroyWidget(old->dialog.iconW);
-	    w->dialog.iconW = (Widget)NULL;
-	}
-    }
-
-    if ( checks[LABEL] ) {
+    if ( label_changed ) {
 	IswArgBuilderReset(&ab);
 	IswArgLabel(&ab, w->dialog.label);
-	if (w->dialog.iconW != (Widget)NULL &&
-	    (w->dialog.labelW->core.height <= w->dialog.iconW->core.height)) {
-	    IswArgHeight(&ab, w->dialog.iconW->core.height);
-	}
 	IswSetValues( w->dialog.labelW, ab.args, ab.count );
     }
 

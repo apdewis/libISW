@@ -85,7 +85,6 @@ NtextOptions
 NtextSink
 NtextSource
 Nthickness
-Nthumb
 NthumbProc
 Ntop
 Ntranslations
@@ -157,7 +156,6 @@ CTextPosition
 CTextSink
 CTextSource
 CThickness
-CThumb
 CTranslations
 CValue
 CVSpace

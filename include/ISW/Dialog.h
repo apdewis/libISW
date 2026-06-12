@@ -66,7 +66,6 @@ SOFTWARE.
  borderWidth	     BorderWidth	Dimension	1
  destroyCallback     Callback		Pointer		NULL
  height		     Height		Dimension	computed at create
- icon		     Icon		Pixmap		0
  label		     Label		String		NULL
  mappedWhenManaged   MappedWhenManaged	Boolean		True
  sensitive	     Sensitive		Boolean		True
@@ -76,9 +75,6 @@ SOFTWARE.
  y		     Position		Position	0
 
 */
-
-#define IswCIcon "Icon"
-#define IswNicon "icon"
 
 typedef struct _DialogClassRec	*DialogWidgetClass;
 typedef struct _DialogRec	*DialogWidget;

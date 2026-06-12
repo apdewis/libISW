@@ -126,7 +126,6 @@ SOFTWARE.
 #define IswNtextSink "textSink"
 #define IswNtextSource "textSource"
 #define IswNthickness "thickness"
-#define IswNthumb "thumb"
 #define IswNthumbProc "thumbProc"
 #define IswNtop "top"
 #define IswNtranslations "translations"
@@ -198,7 +197,6 @@ SOFTWARE.
 #define IswCTextSink "TextSink"
 #define IswCTextSource "TextSource"
 #define IswCThickness "Thickness"
-#define IswCThumb "Thumb"
 #define IswCTranslations "Translations"
 #define IswCValue "Value"
 #define IswCVSpace "VSpace"
@@ -524,557 +522,551 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #ifndef IswNthickness
 #define IswNthickness ((String)&IswStrings[742])
 #endif
-#ifndef IswNthumb
-#define IswNthumb ((String)&IswStrings[752])
-#endif
 #ifndef IswNthumbProc
-#define IswNthumbProc ((String)&IswStrings[758])
+#define IswNthumbProc ((String)&IswStrings[752])
 #endif
 #ifndef IswNtop
-#define IswNtop ((String)&IswStrings[768])
+#define IswNtop ((String)&IswStrings[762])
 #endif
 #ifndef IswNtranslations
-#define IswNtranslations ((String)&IswStrings[772])
+#define IswNtranslations ((String)&IswStrings[766])
 #endif
 #ifndef IswNunrealizeCallback
-#define IswNunrealizeCallback ((String)&IswStrings[785])
+#define IswNunrealizeCallback ((String)&IswStrings[779])
 #endif
 #ifndef IswNupdate
-#define IswNupdate ((String)&IswStrings[803])
+#define IswNupdate ((String)&IswStrings[797])
 #endif
 #ifndef IswNuseBottom
-#define IswNuseBottom ((String)&IswStrings[810])
+#define IswNuseBottom ((String)&IswStrings[804])
 #endif
 #ifndef IswNuseRight
-#define IswNuseRight ((String)&IswStrings[820])
+#define IswNuseRight ((String)&IswStrings[814])
 #endif
 #ifndef IswNvalue
-#define IswNvalue ((String)&IswStrings[829])
+#define IswNvalue ((String)&IswStrings[823])
 #endif
 #ifndef IswNvSpace
-#define IswNvSpace ((String)&IswStrings[835])
+#define IswNvSpace ((String)&IswStrings[829])
 #endif
 #ifndef IswNwidth
-#define IswNwidth ((String)&IswStrings[842])
+#define IswNwidth ((String)&IswStrings[836])
 #endif
 #ifndef IswNwindow
-#define IswNwindow ((String)&IswStrings[848])
+#define IswNwindow ((String)&IswStrings[842])
 #endif
 #ifndef IswNx
-#define IswNx ((String)&IswStrings[855])
+#define IswNx ((String)&IswStrings[849])
 #endif
 #ifndef IswNy
-#define IswNy ((String)&IswStrings[857])
+#define IswNy ((String)&IswStrings[851])
 #endif
 #ifndef IswCAccelerators
-#define IswCAccelerators ((String)&IswStrings[859])
+#define IswCAccelerators ((String)&IswStrings[853])
 #endif
 #ifndef IswCBackground
-#define IswCBackground ((String)&IswStrings[872])
+#define IswCBackground ((String)&IswStrings[866])
 #endif
 #ifndef IswCBitmap
-#define IswCBitmap ((String)&IswStrings[883])
+#define IswCBitmap ((String)&IswStrings[877])
 #endif
 #ifndef IswCBoolean
-#define IswCBoolean ((String)&IswStrings[890])
+#define IswCBoolean ((String)&IswStrings[884])
 #endif
 #ifndef IswCBorderColor
-#define IswCBorderColor ((String)&IswStrings[898])
+#define IswCBorderColor ((String)&IswStrings[892])
 #endif
 #ifndef IswCBorderWidth
-#define IswCBorderWidth ((String)&IswStrings[910])
+#define IswCBorderWidth ((String)&IswStrings[904])
 #endif
 #ifndef IswCCallback
-#define IswCCallback ((String)&IswStrings[922])
+#define IswCCallback ((String)&IswStrings[916])
 #endif
 #ifndef IswCColormap
-#define IswCColormap ((String)&IswStrings[931])
+#define IswCColormap ((String)&IswStrings[925])
 #endif
 #ifndef IswCColor
-#define IswCColor ((String)&IswStrings[940])
+#define IswCColor ((String)&IswStrings[934])
 #endif
 #ifndef IswCCursor
-#define IswCCursor ((String)&IswStrings[946])
+#define IswCCursor ((String)&IswStrings[940])
 #endif
 #ifndef IswCDepth
-#define IswCDepth ((String)&IswStrings[953])
+#define IswCDepth ((String)&IswStrings[947])
 #endif
 #ifndef IswCEditType
-#define IswCEditType ((String)&IswStrings[959])
+#define IswCEditType ((String)&IswStrings[953])
 #endif
 #ifndef IswCEventBindings
-#define IswCEventBindings ((String)&IswStrings[968])
+#define IswCEventBindings ((String)&IswStrings[962])
 #endif
 #ifndef IswCFile
-#define IswCFile ((String)&IswStrings[982])
+#define IswCFile ((String)&IswStrings[976])
 #endif
 #ifndef IswCFont
-#define IswCFont ((String)&IswStrings[987])
+#define IswCFont ((String)&IswStrings[981])
 #endif
 #ifndef IswCForeground
-#define IswCForeground ((String)&IswStrings[992])
+#define IswCForeground ((String)&IswStrings[986])
 #endif
 #ifndef IswCFraction
-#define IswCFraction ((String)&IswStrings[1003])
+#define IswCFraction ((String)&IswStrings[997])
 #endif
 #ifndef IswCFunction
-#define IswCFunction ((String)&IswStrings[1012])
+#define IswCFunction ((String)&IswStrings[1006])
 #endif
 #ifndef IswCHeight
-#define IswCHeight ((String)&IswStrings[1021])
+#define IswCHeight ((String)&IswStrings[1015])
 #endif
 #ifndef IswCHSpace
-#define IswCHSpace ((String)&IswStrings[1028])
+#define IswCHSpace ((String)&IswStrings[1022])
 #endif
 #ifndef IswCIndex
-#define IswCIndex ((String)&IswStrings[1035])
+#define IswCIndex ((String)&IswStrings[1029])
 #endif
 #ifndef IswCInitialResourcesPersistent
-#define IswCInitialResourcesPersistent ((String)&IswStrings[1041])
+#define IswCInitialResourcesPersistent ((String)&IswStrings[1035])
 #endif
 #ifndef IswCInsertPosition
-#define IswCInsertPosition ((String)&IswStrings[1068])
+#define IswCInsertPosition ((String)&IswStrings[1062])
 #endif
 #ifndef IswCInterval
-#define IswCInterval ((String)&IswStrings[1083])
+#define IswCInterval ((String)&IswStrings[1077])
 #endif
 #ifndef IswCJustify
-#define IswCJustify ((String)&IswStrings[1092])
+#define IswCJustify ((String)&IswStrings[1086])
 #endif
 #ifndef IswCKnobIndent
-#define IswCKnobIndent ((String)&IswStrings[1100])
+#define IswCKnobIndent ((String)&IswStrings[1094])
 #endif
 #ifndef IswCKnobPixel
-#define IswCKnobPixel ((String)&IswStrings[1111])
+#define IswCKnobPixel ((String)&IswStrings[1105])
 #endif
 #ifndef IswCLabel
-#define IswCLabel ((String)&IswStrings[1121])
+#define IswCLabel ((String)&IswStrings[1115])
 #endif
 #ifndef IswCLength
-#define IswCLength ((String)&IswStrings[1127])
+#define IswCLength ((String)&IswStrings[1121])
 #endif
 #ifndef IswCMappedWhenManaged
-#define IswCMappedWhenManaged ((String)&IswStrings[1134])
+#define IswCMappedWhenManaged ((String)&IswStrings[1128])
 #endif
 #ifndef IswCMargin
-#define IswCMargin ((String)&IswStrings[1152])
+#define IswCMargin ((String)&IswStrings[1146])
 #endif
 #ifndef IswCMenuEntry
-#define IswCMenuEntry ((String)&IswStrings[1159])
+#define IswCMenuEntry ((String)&IswStrings[1153])
 #endif
 #ifndef IswCNotify
-#define IswCNotify ((String)&IswStrings[1169])
+#define IswCNotify ((String)&IswStrings[1163])
 #endif
 #ifndef IswCOrientation
-#define IswCOrientation ((String)&IswStrings[1176])
+#define IswCOrientation ((String)&IswStrings[1170])
 #endif
 #ifndef IswCParameter
-#define IswCParameter ((String)&IswStrings[1188])
+#define IswCParameter ((String)&IswStrings[1182])
 #endif
 #ifndef IswCPixmap
-#define IswCPixmap ((String)&IswStrings[1198])
+#define IswCPixmap ((String)&IswStrings[1192])
 #endif
 #ifndef IswCPosition
-#define IswCPosition ((String)&IswStrings[1205])
+#define IswCPosition ((String)&IswStrings[1199])
 #endif
 #ifndef IswCReadOnly
-#define IswCReadOnly ((String)&IswStrings[1214])
+#define IswCReadOnly ((String)&IswStrings[1208])
 #endif
 #ifndef IswCResize
-#define IswCResize ((String)&IswStrings[1223])
+#define IswCResize ((String)&IswStrings[1217])
 #endif
 #ifndef IswCReverseVideo
-#define IswCReverseVideo ((String)&IswStrings[1230])
+#define IswCReverseVideo ((String)&IswStrings[1224])
 #endif
 #ifndef IswCScreen
-#define IswCScreen ((String)&IswStrings[1243])
+#define IswCScreen ((String)&IswStrings[1237])
 #endif
 #ifndef IswCScrollProc
-#define IswCScrollProc ((String)&IswStrings[1250])
+#define IswCScrollProc ((String)&IswStrings[1244])
 #endif
 #ifndef IswCScrollDCursor
-#define IswCScrollDCursor ((String)&IswStrings[1261])
+#define IswCScrollDCursor ((String)&IswStrings[1255])
 #endif
 #ifndef IswCScrollHCursor
-#define IswCScrollHCursor ((String)&IswStrings[1275])
+#define IswCScrollHCursor ((String)&IswStrings[1269])
 #endif
 #ifndef IswCScrollLCursor
-#define IswCScrollLCursor ((String)&IswStrings[1289])
+#define IswCScrollLCursor ((String)&IswStrings[1283])
 #endif
 #ifndef IswCScrollRCursor
-#define IswCScrollRCursor ((String)&IswStrings[1303])
+#define IswCScrollRCursor ((String)&IswStrings[1297])
 #endif
 #ifndef IswCScrollUCursor
-#define IswCScrollUCursor ((String)&IswStrings[1317])
+#define IswCScrollUCursor ((String)&IswStrings[1311])
 #endif
 #ifndef IswCScrollVCursor
-#define IswCScrollVCursor ((String)&IswStrings[1331])
+#define IswCScrollVCursor ((String)&IswStrings[1325])
 #endif
 #ifndef IswCSelection
-#define IswCSelection ((String)&IswStrings[1345])
+#define IswCSelection ((String)&IswStrings[1339])
 #endif
 #ifndef IswCSensitive
-#define IswCSensitive ((String)&IswStrings[1355])
+#define IswCSensitive ((String)&IswStrings[1349])
 #endif
 #ifndef IswCSelectionArray
-#define IswCSelectionArray ((String)&IswStrings[1365])
+#define IswCSelectionArray ((String)&IswStrings[1359])
 #endif
 #ifndef IswCSpace
-#define IswCSpace ((String)&IswStrings[1380])
+#define IswCSpace ((String)&IswStrings[1374])
 #endif
 #ifndef IswCString
-#define IswCString ((String)&IswStrings[1386])
+#define IswCString ((String)&IswStrings[1380])
 #endif
 #ifndef IswCTextOptions
-#define IswCTextOptions ((String)&IswStrings[1393])
+#define IswCTextOptions ((String)&IswStrings[1387])
 #endif
 #ifndef IswCTextPosition
-#define IswCTextPosition ((String)&IswStrings[1405])
+#define IswCTextPosition ((String)&IswStrings[1399])
 #endif
 #ifndef IswCTextSink
-#define IswCTextSink ((String)&IswStrings[1418])
+#define IswCTextSink ((String)&IswStrings[1412])
 #endif
 #ifndef IswCTextSource
-#define IswCTextSource ((String)&IswStrings[1427])
+#define IswCTextSource ((String)&IswStrings[1421])
 #endif
 #ifndef IswCThickness
-#define IswCThickness ((String)&IswStrings[1438])
-#endif
-#ifndef IswCThumb
-#define IswCThumb ((String)&IswStrings[1448])
+#define IswCThickness ((String)&IswStrings[1432])
 #endif
 #ifndef IswCTranslations
-#define IswCTranslations ((String)&IswStrings[1454])
+#define IswCTranslations ((String)&IswStrings[1442])
 #endif
 #ifndef IswCValue
-#define IswCValue ((String)&IswStrings[1467])
+#define IswCValue ((String)&IswStrings[1455])
 #endif
 #ifndef IswCVSpace
-#define IswCVSpace ((String)&IswStrings[1473])
+#define IswCVSpace ((String)&IswStrings[1461])
 #endif
 #ifndef IswCWidth
-#define IswCWidth ((String)&IswStrings[1480])
+#define IswCWidth ((String)&IswStrings[1468])
 #endif
 #ifndef IswCWindow
-#define IswCWindow ((String)&IswStrings[1486])
+#define IswCWindow ((String)&IswStrings[1474])
 #endif
 #ifndef IswCX
-#define IswCX ((String)&IswStrings[1493])
+#define IswCX ((String)&IswStrings[1481])
 #endif
 #ifndef IswCY
-#define IswCY ((String)&IswStrings[1495])
+#define IswCY ((String)&IswStrings[1483])
 #endif
 #ifndef IswRAcceleratorTable
-#define IswRAcceleratorTable ((String)&IswStrings[1497])
+#define IswRAcceleratorTable ((String)&IswStrings[1485])
 #endif
 #ifndef IswRAtom
-#define IswRAtom ((String)&IswStrings[1514])
+#define IswRAtom ((String)&IswStrings[1502])
 #endif
 #ifndef IswRBitmap
-#define IswRBitmap ((String)&IswStrings[1519])
+#define IswRBitmap ((String)&IswStrings[1507])
 #endif
 #ifndef IswRBool
-#define IswRBool ((String)&IswStrings[1526])
+#define IswRBool ((String)&IswStrings[1514])
 #endif
 #ifndef IswRBoolean
-#define IswRBoolean ((String)&IswStrings[1531])
+#define IswRBoolean ((String)&IswStrings[1519])
 #endif
 #ifndef IswRCallback
-#define IswRCallback ((String)&IswStrings[1539])
+#define IswRCallback ((String)&IswStrings[1527])
 #endif
 #ifndef IswRCallProc
-#define IswRCallProc ((String)&IswStrings[1548])
+#define IswRCallProc ((String)&IswStrings[1536])
 #endif
 #ifndef IswRCardinal
-#define IswRCardinal ((String)&IswStrings[1557])
+#define IswRCardinal ((String)&IswStrings[1545])
 #endif
 #ifndef IswRColor
-#define IswRColor ((String)&IswStrings[1566])
+#define IswRColor ((String)&IswStrings[1554])
 #endif
 #ifndef IswRColormap
-#define IswRColormap ((String)&IswStrings[1572])
+#define IswRColormap ((String)&IswStrings[1560])
 #endif
 #ifndef IswRCursor
-#define IswRCursor ((String)&IswStrings[1581])
+#define IswRCursor ((String)&IswStrings[1569])
 #endif
 #ifndef IswRDimension
-#define IswRDimension ((String)&IswStrings[1588])
+#define IswRDimension ((String)&IswStrings[1576])
 #endif
 #ifndef IswRDisplay
-#define IswRDisplay ((String)&IswStrings[1598])
+#define IswRDisplay ((String)&IswStrings[1586])
 #endif
 #ifndef IswREditMode
-#define IswREditMode ((String)&IswStrings[1606])
+#define IswREditMode ((String)&IswStrings[1594])
 #endif
 #ifndef IswREnum
-#define IswREnum ((String)&IswStrings[1615])
+#define IswREnum ((String)&IswStrings[1603])
 #endif
 #ifndef IswRFile
-#define IswRFile ((String)&IswStrings[1620])
+#define IswRFile ((String)&IswStrings[1608])
 #endif
 #ifndef IswRFloat
-#define IswRFloat ((String)&IswStrings[1625])
+#define IswRFloat ((String)&IswStrings[1613])
 #endif
 #ifndef IswRFont
-#define IswRFont ((String)&IswStrings[1631])
+#define IswRFont ((String)&IswStrings[1619])
 #endif
 #ifndef IswRFontStruct
-#define IswRFontStruct ((String)&IswStrings[1636])
+#define IswRFontStruct ((String)&IswStrings[1624])
 #endif
 #ifndef IswRFunction
-#define IswRFunction ((String)&IswStrings[1647])
+#define IswRFunction ((String)&IswStrings[1635])
 #endif
 #ifndef IswRGeometry
-#define IswRGeometry ((String)&IswStrings[1656])
+#define IswRGeometry ((String)&IswStrings[1644])
 #endif
 #ifndef IswRImmediate
-#define IswRImmediate ((String)&IswStrings[1665])
+#define IswRImmediate ((String)&IswStrings[1653])
 #endif
 #ifndef IswRInitialState
-#define IswRInitialState ((String)&IswStrings[1675])
+#define IswRInitialState ((String)&IswStrings[1663])
 #endif
 #ifndef IswRInt
-#define IswRInt ((String)&IswStrings[1688])
+#define IswRInt ((String)&IswStrings[1676])
 #endif
 #ifndef IswRJustify
-#define IswRJustify ((String)&IswStrings[1692])
+#define IswRJustify ((String)&IswStrings[1680])
 #endif
 #ifndef IswRLongBoolean
-#define IswRLongBoolean ((String)&IswStrings[1700])
+#define IswRLongBoolean ((String)&IswStrings[1688])
 #endif
 #ifndef IswRObject
-#define IswRObject ((String)&IswStrings[1705])
+#define IswRObject ((String)&IswStrings[1693])
 #endif
 #ifndef IswROrientation
-#define IswROrientation ((String)&IswStrings[1712])
+#define IswROrientation ((String)&IswStrings[1700])
 #endif
 #ifndef IswRPixel
-#define IswRPixel ((String)&IswStrings[1724])
+#define IswRPixel ((String)&IswStrings[1712])
 #endif
 #ifndef IswRPixmap
-#define IswRPixmap ((String)&IswStrings[1730])
+#define IswRPixmap ((String)&IswStrings[1718])
 #endif
 #ifndef IswRPointer
-#define IswRPointer ((String)&IswStrings[1737])
+#define IswRPointer ((String)&IswStrings[1725])
 #endif
 #ifndef IswRPosition
-#define IswRPosition ((String)&IswStrings[1745])
+#define IswRPosition ((String)&IswStrings[1733])
 #endif
 #ifndef IswRScreen
-#define IswRScreen ((String)&IswStrings[1754])
+#define IswRScreen ((String)&IswStrings[1742])
 #endif
 #ifndef IswRShort
-#define IswRShort ((String)&IswStrings[1761])
+#define IswRShort ((String)&IswStrings[1749])
 #endif
 #ifndef IswRString
-#define IswRString ((String)&IswStrings[1767])
+#define IswRString ((String)&IswStrings[1755])
 #endif
 #ifndef IswRStringArray
-#define IswRStringArray ((String)&IswStrings[1774])
+#define IswRStringArray ((String)&IswStrings[1762])
 #endif
 #ifndef IswRStringTable
-#define IswRStringTable ((String)&IswStrings[1786])
+#define IswRStringTable ((String)&IswStrings[1774])
 #endif
 #ifndef IswRUnsignedChar
-#define IswRUnsignedChar ((String)&IswStrings[1798])
+#define IswRUnsignedChar ((String)&IswStrings[1786])
 #endif
 #ifndef IswRTranslationTable
-#define IswRTranslationTable ((String)&IswStrings[1811])
+#define IswRTranslationTable ((String)&IswStrings[1799])
 #endif
 #ifndef IswRVisual
-#define IswRVisual ((String)&IswStrings[1828])
+#define IswRVisual ((String)&IswStrings[1816])
 #endif
 #ifndef IswRWidget
-#define IswRWidget ((String)&IswStrings[1835])
+#define IswRWidget ((String)&IswStrings[1823])
 #endif
 #ifndef IswRWidgetClass
-#define IswRWidgetClass ((String)&IswStrings[1842])
+#define IswRWidgetClass ((String)&IswStrings[1830])
 #endif
 #ifndef IswRWidgetList
-#define IswRWidgetList ((String)&IswStrings[1854])
+#define IswRWidgetList ((String)&IswStrings[1842])
 #endif
 #ifndef IswRWindow
-#define IswRWindow ((String)&IswStrings[1865])
+#define IswRWindow ((String)&IswStrings[1853])
 #endif
 #ifndef IswEoff
-#define IswEoff ((String)&IswStrings[1872])
+#define IswEoff ((String)&IswStrings[1860])
 #endif
 #ifndef IswEfalse
-#define IswEfalse ((String)&IswStrings[1876])
+#define IswEfalse ((String)&IswStrings[1864])
 #endif
 #ifndef IswEno
-#define IswEno ((String)&IswStrings[1882])
+#define IswEno ((String)&IswStrings[1870])
 #endif
 #ifndef IswEon
-#define IswEon ((String)&IswStrings[1885])
+#define IswEon ((String)&IswStrings[1873])
 #endif
 #ifndef IswEtrue
-#define IswEtrue ((String)&IswStrings[1888])
+#define IswEtrue ((String)&IswStrings[1876])
 #endif
 #ifndef IswEyes
-#define IswEyes ((String)&IswStrings[1893])
+#define IswEyes ((String)&IswStrings[1881])
 #endif
 #ifndef IswEvertical
-#define IswEvertical ((String)&IswStrings[1897])
+#define IswEvertical ((String)&IswStrings[1885])
 #endif
 #ifndef IswEhorizontal
-#define IswEhorizontal ((String)&IswStrings[1906])
+#define IswEhorizontal ((String)&IswStrings[1894])
 #endif
 #ifndef IswEtextRead
-#define IswEtextRead ((String)&IswStrings[1917])
+#define IswEtextRead ((String)&IswStrings[1905])
 #endif
 #ifndef IswEtextAppend
-#define IswEtextAppend ((String)&IswStrings[1922])
+#define IswEtextAppend ((String)&IswStrings[1910])
 #endif
 #ifndef IswEtextEdit
-#define IswEtextEdit ((String)&IswStrings[1929])
+#define IswEtextEdit ((String)&IswStrings[1917])
 #endif
 #ifndef IswExtdefaultbackground
-#define IswExtdefaultbackground ((String)&IswStrings[1934])
+#define IswExtdefaultbackground ((String)&IswStrings[1922])
 #endif
 #ifndef IswExtdefaultforeground
-#define IswExtdefaultforeground ((String)&IswStrings[1954])
+#define IswExtdefaultforeground ((String)&IswStrings[1942])
 #endif
 #ifndef IswExtdefaultfont
-#define IswExtdefaultfont ((String)&IswStrings[1974])
+#define IswExtdefaultfont ((String)&IswStrings[1962])
 #endif
 #ifndef IswNfontSet
-#define IswNfontSet ((String)&IswStrings[1988])
+#define IswNfontSet ((String)&IswStrings[1976])
 #endif
 #ifndef IswRFontSet
-#define IswRFontSet ((String)&IswStrings[1996])
+#define IswRFontSet ((String)&IswStrings[1984])
 #endif
 #ifndef IswCFontSet
-#define IswCFontSet ((String)&IswStrings[2004])
+#define IswCFontSet ((String)&IswStrings[1992])
 #endif
 #ifndef IswRGravity
-#define IswRGravity ((String)&IswStrings[2012])
+#define IswRGravity ((String)&IswStrings[2000])
 #endif
 #ifndef IswNcreateHook
-#define IswNcreateHook ((String)&IswStrings[2020])
+#define IswNcreateHook ((String)&IswStrings[2008])
 #endif
 #ifndef IswNchangeHook
-#define IswNchangeHook ((String)&IswStrings[2031])
+#define IswNchangeHook ((String)&IswStrings[2019])
 #endif
 #ifndef IswNconfigureHook
-#define IswNconfigureHook ((String)&IswStrings[2042])
+#define IswNconfigureHook ((String)&IswStrings[2030])
 #endif
 #ifndef IswNgeometryHook
-#define IswNgeometryHook ((String)&IswStrings[2056])
+#define IswNgeometryHook ((String)&IswStrings[2044])
 #endif
 #ifndef IswNdestroyHook
-#define IswNdestroyHook ((String)&IswStrings[2069])
+#define IswNdestroyHook ((String)&IswStrings[2057])
 #endif
 #ifndef IswNshells
-#define IswNshells ((String)&IswStrings[2081])
+#define IswNshells ((String)&IswStrings[2069])
 #endif
 #ifndef IswNnumShells
-#define IswNnumShells ((String)&IswStrings[2088])
+#define IswNnumShells ((String)&IswStrings[2076])
 #endif
 #ifndef IswHcreate
-#define IswHcreate ((String)&IswStrings[2098])
+#define IswHcreate ((String)&IswStrings[2086])
 #endif
 #ifndef IswHsetValues
-#define IswHsetValues ((String)&IswStrings[2108])
+#define IswHsetValues ((String)&IswStrings[2096])
 #endif
 #ifndef IswHmanageChildren
-#define IswHmanageChildren ((String)&IswStrings[2121])
+#define IswHmanageChildren ((String)&IswStrings[2109])
 #endif
 #ifndef IswHunmanageChildren
-#define IswHunmanageChildren ((String)&IswStrings[2139])
+#define IswHunmanageChildren ((String)&IswStrings[2127])
 #endif
 #ifndef IswHmanageSet
-#define IswHmanageSet ((String)&IswStrings[2159])
+#define IswHmanageSet ((String)&IswStrings[2147])
 #endif
 #ifndef IswHunmanageSet
-#define IswHunmanageSet ((String)&IswStrings[2172])
+#define IswHunmanageSet ((String)&IswStrings[2160])
 #endif
 #ifndef IswHrealizeWidget
-#define IswHrealizeWidget ((String)&IswStrings[2187])
+#define IswHrealizeWidget ((String)&IswStrings[2175])
 #endif
 #ifndef IswHunrealizeWidget
-#define IswHunrealizeWidget ((String)&IswStrings[2204])
+#define IswHunrealizeWidget ((String)&IswStrings[2192])
 #endif
 #ifndef IswHaddCallback
-#define IswHaddCallback ((String)&IswStrings[2223])
+#define IswHaddCallback ((String)&IswStrings[2211])
 #endif
 #ifndef IswHaddCallbacks
-#define IswHaddCallbacks ((String)&IswStrings[2238])
+#define IswHaddCallbacks ((String)&IswStrings[2226])
 #endif
 #ifndef IswHremoveCallback
-#define IswHremoveCallback ((String)&IswStrings[2254])
+#define IswHremoveCallback ((String)&IswStrings[2242])
 #endif
 #ifndef IswHremoveCallbacks
-#define IswHremoveCallbacks ((String)&IswStrings[2272])
+#define IswHremoveCallbacks ((String)&IswStrings[2260])
 #endif
 #ifndef IswHremoveAllCallbacks
-#define IswHremoveAllCallbacks ((String)&IswStrings[2291])
+#define IswHremoveAllCallbacks ((String)&IswStrings[2279])
 #endif
 #ifndef IswHaugmentTranslations
-#define IswHaugmentTranslations ((String)&IswStrings[2313])
+#define IswHaugmentTranslations ((String)&IswStrings[2301])
 #endif
 #ifndef IswHoverrideTranslations
-#define IswHoverrideTranslations ((String)&IswStrings[2336])
+#define IswHoverrideTranslations ((String)&IswStrings[2324])
 #endif
 #ifndef IswHuninstallTranslations
-#define IswHuninstallTranslations ((String)&IswStrings[2360])
+#define IswHuninstallTranslations ((String)&IswStrings[2348])
 #endif
 #ifndef IswHsetKeyboardFocus
-#define IswHsetKeyboardFocus ((String)&IswStrings[2385])
+#define IswHsetKeyboardFocus ((String)&IswStrings[2373])
 #endif
 #ifndef IswHsetWMColormapWindows
-#define IswHsetWMColormapWindows ((String)&IswStrings[2405])
+#define IswHsetWMColormapWindows ((String)&IswStrings[2393])
 #endif
 #ifndef IswHsetMappedWhenManaged
-#define IswHsetMappedWhenManaged ((String)&IswStrings[2429])
+#define IswHsetMappedWhenManaged ((String)&IswStrings[2417])
 #endif
 #ifndef IswHmapWidget
-#define IswHmapWidget ((String)&IswStrings[2453])
+#define IswHmapWidget ((String)&IswStrings[2441])
 #endif
 #ifndef IswHunmapWidget
-#define IswHunmapWidget ((String)&IswStrings[2466])
+#define IswHunmapWidget ((String)&IswStrings[2454])
 #endif
 #ifndef IswHpopup
-#define IswHpopup ((String)&IswStrings[2481])
+#define IswHpopup ((String)&IswStrings[2469])
 #endif
 #ifndef IswHpopdown
-#define IswHpopdown ((String)&IswStrings[2490])
+#define IswHpopdown ((String)&IswStrings[2478])
 #endif
 #ifndef IswHconfigure
-#define IswHconfigure ((String)&IswStrings[2501])
+#define IswHconfigure ((String)&IswStrings[2489])
 #endif
 #ifndef IswHpreGeometry
-#define IswHpreGeometry ((String)&IswStrings[2514])
+#define IswHpreGeometry ((String)&IswStrings[2502])
 #endif
 #ifndef IswHpostGeometry
-#define IswHpostGeometry ((String)&IswStrings[2529])
+#define IswHpostGeometry ((String)&IswStrings[2517])
 #endif
 #ifndef IswHdestroy
-#define IswHdestroy ((String)&IswStrings[2545])
+#define IswHdestroy ((String)&IswStrings[2533])
 #endif
 #ifndef IswNtraversalOn
-#define IswNtraversalOn ((String)&IswStrings[2556])
+#define IswNtraversalOn ((String)&IswStrings[2544])
 #endif
 #ifndef IswCTraversalOn
-#define IswCTraversalOn ((String)&IswStrings[2568])
+#define IswCTraversalOn ((String)&IswStrings[2556])
 #endif
 #ifndef IswNtabIndex
-#define IswNtabIndex ((String)&IswStrings[2580])
+#define IswNtabIndex ((String)&IswStrings[2568])
 #endif
 #ifndef IswCTabIndex
-#define IswCTabIndex ((String)&IswStrings[2589])
+#define IswCTabIndex ((String)&IswStrings[2577])
 #endif
 #ifndef IswNconsumeTab
-#define IswNconsumeTab ((String)&IswStrings[2598])
+#define IswNconsumeTab ((String)&IswStrings[2586])
 #endif
 #ifndef IswCConsumeTab
-#define IswCConsumeTab ((String)&IswStrings[2609])
+#define IswCConsumeTab ((String)&IswStrings[2597])
 #endif
 #ifndef IswNmnemonicKey
-#define IswNmnemonicKey ((String)&IswStrings[2620])
+#define IswNmnemonicKey ((String)&IswStrings[2608])
 #endif
 #ifndef IswCMnemonicKey
-#define IswCMnemonicKey ((String)&IswStrings[2632])
+#define IswCMnemonicKey ((String)&IswStrings[2620])
 #endif
 #endif /* ISWSTRINGDEFINES */
 

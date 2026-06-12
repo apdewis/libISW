@@ -111,8 +111,6 @@ static IswResource resources[] = {
        Offset(scrollbar.thumbProc), IswRCallback, NULL},
   {IswNjumpProc, IswCCallback, IswRCallback, sizeof(IswPointer),
        Offset(scrollbar.jumpProc), IswRCallback, NULL},
-  {IswNthumb, IswCThumb, IswRBitmap, sizeof(IswPixmap),
-       Offset(scrollbar.thumb), IswRImmediate, (IswPointer) IswUnspecifiedPixmap},
   {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
        Offset(scrollbar.foreground), IswRString, IswDefaultForeground},
   {IswNshown, IswCShown, IswRFloat, sizeof(float),
@@ -455,8 +453,7 @@ SetValues(Widget current, Widget request, Widget desired, ArgList args, Cardinal
  */
     if (IswIsRealized (desired)) {
 	if (sbw->scrollbar.foreground != dsbw->scrollbar.foreground ||
-	    sbw->core.background_pixel != dsbw->core.background_pixel ||
-	    sbw->scrollbar.thumb != dsbw->scrollbar.thumb) {
+	    sbw->core.background_pixel != dsbw->core.background_pixel) {
 	    redraw = TRUE;
 	}
 	if (sbw->scrollbar.top != dsbw->scrollbar.top ||

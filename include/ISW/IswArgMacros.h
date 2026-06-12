@@ -85,7 +85,6 @@
 #define IswArgTextSink(ab, v)                   ISW_ARG((ab), IswNtextSink, (v))
 #define IswArgTextSource(ab, v)                 ISW_ARG((ab), IswNtextSource, (v))
 #define IswArgThickness(ab, v)                  ISW_ARG((ab), IswNthickness, (v))
-#define IswArgThumb(ab, v)                      ISW_ARG((ab), IswNthumb, (v))
 #define IswArgThumbProc(ab, v)                  ISW_ARG((ab), IswNthumbProc, (v))
 #define IswArgTop(ab, v)                        ISW_ARG((ab), IswNtop, (v))
 #define IswArgTranslations(ab, v)               ISW_ARG((ab), IswNtranslations, (v))
@@ -363,7 +362,6 @@
 #define IswArgInputCallback(ab, v)              ISW_ARG((ab), IswNinputCallback, (v))
 
 /* Dialog / Layout / Template / Reports / ProgressBar / Grip */
-#define IswArgIcon(ab, v)                       ISW_ARG((ab), IswNicon, (v))
 #define IswArgLayout(ab, v)                     ISW_ARG((ab), IswNlayout, (v))
 #define IswArgDebug(ab, v)                      ISW_ARG((ab), IswNdebug, (v))
 #define IswArgTemplateResource(ab, v)           ISW_ARG((ab), IswNtemplateResource, (v))
