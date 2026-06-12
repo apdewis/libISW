@@ -58,17 +58,11 @@ SOFTWARE.
 #include <ISW/IntrinsicP.h>
 #include "IntrinsicI.h"
 #include <ISW/StringDefs.h>
-#include <X11/Xos.h>
-/* REMOVED: Xmu headers include Xlib.h which conflicts with XCB-only approach */
-/* #include <X11/Xmu/Converters.h> */
-/* #include <X11/Xmu/Drawing.h> */
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
-#include <cairo/cairo.h>
 #include <ISW/Command.h>
 #include <ISW/LabelP.h>
-/* NO XFT - using pure XCB rendering */
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -628,8 +622,7 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
             if (draw_x < 0) draw_x = 0;
             if (draw_y < 0) draw_y = 0;
             ISWRenderBegin(ctx);
-            cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
-            if (insensitive && cr) cairo_push_group(cr);
+            if (insensitive) ISWRenderPushGroup(ctx);
             ISWRenderSetColor(ctx, w->core.background_pixel);
             ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
             if (ISWImageIsMonochrome(w->label.image))
@@ -639,10 +632,7 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
             else
                 ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
                                        draw_x, draw_y, disp_w, disp_h);
-            if (insensitive && cr) {
-                cairo_pop_group_to_source(cr);
-                cairo_paint_with_alpha(cr, 0.4);
-            }
+            if (insensitive) ISWRenderPopGroupWithAlpha(ctx, 0.4);
             ISWRenderEnd(ctx);
         }
         return;
@@ -704,8 +694,7 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
             /* Use Cairo rendering if available */
             if (ctx) {
                 ISWRenderBegin(ctx);
-                cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
-                if (insensitive && cr) cairo_push_group(cr);
+                if (insensitive) ISWRenderPushGroup(ctx);
                 ISWRenderSetColor(ctx, w->core.background_pixel);
                 ISWRenderFillRectangle(ctx, 0, 0,
                                        w->core.width, w->core.height);
@@ -769,10 +758,7 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
                                       draw_x, y);
                 }
 
-                if (insensitive && cr) {
-                    cairo_pop_group_to_source(cr);
-                    cairo_paint_with_alpha(cr, 0.4);
-                }
+                if (insensitive) ISWRenderPopGroupWithAlpha(ctx, 0.4);
                 ISWRenderEnd(ctx);
             }
 

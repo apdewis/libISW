@@ -36,7 +36,6 @@
 #include <ISW/SmeBSB.h>
 #include <ISW/SmeBSBP.h>
 #include <ISW/ISWPlatform.h>
-#include <cairo/cairo.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -386,8 +385,7 @@ _IswFocusMgrDrawRing(Widget w, void *ctx_void, unsigned long color, double pad)
     if (!((SimpleWidget) w)->simple.has_focus) return;
 
     ISWRenderContext *ctx = (ISWRenderContext *) ctx_void;
-    cairo_t *cr = (cairo_t *) ISWRenderGetCairoContext(ctx);
-    if (!cr) return;
+    if (!ctx) return;
 
     double rx = pad;
     double ry = pad;
@@ -396,15 +394,15 @@ _IswFocusMgrDrawRing(Widget w, void *ctx_void, unsigned long color, double pad)
     if (rw <= 0 || rh <= 0) return;
 
     double dashes[2] = { 2.0, 2.0 };
-    cairo_save(cr);
-    cairo_new_path(cr);
-    cairo_rectangle(cr, rx, ry, rw, rh);
+    ISWRenderSave(ctx);
+    ISWRenderPathBegin(ctx);
+    ISWRenderPathRectangle(ctx, rx, ry, rw, rh);
     ISWRenderSetColor(ctx, (Pixel) color);
-    cairo_set_dash(cr, dashes, 2, 0);
-    cairo_set_line_width(cr, 1.0);
-    cairo_stroke(cr);
-    cairo_set_dash(cr, NULL, 0, 0);
-    cairo_restore(cr);
+    ISWRenderSetDash(ctx, dashes, 2, 0);
+    ISWRenderSetLineWidth(ctx, 1.0);
+    ISWRenderStroke(ctx);
+    ISWRenderSetDash(ctx, NULL, 0, 0);
+    ISWRenderRestore(ctx);
 }
 
 /* --- Early-dispatch Tab intercept --- */

@@ -49,7 +49,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Label.h>
 #include <ISW/ToggleP.h>
 #include <ISW/FocusMgrI.h>
-#include <cairo/cairo.h>
 
 /****************************************************************
  *
@@ -595,45 +594,24 @@ static void
 DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
              double scale)
 {
-    cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
-    if (!cr) return;
+    if (!ctx) return;
 
     double r = 2.0 * scale;
-    double bx = x;
-    double by = y;
-    double bs = size;
 
-    cairo_save(cr);
+    ISWRenderSave(ctx);
 
     /* Rounded rect outline (always visible) */
-    cairo_new_path(cr);
-    cairo_arc(cr, bx + bs - r, by + r, r, -M_PI/2, 0);
-    cairo_arc(cr, bx + bs - r, by + bs - r, r, 0, M_PI/2);
-    cairo_arc(cr, bx + r, by + bs - r, r, M_PI/2, M_PI);
-    cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
-    cairo_close_path(cr);
-    cairo_set_line_width(cr, 1.5 * scale);
-    cairo_stroke(cr);
+    ISWRenderStrokeRoundedRectangle(ctx, x, y, size, size, r, 1.5 * scale);
 
     /* Solid pip if checked */
     if (checked) {
         double inset = 2.5 * scale;
-        double ix = bx + inset;
-        double iy = by + inset;
-        double is = bs - 2 * inset;
-        double ir = r * 0.5;
-
-        cairo_new_path(cr);
-        cairo_arc(cr, ix + is - ir, iy + ir, ir, -M_PI/2, 0);
-        cairo_arc(cr, ix + is - ir, iy + is - ir, ir, 0, M_PI/2);
-        cairo_arc(cr, ix + ir, iy + is - ir, ir, M_PI/2, M_PI);
-        cairo_arc(cr, ix + ir, iy + ir, ir, M_PI, 3*M_PI/2);
-        cairo_close_path(cr);
-        cairo_fill(cr);
+        ISWRenderFillRoundedRectangle(ctx,
+            (int)(x + inset), (int)(y + inset),
+            (int)(size - 2 * inset), (int)(size - 2 * inset), r * 0.5);
     }
 
-    cairo_new_path(cr);
-    cairo_restore(cr);
+    ISWRenderRestore(ctx);
 }
 
 /*	Function Name: DrawRadioButton
@@ -649,29 +627,29 @@ static void
 DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
                 double scale)
 {
-    /* Use the Cairo context directly for true circles */
-    cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
-    if (!cr) return;
+    if (!ctx) return;
 
-    cairo_save(cr);
+    ISWRenderSave(ctx);
 
     double cx = x + size / 2.0;
     double cy = y + size / 2.0;
     double radius = size / 2.0;
 
     /* Draw circle outline (always visible) */
-    cairo_set_line_width(cr, 1.5 * scale);
-    cairo_new_sub_path(cr);
-    cairo_arc(cr, cx, cy, radius, 0, 2.0 * M_PI);
-    cairo_stroke(cr);
+    ISWRenderSetLineWidth(ctx, 1.5 * scale);
+    ISWRenderPathBegin(ctx);
+    ISWRenderPathNewSubPath(ctx);
+    ISWRenderPathArc(ctx, cx, cy, radius, 0, 2.0 * M_PI);
+    ISWRenderStroke(ctx);
 
     /* Draw filled center circle if selected */
     if (selected) {
-        cairo_new_sub_path(cr);
-        cairo_arc(cr, cx, cy, radius * 0.45, 0, 2.0 * M_PI);
-        cairo_fill(cr);
+        ISWRenderPathBegin(ctx);
+        ISWRenderPathNewSubPath(ctx);
+        ISWRenderPathArc(ctx, cx, cy, radius * 0.45, 0, 2.0 * M_PI);
+        ISWRenderFill(ctx);
     }
-    cairo_restore(cr);
+    ISWRenderRestore(ctx);
 }
 
 /************************************************************

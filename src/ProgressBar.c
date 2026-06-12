@@ -15,7 +15,6 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ProgressBarP.h>
-#include <cairo/cairo.h>
 
 #define offset(field) IswOffsetOf(ProgressBarRec, field)
 
@@ -144,20 +143,21 @@ Resize(Widget w)
 }
 
 /*
- * Draw a rounded rectangle path on the given Cairo context.
+ * Build a rounded rectangle as the current render path.
  */
 static void
-RoundedRectPath(cairo_t *cr, double x, double y, double w, double h, double r)
+RoundedRectPath(ISWRenderContext *ctx, double x, double y, double w, double h,
+                double r)
 {
     if (r > w / 2.0) r = w / 2.0;
     if (r > h / 2.0) r = h / 2.0;
 
-    cairo_new_path(cr);
-    cairo_arc(cr, x + w - r, y + r, r, -M_PI/2, 0);
-    cairo_arc(cr, x + w - r, y + h - r, r, 0, M_PI/2);
-    cairo_arc(cr, x + r, y + h - r, r, M_PI/2, M_PI);
-    cairo_arc(cr, x + r, y + r, r, M_PI, 3*M_PI/2);
-    cairo_close_path(cr);
+    ISWRenderPathBegin(ctx);
+    ISWRenderPathArc(ctx, x + w - r, y + r, r, -M_PI/2, 0);
+    ISWRenderPathArc(ctx, x + w - r, y + h - r, r, 0, M_PI/2);
+    ISWRenderPathArc(ctx, x + r, y + h - r, r, M_PI/2, M_PI);
+    ISWRenderPathArc(ctx, x + r, y + r, r, M_PI, 3*M_PI/2);
+    ISWRenderPathClose(ctx);
 }
 
 /* ARGSUSED */
@@ -183,13 +183,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     ISWRenderSetColor(ctx, w->core.background_pixel);
     ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
 
-    cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
-    if (!cr) {
-	ISWRenderEnd(ctx);
-	return;
-    }
-
-    cairo_save(cr);
+    ISWRenderSave(ctx);
 
     /* Draw trough (border) */
     double bx = pad, by = pad;
@@ -197,15 +191,15 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     double bh = w->core.height - 2 * pad;
 
     if (bw <= 0 || bh <= 0) {
-	cairo_restore(cr);
+	ISWRenderRestore(ctx);
 	ISWRenderEnd(ctx);
 	return;
     }
 
     ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
-    cairo_set_line_width(cr, 1.0);
-    RoundedRectPath(cr, bx, by, bw, bh, r);
-    cairo_stroke(cr);
+    ISWRenderSetLineWidth(ctx, 1.0);
+    RoundedRectPath(ctx, bx, by, bw, bh, r);
+    ISWRenderStroke(ctx);
 
     /* Compute fill bar dimensions (needed for both drawing and text clipping) */
     double inner_pad = 2.0;
@@ -230,8 +224,8 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 
 	double fill_r = r * 0.5;
 	ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
-	RoundedRectPath(cr, fill_x, fill_y, fill_w, fill_h, fill_r);
-	cairo_fill(cr);
+	RoundedRectPath(ctx, fill_x, fill_y, fill_w, fill_h, fill_r);
+	ISWRenderFill(ctx);
     }
 
     /* Draw percentage text with split-color clipping */
@@ -276,76 +270,80 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	    double ty = (w->core.height - eff_text_h) / 2.0 + eff_ascent;
 
 	    /* Pass 1: foreground text clipped to unfilled region */
-	    cairo_save(cr);
-	    cairo_rectangle(cr, 0, 0, fill_x + fill_w, w->core.height);
-	    cairo_rectangle(cr, 0, 0, w->core.width, w->core.height);
-	    cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
-	    cairo_clip(cr);
+	    ISWRenderSave(ctx);
+	    ISWRenderPathBegin(ctx);
+	    ISWRenderPathRectangle(ctx, 0, 0, fill_x + fill_w, w->core.height);
+	    ISWRenderPathRectangle(ctx, 0, 0, w->core.width, w->core.height);
+	    ISWRenderSetFillRule(ctx, ISW_FILL_RULE_EVEN_ODD);
+	    ISWRenderClip(ctx);
 	    if (text_scale < 1.0f) {
-		cairo_translate(cr, tx, ty);
-		cairo_scale(cr, text_scale, text_scale);
+		ISWRenderTranslate(ctx, tx, ty);
+		ISWRenderScale(ctx, text_scale, text_scale);
 		tx = 0;
 		ty = 0;
 	    }
 	    ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
-	    cairo_move_to(cr, tx, ty);
-	    cairo_show_text(cr, buf);
-	    cairo_restore(cr);
+	    ISWRenderPathMoveTo(ctx, tx, ty);
+	    ISWRenderShowText(ctx, buf);
+	    ISWRenderRestore(ctx);
 
 	    /* Recalculate for pass 2 (restore resets transform) */
 	    tx = (w->core.width - eff_text_w) / 2.0;
 	    ty = (w->core.height - eff_text_h) / 2.0 + eff_ascent;
 
 	    /* Pass 2: background text clipped to filled region */
-	    cairo_save(cr);
-	    cairo_rectangle(cr, fill_x, fill_y, fill_w, fill_h);
-	    cairo_clip(cr);
+	    ISWRenderSave(ctx);
+	    ISWRenderPathBegin(ctx);
+	    ISWRenderPathRectangle(ctx, fill_x, fill_y, fill_w, fill_h);
+	    ISWRenderClip(ctx);
 	    if (text_scale < 1.0f) {
-		cairo_translate(cr, tx, ty);
-		cairo_scale(cr, text_scale, text_scale);
+		ISWRenderTranslate(ctx, tx, ty);
+		ISWRenderScale(ctx, text_scale, text_scale);
 		tx = 0;
 		ty = 0;
 	    }
 	    ISWRenderSetColor(ctx, w->core.background_pixel);
-	    cairo_move_to(cr, tx, ty);
-	    cairo_show_text(cr, buf);
-	    cairo_restore(cr);
+	    ISWRenderPathMoveTo(ctx, tx, ty);
+	    ISWRenderShowText(ctx, buf);
+	    ISWRenderRestore(ctx);
 	} else {
 	    double tx = -eff_text_w / 2.0;
 	    double ty = eff_ascent - eff_text_h / 2.0;
 
 	    /* Pass 1: foreground text clipped to unfilled region */
-	    cairo_save(cr);
-	    cairo_rectangle(cr, fill_x, fill_y, fill_w, fill_h);
-	    cairo_rectangle(cr, 0, 0, w->core.width, w->core.height);
-	    cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
-	    cairo_clip(cr);
-	    cairo_translate(cr, w->core.width / 2.0, w->core.height / 2.0);
-	    cairo_rotate(cr, -M_PI / 2.0);
+	    ISWRenderSave(ctx);
+	    ISWRenderPathBegin(ctx);
+	    ISWRenderPathRectangle(ctx, fill_x, fill_y, fill_w, fill_h);
+	    ISWRenderPathRectangle(ctx, 0, 0, w->core.width, w->core.height);
+	    ISWRenderSetFillRule(ctx, ISW_FILL_RULE_EVEN_ODD);
+	    ISWRenderClip(ctx);
+	    ISWRenderTranslate(ctx, w->core.width / 2.0, w->core.height / 2.0);
+	    ISWRenderRotate(ctx, -M_PI / 2.0);
 	    if (text_scale < 1.0f)
-		cairo_scale(cr, text_scale, text_scale);
+		ISWRenderScale(ctx, text_scale, text_scale);
 	    ISWRenderSetColor(ctx, pbw->progress_bar.foreground);
-	    cairo_move_to(cr, tx, ty);
-	    cairo_show_text(cr, buf);
-	    cairo_restore(cr);
+	    ISWRenderPathMoveTo(ctx, tx, ty);
+	    ISWRenderShowText(ctx, buf);
+	    ISWRenderRestore(ctx);
 
 	    /* Pass 2: background text clipped to filled region */
-	    cairo_save(cr);
-	    cairo_rectangle(cr, fill_x, fill_y, fill_w, fill_h);
-	    cairo_clip(cr);
-	    cairo_translate(cr, w->core.width / 2.0, w->core.height / 2.0);
-	    cairo_rotate(cr, -M_PI / 2.0);
+	    ISWRenderSave(ctx);
+	    ISWRenderPathBegin(ctx);
+	    ISWRenderPathRectangle(ctx, fill_x, fill_y, fill_w, fill_h);
+	    ISWRenderClip(ctx);
+	    ISWRenderTranslate(ctx, w->core.width / 2.0, w->core.height / 2.0);
+	    ISWRenderRotate(ctx, -M_PI / 2.0);
 	    if (text_scale < 1.0f)
-		cairo_scale(cr, text_scale, text_scale);
+		ISWRenderScale(ctx, text_scale, text_scale);
 	    ISWRenderSetColor(ctx, w->core.background_pixel);
-	    cairo_move_to(cr, tx, ty);
-	    cairo_show_text(cr, buf);
-	    cairo_restore(cr);
+	    ISWRenderPathMoveTo(ctx, tx, ty);
+	    ISWRenderShowText(ctx, buf);
+	    ISWRenderRestore(ctx);
 	}
     }
 
-    cairo_new_path(cr);
-    cairo_restore(cr);
+    ISWRenderPathBegin(ctx);
+    ISWRenderRestore(ctx);
     ISWRenderEnd(ctx);
 }
 

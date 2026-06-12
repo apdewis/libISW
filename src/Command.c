@@ -61,7 +61,6 @@ SOFTWARE.
 #include <ISW/ISWRender.h>
 #include <ISW/ISWPlatform.h>
 #include <ISW/CommandP.h>
-#include <cairo/cairo.h>
 #include <math.h>
 #include <ISW/Region.h>     /* region API for highlight frame */
 
@@ -375,135 +374,129 @@ PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
   ISWRenderBegin(ctx);
 
   {
-    cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
-    if (cr) {
-      Boolean insensitive = !IswIsSensitive(w);
-      if (insensitive) cairo_push_group(cr);
-      double lw = cbw->core.border_width;
-      double off = lw / 2.0;
-      double bx = off;
-      double by = off;
-      double bw = cbw->core.width - lw;
-      double bh = cbw->core.height - lw;
-      double r = cbw->command.corner_radius;
+    Boolean insensitive = !IswIsSensitive(w);
+    if (insensitive) ISWRenderPushGroup(ctx);
+    double lw = cbw->core.border_width;
+    double off = lw / 2.0;
+    double bx = off;
+    double by = off;
+    double bw = cbw->core.width - lw;
+    double bh = cbw->core.height - lw;
+    double r = cbw->command.corner_radius;
 
-      cairo_save(cr);
+    ISWRenderSave(ctx);
 
-      /* Mask out the corner regions outside the rounded shape using the
-       * parent's background, so corner_radius is honored even when the
-       * border stroke is thin or absent. Even-odd fill of outer rect +
-       * inner rounded rect paints only the four corner slivers. */
-      if (r > 0) {
-        Pixel corner_fill = saved_background;
-        if (IswParent(w) && IswIsWidget(IswParent(w))) {
-          corner_fill = IswParent(w)->core.background_pixel;
-        }
-        double iw = cbw->core.width;
-        double ih = cbw->core.height;
-        cairo_new_path(cr);
-        cairo_rectangle(cr, 0, 0, iw, ih);
-        cairo_new_sub_path(cr);
-        cairo_arc(cr, iw - r, r, r, -M_PI/2, 0);
-        cairo_arc(cr, iw - r, ih - r, r, 0, M_PI/2);
-        cairo_arc(cr, r, ih - r, r, M_PI/2, M_PI);
-        cairo_arc(cr, r, r, r, M_PI, 3*M_PI/2);
-        cairo_close_path(cr);
-        cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
-        ISWRenderSetColor(ctx, corner_fill);
-        cairo_fill(cr);
-        cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);
+    /* Mask out the corner regions outside the rounded shape using the
+     * parent's background, so corner_radius is honored even when the
+     * border stroke is thin or absent. Even-odd fill of outer rect +
+     * inner rounded rect paints only the four corner slivers. */
+    if (r > 0) {
+      Pixel corner_fill = saved_background;
+      if (IswParent(w) && IswIsWidget(IswParent(w))) {
+        corner_fill = IswParent(w)->core.background_pixel;
       }
+      double iw = cbw->core.width;
+      double ih = cbw->core.height;
+      ISWRenderPathBegin(ctx);
+      ISWRenderPathRectangle(ctx, 0, 0, iw, ih);
+      ISWRenderPathNewSubPath(ctx);
+      ISWRenderPathArc(ctx, iw - r, r, r, -M_PI/2, 0);
+      ISWRenderPathArc(ctx, iw - r, ih - r, r, 0, M_PI/2);
+      ISWRenderPathArc(ctx, r, ih - r, r, M_PI/2, M_PI);
+      ISWRenderPathArc(ctx, r, r, r, M_PI, 3*M_PI/2);
+      ISWRenderPathClose(ctx);
+      ISWRenderSetFillRule(ctx, ISW_FILL_RULE_EVEN_ODD);
+      ISWRenderSetColor(ctx, corner_fill);
+      ISWRenderFill(ctx);
+      ISWRenderSetFillRule(ctx, ISW_FILL_RULE_WINDING);
+    }
 
-      if (cbw->command.set) {
-        /* Pressed: fill with foreground, redraw content in background.
-         * Clip to the border shape so the fill respects corner_radius. */
-        cairo_new_path(cr);
+    if (cbw->command.set) {
+      /* Pressed: fill with foreground, redraw content in background.
+       * Clip to the border shape so the fill respects corner_radius. */
+      ISWRenderPathBegin(ctx);
+      if (r > 0) {
+        ISWRenderPathArc(ctx, bx + bw - r, by + r, r, -M_PI/2, 0);
+        ISWRenderPathArc(ctx, bx + bw - r, by + bh - r, r, 0, M_PI/2);
+        ISWRenderPathArc(ctx, bx + r, by + bh - r, r, M_PI/2, M_PI);
+        ISWRenderPathArc(ctx, bx + r, by + r, r, M_PI, 3*M_PI/2);
+        ISWRenderPathClose(ctx);
+      } else {
+        ISWRenderPathRectangle(ctx, bx, by, bw, bh);
+      }
+      ISWRenderSave(ctx);
+      ISWRenderClip(ctx);
+
+      /* Fill background */
+      ISWRenderSetColor(ctx, saved_foreground);
+      ISWRenderPaint(ctx);
+
+      /* Redraw content with inverted colors */
+      cbw->label.foreground = saved_background;
+      w->core.background_pixel = saved_foreground;
+      (*SuperClass->core_class.expose)(w, event, 0);
+      cbw->label.foreground = saved_foreground;
+      w->core.background_pixel = saved_background;
+
+      ISWRenderRestore(ctx);
+    }
+
+    /* Build border path */
+    ISWRenderPathBegin(ctx);
+    if (r > 0) {
+      ISWRenderPathArc(ctx, bx + bw - r, by + r, r, -M_PI/2, 0);
+      ISWRenderPathArc(ctx, bx + bw - r, by + bh - r, r, 0, M_PI/2);
+      ISWRenderPathArc(ctx, bx + r, by + bh - r, r, M_PI/2, M_PI);
+      ISWRenderPathArc(ctx, bx + r, by + r, r, M_PI, 3*M_PI/2);
+      ISWRenderPathClose(ctx);
+    } else {
+      ISWRenderPathRectangle(ctx, bx, by, bw, bh);
+    }
+
+    /* Stroke the border */
+    if (lw > 0 && !very_thick) {
+      ISWRenderSetColor(ctx, saved_foreground);
+      ISWRenderSetLineWidth(ctx, lw);
+      ISWRenderStroke(ctx);
+    } else {
+      ISWRenderPathBegin(ctx);
+    }
+
+    /* Focus ring: dashed inset rectangle, drawn when this widget owns
+     * keyboard focus (set by the Tab traversal focus manager). */
+    if (((SimpleWidget) w)->simple.has_focus) {
+      double pad = 3.0;
+      double rx = bx + pad;
+      double ry = by + pad;
+      double rw = bw - 2 * pad;
+      double rh = bh - 2 * pad;
+      if (rw > 0 && rh > 0) {
+        double dashes[2] = { 2.0, 2.0 };
+        ISWRenderPathBegin(ctx);
         if (r > 0) {
-          cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
-          cairo_arc(cr, bx + bw - r, by + bh - r, r, 0, M_PI/2);
-          cairo_arc(cr, bx + r, by + bh - r, r, M_PI/2, M_PI);
-          cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
-          cairo_close_path(cr);
-        } else {
-          cairo_rectangle(cr, bx, by, bw, bh);
-        }
-        cairo_save(cr);
-        cairo_clip(cr);
-
-        /* Fill background */
-        ISWRenderSetColor(ctx, saved_foreground);
-        cairo_paint(cr);
-
-        /* Redraw content with inverted colors */
-        cbw->label.foreground = saved_background;
-        w->core.background_pixel = saved_foreground;
-        (*SuperClass->core_class.expose)(w, event, 0);
-        cbw->label.foreground = saved_foreground;
-        w->core.background_pixel = saved_background;
-
-        cairo_restore(cr);
-      }
-
-      /* Build border path */
-      cairo_new_path(cr);
-      if (r > 0) {
-        cairo_arc(cr, bx + bw - r, by + r, r, -M_PI/2, 0);
-        cairo_arc(cr, bx + bw - r, by + bh - r, r, 0, M_PI/2);
-        cairo_arc(cr, bx + r, by + bh - r, r, M_PI/2, M_PI);
-        cairo_arc(cr, bx + r, by + r, r, M_PI, 3*M_PI/2);
-        cairo_close_path(cr);
-      } else {
-        cairo_rectangle(cr, bx, by, bw, bh);
-      }
-
-      /* Stroke the border */
-      if (lw > 0 && !very_thick) {
-        ISWRenderSetColor(ctx, saved_foreground);
-        cairo_set_line_width(cr, lw);
-        cairo_stroke(cr);
-      } else {
-        cairo_new_path(cr);
-      }
-
-      /* Focus ring: dashed inset rectangle, drawn when this widget owns
-       * keyboard focus (set by the Tab traversal focus manager). */
-      if (((SimpleWidget) w)->simple.has_focus) {
-        double pad = 3.0;
-        double rx = bx + pad;
-        double ry = by + pad;
-        double rw = bw - 2 * pad;
-        double rh = bh - 2 * pad;
-        if (rw > 0 && rh > 0) {
-          double dashes[2] = { 2.0, 2.0 };
-          cairo_new_path(cr);
-          if (r > 0) {
-            double rr = r > pad ? r - pad : 0;
-            if (rr > 0) {
-              cairo_arc(cr, rx + rw - rr, ry + rr, rr, -M_PI/2, 0);
-              cairo_arc(cr, rx + rw - rr, ry + rh - rr, rr, 0, M_PI/2);
-              cairo_arc(cr, rx + rr, ry + rh - rr, rr, M_PI/2, M_PI);
-              cairo_arc(cr, rx + rr, ry + rr, rr, M_PI, 3*M_PI/2);
-              cairo_close_path(cr);
-            } else {
-              cairo_rectangle(cr, rx, ry, rw, rh);
-            }
+          double rr = r > pad ? r - pad : 0;
+          if (rr > 0) {
+            ISWRenderPathArc(ctx, rx + rw - rr, ry + rr, rr, -M_PI/2, 0);
+            ISWRenderPathArc(ctx, rx + rw - rr, ry + rh - rr, rr, 0, M_PI/2);
+            ISWRenderPathArc(ctx, rx + rr, ry + rh - rr, rr, M_PI/2, M_PI);
+            ISWRenderPathArc(ctx, rx + rr, ry + rr, rr, M_PI, 3*M_PI/2);
+            ISWRenderPathClose(ctx);
           } else {
-            cairo_rectangle(cr, rx, ry, rw, rh);
+            ISWRenderPathRectangle(ctx, rx, ry, rw, rh);
           }
-          ISWRenderSetColor(ctx, saved_foreground);
-          cairo_set_dash(cr, dashes, 2, 0);
-          cairo_set_line_width(cr, 1.0);
-          cairo_stroke(cr);
-          cairo_set_dash(cr, NULL, 0, 0);
+        } else {
+          ISWRenderPathRectangle(ctx, rx, ry, rw, rh);
         }
-      }
-
-      cairo_restore(cr);
-      if (insensitive) {
-        cairo_pop_group_to_source(cr);
-        cairo_paint_with_alpha(cr, 0.4);
+        ISWRenderSetColor(ctx, saved_foreground);
+        ISWRenderSetDash(ctx, dashes, 2, 0);
+        ISWRenderSetLineWidth(ctx, 1.0);
+        ISWRenderStroke(ctx);
+        ISWRenderSetDash(ctx, NULL, 0, 0);
       }
     }
+
+    ISWRenderRestore(ctx);
+    if (insensitive) ISWRenderPopGroupWithAlpha(ctx, 0.4);
   }
 
   ISWRenderEnd(ctx);

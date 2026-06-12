@@ -16,7 +16,6 @@
 #include <ISW/ISWInit.h>
 #include <ISW/ISWRender.h>
 #include <ISW/TabsP.h>
-#include <cairo/cairo.h>
 #include <math.h>
 #include <string.h>
 
@@ -227,8 +226,6 @@ DrawTabBar(Widget w)
     ISWRenderSetColor(ctx, w->core.background_pixel);
     ISWRenderFillRectangle(ctx, 0, 0, w->core.width, tab_h);
 
-    cairo_t *cr = (cairo_t *)ISWRenderGetCairoContext(ctx);
-
     ForAllChildren(tw, childP) {
         Widget child = *childP;
         if (!IswIsManaged(child)) continue;
@@ -239,31 +236,31 @@ DrawTabBar(Widget w)
         Position tx = tc->tabs.tab_x;
         Dimension tw_ = tc->tabs.tab_width;
 
-        if (cr) {
-            double r = 4.0;  /* logical pixels; Cairo scale handles physical */
-            cairo_save(cr);
-            cairo_new_path(cr);
+        {
+            double r = 4.0;  /* logical pixels; backend scale handles physical */
+            ISWRenderSave(ctx);
+            ISWRenderPathBegin(ctx);
 
             /* Rounded top corners, flat bottom */
-            cairo_arc(cr, tx + r, r, r, M_PI, 3*M_PI/2);
-            cairo_arc(cr, tx + tw_ - r, r, r, -M_PI/2, 0);
-            cairo_line_to(cr, tx + tw_, tab_h);
-            cairo_line_to(cr, tx, tab_h);
-            cairo_close_path(cr);
+            ISWRenderPathArc(ctx, tx + r, r, r, M_PI, 3*M_PI/2);
+            ISWRenderPathArc(ctx, tx + tw_ - r, r, r, -M_PI/2, 0);
+            ISWRenderPathLineTo(ctx, tx + tw_, tab_h);
+            ISWRenderPathLineTo(ctx, tx, tab_h);
+            ISWRenderPathClose(ctx);
 
             if (is_top) {
                 ISWRenderSetColor(ctx, w->core.background_pixel);
-                cairo_fill_preserve(cr);
+                ISWRenderFillPreserve(ctx);
             } else {
                 ISWRenderSetColorRGBA(ctx, 0.0, 0.0, 0.0, 0.06);
-                cairo_fill_preserve(cr);
+                ISWRenderFillPreserve(ctx);
             }
 
             ISWRenderSetColor(ctx, tw->tabs.foreground);
-            cairo_set_line_width(cr, 1.0);
-            cairo_stroke(cr);
+            ISWRenderSetLineWidth(ctx, 1.0);
+            ISWRenderStroke(ctx);
 
-            cairo_restore(cr);
+            ISWRenderRestore(ctx);
         }
 
         /* Draw tab label */
@@ -276,26 +273,28 @@ DrawTabBar(Widget w)
     }
 
     /* Draw bottom border across the full width */
-    if (cr) {
-        cairo_save(cr);
+    {
+        ISWRenderSave(ctx);
         ISWRenderSetColor(ctx, tw->tabs.foreground);
-        cairo_set_line_width(cr, 1.0);
-        cairo_move_to(cr, 0, tab_h - 0.5);
-        cairo_line_to(cr, tw->core.width, tab_h - 0.5);
+        ISWRenderSetLineWidth(ctx, 1.0);
+        ISWRenderPathBegin(ctx);
+        ISWRenderPathMoveTo(ctx, 0, tab_h - 0.5);
+        ISWRenderPathLineTo(ctx, tw->core.width, tab_h - 0.5);
 
         /* Cut gap under the active tab */
         if (tw->tabs.top_widget && IswIsManaged(tw->tabs.top_widget)) {
             TabsConstraints tc = TabInfo(tw->tabs.top_widget);
             /* Overdraw the gap with background */
-            cairo_stroke(cr);
+            ISWRenderStroke(ctx);
             ISWRenderSetColor(ctx, w->core.background_pixel);
-            cairo_set_line_width(cr, 1.0);
-            cairo_move_to(cr, tc->tabs.tab_x + 1, tab_h - 0.5);
-            cairo_line_to(cr, tc->tabs.tab_x + tc->tabs.tab_width - 1,
-                          tab_h - 0.5);
+            ISWRenderSetLineWidth(ctx, 1.0);
+            ISWRenderPathBegin(ctx);
+            ISWRenderPathMoveTo(ctx, tc->tabs.tab_x + 1, tab_h - 0.5);
+            ISWRenderPathLineTo(ctx, tc->tabs.tab_x + tc->tabs.tab_width - 1,
+                                tab_h - 0.5);
         }
-        cairo_stroke(cr);
-        cairo_restore(cr);
+        ISWRenderStroke(ctx);
+        ISWRenderRestore(ctx);
     }
 
     ISWRenderEnd(ctx);

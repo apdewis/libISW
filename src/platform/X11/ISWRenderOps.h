@@ -153,6 +153,45 @@ typedef struct _ISWRenderOps {
        that still need direct access.  void* keeps cairo out of this header. */
     void* (*get_cairo_context)(struct _ISWRenderContext *ctx);
 
+    /* Begin a compositing group: subsequent draws accumulate into an offscreen
+       group instead of the surface.  Pair with pop_group_alpha. */
+    void (*push_group)(struct _ISWRenderContext *ctx);
+    /* End the group started by push_group and paint it onto the surface at the
+       given opacity (0..1).  Used for insensitive/greyed-out compositing. */
+    void (*pop_group_alpha)(struct _ISWRenderContext *ctx, double alpha);
+
+    /* Path construction (see ISWRenderPath* in ISWRender.h). */
+    void (*path_begin)(struct _ISWRenderContext *ctx);
+    void (*path_new_sub_path)(struct _ISWRenderContext *ctx);
+    void (*path_move_to)(struct _ISWRenderContext *ctx, double x, double y);
+    void (*path_line_to)(struct _ISWRenderContext *ctx, double x, double y);
+    void (*path_arc)(struct _ISWRenderContext *ctx, double cx, double cy,
+                     double r, double angle1, double angle2);
+    void (*path_rectangle)(struct _ISWRenderContext *ctx,
+                           double x, double y, double w, double h);
+    void (*path_close)(struct _ISWRenderContext *ctx);
+
+    /* Paint / clip the current path. */
+    void (*fill_path)(struct _ISWRenderContext *ctx, Boolean preserve);
+    void (*stroke_path)(struct _ISWRenderContext *ctx, Boolean preserve);
+    void (*clip_path)(struct _ISWRenderContext *ctx);
+    /* Paint the current colour over the entire current clip region. */
+    void (*paint)(struct _ISWRenderContext *ctx);
+
+    /* Path / draw state. */
+    void (*set_fill_rule)(struct _ISWRenderContext *ctx, ISWFillRule rule);
+    void (*set_dash)(struct _ISWRenderContext *ctx, const double *dashes,
+                     int num_dashes, double offset);
+    void (*set_operator)(struct _ISWRenderContext *ctx, ISWOperator op);
+
+    /* Affine transform of the coordinate system. */
+    void (*translate)(struct _ISWRenderContext *ctx, double tx, double ty);
+    void (*scale)(struct _ISWRenderContext *ctx, double sx, double sy);
+    void (*rotate)(struct _ISWRenderContext *ctx, double radians);
+
+    /* Draw text at the current point honouring the active transform. */
+    void (*show_text)(struct _ISWRenderContext *ctx, const char *text);
+
     /* Decode a pixel to 0..1 RGB using the backend's own visual/colormap
        (the backend owns these privately; the neutral ctx holds no native
        display handle).  ISWRenderPixelToRGB forwards here. */

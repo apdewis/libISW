@@ -1060,8 +1060,171 @@ ISWRenderGetCairoContext(ISWRenderContext *ctx)
     if (!ctx || !ctx->ops || !ctx->ops->get_cairo_context) {
         return NULL;
     }
-    
+
     return ctx->ops->get_cairo_context(ctx);
+}
+
+void
+ISWRenderPushGroup(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->push_group) {
+        return;
+    }
+
+    ctx->ops->push_group(ctx);
+}
+
+void
+ISWRenderPopGroupWithAlpha(ISWRenderContext *ctx, double alpha)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->pop_group_alpha) {
+        return;
+    }
+
+    ctx->ops->pop_group_alpha(ctx, alpha);
+}
+
+void
+ISWRenderPathBegin(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->path_begin) return;
+    ctx->ops->path_begin(ctx);
+}
+
+void
+ISWRenderPathNewSubPath(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->path_new_sub_path) return;
+    ctx->ops->path_new_sub_path(ctx);
+}
+
+void
+ISWRenderPathMoveTo(ISWRenderContext *ctx, double x, double y)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->path_move_to) return;
+    ctx->ops->path_move_to(ctx, x, y);
+}
+
+void
+ISWRenderPathLineTo(ISWRenderContext *ctx, double x, double y)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->path_line_to) return;
+    ctx->ops->path_line_to(ctx, x, y);
+}
+
+void
+ISWRenderPathArc(ISWRenderContext *ctx, double cx, double cy, double r,
+                 double angle1, double angle2)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->path_arc) return;
+    ctx->ops->path_arc(ctx, cx, cy, r, angle1, angle2);
+}
+
+void
+ISWRenderPathRectangle(ISWRenderContext *ctx,
+                       double x, double y, double w, double h)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->path_rectangle) return;
+    ctx->ops->path_rectangle(ctx, x, y, w, h);
+}
+
+void
+ISWRenderPathClose(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->path_close) return;
+    ctx->ops->path_close(ctx);
+}
+
+void
+ISWRenderFill(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->fill_path) return;
+    ctx->ops->fill_path(ctx, False);
+}
+
+void
+ISWRenderFillPreserve(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->fill_path) return;
+    ctx->ops->fill_path(ctx, True);
+}
+
+void
+ISWRenderStroke(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->stroke_path) return;
+    ctx->ops->stroke_path(ctx, False);
+}
+
+void
+ISWRenderStrokePreserve(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->stroke_path) return;
+    ctx->ops->stroke_path(ctx, True);
+}
+
+void
+ISWRenderClip(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->clip_path) return;
+    ctx->ops->clip_path(ctx);
+}
+
+void
+ISWRenderPaint(ISWRenderContext *ctx)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->paint) return;
+    ctx->ops->paint(ctx);
+}
+
+void
+ISWRenderSetFillRule(ISWRenderContext *ctx, ISWFillRule rule)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->set_fill_rule) return;
+    ctx->ops->set_fill_rule(ctx, rule);
+}
+
+void
+ISWRenderSetDash(ISWRenderContext *ctx, const double *dashes,
+                 int num_dashes, double offset)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->set_dash) return;
+    ctx->ops->set_dash(ctx, dashes, num_dashes, offset);
+}
+
+void
+ISWRenderSetOperator(ISWRenderContext *ctx, ISWOperator op)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->set_operator) return;
+    ctx->ops->set_operator(ctx, op);
+}
+
+void
+ISWRenderTranslate(ISWRenderContext *ctx, double tx, double ty)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->translate) return;
+    ctx->ops->translate(ctx, tx, ty);
+}
+
+void
+ISWRenderScale(ISWRenderContext *ctx, double sx, double sy)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->scale) return;
+    ctx->ops->scale(ctx, sx, sy);
+}
+
+void
+ISWRenderRotate(ISWRenderContext *ctx, double radians)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->rotate) return;
+    ctx->ops->rotate(ctx, radians);
+}
+
+void
+ISWRenderShowText(ISWRenderContext *ctx, const char *text)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->show_text) return;
+    ctx->ops->show_text(ctx, text);
 }
 
 /*

@@ -53,7 +53,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Cardinals.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
-#include <cairo.h>
 #include <stdio.h>
 
 /* needed for abs() */

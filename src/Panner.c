@@ -37,8 +37,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ctype.h>			/* for isascii() etc. */
 #include <stdlib.h>			/* for atof() */
 #ifdef HAVE_CAIRO
-#include <cairo.h>
-#include <cairo-xcb.h>
 #endif
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWPlatform.h>
@@ -372,19 +370,18 @@ draw_tmp_rubber_band(PannerWidget pw)
     unsigned int rh = (unsigned int)(pw->panner.knob_height - 1);
 
     ISWRenderContext *ctx = pw->panner.render_ctx;
-    void *cr_ptr = ctx ? ISWRenderGetCairoContext(ctx) : NULL;
-    if (cr_ptr) {
-        cairo_t *cr = (cairo_t *)cr_ptr;
+    if (ctx) {
         double lw = (pw->panner.line_width > 0) ?
                      (double)pw->panner.line_width : 1.0;
         ISWRenderBegin(ctx);
-        cairo_save(cr);
-        cairo_set_operator(cr, CAIRO_OPERATOR_DIFFERENCE);
-        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-        cairo_set_line_width(cr, lw);
-        cairo_rectangle(cr, rx + 0.5, ry + 0.5, rw, rh);
-        cairo_stroke(cr);
-        cairo_restore(cr);
+        ISWRenderSave(ctx);
+        ISWRenderSetOperator(ctx, ISW_OPERATOR_DIFFERENCE);
+        ISWRenderSetColorRGBA(ctx, 1.0, 1.0, 1.0, 1.0);
+        ISWRenderSetLineWidth(ctx, lw);
+        ISWRenderPathBegin(ctx);
+        ISWRenderPathRectangle(ctx, rx + 0.5, ry + 0.5, rw, rh);
+        ISWRenderStroke(ctx);
+        ISWRenderRestore(ctx);
         ISWRenderEnd(ctx);
     }
     pw->panner.tmp.showing = !pw->panner.tmp.showing;

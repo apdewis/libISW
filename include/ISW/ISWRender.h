@@ -59,6 +59,25 @@ typedef enum {
 } ISWRenderCaps;
 
 /*
+ * Fill rule for ISWRenderFill/ISWRenderClip when a path self-overlaps or has
+ * multiple sub-paths (e.g. even-odd masking of corner slivers or text holes).
+ */
+typedef enum {
+    ISW_FILL_RULE_WINDING = 0,   /* Non-zero winding (default) */
+    ISW_FILL_RULE_EVEN_ODD       /* Even-odd */
+} ISWFillRule;
+
+/*
+ * Compositing operator for subsequent draws.  ISW_OPERATOR_OVER is the normal
+ * source-over blend; ISW_OPERATOR_DIFFERENCE gives an invert-style result used
+ * for rubber-band overlays that toggle cleanly when drawn twice.
+ */
+typedef enum {
+    ISW_OPERATOR_OVER = 0,       /* Normal source-over (default) */
+    ISW_OPERATOR_DIFFERENCE      /* Difference (rubber-band / XOR-like) */
+} ISWOperator;
+
+/*
  * =================================================================
  * Context Creation and Destruction
  * =================================================================
@@ -638,6 +657,98 @@ Boolean ISWRenderSetGradient(ISWRenderContext *ctx,
  *   - For advanced Cairo operations beyond the ISWRender API
  */
 void* ISWRenderGetCairoContext(ISWRenderContext *ctx);
+
+/*
+ * ISWRenderPushGroup - Begin an offscreen compositing group
+ *
+ * Subsequent draw calls accumulate into a group rather than painting
+ * directly onto the surface.  Pair with ISWRenderPopGroupWithAlpha to
+ * composite the group onto the surface at a chosen opacity (e.g. for
+ * rendering insensitive/greyed-out widgets).  No-op if the backend does
+ * not support grouping.
+ *
+ * Parameters:
+ *   ctx - Rendering context
+ */
+void ISWRenderPushGroup(ISWRenderContext *ctx);
+
+/*
+ * ISWRenderPopGroupWithAlpha - End a group and paint it at the given opacity
+ *
+ * Parameters:
+ *   ctx   - Rendering context
+ *   alpha - Opacity to composite the group at (0.0-1.0)
+ */
+void ISWRenderPopGroupWithAlpha(ISWRenderContext *ctx, double alpha);
+
+/*
+ * =================================================================
+ * Path Construction and Painting
+ * =================================================================
+ *
+ * Build an arbitrary path with the ISWRenderPath* calls, then paint it with
+ * ISWRenderFill / ISWRenderStroke (optionally *Preserve to keep the path for a
+ * second paint, e.g. fill-then-stroke), or clip to it with ISWRenderClip.
+ * Coordinates are logical pixels; the backend handles HiDPI scaling.  All are
+ * no-ops on backends without path support.
+ */
+
+/* Start a fresh, empty path (discards any current path). */
+void ISWRenderPathBegin(ISWRenderContext *ctx);
+/* Begin a new sub-path with no current point (needed before a lone arc/circle
+ * so it is not joined to the previous sub-path by a line). */
+void ISWRenderPathNewSubPath(ISWRenderContext *ctx);
+/* Set the current point without drawing. */
+void ISWRenderPathMoveTo(ISWRenderContext *ctx, double x, double y);
+/* Add a straight segment from the current point to (x, y). */
+void ISWRenderPathLineTo(ISWRenderContext *ctx, double x, double y);
+/* Add a circular arc centred at (cx, cy), radius r, sweeping angle1->angle2
+ * (radians, positive = clockwise in the y-down surface). */
+void ISWRenderPathArc(ISWRenderContext *ctx, double cx, double cy, double r,
+                      double angle1, double angle2);
+/* Add an axis-aligned rectangle as a closed sub-path. */
+void ISWRenderPathRectangle(ISWRenderContext *ctx,
+                            double x, double y, double w, double h);
+/* Close the current sub-path back to its start point. */
+void ISWRenderPathClose(ISWRenderContext *ctx);
+
+/* Fill the current path with the current colour. */
+void ISWRenderFill(ISWRenderContext *ctx);
+/* Fill the current path but keep it for a subsequent paint. */
+void ISWRenderFillPreserve(ISWRenderContext *ctx);
+/* Stroke the current path with the current colour and line width. */
+void ISWRenderStroke(ISWRenderContext *ctx);
+/* Stroke the current path but keep it for a subsequent paint. */
+void ISWRenderStrokePreserve(ISWRenderContext *ctx);
+/* Intersect the clip region with the current path (consumes the path). */
+void ISWRenderClip(ISWRenderContext *ctx);
+/* Paint the current colour over the entire current clip region. */
+void ISWRenderPaint(ISWRenderContext *ctx);
+
+/* Set the fill rule used by path fills and ISWRenderClip. */
+void ISWRenderSetFillRule(ISWRenderContext *ctx, ISWFillRule rule);
+/* Set a dash pattern for stroking; num_dashes == 0 restores a solid line.
+ * `dashes` are on/off lengths in logical pixels. */
+void ISWRenderSetDash(ISWRenderContext *ctx, const double *dashes,
+                      int num_dashes, double offset);
+/* Set the compositing operator for subsequent draws. */
+void ISWRenderSetOperator(ISWRenderContext *ctx, ISWOperator op);
+
+/*
+ * Affine transform of the coordinate system (cumulative until the enclosing
+ * ISWRenderSave/Restore pair is restored).  Used for scaled/rotated text and
+ * shapes (e.g. vertical progress-bar labels).
+ */
+void ISWRenderTranslate(ISWRenderContext *ctx, double tx, double ty);
+void ISWRenderScale(ISWRenderContext *ctx, double sx, double sy);
+void ISWRenderRotate(ISWRenderContext *ctx, double radians);
+
+/*
+ * Draw `text` at the current point using the current font and colour, advancing
+ * the current point.  Honours the active transform (unlike ISWRenderDrawString,
+ * which positions in surface coordinates).  Used for transformed label text.
+ */
+void ISWRenderShowText(ISWRenderContext *ctx, const char *text);
 
 /*
  * =================================================================

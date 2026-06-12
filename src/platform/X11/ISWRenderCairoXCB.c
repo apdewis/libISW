@@ -1389,6 +1389,199 @@ cairo_xcb_get_cairo_context(ISWRenderContext *ctx)
     return (void*)data->cairo_ctx;
 }
 
+static void
+cairo_xcb_push_group(ISWRenderContext *ctx)
+{
+    ISWRenderCairoXCBData *data;
+
+    if (!ctx || !ctx->surface)
+        return;
+
+    data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (data->cairo_ctx)
+        cairo_push_group(data->cairo_ctx);
+}
+
+static void
+cairo_xcb_pop_group_alpha(ISWRenderContext *ctx, double alpha)
+{
+    ISWRenderCairoXCBData *data;
+
+    if (!ctx || !ctx->surface)
+        return;
+
+    data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (data->cairo_ctx) {
+        cairo_pop_group_to_source(data->cairo_ctx);
+        cairo_paint_with_alpha(data->cairo_ctx, alpha);
+    }
+}
+
+/* ---- Path construction / painting ---- */
+
+static void
+cairo_xcb_path_begin(ISWRenderContext *ctx)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_new_path(data->cairo_ctx);
+}
+
+static void
+cairo_xcb_path_new_sub_path(ISWRenderContext *ctx)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_new_sub_path(data->cairo_ctx);
+}
+
+static void
+cairo_xcb_path_move_to(ISWRenderContext *ctx, double x, double y)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_move_to(data->cairo_ctx, x, y);
+}
+
+static void
+cairo_xcb_path_line_to(ISWRenderContext *ctx, double x, double y)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_line_to(data->cairo_ctx, x, y);
+}
+
+static void
+cairo_xcb_path_arc(ISWRenderContext *ctx, double cx, double cy, double r,
+                   double angle1, double angle2)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_arc(data->cairo_ctx, cx, cy, r, angle1, angle2);
+}
+
+static void
+cairo_xcb_path_rectangle(ISWRenderContext *ctx,
+                         double x, double y, double w, double h)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_rectangle(data->cairo_ctx, x, y, w, h);
+}
+
+static void
+cairo_xcb_path_close(ISWRenderContext *ctx)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_close_path(data->cairo_ctx);
+}
+
+static void
+cairo_xcb_fill_path(ISWRenderContext *ctx, Boolean preserve)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    if (preserve)
+        cairo_fill_preserve(data->cairo_ctx);
+    else
+        cairo_fill(data->cairo_ctx);
+}
+
+static void
+cairo_xcb_stroke_path(ISWRenderContext *ctx, Boolean preserve)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    if (preserve)
+        cairo_stroke_preserve(data->cairo_ctx);
+    else
+        cairo_stroke(data->cairo_ctx);
+}
+
+static void
+cairo_xcb_clip_path(ISWRenderContext *ctx)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_clip(data->cairo_ctx);
+}
+
+static void
+cairo_xcb_paint(ISWRenderContext *ctx)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_paint(data->cairo_ctx);
+}
+
+/* ---- Path / draw state ---- */
+
+static void
+cairo_xcb_set_fill_rule(ISWRenderContext *ctx, ISWFillRule rule)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_set_fill_rule(data->cairo_ctx,
+                        rule == ISW_FILL_RULE_EVEN_ODD
+                            ? CAIRO_FILL_RULE_EVEN_ODD
+                            : CAIRO_FILL_RULE_WINDING);
+}
+
+static void
+cairo_xcb_set_dash(ISWRenderContext *ctx, const double *dashes,
+                   int num_dashes, double offset)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_set_dash(data->cairo_ctx, dashes, num_dashes, offset);
+}
+
+static void
+cairo_xcb_set_operator(ISWRenderContext *ctx, ISWOperator op)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_set_operator(data->cairo_ctx,
+                       op == ISW_OPERATOR_DIFFERENCE
+                           ? CAIRO_OPERATOR_DIFFERENCE
+                           : CAIRO_OPERATOR_OVER);
+}
+
+/* ---- Affine transform ---- */
+
+static void
+cairo_xcb_translate(ISWRenderContext *ctx, double tx, double ty)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_translate(data->cairo_ctx, tx, ty);
+}
+
+static void
+cairo_xcb_scale(ISWRenderContext *ctx, double sx, double sy)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_scale(data->cairo_ctx, sx, sy);
+}
+
+static void
+cairo_xcb_rotate(ISWRenderContext *ctx, double radians)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx) return;
+    cairo_rotate(data->cairo_ctx, radians);
+}
+
+static void
+cairo_xcb_show_text(ISWRenderContext *ctx, const char *text)
+{
+    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
+    if (!data->cairo_ctx || !text) return;
+    cairo_show_text(data->cairo_ctx, text);
+}
+
 /*
  * =================================================================
  * Operations Vtables
@@ -1810,6 +2003,26 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .draw_image_masked = cairo_xcb_draw_image_masked,
     .set_gradient = cairo_xcb_set_gradient,
     .get_cairo_context = cairo_xcb_get_cairo_context,
+    .push_group = cairo_xcb_push_group,
+    .pop_group_alpha = cairo_xcb_pop_group_alpha,
+    .path_begin = cairo_xcb_path_begin,
+    .path_new_sub_path = cairo_xcb_path_new_sub_path,
+    .path_move_to = cairo_xcb_path_move_to,
+    .path_line_to = cairo_xcb_path_line_to,
+    .path_arc = cairo_xcb_path_arc,
+    .path_rectangle = cairo_xcb_path_rectangle,
+    .path_close = cairo_xcb_path_close,
+    .fill_path = cairo_xcb_fill_path,
+    .stroke_path = cairo_xcb_stroke_path,
+    .clip_path = cairo_xcb_clip_path,
+    .paint = cairo_xcb_paint,
+    .set_fill_rule = cairo_xcb_set_fill_rule,
+    .set_dash = cairo_xcb_set_dash,
+    .set_operator = cairo_xcb_set_operator,
+    .translate = cairo_xcb_translate,
+    .scale = cairo_xcb_scale,
+    .rotate = cairo_xcb_rotate,
+    .show_text = cairo_xcb_show_text,
     .pixel_to_rgb = cairo_xcb_pixel_to_rgb
 };
 
