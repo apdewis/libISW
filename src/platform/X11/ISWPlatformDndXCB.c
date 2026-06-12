@@ -33,6 +33,7 @@
 #include <ISW/PassivGraI.h>
 #include <ISW/StringDefs.h>
 #include <ISW/IswDragDrop.h>
+#include <ISW/IswDragDropP.h>
 #include <ISW/ISWPlatform.h>
 #include "ISWContextI.h"
 #include <ISW/IconView.h>
@@ -76,27 +77,6 @@ extern Boolean _IswEventFromXcb(IswDisplay dpy,
                                 xcb_generic_event_t *xev, IswEvent *out);
 
 /* ------------------------------------------------------------------ */
-/* Per-widget drop configuration                                      */
-/* ------------------------------------------------------------------ */
-
-typedef struct _DropConfig {
-    Widget              widget;
-    xcb_atom_t         *accepted_types;
-    int                 num_accepted_types;
-    IswDndAction        accepted_actions;
-    /* Direct callback — used when the widget class doesn't declare
-     * IswNdropCallback as a resource (e.g. widgets inheriting from
-     * Core/Composite rather than Simple). */
-    IswCallbackProc      drop_proc;
-    IswPointer           drop_closure;
-    IswCallbackProc      motion_proc;
-    IswPointer           motion_closure;
-    IswCallbackProc      leave_proc;
-    IswPointer           leave_closure;
-    struct _DropConfig *next;
-} DropConfig;
-
-/* ------------------------------------------------------------------ */
 /* Per-shell XDND state                                               */
 /* ------------------------------------------------------------------ */
 
@@ -128,40 +108,15 @@ typedef struct _XdndState {
     /* TARGETS pseudo-type */
     xcb_atom_t targets_atom;
 
-    Widget shell;
-
-    /* --- Drop target state --- */
+    /* --- Drop target state (xcb wire half) --- */
     xcb_window_t    src_window;         /* source window of incoming drag */
-    xcb_atom_t     *src_types;          /* types offered by source */
-    int             src_num_types;
-    IswDndAction    src_actions;        /* actions offered by source */
-    int             src_version;        /* source XDND version */
-    int             drop_x, drop_y;     /* last position (root coords) */
-    Widget          hover_widget;       /* widget currently under cursor */
-    xcb_atom_t      negotiated_type;    /* type accepted for current drop */
-    IswDndAction    negotiated_action;  /* action accepted for current drop */
     xcb_timestamp_t drop_timestamp;     /* timestamp from XdndDrop */
 
-    /* --- Drag source state --- */
-    Boolean             dragging;
-    IswDragSourceDesc   drag_desc;
-    Widget              drag_source;
+    /* --- Drag source state (xcb wire half) --- */
     xcb_timestamp_t     drag_timestamp;
-    int                 drag_start_x;   /* root coords of initial press */
-    int                 drag_start_y;
-    int                 drag_press_x;   /* widget-local press coords */
-    int                 drag_press_y;
-    Boolean             drag_started;   /* past threshold? */
 
-    /* Target tracking during drag */
+    /* Target tracking during drag (xcb wire half) */
     xcb_window_t        drag_target_win;    /* foreign window under cursor */
-    int                 drag_target_ver;    /* its XDND version */
-    Boolean             drag_status_pending;/* waiting for XdndStatus */
-    Boolean             drag_target_accepted;
-    IswDndAction        drag_target_action;
-    int                 drag_last_x;        /* last sent position */
-    int                 drag_last_y;
-    Boolean             drag_position_deferred;/* moved while status pending */
 
     /* Drag icon */
     xcb_window_t        drag_icon_win;
@@ -176,11 +131,9 @@ typedef struct _XdndState {
     xcb_cursor_t        cursor_link;
     xcb_cursor_t        cursor_reject;
 
-    /* Finished timeout */
-    IswIntervalId        finished_timer;
-
-    /* Per-widget drop configs */
-    DropConfig         *drop_configs;
+    /* Platform-neutral DnD policy/state (drop configs, negotiation,
+       drag/drop bookkeeping). */
+    IswDndCore          core;
 } XdndState;
 
 /* ------------------------------------------------------------------ */
@@ -194,9 +147,9 @@ static void CreateCursors(XdndState *st, xcb_connection_t *conn,
 /* Drop target handlers */
 static void HandleXdndEvent(Widget w, IswPointer closure,
                             IswEvent *event, Boolean *cont);
-static void HandleTargetEnter(XdndState *st, xcb_client_message_event_t *cm);
-static void HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm);
-static void HandleTargetDrop(XdndState *st, xcb_client_message_event_t *cm);
+static void HandleTargetEnter(XdndState *st, const uint32_t *data);
+static void HandleTargetPosition(XdndState *st, const uint32_t *data);
+static void HandleTargetDrop(XdndState *st, const uint32_t *data);
 static void HandleTargetLeave(XdndState *st);
 static void TargetSelectionCallback(Widget w, IswPointer closure,
                                     xcb_atom_t *selection, xcb_atom_t *type,
@@ -207,21 +160,14 @@ static void SendXdndStatus(XdndState *st, Boolean accept,
 static void SendXdndFinished(XdndState *st, Boolean accept,
                              xcb_atom_t action_atom);
 
-/* Drop target type negotiation */
-static DropConfig *FindDropConfig(XdndState *st, Widget w);
-static Boolean NegotiateType(XdndState *st, Widget target,
-                             xcb_atom_t *type_out, IswDndAction *action_out);
-static IswDndAction AtomToAction(XdndState *st, xcb_atom_t atom);
-static xcb_atom_t ActionToAtom(XdndState *st, IswDndAction action);
-
 /* Widget tree walk */
 static Widget FindDropTarget(XdndState *st, int root_x, int root_y);
-static Widget FindDropChild(XdndState *st, Widget composite, int wx, int wy);
 
 /* Drag source */
 static void HandleDragEvent(Widget w, IswPointer closure,
                             IswEvent *event, Boolean *cont);
-static void DragMotion(XdndState *st, int root_x, int root_y);
+static void DragMotion(XdndState *st, int root_x, int root_y,
+                       unsigned int modifiers);
 static void DragDrop(XdndState *st);
 static void DragCancel(XdndState *st);
 static void DragCleanup(XdndState *st);
@@ -231,8 +177,8 @@ static void SendDragEnter(XdndState *st, xcb_window_t target);
 static void SendDragPosition(XdndState *st, int root_x, int root_y);
 static void SendDragLeave(XdndState *st);
 static void SendDragDrop(XdndState *st);
-static void HandleDragStatus(XdndState *st, xcb_client_message_event_t *cm);
-static void HandleDragFinished(XdndState *st, xcb_client_message_event_t *cm);
+static void HandleDragStatus(XdndState *st, const uint32_t *data);
+static void HandleDragFinished(XdndState *st, const uint32_t *data);
 static void DragFinishedTimeout(IswPointer closure, IswIntervalId *id);
 
 /* Drag source selection */
@@ -247,12 +193,6 @@ static void DragLoseSelection(Widget w, xcb_atom_t *selection);
 static void CreateDragIcon(XdndState *st);
 static void MoveDragIcon(XdndState *st, int root_x, int root_y);
 static void DestroyDragIcon(XdndState *st);
-
-/* URI parsing */
-static char **ParseUriList(const char *data, int len, int *out_count);
-
-/* Keyboard modifier → action mapping */
-static IswDndAction ModifiersToAction(XdndState *st, unsigned int state);
 
 /* ------------------------------------------------------------------ */
 /* Atom internment                                                    */
@@ -306,6 +246,17 @@ InternAtoms(XdndState *st, xcb_connection_t *conn)
     st->text_plain     = IswXcbInternAtom(conn, "text/plain", False);
 
     st->targets_atom   = IswXcbInternAtom(conn, "TARGETS", False);
+
+    /* Mirror the negotiation vocabulary into the neutral core so the
+       platform-neutral policy functions can compare type/action ids. */
+    st->core.action_copy    = (Atom) st->action_copy;
+    st->core.action_move    = (Atom) st->action_move;
+    st->core.action_link    = (Atom) st->action_link;
+    st->core.action_ask     = (Atom) st->action_ask;
+    st->core.action_private = (Atom) st->action_private;
+    st->core.text_uri_list  = (Atom) st->text_uri_list;
+    st->core.text_plain     = (Atom) st->text_plain;
+    st->core.targets_atom   = (Atom) st->targets_atom;
 }
 
 /* ------------------------------------------------------------------ */
@@ -380,176 +331,18 @@ CreateCursors(XdndState *st, xcb_connection_t *conn, xcb_screen_t *screen)
 }
 
 /* ------------------------------------------------------------------ */
-/* Action ↔ atom conversion                                           */
-/* ------------------------------------------------------------------ */
-
-static IswDndAction
-AtomToAction(XdndState *st, xcb_atom_t atom)
-{
-    if (atom == st->action_copy)    return ISW_DND_ACTION_COPY;
-    if (atom == st->action_move)    return ISW_DND_ACTION_MOVE;
-    if (atom == st->action_link)    return ISW_DND_ACTION_LINK;
-    if (atom == st->action_ask)     return ISW_DND_ACTION_ASK;
-    if (atom == st->action_private) return ISW_DND_ACTION_PRIVATE;
-    return ISW_DND_ACTION_NONE;
-}
-
-static xcb_atom_t
-ActionToAtom(XdndState *st, IswDndAction action)
-{
-    if (action & ISW_DND_ACTION_COPY)    return st->action_copy;
-    if (action & ISW_DND_ACTION_MOVE)    return st->action_move;
-    if (action & ISW_DND_ACTION_LINK)    return st->action_link;
-    if (action & ISW_DND_ACTION_ASK)     return st->action_ask;
-    if (action & ISW_DND_ACTION_PRIVATE) return st->action_private;
-    return XCB_ATOM_NONE;
-}
-
-static IswDndAction
-ModifiersToAction(XdndState *st, unsigned int state)
-{
-    /* Shift = Move, Ctrl = Copy, Ctrl+Shift = Link */
-    Boolean shift = (state & XCB_MOD_MASK_SHIFT) != 0;
-    Boolean ctrl  = (state & XCB_MOD_MASK_CONTROL) != 0;
-
-    (void) st;
-
-    if (ctrl && shift) return ISW_DND_ACTION_LINK;
-    if (ctrl)          return ISW_DND_ACTION_COPY;
-    if (shift)         return ISW_DND_ACTION_MOVE;
-    return ISW_DND_ACTION_COPY; /* default */
-}
-
-/* ------------------------------------------------------------------ */
-/* Per-widget drop config management                                  */
-/* ------------------------------------------------------------------ */
-
-static DropConfig *
-FindDropConfig(XdndState *st, Widget w)
-{
-    DropConfig *dc;
-    for (dc = st->drop_configs; dc; dc = dc->next) {
-        if (dc->widget == w)
-            return dc;
-    }
-    return NULL;
-}
-
-static DropConfig *
-GetOrCreateDropConfig(XdndState *st, Widget w)
-{
-    DropConfig *dc = FindDropConfig(st, w);
-    if (!dc) {
-        dc = (DropConfig *) IswCalloc(1, sizeof(DropConfig));
-        dc->widget = w;
-        dc->next = st->drop_configs;
-        st->drop_configs = dc;
-    }
-    return dc;
-}
-
-/* ------------------------------------------------------------------ */
-/* Type/action negotiation                                            */
-/* ------------------------------------------------------------------ */
-
-static Boolean
-NegotiateType(XdndState *st, Widget target,
-              xcb_atom_t *type_out, IswDndAction *action_out)
-{
-    DropConfig *dc = FindDropConfig(st, target);
-
-    /* Find best matching type */
-    xcb_atom_t best_type = XCB_ATOM_NONE;
-
-    if (dc && dc->accepted_types && dc->num_accepted_types > 0) {
-        /* Intersect source types with target's accepted types */
-        for (int i = 0; i < dc->num_accepted_types && best_type == XCB_ATOM_NONE; i++) {
-            for (int j = 0; j < st->src_num_types; j++) {
-                if (dc->accepted_types[i] == st->src_types[j]) {
-                    best_type = dc->accepted_types[i];
-                    break;
-                }
-            }
-        }
-    } else {
-        /* No type filter — accept first offered type */
-        if (st->src_num_types > 0)
-            best_type = st->src_types[0];
-    }
-
-    if (best_type == XCB_ATOM_NONE)
-        return False;
-
-    /* Find best matching action */
-    IswDndAction target_actions = (dc && dc->accepted_actions)
-                                  ? dc->accepted_actions
-                                  : (ISW_DND_ACTION_COPY | ISW_DND_ACTION_MOVE |
-                                     ISW_DND_ACTION_LINK);
-    IswDndAction common = st->src_actions & target_actions;
-
-    if (common == ISW_DND_ACTION_NONE)
-        return False;
-
-    /* Prefer copy > move > link > ask > private */
-    IswDndAction best_action = ISW_DND_ACTION_NONE;
-    if (common & ISW_DND_ACTION_COPY)         best_action = ISW_DND_ACTION_COPY;
-    else if (common & ISW_DND_ACTION_MOVE)    best_action = ISW_DND_ACTION_MOVE;
-    else if (common & ISW_DND_ACTION_LINK)    best_action = ISW_DND_ACTION_LINK;
-    else if (common & ISW_DND_ACTION_ASK)     best_action = ISW_DND_ACTION_ASK;
-    else if (common & ISW_DND_ACTION_PRIVATE) best_action = ISW_DND_ACTION_PRIVATE;
-
-    *type_out = best_type;
-    *action_out = best_action;
-    return True;
-}
-
-/* ------------------------------------------------------------------ */
 /* Widget tree walk to find drop target                               */
 /* ------------------------------------------------------------------ */
 
 static Widget
-FindDropChild(XdndState *st, Widget composite, int wx, int wy)
-{
-    if (!IswIsComposite(composite))
-        return NULL;
-
-    CompositeWidget cw = (CompositeWidget) composite;
-    for (int i = cw->composite.num_children - 1; i >= 0; i--) {
-        Widget child = cw->composite.children[i];
-        if (!IswIsManaged(child) || !IswIsRealized(child))
-            continue;
-
-        int cx = child->core.x;
-        int cy = child->core.y;
-        int cw2 = child->core.width;
-        int ch = child->core.height;
-
-        if (wx >= cx && wx < cx + cw2 && wy >= cy && wy < cy + ch) {
-            /* Check DropConfig first (works for any widget class),
-             * then fall back to IswHasCallbacks (for widgets that
-             * declare IswNdropCallback as a resource). */
-            if (FindDropConfig(st, child) ||
-                IswHasCallbacks(child, IswNdropCallback) == IswCallbackHasSome)
-                return child;
-
-            if (IswIsComposite(child)) {
-                Widget deeper = FindDropChild(st, child, wx - cx, wy - cy);
-                if (deeper)
-                    return deeper;
-            }
-        }
-    }
-    return NULL;
-}
-
-static Widget
 FindDropTarget(XdndState *st, int root_x, int root_y)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    Widget shell = st->core.shell;
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(shell));
 
     xcb_translate_coordinates_cookie_t cookie =
         xcb_translate_coordinates(conn,
-            _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
+            _IswXcbScreen(IswScreenOf(shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell))),
             (int16_t) root_x, (int16_t) root_y);
     xcb_translate_coordinates_reply_t *reply =
         xcb_translate_coordinates_reply(conn, cookie, NULL);
@@ -558,27 +351,27 @@ FindDropTarget(XdndState *st, int root_x, int root_y)
         return NULL;
     }
 
-    double sf = ISWScaleFactor(st->shell);
+    double sf = ISWScaleFactor(shell);
     int wx = (int)(reply->dst_x / sf + 0.5);
     int wy = (int)(reply->dst_y / sf + 0.5);
     free(reply);
 
-    if (FindDropConfig(st, st->shell)) {
-        return st->shell;
+    if (_IswDndFindConfig(&st->core, shell)) {
+        return shell;
     }
-    if (IswHasCallbacks(st->shell, IswNdropCallback) == IswCallbackHasSome) {
-        return st->shell;
+    if (IswHasCallbacks(shell, IswNdropCallback) == IswCallbackHasSome) {
+        return shell;
     }
 
-    Widget result = FindDropChild(st, st->shell, wx, wy);
+    Widget result = _IswDndFindDropChild(&st->core, shell, wx, wy);
 
     /* Fallback: iterate registered DropConfigs directly.  This handles
        widgets inside Viewports whose clip windows hide them from the
        normal widget-tree walk. */
     if (!result) {
         DropConfig *dc;
-        for (dc = st->drop_configs; dc; dc = dc->next) {
-            if (dc->widget == st->shell || !IswIsRealized(dc->widget))
+        for (dc = st->core.drop_configs; dc; dc = dc->next) {
+            if (dc->widget == shell || !IswIsRealized(dc->widget))
                 continue;
 
             /* For Viewport children, the widget is reparented into a clip
@@ -599,7 +392,7 @@ FindDropTarget(XdndState *st, int root_x, int root_y)
                descale to logical to match core geometry. */
             xcb_translate_coordinates_cookie_t tc =
                 xcb_translate_coordinates(conn,
-                    _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(bounds_widget)), (Widget)(bounds_widget))), _IswXcbScreen(IswScreenOf(st->shell))->root,
+                    _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(bounds_widget)), (Widget)(bounds_widget))), _IswXcbScreen(IswScreenOf(st->core.shell))->root,
                     0, 0);
             xcb_translate_coordinates_reply_t *tr =
                 xcb_translate_coordinates_reply(conn, tc, NULL);
@@ -621,56 +414,6 @@ FindDropTarget(XdndState *st, int root_x, int root_y)
     }
 
     return result;
-}
-
-/* ------------------------------------------------------------------ */
-/* URI list parser                                                    */
-/* ------------------------------------------------------------------ */
-
-static char **
-ParseUriList(const char *data, int len, int *out_count)
-{
-    char **uris = NULL;
-    int count = 0;
-    int capacity = 0;
-    const char *p = data;
-    const char *end = data + len;
-
-    while (p < end) {
-        const char *eol = p;
-        while (eol < end && *eol != '\r' && *eol != '\n')
-            eol++;
-
-        int line_len = eol - p;
-        if (line_len > 0 && *p != '#') {
-            const char *uri = p;
-            int uri_len = line_len;
-            if (uri_len >= 7 && strncmp(uri, "file://", 7) == 0) {
-                uri += 7;
-                uri_len -= 7;
-            }
-
-            if (count >= capacity) {
-                capacity = capacity ? capacity * 2 : 8;
-                uris = (char **) IswRealloc((char *) uris,
-                                           (capacity + 1) * sizeof(char *));
-            }
-            char *entry = IswMalloc(uri_len + 1);
-            memcpy(entry, uri, uri_len);
-            entry[uri_len] = '\0';
-            uris[count++] = entry;
-        }
-
-        p = eol;
-        if (p < end && *p == '\r') p++;
-        if (p < end && *p == '\n') p++;
-    }
-
-    if (uris)
-        uris[count] = NULL;
-
-    *out_count = count;
-    return uris;
 }
 
 /* ================================================================== */
@@ -736,7 +479,7 @@ xcb_dnd_enable(Widget shell)
 
     conn = _IswXcbConn(IswDisplayOf(shell));
     st = (XdndState *) IswCalloc(1, sizeof(XdndState));
-    st->shell = shell;
+    st->core.shell = shell;
     InternAtoms(st, conn);
     CreateCursors(st, conn, _IswXcbScreen(IswScreenOf(shell)));
 
@@ -762,7 +505,7 @@ xcb_dnd_widget_accept_drops(Widget w)
     if (!st)
         return;
     /* Ensure a DropConfig exists so the widget is registered */
-    GetOrCreateDropConfig(st, w);
+    _IswDndGetOrCreateConfig(&st->core, w);
 }
 
 static void
@@ -772,14 +515,14 @@ xcb_dnd_set_accepted_types(Widget w, Atom *types, int num_types)
     if (!st)
         return;
 
-    DropConfig *dc = GetOrCreateDropConfig(st, w);
+    DropConfig *dc = _IswDndGetOrCreateConfig(&st->core, w);
 
     if (dc->accepted_types)
         IswFree((char *) dc->accepted_types);
 
     if (types && num_types > 0) {
-        dc->accepted_types = (xcb_atom_t *) IswMalloc(num_types * sizeof(xcb_atom_t));
-        memcpy(dc->accepted_types, types, num_types * sizeof(xcb_atom_t));
+        dc->accepted_types = (Atom *) IswMalloc(num_types * sizeof(Atom));
+        memcpy(dc->accepted_types, types, num_types * sizeof(Atom));
         dc->num_accepted_types = num_types;
     } else {
         dc->accepted_types = NULL;
@@ -794,7 +537,7 @@ xcb_dnd_set_accepted_actions(Widget w, IswDndAction actions)
     if (!st)
         return;
 
-    DropConfig *dc = GetOrCreateDropConfig(st, w);
+    DropConfig *dc = _IswDndGetOrCreateConfig(&st->core, w);
     dc->accepted_actions = actions;
 }
 
@@ -805,7 +548,7 @@ xcb_dnd_set_drop_callback(Widget w, IswCallbackProc proc, IswPointer closure)
     if (!st)
         return;
 
-    DropConfig *dc = GetOrCreateDropConfig(st, w);
+    DropConfig *dc = _IswDndGetOrCreateConfig(&st->core, w);
     dc->drop_proc = proc;
     dc->drop_closure = closure;
 }
@@ -817,7 +560,7 @@ xcb_dnd_set_drag_motion_callback(Widget w, IswCallbackProc proc, IswPointer clos
     if (!st)
         return;
 
-    DropConfig *dc = GetOrCreateDropConfig(st, w);
+    DropConfig *dc = _IswDndGetOrCreateConfig(&st->core, w);
     dc->motion_proc = proc;
     dc->motion_closure = closure;
 }
@@ -829,7 +572,7 @@ xcb_dnd_set_drag_leave_callback(Widget w, IswCallbackProc proc, IswPointer closu
     if (!st)
         return;
 
-    DropConfig *dc = GetOrCreateDropConfig(st, w);
+    DropConfig *dc = _IswDndGetOrCreateConfig(&st->core, w);
     dc->leave_proc = proc;
     dc->leave_closure = closure;
 }
@@ -844,7 +587,7 @@ static Boolean
 xcb_dnd_is_dragging(Widget w)
 {
     XdndState *st = GetXdndStateForWidget(w);
-    return st && st->dragging;
+    return st && st->core.dragging;
 }
 
 /* ================================================================== */
@@ -857,37 +600,37 @@ static void
 HandleXdndEvent(Widget w, IswPointer closure, IswEvent *iswev,
                 Boolean *cont)
 {
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev); (void)event;
     XdndState *st = (XdndState *) closure;
-    uint8_t type = event->response_type & ~0x80;
 
-    if (type == XCB_CLIENT_MESSAGE) {
-        xcb_client_message_event_t *cm = (xcb_client_message_event_t *) event;
+    if (iswev->kind != IswProtocol)
+        return;
 
-        /* Drop target messages (we are the target) */
-        if (cm->type == st->XdndEnter) {
-            HandleTargetEnter(st, cm);
-            *cont = FALSE;
-        } else if (cm->type == st->XdndPosition) {
-            HandleTargetPosition(st, cm);
-            *cont = FALSE;
-        } else if (cm->type == st->XdndDrop) {
-            HandleTargetDrop(st, cm);
-            *cont = FALSE;
-        } else if (cm->type == st->XdndLeave) {
-            HandleTargetLeave(st);
-            *cont = FALSE;
-        }
+    IswProtocolId mt = iswev->protocol.message_type;
+    const uint32_t *data = iswev->protocol.data;
 
-        /* Drag source messages (we are the source) */
-        if (st->dragging) {
-            if (cm->type == st->XdndStatus) {
-                HandleDragStatus(st, cm);
-                *cont = FALSE;
-            } else if (cm->type == st->XdndFinished) {
-                HandleDragFinished(st, cm);
-                *cont = FALSE;
-            }
+    /* Drop target messages (we are the target) */
+    if (mt == (IswProtocolId) st->XdndEnter) {
+        HandleTargetEnter(st, data);
+        *cont = FALSE;
+    } else if (mt == (IswProtocolId) st->XdndPosition) {
+        HandleTargetPosition(st, data);
+        *cont = FALSE;
+    } else if (mt == (IswProtocolId) st->XdndDrop) {
+        HandleTargetDrop(st, data);
+        *cont = FALSE;
+    } else if (mt == (IswProtocolId) st->XdndLeave) {
+        HandleTargetLeave(st);
+        *cont = FALSE;
+    }
+
+    /* Drag source messages (we are the source) */
+    if (st->core.dragging) {
+        if (mt == (IswProtocolId) st->XdndStatus) {
+            HandleDragStatus(st, data);
+            *cont = FALSE;
+        } else if (mt == (IswProtocolId) st->XdndFinished) {
+            HandleDragFinished(st, data);
+            *cont = FALSE;
         }
     }
 
@@ -899,26 +642,26 @@ HandleXdndEvent(Widget w, IswPointer closure, IswEvent *iswev,
 /* ------------------------------------------------------------------ */
 
 static void
-HandleTargetEnter(XdndState *st, xcb_client_message_event_t *cm)
+HandleTargetEnter(XdndState *st, const uint32_t *data)
 {
-    st->src_window = cm->data.data32[0];
-    st->src_version = (cm->data.data32[1] >> 24) & 0xFF;
+    st->src_window = data[0];
+    st->core.src_version = (data[1] >> 24) & 0xFF;
 
-    if (st->src_version > XDND_VERSION)
+    if (st->core.src_version > XDND_VERSION)
         return;
 
     /* Free previous type list */
-    if (st->src_types) {
-        IswFree((char *) st->src_types);
-        st->src_types = NULL;
-        st->src_num_types = 0;
+    if (st->core.src_types) {
+        IswFree((char *) st->core.src_types);
+        st->core.src_types = NULL;
+        st->core.src_num_types = 0;
     }
 
-    Boolean use_type_list = (cm->data.data32[1] & 1);
+    Boolean use_type_list = (data[1] & 1);
 
     if (use_type_list) {
         /* More than 3 types — read XdndTypeList property */
-        xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+        xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
         xcb_get_property_cookie_t cookie =
             xcb_get_property(conn, False, st->src_window,
                              st->XdndTypeList, XCB_ATOM_ATOM, 0, 256);
@@ -928,33 +671,33 @@ HandleTargetEnter(XdndState *st, xcb_client_message_event_t *cm)
             xcb_atom_t *atoms = (xcb_atom_t *) xcb_get_property_value(reply);
             int count = xcb_get_property_value_length(reply) / sizeof(xcb_atom_t);
             if (count > 0) {
-                st->src_types = (xcb_atom_t *) IswMalloc(count * sizeof(xcb_atom_t));
-                memcpy(st->src_types, atoms, count * sizeof(xcb_atom_t));
-                st->src_num_types = count;
+                st->core.src_types = (Atom *) IswMalloc(count * sizeof(Atom));
+                memcpy(st->core.src_types, atoms, count * sizeof(Atom));
+                st->core.src_num_types = count;
             }
             free(reply);
         }
     } else {
-        /* Up to 3 types in data32[2..4] */
+        /* Up to 3 types in data[2..4] */
         int count = 0;
-        xcb_atom_t types[3];
+        Atom types[3];
         for (int i = 2; i <= 4; i++) {
-            if (cm->data.data32[i] != XCB_ATOM_NONE)
-                types[count++] = cm->data.data32[i];
+            if (data[i] != XCB_ATOM_NONE)
+                types[count++] = (Atom) data[i];
         }
         if (count > 0) {
-            st->src_types = (xcb_atom_t *) IswMalloc(count * sizeof(xcb_atom_t));
-            memcpy(st->src_types, types, count * sizeof(xcb_atom_t));
-            st->src_num_types = count;
+            st->core.src_types = (Atom *) IswMalloc(count * sizeof(Atom));
+            memcpy(st->core.src_types, types, count * sizeof(Atom));
+            st->core.src_num_types = count;
         }
     }
 
     /* Default: assume copy is offered (many sources don't advertise actions) */
-    st->src_actions = ISW_DND_ACTION_COPY;
+    st->core.src_actions = ISW_DND_ACTION_COPY;
 
-    st->hover_widget = NULL;
-    st->negotiated_type = XCB_ATOM_NONE;
-    st->negotiated_action = ISW_DND_ACTION_NONE;
+    st->core.hover_widget = NULL;
+    st->core.negotiated_type = XCB_ATOM_NONE;
+    st->core.negotiated_action = ISW_DND_ACTION_NONE;
 }
 
 /* ------------------------------------------------------------------ */
@@ -962,43 +705,43 @@ HandleTargetEnter(XdndState *st, xcb_client_message_event_t *cm)
 /* ------------------------------------------------------------------ */
 
 static void
-HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
+HandleTargetPosition(XdndState *st, const uint32_t *data)
 {
-    st->drop_x = (int)(cm->data.data32[2] >> 16);
-    st->drop_y = (int)(cm->data.data32[2] & 0xFFFF);
+    st->core.drop_x = (int)(data[2] >> 16);
+    st->core.drop_y = (int)(data[2] & 0xFFFF);
     /* Extract proposed action from source */
-    xcb_atom_t proposed_atom = cm->data.data32[4];
-    IswDndAction proposed = AtomToAction(st, proposed_atom);
+    Atom proposed_atom = (Atom) data[4];
+    IswDndAction proposed = _IswDndAtomToAction(&st->core, proposed_atom);
     if (proposed == ISW_DND_ACTION_NONE)
         proposed = ISW_DND_ACTION_COPY;
 
     /* Find the widget under the cursor */
-    Widget target = FindDropTarget(st, st->drop_x, st->drop_y);
+    Widget target = FindDropTarget(st, st->core.drop_x, st->core.drop_y);
 
     /* Handle enter/leave transitions */
-    if (target != st->hover_widget) {
+    if (target != st->core.hover_widget) {
         /* Leave old widget */
-        if (st->hover_widget &&
-            IswHasCallbacks(st->hover_widget, IswNdragLeaveCallback) == IswCallbackHasSome) {
+        if (st->core.hover_widget &&
+            IswHasCallbacks(st->core.hover_widget, IswNdragLeaveCallback) == IswCallbackHasSome) {
             IswDragOverCallbackData cbd = {0};
-            IswCallCallbacks(st->hover_widget, IswNdragLeaveCallback, (IswPointer) &cbd);
-        } else if (st->hover_widget) {
-            DropConfig *dc = FindDropConfig(st, st->hover_widget);
+            IswCallCallbacks(st->core.hover_widget, IswNdragLeaveCallback, (IswPointer) &cbd);
+        } else if (st->core.hover_widget) {
+            DropConfig *dc = _IswDndFindConfig(&st->core, st->core.hover_widget);
             if (dc && dc->leave_proc) {
                 IswDragOverCallbackData cbd = {0};
-                dc->leave_proc(st->hover_widget, dc->leave_closure, (IswPointer) &cbd);
+                dc->leave_proc(st->core.hover_widget, dc->leave_closure, (IswPointer) &cbd);
             }
         }
 
-        st->hover_widget = target;
+        st->core.hover_widget = target;
 
         /* Enter new widget */
         if (target &&
             IswHasCallbacks(target, IswNdragEnterCallback) == IswCallbackHasSome) {
             IswDragOverCallbackData cbd = {0};
-            cbd.offered_types = st->src_types;
-            cbd.num_offered_types = st->src_num_types;
-            cbd.offered_actions = st->src_actions;
+            cbd.offered_types = st->core.src_types;
+            cbd.num_offered_types = st->core.src_num_types;
+            cbd.offered_actions = st->core.src_actions;
             cbd.proposed_action = proposed;
             IswCallCallbacks(target, IswNdragEnterCallback, (IswPointer) &cbd);
         }
@@ -1006,18 +749,18 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
 
     /* Negotiate type/action */
     Boolean accept = False;
-    xcb_atom_t accepted_type = XCB_ATOM_NONE;
+    Atom accepted_type = XCB_ATOM_NONE;
     IswDndAction accepted_action = ISW_DND_ACTION_NONE;
 
     if (target) {
         /* First, let the widget's dragMotion callback override */
         if (IswHasCallbacks(target, IswNdragMotionCallback) == IswCallbackHasSome) {
-            xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
-            double sf = ISWScaleFactor(st->shell);
+            xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
+            double sf = ISWScaleFactor(st->core.shell);
             xcb_translate_coordinates_cookie_t tc =
                 xcb_translate_coordinates(conn,
-                    _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(target)), (Widget)(target))),
-                    (int16_t) st->drop_x, (int16_t) st->drop_y);
+                    _IswXcbScreen(IswScreenOf(st->core.shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(target)), (Widget)(target))),
+                    (int16_t) st->core.drop_x, (int16_t) st->core.drop_y);
             xcb_translate_coordinates_reply_t *tr =
                 xcb_translate_coordinates_reply(conn, tc, NULL);
 
@@ -1025,9 +768,9 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
             cbd.x = tr ? (int)(tr->dst_x / sf + 0.5) : 0;
             cbd.y = tr ? (int)(tr->dst_y / sf + 0.5) : 0;
             free(tr);
-            cbd.offered_types = st->src_types;
-            cbd.num_offered_types = st->src_num_types;
-            cbd.offered_actions = st->src_actions;
+            cbd.offered_types = st->core.src_types;
+            cbd.num_offered_types = st->core.src_num_types;
+            cbd.offered_actions = st->core.src_actions;
             cbd.proposed_action = proposed;
 
             IswCallCallbacks(target, IswNdragMotionCallback, (IswPointer) &cbd);
@@ -1038,14 +781,14 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
                 accept = True;
             }
         } else {
-            DropConfig *dc = FindDropConfig(st, target);
+            DropConfig *dc = _IswDndFindConfig(&st->core, target);
             if (dc && dc->motion_proc) {
-                xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
-                double sf = ISWScaleFactor(st->shell);
+                xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
+                double sf = ISWScaleFactor(st->core.shell);
                 xcb_translate_coordinates_cookie_t tc =
                     xcb_translate_coordinates(conn,
-                        _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(target)), (Widget)(target))),
-                        (int16_t) st->drop_x, (int16_t) st->drop_y);
+                        _IswXcbScreen(IswScreenOf(st->core.shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(target)), (Widget)(target))),
+                        (int16_t) st->core.drop_x, (int16_t) st->core.drop_y);
                 xcb_translate_coordinates_reply_t *tr =
                     xcb_translate_coordinates_reply(conn, tc, NULL);
 
@@ -1053,9 +796,9 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
                 cbd.x = tr ? (int)(tr->dst_x / sf + 0.5) : 0;
                 cbd.y = tr ? (int)(tr->dst_y / sf + 0.5) : 0;
                 free(tr);
-                cbd.offered_types = st->src_types;
-                cbd.num_offered_types = st->src_num_types;
-                cbd.offered_actions = st->src_actions;
+                cbd.offered_types = st->core.src_types;
+                cbd.num_offered_types = st->core.src_num_types;
+                cbd.offered_actions = st->core.src_actions;
                 cbd.proposed_action = proposed;
 
                 dc->motion_proc(target, dc->motion_closure, (IswPointer) &cbd);
@@ -1070,15 +813,17 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
 
         /* If callback didn't accept, try automatic negotiation */
         if (!accept) {
-            accept = NegotiateType(st, target, &accepted_type, &accepted_action);
+            accept = _IswDndNegotiateType(&st->core, target,
+                                          &accepted_type, &accepted_action);
         }
     }
 
-    st->negotiated_type = accepted_type;
-    st->negotiated_action = accepted_action;
+    st->core.negotiated_type = accepted_type;
+    st->core.negotiated_action = accepted_action;
 
     SendXdndStatus(st, accept,
-                   accept ? ActionToAtom(st, accepted_action) : XCB_ATOM_NONE);
+                   accept ? (xcb_atom_t) _IswDndActionToAtom(&st->core, accepted_action)
+                          : XCB_ATOM_NONE);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1086,18 +831,18 @@ HandleTargetPosition(XdndState *st, xcb_client_message_event_t *cm)
 /* ------------------------------------------------------------------ */
 
 static void
-HandleTargetDrop(XdndState *st, xcb_client_message_event_t *cm)
+HandleTargetDrop(XdndState *st, const uint32_t *data)
 {
-    st->drop_timestamp = cm->data.data32[2];
-    if (st->negotiated_type == XCB_ATOM_NONE || !st->hover_widget) {
+    st->drop_timestamp = data[2];
+    if (st->core.negotiated_type == XCB_ATOM_NONE || !st->core.hover_widget) {
         SendXdndFinished(st, False, XCB_ATOM_NONE);
         HandleTargetLeave(st);
         return;
     }
 
     /* Request the data via Xt selection mechanism — gets INCR for free */
-    IswGetSelectionValue(st->shell, st->XdndSelection,
-                        st->negotiated_type,
+    IswGetSelectionValue(st->core.shell, st->XdndSelection,
+                        (xcb_atom_t) st->core.negotiated_type,
                         TargetSelectionCallback,
                         (IswPointer) st,
                         st->drop_timestamp);
@@ -1123,10 +868,10 @@ TargetSelectionCallback(Widget w, IswPointer closure,
          * source window property (set eagerly by IswDndStartDrag).
          * This bypasses the Xt selection mechanism which is unreliable
          * for cross-client transfers in XCB-based Xt. */
-        xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+        xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
         xcb_get_property_cookie_t cookie =
             xcb_get_property(conn, False, st->src_window,
-                             st->negotiated_type, XCB_ATOM_ANY, 0, 65536);
+                             (xcb_atom_t) st->core.negotiated_type, XCB_ATOM_ANY, 0, 65536);
         xcb_get_property_reply_t *reply =
             xcb_get_property_reply(conn, cookie, NULL);
 
@@ -1141,7 +886,7 @@ TargetSelectionCallback(Widget w, IswPointer closure,
 
                 unsigned long len = data_len;
                 int fmt = 8;
-                xcb_atom_t tp = st->negotiated_type;
+                xcb_atom_t tp = (xcb_atom_t) st->core.negotiated_type;
                 /* Recurse with the data we got */
                 free(reply);
                 TargetSelectionCallback(w, closure, selection,
@@ -1156,16 +901,16 @@ TargetSelectionCallback(Widget w, IswPointer closure,
         return;
     }
 
-    Widget target = st->hover_widget;
+    Widget target = st->core.hover_widget;
     if (!target)
-        target = FindDropTarget(st, st->drop_x, st->drop_y);
+        target = FindDropTarget(st, st->core.drop_x, st->core.drop_y);
 
     if (target) {
-        xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+        xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
         xcb_translate_coordinates_cookie_t tc =
             xcb_translate_coordinates(conn,
-                _IswXcbScreen(IswScreenOf(st->shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(target)), (Widget)(target))),
-                (int16_t) st->drop_x, (int16_t) st->drop_y);
+                _IswXcbScreen(IswScreenOf(st->core.shell))->root, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(target)), (Widget)(target))),
+                (int16_t) st->core.drop_x, (int16_t) st->core.drop_y);
         xcb_translate_coordinates_reply_t *tr =
             xcb_translate_coordinates_reply(conn, tc, NULL);
 
@@ -1179,12 +924,12 @@ TargetSelectionCallback(Widget w, IswPointer closure,
         cb.data_length = *length;
         cb.data_type = *type;
         cb.data_format = format ? *format : 8;
-        cb.action = st->negotiated_action;
+        cb.action = st->core.negotiated_action;
 
         /* Populate legacy URI fields if type is text/uri-list */
         if (*type == st->text_uri_list) {
-            cb.uris = ParseUriList((const char *) value, (int) *length,
-                                   &cb.num_uris);
+            cb.uris = _IswDndParseUriList((const char *) value, (int) *length,
+                                          &cb.num_uris);
         }
 
         /* Deliver via Xt callback list if available, otherwise use
@@ -1192,7 +937,7 @@ TargetSelectionCallback(Widget w, IswPointer closure,
         if (IswHasCallbacks(target, IswNdropCallback) == IswCallbackHasSome) {
             IswCallCallbacks(target, IswNdropCallback, (IswPointer) &cb);
         } else {
-            DropConfig *dc = FindDropConfig(st, target);
+            DropConfig *dc = _IswDndFindConfig(&st->core, target);
             if (dc && dc->drop_proc)
                 dc->drop_proc(target, dc->drop_closure, (IswPointer) &cb);
         }
@@ -1207,31 +952,32 @@ TargetSelectionCallback(Widget w, IswPointer closure,
 
     IswFree(value);
 
-    SendXdndFinished(st, True, ActionToAtom(st, st->negotiated_action));
+    SendXdndFinished(st, True,
+                     (xcb_atom_t) _IswDndActionToAtom(&st->core, st->core.negotiated_action));
 
     /* Fire dragLeave on the hover widget */
-    if (st->hover_widget &&
-        IswHasCallbacks(st->hover_widget, IswNdragLeaveCallback) == IswCallbackHasSome) {
+    if (st->core.hover_widget &&
+        IswHasCallbacks(st->core.hover_widget, IswNdragLeaveCallback) == IswCallbackHasSome) {
         IswDragOverCallbackData cbd = {0};
-        IswCallCallbacks(st->hover_widget, IswNdragLeaveCallback, (IswPointer) &cbd);
-    } else if (st->hover_widget) {
-        DropConfig *dc = FindDropConfig(st, st->hover_widget);
+        IswCallCallbacks(st->core.hover_widget, IswNdragLeaveCallback, (IswPointer) &cbd);
+    } else if (st->core.hover_widget) {
+        DropConfig *dc = _IswDndFindConfig(&st->core, st->core.hover_widget);
         if (dc && dc->leave_proc) {
             IswDragOverCallbackData cbd = {0};
-            dc->leave_proc(st->hover_widget, dc->leave_closure, (IswPointer) &cbd);
+            dc->leave_proc(st->core.hover_widget, dc->leave_closure, (IswPointer) &cbd);
         }
     }
 
     /* Reset drop target state */
     st->src_window = 0;
-    st->hover_widget = NULL;
-    if (st->src_types) {
-        IswFree((char *) st->src_types);
-        st->src_types = NULL;
-        st->src_num_types = 0;
+    st->core.hover_widget = NULL;
+    if (st->core.src_types) {
+        IswFree((char *) st->core.src_types);
+        st->core.src_types = NULL;
+        st->core.src_num_types = 0;
     }
-    st->negotiated_type = XCB_ATOM_NONE;
-    st->negotiated_action = ISW_DND_ACTION_NONE;
+    st->core.negotiated_type = XCB_ATOM_NONE;
+    st->core.negotiated_action = ISW_DND_ACTION_NONE;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1241,27 +987,27 @@ TargetSelectionCallback(Widget w, IswPointer closure,
 static void
 HandleTargetLeave(XdndState *st)
 {
-    if (st->hover_widget &&
-        IswHasCallbacks(st->hover_widget, IswNdragLeaveCallback) == IswCallbackHasSome) {
+    if (st->core.hover_widget &&
+        IswHasCallbacks(st->core.hover_widget, IswNdragLeaveCallback) == IswCallbackHasSome) {
         IswDragOverCallbackData cbd = {0};
-        IswCallCallbacks(st->hover_widget, IswNdragLeaveCallback, (IswPointer) &cbd);
-    } else if (st->hover_widget) {
-        DropConfig *dc = FindDropConfig(st, st->hover_widget);
+        IswCallCallbacks(st->core.hover_widget, IswNdragLeaveCallback, (IswPointer) &cbd);
+    } else if (st->core.hover_widget) {
+        DropConfig *dc = _IswDndFindConfig(&st->core, st->core.hover_widget);
         if (dc && dc->leave_proc) {
             IswDragOverCallbackData cbd = {0};
-            dc->leave_proc(st->hover_widget, dc->leave_closure, (IswPointer) &cbd);
+            dc->leave_proc(st->core.hover_widget, dc->leave_closure, (IswPointer) &cbd);
         }
     }
 
     st->src_window = 0;
-    st->hover_widget = NULL;
-    if (st->src_types) {
-        IswFree((char *) st->src_types);
-        st->src_types = NULL;
-        st->src_num_types = 0;
+    st->core.hover_widget = NULL;
+    if (st->core.src_types) {
+        IswFree((char *) st->core.src_types);
+        st->core.src_types = NULL;
+        st->core.src_num_types = 0;
     }
-    st->negotiated_type = XCB_ATOM_NONE;
-    st->negotiated_action = ISW_DND_ACTION_NONE;
+    st->core.negotiated_type = XCB_ATOM_NONE;
+    st->core.negotiated_action = ISW_DND_ACTION_NONE;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1271,14 +1017,14 @@ HandleTargetLeave(XdndState *st)
 static void
 SendXdndStatus(XdndState *st, Boolean accept, xcb_atom_t action_atom)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
     xcb_client_message_event_t reply;
     memset(&reply, 0, sizeof(reply));
     reply.response_type = XCB_CLIENT_MESSAGE;
     reply.window = st->src_window;
     reply.type = st->XdndStatus;
     reply.format = 32;
-    reply.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
+    reply.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell)));
     reply.data.data32[1] = accept ? 1 : 0;
     reply.data.data32[2] = 0;  /* empty rectangle */
     reply.data.data32[3] = 0;
@@ -1291,7 +1037,7 @@ SendXdndStatus(XdndState *st, Boolean accept, xcb_atom_t action_atom)
 static void
 SendXdndFinished(XdndState *st, Boolean accept, xcb_atom_t action_atom)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
 
     xcb_client_message_event_t reply;
     memset(&reply, 0, sizeof(reply));
@@ -1299,7 +1045,7 @@ SendXdndFinished(XdndState *st, Boolean accept, xcb_atom_t action_atom)
     reply.window = st->src_window;
     reply.type = st->XdndFinished;
     reply.format = 32;
-    reply.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
+    reply.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell)));
     reply.data.data32[1] = accept ? 1 : 0;
     reply.data.data32[2] = accept ? action_atom : XCB_ATOM_NONE;
 
@@ -1318,16 +1064,19 @@ xcb_dnd_start_drag(Widget source_widget,
                    IswEvent *trigger,
                    IswDragSourceDesc *desc)
 {
-    /* The XDND backend tracks drags in the X server's native (physical)
-     * coordinate space — drag-threshold math, the drag-icon window, and
-     * IconView hit-testing all expect the raw event geometry.  Recover the
-     * native button event via the documented IswEventNative() bridge rather
-     * than the descaled logical fields of the neutral event. */
-    xcb_button_press_event_t *trigger_event =
-        (xcb_button_press_event_t *) IswEventNative(trigger);
+    /* The drag is triggered by a neutral button-press event.  Its
+     * coordinates are widget-local / root logical pixels (already
+     * HiDPI-descaled by the dispatcher), and the drag bookkeeping below
+     * (threshold math against neutral motion coords, the drag icon, and
+     * IconView hit-testing) operates in that same logical space; the wire
+     * protocol re-queries the pointer for physical coords where it needs
+     * them.  The X timestamp comes from the neutral header. */
+    if (!trigger || (trigger->kind != IswButtonDown &&
+                     trigger->kind != IswButtonUp))
+        return;
 
     XdndState *st = GetXdndStateForWidget(source_widget);
-    if (!st || st->dragging || !trigger_event)
+    if (!st || st->core.dragging)
         return;
 
     /* Don't start a drag if the source widget has an active rubber band */
@@ -1335,47 +1084,47 @@ xcb_dnd_start_drag(Widget source_widget,
         IswIconViewBandActive(source_widget))
         return;
 
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
 
-    st->dragging = True;
-    st->drag_desc = *desc;
-    st->drag_source = source_widget;
-    st->drag_timestamp = trigger_event->time;
-    st->drag_start_x = trigger_event->root_x;
-    st->drag_start_y = trigger_event->root_y;
-    st->drag_press_x = trigger_event->event_x;
-    st->drag_press_y = trigger_event->event_y;
-    st->drag_started = False;
+    st->core.dragging = True;
+    st->core.drag_desc = *desc;
+    st->core.drag_source = source_widget;
+    st->drag_timestamp = (xcb_timestamp_t) trigger->any.time;
+    st->core.drag_start_x = trigger->button.root_x;
+    st->core.drag_start_y = trigger->button.root_y;
+    st->core.drag_press_x = trigger->button.x;
+    st->core.drag_press_y = trigger->button.y;
+    st->core.drag_started = False;
     st->drag_target_win = XCB_NONE;
-    st->drag_target_ver = 0;
-    st->drag_status_pending = False;
-    st->drag_target_accepted = False;
-    st->drag_target_action = ISW_DND_ACTION_NONE;
-    st->drag_last_x = trigger_event->root_x;
-    st->drag_last_y = trigger_event->root_y;
-    st->drag_position_deferred = False;
+    st->core.drag_target_ver = 0;
+    st->core.drag_status_pending = False;
+    st->core.drag_target_accepted = False;
+    st->core.drag_target_action = ISW_DND_ACTION_NONE;
+    st->core.drag_last_x = trigger->button.root_x;
+    st->core.drag_last_y = trigger->button.root_y;
+    st->core.drag_position_deferred = False;
     st->drag_icon_win = XCB_NONE;
     st->drag_icon_owned = False;
     st->drag_icon_cmap = XCB_NONE;
     st->drag_icon_visual = 0;
-    st->finished_timer = 0;
+    st->core.finished_timer = 0;
 
     /* Copy the type list (caller's array may be transient) */
     if (desc->num_types > 0) {
-        st->drag_desc.types = (Atom *) IswMalloc(
+        st->core.drag_desc.types = (Atom *) IswMalloc(
             desc->num_types * sizeof(Atom));
-        memcpy(st->drag_desc.types, desc->types,
+        memcpy(st->core.drag_desc.types, desc->types,
                desc->num_types * sizeof(Atom));
     }
 
     /* Own XdndSelection */
-    (void) IswOwnSelection(st->shell, st->XdndSelection, st->drag_timestamp,
+    (void) IswOwnSelection(st->core.shell, st->XdndSelection, st->drag_timestamp,
                     DragConvertSelection, DragLoseSelection, NULL);
     /* Set XdndTypeList property on our window if >3 types */
     if (desc->num_types > 3) {
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
+        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell))),
                             st->XdndTypeList, XCB_ATOM_ATOM, 32,
-                            desc->num_types, st->drag_desc.types);
+                            desc->num_types, st->core.drag_desc.types);
     }
 
     /* Eagerly convert and store drag data as a property on the source
@@ -1387,10 +1136,10 @@ xcb_dnd_start_drag(Widget source_widget,
             IswPointer data = NULL;
             unsigned long length = 0;
             int format = 8;
-            if (desc->convert(st->drag_source, desc->types[i],
+            if (desc->convert(st->core.drag_source, desc->types[i],
                               &data, &length, &format, desc->client_data)) {
                 xcb_change_property(conn, XCB_PROP_MODE_REPLACE,
-                                    _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
+                                    _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell))),
                                     desc->types[i], desc->types[i],
                                     format, length, data);
                 IswFree(data);
@@ -1409,7 +1158,7 @@ xcb_dnd_start_drag(Widget source_widget,
         if (desc->actions & ISW_DND_ACTION_ASK)     actions[n++] = st->action_ask;
         if (desc->actions & ISW_DND_ACTION_PRIVATE) actions[n++] = st->action_private;
         if (n > 0) {
-            xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
+            xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell))),
                                 st->XdndActionList, XCB_ATOM_ATOM, 32, n, actions);
         }
     }
@@ -1419,7 +1168,7 @@ xcb_dnd_start_drag(Widget source_widget,
      * cursor is, so we still track movement over foreign apps.  Using
      * the shell (not root) ensures Xt dispatches events to our handler. */
     xcb_grab_pointer_cookie_t gc =
-        xcb_grab_pointer(conn, False, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell))),
+        xcb_grab_pointer(conn, False, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell))),
                          XCB_EVENT_MASK_BUTTON_RELEASE |
                          XCB_EVENT_MASK_POINTER_MOTION |
                          XCB_EVENT_MASK_BUTTON_MOTION,
@@ -1440,7 +1189,7 @@ xcb_dnd_start_drag(Widget source_widget,
      * implicit grab; flag the drag so the dispatcher yields that grab and
      * lets motion fall through to the shell. */
     {
-        IswPerDisplayInput pdi = _IswGetPerDisplayInput(IswDisplayOf(st->shell));
+        IswPerDisplayInput pdi = _IswGetPerDisplayInput(IswDisplayOf(st->core.shell));
         if (pdi)
             pdi->xdndDragActive = True;
     }
@@ -1449,12 +1198,12 @@ xcb_dnd_start_drag(Widget source_widget,
      * where HandleDragEvent is registered.  Raw xcb_grab_keyboard does
      * the X grab but skips Xt's input dispatch bookkeeping, so key
      * events get remapped to the focused child and never reach us. */
-    IswGrabKeyboard(st->shell, False,
+    IswGrabKeyboard(st->core.shell, False,
                     XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
                     st->drag_timestamp);
 
     /* Install raw event handler for drag tracking */
-    IswAddEventHandler(st->shell,
+    IswAddEventHandler(st->core.shell,
                       XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
                       XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS |
                       XCB_EVENT_MASK_KEY_RELEASE,
@@ -1472,40 +1221,37 @@ static void
 HandleDragEvent(Widget w, IswPointer closure, IswEvent *iswev,
                 Boolean *cont)
 {
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev); (void)event;
     XdndState *st = (XdndState *) closure;
-    uint8_t type = event->response_type & ~0x80;
 
     (void) w;
 
-    if (!st->dragging) {
+    if (!st->core.dragging) {
         return;
     }
 
-    switch (type) {
-    case XCB_MOTION_NOTIFY: {
-        xcb_motion_notify_event_t *me = (xcb_motion_notify_event_t *) event;
-        int root_x = me->root_x;
-        int root_y = me->root_y;
+    switch (iswev->kind) {
+    case IswMotion: {
+        int root_x = iswev->motion.root_x;
+        int root_y = iswev->motion.root_y;
 
-        if (!st->drag_started) {
-            int dx = root_x - st->drag_start_x;
-            int dy = root_y - st->drag_start_y;
+        if (!st->core.drag_started) {
+            int dx = root_x - st->core.drag_start_x;
+            int dy = root_y - st->core.drag_start_y;
             if (dx * dx + dy * dy < DRAG_THRESHOLD * DRAG_THRESHOLD)
                 return;
-            st->drag_started = True;
+            st->core.drag_started = True;
             CreateDragIcon(st);
         }
 
-        DragMotion(st, root_x, root_y);
+        DragMotion(st, root_x, root_y, iswev->motion.modifiers);
         *cont = FALSE;
         break;
     }
 
-    case XCB_BUTTON_RELEASE: {
-        if (!st->drag_started) {
+    case IswButtonUp: {
+        if (!st->core.drag_started) {
             DragCleanup(st);
-        } else if (st->drag_target_win != XCB_NONE && st->drag_target_accepted) {
+        } else if (st->drag_target_win != XCB_NONE && st->core.drag_target_accepted) {
             DragDrop(st);
         } else {
             DragCancel(st);
@@ -1514,24 +1260,18 @@ HandleDragEvent(Widget w, IswPointer closure, IswEvent *iswev,
         break;
     }
 
-    case XCB_KEY_PRESS:
-    case XCB_KEY_RELEASE: {
-        xcb_key_press_event_t *ke = (xcb_key_press_event_t *) event;
-        xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
-        xcb_key_symbols_t *syms = xcb_key_symbols_alloc(conn);
-        if (syms) {
-            xcb_keysym_t sym = xcb_key_symbols_get_keysym(syms, ke->detail, 0);
-            xcb_key_symbols_free(syms);
-            if (type == XCB_KEY_PRESS && sym == 0xff1b) {  /* XK_Escape */
-                DragCancel(st);
-                *cont = FALSE;
-            } else if (sym == 0xffe1 || sym == 0xffe2 ||  /* Shift_L/R */
-                       sym == 0xffe3 || sym == 0xffe4) {  /* Control_L/R */
-                /* Modifier changed — re-evaluate action and cursor */
-                if (st->drag_started)
-                    DragMotion(st, st->drag_last_x, st->drag_last_y);
-                *cont = FALSE;
-            }
+    case IswKeyDown:
+    case IswKeyUp: {
+        uint32_t key = iswev->key.key;
+        if (iswev->kind == IswKeyDown && key == IswKeyEscape) {
+            DragCancel(st);
+            *cont = FALSE;
+        } else if (key == IswKeyShift || key == IswKeyControl) {
+            /* Modifier changed — re-evaluate action and cursor */
+            if (st->core.drag_started)
+                DragMotion(st, st->core.drag_last_x, st->core.drag_last_y,
+                           iswev->key.modifiers);
+            *cont = FALSE;
         }
         break;
     }
@@ -1571,7 +1311,7 @@ FindXdndAwareWindow(XdndState *st, xcb_connection_t *conn,
 {
     *version_out = 0;
 
-    if (start == XCB_NONE || start == _IswXcbScreen(IswScreenOf(st->shell))->root)
+    if (start == XCB_NONE || start == _IswXcbScreen(IswScreenOf(st->core.shell))->root)
         return XCB_NONE;
 
     /* Check the starting window (WM frame or unmanaged toplevel) */
@@ -1603,19 +1343,20 @@ FindXdndAwareWindow(XdndState *st, xcb_connection_t *conn,
 }
 
 static void
-DragMotion(XdndState *st, int root_x, int root_y)
+DragMotion(XdndState *st, int root_x, int root_y, unsigned int modifiers)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
 
     MoveDragIcon(st, root_x, root_y);
 
-    /* Find the window under the cursor */
+    /* Find the window under the cursor.  The authoritative modifier mask
+       comes from the pointer query; fall back to the event modifiers the
+       caller passed if the query fails. */
     xcb_query_pointer_cookie_t qpc = xcb_query_pointer(conn,
-                                         _IswXcbScreen(IswScreenOf(st->shell))->root);
+                                         _IswXcbScreen(IswScreenOf(st->core.shell))->root);
     xcb_query_pointer_reply_t *qpr = xcb_query_pointer_reply(conn, qpc, NULL);
 
     xcb_window_t child_win = XCB_NONE;
-    unsigned int modifiers = 0;
     if (qpr) {
         child_win = qpr->child;
         modifiers = qpr->mask;
@@ -1635,10 +1376,10 @@ DragMotion(XdndState *st, int root_x, int root_y)
             SendDragLeave(st);
 
         st->drag_target_win = target_win;
-        st->drag_target_ver = target_version;
-        st->drag_target_accepted = False;
-        st->drag_target_action = ISW_DND_ACTION_NONE;
-        st->drag_status_pending = False;
+        st->core.drag_target_ver = target_version;
+        st->core.drag_target_accepted = False;
+        st->core.drag_target_action = ISW_DND_ACTION_NONE;
+        st->core.drag_status_pending = False;
 
         /* Enter new target */
         if (target_win != XCB_NONE)
@@ -1648,14 +1389,14 @@ DragMotion(XdndState *st, int root_x, int root_y)
     /* Send position */
     if (st->drag_target_win != XCB_NONE) {
         /* Check if modifier keys changed the desired action */
-        IswDndAction mod_action = ModifiersToAction(st, modifiers);
+        IswDndAction mod_action = _IswDndModifiersToAction(modifiers);
         (void) mod_action; /* used in SendDragPosition via drag_desc.actions */
 
-        if (st->drag_status_pending) {
+        if (st->core.drag_status_pending) {
             /* Defer — will resend when XdndStatus arrives */
-            st->drag_last_x = root_x;
-            st->drag_last_y = root_y;
-            st->drag_position_deferred = True;
+            st->core.drag_last_x = root_x;
+            st->core.drag_last_y = root_y;
+            st->core.drag_position_deferred = True;
         } else {
             SendDragPosition(st, root_x, root_y);
         }
@@ -1665,10 +1406,10 @@ DragMotion(XdndState *st, int root_x, int root_y)
     xcb_cursor_t cursor;
     if (st->drag_target_win == XCB_NONE) {
         cursor = st->cursor_default;
-    } else if (!st->drag_target_accepted) {
+    } else if (!st->core.drag_target_accepted) {
         cursor = st->cursor_reject;
     } else {
-        switch (st->drag_target_action) {
+        switch (st->core.drag_target_action) {
         case ISW_DND_ACTION_MOVE: cursor = st->cursor_move; break;
         case ISW_DND_ACTION_LINK: cursor = st->cursor_link; break;
         default:                  cursor = st->cursor_copy; break;
@@ -1689,7 +1430,7 @@ DragMotion(XdndState *st, int root_x, int root_y)
 static void
 SendDragEnter(XdndState *st, xcb_window_t target)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
 
     xcb_client_message_event_t cm;
     memset(&cm, 0, sizeof(cm));
@@ -1697,16 +1438,16 @@ SendDragEnter(XdndState *st, xcb_window_t target)
     cm.window = target;
     cm.type = st->XdndEnter;
     cm.format = 32;
-    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
+    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell)));
     cm.data.data32[1] = (XDND_VERSION << 24);
 
-    if (st->drag_desc.num_types > 3) {
+    if (st->core.drag_desc.num_types > 3) {
         cm.data.data32[1] |= 1;  /* use XdndTypeList property */
     }
 
     /* Fill in up to 3 types directly */
-    for (int i = 0; i < 3 && i < st->drag_desc.num_types; i++)
-        cm.data.data32[2 + i] = st->drag_desc.types[i];
+    for (int i = 0; i < 3 && i < st->core.drag_desc.num_types; i++)
+        cm.data.data32[2 + i] = st->core.drag_desc.types[i];
 
 
     xcb_send_event(conn, False, target, 0, (const char *) &cm);
@@ -1716,7 +1457,7 @@ SendDragEnter(XdndState *st, xcb_window_t target)
 static void
 SendDragPosition(XdndState *st, int root_x, int root_y)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
 
     /* Determine action from keyboard modifiers */
     /* Query pointer for modifiers and physical root coordinates.
@@ -1724,7 +1465,7 @@ SendDragPosition(XdndState *st, int root_x, int root_y)
      * pixels by the dispatcher — XdndPosition must use the X server's
      * native physical coordinates so external apps map them correctly. */
     xcb_query_pointer_cookie_t qpc = xcb_query_pointer(conn,
-                                         _IswXcbScreen(IswScreenOf(st->shell))->root);
+                                         _IswXcbScreen(IswScreenOf(st->core.shell))->root);
     xcb_query_pointer_reply_t *qpr = xcb_query_pointer_reply(conn, qpc, NULL);
     unsigned int modifiers = 0;
     int phys_x = root_x, phys_y = root_y;
@@ -1735,9 +1476,9 @@ SendDragPosition(XdndState *st, int root_x, int root_y)
         free(qpr);
     }
 
-    IswDndAction desired = ModifiersToAction(st, modifiers);
+    IswDndAction desired = _IswDndModifiersToAction(modifiers);
     /* Constrain to offered actions */
-    if (!(st->drag_desc.actions & desired))
+    if (!(st->core.drag_desc.actions & desired))
         desired = ISW_DND_ACTION_COPY;  /* fallback */
 
     xcb_client_message_event_t cm;
@@ -1746,25 +1487,25 @@ SendDragPosition(XdndState *st, int root_x, int root_y)
     cm.window = st->drag_target_win;
     cm.type = st->XdndPosition;
     cm.format = 32;
-    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
+    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell)));
     cm.data.data32[1] = 0;  /* reserved */
     cm.data.data32[2] = ((uint32_t) phys_x << 16) | ((uint32_t) phys_y & 0xFFFF);
     cm.data.data32[3] = st->drag_timestamp;
-    cm.data.data32[4] = ActionToAtom(st, desired);
+    cm.data.data32[4] = (xcb_atom_t) _IswDndActionToAtom(&st->core, desired);
 
 
     xcb_send_event(conn, False, st->drag_target_win, 0, (const char *) &cm);
     xcb_flush(conn);
 
-    st->drag_status_pending = True;
-    st->drag_last_x = root_x;
-    st->drag_last_y = root_y;
+    st->core.drag_status_pending = True;
+    st->core.drag_last_x = root_x;
+    st->core.drag_last_y = root_y;
 }
 
 static void
 SendDragLeave(XdndState *st)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
 
     xcb_client_message_event_t cm;
     memset(&cm, 0, sizeof(cm));
@@ -1772,7 +1513,7 @@ SendDragLeave(XdndState *st)
     cm.window = st->drag_target_win;
     cm.type = st->XdndLeave;
     cm.format = 32;
-    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
+    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell)));
 
     xcb_send_event(conn, False, st->drag_target_win, 0, (const char *) &cm);
     xcb_flush(conn);
@@ -1781,7 +1522,7 @@ SendDragLeave(XdndState *st)
 static void
 SendDragDrop(XdndState *st)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
 
     xcb_client_message_event_t cm;
     memset(&cm, 0, sizeof(cm));
@@ -1789,7 +1530,7 @@ SendDragDrop(XdndState *st)
     cm.window = st->drag_target_win;
     cm.type = st->XdndDrop;
     cm.format = 32;
-    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->shell)), (Widget)(st->shell)));
+    cm.data.data32[0] = _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell)));
     cm.data.data32[1] = 0;  /* reserved */
     cm.data.data32[2] = st->drag_timestamp;
 
@@ -1802,16 +1543,16 @@ SendDragDrop(XdndState *st)
 /* ------------------------------------------------------------------ */
 
 static void
-HandleDragStatus(XdndState *st, xcb_client_message_event_t *cm)
+HandleDragStatus(XdndState *st, const uint32_t *data)
 {
-    st->drag_status_pending = False;
-    st->drag_target_accepted = (cm->data.data32[1] & 1) != 0;
-    st->drag_target_action = AtomToAction(st, cm->data.data32[4]);
+    st->core.drag_status_pending = False;
+    st->core.drag_target_accepted = (data[1] & 1) != 0;
+    st->core.drag_target_action = _IswDndAtomToAction(&st->core, (Atom) data[4]);
 
     /* If we deferred a position update, send it now */
-    if (st->drag_position_deferred) {
-        st->drag_position_deferred = False;
-        SendDragPosition(st, st->drag_last_x, st->drag_last_y);
+    if (st->core.drag_position_deferred) {
+        st->core.drag_position_deferred = False;
+        SendDragPosition(st, st->core.drag_last_x, st->core.drag_last_y);
     }
 }
 
@@ -1820,19 +1561,19 @@ HandleDragStatus(XdndState *st, xcb_client_message_event_t *cm)
 /* ------------------------------------------------------------------ */
 
 static void
-HandleDragFinished(XdndState *st, xcb_client_message_event_t *cm)
+HandleDragFinished(XdndState *st, const uint32_t *data)
 {
-    Boolean accepted = (cm->data.data32[1] & 1) != 0;
-    IswDndAction performed = AtomToAction(st, cm->data.data32[2]);
+    Boolean accepted = (data[1] & 1) != 0;
+    IswDndAction performed = _IswDndAtomToAction(&st->core, (Atom) data[2]);
 
-    if (st->finished_timer) {
-        IswRemoveTimeOut(st->finished_timer);
-        st->finished_timer = 0;
+    if (st->core.finished_timer) {
+        IswRemoveTimeOut(st->core.finished_timer);
+        st->core.finished_timer = 0;
     }
 
-    if (st->drag_desc.finished) {
-        st->drag_desc.finished(st->drag_source, performed,
-                               accepted, st->drag_desc.client_data);
+    if (st->core.drag_desc.finished) {
+        st->core.drag_desc.finished(st->core.drag_source, performed,
+                               accepted, st->core.drag_desc.client_data);
     }
 
     DragCleanup(st);
@@ -1844,11 +1585,11 @@ DragFinishedTimeout(IswPointer closure, IswIntervalId *id)
     XdndState *st = (XdndState *) closure;
     (void) id;
 
-    st->finished_timer = 0;
+    st->core.finished_timer = 0;
 
-    if (st->drag_desc.finished) {
-        st->drag_desc.finished(st->drag_source, ISW_DND_ACTION_NONE,
-                               False, st->drag_desc.client_data);
+    if (st->core.drag_desc.finished) {
+        st->core.drag_desc.finished(st->core.drag_source, ISW_DND_ACTION_NONE,
+                               False, st->core.drag_desc.client_data);
     }
 
     DragCleanup(st);
@@ -1864,21 +1605,21 @@ DragDrop(XdndState *st)
     SendDragDrop(st);
 
     /* Set timeout in case target doesn't reply */
-    st->finished_timer = IswAppAddTimeOut(
-        IswWidgetToApplicationContext(st->shell),
+    st->core.finished_timer = IswAppAddTimeOut(
+        IswWidgetToApplicationContext(st->core.shell),
         FINISHED_TIMEOUT, DragFinishedTimeout, (IswPointer) st);
 
     /* Ungrab pointer and remove drag event handler so normal input
      * resumes immediately. XdndFinished arrives as a ClientMessage
      * through HandleXdndEvent (the non-maskable handler), not through
-     * HandleDragEvent, so we don't need it anymore. Keep st->dragging
+     * HandleDragEvent, so we don't need it anymore. Keep st->core.dragging
      * True so HandleXdndEvent still processes XdndFinished/XdndStatus. */
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
     xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
-    IswUngrabKeyboard(st->shell, XCB_CURRENT_TIME);
+    IswUngrabKeyboard(st->core.shell, XCB_CURRENT_TIME);
     DestroyDragIcon(st);
 
-    IswRemoveEventHandler(st->shell,
+    IswRemoveEventHandler(st->core.shell,
                          XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
                          XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS |
                          XCB_EVENT_MASK_KEY_RELEASE,
@@ -1893,9 +1634,9 @@ DragCancel(XdndState *st)
     if (st->drag_target_win != XCB_NONE)
         SendDragLeave(st);
 
-    if (st->drag_desc.finished) {
-        st->drag_desc.finished(st->drag_source, ISW_DND_ACTION_NONE,
-                               False, st->drag_desc.client_data);
+    if (st->core.drag_desc.finished) {
+        st->core.drag_desc.finished(st->core.drag_source, ISW_DND_ACTION_NONE,
+                               False, st->core.drag_desc.client_data);
     }
 
     DragCleanup(st);
@@ -1904,34 +1645,34 @@ DragCancel(XdndState *st)
 static void
 DragCleanup(XdndState *st)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
 
     /* Ungrab pointer and keyboard */
     xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
-    IswUngrabKeyboard(st->shell, XCB_CURRENT_TIME);
+    IswUngrabKeyboard(st->core.shell, XCB_CURRENT_TIME);
 
     /* Drag-source grab released; restore the windowless implicit grab. */
     {
-        IswPerDisplayInput pdi = _IswGetPerDisplayInput(IswDisplayOf(st->shell));
+        IswPerDisplayInput pdi = _IswGetPerDisplayInput(IswDisplayOf(st->core.shell));
         if (pdi)
             pdi->xdndDragActive = False;
     }
 
     /* Remove drag event handler */
-    IswRemoveEventHandler(st->shell,
+    IswRemoveEventHandler(st->core.shell,
                          XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION |
                          XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_KEY_PRESS |
                          XCB_EVENT_MASK_KEY_RELEASE,
                          TRUE, HandleDragEvent, (IswPointer) st);
 
     /* Disown selection */
-    IswDisownSelection(st->shell, st->XdndSelection, st->drag_timestamp);
+    IswDisownSelection(st->core.shell, st->XdndSelection, st->drag_timestamp);
 
     /* Clean up icon */
     DestroyDragIcon(st);
-    if (st->drag_icon_owned && st->drag_desc.icon_pixmap != 0) {
-        xcb_free_pixmap(conn, (xcb_pixmap_t) st->drag_desc.icon_pixmap);
-        st->drag_desc.icon_pixmap = 0;
+    if (st->drag_icon_owned && st->core.drag_desc.icon_pixmap != 0) {
+        xcb_free_pixmap(conn, (xcb_pixmap_t) st->core.drag_desc.icon_pixmap);
+        st->core.drag_desc.icon_pixmap = 0;
         st->drag_icon_owned = False;
     }
     if (st->drag_icon_cmap != XCB_NONE) {
@@ -1940,24 +1681,24 @@ DragCleanup(XdndState *st)
     }
 
     /* Remove timeout */
-    if (st->finished_timer) {
-        IswRemoveTimeOut(st->finished_timer);
-        st->finished_timer = 0;
+    if (st->core.finished_timer) {
+        IswRemoveTimeOut(st->core.finished_timer);
+        st->core.finished_timer = 0;
     }
 
     /* Free copied type list */
-    if (st->drag_desc.types) {
-        IswFree((char *) st->drag_desc.types);
-        st->drag_desc.types = NULL;
+    if (st->core.drag_desc.types) {
+        IswFree((char *) st->core.drag_desc.types);
+        st->core.drag_desc.types = NULL;
     }
 
     /* Reset state */
-    st->dragging = False;
-    st->drag_started = False;
-    st->drag_source = NULL;
+    st->core.dragging = False;
+    st->core.drag_started = False;
+    st->core.drag_source = NULL;
     st->drag_target_win = XCB_NONE;
-    st->drag_status_pending = False;
-    st->drag_position_deferred = False;
+    st->core.drag_status_pending = False;
+    st->core.drag_position_deferred = False;
 
     xcb_flush(conn);
 }
@@ -1972,7 +1713,7 @@ DragConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
                      unsigned long *length_return, int *format_return)
 {
     XdndState *st = GetXdndState(w);
-    if (!st || !st->dragging)
+    if (!st || !st->core.dragging)
         return False;
 
     (void) selection;
@@ -1980,24 +1721,24 @@ DragConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
     /* Handle TARGETS request */
     if (*target == st->targets_atom) {
         xcb_atom_t *targets = (xcb_atom_t *) IswMalloc(
-            (st->drag_desc.num_types + 1) * sizeof(xcb_atom_t));
+            (st->core.drag_desc.num_types + 1) * sizeof(xcb_atom_t));
         targets[0] = st->targets_atom;
-        for (int i = 0; i < st->drag_desc.num_types; i++)
-            targets[i + 1] = st->drag_desc.types[i];
+        for (int i = 0; i < st->core.drag_desc.num_types; i++)
+            targets[i + 1] = st->core.drag_desc.types[i];
 
         *type_return = XCB_ATOM_ATOM;
         *value_return = (IswPointer) targets;
-        *length_return = st->drag_desc.num_types + 1;
+        *length_return = st->core.drag_desc.num_types + 1;
         *format_return = 32;
         return True;
     }
 
     /* Delegate to app's convert proc */
-    if (st->drag_desc.convert) {
-        Boolean ok = st->drag_desc.convert(st->drag_source, *target,
+    if (st->core.drag_desc.convert) {
+        Boolean ok = st->core.drag_desc.convert(st->core.drag_source, *target,
                                            value_return, length_return,
                                            format_return,
-                                           st->drag_desc.client_data);
+                                           st->core.drag_desc.client_data);
         if (ok)
             *type_return = *target;
 
@@ -2023,8 +1764,8 @@ static void
 CreateDragIconFromRaster(XdndState *st, const unsigned char *rgba,
                          unsigned int w, unsigned int h)
 {
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
-    xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
+    xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(st->core.shell));
 
     /* Find a 32-bit visual for alpha transparency */
     xcb_visualtype_t *visual32 = _IswXcbFindVisual(screen, 32);
@@ -2082,11 +1823,11 @@ CreateDragIconFromRaster(XdndState *st, const unsigned char *rgba,
     xcb_create_colormap(conn, XCB_COLORMAP_ALLOC_NONE,
                         cmap, screen->root, visual32->visual_id);
 
-    st->drag_desc.icon_pixmap = pixmap;
-    st->drag_desc.icon_width = (int)w;
-    st->drag_desc.icon_height = (int)h;
-    st->drag_desc.icon_hotspot_x = (int)w / 2;
-    st->drag_desc.icon_hotspot_y = (int)h / 2;
+    st->core.drag_desc.icon_pixmap = pixmap;
+    st->core.drag_desc.icon_width = (int)w;
+    st->core.drag_desc.icon_height = (int)h;
+    st->core.drag_desc.icon_hotspot_x = (int)w / 2;
+    st->core.drag_desc.icon_hotspot_y = (int)h / 2;
     st->drag_icon_owned = True;
     st->drag_icon_cmap = cmap;
     st->drag_icon_visual = visual32->visual_id;
@@ -2096,24 +1837,24 @@ static void
 CreateDragIcon(XdndState *st)
 {
     /* Auto-generate icon from IconView item raster */
-    if (st->drag_desc.icon_pixmap == 0 &&
-        IswIsSubclass(st->drag_source, iconViewWidgetClass)) {
-        int idx = IswIconViewHitTest(st->drag_source,
-                                     st->drag_press_x, st->drag_press_y);
+    if (st->core.drag_desc.icon_pixmap == 0 &&
+        IswIsSubclass(st->core.drag_source, iconViewWidgetClass)) {
+        int idx = IswIconViewHitTest(st->core.drag_source,
+                                     st->core.drag_press_x, st->core.drag_press_y);
         if (idx >= 0) {
             unsigned int rw, rh;
             const unsigned char *raster =
-                IswIconViewGetItemRaster(st->drag_source, idx, &rw, &rh);
+                IswIconViewGetItemRaster(st->core.drag_source, idx, &rw, &rh);
             if (raster)
                 CreateDragIconFromRaster(st, raster, rw, rh);
         }
     }
 
-    if (st->drag_desc.icon_pixmap == 0)
+    if (st->core.drag_desc.icon_pixmap == 0)
         return;
 
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
-    xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
+    xcb_screen_t *screen = _IswXcbScreen(IswScreenOf(st->core.shell));
 
     st->drag_icon_win = xcb_generate_id(conn);
 
@@ -2122,31 +1863,31 @@ CreateDragIcon(XdndState *st)
         uint32_t vals[4];
         uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_BORDER_PIXEL |
                         XCB_CW_OVERRIDE_REDIRECT | XCB_CW_COLORMAP;
-        vals[0] = (uint32_t) st->drag_desc.icon_pixmap;
+        vals[0] = (uint32_t) st->core.drag_desc.icon_pixmap;
         vals[1] = 0;
         vals[2] = True;
         vals[3] = st->drag_icon_cmap;
 
         xcb_create_window(conn, 32,
                           st->drag_icon_win, screen->root,
-                          (int16_t)(st->drag_start_x - st->drag_desc.icon_hotspot_x),
-                          (int16_t)(st->drag_start_y - st->drag_desc.icon_hotspot_y),
-                          st->drag_desc.icon_width,
-                          st->drag_desc.icon_height,
+                          (int16_t)(st->core.drag_start_x - st->core.drag_desc.icon_hotspot_x),
+                          (int16_t)(st->core.drag_start_y - st->core.drag_desc.icon_hotspot_y),
+                          st->core.drag_desc.icon_width,
+                          st->core.drag_desc.icon_height,
                           0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
                           st->drag_icon_visual, mask, vals);
     } else {
         uint32_t vals[2];
         uint32_t mask = XCB_CW_BACK_PIXMAP | XCB_CW_OVERRIDE_REDIRECT;
-        vals[0] = (uint32_t) st->drag_desc.icon_pixmap;
+        vals[0] = (uint32_t) st->core.drag_desc.icon_pixmap;
         vals[1] = True;
 
         xcb_create_window(conn, XCB_COPY_FROM_PARENT,
                           st->drag_icon_win, screen->root,
-                          (int16_t)(st->drag_start_x - st->drag_desc.icon_hotspot_x),
-                          (int16_t)(st->drag_start_y - st->drag_desc.icon_hotspot_y),
-                          st->drag_desc.icon_width,
-                          st->drag_desc.icon_height,
+                          (int16_t)(st->core.drag_start_x - st->core.drag_desc.icon_hotspot_x),
+                          (int16_t)(st->core.drag_start_y - st->core.drag_desc.icon_hotspot_y),
+                          st->core.drag_desc.icon_width,
+                          st->core.drag_desc.icon_height,
                           0, XCB_WINDOW_CLASS_INPUT_OUTPUT,
                           XCB_COPY_FROM_PARENT, mask, vals);
     }
@@ -2176,12 +1917,12 @@ MoveDragIcon(XdndState *st, int root_x, int root_y)
     if (st->drag_icon_win == XCB_NONE)
         return;
 
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
     /* HiDPI: scale logical to physical for the X server */
-    double _sf = _IswGetScaleFactor(IswDisplayOf(st->shell));
+    double _sf = _IswGetScaleFactor(IswDisplayOf(st->core.shell));
     uint32_t values[2];
-    values[0] = (uint32_t)(int32_t)((root_x - st->drag_desc.icon_hotspot_x) * _sf + 0.5);
-    values[1] = (uint32_t)(int32_t)((root_y - st->drag_desc.icon_hotspot_y) * _sf + 0.5);
+    values[0] = (uint32_t)(int32_t)((root_x - st->core.drag_desc.icon_hotspot_x) * _sf + 0.5);
+    values[1] = (uint32_t)(int32_t)((root_y - st->core.drag_desc.icon_hotspot_y) * _sf + 0.5);
 
     xcb_configure_window(conn, st->drag_icon_win,
                          XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y,
@@ -2195,7 +1936,7 @@ DestroyDragIcon(XdndState *st)
     if (st->drag_icon_win == XCB_NONE)
         return;
 
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->shell));
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
     xcb_destroy_window(conn, st->drag_icon_win);
     st->drag_icon_win = XCB_NONE;
     xcb_flush(conn);
