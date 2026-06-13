@@ -258,6 +258,24 @@ xcb_disp_vendor(IswDisplay dpy)
     return buf;
 }
 
+static void *
+xcb_disp_native_display(IswDisplay dpy)
+{
+    return (void *) _IswXcbConn(dpy);
+}
+
+static void *
+xcb_disp_native_screen(IswScreen screen)
+{
+    return (void *) _IswXcbScreen(screen);
+}
+
+static void *
+xcb_disp_native_window(IswWindow win)
+{
+    return (void *) (uintptr_t) _IswXcbWindow(win);
+}
+
 static const IswPlatformDisplayOps xcb_display_ops = {
     .open           = xcb_disp_open,
     .close          = xcb_disp_close,
@@ -276,6 +294,9 @@ static const IswPlatformDisplayOps xcb_display_ops = {
     .screen_white_pixel = xcb_disp_screen_white_pixel,
     .bell           = xcb_disp_bell,
     .vendor         = xcb_disp_vendor,
+    .native_display = xcb_disp_native_display,
+    .native_screen  = xcb_disp_native_screen,
+    .native_window  = xcb_disp_native_window,
 };
 
 /* ---- window ops ---------------------------------------------------------- */
@@ -773,6 +794,33 @@ _IswPlatformDisplayVendor(IswDisplay dpy)
     if (ops && ops->display && ops->display->vendor)
         return ops->display->vendor(dpy);
     return "";
+}
+
+void *
+IswDisplayNativeHandle(IswDisplay dpy)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->display && ops->display->native_display)
+        return ops->display->native_display(dpy);
+    return NULL;
+}
+
+void *
+IswScreenNativeHandle(IswScreen screen)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->display && ops->display->native_screen)
+        return ops->display->native_screen(screen);
+    return NULL;
+}
+
+void *
+IswWindowNativeHandle(IswWindow win)
+{
+    const IswPlatformOps *ops = _IswPlatformSelectBackend();
+    if (ops && ops->display && ops->display->native_window)
+        return ops->display->native_window(win);
+    return NULL;
 }
 
 IswScreen

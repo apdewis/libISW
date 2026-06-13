@@ -316,6 +316,13 @@ struct _IswPlatformDisplayOps {
     /* Server vendor string (static storage), or "" if unavailable.  Used only
        for diagnostic messages. */
     const char *(*vendor)(IswDisplay dpy);
+    /* Native backend handle behind the opaque display/screen/window, as a void *
+       the caller reinterprets for the active backend (X11: xcb_connection_t* /
+       xcb_screen_t* / xcb_window_t id cast to void *).  Escape hatch for
+       backend-specific code; NULL if absent. */
+    void       *(*native_display)(IswDisplay dpy);
+    void       *(*native_screen)(IswScreen screen);
+    void       *(*native_window)(IswWindow win);
 };
 
 /*
@@ -879,6 +886,14 @@ extern IswEvent     *_IswPlatformPollQueuedEvent(IswDisplay dpy);
 extern Boolean   _IswPlatformDisplayHasError(IswDisplay dpy);
 extern void      _IswPlatformFlush(IswDisplay dpy);
 extern void      _IswPlatformSync(IswDisplay dpy);
+
+/* Public escape hatch: native backend handle behind an opaque IswDisplay /
+   IswScreen / IswWindow, as a void * the caller reinterprets for the active
+   backend (X11: xcb_connection_t* / xcb_screen_t* / xcb_window_t id cast to
+   void *).  NULL / 0 if unavailable. */
+extern void     *IswDisplayNativeHandle(IswDisplay dpy);
+extern void     *IswScreenNativeHandle(IswScreen screen);
+extern void     *IswWindowNativeHandle(IswWindow win);
 
 /* Selection */
 extern IswSelectionId _IswPlatformSelectionInternName(IswDisplay dpy,
