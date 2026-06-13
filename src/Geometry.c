@@ -714,7 +714,43 @@ IswConfigureWidget(Widget w,
             }
         }
 
-        if (IswIsRealized(w) && IswIsWidget(w)) {
+        if (IswIsRealized(w) && IswIsShell(w)) {
+            /* A shell backs a real top-level window; its geometry change must
+               reach the server.  IswResizeWindow only carries W/H/border, so a
+               post-realize reposition (e.g. a popped-up menu moved via
+               IswConfigureWidget) would leave the window at its mapped origin.
+               Push the changed components, scaled logical→physical like
+               IswResizeWindow does. */
+            double sf = _IswGetScaleFactor(IswDisplayOf(w));
+            IswWindowGeometry g;
+            uint32_t cfgMask = 0;
+            memset(&g, 0, sizeof(g));
+            if (req.changeMask & IswCWX) {
+                g.x = (int32_t)lrint((double)w->core.x * sf);
+                cfgMask |= ISW_CONFIG_X;
+            }
+            if (req.changeMask & IswCWY) {
+                g.y = (int32_t)lrint((double)w->core.y * sf);
+                cfgMask |= ISW_CONFIG_Y;
+            }
+            if (req.changeMask & IswCWWidth) {
+                g.width = (uint32_t)lrint((double)w->core.width * sf);
+                cfgMask |= ISW_CONFIG_WIDTH;
+            }
+            if (req.changeMask & IswCWHeight) {
+                g.height = (uint32_t)lrint((double)w->core.height * sf);
+                cfgMask |= ISW_CONFIG_HEIGHT;
+            }
+            if (req.changeMask & IswCWBorderWidth) {
+                g.border_width = (uint32_t)lrint((double)w->core.border_width * sf);
+                cfgMask |= ISW_CONFIG_BORDER;
+            }
+            if (cfgMask != 0)
+                _IswPlatformConfigureWindow(IswDisplayOf(w),
+                                            _IswPlatformWidgetWindow(IswDisplayOf(w), w),
+                                            &g, cfgMask, ISW_STACK_NONE, NULL);
+        }
+        else if (IswIsRealized(w) && IswIsWidget(w)) {
             /* Windowless widgets have no X window to configure, and the server
                never sends them an Expose after a geometry change.
 
