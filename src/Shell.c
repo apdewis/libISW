@@ -1111,7 +1111,7 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
         memset(&attrs, 0, sizeof(attrs));
         attrs.background_pixel = wid->core.background_pixel;
         attrs.border_pixel = wid->core.border_pixel;
-        attrs.event_mask = IswBuildEventMask(wid);
+        attrs.event_mask = _IswWindowSelectMask(wid);
         attrs.override_redirect = w->shell.override_redirect;
         attrs.save_under = w->shell.save_under;
         attrs.bit_gravity_nw = (mask & IswCWBitGravity) ? True : False;
