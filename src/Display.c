@@ -642,8 +642,10 @@ _IswSortPerDisplayList(IswDisplay dpy)
     }
 
     if (pd == NULL) {
-        IswErrorMsg(IswNnoPerDisplay, "getPerDisplay", IswCIswToolkitError,
-                   "Couldn't find per display information", NULL, NULL);
+        //#FIXME this used to be toolkit error
+        //however something is trying to fetch this after the PD table removed at exit
+        //return NULL so the resulting SEGV will let us find the offender at least
+        return NULL;
     }
     else {
         if (pd != _IswperDisplayList) {  /* move it to the front */
@@ -680,6 +682,7 @@ CloseDisplay(IswDisplay dpy)
     //XrmDatabase db;
 
     IswDestroyWidget(IswHooksOfDisplay((IswDisplay) dpy));
+    _IswPlatformFreeKeysyms(dpy);
 
     LOCK_PROCESS;
     for (pd = _IswperDisplayList; pd != NULL && pd->dpy != dpy; pd = pd->next) {
@@ -720,7 +723,6 @@ CloseDisplay(IswDisplay dpy)
          * app->list[] — the display must still be in that list. */
         _IswCacheFlushTag(xtpd->appContext, (IswPointer) &xtpd->heap);
         IswDeleteFromAppContext(dpy, xtpd->appContext);
-        _IswPlatformFreeKeysyms(dpy);
         IswFree((char *) xtpd->modKeysyms);
         IswFree((char *) xtpd->modsToKeysyms);
         xtpd->keysyms_per_keycode = 0;

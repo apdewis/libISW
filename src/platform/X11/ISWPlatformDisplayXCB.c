@@ -1218,6 +1218,7 @@ _IswPlatformLookupColor(IswDisplay dpy, IswColormap cmap, const char *name)
 void
 _IswPlatformFreeColors(IswDisplay dpy, IswColormap cmap, unsigned long pixel)
 {
+    if(!dpy) return;
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->color && ops->color->free_colors)
         ops->color->free_colors(dpy, cmap, pixel);
@@ -1450,6 +1451,7 @@ _IswPlatformBuildModMap(IswDisplay dpy, IswModKeysymEntry *mods_return,
 void
 _IswPlatformFreeKeysyms(IswDisplay dpy)
 {
+    if(!dpy) return;
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->input && ops->input->free_keysyms)
         ops->input->free_keysyms(dpy);
@@ -1489,6 +1491,7 @@ void
 _IswPlatformSetSelectionOwner(IswDisplay dpy, IswWindow owner,
                               IswSelectionId selection, IswTime time)
 {
+    if(!dpy) return;
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->selection && ops->selection->set_owner)
         ops->selection->set_owner(dpy, owner, selection, time);
