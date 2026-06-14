@@ -1219,33 +1219,33 @@ static void egl_measure_font(IswFontStruct *font)
 int egl_scaled_text_width(Widget widget, IswFontStruct *font,
                           const char *text, int len)
 {
+    (void) widget;
     if (!g_egl.vg || text == NULL) return 0;
-    double sf = _IswGetScaleFactor(IswDisplayOf(widget));
     egl_measure_font(font);
     float bounds[4];
     float adv = nvgTextBounds(g_egl.vg, 0, 0, text,
                               len >= 0 ? text + len : NULL, bounds);
-    return (int) (adv * sf + 0.5f);
+    return (int) (adv + 0.5f);
 }
 
 int egl_scaled_font_height(Widget widget, IswFontStruct *font)
 {
+    (void) widget;
     if (!g_egl.vg) return 0;
-    double sf = _IswGetScaleFactor(IswDisplayOf(widget));
     egl_measure_font(font);
     float asc, desc, lineh;
     nvgTextMetrics(g_egl.vg, &asc, &desc, &lineh);
-    return (int) (lineh * sf + 0.5f);
+    return (int) (lineh + 0.5f);
 }
 
 int egl_scaled_font_ascent(Widget widget, IswFontStruct *font)
 {
+    (void) widget;
     if (!g_egl.vg) return 0;
-    double sf = _IswGetScaleFactor(IswDisplayOf(widget));
     egl_measure_font(font);
     float asc, desc, lineh;
     nvgTextMetrics(g_egl.vg, &asc, &desc, &lineh);
-    return (int) (asc * sf + 0.5f);
+    return (int) (asc + 0.5f);
 }
 
 int egl_scaled_font_cap_height(Widget widget, IswFontStruct *font)

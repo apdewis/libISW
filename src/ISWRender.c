@@ -13,12 +13,32 @@
 #include "config.h"
 #endif
 
-#include "ISWRenderOps.h"   
+#include "ISWRenderOps.h"
 #include <ISW/ISWPlatform.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+
+/* Per-backend ops tables — declared in each backend's header. */
+extern const ISWRenderOps  isw_render_cairo_xcb_ops;
+extern const IswSurfaceOps isw_surface_cairo_xcb_ops;
+
+extern int cairo_xcb_scaled_text_width(Widget, IswFontStruct *, const char *, int);
+extern int cairo_xcb_scaled_font_height(Widget, IswFontStruct *);
+extern int cairo_xcb_scaled_font_ascent(Widget, IswFontStruct *);
+extern int cairo_xcb_scaled_font_cap_height(Widget, IswFontStruct *);
+
+#ifdef HAVE_EGL
+extern const ISWRenderOps  isw_render_egl_ops;
+extern const IswSurfaceOps isw_surface_egl_ops;
+extern Boolean ISWRenderGLAvailable(void);
+
+extern int egl_scaled_text_width(Widget, IswFontStruct *, const char *, int);
+extern int egl_scaled_font_height(Widget, IswFontStruct *);
+extern int egl_scaled_font_ascent(Widget, IswFontStruct *);
+extern int egl_scaled_font_cap_height(Widget, IswFontStruct *);
+#endif
 
 /* Defined in Initialize.c — avoids pulling in InitialI.h */
 extern double _IswGetScaleFactor(IswDisplay dpy);
@@ -49,6 +69,11 @@ static const IswSurfaceOps *_isw_surface_ops;
 /* True while ISWRenderCompositeSubtree is running, so the auto-composite in
    ISWRenderEnd does not re-enter the pass for each child's end(). */
 static Boolean _isw_in_composite = False;
+
+/* The backend that ISWRenderCreate actually initialized.  Font measurement
+   routing uses this instead of re-detecting, because detection can report EGL
+   as available before NanoVG is initialized (no context yet). */
+static ISWRenderBackend _isw_active_backend = ISW_RENDER_BACKEND_AUTO;
 
 /* Composite coalescing: during an event dispatch, many widgets may repaint
    themselves (e.g. several buttons un/highlighting as the pointer crosses
@@ -202,6 +227,7 @@ ISWRenderCreate(Widget widget, ISWRenderBackend preferred)
             return NULL;
         }
         ctx->backend = rops->detect(preferred);
+        _isw_active_backend = ctx->backend;
         ctx->ops = rops->draw_ops(ctx->backend);
         ctx->surface_ops = rops->surface_ops(ctx->backend);
         if (ctx->ops == NULL || ctx->surface_ops == NULL) {
@@ -1328,3 +1354,136 @@ ISWScaledFontCapHeight(Widget widget, IswFontStruct *font)
         return rops->scaled_font_cap_height(widget, font);
     return 0;
 }
+
+/*
+ * =================================================================
+ * Backend Availability / Detection / Selection
+ * =================================================================
+ */
+
+Boolean
+ISWRenderBackendAvailable(ISWRenderBackend backend)
+{
+    switch (backend) {
+        case ISW_RENDER_BACKEND_CAIRO_XCB:
+            return True;
+
+#ifdef HAVE_EGL
+        case ISW_RENDER_BACKEND_EGL:
+            return ISWRenderGLAvailable();
+#endif
+
+        case ISW_RENDER_BACKEND_AUTO:
+        default:
+            return False;
+    }
+}
+
+static ISWRenderBackend
+ISWRenderDetectBackend(ISWRenderBackend preferred)
+{
+    if (preferred != ISW_RENDER_BACKEND_AUTO) {
+        if (ISWRenderBackendAvailable(preferred))
+            return preferred;
+    }
+
+    const char *env = getenv("ISW_RENDER_BACKEND");
+    if (env) {
+        if (strcmp(env, "egl") == 0) {
+#ifdef HAVE_EGL
+            if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_EGL))
+                return ISW_RENDER_BACKEND_EGL;
+#endif
+        } else if (strcmp(env, "cairo") == 0) {
+            return ISW_RENDER_BACKEND_CAIRO_XCB;
+        }
+    }
+
+#ifdef HAVE_EGL
+    if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_EGL))
+        return ISW_RENDER_BACKEND_EGL;
+#endif
+
+    return ISW_RENDER_BACKEND_CAIRO_XCB;
+}
+
+static const ISWRenderOps *
+isw_render_draw_ops(ISWRenderBackend backend)
+{
+    switch (backend) {
+        case ISW_RENDER_BACKEND_CAIRO_XCB:
+            return &isw_render_cairo_xcb_ops;
+#ifdef HAVE_EGL
+        case ISW_RENDER_BACKEND_EGL:
+            return &isw_render_egl_ops;
+#endif
+        default:
+            return NULL;
+    }
+}
+
+static const IswSurfaceOps *
+isw_render_surface_ops(ISWRenderBackend backend)
+{
+    switch (backend) {
+        case ISW_RENDER_BACKEND_CAIRO_XCB:
+            return &isw_surface_cairo_xcb_ops;
+#ifdef HAVE_EGL
+        case ISW_RENDER_BACKEND_EGL:
+            return &isw_surface_egl_ops;
+#endif
+        default:
+            return NULL;
+    }
+}
+
+static int
+isw_render_scaled_text_width(Widget w, IswFontStruct *f, const char *t, int l)
+{
+#ifdef HAVE_EGL
+    if (_isw_active_backend == ISW_RENDER_BACKEND_EGL)
+        return egl_scaled_text_width(w, f, t, l);
+#endif
+    return cairo_xcb_scaled_text_width(w, f, t, l);
+}
+
+static int
+isw_render_scaled_font_height(Widget w, IswFontStruct *f)
+{
+#ifdef HAVE_EGL
+    if (_isw_active_backend == ISW_RENDER_BACKEND_EGL)
+        return egl_scaled_font_height(w, f);
+#endif
+    return cairo_xcb_scaled_font_height(w, f);
+}
+
+static int
+isw_render_scaled_font_ascent(Widget w, IswFontStruct *f)
+{
+#ifdef HAVE_EGL
+    if (_isw_active_backend == ISW_RENDER_BACKEND_EGL)
+        return egl_scaled_font_ascent(w, f);
+#endif
+    return cairo_xcb_scaled_font_ascent(w, f);
+}
+
+static int
+isw_render_scaled_font_cap_height(Widget w, IswFontStruct *f)
+{
+#ifdef HAVE_EGL
+    if (_isw_active_backend == ISW_RENDER_BACKEND_EGL)
+        return egl_scaled_font_cap_height(w, f);
+#endif
+    return cairo_xcb_scaled_font_cap_height(w, f);
+}
+
+const struct _IswPlatformRenderOps isw_platform_xcb_render_ops = {
+    .available   = ISWRenderBackendAvailable,
+    .detect      = ISWRenderDetectBackend,
+    .draw_ops    = isw_render_draw_ops,
+    .surface_ops = isw_render_surface_ops,
+    .scaled_text_width      = isw_render_scaled_text_width,
+    .scaled_font_height     = isw_render_scaled_font_height,
+    .scaled_font_ascent     = isw_render_scaled_font_ascent,
+    .scaled_font_cap_height = isw_render_scaled_font_cap_height,
+};

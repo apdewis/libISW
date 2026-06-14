@@ -287,4 +287,6 @@ struct _IswPlatformRenderOps {
 /* ISWRenderBackendAvailable - Check if a backend is available (neutral). */
 Boolean ISWRenderBackendAvailable(ISWRenderBackend backend);
 
+extern const struct _IswPlatformRenderOps isw_platform_xcb_render_ops;
+
 #endif /* _ISWRenderOps_h */
