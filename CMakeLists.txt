@@ -27,7 +27,7 @@ option(ISW_HAS_XIM "Enable X Input Method for CJK input (requires Xlib XIM APIs)
 
 option(ISW_GRAY_BLKWHT_STIPPLES "Enable gray stipple patterns" OFF)
 
-option(ISW_RENDER_EGL "Enable the pure EGL/OpenGL ES render backend (NanoVG-based)" OFF)
+option(ISW_RENDER_EGL "Enable the pure EGL/OpenGL ES render backend (NanoVG-based) if dependencies are found" ON)
 
 # ===========================================================================
 # Dependencies
@@ -50,8 +50,10 @@ if(NOT ISW_NO_PKGCONFIG)
         cairo>=1.12.0 cairo-xcb>=1.12.0)
 
     # Optional: pure EGL/OpenGL ES render backend (NanoVG)
-    if(ISW_RENDER_EGL)
-        pkg_check_modules(EGL REQUIRED IMPORTED_TARGET egl glesv2)
+    pkg_check_modules(EGL IMPORTED_TARGET egl glesv2)
+    if(ISW_RENDER_EGL AND NOT EGL_FOUND)
+        message(STATUS "EGL/GLESv2 not found — disabling ISW_RENDER_EGL")
+        set(ISW_RENDER_EGL OFF)
     endif()
 
     # Optional: xkbcommon
