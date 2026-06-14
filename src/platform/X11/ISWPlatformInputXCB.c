@@ -135,9 +135,11 @@ xcb_in_translate_keycode(IswDisplay dpy, IswKeyCode kc, IswModMask state,
 static void
 xcb_in_refresh_mapping(IswDisplay dpy)
 {
-    xcb_key_symbols_t *ks = backend_keysyms(dpy);
-    if (ks)
-        xcb_refresh_keyboard_mapping(ks, NULL);
+    IswPerDisplay pd = _IswGetPerDisplay(dpy);
+    if (pd && pd->keysyms) {
+        xcb_key_symbols_free((xcb_key_symbols_t *) pd->keysyms);
+        pd->keysyms = NULL;
+    }
 }
 
 /* Read the server's modifier mapping and build the late-binding tables: for
