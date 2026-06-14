@@ -137,6 +137,8 @@ Phase2Destroy(register Widget widget)
     register ConstraintWidgetClass cwClass;
     ObjectClassExtension ext;
 
+    ISWRenderForgetRoot(widget);
+
     /* Call constraint destroy procedures */
     if (IswParent(widget) != NULL && !IswIsShell(widget) &&
         IswIsConstraint(IswParent(widget))) {
