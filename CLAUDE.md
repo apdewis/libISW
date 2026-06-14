@@ -49,7 +49,7 @@ ISW Widgets (Box, Command, Toggle, Label, Text, List, Scrollbar, Menus, etc.)
        ↓
 ISWRender API  (backend-agnostic drawing abstraction in ISWRender.h)
        ↓
-Backends: ISWRenderXCB.c | ISWRenderCairoXCB.c | ISWRenderCairoEGL.c
+Backends: ISWRenderXCB.c | ISWRenderCairoXCB.c | ISWRenderEGL.c
        ↓
 Embedded X Toolkit Intrinsics (libXt — XCB reimplementation, ~52 source files)
        ↓
@@ -101,7 +101,6 @@ Defined in `CMakeLists.txt`, used throughout:
 | `ISW_INTERNATIONALIZATION` | UTF-8 multibyte support (`-DISW_INTERNATIONALIZATION=ON`, default ON) |
 | `ISW_ARROW_SCROLLBARS` | Arrow buttons on scrollbars (always on) |
 | `HAVE_CAIRO` / `HAVE_CAIRO_XCB` | Cairo rendering (mandatory since cairo-xcb is required) |
-| `HAVE_CAIRO_EGL` | Cairo-EGL hardware-accelerated backend (optional, needs `egl` + `cairo-gl`) |
 | `ISW_HAS_XIM` | X Input Method for CJK (`-DISW_HAS_XIM=ON`, default OFF, requires Xlib XIM APIs) |
 | `ISW_GRAY_BLKWHT_STIPPLES` | Gray stipple patterns (`-DISW_GRAY_BLKWHT_STIPPLES=ON`) |
 | `HAVE_XKBCOMMON` | keysym name functions (optional) |

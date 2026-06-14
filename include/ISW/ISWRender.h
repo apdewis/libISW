@@ -6,7 +6,7 @@
  * This file provides a backend-agnostic rendering API for ISW widgets.
  * Supports multiple rendering backends:
  *   - Cairo-XCB: Cairo with XCB surface (software rendering with anti-aliasing)
- *   - Cairo-EGL: Cairo with EGL/OpenGL (hardware accelerated)
+ *   - EGL: Pure EGL/OpenGL ES via NanoVG (hardware accelerated, no Cairo)
  *
  * Cairo is a mandatory dependency.
  * CRITICAL: All backends use pure XCB - NO XLIB DEPENDENCIES.
@@ -42,7 +42,6 @@ typedef struct _ISWRenderContext ISWRenderContext;
 typedef enum {
     ISW_RENDER_BACKEND_AUTO = 0,      /* Auto-detect best available */
     ISW_RENDER_BACKEND_CAIRO_XCB,     /* Cairo with XCB surface */
-    ISW_RENDER_BACKEND_CAIRO_EGL,     /* Cairo with EGL (NOT GLX!) */
     ISW_RENDER_BACKEND_EGL            /* Pure EGL/OpenGL ES via NanoVG (no Cairo) */
 } ISWRenderBackend;
 

@@ -41,7 +41,6 @@ The build system will check for these dependencies:
 
 - **Optional dependencies**:
   - libxkbcommon (keyboard handling, recommended)
-  - egl + cairo-gl (hardware-accelerated Cairo-EGL backend)
 
 ### Installation Commands
 

@@ -315,8 +315,6 @@ ISWRenderGetBackendName(ISWRenderContext *ctx)
     switch (ctx->backend) {
         case ISW_RENDER_BACKEND_CAIRO_XCB:
             return "Cairo-XCB";
-        case ISW_RENDER_BACKEND_CAIRO_EGL:
-            return "Cairo-EGL (Hardware Accelerated)";
         case ISW_RENDER_BACKEND_EGL:
             return "EGL (NanoVG/OpenGL ES)";
         case ISW_RENDER_BACKEND_AUTO:
@@ -342,13 +340,6 @@ ISWRenderPrintBackendInfo(void)
             caps = ISW_RENDER_CAP_BASIC | ISW_RENDER_CAP_ANTIALIASING |
                    ISW_RENDER_CAP_GRADIENTS | ISW_RENDER_CAP_ALPHA |
                    ISW_RENDER_CAP_TRANSFORMS | ISW_RENDER_CAP_TEXT_ADVANCED;
-            break;
-        case ISW_RENDER_BACKEND_CAIRO_EGL:
-            backend_name = "Cairo-EGL (Hardware Accelerated)";
-            caps = ISW_RENDER_CAP_BASIC | ISW_RENDER_CAP_ANTIALIASING |
-                   ISW_RENDER_CAP_GRADIENTS | ISW_RENDER_CAP_ALPHA |
-                   ISW_RENDER_CAP_TRANSFORMS | ISW_RENDER_CAP_TEXT_ADVANCED |
-                   ISW_RENDER_CAP_HW_ACCEL;
             break;
         case ISW_RENDER_BACKEND_EGL:
             backend_name = "EGL (NanoVG/OpenGL ES)";

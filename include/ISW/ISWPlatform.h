@@ -815,7 +815,7 @@ struct _IswPlatformResourceOps {
  * populated independently as its phase lands.
  */
 /* Rendering — the render system is platform-variant (cairo-on-xcb today,
-   cairo-egl / a Wayland renderer tomorrow), so the backend's render vtable is a
+   EGL / a Wayland renderer tomorrow), so the backend's render vtable is a
    member of the platform ops table like every other capability.  Its concrete
    layout (the drawing + surface sub-vtables and backend detection) is render-
    internal and lives in ISWRenderPrivate.h; the platform table holds it by

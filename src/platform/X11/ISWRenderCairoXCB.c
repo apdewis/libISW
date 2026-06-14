@@ -2133,11 +2133,6 @@ ISWRenderBackendAvailable(ISWRenderBackend backend)
         case ISW_RENDER_BACKEND_CAIRO_XCB:
             return True;
 
-#ifdef HAVE_CAIRO_EGL
-        case ISW_RENDER_BACKEND_CAIRO_EGL:
-            return ISWRenderEGLAvailable();
-#endif
-
 #ifdef HAVE_EGL
         case ISW_RENDER_BACKEND_EGL:
             return ISWRenderGLAvailable();
@@ -2162,12 +2157,7 @@ ISWRenderDetectBackend(ISWRenderBackend preferred)
     /* Check environment variable */
     const char *env = getenv("ISW_RENDER_BACKEND");
     if (env) {
-        if (strcmp(env, "cairo-egl") == 0) {
-#ifdef HAVE_CAIRO_EGL
-            if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_CAIRO_EGL))
-                return ISW_RENDER_BACKEND_CAIRO_EGL;
-#endif
-        } else if (strcmp(env, "egl") == 0) {
+        if (strcmp(env, "egl") == 0) {
 #ifdef HAVE_EGL
             if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_EGL))
                 return ISW_RENDER_BACKEND_EGL;
@@ -2178,11 +2168,6 @@ ISWRenderDetectBackend(ISWRenderBackend preferred)
     }
 
     /* Auto-detect: prefer best available */
-#ifdef HAVE_CAIRO_EGL
-    if (ISWRenderBackendAvailable(ISW_RENDER_BACKEND_CAIRO_EGL))
-        return ISW_RENDER_BACKEND_CAIRO_EGL;
-#endif
-
     return ISW_RENDER_BACKEND_CAIRO_XCB;
 }
 
@@ -2192,10 +2177,6 @@ isw_render_draw_ops(ISWRenderBackend backend)
     switch (backend) {
         case ISW_RENDER_BACKEND_CAIRO_XCB:
             return &isw_render_cairo_xcb_ops;
-#ifdef HAVE_CAIRO_EGL
-        case ISW_RENDER_BACKEND_CAIRO_EGL:
-            return &isw_render_cairo_egl_ops;
-#endif
 #ifdef HAVE_EGL
         case ISW_RENDER_BACKEND_EGL:
             return &isw_render_egl_ops;
@@ -2211,10 +2192,6 @@ isw_render_surface_ops(ISWRenderBackend backend)
     switch (backend) {
         case ISW_RENDER_BACKEND_CAIRO_XCB:
             return &isw_surface_cairo_xcb_ops;
-#ifdef HAVE_CAIRO_EGL
-        case ISW_RENDER_BACKEND_CAIRO_EGL:
-            return &isw_surface_cairo_egl_ops;
-#endif
 #ifdef HAVE_EGL
         case ISW_RENDER_BACKEND_EGL:
             return &isw_surface_egl_ops;

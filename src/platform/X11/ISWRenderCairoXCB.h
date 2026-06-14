@@ -8,11 +8,6 @@
 #include <cairo.h>
 #include <cairo-xcb.h>
 
-#ifdef HAVE_CAIRO_EGL
-#include <cairo-gl.h>
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#endif
 
 
 extern const ISWRenderOps isw_render_cairo_xcb_ops;
@@ -61,25 +56,6 @@ Boolean _ISWRenderSurfacePresentSource(IswSurface surface,
                                        xcb_pixmap_t *copy_pixmap,
                                        unsigned int *copy_w,
                                        unsigned int *copy_h);
-
-/*
- * =================================================================
- * Cairo-EGL Backend (Hardware Accelerated)
- * =================================================================
- *
- * Cairo with EGL - NO XLIB, NO GLX!
- * Uses EGL platform XCB extension for pure XCB compatibility.
- *
- * CRITICAL: Uses EGL, NOT GLX, to avoid Xlib dependency.
- */
-
-#ifdef HAVE_CAIRO_EGL
-extern const ISWRenderOps isw_render_cairo_egl_ops;
-extern const IswSurfaceOps isw_surface_cairo_egl_ops;
-
-/* Check if EGL platform XCB is available */
-Boolean ISWRenderEGLAvailable(void);
-#endif
 
 /*
  * Configure a cairo context with the TTF face+size from an IswFontStruct.
