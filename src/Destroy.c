@@ -285,6 +285,9 @@ IswPhase2Destroy(Widget widget)
         }
     }
 
+    if (windowless_anc != NULL && windowless_anc->core.being_destroyed)
+        windowless_anc = NULL;
+
     app->in_phase2_destroy = widget;
     Recursive(widget, Phase2Destroy);
     app->in_phase2_destroy = outerInPhase2Destroy;
@@ -303,14 +306,7 @@ IswPhase2Destroy(Widget widget)
             }
     }
 
-    /* %%% the following parent test hides a more serious problem,
-       but it avoids breaking those who depended on the old bug
-       until we have time to fix it properly. */
-
-    /* Erase a destroyed widget from the ancestor's composite surface.  Skip if
-       the ancestor is itself being destroyed — its surface is going away too. */
-    if (windowless_anc != NULL && IswIsRealized(windowless_anc) &&
-        !windowless_anc->core.being_destroyed) {
+    if (windowless_anc != NULL && IswIsRealized(windowless_anc)) {
         if (parent != NULL && !parent->core.being_destroyed)
             _ISWRenderMarkDirtyChain(parent);
         ISWRenderRequestComposite(windowless_anc);
