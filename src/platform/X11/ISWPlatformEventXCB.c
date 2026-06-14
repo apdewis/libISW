@@ -99,6 +99,21 @@ keysym_to_key(xcb_keysym_t ks, uint32_t *unicode, char text[8])
     case 0xff67: return IswKeyMenu;
     case 0xff13: return IswKeyPause;
     case 0xff61: return IswKeyPrint;
+
+    /* Keypad navigation/editing keys → logical equivalents. */
+    case 0xff80: return ' ';            /* KP_Space */
+    case 0xff89: return IswKeyTab;      /* KP_Tab */
+    case 0xff8d: return IswKeyReturn;   /* KP_Enter */
+    case 0xff95: return IswKeyHome;     /* KP_Home */
+    case 0xff96: return IswKeyArrowLeft;  /* KP_Left */
+    case 0xff97: return IswKeyArrowUp;    /* KP_Up */
+    case 0xff98: return IswKeyArrowRight; /* KP_Right */
+    case 0xff99: return IswKeyArrowDown;  /* KP_Down */
+    case 0xff9a: return IswKeyPageUp;   /* KP_Prior/KP_Page_Up */
+    case 0xff9b: return IswKeyPageDown; /* KP_Next/KP_Page_Down */
+    case 0xff9c: return IswKeyEnd;      /* KP_End */
+    case 0xff9e: return IswKeyInsert;   /* KP_Insert */
+    case 0xff9f: return IswKeyDelete;   /* KP_Delete */
     default:
         break;
     }
