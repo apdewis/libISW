@@ -123,6 +123,7 @@ extern Widget _IswFindWidgetAtPoint(Widget root, int x, int y,
 
 /* Paint a now-shown windowless widget (and descendants) and composite it. */
 extern void _IswRepaintWindowless(Widget w);
+extern void _IswUpdateWindowlessAncestorMask(Widget windowless);
 
 /* EventUtil.c */
 extern Widget _IswFindRemapWidget(IswEvent *event, Widget widget,

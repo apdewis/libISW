@@ -74,6 +74,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
+#include "EventI.h"
 #include "VarargsI.h"           /* for geoTattler */
 #include <sys/stat.h>
 #ifdef WIN32
@@ -367,6 +368,12 @@ RealizeWidget(Widget widget)
     widget->core.windowless_realized = True;
 
     _IswExtensionSelect(widget);
+
+    if (!IswIsShell(widget)) {
+        Widget anc = _IswWidgetAncestor(widget);
+        if (anc != NULL && IswIsRealized(anc))
+            _IswUpdateWindowlessAncestorMask(widget);
+    }
 
     if (IswIsComposite(widget)) {
         Cardinal i;

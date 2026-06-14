@@ -244,7 +244,7 @@ _IswWindowSelectMask(Widget widget)
 
 /* Push the aggregate select mask onto the windowed ancestor's window after a
    windowless widget's handlers or translations changed. */
-static void
+void
 _IswUpdateWindowlessAncestorMask(Widget windowless)
 {
     Widget anc;
