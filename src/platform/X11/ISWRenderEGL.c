@@ -48,6 +48,12 @@
 /* Defined in Initialize.c */
 extern double _IswGetScaleFactor(IswDisplay dpy);
 
+/* Tight glyph bounding box (ISWNanoVGImpl.c) — like nvgTextBounds but
+   preserves the actual glyph y extents instead of substituting line bounds. */
+extern float isw_nvgTextGlyphBounds(NVGcontext *ctx, float x, float y,
+                                    const char *string, const char *end,
+                                    float *bounds);
+
 /*
  * =================================================================
  * Shared EGL/NanoVG state
@@ -1250,8 +1256,12 @@ int egl_scaled_font_ascent(Widget widget, IswFontStruct *font)
 
 int egl_scaled_font_cap_height(Widget widget, IswFontStruct *font)
 {
-    /* Approximate cap height as ~0.7 of ascent (NanoVG exposes no cap metric). */
-    return (int) (egl_scaled_font_ascent(widget, font) * 0.7 + 0.5);
+    (void) widget;
+    if (!g_egl.vg) return 0;
+    egl_measure_font(font);
+    float bounds[4];
+    isw_nvgTextGlyphBounds(g_egl.vg, 0, 0, "X", NULL, bounds);
+    return (int) (-bounds[1] + 0.5f);
 }
 
 /* ===================================================================

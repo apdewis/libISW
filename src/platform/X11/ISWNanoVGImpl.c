@@ -35,4 +35,34 @@
 #include "../../nanovg/nanovg_gl.h"
 #include "../../nanovg/nanovg_gl_utils.h"
 
+/* Return tight glyph bounding box (y bounds from the actual glyphs, not the
+   line metrics).  nvgTextBounds overwrites bounds[1]/[3] with fonsLineBounds;
+   this version preserves the glyph-level y extents from fonsTextBounds. */
+float isw_nvgTextGlyphBounds(NVGcontext* ctx, float x, float y,
+                             const char* string, const char* end,
+                             float* bounds)
+{
+    NVGstate* state = nvg__getState(ctx);
+    float scale = nvg__getFontScale(state) * ctx->devicePxRatio;
+    float invscale = 1.0f / scale;
+
+    if (state->fontId == FONS_INVALID) return 0;
+
+    fonsSetSize(ctx->fs, state->fontSize * scale);
+    fonsSetSpacing(ctx->fs, state->letterSpacing * scale);
+    fonsSetBlur(ctx->fs, state->fontBlur * scale);
+    fonsSetAlign(ctx->fs, state->textAlign);
+    fonsSetFont(ctx->fs, state->fontId);
+
+    float width = fonsTextBounds(ctx->fs, x * scale, y * scale,
+                                 string, end, bounds);
+    if (bounds != NULL) {
+        bounds[0] *= invscale;
+        bounds[1] *= invscale;
+        bounds[2] *= invscale;
+        bounds[3] *= invscale;
+    }
+    return width * invscale;
+}
+
 #endif /* HAVE_EGL */
