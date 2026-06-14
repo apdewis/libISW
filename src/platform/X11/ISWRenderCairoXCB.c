@@ -454,9 +454,7 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
          * matches the EGL backend exactly. */
         Dimension ring_r = (IswIsSubclass(widget, simpleWidgetClass))
                            ? ((SimpleWidget) widget)->simple.corner_radius : 0;
-        fprintf(stderr, "RINGDBG %s bw=%d w=%d h=%d ring_r=%d sf=%.2f\n",
-                IswName(widget), bw, widget->core.width, widget->core.height,
-                (int)ring_r, sf);
+        
         if (bw > 0 &&
             !(IswIsSubclass(widget, simpleWidgetClass) &&
               ((SimpleWidget) widget)->simple.self_border)) {
