@@ -210,16 +210,14 @@ IswPhase2Destroy(Widget widget)
     Widget outerInPhase2Destroy = app->in_phase2_destroy;
     int starting_count = app->destroy_count;
     Boolean isPopup = False;
-    /* A widget has no window — its pixels live in the ancestor's composite
-       surface.  Capture that ancestor now (while the widget is still in the
-       tree) and recomposite it at the end to erase the destroyed widget.  Only
-       meaningful if the widget was actually shown. */
+    IswPerDisplay pd_trace;
     Widget windowless_anc =
         (IswIsWidget(widget) && widget->core.windowless_mapped)
         ? _IswWidgetAncestor(widget) : NULL;
 
-    /* invalidate focus trace cache for this xcb_connection_t */
-    _IswGetPerDisplay(IswDisplayOfObject(widget))->pdi.traceDepth = 0;
+    pd_trace = _IswGetPerDisplayIfExists(IswDisplayOfObject(widget));
+    if (pd_trace)
+        pd_trace->pdi.traceDepth = 0;
 
     parent = widget->core.parent;
 

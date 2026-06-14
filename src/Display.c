@@ -836,6 +836,23 @@ _IswGetPerDisplay(IswDisplay display)
     return retval;
 }
 
+IswPerDisplay
+_IswGetPerDisplayIfExists(IswDisplay display)
+{
+    register PerDisplayTablePtr pd;
+    IswPerDisplay result = NULL;
+
+    LOCK_PROCESS;
+    for (pd = _IswperDisplayList; pd != NULL; pd = pd->next) {
+        if (pd->dpy == display) {
+            result = &pd->perDpy;
+            break;
+        }
+    }
+    UNLOCK_PROCESS;
+    return result;
+}
+
 IswPerDisplayInputRec *
 _IswGetPerDisplayInput(IswDisplay dpy)
 {

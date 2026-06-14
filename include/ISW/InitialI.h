@@ -365,6 +365,10 @@ extern IswPerDisplay _IswGetPerDisplay(
     IswDisplay		/* dpy */
 );
 
+extern IswPerDisplay _IswGetPerDisplayIfExists(
+    IswDisplay		/* dpy */
+);
+
 /* Look up the display owning a given screen.  Searches the per-display table.
  * Returns NULL if not found.  (Phase 12a: neutral handles; the backend resolves
  * them to xcb_connection_t/xcb_screen_t internally.) */
