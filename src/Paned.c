@@ -642,10 +642,11 @@ CommitNewLocations(PanedWidget pw)
 			   (Dimension) 0);
 
 	    if (HasGrip(*childP)) {	    /* Move and Display the Grip */
+		IswBorderSides gbs = _IswGetBorderSides(grip);
 	        grip_x = pw->core.width - pw->paned.grip_indent -
-		            grip->core.width - grip->core.border_width*2;
+		            grip->core.width - _IswBorderHoriz(gbs);
 		grip_y = (*childP)->core.y + (*childP)->core.height -
-		            grip->core.height/2 - grip->core.border_width +
+		            grip->core.height/2 - gbs.top +
 			    pw->paned.internal_bw/2;
 	    }
 	}
@@ -656,11 +657,12 @@ CommitNewLocations(PanedWidget pw)
 
 
 	    if (HasGrip(*childP)) {	    /* Move and Display the Grip */
+		IswBorderSides gbs = _IswGetBorderSides(grip);
 	        grip_x = (*childP)->core.x + (*childP)->core.width -
-	                    grip->core.width/2 - grip->core.border_width +
+	                    grip->core.width/2 - gbs.left +
 			    pw->paned.internal_bw/2;
 		grip_y = pw->core.height - pw->paned.grip_indent -
-	                    grip->core.height - grip->core.border_width*2;
+	                    grip->core.height - _IswBorderVert(gbs);
 	    }
 	}
 

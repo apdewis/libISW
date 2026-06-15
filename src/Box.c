@@ -192,10 +192,9 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
 	widget = bbw->composite.children[i];
 	if (widget->core.managed) {
 	    if (widget->core.mapped_when_managed) num_mapped_children++;
-	    /* Compute widget width. Advance by one border width so adjacent
-	     * children's borders overlap into a single shared pixel column
-	     * (X11 places windows at the outer corner of the border). */
-	    bw = widget->core.width + widget->core.border_width + h_space;
+	    {
+	    IswBorderSides bs = _IswGetBorderSides(widget);
+	    bw = widget->core.width + _IswBorderHoriz(bs) + h_space;
 	    if ((Dimension)(lw + bw) > width) {
 		if (lw > h_space) {
 		    /* At least one widget on this line, and
@@ -232,8 +231,9 @@ DoLayout(BoxWidget bbw, Dimension width, Dimension height,
 		IswMoveWidget(widget, (int)lw, (int)h);
 	    }
 	    lw += bw;
-	    bh = widget->core.height + 2*widget->core.border_width;
+	    bh = widget->core.height + _IswBorderVert(bs);
 	    AssignMax(lh, bh);
+	    } /* bs scope */
 	} /* if managed */
     } /* for */
 

@@ -412,8 +412,9 @@ _ISWRenderComputeOrigin(Widget w, int *ox, int *oy)
     int x = 0, y = 0;
 
     while (w != NULL && IswIsWidget(w) && !IswIsShell(w)) {
-        x += w->core.x + (int) w->core.border_width;
-        y += w->core.y + (int) w->core.border_width;
+        IswBorderSides bs = _IswGetBorderSides(w);
+        x += w->core.x + bs.left;
+        y += w->core.y + bs.top;
         w = w->core.parent;
     }
     *ox = x;
@@ -566,9 +567,12 @@ _isw_composite_one(Widget child, IswSurface dst, Widget dst_widget,
            no expose proc, so it never created a surface).  It contributes no
            pixels of its own, but its descendants still must be composited —
            fold them directly onto dst, accumulating this child's offset. */
-        _isw_composite_children_into_at(child, dst, dst_widget,
-                                        ox + child->core.x + child->core.border_width,
-                                        oy + child->core.y + child->core.border_width);
+        {
+            IswBorderSides cbs = _IswGetBorderSides(child);
+            _isw_composite_children_into_at(child, dst, dst_widget,
+                                            ox + child->core.x + cbs.left,
+                                            oy + child->core.y + cbs.top);
+        }
         return;
     }
 

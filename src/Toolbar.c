@@ -45,6 +45,7 @@ static IswResource constraintResources[] = {
 /* Forward declarations */
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
+static void Destroy(Widget);
 static void InsertChild(Widget);
 static void Resize(Widget);
 static void Redisplay(Widget, IswEvent *, IswRegion);
@@ -74,7 +75,7 @@ ToolbarClassRec toolbarClassRec = {
     TRUE,                               /* compress_exposure      */
     TRUE,                               /* compress_enterleave    */
     FALSE,                              /* visible_interest       */
-    NULL,                               /* destroy                */
+    Destroy,                            /* destroy                */
     Resize,                             /* resize                 */
     Redisplay,                          /* expose                 */
     SetValues,                          /* set_values             */
@@ -162,6 +163,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     (void)request; (void)args; (void)num_args;
 
 
+    tw->toolbar.render_ctx = NULL;
     tw->toolbar.preferred_width = IswMax(tw->toolbar.h_space, 1);
     tw->toolbar.preferred_height = IswMax(tw->toolbar.v_space, 1);
 
@@ -169,6 +171,16 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         tw->core.width = tw->toolbar.preferred_width;
     if (tw->core.height == 0)
         tw->core.height = tw->toolbar.preferred_height;
+}
+
+static void
+Destroy(Widget w)
+{
+    ToolbarWidget tw = (ToolbarWidget)w;
+    if (tw->toolbar.render_ctx) {
+        ISWRenderDestroy(tw->toolbar.render_ctx);
+        tw->toolbar.render_ctx = NULL;
+    }
 }
 
 static void
@@ -225,15 +237,13 @@ GroupWidth(ToolbarWidget tw, IswToolbarAlignment align)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
-        w += cw + child->core.border_width;
-        last_bw = child->core.border_width;
+        IswBorderSides bs = _IswGetBorderSides(child);
+        w += cw + _IswBorderHoriz(bs);
         count++;
     }
 
-    if (count > 0) {
-        w += last_bw;
+    if (count > 0)
         w += (count - 1) * tw->toolbar.h_space;
-    }
 
     return w;
 }
@@ -254,30 +264,22 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
     int managed = 0;
     Dimension total_width = 0;
     Dimension max_height = 0;
-    Dimension last_bw = 0;
 
-    /* First pass: measure all managed children using preferred geometry.
-     * Adjacent children's borders overlap by one pixel column, so each child
-     * costs (size + bw) along the main axis plus one trailing bw overall. */
     for (Cardinal i = 0; i < tw->composite.num_children; i++) {
         Widget child = tw->composite.children[i];
         if (!child->core.managed)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
-        Dimension bw = child->core.border_width;
-        Dimension bw2 = 2 * bw;
-        total_width += cw + bw;
-        last_bw = bw;
-        if (ch + bw2 > max_height)
-            max_height = ch + bw2;
+        IswBorderSides bs = _IswGetBorderSides(child);
+        total_width += cw + _IswBorderHoriz(bs);
+        if (ch + _IswBorderVert(bs) > max_height)
+            max_height = ch + _IswBorderVert(bs);
         managed++;
     }
 
-    if (managed > 0) {
-        total_width += last_bw;
+    if (managed > 0)
         total_width += (managed - 1) * h_space;
-    }
 
     tw->toolbar.preferred_width = IswMax(total_width + 2 * h_space, 1);
     /* Height: v_space padding on top, child with its full border, and the
@@ -309,14 +311,12 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
-        Dimension bw = child->core.border_width;
-        Dimension bw2 = 2 * bw;
-        Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
+        IswBorderSides bs = _IswGetBorderSides(child);
+        int bv = _IswBorderVert(bs);
+        Position y = (Position)((int)container_h - (int)ch - bv) / 2;
         if (y < (Position)v_space) y = (Position)v_space;
-        IswConfigureWidget(child, x, y, cw, ch, bw);
-        /* Advance by cw + bw so the next child's leading border overlaps
-         * this child's trailing border by one pixel column. */
-        x += (Position)(cw + bw + h_space);
+        IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
+        x += (Position)(cw + _IswBorderHoriz(bs) + h_space);
     }
 
     /* Position right-aligned children (pack from right edge) */
@@ -331,12 +331,13 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
             continue;
         Dimension cw, ch;
         ChildPreferredSize(child, &cw, &ch);
-        Dimension bw = child->core.border_width;
-        Dimension bw2 = 2 * bw;
-        x -= (Position)(cw + bw);
-        Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
+        IswBorderSides bs = _IswGetBorderSides(child);
+        int bh = _IswBorderHoriz(bs);
+        int bv = _IswBorderVert(bs);
+        x -= (Position)(cw + bh);
+        Position y = (Position)((int)container_h - (int)ch - bv) / 2;
         if (y < (Position)v_space) y = (Position)v_space;
-        IswConfigureWidget(child, x, y, cw, ch, bw);
+        IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
         x -= (Position)h_space;
     }
 
@@ -402,12 +403,12 @@ DoLayout(ToolbarWidget tw, Boolean set_children)
                                  / (int)content_total);
             if (cw == 0) cw = 1;
 
-            Dimension bw = child->core.border_width;
-            Dimension bw2 = 2 * bw;
-            Position y = (Position)((int)container_h - (int)ch - (int)bw2) / 2;
+            IswBorderSides bs = _IswGetBorderSides(child);
+            int bv = _IswBorderVert(bs);
+            Position y = (Position)((int)container_h - (int)ch - bv) / 2;
             if (y < (Position)v_space) y = (Position)v_space;
-            IswConfigureWidget(child, x, y, cw, ch, bw);
-            x += (Position)(cw + bw + h_space);
+            IswConfigureWidget(child, x, y, cw, ch, child->core.border_width);
+            x += (Position)(cw + _IswBorderHoriz(bs) + h_space);
         }
     }
 }
@@ -549,5 +550,21 @@ ConstraintSetValues(Widget current, Widget request, Widget new,
 static void
 Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
-    (void)w; (void)event; (void)region;
+    ToolbarWidget tw = (ToolbarWidget)w;
+    ISWRenderContext *ctx;
+    (void)event; (void)region;
+
+    if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
+        return;
+
+    ctx = tw->toolbar.render_ctx;
+    if (ctx == NULL)
+        ctx = tw->toolbar.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    if (ctx == NULL)
+        return;
+
+    ISWRenderBegin(ctx);
+    ISWRenderSetColor(ctx, w->core.background_pixel);
+    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+    ISWRenderEnd(ctx);
 }

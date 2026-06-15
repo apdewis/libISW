@@ -142,6 +142,13 @@ typedef struct _CorePart {
     Boolean         composite_presented;/* this root has presented a pass that
                                            folded real child content (gates the
                                            startup no-op-pass skip).             */
+    Dimension       border_top;         /* per-side border widths (logical px).
+                                           When any is non-zero the backend draws
+                                           four independent edges instead of a
+                                           uniform ring from border_width.       */
+    Dimension       border_right;
+    Dimension       border_bottom;
+    Dimension       border_left;
 } CorePart;
 
 typedef struct _WidgetRec {
@@ -206,6 +213,33 @@ typedef struct _WidgetClassRec {
 
 externalref WidgetClassRec widgetClassRec;
 #define coreClassRec widgetClassRec
+
+typedef struct {
+    int top, right, bottom, left;
+} IswBorderSides;
+
+static inline IswBorderSides
+_IswGetBorderSides(Widget w)
+{
+    IswBorderSides s;
+    int bw = (int) w->core.border_width;
+
+    if (w->core.border_top  || w->core.border_right ||
+        w->core.border_bottom || w->core.border_left) {
+        s.top    = (int) w->core.border_top;
+        s.right  = (int) w->core.border_right;
+        s.bottom = (int) w->core.border_bottom;
+        s.left   = (int) w->core.border_left;
+        return s;
+    }
+    s.top = s.right = s.bottom = s.left = bw;
+    return s;
+}
+
+#define _IswBorderHoriz(s) ((s).left + (s).right)
+#define _IswBorderVert(s)  ((s).top + (s).bottom)
+#define _IswBorderIsUniform(s) \
+    ((s).top == (s).right && (s).right == (s).bottom && (s).bottom == (s).left)
 
 _XFUNCPROTOEND
 

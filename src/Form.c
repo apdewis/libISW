@@ -389,13 +389,16 @@ static Boolean Layout(FormWidget fw, Dimension width, Dimension height,
 
 	    LayoutChild(*childP);
 
-	    x = form->form.new_x + (*childP)->core.width +
-		((*childP)->core.border_width << 1);
-	    if (x > (int)maxx)
-		maxx = x;
+	    {
+		IswBorderSides bs = _IswGetBorderSides(*childP);
+		x = form->form.new_x + (*childP)->core.width +
+		    _IswBorderHoriz(bs);
+		if (x > (int)maxx)
+		    maxx = x;
 
-	    y = form->form.new_y + (*childP)->core.height +
-		((*childP)->core.border_width << 1);
+		y = form->form.new_y + (*childP)->core.height +
+		    _IswBorderVert(bs);
+	    }
 	    if (y > (int)maxy)
 		maxy = y;
 	}
@@ -502,15 +505,21 @@ LayoutChild(Widget w)
 	FormConstraints ref_form = (FormConstraints) ref->core.constraints;
 
 	LayoutChild(ref);
-	form->form.new_x += (ref_form->form.new_x +
-			     ref->core.width + (ref->core.border_width << 1));
+	{
+	    IswBorderSides rbs = _IswGetBorderSides(ref);
+	    form->form.new_x += (ref_form->form.new_x +
+				 ref->core.width + _IswBorderHoriz(rbs));
+	}
     }
     if ((ref = form->form.vert_base) != (Widget)NULL) {
 	FormConstraints ref_form = (FormConstraints) ref->core.constraints;
 
 	LayoutChild(ref);
-	form->form.new_y += (ref_form->form.new_y +
-			     ref->core.height + (ref->core.border_width << 1));
+	{
+	    IswBorderSides rbs = _IswGetBorderSides(ref);
+	    form->form.new_y += (ref_form->form.new_y +
+				 ref->core.height + _IswBorderVert(rbs));
+	}
     }
 
     form->form.layout_state = LayoutDone;
@@ -552,21 +561,27 @@ Resize(Widget w)
 	    y = TransformCoord( (*childP)->core.y, fw->form.old_height,
 			       fw->core.height, form->form.top );
 
-	    form->form.virtual_width =
-		TransformCoord((Position)((*childP)->core.x
-					  + form->form.virtual_width
-					  + 2 * (*childP)->core.border_width),
-			       fw->form.old_width, fw->core.width,
-			       form->form.right )
-		    - (x + 2 * (*childP)->core.border_width);
+	    {
+		IswBorderSides cbs = _IswGetBorderSides(*childP);
+		int bh = _IswBorderHoriz(cbs);
+		int bv = _IswBorderVert(cbs);
 
-	    form->form.virtual_height =
-		TransformCoord((Position)((*childP)->core.y
-					  + form->form.virtual_height
-					  + 2 * (*childP)->core.border_width),
-			       fw->form.old_height, fw->core.height,
-			       form->form.bottom )
-		    - ( y + 2 * (*childP)->core.border_width);
+		form->form.virtual_width =
+		    TransformCoord((Position)((*childP)->core.x
+					      + form->form.virtual_width
+					      + bh),
+				   fw->form.old_width, fw->core.width,
+				   form->form.right )
+			- (x + bh);
+
+		form->form.virtual_height =
+		    TransformCoord((Position)((*childP)->core.y
+					      + form->form.virtual_height
+					      + bv),
+				   fw->form.old_height, fw->core.height,
+				   form->form.bottom )
+			- ( y + bv);
+	    }
 
 	    width = (Dimension)
 		(form->form.virtual_width < 1) ? 1 : form->form.virtual_width;

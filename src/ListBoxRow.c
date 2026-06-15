@@ -105,7 +105,8 @@ WidgetClass listBoxRowWidgetClass = (WidgetClass)&listBoxRowClassRec;
 static Dimension
 ChildExtent(Widget child)
 {
-    return child->core.width + 2 * child->core.border_width;
+    IswBorderSides bs = _IswGetBorderSides(child);
+    return child->core.width + _IswBorderHoriz(bs);
 }
 
 static void
@@ -267,7 +268,8 @@ ChangeManaged(Widget w)
     for (Cardinal i = 0; i < rw->composite.num_children; i++) {
         Widget child = rw->composite.children[i];
         if (!IswIsManaged(child)) continue;
-        Dimension h = child->core.height + 2 * child->core.border_width;
+        IswBorderSides bs = _IswGetBorderSides(child);
+        Dimension h = child->core.height + _IswBorderVert(bs);
         if (h > max_h) max_h = h;
     }
     if (max_h > 0) {

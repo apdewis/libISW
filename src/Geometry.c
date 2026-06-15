@@ -77,6 +77,7 @@ in this Software without prior written authorization from The Open Group.
 #include <ISW/ISWRender.h>
 #include <ISW/ISWPlatform.h>
 #include <ISW/EventI.h>
+#include <ISW/SimpleP.h>
 
 
 #include <math.h>
@@ -93,11 +94,13 @@ ClearRectObjAreas(RectObj r, uint32_t old_x, uint32_t old_y, uint32_t old_w, uin
         (uint16_t) (old_w + bw2), (uint16_t) (old_h + bw2), False
     );
 
-    bw2 = r->rectangle.border_width << 1;
-    _IswPlatformClearArea(IswDisplayOf(pw), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw)),
-               (int16_t) r->rectangle.x, (int16_t) r->rectangle.y,
-               (uint16_t) (r->rectangle.width + bw2),
-               (uint16_t) (r->rectangle.height + bw2), False);
+    {
+        IswBorderSides bs = _IswGetBorderSides((Widget) r);
+        _IswPlatformClearArea(IswDisplayOf(pw), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(pw)), (Widget)(pw)),
+                   (int16_t) r->rectangle.x, (int16_t) r->rectangle.y,
+                   (uint16_t) (r->rectangle.width + _IswBorderHoriz(bs)),
+                   (uint16_t) (r->rectangle.height + _IswBorderVert(bs)), False);
+    }
 }
 
 /*
@@ -835,8 +838,9 @@ IswTranslateCoords(register Widget w,
     *rooty = (Position) y;
 
     for (; w != NULL && !IswIsShell(w); w = w->core.parent) {
-        *rootx = (Position) (*rootx + w->core.x + w->core.border_width);
-        *rooty = (Position) (*rooty + w->core.y + w->core.border_width);
+        IswBorderSides bs = _IswGetBorderSides(w);
+        *rootx = (Position) (*rootx + w->core.x + bs.left);
+        *rooty = (Position) (*rooty + w->core.y + bs.top);
     }
 
     if (w == NULL)

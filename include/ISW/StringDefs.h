@@ -65,6 +65,10 @@ SOFTWARE.
 #define IswNborderColor "borderColor"
 #define IswNborder "borderColor"
 #define IswNborderWidth "borderWidth"
+#define IswNborderTop "borderTop"
+#define IswNborderRight "borderRight"
+#define IswNborderBottom "borderBottom"
+#define IswNborderLeft "borderLeft"
 #define IswNcallback "callback"
 #define IswNchildren "children"
 #define IswNcolormap "colormap"
@@ -1071,6 +1075,18 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #endif
 #ifndef IswRWindowType
 #define IswRWindowType ((String)&IswStrings[2632])
+#endif
+#ifndef IswNborderTop
+#define IswNborderTop "borderTop"
+#endif
+#ifndef IswNborderRight
+#define IswNborderRight "borderRight"
+#endif
+#ifndef IswNborderBottom
+#define IswNborderBottom "borderBottom"
+#endif
+#ifndef IswNborderLeft
+#define IswNborderLeft "borderLeft"
 #endif
 #endif /* ISWSTRINGDEFINES */
 

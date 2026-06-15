@@ -310,6 +310,11 @@ SOFTWARE.
 #define IswCConsumeTab "ConsumeTab"
 #define IswNmnemonicKey "mnemonicKey"
 #define IswCMnemonicKey "MnemonicKey"
+#define IswRWindowType "WindowType"
+#define IswNborderTop "borderTop"
+#define IswNborderRight "borderRight"
+#define IswNborderBottom "borderBottom"
+#define IswNborderLeft "borderLeft"
 #else
 extern _IswStringDefs_h_Const char IswStrings[];
 #ifndef IswNaccelerators
@@ -1067,6 +1072,21 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #endif
 #ifndef IswCMnemonicKey
 #define IswCMnemonicKey ((String)&IswStrings[2620])
+#endif
+#ifndef IswRWindowType
+#define IswRWindowType ((String)&IswStrings[2632])
+#endif
+#ifndef IswNborderTop
+#define IswNborderTop ((String)&IswStrings[2643])
+#endif
+#ifndef IswNborderRight
+#define IswNborderRight ((String)&IswStrings[2653])
+#endif
+#ifndef IswNborderBottom
+#define IswNborderBottom ((String)&IswStrings[2665])
+#endif
+#ifndef IswNborderLeft
+#define IswNborderLeft ((String)&IswStrings[2678])
 #endif
 #endif /* ISWSTRINGDEFINES */
 

@@ -7,6 +7,7 @@
 
 #include <ISW/Toolbar.h>
 #include <ISW/ISWP.h>
+#include <ISW/ISWRender.h>
 
 typedef struct {int empty;} ToolbarClassPart;
 
@@ -26,6 +27,7 @@ typedef struct {
     /* private */
     Dimension   preferred_width;
     Dimension   preferred_height;
+    ISWRenderContext *render_ctx;
 } ToolbarPart;
 
 typedef struct _ToolbarRec {

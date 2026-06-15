@@ -212,7 +212,8 @@ HitTest(ListBoxWidget lbw, int y)
         Widget child = lbw->composite.children[i];
         if (!IswIsManaged(child)) continue;
         int cy = child->core.y;
-        int ch = (int)child->core.height + 2 * (int)child->core.border_width;
+        IswBorderSides bs = _IswGetBorderSides(child);
+        int ch = (int)child->core.height + _IswBorderVert(bs);
         if (y >= cy && y < cy + ch)
             return n;
         n++;
@@ -401,7 +402,10 @@ ComputeTotalHeight(ListBoxWidget lbw)
 
         if (any)
             total += spacing;
-        total += h + 2 * child->core.border_width;
+        {
+            IswBorderSides bs = _IswGetBorderSides(child);
+            total += h + _IswBorderVert(bs);
+        }
         any = True;
     }
 
@@ -426,9 +430,10 @@ DoLayout(ListBoxWidget lbw, Boolean position)
         Dimension child_h = (lbc->listBox.row_height > 0)
             ? lbc->listBox.row_height : child->core.height;
 
+        IswBorderSides bs = _IswGetBorderSides(child);
         Dimension child_w = w->core.width;
-        if (child_w > 2 * child->core.border_width)
-            child_w -= 2 * child->core.border_width;
+        if (child_w > (Dimension)_IswBorderHoriz(bs))
+            child_w -= (Dimension)_IswBorderHoriz(bs);
 
         if (!first)
             y += (Position)lbw->listBox.row_spacing;
@@ -438,7 +443,7 @@ DoLayout(ListBoxWidget lbw, Boolean position)
                                child->core.border_width);
         }
 
-        y += (Position)(child_h + 2 * child->core.border_width);
+        y += (Position)(child_h + _IswBorderVert(bs));
         first = False;
     }
 
@@ -626,8 +631,8 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         Widget child = lbw->composite.children[i];
         if (!IswIsManaged(child)) continue;
         ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
-        int row_h = (int)child->core.height +
-                    2 * (int)child->core.border_width;
+        IswBorderSides bs = _IswGetBorderSides(child);
+        int row_h = (int)child->core.height + _IswBorderVert(bs);
 
         if (lbc->listBox.selected) {
             ISWRenderSetColor(ctx, lbw->listBox.foreground);
@@ -649,12 +654,13 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         if (focused) {
             ISWRenderSetColor(ctx, lbw->listBox.foreground);
             ISWRenderSetLineWidth(ctx, 1.0);
-            ISWRenderStrokeRectangle(ctx,
-                focused->core.x - 1, focused->core.y - 1,
-                (int)focused->core.width +
-                    2 * (int)focused->core.border_width + 2,
-                (int)focused->core.height +
-                    2 * (int)focused->core.border_width + 2);
+            {
+                IswBorderSides fbs = _IswGetBorderSides(focused);
+                ISWRenderStrokeRectangle(ctx,
+                    focused->core.x - 1, focused->core.y - 1,
+                    (int)focused->core.width + _IswBorderHoriz(fbs) + 2,
+                    (int)focused->core.height + _IswBorderVert(fbs) + 2);
+            }
         }
     }
 

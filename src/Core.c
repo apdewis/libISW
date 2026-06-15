@@ -120,7 +120,15 @@ parameter is not passed through to the IswRCallProc routines */
      IswRTranslationTable, (IswPointer) NULL},
     {IswNaccelerators, IswCAccelerators, IswRAcceleratorTable,
      sizeof(IswTranslations), IswOffsetOf(CoreRec, core.accelerators),
-     IswRTranslationTable, (IswPointer) NULL}
+     IswRTranslationTable, (IswPointer) NULL},
+    {IswNborderTop, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+     IswOffsetOf(CoreRec, core.border_top), IswRImmediate, (IswPointer) 0},
+    {IswNborderRight, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+     IswOffsetOf(CoreRec, core.border_right), IswRImmediate, (IswPointer) 0},
+    {IswNborderBottom, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+     IswOffsetOf(CoreRec, core.border_bottom), IswRImmediate, (IswPointer) 0},
+    {IswNborderLeft, IswCBorderWidth, IswRDimension, sizeof(Dimension),
+     IswOffsetOf(CoreRec, core.border_left), IswRImmediate, (IswPointer) 0},
 };
 
 static void CoreInitialize(Widget, Widget, ArgList, Cardinal *);
@@ -365,6 +373,15 @@ CoreSetValues(Widget old,
             new->core.mapped_when_managed = !mapped_when_managed;
             IswSetMappedWhenManaged(new, mapped_when_managed);
         }
+    }
+
+    if (old->core.border_top    != new->core.border_top  ||
+        old->core.border_right  != new->core.border_right ||
+        old->core.border_bottom != new->core.border_bottom ||
+        old->core.border_left   != new->core.border_left) {
+        if (IswIsRealized(new) && !IswIsShell(new))
+            _IswRepaintWindowless(new);
+        redisplay = TRUE;
     }
 
     return redisplay;

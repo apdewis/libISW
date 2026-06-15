@@ -410,10 +410,11 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
             return NULL;
 
         sf = _IswGetScaleFactor(IswDisplayOf(widget));
+        IswBorderSides bs = _IswGetBorderSides(widget);
         bw = (int) widget->core.border_width;
         /* Footprint = content + border ring, in physical pixels. */
-        pw = (Dimension)((widget->core.width + 2 * bw) * sf + 0.5);
-        ph = (Dimension)((widget->core.height + 2 * bw) * sf + 0.5);
+        pw = (Dimension)((widget->core.width + _IswBorderHoriz(bs)) * sf + 0.5);
+        ph = (Dimension)((widget->core.height + _IswBorderVert(bs)) * sf + 0.5);
 
         if (!_cairo_xcb_ensure_back(data, widget, pw, ph, sf)) {
             data->cairo_ctx = data->window_ctx;  /* degraded: no buffer */
@@ -447,50 +448,68 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
             data->back_needs_clear = False;
         }
 
-        /* Border: stroke the centerline of the border ring.  Skipped for
-         * widgets that paint their own border (self_border, e.g. ProgressBar).
-         * A corner radius rounds the stroke.  Stroking the centerline (rather
-         * than even-odd filling outer-minus-inner) gives a thickness that
-         * matches the EGL backend exactly. */
+        /* Border: stroke the border ring.  Skipped for widgets that paint
+         * their own border (self_border, e.g. ProgressBar).  When all four
+         * sides are equal, stroke a centered rectangle (or rounded rect);
+         * otherwise fill four independent edge rectangles. */
         Dimension ring_r = (IswIsSubclass(widget, simpleWidgetClass))
                            ? ((SimpleWidget) widget)->simple.corner_radius : 0;
-        
-        if (bw > 0 &&
+        Boolean has_border = (bs.top || bs.right || bs.bottom || bs.left) &&
             !(IswIsSubclass(widget, simpleWidgetClass) &&
-              ((SimpleWidget) widget)->simple.self_border)) {
+              ((SimpleWidget) widget)->simple.self_border);
+
+        if (has_border) {
             Pixel bp = (IswIsSubclass(widget, simpleWidgetClass) &&
                         ((SimpleWidget) widget)->simple.use_border_color)
                        ? ((SimpleWidget) widget)->simple.border_color
                        : widget->core.border_pixel;
-            double cw_ = widget->core.width;
-            double ch = widget->core.height;
-            double half = bw / 2.0;
-            double rx = half, ry = half;
-            double rw = cw_ + bw, rh = ch + bw;
             cairo_save(data->cairo_ctx);
             cairo_set_source_rgb(data->cairo_ctx,
                 ((bp >> 16) & 0xff) / 255.0,
                 ((bp >>  8) & 0xff) / 255.0,
                 ((bp      ) & 0xff) / 255.0);
-            cairo_new_path(data->cairo_ctx);
-            if (ring_r > 0) {
-                double r = ring_r + half;
-                cairo_new_sub_path(data->cairo_ctx);
-                cairo_arc(data->cairo_ctx, rx + rw - r, ry + r,      r, -M_PI/2, 0);
-                cairo_arc(data->cairo_ctx, rx + rw - r, ry + rh - r, r, 0,       M_PI/2);
-                cairo_arc(data->cairo_ctx, rx + r,      ry + rh - r, r, M_PI/2,  M_PI);
-                cairo_arc(data->cairo_ctx, rx + r,      ry + r,      r, M_PI,    3*M_PI/2);
-                cairo_close_path(data->cairo_ctx);
+
+            if (_IswBorderIsUniform(bs)) {
+                double cw_ = widget->core.width;
+                double ch = widget->core.height;
+                double half = bs.top / 2.0;
+                double rx = half, ry = half;
+                double rw = cw_ + bs.top, rh = ch + bs.top;
+                cairo_new_path(data->cairo_ctx);
+                if (ring_r > 0) {
+                    double r = ring_r + half;
+                    cairo_new_sub_path(data->cairo_ctx);
+                    cairo_arc(data->cairo_ctx, rx + rw - r, ry + r,      r, -M_PI/2, 0);
+                    cairo_arc(data->cairo_ctx, rx + rw - r, ry + rh - r, r, 0,       M_PI/2);
+                    cairo_arc(data->cairo_ctx, rx + r,      ry + rh - r, r, M_PI/2,  M_PI);
+                    cairo_arc(data->cairo_ctx, rx + r,      ry + r,      r, M_PI,    3*M_PI/2);
+                    cairo_close_path(data->cairo_ctx);
+                } else {
+                    cairo_rectangle(data->cairo_ctx, rx, ry, rw, rh);
+                }
+                cairo_set_line_width(data->cairo_ctx, bs.top);
+                cairo_stroke(data->cairo_ctx);
             } else {
-                cairo_rectangle(data->cairo_ctx, rx, ry, rw, rh);
+                double fw = widget->core.width + _IswBorderHoriz(bs);
+                double fh = widget->core.height + _IswBorderVert(bs);
+                if (bs.top > 0)
+                    cairo_rectangle(data->cairo_ctx, 0, 0, fw, bs.top);
+                if (bs.bottom > 0)
+                    cairo_rectangle(data->cairo_ctx, 0, fh - bs.bottom,
+                                    fw, bs.bottom);
+                if (bs.left > 0)
+                    cairo_rectangle(data->cairo_ctx, 0, bs.top,
+                                    bs.left, fh - bs.top - bs.bottom);
+                if (bs.right > 0)
+                    cairo_rectangle(data->cairo_ctx, fw - bs.right, bs.top,
+                                    bs.right, fh - bs.top - bs.bottom);
+                cairo_fill(data->cairo_ctx);
             }
-            cairo_set_line_width(data->cairo_ctx, bw);
-            cairo_stroke(data->cairo_ctx);
             cairo_restore(data->cairo_ctx);
         }
 
         /* Content draws at local (0,0) = inside the border ring. */
-        cairo_translate(data->cairo_ctx, bw, bw);
+        cairo_translate(data->cairo_ctx, bs.left, bs.top);
         cairo_rectangle(data->cairo_ctx, 0, 0,
                         widget->core.width, widget->core.height);
         cairo_clip(data->cairo_ctx);
@@ -805,7 +824,6 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
                          IswSurface sd, Widget src_widget, int x, int y)
 {
     cairo_t *dctx;
-    int dst_content_off;
 
     if (!dd || !sd || sd->back_surface == NULL)
         return;
@@ -818,16 +836,21 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
 
     /* dst content origin within dst's surface: windowless parents reserve a
      * border ring at the top-left of their surface; windowed roots do not. */
-    dst_content_off = (dst_widget && !IswIsShell(dst_widget))
-                    ? (int) dst_widget->core.border_width : 0;
-
+    int dst_off_x, dst_off_y;
+    if (dst_widget && !IswIsShell(dst_widget)) {
+        IswBorderSides dbs = _IswGetBorderSides(dst_widget);
+        dst_off_x = dbs.left;
+        dst_off_y = dbs.top;
+    } else {
+        dst_off_x = dst_off_y = 0;
+    }
     cairo_surface_flush(sd->back_surface);
     cairo_save(dctx);
     /* Clip to dst's content rectangle so a child larger than its parent (e.g. a
        Viewport's scrolled content) does not overflow the parent's bounds — this
        is the clipping the X server used to enforce via child windows. */
     if (dst_widget != NULL) {
-        cairo_rectangle(dctx, dst_content_off, dst_content_off,
+        cairo_rectangle(dctx, dst_off_x, dst_off_y,
                         (double) dst_widget->core.width,
                         (double) dst_widget->core.height);
         cairo_clip(dctx);
@@ -846,8 +869,8 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
         int frame_x = x - (int) src_widget->core.x;
         int frame_y = y - (int) src_widget->core.y;
         cairo_rectangle(dctx,
-                        dst_content_off + frame_x + src_widget->core.composite_clip_x,
-                        dst_content_off + frame_y + src_widget->core.composite_clip_y,
+                        dst_off_x + frame_x + src_widget->core.composite_clip_x,
+                        dst_off_y + frame_y + src_widget->core.composite_clip_y,
                         (double) src_widget->core.composite_clip_w,
                         (double) src_widget->core.composite_clip_h);
         cairo_clip(dctx);
@@ -862,19 +885,17 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
        source to its footprint makes adjacent widgets non-overlapping regardless
        of fold order. */
     if (IswIsWidget(src_widget)) {
-        int bw = (int) src_widget->core.border_width;
-        int bw2 = bw * 2;
-        double fx = dst_content_off + x;
-        double fy = dst_content_off + y;
-        double fw = src_widget->core.width + bw2;
-        double fh = src_widget->core.height + bw2;
+        IswBorderSides sbs = _IswGetBorderSides(src_widget);
+        double fx = dst_off_x + x;
+        double fy = dst_off_y + y;
+        double fw = src_widget->core.width + _IswBorderHoriz(sbs);
+        double fh = src_widget->core.height + _IswBorderVert(sbs);
         Dimension cr = (IswIsSubclass(src_widget, simpleWidgetClass))
                        ? ((SimpleWidget) src_widget)->simple.corner_radius : 0;
         if (cr > 0) {
-            /* Match the rounded border's outer curve so the corner AA is not
-               chopped flat by a square footprint clip. */
             cairo_xcb_rounded_path(dctx, (int) fx, (int) fy,
-                                   (int) fw, (int) fh, (double) cr + bw);
+                                   (int) fw, (int) fh,
+                                   (double) cr + sbs.left);
         } else {
             cairo_rectangle(dctx, fx, fy, fw, fh);
         }
@@ -882,7 +903,7 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
     }
 
     cairo_set_source_surface(dctx, sd->back_surface,
-                             dst_content_off + x, dst_content_off + y);
+                             dst_off_x + x, dst_off_y + y);
     /* OVER reads the destination and blends per pixel — the dominant CPU cost of
        the composite pass.  Most widget surfaces are opaque across their footprint
        (background-filled, then painted over), so the blend is wasted: SOURCE is a

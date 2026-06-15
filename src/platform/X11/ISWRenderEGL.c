@@ -437,9 +437,11 @@ egl_surface_begin(IswSurface s, Widget widget)
        folds this footprint into the parent at the child's slot.  A windowed
        widget (shell) covers its whole window. */
     Boolean windowless = (widget && !IswIsShell(widget));
-    int bw = windowless ? (int) widget->core.border_width : 0;
-    int fw = windowless ? (widget->core.width  + 2 * bw) : widget->core.width;
-    int fh = windowless ? (widget->core.height + 2 * bw) : widget->core.height;
+    IswBorderSides bs = {0, 0, 0, 0};
+    if (windowless)
+        bs = _IswGetBorderSides(widget);
+    int fw = windowless ? (widget->core.width  + _IswBorderHoriz(bs)) : widget->core.width;
+    int fh = windowless ? (widget->core.height + _IswBorderVert(bs))  : widget->core.height;
     int pw = (int) (fw * s->scale + 0.5);
     int ph = (int) (fh * s->scale + 0.5);
 
@@ -469,42 +471,61 @@ egl_surface_begin(IswSurface s, Widget widget)
                   (float) (s->back_h / s->scale),
                   (float) s->scale);
 
-    /* Border ring: footprint rect minus content rect, even-odd filled.  Skipped
-       for widgets that paint their own border (self_border, e.g. ProgressBar),
-       matching the Cairo backend so the border is not drawn twice.  A corner
-       radius rounds both edges of the ring. */
+    /* Border ring: stroke or fill the border edges.  Skipped for widgets that
+       paint their own border (self_border, e.g. ProgressBar).  When all four
+       sides are equal, stroke a centered rect; otherwise fill four rects. */
     Dimension ring_r = (IswIsSubclass(widget, simpleWidgetClass))
                        ? ((SimpleWidget) widget)->simple.corner_radius : 0;
-    if (bw > 0 &&
+    Boolean has_border = (bs.top || bs.right || bs.bottom || bs.left) &&
         !(IswIsSubclass(widget, simpleWidgetClass) &&
-          ((SimpleWidget) widget)->simple.self_border)) {
+          ((SimpleWidget) widget)->simple.self_border);
+
+    if (has_border) {
         Pixel bp = (IswIsSubclass(widget, simpleWidgetClass) &&
                     ((SimpleWidget) widget)->simple.use_border_color)
                    ? ((SimpleWidget) widget)->simple.border_color
                    : widget->core.border_pixel;
-        /* Stroke the border centerline so thickness matches the Cairo
-           backend exactly (an even-odd outer-minus-inner fill renders a
-           differently feathered width under NanoVG's AA). */
-        float half = (float) bw / 2.0f;
-        nvgBeginPath(g_egl.vg);
-        if (ring_r > 0)
-            nvgRoundedRect(g_egl.vg, half, half,
-                           (float) (widget->core.width + bw),
-                           (float) (widget->core.height + bw),
-                           (float) ring_r + half);
-        else
-            nvgRect(g_egl.vg, half, half,
-                    (float) (widget->core.width + bw),
-                    (float) (widget->core.height + bw));
-        nvgStrokeColor(g_egl.vg, nvgRGBA((bp >> 16) & 0xff, (bp >> 8) & 0xff,
-                                         bp & 0xff, 255));
-        nvgStrokeWidth(g_egl.vg, (float) bw);
-        nvgStroke(g_egl.vg);
+        NVGcolor col = nvgRGBA((bp >> 16) & 0xff, (bp >> 8) & 0xff,
+                               bp & 0xff, 255);
+
+        if (_IswBorderIsUniform(bs)) {
+            float half = (float) bs.top / 2.0f;
+            nvgBeginPath(g_egl.vg);
+            if (ring_r > 0)
+                nvgRoundedRect(g_egl.vg, half, half,
+                               (float) (widget->core.width + bs.top),
+                               (float) (widget->core.height + bs.top),
+                               (float) ring_r + half);
+            else
+                nvgRect(g_egl.vg, half, half,
+                        (float) (widget->core.width + bs.top),
+                        (float) (widget->core.height + bs.top));
+            nvgStrokeColor(g_egl.vg, col);
+            nvgStrokeWidth(g_egl.vg, (float) bs.top);
+            nvgStroke(g_egl.vg);
+        } else {
+            float ffw = (float) (widget->core.width + _IswBorderHoriz(bs));
+            float ffh = (float) (widget->core.height + _IswBorderVert(bs));
+            nvgBeginPath(g_egl.vg);
+            if (bs.top > 0)
+                nvgRect(g_egl.vg, 0, 0, ffw, (float) bs.top);
+            if (bs.bottom > 0)
+                nvgRect(g_egl.vg, 0, ffh - (float) bs.bottom,
+                        ffw, (float) bs.bottom);
+            if (bs.left > 0)
+                nvgRect(g_egl.vg, 0, (float) bs.top,
+                        (float) bs.left, ffh - (float) bs.top - (float) bs.bottom);
+            if (bs.right > 0)
+                nvgRect(g_egl.vg, ffw - (float) bs.right, (float) bs.top,
+                        (float) bs.right, ffh - (float) bs.top - (float) bs.bottom);
+            nvgFillColor(g_egl.vg, col);
+            nvgFill(g_egl.vg);
+        }
     }
 
     /* Content draws at local (0,0) = inside the border ring. */
-    if (bw > 0)
-        nvgTranslate(g_egl.vg, (float) bw, (float) bw);
+    if (bs.left > 0 || bs.top > 0)
+        nvgTranslate(g_egl.vg, (float) bs.left, (float) bs.top);
     nvgScissor(g_egl.vg, 0, 0, (float) widget->core.width,
                (float) widget->core.height);
 
@@ -636,8 +657,14 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
         return;
 
     double sf = dd->scale > 0 ? dd->scale : 1.0;
-    int content_off = (dst_widget && !IswIsShell(dst_widget))
-                    ? (int) dst_widget->core.border_width : 0;
+    int dst_off_x, dst_off_y;
+    if (dst_widget && !IswIsShell(dst_widget)) {
+        IswBorderSides dbs = _IswGetBorderSides(dst_widget);
+        dst_off_x = dbs.left;
+        dst_off_y = dbs.top;
+    } else {
+        dst_off_x = dst_off_y = 0;
+    }
 
     egl_make_current(EGL_NO_SURFACE);
     glBindFramebuffer(GL_FRAMEBUFFER, dd->fbo);
@@ -661,7 +688,7 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
        clips below intersect into it (nvgIntersectScissor), matching the Cairo
        backend's stacked cairo_clip calls. */
     if (dst_widget != NULL)
-        nvgScissor(g_egl.vg, (float) content_off, (float) content_off,
+        nvgScissor(g_egl.vg, (float) dst_off_x, (float) dst_off_y,
                    (float) dst_widget->core.width,
                    (float) dst_widget->core.height);
 
@@ -676,8 +703,8 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
         int frame_x = x - (int) src_widget->core.x;
         int frame_y = y - (int) src_widget->core.y;
         nvgIntersectScissor(g_egl.vg,
-                            (float) (content_off + frame_x + src_widget->core.composite_clip_x),
-                            (float) (content_off + frame_y + src_widget->core.composite_clip_y),
+                            (float) (dst_off_x + frame_x + src_widget->core.composite_clip_x),
+                            (float) (dst_off_y + frame_y + src_widget->core.composite_clip_y),
                             (float) src_widget->core.composite_clip_w,
                             (float) src_widget->core.composite_clip_h);
     }
@@ -686,27 +713,24 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
        so surface slack (scrollbars, AA bleed) beyond the widget rectangle does
        not overflow into adjacent siblings regardless of fold order. */
     if (IswIsWidget(src_widget)) {
-        int bw2 = (int) src_widget->core.border_width * 2;
+        IswBorderSides sbs = _IswGetBorderSides(src_widget);
         nvgIntersectScissor(g_egl.vg,
-                            (float) (content_off + x), (float) (content_off + y),
-                            (float) (src_widget->core.width + bw2),
-                            (float) (src_widget->core.height + bw2));
+                            (float) (dst_off_x + x), (float) (dst_off_y + y),
+                            (float) (src_widget->core.width + _IswBorderHoriz(sbs)),
+                            (float) (src_widget->core.height + _IswBorderVert(sbs)));
     }
 
     {
-        float ox = (float) (content_off + x);
-        float oy = (float) (content_off + y);
+        float ox = (float) (dst_off_x + x);
+        float oy = (float) (dst_off_y + y);
         Dimension cr = (IswIsWidget(src_widget) &&
                         IswIsSubclass(src_widget, simpleWidgetClass))
                        ? ((SimpleWidget) src_widget)->simple.corner_radius : 0;
         NVGpaint p = nvgImagePattern(g_egl.vg, ox, oy, fw, fh, 0.0f, img, 1.0f);
         nvgBeginPath(g_egl.vg);
         if (cr > 0) {
-            /* Fold through a rounded path matching the border's outer curve so
-               the corner is clipped to the same rounded shape as Cairo (NanoVG
-               has no rounded scissor; the fill path does the rounding). */
-            int bw = (int) src_widget->core.border_width;
-            nvgRoundedRect(g_egl.vg, ox, oy, fw, fh, (float) cr + bw);
+            IswBorderSides sbs2 = _IswGetBorderSides(src_widget);
+            nvgRoundedRect(g_egl.vg, ox, oy, fw, fh, (float) cr + sbs2.left);
         } else {
             nvgRect(g_egl.vg, ox, oy, fw, fh);
         }

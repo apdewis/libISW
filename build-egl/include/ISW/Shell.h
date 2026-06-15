@@ -154,6 +154,16 @@ SOFTWARE.
 #define IswCWindowRole "WindowRole"
 #define IswNurgency "urgency"
 #define IswCUrgency "Urgency"
+#define IswNwindowType "windowType"
+#define IswCWindowType "WindowType"
+#define IswNstrutLeft "strutLeft"
+#define IswCStrutLeft "StrutLeft"
+#define IswNstrutRight "strutRight"
+#define IswCStrutRight "StrutRight"
+#define IswNstrutTop "strutTop"
+#define IswCStrutTop "StrutTop"
+#define IswNstrutBottom "strutBottom"
+#define IswCStrutBottom "StrutBottom"
 #define IswNbottom "bottom"
 #define IswNleft "left"
 #define IswNright "right"
@@ -414,14 +424,44 @@ extern _IswShell_h_Const char IswShellStrings[];
 #ifndef IswCUrgency
 #define IswCUrgency ((String)&IswShellStrings[869])
 #endif
+#ifndef IswNwindowType
+#define IswNwindowType ((String)&IswShellStrings[877])
+#endif
+#ifndef IswCWindowType
+#define IswCWindowType ((String)&IswShellStrings[888])
+#endif
+#ifndef IswNstrutLeft
+#define IswNstrutLeft ((String)&IswShellStrings[899])
+#endif
+#ifndef IswCStrutLeft
+#define IswCStrutLeft ((String)&IswShellStrings[909])
+#endif
+#ifndef IswNstrutRight
+#define IswNstrutRight ((String)&IswShellStrings[919])
+#endif
+#ifndef IswCStrutRight
+#define IswCStrutRight ((String)&IswShellStrings[930])
+#endif
+#ifndef IswNstrutTop
+#define IswNstrutTop ((String)&IswShellStrings[941])
+#endif
+#ifndef IswCStrutTop
+#define IswCStrutTop ((String)&IswShellStrings[950])
+#endif
+#ifndef IswNstrutBottom
+#define IswNstrutBottom ((String)&IswShellStrings[959])
+#endif
+#ifndef IswCStrutBottom
+#define IswCStrutBottom ((String)&IswShellStrings[971])
+#endif
 #ifndef IswNbottom
-#define IswNbottom ((String)&IswShellStrings[877])
+#define IswNbottom ((String)&IswShellStrings[983])
 #endif
 #ifndef IswNleft
-#define IswNleft ((String)&IswShellStrings[884])
+#define IswNleft ((String)&IswShellStrings[990])
 #endif
 #ifndef IswNright
-#define IswNright ((String)&IswShellStrings[889])
+#define IswNright ((String)&IswShellStrings[995])
 #endif
 #endif /* ISWSTRINGDEFINES */
 
