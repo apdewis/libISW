@@ -100,6 +100,7 @@ static _Xconst _IswString IswNconversionError = "conversionError";
 #define IswQFile                 XrmPermStringToQuark(IswRFile)
 #define IswQFloat                XrmPermStringToQuark(IswRFloat)
 #define IswQInitialState         XrmPermStringToQuark(IswRInitialState)
+#define IswQWindowType           XrmPermStringToQuark(IswRWindowType)
 #define IswQPixmap               XrmPermStringToQuark(IswRPixmap)
 #define IswQShort                XrmPermStringToQuark(IswRShort)
 #define IswQUnsignedChar         XrmPermStringToQuark(IswRUnsignedChar)
@@ -1466,6 +1467,54 @@ IswCvtStringToInitialState(IswDisplay dpy,
     return False;
 }
 
+static Boolean
+IswCvtStringToWindowType(IswDisplay dpy,
+                         XrmValuePtr args _X_UNUSED,
+                         Cardinal *num_args,
+                         XrmValuePtr fromVal,
+                         XrmValuePtr toVal,
+                         IswPointer *closure_ret _X_UNUSED)
+{
+    String str = (String) fromVal->addr;
+
+    if (*num_args != 0)
+        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
+                        IswNwrongParameters, "cvtStringToWindowType",
+                        IswCIswToolkitError,
+                        "String to WindowType conversion needs no extra arguments",
+                        NULL, NULL);
+
+    if (CompareISOLatin1(str, "Normal") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_NORMAL, IswRWindowType);
+    if (CompareISOLatin1(str, "Dialog") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_DIALOG, IswRWindowType);
+    if (CompareISOLatin1(str, "Tooltip") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_TOOLTIP, IswRWindowType);
+    if (CompareISOLatin1(str, "Menu") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_MENU, IswRWindowType);
+    if (CompareISOLatin1(str, "PopupMenu") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_POPUP_MENU, IswRWindowType);
+    if (CompareISOLatin1(str, "Utility") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_UTILITY, IswRWindowType);
+    if (CompareISOLatin1(str, "Dock") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_DOCK, IswRWindowType);
+    if (CompareISOLatin1(str, "Desktop") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_DESKTOP, IswRWindowType);
+    if (CompareISOLatin1(str, "Toolbar") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_TOOLBAR, IswRWindowType);
+    if (CompareISOLatin1(str, "Splash") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_SPLASH, IswRWindowType);
+    if (CompareISOLatin1(str, "Notification") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_NOTIFICATION, IswRWindowType);
+    if (CompareISOLatin1(str, "DropdownMenu") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_DROPDOWN_MENU, IswRWindowType);
+    if (CompareISOLatin1(str, "Combo") == 0)
+        done_string(IswWindowType, ISW_WINDOW_TYPE_COMBO, IswRWindowType);
+
+    IswDisplayStringConversionWarning(dpy, str, IswRWindowType);
+    return False;
+}
+
 /* *INDENT-OFF* */
 static IswConvertArgRec const visualConvertArgs[] = {
     {IswWidgetBaseOffset, (IswPointer)IswOffsetOf(WidgetRec, core.screen),
@@ -1693,6 +1742,8 @@ _IswAddDefaultConverters(ConverterTable table)
 
     Add(_IswQString, IswQGravity, IswCvtStringToGravity, NULL, 0, IswCacheNone);
     Add(_IswQString, IswQInitialState, IswCvtStringToInitialState, NULL, 0,
+        IswCacheNone);
+    Add(_IswQString, IswQWindowType, IswCvtStringToWindowType, NULL, 0,
         IswCacheNone);
     Add(_IswQString, IswQInt, IswCvtStringToInt, NULL, 0, IswCacheAll);
     Add2(_IswQString, IswQPixel, IswCvtStringToPixel,

@@ -270,6 +270,7 @@ NconsumeTab
 CConsumeTab
 NmnemonicKey
 CMnemonicKey
+RWindowType
 
 #file Shell.h
 #table IswShellStrings
@@ -363,6 +364,16 @@ NwindowRole
 CWindowRole
 Nurgency
 CUrgency
+NwindowType
+CWindowType
+NstrutLeft
+CStrutLeft
+NstrutRight
+CStrutRight
+NstrutTop
+CStrutTop
+NstrutBottom
+CStrutBottom
 
 Nbottom
 Nleft

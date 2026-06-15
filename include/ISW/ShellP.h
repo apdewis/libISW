@@ -213,6 +213,8 @@ typedef struct {
 	Atom title_encoding;
 	IswWindow user_time_win;
 	String startup_id;
+	IswWindowType window_type;
+	IswStrutPartial strut_partial;
 } WMShellPart;
 
 typedef  struct {

@@ -250,6 +250,7 @@ SOFTWARE.
 #define IswRWidgetClass "WidgetClass"
 #define IswRWidgetList "WidgetList"
 #define IswRWindow "Window"
+#define IswRWindowType "WindowType"
 #define IswEoff "off"
 #define IswEfalse "false"
 #define IswEno "no"
@@ -1067,6 +1068,9 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #endif
 #ifndef IswCMnemonicKey
 #define IswCMnemonicKey ((String)&IswStrings[2620])
+#endif
+#ifndef IswRWindowType
+#define IswRWindowType ((String)&IswStrings[2632])
 #endif
 #endif /* ISWSTRINGDEFINES */
 

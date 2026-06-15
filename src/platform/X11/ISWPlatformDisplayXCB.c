@@ -1713,6 +1713,15 @@ _IswPlatformSetWmHints(IswDisplay dpy, IswWindow win, const IswWmHints *hints)
         ops->hint->set_wm_hints(dpy, win, hints);
 }
 
+void
+_IswPlatformSetStrutPartial(IswDisplay dpy, IswWindow win,
+                            const IswStrutPartial *strut)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_strut_partial)
+        ops->hint->set_strut_partial(dpy, win, strut);
+}
+
 /* ---- WM-protocol primitives (Shell) -------------------------------------- */
 
 void

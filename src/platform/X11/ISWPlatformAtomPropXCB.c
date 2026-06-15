@@ -266,6 +266,20 @@ xcb_hint_set_window_type(IswDisplay dpy, IswWindow win, IswWindowType type)
             name = "_NET_WM_WINDOW_TYPE_POPUP_MENU"; break;
         case ISW_WINDOW_TYPE_UTILITY:
             name = "_NET_WM_WINDOW_TYPE_UTILITY"; break;
+        case ISW_WINDOW_TYPE_DOCK:
+            name = "_NET_WM_WINDOW_TYPE_DOCK"; break;
+        case ISW_WINDOW_TYPE_DESKTOP:
+            name = "_NET_WM_WINDOW_TYPE_DESKTOP"; break;
+        case ISW_WINDOW_TYPE_TOOLBAR:
+            name = "_NET_WM_WINDOW_TYPE_TOOLBAR"; break;
+        case ISW_WINDOW_TYPE_SPLASH:
+            name = "_NET_WM_WINDOW_TYPE_SPLASH"; break;
+        case ISW_WINDOW_TYPE_NOTIFICATION:
+            name = "_NET_WM_WINDOW_TYPE_NOTIFICATION"; break;
+        case ISW_WINDOW_TYPE_DROPDOWN_MENU:
+            name = "_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"; break;
+        case ISW_WINDOW_TYPE_COMBO:
+            name = "_NET_WM_WINDOW_TYPE_COMBO"; break;
         case ISW_WINDOW_TYPE_NORMAL:
         default:
             name = "_NET_WM_WINDOW_TYPE_NORMAL"; break;
@@ -339,6 +353,30 @@ xcb_hint_set_wm_hints(IswDisplay dpy, IswWindow win, const IswWmHints *h)
     xcb_icccm_set_wm_hints(conn, _IswXcbWindow(win), &x);
 }
 
+static void
+xcb_hint_set_strut_partial(IswDisplay dpy, IswWindow win,
+                           const IswStrutPartial *strut)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn || !strut)
+        return;
+
+    uint32_t data[12] = {
+        strut->left,         strut->right,
+        strut->top,          strut->bottom,
+        strut->left_start_y, strut->left_end_y,
+        strut->right_start_y, strut->right_end_y,
+        strut->top_start_x,  strut->top_end_x,
+        strut->bottom_start_x, strut->bottom_end_x
+    };
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
+                        intern_cached(conn, "_NET_WM_STRUT_PARTIAL"),
+                        XCB_ATOM_CARDINAL, 32, 12, data);
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
+                        intern_cached(conn, "_NET_WM_STRUT"),
+                        XCB_ATOM_CARDINAL, 32, 4, data);
+}
+
 /* ---- IswProperty release (backend-neutral; payload is plain malloc) ------- */
 
 void
@@ -373,4 +411,5 @@ const IswPlatformHintOps isw_platform_xcb_hint_ops = {
     .set_pid           = xcb_hint_set_pid,
     .set_normal_hints  = xcb_hint_set_normal_hints,
     .set_wm_hints      = xcb_hint_set_wm_hints,
+    .set_strut_partial = xcb_hint_set_strut_partial,
 };

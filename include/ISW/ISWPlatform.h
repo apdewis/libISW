@@ -112,8 +112,24 @@ typedef enum {
     ISW_WINDOW_TYPE_TOOLTIP,
     ISW_WINDOW_TYPE_MENU,
     ISW_WINDOW_TYPE_POPUP_MENU,
-    ISW_WINDOW_TYPE_UTILITY
+    ISW_WINDOW_TYPE_UTILITY,
+    ISW_WINDOW_TYPE_DOCK,
+    ISW_WINDOW_TYPE_DESKTOP,
+    ISW_WINDOW_TYPE_TOOLBAR,
+    ISW_WINDOW_TYPE_SPLASH,
+    ISW_WINDOW_TYPE_NOTIFICATION,
+    ISW_WINDOW_TYPE_DROPDOWN_MENU,
+    ISW_WINDOW_TYPE_COMBO
 } IswWindowType;
+
+/* Reserved screen area for docks/panels.  Maps to _NET_WM_STRUT_PARTIAL on X. */
+typedef struct {
+    uint32_t left, right, top, bottom;
+    uint32_t left_start_y, left_end_y;
+    uint32_t right_start_y, right_end_y;
+    uint32_t top_start_x, top_end_x;
+    uint32_t bottom_start_x, bottom_end_x;
+} IswStrutPartial;
 
 /*
  * Neutral WM-hints vocabulary.  The flag bit values and the WM_HINTS / size-hint
@@ -731,6 +747,8 @@ struct _IswPlatformHintOps {
     /* The full WM_HINTS record (focus model, initial state, icon, group,
        urgency).  The backend marshals it to its native representation. */
     void (*set_wm_hints)(IswDisplay dpy, IswWindow win, const IswWmHints *hints);
+    void (*set_strut_partial)(IswDisplay dpy, IswWindow win,
+                              const IswStrutPartial *strut);
 };
 
 /*
@@ -1127,6 +1145,8 @@ extern void _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t f
                                        int base_width, int base_height, int win_gravity);
 extern void _IswPlatformSetWmHints(IswDisplay dpy, IswWindow win,
                                    const IswWmHints *hints);
+extern void _IswPlatformSetStrutPartial(IswDisplay dpy, IswWindow win,
+                                        const IswStrutPartial *strut);
 
 /* Send a protocol/client message about `win` (X ClientMessage and equivalents).
    `type` is the message-type atom; `format` is 8/16/32; `data` points at the

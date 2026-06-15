@@ -386,7 +386,17 @@ static IswResource wmResources[] =
     { IswNwindowRole, IswCWindowRole, IswRString, sizeof(String),
         Offset(wm.window_role), IswRString, (IswPointer) NULL},
     { IswNurgency, IswCUrgency, IswRBoolean, sizeof(Boolean),
-        Offset(wm.urgency), IswRImmediate, (IswPointer) False}
+        Offset(wm.urgency), IswRImmediate, (IswPointer) False},
+    { IswNwindowType, IswCWindowType, IswRWindowType, sizeof(IswWindowType),
+        Offset(wm.window_type), IswRImmediate, (IswPointer) ISW_WINDOW_TYPE_NORMAL},
+    { IswNstrutLeft, IswCStrutLeft, IswRInt, sizeof(int),
+        Offset(wm.strut_partial.left), IswRImmediate, (IswPointer) 0},
+    { IswNstrutRight, IswCStrutRight, IswRInt, sizeof(int),
+        Offset(wm.strut_partial.right), IswRImmediate, (IswPointer) 0},
+    { IswNstrutTop, IswCStrutTop, IswRInt, sizeof(int),
+        Offset(wm.strut_partial.top), IswRImmediate, (IswPointer) 0},
+    { IswNstrutBottom, IswCStrutBottom, IswRInt, sizeof(int),
+        Offset(wm.strut_partial.bottom), IswRImmediate, (IswPointer) 0}
 };
 /* *INDENT-ON* */
 
@@ -1412,7 +1422,7 @@ _popup_set_prop(ShellWidget w)
     UNLOCK_PROCESS;
 
     p = GetClientLeader((Widget) w);
-    {
+    
         IswWindow leader = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p));
         if (leader) {
             IswWindowId leader_id = _IswPlatformWindowId(leader);
@@ -1423,7 +1433,7 @@ _popup_set_prop(ShellWidget w)
                                        ISW_ATOM_WINDOW, 32, ISW_PROP_MODE_REPLACE,
                                        &leader_id, 1);
         }
-    }
+    
     if (wmshell->wm.window_role) {
         Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
                                                     "WM_WINDOW_ROLE", False);
@@ -1434,93 +1444,96 @@ _popup_set_prop(ShellWidget w)
                                    (uint32_t) strlen(wmshell->wm.window_role));
     }
 
-    {
-        IswDisplay wdpy = IswDisplayOf((Widget) w);
-        IswWindow win = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w));
+    IswDisplay wdpy = IswDisplayOf((Widget) w);
+    IswWindow win = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w));
 
-        /* _NET_WM_PID */
-        _IswPlatformSetPid(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-                           (uint32_t) getpid());
+    /* _NET_WM_PID */
+    _IswPlatformSetPid(IswDisplayOf((Widget) w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+                        (uint32_t) getpid());
 
-        /* _NET_WM_WINDOW_TYPE */
-        _IswPlatformSetWindowType(IswDisplayOf((Widget) w),
-                                  _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-                                  IswIsTransientShell((Widget) w)
-                                      ? ISW_WINDOW_TYPE_DIALOG
-                                      : ISW_WINDOW_TYPE_NORMAL);
+    /* _NET_WM_WINDOW_TYPE */
+    IswWindowType wt = ((WMShellWidget) w)->wm.window_type;
+    if (wt == ISW_WINDOW_TYPE_NORMAL && IswIsTransientShell((Widget) w))
+        wt = ISW_WINDOW_TYPE_DIALOG;
+    _IswPlatformSetWindowType(wdpy, win, wt);
 
-        /* _NET_WM_USER_TIME_WINDOW */
-        if (IswIsWMShell((Widget) w)) {
-            IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf((Widget) w));
-            if (!pd->net_wm_user_time) {
-                pd->net_wm_user_time = _IswPlatformInternAtomOp(
-                    IswDisplayOf((Widget) w), "_NET_WM_USER_TIME", False);
-                pd->net_wm_user_time_window = _IswPlatformInternAtomOp(
-                    IswDisplayOf((Widget) w), "_NET_WM_USER_TIME_WINDOW", False);
-            }
+    /* _NET_WM_STRUT_PARTIAL */
+    const IswStrutPartial *sp = &((WMShellWidget) w)->wm.strut_partial;
+    if (sp->left || sp->right || sp->top || sp->bottom)
+        _IswPlatformSetStrutPartial(wdpy, win, sp);
 
-            if (pd->net_wm_user_time && pd->net_wm_user_time_window) {
-                IswWindow utwin = _IswPlatformCreateInputOnly(wdpy, win);
-                IswWindowId utwin_id = _IswPlatformWindowId(utwin);
-                wmshell->wm.user_time_win = utwin;
-
-                _IswPlatformChangeProperty(wdpy, win,
-                                    pd->net_wm_user_time_window, ISW_ATOM_WINDOW, 32,
-                                    ISW_PROP_MODE_REPLACE, &utwin_id, 1);
-
-                uint32_t initial_time = pd->last_timestamp;
-                _IswPlatformChangeProperty(wdpy, utwin,
-                                    pd->net_wm_user_time, ISW_ATOM_CARDINAL, 32,
-                                    ISW_PROP_MODE_REPLACE, &initial_time, 1);
-            }
+    /* _NET_WM_USER_TIME_WINDOW */
+    if (IswIsWMShell((Widget) w)) {
+        IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf((Widget) w));
+        if (!pd->net_wm_user_time) {
+            pd->net_wm_user_time = _IswPlatformInternAtomOp(
+                IswDisplayOf((Widget) w), "_NET_WM_USER_TIME", False);
+            pd->net_wm_user_time_window = _IswPlatformInternAtomOp(
+                IswDisplayOf((Widget) w), "_NET_WM_USER_TIME_WINDOW", False);
         }
 
-        /* _NET_STARTUP_ID — set property and send remove message.  The atoms
-           come from the atom op + the property via the generic op; the
-           broadcast client-message loop (xcb_send_event) stays on the seam. */
-        if (wmshell->wm.startup_id) {
-            IswDisplay sdpy = IswDisplayOf((Widget) w);
-            Atom sid_atom  = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_ID", False);
-            Atom utf8_atom = _IswPlatformInternAtomOp(sdpy, "UTF8_STRING", False);
-            Atom sib_atom  = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_INFO_BEGIN", False);
-            Atom si_atom   = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_INFO", False);
+        if (pd->net_wm_user_time && pd->net_wm_user_time_window) {
+            IswWindow utwin = _IswPlatformCreateInputOnly(wdpy, win);
+            IswWindowId utwin_id = _IswPlatformWindowId(utwin);
+            wmshell->wm.user_time_win = utwin;
 
-            if (sid_atom && utf8_atom) {
-                _IswPlatformChangeProperty(sdpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-                                    sid_atom, utf8_atom, 8, ISW_PROP_MODE_REPLACE,
-                                    wmshell->wm.startup_id,
-                                    (uint32_t) strlen(wmshell->wm.startup_id));
-            }
+            _IswPlatformChangeProperty(wdpy, win,
+                                pd->net_wm_user_time_window, ISW_ATOM_WINDOW, 32,
+                                ISW_PROP_MODE_REPLACE, &utwin_id, 1);
 
-            if (sib_atom && si_atom) {
-                char msg[256];
-                int len = snprintf(msg, sizeof(msg), "remove: ID=%s",
-                                   wmshell->wm.startup_id);
-                if (len > 0 && (size_t)len < sizeof(msg)) {
-                    len++;  /* include NUL terminator */
-                    IswWindow root = _IswDefaultRootWindow(wdpy);
-                    const char *mp = msg;
-                    int remaining = len;
+            uint32_t initial_time = pd->last_timestamp;
+            _IswPlatformChangeProperty(wdpy, utwin,
+                                pd->net_wm_user_time, ISW_ATOM_CARDINAL, 32,
+                                ISW_PROP_MODE_REPLACE, &initial_time, 1);
+        }
+    }
 
-                    while (remaining > 0) {
-                        char chunk_buf[20];
-                        int chunk = remaining > 20 ? 20 : remaining;
-                        memset(chunk_buf, 0, sizeof(chunk_buf));
-                        memcpy(chunk_buf, mp, chunk);
+    /* _NET_STARTUP_ID — set property and send remove message.  The atoms
+        come from the atom op + the property via the generic op; the
+        broadcast client-message loop (xcb_send_event) stays on the seam. */
+    if (wmshell->wm.startup_id) {
+        IswDisplay sdpy = IswDisplayOf((Widget) w);
+        Atom sid_atom  = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_ID", False);
+        Atom utf8_atom = _IswPlatformInternAtomOp(sdpy, "UTF8_STRING", False);
+        Atom sib_atom  = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_INFO_BEGIN", False);
+        Atom si_atom   = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_INFO", False);
 
-                        _IswPlatformSendMessage(wdpy, root, win,
-                                                (mp == msg) ? sib_atom : si_atom,
-                                                8, chunk_buf,
-                                                False, IswPropertyChangeMask);
-                        mp += chunk;
-                        remaining -= chunk;
-                    }
+        if (sid_atom && utf8_atom) {
+            _IswPlatformChangeProperty(sdpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+                                sid_atom, utf8_atom, 8, ISW_PROP_MODE_REPLACE,
+                                wmshell->wm.startup_id,
+                                (uint32_t) strlen(wmshell->wm.startup_id));
+        }
+
+        if (sib_atom && si_atom) {
+            char msg[256];
+            int len = snprintf(msg, sizeof(msg), "remove: ID=%s",
+                                wmshell->wm.startup_id);
+            if (len > 0 && (size_t)len < sizeof(msg)) {
+                len++;  /* include NUL terminator */
+                IswWindow root = _IswDefaultRootWindow(wdpy);
+                const char *mp = msg;
+                int remaining = len;
+
+                while (remaining > 0) {
+                    char chunk_buf[20];
+                    int chunk = remaining > 20 ? 20 : remaining;
+                    memset(chunk_buf, 0, sizeof(chunk_buf));
+                    memcpy(chunk_buf, mp, chunk);
+
+                    _IswPlatformSendMessage(wdpy, root, win,
+                                            (mp == msg) ? sib_atom : si_atom,
+                                            8, chunk_buf,
+                                            False, IswPropertyChangeMask);
+                    mp += chunk;
+                    remaining -= chunk;
                 }
             }
-
-            IswFree(wmshell->wm.startup_id);
-            wmshell->wm.startup_id = NULL;
         }
+
+        IswFree(wmshell->wm.startup_id);
+        wmshell->wm.startup_id = NULL;
+        
     }
 }
 
