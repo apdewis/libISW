@@ -113,9 +113,74 @@ egl_flush_pending_images(void)
    Save / SetColor(bg) / FillRect / Restore / DrawString (e.g. the Text sink
    painting a line background then the glyphs) would otherwise draw the string in
    the un-restored colour (the background) and the text would be invisible. */
-typedef struct { Pixel color; double line_width; IswFontStruct *font; } EglSaved;
+typedef struct { Pixel color; NVGcolor nvg_color; double line_width; IswFontStruct *font; } EglSaved;
 static EglSaved g_save_stack[64];
 static int      g_save_top = 0;
+static NVGcolor g_nvg_color;
+
+/* ---- Font cache --------------------------------------------------------
+   Maps (family, weight, slant) → NanoVG font handle.  Entries are populated
+   lazily on first use via fontconfig + nvgCreateFont.  The cache is small and
+   lives for the process lifetime (same as the NanoVG context). */
+#define EGL_FONT_CACHE_MAX 32
+typedef struct {
+    char *family;
+    int   weight;
+    int   slant;
+    int   nvg_id;
+} EglFontEntry;
+static EglFontEntry g_font_cache[EGL_FONT_CACHE_MAX];
+static int          g_font_cache_n = 0;
+
+static int
+egl_resolve_font(const char *family, int weight, int slant)
+{
+    if (!g_egl.vg) return g_egl.font_default;
+
+    for (int i = 0; i < g_font_cache_n; i++) {
+        EglFontEntry *e = &g_font_cache[i];
+        if (e->weight == weight && e->slant == slant
+            && strcmp(e->family, family) == 0)
+            return e->nvg_id;
+    }
+
+    int nvg_id = -1;
+    FcPattern *pat = FcPatternCreate();
+    if (pat) {
+        FcPatternAddString(pat, FC_FAMILY, (const FcChar8 *) family);
+        FcPatternAddInteger(pat, FC_WEIGHT, weight);
+        FcPatternAddInteger(pat, FC_SLANT, slant);
+        FcPatternAddBool(pat, FC_SCALABLE, FcTrue);
+        FcConfigSubstitute(NULL, pat, FcMatchPattern);
+        FcDefaultSubstitute(pat);
+        FcResult res;
+        FcPattern *m = FcFontMatch(NULL, pat, &res);
+        if (m) {
+            FcChar8 *file = NULL;
+            if (FcPatternGetString(m, FC_FILE, 0, &file) == FcResultMatch
+                && file) {
+                char name[128];
+                snprintf(name, sizeof(name), "fc_%d", g_font_cache_n);
+                nvg_id = nvgCreateFont(g_egl.vg, name, (const char *) file);
+            }
+            FcPatternDestroy(m);
+        }
+        FcPatternDestroy(pat);
+    }
+
+    if (nvg_id < 0)
+        nvg_id = g_egl.font_default;
+
+    if (g_font_cache_n < EGL_FONT_CACHE_MAX) {
+        EglFontEntry *e = &g_font_cache[g_font_cache_n++];
+        e->family = strdup(family);
+        e->weight = weight;
+        e->slant  = slant;
+        e->nvg_id = nvg_id;
+    }
+
+    return nvg_id;
+}
 
 /* Bounding box of the rectangles added to the current path, so egl_clip_path can
    apply a real rectangular nvgScissor (NanoVG's only clip).  Reset at path_begin;
@@ -757,6 +822,7 @@ static void egl_save(ISWRenderContext *ctx)
     if (VG) nvgSave(VG);
     if (g_save_top < (int)(sizeof(g_save_stack)/sizeof(g_save_stack[0]))) {
         g_save_stack[g_save_top].color      = ctx->current_color;
+        g_save_stack[g_save_top].nvg_color  = g_nvg_color;
         g_save_stack[g_save_top].line_width = ctx->line_width;
         g_save_stack[g_save_top].font       = ctx->current_font;
     }
@@ -769,6 +835,7 @@ static void egl_restore(ISWRenderContext *ctx)
     if (g_save_top > 0) g_save_top--;
     if (g_save_top < (int)(sizeof(g_save_stack)/sizeof(g_save_stack[0]))) {
         ctx->current_color = g_save_stack[g_save_top].color;
+        g_nvg_color        = g_save_stack[g_save_top].nvg_color;
         ctx->line_width    = g_save_stack[g_save_top].line_width;
         ctx->current_font  = g_save_stack[g_save_top].font;
     }
@@ -777,8 +844,9 @@ static void egl_restore(ISWRenderContext *ctx)
 static void egl_set_color(ISWRenderContext *ctx, Pixel pixel)
 {
     ctx->current_color = pixel;
-    if (!VG) return;
     NVGcolor c = egl_pixel_to_nvg(ctx->surface, pixel);
+    g_nvg_color = c;
+    if (!VG) return;
     nvgFillColor(VG, c);
     nvgStrokeColor(VG, c);
 }
@@ -787,8 +855,9 @@ static void egl_set_color_rgba(ISWRenderContext *ctx,
                                double r, double g, double b, double a)
 {
     (void) ctx;
-    if (!VG) return;
     NVGcolor c = nvgRGBAf((float) r, (float) g, (float) b, (float) a);
+    g_nvg_color = c;
+    if (!VG) return;
     nvgFillColor(VG, c);
     nvgStrokeColor(VG, c);
 }
@@ -903,7 +972,7 @@ static void egl_fill_stroke_rounded_rect(ISWRenderContext *ctx,
                                          double stroke_width)
 {
     if (!VG) return;
-    NVGcolor c = egl_pixel_to_nvg(ctx->surface, ctx->current_color);
+    NVGcolor c = g_nvg_color;
     egl_rounded_path(x, y, w, h, radius);
     NVGcolor fc = c; fc.a = (float) fill_alpha;
     nvgFillColor(VG, fc);
@@ -922,11 +991,14 @@ static void egl_fill_stroke_rounded_rect(ISWRenderContext *ctx,
 static void egl_apply_font(ISWRenderContext *ctx)
 {
     if (!VG) return;
-    if (g_egl.font_default >= 0)
-        nvgFontFaceId(VG, g_egl.font_default);
-    double pt = (ctx->current_font && ctx->current_font->pt_size > 0)
-              ? ctx->current_font->pt_size : 11.0;
-    /* Approximate px from pt at 96dpi (NanoVG applies device ratio itself). */
+    IswFontStruct *font = ctx->current_font;
+    const char *family = (font && font->font_family) ? font->font_family : "Sans";
+    int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
+    int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
+    int id = egl_resolve_font(family, weight, slant);
+    if (id >= 0)
+        nvgFontFaceId(VG, id);
+    double pt = (font && font->pt_size > 0) ? font->pt_size : 11.0;
     nvgFontSize(VG, (float) (pt * 96.0 / 72.0));
 }
 
@@ -936,8 +1008,7 @@ static void egl_draw_string(ISWRenderContext *ctx, const char *text, int len,
     if (!VG || text == NULL) return;
     egl_apply_font(ctx);
     nvgTextAlign(VG, NVG_ALIGN_LEFT | NVG_ALIGN_BASELINE);
-    NVGcolor c = egl_pixel_to_nvg(ctx->surface, ctx->current_color);
-    nvgFillColor(VG, c);
+    nvgFillColor(VG, g_nvg_color);
     nvgText(VG, (float) x, (float) y, text,
             len >= 0 ? text + len : NULL);
 }
@@ -1174,7 +1245,7 @@ static void egl_paint(ISWRenderContext *ctx)
     nvgRect(VG, 0, 0,
             (float) (s->back_w / (s->scale > 0 ? s->scale : 1.0)),
             (float) (s->back_h / (s->scale > 0 ? s->scale : 1.0)));
-    nvgFillColor(VG, egl_pixel_to_nvg(s, ctx->current_color));
+    nvgFillColor(VG, g_nvg_color);
     nvgFill(VG);
 }
 
@@ -1216,7 +1287,7 @@ static void egl_show_text(ISWRenderContext *ctx, const char *text)
     if (!VG || text == NULL) return;
     egl_apply_font(ctx);
     nvgTextAlign(VG, NVG_ALIGN_LEFT | NVG_ALIGN_BASELINE);
-    nvgFillColor(VG, egl_pixel_to_nvg(ctx->surface, ctx->current_color));
+    nvgFillColor(VG, g_nvg_color);
     /* Draw at the path's current point (set by ISWRenderPathMoveTo); honours the
        active transform.  ProgressBar positions its centred value text this way. */
     nvgText(VG, (float) g_cur_x, (float) g_cur_y, text, NULL);
@@ -1240,8 +1311,12 @@ static void egl_pixel_to_rgb(ISWRenderContext *ctx, Pixel pixel,
 static void egl_measure_font(IswFontStruct *font)
 {
     if (!g_egl.vg) return;
-    if (g_egl.font_default >= 0)
-        nvgFontFaceId(g_egl.vg, g_egl.font_default);
+    const char *family = (font && font->font_family) ? font->font_family : "Sans";
+    int weight = font ? font->font_weight : FC_WEIGHT_NORMAL;
+    int slant  = font ? font->font_slant  : FC_SLANT_ROMAN;
+    int id = egl_resolve_font(family, weight, slant);
+    if (id >= 0)
+        nvgFontFaceId(g_egl.vg, id);
     double pt = (font && font->pt_size > 0) ? font->pt_size : 11.0;
     nvgFontSize(g_egl.vg, (float) (pt * 96.0 / 72.0));
 }
