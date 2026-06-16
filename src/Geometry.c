@@ -769,19 +769,17 @@ IswConfigureWidget(Widget w,
                — that flashes the cleared background before the async repaint.
                The coalesced composite avoids any cleared-state flicker. */
             Widget pw = _IswWidgetAncestor(w);
-            Boolean size_changed =
-                (req.changeMask & (IswCWWidth |
-                                   IswCWHeight |
-                                   IswCWBorderWidth)) != 0;
 
-            if (size_changed && !w->core.being_destroyed &&
+            if (!w->core.being_destroyed &&
                 w->core.widget_class->core_class.expose != NULL) {
-                /* Repaint THIS widget's surface at the new size by invoking its
-                   expose proc directly.  Do not walk descendants here: each
-                   descendant gets its own IswConfigureWidget during the resize
-                   relayout and repaints itself, so walking them too would repaint
-                   the subtree O(depth) times per resize.  Suppress the per-end()
-                   auto-composite; the request below folds the ancestor once. */
+                /* Repaint THIS widget's surface by invoking its expose proc
+                   directly.  A SIZE change obviously needs this (the surface is
+                   reallocated at the new dimensions).  A position-only MOVE also
+                   needs it: the widget may paint only the visible portion of its
+                   content (e.g. ListView inside a Viewport), so shifting its
+                   position changes which region is visible and the old surface
+                   content is stale.  Suppress the per-end() auto-composite; the
+                   request below folds the ancestor once. */
                 ISWRenderBeginCompositeBatch();
                 (*w->core.widget_class->core_class.expose)(w, NULL, 0);
                 ISWRenderEndCompositeBatch();
