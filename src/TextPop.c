@@ -63,7 +63,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWPlatform.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <X11/Xos.h>		/* for O_RDONLY */
 #include <errno.h>
 
 #ifdef X_NOT_STDC_ENV

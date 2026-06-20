@@ -81,9 +81,7 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include <X11/Xlocale.h>
 #ifndef WIN32
-#define X_INCLUDE_PWD_H
-#define XOS_USE_XT_LOCKING
-#include <X11/Xos_r.h>
+#include <pwd.h>
 #endif
 
 #include <stdlib.h>
@@ -240,9 +238,6 @@ _IswGetUserName(_IswString dest, int len)
     else
         *dest = '\0';
 #else
-#ifdef X_NEEDS_PWPARAMS
-    _Xgetpwparams pwparams;
-#endif
     struct passwd *pw;
     char *ptr;
 
@@ -251,7 +246,7 @@ _IswGetUserName(_IswString dest, int len)
         dest[len - 1] = '\0';
     }
     else {
-        if ((pw = _XGetpwuid(getuid(), pwparams)) != NULL) {
+        if ((pw = getpwuid(getuid())) != NULL) {
             (void) strncpy(dest, pw->pw_name, (size_t) (len - 1));
             dest[len - 1] = '\0';
         }
