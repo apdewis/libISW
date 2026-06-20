@@ -284,9 +284,4 @@ struct _IswPlatformRenderOps {
     int (*scaled_font_cap_height)(Widget widget, IswFontStruct *font);
 };
 
-/* ISWRenderBackendAvailable - Check if a backend is available (neutral). */
-Boolean ISWRenderBackendAvailable(ISWRenderBackend backend);
-
-extern const struct _IswPlatformRenderOps isw_platform_xcb_render_ops;
-
 #endif /* _ISWRenderOps_h */
