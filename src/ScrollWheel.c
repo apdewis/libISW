@@ -100,19 +100,19 @@ DecodeScrollWheel(IswEvent *event,
 {
     Boolean shift = (event->button.modifiers & IswModShift) != 0;
     switch (event->button.button) {
-    case 4: /* scroll up */
+    case IswButtonWheelUp:
         *direction_out = -1;
         *horizontal_out = shift;
         return True;
-    case 5: /* scroll down */
+    case IswButtonWheelDown:
         *direction_out = 1;
         *horizontal_out = shift;
         return True;
-    case 6: /* scroll left (horizontal wheel) */
+    case IswButtonWheelLeft:
         *direction_out = -1;
         *horizontal_out = True;
         return True;
-    case 7: /* scroll right (horizontal wheel) */
+    case IswButtonWheelRight:
         *direction_out = 1;
         *horizontal_out = True;
         return True;

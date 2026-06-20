@@ -1366,6 +1366,18 @@ _IswPlatformWarpPointer(IswDisplay dpy, IswWindow dst_win, int x, int y)
         ops->input->warp_pointer(dpy, dst_win, x, y);
 }
 
+void
+_IswPlatformKeycodeRange(IswDisplay dpy, int *min_out, int *max_out)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->input && ops->input->keycode_range) {
+        ops->input->keycode_range(dpy, min_out, max_out);
+        return;
+    }
+    if (min_out) *min_out = 8;
+    if (max_out) *max_out = 255;
+}
+
 IswKeySym
 _IswPlatformKeycodeToKeysym(IswDisplay dpy, IswKeyCode kc, int col)
 {

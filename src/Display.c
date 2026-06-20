@@ -204,9 +204,7 @@ InitPerDisplay(IswDisplay dpy,
     pd->keysyms_serial = 0;
     pd->keysyms = NULL;
 
-    //XDisplayKeycodes(dpy, &pd->min_keycode, &pd->max_keycode);
-    pd->min_keycode = 8; //just assume the full legal range for X11
-    pd->max_keycode = 255;
+    _IswPlatformKeycodeRange(dpy, &pd->min_keycode, &pd->max_keycode);
     pd->modKeysyms = NULL;
     pd->modsToKeysyms = NULL;
     pd->appContext = app;

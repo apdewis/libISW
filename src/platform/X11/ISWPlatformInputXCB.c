@@ -248,6 +248,22 @@ xcb_in_warp_pointer(IswDisplay dpy, IswWindow dst_win, int x, int y)
                      (int16_t) x, (int16_t) y);
 }
 
+static void
+xcb_in_keycode_range(IswDisplay dpy, int *min_out, int *max_out)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (conn) {
+        const xcb_setup_t *setup = xcb_get_setup(conn);
+        if (setup) {
+            if (min_out) *min_out = setup->min_keycode;
+            if (max_out) *max_out = setup->max_keycode;
+            return;
+        }
+    }
+    if (min_out) *min_out = 8;
+    if (max_out) *max_out = 255;
+}
+
 const IswPlatformInputOps isw_platform_xcb_input_ops = {
     .keycode_to_keysym  = xcb_in_keycode_to_keysym,
     .keysym_to_keycodes = xcb_in_keysym_to_keycodes,
@@ -260,4 +276,5 @@ const IswPlatformInputOps isw_platform_xcb_input_ops = {
     .free_keysyms       = xcb_in_free_keysyms,
     .query_pointer      = xcb_in_query_pointer,
     .warp_pointer       = xcb_in_warp_pointer,
+    .keycode_range      = xcb_in_keycode_range,
 };

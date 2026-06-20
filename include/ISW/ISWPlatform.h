@@ -508,6 +508,8 @@ struct _IswPlatformInputOps {
                              IswModMask *mods, IswWindow *child);
     /* Warp the pointer to (x, y) relative to the origin of `dst_win`. */
     void (*warp_pointer)(IswDisplay dpy, IswWindow dst_win, int x, int y);
+    /* Legal keycode range for this backend.  X11: from xcb_get_setup. */
+    void (*keycode_range)(IswDisplay dpy, int *min_out, int *max_out);
 };
 
 /*
@@ -1096,6 +1098,9 @@ extern void _IswPlatformFreeKeysyms(IswDisplay dpy);
 /* Warp the pointer to (x, y) relative to the origin of dst_win. */
 extern void _IswPlatformWarpPointer(IswDisplay dpy, IswWindow dst_win,
                                     int x, int y);
+
+/* Legal keycode range for this display's backend. */
+extern void _IswPlatformKeycodeRange(IswDisplay dpy, int *min_out, int *max_out);
 
 /* Atom */
 extern Atom    _IswPlatformInternAtomOp(IswDisplay dpy, const char *name,

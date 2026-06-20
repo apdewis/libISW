@@ -151,8 +151,10 @@ typedef enum {
     IswButtonLeft   = 1,
     IswButtonMiddle = 2,
     IswButtonRight  = 3,
-    IswButtonWheelUp   = 4,
-    IswButtonWheelDown = 5
+    IswButtonWheelUp    = 4,
+    IswButtonWheelDown  = 5,
+    IswButtonWheelLeft  = 6,
+    IswButtonWheelRight = 7
 } IswButton;
 
 /*
