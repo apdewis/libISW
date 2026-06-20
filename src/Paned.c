@@ -63,7 +63,6 @@ SOFTWARE.
 
 #include <ISW/ISWP.h>
 #include <ISW/IntrinsicP.h>
-#include <X11/cursorfont.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ISWInit.h>
 #include <ISW/Grip.h>

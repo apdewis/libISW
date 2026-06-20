@@ -45,7 +45,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWP.h>
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
-#include <X11/Xos.h>
 #include <ISW/ISWInit.h>
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSBP.h>

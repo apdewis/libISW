@@ -33,7 +33,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/ISWInit.h>		/* for IswInitializeWidgetSet */
 #include <ISW/PannerP.h>		/* us */
 #include <ISW/ISWRender.h>
-#include <X11/Xos.h>
 #include <ctype.h>			/* for isascii() etc. */
 #include <stdlib.h>			/* for atof() */
 #include <ISW/IswArgMacros.h>

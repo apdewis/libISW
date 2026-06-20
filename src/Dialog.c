@@ -52,7 +52,6 @@ SOFTWARE.
 
 
 #include <ISW/IntrinsicP.h>
-#include <X11/Xos.h>
 #include <ISW/StringDefs.h>
 
 #include <ISW/ISWInit.h>
