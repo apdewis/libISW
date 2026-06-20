@@ -86,7 +86,6 @@ in this Software without prior written authorization from The Open Group.
 #include <ISW/SimpleP.h>
 
 #include <ISW/IswDragDrop.h>
-#include "ISWPlatformPrivate.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>

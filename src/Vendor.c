@@ -68,8 +68,6 @@ SOFTWARE.
 #include <ISW/IntrinsicP.h>
 #include <ISW/StringDefs.h>
 #include <ISW/ShellP.h>
-#include <xcb/xcb.h>
-#include <xcb/xproto.h>
 
 #include <ISW/VendorP.h>
 #include <ISW/FocusMgrI.h>
