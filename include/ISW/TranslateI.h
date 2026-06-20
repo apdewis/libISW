@@ -419,7 +419,7 @@ extern Boolean _IswRegularMatch(
     TMEventPtr		/* eventSeq */
 );
 
-extern Boolean _IswMatchAtom(
+extern Boolean _IswMatchProtocolName(
     TMTypeMatch		/* typeMatch */,
     TMModifierMatch	/* modMatch */,
     TMEventPtr		/* eventSeq */

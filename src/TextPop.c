@@ -1274,39 +1274,16 @@ static const char *WM_DELETE_WINDOW = "WM_DELETE_WINDOW";
 static void
 WMProtocols(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 {
-    /* Bound to <Message>WM_PROTOCOLS: a generic protocol message (IswProtocol)
-     * carrying the protocol atom in data[0].  Respond to a recognized WM
-     * protocol request iff:
-     *   - it is a protocol message whose data[0] is WM_DELETE_WINDOW and either
-     *     no parameters were given or the parameters name it, or
-     *   - it is not a protocol message but the parameters make the request
-     *     (direct action invocation).
-     * The message-type match (WM_PROTOCOLS) is done by the translation manager;
-     * branching on the specific protocol atom is done here.  Other protocols
-     * fall through untouched.
-     */
-#define DO_DELETE_WINDOW InParams(WM_DELETE_WINDOW, params, *num_params)
+    (void) params; (void) num_params;
 
-    Boolean is_protocol = (iswev->kind == IswProtocol);
-    Boolean is_delete = False;
+    if (iswev->kind != IswWindowClose)
+	return;
 
-    if (is_protocol) {
-	is_delete = _IswPlatformIsProtocol(IswDisplayOf(w),
-	    (IswProtocolId) iswev->protocol.data[0], WM_DELETE_WINDOW);
-    }
-
-    if ((is_delete && (*num_params == 0 || DO_DELETE_WINDOW))
-	||
-	(!is_protocol && DO_DELETE_WINDOW)) {
-
-#undef DO_DELETE_WINDOW
-
-	Widget cancel;
-	char descendant[DISMISS_NAME_LEN + 2];
-	(void) sprintf(descendant, "*%s", DISMISS_NAME);
-	cancel = IswNameToWidget(w, descendant);
-	if (cancel) IswCallCallbacks(cancel, IswNcallback, (IswPointer)NULL);
-    }
+    Widget cancel;
+    char descendant[DISMISS_NAME_LEN + 2];
+    (void) sprintf(descendant, "*%s", DISMISS_NAME);
+    cancel = IswNameToWidget(w, descendant);
+    if (cancel) IswCallCallbacks(cancel, IswNcallback, (IswPointer)NULL);
 }
 
 static void
@@ -1322,7 +1299,7 @@ SetWMProtocolTranslations(Widget w)
 
     /* parse translation table once */
     if (! compiled_table) compiled_table = IswParseTranslationTable
-	("<Message>WM_PROTOCOLS: IswWMProtocols()\n");
+	("<WindowClose>: IswWMProtocols()\n");
 
     /* add actions once per application context */
     for (i=0; i < list_size && app_context_list[i] != app_context; i++) ;

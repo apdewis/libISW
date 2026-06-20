@@ -146,12 +146,12 @@ IswInitializeWidgetClass(WidgetClass wc)
         param[1] = (String) (IswIntPtr) wc->core_class.version;
         param[2] = (String) (IswIntPtr) IswVersion;
 
-        if (wc->core_class.version == (11 * 1000 + 5) ||        /* MIT X11R5 */
-            wc->core_class.version == (11 * 1000 + 4)) {        /* MIT X11R4 */
+        if (wc->core_class.version == (11 * 1000 + 5) ||
+            wc->core_class.version == (11 * 1000 + 4)) {
             if ((inited & WMShellClassFlag) &&
                 (sizeof(Boolean) != sizeof(char) ||
-                 sizeof(Atom) != sizeof(Widget) ||
-                 sizeof(Atom) != sizeof(String))) {
+                 sizeof(uint32_t) != sizeof(Widget) ||
+                 sizeof(uint32_t) != sizeof(String))) {
                 num_params = 3;
                 IswWarningMsg("versionMismatch", "widget", IswCIswToolkitError,
                              mismatch, param, &num_params);

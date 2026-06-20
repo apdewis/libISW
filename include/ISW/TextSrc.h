@@ -216,29 +216,11 @@ extern ISWTextPosition IswTextSourceSearch(
  *
  */
 
-extern Boolean IswTextSourceConvertSelection(
-    Widget		/* w */,
-    IswSelectionId*	/* selection */,
-    IswSelectionId*	/* target */,
-    IswSelectionId*	/* type */,
-    IswPointer*		/* value_return */,
-    unsigned long*	/* length_return */,
-    int*		/* format_return */
-);
-
-/*	Function Name: IswTextSourceSetSelection
- *	Description: allows special setting of the selection.
- *	Arguments: w - the TextSrc object.
- *                 left, right - bounds of the selection.
- *                 selection - the selection id.
- *	Returns: none
- */
 
 extern void IswTextSourceSetSelection(
     Widget		/* w */,
     ISWTextPosition	/* start */,
-    ISWTextPosition	/* end */,
-    IswSelectionId	/* selection */
+    ISWTextPosition	/* end */
 );
 
 /*	Function Name: IswTextSourceFreeString

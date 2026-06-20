@@ -232,32 +232,6 @@ PrintKeysym(TMStringBuf sb, uint32_t key)
 }
 
 static void
-PrintAtom(TMStringBuf sb, IswDisplay dpy, Atom atom)
-{
-    if (atom == 0)
-        return;
-
-    if (dpy) {
-        char _isw_atom_name[256];
-
-        if (_IswPlatformGetAtomName(dpy, atom,
-                                    _isw_atom_name, sizeof(_isw_atom_name))) {
-            int name_len = (int) strlen(_isw_atom_name);
-            ExpandForChars(sb, name_len + 1);
-            memcpy(sb->current, _isw_atom_name, name_len);
-            sb->current[name_len] = '\0';
-            sb->current += name_len;
-        }
-        else {
-            PrintCode(sb, ~0UL, (unsigned long) atom);
-        }
-    }
-    else {
-        PrintCode(sb, ~0UL, (unsigned long) atom);
-    }
-}
-
-static void
 PrintLateModifiers(TMStringBuf sb, LateBindingsPtr lateModifiers)
 {
     for (; lateModifiers->keysym; lateModifiers++) {
@@ -299,9 +273,17 @@ PrintEvent(TMStringBuf sb,
         PrintKeysym(sb, (uint32_t) typeMatch->eventCode);
         break;
 
-    case IswProtocol:
-        PrintAtom(sb, dpy, (Atom) typeMatch->eventCode);
+    case IswProtocol: {
+        const char *name = XrmQuarkToString((XrmQuark) typeMatch->eventCode);
+        if (name) {
+            int len = (int) strlen(name);
+            ExpandForChars(sb, len + 1);
+            memcpy(sb->current, name, len);
+            sb->current[len] = '\0';
+            sb->current += len;
+        }
         break;
+    }
 
     default:
         PrintCode(sb, typeMatch->eventCodeMask, typeMatch->eventCode);

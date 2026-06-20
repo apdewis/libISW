@@ -365,13 +365,31 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
     case XCB_CLIENT_MESSAGE: {
         xcb_client_message_event_t *e = (xcb_client_message_event_t *) xev;
         int i;
-        /* Every client message becomes a generic protocol event carrying the
-           message-type atom and its data words.  The translation manager matches
-           it by message-type name (e.g. <Message>WM_PROTOCOLS) and the handler
-           decodes data[0] to branch on the specific protocol (WM_DELETE_WINDOW,
-           WM_TAKE_FOCUS, _NET_WM_PING, ...).  No protocol is special-cased here:
-           collapsing one into its own kind would prevent the others from ever
-           reaching a handler bound to the same message type. */
+
+        /* Check for WM_DELETE_WINDOW: a WM_PROTOCOLS client message whose
+           data[0] is the WM_DELETE_WINDOW atom.  Emit IswWindowClose so
+           the core never needs to intern atoms for protocol matching. */
+        {
+            static xcb_atom_t wm_protocols_atom = 0;
+            static xcb_atom_t wm_delete_atom = 0;
+            if (!wm_protocols_atom) {
+                xcb_connection_t *conn = _IswXcbConn(dpy);
+                xcb_intern_atom_reply_t *r;
+                r = xcb_intern_atom_reply(conn,
+                    xcb_intern_atom(conn, 1, 12, "WM_PROTOCOLS"), NULL);
+                if (r) { wm_protocols_atom = r->atom; free(r); }
+                r = xcb_intern_atom_reply(conn,
+                    xcb_intern_atom(conn, 1, 16, "WM_DELETE_WINDOW"), NULL);
+                if (r) { wm_delete_atom = r->atom; free(r); }
+            }
+            if (wm_protocols_atom && e->type == wm_protocols_atom &&
+                wm_delete_atom && e->data.data32[0] == wm_delete_atom) {
+                out->kind = IswWindowClose;
+                out->any.target = target_for_window(dpy, e->window);
+                return True;
+            }
+        }
+
         out->kind = IswProtocol;
         out->protocol.target = target_for_window(dpy, e->window);
         out->protocol.message_type = (IswProtocolId) e->type;
@@ -384,6 +402,22 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         /* X11 protocol event — not a toolkit-semantic IswEvent. */
         return False;
     }
+}
+
+/* X11 <Message> translation match: intern the quark-stored name to an atom
+   and compare against the protocol event's message_type (which is an atom
+   on X11).  This is the only atom-interning code the translation manager
+   needs, and it lives here in the backend rather than in core TMstate.c. */
+Boolean
+_IswMatchProtocolName(TMTypeMatch typeMatch,
+             TMModifierMatch modMatch _X_UNUSED,
+             TMEventPtr eventSeq)
+{
+    const char *atom_name = XrmQuarkToString((XrmQuark) (typeMatch->eventCode));
+    Atom atom = _IswPlatformInternAtomOp((IswDisplay) eventSeq->dpy, atom_name, False);
+    if (atom == ISW_ATOM_NONE)
+        return False;
+    return (atom == eventSeq->event.eventCode);
 }
 
 /* Migration bridge (declared in IswEvent.h). */

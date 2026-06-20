@@ -1008,17 +1008,9 @@ static void
 ShellWMDeleteWindow(Widget w, IswEvent *iswev, String *params,
 		    Cardinal *num_params)
 {
-    /* Bound to <Message>WM_PROTOCOLS: the event is a generic protocol message
-       (IswProtocol) carrying the protocol atom in data[0].  Act only on
-       WM_DELETE_WINDOW; other WM_PROTOCOLS messages (WM_TAKE_FOCUS, _NET_WM_PING,
-       ...) fall through untouched. */
     (void) params; (void) num_params;
 
-    if (iswev->kind != IswProtocol)
-	return;
-
-    if (!_IswPlatformIsProtocol(IswDisplayOf(w),
-            (IswProtocolId) iswev->protocol.data[0], "WM_DELETE_WINDOW"))
+    if (iswev->kind != IswWindowClose)
 	return;
 
     if (IswIsApplicationShell(w))
@@ -1041,7 +1033,7 @@ SetShellWMProtocolTranslations(Widget w)
     /* parse translation table once */
     if (!compiled_table)
 	compiled_table = IswParseTranslationTable(
-	    "<Message>WM_PROTOCOLS: IswShellDeleteWindow()\n");
+	    "<WindowClose>: IswShellDeleteWindow()\n");
 
     /* add actions once per application context */
     for (i = 0; i < list_size && app_context_list[i] != app_context; i++) ;
@@ -2294,22 +2286,6 @@ WMSetValues(Widget old,
 
     if (set_prop && title_changed) {
 
-        //XTextProperty title;
-
-        //if (nwmshell->wm.title_encoding == None &&
-        //    XmbTextListToTextProperty(IswDisplayOf(new),
-        //                              (char **) &nwmshell->wm.title,
-        //                              1, XStdICCTextStyle, &title) >= Success) {
-        //    copied = True;
-        //}
-        //else {
-        //    title.value = (unsigned char *) nwmshell->wm.title;
-        //    title.encoding = nwmshell->wm.title_encoding ?
-        //        nwmshell->wm.title_encoding : XCB_ATOM_STRING;
-        //    title.format = 8;
-        //    title.nitems = strlen(nwmshell->wm.title);
-        //}
-        //XSetWMName(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)), &title);
         _IswPlatformSetWindowTitle(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
                                    (const char *) nwmshell->wm.title);
     }
@@ -2328,18 +2304,6 @@ WMSetValues(Widget old,
                                &nwmshell->wm.wm_hints);
     }
 #undef NEQ
-
-    //if (IswIsRealized(new) && nwmshell->wm.transient != owmshell->wm.transient) {
-    //    if (nwmshell->wm.transient) {
-    //        if (!IswIsTransientShell(new) &&
-    //            !nwmshell->shell.override_redirect &&
-    //            nwmshell->wm.wm_hints.window_group != IswUnspecifiedWindowGroup)
-    //            XSetTransientForHint(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-    //                                 nwmshell->wm.wm_hints.window_group);
-    //    }
-    //    else
-    //        XDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)), XCB_ATOM_WM_TRANSIENT_FOR);
-    //}
 
     if (IswIsRealized(new) && nwmshell->wm.transient != owmshell->wm.transient) {
         if (nwmshell->wm.transient) {
@@ -2367,22 +2331,6 @@ WMSetValues(Widget old,
         }
     }
 
-    //if (nwmshell->wm.window_role != owmshell->wm.window_role) {
-    //    IswFree((_IswString) owmshell->wm.window_role);
-    //    if (set_prop && nwmshell->wm.window_role) {
-    //        XChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-    //                        XInternAtom(IswDisplayOf(new), "WM_WINDOW_ROLE",
-    //                                    False),
-    //                        XCB_ATOM_STRING, 8, XCB_PROP_MODE_REPLACE,
-    //                        (unsigned char *) nwmshell->wm.window_role,
-    //                        (int) strlen(nwmshell->wm.window_role));
-    //    }
-    //    else if (IswIsRealized(new) && !nwmshell->wm.window_role) {
-    //        XDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-    //                        XInternAtom(IswDisplayOf(new), "WM_WINDOW_ROLE",
-    //                                    False));
-    //    }
-    //}
     if (nwmshell->wm.window_role != owmshell->wm.window_role) {
         IswFree((_IswString) owmshell->wm.window_role);
 
@@ -2464,23 +2412,6 @@ TopLevelSetValues(Widget oldW,
 
         if (!new->shell.override_redirect && name_changed) {
 
-            //XTextProperty icon_name;
-
-            //if (new->topLevel.icon_name_encoding == None &&
-            //    XmbTextListToTextProperty(IswDisplayOf(newW),
-            //                              (char **) &new->topLevel.icon_name,
-            //                              1, XStdICCTextStyle,
-            //                              &icon_name) >= Success) {
-            //    copied = True;
-            //}
-            //else {
-                //icon_name.value = (unsigned char *) new->topLevel.icon_name;
-                //icon_name.encoding = new->topLevel.icon_name_encoding ?
-                //    new->topLevel.icon_name_encoding : XCB_ATOM_STRING;
-                //icon_name.format = 8;
-                //icon_name.nitems = strlen((char *) icon_name.value);
-            //}
-            // First, get the atom ID for WM_ICON_NAME
             _IswPlatformSetIconTitle(IswDisplayOf(newW), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW)),
                                      (const char *) new->topLevel.icon_name);
         }
@@ -2544,13 +2475,6 @@ ApplicationSetValues(Widget current,
         if (cw->application.argc > 0)
             FreeStringArray(cw->application.argv);
 
-        //if (IswIsRealized(new) && !nw->shell.override_redirect) {
-        //    if (nw->application.argc >= 0 && nw->application.argv)
-        //        XSetCommand(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-        //                    nw->application.argv, nw->application.argc);
-        //    else
-        //        XDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)), XCB_ATOM_WM_COMMAND);
-        //}
         if (IswIsRealized(new) && !nw->shell.override_redirect) {
             if (nw->application.argc >= 0 && nw->application.argv) {
                 _IswPlatformSetWmCommand(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),

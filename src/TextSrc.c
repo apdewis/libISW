@@ -131,19 +131,9 @@ extern int errno;
  * left to inherit from). */
 /* ARGSUSED */
 static void
-DefaultSetSelection(Widget w, ISWTextPosition left, ISWTextPosition right,
-                    IswSelectionId selection)
+DefaultSetSelection(Widget w, ISWTextPosition left, ISWTextPosition right)
 {
   /* no-op */
-}
-
-/* ARGSUSED */
-static Boolean
-DefaultConvertSelection(Widget w, IswSelectionId *selection, IswSelectionId *target,
-                        IswSelectionId *type, IswPointer *value,
-                        unsigned long *length, int *format)
-{
-  return FALSE;
 }
 
 #define superclass              (&objectClassRec)
@@ -189,8 +179,7 @@ TextSrcClassRec textSrcClassRec = {
     /* Replace                  */      ReplaceText,
     /* Scan                     */      Scan,
     /* Search                   */      Search,
-    /* SetSelection             */      DefaultSetSelection,
-    /* ConvertSelection         */      DefaultConvertSelection
+    /* SetSelection             */      DefaultSetSelection
   }
 };
 
@@ -1036,25 +1025,9 @@ IswTextSourceSearch(Widget w, ISWTextPosition position,
   return (*class->text_src_class.Search)(w, position, dir, text);
 }
 
-Boolean
-IswTextSourceConvertSelection(Widget w, IswSelectionId *selection, IswSelectionId *target,
-                              IswSelectionId *type, IswPointer *value,
-                              unsigned long *length, int *format)
-{
-  TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
-
-  if (!IswIsSubclass(w, textSrcObjectClass))
-      IswErrorMsg("bad argument", "textSource", "IswError",
-                  "IswTextSourceConvertSelection's 1st parameter must be a textSrc.",
-                  NULL, NULL);
-
-  return (*class->text_src_class.ConvertSelection)(w, selection, target, type,
-                                                   value, length, format);
-}
-
 void
 IswTextSourceSetSelection(Widget w, ISWTextPosition left,
-                          ISWTextPosition right, IswSelectionId selection)
+                          ISWTextPosition right)
 {
   TextSrcObjectClass class = (TextSrcObjectClass) w->core.widget_class;
 
@@ -1063,7 +1036,7 @@ IswTextSourceSetSelection(Widget w, ISWTextPosition left,
                   "IswTextSourceSetSelection's 1st parameter must be a textSrc.",
                   NULL, NULL);
 
-  (*class->text_src_class.SetSelection)(w, left, right, selection);
+  (*class->text_src_class.SetSelection)(w, left, right);
 }
 
 /*	TextFormat():

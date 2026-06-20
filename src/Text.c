@@ -1455,7 +1455,7 @@ _SetSelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right,
   ctx->text.s.left = left;
   ctx->text.s.right = right;
 
-  SrcSetSelection(ctx->text.source, left, right, None);
+  SrcSetSelection(ctx->text.source, left, right);
 
   if (left < right && take_ownership) {
     IswSelectionOffer((Widget) ctx, ctx->text.time,

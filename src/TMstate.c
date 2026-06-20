@@ -504,22 +504,6 @@ _IswMatchUsingDontCareMods(TMTypeMatch typeMatch,
     return _IswMatchUsingStandardMods(typeMatch, modMatch, eventSeq);
 }
 
-Boolean
-_IswMatchAtom(TMTypeMatch typeMatch,
-             TMModifierMatch modMatch _X_UNUSED,
-             TMEventPtr eventSeq)
-{
-    Atom atom;
-    const char *atom_name;
-
-    atom_name = XrmQuarkToString((XrmQuark) (typeMatch->eventCode));
-    atom = _IswPlatformInternAtomOp((IswDisplay) eventSeq->dpy, atom_name, False);
-
-    if (atom == ISW_ATOM_NONE)
-        return False;
-
-    return (atom == eventSeq->event.eventCode);
-}
 
 #define IsOn(vec,idx) ((vec)[(idx)>>3] & (1 << ((idx) & 7)))
 
@@ -594,6 +578,10 @@ IswEventToTMEvent(IswEvent *ev, TMEventPtr tmEvent)
         break;
     case IswProtocol:
         tmEvent->event.eventCode = ev->protocol.message_type;
+        tmEvent->event.modifiers = 0;
+        break;
+    case IswWindowClose:
+        tmEvent->event.eventCode = 0;
         tmEvent->event.modifiers = 0;
         break;
     default:

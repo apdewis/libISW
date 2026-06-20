@@ -190,7 +190,7 @@ static String ParseButton(PARSE_PROC_DECL);
 static String ParseImmed(PARSE_PROC_DECL);
 static String ParseAddModifier(PARSE_PROC_DECL);
 static String ParseNone(PARSE_PROC_DECL);
-static String ParseAtom(PARSE_PROC_DECL);
+static String ParseProtocolName(PARSE_PROC_DECL);
 
 /* *INDENT-OFF* */
 static EventKey events[] = {
@@ -273,8 +273,10 @@ static EventKey events[] = {
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"ClientMessage",   NULLQUARK, IswProtocol,         ParseAtom,      NULL},
-{"Message",         NULLQUARK, IswProtocol,         ParseAtom,      NULL},
+{"ClientMessage",   NULLQUARK, IswProtocol,         ParseProtocolName,      NULL},
+{"Message",         NULLQUARK, IswProtocol,         ParseProtocolName,      NULL},
+
+{"WindowClose",     NULLQUARK, IswWindowClose,      ParseNone,      NULL},
 
 {"MappingNotify",   NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
 {"Mapping",         NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
@@ -983,7 +985,7 @@ ParseNone(String str,
 }
 
 static String
-ParseAtom(String str, Opaque closure _X_UNUSED, EventPtr event, Boolean *error)
+ParseProtocolName(String str, Opaque closure _X_UNUSED, EventPtr event, Boolean *error)
 {
     ScanWhitespace(str);
 
@@ -994,7 +996,7 @@ ParseAtom(String str, Opaque closure _X_UNUSED, EventPtr event, Boolean *error)
     }
     else {
         String start;
-        char atomName[1000];
+        char protocolName[1000];
 
         start = str;
         while (*str != ','
@@ -1002,14 +1004,14 @@ ParseAtom(String str, Opaque closure _X_UNUSED, EventPtr event, Boolean *error)
                && *str != '\0')
             str++;
         if (str - start >= 999) {
-            Syntax("Atom name must be less than 1000 characters long.", "");
+            Syntax("Protocol name must be less than 1000 characters long.", "");
             *error = TRUE;
             return str;
         }
-        (void) memcpy(atomName, start, (size_t) (str - start));
-        atomName[str - start] = '\0';
-        event->event.eventCode = (TMLongCard) XrmStringToQuark(atomName);
-        event->event.matchEvent = _IswMatchAtom;
+        (void) memcpy(protocolName, start, (size_t) (str - start));
+        protocolName[str - start] = '\0';
+        event->event.eventCode = (TMLongCard) XrmStringToQuark(protocolName);
+        event->event.matchEvent = _IswMatchProtocolName;
     }
     return str;
 }

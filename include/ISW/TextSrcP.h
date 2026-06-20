@@ -48,10 +48,7 @@ typedef ISWTextPosition (*_IswSrcSearchProc)
      (Widget, ISWTextPosition, IswTextScanDirection, ISWTextBlock*);
 
 typedef void (*_IswSrcSetSelectionProc)
-     (Widget, ISWTextPosition, ISWTextPosition, IswSelectionId);
-
-typedef Boolean (*_IswSrcConvertSelectionProc)
-     (Widget, IswSelectionId*, IswSelectionId*, IswSelectionId*, IswPointer*, unsigned long*, int*);
+     (Widget, ISWTextPosition, ISWTextPosition);
 
 typedef struct _TextSrcClassPart {
     _IswSrcReadProc Read;
@@ -59,7 +56,6 @@ typedef struct _TextSrcClassPart {
     _IswSrcScanProc Scan;
     _IswSrcSearchProc Search;
     _IswSrcSetSelectionProc SetSelection;
-    _IswSrcConvertSelectionProc ConvertSelection;
 } TextSrcClassPart;
 
 typedef struct _TextSrcClassRec {
@@ -110,7 +106,6 @@ typedef struct _TextSrcRec {
 #define IswInheritScan             ((_IswSrcScanProc) _IswInherit)
 #define IswInheritSearch           ((_IswSrcSearchProc) _IswInherit)
 #define IswInheritSetSelection     ((_IswSrcSetSelectionProc) _IswInherit)
-#define IswInheritConvertSelection ((_IswSrcConvertSelectionProc) _IswInherit)
 
 #define IswTextSrcExtVersion       1
 #define IswTextSrcExtTypeString    "ISW_TEXTSRC_EXT"
