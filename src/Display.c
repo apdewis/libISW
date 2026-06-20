@@ -77,7 +77,7 @@ in this Software without prior written authorization from The Open Group.
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef XTHREADS
+#ifdef ISW_THREADS
 void (*_IswProcessLock) (void) = NULL;
 void (*_IswProcessUnlock) (void) = NULL;
 void (*_IswInitAppLock) (IswAppContext) = NULL;
@@ -431,7 +431,7 @@ IswCreateApplicationContext(void)
 {
     IswAppContext app = IswNew(IswAppStruct);
 
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     app->lock_info = NULL;
     app->lock = NULL;
     app->unlock = NULL;

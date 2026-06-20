@@ -203,7 +203,7 @@ typedef struct _IswAppStruct {
     int dpy_destroy_count;
     Boolean exit_flag;
     Boolean rebuild_fdlist;
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     LockPtr lock_info;
     ThreadAppProc lock;
     ThreadAppProc unlock;
@@ -284,7 +284,7 @@ extern int _IswWaitForSomething(
     _IswBoolean 		/* ignoreInputs */,
     _IswBoolean		/* ignoreSignals */,
     _IswBoolean 		/* block */,
-//#ifdef XTHREADS
+//#ifdef ISW_THREADS
     _IswBoolean		/* drop_lock */,
 //#endif
     unsigned long*	/* howlong */

@@ -409,7 +409,7 @@ FindInputs(IswAppContext app,
         fdlp = wf->fdlist;
         for (ii = 0; ii < wf->num_dpys; ii++, fdlp++) {
             if (*dpy_no == -1 && fdlp->revents & (POLLIN | POLLHUP | POLLERR) &&
-#ifdef XTHREADS
+#ifdef ISW_THREADS
                 !(fdlp->revents & POLLNVAL) &&
 #endif
                 //XEventsQueued(app->list[ii], QueuedAfterReading)) {
@@ -427,7 +427,7 @@ FindInputs(IswAppContext app,
 
             if (fdlp->revents) {
                 if (fdlp->revents & (XPOLL_READ | POLLHUP | POLLERR)
-#ifdef XTHREADS
+#ifdef ISW_THREADS
                     && !(fdlp->revents & POLLNVAL)
 #endif
                     )
@@ -456,7 +456,7 @@ FindInputs(IswAppContext app,
         }
     }
 #else                           /* }{ */
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     fd_set rmask;
 #endif
     int dd;
@@ -464,7 +464,7 @@ FindInputs(IswAppContext app,
     *dpy_no = -1;
     *found_input = False;
 
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     rmask = app->fds.rmask;
     for (dd = app->count; dd-- > 0;)
         FD_SET(_IswPlatformConnectionFd((IswDisplay)app->list[dd]), &rmask);
@@ -474,7 +474,7 @@ FindInputs(IswAppContext app,
         IswInputMask condition = 0;
 
         if (FD_ISSET(ii, &wf->rmask)
-#ifdef XTHREADS
+#ifdef ISW_THREADS
             && FD_ISSET(ii, &rmask)
 #endif
             ) {
@@ -507,7 +507,7 @@ FindInputs(IswAppContext app,
             condition = IswInputReadMask;
         }
         if (FD_ISSET(ii, &wf->wmask)
-#ifdef XTHREADS
+#ifdef ISW_THREADS
             && FD_ISSET(ii, &app->fds.wmask)
 #endif
             ) {
@@ -515,7 +515,7 @@ FindInputs(IswAppContext app,
             nfds--;
         }
         if (FD_ISSET(ii, &wf->emask)
-#ifdef XTHREADS
+#ifdef ISW_THREADS
             && FD_ISSET(ii, &app->fds.emask)
 #endif
             ) {
@@ -683,14 +683,14 @@ _IswWaitForSomething(IswAppContext app,
                     _IswBoolean ignoreInputs,
                     _IswBoolean ignoreSignals,
                     _IswBoolean block,
-                    _IswBoolean drop_lock, /* only needed with XTHREADS */
+                    _IswBoolean drop_lock, /* only needed with ISW_THREADS */
                     unsigned long *howlong)
 {
     wait_times_t wt;
     wait_fds_t wf;
     int nfds, dpy_no, found_input;
 
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     Boolean push_thread = TRUE;
     Boolean pushed_thread = FALSE;
     int level = 0;
@@ -699,7 +699,7 @@ _IswWaitForSomething(IswAppContext app,
     struct pollfd fdlist[ISW_DEFAULT_FDLIST_SIZE];
 #endif
 
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     /* assert ((ignoreTimers && ignoreInputs && ignoreSignals) || drop_lock); */
     /* If not multi-threaded, never drop lock */
     if (app->lock == (ThreadAppProc) NULL)
@@ -736,7 +736,7 @@ _IswWaitForSomething(IswAppContext app,
         if (app->rebuild_fdlist)
             InitFds(app, (Boolean) ignoreEvents, (Boolean) ignoreInputs, &wf);
 
-#ifdef XTHREADS                 /* { */
+#ifdef ISW_THREADS                 /* { */
         if (drop_lock) {
             YIELD_APP_LOCK(app, &push_thread, &pushed_thread, &level);
             nfds = IoWait(&wt, &wf);

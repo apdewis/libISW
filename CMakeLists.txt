@@ -26,6 +26,7 @@ option(ISW_INTERNATIONALIZATION "Enable UTF-8 multibyte support" ON)
 option(ISW_HAS_XIM "Enable X Input Method for CJK input (requires Xlib XIM APIs)" OFF)
 
 option(ISW_GRAY_BLKWHT_STIPPLES "Enable gray stipple patterns" OFF)
+option(ISW_THREADS "Enable POSIX thread safety locks" OFF)
 
 option(ISW_RENDER_EGL "Enable the pure EGL/OpenGL ES render backend (NanoVG-based) if dependencies are found" ON)
 
@@ -392,6 +393,12 @@ endif()
 
 if(ISW_GRAY_BLKWHT_STIPPLES)
     target_compile_definitions(ISW PRIVATE ISW_GRAY_BLKWHT_STIPPLES)
+endif()
+
+if(ISW_THREADS)
+    find_package(Threads REQUIRED)
+    target_compile_definitions(ISW PRIVATE ISW_THREADS)
+    target_link_libraries(ISW PRIVATE Threads::Threads)
 endif()
 
 if(XKBCOMMON_FOUND)

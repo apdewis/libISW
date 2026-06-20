@@ -176,7 +176,7 @@ IswUnmanageChildren(WidgetList children, Cardinal num_children)
     Widget parent, hookobj;
     Cardinal ii;
 
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     IswAppContext app;
 #endif
 
@@ -188,7 +188,7 @@ IswUnmanageChildren(WidgetList children, Cardinal num_children)
                      NULL, NULL);
         return;
     }
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     app = IswWidgetToApplicationContext(children[0]);
 #endif
     LOCK_APP(app);
@@ -347,7 +347,7 @@ IswManageChildren(WidgetList children, Cardinal num_children)
 {
     Widget parent, hookobj;
 
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     IswAppContext app;
 #endif
 
@@ -358,7 +358,7 @@ IswManageChildren(WidgetList children, Cardinal num_children)
                      "null child passed to IswManageChildren", NULL, NULL);
         return;
     }
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     app = IswWidgetToApplicationContext(children[0]);
 #endif
     LOCK_APP(app);

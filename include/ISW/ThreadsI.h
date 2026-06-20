@@ -53,9 +53,7 @@ in this Software without prior written authorization from The Open Group.
 #ifndef _IswThreadsI_h
 #define _IswThreadsI_h
 
-//#include <X11/XlibConf.h>
-
-#ifdef XTHREADS
+#ifdef ISW_THREADS
 
 typedef struct _LockRec *LockPtr;
 
@@ -112,7 +110,7 @@ _XFUNCPROTOEND
 #define DPY_TO_APPCON(d) \
     IswAppContext app = (_IswProcessLock ? IswDisplayToApplicationContext(d): NULL)
 
-#else /* defined(XTHREADS) */
+#else /* defined(ISW_THREADS) */
 
 #define LOCK_PROCESS
 #define UNLOCK_PROCESS
@@ -125,5 +123,5 @@ _XFUNCPROTOEND
 #define WIDGET_TO_APPCON(w)
 #define DPY_TO_APPCON(d)
 
-#endif /* !defined(XTHREADS) */
+#endif /* !defined(ISW_THREADS) */
 #endif /* _IswThreadsI_h */

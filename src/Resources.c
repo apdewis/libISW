@@ -1322,7 +1322,7 @@ _IswGetApplicationResources(Widget w,            /* Application shell widget */
     IswQResourceList *table;
     Cardinal ntyped_args = num_typed_args;
 
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     IswAppContext app;
 #endif
     IswCacheRef *Resrc = NULL;
@@ -1330,7 +1330,7 @@ _IswGetApplicationResources(Widget w,            /* Application shell widget */
     if (num_resources == 0)
         return;
 
-#ifdef XTHREADS
+#ifdef ISW_THREADS
     if (w == NULL)
         app = _IswDefaultAppContext();
     else
