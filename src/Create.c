@@ -336,7 +336,7 @@ CompileCallbacks(Widget widget)
 }
 
 static Widget
-xtCreate(String name,
+IswCreate(String name,
          String class,
          WidgetClass widget_class,
          Widget parent,
@@ -597,7 +597,7 @@ _IswCreateWidget(String name,
     else {
         cwc = NULL;
     }
-    widget = xtCreate(name, (char *) NULL, widget_class, parent,
+    widget = IswCreate(name, (char *) NULL, widget_class, parent,
                       default_screen, conn, args, num_args,
                       typed_args, num_typed_args, cwc, widgetPostProc);
     return (widget);
@@ -677,7 +677,7 @@ _IswCreatePopupShell(String name,
     }
     IswCheckSubclass(parent, coreWidgetClass, "in IswCreatePopupShell");
     default_screen = parent->core.screen;
-    widget = xtCreate(name, (char *) NULL, widget_class, parent,
+    widget = IswCreate(name, (char *) NULL, widget_class, parent,
                       default_screen, parent->core.display, args, num_args, typed_args,
                       num_typed_args, (ConstraintWidgetClass) NULL,
                       popupPostProc);
@@ -726,7 +726,7 @@ _IswAppCreateShell(String name,
         name = pd ? pd->name : "main";
     }
 
-    shell = xtCreate(name, class, widget_class, (Widget) NULL,
+    shell = IswCreate(name, class, widget_class, (Widget) NULL,
                      _IswDefaultScreenOf(display),
                      display,
                      args, num_args, typed_args, num_typed_args,

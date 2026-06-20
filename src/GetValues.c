@@ -183,7 +183,7 @@ CallConstraintGetValuesHook(WidgetClass widget_class,
 
             params[0] = widget_class->core_class.class_name;
             IswAppWarningMsg(IswWidgetToApplicationContext(w),
-                            "invalidExtension", "xtCreateWidget",
+                            "invalidExtension", "IswCreateWidget",
                             IswCIswToolkitError,
                             "widget class %s has invalid ConstraintClassExtension record",
                             params, &num_params);

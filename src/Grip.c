@@ -139,7 +139,7 @@ WidgetClass gripWidgetClass = (WidgetClass) &gripClassRec;
 static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
-    /* core.width / core.height are now scaled centrally in xtCreate() */
+    /* core.width / core.height are now scaled centrally in IswCreate() */
     ((GripWidget) new)->grip.render_ctx = NULL;
 }
 
