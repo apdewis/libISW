@@ -79,7 +79,6 @@ in this Software without prior written authorization from The Open Group.
 #include        <ISW/ISWP.h>          /* IswOrientation / IswJustify */
 #include        <ISW/ISWPlatform.h>
 #include        <stdio.h>
-#include        <X11/keysym.h>
 #include        <X11/Xlocale.h>
 #include        <fontconfig/fontconfig.h>
 #include        <ft2build.h>
@@ -1349,19 +1348,19 @@ CompareISOLatin1(const char *first, const char *second)
         if ((a = *ap) != (b = *bp)) {
             /* try lowercasing and try again */
 
-            if ((a >= XK_A) && (a <= XK_Z))
-                a = (unsigned char) (a + (XK_a - XK_A));
-            else if ((a >= XK_Agrave) && (a <= XK_Odiaeresis))
-                a = (unsigned char) (a + (XK_agrave - XK_Agrave));
-            else if ((a >= XK_Ooblique) && (a <= XK_Thorn))
-                a = (unsigned char) (a + (XK_oslash - XK_Ooblique));
+            if ((a >= 'A') && (a <= 'Z'))
+                a = (unsigned char) (a + ('a' - 'A'));
+            else if ((a >= 0xC0) && (a <= 0xD6))
+                a = (unsigned char) (a + 0x20);
+            else if ((a >= 0xD8) && (a <= 0xDE))
+                a = (unsigned char) (a + 0x20);
 
-            if ((b >= XK_A) && (b <= XK_Z))
-                b = (unsigned char) (b + (XK_a - XK_A));
-            else if ((b >= XK_Agrave) && (b <= XK_Odiaeresis))
-                b = (unsigned char) (b + (XK_agrave - XK_Agrave));
-            else if ((b >= XK_Ooblique) && (b <= XK_Thorn))
-                b = (unsigned char) (b + (XK_oslash - XK_Ooblique));
+            if ((b >= 'A') && (b <= 'Z'))
+                b = (unsigned char) (b + ('a' - 'A'));
+            else if ((b >= 0xC0) && (b <= 0xD6))
+                b = (unsigned char) (b + 0x20);
+            else if ((b >= 0xD8) && (b <= 0xDE))
+                b = (unsigned char) (b + 0x20);
 
             if (a != b)
                 break;
@@ -1377,12 +1376,12 @@ CopyISOLatin1Lowered(char *dst, const char *src)
     const unsigned char *source = (const unsigned char *) src;
 
     for (; *source; source++, dest++) {
-        if (*source >= XK_A && *source <= XK_Z)
-            *dest = (unsigned char) (*source + (XK_a - XK_A));
-        else if (*source >= XK_Agrave && *source <= XK_Odiaeresis)
-            *dest = (unsigned char) (*source + (XK_agrave - XK_Agrave));
-        else if (*source >= XK_Ooblique && *source <= XK_Thorn)
-            *dest = (unsigned char) (*source + (XK_oslash - XK_Ooblique));
+        if (*source >= 'A' && *source <= 'Z')
+            *dest = (unsigned char) (*source + ('a' - 'A'));
+        else if (*source >= 0xC0 && *source <= 0xD6)
+            *dest = (unsigned char) (*source + 0x20);
+        else if (*source >= 0xD8 && *source <= 0xDE)
+            *dest = (unsigned char) (*source + 0x20);
         else
             *dest = *source;
     }
