@@ -307,7 +307,6 @@ set(ISW_WIDGET_SOURCES
     src/ISWP.c
     src/ISWInit.c
     src/ISWUtf8.c
-    src/IswTrayIcon.c
     src/Image.c
     src/ISWImage.c
 )
