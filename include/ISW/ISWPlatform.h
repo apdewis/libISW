@@ -762,12 +762,11 @@ struct _IswPlatformHintOps {
     void (*set_wm_class)(IswDisplay dpy, IswWindow win,
                          const char *name, const char *class_name);
     void (*set_wm_protocols)(IswDisplay dpy, IswWindow win,
-                             const Atom *protocols, int num_protocols);
+                             const char **protocol_names, int num_protocols);
     void (*set_transient_for)(IswDisplay dpy, IswWindow win, IswWindow leader);
+    void (*delete_transient_for)(IswDisplay dpy, IswWindow win);
     void (*set_window_type)(IswDisplay dpy, IswWindow win, IswWindowType type);
     void (*set_pid)(IswDisplay dpy, IswWindow win, uint32_t pid);
-    /* Normal (size) hints the toolkit actually sets.  flags mirrors the ICCCM
-       size-hint flag bits the caller populates; a backend honours what it can. */
     void (*set_normal_hints)(IswDisplay dpy, IswWindow win,
                              uint32_t flags,
                              int x, int y, int width, int height,
@@ -778,11 +777,26 @@ struct _IswPlatformHintOps {
                              int max_aspect_num, int max_aspect_den,
                              int base_width, int base_height,
                              int win_gravity);
-    /* The full WM_HINTS record (focus model, initial state, icon, group,
-       urgency).  The backend marshals it to its native representation. */
     void (*set_wm_hints)(IswDisplay dpy, IswWindow win, const IswWmHints *hints);
     void (*set_strut_partial)(IswDisplay dpy, IswWindow win,
                               const IswStrutPartial *strut);
+    void (*set_wm_command)(IswDisplay dpy, IswWindow win,
+                           const char *const *argv, int argc);
+    void (*delete_wm_command)(IswDisplay dpy, IswWindow win);
+    void (*set_client_leader)(IswDisplay dpy, IswWindow win, IswWindow leader);
+    void (*set_window_role)(IswDisplay dpy, IswWindow win, const char *role);
+    void (*delete_window_role)(IswDisplay dpy, IswWindow win);
+    void (*set_locale_name)(IswDisplay dpy, IswWindow win, const char *locale);
+    void (*set_user_time)(IswDisplay dpy, IswWindow win, IswWindow time_win,
+                          uint32_t time);
+    void (*set_startup_id)(IswDisplay dpy, IswWindow win, IswWindow root,
+                           const char *startup_id);
+    void (*set_icon_data)(IswDisplay dpy, IswWindow win,
+                          const uint32_t *data, uint32_t num_elements);
+    void (*delete_icon_data)(IswDisplay dpy, IswWindow win);
+    void (*set_iconic)(IswDisplay dpy, IswWindow win);
+    void (*toggle_wm_state)(IswDisplay dpy, IswWindow win,
+                            const char *state_name, Boolean set);
 };
 
 /*
@@ -1177,8 +1191,10 @@ extern void _IswPlatformSetIconTitle(IswDisplay dpy, IswWindow win, const char *
 extern void _IswPlatformSetWmClass(IswDisplay dpy, IswWindow win,
                                    const char *name, const char *class_name);
 extern void _IswPlatformSetWmProtocols(IswDisplay dpy, IswWindow win,
-                                       const Atom *protocols, int num_protocols);
+                                       const char **protocol_names,
+                                       int num_protocols);
 extern void _IswPlatformSetTransientFor(IswDisplay dpy, IswWindow win, IswWindow leader);
+extern void _IswPlatformDeleteTransientFor(IswDisplay dpy, IswWindow win);
 extern void _IswPlatformSetWindowType(IswDisplay dpy, IswWindow win, IswWindowType type);
 extern void _IswPlatformSetPid(IswDisplay dpy, IswWindow win, uint32_t pid);
 extern void _IswPlatformSetNormalHints(IswDisplay dpy, IswWindow win, uint32_t flags,
@@ -1193,6 +1209,28 @@ extern void _IswPlatformSetWmHints(IswDisplay dpy, IswWindow win,
                                    const IswWmHints *hints);
 extern void _IswPlatformSetStrutPartial(IswDisplay dpy, IswWindow win,
                                         const IswStrutPartial *strut);
+extern void _IswPlatformSetWmCommand(IswDisplay dpy, IswWindow win,
+                                     const char *const *argv, int argc);
+extern void _IswPlatformDeleteWmCommand(IswDisplay dpy, IswWindow win);
+extern void _IswPlatformSetClientLeader(IswDisplay dpy, IswWindow win,
+                                        IswWindow leader);
+extern void _IswPlatformSetWindowRole(IswDisplay dpy, IswWindow win,
+                                      const char *role);
+extern void _IswPlatformDeleteWindowRole(IswDisplay dpy, IswWindow win);
+extern void _IswPlatformSetLocaleName(IswDisplay dpy, IswWindow win,
+                                      const char *locale);
+extern void _IswPlatformSetUserTime(IswDisplay dpy, IswWindow win,
+                                    IswWindow time_win, uint32_t time);
+extern void _IswPlatformSetStartupId(IswDisplay dpy, IswWindow win,
+                                     IswWindow root, const char *startup_id);
+extern void _IswPlatformSetIconData(IswDisplay dpy, IswWindow win,
+                                    const uint32_t *data, uint32_t num_elements);
+extern void _IswPlatformDeleteIconData(IswDisplay dpy, IswWindow win);
+extern void _IswPlatformSetIconic(IswDisplay dpy, IswWindow win);
+extern void _IswPlatformToggleWmState(IswDisplay dpy, IswWindow win,
+                                      const char *state_name, Boolean set);
+extern Boolean _IswPlatformIsProtocol(IswDisplay dpy, IswProtocolId id,
+                                      const char *name);
 
 /* Send a protocol/client message about `win` (X ClientMessage and equivalents).
    `type` is the message-type atom; `format` is 8/16/32; `data` points at the

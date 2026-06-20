@@ -345,8 +345,6 @@ typedef struct _IswPerDisplayStruct {
     Widget hook_object;
     IswPerWidgetInput PerWidgetContext;
     double scale_factor;	       /* HiDPI scale factor (1.0 = 96 DPI) */
-    Atom net_wm_user_time;       /* _NET_WM_USER_TIME atom (0 = not yet interned) */
-    Atom net_wm_user_time_window; /* _NET_WM_USER_TIME_WINDOW atom */
 } IswPerDisplayStruct, *IswPerDisplay;
 
 typedef struct _PerDisplayTable {

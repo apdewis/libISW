@@ -1689,11 +1689,11 @@ _IswPlatformSetWmClass(IswDisplay dpy, IswWindow win,
 
 void
 _IswPlatformSetWmProtocols(IswDisplay dpy, IswWindow win,
-                           const Atom *protocols, int num_protocols)
+                           const char **protocol_names, int num_protocols)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_wm_protocols)
-        ops->hint->set_wm_protocols(dpy, win, protocols, num_protocols);
+        ops->hint->set_wm_protocols(dpy, win, protocol_names, num_protocols);
 }
 
 void
@@ -1755,6 +1755,126 @@ _IswPlatformSetStrutPartial(IswDisplay dpy, IswWindow win,
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->set_strut_partial)
         ops->hint->set_strut_partial(dpy, win, strut);
+}
+
+void
+_IswPlatformDeleteTransientFor(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->delete_transient_for)
+        ops->hint->delete_transient_for(dpy, win);
+}
+
+void
+_IswPlatformSetWmCommand(IswDisplay dpy, IswWindow win,
+                         const char *const *argv, int argc)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_wm_command)
+        ops->hint->set_wm_command(dpy, win, argv, argc);
+}
+
+void
+_IswPlatformDeleteWmCommand(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->delete_wm_command)
+        ops->hint->delete_wm_command(dpy, win);
+}
+
+void
+_IswPlatformSetClientLeader(IswDisplay dpy, IswWindow win, IswWindow leader)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_client_leader)
+        ops->hint->set_client_leader(dpy, win, leader);
+}
+
+void
+_IswPlatformSetWindowRole(IswDisplay dpy, IswWindow win, const char *role)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_window_role)
+        ops->hint->set_window_role(dpy, win, role);
+}
+
+void
+_IswPlatformDeleteWindowRole(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->delete_window_role)
+        ops->hint->delete_window_role(dpy, win);
+}
+
+void
+_IswPlatformSetLocaleName(IswDisplay dpy, IswWindow win, const char *locale)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_locale_name)
+        ops->hint->set_locale_name(dpy, win, locale);
+}
+
+void
+_IswPlatformSetUserTime(IswDisplay dpy, IswWindow win,
+                        IswWindow time_win, uint32_t time)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_user_time)
+        ops->hint->set_user_time(dpy, win, time_win, time);
+}
+
+void
+_IswPlatformSetStartupId(IswDisplay dpy, IswWindow win, IswWindow root,
+                         const char *startup_id)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_startup_id)
+        ops->hint->set_startup_id(dpy, win, root, startup_id);
+}
+
+void
+_IswPlatformSetIconData(IswDisplay dpy, IswWindow win,
+                        const uint32_t *data, uint32_t num_elements)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_icon_data)
+        ops->hint->set_icon_data(dpy, win, data, num_elements);
+}
+
+void
+_IswPlatformDeleteIconData(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->delete_icon_data)
+        ops->hint->delete_icon_data(dpy, win);
+}
+
+void
+_IswPlatformSetIconic(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->set_iconic)
+        ops->hint->set_iconic(dpy, win);
+}
+
+void
+_IswPlatformToggleWmState(IswDisplay dpy, IswWindow win,
+                          const char *state_name, Boolean set)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->toggle_wm_state)
+        ops->hint->toggle_wm_state(dpy, win, state_name, set);
+}
+
+Boolean
+_IswPlatformIsProtocol(IswDisplay dpy, IswProtocolId id, const char *name)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->atom && ops->atom->intern) {
+        Atom expected = ops->atom->intern(dpy, name, True);
+        return (expected != ISW_ATOM_NONE && (Atom) id == expected);
+    }
+    return False;
 }
 
 /* ---- WM-protocol primitives (Shell) -------------------------------------- */

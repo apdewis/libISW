@@ -736,13 +736,10 @@ static void SetWMProperties(Widget w, char *window_name, char *icon_name,
         _IswPlatformSetIconTitle(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), icon_name);
     }
 
-    // Set WM_COMMAND property (niche ICCCM; generic property op)
     if (argc > 0 && argv != NULL) {
-        Atom wm_command = _IswPlatformInternAtomOp(IswDisplayOf(w),
-                                                   "WM_COMMAND", False);
-        _IswPlatformChangeProperty(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-                                   wm_command, ISW_ATOM_STRING, 8,
-                                   ISW_PROP_MODE_REPLACE, argv, (uint32_t) argc);
+        _IswPlatformSetWmCommand(IswDisplayOf(w),
+                                 _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+                                 (const char *const *) argv, argc);
     }
 
     // Set WM_CLASS (semantic class hint)
@@ -1015,17 +1012,13 @@ ShellWMDeleteWindow(Widget w, IswEvent *iswev, String *params,
        (IswProtocol) carrying the protocol atom in data[0].  Act only on
        WM_DELETE_WINDOW; other WM_PROTOCOLS messages (WM_TAKE_FOCUS, _NET_WM_PING,
        ...) fall through untouched. */
-    Atom wm_delete_window;
-
     (void) params; (void) num_params;
 
     if (iswev->kind != IswProtocol)
 	return;
 
-    wm_delete_window =
-	_IswPlatformInternAtomOp(IswDisplayOf(w), "WM_DELETE_WINDOW", True);
-    if (wm_delete_window == 0 ||
-	(Atom) iswev->protocol.data[0] != wm_delete_window)
+    if (!_IswPlatformIsProtocol(IswDisplayOf(w),
+            (IswProtocolId) iswev->protocol.data[0], "WM_DELETE_WINDOW"))
 	return;
 
     if (IswIsApplicationShell(w))
@@ -1041,7 +1034,6 @@ SetShellWMProtocolTranslations(Widget w)
     static IswAppContext *app_context_list;	/* initially 0 */
     static Cardinal list_size;			/* initially 0 */
     IswAppContext app_context;
-    Atom wm_delete_window;
     int i;
 
     app_context = IswWidgetToApplicationContext(w);
@@ -1067,11 +1059,11 @@ SetShellWMProtocolTranslations(Widget w)
     /* augment so apps can override with IswOverrideTranslations */
     IswAugmentTranslations(w, compiled_table);
 
-    /* advertise WM_DELETE_WINDOW to the window manager */
-    wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), "WM_DELETE_WINDOW", False);
     {
-        Atom protocols[1] = { wm_delete_window };
-        _IswPlatformSetWmProtocols(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), protocols, 1);
+        const char *protocols[] = { "WM_DELETE_WINDOW" };
+        _IswPlatformSetWmProtocols(IswDisplayOf(w),
+            _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+            protocols, 1);
     }
 }
 
@@ -1180,10 +1172,8 @@ _SetTransientForHint(TransientShellWidget w, Boolean delete)
         else if ((window_group = w->wm.wm_hints.window_group)
                  == IswUnspecifiedWindowGroup) {
             if (delete) {
-                Atom transient_for = _IswPlatformInternAtomOp(
-                    IswDisplayOf((Widget) w), "WM_TRANSIENT_FOR", False);
-                _IswPlatformDeleteProperty(IswDisplayOf((Widget) w),
-                                           _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), transient_for);
+                _IswPlatformDeleteTransientFor(IswDisplayOf((Widget) w),
+                    _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)));
             }
             return;
         }
@@ -1411,37 +1401,26 @@ _popup_set_prop(ShellWidget w)
         const char *locale = "C"; //setlocale(LC_CTYPE, (char *) NULL);
 
         if (locale) {
-            Atom wm_locale = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
-                                                      "WM_LOCALE_NAME", False);
-            _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                       _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), wm_locale,
-                                       ISW_ATOM_STRING, 8, ISW_PROP_MODE_REPLACE,
-                                       locale, (uint32_t) strlen(locale));
+            _IswPlatformSetLocaleName(IswDisplayOf((Widget) w),
+                _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+                locale);
         }
     }
     UNLOCK_PROCESS;
 
     p = GetClientLeader((Widget) w);
-    
+
         IswWindow leader = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(p)), (Widget)(p));
         if (leader) {
-            IswWindowId leader_id = _IswPlatformWindowId(leader);
-            Atom client_leader = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
-                                                          "WM_CLIENT_LEADER", False);
-            _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                       _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), client_leader,
-                                       ISW_ATOM_WINDOW, 32, ISW_PROP_MODE_REPLACE,
-                                       &leader_id, 1);
+            _IswPlatformSetClientLeader(IswDisplayOf((Widget) w),
+                _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+                leader);
         }
-    
+
     if (wmshell->wm.window_role) {
-        Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf((Widget) w),
-                                                    "WM_WINDOW_ROLE", False);
-        _IswPlatformChangeProperty(IswDisplayOf((Widget) w),
-                                   _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)), window_role,
-                                   ISW_ATOM_STRING, 8, ISW_PROP_MODE_REPLACE,
-                                   wmshell->wm.window_role,
-                                   (uint32_t) strlen(wmshell->wm.window_role));
+        _IswPlatformSetWindowRole(IswDisplayOf((Widget) w),
+            _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+            wmshell->wm.window_role);
     }
 
     IswDisplay wdpy = IswDisplayOf((Widget) w);
@@ -1465,75 +1444,16 @@ _popup_set_prop(ShellWidget w)
     /* _NET_WM_USER_TIME_WINDOW */
     if (IswIsWMShell((Widget) w)) {
         IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf((Widget) w));
-        if (!pd->net_wm_user_time) {
-            pd->net_wm_user_time = _IswPlatformInternAtomOp(
-                IswDisplayOf((Widget) w), "_NET_WM_USER_TIME", False);
-            pd->net_wm_user_time_window = _IswPlatformInternAtomOp(
-                IswDisplayOf((Widget) w), "_NET_WM_USER_TIME_WINDOW", False);
-        }
-
-        if (pd->net_wm_user_time && pd->net_wm_user_time_window) {
-            IswWindow utwin = _IswPlatformCreateInputOnly(wdpy, win);
-            IswWindowId utwin_id = _IswPlatformWindowId(utwin);
-            wmshell->wm.user_time_win = utwin;
-
-            _IswPlatformChangeProperty(wdpy, win,
-                                pd->net_wm_user_time_window, ISW_ATOM_WINDOW, 32,
-                                ISW_PROP_MODE_REPLACE, &utwin_id, 1);
-
-            uint32_t initial_time = pd->last_timestamp;
-            _IswPlatformChangeProperty(wdpy, utwin,
-                                pd->net_wm_user_time, ISW_ATOM_CARDINAL, 32,
-                                ISW_PROP_MODE_REPLACE, &initial_time, 1);
-        }
+        IswWindow utwin = _IswPlatformCreateInputOnly(wdpy, win);
+        wmshell->wm.user_time_win = utwin;
+        _IswPlatformSetUserTime(wdpy, win, utwin, pd->last_timestamp);
     }
 
-    /* _NET_STARTUP_ID — set property and send remove message.  The atoms
-        come from the atom op + the property via the generic op; the
-        broadcast client-message loop (xcb_send_event) stays on the seam. */
     if (wmshell->wm.startup_id) {
-        IswDisplay sdpy = IswDisplayOf((Widget) w);
-        Atom sid_atom  = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_ID", False);
-        Atom utf8_atom = _IswPlatformInternAtomOp(sdpy, "UTF8_STRING", False);
-        Atom sib_atom  = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_INFO_BEGIN", False);
-        Atom si_atom   = _IswPlatformInternAtomOp(sdpy, "_NET_STARTUP_INFO", False);
-
-        if (sid_atom && utf8_atom) {
-            _IswPlatformChangeProperty(sdpy, _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-                                sid_atom, utf8_atom, 8, ISW_PROP_MODE_REPLACE,
-                                wmshell->wm.startup_id,
-                                (uint32_t) strlen(wmshell->wm.startup_id));
-        }
-
-        if (sib_atom && si_atom) {
-            char msg[256];
-            int len = snprintf(msg, sizeof(msg), "remove: ID=%s",
-                                wmshell->wm.startup_id);
-            if (len > 0 && (size_t)len < sizeof(msg)) {
-                len++;  /* include NUL terminator */
-                IswWindow root = _IswDefaultRootWindow(wdpy);
-                const char *mp = msg;
-                int remaining = len;
-
-                while (remaining > 0) {
-                    char chunk_buf[20];
-                    int chunk = remaining > 20 ? 20 : remaining;
-                    memset(chunk_buf, 0, sizeof(chunk_buf));
-                    memcpy(chunk_buf, mp, chunk);
-
-                    _IswPlatformSendMessage(wdpy, root, win,
-                                            (mp == msg) ? sib_atom : si_atom,
-                                            8, chunk_buf,
-                                            False, IswPropertyChangeMask);
-                    mp += chunk;
-                    remaining -= chunk;
-                }
-            }
-        }
-
+        IswWindow root = _IswDefaultRootWindow(wdpy);
+        _IswPlatformSetStartupId(wdpy, win, root, wmshell->wm.startup_id);
         IswFree(wmshell->wm.startup_id);
         wmshell->wm.startup_id = NULL;
-        
     }
 }
 
@@ -2372,9 +2292,7 @@ WMSetValues(Widget old,
     else
         title_changed = False;
 
-    if (set_prop
-        && (title_changed ||
-            nwmshell->wm.title_encoding != owmshell->wm.title_encoding)) {
+    if (set_prop && title_changed) {
 
         //XTextProperty title;
 
@@ -2434,10 +2352,7 @@ WMSetValues(Widget old,
             }
         }
         else {
-            Atom transient_for = _IswPlatformInternAtomOp(IswDisplayOf(new),
-                                                          "WM_TRANSIENT_FOR", False);
-            _IswPlatformDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-                                       transient_for);
+            _IswPlatformDeleteTransientFor(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)));
         }
     }
 
@@ -2447,12 +2362,8 @@ WMSetValues(Widget old,
         IswWindow leader_win = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(leader)), (Widget)(leader));
 
         if (leader_win) {
-            IswWindowId leader_id = _IswPlatformWindowId(leader_win);
-            Atom client_leader = _IswPlatformInternAtomOp(IswDisplayOf(new),
-                                                          "WM_CLIENT_LEADER", False);
-            _IswPlatformChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-                                       client_leader, ISW_ATOM_WINDOW, 32,
-                                       ISW_PROP_MODE_REPLACE, &leader_id, 1);
+            _IswPlatformSetClientLeader(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
+                                        leader_win);
         }
     }
 
@@ -2476,19 +2387,11 @@ WMSetValues(Widget old,
         IswFree((_IswString) owmshell->wm.window_role);
 
         if (set_prop && nwmshell->wm.window_role) {
-            Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf(new),
-                                                        "WM_WINDOW_ROLE", False);
-            _IswPlatformChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-                                       window_role, ISW_ATOM_STRING, 8,
-                                       ISW_PROP_MODE_REPLACE,
-                                       nwmshell->wm.window_role,
-                                       (uint32_t) strlen(nwmshell->wm.window_role));
+            _IswPlatformSetWindowRole(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
+                                      nwmshell->wm.window_role);
         }
         else if (IswIsRealized(new) && !nwmshell->wm.window_role) {
-            Atom window_role = _IswPlatformInternAtomOp(IswDisplayOf(new),
-                                                        "WM_WINDOW_ROLE", False);
-            _IswPlatformDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-                                       window_role);
+            _IswPlatformDeleteWindowRole(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)));
         }
     }
     return FALSE;
@@ -2546,20 +2449,7 @@ TopLevelSetValues(Widget oldW,
                 //    );
                 // XCB doesn't have a direct equivalent to XIconifyWindow
 
-                Atom net_wm_state = _IswPlatformInternAtomOp(IswDisplayOf(newW),
-                                                             "_NET_WM_STATE", False);
-                Atom net_wm_state_hidden = _IswPlatformInternAtomOp(
-                    IswDisplayOf(newW), "_NET_WM_STATE_HIDDEN", False);
-
-                if (net_wm_state && net_wm_state_hidden) {
-                    IswWindow nwin = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW));
-                    uint32_t data[5] = { 1 /* _NET_WM_STATE_ADD */,
-                                         (uint32_t) net_wm_state_hidden,
-                                         0, 0, 0 };
-                    _IswPlatformSendMessage(IswDisplayOf(newW), nwin, nwin,
-                                            net_wm_state, 32, data,
-                                            False, IswSubstructureNotifyMask);
-                }
+                _IswPlatformSetIconic(IswDisplayOf(newW), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(newW)), (Widget)(newW)));
             }
             else {
                 Boolean map = new->shell.popped_up;
@@ -2572,10 +2462,7 @@ TopLevelSetValues(Widget oldW,
             }
         }
 
-        if (!new->shell.override_redirect &&
-            (name_changed ||
-             (old->topLevel.icon_name_encoding
-              != new->topLevel.icon_name_encoding))) {
+        if (!new->shell.override_redirect && name_changed) {
 
             //XTextProperty icon_name;
 
@@ -2665,17 +2552,12 @@ ApplicationSetValues(Widget current,
         //        XDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)), XCB_ATOM_WM_COMMAND);
         //}
         if (IswIsRealized(new) && !nw->shell.override_redirect) {
-            Atom wm_command = _IswPlatformInternAtomOp(IswDisplayOf(new),
-                                                       "WM_COMMAND", False);
             if (nw->application.argc >= 0 && nw->application.argv) {
-                _IswPlatformChangeProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-                                           wm_command, ISW_ATOM_STRING, 8,
-                                           ISW_PROP_MODE_REPLACE,
-                                           nw->application.argv,
-                                           (uint32_t) nw->application.argc);
+                _IswPlatformSetWmCommand(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
+                                         (const char *const *) nw->application.argv,
+                                         nw->application.argc);
             } else {
-                _IswPlatformDeleteProperty(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)),
-                                           wm_command);
+                _IswPlatformDeleteWmCommand(IswDisplayOf(new), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(new)), (Widget)(new)));
             }
         }
     }
@@ -2804,45 +2686,31 @@ void
 IswSetWindowIconARGB(Widget shell, const uint32_t *argb_data,
                      unsigned int n_entries)
 {
-    Atom icon_atom;
-
     if (!IswIsRealized(shell) || !argb_data || n_entries == 0)
         return;
 
-    icon_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), "_NET_WM_ICON", False);
-    _IswPlatformChangeProperty(IswDisplayOf(shell), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)),
-                               icon_atom, ISW_ATOM_CARDINAL, 32,
-                               ISW_PROP_MODE_REPLACE, argb_data, n_entries);
+    _IswPlatformSetIconData(IswDisplayOf(shell), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)),
+                            argb_data, n_entries);
 }
 
 void
 IswClearWindowIcon(Widget shell)
 {
-    Atom icon_atom;
-
     if (!IswIsRealized(shell))
         return;
 
-    icon_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), "_NET_WM_ICON", False);
-    _IswPlatformDeleteProperty(IswDisplayOf(shell), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)), icon_atom);
+    _IswPlatformDeleteIconData(IswDisplayOf(shell), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)));
 }
 
 static void
-SetNetWmString(Widget shell, const char *prop_name, unsigned int prop_len,
+SetNetWmString(Widget shell, const char *prop_name _X_UNUSED,
+               unsigned int prop_len _X_UNUSED,
                const char *value)
 {
-    Atom prop_atom, utf8_atom;
-
     if (!IswIsRealized(shell) || !value)
         return;
 
-    (void) prop_len;
-    prop_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), prop_name, False);
-    utf8_atom = _IswPlatformInternAtomOp(IswDisplayOf(shell), "UTF8_STRING", False);
-    //#FIXME window related changes go in the platform code
-    //_IswPlatformChangeProperty(IswDisplayOf(shell), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell)),
-    //                           prop_atom, utf8_atom, 8, ISW_PROP_MODE_REPLACE,
-    //                           value, (uint32_t) strlen(value));
+    /* TODO: route through a platform hint op */
 }
 
 void
@@ -2860,27 +2728,12 @@ IswSetWindowIconName(Widget shell, const char *name)
 void
 IswSetWindowState(Widget shell, const char *state, Boolean set)
 {
-    IswDisplay dpy;
-    Atom wm_state, state_atom;
-
     if (!IswIsRealized(shell) || !state)
         return;
 
-    dpy = IswDisplayOf(shell);
-
-    wm_state = _IswPlatformInternAtomOp(dpy, "_NET_WM_STATE", False);
-    state_atom = _IswPlatformInternAtomOp(dpy, state, False);
-
-    if (wm_state && state_atom) {
-        /* EWMH: client-message to the root, naming the client window. */
-        IswWindow swin = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(shell)), (Widget)(shell));
-        IswWindow root = _IswDefaultRootWindow(dpy);
-        uint32_t data[5] = { set ? 1u : 0u, (uint32_t) state_atom, 0, 0, 0 };
-        _IswPlatformSendMessage(dpy, root, swin, wm_state, 32, data,
-                                False,
-                                IswSubstructureNotifyMask |
-                                IswSubstructureRedirectMask);
-    }
+    IswDisplay dpy = IswDisplayOf(shell);
+    IswWindow swin = _IswPlatformWidgetWindow(dpy, (Widget) shell);
+    _IswPlatformToggleWmState(dpy, swin, state, set);
 }
 
 void
@@ -2898,12 +2751,6 @@ _IswShellUpdateUserTime(IswDisplay dpy, Widget widget, IswTime time)
     if (!wmshell->wm.user_time_win)
         return;
 
-    IswPerDisplay pd = _IswGetPerDisplay(IswDisplayOf(widget));
-    if (!pd->net_wm_user_time)
-        return;
-
-    _IswPlatformChangeProperty((IswDisplay) dpy,
-                               wmshell->wm.user_time_win,
-                               pd->net_wm_user_time, ISW_ATOM_CARDINAL, 32,
-                               ISW_PROP_MODE_REPLACE, &time, 1);
+    IswWindow win = _IswPlatformWidgetWindow(dpy, widget);
+    _IswPlatformSetUserTime(dpy, win, wmshell->wm.user_time_win, (uint32_t) time);
 }

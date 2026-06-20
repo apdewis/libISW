@@ -1291,10 +1291,8 @@ WMProtocols(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     Boolean is_delete = False;
 
     if (is_protocol) {
-	Atom wm_delete_window =
-	    _IswPlatformInternAtomOp(IswDisplayOf(w), WM_DELETE_WINDOW, True);
-	is_delete = (wm_delete_window != 0 &&
-		     (Atom) iswev->protocol.data[0] == wm_delete_window);
+	is_delete = _IswPlatformIsProtocol(IswDisplayOf(w),
+	    (IswProtocolId) iswev->protocol.data[0], WM_DELETE_WINDOW);
     }
 
     if ((is_delete && (*num_params == 0 || DO_DELETE_WINDOW))
@@ -1316,7 +1314,6 @@ SetWMProtocolTranslations(Widget w)
 {
     int i;
     IswAppContext app_context;
-    Atom wm_delete_window;
     static IswTranslations compiled_table;	/* initially 0 */
     static IswAppContext *app_context_list;	/* initially 0 */
     static Cardinal list_size;			/* initially 0 */
@@ -1342,9 +1339,8 @@ SetWMProtocolTranslations(Widget w)
 
     /* establish communication between the window manager and each shell */
     IswAugmentTranslations(w, compiled_table);
-    wm_delete_window = _IswPlatformInternAtomOp(IswDisplayOf(w), WM_DELETE_WINDOW, False);
     {
-        Atom protocols[1] = { wm_delete_window };
+        const char *protocols[] = { WM_DELETE_WINDOW };
         _IswPlatformSetWmProtocols(IswDisplayOf(w),
                                    _IswPlatformWidgetWindow(IswDisplayOf(w), w),
                                    protocols, 1);

@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
@@ -220,18 +221,18 @@ xcb_hint_set_wm_class(IswDisplay dpy, IswWindow win,
 
 static void
 xcb_hint_set_wm_protocols(IswDisplay dpy, IswWindow win,
-                          const Atom *protocols, int num_protocols)
+                          const char **protocol_names, int num_protocols)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
-    xcb_atom_t wm_protocols;
-
-    if (!conn || !protocols || num_protocols <= 0)
+    if (!conn || !protocol_names || num_protocols <= 0)
         return;
-    wm_protocols = intern_cached(conn, "WM_PROTOCOLS");
-    /* Atom == uint32_t == xcb_atom_t, so the array is layout-compatible. */
+    xcb_atom_t wm_protocols = intern_cached(conn, "WM_PROTOCOLS");
+    xcb_atom_t *atoms = (xcb_atom_t *) IswMalloc(num_protocols * sizeof(xcb_atom_t));
+    for (int i = 0; i < num_protocols; i++)
+        atoms[i] = intern_cached(conn, protocol_names[i]);
     xcb_icccm_set_wm_protocols(conn, _IswXcbWindow(win), wm_protocols,
-                               (uint32_t) num_protocols,
-                               (xcb_atom_t *) protocols);
+                               (uint32_t) num_protocols, atoms);
+    IswFree((char *) atoms);
 }
 
 static void
@@ -244,6 +245,14 @@ xcb_hint_set_transient_for(IswDisplay dpy, IswWindow win, IswWindow leader)
     xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
                         XCB_ATOM_WM_TRANSIENT_FOR, XCB_ATOM_WINDOW, 32,
                         1, &leader_id);
+}
+
+static void
+xcb_hint_delete_transient_for(IswDisplay dpy, IswWindow win)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn) return;
+    xcb_delete_property(conn, _IswXcbWindow(win), XCB_ATOM_WM_TRANSIENT_FOR);
 }
 
 static void
@@ -401,15 +410,225 @@ const IswPlatformPropertyOps isw_platform_xcb_property_ops = {
     .delete_ = xcb_prop_delete,
 };
 
+static void
+xcb_hint_set_wm_command(IswDisplay dpy, IswWindow win,
+                        const char *const *argv, int argc)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn || !argv || argc <= 0) return;
+    xcb_atom_t prop = intern_cached(conn, "WM_COMMAND");
+    int total = 0;
+    for (int i = 0; i < argc; i++)
+        total += (int) strlen(argv[i]) + 1;
+    char *buf = IswMalloc(total);
+    char *p = buf;
+    for (int i = 0; i < argc; i++) {
+        int len = (int) strlen(argv[i]) + 1;
+        memcpy(p, argv[i], len);
+        p += len;
+    }
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
+                        prop, XCB_ATOM_STRING, 8, total, buf);
+    IswFree(buf);
+}
+
+static void
+xcb_hint_delete_wm_command(IswDisplay dpy, IswWindow win)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn) return;
+    xcb_delete_property(conn, _IswXcbWindow(win),
+                        intern_cached(conn, "WM_COMMAND"));
+}
+
+static void
+xcb_hint_set_client_leader(IswDisplay dpy, IswWindow win, IswWindow leader)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn) return;
+    xcb_atom_t prop = intern_cached(conn, "WM_CLIENT_LEADER");
+    IswWindowId lid = _IswPlatformWindowId(leader);
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
+                        prop, XCB_ATOM_WINDOW, 32, 1, &lid);
+}
+
+static void
+xcb_hint_set_window_role(IswDisplay dpy, IswWindow win, const char *role)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn || !role) return;
+    xcb_atom_t prop = intern_cached(conn, "WM_WINDOW_ROLE");
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
+                        prop, XCB_ATOM_STRING, 8,
+                        (uint32_t) strlen(role), role);
+}
+
+static void
+xcb_hint_delete_window_role(IswDisplay dpy, IswWindow win)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn) return;
+    xcb_delete_property(conn, _IswXcbWindow(win),
+                        intern_cached(conn, "WM_WINDOW_ROLE"));
+}
+
+static void
+xcb_hint_set_locale_name(IswDisplay dpy, IswWindow win, const char *locale)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn || !locale) return;
+    xcb_atom_t prop = intern_cached(conn, "WM_LOCALE_NAME");
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
+                        prop, XCB_ATOM_STRING, 8,
+                        (uint32_t) strlen(locale), locale);
+}
+
+static void
+xcb_hint_set_user_time(IswDisplay dpy, IswWindow win, IswWindow time_win,
+                       uint32_t time)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn) return;
+    xcb_atom_t ut_atom = intern_cached(conn, "_NET_WM_USER_TIME");
+    xcb_atom_t utw_atom = intern_cached(conn, "_NET_WM_USER_TIME_WINDOW");
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
+                        utw_atom, XCB_ATOM_WINDOW, 32, 1,
+                        &(IswWindowId){ _IswPlatformWindowId(time_win) });
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE,
+                        _IswXcbWindow(time_win),
+                        ut_atom, XCB_ATOM_CARDINAL, 32, 1, &time);
+}
+
+static void
+xcb_hint_set_startup_id(IswDisplay dpy, IswWindow win, IswWindow root,
+                        const char *startup_id)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn || !startup_id) return;
+
+    xcb_atom_t sid_atom  = intern_cached(conn, "_NET_STARTUP_ID");
+    xcb_atom_t utf8_atom = intern_cached(conn, "UTF8_STRING");
+    xcb_atom_t sib_atom  = intern_cached(conn, "_NET_STARTUP_INFO_BEGIN");
+    xcb_atom_t si_atom   = intern_cached(conn, "_NET_STARTUP_INFO");
+
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
+                        sid_atom, utf8_atom, 8,
+                        (uint32_t) strlen(startup_id), startup_id);
+
+    char msg[256];
+    int len = snprintf(msg, sizeof(msg), "remove: ID=%s", startup_id);
+    if (len > 0 && (size_t)len < sizeof(msg)) {
+        len++;
+        const char *mp = msg;
+        int remaining = len;
+        while (remaining > 0) {
+            xcb_client_message_event_t ev;
+            memset(&ev, 0, sizeof(ev));
+            ev.response_type = XCB_CLIENT_MESSAGE;
+            ev.format = 8;
+            ev.window = _IswXcbWindow(win);
+            ev.type = (mp == msg) ? sib_atom : si_atom;
+            int chunk = remaining > 20 ? 20 : remaining;
+            memcpy(ev.data.data8, mp, chunk);
+            xcb_send_event(conn, False, _IswXcbWindow(root),
+                           XCB_EVENT_MASK_PROPERTY_CHANGE,
+                           (const char *) &ev);
+            mp += chunk;
+            remaining -= chunk;
+        }
+    }
+}
+
+static void
+xcb_hint_set_icon_data(IswDisplay dpy, IswWindow win,
+                       const uint32_t *data, uint32_t num_elements)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn || !data) return;
+    xcb_atom_t prop = intern_cached(conn, "_NET_WM_ICON");
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(win),
+                        prop, XCB_ATOM_CARDINAL, 32, num_elements, data);
+}
+
+static void
+xcb_hint_delete_icon_data(IswDisplay dpy, IswWindow win)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn) return;
+    xcb_delete_property(conn, _IswXcbWindow(win),
+                        intern_cached(conn, "_NET_WM_ICON"));
+}
+
+static void
+xcb_hint_set_iconic(IswDisplay dpy, IswWindow win)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn) return;
+    xcb_atom_t state_atom  = intern_cached(conn, "_NET_WM_STATE");
+    xcb_atom_t hidden_atom = intern_cached(conn, "_NET_WM_STATE_HIDDEN");
+    xcb_client_message_event_t ev;
+    memset(&ev, 0, sizeof(ev));
+    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.format = 32;
+    ev.window = _IswXcbWindow(win);
+    ev.type = state_atom;
+    ev.data.data32[0] = 1; /* _NET_WM_STATE_ADD */
+    ev.data.data32[1] = hidden_atom;
+    xcb_send_event(conn, False, _IswXcbWindow(win),
+                   XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
+                   (const char *) &ev);
+}
+
+static void
+xcb_hint_toggle_wm_state(IswDisplay dpy, IswWindow win,
+                         const char *state_name, Boolean set)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    if (!conn || !state_name) return;
+    xcb_atom_t wm_state   = intern_cached(conn, "_NET_WM_STATE");
+    xcb_atom_t state_atom = intern_cached(conn, state_name);
+    if (!wm_state || !state_atom) return;
+
+    xcb_screen_iterator_t iter = xcb_setup_roots_iterator(xcb_get_setup(conn));
+    if (!iter.data) return;
+    xcb_window_t root = iter.data->root;
+
+    xcb_client_message_event_t ev;
+    memset(&ev, 0, sizeof(ev));
+    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.format = 32;
+    ev.window = _IswXcbWindow(win);
+    ev.type = wm_state;
+    ev.data.data32[0] = set ? 1u : 0u;
+    ev.data.data32[1] = state_atom;
+    xcb_send_event(conn, False, root,
+                   XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
+                   XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
+                   (const char *) &ev);
+}
+
 const IswPlatformHintOps isw_platform_xcb_hint_ops = {
     .set_window_title  = xcb_hint_set_window_title,
     .set_icon_title    = xcb_hint_set_icon_title,
     .set_wm_class      = xcb_hint_set_wm_class,
-    .set_wm_protocols  = xcb_hint_set_wm_protocols,
-    .set_transient_for = xcb_hint_set_transient_for,
-    .set_window_type   = xcb_hint_set_window_type,
-    .set_pid           = xcb_hint_set_pid,
-    .set_normal_hints  = xcb_hint_set_normal_hints,
-    .set_wm_hints      = xcb_hint_set_wm_hints,
-    .set_strut_partial = xcb_hint_set_strut_partial,
+    .set_wm_protocols     = xcb_hint_set_wm_protocols,
+    .set_transient_for    = xcb_hint_set_transient_for,
+    .delete_transient_for = xcb_hint_delete_transient_for,
+    .set_window_type      = xcb_hint_set_window_type,
+    .set_pid              = xcb_hint_set_pid,
+    .set_normal_hints     = xcb_hint_set_normal_hints,
+    .set_wm_hints         = xcb_hint_set_wm_hints,
+    .set_strut_partial    = xcb_hint_set_strut_partial,
+    .set_wm_command       = xcb_hint_set_wm_command,
+    .delete_wm_command    = xcb_hint_delete_wm_command,
+    .set_client_leader    = xcb_hint_set_client_leader,
+    .set_window_role      = xcb_hint_set_window_role,
+    .delete_window_role   = xcb_hint_delete_window_role,
+    .set_locale_name      = xcb_hint_set_locale_name,
+    .set_user_time        = xcb_hint_set_user_time,
+    .set_startup_id       = xcb_hint_set_startup_id,
+    .set_icon_data        = xcb_hint_set_icon_data,
+    .delete_icon_data     = xcb_hint_delete_icon_data,
+    .set_iconic           = xcb_hint_set_iconic,
+    .toggle_wm_state      = xcb_hint_toggle_wm_state,
 };
