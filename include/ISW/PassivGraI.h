@@ -70,10 +70,7 @@ typedef struct _IswServerGrabRec {
     struct _IswServerGrabRec 	*next;
     Widget			widget;
     unsigned int		ownerEvents:1;
-    unsigned int		pointerMode:1;
-    unsigned int		keyboardMode:1;
     unsigned int		hasExt:1;
-    unsigned int		confineToIsWidgetWin:1;
     uint32_t			keybut;	/* neutral key identity (IswKey/codepoint)
 					   for key grabs, button number for
 					   pointer grabs; AnyKey/AnyButton = 0 */

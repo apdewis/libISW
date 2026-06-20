@@ -383,7 +383,7 @@ _IswProcessKeyboardEvent(IswEvent *event, Widget widget, IswPerDisplayInput pdi)
              * unlocking keyboard.
              */
             if (IsPseudoGrab(prevGrabType))
-                _IswPlatformUngrabKeyboard(
+                _IswPlatformReleaseKeyboard(
                     IswDisplayOf(widget), event->any.time);
             else {
                 /* Activate the grab */

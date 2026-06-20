@@ -151,16 +151,13 @@ CreateGrab(Widget widget,
            Boolean ownerEvents,
            Modifiers modifiers,
            uint32_t keybut,
-           int pointer_mode,
-           int keyboard_mode,
            Mask event_mask,
-           IswWindow confine_to,
            IswCursor cursor,
            Boolean need_ext)
 {
     IswServerGrabPtr grab;
 
-    if (confine_to || cursor)
+    if (cursor)
         need_ext = True;
     grab = (IswServerGrabPtr) __XtMalloc(sizeof(IswServerGrabRec) +
                                         (need_ext ? sizeof(IswServerGrabExtRec)
@@ -168,11 +165,8 @@ CreateGrab(Widget widget,
     grab->next = NULL;
     grab->widget = widget;
     IswSetBit(grab->ownerEvents, ownerEvents);
-    IswSetBit(grab->pointerMode, pointer_mode);
-    IswSetBit(grab->keyboardMode, keyboard_mode);
     grab->eventMask = (unsigned short) event_mask;
     IswSetBit(grab->hasExt, need_ext);
-    grab->confineToIsWidgetWin = (_IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)) == confine_to);
     grab->modifiers = (unsigned short) modifiers;
     grab->keybut = keybut;
     if (need_ext) {
@@ -180,7 +174,7 @@ CreateGrab(Widget widget,
 
         ext->pModifiersMask = NULL;
         ext->pKeyButMask = NULL;
-        ext->confineTo = confine_to;
+        ext->confineTo = None;
         ext->cursor = cursor;
     }
     return grab;
@@ -450,9 +444,7 @@ DeleteServerGrabFromList(IswServerGrabPtr *passiveListPtr,
                                       (Boolean) grab->ownerEvents,
                                       (Modifiers) IswAnyModifier,
                                       pMinuendGrab->keybut,
-                                      (int) grab->pointerMode,
-                                      (int) grab->keyboardMode,
-                                      (Mask) 0, (IswWindow) 0, (IswCursor) 0, True);
+                                      (Mask) 0, (IswCursor) 0, True);
                 GRABEXT(pNewGrab)->pModifiersMask =
                     CopyDetailMask(ext->pModifiersMask);
 
@@ -690,10 +682,7 @@ GrabKeyOrButton(Widget widget,
                 uint32_t keyOrButton,
                 Modifiers modifiers,
                 Boolean owner_events,
-                int pointer_mode,
-                int keyboard_mode,
                 Mask event_mask,
-                IswWindow confine_to,
                 IswCursor cursor,
                 Boolean isKeyboard)
 {
@@ -712,8 +701,7 @@ GrabKeyOrButton(Widget widget,
     pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     UNLOCK_PROCESS;
     newGrab = CreateGrab(widget, owner_events, modifiers,
-                         keyOrButton, pointer_mode, keyboard_mode,
-                         event_mask, confine_to, cursor, False);
+                         keyOrButton, event_mask, cursor, False);
     /*
      *  if the widget is realized then process the entry into the grab
      * list. else if the list is empty (i.e. first time) then add the
@@ -782,16 +770,14 @@ void
 IswGrabKey(Widget widget,
           IswKeyCode keycode,
           Modifiers modifiers,
-          _IswBoolean owner_events,
-          int pointer_mode,
-          int keyboard_mode)
+          _IswBoolean owner_events)
 {
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
     GrabKeyOrButton(widget, (uint32_t) keycode, modifiers,
-                    (Boolean) owner_events, pointer_mode, keyboard_mode,
-                    (Mask) 0, (IswWindow) None, (IswCursor) None, KEYBOARD);
+                    (Boolean) owner_events,
+                    (Mask) 0, (IswCursor) None, KEYBOARD);
     UNLOCK_APP(app);
 }
 
@@ -801,17 +787,13 @@ IswGrabButton(Widget widget,
              Modifiers modifiers,
              _IswBoolean owner_events,
              unsigned int event_mask,
-             int pointer_mode,
-             int keyboard_mode,
-             IswWindow confine_to_w,
              IswCursor cursor)
 {
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
     GrabKeyOrButton(widget, (uint32_t) button, modifiers, (Boolean) owner_events,
-                    pointer_mode, keyboard_mode,
-                    (Mask) event_mask, confine_to_w, cursor, POINTER);
+                    (Mask) event_mask, cursor, POINTER);
     UNLOCK_APP(app);
 }
 
@@ -844,15 +826,12 @@ IswUngrabButton(Widget widget, unsigned int button, Modifiers modifiers)
  * Active grab of Device. clear any client side grabs so we don't lock
  */
 static int
-GrabDevice(Widget widget,
-           Boolean owner_events,
-           int pointer_mode,
-           int keyboard_mode,
-           Mask event_mask,
-           IswWindow confine_to,
-           IswCursor cursor,
-           IswTime time,
-           Boolean isKeyboard)
+CaptureDevice(Widget widget,
+              Boolean owner_events,
+              Mask event_mask,
+              IswCursor cursor,
+              IswTime time,
+              Boolean isKeyboard)
 {
     IswPerDisplayInput pdi;
     int returnVal;
@@ -865,14 +844,13 @@ GrabDevice(Widget widget,
     pdi = _IswGetPerDisplayInput(IswDisplayOf(widget));
     UNLOCK_PROCESS;
     if (!isKeyboard) {
-        returnVal = _IswPlatformGrabPointer(
+        returnVal = _IswPlatformCapturePointer(
             IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), owner_events,
-            (unsigned int) event_mask, pointer_mode, keyboard_mode,
-            confine_to, cursor, time);
+            (unsigned int) event_mask, cursor, time);
     } else {
-        returnVal = _IswPlatformGrabKeyboard(
+        returnVal = _IswPlatformCaptureKeyboard(
             IswDisplayOf(widget), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(widget)), (Widget)(widget)), owner_events,
-            pointer_mode, keyboard_mode, time);
+            time);
     }
 
     if (returnVal == IswGrabSuccess) {
@@ -885,8 +863,6 @@ GrabDevice(Widget widget,
         device->grab.modifiers = 0;
         device->grab.keybut = 0;
         IswSetBit(device->grab.ownerEvents, owner_events);
-        IswSetBit(device->grab.pointerMode, pointer_mode);
-        IswSetBit(device->grab.keyboardMode, keyboard_mode);
         device->grab.hasExt = False;
         device->grabType = IswActiveServerGrab;
         pdi->activatingKey = 0;
@@ -895,7 +871,7 @@ GrabDevice(Widget widget,
 }
 
 static void
-UngrabDevice(Widget widget, IswTime time, Boolean isKeyboard)
+ReleaseDevice(Widget widget, IswTime time, Boolean isKeyboard)
 {
     IswPerDisplayInput pdi;
     IswDevice device;
@@ -914,9 +890,9 @@ UngrabDevice(Widget widget, IswTime time, Boolean isKeyboard)
         if (device->grabType != IswPseudoPassiveServerGrab
             && IswIsRealized(widget)) {
             if (isKeyboard)
-                _IswPlatformUngrabKeyboard(display, ISW_CURRENT_TIME);
+                _IswPlatformReleaseKeyboard(display, ISW_CURRENT_TIME);
             else
-                _IswPlatformUngrabPointer(display, ISW_CURRENT_TIME);
+                _IswPlatformReleasePointer(display, ISW_CURRENT_TIME);
         }
         device->grabType = IswNoServerGrab;
         pdi->activatingKey = 0;
@@ -929,8 +905,6 @@ UngrabDevice(Widget widget, IswTime time, Boolean isKeyboard)
 int
 IswGrabKeyboard(Widget widget,
                _IswBoolean owner_events,
-               int pointer_mode,
-               int keyboard_mode,
                IswTime time)
 {
     int retval;
@@ -938,9 +912,8 @@ IswGrabKeyboard(Widget widget,
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    retval = GrabDevice(widget, (Boolean) owner_events,
-                        pointer_mode, keyboard_mode,
-                        (Mask) 0, None, None, time, KEYBOARD);
+    retval = CaptureDevice(widget, (Boolean) owner_events,
+                           (Mask) 0, None, time, KEYBOARD);
     UNLOCK_APP(app);
     return retval;
 }
@@ -955,7 +928,7 @@ IswUngrabKeyboard(Widget widget, IswTime time)
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    UngrabDevice(widget, time, KEYBOARD);
+    ReleaseDevice(widget, time, KEYBOARD);
     UNLOCK_APP(app);
 }
 
@@ -966,9 +939,6 @@ int
 IswGrabPointer(Widget widget,
               _IswBoolean owner_events,
               unsigned int event_mask,
-              int pointer_mode,
-              int keyboard_mode,
-              IswWindow confine_to_w,
               IswCursor cursor,
               IswTime time)
 {
@@ -977,9 +947,8 @@ IswGrabPointer(Widget widget,
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    retval = GrabDevice(widget, (Boolean) owner_events,
-                        pointer_mode, keyboard_mode,
-                        (Mask) event_mask, confine_to_w, cursor, time, POINTER);
+    retval = CaptureDevice(widget, (Boolean) owner_events,
+                           (Mask) event_mask, cursor, time, POINTER);
     UNLOCK_APP(app);
     return retval;
 }
@@ -994,7 +963,7 @@ IswUngrabPointer(Widget widget, IswTime time)
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    UngrabDevice(widget, time, POINTER);
+    ReleaseDevice(widget, time, POINTER);
     UNLOCK_APP(app);
 }
 

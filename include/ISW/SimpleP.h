@@ -136,15 +136,14 @@ extern void _IswSimpleApplyCursor(Widget /* pointer widget */);
    _IswSetWindowCursor  - set the pointer cursor on a windowed target's
                           window (owns xcb_change_window_attributes/CURSOR).
    _IswFreeCursor       - release a server cursor (owns xcb_free_cursor).
-   _IswChangeActivePointerGrabCursor
-                        - change the cursor of the active pointer grab
-                          (owns xcb_change_active_pointer_grab). */
+   _IswUpdatePointerCaptureCursor
+                        - update the cursor of the active pointer capture. */
 extern void _IswSetWindowCursor(Widget /* windowed target */,
                                 IswCursor /* cursor */);
 extern void _IswFreeCursor(Widget /* widget */, IswCursor /* cursor */);
-extern void _IswChangeActivePointerGrabCursor(Widget /* widget */,
-                                              IswCursor /* cursor */,
-                                              IswTime /* time */,
-                                              uint16_t /* event_mask */);
+extern void _IswUpdatePointerCaptureCursor(Widget /* widget */,
+                                           IswCursor /* cursor */,
+                                           IswTime /* time */,
+                                           uint16_t /* event_mask */);
 
 #endif /* _ISW_SimpleP_h */

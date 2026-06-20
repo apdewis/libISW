@@ -1291,47 +1291,44 @@ _IswPlatformFreeCursor(IswDisplay dpy, IswCursor cursor)
         ops->cursor->free_cursor(dpy, cursor);
 }
 
-/* Grabs (Phase 5) */
+/* Input capture (Phase 5) */
 int
-_IswPlatformGrabPointer(IswDisplay dpy, IswWindow grab_window,
-                        Boolean owner_events, unsigned int event_mask,
-                        int pointer_mode, int keyboard_mode,
-                        IswWindow confine_to, IswCursor cursor, IswTime time)
+_IswPlatformCapturePointer(IswDisplay dpy, IswWindow grab_window,
+                           Boolean owner_events, unsigned int event_mask,
+                           IswCursor cursor, IswTime time)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
-    if (ops && ops->grab && ops->grab->grab_pointer)
-        return ops->grab->grab_pointer(dpy, grab_window, owner_events,
-                                       event_mask, pointer_mode, keyboard_mode,
-                                       confine_to, cursor, time);
+    if (ops && ops->grab && ops->grab->capture_pointer)
+        return ops->grab->capture_pointer(dpy, grab_window, owner_events,
+                                          event_mask, cursor, time);
     return -1;
 }
 
 void
-_IswPlatformUngrabPointer(IswDisplay dpy, IswTime time)
+_IswPlatformReleasePointer(IswDisplay dpy, IswTime time)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
-    if (ops && ops->grab && ops->grab->ungrab_pointer)
-        ops->grab->ungrab_pointer(dpy, time);
+    if (ops && ops->grab && ops->grab->release_pointer)
+        ops->grab->release_pointer(dpy, time);
 }
 
 int
-_IswPlatformGrabKeyboard(IswDisplay dpy, IswWindow grab_window,
-                         Boolean owner_events, int pointer_mode,
-                         int keyboard_mode, IswTime time)
+_IswPlatformCaptureKeyboard(IswDisplay dpy, IswWindow grab_window,
+                            Boolean owner_events, IswTime time)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
-    if (ops && ops->grab && ops->grab->grab_keyboard)
-        return ops->grab->grab_keyboard(dpy, grab_window, owner_events,
-                                        pointer_mode, keyboard_mode, time);
+    if (ops && ops->grab && ops->grab->capture_keyboard)
+        return ops->grab->capture_keyboard(dpy, grab_window, owner_events,
+                                           time);
     return -1;
 }
 
 void
-_IswPlatformUngrabKeyboard(IswDisplay dpy, IswTime time)
+_IswPlatformReleaseKeyboard(IswDisplay dpy, IswTime time)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
-    if (ops && ops->grab && ops->grab->ungrab_keyboard)
-        ops->grab->ungrab_keyboard(dpy, time);
+    if (ops && ops->grab && ops->grab->release_keyboard)
+        ops->grab->release_keyboard(dpy, time);
 }
 
 void
@@ -1437,12 +1434,12 @@ _IswPlatformFreeKeysyms(IswDisplay dpy)
 }
 
 void
-_IswPlatformChangeActivePointerGrab(IswDisplay dpy, IswCursor cursor,
-                                    IswTime time, unsigned int event_mask)
+_IswPlatformUpdatePointerCapture(IswDisplay dpy, IswCursor cursor,
+                                 IswTime time, unsigned int event_mask)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
-    if (ops && ops->grab && ops->grab->change_active_pointer_grab)
-        ops->grab->change_active_pointer_grab(dpy, cursor, time, event_mask);
+    if (ops && ops->grab && ops->grab->update_pointer_capture)
+        ops->grab->update_pointer_capture(dpy, cursor, time, event_mask);
 }
 
 /* Selection */

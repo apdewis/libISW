@@ -79,7 +79,6 @@ typedef struct _GrabActionRec {
     IswActionProc action_proc;
     Boolean owner_events;
     unsigned int event_mask;
-    int pointer_mode, keyboard_mode;
 } GrabActionRec;
 
 static GrabActionRec *grabActionList = NULL;
@@ -110,8 +109,7 @@ GrabAllCorrectKeys(Widget widget,
        permutation: case folding is handled by the translation matcher, so one
        grab on the neutral identity covers it. */
     IswGrabKey(widget, (IswKeyCode) typeMatch->eventCode, careOn,
-               grabP->owner_events,
-               grabP->pointer_mode, grabP->keyboard_mode);
+               grabP->owner_events);
 }
 
 typedef struct {
@@ -165,9 +163,6 @@ DoGrab(StatePtr state, IswPointer data)
                      careOn,
                      grabP->owner_events,
                      grabP->event_mask,
-                     grabP->pointer_mode,
-                     grabP->keyboard_mode,
-                     None,
                      None);
         break;
 
@@ -245,9 +240,7 @@ _IswRegisterGrabs(Widget widget)
 void
 IswRegisterGrabAction(IswActionProc action_proc,
                      _IswBoolean owner_events,
-                     unsigned int event_mask,
-                     int pointer_mode,
-                     int keyboard_mode)
+                     unsigned int event_mask)
 {
     GrabActionRec *actionP;
 
@@ -264,9 +257,7 @@ IswRegisterGrabAction(IswActionProc action_proc,
     }
 #ifdef DEBUG
     else if (actionP->owner_events != owner_events
-             || actionP->event_mask != event_mask
-             || actionP->pointer_mode != pointer_mode
-             || actionP->keyboard_mode != keyboard_mode) {
+             || actionP->event_mask != event_mask) {
         Cardinal n = 0;
 
         IswWarningMsg("argsReplaced", "xtRegisterGrabAction", IswCIswToolkitError,
@@ -276,8 +267,6 @@ IswRegisterGrabAction(IswActionProc action_proc,
 #endif /*DEBUG*/
         actionP->owner_events = (Boolean) owner_events;
     actionP->event_mask = event_mask;
-    actionP->pointer_mode = pointer_mode;
-    actionP->keyboard_mode = keyboard_mode;
     UNLOCK_PROCESS;
 }
 
@@ -287,8 +276,7 @@ _IswGrabInitialize(IswAppContext app _X_UNUSED)
     LOCK_PROCESS;
     if (grabActionList == NULL)
         IswRegisterGrabAction(IswMenuPopupAction, True,
-                             (unsigned) (IswButtonPressMask | IswButtonReleaseMask),
-                             1, 1);
+                             (unsigned) (IswButtonPressMask | IswButtonReleaseMask));
     UNLOCK_PROCESS;
 
 }

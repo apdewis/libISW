@@ -1202,29 +1202,22 @@ xcb_dnd_start_drag(Widget source_widget,
         }
     }
 
-    /* Grab the pointer on the shell window. During an active grab all
-     * pointer events report on the grab window regardless of where the
-     * cursor is, so we still track movement over foreign apps.  Using
+    /* Capture the pointer on the shell window.  During an active capture
+     * all pointer events report on the grab window regardless of where
+     * the cursor is, so we still track movement over foreign apps.  Using
      * the shell (not root) ensures Xt dispatches events to our handler. */
-    xcb_grab_pointer_cookie_t gc =
-        xcb_grab_pointer(conn, False, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell))),
-                         XCB_EVENT_MASK_BUTTON_RELEASE |
-                         XCB_EVENT_MASK_POINTER_MOTION |
-                         XCB_EVENT_MASK_BUTTON_MOTION,
-                         XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
-                         XCB_NONE, st->cursor_default,
-                         st->drag_timestamp);
-    xcb_grab_pointer_reply_t *gr = xcb_grab_pointer_reply(conn, gc, NULL);
-    if (!gr || gr->status != XCB_GRAB_STATUS_SUCCESS) {
-        free(gr);
+    if (IswGrabPointer(st->core.shell, False,
+                       IswButtonReleaseMask | IswPointerMotionMask |
+                       IswButtonMotionMask,
+                       st->cursor_default,
+                       st->drag_timestamp) != IswGrabSuccess) {
         DragCleanup(st);
         return;
     }
-    free(gr);
 
-    /* The xcb_grab_pointer above now owns the pointer, so motion events
-     * report against the shell window and must reach HandleDragEvent.  The
-     * source widget is windowless, so its button press armed the windowless
+    /* The pointer capture now owns the pointer, so motion events report
+     * against the shell window and must reach HandleDragEvent.  The source
+     * widget is windowless, so its button press armed the windowless
      * implicit grab; flag the drag so the dispatcher yields that grab and
      * lets motion fall through to the shell. */
     {
@@ -1233,13 +1226,9 @@ xcb_dnd_start_drag(Widget source_widget,
             pdi->xdndDragActive = True;
     }
 
-    /* Grab the keyboard through Xt so key events dispatch to the shell,
-     * where HandleDragEvent is registered.  Raw xcb_grab_keyboard does
-     * the X grab but skips Xt's input dispatch bookkeeping, so key
-     * events get remapped to the focused child and never reach us. */
-    IswGrabKeyboard(st->core.shell, False,
-                    XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
-                    st->drag_timestamp);
+    /* Capture the keyboard so key events dispatch to the shell, where
+     * HandleDragEvent is registered. */
+    IswGrabKeyboard(st->core.shell, False, st->drag_timestamp);
 
     /* Install raw event handler for drag tracking */
     IswAddEventHandler(st->core.shell,
@@ -1454,12 +1443,12 @@ DragMotion(XdndState *st, int root_x, int root_y, unsigned int modifiers)
         default:                  cursor = st->cursor_copy; break;
         }
     }
-    xcb_change_active_pointer_grab(conn, cursor,
-                                   XCB_CURRENT_TIME,
-                                   XCB_EVENT_MASK_BUTTON_RELEASE |
-                                   XCB_EVENT_MASK_POINTER_MOTION |
-                                   XCB_EVENT_MASK_BUTTON_MOTION);
-    xcb_flush(conn);
+    _IswPlatformUpdatePointerCapture(IswDisplayOf(st->core.shell), cursor,
+                                     ISW_CURRENT_TIME,
+                                     IswButtonReleaseMask |
+                                     IswPointerMotionMask |
+                                     IswButtonMotionMask);
+    _IswPlatformFlush(IswDisplayOf(st->core.shell));
 }
 
 /* ------------------------------------------------------------------ */
@@ -1647,14 +1636,13 @@ DragDrop(XdndState *st)
         IswWidgetToApplicationContext(st->core.shell),
         FINISHED_TIMEOUT, DragFinishedTimeout, (IswPointer) st);
 
-    /* Ungrab pointer and remove drag event handler so normal input
+    /* Release capture and remove drag event handler so normal input
      * resumes immediately. XdndFinished arrives as a ClientMessage
      * through HandleXdndEvent (the non-maskable handler), not through
      * HandleDragEvent, so we don't need it anymore. Keep st->core.dragging
      * True so HandleXdndEvent still processes XdndFinished/XdndStatus. */
-    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
-    xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
-    IswUngrabKeyboard(st->core.shell, XCB_CURRENT_TIME);
+    IswUngrabPointer(st->core.shell, ISW_CURRENT_TIME);
+    IswUngrabKeyboard(st->core.shell, ISW_CURRENT_TIME);
     DestroyDragIcon(st);
 
     IswRemoveEventHandler(st->core.shell,
@@ -1663,7 +1651,7 @@ DragDrop(XdndState *st)
                          XCB_EVENT_MASK_KEY_RELEASE,
                          TRUE, HandleDragEvent, (IswPointer) st);
 
-    xcb_flush(conn);
+    _IswPlatformFlush(IswDisplayOf(st->core.shell));
 }
 
 static void
@@ -1685,9 +1673,9 @@ DragCleanup(XdndState *st)
 {
     xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
 
-    /* Ungrab pointer and keyboard */
-    xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
-    IswUngrabKeyboard(st->core.shell, XCB_CURRENT_TIME);
+    /* Release pointer and keyboard capture */
+    IswUngrabPointer(st->core.shell, ISW_CURRENT_TIME);
+    IswUngrabKeyboard(st->core.shell, ISW_CURRENT_TIME);
 
     /* Drag-source grab released; restore the windowless implicit grab. */
     {

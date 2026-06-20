@@ -1720,7 +1720,7 @@ ChangeCursorOnGrab(Widget w, IswPointer junk, IswPointer garbage)
      * of the toolkit (CDP 5/26/89).
      */
 
-    _IswChangeActivePointerGrabCursor(w,
+    _IswUpdatePointerCaptureCursor(w,
        smw->simple_menu.cursor,
        IswLastTimestampProcessed(IswDisplayOf(w)),
        IswButtonPressMask | IswButtonReleaseMask |

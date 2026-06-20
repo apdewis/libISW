@@ -210,10 +210,9 @@ xcb_cur_free_cursor(IswDisplay dpy, IswCursor cursor)
 /* ---- grab ops ------------------------------------------------------------ */
 
 static int
-xcb_grb_grab_pointer(IswDisplay dpy, IswWindow grab_window,
-                     Boolean owner_events, unsigned int event_mask,
-                     int pointer_mode, int keyboard_mode,
-                     IswWindow confine_to, IswCursor cursor, IswTime time)
+xcb_grb_capture_pointer(IswDisplay dpy, IswWindow grab_window,
+                        Boolean owner_events, unsigned int event_mask,
+                        IswCursor cursor, IswTime time)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     xcb_grab_pointer_cookie_t cookie;
@@ -225,8 +224,8 @@ xcb_grb_grab_pointer(IswDisplay dpy, IswWindow grab_window,
     cookie = xcb_grab_pointer(conn, (uint8_t) owner_events,
                               _IswXcbWindow(grab_window),
                               (uint16_t) event_mask,
-                              (uint8_t) pointer_mode, (uint8_t) keyboard_mode,
-                              _IswXcbWindow(confine_to), _IswXcbCursor(cursor),
+                              XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+                              XCB_NONE, _IswXcbCursor(cursor),
                               (xcb_timestamp_t) time);
     reply = xcb_grab_pointer_reply(conn, cookie, NULL);
     if (!reply)
@@ -237,7 +236,7 @@ xcb_grb_grab_pointer(IswDisplay dpy, IswWindow grab_window,
 }
 
 static void
-xcb_grb_ungrab_pointer(IswDisplay dpy, IswTime time)
+xcb_grb_release_pointer(IswDisplay dpy, IswTime time)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     if (!conn)
@@ -246,9 +245,8 @@ xcb_grb_ungrab_pointer(IswDisplay dpy, IswTime time)
 }
 
 static int
-xcb_grb_grab_keyboard(IswDisplay dpy, IswWindow grab_window,
-                      Boolean owner_events, int pointer_mode,
-                      int keyboard_mode, IswTime time)
+xcb_grb_capture_keyboard(IswDisplay dpy, IswWindow grab_window,
+                         Boolean owner_events, IswTime time)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     xcb_grab_keyboard_cookie_t cookie;
@@ -260,7 +258,7 @@ xcb_grb_grab_keyboard(IswDisplay dpy, IswWindow grab_window,
     cookie = xcb_grab_keyboard(conn, (uint8_t) owner_events,
                                _IswXcbWindow(grab_window),
                                (xcb_timestamp_t) time,
-                               (uint8_t) pointer_mode, (uint8_t) keyboard_mode);
+                               XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     reply = xcb_grab_keyboard_reply(conn, cookie, NULL);
     if (!reply)
         return -1;
@@ -270,7 +268,7 @@ xcb_grb_grab_keyboard(IswDisplay dpy, IswWindow grab_window,
 }
 
 static void
-xcb_grb_ungrab_keyboard(IswDisplay dpy, IswTime time)
+xcb_grb_release_keyboard(IswDisplay dpy, IswTime time)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     if (!conn)
@@ -290,24 +288,16 @@ xcb_grb_register_binding(IswDisplay dpy, IswWindow grab_window,
                      _IswXcbWindow(grab_window),
                      (uint16_t) grab->modifiers,
                      (xcb_keycode_t) grab->keybut,
-                     (uint8_t) grab->pointerMode,
-                     (uint8_t) grab->keyboardMode);
+                     XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
     } else {
-        IswWindow confine_to = None;
         IswCursor cursor = None;
-        if (grab->hasExt) {
-            if (grab->confineToIsWidgetWin)
-                confine_to = _IswPlatformWidgetWindow(dpy, grab->widget);
-            else
-                confine_to = GRABEXT(grab)->confineTo;
+        if (grab->hasExt)
             cursor = GRABEXT(grab)->cursor;
-        }
         xcb_grab_button(conn, (uint8_t) grab->ownerEvents,
                         _IswXcbWindow(grab_window),
                         (uint16_t) grab->eventMask,
-                        (uint8_t) grab->pointerMode,
-                        (uint8_t) grab->keyboardMode,
-                        _IswXcbWindow(confine_to),
+                        XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+                        XCB_NONE,
                         _IswXcbCursor(cursor),
                         (uint8_t) grab->keybut,
                         (uint16_t) grab->modifiers);
@@ -332,17 +322,8 @@ xcb_grb_unregister_binding(IswDisplay dpy, IswWindow grab_window,
 }
 
 static void
-xcb_grb_allow_events(IswDisplay dpy, int mode, IswTime time)
-{
-    xcb_connection_t *conn = _IswXcbConn(dpy);
-    if (!conn)
-        return;
-    xcb_allow_events(conn, (uint8_t) mode, (xcb_timestamp_t) time);
-}
-
-static void
-xcb_grb_change_active_pointer_grab(IswDisplay dpy, IswCursor cursor,
-                                   IswTime time, unsigned int event_mask)
+xcb_grb_update_pointer_capture(IswDisplay dpy, IswCursor cursor,
+                               IswTime time, unsigned int event_mask)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     if (!conn)
@@ -551,14 +532,13 @@ const IswPlatformCursorOps isw_platform_xcb_cursor_ops = {
 };
 
 const IswPlatformGrabOps isw_platform_xcb_grab_ops = {
-    .grab_pointer    = xcb_grb_grab_pointer,
-    .ungrab_pointer  = xcb_grb_ungrab_pointer,
-    .grab_keyboard   = xcb_grb_grab_keyboard,
-    .ungrab_keyboard = xcb_grb_ungrab_keyboard,
-    .register_binding   = xcb_grb_register_binding,
-    .unregister_binding = xcb_grb_unregister_binding,
-    .allow_events    = xcb_grb_allow_events,
-    .change_active_pointer_grab = xcb_grb_change_active_pointer_grab,
+    .capture_pointer        = xcb_grb_capture_pointer,
+    .release_pointer        = xcb_grb_release_pointer,
+    .capture_keyboard       = xcb_grb_capture_keyboard,
+    .release_keyboard       = xcb_grb_release_keyboard,
+    .register_binding       = xcb_grb_register_binding,
+    .unregister_binding     = xcb_grb_unregister_binding,
+    .update_pointer_capture = xcb_grb_update_pointer_capture,
 };
 
 /* ---- high-level selection ops -------------------------------------------- */

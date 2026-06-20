@@ -211,16 +211,15 @@ _IswFreeCursor(Widget w, IswCursor cursor)
 }
 
 /*
- * _IswChangeActivePointerGrabCursor - change the cursor of the active pointer
- * grab.  The single owner of xcb_change_active_pointer_grab for widget code
- * (a narrow grab-cursor refresh that stays on the seam).
+ * _IswUpdatePointerCaptureCursor - update the cursor of the active pointer
+ * capture.  The single owner of update_pointer_capture for widget code.
  */
 void
-_IswChangeActivePointerGrabCursor(Widget w, IswCursor cursor,
-                                  IswTime time, uint16_t event_mask)
+_IswUpdatePointerCaptureCursor(Widget w, IswCursor cursor,
+                               IswTime time, uint16_t event_mask)
 {
-    _IswPlatformChangeActivePointerGrab(IswDisplayOf(w), cursor, time,
-                                        event_mask);
+    _IswPlatformUpdatePointerCapture(IswDisplayOf(w), cursor, time,
+                                     event_mask);
 }
 
 /*

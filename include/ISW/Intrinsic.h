@@ -982,9 +982,7 @@ extern void IswCallActionProc(
 extern void IswRegisterGrabAction(
     IswActionProc 	/* action_proc */,
     _IswBoolean 		/* owner_events */,
-    unsigned int 	/* event_mask */,
-    int			/* pointer_mode */,
-    int	 		/* keyboard_mode */
+    unsigned int 	/* event_mask */
 );
 
 extern void IswSetMultiClickTime(
@@ -2293,9 +2291,7 @@ extern void IswGrabKey(
     Widget 		/* widget */,
     IswKeyCode 		/* keycode */,
     Modifiers	 	/* modifiers */,
-    _IswBoolean 		/* owner_events */,
-    int 		/* pointer_mode */,
-    int 		/* keyboard_mode */
+    _IswBoolean 		/* owner_events */
 );
 
 extern void IswUngrabKey(
@@ -2307,8 +2303,6 @@ extern void IswUngrabKey(
 extern int IswGrabKeyboard(
     Widget 		/* widget */,
     _IswBoolean 		/* owner_events */,
-    int 		/* pointer_mode */,
-    int 		/* keyboard_mode */,
     IswTime 		/* time */
 );
 
@@ -2323,9 +2317,6 @@ extern void IswGrabButton(
     Modifiers	 	/* modifiers */,
     _IswBoolean 		/* owner_events */,
     unsigned int	/* event_mask */,
-    int 		/* pointer_mode */,
-    int 		/* keyboard_mode */,
-    IswWindow 		/* confine_to */,
     IswCursor 		/* cursor */
 );
 
@@ -2339,9 +2330,6 @@ extern int IswGrabPointer(
     Widget 		/* widget */,
     _IswBoolean 		/* owner_events */,
     unsigned int	/* event_mask */,
-    int 		/* pointer_mode */,
-    int 		/* keyboard_mode */,
-    IswWindow 		/* confine_to */,
     IswCursor 		/* cursor */,
     IswTime 		/* time */
 );
