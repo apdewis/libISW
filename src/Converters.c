@@ -94,7 +94,6 @@ static _Xconst _IswString IswNconversionError = "conversionError";
 
 /* Representation types */
 
-#define IswQAtom                 XrmPermStringToQuark(IswRAtom)
 #define IswQCursor               XrmPermStringToQuark(IswRCursor)
 #define IswQDisplay              XrmPermStringToQuark(IswRDisplay)
 #define IswQFile                 XrmPermStringToQuark(IswRFile)
@@ -1584,38 +1583,6 @@ IswCvtStringToVisual(IswDisplay dpy, XrmValuePtr args,     /* Screen, depth */
 }
 
 Boolean
-IswCvtStringToAtom(IswDisplay dpy,
-                  XrmValuePtr args,
-                  Cardinal *num_args,
-                  XrmValuePtr fromVal,
-                  XrmValuePtr toVal,
-                  IswPointer *closure_ret _X_UNUSED)
-{
-    Atom atom;
-
-    if (*num_args != 1) {
-        IswAppWarningMsg(IswDisplayToApplicationContext(dpy),
-                        IswNwrongParameters, "cvtStringToAtom",
-                        IswCIswToolkitError,
-                        "String to Atom conversion needs Display argument",
-                        NULL, NULL);
-        return False;
-    }
-
-    {
-        IswDisplay adpy = *(IswDisplay *) args->addr;
-        const char *name = (char *) fromVal->addr;
-        atom = _IswPlatformInternAtomOp(adpy, name, False);
-        if (atom == ISW_ATOM_NONE) {
-            IswDisplayStringConversionWarning(dpy, name, IswRAtom);
-            return False;
-        }
-    }
-    done_string(Atom, atom, IswRAtom);
-}
-
-
-Boolean
 IswCvtStringToGravity(IswDisplay dpy,
                      XrmValuePtr args _X_UNUSED,
                      Cardinal *num_args,
@@ -1719,8 +1686,6 @@ _IswAddDefaultConverters(ConverterTable table)
     Add(IswQPixel, IswQColor, IswCvtIntToColor,
         colorConvertArgs, IswNumber(colorConvertArgs), IswCacheByDisplay);
 
-    Add(_IswQString, IswQAtom, IswCvtStringToAtom,
-        displayConvertArg, IswNumber(displayConvertArg), IswCacheNone);
     Add(_IswQString, IswQBool, IswCvtStringToBool, NULL, 0, IswCacheNone);
     Add(_IswQString, IswQBoolean, IswCvtStringToBoolean, NULL, 0, IswCacheNone);
     Add2(_IswQString, IswQCursor, IswCvtStringToCursor,

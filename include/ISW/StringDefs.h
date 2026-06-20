@@ -209,9 +209,6 @@ SOFTWARE.
 #define IswCX "X"
 #define IswCY "Y"
 #define IswRAcceleratorTable "AcceleratorTable"
-#ifndef IswRAtom
-#define IswRAtom "Atom"
-#endif
 #define IswRBitmap "Bitmap"
 #define IswRBool "Bool"
 #define IswRBoolean "Boolean"
@@ -763,9 +760,6 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #endif
 #ifndef IswRAcceleratorTable
 #define IswRAcceleratorTable ((String)&IswStrings[1485])
-#endif
-#ifndef IswRAtom
-#define IswRAtom ((String)&IswStrings[1502])
 #endif
 #ifndef IswRBitmap
 #define IswRBitmap ((String)&IswStrings[1507])

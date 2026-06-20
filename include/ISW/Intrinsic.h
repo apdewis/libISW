@@ -2460,15 +2460,6 @@ extern Boolean IswCvtStringToAcceleratorTable(
     IswPointer*	/* closure_ret */
 );
 
-extern Boolean IswCvtStringToAtom(
-    IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* Display */
-    Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
-    IswPointer*	/* closure_ret */
-);
-
 extern Boolean IswCvtStringToBool(
     IswDisplay 	/* dpy */,
     XrmValuePtr /* args */,	/* none */

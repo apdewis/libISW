@@ -107,9 +107,6 @@ SOFTWARE.
 #define IswCCreatePopupChildProc "CreatePopupChildProc"
 #define IswNtitle "title"
 #define IswCTitle "Title"
-#ifndef IswRAtom
-#define IswRAtom "Atom"
-#endif
 #define IswNargc "argc"
 #define IswCArgc "Argc"
 #define IswNargv "argv"
@@ -258,9 +255,6 @@ extern _IswShell_h_Const char IswShellStrings[];
 #endif
 #ifndef IswCTitle
 #define IswCTitle ((String)&IswShellStrings[362])
-#endif
-#ifndef IswRAtom
-#define IswRAtom ((String)&IswShellStrings[368])
 #endif
 #ifndef IswNargc
 #define IswNargc ((String)&IswShellStrings[373])
