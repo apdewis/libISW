@@ -713,7 +713,8 @@ extern const IswPlatformColorOps isw_platform_xcb_color_ops; /* ISWPlatformColor
 extern const IswPlatformFontOps  isw_platform_xcb_font_ops;  /* ISWPlatformColorFontXCB.c */
 extern const IswPlatformCursorOps    isw_platform_xcb_cursor_ops;    /* ISWPlatformGrabCursorXCB.c */
 extern const IswPlatformGrabOps      isw_platform_xcb_grab_ops;      /* ISWPlatformGrabCursorXCB.c */
-extern const IswPlatformSelectionOps isw_platform_xcb_selection_ops; /* ISWPlatformGrabCursorXCB.c */
+extern const IswPlatformSelectionOps     isw_platform_xcb_selection_ops;      /* ISWPlatformGrabCursorXCB.c */
+extern const IswPlatformSelectionHighOps isw_platform_xcb_selection_high_ops; /* ISWPlatformGrabCursorXCB.c */
 extern const IswPlatformAtomOps      isw_platform_xcb_atom_ops;      /* ISWPlatformAtomPropXCB.c */
 extern const IswPlatformPropertyOps  isw_platform_xcb_property_ops;  /* ISWPlatformAtomPropXCB.c */
 extern const IswPlatformHintOps      isw_platform_xcb_hint_ops;      /* ISWPlatformAtomPropXCB.c */
@@ -725,7 +726,8 @@ const IswPlatformOps isw_platform_xcb_ops = {
     .root      = &xcb_root_ops,
     .event     = &isw_platform_xcb_event_ops,   /* Phase 11a */
     .input     = &isw_platform_xcb_input_ops,
-    .selection = &isw_platform_xcb_selection_ops,
+    .selection      = &isw_platform_xcb_selection_ops,
+    .selection_high = &isw_platform_xcb_selection_high_ops,
     .color     = &isw_platform_xcb_color_ops,
     .font      = &isw_platform_xcb_font_ops,
     .cursor    = &isw_platform_xcb_cursor_ops,
@@ -1559,6 +1561,39 @@ _IswPlatformSelectionMaxTransfer(IswDisplay dpy)
     if (ops && ops->selection && ops->selection->max_transfer_bytes)
         return ops->selection->max_transfer_bytes(dpy);
     return 0;
+}
+
+/* High-level selection — offer/request/disown */
+Boolean
+_IswPlatformSelectionOffer(IswDisplay dpy, Widget widget, IswTime time,
+                           IswSelectionOfferProc offer_proc,
+                           IswSelectionLoseProc lose_proc)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->selection_high && ops->selection_high->offer)
+        return ops->selection_high->offer(dpy, widget, time,
+                                          offer_proc, lose_proc);
+    return False;
+}
+
+void
+_IswPlatformSelectionDisown(IswDisplay dpy, Widget widget, IswTime time)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->selection_high && ops->selection_high->disown)
+        ops->selection_high->disown(dpy, widget, time);
+}
+
+void
+_IswPlatformSelectionRequestText(IswDisplay dpy, Widget widget, IswTime time,
+                                 IswSelectionReceiveProc receive,
+                                 IswPointer closure)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->selection_high && ops->selection_high->request)
+        ops->selection_high->request(dpy, widget, time, receive, closure);
+    else if (receive)
+        receive(widget, closure, NULL, 0);
 }
 
 /* Input — query the pointer relative to `win`, via the input vtable. */

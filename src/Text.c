@@ -75,7 +75,6 @@ unsigned long IswFmt8Bit = 0L;
 #define SrcRead                IswTextSourceRead
 #define SrcReplace             IswTextSourceReplace
 #define SrcSearch              IswTextSourceSearch
-#define SrcCvtSel              IswTextSourceConvertSelection
 #define SrcSetSelection        IswTextSourceSetSelection
 
 #define BIGNUM ((Dimension)32023)
@@ -121,7 +120,7 @@ void _IswTextClearAndCenterDisplay(TextWidget);
 void _IswTextExecuteUpdate(TextWidget);
 char *_IswTextGetText(TextWidget, ISWTextPosition, ISWTextPosition);
 void _IswTextNeedsUpdating(TextWidget, ISWTextPosition, ISWTextPosition);
-IswSelectionId * _IswTextSelectionList(TextWidget, String *, Cardinal);
+static Boolean _IswTextWantsSelection(String *, Cardinal);
 void _IswTextSetScrollBars(TextWidget);
 void _IswTextSetSelection(TextWidget, ISWTextPosition, ISWTextPosition,
                           String *, Cardinal);
@@ -1357,303 +1356,82 @@ VJump(Widget w, IswPointer closure, IswPointer callData)
 }
 
 static Boolean
-IswConvertStandardSelection(Widget w, IswTime time, IswSelectionId *selection,
-                           IswSelectionId *target, IswSelectionId *type, IswPointer *value,
-                           unsigned long *length, int *format)
+TextOfferSelection(Widget w, IswPointer *value, unsigned long *length)
 {
-    /* Minimal stub - returns empty targets list */
-    *value = NULL;
-    *length = 0;
-    *format = 32;
-    if (type)
-        *type = _IswPlatformSelectionStdType(IswDisplayOf(w), ISW_SEL_STDTYPE_ID_LIST);
-    return False;  /* Indicate no conversion performed */
-}
+    TextWidget ctx = (TextWidget) w;
+    IswTextSelectionSalt *salt;
 
-static Boolean
-MatchSelection(IswSelectionId selection, IswTextSelection *s)
-{
-    IswSelectionId    *match;
-    int	    count;
+    /* Prefer salted-away content (snapshot from a copy/cut operation) */
+    for (salt = ctx->text.salt; salt; salt = salt->next) {
+        if (salt->contents && salt->length > 0) {
+            *value  = IswMalloc((salt->length + 1) * sizeof(unsigned char));
+            strcpy(*value, salt->contents);
+            *length = salt->length;
+            return True;
+        }
+    }
 
-    for (count = 0, match = s->selections; count < s->id_count; match++, count++)
-	if (*match == selection)
-	    return True;
+    /* Fall back to the live selection range */
+    if (ctx->text.s.left < ctx->text.s.right) {
+        *value  = _IswTextGetSTRING(ctx, ctx->text.s.left, ctx->text.s.right);
+        *length = strlen(*value);
+        return True;
+    }
+
     return False;
-}
-
-static Boolean
-ConvertSelection(Widget w, IswSelectionId *selection, IswSelectionId *target, IswSelectionId *type,
-                 IswPointer *value, unsigned long *length, int *format)
-{
-  IswDisplay d = IswDisplayOf(w);
-  TextWidget ctx = (TextWidget)w;
-  Widget src = ctx->text.source;
-  IswTextEditType edit_mode;
-
-  IswTextSelectionSalt	*salt = NULL;
-  IswTextSelection	*s;
-
-  /* Intern the selection-target ids once through the platform selection op
-     (cached, no per-comparison server round-trip). */
-  IswSelectionId a_targets  = _IswPlatformSelectionInternName(d, "TARGETS", False);
-  IswSelectionId a_text     = _IswPlatformSelectionInternName(d, "TEXT", False);
-  IswSelectionId a_ctext    = _IswPlatformSelectionInternName(d, "COMPOUND_TEXT", False);
-  IswSelectionId a_length   = _IswPlatformSelectionInternName(d, "LENGTH", False);
-  IswSelectionId a_listlen  = _IswPlatformSelectionInternName(d, "LIST_LENGTH", False);
-  IswSelectionId a_charpos  = _IswPlatformSelectionInternName(d, "CHARACTER_POSITION", False);
-  IswSelectionId a_delete   = _IswPlatformSelectionInternName(d, "DELETE", False);
-  IswSelectionId str_type   = _IswPlatformSelectionStdType(d, ISW_SEL_STDTYPE_STRING);
-
-  if (*target == a_targets) {
-    IswSelectionId  idlist_type = _IswPlatformSelectionStdType(d, ISW_SEL_STDTYPE_ID_LIST);
-    IswSelectionId* targetP, * std_targets;
-    unsigned long std_length;
-
-    if ( SrcCvtSel(src, selection, target, type, value, length, format) )
-	return True;
-
-    IswConvertStandardSelection(w, ctx->text.time, selection,
-				target, type, (IswPointer*)&std_targets,
-				&std_length, format);
-
-    *value = IswMalloc((unsigned) sizeof(IswSelectionId)*(std_length + 7));
-    targetP = *(IswSelectionId**)value;
-    *length = std_length + 6;
-    *targetP++ = str_type;
-    *targetP++ = a_text;
-    *targetP++ = a_ctext;
-    *targetP++ = a_length;
-    *targetP++ = a_listlen;
-    *targetP++ = a_charpos;
-
-    {
-      IswArgBuilder ab = IswArgBuilderInit();
-      IswArgEditType(&ab, (IswArgVal)&edit_mode);
-      IswGetValues(src, ab.args, ab.count);
-    }
-
-    if (edit_mode == IswtextEdit) {
-      *targetP++ = a_delete;
-      (*length)++;
-    }
-    (void) memmove((char*)targetP, (char*)std_targets, sizeof(IswSelectionId)*std_length);
-    IswFree((char*)std_targets);
-    *type = idlist_type;
-    *format = 32;
-    return True;
-  }
-
-  if ( SrcCvtSel(src, selection, target, type, value, length, format) )
-    return True;
-
-  if (MatchSelection (*selection, &ctx->text.s))
-    s = &ctx->text.s;
-  else
-  {
-    for (salt = ctx->text.salt; salt; salt = salt->next)
-	if (MatchSelection (*selection, &salt->s))
-	    break;
-    if (!salt)
-	return False;
-    s = &salt->s;
-  }
-  if (*target == str_type ||
-      *target == a_text ||
-      *target == a_ctext) {
-	if (*target == a_text) {
-		*type = str_type;
-	} else {
-	    *type = *target;
-	}
-	/*
-	 * If salt is True, the salt->contents stores CT string,
-	 * its length is measured in bytes.
-	 * Refer to _IswTextSaltAwaySelection().
-	 *
-	 * by Li Yuhong, Mar. 20, 1991.
-	 */
-	if (!salt) {
-	    *value = _IswTextGetSTRING(ctx, s->left, s->right);
-	    *length = strlen(*value);
-	} else {
-	    *value = IswMalloc((salt->length + 1) * sizeof(unsigned char));
-	    strcpy (*value, salt->contents);
-	    *length = salt->length;
-	}
-	*format = 8;
-	return True;
-  }
-
-  if ( (*target == a_listlen) || (*target == a_length) ) {
-    long * temp;
-
-    temp = (long *) IswMalloc( (unsigned) sizeof(long) );
-    if (*target == a_listlen)
-      *temp = 1L;
-    else			/* *target == a_length */
-      *temp = (long) (s->right - s->left);
-
-    *value = (IswPointer) temp;
-    *type = _IswPlatformSelectionInternName(d, "INTEGER", False);
-    *length = 1L;
-    *format = 32;
-    return True;
-  }
-
-  if (*target == a_charpos) {
-    long * temp;
-
-    temp = (long *) IswMalloc( (unsigned)( 2 * sizeof(long) ) );
-    temp[0] = (long) (s->left + 1);
-    temp[1] = s->right;
-    *value = (IswPointer) temp;
-    *type = _IswPlatformSelectionInternName(d, "SPAN", False);
-    *length = 2L;
-    *format = 32;
-    return True;
-  }
-
-  if (*target == a_delete) {
-    if (!salt)
-	_IswTextZapSelection( ctx, (IswEvent *) NULL, TRUE);
-    *value = NULL;
-    *type = _IswPlatformSelectionInternName(d, "NULL", False);
-    *length = 0;
-    *format = 32;
-    return True;
-  }
-
-  if (IswConvertStandardSelection(w, ctx->text.time, selection, target, type,
-				  (IswPointer *)value, length, format))
-    return True;
-
-  /* else */
-  return False;
 }
 
 
 static void
-LoseSelection(Widget w, IswSelectionId *selection)
+TextLoseSelection(Widget w)
 {
-  TextWidget ctx = (TextWidget) w;
-  IswSelectionId* idP;
-  int i;
-  IswTextSelectionSalt	*salt, *prevSalt, *nextSalt;
+    TextWidget ctx = (TextWidget) w;
+    IswTextSelectionSalt *salt, *nextSalt;
 
-  _IswTextPrepareToUpdate(ctx);
+    _IswTextPrepareToUpdate(ctx);
 
-  idP = ctx->text.s.selections;
-  for (i = 0 ; i < ctx->text.s.id_count; i++, idP++)
-    if (*selection == *idP)
-      *idP = ISW_SELECTION_NONE;
-
-  while (ctx->text.s.id_count &&
-	 ctx->text.s.selections[ctx->text.s.id_count-1] == 0)
-    ctx->text.s.id_count--;
-
-/*
- * Must walk the selection list in opposite order from UnsetSelection.
- */
-
-  idP = ctx->text.s.selections;
-  for (i = 0 ; i < ctx->text.s.id_count; i++, idP++)
-    if (*idP == ISW_SELECTION_NONE) {
-      *idP = ctx->text.s.selections[--ctx->text.s.id_count];
-      while (ctx->text.s.id_count &&
-	     ctx->text.s.selections[ctx->text.s.id_count-1] == 0)
-	ctx->text.s.id_count--;
-    }
-
-  if (ctx->text.s.id_count == 0)
+    ctx->text.s.owns_selection = False;
     ModifySelection(ctx, ctx->text.insertPos, ctx->text.insertPos);
 
-  if (ctx->text.old_insert >= 0) /* Update in progress. */
-    _IswTextExecuteUpdate(ctx);
+    if (ctx->text.old_insert >= 0)
+        _IswTextExecuteUpdate(ctx);
 
-  prevSalt = 0;
-  for (salt = ctx->text.salt; salt; salt = nextSalt)
-    {
-    	idP = salt->s.selections;
-	nextSalt = salt->next;
-    	for (i = 0 ; i < salt->s.id_count; i++, idP++)
-	    if (*selection == *idP)
-		*idP = ISW_SELECTION_NONE;
-
-    	while (salt->s.id_count &&
-	       salt->s.selections[salt->s.id_count-1] == 0)
-	{
-	    salt->s.id_count--;
-	}
-
-    	/*
-    	 * Must walk the selection list in opposite order from UnsetSelection.
-    	 */
-
-    	idP = salt->s.selections;
-    	for (i = 0 ; i < salt->s.id_count; i++, idP++)
-    	    if (*idP == ISW_SELECTION_NONE)
- 	    {
-      	      *idP = salt->s.selections[--salt->s.id_count];
-      	      while (salt->s.id_count &&
-	     	     salt->s.selections[salt->s.id_count-1] == 0)
-    	    	salt->s.id_count--;
-    	    }
-	if (salt->s.id_count == 0)
-	{
-	    IswFree ((char *) salt->s.selections);
-	    IswFree (salt->contents);
-	    if (prevSalt)
-		prevSalt->next = nextSalt;
-	    else
-		ctx->text.salt = nextSalt;
-	    IswFree ((char *) salt);
-	}
-	else
-	    prevSalt = salt;
+    /* Free all salted-away snapshots */
+    for (salt = ctx->text.salt; salt; salt = nextSalt) {
+        nextSalt = salt->next;
+        IswFree(salt->contents);
+        IswFree((char *) salt);
     }
+    ctx->text.salt = NULL;
 }
 
 void
-_IswTextSaltAwaySelection(TextWidget ctx, IswSelectionId *selections, int num_ids)
+_IswTextSaltAwaySelection(TextWidget ctx)
 {
-    IswTextSelectionSalt    *salt;
-    int			    i;
+    IswTextSelectionSalt *salt;
 
-    for (i = 0; i < num_ids; i++)
-	LoseSelection ((Widget) ctx, selections + i);
-    if (num_ids == 0)
-	return;
-    salt = (IswTextSelectionSalt *)
-		IswMalloc( (unsigned) sizeof(IswTextSelectionSalt) );
+    if (ctx->text.s.left >= ctx->text.s.right)
+        return;
+
+    salt = (IswTextSelectionSalt *) IswMalloc(sizeof(IswTextSelectionSalt));
     if (!salt)
-	return;
-    salt->s.selections = (IswSelectionId *)
-	 IswMalloc( (unsigned) ( num_ids * sizeof (IswSelectionId) ) );
-    if (!salt->s.selections)
-    {
-	IswFree ((char *) salt);
-	return;
-    }
+        return;
     salt->s.left = ctx->text.s.left;
     salt->s.right = ctx->text.s.right;
     salt->s.type = ctx->text.s.type;
     salt->contents = _IswTextGetSTRING(ctx, ctx->text.s.left, ctx->text.s.right);
-    salt->length = strlen (salt->contents);
+    salt->length = strlen(salt->contents);
     salt->next = ctx->text.salt;
     ctx->text.salt = salt;
-    for (i = 0; i < num_ids; i++)
-    {
-	salt->s.selections[i] = selections[i];
-	IswOwnSelection ((Widget) ctx, selections[i], ctx->text.time,
-		ConvertSelection, LoseSelection, (IswSelectionDoneProc)NULL);
-    }
-    salt->s.id_count = num_ids;
+
+    IswSelectionOffer((Widget) ctx, ctx->text.time,
+                      TextOfferSelection, TextLoseSelection);
+    ctx->text.s.owns_selection = True;
 }
 
 static void
 _SetSelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right,
-              IswSelectionId *selections, Cardinal count)
+              Boolean take_ownership)
 {
   ISWTextPosition pos;
 
@@ -1677,20 +1455,16 @@ _SetSelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right,
   ctx->text.s.left = left;
   ctx->text.s.right = right;
 
-  SrcSetSelection(ctx->text.source, left, right,
-		  (count == 0) ? None : selections[0]);
+  SrcSetSelection(ctx->text.source, left, right, None);
 
-  if (left < right) {
-    Widget w = (Widget) ctx;
-
-    while (count) {
-      IswSelectionId selection = selections[--count];
-      IswOwnSelection(w, selection, ctx->text.time, ConvertSelection,
-		     LoseSelection, (IswSelectionDoneProc)NULL);
-    }
+  if (left < right && take_ownership) {
+    IswSelectionOffer((Widget) ctx, ctx->text.time,
+                      TextOfferSelection, TextLoseSelection);
+    ctx->text.s.owns_selection = True;
   }
-  else
-    IswTextUnsetSelection((Widget)ctx);
+  else if (left >= right) {
+    IswTextUnsetSelection((Widget) ctx);
+  }
 }
 
 /*
@@ -2289,27 +2063,18 @@ _IswTextCheckResize(TextWidget ctx)
 }
 
 /*
- * Converts (params, num_params) to a list of selection ids & caches the
- * list in the TextWidget instance.
+ * Checks whether the translation params request a selection (any non-"none"
+ * entry means "yes, take ownership").  Returns True if ownership should be taken.
  */
 
-IswSelectionId*
-_IswTextSelectionList(TextWidget ctx, String *list, Cardinal nelems)
+static Boolean
+_IswTextWantsSelection(String *list, Cardinal nelems)
 {
-  IswSelectionId * sel = ctx->text.s.selections;
-  IswDisplay dpy = IswDisplayOf((Widget) ctx);
-  int n;
-
-  if (nelems > ctx->text.s.array_size) {
-    sel = (IswSelectionId *) IswRealloc((char *) sel, sizeof(IswSelectionId) * nelems);
-    ctx->text.s.array_size = nelems;
-    ctx->text.s.selections = sel;
-  }
-  for (n=nelems; --n >= 0; sel++, list++)
-    *sel = _IswPlatformSelectionInternName(dpy, *list, False);
-
-  ctx->text.s.id_count = nelems;
-  return ctx->text.s.selections;
+  if (nelems == 0)
+    return True;
+  if (nelems == 1 && !strcmp(list[0], "none"))
+    return False;
+  return True;
 }
 
 /*	Function Name: SetSelection
@@ -2328,14 +2093,7 @@ void
 _IswTextSetSelection(TextWidget ctx, ISWTextPosition l, ISWTextPosition r,
                      String *list, Cardinal nelems)
 {
-  if (nelems == 1 && !strcmp (list[0], "none"))
-    return;
-  String defaultSel = "PRIMARY";
-  if (nelems == 0) {
-    list = &defaultSel;
-    nelems = 1;
-  }
-  _SetSelection(ctx, l, r, _IswTextSelectionList(ctx, list, nelems), nelems);
+  _SetSelection(ctx, l, r, _IswTextWantsSelection(list, nelems));
 }
 
 
@@ -2354,7 +2112,7 @@ ModifySelection(TextWidget ctx, ISWTextPosition left, ISWTextPosition right)
 {
   if (left == right)
     ctx->text.insertPos = left;
-  _SetSelection( ctx, left, right, (IswSelectionId*) NULL, ZERO );
+  _SetSelection(ctx, left, right, False);
 }
 
 /*
@@ -2651,7 +2409,6 @@ TextDestroy(Widget w)
   if (ctx->text.sink && w == IswParent(ctx->text.sink))
     IswDestroyWidget(ctx->text.sink);
 
-  IswFree((char *)ctx->text.s.selections);
   IswFree((char *)ctx->text.lt.info);
   IswFree((char *)ctx->text.search);
   IswFree((char *)ctx->text.updateFrom);
@@ -2929,23 +2686,12 @@ void
 IswTextUnsetSelection(Widget w)
 {
   TextWidget ctx = (TextWidget)w;
-  IswSelectionId clipboard = _IswPlatformSelectionInternName(IswDisplayOf(w), "CLIPBOARD", False);
 
-  while (ctx->text.s.id_count != 0) {
-    IswSelectionId sel = ctx->text.s.selections[ctx->text.s.id_count - 1];
-    if ( sel != ISW_SELECTION_NONE ) {
-/*
- * As selections are lost the id_count will decrement.
- * Keep CLIPBOARD ownership — it persists beyond the visible highlight.
- */
-      if (sel == clipboard) {
-	      ctx->text.s.selections[ctx->text.s.id_count - 1] = ISW_SELECTION_NONE;
-	      ctx->text.s.id_count--;
-	      continue;
-      }
-      IswDisownSelection(w, sel, ctx->text.time);
-      LoseSelection(w, &sel); /* In case IswDisownSelection failed to call us. */
-    }
+  if (ctx->text.s.owns_selection) {
+    /* Keep the offered text available (clipboard persists), just clear the
+       visual highlight.  The platform retains ownership until another client
+       takes it or we explicitly disown. */
+    ctx->text.s.owns_selection = False;
   }
 }
 

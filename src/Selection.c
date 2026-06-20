@@ -1064,6 +1064,47 @@ IswDisownSelection(Widget widget, IswSelectionId selection, IswTime time)
     UNLOCK_APP(app);
 }
 
+/*
+ * Simplified selection API — dispatches to the high-level platform ops.
+ */
+
+Boolean
+IswSelectionOffer(Widget widget, IswTime time,
+                  IswSelectionOfferProc offer, IswSelectionLoseProc lose)
+{
+    Boolean retval;
+
+    WIDGET_TO_APPCON(widget);
+
+    LOCK_APP(app);
+    retval = _IswPlatformSelectionOffer(IswDisplayOf(widget), widget, time,
+                                        offer, lose);
+    UNLOCK_APP(app);
+    return retval;
+}
+
+void
+IswSelectionDisown(Widget widget, IswTime time)
+{
+    WIDGET_TO_APPCON(widget);
+
+    LOCK_APP(app);
+    _IswPlatformSelectionDisown(IswDisplayOf(widget), widget, time);
+    UNLOCK_APP(app);
+}
+
+void
+IswSelectionRequestText(Widget widget, IswTime time,
+                    IswSelectionReceiveProc receive, IswPointer closure)
+{
+    WIDGET_TO_APPCON(widget);
+
+    LOCK_APP(app);
+    _IswPlatformSelectionRequestText(IswDisplayOf(widget), widget, time,
+                                     receive, closure);
+    UNLOCK_APP(app);
+}
+
 /* Selection Requestor code */
 
 static Boolean

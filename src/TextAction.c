@@ -79,7 +79,6 @@ extern void _IswTextCheckResize(TextWidget);
 extern void _IswTextExecuteUpdate(TextWidget);
 extern void _IswTextSetScrollBars(TextWidget);
 extern void _IswTextClearAndCenterDisplay(TextWidget);
-extern IswSelectionId * _IswTextSelectionList(TextWidget, String *, Cardinal);
 extern void _IswTextPrepareToUpdate(TextWidget);
 extern int _IswTextReplace(TextWidget, ISWTextPosition, ISWTextPosition, ISWTextBlock *);
 
@@ -147,94 +146,41 @@ EndAction(TextWidget ctx)
 }
 
 
-struct _SelectionList {
-    String* params;
-    Cardinal count;
-    IswTime time;
-    Boolean CT_asked;	/* flag if asked for COMPOUND_TEXT */
-    IswSelectionId selection;	/* selection id when asking for COMPOUND_TEXT */
-};
-
-
-/* ARGSUSED */
 static void
-_SelectionReceived(Widget w, IswPointer client_data, IswSelectionId *selection, IswSelectionId *type,
-                   IswPointer value, unsigned long *length, int* format)
+_SelectionReceived(Widget w, IswPointer closure, const char *value,
+                   unsigned long length)
 {
   TextWidget ctx = (TextWidget)w;
   ISWTextBlock text;
 
-  if (*type == 0 /*ISW_CONVERT_FAIL*/ || *length == 0) {
-    struct _SelectionList* list = (struct _SelectionList*)client_data;
-    if (list != NULL) {
-      if (list->CT_asked) {
-
-	/* If we just asked for COMPOUND_TEXT and got a null
-	response, we'll ask again, this time for STRING. */
-
-	list->CT_asked = False;
-        IswGetSelectionValue(w, list->selection,
-                            _IswPlatformSelectionStdType(IswDisplayOf(w), ISW_SEL_STDTYPE_STRING),
-                            _SelectionReceived, (IswPointer)list, list->time);
-      } else {
-	GetSelection(w, list->time, list->params, list->count);
-	IswFree(client_data);
-     }
-    }
+  if (value == NULL || length == 0)
     return;
-  }
 
-  /* Many programs, especially old terminal emulators, give us multibyte text
-but tell us it is COMPOUND_TEXT :(  The following routine checks to see if the
-string is a legal multibyte string in our locale using a spooky heuristic :O
-and if it is we can only assume the sending client is using the same locale as
-we are, and convert it.  I also warn the user that the other client is evil. */
-
-  StartAction( ctx, (IswEvent *) NULL );
-      text.format = IswFmt8Bit;
+  StartAction(ctx, (IswEvent *) NULL);
+  text.format = IswFmt8Bit;
   text.ptr = (char*)value;
   text.firstPos = 0;
-  text.length = *length;
+  text.length = length;
   if (_IswTextReplace(ctx, ctx->text.insertPos, ctx->text.insertPos, &text)) {
+    IswFree((char *)value);
     return;
   }
   ctx->text.insertPos = SrcScan(ctx->text.source, ctx->text.insertPos,
-				IswstPositions, IswsdRight, text.length, TRUE);
+                                IswstPositions, IswsdRight, text.length, TRUE);
 
   _IswTextSetScrollBars(ctx);
   EndAction(ctx);
-  IswFree(client_data);
-  IswFree(value);		/* the selection value should be freed with IswFree */
-}
-
-
-static void
-GetSelection(Widget w, IswTime time, String *params, Cardinal num_params)
-{
-    IswSelectionId selection;
-    struct _SelectionList* list;
-
-    selection = _IswPlatformSelectionInternName(IswDisplayOf(w), *params, False);
-
-    if (--num_params) {
-	list = IswNew(struct _SelectionList);
-	list->params = params + 1;
-	list->count = num_params;
-	list->time = time;
-	list->CT_asked = True;
-	list->selection = selection;
-    } else list = NULL;
-    IswGetSelectionValue(w, selection,
-			_IswPlatformSelectionInternName(IswDisplayOf(w), "COMPOUND_TEXT", False),
-			_SelectionReceived, (IswPointer)list, time);
+  IswFree((char *)value);
 }
 
 static void
-InsertSelection(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
+InsertSelection(Widget w, IswEvent *iswev, String *params _X_UNUSED,
+                Cardinal *num_params _X_UNUSED)
 {
-  StartAction((TextWidget)w, iswev); /* Get Time. */
-  GetSelection(w, ((TextWidget)w)->text.time, params, *num_params);
-  EndAction((TextWidget)w);
+  TextWidget ctx = (TextWidget)w;
+  StartAction(ctx, iswev);
+  IswSelectionRequestText(w, ctx->text.time, _SelectionReceived, NULL);
+  EndAction(ctx);
 }
 
 /************************************************************
@@ -430,274 +376,34 @@ MovePreviousPage(Widget w, IswEvent *iswev, String *p, Cardinal *n)
  *
  ************************************************************/
 
-static Boolean
-MatchSelection(IswSelectionId selection, IswTextSelection *s)
-{
-    IswSelectionId    *match;
-    int	    count;
-
-    for (count = 0, match = s->selections; count < s->id_count; match++, count++)
-	  if (*match == selection)
-	      return True;
-    return False;
-}
-
-#define SrcCvtSel	IswTextSourceConvertSelection
-
-/*
- * IswConvertStandardSelection - Stub for standard widget selection conversion
- *
- * In a full implementation, this would handle standard selection targets like
- * TIMESTAMP, HOSTNAME, etc. For now, we return an empty list and let the text
- * widget provide its own targets.
- */
-static Boolean
-IswConvertStandardSelection(Widget w, IswTime time, IswSelectionId *selection,
-                           IswSelectionId *target, IswSelectionId *type,
-                           IswPointer *value, unsigned long *length, int *format)
-{
-    (void)time; (void)selection; (void)target; (void)format;
-
-    /* Return empty list - the caller will add text-specific targets */
-    *value = (IswPointer)IswMalloc(0);
-    *length = 0;
-    *type = _IswPlatformSelectionStdType(IswDisplayOf(w), ISW_SEL_STDTYPE_ID_LIST);
-    return True;
-}
-
-static Boolean
-ConvertSelection(Widget w, IswSelectionId *selection, IswSelectionId *target, IswSelectionId *type,
-                 IswPointer* value, unsigned long *length, int *format)
-{
-  IswDisplay d = IswDisplayOf(w);
-  TextWidget ctx = (TextWidget)w;
-  Widget src = ctx->text.source;
-  IswTextEditType edit_mode;
-  IswTextSelectionSalt	*salt = NULL;
-  IswTextSelection  *s;
-
-  /* Intern the selection-target ids once through the platform selection op. */
-  IswSelectionId a_targets  = _IswPlatformSelectionInternName(d, "TARGETS", False);
-  IswSelectionId a_text     = _IswPlatformSelectionInternName(d, "TEXT", False);
-  IswSelectionId a_ctext    = _IswPlatformSelectionInternName(d, "COMPOUND_TEXT", False);
-  IswSelectionId a_length   = _IswPlatformSelectionInternName(d, "LENGTH", False);
-  IswSelectionId a_listlen  = _IswPlatformSelectionInternName(d, "LIST_LENGTH", False);
-  IswSelectionId a_charpos  = _IswPlatformSelectionInternName(d, "CHARACTER_POSITION", False);
-  IswSelectionId a_delete   = _IswPlatformSelectionInternName(d, "DELETE", False);
-  IswSelectionId str_type   = _IswPlatformSelectionStdType(d, ISW_SEL_STDTYPE_STRING);
-
-  if (*target == a_targets) {
-    IswSelectionId  idlist_type = _IswPlatformSelectionStdType(d, ISW_SEL_STDTYPE_ID_LIST);
-    IswSelectionId* targetP, * std_targets;
-    unsigned long std_length;
-
-    if ( SrcCvtSel(src, selection, target, type, value, length, format) )
-	return True;
-
-    IswConvertStandardSelection(w, ctx->text.time, selection,
-				target, type, (IswPointer*)&std_targets,
-				&std_length, format);
-
-    *value = IswMalloc((unsigned) sizeof(IswSelectionId)*(std_length + 7));
-    targetP = *(IswSelectionId**)value;
-
-    *length = std_length + 6;
-    *targetP++ = str_type;
-    *targetP++ = a_text;
-    *targetP++ = a_ctext;
-    *targetP++ = a_length;
-    *targetP++ = a_listlen;
-    *targetP++ = a_charpos;
-
-    {
-      IswArgBuilder ab = IswArgBuilderInit();
-      IswArgEditType(&ab, (IswArgVal)&edit_mode);
-      IswGetValues(src, ab.args, ab.count);
-    }
-
-    if (edit_mode == IswtextEdit) {
-      *targetP++ = a_delete;
-      (*length)++;
-    }
-    memcpy((char*)targetP, (char*)std_targets, sizeof(IswSelectionId)*std_length);
-    IswFree((char*)std_targets);
-    *type = idlist_type;
-    *format = 32;
-    return True;
-  }
-
-  if ( SrcCvtSel(src, selection, target, type, value, length, format) )
-    return True;
-
-  for (salt = ctx->text.salt2; salt; salt = salt->next)
-    if (MatchSelection (*selection, &salt->s))
-      break;
-  if (!salt)
-    return False;
-  s = &salt->s;
-  if (*target == str_type ||
-      *target == a_text ||
-      *target == a_ctext) {
-	if (*target == a_text) {
-		*type = str_type;
-	} else {
-	    *type = *target;
-	}
-	/*
-	 * If salt is True, the salt->contents stores CT string,
-	 * its length is measured in bytes.
-	 * Refer to _IswTextSaltAwaySelection().
-	 *
-	 * by Li Yuhong, Mar. 20, 1991.
-	 */
-	if (!salt) {
-	    *value = (char *)_IswTextGetSTRING(ctx, s->left, s->right);
-	    {
-		*length = strlen(*value);
-	    }
-	} else {
-	    *value = IswMalloc((salt->length + 1) * sizeof(unsigned char));
-	    strcpy (*value, salt->contents);
-	    *length = salt->length;
-	}
-	*format = 8;
-	return True;
-  }
-
-  if ( (*target == a_listlen) || (*target == a_length) ) {
-    long * temp;
-
-    temp = (long *) IswMalloc(sizeof(long));
-    if (*target == a_listlen)
-      *temp = 1L;
-    else			/* *target == a_length */
-      *temp = (long) (s->right - s->left);
-
-    *value = (IswPointer) temp;
-    *type = _IswPlatformSelectionInternName(d, "INTEGER", False);
-    *length = 1L;
-    *format = 32;
-    return True;
-  }
-
-  if (*target == a_charpos) {
-    long * temp;
-
-    temp = (long *) IswMalloc(2 * sizeof(long));
-    temp[0] = (long) (s->left + 1);
-    temp[1] = s->right;
-    *value = (IswPointer) temp;
-    *type = _IswPlatformSelectionInternName(d, "SPAN", False);
-    *length = 2L;
-    *format = 32;
-    return True;
-  }
-
-  if (*target == a_delete) {
-    if (!salt)
-	_IswTextZapSelection( ctx, (IswEvent *) NULL, TRUE);
-    *value = NULL;
-    *type = ISW_SELECTION_NONE;
-    *length = 0;
-    *format = 32;
-    return True;
-  }
-
-  if (IswConvertStandardSelection(w, ctx->text.time, selection, target, type,
-				  (IswPointer *)value, length, format))
-    return True;
-
-  /* else */
-  return False;
-}
-
-static void
-LoseSelection(Widget w, IswSelectionId *selection)
-{
-  TextWidget ctx = (TextWidget) w;
-  IswSelectionId* idP;
-  int i;
-  IswTextSelectionSalt	*salt, *prevSalt, *nextSalt;
-
-    prevSalt = 0;
-    for (salt = ctx->text.salt2; salt; salt = nextSalt)
-    {
-    	idP = salt->s.selections;
-	nextSalt = salt->next;
-    	for (i = 0 ; i < salt->s.id_count; i++, idP++)
-	    if (*selection == *idP)
-		*idP = ISW_SELECTION_NONE;
-
-    	while (salt->s.id_count &&
-	       salt->s.selections[salt->s.id_count-1] == 0)
-	{
-	    salt->s.id_count--;
-	}
-
-    	/*
-    	 * Must walk the selection list in opposite order from UnsetSelection.
-    	 */
-
-    	idP = salt->s.selections;
-    	for (i = 0 ; i < salt->s.id_count; i++, idP++)
-    	    if (*idP == ISW_SELECTION_NONE)
- 	    {
-      	      *idP = salt->s.selections[--salt->s.id_count];
-      	      while (salt->s.id_count &&
-	     	     salt->s.selections[salt->s.id_count-1] == 0)
-    	    	salt->s.id_count--;
-    	    }
-	if (salt->s.id_count == 0)
-	{
-	    IswFree ((char *) salt->s.selections);
-
-            /* WARNING: the next line frees memory not allocated in Isw. */
-            /* Could be a serious bug.  Someone look into it. */
-	    IswFree (salt->contents);
-	    if (prevSalt)
-		prevSalt->next = nextSalt;
-	    else
-		ctx->text.salt2 = nextSalt;
-	    IswFree ((char *) salt);
-	}
-	else
-	    prevSalt = salt;
-    }
-}
-
 static void
 _DeleteOrKill(TextWidget ctx, ISWTextPosition from, ISWTextPosition to, Boolean	kill)
 {
   ISWTextBlock text;
 
   if (kill && from < to) {
-    IswTextSelectionSalt    *salt;
-    IswSelectionId selection = _IswPlatformSelectionInternName(IswDisplayOf(ctx), "SECONDARY", False);
+    IswTextSelectionSalt *salt;
+    IswTextSelectionSalt *nextSalt;
 
-    LoseSelection ((Widget) ctx, &selection);
-    salt = (IswTextSelectionSalt *) IswMalloc (sizeof (IswTextSelectionSalt));
-    if (!salt)
-	return;
-    salt->s.selections = (IswSelectionId *) IswMalloc (sizeof (IswSelectionId));
-    if (!salt->s.selections)
-    {
-	IswFree ((char *) salt);
-	return;
+    /* Free any old kill-ring salts */
+    for (salt = ctx->text.salt2; salt; salt = nextSalt) {
+        nextSalt = salt->next;
+        IswFree(salt->contents);
+        IswFree((char *) salt);
     }
+    ctx->text.salt2 = NULL;
+
+    salt = (IswTextSelectionSalt *) IswMalloc(sizeof(IswTextSelectionSalt));
+    if (!salt)
+        return;
     salt->s.left = from;
     salt->s.right = to;
+    salt->s.type = 0;
+    salt->s.owns_selection = False;
     salt->contents = (char *)_IswTextGetSTRING(ctx, from, to);
-       salt->length = strlen (salt->contents);
-    salt->next = ctx->text.salt2;
+    salt->length = strlen(salt->contents);
+    salt->next = NULL;
     ctx->text.salt2 = salt;
-    salt->s.selections[0] = selection;
-    IswOwnSelection ((Widget) ctx, selection, ctx->text.time,
-		    ConvertSelection, LoseSelection, NULL);
-    salt->s.id_count = 1;
-/*
-    XStoreBuffer(IswDisplayOf(ctx), ptr, strlen(ptr), 1);
-    IswFree(ptr);
-*/
   }
   text.length = 0;
   text.firstPos = 0;
@@ -832,11 +538,8 @@ KillCurrentSelection(Widget w, IswEvent *iswev, String *p, Cardinal *n)
   TextWidget ctx = (TextWidget) w;
 
   StartAction(ctx, iswev);
-  /* Snapshot selection to CLIPBOARD before deleting */
-  if (ctx->text.s.left < ctx->text.s.right) {
-    IswSelectionId clip = _IswPlatformSelectionInternName(IswDisplayOf(w), "CLIPBOARD", False);
-    _IswTextSaltAwaySelection(ctx, &clip, 1);
-  }
+  if (ctx->text.s.left < ctx->text.s.right)
+    _IswTextSaltAwaySelection(ctx);
   _DeleteOrKill(ctx, ctx->text.s.left, ctx->text.s.right, TRUE);
   _IswTextSetScrollBars(ctx);
   EndAction(ctx);
@@ -1059,41 +762,23 @@ ExtendEnd(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 }
 
 static void
-SelectSave(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
+SelectSave(Widget w, IswEvent *iswev, String *params _X_UNUSED,
+           Cardinal *num_params _X_UNUSED)
 {
-    int	    num_ids;
-    IswSelectionId*   sel;
-    IswDisplay dpy = IswDisplayOf(w);
-    IswSelectionId    selections[256];
-
-    StartAction(  (TextWidget) w, iswev );
-    num_ids = *num_params;
-    if (num_ids > 256) num_ids = 256;
-    for (sel=selections; --num_ids >= 0; sel++, params++)
-	    *sel = _IswPlatformSelectionInternName(dpy, *params, False);
-    num_ids = *num_params;
-    _IswTextSaltAwaySelection( (TextWidget) w, selections, num_ids );
-    EndAction(  (TextWidget) w );
+    StartAction((TextWidget) w, iswev);
+    _IswTextSaltAwaySelection((TextWidget) w);
+    EndAction((TextWidget) w);
 }
 
 static void
-CopySelection(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
+CopySelection(Widget w, IswEvent *iswev, String *params _X_UNUSED,
+              Cardinal *num_params _X_UNUSED)
 {
   TextWidget ctx = (TextWidget) w;
-  int num_ids;
-  IswSelectionId *sel;
-  IswDisplay dpy = IswDisplayOf(w);
-  IswSelectionId selections[256];
 
   StartAction(ctx, iswev);
-  if (ctx->text.s.left < ctx->text.s.right) {
-    num_ids = *num_params;
-    if (num_ids > 256) num_ids = 256;
-    for (sel = selections; --num_ids >= 0; sel++, params++)
-      *sel = _IswPlatformSelectionInternName(dpy, *params, False);
-    num_ids = *num_params;
-    _IswTextSaltAwaySelection(ctx, selections, num_ids);
-  }
+  if (ctx->text.s.left < ctx->text.s.right)
+    _IswTextSaltAwaySelection(ctx);
   EndAction(ctx);
 }
 

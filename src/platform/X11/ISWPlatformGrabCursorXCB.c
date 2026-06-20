@@ -470,6 +470,193 @@ const IswPlatformGrabOps isw_platform_xcb_grab_ops = {
     .change_active_pointer_grab = xcb_grb_change_active_pointer_grab,
 };
 
+/* ---- high-level selection ops -------------------------------------------- */
+
+/*
+ * X11 bridge for the simplified offer/request/disown API.
+ *
+ * offer:   owns CLIPBOARD (and PRIMARY) through the existing ICCCM engine.
+ *          The ICCCM ConvertSelection callback is synthesized here: when the
+ *          protocol engine asks for data, we call the widget's offer proc for
+ *          UTF-8 text and respond with TARGETS/STRING/UTF8_STRING as needed.
+ *
+ * request: requests CLIPBOARD via the ICCCM engine, asking for UTF8_STRING
+ *          with STRING fallback, then delivers UTF-8 to the widget's receive
+ *          callback.
+ *
+ * disown:  releases ownership of CLIPBOARD (and PRIMARY).
+ */
+
+typedef struct _HighOfferCtx {
+    IswSelectionOfferProc offer;
+    IswSelectionLoseProc  lose;
+    Widget                widget;
+    IswSelectionId        clipboard_id;
+    IswSelectionId        primary_id;
+} HighOfferCtx;
+
+static HighOfferCtx *high_offer_ctx = NULL;
+
+static Boolean
+high_convert_selection(Widget w, IswSelectionId *selection,
+                       IswSelectionId *target, IswSelectionId *type,
+                       IswPointer *value, unsigned long *length, int *format)
+{
+    if (!high_offer_ctx || high_offer_ctx->widget != w)
+        return False;
+
+    IswDisplay d = IswDisplayOf(w);
+    IswSelectionId a_targets = xcb_sel_intern_name(d, "TARGETS", False);
+    IswSelectionId a_utf8    = xcb_sel_intern_name(d, "UTF8_STRING", False);
+    IswSelectionId a_string  = xcb_sel_intern_name(d, "STRING", False);
+    IswSelectionId a_text    = xcb_sel_intern_name(d, "TEXT", False);
+    IswSelectionId a_ctext   = xcb_sel_intern_name(d, "COMPOUND_TEXT", False);
+
+    if (*target == a_targets) {
+        IswSelectionId idlist_type = xcb_sel_intern_name(d, "ATOM", False);
+        IswSelectionId *tlist = (IswSelectionId *) IswMalloc(
+            4 * sizeof(IswSelectionId));
+        tlist[0] = a_utf8;
+        tlist[1] = a_string;
+        tlist[2] = a_text;
+        tlist[3] = a_targets;
+        *value  = (IswPointer) tlist;
+        *length = 4;
+        *type   = idlist_type;
+        *format = 32;
+        return True;
+    }
+
+    if (*target == a_utf8 || *target == a_string ||
+        *target == a_text || *target == a_ctext) {
+        IswPointer text_value = NULL;
+        unsigned long text_length = 0;
+
+        if (!high_offer_ctx->offer(w, &text_value, &text_length))
+            return False;
+
+        *value  = text_value;
+        *length = text_length;
+        *type   = (*target == a_utf8) ? a_utf8 : a_string;
+        *format = 8;
+        return True;
+    }
+
+    return False;
+}
+
+static void
+high_lose_selection(Widget w, IswSelectionId *selection _X_UNUSED)
+{
+    if (!high_offer_ctx || high_offer_ctx->widget != w)
+        return;
+
+    if (high_offer_ctx->lose)
+        high_offer_ctx->lose(w);
+
+    IswFree((char *) high_offer_ctx);
+    high_offer_ctx = NULL;
+}
+
+static Boolean
+xcb_high_offer(IswDisplay dpy, Widget widget, IswTime time,
+               IswSelectionOfferProc offer_proc,
+               IswSelectionLoseProc lose_proc)
+{
+    if (high_offer_ctx) {
+        IswFree((char *) high_offer_ctx);
+        high_offer_ctx = NULL;
+    }
+
+    HighOfferCtx *ctx = (HighOfferCtx *) IswMalloc(sizeof(HighOfferCtx));
+    ctx->offer        = offer_proc;
+    ctx->lose         = lose_proc;
+    ctx->widget       = widget;
+    ctx->clipboard_id = xcb_sel_intern_name(dpy, "CLIPBOARD", False);
+    ctx->primary_id   = xcb_sel_intern_name(dpy, "PRIMARY", False);
+    high_offer_ctx    = ctx;
+
+    Boolean ok = IswOwnSelection(widget, ctx->clipboard_id, time,
+                                 high_convert_selection,
+                                 high_lose_selection, NULL);
+    if (ok)
+        IswOwnSelection(widget, ctx->primary_id, time,
+                         high_convert_selection,
+                         high_lose_selection, NULL);
+    return ok;
+}
+
+static void
+xcb_high_disown(IswDisplay dpy, Widget widget, IswTime time)
+{
+    if (!high_offer_ctx || high_offer_ctx->widget != widget)
+        return;
+
+    IswDisownSelection(widget, high_offer_ctx->clipboard_id, time);
+    IswDisownSelection(widget, high_offer_ctx->primary_id, time);
+    IswFree((char *) high_offer_ctx);
+    high_offer_ctx = NULL;
+}
+
+typedef struct _HighRequestCtx {
+    IswSelectionReceiveProc receive;
+    IswPointer              closure;
+    Widget                  widget;
+    IswSelectionId          clipboard_id;
+    Boolean                 tried_clipboard;
+} HighRequestCtx;
+
+static void
+high_receive_cb(Widget w, IswPointer client_data, IswSelectionId *selection,
+                IswSelectionId *type, IswPointer value,
+                unsigned long *length, int *format _X_UNUSED)
+{
+    HighRequestCtx *rctx = (HighRequestCtx *) client_data;
+
+    if (*type == 0 || *length == 0 || value == NULL) {
+        if (!rctx->tried_clipboard) {
+            rctx->tried_clipboard = True;
+            IswSelectionId primary = xcb_sel_intern_name(
+                IswDisplayOf(w), "PRIMARY", False);
+            IswSelectionId utf8 = xcb_sel_intern_name(
+                IswDisplayOf(w), "UTF8_STRING", False);
+            IswGetSelectionValue(w, primary, utf8,
+                                 high_receive_cb, (IswPointer) rctx,
+                                 CurrentTime);
+            return;
+        }
+        rctx->receive(w, rctx->closure, NULL, 0);
+        IswFree((char *) rctx);
+        return;
+    }
+
+    rctx->receive(w, rctx->closure, (const char *) value, *length);
+    IswFree((char *) rctx);
+}
+
+static void
+xcb_high_request(IswDisplay dpy, Widget widget, IswTime time,
+                 IswSelectionReceiveProc receive_proc,
+                 IswPointer closure)
+{
+    HighRequestCtx *rctx = (HighRequestCtx *) IswMalloc(sizeof(HighRequestCtx));
+    rctx->receive          = receive_proc;
+    rctx->closure          = closure;
+    rctx->widget           = widget;
+    rctx->clipboard_id     = xcb_sel_intern_name(dpy, "CLIPBOARD", False);
+    rctx->tried_clipboard  = False;
+
+    IswSelectionId utf8 = xcb_sel_intern_name(dpy, "UTF8_STRING", False);
+    IswGetSelectionValue(widget, rctx->clipboard_id, utf8,
+                         high_receive_cb, (IswPointer) rctx, time);
+}
+
+const IswPlatformSelectionHighOps isw_platform_xcb_selection_high_ops = {
+    .offer   = xcb_high_offer,
+    .disown  = xcb_high_disown,
+    .request = xcb_high_request,
+};
+
 const IswPlatformSelectionOps isw_platform_xcb_selection_ops = {
     .intern_name        = xcb_sel_intern_name,
     .name_of            = xcb_sel_name_of,

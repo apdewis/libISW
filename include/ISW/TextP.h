@@ -91,20 +91,14 @@ typedef struct {
 typedef struct {
     ISWTextPosition   left, right;
     IswTextSelectType type;
-    IswSelectionId*  selections;
-    int		     id_count;
-    int		     array_size;
+    Boolean           owns_selection;
 } IswTextSelection;
 
 typedef struct _IswTextSelectionSalt {
-    struct _IswTextSelectionSalt    *next;
-    IswTextSelection	s;
-    /*
-     * The element "contents" stores the CT string which is gotten in the
-     * function _IswTextSaltAwaySelection().
-    */
-    char		*contents;
-    int			length;
+    struct _IswTextSelectionSalt *next;
+    IswTextSelection s;
+    char            *contents;
+    int              length;
 } IswTextSelectionSalt;
 
 /* Line Tables are n+1 long - last position displayed is in last lt entry */
@@ -253,9 +247,7 @@ extern char* _IswTextGetSTRING(
 );
 
 extern void _IswTextSaltAwaySelection(
-    TextWidget /*ctx*/,
-    IswSelectionId* /*selections*/,
-    int /*num_ids*/
+    TextWidget /*ctx*/
 );
 
 extern void _IswTextPosToXY(

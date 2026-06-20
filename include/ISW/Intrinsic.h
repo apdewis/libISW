@@ -594,6 +594,64 @@ typedef enum {
     ISW_SEL_STDTYPE_INTEGER        /* an integer              (X11: INTEGER) */
 } IswSelectionStdType;
 
+/*
+ * Simplified selection API — widget-level offer/request.
+ *
+ * The widget says "I have text" (offer) or "give me text" (request).
+ * The platform backend decides which selection channels to use (PRIMARY,
+ * CLIPBOARD, etc.) and handles all protocol detail (TARGETS negotiation,
+ * INCR chunking, format conversion).
+ */
+
+/* The offer callback: platform asks the widget for its current text.
+   Widget fills *value with IswMalloc'd UTF-8 string and *length with
+   its byte count.  Returns True if text is available, False otherwise. */
+typedef Boolean (*IswSelectionOfferProc)(
+    Widget		/* widget */,
+    IswPointer*		/* value_return — IswMalloc'd UTF-8, caller frees */,
+    unsigned long*	/* length_return — byte count */
+);
+
+/* The lose callback: platform informs the widget it no longer owns the
+   selection (another client took it). */
+typedef void (*IswSelectionLoseProc)(
+    Widget		/* widget */
+);
+
+/* The receive callback: platform delivers text from the selection owner.
+   value is IswMalloc'd UTF-8 (or NULL on failure); length is its byte count.
+   The callback must IswFree value when done. */
+typedef void (*IswSelectionReceiveProc)(
+    Widget		/* widget */,
+    IswPointer		/* closure */,
+    const char*		/* value — IswMalloc'd UTF-8, callback frees */,
+    unsigned long	/* length — byte count */
+);
+
+extern Boolean IswSelectionOffer(
+    Widget			/* widget */,
+    IswTime			/* time */,
+    IswSelectionOfferProc	/* offer */,
+    IswSelectionLoseProc	/* lose */
+);
+
+extern void IswSelectionDisown(
+    Widget		/* widget */,
+    IswTime		/* time */
+);
+
+extern void IswSelectionRequestText(
+    Widget			/* widget */,
+    IswTime			/* time */,
+    IswSelectionReceiveProc	/* receive */,
+    IswPointer			/* closure */
+);
+
+/* ---- Legacy selection API (IswSelectionId-based) ----
+ * These remain for the ICCCM protocol engine in Selection.c and for widgets
+ * that haven't migrated.  New code should use the simplified API above.
+ */
+
 typedef Boolean (*IswConvertSelectionProc)(
     Widget 		/* widget */,
     IswSelectionId*	/* selection */,

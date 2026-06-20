@@ -256,6 +256,9 @@ typedef struct _IswPlatformInputOps     IswPlatformInputOps;
 /* Selections / clipboard — own, convert, paste.  Filled in Phase 5. */
 typedef struct _IswPlatformSelectionOps IswPlatformSelectionOps;
 
+/* High-level selection — offer/request/disown with UTF-8 text. */
+typedef struct _IswPlatformSelectionHighOps IswPlatformSelectionHighOps;
+
 /* Grabs — passive/active pointer/keyboard/button/key grabs.  Filled in Phase 5. */
 typedef struct _IswPlatformGrabOps      IswPlatformGrabOps;
 
@@ -675,6 +678,37 @@ struct _IswPlatformSelectionOps {
 
 /*
  * =================================================================
+ * High-level selection ops
+ * =================================================================
+ *
+ * Widget-level offer/request/disown.  The backend handles all protocol
+ * detail: which selection channels to use (PRIMARY, CLIPBOARD, etc.),
+ * TARGETS negotiation, format conversion, INCR chunking.  Widgets only
+ * provide and consume UTF-8 text.
+ *
+ * These sit above _IswPlatformSelectionOps — the backend implements them
+ * on top of whatever wire protocol it speaks.
+ */
+struct _IswPlatformSelectionHighOps {
+    /* Offer: widget has text to share.  Backend takes ownership of the
+       appropriate selections and will call offer_proc when another client
+       requests the data.  lose_proc is called when ownership is lost.
+       Returns True if ownership was obtained. */
+    Boolean (*offer)(IswDisplay dpy, Widget widget, IswTime time,
+                     IswSelectionOfferProc offer_proc,
+                     IswSelectionLoseProc lose_proc);
+    /* Disown: widget relinquishes selection ownership. */
+    void    (*disown)(IswDisplay dpy, Widget widget, IswTime time);
+    /* Request: ask for text from the current selection owner.  Backend
+       negotiates the best format and calls receive_proc with UTF-8 text
+       (or NULL on failure). */
+    void    (*request)(IswDisplay dpy, Widget widget, IswTime time,
+                       IswSelectionReceiveProc receive_proc,
+                       IswPointer closure);
+};
+
+/*
+ * =================================================================
  * Atom ops (Phase 6)
  * =================================================================
  *
@@ -846,7 +880,8 @@ typedef struct _IswPlatformOps {
     const IswPlatformRootOps      *root;
     const IswPlatformEventOps     *event;
     const IswPlatformInputOps     *input;
-    const IswPlatformSelectionOps *selection;
+    const IswPlatformSelectionOps     *selection;
+    const IswPlatformSelectionHighOps *selection_high;
     const IswPlatformColorOps     *color;
     const IswPlatformFontOps      *font;
     const IswPlatformCursorOps    *cursor;
@@ -913,7 +948,19 @@ extern void     *IswDisplayNativeHandle(IswDisplay dpy);
 extern void     *IswScreenNativeHandle(IswScreen screen);
 extern void     *IswWindowNativeHandle(IswWindow win);
 
-/* Selection */
+/* High-level selection (offer/request/disown) */
+extern Boolean  _IswPlatformSelectionOffer(IswDisplay dpy, Widget widget,
+                                           IswTime time,
+                                           IswSelectionOfferProc offer_proc,
+                                           IswSelectionLoseProc lose_proc);
+extern void     _IswPlatformSelectionDisown(IswDisplay dpy, Widget widget,
+                                            IswTime time);
+extern void     _IswPlatformSelectionRequestText(IswDisplay dpy, Widget widget,
+                                                 IswTime time,
+                                                 IswSelectionReceiveProc receive,
+                                                 IswPointer closure);
+
+/* Low-level selection (ICCCM protocol engine) */
 extern IswSelectionId _IswPlatformSelectionInternName(IswDisplay dpy,
                                                       const char *name,
                                                       Boolean only_if_exists);
