@@ -79,7 +79,7 @@ in this Software without prior written authorization from The Open Group.
 #include "CoreP.h"
 #include "ShellP.h"
 #include <stdio.h>
-#include <X11/Xlocale.h>
+#include <locale.h>
 #ifndef WIN32
 #include <pwd.h>
 #endif
