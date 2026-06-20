@@ -408,19 +408,4 @@ static inline uint8_t IswEventButton(const IswEvent *e)
  */
 void *IswEventNative(const IswEvent *event);
 
-/*
- * Convenience for the cases above: declares `xcb_generic_event_t *event`
- * bound to the native event, as a proc's first statement:
- *
- *     void Foo(Widget w, IswEvent *iswev, String *p, Cardinal *n) {
- *         ISW_NATIVE_EVENT(iswev);   // declares `xcb_generic_event_t *event`
- *         ... native-level body using `event` ...
- *     }
- *
- * Cast through void* so this header needs no xcb type; the expansion site must
- * have xcb_generic_event_t in scope.
- */
-#define ISW_NATIVE_EVENT(iswev) \
-    xcb_generic_event_t *event = (xcb_generic_event_t *) IswEventNative(iswev)
-
 #endif /* _IswEvent_h */
