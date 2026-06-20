@@ -82,7 +82,7 @@ typedef struct {
 
 typedef struct {
     IswPointer next_extension;	/* 1st 4 mandated for all extension records */
-    XrmQuark record_type;	/* NULLQUARK; on ShellClassPart */
+    IswQuark record_type;	/* ISW_NULLQUARK; on ShellClassPart */
     long version;		/* must be IswShellExtensionVersion */
     Cardinal record_size;	/* sizeof(ShellClassExtensionRec) */
     IswGeometryHandler root_geometry_manager;
@@ -338,7 +338,7 @@ typedef struct {
 #else
     const char *class;
 #endif
-    //XrmClass xrm_class;
+    //IswQuarkClass xrm_class;
     int argc;
     _IswString *argv;
 } ApplicationShellPart;

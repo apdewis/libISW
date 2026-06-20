@@ -133,7 +133,7 @@ TipClassRec tipClassRec = {
     0,					/* num_actions */
     resources,				/* resources */
     IswNumber(resources),		/* num_resources */
-    NULLQUARK,				/* xrm_class */
+    ISW_NULLQUARK,				/* xrm_class */
     True,				/* compress_motion */
     True,				/* compress_exposure */
     True,				/* compress_enterleave */

@@ -215,7 +215,7 @@ PanedClassRec panedClassRec = {
     /* num_actions        */   0,
     /* resources          */   resources,
     /* resource_count     */   IswNumber(resources),
-    /* xrm_class          */   NULLQUARK,
+    /* xrm_class          */   ISW_NULLQUARK,
     /* compress_motion    */   TRUE,
     /* compress_exposure  */   TRUE,
     /* compress_enterleave*/   TRUE,

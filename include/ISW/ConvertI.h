@@ -49,7 +49,7 @@ _XFUNCPROTOBEGIN
 
 /* Representation types */
 
-extern	XrmQuark  _IswQString;
+extern	IswQuark  _IswQString;
 
 /*
  * Resource conversions
@@ -71,8 +71,8 @@ extern void _IswFreeConverterTable(
 
 extern void _IswTableAddConverter(
     ConverterTable		/* table */,
-    XrmRepresentation    	/* from_type */,
-    XrmRepresentation    	/* to_type */,
+    IswRepresentation    	/* from_type */,
+    IswRepresentation    	/* to_type */,
     IswTypeConverter      	/* converter */,
     IswConvertArgRec const *     /* convert_args */,
     Cardinal             	/* num_args */,
@@ -84,10 +84,10 @@ extern void _IswTableAddConverter(
 
 extern Boolean _IswConvert(
     Widget			/* widget */,
-    XrmRepresentation    	/* from_type */,
-    XrmValuePtr			/* from */,
-    XrmRepresentation		/* to_type */,
-    XrmValuePtr			/* to */,
+    IswRepresentation    	/* from_type */,
+    IswValuePtr			/* from */,
+    IswRepresentation		/* to_type */,
+    IswValuePtr			/* to */,
     IswCacheRef*			/* cache_ref_return */
 );
 

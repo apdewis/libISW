@@ -491,7 +491,7 @@ IswChangeManagedSet(WidgetList unmanage_children,
             IswGetClassExtension(parent->core.widget_class,
                                 IswOffsetOf(CompositeClassRec,
                                            composite_class.extension),
-                                NULLQUARK, IswCompositeExtensionVersion,
+                                ISW_NULLQUARK, IswCompositeExtensionVersion,
                                 sizeof(CompositeClassExtensionRec));
 
         if (!ext || !ext->allows_change_managed_set)

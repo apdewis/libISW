@@ -70,7 +70,7 @@ ToolbarClassRec toolbarClassRec = {
     0,                                  /* num_actions            */
     resources,                          /* resources              */
     IswNumber(resources),                /* resource_count         */
-    NULLQUARK,                          /* xrm_class              */
+    ISW_NULLQUARK,                          /* xrm_class              */
     TRUE,                               /* compress_motion        */
     TRUE,                               /* compress_exposure      */
     TRUE,                               /* compress_enterleave    */
@@ -115,20 +115,20 @@ WidgetClass toolbarWidgetClass = (WidgetClass)&toolbarClassRec;
 
 /* --- String-to-ToolbarAlignment converter --- */
 
-static XrmQuark QLeft, QCenter, QRight;
+static IswQuark QLeft, QCenter, QRight;
 
 static void
-_CvtStringToToolbarAlignment(XrmValuePtr args, Cardinal *num_args,
-                             XrmValuePtr fromVal, XrmValuePtr toVal)
+_CvtStringToToolbarAlignment(IswValuePtr args, Cardinal *num_args,
+                             IswValuePtr fromVal, IswValuePtr toVal)
 {
     static IswToolbarAlignment align;
-    XrmQuark q;
+    IswQuark q;
     char lower[40];
     (void)args; (void)num_args;
 
     if (strlen((char *)fromVal->addr) < sizeof(lower)) {
         ISWCopyISOLatin1Lowered(lower, (char *)fromVal->addr);
-        q = XrmStringToQuark(lower);
+        q = IswStringToQuark(lower);
         if      (q == QLeft)   align = IswToolbarAlignLeft;
         else if (q == QCenter) align = IswToolbarAlignCenter;
         else if (q == QRight)  align = IswToolbarAlignRight;
@@ -149,9 +149,9 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    QLeft   = XrmPermStringToQuark("left");
-    QCenter = XrmPermStringToQuark("center");
-    QRight  = XrmPermStringToQuark("right");
+    QLeft   = IswPermStringToQuark("left");
+    QCenter = IswPermStringToQuark("center");
+    QRight  = IswPermStringToQuark("right");
     IswAddConverter(IswRString, IswRToolbarAlignment,
                    _CvtStringToToolbarAlignment, NULL, 0);
 }

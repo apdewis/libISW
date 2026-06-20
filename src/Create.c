@@ -268,7 +268,7 @@ xtWidgetAlloc(WidgetClass widget_class,
     ext = (ObjectClassExtension)
         IswGetClassExtension(widget_class,
                             IswOffsetOf(ObjectClassRec, object_class.extension),
-                            NULLQUARK, IswObjectExtensionVersion,
+                            ISW_NULLQUARK, IswObjectExtensionVersion,
                             sizeof(ObjectClassExtensionRec));
     if (parent_constraint_class)
         csize = parent_constraint_class->constraint_class.constraint_size;
@@ -366,7 +366,7 @@ xtCreate(String name,
         widget->core.managed = FALSE;
     }
     if (IswIsWidget(widget)) {
-        widget->core.name = XrmNameToString(widget->core.xrm_name);
+        widget->core.name = IswNameToString(widget->core.xrm_name);
         widget->core.screen = default_screen;
         widget->core.display = conn;
         widget->core.tm.translations = NULL;
@@ -562,7 +562,7 @@ _IswCreateWidget(String name,
                 IswGetClassExtension(IswClass(parent),
                                     IswOffsetOf(CompositeClassRec,
                                                composite_class.extension),
-                                    NULLQUARK, 1L, (Cardinal) 0);
+                                    ISW_NULLQUARK, 1L, (Cardinal) 0);
             LOCK_PROCESS;
             if (ext &&
                 (ext->version > IswCompositeExtensionVersion ||

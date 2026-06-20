@@ -76,7 +76,7 @@ typedef struct _Piece {
 typedef struct _TextSrcPart {
     /* resources */
     IswTextEditType   edit_mode;
-    XrmQuark          text_format;  /* always FMT8BIT now; kept for compat */
+    IswQuark          text_format;  /* always FMT8BIT now; kept for compat */
 
     char             *string;       /* either the string or the file name */
     IswTextSourceType type;

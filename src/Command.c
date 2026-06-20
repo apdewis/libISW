@@ -136,7 +136,7 @@ CommandClassRec commandClassRec = {
     IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
     IswNumber(resources),		/* resource_count	  */
-    NULLQUARK,				/* xrm_class		  */
+    ISW_NULLQUARK,				/* xrm_class		  */
     FALSE,				/* compress_motion	  */
     TRUE,				/* compress_exposure	  */
     TRUE,				/* compress_enterleave    */

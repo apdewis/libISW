@@ -93,60 +93,40 @@ in this Software without prior written authorization from The Open Group.
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWPlatform.h>
 
-/* some unspecified magic number of expected search levels for Xrm */
-#define SEARCH_LIST_SIZE 1000
 
 /*
- This is a set of default records describing the command line arguments that
- Xlib will parse and set into the resource data base.
-
- This list is applied before the users list to enforce these defaults.  This is
- policy, which the toolkit avoids but I hate differing programs at this level.
+ Default command-line option table applied before the application's list.
 */
 
 /* *INDENT-OFF* */
-static XrmOptionDescRec const opTable[] = {
-{"+rv",               "*reverseVideo",     XrmoptionNoArg,   (IswPointer) "off"},
-{"+synchronous",      "*synchronous",      XrmoptionNoArg,   (IswPointer) "off"},
-{"-background",       "*background",       XrmoptionSepArg,  (IswPointer) NULL},
-{"-bd",               "*borderColor",      XrmoptionSepArg,  (IswPointer) NULL},
-{"-bg",               "*background",       XrmoptionSepArg,  (IswPointer) NULL},
-{"-bordercolor",      "*borderColor",      XrmoptionSepArg,  (IswPointer) NULL},
-{"-borderwidth",      ".borderWidth",      XrmoptionSepArg,  (IswPointer) NULL},
-{"-bw",               ".borderWidth",      XrmoptionSepArg,  (IswPointer) NULL},
-{"-display",          ".display",          XrmoptionSepArg,  (IswPointer) NULL},
-{"-fg",               "*foreground",       XrmoptionSepArg,  (IswPointer) NULL},
-{"-fn",               "*font",             XrmoptionSepArg,  (IswPointer) NULL},
-{"-font",             "*font",             XrmoptionSepArg,  (IswPointer) NULL},
-{"-foreground",       "*foreground",       XrmoptionSepArg,  (IswPointer) NULL},
-{"-geometry",         ".geometry",         XrmoptionSepArg,  (IswPointer) NULL},
-{"-iconic",           ".iconic",           XrmoptionNoArg,   (IswPointer) "on"},
-{"-name",             ".name",             XrmoptionSepArg,  (IswPointer) NULL},
-{"-reverse",          "*reverseVideo",     XrmoptionNoArg,   (IswPointer) "on"},
-{"-rv",               "*reverseVideo",     XrmoptionNoArg,   (IswPointer) "on"},
-{"-selectionTimeout", ".selectionTimeout", XrmoptionSepArg,  (IswPointer) NULL},
-{"-synchronous",      "*synchronous",      XrmoptionNoArg,   (IswPointer) "on"},
-{"-title",            ".title",            XrmoptionSepArg,  (IswPointer) NULL},
-{"-xnllanguage",      ".xnlLanguage",      XrmoptionSepArg,  (IswPointer) NULL},
-{"-xrm",              NULL,                XrmoptionResArg,  (IswPointer) NULL},
-{"-xtsessionID",      ".sessionID",        XrmoptionSepArg,  (IswPointer) NULL},
+static IswOptionDescRec const opTable[] = {
+{"+rv",               "*reverseVideo",     IswOptionNoArg,   (IswPointer) "off"},
+{"+synchronous",      "*synchronous",      IswOptionNoArg,   (IswPointer) "off"},
+{"-background",       "*background",       IswOptionSepArg,  (IswPointer) NULL},
+{"-bd",               "*borderColor",      IswOptionSepArg,  (IswPointer) NULL},
+{"-bg",               "*background",       IswOptionSepArg,  (IswPointer) NULL},
+{"-bordercolor",      "*borderColor",      IswOptionSepArg,  (IswPointer) NULL},
+{"-borderwidth",      ".borderWidth",      IswOptionSepArg,  (IswPointer) NULL},
+{"-bw",               ".borderWidth",      IswOptionSepArg,  (IswPointer) NULL},
+{"-display",          ".display",          IswOptionSepArg,  (IswPointer) NULL},
+{"-fg",               "*foreground",       IswOptionSepArg,  (IswPointer) NULL},
+{"-fn",               "*font",             IswOptionSepArg,  (IswPointer) NULL},
+{"-font",             "*font",             IswOptionSepArg,  (IswPointer) NULL},
+{"-foreground",       "*foreground",       IswOptionSepArg,  (IswPointer) NULL},
+{"-geometry",         ".geometry",         IswOptionSepArg,  (IswPointer) NULL},
+{"-iconic",           ".iconic",           IswOptionNoArg,   (IswPointer) "on"},
+{"-name",             ".name",             IswOptionSepArg,  (IswPointer) NULL},
+{"-reverse",          "*reverseVideo",     IswOptionNoArg,   (IswPointer) "on"},
+{"-rv",               "*reverseVideo",     IswOptionNoArg,   (IswPointer) "on"},
+{"-selectionTimeout", ".selectionTimeout", IswOptionSepArg,  (IswPointer) NULL},
+{"-synchronous",      "*synchronous",      IswOptionNoArg,   (IswPointer) "on"},
+{"-title",            ".title",            IswOptionSepArg,  (IswPointer) NULL},
+{"-xnllanguage",      ".xnlLanguage",      IswOptionSepArg,  (IswPointer) NULL},
+{"-xrm",              NULL,                IswOptionResArg,  (IswPointer) NULL},
+{"-xtsessionID",      ".sessionID",        IswOptionSepArg,  (IswPointer) NULL},
 };
 /* *INDENT-ON* */
 
-/*
- * GetHostname - emulates gethostname() on non-bsd systems.
- */
-
-static void
-GetHostname(char *buf, int maxlen)
-{
-    if (maxlen <= 0 || buf == NULL)
-        return;
-
-    buf[0] = '\0';
-    (void) gethostname(buf, (size_t) maxlen);
-    buf[maxlen - 1] = '\0';
-}
 
 
 #if defined (WIN32) || defined(__CYGWIN__)
@@ -235,11 +215,6 @@ IswToolkitInitialize(void)
     }
     initialized = True;
     UNLOCK_PROCESS;
-    /* Resource management initialization */
-    //XrmInitialize();  /* Xlib-specific, not needed for XCB */
-    
-    /* NOTE: XrmPermStringToQuark is NOT Xrm-dependent - it's just string interning.
-     * These initializations are REQUIRED for resource system and converters to work. */
     _IswResourceListInitialize();
 
     /* Other intrinsic initialization */
@@ -288,123 +263,6 @@ _IswGetUserName(_IswString dest, int len)
     }
 #endif
     return dest;
-}
-
-static String
-GetRootDirName(_IswString dest, int len)
-{
-#ifdef WIN32
-    register char *ptr1;
-    register char *ptr2 = NULL;
-    int len1 = 0, len2 = 0;
-
-    if (ptr1 = getenv("HOME")) {        /* old, deprecated */
-        len1 = strlen(ptr1);
-    }
-    else if ((ptr1 = getenv("HOMEDRIVE")) && (ptr2 = getenv("HOMEDIR"))) {
-        len1 = strlen(ptr1);
-        len2 = strlen(ptr2);
-    }
-    else if (ptr2 = getenv("USERNAME")) {
-        len1 = strlen(ptr1 = "/users/");
-        len2 = strlen(ptr2);
-    }
-    if ((len1 + len2 + 1) < len)
-        sprintf(dest, "%s%s", ptr1, (ptr2) ? ptr2 : "");
-    else
-        *dest = '\0';
-#else
-#ifdef X_NEEDS_PWPARAMS
-    _Xgetpwparams pwparams;
-#endif
-    static char *ptr;
-
-    if (len <= 0 || dest == NULL)
-        return NULL;
-
-    if ((ptr = getenv("HOME"))) {
-        (void) strncpy(dest, ptr, (size_t) (len - 1));
-        dest[len - 1] = '\0';
-    }
-    else {
-        struct passwd *pw;
-
-        if ((ptr = getenv("USER")))
-            pw = _XGetpwnam(ptr, pwparams);
-        else
-            pw = _XGetpwuid(getuid(), pwparams);
-        if (pw != NULL) {
-            (void) strncpy(dest, pw->pw_dir, (size_t) (len - 1));
-            dest[len - 1] = '\0';
-        }
-        else
-            *dest = '\0';
-    }
-#endif
-    return dest;
-}
-
-static void
-CombineAppUserDefaults(IswDisplay dpy, IswDatabaseHandle *pdb)
-{
-    char *filename;
-    char *path = NULL;
-    Boolean deallocate = False;
-
-    if (!(path = getenv("XUSERFILESEARCHPATH"))) {
-#if !defined(WIN32) || !defined(__MINGW32__)
-        char *old_path;
-        char homedir[PATH_MAX];
-
-        GetRootDirName(homedir, PATH_MAX);
-        if (!(old_path = getenv("XAPPLRESDIR"))) {
-            IswAsprintf(&path,
-                       "%s/%%L/%%N%%C:%s/%%l/%%N%%C:%s/%%N%%C:%s/%%L/%%N:%s/%%l/%%N:%s/%%N",
-                       homedir, homedir, homedir, homedir, homedir, homedir);
-        }
-        else {
-            IswAsprintf(&path,
-                       "%s/%%L/%%N%%C:%s/%%l/%%N%%C:%s/%%N%%C:%s/%%N%%C:%s/%%L/%%N:%s/%%l/%%N:%s/%%N:%s/%%N",
-                       old_path, old_path, old_path, homedir,
-                       old_path, old_path, old_path, homedir);
-        }
-        deallocate = True;
-#endif
-    }
-
-    filename = IswResolvePathname((IswDisplay) dpy, NULL, NULL, NULL, path, NULL, 0, NULL);
-    if (filename) {
-        IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename);
-        if (fdb)
-            _IswPlatformResourceCombine(fdb, pdb, False);
-        IswFree(filename);
-    }
-
-    if (deallocate)
-        IswFree(path);
-}
-
-static void
-CombineUserDefaults(IswDisplay dpy, IswScreen screen,
-                    IswDatabaseHandle *pdb)
-{
-    /* Try RESOURCE_MANAGER property first */
-    IswDatabaseHandle rdb =
-        _IswPlatformResourceFromManager(dpy, screen);
-    if (rdb) {
-        _IswPlatformResourceCombine(rdb, pdb, False);
-    }
-    else {
-        const char *slashDotXdefaults = "/.Xdefaults";
-        char filename[PATH_MAX];
-
-        (void) GetRootDirName(filename,
-                              PATH_MAX - (int) strlen(slashDotXdefaults) - 1);
-        (void) strcat(filename, slashDotXdefaults);
-        IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename);
-        if (fdb)
-            _IswPlatformResourceCombine(fdb, pdb, False);
-    }
 }
 
 static IswDatabaseHandle
@@ -490,7 +348,7 @@ IswSetLanguageProc(IswAppContext app, IswLanguageProc proc, IswPointer closure)
     return (old ? old : _IswDefaultLanguageProc);
 }
 
-XrmDatabase
+IswDatabaseHandle
 IswScreenDatabase(IswScreen screen)
 {
     const IswPlatformOps *ops = _IswPlatformSelectBackend();
@@ -558,29 +416,12 @@ IswScreenDatabase(IswScreen screen)
         db = CopyDB(pd->cmd_db);
     }
 
-    /* Environment-specific defaults (~/.Xdefaults-hostname or XENVIRONMENT) */
-    char filenamebuf[PATH_MAX];
-    char *filename;
-    IswDatabaseHandle envdb;
-
-    if (!(filename = getenv("XENVIRONMENT"))) {
-        const char *slashDotXdefaultsDash = "/.Xdefaults-";
-        int len;
-
-        (void) GetRootDirName(filename = filenamebuf,
-                                PATH_MAX -
-                                (int) strlen(slashDotXdefaultsDash) - 1);
-        (void) strcat(filename, slashDotXdefaultsDash);
-        len = (int) strlen(filename);
-        GetHostname(filename + len, PATH_MAX - len);
-    }
-    envdb = _IswPlatformResourceFromFile(filename);
-    if (envdb)
-        _IswPlatformResourceCombine(envdb, &db, False);
-    
-    /* Server or host defaults (RESOURCE_MANAGER property or ~/.Xdefaults) */
+    /* Platform-specific user defaults (X11: RESOURCE_MANAGER, ~/.Xdefaults,
+       XENVIRONMENT, ~/.Xdefaults-hostname, XUSERFILESEARCHPATH, app-defaults) */
     if (!pd->server_db) {
-        CombineUserDefaults(dpy, screen, &db);
+        IswDatabaseHandle user_db = _IswPlatformResourceBuildUserDb(dpy, screen);
+        if (user_db)
+            _IswPlatformResourceCombine(user_db, &db, False);
     }
     else {
         _IswPlatformResourceCombine(pd->server_db, &db, False);
@@ -595,18 +436,6 @@ IswScreenDatabase(IswScreen screen)
     if (pd->per_screen_db)
         pd->per_screen_db[scrno] = db;
 
-    /* App user defaults and system app-defaults */
-    CombineAppUserDefaults(dpy, &db);
-    
-    char *filename2 = IswResolvePathname((IswDisplay) dpy, "app-defaults",
-                                       NULL, NULL, NULL, NULL, 0, NULL);
-    if (filename2) {
-        IswDatabaseHandle fdb = _IswPlatformResourceFromFile(filename2);
-        if (fdb)
-            _IswPlatformResourceCombine(fdb, &db, False);
-        IswFree(filename2);
-    }
-    
     /* Fallback resources */
     if (pd->appContext->fallback_resources) {
         String *res;
@@ -666,40 +495,39 @@ IswReloadScreenDatabase(IswScreen screen_handle)
  * Merge two option tables, allowing the second to over-ride the first,
  * so that ambiguous abbreviations can be noticed.  The merge attempts
  * to make the resulting table lexicographically sorted, but succeeds
- * only if the first source table is sorted.  Though it _is_ recommended
- * (for optimizations later in XrmParseCommand), it is not required
- * that either source table be sorted.
+ * only if the first source table is sorted.  Neither source table is
+ * required to be sorted.
  *
  * Caller is responsible for freeing the returned option table.
  */
 
 static void
-_MergeOptionTables(const XrmOptionDescRec *src1,
+_MergeOptionTables(const IswOptionDescRec *src1,
                    Cardinal num_src1,
-                   const XrmOptionDescRec *src2,
+                   const IswOptionDescRec *src2,
                    Cardinal num_src2,
-                   XrmOptionDescRec **dst,
+                   IswOptionDescRec **dst,
                    Cardinal *num_dst)
 {
-    XrmOptionDescRec *table, *endP;
-    XrmOptionDescRec *opt1, *dstP;
-    const XrmOptionDescRec *opt2;
+    IswOptionDescRec *table, *endP;
+    IswOptionDescRec *opt1, *dstP;
+    const IswOptionDescRec *opt2;
     int i1;
     Cardinal i2;
     int dst_len, order;
     enum { Check, NotSorted, IsSorted } sort_order = Check;
 
     *dst = table = IswMallocArray(num_src1 + num_src2,
-                                 (Cardinal) sizeof(XrmOptionDescRec));
+                                 (Cardinal) sizeof(IswOptionDescRec));
 
-    (void) memcpy(table, src1, sizeof(XrmOptionDescRec) * num_src1);
+    (void) memcpy(table, src1, sizeof(IswOptionDescRec) * num_src1);
     if (num_src2 == 0) {
         *num_dst = num_src1;
         return;
     }
     endP = &table[dst_len = (int) num_src1];
     for (opt2 = src2, i2 = 0; i2 < num_src2; opt2++, i2++) {
-        XrmOptionDescRec *whereP;
+        IswOptionDescRec *whereP;
         Boolean found;
 
         found = False;
@@ -739,7 +567,6 @@ _MergeOptionTables(const XrmOptionDescRec *src1,
 
 /*
  * _IswParseCommand - Parse command line options into a resource database.
- * Replacement for XrmParseCommand using xcb-util-xrm.
  */
 /* Helper: put a resource into the database, using put_resource_line for
  * entries with wildcards (* or ?) so xcb-util-xrm parses them correctly. */
@@ -758,7 +585,7 @@ _IswDbPutResource(IswDatabaseHandle *db, const char *resource, const char *value
 
 static void
 _IswParseCommand(IswDatabaseHandle *db,
-                XrmOptionDescRec *options,
+                IswOptionDescRec *options,
                 int num_options,
                 _Xconst char *prefix,
                 int *argc,
@@ -787,13 +614,13 @@ _IswParseCommand(IswDatabaseHandle *db,
 
             /* Check for exact match or sticky arg */
             if ((*src)[optlen] != '\0' &&
-                options[i].argKind != XrmoptionStickyArg)
+                options[i].argKind != IswOptionStickyArg)
                 continue;
 
             matched = True;
 
             switch (options[i].argKind) {
-            case XrmoptionNoArg:
+            case IswOptionNoArg:
                 if (options[i].specifier != NULL) {
                     snprintf(resource_buf, sizeof(resource_buf),
                              "%s%s", prefix, options[i].specifier);
@@ -806,7 +633,7 @@ _IswParseCommand(IswDatabaseHandle *db,
                 remaining--;
                 break;
 
-            case XrmoptionIsArg:
+            case IswOptionIsArg:
                 if (options[i].specifier != NULL) {
                     snprintf(resource_buf, sizeof(resource_buf),
                              "%s%s", prefix, options[i].specifier);
@@ -818,7 +645,7 @@ _IswParseCommand(IswDatabaseHandle *db,
                 remaining--;
                 break;
 
-            case XrmoptionStickyArg:
+            case IswOptionStickyArg:
                 if (options[i].specifier != NULL) {
                     snprintf(resource_buf, sizeof(resource_buf),
                              "%s%s", prefix, options[i].specifier);
@@ -830,7 +657,7 @@ _IswParseCommand(IswDatabaseHandle *db,
                 remaining--;
                 break;
 
-            case XrmoptionSepArg:
+            case IswOptionSepArg:
                 src++;
                 remaining--;
                 if (remaining > 0 && options[i].specifier != NULL) {
@@ -844,7 +671,7 @@ _IswParseCommand(IswDatabaseHandle *db,
                 }
                 break;
 
-            case XrmoptionResArg:
+            case IswOptionResArg:
                 src++;
                 remaining--;
                 if (remaining > 0) {
@@ -856,7 +683,7 @@ _IswParseCommand(IswDatabaseHandle *db,
                 }
                 break;
 
-            case XrmoptionSkipArg:
+            case IswOptionSkipArg:
                 *dst++ = *src++;
                 remaining--;
                 if (remaining > 0) {
@@ -865,14 +692,14 @@ _IswParseCommand(IswDatabaseHandle *db,
                 }
                 break;
 
-            case XrmoptionSkipLine:
+            case IswOptionSkipLine:
                 while (remaining > 0) {
                     *dst++ = *src++;
                     remaining--;
                 }
                 break;
 
-            case XrmoptionSkipNArgs:
+            case IswOptionSkipNArgs:
                 {
                     int n = (int) (long) options[i].value;
                     *dst++ = *src++;
@@ -897,48 +724,8 @@ _IswParseCommand(IswDatabaseHandle *db,
     *argc = (int)(dst - argv);
 }
 
-/* NOTE: name, class, and type must be permanent strings */
-//#TODO replace with non XRM solution
-//static Boolean
-//_GetResource(xcb_connection_t *dpy,
-//             XrmSearchList list,
-//             String name,
-//             String class,
-//             String type,
-//             XrmValue *value)
-//{
-//    XrmRepresentation db_type;
-//    XrmValue db_value;
-//    XrmName Qname = XrmPermStringToQuark(name);
-//    XrmClass Qclass = XrmPermStringToQuark(class);
-//    XrmRepresentation Qtype = XrmPermStringToQuark(type);
-//
-//    if (XrmQGetSearchResource(list, Qname, Qclass, &db_type, &db_value)) {
-//        if (db_type == Qtype) {
-//            if (Qtype == _IswQString)
-//                *(String *) value->addr = db_value.addr;
-//            else
-//                (void) memcpy(value->addr, db_value.addr, value->size);
-//            return True;
-//        }
-//        else {
-//            WidgetRec widget;   /* hack, hack */
-//
-//            memset(&widget, 0, sizeof(widget));
-//            widget.core.self = &widget;
-//            widget.core.widget_class = coreWidgetClass;
-//            widget.core.screen = (xcb_screen_t *) DefaultScreenOfDisplay(dpy);
-//            IswInitializeWidgetClass(coreWidgetClass);
-//            if (_IswConvert(&widget, db_type, &db_value, Qtype, value, NULL)) {
-//                return True;
-//            }
-//        }
-//    }
-//    return False;
-//}
-
-IswDatabaseHandle 
-_IswPreparseCommandLine(XrmOptionDescRec *urlist,
+IswDatabaseHandle
+_IswPreparseCommandLine(IswOptionDescRec *urlist,
                        Cardinal num_urs,
                        int argc,
                        _IswString *argv,
@@ -947,7 +734,7 @@ _IswPreparseCommandLine(XrmOptionDescRec *urlist,
                        String *language)
 {
     IswDatabaseHandle db = NULL;
-    XrmOptionDescRec *options;
+    IswOptionDescRec *options;
     Cardinal num_options;
     _IswString *targv;
     int targc = argc;
@@ -1051,12 +838,12 @@ void
 _IswDisplayInitialize(IswDisplay dpy,
                      IswPerDisplay pd,
                      _Xconst char *name,
-                     //XrmOptionDescRec *urlist,
+                     //IswOptionDescRec *urlist,
                      Cardinal num_urs,
                      int *argc,
                      char **argv)
 {
-    XrmOptionDescRec *options;
+    IswOptionDescRec *options;
     Cardinal num_options;
 
     GetLanguage(dpy, pd);
@@ -1067,74 +854,7 @@ _IswDisplayInitialize(IswDisplay dpy,
     _IswParseCommand(&pd->cmd_db, options, (int) num_options, name, argc, argv);
     IswFree((char *) options);
 
-    //db = IswScreenDatabase(DefaultScreenOfDisplay(dpy));
-
-    //if (!(search_list = (XrmHashTable *)
-    //      ALLOCATE_LOCAL(SEARCH_LIST_SIZE * sizeof(XrmHashTable))))
-    //    _IswAllocError(NULL);
-    //name_list[0] = pd->name;
-    //class_list[0] = pd->class;
-    //name_list[1] = NULLQUARK;
-    //class_list[1] = NULLQUARK;
-//
-    //while (!XrmQGetSearchList(db, name_list, class_list,
-    //                          search_list, search_list_size)) {
-    //    XrmHashTable *old = search_list;
-    //    Cardinal size =
-    //        (Cardinal) ((size_t) (search_list_size *= 2) *
-    //                    sizeof(XrmHashTable));
-    //    if (!(search_list = (XrmHashTable *) ALLOCATE_LOCAL(size)))
-    //        _IswAllocError(NULL);
-    //    (void) memcpy(search_list, old, (size >> 1));
-    //    DEALLOCATE_LOCAL(old);
-    //}
-
-    //value.size = sizeof(tmp_bool);
-    //value.addr = (IswPointer) &tmp_bool;
-    //XCB inherently ASYNC
-    //if (_GetResource(dpy, search_list, "synchronous", "Synchronous",
-    //                 IswRBoolean, &value)) {
-    //    int i;
-    //    xcb_connection_t **dpyP = pd->appContext->list;
-//
-    //    pd->appContext->sync = tmp_bool;
-    //    for (i = pd->appContext->count; i; dpyP++, i--) {
-    //        (void) XSynchronize(*dpyP, (Bool) tmp_bool);
-    //    }
-    //}
-    //else {
-    //    (void) XSynchronize(dpy, (Bool) pd->appContext->sync);
-    //}
-
-    //if (_GetResource(dpy, search_list, "reverseVideo", "ReverseVideo",
-    //                 IswRBoolean, &value)
-    //    && tmp_bool) {
-    //    pd->rv = True;
-    //}
-
-    //value.size = sizeof(pd->multi_click_time);
-    //value.addr = (IswPointer) &pd->multi_click_time;
-    //if (!_GetResource(dpy, search_list,
-    //                  "multiClickTime", "MultiClickTime", IswRInt, &value)) {
-        pd->multi_click_time = 200;
-    //}
-
-    //value.size = sizeof(pd->appContext->selectionTimeout);
-    //value.addr = (IswPointer) &pd->appContext->selectionTimeout;
-    //(void) _GetResource(dpy, search_list,
-    //                    "selectionTimeout", "SelectionTimeout", IswRInt, &value);
-
-#ifndef NO_IDENTIFY_WINDOWS
-    //value.size = sizeof(pd->appContext->identify_windows);
-    //value.addr = (IswPointer) &pd->appContext->identify_windows;
-    //(void) _GetResource(dpy, search_list,
-    //                    "xtIdentifyWindows", "IswDebug", IswRBoolean, &value);
-#endif
-
-    //XAddConnectionWatch(dpy, ConnectionWatch, (IswPointer) dpy);
-
-    //IswFree((IswPointer) options);
-    //DEALLOCATE_LOCAL(search_list);
+    pd->multi_click_time = 200;
 
     /* Detect HiDPI scale factor */
     {
@@ -1194,7 +914,7 @@ IswAppSetFallbackResources(IswAppContext app_context, String *specification_list
 Widget
 IswOpenApplication(IswAppContext *app_context_return,
                   _Xconst char *application_class,
-                  XrmOptionDescRec *options,
+                  IswOptionDescRec *options,
                   Cardinal num_options,
                   int *argc_in_out,
                   _IswString *argv_in_out,
@@ -1238,7 +958,7 @@ IswOpenApplication(IswAppContext *app_context_return,
 Widget
 IswAppInitialize(IswAppContext *app_context_return,
                 _Xconst char *application_class,
-                XrmOptionDescRec *options,
+                IswOptionDescRec *options,
                 Cardinal num_options,
                 int *argc_in_out,
                 _IswString *argv_in_out,

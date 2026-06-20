@@ -69,7 +69,7 @@ static int magic_value = MAGIC_VALUE;
 #define offset(field) IswOffsetOf(TextSrcRec, text_src.field)
 
 /* Edit-mode string→quark converter moved here from the old abstract TextSrc.c. */
-static void CvtStringToEditMode(XrmValuePtr, Cardinal *, XrmValuePtr, XrmValuePtr);
+static void CvtStringToEditMode(IswValuePtr, Cardinal *, IswValuePtr, IswValuePtr);
 
 static IswResource resources[] = {
     {IswNeditType, IswCEditType, IswREditMode, sizeof(IswTextEditType),
@@ -105,7 +105,7 @@ static void RemovePiece(TextSrcObject, Piece *);
 static void BreakPiece(TextSrcObject, Piece *);
 static void LoadPieces(TextSrcObject, FILE *, char *);
 static void RemoveOldStringOrFile(TextSrcObject, Boolean);
-static void CvtStringToTextSourceType(XrmValuePtr, Cardinal *, XrmValuePtr, XrmValuePtr);
+static void CvtStringToTextSourceType(IswValuePtr, Cardinal *, IswValuePtr, IswValuePtr);
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
 static void Destroy(Widget);
@@ -153,7 +153,7 @@ TextSrcClassRec textSrcClassRec = {
     /* num_actions              */      0,
     /* resources                */      resources,
     /* num_resources            */      IswNumber(resources),
-    /* xrm_class                */      NULLQUARK,
+    /* xrm_class                */      ISW_NULLQUARK,
     /* compress_motion          */      FALSE,
     /* compress_exposure        */      FALSE,
     /* compress_enterleave      */      FALSE,
@@ -209,25 +209,25 @@ ClassInitialize(void)
 
 /* ARGSUSED */
 static void
-CvtStringToEditMode(XrmValuePtr args, Cardinal *num_args,
-                    XrmValuePtr fromVal, XrmValuePtr toVal)
+CvtStringToEditMode(IswValuePtr args, Cardinal *num_args,
+                    IswValuePtr fromVal, IswValuePtr toVal)
 {
   static IswTextEditType editType;
-  static XrmQuark QRead, QAppend, QEdit;
-  XrmQuark q;
+  static IswQuark QRead, QAppend, QEdit;
+  IswQuark q;
   char lowerName[40];
   static Boolean inited = FALSE;
 
   if (!inited) {
-    QRead   = XrmPermStringToQuark(IswEtextRead);
-    QAppend = XrmPermStringToQuark(IswEtextAppend);
-    QEdit   = XrmPermStringToQuark(IswEtextEdit);
+    QRead   = IswPermStringToQuark(IswEtextRead);
+    QAppend = IswPermStringToQuark(IswEtextAppend);
+    QEdit   = IswPermStringToQuark(IswEtextEdit);
     inited = TRUE;
   }
 
   if (strlen((char*) fromVal->addr) < sizeof lowerName) {
     ISWCopyISOLatin1Lowered(lowerName, (char *)fromVal->addr);
-    q = XrmStringToQuark(lowerName);
+    q = IswStringToQuark(lowerName);
 
     if      (q == QRead)   editType = IswtextRead;
     else if (q == QAppend) editType = IswtextAppend;
@@ -1042,7 +1042,7 @@ IswTextSourceSetSelection(Widget w, ISWTextPosition left,
 /*	TextFormat():
  *	  returns the format quark of the source text. Always FMT8BIT now
  *	  Always FMT8BIT. */
-XrmQuark
+IswQuark
 _IswTextFormat(TextWidget tw)
 {
   return ((TextSrcObject)(tw->text.source))->text_src.text_format;
@@ -1427,23 +1427,23 @@ BreakPiece(TextSrcObject src, Piece * piece)
 
 /* ARGSUSED */
 static void
-CvtStringToTextSourceType(XrmValuePtr args, Cardinal * num_args, XrmValuePtr fromVal,
-                     XrmValuePtr toVal)
+CvtStringToTextSourceType(IswValuePtr args, Cardinal * num_args, IswValuePtr fromVal,
+                     IswValuePtr toVal)
 {
   static IswTextSourceType type;
-  static XrmQuark  IswQEstring = NULLQUARK;
-  static XrmQuark  IswQEfile;
-  XrmQuark q;
+  static IswQuark  IswQEstring = ISW_NULLQUARK;
+  static IswQuark  IswQEfile;
+  IswQuark q;
   char lowerName[40];
 
-  if (IswQEstring == NULLQUARK) {
-    IswQEstring = XrmPermStringToQuark(IswEstring);
-    IswQEfile   = XrmPermStringToQuark(IswEfile);
+  if (IswQEstring == ISW_NULLQUARK) {
+    IswQEstring = IswPermStringToQuark(IswEstring);
+    IswQEfile   = IswPermStringToQuark(IswEfile);
   }
 
   if (strlen ((char*)fromVal->addr) < sizeof lowerName) {
     ISWCopyISOLatin1Lowered(lowerName, (char *) fromVal->addr);
-    q = XrmStringToQuark(lowerName);
+    q = IswStringToQuark(lowerName);
 
     if (q == IswQEstring)     type = IswTextSourceString;
     else if (q == IswQEfile)  type = IswTextSourceFile;

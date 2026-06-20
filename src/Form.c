@@ -125,7 +125,7 @@ FormClassRec formClassRec = {
     /* num_actions        */    0,
     /* resources          */    resources,
     /* num_resources      */    IswNumber(resources),
-    /* xrm_class          */    NULLQUARK,
+    /* xrm_class          */    ISW_NULLQUARK,
     /* compress_motion    */    TRUE,
     /* compress_exposure  */    TRUE,
     /* compress_enterleave*/    TRUE,
@@ -175,21 +175,21 @@ WidgetClass formWidgetClass = (WidgetClass)&formClassRec;
  ****************************************************************/
 
 
-static XrmQuark	IswQChainLeft, IswQChainRight, IswQChainTop,
+static IswQuark	IswQChainLeft, IswQChainRight, IswQChainTop,
 		IswQChainBottom, IswQRubber;
 
 /* ARGSUSED */
 static void
-_CvtStringToEdgeType(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
-                     XrmValuePtr toVal)
+_CvtStringToEdgeType(IswValuePtr args, Cardinal *num_args, IswValuePtr fromVal,
+                     IswValuePtr toVal)
 {
   static IswEdgeType edgeType;
-  XrmQuark q;
+  IswQuark q;
   char lowerName[40];
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
     ISWCopyISOLatin1Lowered (lowerName, (char*)fromVal->addr);
-    q = XrmStringToQuark(lowerName);
+    q = IswStringToQuark(lowerName);
     if (q == IswQChainLeft)        edgeType = IswChainLeft;
     else if (q == IswQChainRight)  edgeType = IswChainRight;
     else if (q == IswQChainTop)    edgeType = IswChainTop;
@@ -243,11 +243,11 @@ ClassInitialize(void)
 	     sizeof(Widget)}
     };
     IswInitializeWidgetSet();
-    IswQChainLeft   = XrmPermStringToQuark("chainleft");
-    IswQChainRight  = XrmPermStringToQuark("chainright");
-    IswQChainTop    = XrmPermStringToQuark("chaintop");
-    IswQChainBottom = XrmPermStringToQuark("chainbottom");
-    IswQRubber      = XrmPermStringToQuark("rubber");
+    IswQChainLeft   = IswPermStringToQuark("chainleft");
+    IswQChainRight  = IswPermStringToQuark("chainright");
+    IswQChainTop    = IswPermStringToQuark("chaintop");
+    IswQChainBottom = IswPermStringToQuark("chainbottom");
+    IswQRubber      = IswPermStringToQuark("rubber");
 
     IswAddConverter( IswRString, IswREdgeType, _CvtStringToEdgeType,
 		    (IswConvertArgList)NULL, 0 );

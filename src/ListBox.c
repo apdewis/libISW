@@ -134,7 +134,7 @@ ListBoxClassRec listBoxClassRec = {
     IswNumber(actionsList),
     resources,
     IswNumber(resources),
-    NULLQUARK,
+    ISW_NULLQUARK,
     TRUE,                                /* compress_motion */
     TRUE,                                /* compress_exposure */
     TRUE,                                /* compress_enterleave */
@@ -464,8 +464,8 @@ DoLayout(ListBoxWidget lbw, Boolean position)
  * ================================================================ */
 
 static Boolean
-CvtStringToSelectionMode(IswDisplay dpy, XrmValuePtr args,
-    Cardinal *num_args, XrmValuePtr from, XrmValuePtr to,
+CvtStringToSelectionMode(IswDisplay dpy, IswValuePtr args,
+    Cardinal *num_args, IswValuePtr from, IswValuePtr to,
     IswPointer *converter_data)
 {
     static IswListBoxSelectionMode mode;

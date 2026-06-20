@@ -64,7 +64,7 @@ DrawingAreaClassRec drawingAreaClassRec = {
     IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
     IswNumber(resources),		/* resource_count	  */
-    NULLQUARK,				/* xrm_class		  */
+    ISW_NULLQUARK,				/* xrm_class		  */
     TRUE,				/* compress_motion	  */
     FALSE,				/* compress_exposure	  */
     TRUE,				/* compress_enterleave    */

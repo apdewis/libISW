@@ -133,7 +133,7 @@ GetTypedArg(Widget widget,
 {
     String from_type = NULL;
     Cardinal from_size = 0;
-    XrmValue from_val, to_val;
+    IswValueRec from_val, to_val;
     register Cardinal i;
     IswArgBuilder ab = IswArgBuilderInit();
     IswPointer value;

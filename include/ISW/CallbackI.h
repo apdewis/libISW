@@ -51,7 +51,7 @@ SOFTWARE.
  *
  ****************************************************************/
 
-typedef XrmResource **CallbackTable;
+typedef IswQResource **CallbackTable;
 
 #define _IswCBCalling 1
 #define _IswCBFreeAfterCalling 2

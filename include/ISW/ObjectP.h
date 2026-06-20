@@ -62,7 +62,7 @@ typedef struct _ObjectPart {
     Widget          self;               /* pointer to widget itself          */
     WidgetClass     widget_class;       /* pointer to Widget's ClassRec      */
     Widget          parent;             /* parent widget                     */
-    XrmName         xrm_name;           /* widget resource name quarkified   */
+    IswQuarkName         xrm_name;           /* widget resource name quarkified   */
     Boolean         being_destroyed;    /* marked for destroy                */
     IswCallbackList  destroy_callbacks;  /* who to call when widget destroyed */
     IswPointer       constraints;        /* constraint record                 */
@@ -96,7 +96,7 @@ typedef struct _ObjectClassPart {
     Cardinal        obj3;               /* NULL                             */
     IswResourceList  resources;          /* resources for subclass fields    */
     Cardinal        num_resources;      /* number of entries in resources   */
-    XrmClass        xrm_class;          /* resource class quarkified (placeholder to match CoreClassPart layout) */
+    IswQuarkClass        xrm_class;          /* resource class quarkified (placeholder to match CoreClassPart layout) */
     Boolean         obj4;               /* NULL                             */
     IswEnum          obj5;               /* NULL                             */
     Boolean         obj6;               /* NULL				    */
@@ -119,7 +119,7 @@ typedef struct _ObjectClassPart {
 
 typedef struct {
     IswPointer next_extension;	/* 1st 4 required for all extension records */
-    XrmQuark record_type;	/* NULLQUARK; when on ObjectClassPart */
+    IswQuark record_type;	/* ISW_NULLQUARK; when on ObjectClassPart */
     long version;		/* must be IswObjectExtensionVersion */
     Cardinal record_size;	/* sizeof(ObjectClassExtensionRec) */
     IswAllocateProc allocate;

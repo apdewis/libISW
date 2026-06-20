@@ -201,25 +201,25 @@ static IswResource resources[] = {
 
 /* ARGSUSED */
 static void
-CvtStringToScrollMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
-                      XrmValuePtr toVal)
+CvtStringToScrollMode(IswValuePtr args, Cardinal *num_args, IswValuePtr fromVal,
+                      IswValuePtr toVal)
 {
   static IswTextScrollMode scrollMode;
-  static  XrmQuark  QScrollNever, QScrollAlways, QScrollWhenNeeded;
-  XrmQuark    q;
+  static  IswQuark  QScrollNever, QScrollAlways, QScrollWhenNeeded;
+  IswQuark    q;
   char        lowerName[40];
   static Boolean inited = FALSE;
 
   if ( !inited ) {
-    QScrollNever      = XrmPermStringToQuark(IswEtextScrollNever);
-    QScrollWhenNeeded = XrmPermStringToQuark(IswEtextScrollWhenNeeded);
-    QScrollAlways     = XrmPermStringToQuark(IswEtextScrollAlways);
+    QScrollNever      = IswPermStringToQuark(IswEtextScrollNever);
+    QScrollWhenNeeded = IswPermStringToQuark(IswEtextScrollWhenNeeded);
+    QScrollAlways     = IswPermStringToQuark(IswEtextScrollAlways);
     inited = TRUE;
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
     ISWCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
-    q = XrmStringToQuark(lowerName);
+    q = IswStringToQuark(lowerName);
 
     if      (q == QScrollNever)          scrollMode = IswtextScrollNever;
     else if (q == QScrollWhenNeeded)     scrollMode = IswtextScrollWhenNeeded;
@@ -239,25 +239,25 @@ CvtStringToScrollMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
 
 /* ARGSUSED */
 static void
-CvtStringToWrapMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
-                    XrmValuePtr toVal)
+CvtStringToWrapMode(IswValuePtr args, Cardinal *num_args, IswValuePtr fromVal,
+                    IswValuePtr toVal)
 {
   static IswTextWrapMode wrapMode;
-  static  XrmQuark QWrapNever, QWrapLine, QWrapWord;
-  XrmQuark    q;
+  static  IswQuark QWrapNever, QWrapLine, QWrapWord;
+  IswQuark    q;
   char        lowerName[BUFSIZ];
   static Boolean inited = FALSE;
 
   if ( !inited ) {
-    QWrapNever = XrmPermStringToQuark(IswEtextWrapNever);
-    QWrapLine  = XrmPermStringToQuark(IswEtextWrapLine);
-    QWrapWord  = XrmPermStringToQuark(IswEtextWrapWord);
+    QWrapNever = IswPermStringToQuark(IswEtextWrapNever);
+    QWrapLine  = IswPermStringToQuark(IswEtextWrapLine);
+    QWrapWord  = IswPermStringToQuark(IswEtextWrapWord);
     inited = TRUE;
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
     ISWCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
-    q = XrmStringToQuark(lowerName);
+    q = IswStringToQuark(lowerName);
 
     if      (q == QWrapNever)     wrapMode = IswtextWrapNever;
     else if (q == QWrapLine)      wrapMode = IswtextWrapLine;
@@ -277,26 +277,26 @@ CvtStringToWrapMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
 
 /* ARGSUSED */
 static void
-CvtStringToResizeMode(XrmValuePtr args, Cardinal *num_args, XrmValuePtr fromVal,
-                      XrmValuePtr toVal)
+CvtStringToResizeMode(IswValuePtr args, Cardinal *num_args, IswValuePtr fromVal,
+                      IswValuePtr toVal)
 {
   static IswTextResizeMode resizeMode;
-  static  XrmQuark  QResizeNever, QResizeWidth, QResizeHeight, QResizeBoth;
-  XrmQuark    q;
+  static  IswQuark  QResizeNever, QResizeWidth, QResizeHeight, QResizeBoth;
+  IswQuark    q;
   char        lowerName[40];
   static Boolean inited = FALSE;
 
   if ( !inited ) {
-    QResizeNever      = XrmPermStringToQuark(IswEtextResizeNever);
-    QResizeWidth      = XrmPermStringToQuark(IswEtextResizeWidth);
-    QResizeHeight     = XrmPermStringToQuark(IswEtextResizeHeight);
-    QResizeBoth       = XrmPermStringToQuark(IswEtextResizeBoth);
+    QResizeNever      = IswPermStringToQuark(IswEtextResizeNever);
+    QResizeWidth      = IswPermStringToQuark(IswEtextResizeWidth);
+    QResizeHeight     = IswPermStringToQuark(IswEtextResizeHeight);
+    QResizeBoth       = IswPermStringToQuark(IswEtextResizeBoth);
     inited = TRUE;
   }
 
   if (strlen ((char*) fromVal->addr) < sizeof lowerName) {
     ISWCopyISOLatin1Lowered (lowerName, (char *)fromVal->addr);
-    q = XrmStringToQuark(lowerName);
+    q = IswStringToQuark(lowerName);
 
     if      (q == QResizeNever)          resizeMode = IswtextResizeNever;
     else if (q == QResizeWidth)          resizeMode = IswtextResizeWidth;
@@ -326,7 +326,7 @@ ClassInitialize(void)
   char *cp = buf;
 
   if (!IswFmt8Bit)
-    FMT8BIT = IswFmt8Bit = XrmPermStringToQuark("FMT8BIT");
+    FMT8BIT = IswFmt8Bit = IswPermStringToQuark("FMT8BIT");
 
   IswInitializeWidgetSet();
 
@@ -2821,7 +2821,7 @@ TextClassRec textClassRec = {
     /* num_actions      */      0,                /* Set in ClassInitialize. */
     /* resources        */      resources,
     /* num_ resource    */      IswNumber(resources),
-    /* xrm_class        */      NULLQUARK,
+    /* xrm_class        */      ISW_NULLQUARK,
     /* compress_motion  */      TRUE,
     /* compress_exposure*/      TRUE,
     /* compress_enterleave*/	TRUE,

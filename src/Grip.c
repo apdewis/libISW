@@ -103,7 +103,7 @@ GripClassRec gripClassRec = {
     /* num_actions        */   IswNumber(actionsList),
     /* resources          */   resources,
     /* resource_count     */   IswNumber(resources),
-    /* xrm_class          */   NULLQUARK,
+    /* xrm_class          */   ISW_NULLQUARK,
     /* compress_motion    */   TRUE,
     /* compress_exposure  */   TRUE,
     /* compress_enterleave*/   TRUE,

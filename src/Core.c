@@ -93,7 +93,7 @@ externaldef(xtinherittranslations)
 int _IswInheritTranslations = 0;
 extern String IswCIswToolkitError;        /* from IntrinsicI.h */
 static void
-IswCopyScreen(Widget, int, XrmValue *);
+IswCopyScreen(Widget, int, IswValueRec *);
 
 static IswResource resources[] = {
     {IswNscreen, IswCScreen, IswRScreen, sizeof(IswScreen),
@@ -154,7 +154,7 @@ static RectObjClassRec unNamedObjClassRec = {
      /* num_actions        */ 0,
      /* resources          */ NULL,
      /* num_resources      */ 0,
-     /* xrm_class          */ NULLQUARK,
+     /* xrm_class          */ ISW_NULLQUARK,
      /* compress_motion    */ FALSE,
      /* compress_exposure  */ FALSE,
      /* compress_enterleave */ FALSE,
@@ -192,7 +192,7 @@ WidgetClassRec widgetClassRec = {
      /* num_actions        */ 0,
      /* resources          */ resources,
      /* num_resources      */ IswNumber(resources),
-     /* xrm_class          */ NULLQUARK,
+     /* xrm_class          */ ISW_NULLQUARK,
      /* compress_motion    */ FALSE,
      /* compress_exposure  */ TRUE,
      /* compress_enterleave */ FALSE,
@@ -221,7 +221,7 @@ externaldef(WidgetClass)
 WidgetClass coreWidgetClass = &widgetClassRec;
 
 static void
-IswCopyScreen(Widget widget, int offset _X_UNUSED, XrmValue *value)
+IswCopyScreen(Widget widget, int offset _X_UNUSED, IswValueRec *value)
 {
     value->addr = (IswPointer) (&widget->core.screen);
 }

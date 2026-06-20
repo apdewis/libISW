@@ -73,7 +73,7 @@ typedef struct _CorePart {
     Widget	    self;		/* pointer to widget itself	     */
     WidgetClass	    widget_class;	/* pointer to Widget's ClassRec	     */
     Widget	    parent;		/* parent widget	  	     */
-    XrmName         xrm_name;		/* widget resource name quarkified   */
+    IswQuarkName         xrm_name;		/* widget resource name quarkified   */
     Boolean         being_destroyed;	/* marked for destroy		     */
     IswCallbackList  destroy_callbacks;	/* who to call when widget destroyed */
     IswPointer       constraints;        /* constraint record                 */
@@ -186,7 +186,7 @@ typedef struct _CoreClassPart {
     Cardinal	    num_actions;	/* number of entries in actions     */
     IswResourceList  resources;		/* resources for subclass fields    */
     Cardinal        num_resources;      /* number of entries in resources   */
-    XrmClass        xrm_class;		/* resource class quarkified	    */
+    IswQuarkClass        xrm_class;		/* resource class quarkified	    */
     Boolean         compress_motion;    /* compress MotionNotify for widget */
     IswEnum          compress_exposure;  /* compress Expose events for widget*/
     Boolean         compress_enterleave;/* compress enter and leave events  */

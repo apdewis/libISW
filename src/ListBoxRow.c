@@ -59,7 +59,7 @@ ListBoxRowClassRec listBoxRowClassRec = {
     0,                                   /* num_actions */
     resources,
     IswNumber(resources),
-    NULLQUARK,
+    ISW_NULLQUARK,
     TRUE,                                /* compress_motion */
     TRUE,                                /* compress_exposure */
     TRUE,                                /* compress_enterleave */

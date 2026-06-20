@@ -145,7 +145,7 @@ _IswMakeGeometryRequest(Widget widget,
         LOCK_PROCESS;
         for (ext = (ShellClassExtension) ((ShellWidgetClass) IswClass(widget))
              ->shell_class.extension;
-             ext != NULL && ext->record_type != NULLQUARK;
+             ext != NULL && ext->record_type != ISW_NULLQUARK;
              ext = (ShellClassExtension) ext->next_extension);
 
         if (ext != NULL) {

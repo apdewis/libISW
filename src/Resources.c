@@ -80,20 +80,19 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 
 /* Static quarks used for resource lookup */
-static XrmClass QBoolean, QString, QCallProc, QImmediate;
-static XrmName QinitialResourcesPersistent, QInitialResourcesPersistent;
-static XrmClass QTranslations, QTranslationTable;
-static XrmName Qtranslations, QbaseTranslations;
-static XrmName Qscreen;
-static XrmClass QScreen;
+static IswQuarkClass QBoolean, QString, QCallProc, QImmediate;
+static IswQuarkName QinitialResourcesPersistent, QInitialResourcesPersistent;
+static IswQuarkClass QTranslations, QTranslationTable;
+static IswQuarkName Qtranslations, QbaseTranslations;
+static IswQuarkName Qscreen;
+static IswQuarkClass QScreen;
 
 /* Maximum depth for widget hierarchies */
 #define MAX_WIDGET_DEPTH 100
 
 /*
  * Structure to hold widget hierarchy path strings for resource lookup.
- * Instead of using quark lists and XrmQGetSearchList/XrmQGetSearchResource,
- * we build full resource name/class strings for _IswPlatformResourceGetString().
+ * Full resource name/class strings are built for _IswPlatformResourceGetString().
  */
 typedef struct {
     String *names;      /* Array of widget name strings */
@@ -102,7 +101,7 @@ typedef struct {
 } IswResourcePath;
 
 void
-_IswCopyFromParent(Widget widget, int offset, XrmValue *value)
+_IswCopyFromParent(Widget widget, int offset, IswValueRec *value)
 {
     if (widget->core.parent == NULL) {
         /* Toplevel shell — no parent to copy from.
@@ -282,11 +281,11 @@ CountTreeDepth(Widget w)
 
 static void
 GetNamesAndClasses(register Widget w,
-                   register XrmNameList names,
-                   register XrmClassList classes)
+                   register IswQuarkList names,
+                   register IswQuarkList classes)
 {
     register Cardinal length, j;
-    register XrmQuark t;
+    register IswQuark t;
     WidgetClass class;
 
     /* Return null-terminated quark arrays, with length the number of
@@ -299,7 +298,7 @@ GetNamesAndClasses(register Widget w,
         /* KLUDGE KLUDGE KLUDGE KLUDGE */
         if (w->core.parent == NULL && IswIsApplicationShell(w)) {
             classes[length] =
-                XrmPermStringToQuark(
+                IswPermStringToQuark(
                     ((ApplicationShellWidget) w)->application.class);
         }
         else
@@ -316,8 +315,8 @@ GetNamesAndClasses(register Widget w,
         classes[j] = classes[length - j - 1];
         classes[length - j - 1] = t;
     }
-    names[length] = NULLQUARK;
-    classes[length] = NULLQUARK;
+    names[length] = ISW_NULLQUARK;
+    classes[length] = ISW_NULLQUARK;
 }                               /* GetNamesAndClasses */
 
 /*
@@ -326,14 +325,14 @@ GetNamesAndClasses(register Widget w,
  * Returns a newly allocated string that must be freed by the caller.
  */
 static char *
-_IswBuildResourcePath(XrmQuarkList quarks, XrmQuark resource_quark)
+_IswBuildResourcePath(IswQuarkList quarks, IswQuark resource_quark)
 {
     char buf[2048];
     int pos = 0;
     int i;
 
-    for (i = 0; quarks[i] != NULLQUARK; i++) {
-        const char *s = XrmQuarkToString(quarks[i]);
+    for (i = 0; quarks[i] != ISW_NULLQUARK; i++) {
+        const char *s = IswQuarkToString(quarks[i]);
         if (s == NULL) continue;
         if (pos > 0 && pos < (int)sizeof(buf) - 1)
             buf[pos++] = '.';
@@ -342,7 +341,7 @@ _IswBuildResourcePath(XrmQuarkList quarks, XrmQuark resource_quark)
     }
     /* Append the resource name */
     {
-        const char *s = XrmQuarkToString(resource_quark);
+        const char *s = IswQuarkToString(resource_quark);
         if (s != NULL) {
             if (pos > 0 && pos < (int)sizeof(buf) - 1)
                 buf[pos++] = '.';
@@ -362,9 +361,9 @@ _IswBuildResourcePath(XrmQuarkList quarks, XrmQuark resource_quark)
  */
 static Boolean
 _IswDbGetResource(IswDatabaseHandle db,
-                 XrmNameList names, XrmClassList classes,
-                 XrmName res_name, XrmClass res_class,
-                 XrmValue *value)
+                 IswQuarkList names, IswQuarkList classes,
+                 IswQuarkName res_name, IswQuarkClass res_class,
+                 IswValueRec *value)
 {
     char *name_path;
     char *class_path;
@@ -401,8 +400,8 @@ _IswCompileResourceList(register IswResourceList resources,
 {
     register Cardinal count;
 
-#define xrmres  ((XrmResourceList) resources)
-#define PSToQ   XrmPermStringToQuark
+#define xrmres  ((IswQResourceList) resources)
+#define PSToQ   IswPermStringToQuark
 
     for (count = 0; count < num_resources; resources++, count++) {
         xrmres->xrm_name = PSToQ(resources->resource_name);
@@ -418,12 +417,12 @@ _IswCompileResourceList(register IswResourceList resources,
 
 /* Like _IswCompileResourceList, but strings are not permanent */
 static void
-XrmCompileResourceListEphem(register IswResourceList resources,
+IswCompileResourceListEphem(register IswResourceList resources,
                             Cardinal num_resources)
 {
     register Cardinal count;
 
-#define xrmres  ((XrmResourceList) resources)
+#define xrmres  ((IswQResourceList) resources)
 
     for (count = 0; count < num_resources; resources++, count++) {
         xrmres->xrm_name = StringToName(resources->resource_name);
@@ -434,16 +433,16 @@ XrmCompileResourceListEphem(register IswResourceList resources,
         xrmres->xrm_default_type = StringToQuark(resources->default_type);
     }
 #undef xrmres
-}                               /* XrmCompileResourceListEphem */
+}                               /* IswCompileResourceListEphem */
 
 static void
-BadSize(Cardinal size, XrmQuark name)
+BadSize(Cardinal size, IswQuark name)
 {
     String params[2];
     Cardinal num_params = 2;
 
     params[0] = (String) (IswIntPtr) size;
-    params[1] = XrmQuarkToString(name);
+    params[1] = IswQuarkToString(name);
     IswWarningMsg("invalidSizeOverride", "xtDependencies", IswCIswToolkitError,
                  "Representation size %d must match superclass's to override %s",
                  params, &num_params);
@@ -455,18 +454,18 @@ BadSize(Cardinal size, XrmQuark name)
  * a superclass resource, then just replace the superclass entry in place.
  *
  * At the same time, add a level of indirection to the IswResourceList to
- * create and XrmResourceList.
+ * create and IswQResourceList.
  */
 void
 _IswDependencies(IswResourceList *class_resp,    /* VAR */
                 Cardinal *class_num_resp,      /* VAR */
-                XrmResourceList *super_res,
+                IswQResourceList *super_res,
                 Cardinal super_num_res,
                 Cardinal super_widget_size)
 {
-    register XrmResourceList *new_res;
+    register IswQResourceList *new_res;
     Cardinal new_num_res;
-    XrmResourceList class_res = (XrmResourceList) *class_resp;
+    IswQResourceList class_res = (IswQResourceList) *class_resp;
     Cardinal class_num_res = *class_num_resp;
     register Cardinal i, j;
     Cardinal new_next;
@@ -480,9 +479,9 @@ _IswDependencies(IswResourceList *class_resp,    /* VAR */
 
     /* Allocate and initialize new_res with superclass resource pointers */
     new_num_res = super_num_res + class_num_res;
-    new_res = IswMallocArray(new_num_res, (Cardinal) sizeof(XrmResourceList));
+    new_res = IswMallocArray(new_num_res, (Cardinal) sizeof(IswQResourceList));
     if (super_num_res > 0)
-        memcpy(new_res, super_res, super_num_res * sizeof(XrmResourceList));
+        memcpy(new_res, super_res, super_num_res * sizeof(IswQResourceList));
 
     /* Put pointers to class resource entries into new_res */
     new_next = super_num_res;
@@ -501,7 +500,7 @@ _IswDependencies(IswResourceList *class_resp,    /* VAR */
                     /* We do insist that size be identical to superclass */
                     if (class_res[i].xrm_size != new_res[j]->xrm_size) {
                         BadSize(class_res[i].xrm_size,
-                                (XrmQuark) class_res[i].xrm_name);
+                                (IswQuark) class_res[i].xrm_name);
                         class_res[i].xrm_size = new_res[j]->xrm_size;
                     }
                     new_res[j] = &(class_res[i]);
@@ -529,12 +528,12 @@ _IswResourceDependencies(WidgetClass wc)
     if (sc == NULL) {
         _IswDependencies(&(wc->core_class.resources),
                         &(wc->core_class.num_resources),
-                        (XrmResourceList *) NULL, (unsigned) 0, (unsigned) 0);
+                        (IswQResourceList *) NULL, (unsigned) 0, (unsigned) 0);
     }
     else {
         _IswDependencies(&(wc->core_class.resources),
                         &(wc->core_class.num_resources),
-                        (XrmResourceList *) sc->core_class.resources,
+                        (IswQResourceList *) sc->core_class.resources,
                         sc->core_class.num_resources,
                         sc->core_class.widget_size);
     }
@@ -546,7 +545,7 @@ _IswConstraintResDependencies(ConstraintWidgetClass wc)
     if (wc == (ConstraintWidgetClass) constraintWidgetClass) {
         _IswDependencies(&(wc->constraint_class.resources),
                         &(wc->constraint_class.num_resources),
-                        (XrmResourceList *) NULL, (unsigned) 0, (unsigned) 0);
+                        (IswQResourceList *) NULL, (unsigned) 0, (unsigned) 0);
     }
     else {
         ConstraintWidgetClass sc;
@@ -554,32 +553,32 @@ _IswConstraintResDependencies(ConstraintWidgetClass wc)
         sc = (ConstraintWidgetClass) wc->core_class.superclass;
         _IswDependencies(&(wc->constraint_class.resources),
                         &(wc->constraint_class.num_resources),
-                        (XrmResourceList *) sc->constraint_class.resources,
+                        (IswQResourceList *) sc->constraint_class.resources,
                         sc->constraint_class.num_resources,
                         sc->constraint_class.constraint_size);
     }
 }                               /* _IswConstraintResDependencies */
 
-XrmResourceList *
+IswQResourceList *
 _IswCreateIndirectionTable(IswResourceList resources, Cardinal num_resources)
 {
     register Cardinal idx;
-    XrmResourceList *table;
+    IswQResourceList *table;
 
-    table = IswMallocArray(num_resources, (Cardinal) sizeof(XrmResourceList));
+    table = IswMallocArray(num_resources, (Cardinal) sizeof(IswQResourceList));
     for (idx = 0; idx < num_resources; idx++)
-        table[idx] = (XrmResourceList) (&(resources[idx]));
+        table[idx] = (IswQResourceList) (&(resources[idx]));
     return table;
 }
 
 static IswCacheRef *
 GetResources(Widget widget,             /* Widget resources are associated with */
              char *base,                /* Base address of memory to write to */
-             XrmNameList names,         /* Full inheritance name of widget */
-             XrmClassList classes,      /* Full inheritance class of widget     */
-             XrmResourceList *table,    /* The list of resources required.      */
+             IswQuarkList names,         /* Full inheritance name of widget */
+             IswQuarkList classes,      /* Full inheritance class of widget     */
+             IswQResourceList *table,    /* The list of resources required.      */
              unsigned num_resources,    /* number of items in resource list     */
-             XrmQuarkList quark_args,   /* Arg names quarkified                 */
+             IswQuarkList quark_args,   /* Arg names quarkified                 */
              ArgList args,              /* ArgList to override resources */
              unsigned num_args,         /* number of items in arg list  */
              IswTypedArgList typed_args, /* Typed arg list to override resources */
@@ -593,9 +592,9 @@ GetResources(Widget widget,             /* Widget resources are associated with 
 #define SEARCHLISTLEN 100
 #define MAXRESOURCES  400
 
-    XrmValue value;
-    XrmQuark rawType;
-    XrmValue convValue;
+    IswValueRec value;
+    IswQuark rawType;
+    IswValueRec convValue;
     Boolean found[MAXRESOURCES];
     int typed[MAXRESOURCES];
     IswCacheRef cache_ref[MAXRESOURCES];
@@ -637,11 +636,11 @@ GetResources(Widget widget,             /* Widget resources are associated with 
     {
         register ArgList arg;
         register IswTypedArgList typed_arg;
-        register XrmName argName;
+        register IswQuarkName argName;
         register Cardinal j;
         register int i;
-        register XrmResourceList rx;
-        register XrmResourceList *res;
+        register IswQResourceList rx;
+        register IswQResourceList *res;
 
         for (arg = args, i = 0; (Cardinal) i < num_args; i++, arg++) {
             argName = quark_args[i];
@@ -662,11 +661,11 @@ GetResources(Widget widget,             /* Widget resources are associated with 
         }
         for (typed_arg = typed_args, i = 0; i < num_typed_args;
              i++, typed_arg++) {
-            register XrmRepresentation argType;
+            register IswRepresentation argType;
 
             argName = quark_args[i];
-            argType = (typed_arg->type == NULL) ? NULLQUARK
-                : XrmStringToRepresentation(typed_arg->type);
+            argType = (typed_arg->type == NULL) ? ISW_NULLQUARK
+                : IswStringToRepresentation(typed_arg->type);
             if (argName == QinitialResourcesPersistent) {
                 persistent_resources = (Boolean) typed_arg->value;
                 found_persistence = True;
@@ -675,7 +674,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
             for (j = 0, res = table; j < num_resources; j++, res++) {
                 rx = *res;
                 if (argName == rx->xrm_name) {
-                    if (argType != NULLQUARK && argType != rx->xrm_type) {
+                    if (argType != ISW_NULLQUARK && argType != rx->xrm_type) {
                         typed[j] = i + 1;
                     }
                     else {
@@ -700,7 +699,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
         cache_base = cache_ref;
     /* geez, this is an ugly mess */
     if (IswIsShell(widget)) {
-        register XrmResourceList *res;
+        register IswQResourceList *res;
         register Cardinal j;
         IswScreen oldscreen = widget->core.screen;
 
@@ -710,8 +709,8 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                 continue;
             if (typed[j]) {
                 register IswTypedArg *arg = typed_args + typed[j] - 1;
-                XrmQuark from_type;
-                XrmValue from_val, to_val;
+                IswQuark from_type;
+                IswValueRec from_val, to_val;
 
                 from_type = StringToQuark(arg->type);
                 from_val.size = (Cardinal) arg->size;
@@ -753,11 +752,11 @@ GetResources(Widget widget,             /* Widget resources are associated with 
     /* if it's not in the resource database use the default value   */
 
     {
-        register XrmResourceList rx;
-        register XrmResourceList *res;
+        register IswQResourceList rx;
+        register IswQResourceList *res;
         register Cardinal j;
-        register XrmRepresentation xrm_type;
-        register XrmRepresentation xrm_default_type;
+        register IswRepresentation xrm_type;
+        register IswRepresentation xrm_default_type;
         char char_val;
         short short_val;
         int int_val;
@@ -786,7 +785,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
 
         for (res = table, j = 0; j < num_resources; j++, res++) {
             rx = *res;
-            xrm_type = (XrmRepresentation) rx->xrm_type;
+            xrm_type = (IswRepresentation) rx->xrm_type;
             if (typed[j]) {
                 register IswTypedArg *arg = typed_args + typed[j] - 1;
 
@@ -795,8 +794,8 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                  * has to be converted. Typed arg conversions are done here
                  * to correctly interpose them with normal resource conversions.
                  */
-                XrmQuark from_type;
-                XrmValue from_val, to_val;
+                IswQuark from_type;
+                IswValueRec from_val, to_val;
                 Boolean converted;
 
                 from_type = StringToQuark(arg->type);
@@ -853,8 +852,8 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                 Boolean have_value = False;
 
                 if (_IswDbGetResource(db, names, classes,
-                                     (XrmName) rx->xrm_name,
-                                     (XrmClass) rx->xrm_class, &value)) {
+                                     (IswQuarkName) rx->xrm_name,
+                                     (IswQuarkClass) rx->xrm_class, &value)) {
                     /* xcb-util-xrm always returns strings */
                     rawType = QString;
                     if (rawType != xrm_type) {
@@ -884,7 +883,7 @@ GetResources(Widget widget,             /* Widget resources are associated with 
                                     || (rx->xrm_default_type == xrm_type)
                                     || (rx->xrm_default_addr != NULL))) {
                     /* Convert default value to proper type */
-                    xrm_default_type = (XrmRepresentation) rx->xrm_default_type;
+                    xrm_default_type = (IswRepresentation) rx->xrm_default_type;
                     if (xrm_default_type == QCallProc) {
                         (*(IswResourceDefaultProc) (rx->xrm_default_addr))
                             (widget, -(rx->xrm_offset + 1), &value);
@@ -1018,18 +1017,18 @@ CacheArgs(ArgList args,
           Cardinal num_args,
           IswTypedArgList typed_args,
           Cardinal num_typed_args,
-          XrmQuarkList quark_cache,
+          IswQuarkList quark_cache,
           Cardinal num_quarks,
-          XrmQuarkList *pQuarks)        /* RETURN */
+          IswQuarkList *pQuarks)        /* RETURN */
 {        
-    register XrmQuarkList quarks;
+    register IswQuarkList quarks;
     register Cardinal i;
     register Cardinal count;
 
     count = (args != NULL) ? num_args : num_typed_args;
 
     if (num_quarks < count) {
-        quarks = IswMallocArray(count, (Cardinal) sizeof(XrmQuark));
+        quarks = IswMallocArray(count, (Cardinal) sizeof(IswQuark));
     }
     else {
         quarks = quark_cache;
@@ -1056,10 +1055,10 @@ _IswGetResources(register Widget w,
                 IswTypedArgList typed_args,
                 Cardinal *num_typed_args)
 {
-    XrmName *names, names_s[50];
-    XrmClass *classes, classes_s[50];
-    XrmQuark quark_cache[100];
-    XrmQuarkList quark_args;
+    IswQuarkName *names, names_s[50];
+    IswQuarkClass *classes, classes_s[50];
+    IswQuark quark_cache[100];
+    IswQuarkList quark_args;
     WidgetClass wc;
     IswCacheRef *cache_refs = NULL;
     Cardinal count;
@@ -1067,8 +1066,8 @@ _IswGetResources(register Widget w,
     wc = IswClass(w);
 
     count = CountTreeDepth(w);
-    names = (XrmName *) IswStackAlloc(count * sizeof(XrmName), names_s);
-    classes = (XrmClass *) IswStackAlloc(count * sizeof(XrmClass), classes_s);
+    names = (IswQuarkName *) IswStackAlloc(count * sizeof(IswQuarkName), names_s);
+    classes = (IswQuarkClass *) IswStackAlloc(count * sizeof(IswQuarkClass), classes_s);
     if (names == NULL || classes == NULL) {
         _IswAllocError(NULL);
     }
@@ -1084,7 +1083,7 @@ _IswGetResources(register Widget w,
         /* Get normal resources */
         LOCK_PROCESS;
         cache_refs = GetResources(w, (char *) w, names, classes,
-                                  (XrmResourceList *) wc->core_class.resources,
+                                  (IswQResourceList *) wc->core_class.resources,
                                   wc->core_class.num_resources, quark_args,
                                   args, num_args, typed_args, num_typed_args,
                                   IswIsWidget(w));
@@ -1096,7 +1095,7 @@ _IswGetResources(register Widget w,
             cwc = (ConstraintWidgetClass) IswClass(w->core.parent);
             cache_refs_core =
                 GetResources(w, (char *) w->core.constraints, names, classes,
-                             (XrmResourceList *) cwc->constraint_class.
+                             (IswQResourceList *) cwc->constraint_class.
                              resources, cwc->constraint_class.num_resources,
                              quark_args, args, num_args, typed_args,
                              num_typed_args, False);
@@ -1126,12 +1125,12 @@ _IswGetResources(register Widget w,
 void
 _IswRefetchResources(Widget w, IswDatabaseHandle db)
 {
-    XrmName names_s[50], *names;
-    XrmClass classes_s[50], *classes;
+    IswQuarkName names_s[50], *names;
+    IswQuarkClass classes_s[50], *classes;
     Cardinal count;
     WidgetClass wc;
-    XrmQuark pixelQ = XrmStringToQuark(IswRPixel);
-    XrmQuark fontQ = XrmStringToQuark(IswRFontStruct);
+    IswQuark pixelQ = IswStringToQuark(IswRPixel);
+    IswQuark fontQ = IswStringToQuark(IswRFontStruct);
     Arg args[64];
     IswArgVal saved[64];
     Cardinal nargs = 0;
@@ -1141,8 +1140,8 @@ _IswRefetchResources(Widget w, IswDatabaseHandle db)
         return;
 
     count = CountTreeDepth(w);
-    names = (XrmName *) IswStackAlloc(count * sizeof(XrmName), names_s);
-    classes = (XrmClass *) IswStackAlloc(count * sizeof(XrmClass), classes_s);
+    names = (IswQuarkName *) IswStackAlloc(count * sizeof(IswQuarkName), names_s);
+    classes = (IswQuarkClass *) IswStackAlloc(count * sizeof(IswQuarkClass), classes_s);
     if (names == NULL || classes == NULL) {
         _IswAllocError(NULL);
         return;
@@ -1151,15 +1150,15 @@ _IswRefetchResources(Widget w, IswDatabaseHandle db)
 
     LOCK_PROCESS;
     {
-        XrmResourceList *res = (XrmResourceList *) wc->core_class.resources;
+        IswQResourceList *res = (IswQResourceList *) wc->core_class.resources;
         Cardinal i;
         for (i = 0; i < wc->core_class.num_resources && nargs < 64; i++) {
-            XrmResource *rx = res[i];
+            IswQResource *rx = res[i];
 
             if (rx->xrm_type != pixelQ && rx->xrm_type != fontQ)
                 continue;
 
-            args[nargs].name = (char *) XrmQuarkToString(rx->xrm_name);
+            args[nargs].name = (char *) IswQuarkToString(rx->xrm_name);
             args[nargs].value = (IswArgVal) &saved[nargs];
             saved[nargs] = 0;
             nargs++;
@@ -1181,25 +1180,25 @@ _IswRefetchResources(Widget w, IswDatabaseHandle db)
 
         LOCK_PROCESS;
         {
-            XrmResourceList *res = (XrmResourceList *) wc->core_class.resources;
+            IswQResourceList *res = (IswQResourceList *) wc->core_class.resources;
             Cardinal ri, ai = 0;
             for (ri = 0; ri < wc->core_class.num_resources && ai < nargs; ri++) {
-                XrmResource *rx = res[ri];
-                XrmValue dbval;
+                IswQResource *rx = res[ri];
+                IswValueRec dbval;
 
                 if (rx->xrm_type != pixelQ && rx->xrm_type != fontQ)
                     continue;
 
                 if (_IswDbGetResource(db, names, classes,
-                                     (XrmName) rx->xrm_name,
-                                     (XrmClass) rx->xrm_class, &dbval)) {
-                    XrmValue convResult;
+                                     (IswQuarkName) rx->xrm_name,
+                                     (IswQuarkClass) rx->xrm_class, &dbval)) {
+                    IswValueRec convResult;
                     IswArgVal converted = 0;
 
                     convResult.size = rx->xrm_size;
                     convResult.addr = (IswPointer) &converted;
                     if (_IswConvert(w, QString, &dbval,
-                                   (XrmRepresentation) rx->xrm_type,
+                                   (IswRepresentation) rx->xrm_type,
                                    &convResult, NULL)) {
                         if (converted != saved[ai]) {
                             fprintf(stderr, "RefetchResources: %s.%s: 0x%lx -> 0x%lx\n",
@@ -1238,10 +1237,10 @@ _IswGetSubresources(Widget w,                    /* Widget "parent" of subobject
                    IswTypedArgList typed_args,
                    Cardinal num_typed_args)
 {
-    XrmName *names, names_s[50];
-    XrmClass *classes, classes_s[50];
-    XrmQuark quark_cache[100];
-    XrmQuarkList quark_args;
+    IswQuarkName *names, names_s[50];
+    IswQuarkClass *classes, classes_s[50];
+    IswQuark quark_cache[100];
+    IswQuarkList quark_args;
     Cardinal count, ntyped_args = num_typed_args;
     IswCacheRef *Resrc = NULL;
 
@@ -1253,13 +1252,13 @@ _IswGetSubresources(Widget w,                    /* Widget "parent" of subobject
     LOCK_APP(app);
     count = CountTreeDepth(w);
     count++;                    /* make sure there's enough room for name and class */
-    names = (XrmName *) IswStackAlloc(count * sizeof(XrmName), names_s);
-    classes = (XrmClass *) IswStackAlloc(count * sizeof(XrmClass), classes_s);
+    names = (IswQuarkName *) IswStackAlloc(count * sizeof(IswQuarkName), names_s);
+    classes = (IswQuarkClass *) IswStackAlloc(count * sizeof(IswQuarkClass), classes_s);
     if (names == NULL || classes == NULL) {
         _IswAllocError(NULL);
     }
     else {
-        XrmResourceList *table;
+        IswQResourceList *table;
 
         /* Get full name, class of subobject */
         GetNamesAndClasses(w, names, classes);
@@ -1267,8 +1266,8 @@ _IswGetSubresources(Widget w,                    /* Widget "parent" of subobject
         names[count] = StringToName(name);
         classes[count] = StringToClass(class);
         count++;
-        names[count] = NULLQUARK;
-        classes[count] = NULLQUARK;
+        names[count] = ISW_NULLQUARK;
+        classes[count] = ISW_NULLQUARK;
 
         /* Compile arg list into quarks */
         CacheArgs(args, num_args, typed_args, num_typed_args,
@@ -1276,7 +1275,7 @@ _IswGetSubresources(Widget w,                    /* Widget "parent" of subobject
 
         /* Compile resource list if needed */
         if (((int) resources->resource_offset) >= 0) {
-            XrmCompileResourceListEphem(resources, num_resources);
+            IswCompileResourceListEphem(resources, num_resources);
         }
         table = _IswCreateIndirectionTable(resources, num_resources);
         Resrc =
@@ -1316,11 +1315,11 @@ _IswGetApplicationResources(Widget w,            /* Application shell widget */
                            IswTypedArgList typed_args,
                            Cardinal num_typed_args)
 {
-    XrmName *names, names_s[50];
-    XrmClass *classes, classes_s[50];
-    XrmQuark quark_cache[100];
-    XrmQuarkList quark_args;
-    XrmResourceList *table;
+    IswQuarkName *names, names_s[50];
+    IswQuarkClass *classes, classes_s[50];
+    IswQuark quark_cache[100];
+    IswQuarkList quark_args;
+    IswQResourceList *table;
     Cardinal ntyped_args = num_typed_args;
 
 #ifdef XTHREADS
@@ -1344,24 +1343,24 @@ _IswGetApplicationResources(Widget w,            /* Application shell widget */
         /* hack for R2 compatibility */
         IswPerDisplay pd = _IswGetPerDisplay((IswDisplay) _IswDefaultAppContext()->list[0]);
 
-        names = (XrmName *) IswStackAlloc(2 * sizeof(XrmName), names_s);
-        classes = (XrmClass *) IswStackAlloc(2 * sizeof(XrmClass), classes_s);
+        names = (IswQuarkName *) IswStackAlloc(2 * sizeof(IswQuarkName), names_s);
+        classes = (IswQuarkClass *) IswStackAlloc(2 * sizeof(IswQuarkClass), classes_s);
         if (names == NULL || classes == NULL) {
             _IswAllocError(NULL);
         }
         else {
-            names[0] = pd->name ? XrmStringToName(pd->name) : NULLQUARK;
-            names[1] = NULLQUARK;
-            classes[0] = pd->class ? XrmStringToClass(pd->class) : NULLQUARK;
-            classes[1] = NULLQUARK;
+            names[0] = pd->name ? IswStringToName(pd->name) : ISW_NULLQUARK;
+            names[1] = ISW_NULLQUARK;
+            classes[0] = pd->class ? IswStringToClass(pd->class) : ISW_NULLQUARK;
+            classes[1] = ISW_NULLQUARK;
         }
     }
     else {
         Cardinal count = CountTreeDepth(w);
 
-        names = (XrmName *) IswStackAlloc(count * sizeof(XrmName), names_s);
+        names = (IswQuarkName *) IswStackAlloc(count * sizeof(IswQuarkName), names_s);
         classes =
-            (XrmClass *) IswStackAlloc(count * sizeof(XrmClass), classes_s);
+            (IswQuarkClass *) IswStackAlloc(count * sizeof(IswQuarkClass), classes_s);
         if (names == NULL || classes == NULL) {
             _IswAllocError(NULL);
         }
@@ -1375,7 +1374,7 @@ _IswGetApplicationResources(Widget w,            /* Application shell widget */
               IswNumber(quark_cache), &quark_args);
     /* Compile resource list if needed */
     if (((int) resources->resource_offset) >= 0) {
-        XrmCompileResourceListEphem(resources, num_resources);
+        IswCompileResourceListEphem(resources, num_resources);
     }
     table = _IswCreateIndirectionTable(resources, num_resources);
 
@@ -1419,39 +1418,38 @@ _IswResourceListInitialize(void)
     initialized = TRUE;
     UNLOCK_PROCESS;
 
-    QBoolean = XrmPermStringToQuark(IswCBoolean);
-    QString = XrmPermStringToQuark(IswCString);
-    QCallProc = XrmPermStringToQuark(IswRCallProc);
-    QImmediate = XrmPermStringToQuark(IswRImmediate);
+    QBoolean = IswPermStringToQuark(IswCBoolean);
+    QString = IswPermStringToQuark(IswCString);
+    QCallProc = IswPermStringToQuark(IswRCallProc);
+    QImmediate = IswPermStringToQuark(IswRImmediate);
     QinitialResourcesPersistent =
-        XrmPermStringToQuark(IswNinitialResourcesPersistent);
+        IswPermStringToQuark(IswNinitialResourcesPersistent);
     QInitialResourcesPersistent =
-        XrmPermStringToQuark(IswCInitialResourcesPersistent);
-    Qtranslations = XrmPermStringToQuark(IswNtranslations);
-    QbaseTranslations = XrmPermStringToQuark("baseTranslations");
-    QTranslations = XrmPermStringToQuark(IswCTranslations);
-    QTranslationTable = XrmPermStringToQuark(IswRTranslationTable);
-    Qscreen = XrmPermStringToQuark(IswNscreen);
-    QScreen = XrmPermStringToQuark(IswCScreen);
+        IswPermStringToQuark(IswCInitialResourcesPersistent);
+    Qtranslations = IswPermStringToQuark(IswNtranslations);
+    QbaseTranslations = IswPermStringToQuark("baseTranslations");
+    QTranslations = IswPermStringToQuark(IswCTranslations);
+    QTranslationTable = IswPermStringToQuark(IswRTranslationTable);
+    Qscreen = IswPermStringToQuark(IswNscreen);
+    QScreen = IswPermStringToQuark(IswCScreen);
 }
 
 /*
- * XrmQGetResource - Query the resource database using quark name/class arrays.
+ * IswQGetResource - Query the resource database using quark name/class arrays.
  *
- * This is a compatibility wrapper around _IswPlatformResourceGetString().
- * It converts the quark arrays to dot-separated name and class strings,
- * then queries the xcb-util-xrm database.
+ * Converts quark arrays to dot-separated name and class strings, then
+ * queries the platform resource database via _IswPlatformResourceGetString().
  *
  * Returns True if the resource was found, False otherwise.
  * On success, sets *type_return to _IswQString and value_return->addr
  * to the resource value string (valid until the next call or database change).
  */
 Bool
-XrmQGetResource(XrmDatabase db,
-                XrmNameList names,
-                XrmClassList classes,
-                XrmRepresentation *type_return,
-                XrmValue *value_return)
+IswQGetResource(IswDatabaseHandle db,
+                IswQuarkList names,
+                IswQuarkList classes,
+                IswRepresentation *type_return,
+                IswValueRec *value_return)
 {
     char name_buf[512];
     char class_buf[512];
@@ -1466,7 +1464,7 @@ XrmQGetResource(XrmDatabase db,
 
     /* Build dot-separated name string from quark array */
     name_buf[0] = '\0';
-    for (i = 0; names[i] != NULLQUARK; i++) {
+    for (i = 0; names[i] != ISW_NULLQUARK; i++) {
         s = IswQuarkToString(names[i]);
         if (s == NULL) return False;
         if (i > 0) {
@@ -1482,7 +1480,7 @@ XrmQGetResource(XrmDatabase db,
 
     /* Build dot-separated class string from quark array */
     class_buf[0] = '\0';
-    for (i = 0; classes[i] != NULLQUARK; i++) {
+    for (i = 0; classes[i] != ISW_NULLQUARK; i++) {
         s = IswQuarkToString(classes[i]);
         if (s == NULL) return False;
         if (i > 0) {

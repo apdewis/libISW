@@ -102,7 +102,7 @@ SimpleClassRec simpleClassRec = {
     /* num_actions		*/	0,
     /* resources		*/	resources,
     /* num_resources		*/	IswNumber(resources),
-    /* xrm_class		*/	NULLQUARK,
+    /* xrm_class		*/	ISW_NULLQUARK,
     /* compress_motion		*/	TRUE,
     /* compress_exposure	*/	TRUE,
     /* compress_enterleave	*/	TRUE,
@@ -270,7 +270,7 @@ static void
 ConvertCursor(Widget w)
 {
     SimpleWidget simple = (SimpleWidget) w;
-    XrmValue from, to;
+    IswValueRec from, to;
     IswCursor cursor;
 
     if (simple->simple.cursor_name == NULL)

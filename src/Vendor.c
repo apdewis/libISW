@@ -146,7 +146,7 @@ DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
 
 static CompositeClassExtensionRec vendorCompositeExt = {
     /* next_extension     */	NULL,
-    /* record_type        */    NULLQUARK,
+    /* record_type        */    ISW_NULLQUARK,
     /* version            */    IswCompositeExtensionVersion,
     /* record_size        */    sizeof (CompositeClassExtensionRec),
     /* accepts_objects    */    TRUE,
@@ -169,7 +169,7 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
     /* num_actions	  */	0,
     /* resources	  */	resources,
     /* resource_count	  */	IswNumber(resources),
-    /* xrm_class	  */	NULLQUARK,
+    /* xrm_class	  */	ISW_NULLQUARK,
     /* compress_motion	  */	FALSE,
     /* compress_exposure  */	TRUE,
     /* compress_enterleave*/	FALSE,
@@ -237,7 +237,7 @@ externaldef(vendorshellextclassrec) IswVendorShellExtClassRec
     /* pad		  */	0,
     /* resources	  */	ext_resources,
     /* resource_count	  */	IswNumber(ext_resources),
-    /* xrm_class	  */	NULLQUARK,
+    /* xrm_class	  */	ISW_NULLQUARK,
     /* pad		  */	FALSE,
     /* pad		  */	FALSE,
     /* pad		  */	FALSE,
@@ -273,7 +273,7 @@ externaldef(xawvendorshellwidgetclass) WidgetClass
 
 static void
 _VendorFetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED,
-                       XrmValue *value)
+                       IswValueRec *value)
 {
     static IswDisplay _fetch_dpy;
     _fetch_dpy = IswDisplayOfObject(widget);
@@ -319,11 +319,11 @@ IswVendorShellClassPartInit(WidgetClass class)
 	    IswGetClassExtension (class,
 				 IswOffsetOf(CompositeClassRec,
 					    composite_class.extension),
-				 NULLQUARK, 1L, (Cardinal) 0)) == NULL) {
+				 ISW_NULLQUARK, 1L, (Cardinal) 0)) == NULL) {
 	ext = (CompositeClassExtension) IswNew (CompositeClassExtensionRec);
 	if (ext != NULL) {
 	    ext->next_extension = vsclass->composite_class.extension;
-	    ext->record_type = NULLQUARK;
+	    ext->record_type = ISW_NULLQUARK;
 	    ext->version = IswCompositeExtensionVersion;
 	    ext->record_size = sizeof (CompositeClassExtensionRec);
 	    ext->accepts_objects = TRUE;

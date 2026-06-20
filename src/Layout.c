@@ -123,7 +123,7 @@ LayoutClassRec layoutClassRec = {
     /* num_actions        */   0,
     /* resources          */   resources,
     /* resource_count     */   IswNumber(resources),
-    /* xrm_class          */   NULLQUARK,
+    /* xrm_class          */   ISW_NULLQUARK,
     /* compress_motion    */   FALSE,
     /* compress_exposure  */   0,
     /* compress_enterleave*/   FALSE,
@@ -205,8 +205,8 @@ WidgetClass layoutWidgetClass = (WidgetClass) &layoutClassRec;
 
 /*ARGSUSED*/
 static Boolean
-CvtStringToLayout (IswDisplay dpy, XrmValue *args, Cardinal *num_args,
-                   XrmValue *from, XrmValue *to, IswPointer *converter_data)
+CvtStringToLayout (IswDisplay dpy, IswValueRec *args, Cardinal *num_args,
+                   IswValueRec *from, IswValueRec *to, IswPointer *converter_data)
 {
     static BoxPtr tmp;
 
@@ -219,7 +219,7 @@ CvtStringToLayout (IswDisplay dpy, XrmValue *args, Cardinal *num_args,
 
 /*ARGSUSED*/
 static void
-DisposeLayout (IswAppContext app, XrmValue *to, IswPointer data, XrmValuePtr args,
+DisposeLayout (IswAppContext app, IswValueRec *to, IswPointer data, IswValuePtr args,
                Cardinal *num_args)
 {
     LayoutFreeLayout (* (LayoutPtr *) to->addr);
@@ -469,24 +469,24 @@ PrintBox (BoxPtr box, int level)
 	    PrintBox (child, level+1);
 	break;
     case WidgetBox:
-	(void) printf (" %s\n", XrmQuarkToString (box->u.widget.quark));
+	(void) printf (" %s\n", IswQuarkToString (box->u.widget.quark));
 	break;
     case GlueBox:
 	(void) printf ("%s\n", " glue");
 	break;
     case VariableBox:
-	(void) printf (" variable %s\n", XrmQuarkToString (box->u.variable.quark));
+	(void) printf (" variable %s\n", IswQuarkToString (box->u.variable.quark));
 	break;
     }
 }
 
 static ExprPtr
-LookupVariable (BoxPtr child, XrmQuark quark)
+LookupVariable (BoxPtr child, IswQuark quark)
 {
     BoxPtr	parent, box;
 
     DBUG_ENTER("LookupVariable");
-    DBUG_PRINT("name = <%s>",XrmQuarkToString(quark));
+    DBUG_PRINT("name = <%s>",IswQuarkToString(quark));
     DBUG_PRINT("child = %p",child);
     while ((parent = child->parent))
     {
@@ -565,7 +565,7 @@ Evaluate (LayoutWidget l, BoxPtr box, ExprPtr expr, double natural)
 	    {
 	    char    buf[256];
 	    (void) sprintf (buf, "Layout: undefined variable %s\n",
-			    XrmQuarkToString (expr->u.variable));
+			    IswQuarkToString (expr->u.variable));
 	    IswError (buf);
 	    return 0.0;
 	    }

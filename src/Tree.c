@@ -135,7 +135,7 @@ TreeClassRec treeClassRec = {
     0,					/* num_actions        */
     resources,				/* resources          */
     IswNumber(resources),		/* num_resources      */
-    NULLQUARK,				/* xrm_class          */
+    ISW_NULLQUARK,				/* xrm_class          */
     TRUE,				/* compress_motion    */
     TRUE,				/* compress_exposure  */
     TRUE,				/* compress_enterleave*/
@@ -307,8 +307,8 @@ check_gravity (TreeWidget tw, IswGravity grav)
  */
 /*ARGSUSED*/
 static Boolean
-XmuCvtStringToGravity(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
-                      XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
+XmuCvtStringToGravity(IswDisplay dpy, IswValuePtr args, Cardinal *num_args,
+                      IswValuePtr fromVal, IswValuePtr toVal, IswPointer *data)
 {
     static IswGravity gravity;
     char *str = (char*)fromVal->addr;

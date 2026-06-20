@@ -107,7 +107,7 @@ TextSinkClassRec textSinkClassRec = {
     /* obj3                */      0,
     /* resources           */      resources,
     /* num_resources       */      IswNumber(resources),
-    /* xrm_class           */      NULLQUARK,
+    /* xrm_class           */      ISW_NULLQUARK,
     /* obj4                */      FALSE,
     /* obj5                */      FALSE,
     /* obj6                */      FALSE,

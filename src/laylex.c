@@ -753,7 +753,7 @@ char *yytext;
 #undef unput
 #endif
 
-/* System Xlib headers removed - XrmQuark/XrmStringToQuark available via X11/IntrinsicP.h from custom libXt */
+/* System Xlib headers removed - IswQuark/IswStringToQuark available via X11/IntrinsicP.h from custom libXt */
 #include    <ISW/IntrinsicP.h>
 #include    <ISW/StringDefs.h>
 
@@ -1167,7 +1167,7 @@ YY_RULE_SETUP
 #else
 			    yytext[yyleng-1] = '\0';
 #endif
-			    yylval.qval = XrmStringToQuark (yytext+1);
+			    yylval.qval = IswStringToQuark (yytext+1);
  			    return NAME;
 			}
 	YY_BREAK
@@ -1180,7 +1180,7 @@ YY_RULE_SETUP
 #else
 			    yytext[yyleng-1] = '\0';
 #endif
-			    yylval.qval = XrmStringToQuark (yytext);
+			    yylval.qval = IswStringToQuark (yytext);
  			    return NAME;
 			}
 	YY_BREAK

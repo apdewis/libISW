@@ -57,7 +57,7 @@ ToggleButtonClassRec toggleButtonClassRec = {
     IswNumber(actionsList),
     resources,
     IswNumber(resources),
-    NULLQUARK,
+    ISW_NULLQUARK,
     FALSE,
     TRUE,
     TRUE,

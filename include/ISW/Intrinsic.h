@@ -277,7 +277,7 @@ typedef struct {
 typedef void (*IswConvertArgProc)(
     Widget 		/* widget */,
     Cardinal*		/* size */,
-    XrmValue*		/* value */
+    IswValueRec*		/* value */
 );
 
 typedef struct {
@@ -315,26 +315,26 @@ typedef struct {
 #define IswSMDontChange	5
 
 typedef void (*IswConverter)( /* obsolete */
-    XrmValue*		/* args */,
+    IswValueRec*		/* args */,
     Cardinal*		/* num_args */,
-    XrmValue*		/* from */,
-    XrmValue*		/* to */
+    IswValueRec*		/* from */,
+    IswValueRec*		/* to */
 );
 
 typedef Boolean (*IswTypeConverter)(
     IswDisplay 		/* dpy */,
-    XrmValue*		/* args */,
+    IswValueRec*		/* args */,
     Cardinal*		/* num_args */,
-    XrmValue*		/* from */,
-    XrmValue*		/* to */,
+    IswValueRec*		/* from */,
+    IswValueRec*		/* to */,
     IswPointer*		/* converter_data */
 );
 
 typedef void (*IswDestructor)(
     IswAppContext	/* app */,
-    XrmValue*		/* to */,
+    IswValueRec*		/* to */,
     IswPointer 		/* converter_data */,
-    XrmValue*		/* args */,
+    IswValueRec*		/* args */,
     Cardinal*		/* num_args */
 );
 
@@ -498,7 +498,7 @@ typedef struct _IswResource {
 typedef void (*IswResourceDefaultProc)(
     Widget	/* widget */,
     int		/* offset */,
-    XrmValue*	/* value */
+    IswValueRec*	/* value */
 );
 
 typedef String (*IswLanguageProc)(
@@ -742,18 +742,18 @@ _XFUNCPROTOBEGIN
 extern Boolean IswConvertAndStore(
     Widget 		/* widget */,
     _Xconst _IswString 	/* from_type */,
-    XrmValue*		/* from */,
+    IswValueRec*		/* from */,
     _Xconst _IswString 	/* to_type */,
-    XrmValue*		/* to_in_out */
+    IswValueRec*		/* to_in_out */
 );
 
 extern Boolean IswCallConverter(
     IswDisplay 		/* dpy */,
     IswTypeConverter 	/* converter */,
-    XrmValuePtr 	/* args */,
+    IswValuePtr 	/* args */,
     Cardinal 		/* num_args */,
-    XrmValuePtr 	/* from */,
-    XrmValue*		/* to_in_out */,
+    IswValuePtr 	/* from */,
+    IswValueRec*		/* to_in_out */,
     IswCacheRef*		/* cache_ref_return */
 );
 
@@ -898,17 +898,17 @@ extern void IswAppSetTypeConverter(
 extern void IswConvert(
     Widget 		/* widget */,
     _Xconst _IswString 	/* from_type */,
-    XrmValue*		/* from */,
+    IswValueRec*		/* from */,
     _Xconst _IswString 	/* to_type */,
-    XrmValue*		/* to_return */
+    IswValueRec*		/* to_return */
 );
 
 extern void IswDirectConvert(
     IswConverter 	/* converter */,
-    XrmValuePtr 	/* args */,
+    IswValuePtr 	/* args */,
     Cardinal 		/* num_args */,
-    XrmValuePtr 	/* from */,
-    XrmValue*		/* to_return */
+    IswValuePtr 	/* from */,
+    IswValueRec*		/* to_return */
 );
 
 /****************************************************************
@@ -1336,7 +1336,7 @@ extern Widget IswWindowToWidget(
 extern IswPointer IswGetClassExtension(
     WidgetClass		/* object_class */,
     Cardinal		/* byte_offset */,
-    XrmQuark		/* type */,
+    IswQuark		/* type */,
     long		/* version */,
     Cardinal		/* record_size */
 );
@@ -1656,7 +1656,7 @@ extern void IswDisplayInitialize(
     IswDisplay 		/* dpy */,
     _Xconst _IswString	/* application_name */,
     _Xconst _IswString	/* application_class */,
-    //XrmOptionDescRec* 	/* options */,
+    //IswOptionDescRec* 	/* options */,
     Cardinal 		/* num_options */,
     int*		/* argc */,
     _IswString*		/* argv */
@@ -1665,7 +1665,7 @@ extern void IswDisplayInitialize(
 extern Widget IswOpenApplication(
     IswAppContext*	/* app_context_return */,
     _Xconst _IswString	/* application_class */,
-    XrmOptionDescList 	/* options */,
+    IswOptionDescList 	/* options */,
     Cardinal 		/* num_options */,
     int*		/* argc_in_out */,
     _IswString*		/* argv_in_out */,
@@ -1678,7 +1678,7 @@ extern Widget IswOpenApplication(
 extern Widget IswVaOpenApplication(
     IswAppContext*	/* app_context_return */,
     _Xconst _IswString	/* application_class */,
-    XrmOptionDescList	/* options */,
+    IswOptionDescList	/* options */,
     Cardinal		/* num_options */,
     int*		/* argc_in_out */,
     _IswString*		/* argv_in_out */,
@@ -1690,7 +1690,7 @@ extern Widget IswVaOpenApplication(
 extern Widget IswAppInitialize( /* obsolete */
     IswAppContext*	/* app_context_return */,
     _Xconst _IswString	/* application_class */,
-    XrmOptionDescList 	/* options */,
+    IswOptionDescList 	/* options */,
     Cardinal 		/* num_options */,
     int*		/* argc_in_out */,
     _IswString*		/* argv_in_out */,
@@ -1702,7 +1702,7 @@ extern Widget IswAppInitialize( /* obsolete */
 extern Widget IswVaAppInitialize( /* obsolete */
     IswAppContext*	/* app_context_return */,
     _Xconst _IswString	/* application_class */,
-    XrmOptionDescList	/* options */,
+    IswOptionDescList	/* options */,
     Cardinal		/* num_options */,
     int*		/* argc_in_out */,
     _IswString*		/* argv_in_out */,
@@ -1715,7 +1715,7 @@ extern IswDisplay IswOpenDisplay(
     _Xconst _IswString	/* display_string */,
     _Xconst _IswString	/* application_name */,
     _Xconst _IswString	/* application_class */,
-    XrmOptionDescRec*	/* options */,
+    IswOptionDescRec*	/* options */,
     Cardinal 		/* num_options */,
     int*		/* argc */,
     _IswString*		/* argv */
@@ -1746,11 +1746,11 @@ extern IswAppContext IswDisplayToApplicationContext(
     IswDisplay 		/* dpy */
 );
 
-extern XrmDatabase IswDatabase(
+extern IswDatabaseHandle IswDatabase(
     IswDisplay 		/* dpy */
 );
 
-extern XrmDatabase IswScreenDatabase(
+extern IswDatabaseHandle IswScreenDatabase(
     IswScreen 		/* screen */
 );
 
@@ -1977,11 +1977,11 @@ extern void IswWarning( /* obsolete */
     _Xconst _IswString	/* message */
 );
 
-extern XrmDatabase *IswAppGetErrorDatabase(
+extern IswDatabaseHandle *IswAppGetErrorDatabase(
     IswAppContext 	/* app_context */
 );
 
-extern XrmDatabase *IswGetErrorDatabase( /* obsolete */
+extern IswDatabaseHandle *IswGetErrorDatabase( /* obsolete */
     void
 );
 
@@ -1993,7 +1993,7 @@ extern void IswAppGetErrorDatabaseText(
     _Xconst _IswString 	/* default */,
     _IswString 		/* buffer_return */,
     int 		/* nbytes */,
-    XrmDatabase 	/* database */
+    IswDatabaseHandle 	/* database */
 );
 
 extern void IswGetErrorDatabaseText( /* obsolete */
@@ -2453,145 +2453,145 @@ extern void IswAppUnlock(
 
 extern Boolean IswCvtStringToAcceleratorTable(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToBool(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToBoolean(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToCommandArgArray(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToCursor(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* Display */
+    IswValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToDimension(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToDirectoryString(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToDisplay(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToFile(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToFloat(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToFont(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* Display */
+    IswValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToFontStruct(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* Display */
+    IswValuePtr /* args */,	/* Display */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToGravity(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,
+    IswValuePtr /* args */,
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToInitialState(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToInt(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToPixel(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* Screen, Colormap */
+    IswValuePtr /* args */,	/* Screen, Colormap */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
@@ -2600,65 +2600,65 @@ extern Boolean IswCvtStringToPixel(
 
 extern Boolean IswCvtStringToShort(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToTranslationTable(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToUnsignedChar(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtStringToVisual(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* Screen, depth */
+    IswValuePtr /* args */,	/* Screen, depth */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 /* Widget-set value converters (neutral; libXmu replacements). */
 extern Boolean ISWCvtStringToOrientation(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,
+    IswValuePtr /* args */,
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean ISWCvtStringToJustify(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,
+    IswValuePtr /* args */,
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean ISWCvtStringToWidget(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* parent widget */
+    IswValuePtr /* args */,	/* parent widget */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
@@ -2666,28 +2666,28 @@ extern Boolean ISWCvtStringToWidget(
 
 extern Boolean IswCvtIntToBool(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtIntToBoolean(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtIntToColor(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* Screen, Colormap */
+    IswValuePtr /* args */,	/* Screen, Colormap */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
@@ -2695,37 +2695,37 @@ extern Boolean IswCvtIntToColor(
 
 extern Boolean IswCvtIntToFloat(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtIntToFont(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtIntToPixel(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtIntToPixmap(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
@@ -2733,19 +2733,19 @@ extern Boolean IswCvtIntToPixmap(
 
 extern Boolean IswCvtIntToShort(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
 extern Boolean IswCvtIntToUnsignedChar(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 
@@ -2753,10 +2753,10 @@ extern Boolean IswCvtIntToUnsignedChar(
 
 extern Boolean IswCvtColorToPixel(
     IswDisplay 	/* dpy */,
-    XrmValuePtr /* args */,	/* none */
+    IswValuePtr /* args */,	/* none */
     Cardinal*   /* num_args */,
-    XrmValuePtr	/* fromVal */,
-    XrmValuePtr	/* toVal */,
+    IswValuePtr	/* fromVal */,
+    IswValuePtr	/* toVal */,
     IswPointer*	/* closure_ret */
 );
 

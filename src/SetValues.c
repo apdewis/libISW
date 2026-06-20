@@ -82,15 +82,15 @@ in this Software without prior written authorization from The Open Group.
 
 static void
 SetValues(char *base,                           /* Base address to write values to */
-          XrmResourceList *res,                 /* The current resource values. */
+          IswQResourceList *res,                 /* The current resource values. */
           register Cardinal num_resources,      /* number of items in resources      */
           ArgList args,                         /* The resource values to set */
           Cardinal num_args)                    /* number of items in arg list       */
 {
     register ArgList arg;
     register Cardinal i;
-    register XrmName argName;
-    register XrmResourceList *xrmres;
+    register IswQuarkName argName;
+    register IswQResourceList *xrmres;
 
     /* Resource lists are assumed to be in compiled form already via the
        initial IswGetResources, IswGetSubresources calls */
@@ -189,7 +189,7 @@ IswSetSubvalues(IswPointer base,                  /* Base address to write value
                ArgList args,                    /* The resource values to set */
                Cardinal num_args)               /* number of items in arg list       */
 {
-    register XrmResourceList *xrmres;
+    register IswQResourceList *xrmres;
 
     xrmres = _IswCreateIndirectionTable(resources, num_resources);
     SetValues((char *) base, xrmres, num_resources, args, num_args);
@@ -234,7 +234,7 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
     /* Set resource values */
 
     LOCK_PROCESS;
-    SetValues((char *) w, (XrmResourceList *) wc->core_class.resources,
+    SetValues((char *) w, (IswQResourceList *) wc->core_class.resources,
               wc->core_class.num_resources, args, num_args);
     UNLOCK_PROCESS;
 
@@ -268,7 +268,7 @@ IswSetValues(register Widget w, ArgList args, Cardinal num_args)
         /* Set constraint values */
         LOCK_PROCESS;
         SetValues((char *) w->core.constraints,
-                  (XrmResourceList *) (cwc->constraint_class.resources),
+                  (IswQResourceList *) (cwc->constraint_class.resources),
                   cwc->constraint_class.num_resources, args, num_args);
         UNLOCK_PROCESS;
         (void) memcpy(reqw->core.constraints,

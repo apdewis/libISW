@@ -27,13 +27,13 @@ _XFUNCPROTOBEGIN
 /* VarCreate.c */
 extern Widget _IswVaOpenApplication(IswAppContext *app_context_return,
 			_Xconst char* application_class,
-			XrmOptionDescList options, Cardinal num_options,
+			IswOptionDescList options, Cardinal num_options,
 			int *argc_in_out, _IswString *argv_in_out,
 			String *fallback_resources, WidgetClass widget_class,
 			va_list var_args);
 extern Widget _IswVaAppInitialize(IswAppContext *app_context_return,
 			_Xconst char* application_class,
-			XrmOptionDescList options, Cardinal num_options,
+			IswOptionDescList options, Cardinal num_options,
 			int *argc_in_out, _IswString *argv_in_out,
 			String *fallback_resources, va_list var_args);
 

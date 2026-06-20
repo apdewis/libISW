@@ -77,7 +77,7 @@
 #define IsZeroGlue(g)	((g).value == 0)
 
 #define QuarkToWidget(l,q)  IswNameToWidget((Widget) l, \
-					   (char *) XrmQuarkToString(q));
+					   (char *) IswQuarkToString(q));
 
 typedef enum _BoxType { BoxBox, WidgetBox, GlueBox, VariableBox } BoxType;
 
@@ -112,9 +112,9 @@ typedef struct _Expr {
 	    Operator    op;
 	    ExprPtr	down;
 	} unary;
-	XrmQuark    width;
-	XrmQuark    height;
-	XrmQuark    variable;
+	IswQuark    width;
+	IswQuark    height;
+	IswQuark    variable;
     } u;
 } ExprRec;
 
@@ -146,14 +146,14 @@ typedef struct _Box {
 	    LayoutDirection dir;
 	} box;
 	struct {
-	    XrmQuark	    quark;
+	    IswQuark	    quark;
 	    Widget	    widget;
 	} widget;
 	struct {
 	    ExprPtr	    expr;
 	} glue;
 	struct {
-	    XrmQuark	    quark;
+	    IswQuark	    quark;
 	    ExprPtr	    expr;
 	} variable;
     } u;

@@ -1110,11 +1110,11 @@ _IswPlatformResourceFromFile(const char *filename)
 }
 
 IswDatabaseHandle
-_IswPlatformResourceFromManager(IswDisplay dpy, IswScreen screen)
+_IswPlatformResourceBuildUserDb(IswDisplay dpy, IswScreen screen)
 {
     const IswPlatformOps *ops = _IswPlatformSelectBackend();
-    if (ops && ops->resource && ops->resource->from_resource_manager)
-        return ops->resource->from_resource_manager(dpy, screen);
+    if (ops && ops->resource && ops->resource->build_user_db)
+        return ops->resource->build_user_db(dpy, screen);
     return NULL;
 }
 

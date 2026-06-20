@@ -218,8 +218,4 @@ typedef struct _IswFontStruct {
     double          pt_size;
 } IswFontStruct;
 
-#ifndef XrmString
-typedef char *XrmString;
-#endif
-
 #endif /* _IswTypes_h */

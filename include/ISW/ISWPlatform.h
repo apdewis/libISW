@@ -852,7 +852,6 @@ struct _IswPlatformResourceOps {
     /* Build a database from a source. */
     IswDatabaseHandle (*from_string)(const char *str);
     IswDatabaseHandle (*from_file)(const char *filename);
-    IswDatabaseHandle (*from_resource_manager)(IswDisplay dpy, IswScreen screen);
     /* Merge source into *target (override decides precedence on collision). */
     void (*combine)(IswDatabaseHandle source, IswDatabaseHandle *target,
                     Boolean override);
@@ -864,9 +863,16 @@ struct _IswPlatformResourceOps {
     char *(*to_string)(IswDatabaseHandle db);
     void (*free)(IswDatabaseHandle db);
     /* Resolve a fully-qualified name/class path to a string value.  Returns >= 0
-       and sets *out (malloc'd) on a hit, < 0 on miss — mirrors Xrm's contract. */
+       and sets *out (malloc'd) on a hit, < 0 on miss. */
     int (*get_string)(IswDatabaseHandle db, const char *res_name,
                       const char *res_class, char **out);
+    /* Assemble the platform's user-defaults database for `screen`.  The backend
+       reads its own sources (X11: RESOURCE_MANAGER property, ~/.Xdefaults,
+       XENVIRONMENT, ~/.Xdefaults-hostname, XUSERFILESEARCHPATH, XAPPLRESDIR,
+       app-defaults dir) and returns them pre-merged; NULL if none.  The toolkit
+       combines the result with the command-line db and fallback resources — those
+       are platform-neutral and stay in the toolkit. */
+    IswDatabaseHandle (*build_user_db)(IswDisplay dpy, IswScreen screen);
 };
 
 /*
@@ -1173,8 +1179,6 @@ extern void    _IswPlatformPresentRoot(IswDisplay dpy, IswWindow win,
 /* Resource resolution */
 extern IswDatabaseHandle _IswPlatformResourceFromString(const char *str);
 extern IswDatabaseHandle _IswPlatformResourceFromFile(const char *filename);
-extern IswDatabaseHandle _IswPlatformResourceFromManager(IswDisplay dpy,
-                                                         IswScreen screen);
 extern void _IswPlatformResourceCombine(IswDatabaseHandle source,
                                         IswDatabaseHandle *target, Boolean override);
 extern void _IswPlatformResourcePut(IswDatabaseHandle *db, const char *resource,
@@ -1184,6 +1188,8 @@ extern char *_IswPlatformResourceToString(IswDatabaseHandle db);
 extern void _IswPlatformResourceFree(IswDatabaseHandle db);
 extern int  _IswPlatformResourceGetString(IswDatabaseHandle db, const char *res_name,
                                           const char *res_class, char **out);
+extern IswDatabaseHandle _IswPlatformResourceBuildUserDb(IswDisplay dpy,
+                                                         IswScreen screen);
 
 /* WM hints */
 extern void _IswPlatformSetWindowTitle(IswDisplay dpy, IswWindow win, const char *utf8);

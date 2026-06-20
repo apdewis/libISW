@@ -159,7 +159,7 @@ GetBranchHead(TMParseStateTree parseTree,
 }
 
 TMShortCard
-_IswGetQuarkIndex(TMParseStateTree parseTree, XrmQuark quark)
+_IswGetQuarkIndex(TMParseStateTree parseTree, IswQuark quark)
 {
 #define TM_QUARK_TBL_ALLOC      ((TMShortCard) 16)
 #define TM_QUARK_TBL_REALLOC    ((TMShortCard) 16)
@@ -178,20 +178,20 @@ _IswGetQuarkIndex(TMParseStateTree parseTree, XrmQuark quark)
                 parseTree->quarkTblSize += TM_QUARK_TBL_REALLOC;
 
             if (parseTree->isStackQuarks) {
-                XrmQuark *oldquarkTbl = parseTree->quarkTbl;
+                IswQuark *oldquarkTbl = parseTree->quarkTbl;
 
                 parseTree->quarkTbl =
                     IswMallocArray((Cardinal) parseTree->quarkTblSize,
-                                  (Cardinal) sizeof(XrmQuark));
+                                  (Cardinal) sizeof(IswQuark));
                 memcpy(parseTree->quarkTbl, oldquarkTbl,
-                       parseTree->quarkTblSize * sizeof(XrmQuark));
+                       parseTree->quarkTblSize * sizeof(IswQuark));
                 parseTree->isStackQuarks = False;
             }
             else {
-                parseTree->quarkTbl = (XrmQuark *)
+                parseTree->quarkTbl = (IswQuark *)
                     IswReallocArray(parseTree->quarkTbl,
                                    (Cardinal) parseTree->quarkTblSize,
-                                   (Cardinal) sizeof(XrmQuark));
+                                   (Cardinal) sizeof(IswQuark));
             }
         }
         parseTree->quarkTbl[parseTree->numQuarks++] = quark;
@@ -635,7 +635,7 @@ HandleActions(Widget w,
                 ActionHook hook;
                 ActionHook next_hook;
                 String procName =
-                    XrmQuarkToString(stateTree->quarkTbl[actions->idx]);
+                    IswQuarkToString(stateTree->quarkTbl[actions->idx]);
 
                 for (hook = actionHookList; hook != NULL;) {
                     /*
@@ -1452,9 +1452,9 @@ _IswParseTreeToStateTree(TMParseStateTree parseTree)
     simpleTree->numBranchHeads = parseTree->numBranchHeads;
 
     simpleTree->quarkTbl = IswMallocArray((Cardinal) parseTree->numQuarks,
-                                         (Cardinal) sizeof(XrmQuark));
+                                         (Cardinal) sizeof(IswQuark));
     memcpy(simpleTree->quarkTbl, parseTree->quarkTbl,
-           parseTree->numQuarks * sizeof(XrmQuark));
+           parseTree->numQuarks * sizeof(IswQuark));
     simpleTree->numQuarks = parseTree->numQuarks;
 
     return (TMStateTree) simpleTree;
@@ -1607,10 +1607,10 @@ _IswAddEventSeqToStateTree(EventSeqPtr eventSeq, TMParseStateTree stateTree)
  */
 Boolean
 _IswCvtMergeTranslations(IswDisplay dpy _X_UNUSED,
-                        XrmValuePtr args _X_UNUSED,
+                        IswValuePtr args _X_UNUSED,
                         Cardinal *num_args,
-                        XrmValuePtr from,
-                        XrmValuePtr to,
+                        IswValuePtr from,
+                        IswValuePtr to,
                         IswPointer *closure_ret _X_UNUSED)
 {
     IswTranslations first, second, xlations;
@@ -1663,15 +1663,15 @@ static IswTranslations
 MergeThem(Widget dest, IswTranslations first, IswTranslations second)
 {
     IswCacheRef cache_ref;
-    static XrmQuark from_type = NULLQUARK, to_type;
-    XrmValue from, to;
+    static IswQuark from_type = ISW_NULLQUARK, to_type;
+    IswValueRec from, to;
     TMConvertRec convert_rec;
     IswTranslations newTable;
 
     LOCK_PROCESS;
-    if (from_type == NULLQUARK) {
-        from_type = XrmPermStringToQuark(_IswRStateTablePair);
-        to_type = XrmPermStringToQuark(IswRTranslationTable);
+    if (from_type == ISW_NULLQUARK) {
+        from_type = IswPermStringToQuark(_IswRStateTablePair);
+        to_type = IswPermStringToQuark(IswRTranslationTable);
     }
     UNLOCK_PROCESS;
     from.addr = (IswPointer) &convert_rec;
@@ -2147,9 +2147,9 @@ _IswRemoveStateTreeByIndex(IswTranslations xlations, TMShortCard i)
 
 void
 _IswFreeTranslations(IswAppContext app,
-                    XrmValuePtr toVal,
+                    IswValuePtr toVal,
                     IswPointer closure _X_UNUSED,
-                    XrmValuePtr args _X_UNUSED,
+                    IswValuePtr args _X_UNUSED,
                     Cardinal *num_args)
 {
     IswTranslations xlations;

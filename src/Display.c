@@ -265,7 +265,7 @@ IswOpenDisplay(IswAppContext app,
               _Xconst _IswString displayName,
               _Xconst _IswString applName,
               _Xconst _IswString className,
-              XrmOptionDescRec *urlist,
+              IswOptionDescRec *urlist,
               Cardinal num_urs,
               int *argc,
               _IswString *argv)
@@ -355,7 +355,7 @@ IswOpenDisplay(IswAppContext app,
 IswDisplay
 _IswAppInit(IswAppContext *app_context_return,
            String application_class,
-           XrmOptionDescRec *options,
+           IswOptionDescRec *options,
            Cardinal num_options,
            int *argc_in_out,
            _IswString **argv_in_out,
@@ -403,13 +403,12 @@ IswDisplayInitialize(IswAppContext app,
                     IswDisplay dpy,
                     _Xconst _IswString name,
                     _Xconst _IswString classname,
-                    //XrmOptionDescRec *urlist,
+                    //IswOptionDescRec *urlist,
                     Cardinal num_urs,
                     int *argc,
                     _IswString *argv)
 {
     IswPerDisplay pd;
-    //XrmDatabase db = NULL;
 
     LOCK_APP(app);
     /* IswDisplayInitialize doesn't receive a screen number; default to 0.
@@ -424,8 +423,6 @@ IswDisplayInitialize(IswAppContext app,
     //                                &pd->language);
     UNLOCK_PROCESS;
     _IswDisplayInitialize(dpy, pd, name, num_urs, argc, argv);
-    //if (db)
-    //    XrmDestroyDatabase(db);
     UNLOCK_APP(app);
 }
 
@@ -614,7 +611,7 @@ _IswDestroyAppContexts(void)
     IswStackFree((IswPointer) pApps, apps);
 }
 
-XrmDatabase
+IswDatabaseHandle
 IswDatabase(IswDisplay dpy)
 {    
     IswDatabaseHandle db;
@@ -679,7 +676,6 @@ CloseDisplay(IswDisplay dpy)
      * it is still valid; used to close the connection through the vtable after
      * the record is freed. */
     const IswPlatformOps *ops = _IswPlatformSelectBackend();
-    //XrmDatabase db;
 
     IswDestroyWidget(IswHooksOfDisplay((IswDisplay) dpy));
     _IswPlatformFreeKeysyms(dpy);

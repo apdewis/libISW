@@ -260,7 +260,7 @@ IswDisplay
 _IswAppInit(
     IswAppContext*	/* app_context_return */,
     String		/* application_class */,
-    XrmOptionDescRec*	/* options */,
+    IswOptionDescRec*	/* options */,
     Cardinal		/* num_options */,
     int*		/* argc_in_out */,
     _IswString**		/* argv_in_out */,
@@ -323,9 +323,9 @@ typedef struct _IswPerDisplayStruct {
     Modifiers num_lock;		       /* keyboard numlock modifiers */
     Boolean being_destroyed;
     Boolean rv;			       /* reverse_video resource */
-    //XrmName name;		       /* resolved app name */
+    //IswQuarkName name;		       /* resolved app name */
     String name;
-    //XrmClass class;		       /* application class */
+    //IswQuarkClass class;		       /* application class */
     String class;
     Heap heap;
     String language;		       /* XPG language string */
@@ -402,7 +402,7 @@ extern void _IswDisplayInitialize(
     IswDisplay		/* dpy */,
     IswPerDisplay	/* pd */,
     _Xconst char*	/* name */,
-    //XrmOptionDescRec*	/* urlist */,
+    //IswOptionDescRec*	/* urlist */,
     Cardinal 		/* num_urs */,
     int*		/* argc */,
     _IswString* 		/* argv */
@@ -433,7 +433,7 @@ extern void _IswExtensionSelect(
 #define _IswSafeToDestroy(app) ((app)->dispatch_level == 0)
 
 extern String _IswGetUserName(_IswString dest, int len);
-extern IswDatabaseHandle _IswPreparseCommandLine(XrmOptionDescRec *urlist,
+extern IswDatabaseHandle _IswPreparseCommandLine(IswOptionDescRec *urlist,
 			Cardinal num_urs, int argc, _IswString *argv,
 			String *applName, String *displayName,
 			String *language);

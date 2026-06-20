@@ -134,7 +134,7 @@ SmeBSBClassRec smeBSBClassRec = {
     /* num_actions        */    ZERO,
     /* resources          */    resources,
     /* resource_count     */	IswNumber(resources),
-    /* xrm_class          */    NULLQUARK,
+    /* xrm_class          */    ISW_NULLQUARK,
     /* compress_motion    */    FALSE,
     /* compress_exposure  */    FALSE,
     /* compress_enterleave*/ 	FALSE,

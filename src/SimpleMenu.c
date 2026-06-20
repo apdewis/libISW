@@ -209,7 +209,7 @@ static IswActionsRec actionsList[] =
 
 static CompositeClassExtensionRec extension_rec = {
     /* next_extension */  NULL,
-    /* record_type */     NULLQUARK,
+    /* record_type */     ISW_NULLQUARK,
     /* version */         IswCompositeExtensionVersion,
     /* record_size */     sizeof(CompositeClassExtensionRec),
     /* accepts_objects */ TRUE,
@@ -232,7 +232,7 @@ SimpleMenuClassRec simpleMenuClassRec = {
     /* num_actions        */    IswNumber(actionsList),
     /* resources          */    resources,
     /* resource_count     */	IswNumber(resources),
-    /* xrm_class          */    NULLQUARK,
+    /* xrm_class          */    ISW_NULLQUARK,
     /* compress_motion    */    TRUE,
     /* compress_exposure  */    TRUE,
     /* compress_enterleave*/ 	TRUE,

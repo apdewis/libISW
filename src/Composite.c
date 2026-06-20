@@ -106,7 +106,7 @@ CompositeClassRec compositeClassRec = {
      /* num_actions          */ 0,
      /* resources            */ resources,
      /* num_resources        */ IswNumber(resources),
-     /* xrm_class            */ NULLQUARK,
+     /* xrm_class            */ ISW_NULLQUARK,
      /* compress_motion      */ FALSE,
      /* compress_exposure    */ TRUE,
      /* compress_enterleave  */ FALSE,
@@ -149,7 +149,7 @@ InheritAllowsChangeManagedSet(WidgetClass widget_class)
     ext = (CompositeClassExtension)
         IswGetClassExtension(widget_class,
                             IswOffsetOf(CompositeClassRec,
-                                       composite_class.extension), NULLQUARK,
+                                       composite_class.extension), ISW_NULLQUARK,
                             1L, 0);
 
     if (ext && ext->version == IswCompositeExtensionVersion)
@@ -158,7 +158,7 @@ InheritAllowsChangeManagedSet(WidgetClass widget_class)
     super_ext = (CompositeClassExtension)
         IswGetClassExtension(cc->core_class.superclass,
                             IswOffsetOf(CompositeClassRec,
-                                       composite_class.extension), NULLQUARK,
+                                       composite_class.extension), ISW_NULLQUARK,
                             1L, 0);
 
     LOCK_PROCESS;
@@ -172,7 +172,7 @@ InheritAllowsChangeManagedSet(WidgetClass widget_class)
 
         /* Be careful to inherit only what is appropriate */
         new_ext->next_extension = cc->composite_class.extension;
-        new_ext->record_type = NULLQUARK;
+        new_ext->record_type = ISW_NULLQUARK;
         new_ext->version = IswCompositeExtensionVersion;
         new_ext->record_size = sizeof(CompositeClassExtensionRec);
         new_ext->accepts_objects = (ext ? ext->accepts_objects : False);

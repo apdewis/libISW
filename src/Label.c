@@ -147,7 +147,7 @@ LabelClassRec labelClassRec = {
     /* num_actions	  	*/	0,
     /* resources	  	*/	resources,
     /* num_resources	  	*/	IswNumber(resources),
-    /* xrm_class	  	*/	NULLQUARK,
+    /* xrm_class	  	*/	ISW_NULLQUARK,
     /* compress_motion	  	*/	TRUE,
     /* compress_exposure  	*/	TRUE,
     /* compress_enterleave	*/	TRUE,
@@ -185,20 +185,20 @@ WidgetClass labelWidgetClass = (WidgetClass)&labelClassRec;
  *
  ****************************************************************/
 
-static XrmQuark QEllipNone, QEllipStart, QEllipMiddle, QEllipEnd;
+static IswQuark QEllipNone, QEllipStart, QEllipMiddle, QEllipEnd;
 
 static void
-_CvtStringToEllipsize(XrmValuePtr args, Cardinal *num_args,
-                      XrmValuePtr fromVal, XrmValuePtr toVal)
+_CvtStringToEllipsize(IswValuePtr args, Cardinal *num_args,
+                      IswValuePtr fromVal, IswValuePtr toVal)
 {
     static IswEllipsize mode;
-    XrmQuark q;
+    IswQuark q;
     char lower[40];
     (void)args; (void)num_args;
 
     if (strlen((char *)fromVal->addr) < sizeof(lower)) {
         ISWCopyISOLatin1Lowered(lower, (char *)fromVal->addr);
-        q = XrmStringToQuark(lower);
+        q = IswStringToQuark(lower);
         if      (q == QEllipNone)   mode = IswEllipsizeNone;
         else if (q == QEllipStart)  mode = IswEllipsizeStart;
         else if (q == QEllipMiddle) mode = IswEllipsizeMiddle;
@@ -220,10 +220,10 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    QEllipNone   = XrmPermStringToQuark("none");
-    QEllipStart  = XrmPermStringToQuark("start");
-    QEllipMiddle = XrmPermStringToQuark("middle");
-    QEllipEnd    = XrmPermStringToQuark("end");
+    QEllipNone   = IswPermStringToQuark("none");
+    QEllipStart  = IswPermStringToQuark("start");
+    QEllipMiddle = IswPermStringToQuark("middle");
+    QEllipEnd    = IswPermStringToQuark("end");
     IswAddConverter(IswRString, IswREllipsize,
                    _CvtStringToEllipsize, NULL, 0);
 }

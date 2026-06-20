@@ -77,23 +77,23 @@ in this Software without prior written authorization from The Open Group.
 
 static int
 GetValues(char *const base,             /* Base address to fetch values from */
-          XrmResourceList *res,         /* The current resource values.      */
+          IswQResourceList *res,         /* The current resource values.      */
           register Cardinal num_resources, /* number of items in resources   */
           ArgList args,                 /* The resource values requested     */
           Cardinal num_args)            /* number of items in arg list       */
 {                
     register ArgList arg;
     register Cardinal i;
-    register XrmName argName;
-    register XrmResourceList *xrmres;
+    register IswQuarkName argName;
+    register IswQResourceList *xrmres;
     int translation_arg_num = -1;
-    static XrmQuark QCallback = NULLQUARK;
-    static XrmQuark QTranslationTable = NULLQUARK;
+    static IswQuark QCallback = ISW_NULLQUARK;
+    static IswQuark QTranslationTable = ISW_NULLQUARK;
 
     LOCK_PROCESS;
-    if (QCallback == NULLQUARK) {
-        QCallback = XrmPermStringToQuark(IswRCallback);
-        QTranslationTable = XrmPermStringToQuark(IswRTranslationTable);
+    if (QCallback == ISW_NULLQUARK) {
+        QCallback = IswPermStringToQuark(IswRCallback);
+        QTranslationTable = IswPermStringToQuark(IswRTranslationTable);
     }
     UNLOCK_PROCESS;
 
@@ -168,7 +168,7 @@ CallConstraintGetValuesHook(WidgetClass widget_class,
 
     for (ext = (ConstraintClassExtension) ((ConstraintWidgetClass) widget_class)
          ->constraint_class.extension;
-         ext != NULL; //&& ext->record_type != NULLQUARK;
+         ext != NULL; //&& ext->record_type != ISW_NULLQUARK;
          ext = (ConstraintClassExtension) ext->next_extension);
 
     if (ext != NULL) {
@@ -214,7 +214,7 @@ IswGetValues(register Widget w,
     wc = IswClass(w);
     LOCK_PROCESS;
     /* Get widget values */
-    targ = GetValues((char *) w, (XrmResourceList *) wc->core_class.resources,
+    targ = GetValues((char *) w, (IswQResourceList *) wc->core_class.resources,
                      wc->core_class.num_resources, args, num_args);
     UNLOCK_PROCESS;
     if (targ != -1 && IswIsWidget(w)) {
@@ -232,7 +232,7 @@ IswGetValues(register Widget w,
             = (ConstraintWidgetClass) IswClass(IswParent(w));
         LOCK_PROCESS;
         GetValues((char *) w->core.constraints,
-                  (XrmResourceList *) (cwc->constraint_class.resources),
+                  (IswQResourceList *) (cwc->constraint_class.resources),
                   cwc->constraint_class.num_resources, args, num_args);
         UNLOCK_PROCESS;
     }
@@ -252,7 +252,7 @@ IswGetSubvalues(IswPointer base,          /* Base address to fetch values from *
                ArgList args,            /* The resource values requested */
                Cardinal num_args)       /* number of items in arg list       */
 {
-    XrmResourceList *xrmres;
+    IswQResourceList *xrmres;
 
     xrmres = _IswCreateIndirectionTable(resources, num_resources);
     GetValues((char *) base, xrmres, num_resources, args, num_args);

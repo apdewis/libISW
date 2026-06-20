@@ -90,7 +90,7 @@ static InternalCallbackList *
 FetchInternalList(Widget widget,
                   _Xconst char *name)
 {
-    XrmQuark quark;
+    IswQuark quark;
     int n;
     CallbackTable offsets;
     InternalCallbackList *retval = NULL;

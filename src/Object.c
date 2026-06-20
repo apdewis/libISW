@@ -103,7 +103,7 @@ externaldef(objectclassrec) ObjectClassRec objectClassRec = {
     /* pad                     */ 0,
     /* resources               */ resources,
     /* num_resources           */ IswNumber(resources),
-    /* xrm_class               */ NULLQUARK,
+    /* xrm_class               */ ISW_NULLQUARK,
     /* pad                     */ FALSE,
     /* pad                     */ FALSE,
     /* pad                     */ FALSE,
@@ -136,12 +136,12 @@ WidgetClass objectClass = (WidgetClass) &objectClassRec;
 static void
 ConstructCallbackOffsets(WidgetClass myWidgetClass)
 {
-    static XrmQuark QCallback = NULLQUARK;
+    static IswQuark QCallback = ISW_NULLQUARK;
     register int i;
     register int tableSize;
     register CallbackTable newTable;
     register CallbackTable superTable;
-    register XrmResourceList resourceList;
+    register IswQResourceList resourceList;
     ObjectClass myObjectClass = (ObjectClass) myWidgetClass;
 
     /*
@@ -151,8 +151,8 @@ ConstructCallbackOffsets(WidgetClass myWidgetClass)
        callback pointers.
      */
 
-    if (QCallback == NULLQUARK)
-        QCallback = XrmPermStringToQuark(IswRCallback);
+    if (QCallback == ISW_NULLQUARK)
+        QCallback = IswPermStringToQuark(IswRCallback);
 
     if (myObjectClass->object_class.superclass != NULL) {
         superTable = (CallbackTable)
@@ -166,7 +166,7 @@ ConstructCallbackOffsets(WidgetClass myWidgetClass)
     }
 
     /* Count the number of callbacks */
-    resourceList = (XrmResourceList) myObjectClass->object_class.resources;
+    resourceList = (IswQResourceList) myObjectClass->object_class.resources;
     if (resourceList != NULL) {
         for (i = (int) myObjectClass->object_class.num_resources; --i >= 0;
              resourceList++) {
@@ -181,13 +181,13 @@ ConstructCallbackOffsets(WidgetClass myWidgetClass)
      * offsets so that resource overrides work.
      */
     newTable = IswMallocArray((Cardinal) tableSize + 1,
-                             (Cardinal) sizeof(XrmResource *));
+                             (Cardinal) sizeof(IswQResource *));
 
-    newTable[0] = (XrmResource *) (IswIntPtr) tableSize;
+    newTable[0] = (IswQResource *) (IswIntPtr) tableSize;
 
     if (superTable)
         tableSize -= (int) (long) superTable[0];
-    resourceList = (XrmResourceList) myObjectClass->object_class.resources;
+    resourceList = (IswQResourceList) myObjectClass->object_class.resources;
     for (i = 1; tableSize > 0; resourceList++)
         if (resourceList->xrm_type == QCallback) {
             newTable[i++] = resourceList;
@@ -217,14 +217,14 @@ InheritObjectExtensionMethods(WidgetClass widget_class)
     ext = (ObjectClassExtension)
         IswGetClassExtension(widget_class,
                             IswOffsetOf(ObjectClassRec, object_class.extension),
-                            NULLQUARK, IswObjectExtensionVersion,
+                            ISW_NULLQUARK, IswObjectExtensionVersion,
                             sizeof(ObjectClassExtensionRec));
 
     if (oc->object_class.superclass)
         super_ext = (ObjectClassExtension)
             IswGetClassExtension(oc->object_class.superclass,
                                 IswOffsetOf(ObjectClassRec,
-                                           object_class.extension), NULLQUARK,
+                                           object_class.extension), ISW_NULLQUARK,
                                 IswObjectExtensionVersion,
                                 sizeof(ObjectClassExtensionRec));
     LOCK_PROCESS;
@@ -239,7 +239,7 @@ InheritObjectExtensionMethods(WidgetClass widget_class)
         ext = (ObjectClassExtension)
             __XtCalloc(1, sizeof(ObjectClassExtensionRec));
         ext->next_extension = oc->object_class.extension;
-        ext->record_type = NULLQUARK;
+        ext->record_type = ISW_NULLQUARK;
         ext->version = IswObjectExtensionVersion;
         ext->record_size = sizeof(ObjectClassExtensionRec);
         ext->allocate = super_ext->allocate;
@@ -255,7 +255,7 @@ ObjectClassPartInitialize(register WidgetClass wc)
     ObjectClass oc = (ObjectClass) wc;
 
     oc->object_class.xrm_class =
-        XrmPermStringToQuark(oc->object_class.class_name);
+        IswPermStringToQuark(oc->object_class.class_name);
 
     if (oc->object_class.resources)
         _IswCompileResourceList(oc->object_class.resources,

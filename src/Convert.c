@@ -85,7 +85,7 @@ in this Software without prior written authorization from The Open Group.
 typedef struct _ConverterRec *ConverterPtr;
 typedef struct _ConverterRec {
     ConverterPtr next;
-    XrmRepresentation from, to;
+    IswRepresentation from, to;
     IswTypeConverter converter;
     IswDestructor destructor;
     unsigned short num_args;
@@ -166,8 +166,8 @@ typedef struct _CacheRec {
     unsigned int must_be_freed:1;
     unsigned int from_is_value:1;
     unsigned int to_is_value:1;
-    XrmValue from;
-    XrmValue to;
+    IswValueRec from;
+    IswValueRec to;
 } CacheRec;
 
 typedef struct _CacheRecExt {
@@ -178,7 +178,7 @@ typedef struct _CacheRecExt {
 } CacheRecExt;
 
 #define CEXT(p) ((CacheRecExt *)((p)+1))
-#define CARGS(p) ((p)->has_ext ? (XrmValue *)(CEXT(p)+1) : (XrmValue *)((p)+1))
+#define CARGS(p) ((p)->has_ext ? (IswValueRec *)(CEXT(p)+1) : (IswValueRec *)((p)+1))
 
 #define CACHEHASHSIZE   256
 #define CACHEHASHMASK   255
@@ -188,8 +188,8 @@ static CacheHashTable cacheHashTable;
 
 void
 _IswTableAddConverter(ConverterTable table,
-                     XrmRepresentation from_type,
-                     XrmRepresentation to_type,
+                     IswRepresentation from_type,
+                     IswRepresentation to_type,
                      IswTypeConverter converter,
                      IswConvertArgRec const *convert_args,
                      Cardinal num_args,
@@ -249,14 +249,14 @@ IswSetTypeConverter(register _Xconst char *from_type,
 {
     ProcessContext process;
     IswAppContext app;
-    XrmRepresentation from;
-    XrmRepresentation to;
+    IswRepresentation from;
+    IswRepresentation to;
 
     LOCK_PROCESS;
     process = _IswGetProcessContext();
     app = process->appContextList;
-    from = XrmStringToRepresentation(from_type);
-    to = XrmStringToRepresentation(to_type);
+    from = IswStringToRepresentation(from_type);
+    to = IswStringToRepresentation(to_type);
 
     if (!process->globalConverterTable) {
         process->globalConverterTable = (ConverterTable)
@@ -285,8 +285,8 @@ IswAppSetTypeConverter(IswAppContext app,
 {
     LOCK_PROCESS;
     _IswTableAddConverter(app->converterTable,
-                         XrmStringToRepresentation(from_type),
-                         XrmStringToRepresentation(to_type),
+                         IswStringToRepresentation(from_type),
+                         IswStringToRepresentation(to_type),
                          converter, convert_args, num_args,
                          True, cache_type, destructor, False);
     UNLOCK_PROCESS;
@@ -302,14 +302,14 @@ IswAddConverter(register _Xconst char *from_type,
 {
     ProcessContext process;
     IswAppContext app;
-    XrmRepresentation from;
-    XrmRepresentation to;
+    IswRepresentation from;
+    IswRepresentation to;
 
     LOCK_PROCESS;
     process = _IswGetProcessContext();
     app = process->appContextList;
-    from = XrmStringToRepresentation(from_type);
-    to = XrmStringToRepresentation(to_type);
+    from = IswStringToRepresentation(from_type);
+    to = IswStringToRepresentation(to_type);
 
     if (!process->globalConverterTable) {
         process->globalConverterTable = (ConverterTable)
@@ -339,8 +339,8 @@ IswAppAddConverter(IswAppContext app,
 {
     LOCK_PROCESS;
     _IswTableAddConverter(app->converterTable,
-                         XrmStringToRepresentation(from_type),
-                         XrmStringToRepresentation(to_type),
+                         IswStringToRepresentation(from_type),
+                         IswStringToRepresentation(to_type),
                          (IswTypeConverter) converter, convert_args, num_args,
                          False, IswCacheAll, (IswDestructor) NULL, False);
     UNLOCK_PROCESS;
@@ -349,10 +349,10 @@ IswAppAddConverter(IswAppContext app,
 static CachePtr
 CacheEnter(Heap *heap,
            register IswTypeConverter converter,
-           register XrmValuePtr args,
+           register IswValuePtr args,
            Cardinal num_args,
-           XrmValuePtr from,
-           XrmValuePtr to,
+           IswValuePtr from,
+           IswValuePtr to,
            Boolean succeeded,
            register int hash,
            Boolean do_ref,
@@ -370,7 +370,7 @@ CacheEnter(Heap *heap,
         p = (CachePtr) _IswHeapAlloc(heap, (Cardinal) (sizeof(CacheRec) +
                                                       sizeof(CacheRecExt) +
                                                       num_args *
-                                                      sizeof(XrmValue)));
+                                                      sizeof(IswValueRec)));
         CEXT(p)->prev = pHashEntry;
         CEXT(p)->destructor = succeeded ? destructor : NULL;
         CEXT(p)->closure = closure;
@@ -380,7 +380,7 @@ CacheEnter(Heap *heap,
     else {
         p = (CachePtr) _IswHeapAlloc(heap, (Cardinal) (sizeof(CacheRec) +
                                                       num_args *
-                                                      sizeof(XrmValue)));
+                                                      sizeof(IswValueRec)));
         p->has_ext = False;
     }
     if (!to->addr)
@@ -408,7 +408,7 @@ CacheEnter(Heap *heap,
     }
     p->num_args = (unsigned short) num_args;
     if (num_args && args) {
-        XrmValue *pargs = CARGS(p);
+        IswValueRec *pargs = CARGS(p);
         register Cardinal i;
 
         for (i = 0; i < num_args; i++) {
@@ -442,8 +442,8 @@ FreeCacheRec(IswAppContext app, CachePtr p, CachePtr * prev)
     if (p->has_ext) {
         if (CEXT(p)->destructor) {
             Cardinal num_args = p->num_args;
-            XrmValue *args = NULL;
-            XrmValue toc;
+            IswValueRec *args = NULL;
+            IswValueRec toc;
 
             if (num_args)
                 args = CARGS(p);
@@ -470,7 +470,7 @@ FreeCacheRec(IswAppContext app, CachePtr p, CachePtr * prev)
         if (!p->from_is_value)
             IswFree(p->from.addr);
         if ((i = p->num_args)) {
-            XrmValue *pargs = CARGS(p);
+            IswValueRec *pargs = CARGS(p);
 
             while (i--)
                 IswFree(pargs[i].addr);
@@ -536,16 +536,16 @@ _IswConverterCacheStats(void)
 
 static Boolean
 ResourceQuarkToOffset(WidgetClass widget_class,
-                      XrmName name,
+                      IswQuarkName name,
                       Cardinal *offset)
 {
     WidgetClass wc;
     Cardinal i;
-    XrmResourceList res;
+    IswQResourceList res;
 
     for (wc = widget_class; wc; wc = wc->core_class.superclass) {
-        XrmResourceList *resources =
-            (XrmResourceList *) wc->core_class.resources;
+        IswQResourceList *resources =
+            (IswQResourceList *) wc->core_class.resources;
         for (i = 0; i < wc->core_class.num_resources; i++, resources++) {
             res = *resources;
             if (res->xrm_name == name) {
@@ -562,7 +562,7 @@ static void
 ComputeArgs(Widget widget,
             IswConvertArgList convert_args,
             Cardinal num_args,
-            XrmValuePtr args)
+            IswValuePtr args)
 {
     register Cardinal i;
     Cardinal offset;
@@ -609,16 +609,16 @@ ComputeArgs(Widget widget,
             /* Convert in place for next usage */
             convert_args[i].address_mode = IswResourceQuark;
             convert_args[i].address_id =
-                (IswPointer) (IswIntPtr) XrmStringToQuark((String) convert_args[i].
+                (IswPointer) (IswIntPtr) IswStringToQuark((String) convert_args[i].
                                                         address_id);
             /* Fall through */
 
         case IswResourceQuark:
             if (!ResourceQuarkToOffset(widget->core.widget_class,
-                                       (XrmQuark) (long) convert_args[i].
+                                       (IswQuark) (long) convert_args[i].
                                        address_id, &offset)) {
                 params[0] =
-                    XrmQuarkToString((XrmQuark) (long) convert_args[i].
+                    IswQuarkToString((IswQuark) (long) convert_args[i].
                                      address_id);
                 IswAppWarningMsg(IswWidgetToApplicationContext(widget),
                                 "invalidResourceName", "computeArgs",
@@ -644,10 +644,10 @@ ComputeArgs(Widget widget,
 
 void
 IswDirectConvert(IswConverter converter,
-                XrmValuePtr args,
+                IswValuePtr args,
                 Cardinal num_args,
-                register XrmValuePtr from,
-                XrmValuePtr to)
+                register IswValuePtr from,
+                IswValuePtr to)
 {
     register CachePtr p;
     register int hash;
@@ -669,7 +669,7 @@ IswDirectConvert(IswConverter converter,
                         from->size))
             && (p->num_args == num_args)) {
             if ((i = num_args)) {
-                XrmValue *pargs = CARGS(p);
+                IswValueRec *pargs = CARGS(p);
 
                 /* Are all args the same data ? */
                 while (i) {
@@ -730,10 +730,10 @@ GetConverterEntry(IswAppContext app, IswTypeConverter converter)
 static Boolean
 CallConverter(IswDisplay dpy,
               IswTypeConverter converter,
-              XrmValuePtr args,
+              IswValuePtr args,
               Cardinal num_args,
-              register XrmValuePtr from,
-              XrmValuePtr to,
+              register IswValuePtr from,
+              IswValuePtr to,
               IswCacheRef *cache_ref_return,
               register ConverterPtr cP)
 {
@@ -770,7 +770,7 @@ CallConverter(IswDisplay dpy,
                 Cardinal i;
 
                 if ((i = num_args)) {
-                    XrmValue *pargs = CARGS(p);
+                    IswValueRec *pargs = CARGS(p);
 
                     /* Are all args the same data ? */
                     while (i) {
@@ -873,10 +873,10 @@ CallConverter(IswDisplay dpy,
 Boolean
 IswCallConverter(IswDisplay dpy,
                 IswTypeConverter converter,
-                XrmValuePtr args,
+                IswValuePtr args,
                 Cardinal num_args,
-                register XrmValuePtr from,
-                XrmValuePtr to,
+                register IswValuePtr from,
+                IswValuePtr to,
                 IswCacheRef *cache_ref_return)
 {
     ConverterPtr cP;
@@ -898,16 +898,16 @@ IswCallConverter(IswDisplay dpy,
 
 Boolean
 _IswConvert(Widget widget,
-           register XrmRepresentation from_type,
-           XrmValuePtr from,
-           register XrmRepresentation to_type,
-           register XrmValuePtr to,
+           register IswRepresentation from_type,
+           IswValuePtr from,
+           register IswRepresentation to_type,
+           register IswValuePtr to,
            IswCacheRef *cache_ref_return)
 {
     IswAppContext app = IswWidgetToApplicationContext(widget);
     register ConverterPtr p;
     Cardinal num_args;
-    XrmValue *args;
+    IswValueRec *args;
 
     /* Look for type converter */
     LOCK_PROCESS;
@@ -919,8 +919,8 @@ _IswConvert(Widget widget,
             /* Compute actual arguments from widget and arg descriptor */
             num_args = p->num_args;
             if (num_args != 0) {
-                args = (XrmValue *)
-                    ALLOCATE_LOCAL(num_args * sizeof(XrmValue));
+                args = (IswValueRec *)
+                    ALLOCATE_LOCAL(num_args * sizeof(IswValueRec));
                 if (!args)
                     _IswAllocError("alloca");
                 ComputeArgs(widget, ConvertArgs(p), num_args, args);
@@ -934,7 +934,7 @@ _IswConvert(Widget widget,
                                   from, to, cache_ref_return, p);
             }
             else {              /* is old-style (non-display) converter */
-                XrmValue tempTo;
+                IswValueRec tempTo;
 
                 IswDirectConvert((IswConverter) p->converter, args, num_args,
                                 from, &tempTo);
@@ -969,8 +969,8 @@ _IswConvert(Widget widget,
         String params[2];
         Cardinal num_params = 2;
 
-        params[0] = XrmRepresentationToString(from_type);
-        params[1] = XrmRepresentationToString(to_type);
+        params[0] = IswRepresentationToString(from_type);
+        params[1] = IswRepresentationToString(to_type);
         IswAppWarningMsg(app, "typeConversionError", "noConverter",
                         IswCIswToolkitError,
                         "No type converter registered for '%s' to '%s' conversion.",
@@ -983,17 +983,17 @@ _IswConvert(Widget widget,
 void
 IswConvert(Widget widget,
           _Xconst char *from_type_str,
-          XrmValuePtr from,
+          IswValuePtr from,
           _Xconst char *to_type_str,
-          XrmValuePtr to)
+          IswValuePtr to)
 {
-    XrmQuark from_type, to_type;
+    IswQuark from_type, to_type;
 
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    from_type = XrmStringToRepresentation(from_type_str);
-    to_type = XrmStringToRepresentation(to_type_str);
+    from_type = IswStringToRepresentation(from_type_str);
+    to_type = IswStringToRepresentation(to_type_str);
     if (from_type != to_type) {
         /*  It's not safe to ref count these resources, 'cause we
            don't know what older clients may have assumed about
@@ -1018,18 +1018,18 @@ IswConvert(Widget widget,
 Boolean
 IswConvertAndStore(Widget object,
                   _Xconst char *from_type_str,
-                  XrmValuePtr from,
+                  IswValuePtr from,
                   _Xconst char *to_type_str,
-                  XrmValuePtr to)
+                  IswValuePtr to)
 {
-    XrmQuark from_type, to_type;
+    IswQuark from_type, to_type;
 
     WIDGET_TO_APPCON(object);
 
     LOCK_APP(app);
     LOCK_PROCESS;
-    from_type = XrmStringToRepresentation(from_type_str);
-    to_type = XrmStringToRepresentation(to_type_str);
+    from_type = IswStringToRepresentation(from_type_str);
+    to_type = IswStringToRepresentation(to_type_str);
     if (from_type != to_type) {
         static IswPointer local_valueP = NULL;
         static Cardinal local_valueS = 128;

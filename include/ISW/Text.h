@@ -168,7 +168,7 @@ typedef struct _TextRec      *TextWidget;
 
 _XFUNCPROTOBEGIN
 
-extern XrmQuark _IswTextFormat(
+extern IswQuark _IswTextFormat(
     TextWidget		/* tw */
 );
 

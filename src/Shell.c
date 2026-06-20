@@ -114,9 +114,9 @@ in this Software without prior written authorization from The Open Group.
  *
  ***************************************************************************/
 
-//static void _IswShellDepth(Widget, int, XrmValue *);
-//static void _IswShellColormap(Widget, int, XrmValue *);
-//static void _IswTitleEncoding(Widget, int, XrmValue *);
+//static void _IswShellDepth(Widget, int, IswValueRec *);
+//static void _IswShellColormap(Widget, int, IswValueRec *);
+//static void _IswTitleEncoding(Widget, int, IswValueRec *);
 
 /***************************************************************************
  *
@@ -171,7 +171,7 @@ static void Destroy(Widget);
 /* *INDENT-OFF* */
 static ShellClassExtensionRec shellClassExtRec = {
     NULL,
-    NULLQUARK,
+    ISW_NULLQUARK,
     IswShellExtensionVersion,
     sizeof(ShellClassExtensionRec),
     RootGeometryManager
@@ -192,7 +192,7 @@ externaldef(shellclassrec) ShellClassRec shellClassRec = {
     /* num_actions           */ 0,
     /* resources             */ shellResources,
     /* resource_count        */ IswNumber(shellResources),
-    /* xrm_class             */ NULLQUARK,
+    /* xrm_class             */ ISW_NULLQUARK,
     /* compress_motion       */ FALSE,
     /* compress_exposure     */ TRUE,
     /* compress_enterleave   */ FALSE,
@@ -257,7 +257,7 @@ externaldef(overrideshellclassrec) OverrideShellClassRec overrideShellClassRec =
     /* num_actions           */ 0,
     /* resources             */ overrideResources,
     /* resource_count        */ IswNumber(overrideResources),
-    /* xrm_class             */ NULLQUARK,
+    /* xrm_class             */ ISW_NULLQUARK,
     /* compress_motion       */ FALSE,
     /* compress_exposure     */ TRUE,
     /* compress_enterleave   */ FALSE,
@@ -423,7 +423,7 @@ externaldef(wmshellclassrec) WMShellClassRec wmShellClassRec = {
     /* num_actions           */ 0,
     /* resources             */ wmResources,
     /* resource_count        */ IswNumber(wmResources),
-    /* xrm_class             */ NULLQUARK,
+    /* xrm_class             */ ISW_NULLQUARK,
     /* compress_motion       */ FALSE,
     /* compress_exposure     */ TRUE,
     /* compress_enterleave   */ FALSE,
@@ -501,7 +501,7 @@ externaldef(transientshellclassrec) TransientShellClassRec transientShellClassRe
     /* num_actions           */ 0,
     /* resources             */ transientResources,
     /* resource_count        */ IswNumber(transientResources),
-    /* xrm_class             */ NULLQUARK,
+    /* xrm_class             */ ISW_NULLQUARK,
     /* compress_motion       */ FALSE,
     /* compress_exposure     */ TRUE,
     /* compress_enterleave   */ FALSE,
@@ -583,7 +583,7 @@ externaldef(toplevelshellclassrec) TopLevelShellClassRec topLevelShellClassRec =
     /* num_actions           */ 0,
     /* resources             */ topLevelResources,
     /* resource_count        */ IswNumber(topLevelResources),
-    /* xrm_class             */ NULLQUARK,
+    /* xrm_class             */ ISW_NULLQUARK,
     /* compress_motion       */ FALSE,
     /* compress_exposure     */ TRUE,
     /* compress_enterleave   */ FALSE,
@@ -655,7 +655,7 @@ ApplicationShellInsertChild(Widget);
 /* *INDENT-OFF* */
 static CompositeClassExtensionRec compositeClassExtension = {
     /* next_extension        */ NULL,
-    /* record_type           */ NULLQUARK,
+    /* record_type           */ ISW_NULLQUARK,
     /* version               */ IswCompositeExtensionVersion,
     /* record_size           */ sizeof(CompositeClassExtensionRec),
     /* accepts_objects       */ TRUE,
@@ -677,7 +677,7 @@ externaldef(applicationshellclassrec) ApplicationShellClassRec applicationShellC
     /* num_actions           */ 0,
     /* resources             */ applicationResources,
     /* resource_count        */ IswNumber(applicationResources),
-    /* xrm_class             */ NULLQUARK,
+    /* xrm_class             */ ISW_NULLQUARK,
     /* compress_motion       */ FALSE,
     /* compress_exposure     */ TRUE,
     /* compress_enterleave   */ FALSE,
@@ -827,7 +827,7 @@ _FindClassExtension(WidgetClass widget_class)
 
     for (ext = (ShellClassExtension) ((ShellWidgetClass) widget_class)
          ->shell_class.extension;
-         ext != NULL && ext->record_type != NULLQUARK;
+         ext != NULL && ext->record_type != ISW_NULLQUARK;
          ext = (ShellClassExtension) ext->next_extension);
 
     if (ext != NULL) {

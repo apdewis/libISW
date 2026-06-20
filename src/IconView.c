@@ -129,7 +129,7 @@ IconViewClassRec iconViewClassRec = {
     IswNumber(actions),
     resources,
     IswNumber(resources),
-    NULLQUARK,
+    ISW_NULLQUARK,
     TRUE,
     TRUE,
     TRUE,

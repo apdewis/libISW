@@ -55,7 +55,7 @@ typedef struct _QuarkEntry {
 static QuarkEntry   *quark_table = NULL;    /* hash table: string -> quark */
 static const char   **quark_strings = NULL; /* array: quark -> string */
 static int          *quark_permanent = NULL;/* array: quark -> is_permanent flag */
-static IswQuark      next_quark = 1;         /* next quark to assign (0 = NULLQUARK) */
+static IswQuark      next_quark = 1;         /* next quark to assign (0 = ISW_NULLQUARK) */
 static int          quark_table_size = 0;   /* allocated size of quark_strings array */
 
 #define INITIAL_QUARK_TABLE_SIZE 512
@@ -195,7 +195,7 @@ IswPermStringToQuark(const char *string)
  * IswQuarkToString - Look up the string for a quark.
  *
  * Returns the interned string, or NULL if the quark is invalid
- * (out of range or NULLQUARK). The returned string must not be
+ * (out of range or ISW_NULLQUARK). The returned string must not be
  * freed or modified by the caller.
  */
 const char *
@@ -218,33 +218,28 @@ IswQuarkToString(IswQuark quark)
 
 /*
  * Backward compatibility wrapper functions.
- * These provide actual function symbols for XrmStringToQuark,
- * XrmPermStringToQuark, and XrmQuarkToString so they can be
- * used as function pointers.
+ * These provide the Xrm-named function symbols so legacy code that takes
+ * the address of XrmStringToQuark etc. still links.
  */
 
-#undef XrmStringToQuark
 IswQuark
 XrmStringToQuark(const char *string)
 {
     return IswStringToQuark(string);
 }
 
-#undef XrmPermStringToQuark
 IswQuark
 XrmPermStringToQuark(const char *string)
 {
     return IswPermStringToQuark(string);
 }
 
-#undef XrmQuarkToString
 const char *
 XrmQuarkToString(IswQuark quark)
 {
     return IswQuarkToString(quark);
 }
 
-#undef XrmStringToBindingQuarkList
 void
 XrmStringToBindingQuarkList(const char *name,
                             IswBindingType *bindings_return,

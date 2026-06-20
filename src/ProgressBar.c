@@ -57,7 +57,7 @@ ProgressBarClassRec progressBarClassRec = {
     0,					/* num_actions		  */
     resources,				/* resources		  */
     IswNumber(resources),		/* resource_count	  */
-    NULLQUARK,				/* xrm_class		  */
+    ISW_NULLQUARK,				/* xrm_class		  */
     TRUE,				/* compress_motion	  */
     TRUE,				/* compress_exposure	  */
     TRUE,				/* compress_enterleave    */

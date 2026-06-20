@@ -183,7 +183,7 @@ ListClassRec listClassRec = {
     /* num_actions	  	*/	IswNumber(actions),
     /* resources	  	*/	resources,
     /* num_resources	  	*/	IswNumber(resources),
-    /* xrm_class	  	*/	NULLQUARK,
+    /* xrm_class	  	*/	ISW_NULLQUARK,
     /* compress_motion	  	*/	TRUE,
     /* compress_exposure  	*/	FALSE,
     /* compress_enterleave	*/	TRUE,

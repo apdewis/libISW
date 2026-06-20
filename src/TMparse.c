@@ -117,14 +117,14 @@ typedef void (*ModifierProc) (Value, LateBindingsPtr *, Boolean, Value *);
 
 typedef struct _ModifierRec {
     const char *name;
-    XrmQuark signature;
+    IswQuark signature;
     ModifierProc modifierParseProc;
     Value value;
 } ModifierRec, *ModifierKeys;
 
 typedef struct _EventKey {
     const char *event;
-    XrmQuark signature;
+    IswQuark signature;
     EventType eventType;
     ParseProc parseDetail;
     Opaque closure;
@@ -132,12 +132,12 @@ typedef struct _EventKey {
 
 typedef struct {
     const char *name;
-    XrmQuark signature;
+    IswQuark signature;
     Value value;
 } NameValueRec, *NameValueTable;
 
 static void ParseModImmed(Value, LateBindingsPtr *, Boolean, Value *);
-static Boolean _IswLookupModifier(XrmQuark, LateBindingsPtr *, Boolean, Value *, Bool);
+static Boolean _IswLookupModifier(IswQuark, LateBindingsPtr *, Boolean, Value *, Bool);
 static String PanicModeRecovery(String);
 static String CheckForPoundSign(String, _IswTranslateOp, _IswTranslateOp *);
 static uint32_t StringToKeySym(String, Boolean *);
@@ -171,14 +171,14 @@ static ModifierRec modifiers[] = {
 
 static NameValueRec motionDetails[] = {
     {"Normal",              0,         0}, /* neutral motion has no Hint detail */
-    {NULL,                  NULLQUARK, 0},
+    {NULL,                  ISW_NULLQUARK, 0},
 };
 
 static NameValueRec notifyModes[] = {
     {"Normal",              0,         IswNotifyNormal},
     {"Grab",                0,         IswNotifyGrab},
     {"Ungrab",              0,         IswNotifyUngrab},
-    {NULL,                  NULLQUARK, 0},
+    {NULL,                  ISW_NULLQUARK, 0},
 };
 
 /* *INDENT-ON* */
@@ -197,95 +197,95 @@ static EventKey events[] = {
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"KeyPress",        NULLQUARK, IswKeyDown,          ParseKeySym,    NULL},
-{"Key",             NULLQUARK, IswKeyDown,          ParseKeySym,    NULL},
-{"KeyDown",         NULLQUARK, IswKeyDown,          ParseKeySym,    NULL},
-{"Ctrl",            NULLQUARK, IswKeyDown,          ParseKeyAndModifiers, (Opaque)IswModControl},
-{"Shift",           NULLQUARK, IswKeyDown,          ParseKeyAndModifiers, (Opaque)IswModShift},
-{"Meta",            NULLQUARK, IswKeyDown,          ParseKeyAndModifiers, (Opaque)NULL},
-{"KeyUp",           NULLQUARK, IswKeyUp,            ParseKeySym,    NULL},
-{"KeyRelease",      NULLQUARK, IswKeyUp,            ParseKeySym,    NULL},
+{"KeyPress",        ISW_NULLQUARK, IswKeyDown,          ParseKeySym,    NULL},
+{"Key",             ISW_NULLQUARK, IswKeyDown,          ParseKeySym,    NULL},
+{"KeyDown",         ISW_NULLQUARK, IswKeyDown,          ParseKeySym,    NULL},
+{"Ctrl",            ISW_NULLQUARK, IswKeyDown,          ParseKeyAndModifiers, (Opaque)IswModControl},
+{"Shift",           ISW_NULLQUARK, IswKeyDown,          ParseKeyAndModifiers, (Opaque)IswModShift},
+{"Meta",            ISW_NULLQUARK, IswKeyDown,          ParseKeyAndModifiers, (Opaque)NULL},
+{"KeyUp",           ISW_NULLQUARK, IswKeyUp,            ParseKeySym,    NULL},
+{"KeyRelease",      ISW_NULLQUARK, IswKeyUp,            ParseKeySym,    NULL},
 
-{"ButtonPress",     NULLQUARK, IswButtonDown,       ParseButton, NULL },
-{"BtnDown",         NULLQUARK, IswButtonDown,       ParseButton, NULL },
-{"Btn1Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonLeft},
-{"Btn2Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonMiddle},
-{"Btn3Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonRight},
-{"Btn4Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonWheelUp},
-{"Btn5Down",        NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonWheelDown},
-
-/* Event Name,    Quark, Event Type,    Detail Parser, Closure */
-
-{"ButtonRelease",   NULLQUARK, IswButtonUp,         ParseButton, NULL },
-{"BtnUp",           NULLQUARK, IswButtonUp,         ParseButton, NULL },
-{"Btn1Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonLeft},
-{"Btn2Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonMiddle},
-{"Btn3Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonRight},
-{"Btn4Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonWheelUp},
-{"Btn5Up",          NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonWheelDown},
-
-{"MotionNotify",    NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
-{"PtrMoved",        NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
-{"Motion",          NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
-{"MouseMoved",      NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
-{"BtnMotion",       NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)AnyButtonMask},
-{"Btn1Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton1},
-{"Btn2Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton2},
-{"Btn3Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton3},
-{"Btn4Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton4},
-{"Btn5Motion",      NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton5},
-
-{"EnterNotify",     NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
-{"Enter",           NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
-{"EnterWindow",     NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
-
-{"LeaveNotify",     NULLQUARK, IswLeave,            ParseTable, (Opaque)notifyModes},
-{"LeaveWindow",     NULLQUARK, IswLeave,            ParseTable, (Opaque)notifyModes},
-{"Leave",           NULLQUARK, IswLeave,            ParseTable, (Opaque)notifyModes},
+{"ButtonPress",     ISW_NULLQUARK, IswButtonDown,       ParseButton, NULL },
+{"BtnDown",         ISW_NULLQUARK, IswButtonDown,       ParseButton, NULL },
+{"Btn1Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonLeft},
+{"Btn2Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonMiddle},
+{"Btn3Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonRight},
+{"Btn4Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonWheelUp},
+{"Btn5Down",        ISW_NULLQUARK, IswButtonDown,       ParseImmed, (Opaque)IswButtonWheelDown},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"FocusIn",         NULLQUARK, IswFocusIn,          ParseTable, (Opaque)notifyModes},
+{"ButtonRelease",   ISW_NULLQUARK, IswButtonUp,         ParseButton, NULL },
+{"BtnUp",           ISW_NULLQUARK, IswButtonUp,         ParseButton, NULL },
+{"Btn1Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonLeft},
+{"Btn2Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonMiddle},
+{"Btn3Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonRight},
+{"Btn4Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonWheelUp},
+{"Btn5Up",          ISW_NULLQUARK, IswButtonUp,         ParseImmed, (Opaque)IswButtonWheelDown},
 
-{"FocusOut",        NULLQUARK, IswFocusOut,         ParseTable, (Opaque)notifyModes},
+{"MotionNotify",    ISW_NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
+{"PtrMoved",        ISW_NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
+{"Motion",          ISW_NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
+{"MouseMoved",      ISW_NULLQUARK, IswMotion,           ParseTable, (Opaque)motionDetails},
+{"BtnMotion",       ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)AnyButtonMask},
+{"Btn1Motion",      ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton1},
+{"Btn2Motion",      ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton2},
+{"Btn3Motion",      ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton3},
+{"Btn4Motion",      ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton4},
+{"Btn5Motion",      ISW_NULLQUARK, IswMotion,           ParseAddModifier, (Opaque)IswModButton5},
 
-{"Expose",          NULLQUARK, IswRedraw,           ParseNone,      NULL},
+{"EnterNotify",     ISW_NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
+{"Enter",           ISW_NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
+{"EnterWindow",     ISW_NULLQUARK, IswEnter,            ParseTable, (Opaque)notifyModes},
 
-{"VisibilityNotify",NULLQUARK, IswVisibility,       ParseNone,      NULL},
-{"Visible",         NULLQUARK, IswVisibility,       ParseNone,      NULL},
+{"LeaveNotify",     ISW_NULLQUARK, IswLeave,            ParseTable, (Opaque)notifyModes},
+{"LeaveWindow",     ISW_NULLQUARK, IswLeave,            ParseTable, (Opaque)notifyModes},
+{"Leave",           ISW_NULLQUARK, IswLeave,            ParseTable, (Opaque)notifyModes},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"DestroyNotify",   NULLQUARK, IswDestroy,          ParseNone,      NULL},
-{"Destroy",         NULLQUARK, IswDestroy,          ParseNone,      NULL},
+{"FocusIn",         ISW_NULLQUARK, IswFocusIn,          ParseTable, (Opaque)notifyModes},
 
-{"UnmapNotify",     NULLQUARK, IswUnmap,            ParseNone,      NULL},
-{"Unmap",           NULLQUARK, IswUnmap,            ParseNone,      NULL},
+{"FocusOut",        ISW_NULLQUARK, IswFocusOut,         ParseTable, (Opaque)notifyModes},
 
-{"MapNotify",       NULLQUARK, IswMap,              ParseNone,      NULL},
-{"Map",             NULLQUARK, IswMap,              ParseNone,      NULL},
+{"Expose",          ISW_NULLQUARK, IswRedraw,           ParseNone,      NULL},
 
-{"ReparentNotify",  NULLQUARK, IswReparent,         ParseNone,      NULL},
-{"Reparent",        NULLQUARK, IswReparent,         ParseNone,      NULL},
-
-{"ConfigureNotify", NULLQUARK, IswGeometry,         ParseNone,      NULL},
-{"Configure",       NULLQUARK, IswGeometry,         ParseNone,      NULL},
+{"VisibilityNotify",ISW_NULLQUARK, IswVisibility,       ParseNone,      NULL},
+{"Visible",         ISW_NULLQUARK, IswVisibility,       ParseNone,      NULL},
 
 /* Event Name,    Quark, Event Type,    Detail Parser, Closure */
 
-{"ClientMessage",   NULLQUARK, IswProtocol,         ParseProtocolName,      NULL},
-{"Message",         NULLQUARK, IswProtocol,         ParseProtocolName,      NULL},
+{"DestroyNotify",   ISW_NULLQUARK, IswDestroy,          ParseNone,      NULL},
+{"Destroy",         ISW_NULLQUARK, IswDestroy,          ParseNone,      NULL},
 
-{"WindowClose",     NULLQUARK, IswWindowClose,      ParseNone,      NULL},
+{"UnmapNotify",     ISW_NULLQUARK, IswUnmap,            ParseNone,      NULL},
+{"Unmap",           ISW_NULLQUARK, IswUnmap,            ParseNone,      NULL},
 
-{"MappingNotify",   NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
-{"Mapping",         NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
+{"MapNotify",       ISW_NULLQUARK, IswMap,              ParseNone,      NULL},
+{"Map",             ISW_NULLQUARK, IswMap,              ParseNone,      NULL},
+
+{"ReparentNotify",  ISW_NULLQUARK, IswReparent,         ParseNone,      NULL},
+{"Reparent",        ISW_NULLQUARK, IswReparent,         ParseNone,      NULL},
+
+{"ConfigureNotify", ISW_NULLQUARK, IswGeometry,         ParseNone,      NULL},
+{"Configure",       ISW_NULLQUARK, IswGeometry,         ParseNone,      NULL},
+
+/* Event Name,    Quark, Event Type,    Detail Parser, Closure */
+
+{"ClientMessage",   ISW_NULLQUARK, IswProtocol,         ParseProtocolName,      NULL},
+{"Message",         ISW_NULLQUARK, IswProtocol,         ParseProtocolName,      NULL},
+
+{"WindowClose",     ISW_NULLQUARK, IswWindowClose,      ParseNone,      NULL},
+
+{"MappingNotify",   ISW_NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
+{"Mapping",         ISW_NULLQUARK, IswMappingChanged,   ParseNone,      NULL},
 
 
 #ifdef DEBUG
 # ifdef notdef
-{"Timer",           NULLQUARK, _IswTimerEventType, ParseNone,     NULL},
-{"EventTimer",      NULLQUARK, _IswEventTimerEventType, ParseNone,NULL},
+{"Timer",           ISW_NULLQUARK, _IswTimerEventType, ParseNone,     NULL},
+{"EventTimer",      ISW_NULLQUARK, _IswEventTimerEventType, ParseNone,NULL},
 # endif /* notdef */
 #endif /* DEBUG */
 
@@ -310,10 +310,10 @@ static EventKey events[] = {
     while (*(str) == ' ' || *(str) == '\t') (str)++
 
 static Boolean initialized = FALSE;
-static XrmQuark QMeta;
-static XrmQuark QCtrl;
-static XrmQuark QNone;
-static XrmQuark QAny;
+static IswQuark QMeta;
+static IswQuark QCtrl;
+static IswQuark QNone;
+static IswQuark QAny;
 
 static void
 FreeEventSeq(EventSeqPtr eventSeq)
@@ -344,7 +344,7 @@ CompileNameValueTable(NameValueTable table)
     register int i;
 
     for (i = 0; table[i].name; i++)
-        table[i].signature = XrmPermStringToQuark(table[i].name);
+        table[i].signature = IswPermStringToQuark(table[i].name);
 }
 
 static int
@@ -361,7 +361,7 @@ Compile_XtEventTable(EventKeys table, Cardinal count)
     register EventKeys entry = table;
 
     for (i = (int) count; --i >= 0; entry++)
-        entry->signature = XrmPermStringToQuark(entry->event);
+        entry->signature = IswPermStringToQuark(entry->event);
     qsort(table, count, sizeof(EventKey), OrderEvents);
 }
 
@@ -379,7 +379,7 @@ Compile_XtModifierTable(ModifierKeys table, Cardinal count)
     register ModifierKeys entry = table;
 
     for (i = (int) count; --i >= 0; entry++)
-        entry->signature = XrmPermStringToQuark(entry->name);
+        entry->signature = IswPermStringToQuark(entry->name);
     qsort(table, count, sizeof(ModifierRec), OrderModifiers);
 }
 
@@ -409,7 +409,7 @@ static Cardinal
 LookupTMEventType(String eventStr, Boolean *error)
 {
     register int i = 0, left, right;
-    register XrmQuark signature;
+    register IswQuark signature;
     static int previous = 0;
 
     LOCK_PROCESS;
@@ -456,7 +456,7 @@ _IswParseKeysymMod(String name,
                   Value *valueP,
                   Boolean *error)
 {
-    XrmQuark signature = XrmStringToQuark(name);
+    IswQuark signature = IswStringToQuark(name);
 
     *valueP = 0;
     if (!_IswLookupModifier(signature, lateBindings, notFlag, valueP, FALSE)) {
@@ -466,7 +466,7 @@ _IswParseKeysymMod(String name,
 }
 
 static Boolean
-_IswLookupModifier(XrmQuark signature,
+_IswLookupModifier(IswQuark signature,
                   LateBindingsPtr *lateBindings,
                   Boolean notFlag,
                   Value *valueP,
@@ -526,7 +526,7 @@ ScanIdent(register String str)
 }
 
 static String
-FetchModifierToken(String str, XrmQuark *token_return)
+FetchModifierToken(String str, IswQuark *token_return)
 {
     String start = str;
 
@@ -549,7 +549,7 @@ FetchModifierToken(String str, XrmQuark *token_return)
                 _IswAllocError(NULL);
             (void) memcpy(modStr, start, (size_t) (str - start));
             modStr[str - start] = '\0';
-            *token_return = XrmStringToQuark(modStr);
+            *token_return = IswStringToQuark(modStr);
             IswStackFree(modStr, modStrbuf);
         }
     }
@@ -562,7 +562,7 @@ ParseModifiers(register String str, EventPtr event, Boolean *error)
     register String start;
     Boolean notFlag, exclusive, keysymAsMod;
     Value maskBit;
-    XrmQuark Qmod = QNone;
+    IswQuark Qmod = QNone;
 
     ScanWhitespace(str);
     start = str;
@@ -618,7 +618,7 @@ ParseModifiers(register String str, EventPtr event, Boolean *error)
             return PanicModeRecovery(str);
         }
         if (keysymAsMod) {
-            _IswParseKeysymMod(XrmQuarkToString(Qmod),
+            _IswParseKeysymMod(IswQuarkToString(Qmod),
                               &event->event.lateModifiers,
                               notFlag, &maskBit, error);
             if (*error)
@@ -627,7 +627,7 @@ ParseModifiers(register String str, EventPtr event, Boolean *error)
         }
         else if (!_IswLookupModifier(Qmod, &event->event.lateModifiers,
                                     notFlag, &maskBit, FALSE)) {
-            Syntax("Unknown modifier name:  ", XrmQuarkToString(Qmod));
+            Syntax("Unknown modifier name:  ", IswQuarkToString(Qmod));
             *error = TRUE;
             return PanicModeRecovery(str);
         }
@@ -901,7 +901,7 @@ static String
 ParseTable(register String str, Opaque closure, EventPtr event, Boolean *error)
 {
     register String start = str;
-    register XrmQuark signature;
+    register IswQuark signature;
     NameValueTable table = (NameValueTable) closure;
     char tableSymName[100];
 
@@ -919,7 +919,7 @@ ParseTable(register String str, Opaque closure, EventPtr event, Boolean *error)
     (void) memcpy(tableSymName, start, (size_t) (str - start));
     tableSymName[str - start] = '\0';
     signature = StringToQuark(tableSymName);
-    for (; table->signature != NULLQUARK; table++)
+    for (; table->signature != ISW_NULLQUARK; table++)
         if (table->signature == signature) {
             event->event.eventCode = table->value;
             event->event.eventCodeMask = (unsigned long) (~0L);
@@ -1010,7 +1010,7 @@ ParseProtocolName(String str, Opaque closure _X_UNUSED, EventPtr event, Boolean 
         }
         (void) memcpy(protocolName, start, (size_t) (str - start));
         protocolName[str - start] = '\0';
-        event->event.eventCode = (TMLongCard) XrmStringToQuark(protocolName);
+        event->event.eventCode = (TMLongCard) IswStringToQuark(protocolName);
         event->event.matchEvent = _IswMatchProtocolName;
     }
     return str;
@@ -1552,7 +1552,7 @@ ParseEventSeq(register String str,
 }
 
 static String
-ParseActionProc(register String str, XrmQuark *actionProcNameP, Boolean *error)
+ParseActionProc(register String str, IswQuark *actionProcNameP, Boolean *error)
 {
     register String start = str;
     char procName[200];
@@ -1565,7 +1565,7 @@ ParseActionProc(register String str, XrmQuark *actionProcNameP, Boolean *error)
     }
     (void) memcpy(procName, start, (size_t) (str - start));
     procName[str - start] = '\0';
-    *actionProcNameP = XrmStringToQuark(procName);
+    *actionProcNameP = IswStringToQuark(procName);
     return str;
 }
 
@@ -1686,7 +1686,7 @@ ParseParamSeq(register String str, String **paramSeqP, Cardinal *paramNumP)
 }
 
 static String
-ParseAction(String str, ActionPtr actionP, XrmQuark *quarkP, Boolean *error)
+ParseAction(String str, ActionPtr actionP, IswQuark *quarkP, Boolean *error)
 {
     str = ParseActionProc(str, quarkP, error);
     if (*error)
@@ -1724,7 +1724,7 @@ ParseActionSeq(TMParseStateTree parseTree,
 
     while (*str != '\0' && !IsNewline(*str)) {
         register ActionPtr action;
-        XrmQuark quark = NULLQUARK;
+        IswQuark quark = ISW_NULLQUARK;
 
         action = IswNew(ActionRec);
         action->params = NULL;
@@ -1855,7 +1855,7 @@ ParseTranslationTable(String source,
     IswTranslations xlations;
     TMStateTree stateTrees[8];
     TMParseStateTreeRec parseTreeRec, *parseTree = &parseTreeRec;
-    XrmQuark stackQuarks[200];
+    IswQuark stackQuarks[200];
     TMBranchHeadRec stackBranchHeads[200];
     StatePtr stackComplexBranchHeads[200];
     _IswTranslateOp actualOp;
@@ -1911,10 +1911,10 @@ ParseTranslationTable(String source,
 
 Boolean
 IswCvtStringToAcceleratorTable(IswDisplay dpy,
-                              XrmValuePtr args _X_UNUSED,
+                              IswValuePtr args _X_UNUSED,
                               Cardinal *num_args,
-                              XrmValuePtr from,
-                              XrmValuePtr to,
+                              IswValuePtr from,
+                              IswValuePtr to,
                               IswPointer *closure _X_UNUSED)
 {
     String str;
@@ -1964,10 +1964,10 @@ IswCvtStringToAcceleratorTable(IswDisplay dpy,
 
 Boolean
 IswCvtStringToTranslationTable(IswDisplay dpy,
-                              XrmValuePtr args _X_UNUSED,
+                              IswValuePtr args _X_UNUSED,
                               Cardinal *num_args,
-                              XrmValuePtr from,
-                              XrmValuePtr to,
+                              IswValuePtr from,
+                              IswValuePtr to,
                               IswPointer *closure_ret _X_UNUSED)
 {
     String str;
@@ -2061,10 +2061,10 @@ _IswTranslateInitialize(void)
 
     initialized = TRUE;
     UNLOCK_PROCESS;
-    QMeta = XrmPermStringToQuark("Meta");
-    QCtrl = XrmPermStringToQuark("Ctrl");
-    QNone = XrmPermStringToQuark("None");
-    QAny = XrmPermStringToQuark("Any");
+    QMeta = IswPermStringToQuark("Meta");
+    QCtrl = IswPermStringToQuark("Ctrl");
+    QNone = IswPermStringToQuark("None");
+    QAny = IswPermStringToQuark("Any");
 
     Compile_XtEventTable(events, IswNumber(events));
     Compile_XtModifierTable(modifiers, IswNumber(modifiers));
@@ -2077,16 +2077,16 @@ _IswAddTMConverters(ConverterTable table)
 {
     _IswTableAddConverter(table,
                          _IswQString,
-                         XrmPermStringToQuark(IswRTranslationTable),
+                         IswPermStringToQuark(IswRTranslationTable),
                          IswCvtStringToTranslationTable, (IswConvertArgList) NULL,
                          (Cardinal) 0, True, CACHED, _IswFreeTranslations, True);
     _IswTableAddConverter(table, _IswQString,
-                         XrmPermStringToQuark(IswRAcceleratorTable),
+                         IswPermStringToQuark(IswRAcceleratorTable),
                          IswCvtStringToAcceleratorTable, (IswConvertArgList) NULL,
                          (Cardinal) 0, True, CACHED, _IswFreeTranslations, True);
     _IswTableAddConverter(table,
-                         XrmPermStringToQuark(_IswRStateTablePair),
-                         XrmPermStringToQuark(IswRTranslationTable),
+                         IswPermStringToQuark(_IswRStateTablePair),
+                         IswPermStringToQuark(IswRTranslationTable),
                          _IswCvtMergeTranslations, (IswConvertArgList) NULL,
                          (Cardinal) 0, True, CACHED, _IswFreeTranslations, True);
 }

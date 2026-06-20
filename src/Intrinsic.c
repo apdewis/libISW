@@ -151,7 +151,7 @@ _IswIsSubclassOf(Widget object,
 IswPointer
 IswGetClassExtension(WidgetClass object_class,
                     Cardinal byte_offset,
-                    XrmQuark type, long version, Cardinal record_size)
+                    IswQuark type, long version, Cardinal record_size)
 {
     ObjectClassExtension ext;
 
@@ -511,17 +511,17 @@ IswUnrealizeWidget(Widget widget)
 /* ---------------- IswNameToWidget ----------------- */
 
 static Widget NameListToWidget(Widget root,
-                               XrmNameList names,
-                               XrmBindingList bindings,
+                               IswQuarkList names,
+                               IswBindingList bindings,
                                int in_depth, int *out_depth, int *found_depth);
 
-typedef Widget(*NameMatchProc) (XrmNameList,
-                                XrmBindingList,
+typedef Widget(*NameMatchProc) (IswQuarkList,
+                                IswBindingList,
                                 WidgetList, Cardinal, int, int *, int *);
 
 static Widget
-MatchExactChildren(XrmNameList names,
-                   XrmBindingList bindings,
+MatchExactChildren(IswQuarkList names,
+                   IswBindingList bindings,
                    register WidgetList children,
                    register Cardinal num,
                    int in_depth,
@@ -529,7 +529,7 @@ MatchExactChildren(XrmNameList names,
                    int *found_depth)
 {
     register Cardinal i;
-    register XrmName name = *names;
+    register IswQuarkName name = *names;
     Widget w, result = NULL;
     int d, min = 10000;
 
@@ -548,8 +548,8 @@ MatchExactChildren(XrmNameList names,
 }
 
 static Widget
-MatchWildChildren(XrmNameList names,
-                  XrmBindingList bindings,
+MatchWildChildren(IswQuarkList names,
+                  IswBindingList bindings,
                   register WidgetList children,
                   register Cardinal num,
                   int in_depth,
@@ -574,8 +574,8 @@ MatchWildChildren(XrmNameList names,
 
 static Widget
 SearchChildren(Widget root,
-               XrmNameList names,
-               XrmBindingList bindings,
+               IswQuarkList names,
+               IswBindingList bindings,
                NameMatchProc matchproc,
                int in_depth,
                int *out_depth,
@@ -600,8 +600,8 @@ SearchChildren(Widget root,
 
 static Widget
 NameListToWidget(register Widget root,
-                 XrmNameList names,
-                 XrmBindingList bindings,
+                 IswQuarkList names,
+                 IswBindingList bindings,
                  int in_depth,
                  int *out_depth,
                  int *found_depth)
@@ -613,7 +613,7 @@ NameListToWidget(register Widget root,
         return NULL;
     }
 
-    if (names[0] == NULLQUARK) {
+    if (names[0] == ISW_NULLQUARK) {
         *out_depth = *found_depth = in_depth;
         return root;
     }
@@ -623,12 +623,12 @@ NameListToWidget(register Widget root,
         return NULL;
     }
 
-    if (*bindings == XrmBindTightly) {
+    if (*bindings == IswBindTightly) {
         return SearchChildren(root, names, bindings, MatchExactChildren,
                               in_depth, out_depth, found_depth);
 
     }
-    else {                      /* XrmBindLoosely */
+    else {                      /* IswBindLoosely */
         Widget w1, w2;
 
         w1 = SearchChildren(root, names, bindings, MatchExactChildren,
@@ -643,8 +643,8 @@ NameListToWidget(register Widget root,
 Widget
 IswNameToWidget(Widget root, _Xconst char *name)
 {
-    XrmName *names;
-    XrmBinding *bindings;
+    IswQuarkName *names;
+    IswBindingType *bindings;
     int len, depth, found = 10000;
     Widget result;
 
@@ -655,14 +655,14 @@ IswNameToWidget(Widget root, _Xconst char *name)
         return NULL;
 
     LOCK_APP(app);
-    names = (XrmName *) ALLOCATE_LOCAL((unsigned) (len + 1) * sizeof(XrmName));
-    bindings = (XrmBinding *)
-        ALLOCATE_LOCAL((unsigned) (len + 1) * sizeof(XrmBinding));
+    names = (IswQuarkName *) ALLOCATE_LOCAL((unsigned) (len + 1) * sizeof(IswQuarkName));
+    bindings = (IswBindingType *)
+        ALLOCATE_LOCAL((unsigned) (len + 1) * sizeof(IswBindingType));
     if (names == NULL || bindings == NULL)
         _IswAllocError(NULL);
 
-    XrmStringToBindingQuarkList(name, bindings, names);
-    if (names[0] == NULLQUARK) {
+    IswStringToBindingQuarkList(name, bindings, names);
+    if (names[0] == ISW_NULLQUARK) {
         DEALLOCATE_LOCAL((char *) bindings);
         DEALLOCATE_LOCAL((char *) names);
         UNLOCK_APP(app);
@@ -849,7 +849,7 @@ String
 IswName(Widget object)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
-    return XrmQuarkToString(object->core.xrm_name);
+    return IswQuarkToString(object->core.xrm_name);
 }
 
 Boolean
@@ -859,7 +859,7 @@ IswIsObject(Widget object)
     String class_name;
 
     /* perform basic sanity checks */
-    if (object->core.self != object || object->core.xrm_name == NULLQUARK)
+    if (object->core.self != object || object->core.xrm_name == ISW_NULLQUARK)
         return False;
 
     LOCK_PROCESS;
@@ -872,7 +872,7 @@ IswIsObject(Widget object)
 
     if (IswIsWidget(object)) {
         if (object->core.name == NULL ||
-            (class_name = XrmNameToString(object->core.xrm_name)) == NULL ||
+            (class_name = IswNameToString(object->core.xrm_name)) == NULL ||
             strcmp(object->core.name, class_name) != 0)
             return False;
     }
@@ -1381,7 +1381,7 @@ IswResolvePathname(IswDisplay dpy,
         path = "";              /* NULL would kill us later */
 
     if (filename == NULL) {
-        /* pd->class is now a plain String (not XrmClass) */
+        /* pd->class is now a plain String (not IswQuarkClass) */
         filename = pd->class ? pd->class : "";
     }
 

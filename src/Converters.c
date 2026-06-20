@@ -94,43 +94,43 @@ static _Xconst _IswString IswNconversionError = "conversionError";
 
 /* Representation types */
 
-#define IswQCursor               XrmPermStringToQuark(IswRCursor)
-#define IswQDisplay              XrmPermStringToQuark(IswRDisplay)
-#define IswQFile                 XrmPermStringToQuark(IswRFile)
-#define IswQFloat                XrmPermStringToQuark(IswRFloat)
-#define IswQInitialState         XrmPermStringToQuark(IswRInitialState)
-#define IswQWindowType           XrmPermStringToQuark(IswRWindowType)
-#define IswQPixmap               XrmPermStringToQuark(IswRPixmap)
-#define IswQShort                XrmPermStringToQuark(IswRShort)
-#define IswQUnsignedChar         XrmPermStringToQuark(IswRUnsignedChar)
-#define IswQVisual               XrmPermStringToQuark(IswRVisual)
+#define IswQCursor               IswPermStringToQuark(IswRCursor)
+#define IswQDisplay              IswPermStringToQuark(IswRDisplay)
+#define IswQFile                 IswPermStringToQuark(IswRFile)
+#define IswQFloat                IswPermStringToQuark(IswRFloat)
+#define IswQInitialState         IswPermStringToQuark(IswRInitialState)
+#define IswQWindowType           IswPermStringToQuark(IswRWindowType)
+#define IswQPixmap               IswPermStringToQuark(IswRPixmap)
+#define IswQShort                IswPermStringToQuark(IswRShort)
+#define IswQUnsignedChar         IswPermStringToQuark(IswRUnsignedChar)
+#define IswQVisual               IswPermStringToQuark(IswRVisual)
 
-static XrmQuark IswQBool;
-static XrmQuark IswQBoolean;
-static XrmQuark IswQColor;
-static XrmQuark IswQDimension;
-static XrmQuark IswQFont;
-static XrmQuark IswQFontStruct;
-static XrmQuark IswQGravity;
-static XrmQuark IswQInt;
-static XrmQuark IswQPixel;
-static XrmQuark IswQPosition;
-XrmQuark _IswQString;
+static IswQuark IswQBool;
+static IswQuark IswQBoolean;
+static IswQuark IswQColor;
+static IswQuark IswQDimension;
+static IswQuark IswQFont;
+static IswQuark IswQFontStruct;
+static IswQuark IswQGravity;
+static IswQuark IswQInt;
+static IswQuark IswQPixel;
+static IswQuark IswQPosition;
+IswQuark _IswQString;
 
 void
 _IswConvertInitialize(void)
 {
-    IswQBool = XrmPermStringToQuark(IswRBool);
-    IswQBoolean = XrmPermStringToQuark(IswRBoolean);
-    IswQColor = XrmPermStringToQuark(IswRColor);
-    IswQDimension = XrmPermStringToQuark(IswRDimension);
-    IswQFont = XrmPermStringToQuark(IswRFont);
-    IswQFontStruct = XrmPermStringToQuark(IswRFontStruct);
-    IswQGravity = XrmPermStringToQuark(IswRGravity);
-    IswQInt = XrmPermStringToQuark(IswRInt);
-    IswQPixel = XrmPermStringToQuark(IswRPixel);
-    IswQPosition = XrmPermStringToQuark(IswRPosition);
-    _IswQString = XrmPermStringToQuark(IswRString);
+    IswQBool = IswPermStringToQuark(IswRBool);
+    IswQBoolean = IswPermStringToQuark(IswRBoolean);
+    IswQColor = IswPermStringToQuark(IswRColor);
+    IswQDimension = IswPermStringToQuark(IswRDimension);
+    IswQFont = IswPermStringToQuark(IswRFont);
+    IswQFontStruct = IswPermStringToQuark(IswRFontStruct);
+    IswQGravity = IswPermStringToQuark(IswRGravity);
+    IswQInt = IswPermStringToQuark(IswRInt);
+    IswQPixel = IswPermStringToQuark(IswRPixel);
+    IswQPosition = IswPermStringToQuark(IswRPosition);
+    _IswQString = IswPermStringToQuark(IswRString);
 }
 
 #define done_typed_string(type, typed_value, tstr) \
@@ -191,27 +191,27 @@ IswDisplayStringConversionWarning(IswDisplay dpy,
     LOCK_APP(app);
     LOCK_PROCESS;
     if (report_it == Check) {
-        XrmDatabase rdb = IswDatabase(dpy);
-        XrmName xrm_name[2];
-        XrmClass xrm_class[2];
-        XrmRepresentation rep_type;
-        XrmValue value;
+        IswDatabaseHandle rdb = IswDatabase(dpy);
+        IswQuarkName xrm_name[2];
+        IswQuarkClass xrm_class[2];
+        IswRepresentation rep_type;
+        IswValueRec value;
 
-        xrm_name[0] = XrmPermStringToQuark("stringConversionWarnings");
+        xrm_name[0] = IswPermStringToQuark("stringConversionWarnings");
         xrm_name[1] = 0;
-        xrm_class[0] = XrmPermStringToQuark("StringConversionWarnings");
+        xrm_class[0] = IswPermStringToQuark("StringConversionWarnings");
         xrm_class[1] = 0;
-        if (XrmQGetResource(rdb, xrm_name, xrm_class, &rep_type, &value)) {
+        if (IswQGetResource(rdb, xrm_name, xrm_class, &rep_type, &value)) {
             if (rep_type == IswQBoolean)
                 report_it = *(Boolean *) value.addr ? Report : Ignore;
             else if (rep_type == _IswQString) {
-                XrmValue toVal;
+                IswValueRec toVal;
                 Boolean report = False;
 
                 toVal.addr = (IswPointer) &report;
                 toVal.size = sizeof(Boolean);
                 if (IswCallConverter
-                    (dpy, IswCvtStringToBoolean, (XrmValuePtr) NULL,
+                    (dpy, IswCvtStringToBoolean, (IswValuePtr) NULL,
                      (Cardinal) 0, &value, &toVal, (IswCacheRef *) NULL))
                     report_it = report ? Report : Ignore;
             }
@@ -293,10 +293,10 @@ IsInteger(String string, int *value)
 
 Boolean
 IswCvtIntToBoolean(IswDisplay dpy,
-                  XrmValuePtr args _X_UNUSED,
+                  IswValuePtr args _X_UNUSED,
                   Cardinal *num_args,
-                  XrmValuePtr fromVal,
-                  XrmValuePtr toVal,
+                  IswValuePtr fromVal,
+                  IswValuePtr toVal,
                   IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
@@ -310,10 +310,10 @@ IswCvtIntToBoolean(IswDisplay dpy,
 
 Boolean
 IswCvtIntToShort(IswDisplay dpy,
-                XrmValuePtr args _X_UNUSED,
+                IswValuePtr args _X_UNUSED,
                 Cardinal *num_args,
-                XrmValuePtr fromVal,
-                XrmValuePtr toVal,
+                IswValuePtr fromVal,
+                IswValuePtr toVal,
                 IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
@@ -326,10 +326,10 @@ IswCvtIntToShort(IswDisplay dpy,
 
 Boolean
 IswCvtStringToBoolean(IswDisplay dpy,
-                     XrmValuePtr args _X_UNUSED,
+                     IswValuePtr args _X_UNUSED,
                      Cardinal *num_args,
-                     XrmValuePtr fromVal,
-                     XrmValuePtr toVal,
+                     IswValuePtr fromVal,
+                     IswValuePtr toVal,
                      IswPointer *closure_ret _X_UNUSED)
 {
     String str = (String) fromVal->addr;
@@ -359,10 +359,10 @@ IswCvtStringToBoolean(IswDisplay dpy,
 
 Boolean
 IswCvtIntToBool(IswDisplay dpy,
-               XrmValuePtr args _X_UNUSED,
+               IswValuePtr args _X_UNUSED,
                Cardinal *num_args,
-               XrmValuePtr fromVal,
-               XrmValuePtr toVal,
+               IswValuePtr fromVal,
+               IswValuePtr toVal,
                IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
@@ -375,10 +375,10 @@ IswCvtIntToBool(IswDisplay dpy,
 
 Boolean
 IswCvtStringToBool(IswDisplay dpy,
-                  XrmValuePtr args _X_UNUSED,
+                  IswValuePtr args _X_UNUSED,
                   Cardinal *num_args,
-                  XrmValuePtr fromVal,
-                  XrmValuePtr toVal,
+                  IswValuePtr fromVal,
+                  IswValuePtr toVal,
                   IswPointer *closure_ret _X_UNUSED)
 {
     String str = (String) fromVal->addr;
@@ -417,10 +417,10 @@ IswConvertArgRec const colorConvertArgs[] = {
 
 Boolean
 IswCvtIntToColor(IswDisplay dpy,
-                XrmValuePtr args,
+                IswValuePtr args,
                 Cardinal *num_args,
-                XrmValuePtr fromVal,
-                XrmValuePtr toVal,
+                IswValuePtr fromVal,
+                IswValuePtr toVal,
                 IswPointer *closure_ret _X_UNUSED)
 {
     IswColormap colormap;
@@ -447,10 +447,10 @@ IswCvtIntToColor(IswDisplay dpy,
 
 Boolean
 IswCvtStringToPixel(IswDisplay dpy,
-                   XrmValuePtr args,
+                   IswValuePtr args,
                    Cardinal *num_args,
-                   XrmValuePtr fromVal,
-                   XrmValuePtr toVal,
+                   IswValuePtr fromVal,
+                   IswValuePtr toVal,
                    IswPointer *closure_ret)
 {
     String str = (String) fromVal->addr;
@@ -568,9 +568,9 @@ IswCvtStringToPixel(IswDisplay dpy,
 
 static void
 FreePixel(IswAppContext app,
-          XrmValuePtr toVal,
+          IswValuePtr toVal,
           IswPointer closure,
-          XrmValuePtr args,
+          IswValuePtr args,
           Cardinal *num_args)
 {
     IswScreen screen;
@@ -600,7 +600,7 @@ IswConvertArgRec const screenConvertArg[] = {
 };
 
 static void
-FetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED, XrmValue *value)
+FetchDisplayArg(Widget widget, Cardinal *size _X_UNUSED, IswValueRec *value)
 {
     if (widget == NULL) {
         IswErrorMsg("missingWidget", "fetchDisplayArg", IswCIswToolkitError,
@@ -741,10 +741,10 @@ _IswFreeFont(IswDisplay dpy, IswFontStruct *fs)
 
 Boolean
 IswCvtStringToCursor(IswDisplay dpy,
-                    XrmValuePtr args,
+                    IswValuePtr args,
                     Cardinal *num_args,
-                    XrmValuePtr fromVal,
-                    XrmValuePtr toVal,
+                    IswValuePtr fromVal,
+                    IswValuePtr toVal,
                     IswPointer *closure_ret _X_UNUSED)
 {
     /* *INDENT-OFF* */
@@ -859,9 +859,9 @@ IswCvtStringToCursor(IswDisplay dpy,
 
 static void
 FreeCursor(IswAppContext app,
-           XrmValuePtr toVal,
+           IswValuePtr toVal,
            IswPointer closure _X_UNUSED,
-           XrmValuePtr args,
+           IswValuePtr args,
            Cardinal *num_args)
 {
     IswDisplay display;
@@ -879,10 +879,10 @@ FreeCursor(IswAppContext app,
 
 Boolean
 IswCvtStringToDisplay(IswDisplay dpy,
-                     XrmValuePtr args _X_UNUSED,
+                     IswValuePtr args _X_UNUSED,
                      Cardinal *num_args,
-                     XrmValuePtr fromVal,
-                     XrmValuePtr toVal,
+                     IswValuePtr fromVal,
+                     IswValuePtr toVal,
                      IswPointer *closure_ret _X_UNUSED)
 {
     IswDisplay d;
@@ -909,10 +909,10 @@ IswCvtStringToDisplay(IswDisplay dpy,
 
 Boolean
 IswCvtStringToFile(IswDisplay dpy,
-                  XrmValuePtr args _X_UNUSED,
+                  IswValuePtr args _X_UNUSED,
                   Cardinal *num_args,
-                  XrmValuePtr fromVal,
-                  XrmValuePtr toVal,
+                  IswValuePtr fromVal,
+                  IswValuePtr toVal,
                   IswPointer *closure_ret _X_UNUSED)
 {
     FILE *f;
@@ -934,9 +934,9 @@ IswCvtStringToFile(IswDisplay dpy,
 
 static void
 FreeFile(IswAppContext app,
-         XrmValuePtr toVal,
+         IswValuePtr toVal,
          IswPointer closure _X_UNUSED,
-         XrmValuePtr args _X_UNUSED,
+         IswValuePtr args _X_UNUSED,
          Cardinal *num_args)
 {
     if (*num_args != 0)
@@ -949,10 +949,10 @@ FreeFile(IswAppContext app,
 
 Boolean
 IswCvtIntToFloat(IswDisplay dpy,
-                XrmValuePtr args _X_UNUSED,
+                IswValuePtr args _X_UNUSED,
                 Cardinal *num_args,
-                XrmValuePtr fromVal,
-                XrmValuePtr toVal,
+                IswValuePtr fromVal,
+                IswValuePtr toVal,
                 IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
@@ -965,10 +965,10 @@ IswCvtIntToFloat(IswDisplay dpy,
 
 Boolean
 IswCvtStringToFloat(IswDisplay dpy,
-                   XrmValuePtr args _X_UNUSED,
+                   IswValuePtr args _X_UNUSED,
                    Cardinal *num_args,
-                   XrmValuePtr fromVal,
-                   XrmValuePtr toVal,
+                   IswValuePtr fromVal,
+                   IswValuePtr toVal,
                    IswPointer *closure_ret _X_UNUSED)
 {
     int ret;
@@ -996,10 +996,10 @@ IswCvtStringToFloat(IswDisplay dpy,
 
 Boolean
 IswCvtStringToFont(IswDisplay dpy,
-                  XrmValuePtr args,
+                  IswValuePtr args,
                   Cardinal *num_args,
-                  XrmValuePtr fromVal,
-                  XrmValuePtr toVal,
+                  IswValuePtr fromVal,
+                  IswValuePtr toVal,
                   IswPointer *closure_ret _X_UNUSED)
 {
     IswFontId f;
@@ -1029,16 +1029,16 @@ IswCvtStringToFont(IswDisplay dpy,
     /* try and get the default font */
 
     {
-        XrmName xrm_name[2];
-        XrmClass xrm_class[2];
-        XrmRepresentation rep_type;
-        XrmValue value;
+        IswQuarkName xrm_name[2];
+        IswQuarkClass xrm_class[2];
+        IswRepresentation rep_type;
+        IswValueRec value;
 
-        xrm_name[0] = XrmPermStringToQuark("xtDefaultFont");
+        xrm_name[0] = IswPermStringToQuark("xtDefaultFont");
         xrm_name[1] = 0;
-        xrm_class[0] = XrmPermStringToQuark("IswDefaultFont");
+        xrm_class[0] = IswPermStringToQuark("IswDefaultFont");
         xrm_class[1] = 0;
-        if (XrmQGetResource(IswDatabase((IswDisplay) display), xrm_name, xrm_class,
+        if (IswQGetResource(IswDatabase((IswDisplay) display), xrm_name, xrm_class,
                             &rep_type, &value)) {
             if (rep_type == _IswQString) {
                 f = _IswLoadFont(display, (char *) value.addr);
@@ -1076,9 +1076,9 @@ IswCvtStringToFont(IswDisplay dpy,
 
 static void
 FreeFont(IswAppContext app,
-         XrmValuePtr toVal,
+         IswValuePtr toVal,
          IswPointer closure _X_UNUSED,
-         XrmValuePtr args,
+         IswValuePtr args,
          Cardinal *num_args)
 {
     IswDisplay display;
@@ -1096,10 +1096,10 @@ FreeFont(IswAppContext app,
 
 Boolean
 IswCvtIntToFont(IswDisplay dpy,
-               XrmValuePtr args _X_UNUSED,
+               IswValuePtr args _X_UNUSED,
                Cardinal *num_args,
-               XrmValuePtr fromVal,
-               XrmValuePtr toVal,
+               IswValuePtr fromVal,
+               IswValuePtr toVal,
                IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
@@ -1112,10 +1112,10 @@ IswCvtIntToFont(IswDisplay dpy,
 
 Boolean
 IswCvtStringToFontStruct(IswDisplay dpy,
-                        XrmValuePtr args,
+                        IswValuePtr args,
                         Cardinal *num_args,
-                        XrmValuePtr fromVal,
-                        XrmValuePtr toVal,
+                        IswValuePtr fromVal,
+                        IswValuePtr toVal,
                         IswPointer *closure_ret _X_UNUSED)
 {
     IswFontStruct *f;
@@ -1143,16 +1143,16 @@ IswCvtStringToFontStruct(IswDisplay dpy,
 
     /* IswDefaultFont or explicit name failed — check xtDefaultFont resource */
     {
-        XrmName xrm_name[2];
-        XrmClass xrm_class[2];
-        XrmRepresentation rep_type;
-        XrmValue value;
+        IswQuarkName xrm_name[2];
+        IswQuarkClass xrm_class[2];
+        IswRepresentation rep_type;
+        IswValueRec value;
 
-        xrm_name[0] = XrmPermStringToQuark("xtDefaultFont");
+        xrm_name[0] = IswPermStringToQuark("xtDefaultFont");
         xrm_name[1] = 0;
-        xrm_class[0] = XrmPermStringToQuark("IswDefaultFont");
+        xrm_class[0] = IswPermStringToQuark("IswDefaultFont");
         xrm_class[1] = 0;
-        if (XrmQGetResource(IswDatabase((IswDisplay) display), xrm_name, xrm_class,
+        if (IswQGetResource(IswDatabase((IswDisplay) display), xrm_name, xrm_class,
                             &rep_type, &value)) {
             if (rep_type == _IswQString) {
                 f = _IswLoadFontconfigFont((const char *) value.addr);
@@ -1181,9 +1181,9 @@ IswCvtStringToFontStruct(IswDisplay dpy,
 
 static void
 FreeFontStruct(IswAppContext app,
-               XrmValuePtr toVal,
+               IswValuePtr toVal,
                IswPointer closure _X_UNUSED,
-               XrmValuePtr args,
+               IswValuePtr args,
                Cardinal *num_args)
 {
     IswDisplay display;
@@ -1202,10 +1202,10 @@ FreeFontStruct(IswAppContext app,
 
 Boolean
 IswCvtStringToInt(IswDisplay dpy,
-                 XrmValuePtr args _X_UNUSED,
+                 IswValuePtr args _X_UNUSED,
                  Cardinal *num_args,
-                 XrmValuePtr fromVal,
-                 XrmValuePtr toVal,
+                 IswValuePtr fromVal,
+                 IswValuePtr toVal,
                  IswPointer *closure_ret _X_UNUSED)
 {
     int i;
@@ -1224,10 +1224,10 @@ IswCvtStringToInt(IswDisplay dpy,
 
 Boolean
 IswCvtStringToShort(IswDisplay dpy,
-                   XrmValuePtr args _X_UNUSED,
+                   IswValuePtr args _X_UNUSED,
                    Cardinal *num_args,
-                   XrmValuePtr fromVal,
-                   XrmValuePtr toVal,
+                   IswValuePtr fromVal,
+                   IswValuePtr toVal,
                    IswPointer *closure_ret _X_UNUSED)
 {
     int i;
@@ -1247,10 +1247,10 @@ IswCvtStringToShort(IswDisplay dpy,
 
 Boolean
 IswCvtStringToDimension(IswDisplay dpy,
-                       XrmValuePtr args _X_UNUSED,
+                       IswValuePtr args _X_UNUSED,
                        Cardinal *num_args,
-                       XrmValuePtr fromVal,
-                       XrmValuePtr toVal,
+                       IswValuePtr fromVal,
+                       IswValuePtr toVal,
                        IswPointer *closure_ret _X_UNUSED)
 {
     int i;
@@ -1273,10 +1273,10 @@ IswCvtStringToDimension(IswDisplay dpy,
 
 Boolean
 IswCvtIntToUnsignedChar(IswDisplay dpy,
-                       XrmValuePtr args _X_UNUSED,
+                       IswValuePtr args _X_UNUSED,
                        Cardinal *num_args,
-                       XrmValuePtr fromVal,
-                       XrmValuePtr toVal,
+                       IswValuePtr fromVal,
+                       IswValuePtr toVal,
                        IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
@@ -1290,10 +1290,10 @@ IswCvtIntToUnsignedChar(IswDisplay dpy,
 
 Boolean
 IswCvtStringToUnsignedChar(IswDisplay dpy,
-                          XrmValuePtr args _X_UNUSED,
+                          IswValuePtr args _X_UNUSED,
                           Cardinal *num_args,
-                          XrmValuePtr fromVal,
-                          XrmValuePtr toVal,
+                          IswValuePtr fromVal,
+                          IswValuePtr toVal,
                           IswPointer *closure_ret _X_UNUSED)
 {
     int i;
@@ -1317,10 +1317,10 @@ IswCvtStringToUnsignedChar(IswDisplay dpy,
 
 Boolean
 IswCvtColorToPixel(IswDisplay dpy,
-                  XrmValuePtr args _X_UNUSED,
+                  IswValuePtr args _X_UNUSED,
                   Cardinal *num_args,
-                  XrmValuePtr fromVal,
-                  XrmValuePtr toVal,
+                  IswValuePtr fromVal,
+                  IswValuePtr toVal,
                   IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
@@ -1334,10 +1334,10 @@ IswCvtColorToPixel(IswDisplay dpy,
 
 Boolean
 IswCvtIntToPixel(IswDisplay dpy,
-                XrmValuePtr args _X_UNUSED,
+                IswValuePtr args _X_UNUSED,
                 Cardinal *num_args,
-                XrmValuePtr fromVal,
-                XrmValuePtr toVal,
+                IswValuePtr fromVal,
+                IswValuePtr toVal,
                 IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
@@ -1350,10 +1350,10 @@ IswCvtIntToPixel(IswDisplay dpy,
 
 Boolean
 IswCvtIntToPixmap(IswDisplay dpy,
-                 XrmValuePtr args _X_UNUSED,
+                 IswValuePtr args _X_UNUSED,
                  Cardinal *num_args,
-                 XrmValuePtr fromVal,
-                 XrmValuePtr toVal,
+                 IswValuePtr fromVal,
+                 IswValuePtr toVal,
                  IswPointer *closure_ret _X_UNUSED)
 {
     if (*num_args != 0)
@@ -1435,10 +1435,10 @@ CopyISOLatin1Lowered(char *dst, const char *src)
 
 Boolean
 IswCvtStringToInitialState(IswDisplay dpy,
-                          XrmValuePtr args _X_UNUSED,
+                          IswValuePtr args _X_UNUSED,
                           Cardinal *num_args,
-                          XrmValuePtr fromVal,
-                          XrmValuePtr toVal,
+                          IswValuePtr fromVal,
+                          IswValuePtr toVal,
                           IswPointer *closure_ret _X_UNUSED)
 {
     String str = (String) fromVal->addr;
@@ -1468,10 +1468,10 @@ IswCvtStringToInitialState(IswDisplay dpy,
 
 static Boolean
 IswCvtStringToWindowType(IswDisplay dpy,
-                         XrmValuePtr args _X_UNUSED,
+                         IswValuePtr args _X_UNUSED,
                          Cardinal *num_args,
-                         XrmValuePtr fromVal,
-                         XrmValuePtr toVal,
+                         IswValuePtr fromVal,
+                         IswValuePtr toVal,
                          IswPointer *closure_ret _X_UNUSED)
 {
     String str = (String) fromVal->addr;
@@ -1524,10 +1524,10 @@ static IswConvertArgRec const visualConvertArgs[] = {
 /* *INDENT-ON* */
 
 Boolean
-IswCvtStringToVisual(IswDisplay dpy, XrmValuePtr args,     /* Screen, depth */
+IswCvtStringToVisual(IswDisplay dpy, IswValuePtr args,     /* Screen, depth */
                     Cardinal *num_args,        /* 2 */
-                    XrmValuePtr fromVal,
-                    XrmValuePtr toVal,
+                    IswValuePtr fromVal,
+                    IswValuePtr toVal,
                     IswPointer *closure_ret _X_UNUSED)
 {
     String str = (String) fromVal->addr;
@@ -1584,47 +1584,47 @@ IswCvtStringToVisual(IswDisplay dpy, XrmValuePtr args,     /* Screen, depth */
 
 Boolean
 IswCvtStringToGravity(IswDisplay dpy,
-                     XrmValuePtr args _X_UNUSED,
+                     IswValuePtr args _X_UNUSED,
                      Cardinal *num_args,
-                     XrmValuePtr fromVal,
-                     XrmValuePtr toVal,
+                     IswValuePtr fromVal,
+                     IswValuePtr toVal,
                      IswPointer *closure_ret _X_UNUSED)
 {
     /* *INDENT-OFF* */
     static struct _namepair {
-        XrmQuark quark;
+        IswQuark quark;
         const char *name;
         int gravity;
     } names[] = {
-        { NULLQUARK, "forget",          IswGravityForget },
-        { NULLQUARK, "northwest",       IswGravityNorthWest },
-        { NULLQUARK, "north",           IswGravityNorth },
-        { NULLQUARK, "northeast",       IswGravityNorthEast },
-        { NULLQUARK, "west",            IswGravityWest },
-        { NULLQUARK, "center",          IswGravityCenter },
-        { NULLQUARK, "east",            IswGravityEast },
-        { NULLQUARK, "southwest",       IswGravitySouthWest },
-        { NULLQUARK, "south",           IswGravitySouth },
-        { NULLQUARK, "southeast",       IswGravitySouthEast },
-        { NULLQUARK, "static",          IswGravityStatic },
-        { NULLQUARK, "unmap",           IswGravityUnmap },
-        { NULLQUARK, "0",               IswGravityForget },
-        { NULLQUARK, "1",               IswGravityNorthWest },
-        { NULLQUARK, "2",               IswGravityNorth },
-        { NULLQUARK, "3",               IswGravityNorthEast },
-        { NULLQUARK, "4",               IswGravityWest },
-        { NULLQUARK, "5",               IswGravityCenter },
-        { NULLQUARK, "6",               IswGravityEast },
-        { NULLQUARK, "7",               IswGravitySouthWest },
-        { NULLQUARK, "8",               IswGravitySouth },
-        { NULLQUARK, "9",               IswGravitySouthEast },
-        { NULLQUARK, "10",              IswGravityStatic },
-        { NULLQUARK, NULL,              IswGravityForget }
+        { ISW_NULLQUARK, "forget",          IswGravityForget },
+        { ISW_NULLQUARK, "northwest",       IswGravityNorthWest },
+        { ISW_NULLQUARK, "north",           IswGravityNorth },
+        { ISW_NULLQUARK, "northeast",       IswGravityNorthEast },
+        { ISW_NULLQUARK, "west",            IswGravityWest },
+        { ISW_NULLQUARK, "center",          IswGravityCenter },
+        { ISW_NULLQUARK, "east",            IswGravityEast },
+        { ISW_NULLQUARK, "southwest",       IswGravitySouthWest },
+        { ISW_NULLQUARK, "south",           IswGravitySouth },
+        { ISW_NULLQUARK, "southeast",       IswGravitySouthEast },
+        { ISW_NULLQUARK, "static",          IswGravityStatic },
+        { ISW_NULLQUARK, "unmap",           IswGravityUnmap },
+        { ISW_NULLQUARK, "0",               IswGravityForget },
+        { ISW_NULLQUARK, "1",               IswGravityNorthWest },
+        { ISW_NULLQUARK, "2",               IswGravityNorth },
+        { ISW_NULLQUARK, "3",               IswGravityNorthEast },
+        { ISW_NULLQUARK, "4",               IswGravityWest },
+        { ISW_NULLQUARK, "5",               IswGravityCenter },
+        { ISW_NULLQUARK, "6",               IswGravityEast },
+        { ISW_NULLQUARK, "7",               IswGravitySouthWest },
+        { ISW_NULLQUARK, "8",               IswGravitySouth },
+        { ISW_NULLQUARK, "9",               IswGravitySouthEast },
+        { ISW_NULLQUARK, "10",              IswGravityStatic },
+        { ISW_NULLQUARK, NULL,              IswGravityForget }
     };
     /* *INDENT-ON* */
     static Boolean haveQuarks = FALSE;
     char lowerName[40];
-    XrmQuark q;
+    IswQuark q;
     char *s;
     struct _namepair *np;
 
@@ -1638,14 +1638,14 @@ IswCvtStringToGravity(IswDisplay dpy,
     }
     if (!haveQuarks) {
         for (np = names; np->name; np++) {
-            np->quark = XrmPermStringToQuark(np->name);
+            np->quark = IswPermStringToQuark(np->name);
         }
         haveQuarks = TRUE;
     }
     s = (char *) fromVal->addr;
     if (strlen(s) < sizeof lowerName) {
         CopyISOLatin1Lowered(lowerName, s);
-        q = XrmStringToQuark(lowerName);
+        q = IswStringToQuark(lowerName);
         for (np = names; np->name; np++)
             if (np->quark == q)
                 done_string(int, np->gravity, IswRGravity);
@@ -1734,10 +1734,10 @@ _IswAddDefaultConverters(ConverterTable table)
 Boolean
 ISWCvtStringToOrientation(
     IswDisplay display,
-    XrmValuePtr args,
+    IswValuePtr args,
     Cardinal *num_args,
-    XrmValuePtr from,
-    XrmValuePtr to,
+    IswValuePtr from,
+    IswValuePtr to,
     IswPointer *converter_data)
 {
     static IswOrientation orientation;
@@ -1776,10 +1776,10 @@ ISWCvtStringToOrientation(
 Boolean
 ISWCvtStringToJustify(
     IswDisplay display,
-    XrmValuePtr args,
+    IswValuePtr args,
     Cardinal *num_args,
-    XrmValuePtr from,
-    XrmValuePtr to,
+    IswValuePtr from,
+    IswValuePtr to,
     IswPointer *converter_data)
 {
     static IswJustify justify;
@@ -1820,10 +1820,10 @@ ISWCvtStringToJustify(
 Boolean
 ISWCvtStringToWidget(
     IswDisplay display,
-    XrmValuePtr args,
+    IswValuePtr args,
     Cardinal *num_args,
-    XrmValuePtr from,
-    XrmValuePtr to,
+    IswValuePtr from,
+    IswValuePtr to,
     IswPointer *converter_data)
 {
     static Widget widget;

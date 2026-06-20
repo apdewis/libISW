@@ -175,7 +175,7 @@ TypedArgToArg(Widget widget,
               ArgList memory_return)
 {
     String to_type = NULL;
-    XrmValue from_val, to_val;
+    IswValueRec from_val, to_val;
 
     if (widget == NULL) {
         IswAppWarningMsg(IswWidgetToApplicationContext(widget),

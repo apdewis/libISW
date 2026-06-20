@@ -74,7 +74,7 @@ typedef struct _ConstraintClassPart {
 
 typedef struct {
     IswPointer next_extension;	/* 1st 4 mandated for all extension records */
-    XrmQuark record_type;	/* NULLQUARK; on ConstraintClassPart */
+    IswQuark record_type;	/* ISW_NULLQUARK; on ConstraintClassPart */
     long version;		/* must be IswConstraintExtensionVersion */
     Cardinal record_size;	/* sizeof(ConstraintClassExtensionRec) */
     IswArgsProc get_values_hook;

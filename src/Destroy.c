@@ -178,7 +178,7 @@ Phase2Destroy(register Widget widget)
     ext = (ObjectClassExtension) IswGetClassExtension(widget->core.widget_class,
                                                      IswOffsetOf(CoreClassPart,
                                                                 extension),
-                                                     NULLQUARK,
+                                                     ISW_NULLQUARK,
                                                      IswObjectExtensionVersion,
                                                      sizeof
                                                      (ObjectClassExtensionRec));

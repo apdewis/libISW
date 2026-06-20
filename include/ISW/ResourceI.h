@@ -54,16 +54,16 @@ SOFTWARE.
 #ifndef _IswresourceI_h
 #define _IswresourceI_h
 
-#define StringToQuark(string) XrmStringToQuark(string)
-#define StringToName(string) XrmStringToName(string)
-#define StringToClass(string) XrmStringToClass(string)
+#define StringToQuark(string) IswStringToQuark(string)
+#define StringToName(string) IswStringToName(string)
+#define StringToClass(string) IswStringToClass(string)
 
 _XFUNCPROTOBEGIN
 
 extern void _IswDependencies(
     IswResourceList  * /* class_resp */,
     Cardinal	    * /* class_num_resp */,
-    XrmResourceList * /* super_res */,
+    IswQResourceList * /* super_res */,
     Cardinal	     /* super_num_res */,
     Cardinal	     /* super_widget_size */);
 
@@ -86,12 +86,12 @@ extern IswCacheRef* _IswGetResources(
 extern void _IswCopyFromParent(
     Widget		/* widget */,
     int			/* offset */,
-    XrmValue*		/* value */
+    IswValueRec*		/* value */
 );
 
 extern void _IswCopyToArg(char *src, IswArgVal *dst, unsigned int size);
 extern void _IswCopyFromArg(IswArgVal src, char *dst, unsigned int size);
-extern XrmResourceList* _IswCreateIndirectionTable(IswResourceList resources,
+extern IswQResourceList* _IswCreateIndirectionTable(IswResourceList resources,
 						  Cardinal num_resources);
 extern void _IswResourceListInitialize(void);
 

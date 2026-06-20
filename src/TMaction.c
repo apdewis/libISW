@@ -87,7 +87,7 @@ in this Software without prior written authorization from The Open Group.
 static _Xconst _IswString IswNtranslationError = "translationError";
 
 typedef struct _CompiledAction {
-    XrmQuark signature;
+    IswQuark signature;
     IswActionProc proc;
 } CompiledAction, *CompiledActionTable;
 
@@ -99,16 +99,16 @@ typedef struct _CompiledAction {
 static CompiledActionTable
 CompileActionTable(register RConst struct _IswActionsRec *actions, register Cardinal count,      /* may be 0 */
                    Boolean stat,        /* if False, copy before compiling in place */
-                   Boolean perm)        /* if False, use XrmStringToQuark */
+                   Boolean perm)        /* if False, use IswStringToQuark */
 {
     register CompiledActionTable cActions;
     register int i;
     CompiledActionTable cTableHold;
-    XrmQuark (*func) (_Xconst char *);
+    IswQuark (*func) (_Xconst char *);
 
     if (!count)
         return (CompiledActionTable) NULL;
-    func = (perm ? XrmPermStringToQuark : XrmStringToQuark);
+    func = (perm ? IswPermStringToQuark : IswStringToQuark);
 
     if (!stat) {
         cTableHold = cActions = IswMallocArray(count,
@@ -173,7 +173,7 @@ ReportUnboundActions(IswTranslations xlations, TMBindData bindData)
         stateTree = (TMSimpleStateTree) xlations->stateTreeTbl[i];
         for (j = 0; j < stateTree->numQuarks; j++) {
             if (procs[j] == NULL) {
-                String s = XrmQuarkToString(stateTree->quarkTbl[j]);
+                String s = IswQuarkToString(stateTree->quarkTbl[j]);
 
                 if (num_unbound != 0)
                     num_chars += 2;
@@ -199,7 +199,7 @@ ReportUnboundActions(IswTranslations xlations, TMBindData bindData)
             stateTree = (TMSimpleStateTree) xlations->stateTreeTbl[i];
             for (j = 0; j < stateTree->numQuarks; j++) {
                 if (procs[j] == NULL) {
-                    String s = XrmQuarkToString(stateTree->quarkTbl[j]);
+                    String s = IswQuarkToString(stateTree->quarkTbl[j]);
 
                     if (num_unbound != 0)
                         (void) strcat(message, ", ");
@@ -217,7 +217,7 @@ ReportUnboundActions(IswTranslations xlations, TMBindData bindData)
 }
 
 static CompiledAction *
-SearchActionTable(XrmQuark signature,
+SearchActionTable(IswQuark signature,
                   CompiledActionTable actionTable,
                   Cardinal numActions)
 {
@@ -256,7 +256,7 @@ BindActions(TMSimpleStateTree stateTree,
     for (ndx = *ndxP; ndx < stateTree->numQuarks; ndx++) {
         if (procs[ndx] == NULL) {
             /* attempt to bind it */
-            XrmQuark q = stateTree->quarkTbl[ndx];
+            IswQuark q = stateTree->quarkTbl[ndx];
 
             action = SearchActionTable(q, compiledActionTable, numActions);
             if (action) {
@@ -765,7 +765,7 @@ IswGetActionList(WidgetClass widget_class,
             int i;
 
             for (i = (int) (*num_actions_return); --i >= 0; list++, table++) {
-                list->string = XrmQuarkToString(table->signature);
+                list->string = IswQuarkToString(table->signature);
                 list->proc = table->proc;
             }
         }
@@ -783,10 +783,10 @@ static Widget
 _IswFindPopup(Widget widget, String name)
 {
     register Cardinal i;
-    register XrmQuark q;
+    register IswQuark q;
     register Widget w;
 
-    q = XrmStringToQuark(name);
+    q = IswStringToQuark(name);
 
     for (w = widget; w != NULL; w = w->core.parent)
         for (i = 0; i < w->core.num_popups; i++)
@@ -922,7 +922,7 @@ IswCallActionProc(Widget widget,
                  Cardinal num_params)
 {
     CompiledAction *actionP;
-    XrmQuark q = XrmStringToQuark(action);
+    IswQuark q = IswStringToQuark(action);
     /* Action procs and hooks receive the toolkit-neutral event.  A synthetic
        invocation (e.g. MenuBar OpenMenu calling "set") passes a NULL event —
        hand the proc a zeroed neutral event (no kind) rather than dereferencing

@@ -177,7 +177,7 @@ ScrollbarClassRec scrollbarClassRec = {
     /* num_actions	*/	IswNumber(actions),
     /* resources        */	resources,
     /* num_resources    */	IswNumber(resources),
-    /* xrm_class        */	NULLQUARK,
+    /* xrm_class        */	ISW_NULLQUARK,
     /* compress_motion	*/	TRUE,
     /* compress_exposure*/	TRUE,
     /* compress_enterleave*/	TRUE,

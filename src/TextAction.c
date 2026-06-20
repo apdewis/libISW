@@ -1096,7 +1096,7 @@ DisplayCaret(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
       return;
 
   if (*num_params > 0) {	/* default arg is "True" */
-      XrmValue from, to;
+      IswValueRec from, to;
       Boolean converted_value;
       from.size = strlen(from.addr = (IswPointer)params[0]);
       to.size = sizeof(Boolean);

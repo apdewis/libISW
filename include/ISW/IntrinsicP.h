@@ -51,8 +51,8 @@ SOFTWARE.
 #include <ISW/Intrinsic.h>
 
 /*
- * Field sizes and offsets of XrmResource must match those of IswResource.
- * Type long is used instead of XrmQuark here because XrmQuark and String
+ * Field sizes and offsets of IswQResource must match those of IswResource.
+ * Type long is used instead of IswQuark here because IswQuark and String
  * are not the same size on all systems.
  */
 typedef struct {
@@ -63,9 +63,9 @@ typedef struct {
     int		xrm_offset;	  /* -offset-1				*/
     IswIntPtr	xrm_default_type; /* Default representation type quark	*/
     IswPointer	xrm_default_addr; /* Default resource address		*/
-} XrmResource, *XrmResourceList;
+} IswQResource, *IswQResourceList;
 #if __STDC_VERSION__ >= 201112L && !defined(__cplusplus)
-_Static_assert(IswOffsetOf(XrmResource, xrm_default_addr) ==
+_Static_assert(IswOffsetOf(IswQResource, xrm_default_addr) ==
                    IswOffsetOf(IswResource, default_addr),
                "Field offset mismatch");
 #endif

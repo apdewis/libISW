@@ -102,10 +102,10 @@ static IswErrorHandler errorHandler _X_NORETURN = _IswDefaultError;
 static IswErrorHandler warningHandler = _IswDefaultWarning;
 #endif                          /* GLOBALERRORS */
 
-XrmDatabase *
+IswDatabaseHandle *
 IswGetErrorDatabase(void)
 {
-    XrmDatabase *retval;
+    IswDatabaseHandle *retval;
 
 #if GLOBALERRORS
     LOCK_PROCESS;
@@ -117,10 +117,10 @@ IswGetErrorDatabase(void)
     return retval;
 }
 
-XrmDatabase *
+IswDatabaseHandle *
 IswAppGetErrorDatabase(IswAppContext app _X_UNUSED)
 {
-    XrmDatabase *retval;
+    IswDatabaseHandle *retval;
 
 #if GLOBALERRORS
     LOCK_PROCESS;
@@ -160,10 +160,10 @@ IswAppGetErrorDatabaseText(IswAppContext app _X_UNUSED,
                           _Xconst char *defaultp,
                           _IswString buffer,
                           int nbytes,
-                          XrmDatabase db)
+                          IswDatabaseHandle db)
 {
     String str_class;
-    XrmValue result;
+    IswValueRec result;
     char *str_name = NULL;
     char *temp = NULL;
 
@@ -186,8 +186,8 @@ IswAppGetErrorDatabaseText(IswAppContext app _X_UNUSED,
     if (!(str_name = ALLOCATE_LOCAL(strlen(name) + strlen(type) + 2)))
         _IswAllocError(NULL);
     (void) sprintf(str_name, "%s.%s", name, type);
-    /* XrmGetResource requires the name and class to be fully qualified
-     * and to have the same number of components. */
+    /* The name and class must be fully qualified with the same number
+     * of components. */
     str_class = (String) class;
     if (!strchr(class, '.')) {
         if (!(temp = ALLOCATE_LOCAL(2 * strlen(class) + 2)))

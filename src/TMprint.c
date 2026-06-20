@@ -274,7 +274,7 @@ PrintEvent(TMStringBuf sb,
         break;
 
     case IswProtocol: {
-        const char *name = XrmQuarkToString((XrmQuark) typeMatch->eventCode);
+        const char *name = IswQuarkToString((IswQuark) typeMatch->eventCode);
         if (name) {
             int len = (int) strlen(name);
             ExpandForChars(sb, len + 1);
@@ -312,7 +312,7 @@ PrintParams(TMStringBuf sb, String *params, Cardinal num_params)
 static void
 PrintActions(TMStringBuf sb,
              register ActionPtr actions,
-             XrmQuark *quarkTbl,
+             IswQuark *quarkTbl,
              Widget accelWidget)
 {
     while (actions != NULL) {
@@ -330,7 +330,7 @@ PrintActions(TMStringBuf sb,
             sb->current += nameLen;
             *sb->current++ = '`';
         }
-        proc = XrmQuarkToString(quarkTbl[actions->idx]);
+        proc = IswQuarkToString(quarkTbl[actions->idx]);
         ExpandToFit(sb, proc);
         strcpy(sb->current, proc);
         sb->current += strlen(proc);
@@ -808,7 +808,7 @@ _IswDisplayInstalledAccelerators(Widget widget,
 #endif                          /*NO_MIT_HACKS */
 
 String
-_IswPrintActions(register ActionRec *actions, XrmQuark *quarkTbl)
+_IswPrintActions(register ActionRec *actions, IswQuark *quarkTbl)
 {
     TMStringBufRec sbRec, *sb = &sbRec;
 

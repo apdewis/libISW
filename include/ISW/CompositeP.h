@@ -86,7 +86,7 @@ typedef struct _CompositeClassPart {
 
 typedef struct {
     IswPointer next_extension;	/* 1st 4 mandated for all extension records */
-    XrmQuark record_type;	/* NULLQUARK; on CompositeClassPart */
+    IswQuark record_type;	/* ISW_NULLQUARK; on CompositeClassPart */
     long version;		/* must be IswCompositeExtensionVersion */
     Cardinal record_size;	/* sizeof(CompositeClassExtensionRec) */
     Boolean accepts_objects;

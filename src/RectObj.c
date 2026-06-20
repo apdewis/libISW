@@ -57,7 +57,7 @@ SOFTWARE.
  *
  ******************************************************************/
 
-static void IswCopyAncestorSensitive(Widget, int, XrmValue *);
+static void IswCopyAncestorSensitive(Widget, int, IswValueRec *);
 
 /* *INDENT-OFF* */
 static IswResource resources[] = {
@@ -102,7 +102,7 @@ externaldef(rectobjclassrec) RectObjClassRec rectObjClassRec = {
     /* num_actions           */ 0,
     /* resources             */ resources,
     /* num_resources         */ IswNumber(resources),
-    /* xrm_class             */ NULLQUARK,
+    /* xrm_class             */ ISW_NULLQUARK,
     /* compress_motion       */ FALSE,
     /* compress_exposure     */ TRUE,
     /* compress_enterleave   */ FALSE,
@@ -129,7 +129,7 @@ externaldef(rectObjClass)
 WidgetClass rectObjClass = (WidgetClass) &rectObjClassRec;
 
 static void
-IswCopyAncestorSensitive(Widget widget, int offset _X_UNUSED, XrmValue *value)
+IswCopyAncestorSensitive(Widget widget, int offset _X_UNUSED, IswValueRec *value)
 {
     static Boolean sensitive;
     Widget parent = widget->core.parent;

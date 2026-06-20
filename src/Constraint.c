@@ -93,7 +93,7 @@ ConstraintClassRec constraintClassRec = {
      /* num_actions          */ 0,
      /* resources            */ NULL,
      /* num_resources        */ 0,
-     /* xrm_class            */ NULLQUARK,
+     /* xrm_class            */ ISW_NULLQUARK,
      /* compress_motion      */ FALSE,
      /* compress_exposure    */ TRUE,
      /* compress_enterleave  */ FALSE,

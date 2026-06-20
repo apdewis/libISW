@@ -155,7 +155,7 @@ typedef struct _TMSimpleStateTreeRec{
     TMShortCard		numQuarks;   /* # of entries in quarkTbl */
     TMShortCard		unused;	     /* to ensure same alignment */
     TMBranchHeadRec	*branchHeadTbl;
-    XrmQuark		*quarkTbl;  /* table of quarkified rhs*/
+    IswQuark		*quarkTbl;  /* table of quarkified rhs*/
 }TMSimpleStateTreeRec, *TMSimpleStateTree;
 
 /* NOTE: elements of this structure must match those of
@@ -170,7 +170,7 @@ typedef struct _TMComplexStateTreeRec{
     TMShortCard		numQuarks;   /* # of entries in quarkTbl */
     TMShortCard		numComplexBranchHeads;
     TMBranchHeadRec	*branchHeadTbl;
-    XrmQuark		*quarkTbl;  /* table of quarkified rhs*/
+    IswQuark		*quarkTbl;  /* table of quarkified rhs*/
     StatePtr		*complexBranchHeadTbl;
 }TMComplexStateTreeRec, *TMComplexStateTree;
 
@@ -189,7 +189,7 @@ typedef struct _TMParseStateTreeRec{
     TMShortCard		numQuarks;   /* # of entries in quarkTbl */
     TMShortCard		numComplexBranchHeads;
     TMBranchHeadRec	*branchHeadTbl;
-    XrmQuark		*quarkTbl;  /* table of quarkified rhs*/
+    IswQuark		*quarkTbl;  /* table of quarkified rhs*/
     StatePtr		*complexBranchHeadTbl;
     TMShortCard		branchHeadTblSize;
     TMShortCard		quarkTblSize; /*total size of quarkTbl */
@@ -489,10 +489,10 @@ extern IswTranslations _IswCreateXlations(
 
 extern Boolean _IswCvtMergeTranslations(
     IswDisplay	/* dpy */,
-    XrmValuePtr	/* args */,
+    IswValuePtr	/* args */,
     Cardinal*	/* num_args */,
-    XrmValuePtr	/* from */,
-    XrmValuePtr	/* to */,
+    IswValuePtr	/* from */,
+    IswValuePtr	/* to */,
     IswPointer*	/* closure_ret */
 );
 
@@ -502,9 +502,9 @@ void _IswRemoveStateTreeByIndex(
 
 void _IswFreeTranslations(
     IswAppContext	/* app */,
-    XrmValuePtr		/* toVal */,
+    IswValuePtr		/* toVal */,
     IswPointer		/* closure */,
-    XrmValuePtr		/* args */,
+    IswValuePtr		/* args */,
     Cardinal*		/* num_args */
 );
 
@@ -514,7 +514,7 @@ extern TMShortCard _IswGetModifierIndex(
 
 extern TMShortCard _IswGetQuarkIndex(
     TMParseStateTree	/* stateTreePtr */,
-    XrmQuark		/* quark */
+    IswQuark		/* quark */
 );
 
 extern IswTranslations _IswGetTranslationValue(
@@ -557,7 +557,7 @@ extern TMStateTree _IswParseTreeToStateTree(
 
 extern String _IswPrintActions(
     ActionRec*	/* actions */,
-    XrmQuark*	/* quarkTbl */
+    IswQuark*	/* quarkTbl */
 );
 
 extern String _IswPrintState(

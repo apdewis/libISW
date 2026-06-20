@@ -82,7 +82,7 @@ FlexBoxClassRec flexBoxClassRec = {
     /* num_actions        */ 0,
     /* resources          */ resources,
     /* num_resources      */ IswNumber(resources),
-    /* xrm_class          */ NULLQUARK,
+    /* xrm_class          */ ISW_NULLQUARK,
     /* compress_motion    */ TRUE,
     /* compress_exposure  */ TRUE,
     /* compress_enterleave*/ TRUE,
@@ -127,20 +127,20 @@ WidgetClass flexBoxWidgetClass = (WidgetClass)&flexBoxClassRec;
 
 /* --- String-to-FlexAlign converter --- */
 
-static XrmQuark QStart, QEnd, QCenter, QStretch;
+static IswQuark QStart, QEnd, QCenter, QStretch;
 
 static void
-_CvtStringToFlexAlign(XrmValuePtr args, Cardinal *num_args,
-                      XrmValuePtr fromVal, XrmValuePtr toVal)
+_CvtStringToFlexAlign(IswValuePtr args, Cardinal *num_args,
+                      IswValuePtr fromVal, IswValuePtr toVal)
 {
     static IswFlexAlign align;
-    XrmQuark q;
+    IswQuark q;
     char lower[40];
     (void)args; (void)num_args;
 
     if (strlen((char *)fromVal->addr) < sizeof(lower)) {
         ISWCopyISOLatin1Lowered(lower, (char *)fromVal->addr);
-        q = XrmStringToQuark(lower);
+        q = IswStringToQuark(lower);
         if      (q == QStart)   align = IswFlexAlignStart;
         else if (q == QEnd)     align = IswFlexAlignEnd;
         else if (q == QCenter)  align = IswFlexAlignCenter;
@@ -162,10 +162,10 @@ static void
 ClassInitialize(void)
 {
     IswInitializeWidgetSet();
-    QStart   = XrmPermStringToQuark("start");
-    QEnd     = XrmPermStringToQuark("end");
-    QCenter  = XrmPermStringToQuark("center");
-    QStretch = XrmPermStringToQuark("stretch");
+    QStart   = IswPermStringToQuark("start");
+    QEnd     = IswPermStringToQuark("end");
+    QCenter  = IswPermStringToQuark("center");
+    QStretch = IswPermStringToQuark("stretch");
     IswAddConverter(IswRString, IswRFlexAlign, _CvtStringToFlexAlign, NULL, 0);
 }
 

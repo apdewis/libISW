@@ -130,7 +130,7 @@ ToggleClassRec toggleClassRec = {
     IswNumber(actionsList),		/* num_actions		  */
     resources,				/* resources		  */
     IswNumber(resources),		/* resource_count	  */
-    NULLQUARK,				/* xrm_class		  */
+    ISW_NULLQUARK,				/* xrm_class		  */
     FALSE,				/* compress_motion	  */
     TRUE,				/* compress_exposure	  */
     TRUE,				/* compress_enterleave    */
@@ -181,8 +181,8 @@ WidgetClass toggleWidgetClass = (WidgetClass) &toggleClassRec;
  */
 /*ARGSUSED*/
 static Boolean
-ToggleCvtStringToWidget(IswDisplay dpy, XrmValuePtr args, Cardinal *num_args,
-                     XrmValuePtr fromVal, XrmValuePtr toVal, IswPointer *data)
+ToggleCvtStringToWidget(IswDisplay dpy, IswValuePtr args, Cardinal *num_args,
+                     IswValuePtr fromVal, IswValuePtr toVal, IswPointer *data)
 {
     Widget widget;
     Widget parent;

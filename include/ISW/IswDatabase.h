@@ -1,9 +1,8 @@
 /*
- * IswDatabase.h - Resource database type definitions for libXt
+ * IswDatabase.h - Resource database type definitions
  *
- * This replaces XrmDatabase from <X11/Xresource.h> with the
- * xcb-util-xrm database type, and provides backward compatibility
- * typedefs.
+ * The neutral, opaque resource database handle and its query function.
+ * Backward compatibility typedefs map the old Xrm names.
  *
  * Copyright (c) 2024 libXt contributors
  *
@@ -57,13 +56,16 @@ typedef struct _IswResourceDb *XrmDatabase;
 typedef void *XrmHashTable;
 typedef XrmHashTable *XrmSearchList;
 
-/* XrmQGetResource - query resource database by quark name/class arrays */
-extern Bool XrmQGetResource(
-    XrmDatabase         /* db */,
-    XrmNameList         /* names */,
-    XrmClassList        /* classes */,
-    XrmRepresentation * /* type_return */,
-    XrmValue *          /* value_return */
+/* IswQGetResource - query resource database by quark name/class arrays */
+extern Bool IswQGetResource(
+    IswDatabaseHandle   /* db */,
+    IswQuarkList        /* names */,
+    IswQuarkList        /* classes */,
+    IswRepresentation * /* type_return */,
+    IswValueRec *       /* value_return */
 );
+
+/* Backward compatibility */
+#define XrmQGetResource IswQGetResource
 
 #endif /* _IswDatabase_h */

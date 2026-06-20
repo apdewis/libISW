@@ -101,7 +101,7 @@ DialogClassRec dialogClassRec = {
     /* num_actions        */    0,
     /* resources          */    resources,
     /* num_resources      */    IswNumber(resources),
-    /* xrm_class          */    NULLQUARK,
+    /* xrm_class          */    ISW_NULLQUARK,
     /* compress_motion    */    TRUE,
     /* compress_exposure  */    TRUE,
     /* compress_enterleave*/    TRUE,

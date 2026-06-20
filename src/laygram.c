@@ -76,7 +76,7 @@
 /* First part of user prologue.  */
 #line 1 "laygram.y"
 
-/* System Xlib headers removed - XrmQuark/XrmStringToQuark available via X11/IntrinsicP.h from custom libXt */
+/* System Xlib headers removed - IswQuark/IswStringToQuark available via X11/IntrinsicP.h from custom libXt */
 #include    <stdio.h>
 #include    <ISW/IntrinsicP.h>
 #include    <X11/cursorfont.h>
@@ -198,7 +198,7 @@ union YYSTYPE
 #line 19 "laygram.y"
 
     int		    ival;
-    XrmQuark	    qval;
+    IswQuark	    qval;
     BoxPtr	    bval;
     BoxParamsPtr    pval;
     GlueRec	    gval;

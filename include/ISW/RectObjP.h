@@ -99,7 +99,7 @@ typedef struct _RectObjClassPart {
     Cardinal        rect3;              /* NULL                             */
     IswResourceList  resources;          /* resources for subclass fields    */
     Cardinal        num_resources;      /* number of entries in resources   */
-    XrmClass        xrm_class;          /* resource class quarkified        */
+    IswQuarkClass        xrm_class;          /* resource class quarkified        */
     Boolean         rect4;              /* NULL                             */
     IswEnum          rect5;              /* NULL                             */
     Boolean         rect6;              /* NULL				    */
