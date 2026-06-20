@@ -7,8 +7,6 @@
 #ifndef _ISW_IswFontChooser_h
 #define _ISW_IswFontChooser_h
 
-#include <X11/Xfuncproto.h>
-
 #define IswNfontFamily     "fontFamily"
 #define IswCFontFamily     "FontFamily"
 #define IswNfontSize       "fontSize"

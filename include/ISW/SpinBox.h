@@ -8,8 +8,6 @@
 #ifndef _ISW_IswSpinBox_h
 #define _ISW_IswSpinBox_h
 
-#include <X11/Xfuncproto.h>
-
 /* SpinBox-specific resource names */
 #define IswNspinMinimum    "spinMinimum"
 #define IswCSpinMinimum    "SpinMinimum"

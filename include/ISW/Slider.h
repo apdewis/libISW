@@ -8,8 +8,6 @@
 #ifndef _ISW_IswSlider_h
 #define _ISW_IswSlider_h
 
-#include <X11/Xfuncproto.h>
-
 /* Slider-specific resource names */
 #define IswNminimumValue   "minimumValue"
 #define IswCMinimumValue   "MinimumValue"

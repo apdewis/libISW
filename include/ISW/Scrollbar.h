@@ -55,8 +55,6 @@ SOFTWARE.
  *
  ****************************************************************/
 
-#include <X11/Xfuncproto.h>
-
 /* Scrollbar resources:
 
  Name		     Class		RepType		Default Value

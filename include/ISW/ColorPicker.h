@@ -7,8 +7,6 @@
 #ifndef _ISW_IswColorPicker_h
 #define _ISW_IswColorPicker_h
 
-#include <X11/Xfuncproto.h>
-
 #define IswNcolorRed       "colorRed"
 #define IswCColorRed       "ColorRed"
 #define IswNcolorGreen     "colorGreen"
