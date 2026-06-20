@@ -1335,45 +1335,22 @@ _IswPlatformUngrabKeyboard(IswDisplay dpy, IswTime time)
 }
 
 void
-_IswPlatformGrabButton(IswDisplay dpy, IswWindow grab_window, int button,
-                       unsigned int modifiers, Boolean owner_events,
-                       unsigned int event_mask, int pointer_mode,
-                       int keyboard_mode, IswWindow confine_to, IswCursor cursor)
+_IswPlatformRegisterBinding(IswDisplay dpy, IswWindow grab_window,
+                            const IswServerGrabRec *grab, Boolean is_keyboard)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
-    if (ops && ops->grab && ops->grab->grab_button)
-        ops->grab->grab_button(dpy, grab_window, button, modifiers,
-                               owner_events, event_mask, pointer_mode,
-                               keyboard_mode, confine_to, cursor);
+    if (ops && ops->grab && ops->grab->register_binding)
+        ops->grab->register_binding(dpy, grab_window, grab, is_keyboard);
 }
 
 void
-_IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
-                    unsigned int modifiers, Boolean owner_events,
-                    int pointer_mode, int keyboard_mode)
+_IswPlatformUnregisterBinding(IswDisplay dpy, IswWindow grab_window,
+                              const IswServerGrabRec *grab,
+                              Boolean is_keyboard)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
-    if (ops && ops->grab && ops->grab->grab_key)
-        ops->grab->grab_key(dpy, grab_window, keycode, modifiers,
-                            owner_events, pointer_mode, keyboard_mode);
-}
-
-void
-_IswPlatformUngrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
-                      unsigned int modifiers)
-{
-    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
-    if (ops && ops->grab && ops->grab->ungrab_key)
-        ops->grab->ungrab_key(dpy, grab_window, keycode, modifiers);
-}
-
-void
-_IswPlatformUngrabButton(IswDisplay dpy, IswWindow grab_window, int button,
-                         unsigned int modifiers)
-{
-    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
-    if (ops && ops->grab && ops->grab->ungrab_button)
-        ops->grab->ungrab_button(dpy, grab_window, button, modifiers);
+    if (ops && ops->grab && ops->grab->unregister_binding)
+        ops->grab->unregister_binding(dpy, grab_window, grab, is_keyboard);
 }
 
 void

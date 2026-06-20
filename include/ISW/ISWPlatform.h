@@ -259,8 +259,9 @@ typedef struct _IswPlatformSelectionOps IswPlatformSelectionOps;
 /* High-level selection — offer/request/disown with UTF-8 text. */
 typedef struct _IswPlatformSelectionHighOps IswPlatformSelectionHighOps;
 
-/* Grabs — passive/active pointer/keyboard/button/key grabs.  Filled in Phase 5. */
+/* Grabs and input bindings.  Filled in Phase 5. */
 typedef struct _IswPlatformGrabOps      IswPlatformGrabOps;
+typedef struct _IswServerGrabRec        IswServerGrabRec;
 
 /* Colormap / visual — alloc by name / RGB, free.  Filled in Phase 4. */
 typedef struct _IswPlatformColorOps     IswPlatformColorOps;
@@ -591,10 +592,18 @@ struct _IswPlatformCursorOps {
  * Grab ops (Phase 5)
  * =================================================================
  *
- * Passive and active pointer / keyboard / button / key grabs.  Backends without
- * a grab concept may stub these (return failure / no-op).  pointer_mode /
+ * Active pointer / keyboard grabs and input bindings.  Backends without a grab
+ * concept may stub active grabs (return failure / no-op).  pointer_mode /
  * keyboard_mode are the numeric async/sync constants; event_mask / modifiers are
  * the neutral mask values.
+ *
+ * register_binding / unregister_binding tell the platform that a surface cares
+ * about a particular key-or-button + modifier combination.  On X11 this
+ * installs a server-side passive grab for atomicity; other backends may no-op
+ * (the toolkit matches bindings in dispatch regardless).  The full
+ * IswServerGrabRec is passed so the backend can read activation parameters
+ * (owner_events, modes, event_mask, confine_to, cursor) if its protocol
+ * requires them at registration time.
  */
 struct _IswPlatformGrabOps {
     int  (*grab_pointer)(IswDisplay dpy, IswWindow grab_window,
@@ -606,18 +615,11 @@ struct _IswPlatformGrabOps {
                           Boolean owner_events, int pointer_mode,
                           int keyboard_mode, IswTime time);
     void (*ungrab_keyboard)(IswDisplay dpy, IswTime time);
-    void (*grab_button)(IswDisplay dpy, IswWindow grab_window, int button,
-                        unsigned int modifiers, Boolean owner_events,
-                        unsigned int event_mask, int pointer_mode,
-                        int keyboard_mode, IswWindow confine_to,
-                        IswCursor cursor);
-    void (*ungrab_button)(IswDisplay dpy, IswWindow grab_window, int button,
-                          unsigned int modifiers);
-    void (*grab_key)(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
-                     unsigned int modifiers, Boolean owner_events,
-                     int pointer_mode, int keyboard_mode);
-    void (*ungrab_key)(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
-                       unsigned int modifiers);
+    void (*register_binding)(IswDisplay dpy, IswWindow grab_window,
+                             const IswServerGrabRec *grab, Boolean is_keyboard);
+    void (*unregister_binding)(IswDisplay dpy, IswWindow grab_window,
+                               const IswServerGrabRec *grab,
+                               Boolean is_keyboard);
     void (*allow_events)(IswDisplay dpy, int mode, IswTime time);
     void (*change_active_pointer_grab)(IswDisplay dpy, IswCursor cursor,
                                        IswTime time, unsigned int event_mask);
@@ -1043,19 +1045,13 @@ extern int  _IswPlatformGrabKeyboard(IswDisplay dpy, IswWindow grab_window,
                                      Boolean owner_events, int pointer_mode,
                                      int keyboard_mode, IswTime time);
 extern void _IswPlatformUngrabKeyboard(IswDisplay dpy, IswTime time);
-extern void _IswPlatformGrabButton(IswDisplay dpy, IswWindow grab_window, int button,
-                                   unsigned int modifiers, Boolean owner_events,
-                                   unsigned int event_mask, int pointer_mode,
-                                   int keyboard_mode, IswWindow confine_to,
-                                   IswCursor cursor);
-extern void _IswPlatformGrabKey(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
-                                unsigned int modifiers, Boolean owner_events,
-                                int pointer_mode, int keyboard_mode);
-/* Release a passive key/button grab installed with the above. */
-extern void _IswPlatformUngrabKey(IswDisplay dpy, IswWindow grab_window,
-                                  IswKeyCode keycode, unsigned int modifiers);
-extern void _IswPlatformUngrabButton(IswDisplay dpy, IswWindow grab_window,
-                                     int button, unsigned int modifiers);
+/* Input bindings — tell the platform a surface cares about a key/button combo. */
+extern void _IswPlatformRegisterBinding(IswDisplay dpy, IswWindow grab_window,
+                                        const IswServerGrabRec *grab,
+                                        Boolean is_keyboard);
+extern void _IswPlatformUnregisterBinding(IswDisplay dpy, IswWindow grab_window,
+                                          const IswServerGrabRec *grab,
+                                          Boolean is_keyboard);
 /* Change the cursor / event mask of the active pointer grab in place. */
 extern void _IswPlatformChangeActivePointerGrab(IswDisplay dpy, IswCursor cursor,
                                                 IswTime time,

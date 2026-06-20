@@ -616,28 +616,7 @@ MakeGrab(IswServerGrabPtr grab,
         pwi->active_handler_added = TRUE;
     }
 
-    if (isKeyboard) {
-        _IswPlatformGrabKey(
-            pDisplay(grab), pWindow(grab), (IswKeyCode) grab->keybut,
-            grab->modifiers, grab->ownerEvents,
-            grab->pointerMode, grab->keyboardMode);
-    }
-    else {
-        IswWindow confineTo = None;
-        IswCursor cursor = None;
-
-        if (grab->hasExt) {
-            if (grab->confineToIsWidgetWin)
-                confineTo = _IswPlatformWidgetWindow(IswDisplayOf((Widget)(grab->widget)), (Widget)(grab->widget));
-            else
-                confineTo = GRABEXT(grab)->confineTo;
-            cursor = GRABEXT(grab)->cursor;
-        }
-        _IswPlatformGrabButton(
-            pDisplay(grab), pWindow(grab), grab->keybut, grab->modifiers,
-            grab->ownerEvents, grab->eventMask,
-            grab->pointerMode, grab->keyboardMode, confineTo, cursor);
-    }
+    _IswPlatformRegisterBinding(pDisplay(grab), pWindow(grab), grab, isKeyboard);
 
     /* Add the new grab entry to the passive key grab list */
     grab->next = *passiveListPtr;
@@ -790,12 +769,8 @@ UngrabKeyOrButton(Widget widget,
 
     if (IswIsRealized(widget)) {
         IswWindow win = _IswPlatformWidgetWindow(IswDisplayOf(widget), widget);
-        if (isKeyboard)
-            _IswPlatformUngrabKey(IswDisplayOf(widget), win,
-                                  (IswKeyCode) keyOrButton, modifiers);
-        else
-            _IswPlatformUngrabButton(IswDisplayOf(widget), win,
-                                     keyOrButton, modifiers);
+        _IswPlatformUnregisterBinding(IswDisplayOf(widget), win,
+                                      &tempGrab, isKeyboard);
     }
 
     /* Delete all entries which are encompassed by the specified grab. */

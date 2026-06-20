@@ -4,7 +4,7 @@
  * Copyright (c) 2026 ISW Project
  *
  * Implements IswPlatformCursorOps (glyph/themed cursor create, set-on-window,
- * free), IswPlatformGrabOps (passive/active pointer/keyboard/button/key grabs),
+ * free), IswPlatformGrabOps (active pointer/keyboard grabs, input bindings),
  * and the three pure-selection protocol verbs of IswPlatformSelectionOps
  * (set/get owner, convert).  Cursor handles are value handles (each IS the
  * native xcb_cursor_t), so the seam conversions below are plain casts.  The
@@ -27,6 +27,7 @@
 #include <X11/cursorfont.h>
 
 #include "IntrinsicI.h"
+#include "PassivGraI.h"
 #include "ISWPlatformPrivate.h"
 #include "ISWContextI.h"
 #include "uthash.h"
@@ -278,54 +279,56 @@ xcb_grb_ungrab_keyboard(IswDisplay dpy, IswTime time)
 }
 
 static void
-xcb_grb_grab_button(IswDisplay dpy, IswWindow grab_window, int button,
-                    unsigned int modifiers, Boolean owner_events,
-                    unsigned int event_mask, int pointer_mode,
-                    int keyboard_mode, IswWindow confine_to, IswCursor cursor)
+xcb_grb_register_binding(IswDisplay dpy, IswWindow grab_window,
+                         const IswServerGrabRec *grab, Boolean is_keyboard)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     if (!conn)
         return;
-    xcb_grab_button(conn, (uint8_t) owner_events, _IswXcbWindow(grab_window),
-                    (uint16_t) event_mask,
-                    (uint8_t) pointer_mode, (uint8_t) keyboard_mode,
-                    _IswXcbWindow(confine_to), _IswXcbCursor(cursor),
-                    (uint8_t) button, (uint16_t) modifiers);
+    if (is_keyboard) {
+        xcb_grab_key(conn, (uint8_t) grab->ownerEvents,
+                     _IswXcbWindow(grab_window),
+                     (uint16_t) grab->modifiers,
+                     (xcb_keycode_t) grab->keybut,
+                     (uint8_t) grab->pointerMode,
+                     (uint8_t) grab->keyboardMode);
+    } else {
+        IswWindow confine_to = None;
+        IswCursor cursor = None;
+        if (grab->hasExt) {
+            if (grab->confineToIsWidgetWin)
+                confine_to = _IswPlatformWidgetWindow(dpy, grab->widget);
+            else
+                confine_to = GRABEXT(grab)->confineTo;
+            cursor = GRABEXT(grab)->cursor;
+        }
+        xcb_grab_button(conn, (uint8_t) grab->ownerEvents,
+                        _IswXcbWindow(grab_window),
+                        (uint16_t) grab->eventMask,
+                        (uint8_t) grab->pointerMode,
+                        (uint8_t) grab->keyboardMode,
+                        _IswXcbWindow(confine_to),
+                        _IswXcbCursor(cursor),
+                        (uint8_t) grab->keybut,
+                        (uint16_t) grab->modifiers);
+    }
 }
 
 static void
-xcb_grb_ungrab_button(IswDisplay dpy, IswWindow grab_window, int button,
-                      unsigned int modifiers)
+xcb_grb_unregister_binding(IswDisplay dpy, IswWindow grab_window,
+                           const IswServerGrabRec *grab, Boolean is_keyboard)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
     if (!conn)
         return;
-    xcb_ungrab_button(conn, (uint8_t) button, _IswXcbWindow(grab_window),
-                      (uint16_t) modifiers);
-}
-
-static void
-xcb_grb_grab_key(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
-                 unsigned int modifiers, Boolean owner_events,
-                 int pointer_mode, int keyboard_mode)
-{
-    xcb_connection_t *conn = _IswXcbConn(dpy);
-    if (!conn)
-        return;
-    xcb_grab_key(conn, (uint8_t) owner_events, _IswXcbWindow(grab_window),
-                 (uint16_t) modifiers, (xcb_keycode_t) keycode,
-                 (uint8_t) pointer_mode, (uint8_t) keyboard_mode);
-}
-
-static void
-xcb_grb_ungrab_key(IswDisplay dpy, IswWindow grab_window, IswKeyCode keycode,
-                   unsigned int modifiers)
-{
-    xcb_connection_t *conn = _IswXcbConn(dpy);
-    if (!conn)
-        return;
-    xcb_ungrab_key(conn, (xcb_keycode_t) keycode, _IswXcbWindow(grab_window),
-                   (uint16_t) modifiers);
+    if (is_keyboard)
+        xcb_ungrab_key(conn, (xcb_keycode_t) grab->keybut,
+                       _IswXcbWindow(grab_window),
+                       (uint16_t) grab->modifiers);
+    else
+        xcb_ungrab_button(conn, (uint8_t) grab->keybut,
+                          _IswXcbWindow(grab_window),
+                          (uint16_t) grab->modifiers);
 }
 
 static void
@@ -552,10 +555,8 @@ const IswPlatformGrabOps isw_platform_xcb_grab_ops = {
     .ungrab_pointer  = xcb_grb_ungrab_pointer,
     .grab_keyboard   = xcb_grb_grab_keyboard,
     .ungrab_keyboard = xcb_grb_ungrab_keyboard,
-    .grab_button     = xcb_grb_grab_button,
-    .ungrab_button   = xcb_grb_ungrab_button,
-    .grab_key        = xcb_grb_grab_key,
-    .ungrab_key      = xcb_grb_ungrab_key,
+    .register_binding   = xcb_grb_register_binding,
+    .unregister_binding = xcb_grb_unregister_binding,
     .allow_events    = xcb_grb_allow_events,
     .change_active_pointer_grab = xcb_grb_change_active_pointer_grab,
 };
