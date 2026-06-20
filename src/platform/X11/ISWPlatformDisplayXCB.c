@@ -1267,11 +1267,11 @@ _IswPlatformLoadFallbackFont(IswDisplay dpy)
 /* Cursor (Phase 5) */
 IswCursor
 _IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,
-                            const char *name, unsigned int fallback_shape)
+                            const char *name)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->cursor && ops->cursor->load_named)
-        return ops->cursor->load_named(dpy, screen, name, fallback_shape);
+        return ops->cursor->load_named(dpy, screen, name);
     return 0;
 }
 

@@ -199,8 +199,7 @@ extern Boolean _IswIsHookObject(
 extern IswCursor _IswLoadThemedCursor(
     IswDisplay		/* dpy */,
     IswScreen		/* screen */,
-    const char *	/* name */,
-    unsigned int	/* shape (fallback glyph) */
+    const char *	/* name */
 );
 
 extern void _IswAddShellToHookObj(

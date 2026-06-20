@@ -26,8 +26,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define XC_sb_h_double_arrow 108
-
 #define CELL_PAD_X   6
 #define CELL_PAD_Y   2
 #define RESIZE_GRIP  4   /* pixels from column separator edge for resize cursor */
@@ -451,7 +449,7 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
     ResolveForegroundRGB(lv);
 
     lv->listView.resize_cursor = _IswLoadThemedCursor(dpy, w->core.screen,
-        "sb_h_double_arrow", XC_sb_h_double_arrow);
+        "sb_h_double_arrow");
     lv->listView.default_cursor = ((SimpleWidget)w)->simple.cursor;
 }
 

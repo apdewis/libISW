@@ -85,7 +85,6 @@ in this Software without prior written authorization from The Open Group.
 #include <ISW/FocusMgrI.h>
 #include <ISW/SimpleP.h>
 
-#include <X11/cursorfont.h>
 #include <ISW/IswDragDrop.h>
 #include "ISWPlatformPrivate.h"
 #include <stdio.h>
@@ -1131,7 +1130,7 @@ Realize(IswDisplay dpy, Widget wid, Mask *vmask, uint32_t *attr)
            left_ptr instead of the X server's default glyph cursor. */
         {
             IswCursor cursor = _IswLoadThemedCursor(
-                IswDisplayOf(wid), wid->core.screen, "left_ptr", XC_left_ptr);
+                IswDisplayOf(wid), wid->core.screen, "left_ptr");
             if (cursor != IswCursorNone)
                 _IswSetWindowCursor(wid, cursor);
         }

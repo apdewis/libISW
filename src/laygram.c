@@ -79,7 +79,6 @@
 /* System Xlib headers removed - IswQuark/IswStringToQuark available via X11/IntrinsicP.h from custom libXt */
 #include    <stdio.h>
 #include    <ISW/IntrinsicP.h>
-#include    <X11/cursorfont.h>
 #include    <ISW/StringDefs.h>
 
 #include    <ISW/LayoutP.h>

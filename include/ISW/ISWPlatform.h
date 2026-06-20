@@ -576,10 +576,10 @@ struct _IswPlatformFontOps {
 struct _IswPlatformCursorOps {
     /* Glyph cursor from the standard cursor font for `shape`. */
     IswCursor (*create_glyph)(IswDisplay dpy, unsigned int shape);
-    /* Theme-aware named cursor ("hand2", "watch", …); falls back to the glyph
-       cursor for `fallback_shape` if the theme lookup fails. */
+    /* Theme-aware named cursor ("hand2", "watch", …); the backend resolves
+       the name to a platform-specific fallback if the theme lookup fails. */
     IswCursor (*load_named)(IswDisplay dpy, IswScreen screen,
-                            const char *name, unsigned int fallback_shape);
+                            const char *name);
     /* Set the pointer cursor on a window (0 = revert to parent's). */
     void (*set_window_cursor)(IswDisplay dpy, IswWindow win, IswCursor cursor);
     /* Release a cursor (no-op for 0). */
@@ -1028,8 +1028,7 @@ extern IswFontStruct *_IswPlatformLoadFallbackFont(IswDisplay dpy);
 
 /* Cursor */
 extern IswCursor _IswPlatformLoadNamedCursor(IswDisplay dpy, IswScreen screen,
-                                             const char *name,
-                                             unsigned int fallback_shape);
+                                             const char *name);
 extern void      _IswPlatformSetWindowCursor(IswDisplay dpy, IswWindow win,
                                              IswCursor cursor);
 extern void      _IswPlatformFreeCursor(IswDisplay dpy, IswCursor cursor);
