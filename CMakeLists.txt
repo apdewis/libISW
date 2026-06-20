@@ -203,6 +203,7 @@ set(LIBXT_SOURCES
     src/platform/X11/ISWPlatformGrabCursorXCB.c
     src/platform/X11/ISWPlatformAtomPropXCB.c
     src/platform/X11/ISWPlatformDndXCB.c
+    src/platform/X11/ISWPlatformSelectionXCB.c
     src/IswDragDrop.c
     src/platform/X11/ISWPlatformResourceXCB.c
     src/EventUtil.c
