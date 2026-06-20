@@ -6,7 +6,7 @@
  * The generic half of the DnD engine: type/action negotiation, per-widget drop
  * registration, widget-geometry hit-testing, modifier->action mapping and
  * URI-list parsing.  No platform (xcb) type appears here; type identities are
- * neutral Atom ids compared opaquely.  The platform DnD backend
+ * plain C strings compared with strcmp.  The platform DnD backend
  * (ISWPlatformDndXCB.c) drives the wire protocol and calls into these.
  */
 
@@ -19,32 +19,6 @@
 #include <ISW/IntrinsicP.h>
 #include <ISW/CompositeP.h>
 #include <ISW/IswDragDropP.h>
-
-/* ------------------------------------------------------------------ */
-/* Action id <-> enum                                                 */
-/* ------------------------------------------------------------------ */
-
-IswDndAction
-_IswDndAtomToAction(const IswDndCore *core, Atom atom)
-{
-    if (atom == core->action_copy)    return ISW_DND_ACTION_COPY;
-    if (atom == core->action_move)    return ISW_DND_ACTION_MOVE;
-    if (atom == core->action_link)    return ISW_DND_ACTION_LINK;
-    if (atom == core->action_ask)     return ISW_DND_ACTION_ASK;
-    if (atom == core->action_private) return ISW_DND_ACTION_PRIVATE;
-    return ISW_DND_ACTION_NONE;
-}
-
-Atom
-_IswDndActionToAtom(const IswDndCore *core, IswDndAction action)
-{
-    if (action & ISW_DND_ACTION_COPY)    return core->action_copy;
-    if (action & ISW_DND_ACTION_MOVE)    return core->action_move;
-    if (action & ISW_DND_ACTION_LINK)    return core->action_link;
-    if (action & ISW_DND_ACTION_ASK)     return core->action_ask;
-    if (action & ISW_DND_ACTION_PRIVATE) return core->action_private;
-    return None;
-}
 
 IswDndAction
 _IswDndModifiersToAction(unsigned int modifiers)
@@ -93,30 +67,27 @@ _IswDndGetOrCreateConfig(IswDndCore *core, Widget w)
 
 Boolean
 _IswDndNegotiateType(IswDndCore *core, Widget target,
-                     Atom *type_out, IswDndAction *action_out)
+                     const char **type_out, IswDndAction *action_out)
 {
     DropConfig *dc = _IswDndFindConfig(core, target);
 
-    /* Find best matching type */
-    Atom best_type = None;
+    const char *best_type = NULL;
 
     if (dc && dc->accepted_types && dc->num_accepted_types > 0) {
-        /* Intersect source types with target's accepted types */
-        for (int i = 0; i < dc->num_accepted_types && best_type == None; i++) {
+        for (int i = 0; i < dc->num_accepted_types && !best_type; i++) {
             for (int j = 0; j < core->src_num_types; j++) {
-                if (dc->accepted_types[i] == core->src_types[j]) {
+                if (strcmp(dc->accepted_types[i], core->src_types[j]) == 0) {
                     best_type = dc->accepted_types[i];
                     break;
                 }
             }
         }
     } else {
-        /* No type filter — accept first offered type */
         if (core->src_num_types > 0)
             best_type = core->src_types[0];
     }
 
-    if (best_type == None)
+    if (!best_type)
         return False;
 
     /* Find best matching action */

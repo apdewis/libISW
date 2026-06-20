@@ -805,7 +805,7 @@ struct _IswPlatformDndOps {
     void    (*widget_accept_drops)(Widget w);
     void    (*start_drag)(Widget source, IswEvent *trigger,
                           IswDragSourceDesc *desc);
-    void    (*set_accepted_types)(Widget w, Atom *types, int num_types);
+    void    (*set_accepted_types)(Widget w, const char **types, int num_types);
     void    (*set_accepted_actions)(Widget w, IswDndAction actions);
     void    (*set_drop_callback)(Widget w, IswCallbackProc proc,
                                  IswPointer closure);
@@ -813,7 +813,6 @@ struct _IswPlatformDndOps {
                                         IswPointer closure);
     void    (*set_drag_leave_callback)(Widget w, IswCallbackProc proc,
                                         IswPointer closure);
-    Atom    (*intern_type)(Widget w, const char *mime_type);
     Boolean (*is_dragging)(Widget w);
 };
 

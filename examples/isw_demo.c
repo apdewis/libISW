@@ -2379,18 +2379,14 @@ void drag_leave_callback(Widget w, IswPointer client_data, IswPointer call_data)
 
 /* Drag source convert proc — provides text/plain data */
 static Boolean
-demo_drag_convert(Widget widget, Atom target_type,
+demo_drag_convert(Widget widget, const char *target_type,
                   IswPointer *data_return, unsigned long *length_return,
                   int *format_return, IswPointer client_data)
 {
     (void) widget;
     (void) client_data;
 
-    /* Check if the target is text/plain */
-    Atom text_plain = IswDndInternType(widget, "text/plain");
-    Atom text_uri = IswDndInternType(widget, "text/uri-list");
-
-    if (target_type == text_plain) {
+    if (strcmp(target_type, "text/plain") == 0) {
         const char *msg = "Hello from ISW drag source!";
         int len = strlen(msg);
         char *copy = IswMalloc(len + 1);
@@ -2401,7 +2397,7 @@ demo_drag_convert(Widget widget, Atom target_type,
         return True;
     }
 
-    if (target_type == text_uri) {
+    if (strcmp(target_type, "text/uri-list") == 0) {
         const char *uri = "file:///tmp/isw-demo-drag\r\n";
         int len = strlen(uri);
         char *copy = IswMalloc(len + 1);
@@ -2431,9 +2427,7 @@ void drag_start_action(Widget w, IswEvent *event,
     (void) params;
     (void) num_params;
 
-    Atom types[2];
-    types[0] = IswDndInternType(w, "text/plain");
-    types[1] = IswDndInternType(w, "text/uri-list");
+    const char *types[] = { "text/plain", "text/uri-list" };
 
     IswDragSourceDesc desc;
     memset(&desc, 0, sizeof(desc));

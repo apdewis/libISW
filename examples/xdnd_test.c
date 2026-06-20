@@ -143,20 +143,18 @@ drag_leave_callback(Widget w, IswPointer client_data, IswPointer call_data)
 /* ------------------------------------------------------------------ */
 
 static Boolean
-drag_convert(Widget widget, Atom target_type,
+drag_convert(Widget widget, const char *target_type,
              IswPointer *data_return, unsigned long *length_return,
              int *format_return, IswPointer client_data)
 {
+    (void) widget;
     (void) client_data;
 
     const char *name =
         (dragged_index >= 0 && dragged_index < NUM_ITEMS)
             ? item_labels[dragged_index] : "unknown";
 
-    Atom text_plain = IswDndInternType(widget, "text/plain");
-    Atom text_uri   = IswDndInternType(widget, "text/uri-list");
-
-    if (target_type == text_plain) {
+    if (strcmp(target_type, "text/plain") == 0) {
         int len = (int) strlen(name);
         char *copy = IswMalloc(len + 1);
         memcpy(copy, name, len + 1);
@@ -168,7 +166,7 @@ drag_convert(Widget widget, Atom target_type,
         return True;
     }
 
-    if (target_type == text_uri) {
+    if (strcmp(target_type, "text/uri-list") == 0) {
         char uri[512];
         int len = snprintf(uri, sizeof(uri),
                            "file:///tmp/isw-xdnd-test/%s\r\n", name);
@@ -228,9 +226,7 @@ drag_start_action(Widget w, IswEvent *event,
            dragged_index, item_labels[dragged_index]);
     fflush(stdout);
 
-    Atom types[2];
-    types[0] = IswDndInternType(w, "text/plain");
-    types[1] = IswDndInternType(w, "text/uri-list");
+    const char *types[] = { "text/plain", "text/uri-list" };
 
     IswDragSourceDesc desc;
     memset(&desc, 0, sizeof(desc));
@@ -354,9 +350,7 @@ main(int argc, char *argv[])
 
     /* Only accept the types we know how to handle. */
     {
-        Atom accepted[2];
-        accepted[0] = IswDndInternType(drop_target, "text/plain");
-        accepted[1] = IswDndInternType(drop_target, "text/uri-list");
+        const char *accepted[] = { "text/plain", "text/uri-list" };
         IswDndSetAcceptedTypes(drop_target, accepted, 2);
         IswDndSetAcceptedActions(drop_target,
                                   ISW_DND_ACTION_COPY | ISW_DND_ACTION_MOVE);

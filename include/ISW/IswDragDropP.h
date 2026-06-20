@@ -4,12 +4,11 @@
  * Copyright (c) 2026 ISW Project
  *
  * The generic half of the DnD engine: drag/drop policy and state that carries
- * NO platform (xcb) type.  Type identities cross as neutral `Atom` ids (the
- * backend's native atom values, compared opaquely here — never interpreted as X
- * atoms).  A platform DnD backend (ISWPlatformDndXCB.c) embeds an IswDndCore in
- * its per-shell state, fills the protocol-atom id fields from its interned
- * atoms, and drives the wire protocol; the policy functions below operate on the
- * core alone.
+ * NO platform (xcb) type.  MIME types are plain C strings; the platform DnD
+ * backend (ISWPlatformDndXCB.c) translates to/from wire atoms internally.
+ * A platform DnD backend embeds an IswDndCore in its per-shell state and
+ * drives the wire protocol; the policy functions below operate on the core
+ * alone.
  */
 
 #ifndef _IswDragDropP_h
@@ -18,12 +17,12 @@
 #include <ISW/Intrinsic.h>
 #include <ISW/IswDragDrop.h>
 
-/* Per-widget drop registration (neutral): accepted types as Atom ids, accepted
+/* Per-widget drop registration: accepted types as MIME strings, accepted
    actions, and direct enter/motion/leave/drop callbacks for widget classes that
    do not declare the DnD callback resources. */
 typedef struct _DropConfig {
     Widget              widget;
-    Atom               *accepted_types;
+    const char        **accepted_types;
     int                 num_accepted_types;
     IswDndAction        accepted_actions;
     IswCallbackProc     drop_proc;
@@ -36,30 +35,20 @@ typedef struct _DropConfig {
 } DropConfig;
 
 /* Neutral DnD state, embedded in the backend's per-shell record.  Holds all
-   drag/drop policy state with no native handle.  The action/MIME id fields are
-   neutral Atom ids the backend fills from its interned protocol atoms. */
+   drag/drop policy state with no native handle.  MIME types are strings; the
+   backend translates to/from wire atoms internally. */
 typedef struct _IswDndCore {
     Widget          shell;
     DropConfig     *drop_configs;
 
-    /* Negotiation id vocabulary (filled by the backend from interned atoms). */
-    Atom            action_copy;
-    Atom            action_move;
-    Atom            action_link;
-    Atom            action_ask;
-    Atom            action_private;
-    Atom            text_uri_list;
-    Atom            text_plain;
-    Atom            targets_atom;
-
     /* --- Drop target state (we are the drop target) --- */
-    Atom           *src_types;          /* types offered by source (Atom ids)   */
+    const char    **src_types;          /* MIME type strings offered by source  */
     int             src_num_types;
     IswDndAction    src_actions;        /* actions offered by source            */
     int             src_version;        /* source protocol version              */
     int             drop_x, drop_y;     /* last position (root coords)          */
     Widget          hover_widget;       /* widget currently under cursor        */
-    Atom            negotiated_type;    /* type accepted for current drop       */
+    const char     *negotiated_type;    /* MIME type accepted for current drop  */
     IswDndAction    negotiated_action;  /* action accepted for current drop     */
 
     /* --- Drag source state (we are the drag source) --- */
@@ -86,11 +75,6 @@ typedef struct _IswDndCore {
 
 /* ---- Neutral policy functions (ISWDragDrop.c) ---------------------------- */
 
-/* Map a negotiation action id <-> the IswDndAction enum, using the core's
-   interned action ids. */
-IswDndAction _IswDndAtomToAction(const IswDndCore *core, Atom atom);
-Atom         _IswDndActionToAtom(const IswDndCore *core, IswDndAction action);
-
 /* Keyboard modifier state (neutral IswMod* bits) -> proposed action. */
 IswDndAction _IswDndModifiersToAction(unsigned int modifiers);
 
@@ -103,7 +87,7 @@ DropConfig  *_IswDndGetOrCreateConfig(IswDndCore *core, Widget w);
    config, accept the first offered type and copy/move/link).  Returns False if
    no type or action is common. */
 Boolean      _IswDndNegotiateType(IswDndCore *core, Widget target,
-                                  Atom *type_out, IswDndAction *action_out);
+                                  const char **type_out, IswDndAction *action_out);
 
 /* Recursive widget-geometry hit-test: the deepest realized, managed child at
    widget-local (wx,wy) that is a registered drop target.  NULL if none. */

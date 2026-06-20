@@ -1905,7 +1905,7 @@ _IswPlatformDndStartDrag(Widget source, IswEvent *trigger,
 }
 
 void
-_IswPlatformDndSetAcceptedTypes(Widget w, Atom *types, int num_types)
+_IswPlatformDndSetAcceptedTypes(Widget w, const char **types, int num_types)
 {
     const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
     if (ops && ops->dnd && ops->dnd->set_accepted_types)
@@ -1944,14 +1944,6 @@ _IswPlatformDndSetDragLeaveCallback(Widget w, IswCallbackProc proc, IswPointer c
         ops->dnd->set_drag_leave_callback(w, proc, closure);
 }
 
-Atom
-_IswPlatformDndInternType(Widget w, const char *mime_type)
-{
-    const IswPlatformOps *ops = _IswGetPerDisplay(IswDisplayOfObject(w))->ops;
-    if (ops && ops->dnd && ops->dnd->intern_type)
-        return ops->dnd->intern_type(w, mime_type);
-    return ISW_ATOM_NONE;
-}
 
 Boolean
 _IswPlatformDndIsDragging(Widget w)

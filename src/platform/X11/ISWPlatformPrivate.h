@@ -99,7 +99,7 @@ void    _IswPlatformDndEnable(Widget shell);
 void    _IswPlatformDndWidgetAcceptDrops(Widget w);
 void    _IswPlatformDndStartDrag(Widget source, IswEvent *trigger,
                                  IswDragSourceDesc *desc);
-void    _IswPlatformDndSetAcceptedTypes(Widget w, Atom *types, int num_types);
+void    _IswPlatformDndSetAcceptedTypes(Widget w, const char **types, int num_types);
 void    _IswPlatformDndSetAcceptedActions(Widget w, IswDndAction actions);
 void    _IswPlatformDndSetDropCallback(Widget w, IswCallbackProc proc,
                                        IswPointer closure);
@@ -107,7 +107,6 @@ void    _IswPlatformDndSetDragMotionCallback(Widget w, IswCallbackProc proc,
                                              IswPointer closure);
 void    _IswPlatformDndSetDragLeaveCallback(Widget w, IswCallbackProc proc,
                                             IswPointer closure);
-Atom    _IswPlatformDndInternType(Widget w, const char *mime_type);
 Boolean _IswPlatformDndIsDragging(Widget w);
 
 /*

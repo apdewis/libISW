@@ -247,16 +247,51 @@ InternAtoms(XdndState *st, xcb_connection_t *conn)
 
     st->targets_atom   = IswXcbInternAtom(conn, "TARGETS", False);
 
-    /* Mirror the negotiation vocabulary into the neutral core so the
-       platform-neutral policy functions can compare type/action ids. */
-    st->core.action_copy    = (Atom) st->action_copy;
-    st->core.action_move    = (Atom) st->action_move;
-    st->core.action_link    = (Atom) st->action_link;
-    st->core.action_ask     = (Atom) st->action_ask;
-    st->core.action_private = (Atom) st->action_private;
-    st->core.text_uri_list  = (Atom) st->text_uri_list;
-    st->core.text_plain     = (Atom) st->text_plain;
-    st->core.targets_atom   = (Atom) st->targets_atom;
+}
+
+static IswDndAction
+XdndAtomToAction(XdndState *st, xcb_atom_t atom)
+{
+    if (atom == st->action_copy)    return ISW_DND_ACTION_COPY;
+    if (atom == st->action_move)    return ISW_DND_ACTION_MOVE;
+    if (atom == st->action_link)    return ISW_DND_ACTION_LINK;
+    if (atom == st->action_ask)     return ISW_DND_ACTION_ASK;
+    if (atom == st->action_private) return ISW_DND_ACTION_PRIVATE;
+    return ISW_DND_ACTION_NONE;
+}
+
+static xcb_atom_t
+XdndActionToAtom(XdndState *st, IswDndAction action)
+{
+    if (action & ISW_DND_ACTION_COPY)    return st->action_copy;
+    if (action & ISW_DND_ACTION_MOVE)    return st->action_move;
+    if (action & ISW_DND_ACTION_LINK)    return st->action_link;
+    if (action & ISW_DND_ACTION_ASK)     return st->action_ask;
+    if (action & ISW_DND_ACTION_PRIVATE) return st->action_private;
+    return XCB_ATOM_NONE;
+}
+
+static const char *
+XdndAtomToString(XdndState *st, xcb_atom_t atom)
+{
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
+    xcb_get_atom_name_cookie_t cookie = xcb_get_atom_name(conn, atom);
+    xcb_get_atom_name_reply_t *reply = xcb_get_atom_name_reply(conn, cookie, NULL);
+    if (!reply)
+        return NULL;
+    int len = xcb_get_atom_name_name_length(reply);
+    char *str = IswMalloc(len + 1);
+    memcpy(str, xcb_get_atom_name_name(reply), len);
+    str[len] = '\0';
+    free(reply);
+    return str;
+}
+
+static xcb_atom_t
+XdndStringToAtom(XdndState *st, const char *name)
+{
+    xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
+    return IswXcbInternAtom(conn, name, False);
 }
 
 /* ------------------------------------------------------------------ */
@@ -509,7 +544,7 @@ xcb_dnd_widget_accept_drops(Widget w)
 }
 
 static void
-xcb_dnd_set_accepted_types(Widget w, Atom *types, int num_types)
+xcb_dnd_set_accepted_types(Widget w, const char **types, int num_types)
 {
     XdndState *st = GetXdndStateForWidget(w);
     if (!st)
@@ -517,12 +552,16 @@ xcb_dnd_set_accepted_types(Widget w, Atom *types, int num_types)
 
     DropConfig *dc = _IswDndGetOrCreateConfig(&st->core, w);
 
-    if (dc->accepted_types)
+    if (dc->accepted_types) {
+        for (int i = 0; i < dc->num_accepted_types; i++)
+            IswFree((char *) dc->accepted_types[i]);
         IswFree((char *) dc->accepted_types);
+    }
 
     if (types && num_types > 0) {
-        dc->accepted_types = (Atom *) IswMalloc(num_types * sizeof(Atom));
-        memcpy(dc->accepted_types, types, num_types * sizeof(Atom));
+        dc->accepted_types = (const char **) IswMalloc(num_types * sizeof(const char *));
+        for (int i = 0; i < num_types; i++)
+            dc->accepted_types[i] = IswNewString(types[i]);
         dc->num_accepted_types = num_types;
     } else {
         dc->accepted_types = NULL;
@@ -575,12 +614,6 @@ xcb_dnd_set_drag_leave_callback(Widget w, IswCallbackProc proc, IswPointer closu
     DropConfig *dc = _IswDndGetOrCreateConfig(&st->core, w);
     dc->leave_proc = proc;
     dc->leave_closure = closure;
-}
-
-static Atom
-xcb_dnd_intern_type(Widget w, const char *mime_type)
-{
-    return (Atom) IswXcbInternAtom(_IswXcbConn(IswDisplayOf(w)), mime_type, False);
 }
 
 static Boolean
@@ -652,15 +685,18 @@ HandleTargetEnter(XdndState *st, const uint32_t *data)
 
     /* Free previous type list */
     if (st->core.src_types) {
+        for (int i = 0; i < st->core.src_num_types; i++)
+            IswFree((char *) st->core.src_types[i]);
         IswFree((char *) st->core.src_types);
         st->core.src_types = NULL;
         st->core.src_num_types = 0;
     }
 
     Boolean use_type_list = (data[1] & 1);
+    xcb_atom_t raw_atoms[256];
+    int count = 0;
 
     if (use_type_list) {
-        /* More than 3 types — read XdndTypeList property */
         xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
         xcb_get_property_cookie_t cookie =
             xcb_get_property(conn, False, st->src_window,
@@ -669,34 +705,30 @@ HandleTargetEnter(XdndState *st, const uint32_t *data)
             xcb_get_property_reply(conn, cookie, NULL);
         if (reply) {
             xcb_atom_t *atoms = (xcb_atom_t *) xcb_get_property_value(reply);
-            int count = xcb_get_property_value_length(reply) / sizeof(xcb_atom_t);
-            if (count > 0) {
-                st->core.src_types = (Atom *) IswMalloc(count * sizeof(Atom));
-                memcpy(st->core.src_types, atoms, count * sizeof(Atom));
-                st->core.src_num_types = count;
-            }
+            count = xcb_get_property_value_length(reply) / sizeof(xcb_atom_t);
+            if (count > 256) count = 256;
+            memcpy(raw_atoms, atoms, count * sizeof(xcb_atom_t));
             free(reply);
         }
     } else {
-        /* Up to 3 types in data[2..4] */
-        int count = 0;
-        Atom types[3];
         for (int i = 2; i <= 4; i++) {
             if (data[i] != XCB_ATOM_NONE)
-                types[count++] = (Atom) data[i];
+                raw_atoms[count++] = (xcb_atom_t) data[i];
         }
-        if (count > 0) {
-            st->core.src_types = (Atom *) IswMalloc(count * sizeof(Atom));
-            memcpy(st->core.src_types, types, count * sizeof(Atom));
-            st->core.src_num_types = count;
-        }
+    }
+
+    if (count > 0) {
+        st->core.src_types = (const char **) IswMalloc(count * sizeof(const char *));
+        st->core.src_num_types = count;
+        for (int i = 0; i < count; i++)
+            st->core.src_types[i] = XdndAtomToString(st, raw_atoms[i]);
     }
 
     /* Default: assume copy is offered (many sources don't advertise actions) */
     st->core.src_actions = ISW_DND_ACTION_COPY;
 
     st->core.hover_widget = NULL;
-    st->core.negotiated_type = XCB_ATOM_NONE;
+    st->core.negotiated_type = NULL;
     st->core.negotiated_action = ISW_DND_ACTION_NONE;
 }
 
@@ -709,9 +741,8 @@ HandleTargetPosition(XdndState *st, const uint32_t *data)
 {
     st->core.drop_x = (int)(data[2] >> 16);
     st->core.drop_y = (int)(data[2] & 0xFFFF);
-    /* Extract proposed action from source */
-    Atom proposed_atom = (Atom) data[4];
-    IswDndAction proposed = _IswDndAtomToAction(&st->core, proposed_atom);
+    xcb_atom_t proposed_atom = (xcb_atom_t) data[4];
+    IswDndAction proposed = XdndAtomToAction(st, proposed_atom);
     if (proposed == ISW_DND_ACTION_NONE)
         proposed = ISW_DND_ACTION_COPY;
 
@@ -747,9 +778,8 @@ HandleTargetPosition(XdndState *st, const uint32_t *data)
         }
     }
 
-    /* Negotiate type/action */
     Boolean accept = False;
-    Atom accepted_type = XCB_ATOM_NONE;
+    const char *accepted_type = NULL;
     IswDndAction accepted_action = ISW_DND_ACTION_NONE;
 
     if (target) {
@@ -775,7 +805,7 @@ HandleTargetPosition(XdndState *st, const uint32_t *data)
 
             IswCallCallbacks(target, IswNdragMotionCallback, (IswPointer) &cbd);
 
-            if (cbd.accepted_type != XCB_ATOM_NONE) {
+            if (cbd.accepted_type != NULL) {
                 accepted_type = cbd.accepted_type;
                 accepted_action = cbd.accepted_action;
                 accept = True;
@@ -803,7 +833,7 @@ HandleTargetPosition(XdndState *st, const uint32_t *data)
 
                 dc->motion_proc(target, dc->motion_closure, (IswPointer) &cbd);
 
-                if (cbd.accepted_type != XCB_ATOM_NONE) {
+                if (cbd.accepted_type != NULL) {
                     accepted_type = cbd.accepted_type;
                     accepted_action = cbd.accepted_action;
                     accept = True;
@@ -822,7 +852,7 @@ HandleTargetPosition(XdndState *st, const uint32_t *data)
     st->core.negotiated_action = accepted_action;
 
     SendXdndStatus(st, accept,
-                   accept ? (xcb_atom_t) _IswDndActionToAtom(&st->core, accepted_action)
+                   accept ? XdndActionToAtom(st, accepted_action)
                           : XCB_ATOM_NONE);
 }
 
@@ -834,15 +864,15 @@ static void
 HandleTargetDrop(XdndState *st, const uint32_t *data)
 {
     st->drop_timestamp = data[2];
-    if (st->core.negotiated_type == XCB_ATOM_NONE || !st->core.hover_widget) {
+    if (!st->core.negotiated_type || !st->core.hover_widget) {
         SendXdndFinished(st, False, XCB_ATOM_NONE);
         HandleTargetLeave(st);
         return;
     }
 
-    /* Request the data via Xt selection mechanism — gets INCR for free */
+    xcb_atom_t type_atom = XdndStringToAtom(st, st->core.negotiated_type);
     IswGetSelectionValue(st->core.shell, st->XdndSelection,
-                        (xcb_atom_t) st->core.negotiated_type,
+                        type_atom,
                         TargetSelectionCallback,
                         (IswPointer) st,
                         st->drop_timestamp);
@@ -864,14 +894,12 @@ TargetSelectionCallback(Widget w, IswPointer closure,
     (void) selection;
 
     if (!value || !length || *length == 0) {
-        /* Selection transfer failed — read the data directly from the
-         * source window property (set eagerly by IswDndStartDrag).
-         * This bypasses the Xt selection mechanism which is unreliable
-         * for cross-client transfers in XCB-based Xt. */
         xcb_connection_t *conn = _IswXcbConn(IswDisplayOf(st->core.shell));
+        xcb_atom_t neg_atom = st->core.negotiated_type
+            ? XdndStringToAtom(st, st->core.negotiated_type) : XCB_ATOM_NONE;
         xcb_get_property_cookie_t cookie =
             xcb_get_property(conn, False, st->src_window,
-                             (xcb_atom_t) st->core.negotiated_type, XCB_ATOM_ANY, 0, 65536);
+                             neg_atom, XCB_ATOM_ANY, 0, 65536);
         xcb_get_property_reply_t *reply =
             xcb_get_property_reply(conn, cookie, NULL);
 
@@ -880,14 +908,12 @@ TargetSelectionCallback(Widget w, IswPointer closure,
             int data_len = xcb_get_property_value_length(reply);
 
             if (data && data_len > 0) {
-                /* Make a copy since we need it after freeing the reply */
                 char *data_copy = IswMalloc(data_len);
                 memcpy(data_copy, data, data_len);
 
                 unsigned long len = data_len;
                 int fmt = 8;
-                xcb_atom_t tp = (xcb_atom_t) st->core.negotiated_type;
-                /* Recurse with the data we got */
+                xcb_atom_t tp = neg_atom;
                 free(reply);
                 TargetSelectionCallback(w, closure, selection,
                                         &tp, data_copy, &len, &fmt);
@@ -922,12 +948,12 @@ TargetSelectionCallback(Widget w, IswPointer closure,
 
         cb.data = value;
         cb.data_length = *length;
-        cb.data_type = *type;
+        cb.data_type = st->core.negotiated_type;
         cb.data_format = format ? *format : 8;
         cb.action = st->core.negotiated_action;
 
-        /* Populate legacy URI fields if type is text/uri-list */
-        if (*type == st->text_uri_list) {
+        if (st->core.negotiated_type &&
+            strcmp(st->core.negotiated_type, "text/uri-list") == 0) {
             cb.uris = _IswDndParseUriList((const char *) value, (int) *length,
                                           &cb.num_uris);
         }
@@ -953,7 +979,7 @@ TargetSelectionCallback(Widget w, IswPointer closure,
     IswFree(value);
 
     SendXdndFinished(st, True,
-                     (xcb_atom_t) _IswDndActionToAtom(&st->core, st->core.negotiated_action));
+                     XdndActionToAtom(st, st->core.negotiated_action));
 
     /* Fire dragLeave on the hover widget */
     if (st->core.hover_widget &&
@@ -972,11 +998,13 @@ TargetSelectionCallback(Widget w, IswPointer closure,
     st->src_window = 0;
     st->core.hover_widget = NULL;
     if (st->core.src_types) {
+        for (int i = 0; i < st->core.src_num_types; i++)
+            IswFree((char *) st->core.src_types[i]);
         IswFree((char *) st->core.src_types);
         st->core.src_types = NULL;
         st->core.src_num_types = 0;
     }
-    st->core.negotiated_type = XCB_ATOM_NONE;
+    st->core.negotiated_type = NULL;
     st->core.negotiated_action = ISW_DND_ACTION_NONE;
 }
 
@@ -1002,11 +1030,13 @@ HandleTargetLeave(XdndState *st)
     st->src_window = 0;
     st->core.hover_widget = NULL;
     if (st->core.src_types) {
+        for (int i = 0; i < st->core.src_num_types; i++)
+            IswFree((char *) st->core.src_types[i]);
         IswFree((char *) st->core.src_types);
         st->core.src_types = NULL;
         st->core.src_num_types = 0;
     }
-    st->core.negotiated_type = XCB_ATOM_NONE;
+    st->core.negotiated_type = NULL;
     st->core.negotiated_action = ISW_DND_ACTION_NONE;
 }
 
@@ -1109,28 +1139,35 @@ xcb_dnd_start_drag(Widget source_widget,
     st->drag_icon_visual = 0;
     st->core.finished_timer = 0;
 
-    /* Copy the type list (caller's array may be transient) */
+    /* Copy the type list as strings (caller's array may be transient) */
     if (desc->num_types > 0) {
-        st->core.drag_desc.types = (Atom *) IswMalloc(
-            desc->num_types * sizeof(Atom));
-        memcpy(st->core.drag_desc.types, desc->types,
-               desc->num_types * sizeof(Atom));
+        st->core.drag_desc.types = (const char **) IswMalloc(
+            desc->num_types * sizeof(const char *));
+        for (int i = 0; i < desc->num_types; i++)
+            st->core.drag_desc.types[i] = IswNewString(desc->types[i]);
     }
 
     /* Own XdndSelection */
     (void) IswOwnSelection(st->core.shell, st->XdndSelection, st->drag_timestamp,
                     DragConvertSelection, DragLoseSelection, NULL);
+
+    /* Intern type strings to atoms for the XDND wire protocol */
+    xcb_atom_t *type_atoms = NULL;
+    if (desc->num_types > 0) {
+        type_atoms = (xcb_atom_t *) IswMalloc(desc->num_types * sizeof(xcb_atom_t));
+        for (int i = 0; i < desc->num_types; i++)
+            type_atoms[i] = XdndStringToAtom(st, desc->types[i]);
+    }
+
     /* Set XdndTypeList property on our window if >3 types */
     if (desc->num_types > 3) {
         xcb_change_property(conn, XCB_PROP_MODE_REPLACE, _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell))),
                             st->XdndTypeList, XCB_ATOM_ATOM, 32,
-                            desc->num_types, st->core.drag_desc.types);
+                            desc->num_types, type_atoms);
     }
 
     /* Eagerly convert and store drag data as a property on the source
-     * window.  This allows the target to read it via xcb_get_property
-     * as a fallback when the Xt selection transfer fails (cross-client
-     * selection dispatch is unreliable in XCB-based Xt). */
+     * window for cross-client fallback. */
     if (desc->convert) {
         for (int i = 0; i < desc->num_types; i++) {
             IswPointer data = NULL;
@@ -1140,13 +1177,15 @@ xcb_dnd_start_drag(Widget source_widget,
                               &data, &length, &format, desc->client_data)) {
                 xcb_change_property(conn, XCB_PROP_MODE_REPLACE,
                                     _IswXcbWindow(_IswPlatformWidgetWindow(IswDisplayOf((Widget)(st->core.shell)), (Widget)(st->core.shell))),
-                                    desc->types[i], desc->types[i],
+                                    type_atoms[i], type_atoms[i],
                                     format, length, data);
                 IswFree(data);
             }
         }
         xcb_flush(conn);
     }
+
+    IswFree((char *) type_atoms);
 
     /* Set XdndActionList property */
     {
@@ -1445,9 +1484,8 @@ SendDragEnter(XdndState *st, xcb_window_t target)
         cm.data.data32[1] |= 1;  /* use XdndTypeList property */
     }
 
-    /* Fill in up to 3 types directly */
     for (int i = 0; i < 3 && i < st->core.drag_desc.num_types; i++)
-        cm.data.data32[2 + i] = st->core.drag_desc.types[i];
+        cm.data.data32[2 + i] = XdndStringToAtom(st, st->core.drag_desc.types[i]);
 
 
     xcb_send_event(conn, False, target, 0, (const char *) &cm);
@@ -1491,7 +1529,7 @@ SendDragPosition(XdndState *st, int root_x, int root_y)
     cm.data.data32[1] = 0;  /* reserved */
     cm.data.data32[2] = ((uint32_t) phys_x << 16) | ((uint32_t) phys_y & 0xFFFF);
     cm.data.data32[3] = st->drag_timestamp;
-    cm.data.data32[4] = (xcb_atom_t) _IswDndActionToAtom(&st->core, desired);
+    cm.data.data32[4] = XdndActionToAtom(st, desired);
 
 
     xcb_send_event(conn, False, st->drag_target_win, 0, (const char *) &cm);
@@ -1547,7 +1585,7 @@ HandleDragStatus(XdndState *st, const uint32_t *data)
 {
     st->core.drag_status_pending = False;
     st->core.drag_target_accepted = (data[1] & 1) != 0;
-    st->core.drag_target_action = _IswDndAtomToAction(&st->core, (Atom) data[4]);
+    st->core.drag_target_action = XdndAtomToAction(st, (xcb_atom_t) data[4]);
 
     /* If we deferred a position update, send it now */
     if (st->core.drag_position_deferred) {
@@ -1564,7 +1602,7 @@ static void
 HandleDragFinished(XdndState *st, const uint32_t *data)
 {
     Boolean accepted = (data[1] & 1) != 0;
-    IswDndAction performed = _IswDndAtomToAction(&st->core, (Atom) data[2]);
+    IswDndAction performed = XdndAtomToAction(st, (xcb_atom_t) data[2]);
 
     if (st->core.finished_timer) {
         IswRemoveTimeOut(st->core.finished_timer);
@@ -1686,8 +1724,9 @@ DragCleanup(XdndState *st)
         st->core.finished_timer = 0;
     }
 
-    /* Free copied type list */
     if (st->core.drag_desc.types) {
+        for (int i = 0; i < st->core.drag_desc.num_types; i++)
+            IswFree((char *) st->core.drag_desc.types[i]);
         IswFree((char *) st->core.drag_desc.types);
         st->core.drag_desc.types = NULL;
     }
@@ -1718,13 +1757,12 @@ DragConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
 
     (void) selection;
 
-    /* Handle TARGETS request */
     if (*target == st->targets_atom) {
         xcb_atom_t *targets = (xcb_atom_t *) IswMalloc(
             (st->core.drag_desc.num_types + 1) * sizeof(xcb_atom_t));
         targets[0] = st->targets_atom;
         for (int i = 0; i < st->core.drag_desc.num_types; i++)
-            targets[i + 1] = st->core.drag_desc.types[i];
+            targets[i + 1] = XdndStringToAtom(st, st->core.drag_desc.types[i]);
 
         *type_return = XCB_ATOM_ATOM;
         *value_return = (IswPointer) targets;
@@ -1733,12 +1771,13 @@ DragConvertSelection(Widget w, xcb_atom_t *selection, xcb_atom_t *target,
         return True;
     }
 
-    /* Delegate to app's convert proc */
     if (st->core.drag_desc.convert) {
-        Boolean ok = st->core.drag_desc.convert(st->core.drag_source, *target,
+        const char *target_str = XdndAtomToString(st, *target);
+        Boolean ok = st->core.drag_desc.convert(st->core.drag_source, target_str,
                                            value_return, length_return,
                                            format_return,
                                            st->core.drag_desc.client_data);
+        IswFree((char *) target_str);
         if (ok)
             *type_return = *target;
 
@@ -1957,7 +1996,6 @@ const IswPlatformDndOps isw_platform_xcb_dnd_ops = {
     .set_drop_callback       = xcb_dnd_set_drop_callback,
     .set_drag_motion_callback = xcb_dnd_set_drag_motion_callback,
     .set_drag_leave_callback = xcb_dnd_set_drag_leave_callback,
-    .intern_type             = xcb_dnd_intern_type,
     .is_dragging             = xcb_dnd_is_dragging,
 };
 
@@ -1990,7 +2028,7 @@ IswDndStartDrag(Widget source_widget, IswEvent *trigger_event,
 }
 
 void
-IswDndSetAcceptedTypes(Widget w, Atom *types, int num_types)
+IswDndSetAcceptedTypes(Widget w, const char **types, int num_types)
 {
     _IswPlatformDndSetAcceptedTypes(w, types, num_types);
 }
@@ -2017,12 +2055,6 @@ void
 IswDndSetDragLeaveCallback(Widget w, IswCallbackProc proc, IswPointer closure)
 {
     _IswPlatformDndSetDragLeaveCallback(w, proc, closure);
-}
-
-Atom
-IswDndInternType(Widget w, const char *mime_type)
-{
-    return _IswPlatformDndInternType(w, mime_type);
 }
 
 Boolean

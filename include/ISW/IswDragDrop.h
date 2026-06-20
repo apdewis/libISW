@@ -57,7 +57,7 @@ typedef enum {
  */
 typedef Boolean (*IswDragConvertProc)(
     Widget          widget,
-    Atom            target_type,
+    const char     *target_type,
     IswPointer      *data_return,
     unsigned long  *length_return,
     int            *format_return,
@@ -78,7 +78,7 @@ typedef void (*IswDragFinishedProc)(
  * IswDragSourceDesc - Configuration for initiating a drag.
  */
 typedef struct {
-    Atom               *types;          /* offered MIME type atoms */
+    const char        **types;          /* offered MIME type strings */
     int                 num_types;
     IswDndAction        actions;        /* bitmask of offered actions */
     IswDragConvertProc  convert;        /* data provider */
@@ -104,15 +104,13 @@ typedef struct {
  * data/data_length/data_type fields.
  */
 typedef struct {
-    /* Legacy fields — kept at original offsets for ABI compat */
     char          **uris;               /* NULL-terminated URI array (text/uri-list only) */
     int             num_uris;           /* number of URIs (0 if not uri-list) */
     int             x, y;               /* drop position relative to widget */
 
-    /* Extended fields */
     IswPointer       data;               /* raw data from source */
     unsigned long   data_length;        /* data length in bytes */
-    Atom            data_type;          /* MIME type atom of the data */
+    const char     *data_type;          /* MIME type string */
     int             data_format;        /* 8, 16, or 32 */
     IswDndAction    action;             /* negotiated action */
 } IswDropCallbackData;
@@ -126,13 +124,13 @@ typedef struct {
  */
 typedef struct {
     int             x, y;               /* position relative to widget */
-    Atom           *offered_types;      /* types the source offers */
+    const char    **offered_types;      /* MIME type strings the source offers */
     int             num_offered_types;
     IswDndAction    offered_actions;    /* actions the source supports */
     IswDndAction    proposed_action;    /* action proposed for this position */
 
     /* Set by callback to accept/reject */
-    Atom            accepted_type;      /* set nonzero to accept */
+    const char     *accepted_type;      /* set non-NULL to accept */
     IswDndAction    accepted_action;    /* set nonzero to accept */
 } IswDragOverCallbackData;
 
@@ -177,7 +175,7 @@ void IswDndStartDrag(
  */
 void IswDndSetAcceptedTypes(
     Widget          w,
-    Atom           *types,
+    const char    **types,
     int             num_types
 );
 
@@ -221,11 +219,6 @@ void IswDndSetDragLeaveCallback(
     IswCallbackProc  proc,
     IswPointer       closure
 );
-
-/*
- * IswDndInternType - Convenience: intern a MIME type string as an atom.
- */
-Atom IswDndInternType(Widget w, const char *mime_type);
 
 /*
  * IswDndIsDragging - Return True if a drag operation is active.
