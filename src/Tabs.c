@@ -64,6 +64,8 @@ static IswResource resources[] = {
          offset(active_tab_color), IswRString, IswDefaultBackground},
     {IswNtabBorderColor, IswCTabBorderColor, IswRPixel, sizeof(Pixel),
          offset(tab_border_color), IswRString, IswDefaultForeground},
+    {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
+         offset(corner_radius), IswRImmediate, (IswPointer)0},
 };
 #undef offset
 
@@ -274,12 +276,17 @@ DrawTabBar(Widget w)
         Position tx = tc->tabs.tab_x;
         Dimension tw_ = tc->tabs.tab_width;
 
-        double r = 4.0;
+        double r = (double)tw->tabs.corner_radius;
         ISWRenderSave(ctx);
         ISWRenderPathBegin(ctx);
 
-        ISWRenderPathArc(ctx, tx + r, r, r, M_PI, 3*M_PI/2);
-        ISWRenderPathArc(ctx, tx + tw_ - r, r, r, -M_PI/2, 0);
+        if (r > 0) {
+            ISWRenderPathArc(ctx, tx + r, r, r, M_PI, 3*M_PI/2);
+            ISWRenderPathArc(ctx, tx + tw_ - r, r, r, -M_PI/2, 0);
+        } else {
+            ISWRenderPathMoveTo(ctx, tx, 0);
+            ISWRenderPathLineTo(ctx, tx + tw_, 0);
+        }
         ISWRenderPathLineTo(ctx, tx + tw_, tab_h);
         ISWRenderPathLineTo(ctx, tx, tab_h);
         ISWRenderPathClose(ctx);
@@ -323,6 +330,10 @@ DrawTabBar(Widget w)
             active_w = tc->tabs.tab_width;
         }
 
+        double r = (double)tw->tabs.corner_radius;
+        double right = w->core.width - half;
+        double bottom = w->core.height - half;
+
         ISWRenderSave(ctx);
         ISWRenderSetColor(ctx, tw->tabs.tab_border_color);
         ISWRenderSetLineWidth(ctx, lw);
@@ -332,16 +343,26 @@ DrawTabBar(Widget w)
         ISWRenderPathMoveTo(ctx, half, tab_h);
         if (active_w > 0) {
             ISWRenderPathLineTo(ctx, active_x, tab_h);
-            /* Gap: skip the active tab width */
             ISWRenderPathMoveTo(ctx, active_x + active_w, tab_h);
         }
-        ISWRenderPathLineTo(ctx, w->core.width - half, tab_h);
+        ISWRenderPathLineTo(ctx, right, tab_h);
 
-        /* Right edge */
-        ISWRenderPathLineTo(ctx, w->core.width - half,
-                            w->core.height - half);
-        /* Bottom edge */
-        ISWRenderPathLineTo(ctx, half, w->core.height - half);
+        /* Right edge → bottom-right corner */
+        if (r > 0) {
+            ISWRenderPathLineTo(ctx, right, bottom - r);
+            ISWRenderPathArc(ctx, right - r, bottom - r, r, 0, M_PI/2);
+        } else {
+            ISWRenderPathLineTo(ctx, right, bottom);
+        }
+
+        /* Bottom edge → bottom-left corner */
+        if (r > 0) {
+            ISWRenderPathLineTo(ctx, half + r, bottom);
+            ISWRenderPathArc(ctx, half + r, bottom - r, r, M_PI/2, M_PI);
+        } else {
+            ISWRenderPathLineTo(ctx, half, bottom);
+        }
+
         /* Left edge */
         ISWRenderPathLineTo(ctx, half, tab_h);
 
@@ -455,7 +476,8 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
         oldtw->tabs.tab_background != newtw->tabs.tab_background ||
         oldtw->tabs.active_tab_color != newtw->tabs.active_tab_color ||
         oldtw->tabs.tab_border_color != newtw->tabs.tab_border_color ||
-        oldtw->tabs.border_w != newtw->tabs.border_w) {
+        oldtw->tabs.border_w != newtw->tabs.border_w ||
+        oldtw->tabs.corner_radius != newtw->tabs.corner_radius) {
         LayoutChildren(newtw);
         redisplay = True;
     }

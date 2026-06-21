@@ -27,6 +27,13 @@
 #define IswCActiveTabColor "ActiveTabColor"
 #define IswCTabBorderColor "TabBorderColor"
 
+#ifndef IswNcornerRadius
+#define IswNcornerRadius   "cornerRadius"
+#endif
+#ifndef IswCCornerRadius
+#define IswCCornerRadius   "CornerRadius"
+#endif
+
 #define IswRTabSizing      "TabSizing"
 
 /* Tab sizing mode */
