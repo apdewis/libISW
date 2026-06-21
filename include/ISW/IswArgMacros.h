@@ -312,6 +312,8 @@
 #define IswArgTabCallback(ab, v)                ISW_ARG((ab), IswNtabCallback, (v))
 #define IswArgTopWidget(ab, v)                  ISW_ARG((ab), IswNtopWidget, (v))
 #define IswArgTabLabel(ab, v)                   ISW_ARG((ab), IswNtabLabel, (v))
+#define IswArgTabHeight(ab, v)                  ISW_ARG((ab), IswNtabHeight, (v))
+#define IswArgTabSizing(ab, v)                  ISW_ARG((ab), IswNtabSizing, (v))
 
 /* Repeater */
 #define IswArgDecay(ab, v)                      ISW_ARG((ab), IswNdecay, (v))

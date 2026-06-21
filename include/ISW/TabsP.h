@@ -43,6 +43,8 @@ typedef struct _TabsPart {
     IswCallbackList  tab_callbacks;
     IswFontStruct    *font;
     Pixel           foreground;
+    Dimension       tab_height;
+    IswTabSizing    tab_sizing;
 
     /* Private */
     Widget          top_widget;

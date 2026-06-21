@@ -14,8 +14,20 @@
 /* Widget resources */
 #define IswNtabCallback    "tabCallback"
 #define IswNtopWidget      "topWidget"
+#define IswNtabHeight      "tabHeight"
+#define IswNtabSizing      "tabSizing"
 
 #define IswCTopWidget      "TopWidget"
+#define IswCTabHeight      "TabHeight"
+#define IswCTabSizing      "TabSizing"
+
+#define IswRTabSizing      "TabSizing"
+
+/* Tab sizing mode */
+typedef enum {
+    IswTabSizingText,  /* each tab sized to its label text (default) */
+    IswTabSizingFill   /* tabs distributed evenly to fill widget width */
+} IswTabSizing;
 
 /* Constraint resources (per-child) */
 #define IswNtabLabel       "tabLabel"
