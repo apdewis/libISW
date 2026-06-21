@@ -257,7 +257,7 @@ DrawTabBar(Widget w)
     Widget *childP;
 
     Dimension bw = tw->tabs.border_w;
-    double lw = bw > 0 ? (double)bw : 1.0;
+    double lw = (double)bw;
     double half = lw / 2.0;
 
     ISWRenderBegin(ctx);
@@ -277,29 +277,39 @@ DrawTabBar(Widget w)
         Dimension tw_ = tc->tabs.tab_width;
 
         double r = (double)tw->tabs.corner_radius;
+        Boolean is_first = (tx == 0);
+        Boolean is_last = (tx + tw_ >= (Position)tw->core.width);
+        double x0 = is_first ? half : (double)tx;
+        double x1 = is_last ? tw_ + tx - half : (double)(tx + tw_);
+        double y0 = half;
+        double y1 = tab_h;
         ISWRenderSave(ctx);
         ISWRenderPathBegin(ctx);
 
         if (r > 0) {
-            ISWRenderPathArc(ctx, tx + r, r, r, M_PI, 3*M_PI/2);
-            ISWRenderPathArc(ctx, tx + tw_ - r, r, r, -M_PI/2, 0);
+            ISWRenderPathArc(ctx, x0 + r, y0 + r, r, M_PI, 3*M_PI/2);
+            ISWRenderPathArc(ctx, x1 - r, y0 + r, r, -M_PI/2, 0);
         } else {
-            ISWRenderPathMoveTo(ctx, tx, 0);
-            ISWRenderPathLineTo(ctx, tx + tw_, 0);
+            ISWRenderPathMoveTo(ctx, x0, y0);
+            ISWRenderPathLineTo(ctx, x1, y0);
         }
-        ISWRenderPathLineTo(ctx, tx + tw_, tab_h);
-        ISWRenderPathLineTo(ctx, tx, tab_h);
+        ISWRenderPathLineTo(ctx, x1, y1);
+        ISWRenderPathLineTo(ctx, x0, y1);
         ISWRenderPathClose(ctx);
 
         if (is_top)
             ISWRenderSetColor(ctx, tw->tabs.active_tab_color);
         else
             ISWRenderSetColor(ctx, tw->tabs.tab_background);
-        ISWRenderFillPreserve(ctx);
 
-        ISWRenderSetColor(ctx, tw->tabs.tab_border_color);
-        ISWRenderSetLineWidth(ctx, lw);
-        ISWRenderStroke(ctx);
+        if (bw > 0) {
+            ISWRenderFillPreserve(ctx);
+            ISWRenderSetColor(ctx, tw->tabs.tab_border_color);
+            ISWRenderSetLineWidth(ctx, lw);
+            ISWRenderStroke(ctx);
+        } else {
+            ISWRenderFill(ctx);
+        }
 
         ISWRenderRestore(ctx);
 
