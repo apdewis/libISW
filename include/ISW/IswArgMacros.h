@@ -314,6 +314,9 @@
 #define IswArgTabLabel(ab, v)                   ISW_ARG((ab), IswNtabLabel, (v))
 #define IswArgTabHeight(ab, v)                  ISW_ARG((ab), IswNtabHeight, (v))
 #define IswArgTabSizing(ab, v)                  ISW_ARG((ab), IswNtabSizing, (v))
+#define IswArgTabBackground(ab, v)              ISW_ARG((ab), IswNtabBackground, (v))
+#define IswArgActiveTabColor(ab, v)             ISW_ARG((ab), IswNactiveTabColor, (v))
+#define IswArgTabBorderColor(ab, v)             ISW_ARG((ab), IswNtabBorderColor, (v))
 
 /* Repeater */
 #define IswArgDecay(ab, v)                      ISW_ARG((ab), IswNdecay, (v))

@@ -2596,7 +2596,7 @@ Widget create_tabs_demo(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgWidth(&ab, 400);
     IswArgHeight(&ab, 180);
-    IswArgBorderWidth(&ab, 0);
+    IswArgBorderWidth(&ab, 1);
     IswArgTabHeight(&ab, 30);
     IswArgTabSizing(&ab, IswTabSizingFill);
     tabs_widget = IswCreateManagedWidget("tabs", tabsWidgetClass,

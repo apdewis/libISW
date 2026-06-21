@@ -58,6 +58,12 @@ static IswResource resources[] = {
          offset(tab_height), IswRImmediate, (IswPointer)0},
     {IswNtabSizing, IswCTabSizing, IswRTabSizing, sizeof(IswTabSizing),
          offset(tab_sizing), IswRImmediate, (IswPointer)IswTabSizingText},
+    {IswNtabBackground, IswCTabBackground, IswRPixel, sizeof(Pixel),
+         offset(tab_background), IswRString, IswDefaultBackground},
+    {IswNactiveTabColor, IswCActiveTabColor, IswRPixel, sizeof(Pixel),
+         offset(active_tab_color), IswRString, IswDefaultBackground},
+    {IswNtabBorderColor, IswCTabBorderColor, IswRPixel, sizeof(Pixel),
+         offset(tab_border_color), IswRString, IswDefaultForeground},
 };
 #undef offset
 
@@ -174,8 +180,11 @@ LayoutChildren(TabsWidget tw)
     Widget *childP;
     Position x = 0;
     Dimension tab_h = TabBarHeight(tw);
-    Dimension content_h = tw->core.height > tab_h ?
-                          tw->core.height - tab_h : 0;
+    Dimension bw = tw->tabs.border_w;
+    Dimension content_h = tw->core.height > tab_h + bw ?
+                          tw->core.height - tab_h - bw : 0;
+    Dimension content_w = tw->core.width > bw * 2 ?
+                          tw->core.width - bw * 2 : 0;
 
     /* Compute tab positions */
     if (tw->tabs.tab_sizing == IswTabSizingFill) {
@@ -212,8 +221,8 @@ LayoutChildren(TabsWidget tw)
         Widget child = *childP;
         if (!IswIsManaged(child)) continue;
 
-        IswConfigureWidget(child, 0, tab_h,
-                          tw->core.width, content_h,
+        IswConfigureWidget(child, bw, tab_h,
+                          content_w, content_h,
                           child->core.border_width);
 
         if (child == tw->tabs.top_widget) {
@@ -245,11 +254,15 @@ DrawTabBar(Widget w)
     Dimension tab_h = TabBarHeight(tw);
     Widget *childP;
 
+    Dimension bw = tw->tabs.border_w;
+    double lw = bw > 0 ? (double)bw : 1.0;
+    double half = lw / 2.0;
+
     ISWRenderBegin(ctx);
 
-    /* Clear tab bar background */
+    /* Clear entire widget background */
     ISWRenderSetColor(ctx, w->core.background_pixel);
-    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, tab_h);
+    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
 
     ForAllChildren(tw, childP) {
         Widget child = *childP;
@@ -261,32 +274,27 @@ DrawTabBar(Widget w)
         Position tx = tc->tabs.tab_x;
         Dimension tw_ = tc->tabs.tab_width;
 
-        {
-            double r = 4.0;  /* logical pixels; backend scale handles physical */
-            ISWRenderSave(ctx);
-            ISWRenderPathBegin(ctx);
+        double r = 4.0;
+        ISWRenderSave(ctx);
+        ISWRenderPathBegin(ctx);
 
-            /* Rounded top corners, flat bottom */
-            ISWRenderPathArc(ctx, tx + r, r, r, M_PI, 3*M_PI/2);
-            ISWRenderPathArc(ctx, tx + tw_ - r, r, r, -M_PI/2, 0);
-            ISWRenderPathLineTo(ctx, tx + tw_, tab_h);
-            ISWRenderPathLineTo(ctx, tx, tab_h);
-            ISWRenderPathClose(ctx);
+        ISWRenderPathArc(ctx, tx + r, r, r, M_PI, 3*M_PI/2);
+        ISWRenderPathArc(ctx, tx + tw_ - r, r, r, -M_PI/2, 0);
+        ISWRenderPathLineTo(ctx, tx + tw_, tab_h);
+        ISWRenderPathLineTo(ctx, tx, tab_h);
+        ISWRenderPathClose(ctx);
 
-            if (is_top) {
-                ISWRenderSetColor(ctx, w->core.background_pixel);
-                ISWRenderFillPreserve(ctx);
-            } else {
-                ISWRenderSetColorRGBA(ctx, 0.0, 0.0, 0.0, 0.06);
-                ISWRenderFillPreserve(ctx);
-            }
+        if (is_top)
+            ISWRenderSetColor(ctx, tw->tabs.active_tab_color);
+        else
+            ISWRenderSetColor(ctx, tw->tabs.tab_background);
+        ISWRenderFillPreserve(ctx);
 
-            ISWRenderSetColor(ctx, tw->tabs.foreground);
-            ISWRenderSetLineWidth(ctx, 1.0);
-            ISWRenderStroke(ctx);
+        ISWRenderSetColor(ctx, tw->tabs.tab_border_color);
+        ISWRenderSetLineWidth(ctx, lw);
+        ISWRenderStroke(ctx);
 
-            ISWRenderRestore(ctx);
-        }
+        ISWRenderRestore(ctx);
 
         /* Draw tab label */
         ISWRenderSetFont(ctx, tw->tabs.font);
@@ -305,27 +313,38 @@ DrawTabBar(Widget w)
         ISWRenderDrawString(ctx, label, label_len, text_x, text_y);
     }
 
-    /* Draw bottom border across the full width */
-    {
-        ISWRenderSave(ctx);
-        ISWRenderSetColor(ctx, tw->tabs.foreground);
-        ISWRenderSetLineWidth(ctx, 1.0);
-        ISWRenderPathBegin(ctx);
-        ISWRenderPathMoveTo(ctx, 0, tab_h - 0.5);
-        ISWRenderPathLineTo(ctx, tw->core.width, tab_h - 0.5);
-
-        /* Cut gap under the active tab */
+    /* Draw content box border connected to the active tab */
+    if (bw > 0) {
+        Position active_x = 0;
+        Dimension active_w = 0;
         if (tw->tabs.top_widget && IswIsManaged(tw->tabs.top_widget)) {
             TabsConstraints tc = TabInfo(tw->tabs.top_widget);
-            /* Overdraw the gap with background */
-            ISWRenderStroke(ctx);
-            ISWRenderSetColor(ctx, w->core.background_pixel);
-            ISWRenderSetLineWidth(ctx, 1.0);
-            ISWRenderPathBegin(ctx);
-            ISWRenderPathMoveTo(ctx, tc->tabs.tab_x + 1, tab_h - 0.5);
-            ISWRenderPathLineTo(ctx, tc->tabs.tab_x + tc->tabs.tab_width - 1,
-                                tab_h - 0.5);
+            active_x = tc->tabs.tab_x;
+            active_w = tc->tabs.tab_width;
         }
+
+        ISWRenderSave(ctx);
+        ISWRenderSetColor(ctx, tw->tabs.tab_border_color);
+        ISWRenderSetLineWidth(ctx, lw);
+        ISWRenderPathBegin(ctx);
+
+        /* Top edge: left of active tab */
+        ISWRenderPathMoveTo(ctx, half, tab_h);
+        if (active_w > 0) {
+            ISWRenderPathLineTo(ctx, active_x, tab_h);
+            /* Gap: skip the active tab width */
+            ISWRenderPathMoveTo(ctx, active_x + active_w, tab_h);
+        }
+        ISWRenderPathLineTo(ctx, w->core.width - half, tab_h);
+
+        /* Right edge */
+        ISWRenderPathLineTo(ctx, w->core.width - half,
+                            w->core.height - half);
+        /* Bottom edge */
+        ISWRenderPathLineTo(ctx, half, w->core.height - half);
+        /* Left edge */
+        ISWRenderPathLineTo(ctx, half, tab_h);
+
         ISWRenderStroke(ctx);
         ISWRenderRestore(ctx);
     }
@@ -354,6 +373,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     tw->tabs.top_widget = NULL;
     tw->tabs.render_ctx = NULL;
+    tw->tabs.border_w = tw->core.border_width;
+    tw->core.border_width = 0;
 
     if (tw->core.width == 0)
         tw->core.width = (200);
@@ -421,11 +442,20 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
     TabsWidget newtw = (TabsWidget)new;
     Boolean redisplay = False;
 
+    if (newtw->core.border_width != oldtw->core.border_width) {
+        newtw->tabs.border_w = newtw->core.border_width;
+        newtw->core.border_width = 0;
+    }
+
     if (oldtw->tabs.font != newtw->tabs.font ||
         oldtw->tabs.foreground != newtw->tabs.foreground ||
         oldtw->core.background_pixel != newtw->core.background_pixel ||
         oldtw->tabs.tab_height != newtw->tabs.tab_height ||
-        oldtw->tabs.tab_sizing != newtw->tabs.tab_sizing) {
+        oldtw->tabs.tab_sizing != newtw->tabs.tab_sizing ||
+        oldtw->tabs.tab_background != newtw->tabs.tab_background ||
+        oldtw->tabs.active_tab_color != newtw->tabs.active_tab_color ||
+        oldtw->tabs.tab_border_color != newtw->tabs.tab_border_color ||
+        oldtw->tabs.border_w != newtw->tabs.border_w) {
         LayoutChildren(newtw);
         redisplay = True;
     }
@@ -442,11 +472,14 @@ GeometryManager(Widget child, IswWidgetGeometry *request, IswWidgetGeometry *rep
 {
     TabsWidget tw = (TabsWidget)IswParent(child);
     Dimension tab_h = TabBarHeight(tw);
-    Dimension content_h = tw->core.height > tab_h ?
-                          tw->core.height - tab_h : 0;
+    Dimension bw = tw->tabs.border_w;
+    Dimension content_h = tw->core.height > tab_h + bw ?
+                          tw->core.height - tab_h - bw : 0;
+    Dimension content_w = tw->core.width > bw * 2 ?
+                          tw->core.width - bw * 2 : 0;
 
-    IswConfigureWidget(child, 0, tab_h,
-                      tw->core.width, content_h,
+    IswConfigureWidget(child, bw, tab_h,
+                      content_w, content_h,
                       child->core.border_width);
     return IswGeometryDone;
 }
@@ -611,10 +644,13 @@ IswTabsSetTop(Widget w, Widget child)
 
     if (child && IswIsRealized(child)) {
         Dimension tab_h = TabBarHeight(tw);
-        Dimension content_h = tw->core.height > tab_h ?
-                              tw->core.height - tab_h : 0;
-        IswConfigureWidget(child, 0, tab_h,
-                          tw->core.width, content_h,
+        Dimension bw = tw->tabs.border_w;
+        Dimension content_h = tw->core.height > tab_h + bw ?
+                              tw->core.height - tab_h - bw : 0;
+        Dimension content_w = tw->core.width > bw * 2 ?
+                              tw->core.width - bw * 2 : 0;
+        IswConfigureWidget(child, bw, tab_h,
+                          content_w, content_h,
                           child->core.border_width);
         IswMapWidget(child);
     }

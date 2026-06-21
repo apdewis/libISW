@@ -45,10 +45,14 @@ typedef struct _TabsPart {
     Pixel           foreground;
     Dimension       tab_height;
     IswTabSizing    tab_sizing;
+    Pixel           tab_background;
+    Pixel           active_tab_color;
+    Pixel           tab_border_color;
 
     /* Private */
     Widget          top_widget;
     ISWRenderContext *render_ctx;
+    Dimension       border_w;
 } TabsPart;
 
 /* Full instance record */

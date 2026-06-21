@@ -16,10 +16,16 @@
 #define IswNtopWidget      "topWidget"
 #define IswNtabHeight      "tabHeight"
 #define IswNtabSizing      "tabSizing"
+#define IswNtabBackground  "tabBackground"
+#define IswNactiveTabColor "activeTabColor"
+#define IswNtabBorderColor "tabBorderColor"
 
 #define IswCTopWidget      "TopWidget"
 #define IswCTabHeight      "TabHeight"
 #define IswCTabSizing      "TabSizing"
+#define IswCTabBackground  "TabBackground"
+#define IswCActiveTabColor "ActiveTabColor"
+#define IswCTabBorderColor "TabBorderColor"
 
 #define IswRTabSizing      "TabSizing"
 
