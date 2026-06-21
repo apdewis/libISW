@@ -434,7 +434,7 @@ OpenMenu(MenuBarWidget mbw, Widget button)
      * clicks) to the menu window. Same technique as GTK/Motif popups. */
     if (IswIsRealized(menu)) {
         _IswPlatformCapturePointer(
-            IswDisplayOf(menu), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(menu)), (Widget)(menu)), True,
+            IswDisplayOf(menu), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(menu)), (Widget)(menu)), False,
             IswButtonPressMask | IswButtonReleaseMask |
             IswPointerMotionMask | IswButtonMotionMask |
             IswEnterWindowMask | IswLeaveWindowMask,
