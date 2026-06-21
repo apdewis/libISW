@@ -392,7 +392,7 @@ egl_pixel_to_nvg(IswSurface s, Pixel pixel)
     return nvgRGBA((unsigned char) ((pixel >> 16) & 0xff),
                    (unsigned char) ((pixel >>  8) & 0xff),
                    (unsigned char) ((pixel      ) & 0xff),
-                   255);
+                   (unsigned char) ((pixel >> 24) & 0xff));
 }
 
 /* The currently-bound surface for draw ops (set in surface begin). */
@@ -708,7 +708,7 @@ egl_surface_fill_background(IswSurface s, Widget widget)
     glClearColor(((bg >> 16) & 0xff) / 255.0f,
                  ((bg >>  8) & 0xff) / 255.0f,
                  ((bg      ) & 0xff) / 255.0f,
-                 1.0f);
+                 ((bg >> 24) & 0xff) / 255.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 

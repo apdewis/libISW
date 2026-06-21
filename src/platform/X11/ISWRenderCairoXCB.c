@@ -790,10 +790,11 @@ cairo_xcb_fill_background(IswSurface data, Widget widget)
     bg = widget->core.background_pixel;
     cairo_save(dctx);
     cairo_set_operator(dctx, CAIRO_OPERATOR_SOURCE);
-    cairo_set_source_rgb(dctx,
+    cairo_set_source_rgba(dctx,
         ((bg >> 16) & 0xff) / 255.0,
         ((bg >>  8) & 0xff) / 255.0,
-        ((bg      ) & 0xff) / 255.0);
+        ((bg      ) & 0xff) / 255.0,
+        ((bg >> 24) & 0xff) / 255.0);
     cairo_paint(dctx);
     cairo_restore(dctx);
 }
@@ -968,11 +969,12 @@ cairo_xcb_set_color(ISWRenderContext *ctx, Pixel pixel)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     double r, g, b;
+    double a = ((pixel >> 24) & 0xff) / 255.0;
 
     ctx->current_color = pixel;
     if (!data->cairo_ctx) return;
     ISWRenderPixelToRGB(ctx, pixel, &r, &g, &b);
-    cairo_set_source_rgb(data->cairo_ctx, r, g, b);
+    cairo_set_source_rgba(data->cairo_ctx, r, g, b, a);
 }
 
 static void

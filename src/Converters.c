@@ -471,43 +471,62 @@ IswCvtStringToPixel(IswDisplay dpy,
     if (CompareISOLatin1(str, IswDefaultBackground) == 0) {
         *closure_ret = NULL;
         if (pd->rv) {
-            done_string(Pixel, _IswPlatformScreenBlackPixel(dpy, screen), IswRPixel);
+            done_string(Pixel, 0xFF000000UL | _IswPlatformScreenBlackPixel(dpy, screen), IswRPixel);
         }
         else {
-            done_string(Pixel, _IswPlatformScreenWhitePixel(dpy, screen), IswRPixel);
+            done_string(Pixel, 0xFF000000UL | _IswPlatformScreenWhitePixel(dpy, screen), IswRPixel);
         }
     }
     if (CompareISOLatin1(str, IswDefaultForeground) == 0) {
         *closure_ret = NULL;
         if (pd->rv) {
-            done_string(Pixel, _IswPlatformScreenWhitePixel(dpy, screen), IswRPixel);
+            done_string(Pixel, 0xFF000000UL | _IswPlatformScreenWhitePixel(dpy, screen), IswRPixel);
         }
         else {
-            done_string(Pixel, _IswPlatformScreenBlackPixel(dpy, screen), IswRPixel);
+            done_string(Pixel, 0xFF000000UL | _IswPlatformScreenBlackPixel(dpy, screen), IswRPixel);
         }
     }
 
-    /* Handle #RGB, #RRGGBB, #RRRRGGGGBBBB hex color specifications */
+    /* Handle #RGB(A), #RRGGBB(AA), #RRRRGGGGBBBB(AAAA) hex color specs */
     if (str[0] == '#') {
         size_t len = strlen(str + 1);
-        unsigned int r = 0, g = 0, b = 0;
+        unsigned int r = 0, g = 0, b = 0, a = 0;
         uint16_t red, green, blue;
+        uint8_t alpha = 0xFF;
 
         if (len == 3 &&
             sscanf(str + 1, "%1x%1x%1x", &r, &g, &b) == 3) {
             red   = (uint16_t)(r * 0x1111);
             green = (uint16_t)(g * 0x1111);
             blue  = (uint16_t)(b * 0x1111);
+        } else if (len == 4 &&
+                   sscanf(str + 1, "%1x%1x%1x%1x", &r, &g, &b, &a) == 4) {
+            red   = (uint16_t)(r * 0x1111);
+            green = (uint16_t)(g * 0x1111);
+            blue  = (uint16_t)(b * 0x1111);
+            alpha = (uint8_t)(a * 0x11);
         } else if (len == 6 &&
                    sscanf(str + 1, "%2x%2x%2x", &r, &g, &b) == 3) {
             red   = (uint16_t)(r << 8 | r);
             green = (uint16_t)(g << 8 | g);
             blue  = (uint16_t)(b << 8 | b);
+        } else if (len == 8 &&
+                   sscanf(str + 1, "%2x%2x%2x%2x", &r, &g, &b, &a) == 4) {
+            red   = (uint16_t)(r << 8 | r);
+            green = (uint16_t)(g << 8 | g);
+            blue  = (uint16_t)(b << 8 | b);
+            alpha = (uint8_t)a;
         } else if (len == 12 &&
                    sscanf(str + 1, "%4x%4x%4x", &r, &g, &b) == 3) {
             red   = (uint16_t)r;
             green = (uint16_t)g;
             blue  = (uint16_t)b;
+        } else if (len == 16 &&
+                   sscanf(str + 1, "%4x%4x%4x%4x", &r, &g, &b, &a) == 4) {
+            red   = (uint16_t)r;
+            green = (uint16_t)g;
+            blue  = (uint16_t)b;
+            alpha = (uint8_t)(a >> 8);
         } else {
             String params[1];
             params[0] = str;
@@ -523,7 +542,7 @@ IswCvtStringToPixel(IswDisplay dpy,
         if (_IswPlatformAllocColor(dpy, colormap, red, green, blue,
                                    &result_pixel)) {
             *closure_ret = (char *) True;
-            done_string(Pixel, (Pixel) result_pixel, IswRPixel);
+            done_string(Pixel, (Pixel)((alpha << 24) | (result_pixel & 0xFFFFFF)), IswRPixel);
         }
 
         String params[1];
@@ -540,7 +559,7 @@ IswCvtStringToPixel(IswDisplay dpy,
         unsigned long result_pixel;
         if (_IswPlatformAllocNamedColor(dpy, colormap, str, &result_pixel)) {
             *closure_ret = (char *) True;
-            done_string(Pixel, (Pixel) result_pixel, IswRPixel);
+            done_string(Pixel, (Pixel)(0xFF000000UL | (result_pixel & 0xFFFFFF)), IswRPixel);
         }
 
         /* Allocation failed — check if name is valid */
@@ -1284,7 +1303,7 @@ IswCvtColorToPixel(IswDisplay dpy,
                         IswCIswToolkitError,
                         "Color to Pixel conversion needs no extra arguments",
                         NULL, NULL);
-    done(Pixel, ((IswColor *) fromVal->addr)->pixel);
+    done(Pixel, 0xFF000000UL | (((IswColor *) fromVal->addr)->pixel & 0xFFFFFF));
 }
 
 Boolean
@@ -1300,7 +1319,7 @@ IswCvtIntToPixel(IswDisplay dpy,
                         IswNwrongParameters, "cvtIntToPixel", IswCIswToolkitError,
                         "Integer to Pixel conversion needs no extra arguments",
                         NULL, NULL);
-    done(Pixel, *(int *) fromVal->addr);
+    done(Pixel, 0xFF000000UL | (*(int *) fromVal->addr & 0xFFFFFF));
 }
 
 Boolean

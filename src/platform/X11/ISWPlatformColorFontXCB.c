@@ -72,7 +72,7 @@ xcb_col_query_color(IswDisplay dpy, IswColormap cmap,
     xcb_query_colors_cookie_t cookie;
     xcb_query_colors_reply_t *reply;
     xcb_rgb_t *rgb;
-    uint32_t px = (uint32_t) pixel;
+    uint32_t px = (uint32_t)(pixel & 0xFFFFFF);
 
     if (!conn)
         return False;
@@ -155,7 +155,7 @@ static void
 xcb_col_free_colors(IswDisplay dpy, IswColormap cmap, unsigned long pixel)
 {
     xcb_connection_t *conn = _IswXcbConn(dpy);
-    uint32_t px = (uint32_t) pixel;
+    uint32_t px = (uint32_t)(pixel & 0xFFFFFF);
 
     if (!conn || xcb_connection_has_error(conn) != 0)
         return;

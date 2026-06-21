@@ -317,10 +317,10 @@ attrs_to_values(const IswWindowAttributes *a, unsigned int mask,
        BACK_PIXEL(1) < BORDER_PIXEL(3) < BIT_GRAVITY(4) < OVERRIDE_REDIRECT(9)
        < SAVE_UNDER(10) < EVENT_MASK(11) < COLORMAP(13). */
     if (mask & ISW_ATTR_BACK_PIXEL) {
-        vm |= XCB_CW_BACK_PIXEL;        values[n++] = a->background_pixel;
+        vm |= XCB_CW_BACK_PIXEL;        values[n++] = a->background_pixel & 0xFFFFFF;
     }
     if (mask & ISW_ATTR_BORDER_PIXEL) {
-        vm |= XCB_CW_BORDER_PIXEL;      values[n++] = a->border_pixel;
+        vm |= XCB_CW_BORDER_PIXEL;      values[n++] = a->border_pixel & 0xFFFFFF;
     }
     if (mask & ISW_ATTR_BIT_GRAVITY) {
         vm |= XCB_CW_BIT_GRAVITY;       values[n++] = a->bit_gravity_nw
