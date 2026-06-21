@@ -398,8 +398,39 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
             out->protocol.data[i] = e->data.data32[i];
         return True;
     }
+    case XCB_SELECTION_CLEAR: {
+        xcb_selection_clear_event_t *e = (xcb_selection_clear_event_t *) xev;
+        out->kind = IswProtocol;
+        out->any.target = target_for_window(dpy, e->owner);
+        out->any.native = __XtMalloc(32);
+        memcpy(out->any.native, xev, 32);
+        return True;
+    }
+    case XCB_SELECTION_REQUEST: {
+        xcb_selection_request_event_t *e = (xcb_selection_request_event_t *) xev;
+        out->kind = IswProtocol;
+        out->any.target = target_for_window(dpy, e->owner);
+        out->any.native = __XtMalloc(32);
+        memcpy(out->any.native, xev, 32);
+        return True;
+    }
+    case XCB_SELECTION_NOTIFY: {
+        xcb_selection_notify_event_t *e = (xcb_selection_notify_event_t *) xev;
+        out->kind = IswProtocol;
+        out->any.target = target_for_window(dpy, e->requestor);
+        out->any.native = __XtMalloc(32);
+        memcpy(out->any.native, xev, 32);
+        return True;
+    }
+    case XCB_PROPERTY_NOTIFY: {
+        xcb_property_notify_event_t *e = (xcb_property_notify_event_t *) xev;
+        out->kind = IswProtocol;
+        out->any.target = target_for_window(dpy, e->window);
+        out->any.native = __XtMalloc(32);
+        memcpy(out->any.native, xev, 32);
+        return True;
+    }
     default:
-        /* X11 protocol event — not a toolkit-semantic IswEvent. */
         return False;
     }
 }
@@ -433,7 +464,7 @@ xcb_event_poll(IswDisplay dpy)
     xcb_generic_event_t *xev = xcb_poll_for_event(_IswXcbConn(dpy));
     IswEvent *event = IswNew(IswEvent);
     Boolean ok = _IswEventFromXcb(dpy, xev, event);
-    free(xev);                      /* native buffer is never retained */
+    free(xev);
     if (!ok) {
         IswFree((char *) event);
         return NULL;

@@ -88,6 +88,7 @@ typedef struct _SelectRec {
     IswSelectionId selection; 		/* constant */
     IswDisplay dpy; 			/* constant */
     Widget widget;
+    Widget event_widget;		/* window-owning ancestor for handler */
     IswTime time;
     unsigned long serial;
     IswConvertSelectionProc convert;

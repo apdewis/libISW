@@ -22,6 +22,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_cursor.h>
 #include <X11/cursorfont.h>
@@ -420,6 +421,7 @@ xcb_sel_convert(IswDisplay dpy, IswWindow requestor, IswSelectionId selection,
     xcb_convert_selection(conn, _IswXcbWindow(requestor),
                           (xcb_atom_t) selection, (xcb_atom_t) target,
                           (xcb_atom_t) property, (xcb_timestamp_t) time);
+    xcb_flush(conn);
 }
 
 static Boolean
@@ -684,24 +686,26 @@ high_receive_cb(Widget w, IswPointer client_data, IswSelectionId *selection,
 {
     HighRequestCtx *rctx = (HighRequestCtx *) client_data;
 
+    Widget target = rctx->widget;
+
     if (*type == 0 || *length == 0 || value == NULL) {
         if (!rctx->tried_clipboard) {
             rctx->tried_clipboard = True;
             IswSelectionId primary = xcb_sel_intern_name(
-                IswDisplayOf(w), "PRIMARY", False);
+                IswDisplayOf(target), "PRIMARY", False);
             IswSelectionId utf8 = xcb_sel_intern_name(
-                IswDisplayOf(w), "UTF8_STRING", False);
-            IswGetSelectionValue(w, primary, utf8,
+                IswDisplayOf(target), "UTF8_STRING", False);
+            IswGetSelectionValue(target, primary, utf8,
                                  high_receive_cb, (IswPointer) rctx,
                                  CurrentTime);
             return;
         }
-        rctx->receive(w, rctx->closure, NULL, 0);
+        rctx->receive(target, rctx->closure, NULL, 0);
         IswFree((char *) rctx);
         return;
     }
 
-    rctx->receive(w, rctx->closure, (const char *) value, *length);
+    rctx->receive(target, rctx->closure, (const char *) value, *length);
     IswFree((char *) rctx);
 }
 

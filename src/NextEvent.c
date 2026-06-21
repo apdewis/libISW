@@ -1575,6 +1575,8 @@ IswAppProcessEvent(IswAppContext app, IswInputMask mask)
                     IswDispatchEvent(event, disp);
                 }
 
+                if (event->any.native)
+                    IswFree(event->any.native);
                 IswFree((char *) event);
             }
 
