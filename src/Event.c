@@ -710,14 +710,12 @@ _IswPaintWindowlessChild(Widget child, IswEvent *event)
         return;
 
     if (child->core.widget_class->core_class.expose != NULL) {
-        if (event)
-            (*child->core.widget_class->core_class.expose)(child, event, 0);
-        else {
-            IswEvent nev;
-            memset(&nev, 0, sizeof(nev));
-            nev.kind = IswRedraw;
-            (*child->core.widget_class->core_class.expose)(child, &nev, 0);
-        }
+        IswEvent nev;
+        memset(&nev, 0, sizeof(nev));
+        nev.kind = IswRedraw;
+        nev.redraw.width = child->core.width;
+        nev.redraw.height = child->core.height;
+        (*child->core.widget_class->core_class.expose)(child, &nev, 0);
     }
 
     _IswExposeWindowlessChildren(child, event);
@@ -742,6 +740,8 @@ _IswRepaintWindowless(Widget w)
         IswEvent nev;
         memset(&nev, 0, sizeof(nev));
         nev.kind = IswRedraw;
+        nev.redraw.width = w->core.width;
+        nev.redraw.height = w->core.height;
         (*w->core.widget_class->core_class.expose)(w, &nev, 0);
     }
     _IswExposeWindowlessChildren(w, NULL);
