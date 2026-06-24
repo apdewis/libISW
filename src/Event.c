@@ -781,7 +781,7 @@ _IswExposeWindowlessChildren(Widget w, IswEvent *event)
    derived from the triggering motion event (root coords preserved, window
    coords rebased to the target's windowed-ancestor frame). */
 static void
-_IswSynthesizeCrossing(Widget w, IswEvent *motion, IswEventKind kind)
+_IswSynthesizeCrossing(Widget w, IswEvent *source, IswEventKind kind)
 {
     IswEvent ev;
     int dx, dy;
@@ -797,10 +797,10 @@ _IswSynthesizeCrossing(Widget w, IswEvent *motion, IswEventKind kind)
     memset(&ev, 0, sizeof(ev));
     ev.kind = kind;
     ev.crossing.mode = IswNotifyNormal;
-    ev.crossing.modifiers = motion->motion.modifiers;
-    ev.crossing.x = (int16_t) (motion->motion.x - dx);
-    ev.crossing.y = (int16_t) (motion->motion.y - dy);
-    ev.any.time = motion->any.time;
+    ev.crossing.modifiers = IswEventModifiers(source);
+    ev.crossing.x = (int16_t) (IswEventX(source) - dx);
+    ev.crossing.y = (int16_t) (IswEventY(source) - dy);
+    ev.any.time = source->any.time;
     ev.any.target = (IswEventTarget) (void *) w;
 
     IswDispatchEventToWidget(w, &ev);
@@ -1373,6 +1373,21 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                 pdi->buttonsDown &= ~(1u << event->button.button);
                 if (pdi->buttonsDown == 0)
                     pdi->windowlessButtonGrab = NULL;
+            }
+
+            /* When the pointer leaves the windowed ancestor entirely
+               (real LeaveNotify from the server), flush the windowless
+               pointer state: synthesize Leave for the tracked widget
+               and drop any implicit button grab — the pointer is now
+               over a different window (e.g. a popup menu). */
+            if (etype == IswLeave && pdi->pointerWidget != NULL) {
+                Widget old_pw = pdi->pointerWidget;
+                pdi->pointerWidget = NULL;
+                if (IswIsWidget(old_pw) && !IswIsShell(old_pw)
+                    && !old_pw->core.being_destroyed)
+                    _IswSynthesizeCrossing(old_pw, event, IswLeave);
+                pdi->buttonsDown = 0;
+                pdi->windowlessButtonGrab = NULL;
             }
 
             /* On motion, synthesize Enter/Leave when the windowless widget
