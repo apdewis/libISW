@@ -1293,6 +1293,27 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
             IswEventKind etype = event->kind;
             Widget target = _IswFindWidgetAtPoint(widget, px, py, &dx, &dy);
 
+            /* Cross-window grab flush: the implicit windowless grab owns a
+               widget under one shell, but a server-level pointer grab (e.g.
+               a popup menu's IswGrabPointer) can redirect events to a
+               different shell's window.  When that happens the grabbed widget
+               will never see its Leave or ButtonUp via the normal hit-test
+               path.  Detect the mismatch, synthesize Leave, and drop the
+               grab so the widget clears its pressed state. */
+            if (pdi->windowlessButtonGrab != NULL &&
+                _IswWidgetAncestor(pdi->windowlessButtonGrab) != widget) {
+                Widget old_pw = pdi->pointerWidget;
+                Widget gw = pdi->windowlessButtonGrab;
+                pdi->pointerWidget = NULL;
+                pdi->buttonsDown = 0;
+                pdi->windowlessButtonGrab = NULL;
+                if (old_pw != NULL && IswIsWidget(old_pw)
+                    && !IswIsShell(old_pw) && !old_pw->core.being_destroyed)
+                    _IswSynthesizeCrossing(old_pw, event, IswLeave);
+                else if (IswIsWidget(gw) && !gw->core.being_destroyed)
+                    _IswSynthesizeCrossing(gw, event, IswLeave);
+            }
+
             /* Windowless event propagation: the X server used to deliver a
                pointer event to the first ancestor *window* that had the event
                selected, walking up the window tree.  With windowless widgets
