@@ -1348,7 +1348,10 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                from the windowed root, same convention as
                _IswFindWidgetAtPoint's dx,dy).  Routing the release here lets
                the grab's <BtnUp> action fire even if the pointer has slipped
-               off the widget. */
+               off the widget.  The real hit-test result (hitTarget) is kept
+               for crossing synthesis so the grabbed widget still sees
+               Enter/Leave as the pointer moves in and out of its bounds. */
+            Widget hitTarget = target;
             if ((etype == IswMotion || etype == IswButtonUp) &&
                 pdi->buttonsDown != 0 &&
                 pdi->windowlessButtonGrab != NULL &&
@@ -1390,26 +1393,52 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                 pdi->windowlessButtonGrab = NULL;
             }
 
-            /* On motion, synthesize Enter/Leave when the windowless widget
-               under the pointer changes. */
-            if (etype == IswMotion &&
-                target != pdi->pointerWidget) {
-                Widget old_pw = pdi->pointerWidget;
-                pdi->pointerWidget = (target != widget) ? target : NULL;
-                if (old_pw != NULL && IswIsWidget(old_pw)
-                    && !IswIsShell(old_pw) && !old_pw->core.being_destroyed)
-                    _IswSynthesizeCrossing(old_pw, event, IswLeave);
-                if (pdi->pointerWidget != NULL)
-                    _IswSynthesizeCrossing(pdi->pointerWidget, event,
-                                           IswEnter);
+            /* Synthesize Enter/Leave when the windowless widget under the
+               pointer changes.  During an implicit grab, use the real
+               hit-test result (hitTarget) so the grabbed widget receives
+               crossing events as the pointer moves in and out of its
+               bounds — the grab redirects the dispatch target but must
+               not suppress the widget's knowledge of pointer presence. */
+            if (etype == IswMotion) {
+                Widget crossTarget =
+                    (hitTarget != widget && IswIsWidget(hitTarget)
+                     && !IswIsShell(hitTarget)) ? hitTarget : NULL;
+                Widget pointerFor = pdi->windowlessButtonGrab != NULL
+                    ? pdi->windowlessButtonGrab : crossTarget;
+                Boolean inside = (crossTarget == pointerFor);
 
-                /* Update the windowed ancestor's cursor to match the widget
-                   now under the pointer (or restore it when leaving one). */
+                if (pdi->windowlessButtonGrab != NULL) {
+                    if (pdi->pointerWidget != NULL && !inside) {
+                        pdi->pointerWidget = NULL;
+                        _IswSynthesizeCrossing(
+                            pdi->windowlessButtonGrab, event, IswLeave);
+                    } else if (pdi->pointerWidget == NULL && inside) {
+                        pdi->pointerWidget = pdi->windowlessButtonGrab;
+                        _IswSynthesizeCrossing(
+                            pdi->windowlessButtonGrab, event, IswEnter);
+                    }
+                } else if (crossTarget != pdi->pointerWidget) {
+                    Widget old_pw = pdi->pointerWidget;
+                    pdi->pointerWidget = crossTarget;
+                    if (old_pw != NULL && IswIsWidget(old_pw)
+                        && !IswIsShell(old_pw)
+                        && !old_pw->core.being_destroyed)
+                        _IswSynthesizeCrossing(old_pw, event, IswLeave);
+                    if (pdi->pointerWidget != NULL)
+                        _IswSynthesizeCrossing(
+                            pdi->pointerWidget, event, IswEnter);
+                }
+
                 if (pdi->pointerWidget != NULL)
                     _IswSimpleApplyCursor(pdi->pointerWidget);
-                else if (old_pw != NULL && IswIsWidget(old_pw)
-                         && !old_pw->core.being_destroyed)
-                    _IswSimpleApplyCursor(old_pw);
+                else if (pdi->windowlessButtonGrab == NULL) {
+                    Widget old_pw_cursor = crossTarget;
+                    if (old_pw_cursor == NULL)
+                        old_pw_cursor = (Widget)(void *)event->any.target;
+                    if (old_pw_cursor != NULL && IswIsWidget(old_pw_cursor)
+                        && !old_pw_cursor->core.being_destroyed)
+                        _IswSimpleApplyCursor(old_pw_cursor);
+                }
             }
 
             if (target != widget) {

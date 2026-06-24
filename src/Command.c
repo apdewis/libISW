@@ -78,6 +78,8 @@ SOFTWARE.
 static char defaultTranslations[] =
     "<Btn1Down>:	set()			\n\
      <Btn1Up>:		notify() unset()	\n\
+     Button1<Leave>:	reset()			\n\
+     Button1<Enter>:	set()			\n\
      <Key>space:	set() notify() unset()	\n\
      <Key>Return:	set() notify() unset()	";
 
