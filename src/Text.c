@@ -2215,6 +2215,8 @@ ProcessExposeRegion(Widget w, IswEvent *iswev, IswRegion region _X_UNUSED)
     }
 
     _IswTextPrepareToUpdate(ctx);
+    SinkClearToBG(ctx->text.sink, (Position) expose.x, (Position) expose.y,
+		  (Dimension) expose.width, (Dimension) expose.height);
     UpdateTextInRectangle(ctx, &expose);
     IswTextSinkGetCursorBounds(ctx->text.sink, &cursor);
     if (RectanglesOverlap(&cursor, &expose)) {
