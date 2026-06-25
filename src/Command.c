@@ -364,7 +364,8 @@ PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
   /* Pressed: invert colors so Label draws the whole rounded shape with the
    * foreground as the fill.  Label owns all the rounded-rect drawing. */
   if (cbw->command.set) {
-    w->core.background_pixel = (saved_foreground & 0x00FFFFFF) | 0x63000000;
+    w->core.background_pixel = saved_foreground;
+    cbw->label.foreground = saved_background;
   }
 
   /* Wrap Label's expose and focus ring in a single begin/end pass so the
