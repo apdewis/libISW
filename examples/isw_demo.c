@@ -129,7 +129,6 @@ Widget create_progressbar_demo(Widget parent);
 Widget create_dialog_demo(Widget parent);
 void open_modal_dialog_cb(Widget w, IswPointer client_data, IswPointer call_data);
 Widget create_drawingarea_demo(Widget parent);
-Widget create_tabs_demo(Widget parent);
 void tabs_callback(Widget w, IswPointer client_data, IswPointer call_data);
 
 /* Callback functions */
@@ -215,7 +214,7 @@ int main(int argc, char *argv[]) {
  * ============================================================ */
 
 Widget create_main_window(Widget parent) {
-    Widget main_win, viewport, content_box, title;
+    Widget main_win, tabs, section;
     IswArgBuilder ab = IswArgBuilderInit();
 
     /* MainWindow as direct shell child — menubar fixed at top */
@@ -246,49 +245,61 @@ Widget create_main_window(Widget parent) {
                                statusbar, sb.args, sb.count);
     }
 
-    /* Viewport as content child — scrolls independently of menubar */
-    IswArgBuilder vb = IswArgBuilderInit();
-    IswArgAllowVert(&vb, True);
-    IswArgAllowHoriz(&vb, True);
-    IswArgForceBars(&vb, True);
-    IswArgUseRight(&vb, True);
-    IswArgUseBottom(&vb, True);
-    IswArgBorderWidth(&vb, 0);
-    viewport = IswCreateManagedWidget("viewport", viewportWidgetClass,
-                                      main_win, vb.args, vb.count);
-
-    /* Content box inside viewport — holds all demo sections */
+    /* Tabs widget as content child — each tab scrolls independently */
     IswArgBuilderReset(&ab);
-    IswArgOrientation(&ab, IswOrientVertical);
     IswArgBorderWidth(&ab, 0);
-    content_box = IswCreateManagedWidget("contentBox", boxWidgetClass,
-                                         viewport, ab.args, ab.count);
+    IswArgTabHeight(&ab, 30);
+    IswArgTabSizing(&ab, IswTabSizingFill);
+    tabs = IswCreateManagedWidget("mainTabs", tabsWidgetClass,
+                                  main_win, ab.args, ab.count);
+    IswAddCallback(tabs, IswNtabCallback, tabs_callback, NULL);
 
-    /* Title section */
-    title = create_title_label(content_box);
+    /* Helper: each tab page is a Viewport so content scrolls within the tab */
+#define TAB_PAGE(name, label) \
+    IswArgBuilderReset(&ab); \
+    IswArgAllowVert(&ab, True); \
+    IswArgAllowHoriz(&ab, True); \
+    IswArgUseRight(&ab, True); \
+    IswArgUseBottom(&ab, True); \
+    IswArgBorderWidth(&ab, 0); \
+    IswArgTabLabel(&ab, label); \
+    section = IswCreateManagedWidget(name, viewportWidgetClass, tabs, ab.args, ab.count)
 
-    /* Widget demonstration sections */
-    create_containers_section(content_box);
-    create_basic_widgets_section(content_box);
-    create_selection_section(content_box);
+    /* Containers tab */
+    TAB_PAGE("containersTab", "Containers");
+    create_containers_section(section);
 
-    /* Advanced widgets in a horizontal box */
-    Widget advanced_box;
-    IswArgBuilderReset(&ab);
-    IswArgOrientation(&ab, IswOrientHorizontal);
-    IswArgBorderWidth(&ab, 0);
-    advanced_box = IswCreateManagedWidget("advancedBox", boxWidgetClass, content_box, ab.args, ab.count);
+    /* Basic Widgets tab */
+    TAB_PAGE("basicTab", "Basic Widgets");
+    create_basic_widgets_section(section);
 
-    create_tree_demo(advanced_box);
-    create_layout_demo(advanced_box);
-    create_paned_grip_demo(advanced_box);
+    /* Selection tab */
+    TAB_PAGE("selectionTab", "Selection");
+    create_selection_section(section);
 
-    /* Panner demo in its own section */
-    create_navigation_section(content_box);
+    /* Advanced tab — tree, layout, paned grip in a horizontal box */
+    TAB_PAGE("advancedTab", "Advanced");
+    {
+        Widget advanced_box;
+        IswArgBuilder ab2 = IswArgBuilderInit();
+        IswArgOrientation(&ab2, IswOrientHorizontal);
+        IswArgBorderWidth(&ab2, 0);
+        advanced_box = IswCreateManagedWidget("advancedBox", boxWidgetClass,
+                                              section, ab2.args, ab2.count);
+        create_tree_demo(advanced_box);
+        create_layout_demo(advanced_box);
+        create_paned_grip_demo(advanced_box);
+    }
 
-    create_specialized_section(content_box);
+    /* Navigation tab */
+    TAB_PAGE("navigationTab", "Navigation");
+    create_navigation_section(section);
 
-    create_tabs_demo(content_box);
+    /* Specialized tab */
+    TAB_PAGE("specializedTab", "Specialized");
+    create_specialized_section(section);
+
+#undef TAB_PAGE
 
     return main_win;
 }
@@ -490,6 +501,7 @@ Widget create_containers_section(Widget parent) {
     IswArgLabel(&ab, "Container Widgets: Toolbar, Box, Form, Viewport");
     IswArgBorderWidth(&ab, 0);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     section_label = IswCreateManagedWidget("containerLabel", labelWidgetClass,
                                           form, ab.args, ab.count);
@@ -499,6 +511,7 @@ Widget create_containers_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromVert(&ab, section_label);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     IswSetValues(toolbar_demo, ab.args, ab.count);
 
@@ -507,6 +520,7 @@ Widget create_containers_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromVert(&ab, toolbar_demo);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     IswSetValues(box_demo, ab.args, ab.count);
 
@@ -514,6 +528,7 @@ Widget create_containers_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromVert(&ab, box_demo);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     IswSetValues(form_demo, ab.args, ab.count);
 
@@ -522,6 +537,7 @@ Widget create_containers_section(Widget parent) {
     IswArgFromHoriz(&ab, form_demo);
     IswArgFromVert(&ab, box_demo);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     IswSetValues(viewport_demo, ab.args, ab.count);
 
@@ -786,6 +802,7 @@ Widget create_basic_widgets_section(Widget parent) {
     IswArgLabel(&ab, "Basic Interactive Widgets: Command, Toggle, ToggleButton, Checkbox, Menu, Repeater");
     IswArgBorderWidth(&ab, 0);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     section_label = IswCreateManagedWidget("basicLabel", labelWidgetClass,
                                           form, ab.args, ab.count);
@@ -795,6 +812,7 @@ Widget create_basic_widgets_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromVert(&ab, section_label);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     IswSetValues(command_demo, ab.args, ab.count);
 
@@ -802,6 +820,8 @@ Widget create_basic_widgets_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, command_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(toggle_demo, ab.args, ab.count);
 
@@ -809,6 +829,8 @@ Widget create_basic_widgets_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, toggle_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(togglebutton_demo, ab.args, ab.count);
 
@@ -816,6 +838,8 @@ Widget create_basic_widgets_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, togglebutton_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(checkbox_demo, ab.args, ab.count);
 
@@ -823,6 +847,8 @@ Widget create_basic_widgets_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, checkbox_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(menu_demo, ab.args, ab.count);
 
@@ -830,6 +856,8 @@ Widget create_basic_widgets_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, menu_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(repeater_demo, ab.args, ab.count);
 
@@ -1088,6 +1116,7 @@ Widget create_selection_section(Widget parent) {
     IswArgLabel(&ab, "Selection Widgets: IconView, ListView, List, ListBox, ComboBox, Text");
     IswArgBorderWidth(&ab, 0);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     section_label = IswCreateManagedWidget("selectionLabel", labelWidgetClass,
                                           form, ab.args, ab.count);
@@ -1097,6 +1126,7 @@ Widget create_selection_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromVert(&ab, section_label);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     IswSetValues(iconview_demo, ab.args, ab.count);
 
@@ -1105,6 +1135,8 @@ Widget create_selection_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, iconview_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(listview_demo, ab.args, ab.count);
 
@@ -1113,6 +1145,8 @@ Widget create_selection_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, listview_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(list_demo, ab.args, ab.count);
 
@@ -1121,6 +1155,8 @@ Widget create_selection_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, list_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(listbox_demo, ab.args, ab.count);
 
@@ -1129,6 +1165,8 @@ Widget create_selection_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, listbox_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(combobox_demo, ab.args, ab.count);
 
@@ -1137,6 +1175,8 @@ Widget create_selection_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, combobox_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(text_demo, ab.args, ab.count);
 
@@ -1558,6 +1598,7 @@ Widget create_navigation_section(Widget parent) {
     IswArgLabel(&ab, "Navigation Widgets: Panner/Porthole");
     IswArgBorderWidth(&ab, 0);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     section_label = IswCreateManagedWidget("navigationLabel", labelWidgetClass,
                                           form, ab.args, ab.count);
@@ -1567,7 +1608,9 @@ Widget create_navigation_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromVert(&ab, section_label);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainBottom);
     IswArgLeft(&ab, IswChainLeft);
+    IswArgRight(&ab, IswChainRight);
     IswSetValues(panner_demo, ab.args, ab.count);
 
     return form;
@@ -1852,6 +1895,7 @@ Widget create_specialized_section(Widget parent) {
     IswArgLabel(&ab, "Specialized Widgets: SpinBox, Slider, Scrollbar, ProgressBar, Dialog");
     IswArgBorderWidth(&ab, 0);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     section_label = IswCreateManagedWidget("specializedLabel", labelWidgetClass,
                                           form, ab.args, ab.count);
@@ -1861,6 +1905,7 @@ Widget create_specialized_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromVert(&ab, section_label);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     IswSetValues(spinbox_demo, ab.args, ab.count);
 
@@ -1868,6 +1913,8 @@ Widget create_specialized_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, spinbox_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(slider_demo, ab.args, ab.count);
 
@@ -1875,6 +1922,8 @@ Widget create_specialized_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, slider_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(scrollbar_demo, ab.args, ab.count);
 
@@ -1882,6 +1931,8 @@ Widget create_specialized_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, scrollbar_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(progressbar_demo, ab.args, ab.count);
 
@@ -1889,6 +1940,8 @@ Widget create_specialized_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, progressbar_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(dialog_demo, ab.args, ab.count);
 
@@ -1896,6 +1949,8 @@ Widget create_specialized_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, dialog_demo);
     IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(colorpicker_demo, ab.args, ab.count);
 
@@ -1903,6 +1958,7 @@ Widget create_specialized_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromVert(&ab, slider_demo);
     IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     IswSetValues(fontchooser_demo, ab.args, ab.count);
 
@@ -1910,6 +1966,8 @@ Widget create_specialized_section(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, fontchooser_demo);
     IswArgFromVert(&ab, slider_demo);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgHorizDistance(&ab, 10);
     IswSetValues(drawingarea_demo, ab.args, ab.count);
 
@@ -1922,6 +1980,8 @@ Widget create_specialized_section(Widget parent) {
     IswArgBorderWidth(&ab, 1);
     IswArgResize(&ab, False);
     IswArgFromVert(&ab, fontchooser_demo);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     drop_label = IswCreateManagedWidget("dropTarget", labelWidgetClass,
                                         form, ab.args, ab.count);
@@ -1946,6 +2006,8 @@ Widget create_specialized_section(Widget parent) {
     IswArgFromVert(&ab, fontchooser_demo);
     IswArgFromHoriz(&ab, drop_label);
     IswArgHorizDistance(&ab, 10);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     drag_label = IswCreateManagedWidget("dragSource", labelWidgetClass,
                                         form, ab.args, ab.count);
@@ -2574,63 +2636,4 @@ Widget create_drawingarea_demo(Widget parent) {
     return box;
 }
 
-Widget create_tabs_demo(Widget parent) {
-    Widget section_box, title, tabs_widget;
-    Widget tab1_content, tab2_content;
-    IswArgBuilder ab = IswArgBuilderInit();
 
-    /* Section container */
-    IswArgOrientation(&ab, IswOrientVertical);
-    IswArgBorderWidth(&ab, 1);
-    section_box = IswCreateManagedWidget("tabsSection", boxWidgetClass,
-                                         parent, ab.args, ab.count);
-
-    /* Section title */
-    IswArgBuilderReset(&ab);
-    IswArgLabel(&ab, "Tabs Widget");
-    IswArgBorderWidth(&ab, 0);
-    title = IswCreateManagedWidget("tabsTitle", labelWidgetClass,
-                                   section_box, ab.args, ab.count);
-
-    /* The Tabs widget */
-    IswArgBuilderReset(&ab);
-    IswArgWidth(&ab, 400);
-    IswArgHeight(&ab, 180);
-    IswArgBorderWidth(&ab, 1);
-    IswArgTabHeight(&ab, 30);
-    IswArgTabSizing(&ab, IswTabSizingFill);
-    tabs_widget = IswCreateManagedWidget("tabs", tabsWidgetClass,
-                                         section_box, ab.args, ab.count);
-    IswAddCallback(tabs_widget, IswNtabCallback, tabs_callback, NULL);
-
-    /* Tab 1: a label */
-    IswArgBuilderReset(&ab);
-    IswArgTabLabel(&ab, "General");
-    IswArgLabel(&ab, "This is the General tab.\n\n"
-             "The Tabs widget is a Constraint\n"
-             "container that shows one child at\n"
-             "a time, with a clickable tab bar.");
-    IswArgBorderWidth(&ab, 0);
-    tab1_content = IswCreateManagedWidget("tab1", labelWidgetClass,
-                                          tabs_widget, ab.args, ab.count);
-
-    /* Tab 2: a box with buttons */
-    IswArgBuilderReset(&ab);
-    IswArgTabLabel(&ab, "Controls");
-    IswArgOrientation(&ab, IswOrientVertical);
-    IswArgBorderWidth(&ab, 0);
-    tab2_content = IswCreateManagedWidget("tab2", boxWidgetClass,
-                                          tabs_widget, ab.args, ab.count);
-
-    IswArgBuilderReset(&ab);
-    IswArgLabel(&ab, "Button A");
-    IswCreateManagedWidget("tab2BtnA", commandWidgetClass,
-                           tab2_content, ab.args, ab.count);
-
-    IswArgBuilderReset(&ab);
-    IswArgLabel(&ab, "Button B");
-    IswCreateManagedWidget("tab2BtnB", commandWidgetClass,
-                           tab2_content, ab.args, ab.count);
-
-    return section_box;
-}
