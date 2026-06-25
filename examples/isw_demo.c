@@ -183,8 +183,8 @@ int main(int argc, char *argv[]) {
 
     /* Set main window size — not scaled, so it fits the screen at any DPI */
     IswArgBuilder ab = IswArgBuilderInit();
-    IswArgWidth(&ab, 1200);
-    IswArgHeight(&ab, 900);
+    IswArgWidth(&ab, 800);
+    IswArgHeight(&ab, 600);
     IswArgTitle(&ab, "Isw3d Widget Demonstration - Comprehensive Widget Showcase");
     IswArgAllowShellResize(&ab, True);
     IswSetValues(toplevel, ab.args, ab.count);
@@ -1664,14 +1664,14 @@ Widget create_panner_demo(Widget parent) {
 
     /* Panner widget (miniature navigator) */
     IswArgBuilderReset(&ab);
-    IswArgWidth(&ab, 200);
-    IswArgHeight(&ab, 150);
+    IswArgWidth(&ab, 50);
+    IswArgHeight(&ab, 50);
     panner = IswCreateManagedWidget("panner", pannerWidgetClass, box, ab.args, ab.count);
 
     /* Porthole (viewing area) */
     IswArgBuilderReset(&ab);
-    IswArgWidth(&ab, 200);
-    IswArgHeight(&ab, 150);
+    IswArgWidth(&ab, 600);
+    IswArgHeight(&ab, 350);
     porthole = IswCreateManagedWidget("porthole", portholeWidgetClass, box, ab.args, ab.count);
 
     /* Large widget inside porthole */
@@ -1681,8 +1681,8 @@ Widget create_panner_demo(Widget parent) {
              "visible porthole window.\n\n"\
              "Use the panner above to\n"\
              "navigate around this content.");
-    IswArgWidth(&ab, 400);
-    IswArgHeight(&ab, 300);
+    IswArgWidth(&ab, 1400);
+    IswArgHeight(&ab, 1300);
     large_widget = IswCreateManagedWidget("pannerContent", labelWidgetClass,
                                          porthole, ab.args, ab.count);
 
