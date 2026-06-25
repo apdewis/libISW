@@ -71,7 +71,6 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Tabs.h>
 #include <ISW/Toolbar.h>
 #include <ISW/Toggle.h>
-#include <ISW/ToggleButton.h>
 #include <ISW/Tree.h>
 #include <ISW/Viewport.h>
 
@@ -122,7 +121,6 @@ IswWidgetNode IswWidgetArray[] = {
 { "text", &textWidgetClass },
 { "toolbar", &toolbarWidgetClass },
 { "toggle", &toggleWidgetClass },
-{ "toggleButton", &toggleButtonWidgetClass },
 { "topLevelShell", &topLevelShellWidgetClass },
 { "transientShell", &transientShellWidgetClass },
 { "tree", &treeWidgetClass },

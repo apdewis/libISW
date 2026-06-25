@@ -302,7 +302,6 @@ set(ISW_WIDGET_SOURCES
     src/Tip.c
     src/Toolbar.c
     src/Toggle.c
-    src/ToggleButton.c
     src/Tree.c
     src/Vendor.c
     src/Viewport.c
