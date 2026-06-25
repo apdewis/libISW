@@ -351,7 +351,7 @@ PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
 {
   CommandWidget cbw = (CommandWidget) w;
   ISWRenderContext *ctx = cbw->label.render_ctx;
-
+  
   /* Create render context on first use (Command bypasses Label.Redisplay) */
   if (!ctx && w->core.width > 0 && w->core.height > 0 && IswIsRealized(w)) {
     ctx = cbw->label.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
@@ -364,8 +364,7 @@ PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
   /* Pressed: invert colors so Label draws the whole rounded shape with the
    * foreground as the fill.  Label owns all the rounded-rect drawing. */
   if (cbw->command.set) {
-    cbw->label.foreground = saved_background;
-    w->core.background_pixel = saved_foreground;
+    w->core.background_pixel = (saved_foreground & 0x00FFFFFF) | 0x63000000;
   }
 
   /* Let Label draw the rounded background + border + text */
