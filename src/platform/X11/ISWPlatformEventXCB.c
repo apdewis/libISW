@@ -65,6 +65,7 @@ keysym_to_key(xcb_keysym_t ks, uint32_t *unicode, char text[8])
     switch (ks) {
     case 0xff08: return IswKeyBackspace;
     case 0xff09: return IswKeyTab;
+    case 0xfe20: return IswKeyTab;      /* ISO_Left_Tab */
     case 0xff0d: return IswKeyReturn;
     case 0xff1b: return IswKeyEscape;
     case 0xffff: return IswKeyDelete;
