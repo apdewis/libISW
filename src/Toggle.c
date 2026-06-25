@@ -670,23 +670,28 @@ DrawSlideToggle(ISWRenderContext *ctx, int x, int y, int size, Boolean on,
 {
     if (!ctx) return;
 
-    int trough_h = size * 6 / 10;
-    if (trough_h < 4) trough_h = 4;
+    int trough_h = size;
     int trough_w = size * 2;
-    int trough_y = y + (size - trough_h) / 2;
+    int trough_y = y;
     double trough_r = trough_h / 2.0;
 
-    ISWRenderFillStrokeRoundedRectangle(ctx, x, trough_y,
-        trough_w, trough_h, trough_r, 0.3, 1);
+    if (on)
+        ISWRenderFillStrokeRoundedRectangle(ctx, x, trough_y,
+            trough_w, trough_h, trough_r, 0.3, 1);
+    else
+        ISWRenderStrokeRoundedRectangle(ctx, x, trough_y,
+            trough_w, trough_h, trough_r, 1.0);
 
-    int thumb_size = trough_h + 2;
+    int inset = 2;
+    int thumb_size = trough_h - 2 * inset;
+    if (thumb_size < 4) thumb_size = 4;
     double thumb_r = 3.0;
-    int thumb_y = trough_y - 1;
+    int thumb_y = trough_y + inset;
     int thumb_x;
     if (on)
-        thumb_x = x + trough_w - thumb_size;
+        thumb_x = x + trough_w - thumb_size - inset;
     else
-        thumb_x = x;
+        thumb_x = x + inset;
 
     ISWRenderSetColor(ctx, bg);
     ISWRenderFillRoundedRectangle(ctx, thumb_x, thumb_y,
