@@ -77,6 +77,8 @@ static IswResource resources[] = {
       offset(toggle.widget), IswRWidget, (IswPointer) NULL },
    {IswNradioData, IswCRadioData, IswRPointer, sizeof(IswPointer),
       offset(toggle.radio_data), IswRPointer, (IswPointer) NULL },
+   {IswNtoggleShape, IswCToggleShape, IswRInt, sizeof(int),
+      offset(toggle.toggle_shape), IswRImmediate, (IswPointer) IswToggleShapeAuto },
 };
 
 #undef offset
@@ -273,20 +275,19 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswAddCallback(new, IswNdestroyCallback, ToggleDestroy, (IswPointer)NULL);
 
     /*
-     * Reserve space on the left for the radio button or checkbox indicator.
-     * We increase the internal_width (left padding) to make room.
+     * Reserve space on the left for the indicator.
+     * Slide toggles need ~2× cap height width; checkbox/radio need ~1×.
      */
     {
-        /* Reserve space for the indicator: cap height + gap, derived from
-         * actual font metrics so it adapts to any DPI/font. */
         int cap_h = ISWScaledFontCapHeight(new, tw->label.font);
-        int gap = cap_h;  /* ~1em spacing between indicator and label */
-        Dimension min_iw = (Dimension)(cap_h + gap);
+        int gap = cap_h;
+        int indicator_w = cap_h;
+        if (tw->toggle.toggle_shape == IswToggleShapeSlide)
+            indicator_w = cap_h * 2;
+        Dimension min_iw = (Dimension)(indicator_w + gap);
         if (tw->label.internal_width < min_iw) {
             Dimension old_iw = tw->label.internal_width;
             tw->label.internal_width = min_iw;
-            /* Only widen if the user didn't explicitly set a width (request
-             * width 0 means "auto-size"). Honor explicit size requests. */
             if (tw_req->core.width == 0 && tw->core.width > 0)
                 tw->core.width += 2 * (min_iw - old_iw);
         }
@@ -653,6 +654,48 @@ DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
     ISWRenderRestore(ctx);
 }
 
+/*	Function Name: DrawSlideToggle
+ *	Description: Draws a slide toggle indicator (trough with sliding thumb)
+ *	Arguments: ctx - rendering context
+ *                 x, y - position (top-left)
+ *                 size - height of the indicator (cap height)
+ *                 on - whether the toggle is on
+ *                 bg - background pixel for thumb fill
+ *	Returns: none.
+ */
+
+static void
+DrawSlideToggle(ISWRenderContext *ctx, int x, int y, int size, Boolean on,
+                Pixel fg, Pixel bg)
+{
+    if (!ctx) return;
+
+    int trough_h = size * 6 / 10;
+    if (trough_h < 4) trough_h = 4;
+    int trough_w = size * 2;
+    int trough_y = y + (size - trough_h) / 2;
+    double trough_r = trough_h / 2.0;
+
+    ISWRenderFillStrokeRoundedRectangle(ctx, x, trough_y,
+        trough_w, trough_h, trough_r, 0.3, 1);
+
+    int thumb_size = trough_h + 2;
+    double thumb_r = 3.0;
+    int thumb_y = trough_y - 1;
+    int thumb_x;
+    if (on)
+        thumb_x = x + trough_w - thumb_size;
+    else
+        thumb_x = x;
+
+    ISWRenderSetColor(ctx, bg);
+    ISWRenderFillRoundedRectangle(ctx, thumb_x, thumb_y,
+        thumb_size, thumb_size, thumb_r);
+    ISWRenderSetColor(ctx, fg);
+    ISWRenderStrokeRoundedRectangle(ctx, thumb_x, thumb_y,
+        thumb_size, thumb_size, thumb_r, 1.0);
+}
+
 /************************************************************
  *
  * Redisplay Function
@@ -712,17 +755,19 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     /* Begin rendering */
     ISWRenderBegin(ctx);
     
-    /* Set color for the indicator - use foreground color */
     ISWRenderSetColor(ctx, tw->label.foreground);
-    
-    /* Determine if this is a radio button or checkbox */
-    /* Radio button: has a radio_group (part of a group) */
-    /* Checkbox: standalone toggle */
-    if (tw->toggle.radio_group != NULL) {
-        /* Radio button - draw circle outline with optional filled center */
+
+    int shape = tw->toggle.toggle_shape;
+    if (shape == IswToggleShapeAuto)
+        shape = (tw->toggle.radio_group != NULL)
+              ? IswToggleShapeRadio : IswToggleShapeCheckbox;
+
+    if (shape == IswToggleShapeSlide) {
+        DrawSlideToggle(ctx, x, y, indicator_size, tw->command.set,
+                        tw->label.foreground, tw->core.background_pixel);
+    } else if (shape == IswToggleShapeRadio) {
         DrawRadioButton(ctx, x, y, indicator_size, tw->command.set, 1.0);
     } else {
-        /* Checkbox - draw square outline with optional checkmark */
         DrawCheckbox(ctx, x, y, indicator_size, tw->command.set, 1.0);
     }
 

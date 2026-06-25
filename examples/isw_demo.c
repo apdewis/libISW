@@ -110,6 +110,7 @@ Widget create_command_demo(Widget parent);
 Widget create_toggle_demo(Widget parent);
 Widget create_togglebutton_demo(Widget parent);
 Widget create_checkbox_demo(Widget parent);
+Widget create_slide_toggle_demo(Widget parent);
 Widget create_menu_demo(Widget parent);
 Widget create_repeater_demo(Widget parent);
 
@@ -955,7 +956,7 @@ Widget create_flexbox_vert_demo(Widget parent) {
 
 Widget create_basic_widgets_section(Widget parent) {
     Widget form, section_label;
-    Widget command_demo, toggle_demo, togglebutton_demo, checkbox_demo, menu_demo, repeater_demo;
+    Widget command_demo, toggle_demo, togglebutton_demo, checkbox_demo, slide_toggle_demo, menu_demo, repeater_demo;
     IswArgBuilder ab = IswArgBuilderInit();
 
     /* Section container */
@@ -965,7 +966,7 @@ Widget create_basic_widgets_section(Widget parent) {
 
     /* Section label */
     IswArgBuilderReset(&ab);
-    IswArgLabel(&ab, "Basic Interactive Widgets: Command, Toggle, ToggleButton, Checkbox, Menu, Repeater");
+    IswArgLabel(&ab, "Basic Interactive Widgets: Command, Toggle, ToggleButton, Checkbox, Slide Toggle, Menu, Repeater");
     IswArgBorderWidth(&ab, 0);
     IswArgTop(&ab, IswChainTop);
     IswArgBottom(&ab, IswChainTop);
@@ -1009,9 +1010,18 @@ Widget create_basic_widgets_section(Widget parent) {
     IswArgHorizDistance(&ab, 10);
     IswSetValues(checkbox_demo, ab.args, ab.count);
 
-    menu_demo = create_menu_demo(form);
+    slide_toggle_demo = create_slide_toggle_demo(form);
     IswArgBuilderReset(&ab);
     IswArgFromHoriz(&ab, checkbox_demo);
+    IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
+    IswArgHorizDistance(&ab, 10);
+    IswSetValues(slide_toggle_demo, ab.args, ab.count);
+
+    menu_demo = create_menu_demo(form);
+    IswArgBuilderReset(&ab);
+    IswArgFromHoriz(&ab, slide_toggle_demo);
     IswArgFromVert(&ab, section_label);
     IswArgTop(&ab, IswChainTop);
     IswArgBottom(&ab, IswChainTop);
@@ -1187,6 +1197,41 @@ Widget create_checkbox_demo(Widget parent) {
     IswArgLabel(&ab, "Auto-save");
     cb3 = IswCreateManagedWidget("cb3", toggleWidgetClass, box, ab.args, ab.count);
     IswAddCallback(cb3, IswNcallback, checkbox_callback, (IswPointer)"Auto-save");
+
+    return box;
+}
+
+Widget create_slide_toggle_demo(Widget parent) {
+    Widget box, title, st1, st2, st3;
+    IswArgBuilder ab = IswArgBuilderInit();
+
+    IswArgOrientation(&ab, IswOrientVertical);
+    IswArgBorderWidth(&ab, 1);
+    box = IswCreateManagedWidget("slideToggleBox", boxWidgetClass, parent, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Slide Toggles");
+    IswArgBorderWidth(&ab, 0);
+    title = IswCreateManagedWidget("slideToggleTitle", labelWidgetClass, box, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Wi-Fi");
+    IswArgToggleShape(&ab, IswToggleShapeSlide);
+    IswArgState(&ab, True);
+    st1 = IswCreateManagedWidget("st1", toggleWidgetClass, box, ab.args, ab.count);
+    IswAddCallback(st1, IswNcallback, checkbox_callback, (IswPointer)"Wi-Fi");
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Bluetooth");
+    IswArgToggleShape(&ab, IswToggleShapeSlide);
+    st2 = IswCreateManagedWidget("st2", toggleWidgetClass, box, ab.args, ab.count);
+    IswAddCallback(st2, IswNcallback, checkbox_callback, (IswPointer)"Bluetooth");
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Airplane mode");
+    IswArgToggleShape(&ab, IswToggleShapeSlide);
+    st3 = IswCreateManagedWidget("st3", toggleWidgetClass, box, ab.args, ab.count);
+    IswAddCallback(st3, IswNcallback, checkbox_callback, (IswPointer)"Airplane mode");
 
     return box;
 }

@@ -100,6 +100,15 @@ in this Software without prior written authorization from the X Consortium.
 #define IswNstate "state"
 #define IswNradioGroup "radioGroup"
 #define IswNradioData "radioData"
+#define IswNtoggleShape "toggleShape"
+#define IswCToggleShape "ToggleShape"
+
+typedef enum {
+    IswToggleShapeAuto,
+    IswToggleShapeCheckbox,
+    IswToggleShapeRadio,
+    IswToggleShapeSlide
+} IswToggleShape;
 
 extern WidgetClass               toggleWidgetClass;
 

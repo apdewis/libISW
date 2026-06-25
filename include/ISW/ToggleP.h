@@ -90,6 +90,7 @@ typedef struct {
     /* resources */
     Widget      widget;
     IswPointer   radio_data;
+    int          toggle_shape;
 
     /* private data */
     RadioGroup * radio_group;

@@ -307,6 +307,7 @@
 #define IswArgState(ab, v)                      ISW_ARG((ab), IswNstate, (v))
 #define IswArgRadioGroup(ab, v)                 ISW_ARG((ab), IswNradioGroup, (v))
 #define IswArgRadioData(ab, v)                  ISW_ARG((ab), IswNradioData, (v))
+#define IswArgToggleShape(ab, v)               ISW_ARG((ab), IswNtoggleShape, (v))
 
 /* Tabs */
 #define IswArgTabCallback(ab, v)                ISW_ARG((ab), IswNtabCallback, (v))
