@@ -222,6 +222,15 @@ struct _IswSurface {
     double            scale;            /* HiDPI device scale */
 
     int               save_count;
+
+    /* Deferred border ring (drawn after widget content so its AA isn't
+       overwritten by the background fill's outward fringe at corners). */
+    Boolean           has_border_ring;
+    NVGcolor          border_color;
+    float             border_width;
+    float             border_half;
+    float             border_fw, border_fh;
+    float             border_radius;
 };
 
 typedef struct _IswSurface ISWRenderEGLData;
@@ -539,6 +548,7 @@ egl_surface_begin(IswSurface s, Widget widget)
         !(IswIsSubclass(widget, simpleWidgetClass) &&
           ((SimpleWidget) widget)->simple.self_border);
 
+    s->has_border_ring = False;
     if (has_border) {
         Pixel bp = (IswIsSubclass(widget, simpleWidgetClass) &&
                     ((SimpleWidget) widget)->simple.use_border_color)
@@ -548,20 +558,13 @@ egl_surface_begin(IswSurface s, Widget widget)
                                bp & 0xff, 255);
 
         if (_IswBorderIsUniform(bs)) {
-            float half = (float) bs.top / 2.0f;
-            nvgBeginPath(g_egl.vg);
-            if (ring_r > 0)
-                nvgRoundedRect(g_egl.vg, half, half,
-                               (float) (widget->core.width + bs.top),
-                               (float) (widget->core.height + bs.top),
-                               (float) ring_r + half);
-            else
-                nvgRect(g_egl.vg, half, half,
-                        (float) (widget->core.width + bs.top),
-                        (float) (widget->core.height + bs.top));
-            nvgStrokeColor(g_egl.vg, col);
-            nvgStrokeWidth(g_egl.vg, (float) bs.top);
-            nvgStroke(g_egl.vg);
+            s->has_border_ring = True;
+            s->border_color = col;
+            s->border_width = (float) bs.top;
+            s->border_half = (float) bs.top / 2.0f;
+            s->border_fw = (float) (widget->core.width + bs.top);
+            s->border_fh = (float) (widget->core.height + bs.top);
+            s->border_radius = ring_r > 0 ? (float) ring_r + s->border_half : 0;
         } else {
             float ffw = (float) (widget->core.width + _IswBorderHoriz(bs));
             float ffh = (float) (widget->core.height + _IswBorderVert(bs));
@@ -652,6 +655,24 @@ egl_surface_end(IswSurface s, Widget widget, IswWindow window)
         return;
     }
     s->frame_depth = 0;
+
+    /* Draw deferred border ring on top of widget content so the background
+       fill's AA fringe at rounded corners doesn't overwrite the border. */
+    if (g_active_surface == s && s->has_border_ring) {
+        nvgResetTransform(g_egl.vg);
+        nvgResetScissor(g_egl.vg);
+        nvgBeginPath(g_egl.vg);
+        if (s->border_radius > 0)
+            nvgRoundedRect(g_egl.vg, s->border_half, s->border_half,
+                           s->border_fw, s->border_fh, s->border_radius);
+        else
+            nvgRect(g_egl.vg, s->border_half, s->border_half,
+                    s->border_fw, s->border_fh);
+        nvgStrokeColor(g_egl.vg, s->border_color);
+        nvgStrokeWidth(g_egl.vg, s->border_width);
+        nvgStroke(g_egl.vg);
+        s->has_border_ring = False;
+    }
 
     /* Finish NanoVG drawing into the bound FBO. */
     if (g_active_surface == s) {
@@ -789,12 +810,15 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
         nvgBeginPath(g_egl.vg);
         if (cr > 0) {
             IswBorderSides sbs2 = _IswGetBorderSides(src_widget);
+            nvgShapeAntiAlias(g_egl.vg, 0);
             nvgRoundedRect(g_egl.vg, ox, oy, fw, fh, (float) cr + sbs2.left);
         } else {
             nvgRect(g_egl.vg, ox, oy, fw, fh);
         }
         nvgFillPaint(g_egl.vg, p);
         nvgFill(g_egl.vg);
+        if (cr > 0)
+            nvgShapeAntiAlias(g_egl.vg, 1);
     }
 
     nvgEndFrame(g_egl.vg);
