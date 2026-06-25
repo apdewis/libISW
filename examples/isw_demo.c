@@ -16,6 +16,7 @@
 /* Container widgets */
 #include <ISW/Paned.h>
 #include <ISW/Box.h>
+#include <ISW/FlexBox.h>
 #include <ISW/Form.h>
 #include <ISW/Viewport.h>
 #include <ISW/MainWindow.h>
@@ -102,6 +103,8 @@ Widget create_viewport_demo(Widget parent);
 Widget create_layout_demo(Widget parent);
 Widget create_paned_grip_demo(Widget parent);
 Widget create_toolbar_demo(Widget parent);
+Widget create_flexbox_horiz_demo(Widget parent);
+Widget create_flexbox_vert_demo(Widget parent);
 
 Widget create_command_demo(Widget parent);
 Widget create_toggle_demo(Widget parent);
@@ -488,6 +491,7 @@ Widget create_title_label(Widget parent) {
 Widget create_containers_section(Widget parent) {
     Widget form, section_label;
     Widget toolbar_demo, box_demo, form_demo, viewport_demo;
+    Widget flexbox_horiz_demo, flexbox_vert_demo;
     IswArgBuilder ab = IswArgBuilderInit();
 
     /* Create Form to hold container demos */
@@ -498,7 +502,7 @@ Widget create_containers_section(Widget parent) {
 
     /* Section label */
     IswArgBuilderReset(&ab);
-    IswArgLabel(&ab, "Container Widgets: Toolbar, Box, Form, Viewport");
+    IswArgLabel(&ab, "Container Widgets: Toolbar, Box, Form, Viewport, FlexBox");
     IswArgBorderWidth(&ab, 0);
     IswArgTop(&ab, IswChainTop);
     IswArgBottom(&ab, IswChainTop);
@@ -540,6 +544,24 @@ Widget create_containers_section(Widget parent) {
     IswArgBottom(&ab, IswChainTop);
     IswArgLeft(&ab, IswChainLeft);
     IswSetValues(viewport_demo, ab.args, ab.count);
+
+    flexbox_horiz_demo = create_flexbox_horiz_demo(form);
+    IswArgBuilderReset(&ab);
+    IswArgFromVert(&ab, viewport_demo);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
+    IswArgLeft(&ab, IswChainLeft);
+    IswSetValues(flexbox_horiz_demo, ab.args, ab.count);
+
+    flexbox_vert_demo = create_flexbox_vert_demo(form);
+    IswArgBuilderReset(&ab);
+    IswArgFromVert(&ab, viewport_demo);
+    IswArgFromHoriz(&ab, flexbox_horiz_demo);
+    IswArgHorizDistance(&ab, 10);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
+    IswArgLeft(&ab, IswChainLeft);
+    IswSetValues(flexbox_vert_demo, ab.args, ab.count);
 
     return form;
 }
@@ -781,6 +803,150 @@ Widget create_viewport_demo(Widget parent) {
                                         viewport, ab.args, ab.count);
 
     return viewport_container;
+}
+
+Widget create_flexbox_horiz_demo(Widget parent) {
+    Widget outer, flex, child;
+    IswArgBuilder ab = IswArgBuilderInit();
+
+    IswArgOrientation(&ab, IswOrientVertical);
+    IswArgBorderWidth(&ab, 1);
+    outer = IswCreateManagedWidget("flexHorizOuter", boxWidgetClass,
+                                  parent, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "FlexBox (Horizontal)");
+    IswArgBorderWidth(&ab, 0);
+    IswCreateManagedWidget("flexHorizTitle", labelWidgetClass,
+                          outer, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgOrientation(&ab, IswOrientHorizontal);
+    IswArgSpacing(&ab, 4);
+    IswArgWidth(&ab, 350);
+    IswArgHeight(&ab, 100);
+    flex = IswCreateManagedWidget("flexHoriz", flexBoxWidgetClass,
+                                 outer, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "grow=0");
+    child = IswCreateManagedWidget("fhItem1", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 0);
+    IswArgFlexAlign(&ab, IswFlexAlignStretch);
+    IswSetValues(child, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "grow=1");
+    child = IswCreateManagedWidget("fhItem2", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 1);
+    IswArgFlexAlign(&ab, IswFlexAlignStart);
+    IswSetValues(child, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "grow=2\ncenter");
+    child = IswCreateManagedWidget("fhItem3", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 2);
+    IswArgFlexAlign(&ab, IswFlexAlignCenter);
+    IswSetValues(child, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "end");
+    child = IswCreateManagedWidget("fhItem4", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 1);
+    IswArgFlexAlign(&ab, IswFlexAlignEnd);
+    IswSetValues(child, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "basis=80");
+    child = IswCreateManagedWidget("fhItem5", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 0);
+    IswArgFlexBasis(&ab, 80);
+    IswArgFlexAlign(&ab, IswFlexAlignStretch);
+    IswSetValues(child, ab.args, ab.count);
+
+    return outer;
+}
+
+Widget create_flexbox_vert_demo(Widget parent) {
+    Widget outer, flex, child;
+    IswArgBuilder ab = IswArgBuilderInit();
+
+    IswArgOrientation(&ab, IswOrientVertical);
+    IswArgBorderWidth(&ab, 1);
+    outer = IswCreateManagedWidget("flexVertOuter", boxWidgetClass,
+                                  parent, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "FlexBox (Vertical)");
+    IswArgBorderWidth(&ab, 0);
+    IswCreateManagedWidget("flexVertTitle", labelWidgetClass,
+                          outer, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgOrientation(&ab, IswOrientVertical);
+    IswArgSpacing(&ab, 4);
+    IswArgWidth(&ab, 150);
+    IswArgHeight(&ab, 250);
+    flex = IswCreateManagedWidget("flexVert", flexBoxWidgetClass,
+                                 outer, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "stretch (default)");
+    child = IswCreateManagedWidget("fvItem1", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 0);
+    IswArgFlexAlign(&ab, IswFlexAlignStretch);
+    IswSetValues(child, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "start");
+    child = IswCreateManagedWidget("fvItem2", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 1);
+    IswArgFlexAlign(&ab, IswFlexAlignStart);
+    IswSetValues(child, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "center");
+    child = IswCreateManagedWidget("fvItem3", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 1);
+    IswArgFlexAlign(&ab, IswFlexAlignCenter);
+    IswSetValues(child, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "end");
+    child = IswCreateManagedWidget("fvItem4", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 1);
+    IswArgFlexAlign(&ab, IswFlexAlignEnd);
+    IswSetValues(child, ab.args, ab.count);
+
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "basis=60");
+    child = IswCreateManagedWidget("fvItem5", labelWidgetClass,
+                                  flex, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgFlexGrow(&ab, 0);
+    IswArgFlexBasis(&ab, 60);
+    IswArgFlexAlign(&ab, IswFlexAlignStretch);
+    IswSetValues(child, ab.args, ab.count);
+
+    return outer;
 }
 
 /* ============================================================
