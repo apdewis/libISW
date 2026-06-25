@@ -729,17 +729,20 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     ToggleWidget tw = (ToggleWidget) w;
     ISWRenderContext *ctx;
     
-    /* Call Label's Redisplay to draw just the text (not Command's button appearance) */
-    /* labelWidgetClass is Command's superclass, so we skip the 3D button drawing */
-    (*labelWidgetClass->core_class.expose)(w, event, region);
-    
-    /* Get rendering context (created by Label's Redisplay if needed) */
+    /* Get rendering context (create if needed) */
     ctx = tw->label.render_ctx;
-    
-    /* If no rendering context, we can't draw indicators */
+    if (!ctx && w->core.width > 0 && w->core.height > 0 && IswIsRealized(w)) {
+        ctx = tw->label.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    }
     if (ctx == NULL) {
         return;
     }
+
+    /* Wrap Label's expose and indicator drawing in a single begin/end pass. */
+    ISWRenderBegin(ctx);
+
+    /* Call Label's Redisplay to draw just the text (not Command's button appearance) */
+    (*labelWidgetClass->core_class.expose)(w, event, region);
     
     /*
      * Derive indicator size from the actual font metrics rather than
@@ -764,9 +767,6 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     /* Position: left edge + padding, vertically centered */
     int x = padding;
     int y = (tw->core.height - indicator_size) / 2;
-    
-    /* Begin rendering */
-    ISWRenderBegin(ctx);
     
     ISWRenderSetColor(ctx, tw->label.foreground);
 

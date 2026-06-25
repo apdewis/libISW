@@ -367,14 +367,15 @@ PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
     w->core.background_pixel = (saved_foreground & 0x00FFFFFF) | 0x63000000;
   }
 
+  /* Wrap Label's expose and focus ring in a single begin/end pass so the
+     backend sees one frame (no stale-content composite between passes). */
+  ISWRenderBegin(ctx);
+
   /* Let Label draw the rounded background + border + text */
   (*SuperClass->core_class.expose)(w, event, 0);
 
   cbw->label.foreground = saved_foreground;
   w->core.background_pixel = saved_background;
-
-  /* Draw the focus ring on top */
-  ISWRenderBegin(ctx);
 
   {
     Boolean insensitive = !IswIsSensitive(w);

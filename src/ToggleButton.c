@@ -215,16 +215,7 @@ Notify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 static void
 Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
-    ToggleButtonWidget tbw = (ToggleButtonWidget) w;
-
-    if (tbw->toggle_button.image_on && tbw->toggle_button.image_off) {
-        Boolean saved = tbw->command.set;
-        tbw->command.set = FALSE;
-        (*SuperClass->core_class.expose)(w, event, region);
-        tbw->command.set = saved;
-    } else {
-        (*SuperClass->core_class.expose)(w, event, region);
-    }
+    (*SuperClass->core_class.expose)(w, event, region);
 }
 
 static Boolean

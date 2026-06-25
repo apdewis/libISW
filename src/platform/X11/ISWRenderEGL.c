@@ -516,18 +516,12 @@ egl_surface_begin(IswSurface s, Widget widget)
 
     glBindFramebuffer(GL_FRAMEBUFFER, s->fbo);
     glViewport(0, 0, s->back_w, s->back_h);
-    /* Clear to transparent ONLY on a freshly (re)allocated FBO, so unpainted
-       margins composite correctly.  Do NOT clear every frame: a widget like
-       Command paints in two separate begin/end passes (Label content, then
-       pressed border) into the same FBO, and clearing each pass would wipe the
-       first pass's content (the label text). */
-    if (s->back_needs_clear) {
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        s->back_needs_clear = False;
-    } else {
-        glClear(GL_STENCIL_BUFFER_BIT);   /* stencil must be fresh each frame */
-    }
+
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    s->back_needs_clear = False;
+    glClear(GL_STENCIL_BUFFER_BIT);   /* stencil must be fresh each frame */
+    
 
     /* NanoVG works in logical pixels; pass the device-pixel-ratio so its AA and
        line widths match the FBO's physical resolution. */
