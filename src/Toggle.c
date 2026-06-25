@@ -593,7 +593,7 @@ RemoveFromRadioGroup(Widget w)
 
 static void
 DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
-             double scale)
+             double scale, Pixel fg)
 {
     if (!ctx) return;
 
@@ -608,9 +608,13 @@ DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
     if (checked) {
         int inset = (int)(2.5 * scale);
         int pip = size - 2 * inset;
+        double cr, cg, cb;
+        ISWRenderPixelToRGB(ctx, fg, &cr, &cg, &cb);
+        ISWRenderSetColorRGBA(ctx, cr, cg, cb, 0.75);
         ISWRenderFillRoundedRectangle(ctx,
             x + (size - pip) / 2, y + (size - pip) / 2,
             pip, pip, r * 0.5);
+        ISWRenderSetColor(ctx, fg);
     }
 
     ISWRenderRestore(ctx);
@@ -627,7 +631,7 @@ DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
 
 static void
 DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
-                double scale)
+                double scale, Pixel fg)
 {
     if (!ctx) return;
 
@@ -646,10 +650,14 @@ DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
 
     /* Draw filled center circle if selected */
     if (selected) {
+        double cr, cg, cb;
+        ISWRenderPixelToRGB(ctx, fg, &cr, &cg, &cb);
+        ISWRenderSetColorRGBA(ctx, cr, cg, cb, 0.75);
         ISWRenderPathBegin(ctx);
         ISWRenderPathNewSubPath(ctx);
         ISWRenderPathArc(ctx, cx, cy, radius * 0.45, 0, 2.0 * M_PI);
         ISWRenderFill(ctx);
+        ISWRenderSetColor(ctx, fg);
     }
     ISWRenderRestore(ctx);
 }
@@ -771,9 +779,11 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         DrawSlideToggle(ctx, x, y, indicator_size, tw->command.set,
                         tw->label.foreground, tw->core.background_pixel);
     } else if (shape == IswToggleShapeRadio) {
-        DrawRadioButton(ctx, x, y, indicator_size, tw->command.set, 1.0);
+        DrawRadioButton(ctx, x, y, indicator_size, tw->command.set, 1.0,
+                        tw->label.foreground);
     } else {
-        DrawCheckbox(ctx, x, y, indicator_size, tw->command.set, 1.0);
+        DrawCheckbox(ctx, x, y, indicator_size, tw->command.set, 1.0,
+                     tw->label.foreground);
     }
 
     _IswFocusMgrDrawRing(w, ctx, tw->label.foreground, 2.0);
