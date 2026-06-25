@@ -26,13 +26,21 @@ typedef struct {
     IswCallbackList  color_changed;
 
     /* private */
-    Widget          redSlider;
-    Widget          greenSlider;
-    Widget          blueSlider;
+    Widget          redSpinBox;
+    Widget          greenSpinBox;
+    Widget          blueSpinBox;
     Widget          redLabel;
     Widget          greenLabel;
     Widget          blueLabel;
-    Widget          swatchW;      /* preview swatch (Simple widget) */
+    Widget          swatchW;
+    Widget          hexW;
+    Widget          hueArea;
+    Widget          svArea;
+    float           hue, sat, val;
+    Boolean         dragging_hue;
+    Boolean         dragging_sv;
+    unsigned char  *hue_pixels;
+    unsigned char  *sv_pixels;
 } ColorPickerPart;
 
 typedef struct _ColorPickerRec {
