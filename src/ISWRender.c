@@ -573,9 +573,9 @@ _isw_composite_one(Widget child, IswSurface dst, Widget dst_widget,
        _isw_composite_one and is re-folded onto this (clean) surface below by
        composite_onto, so skipping the parent's re-expose does not stale the
        descendant. */
-    if (IswIsComposite(child) &&
-        child->core.widget_class->core_class.expose != NULL &&
-        child->core.composite_dirty) {
+    if (child->core.widget_class->core_class.expose != NULL &&
+        child->core.composite_dirty &&
+        (IswIsComposite(child) || child->core.virtual_origin)) {
         (*child->core.widget_class->core_class.expose)(child, NULL, 0);
         child->core.composite_dirty = False;
     }
@@ -757,6 +757,30 @@ ISWRenderGetCompositeClip(Widget widget, int *x, int *y, int *w, int *h)
 }
 
 void
+ISWRenderSetVirtualOrigin(Widget widget, int x, int y, int w, int h)
+{
+    if (widget == NULL || !IswIsWidget(widget))
+        return;
+    widget->core.virtual_origin = (w > 0 && h > 0);
+    widget->core.virtual_origin_x = x;
+    widget->core.virtual_origin_y = y;
+    widget->core.virtual_origin_w = (w > 0) ? w : 0;
+    widget->core.virtual_origin_h = (h > 0) ? h : 0;
+}
+
+Boolean
+ISWRenderGetVirtualOrigin(Widget widget, int *x, int *y, int *w, int *h)
+{
+    if (widget == NULL || !IswIsWidget(widget) || !widget->core.virtual_origin)
+        return False;
+    if (x) *x = widget->core.virtual_origin_x;
+    if (y) *y = widget->core.virtual_origin_y;
+    if (w) *w = widget->core.virtual_origin_w;
+    if (h) *h = widget->core.virtual_origin_h;
+    return True;
+}
+
+void
 ISWRenderSave(ISWRenderContext *ctx)
 {
     if (!ctx || !ctx->ops || !ctx->ops->save) {
@@ -774,6 +798,30 @@ ISWRenderRestore(ISWRenderContext *ctx)
     }
     
     ctx->ops->restore(ctx);
+}
+
+/*
+ * =================================================================
+ * Virtual-origin draw culling
+ * =================================================================
+ *
+ * When a widget has a virtual origin (its back surface covers only a tile of
+ * its logical extent), draw calls whose bounding rect falls entirely outside
+ * the tile can be skipped before reaching the backend.  The backend's clip
+ * would discard the pixels anyway, but skipping here avoids the text shaping,
+ * image decode, and path construction that the backend would do first.
+ */
+static inline Boolean
+_isw_outside_tile(ISWRenderContext *ctx, int x, int y, int w, int h)
+{
+    Widget wgt;
+    if (!ctx || !(wgt = ctx->widget) || !wgt->core.virtual_origin)
+        return False;
+    int tx = wgt->core.virtual_origin_x;
+    int ty = wgt->core.virtual_origin_y;
+    int tr = tx + wgt->core.virtual_origin_w;
+    int tb = ty + wgt->core.virtual_origin_h;
+    return (x + w <= tx || x >= tr || y + h <= ty || y >= tb);
 }
 
 /*
@@ -830,16 +878,17 @@ ISWRenderStrokeRectangle(ISWRenderContext *ctx, int x, int y, int width, int hei
         return;
     }
     
-    ctx->ops->stroke_rectangle(ctx, x, y, width, height);
+    if (!_isw_outside_tile(ctx, x, y, width, height))
+        ctx->ops->stroke_rectangle(ctx, x, y, width, height);
 }
 
 void
 ISWRenderFillRectangle(ISWRenderContext *ctx, int x, int y, int width, int height)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->fill_rectangle) {
+    if (!ctx || !ctx->ops || !ctx->ops->fill_rectangle)
         return;
-    }
-    
+    if (_isw_outside_tile(ctx, x, y, width, height))
+        return;
     ctx->ops->fill_rectangle(ctx, x, y, width, height);
 }
 
@@ -848,10 +897,11 @@ ISWRenderFillRoundedRectangle(ISWRenderContext *ctx,
                               int x, int y, int width, int height,
                               double radius)
 {
-    if (!ctx || !ctx->ops)
+    if (!ctx || !ctx->ops || !ctx->ops->fill_rounded_rect)
         return;
-    if (ctx->ops->fill_rounded_rect)
-        ctx->ops->fill_rounded_rect(ctx, x, y, width, height, radius);
+    if (_isw_outside_tile(ctx, x, y, width, height))
+        return;
+    ctx->ops->fill_rounded_rect(ctx, x, y, width, height, radius);
 }
 
 void
@@ -860,11 +910,12 @@ ISWRenderStrokeRoundedRectangle(ISWRenderContext *ctx,
                                 double radius,
                                 double stroke_width)
 {
-    if (!ctx || !ctx->ops)
+    if (!ctx || !ctx->ops || !ctx->ops->stroke_rounded_rect)
         return;
-    if (ctx->ops->stroke_rounded_rect)
-        ctx->ops->stroke_rounded_rect(ctx, x, y, width, height, radius,
-                                      stroke_width);
+    if (_isw_outside_tile(ctx, x, y, width, height))
+        return;
+    ctx->ops->stroke_rounded_rect(ctx, x, y, width, height, radius,
+                                  stroke_width);
 }
 
 void
@@ -874,11 +925,12 @@ ISWRenderFillStrokeRoundedRectangle(ISWRenderContext *ctx,
                                     double fill_alpha,
                                     double stroke_width)
 {
-    if (!ctx || !ctx->ops)
+    if (!ctx || !ctx->ops || !ctx->ops->fill_stroke_rounded_rect)
         return;
-    if (ctx->ops->fill_stroke_rounded_rect)
-        ctx->ops->fill_stroke_rounded_rect(ctx, x, y, width, height, radius,
-                                           fill_alpha, stroke_width);
+    if (_isw_outside_tile(ctx, x, y, width, height))
+        return;
+    ctx->ops->fill_stroke_rounded_rect(ctx, x, y, width, height, radius,
+                                       fill_alpha, stroke_width);
 }
 
 void
@@ -900,10 +952,14 @@ ISWRenderFillPolygon(ISWRenderContext *ctx, IswPoint *points, int num_points)
 void
 ISWRenderDrawLine(ISWRenderContext *ctx, int x1, int y1, int x2, int y2)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->draw_line) {
+    if (!ctx || !ctx->ops || !ctx->ops->draw_line)
         return;
-    }
-    
+    int lx = x1 < x2 ? x1 : x2;
+    int ly = y1 < y2 ? y1 : y2;
+    int lw = (x1 < x2 ? x2 - x1 : x1 - x2) + 1;
+    int lh = (y1 < y2 ? y2 - y1 : y1 - y2) + 1;
+    if (_isw_outside_tile(ctx, lx, ly, lw, lh))
+        return;
     ctx->ops->draw_line(ctx, x1, y1, x2, y2);
 }
 
@@ -911,10 +967,10 @@ void
 ISWRenderDrawArc(ISWRenderContext *ctx, int x, int y, int width, int height,
                 double angle1, double angle2)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->draw_arc) {
+    if (!ctx || !ctx->ops || !ctx->ops->draw_arc)
         return;
-    }
-    
+    if (_isw_outside_tile(ctx, x, y, width, height))
+        return;
     ctx->ops->draw_arc(ctx, x, y, width, height, angle1, angle2);
 }
 
@@ -928,10 +984,18 @@ void
 ISWRenderDrawString(ISWRenderContext *ctx, const char *text, int length,
                    int x, int y)
 {
-    if (!ctx || !ctx->ops || !ctx->ops->draw_string) {
+    if (!ctx || !ctx->ops || !ctx->ops->draw_string)
         return;
+    /* y is the baseline; text extends roughly one line height above it and
+       descenders below.  Use a generous vertical band (200px) to avoid calling
+       text_height — the exact height doesn't matter for culling, only ensuring
+       we never incorrectly skip a visible string. */
+    if (ctx->widget && ctx->widget->core.virtual_origin) {
+        int tt = ctx->widget->core.virtual_origin_y;
+        int tb = tt + ctx->widget->core.virtual_origin_h;
+        if (y + 200 < tt || y - 200 >= tb)
+            return;
     }
-    
     ctx->ops->draw_string(ctx, text, length, x, y);
 }
 
@@ -1028,7 +1092,8 @@ ISWRenderDrawImageRGBA(ISWRenderContext *ctx,
 {
     if (!ctx || !ctx->ops || !ctx->ops->draw_image_rgba || !rgba)
         return;
-
+    if (_isw_outside_tile(ctx, dst_x, dst_y, (int)dst_w, (int)dst_h))
+        return;
     ctx->ops->draw_image_rgba(ctx, rgba, img_width, img_height,
                               dst_x, dst_y, dst_w, dst_h);
 }
@@ -1041,6 +1106,8 @@ ISWRenderDrawImageMasked(ISWRenderContext *ctx, Pixel foreground,
                          unsigned int dst_w, unsigned int dst_h)
 {
     if (!ctx || !ctx->ops || !ctx->ops->draw_image_masked || !rgba)
+        return;
+    if (_isw_outside_tile(ctx, dst_x, dst_y, (int)dst_w, (int)dst_h))
         return;
     ctx->ops->draw_image_masked(ctx, foreground, rgba, img_w, img_h,
                                 dst_x, dst_y, dst_w, dst_h);

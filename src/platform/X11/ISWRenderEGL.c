@@ -218,6 +218,10 @@ struct _IswSurface {
                                            paint in two begin/end passes into the
                                            same FBO and clearing each pass would
                                            wipe the first pass's content. */
+    int               virt_origin_x, virt_origin_y;
+                                          /* last virtual origin applied; if the
+                                             widget's origin shifts, force a clear
+                                             even when the FBO is reused */
     int               frame_depth;      /* nested begin/end guard */
     double            scale;            /* HiDPI device scale */
 
@@ -514,8 +518,25 @@ egl_surface_begin(IswSurface s, Widget widget)
     IswBorderSides bs = {0, 0, 0, 0};
     if (windowless)
         bs = _IswGetBorderSides(widget);
-    int fw = windowless ? (widget->core.width  + _IswBorderHoriz(bs)) : widget->core.width;
-    int fh = windowless ? (widget->core.height + _IswBorderVert(bs))  : widget->core.height;
+
+    Boolean has_virt = windowless &&
+                       widget->core.virtual_origin &&
+                       widget->core.virtual_origin_w > 0 &&
+                       widget->core.virtual_origin_h > 0;
+
+    int fw, fh;
+    if (has_virt) {
+        fw = widget->core.virtual_origin_w;
+        fh = widget->core.virtual_origin_h;
+        if (s->virt_origin_x != widget->core.virtual_origin_x ||
+            s->virt_origin_y != widget->core.virtual_origin_y)
+            s->back_needs_clear = True;
+        s->virt_origin_x = widget->core.virtual_origin_x;
+        s->virt_origin_y = widget->core.virtual_origin_y;
+    } else {
+        fw = windowless ? (widget->core.width  + _IswBorderHoriz(bs)) : widget->core.width;
+        fh = windowless ? (widget->core.height + _IswBorderVert(bs))  : widget->core.height;
+    }
     int pw = (int) (fw * s->scale + 0.5);
     int ph = (int) (fh * s->scale + 0.5);
 
@@ -533,7 +554,6 @@ egl_surface_begin(IswSurface s, Widget widget)
     } else {
         glClear(GL_STENCIL_BUFFER_BIT);
     }
-    
 
     /* NanoVG works in logical pixels; pass the device-pixel-ratio so its AA and
        line widths match the FBO's physical resolution. */
@@ -541,6 +561,23 @@ egl_surface_begin(IswSurface s, Widget widget)
                   (float) (s->back_w / s->scale),
                   (float) (s->back_h / s->scale),
                   (float) s->scale);
+
+    if (has_virt) {
+        nvgTranslate(g_egl.vg,
+                     (float) -widget->core.virtual_origin_x,
+                     (float) -widget->core.virtual_origin_y);
+        nvgScissor(g_egl.vg,
+                   (float) widget->core.virtual_origin_x,
+                   (float) widget->core.virtual_origin_y,
+                   (float) widget->core.virtual_origin_w,
+                   (float) widget->core.virtual_origin_h);
+        g_active_surface = s;
+        s->frame_depth = 1;
+        s->save_count = 0;
+        s->has_border_ring = False;
+        g_save_top = 0;
+        return g_egl.vg;
+    }
 
     /* Border ring: stroke or fill the border edges.  Skipped for widgets that
        paint their own border (self_border, e.g. ProgressBar).  When all four
@@ -806,6 +843,10 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
     {
         float ox = (float) (dst_off_x + x);
         float oy = (float) (dst_off_y + y);
+        if (IswIsWidget(src_widget) && src_widget->core.virtual_origin) {
+            ox += (float) src_widget->core.virtual_origin_x;
+            oy += (float) src_widget->core.virtual_origin_y;
+        }
         Dimension cr = (IswIsWidget(src_widget) &&
                         IswIsSubclass(src_widget, simpleWidgetClass))
                        ? ((SimpleWidget) src_widget)->simple.corner_radius : 0;

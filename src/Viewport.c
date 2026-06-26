@@ -229,6 +229,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     w->viewport.child = (Widget) NULL;
     w->viewport.horiz_bar = w->viewport.vert_bar = (Widget)NULL;
     w->viewport.scroll_x = w->viewport.scroll_y = 0;
+    w->viewport.tile_x = w->viewport.tile_y = 0;
+    w->viewport.tile_w = w->viewport.tile_h = 0;
 
 /*3D Widget creation removed - ThreeD eliminated.
  * Viewport will function without 3D border effects.
@@ -488,6 +490,74 @@ SendReport (ViewportWidget w, unsigned int changed)
 }
 
 
+/* Compute the virtual-origin tile for the scrolled child.  The tile is the
+   region of the child's content that actually gets rasterised — clip size
+   plus a margin on each side for smooth scroll without immediate re-tile.
+   Returns True if the tile changed (child needs repaint). */
+static Boolean
+ComputeTile(ViewportWidget w, Position scroll_x, Position scroll_y)
+{
+    Widget child = w->viewport.child;
+    Widget clip  = w->viewport.clip;
+    int cw = (int) child->core.width;
+    int ch = (int) child->core.height;
+    int vw = (int) clip->core.width;
+    int vh = (int) clip->core.height;
+
+    /* No tiling needed when the child fits within the clip (or nearly so). */
+    if (cw <= vw * 2 && ch <= vh * 2) {
+        if (w->viewport.tile_w != 0) {
+            w->viewport.tile_x = w->viewport.tile_y = 0;
+            w->viewport.tile_w = w->viewport.tile_h = 0;
+            ISWRenderSetVirtualOrigin(child, 0, 0, 0, 0);
+            return True;
+        }
+        return False;
+    }
+
+    /* Visible region in child-local coordinates: [-scroll_x .. -scroll_x+vw]. */
+    int vis_x = (int)(-scroll_x);
+    int vis_y = (int)(-scroll_y);
+
+    /* Half-clip margin on each side for scroll headroom. */
+    int margin_x = vw / 2;
+    int margin_y = vh / 2;
+
+    /* Tile dimensions: clip + margin on each side. */
+    int tw = vw + 2 * margin_x;
+    int th = vh + 2 * margin_y;
+    if (tw > cw) tw = cw;
+    if (th > ch) th = ch;
+
+    /* Check whether the visible region is still within the current tile's
+       interior (excluding the margins).  If so, no re-tile needed. */
+    if (w->viewport.tile_w > 0) {
+        int inner_x = w->viewport.tile_x + margin_x;
+        int inner_y = w->viewport.tile_y + margin_y;
+        int inner_r = w->viewport.tile_x + w->viewport.tile_w - margin_x;
+        int inner_b = w->viewport.tile_y + w->viewport.tile_h - margin_y;
+        if (vis_x >= inner_x && vis_x + vw <= inner_r &&
+            vis_y >= inner_y && vis_y + vh <= inner_b)
+            return False;
+    }
+
+    /* Centre the tile on the visible region. */
+    int tx = vis_x - margin_x;
+    int ty = vis_y - margin_y;
+    if (tx < 0) tx = 0;
+    if (ty < 0) ty = 0;
+    if (tx + tw > cw) tx = cw - tw;
+    if (ty + th > ch) ty = ch - th;
+
+    w->viewport.tile_x = tx;
+    w->viewport.tile_y = ty;
+    w->viewport.tile_w = tw;
+    w->viewport.tile_h = th;
+
+    ISWRenderSetVirtualOrigin(child, tx, ty, tw, th);
+    return True;
+}
+
 static void
 MoveChild(ViewportWidget w, Position x, Position y)
 {
@@ -505,6 +575,9 @@ MoveChild(ViewportWidget w, Position x, Position y)
     if (x >= 0) x = 0;
     if (y >= 0) y = 0;
 
+    /* Compute the tile before positioning — this may force a repaint. */
+    Boolean tile_changed = ComputeTile(w, x, y);
+
     /* (x,y) is the pure scroll offset (<= 0).  The child is a tree-child of the
        Viewport and composites at its own core.x/y, so position it at the clip's
        origin (which the layout placed inside any left/top scrollbars) plus the
@@ -518,6 +591,11 @@ MoveChild(ViewportWidget w, Position x, Position y)
        does not overflow into the scrollbar bands or past the viewport edges. */
     ISWRenderSetCompositeClip(child, clip->core.x, clip->core.y,
                               clip->core.width, clip->core.height);
+
+    if (tile_changed) {
+        child->core.composite_dirty = True;
+        _ISWRenderMarkDirtyChain(child);
+    }
 
     SendReport (w, (IswPRSliderX | IswPRSliderY));
 

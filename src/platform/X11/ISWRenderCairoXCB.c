@@ -65,6 +65,9 @@ struct _IswSurface {
                                       surface (windowless) vs server pixmap */
     Boolean back_needs_clear;      /* back surface freshly (re)allocated; clear
                                       to transparent on next begin (once) */
+    int virt_origin_x, virt_origin_y; /* last virtual origin applied; if the
+                                         widget's origin shifts, force a clear
+                                         even when the surface is reused */
 
     /* State for save/restore */
     int save_count;
@@ -412,9 +415,26 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
         sf = _IswGetScaleFactor(IswDisplayOf(widget));
         IswBorderSides bs = _IswGetBorderSides(widget);
         bw = (int) widget->core.border_width;
-        /* Footprint = content + border ring, in physical pixels. */
-        pw = (Dimension)((widget->core.width + _IswBorderHoriz(bs)) * sf + 0.5);
-        ph = (Dimension)((widget->core.height + _IswBorderVert(bs)) * sf + 0.5);
+
+        /* Virtual origin: Viewport set a tile region — size the back surface
+         * to the tile, not the full (possibly huge) widget footprint. */
+        Boolean has_virt = widget->core.virtual_origin &&
+                           widget->core.virtual_origin_w > 0 &&
+                           widget->core.virtual_origin_h > 0;
+
+        if (has_virt) {
+            pw = (Dimension)(widget->core.virtual_origin_w * sf + 0.5);
+            ph = (Dimension)(widget->core.virtual_origin_h * sf + 0.5);
+            if (data->virt_origin_x != widget->core.virtual_origin_x ||
+                data->virt_origin_y != widget->core.virtual_origin_y)
+                data->back_needs_clear = True;
+            data->virt_origin_x = widget->core.virtual_origin_x;
+            data->virt_origin_y = widget->core.virtual_origin_y;
+        } else {
+            /* Footprint = content + border ring, in physical pixels. */
+            pw = (Dimension)((widget->core.width + _IswBorderHoriz(bs)) * sf + 0.5);
+            ph = (Dimension)((widget->core.height + _IswBorderVert(bs)) * sf + 0.5);
+        }
 
         if (!_cairo_xcb_ensure_back(data, widget, pw, ph, sf)) {
             data->cairo_ctx = data->window_ctx;  /* degraded: no buffer */
@@ -446,6 +466,24 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
             cairo_paint(data->cairo_ctx);
             cairo_restore(data->cairo_ctx);
             data->back_needs_clear = False;
+        }
+
+        if (has_virt) {
+            /* Virtual origin: the surface covers widget-local rect
+             * [virt_x .. virt_x+virt_w, virt_y .. virt_y+virt_h].
+             * Translate so widget-local (virt_x, virt_y) maps to surface (0,0).
+             * No border ring — the child is oversized; the parent clips. */
+            cairo_translate(data->cairo_ctx,
+                            -widget->core.virtual_origin_x,
+                            -widget->core.virtual_origin_y);
+            cairo_rectangle(data->cairo_ctx,
+                            widget->core.virtual_origin_x,
+                            widget->core.virtual_origin_y,
+                            widget->core.virtual_origin_w,
+                            widget->core.virtual_origin_h);
+            cairo_clip(data->cairo_ctx);
+            data->frame_depth = 1;
+            return data->cairo_ctx;
         }
 
         /* Border: stroke the border ring.  Skipped for widgets that paint
@@ -903,8 +941,18 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
         cairo_clip(dctx);
     }
 
-    cairo_set_source_surface(dctx, sd->back_surface,
-                             dst_off_x + x, dst_off_y + y);
+    /* Virtual origin: the back surface covers a sub-region starting at
+       (virt_x, virt_y) in widget-local space.  Offset the source placement so
+       back pixel (0,0) maps to the correct parent position. */
+    {
+        double sx = dst_off_x + x;
+        double sy = dst_off_y + y;
+        if (IswIsWidget(src_widget) && src_widget->core.virtual_origin) {
+            sx += src_widget->core.virtual_origin_x;
+            sy += src_widget->core.virtual_origin_y;
+        }
+        cairo_set_source_surface(dctx, sd->back_surface, sx, sy);
+    }
     /* OVER reads the destination and blends per pixel — the dominant CPU cost of
        the composite pass.  Most widget surfaces are opaque across their footprint
        (background-filled, then painted over), so the blend is wasted: SOURCE is a

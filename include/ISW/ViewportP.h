@@ -83,6 +83,11 @@ typedef struct _ViewportPart {
     Position scroll_x, scroll_y;/* current scroll offset (<= 0); child.core.x/y
                                    is clip.x/y + this, so derive scroll from here
                                    rather than from child.core.x/y. */
+    int tile_x, tile_y;        /* current virtual-origin tile position (widget-
+                                   local coords of the child).  The tile covers
+                                   [tile_x .. tile_x+tile_w, tile_y .. tile_y+tile_h].
+                                   Scroll within the tile is free (no repaint). */
+    int tile_w, tile_h;        /* current tile dimensions (clip + margin) */
     /* ThreeDWidget threeD; -- ThreeD widget removed */
 } ViewportPart;
 

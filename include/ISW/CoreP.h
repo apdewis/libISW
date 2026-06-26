@@ -131,6 +131,16 @@ typedef struct _CorePart {
                                            (Viewport).  Persists across the
                                            surface's create/destroy, so it lives
                                            on the widget, not the surface.       */
+    Boolean         virtual_origin;     /* back surface covers a sub-region   */
+    int             virtual_origin_x, virtual_origin_y,
+                    virtual_origin_w, virtual_origin_h;
+                                        /* when virtual_origin: the back surface
+                                           is sized to (w x h) and maps to
+                                           widget-local rect [x..x+w, y..y+h].
+                                           surface_begin translates so the child
+                                           draws at local coords while only this
+                                           tile is rasterised.  Set by Viewport
+                                           for oversized scrolled children.      */
     Boolean         composite_dirty;    /* surface changed since last fold:
                                            re-run this container's expose proc
                                            on the next composite pass.  Starts

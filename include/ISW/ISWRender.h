@@ -276,6 +276,25 @@ void ISWRenderSetCompositeClip(Widget widget, int x, int y, int w, int h);
 Boolean ISWRenderGetCompositeClip(Widget widget, int *x, int *y, int *w, int *h);
 
 /*
+ * ISWRenderSetVirtualOrigin - restrict a widget's back surface to a sub-region
+ *
+ * Instead of allocating a back surface the full size of the widget, the
+ * backend allocates (w x h) and translates the drawing origin so widget-local
+ * coordinate (x, y) maps to surface pixel (0, 0).  The widget's expose proc
+ * draws at its normal local coordinates; only the visible tile is rasterised.
+ * Pass w<=0 to clear (reverts to full-size surface).
+ */
+void ISWRenderSetVirtualOrigin(Widget widget, int x, int y, int w, int h);
+
+/*
+ * ISWRenderGetVirtualOrigin - read a widget's virtual origin
+ *
+ * Returns True and fills *x,*y,*w,*h if the widget has a virtual origin set;
+ * False otherwise.
+ */
+Boolean ISWRenderGetVirtualOrigin(Widget widget, int *x, int *y, int *w, int *h);
+
+/*
  * ISWRenderSave - Save current graphics state
  *
  * Parameters:
