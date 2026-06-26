@@ -119,28 +119,28 @@ _IswDescaleEventCoords(IswEvent *event, double sf)
     switch (event->kind) {
     case IswKeyDown:
     case IswKeyUp:
-        event->key.x = (int16_t)(event->key.x * inv);
-        event->key.y = (int16_t)(event->key.y * inv);
+        event->key.x = (int32_t)(event->key.x * inv);
+        event->key.y = (int32_t)(event->key.y * inv);
         event->key.root_x = (int16_t)(event->key.root_x * inv);
         event->key.root_y = (int16_t)(event->key.root_y * inv);
         break;
     case IswButtonDown:
     case IswButtonUp:
-        event->button.x = (int16_t)(event->button.x * inv);
-        event->button.y = (int16_t)(event->button.y * inv);
+        event->button.x = (int32_t)(event->button.x * inv);
+        event->button.y = (int32_t)(event->button.y * inv);
         event->button.root_x = (int16_t)(event->button.root_x * inv);
         event->button.root_y = (int16_t)(event->button.root_y * inv);
         break;
     case IswMotion:
-        event->motion.x = (int16_t)(event->motion.x * inv);
-        event->motion.y = (int16_t)(event->motion.y * inv);
+        event->motion.x = (int32_t)(event->motion.x * inv);
+        event->motion.y = (int32_t)(event->motion.y * inv);
         event->motion.root_x = (int16_t)(event->motion.root_x * inv);
         event->motion.root_y = (int16_t)(event->motion.root_y * inv);
         break;
     case IswEnter:
     case IswLeave:
-        event->crossing.x = (int16_t)(event->crossing.x * inv);
-        event->crossing.y = (int16_t)(event->crossing.y * inv);
+        event->crossing.x = (int32_t)(event->crossing.x * inv);
+        event->crossing.y = (int32_t)(event->crossing.y * inv);
         event->crossing.root_x = (int16_t)(event->crossing.root_x * inv);
         event->crossing.root_y = (int16_t)(event->crossing.root_y * inv);
         break;
@@ -798,8 +798,8 @@ _IswSynthesizeCrossing(Widget w, IswEvent *source, IswEventKind kind)
     ev.kind = kind;
     ev.crossing.mode = IswNotifyNormal;
     ev.crossing.modifiers = IswEventModifiers(source);
-    ev.crossing.x = (int16_t) (IswEventX(source) - dx);
-    ev.crossing.y = (int16_t) (IswEventY(source) - dy);
+    ev.crossing.x = (int32_t) (IswEventX(source) - dx);
+    ev.crossing.y = (int32_t) (IswEventY(source) - dy);
     ev.any.time = source->any.time;
     ev.any.target = (IswEventTarget) (void *) w;
 
@@ -921,22 +921,22 @@ _IswRebaseEventCoords(IswEvent *event, int dx, int dy)
     switch (event->kind) {
     case IswKeyDown:
     case IswKeyUp:
-        event->key.x = (int16_t) (event->key.x - dx);
-        event->key.y = (int16_t) (event->key.y - dy);
+        event->key.x = (int32_t) (event->key.x - dx);
+        event->key.y = (int32_t) (event->key.y - dy);
         break;
     case IswButtonDown:
     case IswButtonUp:
-        event->button.x = (int16_t) (event->button.x - dx);
-        event->button.y = (int16_t) (event->button.y - dy);
+        event->button.x = (int32_t) (event->button.x - dx);
+        event->button.y = (int32_t) (event->button.y - dy);
         break;
     case IswMotion:
-        event->motion.x = (int16_t) (event->motion.x - dx);
-        event->motion.y = (int16_t) (event->motion.y - dy);
+        event->motion.x = (int32_t) (event->motion.x - dx);
+        event->motion.y = (int32_t) (event->motion.y - dy);
         break;
     case IswEnter:
     case IswLeave:
-        event->crossing.x = (int16_t) (event->crossing.x - dx);
-        event->crossing.y = (int16_t) (event->crossing.y - dy);
+        event->crossing.x = (int32_t) (event->crossing.x - dx);
+        event->crossing.y = (int32_t) (event->crossing.y - dy);
         break;
     default:
         break;

@@ -216,7 +216,7 @@ typedef struct {
     uint32_t    unicode;     /* code point, or 0 */
     char        text[8];     /* UTF-8 + NUL */
     uint16_t    modifiers;   /* IswModMask */
-    int16_t     x, y;        /* pointer position, widget-local logical px */
+    int32_t     x, y;        /* pointer position, widget-local logical px */
     int16_t     root_x, root_y; /* pointer position, screen-relative */
 } IswKeyEvent;
 
@@ -225,7 +225,7 @@ typedef struct {
     ISW_EVENT_HEADER;
     uint8_t     button;      /* IswButton */
     uint16_t    modifiers;   /* IswModMask, incl. held buttons */
-    int16_t     x, y;        /* widget-local logical px */
+    int32_t     x, y;        /* widget-local logical px */
     int16_t     root_x, root_y;
 } IswButtonEvent;
 
@@ -233,7 +233,7 @@ typedef struct {
 typedef struct {
     ISW_EVENT_HEADER;
     uint16_t    modifiers;
-    int16_t     x, y;
+    int32_t     x, y;
     int16_t     root_x, root_y;
 } IswMotionEvent;
 
@@ -243,7 +243,7 @@ typedef struct {
     IswNotifyMode   mode;
     IswNotifyDetail detail;
     uint16_t        modifiers;
-    int16_t         x, y;
+    int32_t         x, y;
     int16_t         root_x, root_y;
     uint8_t         same_screen; /* pointer on same screen + window focused */
 } IswCrossingEvent;
@@ -342,7 +342,7 @@ typedef union _IswEvent {
  * crossing); they return 0 for events with no pointer position.
  */
 
-static inline int16_t IswEventX(const IswEvent *e)
+static inline int32_t IswEventX(const IswEvent *e)
 {
     switch (e->kind) {
     case IswKeyDown: case IswKeyUp:           return e->key.x;
@@ -353,7 +353,7 @@ static inline int16_t IswEventX(const IswEvent *e)
     }
 }
 
-static inline int16_t IswEventY(const IswEvent *e)
+static inline int32_t IswEventY(const IswEvent *e)
 {
     switch (e->kind) {
     case IswKeyDown: case IswKeyUp:           return e->key.y;
