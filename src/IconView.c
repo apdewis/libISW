@@ -585,6 +585,48 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     Dimension spacing = iw->iconView.item_spacing;
     Dimension half_sp = spacing / 2;
 
+    /* Determine the visible vertical band to cull items outside it.
+       The render API culls draw calls outside the tile, but the widget must
+       also skip per-item work (text measurement, SVG rasterization) that the
+       draw-level cull can't catch. */
+    int vis_top = 0;
+    int vis_bot = (int) w->core.height;
+    {
+        int vx, vy, vw, vh;
+        if (ISWRenderGetVirtualOrigin(w, &vx, &vy, &vw, &vh)) {
+            vis_top = vy;
+            vis_bot = vy + vh;
+        }
+    }
+
+    int first_row = 0, last_row = iw->iconView.nrows - 1;
+    if (iw->iconView.nrows > 0 && iw->iconView.row_y) {
+        int lo = 0, hi = iw->iconView.nrows - 1;
+        while (lo < hi) {
+            int mid = (lo + hi) / 2;
+            if (iw->iconView.row_y[mid] + (int)iw->iconView.row_h[mid] <= vis_top)
+                lo = mid + 1;
+            else
+                hi = mid;
+        }
+        first_row = lo;
+
+        lo = first_row; hi = iw->iconView.nrows - 1;
+        while (lo < hi) {
+            int mid = (lo + hi + 1) / 2;
+            if (iw->iconView.row_y[mid] >= vis_bot)
+                hi = mid - 1;
+            else
+                lo = mid;
+        }
+        last_row = lo;
+    }
+
+    int first_item = first_row * iw->iconView.ncols;
+    int last_item = (last_row + 1) * iw->iconView.ncols;
+    if (last_item > iw->iconView.nitems)
+        last_item = iw->iconView.nitems;
+
     ISWRenderBegin(ctx);
 
     /* Clear background */
@@ -594,7 +636,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     if (iw->iconView.font)
         ISWRenderSetFont(ctx, iw->iconView.font);
 
-    for (int i = 0; i < iw->iconView.nitems; i++) {
+    for (int i = first_item; i < last_item; i++) {
         int col = i % iw->iconView.ncols;
         int row = i / iw->iconView.ncols;
         Dimension rh = iw->iconView.row_h[row];
