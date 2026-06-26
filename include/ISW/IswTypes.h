@@ -52,7 +52,7 @@ typedef uint32_t IswKeySym;
 #ifndef ISW_POINT_DEFINED
 #define ISW_POINT_DEFINED
 typedef struct {
-    int16_t x, y;
+    int x, y;
 } IswPoint;
 #endif
 
