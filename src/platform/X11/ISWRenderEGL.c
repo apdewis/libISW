@@ -526,10 +526,13 @@ egl_surface_begin(IswSurface s, Widget widget)
     glBindFramebuffer(GL_FRAMEBUFFER, s->fbo);
     glViewport(0, 0, s->back_w, s->back_h);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    s->back_needs_clear = False;
-    glClear(GL_STENCIL_BUFFER_BIT);   /* stencil must be fresh each frame */
+    if (s->back_needs_clear) {
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        s->back_needs_clear = False;
+    } else {
+        glClear(GL_STENCIL_BUFFER_BIT);
+    }
     
 
     /* NanoVG works in logical pixels; pass the device-pixel-ratio so its AA and
