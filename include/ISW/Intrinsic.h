@@ -213,8 +213,8 @@ typedef IswIntPtr	IswArgVal;
 typedef unsigned char	IswEnum;
 
 typedef unsigned int	Cardinal;
-typedef unsigned short	Dimension;  /* Size in pixels			*/
-typedef short		Position;   /* Offset from 0 coordinate		*/
+typedef unsigned int	Dimension;  /* Size in pixels			*/
+typedef int		Position;   /* Offset from 0 coordinate		*/
 
 typedef void*		IswPointer;
 #if __STDC_VERSION__ >= 201112L && !defined(__cplusplus)
