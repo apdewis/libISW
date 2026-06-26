@@ -1144,6 +1144,35 @@ static void egl_copy_area(ISWRenderContext *ctx,
     nvgDeleteImage(VG, img);
 }
 
+/* ---- Retained image ops ---- */
+
+static int egl_image_upload(const unsigned char *rgba,
+                            unsigned int w, unsigned int h)
+{
+    if (!VG || !rgba || w == 0 || h == 0) return 0;
+    return nvgCreateImageRGBA(VG, (int)w, (int)h, 0, rgba);
+}
+
+static void egl_image_free(int handle)
+{
+    if (!VG || handle <= 0) return;
+    nvgDeleteImage(VG, handle);
+}
+
+static void egl_draw_image_handle(ISWRenderContext *ctx, int handle,
+                                  int dst_x, int dst_y,
+                                  unsigned int dst_w, unsigned int dst_h)
+{
+    (void)ctx;
+    if (!VG || handle <= 0) return;
+    NVGpaint p = nvgImagePattern(VG, (float)dst_x, (float)dst_y,
+                                 (float)dst_w, (float)dst_h, 0.0f, handle, 1.0f);
+    nvgBeginPath(VG);
+    nvgRect(VG, (float)dst_x, (float)dst_y, (float)dst_w, (float)dst_h);
+    nvgFillPaint(VG, p);
+    nvgFill(VG);
+}
+
 /* ---- RGBA images ---- */
 
 static void egl_draw_image_rgba(ISWRenderContext *ctx,
@@ -1490,6 +1519,9 @@ const ISWRenderOps isw_render_egl_ops = {
     .rotate                   = egl_rotate,
     .show_text                = egl_show_text,
     .pixel_to_rgb             = egl_pixel_to_rgb,
+    .image_upload             = egl_image_upload,
+    .image_free               = egl_image_free,
+    .draw_image_handle        = egl_draw_image_handle,
 };
 
 const IswSurfaceOps isw_surface_egl_ops = {

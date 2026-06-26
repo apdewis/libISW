@@ -189,6 +189,16 @@ typedef struct _ISWRenderOps {
     void (*pixel_to_rgb)(struct _ISWRenderContext *ctx, Pixel pixel,
                          double *r, double *g, double *b);
 
+    /* Retained image ops — upload RGBA pixels to a backend texture once,
+       draw by handle on subsequent frames, free when done.  Format-agnostic:
+       the caller supplies decoded RGBA from any image decoder. */
+    int  (*image_upload)(const unsigned char *rgba,
+                         unsigned int w, unsigned int h);
+    void (*image_free)(int handle);
+    void (*draw_image_handle)(struct _ISWRenderContext *ctx, int handle,
+                              int dst_x, int dst_y,
+                              unsigned int dst_w, unsigned int dst_h);
+
 } ISWRenderOps;
 
 /*

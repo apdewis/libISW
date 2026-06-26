@@ -10,13 +10,45 @@
 #include <ISW/IconView.h>
 #include <ISW/ISWRender.h>
 #include <ISW/ISWImage.h>
+#include <pthread.h>
 
 /* Cached per-item rendering state */
 typedef struct {
     ISWImage       *image;
     const unsigned char *raster;
     unsigned int    raster_w, raster_h;
+    int             img_handle;       /* retained GPU texture (0 = none) */
+    const unsigned char *handle_raster; /* raster ptr the handle was built from */
+    Boolean         load_pending;     /* async decode requested */
 } IconViewItemCache;
+
+/* Result from a background decode thread */
+typedef struct {
+    int           index;
+    ISWImage     *image;
+    const unsigned char *raster;
+    unsigned int  raster_w, raster_h;
+} IconViewDecodeResult;
+
+/* In-flight background decode job */
+typedef struct {
+    Widget        widget;
+    int           pipe_fd[2];
+    IswInputId    input_id;
+    pthread_t     thread;
+
+    /* Requests (written by main, read by worker) */
+    int          *indices;
+    char        **sources;
+    double        dpi;
+    char          fg_hex[8];
+    unsigned int  phys_sz;
+    int           nrequests;
+
+    /* Results (written by worker, read by main) */
+    IconViewDecodeResult *results;
+    int           nresults;
+} IconViewDecodeJob;
 
 typedef struct {
     /* public resources */
@@ -62,6 +94,10 @@ typedef struct {
     IswWorkProcId    work_proc_id;
 
     int             drop_highlight;    /* item index to highlight as drop target, -1 = none */
+
+    /* Async icon decode */
+    IswIntervalId   decode_timer;     /* debounce timer for deferred loads */
+    IconViewDecodeJob *decode_job;    /* in-flight background decode, or NULL */
 } IconViewPart;
 
 typedef struct _IconViewRec {

@@ -631,6 +631,46 @@ void ISWRenderDrawImageMasked(ISWRenderContext *ctx, Pixel foreground,
                               unsigned int dst_w, unsigned int dst_h);
 
 /*
+ * =================================================================
+ * Retained Image API
+ * =================================================================
+ */
+
+/*
+ * ISWRenderImageUpload - Upload RGBA pixels to a retained backend texture.
+ *
+ * Parameters:
+ *   ctx  - Rendering context
+ *   rgba - RGBA pixel data (4 bytes per pixel)
+ *   w, h - Image dimensions in pixels
+ *
+ * Returns: Opaque handle > 0, or 0 on failure / unsupported backend.
+ *          Free with ISWRenderImageFree().
+ */
+int ISWRenderImageUpload(ISWRenderContext *ctx,
+                         const unsigned char *rgba,
+                         unsigned int w, unsigned int h);
+
+/*
+ * ISWRenderImageFree - Free a retained image texture.
+ *   Safe to call with handle == 0 (no-op).
+ */
+void ISWRenderImageFree(ISWRenderContext *ctx, int handle);
+
+/*
+ * ISWRenderDrawImageHandle - Draw a previously-uploaded image.
+ *
+ * Parameters:
+ *   ctx          - Rendering context
+ *   handle       - Handle from ISWRenderImageUpload
+ *   dst_x, dst_y - Destination position
+ *   dst_w, dst_h - Destination size (scaled to fit)
+ */
+void ISWRenderDrawImageHandle(ISWRenderContext *ctx, int handle,
+                              int dst_x, int dst_y,
+                              unsigned int dst_w, unsigned int dst_h);
+
+/*
  * ISWRenderPixelToRGB - Convert pixel value to RGB components
  *
  * Parameters:

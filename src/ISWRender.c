@@ -15,6 +15,7 @@
 
 #include "ISWRenderOps.h"
 #include <ISW/ISWPlatform.h>
+#include <ISW/ISWFontMetricCache.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -1003,11 +1004,17 @@ int
 ISWRenderTextWidth(ISWRenderContext *ctx, const char *text, int length)
 {
     if (!ctx || !ctx->ops || !ctx->ops->text_width) {
-        /* Rough estimate: 8 pixels per character */
         return length * 8;
     }
-    
-    return ctx->ops->text_width(ctx, text, length);
+
+    ISWFontMetricCache *mc = ISWFontMetricCacheGet();
+    int cached;
+    if (ISWFontMetricCacheLookup(mc, ctx->current_font, text, length, &cached))
+        return cached;
+
+    int w = ctx->ops->text_width(ctx, text, length);
+    ISWFontMetricCacheStore(mc, ctx->current_font, text, length, w);
+    return w;
 }
 
 int
@@ -1113,6 +1120,41 @@ ISWRenderDrawImageMasked(ISWRenderContext *ctx, Pixel foreground,
                                 dst_x, dst_y, dst_w, dst_h);
 }
 
+/*
+ * =================================================================
+ * Retained Image API
+ * =================================================================
+ */
+
+int
+ISWRenderImageUpload(ISWRenderContext *ctx,
+                     const unsigned char *rgba,
+                     unsigned int w, unsigned int h)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->image_upload || !rgba)
+        return 0;
+    return ctx->ops->image_upload(rgba, w, h);
+}
+
+void
+ISWRenderImageFree(ISWRenderContext *ctx, int handle)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->image_free || handle <= 0)
+        return;
+    ctx->ops->image_free(handle);
+}
+
+void
+ISWRenderDrawImageHandle(ISWRenderContext *ctx, int handle,
+                         int dst_x, int dst_y,
+                         unsigned int dst_w, unsigned int dst_h)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->draw_image_handle || handle <= 0)
+        return;
+    if (_isw_outside_tile(ctx, dst_x, dst_y, (int)dst_w, (int)dst_h))
+        return;
+    ctx->ops->draw_image_handle(ctx, handle, dst_x, dst_y, dst_w, dst_h);
+}
 
 Boolean
 ISWRenderSetGradient(ISWRenderContext *ctx, double x1, double y1, double x2, double y2,

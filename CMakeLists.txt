@@ -310,6 +310,7 @@ set(ISW_WIDGET_SOURCES
     src/ISWUtf8.c
     src/Image.c
     src/ISWImage.c
+    src/ISWFontMetricCache.c
 )
 
 set(SVG_SOURCES
@@ -394,10 +395,11 @@ if(ISW_GRAY_BLKWHT_STIPPLES)
     target_compile_definitions(ISW PRIVATE ISW_GRAY_BLKWHT_STIPPLES)
 endif()
 
+find_package(Threads REQUIRED)
+target_link_libraries(ISW PRIVATE Threads::Threads)
+
 if(ISW_THREADS)
-    find_package(Threads REQUIRED)
     target_compile_definitions(ISW PRIVATE ISW_THREADS)
-    target_link_libraries(ISW PRIVATE Threads::Threads)
 endif()
 
 if(XKBCOMMON_FOUND)

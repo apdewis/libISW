@@ -16,6 +16,7 @@
 #include <ISW/ISWRender.h>
 #include <ISW/ISWUtf8.h>
 #include <ISW/ISWImage.h>
+#include <ISW/ISWFontMetricCache.h>
 #include <ISW/IconViewP.h>
 #include <ISW/FocusMgrI.h>
 #include <ISW/IswDragDrop.h>
@@ -27,8 +28,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #define LABEL_MARGIN 2
+#define DECODE_DEBOUNCE_MS 50
 
 #define Offset(field) IswOffsetOf(IconViewRec, field)
 
@@ -161,14 +165,22 @@ WidgetClass iconViewWidgetClass = (WidgetClass)&iconViewClassRec;
 
 /* --- Helpers --- */
 
+static void CancelDecodeJob(IconViewWidget iw);
+
 static void
 FreeCache(IconViewWidget iw)
 {
+    CancelDecodeJob(iw);
     if (!iw->iconView.cache)
         return;
     for (int i = 0; i < iw->iconView.cache_size; i++) {
-        if (iw->iconView.cache[i].image)
-            ISWImageDestroy(iw->iconView.cache[i].image);
+        IconViewItemCache *ic = &iw->iconView.cache[i];
+        if (ic->img_handle) {
+            ISWRenderImageFree(iw->iconView.render_ctx, ic->img_handle);
+            ic->img_handle = 0;
+        }
+        if (ic->image)
+            ISWImageDestroy(ic->image);
     }
     free(iw->iconView.cache);
     iw->iconView.cache = NULL;
@@ -181,13 +193,19 @@ FlushSVGCache(IconViewWidget iw)
     if (!iw->iconView.cache)
         return;
     for (int i = 0; i < iw->iconView.cache_size; i++) {
-        if (iw->iconView.cache[i].image) {
-            ISWImageDestroy(iw->iconView.cache[i].image);
-            iw->iconView.cache[i].image = NULL;
+        IconViewItemCache *ic = &iw->iconView.cache[i];
+        if (ic->img_handle) {
+            ISWRenderImageFree(iw->iconView.render_ctx, ic->img_handle);
+            ic->img_handle = 0;
+            ic->handle_raster = NULL;
         }
-        iw->iconView.cache[i].raster = NULL;
-        iw->iconView.cache[i].raster_w = 0;
-        iw->iconView.cache[i].raster_h = 0;
+        if (ic->image) {
+            ISWImageDestroy(ic->image);
+            ic->image = NULL;
+        }
+        ic->raster = NULL;
+        ic->raster_w = 0;
+        ic->raster_h = 0;
     }
 }
 
@@ -213,6 +231,231 @@ AllocCache(IconViewWidget iw)
                                      sizeof(Boolean));
     iw->iconView.band_saved = calloc((size_t)iw->iconView.nitems,
                                       sizeof(Boolean));
+}
+
+/* --- Async icon decode --- */
+
+static void
+CancelDecodeJob(IconViewWidget iw)
+{
+    if (iw->iconView.decode_job) {
+        IconViewDecodeJob *job = iw->iconView.decode_job;
+        IswRemoveInput(job->input_id);
+        pthread_detach(job->thread);
+        for (int i = 0; i < job->nrequests; i++)
+            free(job->sources[i]);
+        free(job->sources);
+        free(job->indices);
+        for (int i = 0; i < job->nresults; i++) {
+            if (job->results[i].image)
+                ISWImageDestroy(job->results[i].image);
+        }
+        free(job->results);
+        if (job->pipe_fd[0] >= 0) close(job->pipe_fd[0]);
+        if (job->pipe_fd[1] >= 0) close(job->pipe_fd[1]);
+        free(job);
+        iw->iconView.decode_job = NULL;
+    }
+    if (iw->iconView.decode_timer) {
+        IswRemoveTimeOut(iw->iconView.decode_timer);
+        iw->iconView.decode_timer = 0;
+    }
+}
+
+static void *
+DecodeWorkerThread(void *arg)
+{
+    IconViewDecodeJob *job = (IconViewDecodeJob *)arg;
+
+    job->results = calloc((size_t)job->nrequests, sizeof(IconViewDecodeResult));
+    job->nresults = 0;
+
+    for (int i = 0; i < job->nrequests; i++) {
+        ISWImage *img = ISWImageLoad(job->sources[i], job->dpi, job->fg_hex);
+        if (!img)
+            continue;
+
+        unsigned int rw, rh;
+        const unsigned char *raster = ISWImageRasterize(
+            img, job->phys_sz, job->phys_sz, &rw, &rh);
+        if (!raster) {
+            ISWImageDestroy(img);
+            continue;
+        }
+
+        IconViewDecodeResult *r = &job->results[job->nresults++];
+        r->index = job->indices[i];
+        r->image = img;
+        r->raster = raster;
+        r->raster_w = rw;
+        r->raster_h = rh;
+    }
+
+    char byte = 1;
+    (void)write(job->pipe_fd[1], &byte, 1);
+    return NULL;
+}
+
+static void
+DecodeDoneCallback(IswPointer closure, int *fd, IswInputId *id)
+{
+    (void)fd; (void)id;
+    IconViewDecodeJob *job = (IconViewDecodeJob *)closure;
+    Widget w = job->widget;
+    IconViewWidget iw = (IconViewWidget)w;
+
+    char buf[16];
+    (void)read(job->pipe_fd[0], buf, sizeof(buf));
+    pthread_join(job->thread, NULL);
+    IswRemoveInput(job->input_id);
+
+    for (int i = 0; i < job->nresults; i++) {
+        IconViewDecodeResult *r = &job->results[i];
+        if (r->index < 0 || r->index >= iw->iconView.cache_size)
+            continue;
+        IconViewItemCache *ic = &iw->iconView.cache[r->index];
+        if (ic->image) {
+            ISWImageDestroy(r->image);
+            continue;
+        }
+        ic->image = r->image;
+        ic->raster = r->raster;
+        ic->raster_w = r->raster_w;
+        ic->raster_h = r->raster_h;
+        ic->load_pending = False;
+        r->image = NULL;
+    }
+
+    for (int i = 0; i < job->nrequests; i++)
+        free(job->sources[i]);
+    free(job->sources);
+    free(job->indices);
+    free(job->results);
+    if (job->pipe_fd[0] >= 0) close(job->pipe_fd[0]);
+    if (job->pipe_fd[1] >= 0) close(job->pipe_fd[1]);
+    free(job);
+    iw->iconView.decode_job = NULL;
+
+    if (IswIsRealized(w))
+        Redisplay(w, NULL, 0);
+}
+
+static void
+DecodeTimerFired(IswPointer closure, IswIntervalId *id)
+{
+    (void)id;
+    Widget w = (Widget)closure;
+    IconViewWidget iw = (IconViewWidget)w;
+
+    iw->iconView.decode_timer = 0;
+
+    if (iw->iconView.decode_job)
+        return;
+
+    if (!iw->iconView.cache || !iw->iconView.icon_data)
+        return;
+
+    int vis_top = 0, vis_bot = (int)w->core.height;
+    {
+        int vx, vy, vw, vh;
+        if (ISWRenderGetVirtualOrigin(w, &vx, &vy, &vw, &vh)) {
+            vis_top = vy;
+            vis_bot = vy + vh;
+        }
+    }
+
+    int first_row = 0, last_row = iw->iconView.nrows - 1;
+    if (iw->iconView.nrows > 0 && iw->iconView.row_y) {
+        int lo = 0, hi = iw->iconView.nrows - 1;
+        while (lo < hi) {
+            int mid = (lo + hi) / 2;
+            if (iw->iconView.row_y[mid] + (int)iw->iconView.row_h[mid] <= vis_top)
+                lo = mid + 1;
+            else
+                hi = mid;
+        }
+        first_row = lo;
+        lo = first_row; hi = iw->iconView.nrows - 1;
+        while (lo < hi) {
+            int mid = (lo + hi + 1) / 2;
+            if (iw->iconView.row_y[mid] >= vis_bot)
+                hi = mid - 1;
+            else
+                lo = mid;
+        }
+        last_row = lo;
+    }
+
+    int first_item = first_row * iw->iconView.ncols;
+    int last_item = (last_row + 1) * iw->iconView.ncols;
+    if (last_item > iw->iconView.nitems)
+        last_item = iw->iconView.nitems;
+
+    int cap = 0, nreq = 0;
+    int *indices = NULL;
+    char **sources = NULL;
+
+    for (int i = first_item; i < last_item; i++) {
+        IconViewItemCache *ic = &iw->iconView.cache[i];
+        if (ic->image || !ic->load_pending)
+            continue;
+        if (!iw->iconView.icon_data[i])
+            continue;
+        if (nreq >= cap) {
+            cap = cap ? cap * 2 : 16;
+            indices = realloc(indices, (size_t)cap * sizeof(int));
+            sources = realloc(sources, (size_t)cap * sizeof(char *));
+        }
+        indices[nreq] = i;
+        sources[nreq] = strdup(iw->iconView.icon_data[i]);
+        nreq++;
+    }
+
+    if (nreq == 0) {
+        free(indices);
+        free(sources);
+        return;
+    }
+
+    IconViewDecodeJob *job = calloc(1, sizeof(IconViewDecodeJob));
+    job->widget = w;
+    job->indices = indices;
+    job->sources = sources;
+    job->nrequests = nreq;
+    job->dpi = 96.0 * ISWScaleFactor(w);
+    snprintf(job->fg_hex, sizeof(job->fg_hex), "#%02x%02x%02x",
+             (int)(iw->iconView.fg_r * 255.0),
+             (int)(iw->iconView.fg_g * 255.0),
+             (int)(iw->iconView.fg_b * 255.0));
+    float sf = (float)ISWScaleFactor(w);
+    job->phys_sz = (unsigned int)(iw->iconView.icon_size * sf + 0.5f);
+    job->pipe_fd[0] = job->pipe_fd[1] = -1;
+
+    if (pipe(job->pipe_fd) < 0) {
+        for (int i = 0; i < nreq; i++) free(sources[i]);
+        free(sources);
+        free(indices);
+        free(job);
+        return;
+    }
+
+    iw->iconView.decode_job = job;
+    job->input_id = IswAppAddInput(
+        IswWidgetToApplicationContext(w), job->pipe_fd[0],
+        (IswPointer)IswInputReadMask, DecodeDoneCallback, job);
+
+    pthread_create(&job->thread, NULL, DecodeWorkerThread, job);
+}
+
+static void
+RequestAsyncDecode(IconViewWidget iw)
+{
+    Widget w = (Widget)iw;
+    if (iw->iconView.decode_timer)
+        IswRemoveTimeOut(iw->iconView.decode_timer);
+    iw->iconView.decode_timer = IswAppAddTimeOut(
+        IswWidgetToApplicationContext(w), DECODE_DEBOUNCE_MS,
+        DecodeTimerFired, (IswPointer)w);
 }
 
 static void
@@ -300,14 +543,14 @@ GetItemRaster(IconViewWidget iw, int index)
     float sf = (float)ISWScaleFactor((Widget)iw);
     unsigned int phys_sz = (unsigned int)(icon_sz * sf + 0.5f);
 
-    /* Recolor existing image if foreground changed */
-    if (ic->image) {
+    /* Recolor existing image if foreground changed (SVG only; PNG is a no-op).
+       Only invalidate the raster cache when the color actually differs. */
+    if (ic->image && ISWImageIsMonochrome(ic->image)) {
         char fg_hex[8];
         snprintf(fg_hex, sizeof(fg_hex), "#%02x%02x%02x",
                  (int)(iw->iconView.fg_r * 255.0),
                  (int)(iw->iconView.fg_g * 255.0),
                  (int)(iw->iconView.fg_b * 255.0));
-        ic->raster = NULL;
         ISWImageRecolor(ic->image, fg_hex);
     }
 
@@ -315,23 +558,18 @@ GetItemRaster(IconViewWidget iw, int index)
     if (ic->raster && ic->raster_w == phys_sz && ic->raster_h == phys_sz)
         return ic->raster;
 
-    /* Load image if needed */
+    /* Not yet loaded — defer to background thread */
     if (!ic->image && iw->iconView.icon_data &&
         iw->iconView.icon_data[index]) {
-        double dpi = 96.0 * ISWScaleFactor((Widget)iw);
-        char fg_hex[8];
-        snprintf(fg_hex, sizeof(fg_hex), "#%02x%02x%02x",
-                 (int)(iw->iconView.fg_r * 255.0),
-                 (int)(iw->iconView.fg_g * 255.0),
-                 (int)(iw->iconView.fg_b * 255.0));
-        ic->image = ISWImageLoad(iw->iconView.icon_data[index],
-                                  dpi, fg_hex);
+        ic->load_pending = True;
+        RequestAsyncDecode(iw);
+        return NULL;
     }
 
     if (!ic->image)
         return NULL;
 
-    /* Rasterize */
+    /* Rasterize (image was loaded by async worker or was already present) */
     unsigned int rw, rh;
     ic->raster = ISWImageRasterize(ic->image, phys_sz, phys_sz, &rw, &rh);
     ic->raster_w = rw;
@@ -366,6 +604,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     iw->iconView.deselect_pending = False;
     iw->iconView.deselect_index = -1;
     iw->iconView.drop_highlight = -1;
+    iw->iconView.decode_timer = 0;
+    iw->iconView.decode_job = NULL;
 
     iw->iconView.icon_size = (iw->iconView.icon_size);
     iw->iconView.item_spacing = (iw->iconView.item_spacing);
@@ -397,6 +637,7 @@ static void
 Destroy(Widget w)
 {
     IconViewWidget iw = (IconViewWidget) w;
+    CancelDecodeJob(iw);
     if (iw->iconView.work_proc_id)
         IswRemoveWorkProc(iw->iconView.work_proc_id);
     FreeCache(iw);
@@ -665,9 +906,20 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
                                          ic->raster_h, ix, cy,
                                          icon_sz, icon_sz);
             } else {
-                ISWRenderDrawImageRGBA(ctx, raster, ic->raster_w,
-                                       ic->raster_h, ix, cy,
-                                       icon_sz, icon_sz);
+                if (ic->handle_raster != raster || ic->img_handle == 0) {
+                    if (ic->img_handle)
+                        ISWRenderImageFree(ctx, ic->img_handle);
+                    ic->img_handle = ISWRenderImageUpload(
+                        ctx, raster, ic->raster_w, ic->raster_h);
+                    ic->handle_raster = raster;
+                }
+                if (ic->img_handle)
+                    ISWRenderDrawImageHandle(ctx, ic->img_handle, ix, cy,
+                                             icon_sz, icon_sz);
+                else
+                    ISWRenderDrawImageRGBA(ctx, raster, ic->raster_w,
+                                           ic->raster_h, ix, cy,
+                                           icon_sz, icon_sz);
             }
         }
 
