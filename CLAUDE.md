@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ISW (Infi Systems Widgets)** — a modern fork of Xaw3d (X 3D Athena Widget Set). It is a complete, self-contained XCB-based widget library that embeds X Toolkit Intrinsics (libXt) and supports multiple rendering backends (XCB, Cairo-XCB, Cairo-EGL). The library compiles into a single `libISW.so`.
+**ISW (Infi Systems Widgets)** — a modern fork of Xaw3d (X 3D Athena Widget Set). It is a complete, self-contained XCB-based widget library that embeds X Toolkit Intrinsics (libXt) and supports multiple rendering backends (Cairo-XCB, Cairo-EGL). The library compiles into a single `libISW.so`.
 
 **Key design constraint:** Pure XCB throughout — zero Xlib dependencies.
 
@@ -49,7 +49,7 @@ ISW Widgets (Box, Command, Toggle, Label, Text, List, Scrollbar, Menus, etc.)
        ↓
 ISWRender API  (backend-agnostic drawing abstraction in ISWRender.h)
        ↓
-Backends: ISWRenderXCB.c | ISWRenderCairoXCB.c | ISWRenderEGL.c
+Backends: ISWRenderCairoXCB.c | ISWRenderEGL.c
        ↓
 Embedded X Toolkit Intrinsics (libXt — XCB reimplementation, ~52 source files)
        ↓
@@ -62,10 +62,9 @@ The `ISWRender` API (`include/ISW/ISWRender.h`, `src/ISWRender.c`) is the centra
 
 Backend selection order (auto-detect):
 1. `ISW_RENDER_BACKEND` environment variable
-2. EGL → Cairo-XCB → XCB (fallback)
+2. EGL → Cairo-XCB (fallback)
 
 Key backend files:
-- `src/ISWRenderXCB.c` — pure XCB, always available
 - `src/ISWRenderCairoXCB.c` — anti-aliasing, gradients, alpha (recommended)
 - `src/ISWRenderPrivate.h` — internal vtable interface between backends
 
