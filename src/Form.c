@@ -224,10 +224,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         return;
 
     ISWRenderBegin(ctx);
-    /* Fill the Form's own background (windowless: no X window to background-
-       fill); children composite on top.  Then the optional border. */
-    ISWRenderSetColor(ctx, w->core.background_pixel);
-    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+    _IswCoreDrawBackground(w, ctx);
     if (w->core.border_width > 0) {
         ISWRenderSetLineWidth(ctx, (double) w->core.border_width);
         ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);

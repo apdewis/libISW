@@ -262,9 +262,7 @@ DrawTabBar(Widget w)
 
     ISWRenderBegin(ctx);
 
-    /* Clear entire widget background */
-    ISWRenderSetColor(ctx, w->core.background_pixel);
-    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+    _IswCoreDrawBackground(w, ctx);
 
     ForAllChildren(tw, childP) {
         Widget child = *childP;

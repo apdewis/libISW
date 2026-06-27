@@ -82,6 +82,8 @@ in this Software without prior written authorization from The Open Group.
 #include "RectObjP.h"
 #include "ThreadsI.h"
 #include "StringDefs.h"
+#include <ISW/ISWImage.h>
+#include <ISW/ISWRender.h>
 
 /******************************************************************
  *
@@ -109,6 +111,9 @@ parameter is not passed through to the IswRCallProc routines */
     {IswNbackground, IswCBackground, IswRPixel, sizeof(Pixel),
      IswOffsetOf(CoreRec, core.background_pixel),
      IswRString, (IswPointer) "IswDefaultBackground"},
+    {IswNbackgroundImage, IswCBackgroundImage, IswRString, sizeof(String),
+     IswOffsetOf(CoreRec, core.background_image),
+     IswRImmediate, (IswPointer) NULL},
     {IswNborderColor, IswCBorderColor, IswRPixel, sizeof(Pixel),
      IswOffsetOf(CoreRec, core.border_pixel),
      IswRString, (IswPointer) "IswDefaultForeground"},
@@ -302,6 +307,15 @@ CoreInitialize(Widget requested_widget _X_UNUSED,
 {
     IswTranslations save1, save2;
 
+    new_widget->core.background_image_handle = NULL;
+    if (new_widget->core.background_image != NULL) {
+        new_widget->core.background_image =
+            IswNewString(new_widget->core.background_image);
+        new_widget->core.background_image_handle =
+            ISWImageLoad(new_widget->core.background_image,
+                         96.0 * ISWScaleFactor(new_widget), NULL);
+    }
+
     new_widget->core.event_table = NULL;
     new_widget->core.tm.proc_table = NULL;
     new_widget->core.tm.lastEventTime = 0;
@@ -336,6 +350,12 @@ CoreDestroy(Widget widget)
     if (widget->core.popup_list != NULL)
         IswFree((char *) widget->core.popup_list);
 
+    ISWImageDestroy(widget->core.background_image_handle);
+    widget->core.background_image_handle = NULL;
+    if (widget->core.background_image != NULL) {
+        IswFree(widget->core.background_image);
+        widget->core.background_image = NULL;
+    }
 }                               /* CoreDestroy */
 
 static Boolean
@@ -356,6 +376,22 @@ CoreSetValues(Widget old,
     /* Widgets are windowless: there is no X window whose attributes to change.
        The widget draws into its windowed ancestor, so a background change just
        needs a repaint via the widget's own expose. */
+    if (old->core.background_image != new->core.background_image) {
+        ISWImageDestroy(old->core.background_image_handle);
+        if (old->core.background_image != NULL)
+            IswFree(old->core.background_image);
+        if (new->core.background_image != NULL) {
+            new->core.background_image =
+                IswNewString(new->core.background_image);
+            new->core.background_image_handle =
+                ISWImageLoad(new->core.background_image,
+                             96.0 * ISWScaleFactor(new), NULL);
+        } else {
+            new->core.background_image_handle = NULL;
+        }
+        redisplay = TRUE;
+    }
+
     if (IswIsRealized(old)) {
         if (old->core.background_pixel != new->core.background_pixel) {
             redisplay = TRUE;
@@ -394,4 +430,21 @@ CoreSetValuesAlmost(Widget old _X_UNUSED,
                     IswWidgetGeometry *reply)
 {
     *request = *reply;
+}
+
+void
+_IswCoreDrawBackground(Widget w, ISWRenderContext *ctx)
+{
+    ISWRenderSetColor(ctx, w->core.background_pixel);
+    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+
+    if (w->core.background_image_handle != NULL) {
+        unsigned int rw, rh;
+        const unsigned char *rgba = ISWImageRasterize(
+            w->core.background_image_handle,
+            w->core.width, w->core.height, &rw, &rh);
+        if (rgba != NULL)
+            ISWRenderDrawImageRGBA(ctx, rgba, rw, rh,
+                                   0, 0, w->core.width, w->core.height);
+    }
 }

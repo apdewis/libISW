@@ -488,6 +488,7 @@ add_custom_target(demo
     COMMAND ${CMAKE_COMMAND} -E env
         "LD_LIBRARY_PATH=$<TARGET_FILE_DIR:ISW>:$ENV{LD_LIBRARY_PATH}"
         $<TARGET_FILE:isw_demo>
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/examples
     DEPENDS isw_demo
     COMMENT "Running ISW demo"
 )

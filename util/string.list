@@ -224,6 +224,8 @@ Extdefaultfont
 NfontSet
 RFontSet
 CFontSet
+NbackgroundImage
+CBackgroundImage
 
 #table IswStringsR6
 

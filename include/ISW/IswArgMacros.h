@@ -21,6 +21,7 @@
 #define IswArgAllowVert(ab, v)                  ISW_ARG((ab), IswNallowVert, (v))
 #define IswArgAncestorSensitive(ab, v)          ISW_ARG((ab), IswNancestorSensitive, (v))
 #define IswArgBackground(ab, v)                 ISW_ARG((ab), IswNbackground, (v))
+#define IswArgBackgroundImage(ab, v)            ISW_ARG((ab), IswNbackgroundImage, (v))
 #define IswArgBitmap(ab, v)                     ISW_ARG((ab), IswNbitmap, (v))
 #define IswArgBorder(ab, v)                     ISW_ARG((ab), IswNborder, (v))
 #define IswArgBorderColor(ab, v)                ISW_ARG((ab), IswNborderColor, (v))

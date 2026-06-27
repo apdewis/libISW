@@ -300,6 +300,12 @@ Widget create_main_window(Widget parent) {
     TAB_PAGE("specializedTab", "Specialized");
     create_specialized_section(section);
 
+    /* Background Image tab */
+    TAB_PAGE("bgImageTab", "BG Image");
+    IswArgBuilderReset(&ab);
+    IswArgBackgroundImage(&ab, "example.png");
+    IswSetValues(section, ab.args, ab.count);
+
 #undef TAB_PAGE
 
     return main_win;

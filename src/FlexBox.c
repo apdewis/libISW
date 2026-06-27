@@ -210,8 +210,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         return;
 
     ISWRenderBegin(ctx);
-    ISWRenderSetColor(ctx, w->core.background_pixel);
-    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+    _IswCoreDrawBackground(w, ctx);
     if (w->core.border_width > 0) {
         ISWRenderSetLineWidth(ctx, (double) w->core.border_width);
         ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);

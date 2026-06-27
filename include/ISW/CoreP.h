@@ -103,6 +103,8 @@ typedef struct _CorePart {
 					   widget.                             */
     Cardinal        depth;		/* number of planes in window        */
     Pixel	    background_pixel;	/* window background pixel	     */
+    String          background_image;   /* image file path (resource)        */
+    struct _ISWImage *background_image_handle; /* private: loaded image      */
     Boolean         visible;		/* is window mapped and not occluded?*/
     Boolean	    mapped_when_managed;/* map window if it's managed?       */
     Boolean         windowless_realized;/* windowless widget has been
@@ -165,7 +167,8 @@ typedef struct _WidgetRec {
     CorePart    core;
  } WidgetRec, CoreRec;
 
-
+struct _ISWRenderContext;
+extern void _IswCoreDrawBackground(Widget w, struct _ISWRenderContext *ctx);
 
 /******************************************************************
  *

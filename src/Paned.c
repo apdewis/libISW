@@ -1526,9 +1526,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
                 ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
         if (pw->paned.render_ctx != NULL) {
             ISWRenderBegin(pw->paned.render_ctx);
-            ISWRenderSetColor(pw->paned.render_ctx, w->core.background_pixel);
-            ISWRenderFillRectangle(pw->paned.render_ctx, 0, 0,
-                                   w->core.width, w->core.height);
+            _IswCoreDrawBackground(w, pw->paned.render_ctx);
             ISWRenderEnd(pw->paned.render_ctx);
         }
     }
