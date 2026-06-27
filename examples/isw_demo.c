@@ -67,6 +67,7 @@
 #include <ISW/Tip.h>
 #include <ISW/Scrollbar.h>
 #include <ISW/Dialog.h>
+#include <ISW/FileChooser.h>
 #include <ISW/Repeater.h>
 #include <ISW/Grip.h>
 #include <ISW/ProgressBar.h>
@@ -2419,58 +2420,50 @@ Widget create_dialog_demo(Widget parent) {
 }
 
 static void
-modal_close_cb(Widget w, IswPointer client_data, IswPointer call_data)
+fc_dismiss_shell(Widget shell)
 {
-    Widget shell = (Widget) client_data;
-    (void)w; (void)call_data;
     IswPopdown(shell);
     IswDestroyWidget(shell);
-    printf("Modal dialog closed\n");
+}
+
+static void
+fc_file_selected_cb(Widget w, IswPointer client_data, IswPointer call_data)
+{
+    (void)w;
+    Widget shell = (Widget)client_data;
+    IswFileChooserCallbackData *cb = (IswFileChooserCallbackData *)call_data;
+    printf("File selected: %s\n", cb->path);
+    fc_dismiss_shell(shell);
+}
+
+static void
+fc_cancelled_cb(Widget w, IswPointer client_data, IswPointer call_data)
+{
+    (void)w; (void)call_data;
+    Widget shell = (Widget)client_data;
+    printf("File chooser cancelled\n");
+    fc_dismiss_shell(shell);
 }
 
 void open_modal_dialog_cb(Widget w, IswPointer client_data, IswPointer call_data)
 {
     Widget parent = (Widget) client_data;
-    Widget shell, form, label, text, ok, cancel;
+    Widget shell, fc;
     IswArgBuilder ab = IswArgBuilderInit();
     (void)w; (void)call_data;
 
-    /* TransientShell so it gets WM decorations + stays above parent. */
-    IswArgTitle(&ab, "Modal Dialog");
-    IswArgWidth(&ab, 360);
-    IswArgHeight(&ab, 140);
-    shell = IswCreatePopupShell("modalTest", transientShellWidgetClass,
+    IswArgTitle(&ab, "Open File");
+    IswArgWidth(&ab, 500);
+    IswArgHeight(&ab, 400);
+    shell = IswCreatePopupShell("fileChooserShell", transientShellWidgetClass,
                                 parent, ab.args, ab.count);
 
-    form = IswCreateManagedWidget("form", formWidgetClass, shell, NULL, 0);
-
     IswArgBuilderReset(&ab);
-    IswArgLabel(&ab, "Type here, then Tab to cycle:");
-    IswArgBorderWidth(&ab, 0);
-    label = IswCreateManagedWidget("lbl", labelWidgetClass, form, ab.args, ab.count);
+    fc = IswCreateManagedWidget("fileChooser", fileChooserWidgetClass,
+                                shell, ab.args, ab.count);
+    IswAddCallback(fc, IswNfileSelected, fc_file_selected_cb, (IswPointer)shell);
+    IswAddCallback(fc, IswNfileCancelled, fc_cancelled_cb, (IswPointer)shell);
 
-    IswArgBuilderReset(&ab);
-    IswArgFromVert(&ab, label);
-    IswArgEditType(&ab, IswtextEdit);
-    IswArgWidth(&ab, 300);
-    IswArgString(&ab, "");
-    IswArgConsumeTab(&ab, False);
-    text = IswCreateManagedWidget("entry", textWidgetClass, form, ab.args, ab.count);
-
-    IswArgBuilderReset(&ab);
-    IswArgFromVert(&ab, text);
-    IswArgLabel(&ab, "OK");
-    ok = IswCreateManagedWidget("ok", commandWidgetClass, form, ab.args, ab.count);
-    IswAddCallback(ok, IswNcallback, modal_close_cb, (IswPointer)shell);
-
-    IswArgBuilderReset(&ab);
-    IswArgFromVert(&ab, text);
-    IswArgFromHoriz(&ab, ok);
-    IswArgLabel(&ab, "Cancel");
-    cancel = IswCreateManagedWidget("cancel", commandWidgetClass, form, ab.args, ab.count);
-    IswAddCallback(cancel, IswNcallback, modal_close_cb, (IswPointer)shell);
-
-    (void)text;
     IswPopup(shell, IswGrabExclusive);
 }
 

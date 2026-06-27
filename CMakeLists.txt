@@ -263,6 +263,7 @@ set(ISW_WIDGET_SOURCES
     src/Command.c
     src/DrawingArea.c
     src/Dialog.c
+    src/FileChooser.c
     src/FlexBox.c
     src/FontChooser.c
     src/Form.c

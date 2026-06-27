@@ -41,6 +41,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Box.h>
 #include <ISW/Dialog.h>
 #include <ISW/DrawingArea.h>
+#include <ISW/FileChooser.h>
 #include <ISW/FontChooser.h>
 #include <ISW/Form.h>
 #include <ISW/Grip.h>
@@ -85,6 +86,7 @@ IswWidgetNode IswWidgetArray[] = {
 { "core", &coreWidgetClass },
 { "dialog", &dialogWidgetClass },
 { "drawingArea", &drawingAreaWidgetClass },
+{ "fileChooser", &fileChooserWidgetClass },
 { "fontChooser", &fontChooserWidgetClass },
 { "form", &formWidgetClass },
 { "grip", &gripWidgetClass },
