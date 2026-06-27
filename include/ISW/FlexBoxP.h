@@ -26,6 +26,7 @@
 
 #include <ISW/ISWP.h>
 #include <ISW/FlexBox.h>
+#include <ISW/ISWRender.h>
 
 typedef struct {
     IswPointer extension;
@@ -48,6 +49,7 @@ typedef struct _FlexBoxPart {
     Dimension     preferred_width;
     Dimension     preferred_height;
     Boolean       layout_in_progress;
+    ISWRenderContext *render_ctx;
 } FlexBoxPart;
 
 typedef struct _FlexBoxRec {

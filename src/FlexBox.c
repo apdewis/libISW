@@ -32,6 +32,8 @@
 
 static void ClassInitialize(void);
 static void Initialize(Widget, Widget, ArgList, Cardinal *);
+static void Destroy(Widget);
+static void Redisplay(Widget, IswEvent *, IswRegion);
 static void Resize(Widget);
 static IswGeometryResult GeometryManager(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
 static IswGeometryResult PreferredGeometry(Widget, IswWidgetGeometry *, IswWidgetGeometry *);
@@ -87,9 +89,9 @@ FlexBoxClassRec flexBoxClassRec = {
     /* compress_exposure  */ TRUE,
     /* compress_enterleave*/ TRUE,
     /* visible_interest   */ FALSE,
-    /* destroy            */ NULL,
+    /* destroy            */ Destroy,
     /* resize             */ Resize,
-    /* expose             */ NULL,
+    /* expose             */ Redisplay,
     /* set_values         */ SetValues,
     /* set_values_hook    */ NULL,
     /* set_values_almost  */ IswInheritSetValuesAlmost,
@@ -177,6 +179,44 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     fw->flexBox.preferred_width = 0;
     fw->flexBox.preferred_height = 0;
     fw->flexBox.layout_in_progress = False;
+    fw->flexBox.render_ctx = NULL;
+}
+
+static void
+Destroy(Widget w)
+{
+    FlexBoxWidget fw = (FlexBoxWidget)w;
+    if (fw->flexBox.render_ctx != NULL) {
+        ISWRenderDestroy(fw->flexBox.render_ctx);
+        fw->flexBox.render_ctx = NULL;
+    }
+}
+
+static void
+Redisplay(Widget w, IswEvent *event, IswRegion region)
+{
+    FlexBoxWidget fw = (FlexBoxWidget)w;
+    ISWRenderContext *ctx;
+
+    (void)event; (void)region;
+
+    if (!IswIsRealized(w) || w->core.width == 0 || w->core.height == 0)
+        return;
+
+    ctx = fw->flexBox.render_ctx;
+    if (ctx == NULL)
+        ctx = fw->flexBox.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
+    if (ctx == NULL)
+        return;
+
+    ISWRenderBegin(ctx);
+    ISWRenderSetColor(ctx, w->core.background_pixel);
+    ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
+    if (w->core.border_width > 0) {
+        ISWRenderSetLineWidth(ctx, (double) w->core.border_width);
+        ISWRenderStrokeRectangle(ctx, 0, 0, w->core.width, w->core.height);
+    }
+    ISWRenderEnd(ctx);
 }
 
 /* --- Layout engine --- */
