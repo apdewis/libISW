@@ -353,14 +353,6 @@ FireCallback(ListViewWidget lv, int clicked_row, int clicked_col)
 }
 
 static void
-ResolveForegroundRGB(ListViewWidget lv)
-{
-    ISWRenderPixelToRGB(lv->listView.render_ctx, lv->listView.foreground,
-                        &lv->listView.fg_r, &lv->listView.fg_g,
-                        &lv->listView.fg_b);
-}
-
-static void
 ScrollToCursor(ListViewWidget lv)
 {
     Widget w = (Widget)lv;
@@ -445,8 +437,6 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
         (dpy, w, valueMask, attributes);
 
     lv->listView.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-
-    ResolveForegroundRGB(lv);
 
     lv->listView.resize_cursor = _IswLoadThemedCursor(dpy, w->core.screen,
         "sb_h_double_arrow");
@@ -549,8 +539,7 @@ DrawHeader(ListViewWidget lv, ISWRenderContext *ctx)
         return;
 
     /* Header background: slightly darker than widget background */
-    ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
-                          lv->listView.fg_b, 0.08);
+    ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.08));
     ISWRenderFillRectangle(ctx, 0, 0, (int)w->core.width, (int)hdr_h);
 
     /* Header bottom line */
@@ -571,8 +560,7 @@ DrawHeader(ListViewWidget lv, ISWRenderContext *ctx)
 
         /* Column separator line */
         if (i > 0) {
-            ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
-                                  lv->listView.fg_b, 0.2);
+            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.2));
             ISWRenderDrawLine(ctx, x, 0, x, (int)hdr_h);
         }
 
@@ -695,11 +683,9 @@ DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
 
         /* Drop-target highlight */
         if (lv->listView.drop_highlight == row) {
-            ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
-                                  lv->listView.fg_b, 0.15);
+            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.15));
             ISWRenderFillRectangle(ctx, 0, ry, (int)w->core.width, (int)row_h);
-            ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
-                                  lv->listView.fg_b, 0.8);
+            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.8));
             ISWRenderSetLineWidth(ctx, 2.0);
             ISWRenderStrokeRectangle(ctx, 1, ry + 1,
                                      (int)w->core.width - 2, (int)row_h - 2);
@@ -708,8 +694,7 @@ DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
         /* Alternating row tint for unselected rows */
         if ((!lv->listView.sel_flags || !lv->listView.sel_flags[row]) &&
             (row & 1)) {
-            ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
-                                  lv->listView.fg_b, 0.03);
+            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.03));
             ISWRenderFillRectangle(ctx, 0, ry, (int)w->core.width, (int)row_h);
         }
 
@@ -720,8 +705,7 @@ DrawRows(ListViewWidget lv, ISWRenderContext *ctx)
 
             /* Column separator in row area */
             if (col > 0) {
-                ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
-                                      lv->listView.fg_b, 0.1);
+                ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.1));
                 ISWRenderDrawLine(ctx, cx, ry, cx, ry + (int)row_h);
             }
 
@@ -792,12 +776,10 @@ DrawBand(ListViewWidget lv, ISWRenderContext *ctx)
     int bh = abs(lv->listView.band_cur_y - lv->listView.band_start_y);
 
     if (bw > 0 && bh > 0) {
-        ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
-                              lv->listView.fg_b, 0.15);
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.15));
         ISWRenderFillRectangle(ctx, bx, by, bw, bh);
 
-        ISWRenderSetColorRGBA(ctx, lv->listView.fg_r, lv->listView.fg_g,
-                              lv->listView.fg_b, 1.0);
+        ISWRenderSetColor(ctx, lv->listView.foreground);
         ISWRenderSetLineWidth(ctx, 1.0);
         ISWRenderStrokeRectangle(ctx, bx, by, bw, bh);
     }
@@ -1028,7 +1010,7 @@ SelectRow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
             lv->listView.band_start_y = y;
             lv->listView.band_cur_x = x;
             lv->listView.band_cur_y = y;
-            ResolveForegroundRGB(lv);
+
             Redisplay(w, NULL, 0);
             return;
         }
@@ -1063,7 +1045,7 @@ SelectRow(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
             lv->listView.band_start_y = y;
             lv->listView.band_cur_x = x;
             lv->listView.band_cur_y = y;
-            ResolveForegroundRGB(lv);
+
         } else {
             ClearSelection(lv);
             lv->listView.sel_flags[row] = True;

@@ -913,17 +913,6 @@ static void egl_set_color(ISWRenderContext *ctx, Pixel pixel)
     nvgStrokeColor(VG, c);
 }
 
-static void egl_set_color_rgba(ISWRenderContext *ctx,
-                               double r, double g, double b, double a)
-{
-    (void) ctx;
-    NVGcolor c = nvgRGBAf((float) r, (float) g, (float) b, (float) a);
-    g_nvg_color = c;
-    if (!VG) return;
-    nvgFillColor(VG, c);
-    nvgStrokeColor(VG, c);
-}
-
 static void egl_set_line_width(ISWRenderContext *ctx, double width)
 {
     ctx->line_width = width;
@@ -1030,16 +1019,15 @@ static void egl_stroke_rounded_rect(ISWRenderContext *ctx,
 
 static void egl_fill_stroke_rounded_rect(ISWRenderContext *ctx,
                                          int x, int y, int w, int h,
-                                         double radius, double fill_alpha,
-                                         double stroke_width)
+                                         double radius, double stroke_width)
 {
     if (!VG) return;
     NVGcolor c = g_nvg_color;
     egl_rounded_path(x, y, w, h, radius);
-    NVGcolor fc = c; fc.a = (float) fill_alpha;
-    nvgFillColor(VG, fc);
+    nvgFillColor(VG, c);
     nvgFill(VG);
-    nvgStrokeColor(VG, c);
+    NVGcolor sc = c; sc.a = 1.0f;
+    nvgStrokeColor(VG, sc);
     nvgStrokeWidth(VG, (float) stroke_width);
     egl_rounded_path(x, y, w, h, radius);
     nvgStroke(VG);
@@ -1477,7 +1465,6 @@ const ISWRenderOps isw_render_egl_ops = {
     .save                     = egl_save,
     .restore                  = egl_restore,
     .set_color                = egl_set_color,
-    .set_color_rgba           = egl_set_color_rgba,
     .set_line_width           = egl_set_line_width,
     .fill_rectangle           = egl_fill_rectangle,
     .stroke_rectangle         = egl_stroke_rectangle,

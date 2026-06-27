@@ -842,21 +842,6 @@ ISWRenderSetColor(ISWRenderContext *ctx, Pixel pixel)
 }
 
 void
-ISWRenderSetColorRGBA(ISWRenderContext *ctx, double r, double g, double b, double a)
-{
-    if (!ctx || !ctx->ops || !ctx->ops->set_color_rgba) {
-        /* Fallback to solid color if RGBA not supported */
-        if (ctx->ops && ctx->ops->set_color) {
-            /* Best effort: just use pixel color, ignore alpha */
-            return;
-        }
-        return;
-    }
-    
-    ctx->ops->set_color_rgba(ctx, r, g, b, a);
-}
-
-void
 ISWRenderSetLineWidth(ISWRenderContext *ctx, double width)
 {
     if (!ctx || !ctx->ops || !ctx->ops->set_line_width) {
@@ -923,7 +908,6 @@ void
 ISWRenderFillStrokeRoundedRectangle(ISWRenderContext *ctx,
                                     int x, int y, int width, int height,
                                     double radius,
-                                    double fill_alpha,
                                     double stroke_width)
 {
     if (!ctx || !ctx->ops || !ctx->ops->fill_stroke_rounded_rect)
@@ -931,7 +915,7 @@ ISWRenderFillStrokeRoundedRectangle(ISWRenderContext *ctx,
     if (_isw_outside_tile(ctx, x, y, width, height))
         return;
     ctx->ops->fill_stroke_rounded_rect(ctx, x, y, width, height, radius,
-                                       fill_alpha, stroke_width);
+                                       stroke_width);
 }
 
 void

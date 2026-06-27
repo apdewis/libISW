@@ -1026,15 +1026,6 @@ cairo_xcb_set_color(ISWRenderContext *ctx, Pixel pixel)
 }
 
 static void
-cairo_xcb_set_color_rgba(ISWRenderContext *ctx, double r, double g, double b, double a)
-{
-    ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
-
-    if (!data->cairo_ctx) return;
-    cairo_set_source_rgba(data->cairo_ctx, r, g, b, a);
-}
-
-static void
 cairo_xcb_set_line_width(ISWRenderContext *ctx, double width)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
@@ -1205,16 +1196,17 @@ cairo_xcb_stroke_rounded_rect(ISWRenderContext *ctx,
 static void
 cairo_xcb_fill_stroke_rounded_rect(ISWRenderContext *ctx,
                                    int x, int y, int w, int h, double radius,
-                                   double fill_alpha, double stroke_width)
+                                   double stroke_width)
 {
     ISWRenderCairoXCBData *data = (ISWRenderCairoXCBData*)ctx->surface;
     double r, g, b;
+    double a = ((ctx->current_color >> 24) & 0xff) / 255.0;
 
     if (!data->cairo_ctx) return;
     ISWRenderPixelToRGB(ctx, ctx->current_color, &r, &g, &b);
 
     cairo_xcb_rounded_path(data->cairo_ctx, x, y, w, h, radius);
-    cairo_set_source_rgba(data->cairo_ctx, r, g, b, fill_alpha);
+    cairo_set_source_rgba(data->cairo_ctx, r, g, b, a);
     cairo_fill_preserve(data->cairo_ctx);
 
     cairo_set_source_rgb(data->cairo_ctx, r, g, b);
@@ -1522,20 +1514,19 @@ cairo_xcb_set_gradient(ISWRenderContext *ctx, double x1, double y1, double x2, d
     cairo_pattern_t *gradient;
     if (!data->cairo_ctx) return False;
     double r1, g1, b1, r2, g2, b2;
-    
-    /* Convert pixels to RGB */
+    double a1 = ((color1 >> 24) & 0xff) / 255.0;
+    double a2 = ((color2 >> 24) & 0xff) / 255.0;
+
     ISWRenderPixelToRGB(ctx, color1, &r1, &g1, &b1);
     ISWRenderPixelToRGB(ctx, color2, &r2, &g2, &b2);
-    
-    /* Create linear gradient */
+
     gradient = cairo_pattern_create_linear(x1, y1, x2, y2);
-    cairo_pattern_add_color_stop_rgb(gradient, 0.0, r1, g1, b1);
-    cairo_pattern_add_color_stop_rgb(gradient, 1.0, r2, g2, b2);
-    
-    /* Set as source */
+    cairo_pattern_add_color_stop_rgba(gradient, 0.0, r1, g1, b1, a1);
+    cairo_pattern_add_color_stop_rgba(gradient, 1.0, r2, g2, b2, a2);
+
     cairo_set_source(data->cairo_ctx, gradient);
     cairo_pattern_destroy(gradient);
-    
+
     return True;
 }
 
@@ -2131,7 +2122,6 @@ const ISWRenderOps isw_render_cairo_xcb_ops = {
     .save = cairo_xcb_save,
     .restore = cairo_xcb_restore,
     .set_color = cairo_xcb_set_color,
-    .set_color_rgba = cairo_xcb_set_color_rgba,
     .set_line_width = cairo_xcb_set_line_width,
     .fill_rectangle = cairo_xcb_fill_rectangle,
     .stroke_rectangle = cairo_xcb_stroke_rectangle,

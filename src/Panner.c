@@ -373,7 +373,7 @@ draw_tmp_rubber_band(PannerWidget pw)
         ISWRenderBegin(ctx);
         ISWRenderSave(ctx);
         ISWRenderSetOperator(ctx, ISW_OPERATOR_DIFFERENCE);
-        ISWRenderSetColorRGBA(ctx, 1.0, 1.0, 1.0, 1.0);
+        ISWRenderSetColor(ctx, ISW_PIXEL_ARGB(0xFF, 0xFF, 0xFF, 0xFF));
         ISWRenderSetLineWidth(ctx, lw);
         ISWRenderPathBegin(ctx);
         ISWRenderPathRectangle(ctx, rx + 0.5, ry + 0.5, rw, rh);
@@ -481,18 +481,19 @@ Redisplay (Widget gw, IswEvent *event, IswRegion region)
                    (int) pw->panner.last_y - 1 + pad,
                    (int) (pw->panner.knob_width + 1),
                    (int) (pw->panner.knob_height + 1),
-                   0, 1, 1.5);
+                   0, 1.5);
     ISWRenderEnd(pw->panner.render_ctx);
     pw->panner.last_x = pw->panner.knob_x;
     pw->panner.last_y = pw->panner.knob_y;
 
     ISWRenderBegin(pw->panner.render_ctx);
-    ISWRenderSetColor(pw->panner.render_ctx, pw->panner.foreground);
+    ISWRenderSetColor(pw->panner.render_ctx,
+                      ISW_PIXEL_WITH_ALPHA_F(pw->panner.foreground, 0.2));
     ISWRenderFillStrokeRoundedRectangle(pw->panner.render_ctx,
                           kx, ky,
                           pw->panner.knob_width - 1,
                           pw->panner.knob_height - 1,
-                          0, 0.2, 1);
+                          0, 1);
     ISWRenderEnd(pw->panner.render_ctx);
     
     /* XOR rubber-band drawing stays in XCB */

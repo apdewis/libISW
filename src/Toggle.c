@@ -608,9 +608,7 @@ DrawCheckbox(ISWRenderContext *ctx, int x, int y, int size, Boolean checked,
     if (checked) {
         int inset = (int)(2.5 * scale);
         int pip = size - 2 * inset;
-        double cr, cg, cb;
-        ISWRenderPixelToRGB(ctx, fg, &cr, &cg, &cb);
-        ISWRenderSetColorRGBA(ctx, cr, cg, cb, 0.75);
+        ISWRenderSetColor(ctx, ISW_PIXEL_SET_ALPHA(fg, 0xBF));
         ISWRenderFillRoundedRectangle(ctx,
             x + (size - pip) / 2, y + (size - pip) / 2,
             pip, pip, r * 0.5);
@@ -650,9 +648,7 @@ DrawRadioButton(ISWRenderContext *ctx, int x, int y, int size, Boolean selected,
 
     /* Draw filled center circle if selected */
     if (selected) {
-        double cr, cg, cb;
-        ISWRenderPixelToRGB(ctx, fg, &cr, &cg, &cb);
-        ISWRenderSetColorRGBA(ctx, cr, cg, cb, 0.75);
+        ISWRenderSetColor(ctx, ISW_PIXEL_SET_ALPHA(fg, 0xBF));
         ISWRenderPathBegin(ctx);
         ISWRenderPathNewSubPath(ctx);
         ISWRenderPathArc(ctx, cx, cy, radius * 0.45, 0, 2.0 * M_PI);
@@ -683,10 +679,11 @@ DrawSlideToggle(ISWRenderContext *ctx, int x, int y, int size, Boolean on,
     int trough_y = y;
     double trough_r = trough_h / 2.0;
 
-    if (on)
+    if (on) {
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(fg, 0.3));
         ISWRenderFillStrokeRoundedRectangle(ctx, x, trough_y,
-            trough_w, trough_h, trough_r, 0.3, 1);
-    else
+            trough_w, trough_h, trough_r, 1);
+    } else
         ISWRenderStrokeRoundedRectangle(ctx, x, trough_y,
             trough_w, trough_h, trough_r, 1.0);
 

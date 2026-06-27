@@ -263,14 +263,13 @@ FillArea (ScrollbarWidget sbw, Position top, Position bottom, int fill)
     if (fill) {
         /* Draw thumb with rounded corners in foreground color */
         ISWRenderBegin(ctx);
-        ISWRenderSetColor(ctx, sbw->scrollbar.foreground);
-        ISWRenderFillStrokeRoundedRectangle(ctx, lx, ly, lw, lh, radius, 0.2, 1);
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(sbw->scrollbar.foreground, 0.2));
+        ISWRenderFillStrokeRoundedRectangle(ctx, lx, ly, lw, lh, radius, 1);
         ISWRenderEnd(ctx);
     } else {
-        /* Erase thumb area by restoring trough (background) color */
         ISWRenderBegin(ctx);
         ISWRenderSetColor(ctx, sbw->core.background_pixel);
-        ISWRenderFillStrokeRoundedRectangle(ctx, lx, ly, lw, lh, radius, 1, 1.5);
+        ISWRenderFillStrokeRoundedRectangle(ctx, lx, ly, lw, lh, radius, 1.5);
         ISWRenderEnd(ctx);
     }
 }

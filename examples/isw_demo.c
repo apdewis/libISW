@@ -2746,16 +2746,16 @@ void drawingarea_expose(Widget w, IswPointer client_data, IswPointer call_data) 
     IswVaGetValues(w, IswNwidth, &width, IswNheight, &height, NULL);
 
     /* Clear to white */
-    ISWRenderSetColorRGBA(ctx, 1.0, 1.0, 1.0, 1.0);
+    ISWRenderSetColor(ctx, ISW_PIXEL_ARGB(0xFF, 0xFF, 0xFF, 0xFF));
     ISWRenderFillRectangle(ctx, 0, 0, width, height);
 
     /* Draw checkerboard */
     for (row = 0; row * cell_size < (int)height; row++) {
 	for (col = 0; col * cell_size < (int)width; col++) {
 	    if ((row + col) % 2 == 0) {
-		ISWRenderSetColorRGBA(ctx, 0.2, 0.2, 0.6, 1.0);
+		ISWRenderSetColor(ctx, ISW_PIXEL_ARGB(0xFF, 0x33, 0x33, 0x99));
 	    } else {
-		ISWRenderSetColorRGBA(ctx, 0.85, 0.85, 0.9, 1.0);
+		ISWRenderSetColor(ctx, ISW_PIXEL_ARGB(0xFF, 0xD9, 0xD9, 0xE6));
 	    }
 	    ISWRenderFillRectangle(ctx,
 				   col * cell_size, row * cell_size,

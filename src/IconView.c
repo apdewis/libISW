@@ -82,7 +82,6 @@ static void ActivateCursor(Widget, IswEvent *, String *, Cardinal *);
 static void ToggleCursor(Widget, IswEvent *, String *, Cardinal *);
 static void SelectAll(Widget, IswEvent *, String *, Cardinal *);
 static void HandleFocus(Widget, IswEvent *, String *, Cardinal *);
-static void ResolveForegroundRGB(IconViewWidget);
 static void BandUpdateSelection(IconViewWidget);
 static void ScrollToCursor(IconViewWidget);
 
@@ -424,9 +423,9 @@ DecodeTimerFired(IswPointer closure, IswIntervalId *id)
     job->nrequests = nreq;
     job->dpi = 96.0 * ISWScaleFactor(w);
     snprintf(job->fg_hex, sizeof(job->fg_hex), "#%02x%02x%02x",
-             (int)(iw->iconView.fg_r * 255.0),
-             (int)(iw->iconView.fg_g * 255.0),
-             (int)(iw->iconView.fg_b * 255.0));
+             ISW_PIXEL_RED(iw->iconView.foreground),
+             ISW_PIXEL_GREEN(iw->iconView.foreground),
+             ISW_PIXEL_BLUE(iw->iconView.foreground));
     float sf = (float)ISWScaleFactor(w);
     job->phys_sz = (unsigned int)(iw->iconView.icon_size * sf + 0.5f);
     job->pipe_fd[0] = job->pipe_fd[1] = -1;
@@ -548,9 +547,9 @@ GetItemRaster(IconViewWidget iw, int index)
     if (ic->image && ISWImageIsMonochrome(ic->image)) {
         char fg_hex[8];
         snprintf(fg_hex, sizeof(fg_hex), "#%02x%02x%02x",
-                 (int)(iw->iconView.fg_r * 255.0),
-                 (int)(iw->iconView.fg_g * 255.0),
-                 (int)(iw->iconView.fg_b * 255.0));
+                 ISW_PIXEL_RED(iw->iconView.foreground),
+                 ISW_PIXEL_GREEN(iw->iconView.foreground),
+                 ISW_PIXEL_BLUE(iw->iconView.foreground));
         ISWImageRecolor(ic->image, fg_hex);
     }
 
@@ -629,8 +628,6 @@ Realize(IswDisplay dpy, Widget w, IswValueMask *valueMask, uint32_t *attributes)
         (dpy, w, valueMask, attributes);
 
     iw->iconView.render_ctx = ISWRenderCreate(w, ISW_RENDER_BACKEND_AUTO);
-
-    ResolveForegroundRGB(iw);
 }
 
 static void
@@ -959,13 +956,11 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         int dh = (int)(iw->iconView.row_h[row] - spacing);
 
         /* Semi-transparent fill to show it's a target */
-        ISWRenderSetColorRGBA(ctx,
-            iw->iconView.fg_r, iw->iconView.fg_g, iw->iconView.fg_b, 0.15);
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(iw->iconView.foreground, 0.15));
         ISWRenderFillRectangle(ctx, dx, dy, dw, dh);
 
         /* 2px solid border */
-        ISWRenderSetColorRGBA(ctx,
-            iw->iconView.fg_r, iw->iconView.fg_g, iw->iconView.fg_b, 0.8);
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(iw->iconView.foreground, 0.8));
         ISWRenderSetLineWidth(ctx, 2.0);
         ISWRenderStrokeRectangle(ctx, dx + 1, dy + 1, dw - 2, dh - 2);
     }
@@ -1011,15 +1006,11 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 
         if (bw > 0 && bh > 0) {
             /* Semi-transparent fill */
-            ISWRenderSetColorRGBA(ctx,
-                iw->iconView.fg_r, iw->iconView.fg_g, iw->iconView.fg_b,
-                0.15);
+            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(iw->iconView.foreground, 0.15));
             ISWRenderFillRectangle(ctx, bx, by, bw, bh);
 
             /* 1px border at full opacity */
-            ISWRenderSetColorRGBA(ctx,
-                iw->iconView.fg_r, iw->iconView.fg_g, iw->iconView.fg_b,
-                1.0);
+            ISWRenderSetColor(ctx, iw->iconView.foreground);
             ISWRenderSetLineWidth(ctx, 1.0);
             ISWRenderStrokeRectangle(ctx, bx, by, bw, bh);
         }
@@ -1048,7 +1039,6 @@ SetValues(Widget current, Widget request, Widget desired,
     }
 
     if (ciw->iconView.foreground != diw->iconView.foreground) {
-        ResolveForegroundRGB(diw);
         FlushSVGCache(diw);
     }
 
@@ -1186,7 +1176,6 @@ SelectItem(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
             iw->iconView.band_cur_x = x;
             iw->iconView.band_cur_y = y;
 
-            ResolveForegroundRGB(iw);
             Redisplay(w, NULL, 0);
             return;
         }
@@ -1223,20 +1212,6 @@ SelectItem(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 
     Redisplay(w, NULL, 0);
     FireCallback(iw, index);
-}
-
-static void
-ResolveForegroundRGB(IconViewWidget iw)
-{
-    IswDisplay dpy = ((Widget)iw)->core.display;
-    IswColormap cmap = ((Widget)iw)->core.colormap;
-    unsigned long pixel = (unsigned long)iw->iconView.foreground;
-    IswColor c;
-    if (_IswPlatformQueryColor(dpy, cmap, pixel, &c)) {
-        iw->iconView.fg_r = (double)(c.red >> 8) / 255.0;
-        iw->iconView.fg_g = (double)(c.green >> 8) / 255.0;
-        iw->iconView.fg_b = (double)(c.blue >> 8) / 255.0;
-    }
 }
 
 static void

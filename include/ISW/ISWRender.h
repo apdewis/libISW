@@ -18,6 +18,30 @@
 #include <ISW/Intrinsic.h>
 
 /*
+ * =================================================================
+ * Pixel Channel Operations
+ * =================================================================
+ *
+ * Pixel is ARGB: alpha [31:24], red [23:16], green [15:8], blue [7:0].
+ * The platform layer promotes non-ARGB formats to ARGB with full opacity.
+ * To render with transparency, modify the alpha channel via these macros.
+ */
+#define ISW_PIXEL_ARGB(a,r,g,b) \
+    ((Pixel)(((a) & 0xFFU) << 24 | ((r) & 0xFFU) << 16 | \
+             ((g) & 0xFFU) <<  8 | ((b) & 0xFFU)))
+
+#define ISW_PIXEL_ALPHA(p)      ((unsigned char)(((p) >> 24) & 0xFF))
+#define ISW_PIXEL_RED(p)        ((unsigned char)(((p) >> 16) & 0xFF))
+#define ISW_PIXEL_GREEN(p)      ((unsigned char)(((p) >>  8) & 0xFF))
+#define ISW_PIXEL_BLUE(p)       ((unsigned char)((p) & 0xFF))
+
+#define ISW_PIXEL_SET_ALPHA(p, a) \
+    ((Pixel)(((p) & 0x00FFFFFFUL) | (((Pixel)((a) & 0xFFU)) << 24)))
+
+#define ISW_PIXEL_WITH_ALPHA_F(p, af) \
+    ISW_PIXEL_SET_ALPHA((p), (unsigned char)((af) * 255.0 + 0.5))
+
+/*
  * Relief types for 3D shadows (shared with ThreeD.h)
  */
 #ifndef _IswRelief_defined
@@ -330,22 +354,6 @@ void ISWRenderRestore(ISWRenderContext *ctx);
 void ISWRenderSetColor(ISWRenderContext *ctx, Pixel pixel);
 
 /*
- * ISWRenderSetColorRGBA - Set color with alpha (if supported)
- *
- * Parameters:
- *   ctx - Rendering context
- *   r   - Red component (0.0-1.0)
- *   g   - Green component (0.0-1.0)
- *   b   - Blue component (0.0-1.0)
- *   a   - Alpha component (0.0-1.0)
- *
- * Notes:
- *   - Works with all Cairo backends
- */
-void ISWRenderSetColorRGBA(ISWRenderContext *ctx,
-                          double r, double g, double b, double a);
-
-/*
  * ISWRenderSetLineWidth - Set line width for stroking
  *
  * Parameters:
@@ -413,15 +421,13 @@ void ISWRenderStrokeRoundedRectangle(ISWRenderContext *ctx,
 /*
  * ISWRenderFillStrokeRoundedRectangle - Fill and stroke a rounded rectangle
  *
- * Fills with the current color at fill_alpha, then strokes the same path
- * with the current color at full opacity.  Falls back to ISWRenderFillRectangle
- * on backends without Cairo.
+ * Fills with the current color (including its ARGB alpha), then strokes the
+ * same path with the current color forced to full opacity.
  */
 void ISWRenderFillStrokeRoundedRectangle(ISWRenderContext *ctx,
                                          int x, int y,
                                          int width, int height,
                                          double radius,
-                                         double fill_alpha,
                                          double stroke_width);
 
 /*

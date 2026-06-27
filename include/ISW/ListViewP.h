@@ -60,7 +60,6 @@ typedef struct {
     Boolean         band_active;
     Position        band_start_x, band_start_y;
     Position        band_cur_x, band_cur_y;
-    double          fg_r, fg_g, fg_b;
     Boolean         redraw_pending;
     IswWorkProcId    work_proc_id;
 

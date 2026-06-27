@@ -336,11 +336,8 @@ SwatchExpose(Widget w, IswPointer client_data, IswPointer call_data)
     ISWDrawingCallbackData *cb = (ISWDrawingCallbackData *) call_data;
     ISWRenderContext *ctx = cb->render_ctx;
 
-    ISWRenderSetColorRGBA(ctx,
-        (double)cpw->colorPicker.red / 255.0,
-        (double)cpw->colorPicker.green / 255.0,
-        (double)cpw->colorPicker.blue / 255.0,
-        1.0);
+    ISWRenderSetColor(ctx, ISW_PIXEL_ARGB(0xFF,
+        cpw->colorPicker.red, cpw->colorPicker.green, cpw->colorPicker.blue));
     ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
 }
 
@@ -373,10 +370,10 @@ HueExpose(Widget w, IswPointer client_data, IswPointer call_data)
 
     /* Draw indicator line at current hue */
     int hy = (int)(cpw->colorPicker.hue * (height - 1) + 0.5f);
-    ISWRenderSetColorRGBA(ctx, 1.0, 1.0, 1.0, 1.0);
+    ISWRenderSetColor(ctx, ISW_PIXEL_ARGB(0xFF, 0xFF, 0xFF, 0xFF));
     ISWRenderSetLineWidth(ctx, 2.0);
     ISWRenderDrawLine(ctx, 0, hy, width, hy);
-    ISWRenderSetColorRGBA(ctx, 0.0, 0.0, 0.0, 1.0);
+    ISWRenderSetColor(ctx, ISW_PIXEL_ARGB(0xFF, 0, 0, 0));
     ISWRenderSetLineWidth(ctx, 1.0);
     ISWRenderDrawLine(ctx, 0, hy - 1, width, hy - 1);
     ISWRenderDrawLine(ctx, 0, hy + 1, width, hy + 1);
@@ -448,10 +445,10 @@ SVExpose(Widget w, IswPointer client_data, IswPointer call_data)
     int cy = (int)((1.0f - cpw->colorPicker.val) * (height - 1) + 0.5f);
 
     ISWRenderSetLineWidth(ctx, 2.0);
-    ISWRenderSetColorRGBA(ctx, 1.0, 1.0, 1.0, 1.0);
+    ISWRenderSetColor(ctx, ISW_PIXEL_ARGB(0xFF, 0xFF, 0xFF, 0xFF));
     ISWRenderDrawLine(ctx, cx - 5, cy, cx + 5, cy);
     ISWRenderDrawLine(ctx, cx, cy - 5, cx, cy + 5);
-    ISWRenderSetColorRGBA(ctx, 0.0, 0.0, 0.0, 1.0);
+    ISWRenderSetColor(ctx, ISW_PIXEL_ARGB(0xFF, 0, 0, 0));
     ISWRenderSetLineWidth(ctx, 1.0);
     ISWRenderDrawLine(ctx, cx - 6, cy, cx - 5, cy);
     ISWRenderDrawLine(ctx, cx + 5, cy, cx + 6, cy);

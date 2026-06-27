@@ -476,9 +476,10 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         int track_y = track_center_y - (int)track_thick / 2;
         int track_x = off_x + (int)half_thumb;
         int track_w = (int)sw->core.width - off_x - (int)thumb_w;
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(sw->slider.foreground, 0.3));
         ISWRenderFillStrokeRoundedRectangle(ctx, track_x, track_y, track_w, track_thick,
-                                          track_thick / 2.0, 0.3, 1);
-        
+                                          track_thick / 2.0, 1);
+        ISWRenderSetColor(ctx, sw->slider.foreground);
 
         /* Tick marks (below track) */
         if (sw->slider.tick_interval > 0) {
@@ -517,8 +518,10 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         int track_x = track_center_x - (int)track_thick / 2;
         int track_top = off_y + (int)half_thumb;
         int track_h = (int)sw->core.height - off_y - (int)thumb_w;
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(sw->slider.foreground, 0.3));
         ISWRenderFillStrokeRoundedRectangle(ctx, track_x, track_top, track_thick, track_h,
-                                          track_thick / 2.0, 0.3, 1);
+                                          track_thick / 2.0, 1);
+        ISWRenderSetColor(ctx, sw->slider.foreground);
 
         /* Tick marks (right of track) */
         if (sw->slider.tick_interval > 0) {

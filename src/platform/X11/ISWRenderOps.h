@@ -79,8 +79,6 @@ typedef struct _ISWRenderOps {
 
     /* Color */
     void (*set_color)(struct _ISWRenderContext *ctx, Pixel pixel);
-    void (*set_color_rgba)(struct _ISWRenderContext *ctx,
-                          double r, double g, double b, double a);
     void (*set_line_width)(struct _ISWRenderContext *ctx, double width);
 
     /* Drawing primitives */
@@ -105,7 +103,7 @@ typedef struct _ISWRenderOps {
                                 double stroke_width);
     void (*fill_stroke_rounded_rect)(struct _ISWRenderContext *ctx,
                                      int x, int y, int w, int h, double radius,
-                                     double fill_alpha, double stroke_width);
+                                     double stroke_width);
 
     /* Text */
     void (*draw_string)(struct _ISWRenderContext *ctx,
