@@ -25,7 +25,8 @@ typedef struct {
     /* resources */
     int              mode;
     String           initial_directory;
-    String           filter;
+    IswFileFilter   *filters;
+    int              num_filters;
     IswCallbackList  file_selected;
     IswCallbackList  file_cancelled;
 
@@ -34,7 +35,7 @@ typedef struct {
     Widget           dirListW;
     Widget           fileListW;
     Widget           nameTextW;
-    Widget           filterTextW;
+    Widget           filterComboW;
     Widget           actionBtnW;
     Widget           cancelBtnW;
 
@@ -44,7 +45,8 @@ typedef struct {
     char           **file_names;
     int              nfile;
     char            *selected_path;
-    char            *filter_owned;
+    int              active_filter;
+    String          *filter_labels;
 } FileChooserPart;
 
 typedef struct _FileChooserRec {

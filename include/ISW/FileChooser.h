@@ -14,8 +14,15 @@
 #define IswCFileMode        "FileMode"
 #define IswNinitialDirectory "initialDirectory"
 #define IswCInitialDirectory "InitialDirectory"
-#define IswNfileFilter      "fileFilter"
-#define IswCFileFilter      "FileFilter"
+#define IswNfileFilters     "fileFilters"
+#define IswCFileFilters     "FileFilters"
+#define IswNnumFileFilters  "numFileFilters"
+#define IswCNumFileFilters  "NumFileFilters"
+
+typedef struct {
+    String label;
+    String pattern;
+} IswFileFilter;
 #define IswNfileSelected    "fileSelected"
 #define IswNfileCancelled   "fileCancelled"
 

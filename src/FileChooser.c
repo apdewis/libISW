@@ -17,6 +17,7 @@
 #include <ISW/List.h>
 #include <ISW/Viewport.h>
 #include <ISW/Text.h>
+#include <ISW/ComboBox.h>
 #include <ISW/IswArgMacros.h>
 
 #include <stdio.h>
@@ -38,8 +39,10 @@ static IswResource resources[] = {
         Offset(fileChooser.mode), IswRImmediate, (IswPointer) IswFileOpen},
     {IswNinitialDirectory, IswCInitialDirectory, IswRString, sizeof(String),
         Offset(fileChooser.initial_directory), IswRString, NULL},
-    {IswNfileFilter, IswCFileFilter, IswRString, sizeof(String),
-        Offset(fileChooser.filter), IswRString, NULL},
+    {IswNfileFilters, IswCFileFilters, IswRPointer, sizeof(IswFileFilter *),
+        Offset(fileChooser.filters), IswRPointer, NULL},
+    {IswNnumFileFilters, IswCNumFileFilters, IswRInt, sizeof(int),
+        Offset(fileChooser.num_filters), IswRImmediate, (IswPointer) 0},
     {IswNfileSelected, IswCCallback, IswRCallback, sizeof(IswPointer),
         Offset(fileChooser.file_selected), IswRCallback, NULL},
     {IswNfileCancelled, IswCCallback, IswRCallback, sizeof(IswPointer),
@@ -62,11 +65,9 @@ static void Destroy(Widget);
 static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 static void PathGoAction(Widget, IswEvent *, String *, Cardinal *);
-static void FilterGoAction(Widget, IswEvent *, String *, Cardinal *);
 
 static IswActionsRec actions[] = {
     {"fc-path-go",   PathGoAction},
-    {"fc-filter-go", FilterGoAction},
 };
 
 FileChooserClassRec fileChooserClassRec = {
@@ -221,9 +222,13 @@ scan_directory(FileChooserWidget fcw)
             }
             fc->dir_names[fc->ndir++] = strdup(name);
         } else if (S_ISREG(st.st_mode)) {
-            if (fc->filter_owned && fc->filter_owned[0] &&
-                fnmatch(fc->filter_owned, name, 0) != 0)
-                continue;
+            if (fc->filters && fc->active_filter >= 0 &&
+                fc->active_filter < fc->num_filters) {
+                const char *pat = fc->filters[fc->active_filter].pattern;
+                if (pat && pat[0] && strcmp(pat, "*") != 0 &&
+                    fnmatch(pat, name, 0) != 0)
+                    continue;
+            }
 
             if (fc->nfile >= file_cap) {
                 file_cap *= 2;
@@ -361,8 +366,10 @@ action_cb(Widget w, IswPointer cd, IswPointer call)
 static void
 cancel_cb(Widget w, IswPointer cd, IswPointer call)
 {
-    (void)w; (void)call;
+    (void)call;
     FileChooserWidget fcw = (FileChooserWidget)cd;
+    fprintf(stderr, "FC cancel_cb: triggered by widget '%s'\n",
+            IswName(w));
     IswCallCallbacks((Widget)fcw, IswNfileCancelled, NULL);
 }
 
@@ -397,19 +404,15 @@ PathGoAction(Widget w, IswEvent *ev, String *params, Cardinal *nparams)
 }
 
 static void
-FilterGoAction(Widget w, IswEvent *ev, String *params, Cardinal *nparams)
+filter_select_cb(Widget w, IswPointer cd, IswPointer call)
 {
-    (void)ev; (void)params; (void)nparams;
-    FileChooserWidget fcw = find_filechooser_ancestor(w);
-    if (!fcw) return;
+    (void)w;
+    FileChooserWidget fcw = (FileChooserWidget)cd;
+    IswListReturnStruct *ret = (IswListReturnStruct *)call;
+    if (!ret) return;
 
-    String val = NULL;
-    IswArgBuilder ab = IswArgBuilderInit();
-    IswArgString(&ab, &val);
-    IswGetValues(w, ab.args, ab.count);
-
-    free(fcw->fileChooser.filter_owned);
-    fcw->fileChooser.filter_owned = (val && val[0]) ? strdup(val) : NULL;
+    fprintf(stderr, "FC filter_select_cb: index=%d\n", ret->list_index);
+    fcw->fileChooser.active_filter = ret->list_index;
     update_lists(fcw);
 }
 
@@ -440,7 +443,13 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     fc->nfile = 0;
     fc->selected_path = NULL;
 
-    fc->filter_owned = fc->filter ? strdup(fc->filter) : NULL;
+    fc->active_filter = 0;
+    fc->filter_labels = NULL;
+    if (fc->filters && fc->num_filters > 0) {
+        fc->filter_labels = malloc(fc->num_filters * sizeof(String));
+        for (int i = 0; i < fc->num_filters; i++)
+            fc->filter_labels[i] = fc->filters[i].label;
+    }
 
     /* Resolve initial directory */
     if (fc->initial_directory && fc->initial_directory[0]) {
@@ -570,41 +579,47 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         bottom_anchor = name_label;
     }
 
-    /* --- Row 4: Filter --- */
-    IswArgBuilderReset(&ab);
-    IswArgLabel(&ab, "Filter:");
-    IswArgBorderWidth(&ab, 0);
-    IswArgFromVert(&ab, bottom_anchor);
-    IswArgTop(&ab, IswChainBottom);
-    IswArgBottom(&ab, IswChainBottom);
-    IswArgLeft(&ab, IswChainLeft);
-    IswArgRight(&ab, IswChainLeft);
-    Widget filter_label = IswCreateManagedWidget("filterLabel",
-                                                  labelWidgetClass,
-                                                  new, ab.args, ab.count);
-
-    IswArgBuilderReset(&ab);
-    IswArgString(&ab, fc->filter ? fc->filter : "");
-    IswArgFromVert(&ab, bottom_anchor);
-    IswArgFromHoriz(&ab, filter_label);
-    IswArgEditType(&ab, IswtextEdit);
-    IswArgTop(&ab, IswChainBottom);
-    IswArgBottom(&ab, IswChainBottom);
-    IswArgLeft(&ab, IswChainLeft);
-    IswArgRight(&ab, IswChainRight);
-    IswArgWidth(&ab, 300);
-    fc->filterTextW = IswCreateManagedWidget("filterText",
-                                              textWidgetClass,
+    /* --- Row 4: Filter dropdown --- */
+    Widget filter_label = NULL;
+    fc->filterComboW = NULL;
+    if (fc->filters && fc->num_filters > 0) {
+        IswArgBuilderReset(&ab);
+        IswArgLabel(&ab, "Filter:");
+        IswArgBorderWidth(&ab, 0);
+        IswArgFromVert(&ab, bottom_anchor);
+        IswArgTop(&ab, IswChainBottom);
+        IswArgBottom(&ab, IswChainBottom);
+        IswArgLeft(&ab, IswChainLeft);
+        IswArgRight(&ab, IswChainLeft);
+        filter_label = IswCreateManagedWidget("filterLabel",
+                                              labelWidgetClass,
                                               new, ab.args, ab.count);
-    IswOverrideTranslations(fc->filterTextW, IswParseTranslationTable(
-        "<Key>Return: fc-filter-go()\n"));
+
+        IswArgBuilderReset(&ab);
+        IswArgDropdownMode(&ab, True);
+        IswArgList(&ab, fc->filter_labels);
+        IswArgNumberStrings(&ab, fc->num_filters);
+        IswArgFromVert(&ab, bottom_anchor);
+        IswArgFromHoriz(&ab, filter_label);
+        IswArgTop(&ab, IswChainBottom);
+        IswArgBottom(&ab, IswChainBottom);
+        IswArgLeft(&ab, IswChainLeft);
+        IswArgRight(&ab, IswChainRight);
+        IswArgWidth(&ab, 300);
+        fc->filterComboW = IswCreateManagedWidget("filterCombo",
+                                                   comboBoxWidgetClass,
+                                                   new, ab.args, ab.count);
+        IswAddCallback(fc->filterComboW, IswNcallback, filter_select_cb,
+                       (IswPointer)fcw);
+    }
 
     /* --- Row 5: Buttons --- */
+    Widget btn_anchor = filter_label ? filter_label : bottom_anchor;
     const char *action_label = (fc->mode == IswFileSave) ? "Save" : "Open";
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, action_label);
-    IswArgFromVert(&ab, filter_label);
+    IswArgFromVert(&ab, btn_anchor);
     IswArgTop(&ab, IswChainBottom);
     IswArgBottom(&ab, IswChainBottom);
     IswArgLeft(&ab, IswChainLeft);
@@ -616,7 +631,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Cancel");
-    IswArgFromVert(&ab, filter_label);
+    IswArgFromVert(&ab, btn_anchor);
     IswArgFromHoriz(&ab, fc->actionBtnW);
     IswArgTop(&ab, IswChainBottom);
     IswArgBottom(&ab, IswChainBottom);
@@ -641,8 +656,8 @@ Destroy(Widget w)
     FileChooserWidget fcw = (FileChooserWidget) w;
     free_string_array(&fcw->fileChooser.dir_names, &fcw->fileChooser.ndir);
     free_string_array(&fcw->fileChooser.file_names, &fcw->fileChooser.nfile);
-    free(fcw->fileChooser.filter_owned);
     free(fcw->fileChooser.selected_path);
+    free(fcw->fileChooser.filter_labels);
 }
 
 static Boolean
@@ -654,10 +669,22 @@ SetValues(Widget current, Widget request, Widget new,
     (void)request;
     (void)in_args; (void)in_num_args;
 
-    if (fcw->fileChooser.filter != old_fcw->fileChooser.filter) {
-        free(fcw->fileChooser.filter_owned);
-        fcw->fileChooser.filter_owned = fcw->fileChooser.filter
-            ? strdup(fcw->fileChooser.filter) : NULL;
+    if (fcw->fileChooser.filters != old_fcw->fileChooser.filters ||
+        fcw->fileChooser.num_filters != old_fcw->fileChooser.num_filters) {
+        free(fcw->fileChooser.filter_labels);
+        fcw->fileChooser.filter_labels = NULL;
+        if (fcw->fileChooser.filters && fcw->fileChooser.num_filters > 0) {
+            fcw->fileChooser.filter_labels =
+                malloc(fcw->fileChooser.num_filters * sizeof(String));
+            for (int i = 0; i < fcw->fileChooser.num_filters; i++)
+                fcw->fileChooser.filter_labels[i] =
+                    fcw->fileChooser.filters[i].label;
+            if (fcw->fileChooser.filterComboW)
+                IswListChange(fcw->fileChooser.filterComboW,
+                              fcw->fileChooser.filter_labels,
+                              fcw->fileChooser.num_filters, 0, True);
+        }
+        fcw->fileChooser.active_filter = 0;
         update_lists(fcw);
     }
 

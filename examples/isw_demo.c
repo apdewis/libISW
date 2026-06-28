@@ -2458,13 +2458,22 @@ void open_modal_dialog_cb(Widget w, IswPointer client_data, IswPointer call_data
     shell = IswCreatePopupShell("fileChooserShell", transientShellWidgetClass,
                                 parent, ab.args, ab.count);
 
+    static IswFileFilter file_filters[] = {
+        { "All Files",    "*"   },
+        { "C Source",     "*.c" },
+        { "C Headers",    "*.h" },
+        { "Text Files",   "*.txt" },
+    };
+
     IswArgBuilderReset(&ab);
+    ISW_ARG(&ab, IswNfileFilters, file_filters);
+    ISW_ARG(&ab, IswNnumFileFilters, IswNumber(file_filters));
     fc = IswCreateManagedWidget("fileChooser", fileChooserWidgetClass,
                                 shell, ab.args, ab.count);
     IswAddCallback(fc, IswNfileSelected, fc_file_selected_cb, (IswPointer)shell);
     IswAddCallback(fc, IswNfileCancelled, fc_cancelled_cb, (IswPointer)shell);
 
-    IswPopup(shell, IswGrabExclusive);
+    IswPopup(shell, IswGrabNonexclusive);
 }
 
 /* ============================================================
