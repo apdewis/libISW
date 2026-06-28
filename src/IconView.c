@@ -479,6 +479,8 @@ ComputeLayout(IconViewWidget iw)
     if (iw->iconView.ncols < 1)
         iw->iconView.ncols = 1;
 
+    iw->iconView.cell_w = (Dimension)((int)iw->core.width / iw->iconView.ncols);
+
     iw->iconView.nrows = (iw->iconView.nitems + iw->iconView.ncols - 1)
                           / iw->iconView.ncols;
 
