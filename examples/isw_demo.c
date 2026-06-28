@@ -1388,6 +1388,7 @@ Widget create_iconview_demo(Widget parent) {
     IswArgIconSize(&ab, 32);
     IswArgWidth(&ab, 200);
     IswArgMultiSelect(&ab, True);
+    ISW_ARG(&ab, IswNactiveColor, ISW_PIXEL_ARGB(0xFF, 0x55, 0x99, 0xDD));
     iconview = IswCreateManagedWidget("iconView", iconViewWidgetClass,
                                       viewport, ab.args, ab.count);
     IswAddCallback(iconview, IswNselectCallback, iconview_callback, NULL);
@@ -1518,6 +1519,7 @@ Widget create_listview_demo(Widget parent) {
     IswArgWidth(&ab, 300);
     IswArgMultiSelect(&ab, True);
     IswArgShowHeader(&ab, True);
+    ISW_ARG(&ab, IswNactiveColor, ISW_PIXEL_ARGB(0xFF, 0x55, 0x99, 0xDD));
     listview = IswCreateManagedWidget("listView", listViewWidgetClass,
                                       viewport, ab.args, ab.count);
     IswAddCallback(listview, IswNselectCallback, listview_callback, NULL);

@@ -1005,12 +1005,11 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         int bh = abs(iw->iconView.band_cur_y - iw->iconView.band_start_y);
 
         if (bw > 0 && bh > 0) {
-            /* Semi-transparent fill */
-            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(iw->iconView.foreground, 0.15));
+            Pixel bc = iw->simple.active_color != (Pixel)-1
+                     ? iw->simple.active_color : iw->iconView.foreground;
+            ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(bc, 0.15));
             ISWRenderFillRectangle(ctx, bx, by, bw, bh);
-
-            /* 1px border at full opacity */
-            ISWRenderSetColor(ctx, iw->iconView.foreground);
+            ISWRenderSetColor(ctx, bc);
             ISWRenderSetLineWidth(ctx, 1.0);
             ISWRenderStrokeRectangle(ctx, bx, by, bw, bh);
         }

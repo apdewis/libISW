@@ -776,10 +776,11 @@ DrawBand(ListViewWidget lv, ISWRenderContext *ctx)
     int bh = abs(lv->listView.band_cur_y - lv->listView.band_start_y);
 
     if (bw > 0 && bh > 0) {
-        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(lv->listView.foreground, 0.15));
+        Pixel bc = lv->simple.active_color != (Pixel)-1
+                 ? lv->simple.active_color : lv->listView.foreground;
+        ISWRenderSetColor(ctx, ISW_PIXEL_WITH_ALPHA_F(bc, 0.15));
         ISWRenderFillRectangle(ctx, bx, by, bw, bh);
-
-        ISWRenderSetColor(ctx, lv->listView.foreground);
+        ISWRenderSetColor(ctx, bc);
         ISWRenderSetLineWidth(ctx, 1.0);
         ISWRenderStrokeRectangle(ctx, bx, by, bw, bh);
     }
