@@ -1164,8 +1164,8 @@ Set(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
              <BtnMotion>:       highlight()             \n\
              <Btn4Down>:        scroll-up()              \n\
              <Btn5Down>:        scroll-down()            \n\
-             <BtnUp>:           highlight()             \n\
-             <BtnDown>:         notify() unhighlight() popdown()";
+             <BtnDown>:         highlight()             \n\
+             <BtnUp>:           notify() unhighlight() popdown()";
         IswOverrideTranslations(lw->list.popup_shell,
             IswParseTranslationTable(dropdownTranslations));
     }
