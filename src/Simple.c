@@ -77,6 +77,8 @@ static IswResource resources[] = {
      offset(traversal_on), IswRImmediate, (IswPointer) FALSE},
   {IswNtabIndex, IswCTabIndex, IswRInt, sizeof(int),
      offset(tab_index), IswRImmediate, (IswPointer) 0},
+  {IswNactiveColor, IswCActiveColor, IswRPixel, sizeof(Pixel),
+     offset(active_color), IswRString, IswDefaultForeground},
 #undef offset
 };
 

@@ -105,7 +105,7 @@ static IswResource resources[] = {
     {IswNfont,  IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
 	offset(list.font),IswRString, IswDefaultFont},
     {IswNlist, IswCList, IswRPointer, sizeof(char **),
-       offset(list.list), IswRString, NULL},
+       offset(list.list), IswRImmediate, NULL},
     {IswNdefaultColumns, IswCColumns, IswRInt,  sizeof(int),
 	offset(list.default_cols), IswRImmediate, (IswPointer)2},
     {IswNlongest, IswCLongest, IswRInt,  sizeof(int),
@@ -255,6 +255,8 @@ CalculatedValues(Widget w)
         lw->list.longest = 0; /* so it will accumulate real longest below */
 
         for ( i = 0 ; i < lw->list.nitems; i++)  {
+            if (lw->list.list[i] == NULL)
+                continue;
             len = ISWScaledTextWidth((Widget)lw, lw->list.font,
                                     lw->list.list[i],
                                     strlen(lw->list.list[i]));

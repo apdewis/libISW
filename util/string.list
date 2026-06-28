@@ -277,6 +277,8 @@ NborderTop
 NborderRight
 NborderBottom
 NborderLeft
+NactiveColor
+CActiveColor
 
 #file Shell.h
 #table IswShellStrings

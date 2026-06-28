@@ -111,6 +111,8 @@ typedef struct {
     Pixel       border_color;
     Boolean     use_border_color;
 
+    Pixel       active_color;
+
     /* Drag-and-drop callbacks (IswDragDrop service).  Declared here, on the
        common DnD-aware base, so any Simple-derived widget can register them
        via IswAddCallback(w, IswNdropCallback, ...).  Non-Simple widgets use
