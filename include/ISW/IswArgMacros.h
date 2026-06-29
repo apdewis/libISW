@@ -7,6 +7,7 @@
 #include <ISW/Form.h>
 #include <ISW/ListBox.h>
 #include <ISW/ListBoxRow.h>
+#include <ISW/FileChooser.h>
 
 #define ISW_ARG(ab, name, v) do { \
     _Pragma("GCC diagnostic push") \
@@ -336,11 +337,15 @@
 
 /* SimpleMenu */
 #define IswArgColumnWidth(ab, v)                ISW_ARG((ab), IswNcolumnWidth, (v))
+#define IswArgJumpScroll(ab, v)                 ISW_ARG((ab), IswNjumpScroll, (v))
 #define IswArgLabelClass(ab, v)                 ISW_ARG((ab), IswNlabelClass, (v))
+#define IswArgLeftWhitespace(ab, v)             ISW_ARG((ab), IswNleftWhitespace, (v))
 #define IswArgMenuOnScreen(ab, v)               ISW_ARG((ab), IswNmenuOnScreen, (v))
 #define IswArgPopupOnEntry(ab, v)               ISW_ARG((ab), IswNpopupOnEntry, (v))
+#define IswArgRightWhitespace(ab, v)            ISW_ARG((ab), IswNrightWhitespace, (v))
 
 /* Simple */
+#define IswArgActiveColor(ab, v)                ISW_ARG((ab), IswNactiveColor, (v))
 #define IswArgCursorName(ab, v)                 ISW_ARG((ab), IswNcursorName, (v))
 #define IswArgInternational(ab, v)              ISW_ARG((ab), IswNinternational, (v))
 #define IswArgTraversalOn(ab, v)                ISW_ARG((ab), IswNtraversalOn, (v))
@@ -354,7 +359,13 @@
 #define IswArgAccelerator(ab, v)                ISW_ARG((ab), IswNaccelerator, (v))
 #define IswArgAcceleratorText(ab, v)            ISW_ARG((ab), IswNacceleratorText, (v))
 
+/* SmeBSB */
+#define IswArgRightImage(ab, v)                 ISW_ARG((ab), IswNrightImage, (v))
+#define IswArgUnderline(ab, v)                  ISW_ARG((ab), IswNunderline, (v))
+#define IswArgVertSpace(ab, v)                  ISW_ARG((ab), IswNvertSpace, (v))
+
 /* Label */
+#define IswArgEllipsize(ab, v)                  ISW_ARG((ab), IswNellipsize, (v))
 #define IswArgImage(ab, v)                      ISW_ARG((ab), IswNimage, (v))
 #define IswArgLeftImage(ab, v)                  ISW_ARG((ab), IswNleftImage, (v))
 #define IswArgEncoding(ab, v)                   ISW_ARG((ab), IswNencoding, (v))
@@ -396,5 +407,20 @@
 #define IswArgDragEnterCallback(ab, v)          ISW_ARG((ab), IswNdragEnterCallback, (v))
 #define IswArgDragMotionCallback(ab, v)         ISW_ARG((ab), IswNdragMotionCallback, (v))
 #define IswArgDragLeaveCallback(ab, v)          ISW_ARG((ab), IswNdragLeaveCallback, (v))
+
+/* FileChooser */
+#define IswArgFileMode(ab, v)                   ISW_ARG((ab), IswNfileMode, (v))
+#define IswArgInitialDirectory(ab, v)           ISW_ARG((ab), IswNinitialDirectory, (v))
+#define IswArgFileFilters(ab, v)                ISW_ARG((ab), IswNfileFilters, (v))
+#define IswArgNumFileFilters(ab, v)             ISW_ARG((ab), IswNnumFileFilters, (v))
+#define IswArgFileSelected(ab, v)               ISW_ARG((ab), IswNfileSelected, (v))
+#define IswArgFileCancelled(ab, v)              ISW_ARG((ab), IswNfileCancelled, (v))
+
+/* Shell — window type and struts */
+#define IswArgWindowType(ab, v)                 ISW_ARG((ab), IswNwindowType, (v))
+#define IswArgStrutLeft(ab, v)                  ISW_ARG((ab), IswNstrutLeft, (v))
+#define IswArgStrutRight(ab, v)                 ISW_ARG((ab), IswNstrutRight, (v))
+#define IswArgStrutTop(ab, v)                   ISW_ARG((ab), IswNstrutTop, (v))
+#define IswArgStrutBottom(ab, v)                ISW_ARG((ab), IswNstrutBottom, (v))
 
 #endif /* _IswArgMacros_h */
