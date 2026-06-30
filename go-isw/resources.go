@@ -299,6 +299,17 @@ const (
 	NcolorChanged = "colorChanged"
 )
 
+// EdgeType controls Form constraint edge behavior.
+type EdgeType = uintptr
+
+const (
+	ChainTop    EdgeType = 0
+	ChainBottom EdgeType = 1
+	ChainLeft   EdgeType = 2
+	ChainRight  EdgeType = 3
+	Rubber      EdgeType = 4
+)
+
 // Justify controls text alignment.
 type Justify int
 

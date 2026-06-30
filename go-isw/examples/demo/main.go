@@ -336,34 +336,34 @@ func createFormTab(tabs isw.Widget) {
 		isw.NewArgList().DefaultDistance(8))
 
 	nameLbl := isw.CreateManagedWidget("nameLbl", isw.LabelClass, form,
-		isw.NewArgList().Label("Name:").Left(3).Top(3))
+		isw.NewArgList().Label("Name:").Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	nameEntry := isw.CreateManagedWidget("nameEntry", isw.TextClass, form,
 		isw.NewArgList().
 			EditType("edit").String("").Width(250).
-			FromHoriz(nameLbl).Left(3).Top(3))
+			FromHoriz(nameLbl).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	emailLbl := isw.CreateManagedWidget("emailLbl", isw.LabelClass, form,
-		isw.NewArgList().Label("Email:").FromVert(nameLbl).Left(3).Top(3))
+		isw.NewArgList().Label("Email:").FromVert(nameLbl).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	isw.CreateManagedWidget("emailEntry", isw.TextClass, form,
 		isw.NewArgList().
 			EditType("edit").String("").Width(250).
-			FromHoriz(emailLbl).FromVert(nameEntry).Left(3).Top(3))
+			FromHoriz(emailLbl).FromVert(nameEntry).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	msgLbl := isw.CreateManagedWidget("msgLbl", isw.LabelClass, form,
-		isw.NewArgList().Label("Message:").FromVert(emailLbl).Left(3).Top(3))
+		isw.NewArgList().Label("Message:").FromVert(emailLbl).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	isw.CreateManagedWidget("msgEntry", isw.TextClass, form,
 		isw.NewArgList().
 			EditType("edit").String("").
 			Width(400).Height(100).ScrollVertical(2).Wrap(2).
-			FromVert(msgLbl).Left(3).Top(3))
+			FromVert(msgLbl).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	submit := isw.CreateManagedWidget("submit", isw.CommandClass, form,
 		isw.NewArgList().
 			Label("Submit").CornerRadius(4).
-			FromVert(msgLbl).VertDistance(120).Left(3).Top(3))
+			FromVert(msgLbl).VertDistance(120).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	submit.AddCallback(isw.Ncallback, func(w isw.Widget, cd unsafe.Pointer) {
 		setStatus("Form submitted!")
