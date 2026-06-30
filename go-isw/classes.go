@@ -22,6 +22,7 @@ package isw
 #include <ISW/List.h>
 #include <ISW/ListBox.h>
 #include <ISW/ListBoxRow.h>
+#include <ISW/ListBoxPivotRow.h>
 #include <ISW/ListView.h>
 #include <ISW/IconView.h>
 #include <ISW/Tree.h>
@@ -102,7 +103,8 @@ var (
 var (
 	ListClass       = WidgetClass{C.listWidgetClass}
 	ListBoxClass    = WidgetClass{C.listBoxWidgetClass}
-	ListBoxRowClass = WidgetClass{C.listBoxRowWidgetClass}
+	ListBoxRowClass      = WidgetClass{C.listBoxRowWidgetClass}
+	ListBoxPivotRowClass = WidgetClass{C.listBoxPivotRowWidgetClass}
 	ListViewClass   = WidgetClass{C.listViewWidgetClass}
 	IconViewClass   = WidgetClass{C.iconViewWidgetClass}
 	TreeClass       = WidgetClass{C.treeWidgetClass}

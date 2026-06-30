@@ -70,6 +70,7 @@ var typeOverrides = map[string]argType{
 	"dragLeaveCallback":   argCallback,
 	"fileSelected":        argCallback,
 	"fileCancelled":       argCallback,
+	"pivotCallback":       argCallback,
 
 	// Strings
 	"editType":         argString,
@@ -95,6 +96,8 @@ var typeOverrides = map[string]argType{
 	"encoding":         argString,
 	"inputMethod":      argString,
 	"preeditType":      argString,
+	"pivotImage":       argString,
+	"pivotImageOpen":   argString,
 
 	// Widgets
 	"fromHoriz":    argWidget,
