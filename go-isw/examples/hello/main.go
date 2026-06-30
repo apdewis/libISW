@@ -11,13 +11,13 @@ func main() {
 	app, toplevel := isw.AppInitialize("GoHello", nil)
 
 	box := isw.CreateManagedWidget("box", isw.BoxClass, toplevel,
-		isw.NewArgList().Add(isw.Norientation, uintptr(isw.OrientVertical)))
+		isw.NewArgList().Orientation(uintptr(isw.OrientVertical)))
 
 	isw.CreateManagedWidget("label", isw.LabelClass, box,
-		isw.NewArgList().AddString(isw.Nlabel, "Hello from Go!"))
+		isw.NewArgList().Label("Hello from Go!"))
 
 	btn := isw.CreateManagedWidget("quit", isw.CommandClass, box,
-		isw.NewArgList().AddString(isw.Nlabel, "Quit"))
+		isw.NewArgList().Label("Quit"))
 
 	btn.AddCallback(isw.Ncallback, func(w isw.Widget, callData unsafe.Pointer) {
 		fmt.Println("Quit button pressed")

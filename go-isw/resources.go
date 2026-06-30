@@ -1,3 +1,5 @@
+//go:generate go run ./cmd/genargs
+
 package isw
 
 /*
@@ -76,6 +78,14 @@ func (al *ArgList) AddString(name, value string) *ArgList {
 // AddWidget appends a widget-valued resource.
 func (al *ArgList) AddWidget(name string, w Widget) *ArgList {
 	return al.Add(name, uintptr(unsafe.Pointer(w.c)))
+}
+
+// AddStringList appends a string-array resource (e.g. IswNlist).
+// The strings are copied into C memory and remain valid for the widget's
+// lifetime. Pass the slice length separately via Add(NnumberStrings, …).
+func (al *ArgList) AddStringList(name string, values []string) *ArgList {
+	ptr := CStringArray(values)
+	return al.Add(name, ptr)
 }
 
 // AddCallback appends a callback-list resource.
