@@ -45,7 +45,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/libisw/go-isw"
+	"github.com/apdewis/libISW/go-isw"
 )
 
 var (
@@ -107,7 +107,7 @@ func populateMenubar(menubar C.Widget, accelDest isw.Widget) {
 
 	aboutItem := createSmeBSB("about", helpMenu, "About")
 	aboutItem.AddCallback(isw.Ncallback, func(w isw.Widget, cd unsafe.Pointer) {
-		setStatus("ISW Go Bindings Demo — github.com/libisw/go-isw")
+		setStatus("ISW Go Bindings Demo — github.com/apdewis/libISW/go-isw")
 	})
 }
 

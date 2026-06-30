@@ -1,7 +1,7 @@
-module github.com/libisw/go-isw/examples/demo
+module github.com/apdewis/libISW/go-isw/examples/demo
 
 go 1.21
 
-require github.com/libisw/go-isw v0.0.0
+require github.com/apdewis/libISW/go-isw v0.0.0
 
-replace github.com/libisw/go-isw => ../..
+replace github.com/apdewis/libISW/go-isw => ../..

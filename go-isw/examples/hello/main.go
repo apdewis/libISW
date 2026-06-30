@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/libisw/go-isw"
+	"github.com/apdewis/libISW/go-isw"
 )
 
 func main() {

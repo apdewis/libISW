@@ -1,3 +1,3 @@
-module github.com/libisw/go-isw
+module github.com/apdewis/libISW/go-isw
 
 go 1.21
