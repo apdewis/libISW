@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(libISW VERSION 0.12.0 LANGUAGES C)
+project(libISW VERSION 0.13.0 LANGUAGES C)
 
 # Default install prefix to /usr (overridable with -DCMAKE_INSTALL_PREFIX=...)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -275,6 +275,7 @@ set(ISW_WIDGET_SOURCES
     src/List.c
     src/ListBox.c
     src/ListBoxRow.c
+    src/ListBoxPivotRow.c
     src/MainWindow.c
     src/MenuBar.c
     src/MenuButton.c

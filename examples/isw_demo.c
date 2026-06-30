@@ -46,6 +46,7 @@
 #include <ISW/List.h>
 #include <ISW/ListBox.h>
 #include <ISW/ListBoxRow.h>
+#include <ISW/ListBoxPivotRow.h>
 #include <ISW/ComboBox.h>
 #include <ISW/Tree.h>
 
@@ -117,6 +118,7 @@ Widget create_iconview_demo(Widget parent);
 Widget create_listview_demo(Widget parent);
 Widget create_list_demo(Widget parent);
 Widget create_listbox_demo(Widget parent);
+Widget create_listbox_pivot_demo(Widget parent);
 Widget create_combobox_demo(Widget parent);
 Widget create_text_demo(Widget parent);
 Widget create_tree_demo(Widget parent);
@@ -142,6 +144,7 @@ void menu_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void list_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void listbox_select_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void listbox_activate_callback(Widget w, IswPointer client_data, IswPointer call_data);
+void pivot_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void combobox_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void iconview_callback(Widget w, IswPointer client_data, IswPointer call_data);
 void repeater_callback(Widget w, IswPointer client_data, IswPointer call_data);
@@ -1268,7 +1271,7 @@ Widget create_repeater_demo(Widget parent) {
  * ============================================================ */
 
 Widget create_selection_section(Widget parent) {
-    Widget form, section_label, iconview_demo, listview_demo, list_demo, listbox_demo, combobox_demo, text_demo;
+    Widget form, section_label, iconview_demo, listview_demo, list_demo, listbox_demo, listbox_pivot_demo, combobox_demo, text_demo;
     IswArgBuilder ab = IswArgBuilderInit();
 
     /* Section container */
@@ -1278,7 +1281,7 @@ Widget create_selection_section(Widget parent) {
 
     /* Section label */
     IswArgBuilderReset(&ab);
-    IswArgLabel(&ab, "Selection Widgets: IconView, ListView, List, ListBox, ComboBox, Text");
+    IswArgLabel(&ab, "Selection Widgets: IconView, ListView, List, ListBox, PivotRow, ComboBox, Text");
     IswArgBorderWidth(&ab, 0);
     IswArgTop(&ab, IswChainTop);
     IswArgBottom(&ab, IswChainTop);
@@ -1325,10 +1328,20 @@ Widget create_selection_section(Widget parent) {
     IswArgHorizDistance(&ab, 10);
     IswSetValues(listbox_demo, ab.args, ab.count);
 
+    /* ListBox pivot demo (expandable rows with nesting) */
+    listbox_pivot_demo = create_listbox_pivot_demo(form);
+    IswArgBuilderReset(&ab);
+    IswArgFromHoriz(&ab, listbox_demo);
+    IswArgFromVert(&ab, section_label);
+    IswArgTop(&ab, IswChainTop);
+    IswArgBottom(&ab, IswChainTop);
+    IswArgHorizDistance(&ab, 10);
+    IswSetValues(listbox_pivot_demo, ab.args, ab.count);
+
     /* ComboBox demo (dropdown selector) */
     combobox_demo = create_combobox_demo(form);
     IswArgBuilderReset(&ab);
-    IswArgFromHoriz(&ab, listbox_demo);
+    IswArgFromHoriz(&ab, listbox_pivot_demo);
     IswArgFromVert(&ab, section_label);
     IswArgTop(&ab, IswChainTop);
     IswArgBottom(&ab, IswChainTop);
@@ -1670,6 +1683,182 @@ void listbox_activate_callback(Widget w, IswPointer client_data,
     IswListBoxCallbackData *cb = (IswListBoxCallbackData *)call_data;
     (void)w; (void)client_data;
     printf("ListBox: activated row %d\n", cb->index);
+}
+
+void pivot_callback(Widget w, IswPointer client_data, IswPointer call_data)
+{
+    (void)w;
+    const char *name = (const char *)client_data;
+    Boolean open = (Boolean)(uintptr_t)call_data;
+    printf("Pivot '%s': %s\n", name, open ? "opened" : "closed");
+}
+
+Widget create_listbox_pivot_demo(Widget parent) {
+    Widget outer_box, title, viewport, listbox;
+    IswArgBuilder ab = IswArgBuilderInit();
+
+    /* Container */
+    IswArgOrientation(&ab, IswOrientVertical);
+    IswArgBorderWidth(&ab, 1);
+    outer_box = IswCreateManagedWidget("pivotOuterBox", boxWidgetClass,
+                                       parent, ab.args, ab.count);
+
+    /* Title */
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "ListBox + PivotRow");
+    IswArgBorderWidth(&ab, 0);
+    title = IswCreateManagedWidget("pivotTitle", labelWidgetClass,
+                                   outer_box, ab.args, ab.count);
+
+    /* Viewport for scrolling */
+    IswArgBuilderReset(&ab);
+    IswArgAllowVert(&ab, True);
+    IswArgWidth(&ab, 220);
+    IswArgHeight(&ab, 240);
+    IswArgBorderWidth(&ab, 1);
+    viewport = IswCreateManagedWidget("pivotViewport", viewportWidgetClass,
+                                      outer_box, ab.args, ab.count);
+
+    /* Top-level ListBox */
+    IswArgBuilderReset(&ab);
+    IswArgSelectionMode(&ab, IswListBoxSelectSingle);
+    IswArgRowSpacing(&ab, 1);
+    IswArgShowSeparators(&ab, True);
+    IswArgBorderWidth(&ab, 0);
+    listbox = IswCreateManagedWidget("pivotListBox", listBoxWidgetClass,
+                                     viewport, ab.args, ab.count);
+
+    /* --- "Fruits" pivot row with sub-items --- */
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Fruits");
+    IswArgBorderWidth(&ab, 0);
+    IswArgPivotOpen(&ab, True);
+    Widget fruits_pivot = IswCreateManagedWidget("fruitsPivot",
+        listBoxPivotRowWidgetClass, listbox, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgSelectable(&ab, False);
+    IswSetValues(fruits_pivot, ab.args, ab.count);
+    IswAddCallback(fruits_pivot, IswNpivotCallback, pivot_callback,
+                   (IswPointer)"Fruits");
+
+    IswArgBuilderReset(&ab);
+    IswArgSelectionMode(&ab, IswListBoxSelectSingle);
+    IswArgRowSpacing(&ab, 0);
+    IswArgBorderWidth(&ab, 0);
+    Widget fruits_lb = IswCreateManagedWidget("fruitsListBox",
+        listBoxWidgetClass, fruits_pivot, ab.args, ab.count);
+
+    static const char *fruits[] = { "Apple", "Banana", "Cherry", "Date" };
+    for (int i = 0; i < 4; i++) {
+        IswArgBuilderReset(&ab);
+        IswArgBorderWidth(&ab, 0);
+        Widget row = IswCreateManagedWidget("frow", listBoxRowWidgetClass,
+                                            fruits_lb, ab.args, ab.count);
+        IswArgBuilderReset(&ab);
+        IswArgLabel(&ab, fruits[i]);
+        IswArgBorderWidth(&ab, 0);
+        IswArgJustify(&ab, IswJustifyLeft);
+        IswCreateManagedWidget("name", labelWidgetClass, row, ab.args, ab.count);
+    }
+
+    /* --- "Vegetables" pivot row (closed by default) with nested pivot --- */
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Vegetables");
+    IswArgBorderWidth(&ab, 0);
+    Widget veg_pivot = IswCreateManagedWidget("vegPivot",
+        listBoxPivotRowWidgetClass, listbox, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgSelectable(&ab, False);
+    IswSetValues(veg_pivot, ab.args, ab.count);
+    IswAddCallback(veg_pivot, IswNpivotCallback, pivot_callback,
+                   (IswPointer)"Vegetables");
+
+    IswArgBuilderReset(&ab);
+    IswArgSelectionMode(&ab, IswListBoxSelectSingle);
+    IswArgRowSpacing(&ab, 0);
+    IswArgBorderWidth(&ab, 0);
+    Widget veg_lb = IswCreateManagedWidget("vegListBox",
+        listBoxWidgetClass, veg_pivot, ab.args, ab.count);
+
+    /* Plain rows */
+    static const char *veg_plain[] = { "Carrot", "Pea" };
+    for (int i = 0; i < 2; i++) {
+        IswArgBuilderReset(&ab);
+        IswArgBorderWidth(&ab, 0);
+        Widget row = IswCreateManagedWidget("vrow", listBoxRowWidgetClass,
+                                            veg_lb, ab.args, ab.count);
+        IswArgBuilderReset(&ab);
+        IswArgLabel(&ab, veg_plain[i]);
+        IswArgBorderWidth(&ab, 0);
+        IswArgJustify(&ab, IswJustifyLeft);
+        IswCreateManagedWidget("name", labelWidgetClass, row, ab.args, ab.count);
+    }
+
+    /* Nested pivot: "Leafy Greens" inside Vegetables */
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Leafy Greens");
+    IswArgBorderWidth(&ab, 0);
+    Widget leafy_pivot = IswCreateManagedWidget("leafyPivot",
+        listBoxPivotRowWidgetClass, veg_lb, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgSelectable(&ab, False);
+    IswSetValues(leafy_pivot, ab.args, ab.count);
+    IswAddCallback(leafy_pivot, IswNpivotCallback, pivot_callback,
+                   (IswPointer)"Leafy Greens");
+
+    IswArgBuilderReset(&ab);
+    IswArgSelectionMode(&ab, IswListBoxSelectSingle);
+    IswArgRowSpacing(&ab, 0);
+    IswArgBorderWidth(&ab, 0);
+    Widget leafy_lb = IswCreateManagedWidget("leafyListBox",
+        listBoxWidgetClass, leafy_pivot, ab.args, ab.count);
+
+    static const char *leafy[] = { "Spinach", "Kale", "Lettuce" };
+    for (int i = 0; i < 3; i++) {
+        IswArgBuilderReset(&ab);
+        IswArgBorderWidth(&ab, 0);
+        Widget row = IswCreateManagedWidget("lrow", listBoxRowWidgetClass,
+                                            leafy_lb, ab.args, ab.count);
+        IswArgBuilderReset(&ab);
+        IswArgLabel(&ab, leafy[i]);
+        IswArgBorderWidth(&ab, 0);
+        IswArgJustify(&ab, IswJustifyLeft);
+        IswCreateManagedWidget("name", labelWidgetClass, row, ab.args, ab.count);
+    }
+
+    /* --- "Grains" pivot row (closed by default, flat list) --- */
+    IswArgBuilderReset(&ab);
+    IswArgLabel(&ab, "Grains");
+    IswArgBorderWidth(&ab, 0);
+    Widget grains_pivot = IswCreateManagedWidget("grainsPivot",
+        listBoxPivotRowWidgetClass, listbox, ab.args, ab.count);
+    IswArgBuilderReset(&ab);
+    IswArgSelectable(&ab, False);
+    IswSetValues(grains_pivot, ab.args, ab.count);
+    IswAddCallback(grains_pivot, IswNpivotCallback, pivot_callback,
+                   (IswPointer)"Grains");
+
+    IswArgBuilderReset(&ab);
+    IswArgSelectionMode(&ab, IswListBoxSelectSingle);
+    IswArgRowSpacing(&ab, 0);
+    IswArgBorderWidth(&ab, 0);
+    Widget grains_lb = IswCreateManagedWidget("grainsListBox",
+        listBoxWidgetClass, grains_pivot, ab.args, ab.count);
+
+    static const char *grains[] = { "Rice", "Wheat", "Oats" };
+    for (int i = 0; i < 3; i++) {
+        IswArgBuilderReset(&ab);
+        IswArgBorderWidth(&ab, 0);
+        Widget row = IswCreateManagedWidget("grow", listBoxRowWidgetClass,
+                                            grains_lb, ab.args, ab.count);
+        IswArgBuilderReset(&ab);
+        IswArgLabel(&ab, grains[i]);
+        IswArgBorderWidth(&ab, 0);
+        IswArgJustify(&ab, IswJustifyLeft);
+        IswCreateManagedWidget("name", labelWidgetClass, row, ab.args, ab.count);
+    }
+
+    return outer_box;
 }
 
 Widget create_combobox_demo(Widget parent) {
