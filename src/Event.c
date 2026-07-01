@@ -1236,6 +1236,21 @@ DispatchEvent(IswEvent *event, Widget widget)
 
 typedef enum _GrabType { pass, ignore, remap } GrabType;
 
+static void
+WindowlessGrabDestroyCallback(Widget widget,
+                              IswPointer closure _X_UNUSED,
+                              IswPointer call_data _X_UNUSED)
+{
+    IswPerDisplayInput pdi =
+        _IswGetPerDisplayInput(IswDisplayOf(widget));
+    if (pdi->windowlessButtonGrab == widget) {
+        pdi->windowlessButtonGrab = NULL;
+        pdi->buttonsDown = 0;
+    }
+    if (pdi->pointerWidget == widget)
+        pdi->pointerWidget = NULL;
+}
+
 static Boolean
 _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
 {
@@ -1301,11 +1316,14 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                path.  Detect the mismatch, synthesize Leave, and drop the
                grab so the widget clears its pressed state. */
             if (pdi->windowlessButtonGrab != NULL &&
-                _IswWidgetAncestor(pdi->windowlessButtonGrab) != widget) {
+                (pdi->windowlessButtonGrab->core.being_destroyed ||
+                 _IswWidgetAncestor(pdi->windowlessButtonGrab) != widget)) {
                 Widget old_pw = pdi->pointerWidget;
                 Widget gw = pdi->windowlessButtonGrab;
                 pdi->pointerWidget = NULL;
                 pdi->buttonsDown = 0;
+                IswRemoveCallback(gw, IswNdestroyCallback,
+                    WindowlessGrabDestroyCallback, NULL);
                 pdi->windowlessButtonGrab = NULL;
                 if (old_pw != NULL && IswIsWidget(old_pw)
                     && !IswIsShell(old_pw) && !old_pw->core.being_destroyed)
@@ -1357,10 +1375,21 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                by position.  Without this a drag (Paned sash, Slider thumb)
                loses its target the moment the pointer slips off the widget. */
             if (etype == IswButtonDown) {
-                if (pdi->buttonsDown == 0)
-                    pdi->windowlessButtonGrab =
+                if (pdi->buttonsDown == 0) {
+                    Widget newGrab =
                         (target != widget && IswIsWidget(target) &&
                          !IswIsShell(target)) ? target : NULL;
+                    if (pdi->windowlessButtonGrab != newGrab) {
+                        if (pdi->windowlessButtonGrab != NULL)
+                            IswRemoveCallback(pdi->windowlessButtonGrab,
+                                IswNdestroyCallback,
+                                WindowlessGrabDestroyCallback, NULL);
+                        pdi->windowlessButtonGrab = newGrab;
+                        if (newGrab != NULL)
+                            IswAddCallback(newGrab, IswNdestroyCallback,
+                                WindowlessGrabDestroyCallback, NULL);
+                    }
+                }
                 pdi->buttonsDown |= (1u << event->button.button);
             }
 
@@ -1395,8 +1424,13 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                button comes up. */
             if (etype == IswButtonUp) {
                 pdi->buttonsDown &= ~(1u << event->button.button);
-                if (pdi->buttonsDown == 0)
+                if (pdi->buttonsDown == 0 &&
+                    pdi->windowlessButtonGrab != NULL) {
+                    IswRemoveCallback(pdi->windowlessButtonGrab,
+                        IswNdestroyCallback,
+                        WindowlessGrabDestroyCallback, NULL);
                     pdi->windowlessButtonGrab = NULL;
+                }
             }
 
             /* When the pointer leaves the windowed ancestor entirely
@@ -1411,7 +1445,12 @@ _IswDefaultDispatcher(IswEvent *event, IswDisplay dpy)
                     && !old_pw->core.being_destroyed)
                     _IswSynthesizeCrossing(old_pw, event, IswLeave);
                 pdi->buttonsDown = 0;
-                pdi->windowlessButtonGrab = NULL;
+                if (pdi->windowlessButtonGrab != NULL) {
+                    IswRemoveCallback(pdi->windowlessButtonGrab,
+                        IswNdestroyCallback,
+                        WindowlessGrabDestroyCallback, NULL);
+                    pdi->windowlessButtonGrab = NULL;
+                }
             }
 
             /* Synthesize Enter/Leave when the windowless widget under the
