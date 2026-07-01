@@ -61,8 +61,8 @@ typedef struct _FlexBoxRec {
 
 typedef struct _FlexBoxConstraintsPart {
     /* resources */
-    int           flex_grow;
-    Dimension     flex_basis;
+    int           fill_weight;
+    Dimension     fixed_size;
     IswFlexAlign  flex_align;
 } FlexBoxConstraintsPart;
 

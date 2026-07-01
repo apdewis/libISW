@@ -260,9 +260,13 @@
 
 /* FlexBox */
 #define IswArgSpacing(ab, v)                    ISW_ARG((ab), IswNspacing, (v))
-#define IswArgFlexGrow(ab, v)                   ISW_ARG((ab), IswNflexGrow, (v))
-#define IswArgFlexBasis(ab, v)                  ISW_ARG((ab), IswNflexBasis, (v))
-#define IswArgFlexAlign(ab, v)                  ISW_ARG((ab), IswNflexAlign, (v))
+#define IswArgFillWeight(ab, v)                 ISW_ARG((ab), IswNfillWeight, (v))
+#define IswArgFixedSize(ab, v)                  ISW_ARG((ab), IswNfixedSize, (v))
+#define IswArgAlign(ab, v)                      ISW_ARG((ab), IswNalign, (v))
+/* Compatibility aliases */
+#define IswArgFlexGrow(ab, v)                   IswArgFillWeight((ab), (v))
+#define IswArgFlexBasis(ab, v)                  IswArgFixedSize((ab), (v))
+#define IswArgFlexAlign(ab, v)                  IswArgAlign((ab), (v))
 
 /* Tree */
 #define IswArgAutoReconfigure(ab, v)            ISW_ARG((ab), IswNautoReconfigure, (v))

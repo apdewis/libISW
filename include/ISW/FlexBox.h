@@ -41,9 +41,9 @@
  *
  * Name              Class           RepType         Default Value
  * ----              -----           -------         -------------
- * flexGrow          FlexGrow        Int             0
- * flexBasis         FlexBasis       Dimension       0
- * flexAlign         FlexAlign       FlexAlign       IswFlexAlignStretch
+ * fillWeight        FillWeight      Int             0
+ * fixedSize         FixedSize       Dimension       0
+ * align             FlexAlign       FlexAlign       IswFlexAlignStretch
  */
 
 /* Widget-level resource names/classes */
@@ -55,14 +55,21 @@
 #endif
 
 /* Constraint resource names */
-#define IswNflexGrow  "flexGrow"
-#define IswNflexBasis "flexBasis"
-#define IswNflexAlign "flexAlign"
+#define IswNfillWeight "fillWeight"
+#define IswNfixedSize  "fixedSize"
+#define IswNalign      "align"
 
 /* Constraint resource classes */
-#define IswCFlexGrow  "FlexGrow"
-#define IswCFlexBasis "FlexBasis"
-#define IswCFlexAlign "FlexAlign"
+#define IswCFillWeight "FillWeight"
+#define IswCFixedSize  "FixedSize"
+#define IswCFlexAlign  "FlexAlign"
+
+/* Compatibility aliases (old CSS-derived names) */
+#define IswNflexGrow   IswNfillWeight
+#define IswNflexBasis  IswNfixedSize
+#define IswNflexAlign  IswNalign
+#define IswCFlexGrow   IswCFillWeight
+#define IswCFlexBasis  IswCFixedSize
 
 /* Representation type */
 #define IswRFlexAlign "FlexAlign"

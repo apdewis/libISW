@@ -445,17 +445,22 @@ func (al *ArgList) Spacing(v uintptr) *ArgList {
 	return al.Add("spacing", v)
 }
 
-func (al *ArgList) FlexGrow(v uintptr) *ArgList {
-	return al.Add("flexGrow", v)
+func (al *ArgList) FillWeight(v uintptr) *ArgList {
+	return al.Add("fillWeight", v)
 }
 
-func (al *ArgList) FlexBasis(v uintptr) *ArgList {
-	return al.Add("flexBasis", v)
+func (al *ArgList) FixedSize(v uintptr) *ArgList {
+	return al.Add("fixedSize", v)
 }
 
-func (al *ArgList) FlexAlign(v uintptr) *ArgList {
-	return al.Add("flexAlign", v)
+func (al *ArgList) Align(v uintptr) *ArgList {
+	return al.Add("align", v)
 }
+
+// Compatibility delegates
+func (al *ArgList) FlexGrow(v uintptr) *ArgList  { return al.FillWeight(v) }
+func (al *ArgList) FlexBasis(v uintptr) *ArgList  { return al.FixedSize(v) }
+func (al *ArgList) FlexAlign(v uintptr) *ArgList  { return al.Align(v) }
 
 // --- FontChooser ---
 

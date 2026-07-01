@@ -58,11 +58,11 @@ static IswResource resources[] = {
 
 #define COffset(field) IswOffsetOf(FlexBoxConstraintsRec, flexBox.field)
 static IswResource constraintResources[] = {
-    {IswNflexGrow, IswCFlexGrow, IswRInt, sizeof(int),
-     COffset(flex_grow), IswRImmediate, (IswPointer)0},
-    {IswNflexBasis, IswCFlexBasis, IswRDimension, sizeof(Dimension),
-     COffset(flex_basis), IswRImmediate, (IswPointer)0},
-    {IswNflexAlign, IswCFlexAlign, IswRFlexAlign, sizeof(IswFlexAlign),
+    {IswNfillWeight, IswCFillWeight, IswRInt, sizeof(int),
+     COffset(fill_weight), IswRImmediate, (IswPointer)0},
+    {IswNfixedSize, IswCFixedSize, IswRDimension, sizeof(Dimension),
+     COffset(fixed_size), IswRImmediate, (IswPointer)0},
+    {IswNalign, IswCFlexAlign, IswRFlexAlign, sizeof(IswFlexAlign),
      COffset(flex_align), IswRFlexAlign, (IswPointer)&defAlign},
 };
 #undef COffset
@@ -220,20 +220,16 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 
 /* --- Layout engine --- */
 
-/*
- * Query a child's preferred size along the primary axis.
- * If flexBasis is set, use it (scaled); otherwise use the child's
- * preferred geometry or current size.
- */
+/* Child's main-axis size: fixedSize if set, else query preferred geometry. */
 static Dimension
-ChildBasis(FlexBoxWidget fw, Widget child, Boolean is_horizontal)
+ChildPreferred(FlexBoxWidget fw, Widget child, Boolean is_horizontal)
 {
     FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
+    (void)fw;
 
-    if (fc->flexBox.flex_basis > 0)
-        return ((int)fc->flexBox.flex_basis);
+    if (fc->flexBox.fixed_size > 0)
+        return fc->flexBox.fixed_size;
 
-    /* Ask the child what size it wants */
     IswWidgetGeometry preferred;
     IswQueryGeometry(child, NULL, &preferred);
 
@@ -266,8 +262,15 @@ ChildCrossPreferred(Widget child, Boolean is_horizontal)
 }
 
 /*
- * Core layout algorithm. Computes preferred_width/height and optionally
- * configures children.
+ * Core layout algorithm.
+ *
+ * Native fill model — NOT CSS flexbox.  Children are either fixed or fill:
+ *   fixedSize > 0          → child is exactly that size (fill_weight ignored)
+ *   fill_weight > 0, no fixedSize → proportional share of remaining space
+ *   neither                → child's own preferred size (treated as fixed)
+ *
+ * Preferred size reflects what the layout would actually produce — fill
+ * children contribute their preferred size, not zero.
  */
 static void
 DoLayout(FlexBoxWidget fw, Boolean set_children)
@@ -277,17 +280,17 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
     Boolean horiz = (fw->flexBox.orientation == IswOrientHorizontal);
     Dimension spacing = ((int)fw->flexBox.spacing);
 
-    /* Count managed children and compute fixed-size total.
-     * flexGrow=0 children claim their preferred/basis size.
-     * flexGrow>0 children only claim their flexBasis (0 if unset);
-     * their remaining allocation comes from the grow distribution.
+    /*
+     * Classify children.  fixedSize means fixed — period.  fill_weight
+     * is only honoured when fixedSize is unset.
      *
      * Windowless model: each child's border is part of its own surface
      * footprint and does NOT overlap with neighbours.  Each child
      * contributes (content + leading_border + trailing_border) to the
-     * main axis.  Per-side border widths are used throughout. */
+     * main axis.  Per-side border widths are used throughout.
+     */
     int managed = 0;
-    int total_grow = 0;
+    int total_weight = 0;
     int total_fixed = 0;
     Dimension max_cross = 1;
 
@@ -302,14 +305,17 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
         int cross_border = horiz ? _IswBorderVert(bs) : _IswBorderHoriz(bs);
         Dimension cross = ChildCrossPreferred(child, horiz);
 
-        if (fc->flexBox.flex_grow > 0) {
-            if (fc->flexBox.flex_basis > 0)
-                total_fixed += (int)fc->flexBox.flex_basis + main_border;
-            else
-                total_fixed += main_border;
-            total_grow += fc->flexBox.flex_grow;
+        if (fc->flexBox.fixed_size > 0) {
+            /* Explicit fixed size — fill_weight ignored. */
+            total_fixed += (int)fc->flexBox.fixed_size + main_border;
+        } else if (fc->flexBox.fill_weight > 0) {
+            /* Fill child — only border counts as fixed; content comes
+             * from proportional distribution. */
+            total_fixed += main_border;
+            total_weight += fc->flexBox.fill_weight;
         } else {
-            total_fixed += (int)ChildBasis(fw, child, horiz) + main_border;
+            /* No fixedSize, no fill — use child's own preferred size. */
+            total_fixed += (int)ChildPreferred(fw, child, horiz) + main_border;
         }
 
         if ((int)cross + cross_border > (int)max_cross)
@@ -325,6 +331,10 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 
     int total_spacing = (managed - 1) * (int)spacing;
 
+    /* Preferred size: every child at its natural size.  Fill children
+     * contribute their preferred size so the preferred total matches
+     * what the layout would actually produce — no mismatch between
+     * what we ask for and what we draw. */
     if (!set_children) {
         int preferred_base = 0;
         for (int i = 0; i < n; i++) {
@@ -333,7 +343,7 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
                 continue;
             IswBorderSides bs = _IswGetBorderSides(child);
             int main_border = horiz ? _IswBorderHoriz(bs) : _IswBorderVert(bs);
-            preferred_base += (int)ChildBasis(fw, child, horiz) + main_border;
+            preferred_base += (int)ChildPreferred(fw, child, horiz) + main_border;
         }
         int preferred_main = preferred_base + total_spacing;
         fw->flexBox.preferred_width  = horiz ? (Dimension)preferred_main : max_cross;
@@ -341,7 +351,8 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
         return;
     }
 
-    /* Distribute space within the allocated container size */
+    /* Distribute space within the allocated container size.
+     * Fill children split the remaining space proportionally by weight. */
     Dimension container_main  = horiz ? fw->core.width : fw->core.height;
     Dimension container_cross = horiz ? fw->core.height : fw->core.width;
 
@@ -361,15 +372,13 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
         int main_border = horiz ? _IswBorderHoriz(bs) : _IswBorderVert(bs);
         int cross_border = horiz ? _IswBorderVert(bs) : _IswBorderHoriz(bs);
 
-        /* Main-axis size (content only — border is outside) */
         int main_sz;
-        if (fc->flexBox.flex_grow > 0 && total_grow > 0) {
-            int basis = 0;
-            if (fc->flexBox.flex_basis > 0)
-                basis = (int)fc->flexBox.flex_basis;
-            main_sz = basis + (remaining * fc->flexBox.flex_grow) / total_grow;
+        if (fc->flexBox.fixed_size > 0) {
+            main_sz = (int)fc->flexBox.fixed_size;
+        } else if (fc->flexBox.fill_weight > 0 && total_weight > 0) {
+            main_sz = (remaining * fc->flexBox.fill_weight) / total_weight;
         } else {
-            main_sz = (int)ChildBasis(fw, child, horiz);
+            main_sz = (int)ChildPreferred(fw, child, horiz);
         }
         if (main_sz < 1)
             main_sz = 1;
@@ -415,7 +424,6 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 
         IswConfigureWidget(child, x, y, w, h, child->core.border_width);
 
-        /* Advance by the full footprint (content + both borders) — no overlap. */
         pos += (Position)(main_sz + main_border) + (Position)spacing;
     }
 }
@@ -425,7 +433,12 @@ DoLayout(FlexBoxWidget fw, Boolean set_children)
 static void
 Resize(Widget w)
 {
-    DoLayout((FlexBoxWidget)w, TRUE);
+    FlexBoxWidget fw = (FlexBoxWidget)w;
+    if (fw->flexBox.layout_in_progress)
+        return;
+    fw->flexBox.layout_in_progress = True;
+    DoLayout(fw, TRUE);
+    fw->flexBox.layout_in_progress = False;
 }
 
 static void
@@ -468,11 +481,15 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
     FlexBoxWidget fw = (FlexBoxWidget)IswParent(child);
     (void)reply;
 
-    /* Reject position requests — we control placement */
+    /* During layout the container is the sole authority on child geometry.
+     * Accepting requests here while ChangeManaged is blocked would leave
+     * core.width/height out of sync with the configured size. */
+    if (fw->flexBox.layout_in_progress)
+        return IswGeometryNo;
+
     if (request->request_mode & (IswCWX | IswCWY))
         return IswGeometryNo;
 
-    /* Accept size requests, then re-layout */
     if (request->request_mode & IswCWWidth)
         child->core.width = request->width;
     if (request->request_mode & IswCWHeight)
@@ -530,9 +547,9 @@ ConstraintSetValues(Widget current, Widget request, Widget new,
     FlexBoxConstraints nfc = (FlexBoxConstraints)new->core.constraints;
     (void)request; (void)args; (void)num_args;
 
-    if (cfc->flexBox.flex_grow  != nfc->flexBox.flex_grow  ||
-        cfc->flexBox.flex_basis != nfc->flexBox.flex_basis ||
-        cfc->flexBox.flex_align != nfc->flexBox.flex_align)
+    if (cfc->flexBox.fill_weight != nfc->flexBox.fill_weight ||
+        cfc->flexBox.fixed_size  != nfc->flexBox.fixed_size  ||
+        cfc->flexBox.flex_align  != nfc->flexBox.flex_align)
     {
         /* Relayout all children for the new constraints.  But DoLayout also
            moves `new` (the child being set) to its new slot, and IswSetValues,
