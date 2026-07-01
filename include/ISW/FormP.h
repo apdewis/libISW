@@ -125,7 +125,7 @@ typedef struct _FormConstraintsPart {
  * What the size of this child would be if we did not impose the
  * constraint the width and height must be greater than zero (0).
  */
-    short	virtual_width, virtual_height;
+    int	virtual_width, virtual_height;
 
 /*
  * Temporary Storage for children's new possible possition.

@@ -473,7 +473,18 @@ _IswMakeGeometryRequest(Widget widget,
 #endif
         /* A widget owns no window — geometry is applied to core.x/y/width/
            height (done above) and the parent's geometry manager repaints the
-           widget's surface.  There is no window to configure. */
+           widget's surface.  There is no window to configure.
+           But the resize callback must still fire so the widget can update
+           internal state (e.g. label centering) for the new dimensions. */
+        if (req.changeMask & (IswCWWidth | IswCWHeight | IswCWBorderWidth)) {
+            IswWidgetProc resize;
+
+            LOCK_PROCESS;
+            resize = IswClass(widget)->core_class.resize;
+            UNLOCK_PROCESS;
+            if (resize != (IswWidgetProc) NULL)
+                (*resize)(widget);
+        }
     }
     else {                      /* RectObj child of realized Widget */
         *clear_rect_obj = TRUE;
