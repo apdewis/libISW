@@ -263,8 +263,11 @@ InstallChildHandlers(Widget child, Widget listbox)
 
     if (IswIsComposite(child)) {
         CompositeWidget cw = (CompositeWidget)child;
-        for (Cardinal i = 0; i < cw->composite.num_children; i++)
+        for (Cardinal i = 0; i < cw->composite.num_children; i++) {
+            if (IswIsSubclass(cw->composite.children[i], listBoxWidgetClass))
+                continue;
             InstallChildHandlers(cw->composite.children[i], listbox);
+        }
     }
 }
 
@@ -282,8 +285,11 @@ SwapFgBg(Widget w, Pixel fg, Pixel bg)
 
     if (IswIsComposite(w)) {
         CompositeWidget cw = (CompositeWidget)w;
-        for (Cardinal i = 0; i < cw->composite.num_children; i++)
+        for (Cardinal i = 0; i < cw->composite.num_children; i++) {
+            if (IswIsSubclass(cw->composite.children[i], listBoxWidgetClass))
+                continue;
             SwapFgBg(cw->composite.children[i], fg, bg);
+        }
     }
 }
 
@@ -302,6 +308,8 @@ FindLabelFg(Widget w)
     if (IswIsComposite(w)) {
         CompositeWidget cw = (CompositeWidget)w;
         for (Cardinal i = 0; i < cw->composite.num_children; i++) {
+            if (IswIsSubclass(cw->composite.children[i], listBoxWidgetClass))
+                continue;
             Pixel fg = FindLabelFg(cw->composite.children[i]);
             if (fg != (Pixel)-1) return fg;
         }

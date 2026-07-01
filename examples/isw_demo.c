@@ -1732,11 +1732,12 @@ Widget create_listbox_pivot_demo(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Fruits");
     IswArgBorderWidth(&ab, 0);
+    IswArgSelectable(&ab, True);
     IswArgPivotOpen(&ab, True);
     Widget fruits_pivot = IswCreateManagedWidget("fruitsPivot",
         listBoxPivotRowWidgetClass, listbox, ab.args, ab.count);
     IswArgBuilderReset(&ab);
-    IswArgSelectable(&ab, False);
+    IswArgSelectable(&ab, True);
     IswSetValues(fruits_pivot, ab.args, ab.count);
     IswAddCallback(fruits_pivot, IswNpivotCallback, pivot_callback,
                    (IswPointer)"Fruits");
@@ -1765,10 +1766,12 @@ Widget create_listbox_pivot_demo(Widget parent) {
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Vegetables");
     IswArgBorderWidth(&ab, 0);
+    IswArgSelectable(&ab, True);
     Widget veg_pivot = IswCreateManagedWidget("vegPivot",
         listBoxPivotRowWidgetClass, listbox, ab.args, ab.count);
+
     IswArgBuilderReset(&ab);
-    IswArgSelectable(&ab, False);
+    IswArgSelectable(&ab, True);
     IswSetValues(veg_pivot, ab.args, ab.count);
     IswAddCallback(veg_pivot, IswNpivotCallback, pivot_callback,
                    (IswPointer)"Vegetables");
@@ -1797,6 +1800,7 @@ Widget create_listbox_pivot_demo(Widget parent) {
     /* Nested pivot: "Leafy Greens" inside Vegetables */
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Leafy Greens");
+    IswArgSelectable(&ab, True);
     IswArgBorderWidth(&ab, 0);
     Widget leafy_pivot = IswCreateManagedWidget("leafyPivot",
         listBoxPivotRowWidgetClass, veg_lb, ab.args, ab.count);
@@ -1829,9 +1833,11 @@ Widget create_listbox_pivot_demo(Widget parent) {
     /* --- "Grains" pivot row (closed by default, flat list) --- */
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Grains");
+    IswArgSelectable(&ab, True);
     IswArgBorderWidth(&ab, 0);
     Widget grains_pivot = IswCreateManagedWidget("grainsPivot",
         listBoxPivotRowWidgetClass, listbox, ab.args, ab.count);
+
     IswArgBuilderReset(&ab);
     IswArgSelectable(&ab, False);
     IswSetValues(grains_pivot, ab.args, ab.count);

@@ -42,6 +42,7 @@ static Boolean SetValues(Widget, Widget, Widget, ArgList, Cardinal *);
 
 static void TogglePivotAction(Widget, IswEvent *, String *, Cardinal *);
 static void HeaderClickHandler(Widget, IswPointer, IswEvent *, Boolean *);
+static void LabelClickHandler(Widget, IswPointer, IswEvent *, Boolean *);
 
 #define Offset(field) IswOffsetOf(ListBoxPivotRowRec, listBoxPivotRow.field)
 static IswResource resources[] = {
@@ -263,6 +264,34 @@ HeaderClickHandler(Widget w, IswPointer client_data, IswEvent *event,
 }
 
 static void
+LabelClickHandler(Widget w, IswPointer client_data, IswEvent *event,
+                  Boolean *continue_to_dispatch)
+{
+    (void)client_data;
+    *continue_to_dispatch = False;
+    if (event->kind != IswButtonDown)
+        return;
+
+    Widget pivot = IswParent(w);
+    Widget listbox = IswParent(pivot);
+    if (!listbox || !IswIsSubclass(listbox, listBoxWidgetClass))
+        return;
+
+    Position rx, ry, lx, ly;
+    IswTranslateCoords(w, (Position)IswEventX(event),
+                       (Position)IswEventY(event), &rx, &ry);
+    IswTranslateCoords(listbox, 0, 0, &lx, &ly);
+
+    IswEvent nev = *event;
+    nev.button.x = (int16_t)(rx - lx);
+    nev.button.y = (int16_t)(ry - ly);
+
+    String action = "ListBoxSelect";
+    Cardinal one = 1;
+    IswCallActionProc(listbox, "ListBoxSelect", &nev, &action, one);
+}
+
+static void
 Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 {
     ListBoxPivotRowWidget pw = (ListBoxPivotRowWidget)new;
@@ -300,8 +329,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
                        IswButtonPressMask | IswButtonReleaseMask, False,
                        HeaderClickHandler, (IswPointer)pw);
     IswAddEventHandler(pw->listBoxPivotRow.label_w,
-                       IswButtonPressMask | IswButtonReleaseMask, False,
-                       HeaderClickHandler, (IswPointer)pw);
+                       IswButtonPressMask, False,
+                       LabelClickHandler, (IswPointer)pw);
 
     pw->listBoxPivotRow.child_listbox = NULL;
 
