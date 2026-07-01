@@ -85,6 +85,11 @@ static void ReqTimedOut(IswPointer, IswIntervalId *);
 static void HandlePropertyGone(Widget, IswPointer,IswEvent *, Boolean *);
 static void HandleGetIncrement(Widget, IswPointer,IswEvent *, Boolean *);
 static IswWindow WidgetXWindow(Widget);
+#define MATCH_SELECT(selev, info) (((selev)->time == (info)->time) && \
+	    (_IswPlatformWindowId((selev)->requestor) == \
+	         _IswPlatformWindowId(WidgetXWindow((info)->widget))) && \
+	    ((selev)->selection == (info)->ctx->selection) && \
+	    ((selev)->target == *(info)->target))
 static void HandleIncremental(IswDisplay, Widget, IswSelectionId, CallBackInfo,
                               unsigned long);
 

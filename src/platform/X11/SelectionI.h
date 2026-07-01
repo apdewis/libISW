@@ -163,14 +163,5 @@ typedef struct {
 /* Largest single-property payload the transport accepts; drives INCR chunking. */
 #define MAX_SELECTION_INCR(dpy) (_IswPlatformSelectionMaxTransfer(dpy))
 
-/* `selev` is a decoded IswSelectionEvent; matches a reply against an in-flight
-   request.  Window identity is compared as IswWindowId (neutral). */
-#define MATCH_SELECT(selev, info) (((selev)->time == (info)->time) && \
-	    (_IswPlatformWindowId((selev)->requestor) == \
-	         _IswPlatformWindowId(_IswPlatformWidgetWindow( \
-	             IswDisplayOf((info)->widget), (info)->widget))) && \
-	    ((selev)->selection == (info)->ctx->selection) && \
-	    ((selev)->target == *(info)->target))
-
 #endif /* _IswselectionI_h */
 /* DON'T ADD STUFF AFTER THIS #endif */
