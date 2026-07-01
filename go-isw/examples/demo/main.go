@@ -210,8 +210,10 @@ func createBasicWidgetsTab(tabs isw.Widget) {
 
 	isw.CreateManagedWidget("textEdit", isw.TextClass, vbox,
 		isw.NewArgList().
-			EditType("edit").String("Type here...").
-			Width(400).Height(80).ScrollVertical(2).Wrap(2))
+			EditType(uintptr(isw.TextEdit)).String("Type here...").
+			Width(400).Height(80).
+			ScrollVertical(uintptr(isw.TextScrollAlways)).
+			Wrap(uintptr(isw.TextWrapWord)))
 }
 
 func createSelectionTab(tabs isw.Widget) {
@@ -340,7 +342,7 @@ func createFormTab(tabs isw.Widget) {
 
 	nameEntry := isw.CreateManagedWidget("nameEntry", isw.TextClass, form,
 		isw.NewArgList().
-			EditType("edit").String("").Width(250).
+			EditType(uintptr(isw.TextEdit)).String("").Width(250).
 			FromHoriz(nameLbl).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	emailLbl := isw.CreateManagedWidget("emailLbl", isw.LabelClass, form,
@@ -348,7 +350,7 @@ func createFormTab(tabs isw.Widget) {
 
 	isw.CreateManagedWidget("emailEntry", isw.TextClass, form,
 		isw.NewArgList().
-			EditType("edit").String("").Width(250).
+			EditType(uintptr(isw.TextEdit)).String("").Width(250).
 			FromHoriz(emailLbl).FromVert(nameEntry).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	msgLbl := isw.CreateManagedWidget("msgLbl", isw.LabelClass, form,
@@ -356,8 +358,10 @@ func createFormTab(tabs isw.Widget) {
 
 	isw.CreateManagedWidget("msgEntry", isw.TextClass, form,
 		isw.NewArgList().
-			EditType("edit").String("").
-			Width(400).Height(100).ScrollVertical(2).Wrap(2).
+			EditType(uintptr(isw.TextEdit)).String("").
+			Width(400).Height(100).
+			ScrollVertical(uintptr(isw.TextScrollAlways)).
+			Wrap(uintptr(isw.TextWrapWord)).
 			FromVert(msgLbl).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	submit := isw.CreateManagedWidget("submit", isw.CommandClass, form,

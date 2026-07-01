@@ -347,3 +347,40 @@ const (
 	ReliefRidge  Relief = 3
 	ReliefGroove Relief = 4
 )
+
+// TextEditType controls whether a Text widget is editable.
+type TextEditType int
+
+const (
+	TextRead   TextEditType = 0
+	TextAppend TextEditType = 1
+	TextEdit   TextEditType = 2
+)
+
+// TextScrollMode controls Text widget scrollbar behavior.
+type TextScrollMode int
+
+const (
+	TextScrollNever      TextScrollMode = 0
+	TextScrollWhenNeeded TextScrollMode = 1
+	TextScrollAlways     TextScrollMode = 2
+)
+
+// TextWrapMode controls Text widget line wrapping.
+type TextWrapMode int
+
+const (
+	TextWrapNever TextWrapMode = 0
+	TextWrapLine  TextWrapMode = 1
+	TextWrapWord  TextWrapMode = 2
+)
+
+// TextResizeMode controls Text widget auto-resize behavior.
+type TextResizeMode int
+
+const (
+	TextResizeNever  TextResizeMode = 0
+	TextResizeWidth  TextResizeMode = 1
+	TextResizeHeight TextResizeMode = 2
+	TextResizeBoth   TextResizeMode = 3
+)

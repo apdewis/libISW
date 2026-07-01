@@ -73,7 +73,7 @@ var typeOverrides = map[string]argType{
 	"pivotCallback":       argCallback,
 
 	// Strings
-	"editType":         argString,
+	"editType":         argInt,
 	"accelerators":     argString,
 	"label":            argString,
 	"title":            argString,
