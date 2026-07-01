@@ -619,6 +619,16 @@ high_convert_selection(Widget w, IswSelectionId *selection,
 }
 
 static void
+high_offer_widget_destroyed(Widget w, IswPointer closure _X_UNUSED,
+                            IswPointer data _X_UNUSED)
+{
+    if (high_offer_ctx && high_offer_ctx->widget == w) {
+        IswFree((char *) high_offer_ctx);
+        high_offer_ctx = NULL;
+    }
+}
+
+static void
 high_lose_selection(Widget w, IswSelectionId *selection _X_UNUSED)
 {
     if (!high_offer_ctx || high_offer_ctx->widget != w)
@@ -627,6 +637,8 @@ high_lose_selection(Widget w, IswSelectionId *selection _X_UNUSED)
     if (high_offer_ctx->lose)
         high_offer_ctx->lose(w);
 
+    IswRemoveCallback(w, IswNdestroyCallback,
+                     high_offer_widget_destroyed, NULL);
     IswFree((char *) high_offer_ctx);
     high_offer_ctx = NULL;
 }
@@ -637,6 +649,8 @@ xcb_high_offer(IswDisplay dpy, Widget widget, IswTime time,
                IswSelectionLoseProc lose_proc)
 {
     if (high_offer_ctx) {
+        IswRemoveCallback(high_offer_ctx->widget, IswNdestroyCallback,
+                         high_offer_widget_destroyed, NULL);
         IswFree((char *) high_offer_ctx);
         high_offer_ctx = NULL;
     }
@@ -648,6 +662,8 @@ xcb_high_offer(IswDisplay dpy, Widget widget, IswTime time,
     ctx->clipboard_id = xcb_sel_intern_name(dpy, "CLIPBOARD", False);
     ctx->primary_id   = xcb_sel_intern_name(dpy, "PRIMARY", False);
     high_offer_ctx    = ctx;
+    IswAddCallback(widget, IswNdestroyCallback,
+                  high_offer_widget_destroyed, NULL);
 
     Boolean ok = IswOwnSelection(widget, ctx->clipboard_id, time,
                                  high_convert_selection,
