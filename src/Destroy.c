@@ -212,14 +212,19 @@ IswPhase2Destroy(Widget widget)
     Widget outerInPhase2Destroy = app->in_phase2_destroy;
     int starting_count = app->destroy_count;
     Boolean isPopup = False;
-    IswPerDisplay pd_trace;
+    IswPerDisplay pd;
     Widget windowless_anc =
         (IswIsWidget(widget) && widget->core.windowless_mapped)
         ? _IswWidgetAncestor(widget) : NULL;
 
-    pd_trace = _IswGetPerDisplayIfExists(IswDisplayOfObject(widget));
-    if (pd_trace)
-        pd_trace->pdi.traceDepth = 0;
+    pd = _IswGetPerDisplayIfExists(IswDisplayOfObject(widget));
+    if (pd) {
+        pd->pdi.traceDepth = 0;
+        if (pd->pdi.pointerWidget != NULL &&
+            (pd->pdi.pointerWidget == widget ||
+             IsDescendant(pd->pdi.pointerWidget, widget)))
+            pd->pdi.pointerWidget = NULL;
+    }
 
     parent = widget->core.parent;
 
