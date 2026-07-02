@@ -782,15 +782,27 @@ IswConfigureWidget(Widget w,
             Widget pw = _IswWidgetAncestor(w);
 
             if (!w->core.being_destroyed &&
-                w->core.widget_class->core_class.expose != NULL) {
+                w->core.widget_class->core_class.expose != NULL &&
+                ((req.changeMask & (IswCWWidth | IswCWHeight |
+                                    IswCWBorderWidth)) ||
+                 !w->core.virtual_origin)) {
                 /* Repaint THIS widget's surface by invoking its expose proc
                    directly.  A SIZE change obviously needs this (the surface is
                    reallocated at the new dimensions).  A position-only MOVE also
                    needs it: the widget may paint only the visible portion of its
-                   content (e.g. ListView inside a Viewport), so shifting its
-                   position changes which region is visible and the old surface
-                   content is stale.  Suppress the per-end() auto-composite; the
-                   request below folds the ancestor once. */
+                   content, so shifting its position changes which region is
+                   visible and the old surface content is stale.  Suppress the
+                   per-end() auto-composite; the request below folds the
+                   ancestor once.
+
+                   EXCEPT for a position-only move of a widget with an active
+                   virtual origin: its surface holds a tile addressed in the
+                   widget's own coordinate space, independent of core.x/y — the
+                   composite fold applies the placement offset.  Repainting the
+                   tile on every move defeats the tile margins Viewport scrolls
+                   within; when the tile itself moves, Viewport marks the widget
+                   composite_dirty and the fold's re-expose gate repaints it at
+                   the new origin. */
                 ISWRenderBeginCompositeBatch();
                 (*w->core.widget_class->core_class.expose)(w, NULL, 0);
                 ISWRenderEndCompositeBatch();
