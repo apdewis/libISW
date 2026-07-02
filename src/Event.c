@@ -692,11 +692,22 @@ _IswWindowlessOffset(Widget w, int *dx, int *dy)
  *
  * Recurses into windowless composites.  Stops at windowed children: they own
  * their own window and receive their own Expose from the server. */
-static void _IswExposeWindowlessChildren(Widget w, IswEvent *event);
+static void _IswExposeWindowlessChildren(Widget w, IswEvent *event,
+                                         int ox, int oy);
 
-/* Paint one windowless child (and recurse into its windowless descendants). */
+/* Paint one windowless child (and recurse into its windowless descendants).
+
+   (ox, oy) is the parent's content origin in the damage rectangle's frame
+   (the windowed root's).  When `event` carries a non-empty damage rectangle,
+   a child whose footprint does not intersect it is skipped along with its
+   whole subtree: an expose means the WINDOW's pixels were lost, not the
+   widget's — its retained surface still holds current content and the
+   composite that follows the walk folds every surface regardless, restoring
+   the damaged region.  (A child sticking out of its parent is also safe to
+   skip with it: the fold clips children to the parent's content rect.)
+   A NULL event means no damage information: paint everything. */
 static void
-_IswPaintWindowlessChild(Widget child, IswEvent *event)
+_IswPaintWindowlessChild(Widget child, IswEvent *event, int ox, int oy)
 {
     if (!IswIsWidget(child) || IswIsShell(child))
         return;
@@ -709,6 +720,23 @@ _IswPaintWindowlessChild(Widget child, IswEvent *event)
     if (!child->core.windowless_mapped)
         return;
 
+    if (event != NULL && event->redraw.width > 0 && event->redraw.height > 0) {
+        int fx = ox + child->core.x;
+        int fy = oy + child->core.y;
+        int fw = (int) child->core.width + 2 * (int) child->core.border_width;
+        int fh = (int) child->core.height + 2 * (int) child->core.border_width;
+        /* 2px slop: the physical->logical descale of the damage rectangle
+           (_IswDescaleEventCoords) floors its origin and rounds its size,
+           which can pull each far edge up to ~1.5 logical px inside the true
+           damage bound.  Widen rather than ever skip a damaged widget. */
+        int dx1 = (int) event->redraw.x - 2;
+        int dy1 = (int) event->redraw.y - 2;
+        int dx2 = (int) event->redraw.x + (int) event->redraw.width + 2;
+        int dy2 = (int) event->redraw.y + (int) event->redraw.height + 2;
+        if (fx >= dx2 || fy >= dy2 || fx + fw <= dx1 || fy + fh <= dy1)
+            return;
+    }
+
     if (child->core.widget_class->core_class.expose != NULL) {
         IswEvent nev;
         memset(&nev, 0, sizeof(nev));
@@ -718,7 +746,11 @@ _IswPaintWindowlessChild(Widget child, IswEvent *event)
         (*child->core.widget_class->core_class.expose)(child, &nev, 0);
     }
 
-    _IswExposeWindowlessChildren(child, event);
+    _IswExposeWindowlessChildren(child, event,
+                                 ox + child->core.x
+                                    + (int) child->core.border_width,
+                                 oy + child->core.y
+                                    + (int) child->core.border_width);
 }
 
 /* Paint a windowless widget and its windowless descendants into their own
@@ -744,7 +776,7 @@ _IswRepaintWindowless(Widget w)
         nev.redraw.height = w->core.height;
         (*w->core.widget_class->core_class.expose)(w, &nev, 0);
     }
-    _IswExposeWindowlessChildren(w, NULL);
+    _IswExposeWindowlessChildren(w, NULL, 0, 0);
     ISWRenderEndCompositeBatch();
 
     anc = _IswWidgetAncestor(w);
@@ -753,14 +785,14 @@ _IswRepaintWindowless(Widget w)
 }
 
 static void
-_IswExposeWindowlessChildren(Widget w, IswEvent *event)
+_IswExposeWindowlessChildren(Widget w, IswEvent *event, int ox, int oy)
 {
     /* Composite children held in composite.children. */
     if (IswIsComposite(w)) {
         CompositeWidget cw = (CompositeWidget) w;
         Cardinal i;
         for (i = 0; i < cw->composite.num_children; i++)
-            _IswPaintWindowlessChild(cw->composite.children[i], event);
+            _IswPaintWindowlessChild(cw->composite.children[i], event, ox, oy);
     }
 
     /* Non-composite-tracked windowless sub-widgets (e.g. Text's scrollbars),
@@ -772,7 +804,7 @@ _IswExposeWindowlessChildren(Widget w, IswEvent *event)
             Widget child;
             while ((child = (*sc->simple_class.nth_windowless_child)(w, i++))
                    != NULL)
-                _IswPaintWindowlessChild(child, event);
+                _IswPaintWindowlessChild(child, event, ox, oy);
         }
     }
 }
@@ -1058,9 +1090,10 @@ IswDispatchEventToWidget(Widget widget, IswEvent *event)
                     (*widget->core.widget_class->core_class.expose)
                         (widget, nev, 0);
                     /* Repaint windowless descendants into their own surfaces,
-                       then composite the subtree onto this window once. */
+                       then composite the subtree onto this window once.  The
+                       damage rectangle culls untouched subtrees. */
                     ISWRenderBeginCompositeBatch();
-                    _IswExposeWindowlessChildren(widget, event);
+                    _IswExposeWindowlessChildren(widget, event, 0, 0);
                     ISWRenderEndCompositeBatch();
                     ISWRenderRequestComposite(widget);
                     was_dispatched = True;
@@ -1074,7 +1107,7 @@ IswDispatchEventToWidget(Widget widget, IswEvent *event)
             if (event->redraw.count == 0 ||
                 COMP_EXPOSE_TYPE == IswExposeNoCompress) {
                 ISWRenderBeginCompositeBatch();
-                _IswExposeWindowlessChildren(widget, event);
+                _IswExposeWindowlessChildren(widget, event, 0, 0);
                 ISWRenderEndCompositeBatch();
                 ISWRenderRequestComposite(widget);
                 was_dispatched = True;
