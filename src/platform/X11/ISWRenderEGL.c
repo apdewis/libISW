@@ -71,6 +71,9 @@ typedef struct {
     EGLConfig    config;
     EGLContext   ctx;
     EGLSurface   pbuffer;        /* 1x1 placeholder for off-screen rendering */
+    EGLSurface   current;        /* surface bound by the last egl_make_current,
+                                    so redundant eglMakeCurrent calls (which can
+                                    imply a GL flush) are skipped */
     NVGcontext  *vg;
     int          font_default;   /* NanoVG font handle, -1 until loaded */
 
@@ -84,8 +87,8 @@ typedef struct {
 } EglShared;
 
 static EglShared g_egl = { False, False, EGL_NO_DISPLAY, NULL,
-                           EGL_NO_CONTEXT, EGL_NO_SURFACE, NULL, -1,
-                           { 0 }, 0 };
+                           EGL_NO_CONTEXT, EGL_NO_SURFACE, EGL_NO_SURFACE,
+                           NULL, -1, { 0 }, 0 };
 
 /* Queue an image for deletion after the current frame's nvgEndFrame. */
 static void
@@ -209,6 +212,10 @@ struct _IswSurface {
     GLuint            tex;          /* colour texture backing the FBO */
     GLuint            rbo_stencil;  /* depth/stencil renderbuffer (NanoVG needs
                                        a stencil buffer) */
+    int               nvg_image;    /* cached NanoVG image wrapping `tex` for
+                                       composite/present/copy sampling (0 =
+                                       none); dropped whenever tex is
+                                       reallocated */
 
     int               back_w, back_h;   /* physical-pixel FBO extent */
     Boolean           deferred;         /* created unsized; build on first begin */
@@ -294,6 +301,7 @@ egl_shared_init(IswDisplay dpy)
     if (!eglMakeCurrent(g_egl.egl_dpy, g_egl.pbuffer, g_egl.pbuffer,
                         g_egl.ctx))
         return False;
+    g_egl.current = g_egl.pbuffer;
 
     g_egl.vg = nvgCreateGLES2(NVG_ANTIALIAS | NVG_STENCIL_STROKES);
     if (g_egl.vg == NULL)
@@ -332,12 +340,37 @@ egl_shared_init(IswDisplay dpy)
 }
 
 /* Make the shared context current, bound to `draw`/`read` (a window surface or
-   the pbuffer placeholder). */
+   the pbuffer placeholder).  No-op when that surface is already current — the
+   composite pass calls this once per fold and eglMakeCurrent is not free even
+   when the binding is unchanged (it may imply a GL flush). */
 static void
 egl_make_current(EGLSurface draw)
 {
     EGLSurface s = (draw != EGL_NO_SURFACE) ? draw : g_egl.pbuffer;
-    eglMakeCurrent(g_egl.egl_dpy, s, s, g_egl.ctx);
+    if (s == g_egl.current)
+        return;
+    if (eglMakeCurrent(g_egl.egl_dpy, s, s, g_egl.ctx))
+        g_egl.current = s;
+}
+
+/* Composite fold batching: consecutive composite_onto calls targeting the same
+   destination FBO share ONE NanoVG frame — each nvgEndFrame is a full GL
+   pipeline setup + flush, so a frame per fold costs N flushes per composite
+   pass.  g_pending_composite_dst is the destination whose frame is open; while
+   it is set, that surface's FBO/viewport are the live GL binding.  Every other
+   GL entry point (surface begin, fill_background, present, destroy) must close
+   the frame before touching GL state; a fold onto a different destination
+   closes it too, which also covers the pending destination becoming a later
+   fold's source (a surface is never folded onto itself). */
+static IswSurface g_pending_composite_dst = NULL;
+
+static void
+egl_flush_composite_frame(void)
+{
+    if (g_pending_composite_dst == NULL)
+        return;
+    nvgEndFrame(g_egl.vg);
+    g_pending_composite_dst = NULL;
 }
 
 /* (Re)allocate the FBO + colour texture + stencil renderbuffer at the given
@@ -350,6 +383,8 @@ egl_ensure_fbo(IswSurface s, int pw, int ph)
     if (s->fbo && s->back_w == pw && s->back_h == ph)
         return True;
 
+    if (s->nvg_image)  { nvgDeleteImage(g_egl.vg, s->nvg_image);
+                         s->nvg_image = 0; }
     if (s->fbo)        { glDeleteFramebuffers(1, &s->fbo);  s->fbo = 0; }
     if (s->tex)        { glDeleteTextures(1, &s->tex);      s->tex = 0; }
     if (s->rbo_stencil){ glDeleteRenderbuffers(1, &s->rbo_stencil);
@@ -465,7 +500,11 @@ egl_surface_destroy(IswSurface s)
         g_active_surface = NULL;
 
     if (g_egl.usable) {
+        /* Close any batched fold frame first: it may reference this surface's
+           cached image or target its FBO. */
+        egl_flush_composite_frame();
         egl_make_current(EGL_NO_SURFACE);
+        if (s->nvg_image)   nvgDeleteImage(g_egl.vg, s->nvg_image);
         if (s->fbo)         glDeleteFramebuffers(1, &s->fbo);
         if (s->tex)         glDeleteTextures(1, &s->tex);
         if (s->rbo_stencil) glDeleteRenderbuffers(1, &s->rbo_stencil);
@@ -540,6 +579,7 @@ egl_surface_begin(IswSurface s, Widget widget)
     int pw = (int) (fw * s->scale + 0.5);
     int ph = (int) (fh * s->scale + 0.5);
 
+    egl_flush_composite_frame();        /* about to rebind FBO/viewport */
     egl_make_current(EGL_NO_SURFACE);   /* off-screen: render into our FBO */
     if (!egl_ensure_fbo(s, pw, ph))
         return NULL;
@@ -648,6 +688,10 @@ egl_present_to_window(IswSurface s, IswWindow window)
     if (!s || s->tex == 0)
         return;
 
+    /* Land any batched folds in their FBO before s->tex is sampled below (and
+       before the context switches to the window surface). */
+    egl_flush_composite_frame();
+
     if (s->window == 0 && window != NULL)
         s->window = _IswXcbWindow(window);
     if (s->window == 0)
@@ -670,9 +714,11 @@ egl_present_to_window(IswSurface s, IswWindow window)
     glViewport(0, win_h - s->back_h, s->back_w, s->back_h);
 
     /* Present the back texture with NanoVG: a single full-extent image quad. */
-    int img = nvglCreateImageFromHandleGLES2(g_egl.vg, s->tex,
-                                             s->back_w, s->back_h,
-                                             NVG_IMAGE_FLIPY | NVG_IMAGE_NODELETE);
+    if (s->nvg_image == 0)
+        s->nvg_image = nvglCreateImageFromHandleGLES2(g_egl.vg, s->tex,
+                                                      s->back_w, s->back_h,
+                                                      NVG_IMAGE_FLIPY | NVG_IMAGE_NODELETE);
+    int img = s->nvg_image;
     nvgBeginFrame(g_egl.vg,
                   (float) (s->back_w / s->scale),
                   (float) (s->back_h / s->scale),
@@ -688,7 +734,6 @@ egl_present_to_window(IswSurface s, IswWindow window)
     nvgFillPaint(g_egl.vg, p);
     nvgFill(g_egl.vg);
     nvgEndFrame(g_egl.vg);
-    nvgDeleteImage(g_egl.vg, img);
 
     eglSwapBuffers(g_egl.egl_dpy, s->egl_window);
 }
@@ -759,6 +804,7 @@ egl_surface_fill_background(IswSurface s, Widget widget)
     int pw = (int) (widget->core.width  * sf + 0.5);
     int ph = (int) (widget->core.height * sf + 0.5);
 
+    egl_flush_composite_frame();
     egl_make_current(EGL_NO_SURFACE);
     if (!egl_ensure_fbo(s, pw, ph))
         return;
@@ -794,22 +840,36 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
         dst_off_x = dst_off_y = 0;
     }
 
-    egl_make_current(EGL_NO_SURFACE);
-    glBindFramebuffer(GL_FRAMEBUFFER, dd->fbo);
-    glViewport(0, 0, dd->back_w, dd->back_h);
+    /* Open (or continue) the batched fold frame on this destination.  All GL
+       target state (surface binding, FBO, viewport) is set once per batch; the
+       per-fold work below is pure NanoVG draw recording. */
+    if (g_pending_composite_dst != dd) {
+        egl_flush_composite_frame();
+        egl_make_current(EGL_NO_SURFACE);
+        glBindFramebuffer(GL_FRAMEBUFFER, dd->fbo);
+        glViewport(0, 0, dd->back_w, dd->back_h);
+        nvgBeginFrame(g_egl.vg,
+                      (float) (dd->back_w / sf),
+                      (float) (dd->back_h / sf),
+                      (float) sf);
+        g_pending_composite_dst = dd;
+    }
 
     /* src footprint in logical pixels (its FBO covers its own extent). */
     float fw = (float) (sd->back_w / (sf > 0 ? sf : 1.0));
     float fh = (float) (sd->back_h / (sf > 0 ? sf : 1.0));
 
-    int img = nvglCreateImageFromHandleGLES2(g_egl.vg, sd->tex,
-                                             sd->back_w, sd->back_h,
-                                             NVG_IMAGE_FLIPY | NVG_IMAGE_NODELETE);
+    if (sd->nvg_image == 0)
+        sd->nvg_image = nvglCreateImageFromHandleGLES2(g_egl.vg, sd->tex,
+                                                       sd->back_w, sd->back_h,
+                                                       NVG_IMAGE_FLIPY | NVG_IMAGE_NODELETE);
+    int img = sd->nvg_image;
 
-    nvgBeginFrame(g_egl.vg,
-                  (float) (dd->back_w / sf),
-                  (float) (dd->back_h / sf),
-                  (float) sf);
+    /* Continuing a batch: drop the previous fold's scissor (a fresh frame
+       would have started with none).  The scissor is the only frame state a
+       fold leaves behind — transforms are untouched and the AA toggle below is
+       restored per fold. */
+    nvgResetScissor(g_egl.vg);
 
     /* Clip to dst's content rectangle (the clipping the X server used to
        enforce via child windows).  nvgScissor sets the base region; the further
@@ -873,8 +933,8 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
             nvgShapeAntiAlias(g_egl.vg, 1);
     }
 
-    nvgEndFrame(g_egl.vg);
-    nvgDeleteImage(g_egl.vg, img);
+    /* Frame intentionally left open: the next fold onto this destination
+       continues it; any other GL entry point closes it. */
     (void) src_widget;
 }
 
@@ -1122,9 +1182,11 @@ static void egl_copy_area(ISWRenderContext *ctx,
     /* Snapshot the current FBO into a temporary texture, then re-draw the
        requested region at the destination.  (GLES2 has no glBlitFramebuffer.) */
     double sf = s->scale > 0 ? s->scale : 1.0;
-    int img = nvglCreateImageFromHandleGLES2(g_egl.vg, s->tex,
-                                             s->back_w, s->back_h,
-                                             NVG_IMAGE_FLIPY | NVG_IMAGE_NODELETE);
+    if (s->nvg_image == 0)
+        s->nvg_image = nvglCreateImageFromHandleGLES2(g_egl.vg, s->tex,
+                                                      s->back_w, s->back_h,
+                                                      NVG_IMAGE_FLIPY | NVG_IMAGE_NODELETE);
+    int img = s->nvg_image;
     float fw = (float) (s->back_w / sf);
     float fh = (float) (s->back_h / sf);
     nvgSave(VG);
@@ -1137,7 +1199,6 @@ static void egl_copy_area(ISWRenderContext *ctx,
     nvgFillPaint(VG, p);
     nvgFill(VG);
     nvgRestore(VG);
-    nvgDeleteImage(VG, img);
 }
 
 /* ---- Retained image ops ---- */
