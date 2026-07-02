@@ -659,7 +659,15 @@ egl_present_to_window(IswSurface s, IswWindow window)
 
     egl_make_current(s->egl_window);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, s->back_w, s->back_h);
+
+    /* During an interactive resize the window buffer can already be at the new
+       size while the FBO still holds the old-size frame.  GL viewports anchor
+       at the buffer's bottom-left, so a stale-size frame would appear shifted
+       down by the height delta.  Query the real surface size and anchor the
+       frame at the top-left instead. */
+    EGLint win_h = s->back_h;
+    eglQuerySurface(g_egl.egl_dpy, s->egl_window, EGL_HEIGHT, &win_h);
+    glViewport(0, win_h - s->back_h, s->back_w, s->back_h);
 
     /* Present the back texture with NanoVG: a single full-extent image quad. */
     int img = nvglCreateImageFromHandleGLES2(g_egl.vg, s->tex,
