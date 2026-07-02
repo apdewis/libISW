@@ -36,6 +36,7 @@
 #include "InitialI.h"
 #include <ISW/IswEvent.h>
 #include "ISWPlatformPrivate.h"
+#include "ISWPlatformDisplayXCB.h"
 
 /* ---- modifier mapping: X mod bits → neutral IswModMask -------------------- */
 
@@ -373,6 +374,7 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
         {
             static xcb_atom_t wm_protocols_atom = 0;
             static xcb_atom_t wm_delete_atom = 0;
+            static xcb_atom_t wm_sync_request_atom = 0;
             if (!wm_protocols_atom) {
                 xcb_connection_t *conn = _IswXcbConn(dpy);
                 xcb_intern_atom_reply_t *r;
@@ -382,12 +384,26 @@ _IswEventFromXcb(IswDisplay dpy, xcb_generic_event_t *xev, IswEvent *out)
                 r = xcb_intern_atom_reply(conn,
                     xcb_intern_atom(conn, 1, 16, "WM_DELETE_WINDOW"), NULL);
                 if (r) { wm_delete_atom = r->atom; free(r); }
+                r = xcb_intern_atom_reply(conn,
+                    xcb_intern_atom(conn, 1, 20, "_NET_WM_SYNC_REQUEST"), NULL);
+                if (r) { wm_sync_request_atom = r->atom; free(r); }
             }
             if (wm_protocols_atom && e->type == wm_protocols_atom &&
                 wm_delete_atom && e->data.data32[0] == wm_delete_atom) {
                 out->kind = IswWindowClose;
                 out->any.target = target_for_window(dpy, e->window);
                 return True;
+            }
+            /* WM frame-sync request: latch the 64-bit value in the platform's
+               per-window record and consume the message — acknowledgement
+               happens when the next frame is presented to this window.  The
+               core never sees it. */
+            if (wm_protocols_atom && e->type == wm_protocols_atom &&
+                wm_sync_request_atom &&
+                e->data.data32[0] == wm_sync_request_atom) {
+                _IswXcbFrameSyncLatch(dpy, e->window,
+                                      e->data.data32[2], e->data.data32[3]);
+                return False;
             }
         }
 
@@ -462,29 +478,36 @@ IswEventNative(const IswEvent *event)
 static IswEvent *
 xcb_event_poll(IswDisplay dpy)
 {
-    xcb_generic_event_t *xev = xcb_poll_for_event(_IswXcbConn(dpy));
+    xcb_generic_event_t *xev;
     IswEvent *event = IswNew(IswEvent);
-    Boolean ok = _IswEventFromXcb(dpy, xev, event);
-    free(xev);
-    if (!ok) {
-        IswFree((char *) event);
-        return NULL;
+    /* Skip past events that translate to nothing (consumed platform-internal
+       messages like a WM sync request, unknown extension events) instead of
+       returning NULL: NULL ends the caller's drain loop, and an event already
+       sitting in xcb's queue behind the skipped one would otherwise wait for
+       the next socket wakeup. */
+    while ((xev = xcb_poll_for_event(_IswXcbConn(dpy))) != NULL) {
+        Boolean ok = _IswEventFromXcb(dpy, xev, event);
+        free(xev);
+        if (ok)
+            return event;
     }
-    return event;
+    IswFree((char *) event);
+    return NULL;
 }
 
 static IswEvent *
 xcb_event_poll_queued(IswDisplay dpy)
 {
-    xcb_generic_event_t *xev = xcb_poll_for_queued_event(_IswXcbConn(dpy));
+    xcb_generic_event_t *xev;
     IswEvent *event = IswNew(IswEvent);
-    Boolean ok = _IswEventFromXcb(dpy, xev, event);
-    free(xev);                      /* native buffer is never retained */
-    if (!ok) {
-        IswFree((char *) event);
-        return NULL;
+    while ((xev = xcb_poll_for_queued_event(_IswXcbConn(dpy))) != NULL) {
+        Boolean ok = _IswEventFromXcb(dpy, xev, event);
+        free(xev);                  /* native buffer is never retained */
+        if (ok)
+            return event;
     }
-    return event;
+    IswFree((char *) event);
+    return NULL;
 }
 
 const IswPlatformEventOps isw_platform_xcb_event_ops = {

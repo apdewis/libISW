@@ -1329,6 +1329,12 @@ _popup_set_prop(ShellWidget w)
     if (!IswIsWMShell((Widget) w) || w->shell.override_redirect)
         return;
 
+    /* Advertise WM frame synchronization (_NET_WM_SYNC_REQUEST) on every
+       WM-managed toplevel so the WM paces interactive resize to our repaint.
+       Idempotent — this function also runs from SetValues. */
+    _IswPlatformEnableFrameSync(IswDisplayOf((Widget) w),
+        _IswPlatformWidgetWindow(IswDisplayOf((Widget) w), (Widget) w));
+
     size_hints = calloc(1, sizeof(IswSizeHints));
     if (size_hints == NULL)
         _IswAllocError("IswSizeHints");

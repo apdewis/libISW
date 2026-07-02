@@ -23,9 +23,11 @@
 #include <stdio.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
+#include <xcb/sync.h>
 
 #include "IntrinsicI.h"
 #include "ISWPlatformPrivate.h"
+#include "ISWPlatformDisplayXCB.h"
 
 /* Interned once per backend (the standard EWMH/ICCCM atoms the hint ops set).
    X interns are stable per server; cached behind a small helper. */
@@ -42,6 +44,31 @@ intern_cached(xcb_connection_t *conn, const char *name)
         free(reply);
     }
     return atom;
+}
+
+/* ---- _NET_WM_SYNC_REQUEST frame-sync records ------------------------------
+ *
+ * One record per sync-enabled WM toplevel, chained off the display's
+ * frame_sync list.  The WM's sync-request client message latches a 64-bit
+ * value here (event translator → _IswXcbFrameSyncLatch); when the frame that
+ * follows the resize is presented, frame_presented acknowledges by setting the
+ * window's XSync counter to that value. */
+struct _IswFrameSync {
+    xcb_window_t          window;
+    xcb_sync_counter_t    counter;
+    uint32_t              value_lo, value_hi;  /* latched from the WM */
+    Boolean               pending;
+    struct _IswFrameSync *next;
+};
+
+static struct _IswFrameSync *
+frame_sync_find(IswDisplayXCB *priv, xcb_window_t window)
+{
+    struct _IswFrameSync *fs;
+    for (fs = priv->frame_sync; fs; fs = fs->next)
+        if (fs->window == window)
+            return fs;
+    return NULL;
 }
 
 /* ---- atom ops ------------------------------------------------------------ */
@@ -227,11 +254,16 @@ xcb_hint_set_wm_protocols(IswDisplay dpy, IswWindow win,
     if (!conn || !protocol_names || num_protocols <= 0)
         return;
     xcb_atom_t wm_protocols = intern_cached(conn, "WM_PROTOCOLS");
-    xcb_atom_t *atoms = (xcb_atom_t *) IswMalloc(num_protocols * sizeof(xcb_atom_t));
+    /* +1 slot: a frame-sync-enabled window must keep _NET_WM_SYNC_REQUEST in
+       its protocol list even when the caller replaces the whole property. */
+    xcb_atom_t *atoms = (xcb_atom_t *) IswMalloc((num_protocols + 1) * sizeof(xcb_atom_t));
+    int n = num_protocols;
     for (int i = 0; i < num_protocols; i++)
         atoms[i] = intern_cached(conn, protocol_names[i]);
+    if (frame_sync_find((IswDisplayXCB *) dpy, _IswXcbWindow(win)))
+        atoms[n++] = intern_cached(conn, "_NET_WM_SYNC_REQUEST");
     xcb_icccm_set_wm_protocols(conn, _IswXcbWindow(win), wm_protocols,
-                               (uint32_t) num_protocols, atoms);
+                               (uint32_t) n, atoms);
     IswFree((char *) atoms);
 }
 
@@ -607,6 +639,107 @@ xcb_hint_toggle_wm_state(IswDisplay dpy, IswWindow win,
                    (const char *) &ev);
 }
 
+static void
+xcb_hint_enable_frame_sync(IswDisplay dpy, IswWindow win)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    IswDisplayXCB *priv = (IswDisplayXCB *) dpy;
+    xcb_window_t window = _IswXcbWindow(win);
+    struct _IswFrameSync *fs;
+
+    if (!conn || window == 0)
+        return;
+    if (frame_sync_find(priv, window))
+        return;   /* already enabled — _popup_set_prop runs on SetValues too */
+
+    if (!priv->sync_ext_initialized) {
+        xcb_sync_initialize_reply_t *r = xcb_sync_initialize_reply(conn,
+            xcb_sync_initialize(conn, XCB_SYNC_MAJOR_VERSION,
+                                XCB_SYNC_MINOR_VERSION), NULL);
+        if (!r)
+            return;   /* no Sync extension: frame sync stays off */
+        free(r);
+        priv->sync_ext_initialized = True;
+    }
+
+    fs = (struct _IswFrameSync *) IswMalloc(sizeof(*fs));
+    memset(fs, 0, sizeof(*fs));
+    fs->window = window;
+    fs->counter = xcb_generate_id(conn);
+
+    xcb_sync_int64_t zero;
+    zero.hi = 0;
+    zero.lo = 0;
+    xcb_sync_create_counter(conn, fs->counter, zero);
+
+    xcb_atom_t counter_atom = intern_cached(conn, "_NET_WM_SYNC_REQUEST_COUNTER");
+    xcb_atom_t sync_atom    = intern_cached(conn, "_NET_WM_SYNC_REQUEST");
+    xcb_atom_t wm_protocols = intern_cached(conn, "WM_PROTOCOLS");
+    uint32_t counter_id = fs->counter;
+    xcb_change_property(conn, XCB_PROP_MODE_REPLACE, window, counter_atom,
+                        XCB_ATOM_CARDINAL, 32, 1, &counter_id);
+    /* Append rather than replace: don't clobber protocols the application has
+       already registered (WM_DELETE_WINDOW etc.). */
+    xcb_change_property(conn, XCB_PROP_MODE_APPEND, window, wm_protocols,
+                        XCB_ATOM_ATOM, 32, 1, &sync_atom);
+
+    fs->next = priv->frame_sync;
+    priv->frame_sync = fs;
+}
+
+static void
+xcb_hint_frame_presented(IswDisplay dpy, IswWindow win)
+{
+    xcb_connection_t *conn = _IswXcbConn(dpy);
+    IswDisplayXCB *priv = (IswDisplayXCB *) dpy;
+    struct _IswFrameSync *fs;
+
+    if (!conn)
+        return;
+    fs = frame_sync_find(priv, _IswXcbWindow(win));
+    if (!fs || !fs->pending)
+        return;
+
+    xcb_sync_int64_t v;
+    v.hi = (int32_t) fs->value_hi;
+    v.lo = fs->value_lo;
+    xcb_sync_set_counter(conn, fs->counter, v);
+    xcb_flush(conn);
+    fs->pending = False;
+}
+
+Boolean
+_IswXcbFrameSyncLatch(IswDisplay display, xcb_window_t window,
+                      uint32_t lo, uint32_t hi)
+{
+    IswDisplayXCB *priv = (IswDisplayXCB *) display;
+    struct _IswFrameSync *fs = frame_sync_find(priv, window);
+    if (!fs)
+        return False;
+    fs->value_lo = lo;
+    fs->value_hi = hi;
+    fs->pending = True;
+    return True;
+}
+
+void
+_IswXcbFrameSyncWindowDestroyed(IswDisplay display, xcb_window_t window)
+{
+    IswDisplayXCB *priv = (IswDisplayXCB *) display;
+    struct _IswFrameSync **link = &priv->frame_sync;
+    while (*link) {
+        if ((*link)->window == window) {
+            struct _IswFrameSync *fs = *link;
+            *link = fs->next;
+            if (priv->conn)
+                xcb_sync_destroy_counter(priv->conn, fs->counter);
+            IswFree((char *) fs);
+            return;
+        }
+        link = &(*link)->next;
+    }
+}
+
 const IswPlatformHintOps isw_platform_xcb_hint_ops = {
     .set_window_title  = xcb_hint_set_window_title,
     .set_icon_title    = xcb_hint_set_icon_title,
@@ -631,4 +764,6 @@ const IswPlatformHintOps isw_platform_xcb_hint_ops = {
     .delete_icon_data     = xcb_hint_delete_icon_data,
     .set_iconic           = xcb_hint_set_iconic,
     .toggle_wm_state      = xcb_hint_toggle_wm_state,
+    .enable_frame_sync    = xcb_hint_enable_frame_sync,
+    .frame_presented      = xcb_hint_frame_presented,
 };

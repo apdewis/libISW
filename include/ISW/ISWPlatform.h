@@ -802,6 +802,13 @@ struct _IswPlatformHintOps {
     void (*set_iconic)(IswDisplay dpy, IswWindow win);
     void (*toggle_wm_state)(IswDisplay dpy, IswWindow win,
                             const char *state_name, Boolean set);
+    /* WM frame synchronization.  enable_frame_sync advertises the capability
+       on a WM-managed toplevel before it is mapped (X11: _NET_WM_SYNC_REQUEST
+       protocol + XSync counter); idempotent.  frame_presented tells the
+       backend a frame just reached this window so it can acknowledge any
+       pending WM sync request; no-op for windows without frame sync. */
+    void (*enable_frame_sync)(IswDisplay dpy, IswWindow win);
+    void (*frame_presented)(IswDisplay dpy, IswWindow win);
 };
 
 /*
@@ -1233,6 +1240,8 @@ extern void _IswPlatformDeleteIconData(IswDisplay dpy, IswWindow win);
 extern void _IswPlatformSetIconic(IswDisplay dpy, IswWindow win);
 extern void _IswPlatformToggleWmState(IswDisplay dpy, IswWindow win,
                                       const char *state_name, Boolean set);
+extern void _IswPlatformEnableFrameSync(IswDisplay dpy, IswWindow win);
+extern void _IswPlatformFramePresented(IswDisplay dpy, IswWindow win);
 extern Boolean _IswPlatformIsProtocol(IswDisplay dpy, IswProtocolId id,
                                       const char *name);
 

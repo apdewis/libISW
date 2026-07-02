@@ -413,6 +413,8 @@ xcb_win_destroy(IswDisplay dpy, IswWindow win)
        alive: IswUnregisterDrawable dereferences it to locate the table slot. */
     IswUnregisterDrawable(dpy, win);
 
+    _IswXcbFrameSyncWindowDestroyed(dpy, _IswXcbWindow(win));
+
     if (priv->conn)
         xcb_destroy_window(priv->conn, _IswXcbWindow(win));
 }
@@ -1997,6 +1999,22 @@ _IswPlatformToggleWmState(IswDisplay dpy, IswWindow win,
     const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
     if (ops && ops->hint && ops->hint->toggle_wm_state)
         ops->hint->toggle_wm_state(dpy, win, state_name, set);
+}
+
+void
+_IswPlatformEnableFrameSync(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->enable_frame_sync)
+        ops->hint->enable_frame_sync(dpy, win);
+}
+
+void
+_IswPlatformFramePresented(IswDisplay dpy, IswWindow win)
+{
+    const IswPlatformOps *ops = _IswGetPerDisplay(dpy)->ops;
+    if (ops && ops->hint && ops->hint->frame_presented)
+        ops->hint->frame_presented(dpy, win);
 }
 
 Boolean

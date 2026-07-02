@@ -42,7 +42,7 @@ if(NOT ISW_NO_PKGCONFIG)
         xproto xcb xcb-xrm xcb-keysyms)
 
     pkg_check_modules(ISW_DEPS REQUIRED IMPORTED_TARGET
-        xcb xcb-shape xcb-present xcb-cursor)
+        xcb xcb-shape xcb-present xcb-cursor xcb-sync)
 
     pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig)
     pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
@@ -85,6 +85,7 @@ else()
     _isw_bsd_find_lib(ISW_BSD_XCB_SHAPE    xcb-shape)
     _isw_bsd_find_lib(ISW_BSD_XCB_PRESENT  xcb-present)
     _isw_bsd_find_lib(ISW_BSD_XCB_CURSOR   xcb-cursor)
+    _isw_bsd_find_lib(ISW_BSD_XCB_SYNC     xcb-sync)
     _isw_bsd_find_lib(ISW_BSD_FONTCONFIG   fontconfig)
     _isw_bsd_find_lib(ISW_BSD_FREETYPE     freetype)
     _isw_bsd_find_lib(ISW_BSD_CAIRO        cairo)
@@ -100,7 +101,8 @@ else()
     target_include_directories(PkgConfig::ISW_DEPS INTERFACE ${ISW_BSD_INCLUDE_DIR})
     target_link_libraries(PkgConfig::ISW_DEPS INTERFACE
         ${ISW_BSD_XCB} ${ISW_BSD_XCB_SHAPE}
-        ${ISW_BSD_XCB_PRESENT} ${ISW_BSD_XCB_CURSOR})
+        ${ISW_BSD_XCB_PRESENT} ${ISW_BSD_XCB_CURSOR}
+        ${ISW_BSD_XCB_SYNC})
 
     add_library(PkgConfig::FONTCONFIG INTERFACE IMPORTED)
     target_include_directories(PkgConfig::FONTCONFIG INTERFACE ${ISW_BSD_INCLUDE_DIR})

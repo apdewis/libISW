@@ -709,6 +709,9 @@ ISWRenderCompositeSubtree(Widget windowed_root)
         else
             _IswPlatformPresentRoot(IswDisplayOf(windowed_root), win,
                                     root_surface, pw, ph);
+        /* A frame just reached this window: let the platform acknowledge any
+           pending WM frame-sync request (resize pacing). */
+        _IswPlatformFramePresented(IswDisplayOf(windowed_root), win);
     }
     if (folded_now)
         windowed_root->core.composite_presented = True;
