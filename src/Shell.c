@@ -1477,6 +1477,11 @@ EventHandler(Widget wid,
             w->core.width = (Dimension) iswev->geometry.width;
             w->core.height = (Dimension) iswev->geometry.height;
             w->core.border_width = (Dimension) iswev->geometry.border_width;
+            /* The persisted root surface is now the wrong size for the window
+               even if no child geometry changes below: force the next
+               composite to run a full fill+fold pass rather than the
+               clean-tree re-present fast path. */
+            w->core.composite_dirty = True;
         }
         if (w->shell.client_specified & _IswShellNotReparented) {
             w->core.x = (Position) iswev->geometry.x;

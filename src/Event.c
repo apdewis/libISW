@@ -737,7 +737,19 @@ _IswPaintWindowlessChild(Widget child, IswEvent *event, int ox, int oy)
             return;
     }
 
-    if (child->core.widget_class->core_class.expose != NULL) {
+    /* A clean widget with a retained surface needs no repaint on a damage
+       expose: its surface content is current (every content change marks
+       composite_dirty; folds clear it) and the composite folds it regardless.
+       Only skip the expose proc — recursion continues below, because "clean"
+       does not imply the descendants are (ISWRenderCreate marks only the new
+       widget itself, not its chain).  A NULL event is an explicit repaint
+       request and always paints. */
+    Boolean skip_paint = (event != NULL &&
+                          !child->core.composite_dirty &&
+                          IswSurfaceOf(child) != NULL);
+
+    if (!skip_paint &&
+        child->core.widget_class->core_class.expose != NULL) {
         IswEvent nev;
         memset(&nev, 0, sizeof(nev));
         nev.kind = IswRedraw;
@@ -778,6 +790,11 @@ _IswRepaintWindowless(Widget w)
     }
     _IswExposeWindowlessChildren(w, NULL, 0, 0);
     ISWRenderEndCompositeBatch();
+
+    /* The batch suppressed ISWRenderEnd's dirty-chain marking, but this
+       widget's contribution DID just change — mark the chain so the composite
+       below runs a real fold instead of the clean-tree re-present fast path. */
+    _ISWRenderMarkDirtyChain(w);
 
     anc = _IswWidgetAncestor(w);
     if (anc != NULL && IswIsRealized(anc))

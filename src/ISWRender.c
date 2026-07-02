@@ -524,6 +524,43 @@ _isw_subtree_has_shown_child(Widget parent)
     return False;
 }
 
+/* True if any composite-shown descendant of `parent` is composite_dirty —
+   i.e. something changed since the last fold and the persisted root surface
+   no longer matches the tree.  Descends exactly where the fold walk would
+   (stopping at non-shown children, whose surfaces are not folded), so a
+   False result guarantees the fold would regenerate identical pixels. */
+static Boolean
+_isw_subtree_any_dirty(Widget parent)
+{
+    if (IswIsComposite(parent)) {
+        CompositeWidget cw = (CompositeWidget) parent;
+        Cardinal i;
+        for (i = 0; i < cw->composite.num_children; i++) {
+            Widget c = cw->composite.children[i];
+            if (!_isw_composite_shown(c))
+                continue;
+            if (c->core.composite_dirty || _isw_subtree_any_dirty(c))
+                return True;
+        }
+    }
+    if (IswIsSubclass(parent, simpleWidgetClass)) {
+        SimpleWidgetClass sc = (SimpleWidgetClass) parent->core.widget_class;
+        if (sc->simple_class.nth_windowless_child != NULL) {
+            int i = 0;
+            Widget child;
+            while ((child = (*sc->simple_class.nth_windowless_child)(parent, i++))
+                   != NULL) {
+                if (!_isw_composite_shown(child))
+                    continue;
+                if (child->core.composite_dirty ||
+                    _isw_subtree_any_dirty(child))
+                    return True;
+            }
+        }
+    }
+    return False;
+}
+
 /* Fold one windowless child (and its descendants) into a destination surface
    (dst at dst_widget) at accumulated logical offset (ox, oy) within dst's
    content. */
@@ -548,6 +585,8 @@ _isw_composite_one(Widget child, IswSurface dst, Widget dst_widget,
                                             ox + child->core.x + cbs.left,
                                             oy + child->core.y + cbs.top);
         }
+        /* Folded through: its subtree's contribution is accounted for. */
+        child->core.composite_dirty = False;
         return;
     }
 
@@ -590,6 +629,13 @@ _isw_composite_one(Widget child, IswSurface dst, Widget dst_widget,
         _isw_surface_ops->composite_onto(dst, dst_widget, child_surface, child,
                                          ox + child->core.x, oy + child->core.y);
     }
+
+    /* Folded: this widget's contribution is now on its ancestors' surfaces.
+       Clearing here (leaves included, not just re-exposed containers) makes
+       composite_dirty mean exactly "changed since the last fold", which the
+       clean-tree fast path in ISWRenderCompositeSubtree and the expose walk's
+       clean-skip both rely on. */
+    child->core.composite_dirty = False;
 }
 
 /* Recursively fold a parent's windowless children into a destination surface
@@ -663,6 +709,30 @@ ISWRenderCompositeSubtree(Widget windowed_root)
         !_isw_subtree_has_shown_child(windowed_root))
         return;
 
+    /* Clean-tree fast path: the root has a presented frame and nothing in the
+       shown tree changed since the last fold (every content/structure change
+       marks the composite_dirty chain; folds clear it), so the persisted root
+       surface already matches the tree pixel-for-pixel.  An expose only means
+       the WINDOW's pixels were lost — re-present the retained surface and
+       skip the background fill and the entire fold walk. */
+    if (windowed_root->core.composite_presented &&
+        !windowed_root->core.composite_dirty &&
+        !_isw_subtree_any_dirty(windowed_root)) {
+        double sf = _IswGetScaleFactor(IswDisplayOf(windowed_root));
+        int pw = (int)(windowed_root->core.width * sf + 0.5);
+        int ph = (int)(windowed_root->core.height * sf + 0.5);
+        IswWindow win = _IswPlatformWidgetWindow(
+            IswDisplayOf((Widget)(windowed_root)), (Widget)(windowed_root));
+        if (_isw_surface_ops && _isw_surface_ops->present_root)
+            _isw_surface_ops->present_root(root_surface, windowed_root,
+                                           win, pw, ph);
+        else
+            _IswPlatformPresentRoot(IswDisplayOf(windowed_root), win,
+                                    root_surface, pw, ph);
+        _IswPlatformFramePresented(IswDisplayOf(windowed_root), win);
+        return;
+    }
+
     _isw_in_composite = True;
 
     long fold0 = _isw_fold_count;
@@ -715,6 +785,11 @@ ISWRenderCompositeSubtree(Widget windowed_root)
     }
     if (folded_now)
         windowed_root->core.composite_presented = True;
+    /* Full pass complete: all dirt accumulated up to now is folded in.  (The
+       root's own flag is set by every _ISWRenderMarkDirtyChain and by a shell
+       resize; nothing marks during the pass itself — ISWRenderEnd suppresses
+       marking while _isw_in_composite.) */
+    windowed_root->core.composite_dirty = False;
     _isw_in_composite = prev;
 }
 
