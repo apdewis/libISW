@@ -885,6 +885,13 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     if (iw->iconView.font)
         ISWRenderSetFont(ctx, iw->iconView.font);
 
+    /* Per-font label metrics: identical for every item, and each query
+       re-resolves the font in the backend — hoist out of the item loop. */
+    int label_ascent = ISWScaledFontAscent(w, iw->iconView.font);
+    int label_line_h = iw->iconView.font
+        ? ISWScaledFontHeight(w, iw->iconView.font)
+        : (int)(14);
+
     for (int i = first_item; i < last_item; i++) {
         int col = i % iw->iconView.ncols;
         int row = i / iw->iconView.ncols;
@@ -950,15 +957,11 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         /* Label (word-wrapped, ellipsis on last visible line) */
         if (iw->iconView.labels && iw->iconView.labels[i]) {
             int label_w = (int)(iw->iconView.cell_w - spacing);
-            int ascent = ISWScaledFontAscent(w, iw->iconView.font);
             int margin = (int)(LABEL_MARGIN);
-            int ly = cy + (int)icon_sz + ascent + margin;
-            int line_h = iw->iconView.font
-                ? ISWScaledFontHeight(w, iw->iconView.font)
-                : (int)(14);
+            int ly = cy + (int)icon_sz + label_ascent + margin;
             int label_top = cy + (int)icon_sz + margin;
             int cell_bottom = cy + (int)(rh - spacing);
-            int max_lines = (cell_bottom - label_top) / line_h;
+            int max_lines = (cell_bottom - label_top) / label_line_h;
             if (max_lines < 1) max_lines = 1;
 
             if (iw->iconView.sel_flags && iw->iconView.sel_flags[i]) {
@@ -967,7 +970,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
                 ISWRenderSetColor(ctx, iw->iconView.foreground);
             }
             DrawWrappedLabel(ctx, iw->iconView.labels[i],
-                             label_w, max_lines, cx, ly, line_h);
+                             label_w, max_lines, cx, ly, label_line_h);
         }
     }
 
