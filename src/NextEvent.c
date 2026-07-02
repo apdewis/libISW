@@ -609,6 +609,42 @@ _IswFillEventQueue(IswAppContext app) {
                 }
             }
 
+            /* Expose (IswRedraw) coalescing: an uncover or resize can deliver
+             * several expose series back to back, and each series-final
+             * (count == 0) event drives a full widget-tree repaint plus a
+             * window composite+blit.  If the queue already holds a redraw for
+             * the same target, merge: union the damage rectangles and keep the
+             * newest event otherwise (the series-final count == 0 arrives
+             * last), so one repaint serves the whole drain. */
+            if (event->kind == IswRedraw) {
+                IswEventQueue *scan = app->event_front;
+                IswEventQueue *found = NULL;
+                while (scan) {
+                    if (scan->event->kind == IswRedraw &&
+                        scan->display == disp &&
+                        scan->event->any.target == event->any.target)
+                        found = scan;          /* keep last */
+                    scan = scan->next;
+                }
+                if (found) {
+                    IswRedrawEvent *o = &found->event->redraw;
+                    IswRedrawEvent *n = &event->redraw;
+                    int x1 = o->x < n->x ? o->x : n->x;
+                    int y1 = o->y < n->y ? o->y : n->y;
+                    int x2 = o->x + o->width > n->x + n->width
+                             ? o->x + o->width : n->x + n->width;
+                    int y2 = o->y + o->height > n->y + n->height
+                             ? o->y + o->height : n->y + n->height;
+                    n->x = (int16_t) x1;
+                    n->y = (int16_t) y1;
+                    n->width = (uint16_t) (x2 - x1);
+                    n->height = (uint16_t) (y2 - y1);
+                    IswFree((char *) found->event);
+                    found->event = event;
+                    continue;
+                }
+            }
+
             IswEventQueue *q = IswNew(IswEventQueue);
             q->event = event;
             q->display = disp;

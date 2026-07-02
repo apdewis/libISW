@@ -1228,9 +1228,6 @@ _IswOnGrabList(register Widget widget, IswGrabRec *grabList)
 static Boolean
 DispatchEvent(IswEvent *event, Widget widget)
 {
-    //#FIXME, the code previously here was doing event compression/coalescing in
-    //a way that is not replicatable here, however can be done at the connection level.
-
     return IswDispatchEventToWidget(widget, event);
 }
 
