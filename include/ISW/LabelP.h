@@ -112,6 +112,19 @@ typedef struct {
 
     /* Cairo rendering context */
     ISWRenderContext *render_ctx;
+
+    /* Retained icon handles: the rasterized (and, for monochrome, tinted)
+       image is uploaded once and redrawn by handle — re-uploading per paint
+       is the dominant icon repaint cost.  Keyed on the raster pointer + dims
+       (+ tint foreground); cleared when the image resource is replaced. */
+    int          image_handle;
+    const unsigned char *image_handle_raster;
+    unsigned int image_handle_w, image_handle_h;
+    Pixel        image_handle_fg;
+    int          lbm_handle;
+    const unsigned char *lbm_handle_raster;
+    unsigned int lbm_handle_w, lbm_handle_h;
+    Pixel        lbm_handle_fg;
 } LabelPart;
 
 

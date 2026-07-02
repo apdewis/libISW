@@ -658,6 +658,32 @@ int ISWRenderImageUpload(ISWRenderContext *ctx,
                          unsigned int w, unsigned int h);
 
 /*
+ * ISWRenderImageUploadMasked - Tint an alpha mask with a foreground color
+ *                              and upload it as a retained texture.
+ *
+ * The alpha channel of `rgba` shapes the image; its RGB channels are ignored
+ * and replaced by `foreground` — the same recolouring
+ * ISWRenderDrawImageMasked applies on every draw.  Doing the tint + upload
+ * once and redrawing by handle replaces the per-paint buffer allocation,
+ * tint pass and texture upload that dominate icon-heavy repaints.  Re-upload
+ * only when the source raster or the foreground changes; draw with
+ * ISWRenderDrawImageHandle.
+ *
+ * Parameters:
+ *   ctx        - Rendering context
+ *   foreground - Color painted through the mask (0xRRGGBB)
+ *   rgba       - RGBA pixel data; only the alpha channel is used
+ *   w, h       - Image dimensions in pixels
+ *
+ * Returns: Opaque handle > 0, or 0 on failure / unsupported backend (fall
+ *          back to ISWRenderDrawImageMasked per paint).  Free with
+ *          ISWRenderImageFree().
+ */
+int ISWRenderImageUploadMasked(ISWRenderContext *ctx, Pixel foreground,
+                               const unsigned char *rgba,
+                               unsigned int w, unsigned int h);
+
+/*
  * ISWRenderImageFree - Free a retained image texture.
  *   Safe to call with handle == 0 (no-op).
  */

@@ -19,6 +19,9 @@ typedef struct {
     unsigned int    raster_w, raster_h;
     int             img_handle;       /* retained GPU texture (0 = none) */
     const unsigned char *handle_raster; /* raster ptr the handle was built from */
+    int             mask_handle;      /* retained tinted-mask texture (0 = none) */
+    const unsigned char *mask_raster; /* raster ptr the mask handle was built from */
+    Pixel           mask_fg;          /* foreground the mask handle was tinted with */
     Boolean         load_pending;     /* async decode requested */
 } IconViewItemCache;
 

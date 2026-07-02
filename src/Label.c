@@ -396,6 +396,17 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     /* Initialize render context to NULL (will be created on first use) */
     lw->label.render_ctx = NULL;
 
+    /* Retained icon handles: none until the first image draw.  Widget
+       instance memory is not zeroed, so these must be set explicitly. */
+    lw->label.image_handle = 0;
+    lw->label.image_handle_raster = NULL;
+    lw->label.image_handle_w = lw->label.image_handle_h = 0;
+    lw->label.image_handle_fg = 0;
+    lw->label.lbm_handle = 0;
+    lw->label.lbm_handle_raster = NULL;
+    lw->label.lbm_handle_w = lw->label.lbm_handle_h = 0;
+    lw->label.lbm_handle_fg = 0;
+
     SetTextWidthAndHeight(lw);  /* label.label or label.pixmap */
 
     if (lw->core.height == 0)
@@ -633,10 +644,33 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
             int draw_y = (int)(w->core.height - disp_h) / 2;
             if (draw_x < 0) draw_x = 0;
             if (draw_y < 0) draw_y = 0;
+            Boolean mono = ISWImageIsMonochrome(w->label.image);
+            Pixel mfg = mono ? w->label.foreground : 0;
             ISWRenderBegin(ctx);
             if (insensitive) ISWRenderPushGroup(ctx);
             DrawBackground(w, ctx);
-            if (ISWImageIsMonochrome(w->label.image))
+            /* Retained handle: upload (tinted for monochrome) once, redraw by
+               handle; re-upload only when the raster, its dims, or the tint
+               foreground change. */
+            if (w->label.image_handle_raster != pixels ||
+                w->label.image_handle_w != rw ||
+                w->label.image_handle_h != rh ||
+                w->label.image_handle_fg != mfg ||
+                w->label.image_handle == 0) {
+                if (w->label.image_handle)
+                    ISWRenderImageFree(ctx, w->label.image_handle);
+                w->label.image_handle = mono
+                    ? ISWRenderImageUploadMasked(ctx, mfg, pixels, rw, rh)
+                    : ISWRenderImageUpload(ctx, pixels, rw, rh);
+                w->label.image_handle_raster = pixels;
+                w->label.image_handle_w = rw;
+                w->label.image_handle_h = rh;
+                w->label.image_handle_fg = mfg;
+            }
+            if (w->label.image_handle)
+                ISWRenderDrawImageHandle(ctx, w->label.image_handle,
+                                         draw_x, draw_y, disp_w, disp_h);
+            else if (mono)
                 ISWRenderDrawImageMasked(ctx, w->label.foreground,
                                          pixels, rw, rh,
                                          draw_x, draw_y, disp_w, disp_h);
@@ -677,8 +711,33 @@ Redisplay(Widget gw, IswEvent *event, IswRegion region)
 	    const unsigned char *pixels = ISWImageRasterize(w->label.left_image,
 	        lrw_phys, lrh_phys, &rw, &rh);
 	    if (pixels && ctx) {
+		Boolean mono = ISWImageIsMonochrome(w->label.left_image);
+		Pixel mfg = mono ? w->label.foreground : 0;
 		ISWRenderBegin(ctx);
-		if (ISWImageIsMonochrome(w->label.left_image))
+		/* Retained handle: same upload-once pattern as the full-image
+		   branch above. */
+		if (w->label.lbm_handle_raster != pixels ||
+		    w->label.lbm_handle_w != rw ||
+		    w->label.lbm_handle_h != rh ||
+		    w->label.lbm_handle_fg != mfg ||
+		    w->label.lbm_handle == 0) {
+		    if (w->label.lbm_handle)
+			ISWRenderImageFree(ctx, w->label.lbm_handle);
+		    w->label.lbm_handle = mono
+			? ISWRenderImageUploadMasked(ctx, mfg, pixels, rw, rh)
+			: ISWRenderImageUpload(ctx, pixels, rw, rh);
+		    w->label.lbm_handle_raster = pixels;
+		    w->label.lbm_handle_w = rw;
+		    w->label.lbm_handle_h = rh;
+		    w->label.lbm_handle_fg = mfg;
+		}
+		if (w->label.lbm_handle)
+		    ISWRenderDrawImageHandle(ctx, w->label.lbm_handle,
+					    (int)w->label.internal_width,
+					    (int)w->label.lbm_y,
+					    w->label.lbm_width,
+					    w->label.lbm_height);
+		else if (mono)
 		    ISWRenderDrawImageMasked(ctx, w->label.foreground,
 					    pixels, rw, rh,
 					    (int)w->label.internal_width,
@@ -850,6 +909,13 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	    ISWImageDestroy(newlw->label.image);
 	    newlw->label.image = NULL;
 	}
+	/* The old image's raster buffer dies with it; a new image's raster can
+	   reuse the address, so drop the retained handle AND its key now. */
+	if (newlw->label.image_handle && newlw->label.render_ctx)
+	    ISWRenderImageFree(newlw->label.render_ctx,
+			       newlw->label.image_handle);
+	newlw->label.image_handle = 0;
+	newlw->label.image_handle_raster = NULL;
 	if (newlw->label.image_source)
 	    newlw->label.image = _LabelLoadImage(newlw, newlw->label.image_source);
 	was_resized = True;
@@ -863,6 +929,12 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
 	    ISWImageDestroy(newlw->label.left_image);
 	    newlw->label.left_image = NULL;
 	}
+	/* Same raster-address-reuse hazard as the main image above. */
+	if (newlw->label.lbm_handle && newlw->label.render_ctx)
+	    ISWRenderImageFree(newlw->label.render_ctx,
+			       newlw->label.lbm_handle);
+	newlw->label.lbm_handle = 0;
+	newlw->label.lbm_handle_raster = NULL;
 	if (newlw->label.left_image_source)
 	    newlw->label.left_image = _LabelLoadImage(newlw, newlw->label.left_image_source);
 	was_resized = True;
@@ -987,6 +1059,16 @@ Destroy(Widget w)
     if (lw->label.left_image) {
 	ISWImageDestroy(lw->label.left_image);
 	lw->label.left_image = NULL;
+    }
+    /* Retained image handles are backend-global, not owned by the render
+       context — free them explicitly, before the context goes away. */
+    if (lw->label.image_handle && lw->label.render_ctx) {
+	ISWRenderImageFree(lw->label.render_ctx, lw->label.image_handle);
+	lw->label.image_handle = 0;
+    }
+    if (lw->label.lbm_handle && lw->label.render_ctx) {
+	ISWRenderImageFree(lw->label.render_ctx, lw->label.lbm_handle);
+	lw->label.lbm_handle = 0;
     }
     if (lw->label.render_ctx != NULL) {
 	ISWRenderDestroy(lw->label.render_ctx);

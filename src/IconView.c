@@ -178,6 +178,10 @@ FreeCache(IconViewWidget iw)
             ISWRenderImageFree(iw->iconView.render_ctx, ic->img_handle);
             ic->img_handle = 0;
         }
+        if (ic->mask_handle) {
+            ISWRenderImageFree(iw->iconView.render_ctx, ic->mask_handle);
+            ic->mask_handle = 0;
+        }
         if (ic->image)
             ISWImageDestroy(ic->image);
     }
@@ -197,6 +201,11 @@ FlushSVGCache(IconViewWidget iw)
             ISWRenderImageFree(iw->iconView.render_ctx, ic->img_handle);
             ic->img_handle = 0;
             ic->handle_raster = NULL;
+        }
+        if (ic->mask_handle) {
+            ISWRenderImageFree(iw->iconView.render_ctx, ic->mask_handle);
+            ic->mask_handle = 0;
+            ic->mask_raster = NULL;
         }
         if (ic->image) {
             ISWImageDestroy(ic->image);
@@ -901,9 +910,25 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
                                    iw->iconView.sel_flags[i];
                 Pixel fg = selected ? w->core.background_pixel
                                     : iw->iconView.foreground;
-                ISWRenderDrawImageMasked(ctx, fg, raster, ic->raster_w,
-                                         ic->raster_h, ix, cy,
-                                         icon_sz, icon_sz);
+                /* Retained tinted mask: tint + upload once, redraw by handle.
+                   Re-tint only when the raster or the tint colour changes
+                   (selection flip), not on every repaint. */
+                if (ic->mask_raster != raster || ic->mask_fg != fg ||
+                    ic->mask_handle == 0) {
+                    if (ic->mask_handle)
+                        ISWRenderImageFree(ctx, ic->mask_handle);
+                    ic->mask_handle = ISWRenderImageUploadMasked(
+                        ctx, fg, raster, ic->raster_w, ic->raster_h);
+                    ic->mask_raster = raster;
+                    ic->mask_fg = fg;
+                }
+                if (ic->mask_handle)
+                    ISWRenderDrawImageHandle(ctx, ic->mask_handle, ix, cy,
+                                             icon_sz, icon_sz);
+                else
+                    ISWRenderDrawImageMasked(ctx, fg, raster, ic->raster_w,
+                                             ic->raster_h, ix, cy,
+                                             icon_sz, icon_sz);
             } else {
                 if (ic->handle_raster != raster || ic->img_handle == 0) {
                     if (ic->img_handle)

@@ -1198,6 +1198,36 @@ ISWRenderImageUpload(ISWRenderContext *ctx,
     return ctx->ops->image_upload(rgba, w, h);
 }
 
+int
+ISWRenderImageUploadMasked(ISWRenderContext *ctx, Pixel foreground,
+                           const unsigned char *rgba,
+                           unsigned int w, unsigned int h)
+{
+    if (!ctx || !ctx->ops || !ctx->ops->image_upload || !rgba ||
+        w == 0 || h == 0)
+        return 0;
+
+    /* Paint the foreground colour shaped by the source alpha — the same
+       recolouring the per-paint masked draw applies — then retain the result
+       as a normal image handle. */
+    unsigned int n = w * h;
+    unsigned char *buf = (unsigned char *) malloc((size_t) n * 4);
+    if (!buf)
+        return 0;
+    unsigned char fr = (unsigned char) ((foreground >> 16) & 0xff);
+    unsigned char fg = (unsigned char) ((foreground >> 8) & 0xff);
+    unsigned char fb = (unsigned char) (foreground & 0xff);
+    for (unsigned int i = 0; i < n; i++) {
+        buf[i * 4 + 0] = fr;
+        buf[i * 4 + 1] = fg;
+        buf[i * 4 + 2] = fb;
+        buf[i * 4 + 3] = rgba[i * 4 + 3];
+    }
+    int handle = ctx->ops->image_upload(buf, w, h);
+    free(buf);
+    return handle;
+}
+
 void
 ISWRenderImageFree(ISWRenderContext *ctx, int handle)
 {
