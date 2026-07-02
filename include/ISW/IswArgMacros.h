@@ -7,7 +7,6 @@
 #include <ISW/Form.h>
 #include <ISW/ListBox.h>
 #include <ISW/ListBoxRow.h>
-#include <ISW/ListBoxPivotRow.h>
 #include <ISW/FileChooser.h>
 
 #define ISW_ARG(ab, name, v) do { \
@@ -307,7 +306,8 @@
 #define IswArgSeparator(ab, v)                  ISW_ARG((ab), IswNseparator, (v))
 /* ListBoxRow */
 #define IswArgRowPadding(ab, v)                 ISW_ARG((ab), IswNrowPadding, (v))
-/* ListBoxPivotRow */
+/* ListBox groups (constraint resources on nested-ListBox children) */
+#define IswArgPivotLabel(ab, v)                 ISW_ARG((ab), IswNpivotLabel, (v))
 #define IswArgPivotOpen(ab, v)                  ISW_ARG((ab), IswNpivotOpen, (v))
 #define IswArgPivotImage(ab, v)                 ISW_ARG((ab), IswNpivotImage, (v))
 #define IswArgPivotImageOpen(ab, v)             ISW_ARG((ab), IswNpivotImageOpen, (v))

@@ -277,7 +277,6 @@ set(ISW_WIDGET_SOURCES
     src/List.c
     src/ListBox.c
     src/ListBoxRow.c
-    src/ListBoxPivotRow.c
     src/MainWindow.c
     src/MenuBar.c
     src/MenuButton.c

@@ -100,7 +100,6 @@ Defined in `CMakeLists.txt`, used throughout:
 | `ISW_INTERNATIONALIZATION` | UTF-8 multibyte support (`-DISW_INTERNATIONALIZATION=ON`, default ON) |
 | `ISW_ARROW_SCROLLBARS` | Arrow buttons on scrollbars (always on) |
 | `HAVE_CAIRO` / `HAVE_CAIRO_XCB` | Cairo rendering (mandatory since cairo-xcb is required) |
-| `ISW_HAS_XIM` | X Input Method for CJK (`-DISW_HAS_XIM=ON`, default OFF, requires Xlib XIM APIs) |
 | `ISW_GRAY_BLKWHT_STIPPLES` | Gray stipple patterns (`-DISW_GRAY_BLKWHT_STIPPLES=ON`) |
 | `HAVE_XKBCOMMON` | keysym name functions (optional) |
 | `LIBXT_COMPILATION` | Marks libXt internal compilation unit |

@@ -96,6 +96,7 @@ var typeOverrides = map[string]argType{
 	"encoding":         argString,
 	"inputMethod":      argString,
 	"preeditType":      argString,
+	"pivotLabel":       argString,
 	"pivotImage":       argString,
 	"pivotImageOpen":   argString,
 

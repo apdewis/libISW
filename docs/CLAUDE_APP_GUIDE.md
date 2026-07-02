@@ -115,7 +115,7 @@ void my_callback(Widget w, IswPointer client_data, IswPointer call_data)
 | ListView | `listViewWidgetClass` | `<ISW/ListView.h>` | Multi-column list with resizable columns, multiselect, rubberband |
 | IconView | `iconViewWidgetClass` | `<ISW/IconView.h>` | Scrollable icon grid with multiselect |
 | Tree | `treeWidgetClass` | `<ISW/Tree.h>` | Hierarchical tree view |
-| ListBox | `listBoxWidgetClass` | `<ISW/ListBox.h>` | Selectable rows with rich widget content |
+| ListBox | `listBoxWidgetClass` | `<ISW/ListBox.h>` | Selectable rows with rich widget content; nest a ListBox for collapsible groups |
 | ListBoxRow | `listBoxRowWidgetClass` | `<ISW/ListBoxRow.h>` | Left-to-right row container for ListBox |
 
 ### Dialogs
@@ -321,6 +321,24 @@ For menu entries (`SmeBSB`), use `IswNleftImage` and `IswNrightImage` the same w
 SVG images support `currentColor` — occurrences are automatically substituted with the widget's `IswNforeground` color and update when the foreground changes.
 
 File paths are resolved through ISW's search path: executable directory, `$ISW_DATA_PATH`, `$XDG_DATA_HOME/isw/`, system data dirs, then cwd.
+
+### Custom drawing: retained image handles
+
+If your code draws icons directly with `ISWRenderDrawImageRGBA` / `ISWRenderDrawImageMasked` (e.g. in a DrawingArea expose proc), do NOT call them on every repaint — each call re-uploads a texture (and, for the masked variant, re-tints the buffer on the CPU), which dominates icon-heavy repaint profiles. Upload once and redraw by handle:
+
+```c
+/* once, or when the raster/foreground changes */
+int handle = ISWRenderImageUploadMasked(ctx, fg, rgba, w, h);  /* monochrome */
+int handle = ISWRenderImageUpload(ctx, rgba, w, h);            /* full color */
+
+/* every repaint */
+ISWRenderDrawImageHandle(ctx, handle, x, y, dst_w, dst_h);
+
+/* when the source raster or (for masked) the foreground changes, or on teardown */
+ISWRenderImageFree(ctx, handle);
+```
+
+Both upload functions return 0 on unsupported backends — fall back to the per-paint draw call in that case. The built-in Label and IconView widgets already use this pattern internally.
 
 ## Drag and Drop (XDND)
 
@@ -529,6 +547,94 @@ IswListViewSetSort(lv, 0, IswListViewSortAscending);
 **API:** `IswListViewSetData`, `IswListViewSetColumns`, `IswListViewAddColumn`, `IswListViewGetSelected`, `IswListViewGetSelectedRows`, `IswListViewBandActive`, `IswListViewSetSort`.
 
 **Features:** Resizable column headers (drag separator), column sort indicators (arrow icons toggled on header click with `reorderCallback`), rubberband row selection, Ctrl+click toggle, Shift+click range, Ctrl+A select all, keyboard Up/Down/Home/End navigation with Shift-extend, alternating row tint.
+
+## ListBox
+
+A Constraint container of selectable rows.  Children are arbitrary widgets
+(typically `ListBoxRow` with labels inside); the container tracks selection
+and draws the highlight.  Wrap in a Viewport for scrolling.
+
+```c
+#include <ISW/ListBox.h>
+#include <ISW/ListBoxRow.h>
+
+IswArgBuilder ab = IswArgBuilderInit();
+IswArgSelectionMode(&ab, IswListBoxSelectSingle);  /* none/single/multi */
+IswArgRowSpacing(&ab, 1);
+IswArgShowSeparators(&ab, True);
+Widget lb = IswCreateManagedWidget("lb", listBoxWidgetClass, viewport,
+                                   ab.args, ab.count);
+
+/* A row: any widget works; ListBoxRow lays labels out left-to-right */
+Widget row = IswCreateManagedWidget("row", listBoxRowWidgetClass, lb,
+                                    NULL, 0);
+IswArgBuilderReset(&ab);
+IswArgLabel(&ab, "Apple");
+IswCreateManagedWidget("name", labelWidgetClass, row, ab.args, ab.count);
+
+/* call_data is IswListBoxCallbackData* */
+void select_cb(Widget w, IswPointer cd, IswPointer call_data)
+{
+    IswListBoxCallbackData *d = (IswListBoxCallbackData *)call_data;
+    /* d->child: the entry widget; d->index: index within d->list
+       (its immediate ListBox); d->selected/d->num_selected: tree-wide */
+}
+```
+
+### Collapsible groups (nested ListBoxes)
+
+A ListBox child that is itself a ListBox is a collapsible group.  The
+parent draws a fixed header band (chevron + `pivotLabel` text) above the
+indented body, toggles it on chevron clicks, and hides the body when
+closed.  Group appearance/state is set via constraint resources on the
+nested child:
+
+```c
+IswArgBuilderReset(&ab);
+IswArgPivotLabel(&ab, "Fruits");   /* header text */
+IswArgPivotOpen(&ab, True);        /* default False (closed) */
+IswArgSelectable(&ab, True);       /* header selectable like any row */
+Widget group = IswCreateManagedWidget("fruits", listBoxWidgetClass, lb,
+                                      ab.args, ab.count);
+/* add rows (or further nested groups) to `group` as usual */
+
+/* Pivot callback fires on the OUTERMOST ListBox; call_data is
+   IswListBoxPivotCallbackData* {child, index, open} */
+IswAddCallback(lb, IswNpivotCallback, pivot_cb, NULL);
+```
+
+Selection rules for a nested tree:
+
+- The **outermost ListBox owns everything**: `selectionMode`,
+  `selectCallback`, `activateCallback`, `pivotCallback`, focus, and
+  keyboard navigation.  Register callbacks there; nested ListBoxes'
+  own selection resources are ignored.
+- Exactly one selection domain per tree — selecting anywhere clears
+  conflicting selections at every level (single mode).
+- Chevron clicks only toggle; clicks on the rest of the header
+  select/activate the group entry (its widget appears as `d->child`).
+- Collapsing a group clears any selection inside it and moves focus to
+  the group header; there is never a hidden selection.
+- `IswListBoxGetSelected` etc. called on any ListBox of a tree answer
+  for the whole tree.
+- Programmatic open/close: `IswSetValues` of `pivotOpen` on the group
+  widget (same collapse rules apply, callbacks fire).
+
+**Widget resources:** `selectionMode`, `rowSpacing`, `showSeparators`,
+`foreground`, `font` (header text), `selectCallback`, `activateCallback`,
+`pivotCallback`.
+
+**Constraint resources (per child):** `selectable`, `listBoxRowHeight`,
+`separator`; for group children additionally `pivotLabel`, `pivotOpen`,
+`pivotImage`, `pivotImageOpen` (SVG/PNG chevron overrides).
+
+**API:** `IswListBoxGetSelected`, `IswListBoxGetSelectedChildren`,
+`IswListBoxClearSelection`, `IswListBoxSelectChild`.
+
+**Interaction:** click select, double-click activate, Ctrl+click toggle
+(multi), Shift+click range (within one level), Ctrl+A select all,
+Up/Down/Home/End navigation across open groups with Shift-extend,
+Space selection toggle, Return activate.
 
 ## FontChooser
 

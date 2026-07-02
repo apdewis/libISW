@@ -4,6 +4,14 @@
  * Children are managed with IswManageChild.  The container stacks them
  * vertically and tracks selection state.  The child's X window background
  * is changed to reflect selection; children remain completely unaware.
+ *
+ * A child that is itself a ListBox is a collapsible group: this widget
+ * draws its header band (chevron + pivotLabel), toggles it on chevron
+ * clicks, and indents the nested body.  Selection, focus, and callbacks
+ * for the whole tree are owned by the selection root — the outermost
+ * ListBox.  A closed group's body is hidden via IswUnmapWidget, so it
+ * neither paints nor hit-tests; the child stays managed and remains one
+ * entry (its header) in the parent.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -17,12 +25,30 @@
 #include <ISW/ListBoxP.h>
 #include <ISW/LabelP.h>
 #include <ISW/ISWRender.h>
+#include <ISW/ISWImage.h>
+#include <ISW/ISWPlatform.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define DOUBLE_CLICK_MS 400
+
+/* Group header metrics.  The chevron zone is a square of the header
+   height at the left edge; the open body is indented past it. */
+#define GROUP_HEADER_VPAD 3   /* padding above/below header text */
+#define GROUP_ICON_PAD    3   /* chevron inset within its square zone */
+#define GROUP_LABEL_GAP   4   /* gap between chevron zone and header text */
+
+static const char pivot_closed_svg[] =
+    "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'>"
+    "<path d='M10,4 L26,16 L10,28' stroke='currentColor' stroke-width='4' "
+    "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
+
+static const char pivot_open_svg[] =
+    "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'>"
+    "<path d='M4,10 L16,26 L28,10' stroke='currentColor' stroke-width='4' "
+    "fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
 
 /* ================================================================
  * Forward declarations
@@ -40,7 +66,12 @@ static IswGeometryResult PreferredGeometry(Widget, IswWidgetGeometry *,
                                            IswWidgetGeometry *);
 static void ChangeManaged(Widget);
 static void ConstraintInitialize(Widget, Widget, ArgList, Cardinal *);
+static void ConstraintDestroy(Widget);
 static Boolean ConstraintSetValues(Widget, Widget, Widget, ArgList, Cardinal *);
+
+static void DoLayout(ListBoxWidget, Boolean);
+static void ApplyPivotState(ListBoxWidget, Widget);
+static void FireSelectCallback(ListBoxWidget, ListBoxWidget, Widget, int);
 
 static void ChildEventHandler(Widget, IswPointer, IswEvent *, Boolean *);
 static void InstallChildHandlers(Widget, Widget);
@@ -69,10 +100,14 @@ static IswResource resources[] = {
         Offset(show_separators), IswRImmediate, (IswPointer)False},
     {IswNforeground, IswCForeground, IswRPixel, sizeof(Pixel),
         Offset(foreground), IswRString, IswDefaultForeground},
+    {IswNfont, IswCFont, IswRFontStruct, sizeof(IswFontStruct *),
+        Offset(font), IswRString, IswDefaultFont},
     {IswNselectCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
         Offset(select_callback), IswRCallback, NULL},
     {IswNactivateCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
         Offset(activate_callback), IswRCallback, NULL},
+    {IswNpivotCallback, IswCCallback, IswRCallback, sizeof(IswPointer),
+        Offset(pivot_callback), IswRCallback, NULL},
 };
 #undef Offset
 
@@ -84,6 +119,14 @@ static IswResource constraintResources[] = {
         COffset(row_height), IswRImmediate, (IswPointer)0},
     {IswNseparator, IswCSeparator, IswRBoolean, sizeof(Boolean),
         COffset(separator), IswRImmediate, (IswPointer)False},
+    {IswNpivotLabel, IswCPivotLabel, IswRString, sizeof(String),
+        COffset(pivot_label), IswRImmediate, (IswPointer)NULL},
+    {IswNpivotOpen, IswCPivotOpen, IswRBoolean, sizeof(Boolean),
+        COffset(pivot_open), IswRImmediate, (IswPointer)False},
+    {IswNpivotImage, IswCPivotImage, IswRString, sizeof(String),
+        COffset(pivot_image), IswRImmediate, (IswPointer)NULL},
+    {IswNpivotImageOpen, IswCPivotImageOpen, IswRString, sizeof(String),
+        COffset(pivot_image_open), IswRImmediate, (IswPointer)NULL},
 };
 #undef COffset
 
@@ -166,7 +209,7 @@ ListBoxClassRec listBoxClassRec = {
     IswNumber(constraintResources),
     sizeof(ListBoxConstraintsRec),
     ConstraintInitialize,
-    NULL,                                /* constraint destroy */
+    ConstraintDestroy,
     ConstraintSetValues,
     NULL
   },
@@ -181,44 +224,120 @@ WidgetClass listBoxWidgetClass = (WidgetClass)&listBoxClassRec;
  * Helpers
  * ================================================================ */
 
-static int
-ManagedCount(ListBoxWidget lbw)
+static Boolean
+IsGroup(Widget child)
 {
-    int count = 0;
-    for (Cardinal i = 0; i < lbw->composite.num_children; i++)
-        if (IswIsManaged(lbw->composite.children[i]))
-            count++;
-    return count;
+    return IswIsSubclass(child, listBoxWidgetClass);
 }
 
-static Widget
-ManagedChild(ListBoxWidget lbw, int index)
+/* The outermost ListBox of a nested tree: owner of selection, focus,
+   and callbacks for every entry beneath it. */
+static ListBoxWidget
+SelectionRoot(ListBoxWidget lbw)
+{
+    Widget w = (Widget)lbw;
+    while (IswParent(w) != NULL &&
+           IswIsSubclass(IswParent(w), listBoxWidgetClass))
+        w = IswParent(w);
+    return (ListBoxWidget)w;
+}
+
+static Dimension
+HeaderHeight(ListBoxWidget lbw)
+{
+    if (lbw->listBox.font)
+        return (Dimension)(ISWScaledFontHeight((Widget)lbw, lbw->listBox.font)
+                           + 2 * GROUP_HEADER_VPAD);
+    return 20;
+}
+
+static int
+IndexOfManagedChild(ListBoxWidget lbw, Widget child)
 {
     int n = 0;
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
-        Widget child = lbw->composite.children[i];
-        if (!IswIsManaged(child)) continue;
-        if (n == index) return child;
-        n++;
-    }
-    return NULL;
-}
-
-static int
-HitTest(ListBoxWidget lbw, int y)
-{
-    int n = 0;
-    for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
-        Widget child = lbw->composite.children[i];
-        if (!IswIsManaged(child)) continue;
-        int cy = child->core.y;
-        IswBorderSides bs = _IswGetBorderSides(child);
-        int ch = (int)child->core.height + _IswBorderVert(bs);
-        if (y >= cy && y < cy + ch)
-            return n;
+        Widget c = lbw->composite.children[i];
+        if (!IswIsManaged(c)) continue;
+        if (c == child) return n;
         n++;
     }
     return -1;
+}
+
+static Boolean
+WidgetIsInside(Widget w, Widget ancestor)
+{
+    for (w = IswParent(w); w != NULL; w = IswParent(w))
+        if (w == ancestor) return True;
+    return False;
+}
+
+/* Flat visible-entry order for keyboard navigation: each managed child
+   is an entry; an open group contributes its own entries right after
+   its header.  Closed groups contribute the header only. */
+static void
+FlattenInto(ListBoxWidget lbw, Widget **arr, int *n, int *cap)
+{
+    for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
+        Widget child = lbw->composite.children[i];
+        if (!IswIsManaged(child)) continue;
+        if (*n == *cap) {
+            *cap = *cap ? *cap * 2 : 16;
+            *arr = (Widget *)IswRealloc((char *)*arr,
+                       (Cardinal)(*cap * (int)sizeof(Widget)));
+        }
+        (*arr)[(*n)++] = child;
+        if (IsGroup(child)) {
+            ListBoxConstraints lbc =
+                (ListBoxConstraints)child->core.constraints;
+            if (lbc->listBox.pivot_open)
+                FlattenInto((ListBoxWidget)child, arr, n, cap);
+        }
+    }
+}
+
+static Widget *
+FlattenEntries(ListBoxWidget root, int *count)
+{
+    Widget *arr = NULL;
+    int n = 0, cap = 0;
+    FlattenInto(root, &arr, &n, &cap);
+    *count = n;
+    return arr;
+}
+
+typedef enum { HitNone, HitRow, HitHeader, HitChevron } HitZone;
+
+/* Resolve a point in lbw's frame to one of its own entries.  Points
+   inside an open group's body resolve to HitNone: those events dispatch
+   to the nested ListBox directly and are never this widget's business. */
+static HitZone
+HitTestEx(ListBoxWidget lbw, int x, int y, Widget *child_out)
+{
+    Dimension header_h = HeaderHeight(lbw);
+
+    for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
+        Widget child = lbw->composite.children[i];
+        if (!IswIsManaged(child)) continue;
+        ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
+
+        if (IsGroup(child)) {
+            int hy = lbc->listBox.header_y;
+            if (y >= hy && y < hy + (int)header_h) {
+                *child_out = child;
+                return (x < (int)header_h) ? HitChevron : HitHeader;
+            }
+        } else {
+            int cy = child->core.y;
+            IswBorderSides bs = _IswGetBorderSides(child);
+            int ch = (int)child->core.height + _IswBorderVert(bs);
+            if (y >= cy && y < cy + ch) {
+                *child_out = child;
+                return HitRow;
+            }
+        }
+    }
+    return HitNone;
 }
 
 /*
@@ -325,6 +444,11 @@ ApplySelectionVisual(ListBoxWidget lbw, Widget child, Boolean select)
     if (select == lbc->listBox.selected) return;
     lbc->listBox.selected = select;
 
+    /* A group's highlight is its parent-drawn header band; never swap
+       colors inside the nested widget. */
+    if (IsGroup(child))
+        return;
+
     Pixel fg = FindLabelFg(child);
     Pixel bg = child->core.background_pixel;
     if (fg == (Pixel)-1) fg = ~bg;
@@ -333,60 +457,140 @@ ApplySelectionVisual(ListBoxWidget lbw, Widget child, Boolean select)
     ExposeTree(child);
 }
 
-static void
+/* Deselect every entry in lbw's subtree.  Returns True if anything was
+   actually deselected. */
+static Boolean
 ClearAllSelections(ListBoxWidget lbw)
+{
+    Boolean changed = False;
+    for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
+        Widget child = lbw->composite.children[i];
+        if (!IswIsManaged(child)) continue;
+        ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
+        if (lbc->listBox.selected) {
+            ApplySelectionVisual(lbw, child, False);
+            changed = True;
+        }
+        if (IsGroup(child))
+            changed |= ClearAllSelections((ListBoxWidget)child);
+    }
+    return changed;
+}
+
+static int
+CountSelectedIn(ListBoxWidget lbw)
+{
+    int n = 0;
+    for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
+        Widget child = lbw->composite.children[i];
+        if (!IswIsManaged(child)) continue;
+        ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
+        if (lbc->listBox.selected) n++;
+        if (IsGroup(child))
+            n += CountSelectedIn((ListBoxWidget)child);
+    }
+    return n;
+}
+
+static void
+GatherSelectedIn(ListBoxWidget lbw, Widget *out, int *j)
 {
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
         Widget child = lbw->composite.children[i];
         if (!IswIsManaged(child)) continue;
-        ApplySelectionVisual(lbw, child, False);
+        ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
+        if (lbc->listBox.selected) out[(*j)++] = child;
+        if (IsGroup(child))
+            GatherSelectedIn((ListBoxWidget)child, out, j);
     }
 }
 
 static void
-FireSelectCallback(ListBoxWidget lbw, Widget child, int index)
+FireSelectCallback(ListBoxWidget root, ListBoxWidget list, Widget child,
+                   int index)
 {
     IswListBoxCallbackData cb;
     Widget *sel = NULL;
-    int nsel = 0;
-
-    for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
-        Widget c = lbw->composite.children[i];
-        if (!IswIsManaged(c)) continue;
-        ListBoxConstraints lbc = (ListBoxConstraints)c->core.constraints;
-        if (lbc->listBox.selected) nsel++;
-    }
+    int nsel = CountSelectedIn(root);
 
     if (nsel > 0) {
         sel = (Widget *)IswMalloc((Cardinal)(nsel * (int)sizeof(Widget)));
         int j = 0;
-        for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
-            Widget c = lbw->composite.children[i];
-            if (!IswIsManaged(c)) continue;
-            ListBoxConstraints lbc = (ListBoxConstraints)c->core.constraints;
-            if (lbc->listBox.selected) sel[j++] = c;
-        }
+        GatherSelectedIn(root, sel, &j);
     }
 
     cb.child = child;
     cb.index = index;
+    cb.list = (Widget)list;
     cb.selected = sel;
     cb.num_selected = nsel;
 
-    IswCallCallbacks((Widget)lbw, IswNselectCallback, (IswPointer)&cb);
+    IswCallCallbacks((Widget)root, IswNselectCallback, (IswPointer)&cb);
 
     if (sel) IswFree((char *)sel);
 }
 
 static void
-FireActivateCallback(ListBoxWidget lbw, Widget child, int index)
+FireActivateCallback(ListBoxWidget root, ListBoxWidget list, Widget child,
+                     int index)
 {
     IswListBoxCallbackData cb;
     cb.child = child;
     cb.index = index;
+    cb.list = (Widget)list;
     cb.selected = NULL;
     cb.num_selected = 0;
-    IswCallCallbacks((Widget)lbw, IswNactivateCallback, (IswPointer)&cb);
+    IswCallCallbacks((Widget)root, IswNactivateCallback, (IswPointer)&cb);
+}
+
+/* ================================================================
+ * Group pivot (open/close) machinery
+ * ================================================================ */
+
+/* Apply lbc->pivot_open (already set to the desired state): show or
+   hide the body, enforce the no-hidden-selection invariant, relayout,
+   and fire callbacks.  Shared by chevron clicks and programmatic
+   pivotOpen changes so the collapse rules always hold. */
+static void
+ApplyPivotState(ListBoxWidget lbw, Widget group)
+{
+    ListBoxConstraints lbc = (ListBoxConstraints)group->core.constraints;
+    ListBoxWidget root = SelectionRoot(lbw);
+    Boolean open = lbc->listBox.pivot_open;
+    Boolean sel_changed = False;
+    int index = IndexOfManagedChild(lbw, group);
+
+    if (open) {
+        IswMapWidget(group);
+    } else {
+        sel_changed = ClearAllSelections((ListBoxWidget)group);
+        Widget f = root->listBox.focused_child;
+        if (f != NULL && WidgetIsInside(f, group))
+            root->listBox.focused_child = group;
+        IswUnmapWidget(group);
+    }
+
+    DoLayout(lbw, False);
+    DoLayout(lbw, True);
+    if (IswIsRealized((Widget)root))
+        _IswRepaintWindowless((Widget)root);
+
+    IswListBoxPivotCallbackData pcb;
+    pcb.child = group;
+    pcb.index = index;
+    pcb.open = open;
+    IswCallCallbacks((Widget)root, IswNpivotCallback, (IswPointer)&pcb);
+
+    if (sel_changed)
+        FireSelectCallback(root, lbw, group, index);
+}
+
+static void
+DoToggle(ListBoxWidget lbw, Widget group)
+{
+    ListBoxConstraints lbc = (ListBoxConstraints)group->core.constraints;
+    lbc->listBox.pivot_open = !lbc->listBox.pivot_open;
+    ApplyPivotState(lbw, group);
 }
 
 /* ================================================================
@@ -397,6 +601,7 @@ static Dimension
 ComputeTotalHeight(ListBoxWidget lbw)
 {
     Dimension spacing = lbw->listBox.row_spacing;
+    Dimension header_h = HeaderHeight(lbw);
     Dimension total = spacing;
     Boolean any = False;
 
@@ -405,15 +610,21 @@ ComputeTotalHeight(ListBoxWidget lbw)
         if (!IswIsManaged(child)) continue;
 
         ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
-        Dimension h = (lbc->listBox.row_height > 0)
-            ? lbc->listBox.row_height : child->core.height;
+        IswBorderSides bs = _IswGetBorderSides(child);
+        Dimension h;
+        if (IsGroup(child)) {
+            h = header_h;
+            if (lbc->listBox.pivot_open)
+                h += child->core.height + _IswBorderVert(bs);
+        } else {
+            h = (lbc->listBox.row_height > 0)
+                ? lbc->listBox.row_height : child->core.height;
+            h += _IswBorderVert(bs);
+        }
 
         if (any)
             total += spacing;
-        {
-            IswBorderSides bs = _IswGetBorderSides(child);
-            total += h + _IswBorderVert(bs);
-        }
+        total += h;
         any = True;
     }
 
@@ -429,29 +640,47 @@ DoLayout(ListBoxWidget lbw, Boolean position)
     Widget w = (Widget)lbw;
     Position y = (Position)lbw->listBox.row_spacing;
     Boolean first = True;
+    Dimension header_h = HeaderHeight(lbw);
 
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
         Widget child = lbw->composite.children[i];
         if (!IswIsManaged(child)) continue;
 
         ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
-        Dimension child_h = (lbc->listBox.row_height > 0)
-            ? lbc->listBox.row_height : child->core.height;
-
         IswBorderSides bs = _IswGetBorderSides(child);
-        Dimension child_w = w->core.width;
-        if (child_w > (Dimension)_IswBorderHoriz(bs))
-            child_w -= (Dimension)_IswBorderHoriz(bs);
 
         if (!first)
             y += (Position)lbw->listBox.row_spacing;
 
-        if (position) {
-            IswConfigureWidget(child, 0, y, child_w, child_h,
-                               child->core.border_width);
-        }
+        if (IsGroup(child)) {
+            if (position)
+                lbc->listBox.header_y = y;
+            y += (Position)header_h;
+            if (lbc->listBox.pivot_open) {
+                Dimension child_w = (w->core.width > header_h)
+                    ? w->core.width - header_h : 1;
+                if (child_w > (Dimension)_IswBorderHoriz(bs))
+                    child_w -= (Dimension)_IswBorderHoriz(bs);
+                if (position)
+                    IswConfigureWidget(child, (Position)header_h, y, child_w,
+                                       child->core.height,
+                                       child->core.border_width);
+                y += (Position)(child->core.height + _IswBorderVert(bs));
+            }
+        } else {
+            Dimension child_h = (lbc->listBox.row_height > 0)
+                ? lbc->listBox.row_height : child->core.height;
+            Dimension child_w = w->core.width;
+            if (child_w > (Dimension)_IswBorderHoriz(bs))
+                child_w -= (Dimension)_IswBorderHoriz(bs);
 
-        y += (Position)(child_h + _IswBorderVert(bs));
+            if (position) {
+                IswConfigureWidget(child, 0, y, child_w, child_h,
+                                   child->core.border_width);
+            }
+
+            y += (Position)(child_h + _IswBorderVert(bs));
+        }
         first = False;
     }
 
@@ -528,9 +757,9 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     (void)request; (void)args; (void)num_args;
 
     lbw->listBox.render_ctx = NULL;
-    lbw->listBox.focused_index = -1;
+    lbw->listBox.focused_child = NULL;
     lbw->listBox.last_click_time = 0;
-    lbw->listBox.last_click_index = -1;
+    lbw->listBox.last_click_child = NULL;
     lbw->listBox.has_focus = False;
 
     if (new->core.width == 0)
@@ -559,13 +788,32 @@ static void
 ChangeManaged(Widget w)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
+
+    /* A closed group's body must neither paint nor hit-test.  Unmap it
+       before layout; ApplyPivotState re-maps it when opened.  Pre-realize
+       the unmap must run even though windowless_mapped is still False:
+       it records the explicit-unmap flag that stops the realize-time map
+       pass from showing the body. */
+    for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
+        Widget child = lbw->composite.children[i];
+        if (!IswIsManaged(child)) continue;
+        if (IsGroup(child)) {
+            ListBoxConstraints lbc =
+                (ListBoxConstraints)child->core.constraints;
+            if (!lbc->listBox.pivot_open &&
+                (child->core.windowless_mapped || !IswIsRealized(child)))
+                IswUnmapWidget(child);
+        }
+    }
+
     DoLayout(lbw, False);
     DoLayout(lbw, True);
 
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
         Widget child = lbw->composite.children[i];
         if (!IswIsManaged(child)) continue;
-        if (IswIsComposite(child))
+        /* Group children run their own ListBox event handling. */
+        if (IswIsComposite(child) && !IsGroup(child))
             InstallChildHandlers(child, w);
     }
 }
@@ -616,6 +864,131 @@ PreferredGeometry(Widget w, IswWidgetGeometry *request,
     return IswGeometryAlmost;
 }
 
+static Boolean
+ForegroundHex(ListBoxWidget lbw, char *hex, size_t hex_size)
+{
+    IswDisplay dpy = ((Widget)lbw)->core.display;
+    IswColormap cmap = ((Widget)lbw)->core.colormap;
+    IswColor c;
+
+    hex[0] = '\0';
+    if (_IswPlatformQueryColor(dpy, cmap,
+                               (unsigned long)lbw->listBox.foreground, &c)) {
+        snprintf(hex, hex_size, "#%02X%02X%02X",
+                 c.red >> 8, c.green >> 8, c.blue >> 8);
+    }
+    return hex[0] != '\0';
+}
+
+/* Lazily load the chevron image for the group's current state.  Cached
+   per constraint; invalidated when the source resource changes. */
+static ISWImage *
+GroupIcon(ListBoxWidget lbw, ListBoxConstraints lbc)
+{
+    Boolean open = lbc->listBox.pivot_open;
+    ISWImage **slot = open ? &lbc->listBox.icon_open
+                           : &lbc->listBox.icon_closed;
+    if (*slot == NULL) {
+        const char *src = open
+            ? (lbc->listBox.pivot_image_open
+                ? lbc->listBox.pivot_image_open : pivot_open_svg)
+            : (lbc->listBox.pivot_image
+                ? lbc->listBox.pivot_image : pivot_closed_svg);
+        double dpi = 96.0 * ISWScaleFactor((Widget)lbw);
+        char hex[8];
+        const char *color = ForegroundHex(lbw, hex, sizeof(hex)) ? hex : NULL;
+        *slot = ISWImageLoad(src, dpi, color);
+    }
+    return *slot;
+}
+
+static void
+DrawGroupChevron(ListBoxWidget lbw, ListBoxConstraints lbc,
+                 Position hy, Dimension header_h, Pixel fg)
+{
+    ISWRenderContext *ctx = lbw->listBox.render_ctx;
+    ISWImage *img = GroupIcon(lbw, lbc);
+    if (!img) return;
+
+    int icon_sz = ((int)header_h > 2 * GROUP_ICON_PAD)
+        ? (int)header_h - 2 * GROUP_ICON_PAD : (int)header_h;
+    float sf = (float)ISWScaleFactor((Widget)lbw);
+    unsigned int raster_sz = (unsigned int)(icon_sz * sf + 0.5f);
+    unsigned int rw, rh;
+    const unsigned char *pixels = ISWImageRasterize(img, raster_sz, raster_sz,
+                                                    &rw, &rh);
+    if (!pixels) return;
+
+    Boolean mono = ISWImageIsMonochrome(img);
+    Pixel mfg = mono ? fg : 0;
+
+    /* Retained handle: upload (tinted for monochrome) once, redraw by
+       handle; re-upload only when the raster, its dims, or the tint
+       foreground change. */
+    if (lbc->listBox.icon_handle_raster != pixels ||
+        lbc->listBox.icon_handle_w != rw ||
+        lbc->listBox.icon_handle_h != rh ||
+        lbc->listBox.icon_handle_fg != mfg ||
+        lbc->listBox.icon_handle == 0) {
+        if (lbc->listBox.icon_handle)
+            ISWRenderImageFree(ctx, lbc->listBox.icon_handle);
+        lbc->listBox.icon_handle = mono
+            ? ISWRenderImageUploadMasked(ctx, mfg, pixels, rw, rh)
+            : ISWRenderImageUpload(ctx, pixels, rw, rh);
+        lbc->listBox.icon_handle_raster = pixels;
+        lbc->listBox.icon_handle_w = rw;
+        lbc->listBox.icon_handle_h = rh;
+        lbc->listBox.icon_handle_fg = mfg;
+    }
+
+    int ix = GROUP_ICON_PAD;
+    int iy = (int)hy + ((int)header_h - icon_sz) / 2;
+    if (lbc->listBox.icon_handle)
+        ISWRenderDrawImageHandle(ctx, lbc->listBox.icon_handle,
+                                 ix, iy, (unsigned)icon_sz,
+                                 (unsigned)icon_sz);
+    else if (mono)
+        ISWRenderDrawImageMasked(ctx, fg, pixels, rw, rh,
+                                 ix, iy, (unsigned)icon_sz,
+                                 (unsigned)icon_sz);
+    else
+        ISWRenderDrawImageRGBA(ctx, pixels, rw, rh,
+                               ix, iy, (unsigned)icon_sz,
+                               (unsigned)icon_sz);
+}
+
+/* Draw a group's header band (selection fill, chevron, label text).
+   Called between ISWRenderBegin/End on lbw's render context. */
+static void
+DrawGroupHeader(ListBoxWidget lbw, Widget child, Dimension header_h)
+{
+    ISWRenderContext *ctx = lbw->listBox.render_ctx;
+    Widget w = (Widget)lbw;
+    ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
+    Position hy = lbc->listBox.header_y;
+    Pixel fg = lbc->listBox.selected ? w->core.background_pixel
+                                     : lbw->listBox.foreground;
+
+    if (lbc->listBox.selected) {
+        ISWRenderSetColor(ctx, lbw->listBox.foreground);
+        ISWRenderFillRectangle(ctx, 0, hy, w->core.width, header_h);
+    }
+
+    DrawGroupChevron(lbw, lbc, hy, header_h, fg);
+
+    if (lbc->listBox.pivot_label && lbw->listBox.font) {
+        int len = (int)strlen(lbc->listBox.pivot_label);
+        if (len > 0) {
+            int cap = ISWScaledFontCapHeight(w, lbw->listBox.font);
+            int baseline = (int)hy + ((int)header_h + cap) / 2;
+            ISWRenderSetFont(ctx, lbw->listBox.font);
+            ISWRenderSetColor(ctx, fg);
+            ISWRenderDrawString(ctx, lbc->listBox.pivot_label, len,
+                                (int)header_h + GROUP_LABEL_GAP, baseline);
+        }
+    }
+}
+
 static void
 Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
@@ -630,6 +1003,9 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     ISWRenderContext *ctx = lbw->listBox.render_ctx;
     if (!ctx) return;
 
+    ListBoxWidget root = SelectionRoot(lbw);
+    Dimension header_h = HeaderHeight(lbw);
+
     ISWRenderBegin(ctx);
 
     ISWRenderSetColor(ctx, w->core.background_pixel);
@@ -640,16 +1016,26 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         if (!IswIsManaged(child)) continue;
         ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
         IswBorderSides bs = _IswGetBorderSides(child);
-        int row_h = (int)child->core.height + _IswBorderVert(bs);
+        int entry_y, entry_h;
 
-        if (lbc->listBox.selected) {
-            ISWRenderSetColor(ctx, lbw->listBox.foreground);
-            ISWRenderFillRectangle(ctx, 0, child->core.y,
-                                   w->core.width, (unsigned)row_h);
+        if (IsGroup(child)) {
+            entry_y = lbc->listBox.header_y;
+            entry_h = (int)header_h;
+            if (lbc->listBox.pivot_open)
+                entry_h += (int)child->core.height + _IswBorderVert(bs);
+            DrawGroupHeader(lbw, child, header_h);
+        } else {
+            entry_y = child->core.y;
+            entry_h = (int)child->core.height + _IswBorderVert(bs);
+            if (lbc->listBox.selected) {
+                ISWRenderSetColor(ctx, lbw->listBox.foreground);
+                ISWRenderFillRectangle(ctx, 0, entry_y,
+                                       w->core.width, (unsigned)entry_h);
+            }
         }
 
         if (lbc->listBox.separator && lbw->listBox.show_separators) {
-            int sep_y = child->core.y + row_h +
+            int sep_y = entry_y + entry_h +
                         (int)lbw->listBox.row_spacing / 2;
             ISWRenderSetColor(ctx, lbw->listBox.foreground);
             ISWRenderSetLineWidth(ctx, 1.0);
@@ -657,18 +1043,22 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         }
     }
 
-    if (lbw->listBox.has_focus && lbw->listBox.focused_index >= 0) {
-        Widget focused = ManagedChild(lbw, lbw->listBox.focused_index);
-        if (focused) {
-            ISWRenderSetColor(ctx, lbw->listBox.foreground);
-            ISWRenderSetLineWidth(ctx, 1.0);
-            {
-                IswBorderSides fbs = _IswGetBorderSides(focused);
-                ISWRenderStrokeRectangle(ctx,
-                    focused->core.x - 1, focused->core.y - 1,
-                    (int)focused->core.width + _IswBorderHoriz(fbs) + 2,
-                    (int)focused->core.height + _IswBorderVert(fbs) + 2);
-            }
+    Widget focused = root->listBox.focused_child;
+    if (root->listBox.has_focus && focused != NULL &&
+        IswParent(focused) == w) {
+        ISWRenderSetColor(ctx, lbw->listBox.foreground);
+        ISWRenderSetLineWidth(ctx, 1.0);
+        if (IsGroup(focused)) {
+            ListBoxConstraints flbc =
+                (ListBoxConstraints)focused->core.constraints;
+            ISWRenderStrokeRectangle(ctx, 1, flbc->listBox.header_y,
+                                     (int)w->core.width - 2, (int)header_h);
+        } else {
+            IswBorderSides fbs = _IswGetBorderSides(focused);
+            ISWRenderStrokeRectangle(ctx,
+                focused->core.x - 1, focused->core.y - 1,
+                (int)focused->core.width + _IswBorderHoriz(fbs) + 2,
+                (int)focused->core.height + _IswBorderVert(fbs) + 2);
         }
     }
 
@@ -692,6 +1082,13 @@ SetValues(Widget current, Widget request, Widget new,
 
     if (cur->listBox.show_separators != lbw->listBox.show_separators)
         redisplay = True;
+
+    if (cur->listBox.font != lbw->listBox.font) {
+        /* Header band height is font-derived */
+        DoLayout(lbw, False);
+        DoLayout(lbw, True);
+        redisplay = True;
+    }
 
     if (cur->listBox.foreground != lbw->listBox.foreground) {
         for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
@@ -731,6 +1128,43 @@ ConstraintInitialize(Widget request, Widget new,
     (void)request; (void)args; (void)num_args;
 
     lbc->listBox.selected = False;
+
+    lbc->listBox.pivot_label = lbc->listBox.pivot_label
+        ? IswNewString(lbc->listBox.pivot_label) : NULL;
+    lbc->listBox.pivot_image = lbc->listBox.pivot_image
+        ? IswNewString(lbc->listBox.pivot_image) : NULL;
+    lbc->listBox.pivot_image_open = lbc->listBox.pivot_image_open
+        ? IswNewString(lbc->listBox.pivot_image_open) : NULL;
+
+    lbc->listBox.header_y = 0;
+    lbc->listBox.icon_closed = NULL;
+    lbc->listBox.icon_open = NULL;
+    lbc->listBox.icon_handle = 0;
+    lbc->listBox.icon_handle_raster = NULL;
+    lbc->listBox.icon_handle_w = 0;
+    lbc->listBox.icon_handle_h = 0;
+    lbc->listBox.icon_handle_fg = 0;
+}
+
+static void
+ConstraintDestroy(Widget w)
+{
+    ListBoxConstraints lbc = (ListBoxConstraints)w->core.constraints;
+    ListBoxWidget lbw = (ListBoxWidget)IswParent(w);
+    ListBoxWidget root = SelectionRoot(lbw);
+
+    if (root->listBox.focused_child == w)
+        root->listBox.focused_child = NULL;
+    if (root->listBox.last_click_child == w)
+        root->listBox.last_click_child = NULL;
+
+    if (lbc->listBox.icon_handle && lbw->listBox.render_ctx)
+        ISWRenderImageFree(lbw->listBox.render_ctx, lbc->listBox.icon_handle);
+    ISWImageDestroy(lbc->listBox.icon_closed);
+    ISWImageDestroy(lbc->listBox.icon_open);
+    IswFree(lbc->listBox.pivot_label);
+    IswFree(lbc->listBox.pivot_image);
+    IswFree(lbc->listBox.pivot_image_open);
 }
 
 static Boolean
@@ -739,13 +1173,45 @@ ConstraintSetValues(Widget current, Widget request, Widget new,
 {
     ListBoxConstraints clbc = (ListBoxConstraints)current->core.constraints;
     ListBoxConstraints nlbc = (ListBoxConstraints)new->core.constraints;
+    ListBoxWidget lbw = (ListBoxWidget)IswParent(new);
     (void)request; (void)args; (void)num_args;
 
     if (clbc->listBox.row_height != nlbc->listBox.row_height) {
-        ListBoxWidget lbw = (ListBoxWidget)IswParent(new);
         DoLayout(lbw, False);
         DoLayout(lbw, True);
     }
+
+    if (nlbc->listBox.pivot_label != clbc->listBox.pivot_label) {
+        IswFree(clbc->listBox.pivot_label);
+        nlbc->listBox.pivot_label = nlbc->listBox.pivot_label
+            ? IswNewString(nlbc->listBox.pivot_label) : NULL;
+        if (IswIsRealized((Widget)lbw))
+            _IswRepaintWindowless((Widget)lbw);
+    }
+
+    if (nlbc->listBox.pivot_image != clbc->listBox.pivot_image) {
+        IswFree(clbc->listBox.pivot_image);
+        nlbc->listBox.pivot_image = nlbc->listBox.pivot_image
+            ? IswNewString(nlbc->listBox.pivot_image) : NULL;
+        ISWImageDestroy(nlbc->listBox.icon_closed);
+        nlbc->listBox.icon_closed = NULL;
+        if (IswIsRealized((Widget)lbw))
+            _IswRepaintWindowless((Widget)lbw);
+    }
+
+    if (nlbc->listBox.pivot_image_open != clbc->listBox.pivot_image_open) {
+        IswFree(clbc->listBox.pivot_image_open);
+        nlbc->listBox.pivot_image_open = nlbc->listBox.pivot_image_open
+            ? IswNewString(nlbc->listBox.pivot_image_open) : NULL;
+        ISWImageDestroy(nlbc->listBox.icon_open);
+        nlbc->listBox.icon_open = NULL;
+        if (IswIsRealized((Widget)lbw))
+            _IswRepaintWindowless((Widget)lbw);
+    }
+
+    if (nlbc->listBox.pivot_open != clbc->listBox.pivot_open &&
+        IsGroup(new))
+        ApplyPivotState(lbw, new);
 
     return False;
 }
@@ -759,111 +1225,137 @@ SelectAction(Widget w, IswEvent *iswev,
              String *params, Cardinal *num_params)
 {
     ListBoxWidget lbw = (ListBoxWidget)w;
+    ListBoxWidget root = SelectionRoot(lbw);
     (void)params; (void)num_params;
 
-    if (lbw->listBox.selection_mode == IswListBoxSelectNone)
+    Widget child;
+    HitZone zone = HitTestEx(lbw, IswEventX(iswev), IswEventY(iswev), &child);
+    if (zone == HitNone) return;
+
+    if (zone == HitChevron) {
+        DoToggle(lbw, child);
         return;
+    }
 
-    int idx = HitTest(lbw, IswEventY(iswev));
-    if (idx < 0) return;
-
-    Widget child = ManagedChild(lbw, idx);
-    if (!child) return;
+    if (root->listBox.selection_mode == IswListBoxSelectNone)
+        return;
 
     ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
     if (!lbc->listBox.selectable) return;
 
+    int idx = IndexOfManagedChild(lbw, child);
+
     /* Double-click detection */
     IswTime now = iswev->button.time;
-    if (idx == lbw->listBox.last_click_index &&
-        (now - lbw->listBox.last_click_time) < DOUBLE_CLICK_MS) {
-        FireActivateCallback(lbw, child, idx);
-        lbw->listBox.last_click_time = 0;
+    if (child == root->listBox.last_click_child &&
+        (now - root->listBox.last_click_time) < DOUBLE_CLICK_MS) {
+        FireActivateCallback(root, lbw, child, idx);
+        root->listBox.last_click_time = 0;
         return;
     }
-    lbw->listBox.last_click_time = now;
-    lbw->listBox.last_click_index = idx;
+    root->listBox.last_click_time = now;
+    root->listBox.last_click_child = child;
 
-    if (lbw->listBox.selection_mode == IswListBoxSelectSingle) {
-        ClearAllSelections(lbw);
+    if (root->listBox.selection_mode == IswListBoxSelectSingle) {
+        ClearAllSelections(root);
         ApplySelectionVisual(lbw, child, True);
     } else {
         /* Multi mode: Ctrl toggles, plain click selects only this one */
         if (IswEventModifiers(iswev) & IswModControl) {
             ApplySelectionVisual(lbw, child, !lbc->listBox.selected);
         } else if (IswEventModifiers(iswev) & IswModShift) {
-            /* Extend from focused_index to idx */
-            int anchor = lbw->listBox.focused_index >= 0
-                ? lbw->listBox.focused_index : 0;
-            int lo = anchor < idx ? anchor : idx;
-            int hi = anchor > idx ? anchor : idx;
-            ClearAllSelections(lbw);
-            for (int r = lo; r <= hi; r++) {
-                Widget rc = ManagedChild(lbw, r);
-                if (!rc) continue;
-                ListBoxConstraints rlbc =
-                    (ListBoxConstraints)rc->core.constraints;
-                if (rlbc->listBox.selectable)
-                    ApplySelectionVisual(lbw, rc, True);
+            /* Extend from the focused entry to the clicked one; ranges
+               only have meaning within one immediate ListBox, so a
+               cross-boundary anchor degrades to a plain select. */
+            Widget fc = root->listBox.focused_child;
+            int anchor = (fc != NULL && IswParent(fc) == w)
+                ? IndexOfManagedChild(lbw, fc) : -1;
+            ClearAllSelections(root);
+            if (anchor >= 0) {
+                int lo = anchor < idx ? anchor : idx;
+                int hi = anchor > idx ? anchor : idx;
+                int n = 0;
+                for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
+                    Widget rc = lbw->composite.children[i];
+                    if (!IswIsManaged(rc)) continue;
+                    if (n >= lo && n <= hi) {
+                        ListBoxConstraints rlbc =
+                            (ListBoxConstraints)rc->core.constraints;
+                        if (rlbc->listBox.selectable)
+                            ApplySelectionVisual(lbw, rc, True);
+                    }
+                    n++;
+                }
+            } else {
+                ApplySelectionVisual(lbw, child, True);
             }
         } else {
-            ClearAllSelections(lbw);
+            ClearAllSelections(root);
             ApplySelectionVisual(lbw, child, True);
         }
     }
 
-    lbw->listBox.focused_index = idx;
+    root->listBox.focused_child = child;
 
-    if (IswIsRealized(w)) {
-        _IswRepaintWindowless(w);
+    if (IswIsRealized((Widget)root)) {
+        _IswRepaintWindowless((Widget)root);
     }
 
-    FireSelectCallback(lbw, child, idx);
+    FireSelectCallback(root, lbw, child, idx);
 }
 
 static void
 MoveFocusAction(Widget w, IswEvent *iswev,
                 String *params, Cardinal *num_params)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
+    ListBoxWidget root = SelectionRoot((ListBoxWidget)w);
     (void)iswev;
 
     if (!num_params || *num_params < 1) return;
 
-    int count = ManagedCount(lbw);
-    if (count == 0) return;
+    int count;
+    Widget *flat = FlattenEntries(root, &count);
+    if (count == 0) {
+        if (flat) IswFree((char *)flat);
+        return;
+    }
 
-    int idx = lbw->listBox.focused_index;
+    int cur = -1;
+    for (int i = 0; i < count; i++)
+        if (flat[i] == root->listBox.focused_child) { cur = i; break; }
 
+    int idx = cur;
     if (strcmp(params[0], "up") == 0) {
-        idx = (idx > 0) ? idx - 1 : 0;
+        idx = (cur > 0) ? cur - 1 : 0;
     } else if (strcmp(params[0], "down") == 0) {
-        idx = (idx < count - 1) ? idx + 1 : count - 1;
+        idx = (cur < count - 1) ? cur + 1 : count - 1;
     } else if (strcmp(params[0], "home") == 0) {
         idx = 0;
     } else if (strcmp(params[0], "end") == 0) {
         idx = count - 1;
     }
+    if (idx < 0) idx = 0;
 
-    if (idx == lbw->listBox.focused_index) return;
+    Widget entry = flat[idx];
+    IswFree((char *)flat);
 
-    lbw->listBox.focused_index = idx;
+    if (entry == root->listBox.focused_child) return;
 
-    if (lbw->listBox.selection_mode == IswListBoxSelectSingle) {
-        Widget child = ManagedChild(lbw, idx);
-        if (child) {
-            ListBoxConstraints lbc =
-                (ListBoxConstraints)child->core.constraints;
-            if (lbc->listBox.selectable) {
-                ClearAllSelections(lbw);
-                ApplySelectionVisual(lbw, child, True);
-                FireSelectCallback(lbw, child, idx);
-            }
+    root->listBox.focused_child = entry;
+
+    if (root->listBox.selection_mode == IswListBoxSelectSingle) {
+        ListBoxConstraints lbc = (ListBoxConstraints)entry->core.constraints;
+        if (lbc->listBox.selectable) {
+            ListBoxWidget list = (ListBoxWidget)IswParent(entry);
+            ClearAllSelections(root);
+            ApplySelectionVisual(list, entry, True);
+            FireSelectCallback(root, list, entry,
+                               IndexOfManagedChild(list, entry));
         }
     }
 
-    if (IswIsRealized(w)) {
-        _IswRepaintWindowless(w);
+    if (IswIsRealized((Widget)root)) {
+        _IswRepaintWindowless((Widget)root);
     }
 }
 
@@ -871,105 +1363,128 @@ static void
 ToggleAction(Widget w, IswEvent *iswev,
              String *params, Cardinal *num_params)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
+    ListBoxWidget root = SelectionRoot((ListBoxWidget)w);
     (void)iswev; (void)params; (void)num_params;
 
-    if (lbw->listBox.selection_mode == IswListBoxSelectNone) return;
-    if (lbw->listBox.focused_index < 0) return;
+    if (root->listBox.selection_mode == IswListBoxSelectNone) return;
 
-    Widget child = ManagedChild(lbw, lbw->listBox.focused_index);
+    Widget child = root->listBox.focused_child;
     if (!child) return;
 
     ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
     if (!lbc->listBox.selectable) return;
 
-    if (lbw->listBox.selection_mode == IswListBoxSelectSingle) {
-        ClearAllSelections(lbw);
-        ApplySelectionVisual(lbw, child, True);
+    ListBoxWidget list = (ListBoxWidget)IswParent(child);
+    if (root->listBox.selection_mode == IswListBoxSelectSingle) {
+        ClearAllSelections(root);
+        ApplySelectionVisual(list, child, True);
     } else {
-        ApplySelectionVisual(lbw, child, !lbc->listBox.selected);
+        ApplySelectionVisual(list, child, !lbc->listBox.selected);
     }
 
-    if (IswIsRealized(w)) {
-        _IswRepaintWindowless(w);
+    if (IswIsRealized((Widget)root)) {
+        _IswRepaintWindowless((Widget)root);
     }
 
-    FireSelectCallback(lbw, child, lbw->listBox.focused_index);
+    FireSelectCallback(root, list, child, IndexOfManagedChild(list, child));
 }
 
 static void
 ActivateAction(Widget w, IswEvent *iswev,
                String *params, Cardinal *num_params)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
+    ListBoxWidget root = SelectionRoot((ListBoxWidget)w);
     (void)iswev; (void)params; (void)num_params;
 
-    if (lbw->listBox.focused_index < 0) return;
-
-    Widget child = ManagedChild(lbw, lbw->listBox.focused_index);
+    Widget child = root->listBox.focused_child;
     if (!child) return;
 
-    FireActivateCallback(lbw, child, lbw->listBox.focused_index);
+    ListBoxWidget list = (ListBoxWidget)IswParent(child);
+    FireActivateCallback(root, list, child, IndexOfManagedChild(list, child));
 }
 
 static void
 ExtendAction(Widget w, IswEvent *iswev,
              String *params, Cardinal *num_params)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
+    ListBoxWidget root = SelectionRoot((ListBoxWidget)w);
     (void)iswev;
 
-    if (lbw->listBox.selection_mode != IswListBoxSelectMulti) return;
+    if (root->listBox.selection_mode != IswListBoxSelectMulti) return;
     if (!num_params || *num_params < 1) return;
 
-    int count = ManagedCount(lbw);
-    if (count == 0) return;
+    int count;
+    Widget *flat = FlattenEntries(root, &count);
+    if (count == 0) {
+        if (flat) IswFree((char *)flat);
+        return;
+    }
 
-    int idx = lbw->listBox.focused_index;
+    int cur = -1;
+    for (int i = 0; i < count; i++)
+        if (flat[i] == root->listBox.focused_child) { cur = i; break; }
+
+    int idx = cur;
     if (strcmp(params[0], "up") == 0) {
-        idx = (idx > 0) ? idx - 1 : 0;
+        idx = (cur > 0) ? cur - 1 : 0;
     } else if (strcmp(params[0], "down") == 0) {
-        idx = (idx < count - 1) ? idx + 1 : count - 1;
+        idx = (cur < count - 1) ? cur + 1 : count - 1;
+    }
+    if (idx < 0) idx = 0;
+
+    Widget entry = flat[idx];
+    IswFree((char *)flat);
+
+    if (entry == root->listBox.focused_child) return;
+
+    Widget prev = root->listBox.focused_child;
+    ListBoxWidget list = (ListBoxWidget)IswParent(entry);
+    ListBoxConstraints lbc = (ListBoxConstraints)entry->core.constraints;
+    if (lbc->listBox.selectable) {
+        /* Extending across a group boundary has no range meaning:
+           degrade to a plain single select. */
+        if (prev == NULL || IswParent(entry) != IswParent(prev))
+            ClearAllSelections(root);
+        ApplySelectionVisual(list, entry, True);
     }
 
-    if (idx == lbw->listBox.focused_index) return;
+    root->listBox.focused_child = entry;
 
-    Widget child = ManagedChild(lbw, idx);
-    if (child) {
-        ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
-        if (lbc->listBox.selectable)
-            ApplySelectionVisual(lbw, child, True);
+    if (IswIsRealized((Widget)root)) {
+        _IswRepaintWindowless((Widget)root);
     }
 
-    lbw->listBox.focused_index = idx;
-
-    if (IswIsRealized(w)) {
-        _IswRepaintWindowless(w);
-    }
-
-    if (child)
-        FireSelectCallback(lbw, child, idx);
+    FireSelectCallback(root, list, entry, IndexOfManagedChild(list, entry));
 }
 
 static void
-SelectAllAction(Widget w, IswEvent *iswev,
-                String *params, Cardinal *num_params)
+SelectAllIn(ListBoxWidget lbw)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
-    (void)iswev; (void)params; (void)num_params;
-
-    if (lbw->listBox.selection_mode != IswListBoxSelectMulti) return;
-
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
         Widget child = lbw->composite.children[i];
         if (!IswIsManaged(child)) continue;
         ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
         if (lbc->listBox.selectable)
             ApplySelectionVisual(lbw, child, True);
+        /* Only visible entries: closed groups stay untouched inside. */
+        if (IsGroup(child) && lbc->listBox.pivot_open)
+            SelectAllIn((ListBoxWidget)child);
     }
+}
 
-    if (IswIsRealized(w)) {
-        _IswRepaintWindowless(w);
+static void
+SelectAllAction(Widget w, IswEvent *iswev,
+                String *params, Cardinal *num_params)
+{
+    ListBoxWidget root = SelectionRoot((ListBoxWidget)w);
+    (void)iswev; (void)params; (void)num_params;
+
+    if (root->listBox.selection_mode != IswListBoxSelectMulti) return;
+
+    SelectAllIn(root);
+
+    if (IswIsRealized((Widget)root)) {
+        _IswRepaintWindowless((Widget)root);
     }
 }
 
@@ -977,19 +1492,24 @@ static void
 FocusAction(Widget w, IswEvent *iswev,
             String *params, Cardinal *num_params)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
+    ListBoxWidget root = SelectionRoot((ListBoxWidget)w);
     (void)iswev;
 
     if (!num_params || *num_params < 1) return;
 
     Boolean in = (strcmp(params[0], "in") == 0);
-    lbw->listBox.has_focus = in;
+    root->listBox.has_focus = in;
 
-    if (in && lbw->listBox.focused_index < 0 && ManagedCount(lbw) > 0)
-        lbw->listBox.focused_index = 0;
+    if (in && root->listBox.focused_child == NULL) {
+        int count;
+        Widget *flat = FlattenEntries(root, &count);
+        if (count > 0)
+            root->listBox.focused_child = flat[0];
+        if (flat) IswFree((char *)flat);
+    }
 
-    if (IswIsRealized(w)) {
-        _IswRepaintWindowless(w);
+    if (IswIsRealized((Widget)root)) {
+        _IswRepaintWindowless((Widget)root);
     }
 }
 
@@ -997,32 +1517,33 @@ FocusAction(Widget w, IswEvent *iswev,
  * Public API
  * ================================================================ */
 
-Widget
-IswListBoxGetSelected(Widget w)
+static Widget
+FirstSelectedIn(ListBoxWidget lbw)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
-
     for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
         Widget child = lbw->composite.children[i];
         if (!IswIsManaged(child)) continue;
         ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
         if (lbc->listBox.selected) return child;
+        if (IsGroup(child)) {
+            Widget found = FirstSelectedIn((ListBoxWidget)child);
+            if (found) return found;
+        }
     }
     return NULL;
+}
+
+Widget
+IswListBoxGetSelected(Widget w)
+{
+    return FirstSelectedIn(SelectionRoot((ListBoxWidget)w));
 }
 
 int
 IswListBoxGetSelectedChildren(Widget w, Widget **children_out)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
-    int count = 0;
-
-    for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
-        Widget child = lbw->composite.children[i];
-        if (!IswIsManaged(child)) continue;
-        ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
-        if (lbc->listBox.selected) count++;
-    }
+    ListBoxWidget root = SelectionRoot((ListBoxWidget)w);
+    int count = CountSelectedIn(root);
 
     if (count == 0) {
         *children_out = NULL;
@@ -1031,12 +1552,7 @@ IswListBoxGetSelectedChildren(Widget w, Widget **children_out)
 
     *children_out = (Widget *)IswMalloc((Cardinal)(count * (int)sizeof(Widget)));
     int j = 0;
-    for (Cardinal i = 0; i < lbw->composite.num_children; i++) {
-        Widget child = lbw->composite.children[i];
-        if (!IswIsManaged(child)) continue;
-        ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
-        if (lbc->listBox.selected) (*children_out)[j++] = child;
-    }
+    GatherSelectedIn(root, *children_out, &j);
 
     return count;
 }
@@ -1044,30 +1560,41 @@ IswListBoxGetSelectedChildren(Widget w, Widget **children_out)
 void
 IswListBoxClearSelection(Widget w)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
-    ClearAllSelections(lbw);
+    ListBoxWidget root = SelectionRoot((ListBoxWidget)w);
+    ClearAllSelections(root);
 
-    if (IswIsRealized(w)) {
-        _IswRepaintWindowless(w);
+    if (IswIsRealized((Widget)root)) {
+        _IswRepaintWindowless((Widget)root);
     }
 }
 
 void
 IswListBoxSelectChild(Widget w, Widget child)
 {
-    ListBoxWidget lbw = (ListBoxWidget)w;
+    ListBoxWidget root = SelectionRoot((ListBoxWidget)w);
 
-    if (lbw->listBox.selection_mode == IswListBoxSelectNone) return;
+    if (root->listBox.selection_mode == IswListBoxSelectNone) return;
+
+    Widget pw = IswParent(child);
+    if (pw == NULL || !IswIsSubclass(pw, listBoxWidgetClass)) return;
+    ListBoxWidget list = (ListBoxWidget)pw;
+
+    /* Never create a hidden selection: refuse if any group between the
+       entry and the root is closed. */
+    for (Widget a = pw; a != (Widget)root; a = IswParent(a)) {
+        ListBoxConstraints albc = (ListBoxConstraints)a->core.constraints;
+        if (!albc->listBox.pivot_open) return;
+    }
 
     ListBoxConstraints lbc = (ListBoxConstraints)child->core.constraints;
     if (!lbc->listBox.selectable) return;
 
-    if (lbw->listBox.selection_mode == IswListBoxSelectSingle)
-        ClearAllSelections(lbw);
+    if (root->listBox.selection_mode == IswListBoxSelectSingle)
+        ClearAllSelections(root);
 
-    ApplySelectionVisual(lbw, child, True);
+    ApplySelectionVisual(list, child, True);
 
-    if (IswIsRealized(w)) {
-        _IswRepaintWindowless(w);
+    if (IswIsRealized((Widget)root)) {
+        _IswRepaintWindowless((Widget)root);
     }
 }
