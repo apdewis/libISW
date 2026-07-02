@@ -84,6 +84,7 @@ in this Software without prior written authorization from The Open Group.
 #include "VendorP.h"
 #include <ISW/FocusMgrI.h>
 #include <ISW/SimpleP.h>
+#include <ISW/ISWRender.h>
 
 #include <ISW/IswDragDrop.h>
 #include <stdio.h>
@@ -1571,12 +1572,26 @@ EventHandler(Widget wid,
         resize = IswClass(wid)->core_class.resize;
         UNLOCK_PROCESS;
 
-        if (sizechanged && resize) {
-            CALLGEOTAT(_IswGeoTrace((Widget) w,
-                                   "Shell \"%s\" is being resized to %d %d.\n",
-                                   IswName(wid), wid->core.width,
-                                   wid->core.height));
-            (*resize) (wid);
+        if (sizechanged) {
+            if (resize) {
+                CALLGEOTAT(_IswGeoTrace((Widget) w,
+                                       "Shell \"%s\" is being resized to %d %d.\n",
+                                       IswName(wid), wid->core.width,
+                                       wid->core.height));
+                (*resize) (wid);
+            }
+            /* Present at the new size even if the relayout changed no child
+               geometry (which would request its own composite): the WM may be
+               waiting on our frame-sync acknowledgement before it continues
+               an interactive resize.  Coalesced — merges with any request the
+               relayout already made. */
+            ISWRenderRequestComposite(wid);
+        } else {
+            /* Same-size configure (a move, or a resize coalesced back to the
+               current size): the presented frame is already valid for it, so
+               acknowledge any pending WM frame-sync request directly. */
+            _IswPlatformFramePresented(IswDisplayOf(wid),
+                _IswPlatformWidgetWindow(IswDisplayOf(wid), wid));
         }
     }
 }
