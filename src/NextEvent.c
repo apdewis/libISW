@@ -1492,6 +1492,17 @@ IswAppNextEvent(IswAppContext app, IswEvent *event)
     }                           /* for */
 }
 
+/* One composite per queue drain: while more input is already queued, hold an
+   extra composite-defer level open so each dispatched event's own internal
+   Begin/Flush pair (IswDispatchEvent) coalesces instead of folding and
+   presenting per event.  A wheel flick that queues dozens of notches then
+   costs dozens of cheap state updates and ONE repaint/composite/swap; without
+   this every notch pays its own vsync-blocked buffer swap, serially.  The
+   hold is released the moment the refilled queue is empty, so a nested modal
+   event loop flushes early and added latency is bounded by the drain itself
+   (microseconds when dispatches are not painting). */
+static Boolean drain_hold = False;
+
 void
 IswAppProcessEvent(IswAppContext app, IswInputMask mask)
 {
@@ -1599,6 +1610,13 @@ IswAppProcessEvent(IswAppContext app, IswInputMask mask)
                 }
                 IswFree((char *) node);
 
+                /* Open (or keep) the drain hold before dispatching, so the
+                   dispatch's internal composite flush coalesces. */
+                if (!drain_hold) {
+                    ISWRenderBeginDeferComposite();
+                    drain_hold = True;
+                }
+
                 /* The event was stamped with its target widget at enqueue.  If
                  * that widget was destroyed before we got here (e.g. a ComboBox
                  * dropdown popup destroyed on selection while its grab events
@@ -1614,6 +1632,16 @@ IswAppProcessEvent(IswAppContext app, IswInputMask mask)
                 if (event->any.native)
                     IswFree(event->any.native);
                 IswFree((char *) event);
+
+                /* Pull in anything that arrived while dispatching, so a burst
+                   keeps coalescing across successive ProcessEvent calls. */
+                _IswFillEventQueue(app);
+            }
+
+            /* Drain over: nothing else queued, fold + present once. */
+            if (drain_hold && app->event_front == NULL) {
+                drain_hold = False;
+                ISWRenderFlushComposites();
             }
 
             UNLOCK_APP(app);
