@@ -578,6 +578,17 @@ MoveChild(ViewportWidget w, Position x, Position y)
     /* Compute the tile before positioning — this may force a repaint. */
     Boolean tile_changed = ComputeTile(w, x, y);
 
+    /* A changed tile means the surface's pixels are addressed at the OLD
+       origin: mark the child dirty BEFORE the move below.  The move's
+       position-only configure skips its inline re-expose for virtual-origin
+       widgets and requests a composite, which can run immediately (no defer
+       bracket open); the fold's re-expose gate must already see the widget
+       dirty or it folds stale-origin content at the new origin. */
+    if (tile_changed) {
+        child->core.composite_dirty = True;
+        _ISWRenderMarkDirtyChain(child);
+    }
+
     /* (x,y) is the pure scroll offset (<= 0).  The child is a tree-child of the
        Viewport and composites at its own core.x/y, so position it at the clip's
        origin (which the layout placed inside any left/top scrollbars) plus the
@@ -591,11 +602,6 @@ MoveChild(ViewportWidget w, Position x, Position y)
        does not overflow into the scrollbar bands or past the viewport edges. */
     ISWRenderSetCompositeClip(child, clip->core.x, clip->core.y,
                               clip->core.width, clip->core.height);
-
-    if (tile_changed) {
-        child->core.composite_dirty = True;
-        _ISWRenderMarkDirtyChain(child);
-    }
 
     SendReport (w, (IswPRSliderX | IswPRSliderY));
 

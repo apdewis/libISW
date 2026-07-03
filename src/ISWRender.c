@@ -667,11 +667,21 @@ _isw_composite_children_into_at(Widget parent, IswSurface dst,
     }
 }
 
-/* Fold a parent's windowless children into the parent's OWN surface. */
+/* Fold a parent's windowless children into the parent's OWN surface.
+   A virtual-origin (tiled) surface addresses pixel (0,0) at widget-local
+   (virt_x, virt_y): children's positions are widget-local, so shift them
+   by -origin or they land in the tile untranslated — visibly displaced
+   from the parent's own (origin-translated) painting once the tile moves
+   off (0,0). */
 static void
 _isw_composite_children_into(Widget parent, IswSurface parent_surface)
 {
-    _isw_composite_children_into_at(parent, parent_surface, parent, 0, 0);
+    int ox = 0, oy = 0;
+    if (IswIsWidget(parent) && parent->core.virtual_origin) {
+        ox = -parent->core.virtual_origin_x;
+        oy = -parent->core.virtual_origin_y;
+    }
+    _isw_composite_children_into_at(parent, parent_surface, parent, ox, oy);
 }
 
 void
