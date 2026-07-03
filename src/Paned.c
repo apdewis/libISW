@@ -72,6 +72,7 @@ SOFTWARE.
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWPlatform.h>
 #include <ctype.h>
+#include <limits.h>
 
 extern double _IswGetScaleFactor(IswDisplay dpy);
 
@@ -158,7 +159,7 @@ static IswResource subresources[] = {
     {IswNmin, IswCMin, IswRDimension, sizeof(Dimension),
          offset(min), IswRImmediate, (IswPointer) PANED_GRIP_SIZE},
     {IswNmax, IswCMax, IswRDimension, sizeof(Dimension),
-         offset(max), IswRImmediate, (IswPointer) ~0},
+         offset(max), IswRImmediate, (IswPointer) INT_MAX},
     {IswNpreferredPaneSize, IswCPreferredPaneSize, IswRDimension,
 	 sizeof(Dimension), offset(preferred_size),
          IswRImmediate, (IswPointer) PANED_ASK_CHILD},
