@@ -613,9 +613,13 @@ ComputeTotalHeight(ListBoxWidget lbw)
         IswBorderSides bs = _IswGetBorderSides(child);
         Dimension h;
         if (IsGroup(child)) {
+            /* Body height is content-derived (recursive), never the
+               child's core height: an empty group's core height is the
+               100px constructor default and nothing ever corrects it. */
             h = header_h;
             if (lbc->listBox.pivot_open)
-                h += child->core.height + _IswBorderVert(bs);
+                h += ComputeTotalHeight((ListBoxWidget)child)
+                     + _IswBorderVert(bs);
         } else {
             h = (lbc->listBox.row_height > 0)
                 ? lbc->listBox.row_height : child->core.height;
@@ -657,15 +661,15 @@ DoLayout(ListBoxWidget lbw, Boolean position)
                 lbc->listBox.header_y = y;
             y += (Position)header_h;
             if (lbc->listBox.pivot_open) {
+                Dimension body_h = ComputeTotalHeight((ListBoxWidget)child);
                 Dimension child_w = (w->core.width > header_h)
                     ? w->core.width - header_h : 1;
                 if (child_w > (Dimension)_IswBorderHoriz(bs))
                     child_w -= (Dimension)_IswBorderHoriz(bs);
                 if (position)
                     IswConfigureWidget(child, (Position)header_h, y, child_w,
-                                       child->core.height,
-                                       child->core.border_width);
-                y += (Position)(child->core.height + _IswBorderVert(bs));
+                                       body_h, child->core.border_width);
+                y += (Position)(body_h + _IswBorderVert(bs));
             }
         } else {
             Dimension child_h = (lbc->listBox.row_height > 0)
