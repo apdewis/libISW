@@ -479,6 +479,7 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
                 IswWidgetGeometry *reply)
 {
     FlexBoxWidget fw = (FlexBoxWidget)IswParent(child);
+    FlexBoxConstraints fc = (FlexBoxConstraints)child->core.constraints;
     (void)reply;
 
     /* During layout the container is the sole authority on child geometry.
@@ -489,6 +490,18 @@ GeometryManager(Widget child, IswWidgetGeometry *request,
 
     if (request->request_mode & (IswCWX | IswCWY))
         return IswGeometryNo;
+
+    /* Fixed and fill children are sized by the layout, not by their own
+     * requests.  Refusing tells the child to fit its content into the
+     * size it already has (a Paned refits its panes and answers its own
+     * child with IswGeometryAlmost). */
+    if ((request->request_mode & (IswCWWidth | IswCWHeight)) &&
+        (fc->flexBox.fixed_size > 0 || fc->flexBox.fill_weight > 0))
+        return IswGeometryNo;
+
+    /* A query must not change any state. */
+    if (request->request_mode & IswCWQueryOnly)
+        return IswGeometryYes;
 
     if (request->request_mode & IswCWWidth)
         child->core.width = request->width;

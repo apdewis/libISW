@@ -274,6 +274,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
 
     fw->form.old_width = fw->core.width;
     fw->form.old_height = fw->core.height;
+    fw->form.preferred_width = fw->core.width;
+    fw->form.preferred_height = fw->core.height;
     fw->form.no_refigure = False;
     fw->form.needs_relayout = False;
     fw->form.resize_in_layout = True;
@@ -547,15 +549,27 @@ Resize(Widget w)
     Widget *childP;
     Position x, y;
     Dimension width, height;
+    Dimension old_width = fw->form.old_width;
+    Dimension old_height = fw->form.old_height;
+
+    /* A form that entered its parent at zero size (its growth request was
+       refused before it was ever committed) has no rubber-sheet baseline:
+       the children are laid out for the preferred geometry, so chained
+       edges must transform from that, not from zero — otherwise every
+       ChainRight/ChainBottom edge jumps by the full new dimension. */
+    if (old_width == 0)
+	old_width = fw->form.preferred_width;
+    if (old_height == 0)
+	old_height = fw->form.preferred_height;
 
     if (!fw->form.resize_is_no_op)
 	for (childP = children; childP - children < num_children; childP++) {
 	    FormConstraints form= (FormConstraints)(*childP)->core.constraints;
 	    if (!IswIsManaged(*childP)) continue;
 
-	    x = TransformCoord( (*childP)->core.x, fw->form.old_width,
+	    x = TransformCoord( (*childP)->core.x, old_width,
 			       fw->core.width, form->form.left );
-	    y = TransformCoord( (*childP)->core.y, fw->form.old_height,
+	    y = TransformCoord( (*childP)->core.y, old_height,
 			       fw->core.height, form->form.top );
 
 	    {
@@ -567,7 +581,7 @@ Resize(Widget w)
 		    TransformCoord((Position)((*childP)->core.x
 					      + form->form.virtual_width
 					      + bh),
-				   fw->form.old_width, fw->core.width,
+				   old_width, fw->core.width,
 				   form->form.right )
 			- (x + bh);
 
@@ -575,7 +589,7 @@ Resize(Widget w)
 		    TransformCoord((Position)((*childP)->core.y
 					      + form->form.virtual_height
 					      + bv),
-				   fw->form.old_height, fw->core.height,
+				   old_height, fw->core.height,
 				   form->form.bottom )
 			- ( y + bv);
 	    }
