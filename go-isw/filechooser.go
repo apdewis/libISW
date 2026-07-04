@@ -18,3 +18,8 @@ func ParseFileChooserCallbackData(callData CallData) *FileChooserCallbackData {
 	cd := (*C.IswFileChooserCallbackData)(callData.ptr)
 	return &FileChooserCallbackData{Path: C.GoString(cd.path)}
 }
+
+// FileChooserGetPath returns the currently selected path.
+func FileChooserGetPath(w Widget) string {
+	return C.GoString(C.IswFileChooserGetPath(w.c))
+}

@@ -3,6 +3,16 @@ package isw
 /*
 #include <ISW/Intrinsic.h>
 #include <ISW/ISWRender.h>
+#include <stdlib.h>
+
+static IswFontStruct* _isw_get_font_resource(Widget w, const char *name) {
+	IswFontStruct *f = NULL;
+	Arg arg;
+	arg.name = (String)name;
+	arg.value = (IswArgVal)(uintptr_t)&f;
+	IswGetValues(w, &arg, 1);
+	return f;
+}
 */
 import "C"
 
@@ -289,6 +299,124 @@ func ScaleDim(w Widget, value int) int {
 // UnscaleDim converts physical pixels to logical.
 func UnscaleDim(w Widget, value int) int {
 	return int(C.ISWUnscaleDim(w.c, C.int(value)))
+}
+
+// ScalePos scales a logical position to physical pixels.
+func ScalePos(w Widget, value int) int {
+	return int(C.ISWScalePos(w.c, C.int(value)))
+}
+
+// UnscalePos converts a physical position to logical pixels.
+func UnscalePos(w Widget, value int) int {
+	return int(C.ISWUnscalePos(w.c, C.int(value)))
+}
+
+// Font wraps an IswFontStruct pointer.
+type Font struct {
+	c *C.IswFontStruct
+}
+
+// IsNil returns true if the font is NULL.
+func (f Font) IsNil() bool { return f.c == nil }
+
+// GetFont reads a font resource (e.g. Nfont) from a widget.
+func (w Widget) GetFont(name string) Font {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	return Font{C._isw_get_font_resource(w.c, cName)}
+}
+
+// SetFont sets the font for ShowText.
+func (rc *RenderContext) SetFont(font Font) {
+	C.ISWRenderSetFont(rc.c, font.c)
+}
+
+// ShowText draws text at the current path position using the font set
+// with SetFont.
+func (rc *RenderContext) ShowText(text string) {
+	cText := C.CString(text)
+	defer C.free(unsafe.Pointer(cText))
+	C.ISWRenderShowText(rc.c, cText)
+}
+
+// SetDash sets the stroke dash pattern; an empty slice resets to solid.
+func (rc *RenderContext) SetDash(dashes []float64, offset float64) {
+	var d *C.double
+	if len(dashes) > 0 {
+		cDashes := make([]C.double, len(dashes))
+		for i, v := range dashes {
+			cDashes[i] = C.double(v)
+		}
+		d = &cDashes[0]
+	}
+	C.ISWRenderSetDash(rc.c, d, C.int(len(dashes)), C.double(offset))
+}
+
+// FillStrokeRoundedRectangle fills and strokes a rounded rectangle in
+// one pass.
+func (rc *RenderContext) FillStrokeRoundedRectangle(x, y, w, h int, radius, strokeWidth float64) {
+	C.ISWRenderFillStrokeRoundedRectangle(rc.c, C.int(x), C.int(y),
+		C.int(w), C.int(h), C.double(radius), C.double(strokeWidth))
+}
+
+// PixelToRGB converts a pixel value to RGB components in [0, 1].
+func (rc *RenderContext) PixelToRGB(pixel Pixel) (r, g, b float64) {
+	var cr, cg, cb C.double
+	C.ISWRenderPixelToRGB(rc.c, C.Pixel(pixel), &cr, &cg, &cb)
+	return float64(cr), float64(cg), float64(cb)
+}
+
+// DrawImageMasked draws an RGBA image as an alpha mask painted with the
+// foreground color.
+func (rc *RenderContext) DrawImageMasked(foreground Pixel, rgba []byte, imgW, imgH uint, dstX, dstY int, dstW, dstH uint) {
+	if len(rgba) == 0 {
+		return
+	}
+	C.ISWRenderDrawImageMasked(rc.c, C.Pixel(foreground),
+		(*C.uchar)(unsafe.Pointer(&rgba[0])), C.uint(imgW), C.uint(imgH),
+		C.int(dstX), C.int(dstY), C.uint(dstW), C.uint(dstH))
+}
+
+// ImageUploadMasked tints an alpha mask with a foreground color and
+// uploads it to a retained texture.
+func (rc *RenderContext) ImageUploadMasked(foreground Pixel, rgba []byte, w, h uint) int {
+	if len(rgba) == 0 {
+		return 0
+	}
+	return int(C.ISWRenderImageUploadMasked(rc.c, C.Pixel(foreground),
+		(*C.uchar)(unsafe.Pointer(&rgba[0])), C.uint(w), C.uint(h)))
+}
+
+// ScaledFontHeight returns the font line height as rendered.
+func ScaledFontHeight(w Widget, font Font) int {
+	return int(C.ISWScaledFontHeight(w.c, font.c))
+}
+
+// ScaledFontAscent returns the font ascent as rendered.
+func ScaledFontAscent(w Widget, font Font) int {
+	return int(C.ISWScaledFontAscent(w.c, font.c))
+}
+
+// ScaledFontCapHeight returns the height of a capital letter as rendered.
+func ScaledFontCapHeight(w Widget, font Font) int {
+	return int(C.ISWScaledFontCapHeight(w.c, font.c))
+}
+
+// ScaledTextWidth measures text width at the scaled font size.
+func ScaledTextWidth(w Widget, font Font, text string) int {
+	cText := C.CString(text)
+	defer C.free(unsafe.Pointer(cText))
+	return int(C.ISWScaledTextWidth(w.c, font.c, cText, C.int(len(text))))
+}
+
+// PixelSetAlpha replaces the alpha component of a pixel.
+func PixelSetAlpha(p Pixel, a uint8) Pixel {
+	return (p &^ (0xFF << 24)) | Pixel(a)<<24
+}
+
+// PixelWithAlphaF replaces the alpha component with a [0, 1] fraction.
+func PixelWithAlphaF(p Pixel, af float64) Pixel {
+	return PixelSetAlpha(p, uint8(af*255.0+0.5))
 }
 
 // PrintBackendInfo prints rendering backend info to stdout.

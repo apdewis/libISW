@@ -46,11 +46,11 @@ func populateMenubar(menubar isw.Widget, accelDest isw.Widget) {
 		isw.NewArgList().Label("File").MenuName("fileMenu"))
 
 	fileMenu := isw.CreatePopupShell("fileMenu", isw.SimpleMenuClass, menubar, nil)
-	newItem := isw.CreateManagedWidget("new", isw.SmeBSBClass, fileMenu,
-		isw.NewArgList().Label("New"))
+	newItem := isw.CreateManagedWidget("new", isw.SmeBSBClass, fileMenu, nil)
+	newItem.SetValues(isw.NewArgList().Label("New"))
 	isw.CreateManagedWidget("sep1", isw.SmeLineClass, fileMenu, nil)
-	quitItem := isw.CreateManagedWidget("quit", isw.SmeBSBClass, fileMenu,
-		isw.NewArgList().Label("Quit"))
+	quitItem := isw.CreateManagedWidget("quit", isw.SmeBSBClass, fileMenu, nil)
+	quitItem.SetValues(isw.NewArgList().Label("Quit"))
 
 	newItem.AddCallback(isw.Ncallback, func(w isw.Widget, cd isw.CallData) {
 		setStatus("New clicked")
@@ -64,8 +64,8 @@ func populateMenubar(menubar isw.Widget, accelDest isw.Widget) {
 	isw.CreateManagedWidget("help", isw.MenuButtonClass, menubar,
 		isw.NewArgList().Label("Help").MenuName("helpMenu"))
 
-	aboutItem := isw.CreateManagedWidget("about", isw.SmeBSBClass, helpMenu,
-		isw.NewArgList().Label("About"))
+	aboutItem := isw.CreateManagedWidget("about", isw.SmeBSBClass, helpMenu, nil)
+	aboutItem.SetValues(isw.NewArgList().Label("About"))
 	aboutItem.AddCallback(isw.Ncallback, func(w isw.Widget, cd isw.CallData) {
 		setStatus("ISW Go Bindings Demo — github.com/apdewis/libISW/go-isw")
 	})

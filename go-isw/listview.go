@@ -134,3 +134,61 @@ func ListViewSetData(w Widget, rows [][]string) {
 	}
 	C.IswListViewSetData(w.c, (*C.String)(a.dataBlock), C.int(nrows), C.int(ncols))
 }
+
+// ListViewSortDirection is a column sort direction.
+type ListViewSortDirection int
+
+const (
+	ListViewSortAscending  ListViewSortDirection = C.IswListViewSortAscending
+	ListViewSortDescending ListViewSortDirection = C.IswListViewSortDescending
+)
+
+// ListViewAddColumn appends a column and returns its index.
+func ListViewAddColumn(w Widget, title string, width, minWidth int) int {
+	cTitle := C.CString(title)
+	defer C.free(unsafe.Pointer(cTitle))
+	return int(C.IswListViewAddColumn(w.c, cTitle,
+		C.Dimension(width), C.Dimension(minWidth)))
+}
+
+// ListViewGetSelected returns the first selected row index, or -1.
+func ListViewGetSelected(w Widget) int {
+	return int(C.IswListViewGetSelected(w.c))
+}
+
+// ListViewGetSelectedRows returns all selected row indices.
+func ListViewGetSelectedRows(w Widget) []int {
+	var arr *C.int
+	n := int(C.IswListViewGetSelectedRows(w.c, &arr))
+	if n == 0 || arr == nil {
+		return nil
+	}
+	cArr := unsafe.Slice(arr, n)
+	out := make([]int, n)
+	for i := range out {
+		out[i] = int(cArr[i])
+	}
+	C.IswFree(unsafe.Pointer(arr))
+	return out
+}
+
+// ListViewSetSort sets the sort indicator on a column.
+func ListViewSetSort(w Widget, column int, direction ListViewSortDirection) {
+	C.IswListViewSetSort(w.c, C.int(column),
+		C.IswListViewSortDirection(direction))
+}
+
+// ListViewHitTest returns the row index at widget coordinates, or -1.
+func ListViewHitTest(w Widget, x, y int) int {
+	return int(C.IswListViewHitTest(w.c, C.int(x), C.int(y)))
+}
+
+// ListViewSetDropHighlight highlights a row as a drop target (-1 clears).
+func ListViewSetDropHighlight(w Widget, rowIndex int) {
+	C.IswListViewSetDropHighlight(w.c, C.int(rowIndex))
+}
+
+// ListViewBandActive returns true while a rubber-band selection is active.
+func ListViewBandActive(w Widget) bool {
+	return C.IswListViewBandActive(w.c) != 0
+}

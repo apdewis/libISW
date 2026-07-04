@@ -5,6 +5,7 @@ package isw
 #include <ISW/IswDragDrop.h>
 #include <stdlib.h>
 #include "trampolines.h"
+#include "wrappers.h"
 */
 import "C"
 
@@ -69,6 +70,117 @@ func DndSetDropCallback(w Widget, fn CallbackFunc) {
 	h := registerCallback(fn)
 	C.IswDndSetDropCallback(w.c, C._isw_cb_trampoline(),
 		handleToPtr(h))
+}
+
+// DndSetDragMotionCallback sets a direct drag-motion callback.
+func DndSetDragMotionCallback(w Widget, fn CallbackFunc) {
+	h := registerCallback(fn)
+	C.IswDndSetDragMotionCallback(w.c, C._isw_cb_trampoline(),
+		handleToPtr(h))
+}
+
+// DndSetDragLeaveCallback sets a direct drag-leave callback.
+func DndSetDragLeaveCallback(w Widget, fn CallbackFunc) {
+	h := registerCallback(fn)
+	C.IswDndSetDragLeaveCallback(w.c, C._isw_cb_trampoline(),
+		handleToPtr(h))
+}
+
+// DragConvertFunc provides drag data when the drop target requests it.
+// format is the data element size in bits (8 for strings and URI lists).
+type DragConvertFunc func(w Widget, targetType string) (data []byte, format int, ok bool)
+
+// DragFinishedFunc is called when a drag completes.
+type DragFinishedFunc func(w Widget, performedAction DndAction, accepted bool)
+
+// DragSourceDesc configures a drag started with DndStartDrag.
+type DragSourceDesc struct {
+	Types    []string
+	Actions  DndAction
+	Convert  DragConvertFunc
+	Finished DragFinishedFunc
+}
+
+type dragSource struct {
+	convert  DragConvertFunc
+	finished DragFinishedFunc
+}
+
+var dragSourceRegistry = make(map[callbackHandle]*dragSource)
+
+// DndStartDrag initiates a drag from a widget. Call it from the event
+// handler or action proc of the button press that triggers the drag; that
+// event becomes the drag's trigger event. The drag runs asynchronously —
+// this function returns immediately.
+func DndStartDrag(source Widget, desc *DragSourceDesc) {
+	if currentCEvent == nil {
+		return
+	}
+
+	h := nextHandle()
+	cbMu.Lock()
+	dragSourceRegistry[h] = &dragSource{
+		convert:  desc.Convert,
+		finished: desc.Finished,
+	}
+	cbMu.Unlock()
+
+	var cDesc C.IswDragSourceDesc
+	var cTypes []*C.char
+	if len(desc.Types) > 0 {
+		cTypes = make([]*C.char, len(desc.Types))
+		for i, t := range desc.Types {
+			cTypes[i] = C.CString(t)
+		}
+		cDesc.types = (**C.char)(unsafe.Pointer(&cTypes[0]))
+		cDesc.num_types = C.int(len(desc.Types))
+	}
+	cDesc.actions = C.IswDndAction(desc.Actions)
+	cDesc.convert = C._isw_drag_convert_trampoline()
+	cDesc.finished = C._isw_drag_finished_trampoline()
+	cDesc.client_data = handleToPtr(h)
+
+	// The library copies the descriptor and duplicates the type strings,
+	// so the C allocations can be released as soon as the call returns.
+	C.IswDndStartDrag(source.c, (*C.IswEvent)(currentCEvent), &cDesc)
+	for _, ct := range cTypes {
+		C.free(unsafe.Pointer(ct))
+	}
+}
+
+//export goDragConvertBridge
+func goDragConvertBridge(widget C.uintptr_t, targetType *C.char, dataReturn *C.IswPointer, lengthReturn *C.ulong, formatReturn *C.int, closure C.uintptr_t) C.Boolean {
+	h := callbackHandle(closure)
+	cbMu.RLock()
+	src := dragSourceRegistry[h]
+	cbMu.RUnlock()
+	if src == nil || src.convert == nil {
+		return 0
+	}
+	data, format, ok := src.convert(Widget{C._isw_handle_to_widget(widget)},
+		C.GoString(targetType))
+	if !ok {
+		return 0
+	}
+	// The library takes ownership of the buffer and releases it with
+	// IswFree (plain free), which matches C.CBytes' malloc.
+	*dataReturn = C.IswPointer(C.CBytes(data))
+	*lengthReturn = C.ulong(len(data))
+	*formatReturn = C.int(format)
+	return 1
+}
+
+//export goDragFinishedBridge
+func goDragFinishedBridge(widget C.uintptr_t, action C.int, accepted C.Boolean, closure C.uintptr_t) {
+	h := callbackHandle(closure)
+	cbMu.Lock()
+	src := dragSourceRegistry[h]
+	delete(dragSourceRegistry, h)
+	cbMu.Unlock()
+	if src != nil && src.finished != nil {
+		src.finished(Widget{C._isw_handle_to_widget(widget)},
+			DndAction(action), accepted != 0)
+	}
 }
 
 // DndIsDragging returns true if a drag operation is active.

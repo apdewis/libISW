@@ -140,6 +140,31 @@ func (w Widget) AugmentTranslations(table string) {
 	C.IswAugmentTranslations(w.c, C.IswParseTranslationTable(cTable))
 }
 
+// OverrideTranslations parses a translation table and merges it into the
+// widget's translations, replacing existing bindings on conflict.
+func (w Widget) OverrideTranslations(table string) {
+	cTable := C.CString(table)
+	defer C.free(unsafe.Pointer(cTable))
+	C.IswOverrideTranslations(w.c, C.IswParseTranslationTable(cTable))
+}
+
+// IsRealized returns true if the widget has been realized.
+func (w Widget) IsRealized() bool {
+	return C.IswIsRealized(w.c) != 0
+}
+
+// SetKeyboardFocus redirects keyboard input within the widget's subtree
+// to the given descendant.
+func (w Widget) SetKeyboardFocus(descendant Widget) {
+	C.IswSetKeyboardFocus(w.c, descendant.c)
+}
+
+// GetKeyboardFocusWidget returns the widget that would receive keyboard
+// input directed at w's subtree.
+func GetKeyboardFocusWidget(w Widget) Widget {
+	return Widget{C.IswGetKeyboardFocusWidget(w.c)}
+}
+
 // Parent returns the widget's parent.
 func (w Widget) Parent() Widget {
 	return Widget{C.IswParent(w.c)}

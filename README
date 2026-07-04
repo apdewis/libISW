@@ -114,7 +114,7 @@ XCB types in place of Xlib types (see API changes below).
 
 29 of 30 original Xaw3d widgets are present:
 
-    AsciiSink, AsciiSrc, AsciiText, Box, Command, Dialog, Form, Grip,
+    Box, Command, Dialog, Form, Grip,
     Label, List, MenuButton, MultiSink, MultiSrc, Paned, Panner,
     Porthole, Repeater, Scrollbar, Simple, SimpleMenu, SmeBSB, SmeLine,
     Sme, Text, TextSink, TextSrc, Toggle, Tree, Viewport

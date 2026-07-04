@@ -3,11 +3,82 @@ package isw
 /*
 #include <ISW/ISWPNG.h>
 #include <ISW/ISWSVG.h>
+#include <ISW/ISWImage.h>
 #include <stdlib.h>
 */
 import "C"
 
 import "unsafe"
+
+// Image wraps a unified ISWImage (SVG or PNG, decoded on demand).
+type Image struct {
+	c *C.ISWImage
+}
+
+// LoadImage loads an image from a file path or inline SVG data. source
+// starting with '<' is inline SVG XML, ending in ".svg" an SVG file,
+// anything else a PNG file. dpi sizes SVGs (96 * scale factor);
+// currentColor substitutes the SVG currentColor ("" for none).
+func LoadImage(source string, dpi float64, currentColor string) *Image {
+	cSource := C.CString(source)
+	defer C.free(unsafe.Pointer(cSource))
+
+	var cColor *C.char
+	if currentColor != "" {
+		cColor = C.CString(currentColor)
+		defer C.free(unsafe.Pointer(cColor))
+	}
+
+	img := C.ISWImageLoad(cSource, C.double(dpi), cColor)
+	if img == nil {
+		return nil
+	}
+	return &Image{img}
+}
+
+// Destroy frees the image and its raster cache.
+func (i *Image) Destroy() {
+	if i.c != nil {
+		C.ISWImageDestroy(i.c)
+		i.c = nil
+	}
+}
+
+// Width returns the native image width.
+func (i *Image) Width() float32 { return float32(C.ISWImageGetWidth(i.c)) }
+
+// Height returns the native image height.
+func (i *Image) Height() float32 { return float32(C.ISWImageGetHeight(i.c)) }
+
+// IsVector returns true for vector (SVG) images.
+func (i *Image) IsVector() bool { return C.ISWImageIsVector(i.c) != 0 }
+
+// IsMonochrome returns true for single-color currentColor SVGs, which
+// suit alpha-mask recoloring.
+func (i *Image) IsMonochrome() bool { return C.ISWImageIsMonochrome(i.c) != 0 }
+
+// Rasterize returns RGBA pixel data and its actual dimensions. SVGs
+// rasterize at the hinted size; PNGs return native pixels.
+func (i *Image) Rasterize(hintW, hintH uint) ([]byte, uint, uint) {
+	var outW, outH C.uint
+	ptr := C.ISWImageRasterize(i.c, C.uint(hintW), C.uint(hintH), &outW, &outH)
+	if ptr == nil {
+		return nil, 0, 0
+	}
+	n := uint(outW) * uint(outH) * 4
+	return C.GoBytes(unsafe.Pointer(ptr), C.int(n)), uint(outW), uint(outH)
+}
+
+// Recolor re-parses an SVG with a new currentColor value ("" removes the
+// substitution). No-op for PNGs.
+func (i *Image) Recolor(hexColor string) {
+	var cColor *C.char
+	if hexColor != "" {
+		cColor = C.CString(hexColor)
+		defer C.free(unsafe.Pointer(cColor))
+	}
+	C.ISWImageRecolor(i.c, cColor)
+}
 
 // PNGImage wraps a decoded PNG image.
 type PNGImage struct {

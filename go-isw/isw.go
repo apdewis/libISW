@@ -136,3 +136,62 @@ func (ac AppContext) Invoke(fn func()) {
 	C.IswAppAddWorkProc(ac.c, C._isw_workproc_trampoline(),
 		handleToPtr(h))
 }
+
+// SetExitFlag asks MainLoop to return after the current event.
+func (ac AppContext) SetExitFlag() {
+	C.IswAppSetExitFlag(ac.c)
+}
+
+// Lock locks the application context for multi-threaded toolkit access.
+func (ac AppContext) Lock() {
+	C.IswAppLock(ac.c)
+}
+
+// Unlock unlocks the application context.
+func (ac AppContext) Unlock() {
+	C.IswAppUnlock(ac.c)
+}
+
+// ToolkitThreadInitialize enables multi-threaded toolkit operation.
+// Returns false if threading is unsupported.
+func ToolkitThreadInitialize() bool {
+	return C.IswToolkitThreadInitialize() != 0
+}
+
+// AppContext returns the application context the widget belongs to.
+func (w Widget) AppContext() AppContext {
+	return AppContext{C.IswWidgetToApplicationContext(w.c)}
+}
+
+// actionHookInstalled tracks app contexts that already have the internal
+// action-name hook required for dispatching Go actions.
+var actionHookInstalled = make(map[C.IswAppContext]bool)
+
+// AddActions registers named Go actions usable from translation tables.
+func (ac AppContext) AddActions(actions map[string]ActionFunc) {
+	if len(actions) == 0 {
+		return
+	}
+	if !actionHookInstalled[ac.c] {
+		C._isw_install_action_name_hook(ac.c)
+		actionHookInstalled[ac.c] = true
+	}
+	for name, fn := range actions {
+		registerAction(name, fn)
+		cName := C.CString(name)
+		C._isw_register_action(ac.c, cName)
+		C.free(unsafe.Pointer(cName))
+	}
+}
+
+// ActionHookId identifies an installed action hook.
+type ActionHookId struct {
+	c C.IswActionHookId
+}
+
+// AddActionHook installs a hook called before every action dispatch.
+func (ac AppContext) AddActionHook(fn ActionHookFunc) ActionHookId {
+	h := registerActionHook(fn)
+	return ActionHookId{C.IswAppAddActionHook(ac.c,
+		C._isw_action_hook_trampoline(), handleToPtr(h))}
+}

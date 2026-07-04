@@ -78,6 +78,9 @@ type WorkProcFunc func() bool
 // ActionFunc is called for translation table actions.
 type ActionFunc func(w Widget, event Event, params []string)
 
+// ActionHookFunc is called before every action dispatch.
+type ActionHookFunc func(w Widget, actionName string, event Event, params []string)
+
 type callbackHandle uintptr
 
 var (
@@ -90,10 +93,16 @@ var (
 	inpRegistry = make(map[callbackHandle]InputFunc)
 	sigRegistry = make(map[callbackHandle]SignalFunc)
 	wpRegistry  = make(map[callbackHandle]WorkProcFunc)
+	ahRegistry  = make(map[callbackHandle]ActionHookFunc)
 
 	actMu       sync.RWMutex
 	actRegistry = make(map[string]ActionFunc)
 )
+
+// currentCEvent holds the C event pointer of the event being dispatched.
+// Valid only during a bridge dispatch on the toolkit thread; DndStartDrag
+// uses it as the drag trigger event.
+var currentCEvent unsafe.Pointer
 
 func nextHandle() callbackHandle {
 	return callbackHandle(handleCounter.Add(1))
@@ -145,6 +154,32 @@ func registerWorkProc(fn WorkProcFunc) callbackHandle {
 	wpRegistry[h] = fn
 	cbMu.Unlock()
 	return h
+}
+
+func registerActionHook(fn ActionHookFunc) callbackHandle {
+	h := nextHandle()
+	cbMu.Lock()
+	ahRegistry[h] = fn
+	cbMu.Unlock()
+	return h
+}
+
+func registerAction(name string, fn ActionFunc) {
+	actMu.Lock()
+	actRegistry[name] = fn
+	actMu.Unlock()
+}
+
+func goParamStrings(params *C.String, n C.Cardinal) []string {
+	if params == nil || n == 0 {
+		return nil
+	}
+	cArr := unsafe.Slice(params, int(n))
+	out := make([]string, int(n))
+	for i := range out {
+		out[i] = C.GoString(cArr[i])
+	}
+	return out
 }
 
 func flatToEvent(flat *C.IswEventFlat) Event {
@@ -286,7 +321,10 @@ func goEventHandlerBridge(widget, closure C.uintptr_t, event *C.IswEvent, cont *
 		C.isw_event_flatten(event, &flat)
 		ev := flatToEvent(&flat)
 		c := *cont != 0
+		prev := currentCEvent
+		currentCEvent = unsafe.Pointer(event)
 		fn(Widget{C._isw_handle_to_widget(widget)}, ev, &c)
+		currentCEvent = prev
 		if c {
 			*cont = 1
 		} else {
@@ -349,9 +387,33 @@ func goWorkProcBridge(closure C.uintptr_t) C.Boolean {
 }
 
 //export goActionBridge
-func goActionBridge(widget C.uintptr_t, event *C.IswEvent, params *C.String, numParams C.Cardinal) {
-	_ = params
-	_ = numParams
+func goActionBridge(widget C.uintptr_t, name *C.char, event *C.IswEvent, params *C.String, numParams C.Cardinal) {
+	if name == nil {
+		return
+	}
+	actMu.RLock()
+	fn, ok := actRegistry[C.GoString(name)]
+	actMu.RUnlock()
+	if !ok {
+		return
+	}
+	prev := currentCEvent
+	currentCEvent = unsafe.Pointer(event)
+	fn(Widget{C._isw_handle_to_widget(widget)}, flattenEvent(unsafe.Pointer(event)),
+		goParamStrings(params, numParams))
+	currentCEvent = prev
+}
+
+//export goActionHookBridge
+func goActionHookBridge(widget, closure C.uintptr_t, name *C.char, event *C.IswEvent, params *C.String, numParams C.Cardinal) {
+	h := callbackHandle(closure)
+	cbMu.RLock()
+	fn, ok := ahRegistry[h]
+	cbMu.RUnlock()
+	if ok {
+		fn(Widget{C._isw_handle_to_widget(widget)}, C.GoString(name),
+			flattenEvent(unsafe.Pointer(event)), goParamStrings(params, numParams))
+	}
 }
 
 // AddEventHandler registers an event handler on a widget.
