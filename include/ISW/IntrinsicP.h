@@ -218,7 +218,8 @@ typedef struct _IswTMRec {
 /* Realization is surface-based, not window-based: a realized widget has been
    created (its surface and geometry are valid) but not necessarily shown. */
 #define IswIsRealized(object) \
-    (IswIsRectObj(object) ? (object)->core.windowless_realized : False)
+    (IswIsWidget(object) ? (object)->core.windowless_realized \
+                         : IswIsRealized((Widget)(object)))
 #define IswParent(widget)	((widget)->core.parent)
 
 #undef IswIsRectObj

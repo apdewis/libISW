@@ -775,8 +775,18 @@ IswIsRealized(Widget object)
 
     LOCK_APP(app);
     /* Surface-based: a realized widget has been created (surface + geometry
-       valid).  No window is consulted. */
-    retval = IswIsRectObj(object) ? object->core.windowless_realized : False;
+       valid).  No window is consulted.  A non-widget object has no CorePart
+       of its own: it is realized iff the nearest widget ancestor — the
+       widget whose surface it draws into — is realized. */
+    if (IswIsWidget(object))
+        retval = object->core.windowless_realized;
+    else {
+        Widget w = IswParent(object);
+
+        while (w != NULL && !IswIsWidget(w))
+            w = IswParent(w);
+        retval = (w != NULL) ? w->core.windowless_realized : False;
+    }
     UNLOCK_APP(app);
     return retval;
 }                               /* IswIsRealized */
