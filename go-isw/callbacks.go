@@ -44,8 +44,21 @@ import (
 	"unsafe"
 )
 
+// CallData is the opaque callback data passed to a CallbackFunc. Use the
+// typed accessors (Int) or the Parse* functions for the specific widget's
+// callback data type.
+type CallData struct {
+	ptr unsafe.Pointer
+}
+
+// Int returns the call data interpreted as an integer value, as delivered
+// by value-style callbacks (Slider, SpinBox, ProgressBar).
+func (cd CallData) Int() int {
+	return int(uintptr(cd.ptr))
+}
+
 // CallbackFunc is the Go type for widget callbacks.
-type CallbackFunc func(w Widget, callData unsafe.Pointer)
+type CallbackFunc func(w Widget, callData CallData)
 
 // EventHandlerFunc is the Go type for event handlers.
 type EventHandlerFunc func(w Widget, event Event, continueDispatch *bool)
@@ -238,6 +251,18 @@ func flatToEvent(flat *C.IswEventFlat) Event {
 	}
 }
 
+// flattenEvent converts a C IswEvent pointer to a Go Event. Returns nil for
+// a nil event. Used by callback-data parsers in other files, which cannot
+// name this file's C types.
+func flattenEvent(e unsafe.Pointer) Event {
+	if e == nil {
+		return nil
+	}
+	var flat C.IswEventFlat
+	C.isw_event_flatten((*C.IswEvent)(e), &flat)
+	return flatToEvent(&flat)
+}
+
 //export goCallbackBridge
 func goCallbackBridge(widget, closure, callData C.uintptr_t) {
 	h := callbackHandle(closure)
@@ -245,8 +270,8 @@ func goCallbackBridge(widget, closure, callData C.uintptr_t) {
 	fn, ok := cbRegistry[h]
 	cbMu.RUnlock()
 	if ok {
-		fn(Widget{C._isw_handle_to_widget(widget)},
-			C._isw_uintptr_to_voidptr(callData))
+		p := C._isw_uintptr_to_voidptr(callData)
+		fn(Widget{C._isw_handle_to_widget(widget)}, CallData{p})
 	}
 }
 

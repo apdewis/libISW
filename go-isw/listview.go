@@ -25,8 +25,8 @@ type ListViewCallbackData struct {
 
 // ParseListViewCallbackData converts C call_data from a ListView select
 // callback to Go.
-func ParseListViewCallbackData(callData unsafe.Pointer) *ListViewCallbackData {
-	cd := (*C.IswListViewCallbackData)(callData)
+func ParseListViewCallbackData(callData CallData) *ListViewCallbackData {
+	cd := (*C.IswListViewCallbackData)(callData.ptr)
 	return &ListViewCallbackData{Row: int(cd.row), Column: int(cd.column)}
 }
 
@@ -43,15 +43,15 @@ type listViewAlloc struct {
 var listViewAllocs = make(map[unsafe.Pointer]*listViewAlloc)
 
 func listViewAllocFor(w Widget) *listViewAlloc {
-	a := listViewAllocs[w.Raw()]
+	a := listViewAllocs[unsafe.Pointer(w.c)]
 	if a == nil {
 		a = &listViewAlloc{}
-		listViewAllocs[w.Raw()] = a
-		w.AddCallback(NdestroyCallback, func(dw Widget, _ unsafe.Pointer) {
-			if dead := listViewAllocs[dw.Raw()]; dead != nil {
+		listViewAllocs[unsafe.Pointer(w.c)] = a
+		w.AddCallback(NdestroyCallback, func(dw Widget, _ CallData) {
+			if dead := listViewAllocs[unsafe.Pointer(dw.c)]; dead != nil {
 				dead.freeColumns()
 				dead.freeData()
-				delete(listViewAllocs, dw.Raw())
+				delete(listViewAllocs, unsafe.Pointer(dw.c))
 			}
 		})
 	}

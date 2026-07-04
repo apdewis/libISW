@@ -16,6 +16,17 @@ static const char* _isw_get_string_resource(Widget w, const char *name) {
 	IswGetValues(w, &arg, 1);
 	return s;
 }
+
+static long long _isw_get_int_resource(Widget w, const char *name) {
+	// Zero-initialized so short resources (Dimension, Boolean) read
+	// correctly when GetValues copies fewer bytes than the local.
+	long long v = 0;
+	Arg arg;
+	arg.name = (String)name;
+	arg.value = (IswArgVal)(uintptr_t)&v;
+	IswGetValues(w, &arg, 1);
+	return v;
+}
 */
 import "C"
 
@@ -100,17 +111,25 @@ func (w Widget) SetValues(args *ArgList) {
 	C._isw_set_values(w.c, a, n)
 }
 
-// GetValues reads resources from a widget.
-func (w Widget) GetValues(args *ArgList) {
-	a, n := args.cArgPtr()
-	C._isw_get_values(w.c, a, n)
-}
-
 // GetString reads a string resource from a widget.
 func (w Widget) GetString(name string) string {
 	cName := C.CString(name)
 	defer C.free(unsafe.Pointer(cName))
 	return C.GoString(C._isw_get_string_resource(w.c, cName))
+}
+
+// GetInt reads an integer-valued resource from a widget.
+func (w Widget) GetInt(name string) int {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	return int(C._isw_get_int_resource(w.c, cName))
+}
+
+// GetBool reads a boolean-valued resource from a widget.
+func (w Widget) GetBool(name string) bool {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	return C._isw_get_int_resource(w.c, cName) != 0
 }
 
 // AugmentTranslations parses a translation table and merges it into the
@@ -148,13 +167,7 @@ func (w Widget) Sensitive() bool {
 
 // SetSensitive sets widget sensitivity.
 func (w Widget) SetSensitive(sensitive bool) {
-	args := NewArgList()
-	if sensitive {
-		args.Add(NsensitiveStr, uintptr(1))
-	} else {
-		args.Add(NsensitiveStr, 0)
-	}
-	w.SetValues(args)
+	w.SetValues(NewArgList().AddBool(NsensitiveStr, sensitive))
 }
 
 // GrabKind enumerates grab modes for Popup.

@@ -77,8 +77,8 @@ func DndIsDragging(w Widget) bool {
 }
 
 // ParseDropCallbackData converts C call_data from a drop callback to Go.
-func ParseDropCallbackData(callData unsafe.Pointer) *DropCallbackData {
-	cd := (*C.IswDropCallbackData)(callData)
+func ParseDropCallbackData(callData CallData) *DropCallbackData {
+	cd := (*C.IswDropCallbackData)(callData.ptr)
 	result := &DropCallbackData{
 		X:          int(cd.x),
 		Y:          int(cd.y),

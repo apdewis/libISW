@@ -63,5 +63,5 @@ Requires a running X server (XCB). The window opens at 900×650.
 | Widget classes         | 15+ classes (Box, Form, Command, Toggle, Slider, …) |
 | ISWRender API          | DrawingArea expose callback with shapes, paths, text |
 | Pixel helpers          | `PixelARGB` for render colours            |
-| Menus (via cgo shims)  | SimpleMenu + SmeBSB + MenuButton          |
+| Menus                  | SimpleMenu + SmeBSB + MenuButton          |
 | Status bar             | StatusBar + Label with live updates       |

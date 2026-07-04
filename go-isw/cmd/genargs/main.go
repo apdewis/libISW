@@ -17,11 +17,13 @@ import (
 type argType int
 
 const (
-	argInt       argType = iota // uintptr — Dimension, Position, Pixel, enum, int, bool
-	argString                  // string → C.CString
-	argWidget                  // Widget
-	argCallback                // CallbackFunc
-	argStringList              // []string → CStringArray
+	argInt        argType = iota // int — Dimension, Position, int
+	argString                    // string → C.CString
+	argWidget                    // Widget
+	argCallback                  // CallbackFunc
+	argStringList                // []string → cStringArray
+	argBool                      // bool
+	argEnum                      // typed enum/Pixel — Go type from enumTypes
 )
 
 func (t argType) String() string {
@@ -36,6 +38,10 @@ func (t argType) String() string {
 		return "callback"
 	case argStringList:
 		return "stringlist"
+	case argBool:
+		return "bool"
+	case argEnum:
+		return "enum"
 	}
 	return "?"
 }
@@ -73,7 +79,7 @@ var typeOverrides = map[string]argType{
 	"pivotCallback":       argCallback,
 
 	// Strings
-	"editType":         argInt,
+	"editType":         argEnum,
 	"accelerators":     argString,
 	"label":            argString,
 	"title":            argString,
@@ -113,10 +119,66 @@ var typeOverrides = map[string]argType{
 	"list":        argStringList,
 	"iconLabels":  argStringList,
 	"fileFilters": argStringList,
+
+	// Booleans
+	"allowShellResize":  argBool,
+	"state":             argBool,
+	"sensitive":         argBool,
+	"showGrip":          argBool,
+	"allowResize":       argBool,
+	"verticalList":      argBool,
+	"forceColumns":      argBool,
+	"showValue":         argBool,
+	"multiSelect":       argBool,
+	"traversalOn":       argBool,
+	"resize":            argBool,
+	"allowHoriz":        argBool,
+	"allowVert":         argBool,
+	"mappedWhenManaged": argBool,
+
+	// Typed enums / pixels (Go param type in enumTypes)
+	"orientation":      argEnum,
+	"scrollVertical":   argEnum,
+	"scrollHorizontal": argEnum,
+	"wrap":             argEnum,
+	"ellipsize":        argEnum,
+	"justify":          argEnum,
+	"top":              argEnum,
+	"bottom":           argEnum,
+	"left":             argEnum,
+	"right":            argEnum,
+	"background":       argEnum,
+	"foreground":       argEnum,
+	"borderColor":      argEnum,
+	"activeColor":      argEnum,
+}
+
+// enumTypes maps argEnum resources to their Go parameter type.
+var enumTypes = map[string]string{
+	"orientation":      "Orientation",
+	"editType":         "TextEditType",
+	"scrollVertical":   "TextScrollMode",
+	"scrollHorizontal": "TextScrollMode",
+	"wrap":             "TextWrapMode",
+	"ellipsize":        "Ellipsize",
+	"justify":          "Justify",
+	"top":              "EdgeType",
+	"bottom":           "EdgeType",
+	"left":             "EdgeType",
+	"right":            "EdgeType",
+	"background":       "Pixel",
+	"foreground":       "Pixel",
+	"borderColor":      "Pixel",
+	"activeColor":      "Pixel",
 }
 
 var macroRe = regexp.MustCompile(
 	`^#define\s+IswArg(\w+)\(ab,\s*v\)\s+ISW_ARG\(\(ab\),\s*IswN(\w+),\s*\(v\)\)`)
+
+// aliasRe matches macros that delegate to another IswArg macro,
+// e.g. #define IswArgFlexGrow(ab, v) IswArgFillWeight((ab), (v))
+var aliasRe = regexp.MustCompile(
+	`^#define\s+IswArg(\w+)\(ab,\s*v\)\s+IswArg(\w+)\(\(ab\),\s*\(v\)\)`)
 
 var sectionRe = regexp.MustCompile(`^/\*\s*(.+?)\s*\*/\s*$`)
 
@@ -164,6 +226,7 @@ func main() {
 	var macros []macro
 	var currentSection string
 	seen := make(map[string]bool)
+	byMethod := make(map[string]macro)
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -176,6 +239,21 @@ func main() {
 
 		m := macroRe.FindStringSubmatch(line)
 		if m == nil {
+			if a := aliasRe.FindStringSubmatch(line); a != nil {
+				target, ok := byMethod[a[2]]
+				if !ok || seen[a[1]] {
+					continue
+				}
+				seen[a[1]] = true
+				am := macro{
+					method:      a[1],
+					resourceStr: target.resourceStr,
+					typ:         target.typ,
+					section:     currentSection,
+				}
+				macros = append(macros, am)
+				byMethod[a[1]] = am
+			}
 			continue
 		}
 
@@ -192,12 +270,14 @@ func main() {
 			typ = argInt
 		}
 
-		macros = append(macros, macro{
+		mac := macro{
 			method:      methodName,
 			resourceStr: resourceName,
 			typ:         typ,
 			section:     currentSection,
-		})
+		}
+		macros = append(macros, mac)
+		byMethod[methodName] = mac
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -234,8 +314,18 @@ func main() {
 
 		switch m.typ {
 		case argInt:
-			fmt.Fprintf(w, "func (al *ArgList) %s(v uintptr) *ArgList {\n", m.method)
+			fmt.Fprintf(w, "func (al *ArgList) %s(v int) *ArgList {\n", m.method)
 			fmt.Fprintf(w, "\treturn al.Add(%q, v)\n", m.resourceStr)
+			fmt.Fprintf(w, "}\n\n")
+
+		case argBool:
+			fmt.Fprintf(w, "func (al *ArgList) %s(v bool) *ArgList {\n", m.method)
+			fmt.Fprintf(w, "\treturn al.AddBool(%q, v)\n", m.resourceStr)
+			fmt.Fprintf(w, "}\n\n")
+
+		case argEnum:
+			fmt.Fprintf(w, "func (al *ArgList) %s(v %s) *ArgList {\n", m.method, enumTypes[m.resourceStr])
+			fmt.Fprintf(w, "\treturn al.Add(%q, int(v))\n", m.resourceStr)
 			fmt.Fprintf(w, "}\n\n")
 
 		case argString:

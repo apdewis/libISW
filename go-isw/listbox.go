@@ -6,8 +6,6 @@ package isw
 */
 import "C"
 
-import "unsafe"
-
 // ListBoxCallbackData is the Go representation of ListBox select and
 // activate callback data.
 type ListBoxCallbackData struct {
@@ -16,8 +14,8 @@ type ListBoxCallbackData struct {
 
 // ParseListBoxCallbackData converts C call_data from a ListBox select or
 // activate callback to Go.
-func ParseListBoxCallbackData(callData unsafe.Pointer) *ListBoxCallbackData {
-	cd := (*C.IswListBoxCallbackData)(callData)
+func ParseListBoxCallbackData(callData CallData) *ListBoxCallbackData {
+	cd := (*C.IswListBoxCallbackData)(callData.ptr)
 	return &ListBoxCallbackData{Child: Widget{cd.child}}
 }
 
@@ -30,7 +28,7 @@ type ListBoxPivotCallbackData struct {
 
 // ParseListBoxPivotCallbackData converts C call_data from a ListBox pivot
 // callback to Go.
-func ParseListBoxPivotCallbackData(callData unsafe.Pointer) *ListBoxPivotCallbackData {
-	cd := (*C.IswListBoxPivotCallbackData)(callData)
+func ParseListBoxPivotCallbackData(callData CallData) *ListBoxPivotCallbackData {
+	cd := (*C.IswListBoxPivotCallbackData)(callData.ptr)
 	return &ListBoxPivotCallbackData{Child: Widget{cd.child}, Open: cd.open != 0}
 }

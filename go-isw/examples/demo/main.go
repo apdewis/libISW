@@ -1,49 +1,8 @@
 package main
 
-/*
-#cgo pkg-config: isw xcb-icccm
-#include <ISW/Intrinsic.h>
-#include <ISW/DrawingArea.h>
-#include <ISW/ISWRender.h>
-#include <ISW/Text.h>
-#include <ISW/List.h>
-#include <ISW/Tabs.h>
-#include <ISW/MainWindow.h>
-#include <ISW/SimpleMenu.h>
-#include <ISW/SmeBSB.h>
-#include <ISW/SmeLine.h>
-#include <ISW/MenuButton.h>
-#include <stdlib.h>
-#include <math.h>
-
-typedef struct {
-    ISWRenderContext *render_ctx;
-    IswEvent        *event;
-    IswWindow        window;
-} ISWDrawingCallbackData_Go;
-
-static ISWRenderContext* _drawing_cb_render(void *cd) {
-    return ((ISWDrawingCallbackData_Go*)cd)->render_ctx;
-}
-
-static Widget _main_window_menubar(Widget mw) {
-    return IswMainWindowGetMenuBar(mw);
-}
-
-static Widget _create_sme_bsb(const char *name, Widget parent) {
-    return IswCreateManagedWidget((String)name, smeBSBObjectClass, parent, NULL, 0);
-}
-
-static Widget _create_sme_line(const char *name, Widget parent) {
-    return IswCreateManagedWidget((String)name, smeLineObjectClass, parent, NULL, 0);
-}
-*/
-import "C"
-
 import (
 	"fmt"
 	"math"
-	"unsafe"
 
 	"github.com/apdewis/libISW/go-isw"
 )
@@ -60,11 +19,11 @@ func main() {
 	toplevel.SetValues(isw.NewArgList().
 		Width(900).Height(650).
 		Title("ISW Go Bindings Demo").
-		AllowShellResize(1))
+		AllowShellResize(true))
 
 	mainWin := isw.CreateManagedWidget("mainWindow", isw.MainWindowClass, toplevel, nil)
 
-	populateMenubar(C._main_window_menubar(*(*C.Widget)(unsafe.Pointer(&mainWin))), mainWin)
+	populateMenubar(isw.MainWindowMenuBar(mainWin), mainWin)
 	createStatusBar(mainWin)
 
 	tabs := isw.CreateManagedWidget("tabs", isw.TabsClass, mainWin,
@@ -82,51 +41,34 @@ func main() {
 	app.MainLoop()
 }
 
-func populateMenubar(menubar C.Widget, accelDest isw.Widget) {
-	mbw := widgetFromC(menubar)
-
-	isw.CreateManagedWidget("file", isw.MenuButtonClass, mbw,
+func populateMenubar(menubar isw.Widget, accelDest isw.Widget) {
+	isw.CreateManagedWidget("file", isw.MenuButtonClass, menubar,
 		isw.NewArgList().Label("File").MenuName("fileMenu"))
 
-	fileMenu := isw.CreatePopupShell("fileMenu", isw.SimpleMenuClass, mbw, nil)
-	newItem := createSmeBSB("new", fileMenu, "New")
-	_ = createSmeLine("sep1", fileMenu)
-	quitItem := createSmeBSB("quit", fileMenu, "Quit")
+	fileMenu := isw.CreatePopupShell("fileMenu", isw.SimpleMenuClass, menubar, nil)
+	newItem := isw.CreateManagedWidget("new", isw.SmeBSBClass, fileMenu,
+		isw.NewArgList().Label("New"))
+	isw.CreateManagedWidget("sep1", isw.SmeLineClass, fileMenu, nil)
+	quitItem := isw.CreateManagedWidget("quit", isw.SmeBSBClass, fileMenu,
+		isw.NewArgList().Label("Quit"))
 
-	newItem.AddCallback(isw.Ncallback, func(w isw.Widget, cd unsafe.Pointer) {
+	newItem.AddCallback(isw.Ncallback, func(w isw.Widget, cd isw.CallData) {
 		setStatus("New clicked")
 	})
-	quitItem.AddCallback(isw.Ncallback, func(w isw.Widget, cd unsafe.Pointer) {
+	quitItem.AddCallback(isw.Ncallback, func(w isw.Widget, cd isw.CallData) {
 		fmt.Println("Quit selected from menu")
 		app.Destroy()
 	})
 
-	helpMenu := isw.CreatePopupShell("helpMenu", isw.SimpleMenuClass, mbw, nil)
-	isw.CreateManagedWidget("help", isw.MenuButtonClass, mbw,
+	helpMenu := isw.CreatePopupShell("helpMenu", isw.SimpleMenuClass, menubar, nil)
+	isw.CreateManagedWidget("help", isw.MenuButtonClass, menubar,
 		isw.NewArgList().Label("Help").MenuName("helpMenu"))
 
-	aboutItem := createSmeBSB("about", helpMenu, "About")
-	aboutItem.AddCallback(isw.Ncallback, func(w isw.Widget, cd unsafe.Pointer) {
+	aboutItem := isw.CreateManagedWidget("about", isw.SmeBSBClass, helpMenu,
+		isw.NewArgList().Label("About"))
+	aboutItem.AddCallback(isw.Ncallback, func(w isw.Widget, cd isw.CallData) {
 		setStatus("ISW Go Bindings Demo — github.com/apdewis/libISW/go-isw")
 	})
-}
-
-func widgetFromC(cw C.Widget) isw.Widget {
-	return *(*isw.Widget)(unsafe.Pointer(&cw))
-}
-
-func createSmeBSB(name string, parent isw.Widget, label string) isw.Widget {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
-	w := widgetFromC(C._create_sme_bsb(cName, *(*C.Widget)(unsafe.Pointer(&parent))))
-	w.SetValues(isw.NewArgList().Label(label))
-	return w
-}
-
-func createSmeLine(name string, parent isw.Widget) isw.Widget {
-	cName := C.CString(name)
-	defer C.free(unsafe.Pointer(cName))
-	return widgetFromC(C._create_sme_line(cName, *(*C.Widget)(unsafe.Pointer(&parent))))
 }
 
 func createStatusBar(parent isw.Widget) {
@@ -145,35 +87,35 @@ func setStatus(msg string) {
 
 func createBasicWidgetsTab(tabs isw.Widget) {
 	page := isw.CreateManagedWidget("basicPage", isw.ViewportClass, tabs,
-		isw.NewArgList().AllowVert(1).UseRight(1).UseBottom(1).TabLabel("Basic Widgets"))
+		isw.NewArgList().AllowVert(true).UseRight(1).UseBottom(1).TabLabel("Basic Widgets"))
 
 	vbox := isw.CreateManagedWidget("vbox", isw.BoxClass, page,
-		isw.NewArgList().Orientation(uintptr(isw.OrientVertical)))
+		isw.NewArgList().Orientation(isw.OrientVertical))
 
 	isw.CreateManagedWidget("heading", isw.LabelClass, vbox,
 		isw.NewArgList().Label("Buttons & Toggles"))
 
 	hbox := isw.CreateManagedWidget("btnRow", isw.BoxClass, vbox,
-		isw.NewArgList().Orientation(uintptr(isw.OrientHorizontal)))
+		isw.NewArgList().Orientation(isw.OrientHorizontal))
 
 	for i, label := range []string{"Action", "OK", "Cancel"} {
 		idx := i
 		lbl := label
 		btn := isw.CreateManagedWidget(fmt.Sprintf("btn%d", i), isw.CommandClass, hbox,
 			isw.NewArgList().Label(label).CornerRadius(4))
-		btn.AddCallback(isw.Ncallback, func(w isw.Widget, cd unsafe.Pointer) {
+		btn.AddCallback(isw.Ncallback, func(w isw.Widget, cd isw.CallData) {
 			setStatus(fmt.Sprintf("Button %d (%s) clicked", idx, lbl))
 		})
 	}
 
 	tRow := isw.CreateManagedWidget("toggleRow", isw.BoxClass, vbox,
-		isw.NewArgList().Orientation(uintptr(isw.OrientHorizontal)))
+		isw.NewArgList().Orientation(isw.OrientHorizontal))
 
 	for _, label := range []string{"Bold", "Italic", "Underline"} {
 		lbl := label
 		tog := isw.CreateManagedWidget("tog_"+label, isw.ToggleClass, tRow,
 			isw.NewArgList().Label(label))
-		tog.AddCallback(isw.Ncallback, func(w isw.Widget, cd unsafe.Pointer) {
+		tog.AddCallback(isw.Ncallback, func(w isw.Widget, cd isw.CallData) {
 			setStatus(fmt.Sprintf("Toggle '%s' changed", lbl))
 		})
 	}
@@ -183,15 +125,15 @@ func createBasicWidgetsTab(tabs isw.Widget) {
 
 	slider := isw.CreateManagedWidget("slider", isw.SliderClass, vbox,
 		isw.NewArgList().
-			MinimumValue(0).MaximumValue(100).SliderValue(0).ShowValue(1).
-			Orientation(uintptr(isw.OrientHorizontal)).Width(300))
+			MinimumValue(0).MaximumValue(100).SliderValue(0).ShowValue(true).
+			Orientation(isw.OrientHorizontal).Width(300))
 
 	progBar = isw.CreateManagedWidget("progress", isw.ProgressBarClass, vbox,
 		isw.NewArgList().Width(300).Value(0))
 
-	slider.AddCallback(isw.NvalueChanged, func(w isw.Widget, cd unsafe.Pointer) {
-		val := int(uintptr(cd))
-		progBar.SetValues(isw.NewArgList().Value(uintptr(val)))
+	slider.AddCallback(isw.NvalueChanged, func(w isw.Widget, cd isw.CallData) {
+		val := cd.Int()
+		progBar.SetValues(isw.NewArgList().Value(val))
 		setStatus(fmt.Sprintf("Slider: %d%%", val))
 	})
 
@@ -201,8 +143,8 @@ func createBasicWidgetsTab(tabs isw.Widget) {
 	spin := isw.CreateManagedWidget("spin", isw.SpinBoxClass, vbox,
 		isw.NewArgList().
 			SpinMinimum(0).SpinMaximum(100).SpinValue(42).SpinIncrement(5))
-	spin.AddCallback(isw.NvalueChanged, func(w isw.Widget, cd unsafe.Pointer) {
-		setStatus(fmt.Sprintf("SpinBox value: %d", int(uintptr(cd))))
+	spin.AddCallback(isw.NvalueChanged, func(w isw.Widget, cd isw.CallData) {
+		setStatus(fmt.Sprintf("SpinBox value: %d", cd.Int()))
 	})
 
 	isw.CreateManagedWidget("heading4", isw.LabelClass, vbox,
@@ -210,18 +152,18 @@ func createBasicWidgetsTab(tabs isw.Widget) {
 
 	isw.CreateManagedWidget("textEdit", isw.TextClass, vbox,
 		isw.NewArgList().
-			EditType(uintptr(isw.TextEdit)).String("Type here...").
+			EditType(isw.TextEdit).String("Type here...").
 			Width(400).Height(80).
-			ScrollVertical(uintptr(isw.TextScrollAlways)).
-			Wrap(uintptr(isw.TextWrapWord)))
+			ScrollVertical(isw.TextScrollAlways).
+			Wrap(isw.TextWrapWord))
 }
 
 func createSelectionTab(tabs isw.Widget) {
 	page := isw.CreateManagedWidget("selPage", isw.ViewportClass, tabs,
-		isw.NewArgList().AllowVert(1).UseRight(1).TabLabel("Selection"))
+		isw.NewArgList().AllowVert(true).UseRight(1).TabLabel("Selection"))
 
 	vbox := isw.CreateManagedWidget("selVbox", isw.BoxClass, page,
-		isw.NewArgList().Orientation(uintptr(isw.OrientVertical)))
+		isw.NewArgList().Orientation(isw.OrientVertical))
 
 	isw.CreateManagedWidget("listHeading", isw.LabelClass, vbox,
 		isw.NewArgList().Label("List Widget"))
@@ -232,20 +174,19 @@ func createSelectionTab(tabs isw.Widget) {
 	}
 	list := isw.CreateManagedWidget("distroList", isw.ListClass, vbox,
 		isw.NewArgList().
-			List(items).NumberStrings(uintptr(len(items))).
-			DefaultColumns(2).ForceColumns(1).VerticalList(1))
+			List(items).
+			DefaultColumns(2).ForceColumns(true).VerticalList(true))
 
-	list.AddCallback(isw.Ncallback, func(w isw.Widget, cd unsafe.Pointer) {
-		ret := (*C.IswListReturnStruct)(cd)
-		name := C.GoString(ret.string)
-		setStatus(fmt.Sprintf("Selected: %s (index %d)", name, int(ret.list_index)))
+	list.AddCallback(isw.Ncallback, func(w isw.Widget, cd isw.CallData) {
+		ret := isw.ParseListCallbackData(cd)
+		setStatus(fmt.Sprintf("Selected: %s (index %d)", ret.String, ret.Index))
 	})
 
 	isw.CreateManagedWidget("comboHeading", isw.LabelClass, vbox,
 		isw.NewArgList().Label("ComboBox"))
 
 	isw.CreateManagedWidget("combo", isw.ComboBoxClass, vbox,
-		isw.NewArgList().List(items).NumberStrings(uintptr(len(items))))
+		isw.NewArgList().List(items))
 
 	isw.CreateManagedWidget("lbHeading", isw.LabelClass, vbox,
 		isw.NewArgList().Label("ListBox"))
@@ -258,17 +199,17 @@ func createSelectionTab(tabs isw.Widget) {
 			isw.NewArgList().Label(lang))
 	}
 
-	lb.AddCallback(isw.NselectCallback, func(w isw.Widget, cd unsafe.Pointer) {
+	lb.AddCallback(isw.NselectCallback, func(w isw.Widget, cd isw.CallData) {
 		setStatus("ListBox selection changed")
 	})
 }
 
 func createDrawingTab(tabs isw.Widget) {
 	page := isw.CreateManagedWidget("drawPage", isw.ViewportClass, tabs,
-		isw.NewArgList().AllowVert(1).UseRight(1).TabLabel("Drawing"))
+		isw.NewArgList().AllowVert(true).UseRight(1).TabLabel("Drawing"))
 
 	vbox := isw.CreateManagedWidget("drawVbox", isw.BoxClass, page,
-		isw.NewArgList().Orientation(uintptr(isw.OrientVertical)))
+		isw.NewArgList().Orientation(isw.OrientVertical))
 
 	isw.CreateManagedWidget("drawHeading", isw.LabelClass, vbox,
 		isw.NewArgList().Label("DrawingArea — ISWRender API from Go"))
@@ -276,13 +217,12 @@ func createDrawingTab(tabs isw.Widget) {
 	da := isw.CreateManagedWidget("canvas", isw.DrawingAreaClass, vbox,
 		isw.NewArgList().Width(500).Height(300).Background(0xFF1a1a2e))
 
-	da.AddCallback(isw.NexposeCallback, func(w isw.Widget, cd unsafe.Pointer) {
-		renderCtx := C._drawing_cb_render(cd)
-		if renderCtx == nil {
+	da.AddCallback(isw.NexposeCallback, func(w isw.Widget, cd isw.CallData) {
+		d := isw.ParseDrawingCallbackData(cd)
+		if d == nil || d.Render == nil {
 			return
 		}
-		rc := (*isw.RenderContext)(unsafe.Pointer(&renderCtx))
-		drawScene(rc)
+		drawScene(d.Render)
 	})
 }
 
@@ -332,7 +272,7 @@ func drawScene(rc *isw.RenderContext) {
 
 func createFormTab(tabs isw.Widget) {
 	page := isw.CreateManagedWidget("formPage", isw.ViewportClass, tabs,
-		isw.NewArgList().AllowVert(1).UseRight(1).TabLabel("Form Layout"))
+		isw.NewArgList().AllowVert(true).UseRight(1).TabLabel("Form Layout"))
 
 	form := isw.CreateManagedWidget("form", isw.FormClass, page,
 		isw.NewArgList().DefaultDistance(8))
@@ -342,7 +282,7 @@ func createFormTab(tabs isw.Widget) {
 
 	nameEntry := isw.CreateManagedWidget("nameEntry", isw.TextClass, form,
 		isw.NewArgList().
-			EditType(uintptr(isw.TextEdit)).String("").Width(250).
+			EditType(isw.TextEdit).String("").Width(250).
 			FromHoriz(nameLbl).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	emailLbl := isw.CreateManagedWidget("emailLbl", isw.LabelClass, form,
@@ -350,7 +290,7 @@ func createFormTab(tabs isw.Widget) {
 
 	isw.CreateManagedWidget("emailEntry", isw.TextClass, form,
 		isw.NewArgList().
-			EditType(uintptr(isw.TextEdit)).String("").Width(250).
+			EditType(isw.TextEdit).String("").Width(250).
 			FromHoriz(emailLbl).FromVert(nameEntry).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	msgLbl := isw.CreateManagedWidget("msgLbl", isw.LabelClass, form,
@@ -358,10 +298,10 @@ func createFormTab(tabs isw.Widget) {
 
 	isw.CreateManagedWidget("msgEntry", isw.TextClass, form,
 		isw.NewArgList().
-			EditType(uintptr(isw.TextEdit)).String("").
+			EditType(isw.TextEdit).String("").
 			Width(400).Height(100).
-			ScrollVertical(uintptr(isw.TextScrollAlways)).
-			Wrap(uintptr(isw.TextWrapWord)).
+			ScrollVertical(isw.TextScrollAlways).
+			Wrap(isw.TextWrapWord).
 			FromVert(msgLbl).Left(isw.ChainLeft).Top(isw.ChainTop))
 
 	submit := isw.CreateManagedWidget("submit", isw.CommandClass, form,
@@ -369,7 +309,7 @@ func createFormTab(tabs isw.Widget) {
 			Label("Submit").CornerRadius(4).
 			FromVert(msgLbl).VertDistance(120).Left(isw.ChainLeft).Top(isw.ChainTop))
 
-	submit.AddCallback(isw.Ncallback, func(w isw.Widget, cd unsafe.Pointer) {
+	submit.AddCallback(isw.Ncallback, func(w isw.Widget, cd isw.CallData) {
 		setStatus("Form submitted!")
 	})
 }

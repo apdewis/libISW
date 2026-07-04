@@ -6,8 +6,6 @@ package isw
 */
 import "C"
 
-import "unsafe"
-
 // FileChooserCallbackData is the Go representation of file chooser
 // callback data.
 type FileChooserCallbackData struct {
@@ -16,7 +14,7 @@ type FileChooserCallbackData struct {
 
 // ParseFileChooserCallbackData converts C call_data from a fileSelected
 // callback to Go.
-func ParseFileChooserCallbackData(callData unsafe.Pointer) *FileChooserCallbackData {
-	cd := (*C.IswFileChooserCallbackData)(callData)
+func ParseFileChooserCallbackData(callData CallData) *FileChooserCallbackData {
+	cd := (*C.IswFileChooserCallbackData)(callData.ptr)
 	return &FileChooserCallbackData{Path: C.GoString(cd.path)}
 }

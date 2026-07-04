@@ -49,8 +49,21 @@ func (al *ArgList) grow() {
 	al.cap = newCap
 }
 
-// Add appends a resource by name with an integer/pointer-sized value.
-func (al *ArgList) Add(name string, value uintptr) *ArgList {
+// Add appends a resource by name with an integer value.
+func (al *ArgList) Add(name string, value int) *ArgList {
+	return al.addRaw(name, uintptr(value))
+}
+
+// AddBool appends a boolean-valued resource.
+func (al *ArgList) AddBool(name string, value bool) *ArgList {
+	v := uintptr(0)
+	if value {
+		v = 1
+	}
+	return al.addRaw(name, v)
+}
+
+func (al *ArgList) addRaw(name string, value uintptr) *ArgList {
 	if al.len >= al.cap {
 		al.grow()
 	}
@@ -77,15 +90,16 @@ func (al *ArgList) AddString(name, value string) *ArgList {
 
 // AddWidget appends a widget-valued resource.
 func (al *ArgList) AddWidget(name string, w Widget) *ArgList {
-	return al.Add(name, uintptr(unsafe.Pointer(w.c)))
+	return al.addRaw(name, uintptr(unsafe.Pointer(w.c)))
 }
 
 // AddStringList appends a string-array resource (e.g. IswNlist).
 // The strings are copied into C memory and remain valid for the widget's
-// lifetime. Pass the slice length separately via Add(NnumberStrings, …).
+// lifetime. The numberStrings resource is set to len(values) automatically.
 func (al *ArgList) AddStringList(name string, values []string) *ArgList {
-	ptr := CStringArray(values)
-	return al.Add(name, ptr)
+	ptr := cStringArray(values)
+	al.addRaw(name, ptr)
+	return al.Add(NnumberStrings, len(values))
 }
 
 // AddCallback appends a callback-list resource.
@@ -131,11 +145,11 @@ func (al *ArgList) cArgPtr() (*C.Arg, C.Cardinal) {
 // Pixel is an ARGB pixel value.
 type Pixel = uint
 
-// CStringArray allocates a NULL-terminated char** array in C memory.
+// cStringArray allocates a NULL-terminated char** array in C memory.
 // Each string and the array itself are C-allocated and must live as long as
 // the widget that references them (typically the program lifetime for List
-// resources). Call FreeStringArray to release.
-func CStringArray(strs []string) uintptr {
+// resources). Call freeStringArray to release.
+func cStringArray(strs []string) uintptr {
 	arr := C._isw_alloc_string_array(C.int(len(strs)))
 	for i, s := range strs {
 		C._isw_string_array_set(arr, C.int(i), C.CString(s))
@@ -143,8 +157,8 @@ func CStringArray(strs []string) uintptr {
 	return uintptr(C._isw_charpp_to_uintptr(arr))
 }
 
-// FreeStringArray frees a char** array created by CStringArray.
-func FreeStringArray(ptr uintptr, count int) {
+// freeStringArray frees a char** array created by cStringArray.
+func freeStringArray(ptr uintptr, count int) {
 	if ptr == 0 {
 		return
 	}
@@ -300,7 +314,7 @@ const (
 )
 
 // EdgeType controls Form constraint edge behavior.
-type EdgeType = uintptr
+type EdgeType int
 
 const (
 	ChainTop    EdgeType = 0

@@ -59,9 +59,6 @@ var NilWidget = Widget{}
 // IsNil returns true if the widget is NULL.
 func (w Widget) IsNil() bool { return w.c == nil }
 
-// Raw returns the underlying C Widget pointer.
-func (w Widget) Raw() unsafe.Pointer { return unsafe.Pointer(w.c) }
-
 func buildCArgv() (argc C.int, argv **C.char) {
 	args := os.Args
 	n := len(args)
