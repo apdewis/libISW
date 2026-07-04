@@ -7,6 +7,15 @@ package isw
 #include <stdlib.h>
 #include "trampolines.h"
 #include "wrappers.h"
+
+static const char* _isw_get_string_resource(Widget w, const char *name) {
+	const char *s = NULL;
+	Arg arg;
+	arg.name = (String)name;
+	arg.value = (IswArgVal)(uintptr_t)&s;
+	IswGetValues(w, &arg, 1);
+	return s;
+}
 */
 import "C"
 
@@ -95,6 +104,21 @@ func (w Widget) SetValues(args *ArgList) {
 func (w Widget) GetValues(args *ArgList) {
 	a, n := args.cArgPtr()
 	C._isw_get_values(w.c, a, n)
+}
+
+// GetString reads a string resource from a widget.
+func (w Widget) GetString(name string) string {
+	cName := C.CString(name)
+	defer C.free(unsafe.Pointer(cName))
+	return C.GoString(C._isw_get_string_resource(w.c, cName))
+}
+
+// AugmentTranslations parses a translation table and merges it into the
+// widget's translations, keeping existing bindings on conflict.
+func (w Widget) AugmentTranslations(table string) {
+	cTable := C.CString(table)
+	defer C.free(unsafe.Pointer(cTable))
+	C.IswAugmentTranslations(w.c, C.IswParseTranslationTable(cTable))
 }
 
 // Parent returns the widget's parent.
