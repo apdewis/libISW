@@ -294,50 +294,50 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     Boolean highlighted_active = False;
     SmeBSBObject entry = (SmeBSBObject) w;
-    Dimension s = 1;  /* inset from SimpleMenu's 1px drawn border */
+    Dimension s = ((SimpleMenuWidget)IswParent(w))->core.border_width;  /* inset from SimpleMenu's 1px drawn border */
     int	font_ascent = 0, font_descent = 0, y_loc;
 
     entry->sme_bsb.set_values_area_cleared = FALSE;
-    {
- /* XCB Fix: Add NULL check for font before accessing fields */
- if (entry->sme_bsb.font != NULL) {
-     font_ascent = ISWScaledFontAscent(IswParent(w), entry->sme_bsb.font);
-     font_descent = ISWScaledFontHeight(IswParent(w), entry->sme_bsb.font)
-                    - font_ascent;
- } else {
-     font_ascent = (11);
-     font_descent = (3);
- }
+    
+    /* XCB Fix: Add NULL check for font before accessing fields */
+    if (entry->sme_bsb.font != NULL) {
+        font_ascent = ISWScaledFontAscent(IswParent(w), entry->sme_bsb.font);
+        font_descent = ISWScaledFontHeight(IswParent(w), entry->sme_bsb.font)
+                       - font_ascent;
+    } else {
+        font_ascent = (11);
+        font_descent = (3);
     }
+    
     y_loc = entry->rectangle.y;
 
     /* Use the parent SimpleMenu's shared render context */
     ISWRenderContext *ctx = ((SimpleMenuWidget)IswParent(w))->simple_menu.render_ctx;
 
     if (IswIsSensitive(w) && IswIsSensitive( IswParent(w) ) ) {
- if ( w == IswSimpleMenuGetActiveEntry(IswParent(w)) ) {
-     if (ctx) {
-         ISWRenderBegin(ctx);
-         ISWRenderSetColor(ctx, entry->sme_bsb.foreground);
-         ISWRenderFillRectangle(ctx,
-                                s, y_loc + s,
-                                entry->rectangle.width - 2 * s,
-                                entry->rectangle.height - 2 * s);
-         ISWRenderEnd(ctx);
-     }
-     highlighted_active = True;
- }
- else {
-     if (ctx) {
-         ISWRenderBegin(ctx);
-         ISWRenderSetColor(ctx, IswParent(w)->core.background_pixel);
-         ISWRenderFillRectangle(ctx,
-                                s, y_loc + s,
-                                entry->rectangle.width - 2 * s,
-                                entry->rectangle.height - 2 * s);
-         ISWRenderEnd(ctx);
-     }
- }
+        if ( w == IswSimpleMenuGetActiveEntry(IswParent(w)) ) {
+            if (ctx) {
+                ISWRenderBegin(ctx);
+                ISWRenderSetColor(ctx, entry->sme_bsb.foreground);
+                ISWRenderFillRectangle(ctx,
+                                       s, y_loc + s,
+                                       entry->rectangle.width - 2 * s,
+                                       entry->rectangle.height - 2 * s);
+                ISWRenderEnd(ctx);
+            }
+            highlighted_active = True;
+        }
+        else {
+            if (ctx) {
+                ISWRenderBegin(ctx);
+                ISWRenderSetColor(ctx, IswParent(w)->core.background_pixel);
+                ISWRenderFillRectangle(ctx,
+                                       s, y_loc + s,
+                                       entry->rectangle.width - 2 * s,
+                                       entry->rectangle.height - 2 * s);
+                ISWRenderEnd(ctx);
+            }
+        }
     }
 
     if (entry->sme_bsb.label != NULL) {
@@ -368,36 +368,43 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 
 	/* this will center the text in the gadget top-to-bottom */
 
-        {
-            y_loc += ((int)entry->rectangle.height -
-                      (font_ascent + font_descent)) / 2 + font_ascent;
+        
+    /* Optical cap-height centering, matching Label and ListBox:
+       baseline = (height + cap) / 2.  Box-centering on ascent +
+       descent sets the text visibly high because the descent zone
+       is mostly empty. */
+    if (entry->sme_bsb.font)
+        y_loc += ((int)entry->rectangle.height +
+                  ISWScaledFontCapHeight(IswParent(w),
+                                         entry->sme_bsb.font)) / 2;
+    else
+        y_loc += ((int)entry->rectangle.height -
+                  (font_ascent + font_descent)) / 2 + font_ascent;
 
-            if (ctx) {
-                Pixel text_color = highlighted_active
-                    ? IswParent(w)->core.background_pixel
-                    : entry->sme_bsb.foreground;
-                ISWRenderBegin(ctx);
-                ISWRenderSetColor(ctx, text_color);
-                if (entry->sme_bsb.font)
-                    ISWRenderSetFont(ctx, entry->sme_bsb.font);
-                ISWRenderDrawString(ctx, label, len,
-                                    x_loc + s, y_loc);
-                ISWRenderEnd(ctx);
-            }
-        }
-
-	{
-	    /* Explicit IswNunderline wins; else use IswNmnemonicKey if Alt is
-	     * held OR this menu was opened via a mnemonic (in which case the
-	     * underlines stay until the menu is dismissed). */
-	    int ul = entry->sme_bsb.underline;
-	    Boolean from_mnemonic = False;
-	    if (ul < 0 &&
-	        _IswFocusMgrShowMnemonicsForMenu(IswParent(w)) &&
-	        entry->sme_bsb.mnemonic_key != 0) {
-	        ul = _IswFocusMgrFindMnemonicIndex(label, entry->sme_bsb.mnemonic_key);
-	        from_mnemonic = (ul >= 0);
-	    }
+    if (ctx) {
+        Pixel text_color = highlighted_active
+            ? IswParent(w)->core.background_pixel
+            : entry->sme_bsb.foreground;
+        ISWRenderBegin(ctx);
+        ISWRenderSetColor(ctx, text_color);
+        if (entry->sme_bsb.font)
+            ISWRenderSetFont(ctx, entry->sme_bsb.font);
+        ISWRenderDrawString(ctx, label, len,
+                            x_loc + s, y_loc);
+        ISWRenderEnd(ctx);
+    }
+ 	
+	/* Explicit IswNunderline wins; else use IswNmnemonicKey if Alt is
+	 * held OR this menu was opened via a mnemonic (in which case the
+	 * underlines stay until the menu is dismissed). */
+	int ul = entry->sme_bsb.underline;
+	Boolean from_mnemonic = False;
+	if (ul < 0 &&
+	    _IswFocusMgrShowMnemonicsForMenu(IswParent(w)) &&
+	    entry->sme_bsb.mnemonic_key != 0) {
+	    ul = _IswFocusMgrFindMnemonicIndex(label, entry->sme_bsb.mnemonic_key);
+	    from_mnemonic = (ul >= 0);
+	}
 	    if (ul >= 0 && ul < len) {
 	        int ul_x1_loc = x_loc + s;
 	        int ul_wid;
@@ -426,46 +433,46 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	            ISWRenderEnd(ctx);
 	        }
 	    }
-	}
+	
     }
 
     if (entry->sme_bsb.accelerator_text != NULL && ctx) {
-	int accel_len = strlen(entry->sme_bsb.accelerator_text);
-	int accel_w = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font,
-					 entry->sme_bsb.accelerator_text, accel_len);
-	int accel_x = entry->rectangle.width - entry->sme_bsb.right_margin - accel_w;
-	Pixel accel_color = highlighted_active
-	    ? IswParent(w)->core.background_pixel
-	    : entry->sme_bsb.foreground;
+	    int accel_len = strlen(entry->sme_bsb.accelerator_text);
+	    int accel_w = ISWScaledTextWidth(IswParent(w), entry->sme_bsb.font,
+	    				 entry->sme_bsb.accelerator_text, accel_len);
+	    int accel_x = entry->rectangle.width - entry->sme_bsb.right_margin - accel_w;
+	    Pixel accel_color = highlighted_active
+	        ? IswParent(w)->core.background_pixel
+	        : entry->sme_bsb.foreground;
 
-	ISWRenderBegin(ctx);
-	ISWRenderSetColor(ctx, accel_color);
-	if (entry->sme_bsb.font)
-	    ISWRenderSetFont(ctx, entry->sme_bsb.font);
-	ISWRenderDrawString(ctx, entry->sme_bsb.accelerator_text, accel_len,
-			    accel_x, y_loc);
-	ISWRenderEnd(ctx);
+	    ISWRenderBegin(ctx);
+	    ISWRenderSetColor(ctx, accel_color);
+	    if (entry->sme_bsb.font)
+	        ISWRenderSetFont(ctx, entry->sme_bsb.font);
+	    ISWRenderDrawString(ctx, entry->sme_bsb.accelerator_text, accel_len,
+	    		    accel_x, y_loc);
+	    ISWRenderEnd(ctx);
     }
 
     DrawBitmaps(w, highlighted_active);
 
     if (entry->sme_bsb.menu_name != NULL && ctx) {
-	int sz = SME_SUBMENU_ARROW_SIZE;
-	int ax = entry->rectangle.width - entry->sme_bsb.right_margin / 2 - sz;
-	int ay = entry->rectangle.y + entry->rectangle.height / 2;
-	IswPoint tri[3];
-	Pixel arrow_color = highlighted_active
-	    ? IswParent(w)->core.background_pixel
-	    : entry->sme_bsb.foreground;
+	    int sz = SME_SUBMENU_ARROW_SIZE;
+	    int ax = entry->rectangle.width - entry->sme_bsb.right_margin / 2 - sz;
+	    int ay = entry->rectangle.y + entry->rectangle.height / 2;
+	    IswPoint tri[3];
+	    Pixel arrow_color = highlighted_active
+	        ? IswParent(w)->core.background_pixel
+	        : entry->sme_bsb.foreground;
 
-	tri[0].x = ax;        tri[0].y = ay - sz;
-	tri[1].x = ax;        tri[1].y = ay + sz;
-	tri[2].x = ax + sz;   tri[2].y = ay;
+	    tri[0].x = ax;        tri[0].y = ay - sz;
+	    tri[1].x = ax;        tri[1].y = ay + sz;
+	    tri[2].x = ax + sz;   tri[2].y = ay;
 
-	ISWRenderBegin(ctx);
-	ISWRenderSetColor(ctx, arrow_color);
-	ISWRenderFillPolygon(ctx, tri, 3);
-	ISWRenderEnd(ctx);
+	    ISWRenderBegin(ctx);
+	    ISWRenderSetColor(ctx, arrow_color);
+	    ISWRenderFillPolygon(ctx, tri, 3);
+	    ISWRenderEnd(ctx);
     }
 }
 
