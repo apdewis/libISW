@@ -448,9 +448,9 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
         if (smw->simple_menu.render_ctx) {
             int bw = (int) w->core.border_width;
             ISWRenderSetColor(smw->simple_menu.render_ctx, w->core.background_pixel);
-            ISWRenderFillRectangle(smw->simple_menu.render_ctx, bw, bw,
-                                   w->core.width - 2 * bw,
-                                   w->core.height - 2 * bw);
+            ISWRenderFillRectangle(smw->simple_menu.render_ctx, 0, 0,
+                                   w->core.width,
+                                   w->core.height);
         }
     }
 
@@ -473,11 +473,11 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	    if (smw->simple_menu.too_tall)
 	    {
 	        dy = 0;
-        
+
 	        if (entry == (smw->simple_menu.current_first))
 	        {
 	    	    new_y = (*entry)->rectangle.y - 1;
-            
+
 	    	    if (smw->simple_menu.current_first != smw->simple_menu.first_entry)
 	    	    {
                     point[0].x = (*entry)->rectangle.width / 2;
@@ -486,27 +486,27 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
                     point[1].y = s + SMW_ARROW_SIZE;
                     point[2].x = (*entry)->rectangle.width / 2 + SMW_ARROW_SIZE / 2;
                     point[2].y = s + SMW_ARROW_SIZE;
-                
+
                     if (smw->simple_menu.render_ctx) {
                     		 ISWRenderBegin(smw->simple_menu.render_ctx);
                     		 ISWRenderSetColor(smw->simple_menu.render_ctx, smw->core.border_pixel);
                     		 ISWRenderFillPolygon(smw->simple_menu.render_ctx, (IswPoint *)point, 3);
                     		 ISWRenderEnd(smw->simple_menu.render_ctx);
                     }
-                
+
                     new_y -= SMW_ARROW_SIZE;
                     dy = SMW_ARROW_SIZE;
 	    	    }
-            
+
 	    	    smw->simple_menu.first_y = new_y;
 	    	    can_paint = True;
 	        }
 	        else if (!can_paint)
 	    	continue;
-        
+
 	        old_pos = (*entry)->rectangle;
 	        (*entry)->rectangle.y -= new_y;
-        
+
 	        if ((*entry)->rectangle.y + (*entry)->rectangle.height + dy > max_y)
 	        {
 	            smw->simple_menu.last_y = (*entry)->rectangle.y;
@@ -523,19 +523,19 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 	                ISWRenderFillPolygon(smw->simple_menu.render_ctx, (IswPoint *)point, 3);
 	                ISWRenderEnd(smw->simple_menu.render_ctx);
 	            }
-            
+
 	            smw->simple_menu.didnt_fit = True;
 	            (*entry)->rectangle = old_pos;
 	            break;
 	        }
 	    }
 	    class = (SmeObjectClass)(*entry)->object.widget_class;
-    
+
 	    if (class->rect_class.expose != NULL)
 	        (class->rect_class.expose)((Widget)*entry, NULL, 0);
-    
+
 	    if (smw->simple_menu.too_tall) (*entry)->rectangle = old_pos;
-    
+
 	    y += (*entry)->rectangle.height;
     }
     /* End the outer frame — this is the single blit to the window */
