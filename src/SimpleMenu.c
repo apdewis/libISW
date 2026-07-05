@@ -53,6 +53,9 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/Cardinals.h>
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWPlatform.h>
+#include <ISW/Shell.h>
+#include <ISW/ShellI.h>
+#include <ISW/EventI.h>
 
 #include <math.h>
 
@@ -96,7 +99,7 @@ static IswResource resources[] = {
  */
 
   { IswNallowShellResize, IswCAllowShellResize, IswRBoolean, sizeof(Boolean),
-      IswOffsetOf(SimpleMenuRec, shell.allow_shell_resize),
+      offset(allow_resize),
       IswRImmediate, (IswPointer) TRUE },
   {IswNcursor, IswCCursor, IswRCursor, sizeof(IswCursor),
       offset(cursor), IswRImmediate, (IswPointer) None},
@@ -180,13 +183,12 @@ static void CreateLabel(Widget);
 static void Layout(Widget, Dimension *, Dimension *);
 static void AddPositionAction(IswAppContext, IswPointer);
 static void PositionMenu(Widget, XPoint *);
-static void ChangeCursorOnGrab(Widget, IswPointer, IswPointer);
 static void SetMarginWidths(Widget);
 static Dimension GetMenuWidth(Widget, Widget);
 static Dimension GetMenuHeight(Widget);
 static Widget FindMenu(Widget, String);
 static SmeObject GetEventEntry(Widget, IswEvent *);
-static void MoveMenu(Widget, Position, Position);
+static void MoveMenu(Widget, Position, Position, Position *, Position *);
 static void ScrollEntryVisible(SimpleMenuWidget, SmeObject);
 static void ScrollMenuTo(SimpleMenuWidget, int);
 
@@ -215,7 +217,7 @@ static CompositeClassExtensionRec extension_rec = {
     /* accepts_objects */ TRUE,
 };
 
-#define superclass (&overrideShellClassRec)
+#define superclass (&compositeClassRec)
 
 SimpleMenuClassRec simpleMenuClassRec = {
   {
@@ -257,10 +259,6 @@ SimpleMenuClassRec simpleMenuClassRec = {
     /* insert_child	  */	IswInheritInsertChild,
     /* delete_child	  */	IswInheritDeleteChild,
     /* extension	  */    NULL
-  },{
-    /* Shell extension	  */    NULL
-  },{
-    /* Override extension */    NULL
   },{
     /* Simple Menu extension*/  NULL
   }
@@ -383,9 +381,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
       smw->simple_menu.menu_height = FALSE;
       smw->core.height = GetMenuHeight(new);
   }
-
-  /* add a popup_callback routine for changing the cursor */
-  IswAddCallback(new, IswNpopupCallback, ChangeCursorOnGrab, (IswPointer)NULL);
 }
 
 /*      Function Name: Destroy
@@ -556,22 +551,10 @@ static void
 Realize(IswDisplay conn, Widget w, IswValueMask * mask, uint32_t * values)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
-    int value_index = 0;
 
-    values[value_index++] = smw->simple_menu.cursor;  /* cursor */
-    *mask |= IswCWCursor;
-    if ((smw->simple_menu.backing_store == IswBackingAlways) ||
-	(smw->simple_menu.backing_store == IswBackingNotUseful) ||
-	(smw->simple_menu.backing_store == IswBackingWhenMapped) ) {
-	*mask |= IswCWBackingStore;
-	values[value_index++] = smw->simple_menu.backing_store;  /* backing_store */
-    }
-    else
-	*mask &= ~IswCWBackingStore;
-
-    *mask |= IswCWBorderPixel;
-
-     /* check if the menu is too big */
+     /* check if the menu is too big to fit on the screen; if so it will
+      * be scrolled.  The menu is windowless so this is a size clamp only,
+      * not a window attribute. */
      {
          double sf = _IswGetScaleFactor(conn);
          int logical_scr_h = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w)) / sf);
@@ -582,10 +565,6 @@ Realize(IswDisplay conn, Widget w, IswValueMask * mask, uint32_t * values)
      }
 
     (*superclass->core_class.realize) (conn, w, mask, values);
-
-    /* _NET_WM_WINDOW_TYPE = POPUP_MENU */
-    _IswPlatformSetWindowType(IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-                              ISW_WINDOW_TYPE_POPUP_MENU);
 }
 
 /*      Function Name: Resize
@@ -757,10 +736,10 @@ GeometryManager(Widget w, IswWidgetGeometry * request, IswWidgetGeometry * reply
     Layout(w, &(reply->width), &(reply->height) );
 
 /*
- * Since we are an override shell and have no parent there is no one to
- * ask to see if this geom change is okay, so I am just going to assume
- * we can do whatever we want.  If you subclass be very careful with this
- * assumption, it could bite you.
+ * A menu sizes itself to fit its entries; its position within the host
+ * window is chosen by whoever shows it (IswSimpleMenuShow), so we assume
+ * the geometry change is fine and just relayout.  If you subclass be very
+ * careful with this assumption, it could bite you.
  *
  * Chris D. Peterson - Sept. 1989.
  */
@@ -1281,13 +1260,25 @@ EnterSubMenu(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 	SetEntry(sub, first);
     }
 
-    /* Warp pointer into submenu so its translations receive events */
-    _IswPlatformWarpPointer(IswDisplayOf(w),
-		     _IswPlatformWidgetWindow(IswDisplayOf((Widget)(sub)), (Widget)(sub)),
-		     (int)(IswWidth((Widget)sub) / 2),
-		     (int)(first ? first->rectangle.y +
+    /* Warp pointer into submenu so its translations receive events.  The
+     * submenu is windowless: translate the target from submenu-local
+     * coordinates into its ancestor window and warp that window. */
+    {
+	Position lx = (Position)(IswWidth((Widget)sub) / 2);
+	Position ly = (Position)(first ? first->rectangle.y +
 		     first->rectangle.height / 2 -
-		     sub->simple_menu.first_y : 10));
+		     sub->simple_menu.first_y : 10);
+	Position root_x, root_y, anc_root_x = 0, anc_root_y = 0;
+	Widget ancestor = _IswWidgetAncestor((Widget)sub);
+
+	IswTranslateCoords((Widget)sub, lx, ly, &root_x, &root_y);
+	if (ancestor != NULL)
+	    _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
+
+	_IswPlatformWarpPointer(IswDisplayOf(w),
+		     _IswPlatformWidgetWindow(IswDisplayOf((Widget)(sub)), (Widget)(sub)),
+		     (int)(root_x - anc_root_x), (int)(root_y - anc_root_y));
+    }
     _IswPlatformFlush(IswDisplayOf(w));
 }
 
@@ -1319,7 +1310,9 @@ LeaveSubMenu(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 	(cls->sme_class.unhighlight)((Widget)smw->simple_menu.entry_set);
 	smw->simple_menu.entry_set = NULL;
     }
-    IswPopdown(w);
+    IswUnmapWidget(w);
+    IswCallCallbacks(w, IswNpopdownCallback, (IswPointer) NULL);
+    smw->simple_menu.state &= ~SMW_UNMAPPING;
     psmw->simple_menu.sub_menu = NULL;
 
     /* Re-highlight the parent entry */
@@ -1337,13 +1330,24 @@ LeaveSubMenu(Widget w, IswEvent *iswev, String *p, Cardinal *np)
 	parent_entry->rectangle.y = old_pos;
     }
 
-    /* Warp pointer back to parent menu */
-    _IswPlatformWarpPointer(IswDisplayOf(w),
-		     _IswPlatformWidgetWindow(IswDisplayOf((Widget)(parent)), (Widget)(parent)),
-		     (int)(IswWidth(parent) / 2),
-		     (int)(parent_entry ? parent_entry->rectangle.y +
+    /* Warp pointer back to parent menu (windowless: target its ancestor
+     * window at the parent menu's position). */
+    {
+	Position lx = (Position)(IswWidth(parent) / 2);
+	Position ly = (Position)(parent_entry ? parent_entry->rectangle.y +
 		     parent_entry->rectangle.height / 2 -
-		     psmw->simple_menu.first_y : 10));
+		     psmw->simple_menu.first_y : 10);
+	Position root_x, root_y, anc_root_x = 0, anc_root_y = 0;
+	Widget ancestor = _IswWidgetAncestor(parent);
+
+	IswTranslateCoords(parent, lx, ly, &root_x, &root_y);
+	if (ancestor != NULL)
+	    _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
+
+	_IswPlatformWarpPointer(IswDisplayOf(w),
+		     _IswPlatformWidgetWindow(IswDisplayOf((Widget)(parent)), (Widget)(parent)),
+		     (int)(root_x - anc_root_x), (int)(root_y - anc_root_y));
+    }
     _IswPlatformFlush(IswDisplayOf(w));
 }
 
@@ -1393,6 +1397,107 @@ IswSimpleMenuClearActiveEntry(Widget w)
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
 
     smw->simple_menu.entry_set = NULL;
+}
+
+/*	Function Name: IswSimpleMenuShow
+ *	Description: Positions and shows a SimpleMenu within its windowed
+ *		     ancestor's surface (see SimpleMenu.h).
+ *	Arguments: menu - the SimpleMenu widget.
+ *		   x, y - position in the ancestor window's coordinate space.
+ *	Returns: none.
+ */
+
+void
+IswSimpleMenuShow(Widget menu, int x, int y)
+{
+    Position cx, cy;
+    Widget parent, ancestor;
+    Position par_root_x = 0, par_root_y = 0;
+    Position anc_root_x = 0, anc_root_y = 0;
+    int par_off_x = 0, par_off_y = 0;
+
+    if (!IswIsRealized(menu))
+	IswRealizeWidget(menu);
+
+    /* x,y are in the ancestor window's coordinate space.  IswMoveWidget sets
+     * core.x/y relative to the menu's direct parent, and the windowless
+     * offset accumulates the parent's position back up to the ancestor.  If
+     * the parent is not itself the ancestor, subtract the parent's offset so
+     * the final on-screen position matches the requested ancestor coords. */
+    parent = IswParent(menu);
+    ancestor = _IswWidgetAncestor(menu);
+    if (parent != NULL && parent != ancestor && !IswIsShell(parent)) {
+	IswTranslateCoords(parent, 0, 0, &par_root_x, &par_root_y);
+	if (ancestor != NULL)
+	    _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
+	par_off_x = (int) par_root_x - (int) anc_root_x;
+	par_off_y = (int) par_root_y - (int) anc_root_y;
+    }
+
+    MoveMenu(menu, (Position) x, (Position) y, &cx, &cy);
+
+    /* An in-window menu must composite above all other content in its host
+       window. */
+    menu->core.windowless_overlay = True;
+
+    IswMoveWidget(menu, cx - par_off_x, cy - par_off_y);
+    IswMapWidget(menu);
+
+    /* Fold the menu's event mask (motion/button/crossing from its translations)
+       into the host window's selection so the server delivers those events —
+       the menu may have been (re)translated or created after the host window
+       was realized, leaving the window's mask stale. */
+    _IswUpdateWindowlessAncestorMask(menu);
+
+    IswCallCallbacks(menu, IswNpopupCallback, (IswPointer) NULL);
+}
+
+/*	Function Name: IswSimpleMenuHide
+ *	Description: Hides a shown SimpleMenu and any open submenu.
+ *	Arguments: menu - the SimpleMenu widget.
+ *	Returns: none.
+ */
+
+void
+IswSimpleMenuHide(Widget menu)
+{
+    SimpleMenuWidget smw = (SimpleMenuWidget) menu;
+
+    smw->simple_menu.state |= SMW_UNMAPPING;
+    PopdownSubMenu(smw);
+
+    IswUnmapWidget(menu);
+
+    IswCallCallbacks(menu, IswNpopdownCallback, (IswPointer) NULL);
+
+    smw->simple_menu.state &= ~SMW_UNMAPPING;
+}
+
+/*	Function Name: IswCreateMenuPopupShell
+ *	Description: Creates an override-redirect popup shell hosting a
+ *		     SimpleMenu, for applications that need the menu in a
+ *		     separate platform window (see SimpleMenu.h).
+ *	Arguments: name - name for the SimpleMenu widget.
+ *		   parent - parent used to create the popup shell.
+ *		   args, num_args - resources for the SimpleMenu.
+ *	Returns: the SimpleMenu widget.
+ */
+
+Widget
+IswCreateMenuPopupShell(_Xconst char *name, Widget parent,
+			ArgList args, Cardinal num_args)
+{
+    Widget shell, menu;
+    char shell_name[256];
+
+    (void) snprintf(shell_name, sizeof(shell_name), "%sShell", name);
+
+    shell = IswCreatePopupShell(shell_name, overrideShellWidgetClass, parent,
+			       NULL, 0);
+    menu = IswCreateManagedWidget((String) name, simpleMenuWidgetClass, shell,
+				 args, num_args);
+
+    return menu;
 }
 
 /************************************************************
@@ -1486,7 +1591,7 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 
     do_layout |= (current_entry != NULL);
     allow_change_size =
-		(!IswIsRealized((Widget)smw) || smw->shell.allow_shell_resize);
+		(!IswIsRealized((Widget)smw) || smw->simple_menu.allow_resize);
 
     if (smw->simple_menu.menu_height)
 	height = smw->core.height;
@@ -1592,6 +1697,17 @@ PositionMenu(Widget w, XPoint * location)
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
     SmeObject entry;
     XPoint t_point;
+    Widget ancestor;
+    Position anc_root_x = 0, anc_root_y = 0;
+
+    /*
+     * The width will not be correct unless it is realized.  Realizing also
+     * establishes the windowless ancestor whose surface the menu lives in.
+     */
+
+    IswRealizeWidget(w);
+
+    ancestor = _IswWidgetAncestor(w);
 
     if (location == NULL) {
  int root_x, root_y, win_x, win_y;
@@ -1613,10 +1729,15 @@ PositionMenu(Widget w, XPoint * location)
      }
 
     /*
-     * The width will not be correct unless it is realized.
+     * The incoming location is in root (screen) coordinates.  The menu is a
+     * windowless child of its ancestor window, so translate into that
+     * window's coordinate space by subtracting the ancestor's screen origin.
      */
+    if (ancestor != NULL)
+	_IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
 
-    IswRealizeWidget(w);
+    location->x -= anc_root_x;
+    location->y -= anc_root_y;
 
     location->x -= (Position) w->core.width/2;
 
@@ -1628,77 +1749,53 @@ PositionMenu(Widget w, XPoint * location)
     if (entry != NULL)
 	location->y -= entry->rectangle.y + entry->rectangle.height/2;
 
-    MoveMenu(w, (Position) location->x, (Position) location->y);
+    IswSimpleMenuShow(w, (int) location->x, (int) location->y);
 }
 
 /*	Function Name: MoveMenu
- *	Description: Actually moves the menu, may force it to
- *                   to be fully visable if menu_on_screen is TRUE.
+ *	Description: Clamps a menu position against its ancestor window and
+ *                   returns the adjusted coordinates.  Honours menu_on_screen.
  *	Arguments: w - the simple menu widget.
- *                 x, y - the current location of the widget.
+ *                 x, y - the requested location (ancestor-window coords).
+ *                 rx, ry - returned clamped location.
  *	Returns: none
  */
 
 static void
-MoveMenu(Widget w, Position x, Position y)
+MoveMenu(Widget w, Position x, Position y, Position *rx, Position *ry)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
-    IswArgBuilder ab = IswArgBuilderInit();
 
     if (smw->simple_menu.menu_on_screen) {
-	double sf = _IswGetScaleFactor(IswDisplayOf(w));
+	Widget ancestor = _IswWidgetAncestor(w);
 	int width = w->core.width + 2 * w->core.border_width;
 	int height = w->core.height + 2 * w->core.border_width;
+	int avail_w, avail_h;
 
-	if (x >= 0) {
-	    int scr_width = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(w), IswScreenOf(w)) / sf);
-	    if (x + width > scr_width)
-		x = scr_width - width;
+	if (ancestor != NULL) {
+	    avail_w = (int) ancestor->core.width;
+	    avail_h = (int) ancestor->core.height;
+	} else {
+	    double sf = _IswGetScaleFactor(IswDisplayOf(w));
+	    avail_w = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(w), IswScreenOf(w)) / sf);
+	    avail_h = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w)) / sf);
 	}
+
+	if (x >= 0 && x + width > avail_w)
+	    x = avail_w - width;
 	if (x < 0)
 	    x = 0;
 
-	if (y >= 0) {
-	    int scr_height = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w)) / sf);
-	    if (y + height > scr_height)
-		y = scr_height - height;
-	}
+	if (y >= 0 && y + height > avail_h)
+	    y = avail_h - height;
 	if (y < 0)
 	    y = 0;
     }
 
-    IswArgX(&ab, x);
-    IswArgY(&ab, y);
-    IswSetValues(w, ab.args, ab.count);
+    *rx = x;
+    *ry = y;
 }
 
-/*	Function Name: ChangeCursorOnGrab
- *	Description: Changes the cursor on the active grab to the one
- *                   specified in out resource list.
- *	Arguments: w - the widget.
- *                 junk, garbage - ** NOT USED **.
- *	Returns: None.
- */
-
-/* ARGSUSED */
-static void
-ChangeCursorOnGrab(Widget w, IswPointer junk, IswPointer garbage)
-{
-    SimpleMenuWidget smw = (SimpleMenuWidget) w;
-
-    /*
-     * The event mask here is what is currently in the MIT implementation.
-     * There really needs to be a way to get the value of the mask out
-     * of the toolkit (CDP 5/26/89).
-     */
-
-    _IswUpdatePointerCaptureCursor(w,
-       smw->simple_menu.cursor,
-       IswLastTimestampProcessed(IswDisplayOf(w)),
-       IswButtonPressMask | IswButtonReleaseMask |
-       IswPointerMotionMask | IswButtonMotionMask |
-       IswEnterWindowMask | IswLeaveWindowMask);
-}
 
 /*      Function Name: MakeSetValuesRequest
  *      Description: Makes a (possibly recursive) call to SetValues,
@@ -1975,9 +2072,12 @@ PopupSubMenu(SimpleMenuWidget smw)
 {
     Widget menu;
     SmeBSBObject entry = (SmeBSBObject)smw->simple_menu.entry_set;
-    Position menu_x, menu_y;
+    Position root_x, root_y;
+    int menu_x, menu_y;
     Bool popleft;
-    IswArgBuilder ab = IswArgBuilderInit();
+    Widget ancestor;
+    Position anc_root_x = 0, anc_root_y = 0;
+    int avail_w, avail_h;
 
     if (entry->sme_bsb.menu_name == NULL)
 	return;
@@ -1992,50 +2092,55 @@ PopupSubMenu(SimpleMenuWidget smw)
 
     popleft = (smw->simple_menu.state & SMW_POPLEFT) != 0;
 
+    /*
+     * Compute the desired placement in root coordinates (beside the parent
+     * menu, at the active entry), then translate into the submenu's ancestor
+     * window and clamp against that window rather than the whole screen.  The
+     * submenu is windowless and lives in the same window as its parent.
+     */
     if (popleft)
 	IswTranslateCoords((Widget)smw, -(int)IswWidth(menu),
-			  IswY(entry) - IswBorderWidth(menu), &menu_x, &menu_y);
+			  IswY(entry) - IswBorderWidth(menu), &root_x, &root_y);
     else
 	IswTranslateCoords((Widget)smw, IswWidth(smw), IswY(entry)
-			  - IswBorderWidth(menu), &menu_x, &menu_y);
+			  - IswBorderWidth(menu), &root_x, &root_y);
 
-    {
+    ancestor = _IswWidgetAncestor(menu);
+    if (ancestor != NULL) {
+	_IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
+	avail_w = (int) ancestor->core.width;
+	avail_h = (int) ancestor->core.height;
+    } else {
 	double sf = _IswGetScaleFactor(IswDisplayOf(menu));
-
-	if (!popleft && menu_x >= 0) {
-	    int scr_width = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
-
-	    if (menu_x + IswWidth(menu) > scr_width) {
-		menu_x -= IswWidth(menu) + IswWidth(smw);
-		popleft = True;
-	    }
-	}
-	else if (popleft && menu_x < 0) {
-	    menu_x = 0;
-	    popleft = False;
-	}
-
-	if (menu_y >= 0) {
-	    int scr_height = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
-
-	    if (menu_y + IswHeight(menu) > scr_height)
-		menu_y = scr_height - IswHeight(menu) - IswBorderWidth(menu);
-
-	}
-	if (menu_y < 0)
-	    menu_y = 0;
+	avail_w = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
+	avail_h = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
     }
 
-    IswArgX(&ab, menu_x);
-    IswArgY(&ab, menu_y);
-    IswSetValues(menu, ab.args, ab.count);
+    menu_x = (int) root_x - anc_root_x;
+    menu_y = (int) root_y - anc_root_y;
+
+    if (!popleft && menu_x >= 0) {
+	if (menu_x + (int)IswWidth(menu) > avail_w) {
+	    menu_x -= (int)IswWidth(menu) + (int)IswWidth(smw);
+	    popleft = True;
+	}
+    }
+    else if (popleft && menu_x < 0) {
+	menu_x = 0;
+	popleft = False;
+    }
+
+    if (menu_y >= 0 && menu_y + (int)IswHeight(menu) > avail_h)
+	menu_y = avail_h - (int)IswHeight(menu) - (int)IswBorderWidth(menu);
+    if (menu_y < 0)
+	menu_y = 0;
 
     if (popleft)
 	((SimpleMenuWidget)menu)->simple_menu.state |= SMW_POPLEFT;
     else
 	((SimpleMenuWidget)menu)->simple_menu.state &= ~SMW_POPLEFT;
 
-    IswPopup(menu, IswGrabNonexclusive);
+    IswSimpleMenuShow(menu, menu_x, menu_y);
 }
 
 static void
@@ -2063,10 +2168,9 @@ Popdown(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 	    break;
     }
 
-    smw->simple_menu.state |= SMW_UNMAPPING;
-    PopdownSubMenu(smw);
+    (void) iswev; (void) params; (void) num_params;
 
-    IswCallActionProc(w, "IswMenuPopdown", iswev, params, *num_params);
+    IswSimpleMenuHide(w);
 }
 
 static void
@@ -2082,7 +2186,9 @@ PopdownSubMenu(SimpleMenuWidget smw)
     menu->simple_menu.state |= SMW_UNMAPPING;
     PopdownSubMenu(menu);
 
-    IswPopdown((Widget)menu);
+    IswUnmapWidget((Widget)menu);
+    IswCallCallbacks((Widget)menu, IswNpopdownCallback, (IswPointer) NULL);
+    menu->simple_menu.state &= ~SMW_UNMAPPING;
 
     smw->simple_menu.sub_menu = NULL;
 }

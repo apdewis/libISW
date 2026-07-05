@@ -58,6 +58,8 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/FocusMgrI.h>
 #include <ISW/IswArgMacros.h>
 #include <ISW/ISWPlatform.h>
+#include <ISW/SimpleMenu.h>
+#include <ISW/ShellI.h>
 #include <math.h>
 
 extern double _IswGetScaleFactor(IswDisplay dpy);
@@ -201,16 +203,15 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
     ISWRenderEnd(ctx);
 }
 
-/* Positions this MenuButton's menu under the button and pops it up with
- * a non-exclusive grab. Returns the menu widget or NULL if not found. */
+/* Positions this MenuButton's menu under the button and shows it within the
+ * button's toplevel window. Returns the menu widget or NULL if not found. */
 Widget
 _IswMenuButtonPopup(Widget w)
 {
   MenuButtonWidget mbw = (MenuButtonWidget) w;
-  Widget menu = NULL, temp;
-  IswArgBuilder ab = IswArgBuilderInit();
-  int menu_x, menu_y, menu_width, menu_height, button_height;
-  Position button_x, button_y;
+  Widget menu = NULL, temp, ancestor;
+  int menu_x, menu_y, button_height;
+  Position button_x, button_y, anc_root_x = 0, anc_root_y = 0;
 
   temp = w;
   while(temp != NULL) {
@@ -231,39 +232,19 @@ _IswMenuButtonPopup(Widget w)
   if (!IswIsRealized(menu))
     IswRealizeWidget(menu);
 
-  menu_width = menu->core.width + 2 * menu->core.border_width;
   button_height = w->core.height + 2 * w->core.border_width;
-  menu_height = menu->core.height + 2 * menu->core.border_width;
 
+  /* Place below the button, in the menu's ancestor-window coordinate space. */
   IswTranslateCoords(w, 0, 0, &button_x, &button_y);
-  menu_x = button_x;
-  menu_y = button_y + button_height;
 
-  {
-    double sf = _IswGetScaleFactor(IswDisplayOf(w));
+  ancestor = _IswWidgetAncestor(menu);
+  if (ancestor != NULL)
+    _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
 
-    if (menu_x >= 0) {
-      int scr_width = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
-      if (menu_x + menu_width > scr_width)
-        menu_x = scr_width - menu_width;
-    }
-    if (menu_x < 0)
-      menu_x = 0;
+  menu_x = button_x - anc_root_x;
+  menu_y = button_y - anc_root_y + button_height;
 
-    if (menu_y >= 0) {
-      int scr_height = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
-      if (menu_y + menu_height > scr_height)
-        menu_y = scr_height - menu_height;
-    }
-    if (menu_y < 0)
-      menu_y = 0;
-  }
-
-  IswArgX(&ab, menu_x);
-  IswArgY(&ab, menu_y);
-  IswSetValues(menu, ab.args, ab.count);
-
-  IswPopup(menu, IswGrabNonexclusive);
+  IswSimpleMenuShow(menu, menu_x, menu_y);
   return menu;
 }
 

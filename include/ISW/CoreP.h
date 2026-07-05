@@ -154,6 +154,13 @@ typedef struct _CorePart {
     Boolean         composite_presented;/* this root has presented a pass that
                                            folded real child content (gates the
                                            startup no-op-pass skip).             */
+    Boolean         windowless_overlay; /* windowless widget that must composite
+                                           ABOVE all normal content in its
+                                           windowed root (a popup menu shown
+                                           in-window).  The composite pass folds
+                                           overlays in a final top pass, after the
+                                           regular subtree, so they are never
+                                           painted over by later-in-tree siblings.*/
     Dimension       border_top;         /* per-side border widths (logical px).
                                            When any is non-zero the backend draws
                                            four independent edges instead of a

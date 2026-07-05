@@ -868,11 +868,17 @@ _IswSynthesizeCrossing(Widget w, IswEvent *source, IswEventKind kind)
  * On a match, dx and dy receive the origin of the returned widget relative
  * to root, so callers can rebase event coordinates to widget-local.
  */
-Widget
-_IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
+/* Hit-test the normal (non-overlay) windowless subtree of `start` at (x,y),
+   with `start`'s content already offset by (ox0, oy0) from the window origin.
+   Returns the deepest windowless widget under the point, its origin in *dx/*dy.
+   Overlays are skipped here — they are tested first, at a higher priority, by
+   _IswFindWidgetAtPoint. */
+static Widget
+_IswFindWidgetAtPointFrom(Widget start, int ox0, int oy0,
+                          int x, int y, int *dx, int *dy)
 {
-    Widget target = root;
-    int ox = 0, oy = 0;
+    Widget target = start;
+    int ox = ox0, oy = oy0;
 
     for (;;) {
         Widget hit = NULL;
@@ -895,6 +901,11 @@ _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
                 /* Same "shown" rule as paint/clip: windowless_mapped is the
                    live mapped flag; an unmapped child is not hit-tested. */
                 if (!child->core.windowless_mapped)
+                    continue;
+                /* Overlays are hit-tested first at higher priority (see
+                   _IswFindWidgetAtPoint); skip them in the normal descent so a
+                   point over an overlay is not claimed by content beneath it. */
+                if (child->core.windowless_overlay)
                     continue;
 
                 cx = child->core.x;
@@ -957,6 +968,77 @@ _IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
     *dx = ox;
     *dy = oy;
     return target;
+}
+
+/* Find the topmost shown overlay (in-window popup menu) under (x,y), searching
+   the whole subtree of `parent` (offset by ox,oy from the window origin).
+   Overlays composite above all content, so they take hit-test priority and
+   nested overlays (submenus) take priority over their parent overlay — the
+   search descends into an overlay before accepting it.  Returns the deepest
+   windowless widget within the winning overlay, its origin in *dx/*dy, or NULL
+   if the point is over no overlay. */
+static Widget
+_IswFindOverlayAtPoint(Widget parent, int ox, int oy, int x, int y,
+                       int *dx, int *dy)
+{
+    if (!IswIsComposite(parent))
+        return NULL;
+
+    CompositeWidget cw = (CompositeWidget) parent;
+    int i;
+
+    /* Reverse stacking order: last child is topmost. */
+    for (i = (int) cw->composite.num_children - 1; i >= 0; i--) {
+        Widget child = cw->composite.children[i];
+        int cx, cy, cbo_x, cbo_y;
+
+        if (!IswIsWidget(child) || IswIsShell(child))
+            continue;
+
+        cx = ox + child->core.x;
+        cy = oy + child->core.y;
+        cbo_x = cx + (int) child->core.border_width;
+        cbo_y = cy + (int) child->core.border_width;
+
+        if (child->core.windowless_overlay && child->core.windowless_mapped) {
+            int cw_ = (int) child->core.width + 2 * (int) child->core.border_width;
+            int ch  = (int) child->core.height + 2 * (int) child->core.border_width;
+
+            /* A nested overlay (submenu) sits above this one — check it first. */
+            Widget deeper = _IswFindOverlayAtPoint(child, cbo_x, cbo_y,
+                                                   x, y, dx, dy);
+            if (deeper != NULL)
+                return deeper;
+
+            /* Otherwise, if the point is inside this overlay, descend into its
+               normal (non-overlay) content. */
+            if (x >= cx && x < cx + cw_ && y >= cy && y < cy + ch)
+                return _IswFindWidgetAtPointFrom(child, cbo_x, cbo_y,
+                                                 x, y, dx, dy);
+        }
+        else if (IswIsComposite(child) && child->core.windowless_mapped) {
+            /* Descend through non-overlay containers to find overlays nested
+               anywhere in the tree. */
+            Widget r = _IswFindOverlayAtPoint(child, cbo_x, cbo_y,
+                                              x, y, dx, dy);
+            if (r != NULL)
+                return r;
+        }
+    }
+    return NULL;
+}
+
+Widget
+_IswFindWidgetAtPoint(Widget root, int x, int y, int *dx, int *dy)
+{
+    /* Overlays (in-window popup menus) composite above all content, so a point
+       over an overlay must hit the overlay, not the content painted beneath it.
+       Test overlays first; fall back to the normal subtree otherwise. */
+    Widget over = _IswFindOverlayAtPoint(root, 0, 0, x, y, dx, dy);
+    if (over != NULL)
+        return over;
+
+    return _IswFindWidgetAtPointFrom(root, 0, 0, x, y, dx, dy);
 }
 
 /* Rebase a pointer/key/crossing event's window-local coordinates by

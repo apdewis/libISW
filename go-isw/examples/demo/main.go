@@ -45,7 +45,7 @@ func populateMenubar(menubar isw.Widget, accelDest isw.Widget) {
 	isw.CreateManagedWidget("file", isw.MenuButtonClass, menubar,
 		isw.NewArgList().Label("File").MenuName("fileMenu"))
 
-	fileMenu := isw.CreatePopupShell("fileMenu", isw.SimpleMenuClass, menubar, nil)
+	fileMenu := isw.CreateWidget("fileMenu", isw.SimpleMenuClass, menubar, nil)
 	newItem := isw.CreateManagedWidget("new", isw.SmeBSBClass, fileMenu, nil)
 	newItem.SetValues(isw.NewArgList().Label("New"))
 	isw.CreateManagedWidget("sep1", isw.SmeLineClass, fileMenu, nil)
@@ -60,7 +60,7 @@ func populateMenubar(menubar isw.Widget, accelDest isw.Widget) {
 		app.Destroy()
 	})
 
-	helpMenu := isw.CreatePopupShell("helpMenu", isw.SimpleMenuClass, menubar, nil)
+	helpMenu := isw.CreateWidget("helpMenu", isw.SimpleMenuClass, menubar, nil)
 	isw.CreateManagedWidget("help", isw.MenuButtonClass, menubar,
 		isw.NewArgList().Label("Help").MenuName("helpMenu"))
 

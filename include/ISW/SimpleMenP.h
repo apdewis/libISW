@@ -39,7 +39,7 @@ in this Software without prior written authorization from the X Consortium.
 
 #include <ISW/SimpleMenu.h>
 #include <ISW/SmeP.h>
-#include <ISW/ShellP.h>
+#include <ISW/CompositeP.h>
 #include <ISW/ISWRender.h>
 
 typedef struct {
@@ -49,8 +49,6 @@ typedef struct {
 typedef struct _SimpleMenuClassRec {
   CoreClassPart	          core_class;
   CompositeClassPart      composite_class;
-  ShellClassPart          shell_class;
-  OverrideShellClassPart  override_shell_class;
   SimpleMenuClassPart	  simpleMenu_class;
 } SimpleMenuClassRec;
 
@@ -76,6 +74,8 @@ typedef struct _SimpleMenuPart {
 				   when using IswPositionSimpleMenu. */
   Boolean      menu_on_screen;	/* Force the menus to be fully on the screen.*/
   int          backing_store;	/* What type of backing store to use. */
+  Boolean      allow_resize;	/* Allow the menu to resize itself to fit
+				   its entries (was shell.allow_shell_resize).*/
 
   /* private state */
 
@@ -104,8 +104,6 @@ typedef struct _SimpleMenuPart {
 typedef struct _SimpleMenuRec {
   CorePart		core;
   CompositePart 	composite;
-  ShellPart 	        shell;
-  OverrideShellPart     override;
   SimpleMenuPart	simple_menu;
 } SimpleMenuRec;
 

@@ -326,7 +326,7 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
     IswArgMnemonicKey(&ab, 'f');
     file_button = IswCreateManagedWidget("fileButton", menuButtonWidgetClass, menubar, ab.args, ab.count);
 
-    file_menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass, file_button, NULL, 0);
+    file_menu = IswCreateWidget("fileMenu", simpleMenuWidgetClass, menubar, NULL, 0);
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "New");
@@ -362,7 +362,7 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
     entry = IswCreateManagedWidget("menuExport", smeBSBObjectClass, file_menu, ab.args, ab.count);
 
     {
-	Widget export_menu = IswCreatePopupShell("exportMenu",
+	Widget export_menu = IswCreateWidget("exportMenu",
 	    simpleMenuWidgetClass, file_menu, NULL, 0);
 
 	IswArgBuilderReset(&ab);
@@ -398,7 +398,7 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
     IswArgMnemonicKey(&ab, 'e');
     edit_button = IswCreateManagedWidget("editButton", menuButtonWidgetClass, menubar, ab.args, ab.count);
 
-    edit_menu = IswCreatePopupShell("editMenu", simpleMenuWidgetClass, edit_button, NULL, 0);
+    edit_menu = IswCreateWidget("editMenu", simpleMenuWidgetClass, menubar, NULL, 0);
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "Undo");
@@ -446,7 +446,7 @@ void populate_menubar(Widget menubar, Widget accel_dest) {
     IswArgMnemonicKey(&ab, 'a');
     about_button = IswCreateManagedWidget("aboutButton", menuButtonWidgetClass, menubar, ab.args, ab.count);
 
-    about_menu = IswCreatePopupShell("aboutMenu", simpleMenuWidgetClass, about_button, NULL, 0);
+    about_menu = IswCreateWidget("aboutMenu", simpleMenuWidgetClass, menubar, NULL, 0);
 
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "About ISW Demo");
@@ -1211,12 +1211,14 @@ Widget create_menu_demo(Widget parent) {
     /* MenuButton */
     IswArgBuilderReset(&ab);
     IswArgLabel(&ab, "File Menu");
+    IswArgMenuName(&ab, "menuDemoMenu");
     menu_button = IswCreateManagedWidget("menuButton", menuButtonWidgetClass,
                                         box, ab.args, ab.count);
 
-    /* Create SimpleMenu popup */
-    menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass,
-                              menu_button, NULL, 0);
+    /* Create the SimpleMenu as a windowless child of the container; it is
+     * positioned within the toplevel window when shown. */
+    menu = IswCreateWidget("menuDemoMenu", simpleMenuWidgetClass,
+                              box, NULL, 0);
 
     /* Menu entries */
     IswArgBuilderReset(&ab);

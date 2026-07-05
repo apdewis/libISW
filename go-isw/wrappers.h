@@ -3,6 +3,7 @@
 
 #include <ISW/Intrinsic.h>
 #include <ISW/Shell.h>
+#include <ISW/SimpleMenu.h>
 
 static inline IswPointer _isw_handle_to_ptr(uintptr_t h) {
     return (IswPointer)h;
@@ -53,6 +54,12 @@ static inline Widget _isw_create_popup_shell(
     Arg *args, Cardinal n)
 {
     return IswCreatePopupShell(name, wc, parent, args, n);
+}
+
+static inline Widget _isw_create_menu_popup_shell(
+    char *name, Widget parent, Arg *args, Cardinal n)
+{
+    return IswCreateMenuPopupShell(name, parent, args, n);
 }
 
 static inline Widget _isw_app_create_shell(

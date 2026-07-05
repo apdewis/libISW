@@ -44,6 +44,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <ISW/IswArgMacros.h>
 #include <ISW/EventI.h>
 #include <ISW/ISWPlatform.h>
+#include <ISW/ShellI.h>
 
 #define superclass (&boxClassRec)
 
@@ -374,10 +375,9 @@ FindMenuForButton(Widget button)
 static void
 OpenMenu(MenuBarWidget mbw, Widget button)
 {
-    Widget menu;
-    int menu_x, menu_y, menu_width, menu_height, button_height;
-    Position button_x, button_y;
-    IswArgBuilder ab = IswArgBuilderInit();
+    Widget menu, ancestor;
+    int menu_x, menu_y, button_height;
+    Position button_x, button_y, anc_root_x = 0, anc_root_y = 0;
     static IswTranslations menu_translations = NULL;
 
     menu = FindMenuForButton(button);
@@ -387,56 +387,26 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     if (!IswIsRealized(menu))
         IswRealizeWidget(menu);
 
-    /* Position menu below the button */
-    menu_width = menu->core.width + 2 * menu->core.border_width;
+    /* Position menu below the button, in the menu's ancestor-window space. */
     button_height = button->core.height + 2 * button->core.border_width;
-    menu_height = menu->core.height + 2 * menu->core.border_width;
 
     IswTranslateCoords(button, 0, 0, &button_x, &button_y);
-    menu_x = button_x;
-    menu_y = button_y + button_height;
 
-    /* Clamp to screen edges */
-    if (menu_x >= 0) {
-        int scr_width = _IswPlatformScreenWidth(IswDisplayOf(menu), IswScreenOf(menu));
-        if (menu_x + menu_width > scr_width)
-            menu_x = scr_width - menu_width;
-    }
-    if (menu_x < 0)
-        menu_x = 0;
+    ancestor = _IswWidgetAncestor(menu);
+    if (ancestor != NULL)
+        _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
 
-    if (menu_y >= 0) {
-        int scr_height = _IswPlatformScreenHeight(IswDisplayOf(menu), IswScreenOf(menu));
-        if (menu_y + menu_height > scr_height)
-            menu_y = scr_height - menu_height;
-    }
-    if (menu_y < 0)
-        menu_y = 0;
-
-    IswArgBuilderReset(&ab);
-    IswArgX(&ab, menu_x);
-    IswArgY(&ab, menu_y);
-    IswSetValues(menu, ab.args, ab.count);
+    menu_x = button_x - anc_root_x;
+    menu_y = button_y - anc_root_y + button_height;
 
     /* Override SimpleMenu translations for click-to-select behavior */
     if (menu_translations == NULL)
         menu_translations = IswParseTranslationTable(menuBarMenuTranslations);
     IswOverrideTranslations(menu, menu_translations);
 
-    /* Pop up without grab -- we handle dismissal ourselves */
-    IswPopup(menu, IswGrabNone);
-
-    /* X server pointer grab — delivers all button events (scroll, outside
-     * clicks) to the menu window. Same technique as GTK/Motif popups. */
-    if (IswIsRealized(menu)) {
-        _IswPlatformCapturePointer(
-            IswDisplayOf(menu), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(menu)), (Widget)(menu)), False,
-            IswButtonPressMask | IswButtonReleaseMask |
-            IswPointerMotionMask | IswButtonMotionMask |
-            IswEnterWindowMask | IswLeaveWindowMask,
-            None, ISW_CURRENT_TIME);
-        _IswPlatformFlush(IswDisplayOf(menu));
-    }
+    /* Show within the toplevel window; dismissal is handled via the
+     * click-outside handler installed on the toplevel shell below. */
+    IswSimpleMenuShow(menu, menu_x, menu_y);
 
     /* Visually activate the button (inverted/set state) */
     IswCallActionProc(button, "set", NULL, NULL, 0);
@@ -472,9 +442,6 @@ CloseMenu(MenuBarWidget mbw)
     menu = mbw->menu_bar.active_menu;
     button = mbw->menu_bar.active_button;
 
-    _IswPlatformReleasePointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
-    _IswPlatformFlush(IswDisplayOf((Widget)mbw));
-
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);
     if (toplevel)
@@ -483,7 +450,7 @@ CloseMenu(MenuBarWidget mbw)
 
     if (menu) {
         IswRemoveCallback(menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
-        IswPopdown(menu);
+        IswSimpleMenuHide(menu);
     }
 
     /* Reset the button visual state */
@@ -507,9 +474,6 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
     Widget old_menu = mbw->menu_bar.active_menu;
     Widget toplevel;
 
-    _IswPlatformReleasePointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
-    _IswPlatformFlush(IswDisplayOf((Widget)mbw));
-
     /* Remove popdown callback and click-outside handler from old menu */
     toplevel = FindToplevelShell((Widget)mbw);
     if (toplevel)
@@ -518,7 +482,7 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
 
     if (old_menu) {
         IswRemoveCallback(old_menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
-        IswPopdown(old_menu);
+        IswSimpleMenuHide(old_menu);
     }
 
     /* Reset old button visual state */
@@ -549,9 +513,6 @@ MenuPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
         return;
 
     button = mbw->menu_bar.active_button;
-
-    _IswPlatformReleasePointer(IswDisplayOf((Widget)mbw), ISW_CURRENT_TIME);
-    _IswPlatformFlush(IswDisplayOf((Widget)mbw));
 
     /* Remove click-outside handler */
     toplevel = FindToplevelShell((Widget)mbw);

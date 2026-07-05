@@ -564,6 +564,9 @@ _isw_subtree_any_dirty(Widget parent)
 /* Fold one windowless child (and its descendants) into a destination surface
    (dst at dst_widget) at accumulated logical offset (ox, oy) within dst's
    content. */
+static void _isw_composite_overlays(Widget parent, IswSurface dst,
+                                    Widget dst_widget, int ox, int oy);
+
 static void
 _isw_composite_one(Widget child, IswSurface dst, Widget dst_widget,
                    int ox, int oy)
@@ -571,6 +574,12 @@ _isw_composite_one(Widget child, IswSurface dst, Widget dst_widget,
     IswSurface child_surface;
 
     if (!_isw_composite_shown(child))
+        return;
+
+    /* Overlays (in-window popup menus) are folded in a separate top pass so
+       they sit above all normal content; skip them here.  Their windowless
+       descendants fold with them in that pass, not this one. */
+    if (child->core.windowless_overlay)
         return;
 
     child_surface = IswSurfaceOf(child);
@@ -684,6 +693,84 @@ _isw_composite_children_into(Widget parent, IswSurface parent_surface)
     _isw_composite_children_into_at(parent, parent_surface, parent, ox, oy);
 }
 
+/* Fold a single overlay (and its windowless descendants) onto dst at the
+   accumulated offset (ox, oy).  Reuses the normal one-child fold, which the
+   overlay-skip in _isw_composite_one does NOT apply to here because we call the
+   inner children-fold directly for the overlay's own subtree. */
+static void
+_isw_composite_overlay_one(Widget overlay, IswSurface dst, Widget dst_widget,
+                           int ox, int oy)
+{
+    IswSurface surf;
+
+    if (!_isw_composite_shown(overlay))
+        return;
+
+    surf = IswSurfaceOf(overlay);
+
+    /* Re-run a container overlay's own expose so its background is current,
+       then fold its descendants into its surface (bottom-up), then fold the
+       overlay's surface onto dst on top of everything. */
+    if (overlay->core.widget_class->core_class.expose != NULL &&
+        overlay->core.composite_dirty &&
+        (IswIsComposite(overlay) || overlay->core.virtual_origin)) {
+        (*overlay->core.widget_class->core_class.expose)(overlay, NULL, 0);
+        overlay->core.composite_dirty = False;
+    }
+
+    if (surf != NULL) {
+        _isw_composite_children_into(overlay, surf);
+        if (_isw_surface_ops && _isw_surface_ops->composite_onto) {
+            _isw_fold_count++;
+            _isw_surface_ops->composite_onto(dst, dst_widget, surf, overlay,
+                                             ox + overlay->core.x,
+                                             oy + overlay->core.y);
+        }
+    } else {
+        /* Surface-less overlay container: fold its descendants straight onto
+           dst, accumulating its offset. */
+        IswBorderSides bs = _IswGetBorderSides(overlay);
+        _isw_composite_children_into_at(overlay, dst, dst_widget,
+                                        ox + overlay->core.x + bs.left,
+                                        oy + overlay->core.y + bs.top);
+    }
+    overlay->core.composite_dirty = False;
+}
+
+/* Walk the subtree accumulating windowless offset; fold every shown overlay
+   (in-window popup menu) onto dst last, so overlays sit above all content.
+   Descends through non-overlay windowless composites to find overlays nested
+   anywhere, and through overlays' own children is handled by the fold above. */
+static void
+_isw_composite_overlays(Widget parent, IswSurface dst, Widget dst_widget,
+                        int ox, int oy)
+{
+    if (IswIsComposite(parent)) {
+        CompositeWidget cw = (CompositeWidget) parent;
+        Cardinal i;
+        for (i = 0; i < cw->composite.num_children; i++) {
+            Widget c = cw->composite.children[i];
+            if (!IswIsWidget(c) || IswIsShell(c))
+                continue;
+            if (c->core.windowless_overlay) {
+                IswBorderSides bs = _IswGetBorderSides(c);
+                _isw_composite_overlay_one(c, dst, dst_widget, ox, oy);
+                /* A nested overlay (submenu) sits above its parent overlay:
+                   fold it after, at the parent overlay's content offset. */
+                if (_isw_composite_shown(c))
+                    _isw_composite_overlays(c, dst, dst_widget,
+                                            ox + c->core.x + bs.left,
+                                            oy + c->core.y + bs.top);
+            } else if (IswIsComposite(c)) {
+                IswBorderSides bs = _IswGetBorderSides(c);
+                _isw_composite_overlays(c, dst, dst_widget,
+                                        ox + c->core.x + bs.left,
+                                        oy + c->core.y + bs.top);
+            }
+        }
+    }
+}
+
 void
 ISWRenderCompositeSubtree(Widget windowed_root)
 {
@@ -758,6 +845,18 @@ ISWRenderCompositeSubtree(Widget windowed_root)
         filled_bg = True;
     }
     _isw_composite_children_into(windowed_root, root_surface);
+
+    /* Final top pass: fold in-window popup-menu overlays above all content so
+       they are never painted over by later-in-tree siblings (tabs, panes). */
+    {
+        int rox = 0, roy = 0;
+        if (IswIsWidget(windowed_root) && windowed_root->core.virtual_origin) {
+            rox = -windowed_root->core.virtual_origin_x;
+            roy = -windowed_root->core.virtual_origin_y;
+        }
+        _isw_composite_overlays(windowed_root, root_surface, windowed_root,
+                                rox, roy);
+    }
 
     /* Present the composited root surface to its window — but only if this pass
        actually changed the surface.  A pass that folded no children and did no

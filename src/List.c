@@ -54,6 +54,7 @@ in this Software without prior written authorization from the X Consortium.
 #include <ISW/SimpleMenP.h>
 #include <ISW/SmeBSB.h>
 #include <ISW/Shell.h>
+#include <ISW/ShellI.h>
 #include <ISW/IswArgMacros.h>
 #include "IntrinsicI.h"
 #include <math.h>
@@ -971,18 +972,29 @@ OpenDropdown(Widget w)
     IswArgBuilder ab = IswArgBuilderInit();
     int i;
 
+    Widget host;
+    Position host_root_x = 0, host_root_y = 0;
+
     if (lw->list.popup_shell) {
         IswDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
     }
 
+    /* The dropdown menu is a windowless child of the List's windowed
+     * ancestor (its toplevel window), positioned within that window. */
+    host = _IswWidgetAncestor(w);
+
     IswTranslateCoords(w, 0, 0, &abs_x, &abs_y);
+    if (host != NULL)
+        _IswShellGetCoordinates(host, &host_root_x, &host_root_y);
+    abs_x -= host_root_x;
+    abs_y -= host_root_y;
     Position below_y = abs_y + (Position)w->core.height;
 
     IswArgBorderWidth(&ab, 0);
     IswArgWidth(&ab, w->core.width);
-    lw->list.popup_shell = IswCreatePopupShell("dropdownPopup",
-        simpleMenuWidgetClass, w, ab.args, ab.count);
+    lw->list.popup_shell = IswCreateWidget("dropdownPopup",
+        simpleMenuWidgetClass, host ? host : w, ab.args, ab.count);
 
     for (i = 0; i < lw->list.nitems; i++) {
         Widget entry;
@@ -1013,9 +1025,10 @@ OpenDropdown(Widget w)
     }
 
     {
-        double sf = _IswGetScaleFactor(IswDisplayOf(w));
-        int scr_height = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w)) / sf);
-        int space_below = scr_height - below_y;
+        int avail_h = (host != NULL) ? (int)host->core.height
+            : (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w))
+                         / _IswGetScaleFactor(IswDisplayOf(w)));
+        int space_below = avail_h - below_y;
         int space_above = abs_y;
         Position popup_y = below_y;
 
@@ -1038,26 +1051,8 @@ OpenDropdown(Widget w)
             IswSetValues(lw->list.popup_shell, ab.args, ab.count);
         }
 
-        IswArgBuilderReset(&ab);
-        IswArgX(&ab, abs_x);
-        IswArgY(&ab, popup_y);
-        IswSetValues(lw->list.popup_shell, ab.args, ab.count);
+        IswSimpleMenuShow(lw->list.popup_shell, (int)abs_x, (int)popup_y);
     }
-
-    IswPopup(lw->list.popup_shell, IswGrabNone);
-
-    _IswPlatformCapturePointer(
-        IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(lw->list.popup_shell)), (Widget)(lw->list.popup_shell)), False,
-        IswButtonPressMask | IswButtonReleaseMask |
-        IswPointerMotionMask | IswButtonMotionMask |
-        IswEnterWindowMask | IswLeaveWindowMask,
-        None, ISW_CURRENT_TIME);
-
-    _IswPlatformCaptureKeyboard(
-        IswDisplayOf(w), _IswPlatformWidgetWindow(IswDisplayOf((Widget)(lw->list.popup_shell)), (Widget)(lw->list.popup_shell)), False,
-        ISW_CURRENT_TIME);
-
-    _IswPlatformFlush(IswDisplayOf(w));
 
     {
         Widget shell = w;
@@ -1554,7 +1549,7 @@ DropdownDismissHandler(Widget w, IswPointer client_data, IswEvent *iswev,
 
     if (iswev->kind == IswFocusOut || iswev->kind == IswUnmap ||
         iswev->kind == IswVisibility || iswev->kind == IswGeometry) {
-        IswPopdown(lw->list.popup_shell);
+        IswSimpleMenuHide(lw->list.popup_shell);
     }
 }
 
@@ -1564,10 +1559,6 @@ DropdownPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
     (void)call_data;
     ListWidget lw = (ListWidget) client_data;
     Widget shell = (Widget)lw;
-
-    _IswPlatformReleasePointer(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
-    _IswPlatformReleaseKeyboard(IswDisplayOf((Widget)lw), ISW_CURRENT_TIME);
-    _IswPlatformFlush(IswDisplayOf((Widget)lw));
 
     while (shell && !IswIsShell(shell))
         shell = IswParent(shell);

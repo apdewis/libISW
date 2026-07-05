@@ -131,14 +131,26 @@ void my_callback(Widget w, IswPointer client_data, IswPointer call_data)
 
 ISW menus use a three-layer hierarchy:
 
-1. **MenuButton** — a button that opens a popup menu on click
-2. **SimpleMenu** — the popup menu container (an OverrideShell)
+1. **MenuButton** — a button that opens a menu on click
+2. **SimpleMenu** — the menu container (a **windowless** widget — see below)
 3. **SmeBSB / SmeLine** — individual menu entries / separators
+
+**SimpleMenu is windowless.** A menu is not a separate top-level window; it is a
+windowless widget that renders *inside* its host toplevel window, positioned over
+the other content when shown. This means a menu is created like any other widget —
+as a child of a **composite** widget whose window it will draw into (a `MenuBar`,
+`Box`, `MainWindow`, the toplevel shell, or a parent `SimpleMenu` for submenus).
+It is **not** created with `IswCreatePopupShell` and does **not** need a grab.
+
+Applications that genuinely require the menu to live in its own platform window
+(e.g. a menu that must extend beyond the app's window bounds) use
+`IswCreateMenuPopupShell` instead — see [Separate-Window Menus](#separate-window-menus).
 
 ### Critical Rules
 
-- **The popup shell widget name must match `IswNmenuName` exactly.** Mismatches cause "Could not find menu widget" warnings and silent failures.
-- **Make the popup shell a child of the widget that triggers it** (the `MenuButton` for dropdowns, the owning widget for context menus, the parent `SimpleMenu` for submenus).
+- **The menu widget name must match `IswNmenuName` exactly.** Mismatches cause "Could not find menu widget" warnings and silent failures.
+- **Create the menu as a child of a composite widget** (the `MenuBar`, a `Box`, the toplevel, or the parent `SimpleMenu` for submenus). A `MenuButton`/`Command` is **not** composite, so the menu cannot be a child of the button — make it a sibling of the button under their common container. It is found by name via `IswNameToWidget`, which walks up from the trigger and searches composite children.
+- **Create menus with `IswCreateWidget`, not `IswCreateManagedWidget`.** A menu is unmanaged — it must not take part in its container's layout. It stays hidden until shown.
 
 ### MenuButton Dropdown
 
@@ -155,10 +167,10 @@ IswArgMenuName(&ab, "fileMenu");
 Widget file_btn = IswCreateManagedWidget("fileBtn", menuButtonWidgetClass,
                                         menubar, ab.args, ab.count);
 
-/* 2. Create the SimpleMenu as a popup shell. The widget name must match
-      the IswNmenuName string above. The parent is the MenuButton. */
-Widget file_menu = IswCreatePopupShell("fileMenu", simpleMenuWidgetClass,
-                                      file_btn, NULL, 0);
+/* 2. Create the SimpleMenu as an (unmanaged) windowless child of the same
+      container as the button.  The widget name must match IswNmenuName. */
+Widget file_menu = IswCreateWidget("fileMenu", simpleMenuWidgetClass,
+                                  menubar, NULL, 0);
 
 /* 3. Add entries as children of the SimpleMenu. */
 IswArgBuilderReset(&ab);
@@ -184,9 +196,10 @@ The menu opens on click and dismisses on entry click, outside click, or `Escape`
 Use the built-in `IswMenuPopup` action in a translation table.
 
 ```c
-/* Create the menu as a popup shell — parent is the widget that owns it. */
-Widget ctx_menu = IswCreatePopupShell("ctxMenu", simpleMenuWidgetClass,
-                                     my_widget, NULL, 0);
+/* Create the menu as a windowless child of a composite ancestor of the
+   owning widget (here, the toplevel). */
+Widget ctx_menu = IswCreateWidget("ctxMenu", simpleMenuWidgetClass,
+                                 toplevel, NULL, 0);
 
 /* Add entries (SmeBSB with callbacks, same as above) */
 IswArgBuilder ab = IswArgBuilderInit();
@@ -205,30 +218,33 @@ IswOverrideTranslations(my_widget,
 
 The menu dismisses on entry click or click outside, identical to `MenuButton`.
 
-### Programmatic Popup
+### Programmatic Show / Hide
 
-For menus opened by keyboard shortcut or other non-button events:
+For menus opened by keyboard shortcut or other non-button events, position and
+show the menu directly. Coordinates are relative to the host toplevel window's
+surface:
 
 ```c
-/* Position, then pop up with an exclusive grab for click-outside-to-dismiss. */
-IswArgBuilder ab = IswArgBuilderInit();
-IswArgX(&ab, x_pos);
-IswArgY(&ab, y_pos);
-IswSetValues(my_menu, ab.args, ab.count);
+/* x, y are in the host window's coordinate space. Show realizes the menu
+   if needed, positions it (clamped on-screen), and makes it visible. */
+IswSimpleMenuShow(my_menu, x, y);
 
-IswPopup(my_menu, IswGrabExclusive);
+/* Hide it (also hides any open submenu). */
+IswSimpleMenuHide(my_menu);
 ```
 
-Use `IswGrabExclusive` when you want click-outside-to-dismiss. Use `IswGrabNonexclusive` when the menu should stay up until an entry is explicitly selected. **Never use `IswGrabNone` for menus** — the menu won't be dismissable by clicking outside it.
+There is no grab: dismissal on outside click is handled by the toolkit's menu
+machinery. `IswSimpleMenuShow` fires the menu's `IswNpopupCallback`;
+`IswSimpleMenuHide` fires `IswNpopdownCallback`.
 
 ### Cascade / Submenu
 
 Set `IswNmenuName` on a `SmeBSB` entry to open a submenu on highlight:
 
 ```c
-/* Submenu popup shell — child of the parent menu */
-Widget export_menu = IswCreatePopupShell("exportMenu", simpleMenuWidgetClass,
-                                        file_menu, NULL, 0);
+/* Submenu — a windowless child of the parent menu (a SimpleMenu is composite). */
+Widget export_menu = IswCreateWidget("exportMenu", simpleMenuWidgetClass,
+                                    file_menu, NULL, 0);
 
 /* Submenu entries */
 IswArgBuilder ab = IswArgBuilderInit();
@@ -244,7 +260,30 @@ IswArgMenuName(&ab, "exportMenu");
 IswCreateManagedWidget("export", smeBSBObjectClass, file_menu, ab.args, ab.count);
 ```
 
-Submenus nest to arbitrary depth. `SimpleMenu` searches for the named widget by walking up the tree calling `IswNameToWidget` — the popup shell just needs to be findable from that search.
+Submenus nest to arbitrary depth. `SimpleMenu` searches for the named widget by walking up the tree calling `IswNameToWidget` — the submenu just needs to be findable from that search.
+
+### Separate-Window Menus
+
+When a menu must live in its own platform window rather than being drawn inside
+the host toplevel (for example, a menu whose contents may extend past the app
+window's edge), use `IswCreateMenuPopupShell`. It creates an override-redirect
+popup shell and a `SimpleMenu` managed inside it, and returns the `SimpleMenu`:
+
+```c
+/* Returns the SimpleMenu; its parent is the popup shell it created. */
+Widget menu = IswCreateMenuPopupShell("ctxMenu", my_widget, NULL, 0);
+
+/* Add entries as children of the returned menu, as usual. */
+IswCreateManagedWidget("cut", smeBSBObjectClass, menu, NULL, 0);
+
+/* Show / hide via the shell popup API. */
+IswPopup(IswParent(menu), IswGrabExclusive);   /* click-outside dismisses */
+/* ... */
+IswPopdown(IswParent(menu));
+```
+
+Use this only when the in-window menu is genuinely unsuitable; the windowless
+form above is the default for menus that fit within the application window.
 
 ### Menu Bar
 

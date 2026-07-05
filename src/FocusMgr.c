@@ -429,13 +429,10 @@ repaint_for_alt_change(IswDisplay dpy)
         Widget shell = g_slots[i].shell;
         if (!shell || !IswIsRealized(shell)) continue;
         repaint_menu_widgets(shell);
-        /* SimpleMenu shells need their window cleared so the SmeBSB
-         * entries redraw their underlines. */
-        if (IswIsSubclass(shell, simpleMenuWidgetClass)) {
-            _IswPlatformClearArea(dpy,
-                                  _IswPlatformWidgetWindow(dpy, shell),
-                                  0, 0, shell->core.width, shell->core.height,
-                                  True);
+        /* SimpleMenus are windowless: repaint the subtree into its ancestor
+         * so the SmeBSB entries redraw their underlines. */
+        if (IswIsSubclass(shell, simpleMenuWidgetClass) && !IswIsShell(shell)) {
+            _IswRepaintWindowless(shell);
         }
     }
     _IswPlatformFlush(dpy);
@@ -577,7 +574,7 @@ _IswFocusMgrMaybeHandleKey(Widget widget, IswEvent *event)
                 if (g_open_menu) {
                     Widget old = g_open_menu;
                     g_open_menu = NULL;
-                    IswPopdown(old);
+                    IswSimpleMenuHide(old);
                 }
                 trigger_menu_button(hit);
                 /* The popup callback set g_open_menu; mark it as opened
@@ -597,7 +594,7 @@ _IswFocusMgrMaybeHandleKey(Widget widget, IswEvent *event)
         if (sym == IswKeyEscape) {
             Widget menu = g_open_menu;
             g_open_menu = NULL;
-            IswPopdown(menu);
+            IswSimpleMenuHide(menu);
             return True;
         }
         uint32_t base = fold_key(sym);
@@ -606,7 +603,7 @@ _IswFocusMgrMaybeHandleKey(Widget widget, IswEvent *event)
             SmeObjectClass sc = (SmeObjectClass) entry->core.widget_class;
             Widget menu = g_open_menu;
             g_open_menu = NULL;
-            IswPopdown(menu);
+            IswSimpleMenuHide(menu);
             if (sc->sme_class.notify)
                 (sc->sme_class.notify)(entry);
             return True;

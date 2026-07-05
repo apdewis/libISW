@@ -45,7 +45,7 @@ in this Software without prior written authorization from the X Consortium.
 #ifndef _ISW_SimpleMenu_h
 #define _ISW_SimpleMenu_h
 
-#include <ISW/Shell.h>
+#include <ISW/Constraint.h>
 
 /****************************************************************
  *
@@ -158,6 +158,52 @@ extern void IswSimpleMenuClearActiveEntry(
 extern void IswSimpleMenuInstallAccelerators(
     Widget		/* destination */,
     Widget		/* menu */
+);
+
+/*	Function Name: IswSimpleMenuShow
+ *	Description: Positions and shows a SimpleMenu in the window of its
+ *		     nearest windowed ancestor.  The menu is a windowless
+ *		     widget: x and y are relative to that ancestor's surface.
+ *		     Realizes the menu if necessary and maps it.
+ *	Arguments: menu - the SimpleMenu widget.
+ *		   x, y - position in the ancestor window's coordinate space.
+ *	Returns: none.
+ */
+
+extern void IswSimpleMenuShow(
+    Widget		/* menu */,
+    int			/* x */,
+    int			/* y */
+);
+
+/*	Function Name: IswSimpleMenuHide
+ *	Description: Hides a shown SimpleMenu (and any open submenu).
+ *	Arguments: menu - the SimpleMenu widget.
+ *	Returns: none.
+ */
+
+extern void IswSimpleMenuHide(
+    Widget		/* menu */
+);
+
+/*	Function Name: IswCreateMenuPopupShell
+ *	Description: Creates an override-redirect popup shell and a SimpleMenu
+ *		     managed inside it, for applications that require the menu
+ *		     to live in a separate platform window rather than being
+ *		     positioned within the trigger's toplevel window.  The
+ *		     returned widget is the SimpleMenu; its shell parent is
+ *		     IswParent(menu) and is shown with IswPopup / IswPopdown.
+ *	Arguments: name - name for the SimpleMenu widget.
+ *		   parent - the parent used to create the popup shell.
+ *		   args, num_args - resources for the SimpleMenu.
+ *	Returns: the SimpleMenu widget.
+ */
+
+extern Widget IswCreateMenuPopupShell(
+    _Xconst char *	/* name */,
+    Widget		/* parent */,
+    ArgList		/* args */,
+    Cardinal		/* num_args */
 );
 
 _XFUNCPROTOEND
