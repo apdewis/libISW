@@ -384,10 +384,6 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     if (menu == NULL)
         return;
 
-    /* Remove border from menu */
-    IswArgBorderWidth(&ab, 0);
-    IswSetValues(menu, ab.args, ab.count);
-
     if (!IswIsRealized(menu))
         IswRealizeWidget(menu);
 
