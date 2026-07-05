@@ -159,7 +159,7 @@ Redisplay(Widget w, IswEvent *event, IswRegion region)
 {
     SmeLineObject entry = (SmeLineObject) w;
     SimpleMenuWidget smw = (SimpleMenuWidget) IswParent (w);
-    Dimension s = 1;  /* inset from SimpleMenu's 1px drawn border */
+    Dimension s = ((SimpleMenuWidget)IswParent(w))->core.border_width;  /* inset from SimpleMenu's 1px drawn border */
     int y = entry->rectangle.y +
 	    (int)(entry->rectangle.height - entry->sme_line.line_width) / 2;
 
