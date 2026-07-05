@@ -54,6 +54,11 @@ extern float isw_nvgTextGlyphBounds(NVGcontext *ctx, float x, float y,
                                     const char *string, const char *end,
                                     float *bounds);
 
+/* nvgTextMetrics corrected from FontStash's span normalization to em units
+   (ISWNanoVGImpl.c) — reported metrics match the rasterized glyph size. */
+extern void isw_nvgTextMetricsEm(NVGcontext *ctx, float *ascender,
+                                 float *descender, float *lineh);
+
 /*
  * =================================================================
  * Shared EGL/NanoVG state
@@ -1146,8 +1151,9 @@ static int egl_text_height(ISWRenderContext *ctx)
     if (!VG) return 0;
     egl_apply_font(ctx);
     float asc, desc, lineh;
-    nvgTextMetrics(VG, &asc, &desc, &lineh);
-    return (int) (lineh + 0.5f);
+    isw_nvgTextMetricsEm(VG, &asc, &desc, &lineh);
+    /* descender is negative; parity with the cairo op's (int)(asc + desc) */
+    return (int) (asc - desc);
 }
 
 static void egl_set_font(ISWRenderContext *ctx, IswFontStruct *font)
@@ -1487,8 +1493,9 @@ int egl_scaled_font_height(Widget widget, IswFontStruct *font)
     if (!g_egl.vg) return 0;
     egl_measure_font(font);
     float asc, desc, lineh;
-    nvgTextMetrics(g_egl.vg, &asc, &desc, &lineh);
-    return (int) (lineh + 0.5f);
+    isw_nvgTextMetricsEm(g_egl.vg, &asc, &desc, &lineh);
+    /* descender is negative; parity with the cairo op's ceil(asc + desc) */
+    return (int) ceilf(asc - desc);
 }
 
 int egl_scaled_font_ascent(Widget widget, IswFontStruct *font)
@@ -1497,8 +1504,8 @@ int egl_scaled_font_ascent(Widget widget, IswFontStruct *font)
     if (!g_egl.vg) return 0;
     egl_measure_font(font);
     float asc, desc, lineh;
-    nvgTextMetrics(g_egl.vg, &asc, &desc, &lineh);
-    return (int) (asc + 0.5f);
+    isw_nvgTextMetricsEm(g_egl.vg, &asc, &desc, &lineh);
+    return (int) ceilf(asc);
 }
 
 int egl_scaled_font_cap_height(Widget widget, IswFontStruct *font)

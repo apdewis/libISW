@@ -65,4 +65,32 @@ float isw_nvgTextGlyphBounds(NVGcontext* ctx, float x, float y,
     return width * invscale;
 }
 
+/* nvgTextMetrics with FontStash's span normalization corrected to em units.
+   FontStash divides ascender/descender/lineh by (ascender - descender) font
+   units, but the FreeType pixel scale is em-based (size / units_per_EM), so
+   reported vertical metrics come out low by span/units_per_EM relative to
+   what actually rasterizes.  Rescale so metrics match the rendered glyphs. */
+void isw_nvgTextMetricsEm(NVGcontext* ctx, float* ascender, float* descender,
+                          float* lineh)
+{
+    nvgTextMetrics(ctx, ascender, descender, lineh);
+#ifdef FONS_USE_FREETYPE
+    NVGstate* state = nvg__getState(ctx);
+
+    if (state->fontId == FONS_INVALID) return;
+
+    FONSfont* font = ctx->fs->fonts[state->fontId];
+    FT_Face face = font->font.font;
+    float span = (float)(face->ascender - face->descender);
+
+    if (face->units_per_EM > 0 && span > 0.0f) {
+        float factor = span / (float)face->units_per_EM;
+
+        if (ascender) *ascender *= factor;
+        if (descender) *descender *= factor;
+        if (lineh) *lineh *= factor;
+    }
+#endif
+}
+
 #endif /* HAVE_EGL */
