@@ -482,7 +482,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswArgLeft(&ab, IswChainLeft);
     IswArgRight(&ab, IswChainRight);
     IswArgResize(&ab, 1);
-    IswArgWidth(&ab, 300);
+    IswArgWidth(&ab, 450);
     fc->pathTextW = IswCreateManagedWidget("pathText", textWidgetClass,
                                            new, ab.args, ab.count);
     IswOverrideTranslations(fc->pathTextW, IswParseTranslationTable(
@@ -573,6 +573,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         IswArgBottom(&ab, IswChainBottom);
         IswArgLeft(&ab, IswChainLeft);
         IswArgRight(&ab, IswChainRight);
+        IswArgWidth(&ab, 450);
         fc->nameTextW = IswCreateManagedWidget("nameText",
                                                 textWidgetClass,
                                                 new, ab.args, ab.count);
@@ -605,7 +606,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
         IswArgBottom(&ab, IswChainBottom);
         IswArgLeft(&ab, IswChainLeft);
         IswArgRight(&ab, IswChainRight);
-        IswArgWidth(&ab, 300);
+        IswArgWidth(&ab, 450);
         fc->filterComboW = IswCreateManagedWidget("filterCombo",
                                                    comboBoxWidgetClass,
                                                    new, ab.args, ab.count);
