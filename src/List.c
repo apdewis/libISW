@@ -156,6 +156,15 @@ static void DropdownMenuSelect(Widget, IswPointer, IswPointer);
 static void DropdownPopdownCB(Widget, IswPointer, IswPointer);
 static void DropdownDismissHandler(Widget, IswPointer, IswEvent *, Boolean *);
 
+/* Per-entry callback data for the dropdown popup. Carries the owning
+ * list widget so DropdownMenuSelect does not have to recover it from
+ * the popup's parent (which changed when the popup became a child of
+ * the toplevel ancestor rather than the list itself). */
+typedef struct _IswDropdownEntry {
+    Widget  list;
+    int     index;
+} IswDropdownEntry;
+
 static IswActionsRec actions[] = {
       {"Notify",         Notify},
       {"Set",            Set},
@@ -979,6 +988,10 @@ OpenDropdown(Widget w)
         IswDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
     }
+    if (lw->list.popup_entries) {
+        IswFree(lw->list.popup_entries);
+        lw->list.popup_entries = NULL;
+    }
 
     /* The dropdown menu is a windowless child of the List's windowed
      * ancestor (its toplevel window), positioned within that window. */
@@ -996,6 +1009,9 @@ OpenDropdown(Widget w)
     lw->list.popup_shell = IswCreateWidget("dropdownPopup",
         simpleMenuWidgetClass, host ? host : w, ab.args, ab.count);
 
+    lw->list.popup_entries = (IswDropdownEntry *)
+        IswCalloc(lw->list.nitems, sizeof(IswDropdownEntry));
+
     for (i = 0; i < lw->list.nitems; i++) {
         Widget entry;
         IswArgBuilderReset(&ab);
@@ -1006,8 +1022,11 @@ OpenDropdown(Widget w)
         }
         entry = IswCreateManagedWidget(lw->list.list[i],
             smeBSBObjectClass, lw->list.popup_shell, ab.args, ab.count);
+        lw->list.popup_entries[i].list = w;
+        lw->list.popup_entries[i].index = i;
         IswAddCallback(entry, IswNcallback,
-                      DropdownMenuSelect, (IswPointer)(intptr_t)i);
+                      DropdownMenuSelect,
+                      (IswPointer)&lw->list.popup_entries[i]);
     }
 
     {
@@ -1351,6 +1370,10 @@ Destroy(Widget w)
         IswDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
     }
+    if (lw->list.popup_entries) {
+        IswFree(lw->list.popup_entries);
+        lw->list.popup_entries = NULL;
+    }
 
     if (lw->list.clip_contents) {
 	IswFree(lw->list.clip_contents);
@@ -1501,16 +1524,17 @@ IswListShowCurrent(Widget w)
  */
 
 /*
- * DropdownMenuSelect - SmeBSB callback. client_data carries the item index.
+ * DropdownMenuSelect - SmeBSB callback. client_data is an
+ * IswDropdownEntry* identifying the owning list and the item index.
  */
 static void
 DropdownMenuSelect(Widget w, IswPointer client_data, IswPointer call_data)
 {
     (void)call_data;
-    Widget menu = IswParent(w);
-    Widget list_w = IswParent(menu);
+    IswDropdownEntry *de = (IswDropdownEntry *)client_data;
+    Widget list_w = de->list;
     ListWidget lw = (ListWidget) list_w;
-    int index = (int)(intptr_t)client_data;
+    int index = de->index;
     IswListReturnStruct parent_ret;
 
     /* Update selection */
@@ -1586,6 +1610,10 @@ DropdownPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
     if (lw->list.popup_shell) {
         IswDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
+    }
+    if (lw->list.popup_entries) {
+        IswFree(lw->list.popup_entries);
+        lw->list.popup_entries = NULL;
     }
 }
 

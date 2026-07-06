@@ -531,6 +531,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     IswArgBottom(&ab, IswChainBottom);
     IswArgLeft(&ab, IswChainLeft);
     IswArgRight(&ab, IswChainRight);
+    IswArgWidth(&ab, 450);
     Widget file_vp = IswCreateManagedWidget("fileViewport", viewportWidgetClass,
                                             new, ab.args, ab.count);
 

@@ -102,6 +102,8 @@ typedef struct {
     int         selected_item;  /* private: currently selected item index */
     Dimension   collapsed_height; /* private: height when collapsed */
     Widget      popup_shell;    /* private: SimpleMenu for dropdown popup */
+    struct _IswDropdownEntry *popup_entries; /* private: per-entry callback
+                                                data for the open popup */
 
 } ListPart;
 
