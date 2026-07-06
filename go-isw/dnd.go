@@ -9,7 +9,10 @@ package isw
 */
 import "C"
 
-import "unsafe"
+import (
+	"sync"
+	"unsafe"
+)
 
 // DndAction is a drag-and-drop action bitmask.
 type DndAction int
@@ -31,6 +34,49 @@ type DropCallbackData struct {
 	DataType   string
 	DataFormat int
 	Action     DndAction
+}
+
+// DragOverCallbackData is the Go representation of the dragEnter,
+// dragMotion and dragLeave callback data. Call Accept (from dragEnter or
+// dragMotion) to signal that the widget will take the drop.
+type DragOverCallbackData struct {
+	X, Y           int
+	OfferedTypes   []string
+	OfferedActions DndAction
+	ProposedAction DndAction
+	cptr           unsafe.Pointer
+}
+
+// dndAcceptStrings keeps the most recently accepted MIME type string
+// alive per widget — the C library borrows negotiated_type across the
+// whole drag session. Each new Accept for a widget frees the previous
+// allocation, bounding the outstanding memory to one string per widget.
+var dndAcceptStrings = make(map[unsafe.Pointer]unsafe.Pointer)
+var dndAcceptMu sync.Mutex
+
+// Accept indicates the drop target accepts the proposed drop with the
+// given MIME type and action. Only meaningful from dragEnter and
+// dragMotion callbacks. The mimeType string is kept alive for the
+// remainder of the drag session.
+func (d *DragOverCallbackData) Accept(mimeType string, action DndAction) {
+	if d == nil || d.cptr == nil {
+		return
+	}
+	cd := (*C.IswDragOverCallbackData)(d.cptr)
+	cs := C.CString(mimeType)
+
+	dndAcceptMu.Lock()
+	if prev, ok := dndAcceptStrings[d.cptr]; ok && prev != nil {
+		// Free the previous accepted string for this widget, but never
+		// free the one currently registered as negotiated_type — only the
+		// superseded one. Since each Accept replaces, the prior is stale.
+		C.free(prev)
+	}
+	dndAcceptStrings[d.cptr] = unsafe.Pointer(cs)
+	dndAcceptMu.Unlock()
+
+	cd.accepted_type = cs
+	cd.accepted_action = C.IswDndAction(action)
 }
 
 // DndEnable enables drag-and-drop on a shell.
@@ -213,4 +259,28 @@ func ParseDropCallbackData(callData CallData) *DropCallbackData {
 	}
 
 	return result
+}
+
+// ParseDragOverCallbackData converts C call_data from a dragEnter,
+// dragMotion or dragLeave callback to Go. The returned struct retains a
+// pointer to the live C call_data so Accept can write back the accept
+// decision; it is only valid during the callback.
+func ParseDragOverCallbackData(callData CallData) *DragOverCallbackData {
+	cd := (*C.IswDragOverCallbackData)(callData.ptr)
+	out := &DragOverCallbackData{
+		X:              int(cd.x),
+		Y:              int(cd.y),
+		OfferedActions: DndAction(cd.offered_actions),
+		ProposedAction: DndAction(cd.proposed_action),
+		cptr:           callData.ptr,
+	}
+	if cd.num_offered_types > 0 && cd.offered_types != nil {
+		n := int(cd.num_offered_types)
+		cArr := unsafe.Slice((**C.char)(unsafe.Pointer(cd.offered_types)), n)
+		out.OfferedTypes = make([]string, n)
+		for i := 0; i < n; i++ {
+			out.OfferedTypes[i] = C.GoString(cArr[i])
+		}
+	}
+	return out
 }

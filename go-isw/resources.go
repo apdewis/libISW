@@ -1,4 +1,4 @@
-//go:generate go run ./cmd/genargs
+//go:generate go run ./cmd/genargs -header ../include/ISW/IswArgMacros.h
 
 package isw
 
@@ -189,129 +189,9 @@ func PixelGreen(p Pixel) uint8 { return uint8((p >> 8) & 0xFF) }
 // PixelBlue extracts the blue component.
 func PixelBlue(p Pixel) uint8 { return uint8(p & 0xFF) }
 
-// Resource name constants.
-const (
-	Naccelerators            = "accelerators"
-	NallowHoriz              = "allowHoriz"
-	NallowVert               = "allowVert"
-	Nbackground              = "background"
-	NbackgroundImage         = "backgroundImage"
-	NborderColor             = "borderColor"
-	NborderWidth             = "borderWidth"
-	Ncallback                = "callback"
-	Ncolormap                = "colormap"
-	NdestroyCallback         = "destroyCallback"
-	Nfont                    = "font"
-	Nforeground              = "foreground"
-	Nheight                  = "height"
-	Nlabel                   = "label"
-	NmappedWhenManaged       = "mappedWhenManaged"
-	Norientation             = "orientation"
-	Nresize                  = "resize"
-	NsensitiveStr            = "sensitive"
-	Ntranslations            = "translations"
-	Nwidth                   = "width"
-	Nx                       = "x"
-	Ny                       = "y"
-
-	NdefaultDistance = "defaultDistance"
-	Ntop            = "top"
-	Nbottom         = "bottom"
-	Nleft           = "left"
-	Nright          = "right"
-	NfromHoriz      = "fromHoriz"
-	NfromVert       = "fromVert"
-	NhorizDistance   = "horizDistance"
-	NvertDistance    = "vertDistance"
-
-	Ntitle           = "title"
-	NallowShellResize = "allowShellResize"
-	Ngeometry        = "geometry"
-	NiconName        = "iconName"
-	NminWidth        = "minWidth"
-	NminHeight       = "minHeight"
-	NmaxWidth        = "maxWidth"
-	NmaxHeight       = "maxHeight"
-
-	NeditType        = "editType"
-	Nstring          = "string"
-	NscrollVertical  = "scrollVertical"
-	NscrollHorizontal = "scrollHorizontal"
-
-	Nlist           = "list"
-	NnumberStrings  = "numberStrings"
-	NdefaultColumns = "defaultColumns"
-	NforceColumns   = "forceColumns"
-	NverticalList   = "verticalList"
-
-	NminimumThumb         = "minimumThumb"
-	NtopOfThumb           = "topOfThumb"
-	NscrollWheelIncrement = "scrollWheelIncrement"
-
-	NminimumValue = "minimumValue"
-	NmaximumValue = "maximumValue"
-	NsliderValue  = "sliderValue"
-	NshowValue    = "showValue"
-	NvalueChanged = "valueChanged"
-
-	Nstate      = "state"
-	NradioGroup = "radioGroup"
-	NradioData  = "radioData"
-
-	NmenuName = "menuName"
-
-	Nellipsize = "ellipsize"
-	Nimage     = "image"
-
-	NcornerRadius = "cornerRadius"
-
-	NallowResize       = "allowResize"
-	NshowGrip          = "showGrip"
-	NpreferredPaneSize = "preferredPaneSize"
-
-	NtabCallback = "tabCallback"
-	NtopWidget   = "topWidget"
-	NtabLabel    = "tabLabel"
-
-	Nspace = "space"
-
-	Ntip     = "tip"
-	Ntimeout = "timeout"
-
-	NexposeCallback = "exposeCallback"
-	NresizeCallback = "resizeCallback"
-	NinputCallback  = "inputCallback"
-
-	Nvalue = "value"
-
-	NactiveColor = "activeColor"
-	NcursorName  = "cursorName"
-	NtraversalOn = "traversalOn"
-	NtabIndex    = "tabIndex"
-
-	NdropCallback       = "dropCallback"
-	NdragEnterCallback  = "dragEnterCallback"
-	NdragMotionCallback = "dragMotionCallback"
-	NdragLeaveCallback  = "dragLeaveCallback"
-
-	NselectCallback = "selectCallback"
-	NmultiSelect    = "multiSelect"
-
-	NfileMode        = "fileMode"
-	NinitialDirectory = "initialDirectory"
-	NfileSelected     = "fileSelected"
-	NfileCancelled    = "fileCancelled"
-
-	NspinMinimum   = "spinMinimum"
-	NspinMaximum   = "spinMaximum"
-	NspinValue     = "spinValue"
-	NspinIncrement = "spinIncrement"
-
-	NcolorRed     = "colorRed"
-	NcolorGreen   = "colorGreen"
-	NcolorBlue    = "colorBlue"
-	NcolorChanged = "colorChanged"
-)
+// Resource name constants live in nresources_gen.go (generated from
+// IswArgMacros.h) so the curated list here can never drift from the C
+// headers.
 
 // EdgeType controls Form constraint edge behavior.
 type EdgeType int

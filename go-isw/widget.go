@@ -192,7 +192,7 @@ func (w Widget) Sensitive() bool {
 
 // SetSensitive sets widget sensitivity.
 func (w Widget) SetSensitive(sensitive bool) {
-	w.SetValues(NewArgList().AddBool(NsensitiveStr, sensitive))
+	w.SetValues(NewArgList().AddBool(Nsensitive, sensitive))
 }
 
 // GrabKind enumerates grab modes for Popup.

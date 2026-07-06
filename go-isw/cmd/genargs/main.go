@@ -17,13 +17,14 @@ import (
 type argType int
 
 const (
-	argInt        argType = iota // int — Dimension, Position, int
-	argString                    // string → C.CString
-	argWidget                    // Widget
-	argCallback                  // CallbackFunc
-	argStringList                // []string → cStringArray
-	argBool                      // bool
-	argEnum                      // typed enum/Pixel — Go type from enumTypes
+	argInt         argType = iota // int — Dimension, Position, int
+	argString                     // string → C.CString
+	argWidget                     // Widget
+	argCallback                   // CallbackFunc
+	argStringList                 // []string → cStringArray
+	argBool                       // bool
+	argEnum                       // typed enum/Pixel — Go type from enumTypes
+	argFileFilters                // []FileChooserFilter — hand-written helper
 )
 
 func (t argType) String() string {
@@ -42,41 +43,43 @@ func (t argType) String() string {
 		return "bool"
 	case argEnum:
 		return "enum"
+	case argFileFilters:
+		return "filefilters"
 	}
 	return "?"
 }
 
 var typeOverrides = map[string]argType{
 	// Callbacks
-	"callback":            argCallback,
-	"destroyCallback":     argCallback,
-	"popdownCallback":     argCallback,
-	"popupCallback":       argCallback,
-	"unrealizeCallback":   argCallback,
-	"jumpProc":            argCallback,
-	"scrollProc":          argCallback,
-	"thumbProc":           argCallback,
-	"notify":              argCallback,
-	"valueChanged":        argCallback,
-	"colorChanged":        argCallback,
-	"fontChanged":         argCallback,
-	"tabCallback":         argCallback,
-	"startCallback":       argCallback,
-	"stopCallback":        argCallback,
-	"reportCallback":      argCallback,
-	"exposeCallback":      argCallback,
-	"resizeCallback":      argCallback,
-	"inputCallback":       argCallback,
-	"selectCallback":      argCallback,
-	"activateCallback":    argCallback,
-	"reorderCallback":     argCallback,
-	"dropCallback":        argCallback,
-	"dragEnterCallback":   argCallback,
-	"dragMotionCallback":  argCallback,
-	"dragLeaveCallback":   argCallback,
-	"fileSelected":        argCallback,
-	"fileCancelled":       argCallback,
-	"pivotCallback":       argCallback,
+	"callback":           argCallback,
+	"destroyCallback":    argCallback,
+	"popdownCallback":    argCallback,
+	"popupCallback":      argCallback,
+	"unrealizeCallback":  argCallback,
+	"jumpProc":           argCallback,
+	"scrollProc":         argCallback,
+	"thumbProc":          argCallback,
+	"notify":             argCallback,
+	"valueChanged":       argCallback,
+	"colorChanged":       argCallback,
+	"fontChanged":        argCallback,
+	"tabCallback":        argCallback,
+	"startCallback":      argCallback,
+	"stopCallback":       argCallback,
+	"reportCallback":     argCallback,
+	"exposeCallback":     argCallback,
+	"resizeCallback":     argCallback,
+	"inputCallback":      argCallback,
+	"selectCallback":     argCallback,
+	"activateCallback":   argCallback,
+	"reorderCallback":    argCallback,
+	"dropCallback":       argCallback,
+	"dragEnterCallback":  argCallback,
+	"dragMotionCallback": argCallback,
+	"dragLeaveCallback":  argCallback,
+	"fileSelected":       argCallback,
+	"fileCancelled":      argCallback,
+	"pivotCallback":      argCallback,
 
 	// Strings
 	"editType":         argEnum,
@@ -116,9 +119,11 @@ var typeOverrides = map[string]argType{
 	"clientLeader": argWidget,
 
 	// String lists
-	"list":        argStringList,
-	"iconLabels":  argStringList,
-	"fileFilters": argStringList,
+	"list":       argStringList,
+	"iconLabels": argStringList,
+
+	// Composite types handled by hand-written helpers
+	"fileFilters": argFileFilters,
 
 	// Booleans
 	"allowShellResize":  argBool,
@@ -151,6 +156,8 @@ var typeOverrides = map[string]argType{
 	"foreground":       argEnum,
 	"borderColor":      argEnum,
 	"activeColor":      argEnum,
+	"fileMode":         argEnum,
+	"valuePosition":    argEnum,
 }
 
 // enumTypes maps argEnum resources to their Go parameter type.
@@ -170,6 +177,8 @@ var enumTypes = map[string]string{
 	"foreground":       "Pixel",
 	"borderColor":      "Pixel",
 	"activeColor":      "Pixel",
+	"fileMode":         "FileChooserMode",
+	"valuePosition":    "SliderValuePosition",
 }
 
 var macroRe = regexp.MustCompile(
@@ -206,6 +215,7 @@ func findHeader() string {
 func main() {
 	headerPath := flag.String("header", "", "path to IswArgMacros.h (default: locate via pkg-config)")
 	outPath := flag.String("out", "argbuilder_gen.go", "output .go file")
+	nresPath := flag.String("nresources", "nresources_gen.go", "output N* resource name constants file")
 	flag.Parse()
 
 	if *headerPath == "" {
@@ -347,6 +357,11 @@ func main() {
 			fmt.Fprintf(w, "func (al *ArgList) %s(v []string) *ArgList {\n", m.method)
 			fmt.Fprintf(w, "\treturn al.AddStringList(%q, v)\n", m.resourceStr)
 			fmt.Fprintf(w, "}\n\n")
+
+		case argFileFilters:
+			fmt.Fprintf(w, "func (al *ArgList) %s(v []FileChooserFilter) *ArgList {\n", m.method)
+			fmt.Fprintf(w, "\treturn al.addFileFilters(v)\n")
+			fmt.Fprintf(w, "}\n\n")
 		}
 	}
 
@@ -355,6 +370,45 @@ func main() {
 		os.Exit(1)
 	}
 
+	emitNResources(macros, *nresPath, *headerPath)
+
 	fmt.Fprintf(os.Stderr, "generated %d methods from %s\n", len(macros), *headerPath)
 }
 
+// emitNResources writes the N* resource-name string constants, deduplicated
+// by resource string, so the curated list in resources.go is never out of
+// step with IswArgMacros.h.
+func emitNResources(macros []macro, path, headerPath string) {
+	seen := make(map[string]struct{})
+	var names []string
+	for _, m := range macros {
+		if _, ok := seen[m.resourceStr]; ok {
+			continue
+		}
+		seen[m.resourceStr] = struct{}{}
+		names = append(names, m.resourceStr)
+	}
+	sort.Strings(names)
+
+	f, err := os.Create(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "create %s: %v\n", path, err)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	w := bufio.NewWriter(f)
+	fmt.Fprintf(w, "// Code generated by genargs from IswArgMacros.h; DO NOT EDIT.\n")
+	fmt.Fprintf(w, "// Generated: %s\n\n", time.Now().UTC().Format(time.RFC3339))
+	fmt.Fprintf(w, "package isw\n\n")
+	fmt.Fprintf(w, "// Resource name constants (one per IswN* macro in IswArgMacros.h).\n")
+	fmt.Fprintf(w, "const (\n")
+	for _, n := range names {
+		fmt.Fprintf(w, "\tN%s = %q\n", n, n)
+	}
+	fmt.Fprintf(w, ")\n")
+	if err := w.Flush(); err != nil {
+		fmt.Fprintf(os.Stderr, "write: %v\n", err)
+		os.Exit(1)
+	}
+}

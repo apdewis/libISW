@@ -53,5 +53,5 @@ func CreateMenuPopupShell(name string, parent Widget, args *ArgList) Widget {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	a, n := args.cArgPtr()
-	return Widget{C.IswCreateMenuPopupShell(cname, parent.c, a, n)}
+	return Widget{C._isw_create_menu_popup_shell(cname, parent.c, a, n)}
 }

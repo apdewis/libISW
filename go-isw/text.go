@@ -36,6 +36,19 @@ const (
 	TextScanRight TextScanDirection = C.IswsdRight
 )
 
+// TextSelectType is a selection granularity for multi-click selection.
+type TextSelectType int
+
+const (
+	SelectNull      TextSelectType = C.IswselectNull
+	SelectPosition  TextSelectType = C.IswselectPosition
+	SelectChar      TextSelectType = C.IswselectChar
+	SelectWord      TextSelectType = C.IswselectWord
+	SelectLine      TextSelectType = C.IswselectLine
+	SelectParagraph TextSelectType = C.IswselectParagraph
+	SelectAll       TextSelectType = C.IswselectAll
+)
+
 // TextReplace return codes.
 const (
 	TextReplaceError  = -1
@@ -124,4 +137,48 @@ func TextDisplayCaret(w Widget, visible bool) {
 		v = 1
 	}
 	C.IswTextDisplayCaret(w.c, v)
+}
+
+// TextSetSelectionArray sets the selection granularity used on
+// successive mouse clicks. The slice must end with SelectNull to
+// terminate the array; if it does not, SelectNull is appended.
+func TextSetSelectionArray(w Widget, types []TextSelectType) {
+	if len(types) == 0 {
+		C.IswTextSetSelectionArray(w.c, nil)
+		return
+	}
+	terminated := false
+	if len(types) > 0 && types[len(types)-1] == SelectNull {
+		terminated = true
+	}
+	n := len(types)
+	if !terminated {
+		n++
+	}
+	block := C.malloc(C.size_t(n) * C.size_t(unsafe.Sizeof(C.IswTextSelectType(0))))
+	arr := unsafe.Slice((*C.IswTextSelectType)(block), n)
+	for i, t := range types {
+		arr[i] = C.IswTextSelectType(t)
+	}
+	if !terminated {
+		arr[n-1] = C.IswTextSelectType(SelectNull)
+	}
+	C.IswTextSetSelectionArray(w.c, &arr[0])
+	C.free(block)
+}
+
+// TextSetSource installs a text source on the widget, scrolling to the
+// given position.
+func TextSetSource(w Widget, source Widget, position int) {
+	C.IswTextSetSource(w.c, source.c, C.ISWTextPosition(position))
+}
+
+// TextGetSource returns the text source widget.
+func TextGetSource(w Widget) Widget {
+	return Widget{C.IswTextGetSource(w.c)}
+}
+
+// TextGetSink returns the text sink widget.
+func TextGetSink(w Widget) Widget {
+	return Widget{C.IswTextGetSink(w.c)}
 }

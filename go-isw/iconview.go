@@ -9,6 +9,32 @@ import "C"
 
 import "unsafe"
 
+// IconViewCallbackData is the Go representation of IconView
+// selectCallback callback data.
+type IconViewCallbackData struct {
+	Index    int
+	Label    string
+	Selected []int
+}
+
+// ParseIconViewCallbackData converts C call_data from an IconView
+// selectCallback to Go.
+func ParseIconViewCallbackData(callData CallData) *IconViewCallbackData {
+	cd := (*C.IswIconViewCallbackData)(callData.ptr)
+	out := &IconViewCallbackData{
+		Index: int(cd.index),
+		Label: C.GoString(cd.label),
+	}
+	if cd.num_selected > 0 && cd.selected != nil {
+		cArr := unsafe.Slice(cd.selected, int(cd.num_selected))
+		out.Selected = make([]int, int(cd.num_selected))
+		for i := range out.Selected {
+			out.Selected[i] = int(cArr[i])
+		}
+	}
+	return out
+}
+
 // The IconView widget borrows the label and icon-data arrays handed to
 // it, so the bindings own the C copies: each setter frees the previous
 // allocation and a destroy callback releases whatever is left.

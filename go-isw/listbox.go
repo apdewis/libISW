@@ -11,20 +11,36 @@ import "unsafe"
 // ListBoxCallbackData is the Go representation of ListBox select and
 // activate callback data.
 type ListBoxCallbackData struct {
-	Child Widget
+	Child    Widget
+	Index    int
+	List     Widget
+	Selected []Widget
 }
 
 // ParseListBoxCallbackData converts C call_data from a ListBox select or
 // activate callback to Go.
 func ParseListBoxCallbackData(callData CallData) *ListBoxCallbackData {
 	cd := (*C.IswListBoxCallbackData)(callData.ptr)
-	return &ListBoxCallbackData{Child: Widget{cd.child}}
+	out := &ListBoxCallbackData{
+		Child: Widget{cd.child},
+		Index: int(cd.index),
+		List:  Widget{cd.list},
+	}
+	if cd.num_selected > 0 && cd.selected != nil {
+		cArr := unsafe.Slice(cd.selected, int(cd.num_selected))
+		out.Selected = make([]Widget, int(cd.num_selected))
+		for i := range out.Selected {
+			out.Selected[i] = Widget{cArr[i]}
+		}
+	}
+	return out
 }
 
 // ListBoxPivotCallbackData is the Go representation of ListBox pivot
 // callback data.
 type ListBoxPivotCallbackData struct {
 	Child Widget
+	Index int
 	Open  bool
 }
 
@@ -32,7 +48,11 @@ type ListBoxPivotCallbackData struct {
 // callback to Go.
 func ParseListBoxPivotCallbackData(callData CallData) *ListBoxPivotCallbackData {
 	cd := (*C.IswListBoxPivotCallbackData)(callData.ptr)
-	return &ListBoxPivotCallbackData{Child: Widget{cd.child}, Open: cd.open != 0}
+	return &ListBoxPivotCallbackData{
+		Child: Widget{cd.child},
+		Index: int(cd.index),
+		Open:  cd.open != 0,
+	}
 }
 
 // ListBoxGetSelected returns the selected row child, or NilWidget if no

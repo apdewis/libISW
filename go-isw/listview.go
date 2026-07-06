@@ -19,15 +19,27 @@ type ListViewColumn struct {
 // ListViewCallbackData is the Go representation of ListView select
 // callback data.
 type ListViewCallbackData struct {
-	Row    int
-	Column int
+	Row      int
+	Column   int
+	Selected []int
 }
 
 // ParseListViewCallbackData converts C call_data from a ListView select
 // callback to Go.
 func ParseListViewCallbackData(callData CallData) *ListViewCallbackData {
 	cd := (*C.IswListViewCallbackData)(callData.ptr)
-	return &ListViewCallbackData{Row: int(cd.row), Column: int(cd.column)}
+	out := &ListViewCallbackData{
+		Row:    int(cd.row),
+		Column: int(cd.column),
+	}
+	if cd.num_selected > 0 && cd.selected != nil {
+		cArr := unsafe.Slice(cd.selected, int(cd.num_selected))
+		out.Selected = make([]int, int(cd.num_selected))
+		for i := range out.Selected {
+			out.Selected[i] = int(cArr[i])
+		}
+	}
+	return out
 }
 
 // The ListView widget borrows the column and data pointers handed to it,
@@ -139,9 +151,27 @@ func ListViewSetData(w Widget, rows [][]string) {
 type ListViewSortDirection int
 
 const (
+	ListViewSortNone       ListViewSortDirection = C.IswListViewSortNone
 	ListViewSortAscending  ListViewSortDirection = C.IswListViewSortAscending
 	ListViewSortDescending ListViewSortDirection = C.IswListViewSortDescending
 )
+
+// ListViewReorderCallbackData is the Go representation of ListView
+// reorderCallback callback data (header click).
+type ListViewReorderCallbackData struct {
+	Column    int
+	Direction ListViewSortDirection
+}
+
+// ParseListViewReorderCallbackData converts C call_data from a ListView
+// reorderCallback to Go.
+func ParseListViewReorderCallbackData(callData CallData) *ListViewReorderCallbackData {
+	cd := (*C.IswListViewReorderCallbackData)(callData.ptr)
+	return &ListViewReorderCallbackData{
+		Column:    int(cd.column),
+		Direction: ListViewSortDirection(cd.direction),
+	}
+}
 
 // ListViewAddColumn appends a column and returns its index.
 func ListViewAddColumn(w Widget, title string, width, minWidth int) int {
