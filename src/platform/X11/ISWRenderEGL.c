@@ -1475,11 +1475,25 @@ static void egl_measure_font(IswFontStruct *font)
     nvgFontSize(g_egl.vg, (float) (pt * 96.0 / 72.0));
 }
 
+/* Ensure the shared NanoVG context exists before a text measurement.  Text is
+   measured during layout, which can run BEFORE any widget has created a render
+   surface (the usual trigger for egl_shared_init) — e.g. a menu sizing itself
+   to its entries at construction.  Without this, the measure functions returned
+   0, so widths/heights came out as margins-only and the widget froze at that
+   size (timing-dependent, hence inconsistent across runs). */
+static Boolean egl_ensure_vg(Widget widget)
+{
+    if (g_egl.vg)
+        return True;
+    if (widget == NULL || !IswIsWidget(widget))
+        return False;
+    return egl_shared_init(IswDisplayOf(widget)) && g_egl.vg != NULL;
+}
+
 int egl_scaled_text_width(Widget widget, IswFontStruct *font,
                           const char *text, int len)
 {
-    (void) widget;
-    if (!g_egl.vg || text == NULL) return 0;
+    if (text == NULL || !egl_ensure_vg(widget)) return 0;
     egl_measure_font(font);
     float bounds[4];
     float adv = nvgTextBounds(g_egl.vg, 0, 0, text,
@@ -1489,8 +1503,7 @@ int egl_scaled_text_width(Widget widget, IswFontStruct *font,
 
 int egl_scaled_font_height(Widget widget, IswFontStruct *font)
 {
-    (void) widget;
-    if (!g_egl.vg) return 0;
+    if (!egl_ensure_vg(widget)) return 0;
     egl_measure_font(font);
     float asc, desc, lineh;
     isw_nvgTextMetricsEm(g_egl.vg, &asc, &desc, &lineh);
@@ -1500,8 +1513,7 @@ int egl_scaled_font_height(Widget widget, IswFontStruct *font)
 
 int egl_scaled_font_ascent(Widget widget, IswFontStruct *font)
 {
-    (void) widget;
-    if (!g_egl.vg) return 0;
+    if (!egl_ensure_vg(widget)) return 0;
     egl_measure_font(font);
     float asc, desc, lineh;
     isw_nvgTextMetricsEm(g_egl.vg, &asc, &desc, &lineh);
@@ -1510,8 +1522,7 @@ int egl_scaled_font_ascent(Widget widget, IswFontStruct *font)
 
 int egl_scaled_font_cap_height(Widget widget, IswFontStruct *font)
 {
-    (void) widget;
-    if (!g_egl.vg) return 0;
+    if (!egl_ensure_vg(widget)) return 0;
     egl_measure_font(font);
     float bounds[4];
     isw_nvgTextGlyphBounds(g_egl.vg, 0, 0, "X", NULL, bounds);
