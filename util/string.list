@@ -279,6 +279,8 @@ NborderBottom
 NborderLeft
 NactiveColor
 CActiveColor
+NcornerRadius
+CCornerRadius
 
 #file Shell.h
 #table IswShellStrings
