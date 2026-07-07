@@ -496,10 +496,7 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
               ((SimpleWidget) widget)->simple.self_border);
 
         if (has_border) {
-            Pixel bp = (IswIsSubclass(widget, simpleWidgetClass) &&
-                        ((SimpleWidget) widget)->simple.use_border_color)
-                       ? ((SimpleWidget) widget)->simple.border_color
-                       : widget->core.border_pixel;
+            Pixel bp = widget->core.border_pixel;
             cairo_save(data->cairo_ctx);
             cairo_set_source_rgb(data->cairo_ctx,
                 ((bp >> 16) & 0xff) / 255.0,

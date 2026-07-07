@@ -388,11 +388,6 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
      }
     }
 
-    /* Border tracks the label foreground (theme-driven); expose it to the
-     * windowless backend's ring via the Simple border-color override. */
-    lw->simple.border_color = lw->label.foreground;
-    lw->simple.use_border_color = True;
-
     /* Initialize render context to NULL (will be created on first use) */
     lw->label.render_ctx = NULL;
 
@@ -1015,7 +1010,6 @@ SetValues(Widget current, Widget request, Widget new, ArgList args, Cardinal *nu
  redisplay = True;
  /* Recolor SVG images if foreground changed */
  if (curlw->label.foreground != newlw->label.foreground) {
-     newlw->simple.border_color = newlw->label.foreground;
      char fg_hex[8];
      const char *color = _LabelForegroundHex(newlw, fg_hex, sizeof(fg_hex))
                          ? fg_hex : NULL;

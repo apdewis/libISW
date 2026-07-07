@@ -98,13 +98,6 @@ typedef struct {
        generic border ring so the border is not drawn twice. */
     Boolean     self_border;
 
-    /* Border color override for the backend's ring.  Widgets whose border
-       tracks a non-Core color (Label: its foreground) keep this in sync;
-       use_border_color selects it over core.border_pixel.  Read by the
-       windowless backend. */
-    Pixel       border_color;
-    Boolean     use_border_color;
-
     Pixel       active_color;
 
     /* Drag-and-drop callbacks (IswDragDrop service).  Declared here, on the

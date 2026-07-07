@@ -634,10 +634,7 @@ egl_surface_begin(IswSurface s, Widget widget)
 
     s->has_border_ring = False;
     if (has_border) {
-        Pixel bp = (IswIsSubclass(widget, simpleWidgetClass) &&
-                    ((SimpleWidget) widget)->simple.use_border_color)
-                   ? ((SimpleWidget) widget)->simple.border_color
-                   : widget->core.border_pixel;
+        Pixel bp = widget->core.border_pixel;
         NVGcolor col = nvgRGBA((bp >> 16) & 0xff, (bp >> 8) & 0xff,
                                bp & 0xff, 255);
 
