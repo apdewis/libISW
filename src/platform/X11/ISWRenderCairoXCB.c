@@ -490,8 +490,7 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
          * their own border (self_border, e.g. ProgressBar).  When all four
          * sides are equal, stroke a centered rectangle (or rounded rect);
          * otherwise fill four independent edge rectangles. */
-        Dimension ring_r = (IswIsSubclass(widget, simpleWidgetClass))
-                           ? ((SimpleWidget) widget)->simple.corner_radius : 0;
+        Dimension ring_r = widget->core.corner_radius;
         Boolean has_border = (bs.top || bs.right || bs.bottom || bs.left) &&
             !(IswIsSubclass(widget, simpleWidgetClass) &&
               ((SimpleWidget) widget)->simple.self_border);
@@ -929,8 +928,7 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
         double fy = dst_off_y + y;
         double fw = src_widget->core.width + _IswBorderHoriz(sbs);
         double fh = src_widget->core.height + _IswBorderVert(sbs);
-        Dimension cr = (IswIsSubclass(src_widget, simpleWidgetClass))
-                       ? ((SimpleWidget) src_widget)->simple.corner_radius : 0;
+        Dimension cr = src_widget->core.corner_radius;
         if (cr > 0) {
             cairo_xcb_rounded_path(dctx, (int) fx, (int) fy,
                                    (int) fw, (int) fh,
@@ -965,8 +963,8 @@ cairo_xcb_composite_onto(IswSurface dd, Widget dst_widget,
     {
         Boolean has_alpha =
             (IswIsSubclass(src_widget, simpleWidgetClass) &&
-             (((SimpleWidget) src_widget)->simple.self_border ||
-              ((SimpleWidget) src_widget)->simple.corner_radius > 0)) ||
+             ((SimpleWidget) src_widget)->simple.self_border) ||
+            (IswIsWidget(src_widget) && src_widget->core.corner_radius > 0) ||
             (IswIsWidget(src_widget) && src_widget->core.composite_clip &&
              src_widget->core.composite_clip_w > 0);
         cairo_set_operator(dctx,

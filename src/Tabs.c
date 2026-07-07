@@ -65,7 +65,7 @@ static IswResource resources[] = {
     {IswNtabBorderColor, IswCTabBorderColor, IswRPixel, sizeof(Pixel),
          offset(tab_border_color), IswRString, IswDefaultForeground},
     {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
-         offset(corner_radius), IswRImmediate, (IswPointer)0},
+         IswOffsetOf(TabsRec, core.corner_radius), IswRImmediate, (IswPointer)0},
 };
 #undef offset
 
@@ -274,7 +274,7 @@ DrawTabBar(Widget w)
         Position tx = tc->tabs.tab_x;
         Dimension tw_ = tc->tabs.tab_width;
 
-        double r = (double)tw->tabs.corner_radius;
+        double r = (double)tw->core.corner_radius;
         Boolean is_first = (tx == 0);
         Boolean is_last = (tx + tw_ >= (Position)tw->core.width);
         double x0 = is_first ? half : (double)tx;
@@ -338,7 +338,7 @@ DrawTabBar(Widget w)
             active_w = tc->tabs.tab_width;
         }
 
-        double r = (double)tw->tabs.corner_radius;
+        double r = (double)tw->core.corner_radius;
         double right = w->core.width - half;
         double bottom = w->core.height - half;
 
@@ -485,7 +485,7 @@ SetValues(Widget old, Widget request, Widget new, ArgList args, Cardinal *num_ar
         oldtw->tabs.active_tab_color != newtw->tabs.active_tab_color ||
         oldtw->tabs.tab_border_color != newtw->tabs.tab_border_color ||
         oldtw->tabs.border_w != newtw->tabs.border_w ||
-        oldtw->tabs.corner_radius != newtw->tabs.corner_radius) {
+        oldtw->core.corner_radius != newtw->core.corner_radius) {
         LayoutChildren(newtw);
         redisplay = True;
     }

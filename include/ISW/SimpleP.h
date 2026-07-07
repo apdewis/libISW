@@ -98,12 +98,6 @@ typedef struct {
        generic border ring so the border is not drawn twice. */
     Boolean     self_border;
 
-    /* Corner radius (logical px) for the backend's border ring and the
-       content background.  0 = square.  Set by widgets that want rounded
-       corners (Label, Command); read by the windowless backend so the ring
-       is stroked as a rounded rectangle instead of a square frame. */
-    Dimension   corner_radius;
-
     /* Border color override for the backend's ring.  Widgets whose border
        tracks a non-Core color (Label: its foreground) keep this in sync;
        use_border_color selects it over core.border_pixel.  Read by the

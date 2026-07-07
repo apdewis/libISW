@@ -116,7 +116,7 @@ static IswResource resources[] = {
     {IswNellipsize, IswCEllipsize, IswREllipsize, sizeof(IswEllipsize),
 	offset(label.ellipsize), IswRImmediate, (IswPointer)IswEllipsizeNone},
     {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
-	offset(simple.corner_radius), IswRImmediate, (IswPointer)0},
+	offset(core.corner_radius), IswRImmediate, (IswPointer)0},
     {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
          IswOffsetOf(RectObjRec,rectangle.border_width), IswRImmediate,
          (IswPointer)1},
@@ -551,16 +551,16 @@ _EllipsizeText(Widget w, IswFontStruct *fs, const char *text, int text_len,
 /*
  * Paint the label background.  With a corner radius, fill a rounded
  * rectangle; otherwise a plain rectangle.  The border itself is the
- * backend's rounded ring (driven by simple.corner_radius + border_width).
+ * backend's rounded ring (driven by core.corner_radius + border_width).
  */
 static void
 DrawBackground(LabelWidget w, ISWRenderContext *ctx)
 {
     ISWRenderSetColor(ctx, w->core.background_pixel);
-    if (w->simple.corner_radius > 0)
+    if (w->core.corner_radius > 0)
 	ISWRenderFillRoundedRectangle(ctx, 0, 0,
 				      w->core.width, w->core.height,
-				      w->simple.corner_radius);
+				      w->core.corner_radius);
     else
 	ISWRenderFillRectangle(ctx, 0, 0, w->core.width, w->core.height);
 }

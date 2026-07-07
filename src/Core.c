@@ -134,6 +134,8 @@ parameter is not passed through to the IswRCallProc routines */
      IswOffsetOf(CoreRec, core.border_bottom), IswRImmediate, (IswPointer) 0},
     {IswNborderLeft, IswCBorderWidth, IswRDimension, sizeof(Dimension),
      IswOffsetOf(CoreRec, core.border_left), IswRImmediate, (IswPointer) 0},
+    {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
+     IswOffsetOf(CoreRec, core.corner_radius), IswRImmediate, (IswPointer) 0},
 };
 
 static void CoreInitialize(Widget, Widget, ArgList, Cardinal *);

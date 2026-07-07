@@ -168,6 +168,9 @@ typedef struct _CorePart {
     Dimension       border_right;
     Dimension       border_bottom;
     Dimension       border_left;
+    Dimension       corner_radius;      /* rounded-corner radius (logical px) for
+                                            the backend's shared border ring;
+                                            0 = square. */
 } CorePart;
 
 typedef struct _WidgetRec {

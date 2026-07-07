@@ -93,9 +93,6 @@ SOFTWARE.
 
 */
 
-#define IswNcornerRadius "cornerRadius"
-#define IswCCornerRadius "CornerRadius"
-
 extern WidgetClass     commandWidgetClass;
 
 typedef struct _CommandClassRec   *CommandWidgetClass;

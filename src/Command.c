@@ -87,8 +87,8 @@ static char defaultTranslations[] =
 static IswResource resources[] = {
    {IswNcallback, IswCCallback, IswRCallback, sizeof(IswPointer),
       offset(command.callbacks), IswRCallback, (IswPointer)NULL},
-   {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
-      offset(simple.corner_radius), IswRImmediate, (IswPointer) 5},
+    {IswNcornerRadius, IswCCornerRadius, IswRDimension, sizeof(Dimension),
+       offset(core.corner_radius), IswRImmediate, (IswPointer) 5},
    {IswNborderWidth, IswCBorderWidth, IswRDimension, sizeof(Dimension),
       IswOffsetOf(RectObjRec,rectangle.border_width), IswRImmediate,
       (IswPointer) DEFAULT_HIGHLIGHT_THICKNESS},
@@ -387,7 +387,7 @@ PaintCommandWidget(Widget w, IswEvent *event, Region region, Boolean change)
     double by = off;
     double bw = cbw->core.width - lw;
     double bh = cbw->core.height - lw;
-    double r = cbw->simple.corner_radius;
+    double r = cbw->core.corner_radius;
 
     ISWRenderSave(ctx);
 

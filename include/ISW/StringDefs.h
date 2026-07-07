@@ -319,6 +319,8 @@ SOFTWARE.
 #define IswNborderLeft "borderLeft"
 #define IswNactiveColor "activeColor"
 #define IswCActiveColor "ActiveColor"
+#define IswNcornerRadius "cornerRadius"
+#define IswCCornerRadius "CornerRadius"
 #else
 extern _IswStringDefs_h_Const char IswStrings[];
 #ifndef IswNaccelerators
@@ -1103,6 +1105,12 @@ extern _IswStringDefs_h_Const char IswStrings[];
 #endif
 #ifndef IswCActiveColor
 #define IswCActiveColor ((String)&IswStrings[2733])
+#endif
+#ifndef IswNcornerRadius
+#define IswNcornerRadius ((String)&IswStrings[2745])
+#endif
+#ifndef IswCCornerRadius
+#define IswCCornerRadius ((String)&IswStrings[2758])
 #endif
 #endif /* ISWSTRINGDEFINES */
 

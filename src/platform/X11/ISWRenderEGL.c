@@ -627,8 +627,7 @@ egl_surface_begin(IswSurface s, Widget widget)
     /* Border ring: stroke or fill the border edges.  Skipped for widgets that
        paint their own border (self_border, e.g. ProgressBar).  When all four
        sides are equal, stroke a centered rect; otherwise fill four rects. */
-    Dimension ring_r = (IswIsSubclass(widget, simpleWidgetClass))
-                       ? ((SimpleWidget) widget)->simple.corner_radius : 0;
+    Dimension ring_r = widget->core.corner_radius;
     Boolean has_border = (bs.top || bs.right || bs.bottom || bs.left) &&
         !(IswIsSubclass(widget, simpleWidgetClass) &&
           ((SimpleWidget) widget)->simple.self_border);
@@ -920,9 +919,7 @@ egl_surface_composite_onto(IswSurface dd, Widget dst_widget,
             ox += (float) src_widget->core.virtual_origin_x;
             oy += (float) src_widget->core.virtual_origin_y;
         }
-        Dimension cr = (IswIsWidget(src_widget) &&
-                        IswIsSubclass(src_widget, simpleWidgetClass))
-                       ? ((SimpleWidget) src_widget)->simple.corner_radius : 0;
+        Dimension cr = IswIsWidget(src_widget) ? src_widget->core.corner_radius : 0;
         NVGpaint p = nvgImagePattern(g_egl.vg, ox, oy, fw, fh, 0.0f, img, 1.0f);
         nvgBeginPath(g_egl.vg);
         if (cr > 0) {

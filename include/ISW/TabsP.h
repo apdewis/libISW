@@ -48,7 +48,6 @@ typedef struct _TabsPart {
     Pixel           tab_background;
     Pixel           active_tab_color;
     Pixel           tab_border_color;
-    Dimension       corner_radius;
 
     /* Private */
     Widget          top_widget;

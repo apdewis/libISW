@@ -109,11 +109,6 @@ typedef enum {
 #define IswNencoding "encoding"
 #define IswCEncoding "Encoding"
 
-#ifndef IswNcornerRadius
-#define IswNcornerRadius "cornerRadius"
-#define IswCCornerRadius "CornerRadius"
-#endif
-
 #define IswNimage "image"
 #define IswCImage "Image"
 #define IswNleftImage "leftImage"
