@@ -1,25 +1,25 @@
 ISW (Infi Systems Widgets) - XCB-based 3D Widget Library
 ==========================================================
 
-ISW is a modern fork of the X 3D Athena Widget Set (Xaw3d).
-
+ISW is a widget toolkit based on a subtantially modified combination of libXt/Xaw
 ## WARNING
 It was majority done by claude code after the initial work on libXt to support XCB.
-
-HERE BE (COPIOUS AMOUNTS) OF DRAGONS.
+It is at this point in time nearing a usable v1 release but there may still be bugs lurking.
 
 If anyone is willing to do manual review of the LLM output that would be very appreciated
 
 ## ENDWARNING
 
-This library provides a comprehensive set of widgets for building X11 graphical
-user interfaces, with a complete XCB-based implementation that eliminates all
-Xlib dependencies.
+This library provides a comprehensive set of widgets for building graphical user interfaces.
+Work has been completed to substantially decouple the core functionality from the X11 platform specifics, which
+in future revisions will enable additional backend targets (Wayland, Arcan, single app embedded, etc)
+However it remains to be tested if the generalisations are robust enough.
+
 
 ## FEATURES
 --------
-- Modern XCB rendering backend for better performance and smaller footprint
-- Complete X Toolkit Intrinsics (libXt) implementation using XCB
+- Improved XAW widget set and additions
+- Modular rendering backens Cairo and pure EGL supported at present
 - Single unified library (libISW.so) includes both widgets and toolkit
 - No Xlib dependencies - pure XCB implementation
 
@@ -52,32 +52,6 @@ Required:
 Optional:
   - xkbcommon (keysym name functions)
   - egl >= 1.4, cairo-gl >= 1.12 (hardware-accelerated Cairo-EGL backend)
-
-## USAGE
-Programs using ISW can link against it using pkg-config:
-
-    gcc myapp.c -o myapp $(pkg-config --cflags --libs isw)
-
-Example code:
-    #include <X11/Intrinsic.h>
-    #include <X11/StringDefs.h>
-    #include <ISW/Box.h>
-    #include <ISW/Command.h>
-
-    int main(int argc, char **argv)
-    {
-        XtAppContext app;
-        Widget toplevel, box, button;
-
-        toplevel = XtAppInitialize(&app, "MyApp", NULL, 0, &argc, argv, NULL, NULL, 0);
-        box = XtCreateManagedWidget("box", boxWidgetClass, toplevel, NULL, 0);
-        button = XtCreateManagedWidget("quit", commandWidgetClass, box, NULL, 0);
-
-        XtRealizeWidget(toplevel);
-        XtAppMainLoop(app);
-
-        return 0;
-    }
 
 ## CURRENT STATE
 
@@ -131,83 +105,9 @@ XCB types in place of Xlib types (see API changes below).
     ListView, MainWindow, MenuBar, ProgressBar, Slider, SpinBox,
     StatusBar, Tabs, Tip (tooltips), Toolbar, ScrollWheel
 
-### New subsystems
+## Examples and API Reference
 
-    ISWRender      — backend-agnostic rendering vtable (Cairo-XCB backend,
-                     Cairo-EGL declared but unimplemented). Widgets draw
-                     through ISWRenderBegin/Draw*/End, never XCB directly.
-    ISWXdnd        — full XDND v5 drag-and-drop (source and target, MIME
-                     types, action negotiation, drag icons).
-    ISWAtoms       — runtime atom interning replacing Xlib's static atoms.
-    ISWXcbDraw     — Xlib drawing function replacements (XDrawString →
-                     ISWXcbDrawString, XCreateBitmapFromData →
-                     ISWCreateBitmapFromData, etc.).
-    ISWImage/PNG   — PNG loading via vendored lodepng.
-    ISWSVG         — SVG loading via vendored nanosvg.
-    ISWI18n        — internationalization scaffolding. The build flag
-                     ISW_INTERNATIONALIZATION (on by default) gates fontset
-                     resource paths and wchar conversion stubs carried over
-                     from Xaw3d, but the actual text pipeline is ASCII
-                     throughout — MultiSink/MultiSrc route through the same
-                     single-byte rendering as AsciiSink. The original Xlib
-                     i18n calls (XwcDrawString, XmbTextExtents,
-                     XCreateFontSet) were removed and not yet replaced.
-                     XIM input method support (ISWIm.c) still calls Xlib
-                     XIM APIs and is disabled (ISW_HAS_XIM=OFF).
-    ResConfig      — live theme resource override hook.
-    Layout         — constraint-based layout engine (bison/flex grammar).
-
-### Public API changes — Xlib types replaced with XCB types
-
-The Xt function names and calling conventions are preserved, but every type
-that referred to an Xlib struct or ID is now its XCB equivalent:
-
-    Xlib type              XCB replacement
-    ─────────────────────  ─────────────────────────
-    Display*               xcb_connection_t*
-    Window                 xcb_window_t
-    Pixmap                 xcb_pixmap_t
-    GC                     xcb_gcontext_t
-    XEvent                 xcb_generic_event_t*
-    Atom                   xcb_atom_t
-    Font                   xcb_font_t
-    Colormap               xcb_colormap_t
-    Cursor                 xcb_cursor_t
-    Visual*                xcb_visualtype_t*
-    Screen*                xcb_screen_t*
-    KeySym                 xcb_keysym_t
-
-These changes propagate into every public typedef and callback signature.
-Examples:
-
-    /* Event handler — XEvent* is now xcb_generic_event_t* */
-    typedef void (*XtEventHandler)(Widget, XtPointer,
-                                   xcb_generic_event_t*, Boolean*);
-
-    /* Type converter — Display* is now xcb_connection_t* */
-    typedef Boolean (*XtTypeConverter)(xcb_connection_t*, XrmValue*,
-                                       Cardinal*, XrmValue*,
-                                       XrmValue*, XtPointer*);
-
-    /* Key procedure */
-    typedef void (*XtKeyProc)(xcb_connection_t*, _XtKeyCode,
-                              Modifiers, Modifiers*, xcb_keysym_t*);
-
-The CorePart widget structure stores xcb_connection_t* (display),
-xcb_window_t (window), xcb_screen_t* (screen), and xcb_colormap_t
-(colormap) directly.
-
-Xlib accessor macros are reimplemented over XCB in XtTypes.h:
-
-    ConnectionNumber(dpy)   → xcb_get_file_descriptor(dpy)
-    DefaultRootWindow(dpy)  → root from xcb_setup_roots_iterator()
-    RootWindowOfScreen(s)   → s->root
-    BlackPixelOfScreen(s)   → s->black_pixel
-    WhitePixelOfScreen(s)   → s->white_pixel
-
-XSetWindowAttributes is provided as a compat struct in XtTypes.h with XCB
-member types. XFontStruct is replaced by XtFontStruct wrapping xcb_font_t
-with FreeType/Fontconfig metrics.
+see docs/*.md for further details.
 
 ## FORKED FROM
 
