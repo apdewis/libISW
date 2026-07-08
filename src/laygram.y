@@ -1,5 +1,4 @@
 %{
-/* System Xlib headers removed - XrmQuark/XrmStringToQuark available via X11/IntrinsicP.h from custom libXt */
 #include    <stdio.h>
 #include    <ISW/IntrinsicP.h>
 #include    <ISW/StringDefs.h>

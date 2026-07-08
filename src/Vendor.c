@@ -370,7 +370,7 @@ Realize(IswDisplay dpy, Widget wid, IswValueMask *vmask, uint32_t *attr)
 
 	/* Make my superclass do all the dirty work */
 
-	/* Call superclass realize - XCB custom libXt uses 4-parameter signature */
+	/* Call superclass realize - ISW uses 4-parameter signature */
 	(*super->core_class.realize) (dpy, wid, vmask, attr);
 }
 

@@ -62,8 +62,8 @@ in this Software without prior written authorization from The Open Group.
 #define IswSpecificationRelease 7
 
 /*
- * As used in its function interface, the String type of libXt can be readonly.
- * But compiling libXt with this feature may require some internal changes,
+ * As used in its function interface, the String type of ISW can be readonly.
+ * But compiling ISW with this feature may require some internal changes,
  * e.g., casts and occasionally using a plain "char*".
  */
 #ifdef _CONST_X_STRING

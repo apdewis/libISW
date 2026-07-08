@@ -282,7 +282,7 @@ WidgetClass simpleMenuWidgetClass = (WidgetClass)&simpleMenuClassRec;
  *
  ************************************************************/
 
-/* Stubs for IswAddInitializer/IswCallInitializers - not in XCB libXt */
+/* Stubs for IswAddInitializer/IswCallInitializers - not in ISW */
 static void IswAddInitializer(void (*proc)(IswAppContext, IswPointer), IswPointer closure) {
     (void)proc; (void)closure;
     /* Stub - initializers not supported */
