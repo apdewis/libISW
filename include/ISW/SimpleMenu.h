@@ -46,6 +46,7 @@ in this Software without prior written authorization from the X Consortium.
 #define _ISW_SimpleMenu_h
 
 #include <ISW/Constraint.h>
+#include "StringDefs.h"
 
 /****************************************************************
  *
@@ -106,6 +107,7 @@ extern WidgetClass simpleMenuWidgetClass;
 #define IswCLeftWhitespace "LeftWhitespace"
 #define IswCRightWhitespace "RightWhitespace"
 #define IswCHorizontalWhitespace "HorizontalWhitespace"
+
 
 /************************************************************
  *

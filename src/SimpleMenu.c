@@ -111,9 +111,12 @@ static IswResource resources[] = {
   /*{IswNbackingStore, IswCBackingStore, IswRBackingStore, sizeof (int),
       offset(backing_store),
       IswRImmediate, (IswPointer) (IswBackingAlways + IswBackingWhenMapped + IswBackingNotUseful)},*/
+  { IswNpopupCallback, IswCCallback, IswRCallback, sizeof(IswCallbackList),
+        offset(popup_callback), IswRCallback, (IswPointer) NULL},
+  { IswNpopdownCallback, IswCCallback, IswRCallback, sizeof(IswCallbackList),
+        offset(popdown_callback), IswRCallback, (IswPointer) NULL},
   {IswNjumpScroll,  IswCJumpScroll, IswRInt, sizeof(int),
-      offset(jump_val), IswRImmediate, (IswPointer)1},
-
+        offset(jump_val), IswRImmediate, (IswPointer)1}
 };
 #undef offset
 
@@ -1415,16 +1418,19 @@ IswSimpleMenuShow(Widget menu, int x, int y)
     Position par_root_x = 0, par_root_y = 0;
     Position anc_root_x = 0, anc_root_y = 0;
     int par_off_x = 0, par_off_y = 0;
+    parent = IswParent(menu);
 
     if (!IswIsRealized(menu))
 	    IswRealizeWidget(menu);
 
+    if (!IswIsRealized(parent) && IswIsShell(parent))
+	    IswRealizeWidget(parent);
     /* x,y are in the ancestor window's coordinate space.  IswMoveWidget sets
      * core.x/y relative to the menu's direct parent, and the windowless
      * offset accumulates the parent's position back up to the ancestor.  If
      * the parent is not itself the ancestor, subtract the parent's offset so
      * the final on-screen position matches the requested ancestor coords. */
-    parent = IswParent(menu);
+    
     ancestor = _IswWidgetAncestor(menu);
     if (parent != NULL && parent != ancestor && !IswIsShell(parent)) {
 	    IswTranslateCoords(parent, 0, 0, &par_root_x, &par_root_y);
@@ -1433,6 +1439,10 @@ IswSimpleMenuShow(Widget menu, int x, int y)
 	    par_off_x = (int) par_root_x - (int) anc_root_x;
 	    par_off_y = (int) par_root_y - (int) anc_root_y;
     }
+
+    if(IswIsShell(parent)) {
+        IswMoveWidget(parent, (Position) x, (Position) y);
+    } 
 
     MoveMenu(menu, (Position) x, (Position) y, &cx, &cy);
 
@@ -1452,7 +1462,7 @@ IswSimpleMenuShow(Widget menu, int x, int y)
     /* If this menu is shown in a popup shell, forward its popdown callbacks
      * to the shell so they fire when the shell pops down. */
     if (parent != NULL && IswIsShell(parent)) {
-        IswCallCallbacks(parent, IswNpopupCallback, (IswPointer) menu);
+        IswPopup(parent, IswGrabNonexclusive);
     }
     IswCallCallbacks(menu, IswNpopupCallback, (IswPointer) NULL);
 }
@@ -1478,7 +1488,7 @@ IswSimpleMenuHide(Widget menu)
     /* If this menu is shown in a popup shell, forward its popdown callbacks
      * to the shell so they fire when the shell pops down. */
     if (parent != NULL && IswIsShell(parent)) {
-        IswCallCallbacks(parent, IswNpopdownCallback, (IswPointer) menu);
+        IswPopdown(parent);
     }
 
     IswCallCallbacks(menu, IswNpopdownCallback, (IswPointer) NULL);
@@ -1509,7 +1519,6 @@ IswCreateMenuPopupShell(_Xconst char *name, Widget parent,
 			       NULL, 0);
     menu = IswCreateManagedWidget((String) name, simpleMenuWidgetClass, shell,
 				 args, num_args);
-
     return menu;
 }
 

@@ -99,6 +99,8 @@ typedef struct _SimpleMenuPart {
   unsigned char state;
   IswIntervalId submenu_timer;  /* delayed submenu popup timer */
   ISWRenderContext *render_ctx; /* Cairo rendering context */
+  IswCallbackList popup_callback;
+	IswCallbackList popdown_callback;
 } SimpleMenuPart;
 
 typedef struct _SimpleMenuRec {
