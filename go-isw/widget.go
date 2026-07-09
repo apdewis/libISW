@@ -73,7 +73,10 @@ func (w Widget) Realize() { C.IswRealizeWidget(w.c) }
 func (w Widget) Unrealize() { C.IswUnrealizeWidget(w.c) }
 
 // Destroy destroys the widget.
-func (w Widget) Destroy() { C.IswDestroyWidget(w.c) }
+func (w *Widget) Destroy() { 
+	C.IswDestroyWidget(w.c)
+	w.c = nil
+}
 
 // Manage manages the widget.
 func (w Widget) Manage() { C.IswManageChild(w.c) }

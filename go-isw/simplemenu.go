@@ -46,12 +46,20 @@ func SimpleMenuHide(menu Widget) {
 }
 
 // CreateMenuPopupShell creates an override-redirect popup shell hosting a
-// SimpleMenu, for applications that need the menu in a separate platform
-// window rather than positioned within the trigger's toplevel. It returns
+// SimpleMenu, for applications that need the menu in a separate window
+// rather than positioned within the trigger's toplevel. It returns
 // the SimpleMenu widget.
 func CreateMenuPopupShell(name string, parent Widget, args *ArgList) Widget {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	a, n := args.cArgPtr()
 	return Widget{C._isw_create_menu_popup_shell(cname, parent.c, a, n)}
+}
+
+// DestroyMenuPopupShell destroys the popup shell that hosts a menu created
+// with CreateMenuPopupShell. Call this to properly clean up the shell and
+// release any mouse grab when the menu is popped down.
+func DestroyMenuPopupShell(menu Widget) {
+	shell := menu.Parent()
+	C.IswDestroyWidget(shell.c)
 }

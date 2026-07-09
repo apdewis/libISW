@@ -1449,6 +1449,11 @@ IswSimpleMenuShow(Widget menu, int x, int y)
        was realized, leaving the window's mask stale. */
     _IswUpdateWindowlessAncestorMask(menu);
 
+    /* If this menu is shown in a popup shell, forward its popdown callbacks
+     * to the shell so they fire when the shell pops down. */
+    if (parent != NULL && IswIsShell(parent)) {
+        IswCallCallbacks(parent, IswNpopupCallback, (IswPointer) menu);
+    }
     IswCallCallbacks(menu, IswNpopupCallback, (IswPointer) NULL);
 }
 
@@ -1467,6 +1472,14 @@ IswSimpleMenuHide(Widget menu)
     PopdownSubMenu(smw);
 
     IswUnmapWidget(menu);
+
+    Widget parent = IswParent(menu);
+
+    /* If this menu is shown in a popup shell, forward its popdown callbacks
+     * to the shell so they fire when the shell pops down. */
+    if (parent != NULL && IswIsShell(parent)) {
+        IswCallCallbacks(parent, IswNpopdownCallback, (IswPointer) menu);
+    }
 
     IswCallCallbacks(menu, IswNpopdownCallback, (IswPointer) NULL);
 
