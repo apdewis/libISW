@@ -1445,17 +1445,17 @@ IswSimpleMenuShow(Widget menu, int x, int y)
 	    par_off_y = (int) par_root_y - (int) anc_root_y;
     }
 
-    if(IswIsShell(parent)) {
-        IswMoveWidget(parent, (Position) x, (Position) y);
-    } 
-
     MoveMenu(menu, (Position) x, (Position) y, &cx, &cy);
 
     /* An in-window menu must composite above all other content in its host
        window. */
     menu->core.windowless_overlay = True;
 
-    IswMoveWidget(menu, cx - par_off_x, cy - par_off_y);
+    if(IswIsOverrideShell(parent)) {
+        IswMoveWidget(parent, (Position) x, (Position) y);
+    } else {
+        IswMoveWidget(menu, cx - par_off_x, cy - par_off_y);
+    }
     IswMapWidget(menu);
 
     /* Fold the menu's event mask (motion/button/crossing from its translations)
@@ -1492,7 +1492,7 @@ IswSimpleMenuHide(Widget menu)
 
     /* If this menu is shown in a popup shell, forward its popdown callbacks
      * to the shell so they fire when the shell pops down. */
-    if (parent != NULL && IswIsShell(parent)) {
+    if (parent != NULL && IswIsOverrideShell(parent)) {
         IswPopdown(parent);
     }
 

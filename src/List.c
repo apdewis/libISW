@@ -988,7 +988,7 @@ OpenDropdown(Widget w)
         IswDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
     }
-    
+
     if (lw->list.popup_entries) {
         IswFree(lw->list.popup_entries);
         lw->list.popup_entries = NULL;
@@ -1070,14 +1070,14 @@ OpenDropdown(Widget w)
 
     IswSimpleMenuShow(lw->list.popup_shell, (int)abs_x, (int)popup_y);
     
-    Widget shell = w;
-    while (shell && !IswIsShell(shell))
-        shell = IswParent(shell);
-    if (shell)
-        IswAddEventHandler(shell,
-                          IswFocusChangeMask | IswStructureNotifyMask |
-                          IswVisibilityChangeMask,
-                          False, DropdownDismissHandler, (IswPointer)lw);
+    //Widget shell = w;
+    //while (shell && !IswIsShell(shell))
+    //    shell = IswParent(shell);
+    //if (shell)
+    //    IswAddEventHandler(shell,
+    //                      IswFocusChangeMask | IswStructureNotifyMask |
+    //                      IswVisibilityChangeMask,
+    //                      False, DropdownDismissHandler, (IswPointer)lw);
       
     Widget ancestor = IswParent(w);
     while (ancestor && !IswIsShell(ancestor)) {
@@ -1361,6 +1361,7 @@ Destroy(Widget w)
 
     /* Clean up dropdown popup */
     if (lw->list.popup_shell) {
+        IswPopdown(lw->list.popup_shell);  /* Pop down first */
         IswDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
     }
