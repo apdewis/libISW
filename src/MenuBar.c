@@ -63,6 +63,9 @@ static void MenuBarEnter(Widget, IswEvent *, String *, Cardinal *);
 static void MenuBarLeave(Widget, IswEvent *, String *, Cardinal *);
 static void MenuBarClick(Widget, IswEvent *, String *, Cardinal *);
 static void MenuBarDismiss(Widget, IswEvent *, String *, Cardinal *);
+static void MenuBarNavLeft(Widget, IswEvent *, String *, Cardinal *);
+static void MenuBarNavRight(Widget, IswEvent *, String *, Cardinal *);
+static void MenuBarNavDown(Widget, IswEvent *, String *, Cardinal *);
 
 /* Private functions */
 static void OpenMenu(MenuBarWidget, Widget);
@@ -72,6 +75,10 @@ static Widget FindMenuForButton(Widget);
 static void MenuPopdownCB(Widget, IswPointer, IswPointer);
 static void OutsideClickHandler(Widget, IswPointer, IswEvent *, Boolean *);
 static Widget FindToplevelShell(Widget);
+static Boolean MenuBarUpHandler(Widget menu, IswPointer closure);
+static Widget FindNextMenuButton(MenuBarWidget mbw, Widget current, int direction);
+static void HighlightButton(MenuBarWidget mbw, Widget button);
+static void UnhighlightButton(MenuBarWidget mbw, Widget button);
 
 static char menuBarMenuTranslations[] =
     "<EnterWindow>:     highlight()             \n\
@@ -80,7 +87,9 @@ static char menuBarMenuTranslations[] =
      <BtnMotion>:       highlight()             \n\
      <Btn4Down>:        unhighlight() popdown() \n\
      <Btn5Down>:        unhighlight() popdown() \n\
-     <BtnDown>:         notify() unhighlight() popdown()";
+     <BtnDown>:         notify() unhighlight() popdown() \n\
+     <Key>Left:         menubar-nav-left()      \n\
+     <Key>Right:        menubar-nav-right()";
 
 /* Translations for MenuButton children inside the menubar */
 static char menuBarChildTranslations[] =
@@ -90,17 +99,26 @@ static char menuBarChildTranslations[] =
 
 static IswActionsRec actionsList[] = {
     {"menubar-dismiss",  MenuBarDismiss},
+    {"menubar-nav-left", MenuBarNavLeft},
+    {"menubar-nav-right",MenuBarNavRight},
+    {"menubar-nav-down", MenuBarNavDown},
 };
 
-/* Actions registered globally (for use by MenuButton children) */
+/* Actions registered globally (for use by MenuButton children and menus) */
 static IswActionsRec globalActionsList[] = {
     {"menubar-enter",    MenuBarEnter},
     {"menubar-leave",    MenuBarLeave},
     {"menubar-click",    MenuBarClick},
+    {"menubar-nav-left", MenuBarNavLeft},
+    {"menubar-nav-right",MenuBarNavRight},
+    {"menubar-nav-down", MenuBarNavDown},
 };
 
 static char defaultTranslations[] =
-    "<Key>Escape: menubar-dismiss()";
+    "<Key>Escape: menubar-dismiss()    \n\
+     <Key>Left:   menubar-nav-left()   \n\
+     <Key>Right:  menubar-nav-right()  \n\
+     <Key>Down:   menubar-nav-down()";
 
 MenuBarClassRec menuBarClassRec = {
   { /* core */
@@ -195,6 +213,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal *num_args)
     mbw->menu_bar.active_button = NULL;
     mbw->menu_bar.active_menu = NULL;
     mbw->menu_bar.menu_is_open = FALSE;
+    mbw->menu_bar.highlighted_button = NULL;
 
     /* Force horizontal orientation, minimal horizontal spacing,
      * vertical padding to keep items clear of the bottom border */
@@ -342,11 +361,202 @@ MenuBarDismiss(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
         CloseMenu(mbw);
 }
 
+/*
+ * Navigate to the previous MenuButton (Left arrow).
+ */
+static void
+MenuBarNavLeft(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
+{
+    MenuBarWidget mbw;
+    Widget current, next;
+
+    (void)iswev; (void)params; (void)num_params;
+
+    if (IswIsSubclass(w, menuBarWidgetClass)) {
+        mbw = (MenuBarWidget) w;
+    } else if (IswIsSubclass(w, simpleMenuWidgetClass)) {
+        SimpleMenuWidget smw = (SimpleMenuWidget) w;
+        if (smw->simple_menu.menubar_up_handler &&
+            smw->simple_menu.menubar_up_closure)
+            mbw = (MenuBarWidget) smw->simple_menu.menubar_up_closure;
+        else
+            return;
+    } else
+        return;
+
+    current = mbw->menu_bar.highlighted_button;
+    if (current == NULL)
+        current = mbw->menu_bar.active_button;
+    next = FindNextMenuButton(mbw, current, -1);
+    if (next == NULL)
+        return;
+
+    if (mbw->menu_bar.menu_is_open) {
+        SwitchMenu(mbw, next);
+    } else {
+        if (current && current != mbw->menu_bar.active_button)
+            UnhighlightButton(mbw, current);
+        HighlightButton(mbw, next);
+    }
+}
+
+/*
+ * Navigate to the next MenuButton (Right arrow).
+ */
+static void
+MenuBarNavRight(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
+{
+    MenuBarWidget mbw;
+    Widget current, next;
+
+    (void)iswev; (void)params; (void)num_params;
+
+    if (IswIsSubclass(w, menuBarWidgetClass)) {
+        mbw = (MenuBarWidget) w;
+    } else if (IswIsSubclass(w, simpleMenuWidgetClass)) {
+        SimpleMenuWidget smw = (SimpleMenuWidget) w;
+        if (smw->simple_menu.menubar_up_handler &&
+            smw->simple_menu.menubar_up_closure)
+            mbw = (MenuBarWidget) smw->simple_menu.menubar_up_closure;
+        else
+            return;
+    } else
+        return;
+
+    current = mbw->menu_bar.highlighted_button;
+    if (current == NULL)
+        current = mbw->menu_bar.active_button;
+    next = FindNextMenuButton(mbw, current, +1);
+    if (next == NULL)
+        return;
+
+    if (mbw->menu_bar.menu_is_open) {
+        SwitchMenu(mbw, next);
+    } else {
+        if (current && current != mbw->menu_bar.active_button)
+            UnhighlightButton(mbw, current);
+        HighlightButton(mbw, next);
+    }
+}
+
+/*
+ * Open the highlighted button's menu (Down arrow).
+ */
+static void
+MenuBarNavDown(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
+{
+    MenuBarWidget mbw = (MenuBarWidget) w;
+    Widget button, menu;
+
+    (void)iswev; (void)params; (void)num_params;
+
+    if (!IswIsSubclass(w, menuBarWidgetClass))
+        return;
+
+    button = mbw->menu_bar.highlighted_button;
+    if (button == NULL)
+        button = mbw->menu_bar.active_button;
+    if (button == NULL) {
+        button = FindNextMenuButton(mbw, NULL, +1);
+        if (button == NULL)
+            return;
+        HighlightButton(mbw, button);
+    }
+
+    if (!mbw->menu_bar.menu_is_open) {
+        OpenMenu(mbw, button);
+        menu = mbw->menu_bar.active_menu;
+        if (menu)
+            IswCallActionProc(menu, "first-entry", NULL, NULL, 0);
+    }
+}
+
 /****************************************************************
  *
  * Private Functions
  *
  ****************************************************************/
+
+static Widget
+FindNextMenuButton(MenuBarWidget mbw, Widget current, int direction)
+{
+    Cardinal i, n = mbw->composite.num_children;
+    Widget *children = mbw->composite.children;
+    int start = -1;
+
+    if (n == 0)
+        return NULL;
+
+    if (current != NULL) {
+        for (i = 0; i < n; i++) {
+            if (children[i] == current) {
+                start = (int)i;
+                break;
+            }
+        }
+    }
+
+    if (start < 0) {
+        for (i = 0; i < n; i++) {
+            if (IswIsSubclass(children[i], menuButtonWidgetClass))
+                return children[i];
+        }
+        return NULL;
+    }
+
+    {
+        int idx = start + direction;
+        int count = 0;
+        while (count < (int)n) {
+            if (idx < 0) idx = (int)n - 1;
+            if (idx >= (int)n) idx = 0;
+            if (IswIsSubclass(children[idx], menuButtonWidgetClass))
+                return children[idx];
+            idx += direction;
+            count++;
+        }
+    }
+    return NULL;
+}
+
+static void
+HighlightButton(MenuBarWidget mbw, Widget button)
+{
+    if (button == NULL)
+        return;
+    mbw->menu_bar.highlighted_button = button;
+    IswCallActionProc(button, "set", NULL, NULL, 0);
+    IswCallActionProc(button, "highlight", NULL, (String[]){"Always"}, 1);
+}
+
+static void
+UnhighlightButton(MenuBarWidget mbw, Widget button)
+{
+    if (button == NULL)
+        return;
+    if (mbw->menu_bar.highlighted_button == button)
+        mbw->menu_bar.highlighted_button = NULL;
+    IswCallActionProc(button, "unset", NULL, NULL, 0);
+    IswCallActionProc(button, "unhighlight", NULL, NULL, 0);
+}
+
+static Boolean
+MenuBarUpHandler(Widget menu, IswPointer closure)
+{
+    MenuBarWidget mbw = (MenuBarWidget) closure;
+    Widget button = mbw->menu_bar.active_button;
+
+    (void)menu;
+
+    CloseMenu(mbw);
+
+    if (button) {
+        mbw->menu_bar.highlighted_button = button;
+        IswCallActionProc(button, "highlight", NULL, (String[]){"Always"}, 1);
+    }
+
+    return TRUE;
+}
 
 /*
  * Find the SimpleMenu popup shell associated with a MenuButton.
@@ -425,6 +635,18 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     mbw->menu_bar.active_button = button;
     mbw->menu_bar.active_menu = menu;
     mbw->menu_bar.menu_is_open = TRUE;
+
+    if (IswIsSubclass(menu, simpleMenuWidgetClass)) {
+        SimpleMenuWidget smw = (SimpleMenuWidget) menu;
+        smw->simple_menu.menubar_up_handler = MenuBarUpHandler;
+        smw->simple_menu.menubar_up_closure = (IswPointer)mbw;
+    }
+
+    {
+        Widget shell = FindToplevelShell((Widget)mbw);
+        if (shell)
+            IswSetKeyboardFocus(shell, menu);
+    }
 }
 
 /*
@@ -449,6 +671,11 @@ CloseMenu(MenuBarWidget mbw)
 
     if (menu) {
         IswRemoveCallback(menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
+        if (IswIsSubclass(menu, simpleMenuWidgetClass)) {
+            SimpleMenuWidget smw = (SimpleMenuWidget) menu;
+            smw->simple_menu.menubar_up_handler = NULL;
+            smw->simple_menu.menubar_up_closure = NULL;
+        }
         IswSimpleMenuHide(menu);
     }
 
@@ -461,6 +688,12 @@ CloseMenu(MenuBarWidget mbw)
     mbw->menu_bar.active_button = NULL;
     mbw->menu_bar.active_menu = NULL;
     mbw->menu_bar.menu_is_open = FALSE;
+
+    {
+        Widget shell = FindToplevelShell((Widget)mbw);
+        if (shell)
+            IswSetKeyboardFocus(shell, (Widget)mbw);
+    }
 }
 
 /*
@@ -481,6 +714,11 @@ SwitchMenu(MenuBarWidget mbw, Widget new_button)
 
     if (old_menu) {
         IswRemoveCallback(old_menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
+        if (IswIsSubclass(old_menu, simpleMenuWidgetClass)) {
+            SimpleMenuWidget smw = (SimpleMenuWidget) old_menu;
+            smw->simple_menu.menubar_up_handler = NULL;
+            smw->simple_menu.menubar_up_closure = NULL;
+        }
         IswSimpleMenuHide(old_menu);
     }
 
@@ -521,15 +759,27 @@ MenuPopdownCB(Widget menu, IswPointer client_data, IswPointer call_data)
 
     IswRemoveCallback(menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
 
-    /* Reset button visual state */
-    if (button) {
-        IswCallActionProc(button, "unset", NULL, NULL, 0);
-        IswCallActionProc(button, "unhighlight", NULL, NULL, 0);
+    if (IswIsSubclass(menu, simpleMenuWidgetClass)) {
+        SimpleMenuWidget smw = (SimpleMenuWidget) menu;
+        smw->simple_menu.menubar_up_handler = NULL;
+        smw->simple_menu.menubar_up_closure = NULL;
     }
 
+    /* Reset button visual state: remove "set" but keep highlight for keyboard nav */
+    if (button) {
+        IswCallActionProc(button, "unset", NULL, NULL, 0);
+    }
+
+    mbw->menu_bar.highlighted_button = button;
     mbw->menu_bar.active_button = NULL;
     mbw->menu_bar.active_menu = NULL;
     mbw->menu_bar.menu_is_open = FALSE;
+
+    {
+        Widget shell = FindToplevelShell((Widget)mbw);
+        if (shell)
+            IswSetKeyboardFocus(shell, (Widget)mbw);
+    }
 }
 
 /*

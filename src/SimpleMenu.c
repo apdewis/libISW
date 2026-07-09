@@ -1142,7 +1142,12 @@ PrevEntry(Widget w, IswEvent *iswev, String *p, Cardinal *np)
     } else {
         start = FindEntryIndex(smw, smw->simple_menu.entry_set) - 1;
         prev = FindFirstSelectable(smw, start, -1);
-        if (prev == NULL) prev = FindFirstSelectable(smw, n - 1, -1); /* wrap */
+        if (prev == NULL) {
+            if (smw->simple_menu.menubar_up_handler &&
+                smw->simple_menu.menubar_up_handler(w, smw->simple_menu.menubar_up_closure))
+                return;
+            prev = FindFirstSelectable(smw, n - 1, -1); /* wrap */
+        }
     }
     if (prev) {
         if (smw->simple_menu.too_tall) ScrollEntryVisible(smw, prev);

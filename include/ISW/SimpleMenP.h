@@ -101,6 +101,9 @@ typedef struct _SimpleMenuPart {
   ISWRenderContext *render_ctx; /* Cairo rendering context */
   IswCallbackList popup_callback;
 	IswCallbackList popdown_callback;
+
+  Boolean (*menubar_up_handler)(Widget menu, IswPointer closure);
+  IswPointer menubar_up_closure;
 } SimpleMenuPart;
 
 typedef struct _SimpleMenuRec {

@@ -46,6 +46,7 @@ typedef struct {
     Widget      active_button;    /* MenuButton whose menu is currently open */
     Widget      active_menu;      /* The SimpleMenu widget currently popped up */
     Boolean     menu_is_open;     /* TRUE when a dropdown is visible */
+    Widget      highlighted_button; /* MenuButton highlighted by arrow keys */
 } MenuBarPart;
 
 /* Full instance record declaration */
