@@ -1417,7 +1417,7 @@ IswSimpleMenuShow(Widget menu, int x, int y)
     int par_off_x = 0, par_off_y = 0;
 
     if (!IswIsRealized(menu))
-	IswRealizeWidget(menu);
+	    IswRealizeWidget(menu);
 
     /* x,y are in the ancestor window's coordinate space.  IswMoveWidget sets
      * core.x/y relative to the menu's direct parent, and the windowless
@@ -1427,11 +1427,11 @@ IswSimpleMenuShow(Widget menu, int x, int y)
     parent = IswParent(menu);
     ancestor = _IswWidgetAncestor(menu);
     if (parent != NULL && parent != ancestor && !IswIsShell(parent)) {
-	IswTranslateCoords(parent, 0, 0, &par_root_x, &par_root_y);
-	if (ancestor != NULL)
-	    _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
-	par_off_x = (int) par_root_x - (int) anc_root_x;
-	par_off_y = (int) par_root_y - (int) anc_root_y;
+	    IswTranslateCoords(parent, 0, 0, &par_root_x, &par_root_y);
+	    if (ancestor != NULL)
+	        _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
+	    par_off_x = (int) par_root_x - (int) anc_root_x;
+	    par_off_y = (int) par_root_y - (int) anc_root_y;
     }
 
     MoveMenu(menu, (Position) x, (Position) y, &cx, &cy);
@@ -1525,13 +1525,13 @@ CreateLabel(Widget w)
 
     if ( (smw->simple_menu.label_string == NULL) ||
 	 (smw->simple_menu.label != NULL) ) {
-	char error_buf[BUFSIZ];
+	    char error_buf[BUFSIZ];
 
-	(void) sprintf(error_buf, "Isw Simple Menu Widget: %s or %s, %s",
-		"label string is NULL", "label already exists",
-		"no label is being created.");
-	IswAppWarning(IswWidgetToApplicationContext(w), error_buf);
-	return;
+	    (void) sprintf(error_buf, "Isw Simple Menu Widget: %s or %s, %s",
+	    	"label string is NULL", "label already exists",
+	    	"no label is being created.");
+	    IswAppWarning(IswWidgetToApplicationContext(w), error_buf);
+	    return;
     }
 
     IswArgLabel(&ab, smw->simple_menu.label_string);
@@ -1580,13 +1580,11 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 
     if (IswIsSubclass(w, simpleMenuWidgetClass))
     {
-	smw = (SimpleMenuWidget)w;
-	current_entry = NULL;
-    }
-    else
-    {
-	smw = (SimpleMenuWidget)IswParent(w);
-	current_entry = (SmeObject)w;
+	    smw = (SimpleMenuWidget)w;
+	    current_entry = NULL;
+    } else {
+	    smw = (SimpleMenuWidget)IswParent(w);
+	    current_entry = (SmeObject)w;
     }
 
     do_layout |= (current_entry != NULL);
@@ -1594,56 +1592,49 @@ Layout(Widget w, Dimension *width_ret, Dimension *height_ret)
 		(!IswIsRealized((Widget)smw) || smw->simple_menu.allow_resize);
 
     if (smw->simple_menu.menu_height)
-	height = smw->core.height;
-    else if (do_layout)
-    {
-	height = smw->simple_menu.top_margin;
+	    height = smw->core.height;
+    else if (do_layout) {
+	    height = smw->simple_menu.top_margin;
 
-	ForAllChildren(smw, entry)
-	{
-	    if (!IswIsManaged((Widget)*entry)) continue;
+	    ForAllChildren(smw, entry)
+	    {
+	        if (!IswIsManaged((Widget)*entry)) continue;
 
-	    if (smw->simple_menu.row_height != 0 &&
-			*entry != smw->simple_menu.label)
-		(*entry)->rectangle.height = smw->simple_menu.row_height;
+	        if (smw->simple_menu.row_height != 0 &&
+	    		*entry != smw->simple_menu.label)
+	    	(*entry)->rectangle.height = smw->simple_menu.row_height;
 
-	    (*entry)->rectangle.y = height;
-	    (*entry)->rectangle.x = 0;
-	    height += (*entry)->rectangle.height;
-	}
+	        (*entry)->rectangle.y = height;
+	        (*entry)->rectangle.x = 0;
+	        height += (*entry)->rectangle.height;
+	    }
 
-	height += smw->simple_menu.bottom_margin;
-    }
-    else if (smw->simple_menu.row_height != 0 &&
-		current_entry != smw->simple_menu.label)
-    {
-	height = smw->simple_menu.row_height * smw->composite.num_children;
+	    height += smw->simple_menu.bottom_margin;
+    } else if (smw->simple_menu.row_height != 0 &&
+		current_entry != smw->simple_menu.label) {
+	    height = smw->simple_menu.row_height * smw->composite.num_children;
     }
 
     if (smw->simple_menu.menu_width)
-	width = smw->core.width;
-    else if (allow_change_size)
-    {
-	SetMarginWidths((Widget)smw);
+	    width = smw->core.width;
+    else if (allow_change_size) {
+	    SetMarginWidths((Widget)smw);
 
-	width = GetMenuWidth((Widget)smw, (Widget)NULL);
+	    width = GetMenuWidth((Widget)smw, (Widget)NULL);
+    } else {
+	    width = smw->core.width;
     }
-    else
-	width = smw->core.width;
 
-    if (do_layout)
-    {
-	ForAllChildren(smw, entry)
+    if (do_layout) {
+	    ForAllChildren(smw, entry)
 	    if (IswIsManaged((Widget)*entry))
 		(*entry)->rectangle.width = width;
 
-	if (allow_change_size)
-	    MakeSetValuesRequest((Widget) smw, width, height);
-    }
-    else
-    {
-	*width_ret = width;
-	if (height != 0) *height_ret = height;
+	    if (allow_change_size)
+	        MakeSetValuesRequest((Widget) smw, width, height);
+    } else {
+	    *width_ret = width;
+	    if (height != 0) *height_ret = height;
     }
 }
 
@@ -1710,23 +1701,24 @@ PositionMenu(Widget w, XPoint * location)
     ancestor = _IswWidgetAncestor(w);
 
     if (location == NULL) {
- int root_x, root_y, win_x, win_y;
- IswModMask mods;
- IswWindow child;
+        int root_x, root_y, win_x, win_y;
+        IswModMask mods;
+        IswWindow child;
 
- location = &t_point;
- if (!_IswPlatformQueryPointer(IswDisplayOf(w),
-         _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
-         &root_x, &root_y, &win_x, &win_y, &mods, &child)) {
-     char error_buf[BUFSIZ];
-     (void) sprintf(error_buf, "%s %s", "Isw Simple Menu Widget:",
-      "Could not find location of mouse pointer");
-      IswAppWarning(IswWidgetToApplicationContext(w), error_buf);
-      return;
-  }
-  location->x = (short) root_x;
-  location->y = (short) root_y;
-     }
+        location = &t_point;
+        if (!_IswPlatformQueryPointer(IswDisplayOf(w),
+                _IswPlatformWidgetWindow(IswDisplayOf((Widget)(w)), (Widget)(w)),
+                &root_x, &root_y, &win_x, &win_y, &mods, &child)) {
+                   char error_buf[BUFSIZ];
+                   (void) sprintf(error_buf, "%s %s", "Isw Simple Menu Widget:",
+                       "Could not find location of mouse pointer");
+                       IswAppWarning(IswWidgetToApplicationContext(w), error_buf);
+                       return;
+        }
+
+        location->x = (short) root_x;
+        location->y = (short) root_y;
+    }
 
     /*
      * The incoming location is in root (screen) coordinates.  The menu is a
@@ -1767,29 +1759,29 @@ MoveMenu(Widget w, Position x, Position y, Position *rx, Position *ry)
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
 
     if (smw->simple_menu.menu_on_screen) {
-	Widget ancestor = _IswWidgetAncestor(w);
-	int width = w->core.width + 2 * w->core.border_width;
-	int height = w->core.height + 2 * w->core.border_width;
-	int avail_w, avail_h;
+	    Widget ancestor = _IswWidgetAncestor(w);
+	    int width = w->core.width + 2 * w->core.border_width;
+	    int height = w->core.height + 2 * w->core.border_width;
+	    int avail_w, avail_h;
 
-	if (ancestor != NULL) {
-	    avail_w = (int) ancestor->core.width;
-	    avail_h = (int) ancestor->core.height;
-	} else {
-	    double sf = _IswGetScaleFactor(IswDisplayOf(w));
-	    avail_w = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(w), IswScreenOf(w)) / sf);
-	    avail_h = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w)) / sf);
-	}
+	    if (ancestor != NULL) {
+	        avail_w = (int) ancestor->core.width;
+	        avail_h = (int) ancestor->core.height;
+	    } else {
+	        double sf = _IswGetScaleFactor(IswDisplayOf(w));
+	        avail_w = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(w), IswScreenOf(w)) / sf);
+	        avail_h = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w)) / sf);
+	    }
 
-	if (x >= 0 && x + width > avail_w)
-	    x = avail_w - width;
-	if (x < 0)
-	    x = 0;
+	    if (x >= 0 && x + width > avail_w)
+	        x = avail_w - width;
+	    if (x < 0)
+	        x = 0;
 
-	if (y >= 0 && y + height > avail_h)
-	    y = avail_h - height;
-	if (y < 0)
-	    y = 0;
+	    if (y >= 0 && y + height > avail_h)
+	        y = avail_h - height;
+	    if (y < 0)
+	        y = 0;
     }
 
     *rx = x;
@@ -1811,16 +1803,16 @@ MakeSetValuesRequest(Widget w, Dimension width, Dimension height)
     SimpleMenuWidget smw = (SimpleMenuWidget) w;
 
     if ( !smw->simple_menu.recursive_set_values ) {
-	if ( (smw->core.width != width) || (smw->core.height != height) ) {
-	    IswArgBuilder ab = IswArgBuilderInit();
+	    if ( (smw->core.width != width) || (smw->core.height != height) ) {
+	        IswArgBuilder ab = IswArgBuilderInit();
 
-	    smw->simple_menu.recursive_set_values = TRUE;
-	    IswArgWidth(&ab, width);
-	    IswArgHeight(&ab, height);
-	    IswSetValues(w, ab.args, ab.count);
-	}
-	else if (IswIsRealized( (Widget) smw))
-	    Redisplay((Widget) smw, NULL, 0);
+	        smw->simple_menu.recursive_set_values = TRUE;
+	        IswArgWidth(&ab, width);
+	        IswArgHeight(&ab, height);
+	        IswSetValues(w, ab.args, ab.count);
+	    }
+	    else if (IswIsRealized( (Widget) smw))
+	        Redisplay((Widget) smw, NULL, 0);
     }
     smw->simple_menu.recursive_set_values = FALSE;
 }
@@ -1839,46 +1831,44 @@ SetMarginWidths(Widget w)
     SmeBSBObject bsb_entry;
     Dimension l_mrgn, l_bmw, r_mrgn, r_bmw;
 
-    if (smw->simple_menu.left_whitespace || smw->simple_menu.right_whitespace)
-    {
+    if (smw->simple_menu.left_whitespace || smw->simple_menu.right_whitespace) {
 	/* determine the widest bitmaps */
-	l_bmw = r_bmw = (Dimension)0;
-	ForAllChildren(smw, entry)
-	{
-	    if (!IswIsManaged((Widget)*entry)) continue;
-	    if (*entry == smw->simple_menu.label) continue;
-	    if (IswIsSubclass((Widget)*entry, smeLineObjectClass))
-		continue;
+	    l_bmw = r_bmw = (Dimension)0;
+	    ForAllChildren(smw, entry)
+	    {
+	        if (!IswIsManaged((Widget)*entry)) continue;
+	        if (*entry == smw->simple_menu.label) continue;
+	        if (IswIsSubclass((Widget)*entry, smeLineObjectClass))
+	    	continue;
 
-	    bsb_entry = (SmeBSBObject)&((*entry)->object);
-	    if (bsb_entry->sme_bsb.left_image_width > l_bmw)
-		l_bmw = bsb_entry->sme_bsb.left_image_width;
-	    if (bsb_entry->sme_bsb.right_image_width > r_bmw)
-		r_bmw = bsb_entry->sme_bsb.right_image_width;
-	}
+	        bsb_entry = (SmeBSBObject)&((*entry)->object);
+	        if (bsb_entry->sme_bsb.left_image_width > l_bmw)
+	    	l_bmw = bsb_entry->sme_bsb.left_image_width;
+	        if (bsb_entry->sme_bsb.right_image_width > r_bmw)
+	    	r_bmw = bsb_entry->sme_bsb.right_image_width;
+	    }
 
-	/* set the margin values */
-	if (smw->simple_menu.left_whitespace)
-	    l_mrgn = l_bmw +
-			(smw->simple_menu.left_whitespace * ((l_bmw) ? 2 : 1));
-	if (smw->simple_menu.right_whitespace)
-	    r_mrgn = r_bmw +
-			(smw->simple_menu.right_whitespace * ((r_bmw) ? 2 : 1));
-
-	/* make all the margins uniform */
-	ForAllChildren(smw, entry)
-	{
-	    if (!IswIsManaged((Widget)*entry)) continue;
-	    if (*entry == smw->simple_menu.label) continue;
-	    if (IswIsSubclass((Widget)*entry, smeLineObjectClass))
-		continue;
-
-	    bsb_entry = (SmeBSBObject)&((*entry)->object);
+	    /* set the margin values */
 	    if (smw->simple_menu.left_whitespace)
-		bsb_entry->sme_bsb.left_margin = l_mrgn;
+	        l_mrgn = l_bmw +
+	    		(smw->simple_menu.left_whitespace * ((l_bmw) ? 2 : 1));
 	    if (smw->simple_menu.right_whitespace)
-		bsb_entry->sme_bsb.right_margin = r_mrgn;
-	}
+	        r_mrgn = r_bmw +
+	    		(smw->simple_menu.right_whitespace * ((r_bmw) ? 2 : 1));
+
+	    /* make all the margins uniform */
+	    ForAllChildren(smw, entry) {
+	        if (!IswIsManaged((Widget)*entry)) continue;
+	        if (*entry == smw->simple_menu.label) continue;
+	        if (IswIsSubclass((Widget)*entry, smeLineObjectClass))
+	    	continue;
+
+	        bsb_entry = (SmeBSBObject)&((*entry)->object);
+	        if (smw->simple_menu.left_whitespace)
+	    	bsb_entry->sme_bsb.left_margin = l_mrgn;
+	        if (smw->simple_menu.right_whitespace)
+	    	bsb_entry->sme_bsb.right_margin = r_mrgn;
+	    }
     }
 }
 
@@ -1912,9 +1902,9 @@ GetMenuWidth(Widget w, Widget w_ent)
 		width = preferred.width;
 	    else
 		width = (*entry)->rectangle.width;
-	}
-	else
+	} else {
 	    width = (*entry)->rectangle.width;
+    }
 
 	if ( width > widest )
 	    widest = width;
@@ -1944,9 +1934,10 @@ GetMenuHeight(Widget w)
     if (smw->simple_menu.row_height == 0) {
 	ForAllChildren(smw, entry)
 	    if (IswIsManaged ((Widget) *entry))
-		height += (*entry)->rectangle.height;
-    } else
-	height += smw->simple_menu.row_height * smw->composite.num_children;
+		    height += (*entry)->rectangle.height;
+    } else {
+	    height += smw->simple_menu.row_height * smw->composite.num_children;
+    }
 
     return(height);
 }
@@ -1968,61 +1959,60 @@ GetEventEntry(Widget w, IswEvent * event)
     int s = 0;
 
     switch (event->kind) {
- case IswMotion:
- case IswEnter:
- case IswLeave:
- case IswButtonDown:
- case IswButtonUp:
-     x_loc = IswEventX(event);
-     y_loc = IswEventY(event);
-     break;
-	default:
-	    IswAppError(IswWidgetToApplicationContext(w),
-		       "Unknown event type in GetEventEntry().");
-	    break;
+        case IswMotion:
+        case IswEnter:
+        case IswLeave:
+        case IswButtonDown:
+        case IswButtonUp:
+            x_loc = IswEventX(event);
+            y_loc = IswEventY(event);
+            break;
+        default:
+            IswAppError(IswWidgetToApplicationContext(w),
+        	       "Unknown event type in GetEventEntry().");
+            break;
     }
 
     if (x_loc < 0 || x_loc >= (int)smw->core.width)
-	return NULL;
+	    return NULL;
     else if (smw->simple_menu.too_tall) {
-	if (y_loc >= smw->simple_menu.last_y && smw->simple_menu.didnt_fit) {
-	    if (last_y_loc && y_loc < last_y_loc) {
-		last_y_loc = y_loc;
-		return NULL;
-	    }
-	    smw->simple_menu.current_first += smw->simple_menu.jump_val;
-	    Redisplay(w, NULL, 0);
-	    last_y_loc = y_loc;
-	    return NULL;
-	} else if (y_loc <= s + SMW_ARROW_SIZE &&
-		smw->simple_menu.first_entry != smw->simple_menu.current_first)
-	{
-	    if (y_loc && (!last_y_loc || y_loc > last_y_loc)) {
-		last_y_loc = y_loc;
-		return NULL;
-	    }
-	    smw->simple_menu.current_first -= smw->simple_menu.jump_val;
-	    Redisplay(w, NULL, 0);
-	    last_y_loc = y_loc;
-	    return NULL;
-	}
-	else
-	    last_y_loc = 0;
+	    if (y_loc >= smw->simple_menu.last_y && smw->simple_menu.didnt_fit) {
+	        if (last_y_loc && y_loc < last_y_loc) {
+	    	last_y_loc = y_loc;
+	    	return NULL;
+	        }
+	        smw->simple_menu.current_first += smw->simple_menu.jump_val;
+	        Redisplay(w, NULL, 0);
+	        last_y_loc = y_loc;
+	        return NULL;
+	    } else if (y_loc <= s + SMW_ARROW_SIZE &&
+	    	smw->simple_menu.first_entry != smw->simple_menu.current_first) {
+	        if (y_loc && (!last_y_loc || y_loc > last_y_loc)) {
+		        last_y_loc = y_loc;
+		        return NULL;
+	        }
+	        smw->simple_menu.current_first -= smw->simple_menu.jump_val;
+	        Redisplay(w, NULL, 0);
+	        last_y_loc = y_loc;
+	        return NULL;
+	    } else {
+	        last_y_loc = 0;
+        }
     } else if (y_loc < 0 || y_loc >= (int)smw->core.height)
-	return NULL;
+	    return NULL;
 
     ForAllChildren(smw, entry) {
-	int tmp_y;
+	    int tmp_y;
 
-	if (!IswIsManaged((Widget)*entry)) continue;
+	    if (!IswIsManaged((Widget)*entry)) continue;
 
-	tmp_y = (*entry)->rectangle.y - smw->simple_menu.first_y;
-	if (tmp_y < y_loc && tmp_y + (int)(*entry)->rectangle.height > y_loc) {
-	    if (*entry == smw->simple_menu.label)
-		return NULL;	/* cannot select the label */
-	    else
-		return *entry;
-	}
+	    tmp_y = (*entry)->rectangle.y - smw->simple_menu.first_y;
+	    if (tmp_y < y_loc && tmp_y + (int)(*entry)->rectangle.height > y_loc) {
+	        if (*entry == smw->simple_menu.label)
+	    	    return NULL;	/* cannot select the label */
+	        else
+	    	    return *entry;
+	        }
     }
 
     return NULL;
@@ -2033,7 +2023,6 @@ static void
 PopupCB(Widget w, IswPointer client_data, IswPointer call_data)
 {
     SimpleMenuWidget smw = (SimpleMenuWidget)w;
-
     smw->simple_menu.state &= ~SMW_UNMAPPING;
 }
 
@@ -2043,8 +2032,8 @@ static void
 CancelSubMenuTimer(SimpleMenuWidget smw)
 {
     if (smw->simple_menu.submenu_timer) {
-	IswRemoveTimeOut(smw->simple_menu.submenu_timer);
-	smw->simple_menu.submenu_timer = (IswIntervalId)0;
+	    IswRemoveTimeOut(smw->simple_menu.submenu_timer);
+	    smw->simple_menu.submenu_timer = (IswIntervalId)0;
     }
 }
 
@@ -2055,7 +2044,7 @@ SubMenuTimerCB(IswPointer closure, IswIntervalId *id)
     (void)id;
     smw->simple_menu.submenu_timer = (IswIntervalId)0;
     if (smw->simple_menu.entry_set != NULL)
-	PopupSubMenu(smw);
+	    PopupSubMenu(smw);
 }
 
 static void
@@ -2080,15 +2069,15 @@ PopupSubMenu(SimpleMenuWidget smw)
     int avail_w, avail_h;
 
     if (entry->sme_bsb.menu_name == NULL)
-	return;
+	    return;
 
     if ((menu = FindMenu((Widget)smw, entry->sme_bsb.menu_name)) == NULL)
-	return;
+	    return;
 
     smw->simple_menu.sub_menu = menu;
 
     if (!IswIsRealized(menu))
-	IswRealizeWidget(menu);
+	    IswRealizeWidget(menu);
 
     popleft = (smw->simple_menu.state & SMW_POPLEFT) != 0;
 
@@ -2099,46 +2088,45 @@ PopupSubMenu(SimpleMenuWidget smw)
      * submenu is windowless and lives in the same window as its parent.
      */
     if (popleft)
-	IswTranslateCoords((Widget)smw, -(int)IswWidth(menu),
+	    IswTranslateCoords((Widget)smw, -(int)IswWidth(menu),
 			  IswY(entry) - IswBorderWidth(menu), &root_x, &root_y);
     else
-	IswTranslateCoords((Widget)smw, IswWidth(smw), IswY(entry)
+	    IswTranslateCoords((Widget)smw, IswWidth(smw), IswY(entry)
 			  - IswBorderWidth(menu), &root_x, &root_y);
 
     ancestor = _IswWidgetAncestor(menu);
     if (ancestor != NULL) {
-	_IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
-	avail_w = (int) ancestor->core.width;
-	avail_h = (int) ancestor->core.height;
+	    _IswShellGetCoordinates(ancestor, &anc_root_x, &anc_root_y);
+	    avail_w = (int) ancestor->core.width;
+	    avail_h = (int) ancestor->core.height;
     } else {
-	double sf = _IswGetScaleFactor(IswDisplayOf(menu));
-	avail_w = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
-	avail_h = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
+	    double sf = _IswGetScaleFactor(IswDisplayOf(menu));
+	    avail_w = (int)lrint(_IswPlatformScreenWidth(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
+	    avail_h = (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(menu), IswScreenOf(menu)) / sf);
     }
 
     menu_x = (int) root_x - anc_root_x;
     menu_y = (int) root_y - anc_root_y;
 
     if (!popleft && menu_x >= 0) {
-	if (menu_x + (int)IswWidth(menu) > avail_w) {
-	    menu_x -= (int)IswWidth(menu) + (int)IswWidth(smw);
-	    popleft = True;
-	}
-    }
-    else if (popleft && menu_x < 0) {
-	menu_x = 0;
-	popleft = False;
+	    if (menu_x + (int)IswWidth(menu) > avail_w) {
+	        menu_x -= (int)IswWidth(menu) + (int)IswWidth(smw);
+	        popleft = True;
+	    }
+    } else if (popleft && menu_x < 0) {
+	    menu_x = 0;
+	    popleft = False;
     }
 
     if (menu_y >= 0 && menu_y + (int)IswHeight(menu) > avail_h)
-	menu_y = avail_h - (int)IswHeight(menu) - (int)IswBorderWidth(menu);
+	    menu_y = avail_h - (int)IswHeight(menu) - (int)IswBorderWidth(menu);
     if (menu_y < 0)
-	menu_y = 0;
+	    menu_y = 0;
 
     if (popleft)
-	((SimpleMenuWidget)menu)->simple_menu.state |= SMW_POPLEFT;
+	    ((SimpleMenuWidget)menu)->simple_menu.state |= SMW_POPLEFT;
     else
-	((SimpleMenuWidget)menu)->simple_menu.state &= ~SMW_POPLEFT;
+	    ((SimpleMenuWidget)menu)->simple_menu.state &= ~SMW_POPLEFT;
 
     IswSimpleMenuShow(menu, menu_x, menu_y);
 }
@@ -2150,20 +2138,20 @@ Popdown(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
     SmeObject entry = smw->simple_menu.entry_set;
 
     if (entry != NULL &&
-	IswIsSubclass((Widget)entry, smeBSBObjectClass) &&
-	((SmeBSBObject)entry)->sme_bsb.menu_name != NULL) {
-	PopupSubMenu(smw);
-	return;
+	    IswIsSubclass((Widget)entry, smeBSBObjectClass) &&
+	    ((SmeBSBObject)entry)->sme_bsb.menu_name != NULL) {
+	    PopupSubMenu(smw);
+	    return;
     }
 
     while (IswParent(w) &&
 	   IswIsSubclass(IswParent(w), simpleMenuWidgetClass)) {
-	if (((SimpleMenuWidget)IswParent(w))->simple_menu.sub_menu == (Widget)w)
-	{
-	    w = IswParent(w);
-	    smw = (SimpleMenuWidget)w;
-	    smw->simple_menu.entry_set = NULL;
-	}
+	        if (((SimpleMenuWidget)IswParent(w))->simple_menu.sub_menu == (Widget)w)
+	        {
+	            w = IswParent(w);
+	            smw = (SimpleMenuWidget)w;
+	            smw->simple_menu.entry_set = NULL;
+	        }
 	else
 	    break;
     }
@@ -2220,9 +2208,9 @@ AccelNotify(Widget w, IswEvent *iswev, String *params, Cardinal *num_params)
 	    ((SmeBSBObject)*entry)->sme_bsb.menu_name != NULL)
 	    return;
 
-	class = (SmeObjectClass) (*entry)->object.widget_class;
-	(class->sme_class.notify)((Widget)*entry);
-	return;
+	    class = (SmeObjectClass) (*entry)->object.widget_class;
+	    (class->sme_class.notify)((Widget)*entry);
+	    return;
     }
 }
 
@@ -2246,17 +2234,17 @@ IswSimpleMenuInstallAccelerators(Widget destination, Widget menu)
     pos = snprintf(buf, sizeof(buf), "#override");
 
     ForAllChildren(smw, entry) {
-	SmeBSBObject bsb;
+	    SmeBSBObject bsb;
 
-	if (!IswIsManaged((Widget)*entry)) continue;
-	if (!IswIsSubclass((Widget)*entry, smeBSBObjectClass)) continue;
+	    if (!IswIsManaged((Widget)*entry)) continue;
+	    if (!IswIsSubclass((Widget)*entry, smeBSBObjectClass)) continue;
 
-	bsb = (SmeBSBObject) *entry;
-	if (bsb->sme_bsb.accelerator == NULL) continue;
+	    bsb = (SmeBSBObject) *entry;
+	    if (bsb->sme_bsb.accelerator == NULL) continue;
 
-	pos += snprintf(buf + pos, sizeof(buf) - pos, "\n %s: accel-notify(%s)",
+	    pos += snprintf(buf + pos, sizeof(buf) - pos, "\n %s: accel-notify(%s)",
 			bsb->sme_bsb.accelerator, IswName((Widget)*entry));
-	if ((size_t)pos >= sizeof(buf) - 1) break;
+	    if ((size_t)pos >= sizeof(buf) - 1) break;
     }
 
     if (pos <= (int)strlen("#override")) return;

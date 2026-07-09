@@ -988,6 +988,7 @@ OpenDropdown(Widget w)
         IswDestroyWidget(lw->list.popup_shell);
         lw->list.popup_shell = NULL;
     }
+    
     if (lw->list.popup_entries) {
         IswFree(lw->list.popup_entries);
         lw->list.popup_entries = NULL;
@@ -1029,69 +1030,62 @@ OpenDropdown(Widget w)
                       (IswPointer)&lw->list.popup_entries[i]);
     }
 
-    {
-        static char dropdownTranslations[] =
-            "<EnterWindow>:     highlight()             \n\
-             <LeaveWindow>:     unhighlight()           \n\
-             <Motion>:          highlight()             \n\
-             <BtnMotion>:       highlight()             \n\
-             <Btn4Down>:        scroll-up()              \n\
-             <Btn5Down>:        scroll-down()            \n\
-             <Btn1Down>:        highlight()             \n\
-             <Btn1Up>:          notify() unhighlight() popdown()";
-        IswOverrideTranslations(lw->list.popup_shell,
-            IswParseTranslationTable(dropdownTranslations));
+    static char dropdownTranslations[] =
+        "<EnterWindow>:     highlight()             \n\
+         <LeaveWindow>:     unhighlight()           \n\
+         <Motion>:          highlight()             \n\
+         <BtnMotion>:       highlight()             \n\
+         <Btn4Down>:        scroll-up()              \n\
+         <Btn5Down>:        scroll-down()            \n\
+         <Btn1Down>:        highlight()             \n\
+         <Btn1Up>:          notify() unhighlight() popdown()";
+    IswOverrideTranslations(lw->list.popup_shell,
+        IswParseTranslationTable(dropdownTranslations));
+    
+    int avail_h = (host != NULL) ? (int)host->core.height
+        : (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w))
+                     / _IswGetScaleFactor(IswDisplayOf(w)));
+    int space_below = avail_h - below_y;
+    int space_above = abs_y;
+    Position popup_y = below_y;
+
+    IswRealizeWidget(lw->list.popup_shell);
+
+    int menu_h = (int)lw->list.popup_shell->core.height;
+
+    if (menu_h > space_below && space_above > space_below) {
+        popup_y = abs_y - menu_h;
+        if (popup_y < 0)
+            popup_y = 0;
     }
 
-    {
-        int avail_h = (host != NULL) ? (int)host->core.height
-            : (int)lrint(_IswPlatformScreenHeight(IswDisplayOf(w), IswScreenOf(w))
-                         / _IswGetScaleFactor(IswDisplayOf(w)));
-        int space_below = avail_h - below_y;
-        int space_above = abs_y;
-        Position popup_y = below_y;
-
-        IswRealizeWidget(lw->list.popup_shell);
-
-        int menu_h = (int)lw->list.popup_shell->core.height;
-
-        if (menu_h > space_below && space_above > space_below) {
-            popup_y = abs_y - menu_h;
-            if (popup_y < 0)
-                popup_y = 0;
-        }
-
-        int avail = (popup_y == below_y) ? space_below : (abs_y - popup_y);
-        if (menu_h > avail && avail > 0) {
-            SimpleMenuWidget smw = (SimpleMenuWidget)lw->list.popup_shell;
-            smw->simple_menu.too_tall = TRUE;
-            IswArgBuilderReset(&ab);
-            IswArgHeight(&ab, (Dimension)avail);
-            IswSetValues(lw->list.popup_shell, ab.args, ab.count);
-        }
-
-        IswSimpleMenuShow(lw->list.popup_shell, (int)abs_x, (int)popup_y);
+    int avail = (popup_y == below_y) ? space_below : (abs_y - popup_y);
+    if (menu_h > avail && avail > 0) {
+        SimpleMenuWidget smw = (SimpleMenuWidget)lw->list.popup_shell;
+        smw->simple_menu.too_tall = TRUE;
+        IswArgBuilderReset(&ab);
+        IswArgHeight(&ab, (Dimension)avail);
+        IswSetValues(lw->list.popup_shell, ab.args, ab.count);
     }
 
-    {
-        Widget shell = w;
-        while (shell && !IswIsShell(shell))
-            shell = IswParent(shell);
-        if (shell)
-            IswAddEventHandler(shell,
-                              IswFocusChangeMask | IswStructureNotifyMask |
-                              IswVisibilityChangeMask,
-                              False, DropdownDismissHandler, (IswPointer)lw);
+    IswSimpleMenuShow(lw->list.popup_shell, (int)abs_x, (int)popup_y);
+    
+    Widget shell = w;
+    while (shell && !IswIsShell(shell))
+        shell = IswParent(shell);
+    if (shell)
+        IswAddEventHandler(shell,
+                          IswFocusChangeMask | IswStructureNotifyMask |
+                          IswVisibilityChangeMask,
+                          False, DropdownDismissHandler, (IswPointer)lw);
+      
+    Widget ancestor = IswParent(w);
+    while (ancestor && !IswIsShell(ancestor)) {
+        IswAddEventHandler(ancestor, IswStructureNotifyMask, False,
+                          DropdownDismissHandler, (IswPointer)lw);
+        ancestor = IswParent(ancestor);
     }
-
-    {
-        Widget ancestor = IswParent(w);
-        while (ancestor && !IswIsShell(ancestor)) {
-            IswAddEventHandler(ancestor, IswStructureNotifyMask, False,
-                              DropdownDismissHandler, (IswPointer)lw);
-            ancestor = IswParent(ancestor);
-        }
-    }
+    
 
     IswAddCallback(lw->list.popup_shell, IswNpopdownCallback,
                   DropdownPopdownCB, (IswPointer)lw);

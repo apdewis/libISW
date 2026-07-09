@@ -416,13 +416,12 @@ OpenMenu(MenuBarWidget mbw, Widget button)
     IswAddCallback(menu, IswNpopdownCallback, MenuPopdownCB, (IswPointer)mbw);
 
     /* Install click-outside handler on toplevel shell */
-    {
-        Widget toplevel = FindToplevelShell((Widget)mbw);
-        if (toplevel)
-            IswAddEventHandler(toplevel, DISMISS_MASK, False,
-                              OutsideClickHandler, (IswPointer)mbw);
-    }
-
+    
+    Widget toplevel = FindToplevelShell((Widget)mbw);
+    if (toplevel)
+        IswAddEventHandler(toplevel, DISMISS_MASK, False,
+                          OutsideClickHandler, (IswPointer)mbw);
+    
     mbw->menu_bar.active_button = button;
     mbw->menu_bar.active_menu = menu;
     mbw->menu_bar.menu_is_open = TRUE;
