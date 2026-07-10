@@ -787,7 +787,6 @@ Widget create_viewport_demo(Widget parent) {
     IswArgAllowVert(&ab, True);
     IswArgUseBottom(&ab, True);
     IswArgUseRight(&ab, True);
-    IswArgCornerRadius(&ab, 5);
     viewport = IswCreateManagedWidget("viewport", viewportWidgetClass,
                                      viewport_container, ab.args, ab.count);
 
@@ -2449,6 +2448,7 @@ Widget create_spinbox_demo(Widget parent) {
     IswArgSpinMaximum(&ab, 100);
     IswArgSpinValue(&ab, 50);
     IswArgSpinIncrement(&ab, 1);
+    IswArgCornerRadius(&ab, 5);
     IswArgWidth(&ab, 120);
     spin1 = IswCreateManagedWidget("spin1", spinBoxWidgetClass, box, ab.args, ab.count);
     IswAddCallback(spin1, IswNvalueChanged, spinbox_callback, (IswPointer)"Spin1");

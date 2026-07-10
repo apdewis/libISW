@@ -420,7 +420,7 @@ PositionVScrollBar(TextWidget ctx)
   }
 
   if (ctx->text.use_bottom)
-    pos_y = 0;
+    pos_y = 0 - bw;
   else
     pos_y = (Position)hbar_space;
 

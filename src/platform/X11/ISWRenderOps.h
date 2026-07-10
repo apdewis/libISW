@@ -59,6 +59,13 @@ typedef struct _IswSurfaceOps {
        `window` is the root's window; width/height are physical-pixel extent. */
     void (*present_root)(IswSurface surface, Widget widget, IswWindow window,
                          int width, int height);
+
+    /* Draw the deferred border ring on `surface` after all windowless children
+       have been folded onto it.  Called by the composite pass so that clipped
+       child widgets (scrollbars, etc.) do not overlay the border.  Backends
+       store border parameters during begin() and paint them here.  No-op if
+       the surface has no deferred border ring. */
+    void (*draw_border_ring)(IswSurface surface, Widget widget);
 } IswSurfaceOps;
 
 /*

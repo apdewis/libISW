@@ -632,6 +632,11 @@ _isw_composite_one(Widget child, IswSurface dst, Widget dst_widget,
     /* Fold this child's own descendants into its surface first (bottom-up). */
     _isw_composite_children_into(child, child_surface);
 
+    /* Draw the deferred border ring on top of folded children so that clipped
+       child widgets (scrollbars, etc.) do not overlay the border. */
+    if (_isw_surface_ops && _isw_surface_ops->draw_border_ring)
+        _isw_surface_ops->draw_border_ring(child_surface, child);
+
     /* Then fold the child's surface into dst at the child's position. */
     if (_isw_surface_ops && _isw_surface_ops->composite_onto) {
         _isw_fold_count++;
@@ -720,6 +725,8 @@ _isw_composite_overlay_one(Widget overlay, IswSurface dst, Widget dst_widget,
 
     if (surf != NULL) {
         _isw_composite_children_into(overlay, surf);
+        if (_isw_surface_ops && _isw_surface_ops->draw_border_ring)
+            _isw_surface_ops->draw_border_ring(surf, overlay);
         if (_isw_surface_ops && _isw_surface_ops->composite_onto) {
             _isw_fold_count++;
             _isw_surface_ops->composite_onto(dst, dst_widget, surf, overlay,
@@ -845,6 +852,11 @@ ISWRenderCompositeSubtree(Widget windowed_root)
         filled_bg = True;
     }
     _isw_composite_children_into(windowed_root, root_surface);
+
+    /* Draw the deferred border ring on the root surface on top of folded
+       children so that clipped child widgets do not overlay the border. */
+    if (_isw_surface_ops && _isw_surface_ops->draw_border_ring)
+        _isw_surface_ops->draw_border_ring(root_surface, windowed_root);
 
     /* Final top pass: fold in-window popup-menu overlays above all content so
        they are never painted over by later-in-tree siblings (tabs, panes). */

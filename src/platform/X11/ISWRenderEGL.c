@@ -750,24 +750,6 @@ egl_surface_end(IswSurface s, Widget widget, IswWindow window)
     }
     s->frame_depth = 0;
 
-    /* Draw deferred border ring on top of widget content so the background
-       fill's AA fringe at rounded corners doesn't overwrite the border. */
-    if (g_active_surface == s && s->has_border_ring) {
-        nvgResetTransform(g_egl.vg);
-        nvgResetScissor(g_egl.vg);
-        nvgBeginPath(g_egl.vg);
-        if (s->border_radius > 0)
-            nvgRoundedRect(g_egl.vg, s->border_half, s->border_half,
-                           s->border_fw, s->border_fh, s->border_radius);
-        else
-            nvgRect(g_egl.vg, s->border_half, s->border_half,
-                    s->border_fw, s->border_fh);
-        nvgStrokeColor(g_egl.vg, s->border_color);
-        nvgStrokeWidth(g_egl.vg, s->border_width);
-        nvgStroke(g_egl.vg);
-        s->has_border_ring = False;
-    }
-
     /* Finish NanoVG drawing into the bound FBO. */
     if (g_active_surface == s) {
         nvgEndFrame(g_egl.vg);
@@ -783,6 +765,37 @@ egl_surface_end(IswSurface s, Widget widget, IswWindow window)
     /* Windowed root that painted its own content (self-paint path): present it
        now.  The composite-pass path presents via present_root instead. */
     egl_present_to_window(s, window);
+}
+
+static void
+egl_draw_border_ring(IswSurface s, Widget widget)
+{
+    if (!s || !s->has_border_ring || s->fbo == 0)
+        return;
+
+    double sf = s->scale > 0 ? s->scale : 1.0;
+
+    egl_flush_composite_frame();
+    egl_make_current(EGL_NO_SURFACE);
+    glBindFramebuffer(GL_FRAMEBUFFER, s->fbo);
+    glViewport(0, 0, s->back_w, s->back_h);
+    nvgBeginFrame(g_egl.vg,
+                  (float) (s->back_w / sf),
+                  (float) (s->back_h / sf),
+                  (float) sf);
+
+    nvgBeginPath(g_egl.vg);
+    if (s->border_radius > 0)
+        nvgRoundedRect(g_egl.vg, s->border_half, s->border_half,
+                       s->border_fw, s->border_fh, s->border_radius);
+    else
+        nvgRect(g_egl.vg, s->border_half, s->border_half,
+                s->border_fw, s->border_fh);
+    nvgStrokeColor(g_egl.vg, s->border_color);
+    nvgStrokeWidth(g_egl.vg, s->border_width);
+    nvgStroke(g_egl.vg);
+
+    nvgEndFrame(g_egl.vg);
 }
 
 /* present_root: present a folded composite root surface to its window.  Called
@@ -1600,6 +1613,7 @@ const IswSurfaceOps isw_surface_egl_ops = {
     .composite_onto  = egl_surface_composite_onto,
     .fill_background = egl_surface_fill_background,
     .present_root    = egl_surface_present_root,
+    .draw_border_ring = egl_draw_border_ring,
 };
 
 #endif /* HAVE_EGL */

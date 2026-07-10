@@ -85,6 +85,15 @@ struct _IswSurface {
      * a parent widget can wrap the entire paint in one frame while child
      * widgets keep their own begin/end calls without causing extra blits. */
     int frame_depth;
+
+    /* Deferred border ring (drawn by the composite pass after windowless
+       children are folded, so scrollbars etc. do not overlay radiused borders). */
+    Boolean           has_border_ring;
+    Pixel             border_pixel;
+    double            border_width;
+    double            border_half;
+    double            border_fw, border_fh;
+    double            border_radius;
 };
 
 /* The backend's data IS its IswSurface; keep the historical name as an alias so
@@ -392,7 +401,6 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
      * no ancestor-sized surface — the surface boundary IS the clip. */
     if (widget && !IswIsShell(widget)) {
         double sf;
-        int bw;
         Dimension pw, ph;
 
         if (data->frame_depth > 0) {
@@ -414,7 +422,6 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
 
         sf = _IswGetScaleFactor(IswDisplayOf(widget));
         IswBorderSides bs = _IswGetBorderSides(widget);
-        bw = (int) widget->core.border_width;
 
         /* Virtual origin: Viewport set a tile region — size the back surface
          * to the tile, not the full (possibly huge) widget footprint. */
@@ -488,42 +495,31 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
 
         /* Border: stroke the border ring.  Skipped for widgets that paint
          * their own border (self_border, e.g. ProgressBar).  When all four
-         * sides are equal, stroke a centered rectangle (or rounded rect);
-         * otherwise fill four independent edge rectangles. */
+         * sides are equal, defer the stroke until after children are folded;
+         * otherwise fill four independent edge rectangles immediately. */
         Dimension ring_r = widget->core.corner_radius;
         Boolean has_border = (bs.top || bs.right || bs.bottom || bs.left) &&
             !(IswIsSubclass(widget, simpleWidgetClass) &&
               ((SimpleWidget) widget)->simple.self_border);
 
+        data->has_border_ring = False;
         if (has_border) {
             Pixel bp = widget->core.border_pixel;
-            cairo_save(data->cairo_ctx);
-            cairo_set_source_rgb(data->cairo_ctx,
-                ((bp >> 16) & 0xff) / 255.0,
-                ((bp >>  8) & 0xff) / 255.0,
-                ((bp      ) & 0xff) / 255.0);
 
             if (_IswBorderIsUniform(bs)) {
-                double cw_ = widget->core.width;
-                double ch = widget->core.height;
-                double half = bs.top / 2.0;
-                double rx = half, ry = half;
-                double rw = cw_ + bs.top, rh = ch + bs.top;
-                cairo_new_path(data->cairo_ctx);
-                if (ring_r > 0) {
-                    double r = ring_r + half;
-                    cairo_new_sub_path(data->cairo_ctx);
-                    cairo_arc(data->cairo_ctx, rx + rw - r, ry + r,      r, -M_PI/2, 0);
-                    cairo_arc(data->cairo_ctx, rx + rw - r, ry + rh - r, r, 0,       M_PI/2);
-                    cairo_arc(data->cairo_ctx, rx + r,      ry + rh - r, r, M_PI/2,  M_PI);
-                    cairo_arc(data->cairo_ctx, rx + r,      ry + r,      r, M_PI,    3*M_PI/2);
-                    cairo_close_path(data->cairo_ctx);
-                } else {
-                    cairo_rectangle(data->cairo_ctx, rx, ry, rw, rh);
-                }
-                cairo_set_line_width(data->cairo_ctx, bs.top);
-                cairo_stroke(data->cairo_ctx);
+                data->has_border_ring = True;
+                data->border_pixel = bp;
+                data->border_width = (double) bs.top;
+                data->border_half = bs.top / 2.0;
+                data->border_fw = (double) (widget->core.width + bs.top);
+                data->border_fh = (double) (widget->core.height + bs.top);
+                data->border_radius = ring_r > 0 ? (double) ring_r + data->border_half : 0;
             } else {
+                cairo_save(data->cairo_ctx);
+                cairo_set_source_rgb(data->cairo_ctx,
+                    ((bp >> 16) & 0xff) / 255.0,
+                    ((bp >>  8) & 0xff) / 255.0,
+                    ((bp      ) & 0xff) / 255.0);
                 double fw = widget->core.width + _IswBorderHoriz(bs);
                 double fh = widget->core.height + _IswBorderVert(bs);
                 if (bs.top > 0)
@@ -538,8 +534,8 @@ cairo_xcb_surface_begin(IswSurface data, Widget widget)
                     cairo_rectangle(data->cairo_ctx, fw - bs.right, bs.top,
                                     bs.right, fh - bs.top - bs.bottom);
                 cairo_fill(data->cairo_ctx);
+                cairo_restore(data->cairo_ctx);
             }
-            cairo_restore(data->cairo_ctx);
         }
 
         /* Content draws at local (0,0) = inside the border ring. */
@@ -733,6 +729,51 @@ _ISWRenderSurfacePresentSource(IswSurface data,
         if (copy_h) *copy_h = (unsigned int)(data->back_h * sf + 0.5);
     }
     return True;
+}
+
+static void
+cairo_xcb_draw_border_ring(IswSurface data, Widget widget)
+{
+    cairo_t *cr;
+
+    if (!data || !data->has_border_ring)
+        return;
+
+    cr = data->back_ctx ? data->back_ctx : data->window_ctx;
+    if (!cr)
+        return;
+
+    cairo_save(cr);
+    cairo_identity_matrix(cr);
+    cairo_reset_clip(cr);
+
+    cairo_set_source_rgb(cr,
+        ((data->border_pixel >> 16) & 0xff) / 255.0,
+        ((data->border_pixel >>  8) & 0xff) / 255.0,
+        ((data->border_pixel      ) & 0xff) / 255.0);
+
+    cairo_new_path(cr);
+    if (data->border_radius > 0) {
+        double r = data->border_radius;
+        double half = data->border_half;
+        double rw = data->border_fw;
+        double rh = data->border_fh;
+        cairo_new_sub_path(cr);
+        cairo_arc(cr, half + rw - r, half + r,      r, -M_PI/2, 0);
+        cairo_arc(cr, half + rw - r, half + rh - r, r, 0,       M_PI/2);
+        cairo_arc(cr, half + r,      half + rh - r, r, M_PI/2,  M_PI);
+        cairo_arc(cr, half + r,      half + r,      r, M_PI,    3*M_PI/2);
+        cairo_close_path(cr);
+    } else {
+        cairo_rectangle(cr, data->border_half, data->border_half,
+                        data->border_fw, data->border_fh);
+    }
+    cairo_set_line_width(cr, data->border_width);
+    cairo_stroke(cr);
+
+    cairo_restore(cr);
+    if (data->back_surface)
+        cairo_surface_flush(data->back_surface);
 }
 
 static void
@@ -2168,7 +2209,8 @@ const IswSurfaceOps isw_surface_cairo_xcb_ops = {
     .end = cairo_xcb_surface_end,
     .composite_onto = cairo_xcb_composite_onto,
     .fill_background = cairo_xcb_fill_background,
-    .present_root = cairo_xcb_present_root
+    .present_root = cairo_xcb_present_root,
+    .draw_border_ring = cairo_xcb_draw_border_ring
 };
 
 
